@@ -682,7 +682,6 @@ static int bfin_adv7393_fb_open(struct fb_info *info, int user)
 	struct adv7393fb_device *fbdev = to_adv7393fb_device(info);
 
 	fbdev->info.screen_base = (void *)fbdev->fb_mem;
-	bfin_adv7393_fb_fix.smem_start = (int)fbdev->fb_mem;
 	if (!fbdev->info.screen_base) {
 		printk(KERN_ERR "bfin_adv7393_fb: unable to map device\n");
 		return -ENOMEM;

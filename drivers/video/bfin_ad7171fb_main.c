@@ -581,7 +581,7 @@ int __init bfin_ad7171_fb_init(void)
 	bfin_ad7171_fb.fbops = &bfin_ad7171_fb_ops;
 	bfin_ad7171_fb.var = bfin_ad7171_fb_defined;
 	/* our physical memory is dynamically allocated */
-	bfin_ad7171_fb_fix.smem_start	= (int)rgb_buffer;
+
 	bfin_ad7171_fb.fix = bfin_ad7171_fb_fix;
 	bfin_ad7171_fb.par = &bfin_par;
 	bfin_ad7171_fb.flags = FBINFO_DEFAULT;
@@ -611,7 +611,7 @@ static int bfin_ad7171_fb_open(struct fb_info *info, int user)
 	}
 
 	bfin_ad7171_fb.screen_base = (void *)rgb_buffer;
-	bfin_ad7171_fb_fix.smem_start = (int)rgb_buffer;
+
 	if (!bfin_ad7171_fb.screen_base) {
 		printk(KERN_ERR "bfin_ad7171_fb: unable to map device\n");
 		return -ENOMEM;
