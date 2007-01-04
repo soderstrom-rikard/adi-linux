@@ -138,6 +138,21 @@ static irqreturn_t ad1981b_tx_handler(int irq, void *dev_id,
 }
 #endif
 
+static int ac97_sport_handle_irq(void)
+{
+
+	int irqstatus;
+
+	if (ac97_sport_handle_rx() == 0)
+		irqstatus |= 0x01;
+
+	if (ac97_sport_handle_tx() == 0)
+		irqstatus |= 0x02;
+
+	return irqstatus;
+
+}
+
 #ifdef IRQ_SPORT0
 static void ad1981b_handler(int irq, void *dev_id, struct pt_regs *regs)
 {
@@ -184,20 +199,6 @@ static void ad1981b_handler(int irq, void *dev_id, struct pt_regs *regs)
 }
 #endif
 
-static int ac97_sport_handle_irq(void)
-{
-
-	int irqstatus;
-
-	if (ac97_sport_handle_rx() == 0)
-		irqstatus |= 0x01;
-
-	if (ac97_sport_handle_tx() == 0)
-		irqstatus |= 0x02;
-
-	return irqstatus;
-
-}
 
 /*
  * the kernel representation
