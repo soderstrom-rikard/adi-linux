@@ -101,11 +101,15 @@ ENTRY(__stext)
 	R0 = R0 & R1;
 
 	/* Anomaly 05000125 */
+#ifdef ANOMALY_05000125
 	CLI R2;
 	SSYNC;
+#endif
 	[p0] = R0;
 	SSYNC;
+#ifdef ANOMALY_05000125
 	STI R2;
+#endif
 
 	/* Turn off the dcache */
 	p0.l = (DMEM_CONTROL & 0xFFFF);
@@ -115,11 +119,15 @@ ENTRY(__stext)
 	R0 = R0 & R1;
 
 	/* Anomaly 05000125 */
+#ifdef ANOMALY_05000125
 	CLI R2;
 	SSYNC;
+#endif
 	[p0] = R0;
 	SSYNC;
+#ifdef ANOMALY_05000125
 	STI R2;
+#endif
 
 	/* Initialise UART*/
 	p0.h = hi(UART_LCR);
