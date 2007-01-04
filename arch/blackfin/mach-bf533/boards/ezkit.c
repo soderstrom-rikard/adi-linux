@@ -176,6 +176,23 @@ static struct platform_device spi_bfin_master_device = {
 };
 #endif  /* spi master and devices */
 
+#if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
+static struct resource bfin_uart_resources[] = {
+       {
+               .start = 0xFFC00400,
+               .end = 0xFFC004FF,
+               .flags = IORESOURCE_MEM,
+       },
+};
+
+static struct platform_device bfin_uart_device = {
+       .name = "bfin-uart",
+       .id = 1,
+       .num_resources = ARRAY_SIZE(bfin_uart_resources),
+       .resource = bfin_uart_resources,
+};
+#endif
+
 static struct platform_device *ezkit_devices[] __initdata = {
 #if defined(CONFIG_SMC91X) || defined(CONFIG_SMC91X_MODULE)
 	&smc91x_device,
@@ -183,6 +200,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
 	&spi_bfin_master_device,
+#endif
+
+#if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
+        &bfin_uart_device,
 #endif
 };
 
