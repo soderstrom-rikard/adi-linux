@@ -96,7 +96,7 @@ config TWI_KEYPAD
 	  subsystem. The keypad is connetced via I2C with a PCF8574. 
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called twi_keyqad.
+	  module will be called twi_keypad.
 
 config BFIN_TWIKEYPAD_IRQ_PFX
 	int "GPIO for Interrupt"
