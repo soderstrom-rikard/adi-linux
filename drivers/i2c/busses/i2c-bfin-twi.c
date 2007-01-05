@@ -539,6 +539,7 @@ static int __init i2c_bfin_twi_init(void)
 static void __exit i2c_bfin_twi_exit(void)
 {
 	i2c_del_adapter(&twi_iface.adap);
+	free_irq(twi_iface.irq, &twi_iface);
 }
 
 MODULE_AUTHOR("Sonic Zhang <sonic.zhang@analog.com>");
