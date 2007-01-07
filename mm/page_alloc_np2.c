@@ -4,8 +4,6 @@
  *  Manages the free list, the system allocates free pages here.
  *  Note that kmalloc() lives in slab.c
  *
- *  See Documentation/nommu-np2.txt for more info.
- *
  *  Copyright (C) 1991, 1992, 1993, 1994  Linus Torvalds
  *  Swap reorganised 29.12.95, Stephen Tweedie
  *  Support of BIGMEM added by Gerhard Wichert, Siemens AG, July 1999
@@ -14,7 +12,7 @@
  *  Zone balancing, Kanoj Sarcar, SGI, Jan 2000
  *  Per cpu hot/cold page lists, bulk allocation, Martin J. Bligh, Sept 2002
  *          (lots of bits borrowed from Ingo Molnar & Andrew Morton)
- *  Added non power of 2 logic 04/02/2006 Phil Wilshire 
+ *  Non power of 2 logic, Aubrey Li, ADI, Jan 2007
  */
 
 #include <linux/stddef.h>
@@ -41,19 +39,9 @@
 #include <linux/mempolicy.h>
 #include <linux/stop_machine.h>
 
-#include <linux/proc_fs.h>
-
 #include <asm/tlbflush.h>
 #include <asm/div64.h>
 #include "internal.h"
-
-#undef NP2_DEBUG
-
-#ifdef NP2_DEBUG
-# define PRINTK(fmt, args...) printk(KERN_DEBUG "NP2:%s:%i: " fmt, __FUNCTION__, __LINE__, ## args)
-#else
-# define PRINTK(fmt, args...)
-#endif
 
 /*
  * MCD - HACK: Find somewhere to initialize this EARLY, or make this
@@ -68,23 +56,6 @@ unsigned long totalhigh_pages __read_mostly;
 unsigned long totalreserve_pages __read_mostly;
 long nr_swap_pages;
 int percpu_pagelist_fraction;
-
-static int np2_pagevec;
-static int np2_hot_pages;
-static int np2_cold_pages;
-static int np2_unalloc;
-static int np2_msize;
-
-static int np2_num_allocs;
-static int np2_num_frees;
-static char np2_pbuff[8096];
-static int use_np2 = 1;
-
-static void np2_set_page_size(struct page *page, int size);
-static void np2_clear_page_size(struct page *page, int size, int order);
-static int np2_merge_pages(void);
-static void np2_show_pages(int spaces, int holes, int check);
-static void np2_show_list(void);
 
 static void __free_pages_ok(struct page *page, unsigned int order);
 
@@ -115,562 +86,6 @@ int min_free_kbytes = 1024;
 
 unsigned long __meminitdata nr_kernel_pages;
 unsigned long __meminitdata nr_all_pages;
-
-static int np2_get_size(int order)
-{
-	int size;
-	if (order > 32) {
-		size = order - 32;
-	} else {
-		size = (1 << order);
-	}
-	return size;
-}
-
-/* TODO: add this to bootmem.c */
-/* initial set up */
-void np2_setup(pg_data_t * pgdat)
-{
-	struct page *page;
-	unsigned int i, idx;
-	bootmem_data_t *bdata = pgdat->bdata;
-
-	page = virt_to_page(phys_to_virt(bdata->node_boot_start));
-	idx = bdata->node_low_pfn - (bdata->node_boot_start >> PAGE_SHIFT);
-
-	PRINTK("page %08x idx %d page[idx] %08x \n",
-	       (unsigned int)page, idx, (unsigned int)&page[idx]);
-
-	/* set them all to 0 */
-	for (i = 0; i < idx; i++) {
-		page->np2_size = 0;
-		page++;
-	}
-	return;
-}
-
-/* A lot of the proc interfaces simply use printk to display data */
-static int
-np2_list_proc(char *buf, char **start, off_t off,
-	      int count, int *eof, void *data)
-{
-	char *p = buf;
-	if (off == 0) {
-		p += sprintf(p, "Free memory list \n");
-		np2_show_list();
-		printk(" list %s \n", np2_pbuff);
-		p += sprintf(p, "pagevec %d \n", np2_pagevec);
-		p += sprintf(p, "hot pages %d \n", np2_hot_pages);
-		p += sprintf(p, "cold pages %d \n", np2_cold_pages);
-		p += sprintf(p, "unalloc pages %d \n", np2_unalloc);
-	}
-
-	return p - buf;
-}
-
-static int
-np2_merge_proc(char *buf, char **start, off_t off,
-	       int count, int *eof, void *data)
-{
-	char *p = buf;
-
-	if (off == 0) {
-		np2_msize = np2_merge_pages();
-		p += sprintf(p, "Looking for free memory \n");
-		p += sprintf(p, "Max Space  = 0x%X\n", np2_msize);
-		p += sprintf(p, "Num Allocs  = 0x%d\n", np2_num_allocs);
-		p += sprintf(p, "Num Frees  = 0x%d\n", np2_num_frees);
-		p += sprintf(p, "Num Unalloc  = 0x%d\n", np2_unalloc);
-
-		//np2_show_pages(1,0,0); num_un
-	}
-
-	return p - buf;
-}
-
-static int
-np2_space_proc(char *buf, char **start, off_t off,
-	       int count, int *eof, void *data)
-{
-	char *p = buf;
-	if (off == 0) {
-		p += sprintf(p, "Looking for free memory \n");
-		p += sprintf(p, "Num Allocs  = 0x%d\n", np2_num_allocs);
-		p += sprintf(p, "Num Frees  = 0x%d\n", np2_num_frees);
-		p += sprintf(p, "Num Unalloc  = 0x%d\n", np2_unalloc);
-		np2_show_pages(1, 0, 0);
-	}
-
-	return p - buf;
-}
-
-static int
-np2_holes_proc(char *buf, char **start, off_t off,
-	       int count, int *eof, void *data)
-{
-	char *p = buf;
-	if (off == 0) {
-		p += sprintf(p, "Looking for allocated memory \n");
-		p += sprintf(p, "Num Allocs  = 0x%d\n", np2_num_allocs);
-		p += sprintf(p, "Num Frees  = 0x%d\n", np2_num_frees);
-		np2_show_pages(0, 1, 0);
-	}
-
-	return p - buf;
-}
-static int
-np2_all_proc(char *buf, char **start, off_t off,
-	     int count, int *eof, void *data)
-{
-	char *p = buf;
-	if (off == 0) {
-		p += sprintf(p, "Looking for allocated memory \n");
-		p += sprintf(p, "Num Allocs  = 0x%d\n", np2_num_allocs);
-		p += sprintf(p, "Num Frees  = 0x%d\n", np2_num_frees);
-		np2_show_pages(1, 1, 1);
-	}
-
-	return p - buf;
-}
-
-static int
-np2_help_proc(char *buf, char **start, off_t off,
-	      int count, int *eof, void *data)
-{
-	char *p = buf;
-	if (off == 0) {
-		p += sprintf(p, "* np2 proc interface\n"
-			     "* ==================\n"
-			     "* /proc/np2/holes  - show allocated groups\n"
-			     "* /proc/np2/space  - show free groups\n"
-			     "* /proc/np2/all    - show free and alloc groups\n"
-			     "* /proc/np2/list   - show the free list\n"
-			     "* /proc/np2/merge  - merge adjacent free groups\n");
-	}
-
-	return p - buf;
-}
-
-static int
-__init np2_setup3(void)
-{
-	struct proc_dir_entry *pdir;
-
-	PRINTK("proc setup\n");
-
-	pdir = create_proc_entry("np2", S_IFDIR, NULL);
-	pdir = create_proc_read_entry("np2/space", 0, 0, np2_space_proc, NULL);
-	pdir = create_proc_read_entry("np2/holes", 0, 0, np2_holes_proc, NULL);
-	pdir = create_proc_read_entry("np2/all", 0, 0, np2_all_proc, NULL);
-	pdir = create_proc_read_entry("np2/help", 0, 0, np2_help_proc, NULL);
-	pdir = create_proc_read_entry("np2/merge", 0, 0, np2_merge_proc, NULL);
-	pdir = create_proc_read_entry("np2/list", 0, 0, np2_list_proc, NULL);
-	return 0;
-}
-
-module_init(np2_setup3);
-
-/* do this on the first alloc request */
-static void np2_setup2(void)
-{
-
-	np2_msize = np2_merge_pages();
-	PRINTK("np2_setup2 max size avail = %x (%d) pages \n",
-	       np2_msize, np2_msize);
-	//np2_show_pages(1,1,0);
-}
-
-/* do this when allocating memory */
-static void np2_set_page_size(struct page *page, int size)
-{
-	if (size > 0)
-		size = -size;
-	page->np2_size = size;
-}
-
-static void np2_clear_page_size(struct page *page, int size, int order)
-{
-	if (page->np2_size < 0) {
-		page->np2_size = -page->np2_size;
-	} else {
-		if (np2_unalloc < 100)
-			PRINTK("unalloc page freed !!"
-			       " %p size %d order %d current %s\n",
-			       page_address(page),
-			       (int)page->np2_size, order, current->comm);
-		//if (page->np2_size == 0 ) page->np2_size = size;
-		np2_unalloc++;
-
-	}
-}
-
-/* This uses the page->size component to detect and merge pages */
-static int np2_merge_pages(void)
-{
-	struct zone *zone;
-	struct page *page;
-	unsigned long pfn;
-	int rsize = 0;
-	int nsize;
-	int ignore = 0;
-	unsigned long flags;
-
-	for_each_zone(zone) {
-		spin_lock_irqsave(&zone->lock, flags);
-		/* clean up the list, we'll build a new one */
-		INIT_LIST_HEAD(&zone->np2_list);
-
-		/* Will not work well for holes at the moment */
-		for (pfn = 0; pfn < zone->spanned_pages; pfn++) {
-			page = pfn_to_page(pfn + zone->zone_start_pfn);
-
-			if (ignore > 0) {
-				if (pfn >= zone->np2_minpfn) {
-					if (page->np2_size != 0) {
-						PRINTK("inval page in ignore area pfn %d size %d\n",
-						       (int)pfn, (int)page->np2_size);
-					}
-				}
-				ignore--;
-				continue;
-			}
-			if (page->np2_size < 0) {
-				ignore = -page->np2_size;
-				ignore--;
-			}
-
-			if (page->np2_size > 0) {
-
-#if 0
-				/* look for a missing page */
-				if (page[page->np2_size].np2_size == 0 ) {
-					/* rescan this page */
-					page->np2_size++;
-					pfn--;
-					continue;
-				}
-#endif
-
-				/* look for a merge */
-				if (page[page->np2_size].np2_size > 0) {
-					/* rescan this page */
-					nsize =
-					    page->np2_size +
-					    page[page->np2_size].np2_size;
-					page[page->np2_size].np2_size = 0;
-					set_page_count(&page[page->np2_size], 1);
-					page->np2_size = nsize;
-					ignore = 0;
-					pfn--;	
-					continue;
-				} else {
-					if (page->np2_size > 0)
-						list_add(&page->np2_list,
-							 &zone->np2_list);
-					ignore = page->np2_size;
-					ignore--;
-					if (page->np2_size > rsize) {
-						/* capture largest block */
-						rsize = page->np2_size;
-						/* set the zone's lowest page */
-						zone->np2_minpfn = pfn;
-						PRINTK("Merge Set minpfn %d\n", pfn);
-					}
-				}
-			}
-		}
-		spin_unlock_irqrestore(&zone->lock, flags);
-	}
-	return rsize;
-}
-
-static void np2_show_list(void)
-{
-	struct zone *zone;
-	struct page *page;
-	struct list_head *curr;
-	/* create a copy of the list for display */
-	char *p;
-	p = np2_pbuff;
-	for_each_zone(zone) {
-		list_for_each(curr, &zone->np2_list) {
-			page = list_entry(curr, struct page, np2_list);
-			p += sprintf(p,
-				     " list at pfn %d addr %p size %08x\n",
-				     (int)page_to_pfn(page), page_address(page),
-				     (int)page->np2_size);
-			if ((p - np2_pbuff) > 8000) {
-				p += sprintf(p, " list out of space....\n");
-				return;
-			}
-		}
-	}
-}
-
-/* This uses the page->size component to detect and merge pages
- * debug  = show the memory layout
- * spaces = show spaces ( free memory )
- * holes  = show holes ( used memory )
- * check  = make sure that each page is in a hole or a space
- */
-static void np2_show_pages(int spaces, int holes, int check)
-{
-	struct zone *zone;
-	struct page *page;
-	unsigned long pfn;
-	int inspace = 0;
-	int inhole = 0;
-
-	for_each_zone(zone) {
-		/* Will not work well for holes at the moment */
-		for (pfn = 0; pfn < zone->spanned_pages; pfn++) {
-			page = pfn_to_page(pfn + zone->zone_start_pfn);
-			if (check) {
-				if (((inhole > 0) || (inspace > 0))
-				    && (page->np2_size != 0)) {
-					PRINTK("error pfn %5d "
-					       "addr %p size %8x ih %d is %d\n",
-					       (int)pfn, page_address(page),
-					       (int)page->np2_size, inhole,
-					       inspace);
-				}
-
-				if (((inhole == 0) && (inspace == 0))
-				    && (page->np2_size == 0)) {
-					PRINTK
-					    ("orphan pfn %3d addr %p count %d\n",
-					     (int)pfn, page_address(page),
-					     page_count(page));
-				}
-				if ((page->np2_size > 0) && (inhole > 0)) {
-					PRINTK("space in hole "
-					       "pfn %5d addr %p psp %d inhole %d "
-					       "count %d\n",
-					       (int)pfn, page_address(page),
-					       page->np2_size,
-					       inhole, page_count(page));
-				}
-				if ((page->np2_size < 0) && (inspace > 0)) {
-					PRINTK("hole in space "
-					       "pfn %5d addr %p phole %d inspace %d "
-					       "count %d\n",
-					       (int)pfn, page_address(page),
-					       -page->np2_size,
-					       inspace, page_count(page));
-				}
-
-			}
-			if (spaces) {
-				if (page->np2_size > 0) {
-					PRINTK
-					    ("space at pfn %5d addr %p size %8x count %d\n",
-					     (int)pfn, page_address(page),
-					     (int)page->np2_size,
-					     page_count(page));
-					inspace = page->np2_size;
-				}
-			}
-			if (holes) {
-				if (page->np2_size < 0) {
-					PRINTK
-					    ("hole at pfn %5d addr %p size %8x count %d\n",
-					     (int)pfn, page_address(page),
-					     ~page->np2_size + 1,
-					     page_count(page));
-					inhole = -page->np2_size;
-				}
-
-			}
-			if (inhole)
-				inhole--;
-			if (inspace)
-				inspace--;
-		}
-	}
-	return;
-}
-
-/* the basic np2 allocator 
- * gets small pages ( < 2 ) from start big pages from end
- */
-static struct page *np2_get_pages(int size)
-{
-	struct zone *zone;
-	struct page *page;
-	struct page *fpage;
-	unsigned long pfn;
-	int fromend = 0;
-	int pg_found = 0;
-	int ssize;		/* used to round up allocations */
-	int osize;
-	int fsize;
-	unsigned long flags = 0;
-	struct list_head *curr;
-
-	int uselists = 1;
-	int usespin1 = 1;
-	int splitsingle = 1;
-
-	zone = NULL;		/* happy compiler */
-
-	/* only split by even number of  pages or more */
-	ssize = size;
-	if (size & 1)
-		ssize = size + 1;
-	fromend = 1;		/* get from end of block */
-
-	if (uselists) {
-		for_each_zone(zone) {
-			if (usespin1)
-				spin_lock_irqsave(&zone->lock, flags);
-			fsize = 0;
-			fpage = NULL;
-
-			if (size == 1) {
-				/* first scan for single pages */
-				list_for_each(curr, &zone->np2_list) {
-					page =
-					    list_entry(curr, struct page,
-						       np2_list);
-					if (page->np2_size == size) {
-						pg_found = 1;
-						goto np2_spage;
-					}
-				}
-			}
-			/* first scan the lists */
-			list_for_each(curr, &zone->np2_list) {
-				page = list_entry(curr, struct page, np2_list);
-				if (ssize >= 0) {
-					if (page->np2_size == ssize) {
-						PRINTK("list match at ssize %d page %p (%d) pfn %d\n",
-							     (int)ssize,
-							     page_address(page),
-							     page->np2_size,
-							     (int)
-							     page_to_pfn(page));
-						pg_found = 1;
-						goto np2_page;
-					}
-				}
-				/* also find smallest larger page group */
-				if (page->np2_size > ssize) {
-					if (fsize == 0) {
-						fsize = page->np2_size;
-						fpage = page;
-					} else {
-						if (page->np2_size < fsize) {
-							fsize = page->np2_size;
-							fpage = page;
-						}
-					}
-				}
-
-			}
-			/* See if we found a smaller page.
-			 * Its a shame that we cannot reuse the 2 page allocs yet.
-			 */
-			if (fpage) {
-				page = fpage;
-				pg_found = 1;
-				PRINTK("list match at ssize %d page %p (%d) pfn %d\n",
-					       (int)ssize,
-					       page_address(page),
-					       page->np2_size,
-					       (int)page_to_pfn(page));
-				goto np2_page;
-			}
-			if (usespin1)
-				spin_unlock_irqrestore(&zone->lock, flags);
-		}		/* end for each zone */
-	}			/* end uselists */
-
-	/* not using lists, use super slob instead ... first scan for an exact match */
-
-	for_each_zone(zone) {
-		if (usespin1)
-			spin_lock_irqsave(&zone->lock, flags);
-
-		for (pfn = zone->np2_minpfn; pfn < zone->spanned_pages; pfn++) {
-			page = pfn_to_page(pfn + zone->zone_start_pfn);
-
-			if (page->np2_size == ssize) {
-				pg_found = 1;
-				goto np2_page;
-			}
-		}
-		if (usespin1)
-			spin_unlock_irqrestore(&zone->lock, flags);
-
-	}
-	/* now get what you can */
-	for_each_zone(zone) {
-		if (usespin1)
-			spin_lock_irqsave(&zone->lock, flags);
-		for (pfn = zone->np2_minpfn; pfn < zone->spanned_pages; pfn++) {
-			page = pfn_to_page(pfn + zone->zone_start_pfn);
-
-			if (0 && (page->np2_size & 1)) {	/* 2 page allocs on even boundary */
-				if (size == 2) {	/* no this did not fix it */
-					ssize = 3;	/* problems in softirq.c */
-				}
-			}
-			if (page->np2_size >= ssize) {
-				pg_found = 1;
-				goto np2_page;
-			}
-		}
-		if (usespin1)
-			spin_unlock_irqrestore(&zone->lock, flags);
-
-	}
-	page = NULL;
-
-      np2_page:
-
-	/* larger or equal page group found split it up if needed */
-	if (page) {
-		if (page->np2_size > ssize) {	/* was size ??? */
-			if (fromend) {	/* take from the end of the block */
-				osize = page->np2_size;
-				page->np2_size = osize - ssize;
-				page = &page[osize - ssize];
-			} else {	/* take from start of block */
-				osize = page->np2_size;
-				page[ssize].np2_size = osize - ssize;
-			}
-			page->np2_size = ssize;
-			__free_pages(page, 0);
-		}
-		list_del(&page->np2_list);
-		page->np2_size = -ssize;
-		if (splitsingle) {
-			if ((size == 1) && (ssize == 2)) {
-				struct page *spage;
-				page->np2_size = -1;
-				spage = page + 1;
-				spage->np2_size = 1;
-				__free_pages(spage, 0);
-			}
-		}
-		/* adjust count ... remember this is negative */
-		zone->free_pages += page->np2_size;
-
-		if (usespin1)
-			spin_unlock_irqrestore(&zone->lock, flags);
-	}			/* end page */
-
-	return page;
-
-      np2_spage:		/* single page allocation */
-	page->np2_size = -1;
-	list_del(&page->np2_list);
-	zone->free_pages += page->np2_size;
-	if (usespin1)
-		spin_unlock_irqrestore(&zone->lock, flags);
-	return page;
-
-}
 
 #ifdef CONFIG_DEBUG_VM
 static int page_outside_zone_boundaries(struct zone *zone, struct page *page)
@@ -739,7 +154,8 @@ static void bad_page(struct page *page)
 			1 << PG_reclaim |
 			1 << PG_slab    |
 			1 << PG_swapcache |
-			1 << PG_writeback);
+			1 << PG_writeback |
+			1 << PG_buddy );
 	set_page_count(page, 0);
 	reset_page_mapcount(page);
 	page->mapping = NULL;
@@ -809,7 +225,7 @@ static inline void prep_zero_page(struct page *page, int order, gfp_t gfp_flags)
 	 * and __GFP_HIGHMEM from hard or soft interrupt context.
 	 */
 	BUG_ON((gfp_flags & __GFP_HIGHMEM) && in_interrupt());
-	for (i = 0; i < np2_get_size(order); i++)
+	for (i = 0; i < (1 << order); i++)
 		clear_highpage(page + i);
 }
 
@@ -826,12 +242,12 @@ static inline unsigned long page_order(struct page *page)
 static inline void set_page_order(struct page *page, int order)
 {
 	set_page_private(page, order);
-	__SetPagePrivate(page);
+	__SetPageBuddy(page);
 }
 
 static inline void rmv_page_order(struct page *page)
 {
-	__ClearPagePrivate(page);
+	__ClearPageBuddy(page);
 	set_page_private(page, 0);
 }
 
@@ -870,11 +286,14 @@ __find_combined_index(unsigned long page_idx, unsigned int order)
  * This function checks whether a page is free && is the buddy
  * we can do coalesce a page and its buddy if
  * (a) the buddy is not in a hole &&
- * (b) the buddy is free &&
- * (c) the buddy is on the buddy system &&
- * (d) a page and its buddy have the same order.
- * for recording page's order, we use page_private(page) and PG_private.
+ * (b) the buddy is in the buddy system &&
+ * (c) a page and its buddy have the same order &&
+ * (d) a page and its buddy are in the same zone.
  *
+ * For recording whether a page is in the buddy system, we use PG_buddy.
+ * Setting, clearing, and testing PG_buddy is serialized by zone->lock.
+ *
+ * For recording page's order, we use page_private(page).
  */
 static inline int page_is_buddy(struct page *page, struct page *buddy,
 								int order)
@@ -884,9 +303,13 @@ static inline int page_is_buddy(struct page *page, struct page *buddy,
 		return 0;
 #endif
 
-	if (PagePrivate(page) &&
-	    (page_order(page) == order) && page_count(page) == 0)
+	if (page_zone_id(page) != page_zone_id(buddy))
+		return 0;
+
+	if (PageBuddy(buddy) && page_order(buddy) == order) {
+		BUG_ON(page_count(buddy) != 0);
 		return 1;
+	}
 	return 0;
 }
 
@@ -903,7 +326,7 @@ static inline int page_is_buddy(struct page *page, struct page *buddy,
  * as necessary, plus some accounting needed to play nicely with other
  * parts of the VM system.
  * At each level, we keep a list of pages, which are heads of continuous
- * free pages of length of (1 << order) and marked with PG_Private.Page's
+ * free pages of length of (1 << order) and marked with PG_buddy. Page's
  * order is recorded in page_private(page) field.
  * So when we are allocating or freeing one, we can derive the state of the
  * other.  That is, if we allocate a small block, and both were   
@@ -913,43 +336,77 @@ static inline int page_is_buddy(struct page *page, struct page *buddy,
  *
  * -- wli
  */
+static void np2_list_show(struct zone *zone, char *s, int num)
+{
+       struct page *page;
+       struct list_head *p_np2_list;
+
+       printk("--------%s: Case %d--------\n", s, num);
+       list_for_each (p_np2_list, &zone->np2_list) {
+               page = list_entry(p_np2_list, struct page, np2_piece);
+               printk("Page addr: 0x%x, num: 0x%x, buddy addr: 0x%x\n",
+                       (unsigned int)page_to_virt(page), (unsigned int)page->private,
+                       (unsigned int)page_to_virt(page + page->private));
+       }
+       printk("------------End------------\n");
+}
 
 static inline void __free_one_page(struct page *page,
 		struct zone *zone, unsigned int order)
 {
 	unsigned long page_idx;
 	int order_size = 1 << order;
+	struct list_head *p_np2_list;
+	struct page *cur_page = NULL, *prev_page;
+	unsigned long new_size;
 
 	if (unlikely(PageCompound(page)))
 		destroy_compound_page(page, order);
 
 	page_idx = page_to_pfn(page) & ((1 << MAX_ORDER) - 1);
 
-	BUG_ON(page_idx & (order_size - 1));
+//	BUG_ON(page_idx & (order_size - 1));
 	BUG_ON(bad_range(zone, page));
 
 	zone->free_pages += order_size;
-	while (order < MAX_ORDER-1) {
-		unsigned long combined_idx;
-		struct free_area *area;
-		struct page *buddy;
-
-		buddy = __page_find_buddy(page, page_idx, order);
-		if (!page_is_buddy(page, buddy, order))
-			break;		/* Move the buddy up one level. */
-
-		list_del(&buddy->lru);
-		area = zone->free_area + order;
-		area->nr_free--;
-		rmv_page_order(buddy);
-		combined_idx = __find_combined_index(page_idx, order);
-		page = page + (combined_idx - page_idx);
-		page_idx = combined_idx;
-		order++;
+	list_for_each(p_np2_list, &zone->np2_list) {
+	        cur_page = list_entry(p_np2_list, struct page, np2_piece);
+	        if (cur_page > page)
+	                break;
+	} 
+	prev_page = list_entry(p_np2_list->prev, struct page, np2_piece);
+	
+	/*
+	 * case 1: best case, the inserted page is exactly conjoint 
+	  *        with prev_page and cur_page
+	 */
+	if ((prev_page + prev_page->private == page) && 
+	        (page + order_size == cur_page)) {
+	        new_size = prev_page->private + order_size + cur_page->private;
+	        set_page_order(prev_page, new_size);
+	        list_del(p_np2_list);
+	/*
+	 * case 2: the inserted page will be conjoint with prev_page
+	 */
+	} else if (prev_page + prev_page->private == page) {
+	        new_size = prev_page->private + order_size;
+	        set_page_order(prev_page, new_size);
+	/* 
+	 * case 3: the inserted page will be conjoint with cur_page
+	 */
+	} else if (page + order_size == cur_page) {
+	        new_size = order_size + cur_page->private;
+	        set_page_order(page, new_size);
+	        list_add_tail(&page->np2_piece, p_np2_list);
+	        list_del(p_np2_list);
+	/*
+	 * case 4: worst case, the inserted page is alone.
+	 */
+	} else {
+	        set_page_order(page, order_size);
+	        list_add_tail(&page->np2_piece, p_np2_list);
 	}
-	set_page_order(page, order);
-	list_add(&page->lru, &zone->free_area[order].free_list);
-	zone->free_area[order].nr_free++;
+
 }
 
 static inline int free_pages_check(struct page *page)
@@ -966,7 +423,8 @@ static inline int free_pages_check(struct page *page)
 			1 << PG_slab	|
 			1 << PG_swapcache |
 			1 << PG_writeback |
-			1 << PG_reserved))))
+			1 << PG_reserved |
+			1 << PG_buddy ))))
 		bad_page(page);
 	if (PageDirty(page))
 		__ClearPageDirty(page);
@@ -1044,13 +502,9 @@ void fastcall __init __free_pages_bootmem(struct page *page, unsigned int order)
 {
 	if (order == 0) {
 		__ClearPageReserved(page);
-		if (use_np2) {
-			page->np2_size = -1;
-			__free_pages(page, 0);
-		} else {
-			set_page_refcounted(page);
-			__free_page(page);
-		}
+		set_page_count(page, 0);
+		set_page_refcounted(page);
+		__free_page(page);
 	} else {
 		int loop;
 
@@ -1061,13 +515,10 @@ void fastcall __init __free_pages_bootmem(struct page *page, unsigned int order)
 			if (loop + 1 < BITS_PER_LONG)
 				prefetchw(p + 1);
 			__ClearPageReserved(p);
+			set_page_count(p, 0);
 		}
 
-		if (use_np2) {
-			page->np2_size = -np2_get_size(order);
-		} else {
-			set_page_refcounted(page);
-		}
+		set_page_refcounted(page);
 		__free_pages(page, order);
 	}
 }
@@ -1121,7 +572,8 @@ static int prep_new_page(struct page *page, int order, gfp_t gfp_flags)
 			1 << PG_slab    |
 			1 << PG_swapcache |
 			1 << PG_writeback |
-			1 << PG_reserved))))
+			1 << PG_reserved |
+			1 << PG_buddy ))))
 		bad_page(page);
 
 	/*
@@ -1153,25 +605,69 @@ static int prep_new_page(struct page *page, int order, gfp_t gfp_flags)
  */
 static struct page *__rmqueue(struct zone *zone, unsigned int order)
 {
-	struct free_area * area;
-	unsigned int current_order;
-	struct page *page;
-
-	for (current_order = order; current_order < MAX_ORDER; ++current_order) {
-		area = zone->free_area + current_order;
-		if (list_empty(&area->free_list))
-			continue;
-
-		page = list_entry(area->free_list.next, struct page, lru);
-		list_del(&page->lru);
-		rmv_page_order(page);
-		area->nr_free--;
-		zone->free_pages -= 1UL << order;
-		expand(zone, page, order, current_order, area);
-		return page;
+	struct page *page, *new_page = NULL;
+	struct list_head *p_np2_list, *first = NULL;
+	unsigned int order_size = 1 << order;
+	int i, flag = 1, page_idx;
+	/*
+	 * Find the exact fit block or the first available block
+	 */
+	list_for_each(p_np2_list, &zone->np2_list) {
+	        page = list_entry(p_np2_list, struct page, np2_piece);
+	        if (page->private == order_size) {
+	                page_idx = page_to_pfn(page);
+	                if ((order_size == 1) || 
+	                        ((order_size > 1) && (!(page_idx & 1)))) {
+	                        list_del(p_np2_list);
+	                        goto got_page;
+	                }
+	        }
+	        if (flag && page->private > order_size) {
+	                new_page = page;
+	                first = p_np2_list;
+	                flag = 0;
+	        }
 	}
+	if (!new_page) {/* no block */
+	        printk("CAKE DEBUG:NO block available\n");
+	        return NULL;
+	} else {
+	        page = new_page;
+	        p_np2_list = first;
+	}
+	
+	page_idx = page_to_pfn(page);
+	/* 
+	 * blah blah blah, but page should be 2-page aligned,
+	 * because task stack should be on the 8K boundary 
+	 */
+	if ((order_size == 1) || ((order_size > 1) && (!(page_idx & 1)))) {
+	        new_page = page + order_size;
+	        set_page_order(new_page, page->private - order_size);
+	        list_add_tail(&new_page->np2_piece, p_np2_list);
+	        list_del(p_np2_list);
+	} else {
+	        int new_size;
+	        new_size = page->private - order_size -1;
+	        if (new_size) {
+	                new_page = page + order_size + 1;
+	                set_page_order(new_page, new_size);
+	                list_add(&new_page->np2_piece, p_np2_list);
+	        }
+	        set_page_order(page, 1);
+	        page ++;
+	}               
 
-	return NULL;
+got_page:
+       for(i=0;i< order_size;i++){
+               rmv_page_order(page+i);
+               set_page_count(page, 0);
+       }
+
+       zone->free_pages -= 1UL << order;
+       return page;
+
+
 }
 
 /* 
@@ -1324,38 +820,12 @@ static void fastcall free_hot_cold_page(struct page *page, int cold)
 
 void fastcall free_hot_page(struct page *page)
 {
-	if (use_np2) {
-		np2_hot_pages++;
-		if (np2_hot_pages < 256) {
-			PRINTK("free hotpage pfn %5d "
-			       "addr %p size %8x count %d \n",
-			       (int)page_to_pfn(page),
-			       page_address(page),
-			       (int)page->np2_size, page_count(page)
-			    );
-		}
-		//__free_pages(page,0);
-	} else {
-		free_hot_cold_page(page, 0);
-	}
+	free_hot_cold_page(page, 0);
 }
-
+	
 void fastcall free_cold_page(struct page *page)
 {
-	if (use_np2) {
-		np2_cold_pages++;
-		if (0 && (np2_cold_pages < 256)) {
-			PRINTK("free coldpage pfn %5d "
-			       "addr %p size %8x count %d \n",
-			       (int)page_to_pfn(page),
-			       page_address(page),
-			       (int)page->np2_size, page_count(page)
-			    );
-		}
-		//__free_pages(page,0);
-	} else {
-		free_hot_cold_page(page, 1);
-	}
+	free_hot_cold_page(page, 1);
 }
 
 /*
@@ -1388,7 +858,6 @@ static struct page *buffered_rmqueue(struct zonelist *zonelist,
 	struct page *page;
 	int cold = !!(gfp_flags & __GFP_COLD);
 	int cpu;
-	int size = np2_get_size(order);
 
 again:
 	cpu  = get_cpu();
@@ -1414,7 +883,7 @@ again:
 			goto failed;
 	}
 
-	__count_zone_vm_events(PGALLOC, zone, np2_get_size(order));
+	__count_zone_vm_events(PGALLOC, zone, 1 << order);
 	zone_statistics(zonelist, zone);
 	local_irq_restore(flags);
 	put_cpu();
@@ -1422,12 +891,6 @@ again:
 	BUG_ON(bad_range(zone, page));
 	if (prep_new_page(page, order, gfp_flags))
 		goto again;
-
-	if (use_np2)
-		printk(KERN_EMERG "NP2: should not get here!!!\n");
-	if (page)
-		page->np2_size = -size;
-
 	return page;
 
 failed:
@@ -1534,46 +997,11 @@ __alloc_pages(gfp_t gfp_mask, unsigned int order,
 	int do_retry;
 	int alloc_flags;
 	int did_some_progress;
-	int size = np2_get_size(order);
 
 	might_sleep_if(wait);
 
-	if (np2_num_allocs == 0) {
-		np2_setup2();
-	}
-	np2_num_allocs++;
-	if (use_np2) {
-		page = np2_get_pages(size);
-		if (!page) {
-			PRINTK("NP2 unable to alloc size %d\n", size);
-			np2_show_pages(1, 0, 0);
-		} else {
-			// PSW added these
-			prep_new_page(page, order, gfp_mask);
-			if (0 && (np2_num_allocs > 0) && (np2_num_allocs < 250)) {
-				PRINTK("(%3d) pfn %5d "
-				       "addr %p size %8x order %d count %d <%s>\n",
-				       np2_num_allocs,
-				       (int)page_to_pfn(page),
-				       page_address(page),
-				       -(int)page->np2_size,
-				       order, page_count(page), current->comm);
-			}
-			if (0 && strcmp(current->comm, "swapper") == 0) {
-				PRINTK("swapper pfn %5d "
-				       "addr %p size %8x order %d count %d \n",
-				       (int)page_to_pfn(page),
-				       page_address(page),
-				       -(int)page->np2_size,
-				       order, page_count(page)
-				    );
-			}
-		}
-		return page;	/* np2 return */
-	}
-
-      restart:
-	z = zonelist->zones;	/* the list of zones suitable for gfp_mask */
+restart:
+	z = zonelist->zones;  /* the list of zones suitable for gfp_mask */
 
 	if (unlikely(*z == NULL)) {
 		/* Should this ever happen?? */
@@ -1604,7 +1032,8 @@ __alloc_pages(gfp_t gfp_mask, unsigned int order,
 		alloc_flags |= ALLOC_HARDER;
 	if (gfp_mask & __GFP_HIGH)
 		alloc_flags |= ALLOC_HIGH;
-	alloc_flags |= ALLOC_CPUSET;
+	if (wait)
+		alloc_flags |= ALLOC_CPUSET;
 
 	/*
 	 * Go through the zonelist again. Let __GFP_HIGH and allocations
@@ -1747,42 +1176,13 @@ void __pagevec_free(struct pagevec *pvec)
 {
 	int i = pagevec_count(pvec);
 
-	PRINTK("pagevec page_count %d page %p count %d\n",
-	       page_count(pvec->pages[i - 1]),
-	       page_address(pvec->pages[i - 1]), i);
-	if (use_np2) {
-		np2_pagevec++;
-		return;
-	}
-
 	while (--i >= 0)
 		free_hot_cold_page(pvec->pages[i], pvec->cold);
 }
 
 fastcall void __free_pages(struct page *page, unsigned int order)
 {
-	struct zone *zone;
-	unsigned long flags;
-	int size = np2_get_size(order);
-
-	if (use_np2) {
-		put_page_testzero(page);
-		/* manage np2 size */
-		np2_clear_page_size(page, size, order);
-		np2_num_frees++;
-		if (use_np2) {
-			zone = page_zone(page);
-			spin_lock_irqsave(&zone->lock, flags);
-			zone->free_pages += page->np2_size;
-			if (page->np2_size > 0 /* 2 */ ) {
-				list_add(&page->np2_list, &zone->np2_list);
-			}
-			if (PageCompound(page))
-				destroy_compound_page(page, order);
-			spin_unlock_irqrestore(&zone->lock, flags);
-			return;
-		}
-
+	if (put_page_testzero(page)) {
 		if (order == 0)
 			free_hot_page(page);
 		else
@@ -2358,6 +1758,7 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
 		reset_page_mapcount(page);
 		SetPageReserved(page);
 		INIT_LIST_HEAD(&page->lru);
+		INIT_LIST_HEAD(&page->np2_piece);
 #ifdef WANT_PAGE_VIRTUAL
 		/* The shift won't overflow because ZONE_NORMAL is below 4G. */
 		if (!is_highmem_idx(zone))
@@ -2374,7 +1775,7 @@ void zone_init_free_lists(struct pglist_data *pgdat, struct zone *zone,
 		INIT_LIST_HEAD(&zone->free_area[order].free_list);
 		zone->free_area[order].nr_free = 0;
 	}
-	zone->np2_minpfn = 0;
+	INIT_LIST_HEAD(&zone->np2_list);
 }
 
 #define ZONETABLE_INDEX(x, zone_nr)	((x << ZONES_SHIFT) | zone_nr)
@@ -2670,7 +2071,7 @@ static void __meminit free_area_init_core(struct pglist_data *pgdat,
 	pgdat->nr_zones = 0;
 	init_waitqueue_head(&pgdat->kswapd_wait);
 	pgdat->kswapd_max_order = 0;
-
+	
 	for (j = 0; j < MAX_NR_ZONES; j++) {
 		struct zone *zone = pgdat->node_zones + j;
 		unsigned long size, realsize;
@@ -2701,7 +2102,6 @@ static void __meminit free_area_init_core(struct pglist_data *pgdat,
 		zone_pcp_init(zone);
 		INIT_LIST_HEAD(&zone->active_list);
 		INIT_LIST_HEAD(&zone->inactive_list);
-		INIT_LIST_HEAD(&zone->np2_list);
 		zone->nr_scan_active = 0;
 		zone->nr_scan_inactive = 0;
 		zone->nr_active = 0;

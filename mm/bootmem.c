@@ -31,10 +31,6 @@ unsigned long max_pfn;
 
 EXPORT_UNUSED_SYMBOL(max_pfn);  /*  June 2006  */
 
-#ifdef CONFIG_NP2_ALLOC
-extern void np2_setup(pg_data_t * pgdat);
-#endif
-
 static LIST_HEAD(bdata_list);
 #ifdef CONFIG_CRASH_DUMP
 /*
@@ -304,9 +300,7 @@ static unsigned long __init free_all_bootmem_core(pg_data_t *pgdat)
 	int gofast = 0;
 
 	BUG_ON(!bdata->node_bootmem_map);
-#ifdef CONFIG_NP2_ALLOC
-	np2_setup(pgdat);
-#endif
+
 	count = 0;
 	/* first extant page of the node */
 	pfn = bdata->node_boot_start >> PAGE_SHIFT;

@@ -406,6 +406,7 @@ static void frag_stop(struct seq_file *m, void *arg)
 /*
  * This walks the free areas for each zone.
  */
+#ifdef CONFIG_BUDDY
 static int frag_show(struct seq_file *m, void *arg)
 {
 	pg_data_t *pgdat = (pg_data_t *)arg;
@@ -427,6 +428,38 @@ static int frag_show(struct seq_file *m, void *arg)
 	}
 	return 0;
 }
+#endif
+
+#ifdef CONFIG_NP2
+static int frag_show(struct seq_file *m, void *arg)
+{
+	pg_data_t *pgdat = (pg_data_t *)arg;
+	struct zone *zone;
+	struct zone *node_zones = pgdat->node_zones;
+	unsigned long flags;
+	int num = 1;
+	struct list_head *p_np2_list;
+	struct page *page;
+	
+	for (zone = node_zones; zone - node_zones < MAX_NR_ZONES; ++zone) {
+		if (!populated_zone(zone))
+			continue;
+		
+		spin_lock_irqsave(&zone->lock, flags);
+		seq_printf(m, "--------Node %d, zone %s--------\n",
+				pgdat->node_id, zone->name);
+		__list_for_each(p_np2_list, &zone->np2_list){
+			page = list_entry(p_np2_list, struct page, np2_piece);
+			seq_printf(m, "No.%-4d Page addr: 0x%-8x num: %-5d buddy addr:0x%-8x\n",
+					num++, (int)page_to_virt(page), (int)page->private,
+					(int)page_to_virt(page + page->private));
+		}
+		seq_printf(m, "-------------End----------------\n");    
+		spin_unlock_irqrestore(&zone->lock, flags);
+}
+return 0;
+}
+#endif
 
 struct seq_operations fragmentation_op = {
 	.start	= frag_start,

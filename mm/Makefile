@@ -1,8 +1,6 @@
 #
 # Makefile for the linux memory manager.
 #
-np2-y			:= page_alloc.o
-np2-$(CONFIG_NP2_ALLOC):= page_alloc_np2.o
 mmu-y			:= nommu.o
 mmu-$(CONFIG_MMU)	:= fremap.o highmem.o madvise.o memory.o mincore.o \
 			   mlock.o mmap.o mprotect.o mremap.o msync.o rmap.o \
@@ -19,6 +17,8 @@ obj-$(CONFIG_NUMA) 	+= mempolicy.o
 obj-$(CONFIG_SPARSEMEM)	+= sparse.o
 obj-$(CONFIG_SHMEM) += shmem.o
 obj-$(CONFIG_TINY_SHMEM) += tiny-shmem.o
+obj-$(CONFIG_BUDDY) += page_alloc.o
+obj-$(CONFIG_NP2) += page_alloc_np2.o
 obj-$(CONFIG_SLOB) += slob.o
 obj-$(CONFIG_SLAB) += slab.o
 obj-$(CONFIG_MEMORY_HOTPLUG) += memory_hotplug.o
