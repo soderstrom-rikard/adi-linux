@@ -42,12 +42,12 @@
 #include <linux/dma-mapping.h>
 #include <linux/platform_device.h>
 
-#include <asm/mach/cdefBF537.h>
 #include <asm/blackfin.h>
 #include <asm/irq.h>
 #include <asm/dpmc.h>
 #include <asm/dma-mapping.h>
 #include <asm/dma.h>
+#include <asm/gpio.h>
 
 #define DRIVER_NAME "bf537-lq035"
 

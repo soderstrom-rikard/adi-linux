@@ -37,6 +37,7 @@
 #include <linux/mtd/partitions.h>
 
 #include <asm/blackfin.h>
+#include <asm/gpio.h>
 
 #define BFIN_NAND_BASE		CONFIG_BFIN_NAND_BASE
 #define BFIN_NAND_CLE           (1<<CONFIG_BFIN_NAND_CLE)	/* Ax -> Command Enable */
