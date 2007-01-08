@@ -154,7 +154,7 @@ static int ac97_sport_handle_irq(void)
 }
 
 #ifdef IRQ_SPORT0
-static void ad1981b_handler(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t ad1981b_handler(int irq, void *dev_id, struct pt_regs *regs)
 {
 	static unsigned long last_print = 0;
 	static int ints_per_jiffie = 0;
