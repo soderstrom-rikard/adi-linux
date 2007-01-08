@@ -404,7 +404,7 @@ void __init setup_arch(char **cmdline_p)
 
 	bf53x_cache_init();
 
-#if defined(CONFIG_SMC91X)
+#if defined(CONFIG_SMC91X) || defined(CONFIG_SMC91X_MODULE)
 # if defined(CONFIG_BFIN_SHARED_FLASH_ENET) && defined(CONFIG_BFIN533_STAMP)
 	/* setup BF533_STAMP CPLD to route AMS3 to Ethernet MAC */
 	bfin_write_FIO_DIR(bfin_read_FIO_DIR() | CONFIG_ENET_FLASH_PIN);
