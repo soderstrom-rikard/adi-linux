@@ -41,6 +41,7 @@
 #include <linux/irq.h>
 #include <asm/traps.h>
 #include <asm/blackfin.h>
+#include <asm/gpio.h>
 
 /*
  * NOTES:
