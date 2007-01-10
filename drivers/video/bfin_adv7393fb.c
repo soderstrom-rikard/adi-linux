@@ -229,6 +229,7 @@ error:
 	return 0;
 }
 
+static int adv7393_mmap = 0;
 static int bfin_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 {
 	/* we really dont need any map ... not sure how the smem_start will
@@ -236,6 +237,9 @@ static int bfin_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 	 */
 
 	struct adv7393fb_device *fbdev = to_adv7393fb_device(info);
+
+	if (adv7393_mmap)
+		return -1;
 
 	vma->vm_start = (int)fbdev->fb_mem;
 
@@ -707,6 +711,7 @@ static int bfin_adv7393_fb_release(struct fb_info *info, int user)
 	bfin_disable_dma();
 	bfin_disable_ppi();
 	dma_desc_list(fbdev, DESTRUCT);
+	adv7393_mmap = 0;
 
 	return 0;
 }

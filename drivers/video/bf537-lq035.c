@@ -59,6 +59,7 @@
 static unsigned char* fb_buffer;          /* RGB Buffer */
 static dma_addr_t dma_handle;             /* ? */
 static unsigned long* dma_desc_table;
+static int lq035_mmap = 0;
 
 #ifdef CONFIG_FB_BFIN_LANDSCAPE
 static int landscape = 1;
@@ -490,6 +491,7 @@ static int bfin_lq035_fb_release(struct fb_info* info, int user)
 
 	disable_dma(CH_PPI);
 
+	lq035_mmap = 0;
 	return 0;
 }
 
@@ -549,6 +551,9 @@ void bfin_lq035_fb_rotate(struct fb_info *fbi, int angle)
 
 static int direct_mmap(struct fb_info *info, struct vm_area_struct * vma)
 {
+	if (lq035_mmap) 
+		return -1;
+		
 	if(landscape) {
 		vma->vm_start = (unsigned long)fb_buffer;
 	} else {
@@ -564,6 +569,7 @@ static int direct_mmap(struct fb_info *info, struct vm_area_struct * vma)
 	 *   include/linux/mm.h
 	 */
 	vma->vm_flags |=  VM_MAYSHARE;
+	lq035_mmap = 1;
 	return 0 ;
 }
 

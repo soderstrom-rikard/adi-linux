@@ -216,17 +216,23 @@ static void bfin_framebuffer_timerfn(unsigned long data)
 	bfin_framebuffer_timer_setup();
 }
 
+static int adv7171_mmap = 0;
+
 static int bfin_fb_mmap(struct fb_info *info, struct vm_area_struct * vma)
 {
 	/* we really dont need any map ... not sure how the smem_start will
 	   end up in the kernel
 	*/
+	if (adv7171_mmap) 
+		return -1;
+
 	vma->vm_start  = (int)rgb_buffer;
 	/*   VM_MAYSHARE limits for mprotect(), and must be set on nommu.
 	 *   Other flags can be set, and are documented in
 	 *   include/linux/mm.h
 	 */
 	vma->vm_flags |=  VM_MAYSHARE;
+	adv7171_mmap = 1;
 	return 0;
 }
 
@@ -635,6 +641,7 @@ static int bfin_ad7171_fb_release(struct fb_info *info, int user)
 	del_timer(&bfin_framebuffer_timer);
 	bfin_disable_dma();
 	bfin_disable_ppi();
+	adv7171_mmap = 0;
 	return 0;
 }
 
