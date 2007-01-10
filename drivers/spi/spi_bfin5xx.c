@@ -920,6 +920,11 @@ static int setup(struct spi_device *spi)
 		chip->cs_chg_udelay = chip_info->cs_chg_udelay;
 	}
 
+	if (spi->mode & SPI_CPOL)
+		chip->ctl_reg & CPOL;
+	if (spi->mode & SPI_CPHA)
+		chip->ctl_reg & CPHA;
+
 	/* if any one SPI chip is registered and wants DMA, request the
 	   DMA channel for it */
 	if (chip->enable_dma && !dma_requested) {
