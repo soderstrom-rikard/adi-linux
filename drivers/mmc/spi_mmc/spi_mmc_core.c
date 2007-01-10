@@ -484,6 +484,7 @@ static int write_func(unsigned char *buf, unsigned int count, void* priv_data)
 	struct spi_transfer t;
 	struct spi_message m;
 	mmc_info_t *pdev;
+	u8 chip_select;
 
 	pdev = (mmc_info_t*)priv_data;
 	
@@ -505,12 +506,15 @@ static int write_func(unsigned char *buf, unsigned int count, void* priv_data)
 
 	spi_message_add_tail(&t, &m);
 
-	// write on dummy device
 	if(pdev->msd.force_cs_high) {
-		spi_sync(dummy_spi, &m);
-	} else {
-		spi_sync(pdev->spi_dev, &m);
-	}
+		// write on dummy device
+		chip_select = pdev->spi_dev->chip_select;
+		pdev->spi_dev->chip_select = 0;
+	} 
+	spi_sync(pdev->spi_dev, &m);
+	if(pdev->msd.force_cs_high) {
+		pdev->spi_dev->chip_select = chip_select;
+	} 
 
 	if(m.status) {
 		DPRINTK("status: %d\n", m.status);
