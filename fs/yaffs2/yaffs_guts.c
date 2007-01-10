@@ -2156,6 +2156,11 @@ static void yaffs_BlockBecameDirty(yaffs_Device * dev, int blockNo)
 	/* If the block is still healthy erase it and mark as clean.
 	 * If the block has had a data failure, then retire it.
 	 */
+	 
+	T(YAFFS_TRACE_GC | YAFFS_TRACE_ERASE,
+		(TSTR("yaffs_BlockBecameDirty block %d state %d %s"TENDSTR),
+		blockNo, bi->blockState, (bi->needsRetiring) ? "needs retiring" : ""));
+		
 	bi->blockState = YAFFS_BLOCK_STATE_DIRTY;
 
 	if (!bi->needsRetiring) {
@@ -5415,39 +5420,41 @@ static int yaffs_ScanBackwards(yaffs_Device * dev)
 					state = YAFFS_BLOCK_STATE_EMPTY;
 					dev->nErasedBlocks++;
 				} else {
-					/* this is the block being allocated from */
-					if (state ==
-					    YAFFS_BLOCK_STATE_NEEDS_SCANNING) {
-						T(YAFFS_TRACE_SCAN,
-						  (TSTR
-						   (" Allocating from %d %d"
-						    TENDSTR), blk, c));
+					if (state == YAFFS_BLOCK_STATE_NEEDS_SCANNING ||
+					    state == YAFFS_BLOCK_STATE_ALLOCATING) {
+					    	if(dev->sequenceNumber == bi->sequenceNumber) {
+							/* this is the block being allocated from */
+					    	
+							T(YAFFS_TRACE_SCAN,
+							  (TSTR
+							   (" Allocating from %d %d"
+							    TENDSTR), blk, c));
+
+							state = YAFFS_BLOCK_STATE_ALLOCATING;
+							dev->allocationBlock = blk;
+							dev->allocationPage = c;
+							dev->allocationBlockFinder = blk;	
+						}
+						else {
+							/* This is a partially written block that is not
+							 * the current allocation block. This block must have
+							 * had a write failure, so set up for retirement.
+							 */
+						  
+							 bi->needsRetiring = 1;
+							 bi->gcPrioritise = 1;
+							 						 
+							 T(YAFFS_TRACE_ALWAYS,
+							 (TSTR("Partially written block %d being set for retirement" TENDSTR),
+							 blk));
+						}
+
 					}
-					state = YAFFS_BLOCK_STATE_ALLOCATING;
-					dev->allocationBlock = blk;
-					dev->allocationPage = c;
-					dev->allocationBlockFinder = blk;	
-					/* Set it to here to encourage the allocator to 
-					 *  go forth from here.
-					 */
 					 
-					/* Yaffs2 sanity check:
-					 * This should be the one with the highest sequence number
-					 */
-					if (dev->isYaffs2
-					    && (dev->sequenceNumber !=
-						bi->sequenceNumber)) {
-						T(YAFFS_TRACE_ALWAYS,
-						  (TSTR
-						   ("yaffs: Allocation block %d was not highest sequence "
-						    "id: block seq = %d, dev seq = %d"
-						    TENDSTR), blk,
-						   bi->sequenceNumber,
-						   dev->sequenceNumber));
-					}
 				}
 
 				dev->nFreeChunks++;
+				
 			} else if (tags.chunkId > 0) {
 				/* chunkId > 0 so it is a data chunk... */
 				unsigned int endpos;

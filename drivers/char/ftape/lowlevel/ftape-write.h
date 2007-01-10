@@ -20,12 +20,12 @@
  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 
  *
- $Source$
+ $Source: /homes/cvs/ftape-stacked/ftape/lowlevel/ftape-write.h,v $
  $Author$
  *
  $Revision$
  $Date$
- $State$
+ $State: Exp $
  *
  *      This file contains the definitions for the write functions
  *      for the QIC-117 floppy-tape driver for Linux.

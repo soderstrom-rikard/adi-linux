@@ -160,6 +160,8 @@ static int fastcall find_order(int size)
 
 #define find_size(order) (PAGE_SIZE << order)
 
+#endif
+
 void *kmalloc(size_t size, gfp_t gfp)
 {
 	slob_t *m;

@@ -8,11 +8,11 @@
 
 File Name:		bfin_v4l2_buffer_copy.S
 
-Date Modified:		4th March 2005	
+Date Modified:		4th March 2005
 
 Purpose:		"Video For Linux 2 API" Implementation for Blackfin
 			-533 Boards with Video Encoder ADV7171.
-			
+
 Author:			Ashutosh K Singh <ashutosh.singh@rrap-software.com>
 
 Based on 	 	Zoran zr36057/zr36067 PCI controller driver, for the
@@ -23,12 +23,12 @@ Based on 	 	Zoran zr36057/zr36067 PCI controller driver, for the
 			it under the terms of the GNU General Public License as published by
 			the Free Software Foundation; either version 2 of the License, or
 			(at your option) any later version.
-			
+
 			 This program is distributed in the hope that it will be useful,
 			 but WITHOUT ANY WARRANTY; without even the implied warranty of
 			 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 			 GNU General Public License for more details.
-			
+
 			 You should have received a copy of the GNU General Public License
 			 along with this program; if not, write to the Free Software
 			 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
@@ -92,7 +92,7 @@ DECLARE_WAIT_QUEUE_HEAD(bfin_v4l2_write_wait) ;
 
 //Macros to be used as v4l2 flags for this driver.
 #define	BFIN_VID_TYPE  ( VID_TYPE_CAPTURE | VID_TYPE_OVERLAY )
-#define	V4L2_BFIN_NAME "V4L2_BFIN_VIDEO_DRIVER"	
+#define	V4L2_BFIN_NAME "V4L2_BFIN_VIDEO_DRIVER"
 #define BFIN_V4L2_VID_FLAGS V4L2_CAP_VIDEO_OUTPUT
 #define BFIN_V4L2_HARDWARE 26	      	//Dont know what it should be !.
 #define NO_OF_DEVICES 		1 	//It ll be changed to 2 when
@@ -194,12 +194,12 @@ bfin_v4l2_close (struct inode *inode,
 
 	if (bfn->user-- == 1) {	/* Last process */
 		device_bfin_close();	//Reset the video
-					//hardware, PPI 	
+					//hardware, PPI
 					//and DMA as well
 //		kfree(ycrcb_buffer_out) ;  //free the buffer
 					   //from which output
 					   //to PPI taking
-					   //place		
+					   //place
 	}
 	file->private_data = NULL;
 	if(fh->buffer)
@@ -265,7 +265,7 @@ bfin_v4l2_write (struct file *file,
 	}
 	mem_dma0_status  = 1 ;
 	mem_dma1_status  = 1 ;
-	pre_ycrcb_buffer_out = (int *)data ;	
+	pre_ycrcb_buffer_out = (int *)data ;
 	bfin_v4l2_memdma_setup(ycrcb_buffer_out, pre_ycrcb_buffer_out);
 	return 0;
 }

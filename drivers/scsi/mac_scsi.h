@@ -23,10 +23,7 @@
  */
 
 /*
- * $Log$
- * Revision 1.8  2006/11/08 06:50:19  magicyang
- * commit some missing changes from 2.6.18 into cvs
- *
+ * $Log: cumana_NCR5380.h,v $
  */
 
 #ifndef MAC_NCR5380_H

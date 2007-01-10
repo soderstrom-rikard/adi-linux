@@ -294,7 +294,7 @@ void *l1_data_A_sram_alloc(size_t size)
 	spin_unlock_irqrestore(&l1_data_sram_lock, flags);
 
 	pr_debug("Allocated address in l1_data_A_sram_alloc is 0x%lx+0x%lx\n",
-		 addr, size);
+		 (long unsigned int)addr, size);
 
 	return addr;
 }
@@ -353,7 +353,7 @@ void *l1_data_B_sram_alloc(size_t size)
 	spin_unlock_irqrestore(&l1_data_sram_lock, flags);
 
 	pr_debug("Allocated address in l1_data_B_sram_alloc is 0x%lx+0x%lx\n",
-		 addr, size);
+		 (long unsigned int)addr, size);
 
 	return addr;
 #else
@@ -383,7 +383,7 @@ int l1_data_B_sram_free(const void *addr)
 
 void *l1_inst_sram_alloc(size_t size)
 {
-#if L1_CODE_LENGTH != 0
+#if L1_DATA_A_LENGTH != 0
 	unsigned flags;
 	void *addr;
 
@@ -396,7 +396,7 @@ void *l1_inst_sram_alloc(size_t size)
 	spin_unlock_irqrestore(&l1_inst_sram_lock, flags);
 
 	pr_debug("Allocated address in l1_inst_sram_alloc is 0x%lx+0x%lx\n",
-		 addr, size);
+		 (long unsigned int)addr, size);
 
 	return addr;
 #else

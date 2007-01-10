@@ -32,10 +32,7 @@
  *      USA.
  *
  * Revision history:
- * $Log$
- * Revision 1.6  2006/11/02 08:29:24  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: sx.c,v $
  * Revision 1.33  2000/03/09 10:00:00  pvdl,wolff
  * - Fixed module and port counting
  * - Fixed signal handling
@@ -206,9 +203,7 @@
 #define RCS_ID "$Id$"
 #define RCS_REV "$Revision$"
 
-
 #include <linux/module.h>
-#include <linux/config.h> 
 #include <linux/kdev_t.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
@@ -1197,7 +1192,7 @@ static inline void sx_check_modem_signals (struct sx_port *port)
  * Small, elegant, clear.
  */
 
-static irqreturn_t sx_interrupt (int irq, void *ptr, struct pt_regs *regs)
+static irqreturn_t sx_interrupt (int irq, void *ptr)
 {
 	struct sx_board *board = ptr;
 	struct sx_port *port;
@@ -1305,7 +1300,7 @@ static void sx_pollfunc (unsigned long data)
 
 	func_enter ();
 
-	sx_interrupt (0, board, NULL);
+	sx_interrupt (0, board);
 
 	init_timer(&board->timer);
 
@@ -2229,7 +2224,7 @@ static int probe_si (struct sx_board *board)
 	return 1;
 }
 
-static struct tty_operations sx_ops = {
+static const struct tty_operations sx_ops = {
 	.break_ctl = sx_break,
 	.open	= sx_open,
 	.close = gs_close,
@@ -2607,7 +2602,7 @@ static void __exit sx_exit (void)
 		}
 	}
 	if (misc_deregister(&sx_fw_device) < 0) {
-		printk (KERN_INFO "sx: couldn't deregister firmware loader devic\n");
+		printk (KERN_INFO "sx: couldn't deregister firmware loader device\n");
 	}
 	sx_dprintk (SX_DEBUG_CLEANUP, "Cleaning up drivers (%d)\n", sx_initialized);
 	if (sx_initialized)

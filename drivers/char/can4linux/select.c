@@ -6,12 +6,12 @@
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
  *
- * 
+ *
  * Copyright (c) 2001 port GmbH Halle/Saale
  * (c) 2001 Heinz-Jürgen Oertel (oe@port.de)
  *          Claus Schroeter (clausi@chemie.fu-berlin.de)
  *------------------------------------------------------------------
- * $Header$
+ * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/select.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -40,7 +40,7 @@ unsigned int mask = 0;
     /* every event queue that could wake up the process
      * and change the status of the poll operation
      * can be added to the poll_table structure by
-     * calling the function poll_wait:  
+     * calling the function poll_wait:
      */
     /*     _select para, wait queue, _select para */
     poll_wait(file, &CanWait[minor] , wait);
@@ -55,7 +55,7 @@ unsigned int mask = 0;
 	 */
 	/*
 	 * POLLIN This bit must be set
-	 *        if the device can be read without blocking. 
+	 *        if the device can be read without blocking.
 	 * POLLRDNORM This bit must be set
 	 * if "normal'' data is available for reading.
 	 * A readable device returns (POLLIN | POLLRDNORM)
@@ -73,7 +73,7 @@ unsigned int mask = 0;
 	 */
 	/*
 	 * POLLOUT This bit must be set
-	 *        if the device can be written without blocking. 
+	 *        if the device can be written without blocking.
 	 * POLLWRNORM This bit must be set
 	 */
 	mask |= POLLOUT | POLLWRNORM;	/* writeable */

@@ -27,10 +27,7 @@
  */
 
 /*
- * $Log$
- * Revision 1.8  2006/11/08 06:50:05  magicyang
- * commit some missing changes from 2.6.18 into cvs
- *
+ * $Log: NCR5380.c,v $
 
  * Revision 1.10 1998/9/2	Alan Cox
  *				(alan@redhat.com)
@@ -561,8 +558,7 @@ static int probe_irq __initdata = 0;
  *	used by the IRQ probe code.
  */
  
-static irqreturn_t __init probe_intr(int irq, void *dev_id,
-					struct pt_regs *regs)
+static irqreturn_t __init probe_intr(int irq, void *dev_id)
 {
 	probe_irq = irq;
 	return IRQ_HANDLED;
@@ -1151,7 +1147,6 @@ static void NCR5380_main(void *p)
  * 	NCR5380_intr	-	generic NCR5380 irq handler
  *	@irq: interrupt number
  *	@dev_id: device info
- *	@regs: registers (unused)
  *
  *	Handle interrupts, reestablishing I_T_L or I_T_L_Q nexuses
  *      from the disconnected queue, and restarting NCR5380_main() 
@@ -1160,7 +1155,7 @@ static void NCR5380_main(void *p)
  *	Locks: takes the needed instance locks
  */
 
-static irqreturn_t NCR5380_intr(int irq, void *dev_id, struct pt_regs *regs) 
+static irqreturn_t NCR5380_intr(int irq, void *dev_id) 
 {
 	NCR5380_local_declare();
 	struct Scsi_Host *instance = (struct Scsi_Host *)dev_id;

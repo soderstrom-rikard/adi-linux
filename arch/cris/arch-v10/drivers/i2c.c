@@ -11,10 +11,7 @@
 *! Jan 14 2000  Johan Adolfsson    Fixed PB shadow register stuff - 
 *!                                 don't use PB_I2C if DS1302 uses same bits,
 *!                                 use PB.
-*! $Log$
-*! Revision 1.7  2006/11/01 04:48:46  magicyang
-*! update kernel to 2.6.18
-*!
+*! $Log: i2c.c,v $
 *! Revision 1.13  2005/03/07 13:13:07  starvik
 *! Added spinlocks to protect states etc
 *!

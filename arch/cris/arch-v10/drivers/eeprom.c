@@ -19,10 +19,7 @@
 *!  Sep  03 1999  Edgar Iglesias    Added bail-out stuff if we get interrupted
 *!                                  in the spin-lock.
 *!
-*!  $Log$
-*!  Revision 1.7  2006/11/01 04:48:46  magicyang
-*!  update kernel to 2.6.18
-*!
+*!  $Log: eeprom.c,v $
 *!  Revision 1.12  2005/06/19 17:06:46  starvik
 *!  Merge of Linux 2.6.12.
 *!

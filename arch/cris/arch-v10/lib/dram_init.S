@@ -10,10 +10,7 @@
  *
  * Authors:  Mikael Starvik (starvik@axis.com)	
  * 
- * $Log$
- * Revision 1.7  2006/11/01 04:48:57  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: dram_init.S,v $
  * Revision 1.4  2003/09/22 09:21:59  starvik
  * Decompresser is linked to 0x407xxxxx and sdram commands are at 0x000xxxxx
  * so we need to mask off 12 bits.

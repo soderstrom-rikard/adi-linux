@@ -101,9 +101,12 @@ int show_interrupts(struct seq_file *p, void *v)
  */
 asmlinkage void asm_do_IRQ(unsigned int irq, struct pt_regs *regs)
 {
+	struct pt_regs *old_regs;
 	struct irq_desc *desc = irq_desc + irq;
 	unsigned short pending, other_ints;
 
+	old_regs = set_irq_regs(regs);
+	
 	/*
 	 * Some hardware gives randomly wrong interrupts.  Rather
 	 * than crashing, do something sensible.
@@ -113,7 +116,7 @@ asmlinkage void asm_do_IRQ(unsigned int irq, struct pt_regs *regs)
 
 	irq_enter();
 
-	generic_handle_irq(irq, regs);
+	generic_handle_irq(irq);
 
 	/* If we're the only interrupt running (ignoring IRQ15 which is for
 	   syscalls), lower our priority to IRQ14 so that softirqs run at
@@ -125,6 +128,8 @@ asmlinkage void asm_do_IRQ(unsigned int irq, struct pt_regs *regs)
 	if (other_ints == 0)
 		lower_to_irq14();
 	irq_exit();
+	
+	set_irq_regs(old_regs);
 }
 
 void __init init_IRQ(void)

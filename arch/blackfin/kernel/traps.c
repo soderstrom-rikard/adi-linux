@@ -519,8 +519,8 @@ void dump_bfin_regs(struct pt_regs *fp, void *retaddr)
 	         && retaddr < (void*)(L1_CODE_START + L1_CODE_LENGTH))
 #endif
 	) {
-		int i;
-		unsigned short x;
+		int i = 0;
+		unsigned short x = 0;
 		for (i = -16; i < 8; i++) {
 			if (get_user(x, (unsigned short *)retaddr + i))
 				break;
@@ -585,7 +585,7 @@ void dump_bfin_regs(struct pt_regs *fp, void *retaddr)
 asmlinkage int sys_bfin_spinlock(int *spinlock)
 {
 	int ret = 0;
-	int tmp;
+	int tmp = 0;
 
 	local_irq_disable();
 	ret = get_user(tmp, spinlock);

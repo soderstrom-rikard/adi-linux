@@ -17,10 +17,7 @@
 *! Jun 17 1999  Hendrik Ruijter Added gdb 4.18 support. 'X', 'qC' and 'qL'.
 *! Jul 21 1999  Bjorn Wesen     eLinux port
 *!
-*! $Log$
-*! Revision 1.7  2006/11/01 04:48:52  magicyang
-*! update kernel to 2.6.18
-*!
+*! $Log: kgdb.c,v $
 *! Revision 1.6  2005/01/14 10:12:17  starvik
 *! KGDB on separate port.
 *! Console fixes from 2.4.

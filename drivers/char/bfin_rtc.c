@@ -150,7 +150,7 @@ static inline void wait_for_complete(void)
  *  (See ./arch/XXXX/kernel/time.c for the set_rtc_mmss() function.)
  */
 
-irqreturn_t rtc_interrupt(int irq, void *dev_id, struct pt_regs *regs)
+irqreturn_t rtc_interrupt(int irq, void *dev_id)
 {
 	/*
 	 *  Can be an alarm interrupt, update complete interrupt,

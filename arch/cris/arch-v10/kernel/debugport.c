@@ -11,10 +11,7 @@
  *    enableDebugIRQ()
  *    init_etrax_debug()
  *
- * $Log$
- * Revision 1.7  2006/11/01 04:48:49  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: debugport.c,v $
  * Revision 1.27  2005/06/10 10:34:14  starvik
  * Real console support
  *

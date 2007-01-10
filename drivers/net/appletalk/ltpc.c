@@ -61,10 +61,7 @@
 
 /***
  *
- * $Log$
- * Revision 1.6  2006/11/03 05:23:43  magicyang
- *  update kernel to 2.6.18
- *
+ * $Log: ltpc.c,v $
  * Revision 1.1.2.1  2000/03/01 05:35:07  jgarzik
  * at and tr cleanup
  *
@@ -793,7 +790,7 @@ static int sendup_buffer (struct net_device *dev)
 /* the handler for the board interrupt */
  
 static irqreturn_t
-ltpc_interrupt(int irq, void *dev_id, struct pt_regs *reg_ptr)
+ltpc_interrupt(int irq, void *dev_id)
 {
 	struct net_device *dev = dev_id;
 

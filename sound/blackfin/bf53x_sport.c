@@ -711,8 +711,7 @@ int  bf53x_sport_dump_stat(struct bf53x_sport *sport, char *buf, size_t len)
 	return ret;
 }
 
-static irqreturn_t rx_handler(int irq, void *dev_id,
-		struct pt_regs *regs)
+static irqreturn_t rx_handler(int irq, void *dev_id)
 {
 	unsigned int rx_stat;
 	struct bf53x_sport *sport = dev_id;
@@ -730,8 +729,7 @@ static irqreturn_t rx_handler(int irq, void *dev_id,
 	return IRQ_NONE;
 }
 
-static irqreturn_t tx_handler(int irq, void *dev_id,
-		struct pt_regs *regs)
+static irqreturn_t tx_handler(int irq, void *dev_id)
 {
 	unsigned int tx_stat;
 	struct bf53x_sport *sport = dev_id;
@@ -751,8 +749,7 @@ static irqreturn_t tx_handler(int irq, void *dev_id,
 	return IRQ_NONE;
 }
 
-static irqreturn_t err_handler(int irq, void *dev_id,
-		struct pt_regs *regs)
+static irqreturn_t err_handler(int irq, void *dev_id)
 {
 	unsigned int status;
 	struct bf53x_sport *sport = dev_id;

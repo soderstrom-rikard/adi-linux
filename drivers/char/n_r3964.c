@@ -12,10 +12,7 @@
  * Author:
  * L. Haag
  *
- * $Log$
- * Revision 1.6  2006/11/02 08:28:58  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: n_r3964.c,v $
  * Revision 1.10  2001/03/18 13:02:24  dwmw2
  * Fix timer usage, use spinlocks properly.
  *

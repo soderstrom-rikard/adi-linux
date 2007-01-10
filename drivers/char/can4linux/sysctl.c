@@ -6,12 +6,12 @@
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
  *
- * 
+ *
  * Copyright (c) 2001 port GmbH Halle/Saale
  * (c) 2001 Heinz-Jürgen Oertel (oe@port.de)
  *          Claus Schroeter (clausi@chemie.fu-berlin.de)
  *------------------------------------------------------------------
- * $Header$
+ * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/sysctl.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -21,9 +21,9 @@
  */
 /*
  * This Template implements the SYSCTL basics, and handler/strategy routines
- * Users may implement own routines and hook them up with the 'handler'		
+ * Users may implement own routines and hook them up with the 'handler'
  * and 'strategy' methods of sysctl.
- * 
+ *
  *
  */
 #include "defs.h"
@@ -89,39 +89,39 @@ int Cnt2[MAX_CHANNELS]    = { 0x0 };
 /* ----- the sysctl table */
 
 ctl_table Can_sysctl_table[] = {
- { SYSCTL_VERSION, "version", &version, PROC_VER_LENGTH, 
+ { SYSCTL_VERSION, "version", &version, PROC_VER_LENGTH,
 		 0444, NULL, &proc_dostring , &sysctl_string },
- { SYSCTL_CHIPSET, "Chipset", &Chipset, PROC_CHIPSET_LENGTH, 
+ { SYSCTL_CHIPSET, "Chipset", &Chipset, PROC_CHIPSET_LENGTH,
 		 0444, NULL, &proc_dostring , &sysctl_string },
- { SYSCTL_IOMODEL, "IOModel", &IOModel, MAX_CHANNELS + 1, 
+ { SYSCTL_IOMODEL, "IOModel", &IOModel, MAX_CHANNELS + 1,
 		 0444, NULL, &proc_dostring , &sysctl_string },
- { SYSCTL_IRQ, "IRQ",(void *) IRQ, MAX_CHANNELS*sizeof(int), 
+ { SYSCTL_IRQ, "IRQ",(void *) IRQ, MAX_CHANNELS*sizeof(int),
 		 0644, NULL, &proc_dointvec , NULL  },
- { SYSCTL_BASE, "Base",(void *) Base, MAX_CHANNELS*sizeof(int), 
+ { SYSCTL_BASE, "Base",(void *) Base, MAX_CHANNELS*sizeof(int),
 		 0644, NULL, &proc_dointvec , NULL  },
- { SYSCTL_BAUD, "Baud",(void *) Baud, MAX_CHANNELS*sizeof(int), 
+ { SYSCTL_BAUD, "Baud",(void *) Baud, MAX_CHANNELS*sizeof(int),
 		 0666, NULL, &proc_dointvec , NULL  },
- { SYSCTL_ACCCODE, "AccCode",(void *) AccCode, MAX_CHANNELS*sizeof(unsigned int), 
+ { SYSCTL_ACCCODE, "AccCode",(void *) AccCode, MAX_CHANNELS*sizeof(unsigned int),
 		 0644, NULL, &proc_dointvec , NULL  },
- { SYSCTL_ACCMASK, "AccMask",(void *) AccMask, MAX_CHANNELS*sizeof(unsigned int), 
+ { SYSCTL_ACCMASK, "AccMask",(void *) AccMask, MAX_CHANNELS*sizeof(unsigned int),
 		 0644, NULL, &proc_dointvec , NULL  },
- { SYSCTL_TIMEOUT, "Timeout",(void *) Timeout, MAX_CHANNELS*sizeof(int), 
+ { SYSCTL_TIMEOUT, "Timeout",(void *) Timeout, MAX_CHANNELS*sizeof(int),
 		 0644, NULL, &proc_dointvec , NULL  },
- { SYSCTL_OUTC, "Outc",(void *) Outc, MAX_CHANNELS*sizeof(int), 
+ { SYSCTL_OUTC, "Outc",(void *) Outc, MAX_CHANNELS*sizeof(int),
 		 0644, NULL, &proc_dointvec , NULL  },
- { SYSCTL_TXERR, "TxErr",(void *) TxErr, MAX_CHANNELS*sizeof(int), 
+ { SYSCTL_TXERR, "TxErr",(void *) TxErr, MAX_CHANNELS*sizeof(int),
 		 0444, NULL, &proc_dointvec , NULL  },
- { SYSCTL_RXERR, "RxErr",(void *) RxErr, MAX_CHANNELS*sizeof(int), 
+ { SYSCTL_RXERR, "RxErr",(void *) RxErr, MAX_CHANNELS*sizeof(int),
 		 0444, NULL, &proc_dointvec , NULL  },
- { SYSCTL_OVERRUN, "Overrun",(void *) Overrun, MAX_CHANNELS*sizeof(int), 
+ { SYSCTL_OVERRUN, "Overrun",(void *) Overrun, MAX_CHANNELS*sizeof(int),
 		 0444, NULL, &proc_dointvec , NULL  },
- { SYSCTL_DBGMASK, "dbgMask",(void *) &dbgMask, 1*sizeof(int), 
+ { SYSCTL_DBGMASK, "dbgMask",(void *) &dbgMask, 1*sizeof(int),
 		 0644, NULL, &proc_dointvec , NULL  },
 #ifdef DEBUG_COUNTER
 /* ---------------------------------------------------------------------- */
- { SYSCTL_CNT1, "cnt1",(void *) Cnt1, MAX_CHANNELS*sizeof(int), 
+ { SYSCTL_CNT1, "cnt1",(void *) Cnt1, MAX_CHANNELS*sizeof(int),
 		 0444, NULL, &proc_dointvec , NULL  },
- { SYSCTL_CNT2, "cnt2",(void *) Cnt2, MAX_CHANNELS*sizeof(int), 
+ { SYSCTL_CNT2, "cnt2",(void *) Cnt2, MAX_CHANNELS*sizeof(int),
 		 0444, NULL, &proc_dointvec , NULL  },
 /* ---------------------------------------------------------------------- */
 #endif /* DEBUG_COUNTER */
@@ -131,9 +131,9 @@ ctl_table Can_sysctl_table[] = {
 /* ----- the main directory entry in /proc/sys */
 
 ctl_table Can_sys_table[] = {
-	    {SYSCTL_Can, "Can", NULL, 0, 0555, 
-                 Can_sysctl_table},	
-	    {0}	
+	    {SYSCTL_Can, "Can", NULL, 0, 0555,
+                 Can_sysctl_table},
+	    {0}
 };
 
 /* ----- register and unregister entrys */

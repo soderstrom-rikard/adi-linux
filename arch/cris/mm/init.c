@@ -6,10 +6,7 @@
  *
  *  Authors:  Bjorn Wesen (bjornw@axis.com)
  *
- *  $Log$
- *  Revision 1.7  2006/11/01 04:49:08  magicyang
- *  update kernel to 2.6.18
- *
+ *  $Log: init.c,v $
  *  Revision 1.11  2004/05/28 09:28:56  starvik
  *  Calculation of loops_per_usec moved because initalization order has changed
  *  in Linux 2.6.

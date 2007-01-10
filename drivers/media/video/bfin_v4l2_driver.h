@@ -22,7 +22,7 @@ struct bfin_v4l2 {
  * this structure
  */
 
-struct bfin_v4l2_fh {			
+struct bfin_v4l2_fh {
 	struct bfin_v4l2 *bfn;
 	char * buffer ;
 	u8 write_flag ;

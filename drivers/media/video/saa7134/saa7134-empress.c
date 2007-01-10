@@ -64,8 +64,10 @@ static void ts_reset_encoder(struct saa7134_dev* dev)
 
 static int ts_init_encoder(struct saa7134_dev* dev)
 {
+	struct v4l2_ext_controls ctrls = { V4L2_CTRL_CLASS_MPEG, 0 };
+
 	ts_reset_encoder(dev);
-	saa7134_i2c_call_clients(dev, VIDIOC_S_MPEGCOMP, NULL);
+	saa7134_i2c_call_clients(dev, VIDIOC_S_EXT_CTRLS, &ctrls);
 	dev->empress_started = 1;
 	return 0;
 }
@@ -89,7 +91,7 @@ static int ts_open(struct inode *inode, struct file *file)
 
 	dprintk("open minor=%d\n",minor);
 	err = -EBUSY;
-	if (down_trylock(&dev->empress_tsq.lock))
+	if (!mutex_trylock(&dev->empress_tsq.lock))
 		goto done;
 	if (dev->empress_users)
 		goto done_up;
@@ -99,7 +101,7 @@ static int ts_open(struct inode *inode, struct file *file)
 	err = 0;
 
 done_up:
-	up(&dev->empress_tsq.lock);
+	mutex_unlock(&dev->empress_tsq.lock);
 done:
 	return err;
 }
@@ -110,7 +112,7 @@ static int ts_release(struct inode *inode, struct file *file)
 
 	if (dev->empress_tsq.streaming)
 		videobuf_streamoff(&dev->empress_tsq);
-	down(&dev->empress_tsq.lock);
+	mutex_lock(&dev->empress_tsq.lock);
 	if (dev->empress_tsq.reading)
 		videobuf_read_stop(&dev->empress_tsq);
 	videobuf_mmap_free(&dev->empress_tsq);
@@ -119,7 +121,7 @@ static int ts_release(struct inode *inode, struct file *file)
 	/* stop the encoder */
 	ts_reset_encoder(dev);
 
-	up(&dev->empress_tsq.lock);
+	mutex_unlock(&dev->empress_tsq.lock);
 	return 0;
 }
 
@@ -162,6 +164,7 @@ static int ts_do_ioctl(struct inode *inode, struct file *file,
 		       unsigned int cmd, void *arg)
 {
 	struct saa7134_dev *dev = file->private_data;
+	struct v4l2_ext_controls *ctrls = arg;
 
 	if (debug > 1)
 		v4l_print_ioctl(dev->name,cmd);
@@ -278,11 +281,30 @@ static int ts_do_ioctl(struct inode *inode, struct file *file,
 		return saa7134_common_ioctl(dev, cmd, arg);
 
 	case VIDIOC_S_MPEGCOMP:
+		printk(KERN_WARNING "VIDIOC_S_MPEGCOMP is obsolete. "
+				    "Replace with VIDIOC_S_EXT_CTRLS!");
 		saa7134_i2c_call_clients(dev, VIDIOC_S_MPEGCOMP, arg);
 		ts_init_encoder(dev);
 		return 0;
 	case VIDIOC_G_MPEGCOMP:
+		printk(KERN_WARNING "VIDIOC_G_MPEGCOMP is obsolete. "
+				    "Replace with VIDIOC_G_EXT_CTRLS!");
 		saa7134_i2c_call_clients(dev, VIDIOC_G_MPEGCOMP, arg);
+		return 0;
+	case VIDIOC_S_EXT_CTRLS:
+		/* count == 0 is abused in saa6752hs.c, so that special
+		   case is handled here explicitly. */
+		if (ctrls->count == 0)
+			return 0;
+		if (ctrls->ctrl_class != V4L2_CTRL_CLASS_MPEG)
+			return -EINVAL;
+		saa7134_i2c_call_clients(dev, VIDIOC_S_EXT_CTRLS, arg);
+		ts_init_encoder(dev);
+		return 0;
+	case VIDIOC_G_EXT_CTRLS:
+		if (ctrls->ctrl_class != V4L2_CTRL_CLASS_MPEG)
+			return -EINVAL;
+		saa7134_i2c_call_clients(dev, VIDIOC_G_EXT_CTRLS, arg);
 		return 0;
 
 	default:

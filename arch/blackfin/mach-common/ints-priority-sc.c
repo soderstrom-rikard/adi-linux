@@ -221,8 +221,7 @@ static struct irq_chip bfin_generic_error_irqchip = {
 };
 
 static void bfin_demux_error_irq(unsigned int int_err_irq,
-				  struct irq_desc *intb_desc,
-				  struct pt_regs *regs)
+				  struct irq_desc *intb_desc)
 {
 	int irq = 0;
 
@@ -253,7 +252,7 @@ static void bfin_demux_error_irq(unsigned int int_err_irq,
 	if (irq) {
 		if (error_int_mask & (1L << (irq - IRQ_PPI_ERROR))) {
 			struct irq_desc *desc = irq_desc + irq;
-			desc->handle_irq(irq, desc, regs);
+			desc->handle_irq(irq, desc);
 		} else {
 
 			switch (irq) {
@@ -420,8 +419,7 @@ static struct irq_chip bfin_gpio_irqchip = {
 };
 
 static void bfin_demux_gpio_irq(unsigned int intb_irq,
-				 struct irq_desc *intb_desc,
-				 struct pt_regs *regs)
+				 struct irq_desc *intb_desc)
 {
 	u16 i;
 
@@ -435,7 +433,7 @@ static void bfin_demux_gpio_irq(unsigned int intb_irq,
 		while (mask) {
 			if (mask & 1) {
 				struct irq_desc *desc = irq_desc + irq;
-				desc->handle_irq(irq, desc, regs);
+				desc->handle_irq(irq, desc);
 			}
 			irq++;
 			mask >>= 1;

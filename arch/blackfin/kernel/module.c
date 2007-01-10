@@ -288,8 +288,9 @@ apply_relocate_add(Elf_Shdr * sechdrs, const char *strtab,
 			value = reloc_stack_pop();
 		}
 		value += rel[i].r_addend;
-		pr_debug("location is %x, value is %x type is %d \n", location32,
-		       value, ELF32_R_TYPE(rel[i].r_info));
+		pr_debug("location is %x, value is %x type is %d \n", 
+			 (unsigned int) location32, value, 
+			 ELF32_R_TYPE(rel[i].r_info));
 
 		switch (ELF32_R_TYPE(rel[i].r_info)) {
 

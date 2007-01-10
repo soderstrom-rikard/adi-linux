@@ -96,15 +96,15 @@ MODULE_PARM_DESC(nowayout, "Watchdog cannot be stopped once started (default=CON
 static short code2action(int code){
 	switch(code){
 		case 1:
-			return ICTL_NMI;	
+			return ICTL_NMI;
 		case 2:
-			return ICTL_GPIO;	
+			return ICTL_GPIO;
 		case 3:
-			return ICTL_NONE;	
+			return ICTL_NONE;
 		case 0:
 		default:
-			return ICTL_RESET;	
-	}	
+			return ICTL_RESET;
+	}
 }
 
 #define DEFAULT_ACTION_CODE 0

@@ -44,6 +44,7 @@
 #include <asm/uaccess.h>
 #include <asm/ipc.h>
 #include <asm/dma.h>
+#include <asm/unistd.h>
 
 /*
  * sys_pipe() is the normal C calling standard for creating
@@ -114,3 +115,19 @@ asmlinkage void *sys_dma_memcpy(void *dest, const void *src, size_t len)
 {
 	return safe_dma_memcpy(dest, src, len);
 }
+
+/*
+ * Do a system call from kernel instead of calling sys_execve so we
+ * end up with proper pt_regs.
+ */
+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
+{
+       register long __res asm ("P0") = __NR_execve;
+       register long __a asm ("R0") = (long)(filename);
+       register long __b asm ("R1") = (long)(argv);
+       register long __c asm ("R2") = (long)(envp);
+       asm volatile ("raise 15" : "+d" (__a)
+                       : "d" (__res), "d" (__b), "d" (__c));
+       return __a;
+}
+		

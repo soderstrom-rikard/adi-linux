@@ -124,6 +124,8 @@
 
 #define MGSL_MODE_ASYNC		1
 #define MGSL_MODE_HDLC		2
+#define MGSL_MODE_MONOSYNC	3
+#define MGSL_MODE_BISYNC	4
 #define MGSL_MODE_RAW		6
 
 #define MGSL_BUS_TYPE_ISA	1

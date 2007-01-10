@@ -4,10 +4,7 @@
  * Fast timers for ETRAX FS
  * This may be useful in other OS than Linux so use 2 space indentation...
  *
- * $Log$
- * Revision 1.2  2006/11/01 04:49:04  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: fasttimer.c,v $
  * Revision 1.11  2005/01/04 11:15:46  starvik
  * Don't share timer IRQ.
  *

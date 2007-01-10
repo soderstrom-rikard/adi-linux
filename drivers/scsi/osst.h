@@ -1,5 +1,5 @@
 /*
- *	$Header$
+ *	$Header: /cvsroot/osst/Driver/osst.h,v 1.16 2005/01/01 21:13:35 wriede Exp $
  */
 
 #include <asm/byteorder.h>

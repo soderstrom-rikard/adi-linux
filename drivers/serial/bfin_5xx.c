@@ -162,7 +162,7 @@ static void local_put_char(struct bfin_serial_port *uart, char ch)
 }
 
 static void
-bfin_serial_rx_chars(struct bfin_serial_port *uart, struct pt_regs *regs)
+bfin_serial_rx_chars(struct bfin_serial_port *uart)
 {
 	struct tty_struct *tty = uart->port.info->tty;
 	unsigned int status, ch, flg;
@@ -204,7 +204,7 @@ bfin_serial_rx_chars(struct bfin_serial_port *uart, struct pt_regs *regs)
 	} else
 		flg = TTY_NORMAL;
 
-	if (uart_handle_sysrq_char(&uart->port, ch, regs))
+	if (uart_handle_sysrq_char(&uart->port, ch)
 		goto ignore_char;
 	uart_insert_char(&uart->port, status, 2, ch, flg);
 
@@ -244,7 +244,7 @@ static void bfin_serial_tx_chars(struct bfin_serial_port *uart)
 		bfin_serial_stop_tx(&uart->port);
 }
 
-static irqreturn_t bfin_serial_int(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t bfin_serial_int(int irq, void *dev_id)
 {
 	struct bfin_serial_port *uart = dev_id;
 	unsigned short status;
@@ -255,7 +255,7 @@ static irqreturn_t bfin_serial_int(int irq, void *dev_id, struct pt_regs *regs)
 		if ((status & IIR_STATUS) == IIR_TX_READY)
 			bfin_serial_tx_chars(uart);
 		if ((status & IIR_STATUS) == IIR_RX_READY)
-			bfin_serial_rx_chars(uart, regs);
+			bfin_serial_rx_chars(uart);
 		status = UART_GET_IIR(uart);
 	} while (status &(IIR_TX_READY | IIR_RX_READY));
 	spin_unlock(&uart->port.lock);
@@ -327,7 +327,7 @@ static void bfin_serial_dma_rx_chars(struct bfin_serial_port * uart)
 {
 	struct tty_struct *tty = uart->port.info->tty;
 	int i, flg, status;
-        
+
 	status = UART_GET_LSR(uart);
 	uart->port.icount.rx += CIRC_CNT(uart->rx_dma_buf.head, uart->rx_dma_buf.tail, UART_XMIT_SIZE);;
 
@@ -349,7 +349,7 @@ static void bfin_serial_dma_rx_chars(struct bfin_serial_port * uart)
                 flg = TTY_NORMAL;
 
 	for (i = uart->rx_dma_buf.head; i < uart->rx_dma_buf.tail; i++) {
-		if (uart_handle_sysrq_char(&uart->port, uart->rx_dma_buf.buf[i], NULL))
+		if (uart_handle_sysrq_char(&uart->port, uart->rx_dma_buf.buf[i]))
 			goto dma_ignore_char;
 		uart_insert_char(&uart->port, status, 2, uart->rx_dma_buf.buf[i], flg);
 	}
@@ -381,7 +381,7 @@ void bfin_serial_rx_dma_timeout(struct bfin_serial_port *uart)
 	add_timer(&(uart->rx_dma_timer));
 }
 
-static irqreturn_t bfin_serial_dma_tx_int(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t bfin_serial_dma_tx_int(int irq, void *dev_id)
 {
 	struct bfin_serial_port *uart = dev_id;
 	struct circ_buf *xmit = &uart->port.info->xmit;
@@ -409,7 +409,7 @@ static irqreturn_t bfin_serial_dma_tx_int(int irq, void *dev_id, struct pt_regs 
 	return IRQ_HANDLED;
 }
 
-static irqreturn_t bfin_serial_dma_rx_int(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t bfin_serial_dma_rx_int(int irq, void *dev_id)
 {
 	struct bfin_serial_port *uart = dev_id;
 	unsigned short irqstat;

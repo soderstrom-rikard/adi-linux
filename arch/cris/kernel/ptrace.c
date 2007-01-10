@@ -7,10 +7,7 @@
  *
  * Authors:   Bjorn Wesen
  *
- * $Log$
- * Revision 1.7  2006/11/01 04:49:07  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: ptrace.c,v $
  * Revision 1.10  2004/09/22 11:50:01  orjanf
  * * Moved get_reg/put_reg to arch-specific files.
  * * Added functions to access debug registers (CRISv32).

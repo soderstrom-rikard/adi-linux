@@ -7,12 +7,12 @@ set tagprg="global -t $1"
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
- * 
+ *
  * Copyright (c) 2001 port GmbH Halle/Saale
  * (c) 2001 Heinz-Jürgen Oertel (oe@port.de)
  *          Claus Schroeter (clausi@chemie.fu-berlin.de)
  *------------------------------------------------------------------
- * $Header$
+ * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/core.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -61,9 +61,9 @@ open(), close(), read(), write() and ioctl() calls
 ( can_open(), can_close(), can_read(), can_write(), can_ioctl() ).
 
 The driver itself is highly configurable
-using the /proc interface of the LINUX kernel. 
+using the /proc interface of the LINUX kernel.
 
-The following listing shows a typical configuration with three boards: 
+The following listing shows a typical configuration with three boards:
 
 \code
 $ grep . /proc/sys/Can/\*
@@ -92,7 +92,7 @@ but does the most configurations at compile time.
 That means especially that only one CAN controller support with
 a special register access method is compiled into the driver.
 Actually the only CAN controller supported by this version
-is the Philips SJA 1000 in both the compatibility mode 
+is the Philips SJA 1000 in both the compatibility mode
 \b BasicCAN and the Philips \PeliCAN mode (compile time selectable).
 
 The version of can4linux currently available at the uClinux CVS tree
@@ -121,7 +121,7 @@ Read the CAN register access model.
 The following models are currently supported:
 \li m - memory access, the registers are directly mapped into memory
 \li f - fast register access, special mode for the 82527
-     uses memory locations for register addresses 
+     uses memory locations for register addresses
      (ELIMA)
 \li p - port I/O,  80x86 specific I/O address range
      (AT-CAN-MINI)
@@ -141,7 +141,7 @@ to \e Outc .
 With the most boards using a Philips SJA1000,
 by changing the value of the \e Outc it is possible
 to inhibit generating the CAN Acknowledge.
-Using this feature, it is possible to implement a 
+Using this feature, it is possible to implement a
 \b listen \b only
 mode.
 Please refer the CAN controller documenattion for more details.
@@ -160,7 +160,7 @@ time out value for waiting for a successful transmission
 counter for CAN controller tx error conditions
 
 \par dbgMask
-if compiled with debugging support, writing a value greater then 0 
+if compiled with debugging support, writing a value greater then 0
 enables debugging to \b syslogd .
 The value is bit coded.
 \code
@@ -209,7 +209,7 @@ erstellt
 #include <linux/fs.h>			/* register_chrdev() */
 #include <linux/pci.h>
 #include "defs.h"
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0) 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
 #include <linux/device.h>
 #endif
 
@@ -229,7 +229,7 @@ int Can_minors[MAX_CHANNELS]                = { 0 }; /* used as IRQ dev_id */
 #ifdef CONFIG_DEVFS_FS
 devfs_handle_t can_dev_handle[MAX_CHANNELS] = { 0 };
 #endif
-int Can_major 				    = CAN_MAJOR; 
+int Can_major 				    = CAN_MAJOR;
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
@@ -242,7 +242,7 @@ that any member of the structure which you don't explicitly assign
 will be initialized to NULL by gcc.
 */
 
-static struct file_operations can_fops = { 
+static struct file_operations can_fops = {
     .owner	=	THIS_MODULE,
     .open	=	can_open,
     .release	=	can_close,
@@ -257,7 +257,7 @@ static struct file_operations can_fops = {
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0) 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
 static int __init can_init(void)
 #else
 static int init_module(void)
@@ -301,7 +301,7 @@ char devname[];
     printk(KERN_INFO " H.J. Oertel (oe@port.de)\n");
     /* printk(KERN_INFO " C.Schroeter (clausi@chemie.fu-berlin.de), H.D. Stich\n");  */
 #endif
-	    
+
 
 
     /*
@@ -346,7 +346,7 @@ char devname[];
 #endif
     }
     /* after initializing channel based parameters
-     * finish some entries 
+     * finish some entries
      * and do drivers specific initialization
      */
     IOModel[i] = '\0';
@@ -387,7 +387,7 @@ char devname[];
 }
 
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0) 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
 static void can_exit(void)
 #else
 static void cleanup_module(void)
@@ -397,10 +397,10 @@ static void cleanup_module(void)
 int i;
 void *ptr;
 #endif
-    
+
     DBGin("cleanup_module");
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0) 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
   if (MOD_IN_USE) {
     printk(KERN_WARNING "Can : device busy, remove delayed\n");
   }
@@ -458,7 +458,7 @@ void *ptr;
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0) 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
 module_init(can_init);
 module_exit(can_exit);
 EXPORT_NO_SYMBOLS;

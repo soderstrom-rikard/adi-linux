@@ -6,7 +6,6 @@
 
 /* $Id$ */
 
-#include <linux/config.h>	/* CONFIG_MMU */
 #include <linux/linkage.h>
 #include <asm/assembler.h>
 #include <asm/smp.h>

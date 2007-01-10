@@ -77,8 +77,7 @@
 #undef DEF_IRQ_SPORT0_TX
 
 #ifdef DEF_IRQ_SPORT0_RX
-static irqreturn_t ad1981b_rx_handler(int irq, void *dev_id,
-				      struct pt_regs *regs)
+static irqreturn_t ad1981b_rx_handler(int irq, void *dev_id)
 {
 	static unsigned long last_print = 0;
 	static int rx_ints_per_jiffie = 0;
@@ -114,8 +113,7 @@ static irqreturn_t ad1981b_rx_handler(int irq, void *dev_id,
 #endif
 
 #ifdef DEF_IRQ_SPORT0_TX
-static irqreturn_t ad1981b_tx_handler(int irq, void *dev_id,
-				      struct pt_regs *regs)
+static irqreturn_t ad1981b_tx_handler(int irq, void *dev_id)
 {
 	static unsigned long last_print = 0;
 	static int tx_ints_per_jiffie = 0;
@@ -154,7 +152,7 @@ static int ac97_sport_handle_irq(void)
 }
 
 #ifdef IRQ_SPORT0
-static irqreturn_t ad1981b_handler(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t ad1981b_handler(int irq, void *dev_id)
 {
 	static unsigned long last_print = 0;
 	static int ints_per_jiffie = 0;

@@ -203,7 +203,7 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
 			int copied;
 
 			ret = -EIO;
-			pr_debug("PEEKTEXT at addr %x + add %d %d", addr, add,
+			pr_debug("PEEKTEXT at addr %lx + add %d %ld", addr, add,
 			         sizeof(data));
 			if (is_user_addr_valid(child, addr + add, sizeof(tmp)) < 0)
 				break;
@@ -211,7 +211,7 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
 			copied =
 			    access_process_vm(child, addr + add, &tmp,
 					      sizeof(tmp), 0);
-			pr_debug(" bytes %x\n", data);
+			pr_debug(" bytes %lx\n", data);
 			if (copied != sizeof(tmp))
 				break;
 			ret = put_user(tmp, (unsigned long *)data);
@@ -259,7 +259,7 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
 	case PTRACE_POKETEXT:	/* write the word at location addr. */
 		{
 			ret = -EIO;
-			pr_debug("POKETEXT at addr %x + add %d %d bytes %x\n",
+			pr_debug("POKETEXT at addr %lx + add %d %ld bytes %lx\n",
 			         addr, add, sizeof(data), data);
 			if (is_user_addr_valid(child, addr + add, sizeof(data)) < 0)
 				break;

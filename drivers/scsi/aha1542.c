@@ -87,7 +87,7 @@ static void BAD_SG_DMA(Scsi_Cmnd * SCpnt,
 #endif
 
 /*
-   static const char RCSid[] = "$Header$";
+   static const char RCSid[] = "$Header: /usr/src/linux/kernel/blk_drv/scsi/RCS/aha1542.c,v 1.1 1992/07/24 06:27:38 root Exp root $";
  */
 
 /* The adaptec can be configured for quite a number of addresses, but
@@ -174,9 +174,8 @@ static DEFINE_SPINLOCK(aha1542_lock);
 
 static void setup_mailboxes(int base_io, struct Scsi_Host *shpnt);
 static int aha1542_restart(struct Scsi_Host *shost);
-static void aha1542_intr_handle(struct Scsi_Host *shost, void *dev_id, struct pt_regs *regs);
-static irqreturn_t do_aha1542_intr_handle(int irq, void *dev_id,
-					struct pt_regs *regs);
+static void aha1542_intr_handle(struct Scsi_Host *shost, void *dev_id);
+static irqreturn_t do_aha1542_intr_handle(int irq, void *dev_id);
 
 #define aha1542_intr_reset(base)  outb(IRST, CONTROL(base))
 
@@ -416,8 +415,7 @@ fail:
 }
 
 /* A quick wrapper for do_aha1542_intr_handle to grab the spin lock */
-static irqreturn_t do_aha1542_intr_handle(int irq, void *dev_id,
-					struct pt_regs *regs)
+static irqreturn_t do_aha1542_intr_handle(int irq, void *dev_id)
 {
 	unsigned long flags;
 	struct Scsi_Host *shost;
@@ -427,13 +425,13 @@ static irqreturn_t do_aha1542_intr_handle(int irq, void *dev_id,
 		panic("Splunge!");
 
 	spin_lock_irqsave(shost->host_lock, flags);
-	aha1542_intr_handle(shost, dev_id, regs);
+	aha1542_intr_handle(shost, dev_id);
 	spin_unlock_irqrestore(shost->host_lock, flags);
 	return IRQ_HANDLED;
 }
 
 /* A "high" level interrupt handler */
-static void aha1542_intr_handle(struct Scsi_Host *shost, void *dev_id, struct pt_regs *regs)
+static void aha1542_intr_handle(struct Scsi_Host *shost, void *dev_id)
 {
 	void (*my_done) (Scsi_Cmnd *) = NULL;
 	int errstatus, mbi, mbo, mbistatus;

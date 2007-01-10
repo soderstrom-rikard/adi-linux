@@ -5,14 +5,14 @@
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
- * 
+ *
  * Copyright (c) 2001 port GmbH Halle/Saale
  * (c) 2001 Heinz-Jürgen Oertel (oe@port.de)
  *          Claus Schroeter (clausi@chemie.fu-berlin.de)
  * derived from the the LDDK can4linux version
  *     (c) 1996,1997 Claus Schroeter (clausi@chemie.fu-berlin.de)
  *------------------------------------------------------------------
- * $Header$
+ * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/close.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -56,7 +56,7 @@ extern int Can_isopen[];   		/* device minor already opened */
 *
 * the following errors can occur
 *
-* \arg \c BADF \b fd isn't a valid open file descriptor 
+* \arg \c BADF \b fd isn't a valid open file descriptor
 *
 
 */

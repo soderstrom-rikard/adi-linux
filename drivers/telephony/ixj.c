@@ -42,10 +42,7 @@
  ***************************************************************************/
 
 /*
- * $Log$
- * Revision 1.7  2006/11/03 05:50:45  magicyang
- * update to kernel 2.6.18
- *
+ * $Log: ixj.c,v $
  *
  * Revision 4.8  2003/07/09 19:39:00  Daniele Bellucci
  * Audit some copy_*_user and minor cleanup.
@@ -286,6 +283,14 @@ static int hertz = HZ;
 static int samplerate = 100;
 
 module_param(ixjdebug, int, 0);
+
+static struct pci_device_id ixj_pci_tbl[] __devinitdata = {
+	{ PCI_VENDOR_ID_QUICKNET, PCI_DEVICE_ID_QUICKNET_XJ,
+	  PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
+	{ }
+};
+
+MODULE_DEVICE_TABLE(pci, ixj_pci_tbl);
 
 /************************************************************************
 *
@@ -7686,7 +7691,8 @@ static int __init ixj_probe_pci(int *cnt)
 	IXJ *j = NULL;
 
 	for (i = 0; i < IXJMAX - *cnt; i++) {
-		pci = pci_find_device(0x15E2, 0x0500, pci);
+		pci = pci_find_device(PCI_VENDOR_ID_QUICKNET,
+				      PCI_DEVICE_ID_QUICKNET_XJ, pci);
 		if (!pci)
 			break;
 

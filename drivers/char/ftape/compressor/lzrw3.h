@@ -1,7 +1,7 @@
 #ifndef _LZRW3_H
 #define _LZRW3_H
 /*
- * $Source$
+ * $Source: /homes/cvs/ftape-stacked/ftape/compressor/lzrw3.h,v $
  * $Revision$
  * $Date$
  *

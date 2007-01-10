@@ -16,7 +16,7 @@
  *  License. See the file COPYING in the main directory of this archive for
  *  more details.
  *
- *  $Header$
+ *  $Header: /cvsroot/linux/drivers/video/pm3fb.c,v 1.1 2002/02/25 19:11:06 marcelo Exp $
  *
  *  CHANGELOG:
  *  Mon Feb 11 10:35:48 MET 2002, v 1.4.11B: Cosmetic update.
@@ -3510,7 +3510,7 @@ int __init pm3fb_init(void)
 {
 	DTRACE;
 
-	DPRINTK(2, "This is pm3fb.c, CVS version: $Header$");
+	DPRINTK(2, "This is pm3fb.c, CVS version: $Header: /cvsroot/linux/drivers/video/pm3fb.c,v 1.1 2002/02/25 19:11:06 marcelo Exp $");
 
 	pm3fb_real_setup(g_options);
 

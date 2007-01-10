@@ -35,10 +35,7 @@
  */
 
 /*
- * $Log$
- * Revision 1.7  2006/11/08 06:50:21  magicyang
- * commit some missing changes from 2.6.18 into cvs
- *
+ * $Log: t128.h,v $
  */
 
 #ifndef T128_H

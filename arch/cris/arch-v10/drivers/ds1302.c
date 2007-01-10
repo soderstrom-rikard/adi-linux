@@ -6,10 +6,7 @@
 *!
 *! Functions exported: ds1302_readreg, ds1302_writereg, ds1302_init
 *!
-*! $Log$
-*! Revision 1.7  2006/11/01 04:48:45  magicyang
-*! update kernel to 2.6.18
-*!
+*! $Log: ds1302.c,v $
 *! Revision 1.18  2005/01/24 09:11:26  mikaelam
 *! Minor changes to get DS1302 RTC chip driver to work
 *!

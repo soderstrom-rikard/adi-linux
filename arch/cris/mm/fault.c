@@ -5,10 +5,7 @@
  *
  *  Authors:  Bjorn Wesen 
  * 
- *  $Log$
- *  Revision 1.7  2006/11/01 04:49:08  magicyang
- *  update kernel to 2.6.18
- *
+ *  $Log: fault.c,v $
  *  Revision 1.20  2005/03/04 08:16:18  starvik
  *  Merge of Linux 2.6.11.
  *

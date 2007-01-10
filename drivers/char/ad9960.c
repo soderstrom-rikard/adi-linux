@@ -115,7 +115,7 @@ struct ad9960_device_t{
 	unsigned short *gpio;
 	wait_queue_head_t *rx_avail;
 };
-	
+
 /************************************************************/
 
 /* Globals */
@@ -167,7 +167,7 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
     int ierr;
     struct ad9960_device_t *pdev = filp->private_data;
     char *dma_buf;
-	
+
     dma_buf = (char *)l1_data_A_sram_alloc((u_long)(count*2));
 
     DPRINTK("ad9960_read: count = %d\n", count);
@@ -271,7 +271,7 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
     /* Enable PPI */
     bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
     __builtin_bfin_ssync();
-    
+
     bfin_write16(AD9960_TX_RX_PORT,bfin_read16(AD9960_TX_RX_PORT) | (1 << CONFIG_AD9960_TX_RX_PIN));
 
     DPRINTK("ad9960_write: PPI ENABLED : DONE \n");
@@ -313,7 +313,7 @@ static int ad9960_ioctl(struct inode *inode, struct file *filp, uint cmd, unsign
 	case CMD_SPI_WRITE:
 	{
 		DPRINTK("ad9960_ioctl: CMD_SPI_WRITE addr: %x, data: %x\n", (value&0xff00)>>8, (value&0x00ff));
-		ad9960_spi_write(ad9960_info.spi_dev, value);    
+		ad9960_spi_write(ad9960_info.spi_dev, value);
 		break;
 	}
 	case CMD_GET_SCLK:
@@ -443,7 +443,7 @@ static int __devinit ad9960_spi_probe(struct spi_device *spi)
 
         chip->spi = spi;
         ad9960_info.spi_dev = chip;
-	
+
 	 /* Setup AD9960 SPI register */
 
         ad9960_spi_write(ad9960_info.spi_dev, 0x0100);
@@ -502,7 +502,7 @@ static int __init ad9960_init(void)
 
 	/* Clear configuration information */
         memset(&ad9960_info, 0, sizeof(struct ad9960_device_t));
-	
+
     	spi_register_driver(&ad9960_spi_driver);
 	result = register_chrdev(AD9960_MAJOR, AD9960_DEVNAME, &ad9960_fops);
 	if (result < 0)

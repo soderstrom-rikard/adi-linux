@@ -7,14 +7,14 @@
  *
  * Copyright (c) 2003 port GmbH Halle/Saale
  *------------------------------------------------------------------
- * $Header$
+ * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/bf537.h,v 1.2 2006/03/30 15:21:45 hennerich Exp $
  *
  *--------------------------------------------------------------------------
  *
  *
  * modification history
  * --------------------
- * $Log$
+ * $Log: bf537.h,v $
  * Revision 1.2  2006/03/30 15:21:45  hennerich
  * Apply Blackfin can4linux patch form port GmbH
  *
@@ -70,7 +70,7 @@ extern unsigned int Base[];
 /*=== Register Layout of the BF CAN module ==============================*/
 /* access is two byte, each register is on a 4 byte boundary             */
 typedef struct {
-    
+
     /* ---- mailbox control 1 ------------------ */
 
     volatile u16   canmc1;     /* Mailbox Configuration 1 */
@@ -451,7 +451,7 @@ struct can_obj {
 
 
 /* ---------------------------------------------------------------------------
- * CAN_WRITE_CTRL(obj, code, length) is a macro to write to the 
+ * CAN_WRITE_CTRL(obj, code, length) is a macro to write to the
  * specified objects control register
  *
  * Writes 2 byte, TIME STAMP is overwritten with 0.

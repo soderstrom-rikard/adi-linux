@@ -9,10 +9,7 @@
  *             Johan Adolfsson  (read/set directions, write, port G,
  *                               port to ETRAX FS.
  *
- * $Log$
- * Revision 1.2  2006/11/01 04:49:03  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: gpio.c,v $
  * Revision 1.16  2005/06/19 17:06:49  starvik
  * Merge of Linux 2.6.12.
  *

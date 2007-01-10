@@ -99,13 +99,13 @@ int __init init_ezkit561_flash(void)
 	printk(KERN_NOTICE "ezkit561 map: mapping %ld MiB flash at 0x%x\n", EZKIT561_FLASH_SIZE/0x100000, EZKIT561_FLASH_BASE);
 
 	ezkit561_map.virt = ioremap(EZKIT561_FLASH_BASE, EZKIT561_FLASH_SIZE);
-	
+
 	if (!ezkit561_map.virt) {
 		printk("init_ezkit561_flash: failed to ioremap\n");
 		return -EIO;
 	}
 	simple_map_init(&ezkit561_map);
-	
+
 	ezkit561_mtd = do_map_probe("cfi_probe", &ezkit561_map);
 	if (ezkit561_mtd) {
 		ezkit561_mtd->owner = THIS_MODULE;

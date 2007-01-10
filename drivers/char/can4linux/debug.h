@@ -7,7 +7,7 @@
  *
 */
 #ifndef __DEBUG_INCLUDED
-#if DEBUG       
+#if DEBUG
 
 #define DRIVER_NAME "Can"
 
@@ -26,7 +26,7 @@ extern unsigned int dbgMask;
 
 /* class of debug statements allowed		*/
 
-extern int   fidx;     
+extern int   fidx;
 extern char *fstk[];
 extern char *ffmt[];
 
@@ -37,14 +37,14 @@ extern char *ffmt[];
 
 #define DEBUG_TTY(n, args...) if(dbgMask >= (n)) print_tty(args);
 
-#else					
+#else
 #define DBGprint(ms,ar)	{ }
 #define DBGin(id)	{ }
 #define DBGout()	{ }
 #define DEBUG_TTY(n, args...)
 extern unsigned int dbgMask;
 
-#endif					
+#endif
 
 #define __DEBUG_INCLUDED
 #endif

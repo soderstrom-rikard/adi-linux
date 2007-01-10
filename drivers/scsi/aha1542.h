@@ -4,10 +4,7 @@
  *
  * Header file for the adaptec 1542 driver for Linux
  *
- * $Log$
- * Revision 1.8  2006/11/08 06:50:08  magicyang
- * commit some missing changes from 2.6.18 into cvs
- *
+ * $Log: aha1542.h,v $
  * Revision 1.1  1992/07/24  06:27:38  root
  * Initial revision
  *

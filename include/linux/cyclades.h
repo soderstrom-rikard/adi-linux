@@ -6,10 +6,7 @@
  * Ivan Passos <ivan@cyclades.com>.
  *
  * This file contains the general definitions for the cyclades.c driver
- *$Log$
- *Revision 1.6  2006/11/02 10:26:37  magicyang
- *update kernel to 2.6.18
- *
+ *$Log: cyclades.h,v $
  *Revision 3.1  2002/01/29 11:36:16  henrique
  *added throttle field on struct cyclades_port to indicate whether the
  *port is throttled or not

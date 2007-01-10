@@ -15,10 +15,7 @@
  *
  * $Id$
  *
- * $Log$
- * Revision 1.8  2006/11/08 06:50:07  magicyang
- * commit some missing changes from 2.6.18 into cvs
- *
+ * $Log: aha152x.c,v $
  * Revision 2.7  2004/01/24 11:42:59  fischer
  * - gather code that is not used by PCMCIA at the end
  * - move request_region for !PCMCIA case to detection
@@ -241,7 +238,7 @@
 #include <linux/module.h>
 #include <linux/sched.h>
 #include <asm/irq.h>
-#include <asm/io.h>
+#include <linux/io.h>
 #include <linux/blkdev.h>
 #include <asm/system.h>
 #include <linux/errno.h>
@@ -256,6 +253,7 @@
 #include <linux/isapnp.h>
 #include <linux/spinlock.h>
 #include <linux/workqueue.h>
+#include <linux/list.h>
 #include <asm/semaphore.h>
 #include <scsi/scsicam.h>
 
@@ -264,6 +262,8 @@
 #include <scsi/scsi_host.h>
 #include <scsi/scsi_transport_spi.h>
 #include "aha152x.h"
+
+static LIST_HEAD(aha152x_host_list);
 
 
 /* DEFINES */
@@ -426,8 +426,6 @@ MODULE_DEVICE_TABLE(isapnp, id_table);
 
 #endif /* !PCMCIA */
 
-static int registered_count=0;
-static struct Scsi_Host *aha152x_host[2];
 static struct scsi_host_template aha152x_driver_template;
 
 /*
@@ -544,6 +542,7 @@ struct aha152x_hostdata {
 #ifdef __ISAPNP__
 	struct pnp_dev *pnpdev;
 #endif
+	struct list_head host_list;
 };
 
 
@@ -674,7 +673,7 @@ static struct {
 };
 
 /* setup & interrupt */
-static irqreturn_t intr(int irq, void *dev_id, struct pt_regs *);
+static irqreturn_t intr(int irq, void *dev_id);
 static void reset_ports(struct Scsi_Host *shpnt);
 static void aha152x_error(struct Scsi_Host *shpnt, char *msg);
 static void done(struct Scsi_Host *shpnt, int error);
@@ -758,25 +757,9 @@ static inline Scsi_Cmnd *remove_SC(Scsi_Cmnd **SC, Scsi_Cmnd *SCp)
 	return ptr;
 }
 
-static inline struct Scsi_Host *lookup_irq(int irqno)
+static irqreturn_t swintr(int irqno, void *dev_id)
 {
-	int i;
-
-	for(i=0; i<ARRAY_SIZE(aha152x_host); i++)
-		if(aha152x_host[i] && aha152x_host[i]->irq==irqno)
-			return aha152x_host[i];
-
-	return NULL;
-}
-
-static irqreturn_t swintr(int irqno, void *dev_id, struct pt_regs *regs)
-{
-	struct Scsi_Host *shpnt = lookup_irq(irqno);
-
-	if (!shpnt) {
-        	printk(KERN_ERR "aha152x: catched software interrupt %d for unknown controller.\n", irqno);
-		return IRQ_NONE;
-	}
+	struct Scsi_Host *shpnt = dev_id;
 
 	HOSTDATA(shpnt)->swint++;
 
@@ -794,10 +777,11 @@ struct Scsi_Host *aha152x_probe_one(struct aha152x_setup *setup)
 		return NULL;
 	}
 
-	/* need to have host registered before triggering any interrupt */
-	aha152x_host[registered_count] = shpnt;
-
 	memset(HOSTDATA(shpnt), 0, sizeof *HOSTDATA(shpnt));
+	INIT_LIST_HEAD(&HOSTDATA(shpnt)->host_list);
+
+	/* need to have host registered before triggering any interrupt */
+	list_add_tail(&HOSTDATA(shpnt)->host_list, &aha152x_host_list);
 
 	shpnt->io_port   = setup->io_port;
 	shpnt->n_io_port = IO_RANGE;
@@ -910,12 +894,10 @@ struct Scsi_Host *aha152x_probe_one(struct aha152x_setup *setup)
 
 	scsi_scan_host(shpnt);
 
-	registered_count++;
-
 	return shpnt;
 
 out_host_put:
-	aha152x_host[registered_count]=NULL;
+	list_del(&HOSTDATA(shpnt)->host_list);
 	scsi_host_put(shpnt);
 
 	return NULL;
@@ -940,6 +922,7 @@ void aha152x_release(struct Scsi_Host *shpnt)
 #endif
 
 	scsi_remove_host(shpnt);
+	list_del(&HOSTDATA(shpnt)->host_list);
 	scsi_host_put(shpnt);
 }
 
@@ -1462,9 +1445,12 @@ static struct work_struct aha152x_tq;
  */
 static void run(void)
 {
-	int i;
-	for (i = 0; i<ARRAY_SIZE(aha152x_host); i++) {
-		is_complete(aha152x_host[i]);
+	struct aha152x_hostdata *hd;
+
+	list_for_each_entry(hd, &aha152x_host_list, host_list) {
+		struct Scsi_Host *shost = container_of((void *)hd, struct Scsi_Host, hostdata);
+
+		is_complete(shost);
 	}
 }
 
@@ -1472,9 +1458,9 @@ static void run(void)
  * Interrupt handler
  *
  */
-static irqreturn_t intr(int irqno, void *dev_id, struct pt_regs *regs)
+static irqreturn_t intr(int irqno, void *dev_id)
 {
-	struct Scsi_Host *shpnt = lookup_irq(irqno);
+	struct Scsi_Host *shpnt = (struct Scsi_Host *)dev_id;
 	unsigned long flags;
 	unsigned char rev, dmacntrl0;
 
@@ -3956,16 +3942,17 @@ static int __init aha152x_init(void)
 #endif
 	}
 
-	return registered_count>0;
+	return 1;
 }
 
 static void __exit aha152x_exit(void)
 {
-	int i;
+	struct aha152x_hostdata *hd;
 
-	for(i=0; i<ARRAY_SIZE(setup); i++) {
-		aha152x_release(aha152x_host[i]);
-		aha152x_host[i]=NULL;
+	list_for_each_entry(hd, &aha152x_host_list, host_list) {
+		struct Scsi_Host *shost = container_of((void *)hd, struct Scsi_Host, hostdata);
+
+		aha152x_release(shost);
 	}
 }
 

@@ -26,10 +26,7 @@
  */
 
 /*
- * $Log$
- * Revision 1.8  2006/11/08 06:50:17  magicyang
- * commit some missing changes from 2.6.18 into cvs
- *
+ * $Log: mac_NCR5380.c,v $
  */
 
 #include <linux/types.h>

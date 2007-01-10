@@ -49,7 +49,7 @@ _bfin_v4l2_copy_buffer:
 	P2.h = 0x0006;	//Even odd field offset
 	P2 = P0 +P2;	//Address of first line of Even field.
 
-	P3 = 0x000005A0;	//(=1440 Decimal)Length of one YCRCB line.	
+	P3 = 0x000005A0;	//(=1440 Decimal)Length of one YCRCB line.
 	P3 = P3 + P1 ;
 
 	P4 = 0x00000106;	//(=262
@@ -68,11 +68,11 @@ line_copy_end: 		[P2++] = R0 ;
 		P4 = 0x00000114 ;
 		P0 = P0 + P4;
 		P2 = P2 + P4;
-		
+
 		P4 = 0x000005A0 ;
 		P1 = P1 + P4 ;
 frame_copy_end:	P3 = P3 + P4 ;
-	
+
 
         lt1 = [sp++];
         lb1 = [sp++];

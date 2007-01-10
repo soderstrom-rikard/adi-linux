@@ -5,7 +5,7 @@
  */
 
 #include <asm/io.h>
-#include <asm/hd64461/hd64461.h>
+#include <asm/hd64461.h>
 
 #define MEM_BASE (CONFIG_HD64461_IOBASE - HD64461_STBCR)
 
@@ -54,11 +54,6 @@ static __inline__ unsigned long PORT2ADDR(unsigned long port)
 	return 0xa0000000 + (port & 0x1fffffff);
 }
 
-static inline void delay(void)
-{
-	ctrl_inw(0xa0000000);
-}
-
 unsigned char hd64461_inb(unsigned long port)
 {
 	return *(volatile unsigned char*)PORT2ADDR(port);
@@ -67,7 +62,7 @@ unsigned char hd64461_inb(unsigned long port)
 unsigned char hd64461_inb_p(unsigned long port)
 {
 	unsigned long v = *(volatile unsigned char*)PORT2ADDR(port);
-	delay();
+	ctrl_delay();
 	return v;
 }
 
@@ -89,7 +84,7 @@ void hd64461_outb(unsigned char b, unsigned long port)
 void hd64461_outb_p(unsigned char b, unsigned long port)
 {
 	*(volatile unsigned char*)PORT2ADDR(port) = b;
-	delay();
+	ctrl_delay();
 }
 
 void hd64461_outw(unsigned short b, unsigned long port)
@@ -144,13 +139,13 @@ void hd64461_outsl(unsigned long port, const void *buffer, unsigned long count)
 	while(count--) *addr=*buf++;
 }
 
-unsigned short hd64461_readw(unsigned long addr)
+unsigned short hd64461_readw(void __iomem *addr)
 {
-	return *(volatile unsigned short*)(MEM_BASE+addr);
+	return ctrl_inw(MEM_BASE+(unsigned long __force)addr);
 }
 
-void hd64461_writew(unsigned short b, unsigned long addr)
+void hd64461_writew(unsigned short b, void __iomem *addr)
 {
-	*(volatile unsigned short*)(MEM_BASE+addr) = b;
+	ctrl_outw(b, MEM_BASE+(unsigned long __force)addr);
 }
 

@@ -26,10 +26,7 @@
  */
 
 /*
- * $Log$
- * Revision 1.8  2006/11/08 06:50:10  magicyang
- * commit some missing changes from 2.6.18 into cvs
- *
+ * $Log: generic_NCR5380.h,v $
  */
 
 #ifndef GENERIC_NCR5380_H

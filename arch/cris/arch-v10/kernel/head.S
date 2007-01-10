@@ -6,10 +6,7 @@
  *
  * Authors:	Bjorn Wesen (bjornw@axis.com)
  * 
- * $Log$
- * Revision 1.7  2006/11/01 04:48:51  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: head.S,v $
  * Revision 1.10  2005/06/20 05:12:54  starvik
  * Remove unnecessary diff to kernel.org tree
  *

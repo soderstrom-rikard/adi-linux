@@ -2,10 +2,7 @@
  * Authors:    Bjorn Wesen (bjornw@axis.com)
  *	       Hans-Peter Nilsson (hp@axis.com)
  *
- * $Log$
- * Revision 1.6  2006/11/01 05:28:46  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: uaccess.h,v $
  * Revision 1.8  2001/10/29 13:01:48  bjornw
  * Removed unused variable tmp2 in strnlen_user
  *

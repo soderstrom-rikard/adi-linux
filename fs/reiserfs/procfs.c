@@ -631,10 +631,7 @@ int reiserfs_global_version_in_proc(char *buffer, char **start,
 #endif
 
 /*
- * $Log$
- * Revision 1.7  2006/11/03 05:25:54  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: procfs.c,v $
  * Revision 1.1.8.2  2001/07/15 17:08:42  god
  *  . use get_super() in procfs.c
  *  . remove remove_save_link() from reiserfs_do_truncate()

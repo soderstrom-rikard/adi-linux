@@ -103,16 +103,13 @@
  */
  
 /*
- * $Log$
- * Revision 1.7  2006/11/08 06:50:20  magicyang
- * commit some missing changes from 2.6.18 into cvs
- *
+ * $Log: t128.c,v $
  */
 
 #include <asm/system.h>
 #include <linux/signal.h>
 #include <linux/sched.h>
-#include <asm/io.h>
+#include <linux/io.h>
 #include <linux/blkdev.h>
 #include <linux/interrupt.h>
 #include <linux/stat.h>

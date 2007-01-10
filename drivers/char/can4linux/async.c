@@ -7,21 +7,21 @@
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
  *
- * 
+ *
  * Copyright (c) 2001 port GmbH Halle/Saale
  * (c) 2001 Heinz-Jürgen Oertel (oe@port.de)
  *          Claus Schroeter (clausi@chemie.fu-berlin.de)
  * Copyright (c) 2003  Phil Wilshire ( philwil@sysdcs.com)
 
  *------------------------------------------------------------------
- * $Header$
+ * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/async.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
  *
  *--------------------------------------------------------------------------
  *
  *
  * modification history
  * --------------------
- * $Log$
+ * $Log: async.c,v $
  * Revision 1.2  2006/03/30 15:21:45  hennerich
  * Apply Blackfin can4linux patch form port GmbH
  *
@@ -95,7 +95,7 @@
 *
 *
 * \returns
-* return 0 
+* return 0
 * or -1 if an error occurred (in which case, errno is set appropriately).
 *
 * \par ERRORS
@@ -125,7 +125,7 @@ can_data_t *dev = (can_data_t *)file->private_data;
     DBGin("can_fasync");
     {
       retval = fasync_helper(fd, file, count, &dev->fasyncptr);
-      DBGprint(DBG_DATA,(" -- async  count %d  retval %d\n", 
+      DBGprint(DBG_DATA,(" -- async  count %d  retval %d\n",
 			 count, retval));
       if ( retval > 0 )
 	retval = 0;

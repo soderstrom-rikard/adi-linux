@@ -79,7 +79,7 @@ static void send_unlock(struct map_info *map, unsigned long base)
 	map->write(map,test, base + ADDR_UNLOCK_2);
 }
 
-static void send_cmd(struct map_info *map, unsigned long base, 
+static void send_cmd(struct map_info *map, unsigned long base,
 		     unsigned long cmd)
 {
 	map_word test;
@@ -88,7 +88,7 @@ static void send_cmd(struct map_info *map, unsigned long base,
 	map->write(map, test, base + ADDR_UNLOCK_1);
 }
 
-static void send_cmd_to_addr(struct map_info *map, unsigned long base, 
+static void send_cmd_to_addr(struct map_info *map, unsigned long base,
 			     unsigned long cmd, unsigned long addr)
 {
 	map_word test;
@@ -97,7 +97,7 @@ static void send_cmd_to_addr(struct map_info *map, unsigned long base,
 	map->write(map, test, addr);
 }
 
-static int probe_new_chip(struct mtd_info *mtd, __u32 base, 
+static int probe_new_chip(struct mtd_info *mtd, __u32 base,
 			  struct flchip *chips,
 			  struct stm_flash_private *private,
 			  const struct stm_flash_info *table,
@@ -144,7 +144,7 @@ static int probe_new_chip(struct mtd_info *mtd, __u32 base,
 						return -1;
 					}
 				}
-				
+
 				if (private->numchips == MAX_SMT_CHIPS)
 				{
 					printk(KERN_WARNING "%s: Too many "
@@ -162,16 +162,16 @@ static int probe_new_chip(struct mtd_info *mtd, __u32 base,
 				private->numchips++;
 			}
 			printk("%s: Found %d x %ldMiB %s at 0x%08x\n",
-				map->name, temp.interleave, 
+				map->name, temp.interleave,
 				(table[i].size)/(1024*1024),
 				table[i].name, base);
-			
+
 			mtd->size += table[i].size * temp.interleave;
 			mtd->numeraseregions += table[i].numeraseregions;
 
 			break;
 		}
-	}	
+	}
 	printk("Manufacture id 0x%02x, Device id 0x%02x\n", mfr_id, dev_id);
 
 	/* Exit autoselect mode. */
@@ -203,7 +203,7 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 		size: 0x00100000,
 		numeraseregions: 1,
 		regions: {
-		  { offset: 0x000000, erasesize: 0x10000, numblocks: 16 }, 
+		  { offset: 0x000000, erasesize: 0x10000, numblocks: 16 },
 		}
 	}
 	};
@@ -228,13 +228,13 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 	mtd->priv = map;
 
 	memset(&temp, 0, sizeof(temp));
-	
+
 	printk("%s: Probing for SMT PSD4256G compatible flash...\n", map->name);
-	
+
 	if ((table_pos[0] = probe_new_chip(mtd, 0, NULL, &temp, table,
 					sizeof(table)/sizeof(table[0]))) == -1)
 	{
-		printk(KERN_WARNING 
+		printk(KERN_WARNING
 			"%s: Found no SMT PSD4256G compatible device at "
 			"location zero\n", map->name);
 		kfree(mtd);
@@ -254,8 +254,8 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 			base += (1 << temp.chipshift))
 	{
 		int numchips = temp.numchips;
-		table_pos[numchips] = 
-			probe_new_chip(mtd, base, chips, &temp, 
+		table_pos[numchips] =
+			probe_new_chip(mtd, base, chips, &temp,
 				table, sizeof(table)/sizeof(table[0]));
 	}
 
@@ -281,7 +281,7 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 		dev_size = 0;
 		for (j = 0; j < table[table_pos[i]].numeraseregions; j++)
 		{
-			mtd->eraseregions[reg_idx].offset = offset + 
+			mtd->eraseregions[reg_idx].offset = offset +
 				(table[table_pos[i]].regions[j].offset *
 				 temp.interleave);
 			mtd->eraseregions[reg_idx].erasesize =
@@ -289,9 +289,9 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 				temp.interleave;
 			mtd->eraseregions[reg_idx].numblocks =
 				table[table_pos[i]].regions[j].numblocks;
-			if (mtd->erasesize < 
+			if (mtd->erasesize <
 					mtd->eraseregions[reg_idx].erasesize)
-				mtd->erasesize = 
+				mtd->erasesize =
 					mtd->eraseregions[reg_idx].erasesize;
 
 			dev_size += mtd->eraseregions[reg_idx].erasesize *
@@ -311,7 +311,7 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 	mtd->suspend = stm_flash_suspend;
 	mtd->resume = stm_flash_resume;
 
-	private = kmalloc(sizeof(*private) + 
+	private = kmalloc(sizeof(*private) +
 			(sizeof(struct flchip) * temp.numchips), GFP_KERNEL);
 	if (!private) {
 		printk(KERN_WARNING
@@ -321,7 +321,7 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 		return NULL;
 	}
 	memcpy(private, &temp, sizeof(temp));
-	memcpy(private->chips, chips, 
+	memcpy(private->chips, chips,
 		sizeof(struct flchip) * private->numchips);
 	for (i = 0; i < private->numchips; i++)
 	{
@@ -333,7 +333,7 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 
 	map->fldrv = &stm_flash_chipdrv;
 	MOD_INC_USE_COUNT;
-	
+
 	return mtd;
 }
 
@@ -392,7 +392,7 @@ static void stm_flash_sync(struct mtd_info *mtd)
 
 		spin_lock_bh(chip->mutex);
 
-		if (chip->state == FL_SYNCING) 
+		if (chip->state == FL_SYNCING)
 		{
 			chip->state = chip->oldstate;
 			wake_up(&chip->wq);
@@ -401,7 +401,7 @@ static void stm_flash_sync(struct mtd_info *mtd)
 	}
 }
 
-static int read_one_chip(struct map_info *map, struct flchip *chip, 
+static int read_one_chip(struct map_info *map, struct flchip *chip,
 			loff_t addr, size_t len, unsigned char *buf)
 {
 	DECLARE_WAITQUEUE(wait, current);
@@ -496,7 +496,7 @@ static int stm_flash_read(struct mtd_info *mtd, loff_t from, size_t len,
 static int flash_is_busy(struct map_info *map, unsigned long addr)
 {
 	unsigned short toggled;
-	map_word read11,read21;	
+	map_word read11,read21;
 
 	read11 = map->read(map,addr);
 	read21 = map->read(map,addr);
@@ -568,7 +568,7 @@ retry:
 	} else {
 		unsigned long verify;
 		map_word test;
-	
+
 		test = map->read(map,addr);
 		verify = test.x[0] ;
 		if(verify != datum)
@@ -613,7 +613,7 @@ static int stm_flash_write(struct mtd_info *mtd, loff_t to, size_t len,
 		unsigned char tmp_buf[4];
 		unsigned long datum;
 
-		map->copy_from(map, tmp_buf, 
+		map->copy_from(map, tmp_buf,
 			       bus_offset + private->chips[chipnum].start,
 			       map->bankwidth);
 		while (len && i < map->bankwidth)
@@ -659,7 +659,7 @@ static int stm_flash_write(struct mtd_info *mtd, loff_t to, size_t len,
 		else
 			return -EINVAL;
 
-		ret = write_one_word(map, &private->chips[chipnum], offset, 
+		ret = write_one_word(map, &private->chips[chipnum], offset,
 				datum);
 
 		if (ret)
@@ -686,7 +686,7 @@ static int stm_flash_write(struct mtd_info *mtd, loff_t to, size_t len,
 		unsigned char tmp_buf[2];
 		unsigned long datum;
 
-		map->copy_from(map, tmp_buf, 
+		map->copy_from(map, tmp_buf,
 				offset + private->chips[chipnum].start,
 				map->bankwidth);
 
@@ -700,7 +700,7 @@ static int stm_flash_write(struct mtd_info *mtd, loff_t to, size_t len,
 		else
 			return -EINVAL;
 
-		ret = write_one_word(map, &private->chips[chipnum], offset, 
+		ret = write_one_word(map, &private->chips[chipnum], offset,
 				datum);
 
 		if (ret)
@@ -789,7 +789,7 @@ retry:
 		/* Latency issues. Drop the lock, wait a while, and retry. */
 		spin_unlock_bh(chip->mutex);
 
-		if (need_resched())		
+		if (need_resched())
 			schedule();
 		else
 			udelay(1);
@@ -803,11 +803,11 @@ retry:
 		int error = 0;
 		int verify;
 		map_word test;
-		
+
 		for (address = addr; address < (addr + size); address += 2){
 			test = map_read(map,address);
 			verify = test.x[0];
-			if(verify != 0xFFFF)	
+			if(verify != 0xFFFF)
 			{
 				error = 1;
 				break;
@@ -856,7 +856,7 @@ static int stm_flash_erase(struct mtd_info *mtd, struct erase_info *instr)
 	/*
 	 * Skip all erase regions which are ended before the start of the
 	 * requested erase. Actually, to save on the calculations, we skip
-	 * to the first erase region which starts after the start of the 
+	 * to the first erase region which starts after the start of the
 	 * requested erase, and then go back one.
 	 */
 	while ((i < mtd->numeraseregions) &&
@@ -865,7 +865,7 @@ static int stm_flash_erase(struct mtd_info *mtd, struct erase_info *instr)
 	i--;
 
 	/*
-	 * OK. Now i is pointing at the erase region in which this erase 
+	 * OK. Now i is pointing at the erase region in which this erase
 	 * request starts. Check the start of the requested erase range
 	 * is aligned with the erase size which is in effect here.
 	 */

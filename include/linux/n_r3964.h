@@ -12,10 +12,7 @@
  * Author:
  * L. Haag
  *
- * $Log$
- * Revision 1.6  2006/11/02 10:31:08  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: r3964.h,v $
  * Revision 1.4  2005/12/21 19:54:24  Kurt Huwig <kurt huwig de>
  * Fixed HZ usage on 2.6 kernels
  * Removed unnecessary include

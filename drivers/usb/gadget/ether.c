@@ -266,7 +266,7 @@ MODULE_PARM_DESC(host_addr, "Host Ethernet Address");
 #define DEV_CONFIG_CDC
 #endif
 
-#ifdef CONFIG_USB_GADGET_MUSBHDRC
+#ifdef CONFIG_USB_GADGET_MUSB_HDRC
 #define DEV_CONFIG_CDC
 #endif
 
@@ -2018,7 +2018,7 @@ rndis_control_ack_complete (struct usb_ep *ep, struct usb_request *req)
 static int rndis_control_ack (struct net_device *net)
 {
 	struct eth_dev          *dev = netdev_priv(net);
-	u32                     length;
+	int                     length;
 	struct usb_request      *resp = dev->stat_req;
 
 	/* in case RNDIS calls this after disconnect */
@@ -2234,6 +2234,9 @@ eth_bind (struct usb_gadget *gadget)
 	if (gadget_is_pxa (gadget)) {
 		/* pxa doesn't support altsettings */
 		cdc = 0;
+	} else if (gadget_is_musbhdrc(gadget)) {
+		/* reduce tx dma overhead by avoiding special cases */
+		zlp = 0;
 	} else if (gadget_is_sh(gadget)) {
 		/* sh doesn't support multiple interfaces or configs */
 		cdc = 0;
@@ -2261,7 +2264,7 @@ eth_bind (struct usb_gadget *gadget)
 		return -ENODEV;
 	}
 	snprintf (manufacturer, sizeof manufacturer, "%s %s/%s",
-		system_utsname.sysname, system_utsname.release,
+		init_utsname()->sysname, init_utsname()->release,
 		gadget->name);
 
 	/* If there's an RNDIS configuration, that's what Windows wants to
@@ -2568,7 +2571,7 @@ static struct usb_gadget_driver eth_driver = {
 
 	.function	= (char *) driver_desc,
 	.bind		= eth_bind,
-	.unbind		= __exit_p(eth_unbind),
+	.unbind		= eth_unbind,
 
 	.setup		= eth_setup,
 	.disconnect	= eth_disconnect,

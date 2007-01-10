@@ -19,7 +19,7 @@
  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 
  *
- * $Source$
+ * $Source: /homes/cvs/ftape-stacked/ftape/lowlevel/fc-10.h,v $
  * $Revision$
  * $Date$
  *

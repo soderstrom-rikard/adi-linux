@@ -7,7 +7,7 @@
  *
  * Copyright (c) 2001 port GmbH Halle/Saale
  *------------------------------------------------------------------
- * $Header$
+ * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/can4linux.h,v 1.2 2006/03/30 15:21:45 hennerich Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -110,7 +110,7 @@ typedef struct Command_par  Config_par_t ; /**< Configuration parameter struct *
 
 /**
  IOCTL generic CAN controller status request parameter structure */
-typedef struct CanStatusPar { 
+typedef struct CanStatusPar {
     unsigned int baud;			/**< actual bit rate */
     unsigned int status;		/**< CAN controller status register */
     unsigned int error_warning_limit;	/**< the error warning limit */

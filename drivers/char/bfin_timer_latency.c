@@ -98,7 +98,7 @@ static int write_timer_latency(struct file *file, const char *buffer,
 }
 
 
-static irqreturn_t timer_latency_irq(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t timer_latency_irq(int irq, void *dev_id)
 {
 	struct timer_latency_data_t *data = dev_id;
 

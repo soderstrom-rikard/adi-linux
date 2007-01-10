@@ -38,12 +38,13 @@
 #include <asm/blackfin.h>
 #include <asm/irq.h>
 #include <asm/bf5xx_rtc.h>
+#include <asm/irq_regs.h>
 
 /* This is an NTP setting */
 #define	TICK_SIZE (tick_nsec / 1000)
 
 static void time_sched_init(irqreturn_t(*timer_routine)
-			(int, void *, struct pt_regs *));
+			(int, void *));
 static unsigned long gettimeoffset(void);
 extern int setup_irq(unsigned int irq, struct irqaction *handler);
 static inline void do_leds(void);
@@ -137,7 +138,7 @@ static struct irqaction bfin_timer_irq = {
 #define TIME_SCALE 1
 
 static void
-time_sched_init(irqreturn_t(*timer_routine) (int, void *, struct pt_regs *))
+time_sched_init(irqreturn_t(*timer_routine) (int, void *))
 {
 	u32 tcount;
 
@@ -159,7 +160,7 @@ time_sched_init(irqreturn_t(*timer_routine) (int, void *, struct pt_regs *))
 
 	bfin_write_TCNTL(7);
 
-	bfin_timer_irq.handler = timer_routine;
+	bfin_timer_irq.handler = (irq_handler_t)timer_routine;
 	/* call setup_irq instead of request_irq because request_irq calls
 	 * kmalloc which has not been initialized yet
 	 */
@@ -197,20 +198,20 @@ static inline int set_rtc_mmss(unsigned long nowtime)
  * timer_interrupt() needs to keep up the real-time clock,
  * as well as call the "do_timer()" routine every clocktick
  */
-irqreturn_t timer_interrupt(int irq, void *dummy, struct pt_regs *regs)
+irqreturn_t timer_interrupt(int irq, void *dummy)
 {
 	/* last time the cmos clock got updated */
 	static long last_rtc_update = 0;
 
 	write_seqlock(&xtime_lock);
 
-	do_timer(regs);
+	do_timer(1);
 	do_leds();
 
 #ifndef CONFIG_SMP
-	update_process_times(user_mode(regs));
+	update_process_times(user_mode(get_irq_regs()));
 #endif
-	profile_tick(CPU_PROFILING, regs);
+	profile_tick(CPU_PROFILING);
 
 	/*
 	 * If we have an externally synchronized Linux clock, then update
@@ -258,15 +259,12 @@ void time_init(void)
 void do_gettimeofday(struct timeval *tv)
 {
 	unsigned long flags;
-	unsigned long lost, seq;
+	unsigned long seq;
 	unsigned long usec, sec;
 
 	do {
 		seq = read_seqbegin_irqsave(&xtime_lock, flags);
 		usec = gettimeoffset();
-		lost = jiffies - wall_jiffies;
-		if (unlikely(lost))
-			usec += lost * (USEC_PER_SEC / HZ);
 		sec = xtime.tv_sec;
 		usec += (xtime.tv_nsec / NSEC_PER_USEC);
 	}

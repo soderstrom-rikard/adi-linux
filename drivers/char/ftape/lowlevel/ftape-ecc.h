@@ -23,7 +23,7 @@
  USA.
  
  *
- * $Source$
+ * $Source: /homes/cvs/ftape-stacked/ftape/lowlevel/ftape-ecc.h,v $
  * $Revision$
  * $Date$
  *

@@ -7,7 +7,7 @@
  *
  * Copyright (c) 2001 port GmbH Halle/Saale
  *------------------------------------------------------------------
- * $Header$
+ * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/defs.h,v 1.2 2006/03/30 15:21:45 hennerich Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -23,7 +23,7 @@
 * $Revision$
 * $Date$
 *
-* Module Description 
+* Module Description
 * see Doxygen Doc for all possibilites
 *
 *
@@ -91,8 +91,8 @@
 
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0) 
-# include <linux/interrupt.h> 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+# include <linux/interrupt.h>
 
 #else
  /* For 2.4.x compatibility, 2.4.x can use */
@@ -196,12 +196,12 @@ static inline unsigned iminor(struct inode *inode)
 #define __LDDK_IOCTL_PARAM 	struct inode *inode, struct file *file, \
 					unsigned int cmd, unsigned long arg
 #define __LDDK_MMAP_PARAM 	struct file *file, struct vm_area_struct * vma
-#define __LDDK_OPEN_PARAM 	struct inode *inode, struct file *file 
-#define __LDDK_FLUSH_PARAM	struct file *file 
-#define __LDDK_CLOSE_PARAM 	struct inode *inode, struct file *file 
+#define __LDDK_OPEN_PARAM 	struct inode *inode, struct file *file
+#define __LDDK_FLUSH_PARAM	struct file *file
+#define __LDDK_CLOSE_PARAM 	struct inode *inode, struct file *file
 #define __LDDK_FSYNC_PARAM 	struct file *file, struct dentry *dentry, \
 					int datasync
-#define __LDDK_FASYNC_PARAM 	int fd, struct file *file, int count 
+#define __LDDK_FASYNC_PARAM 	int fd, struct file *file, int count
 #define __LDDK_CCHECK_PARAM 	kdev_t dev
 #define __LDDK_REVAL_PARAM 	kdev_t dev
 
@@ -230,13 +230,13 @@ extern __LDDK_OPEN_TYPE   can_open   (__LDDK_OPEN_PARAM);
 extern __LDDK_CLOSE_TYPE can_close (__LDDK_CLOSE_PARAM);
 extern __LDDK_FASYNC_TYPE can_fasync (__LDDK_FASYNC_PARAM);
 
-#endif 
+#endif
 
 
 /*---------- Default Outc value for some known boards
  * this depends on the transceiver configuration
  * some embedded CAN controllers even don't have this configuration option
- * 
+ *
  * the AT-CAN-MINI board uses optocoupler configuration as denoted
  * in the Philips application notes, so the OUTC value is 0xfa
  *
@@ -245,43 +245,43 @@ extern __LDDK_FASYNC_TYPE can_fasync (__LDDK_FASYNC_PARAM);
 #if   defined(ATCANMINI_BASIC) || defined(ATCANMINI_PELICAN)
 # define CAN_OUTC_VAL           0xfa
 # define IO_MODEL		'p'
-# define STD_MASK		0xFFFFFFFF 
+# define STD_MASK		0xFFFFFFFF
 # include "sja1000.h"
 
 #elif defined(IME_SLIMLINE)
 # define CAN_OUTC_VAL           0xda
 # define IO_MODEL		'm'
-# define STD_MASK		0xFFFFFFFF 
+# define STD_MASK		0xFFFFFFFF
 # include "sja1000.h"
 
 #elif defined(CPC_PCI)
 # define CAN_OUTC_VAL           0xda
 # define IO_MODEL		'm'
-# define STD_MASK		0xFFFFFFFF 
+# define STD_MASK		0xFFFFFFFF
 # include "sja1000.h"
 
 #elif defined(KVASER_PCICAN)
 # define CAN_OUTC_VAL           0xda
 # define IO_MODEL		'p'
-# define STD_MASK		0xFFFFFFFF 
+# define STD_MASK		0xFFFFFFFF
 # include "sja1000.h"
 
 #elif defined(IXXAT_PCI03)
 # define CAN_OUTC_VAL           0x5e
 # define IO_MODEL		'm'
-# define STD_MASK		0xFFFFFFFF 
+# define STD_MASK		0xFFFFFFFF
 # include "sja1000.h"
 
 #elif defined(PCM3680)
 # define CAN_OUTC_VAL           0x5e
 # define IO_MODEL		'm'
-# define STD_MASK		0xFFFFFFFF 
+# define STD_MASK		0xFFFFFFFF
 # include "sja1000.h"
 
 #elif defined(CCPC104)
 # define CAN_OUTC_VAL           0xfa
 # define IO_MODEL		'm'
-# define STD_MASK		0xFFFFFFFF 
+# define STD_MASK		0xFFFFFFFF
 # include "sja1000.h"
 
 #elif defined(MCF5282)
@@ -296,10 +296,10 @@ extern __LDDK_FASYNC_TYPE can_fasync (__LDDK_FASYNC_PARAM);
 # define STD_MASK		0
 # include "bf537.h"
 
-#else 
+#else
 # define CAN_OUTC_VAL           0x00
 # define IO_MODEL		'm'
-# define STD_MASK		0xFFFFFFFF 
+# define STD_MASK		0xFFFFFFFF
 # include "sja1000.h"
 /* #error no CAN_OUTC_VAL */
 #endif
@@ -370,7 +370,7 @@ extern struct	pci_dev *Can_pcidev[];
 
 /* extern int Can_RequestIrq(int minor, int irq, irq_handler_t handler); */
 /* extern int Can_RequestIrq(int minor, int irq, irqservice_t handler); */
-extern int Can_RequestIrq(int minor, int irq, 
+extern int Can_RequestIrq(int minor, int irq,
 	irqreturn_t (*handler)(int, void *, struct pt_regs *));
 
 
@@ -402,67 +402,67 @@ extern ctl_table Can_sys_table[];
 
 extern char version[];
 #define SYSCTL_VERSION 1
- 
+
  /* ------ Global Definitions for Chipset */
 
 extern char Chipset[];
 #define SYSCTL_CHIPSET 2
- 
+
  /* ------ Global Definitions for IOModel */
 
 extern char IOModel[];
 #define SYSCTL_IOMODEL 3
- 
+
  /* ------ Global Definitions for IRQ */
 
 extern  int IRQ[];
 #define SYSCTL_IRQ 4
- 
+
  /* ------ Global Definitions for Base */
 
 extern  unsigned int Base[];
 #define SYSCTL_BASE 5
- 
+
  /* ------ Global Definitions for Baud */
 
 extern  int Baud[];
 #define SYSCTL_BAUD 6
- 
+
  /* ------ Global Definitions for AccCode */
 
 extern  unsigned int AccCode[];
 #define SYSCTL_ACCCODE 7
- 
+
  /* ------ Global Definitions for AccMask */
 
 extern  unsigned int AccMask[];
 #define SYSCTL_ACCMASK 8
- 
+
  /* ------ Global Definitions for Timeout */
 
 extern  int Timeout[];
 #define SYSCTL_TIMEOUT 9
- 
+
  /* ------ Global Definitions for Outc */
 
 extern  int Outc[];
 #define SYSCTL_OUTC 10
- 
+
  /* ------ Global Definitions for TxErr */
 
 extern  int TxErr[];
 #define SYSCTL_TXERR 11
- 
+
  /* ------ Global Definitions for RxErr */
 
 extern  int RxErr[];
 #define SYSCTL_RXERR 12
- 
+
  /* ------ Global Definitions for Overrun */
 
 extern  int Overrun[];
 #define SYSCTL_OVERRUN 13
- 
+
  /* ------ Global Definitions for dbgMask */
 
 extern unsigned int dbgMask;
@@ -473,8 +473,8 @@ extern  int Cnt1[];
 #define SYSCTL_CNT1 15
 extern  int Cnt2[];
 #define SYSCTL_CNT2 16
- 
- 
+
+
 #endif
 /************************************************************************/
 
@@ -568,7 +568,7 @@ static inline unsigned Indexed_Inb(unsigned base,unsigned adr) {
 
 #ifdef  CAN_PORT_IO
 /* #error Intel port I/O access */
-/* using port I/O with inb()/outb() for Intel architectures like 
+/* using port I/O with inb()/outb() for Intel architectures like
    AT-CAN-MINI ISA board */
 
 #ifdef IODEBUG
@@ -596,7 +596,7 @@ static inline unsigned Indexed_Inb(unsigned base,unsigned adr) {
 
 #ifdef CAN_INDEXED_PORT_IO
 /* #error Indexed Intel port I/O access */
-/* using port I/O with indexed inb()/outb() for Intel architectures like 
+/* using port I/O with indexed inb()/outb() for Intel architectures like
    SSV TRM/816 DIL-NET-PC */
 
 #ifdef IODEBUG
@@ -725,7 +725,7 @@ and substitutes  MEM_In/MEM_Out
 
 */
 
-uint8 MEM_In (unsigned long  adr ) { 
+uint8 MEM_In (unsigned long  adr ) {
 #if IODEBUG
         int ret = readb(adr);
         printk("MIn: 0x%x=0x%x\n", adr, ret);
@@ -763,7 +763,7 @@ void MEM_Out(uint8 v, unsigned long adr ) {
 #endif
 	SLOW_DOWN_IO;
         writeb(v, adr);
-	SLOW_DOWN_IO; 
+	SLOW_DOWN_IO;
 #if defined(CONFIG_PPC)
 	/* 250 ns delay, SLOW_DOWN_IO is empty on ELIMA */
 	asm volatile("nop;nop;nop;nop");

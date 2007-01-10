@@ -79,10 +79,7 @@
  */
 
 /*
- * $Log$
- * Revision 1.8  2006/11/08 06:50:09  magicyang
- * commit some missing changes from 2.6.18 into cvs
- *
+ * $Log: generic_NCR5380.c,v $
  */
 
 /* settings for DTC3181E card with only Mustek scanner attached */
@@ -814,7 +811,6 @@ static int generic_NCR5380_proc_info(struct Scsi_Host *scsi_ptr, char *buffer, c
 	struct NCR5380_hostdata *hostdata;
 #ifdef NCR5380_STATS
 	struct scsi_device *dev;
-	extern const char *const scsi_device_types[MAX_SCSI_DEVICE_CODE];
 #endif
 
 	NCR5380_setup(scsi_ptr);
@@ -854,7 +850,7 @@ static int generic_NCR5380_proc_info(struct Scsi_Host *scsi_ptr, char *buffer, c
 		long tr = hostdata->time_read[dev->id] / HZ;
 		long tw = hostdata->time_write[dev->id] / HZ;
 
-		PRINTP("  T:%d %s " ANDP dev->id ANDP(dev->type < MAX_SCSI_DEVICE_CODE) ? scsi_device_types[(int) dev->type] : "Unknown");
+		PRINTP("  T:%d %s " ANDP dev->id ANDP scsi_device_type(dev->type));
 		for (i = 0; i < 8; i++)
 			if (dev->vendor[i] >= 0x20)
 				*(buffer + (len++)) = dev->vendor[i];

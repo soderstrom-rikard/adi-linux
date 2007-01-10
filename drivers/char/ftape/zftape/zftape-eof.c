@@ -21,7 +21,7 @@
  along with this program; see the file COPYING.  If not, write to
  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 
- * $Source$
+ * $Source: /homes/cvs/ftape-stacked/ftape/zftape/zftape-eof.c,v $
  * $Revision$
  * $Date$
  *

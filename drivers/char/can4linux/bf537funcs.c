@@ -10,7 +10,7 @@
  * Copyright (c) 2003-2006 port GmbH Halle/Saale
  * (c) 2006 Heinz-Jürgen Oertel (oe@port.de)
  *------------------------------------------------------------------
- * $Header$
+ * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/bf537funcs.c,v 1.3 2006/06/28 01:51:33 magicyang Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -36,12 +36,12 @@
  *     if more than one is used -- they build a FIFO
  *  RECEIVE_RTR_OBJ - what be nice to have, but this doesn't work
  *     RTR frames are received in the standard mail boxes
- *        
+ *
  *
  *
  * modification history
  * --------------------
- * $Log$
+ * $Log: bf537funcs.c,v $
  * Revision 1.3  2006/06/28 01:51:33  magicyang
  * Task[#473] change part of reg read/write to bfin_xxx() functions using scripts
  *
@@ -108,7 +108,7 @@ int CAN_ShowStat (int minor)
 *
 * The FlexCAN modul provides status and error-status information
 * in one 16 bit register: Error and Status Flag - ESTAT.
-* Therfore this content is used twice in the returned 
+* Therfore this content is used twice in the returned
 * CanStatusPar_t structure.
 */
 
@@ -174,8 +174,8 @@ int i;
 short temp_fix;		/* work-around to anomaly #22 to write PORT_MUX */
 
     DBGin("CAN_ChipReset");
-    /* 
-     * Initialize Port Pins to have CAN TX/RX signals enabled 
+    /*
+     * Initialize Port Pins to have CAN TX/RX signals enabled
      * on GPIO port
      */
 #if 0
@@ -209,8 +209,8 @@ short temp_fix;		/* work-around to anomaly #22 to write PORT_MUX */
 
     /*
      * go to INIT mode
-     * Any configuration change/initialization requires that the BF CAN 
-     * is in configuration mode 
+     * Any configuration change/initialization requires that the BF CAN
+     * is in configuration mode
      */
 
     /* set the basic mode we want to use and go to configuration mode
@@ -225,7 +225,7 @@ short temp_fix;		/* work-around to anomaly #22 to write PORT_MUX */
      */
     CANoutw(minor, cancontrol, ( CAN_CCR  ));
     for( i = 10000 ; i != 0; i--) {
-	if ( CANinw(minor, canstatus) & CAN_CCA) break; 
+	if ( CANinw(minor, canstatus) & CAN_CCA) break;
     }
     /* FIXME: use better return value ? */
     if (i == 0) {
@@ -246,7 +246,7 @@ short temp_fix;		/* work-around to anomaly #22 to write PORT_MUX */
     CANoutw(minor, canmc2, 0);
 
 
-    /* Create some objects, first defining data direction for RX or TX 
+    /* Create some objects, first defining data direction for RX or TX
      *
      * For all bits, 0 - Mailbox configured as transmit mode,
      *               1 - Mailbox configured as receive mode
@@ -296,7 +296,7 @@ short temp_fix;		/* work-around to anomaly #22 to write PORT_MUX */
 
     /* Enable Mailboxes */
     CANoutw(minor, canmc2, 1 << (TRANSMIT_OBJ - 16));	/* TX mailboxes */
-    CANoutw(minor, canmc1, 
+    CANoutw(minor, canmc1,
 	  (1 << (RECEIVE_STD_OBJ    ))
 	/* + (1 << (RECEIVE_STD_OBJ + 1)) */
 	/* + (1 << (RECEIVE_STD_OBJ + 2)) */
@@ -311,8 +311,8 @@ short temp_fix;		/* work-around to anomaly #22 to write PORT_MUX */
 
 
 #if 0  /* Test if a message is sent */
-       /* if this code snipped is enabled it will prepare 
-          the transmit objetc for sending 
+       /* if this code snipped is enabled it will prepare
+          the transmit objetc for sending
           and issues a transmission request
         */
 
@@ -420,7 +420,7 @@ int i;
      */
     CANsetw(minor, cancontrol, CAN_CCR);
     for( i = 10000 ; i != 0; i--) {
-	if ( CANinw(minor, canstatus) & CAN_CCA) break; 
+	if ( CANinw(minor, canstatus) & CAN_CCA) break;
     }
     /* FIXME: use better return value ? */
     if (i == 0) return -ENXIO; /* Configuration mode not reached */
@@ -487,7 +487,7 @@ int i;
     /* first of all: leave configuration mode */
     CANresetw(minor, cancontrol, CAN_CCR);
     for( i = 10000 ; i != 0; i--) {
-	if ( (CANinw(minor, canstatus) & CAN_CCA) == 0) break; 
+	if ( (CANinw(minor, canstatus) & CAN_CCA) == 0) break;
     }
     /* FIXME: use better return value ? */
     if (i == 0) return -ENXIO; /* Configuration mode not left */
@@ -500,8 +500,8 @@ int i;
     /* clear global interrupt status register */
     CANoutw(minor, cangis, 0x07ff);	/* overwrites with '1' */
 
-    /* Initialize Interrupts 
-     * - set bits in the mailbox interrupt mask register 
+    /* Initialize Interrupts
+     * - set bits in the mailbox interrupt mask register
      * - global interrupt mask
      */
 
@@ -534,7 +534,7 @@ int CAN_StopChip (int minor)
     DBGin("CAN_StopChip");
     /* SW Reset ??? */
     /* enter configuration mode only
-     * software reste resets the to much, even the 
+     * software reste resets the to much, even the
      * content of the message configuration register
      * which contains the active mailboxes */
     CANoutw(minor, cancontrol, (/* CAN_SRS | */ CAN_CCR));
@@ -549,7 +549,7 @@ int CAN_StopChip (int minor)
 }
 
 /* set value of the output control register
- * The register is not available, nothing happens here 
+ * The register is not available, nothing happens here
  * besides printing some debug information
  */
 int CAN_SetOMode (int minor, int arg)
@@ -761,13 +761,13 @@ int err=0;
     DBGin("Can_RequestIrq");
     /*
 
-    int request_irq(unsigned int irq,			// interrupt number  
+    int request_irq(unsigned int irq,			// interrupt number
               void (*handler)(int, void *, struct pt_regs *), // pointer to ISR
 		              irq, dev_id, registers on stack
               unsigned long irqflags, const char *devname,
               void *dev_id);
 
-       dev_id - The device ID of this handler (see below).       
+       dev_id - The device ID of this handler (see below).
        This parameter is usually set to NULL,
        but should be non-null if you wish to do  IRQ  sharing.
        This  doesn't  matter when hooking the
@@ -780,7 +780,7 @@ int err=0;
     */
 
 
-    /* we don't need to share the Interrupt with any other driver 
+    /* we don't need to share the Interrupt with any other driver
      * request_irq doeas not need the SA_SHIRQ flag */
     err = request_irq(irq, handler, SA_INTERRUPT, \
     					"Can-RX", &Can_minors[minor]);
@@ -865,10 +865,10 @@ volatile unsigned short *set_or_clear;
  * The plain CAN interrupt
  *
  *
- *				RX ISR      
- *                              
- *                               _____       
- * CAN msg   Ack EOF       _____|     |____   
+ *				RX ISR
+ *
+ *                               _____
+ * CAN msg   Ack EOF       _____|     |____
  *---------------------------------------------------------------------------
  * |||||||||||________________________
  *
@@ -878,7 +878,7 @@ volatile unsigned short *set_or_clear;
  * Using the set_led() and reset_led() functions takes app. 200ns
  * for each call.
  * The receive ISR lasts for about 15 µs (without do_gettimeofday())
- * Another time consuming thing is wake_up_interruptible() 
+ * Another time consuming thing is wake_up_interruptible()
  * which takes about 10µs
  *
  * #define IRQ_CAN_RX          22
@@ -961,7 +961,7 @@ set_led();
 	if(flags) {
 	/* generate a pseude message with id 0xffffffff */
 	    (RxFifo->data[RxFifo->head]).id = 0xFFFFFFFF;
-	    (RxFifo->data[RxFifo->head]).flags = flags; 
+	    (RxFifo->data[RxFifo->head]).flags = flags;
 	    RxFifo->status = BUF_OK;
 	    RxFifo->head = ++(RxFifo->head) % MAX_BUFSIZE;
 	    if(RxFifo->head == RxFifo->tail) {
@@ -969,7 +969,7 @@ set_led();
 		    RxFifo->status = BUF_OVERRUN;
 	    }
 	    /* tell someone that there is a new error message */
-	    wake_up_interruptible(  &CanWait[minor] ); 
+	    wake_up_interruptible(  &CanWait[minor] );
 	}
     }
 
@@ -981,7 +981,7 @@ set_led();
 
     /* Rx interrupts only in the Low canmbrif1 and transmit interrupts
        only in the High  canmgtif2 */
-    while(   
+    while(
     (irqsrc = CANinw(minor, canmbrif1) + (CANinw(minor, canmbtif2) << 16)) != 0)    {
 
 	canmsg_t *rp = &RxFifo->data[RxFifo->head];
@@ -1059,7 +1059,7 @@ reset_led();
 		rp->data[7 - i] = CAN_OBJ[mrobject].msg[i];
 		rp->data[6 - i] = CAN_OBJ[mrobject].msg[i] >> 8;
 	    }
-	    
+
 	    RxFifo->status = BUF_OK;
 	    RxFifo->head = ++(RxFifo->head) % MAX_BUFSIZE;
 
@@ -1096,11 +1096,11 @@ set_led();
 	    /* use time stamp sampled with last INT */
 	    last_Tx_object[minor].timestamp
 	    		= RxFifo->data[RxFifo->head].timestamp;
-	    memcpy(  
+	    memcpy(
 		(void *)&RxFifo->data[RxFifo->head],
 	    	(void *)&last_Tx_object[minor],
 		sizeof(canmsg_t));
-	    
+
 	    /* Mark message as 'self sent/received' */
 	    RxFifo->data[RxFifo->head].flags |= MSG_SELF;
 
@@ -1111,13 +1111,13 @@ set_led();
 	    if(RxFifo->head == RxFifo->tail) {
 		printk("CAN[%d] RX: FIFO overrun\n", minor);
 		RxFifo->status = BUF_OVERRUN;
-	    } 
+	    }
 	    /*---------- kick the select() call  -*/
 	    /* This function will wake up all processes
 	       that are waiting on this event queue,
 	       that are in interruptible sleep
 	    */
-	    wake_up_interruptible(  &CanWait[minor] ); 
+	    wake_up_interruptible(  &CanWait[minor] );
 
 	} /* selfreception */
 
@@ -1133,7 +1133,7 @@ set_led();
 	       that are waiting on this event queue,
 	       that are in interruptible sleep
 	    */
-	    wake_up_interruptible(  &CanOutWait[minor] ); 
+	    wake_up_interruptible(  &CanOutWait[minor] );
 	    goto Tx_done;
 	} else {
 	    /* printk("TX\n"); */
@@ -1329,7 +1329,7 @@ volatile mask_t *mask = (mask_t *)(BFCAN_BASE + 0x100);
 			    ((vh & 0x1ffc) >> 2),
 			    ((vh & 0x1ffc) >> 2));
     vl = CAN_OBJ[object].id0;
-    printk(KERN_INFO "    ext-ID = %d, 0x%x\n", 
+    printk(KERN_INFO "    ext-ID = %d, 0x%x\n",
     	vl + ((vh & 0x1fff) << 16),
     	vl + ((vh & 0x1fff) << 16) );
 

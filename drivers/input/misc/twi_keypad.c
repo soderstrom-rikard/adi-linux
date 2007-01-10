@@ -135,8 +135,7 @@ static struct i2c_client_address_data addr_data = {
   .ignore = ignore,
 };
 
-static irqreturn_t twi_keypad_irq_handler (int irq, void *dev_id,
-					   struct pt_regs *regs);
+static irqreturn_t twi_keypad_irq_handler (int irq, void *dev_id);
 static short read_state (struct TWIKeypad *TWIKeypad);
 
 static struct workqueue_struct *twi_keypad_workqueue;
@@ -257,7 +256,7 @@ check_and_notify (void *arg)
 }
 
 static irqreturn_t
-twi_keypad_irq_handler (int irq, void *dev_id, struct pt_regs *regs)
+twi_keypad_irq_handler (int irq, void *dev_id)
 {
   disable_irq(CONFIG_BFIN_TWIKEYPAD_IRQ_PFX);
   queue_work(twi_keypad_workqueue, &twi_keypad_work);

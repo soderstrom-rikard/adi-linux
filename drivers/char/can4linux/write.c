@@ -7,12 +7,12 @@
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
  *
- * 
+ *
  * Copyright (c) 2001 port GmbH Halle/Saale
  * (c) 2001 Heinz-Jürgen Oertel (oe@port.de)
  *          Claus Schroeter (clausi@chemie.fu-berlin.de)
  *------------------------------------------------------------------
- * $Header$
+ * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/write.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -137,10 +137,10 @@ int blocking;
 
 	if( TxFifo->active ) {
 	    /* more than one data and actual data in queue,
-	     * add this message to the Tx queue 
+	     * add this message to the Tx queue
 	     */
 	    __lddk_copy_from_user(	/* copy one message to FIFO */
-		    (canmsg_t *) &(TxFifo->data[TxFifo->head]), 
+		    (canmsg_t *) &(TxFifo->data[TxFifo->head]),
 		    (canmsg_t *) &addr[written],
 		    sizeof(canmsg_t) );
 	    TxFifo->free[TxFifo->head] = BUF_FULL; /* now this entry is FULL */
@@ -148,7 +148,7 @@ int blocking;
 
 	} else {
 	    __lddk_copy_from_user(
-		    (canmsg_t *) &tx, 
+		    (canmsg_t *) &tx,
 		    (canmsg_t *) &addr[written],
 		    sizeof(canmsg_t) );
 	  /* f - fast -- use interrupts */

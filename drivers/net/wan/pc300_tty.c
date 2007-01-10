@@ -10,10 +10,7 @@
  *  as published by the Free Software Foundation; either version
  *  2 of the License, or (at your option) any later version.
  *   
- *  $Log$
- *  Revision 1.6  2006/11/03 05:29:56  magicyang
- *   update kernel to 2.6.18
- *
+ *  $Log: pc300_tty.c,v $
  *  Revision 3.7  2002/03/07 14:17:09  henrique
  *  License data fixed
  *

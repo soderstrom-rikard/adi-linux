@@ -29,10 +29,7 @@
  *                                                                      *
  * Linux kernel 2.4.x, 2.6.x supported                                  *
  *                                                                      *
- * $Log$
- * Revision 1.8  2006/11/08 06:50:11  magicyang
- * commit some missing changes from 2.6.18 into cvs
- *
+ * $Log: gdth.c,v $
  * Revision 1.74  2006/04/10 13:44:47  achim
  * Community changes for 2.6.x
  * Kernel 2.2.x no longer supported
@@ -427,7 +424,7 @@
 
 static void gdth_delay(int milliseconds);
 static void gdth_eval_mapping(ulong32 size, ulong32 *cyls, int *heads, int *secs);
-static irqreturn_t gdth_interrupt(int irq, void *dev_id, struct pt_regs *regs);
+static irqreturn_t gdth_interrupt(int irq, void *dev_id);
 static int gdth_sync_event(int hanum,int service,unchar index,Scsi_Cmnd *scp);
 static int gdth_async_event(int hanum);
 static void gdth_log_event(gdth_evt_data *dvr, char *buffer);
@@ -727,7 +724,7 @@ int __gdth_execute(struct scsi_device *sdev, gdth_cmd_str *gdtcmd, char *cmnd,
                    int timeout, u32 *info)
 {
     Scsi_Cmnd *scp;
-    DECLARE_COMPLETION(wait);
+    DECLARE_COMPLETION_ONSTACK(wait);
     int rval;
 
     scp = kmalloc(sizeof(*scp), GFP_KERNEL);
@@ -767,7 +764,7 @@ int __gdth_execute(struct scsi_device *sdev, gdth_cmd_str *gdtcmd, char *cmnd,
 {
     Scsi_Cmnd *scp = scsi_allocate_device(sdev, 1, FALSE);
     unsigned bufflen = gdtcmd ? sizeof(gdth_cmd_str) : 0;
-    DECLARE_COMPLETION(wait);
+    DECLARE_COMPLETION_ONSTACK(wait);
     int rval;
 
     if (!scp)
@@ -1807,7 +1804,7 @@ static int gdth_wait(int hanum,int index,ulong32 time)
 
     gdth_from_wait = TRUE;
     do {
-        gdth_interrupt((int)ha->irq,ha,NULL);
+        gdth_interrupt((int)ha->irq,ha);
         if (wait_hanum==hanum && wait_index==index) {
             answer_found = TRUE;
             break;
@@ -3409,7 +3406,7 @@ static void gdth_clear_events(void)
 
 /* SCSI interface functions */
 
-static irqreturn_t gdth_interrupt(int irq,void *dev_id,struct pt_regs *regs)
+static irqreturn_t gdth_interrupt(int irq,void *dev_id)
 {
     gdth_ha_str *ha2 = (gdth_ha_str *)dev_id;
     register gdth_ha_str *ha;
@@ -3534,7 +3531,7 @@ static irqreturn_t gdth_interrupt(int irq,void *dev_id,struct pt_regs *regs)
                 IStatus &= ~0x80;
 #ifdef INT_COAL
                 if (coalesced)
-                    ha->status = pcs->ext_status && 0xffff;
+                    ha->status = pcs->ext_status & 0xffff;
                 else 
 #endif
                     ha->status = gdth_readw(&dp6m_ptr->i960r.status);
@@ -3546,7 +3543,7 @@ static irqreturn_t gdth_interrupt(int irq,void *dev_id,struct pt_regs *regs)
             if (coalesced) {    
                 ha->info = pcs->info0;
                 ha->info2 = pcs->info1;
-                ha->service = (pcs->ext_status >> 16) && 0xffff;
+                ha->service = (pcs->ext_status >> 16) & 0xffff;
             } else
 #endif
             {

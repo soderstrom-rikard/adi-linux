@@ -78,8 +78,8 @@ struct sport_dev *sport_devices;	/* allocated in sport_init_module */
 #define assert(expr)
 #endif
 
-static irqreturn_t dma_rx_irq_handler(int irq, void *dev_id, struct pt_regs *regs);
-static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id, struct pt_regs *regs);
+static irqreturn_t dma_rx_irq_handler(int irq, void *dev_id);
+static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id);
 
 /* note: multichannel is in units of 8 channels, tdm_count is # channels NOT / 8 ! */
 static int sport_set_multichannel(struct sport_register *regs,
@@ -230,7 +230,7 @@ static inline uint16_t sport_wordsize(int word_len)
 	return wordsize;
 }
 
-static irqreturn_t dma_rx_irq_handler(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t dma_rx_irq_handler(int irq, void *dev_id)
 {
 	struct sport_dev *dev = dev_id;
 
@@ -246,7 +246,7 @@ static irqreturn_t dma_rx_irq_handler(int irq, void *dev_id, struct pt_regs *reg
 	return IRQ_HANDLED;
 }
 
-static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id)
 {
 	struct sport_dev *dev = dev_id;
 	unsigned int status ;
@@ -280,7 +280,7 @@ static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id, struct pt_regs *reg
 	return IRQ_HANDLED;
 }
 
-static irqreturn_t sport_rx_handler(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t sport_rx_handler(int irq, void *dev_id)
 {
 	struct sport_dev *dev = dev_id;
 	struct sport_config *cfg = &dev->config;
@@ -352,12 +352,12 @@ static inline void sport_tx_write(struct sport_dev *dev)
 	}
 }
 
-static irqreturn_t sport_tx_handler(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t sport_tx_handler(int irq, void *dev_id)
 {
 	struct sport_dev *dev = dev_id;
 
 	if (dev->tx_sent < dev->tx_len)
-		sport_tx_write(dev);
+	sport_tx_write(dev);
 
 	if (dev->tx_len != 0 && dev->tx_sent >= dev->tx_len && dev->config.int_clk) {
 		unsigned int stat;
@@ -379,7 +379,7 @@ static irqreturn_t sport_tx_handler(int irq, void *dev_id, struct pt_regs *regs)
 	return IRQ_HANDLED;
 }
 
-static irqreturn_t sport_err_handler(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t sport_err_handler(int irq, void *dev_id)
 {
 	struct sport_dev *dev = dev_id;
 	uint16_t status;
@@ -410,7 +410,7 @@ static irqreturn_t sport_err_handler(int irq, void *dev_id, struct pt_regs *regs
 					status & ROVF ? " ROVF" : "",
 					status & RUVF ? " RUVF" : "");
 	}
-	/* Generate a signal to tell process this error */
+
 	if (dev->config.dma_enabled || dev->config.int_clk) 
 		send_sig(SIGABRT, dev->task, 1);
 
@@ -565,11 +565,11 @@ static void dump_dma_regs(void)
 {
 #ifdef DEBUG
 	struct dma_register_t *dma = (struct dma_register_t *)DMA4_NEXT_DESC_PTR;
-#endif
 
 	pr_debug("%s config:0x%04x, x_count:0x%04x,"
 			" x_modify:0x%04x\n", __FUNCTION__, dma->cfg,
 			dma->x_count, dma->x_modify);
+#endif
 }
 
 static ssize_t sport_write(struct file *filp, const char __user *buf, size_t count,
@@ -627,7 +627,7 @@ static ssize_t sport_write(struct file *filp, const char __user *buf, size_t cou
 	pr_debug("wait for transfer finished\n");
 	if (wait_event_interruptible(dev->waitq, dev->wait_con ) < 0) {
 		pr_debug("Receive a signal to interrupt\n");
-		dev->wait_con = 0;
+	dev->wait_con = 0;
 		up(&dev->sem);
 		return -ERESTARTSYS;
 	}

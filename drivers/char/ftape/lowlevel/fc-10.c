@@ -43,7 +43,7 @@
    or kernel and let the user specify the options as command line arguments.
 
  *
- * $Source$
+ * $Source: /homes/cvs/ftape-stacked/ftape/lowlevel/fc-10.c,v $
  * $Revision$
  * $Date$
  *

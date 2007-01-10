@@ -68,9 +68,9 @@ struct rt_sigframe {
 static inline int
 rt_restore_ucontext(struct pt_regs *regs, struct ucontext *uc, int *pr0)
 {
-	int temp;
+	int temp = 0;
 	greg_t *gregs = uc->uc_mcontext.gregs;
-	unsigned long usp;
+	unsigned long usp = 0;
 	int err;
 
 	err = __get_user(temp, &uc->uc_mcontext.version);

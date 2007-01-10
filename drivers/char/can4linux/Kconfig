@@ -12,7 +12,7 @@ config CAN4LINUX
 	  Philips SJA1000, Intel 82527 and Infineon TwinCAN (SAK82C900).
 	  On Motorola ColdFire the integrated FlexCAN is supported.
 	  On Analog Devices BlackFin the integrated CAN is supported.
-  
+
 	  If you have one of the mentioned controllers and want to have
 	  driver support for CAN, say Y here.
 

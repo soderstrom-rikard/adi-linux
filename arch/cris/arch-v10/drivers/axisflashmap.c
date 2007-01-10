@@ -10,10 +10,7 @@
  * tells us what other partitions to define. If there isn't, we use a default
  * partition split defined below.
  *
- * $Log$
- * Revision 1.7  2006/11/01 04:48:44  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: axisflashmap.c,v $
  * Revision 1.11  2004/11/15 10:27:14  starvik
  * Corrected typo (Thanks to Milton Miller <miltonm@bga.com>).
  *

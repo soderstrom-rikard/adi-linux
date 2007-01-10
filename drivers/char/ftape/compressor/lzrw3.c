@@ -1,5 +1,5 @@
 /*
- * $Source$
+ * $Source: /homes/cvs/ftape-stacked/ftape/compressor/lzrw3.c,v $
  * $Revision$
  * $Date$
  *

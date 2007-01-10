@@ -7,12 +7,12 @@
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
  *
- * 
+ *
  * Copyright (c) 2001 port GmbH Halle/Saale
  * (c) 2001 Heinz-Jürgen Oertel (oe@port.de)
  *          Claus Schroeter (clausi@chemie.fu-berlin.de)
  *------------------------------------------------------------------
- * $Header$
+ * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/open.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -90,7 +90,7 @@ int Can_isopen[MAX_CHANNELS] = { 0 };   /* device minor already opened */
 * Additional an ISR function is assigned to the IRQ.
 *
 * The CLK OUT pin is configured for creating the same frequency
-* like the chips input frequency fclk (XTAL). 
+* like the chips input frequency fclk (XTAL).
 *
 * If Vendor Option \a VendOpt is set to 's' the driver performs
 * an hardware reset befor initializing the chip.
@@ -116,7 +116,7 @@ int retval = 0;
     DBGin("can_open");
     {
 
-	int lasterr;	
+	int lasterr;
 
 	unsigned int minor = iminor(inode);
 

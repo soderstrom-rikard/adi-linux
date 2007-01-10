@@ -17,7 +17,7 @@
  USA.
 
  *
- * $Source$
+ * $Source: /homes/cvs/ftape-stacked/ftape/zftape/zftape-vtbl.c,v $
  * $Revision$
  * $Date$
  *

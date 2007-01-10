@@ -77,7 +77,7 @@ _dma_descriptor:
  ***********************************************************************/
 _config_dma:
 .align 4
-	[--sp] = p0;	
+	[--sp] = p0;
 	P0.L = _dma_descriptor;
 	P0.H = _dma_descriptor;
 
@@ -95,40 +95,40 @@ _config_dma:
 
 	//DMA0_CONFIG
 	// auto buffer, DI_SEL, 2d, 8bit, read
-	R0.L = 0x6390;		
-	
+	R0.L = 0x6390;
+
 	P0.L = lo(DMA0_CONFIG);
-	P0.H = hi(DMA0_CONFIG);	
-	W[P0] = R0.L;						
-	
+	P0.H = hi(DMA0_CONFIG);
+	W[P0] = R0.L;
+
 	//DMA0_X_COUNT
 	R0.L = 0x06B4;		// 1716
 	P0.L = lo(DMA0_X_COUNT);
-	P0.H = hi(DMA0_X_COUNT);	
-	W[P0] = R0.L;						
-		
+	P0.H = hi(DMA0_X_COUNT);
+	W[P0] = R0.L;
+
 	//DMA0_X_MODIFY
-	R0.L = 0x0001;					
+	R0.L = 0x0001;
 	P0.L = lo(DMA0_X_MODIFY);
-	P0.H = hi(DMA0_X_MODIFY);	
-	W[P0] = R0.L;						
+	P0.H = hi(DMA0_X_MODIFY);
+	W[P0] = R0.L;
 
 	//DMA0_Y_COUNT
 	R0.L = 0x020D;		// 525
 	P0.L = lo(DMA0_Y_COUNT);
-	P0.H = hi(DMA0_Y_COUNT);	
-	W[P0] = R0.L;						
-		
-	//DMA0_Y_MODIFY
-	R0.L = 0x0001;					
-	P0.L = lo(DMA0_Y_MODIFY);
-	P0.H = hi(DMA0_Y_MODIFY);	
+	P0.H = hi(DMA0_Y_COUNT);
 	W[P0] = R0.L;
-	
+
+	//DMA0_Y_MODIFY
+	R0.L = 0x0001;
+	P0.L = lo(DMA0_Y_MODIFY);
+	P0.H = hi(DMA0_Y_MODIFY);
+	W[P0] = R0.L;
+
 	p0 = [sp++];
-		
+
 	RTS;
-	
+
 config_dma.END:
 
 /********************************************************************
@@ -149,7 +149,7 @@ config_dma.END:
 _change_descriptor_start_address:
 	[--sp] = P0 ;
 	[--sp] = P1 ;
-	
+
 	P0.L = _dma_descriptor;
 	P0.H = _dma_descriptor;
 	//start address in R0
@@ -158,7 +158,7 @@ _change_descriptor_start_address:
 	w[P0]= R0.L
 	P0 = P0 + P1 ;
 	w[P0]= R0.H
-	
+
 	[sp++] = P1 ;
 	[sp++] = P0 ;
 	rts ;
@@ -168,7 +168,7 @@ _change_descriptor_start_address:
 .type dma_set_next_buf, STT_FUNC ;
 dma_set_next_buf :
 
-	[--sp] = p0;	
+	[--sp] = p0;
 	P0.L = _dma_descriptor;
 	P0.H = _dma_descriptor;
 
@@ -422,13 +422,13 @@ _NtscVideoOutFrameBuffInit:
         LSETUP(ntscoutputfieldstart_init, ntscoutputfieldend_init) LC0 = P2;
 
 ntscoutputfieldstart_init:
-        r0 = [sp++];	
+        r0 = [sp++];
         r1 = [sp++];
         r2 = 1716;	//offset between 1st and 2nd ycrcb line
         r1 = r1 + r2;	//first line of odd field
         [--sp] = r1;
-        r1 = r1 - r2;	
-        p0 = r1;	
+        r1 = r1 - r2;
+        p0 = r1;
         r0 += 1;	//first line of odd field
         [--sp] = r0;
 
@@ -648,76 +648,76 @@ _DmaMemCpy:
 	// ideally we should check what is available and
 	// select the other putting traffic in round robin
 	// if we select the second pair
-	
-	// first configure the source	
+
+	// first configure the source
 	P0.L = lo(MDMA_S0_START_ADDR);
-	P0.H = hi(MDMA_S0_START_ADDR);	
-	[P0] = R1;							
-	
-	
+	P0.H = hi(MDMA_S0_START_ADDR);
+	[P0] = R1;
+
+
 	//DMA0_X_COUNT
 	P0.L = lo(MDMA_S0_X_COUNT);
-	P0.H = hi(MDMA_S0_X_COUNT);	
-	W[P0] = R2.L;						
-		
+	P0.H = hi(MDMA_S0_X_COUNT);
+	W[P0] = R2.L;
+
 	//DMA0_X_MODIFY
-	R1.L = 0x0001;					
+	R1.L = 0x0001;
 	P0.L = lo(MDMA_S0_X_MODIFY);
-	P0.H = hi(MDMA_S0_X_MODIFY);	
-	W[P0] = R1.L;						
+	P0.H = hi(MDMA_S0_X_MODIFY);
+	W[P0] = R1.L;
 
 	//DMA0_CONFIG
 	// stop mode, 1d, 8bit, read
 	// FLOW : 0x0
 	// NDSIZE : 0x1
 	//
-	R1.L = 0x0001;		
+	R1.L = 0x0001;
 	P0.L = lo(MDMA_S0_CONFIG);
-	P0.H = hi(MDMA_S0_CONFIG);	
-	W[P0] = R1.L;						
+	P0.H = hi(MDMA_S0_CONFIG);
+	W[P0] = R1.L;
 
 	// now configure the destination
 	P0.L = lo(MDMA_D0_START_ADDR);
-	P0.H = hi(MDMA_D0_START_ADDR);	
-	[P0] = R0;							
-	
-	
+	P0.H = hi(MDMA_D0_START_ADDR);
+	[P0] = R0;
+
+
 	//DMA0_X_COUNT
 	P0.L = lo(MDMA_D0_X_COUNT);
-	P0.H = hi(MDMA_D0_X_COUNT);	
-	W[P0] = R2.L;						
-		
+	P0.H = hi(MDMA_D0_X_COUNT);
+	W[P0] = R2.L;
+
 	//DMA0_X_MODIFY
-	R0.L = 0x0001;					
+	R0.L = 0x0001;
 	P0.L = lo(MDMA_D0_X_MODIFY);
-	P0.H = hi(MDMA_D0_X_MODIFY);	
-	W[P0] = R0.L;						
+	P0.H = hi(MDMA_D0_X_MODIFY);
+	W[P0] = R0.L;
 
 	//DMA0_CONFIG
 	// stop mode, 1d, 8bit, write
 	// FLOW : 0x0
 	// NDSIZE : 0x1
 	// DIR : 0x1
-	R0.L = 0x0002;		
-	
+	R0.L = 0x0002;
+
 	P0.L = lo(MDMA_D0_CONFIG);
-	P0.H = hi(MDMA_D0_CONFIG);	
-	W[P0] = R0.L;						
+	P0.H = hi(MDMA_D0_CONFIG);
+	W[P0] = R0.L;
 	ssync;
-	
+
 	// now poll to see when dma completes
 	P0.L = lo(MDMA_D0_IRQ_STATUS);
-	P0.H = hi(MDMA_D0_IRQ_STATUS);	
+	P0.H = hi(MDMA_D0_IRQ_STATUS);
 memcpy_dma_wait :
 	// wait for DMA_RUN bit to be 0 - signals completion
 	R2 = W[P0] (Z);
 	CC = BITTST(R2 , 3); // test bit 3, DMA RUN
-	
+
 	if CC jump memcpy_dma_wait;
-	
+
 	// restore the call save registers
 	p0 = [sp++];
-	
+
 	rts;
 // end _DmaMemCpy
 

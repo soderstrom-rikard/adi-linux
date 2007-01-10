@@ -312,8 +312,7 @@ static struct irq_chip bf561_gpio_irqchip = {
 };
 
 static void bf561_demux_gpio_irq(unsigned int inta_irq,
-				 struct irq_desc *intb_desc,
-				 struct pt_regs *regs)
+				 struct irq_desc *intb_desc)
 {
 	int irq, flag_d, mask;
 	u16 gpio;
@@ -342,7 +341,7 @@ static void bf561_demux_gpio_irq(unsigned int inta_irq,
 			do {
 				if (mask & 1) {
 					struct irq_desc *desc = irq_desc + irq;
-					desc->handle_irq(irq, desc, regs);
+					desc->handle_irq(irq, desc);
 				}
 				irq++;
 				mask >>= 1;

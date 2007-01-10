@@ -6,10 +6,7 @@
  *
  *    Many, many authors. Based once upon a time on serial.c for 16x50.
  *
- * $Log$
- * Revision 1.3  2006/11/06 01:55:30  magicyang
- * update to kernel 2.6.18
- *
+ * $Log: serial.c,v $
  * Revision 1.25  2004/09/29 10:33:49  starvik
  * Resolved a dealock when printing debug from kernel.
  *
@@ -2349,7 +2346,7 @@ start_receive(struct e100_serial *info)
 */
 
 static irqreturn_t
-tr_interrupt(int irq, void *dev_id, struct pt_regs * regs)
+tr_interrupt(int irq, void *dev_id)
 {
 	struct e100_serial *info;
 	unsigned long ireg;
@@ -2398,7 +2395,7 @@ tr_interrupt(int irq, void *dev_id, struct pt_regs * regs)
 /* dma input channel interrupt handler */
 
 static irqreturn_t
-rec_interrupt(int irq, void *dev_id, struct pt_regs * regs)
+rec_interrupt(int irq, void *dev_id)
 {
 	struct e100_serial *info;
 	unsigned long ireg;
@@ -3057,7 +3054,7 @@ static void handle_ser_tx_interrupt(struct e100_serial *info)
  * ser_int duration: just sending: 8-15 us normally, up to 73 us
  */
 static irqreturn_t
-ser_interrupt(int irq, void *dev_id, struct pt_regs *regs)
+ser_interrupt(int irq, void *dev_id)
 {
 	static volatile int tx_started = 0;
 	struct e100_serial *info;
@@ -4828,7 +4825,7 @@ show_serial_version(void)
 
 /* rs_init inits the driver at boot (using the module_init chain) */
 
-static struct tty_operations rs_ops = {
+static const struct tty_operations rs_ops = {
 	.open = rs_open,
 	.close = rs_close,
 	.write = rs_write,

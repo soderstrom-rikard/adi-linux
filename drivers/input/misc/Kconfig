@@ -73,7 +73,7 @@ config INPUT_UINPUT
 
 config HP_SDC_RTC
 	tristate "HP SDC Real Time Clock"       
-	depends on GSC
+	depends on GSC || HP300
 	select HP_SDC
 	help
 	  Say Y here if you want to support the built-in real time clock
@@ -93,7 +93,7 @@ config TWI_KEYPAD
 	depends on I2C && EXPERIMENTAL
 	help
 	  Say Y here if you want to support a 4x4 keypad matrix for input
-	  subsystem. The keypad is connetced via I2C with a PCF8574. 
+	  subsystem. The keypad is connetced via I2C with a PCF8574.
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called twi_keypad.

@@ -1,5 +1,4 @@
-/*
- * YAFFS: Yet another FFS. A NAND-flash specific file system. 
+/* YAFFS: Yet another FFS. A NAND-flash specific file system. 
  *
  * Copyright (C) 2002 Aleph One Ltd.
  *   for Toby Churchill Ltd and Brightstar Engineering
@@ -49,7 +48,7 @@ static int yaffs_CheckpointErase(yaffs_Device *dev)
 		yaffs_BlockInfo *bi = yaffs_GetBlockInfo(dev,i);
 		if(bi->blockState == YAFFS_BLOCK_STATE_CHECKPOINT){
 			T(YAFFS_TRACE_CHECKPOINT,(TSTR("erasing checkpt block %d"TENDSTR),i));
-			if(dev->eraseBlockInNAND(dev,i)){
+			if(dev->eraseBlockInNAND(dev,i- dev->blockOffset /* realign */)){
 				bi->blockState = YAFFS_BLOCK_STATE_EMPTY;
 				dev->nErasedBlocks++;
 				dev->nFreeChunks += dev->nChunksPerBlock;
@@ -71,6 +70,9 @@ static void yaffs_CheckpointFindNextErasedBlock(yaffs_Device *dev)
 {
 	int  i;
 	int blocksAvailable = dev->nErasedBlocks - dev->nReservedBlocks;
+	T(YAFFS_TRACE_CHECKPOINT,
+		(TSTR("allocating checkpt block: erased %d reserved %d avail %d next %d "TENDSTR),
+		dev->nErasedBlocks,dev->nReservedBlocks,blocksAvailable,dev->checkpointNextBlock));
 		
 	if(dev->checkpointNextBlock >= 0 &&
 	   dev->checkpointNextBlock <= dev->internalEndBlock &&
@@ -97,11 +99,17 @@ static void yaffs_CheckpointFindNextCheckpointBlock(yaffs_Device *dev)
 	int  i;
 	yaffs_ExtendedTags tags;
 	
+	T(YAFFS_TRACE_CHECKPOINT,(TSTR("find next checkpt block: start:  blocks %d next %d" TENDSTR),
+		dev->blocksInCheckpoint, dev->checkpointNextBlock));
+		
 	if(dev->blocksInCheckpoint < dev->checkpointMaxBlocks) 
 		for(i = dev->checkpointNextBlock; i <= dev->internalEndBlock; i++){
 			int chunk = i * dev->nChunksPerBlock;
+			int realignedChunk = chunk - dev->chunkOffset;
 
-			dev->readChunkWithTagsFromNAND(dev,chunk,NULL,&tags);
+			dev->readChunkWithTagsFromNAND(dev,realignedChunk,NULL,&tags);
+			T(YAFFS_TRACE_CHECKPOINT,(TSTR("find next checkpt block: search: block %d oid %d seq %d eccr %d" TENDSTR), 
+				i, tags.objectId,tags.sequenceNumber,tags.eccResult));
 						      
 			if(tags.sequenceNumber == YAFFS_SEQUENCE_CHECKPOINT_DATA){
 				/* Right kind of block */
@@ -176,6 +184,7 @@ static int yaffs_CheckpointFlushBuffer(yaffs_Device *dev)
 {
 
 	int chunk;
+	int realignedChunk;
 
 	yaffs_ExtendedTags tags;
 	
@@ -201,8 +210,14 @@ static int yaffs_CheckpointFlushBuffer(yaffs_Device *dev)
 	}
 	
 	chunk = dev->checkpointCurrentBlock * dev->nChunksPerBlock + dev->checkpointCurrentChunk;
-		
-	dev->writeChunkWithTagsToNAND(dev,chunk,dev->checkpointBuffer,&tags);
+
+	
+	T(YAFFS_TRACE_CHECKPOINT,(TSTR("checkpoint wite buffer nand %d(%d:%d) objid %d chId %d" TENDSTR),
+		chunk, dev->checkpointCurrentBlock, dev->checkpointCurrentChunk,tags.objectId,tags.chunkId)); 
+	
+	realignedChunk = chunk - dev->chunkOffset;
+	
+	dev->writeChunkWithTagsToNAND(dev,realignedChunk,dev->checkpointBuffer,&tags);
 	dev->checkpointByteOffset = 0;
 	dev->checkpointPageSequence++;	   
 	dev->checkpointCurrentChunk++;
@@ -257,6 +272,7 @@ int yaffs_CheckpointRead(yaffs_Device *dev, void *data, int nBytes)
 
 	
 	int chunk;
+	int realignedChunk;
 
 	__u8 *dataBytes = (__u8 *)data;
 		
@@ -281,9 +297,11 @@ int yaffs_CheckpointRead(yaffs_Device *dev, void *data, int nBytes)
 				chunk = dev->checkpointCurrentBlock * dev->nChunksPerBlock + 
 				          dev->checkpointCurrentChunk;
 
+				realignedChunk = chunk - dev->chunkOffset;
+
 	   			/* read in the next chunk */
 	   			/* printf("read checkpoint page %d\n",dev->checkpointPage); */
-				dev->readChunkWithTagsFromNAND(dev, chunk, 
+				dev->readChunkWithTagsFromNAND(dev, realignedChunk, 
 							       dev->checkpointBuffer,
 							      &tags);
 						      

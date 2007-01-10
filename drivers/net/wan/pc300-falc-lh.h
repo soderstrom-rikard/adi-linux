@@ -10,10 +10,7 @@
  *	as published by the Free Software Foundation; either version
  *	2 of the License, or (at your option) any later version.
  *
- * $Log$
- * Revision 1.6  2006/11/03 05:29:54  magicyang
- *  update kernel to 2.6.18
- *
+ * $Log: falc-lh.h,v $
  * Revision 3.1  2001/06/15 12:41:10  regina
  * upping major version number
  *

@@ -2,10 +2,7 @@ Memory management for CRIS/MMU
 ------------------------------
 HISTORY:
 
-$Log$
-Revision 1.7  2006/11/01 04:48:28  magicyang
-update kernel to 2.6.18
-
+$Log: README.mm,v $
 Revision 1.1  2001/12/17 13:59:27  bjornw
 Initial revision
 

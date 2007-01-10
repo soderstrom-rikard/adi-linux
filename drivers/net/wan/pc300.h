@@ -10,10 +10,7 @@
  *	as published by the Free Software Foundation; either version
  *	2 of the License, or (at your option) any later version.
  *
- * $Log$
- * Revision 1.6  2006/11/03 05:29:55  magicyang
- *  update kernel to 2.6.18
- *
+ * $Log: pc300.h,v $
  * Revision 3.12  2002/03/07 14:17:09  henrique
  * License data fixed
  *
@@ -103,6 +100,7 @@
 #define	_PC300_H
 
 #include <linux/hdlc.h>
+#include <net/syncppp.h>
 #include "hd64572.h"
 #include "pc300-falc-lh.h"
 

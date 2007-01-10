@@ -19,7 +19,7 @@
  *         this superblock
  * >> 2.6: sb->s_fs_info  points to the yaffs_Device associated with this
  *         superblock
- * >> inode->u.generic_ip points to the associated yaffs_Object.
+ * >> inode->i_private points to the associated yaffs_Object.
  *
  * Acknowledgements:
  * * Luc van OostenRyck for numerous patches.
@@ -89,7 +89,7 @@ unsigned yaffs_traceMask = YAFFS_TRACE_ALWAYS |
 
 /*#define T(x) printk x */
 
-#define yaffs_InodeToObject(iptr) ((yaffs_Object *)((iptr)->u.generic_ip))
+#define yaffs_InodeToObject(iptr) ((yaffs_Object *)((iptr)->i_private))
 #define yaffs_DentryToObject(dptr) yaffs_InodeToObject((dptr)->d_inode)
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0))
@@ -189,8 +189,8 @@ static struct address_space_operations yaffs_file_address_operations = {
 };
 
 static struct file_operations yaffs_file_operations = {
-	.read = generic_file_read,
-	.write = generic_file_write,
+	.read = do_sync_read,
+	.write = do_sync_write,
 	.mmap = generic_file_mmap,
 	.flush = yaffs_file_flush,
 	.fsync = yaffs_sync_object,
@@ -408,7 +408,7 @@ static void yaffs_clear_inode(struct inode *inode)
 		 * the yaffs_Object.
 		 */
 		obj->myInode = NULL;
-		inode->u.generic_ip = NULL;
+		inode->i_private = NULL;
 
 		/* If the object freeing was deferred, then the real
 		 * free happens now.
@@ -704,7 +704,6 @@ static void yaffs_FillInodeFromObject(struct inode *inode, yaffs_Object * obj)
 		inode->i_mode = obj->yst_mode;
 		inode->i_uid = obj->yst_uid;
 		inode->i_gid = obj->yst_gid;
-		inode->i_blksize = inode->i_sb->s_blocksize;
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0))
 
 		inode->i_rdev = old_decode_dev(obj->yst_rdev);
@@ -756,7 +755,7 @@ static void yaffs_FillInodeFromObject(struct inode *inode, yaffs_Object * obj)
 			break;
 		}
 
-		inode->u.generic_ip = obj;
+		inode->i_private = obj;
 		obj->myInode = inode;
 
 	} else {
@@ -1662,7 +1661,7 @@ static struct super_block *yaffs_internal_read_super(int yaffsVersion,
 #endif
 		nBlocks = mtd->size / mtd->erasesize;
 
-		dev->nCheckpointReservedBlocks = 10;
+		dev->nCheckpointReservedBlocks = CONFIG_YAFFS_CHECKPOINT_RESERVED_BLOCKS;
 		dev->startBlock = 0;
 		dev->endBlock = nBlocks - 1;
 	} else {
@@ -2009,7 +2008,8 @@ static int yaffs_proc_write(struct file *file, const char *buf,
 		}
 	}
 
-	yaffs_traceMask = rg;
+	yaffs_traceMask = rg | YAFFS_TRACE_ALWAYS;
+	
 	if (rg & YAFFS_TRACE_ALWAYS) {
 		for (i = 0; mask_flags[i].mask_name != NULL; i++) {
 			char flag;

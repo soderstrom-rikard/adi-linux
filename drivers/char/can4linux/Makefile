@@ -25,7 +25,7 @@ CTAGS =	elvtags -tsevl
 ECHO  = /bin/echo
 DATE  =$(shell date)
 
-TITLE = LINUX driver module example 
+TITLE = LINUX driver module example
 
 #
 # The driver major device number
@@ -47,7 +47,7 @@ CAN_MODULE = can.ko
 # All other Targets are assuming to have an SJA1000
 # CPC_PCI  implies PeliCAN
 ##
-## Supported TARGET= IME_SLIMLINE | ATCANMINI_PELICAN | CPC_PCI | CPC_CARD 
+## Supported TARGET= IME_SLIMLINE | ATCANMINI_PELICAN | CPC_PCI | CPC_CARD
 ## | IXXAT_PCI03 | PCM3680 | PC104_200 | SBS_PC7 | TRM816 | GENERIC_I82527
 ## | CC_CANPCI | AD_BLACKFI | KVASER_PCICAN
 ##
@@ -337,7 +337,7 @@ PWD	:= $(shell pwd)
 
 ifndef TARGET
 all:
-	@echo "Plese specify TARGET= at command line" 
+	@echo "Plese specify TARGET= at command line"
 else
 all:
 	@echo "compile with KDIR=$(KDIR)"
@@ -385,7 +385,7 @@ inodes:
 
 
 ctags:
-	$(CTAGS)  *.[ch] 
+	$(CTAGS)  *.[ch]
 
 
 #### HTML Manual section. #################################

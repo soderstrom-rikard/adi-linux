@@ -5,12 +5,12 @@
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
  *
- * 
+ *
  * derived from the the LDDK can4linux version
  *     (c) 1996,1997 Claus Schroeter (clausi@chemie.fu-berlin.de)
  *
  *------------------------------------------------------------------
- * $Header$
+ * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/util.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -19,7 +19,7 @@
  */
 
 
-#include <linux/sched.h> 
+#include <linux/sched.h>
 #include <linux/proc_fs.h>
 #include <linux/pci.h>
 #include "defs.h"
@@ -41,7 +41,7 @@ msg_fifo_t   Tx_Buf[MAX_CHANNELS] = {{0}};
 msg_fifo_t   Rx_Buf[MAX_CHANNELS] = {{0}};
 
 #ifdef CAN_USE_FILTER
-    msg_filter_t Rx_Filter[MAX_CHANNELS] = {{0}}; 
+    msg_filter_t Rx_Filter[MAX_CHANNELS] = {{0}};
 #endif
 /* used to store always the last frame sent on this channel */
 canmsg_t     last_Tx_object[MAX_CHANNELS];
@@ -50,7 +50,7 @@ unsigned char *can_base[MAX_CHANNELS] = {0};	/* ioremapped adresses */
 unsigned int can_range[MAX_CHANNELS] = {0};	/* ioremapped adresses */
 int selfreception[MAX_CHANNELS] = {0};	/* flag indicating that selfreception
 				       of frames is allowed */
-int timestamp[MAX_CHANNELS] = {1};	/* flag indicating that timestamp 
+int timestamp[MAX_CHANNELS] = {1};	/* flag indicating that timestamp
 				       value should assigned to rx messages */
 int wakeup[MAX_CHANNELS] = {1};		/* flag indicating that leeping
 				    processes are waken up in case of events */
@@ -98,7 +98,7 @@ int i;
        Rx_Filter[minor].signo[1] = 0;
        Rx_Filter[minor].signo[2] = 0;
 
-       for(i=0;i<MAX_ID_NUMBER;i++)	
+       for(i=0;i<MAX_ID_NUMBER;i++)
 	  Rx_Filter[minor].filter[i].rtr_response = NULL;
 
     DBGout();
@@ -111,7 +111,7 @@ int i;
 
     DBGin("Can_FilterCleanup");
     for(i=0;i<MAX_ID_NUMBER;i++) {
-	    if( Rx_Filter[minor].filter[i].rtr_response != NULL )	
+	    if( Rx_Filter[minor].filter[i].rtr_response != NULL )
 	       kfree( Rx_Filter[minor].filter[i].rtr_response);
 	    Rx_Filter[minor].filter[i].rtr_response = NULL;
     }
@@ -169,7 +169,7 @@ canmsg_t *tmp;
 	    DBGout(); return -1;
     }
     Rx_Filter[minor].filter[message].rtr_response = tmp;
-    memcpy( Rx_Filter[minor].filter[message].rtr_response , Tx, sizeof(canmsg_t));	
+    memcpy( Rx_Filter[minor].filter[message].rtr_response , Tx, sizeof(canmsg_t));
     DBGout(); return 1;
     return 0;
 }
@@ -182,7 +182,7 @@ canmsg_t *tmp;
     if( Rx_Filter[minor].filter[message].rtr_response != NULL ) {
 	    kfree(Rx_Filter[minor].filter[message].rtr_response);
 	    Rx_Filter[minor].filter[message].rtr_response = NULL;
-    }	
+    }
     DBGout(); return 1;
     return 0;
 }
@@ -200,8 +200,8 @@ canmsg_t *tmp;
 #if 1
 /* simply dump a memory area bytewise for n*16 addresses */
 /*
- * adress - start address 
- * n      - number of 16 byte rows, 
+ * adress - start address
+ * n      - number of 16 byte rows,
  * offset - print every n-th byte
  */
 void dump_CAN(unsigned long adress, int n, int offset)
@@ -220,7 +220,7 @@ int i, j;
 }
 #endif
 
-#ifdef CPC_PCI 
+#ifdef CPC_PCI
 # define REG_OFFSET 4
 #else
 # define REG_OFFSET 1
@@ -265,12 +265,12 @@ unsigned long ptr = (unsigned long)ioremap(address, 32);
 }
 
 /* check memory region if there is a CAN controller
-*  assume the controller was resetted before testing 
+*  assume the controller was resetted before testing
 *
 *  The check for an avaliable controller is difficult !
-*  After an Hardware Reset (or power on) the Conroller 
+*  After an Hardware Reset (or power on) the Conroller
 *  is in the so-called 'BasicCAN' mode.
-*     we can check for: 
+*     we can check for:
 *         adress  name      value
 *	    0x00  mode       0x21
 *           0x02  status     0xc0
@@ -279,7 +279,7 @@ unsigned long ptr = (unsigned long)ioremap(address, 32);
 * difficult, because we now have only a 'soft reset' with not so  unique
 * values. The have to be masked before comparing.
 *         adress  name       mask   value
-*	    0x00  mode               
+*	    0x00  mode
 *           0x01  command    0xff    0x00
 *           0x02  status     0x37    0x34
 *           0x03  interrupt  0xfb    0x00

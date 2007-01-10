@@ -8,10 +8,7 @@
  *             Ola Knutsson     (LED handling)
  *             Johan Adolfsson  (read/set directions, write, port G)
  *
- * $Log$
- * Revision 1.7  2006/11/01 04:48:46  magicyang
- * update kernel to 2.6.18
- *
+ * $Log: gpio.c,v $
  * Revision 1.17  2005/06/19 17:06:46  starvik
  * Merge of Linux 2.6.12.
  *

@@ -19,7 +19,7 @@
  USA.
 
  *
- * $Source$
+ * $Source: /homes/cvs/ftape-stacked/ftape/compressor/zftape-compress.h,v $
  * $Revision$
  * $Date$
  *
