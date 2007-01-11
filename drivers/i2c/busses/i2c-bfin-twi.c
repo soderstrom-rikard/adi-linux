@@ -157,7 +157,7 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 
 
 /* Interrupt handler */
-static irqreturn_t bfin_twi_interrupt_entry(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t bfin_twi_interrupt_entry(int irq, void *dev_id)
 {
 	struct bfin_twi_iface *iface = (struct bfin_twi_iface *)dev_id;
 	unsigned long flags;
