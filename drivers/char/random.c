@@ -655,6 +655,7 @@ void add_interrupt_randomness(int irq)
 	DEBUG_ENT("irq event %d\n", irq);
 	add_timer_randomness(irq_timer_state[irq], 0x100 + irq);
 }
+EXPORT_SYMBOL_GPL(add_interrupt_randomness);
 
 #ifdef CONFIG_BLOCK
 void add_disk_randomness(struct gendisk *disk)

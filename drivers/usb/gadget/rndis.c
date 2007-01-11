@@ -1211,6 +1211,25 @@ int rndis_set_param_medium (u8 configNr, u32 medium, u32 speed)
 	return 0;
 }
 
+#ifdef CONFIG_BFIN
+/* The pointer of header is not aligned, it will cause alignment exception.
+ * Use a temporary variable to avoid it.
+ */
+void rndis_add_hdr (struct sk_buff *skb)
+{
+	struct rndis_packet_msg_type	*header, temp;
+
+	if (!skb)
+		return;
+	header = (void *) skb_push (skb, sizeof *header);
+	memset (&temp, 0, sizeof temp);
+	temp.MessageType = __constant_cpu_to_le32(REMOTE_NDIS_PACKET_MSG);
+	temp.MessageLength = cpu_to_le32(skb->len);
+	temp.DataOffset = __constant_cpu_to_le32 (36);
+	temp.DataLength = cpu_to_le32(skb->len - sizeof *header);
+	memcpy(header, &temp, sizeof temp);
+}
+#else
 void rndis_add_hdr (struct sk_buff *skb)
 {
 	struct rndis_packet_msg_type	*header;
@@ -1224,6 +1243,7 @@ void rndis_add_hdr (struct sk_buff *skb)
 	header->DataOffset = __constant_cpu_to_le32 (36);
 	header->DataLength = cpu_to_le32(skb->len - sizeof *header);
 }
+#endif
 
 void rndis_free_response (int configNr, u8 *buf)
 {

@@ -106,7 +106,11 @@ config SPI_S3C24XX_GPIO
 #
 # Add new SPI master controllers in alphabetical order above this line
 #
-
+config SPI_BFIN
+	tristate "SPI controller driver for ADI Blackfin5xx"
+	depends on SPI_MASTER && BFIN
+	help
+	  This is the SPI controller master driver for Blackfin 5xx processor.
 
 config SPI_S3C24XX
 	tristate "Samsung S3C24XX series SPI"

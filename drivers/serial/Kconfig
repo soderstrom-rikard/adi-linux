@@ -488,6 +488,50 @@ config SERIAL_SA1100_CONSOLE
 	  your boot loader (lilo or loadlin) about how to pass options to the
 	  kernel at boot time.)
 
+config SERIAL_BFIN
+	tristate "Blackfin serial port support (EXPERIMENTAL)"
+	depends on BFIN && EXPERIMENTAL
+	select SERIAL_CORE
+	help
+	  Add support for the built-in UARTs on the Blackfin.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called bfin_5xx.
+
+config SERIAL_BFIN_CONSOLE
+	bool "Console on Blackfin serial port"
+	depends on SERIAL_BFIN
+	select SERIAL_CORE_CONSOLE
+
+choice
+	prompt  "Blackfin UART Mode"
+	depends on SERIAL_BFIN
+	default SERIAL_BFIN_DMA
+	help
+	  This driver supports the built-in serial ports of the Blackfin family
+	  of CPUs
+
+config SERIAL_BFIN_DMA
+	bool "Blackfin UART DMA mode"
+	depends on DMA_UNCACHED_1M
+	help
+	  This driver works under DMA mode. If this option is selected, the
+	  blackfin simple dma driver is also enabled.
+
+config SERIAL_BFIN_PIO
+	bool "Blackfin UART PIO mode"
+	help
+	  This driver works under PIO mode.
+
+endchoice
+
+config SERIAL_BFIN_CTSRTS
+	bool "Enable hardware flow control"
+	depends on SERIAL_BFIN
+	help
+	  Enable hardware flow control in the driver. Using GPIO emulate the CTS/RTS
+	  signal.
+
 config SERIAL_IMX
 	bool "IMX serial port support"
 	depends on ARM && ARCH_IMX
@@ -964,5 +1008,48 @@ config SERIAL_NETX_CONSOLE
 	help
 	  If you have enabled the serial port on the Motorola IMX
 	  CPU you can make it the console by answering Y to this option.
+
+config SERIAL_BFIN_SPORT
+	tristate "Blackfin SPORT emulate UART"
+	depends on BFIN && EXPERIMENTAL
+	select SERIAL_CORE
+	help
+	  Enble support SPORT emulate UART on Blackfin series.
+
+	  To compile this driver as a module, choose M here: the 
+	  module will be called bfin_sport_uart.
+
+choice
+	prompt "Baud rate for Blackfin SPORT UART"
+	depends on SERIAL_BFIN_SPORT
+	default SERIAL_SPORT_BAUD_RATE_57600
+	help
+	  Choose a baud rate for the SPORT UART, other uart settings are
+	  8 bit, 1 stop bit, no parity, no flow control.
+
+config SERIAL_SPORT_BAUD_RATE_115200
+	bool "115200"
+
+config SERIAL_SPORT_BAUD_RATE_57600
+	bool "57600"
+
+config SERIAL_SPORT_BAUD_RATE_38400
+	bool "38400"
+
+config SERIAL_SPORT_BAUD_RATE_19200
+	bool "19200"
+
+config SERIAL_SPORT_BAUD_RATE_9600
+	bool "9600"
+endchoice
+
+config SPORT_BAUD_RATE
+	int
+	depends on SERIAL_BFIN_SPORT
+	default 115200 if (SERIAL_SPORT_BAUD_RATE_115200)
+	default 57600 if (SERIAL_SPORT_BAUD_RATE_57600)
+	default 38400 if (SERIAL_SPORT_BAUD_RATE_38400)
+	default 19200 if (SERIAL_SPORT_BAUD_RATE_19200)
+	default 9600 if (SERIAL_SPORT_BAUD_RATE_9600)
 
 endmenu

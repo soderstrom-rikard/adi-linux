@@ -109,6 +109,7 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align)
 
 			slob_free(cur, PAGE_SIZE);
 			spin_lock_irqsave(&slob_lock, flags);
+			__SetPageSlab(virt_to_page(cur));
 			cur = slobfree;
 		}
 	}
@@ -157,11 +158,17 @@ static int fastcall find_order(int size)
 	return order;
 }
 
+#define find_size(order) (PAGE_SIZE << order)
+
+#endif
+
 void *kmalloc(size_t size, gfp_t gfp)
 {
 	slob_t *m;
 	bigblock_t *bb;
 	unsigned long flags;
+	struct page *page;
+	int i;
 
 	if (size < PAGE_SIZE - SLOB_UNIT) {
 		m = slob_alloc(size + SLOB_UNIT, gfp, 0);
@@ -173,12 +180,17 @@ void *kmalloc(size_t size, gfp_t gfp)
 		return 0;
 
 	bb->order = find_order(size);
-	bb->pages = (void *)__get_free_pages(gfp, bb->order);
+	page = alloc_pages(gfp, bb->order);
+	bb->pages = page_address(page);
 
 	if (bb->pages) {
 		spin_lock_irqsave(&block_lock, flags);
 		bb->next = bigblocks;
 		bigblocks = bb;
+		for (i = 0; i < (1 << bb->order); i++) {
+			__SetPageSlab(page);
+			page++;
+		}
 		spin_unlock_irqrestore(&block_lock, flags);
 		return bb->pages;
 	}
@@ -202,8 +214,15 @@ void kfree(const void *block)
 		spin_lock_irqsave(&block_lock, flags);
 		for (bb = bigblocks; bb; last = &bb->next, bb = bb->next) {
 			if (bb->pages == block) {
+				struct page *page = virt_to_page(bb->pages);
+				int i;
+
 				*last = bb->next;
 				spin_unlock_irqrestore(&block_lock, flags);
+				for (i = 0; i < (1 << bb->order); i++) {
+					__ClearPageSlab(page);
+					page++;
+				}
 				free_pages((unsigned long)block, bb->order);
 				slob_free(bb, sizeof(bigblock_t));
 				return;
@@ -231,7 +250,7 @@ unsigned int ksize(const void *block)
 		for (bb = bigblocks; bb; bb = bb->next)
 			if (bb->pages == block) {
 				spin_unlock_irqrestore(&slob_lock, flags);
-				return PAGE_SIZE << bb->order;
+				return find_size(bb->order);
 			}
 		spin_unlock_irqrestore(&block_lock, flags);
 	}
@@ -270,9 +289,10 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size,
 }
 EXPORT_SYMBOL(kmem_cache_create);
 
-void kmem_cache_destroy(struct kmem_cache *c)
+int kmem_cache_destroy(struct kmem_cache *c)
 {
 	slob_free(c, sizeof(struct kmem_cache));
+	return 0;
 }
 EXPORT_SYMBOL(kmem_cache_destroy);
 
@@ -331,10 +351,54 @@ static struct timer_list slob_timer = TIMER_INITIALIZER(
 
 void kmem_cache_init(void)
 {
-	void *p = slob_alloc(PAGE_SIZE, 0, PAGE_SIZE-1);
-
-	if (p)
-		free_page((unsigned long)p);
-
 	mod_timer(&slob_timer, jiffies + HZ);
 }
+
+atomic_t slab_reclaim_pages = ATOMIC_INIT(0);
+EXPORT_SYMBOL(slab_reclaim_pages);
+
+#ifdef CONFIG_SMP
+
+void *__alloc_percpu(size_t size)
+{
+	int i;
+	struct percpu_data *pdata = kmalloc(sizeof (*pdata), GFP_KERNEL);
+
+	if (!pdata)
+		return NULL;
+
+	for_each_possible_cpu(i) {
+		pdata->ptrs[i] = kmalloc(size, GFP_KERNEL);
+		if (!pdata->ptrs[i])
+			goto unwind_oom;
+		memset(pdata->ptrs[i], 0, size);
+	}
+
+	/* Catch derefs w/o wrappers */
+	return (void *) (~(unsigned long) pdata);
+
+unwind_oom:
+	while (--i >= 0) {
+		if (!cpu_possible(i))
+			continue;
+		kfree(pdata->ptrs[i]);
+	}
+	kfree(pdata);
+	return NULL;
+}
+EXPORT_SYMBOL(__alloc_percpu);
+
+void
+free_percpu(const void *objp)
+{
+	int i;
+	struct percpu_data *p = (struct percpu_data *) (~(unsigned long) objp);
+
+	for_each_possible_cpu(i)
+		kfree(p->ptrs[i]);
+
+	kfree(p);
+}
+EXPORT_SYMBOL(free_percpu);
+
+#endif

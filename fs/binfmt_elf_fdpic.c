@@ -170,7 +170,7 @@ static int load_elf_fdpic_binary(struct linux_binprm *bprm,
 {
 	struct elf_fdpic_params exec_params, interp_params;
 	struct elf_phdr *phdr;
-	unsigned long stack_size, entryaddr;
+	unsigned long stack_size, entryaddr, requested_stack_size;
 #ifndef CONFIG_MMU
 	unsigned long fullsize;
 #endif
@@ -361,6 +361,7 @@ static int load_elf_fdpic_binary(struct linux_binprm *bprm,
 	 * - the stack starts at the top and works down
 	 */
 	stack_size = (stack_size + PAGE_SIZE - 1) & PAGE_MASK;
+	requested_stack_size = stack_size;
 	if (stack_size < PAGE_SIZE * 2)
 		stack_size = PAGE_SIZE * 2;
 
@@ -388,6 +389,8 @@ static int load_elf_fdpic_binary(struct linux_binprm *bprm,
 	current->mm->context.end_brk = current->mm->start_brk;
 	current->mm->context.end_brk +=
 		(stack_size > PAGE_SIZE) ? (stack_size - PAGE_SIZE) : 0;
+	current->mm->context.stack_start =
+		current->mm->start_brk + stack_size - requested_stack_size;
 	current->mm->start_stack = current->mm->start_brk + stack_size;
 #endif
 
@@ -959,6 +962,8 @@ static int elf_fdpic_map_file_constdisp_on_uclinux(
 }
 #endif
 
+extern void *safe_dma_memcpy(void *, const void *, size_t);
+
 /*****************************************************************************/
 /*
  * map a binary by direct mmap() of the individual PT_LOAD segments
@@ -1057,6 +1062,54 @@ static int elf_fdpic_map_file_by_direct_mmap(struct elf_fdpic_params *params,
 		if ((params->flags & ELF_FDPIC_FLAG_ARRANGEMENT) ==
 		    ELF_FDPIC_FLAG_CONTIGUOUS)
 			load_addr += PAGE_ALIGN(phdr->p_memsz + disp);
+
+		/* Hack, hack, hack */
+		/* 0xff700000, 0xff800000, 0xff900000 and 0xffa00000 are also
+		   used in Dynamic linker and GNU ld. They need to be keep
+		   synchronized.  */
+
+		if (((params->hdr.e_flags & EF_BFIN_CODE_IN_L1)
+		     || (phdr->p_vaddr == 0xffa00000))
+		    && (phdr->p_flags & PF_W) == 0
+		    && (phdr->p_flags & PF_X)) {
+			void *l1_addr;
+			l1_addr = sram_alloc_with_lsl(phdr->p_memsz, L1_INST_SRAM);
+			if (l1_addr != NULL)
+				safe_dma_memcpy(l1_addr, (const void *)(maddr + disp), phdr->p_memsz);
+			down_write(&mm->mmap_sem);
+			do_munmap(mm, maddr, phdr->p_memsz + disp);
+			up_write(&mm->mmap_sem);
+			if (l1_addr == NULL)
+				return -ENOMEM;
+			kdebug("[%x] -> l1_addr = %x of len = %x\n",
+			       maddr + disp, l1_addr, phdr->p_memsz);
+			maddr = (unsigned long)l1_addr;
+			disp = 0;
+		} else if (((params->hdr.e_flags & EF_BFIN_DATA_IN_L1)
+			    || phdr->p_vaddr == 0xff700000
+			    || phdr->p_vaddr == 0xff800000
+			    || phdr->p_vaddr == 0xff900000)
+			   && (phdr->p_flags & PF_X) == 0
+			   && (phdr->p_flags & PF_W)) {
+			void *l1_addr;
+			if (phdr->p_vaddr == 0xff800000)
+				l1_addr = sram_alloc_with_lsl(phdr->p_memsz, L1_DATA_A_SRAM);
+			else if (phdr->p_vaddr == 0xff900000)
+				l1_addr = sram_alloc_with_lsl(phdr->p_memsz, L1_DATA_B_SRAM);
+			else
+				l1_addr = sram_alloc_with_lsl(phdr->p_memsz, L1_DATA_SRAM);
+			if (l1_addr != NULL)
+				memcpy(l1_addr, (const void *)(maddr + disp), phdr->p_memsz) ;
+			down_write(&mm->mmap_sem);
+			do_munmap(mm, maddr, phdr->p_memsz + disp);
+			up_write(&mm->mmap_sem);
+			if (l1_addr == NULL)
+				return -ENOMEM;
+			kdebug("[%x] -> l1_addr = %x of len = %x\n",
+			       maddr + disp, l1_addr, phdr->p_memsz);
+			maddr = (unsigned long)l1_addr;
+			disp = 0;
+		}
 
 		seg->addr = maddr + disp;
 		seg->p_vaddr = phdr->p_vaddr;
@@ -1597,19 +1650,20 @@ static int elf_fdpic_core_dump(long signr, struct pt_regs *regs,
 
 	if (signr) {
 		struct elf_thread_status *tmp;
-		rcu_read_lock();
+		read_lock(&tasklist_lock);
 		do_each_thread(g,p)
 			if (current->mm == p->mm && current != p) {
 				tmp = kzalloc(sizeof(*tmp), GFP_ATOMIC);
 				if (!tmp) {
-					rcu_read_unlock();
+					read_unlock(&tasklist_lock);
 					goto cleanup;
 				}
+				INIT_LIST_HEAD(&tmp->list);
 				tmp->thread = p;
 				list_add(&tmp->list, &thread_list);
 			}
 		while_each_thread(g,p);
-		rcu_read_unlock();
+		read_unlock(&tasklist_lock);
 		list_for_each(t, &thread_list) {
 			struct elf_thread_status *tmp;
 			int sz;

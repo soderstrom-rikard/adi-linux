@@ -86,6 +86,17 @@ static void part_unpoint (struct mtd_info *mtd, u_char *addr, loff_t from, size_
 	part->master->unpoint (part->master, addr, from + part->offset, len);
 }
 
+static unsigned long part_get_unmapped_area(struct mtd_info *mtd,
+					    unsigned long len,
+					    unsigned long offset,
+					    unsigned long flags)
+{
+	struct mtd_part *part = PART(mtd);
+
+	return part->master->get_unmapped_area(part->master, len,
+					       offset + part->offset, flags);
+}
+
 static int part_read_oob(struct mtd_info *mtd, loff_t from,
 			 struct mtd_oob_ops *ops)
 {
@@ -354,6 +365,8 @@ int add_mtd_partitions(struct mtd_info *master,
 			slave->mtd.unpoint = part_unpoint;
 		}
 
+		if (master->get_unmapped_area)
+			slave->mtd.get_unmapped_area = part_get_unmapped_area;
 		if (master->read_oob)
 			slave->mtd.read_oob = part_read_oob;
 		if (master->write_oob)

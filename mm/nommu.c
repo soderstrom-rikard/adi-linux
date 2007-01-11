@@ -109,7 +109,12 @@ unsigned int kobjsize(const void *objp)
 {
 	struct page *page;
 
-	if (!objp || !((page = virt_to_page(objp))))
+	/*if (!objp || !((page = virt_to_page(objp)))) 
+	Temporary fix for BUG[#1233]  memory allocated using dma_alloc_coherent, 
+	triggers BUG, when mmaped in user space. 
+	A permanent fix for this problem is tracked in TASK[T436] -MH*/
+	
+	if (!objp || !((page = virt_to_page(objp))) || (unsigned long)objp >= memory_end)
 		return 0;
 
 	if (PageSlab(page))
@@ -497,15 +502,21 @@ static int validate_mmap_request(struct file *file,
 	    (flags & MAP_TYPE) != MAP_SHARED)
 		return -EINVAL;
 
-	if (PAGE_ALIGN(len) == 0)
-		return addr;
-
-	if (len > TASK_SIZE)
+	if (!len)
 		return -EINVAL;
+
+	/* Careful about overflows.. */
+	len = PAGE_ALIGN(len);
+	if (!len || len > TASK_SIZE)
+		return -ENOMEM;
 
 	/* offset overflow? */
 	if ((pgoff + (len >> PAGE_SHIFT)) < pgoff)
-		return -EINVAL;
+		return -EOVERFLOW;
+
+	/* Too many mappings? */
+	if (current->mm->map_count > sysctl_max_map_count)
+		return -ENOMEM;
 
 	if (file) {
 		/* validate file mapping requests */
@@ -843,6 +854,10 @@ unsigned long do_mmap_pgoff(struct file *file,
 			if (pgoff >= vma->vm_pgoff + vmpglen)
 				continue;
 
+			if (vma->vm_pgoff != pgoff
+			    || vma->vm_end - vma->vm_start < len)
+				continue;
+
 			/* handle inexactly overlapping matches between mappings */
 			if (vma->vm_pgoff != pgoff || vmpglen != pglen) {
 				if (!(capabilities & BDI_CAP_MAP_DIRECT))
@@ -1047,6 +1062,7 @@ int do_munmap(struct mm_struct *mm, unsigned long addr, size_t len)
 
 	update_hiwater_vm(mm);
 	mm->total_vm -= len >> PAGE_SHIFT;
+	mm->map_count--;
 
 #ifdef DEBUG
 	show_process_blocks();

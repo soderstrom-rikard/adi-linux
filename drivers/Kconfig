@@ -78,4 +78,6 @@ source "drivers/rtc/Kconfig"
 
 source "drivers/dma/Kconfig"
 
+source "drivers/zaptel/Kconfig"
+
 endmenu

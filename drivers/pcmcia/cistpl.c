@@ -26,6 +26,7 @@
 #include <linux/ioport.h>
 #include <asm/io.h>
 #include <asm/byteorder.h>
+#include <asm/unaligned.h>
 
 #include <pcmcia/cs_types.h>
 #include <pcmcia/ss.h>
@@ -1100,9 +1101,9 @@ static int parse_cftable_entry(tuple_t *tuple,
 	break;
     case 0x40:
 	entry->mem.nwin = 1;
-	entry->mem.win[0].len = le16_to_cpu(*(__le16 *)p) << 8;
+	entry->mem.win[0].len = le16_to_cpu(get_unaligned((__le16 *)p)) << 8;
 	entry->mem.win[0].card_addr =
-	    le16_to_cpu(*(__le16 *)(p+2)) << 8;
+	    le16_to_cpu(get_unaligned((__le16 *)(p+2))) << 8;
 	entry->mem.win[0].host_addr = 0;
 	p += 4;
 	if (p > q) return CS_BAD_TUPLE;

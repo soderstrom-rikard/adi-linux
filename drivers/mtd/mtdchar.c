@@ -12,6 +12,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
+#include <linux/backing-dev.h>
 
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/compatmac.h>
@@ -107,6 +108,11 @@ static int mtd_open(struct inode *inode, struct file *file)
 		put_mtd_device(mtd);
 		return -ENODEV;
 	}
+
+	if (mtd->backing_dev_info)
+		file->f_mapping->backing_dev_info = mtd->backing_dev_info;
+
+	file->private_data = mtd;
 
 	/* You can't open it RW if it's not a writeable device */
 	if ((file->f_mode & 2) && !(mtd->flags & MTD_WRITEABLE)) {

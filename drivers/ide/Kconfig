@@ -282,6 +282,15 @@ config IDE_GENERIC
 	help
 	  If unsure, say Y.
 
+config IDE_BFIN
+	bool "IDE support on Blackfin CPU"
+	depends on IDE && BFIN
+	default y
+
+if (IDE_BFIN)
+source "drivers/ide/blackfin/Kconfig.ide"
+endif
+
 config BLK_DEV_CMD640
 	bool "CMD640 chipset bugfix/support"
 	depends on X86
@@ -376,6 +385,7 @@ config BLK_DEV_OPTI621
 	help
 	  This is a driver for the OPTi 82C621 EIDE controller.
 	  Please read the comments at the top of <file:drivers/ide/pci/opti621.c>.
+
 
 config BLK_DEV_RZ1000
 	tristate "RZ1000 chipset bugfix/support"

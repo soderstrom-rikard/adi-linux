@@ -117,6 +117,7 @@ MODULE_PARM_DESC(irq, "IRQ number");
 
 #endif  /* CONFIG_ISA */
 
+
 #ifndef SMC_NOWAIT
 # define SMC_NOWAIT		0
 #endif
@@ -306,7 +307,6 @@ static void PRINT_PKT(u_char *buf, int length)
 		}							\
 	}								\
 } while (0)
-
 
 /*
  * this does a soft reset on the device
@@ -1284,7 +1284,7 @@ static void smc_eph_interrupt(struct net_device *dev)
  * This is the main routine of the driver, to handle the device when
  * it needs some attention.
  */
-static irqreturn_t smc_interrupt(int irq, void *dev_id)
+static irqreturn_t smc_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 {
 	struct net_device *dev = dev_id;
 	struct smc_local *lp = netdev_priv(dev);
@@ -1400,7 +1400,7 @@ static irqreturn_t smc_interrupt(int irq, void *dev_id)
 static void smc_poll_controller(struct net_device *dev)
 {
 	disable_irq(dev->irq);
-	smc_interrupt(dev->irq, dev);
+	smc_interrupt(dev->irq, dev, NULL);
 	enable_irq(dev->irq);
 }
 #endif
@@ -1739,7 +1739,7 @@ static void smc_ethtool_setmsglevel(struct net_device *dev, u32 level)
 	lp->msg_enable = level;
 }
 
-static const struct ethtool_ops smc_ethtool_ops = {
+static struct ethtool_ops smc_ethtool_ops = {
 	.get_settings	= smc_ethtool_getsettings,
 	.set_settings	= smc_ethtool_setsettings,
 	.get_drvinfo	= smc_ethtool_getdrvinfo,
@@ -2237,6 +2237,8 @@ static int smc_drv_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, ndev);
+
+
 	ret = smc_probe(ndev, addr);
 	if (ret != 0)
 		goto out_iounmap;

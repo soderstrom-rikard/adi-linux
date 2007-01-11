@@ -133,7 +133,6 @@ void kobject_init(struct kobject * kobj)
 	kobj->kset = kset_get(kobj->kset);
 }
 
-
 /**
  *	unlink - remove kobject from kset list.
  *	@kobj:	kobject.
