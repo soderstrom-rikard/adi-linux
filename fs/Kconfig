@@ -503,14 +503,6 @@ config ROMFS_FS
 
 endif
 
-config ROMFS_MTD_FS
-	tristate "MTD-based ROM file system support"
-	depends on ROMFS_FS && MTD
-	help
-	  This is an MTD specific version of romfs that accesses MTD devices
-	  directly rather than going through the block layer.  It may be given MTD
-	  chardevs instead of MTD blockdevs to mount.
-
 config INOTIFY
 	bool "Inotify file change notification support"
 	default y
@@ -1209,9 +1201,6 @@ config EFS_FS
 
 	  To compile the EFS file system support as a module, choose M here: the
 	  module will be called efs.
-
-# Patched by YAFFS
-source "fs/yaffs2/Kconfig"
 
 config JFFS_FS
 	tristate "Journalling Flash File System (JFFS) support"

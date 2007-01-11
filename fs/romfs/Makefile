@@ -4,5 +4,4 @@
 
 obj-$(CONFIG_ROMFS_FS) += romfs.o
 
-romfs-y := inode.o
-romfs-$(CONFIG_ROMFS_MTD_FS) := mtd-super.o
+romfs-objs := inode.o

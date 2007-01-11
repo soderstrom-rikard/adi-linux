@@ -11,9 +11,9 @@ config USB_EHCI_HCD
 	  The Enhanced Host Controller Interface (EHCI) is standard for USB 2.0
 	  "high speed" (480 Mbit/sec, 60 Mbyte/sec) host controller hardware.
 	  If your USB host controller supports USB 2.0, you will likely want to
-	  configure this Host Controller Driver.  At the time of this writing,
+	  configure this Host Controller Driver.  At the time of this writing, 
 	  the primary implementation of EHCI is a chip from NEC, widely available
-	  in add-on PCI cards, but implementations are in the works from other
+	  in add-on PCI cards, but implementations are in the works from other 
 	  vendors including Intel and Philips.  Motherboard support is appearing.
 
 	  EHCI controllers are packaged with "companion" host controllers (OHCI
@@ -78,29 +78,6 @@ config USB_ISP116X_HCD
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called isp116x-hcd.
-
-config USB_ISP1362_HCD
-	tristate "ISP1362 HCD support"
-	depends on USB
-	default N
-	---help---
-	  Supports the Philips ISP1362 chip as a host controller
-
-	  This driver does not support isochronous transfers.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called isp1362-hcd.
-
-
-config USB_ISP1362_BFIN_GPIO_IRQ
-	int "GPIO for Interrupt"
-	depends on (BF537 && USB_ISP1362_HCD)
-	range 50 97
-        default 53
-        help
-          Choose an PF pin as ISP1362's interrupt. This must corresponds to 
-	  the JP3 on usb daughter card. The available value is from 50 to 97.
-	  For more information look at include/asm-blackfin/mach-bfxxx/irq.h.
 
 config USB_OHCI_HCD
 	tristate "OHCI HCD support"
@@ -199,22 +176,12 @@ config USB_SL811_HCD
 	help
 	  The SL811HS is a single-port USB controller that supports either
 	  host side or peripheral side roles.  Enable this option if your
-	  board has this chip, and you want to use it as a host controller.
+	  board has this chip, and you want to use it as a host controller. 
 	  If unsure, say N.
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called sl811-hcd.
-	  
-config USB_SL811_BFIN_IRQ
-        int "GPIO IRQ pin for Interrupt"
-        depends on (BF537 && USB_SL811_HCD)
-	range 50 97
-        default 54
-        help
-          Choose an PF pin as SL811's interrupt. This must corresponds to 
-	  the JP5 on usb daughter card. The available value is from 50 to 97.
-	  For more information look at include/asm-blackfin/mach-bfxxx/irq.h.
-											    
+
 config USB_SL811_CS
 	tristate "CF/PCMCIA support for SL811HS HCD"
 	depends on USB_SL811_HCD && PCMCIA

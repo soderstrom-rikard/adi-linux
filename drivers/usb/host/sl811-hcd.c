@@ -52,7 +52,6 @@
 #include <asm/irq.h>
 #include <asm/system.h>
 #include <asm/byteorder.h>
-#include <asm/unaligned.h>
 
 #include "../core/hcd.h"
 #include "sl811.h"
@@ -852,7 +851,7 @@ static int sl811h_urb_enqueue(
 
 	} else {
 		INIT_LIST_HEAD(&ep->schedule);
-		ep->udev = usb_get_dev(udev);
+		ep->udev = udev;
 		ep->epnum = epnum;
 		ep->maxpacket = usb_maxpacket(udev, urb->pipe, is_out);
 		ep->defctrl = SL11H_HCTLMASK_ARM | SL11H_HCTLMASK_ENABLE;
@@ -1051,7 +1050,6 @@ sl811h_endpoint_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 	if (!list_empty(&hep->urb_list))
 		WARN("ep %p not empty?\n", ep);
 
-	usb_put_dev(ep->udev);
 	kfree(ep);
 	hep->hcpriv = NULL;
 }
@@ -1292,12 +1290,12 @@ sl811h_hub_control(
 		sl811h_hub_descriptor(sl811, (struct usb_hub_descriptor *) buf);
 		break;
 	case GetHubStatus:
-		put_unaligned (cpu_to_le32(0), (__le32 *) buf);
+		*(__le32 *) buf = cpu_to_le32(0);
 		break;
 	case GetPortStatus:
 		if (wIndex != 1)
 			goto error;
-		put_unaligned (cpu_to_le32(sl811->port1), (__le32 *) buf);
+		*(__le32 *) buf = cpu_to_le32(sl811->port1);
 
 #ifndef	VERBOSE
 	if (*(u16*)(buf+2))	/* only if wPortChange is interesting */
@@ -1750,8 +1748,7 @@ sl811h_probe(struct platform_device *dev)
 	 * was on a system with single edge triggering, so most sorts of
 	 * triggering arrangement should work.
 	 */
- 
-	retval = usb_add_hcd(hcd, irq, IRQF_TRIGGER_HIGH | IRQF_DISABLED | IRQF_SHARED);
+	retval = usb_add_hcd(hcd, irq, IRQF_DISABLED | IRQF_SHARED);
 	if (retval != 0)
 		goto err6;
 

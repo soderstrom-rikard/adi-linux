@@ -21,7 +21,6 @@
 #include <linux/proc_fs.h>
 
 #include <linux/mtd/mtd.h>
-#include "internal.h"
 
 /* These are exported solely for the purpose of mtd_blkdevs.c. You
    should not use them for _anything_ else */
@@ -48,19 +47,6 @@ int add_mtd_device(struct mtd_info *mtd)
 	int i;
 
 	BUG_ON(mtd->writesize == 0);
-	if (!mtd->backing_dev_info) {
-		switch (mtd->type) {
-		case MTD_RAM:
-			mtd->backing_dev_info = &mtd_bdi_rw_mappable;
-			break;
-		case MTD_ROM:
-			mtd->backing_dev_info = &mtd_bdi_ro_mappable;
-			break;
-		default:
-			mtd->backing_dev_info = &mtd_bdi_unmappable;
-			break;
-		}
-	}
 	mutex_lock(&mtd_table_mutex);
 
 	for (i=0; i < MAX_MTD_DEVICES; i++)

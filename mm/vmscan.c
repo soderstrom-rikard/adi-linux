@@ -1328,6 +1328,7 @@ static int kswapd(void *p)
 			order = pgdat->kswapd_max_order;
 		}
 		finish_wait(&pgdat->kswapd_wait, &wait);
+
 		balance_pgdat(pgdat, order);
 	}
 	return 0;

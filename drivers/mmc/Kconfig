@@ -4,8 +4,6 @@
 
 menu "MMC/SD Card support"
 
-source "drivers/mmc/spi_mmc/Kconfig"
-
 config MMC
 	tristate "MMC support"
 	help

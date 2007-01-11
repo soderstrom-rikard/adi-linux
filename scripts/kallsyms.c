@@ -12,8 +12,6 @@
  * (25/Aug/2004) Paulo Marques <pmarques@grupopie.com>
  *      Changed the compression method from stem compression to "table lookup"
  *      compression
- * (10/Jul/2006) Robin Getz <rgetz@blackfin.uclinux.org>
- *      Add _stext_l1, _etext_l1 for the L1 memory section in Blackfin.
  *
  *      Table compression uses all the unused char codes on the symbols and
  *  maps these to the most used substrings (tokens). For instance, it might
@@ -46,7 +44,6 @@ struct sym_entry {
 static struct sym_entry *table;
 static unsigned int table_size, table_cnt;
 static unsigned long long _stext, _etext, _sinittext, _einittext, _sextratext, _eextratext;
-static unsigned long long _stext_l1, _etext_l1;
 static int all_symbols = 0;
 static char symbol_prefix_char = '\0';
 
@@ -106,10 +103,6 @@ static int read_symbol(FILE *in, struct sym_entry *s)
 		_sextratext = s->addr;
 	else if (strcmp(sym, "_eextratext") == 0)
 		_eextratext = s->addr;
-	else if (strcmp(sym, "_stext_l1" ) == 0)
-		_stext_l1 = s->addr;
-	else if (strcmp(sym, "_etext_l1" ) == 0)
-		_etext_l1 = s->addr;
 	else if (toupper(stype) == 'A')
 	{
 		/* Keep these useful absolute symbols */
@@ -173,8 +166,7 @@ static int symbol_valid(struct sym_entry *s)
 	if (!all_symbols) {
 		if ((s->addr < _stext || s->addr > _etext)
 		    && (s->addr < _sinittext || s->addr > _einittext)
-		    && (s->addr < _sextratext || s->addr > _eextratext)
-		    && (s->addr < _stext_l1 || s->addr > _etext_l1))
+		    && (s->addr < _sextratext || s->addr > _eextratext))
 			return 0;
 		/* Corner case.  Discard any symbols with the same value as
 		 * _etext _einittext or _eextratext; they can move between pass

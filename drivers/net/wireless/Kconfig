@@ -299,7 +299,7 @@ config AIRO
 
 config HERMES
 	tristate "Hermes chipset 802.11b support (Orinoco/Prism2/Symbol)"
-	depends on NET_RADIO && (PPC_PMAC || PCI || PCMCIA || BFIN)
+	depends on NET_RADIO && (PPC_PMAC || PCI || PCMCIA)
 	---help---
 	  A driver for 802.11b wireless cards based on the "Hermes" or
 	  Intersil HFA384x (Prism 2) MAC controller.  This includes the vast
@@ -423,6 +423,7 @@ config PCMCIA_SPECTRUM
 	depends on NET_RADIO && PCMCIA && HERMES
 	select FW_LOADER
 	---help---
+
 	  This is a driver for 802.11b cards using RAM-loadable Symbol
 	  firmware, such as Symbol Wireless Networker LA4100, CompactFlash
 	  cards by Socket Communications and Intel PRO/Wireless 2011B.
@@ -430,48 +431,6 @@ config PCMCIA_SPECTRUM
 	  This driver requires firmware download on startup.  Utilities
 	  for downloading Symbol firmware are available at
 	  <http://sourceforge.net/projects/orinoco/>
-
-config WLAN_BLACKFIN
-	tristate "Blackfin WLAN card support"
-	depends on NET_RADIO && BFIN && HERMES
-	---help---
-	  A driver for "Hermes" chipset based PCMCIA wireless adaptors, such
-	  as the Lucent WavelanIEEE/Orinoco cards and their OEM (Cabletron/
-	  EnteraSys RoamAbout 802.11, ELSA Airlancer, Melco Buffalo and
-	  others).  It should also be usable on various Prism II based cards
-	  such as the Linksys, D-Link and Farallon Skyline.  It should also
-	  work on Symbol cards such as the 3Com AirConnect and Ericsson WLAN.
-
-	  To use your PC-cards, you will need supporting software from David
-	  Hinds' pcmcia-cs package (see the file <file:Documentation/Changes>
-	  for location).  You also want to check out the PCMCIA-HOWTO,
-	  available from <http://www.tldp.org/docs.html#howto>.
-
-	  You will also very likely also need the Wireless Tools in order to
-	  configure your card and that /etc/pcmcia/wireless.opts works:
-	  <http://www.hpl.hp.com/personal/Jean_Tourrilhes/Linux/Tools.html>.
-
-config BFIN_CF_ATTR_ADDR
-	hex "CF Attribute Memory Base Address"
-	depends on WLAN_BLACKFIN
-	default 0x20311000
-	help
-	  CF Attribute Memory Base Address
-
-config BFIN_CF_IO_ADDR
-	hex "CF PCMCIA like IO Memory Base Address"
-	depends on WLAN_BLACKFIN
-	default 0x20310000
-	help
-	  CF PCMCIA like IO Memory Base Address
-
-config BFIN_CF_IRQ_PFX
-	int "CF/WLAN IRQ PFx no"
-	depends on WLAN_BLACKFIN 
-	range 33 120 
-	default "54" if BFIN537_STAMP
-	help
-	  CF IRQ use PFx Range [33..120]
 
 config AIRO_CS
 	tristate "Cisco/Aironet 34X/35X/4500/4800 PCMCIA cards"

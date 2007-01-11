@@ -50,8 +50,6 @@ obj-$(CONFIG_VIDEO_BT866) += bt866.o
 obj-$(CONFIG_VIDEO_KS0127) += ks0127.o
 
 obj-$(CONFIG_VIDEO_ZORAN) += zr36067.o videocodec.o
-obj-$(CONFIG_BFIN_V4L2_DRIVER) +=bfin_v4l2_device.o bfin_v4l2_device_config.o bfin_v4l2_driver.o
-obj-$(CONFIG_VIDEO_BLACKFIN_MT9M001) += blackfin/
 obj-$(CONFIG_VIDEO_ZORAN_DC30) += zr36050.o zr36016.o
 obj-$(CONFIG_VIDEO_ZORAN_ZR36060) += zr36060.o
 

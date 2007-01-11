@@ -68,28 +68,6 @@ choice
 	   Many controller drivers are platform-specific; these
 	   often need board-specific hooks.
 
-config USB_GADGET_NET2272
-	boolean "PLX NET2272"
-	select USB_GADGET_DUALSPEED
-	help
-		PLX NET2272 is a USB peripheral controller which supports
-		both full and high speed USB 2.0 data transfers.
-
-		It has three configurable endpoints, as well as endpoint zero
-		(for control transfer).
-
-		Say "y" to link the driver statically, or "m" to build a
-		dynamically linked module called "net2272" and force all
-		gadget drivers to also be dynamically linked.
-
-config USB_NET2272
-	tristate
-	depends on USB_GADGET_NET2272
-	default USB_GADGET
- 	select USB_GADGET_SELECTED
-
-
-
 config USB_GADGET_NET2280
 	boolean "NetChip 228x"
 	depends on PCI
@@ -149,7 +127,7 @@ config USB_GADGET_GOKU
 	help
 	   The Toshiba TC86C001 is a PCI device which includes controllers
 	   for full speed USB devices, IDE, I2C, SIO, plus a USB host (OHCI).
-
+	   
 	   The device controller has three configurable (bulk or interrupt)
 	   endpoints, plus endpoint zero (for control transfers).
 
@@ -237,11 +215,11 @@ config USB_GADGET_DUMMY_HCD
 	  side is the master; the gadget side is the slave.  Gadget drivers
 	  can be high, full, or low speed; and they have access to endpoints
 	  like those from NET2280, PXA2xx, or SA1100 hardware.
-
+	  
 	  This may help in some stages of creating a driver to embed in a
 	  Linux device, since it lets you debug several parts of the gadget
 	  driver without its hardware or drivers being involved.
-
+	  
 	  Since such a gadget side driver needs to interoperate with a host
 	  side Linux-USB device driver, this may help to debug both sides
 	  of a USB protocol stack.
@@ -335,7 +313,7 @@ config USB_ETH
 	help
 	  This driver implements Ethernet style communication, in either
 	  of two ways:
-
+	  
 	   - The "Communication Device Class" (CDC) Ethernet Control Model.
 	     That protocol is often avoided with pure Ethernet adapters, in
 	     favor of simpler vendor-specific hardware, but is widely
@@ -371,7 +349,7 @@ config USB_ETH_RNDIS
 	   If you say "y" here, the Ethernet gadget driver will try to provide
 	   a second device configuration, supporting RNDIS to talk to such
 	   Microsoft USB hosts.
-
+	   
 	   To make MS-Windows work with this, use Documentation/usb/linux.inf
 	   as the "driver info file".  For versions of MS-Windows older than
 	   XP, you'll need to download drivers from Microsoft's website; a URL

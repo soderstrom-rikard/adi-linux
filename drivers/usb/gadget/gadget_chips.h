@@ -9,12 +9,6 @@
  *
  * NOTE:  some of these controller drivers may not be available yet.
  */
-#ifdef CONFIG_USB_GADGET_NET2272
-#define gadget_is_net2272(g)	!strcmp("net2272", (g)->name)
-#else
-#define gadget_is_net2272(g)	0
-#endif
-
 #ifdef CONFIG_USB_GADGET_NET2280
 #define	gadget_is_net2280(g)	!strcmp("net2280", (g)->name)
 #else
@@ -175,7 +169,5 @@ static inline int usb_gadget_controller_number(struct usb_gadget *gadget)
 		return 0x16;
 	else if (gadget_is_mpc8272(gadget))
 		return 0x17;
-	else if (gadget_is_net2272(gadget))
- 		return 0x18;
 	return -ENOENT;
 }

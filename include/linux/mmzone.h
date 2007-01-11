@@ -188,9 +188,7 @@ struct zone {
 #endif
 	struct free_area	free_area[MAX_ORDER];
 
-#ifdef CONFIG_NP2
-	struct list_head	np2_list;
-#endif
+
 	ZONE_PADDING(_pad1_)
 
 	/* Fields commonly accessed by the page reclaim scanner */

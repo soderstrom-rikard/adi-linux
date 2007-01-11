@@ -53,6 +53,11 @@ config FB
 	  (e.g. an accelerated X server) and that are not frame buffer
 	  device-aware may cause unexpected results. If unsure, say N.
 
+config FB_DDC
+       tristate
+       depends on FB && I2C && I2C_ALGOBIT
+       default n
+
 config FB_CFB_FILLRECT
 	tristate
 	depends on FB
@@ -183,7 +188,7 @@ config FB_ARMCLCD_SHARP_LQ035Q7DB02_HRTFT
 	bool "LogicPD LCD 3.5\" QVGA w/HRTFT IC"
 	help
 	  This is an implementation of the Sharp LQ035Q7DB02, a 3.5"
-	  color QVGA, HRTFT panel.  The LogicPD device includes an
+	  color QVGA, HRTFT panel.  The LogicPD device includes
 	  an integrated HRTFT controller IC.
 	  The native resolution is 240x320.
 
@@ -398,7 +403,7 @@ config FB_ARC
 	  is based on the KS-108 lcd controller and is typically a matrix
 	  of 2*n chips. This driver was tested with a 128x64 panel. This
 	  driver supports it for use with x86 SBCs through a 16 bit GPIO
-	  interface (8 bit data, 8 bit control). If you anticpate using
+	  interface (8 bit data, 8 bit control). If you anticipate using
 	  this driver, say Y or M; otherwise say N. You must specify the
 	  GPIO IO address to be used for setting control and data.
 
@@ -493,105 +498,6 @@ config FB_VGA16
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called vga16fb.
-
-config FB_BFIN_7171
-	tristate "Blackfin ADI7171 video encoder on uClinux"
-	depends on FB && BFIN
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
-	help
-	  This is the framebuffer device for a AD7171 video encoder
-	  attached to a Blackfin on the PPI port.
-	  If your Blackfin board has a 7171 select Y.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called bfin_ad7171fb.
-
-config FB_BFIN_7393
-	tristate "Blackfin ADV7393 Video encoder on uClinux"
-	depends on FB && BFIN
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
-	help
-	  This is the framebuffer device for a ADV7393 video encoder
-	  attached to a Blackfin on the PPI port.
-	  If your Blackfin board has a ADV7393 select Y.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called bfin_adv7393fb.
-
-choice
-	prompt  "Video mode support"
-	depends on (FB_BFIN_7171 || FB_BFIN_7393)
-	default NTSC
-
-config NTSC
-	bool 'NTSC 720x480'
-
-config PAL
-	bool 'PAL 720x576'
-
-config NTSC_640x480
-	bool 'NTSC 640x480 (Experimental)'
-
-config PAL_640x480
-	bool 'PAL 640x480 (Experimental)'
-
-config NTSC_YCBCR
-	bool 'NTSC 720x480 YCbCR input'
-
-config PAL_YCBCR
-	bool 'PAL 720x576 YCbCR input'
-
-endchoice
-
-choice
-	prompt  "Size of ADV7393 frame buffer memory Single/Double Size"
-	depends on (FB_BFIN_7393)
-	default ADV7393_1XMEM
-
-config ADV7393_1XMEM
-	bool 'Single'
-
-config ADV7393_2XMEM
-	bool 'Double'
-endchoice
-
-config FB_BF537_LQ035
-	tristate "SHARP LQ035 TFT LCD on uClinux (BF537 STAMP)"
-	depends on FB && ( BF534 || BF536 || BF537) && I2C_BFIN_TWI
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
-	help
-	 This is the framebuffer device for a SHARP LQ035Q7DB03 TFT LCD
-         attached to a BF537.
-
-config LQ035_SLAVE_ADDR
-	hex "The slave address of the I2C device (0x58, 0x5A, 0x5C and 0x5E)"
-	depends on FB_BF537_LQ035
-	default 0x58
-	help
-	  This is the slave address of the I2C device on the LQ035 LCD 
-	  daughter board. It value could be 0x58, 0x5A, 0x5C and 0x5E.
-	  Please setting the switch S1 properly accroding to the address.
-	  The default is 0x58.
-
-config FB_BFIN_LANDSCAPE
-	bool "Use Landscape 320x240 instead of Portrait 240x320"
-	depends on FB_BF537_LQ035
-	default n
-	help
-	 LANDSCAPE: use 320x240 instead of native 240x320 Resolution
-
-config FB_BFIN_BGR
-	bool "Use 16-bit BGR-565 instead of RGB-565"
-	depends on FB_BF537_LQ035
-	default n
-	help
-	 BGR use 16-bit BGR-565 instead of RGB-565
 
 config FB_STI
 	tristate "HP STI frame buffer device support"
@@ -833,6 +739,7 @@ config FB_RIVA
 	depends on FB && PCI
 	select I2C_ALGOBIT if FB_RIVA_I2C
 	select I2C if FB_RIVA_I2C
+	select FB_DDC if FB_RIVA_I2C
 	select FB_MODE_HELPERS
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
@@ -863,7 +770,7 @@ config FB_RIVA_DEBUG
 	default n
 	help
 	  Say Y here if you want the Riva driver to output all sorts
-	  of debugging informations to provide to the maintainer when
+	  of debugging information to provide to the maintainer when
 	  something goes wrong.
 
 config FB_RIVA_BACKLIGHT
@@ -921,32 +828,51 @@ config FB_I810_I2C
 	depends on FB_I810 && FB_I810_GTF
 	select I2C
 	select I2C_ALGOBIT
+	select FB_DDC
 	help
 
 config FB_INTEL
-	tristate "Intel 830M/845G/852GM/855GM/865G support (EXPERIMENTAL)"
+	tristate "Intel 830M/845G/852GM/855GM/865G/915G/945G support (EXPERIMENTAL)"
 	depends on FB && EXPERIMENTAL && PCI && X86
 	select AGP
 	select AGP_INTEL
+	select I2C_ALGOBIT if FB_INTEL_I2C
+	select I2C if FB_INTEL_I2C
 	select FB_MODE_HELPERS
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
 	help
 	  This driver supports the on-board graphics built in to the Intel
-          830M/845G/852GM/855GM/865G chipsets.
+          830M/845G/852GM/855GM/865G/915G/915GM/945G/945GM chipsets.
           Say Y if you have and plan to use such a board.
 
-          To compile this driver as a module, choose M here: the
+	  If you say Y here and want DDC/I2C support you must first say Y to
+	  "I2C support" and "I2C bit-banging support" in the character devices
+	  section.
+
+	  If you say M here then "I2C support" and "I2C bit-banging support"
+	  can be build either as modules or built-in.
+
+	  To compile this driver as a module, choose M here: the
 	  module will be called intelfb.
 
+	  For more information, please read <file:Documentation/fb/intelfb.txt>
+
 config FB_INTEL_DEBUG
-        bool "Intel driver Debug Messages"
+	bool "Intel driver Debug Messages"
 	depends on FB_INTEL
 	---help---
 	  Say Y here if you want the Intel driver to output all sorts
-	  of debugging informations to provide to the maintainer when
+	  of debugging information to provide to the maintainer when
 	  something goes wrong.
+
+config FB_INTEL_I2C
+	bool "DDC/I2C for Intel framebuffer support"
+	depends on FB_INTEL
+	default y
+	help
+	  Say Y here if you want DDC/I2C support for your on-board Intel graphics.
 
 config FB_MATROX
 	tristate "Matrox acceleration"
@@ -1093,6 +1019,7 @@ config FB_RADEON
 	depends on FB && PCI
 	select I2C_ALGOBIT if FB_RADEON_I2C
 	select I2C if FB_RADEON_I2C
+	select FB_DDC if FB_RADEON_I2C
 	select FB_MODE_HELPERS
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
@@ -1134,7 +1061,7 @@ config FB_RADEON_DEBUG
 	default n
 	help
 	  Say Y here if you want the Radeon driver to output all sorts
-	  of debugging informations to provide to the maintainer when
+	  of debugging information to provide to the maintainer when
 	  something goes wrong.
 
 config FB_ATY128
@@ -1221,6 +1148,7 @@ config FB_SAVAGE
 	depends on FB && PCI && EXPERIMENTAL
 	select I2C_ALGOBIT if FB_SAVAGE_I2C
 	select I2C if FB_SAVAGE_I2C
+	select FB_DDC if FB_SAVAGE_I2C
 	select FB_MODE_HELPERS
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
@@ -1700,7 +1628,8 @@ config FB_VIRTUAL
 	  kernel option `video=vfb:'.
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called vfb.
+	  module will be called vfb. In order to load it, you must use
+	  the vfb_enable=1 option.
 
 	  If unsure, say N.
 if VT

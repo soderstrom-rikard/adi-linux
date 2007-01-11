@@ -57,11 +57,7 @@ static inline int is_kernel_extratext(unsigned long addr)
 
 static inline int is_kernel_text(unsigned long addr)
 {
-	if ((addr >= (unsigned long)_stext && addr <= (unsigned long)_etext)
-#if defined(CONFIG_BFIN)
-             || (addr >= (unsigned long)_stext_l1 && addr <= (unsigned long)_etext_l1)
-#endif
-	)
+	if (addr >= (unsigned long)_stext && addr <= (unsigned long)_etext)
 		return 1;
 	return in_gate_area_no_task(addr);
 }

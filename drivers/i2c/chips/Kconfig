@@ -25,13 +25,6 @@ config SENSORS_DS1374
 	  This driver can also be built as a module.  If so, the module
 	  will be called ds1374.
 
-config SENSORS_AD5252
-	tristate "Analog Devices AD5252 and AD5251 Digital Potentiometers"
-	depends on I2C && EXPERIMENTAL
-	help
-	  If you say yes here you get support for Analog Devices and AD5252
-	  AD5251 chips.
-
 config SENSORS_EEPROM
 	tristate "EEPROM reader"
 	depends on I2C && EXPERIMENTAL
@@ -53,19 +46,6 @@ config SENSORS_PCF8574
 
 	  This driver can also be built as a module.  If so, the module
 	  will be called pcf8574.
-
-	  These devices are hard to detect and rarely found on mainstream
-	  hardware.  If unsure, say N.
-
-config SENSORS_PCF8575
-	tristate "Philips PCF8575 16-bit I/O Expander"
-	depends on I2C && EXPERIMENTAL
-	default n
-	help
-	  If you say yes here you get support for Philips PCF8575.
-
-	  This driver can also be built as a module.  If so, the module
-	  will be called pcf8575.
 
 	  These devices are hard to detect and rarely found on mainstream
 	  hardware.  If unsure, say N.
