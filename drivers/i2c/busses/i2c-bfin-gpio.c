@@ -24,6 +24,7 @@
 #include <linux/i2c-algo-bit.h>
 
 #include <asm/blackfin.h>
+#include <asm/gpio.h>
 
 #define	I2C_HW_B_HHBF		    0x13
 
@@ -54,7 +55,6 @@ static struct i2c_algo_bit_data bit_hhbf_data = {
     .setscl  = hhbf_setscl,
     .getsda  = hhbf_getsda,
     .udelay  = CONFIG_I2C_BFIN_GPIO_CYCLE_DELAY,
-    .mdelay  = CONFIG_I2C_BFIN_GPIO_CYCLE_DELAY,
     .timeout = HZ
 };
 
