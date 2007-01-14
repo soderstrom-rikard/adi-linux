@@ -171,6 +171,12 @@ void bfin_spi_disable(struct driver_data *drv_data)
 	__builtin_bfin_ssync();
 }
 
+/* Caculate the SPI_BAUD register value based on input HZ */
+static u16 hz_to_spi_baud(u16 speed_hz)
+{
+	return (get_sclk() / (2 * speed_hz));
+}
+
 static int flush(struct driver_data *drv_data)
 {
 	unsigned long limit = loops_per_jiffy << 1;
@@ -660,7 +666,7 @@ static void pump_transfers(unsigned long data)
 
 	/* restore spi status for each spi transfer */
 	if (transfer->speed_hz) {
-		write_BAUD(transfer->speed_hz);
+		write_BAUD(hz_to_spi_baud(transfer->speed_hz));
 	} else {
 		write_BAUD(chip->baud);
 	}
@@ -943,7 +949,7 @@ static int setup(struct spi_device *spi)
 
 	/* Notice: for blackfin, the speed_hz is the value of register
 	   SPI_BAUD, not the real baudrate */
-	chip->baud = spi->max_speed_hz;
+	chip->baud = hz_to_spi_baud(spi->max_speed_hz);
 	spi_flg = ~(1 << (spi->chip_select));
 	chip->flag = ((u16)spi_flg << 8 ) | (1 << (spi->chip_select));
 	chip->chip_select_num = spi->chip_select;
