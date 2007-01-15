@@ -219,15 +219,21 @@ static int pcf8575_detect(struct i2c_adapter *adapter, int address, int kind)
 	
 
 	/* Register sysfs hooks */
-	device_create_file(&new_client->dev, &dev_attr_read);
-	device_create_file(&new_client->dev, &dev_attr_write);
-	device_create_file(&new_client->dev, &dev_attr_set_bit);
-	device_create_file(&new_client->dev, &dev_attr_clear_bit);
+	err = device_create_file(&new_client->dev, &dev_attr_read);
+	err |= device_create_file(&new_client->dev, &dev_attr_write);
+	err |= device_create_file(&new_client->dev, &dev_attr_set_bit);
+	err |= device_create_file(&new_client->dev, &dev_attr_clear_bit);
+
+	if (err)
+		goto exit_detach;
+
 	return 0;
 
 /* OK, this is not exactly good programming practice, usually. But it is
    very code-efficient in this case. */
 
+      exit_detach:
+	i2c_detach_client(new_client);
       exit_free:
 	kfree(data);
       exit:
