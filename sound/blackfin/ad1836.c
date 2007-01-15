@@ -195,7 +195,7 @@
 #define MULTI_SUBSTREAM
 #endif
 
-#define DRIVER_NAME	"snd_ad1836"
+#define DRIVER_NAME	"AD1836"
 #define CHIP_NAME	"AD1836"
 #define PCM_NAME	"AD1836_PCM"
 
