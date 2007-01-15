@@ -113,15 +113,12 @@ static struct bfin5xx_spi_chip spi_mmc_chip_info = {
 };
 #endif
 
-/* Notice: for blackfin, the speed_hz is the value of register
- * SPI_BAUD, not the real baudrate */
 static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #if defined(CONFIG_MTD_M25P80) || defined(CONFIG_MTD_M25P80_MODULE)
 	{
 		/* the modalias must be the same as spi device driver name */
 		.modalias = "m25p80", /* Name of spi_driver for this device */
-		/* this value is the baudrate divisor */
-		.max_speed_hz = 2,     /* actual baudrate is SCLK/(2xspeed_hz) */
+		.max_speed_hz = 25000000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 1, /* Framework bus number */
 		.chip_select = 1, /* Framework chip select. On STAMP537 it is SPISSEL1*/
 		.platform_data = &bfin_spi_flash_data,
@@ -132,7 +129,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #if defined(CONFIG_SPI_ADC_BF533) || defined(CONFIG_SPI_ADC_BF533_MODULE)
 	{
 		.modalias = "bfin_spi_adc", /* Name of spi_driver for this device */
-		.max_speed_hz = 8,     /* actual baudrate is SCLK/(2xspeed_hz) */
+		.max_speed_hz = 6250000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 1, /* Framework bus number */
 		.chip_select = 1, /* Framework chip select. */
 		.platform_data = NULL, /* No spi_driver specific config */
@@ -143,7 +140,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #if defined(CONFIG_SND_BLACKFIN_AD1836) || defined(CONFIG_SND_BLACKFIN_AD1836_MODULE)
 	{
 		.modalias = "ad1836-spi",
-		.max_speed_hz = 16,
+		.max_speed_hz = 3125000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 1,
 		.chip_select = CONFIG_SND_BLACKFIN_SPI_PFBIT,
 		.controller_data = &ad1836_spi_chip_info,
@@ -152,7 +149,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #if defined(CONFIG_AD9960) || defined(CONFIG_AD9960_MODULE)
 	{
 		.modalias = "ad9960-spi",
-		.max_speed_hz = 5,
+		.max_speed_hz = 10000000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 1,
 		.chip_select = 1,
 		.controller_data = &ad9960_spi_chip_info,
@@ -161,7 +158,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #if defined(CONFIG_SPI_MMC) || defined(CONFIG_SPI_MMC_MODULE)
 	{
 		.modalias = "spi_mmc",
-		.max_speed_hz = 2,
+		.max_speed_hz = 25000000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 1,
 		.chip_select = CONFIG_SPI_MMC_CS_CHAN,
 		.platform_data = NULL,

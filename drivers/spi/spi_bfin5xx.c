@@ -172,9 +172,17 @@ void bfin_spi_disable(struct driver_data *drv_data)
 }
 
 /* Caculate the SPI_BAUD register value based on input HZ */
-static u16 hz_to_spi_baud(u16 speed_hz)
+static u16 hz_to_spi_baud(u32 speed_hz)
 {
-	return (get_sclk() / (2 * speed_hz));
+	u_long sclk = get_sclk();
+	u16 spi_baud = (sclk / (2*speed_hz));
+
+	if ((sclk % (2*speed_hz)) > 0)
+		spi_baud++;
+
+	pr_debug("sclk = %d, speed_hz = %d, spi_baud = %d\n", sclk, speed_hz, spi_baud);
+	
+	return spi_baud;
 }
 
 static int flush(struct driver_data *drv_data)
