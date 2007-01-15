@@ -41,7 +41,6 @@
 
 #define BFIN_SPI_FRAMEWORK	1
 #ifdef BFIN_SPI_FRAMEWORK
-#include "bfsi-spi-framework.h"
 #include "bfsi-spi-framework.c"
 #else
 #include "bfsi.c"
