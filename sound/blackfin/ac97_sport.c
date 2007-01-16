@@ -192,7 +192,7 @@ static void dma_init_xmit(void *data, size_t bufsize, size_t fragsize)
 	/* Close the circle */
 	dev.tx_desc[fragcount - 1].next = (unsigned long)dev.tx_desc;
 
-	DMA4->NEXT_DESC_PTR = dev.tx_desc;
+	DMA4->NEXT_DESC_PTR = (struct bf53x_dma*)(unsigned long)dev.tx_desc;
 	DMA4->CONFIG = (unsigned long)dev.tx_desc->dma_config;
 }
 
@@ -228,7 +228,7 @@ static void dma_init_recv(void *data, size_t bufsize, size_t fragsize)
 	/* Close the circle */
 	dev.rx_desc[fragcount - 1].next = (unsigned long)dev.rx_desc;
 
-	DMA3->NEXT_DESC_PTR = dev.rx_desc;
+	DMA3->NEXT_DESC_PTR = (struct bf53x_dma*)(unsigned long)dev.rx_desc;
 	DMA3->CONFIG = dev.rx_desc->dma_config;
 }
 

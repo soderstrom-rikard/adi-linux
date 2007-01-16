@@ -139,7 +139,7 @@ static irqreturn_t ad1981b_tx_handler(int irq, void *dev_id)
 static int ac97_sport_handle_irq(void)
 {
 
-	int irqstatus;
+	int irqstatus = 0;
 
 	if (ac97_sport_handle_rx() == 0)
 		irqstatus |= 0x01;
@@ -154,15 +154,18 @@ static int ac97_sport_handle_irq(void)
 #ifdef IRQ_SPORT0
 static irqreturn_t ad1981b_handler(int irq, void *dev_id)
 {
+#ifdef AD1981B_DEBUG
 	static unsigned long last_print = 0;
 	static int ints_per_jiffie = 0;
 	static int tx_ints_per_jiffie = 0;
 	static int rx_ints_per_jiffie = 0;
 	int i, dirty;
 	__u16 regval;
-	int irqstatus;
+#endif
 
+	int irqstatus;
 	irqstatus = ac97_sport_handle_irq();
+
 #ifdef AD1981B_DEBUG
 	if (last_print == 0)
 		last_print = jiffies;
@@ -296,9 +299,6 @@ static loff_t ad1981b_llseek(struct file *file, loff_t offset, int origin)
 	return -ESPIPE;
 }
 
-#ifndef NO_MM
-#warning "please map buffer to kernel space in ad1981b_read!"
-#endif
 
 static ssize_t ad1981b_read(struct file *file, char *buffer, size_t count,
 			    loff_t * ppos)
@@ -349,10 +349,6 @@ static ssize_t ad1981b_read(struct file *file, char *buffer, size_t count,
 	return ret;
 
 }
-
-#ifndef NO_MM
-#warning "please map buffer to kernel space in ad1981b_read!"
-#endif
 
 static ssize_t ad1981b_write(struct file *file, const char *buffer,
 			     size_t count, loff_t * ppos)
