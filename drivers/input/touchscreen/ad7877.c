@@ -505,6 +505,23 @@ static ssize_t ad7877_gpio4_store(struct device *dev,
 
 static DEVICE_ATTR(gpio4, 0664, ad7877_gpio4_show, ad7877_gpio4_store);
 
+static struct attribute *ad7877_attributes[] = {
+	&dev_attr_temp1.attr,
+	&dev_attr_temp2.attr,
+	&dev_attr_aux1.attr, 
+	&dev_attr_aux2.attr, 
+	&dev_attr_bat1.attr, 
+	&dev_attr_bat2.attr, 
+	&dev_attr_disable.attr,
+	&dev_attr_dac.attr,  
+	&dev_attr_gpio4.attr,
+	NULL
+};
+
+static const struct attribute_group ad7877_attr_group = {
+	.attrs = ad7877_attributes,
+};
+
 /*--------------------------------------------------------------------------*/
 
 /*
@@ -581,7 +598,7 @@ static void ad7877_timer(unsigned long handle)
 }
 
 
-static irqreturn_t ad7877_irq(int irq, void *handle, struct pt_regs *regs)
+static irqreturn_t ad7877_irq(int irq, void *handle)
 {
 	struct ad7877 *ts = handle;
 	unsigned long flags;
@@ -852,20 +869,17 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 
 	dev_info(&spi->dev, "touchscreen, irq %d\n", spi->irq);
 
-	device_create_file(&spi->dev, &dev_attr_temp1);
-	device_create_file(&spi->dev, &dev_attr_temp2);
-	device_create_file(&spi->dev, &dev_attr_aux1);
-	device_create_file(&spi->dev, &dev_attr_aux2);
-	device_create_file(&spi->dev, &dev_attr_bat1);
-	device_create_file(&spi->dev, &dev_attr_bat2);
-	device_create_file(&spi->dev, &dev_attr_disable);
-	device_create_file(&spi->dev, &dev_attr_dac);
-	device_create_file(&spi->dev, &dev_attr_gpio4);
+	err = sysfs_create_group(&spi->dev.kobj, &ad7877_attr_group);
+	if (err)
+		goto err_remove_attr;
 
 	if(gpio3)
-		device_create_file(&spi->dev, &dev_attr_gpio3);
+		err = device_create_file(&spi->dev, &dev_attr_gpio3);
 	else
-		device_create_file(&spi->dev, &dev_attr_aux3);
+		err = device_create_file(&spi->dev, &dev_attr_aux3);
+
+	if (err)
+		goto err_remove_attr;
 
 	err = input_register_device(input_dev);
 	if (err)
@@ -883,15 +897,8 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 	return 0;
 
  err_remove_attr:
-	device_remove_file(&spi->dev, &dev_attr_disable);
-	device_remove_file(&spi->dev, &dev_attr_dac);
-	device_remove_file(&spi->dev, &dev_attr_temp1);
-	device_remove_file(&spi->dev, &dev_attr_temp2);
-	device_remove_file(&spi->dev, &dev_attr_aux1);
-	device_remove_file(&spi->dev, &dev_attr_aux3);
-	device_remove_file(&spi->dev, &dev_attr_bat1);
-	device_remove_file(&spi->dev, &dev_attr_bat2);
-	device_remove_file(&spi->dev, &dev_attr_gpio4);
+
+	sysfs_remove_group(&spi->dev.kobj, &ad7877_attr_group);
 
 	if(gpio3)
 		device_remove_file(&spi->dev, &dev_attr_gpio3);
@@ -916,15 +923,7 @@ static int __devexit ad7877_remove(struct spi_device *spi)
 
 	kthread_stop(ad7877_task);
 
-	device_remove_file(&spi->dev, &dev_attr_disable);
-	device_remove_file(&spi->dev, &dev_attr_dac);
-	device_remove_file(&spi->dev, &dev_attr_temp1);
-	device_remove_file(&spi->dev, &dev_attr_temp2);
-	device_remove_file(&spi->dev, &dev_attr_aux1);
-	device_remove_file(&spi->dev, &dev_attr_aux2);
-	device_remove_file(&spi->dev, &dev_attr_bat1);
-	device_remove_file(&spi->dev, &dev_attr_bat2);
-	device_remove_file(&spi->dev, &dev_attr_gpio4);
+	sysfs_remove_group(&spi->dev.kobj, &ad7877_attr_group);
 
 	if(gpio3)
 		device_remove_file(&spi->dev, &dev_attr_gpio3);
