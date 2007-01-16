@@ -87,7 +87,7 @@
 #define FRAGMENTS_MAX	16
 #define WORD_LENGTH	2
 
-#define DRIVER_NAME "snd-ad73311"
+#define DRIVER_NAME "AD73311"
 #define CHIP_NAME "Analog Devices AD73311L"
 #define PCM_NAME "AD73311 PCM"
 
@@ -596,7 +596,7 @@ static int __devinit snd_ad73311_probe(struct platform_device *pdev)
 	if (err)
 		goto __nodev;
 
-	strcpy(card->driver, "ad73311");
+	strcpy(card->driver, DRIVER_NAME);
 	strcpy(card->shortname, CHIP_NAME);
 	sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
 	        card->shortname,
