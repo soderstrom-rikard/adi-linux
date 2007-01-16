@@ -158,10 +158,6 @@ static int fastcall find_order(int size)
 	return order;
 }
 
-#define find_size(order) (PAGE_SIZE << order)
-
-#endif
-
 void *kmalloc(size_t size, gfp_t gfp)
 {
 	slob_t *m;
@@ -250,7 +246,7 @@ unsigned int ksize(const void *block)
 		for (bb = bigblocks; bb; bb = bb->next)
 			if (bb->pages == block) {
 				spin_unlock_irqrestore(&slob_lock, flags);
-				return find_size(bb->order);
+				return PAGE_SIZE << bb->order;
 			}
 		spin_unlock_irqrestore(&block_lock, flags);
 	}
@@ -289,10 +285,9 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size,
 }
 EXPORT_SYMBOL(kmem_cache_create);
 
-int kmem_cache_destroy(struct kmem_cache *c)
+void kmem_cache_destroy(struct kmem_cache *c)
 {
 	slob_free(c, sizeof(struct kmem_cache));
-	return 0;
 }
 EXPORT_SYMBOL(kmem_cache_destroy);
 
