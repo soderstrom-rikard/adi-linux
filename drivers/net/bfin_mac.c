@@ -638,7 +638,7 @@ static irqreturn_t bf537mac_interrupt(int irq, void *dev_id)
 static void bf537mac_poll(struct net_device *dev)
 {
 	disable_irq(IRQ_MAC_RX);
-	bf537mac_interrupt(IRQ_MAC_RX, dev, NULL);
+	bf537mac_interrupt(IRQ_MAC_RX, dev);
 	enable_irq(IRQ_MAC_RX);
 }
 #endif				/* CONFIG_NET_POLL_CONTROLLER */
