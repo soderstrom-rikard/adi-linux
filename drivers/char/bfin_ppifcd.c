@@ -38,6 +38,7 @@
 #include <linux/fs.h>
 #include <linux/init.h>
 #include <linux/string.h>
+#include <linux/spinlock.h>
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/blackfin.h>
@@ -50,14 +51,6 @@
 
 /* definitions */
 
-#undef  DEBUG
-//#define DEBUG
-
-#ifdef DEBUG
-#define DPRINTK(x...)   printk(KERN_DEBUG x)
-#else
-#define DPRINTK(x...)   do { } while (0)
-#endif
 
 #define PPI_MAJOR          241	/* experiential */
 #define PPI0_MINOR         0
@@ -91,6 +84,7 @@ typedef struct PPI_Device_t {
 
 static DECLARE_WAIT_QUEUE_HEAD(ppirxq0);
 static ppi_device_t ppiinfo;
+static DEFINE_SPINLOCK(ppifcd_lock);
 
 /*
  * FUNCTION NAME: ppifcd_reg_reset
@@ -151,7 +145,7 @@ static irqreturn_t ppifcd_irq(int irq, void *dev_id, struct pt_regs *regs)
 {
 	ppi_device_t *pdev = (ppi_device_t *) dev_id;
 
-	DPRINTK("ppifcd_irq:\n");
+	pr_debug("ppifcd_irq:\n");
 
 	/* Acknowledge DMA Interrupt */
 	clear_dma_irqstat(CH_PPI);
@@ -166,14 +160,14 @@ static irqreturn_t ppifcd_irq(int irq, void *dev_id, struct pt_regs *regs)
 	if (pdev->fasyc)
 		kill_fasync(&(pdev->fasyc), SIGIO, POLLIN);
 
-	DPRINTK("ppifcd_irq: wake_up_interruptible pdev->done=%d\n",
+	pr_debug("ppifcd_irq: wake_up_interruptible pdev->done=%d\n",
 		pdev->done);
 
 	/* wake up read */
 
 	wake_up_interruptible(pdev->rx_avail);
 
-	DPRINTK("ppifcd_irq: return\n");
+	pr_debug("ppifcd_irq: return\n");
 
 	return IRQ_HANDLED;
 }
@@ -182,8 +176,8 @@ static irqreturn_t ppifcd_irq_error(int irq, void *dev_id, struct pt_regs *regs)
 {
 	ppi_device_t *pdev = (ppi_device_t *) dev_id;
 
-	DPRINTK("ppifcd_error_irq:\n");
-	DPRINTK("PPI Status = 0x%X\n", bfin_read_PPI_STATUS());
+	pr_debug("ppifcd_error_irq:\n");
+	pr_debug("PPI Status = 0x%X\n", bfin_read_PPI_STATUS());
 
 	bfin_clear_PPI_STATUS();
 
@@ -200,13 +194,13 @@ static irqreturn_t ppifcd_irq_error(int irq, void *dev_id, struct pt_regs *regs)
 	if (pdev->fasyc)
 		kill_fasync(&(pdev->fasyc), SIGIO, POLLIN);
 
-	DPRINTK("ppifcd_error_irq: wake_up_interruptible pdev->done=%d\n",
+	pr_debug("ppifcd_error_irq: wake_up_interruptible pdev->done=%d\n",
 		pdev->done);
 	/* wake up read */
 
 	wake_up_interruptible(pdev->rx_avail);
 
-	DPRINTK("ppifcd_error_irq: return\n");
+	pr_debug("ppifcd_error_irq: return\n");
 
 	return IRQ_HANDLED;
 }
@@ -243,7 +237,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd,
 	switch (cmd) {
 	case CMD_PPI_SET_PIXELS_PER_LINE:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_SET_PIXELS_PER_LINE\n");
+			pr_debug("ppi_ioctl: CMD_PPI_SET_PIXELS_PER_LINE\n");
 
 			pdev->pixel_per_line = (unsigned short)arg;
 			bfin_write_PPI_COUNT(pdev->pixel_per_line - 1);
@@ -251,7 +245,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd,
 		}
 	case CMD_PPI_SET_LINES_PER_FRAME:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_SET_LINES_PER_FRAME\n");
+			pr_debug("ppi_ioctl: CMD_PPI_SET_LINES_PER_FRAME\n");
 
 			pdev->lines_per_frame = (unsigned short)arg;
 			bfin_write_PPI_FRAME(pdev->lines_per_frame);
@@ -259,7 +253,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd,
 		}
 	case CMD_PPI_SET_PPICONTROL_REG:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_SET_PPICONTROL_REG\n");
+			pr_debug("ppi_ioctl: CMD_PPI_SET_PPICONTROL_REG\n");
 
 			pdev->ppi_control = ((unsigned short)arg) & ~PORT_EN;
 			bfin_write_PPI_CONTROL(pdev->ppi_control);
@@ -267,7 +261,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd,
 		}
 	case CMD_PPI_SET_PPIDEALY_REG:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_SET_PPIDEALY_REG\n");
+			pr_debug("ppi_ioctl: CMD_PPI_SET_PPIDEALY_REG\n");
 
 			pdev->ppi_delay = (unsigned short)arg;
 			bfin_write_PPI_DELAY(pdev->ppi_delay);
@@ -275,7 +269,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd,
 		}
 	case CMD_SET_TRIGGER_GPIO:
 		{
-			DPRINTK("ppi_ioctl: CMD_SET_TRIGGER_GPIO\n");
+			pr_debug("ppi_ioctl: CMD_SET_TRIGGER_GPIO\n");
 
 			pdev->ppi_trigger_gpio = (unsigned short)arg;
 			break;
@@ -288,7 +282,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd,
 	case CMD_PPI_GET_SYSTEMCLOCK:
 		{
 			value = get_sclk();
-			DPRINTK
+			pr_debug
 			    ("ppi_ioctl: CMD_PPI_GET_SYSTEMCLOCK SCLK: %d \n",
 			     (int)value);
 			copy_to_user((unsigned long *)arg, &value,
@@ -359,7 +353,7 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count,
 	int ierr;
 	ppi_device_t *pdev = filp->private_data;
 
-	DPRINTK("ppi_read:\n");
+	pr_debug("ppi_read:\n");
 
 	if (count <= 0)
 		return 0;
@@ -370,7 +364,7 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count,
 
 	blackfin_dcache_invalidate_range((u_long) buf, (u_long) (buf + count));
 
-	DPRINTK("ppi_read: blackfin_dcache_invalidate_range : DONE\n");
+	pr_debug("ppi_read: blackfin_dcache_invalidate_range : DONE\n");
 
 	/* configure ppi port for DMA RX */
 
@@ -385,7 +379,7 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count,
 	else
 		set_dma_x_modify(CH_PPI, 1);
 
-	DPRINTK("ppi_read: SETUP DMA : DONE\n");
+	pr_debug("ppi_read: SETUP DMA : DONE\n");
 
 	enable_dma(CH_PPI);
 
@@ -401,30 +395,30 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count,
 		__builtin_bfin_ssync();
 	}
 
-	DPRINTK("ppi_read: PPI ENABLED : DONE\n");
+	pr_debug("ppi_read: PPI ENABLED : DONE\n");
 
 	/* Wait for data available */
 	if (1) {
 		if (pdev->nonblock)
 			return -EAGAIN;
 		else {
-			DPRINTK("PPI wait_event_interruptible\n");
+			pr_debug("PPI wait_event_interruptible\n");
 			ierr =
 			    wait_event_interruptible(*(pdev->rx_avail),
 						     pdev->done);
 			if (ierr) {
 				/* waiting is broken by a signal */
-				DPRINTK("PPI wait_event_interruptible ierr\n");
+				pr_debug("PPI wait_event_interruptible ierr\n");
 				return ierr;
 			}
 		}
 	}
 
-	DPRINTK("PPI wait_event_interruptible done\n");
+	pr_debug("PPI wait_event_interruptible done\n");
 
 	disable_dma(CH_PPI);
 
-	DPRINTK("ppi_read: return\n");
+	pr_debug("ppi_read: return\n");
 
 	return count;
 }
@@ -454,16 +448,21 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count,
 static int ppi_open(struct inode *inode, struct file *filp)
 {
 	char intname[20];
+	unsigned long flags;
 	int minor = MINOR(inode->i_rdev);
 
-	DPRINTK("ppi_open:\n");
+	pr_debug("ppi_open:\n");
 
 	/* PPI ? */
 	if (minor != PPI0_MINOR)
 		return -ENXIO;
 
-	if (ppiinfo.opened)
+	spin_lock_irqsave(&ppifcd_lock, flags);
+						
+	if (ppiinfo.opened) {
+		spin_unlock_irqrestore(&ppifcd_lock, flags);
 		return -EMFILE;
+	}
 
 	/* Clear configuration information */
 	memset(&ppiinfo, 0, sizeof(ppi_device_t));
@@ -499,6 +498,8 @@ static int ppi_open(struct inode *inode, struct file *filp)
 
 	if (request_dma(CH_PPI, "BF533_PPI_DMA") < 0) {
 		panic("Unable to attach BlackFin PPI DMA channel\n");
+		ppiinfo.opened = 0;
+		spin_unlock_irqrestore(&ppifcd_lock, flags);
 		return -EFAULT;
 	} else
 		set_dma_callback(CH_PPI, (void *)ppifcd_irq,
@@ -513,7 +514,9 @@ static int ppi_open(struct inode *inode, struct file *filp)
 	bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~0x0E00);
 #endif
 
-	DPRINTK("ppi_open: return\n");
+	spin_unlock_irqrestore(&ppifcd_lock, flags);
+
+	pr_debug("ppi_open: return\n");
 
 	return 0;
 }
@@ -541,19 +544,25 @@ static int ppi_open(struct inode *inode, struct file *filp)
  */
 static int ppi_release(struct inode *inode, struct file *filp)
 {
+
+	unsigned long flags;
 	ppi_device_t *pdev = filp->private_data;
 
-	DPRINTK("ppi_release: close()\n");
+	pr_debug("ppi_release: close()\n");
 
+	spin_lock_irqsave(&ppifcd_lock, flags);
 	/* After finish DMA, release it. */
 	free_dma(CH_PPI);
 
+	free_irq(IRQ_PPI_ERROR, filp->private_data);
+
 	ppifcd_reg_reset(pdev);
 	pdev->opened = 0;
+	spin_unlock_irqrestore(&ppifcd_lock, flags);
 
 	ppi_fasync(-1, filp, 0);
 
-	DPRINTK("ppi_release: close() return\n");
+	pr_debug("ppi_release: close() return\n");
 	return 0;
 }
 
