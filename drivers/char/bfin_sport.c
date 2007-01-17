@@ -505,7 +505,7 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 
 	pr_debug("%s count:%ld\n", __FUNCTION__, count);
 
-	if (down_interruptible(&dev->sem))
+	if (mutex_lock_interruptible(&dev->mutex))
 		return -ERESTARTSYS;
 
 	dev->wait_con = 0;
@@ -550,13 +550,13 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 	if (wait_event_interruptible(dev->waitq, dev->wait_con) < 0) {
 		pr_debug("Receive a signal to interrupt\n");
 		dev->wait_con = 0;
-		up(&dev->sem);
+		mutex_unlock(&dev->mutex);
 		return -ERESTARTSYS;
 	}
 	dev->wait_con = 0;
 
 	pr_debug("Complete called in dma rx irq handler\n");
-	up(&dev->sem);
+	mutex_unlock(&dev->mutex);
 
 	return count;
 }
@@ -581,7 +581,7 @@ static ssize_t sport_write(struct file *filp, const char __user *buf, size_t cou
 	pr_debug("%s count:%ld  dma_tx_chan:%d\n",
 			__FUNCTION__, count, dev->dma_tx_chan);
 
-	if (down_interruptible(&dev->sem))
+	if (mutex_lock_interruptible(&dev->mutex))
 		return -ERESTARTSYS;
 
 	dev->wait_con = 0;
@@ -628,7 +628,7 @@ static ssize_t sport_write(struct file *filp, const char __user *buf, size_t cou
 	if (wait_event_interruptible(dev->waitq, dev->wait_con ) < 0) {
 		pr_debug("Receive a signal to interrupt\n");
 	dev->wait_con = 0;
-		up(&dev->sem);
+		mutex_unlock(&dev->mutex);
 		return -ERESTARTSYS;
 	}
 	dev->wait_con = 0;
@@ -639,7 +639,7 @@ static ssize_t sport_write(struct file *filp, const char __user *buf, size_t cou
 		flush_dcache_range((unsigned long)buf, \
 				(unsigned long)(buf + count));
 	}
-	up(&dev->sem);
+	mutex_unlock(&dev->mutex);
 
 	return count;
 }
@@ -744,7 +744,7 @@ static int sport_init_module(void)
 	for (i = 0; i < sport_nr_devs; i++) {
 		sport_setup_cdev(&sport_devices[i], i);
 		sport_devices[i].sport_num = i;
-		init_MUTEX(&sport_devices[i].sem);
+		mutex_init(&sport_devices[i].mutex);
 		init_waitqueue_head(&sport_devices[i].waitq);
 	}
 	sport_devices[0].regs = (struct sport_register*) 0xFFC00800;
