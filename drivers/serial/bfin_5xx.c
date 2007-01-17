@@ -164,7 +164,7 @@ static void local_put_char(struct bfin_serial_port *uart, char ch)
 static void
 bfin_serial_rx_chars(struct bfin_serial_port *uart)
 {
-	struct tty_struct *tty = uart->port.info->tty;
+	struct tty_struct *tty = uart->port.info?uart->port.info->tty:0;
 	unsigned int status, ch, flg;
 #if defined(CONFIG_BF531) || defined(CONFIG_BF532) || defined(CONFIG_BF533)
 	static int in_break = 0;
@@ -204,12 +204,14 @@ bfin_serial_rx_chars(struct bfin_serial_port *uart)
 	} else
 		flg = TTY_NORMAL;
 
-	if (uart_handle_sysrq_char(&uart->port, ch)
+	if (uart_handle_sysrq_char(&uart->port, ch))
 		goto ignore_char;
-	uart_insert_char(&uart->port, status, 2, ch, flg);
+	if (tty)
+		uart_insert_char(&uart->port, status, 2, ch, flg);
 
 ignore_char:
-	tty_flip_buffer_push(tty);
+	if (tty)
+		tty_flip_buffer_push(tty);
 }
 
 static void bfin_serial_tx_chars(struct bfin_serial_port *uart)
