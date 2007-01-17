@@ -66,7 +66,10 @@ struct page {
 #ifdef CONFIG_NP2
 	struct list_head np2_piece;
 #endif
-	
+#ifdef CONFIG_LIMIT_PAGECACHE
+	struct list_head page_list;
+#endif
+
 };
 
 #endif /* _LINUX_MM_TYPES_H */

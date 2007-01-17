@@ -205,6 +205,10 @@ void inode_init_once(struct inode *inode)
 	INIT_LIST_HEAD(&inode->inotify_watches);
 	mutex_init(&inode->inotify_mutex);
 #endif
+#ifdef CONFIG_LIMIT_PAGECACHE
+	INIT_LIST_HEAD(&inode->i_data.page_head);
+	inode->i_data.pages_limit = CONFIG_PAGECACHE_LIMIT;
+#endif
 }
 
 EXPORT_SYMBOL(inode_init_once);

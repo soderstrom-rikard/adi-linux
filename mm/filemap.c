@@ -18,6 +18,7 @@
 #include <linux/capability.h>
 #include <linux/kernel_stat.h>
 #include <linux/mm.h>
+#include <linux/mm_inline.h>
 #include <linux/swap.h>
 #include <linux/mman.h>
 #include <linux/pagemap.h>
@@ -30,6 +31,9 @@
 #include <linux/security.h>
 #include <linux/syscalls.h>
 #include <linux/cpuset.h>
+#include <linux/rmap.h>
+#include <linux/buffer_head.h>
+#include <linux/page-flags.h>
 #include "filemap.h"
 #include "internal.h"
 
@@ -119,6 +123,9 @@ void __remove_from_page_cache(struct page *page)
 	radix_tree_delete(&mapping->page_tree, page->index);
 	page->mapping = NULL;
 	mapping->nrpages--;
+#ifdef CONFIG_LIMIT_PAGECACHE
+	list_del_init(&page->page_list);
+#endif
 	__dec_zone_page_state(page, NR_FILE_PAGES);
 }
 
@@ -168,6 +175,107 @@ static int sync_page(void *word)
 	io_schedule();
 	return 0;
 }
+
+#ifdef CONFIG_LIMIT_PAGECACHE
+static void balance_pagecache(struct address_space *mapping)
+{
+	/* Release half of the pages */
+	int count ;
+	int nr_released = 0;
+	struct page *page;
+	struct zone *zone= NULL;
+	struct pagevec freed_pvec;
+	struct list_head ret_list;
+
+
+	if (mapping->nrpages > mapping->pages_limit) {
+		count = mapping->nrpages - mapping->pages_limit;
+		pagevec_init(&freed_pvec, 0);
+		INIT_LIST_HEAD(&ret_list);
+		lru_add_drain();
+		while(count-->0) {
+			page = list_entry(mapping->page_head.prev, struct page, page_list);
+			zone = page_zone(page);
+			ClearPageLRU(page);
+			if (PageActive(page))
+				del_page_from_active_list(zone, page);
+			else
+				del_page_from_inactive_list(zone, page);
+
+			list_del_init(&page->page_list); /* Remove from current process's page list */
+			get_page(page);
+
+			if (TestSetPageLocked(page))
+				goto __keep;
+			if (PageWriteback(page))
+				goto __keep_locked;
+			if (page_referenced(page, 1))
+				goto __keep_locked;
+			if (PageDirty(page)) {
+				switch(pageout(page, mapping)) {
+					case PAGE_KEEP:
+					case PAGE_ACTIVATE:
+						goto __keep_locked;
+					case PAGE_SUCCESS:
+						if (PageWriteback(page) || PageDirty(page))
+							goto __keep;
+						if (TestSetPageLocked(page))
+							goto __keep;
+						if (PageDirty(page) || PageWriteback(page))
+							goto __keep_locked;
+					case PAGE_CLEAN:
+						;
+				}
+			}
+
+			if (PagePrivate(page) && !try_to_release_page(page, GFP_KERNEL))
+				goto __keep_locked;
+			if (!remove_mapping(mapping, page))
+				goto __keep_locked;
+
+			unlock_page(page);
+			nr_released++;
+			/* This page maybe in Active LRU */
+			ClearPageActive(page);
+			ClearPageUptodate(page);
+			if (!pagevec_add(&freed_pvec, page))
+				__pagevec_release_nonlru(&freed_pvec);
+			continue;
+	__keep_locked:
+			unlock_page(page);
+	__keep:
+			SetPageLRU(page);
+			if (PageActive(page)) {
+				add_page_to_active_list(zone, page);
+			} else {
+				add_page_to_inactive_list(zone, page);
+			}
+
+			list_add(&page->page_list, &ret_list);
+		}
+		while(!list_empty(&ret_list)) {
+			page = list_entry(ret_list.prev, struct page, page_list);
+			list_move_tail(&page->page_list, &mapping->page_head);
+			put_page(page);
+		}
+		if (pagevec_count(&freed_pvec))
+			__pagevec_release_nonlru(&freed_pvec);
+	}
+
+	if (global_page_state(NR_FILE_PAGES) > total_pagecache_limit) {
+		int nid, j;
+		pg_data_t *pgdat;
+
+		for_each_online_node(nid) {
+			pgdat = NODE_DATA(nid);
+			for (j = 0; j < MAX_NR_ZONES; j++) {
+				zone = pgdat->node_zones + j;
+				wakeup_kswapd(zone, 0);
+			}
+		}
+	}
+}
+#endif
 
 /**
  * __filemap_fdatawrite_range - start writeback on mapping dirty pages in range
@@ -448,6 +556,10 @@ int add_to_page_cache(struct page *page, struct address_space *mapping,
 			page->mapping = mapping;
 			page->index = offset;
 			mapping->nrpages++;
+#ifdef CONFIG_LIMIT_PAGECACHE
+			list_add(&page->page_list, &mapping->page_head);
+#endif
+
 			__inc_zone_page_state(page, NR_FILE_PAGES);
 		}
 		write_unlock_irq(&mapping->tree_lock);
@@ -1085,6 +1197,10 @@ out:
 		page_cache_release(cached_page);
 	if (filp)
 		file_accessed(filp);
+#ifdef CONFIG_LIMIT_PAGECACHE
+	if (global_page_state(NR_FILE_PAGES) >= total_pagecache_limit)
+		balance_pagecache(mapping);
+#endif	
 }
 EXPORT_SYMBOL(do_generic_mapping_read);
 
@@ -2195,6 +2311,11 @@ zero_length_segment:
 	if (cached_page)
 		page_cache_release(cached_page);
 
+#ifdef CONFIG_LIMIT_PAGECACHE
+	if (global_page_state(NR_FILE_PAGES) >= total_pagecache_limit)
+		balance_pagecache(mapping);
+#endif
+	
 	/*
 	 * For now, when the user asks for O_SYNC, we'll actually give O_DSYNC
 	 */
