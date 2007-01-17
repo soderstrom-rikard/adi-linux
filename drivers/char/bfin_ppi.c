@@ -39,6 +39,7 @@
 #include <linux/fs.h>
 #include <linux/init.h>
 #include <linux/string.h>
+#include <linux/spinlock.h>
 #include <linux/delay.h>
 
 #include <asm/io.h>
@@ -56,12 +57,6 @@
 //#define MODULE
 
 #undef	DEBUG
-
-#ifdef DEBUG
-#define DPRINTK(x...)	printk(KERN_DEBUG x)
-#else
-#define DPRINTK(x...)	do { } while (0)
-#endif
 
 #define PPI_MAJOR          241	/* experiential */
 #define PPI0_MINOR         0
@@ -96,6 +91,8 @@ typedef struct Ppi_Device_t {
  * firstly declare 'wait_queue_head_t' and then 'init_waitqueue_head'
  * doesn't work in 2.4.7 kernel / redhat 7.2 */
 static DECLARE_WAIT_QUEUE_HEAD(ppi_wq0);
+
+static DEFINE_SPINLOCK(ppi_lock);
 
 static ppi_device_t ppiinfo;
 static int get_ppi_reg(unsigned int addr, unsigned short *pdata);
@@ -133,7 +130,7 @@ static void setup_gpio_for_PPI(unsigned char datalen)
 	unsigned short portmux;
 	unsigned short ppiCTRL;
 	unsigned short portCFG;
-
+	
 	// initialization
 	portG = syncBits = 0;
 	ppiCTRL = bfin_read_PPI_CONTROL();
@@ -173,7 +170,7 @@ static void setup_gpio_for_PPI(unsigned char datalen)
 	regdata |= PF15;	//enable PPI_CLK
 	bfin_write_PORTF_FER(regdata);
 	__builtin_bfin_ssync();
-	DPRINTK("PORTF_FER = 0x%04X\n", regdata);
+	pr_debug("PORTF_FER = 0x%04X\n", regdata);
 
 	// enable GPIO pins for PPI data
 	// note:  the switch falls through to pick up lower pins
@@ -208,7 +205,7 @@ static void setup_gpio_for_PPI(unsigned char datalen)
 	regdata |= portG;
 	bfin_write_PORTG_FER(regdata);
 	__builtin_bfin_ssync();
-	//DPRINTK("PORTG_FER = 0x%04X\n", regdata);
+	//pr_debug("PORTG_FER = 0x%04X\n", regdata);
 
 	if (ppiCTRL & PORT_DIR) {	// we're doing output
 		// clear corresponding pins in PORTGIO_INEN register
@@ -227,14 +224,14 @@ static void setup_gpio_for_PPI(unsigned char datalen)
 		regdata &= ~PF15;	//ppi_clock is input
 		bfin_write_PORTFIO_DIR(regdata);
 		__builtin_bfin_ssync();
-		DPRINTK("PORTFIO_DIR = 0x%04X\n", regdata);
+		pr_debug("PORTFIO_DIR = 0x%04X\n", regdata);
 
 		regdata = bfin_read_PORTFIO_INEN();
 		regdata &= ~syncBits;
 		regdata |= PF15;	// enable PPI_CLK for input
 		bfin_write_PORTFIO_INEN(regdata);
 		__builtin_bfin_ssync();
-		DPRINTK("PORTFIO_INEN = 0x%04X\n", regdata);
+		pr_debug("PORTFIO_INEN = 0x%04X\n", regdata);
 	} else {		// were doing input
 		// set corresponding bits in PORTGIO_INEN register
 		regdata = bfin_read_PORTGIO_INEN();
@@ -252,19 +249,19 @@ static void setup_gpio_for_PPI(unsigned char datalen)
 		regdata |= PF15;	//enable ppi_clock
 		bfin_write_PORTFIO_INEN(regdata);
 		__builtin_bfin_ssync();
-		DPRINTK("PORTFIO_INEN = 0x%04X\n", regdata);
+		pr_debug("PORTFIO_INEN = 0x%04X\n", regdata);
 
 		regdata = bfin_read_PORTFIO_DIR();
 		regdata &= ~syncBits;
 		regdata &= ~PF15;	//enable PPI_CLOCK for input
 		bfin_write_PORTFIO_DIR(regdata);
 		__builtin_bfin_ssync();
-		DPRINTK("PORTFIO_DIR = 0x%04X\n", regdata);
+		pr_debug("PORTFIO_DIR = 0x%04X\n", regdata);
 	}
 
 	bfin_write_PORT_MUX(portmux);
 	__builtin_bfin_ssync();
-	DPRINTK("PORT_MUX = 0x%04X (after)\n", portmux);
+	pr_debug("PORT_MUX = 0x%04X (after)\n", portmux);
 }
 #endif
 
@@ -316,20 +313,24 @@ void ppi_reg_reset(ppi_device_t * pdev)
  *
  * CAUTION:
  */
-static irqreturn_t ppi_irq(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t ppi_irq(int irq, void *dev_id)
 {
 	unsigned short regdata;
+	unsigned long flags;
 	ppi_device_t *pdev = (ppi_device_t *) dev_id;
 
-	DPRINTK("ppi_irq:\n");
+	spin_lock_irqsave(&ppi_lock, flags);
+	pr_debug("ppi_irq:\n");
 	get_ppi_reg(DMA0_IRQ_STATUS, &regdata);
 
 	if (!(regdata & DMA_DONE)) {
-		DPRINTK("DMA0_IRQ_STATUS = %X\n", regdata);
+		pr_debug("DMA0_IRQ_STATUS = %X\n", regdata);
 	}
+	spin_unlock_irqrestore(&ppi_lock, flags);
 
 	clear_dma_irqstat(CH_PPI);
 
+	spin_lock_irqsave(&ppi_lock, flags);
 	pdev->done = 1;
 
 	if (pdev->access_mode == PPI_WRITE)
@@ -340,7 +341,8 @@ static irqreturn_t ppi_irq(int irq, void *dev_id, struct pt_regs *regs)
 	pdev->ppi_control = regdata & ~PORT_EN;
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
 	__builtin_bfin_ssync();
-
+	spin_unlock_irqrestore(&ppi_lock, flags);
+	
 	// disable DMA
 	disable_dma(CH_PPI);
 
@@ -351,7 +353,7 @@ static irqreturn_t ppi_irq(int irq, void *dev_id, struct pt_regs *regs)
 	/* wake up read/write block. */
 	wake_up_interruptible(pdev->rx_avail);
 
-	DPRINTK("ppi_irq: return\n");
+	pr_debug("ppi_irq: return\n");
 
 	return IRQ_HANDLED;
 }
@@ -377,13 +379,19 @@ static irqreturn_t ppi_irq(int irq, void *dev_id, struct pt_regs *regs)
  *
  * CAUTION:
  */
-static irqreturn_t ppi_irq_error(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t ppi_irq_error(int irq, void *dev_id)
 {
+	unsigned long flags;
+
+	spin_lock_irqsave(&ppi_lock, flags);
+	
 	printk(KERN_ERR "PPI Error: PPI Status = 0x%X \n",
 	       bfin_read_PPI_STATUS());
 
 	/* Add some more Error Handling Code Here */
 	bfin_clear_PPI_STATUS();
+	
+	spin_unlock_irqrestore(&ppi_lock, flags);
 
 	return IRQ_HANDLED;
 }
@@ -415,12 +423,14 @@ static int
 ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 {
 	unsigned short regdata;
+	unsigned long flags;
 	ppi_device_t *pdev = filp->private_data;
 
+	spin_lock_irqsave(&ppi_lock, flags);
 	switch (cmd) {
 	case CMD_PPI_PORT_ENABLE:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_PORT_ENABLE\n");
+			pr_debug("ppi_ioctl: CMD_PPI_PORT_ENABLE\n");
 			regdata = bfin_read_PPI_CONTROL();
 			pdev->portenable = (unsigned short)arg;
 			if (arg)
@@ -433,7 +443,7 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 		}
 	case CMD_PPI_PORT_DIRECTION:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_PORT_DIRECTION\n");
+			pr_debug("ppi_ioctl: CMD_PPI_PORT_DIRECTION\n");
 			regdata = bfin_read_PPI_CONTROL();
 			if (arg)
 				regdata |= PORT_DIR;
@@ -445,9 +455,9 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 		}
 	case CMD_PPI_XFR_TYPE:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_XFR_TYPE\n");
+			pr_debug("ppi_ioctl: CMD_PPI_XFR_TYPE\n");
 			if (arg < 0 || arg > 3)
-				return -EINVAL;
+				goto err_inval;
 			regdata = bfin_read_PPI_CONTROL();
 			regdata &= ~XFR_TYPE;
 			regdata |= ((unsigned short)arg << 2);
@@ -457,9 +467,9 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 		}
 	case CMD_PPI_PORT_CFG:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_PORT_CFG\n");
+			pr_debug("ppi_ioctl: CMD_PPI_PORT_CFG\n");
 			if (arg < 0 || arg > 3)
-				return -EINVAL;
+				goto err_inval;
 			regdata = bfin_read_PPI_CONTROL();
 			regdata &= ~PORT_CFG;
 			regdata |= ((unsigned short)arg << 4);
@@ -469,7 +479,7 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 		}
 	case CMD_PPI_FIELD_SELECT:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_FIELD_SELECT\n");
+			pr_debug("ppi_ioctl: CMD_PPI_FIELD_SELECT\n");
 			regdata = bfin_read_PPI_CONTROL();
 			if (arg)
 				regdata |= FLD_SEL;
@@ -481,7 +491,7 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 		}
 	case CMD_PPI_PACKING:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_PACKING\n");
+			pr_debug("ppi_ioctl: CMD_PPI_PACKING\n");
 			regdata = bfin_read_PPI_CONTROL();
 			if (arg)
 				regdata |= PACK_EN;
@@ -493,7 +503,7 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 		}
 	case CMD_PPI_SKIPPING:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_SKIPPING\n");
+			pr_debug("ppi_ioctl: CMD_PPI_SKIPPING\n");
 			regdata = bfin_read_PPI_CONTROL();
 			if (arg)
 				regdata |= SKIP_EN;
@@ -505,7 +515,7 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 		}
 	case CMD_PPI_SKIP_ODDEVEN:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_SKIP_ODDEVEN\n");
+			pr_debug("ppi_ioctl: CMD_PPI_SKIP_ODDEVEN\n");
 			regdata = bfin_read_PPI_CONTROL();
 			if (arg)
 				regdata |= SKIP_EO;
@@ -517,9 +527,9 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 		}
 	case CMD_PPI_DATALEN:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_DATALEN\n");
+			pr_debug("ppi_ioctl: CMD_PPI_DATALEN\n");
 			if (arg < 0 || arg > 7)
-				return -EINVAL;
+				goto err_inval;
 			pdev->datalen = (unsigned short)arg;
 			regdata = bfin_read_PPI_CONTROL();
 			regdata &= ~DLENGTH;
@@ -530,7 +540,7 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 		}
 	case CMD_PPI_CLK_EDGE:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_CLK_EDGE\n");
+			pr_debug("ppi_ioctl: CMD_PPI_CLK_EDGE\n");
 			regdata = bfin_read_PPI_CONTROL();
 			if (arg)
 				regdata |= POLC;
@@ -542,7 +552,7 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 		}
 	case CMD_PPI_TRIG_EDGE:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_TRIG_EDGE\n");
+			pr_debug("ppi_ioctl: CMD_PPI_TRIG_EDGE\n");
 			pdev->triggeredge = (unsigned short)arg;
 			regdata = bfin_read_PPI_CONTROL();
 			if (arg)
@@ -555,38 +565,38 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 		}
 	case CMD_PPI_LINELEN:
 		{
-			DPRINTK("ppi_ioctl:  CMD_PPI_LINELEN\n");
+			pr_debug("ppi_ioctl:  CMD_PPI_LINELEN\n");
 			if (arg < 0 || arg > PPI_DMA_MAXSIZE)
-				return -EINVAL;
+				goto err_inval;
 			pdev->linelen = (unsigned short)arg;
 			break;
 		}
 	case CMD_PPI_NUMLINES:
 		{
-			DPRINTK("ppi_ioctl:  CMD_PPI_NUMLINES\n");
+			pr_debug("ppi_ioctl:  CMD_PPI_NUMLINES\n");
 			if (arg < 0 || arg > PPI_DMA_MAXSIZE)
-				return -EINVAL;
+				goto err_inval;
 			pdev->numlines = (unsigned short)arg;
 			break;
 
 		}
 	case CMD_PPI_SET_WRITECONTINUOUS:
 		{
-			DPRINTK("ppi_ioctl:  CMD_PPI_SET_WRITECONTINUOUS\n");
+			pr_debug("ppi_ioctl:  CMD_PPI_SET_WRITECONTINUOUS\n");
 			pdev->cont = (unsigned char)arg;
 			break;
 
 		}
 	case CMD_PPI_SET_DIMS:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_SET_DIMS\n");
+			pr_debug("ppi_ioctl: CMD_PPI_SET_DIMS\n");
 			pdev->dimensions = (unsigned char)arg;
 			break;
 		}
 
 	case CMD_PPI_DELAY:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_DELAY\n");
+			pr_debug("ppi_ioctl: CMD_PPI_DELAY\n");
 			pdev->delay = (unsigned short)arg;
 			bfin_write_PPI_DELAY((unsigned short)pdev->delay);
 			__builtin_bfin_ssync();
@@ -597,7 +607,7 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 	case CMD_PPI_GET_ALLCONFIG:
 		{
 			unsigned short usreg;
-			DPRINTK("ppi_ioctl: CMD_PPI_GET_ALLCONFIG\n");
+			pr_debug("ppi_ioctl: CMD_PPI_GET_ALLCONFIG\n");
 
 			printk(KERN_INFO "opened: %d.\n", ppiinfo.opened);
 			printk(KERN_INFO "portenable: %d.\n",
@@ -626,16 +636,22 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 #endif
 	case CMD_PPI_SETGPIO:
 		{
-			DPRINTK("ppi_ioctl: CMD_PPI_SETGPIO\n");
+			pr_debug("ppi_ioctl: CMD_PPI_SETGPIO\n");
 #ifdef CONFIG_BF537
 			setup_gpio_for_PPI(ppiinfo.datalen);
 #endif
 			break;
 		}
 	default:
-		return -EINVAL;
+		goto err_inval;
 	}
+		
+	spin_unlock_irqrestore(&ppi_lock, flags);
 	return 0;
+	
+err_inval:
+	spin_unlock_irqrestore(&ppi_lock, flags);
+	return -EINVAL;
 }
 
 /*
@@ -695,14 +711,17 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 	unsigned short regdata;
 	unsigned short stepSize;
 	unsigned short port_cfg;
+	unsigned long flags;
 	int ierr;
 	ppi_device_t *pdev = filp->private_data;
 
-	DPRINTK("ppi_read(0x%08X, %d)\n", (int)buf, count);
+	pr_debug("ppi_read(0x%08X, %d)\n", (int)buf, (int)count);
 
 	if (count <= 0)
 		return 0;
 
+	spin_lock_irqsave(&ppi_lock, flags);
+	
 	pdev->done = 0;
 	pdev->access_mode = PPI_READ;
 
@@ -751,7 +770,7 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 	 ** 1D or 2D DMA
 	 */
 	if (pdev->dimensions == CFG_PPI_DIMS_2D) {	/* configure for 2D transfers */
-		DPRINTK
+		pr_debug
 		    ("PPI read -- 2D data xcount = linelen = %hd, ycount = numlines = %hd stepsize = %hd \n",
 		     pdev->linelen, pdev->numlines, stepSize);
 
@@ -769,11 +788,11 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 			set_dma_x_count(CH_PPI, count / 2);
 		else
 			set_dma_x_count(CH_PPI, count);
-		DPRINTK("PPI read -- 1D data count = %d\n",
-			pdev->datalen ? count / 2 : count);
+		pr_debug("PPI read -- 1D data count = %d\n",
+			(int)(pdev->datalen ? count / 2 : count));
 	}
 
-	//DPRINTK("dma_config = 0x%04hX\n", pdev->dma_config);
+	//pr_debug("dma_config = 0x%04hX\n", pdev->dma_config);
 
 	bfin_write_PPI_DELAY((unsigned short)pdev->delay);
 	__builtin_bfin_ssync();
@@ -812,36 +831,40 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
 	__builtin_bfin_ssync();
 
+	spin_unlock_irqrestore(&ppi_lock, flags);
+
 	/* Wait for data available */
 	if (1) {
 		if (pdev->nonblock)
 			return -EAGAIN;
 		else {
-			DPRINTK("PPI wait_event_interruptible\n");
+			pr_debug("PPI wait_event_interruptible\n");
 			ierr =
 			    wait_event_interruptible(*(pdev->rx_avail),
 						     pdev->done);
 			if (ierr) {
 				/* waiting is broken by a signal */
-				DPRINTK("PPI wait_event_interruptible ierr\n");
+				pr_debug("PPI wait_event_interruptible ierr\n");
 				return ierr;
 			}
 		}
 	}
 
-	DPRINTK("PPI wait_event_interruptible done\n");
+	pr_debug("PPI wait_event_interruptible done\n");
 
 	/*
 	 ** disable ppi and dma  -- order matters! see 9-16
 	 */
+	spin_lock_irqsave(&ppi_lock, flags);
 	regdata = bfin_read_PPI_CONTROL();
 	pdev->ppi_control = regdata & ~PORT_EN;
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
 	__builtin_bfin_ssync();
-
+	spin_unlock_irqrestore(&ppi_lock, flags);
+	
 	disable_dma(CH_PPI);
 
-	DPRINTK("ppi_read: return\n");
+	pr_debug("ppi_read: return\n");
 
 	return count;
 }
@@ -883,13 +906,16 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	unsigned int linePeriod;
 	unsigned int frameSize;
 	unsigned short stepSize;
+	unsigned long flags;
 	ppi_device_t *pdev = filp->private_data;
 
-	DPRINTK("ppi_write:\n");
+	pr_debug("ppi_write:\n");
 
 	if (count <= 0)
 		return 0;
 
+	spin_lock_irqsave(&ppi_lock, flags);
+	
 	pdev->done = 0;
 	pdev->access_mode = PPI_WRITE;
 
@@ -901,7 +927,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 					       INTR_ON_BUF,	// interrupt when whole transfer complete
 					       (pdev->numlines) ? DIMENSION_2D : DIMENSION_LINEAR,	// 2D or 1D
 					       DATA_SIZE_16);
-	DPRINTK("dma_config = 0x%04X\n", pdev->dma_config);
+	pr_debug("dma_config = 0x%04X\n", pdev->dma_config);
 	set_dma_config(CH_PPI, pdev->dma_config);
 	set_dma_start_addr(CH_PPI, (unsigned long)buf);
 
@@ -934,7 +960,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	fs1_timer_cfg |= TIMER_PERIOD_CNT;	// set up line sync to be recurring
 
 	if (pdev->dimensions == CFG_PPI_DIMS_2D) {	/* configure for 2D transfers */
-		DPRINTK("PPI write -- 2D data linelen = %hd, numlines = %hd\n",
+		pr_debug("PPI write -- 2D data linelen = %hd, numlines = %hd\n",
 			pdev->linelen, pdev->numlines);
 
 		linePeriod = pdev->linelen + pdev->delay;
@@ -960,7 +986,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 		set_gptimer_config(FS2_TIMER_ID, fs2_timer_cfg);
 		set_gptimer_period(FS2_TIMER_ID, frameSize);
 		set_gptimer_pwidth(FS2_TIMER_ID, frameSize);
-		DPRINTK
+		pr_debug
 		    ("Timer %d: (frame/vsync) config = %04hX, period = %d, width = %d\n",
 		     FS2_TIMER_ID, get_gptimer_config(FS2_TIMER_ID),
 		     get_gptimer_period(FS2_TIMER_ID),
@@ -970,13 +996,13 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 		set_gptimer_period(FS1_TIMER_ID, linePeriod);
 		//divide linelen by 4 due to TOGGLE_HI behavior
 		set_gptimer_pwidth(FS1_TIMER_ID, (pdev->linelen >> 2));
-		DPRINTK
+		pr_debug
 		    ("Timer %d: (line/hsync) config = %04hX, period = %d, width = %d\n",
 		     FS1_TIMER_ID, get_gptimer_config(FS1_TIMER_ID),
 		     get_gptimer_period(FS1_TIMER_ID),
 		     get_gptimer_pwidth(FS1_TIMER_ID));
 	} else {
-		DPRINTK("PPI write -- 1D data count = %d\n", count);
+		pr_debug("PPI write -- 1D data count = %d\n", (int)count);
 
 		t_mask = FS1_TIMER_BIT;
 
@@ -991,32 +1017,36 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 		set_gptimer_period(FS1_TIMER_ID, frameSize + 1);
 		set_gptimer_pwidth(FS1_TIMER_ID, frameSize);
 
-		DPRINTK("Timer %d: config = %04hX, period = %d, width = %d\n",
+		pr_debug("Timer %d: config = %04hX, period = %d, width = %d\n",
 			FS1_TIMER_ID, fs2_timer_cfg,
 			get_gptimer_period(FS1_TIMER_ID),
 			get_gptimer_pwidth(FS1_TIMER_ID));
 
 	}
 	__builtin_bfin_ssync();
+	spin_unlock_irqrestore(&ppi_lock, flags);
+	
 	enable_dma(CH_PPI);
 
 #if 0
 	regdata = bfin_read_PPI_COUNT();
-	DPRINTK("PPI_COUNT = %d\n", regdata);
+	pr_debug("PPI_COUNT = %d\n", regdata);
 	regdata = bfin_read_PPI_FRAME();
-	DPRINTK("PPI_FRAME = %d\n", regdata);
+	pr_debug("PPI_FRAME = %d\n", regdata);
 	regdata = bfin_read_PPI_DELAY();
-	DPRINTK("PPI_DELAY = %d\n", regdata);
+	pr_debug("PPI_DELAY = %d\n", regdata);
 #endif
 
 	// enable ppi
+	spin_lock_irqsave(&ppi_lock, flags);
+	
 	regdata = bfin_read_PPI_CONTROL();
 	regdata |= PORT_EN;
 	pdev->ppi_control = regdata;
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
 	__builtin_bfin_ssync();
-
-	DPRINTK("PPI_CONTROL(enabled) = %04hX\n", regdata);
+	
+	pr_debug("PPI_CONTROL(enabled) = %04hX\n", regdata);
 
 #ifdef CONFIG_BF533
 	// rewrite timer configuration registers per BF533 anomaly #25
@@ -1024,30 +1054,32 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	set_gptimer_config(FS2_TIMER_ID, fs2_timer_cfg);
 #endif
 
-	DPRINTK("enable_gptimers(mask=%d)\n", t_mask);
+	pr_debug("enable_gptimers(mask=%d)\n", t_mask);
 
 	enable_gptimers(t_mask);
 
 #ifdef DEBUG
 	regdata = get_dma_curr_irqstat(CH_PPI);
-	DPRINTK("DMA IRQ stat = 0x%04X\n", regdata);
+	pr_debug("DMA IRQ stat = 0x%04X\n", regdata);
 	regdata = bfin_read_PPI_STATUS();
-	DPRINTK("PPI status = 0x%04X\n", regdata);
+	pr_debug("PPI status = 0x%04X\n", regdata);
 #endif
 
+	spin_unlock_irqrestore(&ppi_lock, flags);
+	
 	/* Wait for DMA to finish */
 
 	if (!pdev->cont) {
 		if (pdev->nonblock) {
 			return -EAGAIN;
 		} else {
-			DPRINTK("PPI wait_event_interruptible\n");
+			pr_debug("PPI wait_event_interruptible\n");
 			ierr =
 			    wait_event_interruptible(*(pdev->rx_avail),
 						     pdev->done);
 			if (ierr) {
 				/* waiting is broken by a signal */
-				DPRINTK
+				pr_debug
 				    ("PPI wait_event_interruptible ierr = %d\n",
 				     ierr);
 				return ierr;
@@ -1055,10 +1087,11 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 		}
 	}
 
+	spin_lock_irqsave(&ppi_lock, flags);
 	get_ppi_reg(PPI_STATUS, &regdata);
-	DPRINTK("PPI Status reg: %x\n", regdata);
+	pr_debug("PPI Status reg: %x\n", regdata);
 
-	DPRINTK("ppi_write: return\n");
+	pr_debug("ppi_write: return\n");
 
 	/*
 	 ** disable ppi and dma  -- order matters! see 9-16
@@ -1067,7 +1100,8 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	pdev->ppi_control = regdata & ~PORT_EN;
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
 	__builtin_bfin_ssync();
-
+	spin_unlock_irqrestore(&ppi_lock, flags);
+	
 	disable_dma(CH_PPI);
 
 	return count;
@@ -1099,15 +1133,20 @@ static int ppi_open(struct inode *inode, struct file *filp)
 {
 	char intname[20];
 	int minor = MINOR(inode->i_rdev);
+	unsigned long flags;
 
-	DPRINTK("ppi_open:\n");
+	pr_debug("ppi_open:\n");
 
 	/* PPI ? */
 	if (minor != PPI0_MINOR)
 		return -ENXIO;
 
-	if (ppiinfo.opened)
+	spin_lock_irqsave(&ppi_lock, flags);
+	
+	if (ppiinfo.opened) {
+		spin_unlock_irqrestore(&ppi_lock, flags);
 		return -EMFILE;
+	}
 
 	/* Clear configuration information */
 	memset(&ppiinfo, 0, sizeof(ppi_device_t));
@@ -1126,6 +1165,8 @@ static int ppi_open(struct inode *inode, struct file *filp)
 	filp->private_data = &ppiinfo;
 
 	ppi_reg_reset(filp->private_data);
+		
+	spin_unlock_irqrestore(&ppi_lock, flags);
 
 	/* Request DMA0 channel, and pass the interrupt handler */
 
@@ -1141,7 +1182,7 @@ static int ppi_open(struct inode *inode, struct file *filp)
 		return -EFAULT;
 	}
 
-	DPRINTK("ppi_open: return\n");
+	pr_debug("ppi_open: return\n");
 
 	return 0;
 }
@@ -1170,18 +1211,21 @@ static int ppi_open(struct inode *inode, struct file *filp)
 static int ppi_release(struct inode *inode, struct file *filp)
 {
 	ppi_device_t *pdev = filp->private_data;
+	unsigned long flags;
 
-	DPRINTK("ppi_release: close()\n");
+	pr_debug("ppi_release: close()\n");
 
 	/* After finish DMA, release it. */
 	free_dma(CH_PPI);
 
+	spin_lock_irqsave(&ppi_lock, flags);
 	ppi_reg_reset(pdev);
 	pdev->opened = 0;
+	spin_unlock_irqrestore(&ppi_lock, flags);
 
 	ppi_fasync(-1, filp, 0);
 
-	DPRINTK("ppi_release: close() return\n");
+	pr_debug("ppi_release: close() return\n");
 	return 0;
 }
 
