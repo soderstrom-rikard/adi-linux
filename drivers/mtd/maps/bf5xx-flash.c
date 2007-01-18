@@ -42,6 +42,7 @@
 #include <asm/blackfin.h>
 #include <asm/io.h>
 #include <asm/unaligned.h>
+#include <asm/gpio.h>
 
 #ifndef CONFIG_BFIN
 #error This is for BlackFin BF5xx boards only
@@ -63,7 +64,7 @@ static inline void switch_to_flash(struct flash_save *save)
 {
 	local_irq_save(save->flags);
 
-	bfin_write_FIO_FLAG_C(CONFIG_ENET_FLASH_PIN);
+	gpio_set_value(CONFIG_ENET_FLASH_PIN, 0);
 
 	__builtin_bfin_ssync();
 
@@ -85,7 +86,7 @@ static inline void switch_back(struct flash_save *save)
 	bfin_write_EBIU_AMBCTL1(save->ambctl1);
 	__builtin_bfin_ssync();
 
-	bfin_write_FIO_FLAG_S(CONFIG_ENET_FLASH_PIN);
+	gpio_set_value(CONFIG_ENET_FLASH_PIN, 1);
 
 	local_irq_restore(save->flags);
 }
@@ -94,13 +95,18 @@ static inline void switch_back(struct flash_save *save) {}
 #endif
 
 #if defined(CONFIG_BFIN_SHARED_FLASH_ENET)
-static inline void setup_pfpins(void)
+static inline int setup_pfpins(void)
 {
-	bfin_write_FIO_INEN(bfin_read_FIO_INEN() & ~CONFIG_ENET_FLASH_PIN);
-	bfin_write_FIO_DIR(bfin_read_FIO_DIR() |  CONFIG_ENET_FLASH_PIN);
+	if(gpio_request(CONFIG_ENET_FLASH_PIN, NULL)){
+		printk(KERN_ERR "BF5xx flash: Failed ro request GPIO_%d\n", CONFIG_ENET_FLASH_PIN);
+		return -EBUSY;
+	}
+	gpio_direction_output(CONFIG_ENET_FLASH_PIN);
+
+	return 0;
 }
 #else
-static inline void setup_pfpins(void) {}
+static inline int setup_pfpins(void) {return 0;}
 #endif
 
 
@@ -241,7 +247,8 @@ int __init bf5xx_mtd_init(void)
 	bf5xx_map.bankwidth = 2;
 	bf5xx_map.size = bf5xx_max_flash_size;
 
-	setup_pfpins();
+	if(setup_pfpins())
+		return -EBUSY;
 
 	printk(KERN_NOTICE "BF5xx flash: probing %d-bit flash bus\n", bf5xx_map.bankwidth*8);
 	mymtd = do_map_probe("stm_flash", &bf5xx_map);
@@ -270,6 +277,9 @@ int __init bf5xx_mtd_init(void)
 static void __exit bf5xx_mtd_cleanup(void)
 {
 	if (mymtd) {
+#if defined(CONFIG_BFIN_SHARED_FLASH_ENET)
+		gpio_free(CONFIG_ENET_FLASH_PIN, NULL);
+#endif
 		del_mtd_partitions(mymtd);
 		map_destroy(mymtd);
 	}
