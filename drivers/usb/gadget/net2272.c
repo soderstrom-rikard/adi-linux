@@ -43,6 +43,7 @@
 #include <asm/irq.h>
 #include <asm/system.h>
 #include <asm/unaligned.h>
+#include <asm/gpio.h>
 
 #undef	DEBUG			/* messages on error and most fault paths */
 #undef	VERBOSE			/* extra debug messages (success too) */
@@ -2470,6 +2471,11 @@ static int net2272_remove (struct device *_dev)
 	dev_set_drvdata (_dev, 0);
 	the_controller = NULL;
 
+#ifdef CONFIG_BF533
+	gpio_free(GPIO_0);
+	gpio_free(GPIO_1);
+#endif
+
 	return 0;
 }
 
@@ -2495,12 +2501,21 @@ static int net2272_probe (struct device *_dev)
 			base = iomem->start;
 #ifdef CONFIG_BF533
 		/* Set PF0 to 0, PF1 to 1 make ASM3 work properly */
-		__builtin_bfin_ssync();
-		bfin_write_FIO_DIR(bfin_read_FIO_DIR() | 3);
-		__builtin_bfin_ssync();
-		bfin_write_FIO_FLAG_C(bfin_read_FIO_FLAG_C() | 1);
-		bfin_write_FIO_FLAG_S(bfin_read_FIO_FLAG_S() | 2);
-		__builtin_bfin_ssync();
+
+	if(gpio_request(GPIO_0, NULL)){
+		printk(KERN_ERR "BF5xx flash: Failed ro request Card Detect GPIO_%d\n", GPIO_0);
+		return -EBUSY;
+	}
+	if(gpio_request(GPIO_1, NULL)){
+		printk(KERN_ERR "BF5xx flash: Failed ro request Card Detect GPIO_%d\n", GPIO_1);
+		gpio_free(GPIO_0);
+		return -EBUSY;
+	}
+	gpio_direction_output(GPIO_0);
+	gpio_direction_output(GPIO_1);
+	gpio_set_value(GPIO_0, 0);
+	gpio_set_value(GPIO_1, 1);
+
 #endif
 	}
 #endif
