@@ -278,7 +278,7 @@ static void __exit bf5xx_mtd_cleanup(void)
 {
 	if (mymtd) {
 #if defined(CONFIG_BFIN_SHARED_FLASH_ENET)
-		gpio_free(CONFIG_ENET_FLASH_PIN, NULL);
+		gpio_free(CONFIG_ENET_FLASH_PIN);
 #endif
 		del_mtd_partitions(mymtd);
 		map_destroy(mymtd);
