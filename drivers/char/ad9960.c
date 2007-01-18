@@ -128,12 +128,14 @@ struct ad9960_device_t{
 	unsigned short *gpio;
 	wait_queue_head_t *rx_avail;
 	unsigned short* buffer;
+	spinlock_t lock;
 };
 
 /************************************************************/
 
 /* Globals */
 
+static DEFINE_SPINLOCK(ad9960_global_lock);
 static DECLARE_WAIT_QUEUE_HEAD(ad9960_rxq);
 struct ad9960_device_t ad9960_info;
 int ad9960_spi_read(struct ad9960_spi *spi, unsigned short data,
@@ -149,7 +151,8 @@ static irqreturn_t ad9960_ppi_irq(int irq, void *dev_id, struct pt_regs *regs)
 	struct ad9960_device_t *pdev = (struct ad9960_device_t*)dev_id;
 
 	pr_debug("ad9960_ppi_irq: begin\n");
-
+	
+	spin_lock(&pdev->lock);
 	/* Acknowledge DMA Interrupt*/
 	clear_dma_irqstat(CH_PPI);
 
@@ -157,7 +160,7 @@ static irqreturn_t ad9960_ppi_irq(int irq, void *dev_id, struct pt_regs *regs)
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() &  ~PORT_EN);
 
 	pdev->done = 1;
-
+	spin_unlock(&pdev->lock);
 	/* Give a signal to user program. */
 	if(pdev->fasyc)
 		kill_fasync(&(pdev->fasyc), SIGIO, POLLIN);
@@ -177,8 +180,13 @@ static irqreturn_t ad9960_ppi_irq(int irq, void *dev_id, struct pt_regs *regs)
 static int ad9960_fasync(int fd, struct file *filp, int on)
 {
 	struct ad9960_device_t *pdev = filp->private_data;
+	int result;
 
-	return fasync_helper(fd, filp, on, &(pdev->fasyc));
+	spin_lock(&pdev->lock);
+	result = fasync_helper(fd, filp, on, &(pdev->fasyc));
+	spin_unlock(&pdev->lock);
+
+	return result;
 }
 
 static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *pos)
@@ -196,6 +204,7 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 
 	pr_debug("ad9960_read: count = %d\n", (unsigned int)count);
 
+	spin_lock(&pdev->lock);
 	if((unsigned int)count <= 0)
 		return 0;
 
@@ -269,6 +278,7 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 	bfin_write16(AD9960_TX_RX_PORT,bfin_read16(AD9960_TX_RX_PORT) &
 		       	(~(1 << CONFIG_AD9960_TX_RX_PIN)));
 	__builtin_bfin_ssync();
+	spin_unlock(&pdev->lock);
 
 	pr_debug("ad9960_read: PPI ENABLED : DONE \n");
 	/* Wait for data available */
@@ -287,7 +297,7 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 	}
 
 	pr_debug("PPI wait_event_interruptible done\n");
-
+	spin_lock(&pdev->lock);
 	l1_data_A_sram_free(descriptors);
 	disable_dma(CH_PPI);
 	bfin_write16(AD9960_TX_RX_PORT,bfin_read16(AD9960_TX_RX_PORT) |
@@ -312,6 +322,8 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 	dma_buf = (void*)pdev->buffer;
 
 	pr_debug("ad9960_write: \n");
+	
+	spin_lock(&pdev->lock);
 
 	if(count <= 0)
 		return 0;
@@ -435,6 +447,7 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 	bfin_write16(AD9960_TX_RX_PORT,bfin_read16(AD9960_TX_RX_PORT) & 
 			(~(1 << CONFIG_AD9960_TX_RX_PIN)));
 	__builtin_bfin_ssync();
+	spin_unlock(&pdev->lock);
 	pr_debug("ppi_write: return \n");
 
 	return count;
@@ -452,19 +465,25 @@ static int ad9960_ioctl(struct inode *inode, struct file *filp, uint cmd, unsign
 	case CMD_SPI_WRITE:
 		pr_debug("ad9960_ioctl: CMD_SPI_WRITE addr: %x, data: %x\n", 
 				(value&0xff00)>>8, (value&0x00ff));
+		spin_lock(&ad9960_info.lock);
 		ad9960_spi_read(ad9960_info.spi_dev, value,&readin);   
-		pr_debug("ad9960_ioctl: CMD_SPI_WRITE read: %04x\n",readin);
 		spi_cmd->readBack = readin&0x00FF;
+		spin_unlock(&ad9960_info.lock);
+		pr_debug("ad9960_ioctl: CMD_SPI_WRITE read: %04x\n",readin);
 		break;
 	case CMD_GET_SCLK:
 		pr_debug("ad9960_ioctl: CMD_GET_SCLK\n");
+		spin_lock(&ad9960_info.lock);
 		sclk = get_sclk();
 		copy_to_user((unsigned long *)arg, &sclk, sizeof(unsigned long));
+		spin_unlock(&ad9960_info.lock);
 		break;
 	case CMD_GET_PPI_BUF:
 		pr_debug("ad9960_ioctl: CMD_GET_PPI_BUF\n");
+		spin_lock(&ad9960_info.lock);
 		copy_to_user((unsigned long *)arg, &ad9960_info.buffer, 
 				sizeof(unsigned long));
+		spin_unlock(&ad9960_info.lock);
 	default:
 		return -EINVAL;
 	}
@@ -478,6 +497,8 @@ static int ad9960_open (struct inode *inode, struct file *filp)
 	int i;
 
 	pr_debug("ad9960_open: \n");
+
+	spin_lock(&ad9960_info.lock);
 
 	/* PPI ? */
 	if(minor != AD9960_MINOR) return -ENXIO;
@@ -530,6 +551,7 @@ static int ad9960_open (struct inode *inode, struct file *filp)
 	for(i=0;i<256;i++){
 		ad9960_spi_write(ad9960_info.spi_dev, 0x1F00);
 	}
+	spin_unlock(&ad9960_info.lock);
 	
 	pr_debug("ppi_open: return \n");
 
@@ -542,12 +564,12 @@ static int ad9960_release (struct inode *inode, struct file *filp)
 
 	pr_debug("ad9960_release: close() \n");
 
+	spin_lock(&pdev->lock);
 	/* After finish DMA, release it. */
 	free_dma(CH_PPI);
-
 	pdev->opened = 0;
-
 	ad9960_fasync(-1, filp, 0);
+	spin_unlock(&pdev->lock);
 
 	pr_debug("ad9960_release: close() return \n");
 	return 0;
@@ -575,12 +597,16 @@ int ad9960_spi_read(struct ad9960_spi *spi, unsigned short data,
 		.len =2,
 	};
 	struct spi_message m;
+	int status;
 
+	spin_lock(&ad9960_global_lock);
 	spi_message_init(&m);
 	spi_message_add_tail(&t, &m);
 	spi_message_add_tail(&r, &m);
+	status = spi_sync(spi->spi, &m);
+	spin_unlock(&ad9960_global_lock);
 
-	return spi_sync(spi->spi, &m);
+	return status;
 }
 
 int ad9960_spi_write(struct ad9960_spi *spi, unsigned short data)
@@ -590,11 +616,15 @@ int ad9960_spi_write(struct ad9960_spi *spi, unsigned short data)
 		.len = 2,
 	};
 	struct spi_message m;
+	int status;
 
+	spin_lock(&ad9960_global_lock);
 	spi_message_init(&m);
 	spi_message_add_tail(&t, &m);
+	status = spi_sync(spi->spi, &m);
+	spin_unlock(&ad9960_global_lock);
 
-	return spi_sync(spi->spi, &m);
+	return status;
 }
 
 static int __devinit ad9960_spi_probe(struct spi_device *spi)
@@ -602,6 +632,7 @@ static int __devinit ad9960_spi_probe(struct spi_device *spi)
 	struct ad9960_spi       *chip;
 
 	pr_info("ad9960_spi_probe\n");
+	spin_lock(&ad9960_global_lock);
 	chip = kmalloc(sizeof(struct ad9960_spi), GFP_KERNEL);
 	if(!chip) {
 		return -ENOMEM;
@@ -611,6 +642,7 @@ static int __devinit ad9960_spi_probe(struct spi_device *spi)
 
 	chip->spi = spi;
 	ad9960_info.spi_dev = chip;
+	spin_unlock(&ad9960_global_lock);
 
 	return 0;
 }
@@ -664,6 +696,7 @@ static int __init ad9960_init(void)
 	printk("ad9960: AD9960 driver, irq:%d \n",IRQ_PPI);
 
 	ad9960_info.buffer = (unsigned short *)_ramend;
+	spin_lock_init(&ad9960_info.lock);
 
 	if((unsigned int)ad9960_info.buffer >= physical_mem_end) {
 		printk(KERN_ERR "ad9960: ERROR: _ramend = physical_mem_end"
