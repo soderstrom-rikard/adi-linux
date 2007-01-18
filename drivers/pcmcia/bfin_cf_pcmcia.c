@@ -39,6 +39,7 @@
 #include <pcmcia/ss.h>
 #include <pcmcia/cisreg.h>
 #include <asm/io.h>
+#include <asm/gpio.h>
 
 #define SZ_1K			0x00000400
 #define SZ_8K			0x00002000
@@ -49,7 +50,7 @@
 #define CF_ATASEL_ENA 	0x20311802 /* Inverts RESET */
 #define CF_ATASEL_DIS 	0x20311800
 
-#define bfin_cf_present(pfx) (bfin_read_FIO_FLAG_D() & (1<<pfx))
+#define bfin_cf_present(pfx) (gpio_get_value(pfx))
 
 /*--------------------------------------------------------------------------*/
 
@@ -214,9 +215,11 @@ static int __init bfin_cf_probe(struct device *dev)
 	if (cd_pfx > MAX_BLACKFIN_GPIOS)
 		return -EINVAL;
 
-
-    bfin_write_FIO_DIR(bfin_read_FIO_DIR() & ~(1 << cd_pfx));   /* input */
-    bfin_write_FIO_INEN(bfin_read_FIO_INEN() | (1 << cd_pfx));   /* enable pin */
+	if(gpio_request(cd_pfx, NULL)){
+		printk(KERN_ERR "BF5xx flash: Failed ro request Card Detect GPIO_%d\n", cd_pfx);
+		return -EBUSY;
+	}
+	gpio_direction_input(cd_pfx);
 
 	cf = kcalloc(1, sizeof *cf, GFP_KERNEL);
 	if (!cf)
@@ -285,6 +288,7 @@ static int __devexit bfin_cf_remove(struct device *dev)
 {
 	struct bfin_cf_socket *cf = dev_get_drvdata(dev);
 
+	gpio_free(cf->cd_pfx);
 	cf->active = 0;
 	pcmcia_unregister_socket(&cf->socket);
 	del_timer_sync(&cf->timer);
@@ -305,13 +309,12 @@ static struct device_driver bfin_cf_driver = {
 
 static int __init bfin_cf_init(void)
 {
-		driver_register(&bfin_cf_driver);
-	return 0;
+	return driver_register(&bfin_cf_driver);
 }
 
 static void __exit bfin_cf_exit(void)
 {
-		driver_unregister(&bfin_cf_driver);
+	driver_unregister(&bfin_cf_driver);
 }
 
 module_init(bfin_cf_init);
