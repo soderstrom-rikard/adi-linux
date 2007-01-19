@@ -11,27 +11,6 @@ config AD9960
 	default n
 	---help---
 
-choice
-        prompt  "TX/RX enable signal PORT Selection"
-	depends on AD9960
-        ---help---
-
-config AD9960_TX_RX_PORT_F
-        bool 'Select PORTF as TX/RX enable signal'
-        help
-
-config AD9960_TX_RX_PORT_G
-        bool 'Select PORTG as TX/RX enable signal'
-        depends on (BF537 || BF536 || BF534)
-        help
-
-config AD9960_TX_RX_PORT_H
-        bool 'Select PORTH as TX/RX enable signal'
-        depends on (BF537 || BF536 || BF534)
-        help
-
-endchoice
-
 config AD9960_TX_RX_PIN
         int "The pin in GPIO port for selecting tx/rx enable signal"
         depends on AD9960

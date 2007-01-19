@@ -46,6 +46,7 @@
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/blackfin.h>
+#include <asm/gpio.h>
 #include <asm/dma.h>
 #include <asm/cacheflush.h>
 #include <asm/bfin5xx_spi.h>
@@ -65,27 +66,6 @@
 #define CMD_GET_PPI_BUF		0x4
 
 extern unsigned long physical_mem_end;
-
-#ifdef CONFIG_AD9960_TX_RX_PORT_F
-# define AD9960_TX_RX_PORT PORTFIO
-# define AD9960_TX_RX_PORT_DIR PORTFIO_DIR
-# define AD9960_TX_RX_PORT_INEN PORTFIO_INEN
-# define AD9960_TX_RX_PORT_FER  PORTF_FER
-#endif
-
-#ifdef CONFIG_AD9960_TX_RX_PORT_G
-# define AD9960_TX_RX_PORT PORTGIO
-# define AD9960_TX_RX_PORT_DIR PORTGIO_DIR
-# define AD9960_TX_RX_PORT_INEN PORTGIO_INEN
-# define AD9960_TX_RX_PORT_FER  PORTG_FER
-#endif
-
-#ifdef CONFIG_AD9960_TX_RX_PORT_H
-# define AD9960_TX_RX_PORT PORTHIO
-# define AD9960_TX_RX_PORT_DIR PORTHIO_DIR
-# define AD9960_TX_RX_PORT_INEN PORTHIO_INEN
-# define AD9960_TX_RX_PORT_FER  PORTH_FER
-#endif
 
 struct spi_command
 {
@@ -214,8 +194,7 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() & ~ PORT_EN);
 	/* Disable dma */
 	disable_dma(CH_PPI);
-	bfin_write16(AD9960_TX_RX_PORT,bfin_read16(AD9960_TX_RX_PORT) | 
-			(1 << CONFIG_AD9960_TX_RX_PIN));
+	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 1);
 	bfin_write_PORTG_FER(0xFFFF);
 	__builtin_bfin_ssync();
 
@@ -275,8 +254,7 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
 	__builtin_bfin_ssync();
 
-	bfin_write16(AD9960_TX_RX_PORT,bfin_read16(AD9960_TX_RX_PORT) &
-		       	(~(1 << CONFIG_AD9960_TX_RX_PIN)));
+	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 0);
 	__builtin_bfin_ssync();
 	spin_unlock(&pdev->lock);
 
@@ -300,8 +278,7 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 	spin_lock(&pdev->lock);
 	l1_data_A_sram_free(descriptors);
 	disable_dma(CH_PPI);
-	bfin_write16(AD9960_TX_RX_PORT,bfin_read16(AD9960_TX_RX_PORT) |
-			(1 << CONFIG_AD9960_TX_RX_PIN));
+	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 1);
 	__builtin_bfin_ssync();
 
 	pr_debug("ppi_read: return \n");
@@ -334,8 +311,7 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() & ~PORT_EN);
 	/* Disable dma */
 	disable_dma(CH_PPI);
-	bfin_write16(AD9960_TX_RX_PORT,bfin_read16(AD9960_TX_RX_PORT) &
-		       (~(1 << CONFIG_AD9960_TX_RX_PIN)));
+	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 0);
 	__builtin_bfin_ssync();
 
 	/* setup PPI */
@@ -414,8 +390,7 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
 	__builtin_bfin_ssync();
 
-	bfin_write16(AD9960_TX_RX_PORT,bfin_read16(AD9960_TX_RX_PORT) |
-			(1 << CONFIG_AD9960_TX_RX_PIN));
+	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 1);
 	__builtin_bfin_ssync();
 
 	pr_debug("ad9960_write: PPI ENABLED : DONE \n");
@@ -444,8 +419,7 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 	__builtin_bfin_ssync();
 #endif
 
-	bfin_write16(AD9960_TX_RX_PORT,bfin_read16(AD9960_TX_RX_PORT) & 
-			(~(1 << CONFIG_AD9960_TX_RX_PIN)));
+	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 0);
 	__builtin_bfin_ssync();
 	spin_unlock(&pdev->lock);
 	pr_debug("ppi_write: return \n");
@@ -673,12 +647,9 @@ static int __init ad9960_init(void)
 	/* Enable PPI_CLK(PF15) and PPI_FS1(PF9) */
 	bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x8200);    
 	/* PF8 select AD9960 TX/RX */
-	bfin_write16(AD9960_TX_RX_PORT_FER,bfin_read16(AD9960_TX_RX_PORT_FER) &
-		       (~(1 << CONFIG_AD9960_TX_RX_PIN)));
-	bfin_write16(AD9960_TX_RX_PORT_DIR,bfin_read16(AD9960_TX_RX_PORT_DIR) |
-		       (1 << CONFIG_AD9960_TX_RX_PIN));
-	bfin_write16(AD9960_TX_RX_PORT,bfin_read16(AD9960_TX_RX_PORT) |
-		       (1 << CONFIG_AD9960_TX_RX_PIN));
+	gpio_request(CONFIG_AD9960_TX_RX_PIN, NULL);
+	gpio_direction_output(CONFIG_AD9960_TX_RX_PIN);
+	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 1);
 
 	bfin_write_PORTG_FER(0xFFFF);
 	bfin_write_TIMER0_CONFIG(bfin_read_TIMER0_CONFIG() | OUT_DIS);
@@ -714,6 +685,7 @@ static int __init ad9960_init(void)
 }
 static void __exit ad9960_exit(void)
 {
+	gpio_free(CONFIG_AD9960_TX_RX_PIN);
 	unregister_chrdev(AD9960_MAJOR, AD9960_DEVNAME);
 	spi_unregister_driver(&ad9960_spi_driver);
 }
