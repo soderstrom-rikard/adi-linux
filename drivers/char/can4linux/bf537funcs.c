@@ -54,6 +54,9 @@
  */
 #include "defs.h"
 #include <linux/delay.h>
+#include <asm/gpio.h>
+
+#define TIME_MEASURE_GPIO 6
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
 # error use the BlackFin CAN only with Kernel > 2.6
@@ -88,7 +91,7 @@ static const BTR_TAB_BFCAN_T can_btr_tab_bfcan[] = {
 */
 
 
-#ifdef DEBUG
+#if DEBUG
 int CAN_ShowStat (int minor)
 {
     if (dbgMask && (dbgMask & DBG_DATA)) {
@@ -171,35 +174,21 @@ unsigned long flags;
 int CAN_ChipReset (int minor)
 {
 int i;
-short temp_fix;		/* work-around to anomaly #22 to write PORT_MUX */
 
     DBGin("CAN_ChipReset");
     /*
      * Initialize Port Pins to have CAN TX/RX signals enabled
      * on GPIO port
      */
-#if 0
+
 /* Use defines from mach-bf537/defBF534.h
    and code from the "CAN_TX_RX_EXAMPLE/".
  */
-#define PORT_MUX 0xFFC0320C	/* Port Multiplexer Control Register */
-#define pPORT_MUX((volatile unsigned short *)PORT_MUX)
-#endif
 
-    temp_fix = bfin_read_PORT_MUX();   /* #22 work-around, read PORT_MUX before writing */
+
+    bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJCE_CAN);   /* Enable CAN Pins On Port J */
     __builtin_bfin_ssync();
 
-    bfin_write_PORT_MUX(PJCE_CAN);   /* Enable CAN Pins On Port J */
-    __builtin_bfin_ssync();
-    bfin_write_PORT_MUX(PJCE_CAN);   /* #22 work-around: write it a few times */
-    __builtin_bfin_ssync();
-    bfin_write_PORT_MUX(PJCE_CAN);   /* #22 work-around: write it a few times */
-    __builtin_bfin_ssync();
-
-    temp_fix = bfin_read_PORT_MUX();   /* #22 work-around: read PORT_MUX after writing */
-    __builtin_bfin_ssync();
-
-    /* printk(KERN_INFO "Set CAN TX/RX pins at %p to %04x\n", pPORT_MUX, temp_fix); */
 
     /* SW Reset */
     CANoutw(minor, cancontrol, (CAN_SRS | CAN_CCR));
@@ -358,16 +347,6 @@ short temp_fix;		/* work-around to anomaly #22 to write PORT_MUX */
     /* CAN_object_dump(RECEIVE_RTR_OBJ); */
     /* CAN_object_dump(RECEIVE_RTR_OBJ); */
 
-    __builtin_bfin_ssync();
-
-#if CONFIG_TIME_MEASURE
-    /* do we have some LEDS on the EVA board, use LED1*/
-    /* initialize Port pins for time measurement */
-    {
-	bfin_write_FIO_DIR(bfin_read_FIO_DIR() | (1 << 6));
-	bfin_write_FIO_INEN(bfin_read_FIO_INEN() & ~(1 << 6));
-    }
-#endif
 
     /* CAN_register_dump(); */
     DBGout();
@@ -722,6 +701,14 @@ int CAN_VendorInit (int minor)
     can_range[minor] = 0x600;
 /* End: 1. Vendor specific part ------------------------------------------- */
 
+#if CONFIG_TIME_MEASURE
+    if(gpio_request(TIME_MEASURE_GPIO, NULL)){
+	printk(KERN_ERR "Can[%d]: Failed ro request GPIO_%d\n",minor, TIME_MEASURE_GPIO);
+	return -EBUSY;
+    }
+    gpio_direction_output(TIME_MEASURE_GPIO);
+#endif
+
     /* Request the controllers address space */
 
     /* looks like not needed in uClinux with internal ressources ? */
@@ -749,12 +736,17 @@ int CAN_VendorInit (int minor)
         }
     }
 
+
     DBGout(); return 1;
 }
 
 
 int Can_RequestIrq(int minor, int irq,
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,18)
+	irqreturn_t (*handler)(int, void *))
+#else
 	irqreturn_t (*handler)(int, void *, struct pt_regs *))
+#endif
 {
 int err=0;
 
@@ -819,6 +811,10 @@ int Can_FreeIrq(int minor, int irq )
     free_irq(irq + 1, &Can_minors[minor]);
     free_irq(IRQ_CAN_ERROR, &Can_minors[minor]);
 
+#if CONFIG_TIME_MEASURE
+    gpio_free(TIME_MEASURE_GPIO);
+#endif
+
     DBGout();
     return 0;
 }
@@ -831,33 +827,13 @@ int Can_FreeIrq(int minor, int irq )
 /* switch LED on */
 inline void set_led(void)
 {
-unsigned short portx_fer;
-volatile unsigned short *set_or_clear;
-
-    set_or_clear = ((volatile unsigned short *) FIO_FLAG_S);
-    portx_fer = bfin_read_PORT_FER();
-    bfin_write_PORT_FER(0);
-    __builtin_bfin_ssync();
-    *set_or_clear = (1 << 6);    /* minor = 6 für LED1 */
-
-     bfin_write_PORT_FER(portx_fer);
-     __builtin_bfin_ssync();
+	gpio_set_value(TIME_MEASURE_GPIO, 1);
 }
 
 /* switch LED off */
 inline void reset_led(void)
 {
-unsigned short portx_fer;
-volatile unsigned short *set_or_clear;
-
-    set_or_clear = ((volatile unsigned short *) FIO_FLAG_C);
-    portx_fer = bfin_read_PORT_FER();
-    bfin_write_PORT_FER(0);
-    __builtin_bfin_ssync();
-    *set_or_clear = (1 << 6);    /* minor = 6 für LED1 */
-
-     bfin_write_PORT_FER(portx_fer);
-     __builtin_bfin_ssync();
+	gpio_set_value(TIME_MEASURE_GPIO, 0);
 }
 #endif
 
@@ -889,8 +865,11 @@ volatile unsigned short *set_or_clear;
  *
  *
  */
-
-irqreturn_t CAN_Interrupt ( int irq, void *dev_id, struct pt_regs *ptregs )
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,18)
+irqreturn_t CAN_Interrupt ( int irq, void *dev_id)
+#else
+irqreturn_t CAN_Interrupt ( int irq, void *dev_id, struct pt_regs *ptregs)
+#endif
 {
 unsigned int		gis, gif;
 unsigned int		stat;

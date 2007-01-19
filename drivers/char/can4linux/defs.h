@@ -30,6 +30,13 @@
 *
 */
 
+#ifdef CONFIG_BFIN /*Shut up Warnings*/
+#define CAN4LINUX_PCI 0
+#define CAN4LINUX_PCCARD 0
+#define LDDK_USE_PROCINFO 0
+#define CAN_USE_FILTER 0
+#define DEBUG 0
+#endif
 
 /* needed for 2.4 */
 #ifndef NOMODULE
@@ -371,8 +378,11 @@ extern struct	pci_dev *Can_pcidev[];
 /* extern int Can_RequestIrq(int minor, int irq, irq_handler_t handler); */
 /* extern int Can_RequestIrq(int minor, int irq, irqservice_t handler); */
 extern int Can_RequestIrq(int minor, int irq,
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,18)
+	irqreturn_t (*handler)(int, void *));
+#else
 	irqreturn_t (*handler)(int, void *, struct pt_regs *));
-
+#endif
 
 extern wait_queue_head_t CanWait[];
 extern wait_queue_head_t CanOutWait[];
@@ -507,7 +517,14 @@ extern int CAN_SendMessage(int, canmsg_t *);
 extern int CAN_GetMessage(int , canmsg_t *);
 extern int CAN_SetBTR(int, int, int);
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,18)
+extern irqreturn_t CAN_Interrupt(int irq, void *unused);
+#else
 extern irqreturn_t CAN_Interrupt(int irq, void *unused, struct pt_regs *ptregs);
+#endif
+
+
+
 
 extern int CAN_VendorInit(int);
 
