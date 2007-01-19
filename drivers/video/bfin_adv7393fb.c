@@ -52,6 +52,7 @@
 #include <asm/irq.h>
 #include <asm/dma.h>
 #include <asm/uaccess.h>
+#include <asm/gpio.h>
 
 #include <linux/dma-mapping.h>
 #include <linux/proc_fs.h>
@@ -283,11 +284,6 @@ static void bfin_config_ppi(struct adv7393fb_device *fbdev)
 	bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~0x0E00);
 #endif
 
-#if defined(BF533_FAMILY)
-	bfin_write_FIO_INEN(bfin_read_FIO_INEN() & ~(1 << 3));
-	bfin_write_FIO_DIR(bfin_read_FIO_DIR() |  (1 << 3));
-	bfin_write_FIO_FLAG_C(1 << 3);
-#endif
 
 #if defined(ANOMALY_05000183)
 	bfin_write_TIMER2_CONFIG(WDTH_CAP);
@@ -578,6 +574,16 @@ int __init bfin_adv7393_fb_init(void)
 	fbdev->line_len =
 	    fbdev->modes[mode].xres * (fbdev->modes[mode].bpp / 8);
 
+#if defined(BF533_FAMILY)
+	if(gpio_request(GPIO_3, NULL)){
+		printk(KERN_ERR "BF5xx bfin_adv7393_fb: Failed ro request GPIO_%d (FS3)\n", GPIO_3);
+		return -EBUSY;
+	}
+
+	gpio_direction_output(GPIO_3);
+	gpio_set_value(GPIO_3, 0);
+#endif
+
 	fbdev->fb_mem =
 	    dma_alloc_coherent(NULL, fbdev->fb_len, &fbdev->dma_handle,
 			       GFP_KERNEL);
@@ -831,6 +837,11 @@ static void __exit bfin_adv7393_fb_exit(void)
 	unregister_framebuffer(&drv->info);
 	i2c_del_driver(&i2c_driver_adv7393);
 	remove_proc_entry("driver/adv7393", NULL);
+
+#if defined(BF533_FAMILY)
+	gpio_free(GPIO_3);	/* FS3 */
+#endif
+
 	kfree(drv);
 }
 
