@@ -35,6 +35,7 @@
 #include <asm/dma.h>
 #include <asm/cacheflush.h>
 #include <asm/uaccess.h>
+#include <asm/gpio.h>
 #include <linux/delay.h>
 #include <linux/errno.h>
 #include <linux/fs.h>
@@ -53,23 +54,21 @@
 #include <linux/spinlock.h>
 #include <linux/time.h>
 #include <linux/timex.h>
-#include <linux/video_encoder.h>
-#include <linux/videodev.h>
-#include <linux/videodev2.h>
 #include <linux/wait.h>
 
+#include <media/v4l2-dev.h>
+
 #if defined(CONFIG_BF537)
-# define  uCAM_STANDBY 11
-# define  uCAM_LEDS     8
-# define  uCAM_TRIGGER 13
-# define  uCAM_FS3      3
+# define  uCAM_STANDBY  GPIO_PG11
+# define  uCAM_LEDS     GPIO_PG8
+# define  uCAM_TRIGGER  GPIO_PG13
 #endif
 
 #if defined(CONFIG_BF533)
-# define  uCAM_STANDBY  8
-# define  uCAM_LEDS    11
-# define  uCAM_TRIGGER  6
-# define  uCAM_FS3      3
+# define  uCAM_STANDBY  GPIO_8
+# define  uCAM_LEDS     GPIO_11
+# define  uCAM_TRIGGER  GPIO_6
+# define  uCAM_FS3      GPIO_3
 #endif
 
 #define  MAX_FRAME_WIDTH  1280
@@ -86,24 +85,6 @@
 
 #define  I2C_MT9M001 0xBA       /* Add I2C device ID for the Micron Moudule here */
 
-#define SET_FIO_DIR		1   /* Set the Peripheral Flag Direction Register */
-#define   OUTPUT 1
-#define   INPUT  0
-#define SET_FIO_POLAR		2   /* Set the Flag Source Polarity Register      */
-#define   ACTIVEHIGH_RISINGEDGE	0
-#define   ACTIVELOW_FALLINGEDGE 1
-#define SET_FIO_EDGE		3   /* Set the Flag Source Sensitivity Register   */
-#define   LEVEL	0
-#define   EDGE	1
-#define SET_FIO_BOTH		4   /* Set the Flag Set on BOTH Edges Register    */
-#define   SINGLEEDGE 0
-#define   BOTHEDGES  1
-#define SET_FIO_INEN		5   /* Set the Flag Input Enable Register         */
-#define   INPUT_DISABLE	0
-#define   INPUT_ENABLE	1
-#define SET_FLAG_VAL		6  /* Set the flag to a value                     */
-#define   ON  1
-#define   OFF 0
 
 #define NO_TRIGGER  16
 
@@ -282,7 +263,7 @@ static size_t ppi2dma(struct ppi_device_t *ppidev, char *buf, size_t count)
 	return count;
 }
 
-static irqreturn_t ppifcd_irq(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t ppifcd_irq(int irq, void *dev_id)
 {
 	size_t count=0;
 	struct uCam_buffer *tmp_buf;
@@ -326,7 +307,7 @@ static irqreturn_t ppifcd_irq(int irq, void *dev_id, struct pt_regs *regs)
 	return IRQ_HANDLED;
 }
 
-static irqreturn_t ppifcd_irq_error(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t ppifcd_irq_error(int irq, void *dev_id)
 {
 	struct ppi_device_t *pdev = (struct ppi_device_t*)dev_id;
 	BUG_ON(dev_id == NULL);
@@ -617,91 +598,6 @@ static int mt9m001_proc_init(void)
 }
 #endif /* DEBUG PROC FILE */
 
-
-static int gpio_set(int flag, int cmd, int state)
-{
-#if defined(CONFIG_BF537) || defined(CONFIG_BF536) || defined(CONFIG_BF534)
-	unsigned short portx_fer;
-	portx_fer = bfin_read_PORT_FER();
-	bfin_write_PORT_FER(bfin_read_PORT_FER() & ~(1 << flag));
-#endif
-
-	switch (cmd) {
-		case SET_FIO_DIR:
-			pr_debug("  gpio_set: SET_FIO_DIR   to %d on PF%d\n", state, flag);
-			if (state) {
-				/* OUTPUT */
-				bfin_write_FIO_DIR(bfin_read_FIO_DIR() | (1 << flag));
-			} else {
-				/* INPUT */
-				bfin_write_FIO_DIR(bfin_read_FIO_DIR() & ~(1 << flag));
-			}
-			break;
-
-		case SET_FIO_POLAR:
-			pr_debug("  gpio_set: SET_FIO_POLAR to %d on PF%d\n", state, flag);
-			if (state) {
-				/* ACTIVELOW_FALLINGEDGE */
-				bfin_write_FIO_POLAR(bfin_read_FIO_POLAR() | (1 << flag));
-			} else {
-				/* ACTIVEHIGH_RISINGEDGE */
-				bfin_write_FIO_POLAR(bfin_read_FIO_POLAR() & ~(1 << flag));
-				break;
-			}
-
-		case SET_FIO_EDGE:
-			pr_debug("  gpio_set: SET_FIO_EDGE  to %d on PF%d\n", state, flag);
-			if (state) {
-				/* EDGE */
-				bfin_write_FIO_EDGE(bfin_read_FIO_EDGE() | (1 << flag));
-			} else {
-				/* LEVEL */
-				bfin_write_FIO_EDGE(bfin_read_FIO_EDGE() & ~(1 << flag));
-			}
-			break;
-
-		case SET_FIO_BOTH:
-			pr_debug("  gpio_set: SET_FIO_BOTH  to %d on PF%d\n", state, flag);
-			if (state) {
-				/* BOTHEDGES */
-				bfin_write_FIO_BOTH(bfin_read_FIO_BOTH() | (1 << flag));
-			} else {
-				/* SINGLEEDGE */
-				bfin_write_FIO_BOTH(bfin_read_FIO_BOTH() & ~(1 << flag));
-			}
-			break;
-
-		case SET_FIO_INEN:
-			pr_debug("  gpio_set: SET_FIO_INEN  to %d on PF%d\n", state, flag);
-			if (state) {
-				/* OUTPUT_ENABLE */
-				bfin_write_FIO_INEN(bfin_read_FIO_INEN() | (1 << flag));
-			} else {
-				/* INPUT_DISABLE */
-				bfin_write_FIO_INEN(bfin_read_FIO_INEN() & ~(1 << flag));
-			}
-			break;
-
-		case SET_FLAG_VAL: {
-			int bit=2;
-			if (state) {
-				/* set  */
-				bfin_write_FIO_FLAG_S(1 << flag);
-			} else {
-				/* clear */
-				bfin_write_FIO_FLAG_C(1 << flag);
-			}
-			bit = (bfin_read_FIO_FLAG_D() & (1<<flag)) ? 1 : 0;
-			pr_debug("  gpio_set: SET_FLAG_VAL  to %d on PF%d\n", bit, flag);
-			break;
-		}
-
-		default:
-			pr_debug("  gpio_set: unknown cmd \n");
-			return -EINVAL;
-	}
-	return 0;
-}
 
 static int v4l2_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, void *arg)
 {
@@ -1223,7 +1119,7 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, u
 					uCam_dev->buffer[i].scyc = cycles();
 					uCam_dev->buffer[i].stime = jiffies;
 				}
-				gpio_set(uCAM_LEDS, SET_FLAG_VAL, ON);
+				gpio_set_value(uCAM_LEDS, 1);
 				uCam_dev->dma_buf = &uCam_dev->buffer[i];
 				uCam_dev->dma_buf->state = FRAME_GRABBING;
 				pr_debug("  grabbing frame %d [0x%p]\n", i, uCam_dev->dma_buf->data);
@@ -1354,14 +1250,6 @@ static int uCam_open(struct inode *inode, struct file *filp)
 		return -ENODEV;
 	}
 
-	/*  Turn FS3 frame synch off  */
-	gpio_set(uCAM_FS3, SET_FIO_DIR, OUTPUT);
-	gpio_set(uCAM_FS3, SET_FIO_POLAR, 0);
-	gpio_set(uCAM_FS3, SET_FIO_EDGE,  0);
-	gpio_set(uCAM_FS3, SET_FIO_BOTH,  0);
-	gpio_set(uCAM_FS3, SET_FIO_INEN,  0);
-	gpio_set(uCAM_FS3, SET_FLAG_VAL, OFF);
-
 	pr_debug("uCam_open:\n");
 
 	/* FIXME: use a proper mutex here */
@@ -1394,7 +1282,7 @@ static int uCam_open(struct inode *inode, struct file *filp)
 	} else
 		set_dma_callback(CH_PPI, ppifcd_irq, uCam_dev->ppidev);
 
-	if (request_irq(IRQ_PPI_ERROR, ppifcd_irq_error, SA_INTERRUPT, "PPI ERROR", uCam_dev->ppidev)) {
+	if (request_irq(IRQ_PPI_ERROR, ppifcd_irq_error, 0, "PPI ERROR", uCam_dev->ppidev)) {
 		printk(KERN_ERR "%s: Unable to attach PPI error IRQ\n", sensor_name);
 		free_dma(CH_PPI);
 		return -EFAULT;
@@ -1420,8 +1308,8 @@ static ssize_t uCam_read(struct file *filp, char *buf, size_t count, loff_t *pos
 
 	pr_debug("uCam_read called\n");
 
-	gpio_set(uCAM_LEDS, SET_FLAG_VAL, ON);
-	gpio_set(uCAM_TRIGGER, SET_FLAG_VAL, ON);
+	gpio_set_value(uCAM_LEDS, 1);
+	gpio_set_value(uCAM_TRIGGER, 1);
 
 	/* Window control registers
 	 * 0x01 10:0 first row to be read out (default 0x000C, 12)
@@ -1453,8 +1341,8 @@ static ssize_t uCam_read(struct file *filp, char *buf, size_t count, loff_t *pos
 	pr_debug("done (read %zi/%zi bytes)\n", res, count);
 	uCam_dev->frame_count++;
 
-	gpio_set(uCAM_TRIGGER, SET_FLAG_VAL, OFF);
-	gpio_set(uCAM_LEDS, SET_FLAG_VAL, OFF);
+	gpio_set_value(uCAM_LEDS, 0);
+	gpio_set_value(uCAM_TRIGGER, 0);
 
 	return res;
 }
@@ -1480,11 +1368,12 @@ static int uCam_close(struct inode *inode, struct file *filp)
 	struct ppi_device_t *pdev = uCam_dev->ppidev;
 	pr_debug("uCam_close called\n");
 
+ 	free_irq(IRQ_PPI_ERROR, uCam_dev->ppidev); 
 	ucam_reg_reset(pdev);
 	ppi_fasync(-1, filp, 0);
 	free_dma(CH_PPI);
 	pdev->opened = 0;
-	gpio_set(uCAM_LEDS, SET_FLAG_VAL, OFF);
+	gpio_set_value(uCAM_LEDS, 0);
 	pr_debug("  ...specified video device closed sucessfullly\n");
 	uCam_dev->user--;
 	module_put(THIS_MODULE);
@@ -1526,35 +1415,51 @@ static __exit void mt9m001_exit(void)
 
 	remove_proc_entry("uCam", &proc_root);
 
-	gpio_set(uCAM_STANDBY, SET_FLAG_VAL, ON);
+	/*  Turn FS3 frame synch off  */
+
+#if defined(BF533_FAMILY)
+	gpio_free(uCAM_FS3);
+#endif
+	gpio_free(uCAM_LEDS);
+	gpio_free(uCAM_TRIGGER);
+	gpio_free(uCAM_STANDBY);
 }
 
 static __init void mt9m001_init_cam_gpios(void)
 {
 	pr_debug("Initializing camera\n");
-	gpio_set(uCAM_LEDS, SET_FIO_DIR, OUTPUT);
-	gpio_set(uCAM_LEDS, SET_FIO_POLAR, 0);
-	gpio_set(uCAM_LEDS, SET_FIO_EDGE,  0);
-	gpio_set(uCAM_LEDS, SET_FIO_BOTH,  0);
-	gpio_set(uCAM_LEDS, SET_FIO_INEN,  0);
+
+	if(gpio_request(uCAM_LEDS, NULL)){
+		printk(KERN_ERR "uCam_open: Failed ro request GPIO_%d \n", uCAM_LEDS);
+		return;
+	}
+	if(gpio_request(uCAM_TRIGGER, NULL)){
+		printk(KERN_ERR "uCam_open: Failed ro request GPIO_%d \n", uCAM_TRIGGER);
+		gpio_free(uCAM_LEDS);
+		return;
+	}
+
+	if(gpio_request(uCAM_STANDBY, NULL)){
+		printk(KERN_ERR "uCam_open: Failed ro request GPIO_%d \n", uCAM_STANDBY);
+		gpio_free(uCAM_LEDS);
+		gpio_free(uCAM_TRIGGER);
+		return;
+	}
+
+	gpio_direction_output(uCAM_LEDS);
+
 	/* this will flash the LEDs to say hello */
-	gpio_set(uCAM_LEDS, SET_FLAG_VAL, ON);
+	gpio_set_value(uCAM_LEDS, 1);
 	mdelay(1);
-	gpio_set(uCAM_LEDS, SET_FLAG_VAL, OFF);
+	gpio_set_value(uCAM_LEDS, 0);	
+
 	/* Set trigger mode */
-	gpio_set(uCAM_TRIGGER, SET_FIO_DIR, OUTPUT);
-	gpio_set(uCAM_TRIGGER, SET_FIO_POLAR, 0);
-	gpio_set(uCAM_TRIGGER, SET_FIO_EDGE,  0);
-	gpio_set(uCAM_TRIGGER, SET_FIO_BOTH,  0);
-	gpio_set(uCAM_TRIGGER, SET_FIO_INEN,  0);
-	gpio_set(uCAM_TRIGGER, SET_FLAG_VAL, OFF);
+	gpio_direction_output(uCAM_TRIGGER);
+	gpio_set_value(uCAM_TRIGGER, 0);
+	
 	/* Take out of standby mode */
-	gpio_set(uCAM_STANDBY, SET_FIO_DIR, OUTPUT);
-	gpio_set(uCAM_STANDBY, SET_FIO_POLAR, 0);
-	gpio_set(uCAM_STANDBY, SET_FIO_EDGE,  0);
-	gpio_set(uCAM_STANDBY, SET_FIO_BOTH,  0);
-	gpio_set(uCAM_STANDBY, SET_FIO_INEN,  0);
-	gpio_set(uCAM_STANDBY, SET_FLAG_VAL, OFF);
+	gpio_direction_output(uCAM_STANDBY);
+	gpio_set_value(uCAM_STANDBY, 0);
 }
 
 static __init int mt9m001_init(void)
@@ -1577,8 +1482,19 @@ static __init int mt9m001_init(void)
 	if (mt9m001_proc_init())
 		printk(KERN_WARNING "Could not create proc entry\n");
 
-	printk(KERN_INFO "%s: micron i2c driver ready\n", sensor_name);
+	/*  Turn FS3 frame synch off  */
 
+#if defined(BF533_FAMILY)
+	if(gpio_request(uCAM_FS3, NULL)){
+		printk(KERN_ERR "uCam_open: Failed ro request GPIO_%d (FS3)\n", uCAM_FS3);
+		return -EBUSY;
+	}
+
+	gpio_direction_output(GPIO_3);
+	gpio_set_value(uCAM_FS3, 0);
+#endif
+
+	printk(KERN_INFO "%s: micron i2c driver ready\n", sensor_name);
 	return 0;
 }
 
