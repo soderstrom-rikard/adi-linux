@@ -180,7 +180,7 @@ static u16 hz_to_spi_baud(u32 speed_hz)
 	if ((sclk % (2*speed_hz)) > 0)
 		spi_baud++;
 
-	pr_debug("sclk = %d, speed_hz = %d, spi_baud = %d\n", sclk, speed_hz, spi_baud);
+	pr_debug("sclk = %ld, speed_hz = %d, spi_baud = %d\n", sclk, speed_hz, spi_baud);
 	
 	return spi_baud;
 }
