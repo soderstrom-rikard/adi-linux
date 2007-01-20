@@ -377,7 +377,7 @@ static int dpmc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
 				return -1;
 			if (cclk_mhz <= get_sclk()) {
 				pr_debug("Sorry, core clock has to be greater than system clock\n");
-				pr_debug("Current System Clock is %u MHz\n",get_sclk()/1000000);
+				pr_debug("Current System Clock is %lu MHz\n",get_sclk()/1000000);
 				return -1;
 			}
 			cclk_mhz = change_core_clock(cclk_mhz/MHZ);
