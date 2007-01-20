@@ -65,14 +65,15 @@
 
 void bfin_pm_suspend_standby_enter(void)
 {
-	u32 flags;
-
 #ifdef CONFIG_PM_WAKEUP_BY_GPIO
 	gpio_pm_wakeup_request(CONFIG_PM_WAKEUP_GPIO_NUMBER, WAKEUP_TYPE);
 #endif
 
-#if  defined(CONFIG_PM_WAKEUP_BY_GPIO) || defined(CONFIG_PM_WAKEUP_GPIO_API)
-	local_irq_save(flags);
+#if defined(CONFIG_PM_WAKEUP_BY_GPIO) || defined(CONFIG_PM_WAKEUP_GPIO_API)
+	{
+		u32 flags;
+
+		local_irq_save(flags);
 		
 		sleep_deeper(gpio_pm_setup()); /*Goto Sleep*/
 		
@@ -80,14 +81,14 @@ void bfin_pm_suspend_standby_enter(void)
 		
 		bfin_write_SIC_IWR(IWR_ENABLE_ALL);
 	
-	local_irq_restore(flags);
+		local_irq_restore(flags);
+	}
 #endif
 
 #if defined(CONFIG_PM_WAKEUP_GPIO_BY_SIC_IWR)
 	sleep_deeper(CONFIG_PM_WAKEUP_SIC_IWR);
 	bfin_write_SIC_IWR(IWR_ENABLE_ALL);
 #endif				/* CONFIG_PM_WAKEUP_GPIO_BY_SIC_IWR */
-
 }
 
 
@@ -175,7 +176,6 @@ struct pm_ops bfin_pm_ops = {
 
 static int __init bfin_pm_init(void)
 {
-
 	pm_set_ops(&bfin_pm_ops);
 	return 0;
 }
