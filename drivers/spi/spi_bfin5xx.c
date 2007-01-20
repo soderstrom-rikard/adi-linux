@@ -935,9 +935,9 @@ static int setup(struct spi_device *spi)
 	}
 
 	if (spi->mode & SPI_CPOL)
-		chip->ctl_reg & CPOL;
+		chip->ctl_reg &= CPOL;
 	if (spi->mode & SPI_CPHA)
-		chip->ctl_reg & CPHA;
+		chip->ctl_reg &= CPHA;
 
 	/* if any one SPI chip is registered and wants DMA, request the
 	   DMA channel for it */
