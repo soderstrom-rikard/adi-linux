@@ -19,7 +19,7 @@
  *         this superblock
  * >> 2.6: sb->s_fs_info  points to the yaffs_Device associated with this
  *         superblock
- * >> inode->i_private points to the associated yaffs_Object.
+ * >> inode->u.generic_ip points to the associated yaffs_Object.
  *
  * Acknowledgements:
  * * Luc van OostenRyck for numerous patches.
@@ -34,10 +34,12 @@ const char *yaffs_fs_c_version =
     "$Id$";
 extern const char *yaffs_guts_c_version;
 
+#include <linux/version.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19))
 #include <linux/config.h>
+#endif
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/version.h>
 #include <linux/slab.h>
 #include <linux/init.h>
 #include <linux/list.h>
@@ -89,7 +91,13 @@ unsigned yaffs_traceMask = YAFFS_TRACE_ALWAYS |
 
 /*#define T(x) printk x */
 
-#define yaffs_InodeToObject(iptr) ((yaffs_Object *)((iptr)->i_private))
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,18))
+#define yaffs_InodeToObjectLV(iptr) (iptr)->i_private
+#else
+#define yaffs_InodeToObjectLV(iptr) (iptr)->u.generic_ip
+#endif
+
+#define yaffs_InodeToObject(iptr) ((yaffs_Object *)(yaffs_InodeToObjectLV(iptr)))
 #define yaffs_DentryToObject(dptr) yaffs_InodeToObject((dptr)->d_inode)
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0))
@@ -189,8 +197,15 @@ static struct address_space_operations yaffs_file_address_operations = {
 };
 
 static struct file_operations yaffs_file_operations = {
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,18))
 	.read = do_sync_read,
 	.write = do_sync_write,
+	.aio_read = generic_file_aio_read,
+	.aio_write = generic_file_aio_write,
+#else
+	.read = generic_file_read,
+	.write = generic_file_write,
+#endif
 	.mmap = generic_file_mmap,
 	.flush = yaffs_file_flush,
 	.fsync = yaffs_sync_object,
@@ -408,7 +423,7 @@ static void yaffs_clear_inode(struct inode *inode)
 		 * the yaffs_Object.
 		 */
 		obj->myInode = NULL;
-		inode->i_private = NULL;
+		yaffs_InodeToObjectLV(inode) = NULL;
 
 		/* If the object freeing was deferred, then the real
 		 * free happens now.
@@ -704,6 +719,9 @@ static void yaffs_FillInodeFromObject(struct inode *inode, yaffs_Object * obj)
 		inode->i_mode = obj->yst_mode;
 		inode->i_uid = obj->yst_uid;
 		inode->i_gid = obj->yst_gid;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19))
+		inode->i_blksize = inode->i_sb->s_blocksize;
+#endif
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0))
 
 		inode->i_rdev = old_decode_dev(obj->yst_rdev);
@@ -755,7 +773,8 @@ static void yaffs_FillInodeFromObject(struct inode *inode, yaffs_Object * obj)
 			break;
 		}
 
-		inode->i_private = obj;
+		yaffs_InodeToObjectLV(inode) = obj;
+
 		obj->myInode = inode;
 
 	} else {
@@ -824,7 +843,7 @@ static ssize_t yaffs_file_write(struct file *f, const char *buf, size_t n,
 	} else {
 		T(YAFFS_TRACE_OS,
 		  (KERN_DEBUG
-		   "yaffs_file_write about to write writing %zd bytes"
+		   "yaffs_file_write about to write writing %d bytes"
 		   "to object %d at %d\n",
 		   n, obj->objectId, ipos));
 	}
@@ -832,7 +851,7 @@ static ssize_t yaffs_file_write(struct file *f, const char *buf, size_t n,
 	nWritten = yaffs_WriteDataToFile(obj, buf, ipos, n, 0);
 
 	T(YAFFS_TRACE_OS,
-	  (KERN_DEBUG "yaffs_file_write writing %zd bytes, %d written at %d\n",
+	  (KERN_DEBUG "yaffs_file_write writing %d bytes, %d written at %d\n",
 	   n, nWritten, ipos));
 	if (nWritten > 0) {
 		ipos += nWritten;
@@ -1321,7 +1340,7 @@ static int yaffs_statfs(struct super_block *sb, struct statfs *buf)
 }
 
 
-
+/**
 static int yaffs_do_sync_fs(struct super_block *sb)
 {
 
@@ -1340,7 +1359,7 @@ static int yaffs_do_sync_fs(struct super_block *sb)
 	}
 	return 0;
 }
-
+**/
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,17))
 static void yaffs_write_super(struct super_block *sb)
@@ -1946,7 +1965,7 @@ static int yaffs_proc_write(struct file *file, const char *buf,
 	char *end, *mask_name;
 	int i;
 	int done = 0;
-	int add, len;
+	int add, len = 0;
 	int pos = 0;
 
 	rg = yaffs_traceMask;

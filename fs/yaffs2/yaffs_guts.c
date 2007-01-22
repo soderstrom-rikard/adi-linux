@@ -4687,6 +4687,7 @@ static int yaffs_Scan(yaffs_Device * dev)
 	int deleted;
 	yaffs_BlockState state;
 	yaffs_Object *hardList = NULL;
+	yaffs_Object *hl;
 	yaffs_BlockInfo *bi;
 	int sequenceNumber;
 	yaffs_ObjectHeader *oh;
@@ -6655,7 +6656,7 @@ static void yaffs_VerifyFreeChunks(yaffs_Device * dev)
 #define yaffs_CheckStruct(structure,syze, name) \
            if(sizeof(structure) != syze) \
 	       { \
-	         T(YAFFS_TRACE_ALWAYS,(TSTR("%s should be %d but is %zd\n" TENDSTR),\
+	         T(YAFFS_TRACE_ALWAYS,(TSTR("%s should be %d but is %d\n" TENDSTR),\
 		 name,syze,sizeof(structure))); \
 	         return YAFFS_FAIL; \
 		}

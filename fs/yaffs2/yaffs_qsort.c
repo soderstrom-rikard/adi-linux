@@ -74,9 +74,7 @@ med3(char *a, char *b, char *c, int (*cmp)(const void *, const void *))
               :(cmp(b, c) > 0 ? b : (cmp(a, c) < 0 ? a : c ));
 }
 
-#ifndef min
-# define min(a,b) (((a) < (b)) ? (a) : (b))
-#endif
+#define min(a,b) (((a) < (b)) ? (a) : (b))
 void
 qsort(void *aa, size_t n, size_t es, int (*cmp)(const void *, const void *))
 {

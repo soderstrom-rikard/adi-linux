@@ -31,9 +31,11 @@
 #include "moduleconfig.h"
 
 /* Linux kernel */
-#include <linux/config.h>
-#include <linux/kernel.h>
 #include <linux/version.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19))
+#include <linux/config.h>
+#endif
+#include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/string.h>
 #include <linux/slab.h>
