@@ -35,6 +35,18 @@
 #include <asm/irq.h>
 
 /*
+ * Name the Board for the /proc/cpuinfo
+ */
+char *bfin_board_name = "UNKNOWN BOARD";
+
+#if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)
+static struct platform_device rtc_device = {
+	.name = "rtc-bfin",
+	.id   = -1,
+};
+#endif
+
+/*
  *  Driver needs to know address, irq and flag pin.
  */
 #if defined(CONFIG_SMC91X) || defined(CONFIG_SMC91X_MODULE)
@@ -67,6 +79,10 @@ static struct platform_device smc91x_device = {
 #endif
 
 static struct platform_device *generic_board_devices[] __initdata = {
+#if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)
+	&rtc_device,
+#endif
+
 #if defined(CONFIG_SMC91X) || defined(CONFIG_SMC91X_MODULE)
 	&smc91x_device,
 #endif

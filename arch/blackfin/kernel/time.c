@@ -235,7 +235,7 @@ irqreturn_t timer_interrupt(int irq, void *dummy)
 	return IRQ_HANDLED;
 }
 
-void time_init(void)
+void __init time_init(void)
 {
 #ifdef CONFIG_BFIN_HAVE_RTC
 	time_t secs_since_1970 = 0;

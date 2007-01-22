@@ -45,6 +45,13 @@
  */
 char *bfin_board_name = "ADDS-BF533-EZKIT";
 
+#if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)
+static struct platform_device rtc_device = {
+	.name = "rtc-bfin",
+	.id   = -1,
+};
+#endif
+
 /*
  *  USB-LAN EzExtender board
  *  Driver needs to know address, irq and flag pin.
@@ -199,6 +206,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 	&spi_bfin_master_device,
 #endif
 	
+#if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)
+	&rtc_device,
+#endif
+
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
 	&bfin_uart_device,
 #endif

@@ -42,6 +42,11 @@
 #include <linux/usb_sl811.h>
 
 /*
+ * Name the Board for the /proc/cpuinfo
+ */
+char *bfin_board_name = "UNKNOWN BOARD";
+
+/*
  *  Driver needs to know address, irq and flag pin.
  */
 
@@ -75,6 +80,13 @@ static struct platform_device bfin_pcmcia_cf_device = {
 	.id = -1,
 	.num_resources = ARRAY_SIZE(bfin_pcmcia_cf_resources),
 	.resource = bfin_pcmcia_cf_resources,
+};
+#endif
+
+#if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)
+static struct platform_device rtc_device = {
+	.name = "rtc-bfin",
+	.id   = -1,
 };
 #endif
 
@@ -384,6 +396,10 @@ static struct platform_device bfin_uart_device = {
 #endif
 
 static struct platform_device *stamp_devices[] __initdata = {
+#if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)
+	&rtc_device,
+#endif
+
 #if defined(CONFIG_BFIN_CFPCMCIA) || defined(CONFIG_BFIN_CFPCMCIA_MODULE)
 	&bfin_pcmcia_cf_device,
 #endif
