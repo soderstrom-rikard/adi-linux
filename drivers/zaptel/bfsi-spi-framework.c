@@ -154,13 +154,18 @@ static int wcfxs_setreg(struct wcfxs *wc, int card, unsigned reg, unsigned char 
 {
 	unsigned char buf[3];
 	int res;
-	
+#if defined(TEST_SPI_DELAY)
+	unsigned int start,end;
+#endif	
 	struct spi_transfer t = {
 		.tx_buf = &buf,
 		.len	= 3,
 	};
 	struct spi_message m;
 
+#if defined(TEST_SPI_DELAY)
+	start = cycles();
+#endif	
 	spi_message_init(&m);
 	if (card_mode[card] == FXS_CHANNEL)
 	{
@@ -179,6 +184,15 @@ static int wcfxs_setreg(struct wcfxs *wc, int card, unsigned reg, unsigned char 
 		res = spi_sync(wc_spi->fxo,&m);
 	}
 	else res= -1;
+#if defined(TEST_SPI_DELAY)
+	end = cycles();
+	if(start <= end) start = end - start;
+	else {
+		start= 0xffffffff-start;
+		start += end;
+	}
+	printk(KERN_DEBUG "SF-DTX %d \n",start);
+#endif	
 	return res;
 }
 
@@ -194,7 +208,13 @@ static unsigned char wcfxs_getreg(struct wcfxs *wc, int card, unsigned char reg)
 		.len	= 1,
 	};
 	struct spi_message m;
+#if defined(TEST_SPI_DELAY)
+	unsigned int start,end;
+#endif	
 
+#if defined(TEST_SPI_DELAY)
+	start = cycles();
+#endif	
 	spi_message_init(&m);
 	if (card_mode[card] == FXS_CHANNEL)
 	{
@@ -212,13 +232,28 @@ static unsigned char wcfxs_getreg(struct wcfxs *wc, int card, unsigned char reg)
 		spi_message_add_tail(&r, &m);
 		spi_sync(wc_spi->fxo,&m);
 	}
+#if defined(TEST_SPI_DELAY)
+	end = cycles();
+	if(start <= end) start = end - start;
+	else {
+		start= 0xffffffff-start;
+		start += end;
+	}
+	printk(KERN_DEBUG "SF-DRX %d \n",start);
+#endif	
 	return value;
 }
 
 static int wcfxs_proslic_setreg_indirect(struct wcfxs *wc, int card, unsigned char address, unsigned short data)
 {
 	int res;
+#if defined(TEST_SPI_DELAY)
+	unsigned int start,end;
+#endif	
 
+#if defined(TEST_SPI_DELAY)
+	start = cycles();
+#endif	
 	res = wcfxs_getreg(wc,card,ID_ACCES_STATUS);
 	if(res)
 		udelay(100);
@@ -227,6 +262,15 @@ static int wcfxs_proslic_setreg_indirect(struct wcfxs *wc, int card, unsigned ch
 	res = wcfxs_setreg(wc,card,IDA_HI,(unsigned char)((data &0xff00)>>8));
 	if(res) return res;
 	res = wcfxs_setreg(wc,card,IAA,address);
+#if defined(TEST_SPI_DELAY)
+	end = cycles();
+	if(start <= end) start = end - start;
+	else {
+		start= 0xffffffff-start;
+		start += end;
+	}
+	printk(KERN_DEBUG "SF-ITX %d \n",start);
+#endif	
 	return res;
 }
 
@@ -234,7 +278,13 @@ static int wcfxs_proslic_getreg_indirect(struct wcfxs *wc, int card, unsigned ch
 {
 	int res;
 	unsigned char data1,data2;
+#if defined(TEST_SPI_DELAY)
+	unsigned int start,end;
+#endif	
 
+#if defined(TEST_SPI_DELAY)
+	start = cycles();
+#endif	
 	res = wcfxs_setreg(wc,card,IAA,address);
 	if(res)  return res;
 	res = wcfxs_getreg(wc,card,ID_ACCES_STATUS);
@@ -245,6 +295,15 @@ static int wcfxs_proslic_getreg_indirect(struct wcfxs *wc, int card, unsigned ch
 	res = data2;
 	res *= 256;
 	res += data1;
+#if defined(TEST_SPI_DELAY)
+	end = cycles();
+	if(start <= end) start = end - start;
+	else {
+		start= 0xffffffff-start;
+		start += end;
+	}
+	printk(KERN_DEBUG "SF-IRX %d \n",start);
+#endif	
 	return res;
 }
 
