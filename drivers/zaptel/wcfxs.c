@@ -39,6 +39,7 @@
 #include "proslic.h"
 #include "wcfxs.h"
 
+//#define TEST_SPI_DELAY		1
 #define BFIN_SPI_FRAMEWORK	1
 #ifdef BFIN_SPI_FRAMEWORK
 #include "bfsi-spi-framework.c"
@@ -806,9 +807,25 @@ static void __wcfxs_setreg(struct wcfxs *wc, int card, unsigned char reg, unsign
 static void wcfxs_setreg(struct wcfxs *wc, int card, unsigned char reg, unsigned char value)
 {
 	unsigned long flags;
+#if defined(TEST_SPI_DELAY)
+	unsigned int start,end;
+#endif	
+
+#if defined(TEST_SPI_DELAY)
+	start = cycles();
+#endif	
 	spin_lock_irqsave(&wc->lock, flags);
 	__wcfxs_setreg(wc, card, reg, value);
 	spin_unlock_irqrestore(&wc->lock, flags);
+#if defined(TEST_SPI_DELAY)
+	end = cycles();
+	if(start <= end) start = end - start;
+	else {
+		start= 0xffffffff-start;
+		start += end;
+	}
+	printk(KERN_DEBUG "SPI-DTX %d \n",start);
+#endif	
 }
 
 static unsigned char __wcfxs_getreg(struct wcfxs *wc, int card, unsigned char reg)
@@ -840,9 +857,25 @@ static unsigned char wcfxs_getreg(struct wcfxs *wc, int card, unsigned char reg)
 {
 	unsigned long flags;
 	unsigned char res;
+#if defined(TEST_SPI_DELAY)	
+	unsigned int start,end;
+#endif
+
+#if defined(TEST_SPI_DELAY)
+	start = cycles();
+#endif	
 	spin_lock_irqsave(&wc->lock, flags);
 	res = __wcfxs_getreg(wc, card, reg);
 	spin_unlock_irqrestore(&wc->lock, flags);
+#if defined(TEST_SPI_DELAY)
+	end = cycles();
+	if(start <= end) start = end - start;
+	else {
+		start= 0xffffffff-start;
+		start += end;
+	}
+	printk(KERN_DEBUG "SPI-DRX %d \n",start);
+#endif	
 	return res;
 }
 
@@ -888,6 +921,13 @@ static int wcfxs_proslic_setreg_indirect(struct wcfxs *wc, int card, unsigned ch
 {
 	unsigned long flags;
 	int res = -1;
+#if defined(TEST_SPI_DELAY)
+	unsigned int start,end;
+#endif	
+
+#if defined(TEST_SPI_DELAY)
+	start = cycles();
+#endif	
 	/* Translate 3215 addresses */ 
 	if (wc->flags[card] & FLAG_3215) {
 		address = translate_3215(address);
@@ -902,6 +942,15 @@ static int wcfxs_proslic_setreg_indirect(struct wcfxs *wc, int card, unsigned ch
 		res = 0;
 	};
 	spin_unlock_irqrestore(&wc->lock, flags);
+#if defined(TEST_SPI_DELAY)
+	end = cycles();
+	if(start <= end) start = end - start;
+	else {
+		start= 0xffffffff-start;
+		start += end;
+	}
+	printk(KERN_DEBUG "SPI-ITX %d \n",start);
+#endif	
 	return res;
 }
 
@@ -910,6 +959,13 @@ static int wcfxs_proslic_getreg_indirect(struct wcfxs *wc, int card, unsigned ch
 	unsigned long flags;
 	int res = -1;
 	char *p=NULL;
+#if defined(TEST_SPI_DELAY)
+	unsigned int start,end;
+#endif	
+
+#if defined(TEST_SPI_DELAY)
+	start = cycles();
+#endif	
 	/* Translate 3215 addresses */
 	if (wc->flags[card] & FLAG_3215) {
 		address = translate_3215(address);
@@ -931,6 +987,15 @@ static int wcfxs_proslic_getreg_indirect(struct wcfxs *wc, int card, unsigned ch
 	spin_unlock_irqrestore(&wc->lock, flags);
 	if (p)
 		printk(p);
+#if defined(TEST_SPI_DELAY)
+	end = cycles();
+	if(start <= end) start = end - start;
+	else {
+		start= 0xffffffff-start;
+		start += end;
+	}
+	printk(KERN_DEBUG "SPI-IRX %d \n",start);
+#endif	
 	return res;
 }
 #endif
