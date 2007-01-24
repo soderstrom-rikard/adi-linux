@@ -970,7 +970,6 @@ failed:
 #define ALLOC_HARDER		0x10 /* try to alloc harder */
 #define ALLOC_HIGH		0x20 /* __GFP_HIGH set */
 #define ALLOC_CPUSET		0x40 /* check for correct cpuset */
-#define ALLOC_PAGECACHE		0x80 /* __GFP_PAGECACHE set */
 
 /*
  * Return 1 if free pages are above 'mark'. This takes into account the order
@@ -988,9 +987,6 @@ int zone_watermark_ok(struct zone *z, int order, unsigned long mark,
 		min -= min / 2;
 	if (alloc_flags & ALLOC_HARDER)
 		min -= min / 4;
-
-	if (alloc_flags & ALLOC_PAGECACHE)
-		min = min + (sysctl_pagecache_ratio * z->present_pages) / 100;
 
 	if (free_pages <= min + z->lowmem_reserve[classzone_idx])
 		return 0;
@@ -1082,12 +1078,8 @@ restart:
 		return NULL;
 	}
 
-	if (gfp_mask & __GFP_PAGECACHE)	
-		page = get_page_from_freelist(gfp_mask|__GFP_HARDWALL, order,
-			zonelist, ALLOC_WMARK_LOW|ALLOC_CPUSET|ALLOC_PAGECACHE);
-	else
-		page = get_page_from_freelist(gfp_mask|__GFP_HARDWALL, order,
-					zonelist, ALLOC_WMARK_LOW|ALLOC_CPUSET);
+	page = get_page_from_freelist(gfp_mask|__GFP_HARDWALL, order,
+			zonelist, ALLOC_WMARK_LOW|ALLOC_CPUSET);
 	if (page)
 		goto got_pg;
 
@@ -1112,9 +1104,6 @@ restart:
 		alloc_flags |= ALLOC_HIGH;
 	if (wait)
 		alloc_flags |= ALLOC_CPUSET;
-
-	if (gfp_mask & __GFP_PAGECACHE)
-		alloc_flags |= ALLOC_PAGECACHE;
 
 	/*
 	 * Go through the zonelist again. Let __GFP_HIGH and allocations
