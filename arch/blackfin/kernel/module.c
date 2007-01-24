@@ -29,6 +29,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+
 #include <linux/moduleloader.h>
 #include <linux/elf.h>
 #include <linux/vmalloc.h>
@@ -36,6 +37,7 @@
 #include <linux/string.h>
 #include <linux/kernel.h>
 #include <asm/dma.h>
+#include <asm/cacheflush.h>
 
 /*
  * handle arithmetic relocations.
@@ -176,6 +178,8 @@ module_frob_arch_sections(Elf_Ehdr * hdr, Elf_Shdr * sechdrs,
 				return -1;
 			}
 			dma_memcpy(dest, (void *)s->sh_addr, s->sh_size);
+			blackfin_icache_flush_range((unsigned int)dest,
+						 (unsigned int)(void *)s->sh_addr + s->sh_size);
 			s->sh_flags &= ~SHF_ALLOC;
 			s->sh_addr = (unsigned long)dest;
 		}
@@ -326,13 +330,23 @@ apply_relocate_add(Elf_Shdr * sechdrs, const char *strtab,
 			pr_debug("before %x after %x\n", *location16,
 				       (value & 0xffff));
 			tmp = (value & 0xffff);
+			if((unsigned long)location16 >= L1_CODE_START) {
 			dma_memcpy(location16, &tmp, 2);
+			blackfin_icache_flush_range((unsigned int)location16,
+						 (unsigned int)(location16 + 2));
+			} else
+				*location16 = tmp;
 			break;
 		case R_huimm16:
 			pr_debug("before %x after %x\n", *location16,
 				       ((value >> 16) & 0xffff));
 			tmp = ((value >> 16) & 0xffff);
+			if((unsigned long)location16 >= L1_CODE_START) {
 			dma_memcpy(location16, &tmp, 2);
+			blackfin_icache_flush_range((unsigned int)location16,
+						 (unsigned int)(location16 + 2));
+			} else
+				*location16 = tmp;			
 			break;
 		case R_rimm16:
 			*location16 = (value & 0xffff);
