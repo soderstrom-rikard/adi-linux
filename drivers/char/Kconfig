@@ -809,7 +809,7 @@ config NVRAM
 
 config RTC
 	tristate "Enhanced Real Time Clock Support"
-	depends on !PPC && !PARISC && !IA64 && !M68K && (!SPARC || PCI) && !FRV && !ARM && !SUPERH
+	depends on !PPC && !PARISC && !IA64 && !M68K && (!SPARC || PCI) && !FRV && !ARM && !SUPERH && !BFIN
 	---help---
 	  If you say Y here and create a character special file /dev/rtc with
 	  major number 10 and minor number 135 using mknod ("man mknod"), you
@@ -879,13 +879,6 @@ config GEN_RTC_X
 	help
 	  Provides an emulation for RTC_UIE which is required by some programs
 	  and may improve precision of the generic RTC support in some cases.
-
-config BLACKFIN_RTC
-	tristate "Blackfin Real Time Clock Support"
-	depends on BFIN_HAVE_RTC
-	default n
-	help
-	  ---help---
 
 config BLACKFIN_DPMC
 	bool "Blackfin Power Management support"

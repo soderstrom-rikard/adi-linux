@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.19
-# Mon Jan  8 16:45:05 2007
+# Linux kernel version: 2.6.19.2
+# Tue Jan 23 14:22:11 2007
 #
 # CONFIG_MMU is not set
 # CONFIG_FPU is not set
@@ -55,6 +55,7 @@ CONFIG_ELF_CORE=y
 CONFIG_BASE_FULL=y
 CONFIG_FUTEX=y
 CONFIG_EPOLL=y
+# CONFIG_LIMIT_PAGECACHE is not set
 CONFIG_BUDDY=y
 # CONFIG_NP2 is not set
 CONFIG_SLAB=y
@@ -124,7 +125,6 @@ CONFIG_BFIN537_STAMP=y
 # CONFIG_PNAV10 is not set
 # CONFIG_GENERIC_BOARD is not set
 CONFIG_MEM_MT48LC32M8A2_75=y
-CONFIG_BFIN_HAVE_RTC=y
 CONFIG_IRQ_PLL_WAKEUP=7
 
 #
@@ -780,9 +780,7 @@ CONFIG_CAN_BLACKFIN=m
 #
 # CONFIG_WATCHDOG is not set
 CONFIG_HW_RANDOM=y
-# CONFIG_RTC is not set
 # CONFIG_GEN_RTC is not set
-CONFIG_BLACKFIN_RTC=y
 CONFIG_BLACKFIN_DPMC=y
 # CONFIG_DTLK is not set
 # CONFIG_R3964 is not set
@@ -1050,7 +1048,38 @@ CONFIG_USB_ARCH_HAS_HCD=y
 #
 # Real Time Clock
 #
-# CONFIG_RTC_CLASS is not set
+CONFIG_RTC_LIB=y
+CONFIG_RTC_CLASS=y
+CONFIG_RTC_HCTOSYS=y
+CONFIG_RTC_HCTOSYS_DEVICE="rtc0"
+# CONFIG_RTC_DEBUG is not set
+
+#
+# RTC interfaces
+#
+CONFIG_RTC_INTF_SYSFS=y
+CONFIG_RTC_INTF_PROC=y
+CONFIG_RTC_INTF_DEV=y
+# CONFIG_RTC_INTF_DEV_UIE_EMUL is not set
+
+#
+# RTC drivers
+#
+# CONFIG_RTC_DRV_X1205 is not set
+# CONFIG_RTC_DRV_DS1307 is not set
+# CONFIG_RTC_DRV_DS1553 is not set
+# CONFIG_RTC_DRV_ISL1208 is not set
+# CONFIG_RTC_DRV_DS1672 is not set
+# CONFIG_RTC_DRV_DS1742 is not set
+# CONFIG_RTC_DRV_PCF8563 is not set
+# CONFIG_RTC_DRV_PCF8583 is not set
+# CONFIG_RTC_DRV_RS5C348 is not set
+# CONFIG_RTC_DRV_RS5C372 is not set
+# CONFIG_RTC_DRV_M48T86 is not set
+# CONFIG_RTC_DRV_TEST is not set
+# CONFIG_RTC_DRV_MAX6902 is not set
+# CONFIG_RTC_DRV_V3020 is not set
+CONFIG_RTC_DRV_BFIN=y
 
 #
 # DMA Engine support

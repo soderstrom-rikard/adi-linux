@@ -237,16 +237,8 @@ irqreturn_t timer_interrupt(int irq, void *dummy)
 
 void __init time_init(void)
 {
-#ifdef CONFIG_BFIN_HAVE_RTC
-	time_t secs_since_1970 = 0;
+	time_t secs_since_1970 = (365 * 37 + 9) * 24 * 60 * 60;	/* 1 Jan 2007 */
 
-	/* Initialize the RTC sub-system */
-	rtc_init();
-	/* Retrieve calendar time (secs since Jan 1970) */
-	rtc_get(&secs_since_1970);
-#else
-	time_t secs_since_1970 = (365 * 35 + 9) * 24 * 3600;	/* 1 Jan 2005 */
-#endif
 	/* Initialize xtime. From now on, xtime is updated with timer interrupts */
 	xtime.tv_sec = secs_since_1970;
 	xtime.tv_nsec = 0;
@@ -309,17 +301,6 @@ int do_settimeofday(struct timespec *tv)
 
 	write_sequnlock_irq(&xtime_lock);
 	clock_was_set();
-
-	/*
-	 *  rtc_set() busy-waits up to a second (the next tick of the RTC)
-	 *  for completion of the write.
-	 *  We release xtime_lock before updating the RTC so as not to
-	 *  lock out the timer_interrupt() routine which also acquires
-	 *  xtime_lock.  Locking out timer_interrupt() loses ticks!
-	 */
-#ifdef CONFIG_BFIN_HAVE_RTC
-	rtc_set(sec);
-#endif
 
 	return 0;
 }
