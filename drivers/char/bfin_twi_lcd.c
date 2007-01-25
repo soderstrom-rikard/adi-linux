@@ -73,6 +73,7 @@ static int pcf8574_lcd_probe(struct i2c_adapter *adap, int addr, int kind)
 
 	drv_HD_I2C_load();
 
+	lcd_present = 1;
 	return 0;
 }
 

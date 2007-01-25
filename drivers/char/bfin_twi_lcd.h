@@ -68,7 +68,7 @@ static struct i2c_client_address_data addr_data = {
 /* LCD Driver function headers and globals */
 
 static int currController = 0x2;
-static unsigned int lcd_present = 1;
+static unsigned int lcd_present = 0;
 
 static void drv_HD_I2C_data (const unsigned char, const char *, const int);
 static void drv_HD_I2C_command (const unsigned char, const unsigned char);
