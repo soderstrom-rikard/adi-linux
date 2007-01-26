@@ -63,5 +63,5 @@ void program_IAR(void)
 			    ((CONFIG_MEMDMA1 - 7) << MEMDMA1_POS) |
 			    ((CONFIG_WDTIMER - 7) << WDTIMER_POS));
 
-	__builtin_bfin_ssync();
+	SSYNC();
 }

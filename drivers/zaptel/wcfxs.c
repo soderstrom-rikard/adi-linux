@@ -2643,7 +2643,7 @@ static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs)
 	
 	/* confirm interrupt handling, write 1 to DMA_DONE bit */
 	*pDMA1_IRQ_STATUS = 0x0001;
-	__builtin_bfin_ssync(); /* note without this line ints dont
+	SSYNC(); /* note without this line ints dont
                                    occur every 1ms, but get sporadic.
                                    Why?  Is it something to do with
 				   next line? How could we "lose"
@@ -2653,10 +2653,10 @@ static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs)
 				   which messes things up */
 
 	*pFIO_FLAG_S = (1<<12);
-	__builtin_bfin_ssync();
+	SSYNC();
 	regular_interrupt_processing(devs);
 	*pFIO_FLAG_C = (1<<12);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 
 	return IRQ_HANDLED;
@@ -2674,7 +2674,7 @@ static int init_sport_interrupts(void)
 
 	/* enable DMA1 sport0 Rx interrupt */
 	*pSIC_IMASK |= 0x00000200;
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	return 0;
 }
@@ -2684,13 +2684,13 @@ static void enable_dma_sport0(void)
 	/* enable DMAs */
 	*pDMA2_CONFIG |= DMAEN;
 	*pDMA1_CONFIG |= DMAEN;
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* enable sport0 Tx and Rx */
 	*pSPORT0_TCR1 |= TSPEN;
 	*pSPORT0_RCR1 |= RSPEN;
 
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	l1_data_A_sram_free((unsigned long)iTxBuffer1);
 	l1_data_A_sram_free((unsigned long)iRxBuffer1);
@@ -2702,15 +2702,15 @@ static void disable_sport0(void)
 	/* disable sport0 Tx and Rx */
 	*pSPORT0_TCR1 &= ~TSPEN;
 	*pSPORT0_RCR1 &= ~RSPEN;
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* disable DMA1 and DMA2 */
 	*pDMA2_CONFIG &= ~DMAEN;
 	*pDMA1_CONFIG &= ~DMAEN;
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	*pSIC_IMASK &= ~0x00000200;
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 int wcfxs_proc_read(char *buf, char **start, off_t offset, 

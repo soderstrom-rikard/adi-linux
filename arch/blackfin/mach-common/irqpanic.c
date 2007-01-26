@@ -73,11 +73,11 @@ asmlinkage void irq_panic(int reason, struct pt_regs *regs)
 		       ((ca & 0x3f8)) |	/* ca[09:03] for SET[4:0] and DW[1:0]  */
 		       0);	/* Access Tag, Read access             */
 
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_ITEST_COMMAND(cmd);
-		__builtin_bfin_ssync();
+		SSYNC();
 		tag = bfin_read_ITEST_DATA0();
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		/* if tag is marked as valid, check it */
 		if (tag & 1) {
@@ -88,9 +88,9 @@ asmlinkage void irq_panic(int reason, struct pt_regs *regs)
 				       (((ca + j) & 0x3f8)) |	/* ca[09:03] for SET[4:0] and DW[1:0]  */
 				       4);	/* Access Data, Read access             */
 
-				__builtin_bfin_ssync();
+				SSYNC();
 				bfin_write_ITEST_COMMAND(cmd);
-				__builtin_bfin_ssync();
+				SSYNC();
 
 				cache_hi = bfin_read_ITEST_DATA1();
 				cache_lo = bfin_read_ITEST_DATA0();

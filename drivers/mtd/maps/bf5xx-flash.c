@@ -66,13 +66,13 @@ static inline void switch_to_flash(struct flash_save *save)
 
 	gpio_set_value(CONFIG_ENET_FLASH_PIN, 0);
 
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	save->ambctl0 = bfin_read_EBIU_AMBCTL0();
 	save->ambctl1 = bfin_read_EBIU_AMBCTL1();
 	bfin_write_EBIU_AMBCTL0(BFIN_FLASH_AMBCTL0VAL);
 	bfin_write_EBIU_AMBCTL1(BFIN_FLASH_AMBCTL1VAL);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 #else
 static inline void switch_to_flash(struct flash_save *save) {}
@@ -84,7 +84,7 @@ static inline void switch_back(struct flash_save *save)
 
 	bfin_write_EBIU_AMBCTL0(save->ambctl0);
 	bfin_write_EBIU_AMBCTL1(save->ambctl1);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	gpio_set_value(CONFIG_ENET_FLASH_PIN, 1);
 
@@ -118,9 +118,9 @@ static map_word bf5xx_read(struct map_info *map, unsigned long ofs)
 	struct flash_save save;
 
 	switch_to_flash(&save);
-	__builtin_bfin_ssync();
+	SSYNC();
 	nValue = readw(CONFIG_EBIU_FLASH_BASE + ofs);
-	__builtin_bfin_ssync();
+	SSYNC();
 	switch_back(&save);
 
 	test.x[0]=(__u16)nValue;
@@ -159,9 +159,9 @@ static void bf5xx_write(struct map_info *map, map_word d1, unsigned long ofs)
 
 	switch_to_flash(&save);
 
-		__builtin_bfin_ssync();
+		SSYNC();
 		writew(d, CONFIG_EBIU_FLASH_BASE + ofs);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	switch_back(&save);
 }

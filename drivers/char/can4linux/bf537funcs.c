@@ -187,14 +187,14 @@ int i;
 
 
     bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJCE_CAN);   /* Enable CAN Pins On Port J */
-    __builtin_bfin_ssync();
+    SSYNC();
 
 
     /* SW Reset */
     CANoutw(minor, cancontrol, (CAN_SRS | CAN_CCR));
-    __builtin_bfin_ssync();
+    SSYNC();
     CANoutw(minor, cancontrol, (CAN_CCR));
-    __builtin_bfin_ssync();
+    SSYNC();
 
     /*
      * go to INIT mode
@@ -295,7 +295,7 @@ int i;
 	/* + (1 << RECEIVE_RTR_OBJ) */ );		/* RX mailboxes */
 
 
-    __builtin_bfin_ssync();
+    SSYNC();
 
 
 
@@ -315,21 +315,21 @@ int i;
 
 	bf_canTmp->cantrs2 = 1 << (TRANSMIT_OBJ - 16);
 	/* See what the bits are doing */
-    __builtin_bfin_ssync();
+    SSYNC();
 	trs = bf_canTmp->cantrs2;
 	trr = bf_canTmp->cantrr2;
 	ta  = bf_canTmp->canta2;
 	aa  = bf_canTmp->canaa2;
 	printk("trs %04x, trr %04x, ta %04x, aa %04x\n", trs, trr, ta, aa);
 	msleep(100);
-    __builtin_bfin_ssync();
+    SSYNC();
 	trs = bf_canTmp->cantrs2;
 	trr = bf_canTmp->cantrr2;
 	ta  = bf_canTmp->canta2;
 	aa  = bf_canTmp->canaa2;
 	printk("trs %04x, trr %04x, ta %04x, aa %04x\n", trs, trr, ta, aa);
 	msleep(200);
-    __builtin_bfin_ssync();
+    SSYNC();
 	trs = bf_canTmp->cantrs2;
 	trr = bf_canTmp->cantrr2;
 	ta  = bf_canTmp->canta2;
@@ -500,7 +500,7 @@ int i;
 
 
 
-    __builtin_bfin_ssync();
+    SSYNC();
     /* CAN_register_dump(); */
     DBGout();
     return 0;
@@ -522,7 +522,7 @@ int CAN_StopChip (int minor)
     CANoutw(minor, canmbim2, 0);
     CANoutw(minor, cangim, 0);
     /* and sync registers */
-    __builtin_bfin_ssync();
+    SSYNC();
     DBGout();
     return 0;
 }
@@ -621,7 +621,7 @@ int i = 0;
     CAN_WRITE_CTRL(TRANSMIT_OBJ, tx->length);
     /* set transmit request */
     CANoutw(minor, cantrs2, 1 << (TRANSMIT_OBJ - 16));
-    __builtin_bfin_ssync();
+    SSYNC();
 
     if(selfreception[minor]) {
 	/* prepare for next TX Interrupt and selfreception */
@@ -1192,7 +1192,7 @@ set_led();
     /* printk("  Message Lost       %0x\n", CANinw(0, canrml1)); */
     /* printk("  Message RMP1       %0x\n", CANinw(0, canrmp1)); */
 
-    __builtin_bfin_ssync();
+    SSYNC();
 
 #if CONFIG_TIME_MEASURE
 reset_led();

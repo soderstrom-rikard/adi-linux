@@ -77,6 +77,10 @@
                             control */
 #define ANOMALY_05000283 /* A system MMR write is stalled indefinitely when
                             killed in a particular stage*/
+#define ANOMALY_05000312 /* Errors when SSYNC, CSYNC, or loads to LT, LB and LC 
+			    registers are interrupted */
+#define ANOMALY_05000311 /* Erroneous flag pin operations under specific sequences*/
+
 #endif
 
 /* These issues only occur on 0.3 or 0.4 BF533 */

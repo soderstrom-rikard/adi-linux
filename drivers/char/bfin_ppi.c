@@ -169,7 +169,7 @@ static void setup_gpio_for_PPI(unsigned char datalen)
 	regdata |= syncBits;
 	regdata |= PF15;	//enable PPI_CLK
 	bfin_write_PORTF_FER(regdata);
-	__builtin_bfin_ssync();
+	SSYNC();
 	pr_debug("PORTF_FER = 0x%04X\n", regdata);
 
 	// enable GPIO pins for PPI data
@@ -204,7 +204,7 @@ static void setup_gpio_for_PPI(unsigned char datalen)
 	regdata = bfin_read_PORTG_FER();
 	regdata |= portG;
 	bfin_write_PORTG_FER(regdata);
-	__builtin_bfin_ssync();
+	SSYNC();
 	//pr_debug("PORTG_FER = 0x%04X\n", regdata);
 
 	if (ppiCTRL & PORT_DIR) {	// we're doing output
@@ -212,55 +212,55 @@ static void setup_gpio_for_PPI(unsigned char datalen)
 		regdata = bfin_read_PORTGIO_INEN();
 		regdata &= ~portG;
 		bfin_write_PORTGIO_INEN(regdata);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		regdata = bfin_read_PORTGIO_DIR();
 		regdata |= portG;
 		bfin_write_PORTGIO_DIR(regdata);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		regdata = bfin_read_PORTFIO_DIR();
 		regdata |= syncBits;	//sync bits are output
 		regdata &= ~PF15;	//ppi_clock is input
 		bfin_write_PORTFIO_DIR(regdata);
-		__builtin_bfin_ssync();
+		SSYNC();
 		pr_debug("PORTFIO_DIR = 0x%04X\n", regdata);
 
 		regdata = bfin_read_PORTFIO_INEN();
 		regdata &= ~syncBits;
 		regdata |= PF15;	// enable PPI_CLK for input
 		bfin_write_PORTFIO_INEN(regdata);
-		__builtin_bfin_ssync();
+		SSYNC();
 		pr_debug("PORTFIO_INEN = 0x%04X\n", regdata);
 	} else {		// were doing input
 		// set corresponding bits in PORTGIO_INEN register
 		regdata = bfin_read_PORTGIO_INEN();
 		regdata |= portG;
 		bfin_write_PORTGIO_INEN(regdata);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		regdata = bfin_read_PORTGIO_DIR();
 		regdata &= ~portG;
 		bfin_write_PORTGIO_DIR(regdata);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		regdata = bfin_read_PORTFIO_INEN();
 		regdata |= syncBits;
 		regdata |= PF15;	//enable ppi_clock
 		bfin_write_PORTFIO_INEN(regdata);
-		__builtin_bfin_ssync();
+		SSYNC();
 		pr_debug("PORTFIO_INEN = 0x%04X\n", regdata);
 
 		regdata = bfin_read_PORTFIO_DIR();
 		regdata &= ~syncBits;
 		regdata &= ~PF15;	//enable PPI_CLOCK for input
 		bfin_write_PORTFIO_DIR(regdata);
-		__builtin_bfin_ssync();
+		SSYNC();
 		pr_debug("PORTFIO_DIR = 0x%04X\n", regdata);
 	}
 
 	bfin_write_PORT_MUX(portmux);
-	__builtin_bfin_ssync();
+	SSYNC();
 	pr_debug("PORT_MUX = 0x%04X (after)\n", portmux);
 }
 #endif
@@ -340,7 +340,7 @@ static irqreturn_t ppi_irq(int irq, void *dev_id)
 	regdata = bfin_read_PPI_CONTROL();
 	pdev->ppi_control = regdata & ~PORT_EN;
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
-	__builtin_bfin_ssync();
+	SSYNC();
 	spin_unlock_irqrestore(&ppi_lock, flags);
 	
 	// disable DMA
@@ -599,7 +599,7 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 			pr_debug("ppi_ioctl: CMD_PPI_DELAY\n");
 			pdev->delay = (unsigned short)arg;
 			bfin_write_PPI_DELAY((unsigned short)pdev->delay);
-			__builtin_bfin_ssync();
+			SSYNC();
 			break;
 		}
 
@@ -780,9 +780,9 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 
 		/* configure PPI registers to match DMA registers */
 		bfin_write_PPI_COUNT(pdev->linelen - 1);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PPI_FRAME(pdev->numlines);
-		__builtin_bfin_ssync();
+		SSYNC();
 	} else {
 		if (pdev->datalen > CFG_PPI_DATALEN_8)	/* adjust transfer size */
 			set_dma_x_count(CH_PPI, count / 2);
@@ -795,7 +795,7 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 	//pr_debug("dma_config = 0x%04hX\n", pdev->dma_config);
 
 	bfin_write_PPI_DELAY((unsigned short)pdev->delay);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 #ifdef CONFIG_BF537
 	port_cfg = (pdev->ppi_control & CFG_PPI_PORT_CFG_NOSYNC) >> 2;
@@ -819,7 +819,7 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 	}
 #endif
 
-	__builtin_bfin_ssync();
+	SSYNC();
 	enable_dma(CH_PPI);
 
 	/* clear ppi status before enabling */
@@ -829,7 +829,7 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 	regdata = bfin_read_PPI_CONTROL();
 	pdev->ppi_control = regdata | PORT_EN;
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	spin_unlock_irqrestore(&ppi_lock, flags);
 
@@ -859,7 +859,7 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 	regdata = bfin_read_PPI_CONTROL();
 	pdev->ppi_control = regdata & ~PORT_EN;
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
-	__builtin_bfin_ssync();
+	SSYNC();
 	spin_unlock_irqrestore(&ppi_lock, flags);
 	
 	disable_dma(CH_PPI);
@@ -1023,7 +1023,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 			get_gptimer_pwidth(FS1_TIMER_ID));
 
 	}
-	__builtin_bfin_ssync();
+	SSYNC();
 	spin_unlock_irqrestore(&ppi_lock, flags);
 	
 	enable_dma(CH_PPI);
@@ -1044,7 +1044,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	regdata |= PORT_EN;
 	pdev->ppi_control = regdata;
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
-	__builtin_bfin_ssync();
+	SSYNC();
 	
 	pr_debug("PPI_CONTROL(enabled) = %04hX\n", regdata);
 
@@ -1099,7 +1099,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	regdata = bfin_read_PPI_CONTROL();
 	pdev->ppi_control = regdata & ~PORT_EN;
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
-	__builtin_bfin_ssync();
+	SSYNC();
 	spin_unlock_irqrestore(&ppi_lock, flags);
 	
 	disable_dma(CH_PPI);

@@ -73,6 +73,8 @@
                             control */
 #define ANOMALY_05000283 /* A system MMR write is stalled indefinitely when
                             killed in a particular stage*/
+#define ANOMALY_05000312 /* Errors when SSYNC, CSYNC, or loads to LT, LB and LC 
+			    registers are interrupted */
 #endif
 
 #if defined(CONFIG_BF_REV_0_2)

@@ -73,7 +73,7 @@ static inline u16 read_##reg(void) \
             { return *(volatile unsigned short*)(SPI0_REGBASE + off); } \
 static inline void write_##reg(u16 v) \
             {*(volatile unsigned short*)(SPI0_REGBASE + off) = v;\
-             __builtin_bfin_ssync();}
+             SSYNC();}
 
 DEFINE_SPI_REG(CTRL, 0x00)
 DEFINE_SPI_REG(FLAG, 0x04)
@@ -159,7 +159,7 @@ void bfin_spi_enable(struct driver_data *drv_data)
 
 	cr = read_CTRL();
 	write_CTRL(cr | BIT_CTL_ENABLE);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 void bfin_spi_disable(struct driver_data *drv_data)
@@ -168,7 +168,7 @@ void bfin_spi_disable(struct driver_data *drv_data)
 
 	cr = read_CTRL();
 	write_CTRL(cr & (~BIT_CTL_ENABLE));
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 /* Caculate the SPI_BAUD register value based on input HZ */
@@ -210,38 +210,38 @@ static void restore_state(struct driver_data *drv_data)
 	if (chip->chip_select_num == 1) {
 		pr_debug("set for chip select 1\n");
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3c00);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (chip->chip_select_num == 2 || chip->chip_select_num == 3) {
 		pr_debug("set for chip select 2\n");
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJSE_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (chip->chip_select_num == 4) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS4E_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3840);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (chip->chip_select_num == 5) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS5E_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3820);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (chip->chip_select_num == 6) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS6E_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3810);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (chip->chip_select_num == 7) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJCE_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
-		__builtin_bfin_ssync();
+		SSYNC();
 	}
 #endif
 
@@ -301,19 +301,19 @@ static void u8_cs_chg_writer(struct driver_data *drv_data)
 
 	while (drv_data->tx < drv_data->tx_end) {
 		write_FLAG(chip->flag);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		write_TDBR(*(u8 *)(drv_data->tx));
 		do {} while (read_STAT() & BIT_STAT_TXS);
 		do {} while (!(read_STAT() & BIT_STAT_SPIF));
 		write_FLAG(0xFF00|chip->flag);
-		__builtin_bfin_ssync();
+		SSYNC();
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		++drv_data->tx;
 	}
 	write_FLAG(0xFF00);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 static void u8_reader(struct driver_data *drv_data)
@@ -341,20 +341,20 @@ static void u8_cs_chg_reader(struct driver_data *drv_data)
 
 	while (drv_data->rx < drv_data->rx_end) {
 		write_FLAG(chip->flag);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		read_RDBR(); /* kick off */
 		do {} while (!(read_STAT() & BIT_STAT_RXS));
 		do {} while (!(read_STAT() & BIT_STAT_SPIF));
 		*(u8 *)(drv_data->rx) = read_SHAW();
 		write_FLAG(0xFF00|chip->flag);
-		__builtin_bfin_ssync();
+		SSYNC();
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		++drv_data->rx;
 	}
 	write_FLAG(0xFF00);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 static void u8_duplex(struct driver_data *drv_data)
@@ -377,21 +377,21 @@ static void u8_cs_chg_duplex(struct driver_data *drv_data)
 
 	while (drv_data->rx < drv_data->rx_end) {
 		write_FLAG(chip->flag);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		write_TDBR(*(u8 *)(drv_data->tx));
 		do {} while (!(read_STAT() & BIT_STAT_SPIF));
 		do {} while (!(read_STAT() & BIT_STAT_RXS));
 		*(u8 *)(drv_data->rx) = read_RDBR();
 		write_FLAG(0xFF00|chip->flag);
-		__builtin_bfin_ssync();
+		SSYNC();
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		++drv_data->rx;
 		++drv_data->tx;
 	}
 	write_FLAG(0xFF00);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 static void u16_writer(struct driver_data *drv_data)
@@ -413,19 +413,19 @@ static void u16_cs_chg_writer(struct driver_data *drv_data)
 
 	while (drv_data->tx < drv_data->tx_end) {
 		write_FLAG(chip->flag);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		write_TDBR(*(u16 *)(drv_data->tx));
 		do {} while ((read_STAT() & BIT_STAT_TXS));
 		do {} while (!(read_STAT() & BIT_STAT_SPIF));
 		write_FLAG(0xFF00|chip->flag);
-		__builtin_bfin_ssync();
+		SSYNC();
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		drv_data->tx += 2;
 	}
 	write_FLAG(0xFF00);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 static void u16_reader(struct driver_data *drv_data)
@@ -449,20 +449,20 @@ static void u16_cs_chg_reader(struct driver_data *drv_data)
 
 	while (drv_data->rx < drv_data->rx_end) {
 		write_FLAG(chip->flag);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		read_RDBR();  /* kick off */
 		do {} while (!(read_STAT() & BIT_STAT_RXS));
 		do {} while (!(read_STAT() & BIT_STAT_SPIF));
 		*(u16 *)(drv_data->rx) = read_SHAW();
 		write_FLAG(0xFF00|chip->flag);
-		__builtin_bfin_ssync();
+		SSYNC();
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		drv_data->rx += 2;
 	}
 	write_FLAG(0xFF00);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 static void u16_duplex(struct driver_data *drv_data)
@@ -484,21 +484,21 @@ static void u16_cs_chg_duplex(struct driver_data *drv_data)
 
 	while (drv_data->tx < drv_data->tx_end) {
 		write_FLAG(chip->flag);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		write_TDBR(*(u16 *)(drv_data->tx));
 		do {} while (!(read_STAT() & BIT_STAT_SPIF));
 		do {} while (!(read_STAT() & BIT_STAT_RXS));
 		*(u16 *)(drv_data->rx) = read_RDBR();
 		write_FLAG(0xFF00|chip->flag);
-		__builtin_bfin_ssync();
+		SSYNC();
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		drv_data->rx += 2;
 		drv_data->tx += 2;
 	}
 	write_FLAG(0xFF00);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 /* test if ther is more transfer to be done */
@@ -770,7 +770,7 @@ static void pump_transfers(unsigned long data)
 			pr_debug("IO duplex: cr is 0x%x\n", cr);
 
 			write_CTRL(cr);
-			__builtin_bfin_ssync();
+			SSYNC();
 
 			drv_data->duplex(drv_data);
 
@@ -782,7 +782,7 @@ static void pump_transfers(unsigned long data)
 			pr_debug("IO write: cr is 0x%x\n", cr);
 
 			write_CTRL(cr);
-			__builtin_bfin_ssync();
+			SSYNC();
 
 			drv_data->write(drv_data);
 
@@ -795,7 +795,7 @@ static void pump_transfers(unsigned long data)
 			pr_debug("IO read: cr is 0x%x\n", cr);
 
 			write_CTRL(cr);
-			__builtin_bfin_ssync();
+			SSYNC();
 
 			drv_data->read(drv_data);
 			if (drv_data->rx != drv_data->rx_end)

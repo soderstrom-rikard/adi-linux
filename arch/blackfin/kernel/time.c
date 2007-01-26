@@ -57,29 +57,29 @@ void __init init_leds(void)
 #if defined(CONFIG_BFIN_ALIVE_LED)
 	/* config pins as output. */
 	tmp = bfin_read_CONFIG_BFIN_ALIVE_LED_DPORT();
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_CONFIG_BFIN_ALIVE_LED_DPORT(tmp | CONFIG_BFIN_ALIVE_LED_PIN);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/*      First set led be off */
 	tmp = bfin_read_CONFIG_BFIN_ALIVE_LED_PORT();
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_CONFIG_BFIN_ALIVE_LED_PORT(tmp | CONFIG_BFIN_ALIVE_LED_PIN);	/* light off */
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 
 #if defined(CONFIG_BFIN_IDLE_LED)
 	/* config pins as output. */
 	tmp = bfin_read_CONFIG_BFIN_IDLE_LED_DPORT();
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_CONFIG_BFIN_IDLE_LED_DPORT(tmp | CONFIG_BFIN_IDLE_LED_PIN);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/*      First set led be off */
 	tmp = bfin_read_CONFIG_BFIN_IDLE_LED_PORT();
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_CONFIG_BFIN_IDLE_LED_PORT(tmp | CONFIG_BFIN_IDLE_LED_PIN);	/* light off */
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 }
 #else
@@ -100,7 +100,7 @@ static inline void do_leds(void)
 		flag = ~flag;
 	}
 	tmp = bfin_read_CONFIG_BFIN_ALIVE_LED_PORT();
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	if (flag)
 		tmp &= ~CONFIG_BFIN_ALIVE_LED_PIN;	/* light on */
@@ -108,7 +108,7 @@ static inline void do_leds(void)
 		tmp |= CONFIG_BFIN_ALIVE_LED_PIN;	/* light off */
 
 	bfin_write_CONFIG_BFIN_ALIVE_LED_PORT(tmp);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 }
 #else
@@ -144,7 +144,7 @@ time_sched_init(irqreturn_t(*timer_routine) (int, void *))
 
 	/* power up the timer, but don't enable it just yet */
 	bfin_write_TCNTL(1);
-	__builtin_bfin_csync();
+	CSYNC();
 
 	/*
 	 * the TSCALE prescaler counter.
@@ -156,7 +156,7 @@ time_sched_init(irqreturn_t(*timer_routine) (int, void *))
 	bfin_write_TCOUNT(tcount);
 
 	/* now enable the timer */
-	__builtin_bfin_csync();
+	CSYNC();
 
 	bfin_write_TCNTL(7);
 

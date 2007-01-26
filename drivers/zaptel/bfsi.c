@@ -71,7 +71,7 @@ static inline u16 read_##reg(void) \
             { return *(volatile unsigned short*)(SPI0_REGBASE + off); } \
 static inline void write_##reg(u16 v) \
             {*(volatile unsigned short*)(SPI0_REGBASE + off) = v;\
-             __builtin_bfin_ssync();}
+             SSYNC();}
 
 DEFINE_SPI_REG(CTRL, 0x00)
 DEFINE_SPI_REG(FLAG, 0x04)
@@ -173,7 +173,7 @@ void bfsi_spi_write_8_bits(u8 bits)
 
   /* read kicks off transfer, detect end by polling RXS */
   write_TDBR(bits);
-  read_RDBR(); __builtin_bfin_ssync();
+  read_RDBR(); SSYNC();
   do {} while (!(read_STAT() & RXS) );
 
   /* raise SPISEL */
@@ -196,7 +196,7 @@ u8 bfsi_spi_read_8_bits(void)
   /* read kicks off transfer, detect end by polling RXS, we
      read the shadow register to prevent another transfer
      being started */
-  read_RDBR(); __builtin_bfin_ssync();
+  read_RDBR(); SSYNC();
   do {} while (!(read_STAT() & RXS) );
   bits = bfin_read_SPI_SHADOW();
 
@@ -273,75 +273,75 @@ void bfsi_spi_init(int baud)
 	if (cs == 1) {
 		PRINTK("set for chip select 1\n");
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3c00);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (cs == 2 || cs == 3 ) {
 		PRINTK("set for chip select 2\n");
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJSE_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (cs == 4) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS4E_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3840);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (cs == 5) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS5E_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3820);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (cs == 6) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS6E_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3810);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (cs == 7) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJCE_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
-		__builtin_bfin_ssync();
+		SSYNC();
 	}
 	cs = fxo_cs;
 	if (cs == 1) {
 		PRINTK("set for chip select 1\n");
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3c00);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (cs == 2 || cs == 3 ) {
 		PRINTK("set for chip select 2\n");
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJSE_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (cs == 4) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS4E_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3840);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (cs == 5) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS5E_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3820);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (cs == 6) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS6E_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3810);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 	} else if (cs == 7) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJCE_SPI);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
-		__builtin_bfin_ssync();
+		SSYNC();
 	}
 #endif
 }
@@ -354,28 +354,28 @@ void bfsi_reset(void) {
 #if defined(CONFIG_BF533)
        	PRINTK("set reset to PF%d\n",reset_bit);
   	bfin_write_FIO_DIR(bfin_read_FIO_DIR() | (1<<reset_bit)); 
-  	__builtin_bfin_ssync();
+  	SSYNC();
 
   	bfin_write_FIO_FLAG_C((1<<reset_bit)); 
-  	__builtin_bfin_ssync();
+  	SSYNC();
   	udelay(100);
 
   	bfin_write_FIO_FLAG_S((1<<reset_bit));
-  	__builtin_bfin_ssync();
+  	SSYNC();
 #endif
   	
 #if defined(CONFIG_BF537)
 	if (reset_bit == 1) {
        		PRINTK("set reset to PF10\n");
                 bfin_write_PORTF_FER(bfin_read_PORTF_FER() & 0xFBFF);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTFIO_DIR(bfin_read_PORTFIO_DIR() | 0x0400);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTFIO_CLEAR(1<<10);
-		__builtin_bfin_ssync();
+		SSYNC();
 		udelay(100);
 		bfin_write_PORTFIO_SET(1<<10);
-		__builtin_bfin_ssync();
+		SSYNC();
         } else if (reset_bit == 2)  {
                 PRINTK("Error: cannot set reset to PJ11\n");
         } else if (reset_bit == 3) {
@@ -383,36 +383,36 @@ void bfsi_reset(void) {
         } else if (reset_bit == 4) {
                 PRINTK("set reset to PF6\n");
                 bfin_write_PORTF_FER(bfin_read_PORTF_FER() & 0xFFBF);
-                __builtin_bfin_ssync();
+                SSYNC();
 		bfin_write_PORTFIO_DIR(bfin_read_PORTFIO_DIR() | 0x0040);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTFIO_CLEAR(1<<6);
-		__builtin_bfin_ssync();
+		SSYNC();
 		udelay(100);
 		bfin_write_PORTFIO_SET(1<<6);
-		__builtin_bfin_ssync();
+		SSYNC();
         } else if (reset_bit == 5) {
                 PRINTK("set reset to PF5\n");
                 bfin_write_PORTF_FER(bfin_read_PORTF_FER() & 0xFFDF);
-                __builtin_bfin_ssync();
+                SSYNC();
 		bfin_write_PORTFIO_DIR(bfin_read_PORTFIO_DIR() | 0x0020);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTFIO_CLEAR(1<<5);
-		__builtin_bfin_ssync();
+		SSYNC();
 		udelay(100);
 		bfin_write_PORTFIO_SET(1<<5);
-		__builtin_bfin_ssync();
+		SSYNC();
         } else if (reset_bit == 6) {
                 PRINTK("set reset to PF4\n");
                 bfin_write_PORTF_FER(bfin_read_PORTF_FER() & 0xFFEF);
-                __builtin_bfin_ssync();
+                SSYNC();
 		bfin_write_PORTFIO_DIR(bfin_read_PORTFIO_DIR() | 0x0010);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_PORTFIO_CLEAR(1<<4);
-		__builtin_bfin_ssync();
+		SSYNC();
 		udelay(100);
 		bfin_write_PORTFIO_SET(1<<4);
-		__builtin_bfin_ssync();
+		SSYNC();
         } else if (reset_bit == 7) {
                 PRINTK("Error: cannot set reset to PJ5\n");
         }
@@ -667,7 +667,7 @@ static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs)
   /* confirm interrupt handling, write 1 to DMA_DONE bit */
 #if defined(CONFIG_BF533)
   bfin_write_DMA1_IRQ_STATUS(0x0001);
-  __builtin_bfin_ssync(); /* note without this line ints dont
+  SSYNC(); /* note without this line ints dont
 			     occur every 1ms, but get sporadic.
 			     Why?  Is it something to do with
 			     next line? How could we "lose"
@@ -676,11 +676,11 @@ static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs)
 			     after the ISR has finished sometimes
 			     which messes things up */
 
-  __builtin_bfin_ssync();
+  SSYNC();
 #endif
 #if defined(CONFIG_BF537)
   bfin_write_DMA3_IRQ_STATUS(0x0001);
-  __builtin_bfin_ssync(); /* note without this line ints dont
+  SSYNC(); /* note without this line ints dont
 			     occur every 1ms, but get sporadic.
 			     Why?  Is it something to do with
 			     next line? How could we "lose"
@@ -689,7 +689,7 @@ static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs)
 			     after the ISR has finished sometimes
 			     which messes things up */
 
-  __builtin_bfin_ssync();
+  SSYNC();
 #endif
   
   read_samples = isr_read_processing();
@@ -698,7 +698,7 @@ static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs)
     bfsi_isr_callback(read_samples, write_samples);
   }
 
-  __builtin_bfin_ssync();
+  SSYNC();
 
   /* some stats to help monitor the cycles used by ISR processing */
 
@@ -739,12 +739,12 @@ static int init_sport_interrupts(void)
 #if defined(CONFIG_BF533)
 	/* enable DMA1 sport0 Rx interrupt */
 	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() | 0x00000200);
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 #if defined(CONFIG_BF537)
 	/* enable DMA3 sport0 Rx interrupt */
 	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() | 0x00000020);
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 	return 0;
 }
@@ -755,20 +755,20 @@ static void enable_dma_sport0(void)
 #if defined(CONFIG_BF533)
 	bfin_write_DMA2_CONFIG(bfin_read_DMA2_CONFIG() | DMAEN);
 	bfin_write_DMA1_CONFIG(bfin_read_DMA1_CONFIG() | DMAEN);
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 #if defined(CONFIG_BF537)
 	bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~(PJSE|PJCE(3)));
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_DMA4_CONFIG(bfin_read_DMA4_CONFIG() | DMAEN);
 	bfin_write_DMA3_CONFIG(bfin_read_DMA3_CONFIG() | DMAEN);
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 	/* enable sport0 Tx and Rx */
 	bfin_write_SPORT0_TCR1(bfin_read_SPORT0_TCR1() | TSPEN);
 	bfin_write_SPORT0_RCR1(bfin_read_SPORT0_RCR1() | RSPEN);
 
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 static void disable_sport0(void)
@@ -776,23 +776,23 @@ static void disable_sport0(void)
 	/* disable sport0 Tx and Rx */
 	bfin_write_SPORT0_TCR1(bfin_read_SPORT0_TCR1() & (~TSPEN));
 	bfin_write_SPORT0_RCR1(bfin_read_SPORT0_RCR1() & (~RSPEN));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 #if defined(CONFIG_BF533)
 	/* disable DMA1 and DMA2 */
 	bfin_write_DMA2_CONFIG(bfin_read_DMA2_CONFIG() & (~DMAEN));
 	bfin_write_DMA1_CONFIG(bfin_read_DMA1_CONFIG() & (~DMAEN));
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() & (~0x00000200));
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 #if defined(CONFIG_BF537)
 	/* disable DMA3 and DMA4 */
 	bfin_write_DMA4_CONFIG(bfin_read_DMA4_CONFIG() & (~DMAEN));
 	bfin_write_DMA3_CONFIG(bfin_read_DMA3_CONFIG() & (~DMAEN));
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() & (~0x00000020));
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 }
 

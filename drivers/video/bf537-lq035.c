@@ -268,15 +268,15 @@ static void start_timers(void) /* CHECK with HW */
 	local_irq_save(flags);
 
 	bfin_write_TIMER_ENABLE(TIMEN_REV);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	while (bfin_read_TIMER_REV_COUNTER() <= 11);
 	bfin_write_TIMER_ENABLE(TIMEN_LP);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	while (bfin_read_TIMER_LP_COUNTER() < 3);
 	bfin_write_TIMER_ENABLE(TIMEN_SP|TIMEN_SPS|TIMEN_PS_CLS);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	local_irq_restore(flags);
 }
@@ -285,33 +285,33 @@ static void config_timers(void) /* CHECKME */
 {
 	/* Stop timers */
 	bfin_write_TIMER_DISABLE(TIMDIS_SP|TIMDIS_SPS|TIMDIS_REV|TIMDIS_LP|TIMDIS_PS_CLS);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* LP, timer 6 */
 	bfin_write_TIMER_LP_CONFIG(TIMER_CONFIG|PULSE_HI);
 	bfin_write_TIMER_LP_WIDTH (1);
 
 	bfin_write_TIMER_LP_PERIOD(DCLKS_PER_LINE);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* SPS, timer 1 */
 	bfin_write_TIMER_SPS_CONFIG(TIMER_CONFIG|PULSE_HI);
 	bfin_write_TIMER_SPS_WIDTH(DCLKS_PER_LINE*2);
 	bfin_write_TIMER_SPS_PERIOD((DCLKS_PER_LINE * (LCD_Y_RES+U_LINES)));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* SP, timer 0 */
 	bfin_write_TIMER_SP_CONFIG(TIMER_CONFIG|PULSE_HI);
 	bfin_write_TIMER_SP_WIDTH (1);
 	bfin_write_TIMER_SP_PERIOD(DCLKS_PER_LINE);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* PS & CLS, timer 7 */
 	bfin_write_TIMER_PS_CLS_CONFIG(TIMER_CONFIG);
 	bfin_write_TIMER_PS_CLS_WIDTH (LCD_X_RES + START_LINES);
 	bfin_write_TIMER_PS_CLS_PERIOD(DCLKS_PER_LINE);
 
-	__builtin_bfin_ssync();
+	SSYNC();
 
 #ifdef NO_BL
 	/* REV, timer 5 */
@@ -320,7 +320,7 @@ static void config_timers(void) /* CHECKME */
 	bfin_write_TIMER_REV_WIDTH(DCLKS_PER_LINE);
 	bfin_write_TIMER_REV_PERIOD(DCLKS_PER_LINE*2);
 
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 }
 
@@ -422,7 +422,7 @@ static void init_ports(void)
 #endif
 
 	bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0xFFFF);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 static struct fb_info bfin_lq035_fb;
@@ -461,7 +461,7 @@ static struct fb_fix_screeninfo bfin_lq035_fb_fix __initdata = {
 static int bfin_lq035_fb_open(struct fb_info* info, int user)
 {
 	bfin_write_PPI_CONTROL(0);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	set_vcomm();
 	config_dma();
@@ -469,9 +469,9 @@ static int bfin_lq035_fb_open(struct fb_info* info, int user)
 
 	/* start dma */
 	enable_dma(CH_PPI);
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	config_timers();
 	start_timers();
@@ -483,11 +483,11 @@ static int bfin_lq035_fb_open(struct fb_info* info, int user)
 static int bfin_lq035_fb_release(struct fb_info* info, int user)
 {
 
-	bfin_write_TIMER_ENABLE(0);
-	__builtin_bfin_ssync();
+//	bfin_write_TIMER_DISABLE(TIMEN_SP|TIMEN_SPS|TIMEN_PS_CLS|TIMEN_LP|TIMEN_REV);
+//	SSYNC();
 
 	bfin_write_PPI_CONTROL(0);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	disable_dma(CH_PPI);
 

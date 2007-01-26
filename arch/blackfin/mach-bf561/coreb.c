@@ -268,7 +268,7 @@ static int coreb_ioctl(struct inode *inode, struct file *file,
 		printk(KERN_INFO "Starting Core B\n");
 		coreb_status |= COREB_IS_RUNNING;
 		bfin_write_SICA_SYSCR(bfin_read_SICA_SYSCR() & ~0x0020);
-		__builtin_bfin_ssync();
+		SSYNC();
 		spin_lock_irq(&coreb_lock);
 		break;
 #if defined(CONFIG_BF561_COREB_RESET)

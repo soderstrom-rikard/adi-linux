@@ -42,8 +42,6 @@
 /* Remove unused code not exported by symbol or internally called */
 #define REMOVE_DEAD_CODE
 
-#define SSYNC __builtin_bfin_ssync()
-
 /**************************************************************************
  * Global Variables
 ***************************************************************************/
@@ -118,9 +116,9 @@ static struct dma_register_t *base_addr[MAX_BLACKFIN_DMA_CHANNEL] = {
 static void clear_dma_buffer(unsigned int channel)
 {
 	dma_ch[channel].regs->cfg |= RESTART;
-	SSYNC;
+	SSYNC();
 	dma_ch[channel].regs->cfg &= ~RESTART;
-	SSYNC;
+	SSYNC();
 }
 
 int __init blackfin_dma_init(void)
@@ -410,7 +408,7 @@ void disable_dma(unsigned int channel)
 	       && channel < MAX_BLACKFIN_DMA_CHANNEL);
 
 	dma_ch[channel].regs->cfg &= ~DMAEN;	/* Clean the enable bit */
-	SSYNC;
+	SSYNC();
 	dma_ch[channel].chan_status = DMA_CHANNEL_REQUESTED;
 	/* Needs to be enabled Later */
 	pr_debug("stop_dma() : END \n");
@@ -429,7 +427,7 @@ void enable_dma(unsigned int channel)
 	dma_ch[channel].regs->curr_y_count = 0;
 
 	dma_ch[channel].regs->cfg |= DMAEN;	/* Set the enable bit */
-	SSYNC;
+	SSYNC();
 	pr_debug("enable_dma() : END \n");
 	return;
 }
@@ -448,7 +446,7 @@ void set_dma_start_addr(unsigned int channel, unsigned long addr)
 	       && channel < MAX_BLACKFIN_DMA_CHANNEL);
 
 	dma_ch[channel].regs->start_addr = addr;
-	SSYNC;
+	SSYNC();
 	pr_debug("set_dma_start_addr() : END\n");
 }
 
@@ -460,7 +458,7 @@ void set_dma_next_desc_addr(unsigned int channel, unsigned long addr)
 	       && channel < MAX_BLACKFIN_DMA_CHANNEL);
 
 	dma_ch[channel].regs->next_desc_ptr = addr;
-	SSYNC;
+	SSYNC();
 	pr_debug("set_dma_start_addr() : END\n");
 }
 
@@ -470,7 +468,7 @@ void set_dma_x_count(unsigned int channel, unsigned short x_count)
 	       && channel < MAX_BLACKFIN_DMA_CHANNEL);
 
 	dma_ch[channel].regs->x_count = x_count;
-	SSYNC;
+	SSYNC();
 }
 
 void set_dma_y_count(unsigned int channel, unsigned short y_count)
@@ -479,7 +477,7 @@ void set_dma_y_count(unsigned int channel, unsigned short y_count)
 	       && channel < MAX_BLACKFIN_DMA_CHANNEL);
 
 	dma_ch[channel].regs->y_count = y_count;
-	SSYNC;
+	SSYNC();
 }
 
 void set_dma_x_modify(unsigned int channel, short x_modify)
@@ -488,7 +486,7 @@ void set_dma_x_modify(unsigned int channel, short x_modify)
 	       && channel < MAX_BLACKFIN_DMA_CHANNEL);
 
 	dma_ch[channel].regs->x_modify = x_modify;
-	SSYNC;
+	SSYNC();
 }
 
 void set_dma_y_modify(unsigned int channel, short y_modify)
@@ -497,7 +495,7 @@ void set_dma_y_modify(unsigned int channel, short y_modify)
 	       && channel < MAX_BLACKFIN_DMA_CHANNEL);
 
 	dma_ch[channel].regs->y_modify = y_modify;
-	SSYNC;
+	SSYNC();
 }
 
 void set_dma_config(unsigned int channel, unsigned short config)
@@ -506,7 +504,7 @@ void set_dma_config(unsigned int channel, unsigned short config)
 	       && channel < MAX_BLACKFIN_DMA_CHANNEL);
 
 	dma_ch[channel].regs->cfg = config;
-	SSYNC;
+	SSYNC();
 }
 
 unsigned short
@@ -530,7 +528,7 @@ void set_dma_sg(unsigned int channel, struct dmasg_t * sg, int nr_sg)
 
 	dma_ch[channel].regs->next_desc_ptr = (unsigned int)sg;
 
-	SSYNC;
+	SSYNC();
 }
 
 /*------------------------------------------------------------------------------

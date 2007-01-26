@@ -216,9 +216,9 @@ unsigned long change_sclk(unsigned long clock)
 		pr_debug("Selecting ssel = 15\n");
 		ssel = MAX_SSEL;
 	}
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_EBIU_SDGCTL(bfin_read_EBIU_SDGCTL() | SRFS);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	ret = set_pll_div(ssel,FLAG_SSEL);
 
@@ -226,16 +226,16 @@ unsigned long change_sclk(unsigned long clock)
 		pr_debug("Wrong system clock selection\n");
 
 	bfin_write_EBIU_SDRRC(get_sdrrcval(get_sclk()));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* Get SDRAM out of self refresh mode */
 	bfin_write_EBIU_SDGCTL(bfin_read_EBIU_SDGCTL() & ~SRFS);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* May not be required */
 #if 0
 	bfin_read_EBIU_SDGCTL() = (bfin_read_EBIU_SDGCTL() | SCTLE | CL_2 | SDRAM_tRAS1 | SDRAM_tRP1 | SDRAM_tRCD1 | SDRAM_tWR1);
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 
 	return(get_sclk());
@@ -262,7 +262,7 @@ static int dpmc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
 #endif
 			change_baud(CONSOLE_BAUD_RATE);
 			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
-			__builtin_bfin_ssync();
+			SSYNC();
 
 			break;
 
@@ -270,13 +270,13 @@ static int dpmc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
 			active_mode();
 			change_baud(CONSOLE_BAUD_RATE);
 			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
-			__builtin_bfin_ssync();
+			SSYNC();
 			break;
 
 		case IOCTL_SLEEP_MODE:
 			sleep_mode(IWR_ENABLE(IRQ_RTC - IVG7));
 			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
-			__builtin_bfin_ssync();
+			SSYNC();
 			break;
 
 		case IOCTL_DEEP_SLEEP_MODE:
@@ -289,19 +289,19 @@ static int dpmc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
 			change_baud(CONSOLE_BAUD_RATE);
 #endif
 			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
-			__builtin_bfin_ssync();
+			SSYNC();
 			break;
 
 		case IOCTL_SLEEP_DEEPER_MODE:
 			sleep_deeper(IWR_ENABLE(IRQ_RTC - IVG7));
 			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
-			__builtin_bfin_ssync();
+			SSYNC();
 			break;
 
 		case IOCTL_HIBERNATE_MODE:
 			hibernate_mode(IWR_ENABLE(IRQ_RTC - IVG7));
 			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
-			__builtin_bfin_ssync();
+			SSYNC();
 			break;
 
 		case IOCTL_CHANGE_FREQUENCY:
@@ -352,7 +352,7 @@ static int dpmc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
 				change_baud(CONSOLE_BAUD_RATE);
 			}
 			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
-			__builtin_bfin_ssync();
+			SSYNC();
 			copy_to_user((unsigned long *)arg, &vco_mhz, sizeof(unsigned long));
 			break;
 
@@ -464,13 +464,13 @@ void change_baud(int baud)
 
 	uartdll = sclk/(16*baud);
 	bfin_write_UART_LCR(DLAB);
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_UART_DLL(uartdll & 0xFF);
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_UART_DLH((uartdll >> 8));
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_UART_LCR(WLS(8));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	local_irq_restore(flags);
 }
@@ -526,7 +526,7 @@ int set_pll_div(unsigned short sel, unsigned char flag)
 	if(flag == FLAG_CSEL) {
 		if(sel <= 3) {
 			bfin_write_PLL_DIV((bfin_read_PLL_DIV() & 0xCF) | (sel << 4));
-			__builtin_bfin_ssync();
+			SSYNC();
 			return 0;
 		} else {
 			pr_debug("CCLK value selected not valid\n");
@@ -535,7 +535,7 @@ int set_pll_div(unsigned short sel, unsigned char flag)
 	} else if(flag == FLAG_SSEL){
 		if (sel < 16) {
 			bfin_write_PLL_DIV((bfin_read_PLL_DIV() & 0xF0) | sel);
-			__builtin_bfin_ssync();
+			SSYNC();
 			return 0;
 		} else {
 			pr_debug("SCLK value selected not valid\n");
@@ -560,25 +560,25 @@ unsigned long change_frequency(unsigned long vco_mhz)
 
 /* Enable the PLL Wakeup bit in SIC IWR */
 	bfin_write_SIC_IWR(IWR_ENABLE(0));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	bfin_write_PLL_LOCKCNT(0x300);
-	__builtin_bfin_ssync();
+	SSYNC();
 
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_read_EBIU_SDGCTL() = (bfin_read_EBIU_SDGCTL() | SRFS);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	vl = bfin_read_PLL_CTL();
-	__builtin_bfin_ssync();
+	SSYNC();
 	vl &= 0x81FF;
 	msel |= vl;
 
 	bfin_write_PLL_CTL(msel);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	local_irq_save(flags);
-	__builtin_bfin_ssync();
+	SSYNC();
 	asm("IDLE;");
 	local_irq_restore(flags);
 
@@ -586,14 +586,14 @@ unsigned long change_frequency(unsigned long vco_mhz)
 		;
 
 	bfin_write_EBIU_SDRRC(get_sdrrcval((get_sclk())));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	bfin_read_EBIU_SDGCTL() = bfin_read_EBIU_SDGCTL() & ~SRFS;
-	__builtin_bfin_ssync();
+	SSYNC();
 
 #if 0
 	 bfin_write_EBIU_SDGCTL((SCTLE | CL_2 | SDRAM_tRAS1 | SDRAM_tRP1 | SDRAM_tRCD1 | SDRAM_tWR1));
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 
 #if 0
@@ -601,14 +601,14 @@ unsigned long change_frequency(unsigned long vco_mhz)
 	if (bfin_read_EBIU_SDSTAT() & SDRS) {
 
 		bfin_write_EBIU_SDRRC(get_sdrrcval((get_sclk()*MHZ)));
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		bfin_write_EBIU_SDBCTL(0x13);
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		modeval = (SCTLE | CL_2 | SDRAM_tRAS1 | SDRAM_tRP1 | SDRAM_tRCD1 | SDRAM_tWR1 | PSS);
 		bfin_write_EBIU_SDGCTL(modeval);
-		__builtin_bfin_ssync();
+		SSYNC();
 	}
 #endif
 
@@ -631,34 +631,34 @@ void fullon_mode(void)	{
 	unsigned long flags;
 
 	bfin_write_SIC_IWR(IWR_ENABLE(0));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	bfin_write_PLL_LOCKCNT(0x300);
-	__builtin_bfin_ssync();
+	SSYNC();
 
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_EBIU_SDGCTL(bfin_read_EBIU_SDGCTL() | SRFS);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 /* Together if done, some issues with code generation,so split this way*/
 	bfin_write_PLL_CTL(bfin_read_PLL_CTL() & (unsigned short)~(BYPASS));
 	bfin_write_PLL_CTL(bfin_read_PLL_CTL() & (unsigned short)~(PDWN));
 	bfin_write_PLL_CTL(bfin_read_PLL_CTL() & (unsigned short)~(STOPCK_OFF));
 	bfin_write_PLL_CTL(bfin_read_PLL_CTL() & (unsigned short)~(PLL_OFF));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	local_irq_save(flags);
-	__builtin_bfin_ssync();
+	SSYNC();
 	asm("IDLE;");
 	local_irq_restore(flags);
 
 	while((bfin_read_PLL_STAT() & PLL_LOCKED) != PLL_LOCKED);
 
 	bfin_write_EBIU_SDRRC(get_sdrrcval(get_sclk()));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	bfin_write_EBIU_SDGCTL(bfin_read_EBIU_SDGCTL() & ~SRFS);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 #endif
 }
@@ -670,20 +670,20 @@ void active_mode(void)
 	unsigned long flags;
 
 	bfin_write_SIC_IWR(IWR_ENABLE(0));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	bfin_write_PLL_LOCKCNT(0x300);
-	__builtin_bfin_ssync();
+	SSYNC();
 
-	__builtin_bfin_ssync();
+	SSYNC();
 	bfin_write_EBIU_SDGCTL(bfin_read_EBIU_SDGCTL() | SRFS);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	bfin_write_PLL_CTL(bfin_read_PLL_CTL() | BYPASS);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	local_irq_save(flags);
-	__builtin_bfin_ssync();
+	SSYNC();
 	asm("IDLE;");
 	local_irq_restore(flags);
 
@@ -691,10 +691,10 @@ void active_mode(void)
 		;
 
 	bfin_write_EBIU_SDRRC(get_sdrrcval(get_sclk()));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	bfin_write_EBIU_SDGCTL(bfin_read_EBIU_SDGCTL() & ~SRFS);
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 }
 

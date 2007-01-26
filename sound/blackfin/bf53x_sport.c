@@ -69,8 +69,6 @@
 /* delay between frame sync pulse and first data bit in multichannel mode */
 #define FRAME_DELAY (1<<12)
 
-#define SSYNC __builtin_bfin_ssync()
-
 static unsigned int sport_iobase[] = {SPORT0_TCR1, SPORT1_TCR1 };
 
 static unsigned int dma_iobase[] =
@@ -112,7 +110,7 @@ int bf53x_sport_set_multichannel(struct bf53x_sport *sport,
 	if (tdm_count > 32)
 		return -EINVAL;  /* don't feel like overdoing it today :-) */
 
-	SSYNC; /* is this really neccesary? */
+	SSYNC(); /* is this really neccesary? */
 
 	if (tdm_count) {
 		int shift = 32 - tdm_count;
@@ -135,7 +133,7 @@ int bf53x_sport_set_multichannel(struct bf53x_sport *sport,
 	sport->regs->mtcs1 = 0; sport->regs->mtcs2 = 0; sport->regs->mtcs3 = 0;
 	sport->regs->mrcs1 = 0; sport->regs->mrcs2 = 0; sport->regs->mrcs3 = 0;
 
-	SSYNC;
+	SSYNC();
 
 	return 0;
 }
@@ -151,7 +149,7 @@ int bf53x_sport_config_rx(struct bf53x_sport *sport, unsigned int rcr1,
 	sport->regs->rclkdiv = clkdiv;
 	sport->regs->rfsdiv = fsdiv;
 
-	SSYNC;
+	SSYNC();
 
 	return 0;
 }
@@ -167,7 +165,7 @@ int bf53x_sport_config_tx(struct bf53x_sport *sport, unsigned int tcr1,
 	sport->regs->tclkdiv = clkdiv;
 	sport->regs->tfsdiv = fsdiv;
 
-	SSYNC;
+	SSYNC();
 
 	return 0;
 }
@@ -217,7 +215,7 @@ static int sport_start(struct bf53x_sport *sport)
 	enable_dma(sport->dma_tx_chan);
 	sport->regs->tcr1 |= TSPEN;
 	sport->regs->rcr1 |= RSPEN;
-	SSYNC;
+	SSYNC();
 
 	return 0;
 }
@@ -226,7 +224,7 @@ static int sport_stop(struct bf53x_sport *sport)
 {
 	sport->regs->tcr1 &= ~TSPEN;
 	sport->regs->rcr1 &= ~RSPEN;
-	SSYNC;
+	SSYNC();
 
 	disable_dma(sport->dma_rx_chan);
 	disable_dma(sport->dma_tx_chan);
@@ -285,7 +283,7 @@ static inline int sport_rx_dma_start(struct bf53x_sport *sport, int dummy)
 	dma->y_count       = 0;
 	dma->y_modify      = 0;
 
-	SSYNC;
+	SSYNC();
 
 	return 0;
 }
@@ -308,7 +306,7 @@ static inline int sport_tx_dma_start(struct bf53x_sport *sport, int dummy)
 	dma->y_count       = 0;
 	dma->y_modify      = 0;
 
-	SSYNC;
+	SSYNC();
 
 	return 0;
 }
@@ -655,29 +653,29 @@ static int sport_check_status(struct bf53x_sport *sport,
 	int status = 0;
 
 	if (sport_stat) {
-		SSYNC;
+		SSYNC();
 		status = sport->regs->stat;
 		if (status & (TOVF|TUVF|ROVF|RUVF))
 			sport->regs->stat = (status & (TOVF|TUVF|ROVF|RUVF));
-		SSYNC;
+		SSYNC();
 		*sport_stat = status;
 	}
 
 	if (rx_stat) {
-		SSYNC;
+		SSYNC();
 		status = sport->dma_rx->irq_status;
 		if (status & (DMA_DONE|DMA_ERR))
 			sport->dma_rx->irq_status = status & (DMA_DONE|DMA_ERR);
-		SSYNC;
+		SSYNC();
 		*rx_stat = status;
 	}
 
 	if (tx_stat) {
-		SSYNC;
+		SSYNC();
 		status = sport->dma_tx->irq_status;
 		if (status & (DMA_DONE|DMA_ERR))
 			sport->dma_tx->irq_status = status & (DMA_DONE|DMA_ERR);
-		SSYNC;
+		SSYNC();
 		*tx_stat = status;
 	}
 
@@ -850,14 +848,14 @@ struct bf53x_sport *bf53x_sport_init(int sport_num,
 #if defined(CONFIG_BF534) || defined(CONFIG_BF536) || defined(CONFIG_BF537)
 	if (sport->sport_num) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PGTE|PGRE|PGSE);
-		SSYNC;
+		SSYNC();
 		/*    printk("sport: mux=0x%x\n", bfin_read_PORT_MUX());*/
 		bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0xFF00);
-		SSYNC;
+		SSYNC();
 		/*    printk("sport: gfer=0x%x\n", bfin_read_PORTG_FER());*/
 	} else {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~(PJSE|PJCE(3)));
-		SSYNC;
+		SSYNC();
 		/*    printk("sport: mux=0x%x\n", bfin_read_PORT_MUX());*/
 	}
 #endif

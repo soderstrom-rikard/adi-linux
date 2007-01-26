@@ -409,11 +409,11 @@ void __init setup_arch(char **cmdline_p)
 	/* setup BF533_STAMP CPLD to route AMS3 to Ethernet MAC */
 	bfin_write_FIO_DIR(bfin_read_FIO_DIR() | CONFIG_ENET_FLASH_PIN);
 	bfin_write_FIO_FLAG_S(CONFIG_ENET_FLASH_PIN);
-	__builtin_bfin_ssync();
+	SSYNC();
 # endif
 # if defined (CONFIG_BFIN561_EZKIT)
 	bfin_write_FIO0_DIR(bfin_read_FIO0_DIR() | (1 << 12));
-	__builtin_bfin_ssync();
+	SSYNC();
 # endif /* defined (CONFIG_BFIN561_EZKIT) */
 #endif
 

@@ -77,7 +77,7 @@ static inline void leds_switch(int flag)
 	unsigned short tmp = 0;
 
 	tmp = bfin_read_CONFIG_BFIN_IDLE_LED_PORT();
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	if (flag == LED_ON)
 		tmp &= ~CONFIG_BFIN_IDLE_LED_PIN;	/* light on */
@@ -85,7 +85,7 @@ static inline void leds_switch(int flag)
 		tmp |= CONFIG_BFIN_IDLE_LED_PIN;	/* light off */
 
 	bfin_write_CONFIG_BFIN_IDLE_LED_PORT(tmp);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 }
 #else
@@ -132,12 +132,12 @@ void machine_restart(char *__unused)
 {
 #if defined(CONFIG_BLKFIN_CACHE)
 	bfin_write_IMEM_CONTROL(0x01);
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 	bfin_reset();
 	/* Dont do anything till the reset occurs */
 	while (1) {
-		__builtin_bfin_ssync();
+		SSYNC();
 	}
 }
 

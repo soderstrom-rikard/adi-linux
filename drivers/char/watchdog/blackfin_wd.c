@@ -127,7 +127,7 @@ static int wd_keepalive(void)
 	DPRINTK(KERN_INFO," call\n");
 	/*Reset watchdog counter*/
 	bfin_write_WDOG_STAT(0);
-	__builtin_bfin_ssync();
+	SSYNC();
 	return 0;
 }
 
@@ -135,7 +135,7 @@ static int wd_stop(void)
 {
 	DPRINTK(KERN_INFO," call\n");
 	bfin_write_WDOG_CTL((bfin_read_WDOG_CTL() & ~WD_TMR_EN_MASK) | WD_TMR_EN_DISABLE);
-	__builtin_bfin_ssync();
+	SSYNC();
 	return 0;
 }
 
@@ -143,7 +143,7 @@ static int wd_start(void)
 {
 	DPRINTK(KERN_INFO," call\n");
 	bfin_write_WDOG_CTL((bfin_read_WDOG_CTL() & ~WD_TMR_EN_MASK) | WD_TMR_EN_ENABLE);
-	__builtin_bfin_ssync();
+	SSYNC();
 	return 0;
 }
 

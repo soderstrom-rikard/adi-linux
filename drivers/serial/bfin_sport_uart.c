@@ -137,7 +137,7 @@ static int sport_uart_setup(struct sport_uart_port *up, int sclk, int baud_rate)
 	SPORT_PUT_TCLKDIV(up, tclkdiv);
 	SPORT_PUT_TFSDIV(up, tfsdiv);
 	SPORT_PUT_RCLKDIV(up, rclkdiv);
-	__builtin_bfin_ssync();
+	SSYNC();
 	pr_debug("%s sclk:%d, baud_rate:%d, tclkdiv:%d, tfsdiv:%d, rclkdiv:%d\n",
 			__FUNCTION__, sclk, baud_rate, tclkdiv, tfsdiv, rclkdiv);
 
@@ -192,7 +192,7 @@ static irqreturn_t sport_uart_err_irq(int irq, void *dev_id, struct pt_regs *reg
 		SPORT_PUT_TCR1(up, SPORT_GET_TCR1(up) & ~TSPEN);
 		SPORT_PUT_RCR1(up, SPORT_GET_RCR1(up) & ~RSPEN);
 	}
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	return IRQ_HANDLED;
 }
@@ -231,10 +231,10 @@ static int sport_startup(struct uart_port *port)
 	if (port->line) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PGTE|PGRE|PGSE);
 		bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0xFF00);
-		__builtin_bfin_ssync();
+		SSYNC();
 	} else {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~(PJSE|PJCE(3)));
-		__builtin_bfin_ssync();
+		SSYNC();
 	}
 #endif
 
@@ -242,7 +242,7 @@ static int sport_startup(struct uart_port *port)
 
 	/* Enable receive interrupt */
 	SPORT_PUT_RCR1(up, (SPORT_GET_RCR1(up) | RSPEN));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	return 0;
 }
@@ -319,7 +319,7 @@ static void sport_stop_tx(struct uart_port *port)
 	udelay(500);
 
 	SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) & ~TSPEN));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	return;
 }
@@ -334,7 +334,7 @@ static void sport_start_tx(struct uart_port *port)
 
 	/* Enable transmit, then an interrupt will generated */
 	SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) | TSPEN));
-	__builtin_bfin_ssync();
+	SSYNC();
 	pr_debug("%s exit\n", __FUNCTION__);
 }
 
@@ -345,7 +345,7 @@ static void sport_stop_rx(struct uart_port *port)
 	pr_debug("%s enter\n", __FUNCTION__);
 	/* Disable sport to stop rx */
 	SPORT_PUT_RCR1(up, (SPORT_GET_RCR1(up) & ~RSPEN));
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 static void sport_enable_ms(struct uart_port *port)
@@ -367,7 +367,7 @@ static void sport_shutdown(struct uart_port *port)
 	/* Disable sport */
 	SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) & ~TSPEN));
 	SPORT_PUT_RCR1(up, (SPORT_GET_RCR1(up) & ~RSPEN));
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	free_irq(up->rx_irq, up);
 	free_irq(up->tx_irq, up);

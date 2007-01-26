@@ -196,7 +196,7 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 	disable_dma(CH_PPI);
 	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 1);
 	bfin_write_PORTG_FER(0xFFFF);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* setup PPI */
 	if(buf[0] == 1)		/* Show only Channel I (skip Channel Q) */
@@ -252,10 +252,10 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 	enable_dma(CH_PPI);
 	/* Enable PPI */
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 0);
-	__builtin_bfin_ssync();
+	SSYNC();
 	spin_unlock(&pdev->lock);
 
 	pr_debug("ad9960_read: PPI ENABLED : DONE \n");
@@ -279,7 +279,7 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 	l1_data_A_sram_free(descriptors);
 	disable_dma(CH_PPI);
 	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 1);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	pr_debug("ppi_read: return \n");
 
@@ -312,7 +312,7 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 	/* Disable dma */
 	disable_dma(CH_PPI);
 	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 0);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* setup PPI */
 	bfin_write_PPI_CONTROL(0x7802);
@@ -388,10 +388,10 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 
 	/* Enable PPI */
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 1);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	pr_debug("ad9960_write: PPI ENABLED : DONE \n");
 	/* Wait for data available */
@@ -416,11 +416,11 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 #if 0	
 	l1_data_A_sram_free((u_long)dma_buf);
 	disable_dma(CH_PPI);
-	__builtin_bfin_ssync();
+	SSYNC();
 #endif
 
 	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 0);
-	__builtin_bfin_ssync();
+	SSYNC();
 	spin_unlock(&pdev->lock);
 	pr_debug("ppi_write: return \n");
 
@@ -653,7 +653,7 @@ static int __init ad9960_init(void)
 
 	bfin_write_PORTG_FER(0xFFFF);
 	bfin_write_TIMER0_CONFIG(bfin_read_TIMER0_CONFIG() | OUT_DIS);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* Clear configuration information */
 	memset(&ad9960_info, 0, sizeof(struct ad9960_device_t));

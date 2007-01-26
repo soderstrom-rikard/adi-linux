@@ -166,7 +166,7 @@ void port_setup(unsigned short gpio, unsigned short usage)
 		*port_fer[gpio_bank(gpio)] &= ~gpio_bit(gpio);
 	} else
 		*port_fer[gpio_bank(gpio)] |= gpio_bit(gpio);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 #else
 # define port_setup(...)  do { } while (0)
@@ -182,7 +182,7 @@ void default_gpio(unsigned short gpio)
 
 	gpio_bankb[bank]->maska_clear = bitmask;
 	gpio_bankb[bank]->maskb_clear = bitmask;
-	__builtin_bfin_ssync();
+	SSYNC();
 	gpio_bankb[bank]->inen &= ~bitmask;
 	gpio_bankb[bank]->dir &= ~bitmask;
 	gpio_bankb[bank]->polar &= ~bitmask;
@@ -484,7 +484,7 @@ static int bfin_gpio_wakeup_type(unsigned short gpio, unsigned char type)
 	else
 		set_gpio_polar(gpio, 0);
 
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	return 0;
 }

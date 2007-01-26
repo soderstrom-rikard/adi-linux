@@ -386,13 +386,13 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count,
 	/* Enable PPI */
 
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	if (pdev->ppi_trigger_gpio < NO_TRIGGER) {
 		bfin_write_FIO_FLAG_S(1 << pdev->ppi_trigger_gpio);
-		__builtin_bfin_ssync();
+		SSYNC();
 		bfin_write_FIO_FLAG_C(1 << pdev->ppi_trigger_gpio);
-		__builtin_bfin_ssync();
+		SSYNC();
 	}
 
 	pr_debug("ppi_read: PPI ENABLED : DONE\n");

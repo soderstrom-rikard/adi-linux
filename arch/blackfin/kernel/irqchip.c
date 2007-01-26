@@ -122,7 +122,7 @@ asmlinkage void asm_do_IRQ(unsigned int irq, struct pt_regs *regs)
 	   syscalls), lower our priority to IRQ14 so that softirqs run at
 	   that level.  If there's another, lower-level interrupt, irq_exit
 	   will defer softirqs to that.  */
-	__builtin_bfin_csync();
+	CSYNC();
 	pending = bfin_read_IPEND() & ~0x8000;
 	other_ints = pending & (pending - 1);
 	if (other_ints == 0)

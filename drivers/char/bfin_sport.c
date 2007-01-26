@@ -64,7 +64,6 @@ int sport_nr_devs = SPORT_NR_DEVS;	/* number of bare sport devices */
 
 struct sport_dev *sport_devices;	/* allocated in sport_init_module */
 
-#define SSYNC __builtin_bfin_ssync()
 
 #undef assert
 
@@ -109,7 +108,7 @@ static int sport_set_multichannel(struct sport_register *regs,
 	regs->mtcs1 = 0; regs->mtcs2 = 0; regs->mtcs3 = 0;
 	regs->mrcs1 = 0; regs->mrcs2 = 0; regs->mrcs3 = 0;
 
-	SSYNC;
+	SSYNC();
 
 	return 0;
 }
@@ -199,7 +198,7 @@ static int sport_configure(struct sport_dev *dev, struct sport_config *config)
 	dev->regs->tcr2 = tcr2;
 	dev->regs->tclkdiv = clkdiv;
 	dev->regs->tfsdiv = fsdiv;
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	pr_debug("tcr1:0x%x, tcr2:0x%x, rcr1:0x%x, rcr2:0x%x\n"
 		"mcmc1:0x%x, mcmc2:0x%x\n",
@@ -236,7 +235,7 @@ static irqreturn_t dma_rx_irq_handler(int irq, void *dev_id)
 
 	pr_debug("%s enter\n", __FUNCTION__);
 	dev->regs->rcr1 &= ~RSPEN;
-	__builtin_bfin_ssync();
+	SSYNC();
 	disable_dma(dev->dma_rx_chan);
 
 	dev->wait_con = 1;
@@ -268,7 +267,7 @@ static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id)
 	pr_debug("%s status:%x\n", __FUNCTION__, status);
 
 	dev->regs->tcr1 &= ~TSPEN;
-	__builtin_bfin_ssync();
+	SSYNC();
 	disable_dma(dev->dma_tx_chan);
 
 	dev->wait_con = 1;
@@ -370,7 +369,7 @@ static irqreturn_t sport_tx_handler(int irq, void *dev_id)
 		}
 		udelay(500);
 		dev->regs->tcr1 &= ~TSPEN;
-		__builtin_bfin_ssync();
+		SSYNC();
 		pr_debug("%s:stat:%x\n", __FUNCTION__, stat);
 		dev->wait_con = 1;
 		wake_up(&dev->waitq);
@@ -395,7 +394,7 @@ static irqreturn_t sport_err_handler(int irq, void *dev_id)
 		}
 		dev->regs->tcr1 &= ~TSPEN;
 		dev->regs->rcr1 &= ~RSPEN;
-		__builtin_bfin_ssync();
+		SSYNC();
 
 		if (!dev->config.dma_enabled && !dev->config.int_clk) {
 			if (status & TUVF) {
@@ -457,11 +456,11 @@ static int sport_open(struct inode *inode, struct file *filp)
 #if defined(CONFIG_BF534) || defined(CONFIG_BF536) || defined(CONFIG_BF537)
 	if (dev->sport_num == 0) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~(PJSE|PJCE(3)));
-		__builtin_bfin_ssync();
+		SSYNC();
 	} if (dev->sport_num == 1) {
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PGTE|PGRE|PGSE);
 		bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0xFF00);
-		__builtin_bfin_ssync();
+		SSYNC();
 	}
 #endif
 	dev->task = current;
@@ -545,7 +544,7 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 	}
 
 	dev->regs->rcr1 |= RSPEN;
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	if (wait_event_interruptible(dev->waitq, dev->wait_con) < 0) {
 		pr_debug("Receive a signal to interrupt\n");
@@ -622,7 +621,7 @@ static ssize_t sport_write(struct file *filp, const char __user *buf, size_t cou
 		sport_tx_write(dev);
 	}
 	dev->regs->tcr1 |= TSPEN;
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	pr_debug("wait for transfer finished\n");
 	if (wait_event_interruptible(dev->waitq, dev->wait_con ) < 0) {
@@ -666,11 +665,11 @@ static int sport_ioctl(struct inode *inode, struct file *filp,
 				/* Pull down SE pin on AD73311 */
 				*(unsigned short*)FIO_DIR |= (1 << GPIO_SE);
 				*(unsigned short*)FIO_FLAG_C = (1 << GPIO_SE);
-				__builtin_bfin_ssync();
+				SSYNC();
 			} else if (arg == 1) { /* Enable ad73311 */
 				*(unsigned short*)FIO_DIR |= (1 << GPIO_SE);
 				*(unsigned short*)FIO_FLAG_S = (1 << GPIO_SE);
-				__builtin_bfin_ssync();
+				SSYNC();
 			}
 			break;
 		default:

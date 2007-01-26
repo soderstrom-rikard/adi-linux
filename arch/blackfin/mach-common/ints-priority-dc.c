@@ -176,7 +176,7 @@ static void bf561_internal_unmask_irq(unsigned int irq)
 		irq_mask = (1 << (irq - (IRQ_CORETMR + 1) - 32));
 		bfin_write_SICA_IMASK1(bfin_read_SICA_IMASK1() | irq_mask);
 	}
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 static struct irq_chip bf561_core_irqchip = {
@@ -201,7 +201,7 @@ static void bf561_gpio_ack_irq(unsigned int irq)
 	
 	if(gpio_edge_triggered[gpio_bank(gpionr)] & gpio_bit(gpionr)) {
 		set_gpio_data(gpionr, 0);
-		__builtin_bfin_ssync();
+		SSYNC();
 	}
 }
 
@@ -211,23 +211,23 @@ static void bf561_gpio_mask_ack_irq(unsigned int irq)
 
 	if(gpio_edge_triggered[gpio_bank(gpionr)] & gpio_bit(gpionr)) {
 		set_gpio_data(gpionr, 0);
-		__builtin_bfin_ssync();
+		SSYNC();
 	}
 
 	set_gpio_maska(gpionr, 0);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 static void bf561_gpio_mask_irq(unsigned int irq)
 {
 	set_gpio_maska(irq - IRQ_PF0, 0);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 static void bf561_gpio_unmask_irq(unsigned int irq)
 {
 	set_gpio_maska(irq - IRQ_PF0, 1);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 static unsigned int bf561_gpio_irq_startup(unsigned int irq)
@@ -291,7 +291,7 @@ static int bf561_gpio_irq_type(unsigned int irq, unsigned int type)
 		else
 			set_gpio_polar(gpionr, 0);	/* high or rising edge denoted by zero */
 	
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	if (type & (IRQ_TYPE_EDGE_RISING | IRQ_TYPE_EDGE_FALLING))
 		set_irq_handler(irq, handle_edge_irq);
@@ -363,7 +363,7 @@ int __init init_arch_irq(void)
 	/*  Disable all the peripheral intrs  - page 4-29 HW Ref manual */
 	bfin_write_SICA_IMASK0(SIC_UNMASK_ALL);
 	bfin_write_SICA_IMASK1(SIC_UNMASK_ALL);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	local_irq_disable();
 
@@ -385,7 +385,7 @@ int __init init_arch_irq(void)
 	bfin_write_EVT13(evt_evt13);
 	bfin_write_EVT14(evt14_softirq);
 	bfin_write_EVT15(evt_system_call);
-	__builtin_bfin_csync();
+	CSYNC();
 
 	for (irq = 0; irq < SYS_IRQS; irq++) {
 		if (irq <= IRQ_CORETMR)
@@ -413,11 +413,11 @@ int __init init_arch_irq(void)
 	}
 #endif
 	bfin_write_IMASK(0);
-	__builtin_bfin_csync();
+	CSYNC();
 	ilat = bfin_read_ILAT();
-	__builtin_bfin_csync();
+	CSYNC();
 	bfin_write_ILAT(ilat);
-	__builtin_bfin_csync();
+	CSYNC();
 
 	printk(KERN_INFO "Configuring Blackfin Priority Driven Interrupts\n");
 	/* IMASK=xxx is equivalent to STI xx or irq_flags=xx,
@@ -444,7 +444,7 @@ void do_irq(int vec, struct pt_regs *fp)
 		struct ivgx *ivg_stop = ivg7_13[vec - IVG7].istop;
 		unsigned long sic_status0, sic_status1;
 
-		__builtin_bfin_ssync();
+		SSYNC();
 		sic_status0 = bfin_read_SICA_IMASK0() & bfin_read_SICA_ISR0();
 		sic_status1 = bfin_read_SICA_IMASK1() & bfin_read_SICA_ISR1();
 

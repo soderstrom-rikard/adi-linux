@@ -44,8 +44,8 @@
 #define CPLB_I 1
 #define CPLB_D 2
 
-#define SYNC_SYS    __builtin_bfin_ssync()
-#define SYNC_CORE   __builtin_bfin_csync()
+#define SYNC_SYS    SSYNC()
+#define SYNC_CORE   CSYNC()
 
 #define CPLB_BIT_PAGESIZE 0x30000
 

@@ -83,7 +83,7 @@ static u_char bfin_read_byte(struct mtd_info *mtd)
 {
 	struct nand_chip *this = mtd->priv;
 	u_char ret = readb(this->IO_ADDR_R);
-	__builtin_bfin_ssync();
+	SSYNC();
 	return ret;
 }
 
@@ -98,7 +98,7 @@ static u16 bfin_read_word(struct mtd_info *mtd)
 {
 	struct nand_chip *this = mtd->priv;
 	u16 ret = readw(this->IO_ADDR_R);
-	__builtin_bfin_ssync();
+	SSYNC();
 	return ret;
 }
 
@@ -117,7 +117,7 @@ static void bfin_read_buf(struct mtd_info *mtd, u_char *buf, int len)
 
 	for (i=0; i<len; i++)
 		buf[i] = readb(this->IO_ADDR_R);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 /**
@@ -136,7 +136,7 @@ static void bfin_write_buf(struct mtd_info *mtd, const u_char *buf, int len)
 	for (i=0; i<len; i++)
 		writeb(buf[i], this->IO_ADDR_W);
 
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 /**
@@ -156,7 +156,7 @@ static int bfin_verify_buf(struct mtd_info *mtd, const u_char *buf, int len)
 		if (buf[i] != readb(this->IO_ADDR_R))
 			return -EFAULT;
 	}
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	return 0;
 }
@@ -171,7 +171,7 @@ static void bfin_hwcontrol(struct mtd_info *mtd, int cmd, unsigned int ctrl)
         else
                 writeb(cmd, p_nand + BFIN_NAND_ALE);
 
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 int bfin_device_ready(struct mtd_info *mtd)

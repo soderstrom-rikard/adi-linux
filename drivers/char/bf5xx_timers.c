@@ -142,7 +142,7 @@ MODULE_LICENSE    (LICENSE);
 void set_gptimer_pwidth(int timer_id, int value){
 	assert( timer_id < MAX_BLACKFIN_GPTIMERS );
 	timer_regs[timer_id]->width = value;
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 int get_gptimer_pwidth(int timer_id){
@@ -155,7 +155,7 @@ int get_gptimer_pwidth(int timer_id){
 void set_gptimer_period(int timer_id, int period){
 	assert( timer_id < MAX_BLACKFIN_GPTIMERS );
 	timer_regs[timer_id]->period = period;
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 int get_gptimer_period(int timer_id){
@@ -180,7 +180,7 @@ int get_gptimer_status(int octet){
 void set_gptimer_status(int octet, int value){
 	assert(octet < BFIN_TIMER_NUM_GROUP);
 	group_regs[octet]->status = value;
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 short get_gptimer_intr(int timer_id){
@@ -192,7 +192,7 @@ short get_gptimer_intr(int timer_id){
 void set_gptimer_config(int timer_id, short config){
 	assert( timer_id < MAX_BLACKFIN_GPTIMERS );
 	timer_regs[timer_id]->config = config;
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 short get_gptimer_config(int timer_id){
@@ -209,7 +209,7 @@ void enable_gptimers(short mask){
 		group_regs[i]->enable = mask & 0xFF;
 		mask >>= 8;
 	}
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 void disable_gptimers(short mask){
@@ -225,19 +225,19 @@ void disable_gptimers(short mask){
 			group_regs[BFIN_TIMER_OCTET(i)]->status |= dis_mask[i];
 		}
 	}
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 void set_gptimer_pulse_hi(int timer_id){
 	assert( timer_id < MAX_BLACKFIN_GPTIMERS );
 	timer_regs[timer_id]->config |= TIMER_PULSE_HI;
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 void clear_gptimer_pulse_hi(int timer_id){
 	assert( timer_id < MAX_BLACKFIN_GPTIMERS );
 	timer_regs[timer_id]->config &= ~TIMER_PULSE_HI;
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 short get_enabled_timers(void){

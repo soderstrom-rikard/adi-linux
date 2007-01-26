@@ -430,10 +430,10 @@ static int snd_ad73311_startup(void)
 	snd_printd(KERN_INFO "%s is called\n", __FUNCTION__);
 
 	*(unsigned short*)FIO_DIR |= (1 << GPIO_SE);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	*(unsigned short*)FIO_FLAG_S = (1 << GPIO_SE);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	return 0;
 }
@@ -443,11 +443,11 @@ static void snd_ad73311_stop(void)
 	snd_printd(KERN_INFO "%s is called\n", __FUNCTION__);
 
 	*(unsigned short*)FIO_DIR |= (1 << GPIO_SE);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* Pull down SE pin on AD73311L */
 	*(unsigned short*)FIO_FLAG_C = (1 << GPIO_SE);
-	__builtin_bfin_ssync();
+	SSYNC();
 }
 
 /*************************************************************
@@ -497,26 +497,26 @@ static int snd_ad73311_configure(void)
 
 	bfin_write_SPORT_TCR1(TFSR);
 	bfin_write_SPORT_TCR2(0xF);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* SPORT Tx Register is a 8 x 16 FIFO, all the data can be put to
 	 * FIFO before enable SPORT to transfer the data */
 	for (count = 0; count < 6; count++) {
 		bfin_write_SPORT_TX16(ctrl_regs[count]);
 	}
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	bfin_write_SPORT_TCR1(bfin_read_SPORT_TCR1() | TSPEN);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	/* When TUVF is set, the data is already send out */
 	while(!(status & TUVF) && count++ < 10000) {
 		udelay(1);
 		status = bfin_read_SPORT_STAT();
-		__builtin_bfin_ssync();
+		SSYNC();
 	}
 	bfin_write_SPORT_TCR1(bfin_read_SPORT_TCR1() & ~TSPEN);
-	__builtin_bfin_ssync();
+	SSYNC();
 	local_irq_enable();
 
 	snd_ad73311_stop();

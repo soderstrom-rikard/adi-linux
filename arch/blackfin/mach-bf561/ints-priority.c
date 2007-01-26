@@ -106,5 +106,5 @@ void program_IAR(void)
 			     (0 << IRQ_RESERVED_1_POS) | (0 << IRQ_RESERVED_2_POS) |
 			     (0 << IRQ_SUPPLE_0_POS) | (0 << IRQ_SUPPLE_1_POS));
 
-	__builtin_bfin_ssync();
+	SSYNC();
 }

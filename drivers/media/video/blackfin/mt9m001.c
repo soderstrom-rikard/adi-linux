@@ -1327,7 +1327,7 @@ static ssize_t uCam_read(struct file *filp, char *buf, size_t count, loff_t *pos
 	uCam_dev->ppidev->pixel_per_line  = uCam_dev->width;
 	uCam_dev->ppidev->lines_per_frame = uCam_dev->height-1;
 	ucam_reg_reset(uCam_dev->ppidev);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	pr_debug("Frame %d reading %zi bytes %dx%d starting at (%d,%d) from pos (start at 0x%p) ...  ",
 	         uCam_dev->frame_count, count,

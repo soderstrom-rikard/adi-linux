@@ -83,6 +83,9 @@
 #define ANOMALY_05000274 /* Data cache write back to external synchronous memory
                             may be lost */
 #define ANOMALY_05000275 /* PPI Timing and sampling informaton updates */
+#define ANOMALY_05000312 /* Errors when SSYNC, CSYNC, or loads to LT, LB and LC 
+			    registers are interrupted */
+
 #endif /*  (defined(CONFIG_BF_REV_0_5) || defined(CONFIG_BF_REV_0_3)) */
 
 #if  (defined(CONFIG_BF_REV_0_5))

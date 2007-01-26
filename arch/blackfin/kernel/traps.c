@@ -47,9 +47,9 @@ asmlinkage void trap(void);
 /* Initiate the event table handler */
 void __init trap_init(void)
 {
-	__builtin_bfin_csync();
+	CSYNC();
 	bfin_write_EVT3(trap);
-	__builtin_bfin_csync();
+	CSYNC();
 }
 
 asmlinkage void trap_c(struct pt_regs *fp);
