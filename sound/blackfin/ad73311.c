@@ -429,10 +429,13 @@ static int snd_ad73311_startup(void)
 {
 	snd_printd(KERN_INFO "%s is called\n", __FUNCTION__);
 
-	*(unsigned short*)FIO_DIR |= (1 << GPIO_SE);
+	bfin_write_PORT_FER( bfin_read_PORT_FER() & ~(1 << GPIO_SE) );
 	SSYNC();
 
-	*(unsigned short*)FIO_FLAG_S = (1 << GPIO_SE);
+	bfin_write_PORTFIO_DIR((bfin_read_PORTFIO_DIR() | (1 << GPIO_SE)));
+	SSYNC();
+
+	bfin_write_FIO_FLAG_S((1 << GPIO_SE));
 	SSYNC();
 
 	return 0;
@@ -442,11 +445,11 @@ static void snd_ad73311_stop(void)
 {
 	snd_printd(KERN_INFO "%s is called\n", __FUNCTION__);
 
-	*(unsigned short*)FIO_DIR |= (1 << GPIO_SE);
+	bfin_write_PORTFIO_DIR((bfin_read_PORTFIO_DIR() | (1 << GPIO_SE)));
 	SSYNC();
 
 	/* Pull down SE pin on AD73311L */
-	*(unsigned short*)FIO_FLAG_C = (1 << GPIO_SE);
+	bfin_write_FIO_FLAG_C((1 << GPIO_SE));
 	SSYNC();
 }
 
