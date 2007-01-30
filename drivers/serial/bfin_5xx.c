@@ -87,6 +87,7 @@ static void local_put_char(struct bfin_serial_port *uart, char ch);
 #endif
 
 static void bfin_serial_mctrl_check(struct bfin_serial_port *uart);
+static int bfin_serial_calc_baud(unsigned int uartclk, unsigned int baud);
 
 /*
  * interrupts are disabled on entry
@@ -582,6 +583,44 @@ static void
 bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 		   struct termios *old)
 {
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+	unsigned long flags;
+	unsigned int baud, quot;
+	unsigned short val, ier;
+
+	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
+	quot = bfin_serial_calc_baud(port->uartclk, baud);
+	spin_lock_irqsave(&uart->port.lock, flags);
+
+	/* Disable UART */
+	ier = UART_GET_IER(uart);
+	UART_PUT_IER(uart, 0);
+
+	/* Set DLAB in LCR to Access DLL and DLH */
+	val = UART_GET_LCR(uart);
+	val |= DLAB;
+	UART_PUT_LCR(uart, val);
+	__builtin_bfin_ssync();
+
+	UART_PUT_DLL(uart, quot & 0xFF);
+	__builtin_bfin_ssync();
+	UART_PUT_DLH(uart, (quot >> 8) & 0xFF);
+	__builtin_bfin_ssync();
+	
+	/* Clear DLAB in LCR to Access THR RBR IER */
+	val = UART_GET_LCR(uart);
+	val &= ~DLAB;
+	UART_PUT_LCR(uart, val);
+	__builtin_bfin_ssync();
+
+	/* Enable UART */
+	UART_PUT_IER(uart, ier);
+
+	val = UART_GET_GCTL(uart);
+	val |= UCEN;
+	UART_PUT_GCTL(uart, val);
+
+	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
 
 static const char *bfin_serial_type(struct uart_port *port)
@@ -648,15 +687,15 @@ static struct uart_ops bfin_serial_pops = {
 	.verify_port	= bfin_serial_verify_port,
 };
 
-static int bfin_serial_calc_baud(unsigned int uartclk)
+static int bfin_serial_calc_baud(unsigned int uartclk, unsigned int baud)
 {
-	int baud;
+	int quot;
 
-	baud = get_sclk() / (uartclk*8);
-	if ((baud & 0x1) == 1) {
-		baud++;
+	quot = uartclk / (baud * 8);
+	if ((quot & 0x1) == 1) {
+		quot++;
 	}
-	return baud/2;
+	return quot/2;
 }
 
 static void __init bfin_serial_init_ports(void)
@@ -664,7 +703,7 @@ static void __init bfin_serial_init_ports(void)
 	static int first = 1;
 	int i;
 	unsigned short val;
-	int baud;
+	int quot;
 
 	if (!first)
 		return;
@@ -672,7 +711,7 @@ static void __init bfin_serial_init_ports(void)
 	bfin_serial_hw_init();
 
 	for (i = 0; i < NR_PORTS; i++) {
-		bfin_serial_ports[i].port.uartclk   = CONSOLE_BAUD_RATE;
+		bfin_serial_ports[i].port.uartclk   = get_sclk();
 		bfin_serial_ports[i].port.ops       = &bfin_serial_pops;
 		bfin_serial_ports[i].port.line      = i;
 		bfin_serial_ports[i].port.iotype    = UPIO_MEM;
@@ -691,20 +730,18 @@ static void __init bfin_serial_init_ports(void)
 		INIT_WORK(&bfin_serial_ports[i].cts_workqueue, bfin_serial_do_work, &bfin_serial_ports[i]);
 #endif
 
-		baud = bfin_serial_calc_baud(bfin_serial_ports[i].port.uartclk);
+		quot = bfin_serial_calc_baud(bfin_serial_ports[i].port.uartclk, CONSOLE_BAUD_RATE);
 
-		/* Enable UART */
-		val = UART_GET_GCTL(&bfin_serial_ports[i]);
-		val |= UCEN;
-		UART_PUT_GCTL(&bfin_serial_ports[i], val);
+		/* Disable UART */
+		UART_PUT_GCTL(&bfin_serial_ports[i], 0);
 
 		/* Set DLAB in LCR to Access DLL and DLH */
 		val = UART_GET_LCR(&bfin_serial_ports[i]);
 		val |= DLAB;
 		UART_PUT_LCR(&bfin_serial_ports[i], val);
 
-		UART_PUT_DLL(&bfin_serial_ports[i], baud & 0xFF);
-		UART_PUT_DLH(&bfin_serial_ports[i], (baud >> 8) & 0xFF);
+		UART_PUT_DLL(&bfin_serial_ports[i], quot & 0xFF);
+		UART_PUT_DLH(&bfin_serial_ports[i], (quot >> 8) & 0xFF);
 
 		/* Clear DLAB in LCR to Access THR RBR IER */
 		val = UART_GET_LCR(&bfin_serial_ports[i]);
@@ -714,6 +751,11 @@ static void __init bfin_serial_init_ports(void)
 		/* Set LCR to Word Lengh 8-bit word select */
 		val = WLS(8);
 		UART_PUT_LCR(&bfin_serial_ports[i], val);
+
+		 /* Enable UART */
+		val = UART_GET_GCTL(&bfin_serial_ports[i]);
+		val |= UCEN;
+		UART_PUT_GCTL(&bfin_serial_ports[i], val);
 	}
 }
 
