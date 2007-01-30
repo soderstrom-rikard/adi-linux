@@ -45,6 +45,7 @@
 #include <asm/blackfin.h>
 #include <asm/cacheflush.h>
 #include <asm/irq.h>
+#include <asm/gpio.h>
 
 #include <sound/driver.h>
 #include <sound/core.h>
@@ -429,17 +430,7 @@ static int snd_ad73311_startup(void)
 {
 	snd_printd(KERN_INFO "%s is called\n", __FUNCTION__);
 
-#if defined(CONFIG_BF534) || defined(CONFIG_BF536) || defined(CONFIG_BF537)
-	bfin_write_PORT_FER( bfin_read_PORT_FER() & ~(1 << GPIO_SE) );
-	SSYNC();
-#endif
-
-	bfin_write_FIO_DIR((bfin_read_FIO_DIR() | (1 << GPIO_SE)));
-	SSYNC();
-
-	bfin_write_FIO_FLAG_S((1 << GPIO_SE));
-	SSYNC();
-
+	gpio_set_value(GPIO_SE, 1);
 	return 0;
 }
 
@@ -447,12 +438,8 @@ static void snd_ad73311_stop(void)
 {
 	snd_printd(KERN_INFO "%s is called\n", __FUNCTION__);
 
-	bfin_write_FIO_DIR((bfin_read_FIO_DIR() | (1 << GPIO_SE)));
-	SSYNC();
-
 	/* Pull down SE pin on AD73311L */
-	bfin_write_FIO_FLAG_C((1 << GPIO_SE));
-	SSYNC();
+	gpio_set_value(GPIO_SE, 0);
 }
 
 /*************************************************************
@@ -575,6 +562,15 @@ static int __devinit snd_ad73311_probe(struct platform_device *pdev)
 	if ((err = snd_ad73311_configure()) < 0)
 		return -EFAULT;
 
+
+	if(gpio_request(GPIO_SE, NULL)){
+		printk(KERN_ERR "%s: Failed ro request GPIO_%d\n",__FUNCTION__, GPIO_SE);
+		return -EBUSY;
+	}
+
+	gpio_direction_output(GPIO_SE);
+	gpio_set_value(GPIO_SE, 0);
+
 	card = snd_card_new(-1, NULL, THIS_MODULE, sizeof(struct snd_ad73311));
 	if (card == NULL)
 		return -ENOMEM;
@@ -636,6 +632,8 @@ static int __devexit snd_ad73311_remove(struct platform_device *pdev)
 	snd_ad73311_stop();
 	bf53x_sport_done(ad73311->sport);
 	snd_card_free(card);
+
+	gpio_free(GPIO_SE);
 
 	platform_set_drvdata(pdev, NULL);
 
