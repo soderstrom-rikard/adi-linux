@@ -766,7 +766,7 @@ static void pump_transfers(unsigned long data)
 		if (drv_data->tx != NULL && drv_data->rx != NULL) { /* full duplex mode */
 			ASSERT((drv_data->tx_end - drv_data->tx) == (drv_data->rx_end - drv_data->rx));
 			cr = (read_CTRL() & (~BIT_CTL_TIMOD));	/* clear the TIMOD bits */
-			cr |= CFG_SPI_READ | (width << 8) | (CFG_SPI_ENABLE << 14);
+			cr |= CFG_SPI_WRITE | (width << 8) | (CFG_SPI_ENABLE << 14);
 			pr_debug("IO duplex: cr is 0x%x\n", cr);
 
 			write_CTRL(cr);
