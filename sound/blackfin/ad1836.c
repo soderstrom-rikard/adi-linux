@@ -1170,8 +1170,6 @@ static snd_pcm_uframes_t snd_ad1836_playback_pointer(snd_pcm_substream_t *substr
 #endif
 	size_t frames = diff / bytes_per_frame;
 
-	snd_printk_marker();
-
 #ifdef MULTI_SUBSTREAM
 	find_substream(chip, substream, &sub_info);
 	frames = (frames + DMA_BUFFER_FRAMES - sub_info->dma_offset) % \
@@ -1210,8 +1208,6 @@ static snd_pcm_uframes_t snd_ad1836_capture_pointer(snd_pcm_substream_t *substre
 	unsigned long bytes_per_frame = runtime->frame_bits/8;
 #endif
 	size_t frames = diff / bytes_per_frame;
-
-	snd_printk_marker();
 
 #ifdef CONFIG_SND_DEBUG_CURRPTR
 	snd_printk(KERN_DEBUG "capture pos: 0x%04lx / %lx\n", frames,
@@ -1542,6 +1538,17 @@ static int snd_bf53x_ad1836_reset(ad1836_t *chip)
 	udelay(400);			/* 4500 MCLK recovery time */
 
 #endif /* CONFIG_BFIN533_EZKIT */
+#ifdef CONFIG_BFIN561_EZKIT
+	bfin_write_FIO0_DIR(bfin_read_FIO0_DIR() | 0x8000);
+	bfin_write_FIO0_FLAG_C(0x8000);
+	SSYNC();
+	udelay(10);
+
+	bfin_write_FIO0_FLAG_S(0x8000);
+	SSYNC();
+	udelay(400);
+	printk(KERN_ERR "SET BF15:0x%04x\n", bfin_read_FIO0_FLAG_D());
+#endif
 
 	return 0;
 }
