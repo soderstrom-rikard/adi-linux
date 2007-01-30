@@ -34,6 +34,8 @@
 #include <asm/errno.h>
 #include <asm/asm-offsets.h>
 
+#include <asm/mach-common/context.S>
+
 .text
 
 ENTRY(_ret_from_fork)

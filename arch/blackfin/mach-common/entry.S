@@ -57,6 +57,8 @@
 #include <asm/thread_info.h>  /* TIF_NEED_RESCHED */
 #include <asm/asm-offsets.h>
 
+#include <asm/mach-common/context.S>
+
 #ifdef CONFIG_DEBUG_BFIN_NO_KERN_HWTRACE
 	/*
 	 * TODO: this should be proper save/restore, but for now

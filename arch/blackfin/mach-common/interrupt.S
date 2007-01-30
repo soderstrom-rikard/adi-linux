@@ -37,6 +37,8 @@
 #include <asm/entry.h>
 #include <asm/asm-offsets.h>
 
+#include <asm/mach-common/context.S>
+
 #ifdef CONFIG_I_ENTRY_L1
 .section .l1.text
 #else
