@@ -72,6 +72,13 @@ config SND_BLACKFIN_AD1836_5P1
 
 endchoice
 
+config SND_BLACKFIN_AD1836_I2S_LINPHONE
+	boolean "Support setting for linphone:16 bits 8k mono mode in driver"
+	depends on SND_BLACKFIN_AD1836_I2S
+	help
+	  In order to avoid rate convertion in alsa library or oss emulation
+	  layer, let AD1836 support 16 bits, 8k, momo mode.
+
 config SND_BLACKFIN_AD1981B
 	tristate "AD1981B AC97 Audio support for BF537/6/4 (EXPERIMENTAL)"
 	depends on BF537 && EXPERIMENTAL

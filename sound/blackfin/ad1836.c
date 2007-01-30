@@ -166,7 +166,7 @@
 #endif
 
 #ifndef CONFIG_BFIN_DMA_5XX
-#error "The sound driver requires the Blackfin Simple DMA"
+#error "The sound driver requires the Blackfin DMA"
 #endif
 
 #ifdef CONFIG_SND_DEBUG
@@ -186,6 +186,10 @@
 #undef ADC2_IS_MIC
 #endif
 
+#ifdef CONFIG_SND_BLACKFIN_AD1836_I2S_LINPHONE
+#define LINPHONE_SETTING
+#endif
+
 #undef CONFIG_SND_DEBUG_CURRPTR  /* causes output every frame! */
 //#define CONFIG_SND_DEBUG_CURRPTR
 
@@ -195,8 +199,14 @@
 #define MULTI_SUBSTREAM
 #endif
 
+#if defined(LINPHONE_SETTING)
+#define DRIVER_NAME	"AD1836-LIN"
+#elif defined (CONFIG_SND_BLACKFIN_AD1836_I2S)
+#define DRIVER_NAME	"AD1836-I2S"
+#else
 #define DRIVER_NAME	"AD1836"
-#define CHIP_NAME	"AD1836"
+#endif
+#define CHIP_NAME	"ADI ad1836"
 #define PCM_NAME	"AD1836_PCM"
 
 /* Only one AD1836 soundcard is supported */
@@ -217,13 +227,18 @@ static struct ad1836_spi *ad1836_spi = NULL;
 
 #elif defined(CONFIG_SND_BLACKFIN_AD1836_I2S)
 
+#ifdef LINPHONE_SETTING
+#define AD1836_BUF_SZ 0x60000 /* 32 * 12 */
+#define PCM_BUFFER_MAX 	AD1836_BUF_SZ/12 /* 32 KB */
+#else
 #define AD1836_BUF_SZ 0x10000 /* 64kb */
 #define PCM_BUFFER_MAX	AD1836_BUF_SZ
+#endif
 #define CHANNELS_MAX	2
 #define CHANNELS_OUTPUT	2
 #define CHANNELS_INPUT	2
 #define FRAGMENT_SIZE_MIN	(1024)
-#define FRAGMENTS_MIN	4
+#define FRAGMENTS_MIN	2
 #define FRAGMENTS_MAX	32
 
 #else
@@ -833,14 +848,19 @@ static snd_kcontrol_new_t snd_ad1836_controls[] __devinitdata = {
 
 static snd_pcm_hardware_t snd_ad1836_playback_hw = {
 	.info = ( SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER ),
-	.formats =          SNDRV_PCM_FMTBIT_S32_LE,
-	.rates =            SNDRV_PCM_RATE_48000,
-	.rate_min =         48000,
-	.rate_max =         48000,
-	.channels_min =     2,
-#ifdef MULTI_SUBSTREAM
-	.channels_max =     2,
+#ifdef LINPHONE_SETTING
+	.formats =          SNDRV_PCM_FMTBIT_S16_LE,
+	.rates =            SNDRV_PCM_RATE_8000,
+	.rate_min =         8000,
+	.rate_max =         8000,
+	.channels_min =     1,
+	.channels_max =     1,
 #else
+	.formats =          SNDRV_PCM_FMTBIT_S32_LE,
+	.rates =	    SNDRV_PCM_RATE_48000,
+	.rate_min =	    48000,
+	.rate_max =	    48000,
+	.channels_min =	    2,
 	.channels_max =     CHANNELS_MAX,
 #endif
 	.buffer_bytes_max = PCM_BUFFER_MAX,
@@ -852,14 +872,19 @@ static snd_pcm_hardware_t snd_ad1836_playback_hw = {
 
 static snd_pcm_hardware_t snd_ad1836_capture_hw = {
 	.info = ( SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER ),
+#ifdef LINPHONE_SETTING
+	.formats =          SNDRV_PCM_FMTBIT_S16_LE,
+	.rates =            SNDRV_PCM_RATE_8000,
+	.rate_min =         8000,
+	.rate_max =         8000,
+	.channels_min =     1,
+	.channels_max =     1,
+#else
 	.formats =          SNDRV_PCM_FMTBIT_S32_LE,
 	.rates =            SNDRV_PCM_RATE_48000,
 	.rate_min =         48000,
 	.rate_max =         48000,
 	.channels_min =     2,
-#ifdef MULTI_SUBSTREAM
-	.channels_max =     2,
-#else
 	.channels_max =     CHANNELS_MAX,
 #endif
 	.buffer_bytes_max = PCM_BUFFER_MAX,
@@ -939,6 +964,7 @@ static int snd_ad1836_capture_close(snd_pcm_substream_t *substream)
 	return 0;
 }
 
+#ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
 static int snd_ad1836_hw_params(snd_pcm_substream_t *substream,
 					snd_pcm_hw_params_t *hwparams)
 {
@@ -949,7 +975,6 @@ static int snd_ad1836_hw_params(snd_pcm_substream_t *substream,
 	 *  We're relying on the driver not supporting full duplex mode
 	 *  to allow us to grab all the memory.
 	 */
-#ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
 
 # ifdef MULTI_SUBSTREAM
 	substream_info_t *sub_info = NULL;
@@ -974,14 +999,24 @@ static int snd_ad1836_hw_params(snd_pcm_substream_t *substream,
 		return -ENOMEM;
 # endif
 
-#else
+	return 0;
+}
+#else //I2S in following
+static int snd_ad1836_hw_params(snd_pcm_substream_t *substream,
+					snd_pcm_hw_params_t *hwparams)
+{	
 	snd_printk_marker();
+#ifdef LINPHONE_SETTING
+	if (snd_pcm_lib_malloc_pages(substream, AD1836_BUF_SZ) < 0)
+		return -ENOMEM;
+#else
 	if (snd_pcm_lib_malloc_pages(substream, params_buffer_bytes(hwparams)) < 0)
 		return -ENOMEM;
 #endif
 
 	return 0;
 }
+#endif
 
 static int snd_ad1836_hw_free(snd_pcm_substream_t * substream)
 {
@@ -1006,6 +1041,7 @@ static int snd_ad1836_playback_prepare(snd_pcm_substream_t *substream)
 	int fragsize_bytes = frames_to_bytes(runtime, runtime->period_size);
 #endif
 	int err=0;
+	int word_len = 4;
 
 #ifdef MULTI_SUBSTREAM
 	substream_info_t *sub_info = NULL;
@@ -1035,8 +1071,7 @@ static int snd_ad1836_playback_prepare(snd_pcm_substream_t *substream)
 	snd_assert((substream == chip->tx_substream), return -EINVAL);
 #endif
 
-	snd_printk_marker();
-	snd_printd(KERN_INFO "%s channels:%d, period_bytes:0x%zx, periods:%d\n",
+	snd_printd(KERN_INFO "%s channels:%d, period_bytes:0x%lx, periods:%d\n",
 			__FUNCTION__, runtime->channels,
 			frames_to_bytes(runtime, runtime->period_size),
 			runtime->periods);
@@ -1044,10 +1079,13 @@ static int snd_ad1836_playback_prepare(snd_pcm_substream_t *substream)
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
 	fragsize_bytes /= runtime->channels;
 	fragsize_bytes *= 8;/* inflate the fragsize to match */
+#elif defined(LINPHONE_SETTING)
+	fragsize_bytes *= 12;
+	word_len = 2;
 #endif
 
 	err = bf53x_sport_config_tx_dma(chip->sport, runtime->dma_area,
-			runtime->periods, fragsize_bytes, 4);
+			runtime->periods, fragsize_bytes, word_len);
 #endif
 
 	return err;
@@ -1061,20 +1099,26 @@ static int snd_ad1836_capture_prepare(snd_pcm_substream_t *substream)
 	void *buf_addr      = (void*) runtime->dma_area;
 	int  fragcount      = runtime->periods;
 	int  fragsize_bytes = frames_to_bytes(runtime, runtime->period_size);
-	int err=0;
+	int word_len, err=0;
 
 	snd_printk_marker();
 	snd_assert((substream == chip->rx_substream), return -EINVAL);
 
-	snd_printd(KERN_INFO "%s channels:%d, fragsize_bytes:%d, frag_count:%d\n",
+	snd_printd(KERN_INFO "%s channels:%d, fragsize_bytes:0x%x, frag_count:%d\n",
 			__FUNCTION__, runtime->channels, fragsize_bytes, fragcount);
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
 	fragsize_bytes /= runtime->channels;
 	fragsize_bytes *= 8; /* inflate the fragsize to match */
+	word_len = 4;
+#elif defined LINPHONE_SETTING
+	fragsize_bytes *= 12;
+	word_len = 2;
+#else
+	wor_len = 4;
 #endif
 
 	err = bf53x_sport_config_rx_dma(chip->sport, buf_addr , fragcount,
-			fragsize_bytes, 4);
+			fragsize_bytes, word_len);
 
 	return err;
 }
@@ -1149,6 +1193,7 @@ static int snd_ad1836_capture_trigger(snd_pcm_substream_t *substream, int cmd)
 	spin_unlock(&chip->ad1836_lock);
 
 	snd_printd(KERN_ERR"capture cmd:%s\n", cmd?"start":"stop");
+
 	return 0;
 }
 
@@ -1165,6 +1210,8 @@ static snd_pcm_uframes_t snd_ad1836_playback_pointer(snd_pcm_substream_t *substr
 	unsigned long diff = bf53x_sport_curr_offset_tx(chip->sport);
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
 	unsigned long bytes_per_frame = 8*4;	/* always 8 channels in the DMA frame */
+#elif defined(LINPHONE_SETTING)
+	unsigned long bytes_per_frame = 2*6*2; /* 16 bit, 48k, stereo */
 #else
 	unsigned long bytes_per_frame = runtime->frame_bits/8;
 #endif
@@ -1204,6 +1251,8 @@ static snd_pcm_uframes_t snd_ad1836_capture_pointer(snd_pcm_substream_t *substre
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
 	/* always 8 channels in the DMA frame */
 	unsigned long bytes_per_frame = 8*4;
+#elif defined(LINPHONE_SETTING)
+	unsigned long bytes_per_frame = 2*6*2;
 #else
 	unsigned long bytes_per_frame = runtime->frame_bits/8;
 #endif
@@ -1346,6 +1395,51 @@ static int snd_ad1836_capture_copy(snd_pcm_substream_t *substream, int channel,
 
 #elif defined(CONFIG_SND_BLACKFIN_AD1836_I2S)
 
+#ifdef LINPHONE_SETTING
+static int snd_ad1836_playback_copy(snd_pcm_substream_t *substream, int channel,
+		snd_pcm_uframes_t pos, void *src, snd_pcm_uframes_t count)
+{
+	int i, curr;
+	unsigned short *sdst, *ssrc;
+
+	sdst = (unsigned short *)substream->runtime->dma_area;
+	ssrc = src;
+
+#if 0
+	snd_printd(KERN_INFO "playback_copy: src %p, pos %x, count %x\n",
+						src, (uint)pos, (uint)count);
+#endif
+	i = frames_to_bytes(substream->runtime, count) / sizeof(unsigned short);
+	curr = frames_to_bytes(substream->runtime, pos)/ sizeof(unsigned short);
+	while (i--) {
+		int j;
+		for(j = 0; j < 12; j++)
+			*(sdst + (curr + i)*12 + j) = *(ssrc + i);
+	}
+	return 0;
+}
+static int snd_ad1836_capture_copy(snd_pcm_substream_t *substream, int channel,
+		snd_pcm_uframes_t pos, void *dst, snd_pcm_uframes_t count)
+{
+	int i, curr;
+	unsigned short *ssrc , *sdst;
+
+	ssrc = (unsigned short *)substream->runtime->dma_area;
+	sdst = dst;
+#if 0
+	snd_printd(KERN_INFO "capture_copy: dst %p, pos %x, count %x\n",
+					dst, (uint)pos, (uint)count);
+#endif
+	i = frames_to_bytes(substream->runtime, count) / sizeof(unsigned short);
+	curr = frames_to_bytes(substream->runtime, pos) / sizeof(unsigned short);
+
+	while (i--) {
+		*(sdst + i) = *(ssrc + (curr + i)*12);
+	}
+
+	return 0;
+}
+#else
 static int snd_ad1836_playback_copy(snd_pcm_substream_t *substream, int channel,
 		snd_pcm_uframes_t pos, void *src, snd_pcm_uframes_t count)
 {
@@ -1396,17 +1490,22 @@ static int snd_ad1836_capture_copy(snd_pcm_substream_t *substream, int channel,
 }
 #endif
 
+#endif
+
 static int snd_ad1836_playback_silence(snd_pcm_substream_t *substream,
 		int channel, snd_pcm_uframes_t pos, snd_pcm_uframes_t count)
 {
+	unsigned char *buf = substream->runtime->dma_area;
+
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
 #ifndef MULTI_SUBSTREAM
-	unsigned char *buf = substream->runtime->dma_area;
 	buf += pos * 8 * 4;
 	memset(buf, '\0', count * 8 * 4);
 #endif
+#elif defined(LINPHONE_SETTING)
+	buf += pos * 2 * 6 * 2;
+	memset(buf, '\0', count * 2 * 6 * 2);
 #else
-	unsigned char *buf = substream->runtime->dma_area;
 	memset(buf + frames_to_bytes(substream->runtime, pos), '\0',
 			frames_to_bytes(substream->runtime, count));
 #endif
@@ -1429,6 +1528,9 @@ static int snd_ad1836_capture_silence(snd_pcm_substream_t *substream,
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
 	buf += pos * 8 * 4;
 	memset(buf, '\0', count * 8 * 4);
+#elif defined(LINPHONE_SETTING)
+	buf += pos * 2 * 6 * 2;
+	memset(buf, '\0', count * 2 * 6 * 2);
 #else
 	memset(buf + frames_to_bytes(substream->runtime, pos), '\0',
 			frames_to_bytes(substream->runtime, count));
@@ -1630,12 +1732,20 @@ static int snd_ad1836_configure(ad1836_t *chip)
 	err = err || snd_ad1836_set_register(chip, ADC_CTRL_1, ADC_PWRDWN, 0);
 
 	/* sport in aux/slave mode cf daughtercard schematics */
+#ifdef LINPHONE_SETTING
+	err = snd_ad1836_set_register(chip, DAC_CTRL_1, (DAC_DATA_MASK), (DAC_DATA_16));
+#else
 	err = snd_ad1836_set_register(chip, DAC_CTRL_1, (DAC_DATA_MASK), (DAC_DATA_24));
+#endif
 	err = err || snd_ad1836_set_register(chip, DAC_CTRL_2, \
 			(DAC_MUTE_MASK), (DAC_MUTE_DAC2|DAC_MUTE_DAC3));
 	err = err || snd_ad1836_set_register(chip, ADC_CTRL_2, \
 			(ADC_AUX_MASTER|ADC_SOUT_MASK|ADC_MUTE_MASK|ADC_DATA_MASK),
+#ifdef LINPHONE_SETTING
+			(ADC_AUX_MASTER | ADC_SOUT_I2S | ADC_MUTE_ADC2 | ADC_DATA_16));
+#else
 			(ADC_AUX_MASTER | ADC_SOUT_I2S | ADC_MUTE_ADC2 | ADC_DATA_24));
+#endif
 	/* set volume to full scale */
 	err = err || snd_ad1836_set_register(chip, DAC_VOL_1L, DAC_VOL_MASK, DAC_VOL_MASK);
 	err = err || snd_ad1836_set_register(chip, DAC_VOL_1R, DAC_VOL_MASK, DAC_VOL_MASK);
@@ -1644,9 +1754,15 @@ static int snd_ad1836_configure(ad1836_t *chip)
 		snd_ad1836_stop(chip);
 		return -ENODEV;
 	}
+#ifdef LINPHONE_SETTING
+	/* Set word length to 16 bits */
+	err = err || bf53x_sport_config_rx(sport, (RCKFE | RFSR), (RSFSE | 0xf), 0, 0);
+	err = err || bf53x_sport_config_tx(sport, (TCKFE | TFSR), (TSFSE | 0xf), 0, 0);
+#else
 	/* Set word length to 24 bits */
 	err = err || bf53x_sport_config_rx(sport, (RCKFE | RFSR), (RSFSE | 0x17), 0, 0);
 	err = err || bf53x_sport_config_tx(sport, (TCKFE | TFSR), (TSFSE | 0x17), 0, 0);
+#endif
 	if (err)
 		snd_printk(KERN_ERR "Unable to set sport configuration\n");
 

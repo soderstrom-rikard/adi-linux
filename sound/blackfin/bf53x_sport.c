@@ -231,13 +231,13 @@ static void setup_desc(struct dmasg_t *desc, void *buf, int fragcount,
 	/* make circular */
 	desc[fragcount-1].next_desc_addr = (unsigned long)desc;
 
-	/*  printk(KERN_ERR "setup desc: desc0=%p, next0=%lx, desc1=%p,"
+	/* printk(KERN_ERR "setup desc: desc0=%p, next0=%lx, desc1=%p,"
 		"next1=%lx\nx_count=%x,y_count=%x,addr=0x%lx,cfs=0x%x\n",
 		&(desc[0]), desc[0].next_desc_addr,
 		&(desc[1]), desc[1].next_desc_addr,
 		desc[0].x_count, desc[0].y_count,
 		desc[0].start_addr,desc[0].cfg);
-	 */
+	*/
 }
 
 /* Stupid function for waiting, udelay make while does break,
@@ -504,18 +504,31 @@ int bf53x_sport_config_rx_dma(struct bf53x_sport *sport, void *buf,
 	unsigned int cfg;
 	dma_addr_t addr;
 
-	sport_printd(KERN_INFO, "%s( %p, %d, %d )\n", __FUNCTION__, buf,
-			fragcount,fragsize);
+	sport_printd(KERN_INFO, "%s( %p, %d, 0x%lx %ld )\n", __FUNCTION__, buf,
+			fragcount,fragsize, size);
 
-	/* for fragments larger than 32k words we use 2d dma, with the outer
-	   loop counting the number of 32k blocks. it follows that then
-	   fragsize must be a power of two (and hence a multiple of 32k
-	   the line below is the cheapest test I could think of :-)
-	 */
+	x_count = fragsize / size;
+	y_count = 0;
 
-	if (fragsize > (0x8000*size))
-		if ((fragsize | (fragsize-1)) != (2*fragsize - 1))
+	/* for fragments larger than 64k words we use 2d dma, 
+	 * denote fragecount as two numbers' mutliply and both of them 
+	 * are less than 64k.*/
+	if (x_count >= 0x10000) {
+		int i, count=x_count;
+
+		for (i=16; i>0; i--) {
+			x_count = 1 << i;
+			if ((count & (x_count - 1)) == 0) {
+				y_count = count >> i;
+				if (y_count < 0x10000)
+					break;
+			}
+		}
+		if (i == 0)
 			return -EINVAL;
+	}
+	sport_printd(KERN_INFO, "%s(x_count:0x%x, y_count:0x%x)\n", __FUNCTION__,
+			x_count, y_count);
 
 	if (sport->dma_rx_desc) {
 		dma_free_coherent(NULL, sport->rx_desc_bytes, \
@@ -533,16 +546,11 @@ int bf53x_sport_config_rx_dma(struct bf53x_sport *sport, void *buf,
 
 	sport->rx_buf = buf;
 
-	x_count = fragsize/size;
-	y_count = 0;
 	cfg     = 0x7000 | DI_EN | compute_wdsize(size) | WNR | \
 		  (DESC_ELEMENT_COUNT << 8); /* large descriptor mode */
 
-	if (x_count > 0x8000) {
-		y_count = x_count >> 15;
-		x_count = 0x8000;
+	if (y_count != 0)
 		cfg |= DMA2D;
-	}
 
 	setup_desc(sport->dma_rx_desc, buf, fragcount, fragsize,
 			cfg|DMAEN, x_count, y_count, size);
@@ -558,15 +566,32 @@ int bf53x_sport_config_tx_dma(struct bf53x_sport *sport, void *buf,
 	unsigned int cfg;
 	dma_addr_t addr;
 
-	sport_printd(KERN_INFO, "%s( %p, %d, %d )\n", __FUNCTION__, buf,
-			fragcount,fragsize);
+	sport_printd(KERN_INFO, "%s( %p, %d, %lx, %lx )\n", __FUNCTION__, buf,
+			fragcount,fragsize, size);
 
-	/* fragsize must be a power of two (line below is the cheapest test
-	 * I could think of :-) */
+	x_count = fragsize/size;
+	y_count = 0;
 
-	if (fragsize > (0x8000*size))
-		if ((fragsize | (fragsize-1)) != (2*fragsize - 1))
+	/* for fragments larger than 64k words we use 2d dma, 
+	 * denote fragecount as two numbers' mutliply and both of them 
+	 * are less than 64k.*/
+	if (x_count >= 0x10000) {
+		int i, count = x_count;
+
+		for (i=16; i>0; i--) {
+			x_count = 1 << i;
+			if ((count & (x_count - 1)) == 0) {
+				y_count = count >> i;
+				if (y_count < 0x10000)
+					break;
+			}
+		}
+		if (i == 0)
 			return -EINVAL;
+	}
+	sport_printd(KERN_INFO, "%s(x_count:0x%x, y_count:0x%x)\n", __FUNCTION__,
+			x_count, y_count);
+
 
 	if (sport->dma_tx_desc) {
 		dma_free_coherent(NULL, sport->tx_desc_bytes, \
@@ -584,16 +609,11 @@ int bf53x_sport_config_tx_dma(struct bf53x_sport *sport, void *buf,
 
 	sport->tx_buf = buf;
 
-	x_count = fragsize/size;
-	y_count = 0;
 	cfg     = 0x7000 | DI_EN | compute_wdsize(size) | \
 		  (DESC_ELEMENT_COUNT << 8); /* large descriptor mode */
 
-	if (x_count > 0x8000) {
-		y_count = x_count >> 15;
-		x_count = 0x8000;
+	if (y_count != 0)
 		cfg |= DMA2D;
-	}
 
 	setup_desc(sport->dma_tx_desc, buf, fragcount, fragsize,
 			cfg|DMAEN, x_count, y_count, size);
@@ -755,7 +775,7 @@ static irqreturn_t rx_handler(int irq, void *dev_id)
 	unsigned int rx_stat;
 	struct bf53x_sport *sport = dev_id;
 
-	sport_printd(KERN_INFO, "%s\n", __FUNCTION__);
+//	sport_printd(KERN_INFO, "%s\n", __FUNCTION__);
 	sport_check_status(sport, NULL, &rx_stat, NULL);
 	if (!(rx_stat & DMA_DONE)) {
 		printk(KERN_ERR "rx dma is already stopped\n");
@@ -833,9 +853,6 @@ struct bf53x_sport *bf53x_sport_init(int sport_num,
 	sport->sport_num = sport_num;
 	sport->regs = (struct sport_register*) sport_iobase[sport_num];
 
-	sport_printd(KERN_INFO, "%p dma rx: %p tx: %p\n",
-			sport->regs, sport->dma_rx, sport->dma_tx);
-
 	if (request_dma(dma_rx, "SPORT RX Data") == -EBUSY) {
 		printk(KERN_ERR "Failed to request RX dma %d\n", dma_rx);
 		goto __init_err1;
@@ -871,6 +888,9 @@ struct bf53x_sport *bf53x_sport_init(int sport_num,
 	sport->tx_callback = tx_callback;
 	sport->err_callback = err_callback;
 	sport->data = data;
+
+	sport_printd(KERN_INFO, "%p dma rx: %p tx: %p\n",
+			sport->regs, sport->dma_rx, sport->dma_tx);
 
 #if L1_DATA_A_LENGTH != 0
 	sport->dummy_buf = l1_data_A_sram_alloc(DUMMY_BUF_LEN);
