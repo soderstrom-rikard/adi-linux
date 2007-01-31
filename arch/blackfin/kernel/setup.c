@@ -407,8 +407,8 @@ void __init setup_arch(char **cmdline_p)
 #if defined(CONFIG_SMC91X) || defined(CONFIG_SMC91X_MODULE)
 # if defined(CONFIG_BFIN_SHARED_FLASH_ENET) && defined(CONFIG_BFIN533_STAMP)
 	/* setup BF533_STAMP CPLD to route AMS3 to Ethernet MAC */
-	bfin_write_FIO_DIR(bfin_read_FIO_DIR() | CONFIG_ENET_FLASH_PIN);
-	bfin_write_FIO_FLAG_S(CONFIG_ENET_FLASH_PIN);
+	bfin_write_FIO_DIR(bfin_read_FIO_DIR() | (1 << CONFIG_ENET_FLASH_PIN));
+	bfin_write_FIO_FLAG_S(1 << CONFIG_ENET_FLASH_PIN);
 	SSYNC();
 # endif
 # if defined (CONFIG_BFIN561_EZKIT)
