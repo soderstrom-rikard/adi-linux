@@ -533,11 +533,11 @@ config SERIAL_BFIN_UART0
 	  Enable UART0
 
 config BFIN_UART0_CTSRTS
-        bool "Enable UART0 hardware flow control"
-        depends on SERIAL_BFIN_UART0
-        help
-          Enable hardware flow control in the driver. Using GPIO emulate the CTS/RTS
-          signal.
+	bool "Enable UART0 hardware flow control"
+	depends on SERIAL_BFIN_UART0
+	help
+	  Enable hardware flow control in the driver. Using GPIO emulate the CTS/RTS
+	  signal.
 
 config UART0_CTS_PIN
 	int "UART0 CTS pin"
@@ -569,18 +569,18 @@ config BFIN_UART1_CTSRTS
 	  signal.
 
 config UART1_CTS_PIN
-        int "UART1 CTS pin"
-        depends on BFIN_UART1_CTSRTS
+	int "UART1 CTS pin"
+	depends on BFIN_UART1_CTSRTS
 	default -1
-        help
-          Refer to ./include/asm-blackfin/gpio.h to see the GPIO map.
+	help
+	  Refer to ./include/asm-blackfin/gpio.h to see the GPIO map.
 
 config UART1_RTS_PIN
-        int "UART1 RTS pin"
-        depends on BFIN_UART1_CTSRTS
+	int "UART1 RTS pin"
+	depends on BFIN_UART1_CTSRTS
 	default -1
-        help
-          Refer to ./include/asm-blackfin/gpio.h to see the GPIO map.
+	help
+	  Refer to ./include/asm-blackfin/gpio.h to see the GPIO map.
 
 config SERIAL_IMX
 	bool "IMX serial port support"

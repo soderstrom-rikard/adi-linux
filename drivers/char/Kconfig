@@ -4,7 +4,7 @@
 
 menu "Character devices"
 config AD9960
-    bool "AD9960 chip driver"
+	bool "AD9960 chip driver"
 	depends on BFIN
 	select SPI
 	select SPI_BFIN
@@ -12,14 +12,14 @@ config AD9960
 	---help---
 
 config AD9960_TX_RX_PIN
-        int "The pin in GPIO port for selecting tx/rx enable signal"
-        depends on AD9960
-        default 8
-        help
-          This is the tx/rx enable signal pin bit number in the GPIO port.
+	int "The pin in GPIO port for selecting tx/rx enable signal"
+	depends on AD9960
+	default 8
+	help
+	  This is the tx/rx enable signal pin bit number in the GPIO port.
 
 config SPI_ADC_BF533
-    bool "Blackfin BF53x ADSP SPI ADC support"
+	bool "Blackfin BF53x ADSP SPI ADC support"
 	depends on BFIN
 	select SPI
 	select SPI_BFIN
@@ -27,13 +27,13 @@ config SPI_ADC_BF533
 	---help---
 
 config BF533_PFLAGS
-    bool "Blackfin BF53x Programmable Flags Driver"
+	bool "Blackfin BF53x Programmable Flags Driver"
 	depends on BFIN
 	default n
 	---help---
 
 config BF5xx_PPIFCD
-    bool "Blackfin BF5xx PPI Camera frame capture driver"
+	bool "Blackfin BF5xx PPI Camera frame capture driver"
 	depends on BFIN
 	default n
 	---help---
@@ -41,7 +41,7 @@ config BF5xx_PPIFCD
 	  connected to Balckfins PPI port. (Tested with Micron Modules)
 
 config BF5xx_TIMERS
-    bool "Blackfin BF5xx HW-Timers Driver"
+	bool "Blackfin BF5xx HW-Timers Driver"
 	depends on BFIN
 	default n
 	---help---
@@ -49,7 +49,7 @@ config BF5xx_TIMERS
 	blackfin processors.
 
 config BFIN_SIMPLE_TIMER
-    bool "Blackfin 5xx example char-device interface for Blackfin BF5xx HW-Timers Driver"
+	bool "Blackfin 5xx example char-device interface for Blackfin BF5xx HW-Timers Driver"
 	depends on BF5xx_TIMERS
 	default n
 	---help---
@@ -58,26 +58,26 @@ config BFIN_SIMPLE_TIMER
 	drivers/char/bfin_simple_timer.c for details.
 
 config BF5xx_PPI
-    bool "Blackfin BF5xx PPI Driver"
+	bool "Blackfin BF5xx PPI Driver"
 	depends on BFIN
 	select BF5xx_TIMERS
 	default n
 	---help---
 
 config BFIN_SPORT
-    bool "Blackfin BF53x SPORT support"
+	bool "Blackfin BF53x SPORT support"
 	depends on BFIN
-    default n
-    ---help---
+	default n
+	---help---
 
 config BFIN_TIMER_LATENCY
-    bool "Blackfin 5xx interrupt latency test"
-        depends on BFIN
+	bool "Blackfin 5xx interrupt latency test"
+	depends on BFIN
 	default n
 	---help---
 
 config TWI_LCD
-    tristate "TWI/I2C LCD support for HD44780 based LCD modules"
+	tristate "TWI/I2C LCD support for HD44780 based LCD modules"
 	depends on I2C && EXPERIMENTAL && BFIN
 	default n
 	---help---
