@@ -249,6 +249,7 @@ static int bfin_rtc_ioctl(struct device *dev, unsigned int cmd, unsigned long ar
 
 		spin_lock_irq(&rtc->lock);
 
+		rtc_bfin_sync_pending();
 		if (rtc->rtc_alarm.tm_yday == -1) {
 			struct rtc_time now;
 			rtc_bfin_to_tm(bfin_read_RTC_STAT(), &now);
@@ -262,7 +263,6 @@ static int bfin_rtc_ioctl(struct device *dev, unsigned int cmd, unsigned long ar
 			which_alarm = RTC_ISTAT_ALARM_DAY;
 		}
 		if (ret == 0) {
-			rtc_bfin_sync_pending();
 			bfin_write_RTC_ISTAT(which_alarm);
 			bfin_write_RTC_ALARM(rtc_time_to_bfin(rtc_alarm));
 			bfin_write_RTC_ICTL(bfin_read_RTC_ICTL() | which_alarm);
@@ -291,6 +291,7 @@ static int bfin_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	stampit();
 
 	spin_lock_irq(&rtc->lock);
+	rtc_bfin_sync_pending();
 	rtc_bfin_to_tm(bfin_read_RTC_STAT(), tm);
 	spin_unlock_irq(&rtc->lock);
 
