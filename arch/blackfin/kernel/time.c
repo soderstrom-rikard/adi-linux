@@ -239,6 +239,17 @@ void __init time_init(void)
 {
 	time_t secs_since_1970 = (365 * 37 + 9) * 24 * 60 * 60;	/* 1 Jan 2007 */
 
+#ifdef CONFIG_RTC_DRV_BFIN
+	/* [#2663] hack to filter junk RTC values that would cause
+	 * userspace to have to deal with time values greater than
+	 * 2^31 seconds (which uClibc cannot cope with yet)
+	 */
+	if (bfin_read_RTC_STAT() & 0x60000000) {
+		printk(KERN_NOTICE "bfin-rtc: invalid date; resetting\n");
+		bfin_write_RTC_STAT(0);
+	}
+#endif
+
 	/* Initialize xtime. From now on, xtime is updated with timer interrupts */
 	xtime.tv_sec = secs_since_1970;
 	xtime.tv_nsec = 0;
