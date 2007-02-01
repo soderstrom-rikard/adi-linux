@@ -1,7 +1,7 @@
 #include <linux/serial.h>
 #include <asm/dma.h>
 
-#define NR_PORTS                2
+#define NR_PORTS		2
 
 #define OFFSET_THR              0x00	/* Transmit Holding register            */
 #define OFFSET_RBR              0x00	/* Receive Buffer register              */
@@ -32,18 +32,14 @@
 #define UART_PUT_LCR(uart,v)    bfin_write16(((uart)->port.membase + OFFSET_LCR),v)
 #define UART_PUT_GCTL(uart,v)   bfin_write16(((uart)->port.membase + OFFSET_GCTL),v)
 
-#define CTS_PORT	PORTGIO
-#define CTS_PIN		7
-#define CTS_PORT_DIR	PORTGIO_DIR
-#define CTS_PORT_INEN	PORTGIO_INEN
-#define CTS_PORT_FER	PORTG_FER
+#if defined(CONFIG_BFIN_UART0_CTSRTS) || defined(CONFIG_BFIN_UART1_CTSRTS)
+# define CONFIG_SERIAL_BFIN_CTSRTS
+#endif
 
-#define RTS_PORT	PORTGIO
-#define RTS_PIN		6
-#define RTS_PORT_DIR	PORTGIO_DIR
-#define RTS_PORT_INEN	PORTGIO_INEN
-#define RTS_PORT_FER	PORTG_FER
 
+/* 
+ * The pin configuration is different from schematic 
+ */
 struct bfin_serial_port {
         struct uart_port        port;
         unsigned int            old_status;
@@ -59,18 +55,66 @@ struct bfin_serial_port {
 #else
 	struct work_struct 	cts_workqueue;
 #endif
+#ifdef CONFIG_SERIAL_BFIN_CTSRTS
+	int		cts_pin;
+	int 		rts_pin;
+#endif
 };
 
 struct bfin_serial_port bfin_serial_ports[NR_PORTS];
-const unsigned long uart_base_addr[NR_PORTS] = {0xFFC00400, 0xFFC02000};
-const int uart_irq[NR_PORTS] = {IRQ_UART0_RX, IRQ_UART1_RX};
-
+struct bfin_serial_res {
+	unsigned long	uart_base_addr;
+	int		uart_irq;
 #ifdef CONFIG_SERIAL_BFIN_DMA
-unsigned int uart_tx_dma_channel[NR_PORTS] = {CH_UART0_TX, CH_UART1_TX};
-unsigned int uart_rx_dma_channel[NR_PORTS] = {CH_UART0_RX, CH_UART1_RX};
+	unsigned int	uart_tx_dma_channel;
+	unsigned int	uart_rx_dma_channel;
 #endif
+#ifdef CONFIG_SERIAL_BFIN_CTSRTS
+	int	uart_cts_pin;
+	int	uart_rts_pin;
+#endif
+};
 
-static void bfin_serial_hw_init(void)
+struct bfin_serial_res bfin_serial_resource[] = {
+#ifdef CONFIG_SERIAL_BFIN_UART0
+	{
+	0xFFC00400,
+	IRQ_UART0_RX,
+#ifdef CONFIG_SERIAL_BFIN_DMA
+	CH_UART0_TX,
+	CH_UART0_RX,
+#endif
+#ifdef CONFIG_BFIN_UART0_CTSRTS
+	CONFIG_UART0_CTS_PIN,
+	CONFIG_UART0_RTS_PIN,
+#else
+	-1,
+	-1,
+#endif
+	},
+#endif
+#ifdef CONFIG_SERIAL_BFIN_UART1
+	{
+	0xFFC02000,
+	IRQ_UART1_RX,
+#ifdef CONFIG_SERIAL_BFIN_DMA
+	CH_UART1_TX,
+	CH_UART1_RX,
+#endif
+#ifdef CONFIG_BFIN_UART1_CTSRTS
+	CONFIG_UART1_CTS_PIN,
+	CONFIG_UART1_RTS_PIN,
+#else
+	-1,
+	-1,
+#endif
+	},
+#endif
+};
+
+int nr_ports = ARRAY_SIZE(bfin_serial_resource);
+
+static void bfin_serial_hw_init(struct bfin_serial_port *uart)
 {
 	unsigned short val;
 	val = bfin_read16(BFIN_PORT_MUX);
@@ -82,20 +126,14 @@ static void bfin_serial_hw_init(void)
 	bfin_write16(PORTF_FER, val);
 
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
-	bfin_write16(CTS_PORT_DIR, bfin_read16(CTS_PORT_DIR) & (~1 << CTS_PIN));
-	bfin_write16(CTS_PORT_INEN,
-		     bfin_read16(CTS_PORT_INEN) | (1 << CTS_PIN));
-	bfin_write16(CTS_PORT_FER, bfin_read16(CTS_PORT_FER) & (~1 << CTS_PIN));
-
-	bfin_write16(RTS_PORT_DIR, bfin_read16(RTS_PORT_DIR) | (1 << RTS_PIN));
-	bfin_write16(RTS_PORT_FER, bfin_read16(RTS_PORT_FER) & (~1 << RTS_PIN));
+	if (uart->cts_pin >= 0) {
+		gpio_request(uart->cts_pin, NULL);
+		gpio_direction_input(uart->cts_pin);
+	}
+	
+	if (uart->rts_pin >= 0) {
+		gpio_request(uart->rts_pin, NULL);
+		gpio_direction_output(uart->rts_pin);
+	}
 #endif
-
-	bfin_write_PORTGIO_DIR(bfin_read_PORTGIO_DIR() & ~(1 << 7));
-	bfin_write_PORTGIO_INEN(bfin_read_PORTGIO_INEN() | (1 << 7));
-	bfin_write_PORTGIO_MASKA_SET(bfin_read_PORTGIO_MASKA_SET() & ~(1 << 7));
-	bfin_write_PORTGIO_MASKB_SET(bfin_read_PORTGIO_MASKB_SET() & ~(1 << 7));
-	bfin_write_PORTGIO_DIR(bfin_read_PORTGIO_DIR() | (1 << 6));
-	bfin_write_PORTG_FER(bfin_read_PORTG_FER() &
-			     ~((1 << 6) | (1 << 7) | 0x3));
 }

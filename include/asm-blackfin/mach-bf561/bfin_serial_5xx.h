@@ -32,15 +32,9 @@
 #define UART_PUT_LCR(uart,v)    bfin_write16(((uart)->port.membase + OFFSET_LCR),v)
 #define UART_PUT_GCTL(uart,v)   bfin_write16(((uart)->port.membase + OFFSET_GCTL),v)
 
-#define CTS_PORT	FIO_FLAG_D
-#define CTS_PIN		7
-#define CTS_PORT_DIR	FIO_DIR
-#define CTS_PORT_INEN	FIO_INEN
-
-#define RTS_PORT	FIO_FLAG_D
-#define RTS_PIN		6
-#define RTS_PORT_DIR	FIO_DIR
-#define RTS_PORT_INEN	FIO_INEN
+#ifdef CONFIG_BFIN_UART0_CTSRTS
+# define CONFIG_SERIAL_BFIN_CTSRTS
+#endif
 
 struct bfin_serial_port {
         struct uart_port        port;
@@ -57,25 +51,55 @@ struct bfin_serial_port {
 #else
 	struct work_struct 	cts_workqueue;
 #endif
+#ifdef CONFIG_SERIAL_BFIN_CTSRTS
+	int			cts_pin;
+	int			rts_pin;
+#endif
 };
 
 struct bfin_serial_port bfin_serial_ports[NR_PORTS];
-const unsigned long uart_base_addr[NR_PORTS] = {0xFFC00400};
-const int uart_irq[NR_PORTS] = {IRQ_UART_RX};
-
+struct bfin_serial_res {
+	unsigned long	uart_base_addr;
+	int		uart_irq;
 #ifdef CONFIG_SERIAL_BFIN_DMA
-unsigned int uart_tx_dma_channel[NR_PORTS] = {CH_UART_TX};
-unsigned int uart_rx_dma_channel[NR_PORTS] = {CH_UART_RX};
+	unsigned int	uart_tx_dma_channel;
+	unsigned int	uart_rx_dma_channel;
 #endif
+#ifdef CONFIG_SERIAL_BFIN_CTSRTS
+	int		uart_cts_pin;
+	int		uart_rts_pin;
+#endif
+};
 
-static void bfin_serial_hw_init(void)
+struct bfin_serial_res bfin_serial_resource[] = {
+	0xFFC00400,
+	IRQ_UART_RX,
+#ifdef CONFIG_SERIAL_BFIN_DMA
+	CH_UART_TX,
+	CH_UART_RX,
+#endif
+#ifdef CONFIG_BFIN_UART0_CTSRTS
+	CONFIG_UART0_CTS_PIN,
+	CONFIG_UART0_RTS_PIN,
+#else
+	-1,
+	-1,
+#endif
+};
+
+
+int nr_ports = NR_PORTS;
+static void bfin_serial_hw_init(struct bfin_serial_port *uart)
 {
 
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
-	bfin_write16(CTS_PORT_DIR, bfin_read16(CTS_PORT_DIR) & (~1 << CTS_PIN));
-	bfin_write16(CTS_PORT_INEN,
-		     bfin_read16(CTS_PORT_INEN) | (1 << CTS_PIN));
-
-	bfin_write16(RTS_PORT_DIR, bfin_read16(RTS_PORT_DIR) | (1 << RTS_PIN));
+	if (uart->cts_pin >= 0) {
+		gpio_request(uart->cts_pin, NULL);
+		gpio_direction_input(uart->cts_pin);
+	}
+	if (uart->rts_pin >= 0) {
+		gpio_request(uart->rts_pin, NULL);
+		gpio_direction_input(uart->rts_pin);
+	}
 #endif
 }

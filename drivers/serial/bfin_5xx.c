@@ -43,6 +43,7 @@
 #include <linux/tty_flip.h>
 #include <linux/serial_core.h>
 
+#include <asm/gpio.h>
 #include <asm/mach/bfin_serial_5xx.h>
 
 #ifdef CONFIG_SERIAL_BFIN_DMA
@@ -78,7 +79,6 @@
 #define DMA_RX_FLUSH_JIFFIES	5
 
 #ifdef CONFIG_SERIAL_BFIN_DMA
-wait_queue_head_t bfin_serial_tx_queue[NR_PORTS];
 static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart);
 #else
 static void bfin_serial_do_work(void *);
@@ -450,9 +450,12 @@ static unsigned int bfin_serial_tx_empty(struct uart_port *port)
 
 static unsigned int bfin_serial_get_mctrl(struct uart_port *port)
 {
-	/* Hardware flow control is only supported on the first port */
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
-	if ((bfin_read16(CTS_PORT) & (1 << CTS_PIN)) && (port->line == 0))
+	if (uart->cts_pin < 0)
+		return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
+
+	if (gpio_get_value(uart->cts_pin))
 		return TIOCM_DSR | TIOCM_CAR;
 	else
 #endif
@@ -461,11 +464,15 @@ static unsigned int bfin_serial_get_mctrl(struct uart_port *port)
 
 static void bfin_serial_set_mctrl(struct uart_port *port, unsigned int mctrl)
 {
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
+	if (uart->rts_pin < 0)
+		return;
+
 	if (mctrl & TIOCM_RTS)
-		bfin_write16(RTS_PORT, bfin_read16(RTS_PORT) & (~1 << RTS_PIN));
+		gpio_set_value(uart->rts_pin, 0);
 	else
-		bfin_write16(RTS_PORT, bfin_read16(RTS_PORT) | (1 << RTS_PIN));
+		gpio_set_value(uart->rts_pin, 1);
 #endif
 }
 
@@ -708,29 +715,41 @@ static void __init bfin_serial_init_ports(void)
 	if (!first)
 		return;
 	first = 0;
-	bfin_serial_hw_init();
 
-	for (i = 0; i < NR_PORTS; i++) {
+	for (i = 0; i < nr_ports; i++) {
 		bfin_serial_ports[i].port.uartclk   = get_sclk();
 		bfin_serial_ports[i].port.ops       = &bfin_serial_pops;
 		bfin_serial_ports[i].port.line      = i;
 		bfin_serial_ports[i].port.iotype    = UPIO_MEM;
-		bfin_serial_ports[i].port.membase   = (void __iomem *)uart_base_addr[i];
-		bfin_serial_ports[i].port.mapbase   = uart_base_addr[i];
-		bfin_serial_ports[i].port.irq       = uart_irq[i];
+		bfin_serial_ports[i].port.membase   = 
+			(void __iomem *)bfin_serial_resource[i].uart_base_addr;
+		bfin_serial_ports[i].port.mapbase   = 
+			bfin_serial_resource[i].uart_base_addr;
+		bfin_serial_ports[i].port.irq       = 
+			bfin_serial_resource[i].uart_irq;
 		bfin_serial_ports[i].port.flags     = UPF_BOOT_AUTOCONF;
 #ifdef CONFIG_SERIAL_BFIN_DMA
 		bfin_serial_ports[i].tx_done	    = 1;
 		bfin_serial_ports[i].tx_count	    = 0;
-		bfin_serial_ports[i].tx_dma_channel = uart_tx_dma_channel[i];
-		bfin_serial_ports[i].rx_dma_channel = uart_rx_dma_channel[i];
-
+		bfin_serial_ports[i].tx_dma_channel = 
+			bfin_serial_resource[i].uart_tx_dma_channel;
+		bfin_serial_ports[i].rx_dma_channel = 
+			bfin_serial_resource[i].uart_rx_dma_channel;
 		init_timer(&(bfin_serial_ports[i].rx_dma_timer));
 #else
-		INIT_WORK(&bfin_serial_ports[i].cts_workqueue, bfin_serial_do_work, &bfin_serial_ports[i]);
+		INIT_WORK(&bfin_serial_ports[i].cts_workqueue, 
+				bfin_serial_do_work, &bfin_serial_ports[i]);
 #endif
+#ifdef CONFIG_SERIAL_BFIN_CTSRTS
+		bfin_serial_ports[i].cts_pin	    = 
+			bfin_serial_resource[i].uart_cts_pin;
+		bfin_serial_ports[i].rts_pin	    = 
+			bfin_serial_resource[i].uart_rts_pin;	
+#endif
+		bfin_serial_hw_init(&bfin_serial_ports[i]);
 
-		quot = bfin_serial_calc_baud(bfin_serial_ports[i].port.uartclk, CONSOLE_BAUD_RATE);
+		quot = bfin_serial_calc_baud(bfin_serial_ports[i].port.uartclk,
+				CONSOLE_BAUD_RATE);
 
 		/* Disable UART */
 		UART_PUT_GCTL(&bfin_serial_ports[i], 0);
@@ -861,7 +880,7 @@ bfin_serial_console_setup(struct console *co, char *options)
 	 * if so, search for the first available port that does have
 	 * console support.
 	 */
-	if (co->index == -1 || co->index >= NR_PORTS)
+	if (co->index == -1 || co->index >= nr_ports)
 		co->index = 0;
 	uart = &bfin_serial_ports[co->index];
 
@@ -937,7 +956,7 @@ static int bfin_serial_probe(struct platform_device *dev)
 			break;
 
 	if (i < dev->num_resources) {
-		for (i = 0; i < NR_PORTS; i++, res++) {
+		for (i = 0; i < nr_ports; i++, res++) {
 			if (bfin_serial_ports[i].port.mapbase != res->start)
 				continue;
 			bfin_serial_ports[i].port.dev = &dev->dev;
