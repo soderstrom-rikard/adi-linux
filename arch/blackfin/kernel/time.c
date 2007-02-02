@@ -37,7 +37,6 @@
 
 #include <asm/blackfin.h>
 #include <asm/irq.h>
-#include <asm/bf5xx_rtc.h>
 #include <asm/irq_regs.h>
 
 /* This is an NTP setting */
