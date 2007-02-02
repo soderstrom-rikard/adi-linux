@@ -1742,9 +1742,9 @@ static int snd_ad1836_configure(ad1836_t *chip)
 	err = err || snd_ad1836_set_register(chip, ADC_CTRL_2, \
 			(ADC_AUX_MASTER|ADC_SOUT_MASK|ADC_MUTE_MASK|ADC_DATA_MASK),
 #ifdef LINPHONE_SETTING
-			(ADC_AUX_MASTER | ADC_SOUT_I2S | ADC_MUTE_ADC2 | ADC_DATA_16));
+			(ADC_SOUT_I2S | ADC_MUTE_ADC2 | ADC_DATA_16));
 #else
-			(ADC_AUX_MASTER | ADC_SOUT_I2S | ADC_MUTE_ADC2 | ADC_DATA_24));
+			(ADC_SOUT_I2S | ADC_MUTE_ADC2 | ADC_DATA_24));
 #endif
 	/* set volume to full scale */
 	err = err || snd_ad1836_set_register(chip, DAC_VOL_1L, DAC_VOL_MASK, DAC_VOL_MASK);
