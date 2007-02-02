@@ -421,17 +421,6 @@
 
 #endif
 
-/* RTC_ICTL and RTC_ISTAT Masks															    */
-#define	SWEF  STOPWATCH		/* Stopwatch Interrupt Enable                                                                 */
-#define	AEF	  ALARM		/* Alarm Interrupt Enable                                                                             */
-#define	SEF	  SECOND	/* Seconds (1 Hz) Interrupt Enable                                                    */
-#define	MEF	  MINUTE	/* Minutes Interrupt Enable                                                                   */
-#define	HEF	  HOUR		/* Hours Interrupt Enable                                                                             */
-#define	DEF	  DAY		/* 24 Hours (Days) Interrupt Enable                                                   */
-#define	DAEF  DAY_ALARM		/* Day Alarm (Day, Hour, Minute, Second) Interrupt Enable             */
-#define	WPS	  WRITE_PENDING	/* Write Pending Status                                                                               */
-#define	WCOM  WRITE_COMPLETE	/* Write Complete Interrupt Enable                                                        */
-
 /* PLL_DIV Masks													*/
 #define CCLK_DIV1 CSEL_DIV1	/*          CCLK = VCO / 1                                  */
 #define CCLK_DIV2 CSEL_DIV2	/*          CCLK = VCO / 2                                  */

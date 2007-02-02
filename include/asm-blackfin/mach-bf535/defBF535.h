@@ -1270,11 +1270,6 @@
 #define DISABLE_EVT            0x00000006	 /* Disable Watchdog Timer */
 						 /* interrupts */
 
- /* RTCFAST Mask */
-#define ENABLE_PRESCALE        0x00000001	 /* Enable prescaler so RTC runs */
-						 /* at 1 Hz */
-	   /* Must be set after power-up for proper operation of RTC */
-
  /* SPICTLx Masks */
 #define TIMOD                  0x00000003	 /* Transfer initiation mode and */
 						 /* interrupt generation */
