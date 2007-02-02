@@ -144,7 +144,7 @@ static int sport_uart_setup(struct sport_uart_port *up, int sclk, int baud_rate)
 	return 0;
 }
 
-static irqreturn_t sport_uart_rx_irq(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t sport_uart_rx_irq(int irq, void *dev_id)
 {
 	struct sport_uart_port *up = dev_id;
 	struct tty_struct *tty = up->port.info->tty;
@@ -154,7 +154,7 @@ static irqreturn_t sport_uart_rx_irq(int irq, void *dev_id, struct pt_regs *regs
 		ch = rx_one_byte(up);
 		up->port.icount.rx++;
 
-		if (uart_handle_sysrq_char(&up->port, ch, regs))
+		if (uart_handle_sysrq_char(&up->port, ch))
 			;	
 		else
 			tty_insert_flip_char(tty, ch, TTY_NORMAL);
@@ -164,14 +164,14 @@ static irqreturn_t sport_uart_rx_irq(int irq, void *dev_id, struct pt_regs *regs
 	return IRQ_HANDLED;
 }
 
-static irqreturn_t sport_uart_tx_irq(int irq, void *dev_id, struct pt_regs *reg)
+static irqreturn_t sport_uart_tx_irq(int irq, void *dev_id)
 {
 	sport_uart_tx_chars(dev_id);
 
 	return IRQ_HANDLED;
 }
 
-static irqreturn_t sport_uart_err_irq(int irq, void *dev_id, struct pt_regs *reg)
+static irqreturn_t sport_uart_err_irq(int irq, void *dev_id)
 {
 	struct sport_uart_port *up = dev_id;
 	struct tty_struct *tty = up->port.info->tty;
@@ -377,7 +377,7 @@ static void sport_shutdown(struct uart_port *port)
 static void sport_set_termios(struct uart_port *port,
 		struct termios *termios, struct termios *old)
 {
-	pr_debug("%s enter, c_cflag:%08lx\n", __FUNCTION__, termios->c_cflag);
+	pr_debug("%s enter, c_cflag:%08x\n", __FUNCTION__, termios->c_cflag);
 	uart_update_timeout(port, CS8 ,port->uartclk);
 }
 
