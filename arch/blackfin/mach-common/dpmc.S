@@ -173,7 +173,7 @@ ENTRY(_sleep_mode)
 
 	call _set_sic_iwr;
 
-	R0 = (SWEF|AEF|SEF|MEF|HEF|DEF|DAEF|WCOM)(Z);
+	R0 = 0xFFFF (Z);
 	call _set_rtc_istat
 
 	P0.H = hi(PLL_CTL);
@@ -211,7 +211,7 @@ ENTRY(_hibernate_mode)
 
 	call _set_sic_iwr;
 
-	R0 = (SWEF|AEF|SEF|MEF|HEF|DEF|DAEF|WCOM)(Z);
+	R0 = 0xFFFF (Z);
 	call _set_rtc_istat
 
 	P0.H = hi(VR_CTL);
@@ -241,7 +241,7 @@ ENTRY(_deep_sleep)
 	call _set_sdram_srfs;
 
 	/* Clear all the interrupts,bits sticky */
-	R0 = (SWEF|AEF|SEF|MEF|HEF|DEF|DAEF|WCOM)(Z);
+	R0 = 0xFFFF (Z);
 	call _set_rtc_istat
 
 	P0.H = hi(PLL_CTL);
@@ -290,7 +290,7 @@ ENTRY(_sleep_deeper)
 	call _set_sdram_srfs;
 
 	/* Clear all the interrupts,bits sticky */
-	R0 = (SWEF|AEF|SEF|MEF|HEF|DEF|DAEF|WCOM)(Z);
+	R0 = 0xFFFF (Z);
 	call _set_rtc_istat
 
 	P0.H = hi(PLL_DIV);
