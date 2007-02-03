@@ -66,8 +66,6 @@ static struct irq_desc bad_irq_desc = {
 	.depth = 1,
 };
 
-EXPORT_SYMBOL(disable_irq_wake);
-
 int show_interrupts(struct seq_file *p, void *v)
 {
 	int i = *(loff_t *) v;
