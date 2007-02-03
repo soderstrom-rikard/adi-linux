@@ -450,8 +450,8 @@ static unsigned int bfin_serial_tx_empty(struct uart_port *port)
 
 static unsigned int bfin_serial_get_mctrl(struct uart_port *port)
 {
-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 	if (uart->cts_pin < 0)
 		return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
 
@@ -464,8 +464,8 @@ static unsigned int bfin_serial_get_mctrl(struct uart_port *port)
 
 static void bfin_serial_set_mctrl(struct uart_port *port, unsigned int mctrl)
 {
-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 	if (uart->rts_pin < 0)
 		return;
 
@@ -972,8 +972,10 @@ static int bfin_serial_remove(struct platform_device *pdev)
 {
 	struct bfin_serial_port *uart = platform_get_drvdata(pdev);
 
+#ifdef CONFIG_SERIAL_BFIN_CTSRTS
 	gpio_free(uart->cts_pin);
 	gpio_free(uart->rts_pin);
+#endif
 
 	platform_set_drvdata(pdev, NULL);
 
