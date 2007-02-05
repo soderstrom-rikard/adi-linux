@@ -36,8 +36,8 @@
 #include <asm/uaccess.h>
 #include <linux/interrupt.h>
 #include <linux/module.h>
-#include <linux/debugger.h>
 #ifdef CONFIG_KGDB
+# include <linux/debugger.h>
 # include <linux/kgdb.h>
 #endif
 
