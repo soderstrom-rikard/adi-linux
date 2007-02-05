@@ -37,6 +37,7 @@ struct thread_struct {
 	unsigned short seqstat;	/* saved status register */
 	unsigned long esp0;	/* points to SR of stack frame pt_regs */
 	unsigned long pc;	/* instruction pointer */
+	void *        debuggerinfo;
 };
 
 #define INIT_THREAD  {						\

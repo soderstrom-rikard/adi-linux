@@ -201,7 +201,16 @@
 
 	[--sp] = ASTAT;
 
+#ifdef CONFIG_KGDB
+	fp     = 0(Z);
+	r1     = sp;
+	r1    += 60;
+	r1    += 60;
+	r1    += 60;
+	[--sp] = r1;
+#else
 	[--sp] = r0;	/* Skip reserved */
+#endif
 	[--sp] = RETS;
 	r0 = RETI;
 	[--sp] = r0;
@@ -209,7 +218,13 @@
 	[--sp] = RETN;
 	[--sp] = RETE;
 	[--sp] = SEQSTAT;
+#ifdef CONFIG_KGDB
+	r1.l = lo(IPEND);
+	r1.h = hi(IPEND);
+	[--sp] = r1;
+#else
 	[--sp] = r0;	/* Skip IPEND as well. */
+#endif
 	[--sp] = r0;  /*orig_pc*/
 	/* Clear all L registers.  */
 	r0 = 0 (x);

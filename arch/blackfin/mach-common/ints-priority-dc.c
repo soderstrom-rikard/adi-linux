@@ -39,6 +39,9 @@
 #include <linux/kernel_stat.h>
 #include <linux/seq_file.h>
 #include <linux/irq.h>
+#ifdef CONFIG_KGDB
+#include <linux/kgdb.h>
+#endif
 #include <asm/traps.h>
 #include <asm/blackfin.h>
 #include <asm/gpio.h>
@@ -459,4 +462,8 @@ void do_irq(int vec, struct pt_regs *fp)
 		vec = ivg->irqno;
 	}
 	asm_do_IRQ(vec, fp);
+
+#ifdef CONFIG_KGDB
+	kgdb_process_breakpoint();
+#endif
 }
