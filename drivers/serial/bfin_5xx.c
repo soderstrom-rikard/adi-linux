@@ -151,7 +151,7 @@ static void local_put_char(struct bfin_serial_port *uart, char ch)
 	unsigned short status;
 	int flags = 0;
 
-	local_irq_save(flags);
+	spin_lock_irqsave(&uart->port.lock, flags);
 
 	do {
 		status = UART_GET_LSR(uart);
@@ -159,11 +159,10 @@ static void local_put_char(struct bfin_serial_port *uart, char ch)
 
 	UART_PUT_CHAR(uart, ch);
 
-	local_irq_restore(flags);
+	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
 
-static void
-bfin_serial_rx_chars(struct bfin_serial_port *uart)
+static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
 {
 	struct tty_struct *tty = uart->port.info?uart->port.info->tty:0;
 	unsigned int status, ch, flg;
@@ -305,7 +304,7 @@ static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart)
 		return;
 	}
 
-	local_irq_save(flags);
+	spin_lock_irqsave(&uart->port.lock, flags);
 	uart->tx_count = CIRC_CNT(xmit->head, xmit->tail, UART_XMIT_SIZE);
 	if (uart->tx_count > (UART_XMIT_SIZE - xmit->tail))
 		uart->tx_count = UART_XMIT_SIZE - xmit->tail;
@@ -323,7 +322,7 @@ static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart)
 	ier = UART_GET_IER(uart);
 	ier |= ETBEI;
 	UART_PUT_IER(uart, ier);
-	local_irq_restore(flags);
+	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
 
 static void bfin_serial_dma_rx_chars(struct bfin_serial_port * uart)
@@ -367,7 +366,7 @@ void bfin_serial_rx_dma_timeout(struct bfin_serial_port *uart)
 
 	bfin_serial_dma_tx_chars(uart);
 
-	local_irq_save(flags);
+	spin_lock_irqsave(&uart->port.lock, flags);
 	x_pos = DMA_RX_XCOUNT - get_dma_curr_xcount(uart->rx_dma_channel);
 	if (x_pos == DMA_RX_XCOUNT)
 		x_pos = 0;
@@ -379,7 +378,7 @@ void bfin_serial_rx_dma_timeout(struct bfin_serial_port *uart)
 		bfin_serial_dma_rx_chars(uart);
 		uart->rx_dma_buf.head = uart->rx_dma_buf.tail;
 	}
-	local_irq_restore(flags);
+	spin_unlock_irqrestore(&uart->port.lock, flags);
 	uart->rx_dma_timer.expires = jiffies + DMA_RX_FLUSH_JIFFIES;
 	add_timer(&(uart->rx_dma_timer));
 }
@@ -790,8 +789,7 @@ bfin_serial_console_write(struct console *co, const char *s, unsigned int count)
 	unsigned short status, tmp;
 	int i;
 
-	local_irq_save(flags);
-
+	spin_lock_irqsave(&uart->port.lock, flags);
 	for (i = 0; i < count; i++) {
 		do {
 			status = UART_GET_LSR(uart);
@@ -809,8 +807,8 @@ bfin_serial_console_write(struct console *co, const char *s, unsigned int count)
 			UART_PUT_CHAR(uart, '\r');
 		}
 	}
+	spin_unlock_irqrestore(&uart->port.lock, flags);
 
-	local_irq_restore(flags);
 }
 
 /*
