@@ -82,9 +82,7 @@ const static struct mtd_partition partition_info[] = {
 static u_char bfin_read_byte(struct mtd_info *mtd)
 {
 	struct nand_chip *this = mtd->priv;
-	u_char ret = readb(this->IO_ADDR_R);
-	SSYNC();
-	return ret;
+	return readb(this->IO_ADDR_R);
 }
 
 /**
@@ -97,9 +95,7 @@ static u_char bfin_read_byte(struct mtd_info *mtd)
 static u16 bfin_read_word(struct mtd_info *mtd)
 {
 	struct nand_chip *this = mtd->priv;
-	u16 ret = readw(this->IO_ADDR_R);
-	SSYNC();
-	return ret;
+	return readw(this->IO_ADDR_R);
 }
 
 /**
@@ -117,7 +113,6 @@ static void bfin_read_buf(struct mtd_info *mtd, u_char *buf, int len)
 
 	for (i=0; i<len; i++)
 		buf[i] = readb(this->IO_ADDR_R);
-	SSYNC();
 }
 
 /**
@@ -156,7 +151,6 @@ static int bfin_verify_buf(struct mtd_info *mtd, const u_char *buf, int len)
 		if (buf[i] != readb(this->IO_ADDR_R))
 			return -EFAULT;
 	}
-	SSYNC();
 
 	return 0;
 }
