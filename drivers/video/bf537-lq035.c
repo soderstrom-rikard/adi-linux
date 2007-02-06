@@ -551,9 +551,9 @@ void bfin_lq035_fb_rotate(struct fb_info *fbi, int angle)
 
 static int direct_mmap(struct fb_info *info, struct vm_area_struct * vma)
 {
-	if (lq035_mmap) 
+	if (lq035_mmap)
 		return -1;
-		
+
 	if(landscape) {
 		vma->vm_start = (unsigned long)fb_buffer;
 	} else {
@@ -579,6 +579,9 @@ static struct fb_ops bfin_lq035_fb_ops = {
 	.fb_release		= bfin_lq035_fb_release,
 	.fb_check_var		= bfin_lq035_fb_check_var,
 	.fb_rotate		= bfin_lq035_fb_rotate,
+	.fb_fillrect		= cfb_fillrect,
+	.fb_copyarea		= cfb_copyarea,
+	.fb_imageblit		= cfb_imageblit,
 	.fb_mmap		= direct_mmap,
 };
 
