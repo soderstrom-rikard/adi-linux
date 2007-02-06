@@ -109,10 +109,15 @@ static u16 bfin_read_word(struct mtd_info *mtd)
 static void bfin_read_buf(struct mtd_info *mtd, u_char *buf, int len)
 {
 	int i;
+	unsigned long flags;
 	struct nand_chip *this = mtd->priv;
 
+	local_irq_save(flags);
+	SSYNC();
 	for (i=0; i<len; i++)
-		buf[i] = readb(this->IO_ADDR_R);
+		buf[i] = *(volatile unsigned char *) (this->IO_ADDR_R);
+		/*buf[i] = readb(this->IO_ADDR_R); readb() does SSYNC before each access, insb is too thight*/
+	local_irq_restore(flags);
 }
 
 /**
