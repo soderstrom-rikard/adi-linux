@@ -492,6 +492,7 @@ static int __init i2c_bfin_twi_init(void)
 	p_adap->algo_data = &twi_iface;
 	p_adap->client_register = NULL;
 	p_adap->client_unregister = NULL;
+	p_adap->class = I2C_CLASS_ALL;
 
 	rc = request_irq(twi_iface.irq, bfin_twi_interrupt_entry, SA_INTERRUPT, "i2c-bfin-twi", &twi_iface);
 	if (rc) {
