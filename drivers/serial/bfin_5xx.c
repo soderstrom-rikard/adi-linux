@@ -728,6 +728,14 @@ static void __init bfin_serial_init_ports(void)
 }
 
 #ifdef CONFIG_SERIAL_BFIN_CONSOLE
+static void bfin_serial_console_putchar(struct uart_port *port, int ch)
+{
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+	while (!(UART_GET_LSR(uart)))
+		barrier();
+	UART_PUT_CHAR(uart, ch);
+}	
+
 /*
  * Interrupts are disabled on entering
  */
@@ -736,27 +744,9 @@ bfin_serial_console_write(struct console *co, const char *s, unsigned int count)
 {
 	struct bfin_serial_port *uart = &bfin_serial_ports[co->index];
 	int flags = 0;
-	unsigned short status, tmp;
-	int i;
 
 	spin_lock_irqsave(&uart->port.lock, flags);
-	for (i = 0; i < count; i++) {
-		do {
-			status = UART_GET_LSR(uart);
-		} while (!(status & THRE));
-
-		tmp = UART_GET_LCR(uart);
-		tmp &= ~DLAB;
-		UART_PUT_LCR(uart, tmp);
-
-		UART_PUT_CHAR(uart, s[i]);
-		if (s[i] == '\n') {
-			do {
-				status = UART_GET_LSR(uart);
-			} while(!(status & THRE));
-			UART_PUT_CHAR(uart, '\r');
-		}
-	}
+	uart_console_write(&uart->port, s, count, bfin_serial_console_putchar);
 	spin_unlock_irqrestore(&uart->port.lock, flags);
 
 }
