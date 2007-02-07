@@ -60,13 +60,13 @@ ___divsi3 :
                     ** r3.31 means overflow, add one to result 
                     */
   cc = r0 < r1;
-  if cc jump .ret_zero;
+  if cc jump .Lret_zero;
   r2 = r1 >> 15;
   cc = r2;
-  if cc jump .IDENTS;
+  if cc jump .Lidents;
   r2 = r1 << 16;
   cc = r2 <= r0;
-  if cc jump .IDENTS;
+  if cc jump .Lidents;
 
   DIVS(R0, R1);
   DIVQ(R0, R1);
@@ -98,23 +98,23 @@ ___divsi3 :
 ** If the identity is true, return the value in R2. 
 */
 
-.IDENTS:
+.Lidents:
   CC = R1 == 0;                   /* check for divide by zero */
-  IF CC JUMP .IDENT_RETURN;
+  IF CC JUMP .Lident_return;
 
   CC = R0 == 0;                   /* check for division of zero */
-  IF CC JUMP .ZERO_RETURN;
+  IF CC JUMP .Lzero_return;
 
   CC = R0 == R1;                  /* check for identical operands */
-  IF CC JUMP .IDENT_RETURN;
+  IF CC JUMP .Lident_return;
 
   CC = R1 == 1;                   /* check for divide by 1 */
-  IF CC JUMP .IDENT_RETURN;
+  IF CC JUMP .Lident_return;
 
   R2.L = ONES R1;
   R2 = R2.L (Z);
   CC = R2 == 1;
-  IF CC JUMP .power_of_two;
+  IF CC JUMP .Lpower_of_two;
 
   /* Identities haven't helped either.
   ** Perform the full division process.  
@@ -133,8 +133,8 @@ ___divsi3 :
   R2 = R2 | R5;                   /* Shift quotient bit */ 
   R6 = R0 ^ R1;                   /* Get new quotient bit */  
 
-  LSETUP(.LST,.LEND)  LC0 = P1;   /* Setup loop */
-.LST:   R7 = R2 >> 31;            /* record copy of carry from R2 */
+  LSETUP(.Llst,.Llend)  LC0 = P1;   /* Setup loop */
+.Llst:   R7 = R2 >> 31;            /* record copy of carry from R2 */
         R2 = R2 << 1;             /* Shift 64 bit dividend up by 1 bit */
         R0 = R0 << 1 || R5 = [SP];
         R0 = R0 | R7;             /* and add carry */
@@ -146,7 +146,7 @@ ___divsi3 :
         R5 = R6 >> 31;
                                   /* Assume AQ==1, shift in zero */
         BITTGL(R5,0);             /* tweak AQ to be what we want to shift in */
-.LEND:  R2 = R2 + R5;             /* and then set shifted-in value to 
+.Llend:  R2 = R2 + R5;             /* and then set shifted-in value to 
                                   ** tweaked AQ. 
                                   */
   r1 = r3 >> 31;
@@ -158,28 +158,28 @@ ___divsi3 :
   (R7:5)= [SP++];                 /* Pop registers R6-R7 */
   RTS;
 
-.IDENT_RETURN:
+.Lident_return:
   CC = R1 == 0;                   /* check for divide by zero  => 0x7fffffff */
   R2 = -1 (X);
   R2 >>= 1;
-  IF CC JUMP .TRUE_IDENT_RETURN;
+  IF CC JUMP .Ltrue_ident_return;
 
   CC = R0 == R1;                  /* check for identical operands => 1 */
   R2 = 1 (Z);
-  IF CC JUMP .TRUE_IDENT_RETURN;
+  IF CC JUMP .Ltrue_ident_return;
 
   R2 = R0;                        /* assume divide by 1 => numerator */
   /*FALLTHRU*/
 
-.TRUE_IDENT_RETURN:
+.Ltrue_ident_return:
   R0 = R2;                        /* Return an identity value */
   R2 = -R2;
   CC = bittst(R3,30);
   IF CC R0 = R2;
-.ZERO_RETURN:
+.Lzero_return:
   RTS;                            /* ...including zero */
 
-.power_of_two:
+.Lpower_of_two:
   /* Y has a single bit set, which means it's a power of two.
   ** That means we can perform the division just by shifting
   ** X to the right the appropriate number of bits
@@ -193,7 +193,7 @@ ___divsi3 :
 
   R2 = R0 >> 31;
   CC = R1 < 0;
-  IF CC JUMP .TRUE_IDENT_RETURN;
+  IF CC JUMP .Ltrue_ident_return;
 
   R1.l = SIGNBITS R1;
   R1 = R1.L (Z);
@@ -206,6 +206,6 @@ ___divsi3 :
   IF CC R0 = R2;
   RTS; 
 
-.ret_zero:
+.Lret_zero:
   R0 = 0;
   RTS;

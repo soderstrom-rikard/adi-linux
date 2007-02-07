@@ -36,17 +36,17 @@
 ENTRY(___udivsi3)
 
   CC = R0 < R1 (IU);    /* If X < Y, always return 0 */
-  IF CC JUMP .RETURN_IDENT;
+  IF CC JUMP .Lreturn_ident;
 
   R2 = R1 << 16;		
   CC = R2 <= R0 (IU);
-  IF CC JUMP .IDENTS;
+  IF CC JUMP .Lidents;
 
   R2 = R0 >> 31;       /* if X is a 31-bit number */
   R3 = R1 >> 15;       /* and Y is a 15-bit number */
   R2 = R2 | R3;        /* then it's okay to use the DIVQ builtins (fallthrough to fast)*/
   CC = R2;             
-  IF CC JUMP .y_16bit;
+  IF CC JUMP .Ly_16bit;
 
 /* METHOD 1: FAST DIVQ
    We know we have a 31-bit dividend, and 15-bit divisor so we can use the 
@@ -81,7 +81,7 @@ ENTRY(___udivsi3)
   R0 = R0.L (Z);
   RTS;
 
-.y_16bit:
+.Ly_16bit:
   /* We know that the upper 17 bits of Y might have bits set,
   ** or that the sign bit of X might have a bit. If Y is a
   ** 16-bit number, but not bigger, then we can use the builtins
@@ -109,7 +109,7 @@ ENTRY(___udivsi3)
 
   R2 = R3 - R2;		/* shifted divisor < upper 16 bits of dividend */
   CC &= CARRY;
-  IF CC JUMP .shift_and_correct;
+  IF CC JUMP .Lshift_and_correct;
 
   /* Fall through to the identities */
 
@@ -117,19 +117,19 @@ ENTRY(___udivsi3)
    We are not able to use the divide primites, but may still catch some special
    cases. 
 */
-.IDENTS:
+.Lidents:
   /* Test for common identities. Value to be returned is placed in R2. */
   CC = R0 == 0;        /* 0/Y => 0 */
-  IF CC JUMP .RETURN_R0;
+  IF CC JUMP .Lreturn_r0;
   CC = R0 == R1;       /* X==Y => 1 */
-  IF CC JUMP .RETURN_IDENT;
+  IF CC JUMP .Lreturn_ident;
   CC = R1 == 1;        /* X/1 => X */
-  IF CC JUMP .RETURN_IDENT;
+  IF CC JUMP .Lreturn_ident;
 
   R2.L = ONES R1;
   R2 = R2.L (Z);
   CC = R2 == 1;
-  IF CC JUMP .power_of_two;
+  IF CC JUMP .Lpower_of_two;
 
   [--SP] = (R7:5);                /* Push registers R5-R7 */
 
@@ -164,8 +164,8 @@ ENTRY(___udivsi3)
   R7 = 0;                         /* Initialise quotient bit */
 
   P1 = 32;                        /* Set loop counter */
-  LSETUP(.ULST, .ULEND) LC0 = P1; /* Set loop counter */
-.ULST:  R6 = R2 >> 31;             /* R6 = sign bit of R2, for carry */
+  LSETUP(.Lulst, .Lulend) LC0 = P1; /* Set loop counter */
+.Lulst:  R6 = R2 >> 31;             /* R6 = sign bit of R2, for carry */
        R2 = R2 << 1;              /* Shift 64 bit dividend up by 1 bit */
        R3 = R3 << 1 || R5 = [SP];
        R3 = R3 | R6;              /* Include any carry */
@@ -177,10 +177,10 @@ ENTRY(___udivsi3)
 
        R5 = R7 >> 31;             /* Get AQ */
        BITTGL(R5, 0);             /* Invert it, to get what we'll shift */
-.ULEND: R2 = R2 + R5;              /* and "shift" it in. */
+.Lulend: R2 = R2 + R5;              /* and "shift" it in. */
 
   CC = P0 == 0;                   /* Check how many inputs we shifted */
-  IF CC JUMP .NO_MULT;            /* if none... */
+  IF CC JUMP .Lno_mult;            /* if none... */
   R6 = R2 << 1;
   CC = P0 == 1;
   IF CC R2 = R6;                  /* if 1, Q = Q*2 */
@@ -192,31 +192,31 @@ ENTRY(___udivsi3)
   CC = R1 <= R5 (IU);             /* Check if divisor <= Z? */
   R6 = CC;                        /* if yes, R6 = 1 */
   R2 = R2 + R6;                   /* if yes, add one to quotient(Q) */
-.NO_MULT:
+.Lno_mult:
   SP += 4;
   (R7:5) = [SP++];                /* Pop registers R5-R7 */
   R0 = R2;                        /* Store quotient */
   RTS;
 
-.RETURN_IDENT:
+.Lreturn_ident:
   CC = R0 < R1 (IU);    /* If X < Y, always return 0 */
   R2 = 0;
-  IF CC JUMP .TRUE_RETURN_IDENT;
+  IF CC JUMP .Ltrue_return_ident;
   R2 = -1 (X);         /* X/0 => 0xFFFFFFFF */
   CC = R1 == 0;
-  IF CC JUMP .TRUE_RETURN_IDENT;
+  IF CC JUMP .Ltrue_return_ident;
   R2 = -R2;            /* R2 now 1 */
   CC = R0 == R1;       /* X==Y => 1 */
-  IF CC JUMP .TRUE_RETURN_IDENT;
+  IF CC JUMP .Ltrue_return_ident;
   R2 = R0;             /* X/1 => X */
   /*FALLTHRU*/
 
-.TRUE_RETURN_IDENT:
+.Ltrue_return_ident:
   R0 = R2;
-.RETURN_R0:
+.Lreturn_r0:
   RTS;
 
-.power_of_two:
+.Lpower_of_two:
   /* Y has a single bit set, which means it's a power of two.
   ** That means we can perform the division just by shifting
   ** X to the right the appropriate number of bits 
@@ -230,7 +230,7 @@ ENTRY(___udivsi3)
 
   R2 = R0 >> 31;
   CC = R1 < 0;
-  IF CC JUMP .TRUE_RETURN_IDENT;
+  IF CC JUMP .Ltrue_return_ident;
 
   R1.l = SIGNBITS R1;
   R1 = R1.L (Z);
@@ -247,7 +247,7 @@ ENTRY(___udivsi3)
   both are in range for the primitives.
   The left/right shift of the dividend does nothing so we can skip it.
 */
-.shift_and_correct:
+.Lshift_and_correct:
   R2 = R0;
   // R3 is already R1 >> 1
   CC=!CC;
