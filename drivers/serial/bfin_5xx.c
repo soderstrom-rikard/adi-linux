@@ -60,19 +60,6 @@
 /*
  * Setup for console. Argument comes from the menuconfig
  */
-
-#if defined(CONFIG_BAUD_9600)
-#define CONSOLE_BAUD_RATE       9600
-#elif defined(CONFIG_BAUD_19200)
-#define CONSOLE_BAUD_RATE       19200
-#elif defined(CONFIG_BAUD_38400)
-#define CONSOLE_BAUD_RATE       38400
-#elif defined(CONFIG_BAUD_57600)
-#define CONSOLE_BAUD_RATE       57600
-#elif defined(CONFIG_BAUD_115200)
-#define CONSOLE_BAUD_RATE       115200
-#endif
-
 #define DMA_RX_XCOUNT		512
 #define DMA_RX_YCOUNT		(PAGE_SIZE / DMA_RX_XCOUNT)
 
@@ -87,7 +74,6 @@ static void local_put_char(struct bfin_serial_port *uart, char ch);
 #endif
 
 static void bfin_serial_mctrl_check(struct bfin_serial_port *uart);
-static int bfin_serial_calc_baud(unsigned int uartclk, unsigned int baud);
 
 /*
  * interrupts are disabled on entry
@@ -259,7 +245,7 @@ static irqreturn_t bfin_serial_int(int irq, void *dev_id)
 		if ((status & IIR_STATUS) == IIR_RX_READY)
 			bfin_serial_rx_chars(uart);
 		status = UART_GET_IIR(uart);
-	} while (status &(IIR_TX_READY | IIR_RX_READY));
+	} while (status & (IIR_TX_READY | IIR_RX_READY));
 	spin_unlock(&uart->port.lock);
 	return IRQ_HANDLED;
 }
@@ -595,7 +581,7 @@ bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 	unsigned short val, ier;
 
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
-	quot = bfin_serial_calc_baud(port->uartclk, baud);
+	quot = uart_get_divisor(port, baud);
 	spin_lock_irqsave(&uart->port.lock, flags);
 
 	/* Disable UART */
@@ -618,6 +604,9 @@ bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 	val &= ~DLAB;
 	UART_PUT_LCR(uart, val);
 	__builtin_bfin_ssync();
+
+	val = WLS(8);
+	UART_PUT_LCR(uart, val);
 
 	/* Enable UART */
 	UART_PUT_IER(uart, ier);
@@ -693,23 +682,10 @@ static struct uart_ops bfin_serial_pops = {
 	.verify_port	= bfin_serial_verify_port,
 };
 
-static int bfin_serial_calc_baud(unsigned int uartclk, unsigned int baud)
-{
-	int quot;
-
-	quot = uartclk / (baud * 8);
-	if ((quot & 0x1) == 1) {
-		quot++;
-	}
-	return quot/2;
-}
-
 static void __init bfin_serial_init_ports(void)
 {
 	static int first = 1;
 	int i;
-	unsigned short val;
-	int quot;
 
 	if (!first)
 		return;
@@ -747,33 +723,6 @@ static void __init bfin_serial_init_ports(void)
 #endif
 		bfin_serial_hw_init(&bfin_serial_ports[i]);
 
-		quot = bfin_serial_calc_baud(bfin_serial_ports[i].port.uartclk,
-				CONSOLE_BAUD_RATE);
-
-		/* Disable UART */
-		UART_PUT_GCTL(&bfin_serial_ports[i], 0);
-
-		/* Set DLAB in LCR to Access DLL and DLH */
-		val = UART_GET_LCR(&bfin_serial_ports[i]);
-		val |= DLAB;
-		UART_PUT_LCR(&bfin_serial_ports[i], val);
-
-		UART_PUT_DLL(&bfin_serial_ports[i], quot & 0xFF);
-		UART_PUT_DLH(&bfin_serial_ports[i], (quot >> 8) & 0xFF);
-
-		/* Clear DLAB in LCR to Access THR RBR IER */
-		val = UART_GET_LCR(&bfin_serial_ports[i]);
-		val &= ~DLAB;
-		UART_PUT_LCR(&bfin_serial_ports[i], val);
-
-		/* Set LCR to Word Lengh 8-bit word select */
-		val = WLS(8);
-		UART_PUT_LCR(&bfin_serial_ports[i], val);
-
-		 /* Enable UART */
-		val = UART_GET_GCTL(&bfin_serial_ports[i]);
-		val |= UCEN;
-		UART_PUT_GCTL(&bfin_serial_ports[i], val);
 	}
 }
 
@@ -864,7 +813,7 @@ static int __init
 bfin_serial_console_setup(struct console *co, char *options)
 {
 	struct bfin_serial_port *uart;
-	int baud = CONSOLE_BAUD_RATE;
+	int baud = 57600;
 	int bits = 8;
 	int parity = 'n';
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS

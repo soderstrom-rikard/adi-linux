@@ -34,7 +34,13 @@
 
 #ifdef CONFIG_BFIN_UART0_CTSRTS
 # define CONFIG_SERIAL_BFIN_CTSRTS
-#endif
+# ifndef CONFIG_UART0_CTS_PIN
+#  define CONFIG_UART0_CTS_PIN -1
+# endif
+# ifndef CONFIG_UART0_RTS_PIN
+#  define CONFIG_UART0_RTS_PIN -1
+# endif
+endif
 
 struct bfin_serial_port {
         struct uart_port        port;
@@ -81,9 +87,6 @@ struct bfin_serial_res bfin_serial_resource[] = {
 #ifdef CONFIG_BFIN_UART0_CTSRTS
 	CONFIG_UART0_CTS_PIN,
 	CONFIG_UART0_RTS_PIN,
-#else
-	-1,
-	-1,
 #endif
 };
 

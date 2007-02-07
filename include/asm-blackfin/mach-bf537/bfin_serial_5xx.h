@@ -34,9 +34,23 @@
 
 #if defined(CONFIG_BFIN_UART0_CTSRTS) || defined(CONFIG_BFIN_UART1_CTSRTS)
 # define CONFIG_SERIAL_BFIN_CTSRTS
+
+# ifndef CONFIG_UART0_CTS_PIN
+#  define CONFIG_UART0_CTS_PIN -1
+# endif
+
+# ifndef CONFIG_UART0_RTS_PIN
+#  define CONFIG_UART0_RTS_PIN -1
+# endif
+
+# ifndef CONFIG_UART1_CTS_PIN
+#  define CONFIG_UART1_CTS_PIN -1
+# endif
+
+# ifndef CONFIG_UART1_RTS_PIN
+#  define CONFIG_UART1_RTS_PIN -1
+# endif
 #endif
-
-
 /* 
  * The pin configuration is different from schematic 
  */
@@ -87,9 +101,6 @@ struct bfin_serial_res bfin_serial_resource[] = {
 #ifdef CONFIG_BFIN_UART0_CTSRTS
 	CONFIG_UART0_CTS_PIN,
 	CONFIG_UART0_RTS_PIN,
-#else
-	-1,
-	-1,
 #endif
 	},
 #endif
@@ -104,9 +115,6 @@ struct bfin_serial_res bfin_serial_resource[] = {
 #ifdef CONFIG_BFIN_UART1_CTSRTS
 	CONFIG_UART1_CTS_PIN,
 	CONFIG_UART1_RTS_PIN,
-#else
-	-1,
-	-1,
 #endif
 	},
 #endif
