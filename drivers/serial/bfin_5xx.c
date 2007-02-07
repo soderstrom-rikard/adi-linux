@@ -595,10 +595,10 @@ bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 		lcr = WLS(5);
 		break;
 	default:
-		printk(KERN_ERR "%s: word lengh not supported\n", 
+		printk(KERN_ERR "%s: word lengh not supported\n",
 			__FUNCTION__);
 	}
-	
+
 	if (termios->c_cflag & CSTOPB);
 		lcr |= STB;
 	if (termios->c_cflag & PARENB) {
@@ -619,18 +619,18 @@ bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 	val = UART_GET_LCR(uart);
 	val |= DLAB;
 	UART_PUT_LCR(uart, val);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	UART_PUT_DLL(uart, quot & 0xFF);
-	__builtin_bfin_ssync();
+	SSYNC();
 	UART_PUT_DLH(uart, (quot >> 8) & 0xFF);
-	__builtin_bfin_ssync();
-	
+	SSYNC();
+
 	/* Clear DLAB in LCR to Access THR RBR IER */
 	val = UART_GET_LCR(uart);
 	val &= ~DLAB;
 	UART_PUT_LCR(uart, val);
-	__builtin_bfin_ssync();
+	SSYNC();
 
 	UART_PUT_LCR(uart, lcr);
 
@@ -722,30 +722,30 @@ static void __init bfin_serial_init_ports(void)
 		bfin_serial_ports[i].port.ops       = &bfin_serial_pops;
 		bfin_serial_ports[i].port.line      = i;
 		bfin_serial_ports[i].port.iotype    = UPIO_MEM;
-		bfin_serial_ports[i].port.membase   = 
+		bfin_serial_ports[i].port.membase   =
 			(void __iomem *)bfin_serial_resource[i].uart_base_addr;
-		bfin_serial_ports[i].port.mapbase   = 
+		bfin_serial_ports[i].port.mapbase   =
 			bfin_serial_resource[i].uart_base_addr;
-		bfin_serial_ports[i].port.irq       = 
+		bfin_serial_ports[i].port.irq       =
 			bfin_serial_resource[i].uart_irq;
 		bfin_serial_ports[i].port.flags     = UPF_BOOT_AUTOCONF;
 #ifdef CONFIG_SERIAL_BFIN_DMA
 		bfin_serial_ports[i].tx_done	    = 1;
 		bfin_serial_ports[i].tx_count	    = 0;
-		bfin_serial_ports[i].tx_dma_channel = 
+		bfin_serial_ports[i].tx_dma_channel =
 			bfin_serial_resource[i].uart_tx_dma_channel;
-		bfin_serial_ports[i].rx_dma_channel = 
+		bfin_serial_ports[i].rx_dma_channel =
 			bfin_serial_resource[i].uart_rx_dma_channel;
 		init_timer(&(bfin_serial_ports[i].rx_dma_timer));
 #else
-		INIT_WORK(&bfin_serial_ports[i].cts_workqueue, 
+		INIT_WORK(&bfin_serial_ports[i].cts_workqueue,
 				bfin_serial_do_work, &bfin_serial_ports[i]);
 #endif
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
-		bfin_serial_ports[i].cts_pin	    = 
+		bfin_serial_ports[i].cts_pin	    =
 			bfin_serial_resource[i].uart_cts_pin;
-		bfin_serial_ports[i].rts_pin	    = 
-			bfin_serial_resource[i].uart_rts_pin;	
+		bfin_serial_ports[i].rts_pin	    =
+			bfin_serial_resource[i].uart_rts_pin;
 #endif
 		bfin_serial_hw_init(&bfin_serial_ports[i]);
 
@@ -759,7 +759,7 @@ static void bfin_serial_console_putchar(struct uart_port *port, int ch)
 	while (!(UART_GET_LSR(uart)))
 		barrier();
 	UART_PUT_CHAR(uart, ch);
-}	
+}
 
 /*
  * Interrupts are disabled on entering
@@ -934,6 +934,7 @@ static int bfin_serial_probe(struct platform_device *dev)
 static int bfin_serial_remove(struct platform_device *pdev)
 {
 	struct bfin_serial_port *uart = platform_get_drvdata(pdev);
+
 
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
 	gpio_free(uart->cts_pin);
