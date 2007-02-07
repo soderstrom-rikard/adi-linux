@@ -1111,7 +1111,7 @@ rebalance:
 	 */
 	do_retry = 0;
 	if (!(gfp_mask & __GFP_NORETRY)) {
-		if ((order <= 3) || (gfp_mask & __GFP_REPEAT))
+		if ((order <= CONFIG_BIG_ORDER_ALLOC_NOFAIL_MAGIC) || (gfp_mask & __GFP_REPEAT))
 			do_retry = 1;
 		if (gfp_mask & __GFP_NOFAIL)
 			do_retry = 1;

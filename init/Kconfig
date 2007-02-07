@@ -419,6 +419,16 @@ config SHMEM
 	  option replaces shmem and tmpfs with the much simpler ramfs code,
 	  which may be appropriate on small systems without swap.
 
+
+config BIG_ORDER_ALLOC_NOFAIL_MAGIC
+	int "Big Order Alloction No FAIL Magic"
+	depends on EMBEDDED
+	range 3 10
+	default 3
+	help
+	 Let big-order allocations loop until memory gets free. Specified Value
+	 expresses the order. 
+	 	
 config LIMIT_PAGECACHE
 	bool "Limit page caches" if EMBEDDED
 	help
