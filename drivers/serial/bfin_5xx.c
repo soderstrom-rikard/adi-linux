@@ -579,7 +579,33 @@ bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 	unsigned long flags;
 	unsigned int baud, quot;
-	unsigned short val, ier;
+	unsigned short val, ier, lcr = 0;
+
+	switch (termios->c_cflag & CSIZE) {
+	case CS8:
+		lcr = WLS(8);
+		break;
+	case CS7:
+		lcr = WLS(7);
+		break;
+	case CS6:
+		lcr = WLS(6);
+		break;
+	case CS5:
+		lcr = WLS(5);
+		break;
+	default:
+		printk(KERN_ERR "%s: word lengh not supported\n", 
+			__FUNCTION__);
+	}
+	
+	if (termios->c_cflag & CSTOPB);
+		lcr |= STB;
+	if (termios->c_cflag & PARENB) {
+		lcr |= PEN;
+		if (!(termios->c_cflag & PARODD))
+			lcr |= EPS;
+	}
 
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
 	quot = uart_get_divisor(port, baud);
@@ -606,8 +632,7 @@ bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 	UART_PUT_LCR(uart, val);
 	__builtin_bfin_ssync();
 
-	val = WLS(8);
-	UART_PUT_LCR(uart, val);
+	UART_PUT_LCR(uart, lcr);
 
 	/* Enable UART */
 	UART_PUT_IER(uart, ier);
