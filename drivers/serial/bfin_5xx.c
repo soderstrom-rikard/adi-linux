@@ -53,9 +53,10 @@
 #include <asm/cacheflush.h>
 #endif
 
-/* We've been assigned a range on the "Low-density serial ports" major */
-#define SERIAL_BFIN_MAJOR	TTY_MAJOR
-#define MINOR_START		64
+/* UART name and device definitions */
+#define BFIN_SERIAL_NAME	"ttyBF"
+#define BFIN_SERIAL_MAJOR	204
+#define BFIN_SERIAL_MINOR	64
 
 /*
  * Setup for console. Argument comes from the menuconfig
@@ -841,7 +842,7 @@ bfin_serial_console_setup(struct console *co, char *options)
 
 static struct uart_driver bfin_serial_reg;
 static struct console bfin_serial_console = {
-	.name		= "ttyS",
+	.name		= BFIN_SERIAL_NAME,
 	.write		= bfin_serial_console_write,
 	.device		= uart_console_device,
 	.setup		= bfin_serial_console_setup,
@@ -866,9 +867,9 @@ console_initcall(bfin_serial_rs_console_init);
 static struct uart_driver bfin_serial_reg = {
 	.owner			= THIS_MODULE,
 	.driver_name		= "bfin-uart",
-	.dev_name		= "ttyS",
-	.major			= SERIAL_BFIN_MAJOR,
-	.minor			= MINOR_START,
+	.dev_name		= BFIN_SERIAL_NAME,
+	.major			= BFIN_SERIAL_MAJOR,
+	.minor			= BFIN_SERIAL_MINOR,
 	.nr			= NR_PORTS,
 	.cons			= BFIN_SERIAL_CONSOLE,
 };
@@ -973,4 +974,4 @@ module_exit(bfin_serial_exit);
 MODULE_AUTHOR("Aubrey.Li <aubrey.li@analog.com>");
 MODULE_DESCRIPTION("Blackfin generic serial port driver");
 MODULE_LICENSE("GPL");
-MODULE_ALIAS_CHARDEV_MAJOR(SERIAL_BFIN_MAJOR);
+MODULE_ALIAS_CHARDEV_MAJOR(BFIN_SERIAL_MAJOR);
