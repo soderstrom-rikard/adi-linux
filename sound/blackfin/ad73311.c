@@ -559,10 +559,6 @@ static int __devinit snd_ad73311_probe(struct platform_device *pdev)
 	if (device != NULL)
 		return -ENOENT;
 
-	if ((err = snd_ad73311_configure()) < 0)
-		return -EFAULT;
-
-
 	if(gpio_request(GPIO_SE, NULL)){
 		printk(KERN_ERR "%s: Failed ro request GPIO_%d\n",__FUNCTION__, GPIO_SE);
 		return -EBUSY;
@@ -570,6 +566,9 @@ static int __devinit snd_ad73311_probe(struct platform_device *pdev)
 
 	gpio_direction_output(GPIO_SE);
 	gpio_set_value(GPIO_SE, 0);
+
+	if ((err = snd_ad73311_configure()) < 0)
+		return -EFAULT;
 
 	card = snd_card_new(-1, NULL, THIS_MODULE, sizeof(struct snd_ad73311));
 	if (card == NULL)
