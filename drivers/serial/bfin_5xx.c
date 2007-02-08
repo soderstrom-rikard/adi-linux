@@ -607,6 +607,10 @@ bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 			lcr |= EPS;
 	}
 
+	/* These controls are not implemented for this port */
+	termios->c_iflag |= INPCK | BRKINT | PARMRK;
+	termios->c_iflag &= ~(IGNPAR | IGNBRK);
+
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
 	quot = uart_get_divisor(port, baud);
 	spin_lock_irqsave(&uart->port.lock, flags);
