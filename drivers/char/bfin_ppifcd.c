@@ -505,7 +505,7 @@ static int ppi_open(struct inode *inode, struct file *filp)
 		set_dma_callback(CH_PPI, (void *)ppifcd_irq,
 				 filp->private_data);
 
-	request_irq(IRQ_PPI_ERROR, (void *)ppifcd_irq_error, SA_INTERRUPT,
+	request_irq(IRQ_PPI_ERROR, (void *)ppifcd_irq_error, IRQF_DISABLED,
 		    "PPI ERROR", filp->private_data);
 
 #if (defined(CONFIG_BF537) || defined(CONFIG_BF534) || defined(CONFIG_BF536))

@@ -438,12 +438,12 @@ static int sport_open(struct inode *inode, struct file *filp)
 	dev->tx_sent = 0;
 	dev->wait_con = 0;
 
-	if (request_irq(dev->tx_irq, sport_tx_handler, SA_SHIRQ, "sport_tx", dev) < 0) {
+	if (request_irq(dev->tx_irq, sport_tx_handler, IRQF_SHARED, "sport_tx", dev) < 0) {
 		printk(KERN_ERR "Unable to request sport tx irq\n");
 		goto fail;
 	}
 
-	if (request_irq(dev->rx_irq, sport_rx_handler, SA_SHIRQ, "sport_rx", dev) < 0) {
+	if (request_irq(dev->rx_irq, sport_rx_handler, IRQF_SHARED, "sport_rx", dev) < 0) {
 		printk(KERN_ERR "Unable to request sport rx irq\n");
 		goto fail;
 	}

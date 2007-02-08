@@ -152,7 +152,7 @@ static int timer_open(struct inode *inode, struct file *filp){
 	if(!sysclk)
 	  sysclk = get_sclk();
 	if (minor >= MAX_BLACKFIN_GPTIMERS) return -ENODEV;
-	err = request_irq(timer_code[minor].irq, (void*)timer_isr, SA_INTERRUPT, DRV_NAME, (void*)minor);
+	err = request_irq(timer_code[minor].irq, (void*)timer_isr, IRQF_DISABLED, DRV_NAME, (void*)minor);
 	if (err < 0){
 		printk(KERN_ERR "request_irq(%d) failed\n", timer_code[minor].irq);
 		return err;

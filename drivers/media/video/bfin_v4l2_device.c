@@ -151,12 +151,12 @@ init_device_bfin_v4l2(void)
  * of the MEM DMA channels, each dedicated to even
  * and odd fields respectively.
  */
-        if( request_irq(IRQ_MEM_DMA0, &bfin_v4l2_memdma0_interrupt_handler, SA_SHIRQ, "PPI Data", &id2) ){
+        if( request_irq(IRQ_MEM_DMA0, &bfin_v4l2_memdma0_interrupt_handler, IRQF_SHARED, "PPI Data", &id2) ){
                 printk( KERN_ERR "Unable to allocate mem dma IRQ %d\n", IRQ_MEM_DMA0);
                 return -ENODEV;
         }
 
-        if( request_irq(IRQ_MEM_DMA1, &bfin_v4l2_memdma1_interrupt_handler, SA_SHIRQ, "PPI Data", &id2) ){
+        if( request_irq(IRQ_MEM_DMA1, &bfin_v4l2_memdma1_interrupt_handler, IRQF_SHARED, "PPI Data", &id2) ){
                 printk( KERN_ERR "Unable to allocate mem dma IRQ %d\n", IRQ_MEM_DMA1);
                 return -ENODEV;
         }
@@ -167,7 +167,7 @@ init_device_bfin_v4l2(void)
  * to use our own PPI interrupt
  * handler
  */
-        if( request_irq(CONFIG_VIDEO_BLACKFIN_PPI_IRQ, &ppi_handler, SA_SHIRQ, "PPI Data", &id2 ) ){
+        if( request_irq(CONFIG_VIDEO_BLACKFIN_PPI_IRQ, &ppi_handler, IRQF_SHARED, "PPI Data", &id2 ) ){
                 printk( KERN_ERR "Unable to allocate ppi IRQ %d\n", CONFIG_VIDEO_BLACKFIN_PPI_IRQ);
 //		freedma(CH_PPI);
                 return -ENODEV;

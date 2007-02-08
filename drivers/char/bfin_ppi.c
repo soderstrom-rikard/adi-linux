@@ -1176,7 +1176,7 @@ static int ppi_open(struct inode *inode, struct file *filp)
 	} else
 		set_dma_callback(CH_PPI, (void *)ppi_irq, filp->private_data);
 
-	if (request_irq(IRQ_PPI_ERROR, (void *)ppi_irq_error, SA_INTERRUPT,
+	if (request_irq(IRQ_PPI_ERROR, (void *)ppi_irq_error, IRQF_DISABLED,
 			"PPI ERROR", NULL) < 0) {
 		panic("Unable to attach BlackFin PPI Error Interrupt\n");
 		return -EFAULT;

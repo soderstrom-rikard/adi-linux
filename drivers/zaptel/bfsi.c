@@ -730,7 +730,7 @@ static int init_sport_interrupts(void)
 	//unsigned int data32;
 	
   	if(request_irq(IRQ_SPORT0_RX, sport0_rx_isr, 
-		       SA_INTERRUPT, "sport0 rx", NULL) != 0) {
+		       IRQF_DISABLED, "sport0 rx", NULL) != 0) {
     		return -EBUSY;
 	}
 	if (bfsi_debug) {

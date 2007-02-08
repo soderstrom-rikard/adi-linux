@@ -161,7 +161,7 @@ static int __init timer_latency_init(void)
 	timer_latency_file->write_proc = &write_timer_latency;
 	timer_latency_file->owner = THIS_MODULE;
 
-	request_irq(IRQ_WATCH, timer_latency_irq, SA_INTERRUPT, "timer_latency", &timer_latency_data);
+	request_irq(IRQ_WATCH, timer_latency_irq, IRQF_DISABLED, "timer_latency", &timer_latency_data);
 
 	printk(KERN_INFO "timer_latency module loaded\n");
 

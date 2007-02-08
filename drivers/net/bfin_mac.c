@@ -889,7 +889,7 @@ static int __init bf537mac_probe(struct net_device *dev)
 	/* now, enable interrupts */
 	/* register irq handler */
 	if (request_irq
-	    (IRQ_MAC_RX, bf537mac_interrupt, SA_INTERRUPT | SA_SHIRQ,
+	    (IRQ_MAC_RX, bf537mac_interrupt, IRQF_DISABLED | IRQF_SHARED,
 	     "BFIN537_MAC_RX", dev)) {
 		printk(KERN_WARNING CARDNAME
 		       ": Unable to attach BlackFin MAC RX interrupt\n");

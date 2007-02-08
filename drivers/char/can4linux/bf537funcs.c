@@ -773,12 +773,12 @@ int err=0;
 
 
     /* we don't need to share the Interrupt with any other driver
-     * request_irq doeas not need the SA_SHIRQ flag */
-    err = request_irq(irq, handler, SA_INTERRUPT, \
+     * request_irq doeas not need the IRQF_SHARED flag */
+    err = request_irq(irq, handler, IRQF_DISABLED, \
     					"Can-RX", &Can_minors[minor]);
-    err = request_irq(irq + 1, handler, SA_INTERRUPT, \
+    err = request_irq(irq + 1, handler, IRQF_DISABLED, \
     					"Can-TX", &Can_minors[minor]);
-    err = request_irq(IRQ_CAN_ERROR, handler, SA_INTERRUPT, \
+    err = request_irq(IRQ_CAN_ERROR, handler, IRQF_DISABLED, \
     					"Can-Err", &Can_minors[minor]);
     if( !err ) {
 	/* printk("Requested IRQ[%d]: %d @ 0x%x", minor, irq, handler); */
