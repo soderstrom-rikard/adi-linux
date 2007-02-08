@@ -873,7 +873,7 @@ struct bf53x_sport *bf53x_sport_init(int sport_num,
 		goto __init_err3;
 	}
 
-	if (request_irq(err_irq, err_handler, SA_SHIRQ, "SPORT error",
+	if (request_irq(err_irq, err_handler, IRQF_SHARED, "SPORT error",
 			sport) < 0) {
 		printk(KERN_ERR "Failed to request err irq:%d\n", err_irq);
 		goto __init_err3;
