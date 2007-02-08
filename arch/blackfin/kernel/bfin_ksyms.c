@@ -75,6 +75,8 @@ EXPORT_SYMBOL(get_wchan);
  */
 extern void __ashldi3(void);
 extern void __ashrdi3(void);
+extern void __smulsi3_highpart(void);
+extern void __umulsi3_highpart(void);
 extern void __divsi3(void);
 extern void __lshrdi3(void);
 extern void __modsi3(void);
@@ -85,6 +87,8 @@ extern void __umodsi3(void);
 /* gcc lib functions */
 EXPORT_SYMBOL(__ashldi3);
 EXPORT_SYMBOL(__ashrdi3);
+EXPORT_SYMBOL(__umulsi3_highpart);
+EXPORT_SYMBOL(__smulsi3_highpart);
 EXPORT_SYMBOL(__divsi3);
 EXPORT_SYMBOL(__lshrdi3);
 EXPORT_SYMBOL(__modsi3);
