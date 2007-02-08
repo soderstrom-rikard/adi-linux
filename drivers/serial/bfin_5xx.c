@@ -153,7 +153,7 @@ static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
 {
 	struct tty_struct *tty = uart->port.info?uart->port.info->tty:0;
 	unsigned int status, ch, flg;
-#if defined(CONFIG_BF531) || defined(CONFIG_BF532) || defined(CONFIG_BF533)
+#ifdef BF533_FAMILY
 	static int in_break = 0;
 #endif
 
@@ -161,7 +161,13 @@ static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
  	ch = UART_GET_CHAR(uart);
  	uart->port.icount.rx++;
 
-#if defined(CONFIG_BF531) || defined(CONFIG_BF532) || defined(CONFIG_BF533)
+#ifdef BF533_FAMILY
+	/* The BF533 family of processors have a nice misbehavior where
+	 * they continuously generate characters for a "single" break.
+	 * We have to basically ignore this flood until the "next" valid
+	 * character comes across.  All other Blackfin families operate
+	 * properly though.
+	 */
 	if (in_break) {
 		if (ch != 0) {
 			in_break = 0;
@@ -172,7 +178,7 @@ static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
 #endif
 
 	if (status & BI) {
-#if defined(CONFIG_BF531) || defined(CONFIG_BF532) || defined(CONFIG_BF533)
+#ifdef BF533_FAMILY
 		in_break = 1;
 #endif
 		uart->port.icount.brk++;
