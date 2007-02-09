@@ -544,15 +544,15 @@ static int bfin_serial_startup(struct uart_port *port)
 	add_timer(&(uart->rx_dma_timer));
 #else
 	if (request_irq
-	    (uart->port.irq, bfin_serial_int, IRQF_DISABLED | IRQF_SHARED,
-	     "BFIN_UART0_RX", uart)) {
+	    (uart->port.irq, bfin_serial_int, IRQF_DISABLED,
+	     "BFIN_UART_RX", uart)) {
 		printk(KERN_NOTICE "Unable to attach BlackFin UART RX interrupt\n");
 		return -EBUSY;
 	}
 
 	if (request_irq
-	    (uart->port.irq+1, bfin_serial_int, IRQF_DISABLED | IRQF_SHARED,
-	     "BFIN_UART0_TX", uart)) {
+	    (uart->port.irq+1, bfin_serial_int, IRQF_DISABLED,
+	     "BFIN_UART_TX", uart)) {
 		printk(KERN_NOTICE "Unable to attach BlackFin UART TX interrupt\n");
 		free_irq(uart->port.irq, uart);
 		return -EBUSY;
