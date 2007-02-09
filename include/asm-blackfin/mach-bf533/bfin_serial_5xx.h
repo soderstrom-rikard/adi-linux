@@ -40,7 +40,7 @@
 # ifndef CONFIG_UART0_RTS_PIN
 #  define CONFIG_UART0_RTS_PIN -1
 # endif
-endif
+#endif
 
 struct bfin_serial_port {
         struct uart_port        port;
