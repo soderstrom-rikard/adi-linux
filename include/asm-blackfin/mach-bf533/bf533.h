@@ -32,8 +32,6 @@
 #ifndef __MACH_BF533_H__
 #define __MACH_BF533_H__
 
-#include <linux/config.h>
-
 #define SUPPORTED_DSPID 2
 
 #define OFFSET_(x) ((x) & 0x0000FFFF)

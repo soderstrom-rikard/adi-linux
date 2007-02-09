@@ -38,8 +38,6 @@
   recovery time (MSCx = 0x7f8c) with a memory clock of 99.53 MHz.
 */
 
-#include <linux/config.h>
-
 #ifdef CONFIG_USB_DEBUG
  #define DEBUG
 #else

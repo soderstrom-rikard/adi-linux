@@ -32,7 +32,6 @@
 #include <linux/init.h>
 #include <linux/ide.h>
 #include <linux/irq.h>
-#include <linux/config.h>
 
 #include <asm/io.h>
 #include <asm/irq.h>

@@ -52,7 +52,6 @@
 #include <linux/string.h>
 #include <linux/slab.h>
 #include <linux/errno.h>
-#include <linux/config.h>
 #include <asm/blackfin.h>
 #include <asm/dma.h>
 #include <linux/dma-mapping.h>

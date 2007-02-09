@@ -32,8 +32,6 @@
 #ifndef __MACH_BF537_H__
 #define __MACH_BF537_H__
 
-#include <linux/config.h>
-
 #define SUPPORTED_DSPID 2
 
 /* Masks for generic ERROR IRQ demultiplexing used in int-priority-sc.c */
