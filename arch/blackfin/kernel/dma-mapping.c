@@ -75,7 +75,7 @@ static unsigned long __alloc_dma_pages(unsigned int pages)
 	int i, count = 0;
 
 	if (dma_initialized == 0)
-		dma_alloc_init(memory_mtd_end, _ramend);
+		dma_alloc_init(_ramend - DMA_UNCACHED_REGION, _ramend);
 
 	spin_lock_irqsave(&dma_page_lock, flags);
 

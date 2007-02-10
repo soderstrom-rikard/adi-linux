@@ -52,23 +52,21 @@ struct consw fb_con;
 #endif
 #endif
 
-unsigned long memory_start;
-unsigned long memory_end;
-unsigned long memory_mtd_end;
-unsigned long memory_mtd_start;
-unsigned long _ebss;
-unsigned long mtd_phys, mtd_size;
-unsigned long physical_mem_end;
+unsigned long memory_start, memory_end, physical_mem_end;
 unsigned long reserved_mem_dcache_on;
 unsigned long reserved_mem_icache_on;
-
 EXPORT_SYMBOL(memory_start);
 EXPORT_SYMBOL(memory_end);
 EXPORT_SYMBOL(physical_mem_end);
-EXPORT_SYMBOL(memory_mtd_end);
 EXPORT_SYMBOL(_ramend);
+
+#ifdef CONFIG_MTD_UCLINUX
+unsigned long memory_mtd_end, memory_mtd_start, mtd_size;
+unsigned long _ebss;
+EXPORT_SYMBOL(memory_mtd_end);
 EXPORT_SYMBOL(memory_mtd_start);
 EXPORT_SYMBOL(mtd_size);
+#endif
 
 char command_line[COMMAND_LINE_SIZE];
 
@@ -197,7 +195,10 @@ static __init void parse_cmdline_early(char *cmdline_p)
 void __init setup_arch(char **cmdline_p)
 {
 	int bootmap_size, id;
-	unsigned long l1_length,sclk,cclk;
+	unsigned long l1_length, sclk, cclk;
+#ifdef CONFIG_MTD_UCLINUX
+	unsigned long mtd_phys = 0;
+#endif
 
 	cclk = get_cclk();
 	sclk = get_sclk();
@@ -218,12 +219,14 @@ void __init setup_arch(char **cmdline_p)
 	 */
 	flash_probe();
 #endif
+
 #if defined(CONFIG_BOOTPARAM)
 	memset(command_line, 0, sizeof(command_line));
 	strncpy(&command_line[0], CONFIG_BOOTPARAM_STRING,
 		sizeof(command_line));
 	command_line[sizeof(command_line) - 1] = 0;
 #endif
+
 	/* Keep a copy of command line */
 	*cmdline_p = &command_line[0];
 	memcpy(saved_command_line, command_line, COMMAND_LINE_SIZE);
@@ -241,11 +244,14 @@ void __init setup_arch(char **cmdline_p)
 	/* by now the stack is part of the init task */
 	memory_end = _ramend - DMA_UNCACHED_REGION;
 
-	memory_mtd_end = memory_end;
+	_ramstart = (unsigned long)__bss_stop;
+	memory_start = PAGE_ALIGN(_ramstart);
 
 #if defined(CONFIG_MTD_UCLINUX)
 	/* generic memory mapped MTD driver */
-	mtd_phys = (unsigned long)__bss_stop;
+	memory_mtd_end = memory_end;
+
+	mtd_phys = _ramstart;
 	mtd_size = PAGE_ALIGN(*((unsigned long *)(mtd_phys + 8)));
 
 # if defined(CONFIG_EXT2_FS) || defined(CONFIG_EXT3_FS)
@@ -284,12 +290,9 @@ void __init setup_arch(char **cmdline_p)
 	/* Relocate MTD image to the top of memory after the uncached memory area */
 	dma_memcpy((char *)memory_end, __bss_stop, mtd_size);
 
-	_ramstart = mtd_phys;
-#endif				/* CONFIG_MTD_UCLINUX */
-
 	memory_mtd_start = memory_end;
 	_ebss = memory_mtd_start;	/* define _ebss for compatible */
-	memory_start = PAGE_ALIGN(_ramstart);
+#endif				/* CONFIG_MTD_UCLINUX */
 
 #if (defined(CONFIG_BLKFIN_CACHE) && defined(ANOMALY_05000263))
 	/* Due to a Hardware Anomaly we need to limit the size of usable
@@ -348,7 +351,9 @@ void __init setup_arch(char **cmdline_p)
 	       KERN_INFO "  stack     = 0x%p-0x%p\n"
 	       KERN_INFO "  bss       = 0x%p-0x%p\n"
 	       KERN_INFO "  available = 0x%p-0x%p\n"
+#ifdef CONFIG_MTD_UCLINUX
 	       KERN_INFO "  rootfs    = 0x%p-0x%p\n"
+#endif
 #if DMA_UNCACHED_REGION > 0
 	       KERN_INFO "  DMA Zone  = 0x%p-0x%p\n"
 #endif
@@ -357,8 +362,10 @@ void __init setup_arch(char **cmdline_p)
 	       _sdata, _edata,
 	       (void*)&init_thread_union, (void*)((int)(&init_thread_union) + 0x2000),
 	       __bss_start, __bss_stop,
-	       (void*)_ramstart, (void*)memory_end,
-	       (void*)memory_mtd_start, (void*)(memory_mtd_start + mtd_size)
+	       (void*)_ramstart, (void*)memory_end
+#ifdef CONFIG_MTD_UCLINUX
+	       , (void*)memory_mtd_start, (void*)(memory_mtd_start + mtd_size)
+#endif
 #if DMA_UNCACHED_REGION > 0
 	       , (void*)(_ramend - DMA_UNCACHED_REGION), (void*)(_ramend)
 #endif
@@ -525,12 +532,15 @@ static void __init generate_cpl_tables(void)
 
 	cplb_data[SDRAM_KERN].end = memory_end;
 
+#ifdef CONFIG_MTD_UCLINUX
 	cplb_data[SDRAM_RAM_MTD].start = memory_mtd_start;
 	cplb_data[SDRAM_RAM_MTD].end = memory_mtd_start + mtd_size;
 	cplb_data[SDRAM_RAM_MTD].valid = mtd_size > 0;
-
-#if defined(CONFIG_ROMFS_FS)
+# if defined(CONFIG_ROMFS_FS)
 	cplb_data[SDRAM_RAM_MTD].attr |= I_CPLB;
+# endif
+#else
+	cplb_data[SDRAM_RAM_MTD].valid = 0;
 #endif
 
 	cplb_data[SDRAM_DMAZ].start = _ramend - DMA_UNCACHED_REGION;
@@ -555,26 +565,24 @@ static void __init generate_cpl_tables(void)
 
 			as_1m = cplb_data[i].start % SIZE_1M;
 
-		/* We need to make sure all sections are properly 1M aligned
-		However between Kernel Memory and the Kernel mtd section, depending on the
-		rootfs size, there can be overlapping memory areas. */    
-	
-			if(as_1m){
+			/* We need to make sure all sections are properly 1M aligned
+			 * However between Kernel Memory and the Kernel mtd section, depending on the
+			 * rootfs size, there can be overlapping memory areas.
+			 */
+
+			if (as_1m) {
+#ifdef CONFIG_MTD_UCLINUX
 				if (i == SDRAM_RAM_MTD) {
-				  if((cplb_data[SDRAM_KERN].end + 1) > cplb_data[SDRAM_RAM_MTD].start) {
-  				  cplb_data[SDRAM_RAM_MTD].start = (cplb_data[i].start 
-  					& (-2*SIZE_1M)) + SIZE_1M;
-					} else {
-  				  cplb_data[SDRAM_RAM_MTD].start = (cplb_data[i].start 
-  					& (-2*SIZE_1M));						
-					}	
-					
-				} else {
-				  printk(KERN_WARNING "Unaligned Start of %s at 0x%X\n",
-						cplb_data[i].name, cplb_data[i].start);
-			  }
+					if ((cplb_data[SDRAM_KERN].end + 1) > cplb_data[SDRAM_RAM_MTD].start)
+						cplb_data[SDRAM_RAM_MTD].start = (cplb_data[i].start & (-2*SIZE_1M)) + SIZE_1M;
+					else
+						cplb_data[SDRAM_RAM_MTD].start = (cplb_data[i].start & (-2*SIZE_1M));
+				} else
+#endif
+					printk(KERN_WARNING "Unaligned Start of %s at 0x%X\n",
+					       cplb_data[i].name, cplb_data[i].start);
 			}
-			
+
 			as = cplb_data[i].start % SIZE_4M;
 			ae = cplb_data[i].end % SIZE_4M;
 
@@ -592,17 +600,17 @@ static void __init generate_cpl_tables(void)
 					if (cplb_data[i].attr & INITIAL_T) {
 						t_i = &cplb.init_i;
 						t_d = &cplb.init_d;
-						process = 1;					
+						process = 1;
 					} else
-						process = 0;						
+						process = 0;
 					break;
 				case SWITCH_T:
 					if (cplb_data[i].attr & SWITCH_T) {
 						t_i = &cplb.switch_i;
 						t_d = &cplb.switch_d;
-						process = 1;					
+						process = 1;
 					} else
-						process = 0;	
+						process = 0;
 					break;
 				default:
 						process = 0;

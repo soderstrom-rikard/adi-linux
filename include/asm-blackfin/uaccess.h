@@ -14,6 +14,9 @@
 #include <linux/string.h>
 
 #include <asm/segment.h>
+#ifndef CONFIG_NO_ACCESS_CHECK
+# include <asm/bfin-global.h>
+#endif
 
 #define get_ds()        (KERNEL_DS)
 #define get_fs()        (current_thread_info()->addr_limit)
@@ -43,15 +46,19 @@ static inline int _access_ok(unsigned long addr, unsigned long size)
 #ifdef CONFIG_NO_ACCESS_CHECK
 	return 1;
 #else
-	extern unsigned long memory_end, physical_mem_end;
 	if (addr > (addr + size))
 		return 0;
 	if (segment_eq(get_fs(),KERNEL_DS))
 		return 1;
+#ifdef CONFIG_MTD_UCLINUX
 	if (addr >= memory_start && (addr + size) <= memory_end)
 		return 1;
 	if (addr >= memory_mtd_end && (addr + size) <= physical_mem_end)
 		return 1;
+#else
+	if (addr >= memory_start && (addr + size) <= physical_mem_end)
+		return 1;
+#endif
 	if (addr >= (unsigned long)__init_begin &&
 	    addr + size <= (unsigned long)__init_end)
 		return 1;

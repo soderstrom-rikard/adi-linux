@@ -41,8 +41,6 @@
 # include <linux/kgdb.h>
 #endif
 
-extern unsigned long memory_end, physical_mem_end;
-
 /* assembler routines */
 asmlinkage void evt_system_call(void);
 asmlinkage void evt_soft_int1(void);

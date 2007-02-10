@@ -151,9 +151,8 @@ void mem_init(void)
 
 	tmp = nr_free_pages() << PAGE_SHIFT;
 	printk(KERN_INFO
-	     "Memory available: %luk/%uk RAM, (%uk init code, %uk kernel code, %uk data, %luk dma)\n",
-	     tmp >> 10, len >> 10, initk, codek, datak,
-	     (_ramend - (memory_mtd_start + mtd_size)) >> 10);
+	     "Memory available: %luk/%uk RAM, (%uk init code, %uk kernel code, %uk data, %uk dma)\n",
+	     tmp >> 10, len >> 10, initk, codek, datak, DMA_UNCACHED_REGION >> 10);
 
 	/* Initialize the blackfin L1 Memory. */
 	l1sram_init();

@@ -93,10 +93,6 @@ extern void led_toggle_num(int);
 
 extern char *bfin_board_name __attribute__ ((weak));
 extern unsigned long wall_jiffies;
-extern unsigned long memory_end;
-extern unsigned long memory_mtd_end;
-extern unsigned long memory_mtd_start;
-extern unsigned long mtd_size;
 extern unsigned long ipdt_table[];
 extern unsigned long dpdt_table[];
 extern unsigned long icplb_table[];
@@ -110,10 +106,13 @@ extern unsigned long table_start, table_end;
 extern struct file_operations dpmc_fops;
 extern char _start;
 extern unsigned long _ramstart, _ramend, _rambase;
-extern unsigned long memory_start, memory_end;
-extern unsigned long memory_mtd_end;
+extern unsigned long memory_start, memory_end, physical_mem_end;
 extern char _stext_l1[], _etext_l1[], _sdata_l1[], _edata_l1[], _sbss_l1[],
     _ebss_l1[], _l1_lma_start[];
+
+#ifdef CONFIG_MTD_UCLINUX
+extern unsigned long memory_mtd_start, memory_mtd_end, mtd_size;
+#endif
 
 #endif
 
