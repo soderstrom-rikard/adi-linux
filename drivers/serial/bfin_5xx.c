@@ -142,9 +142,10 @@ static void local_put_char(struct bfin_serial_port *uart, char ch)
 
 	do {
 		status = UART_GET_LSR(uart);
-	} while (!(status & THRE));
+	} while (!(status & TEMT));
 
 	UART_PUT_CHAR(uart, ch);
+	SSYNC();
 
 	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
@@ -434,7 +435,7 @@ static unsigned int bfin_serial_tx_empty(struct uart_port *port)
 	unsigned short lsr;
 
 	lsr = UART_GET_LSR(uart);
-	if (lsr & THRE)
+	if (lsr & TEMT)
 		return TIOCSER_TEMT;
 	else
 		return 0;
@@ -585,7 +586,7 @@ bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 	unsigned long flags;
 	unsigned int baud, quot;
-	unsigned short val, ier, lcr = 0;
+	unsigned short val, ier, lsr, lcr = 0;
 
 	switch (termios->c_cflag & CSIZE) {
 	case CS8:
@@ -620,6 +621,10 @@ bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
 	quot = uart_get_divisor(port, baud);
 	spin_lock_irqsave(&uart->port.lock, flags);
+
+	do {
+                lsr = UART_GET_LSR(uart);
+        } while (!(lsr & TEMT));
 
 	/* Disable UART */
 	ier = UART_GET_IER(uart);
@@ -769,6 +774,7 @@ static void bfin_serial_console_putchar(struct uart_port *port, int ch)
 	while (!(UART_GET_LSR(uart)))
 		barrier();
 	UART_PUT_CHAR(uart, ch);
+	SSYNC();
 }
 
 /*
