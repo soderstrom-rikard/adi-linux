@@ -84,7 +84,7 @@ static void bfin_serial_stop_tx(struct uart_port *port)
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 
 #ifdef CONFIG_SERIAL_BFIN_DMA
-        disable_dma(uart->tx_dma_channel);
+	disable_dma(uart->tx_dma_channel);
 #else
 	unsigned short ier;
 
@@ -327,22 +327,22 @@ static void bfin_serial_dma_rx_chars(struct bfin_serial_port * uart)
 	status = UART_GET_LSR(uart);
 	uart->port.icount.rx += CIRC_CNT(uart->rx_dma_buf.head, uart->rx_dma_buf.tail, UART_XMIT_SIZE);;
 
-        if (status & BI) {
-                uart->port.icount.brk++;
-                if (uart_handle_break(&uart->port))
-                        goto dma_ignore_char;
-                flg = TTY_BREAK;
-        } else if (status & PE) {
-                flg = TTY_PARITY;
-                uart->port.icount.parity++;
-        } else if (status & OE) {
-                flg = TTY_OVERRUN;
-                uart->port.icount.overrun++;
-        } else if (status & FE) {
-                flg = TTY_FRAME;
-                uart->port.icount.frame++;
-        } else
-                flg = TTY_NORMAL;
+	if (status & BI) {
+		uart->port.icount.brk++;
+		if (uart_handle_break(&uart->port))
+			goto dma_ignore_char;
+		flg = TTY_BREAK;
+	} else if (status & PE) {
+		flg = TTY_PARITY;
+		uart->port.icount.parity++;
+	} else if (status & OE) {
+		flg = TTY_OVERRUN;
+		uart->port.icount.overrun++;
+	} else if (status & FE) {
+		flg = TTY_FRAME;
+		uart->port.icount.frame++;
+	} else
+		flg = TTY_NORMAL;
 
 	for (i = uart->rx_dma_buf.head; i < uart->rx_dma_buf.tail; i++) {
 		if (uart_handle_sysrq_char(&uart->port, uart->rx_dma_buf.buf[i]))
@@ -623,8 +623,8 @@ bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 	spin_lock_irqsave(&uart->port.lock, flags);
 
 	do {
-                lsr = UART_GET_LSR(uart);
-        } while (!(lsr & TEMT));
+		lsr = UART_GET_LSR(uart);
+	} while (!(lsr & TEMT));
 
 	/* Disable UART */
 	ier = UART_GET_IER(uart);
