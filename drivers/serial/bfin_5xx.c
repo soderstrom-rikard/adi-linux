@@ -142,7 +142,7 @@ static void local_put_char(struct bfin_serial_port *uart, char ch)
 
 	do {
 		status = UART_GET_LSR(uart);
-	} while (!(status & TEMT));
+	} while (!(status & THRE));
 
 	UART_PUT_CHAR(uart, ch);
 	SSYNC();
