@@ -121,7 +121,7 @@ static void bfin_serial_stop_rx(struct uart_port *port)
 	unsigned short ier;
 
 	ier = UART_GET_IER(uart);
-	ier &= ERBFI;
+	ier &= ~ERBFI;
 	UART_PUT_IER(uart, ier);
 }
 
