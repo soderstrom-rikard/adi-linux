@@ -1010,7 +1010,7 @@ ENTRY(_sys_call_table)
 	.long _sys_getcwd
 	.long _sys_capget
 	.long _sys_capset	/* 185 */
-	.long _sys_ni_syscall	/* old sys_sigaltstack */
+	.long _sys_sigaltstack
 	.long _sys_sendfile
 	.long _sys_ni_syscall	/* streams1 */
 	.long _sys_ni_syscall	/* streams2 */

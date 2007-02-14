@@ -188,7 +188,7 @@
 #define __NR_getcwd		183
 #define __NR_capget		184
 #define __NR_capset		185
-				/* 186 __NR_sigaltstack obsolete */
+#define __NR_sigaltstack	186
 #define __NR_sendfile		187
 				/* 188 __NR_getpmsg */
 				/* 189 __NR_putpmsg */
