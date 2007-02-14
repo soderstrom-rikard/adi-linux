@@ -65,6 +65,11 @@ struct rt_sigframe {
 	struct ucontext uc;
 };
 
+asmlinkage int sys_sigaltstack(const stack_t * uss, stack_t * uoss)
+{
+	return do_sigaltstack(uss, uoss, rdusp());
+}
+
 static inline int
 rt_restore_ucontext(struct pt_regs *regs, struct ucontext *uc, int *pr0)
 {
