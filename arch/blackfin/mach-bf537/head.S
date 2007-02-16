@@ -240,7 +240,6 @@ ENTRY(__stext)
 	r0 = AMGCTLVAL;
 	w[p2] = r0;
 	ssync;
-	call _real_start;
 
 	/* This section keeps the processor in supervisor mode
 	 * during kernel boot.  Switches to user mode at end of boot.
