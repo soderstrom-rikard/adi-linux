@@ -21,6 +21,10 @@ config RWSEM_XCHGADD_ALGORITHM
 	bool
 	default n
 
+config BLACKFIN
+	bool
+	default y
+
 config BFIN
 	bool
 	default y
@@ -140,21 +144,14 @@ config BF_REV_0_5
 
 endchoice
 
-config BLACKFIN
+config BFIN_DUAL_CORE
 	bool
-	depends on (BF537 || BF536 \
-		|| BF534 || BF561 || BF535 || BF533 || BF532 || BF531)
+	depends on (BF561)
 	default y
 
 config BFIN_SINGLE_CORE
 	bool
-	depends on (BF537 || BF536 \
-		|| BF534 || BF535 || BF533 || BF532 || BF531)
-	default y
-
-config BFIN_DUAL_CORE
-	bool
-	depends on (BF561)
+	depends on !BFIN_DUAL_CORE
 	default y
 
 choice
