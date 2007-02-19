@@ -46,7 +46,13 @@
 
 .global   ___divsi3;
 
-.align 8;
+#ifdef CONFIG_ARITHMETIC_OPS_L1
+.section .l1.text
+#else
+.text
+#endif
+
+.align 2;
 ___divsi3 :
 
 

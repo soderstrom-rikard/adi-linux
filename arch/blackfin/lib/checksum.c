@@ -34,6 +34,10 @@
 #include <net/checksum.h>
 #include <asm/checksum.h>
 
+#ifdef CONFIG_IP_CHECKSUM_L1
+static unsigned short do_csum(const unsigned char *buff, int len)__attribute__((l1_text));
+#endif
+
 static unsigned short do_csum(const unsigned char *buff, int len)
 {
 	register unsigned long sum = 0;

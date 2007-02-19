@@ -622,6 +622,10 @@ void dump_bfin_regs(struct pt_regs *fp, void *retaddr)
 	printk("\n\n");
 }
 
+#ifdef CONFIG_SYS_BFIN_SPINLOCK_L1
+asmlinkage int sys_bfin_spinlock(int *spinlock)__attribute__((l1_text));
+#endif
+
 asmlinkage int sys_bfin_spinlock(int *spinlock)
 {
 	int ret = 0;

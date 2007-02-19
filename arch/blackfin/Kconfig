@@ -427,10 +427,64 @@ comment "Memory Optimizations"
 
 config I_ENTRY_L1
 	bool "Locate interrupt entry code in L1 Memory"
-	default n
+	default y
 	help
 	  If enabled interrupt entry code (STORE/RESTORE CONTEXT) is linked
 	  into L1 instruction memory.(less latency)
+
+
+config EXCPT_IRQ_SYSC_L1
+	bool "Locate entire ASM lowlevel excepetion / interrupt - Syscall and CPLB handler code in L1 Memory"
+	default y
+	help
+	  If enabled entire ASM lowlevel exception and interrupt entry code (STORE/RESTORE CONTEXT) is linked
+	  into L1 instruction memory.(less latency)
+
+
+config DO_IRQ_L1
+	bool "Locate frequently called do_irq dispatcher function in L1 Memory"
+	default y
+	help
+	  If enabled frequently called do_irq dispatcher function is linked
+	  into L1 instruction memory.(less latency)
+
+
+config ARITHMETIC_OPS_L1
+	bool "Locate kernel owned arithmetic functions in L1 Memory"
+	default y
+	help
+	  If enabled arithmetic functions are linked
+	  into L1 instruction memory.(less latency)
+	  
+config ACCESS_OK_L1
+	bool "Locate access_ok function in L1 Memory"
+	default y
+	help
+	  If enabled access_ok function is linked
+	  into L1 instruction memory.(less latency)
+
+config MEMSET_L1
+	bool "Locate memset function in L1 Memory"
+	default y
+	help
+	  If enabled memset function is linked
+	  into L1 instruction memory.(less latency)
+
+config SYS_BFIN_SPINLOCK_L1
+	bool "Locate sys_bfin_spinlock function in L1 Memory"
+	default y
+	help
+	  If enabled sys_bfin_spinlock function is linked
+	  into L1 instruction memory.(less latency)
+	  
+config IP_CHECKSUM_L1
+	bool "Locate IP Checksum function in L1 Memory"
+	default n
+	help
+	  If enabled IP Checksum function is linked
+	  into L1 instruction memory.(less latency)
+
+
 
 endmenu
 

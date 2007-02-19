@@ -33,6 +33,13 @@
 
 #define CARRY AC0
 
+#ifdef CONFIG_ARITHMETIC_OPS_L1
+.section .l1.text
+#else
+.text
+#endif
+
+
 ENTRY(___udivsi3)
 
   CC = R0 < R1 (IU);    /* If X < Y, always return 0 */

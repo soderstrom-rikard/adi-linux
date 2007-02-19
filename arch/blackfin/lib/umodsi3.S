@@ -29,7 +29,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#ifdef CONFIG_ARITHMETIC_OPS_L1
+.section .l1.text
+#else
 .text
+#endif
+
 .extern ___udivsi3;
 .globl	___umodsi3
 ___umodsi3:

@@ -547,6 +547,10 @@ int __init init_arch_irq(void)
 	return 0;
 }
 
+#ifdef CONFIG_DO_IRQ_L1
+void do_irq(int vec, struct pt_regs *fp)__attribute__((l1_text));
+#endif
+
 void do_irq(int vec, struct pt_regs *fp)
 {
 	if (vec == EVT_IVTMR_P) {

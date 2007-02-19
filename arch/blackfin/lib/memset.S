@@ -33,6 +33,12 @@
 
 .align 2
 
+#ifdef CONFIG_MEMSET_L1
+.section .l1.text
+#else
+.text
+#endif
+
 /*
  * C Library function MEMSET
  * R0 = address (leave unchanged to form result)

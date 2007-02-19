@@ -55,7 +55,11 @@
 #include <asm/blackfin.h>
 #include <asm/cplb.h>
 
+#ifdef CONFIG_EXCPT_IRQ_SYSC_L1
+.section .l1.text
+#else
 .text
+#endif
 
 .align 2;
 ENTRY(_cplb_mgr)

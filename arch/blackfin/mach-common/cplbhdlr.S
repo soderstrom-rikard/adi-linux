@@ -33,7 +33,11 @@
 #include <asm/cplb.h>
 #include <asm/entry.h>
 
+#ifdef CONFIG_EXCPT_IRQ_SYSC_L1
+.section .l1.text
+#else
 .text
+#endif
 
 .type _cplb_mgr, STT_FUNC;
 .type _panic_cplb_error, STT_FUNC;

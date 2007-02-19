@@ -36,7 +36,11 @@
 
 #include <asm/mach-common/context.S>
 
+#ifdef CONFIG_EXCPT_IRQ_SYSC_L1
+.section .l1.text
+#else
 .text
+#endif
 
 ENTRY(_ret_from_fork)
 	SP += -12;

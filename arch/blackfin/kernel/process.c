@@ -347,11 +347,10 @@ unsigned long get_wchan(struct task_struct *p)
 	return 0;
 }
 
+#if !defined(CONFIG_NO_ACCESS_CHECK)
 int _access_ok(unsigned long addr, unsigned long size)
 {
-#ifdef CONFIG_NO_ACCESS_CHECK
-	return 1;
-#else
+
 	if (addr > (addr + size))
 		return 0;
 	if (segment_eq(get_fs(),KERNEL_DS))
@@ -387,6 +386,6 @@ int _access_ok(unsigned long addr, unsigned long size)
 		return 1;
 #endif
 	return 0;
-#endif
 }
 EXPORT_SYMBOL(_access_ok);
+#endif

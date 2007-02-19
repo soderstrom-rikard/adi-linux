@@ -41,7 +41,15 @@ extern int is_in_rom(unsigned long);
  * get_fs() == KERNEL_DS, checking is bypassed.
  */
 
+#ifdef CONFIG_NO_ACCESS_CHECK
+static inline int _access_ok(unsigned long addr, unsigned long size) { return 1; } 
+#else
+#ifdef CONFIG_ACCESS_OK_L1
+extern int _access_ok(unsigned long addr, unsigned long size)__attribute__((l1_text));
+#else
 extern int _access_ok(unsigned long addr, unsigned long size);
+#endif
+#endif
 
 /*
  * The exception table consists of pairs of addresses: the first is the

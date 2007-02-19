@@ -79,7 +79,11 @@
 # define DEBUG_STOP_HWTRACE
 #endif
 
+#ifdef CONFIG_EXCPT_IRQ_SYSC_L1
+.section .l1.text
+#else
 .text
+#endif
 
 /* Slightly simplified and streamlined entry point for CPLB misses.
  * This one does not lower the level to IRQ5, and thus can be used to

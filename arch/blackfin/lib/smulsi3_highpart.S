@@ -2,6 +2,12 @@
 .global ___smulsi3_highpart;
 .type ___smulsi3_highpart, STT_FUNC;
 
+#ifdef CONFIG_ARITHMETIC_OPS_L1
+.section .l1.text
+#else
+.text
+#endif
+
 ___smulsi3_highpart:
 	R2 = R1.L * R0.L (FU);
 	R3 = R1.H * R0.L (IS,M);
