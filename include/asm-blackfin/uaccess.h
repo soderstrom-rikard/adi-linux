@@ -41,48 +41,7 @@ extern int is_in_rom(unsigned long);
  * get_fs() == KERNEL_DS, checking is bypassed.
  */
 
-static inline int _access_ok(unsigned long addr, unsigned long size)
-{
-#ifdef CONFIG_NO_ACCESS_CHECK
-	return 1;
-#else
-	if (addr > (addr + size))
-		return 0;
-	if (segment_eq(get_fs(),KERNEL_DS))
-		return 1;
-#ifdef CONFIG_MTD_UCLINUX
-	if (addr >= memory_start && (addr + size) <= memory_end)
-		return 1;
-	if (addr >= memory_mtd_end && (addr + size) <= physical_mem_end)
-		return 1;
-#else
-	if (addr >= memory_start && (addr + size) <= physical_mem_end)
-		return 1;
-#endif
-	if (addr >= (unsigned long)__init_begin &&
-	    addr + size <= (unsigned long)__init_end)
-		return 1;
-	if (addr >= L1_SCRATCH_START
-	    && addr + size <= L1_SCRATCH_START + L1_SCRATCH_LENGTH)
-		return 1;
-#if L1_CODE_LENGTH != 0
-	if (addr >= L1_CODE_START + (_etext_l1 - _stext_l1)
-	    && addr + size <= L1_CODE_START + L1_CODE_LENGTH)
-		return 1;
-#endif
-#if L1_DATA_A_LENGTH != 0
-	if (addr >= L1_DATA_A_START + (_ebss_l1 - _sdata_l1)
-	    && addr + size <= L1_DATA_A_START + L1_DATA_A_LENGTH)
-		return 1;
-#endif
-#if L1_DATA_B_LENGTH != 0
-	if (addr >= L1_DATA_B_START
-	    && addr + size <= L1_DATA_B_START + L1_DATA_B_LENGTH)
-		return 1;
-#endif
-	return 0;
-#endif
-}
+extern int _access_ok(unsigned long addr, unsigned long size);
 
 /*
  * The exception table consists of pairs of addresses: the first is the
