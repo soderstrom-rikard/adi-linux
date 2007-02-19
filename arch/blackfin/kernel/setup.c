@@ -768,11 +768,7 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 	cpu = CPU;
 	mmu = "none";
 	fpu = "none";
-	if (&bfin_board_name) {
-		name = bfin_board_name;
-	} else {
-		name = "Unknown";
-	}
+	name = bfin_board_name;
 
 	cclk = get_cclk();
 	sclk = get_sclk();

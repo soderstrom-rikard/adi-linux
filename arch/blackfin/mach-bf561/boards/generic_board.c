@@ -34,6 +34,8 @@
 #include <linux/platform_device.h>
 #include <asm/irq.h>
 
+char *bfin_board_name = "UNKNOWN BOARD";
+
 /*
  *  Driver needs to know address, irq and flag pin.
  */
