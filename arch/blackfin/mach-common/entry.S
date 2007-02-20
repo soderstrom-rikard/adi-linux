@@ -753,7 +753,11 @@ ENTRY(_init_exception_buff)
  * a CPLB. This is needed to ensure we don't get double fault conditions
  */
 
+#ifdef CONFIG_SYSCALL_TAB_L1
+.section .l1.data
+#else
 .data
+#endif
 ALIGN
 _extable:
 	/* entry for each EXCAUSE[5:0]

@@ -429,7 +429,6 @@ config I_ENTRY_L1
 	  If enabled interrupt entry code (STORE/RESTORE CONTEXT) is linked
 	  into L1 instruction memory.(less latency)
 
-
 config EXCPT_IRQ_SYSC_L1
 	bool "Locate entire ASM lowlevel excepetion / interrupt - Syscall and CPLB handler code in L1 Memory"
 	default y
@@ -437,14 +436,12 @@ config EXCPT_IRQ_SYSC_L1
 	  If enabled entire ASM lowlevel exception and interrupt entry code (STORE/RESTORE CONTEXT) is linked
 	  into L1 instruction memory.(less latency)
 
-
 config DO_IRQ_L1
 	bool "Locate frequently called do_irq dispatcher function in L1 Memory"
 	default y
 	help
 	  If enabled frequently called do_irq dispatcher function is linked
 	  into L1 instruction memory.(less latency)
-
 
 config ARITHMETIC_OPS_L1
 	bool "Locate kernel owned arithmetic functions in L1 Memory"
@@ -481,7 +478,21 @@ config IP_CHECKSUM_L1
 	  If enabled IP Checksum function is linked
 	  into L1 instruction memory.(less latency)
 
+config SYSCALL_TAB_L1
+	bool "Locate Syscall Table L1 Data Memory"
+	default n
+	depends on !BF531
+	help
+	  If enabled the Syscall LUT is linked
+	  into L1 data memory.(less latency)
 
+config CPLB_SWITCH_TAB_L1
+	bool "Locate CPLB Switch Tables L1 Data Memory"
+	default n
+	depends on !BF531
+	help
+	  If enabled the CPLB Switch Tables are linked
+	  into L1 data memory.(less latency)
 
 endmenu
 

@@ -71,13 +71,29 @@ u_long dcplb_table[MAX_CPLBS+1];
  * This is how Page descriptor Table is implemented in uClinux/Blackfin.
  */
 
+
+#ifdef CONFIG_CPLB_SWITCH_TAB_L1
+u_long ipdt_table[MAX_SWITCH_I_CPLBS+1]__attribute__((l1_data));
+u_long dpdt_table[MAX_SWITCH_D_CPLBS+1]__attribute__((l1_data));
+
+#ifdef CONFIG_CPLB_INFO
+u_long ipdt_swapcount_table[MAX_SWITCH_I_CPLBS]__attribute__((l1_data));
+u_long dpdt_swapcount_table[MAX_SWITCH_D_CPLBS]__attribute__((l1_data));
+#endif /* CONFIG_CPLB_INFO */
+
+#else
+
 u_long ipdt_table[MAX_SWITCH_I_CPLBS+1];
 u_long dpdt_table[MAX_SWITCH_D_CPLBS+1];
 
 #ifdef CONFIG_CPLB_INFO
 u_long ipdt_swapcount_table[MAX_SWITCH_I_CPLBS];
 u_long dpdt_swapcount_table[MAX_SWITCH_D_CPLBS];
-#endif
+#endif /* CONFIG_CPLB_INFO */
+
+#endif /*CONFIG_CPLB_SWITCH_TAB_L1*/
+
+
 
 struct s_cplb {
 	struct cplb_tab init_i;
