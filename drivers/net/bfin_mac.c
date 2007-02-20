@@ -397,7 +397,9 @@ void SetupSystemRegs(struct net_device *dev)
 	PHYADDR = lp->PhyAddr;
 
 	/* Enable PHY output */
-	bfin_write_VR_CTL(bfin_read_VR_CTL() | PHYCLKOE);
+	if (!(bfin_read_VR_CTL() & PHYCLKOE))
+		bfin_write_VR_CTL(bfin_read_VR_CTL() | PHYCLKOE);
+
 	/* MDC  = 2.5 MHz */
 	sysctl = SET_MDCDIV(24);
 	/* Odd word alignment for Receive Frame DMA word */
@@ -895,6 +897,10 @@ static int __init bf537mac_probe(struct net_device *dev)
 		       ": Unable to attach BlackFin MAC RX interrupt\n");
 		return -EBUSY;
 	}
+
+	/* Enable PHY output early*/
+	if (!(bfin_read_VR_CTL() & PHYCLKOE))
+		bfin_write_VR_CTL(bfin_read_VR_CTL() | PHYCLKOE);
 
 	retval = register_netdev(dev);
 	if (retval == 0) {
