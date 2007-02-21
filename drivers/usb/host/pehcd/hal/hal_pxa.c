@@ -538,6 +538,7 @@ void isp_1761_kfree(const void* objp)
     kfree(objp);
 }
 
+#if 0 //Either EXPORT_SYMBOL __vmalloc in mm/nommu.c or comment out since it's not used
 /* Allocate Contiguous kernel Memory */
 void* isp_1761_vmalloc(__u32 size, __u16 flags, pgprot_t prot)
 {
@@ -545,6 +546,7 @@ void* isp_1761_vmalloc(__u32 size, __u16 flags, pgprot_t prot)
     ret = __vmalloc(size, flags, prot);
     return ret;
 }
+#endif
 
 /* Free the memory allocated by vmalloc */
 void isp_1761_vfree(const void* objp)
