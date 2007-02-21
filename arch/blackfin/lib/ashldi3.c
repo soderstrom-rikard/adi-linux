@@ -31,6 +31,10 @@
 
 #include "gcclib.h"
 
+#ifdef CONFIG_ARITHMETIC_OPS_L1
+DItype __ashldi3(DItype u, word_type b)__attribute__((l1_text));
+#endif
+
 DItype __ashldi3(DItype u, word_type b)
 {
 	DIunion w;

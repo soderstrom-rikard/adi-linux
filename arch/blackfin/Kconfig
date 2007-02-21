@@ -443,6 +443,27 @@ config DO_IRQ_L1
 	  If enabled frequently called do_irq dispatcher function is linked
 	  into L1 instruction memory.(less latency)
 
+config CORE_TIMER_IRQ_L1
+	bool "Locate frequently called timer_interrupt() function in L1 Memory"
+	default y
+	help
+	  If enabled frequently called timer_interrupt() function is linked
+	  into L1 instruction memory.(less latency)
+
+config IDLE_L1
+	bool "Locate frequently idle function in L1 Memory"
+	default y
+	help
+	  If enabled frequently called idle function is linked
+	  into L1 instruction memory.(less latency)
+
+config SCHEDULE_L1
+	bool "Locate kernel schedule function in L1 Memory"
+	default y
+	help
+	  If enabled frequently called kernel schedule is linked
+	  into L1 instruction memory.(less latency)
+
 config ARITHMETIC_OPS_L1
 	bool "Locate kernel owned arithmetic functions in L1 Memory"
 	default y
@@ -462,6 +483,13 @@ config MEMSET_L1
 	default y
 	help
 	  If enabled memset function is linked
+	  into L1 instruction memory.(less latency)
+
+config MEMCPY_L1
+	bool "Locate memcpy function in L1 Memory"
+	default y
+	help
+	  If enabled memcpy function is linked
 	  into L1 instruction memory.(less latency)
 
 config SYS_BFIN_SPINLOCK_L1

@@ -36,6 +36,12 @@
 
 #include <linux/linkage.h>
 
+#ifdef CONFIG_MEMCPY_L1
+.section .l1.text
+#else
+.text
+#endif
+
 .align 2
 
 ENTRY(_memcpy)

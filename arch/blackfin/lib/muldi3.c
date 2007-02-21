@@ -83,6 +83,10 @@ typedef union {
 	ditype ll;
 } diunion;
 
+#ifdef CONFIG_ARITHMETIC_OPS_L1
+ditype __muldi3(ditype u, ditype v)__attribute__((l1_text));
+#endif
+
 ditype __muldi3(ditype u, ditype v)
 {
 	diunion w;

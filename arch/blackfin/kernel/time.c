@@ -197,6 +197,10 @@ static inline int set_rtc_mmss(unsigned long nowtime)
  * timer_interrupt() needs to keep up the real-time clock,
  * as well as call the "do_timer()" routine every clocktick
  */
+#ifdef CONFIG_CORE_TIMER_IRQ_L1
+irqreturn_t timer_interrupt(int irq, void *dummy)__attribute__((l1_text));
+#endif
+
 irqreturn_t timer_interrupt(int irq, void *dummy)
 {
 	/* last time the cmos clock got updated */

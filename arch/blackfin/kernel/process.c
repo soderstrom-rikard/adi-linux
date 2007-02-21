@@ -97,6 +97,11 @@ static inline void leds_switch(int flag)
 /*
  * The idle loop on BFIN
  */
+#ifdef CONFIG_IDLE_L1
+static inline void default_idle(void)__attribute__((l1_text));
+void cpu_idle(void)__attribute__((l1_text));
+#endif
+
 static inline void default_idle(void)
 {
 	while (!need_resched()) {
@@ -117,6 +122,8 @@ void (*idle)(void) = default_idle;
  * low exit latency (ie sit in a loop waiting for
  * somebody to say that they'd like to reschedule)
  */
+
+
 void cpu_idle(void)
 {
 	/* endless idle loop with no priority at all */

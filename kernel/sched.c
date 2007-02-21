@@ -3477,7 +3477,12 @@ switch_tasks:
 	preempt_enable_no_resched();
 	if (unlikely(test_thread_flag(TIF_NEED_RESCHED)))
 		goto need_resched;
+
+#ifdef CONFIG_SCHEDULE_L1
+}__attribute__((l1_text))
+#else
 }
+#endif
 EXPORT_SYMBOL(schedule);
 
 #ifdef CONFIG_PREEMPT

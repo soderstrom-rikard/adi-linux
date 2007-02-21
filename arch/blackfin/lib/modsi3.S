@@ -39,6 +39,13 @@
 .type ___modsi3, STT_FUNC;
 .extern ___divsi3;
 .type ___divsi3, STT_FUNC;
+
+#ifdef CONFIG_ARITHMETIC_OPS_L1
+.section .l1.text
+#else
+.text
+#endif
+
 ___modsi3:
 
 	CC=R0==0;

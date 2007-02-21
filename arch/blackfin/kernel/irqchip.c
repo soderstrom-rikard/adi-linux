@@ -97,6 +97,11 @@ int show_interrupts(struct seq_file *p, void *v)
  * come via this function.  Instead, they should provide their
  * own 'handler'
  */
+
+#ifdef CONFIG_DO_IRQ_L1
+asmlinkage void asm_do_IRQ(unsigned int irq, struct pt_regs *regs)__attribute__((l1_text));
+#endif
+
 asmlinkage void asm_do_IRQ(unsigned int irq, struct pt_regs *regs)
 {
 	struct pt_regs *old_regs;
