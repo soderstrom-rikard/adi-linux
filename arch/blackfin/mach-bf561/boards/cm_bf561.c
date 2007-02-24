@@ -262,6 +262,11 @@ static struct platform_device bfin_uart_device = {
 #endif
 
 static struct platform_device *cm_bf561_devices[] __initdata = {
+
+#if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
+        &bfin_uart_device,
+#endif
+
 #if defined(CONFIG_USB_ISP1362_HCD) || defined(CONFIG_USB_ISP1362_HCD_MODULE)
 	&isp1362_hcd_device,
 #endif
@@ -274,9 +279,6 @@ static struct platform_device *cm_bf561_devices[] __initdata = {
 	&spi_bfin_master_device,
 #endif
 
-#if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
-        &bfin_uart_device,
-#endif
 };
 
 static int __init cm_bf561_init(void)
