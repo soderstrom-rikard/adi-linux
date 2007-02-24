@@ -2475,6 +2475,10 @@ static int net2272_remove (struct device *_dev)
 	gpio_free(GPIO_1);
 #endif
 
+#ifdef CONFIG_BFIN537_BLUETECHNIX_CM
+	gpio_free(GPIO_47);
+#endif
+
 	return 0;
 }
 
@@ -2499,14 +2503,14 @@ static int net2272_probe (struct device *_dev)
 		if (iomem)
 			base = iomem->start;
 #ifdef CONFIG_BF533
-		/* Set PF0 to 0, PF1 to 1 make ASM3 work properly */
+		/* Set PF0 to 0, PF1 to 1 make /AMS3 work properly */
 
 	if(gpio_request(GPIO_0, NULL)){
-		printk(KERN_ERR "BF5xx flash: Failed ro request Card Detect GPIO_%d\n", GPIO_0);
+		printk(KERN_ERR "net2272: Failed ro request GPIO_%d\n", GPIO_0);
 		return -EBUSY;
 	}
 	if(gpio_request(GPIO_1, NULL)){
-		printk(KERN_ERR "BF5xx flash: Failed ro request Card Detect GPIO_%d\n", GPIO_1);
+		printk(KERN_ERR "net2272: Failed ro request GPIO_%d\n", GPIO_1);
 		gpio_free(GPIO_0);
 		return -EBUSY;
 	}
@@ -2515,6 +2519,15 @@ static int net2272_probe (struct device *_dev)
 	gpio_set_value(GPIO_0, 0);
 	gpio_set_value(GPIO_1, 1);
 
+#endif
+
+#ifdef CONFIG_BFIN537_BLUETECHNIX_CM /* Set PH15 Low make /AMS2 work properly */
+	if(gpio_request(GPIO_47, NULL)){
+		printk(KERN_ERR "net2272: Failed ro request GPIO_%d\n", GPIO_47);
+		return -EBUSY;
+	}
+	gpio_direction_output(GPIO_47);
+	gpio_set_value(GPIO_47, 0);
 #endif
 	}
 #endif
