@@ -449,8 +449,8 @@ subsys_initcall(topology_init);
 #if defined(CONFIG_BLKFIN_DCACHE) || defined(CONFIG_BLKFIN_CACHE)
 u16 lock_kernel_check(u32 start, u32 end)
 {
-	if ((start <= (u32) _stext && end >= (u32) __bss_stop)
-	    || (start >= (u32) _stext && end <= (u32) __bss_stop))
+	if ((start <= (u32) _stext && end >= (u32) __end)
+	    || (start >= (u32) _stext && end <= (u32) __end))
 		return IN_KERNEL;
 	return 0;
 }
