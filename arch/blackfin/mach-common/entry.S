@@ -90,6 +90,7 @@
  * patch up CPLB misses on the kernel stack.
  */
 ENTRY(_ex_dcplb)
+#if defined(ANOMALY_05000261)
 	/*
 	 * Work around an anomaly: if we see a new DCPLB fault, return
 	 * without doing anything.  Then, if we get the same fault again,
@@ -103,6 +104,7 @@ ENTRY(_ex_dcplb)
 	cc = r6 == r7;
 	if !cc jump _return_from_exception;
 	/* fall through */
+#endif
 
 ENTRY(_ex_icplb)
 	(R7:6,P5:4) = [sp++];
@@ -1186,10 +1188,11 @@ _exception_stack:
 	.endr
 _exception_stack_top:
 
+#if defined(ANOMALY_05000261)
 /* Used by the assembly entry point to work around an anomaly.  */
 _last_cplb_fault_retx:
 	.long 0;
-
+#endif
 /*
  * Single instructions can have multiple faults, which need to be
  * handled by traps.c, in irq5. We store the exception cause to ensure
