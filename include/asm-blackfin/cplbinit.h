@@ -135,10 +135,10 @@ static struct cplb_desc cplb_data[] = {
 		.attr = INITIAL_T | SWITCH_T | D_CPLB,
 		.i_conf = 0,
 		.d_conf = L1_DMEMORY,
-#if defined(CONFIG_BF536)
-		.valid = 0,
-#else
+#if ((L1_DATA_A_LENGTH > 0) || (L1_DATA_B_LENGTH > 0))
 		.valid = 1,
+#else
+		.valid = 0,
 #endif
 		.name = "L1 D-Memory",
 	},
