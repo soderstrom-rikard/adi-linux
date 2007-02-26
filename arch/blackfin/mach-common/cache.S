@@ -211,7 +211,7 @@ ENTRY(_dcache_invalidate)
 
 	/* Configures the data cache again */
 
-	R6 = (ACACHE_BCACHE | ENDCPLB | PORT_PREF0);
+	R6 = DMEM_CNTR;
 	R7 = R7 | R6;
 
 	CLI R6;

@@ -59,6 +59,13 @@
 
 /* Memory Map for ADSP-BF537 processors */
 
+#ifdef CONFIG_BLKFIN_CACHE
+#define BLKFIN_ICACHESIZE	(16*1024)
+#else
+#define BLKFIN_ICACHESIZE	(0*1024)
+#endif
+
+
 #ifdef CONFIG_BF537
 #define L1_CODE_START       0xFFA00000
 #define L1_DATA_A_START     0xFF800000
@@ -67,20 +74,30 @@
 #define L1_CODE_LENGTH      0xC000
 
 #ifdef CONFIG_BLKFIN_DCACHE
+
+#ifdef CONFIG_BLKFIN_DCACHE_BANKA
+#define DMEM_CNTR (ACACHE_BSRAM | ENDCPLB | PORT_PREF0)
+#define L1_DATA_A_LENGTH      (0x8000 - 0x4000)
+#define L1_DATA_B_LENGTH      0x8000
+#define BLKFIN_DCACHESIZE	(16*1024)
+#define BLKFIN_DSUPBANKS	1
+#else
 #define DMEM_CNTR (ACACHE_BCACHE | ENDCPLB | PORT_PREF0)
 #define L1_DATA_A_LENGTH      (0x8000 - 0x4000)
+#define L1_DATA_B_LENGTH      (0x8000 - 0x4000)
+#define BLKFIN_DCACHESIZE	(32*1024)
+#define BLKFIN_DSUPBANKS	2
+#endif
+
 #else
 #define DMEM_CNTR (ASRAM_BSRAM | ENDCPLB | PORT_PREF0)
 #define L1_DATA_A_LENGTH      0x8000
-#endif
-
-#ifdef CONFIG_BLKFIN_DCACHE
-#define L1_DATA_B_LENGTH      (0x8000 - 0x4000)
-#else
 #define L1_DATA_B_LENGTH      0x8000
-#endif
+#define BLKFIN_DCACHESIZE	(0*1024)
+#define BLKFIN_DSUPBANKS	0
+#endif /*CONFIG_BLKFIN_DCACHE*/
 
-#endif
+#endif /*CONFIG_BF537*/
 
 /* Memory Map for ADSP-BF536 processors */
 
@@ -91,19 +108,31 @@
 
 #define L1_CODE_LENGTH      0xC000
 
-#ifdef CONFIG_BLKFIN_DCACHE
-#define DMEM_CNTR (ACACHE_BSRAM | ENDCPLB)
-#define L1_DATA_A_LENGTH      (0x4000 - 0x4000)
-#else
-#define DMEM_CNTR (ASRAM_BSRAM | ENDCPLB)
-#define L1_DATA_A_LENGTH      0x4000
-#endif
 
 #ifdef CONFIG_BLKFIN_DCACHE
-#define L1_DATA_B_LENGTH      (0x4000 - 0x4000)
-#else
+
+#ifdef CONFIG_BLKFIN_DCACHE_BANKA
+#define DMEM_CNTR (ACACHE_BSRAM | ENDCPLB | PORT_PREF0)
+#define L1_DATA_A_LENGTH      (0x4000 - 0x4000)
 #define L1_DATA_B_LENGTH      0x4000
+#define BLKFIN_DCACHESIZE	(16*1024)
+#define BLKFIN_DSUPBANKS	1
+
+#else
+#define DMEM_CNTR (ACACHE_BCACHE | ENDCPLB | PORT_PREF0)
+#define L1_DATA_A_LENGTH      (0x4000 - 0x4000)
+#define L1_DATA_B_LENGTH      (0x4000 - 0x4000)
+#define BLKFIN_DCACHESIZE	(32*1024)
+#define BLKFIN_DSUPBANKS	2
 #endif
+
+#else
+#define DMEM_CNTR (ASRAM_BSRAM | ENDCPLB | PORT_PREF0)
+#define L1_DATA_A_LENGTH      0x4000
+#define L1_DATA_B_LENGTH      0x4000
+#define BLKFIN_DCACHESIZE	(0*1024)
+#define BLKFIN_DSUPBANKS	0
+#endif /*CONFIG_BLKFIN_DCACHE*/
 
 #endif
 
@@ -118,18 +147,28 @@
 
 #ifdef CONFIG_BLKFIN_DCACHE
 
+#ifdef CONFIG_BLKFIN_DCACHE_BANKA
+#define DMEM_CNTR (ACACHE_BSRAM | ENDCPLB | PORT_PREF0)
+#define L1_DATA_A_LENGTH      (0x8000 - 0x4000)
+#define L1_DATA_B_LENGTH      0x8000
+#define BLKFIN_DCACHESIZE	(16*1024)
+#define BLKFIN_DSUPBANKS	1
+
+#else
 #define DMEM_CNTR (ACACHE_BCACHE | ENDCPLB | PORT_PREF0)
 #define L1_DATA_A_LENGTH      (0x8000 - 0x4000)
+#define L1_DATA_B_LENGTH      (0x8000 - 0x4000)
+#define BLKFIN_DCACHESIZE	(32*1024)
+#define BLKFIN_DSUPBANKS	2
+#endif
+
 #else
 #define DMEM_CNTR (ASRAM_BSRAM | ENDCPLB | PORT_PREF0)
 #define L1_DATA_A_LENGTH      0x8000
-#endif
-#ifdef CONFIG_BLKFIN_DCACHE
-#define L1_DATA_B_LENGTH      (0x8000 - 0x4000)
-
-#else
 #define L1_DATA_B_LENGTH      0x8000
-#endif
+#define BLKFIN_DCACHESIZE	(0*1024)
+#define BLKFIN_DSUPBANKS	0
+#endif /*CONFIG_BLKFIN_DCACHE*/
 
 #endif
 

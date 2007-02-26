@@ -74,14 +74,11 @@
  * Blackfin Cache setup
  */
 
-#define BLKFIN_ICACHESIZE	(16*1024)
-#define BLKFIN_DCACHESIZE	(32*1024)
 
 #define BLKFIN_ISUBBANKS	4
 #define BLKFIN_IWAYS		4
 #define BLKFIN_ILINES		32
 
-#define BLKFIN_DSUPBANKS	2
 #define BLKFIN_DSUBBANKS	4
 #define BLKFIN_DWAYS		2
 #define BLKFIN_DLINES		64

@@ -765,7 +765,7 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 #endif
 
 	u_long cclk = 0, sclk = 0;
-	u_int id;
+	u_int id, dcache_size = 0, dsup_banks = 0;
 
 	cpu = CPU;
 	mmu = "none";
@@ -806,13 +806,36 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 			   "\n");
 	else
 		seq_printf(m, "D-CACHE:\tOFF\n");
+
+
+	switch(bfin_read_DMEM_CONTROL() & (1 << DMC0_P | 1 << DMC1_P)) {
+		case ACACHE_BSRAM:
+			seq_printf(m, "DBANK-A:\tCACHE\n" "DBANK-B:\tSRAM\n");
+			dcache_size = 16; 
+			dsup_banks = 1;
+			break;				
+		case ACACHE_BCACHE:
+			seq_printf(m, "DBANK-A:\tCACHE\n" "DBANK-B:\tCACHE\n");
+			dcache_size = 32; 
+			dsup_banks = 2;
+			break;
+		case ASRAM_BSRAM:
+			seq_printf(m, "DBANK-A:\tSRAM\n" "DBANK-B:\tSRAM\n");
+			dcache_size = 0; 
+			dsup_banks = 0;
+			break;
+		default:
+		break;
+	}
+
+
 	seq_printf(m, "I-CACHE Size:\t%dKB\n", BLKFIN_ICACHESIZE / 1024);
-	seq_printf(m, "D-CACHE Size:\t%dKB\n", BLKFIN_DCACHESIZE / 1024);
+	seq_printf(m, "D-CACHE Size:\t%dKB\n", dcache_size);
 	seq_printf(m, "I-CACHE Setup:\t%d Sub-banks/%d Ways, %d Lines/Way\n",
 		   BLKFIN_ISUBBANKS, BLKFIN_IWAYS, BLKFIN_ILINES);
 	seq_printf(m,
 		   "D-CACHE Setup:\t%d Super-banks/%d Sub-banks/%d Ways, %d Lines/Way\n",
-		   BLKFIN_DSUPBANKS, BLKFIN_DSUBBANKS, BLKFIN_DWAYS,
+		   dsup_banks, BLKFIN_DSUBBANKS, BLKFIN_DWAYS,
 		   BLKFIN_DLINES);
 #ifdef CONFIG_BLKFIN_CACHE_LOCK
 	lock = read_iloc();

@@ -53,15 +53,6 @@
 
 /***************************/
 
-#define BLKFIN_ICACHESIZE	(16*1024)
-
-#if defined(CONFIG_BF533) || defined(CONFIG_BF532)
-#define BLKFIN_DCACHESIZE	(32*1024)
-#define BLKFIN_DSUPBANKS	2
-#else
-#define BLKFIN_DCACHESIZE	(16*1024)
-#define BLKFIN_DSUPBANKS	1
-#endif
 
 #define BLKFIN_DSUBBANKS	4
 #define BLKFIN_DWAYS		2

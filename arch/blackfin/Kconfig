@@ -578,6 +578,10 @@ config BLKFIN_CACHE
 	bool "Enable ICACHE"
 config BLKFIN_DCACHE
 	bool "Enable DCACHE"
+config BLKFIN_DCACHE_BANKA
+	bool "Enable only 16k BankA DCACHE - BankB is SRAM"
+	depends on BLKFIN_DCACHE && !BF531
+	default n
 config BLKFIN_CACHE_LOCK
 	bool "Enable Cache Locking"
 
