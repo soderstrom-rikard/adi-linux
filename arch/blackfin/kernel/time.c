@@ -247,7 +247,7 @@ void __init time_init(void)
 	 * userspace to have to deal with time values greater than
 	 * 2^31 seconds (which uClibc cannot cope with yet)
 	 */
-	if (bfin_read_RTC_STAT() & 0x60000000) {
+	if ((bfin_read_RTC_STAT() & 0xC0000000) == 0xC0000000) {
 		printk(KERN_NOTICE "bfin-rtc: invalid date; resetting\n");
 		bfin_write_RTC_STAT(0);
 	}
