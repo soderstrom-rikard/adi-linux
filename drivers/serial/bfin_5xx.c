@@ -606,7 +606,7 @@ bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 			__FUNCTION__);
 	}
 
-	if (termios->c_cflag & CSTOPB);
+	if (termios->c_cflag & CSTOPB)
 		lcr |= STB;
 	if (termios->c_cflag & PARENB) {
 		lcr |= PEN;
