@@ -46,11 +46,76 @@
 #include <asm/io.h>
 #include <asm/bfin5xx_spi.h>
 #include <linux/delay.h>
+#include <asm/gpio.h>
 #include <asm/dma.h>
+#include <linux/dma-mapping.h>
 #include <asm/irq.h>
 #include <linux/proc_fs.h>
 #include <linux/platform_device.h>
 #include <linux/spi/spi.h>
+
+#ifdef CONFIG_BF561
+static unsigned int dma_iobase[MAX_BLACKFIN_DMA_CHANNEL] = {
+        DMA1_0_NEXT_DESC_PTR,
+        DMA1_1_NEXT_DESC_PTR,
+        DMA1_2_NEXT_DESC_PTR,
+        DMA1_3_NEXT_DESC_PTR,
+        DMA1_4_NEXT_DESC_PTR,
+        DMA1_5_NEXT_DESC_PTR,
+        DMA1_6_NEXT_DESC_PTR,
+        DMA1_7_NEXT_DESC_PTR,
+        DMA1_8_NEXT_DESC_PTR,
+        DMA1_9_NEXT_DESC_PTR,
+        DMA1_10_NEXT_DESC_PTR,
+        DMA1_11_NEXT_DESC_PTR,
+        DMA2_0_NEXT_DESC_PTR,
+        DMA2_1_NEXT_DESC_PTR,
+        DMA2_2_NEXT_DESC_PTR,
+        DMA2_3_NEXT_DESC_PTR,
+        DMA2_4_NEXT_DESC_PTR,
+        DMA2_5_NEXT_DESC_PTR,
+        DMA2_6_NEXT_DESC_PTR,
+        DMA2_7_NEXT_DESC_PTR,
+        DMA2_8_NEXT_DESC_PTR,
+        DMA2_9_NEXT_DESC_PTR,
+        DMA2_10_NEXT_DESC_PTR,
+        DMA2_11_NEXT_DESC_PTR,
+        MDMA1_D0_NEXT_DESC_PTR,
+        MDMA1_S0_NEXT_DESC_PTR,
+        MDMA1_D1_NEXT_DESC_PTR,
+        MDMA1_S1_NEXT_DESC_PTR,
+        MDMA2_D0_NEXT_DESC_PTR,
+        MDMA2_S0_NEXT_DESC_PTR,
+        MDMA2_D1_NEXT_DESC_PTR,
+        MDMA2_S1_NEXT_DESC_PTR,
+        IMDMA_D0_NEXT_DESC_PTR,
+        IMDMA_S0_NEXT_DESC_PTR,
+        IMDMA_D1_NEXT_DESC_PTR,
+        IMDMA_S1_NEXT_DESC_PTR,
+};
+#else
+static unsigned int dma_iobase[] =
+{
+        DMA0_NEXT_DESC_PTR,
+        DMA1_NEXT_DESC_PTR,
+        DMA2_NEXT_DESC_PTR,
+        DMA3_NEXT_DESC_PTR,
+        DMA4_NEXT_DESC_PTR,
+        DMA5_NEXT_DESC_PTR,
+        DMA6_NEXT_DESC_PTR,
+        DMA7_NEXT_DESC_PTR,
+#if (defined(CONFIG_BF537) || defined(CONFIG_BF534) || defined(CONFIG_BF536))
+        DMA8_NEXT_DESC_PTR,
+        DMA9_NEXT_DESC_PTR,
+        DMA10_NEXT_DESC_PTR,
+        DMA11_NEXT_DESC_PTR,
+#endif
+        MDMA_D0_NEXT_DESC_PTR,
+        MDMA_S0_NEXT_DESC_PTR,
+        MDMA_D1_NEXT_DESC_PTR,
+        MDMA_S1_NEXT_DESC_PTR
+};
+#endif
 
 /* enable this define to get verbose debugging info */
 //#define BFIN_SPI_DEBUG  1
@@ -130,6 +195,9 @@ static u32 echo_sams = 0;
 static int chip_select;
 static int fxs_cs,fxo_cs;
 static int reset_bit;
+
+static unsigned int sport_dma_tx;
+static unsigned int sport_dma_rx;
 
 /* sample cycles register of Blackfin */
 
@@ -346,83 +414,35 @@ void bfsi_spi_init(int baud)
 #endif
 }
 
-/*-------------------------- RESET FUNCTION ----------------------------*/
-
-void bfsi_reset(void) {
-	PRINTK("toggle reset\n");
-  
 #if defined(CONFIG_BF533)
-       	PRINTK("set reset to PF%d\n",reset_bit);
-  	bfin_write_FIO_DIR(bfin_read_FIO_DIR() | (1<<reset_bit)); 
-  	SSYNC();
-
-  	bfin_write_FIO_FLAG_C((1<<reset_bit)); 
-  	SSYNC();
-  	udelay(100);
-
-  	bfin_write_FIO_FLAG_S((1<<reset_bit));
-  	SSYNC();
+const unsigned short reset_port[] = { GPIO_PF0, GPIO_PF1, GPIO_PF2, GPIO_PF3, GPIO_PF4, GPIO_PF5, GPIO_PF6, GPIO_PF7 };
 #endif
-  	
 #if defined(CONFIG_BF537)
-	if (reset_bit == 1) {
-       		PRINTK("set reset to PF10\n");
-                bfin_write_PORTF_FER(bfin_read_PORTF_FER() & 0xFBFF);
-		SSYNC();
-		bfin_write_PORTFIO_DIR(bfin_read_PORTFIO_DIR() | 0x0400);
-		SSYNC();
-		bfin_write_PORTFIO_CLEAR(1<<10);
-		SSYNC();
-		udelay(100);
-		bfin_write_PORTFIO_SET(1<<10);
-		SSYNC();
-        } else if (reset_bit == 2)  {
-                PRINTK("Error: cannot set reset to PJ11\n");
-        } else if (reset_bit == 3) {
-                PRINTK("Error: cannot set reset to PJ10\n");
-        } else if (reset_bit == 4) {
-                PRINTK("set reset to PF6\n");
-                bfin_write_PORTF_FER(bfin_read_PORTF_FER() & 0xFFBF);
-                SSYNC();
-		bfin_write_PORTFIO_DIR(bfin_read_PORTFIO_DIR() | 0x0040);
-		SSYNC();
-		bfin_write_PORTFIO_CLEAR(1<<6);
-		SSYNC();
-		udelay(100);
-		bfin_write_PORTFIO_SET(1<<6);
-		SSYNC();
-        } else if (reset_bit == 5) {
-                PRINTK("set reset to PF5\n");
-                bfin_write_PORTF_FER(bfin_read_PORTF_FER() & 0xFFDF);
-                SSYNC();
-		bfin_write_PORTFIO_DIR(bfin_read_PORTFIO_DIR() | 0x0020);
-		SSYNC();
-		bfin_write_PORTFIO_CLEAR(1<<5);
-		SSYNC();
-		udelay(100);
-		bfin_write_PORTFIO_SET(1<<5);
-		SSYNC();
-        } else if (reset_bit == 6) {
-                PRINTK("set reset to PF4\n");
-                bfin_write_PORTF_FER(bfin_read_PORTF_FER() & 0xFFEF);
-                SSYNC();
-		bfin_write_PORTFIO_DIR(bfin_read_PORTFIO_DIR() | 0x0010);
-		SSYNC();
-		bfin_write_PORTFIO_CLEAR(1<<4);
-		SSYNC();
-		udelay(100);
-		bfin_write_PORTFIO_SET(1<<4);
-		SSYNC();
-        } else if (reset_bit == 7) {
-                PRINTK("Error: cannot set reset to PJ5\n");
-        }
-#endif	
-  /* 
-     p24 3050 data sheet, allow 1ms for PLL lock, with
-     less than 1ms (1000us) I found register 2 would have
-     a value of 0 rather than 3, indicating a bad reset.
-  */
-  udelay(1000); 
+const unsigned short reset_port[] = { NULL, GPIO_PF10, NULL, NULL, GPIO_PF6, GPIO_PF5, GPIO_PF4, NULL };
+#endif
+/*-------------------------- RESET FUNCTION ----------------------------*/
+void bfsi_reset(void) {
+	if (reset_port[reset_bit] == NULL){
+                PRINTK("Error: cannot set reset to this bit! \n");
+	}
+	gpio_request(reset_port[reset_bit],NULL);
+	PRINTK("toggle reset\n");
+	gpio_direction_output(reset_port[reset_bit]);
+       	PRINTK("set reset bit OK! \n");
+	gpio_set_value(reset_port[reset_bit],0);
+  	udelay(100);
+	gpio_set_value(reset_port[reset_bit],1);
+  	
+  	/* 
+     	p24 3050 data sheet, allow 1ms for PLL lock, with
+     	less than 1ms (1000us) I found register 2 would have
+     	a value of 0 rather than 3, indicating a bad reset.
+  	*/
+  	udelay(1000); 
+}
+
+void bfsi_reset_free(void){
+	gpio_free(reset_port[reset_bit]);
 }
 
 /*-------------------------- SPORT FUNCTIONS ----------------------------*/
@@ -476,125 +496,68 @@ static void init_sport0(void)
 
 /* init DMA for autobuffer mode, but dont enable yet */
 
-static void init_dma_wc(void)
+static int init_dma_wc(void)
 {
-#if defined(CONFIG_BF533)
-  /* Set up DMA1 to receive, map DMA1 to Sport0 RX */
-  bfin_write_DMA1_PERIPHERAL_MAP(0x1000);
-  bfin_write_DMA1_IRQ_STATUS(bfin_read_DMA1_IRQ_STATUS() | 0x2);
-#endif
-#if defined(CONFIG_BF537)
-  /* Set up DMA3 to receive, map DMA3 to Sport0 RX */
-  bfin_write_DMA3_PERIPHERAL_MAP(0x3000);
-  bfin_write_DMA3_IRQ_STATUS(bfin_read_DMA3_IRQ_STATUS() | 0x2);
-#endif  
-  
-#if L1_DATA_A_LENGTH != 0
-  iRxBuffer1 = (char*)l1_data_A_sram_alloc(2*samples_per_chunk*8);
-#else	
-  { 
-    dma_addr_t addr;
-    iRxBuffer1 = (char*)dma_alloc_coherent(NULL, 2*samples_per_chunk*8, &addr, 0);
-  }
-#endif
-  if (bfsi_debug)
-    printk("iRxBuffer1 = 0x%x\n", (int)iRxBuffer1);
+	struct dma_register_t *dma_rx = (struct dma_register_t*) dma_iobase[sport_dma_rx];
+	struct dma_register_t *dma_tx = (struct dma_register_t*) dma_iobase[sport_dma_tx];
 
-#if defined(CONFIG_BF533)
-  /* Start address of data buffer */
-  bfin_write_DMA1_START_ADDR(iRxBuffer1);
-
-  /* DMA inner loop count */
-  bfin_write_DMA1_X_COUNT(samples_per_chunk*8);
-
-  /* Inner loop address increment */
-  bfin_write_DMA1_X_MODIFY(1);
-  bfin_write_DMA1_Y_MODIFY(1);
-  bfin_write_DMA1_Y_COUNT(2);	
-	
-  /* Configure DMA1
-     8-bit transfers, Interrupt on completion, Autobuffer mode */
-  bfin_write_DMA1_CONFIG(WNR | WDSIZE_8 | DI_EN | 0x1000 | DI_SEL | DMA2D); 
-
-  /* Set up DMA2 to transmit, map DMA2 to Sport0 TX */
-  bfin_write_DMA2_PERIPHERAL_MAP(0x2000);
-  /* Configure DMA2 8-bit transfers, Autobuffer mode */
-  bfin_write_DMA2_CONFIG(WDSIZE_8 | 0x1000 | DMA2D);
-#endif
-#if defined(CONFIG_BF537)
-  /* Start address of data buffer */
-  bfin_write_DMA3_START_ADDR(iRxBuffer1);
-
-  /* DMA inner loop count */
-  bfin_write_DMA3_X_COUNT(samples_per_chunk*8);
-
-  /* Inner loop address increment */
-  bfin_write_DMA3_X_MODIFY(1);
-  bfin_write_DMA3_Y_MODIFY(1);
-  bfin_write_DMA3_Y_COUNT(2);	
-	
-  /* Configure DMA1
-     8-bit transfers, Interrupt on completion, Autobuffer mode */
-  bfin_write_DMA3_CONFIG(WNR | WDSIZE_8 | DI_EN | 0x1000 | DI_SEL | DMA2D); 
-  /* Set up DMA4 to transmit, map DMA4 to Sport0 TX */
-  bfin_write_DMA4_PERIPHERAL_MAP(0x4000);
-  /* Configure DMA2 8-bit transfers, Autobuffer mode */
-  bfin_write_DMA4_CONFIG(WDSIZE_8 | 0x1000 | DMA2D);
-#endif  
+        if (request_dma(sport_dma_rx, "SPORT RX Data") == -EBUSY) {
+                printk(KERN_ERR "Failed to request RX dma %d\n", sport_dma_rx);
+                return -EBUSY;
+        }
+        if (request_dma(sport_dma_tx, "SPORT TX Data") == -EBUSY) {
+	        printk(KERN_ERR "Failed to request TX dma %d\n", dma_tx);
+                return -EBUSY;
+        }
+        if (set_dma_callback(sport_dma_rx, sport0_rx_isr, NULL) != 0) {
+                printk(KERN_ERR "Failed to request RX irq %d\n", dma_rx);
+                return -EBUSY;
+        }
 
 #if L1_DATA_A_LENGTH != 0
-  iTxBuffer1 = (char*)l1_data_A_sram_alloc(2*samples_per_chunk*8);
+	iRxBuffer1 = (char*)l1_data_A_sram_alloc(2*samples_per_chunk*8);
+	iTxBuffer1 = (char*)l1_data_A_sram_alloc(2*samples_per_chunk*8);
 #else	
-  { 
-    dma_addr_t addr;
-    iTxBuffer1 = (char*)dma_alloc_coherent(NULL, 2*samples_per_chunk*8, &addr, 0);
-  }
+  	dma_addr_t addr;
+    	iRxBuffer1 = (char*)dma_alloc_coherent(NULL, 2*samples_per_chunk*8, &addr, 0);
+    	iTxBuffer1 = (char*)dma_alloc_coherent(NULL, 2*samples_per_chunk*8, &addr, 0);
 #endif
-  if (bfsi_debug)
-    printk("iTxBuffer1 = 0x%x\n", (int)iTxBuffer1);
+	if (bfsi_debug){
+    		printk("iRxBuffer1 = 0x%x\n", (int)iRxBuffer1);
+    		printk("iTxBuffer1 = 0x%x\n", (int)iTxBuffer1);
+	}
+	
+	dma_rx->irq_status |= 0x02;
+	dma_rx->start_addr = (unsigned long)iRxBuffer1;
+	dma_rx->x_count = samples_per_chunk*8;
+	dma_rx->x_modify = 1;
+	dma_rx->y_count = 2;
+	dma_rx->y_modify = 1;
+ 	dma_rx->cfg = WNR | WDSIZE_8 | DI_EN | 0x1000 | DI_SEL | DMA2D;
+	
+	dma_tx->start_addr = (unsigned long)iTxBuffer1;
+ 	dma_tx->x_count = samples_per_chunk*8;
+	dma_tx->x_modify = 1;
+	dma_tx->y_count = 2;
+	dma_tx->y_modify = 1;	
+	dma_tx->cfg = WDSIZE_8 | 0x1000 | DMA2D;
 
-#if defined(CONFIG_BF533)
-  /* Start address of data buffer */
-  bfin_write_DMA2_START_ADDR(iTxBuffer1);
-
-  /* DMA inner loop count */
-  bfin_write_DMA2_X_COUNT(samples_per_chunk*8);
-
-  /* Inner loop address increment */
-  bfin_write_DMA2_X_MODIFY(1);
-  bfin_write_DMA2_Y_MODIFY(1);
-  bfin_write_DMA2_Y_COUNT(2);
-#endif
-#if defined(CONFIG_BF537)
-  /* Start address of data buffer */
-  bfin_write_DMA4_START_ADDR(iTxBuffer1);
-
-  /* DMA inner loop count */
-  bfin_write_DMA4_X_COUNT(samples_per_chunk*8);
-
-  /* Inner loop address increment */
-  bfin_write_DMA4_X_MODIFY(1);
-  bfin_write_DMA4_Y_MODIFY(1);
-  bfin_write_DMA4_Y_COUNT(2);
-#endif
-  /* init test variables */
-  lastreadchunk = (unsigned char*)&iRxBuffer1[8*samples_per_chunk];
-  lastwritechunk = (unsigned char*)&iTxBuffer1[8*samples_per_chunk];
+  	/* init test variables */
+  	lastreadchunk = (unsigned char*)&iRxBuffer1[8*samples_per_chunk];
+  	lastwritechunk = (unsigned char*)&iTxBuffer1[8*samples_per_chunk];
+	return 0;
 }
 
 /* works out which write buffer is available for writing */
-
 static u8 *isr_write_processing(void) {
 	u8 *writechunk;
 	int x;
+	struct dma_register_t *dma_tx = (struct dma_register_t*) dma_iobase[sport_dma_tx];
 
 	/* select which ping-pong buffer to write to */
-#if defined(CONFIG_BF533)
-	x = (int)(bfin_read_DMA2_CURR_ADDR()) - (int)iTxBuffer1;
-#endif
-#if defined(CONFIG_BF537)
-	x = (int)(bfin_read_DMA4_CURR_ADDR()) - (int)iTxBuffer1;
-#endif
+	unsigned char *curr = *(unsigned char**) &(dma_tx->curr_addr_ptr_lo);
+	x = (int)curr  - (int)iTxBuffer1;
+
 	/* for some reason x for tx tends to be 0xe and 0x4e, whereas
 	   x for rx is 0x40 and 0x80.  Note sure why they would be
 	   different.  We could perhaps consider having
@@ -622,18 +585,15 @@ static u8 *isr_write_processing(void) {
 }
 
 /* works out which read buffer is available for reading */
-
 static u8 *isr_read_processing(void) {
 	u8 *readchunk;
 	int x;
+	struct dma_register_t *dma_rx = (struct dma_register_t*) dma_iobase[sport_dma_rx];
 
 	/* select which ping-pong buffer to write to */
-#if defined(CONFIG_BF533)
-	x = (int)bfin_read_DMA1_CURR_ADDR() - (int)iRxBuffer1;
-#endif
-#if defined(CONFIG_BF537)
-	x = (int)bfin_read_DMA3_CURR_ADDR() - (int)iRxBuffer1;
-#endif
+	unsigned char *curr = *(unsigned char**) &(dma_rx->curr_addr_ptr_lo);
+	x = (int)curr  - (int)iRxBuffer1;
+
 	/* possible values for x are 8*samples_per_chunk=0x40 at the
 	   end of the first row and 2*8*samples_per_chunk=0x80 at the
 	   end of the second row */
@@ -657,117 +617,46 @@ static u8 *isr_read_processing(void) {
 }
 
 /* called each time the DMA finishes one "line" */
-
 static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs)
 {
-  unsigned int  start_cycles = cycles();
-  u8           *read_samples;
-  u8           *write_samples;
+  	unsigned int  start_cycles = cycles();
+  	u8 *read_samples;
+  	u8 *write_samples;
+	struct dma_register_t *dma_rx = (struct dma_register_t*) dma_iobase[sport_dma_rx];
 
-  /* confirm interrupt handling, write 1 to DMA_DONE bit */
-#if defined(CONFIG_BF533)
-  bfin_write_DMA1_IRQ_STATUS(0x0001);
-  SSYNC(); /* note without this line ints dont
-			     occur every 1ms, but get sporadic.
-			     Why?  Is it something to do with
-			     next line? How could we "lose"
-			     the write to IRQ_STATUS without
-			     this ssync? Maybe it just happens
-			     after the ISR has finished sometimes
-			     which messes things up */
-
-  SSYNC();
-#endif
-#if defined(CONFIG_BF537)
-  bfin_write_DMA3_IRQ_STATUS(0x0001);
-  SSYNC(); /* note without this line ints dont
-			     occur every 1ms, but get sporadic.
-			     Why?  Is it something to do with
-			     next line? How could we "lose"
-			     the write to IRQ_STATUS without
-			     this ssync? Maybe it just happens
-			     after the ISR has finished sometimes
-			     which messes things up */
-
-  SSYNC();
-#endif
+	dma_rx->irq_status = 0x0001;
   
-  read_samples = isr_read_processing();
-  write_samples = isr_write_processing();
-  if (bfsi_isr_callback != NULL) {
-    bfsi_isr_callback(read_samples, write_samples);
-  }
+  	read_samples = isr_read_processing();
+  	write_samples = isr_write_processing();
+  	if (bfsi_isr_callback != NULL) {
+    		bfsi_isr_callback(read_samples, write_samples);
+	}
 
-  SSYNC();
-
-  /* some stats to help monitor the cycles used by ISR processing */
-
-  /* 
-     Simple IIR averager: 
-
-       y(n) = (1 - 1/TC)*y(n) + (1/TC)*x(n)
-
-     After conversion to fixed point:
-
-       2*y(n) = ((TC-1)*2*y(n) + 2*x(n) + half_lsb ) >> LTC 
-  */
-
-  isr_cycles_average = ( (u32)(TC-1)*isr_cycles_average + 
+  	isr_cycles_average = ( (u32)(TC-1)*isr_cycles_average + 
 			 (((u32)isr_cycles_last)<<1) + TC) >> LTC;
 
-  if (isr_cycles_last > isr_cycles_worst)
-    isr_cycles_worst = isr_cycles_last;
+  	if (isr_cycles_last > isr_cycles_worst)
+    	isr_cycles_worst = isr_cycles_last;
 
-  /* we sample right at the end to make sure we count cycles used to 
-     measure cycles! */
-  isr_cycles_last = cycles() - start_cycles;
+  	/* we sample right at the end to make sure we count cycles used to 
+     		measure cycles! */
+  	isr_cycles_last = cycles() - start_cycles;
   
-  return IRQ_HANDLED;
-}
-
-static int init_sport_interrupts(void)
-{
-	//unsigned int data32;
-	
-  	if(request_irq(IRQ_SPORT0_RX, sport0_rx_isr, 
-		       IRQF_DISABLED, "sport0 rx", NULL) != 0) {
-    		return -EBUSY;
-	}
-	if (bfsi_debug) {
-		printk("ISR installed OK\n");
-	}
-#if defined(CONFIG_BF533)
-	/* enable DMA1 sport0 Rx interrupt */
-	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() | 0x00000200);
-	SSYNC();
-#endif
-#if defined(CONFIG_BF537)
-	/* enable DMA3 sport0 Rx interrupt */
-	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() | 0x00000020);
-	SSYNC();
-#endif
-	return 0;
+  	return IRQ_HANDLED;
 }
 
 static void enable_dma_sport0(void)
 {
 	/* enable DMAs */
-#if defined(CONFIG_BF533)
-	bfin_write_DMA2_CONFIG(bfin_read_DMA2_CONFIG() | DMAEN);
-	bfin_write_DMA1_CONFIG(bfin_read_DMA1_CONFIG() | DMAEN);
-	SSYNC();
-#endif
+	enable_dma(sport_dma_rx);
+	enable_dma(sport_dma_tx);
 #if defined(CONFIG_BF537)
 	bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~(PJSE|PJCE(3)));
-	SSYNC();
-	bfin_write_DMA4_CONFIG(bfin_read_DMA4_CONFIG() | DMAEN);
-	bfin_write_DMA3_CONFIG(bfin_read_DMA3_CONFIG() | DMAEN);
 	SSYNC();
 #endif
 	/* enable sport0 Tx and Rx */
 	bfin_write_SPORT0_TCR1(bfin_read_SPORT0_TCR1() | TSPEN);
 	bfin_write_SPORT0_RCR1(bfin_read_SPORT0_RCR1() | RSPEN);
-
 	SSYNC();
 }
 
@@ -777,23 +666,8 @@ static void disable_sport0(void)
 	bfin_write_SPORT0_TCR1(bfin_read_SPORT0_TCR1() & (~TSPEN));
 	bfin_write_SPORT0_RCR1(bfin_read_SPORT0_RCR1() & (~RSPEN));
 	SSYNC();
-
-#if defined(CONFIG_BF533)
-	/* disable DMA1 and DMA2 */
-	bfin_write_DMA2_CONFIG(bfin_read_DMA2_CONFIG() & (~DMAEN));
-	bfin_write_DMA1_CONFIG(bfin_read_DMA1_CONFIG() & (~DMAEN));
-	SSYNC();
-	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() & (~0x00000200));
-	SSYNC();
-#endif
-#if defined(CONFIG_BF537)
-	/* disable DMA3 and DMA4 */
-	bfin_write_DMA4_CONFIG(bfin_read_DMA4_CONFIG() & (~DMAEN));
-	bfin_write_DMA3_CONFIG(bfin_read_DMA3_CONFIG() & (~DMAEN));
-	SSYNC();
-	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() & (~0x00000020));
-	SSYNC();
-#endif
+	free_dma(sport_dma_tx);
+	free_dma(sport_dma_rx);
 }
 
 int bfsi_proc_read(char *buf, char **start, off_t offset, 
@@ -895,17 +769,18 @@ int bfsi_sport_init(
     bfsi_debug = debug;
   }
 
+  sport_dma_tx = CH_SPORT0_TX;
+  sport_dma_rx = CH_SPORT0_RX;
+
   bfsi_isr_callback = isr_callback;
   samples_per_chunk = samples;
 
   init_sport0();
-  init_dma_wc();
-  enable_dma_sport0();
-
-  if (init_sport_interrupts())
-    init_ok = 0;
+  if(init_dma_wc())
+	  init_ok = 0;
   else
-    init_ok = 1;
+	  init_ok = 1;
+  enable_dma_sport0();
 
   return init_ok;
 }
@@ -915,6 +790,7 @@ int bfsi_sport_init(
 void bfsi_sport_close(void)
 {
   disable_sport0();
+  bfsi_reset_free();
 
   if (init_ok) {
     free_irq(IRQ_SPORT0_RX, NULL);
