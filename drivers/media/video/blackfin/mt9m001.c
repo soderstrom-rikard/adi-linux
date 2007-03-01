@@ -58,6 +58,7 @@
 
 #include <media/v4l2-dev.h>
 
+
 #if defined(CONFIG_BF537)
 # define  uCAM_STANDBY  GPIO_PG11
 # define  uCAM_LEDS     GPIO_PG8
@@ -118,6 +119,11 @@
 #endif
 
 struct uCam_device_t;
+
+#define  MAX_BUFFER_SIZE 640 * 480 * 2
+
+static unsigned char* top_buffer;          /* TOP Video Buffer */
+static dma_addr_t dma_handle; 
 
 static unsigned int global_gain = 127;
 static unsigned int debug = 0;
@@ -192,6 +198,8 @@ struct uCam_device_t {
 	char name[32];
 	int width;
 	int height;
+	int prev_Hoff;
+	int prev_Woff;
 	size_t size;
 	struct timeval *stv;
 	struct timeval *etv;
@@ -315,7 +323,7 @@ static irqreturn_t ppifcd_irq_error(int irq, void *dev_id)
 	pr_debug("-->ppifcd_irq_error: PPI Status = 0x%X\n", bfin_read_PPI_STATUS());
 	bfin_clear_PPI_STATUS();
 
-	bfin_write_PPI_CONTROL(pdev->ppi_control & ~PORT_EN);
+	//bfin_write_PPI_CONTROL(pdev->ppi_control & ~PORT_EN);
 
 	return IRQ_HANDLED;
 }
@@ -455,6 +463,7 @@ static int mt9m001_detect_client(struct i2c_adapter *adapter, int address, int k
 	uCam_i2c_write(new_client, 0x1E, 0x8000);
 
 	err = mt9m001_init_v4l(data);
+	
 	if (err)
 		goto error_out;
 
@@ -1033,9 +1042,9 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, u
 			vm->frames = uCAM_NUM_BUFS;
 			vm->size = uCam_dev->size;
 			vm->offsets[0] = 0x00000000;
-			vm->offsets[1] = 0x03EC0000 - 0x1000;
+			vm->offsets[1] = top_buffer - 0x1000;
 			uCam_dev->buffer[0].data = (void*)0x00001000;
-			uCam_dev->buffer[1].data = (void*)0x03EC0000;
+			uCam_dev->buffer[1].data = (void*)top_buffer;
 			uCam_dev->buffer[0].state = FRAME_UNUSED;
 			uCam_dev->buffer[1].state = FRAME_UNUSED;
 
@@ -1071,16 +1080,25 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, u
 					return -EINVAL;
 			}
 
-			uCam_i2c_write(uCam_dev->client, 0x01, Hoff);
-			uCam_i2c_write(uCam_dev->client, 0x02, Woff);
+			if(uCam_dev->prev_Hoff != Hoff) {
+				uCam_dev->prev_Hoff = Hoff;
+				uCam_i2c_write(uCam_dev->client, 0x01, Hoff);
+			}
+			if(uCam_dev->prev_Woff != Woff) {
+				uCam_dev->prev_Woff = Woff;
+				uCam_i2c_write(uCam_dev->client, 0x02, Woff);
+			}
 
 			if (uCam_dev->height != vm->height || uCam_dev->width != vm->width) {
 				uCam_dev->height = vm->height;
 				uCam_dev->width = vm->width;
+
 				uCam_i2c_write(uCam_dev->client, 0x03, uCam_dev->height-1);
+
 				uCam_i2c_write(uCam_dev->client, 0x04, uCam_dev->width-1);
-				uCam_dev->ppidev->pixel_per_line  = uCam_dev->width-1;
-				uCam_dev->ppidev->lines_per_frame = uCam_dev->height-1;
+
+				uCam_dev->ppidev->pixel_per_line  = uCam_dev->width;
+				uCam_dev->ppidev->lines_per_frame = uCam_dev->height;
 
 				set_dma_config(CH_PPI, uCam_dev->ppidev->dma_config);
 				/* Div 2 because of 16-bit packing */
@@ -1090,7 +1108,7 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, u
 
 				bfin_write_PPI_CONTROL(uCam_dev->ppidev->ppi_control & ~PORT_EN);
 				bfin_write_PPI_DELAY(uCam_dev->ppidev->ppi_delay);
-				bfin_write_PPI_COUNT(uCam_dev->ppidev->pixel_per_line);
+				bfin_write_PPI_COUNT(uCam_dev->ppidev->pixel_per_line-1);
 				bfin_write_PPI_FRAME(uCam_dev->ppidev->lines_per_frame);
 
 				if (uCam_dev->ppidev->bpp > 8
@@ -1258,6 +1276,13 @@ static int uCam_open(struct inode *inode, struct file *filp)
 		return -EMFILE;
 	}
 
+	top_buffer = dma_alloc_coherent(NULL, MAX_BUFFER_SIZE, &dma_handle, GFP_KERNEL);
+
+	if (NULL == top_buffer) {
+		printk(KERN_ERR ": couldn't allocate dma buffer.\n");
+		return -ENOMEM;
+	}
+
 	memset(uCam_dev->ppidev, 0, sizeof(struct ppi_device_t));
 
 	uCam_dev->ppidev->opened = 1;
@@ -1282,11 +1307,13 @@ static int uCam_open(struct inode *inode, struct file *filp)
 	} else
 		set_dma_callback(CH_PPI, ppifcd_irq, uCam_dev->ppidev);
 
+#if 0
 	if (request_irq(IRQ_PPI_ERROR, ppifcd_irq_error, 0, "PPI ERROR", uCam_dev->ppidev)) {
 		printk(KERN_ERR "%s: Unable to attach PPI error IRQ\n", sensor_name);
 		free_dma(CH_PPI);
 		return -EFAULT;
 	}
+#endif
 
 #if (defined(CONFIG_BF537) || defined(CONFIG_BF536) || defined(CONFIG_BF534))
 	bfin_write_PORTG_FER(0x00FF);
@@ -1367,8 +1394,12 @@ static int uCam_close(struct inode *inode, struct file *filp)
 {
 	struct ppi_device_t *pdev = uCam_dev->ppidev;
 	pr_debug("uCam_close called\n");
-
+#if 0
  	free_irq(IRQ_PPI_ERROR, uCam_dev->ppidev); 
+#endif
+
+	dma_free_coherent(NULL, MAX_BUFFER_SIZE, top_buffer, dma_handle);
+
 	ucam_reg_reset(pdev);
 	ppi_fasync(-1, filp, 0);
 	free_dma(CH_PPI);
