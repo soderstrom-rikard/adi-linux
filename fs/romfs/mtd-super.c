@@ -146,7 +146,8 @@ static int romfs_mmap(struct file *file, struct vm_area_struct *vma)
 
 static struct file_operations romfs_ro_fops = {
 	.llseek			= generic_file_llseek,
-	.read			= generic_file_read,
+	.read			= do_sync_read,
+	.aio_read		= generic_file_aio_read,
 	.sendfile		= generic_file_sendfile,
 #ifdef CONFIG_MMU
 	.mmap			= generic_file_readonly_mmap,
@@ -543,14 +544,14 @@ static void romfs_destroy_inode(struct inode *inode)
 /*
  * get filesystem statistics
  */
-static int romfs_statfs(struct super_block *sb, struct kstatfs *buf)
+static int romfs_statfs(struct dentry *d, struct kstatfs *buf)
 {
 	buf->f_type = ROMFS_MAGIC;
 	buf->f_namelen = ROMFS_MAXFN;
 	buf->f_bsize = ROMBSIZE;
 	buf->f_bfree = buf->f_bavail = buf->f_ffree;
 	buf->f_blocks =
-		(romfs_maxsize(sb) + ROMBSIZE - 1) >> ROMBSBITS;
+		(romfs_maxsize(d->d_sb) + ROMBSIZE - 1) >> ROMBSBITS;
 	return 0;
 }
 
@@ -638,7 +639,7 @@ static int romfs_fill_super(struct super_block *sb, void *data, int silent)
 
 	len = strnlen(rsb->name, ROMFS_MAXFN);
 	if (!silent)
-		printk("ROMFS: Mounting image '%*.*s'\n", len, len, rsb->name);
+		printk("ROMFS: Mounting image '%*.*s'\n", (int)len, (int)len, rsb->name);
 
 	kfree(rsb);
 	rsb = NULL;
@@ -708,9 +709,10 @@ static int romfs_sb_set(struct super_block *sb, void *data)
 /*
  * get a superblock on an MTD-backed filesystem
  */
-static struct super_block *romfs_get_sb_mtd(struct file_system_type *fs_type,
-					    int flags, const char *dev_name,
-					    void *data, struct mtd_info *mtd)
+static int romfs_get_sb_mtd(struct file_system_type *fs_type,
+			    int flags, const char *dev_name,
+			    void *data, struct mtd_info *mtd,
+			    struct vfsmount *mnt)
 {
 	struct romfs_sb_info *super;
 	struct super_block *sb;
@@ -718,19 +720,20 @@ static struct super_block *romfs_get_sb_mtd(struct file_system_type *fs_type,
 
 	super = kzalloc(sizeof(*super), GFP_KERNEL);
 	if (!super)
-		return ERR_PTR(-ENOMEM);
+		return -ENOMEM;
 
 	super->mtd = mtd;
 
 	sb = sget(fs_type, romfs_sb_compare, romfs_sb_set, super);
 
 	if (IS_ERR(sb))
-		goto out_put;
+		goto out_error;
 
 	if (sb->s_root) {
 		/* new mountpoint for ROMFS which is already mounted */
 		kdebug("ROMFS: Device %d (\"%s\") is already mounted\n",
 		       mtd->index, mtd->name);
+		ret = simple_set_mnt(mnt, sb);
 		goto out_put;
 	}
 
@@ -741,25 +744,27 @@ static struct super_block *romfs_get_sb_mtd(struct file_system_type *fs_type,
 	if (ret < 0) {
 		up_write(&sb->s_umount);
 		deactivate_super(sb);
-		return ERR_PTR(ret);
+		return ret;
 	}
 
 	/* go */
 	sb->s_flags |= MS_ACTIVE;
-	return sb;
+	return simple_set_mnt(mnt, sb);
 
+out_error:
+	ret = PTR_ERR(sb);
 out_put:
 	kfree(super);
 	put_mtd_device(mtd);
-	return sb;
+	return ret;
 }
 
 /*
  * get a superblock on an MTD-backed filesystem by MTD device number
  */
-static struct super_block *romfs_get_sb_mtdnr(struct file_system_type *fs_type,
-					      int flags, const char *dev_name,
-					      void *data, int mtdnr)
+static int romfs_get_sb_mtdnr(struct file_system_type *fs_type,
+			      int flags, const char *dev_name,
+			      void *data, int mtdnr, struct vfsmount *mnt)
 {
 	struct mtd_info *mtd;
 
@@ -767,18 +772,18 @@ static struct super_block *romfs_get_sb_mtdnr(struct file_system_type *fs_type,
 	if (!mtd) {
 		kdebug("ROMFS: MTD device #%u doesn't appear to exist\n",
 		       mtdnr);
-		return ERR_PTR(-EINVAL);
+		return -EINVAL;
 	}
 
-	return romfs_get_sb_mtd(fs_type, flags, dev_name, data, mtd);
+	return romfs_get_sb_mtd(fs_type, flags, dev_name, data, mtd, mnt);
 }
 
 /*
  * get a superblock for mounting
  */
-static struct super_block *romfs_get_sb(struct file_system_type *fs_type,
-					int flags, const char *dev_name,
-					void *data)
+static int romfs_get_sb(struct file_system_type *fs_type,
+			int flags, const char *dev_name,
+			void *data, struct vfsmount *mnt)
 {
 	int err;
 	struct nameidata nd;
@@ -787,7 +792,7 @@ static struct super_block *romfs_get_sb(struct file_system_type *fs_type,
 	kdebug("ROMFS: get_sb");
 
 	if (!dev_name)
-		return ERR_PTR(-EINVAL);
+		return -EINVAL;
 
 	kdebug("ROMFS: dev_name \"%s\"\n", dev_name);
 
@@ -810,7 +815,7 @@ static struct super_block *romfs_get_sb(struct file_system_type *fs_type,
 					if (!strcmp(mtd->name, dev_name+4))
 						return romfs_get_sb_mtd(
 							fs_type, flags,
-							dev_name, data, mtd);
+							dev_name, data, mtd, mnt);
 
 					put_mtd_device(mtd);
 				}
@@ -831,7 +836,7 @@ static struct super_block *romfs_get_sb(struct file_system_type *fs_type,
 				       mtdnr);
 				return romfs_get_sb_mtdnr(fs_type, flags,
 							  dev_name, data,
-							  mtdnr);
+							  mtdnr, mnt);
 			}
 		}
 	}
@@ -845,7 +850,7 @@ static struct super_block *romfs_get_sb(struct file_system_type *fs_type,
 	       err, nd.dentry ? nd.dentry->d_inode : NULL);
 
 	if (err)
-		return ERR_PTR(err);
+		return err;
 
 	err = -EINVAL;
 
@@ -868,11 +873,11 @@ static struct super_block *romfs_get_sb(struct file_system_type *fs_type,
 	mtdnr = iminor(nd.dentry->d_inode);
 	path_release(&nd);
 
-	return romfs_get_sb_mtdnr(fs_type, flags, dev_name, data, mtdnr);
+	return romfs_get_sb_mtdnr(fs_type, flags, dev_name, data, mtdnr, mnt);
 
 out:
 	path_release(&nd);
-	return ERR_PTR(err);
+	return err;
 }
 
 /*
