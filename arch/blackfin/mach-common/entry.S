@@ -339,7 +339,7 @@ ENTRY(_trap) /* Exception: 4th entry into system event table(supervisor mode)*/
 	[sp + PT_R0] = r7;	/* return value from system call */
 	jump .Lsyscall_really_exit;
 
-ENTRY(_execve)
+ENTRY(_kernel_execve)
 	link SIZEOF_PTREGS;
 	p0 = sp;
 	r3 = SIZEOF_PTREGS / 4;
