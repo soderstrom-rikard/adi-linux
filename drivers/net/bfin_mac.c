@@ -83,16 +83,14 @@ MODULE_DESCRIPTION("Blackfin MAC Driver");
 static void desc_list_free(void);
 
 /* pointers to maintain transmit list */
-struct net_dma_desc_tx *tx_list_head;
-struct net_dma_desc_tx *tx_list_tail;
-struct net_dma_desc_rx *rx_list_head;
-struct net_dma_desc_rx *rx_list_tail;
-struct net_dma_desc_rx *current_rx_ptr;
-struct net_dma_desc_tx *current_tx_ptr;
-struct net_dma_desc_tx *tx_desc;
-struct net_dma_desc_rx *rx_desc;
-
-extern void get_bf537_ether_addr(char *addr);
+static struct net_dma_desc_tx *tx_list_head;
+static struct net_dma_desc_tx *tx_list_tail;
+static struct net_dma_desc_rx *rx_list_head;
+static struct net_dma_desc_rx *rx_list_tail;
+static struct net_dma_desc_rx *current_rx_ptr;
+static struct net_dma_desc_tx *current_tx_ptr;
+static struct net_dma_desc_tx *tx_desc;
+static struct net_dma_desc_rx *rx_desc;
 
 static int desc_list_init(void)
 {
@@ -131,22 +129,22 @@ static int desc_list_init(void)
 		tmp_desc_tx->desc_a.start_addr =
 		    (unsigned long)tmp_desc_tx->packet;
 		tmp_desc_tx->desc_a.x_count = 0;
-		tmp_desc_tx->desc_a.config.b_DMA_EN = 0;	//disabled
-		tmp_desc_tx->desc_a.config.b_WNR = 0;	//read from memory
-		tmp_desc_tx->desc_a.config.b_WDSIZE = 2;	//wordsize is 32 bits
-		tmp_desc_tx->desc_a.config.b_NDSIZE = 6;	//6 half words is desc size.
-		tmp_desc_tx->desc_a.config.b_FLOW = 7;	//large desc flow
+		tmp_desc_tx->desc_a.config.b_DMA_EN = 0;	/* disabled */
+		tmp_desc_tx->desc_a.config.b_WNR = 0;		/* read from memory */
+		tmp_desc_tx->desc_a.config.b_WDSIZE = 2;	/* wordsize is 32 bits */
+		tmp_desc_tx->desc_a.config.b_NDSIZE = 6;	/* 6 half words is desc size. */
+		tmp_desc_tx->desc_a.config.b_FLOW = 7;		/* large desc flow */
 		tmp_desc_tx->desc_a.next_dma_desc = &(tmp_desc_tx->desc_b);
 
 		tmp_desc_tx->desc_b.start_addr =
 		    (unsigned long)(&(tmp_desc_tx->status));
 		tmp_desc_tx->desc_b.x_count = 0;
-		tmp_desc_tx->desc_b.config.b_DMA_EN = 1;	//enabled
-		tmp_desc_tx->desc_b.config.b_WNR = 1;	//write to memory
-		tmp_desc_tx->desc_b.config.b_WDSIZE = 2;	//wordsize is 32 bits
-		tmp_desc_tx->desc_b.config.b_DI_EN = 0;	//disable interrupt
+		tmp_desc_tx->desc_b.config.b_DMA_EN = 1;	/* enabled */
+		tmp_desc_tx->desc_b.config.b_WNR = 1;		/* write to memory */
+		tmp_desc_tx->desc_b.config.b_WDSIZE = 2;	/* wordsize is 32 bits */
+		tmp_desc_tx->desc_b.config.b_DI_EN = 0;		/* disable interrupt */
 		tmp_desc_tx->desc_b.config.b_NDSIZE = 6;
-		tmp_desc_tx->desc_b.config.b_FLOW = 7;	//stop mode
+		tmp_desc_tx->desc_b.config.b_FLOW = 7;		/* stop mode */
 		tmp_desc_tx->skb = NULL;
 		tx_list_tail->desc_b.next_dma_desc = &(tmp_desc_tx->desc_a);
 		tx_list_tail->next = tmp_desc_tx;
@@ -180,22 +178,22 @@ static int desc_list_init(void)
 		tmp_desc_rx->desc_a.start_addr =
 		    (unsigned long)new_skb->data - 2;
 		tmp_desc_rx->desc_a.x_count = 0;
-		tmp_desc_rx->desc_a.config.b_DMA_EN = 1;	//enabled
-		tmp_desc_rx->desc_a.config.b_WNR = 1;	//Write to memory
-		tmp_desc_rx->desc_a.config.b_WDSIZE = 2;	//wordsize is 32 bits
-		tmp_desc_rx->desc_a.config.b_NDSIZE = 6;	//6 half words is desc size.
-		tmp_desc_rx->desc_a.config.b_FLOW = 7;	//large desc flow
+		tmp_desc_rx->desc_a.config.b_DMA_EN = 1;	/* enabled */
+		tmp_desc_rx->desc_a.config.b_WNR = 1;		/* Write to memory */
+		tmp_desc_rx->desc_a.config.b_WDSIZE = 2;	/* wordsize is 32 bits */
+		tmp_desc_rx->desc_a.config.b_NDSIZE = 6;	/* 6 half words is desc size. */
+		tmp_desc_rx->desc_a.config.b_FLOW = 7;		/* large desc flow */
 		tmp_desc_rx->desc_a.next_dma_desc = &(tmp_desc_rx->desc_b);
 
 		tmp_desc_rx->desc_b.start_addr =
 		    (unsigned long)(&(tmp_desc_rx->status));
 		tmp_desc_rx->desc_b.x_count = 0;
-		tmp_desc_rx->desc_b.config.b_DMA_EN = 1;	//enabled
-		tmp_desc_rx->desc_b.config.b_WNR = 1;	//Write to memory
-		tmp_desc_rx->desc_b.config.b_WDSIZE = 2;	//wordsize is 32 bits
+		tmp_desc_rx->desc_b.config.b_DMA_EN = 1;	/* enabled */
+		tmp_desc_rx->desc_b.config.b_WNR = 1;		/* Write to memory */
+		tmp_desc_rx->desc_b.config.b_WDSIZE = 2;	/* wordsize is 32 bits */
 		tmp_desc_rx->desc_b.config.b_NDSIZE = 6;
-		tmp_desc_rx->desc_b.config.b_DI_EN = 1;	//enable interrupt
-		tmp_desc_rx->desc_b.config.b_FLOW = 7;	//large mode
+		tmp_desc_rx->desc_b.config.b_DI_EN = 1;		/* enable interrupt */
+		tmp_desc_rx->desc_b.config.b_FLOW = 7;		/* large mode */
 		rx_list_tail->desc_b.next_dma_desc = &(tmp_desc_rx->desc_a);
 
 		rx_list_tail->next = tmp_desc_rx;
@@ -254,16 +252,15 @@ static void desc_list_free(void)
 
 /*---PHY CONTROL AND CONFIGURATION-----------------------------------------*/
 
-//
-//Set FER regs to MUX in Ethernet pins
-//
-
-static void SetupPinMux(void)
+/* Set FER regs to MUX in Ethernet pins */
+static void setup_pin_mux(void)
 {
 	unsigned int fer_val;
 
-	// FER reg bug work-around
-	// read it once
+	/* 
+	 * FER reg bug work-around 
+	 * read it once
+	 */
 	fer_val = bfin_read_PORTH_FER();
 
 #if defined(CONFIG_BFIN_MAC_RMII)
@@ -271,122 +268,114 @@ static void SetupPinMux(void)
 #else
 	fer_val = 0xffff;
 #endif
-	// write it twice to the same value
+	/* write it twice to the same value */
 
 	bfin_write_PORTH_FER(fer_val);
 	bfin_write_PORTH_FER(fer_val);
 }
 
-//
-//Wait until the previous MDC/MDIO transaction has completed
-//
-
-static void PollMdcDone(void)
+/* Wait until the previous MDC/MDIO transaction has completed */
+static void poll_mdc_done(void)
 {
-	// poll the STABUSY bit
+	/* poll the STABUSY bit */
 	while ((bfin_read_EMAC_STAADD()) & STABUSY) {
 	};
 }
 
-//
-//Read an off-chip register in a PHY through the MDC/MDIO port
-//
-
-static u16 RdPHYReg(u16 PHYAddr, u16 RegAddr)
+/* Read an off-chip register in a PHY through the MDC/MDIO port */
+static u16 read_phy_reg(u16 PHYAddr, u16 RegAddr)
 {
-	PollMdcDone();
-	bfin_write_EMAC_STAADD(SET_PHYAD(PHYAddr) | SET_REGAD(RegAddr) | STABUSY);	// read mode
-	PollMdcDone();
+	poll_mdc_done();
+	bfin_write_EMAC_STAADD(SET_PHYAD(PHYAddr) | SET_REGAD(RegAddr) | STABUSY);	/* read mode */
+	poll_mdc_done();
 
 	return (u16) bfin_read_EMAC_STADAT();
 }
 
-//
-//Write an off-chip register in a PHY through the MDC/MDIO port
-//
-
-static void RawWrPHYReg(u16 PHYAddr, u16 RegAddr, u32 Data)
+/* Write an off-chip register in a PHY through the MDC/MDIO port */
+static void raw_write_phy_reg(u16 PHYAddr, u16 RegAddr, u32 Data)
 {
-
 	bfin_write_EMAC_STADAT(Data);
 
-	bfin_write_EMAC_STAADD(SET_PHYAD(PHYAddr) | SET_REGAD(RegAddr) | STAOP | STABUSY);	//write mode
+	bfin_write_EMAC_STAADD(SET_PHYAD(PHYAddr) | SET_REGAD(RegAddr) | STAOP | STABUSY);	/* write mode */
 
-	PollMdcDone();
+	poll_mdc_done();
 }
 
-static void WrPHYReg(u16 PHYAddr, u16 RegAddr, u32 Data)
+static void write_phy_reg(u16 PHYAddr, u16 RegAddr, u32 Data)
 {
-	PollMdcDone();
-	RawWrPHYReg(PHYAddr, RegAddr, Data);
+	poll_mdc_done();
+	raw_write_phy_reg(PHYAddr, RegAddr, Data);
 }
 
-//
-//set up the phy
-//
+/* set up the phy */
 static void bf537mac_setphy(struct net_device *dev)
 {
 	u16 phydat;
 	u32 sysctl;
 	struct bf537mac_local *lp = netdev_priv(dev);
 
-	//printk(KERN_DEBUG CARDNAME ": start settting up phy\n");
+	pr_debug("start settting up phy\n");
 
-	//Program PHY registers
+	/* Program PHY registers */
 	phydat = 0;
 
-	// issue a reset
-	RawWrPHYReg(lp->PhyAddr, PHYREG_MODECTL, 0x8000);
+	/* issue a reset */
+	raw_write_phy_reg(lp->PhyAddr, PHYREG_MODECTL, 0x8000);
 
-	// wait half a second
+	/* wait half a second */
 	udelay(500);
 
-	phydat = RdPHYReg(lp->PhyAddr, PHYREG_MODECTL);
+	phydat = read_phy_reg(lp->PhyAddr, PHYREG_MODECTL);
 
-	// advertise flow control supported
-	phydat = RdPHYReg(lp->PhyAddr, PHYREG_ANAR);
+	/* advertise flow control supported */
+	phydat = read_phy_reg(lp->PhyAddr, PHYREG_ANAR);
 	phydat |= (1 << 10);
-	WrPHYReg(lp->PhyAddr, PHYREG_ANAR, phydat);
+	write_phy_reg(lp->PhyAddr, PHYREG_ANAR, phydat);
 
 	phydat = 0;
 	if (lp->Negotiate) {
-		phydat |= 0x1000;	// enable auto negotiation
+		phydat |= 0x1000;	/* enable auto negotiation */
 	} else {
 		if (lp->FullDuplex) {
-			phydat |= (1 << 8);	// full duplex
+			phydat |= (1 << 8);	/* full duplex */
 		} else {
-			phydat &= (~(1 << 8));	// half duplex
+			phydat &= (~(1 << 8));	/* half duplex */
 		}
 		if (!lp->Port10) {
-			phydat |= (1 << 13);	// 100 Mbps
+			phydat |= (1 << 13);	/* 100 Mbps */
 		} else {
-			phydat &= (~(1 << 13));	// 10 Mbps
+			phydat &= (~(1 << 13));	/* 10 Mbps */
 		}
 	}
 
 	if (lp->Loopback) {
-		phydat |= (1 << 14);	// enable TX->RX loopback
-		//WrPHYReg(lp->PhyAddr, PHYREG_MODECTL, phydat);
+		phydat |= (1 << 14);	/* enable TX->RX loopback */
+#if 0
+		write_phy_reg(lp->PhyAddr, PHYREG_MODECTL, phydat);
+#endif
 	}
 
-	WrPHYReg(lp->PhyAddr, PHYREG_MODECTL, phydat);
+	write_phy_reg(lp->PhyAddr, PHYREG_MODECTL, phydat);
 	udelay(500);
 
-	phydat = RdPHYReg(lp->PhyAddr, PHYREG_MODECTL);
-	// check for SMSC PHY
-	if ((RdPHYReg(lp->PhyAddr, PHYREG_PHYID1) == 0x7)
-	    && ((RdPHYReg(lp->PhyAddr, PHYREG_PHYID2) & 0xfff0) == 0xC0A0)) {
-		// we have SMSC PHY so reqest interrupt on link down condition
-		WrPHYReg(lp->PhyAddr, 30, 0x0ff);	// enable interrupts
-		// enable PHY_INT
+	phydat = read_phy_reg(lp->PhyAddr, PHYREG_MODECTL);
+	/* check for SMSC PHY */
+	if ((read_phy_reg(lp->PhyAddr, PHYREG_PHYID1) == 0x7)
+	    && ((read_phy_reg(lp->PhyAddr, PHYREG_PHYID2) & 0xfff0) == 0xC0A0)) {
+		/* we have SMSC PHY so reqest interrupt on link down condition */
+		write_phy_reg(lp->PhyAddr, 30, 0x0ff);	/* enable interrupts */
+		/* enable PHY_INT */
 		sysctl = bfin_read_EMAC_SYSCTL();
 		sysctl |= 0x1;
-		//bfin_write_EMAC_SYSCTL(sysctl);
+#if 0
+		bfin_write_EMAC_SYSCTL(sysctl);
+#endif
 	}
 }
 
 /**************************************************************************/
-void SetupSystemRegs(struct net_device *dev)
+void setup_system_regs(struct net_device *dev)
 {
 	int PHYADDR;
 	unsigned short sysctl, phydat;
@@ -414,12 +403,12 @@ void SetupSystemRegs(struct net_device *dev)
 	/* full duplex          */
 	/* 100 Mbps             */
 	phydat = PHY_ANEG_EN | PHY_DUPLEX | PHY_SPD_SET;
-	WrPHYReg(PHYADDR, PHYREG_MODECTL, phydat);
+	write_phy_reg(PHYADDR, PHYREG_MODECTL, phydat);
 
 	/* test if full duplex supported */
 	do {
 		msleep(100);
-		phydat = RdPHYReg(PHYADDR, PHYREG_MODESTAT);
+		phydat = read_phy_reg(PHYADDR, PHYREG_MODESTAT);
 		if (count > 30) {
 			printk(KERN_NOTICE CARDNAME
 			       ": Link is down, please check your network connection\n");
@@ -428,7 +417,7 @@ void SetupSystemRegs(struct net_device *dev)
 		count++;
 	} while (!(phydat & 0x0004));
 
-	phydat = RdPHYReg(PHYADDR, PHYREG_ANLPAR);
+	phydat = read_phy_reg(PHYADDR, PHYREG_ANLPAR);
 
 	if ((phydat & 0x0100) || (phydat & 0x0040)) {
 		opmode = FDMODE;
@@ -443,7 +432,9 @@ void SetupSystemRegs(struct net_device *dev)
 
 	bfin_write_EMAC_OPMODE(opmode);
 
-	//bfin_write_EMAC_MMC_CTL(RSTC | CROLL | MMCE);
+#if 0
+	bfin_write_EMAC_MMC_CTL(RSTC | CROLL | MMCE);
+#endif
 	bfin_write_EMAC_MMC_CTL(RSTC | CROLL);
 
 	/* Initialize the TX DMA channel registers */
@@ -459,9 +450,9 @@ void SetupSystemRegs(struct net_device *dev)
 	bfin_write_DMA1_Y_MODIFY(0);
 }
 
-void SetupMacAddr(u8 * mac_addr)
+void setup_mac_addr(u8 * mac_addr)
 {
-	// this depends on a little-endian machine
+	/* this depends on a little-endian machine */
 	bfin_write_EMAC_ADDRLO(*(u32 *) & mac_addr[0]);
 	bfin_write_EMAC_ADDRHI(*(u16 *) & mac_addr[4]);
 }
@@ -470,7 +461,7 @@ static void adjust_tx_list(void)
 {
 	if (tx_list_head->status.status_word != 0
 	    && current_tx_ptr != tx_list_head) {
-		goto adjust_head;	// released something, just return;
+		goto adjust_head;	/* released something, just return; */
 	}
 
 	/* if nothing released, check wait condition */
@@ -514,13 +505,13 @@ static int bf537mac_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	unsigned int data;
 
 	current_tx_ptr->skb = skb;
-	// Is skb->data always 16-bit aligned? Do we need to memcpy((char *)(tail->packet + 2),skb->data,len)?
+	/* Is skb->data always 16-bit aligned? Do we need to memcpy((char *)(tail->packet + 2),skb->data,len)? */
 	if ((((unsigned int)(skb->data)) & 0x02) == 2) {
-		//move skb->data to current_tx_ptr payload
+		/* move skb->data to current_tx_ptr payload */
 		data = (unsigned int)(skb->data) - 2;
 		*((unsigned short *)data) = (unsigned short)(skb->len);
 		current_tx_ptr->desc_a.start_addr = (unsigned long)data;
-		blackfin_dcache_flush_range(data, (data + (skb->len)) + 2);	//this is important!
+		blackfin_dcache_flush_range(data, (data + (skb->len)) + 2);	/* this is important! */
 
 	} else {
 		*((unsigned short *)(current_tx_ptr->packet)) =
@@ -538,14 +529,16 @@ static int bf537mac_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 					    2);
 	}
 
-	current_tx_ptr->desc_a.config.b_DMA_EN = 1;	//enable this packet's dma
+	current_tx_ptr->desc_a.config.b_DMA_EN = 1;	/* enable this packet's dma */
 
-	if (bfin_read_DMA2_IRQ_STATUS() & 0x08) {	//tx dma is running, just return
+	if (bfin_read_DMA2_IRQ_STATUS() & 0x08) {	/* tx dma is running, just return */
 		goto out;
-	} else {		//tx dma is not running
+	} else {
+		/* tx dma is not running */
 		bfin_write_DMA2_NEXT_DESC_PTR(&(current_tx_ptr->desc_a));
-		bfin_write_DMA2_CONFIG(*((unsigned short *)(&(current_tx_ptr->desc_a.config))));	// dma enabled, read from memory, size is 6
-		// Turn on the EMAC tx
+		/* dma enabled, read from memory, size is 6 */
+		bfin_write_DMA2_CONFIG(*((unsigned short *)(&(current_tx_ptr->desc_a.config))));
+		/* Turn on the EMAC tx */
 		bfin_write_EMAC_OPMODE(bfin_read_EMAC_OPMODE() | TE);
 	}
 
@@ -577,7 +570,8 @@ static void bf537mac_rx(struct net_device *dev)
 	skb_reserve(new_skb, 2);
 	current_rx_ptr->skb = new_skb;
 	current_rx_ptr->desc_a.start_addr = (unsigned long)new_skb->data - 2;
-/*
+
+#if 0
 	int i;
 	if (len >= 64) {
 		for (i=0;i<len;i++) {
@@ -586,7 +580,7 @@ static void bf537mac_rx(struct net_device *dev)
 		}
 	printk("\n");
 	}
-*/
+#endif
 
 	len = (unsigned short)((current_rx_ptr->status.status_word) & RX_FRLEN);
 	skb_put(skb, len);
@@ -618,7 +612,7 @@ static irqreturn_t bf537mac_interrupt(int irq, void *dev_id)
 	int number = 0;
 
       get_one_packet:
-	if (current_rx_ptr->status.status_word == 0) {	// no more new packet received
+	if (current_rx_ptr->status.status_word == 0) {	/* no more new packet received */
 		if (number == 0) {
 			if (current_rx_ptr->next->status.status_word != 0) {
 				current_rx_ptr = current_rx_ptr->next;
@@ -662,9 +656,8 @@ static void bf537mac_reset(void)
 static int bf537mac_enable(struct net_device *dev)
 {
 	u32 opmode;
-	//u32 pkt_status;
 
-	//printk("%s: %s\n", dev->name, __FUNCTION__);
+	pr_debug("%s: %s\n", dev->name, __FUNCTION__);
 
 	/* Set RX DMA */
 	bfin_write_DMA1_NEXT_DESC_PTR(&(rx_list_head->desc_a));
@@ -673,7 +666,7 @@ static int bf537mac_enable(struct net_device *dev)
 				 *)(&(rx_list_head->desc_a.config))));
 
 	/* Wait MII done */
-	PollMdcDone();
+	poll_mdc_done();
 
 	/* We enable only RX here */
 	/* ASTP   : Enable Automatic Pad Stripping
@@ -704,7 +697,7 @@ static int bf537mac_enable(struct net_device *dev)
 /* Our watchdog timed out. Called by the networking layer */
 static void bf537mac_timeout(struct net_device *dev)
 {
-	//printk("%s: %s\n", dev->name, __FUNCTION__);
+	pr_debug("%s: %s\n", dev->name, __FUNCTION__);
 
 	bf537mac_reset();
 
@@ -727,7 +720,7 @@ static struct net_device_stats *bf537mac_query_statistics(struct net_device
 {
 	struct bf537mac_local *lp = netdev_priv(dev);
 
-	//printk("%s: %s\n", dev->name, __FUNCTION__);
+	pr_debug("%s: %s\n", dev->name, __FUNCTION__);
 
 	return &lp->stats;
 }
@@ -781,7 +774,7 @@ static void bf537mac_shutdown(struct net_device *dev)
  */
 static int bf537mac_open(struct net_device *dev)
 {
-	//printk("%s: %s\n", dev->name, __FUNCTION__);
+	pr_debug("%s: %s\n", dev->name, __FUNCTION__);
 
 	/*
 	 * Check that the address is valid.  If its not, refuse
@@ -797,11 +790,11 @@ static int bf537mac_open(struct net_device *dev)
 	desc_list_init();
 
 	bf537mac_setphy(dev);
-	SetupSystemRegs(dev);
+	setup_system_regs(dev);
 	bf537mac_reset();
 	bf537mac_enable(dev);
 
-	//printk(KERN_DEBUG CARDNAME ": hardware init finished\n");
+	pr_debug("hardware init finished\n");
 	netif_start_queue(dev);
 	netif_carrier_on(dev);
 
@@ -816,8 +809,8 @@ static int bf537mac_open(struct net_device *dev)
  */
 static int bf537mac_close(struct net_device *dev)
 {
-	//printk("%s: %s\n", dev->name, __FUNCTION__);
-
+	pr_debug("%s: %s\n", dev->name, __FUNCTION__);
+	
 	netif_stop_queue(dev);
 	netif_carrier_off(dev);
 
@@ -843,7 +836,7 @@ static int __init bf537mac_probe(struct net_device *dev)
 	/*todo: how to proble? which is revision_register */
 	bfin_write_EMAC_ADDRLO(0x12345678);
 	if (bfin_read_EMAC_ADDRLO() != 0x12345678) {
-		//printk(CARDNAME ": can't detect bf537 mac!\n");
+		pr_debug("can't detect bf537 mac!\n");
 		retval = -ENODEV;
 		goto err_out;
 	}
@@ -860,7 +853,7 @@ static int __init bf537mac_probe(struct net_device *dev)
 		random_ether_addr(dev->dev_addr);
 	}
 
-	SetupMacAddr(dev->dev_addr);
+	setup_mac_addr(dev->dev_addr);
 
 	/* Fill in the fields of the device structure with ethernet values. */
 	ether_setup(dev);
@@ -871,7 +864,9 @@ static int __init bf537mac_probe(struct net_device *dev)
 	dev->tx_timeout = bf537mac_timeout;
 	dev->get_stats = bf537mac_query_statistics;
 	dev->set_multicast_list = bf537mac_set_multicast_list;
-	//  dev->ethtool_ops = &bf537mac_ethtool_ops;
+#if 0
+	dev->ethtool_ops = &bf537mac_ethtool_ops;
+#endif
 #ifdef CONFIG_NET_POLL_CONTROLLER
 	dev->poll_controller = bf537mac_poll;
 #endif
@@ -885,8 +880,8 @@ static int __init bf537mac_probe(struct net_device *dev)
 	lp->FlowControl = 0;
 	spin_lock_init(&lp->lock);
 
-	// set the GPIO pins to Ethernet mode
-	SetupPinMux();
+	/* set the GPIO pins to Ethernet mode */
+	setup_pin_mux();
 
 	/* now, enable interrupts */
 	/* register irq handler */
@@ -898,7 +893,7 @@ static int __init bf537mac_probe(struct net_device *dev)
 		return -EBUSY;
 	}
 
-	/* Enable PHY output early*/
+	/* Enable PHY output early */
 	if (!(bfin_read_VR_CTL() & PHYCLKOE))
 		bfin_write_VR_CTL(bfin_read_VR_CTL() | PHYCLKOE);
 
