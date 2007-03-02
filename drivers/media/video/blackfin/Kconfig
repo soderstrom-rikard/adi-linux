@@ -8,3 +8,22 @@ config VIDEO_BLACKFIN_MT9M001
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called mt9m001.
+
+comment "CMOS Camera Sensor Selection"
+
+choice
+	prompt "Target Sensor"
+	depends on VIDEO_BLACKFIN_MT9M001	
+	default MT9V022
+
+config MT9V022
+	bool "MT9V022"
+	help
+	  Micron MT9V022 Semsor Support
+
+config MT9M001
+	bool "MT9M001"
+	help
+	  Micron MT9M001 Semsor Support
+
+endchoice
