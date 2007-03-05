@@ -240,16 +240,6 @@ static void setup_desc(struct dmasg_t *desc, void *buf, int fragcount,
 	*/
 }
 
-/* Stupid function for waiting, udelay make while does break,
- * msleep crash system.
- */
-void waiting(unsigned long flags)
-{
-	unsigned long i, t;
-	for(i=0; i<1000; i++)
-		t = flags;
-}
-
 static int sport_start(struct bf53x_sport *sport)
 {
 	enable_dma(sport->dma_rx_chan);
@@ -295,10 +285,9 @@ static inline int sport_hook_rx_dummy(struct bf53x_sport *sport)
 	desc->next_desc_addr = (unsigned long)(sport->dummy_rx_desc);
 	local_irq_restore(flags);
 	/* Waiting for dummy buffer descriptor is already hooked*/
-	while (dma->curr_desc_ptr - sizeof(struct dmasg_t) != \
-			(unsigned long)sport->dummy_rx_desc) {
-		waiting(flags);
-	}
+	while (((volatile unsigned long)dma->curr_desc_ptr - \
+			sizeof(struct dmasg_t)) != \
+			(unsigned long)sport->dummy_rx_desc) {}
 	sport->curr_rx_desc = sport->dummy_rx_desc;
 	/* Restore the damaged descriptor */
 	*desc = temp_desc;
@@ -423,10 +412,9 @@ static inline int sport_hook_tx_dummy(struct bf53x_sport *sport)
 	/* Waiting for dummy buffer descriptor is already hooked*/
 //	printk(KERN_ERR "desc:0x%p, sport->dummy_tx_desc:0x%p\n",
 //			desc, sport->dummy_tx_desc);
-	while ((dma->curr_desc_ptr-sizeof(struct dmasg_t)) != \
-			(unsigned long)sport->dummy_tx_desc) {
-		waiting(flags);
-	}
+	while (((volatile unsigned long)dma->curr_desc_ptr - \
+			sizeof(struct dmasg_t)) != \
+			(unsigned long)sport->dummy_tx_desc) {}
 	sport->curr_tx_desc = sport->dummy_tx_desc;
 	/* Restore the damaged descriptor */
 	*desc = temp_desc;
