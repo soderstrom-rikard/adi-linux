@@ -248,7 +248,7 @@ static irqreturn_t dma_rx_irq_handler(int irq, void *dev_id)
 static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id)
 {
 	struct sport_dev *dev = dev_id;
-	unsigned int status ;
+	volatile unsigned int status ;
 
 	pr_debug("%s enter\n", __FUNCTION__);
 	status = get_dma_curr_irqstat(dev->dma_tx_chan);
@@ -292,21 +292,21 @@ static irqreturn_t sport_rx_handler(int irq, void *dev_id)
 		while ((dev->rx_received < dev->rx_len) && \
 				(dev->regs->stat & RXNE)) {
 			 *(dev->rx_buf + dev->rx_received) = \
-				*(unsigned char*)(&dev->regs->rx);
+				*(volatile unsigned char *)(&dev->regs->rx);
 			 dev->rx_received++;
 		}
 	} else if (word_bytes == 2) {
 		while ((dev->rx_received < dev->rx_len) && \
 				(dev->regs->stat & RXNE)) {
 			*(unsigned short*)(dev->rx_buf + dev->rx_received) = \
-				*(unsigned short*)(&dev->regs->rx);
+				*(volatile unsigned short *)(&dev->regs->rx);
 			dev->rx_received += 2;
 		}
 	} else if (word_bytes == 4) {
 		while ((dev->rx_received < dev->rx_len) && \
 				(dev->regs->stat & RXNE)) {
 			*(unsigned long*)(dev->rx_buf + dev->rx_received) = \
-				*(unsigned long*)(&dev->regs->rx);
+				*(volatile unsigned long *)(&dev->regs->rx);
 			dev->rx_received += 4;
 		}
 	}
@@ -330,22 +330,22 @@ static inline void sport_tx_write(struct sport_dev *dev)
 	if (word_bytes == 1) {
 		while ((dev->tx_sent < dev->tx_len) && \
 				!(dev->regs->stat & TXF)) {
-			*(unsigned char*)(&dev->regs->tx) = *(dev->tx_buf + \
-					dev->tx_sent);
+			*(volatile unsigned char *)(&dev->regs->tx) =
+				 *(dev->tx_buf + dev->tx_sent);
 			dev->tx_sent++;
 		}
 	} else if (word_bytes == 2) {
 		while ((dev->tx_sent < dev->tx_len) && \
 				!(dev->regs->stat & TXF)) {
-			*(unsigned short*)(&dev->regs->tx) = *(unsigned short*) \
-					(dev->tx_buf + dev->tx_sent);
+			*(volatile unsigned short *)(&dev->regs->tx) = 
+				*(unsigned short*)(dev->tx_buf + dev->tx_sent);
 			dev->tx_sent += 2;
 		}
 	} else if (word_bytes == 4) {
 		while ((dev->tx_sent < dev->tx_len) && \
 				!(dev->regs->stat & TXF)) {
-			dev->regs->tx = *(unsigned long*) \
-					(dev->tx_buf + dev->tx_sent);
+			*(volatile unsigned long *)dev->regs->tx = 
+				*(unsigned long*)(dev->tx_buf + dev->tx_sent);
 			dev->tx_sent += 4;
 		}
 	}
@@ -359,7 +359,7 @@ static irqreturn_t sport_tx_handler(int irq, void *dev_id)
 	sport_tx_write(dev);
 
 	if (dev->tx_len != 0 && dev->tx_sent >= dev->tx_len && dev->config.int_clk) {
-		unsigned int stat;
+		volatile unsigned int stat;
 
 		stat = dev->regs->stat;
 		while (!(stat & TXHRE)) {
