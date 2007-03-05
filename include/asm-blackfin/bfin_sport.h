@@ -81,27 +81,27 @@ struct sport_config {
 };
 
 struct sport_register {
-	volatile unsigned short tcr1;
+	unsigned short tcr1;
 	unsigned short reserved0;
-	volatile unsigned short tcr2;
+	unsigned short tcr2;
 	unsigned short reserved1;
 	unsigned short tclkdiv;
 	unsigned short reserved2;
 	unsigned short tfsdiv;
 	unsigned short reserved3;
-	volatile unsigned long tx;
+	unsigned long tx;
 	unsigned long reserved_l0;
-	volatile unsigned long rx;
+	unsigned long rx;
 	unsigned long reserved_l1;
-	volatile unsigned short rcr1;
+	unsigned short rcr1;
 	unsigned short reserved4;
-	volatile unsigned short rcr2;
+	unsigned short rcr2;
 	unsigned short reserved5;
 	unsigned short rclkdiv;
 	unsigned short reserved6;
 	unsigned short rfsdiv;
 	unsigned short reserved7;
-	volatile unsigned short stat;
+	unsigned short stat;
 	unsigned short reserved8;
 	unsigned short chnl;
 	unsigned short reserved9;
