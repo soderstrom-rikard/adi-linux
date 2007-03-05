@@ -195,13 +195,13 @@ static struct irq_chip bf561_internal_irqchip = {
 };
 
 #ifdef CONFIG_IRQCHIP_DEMUX_GPIO
-static unsigned short gpio_enabled[gpio_bank(MAX_BLACKFIN_GPIOS)]; 
-static unsigned short gpio_edge_triggered[gpio_bank(MAX_BLACKFIN_GPIOS)]; 
+static unsigned short gpio_enabled[gpio_bank(MAX_BLACKFIN_GPIOS)];
+static unsigned short gpio_edge_triggered[gpio_bank(MAX_BLACKFIN_GPIOS)];
 
 static void bf561_gpio_ack_irq(unsigned int irq)
 {
 	u16 gpionr = irq - IRQ_PF0;
-	
+
 	if(gpio_edge_triggered[gpio_bank(gpionr)] & gpio_bit(gpionr)) {
 		set_gpio_data(gpionr, 0);
 		SSYNC();
@@ -270,7 +270,7 @@ static int bf561_gpio_irq_type(unsigned int irq, unsigned int type)
 
 		if (type & (IRQ_TYPE_EDGE_RISING | IRQ_TYPE_EDGE_FALLING |
 			    IRQ_TYPE_LEVEL_HIGH | IRQ_TYPE_LEVEL_LOW))
-			
+
 			gpio_enabled[gpio_bank(gpionr)] |= gpio_bit(gpionr);
 		else
 			gpio_enabled[gpio_bank(gpionr)] &= ~gpio_bit(gpionr);
@@ -288,12 +288,12 @@ static int bf561_gpio_irq_type(unsigned int irq, unsigned int type)
 			set_gpio_both(gpionr, 1);
 		else
 			set_gpio_both(gpionr, 0);
-	
+
 		if ((type & (IRQ_TYPE_EDGE_FALLING | IRQ_TYPE_LEVEL_LOW)))
 			set_gpio_polar(gpionr, 1);	/* low or falling edge denoted by one */
 		else
 			set_gpio_polar(gpionr, 0);	/* high or rising edge denoted by zero */
-	
+
 	SSYNC();
 
 	if (type & (IRQ_TYPE_EDGE_RISING | IRQ_TYPE_EDGE_FALLING))
@@ -340,7 +340,7 @@ static void bf561_demux_gpio_irq(unsigned int inta_irq,
 		flag_d = get_gpiop_data(gpio);
 		mask = flag_d & (gpio_enabled[gpio_bank(gpio)] &
 			      get_gpiop_maska(gpio));
-			
+
 			do {
 				if (mask & 1) {
 					struct irq_desc *desc = irq_desc + irq;

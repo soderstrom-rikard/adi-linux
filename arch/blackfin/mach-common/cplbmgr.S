@@ -467,7 +467,7 @@ ENTRY(_cplb_mgr)
 	LC0 = R2;
 
 	/* There's a suitable victim in [P0-4] (because we've
-	 * advanced already). 
+	 * advanced already).
 	 */
 
 .LDdoverwrite:

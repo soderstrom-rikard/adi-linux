@@ -109,7 +109,7 @@ asmlinkage void asm_do_IRQ(unsigned int irq, struct pt_regs *regs)
 	unsigned short pending, other_ints;
 
 	old_regs = set_irq_regs(regs);
-	
+
 	/*
 	 * Some hardware gives randomly wrong interrupts.  Rather
 	 * than crashing, do something sensible.
@@ -131,7 +131,7 @@ asmlinkage void asm_do_IRQ(unsigned int irq, struct pt_regs *regs)
 	if (other_ints == 0)
 		lower_to_irq14();
 	irq_exit();
-	
+
 	set_irq_regs(old_regs);
 }
 

@@ -45,19 +45,19 @@ ENTRY(___udivsi3)
   CC = R0 < R1 (IU);    /* If X < Y, always return 0 */
   IF CC JUMP .Lreturn_ident;
 
-  R2 = R1 << 16;		
+  R2 = R1 << 16;
   CC = R2 <= R0 (IU);
   IF CC JUMP .Lidents;
 
   R2 = R0 >> 31;       /* if X is a 31-bit number */
   R3 = R1 >> 15;       /* and Y is a 15-bit number */
   R2 = R2 | R3;        /* then it's okay to use the DIVQ builtins (fallthrough to fast)*/
-  CC = R2;             
+  CC = R2;
   IF CC JUMP .Ly_16bit;
 
 /* METHOD 1: FAST DIVQ
-   We know we have a 31-bit dividend, and 15-bit divisor so we can use the 
-   simple divq approach (first setting AQ to 0 - implying unsigned division, 
+   We know we have a 31-bit dividend, and 15-bit divisor so we can use the
+   simple divq approach (first setting AQ to 0 - implying unsigned division,
    then 16 DIVQ's).
 */
 
@@ -65,8 +65,8 @@ ENTRY(___udivsi3)
 
 /* ISR States: When dividing two integers (32.0/16.0) using divide primitives,
    we need to shift the dividend one bit to the left.
-   We have already checked that we have a 31-bit number so we are safe to do 
-   that. 
+   We have already checked that we have a 31-bit number so we are safe to do
+   that.
 */
   R0 <<= 1;
   DIVQ(R0, R1); // 1
@@ -78,7 +78,7 @@ ENTRY(___udivsi3)
   DIVQ(R0, R1); // 7
   DIVQ(R0, R1); // 8
   DIVQ(R0, R1); // 9
-  DIVQ(R0, R1); // 10 
+  DIVQ(R0, R1); // 10
   DIVQ(R0, R1); // 11
   DIVQ(R0, R1); // 12
   DIVQ(R0, R1); // 13
@@ -94,25 +94,25 @@ ENTRY(___udivsi3)
   ** 16-bit number, but not bigger, then we can use the builtins
   ** with a post-divide correction.
   ** R3 currently holds Y>>15, which means R3's LSB is the
-  ** bit we're interested in. 
+  ** bit we're interested in.
   */
 
   /* According to the ISR, to use the Divide primitives for
-  ** unsigned integer divide, the useable range is 31 bits 
+  ** unsigned integer divide, the useable range is 31 bits
   */
   CC = ! BITTST(R0, 31);
 
   /* IF condition is true we can scale our inputs and use the divide primitives,
-  ** with some post-adjustment 
+  ** with some post-adjustment
   */
   R3 += -1;		/* if so, Y is 0x00008nnn */
   CC &= AZ;
 
   /* If condition is true we can scale our inputs and use the divide primitives,
-  ** with some post-adjustment 
+  ** with some post-adjustment
   */
   R3 = R1 >> 1;		/* Pre-scaled divisor for primitive case */
-  R2 = R0 >> 16 ;  			
+  R2 = R0 >> 16; 
 
   R2 = R3 - R2;		/* shifted divisor < upper 16 bits of dividend */
   CC &= CARRY;
@@ -122,7 +122,7 @@ ENTRY(___udivsi3)
 
 /* METHOD 2: identities and manual calculation
    We are not able to use the divide primites, but may still catch some special
-   cases. 
+   cases.
 */
 .Lidents:
   /* Test for common identities. Value to be returned is placed in R2. */
@@ -226,13 +226,13 @@ ENTRY(___udivsi3)
 .Lpower_of_two:
   /* Y has a single bit set, which means it's a power of two.
   ** That means we can perform the division just by shifting
-  ** X to the right the appropriate number of bits 
+  ** X to the right the appropriate number of bits
   */
 
   /* signbits returns the number of sign bits, minus one.
   ** 1=>30, 2=>29, ..., 0x40000000=>0. Which means we need
   ** to shift right n-signbits spaces. It also means 0x80000000
-  ** is a special case, because that *also* gives a signbits of 0 
+  ** is a special case, because that *also* gives a signbits of 0
   */
 
   R2 = R0 >> 31;
@@ -246,7 +246,7 @@ ENTRY(___udivsi3)
   RTS;
 
 /* METHOD 3: PRESCALE AND USE THE DIVIDE PRIMITIVES WITH SOME POST-CORRECTION
-  Two scaling operations are required to use the divide primitives with a 
+  Two scaling operations are required to use the divide primitives with a
   divisor > 0x7FFFF.
   Firstly (as in method 1) we need to shift the dividend 1 to the left for
   integer division.
@@ -258,7 +258,7 @@ ENTRY(___udivsi3)
   R2 = R0;
   // R3 is already R1 >> 1
   CC=!CC;
-  AQ = CC;                        /* Clear AQ, got here with CC = 0 */   
+  AQ = CC;                        /* Clear AQ, got here with CC = 0 */
   DIVQ(R2, R3); // 1
   DIVQ(R2, R3); // 2
   DIVQ(R2, R3); // 3
@@ -269,8 +269,8 @@ ENTRY(___udivsi3)
   DIVQ(R2, R3); // 8
   DIVQ(R2, R3); // 9
   DIVQ(R2, R3); // 10
-  DIVQ(R2, R3); // 11 
-  DIVQ(R2, R3); // 12 
+  DIVQ(R2, R3); // 11
+  DIVQ(R2, R3); // 12
   DIVQ(R2, R3); // 13
   DIVQ(R2, R3); // 14
   DIVQ(R2, R3); // 15
@@ -288,7 +288,7 @@ ENTRY(___udivsi3)
   R2 *= R1;		/* M = Q * Y */
   R2 = R0 - R2;		/* E = X - M */
   R0 = R3;		/* Copy Q into result reg */
-  
+
 /* Correction: If result of the multiply is negative, we overflowed
    and need to correct the result by subtracting 1 from the result.*/
   R3 = 0xFFFF (Z);
@@ -296,5 +296,5 @@ ENTRY(___udivsi3)
   CC = R2 == R3;
   R3 = 1 ;
   R1 = R0 - R3;
-  IF CC R0 = R1;	 
+  IF CC R0 = R1;
   RTS;

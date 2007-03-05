@@ -122,8 +122,6 @@ void (*idle)(void) = default_idle;
  * low exit latency (ie sit in a loop waiting for
  * somebody to say that they'd like to reschedule)
  */
-
-
 void cpu_idle(void)
 {
 	/* endless idle loop with no priority at all */

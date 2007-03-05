@@ -382,11 +382,11 @@ static const struct ad7877_platform_data bfin_ad7877_ts_info = {
 	.y_plate_ohms		= 486,
 	.pressure_max		= 1000,
 	.pressure_min		= 0,
-	.stopacq_polarity 	= 1,	    
+	.stopacq_polarity 	= 1,
 	.first_conversion_delay = 3,
-	.acquisition_time 	= 1,	    
-	.averaging 		= 1,		    
-	.pen_down_acc_interval 	= 1, 
+	.acquisition_time 	= 1,
+	.averaging 		= 1,
+	.pen_down_acc_interval 	= 1,
 };
 #endif
 

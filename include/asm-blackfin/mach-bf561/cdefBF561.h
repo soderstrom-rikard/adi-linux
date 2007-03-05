@@ -5,7 +5,7 @@
  *
  * Created:
  * Description:  C POINTERS TO SYSTEM MMR REGISTER AND MEMORY MAP FOR ADSP-BF561
- * 
+ *
  * Rev:
  *
  * Modified:

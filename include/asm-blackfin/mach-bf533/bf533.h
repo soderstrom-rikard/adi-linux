@@ -284,7 +284,7 @@
 #define MAX_CPLBS (16 * 2)
 
 /*
-* Number of required data CPLB switchtable entries 
+* Number of required data CPLB switchtable entries
 * MEMSIZE / 4 (we mostly install 4M page size CPLBs
 * approx 16 for smaller 1MB page size CPLBs for allignment purposes
 * 1 for L1 Data Memory
@@ -296,7 +296,7 @@
 #define MAX_SWITCH_D_CPLBS (((CONFIG_MEM_SIZE / 4) + 16 + 1 + 1 + 1) * 2)
 
 /*
-* Number of required instruction CPLB switchtable entries 
+* Number of required instruction CPLB switchtable entries
 * MEMSIZE / 4 (we mostly install 4M page size CPLBs
 * approx 12 for smaller 1MB page size CPLBs for allignment purposes
 * 1 for L1 Instruction Memory

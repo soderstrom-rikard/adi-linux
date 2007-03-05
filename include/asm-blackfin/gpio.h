@@ -3,7 +3,7 @@
  * Based on:
  * Author:	 Michael Hennerich (hennerich@blackfin.uclinux.org)
  *
- * Created:	
+ * Created:
  * Description:
  *
  * Rev:          $Id$
@@ -31,7 +31,7 @@
 
 /*
 *  Number     BF537/6/4    BF561    BF533/2/1
-*             
+*
 *  GPIO_0       PF0         PF0        PF0
 *  GPIO_1       PF1         PF1        PF1
 *  GPIO_2       PF2         PF2        PF2
@@ -155,16 +155,16 @@
 #define PORT_H 2
 #define PORT_J 3
 
-#define	GPIO_PF0	0 
-#define	GPIO_PF1	1 
-#define	GPIO_PF2	2 
-#define	GPIO_PF3	3 
-#define	GPIO_PF4	4 
-#define	GPIO_PF5	5 
-#define	GPIO_PF6	6 
-#define	GPIO_PF7	7 
-#define	GPIO_PF8	8 
-#define	GPIO_PF9	9 
+#define	GPIO_PF0	0
+#define	GPIO_PF1	1
+#define	GPIO_PF2	2
+#define	GPIO_PF3	3
+#define	GPIO_PF4	4
+#define	GPIO_PF5	5
+#define	GPIO_PF6	6
+#define	GPIO_PF7	7
+#define	GPIO_PF8	8
+#define	GPIO_PF9	9
 #define	GPIO_PF10	10
 #define	GPIO_PF11	11
 #define	GPIO_PF12	12
@@ -221,12 +221,12 @@
 *
 * INPUTS/OUTPUTS:
 * gpio - GPIO Number between 0 and MAX_BLACKFIN_GPIOS
-* 
+*
 *
 * DESCRIPTION: These functions abstract direct register access
-*              to Blackfin processor General Purpose 
-*              Ports Regsiters 
-*              
+*              to Blackfin processor General Purpose
+*              Ports Regsiters
+*
 * CAUTION: These functions do not belong to the GPIO Driver API
 *************************************************************
 * MODIFICATION HISTORY :
@@ -303,10 +303,10 @@ struct gpio_port_t {
 };
 
 #ifdef CONFIG_PM
-#define PM_WAKE_RISING	0x1                                                
-#define PM_WAKE_FALLING	0x2                                                
-#define PM_WAKE_HIGH	0x4                                                
-#define PM_WAKE_LOW	0x8                                                
+#define PM_WAKE_RISING	0x1
+#define PM_WAKE_FALLING	0x2
+#define PM_WAKE_HIGH	0x4
+#define PM_WAKE_LOW	0x8
 #define PM_WAKE_BOTH_EDGES	(PM_WAKE_RISING | PM_WAKE_FALLING)
 
 int gpio_pm_wakeup_request(unsigned short gpio, unsigned char type);
@@ -339,15 +339,15 @@ struct gpio_port_s {
 
 /***********************************************************
 *
-* FUNCTIONS: Blackfin GPIO Driver 
+* FUNCTIONS: Blackfin GPIO Driver
 *
 * INPUTS/OUTPUTS:
 * gpio - GPIO Number between 0 and MAX_BLACKFIN_GPIOS
-* 
+*
 *
 * DESCRIPTION: Blackfin GPIO Driver API
-*               
-* CAUTION: 
+*
+* CAUTION:
 *************************************************************
 * MODIFICATION HISTORY :
 **************************************************************/

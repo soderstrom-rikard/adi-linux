@@ -171,7 +171,7 @@ asmlinkage void trap_c(struct pt_regs *fp)
 	 * With this change we can cleanup some code in signal.c- TODO
 	 */
 	fp->orig_pc = fp->retx;
-	/* printk("exception: 0x%x, ipend=%x, reti=%x, retx=%x\n", 
+	/* printk("exception: 0x%x, ipend=%x, reti=%x, retx=%x\n",
 		trapnr, fp->ipend, fp->pc, fp->retx); */
 
 	/* send the appropriate signal to the user program */

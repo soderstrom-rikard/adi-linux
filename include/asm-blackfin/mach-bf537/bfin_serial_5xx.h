@@ -52,7 +52,7 @@
 # endif
 #endif
 /* 
- * The pin configuration is different from schematic 
+ * The pin configuration is different from schematic
  */
 struct bfin_serial_port {
         struct uart_port        port;
@@ -138,7 +138,7 @@ static void bfin_serial_hw_init(struct bfin_serial_port *uart)
 		gpio_request(uart->cts_pin, NULL);
 		gpio_direction_input(uart->cts_pin);
 	}
-	
+
 	if (uart->rts_pin >= 0) {
 		gpio_request(uart->rts_pin, NULL);
 		gpio_direction_output(uart->rts_pin);

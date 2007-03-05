@@ -290,8 +290,8 @@ apply_relocate_add(Elf_Shdr * sechdrs, const char *strtab,
 			value = reloc_stack_pop();
 		}
 		value += rel[i].r_addend;
-		pr_debug("location is %x, value is %x type is %d \n", 
-			 (unsigned int) location32, value, 
+		pr_debug("location is %x, value is %x type is %d \n",
+			 (unsigned int) location32, value,
 			 ELF32_R_TYPE(rel[i].r_info));
 
 		switch (ELF32_R_TYPE(rel[i].r_info)) {
@@ -340,7 +340,7 @@ apply_relocate_add(Elf_Shdr * sechdrs, const char *strtab,
 			if((unsigned long)location16 >= L1_CODE_START) {
 				dma_memcpy(location16, &tmp, 2);
 			} else
-				*location16 = tmp;			
+				*location16 = tmp;
 			break;
 		case R_rimm16:
 			*location16 = (value & 0xffff);

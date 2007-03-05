@@ -74,13 +74,13 @@ void bfin_pm_suspend_standby_enter(void)
 		u32 flags;
 
 		local_irq_save(flags);
-		
+
 		sleep_deeper(gpio_pm_setup()); /*Goto Sleep*/
-		
+
 		gpio_pm_restore();
-		
+
 		bfin_write_SIC_IWR(IWR_ENABLE_ALL);
-	
+
 		local_irq_restore(flags);
 	}
 #endif

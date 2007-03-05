@@ -62,8 +62,8 @@ ___divsi3 :
   CC = V;
 
   r3 = rot r3 by -1;
-  r1 = abs r1;      /* now both positive, r3.30 means "negate result", 
-                    ** r3.31 means overflow, add one to result 
+  r1 = abs r1;      /* now both positive, r3.30 means "negate result",
+                    ** r3.31 means overflow, add one to result
                     */
   cc = r0 < r1;
   if cc jump .Lret_zero;
@@ -100,8 +100,8 @@ ___divsi3 :
   if cc r0 = r1;
   RTS;
 
-/* Can't use the primitives. Test common identities. 
-** If the identity is true, return the value in R2. 
+/* Can't use the primitives. Test common identities.
+** If the identity is true, return the value in R2.
 */
 
 .Lidents:
@@ -123,7 +123,7 @@ ___divsi3 :
   IF CC JUMP .Lpower_of_two;
 
   /* Identities haven't helped either.
-  ** Perform the full division process.  
+  ** Perform the full division process.
   */
 
   P1 = 31;                        /* Set loop counter   */
@@ -131,13 +131,13 @@ ___divsi3 :
   [--SP] = (R7:5);                /* Push registers R5-R7 */
   R2 = -R1;
   [--SP] = R2;
-  R2 = R0 << 1;                   /* R2 lsw of dividend  */ 
+  R2 = R0 << 1;                   /* R2 lsw of dividend  */
   R6 = R0 ^ R1;                   /* Get sign */
   R5 = R6 >> 31;                  /* Shift sign to LSB */
 
-  R0 = 0 ;                        /* Clear msw partial remainder */ 
-  R2 = R2 | R5;                   /* Shift quotient bit */ 
-  R6 = R0 ^ R1;                   /* Get new quotient bit */  
+  R0 = 0 ;                        /* Clear msw partial remainder */
+  R2 = R2 | R5;                   /* Shift quotient bit */
+  R6 = R0 ^ R1;                   /* Get new quotient bit */
 
   LSETUP(.Llst,.Llend)  LC0 = P1;   /* Setup loop */
 .Llst:   R7 = R2 >> 31;            /* record copy of carry from R2 */
@@ -152,8 +152,8 @@ ___divsi3 :
         R5 = R6 >> 31;
                                   /* Assume AQ==1, shift in zero */
         BITTGL(R5,0);             /* tweak AQ to be what we want to shift in */
-.Llend:  R2 = R2 + R5;             /* and then set shifted-in value to 
-                                  ** tweaked AQ. 
+.Llend:  R2 = R2 + R5;             /* and then set shifted-in value to
+                                  ** tweaked AQ.
                                   */
   r1 = r3 >> 31;
   r2 = r2 + r1;
@@ -210,7 +210,7 @@ ___divsi3 :
   R2 = -R0;                       // negate result if necessary
   CC = bittst(R3,30);
   IF CC R0 = R2;
-  RTS; 
+  RTS;
 
 .Lret_zero:
   R0 = 0;
