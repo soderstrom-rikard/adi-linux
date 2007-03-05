@@ -275,7 +275,7 @@ ENTRY(___udivsi3)
   DIVQ(R2, R3); // 14
   DIVQ(R2, R3); // 15
   DIVQ(R2, R3); // 16
-  
+
   /* According to the Instruction Set Reference:
      To divide by a divisor > 0x7FFF,
      1. prescale and perform divide to obtain quotient (Q) (done above),

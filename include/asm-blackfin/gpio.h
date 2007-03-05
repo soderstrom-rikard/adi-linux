@@ -143,7 +143,7 @@
 
 #define PERIPHERAL_USAGE 1
 #define GPIO_USAGE 0
- 
+
 #ifdef BF533_FAMILY
 #define MAX_BLACKFIN_GPIOS 16
 #endif

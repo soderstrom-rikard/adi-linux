@@ -51,7 +51,7 @@
 #  define CONFIG_UART1_RTS_PIN -1
 # endif
 #endif
-/* 
+/*
  * The pin configuration is different from schematic
  */
 struct bfin_serial_port {
