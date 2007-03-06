@@ -1,9 +1,7 @@
 /****************************************************************
- * $ID: i2c-hhbf.c     Sat, 09 Oct 2004 17:29:10 +0800  mhfan $ *
- *                                                              *
  * Description:                                                 *
  *                                                              *
- * Maintainer:  ��Meihui Fan)  <mhfan@ustc.edu>            *
+ * Maintainer: Meihui Fan <mhfan@ustc.edu>		        *
  *                                                              *
  * CopyRight (c)  2004  HHTech                                  *
  *   www.hhcn.com, www.hhcn.org                                 *
@@ -13,7 +11,6 @@
  *   you are free to modify and/or redistribute it   	        *
  *   under the terms of the GNU General Public Licence (GPL).   *
  *                                                              *
- * Last modified: Wed, 01 Dec 2004 01:19:01 +0800      by mhfan #
  ****************************************************************/
 
 #include <linux/module.h>
@@ -99,5 +96,3 @@ MODULE_LICENSE("GPL");
 
 module_init(i2c_hhbf_init);
 module_exit(i2c_hhbf_exit);
-
-/******************* End Of File: i2c-hhbf.c *******************/
