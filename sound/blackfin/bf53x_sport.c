@@ -285,7 +285,7 @@ static inline int sport_hook_rx_dummy(struct bf53x_sport *sport)
 	desc->next_desc_addr = (unsigned long)(sport->dummy_rx_desc);
 	local_irq_restore(flags);
 	/* Waiting for dummy buffer descriptor is already hooked*/
-	while (((volatile unsigned long)dma->curr_desc_ptr - \
+	while ((*(volatile unsigned long*)&dma->curr_desc_ptr - \
 			sizeof(struct dmasg_t)) != \
 			(unsigned long)sport->dummy_rx_desc) {}
 	sport->curr_rx_desc = sport->dummy_rx_desc;
@@ -412,7 +412,7 @@ static inline int sport_hook_tx_dummy(struct bf53x_sport *sport)
 	/* Waiting for dummy buffer descriptor is already hooked*/
 //	printk(KERN_ERR "desc:0x%p, sport->dummy_tx_desc:0x%p\n",
 //			desc, sport->dummy_tx_desc);
-	while (((volatile unsigned long)dma->curr_desc_ptr - \
+	while ((*(volatile unsigned long*)&dma->curr_desc_ptr - \
 			sizeof(struct dmasg_t)) != \
 			(unsigned long)sport->dummy_tx_desc) {}
 	sport->curr_tx_desc = sport->dummy_tx_desc;
