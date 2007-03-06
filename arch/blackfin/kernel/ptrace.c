@@ -45,6 +45,7 @@
 #include <asm/system.h>
 #include <asm/processor.h>
 #include <asm/asm-offsets.h>
+#include <asm/dma.h>
 
 #define MAX_SHARED_LIBS 3
 #define TEXT_OFFSET 0
@@ -194,7 +195,7 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
 	switch (request) {
 		/* when I and D space are separate, these will need to be fixed. */
 	case PTRACE_PEEKDATA:
-		pr_debug("PTRACE_PEEKDATA\n");
+		pr_debug("ptrace: PEEKDATA\n");
 		add = MAX_SHARED_LIBS * 4;	/* space between text and data */
 		/* fall through */
 	case PTRACE_PEEKTEXT:	/* read word at location addr. */
@@ -203,15 +204,23 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
 			int copied;
 
 			ret = -EIO;
-			pr_debug("PEEKTEXT at addr %lx + add %d %ld", addr, add,
+			pr_debug("ptrace: PEEKTEXT at addr 0x%08lx + add %d %ld\n", addr, add,
 			         sizeof(data));
 			if (is_user_addr_valid(child, addr + add, sizeof(tmp)) < 0)
 				break;
+			pr_debug("ptrace: user address is valid\n");
 
+#if L1_CODE_LENGTH != 0
+			if (addr + add >= L1_CODE_START
+			    && addr + add + sizeof(tmp) <= L1_CODE_START + L1_CODE_LENGTH) {
+				safe_dma_memcpy (&tmp, (const void *)(addr + add), sizeof(tmp));
+				copied = sizeof(tmp);
+			} else
+#endif
 			copied =
 			    access_process_vm(child, addr + add, &tmp,
 					      sizeof(tmp), 0);
-			pr_debug(" bytes %lx\n", data);
+			pr_debug("ptrace: copied size %d [0x%08lx]\n", copied, tmp);
 			if (copied != sizeof(tmp))
 				break;
 			ret = put_user(tmp, (unsigned long *)data);
@@ -258,15 +267,27 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
 		/* fall through */
 	case PTRACE_POKETEXT:	/* write the word at location addr. */
 		{
+			int copied;
+
 			ret = -EIO;
-			pr_debug("POKETEXT at addr %lx + add %d %ld bytes %lx\n",
+			pr_debug("ptrace: POKETEXT at addr 0x%08lx + add %d %ld bytes %lx\n",
 			         addr, add, sizeof(data), data);
 			if (is_user_addr_valid(child, addr + add, sizeof(data)) < 0)
 				break;
+			pr_debug("ptrace: user address is valid\n");
 
-			if (access_process_vm(child, addr + add,
-					      &data, sizeof(data),
-					      1) != sizeof(data))
+#if L1_CODE_LENGTH != 0
+			if (addr + add >= L1_CODE_START
+			    && addr + add + sizeof(data) <= L1_CODE_START + L1_CODE_LENGTH) {
+				safe_dma_memcpy ((void *)(addr + add), &data, sizeof(data));
+				copied = sizeof(data);
+			} else
+#endif
+			copied =
+			    access_process_vm(child, addr + add, &data,
+					      sizeof(data), 1);
+			pr_debug("ptrace: copied size %d\n", copied);
+			if (copied != sizeof(data))
 				break;
 			ret = 0;
 			break;
