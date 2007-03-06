@@ -244,6 +244,16 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 		regions: {
 		  { offset: 0x000000, erasesize: 0x10000, numblocks: 64}, 
 		}
+	},
+	{
+		mfr_id: 0x20,
+		dev_id: 0x57,
+		name: "ST MW320E",
+		size: 0x00400000,
+		numeraseregions: 1,
+		regions: {
+		  { offset: 0x000000, erasesize: 0x10000, numblocks: 64},
+		}
 	}
 	};
 	struct mtd_info *mtd;
