@@ -27,13 +27,13 @@
 
 static void hhbf_setsda(void *data, int state)
 {
-    if (state) {
-    	gpio_direction_input(CONFIG_BFIN_SDA);
+	if (state) {
+		gpio_direction_input(CONFIG_BFIN_SDA);
 
-    } else {
-    	gpio_direction_output(CONFIG_BFIN_SDA);
-	gpio_set_value(CONFIG_BFIN_SDA, 0);
-    }
+	} else {
+		gpio_direction_output(CONFIG_BFIN_SDA);
+		gpio_set_value(CONFIG_BFIN_SDA, 0);
+	}
 }
 
 static void hhbf_setscl(void *data, int state)
@@ -43,51 +43,51 @@ static void hhbf_setscl(void *data, int state)
 
 static int hhbf_getsda(void *data)
 {
-      return (gpio_get_value(CONFIG_BFIN_SDA) != 0);
+	return (gpio_get_value(CONFIG_BFIN_SDA) != 0);
 }
 
 
 static struct i2c_algo_bit_data bit_hhbf_data = {
-    .setsda  = hhbf_setsda,
-    .setscl  = hhbf_setscl,
-    .getsda  = hhbf_getsda,
-    .udelay  = CONFIG_I2C_BFIN_GPIO_CYCLE_DELAY,
-    .timeout = HZ
+	.setsda  = hhbf_setsda,
+	.setscl  = hhbf_setscl,
+	.getsda  = hhbf_getsda,
+	.udelay  = CONFIG_I2C_BFIN_GPIO_CYCLE_DELAY,
+	.timeout = HZ
 };
 
 static struct i2c_adapter hhbf_ops = {
-    .owner 	= THIS_MODULE,
-    .id 	= I2C_HW_B_HHBF,
-    .algo_data 	= &bit_hhbf_data,
-    .name	= "HHBF I2C driver",
+	.owner 	= THIS_MODULE,
+	.id 	= I2C_HW_B_HHBF,
+	.algo_data 	= &bit_hhbf_data,
+	.name	= "HHBF I2C driver",
 };
 
 static int __init i2c_hhbf_init(void)
 {
 
-    if(gpio_request(CONFIG_BFIN_SCL, NULL)) {
-    	printk(KERN_ERR "%s: gpio_request GPIO %d failed \n",__FUNCTION__, CONFIG_BFIN_SCL);
-	return -1;
+	if (gpio_request(CONFIG_BFIN_SCL, NULL)) {
+		printk(KERN_ERR "%s: gpio_request GPIO %d failed \n",__FUNCTION__, CONFIG_BFIN_SCL);
+		return -1;
 	}
 
-    if(gpio_request(CONFIG_BFIN_SDA, NULL)) {
-    	printk(KERN_ERR "%s: gpio_request GPIO %d failed \n",__FUNCTION__, CONFIG_BFIN_SDA);
-	return -1;
+	if (gpio_request(CONFIG_BFIN_SDA, NULL)) {
+		printk(KERN_ERR "%s: gpio_request GPIO %d failed \n",__FUNCTION__, CONFIG_BFIN_SDA);
+		return -1;
 	}
 
 
-    gpio_direction_output(CONFIG_BFIN_SCL);
-    gpio_direction_input(CONFIG_BFIN_SDA);
-    gpio_set_value(CONFIG_BFIN_SCL, 1);    
+	gpio_direction_output(CONFIG_BFIN_SCL);
+	gpio_direction_input(CONFIG_BFIN_SDA);
+	gpio_set_value(CONFIG_BFIN_SCL, 1);    
 
-    return i2c_bit_add_bus(&hhbf_ops);
+	return i2c_bit_add_bus(&hhbf_ops);
 }
 
 static void __exit i2c_hhbf_exit(void)
 {
-    gpio_free(CONFIG_BFIN_SCL);
-    gpio_free(CONFIG_BFIN_SDA);    
-    i2c_bit_del_bus(&hhbf_ops);
+	gpio_free(CONFIG_BFIN_SCL);
+	gpio_free(CONFIG_BFIN_SDA);    
+	i2c_bit_del_bus(&hhbf_ops);
 }
 
 MODULE_AUTHOR("Meihui Fan <mhfan@ustc.edu>");
