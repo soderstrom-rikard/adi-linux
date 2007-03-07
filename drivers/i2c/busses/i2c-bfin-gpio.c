@@ -66,19 +66,19 @@ static int __init i2c_hhbf_init(void)
 {
 
 	if (gpio_request(CONFIG_BFIN_SCL, NULL)) {
-		printk(KERN_ERR "%s: gpio_request GPIO %d failed \n",__FUNCTION__, CONFIG_BFIN_SCL);
+		printk(KERN_ERR "%s: gpio_request GPIO %d failed \n",__func__, CONFIG_BFIN_SCL);
 		return -1;
 	}
 
 	if (gpio_request(CONFIG_BFIN_SDA, NULL)) {
-		printk(KERN_ERR "%s: gpio_request GPIO %d failed \n",__FUNCTION__, CONFIG_BFIN_SDA);
+		printk(KERN_ERR "%s: gpio_request GPIO %d failed \n",__func__, CONFIG_BFIN_SDA);
 		return -1;
 	}
 
 
 	gpio_direction_output(CONFIG_BFIN_SCL);
 	gpio_direction_input(CONFIG_BFIN_SDA);
-	gpio_set_value(CONFIG_BFIN_SCL, 1);    
+	gpio_set_value(CONFIG_BFIN_SCL, 1);
 
 	return i2c_bit_add_bus(&hhbf_ops);
 }
@@ -86,7 +86,7 @@ static int __init i2c_hhbf_init(void)
 static void __exit i2c_hhbf_exit(void)
 {
 	gpio_free(CONFIG_BFIN_SCL);
-	gpio_free(CONFIG_BFIN_SDA);    
+	gpio_free(CONFIG_BFIN_SDA);
 	i2c_bit_del_bus(&hhbf_ops);
 }
 
