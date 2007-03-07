@@ -312,6 +312,7 @@ int request_dma(unsigned int channel, char *device_id)
 	pr_debug("request_dma() : END  \n");
 	return channel;
 }
+EXPORT_SYMBOL(request_dma);
 
 int set_dma_callback(unsigned int channel, dma_interrupt_t callback, void *data)
 {
@@ -338,6 +339,7 @@ int set_dma_callback(unsigned int channel, dma_interrupt_t callback, void *data)
 	}
 	return 0;
 }
+EXPORT_SYMBOL(set_dma_callback);
 
 void free_dma(unsigned int channel)
 {
@@ -363,6 +365,7 @@ void free_dma(unsigned int channel)
 
 	pr_debug("freedma() : END \n");
 }
+EXPORT_SYMBOL(free_dma);
 
 void dma_enable_irq(unsigned int channel)
 {
@@ -375,6 +378,7 @@ void dma_enable_irq(unsigned int channel)
 	ret_irq = channel2irq(channel);
 	enable_irq(ret_irq);
 }
+EXPORT_SYMBOL(dma_enable_irq);
 
 void dma_disable_irq(unsigned int channel)
 {
@@ -387,6 +391,7 @@ void dma_disable_irq(unsigned int channel)
 	ret_irq = channel2irq(channel);
 	disable_irq(ret_irq);
 }
+EXPORT_SYMBOL(dma_disable_irq);
 
 int dma_channel_active(unsigned int channel)
 {
@@ -396,6 +401,7 @@ int dma_channel_active(unsigned int channel)
 		return 1;
 	}
 }
+EXPORT_SYMBOL(dma_channel_active);
 
 /*------------------------------------------------------------------------------
 *	stop the specific DMA channel.
@@ -414,6 +420,7 @@ void disable_dma(unsigned int channel)
 	pr_debug("stop_dma() : END \n");
 	return;
 }
+EXPORT_SYMBOL(disable_dma);
 
 void enable_dma(unsigned int channel)
 {
@@ -431,6 +438,7 @@ void enable_dma(unsigned int channel)
 	pr_debug("enable_dma() : END \n");
 	return;
 }
+EXPORT_SYMBOL(enable_dma);
 
 /*------------------------------------------------------------------------------
 *		Set the Start Address register for the specific DMA channel
@@ -449,6 +457,7 @@ void set_dma_start_addr(unsigned int channel, unsigned long addr)
 	SSYNC();
 	pr_debug("set_dma_start_addr() : END\n");
 }
+EXPORT_SYMBOL(set_dma_start_addr);
 
 void set_dma_next_desc_addr(unsigned int channel, unsigned long addr)
 {
@@ -461,6 +470,7 @@ void set_dma_next_desc_addr(unsigned int channel, unsigned long addr)
 	SSYNC();
 	pr_debug("set_dma_start_addr() : END\n");
 }
+EXPORT_SYMBOL(set_dma_next_desc_addr);
 
 void set_dma_x_count(unsigned int channel, unsigned short x_count)
 {
@@ -470,6 +480,7 @@ void set_dma_x_count(unsigned int channel, unsigned short x_count)
 	dma_ch[channel].regs->x_count = x_count;
 	SSYNC();
 }
+EXPORT_SYMBOL(set_dma_x_count);
 
 void set_dma_y_count(unsigned int channel, unsigned short y_count)
 {
@@ -479,6 +490,7 @@ void set_dma_y_count(unsigned int channel, unsigned short y_count)
 	dma_ch[channel].regs->y_count = y_count;
 	SSYNC();
 }
+EXPORT_SYMBOL(set_dma_y_count);
 
 void set_dma_x_modify(unsigned int channel, short x_modify)
 {
@@ -488,6 +500,7 @@ void set_dma_x_modify(unsigned int channel, short x_modify)
 	dma_ch[channel].regs->x_modify = x_modify;
 	SSYNC();
 }
+EXPORT_SYMBOL(set_dma_x_modify);
 
 void set_dma_y_modify(unsigned int channel, short y_modify)
 {
@@ -497,6 +510,7 @@ void set_dma_y_modify(unsigned int channel, short y_modify)
 	dma_ch[channel].regs->y_modify = y_modify;
 	SSYNC();
 }
+EXPORT_SYMBOL(set_dma_y_modify);
 
 void set_dma_config(unsigned int channel, unsigned short config)
 {
@@ -506,6 +520,7 @@ void set_dma_config(unsigned int channel, unsigned short config)
 	dma_ch[channel].regs->cfg = config;
 	SSYNC();
 }
+EXPORT_SYMBOL(set_dma_config);
 
 unsigned short
 set_bfin_dma_config(char direction, char flow_mode,
@@ -518,6 +533,7 @@ set_bfin_dma_config(char direction, char flow_mode,
 	     (intr_mode << 6) | (flow_mode << 12) | RESTART);
 	return config;
 }
+EXPORT_SYMBOL(set_bfin_dma_config);
 
 void set_dma_sg(unsigned int channel, struct dmasg_t * sg, int nr_sg)
 {
@@ -530,6 +546,7 @@ void set_dma_sg(unsigned int channel, struct dmasg_t * sg, int nr_sg)
 
 	SSYNC();
 }
+EXPORT_SYMBOL(set_dma_sg);
 
 /*------------------------------------------------------------------------------
  *	Get the DMA status of a specific DMA channel from the system.
@@ -541,6 +558,7 @@ unsigned short get_dma_curr_irqstat(unsigned int channel)
 
 	return dma_ch[channel].regs->irq_status;
 }
+EXPORT_SYMBOL(get_dma_curr_irqstat);
 
 /*------------------------------------------------------------------------------
  *	Clear the DMA_DONE bit in DMA status. Stop the DMA completion interrupt.
@@ -551,6 +569,7 @@ void clear_dma_irqstat(unsigned int channel)
 	       && channel < MAX_BLACKFIN_DMA_CHANNEL);
 	dma_ch[channel].regs->irq_status |= 3;
 }
+EXPORT_SYMBOL(clear_dma_irqstat);
 
 /*------------------------------------------------------------------------------
  *	Get current DMA xcount of a specific DMA channel from the system.
@@ -562,6 +581,7 @@ unsigned short get_dma_curr_xcount(unsigned int channel)
 
 	return dma_ch[channel].regs->curr_x_count;
 }
+EXPORT_SYMBOL(get_dma_curr_xcount);
 
 /*------------------------------------------------------------------------------
  *	Get current DMA ycount of a specific DMA channel from the system.
@@ -573,6 +593,7 @@ unsigned short get_dma_curr_ycount(unsigned int channel)
 
 	return dma_ch[channel].regs->curr_y_count;
 }
+EXPORT_SYMBOL(get_dma_curr_ycount);
 
 void *dma_memcpy(void *dest, const void *src, size_t size)
 {
@@ -709,6 +730,7 @@ void *dma_memcpy(void *dest, const void *src, size_t size)
 
 	return dest;
 }
+EXPORT_SYMBOL(dma_memcpy);
 
 void *safe_dma_memcpy(void *dest, const void *src, size_t size)
 {
@@ -719,29 +741,4 @@ void *safe_dma_memcpy(void *dest, const void *src, size_t size)
 	local_irq_restore(flags);
 	return addr;
 }
-
-EXPORT_SYMBOL(request_dma);
-EXPORT_SYMBOL(set_dma_callback);
-EXPORT_SYMBOL(enable_dma);
-EXPORT_SYMBOL(disable_dma);
-EXPORT_SYMBOL(dma_channel_active);
-EXPORT_SYMBOL(free_dma);
-
-EXPORT_SYMBOL(get_dma_curr_irqstat);
-EXPORT_SYMBOL(clear_dma_irqstat);
-EXPORT_SYMBOL(get_dma_curr_xcount);
-EXPORT_SYMBOL(get_dma_curr_ycount);
-EXPORT_SYMBOL(set_dma_start_addr);
-
-EXPORT_SYMBOL(set_dma_config);
-EXPORT_SYMBOL(set_dma_next_desc_addr);
-EXPORT_SYMBOL(set_bfin_dma_config);
-EXPORT_SYMBOL(set_dma_x_count);
-EXPORT_SYMBOL(set_dma_x_modify);
-EXPORT_SYMBOL(set_dma_y_count);
-EXPORT_SYMBOL(set_dma_y_modify);
-EXPORT_SYMBOL(set_dma_sg);
-EXPORT_SYMBOL(dma_disable_irq);
-EXPORT_SYMBOL(dma_enable_irq);
-EXPORT_SYMBOL(dma_memcpy);
 EXPORT_SYMBOL(safe_dma_memcpy);

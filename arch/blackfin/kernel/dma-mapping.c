@@ -126,6 +126,7 @@ void *dma_alloc_coherent(struct device *dev, size_t size,
 
 	return ret;
 }
+EXPORT_SYMBOL(dma_alloc_coherent);
 
 void
 dma_free_coherent(struct device *dev, size_t size, void *vaddr,
@@ -133,6 +134,7 @@ dma_free_coherent(struct device *dev, size_t size, void *vaddr,
 {
 	__free_dma_pages((unsigned long)vaddr, get_pages(size));
 }
+EXPORT_SYMBOL(dma_free_coherent);
 
 /*
  * Dummy functions defined for some existing drivers
@@ -149,6 +151,7 @@ dma_map_single(struct device *dev, void *ptr, size_t size,
 
 	return (dma_addr_t) ptr;
 }
+EXPORT_SYMBOL(dma_map_single);
 
 int
 dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
@@ -165,10 +168,4 @@ dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
 
 	return nents;
 }
-
-EXPORT_SYMBOL(dma_alloc_coherent);
-EXPORT_SYMBOL(dma_free_coherent);
-EXPORT_SYMBOL(dma_map_single);
-EXPORT_SYMBOL(dma_unmap_single);
 EXPORT_SYMBOL(dma_map_sg);
-EXPORT_SYMBOL(dma_unmap_sg);

@@ -284,7 +284,6 @@ void do_gettimeofday(struct timeval *tv)
 	tv->tv_sec = sec;
 	tv->tv_usec = usec;
 }
-
 EXPORT_SYMBOL(do_gettimeofday);
 
 int do_settimeofday(struct timespec *tv)
@@ -318,6 +317,7 @@ int do_settimeofday(struct timespec *tv)
 
 	return 0;
 }
+EXPORT_SYMBOL(do_settimeofday);
 
 /*
  * Scheduler clock - returns current time in nanosec units.
@@ -326,5 +326,3 @@ unsigned long long sched_clock(void)
 {
 	return (unsigned long long)jiffies *(NSEC_PER_SEC / HZ);
 }
-
-EXPORT_SYMBOL(do_settimeofday);

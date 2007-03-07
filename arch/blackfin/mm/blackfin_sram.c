@@ -271,6 +271,7 @@ int sram_free(const void *addr)
 	else
 		return -1;
 }
+EXPORT_SYMBOL(sram_free);
 
 void *l1_data_A_sram_alloc(size_t size)
 {
@@ -298,6 +299,7 @@ void *l1_data_A_sram_alloc(size_t size)
 
 	return addr;
 }
+EXPORT_SYMBOL(l1_data_A_sram_alloc);
 
 int l1_data_A_sram_free(const void *addr)
 {
@@ -325,6 +327,7 @@ int l1_data_A_sram_free(const void *addr)
 
 	return ret;
 }
+EXPORT_SYMBOL(l1_data_A_sram_free);
 
 void *l1_data_sram_zalloc(size_t size)
 {
@@ -332,11 +335,13 @@ void *l1_data_sram_zalloc(size_t size)
 	memset(addr, 0x00, size);
 	return addr;
 }
+EXPORT_SYMBOL(l1_data_sram_zalloc);
 
 int l1_data_sram_free(const void *addr)
 {
 	return l1_data_A_sram_free(addr);
 }
+EXPORT_SYMBOL(l1_data_sram_free);
 
 void *l1_data_B_sram_alloc(size_t size)
 {
@@ -360,6 +365,7 @@ void *l1_data_B_sram_alloc(size_t size)
 	return NULL;
 #endif
 }
+EXPORT_SYMBOL(l1_data_B_sram_alloc);
 
 int l1_data_B_sram_free(const void *addr)
 {
@@ -380,6 +386,7 @@ int l1_data_B_sram_free(const void *addr)
 	return -1;
 #endif
 }
+EXPORT_SYMBOL(l1_data_B_sram_free);
 
 void *l1_inst_sram_alloc(size_t size)
 {
@@ -403,6 +410,7 @@ void *l1_inst_sram_alloc(size_t size)
 	return NULL;
 #endif
 }
+EXPORT_SYMBOL(l1_inst_sram_alloc);
 
 int l1_inst_sram_free(const void *addr)
 {
@@ -423,6 +431,7 @@ int l1_inst_sram_free(const void *addr)
 	return -1;
 #endif
 }
+EXPORT_SYMBOL(l1_inst_sram_free);
 
 /* L1 Scratchpad memory allocate function */
 void *l1sram_alloc(size_t size)
@@ -492,6 +501,7 @@ found:
 
 	return 0;
 }
+EXPORT_SYMBOL(sram_free_with_lsl);
 
 void *sram_alloc_with_lsl(size_t size, unsigned long flags)
 {
@@ -523,15 +533,4 @@ void *sram_alloc_with_lsl(size_t size, unsigned long flags)
 	mm->context.sram_list = lsl;
 	return addr;
 }
-
-EXPORT_SYMBOL(l1_data_A_sram_alloc);
-EXPORT_SYMBOL(l1_data_A_sram_free);
-EXPORT_SYMBOL(l1_data_B_sram_free);
-EXPORT_SYMBOL(l1_data_B_sram_alloc);
-EXPORT_SYMBOL(l1_inst_sram_alloc);
-EXPORT_SYMBOL(l1_inst_sram_free);
-EXPORT_SYMBOL(l1_data_sram_zalloc);
-EXPORT_SYMBOL(l1_data_sram_free);
-EXPORT_SYMBOL(sram_free);
 EXPORT_SYMBOL(sram_alloc_with_lsl);
-EXPORT_SYMBOL(sram_free_with_lsl);

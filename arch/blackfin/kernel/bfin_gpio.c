@@ -597,6 +597,7 @@ int gpio_request(unsigned short gpio, const char *label)
 
 	return 0;
 }
+EXPORT_SYMBOL(gpio_request);
 
 
 void gpio_free(unsigned short gpio)
@@ -621,6 +622,7 @@ void gpio_free(unsigned short gpio)
 
 	local_irq_restore(flags);
 }
+EXPORT_SYMBOL(gpio_free);
 
 
 void gpio_direction_input(unsigned short gpio)
@@ -634,7 +636,7 @@ void gpio_direction_input(unsigned short gpio)
 	gpio_bankb[gpio_bank(gpio)]->inen |= gpio_bit(gpio);
 	local_irq_restore(flags);
 }
-
+EXPORT_SYMBOL(gpio_direction_input);
 
 void gpio_direction_output(unsigned short gpio)
 {
@@ -647,8 +649,4 @@ void gpio_direction_output(unsigned short gpio)
 	gpio_bankb[gpio_bank(gpio)]->dir |= gpio_bit(gpio);
 	local_irq_restore(flags);
 }
-
-EXPORT_SYMBOL(gpio_request);
-EXPORT_SYMBOL(gpio_free);
-EXPORT_SYMBOL(gpio_direction_input);
 EXPORT_SYMBOL(gpio_direction_output);
