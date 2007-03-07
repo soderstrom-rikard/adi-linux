@@ -22,10 +22,10 @@
 #include <asm/blackfin.h>
 #include <asm/irq.h>
 
-#define I2C_BFIN_TWI       0x00
+#define I2C_BLACKFIN_TWI       0x00
 #define POLL_TIMEOUT       (2 * HZ)
-#ifndef CONFIG_TWICLK_KHZ
-#define CONFIG_TWICLK_KHZ  400
+#ifndef CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ
+#define CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ  400
 #endif
 
 /* SMBus mode*/
@@ -289,7 +289,7 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 		/* Master enable */
 		bfin_write_TWI_MASTER_CTL(bfin_read_TWI_MASTER_CTL() | MEN | 
 			((iface->read_write == I2C_SMBUS_READ) ? MDIR : 0) |
-			((CONFIG_TWICLK_KHZ>100) ? FAST : 0));
+			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ>100) ? FAST : 0));
 		SSYNC();
 
 		wait_for_completion(&iface->complete);
@@ -429,7 +429,7 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 		}
 		/* Master enable */
 		bfin_write_TWI_MASTER_CTL(bfin_read_TWI_MASTER_CTL() | MEN |
-			((CONFIG_TWICLK_KHZ>100) ? FAST : 0));
+			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ>100) ? FAST : 0));
 		break;
 	case TWI_I2C_MODE_COMBINED:
 		bfin_write_TWI_XMT_DATA8(iface->command);
@@ -442,7 +442,7 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 			bfin_write_TWI_MASTER_CTL(0x1 << 6);
 		/* Master enable */
 		bfin_write_TWI_MASTER_CTL(bfin_read_TWI_MASTER_CTL() | MEN |
-			((CONFIG_TWICLK_KHZ>100) ? FAST : 0));
+			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ>100) ? FAST : 0));
 		break;
 	default:
 		bfin_write_TWI_MASTER_CTL(0);
@@ -490,7 +490,7 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 		/* Master enable */
 		bfin_write_TWI_MASTER_CTL(bfin_read_TWI_MASTER_CTL() | MEN | 
 			((iface->read_write == I2C_SMBUS_READ) ? MDIR : 0) |
-			((CONFIG_TWICLK_KHZ > 100) ? FAST : 0));
+			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ > 100) ? FAST : 0));
 		break;
 	}
 	SSYNC();
@@ -538,7 +538,7 @@ static int __init i2c_bfin_twi_init(void)
 	twi_iface.timeout_timer.data = (unsigned long)&twi_iface;
 
 	p_adap = &twi_iface.adap;
-	p_adap->id = I2C_BFIN_TWI;
+	p_adap->id = I2C_BLACKFIN_TWI;
 	strcpy(p_adap->name, "i2c-bfin-twi");
 	p_adap->algo = &bfin_twi_algorithm;
 	p_adap->algo_data = &twi_iface;
@@ -558,12 +558,12 @@ static int __init i2c_bfin_twi_init(void)
 	bfin_write_TWI_CONTROL(((get_sclk() / 1024 / 1024 + 5) / 10) & 0x7F);
 
 	/* Set Twi interface clock as specified */
-	if (CONFIG_TWICLK_KHZ > 400)
+	if (CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ > 400)
 		bfin_write_TWI_CLKDIV((( 5*1024 / 400 ) << 8) |
 			(( 5*1024 / 400 ) & 0xFF));
 	else
-		bfin_write_TWI_CLKDIV((( 5*1024 / CONFIG_TWICLK_KHZ ) << 8) |
-			(( 5*1024 / CONFIG_TWICLK_KHZ ) & 0xFF));
+		bfin_write_TWI_CLKDIV((( 5*1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ ) << 8) |
+			(( 5*1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ ) & 0xFF));
 
 	/* Enable TWI */
 	bfin_write_TWI_CONTROL(bfin_read_TWI_CONTROL() | TWI_ENA);
