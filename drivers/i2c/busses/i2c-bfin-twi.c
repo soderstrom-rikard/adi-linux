@@ -92,7 +92,7 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 				 * combine mode.
 				 */
 				if (iface->readNum == 1 && iface->manual_stop)
-					iface->readNum = *iface->transPtr+1;
+					iface->readNum = *iface->transPtr + 1;
 			}
 			iface->transPtr++;
 			iface->readNum--;
@@ -211,7 +211,7 @@ static void bfin_twi_timeout(unsigned long data)
 static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 				struct i2c_msg msgs[], int num)
 {
-	struct bfin_twi_iface* iface = adap->algo_data;
+	struct bfin_twi_iface *iface = adap->algo_data;
 	struct i2c_msg *pmsg;
 	int i, ret;
 	int rc = 0;
@@ -313,9 +313,9 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 
 int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 			unsigned short flags, char read_write,
-			u8 command, int size, union i2c_smbus_data * data)
+			u8 command, int size, union i2c_smbus_data *data)
 {
-	struct bfin_twi_iface* iface = adap->algo_data;
+	struct bfin_twi_iface *iface = adap->algo_data;
 	int rc = 0;
 
 	if (!(bfin_read_TWI_CONTROL() & TWI_ENA))
@@ -323,7 +323,7 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 
 	mutex_lock(&iface->twi_lock);
 
-	while(bfin_read_TWI_MASTER_STAT() & BUSBUSY) {
+	while (bfin_read_TWI_MASTER_STAT() & BUSBUSY) {
 		mutex_unlock(&iface->twi_lock);
 		yield();
 		mutex_lock(&iface->twi_lock);
@@ -381,7 +381,7 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 			iface->readNum = 0;
 			iface->cur_mode = TWI_I2C_MODE_COMBINED;
 		} else {
-			iface->writeNum = data->block[0]+1;
+			iface->writeNum = data->block[0] + 1;
 			iface->cur_mode = TWI_I2C_MODE_STANDARDSUB;
 		}
 		iface->transPtr = data->block;
@@ -422,7 +422,7 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 		SSYNC();
 
 		if (iface->writeNum + 1 <= 255)
-			bfin_write_TWI_MASTER_CTL((iface->writeNum+1) << 6);
+			bfin_write_TWI_MASTER_CTL((iface->writeNum + 1) << 6);
 		else {
 			bfin_write_TWI_MASTER_CTL(0xff << 6);
 			iface->manual_stop = 1;
@@ -437,7 +437,7 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 		SSYNC();
 
 		if (iface->writeNum > 0)
-			bfin_write_TWI_MASTER_CTL((iface->writeNum+1) << 6);
+			bfin_write_TWI_MASTER_CTL((iface->writeNum + 1) << 6);
 		else
 			bfin_write_TWI_MASTER_CTL(0x1 << 6);
 		/* Master enable */
@@ -452,29 +452,23 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 			 */
 			if (iface->read_write != I2C_SMBUS_READ) {
 				if (iface->writeNum > 0) {
-					bfin_write_TWI_XMT_DATA8
-						(*(iface->transPtr++));
+					bfin_write_TWI_XMT_DATA8(*(iface->transPtr++));
 					if (iface->writeNum <= 255)
-						bfin_write_TWI_MASTER_CTL
-							(iface->writeNum << 6);
+						bfin_write_TWI_MASTER_CTL(iface->writeNum << 6);
 					else {
-						bfin_write_TWI_MASTER_CTL
-							(0xff << 6);
+						bfin_write_TWI_MASTER_CTL(0xff << 6);
 						iface->manual_stop = 1;
 					}
 					iface->writeNum--;
 				} else {
-					bfin_write_TWI_XMT_DATA8
-						(iface->command);
+					bfin_write_TWI_XMT_DATA8(iface->command);
 					bfin_write_TWI_MASTER_CTL(1 << 6);
 				}
 			} else {
-				if (iface->readNum > 0
-					&& iface->readNum <= 255)
-					bfin_write_TWI_MASTER_CTL
-						(iface->readNum << 6);
+				if (iface->readNum > 0 && iface->readNum <= 255)
+					bfin_write_TWI_MASTER_CTL(iface->readNum << 6);
 				else if (iface->readNum > 255) {
-					bfin_write_TWI_MASTER_CTL( 0xff << 6 );
+					bfin_write_TWI_MASTER_CTL(0xff << 6);
 					iface->manual_stop = 1;
 				} else {
 					del_timer(&iface->timeout_timer);
@@ -488,7 +482,7 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 		SSYNC();
 
 		/* Master enable */
-		bfin_write_TWI_MASTER_CTL(bfin_read_TWI_MASTER_CTL() | MEN | 
+		bfin_write_TWI_MASTER_CTL(bfin_read_TWI_MASTER_CTL() | MEN |
 			((iface->read_write == I2C_SMBUS_READ) ? MDIR : 0) |
 			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ > 100) ? FAST : 0));
 		break;
@@ -570,9 +564,9 @@ static int __init i2c_bfin_twi_init(void)
 	SSYNC();
 
 	rc = i2c_add_adapter(p_adap);
-	if(rc < 0)
+	if (rc < 0)
 		free_irq(twi_iface.irq, &twi_iface);
-	return rc;	
+	return rc;
 }
 
 static void __exit i2c_bfin_twi_exit(void)
