@@ -223,7 +223,7 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 
 	while (bfin_read_TWI_MASTER_STAT() & BUSBUSY) {
 		mutex_unlock(&iface->twi_lock);
-		schedule();
+		yield();
 		mutex_lock(&iface->twi_lock);
 	}
 
@@ -325,7 +325,7 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 
 	while(bfin_read_TWI_MASTER_STAT() & BUSBUSY) {
 		mutex_unlock(&iface->twi_lock);
-		schedule();
+		yield();
 		mutex_lock(&iface->twi_lock);
 	}
 
