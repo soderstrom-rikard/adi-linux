@@ -541,6 +541,18 @@ static void __init generate_cpl_tables(void)
 	cplb_data[SDRAM_RAM_MTD].valid = mtd_size > 0;
 # if defined(CONFIG_ROMFS_FS)
 	cplb_data[SDRAM_RAM_MTD].attr |= I_CPLB;
+
+/*The ROMFS_FS size is often not multiple of 1MB. 
+This can cause multiple CPLB sets covering the same memory area. 
+This will then cause multiple CPLB hit exceptions.
+Workaround: We ensure a contiguous memory area by extending the kernel 
+memory section over the mtd section. 
+For ROMFS_FS memory must be covered with ICPLBs anyways. 
+So there is no difference between kernel and mtd memory setup.*/
+
+	cplb_data[SDRAM_KERN].end = memory_mtd_start + mtd_size;;
+	cplb_data[SDRAM_RAM_MTD].valid = 0;
+
 # endif
 #else
 	cplb_data[SDRAM_RAM_MTD].valid = 0;
