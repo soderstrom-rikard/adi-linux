@@ -60,8 +60,14 @@ int kstack_depth_to_print = 48;
 
 #ifdef CONFIG_KALLSYMS
 #include <linux/kallsyms.h>
+#endif
 static int printk_address(unsigned long address)
 {
+	struct vm_list_struct *vml;
+	struct task_struct *p;
+	struct mm_struct *mm;
+
+#ifdef CONFIG_KALLSYMS
 	unsigned long offset = 0, symsize;
 	const char *symname;
 	char *modname;
@@ -69,76 +75,60 @@ static int printk_address(unsigned long address)
 	char namebuf[128];
 
 	/* look up the address and see if we are in kernel space */
-	symname =
-	    kallsyms_lookup(address, &symsize, &offset, &modname, namebuf);
+	symname = kallsyms_lookup(address, &symsize, &offset, &modname, namebuf);
 
 	if (symname) {
 		/* yeah! kernel space! */
 		if (!modname)
 			modname = delim = "";
 		return printk("<0x%p> { %s%s%s%s + 0x%lx }",
-			      (void*)address, delim, modname, delim, symname,
-			      (unsigned long)offset);
+		              (void*)address, delim, modname, delim, symname,
+		              (unsigned long)offset);
 
-	} else {
-		/* looks like we're off in user-land, so let's walk all the
-		 * mappings of all our processes and see if we can't be a whee
-		 * bit more specific
-		 */
-		struct vm_list_struct *vml;
-		struct task_struct *p;
-		struct mm_struct *mm;
+	}
+#endif
 
-		write_lock_irq(&tasklist_lock);
-		for_each_process(p) {
-			mm = get_task_mm(p);
-			if (!mm)
-				continue;
+	/* looks like we're off in user-land, so let's walk all the
+	 * mappings of all our processes and see if we can't be a whee
+	 * bit more specific
+	 */
+	write_lock_irq(&tasklist_lock);
+	for_each_process(p) {
+		mm = get_task_mm(p);
+		if (!mm)
+			continue;
 
-			vml = mm->context.vmlist;
-			while (vml) {
-				struct vm_area_struct *vma = vml->vma;
+		vml = mm->context.vmlist;
+		while (vml) {
+			struct vm_area_struct *vma = vml->vma;
 
-				if ((address >= vma->vm_start)
-				    && (address < vma->vm_end)) {
-					char *name = p->comm;
-					struct file *file = vma->vm_file;
-					if (file) {
-						char _tmpbuf[256];
-						name =
-						    d_path(file->f_dentry,
-							   file->f_vfsmnt,
-							   _tmpbuf,
-							   sizeof(_tmpbuf));
-					}
-
-					write_unlock_irq(&tasklist_lock);
-					return printk("<0x%p> [ %s + 0x%lx ]",
-						      (void*)address,
-						      name,
-						      (unsigned
-						       long)((address -
-							      vma->vm_start) +
-							     (vma->
-							      vm_pgoff <<
-							      PAGE_SHIFT)));
+			if (address >= vma->vm_start && address < vma->vm_end) {
+				char *name = p->comm;
+				struct file *file = vma->vm_file;
+				if (file) {
+					char _tmpbuf[256];
+					name = d_path(file->f_dentry,
+					              file->f_vfsmnt,
+					              _tmpbuf,
+					              sizeof(_tmpbuf));
 				}
 
-				vml = vml->next;
+				write_unlock_irq(&tasklist_lock);
+				return printk("<0x%p> [ %s + 0x%lx ]",
+				              (void*)address, name,
+				              (unsigned long)
+				                ((address - vma->vm_start) +
+				                 (vma->vm_pgoff << PAGE_SHIFT)));
 			}
+
+			vml = vml->next;
 		}
-		write_unlock_irq(&tasklist_lock);
 	}
+	write_unlock_irq(&tasklist_lock);
 
 	/* we were unable to find this address anywhere */
 	return printk("[<0x%p>]", (void*)address);
 }
-#else
-static int printk_address(unsigned long address)
-{
-	return printk("[<0x%p>]", (void*)address);
-}
-#endif
 
 #define trace_buffer_save(x) \
 	do { \
