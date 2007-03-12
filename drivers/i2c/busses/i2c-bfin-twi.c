@@ -18,7 +18,7 @@
 #include <linux/spinlock.h>
 #include <linux/completion.h>
 #include <linux/interrupt.h>
-#include <linux/device.h>
+#include <linux/platform_device.h>
 
 #include <asm/blackfin.h>
 #include <asm/irq.h>
@@ -227,8 +227,8 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 	for (i = 0; rc >= 0 && i < num; i++) {
 		pmsg = &msgs[i];
 		if (pmsg->flags & I2C_M_TEN) {
-			printk(KERN_ERR "i2c-bfin-twi: 10 bits addr "
-					"not supported !\n");
+			dev_err(&(adap->dev), "i2c-bfin-twi: 10 bits addr "
+				"not supported !\n");
 			rc = -EINVAL;
 			break;
 		}
@@ -513,32 +513,57 @@ static struct i2c_algorithm bfin_twi_algorithm = {
 	.functionality = bfin_twi_functionality,
 };
 
-static int __init i2c_bfin_twi_init(void)
+
+static int i2c_bfin_twi_suspend(struct platform_device *dev, pm_message_t state)
 {
+/*	struct bfin_twi_iface *iface = platform_get_drvdata(dev);*/
+
+	/* Disable TWI */
+	bfin_write_TWI_CONTROL(bfin_read_TWI_CONTROL() & ~TWI_ENA);
+	SSYNC();
+
+	return 0;
+}
+
+static int i2c_bfin_twi_resume(struct platform_device *dev)
+{
+/*	struct bfin_twi_iface *iface = platform_get_drvdata(dev);*/
+
+	/* Enable TWI */
+	bfin_write_TWI_CONTROL(bfin_read_TWI_CONTROL() | TWI_ENA);
+	SSYNC();
+
+	return 0;
+}
+
+static int i2c_bfin_twi_probe(struct platform_device *dev)
+{
+	struct bfin_twi_iface *iface = &twi_iface;
 	struct i2c_adapter *p_adap;
 	int rc;
 
-	mutex_init(&(twi_iface.twi_lock));
-	spin_lock_init(&twi_iface.lock);
-	init_completion(&twi_iface.complete);
-	twi_iface.irq = IRQ_TWI;
+	mutex_init(&(iface->twi_lock));
+	spin_lock_init(&(iface->lock));
+	init_completion(&(iface->complete));
+	iface->irq = IRQ_TWI;
 
-	init_timer(&twi_iface.timeout_timer);
-	twi_iface.timeout_timer.function = bfin_twi_timeout;
-	twi_iface.timeout_timer.data = (unsigned long)&twi_iface;
+	init_timer(&(iface->timeout_timer));
+	iface->timeout_timer.function = bfin_twi_timeout;
+	iface->timeout_timer.data = (unsigned long)iface;
 
-	p_adap = &twi_iface.adap;
+	p_adap = &(iface->adap);
 	p_adap->id = I2C_DRIVERID_BLACKFINTWI;
-	strlcpy(p_adap->name, "i2c-bfin-twi", I2C_NAME_SIZE);
+	strlcpy(p_adap->name, dev->name, I2C_NAME_SIZE);
 	p_adap->algo = &bfin_twi_algorithm;
-	p_adap->algo_data = &twi_iface;
+	p_adap->algo_data = iface;
 	p_adap->class = I2C_CLASS_ALL;
+	p_adap->dev.parent = &(dev->dev);
 
-	rc = request_irq(twi_iface.irq, bfin_twi_interrupt_entry,
-		SA_INTERRUPT, "i2c-bfin-twi", &twi_iface);
+	rc = request_irq(iface->irq, bfin_twi_interrupt_entry,
+		SA_INTERRUPT, dev->name, iface);
 	if (rc) {
 		printk(KERN_ERR"i2c-bfin-twi: can't get IRQ %d !\n",
-			twi_iface.irq);
+			iface->irq);
 		return -ENODEV;
 	}
 
@@ -560,14 +585,51 @@ static int __init i2c_bfin_twi_init(void)
 
 	rc = i2c_add_adapter(p_adap);
 	if (rc < 0)
-		free_irq(twi_iface.irq, &twi_iface);
+		free_irq(iface->irq, iface);
+	else
+		platform_set_drvdata(dev, iface);
+
 	return rc;
+}
+
+static int i2c_bfin_twi_remove(struct platform_device *pdev)
+{
+	struct bfin_twi_iface *iface = platform_get_drvdata(pdev);
+
+	platform_set_drvdata(pdev, NULL);
+
+	i2c_del_adapter(&(iface->adap));
+	free_irq(iface->irq, iface);
+
+	return 0;
+}
+
+static struct platform_driver i2c_bfin_twi_driver = {
+	.probe		= i2c_bfin_twi_probe,
+	.remove		= i2c_bfin_twi_remove,
+	.suspend	= i2c_bfin_twi_suspend,
+	.resume		= i2c_bfin_twi_resume,
+	.driver		= {
+		.name	= "i2c-bfin-twi",
+	},
+};
+
+static int __init i2c_bfin_twi_init(void)
+{
+	int ret;
+
+	pr_info("I2C: Blackfin I2C TWI driver\n");
+
+	ret = platform_driver_register(&i2c_bfin_twi_driver);
+	if (ret) {
+		pr_debug("Fail to register i2c_bfin_twi driver\n");
+	}
+	return ret;
 }
 
 static void __exit i2c_bfin_twi_exit(void)
 {
-	i2c_del_adapter(&twi_iface.adap);
-	free_irq(twi_iface.irq, &twi_iface);
+	platform_driver_unregister(&i2c_bfin_twi_driver);
 }
 
 MODULE_AUTHOR("Sonic Zhang <sonic.zhang@analog.com>");
