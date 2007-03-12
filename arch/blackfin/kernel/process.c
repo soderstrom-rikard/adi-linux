@@ -149,13 +149,13 @@ void machine_restart(char *__unused)
 void machine_halt(void)
 {
 	for (;;)
-		/* nothing */ ;
+		asm volatile ("idle");
 }
 
 void machine_power_off(void)
 {
 	for (;;)
-		/* nothing */ ;
+		asm volatile ("idle");
 }
 
 void show_regs(struct pt_regs *regs)
