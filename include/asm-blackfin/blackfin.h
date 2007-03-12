@@ -11,46 +11,65 @@
 #include <asm/bfin-global.h>
 
 #if defined(ANOMALY_05000312) && defined(ANOMALY_05000244)
-#define SSYNC() do { 	int _tmp; \
-                       __asm__ __volatile__ ("cli %0;\n\t"\
-	         			    "nop;nop;\n\t"\
-                                            "ssync;\n\t"\
-                                            "sti %0;\n\t" \
-                                             :"=d"(_tmp):);\
- } while (0)
+static inline void SSYNC (void)
+{
+	int _tmp;
+	__asm__ __volatile__ ("cli %0;\n\t"
+			"nop;nop;\n\t"
+			"ssync;\n\t"
+			"sti %0;\n\t"
+			:"=d"(_tmp):);
+}
 #elif defined(ANOMALY_05000312) && !defined(ANOMALY_05000244)
-#define SSYNC() do { 	int _tmp; \
-                       __asm__ __volatile__ ("cli %0;\n\t"\
-                                            "ssync;\n\t"\
-                                            "sti %0;\n\t" \
-                                             :"=d"(_tmp):);\
- } while (0)
+static inline void SSYNC (void)
+{
+	int _tmp;
+	__asm__ __volatile__ ("cli %0;\n\t"
+			"ssync;\n\t"
+			"sti %0;\n\t"
+			:"=d"(_tmp):);
+}
 #elif !defined(ANOMALY_05000312) && defined(ANOMALY_05000244)
-#define SSYNC() do {__builtin_bfin_ssync();} while (0)
+static inline void SSYNC (void)
+{
+	__builtin_bfin_ssync();
+}
 #elif !defined(ANOMALY_05000312) && !defined(ANOMALY_05000244)
-#define SSYNC() do {__asm__ __volatile__ ("ssync;\n\t") } while (0)
+static inline void SSYNC (void)
+{
+	__asm__ __volatile__ ("ssync;\n\t");
+}
 #endif
 
-
 #if defined(ANOMALY_05000312) && defined(ANOMALY_05000244)
-#define CSYNC() do { 	int _tmp; \
-                       __asm__ __volatile__ ("cli %0;\n\t"\
-	         			    "nop;nop;\n\t"\
-                                            "csync;\n\t"\
-                                            "sti %0;\n\t" \
-                                             :"=d"(_tmp):);\
- } while (0)
+static inline void CSYNC (void)
+{
+	int _tmp;
+	__asm__ __volatile__ ("cli %0;\n\t"
+			"nop;nop;\n\t"
+			"csync;\n\t"
+			"sti %0;\n\t"
+			:"=d"(_tmp):);
+}
 #elif defined(ANOMALY_05000312) && !defined(ANOMALY_05000244)
-#define CSYNC() do { 	int _tmp; \
-                       __asm__ __volatile__ ("cli %0;\n\t"\
-                                            "csync;\n\t"\
-                                            "sti %0;\n\t" \
-                                             :"=d"(_tmp):);\
- } while (0)
+static inline void CSYNC (void)
+{
+	int _tmp;
+	__asm__ __volatile__ ("cli %0;\n\t"
+			"csync;\n\t"
+			"sti %0;\n\t"
+			:"=d"(_tmp):);
+}
 #elif !defined(ANOMALY_05000312) && defined(ANOMALY_05000244)
-#define CSYNC() do {__builtin_bfin_csync();} while (0)
+static inline void CSYNC (void)
+{
+	__builtin_bfin_csync();
+}
 #elif !defined(ANOMALY_05000312) && !defined(ANOMALY_05000244)
-#define CSYNC() do {__asm__ __volatile__ ("csync;\n\t") } while (0)
+static inline void CSYNC (void)
+{
+	__asm__ __volatile__ ("csync;\n\t");
+}
 #endif
 
 #endif				/* _BLACKFIN_H_ */
