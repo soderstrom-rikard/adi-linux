@@ -62,7 +62,7 @@
 unsigned long irq_flags = 0;
 
 /* The number of spurious interrupts */
-volatile unsigned int num_spurious;
+atomic_t num_spurious;
 
 struct ivgx {
 	/* irq number for request_irq, available in mach-bf533/irq.h */
@@ -565,7 +565,7 @@ void do_irq(int vec, struct pt_regs *fp)
 
 		for (;; ivg++) {
 			if (ivg >= ivg_stop) {
-				num_spurious++;
+				atomic_inc(&num_spurious);
 				return;
 			} else if (sic_status & ivg->isrflag)
 				break;
