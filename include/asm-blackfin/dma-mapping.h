@@ -27,12 +27,8 @@ extern dma_addr_t dma_map_single(struct device *dev, void *ptr, size_t size,
  * After this call, reads by the cpu to the buffer are guarenteed to see
  * whatever the device wrote there.
  */
-static inline
-    void dma_unmap_single(struct device *dev, dma_addr_t dma_addr, size_t size,
-			  enum dma_data_direction direction)
-{
-	BUG_ON(direction == DMA_NONE);
-}
+extern void dma_unmap_single(struct device *dev, dma_addr_t dma_addr, size_t size,
+			  enum dma_data_direction direction);
 
 /*
  * Map a set of buffers described by scatterlist in streaming
@@ -58,11 +54,7 @@ extern int dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
  * Again, cpu read rules concerning calls here are the same as for
  * pci_unmap_single() above.
  */
-static inline
-    void dma_unmap_sg(struct device *dev, struct scatterlist *sg,
-		      int nhwentries, enum dma_data_direction direction)
-{
-	BUG_ON(direction == DMA_NONE);
-}
+extern void dma_unmap_sg(struct device *dev, struct scatterlist *sg,
+		      int nhwentries, enum dma_data_direction direction);
 
 #endif				/* _BLACKFIN_DMA_MAPPING_H */
