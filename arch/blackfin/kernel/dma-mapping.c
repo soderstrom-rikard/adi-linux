@@ -169,3 +169,7 @@ dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
 	return nents;
 }
 EXPORT_SYMBOL(dma_map_sg);
+
+/* Export symbols which defined in include/asm-blackfin/dma-mapping.h */
+EXPORT_SYMBOL(dma_unmap_sg);
+EXPORT_SYMBOL(dma_unmap_single);
