@@ -29,14 +29,6 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/*
- * ++roman (07/09/96): implemented signal stacks (specially for tosemu on
- * Atari :-) Current limitation: Only one sigstack can be active at one time.
- * If a second signal with SA_ONSTACK set arrives while working on a sigstack,
- * SA_ONSTACK is ignored. This behaviour avoids lots of trouble with nested
- * signal handlers!
- */
-
 #include <linux/signal.h>
 #include <linux/syscalls.h>
 #include <linux/ptrace.h>
