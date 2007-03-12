@@ -161,6 +161,7 @@
 #define I2C_DRIVERID_W83L785TS 1047
 #define I2C_DRIVERID_PCF8575 1048
 #define I2C_DRIVERID_AD5252 1049
+#define I2C_DRIVERID_BLACKFINTWI 1050
 
 /*
  * ---- Adapter types ----------------------------------------------------
