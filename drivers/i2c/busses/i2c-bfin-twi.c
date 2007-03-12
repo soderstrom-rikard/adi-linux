@@ -1,12 +1,12 @@
 /****************************************************************
  * Description: Driver for Blackfin Two Wire Interface          *
- * Maintainer:  sonicz  <sonic.zhang@analog.com>                *
+ * Author:      sonicz  <sonic.zhang@analog.com>                *
  *                                                              *
  * Copyright (c) 2005-2007 Analog Device                        *
  *                                                              *
  * This file is free software;                                  *
- *   you are free to modify and/or redistribute it   	        *
- *   under the terms of the GNU General Public Licence (GPL).   *
+ * you are free to modify and/or redistribute it                *
+ * under the terms of the GNU General Public Licence (GPL).     *
  ****************************************************************/
 
 #include <linux/module.h>
@@ -18,23 +18,19 @@
 #include <linux/spinlock.h>
 #include <linux/completion.h>
 #include <linux/interrupt.h>
+#include <linux/device.h>
 
 #include <asm/blackfin.h>
 #include <asm/irq.h>
 
-#define I2C_BLACKFIN_TWI       0x00
 #define POLL_TIMEOUT       (2 * HZ)
-#ifndef CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ
-#define CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ  400
-#endif
 
 /* SMBus mode*/
 #define TWI_I2C_MODE_STANDARD		0x01
 #define TWI_I2C_MODE_STANDARDSUB	0x02
 #define TWI_I2C_MODE_COMBINED		0x04
 
-struct bfin_twi_iface
-{
+struct bfin_twi_iface {
 	struct mutex		twi_lock;
 	int			irq;
 	spinlock_t		lock;
@@ -175,7 +171,7 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 /* Interrupt handler */
 static irqreturn_t bfin_twi_interrupt_entry(int irq, void *dev_id)
 {
-	struct bfin_twi_iface *iface = (struct bfin_twi_iface *)dev_id;
+	struct bfin_twi_iface *iface = dev_id;
 	unsigned long flags;
 
 	spin_lock_irqsave(&iface->lock, flags);
@@ -209,7 +205,7 @@ static void bfin_twi_timeout(unsigned long data)
  * Generic i2c master transfer entrypoint
  */
 static int bfin_twi_master_xfer(struct i2c_adapter *adap,
-				struct i2c_msg msgs[], int num)
+				struct i2c_msg *msgs, int num)
 {
 	struct bfin_twi_iface *iface = adap->algo_data;
 	struct i2c_msg *pmsg;
@@ -231,8 +227,8 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 	for (i = 0; rc >= 0 && i < num; i++) {
 		pmsg = &msgs[i];
 		if (pmsg->flags & I2C_M_TEN) {
-			printk(KERN_ERR "i2c-bfin-twi: 10 bits addr \
-					not supported !\n");
+			printk(KERN_ERR "i2c-bfin-twi: 10 bits addr "
+					"not supported !\n");
 			rc = -EINVAL;
 			break;
 		}
@@ -532,18 +528,16 @@ static int __init i2c_bfin_twi_init(void)
 	twi_iface.timeout_timer.data = (unsigned long)&twi_iface;
 
 	p_adap = &twi_iface.adap;
-	p_adap->id = I2C_BLACKFIN_TWI;
-	strcpy(p_adap->name, "i2c-bfin-twi");
+	p_adap->id = I2C_DRIVERID_BLACKFINTWI;
+	strlcpy(p_adap->name, "i2c-bfin-twi", I2C_NAME_SIZE);
 	p_adap->algo = &bfin_twi_algorithm;
 	p_adap->algo_data = &twi_iface;
-	p_adap->client_register = NULL;
-	p_adap->client_unregister = NULL;
 	p_adap->class = I2C_CLASS_ALL;
 
 	rc = request_irq(twi_iface.irq, bfin_twi_interrupt_entry,
 		SA_INTERRUPT, "i2c-bfin-twi", &twi_iface);
 	if (rc) {
-		printk(KERN_ERR "i2c-bfin-twi: can't get IRQ %d !\n",
+		printk(KERN_ERR"i2c-bfin-twi: can't get IRQ %d !\n",
 			twi_iface.irq);
 		return -ENODEV;
 	}
@@ -556,8 +550,9 @@ static int __init i2c_bfin_twi_init(void)
 		bfin_write_TWI_CLKDIV((( 5*1024 / 400 ) << 8) |
 			(( 5*1024 / 400 ) & 0xFF));
 	else
-		bfin_write_TWI_CLKDIV((( 5*1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ ) << 8) |
-			(( 5*1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ ) & 0xFF));
+		bfin_write_TWI_CLKDIV((( 5*1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ )
+			<< 8) | (( 5*1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ )
+			& 0xFF));
 
 	/* Enable TWI */
 	bfin_write_TWI_CONTROL(bfin_read_TWI_CONTROL() | TWI_ENA);
