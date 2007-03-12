@@ -53,8 +53,6 @@
  *                                                      01/11/97 - Jes
  */
 
-extern void sys_free_irq(unsigned int irq, void *dev_id);
-
 extern void ack_bad_irq(unsigned int irq);
 
 static __inline__ int irq_canonicalize(int irq)
