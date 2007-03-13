@@ -53,10 +53,6 @@ config GENERIC_CALIBRATE_DELAY
 	bool
 	default y
 
-config UCLINUX
-	bool
-	default y
-
 config FORCE_MAX_ZONEORDER
 	int
 	default "14"
