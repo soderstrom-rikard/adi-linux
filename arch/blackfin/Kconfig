@@ -260,7 +260,7 @@ comment "Kernel Command Line Setup"
 
 config CMDLINE
 	string "Default kernel command string"
-	default "console=ttyS0,57600"
+	default "console=ttyBF0,57600"
 	help
 	  If you don't have a boot loader capable of passing a command line string
 	  to the kernel, you may specify one here. As a minimum, you should specify
