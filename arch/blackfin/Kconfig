@@ -256,16 +256,17 @@ source "arch/blackfin/mach-bf537/Kconfig"
 
 menu "Board customizations"
 
-comment "Kernel Command Line Setup"
+config CMDLINE_BOOL
+	bool "Default bootloader kernel arguments"
 
 config CMDLINE
-	string "Default kernel command string"
+	string "Initial kernel command string"
+	depends on CMDLINE_BOOL
 	default "console=ttyBF0,57600"
 	help
 	  If you don't have a boot loader capable of passing a command line string
 	  to the kernel, you may specify one here. As a minimum, you should specify
 	  the memory size and the root device (e.g., mem=8M, root=/dev/nfs).
-
 
 comment "Board Setup"
 

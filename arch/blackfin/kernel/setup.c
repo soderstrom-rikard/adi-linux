@@ -220,10 +220,9 @@ void __init setup_arch(char **cmdline_p)
 	flash_probe();
 #endif
 
-#if defined(CONFIG_BOOTPARAM)
+#if defined(CONFIG_CMDLINE_BOOL)
 	memset(command_line, 0, sizeof(command_line));
-	strncpy(&command_line[0], CONFIG_BOOTPARAM_STRING,
-		sizeof(command_line));
+	strncpy(&command_line[0], CONFIG_CMDLINE, sizeof(command_line));
 	command_line[sizeof(command_line) - 1] = 0;
 #endif
 
