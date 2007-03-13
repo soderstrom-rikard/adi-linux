@@ -257,7 +257,7 @@ static int bfin_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 
 static int bfin_config_dma(struct adv7393fb_device *fbdev)
 {
-	assert(fbdev->fb_mem);
+	BUG_ON(!(fbdev->fb_mem));
 
 	set_dma_x_count(CH_PPI, fbdev->descriptor_list_head->x_count);
 	set_dma_x_modify(CH_PPI, fbdev->descriptor_list_head->x_modify);

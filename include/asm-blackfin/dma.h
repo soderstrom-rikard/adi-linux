@@ -44,18 +44,6 @@
 
 #define MAX_DMA_ADDRESS PAGE_OFFSET
 
-#undef BFIN_DMA_NDEBUG
-
-#ifdef BFIN_DMA_NDEBUG
-#define assert(expr) do {} while(0)
-#else
-#define assert(expr) 						\
-	if (!(expr)) {						\
-	printk(KERN_INFO "Assertion failed! %s, %s, %s, line=%d \n",	\
-	#expr, __FILE__,__FUNCTION__,__LINE__); 		\
-	}
-#endif
-
 /*****************************************************************************
 *        Generic DMA  Declarations
 *

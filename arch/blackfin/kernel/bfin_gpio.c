@@ -88,17 +88,6 @@
 #include <asm/gpio.h>
 #include <linux/irq.h>
 
-#ifndef DEBUG
-#define assert(expr) do {} while(0)
-#else
-#define assert(expr) 						\
-	if (!(expr)) {						\
-	printk(KERN_INFO "Assertion failed! %s, %s, %s, line=%d \n",	\
-	#expr, __FILE__,__FUNCTION__,__LINE__); 		\
-	}
-#endif
-
-
 #ifdef BF533_FAMILY
 static struct gpio_port_t *gpio_bankb[gpio_bank(MAX_BLACKFIN_GPIOS)] = {
 	(struct gpio_port_t *) FIO_FLAG_D,
@@ -237,7 +226,7 @@ arch_initcall(bfin_gpio_init);
 void set_gpio_ ## name(unsigned short gpio, unsigned short arg) \
 { \
 	unsigned long flags; \
-	assert(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio)); \
+	BUG_ON(!(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio))); \
 	local_irq_save(flags); \
 	if (arg) \
 		gpio_bankb[gpio_bank(gpio)]->name |= gpio_bit(gpio); \
@@ -257,7 +246,7 @@ SET_GPIO(both)
 #define SET_GPIO_SC(name) \
 void set_gpio_ ## name(unsigned short gpio, unsigned short arg) \
 { \
-	assert(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio)); \
+	BUG_ON(!(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio))); \
 	if (arg) \
 		gpio_bankb[gpio_bank(gpio)]->name ## _set = gpio_bit(gpio); \
 	else \
@@ -272,7 +261,7 @@ SET_GPIO_SC(maskb)
 void set_gpio_data(unsigned short gpio, unsigned short arg)
 {
 	unsigned long flags;
-	assert(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio));
+	BUG_ON(!(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio)));
 	local_irq_save(flags);
 	if (arg)
 		gpio_bankb[gpio_bank(gpio)]->data_set = gpio_bit(gpio);
@@ -291,7 +280,7 @@ SET_GPIO_SC(data)
 void set_gpio_toggle(unsigned short gpio)
 {
 	unsigned long flags;
-	assert(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio));
+	BUG_ON(!(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio)));
 	local_irq_save(flags);
 	gpio_bankb[gpio_bank(gpio)]->toggle = gpio_bit(gpio);
 	bfin_read_CHIPID();
@@ -300,7 +289,7 @@ void set_gpio_toggle(unsigned short gpio)
 #else
 void set_gpio_toggle(unsigned short gpio)
 {
-	assert(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio));
+	BUG_ON(!(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio)));
 	gpio_bankb[gpio_bank(gpio)]->toggle = gpio_bit(gpio);
 }
 #endif
@@ -329,7 +318,7 @@ SET_GPIO_P(maskb)
 void set_gpiop_data(unsigned short gpio, unsigned short arg)
 {
 	unsigned long flags;
-	assert(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio));
+	BUG_ON(!(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio)));
 	local_irq_save(flags);
 	gpio_bankb[gpio_bank(gpio)]->data = arg;
 	bfin_read_CHIPID();
@@ -365,7 +354,7 @@ unsigned short get_gpio_data(unsigned short gpio)
 {
 	unsigned long flags;
 	unsigned short ret;
-	assert(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio));
+	BUG_ON(!(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio)));
 	local_irq_save(flags);
 	ret = 0x01 & (gpio_bankb[gpio_bank(gpio)]->data >> gpio_sub_n(gpio));
 	bfin_read_CHIPID();
@@ -399,7 +388,7 @@ unsigned short get_gpiop_data(unsigned short gpio)
 {
 	unsigned long flags;
 	unsigned short ret;
-	assert(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio));
+	BUG_ON(!(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio)));
 	local_irq_save(flags);
 	ret = gpio_bankb[gpio_bank(gpio)]->data;
 	bfin_read_CHIPID();
@@ -629,7 +618,7 @@ void gpio_direction_input(unsigned short gpio)
 {
 	unsigned long flags;
 
-	assert(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio));
+	BUG_ON(!(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio)));
 
 	local_irq_save(flags);
 	gpio_bankb[gpio_bank(gpio)]->dir &= ~gpio_bit(gpio);
@@ -642,7 +631,7 @@ void gpio_direction_output(unsigned short gpio)
 {
 	unsigned long flags;
 
-	assert(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio));
+	BUG_ON(!(reserved_map[gpio_bank(gpio)] & gpio_bit(gpio)));
 
 	local_irq_save(flags);
 	gpio_bankb[gpio_bank(gpio)]->inen &= ~gpio_bit(gpio);
