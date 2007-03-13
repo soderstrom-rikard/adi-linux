@@ -18,29 +18,52 @@
  * differently. On the bfin architecture, we just read/write the
  * memory location directly.
  */
-#define readb(addr) ({ unsigned __v; \
-		       int _tmp; \
-		       __asm__ __volatile__ ("cli %1;\n\t"\
-	         			 "NOP;NOP;SSYNC;\n\t"\
-					     "%0 = b [%2] (z);\n\t"\
-					     "sti %1;\n\t" \
-  : "=d"(__v), "=d"(_tmp): "a"(addr)); (unsigned char)__v; })
+#ifndef __ASSEMBLY__
 
-#define readw(addr) ({ unsigned __v; \
-					   int _tmp; \
-                       __asm__ __volatile__ ("cli %1;\n\t"\
-	         			    				 "NOP;NOP;SSYNC;\n\t"\
-	         			     				 "%0 = w [%2] (z);\n\t"\
-                                             "sti %1;\n\t" \
-  : "=d"(__v), "=d"(_tmp): "a"(addr)); (unsigned short)__v; })
+static inline unsigned char readb (unsigned long *addr)
+{
+	unsigned int val;
+	int tmp;
 
-#define readl(addr) ({ unsigned __v; \
-					   int _tmp; \
-                      __asm__ __volatile__ ("cli %1;\n\t"\
-	         			    				 "NOP;NOP;SSYNC;\n\t"\
-                                            "%0 = [%2];\n\t"\
-                                            "sti %1;\n\t" \
-  : "=d"(__v), "=d"(_tmp): "a"(addr)); __v; })
+	__asm__ __volatile__ ("cli %1;\n\t"
+			"NOP; NOP; SSYNC;\n\t"
+			"%0 = b [%2] (z);\n\t"
+			"sti %1;\n\t"
+			: "=d"(val), "=d"(tmp): "a"(addr)
+			);
+
+	return (unsigned char) val;
+}
+
+static inline unsigned short readw (unsigned long *addr)
+{
+	unsigned int val;
+	int tmp;
+	
+	__asm__ __volatile__ ("cli %1;\n\t"
+			"NOP; NOP; SSYNC;\n\t"
+			"%0 = w [%2] (z);\n\t"
+			"sti %1;\n\t"
+		      	: "=d"(val), "=d"(tmp): "a"(addr)
+			); 
+	
+	return (unsigned short) val;
+}
+
+static inline unsigned int readl (unsigned long *addr)
+{
+	unsigned int val;
+	int tmp;
+                      
+	__asm__ __volatile__ ("cli %1;\n\t"
+			"NOP; NOP; SSYNC;\n\t"
+			"%0 = [%2];\n\t"
+			"sti %1;\n\t"
+		      	: "=d"(val), "=d"(tmp): "a"(addr)); 
+	return val;
+}
+
+#endif /*  __ASSEMBLY__ */
 
 #define writeb(b,addr) (void)((*(volatile unsigned char *) (addr)) = (b))
 #define writew(b,addr) (void)((*(volatile unsigned short *) (addr)) = (b))
