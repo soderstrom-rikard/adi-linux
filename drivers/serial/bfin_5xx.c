@@ -615,7 +615,7 @@ bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
 	}
 
 	/* These controls are not implemented for this port */
-	termios->c_iflag |= INPCK | BRKINT | PARMRK;
+	termios->c_iflag |= INPCK;
 	termios->c_iflag &= ~(IGNPAR | IGNBRK);
 
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
