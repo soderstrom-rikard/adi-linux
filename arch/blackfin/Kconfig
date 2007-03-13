@@ -962,11 +962,6 @@ config DUAL_CORE_TEST_MODULE
 	help
 	  Say Y here to build-in dual core test module for dual core test.
 
-config NO_KERNEL_MSG
-	bool "Suppress Kernel BUG Messages"
-	help
-	  Do not output any debug BUG messages within the kernel.
-
 config CPLB_INFO
 	bool "Display the CPLB information"
 	help
