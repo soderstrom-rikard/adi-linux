@@ -34,10 +34,9 @@
 #include <linux/profile.h>
 #include <linux/interrupt.h>
 #include <linux/time.h>
+#include <linux/irq.h>
 
 #include <asm/blackfin.h>
-#include <asm/irq.h>
-#include <asm/irq_regs.h>
 
 /* This is an NTP setting */
 #define	TICK_SIZE (tick_nsec / 1000)
@@ -45,7 +44,6 @@
 static void time_sched_init(irqreturn_t(*timer_routine)
 			(int, void *));
 static unsigned long gettimeoffset(void);
-extern int setup_irq(unsigned int irq, struct irqaction *handler);
 static inline void do_leds(void);
 
 #if (defined(CONFIG_BFIN_ALIVE_LED) || defined(CONFIG_BFIN_IDLE_LED))

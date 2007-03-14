@@ -70,7 +70,6 @@ EXPORT_SYMBOL(mtd_size);
 
 char command_line[COMMAND_LINE_SIZE];
 
-extern void init_leds(void);
 #if defined(CONFIG_BLKFIN_DCACHE) || defined(CONFIG_BLKFIN_CACHE)
 static void generate_cpl_tables(void);
 #endif

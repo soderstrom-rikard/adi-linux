@@ -90,6 +90,7 @@ extern void led_off(int);
 extern void led_toggle(int);
 extern void led_disp_num(int);
 extern void led_toggle_num(int);
+extern void init_leds(void);
 
 extern char *bfin_board_name __attribute__ ((weak));
 extern unsigned long wall_jiffies;
