@@ -20,7 +20,7 @@
  */
 #ifndef __ASSEMBLY__
 
-static inline unsigned char readb (unsigned long *addr)
+static inline unsigned char readb(volatile unsigned char *addr)
 {
 	unsigned int val;
 	int tmp;
@@ -35,7 +35,7 @@ static inline unsigned char readb (unsigned long *addr)
 	return (unsigned char) val;
 }
 
-static inline unsigned short readw (unsigned long *addr)
+static inline unsigned short readw(volatile unsigned short *addr)
 {
 	unsigned int val;
 	int tmp;
@@ -50,7 +50,7 @@ static inline unsigned short readw (unsigned long *addr)
 	return (unsigned short) val;
 }
 
-static inline unsigned int readl (unsigned long *addr)
+static inline unsigned int readl(volatile unsigned int *addr)
 {
 	unsigned int val;
 	int tmp;
@@ -59,7 +59,8 @@ static inline unsigned int readl (unsigned long *addr)
 			"NOP; NOP; SSYNC;\n\t"
 			"%0 = [%2];\n\t"
 			"sti %1;\n\t"
-		      	: "=d"(val), "=d"(tmp): "a"(addr)); 
+		      	: "=d"(val), "=d"(tmp): "a"(addr)
+			); 
 	return val;
 }
 
