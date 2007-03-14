@@ -49,6 +49,10 @@ config GENERIC_IRQ_PROBE
         bool
 	default y
 
+config GENERIC_TIME
+	bool
+	default n
+
 config GENERIC_CALIBRATE_DELAY
 	bool
 	default y

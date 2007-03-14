@@ -260,6 +260,7 @@ void __init time_init(void)
 	time_sched_init(timer_interrupt);
 }
 
+#ifndef CONFIG_GENERIC_TIME
 void do_gettimeofday(struct timeval *tv)
 {
 	unsigned long flags;
@@ -316,6 +317,7 @@ int do_settimeofday(struct timespec *tv)
 	return 0;
 }
 EXPORT_SYMBOL(do_settimeofday);
+#endif /* !CONFIG_GENERIC_TIME */
 
 /*
  * Scheduler clock - returns current time in nanosec units.
