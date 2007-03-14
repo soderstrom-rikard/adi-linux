@@ -186,40 +186,6 @@ static int request_mode = RM_FULL;
 
 /**********************************************************************\
 *
-* Low level helpers, borrowed from bfin_spi_adc.c by Michael Hennerich.
-*
-\**********************************************************************/
-#ifdef CONFIG_BFIN
-static u_long get_vco(void)
-{
-	u_long vco;
-	vco = (CONFIG_CLKIN_HZ) * ((bfin_read_PLL_CTL() >> 9)& 0x3F);
-
-	if (1 & bfin_read_PLL_CTL()) /* DR bit */
-		vco >>= 1;
-
-	return vco;
-}
-
-
-static u_long spi_get_sclk(void)
-{
-	u_long vco;
-	u_long sclk = 0;
-
-	vco = get_vco();
-
-	if((bfin_read_PLL_DIV() & 0xf) != 0)
-		sclk = vco/(bfin_read_PLL_DIV() & 0xf);
-	else
-		printk(KERN_NOTICE "bfin_spi_adc: Invalid System Clock\n");
-
-	return (sclk);
-}
-#endif
-
-/**********************************************************************\
-*
 * Block device layer. (Requests to transfer layer.)
 *
 \**********************************************************************/
@@ -577,18 +543,11 @@ static int elapsed_time_func(void)
 \**********************************************************************/
 static int spi_mmc_card_init(mmc_info_t* pdev) 
 {	
-	u_long sclk;
-
 	// TODO: get system clock frequency, preferrably platform independend, how?
 	// TODO: Adjust maximum speed to card maximum(said to be found in CSD reg.) and sclk.
 	
 	// set SPI to init rate
-	#ifdef CONFIG_BFIN
-	sclk = spi_get_sclk();
-	pdev->spi_speed_hz = sclk/(2*SPI_CLOCK_INIT_HZ)+1;
-	#else
 	pdev->spi_speed_hz = SPI_CLOCK_INIT_HZ;
-	#endif
 
 	// MMC card init
         if( mmc_spi_init_card(&(pdev->msd)) ) {
@@ -599,11 +558,7 @@ static int spi_mmc_card_init(mmc_info_t* pdev)
 	}
 
 	// reset to max speed if successful init
-	#ifdef CONFIG_BFIN
-	pdev->spi_speed_hz = sclk/(2*SPI_CLOCK_MAX_HZ)+1;
-	#else
 	pdev->spi_speed_hz = SPI_CLOCK_MAX_HZ;
-	#endif
 
 	return 0;
 }
@@ -894,14 +849,8 @@ int spi_mmc_read_proc(char *buf, char **start, off_t offset, int count, int *eof
 	int len = 0;
 	int idx = 0;
 	unsigned int spi_speed_khz=0;
-	unsigned int sclk=0;
 	
-	#ifdef CONFIG_BFIN
-	sclk = spi_get_sclk();
-	spi_speed_khz = (unsigned int)(sclk/(2 * pdev->spi_speed_hz))/1000;
-	#else
 	spi_speed_khz = pdev->spi_speed_hz/1000;
-	#endif
 	
 	// add to len if iterative..
 	len += sprintf(buf+len, "Driver build date: %s\n", __DATE__);
