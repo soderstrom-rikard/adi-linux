@@ -60,6 +60,24 @@ static __inline__ int irq_canonicalize(int irq)
 	return irq;
 }
 
+/* BASE LEVEL interrupt handler routines */
+void evt_emulation(void);
+void evt_exception(void);
+void trap(void);
+void evt_ivhw(void);
+void evt_timer(void);
+void evt_evt2(void);
+void evt_evt7(void);
+void evt_evt8(void);
+void evt_evt9(void);
+void evt_evt10(void);
+void evt_evt11(void);
+void evt_evt12(void);
+void evt_evt13(void);
+void evt_soft_int1(void);
+void evt_system_call(void);
+void init_exception_buff(void);
+
 /* count of spurious interrupts */
 /* extern volatile unsigned int num_spurious; */
 
