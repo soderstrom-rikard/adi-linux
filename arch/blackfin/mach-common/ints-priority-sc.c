@@ -45,6 +45,7 @@
 #include <asm/traps.h>
 #include <asm/blackfin.h>
 #include <asm/gpio.h>
+#include <asm/irq_handler.h>
 
 #ifdef BF537_FAMILY
 # define BF537_GENERIC_ERROR_INT_DEMUX
@@ -76,23 +77,6 @@ struct ivg_slice {
 	struct ivgx *ifirst;
 	struct ivgx *istop;
 } ivg7_13[IVG13 - IVG7 + 1];
-
-/* BASE LEVEL interrupt handler routines */
-asmlinkage void evt_emulation(void);
-asmlinkage void evt_exception(void);
-asmlinkage void trap(void);
-asmlinkage void evt_ivhw(void);
-asmlinkage void evt_timer(void);
-asmlinkage void evt_evt2(void);
-asmlinkage void evt_evt7(void);
-asmlinkage void evt_evt8(void);
-asmlinkage void evt_evt9(void);
-asmlinkage void evt_evt10(void);
-asmlinkage void evt_evt11(void);
-asmlinkage void evt_evt12(void);
-asmlinkage void evt_evt13(void);
-asmlinkage void evt_soft_int1(void);
-asmlinkage void evt_system_call(void);
 
 static void search_IAR(void);
 

@@ -34,17 +34,13 @@
 #include <asm/cacheflush.h>
 #include <asm/blackfin.h>
 #include <asm/uaccess.h>
+#include <asm/irq_handler.h>
 #include <linux/interrupt.h>
 #include <linux/module.h>
 #ifdef CONFIG_KGDB
 # include <linux/debugger.h>
 # include <linux/kgdb.h>
 #endif
-
-/* assembler routines */
-asmlinkage void evt_system_call(void);
-asmlinkage void evt_soft_int1(void);
-asmlinkage void trap(void);
 
 /* Initiate the event table handler */
 void __init trap_init(void)

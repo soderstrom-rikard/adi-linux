@@ -45,6 +45,7 @@
 #include <asm/traps.h>
 #include <asm/blackfin.h>
 #include <asm/gpio.h>
+#include <asm/irq_handler.h>
 
 /*
  * NOTES:
