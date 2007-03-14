@@ -77,7 +77,6 @@ enum dma_chan_status_t {
 #define INTR_ON_BUF    2
 #define INTR_ON_ROW    3
 
-#pragma pack(2)
 struct dmasg_t {
 	unsigned long next_desc_addr;
 	unsigned long start_addr;
@@ -87,7 +86,6 @@ struct dmasg_t {
 	unsigned short y_count;
 	short y_modify;
 };
-#pragma pack()
 
 struct dma_register_t {
 	unsigned long next_desc_ptr;	/* DMA Next Descriptor Pointer register */
