@@ -224,7 +224,7 @@
 #define UART0_LSR_TEMT			0x40	/* TSR and UARTx_thr both empty */
 
 #define UART0_MSR_ADDR		0xffc0180c	/* UART 0 Modem status register  16 bit */
-#define UART0_MSR			HALFWORD_REF(UART0_MSR_ADDR
+#define UART0_MSR			HALFWORD_REF(UART0_MSR_ADDR)
 #define UART0_SCR_ADDR		0xffc0180e	/* UART 0 Scratch register  16 bit */
 #define UART0_SCR			HALFWORD_REF(UART0_SCR_ADDR)
 #define UART0_IRCR_ADDR		0xffc01810	/* UART 0 IrDA Control register  16 bit */
@@ -331,7 +331,7 @@
 #define UART1_LSR_TEMT          0x40	/* TSR and UARTx_thr both empty */
 
 #define UART1_MSR_ADDR		0xffc01c0c	/* UART 1 Modem status register  16 bit */
-#define UART1_MSR			HALFWORD_REF(UART1_MSR_ADDR
+#define UART1_MSR			HALFWORD_REF(UART1_MSR_ADDR)
 #define UART1_SCR_ADDR		0xffc01c0e	/* UART 1 Scratch register  16 bit */
 #define UART1_SCR			HALFWORD_REF(UART1_SCR_ADDR)
 
