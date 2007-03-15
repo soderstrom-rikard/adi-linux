@@ -52,8 +52,7 @@
 #define RESTORE_ALL_SYS		restore_context_no_interrupts
 #define RESTORE_CONTEXT		restore_context_with_interrupts
 
-#define STR(X) STR1(X)
-#define STR1(X) #X
+#define STR(x) __stringify(x)
 # define PT_OFF_ORIG_P0		208
 # define PT_OFF_SR		8
 
