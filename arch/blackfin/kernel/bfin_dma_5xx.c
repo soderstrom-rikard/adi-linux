@@ -130,7 +130,7 @@ int __init blackfin_dma_init(void)
 	for (i = 0; i < MAX_BLACKFIN_DMA_CHANNEL; i++) {
 		dma_ch[i].chan_status = DMA_CHANNEL_FREE;
 		dma_ch[i].regs = base_addr[i];
-		init_MUTEX(&(dma_ch[i].dmalock));
+		mutex_init(&(dma_ch[i].dmalock));
 	}
 
 	return 0;
@@ -288,11 +288,11 @@ int request_dma(unsigned int channel, char *device_id)
 {
 
 	pr_debug("request_dma() : BEGIN \n");
-	down(&(dma_ch[channel].dmalock));
+	mutex_lock(&(dma_ch[channel].dmalock));
 
 	if ((dma_ch[channel].chan_status == DMA_CHANNEL_REQUESTED)
 	    || (dma_ch[channel].chan_status == DMA_CHANNEL_ENABLED)) {
-		up(&(dma_ch[channel].dmalock));
+		mutex_unlock(&(dma_ch[channel].dmalock));
 		pr_debug("DMA CHANNEL IN USE  \n");
 		return -EBUSY;
 	} else {
@@ -300,7 +300,7 @@ int request_dma(unsigned int channel, char *device_id)
 		pr_debug("DMA CHANNEL IS ALLOCATED  \n");
 	}
 
-	up(&(dma_ch[channel].dmalock));
+	mutex_unlock(&(dma_ch[channel].dmalock));
 
 	dma_ch[channel].device_id = device_id;
 	dma_ch[channel].irq_callback = NULL;
@@ -359,9 +359,9 @@ void free_dma(unsigned int channel)
 	}
 
 	/* Clear the DMA Variable in the Channel */
-	down(&(dma_ch[channel].dmalock));
+	mutex_lock(&(dma_ch[channel].dmalock));
 	dma_ch[channel].chan_status = DMA_CHANNEL_FREE;
-	up(&(dma_ch[channel].dmalock));
+	mutex_unlock(&(dma_ch[channel].dmalock));
 
 	pr_debug("freedma() : END \n");
 }

@@ -135,7 +135,7 @@ struct dma_register_t {
 typedef irqreturn_t(*dma_interrupt_t) (int irq, void *dev_id);
 
 struct dma_channel_t {
-	struct semaphore dmalock;
+	struct mutex dmalock;
 	char *device_id;
 	enum dma_chan_status_t chan_status;
 	struct dma_register_t *regs;
