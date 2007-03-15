@@ -3,17 +3,30 @@
 
 /* Add new entries at the end of the structure only.  */
 struct sigcontext {
-	unsigned long sc_mask;	/* old sigmask */
-	unsigned long sc_usp;	/* old user stack pointer */
 	unsigned long sc_r0;
 	unsigned long sc_r1;
 	unsigned long sc_r2;
 	unsigned long sc_r3;
 	unsigned long sc_r4;
+	unsigned long sc_r5;
+	unsigned long sc_r6;
+	unsigned long sc_r7;
 	unsigned long sc_p0;
 	unsigned long sc_p1;
 	unsigned long sc_p2;
 	unsigned long sc_p3;
+	unsigned long sc_p4;
+	unsigned long sc_p5;
+	unsigned long sc_usp;
+	unsigned long sc_a0w;
+	unsigned long sc_a1w;
+	unsigned long sc_a0x;
+	unsigned long sc_a1x;
+	unsigned long sc_astat;
+	unsigned long sc_rets;
+	unsigned long sc_pc;
+	unsigned long sc_retx;
+	unsigned long sc_fp;
 	unsigned long sc_i0;
 	unsigned long sc_i1;
 	unsigned long sc_i2;
@@ -30,12 +43,6 @@ struct sigcontext {
 	unsigned long sc_b1;
 	unsigned long sc_b2;
 	unsigned long sc_b3;
-	unsigned long sc_a0x;
-	unsigned long sc_a0w;
-	unsigned long sc_a1x;
-	unsigned long sc_a1w;
-	unsigned long sc_astat;
-	unsigned long sc_rets;
 	unsigned long sc_lc0;
 	unsigned long sc_lc1;
 	unsigned long sc_lt0;
@@ -43,8 +50,6 @@ struct sigcontext {
 	unsigned long sc_lb0;
 	unsigned long sc_lb1;
 	unsigned long sc_seqstat;
-	unsigned long sc_pc;
-	unsigned long sc_retx;
 };
 
 #endif
