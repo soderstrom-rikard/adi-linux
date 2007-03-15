@@ -2,4 +2,4 @@
 # arch/blackfin/mm/Makefile
 #
 
-obj-y := blackfin_sram.o init.o kmap.o
+obj-y := blackfin_sram.o init.o

@@ -123,9 +123,40 @@ extern void insb(const void __iomem *port, void *addr, unsigned long count);
 extern void insw(const void __iomem *port, void *addr, unsigned long count);
 extern void insl(const void __iomem *port, void *addr, unsigned long count);
 
-extern void *__ioremap(unsigned long physaddr, unsigned long size,
-		       int cacheflag);
-extern void iounmap(void *addr);
+/*
+ * Map some physical address range into the kernel address space.
+ */
+static inline void *__ioremap(unsigned long physaddr, unsigned long size,
+				int cacheflag)
+{
+	return (void *)physaddr;
+}
+
+/*
+ * Unmap a ioremap()ed region again
+ */
+static inline void iounmap(void *addr)
+{
+}
+
+/*
+ * __iounmap unmaps nearly everything, so be careful
+ * it doesn't free currently pointer/page tables anymore but it
+ * wans't used anyway and might be added later.
+ */
+static inline void __iounmap(void *addr, unsigned long size)
+{
+}
+
+/*
+ * Set new cache mode for some kernel address space.
+ * The caller must push data for that range itself, if such data may already
+ * be in the cache.
+ */
+static inline void kernel_set_cachemode(void *addr, unsigned long size,
+					int cmode)
+{
+}
 
 static inline void __iomem *ioremap(unsigned long physaddr, unsigned long size)
 {
