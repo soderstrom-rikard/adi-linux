@@ -398,9 +398,7 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
 			break;
 		}
 	default:
-		printk(KERN_NOTICE "ptrace: *** Unhandled case **** %d\n",
-		       (int)request);
-		ret = -EIO;
+		ret = ptrace_request(child, request, addr, data);
 		break;
 	}
 
