@@ -576,11 +576,11 @@ choice
 	default DMA_UNCACHED_1M
 	depends BFIN_DMA_5XX
 config DMA_UNCACHED_2M
-	bool "Enable 2M DMA Zone"
+	bool "Enable 2M DMA region"
 config DMA_UNCACHED_1M
-	bool "Enable 1M DMA Zone"
+	bool "Enable 1M DMA region"
 config DMA_UNCACHED_NONE
-	bool "Disable DMA Zone"
+	bool "Disable DMA region"
 endchoice
 
 
