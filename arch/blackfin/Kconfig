@@ -99,11 +99,6 @@ config BF534
 	help
 	  BF534 Processor Support.
 
-config BF535
-	bool "BF535 (not supported)"
-	help
-	  Not Supported - BF535 Processor Support.
-
 config BF536
 	bool "BF536"
 	help
