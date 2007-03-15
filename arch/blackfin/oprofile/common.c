@@ -34,10 +34,10 @@
 #include <linux/init.h>
 #include <linux/smp.h>
 #include <linux/errno.h>
+#include <linux/mutex.h>
 
 #include <asm/ptrace.h>
 #include <asm/system.h>
-#include <asm/semaphore.h>
 #include <asm/blackfin.h>
 #include <asm/irq.h>
 #include <asm/io.h>
@@ -48,7 +48,7 @@
 #define BFIN_537_ID  0xE5040002
 
 static int pfmon_enabled;
-static struct semaphore pfmon_sem;
+static struct mutex pfmon_lock;
 
 struct op_bfin533_model *model;
 
@@ -78,24 +78,24 @@ static int op_bfin_start(void)
 	int ret = -EBUSY;
 
 	printk(KERN_INFO "KSDBG:in %s\n", __FUNCTION__);
-	down(&pfmon_sem);
+	mutex_lock(&pfmon_lock);
 	if (!pfmon_enabled) {
 		ret = model->start(ctr);
 		pfmon_enabled = !ret;
 	}
-	up(&pfmon_sem);
+	mutex_unlock(&pfmon_lock);
 
 	return ret;
 }
 
 static void op_bfin_stop(void)
 {
-	down(&pfmon_sem);
+	mutex_lock(&pfmon_lock);
 	if (pfmon_enabled) {
 		model->stop();
 		pfmon_enabled = 0;
 	}
-	up(&pfmon_sem);
+	mutex_unlock(&pfmon_lock);
 }
 
 static int op_bfin_create_files(struct super_block *sb, struct dentry *root)
@@ -130,7 +130,7 @@ int __init oprofile_arch_init(struct oprofile_operations *ops)
 #ifdef CONFIG_HARDWARE_PM
 	unsigned int dspid;
 
-	init_MUTEX(&pfmon_sem);
+	mutex_init(&pfmon_lock);
 
 	dspid = bfin_read_DSPID();
 
