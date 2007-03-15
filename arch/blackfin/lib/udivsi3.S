@@ -112,7 +112,7 @@ ENTRY(___udivsi3)
   ** with some post-adjustment
   */
   R3 = R1 >> 1;		/* Pre-scaled divisor for primitive case */
-  R2 = R0 >> 16; 
+  R2 = R0 >> 16;
 
   R2 = R3 - R2;		/* shifted divisor < upper 16 bits of dividend */
   CC &= CARRY;

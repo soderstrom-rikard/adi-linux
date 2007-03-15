@@ -482,7 +482,7 @@ config ARITHMETIC_OPS_L1
 	help
 	  If enabled arithmetic functions are linked
 	  into L1 instruction memory.(less latency)
-	  
+
 config ACCESS_OK_L1
 	bool "Locate access_ok function in L1 Memory"
 	default y
@@ -510,7 +510,7 @@ config SYS_BFIN_SPINLOCK_L1
 	help
 	  If enabled sys_bfin_spinlock function is linked
 	  into L1 instruction memory.(less latency)
-	  
+
 config IP_CHECKSUM_L1
 	bool "Locate IP Checksum function in L1 Memory"
 	default n

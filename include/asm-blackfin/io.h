@@ -39,14 +39,14 @@ static inline unsigned short readw(volatile unsigned short *addr)
 {
 	unsigned int val;
 	int tmp;
-	
+
 	__asm__ __volatile__ ("cli %1;\n\t"
 			"NOP; NOP; SSYNC;\n\t"
 			"%0 = w [%2] (z);\n\t"
 			"sti %1;\n\t"
 		      	: "=d"(val), "=d"(tmp): "a"(addr)
-			); 
-	
+			);
+
 	return (unsigned short) val;
 }
 
@@ -54,13 +54,13 @@ static inline unsigned int readl(volatile unsigned int *addr)
 {
 	unsigned int val;
 	int tmp;
-                      
+
 	__asm__ __volatile__ ("cli %1;\n\t"
 			"NOP; NOP; SSYNC;\n\t"
 			"%0 = [%2];\n\t"
 			"sti %1;\n\t"
 		      	: "=d"(val), "=d"(tmp): "a"(addr)
-			); 
+			);
 	return val;
 }
 

@@ -541,14 +541,14 @@ static void __init generate_cpl_tables(void)
 	cplb_data[SDRAM_RAM_MTD].attr |= I_CPLB;
 
 	/*
-	 * The ROMFS_FS size is often not multiple of 1MB. 
-	 * This can cause multiple CPLB sets covering the same memory area. 
+	 * The ROMFS_FS size is often not multiple of 1MB.
+	 * This can cause multiple CPLB sets covering the same memory area.
 	 * This will then cause multiple CPLB hit exceptions.
-	 * Workaround: We ensure a contiguous memory area by extending the kernel 
-	 * memory section over the mtd section. 
-	 * For ROMFS_FS memory must be covered with ICPLBs anyways. 
+	 * Workaround: We ensure a contiguous memory area by extending the kernel
+	 * memory section over the mtd section.
+	 * For ROMFS_FS memory must be covered with ICPLBs anyways.
 	 * So there is no difference between kernel and mtd memory setup.
-	 */ 
+	 */
 
 	cplb_data[SDRAM_KERN].end = memory_mtd_start + mtd_size;;
 	cplb_data[SDRAM_RAM_MTD].valid = 0;
@@ -824,17 +824,17 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 	switch(bfin_read_DMEM_CONTROL() & (1 << DMC0_P | 1 << DMC1_P)) {
 		case ACACHE_BSRAM:
 			seq_printf(m, "DBANK-A:\tCACHE\n" "DBANK-B:\tSRAM\n");
-			dcache_size = 16; 
+			dcache_size = 16;
 			dsup_banks = 1;
-			break;				
+			break;
 		case ACACHE_BCACHE:
 			seq_printf(m, "DBANK-A:\tCACHE\n" "DBANK-B:\tCACHE\n");
-			dcache_size = 32; 
+			dcache_size = 32;
 			dsup_banks = 2;
 			break;
 		case ASRAM_BSRAM:
 			seq_printf(m, "DBANK-A:\tSRAM\n" "DBANK-B:\tSRAM\n");
-			dcache_size = 0; 
+			dcache_size = 0;
 			dsup_banks = 0;
 			break;
 		default:
