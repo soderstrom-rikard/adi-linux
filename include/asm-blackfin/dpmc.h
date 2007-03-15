@@ -38,6 +38,8 @@
 #define ON	0
 #define OFF	1
 
+#ifdef __KERNEL__
+
 unsigned long calc_volt(void);
 int calc_vlev(int vlt);
 unsigned long change_voltage(unsigned long volt);
@@ -62,5 +64,7 @@ void disable_wdog_timer(void);
 
 extern unsigned long get_cclk(void);
 extern unsigned long get_sclk(void);
+
+#endif	/* __KERNEL__ */
 
 #endif	/*_BLACKFIN_DPMC_H_*/
