@@ -59,6 +59,14 @@ static struct resource smc91x_resources[] = {
 	},
 };
 
+static struct platform_device smc91x_device = {
+	.name = "smc91x",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(smc91x_resources),
+	.resource = smc91x_resources,
+};
+#endif
+
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
 static struct resource bfin_uart_resources[] = {
         {
@@ -73,15 +81,6 @@ static struct platform_device bfin_uart_device = {
         .id = 1,
         .num_resources = ARRAY_SIZE(bfin_uart_resources),
         .resource = bfin_uart_resources,
-};
-#endif
-
-
-static struct platform_device smc91x_device = {
-	.name = "smc91x",
-	.id = 0,
-	.num_resources = ARRAY_SIZE(smc91x_resources),
-	.resource = smc91x_resources,
 };
 #endif
 
