@@ -46,66 +46,66 @@
  * Global Variables
 ***************************************************************************/
 
-static struct dma_channel_t dma_ch[MAX_BLACKFIN_DMA_CHANNEL];
+static struct dma_channel dma_ch[MAX_BLACKFIN_DMA_CHANNEL];
 #if defined (CONFIG_BF561)
-static struct dma_register_t *base_addr[MAX_BLACKFIN_DMA_CHANNEL] = {
-	(struct dma_register_t *) DMA1_0_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA1_1_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA1_2_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA1_3_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA1_4_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA1_5_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA1_6_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA1_7_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA1_8_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA1_9_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA1_10_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA1_11_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_0_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_1_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_2_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_3_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_4_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_5_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_6_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_7_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_8_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_9_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_10_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_11_NEXT_DESC_PTR,
-	(struct dma_register_t *) MDMA1_D0_NEXT_DESC_PTR,
-	(struct dma_register_t *) MDMA1_S0_NEXT_DESC_PTR,
-	(struct dma_register_t *) MDMA1_D1_NEXT_DESC_PTR,
-	(struct dma_register_t *) MDMA1_S1_NEXT_DESC_PTR,
-	(struct dma_register_t *) MDMA2_D0_NEXT_DESC_PTR,
-	(struct dma_register_t *) MDMA2_S0_NEXT_DESC_PTR,
-	(struct dma_register_t *) MDMA2_D1_NEXT_DESC_PTR,
-	(struct dma_register_t *) MDMA2_S1_NEXT_DESC_PTR,
-	(struct dma_register_t *) IMDMA_D0_NEXT_DESC_PTR,
-	(struct dma_register_t *) IMDMA_S0_NEXT_DESC_PTR,
-	(struct dma_register_t *) IMDMA_D1_NEXT_DESC_PTR,
-	(struct dma_register_t *) IMDMA_S1_NEXT_DESC_PTR,
+static struct dma_register *base_addr[MAX_BLACKFIN_DMA_CHANNEL] = {
+	(struct dma_register *) DMA1_0_NEXT_DESC_PTR,
+	(struct dma_register *) DMA1_1_NEXT_DESC_PTR,
+	(struct dma_register *) DMA1_2_NEXT_DESC_PTR,
+	(struct dma_register *) DMA1_3_NEXT_DESC_PTR,
+	(struct dma_register *) DMA1_4_NEXT_DESC_PTR,
+	(struct dma_register *) DMA1_5_NEXT_DESC_PTR,
+	(struct dma_register *) DMA1_6_NEXT_DESC_PTR,
+	(struct dma_register *) DMA1_7_NEXT_DESC_PTR,
+	(struct dma_register *) DMA1_8_NEXT_DESC_PTR,
+	(struct dma_register *) DMA1_9_NEXT_DESC_PTR,
+	(struct dma_register *) DMA1_10_NEXT_DESC_PTR,
+	(struct dma_register *) DMA1_11_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_0_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_1_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_2_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_3_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_4_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_5_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_6_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_7_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_8_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_9_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_10_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_11_NEXT_DESC_PTR,
+	(struct dma_register *) MDMA1_D0_NEXT_DESC_PTR,
+	(struct dma_register *) MDMA1_S0_NEXT_DESC_PTR,
+	(struct dma_register *) MDMA1_D1_NEXT_DESC_PTR,
+	(struct dma_register *) MDMA1_S1_NEXT_DESC_PTR,
+	(struct dma_register *) MDMA2_D0_NEXT_DESC_PTR,
+	(struct dma_register *) MDMA2_S0_NEXT_DESC_PTR,
+	(struct dma_register *) MDMA2_D1_NEXT_DESC_PTR,
+	(struct dma_register *) MDMA2_S1_NEXT_DESC_PTR,
+	(struct dma_register *) IMDMA_D0_NEXT_DESC_PTR,
+	(struct dma_register *) IMDMA_S0_NEXT_DESC_PTR,
+	(struct dma_register *) IMDMA_D1_NEXT_DESC_PTR,
+	(struct dma_register *) IMDMA_S1_NEXT_DESC_PTR,
 };
 #else
-static struct dma_register_t *base_addr[MAX_BLACKFIN_DMA_CHANNEL] = {
-	(struct dma_register_t *) DMA0_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA1_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA2_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA3_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA4_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA5_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA6_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA7_NEXT_DESC_PTR,
+static struct dma_register *base_addr[MAX_BLACKFIN_DMA_CHANNEL] = {
+	(struct dma_register *) DMA0_NEXT_DESC_PTR,
+	(struct dma_register *) DMA1_NEXT_DESC_PTR,
+	(struct dma_register *) DMA2_NEXT_DESC_PTR,
+	(struct dma_register *) DMA3_NEXT_DESC_PTR,
+	(struct dma_register *) DMA4_NEXT_DESC_PTR,
+	(struct dma_register *) DMA5_NEXT_DESC_PTR,
+	(struct dma_register *) DMA6_NEXT_DESC_PTR,
+	(struct dma_register *) DMA7_NEXT_DESC_PTR,
 #if (defined(CONFIG_BF537) || defined(CONFIG_BF534) || defined(CONFIG_BF536))
-	(struct dma_register_t *) DMA8_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA9_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA10_NEXT_DESC_PTR,
-	(struct dma_register_t *) DMA11_NEXT_DESC_PTR,
+	(struct dma_register *) DMA8_NEXT_DESC_PTR,
+	(struct dma_register *) DMA9_NEXT_DESC_PTR,
+	(struct dma_register *) DMA10_NEXT_DESC_PTR,
+	(struct dma_register *) DMA11_NEXT_DESC_PTR,
 #endif
-	(struct dma_register_t *) MDMA_D0_NEXT_DESC_PTR,
-	(struct dma_register_t *) MDMA_S0_NEXT_DESC_PTR,
-	(struct dma_register_t *) MDMA_D1_NEXT_DESC_PTR,
-	(struct dma_register_t *) MDMA_S1_NEXT_DESC_PTR,
+	(struct dma_register *) MDMA_D0_NEXT_DESC_PTR,
+	(struct dma_register *) MDMA_S0_NEXT_DESC_PTR,
+	(struct dma_register *) MDMA_D1_NEXT_DESC_PTR,
+	(struct dma_register *) MDMA_S1_NEXT_DESC_PTR,
 };
 #endif
 
@@ -535,7 +535,7 @@ set_bfin_dma_config(char direction, char flow_mode,
 }
 EXPORT_SYMBOL(set_bfin_dma_config);
 
-void set_dma_sg(unsigned int channel, struct dmasg_t * sg, int nr_sg)
+void set_dma_sg(unsigned int channel, struct dmasg * sg, int nr_sg)
 {
 	BUG_ON(!(dma_ch[channel].chan_status != DMA_CHANNEL_FREE
 	       && channel < MAX_BLACKFIN_DMA_CHANNEL));

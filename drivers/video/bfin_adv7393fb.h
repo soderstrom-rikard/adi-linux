@@ -289,11 +289,11 @@ struct adv7393fb_device {
 
 	struct i2c_client *i2c_adv7393_client;
 
-	struct dmasg_t *descriptor_list_head;
-	struct dmasg_t *vb1;
-	struct dmasg_t *av1;
-	struct dmasg_t *vb2;
-	struct dmasg_t *av2;
+	struct dmasg *descriptor_list_head;
+	struct dmasg *vb1;
+	struct dmasg *av1;
+	struct dmasg *vb2;
+	struct dmasg *av2;
 
 	dma_addr_t dma_handle;
 

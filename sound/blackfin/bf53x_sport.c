@@ -211,7 +211,7 @@ int bf53x_sport_config_tx(struct bf53x_sport *sport, unsigned int tcr1,
 	return 0;
 }
 
-static void setup_desc(struct dmasg_t *desc, void *buf, int fragcount,
+static void setup_desc(struct dmasg *desc, void *buf, int fragcount,
 		size_t fragsize, unsigned int cfg,
 		unsigned int x_count, unsigned int ycount, size_t size)
 {
@@ -265,9 +265,9 @@ static int sport_stop(struct bf53x_sport *sport)
 
 static inline int sport_hook_rx_dummy(struct bf53x_sport *sport)
 {
-	struct dmasg_t *desc, temp_desc;
+	struct dmasg *desc, temp_desc;
 	unsigned long flags;
-	struct dma_register_t *dma = sport->dma_rx;
+	struct dma_register *dma = sport->dma_rx;
 
 	SPORT_ASSERT(sport->dummy_rx_desc != NULL);
 	SPORT_ASSERT(sport->curr_rx_desc != sport->dummy_rx_desc);
@@ -277,7 +277,7 @@ static inline int sport_hook_rx_dummy(struct bf53x_sport *sport)
 			(unsigned long)sport->dummy_rx_desc;
 
 	local_irq_save(flags);
-	desc = (struct dmasg_t*)dma->next_desc_ptr;
+	desc = (struct dmasg*)dma->next_desc_ptr;
 	/* Copy the descriptor which will be damaged to backup */
 	temp_desc = *desc;
 	desc->x_count=0x10;
@@ -286,7 +286,7 @@ static inline int sport_hook_rx_dummy(struct bf53x_sport *sport)
 	local_irq_restore(flags);
 	/* Waiting for dummy buffer descriptor is already hooked*/
 	while ((*(volatile unsigned long*)&dma->curr_desc_ptr - \
-			sizeof(struct dmasg_t)) != \
+			sizeof(struct dmasg)) != \
 			(unsigned long)sport->dummy_rx_desc) {}
 	sport->curr_rx_desc = sport->dummy_rx_desc;
 	/* Restore the damaged descriptor */
@@ -297,7 +297,7 @@ static inline int sport_hook_rx_dummy(struct bf53x_sport *sport)
 
 static inline int sport_rx_dma_start(struct bf53x_sport *sport, int dummy)
 {
-	struct dma_register_t *dma = sport->dma_rx;
+	struct dma_register *dma = sport->dma_rx;
 
 	if (dummy) {
 		sport->dummy_rx_desc->next_desc_addr = \
@@ -320,7 +320,7 @@ static inline int sport_rx_dma_start(struct bf53x_sport *sport, int dummy)
 
 static inline int sport_tx_dma_start(struct bf53x_sport *sport, int dummy)
 {
-	struct dma_register_t *dma = sport->dma_tx;
+	struct dma_register *dma = sport->dma_tx;
 
 	if (dummy) {
 		sport->dummy_tx_desc->next_desc_addr = \
@@ -390,9 +390,9 @@ int bf53x_sport_rx_stop(struct bf53x_sport *sport)
 
 static inline int sport_hook_tx_dummy(struct bf53x_sport *sport)
 {
-	struct dmasg_t *desc, temp_desc;
+	struct dmasg *desc, temp_desc;
 	unsigned long flags;
-	struct dma_register_t *dma = sport->dma_tx;
+	struct dma_register *dma = sport->dma_tx;
 
 	SPORT_ASSERT(sport->dummy_tx_desc != NULL);
 	SPORT_ASSERT(sport->curr_tx_desc != sport->dummy_tx_desc);
@@ -402,7 +402,7 @@ static inline int sport_hook_tx_dummy(struct bf53x_sport *sport)
 
 	/* Shorten the time on last normal descriptor */
 	local_irq_save(flags);
-	desc = (struct dmasg_t*)dma->next_desc_ptr;
+	desc = (struct dmasg*)dma->next_desc_ptr;
 	/* Store the descriptor which will be damaged */
 	temp_desc = *desc;
 	desc->x_count = 0x10;
@@ -413,7 +413,7 @@ static inline int sport_hook_tx_dummy(struct bf53x_sport *sport)
 //	printk(KERN_ERR "desc:0x%p, sport->dummy_tx_desc:0x%p\n",
 //			desc, sport->dummy_tx_desc);
 	while ((*(volatile unsigned long*)&dma->curr_desc_ptr - \
-			sizeof(struct dmasg_t)) != \
+			sizeof(struct dmasg)) != \
 			(unsigned long)sport->dummy_tx_desc) {}
 	sport->curr_tx_desc = sport->dummy_tx_desc;
 	/* Restore the damaged descriptor */
@@ -525,8 +525,8 @@ int bf53x_sport_config_rx_dma(struct bf53x_sport *sport, void *buf,
 
 	/* Allocate a new descritor ring as current one. */
 	sport->dma_rx_desc = dma_alloc_coherent(NULL, \
-			fragcount * sizeof(struct dmasg_t),	&addr, 0);
-	sport->rx_desc_bytes = fragcount * sizeof(struct dmasg_t);
+			fragcount * sizeof(struct dmasg),	&addr, 0);
+	sport->rx_desc_bytes = fragcount * sizeof(struct dmasg);
 
 	if (!sport->dma_rx_desc) {
 		return -ENOMEM;
@@ -587,8 +587,8 @@ int bf53x_sport_config_tx_dma(struct bf53x_sport *sport, void *buf,
 	}
 
 	sport->dma_tx_desc = dma_alloc_coherent(NULL, \
-			fragcount * sizeof(struct dmasg_t), &addr, 0);
-	sport->tx_desc_bytes = fragcount * sizeof(struct dmasg_t);
+			fragcount * sizeof(struct dmasg), &addr, 0);
+	sport->tx_desc_bytes = fragcount * sizeof(struct dmasg);
 //	printk(KERN_ERR "alloc dma_tx_desc:0x%p, size:0x%x\n",
 //	sport->dma_tx_desc, sport->tx_desc_bytes);
 	if (!sport->dma_tx_desc) {
@@ -613,14 +613,14 @@ int bf53x_sport_config_tx_dma(struct bf53x_sport *sport, void *buf,
  * the x_modify is set to 0 */
 static int sport_config_rx_dummy(struct bf53x_sport *sport, size_t size)
 {
-	struct dma_register_t *dma;
-	struct dmasg_t *desc;
+	struct dma_register *dma;
+	struct dmasg *desc;
 	unsigned config;
 
 	sport_printd(KERN_INFO, "%s entered\n", __FUNCTION__);
 	dma = sport->dma_rx;
 #if L1_DATA_A_LENGTH != 0
-	desc = (struct dmasg_t*)l1_data_A_sram_alloc(2 * sizeof(*desc));
+	desc = (struct dmasg*)l1_data_A_sram_alloc(2 * sizeof(*desc));
 #else
 	{
 		dma_addr_t addr;
@@ -647,15 +647,15 @@ static int sport_config_rx_dummy(struct bf53x_sport *sport, size_t size)
 
 static int sport_config_tx_dummy(struct bf53x_sport *sport, size_t size)
 {
-	struct dma_register_t *dma;
-	struct dmasg_t *desc;
+	struct dma_register *dma;
+	struct dmasg *desc;
 	unsigned int config;
 
 	sport_printd(KERN_INFO, "%s entered\n", __FUNCTION__);
 	dma = sport->dma_tx;
 
 #if L1_DATA_A_LENGTH != 0
-	desc = (struct dmasg_t*)l1_data_A_sram_alloc(2 * sizeof(*desc));
+	desc = (struct dmasg*)l1_data_A_sram_alloc(2 * sizeof(*desc));
 #else
 	{
 		dma_addr_t addr;
@@ -682,14 +682,14 @@ static int sport_config_tx_dummy(struct bf53x_sport *sport, size_t size)
 
 unsigned long bf53x_sport_curr_offset_rx(struct bf53x_sport *sport)
 {
-	struct dma_register_t *dma = sport->dma_rx;
+	struct dma_register *dma = sport->dma_rx;
 	unsigned char *curr = *(unsigned char**) &(dma->curr_addr_ptr_lo);
 	return (curr - sport->rx_buf);
 }
 
 unsigned long bf53x_sport_curr_offset_tx(struct bf53x_sport *sport)
 {
-	struct dma_register_t *dma = sport->dma_tx;
+	struct dma_register *dma = sport->dma_tx;
 	unsigned char *curr = *(unsigned char**) &(dma->curr_addr_ptr_lo);
 	return (curr - sport->tx_buf);
 }
@@ -940,8 +940,8 @@ void bf53x_sport_done(struct bf53x_sport *sport)
 	l1_data_A_sram_free(sport->dummy_tx_desc);
 	l1_data_A_sram_free(sport->dummy_buf);
 #else
-	dma_free_coherent(NULL, 2*sizeof(struct dmasg_t), sport->dummy_rx_desc, 0);
-	dma_free_coherent(NULL, 2*sizeof(struct dmasg_t), sport->dummy_tx_desc, 0);
+	dma_free_coherent(NULL, 2*sizeof(struct dmasg), sport->dummy_rx_desc, 0);
+	dma_free_coherent(NULL, 2*sizeof(struct dmasg), sport->dummy_tx_desc, 0);
 	kfree(sport->dummy_buf);
 #endif
 	free_dma(sport->dma_rx_chan);

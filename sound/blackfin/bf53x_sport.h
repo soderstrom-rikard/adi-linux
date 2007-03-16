@@ -79,8 +79,8 @@ struct bf53x_sport {
 	int err_irq;
 	struct sport_register* regs;
 
-	struct dma_register_t *dma_rx;
-	struct dma_register_t *dma_tx;
+	struct dma_register *dma_rx;
+	struct dma_register *dma_tx;
 	unsigned char *rx_buf;
 	unsigned char *tx_buf;
 
@@ -89,19 +89,19 @@ struct bf53x_sport {
 	void *dummy_buf;
 
 	/* DMA descriptor ring head of current audio stream*/
-	struct dmasg_t *dma_rx_desc;
-	struct dmasg_t *dma_tx_desc;
+	struct dmasg *dma_rx_desc;
+	struct dmasg *dma_tx_desc;
 	unsigned int rx_desc_bytes;
 	unsigned int tx_desc_bytes;
 
 	unsigned int rx_run:1; /* rx is running */
 	unsigned int tx_run:1; /* tx is running */
 
-	struct dmasg_t *dummy_rx_desc;
-	struct dmasg_t *dummy_tx_desc;
+	struct dmasg *dummy_rx_desc;
+	struct dmasg *dummy_tx_desc;
 
-	struct dmasg_t *curr_rx_desc;
-	struct dmasg_t *curr_tx_desc;
+	struct dmasg *curr_rx_desc;
+	struct dmasg *curr_tx_desc;
 
 	unsigned int rcr1;
 	unsigned int rcr2;

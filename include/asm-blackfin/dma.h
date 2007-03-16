@@ -48,7 +48,7 @@
 *        Generic DMA  Declarations
 *
 ****************************************************************************/
-enum dma_chan_status_t {
+enum dma_chan_status {
 	DMA_CHANNEL_FREE,
 	DMA_CHANNEL_REQUESTED,
 	DMA_CHANNEL_ENABLED,
@@ -77,7 +77,7 @@ enum dma_chan_status_t {
 #define INTR_ON_BUF    2
 #define INTR_ON_ROW    3
 
-struct dmasg_t {
+struct dmasg {
 	unsigned long next_desc_addr;
 	unsigned long start_addr;
 	unsigned short cfg;
@@ -87,7 +87,7 @@ struct dmasg_t {
 	short y_modify;
 };
 
-struct dma_register_t {
+struct dma_register {
 	unsigned long next_desc_ptr;	/* DMA Next Descriptor Pointer register */
 	unsigned long start_addr;	/* DMA Start address  register */
 
@@ -134,12 +134,12 @@ struct dma_register_t {
 
 typedef irqreturn_t(*dma_interrupt_t) (int irq, void *dev_id);
 
-struct dma_channel_t {
+struct dma_channel {
 	struct mutex dmalock;
 	char *device_id;
-	enum dma_chan_status_t chan_status;
-	struct dma_register_t *regs;
-	struct dmasg_t *sg;		/* large mode descriptor */
+	enum dma_chan_status chan_status;
+	struct dma_register *regs;
+	struct dmasg *sg;		/* large mode descriptor */
 	unsigned int ctrl_num;	/* controller number */
 	dma_interrupt_t irq_callback;
 	void *data;
@@ -167,7 +167,7 @@ unsigned short get_dma_curr_xcount(unsigned int channel);
 unsigned short get_dma_curr_ycount(unsigned int channel);
 
 /* set large DMA mode descriptor */
-void set_dma_sg(unsigned int channel, struct dmasg_t *sg, int nr_sg);
+void set_dma_sg(unsigned int channel, struct dmasg *sg, int nr_sg);
 
 /* check if current channel is in use */
 int dma_channel_active(unsigned int channel);
