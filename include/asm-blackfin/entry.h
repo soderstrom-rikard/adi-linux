@@ -52,9 +52,8 @@
 #define RESTORE_ALL_SYS		restore_context_no_interrupts
 #define RESTORE_CONTEXT		restore_context_with_interrupts
 
-#define STR(x) __stringify(x)
-# define PT_OFF_ORIG_P0		208
-# define PT_OFF_SR		8
+#define PT_OFF_ORIG_P0		208
+#define PT_OFF_SR		8
 
 #endif				/* __ASSEMBLY__ */
 #endif				/* __BFIN_ENTRY_H */
