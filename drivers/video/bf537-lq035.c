@@ -60,6 +60,7 @@ static unsigned char* fb_buffer;          /* RGB Buffer */
 static dma_addr_t dma_handle;             /* ? */
 static unsigned long* dma_desc_table;
 static int lq035_mmap = 0;
+static int t_conf_done = 0;
 
 #ifdef CONFIG_FB_BFIN_LANDSCAPE
 static int landscape = 1;
@@ -277,7 +278,7 @@ static void start_timers(void) /* CHECK with HW */
 	while (bfin_read_TIMER_LP_COUNTER() < 3);
 	bfin_write_TIMER_ENABLE(TIMEN_SP|TIMEN_SPS|TIMEN_PS_CLS);
 	SSYNC();
-
+	t_conf_done = 1;
 	local_irq_restore(flags);
 }
 
@@ -473,8 +474,10 @@ static int bfin_lq035_fb_open(struct fb_info* info, int user)
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
 	SSYNC();
 
-	config_timers();
-	start_timers();
+	if(!t_conf_done) {
+		config_timers();
+		start_timers();
+	}
 //	gpio_set_value(MOD,1);
 
 	return 0;
@@ -483,13 +486,10 @@ static int bfin_lq035_fb_open(struct fb_info* info, int user)
 static int bfin_lq035_fb_release(struct fb_info* info, int user)
 {
 
-//	bfin_write_TIMER_DISABLE(TIMEN_SP|TIMEN_SPS|TIMEN_PS_CLS|TIMEN_LP|TIMEN_REV);
-//	SSYNC();
+	disable_dma(CH_PPI);
 
 	bfin_write_PPI_CONTROL(0);
 	SSYNC();
-
-	disable_dma(CH_PPI);
 
 	lq035_mmap = 0;
 	return 0;
@@ -738,6 +738,9 @@ static void __exit bfin_lq035_fb_exit(void)
 	if (dma_desc_table) dma_free_coherent(NULL,sizeof(unsigned long) * 2 * (LCD_Y_RES + U_LINES), &dma_handle, 0);
 #endif
 
+	bfin_write_TIMER_DISABLE(TIMEN_SP|TIMEN_SPS|TIMEN_PS_CLS|TIMEN_LP|TIMEN_REV);
+	t_conf_done = 0;
+	
 	free_dma(CH_PPI);
 
 	unregister_framebuffer(&bfin_lq035_fb);
