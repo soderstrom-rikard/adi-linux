@@ -365,15 +365,4 @@ static int __init cm_bf537_init(void)
 	return 0;
 }
 
-void get_bf537_ether_addr(char *addr)
-{
-	/* currently the mac addr is saved in flash */
-	int flash_mac = 0x203f0000;
-	*(u32 *)(&(addr[0])) = *(int *)flash_mac;
-	flash_mac += 4;
-	*(u16 *)(&(addr[4])) = (u16)*(int *)flash_mac;
-}
-
-EXPORT_SYMBOL(get_bf537_ether_addr);
-
 arch_initcall(cm_bf537_init);
