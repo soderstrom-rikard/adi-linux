@@ -525,7 +525,7 @@ static void finish_request(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep *e
 		"short_ok" : "", urb->status);
 
 	spin_unlock(&isp1362_hcd->lock);
-	usb_hcd_giveback_urb(isp1362_hcd_to_hcd(isp1362_hcd), urb, regs);
+	usb_hcd_giveback_urb(isp1362_hcd_to_hcd(isp1362_hcd), urb);
 	spin_lock(&isp1362_hcd->lock);
 
 	// take idle endpoints out of the schedule right away
@@ -1129,7 +1129,7 @@ static irqreturn_t isp1362_irq(struct usb_hcd *hcd, struct pt_regs *regs)
 		svc_mask &= ~HCuPINT_ISTL0;
 		isp1362_clr_mask16(isp1362_hcd, HCBUFSTAT, HCBUFSTAT_ISTL0_FULL);
 		DBG(1, "%s: ISTL0\n", __FUNCTION__);
-		WARN_ON(isp1362_hcd->istl_flip);
+		WARN_ON((int)isp1362_hcd->istl_flip);
 		WARN_ON(isp1362_read_reg16(isp1362_hcd, HCBUFSTAT) & HCBUFSTAT_ISTL0_ACTIVE);
 		WARN_ON(!isp1362_read_reg16(isp1362_hcd, HCBUFSTAT) & HCBUFSTAT_ISTL0_DONE);
 		isp1362_hcd->irqenb &= ~HCuPINT_ISTL0;
@@ -1141,7 +1141,7 @@ static irqreturn_t isp1362_irq(struct usb_hcd *hcd, struct pt_regs *regs)
 		svc_mask &= ~HCuPINT_ISTL1;
 		isp1362_clr_mask16(isp1362_hcd, HCBUFSTAT, HCBUFSTAT_ISTL1_FULL);
 		DBG(1, "%s: ISTL1\n", __FUNCTION__);
-		WARN_ON(!isp1362_hcd->istl_flip);
+		WARN_ON(!(int)isp1362_hcd->istl_flip);
 		WARN_ON(isp1362_read_reg16(isp1362_hcd, HCBUFSTAT) & HCBUFSTAT_ISTL1_ACTIVE);
 		WARN_ON(!isp1362_read_reg16(isp1362_hcd, HCBUFSTAT) & HCBUFSTAT_ISTL1_DONE);
 		isp1362_hcd->irqenb &= ~HCuPINT_ISTL1;
