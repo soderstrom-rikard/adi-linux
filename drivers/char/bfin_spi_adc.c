@@ -276,10 +276,7 @@ static ssize_t adc_spi_write (struct file *filp, const char *buf, size_t count, 
 		t.tx_dma = 0xFFFF;
 
 	t.tx_buf = buf;
-	if (bfin_spi_adc->mode)
-		t.len = count<<1;
-	else
-		t.len = count;
+	t.len = count<<1;
 	pr_debug("in spi_adc driver, t.tx_buf is 0x%x,t.tx_dma is 0x%x, t.rx_buf is 0x%x,len is %d\n",(u32)t.tx_buf,(u32)t.tx_dma,(u32)t.rx_buf,(u32)t.len);
 
 	spi_message_add_tail(&t, &m);
