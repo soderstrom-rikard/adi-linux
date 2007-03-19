@@ -257,8 +257,8 @@ static void setup_pin_mux(void)
 {
 	unsigned int fer_val;
 
-	/* 
-	 * FER reg bug work-around 
+	/*
+	 * FER reg bug work-around
 	 * read it once
 	 */
 	fer_val = bfin_read_PORTH_FER();
@@ -810,7 +810,7 @@ static int bf537mac_open(struct net_device *dev)
 static int bf537mac_close(struct net_device *dev)
 {
 	pr_debug("%s: %s\n", dev->name, __FUNCTION__);
-	
+
 	netif_stop_queue(dev);
 	netif_carrier_off(dev);
 
@@ -821,15 +821,6 @@ static int bf537mac_close(struct net_device *dev)
 	desc_list_free();
 
 	return 0;
-}
-
-void get_bf537_ether_addr(char *addr)
-{
-	/* currently the mac addr is saved in flash */
-	int flash_mac = 0x203f0000;
-	*(u32 *)(&(addr[0])) = *(int *)flash_mac;
-	flash_mac += 4;
-	*(u16 *)(&(addr[4])) = (u16)*(int *)flash_mac;
 }
 
 static int __init bf537mac_probe(struct net_device *dev)
@@ -853,7 +844,7 @@ static int __init bf537mac_probe(struct net_device *dev)
 	/*Is it valid? (Did bootloader initialize it?) */
 	if (!is_valid_ether_addr(dev->dev_addr)) {
 		/* Grab the MAC from the board somehow - this is done in the
-		   arch/blackfin/boards/bf537/boardname.c */
+		   arch/blackfin/mach-bf537/boards/eth_mac.c */
 		get_bf537_ether_addr(dev->dev_addr);
 	}
 
