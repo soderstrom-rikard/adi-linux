@@ -1,13 +1,25 @@
-/****************************************************************
- * Description: Driver for Blackfin Two Wire Interface          *
- * Author:      sonicz  <sonic.zhang@analog.com>                *
- *                                                              *
- * Copyright (c) 2005-2007 Analog Device                        *
- *                                                              *
- * This file is free software;                                  *
- * you are free to modify and/or redistribute it                *
- * under the terms of the GNU General Public Licence (GPL).     *
- ****************************************************************/
+/*
+ * drivers/i2c/busses/i2c-bfin-twi.c
+ *
+ * Description: Driver for Blackfin Two Wire Interface
+ * Author:      sonicz  <sonic.zhang@analog.com>
+ *
+ *  Copyright (C) 2007 Analog Devices, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -242,7 +254,7 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 		/* Set Transmit device address */
 		bfin_write_TWI_MASTER_ADDR(pmsg->addr);
 
-		/* FIFO Initiation. Data in FIFO should be 
+		/* FIFO Initiation. Data in FIFO should be
 		 *  discarded before start a new operation.
 		 */
 		bfin_write_TWI_FIFO_CTL(0x3);
@@ -283,7 +295,7 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 		add_timer(&iface->timeout_timer);
 
 		/* Master enable */
-		bfin_write_TWI_MASTER_CTL(bfin_read_TWI_MASTER_CTL() | MEN | 
+		bfin_write_TWI_MASTER_CTL(bfin_read_TWI_MASTER_CTL() | MEN |
 			((iface->read_write == I2C_SMBUS_READ) ? MDIR : 0) |
 			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ>100) ? FAST : 0));
 		SSYNC();
