@@ -317,7 +317,7 @@ static int net2272_disable (struct usb_ep *_ep)
 /*---------------------------------------------------------------------------*/
 
 static struct usb_request *
-net2272_alloc_request (struct usb_ep *_ep, int gfp_flags)
+net2272_alloc_request (struct usb_ep *_ep, gfp_t gfp_flags)
 {
 	struct net2272_ep	*ep;
 	struct net2272_request	*req;
@@ -357,7 +357,7 @@ net2272_alloc_buffer (
 	struct usb_ep	*_ep,
 	unsigned	bytes,
 	dma_addr_t	*dma,
-	int		gfp_flags
+	gfp_t		gfp_flags
 )
 {
 	void			*retval;
@@ -408,8 +408,9 @@ done (struct net2272_ep *ep, struct net2272_request *req, int status)
 
 	dev = ep->dev;
 	if (req->mapped) {
-		pci_unmap_single (dev->pdev, req->req.dma, req->req.length,
-			ep->is_in ? PCI_DMA_TODEVICE : PCI_DMA_FROMDEVICE);
+		pci_unmap_single ((struct pci_dev*)dev->pdev, req->req.dma, 
+			req->req.length, ep->is_in ? PCI_DMA_TODEVICE : \
+			PCI_DMA_FROMDEVICE);
 		req->req.dma = DMA_ADDR_INVALID;
 		req->mapped = 0;
 	}
@@ -852,7 +853,7 @@ static inline void cancel_dma (struct net2272 *dev)
 /*---------------------------------------------------------------------------*/
 
 static int
-net2272_queue (struct usb_ep *_ep, struct usb_request *_req, int gfp_flags)
+net2272_queue (struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_flags)
 {
 	struct net2272_request	*req;
 	struct net2272_ep	*ep;
@@ -874,8 +875,9 @@ net2272_queue (struct usb_ep *_ep, struct usb_request *_req, int gfp_flags)
 
 	/* set up dma mapping in case the caller didn't */
 	if (ep->dma && _req->dma == DMA_ADDR_INVALID) {
-		_req->dma = pci_map_single (dev->pdev, _req->buf, _req->length,
-			ep->is_in ? PCI_DMA_TODEVICE : PCI_DMA_FROMDEVICE);
+		_req->dma = pci_map_single ((struct pci_dev*)dev->pdev, 
+			_req->buf, _req->length, ep->is_in ? PCI_DMA_TODEVICE \
+			: PCI_DMA_FROMDEVICE);
 		req->mapped = 1;
 	}
 
@@ -1187,7 +1189,7 @@ static const struct usb_gadget_ops net2272_ops = {
 /*---------------------------------------------------------------------------*/
 
 static ssize_t
-show_registers (struct device *_dev, char *buf)
+show_registers (struct device *_dev, struct device_attribute *attr, char *buf)
 {
 	struct net2272		*dev;
 	char			*next;
@@ -1195,7 +1197,7 @@ show_registers (struct device *_dev, char *buf)
 	unsigned long		flags;
 	u8			t1, t2;
 	int			i;
-	char			*s;
+	const char		*s;
 
 	dev = dev_get_drvdata (_dev);
 	next = buf;
@@ -2054,7 +2056,7 @@ static void handle_stat1_irqs (struct net2272 *dev, u8 stat)
 		DEBUG (dev, "unhandled irqstat1 %02x\n", stat);
 }
 
-static irqreturn_t net2272_irq (int irq, void *_dev, struct pt_regs * r)
+static irqreturn_t net2272_irq (int irq, void *_dev)
 {
 	struct net2272		*dev = _dev;
 #if defined(PLX_PCI_RDK)
@@ -2432,6 +2434,7 @@ static struct pci_driver net2272_driver = {
 };
 
 #endif
+
 /*---------------------------------------------------------------------------*/
 
 #if !defined(PLX_PCI_RDK)
@@ -2613,8 +2616,10 @@ static int net2272_probe (struct device *_dev)
 
 	the_controller = dev;
 
-	device_register (&dev->gadget.dev);
-	device_create_file (&pdev->dev, &dev_attr_registers);
+	retval = device_register (&dev->gadget.dev);
+	if (retval) goto done;
+	retval = device_create_file (&pdev->dev, &dev_attr_registers);
+	if (retval) goto done;
 
 	return 0;
 
