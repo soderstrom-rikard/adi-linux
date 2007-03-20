@@ -45,13 +45,6 @@
 #include <asm/blackfin.h>
 #include <asm/cplbinit.h>
 
-#ifdef CONFIG_CONSOLE
-struct consw *conswitchp;
-#ifdef CONFIG_FRAMEBUFFER
-struct consw fb_con;
-#endif
-#endif
-
 unsigned long memory_start, memory_end, physical_mem_end;
 unsigned long reserved_mem_dcache_on;
 unsigned long reserved_mem_icache_on;
@@ -371,14 +364,6 @@ void __init setup_arch(char **cmdline_p)
 	       , (void*)(_ramend - DMA_UNCACHED_REGION), (void*)(_ramend)
 #endif
 	       );
-
-#ifdef CONFIG_CONSOLE
-#ifdef CONFIG_FRAMEBUFFER
-	conswitchp = &fb_con;
-#else
-	conswitchp = 0;
-#endif
-#endif
 
 	/*
 	 * give all the memory to the bootmap allocator,  tell it to put the
