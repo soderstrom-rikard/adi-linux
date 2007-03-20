@@ -146,8 +146,8 @@ dma_map_single(struct device *dev, void *ptr, size_t size,
 {
 	BUG_ON(direction == DMA_NONE);
 
-	blackfin_dcache_invalidate_range((unsigned long)ptr,
-					 (unsigned long)ptr + size);
+	invalidate_dcache_range((unsigned long)ptr,
+			(unsigned long)ptr + size);
 
 	return (dma_addr_t) ptr;
 }
