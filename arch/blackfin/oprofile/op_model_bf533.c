@@ -50,7 +50,7 @@
 
 static int oprofile_running;
 
-unsigned curr_pfctl, curr_count[2];
+static unsigned curr_pfctl, curr_count[2];
 
 static int bfin533_reg_setup(struct op_counter_config *ctr)
 {
