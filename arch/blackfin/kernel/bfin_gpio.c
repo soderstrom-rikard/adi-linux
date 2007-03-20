@@ -580,9 +580,10 @@ int gpio_request(unsigned short gpio, const char *label)
 	}
 	reserved_map[gpio_bank(gpio)] |= gpio_bit(gpio);
 
-	local_irq_restore(flags);
-
 	port_setup(gpio, GPIO_USAGE);
+	default_gpio(gpio);
+
+	local_irq_restore(flags);
 
 	return 0;
 }
