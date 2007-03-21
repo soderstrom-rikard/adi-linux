@@ -2,9 +2,10 @@
  * drivers/i2c/busses/i2c-bfin-twi.c
  *
  * Description: Driver for Blackfin Two Wire Interface
+ *
  * Author:      sonicz  <sonic.zhang@analog.com>
  *
- *  Copyright (C) 2007 Analog Devices, Inc.
+ * Copyright (c) 2005-2007 Analog Devices, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
