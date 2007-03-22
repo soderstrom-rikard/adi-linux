@@ -352,7 +352,7 @@ unsigned long get_wchan(struct task_struct *p)
 	return 0;
 }
 
-#if !defined(CONFIG_NO_ACCESS_CHECK)
+#if defined(CONFIG_ACCESS_CHECK)
 int _access_ok(unsigned long addr, unsigned long size)
 {
 
@@ -393,4 +393,4 @@ int _access_ok(unsigned long addr, unsigned long size)
 	return 0;
 }
 EXPORT_SYMBOL(_access_ok);
-#endif
+#endif /* CONFIG_ACCESS_CHECK */

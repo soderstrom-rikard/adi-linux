@@ -962,12 +962,14 @@ config CPLB_INFO
 	help
 	  Display the CPLB information.
 
-config NO_ACCESS_CHECK
-	bool "Do not check the user pointer address"
+config ACCESS_CHECK
+	bool "Check the user pointer address"
+	default y
 	help
 	  Usually the pointer transfer from user space is checked to see if its
-	  address is in the kernel space. This option disable that check to
-	  improve the performance.
+	  address is in the kernel space. 
+
+	  Say N here to disable that check to improve the performance.
 
 endmenu
 
