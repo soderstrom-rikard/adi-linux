@@ -570,7 +570,7 @@ static int i2c_bfin_twi_probe(struct platform_device *dev)
 	p_adap->algo = &bfin_twi_algorithm;
 	p_adap->algo_data = iface;
 	p_adap->class = I2C_CLASS_ALL;
-	p_adap->dev.parent = &(dev->dev);
+	p_adap->dev.parent = &dev->dev;
 
 	rc = request_irq(iface->irq, bfin_twi_interrupt_entry,
 		SA_INTERRUPT, dev->name, iface);
