@@ -575,7 +575,7 @@ static int i2c_bfin_twi_probe(struct platform_device *dev)
 	rc = request_irq(iface->irq, bfin_twi_interrupt_entry,
 		SA_INTERRUPT, dev->name, iface);
 	if (rc) {
-		printk(KERN_ERR"i2c-bfin-twi: can't get IRQ %d !\n",
+		dev_err(&(p_adap->dev), "i2c-bfin-twi: can't get IRQ %d !\n",
 			iface->irq);
 		return -ENODEV;
 	}
