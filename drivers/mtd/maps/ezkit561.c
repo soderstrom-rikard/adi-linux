@@ -34,31 +34,31 @@
 
 /*
 	Flash partition scheme: (default partition map used on blackfin.uclinux.org, modify as needed)
-	0x20000000 - 0x2001FFFF (128 KiB) : U-Boot partition
-	0x20020000 - 0x200FFFFF (896 KiB) : Linux kernel
+	0x20000000 - 0x2003FFFF (256 KiB) : U-Boot partition
+	0x20040000 - 0x200FFFFF (768 KiB) : Linux kernel
 	0x20100000 - 0x207FFFFF (7 MiB) : root fs (8 MiB flash)
 
 	Alternate configuration (1MiB for kernel)
-	0x20000000 - 0x2001FFFF (128 KiB) : U-Boot partition
-	0x20020000 - 0x2013FFFF (1.125 MiB) : Linux kernel
+	0x20000000 - 0x2003FFFF (256 KiB) : U-Boot partition
+	0x20040000 - 0x2013FFFF (1 MiB) : Linux kernel
 	0x20140000 - 0x207FFFFF (6.75 MiB) : root fs (8 MiB flash)
 */
 
 #define EZKIT561_PART_COUNT 3
 
-/* First is similar to the bf5xx map, 128KiB u-boot, 896KiB kernel, then 7MiB filesystem */
+/* First is similar to the bf5xx map, 256KiB u-boot, 768KiB kernel, then 7MiB filesystem */
 #if 1
 #define EZKIT561_PART0_OFFSET 0x00000000
-#define EZKIT561_PART0_SIZE 0x20000
+#define EZKIT561_PART0_SIZE 0x40000
 #define EZKIT561_PART1_OFFSET (EZKIT561_PART0_OFFSET + EZKIT561_PART0_SIZE)
-#define EZKIT561_PART1_SIZE 0xE0000
+#define EZKIT561_PART1_SIZE 0xC0000
 #define EZKIT561_PART2_OFFSET (EZKIT561_PART1_OFFSET + EZKIT561_PART1_SIZE)
 #define EZKIT561_PART2_SIZE 0x700000
-#else				/* 128KiB u-boot, 1.125MiB kernel, 6.75MiB filesystem */
+#else				/* 256KiB u-boot, 1MiB kernel, 6.75MiB filesystem */
 #define EZKIT561_PART0_OFFSET 0x00000000
-#define EZKIT561_PART0_SIZE 0x20000
+#define EZKIT561_PART0_SIZE 0x40000
 #define EZKIT561_PART1_OFFSET (EZKIT561_PART0_OFFSET + EZKIT561_PART0_SIZE)
-#define EZKIT561_PART1_SIZE 0x120000
+#define EZKIT561_PART1_SIZE 0x100000
 #define EZKIT561_PART2_OFFSET (EZKIT561_PART1_OFFSET + EZKIT561_PART1_SIZE)
 #define EZKIT561_PART2_SIZE 0x6C0000
 #endif
