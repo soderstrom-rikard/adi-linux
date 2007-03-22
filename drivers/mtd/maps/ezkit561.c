@@ -40,8 +40,8 @@
 
 	Alternate configuration (1MiB for kernel)
 	0x20000000 - 0x2003FFFF (256 KiB) : U-Boot partition
-	0x20040000 - 0x2013FFFF (1 MiB) : Linux kernel
-	0x20140000 - 0x207FFFFF (6.75 MiB) : root fs (8 MiB flash)
+	0x20040000 - 0x201FFFFF (1.75 MiB) : Linux kernel
+	0x20200000 - 0x207FFFFF (6 MiB) : root fs (8 MiB flash)
 */
 
 #define EZKIT561_PART_COUNT 3
