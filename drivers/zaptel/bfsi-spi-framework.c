@@ -150,6 +150,7 @@ static int init_ok = 0;
 /* isr callback installed by user */
 
 static void (*bfsi_isr_callback)(u8 *read_samples, u8 *write_samples) = NULL;
+static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs);
 
 /* debug variables */
 

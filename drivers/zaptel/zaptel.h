@@ -32,7 +32,6 @@
 
 #ifdef __KERNEL__
 #include "zconfig.h"
-#include <linux/config.h>
 #include <linux/version.h>
 #ifdef CONFIG_ZAPATA_NET	
 #include <linux/hdlc.h>

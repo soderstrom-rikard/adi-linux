@@ -6,7 +6,6 @@
 #define _ZCONFIG_H
 
 #ifdef __KERNEL__
-#include <linux/config.h>
 #include <linux/version.h>
 #endif
 
