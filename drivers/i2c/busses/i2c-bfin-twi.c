@@ -630,15 +630,9 @@ static struct platform_driver i2c_bfin_twi_driver = {
 
 static int __init i2c_bfin_twi_init(void)
 {
-	int ret;
-
 	pr_info("I2C: Blackfin I2C TWI driver\n");
 
-	ret = platform_driver_register(&i2c_bfin_twi_driver);
-	if (ret) {
-		pr_debug("Fail to register i2c_bfin_twi driver\n");
-	}
-	return ret;
+	return platform_driver_register(&i2c_bfin_twi_driver);
 }
 
 static void __exit i2c_bfin_twi_exit(void)
