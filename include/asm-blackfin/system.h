@@ -9,12 +9,9 @@
  * Created:     25Jan2001 - Tony Kou
  * Description: system.h include file
  *
- * Rev:       $Id$
- *
  * Modified:     22Sep2006 - Robin Getz
  *                - move include blackfin.h down, so I can get access to
  *                   irq functions in other include files.
- *
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *

@@ -6,8 +6,6 @@
  * Created:      Aug 2006
  * Description:  Local prototypes meant for internal use only
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2006 Analog Devices Inc.
  *

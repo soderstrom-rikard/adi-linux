@@ -6,8 +6,6 @@
  * Created:
  * Description:  SYSTEM MMR REGISTER AND MEMORY MAP FOR ADSP-BF537
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

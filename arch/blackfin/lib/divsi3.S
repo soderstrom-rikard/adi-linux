@@ -21,7 +21,6 @@
  *                                   R1 - Denominator (i)
  *                                   R0 - Quotient    (o)
  *                 Registers Used : R2-R7,P0-P2
- * Rev:          $Id$
  *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.

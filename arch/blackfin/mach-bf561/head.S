@@ -6,8 +6,6 @@
  * Created:
  * Description:  BF561 startup file
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

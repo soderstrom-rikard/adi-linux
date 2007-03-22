@@ -5,7 +5,6 @@
  *               Copyright (C) 2004-2005 Analog Devices Inc.
  * Created:      Tue Sep 21 2004
  * Description:  Blackfin low-level thread information
- * Rev:          $Id$
  * Modified:
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *

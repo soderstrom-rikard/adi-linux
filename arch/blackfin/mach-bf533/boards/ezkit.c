@@ -6,8 +6,6 @@
  * Created:      2005
  * Description:
  *
- * Rev:          $Id$
- *
  * Modified:     Robin Getz <rgetz@blackfin.uclinux.org> - Named the boards
  *               Copyright 2005 National ICT Australia (NICTA)
  *               Copyright 2004-2006 Analog Devices Inc.

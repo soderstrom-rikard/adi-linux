@@ -6,8 +6,6 @@
  * Created:
  * Description:  This file contains the simple DMA Implementation for Blackfin
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

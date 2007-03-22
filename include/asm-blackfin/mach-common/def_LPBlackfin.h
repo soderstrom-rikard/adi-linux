@@ -6,7 +6,6 @@
   * Created:     ?
   * Description:
   *
-  * Rev:       $Id$
   *
   * Modified:
   *

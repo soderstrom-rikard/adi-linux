@@ -6,8 +6,6 @@
  * Created:
  * Description:  generate definitions needed by assembly language modules.
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

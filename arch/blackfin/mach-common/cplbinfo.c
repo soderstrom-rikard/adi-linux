@@ -6,8 +6,6 @@
  * Created:      Jan. 2005
  * Description:  Display CPLB status
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

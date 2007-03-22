@@ -6,8 +6,6 @@
  * Created:      ?
  * Description:  panic kernel with dump information
  *
- * Rev:          $Id$
- *
  * Modified:     rgetz - added cache checking code 14Feb06
  *               Copyright 2004-2006 Analog Devices Inc.
  *

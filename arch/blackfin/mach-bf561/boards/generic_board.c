@@ -6,8 +6,6 @@
  * Created:
  * Description:
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2005 National ICT Australia (NICTA)
  *               Copyright 2004-2006 Analog Devices Inc.

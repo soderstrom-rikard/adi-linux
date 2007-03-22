@@ -5,8 +5,6 @@
  * Created:
  * Description:  Global extern defines for blackfin
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

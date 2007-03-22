@@ -6,8 +6,6 @@
  * Created:      2005
  * Description:  Board description file
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2005 National ICT Australia (NICTA)
  *               Copyright 2004-2006 Analog Devices Inc.

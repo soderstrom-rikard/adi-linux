@@ -6,8 +6,6 @@
  * Created:      2001
  * Description:  Power management for the bfin
  *
- * Rev:          $Id$
- *
  * Modified:     Nicolas Pitre - PXA250 support
  *                Copyright (c) 2002 Monta Vista Software, Inc.
  *               David Singleton - OMAP1510

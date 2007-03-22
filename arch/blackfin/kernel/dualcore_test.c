@@ -6,8 +6,6 @@
  * Created:
  * Description:  Small test code for CoreB on a BF561
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

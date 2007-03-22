@@ -6,8 +6,6 @@
  * Created:
  * Description:  libgcc1 routines for Blackfin 5xx
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

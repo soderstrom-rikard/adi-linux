@@ -8,8 +8,6 @@
  *               This also contains the timer-interrupt handler, as well as all
  *               interrupts and faults that can result in a task-switch.
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

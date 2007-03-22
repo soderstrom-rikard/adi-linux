@@ -8,8 +8,6 @@
  *               have a non-standard calling sequence on the Linux/bfin
  *               platform.
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

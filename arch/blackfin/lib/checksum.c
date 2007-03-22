@@ -8,8 +8,6 @@
  *               operating system.  INET is implemented using the  BSD Socket
  *               interface as the means of communication with the user level.
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

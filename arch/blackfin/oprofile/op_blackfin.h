@@ -6,8 +6,6 @@
  * Created:
  * Description:
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright (C) 2004 Anton Blanchard <anton@au.ibm.com>, IBM
  *               Copyright 2004-2006 Analog Devices Inc.

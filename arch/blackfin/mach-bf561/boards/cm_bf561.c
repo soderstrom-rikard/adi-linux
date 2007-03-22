@@ -6,8 +6,6 @@
  * Created:      2006
  * Description:  Board description file
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

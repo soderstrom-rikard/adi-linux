@@ -6,8 +6,6 @@
  * Created:      Tue Sep 21 2004
  * Description:  Master linker script for blackfin architecture
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

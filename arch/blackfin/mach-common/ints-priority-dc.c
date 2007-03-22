@@ -6,8 +6,6 @@
  * Created:      ?
  * Description:  Set up the interupt priorities
  *
- * Rev:          $Id$
- *
  * Modified:
  *               1996 Roman Zippel
  *               1999 D. Jeff Dionne <jeff@uclinux.org>

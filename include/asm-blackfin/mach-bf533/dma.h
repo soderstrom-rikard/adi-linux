@@ -1,5 +1,4 @@
 /*****************************************************************************
-* $Id$
 *
 *        BF-533/2/1 Specific Declarations
 *
@@ -15,7 +14,6 @@
  * Rev:
  *
  * Modified:
- *
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *

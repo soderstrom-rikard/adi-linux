@@ -6,8 +6,6 @@
  * Created:      ?
  * Description:  CPLB exception handler
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

@@ -6,8 +6,6 @@
  * Created:
  * Description:  SRAM driver for Blackfin ADSP-BF5xx
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

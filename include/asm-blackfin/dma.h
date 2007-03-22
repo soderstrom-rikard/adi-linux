@@ -6,7 +6,6 @@
  * Created:      Tue Sep 21 2004
  * Description:  This file contains the major Data structures and constants
  * 		 used for DMA Implementation in BF533
- * Rev:          $Id$
  * Modified:
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/

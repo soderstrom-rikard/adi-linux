@@ -6,8 +6,6 @@
  * Created:      1998
  * Description:  bf533 startup file
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

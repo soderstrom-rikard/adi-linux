@@ -6,8 +6,6 @@
  * Created:
  * Description:  Blackfin architecture-dependent process handling.
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

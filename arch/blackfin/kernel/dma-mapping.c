@@ -6,8 +6,6 @@
  * Created:
  * Description:  Dynamic DMA mapping support.
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

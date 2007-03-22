@@ -6,8 +6,6 @@
  * Created:
  * Description:  uses S/W interrupt 15 for the system calls
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

@@ -11,7 +11,6 @@
  *               gives up and calls a function. We have our own, internal version
  *               so that we get something we trust, even if the user has redefined
  *               the normal symbol.
- * Rev:          $Id$
  *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.

@@ -6,8 +6,6 @@
  * Created:
  * Description:  Set up the interupt priorities
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

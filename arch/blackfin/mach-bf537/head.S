@@ -6,8 +6,6 @@
  * Created:      1998
  * Description:  Startup code for Blackfin BF537
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

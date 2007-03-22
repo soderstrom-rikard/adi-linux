@@ -6,7 +6,6 @@
  * Created:      Tue Sep 21 2004
  * Description:  Blackfin low-level cache routines adapted from the i386
  * 		 and PPC versions by Greg Ungerer (gerg@snapgear.com)
- * Rev:          $Id$
  *
  * Modified:
  *

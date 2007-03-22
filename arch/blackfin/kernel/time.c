@@ -7,8 +7,6 @@
  * Description:  This file contains the bfin-specific time handling details.
  *               Most of the stuff is located in the machine specific files.
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

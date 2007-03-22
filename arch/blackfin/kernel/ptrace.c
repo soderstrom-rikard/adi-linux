@@ -6,8 +6,6 @@
  * Created:      1/23/92
  * Description:
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

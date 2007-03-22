@@ -10,7 +10,6 @@
  *
  * Modified:
  *
- *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
  * This program is free software; you can redistribute it and/or modify

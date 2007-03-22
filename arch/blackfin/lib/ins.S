@@ -6,8 +6,6 @@
  * Created:      Tue Mar 22 15:27:24 CEST 2005
  * Description:  Implementation of ins{bwl} for BlackFin processors using zero overhead loops.
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *               Copyright (C) 2005 Bas Vermeulen, BuyWays BV <bas@buyways.nl>

@@ -6,8 +6,6 @@
  * Created:
  * Description:  GPIO Abstraction Layer
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2006 Analog Devices Inc.
  *

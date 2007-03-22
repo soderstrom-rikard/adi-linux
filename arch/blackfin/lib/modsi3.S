@@ -12,8 +12,6 @@
  *                 R0  -  returns remainder.
  *                 R2-R7
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *
