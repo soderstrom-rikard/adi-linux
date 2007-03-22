@@ -565,7 +565,7 @@ static int i2c_bfin_twi_probe(struct platform_device *dev)
 	iface->timeout_timer.data = (unsigned long)iface;
 
 	p_adap = &(iface->adap);
-	p_adap->id = I2C_DRIVERID_BLACKFINTWI;
+	p_adap->id = I2C_HW_B_BLACKFIN;
 	strlcpy(p_adap->name, dev->name, sizeof(p_adap->name));
 	p_adap->algo = &bfin_twi_algorithm;
 	p_adap->algo_data = iface;
