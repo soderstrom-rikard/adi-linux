@@ -566,7 +566,7 @@ static int i2c_bfin_twi_probe(struct platform_device *dev)
 
 	p_adap = &(iface->adap);
 	p_adap->id = I2C_DRIVERID_BLACKFINTWI;
-	strlcpy(p_adap->name, dev->name, I2C_NAME_SIZE);
+	strlcpy(p_adap->name, dev->name, sizeof(p_adap->name));
 	p_adap->algo = &bfin_twi_algorithm;
 	p_adap->algo_data = iface;
 	p_adap->class = I2C_CLASS_ALL;
