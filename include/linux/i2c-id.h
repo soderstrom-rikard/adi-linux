@@ -161,7 +161,6 @@
 #define I2C_DRIVERID_W83L785TS 1047
 #define I2C_DRIVERID_PCF8575 1048
 #define I2C_DRIVERID_AD5252 1049
-#define I2C_DRIVERID_BLACKFINTWI 1050
 
 /*
  * ---- Adapter types ----------------------------------------------------
@@ -197,6 +196,7 @@
 #define I2C_HW_B_EM28XX		0x01001f /* em28xx video capture cards */
 #define I2C_HW_B_CX2341X	0x010020 /* Conexant CX2341X MPEG encoder cards */
 #define I2C_HW_B_INTELFB	0x010021 /* intel framebuffer driver */
+#define I2C_HW_B_BLACKFIN	0x010022 /* ADI Blackfin I2C TWI driver */
 
 /* --- PCF 8584 based algorithms					*/
 #define I2C_HW_P_LP		0x020000 /* Parallel port interface */
