@@ -624,6 +624,7 @@ static struct platform_driver i2c_bfin_twi_driver = {
 	.resume		= i2c_bfin_twi_resume,
 	.driver		= {
 		.name	= "i2c-bfin-twi",
+		.owner	= THIS_MODULE,
 	},
 };
 
