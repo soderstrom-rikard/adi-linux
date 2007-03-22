@@ -20,7 +20,7 @@
  */
 #ifndef __ASSEMBLY__
 
-static inline unsigned char readb(volatile unsigned char *addr)
+static inline unsigned char readb(void __iomem *addr)
 {
 	unsigned int val;
 	int tmp;
@@ -35,7 +35,7 @@ static inline unsigned char readb(volatile unsigned char *addr)
 	return (unsigned char) val;
 }
 
-static inline unsigned short readw(volatile unsigned short *addr)
+static inline unsigned short readw(void __iomem *addr)
 {
 	unsigned int val;
 	int tmp;
@@ -50,7 +50,7 @@ static inline unsigned short readw(volatile unsigned short *addr)
 	return (unsigned short) val;
 }
 
-static inline unsigned int readl(volatile unsigned int *addr)
+static inline unsigned int readl(void __iomem *addr)
 {
 	unsigned int val;
 	int tmp;
@@ -126,10 +126,10 @@ extern void insl(const void __iomem *port, void *addr, unsigned long count);
 /*
  * Map some physical address range into the kernel address space.
  */
-static inline void *__ioremap(unsigned long physaddr, unsigned long size,
+static inline void __iomem *__ioremap(unsigned long physaddr, unsigned long size,
 				int cacheflag)
 {
-	return (void *)physaddr;
+	return (void __iomem *)physaddr;
 }
 
 /*
