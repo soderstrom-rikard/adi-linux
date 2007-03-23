@@ -584,11 +584,7 @@ static int i2c_bfin_twi_probe(struct platform_device *dev)
 	bfin_write_TWI_CONTROL(((get_sclk() / 1024 / 1024 + 5) / 10) & 0x7F);
 
 	/* Set Twi interface clock as specified */
-	if (CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ > 400)
-		bfin_write_TWI_CLKDIV((( 5*1024 / 400 ) << 8) |
-			(( 5*1024 / 400 ) & 0xFF));
-	else
-		bfin_write_TWI_CLKDIV((( 5*1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ )
+	bfin_write_TWI_CLKDIV((( 5*1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ )
 			<< 8) | (( 5*1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ )
 			& 0xFF));
 
