@@ -1167,14 +1167,6 @@ static int bfin5xx_spi_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static void bfin5xx_spi_shutdown(struct platform_device *pdev)
-{
-	int status = 0;
-
-	if ((status = bfin5xx_spi_remove(pdev)) != 0)
-		dev_err(&pdev->dev, "shutdown failed with %d\n", status);
-}
-
 /* PM, do nothing now */
 #ifdef CONFIG_PM
 static int suspend_devices(struct device *dev, void *pm_message)
@@ -1242,7 +1234,6 @@ static struct platform_driver driver = {
 	},
 	.probe = bfin5xx_spi_probe,
 	.remove = __devexit_p(bfin5xx_spi_remove),
-	.shutdown = bfin5xx_spi_shutdown,
 	.suspend = bfin5xx_spi_suspend,
 	.resume = bfin5xx_spi_resume,
 };
