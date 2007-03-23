@@ -2085,22 +2085,24 @@ static struct platform_driver snd_ad1836_driver = {
 	},
 };
 
-void __init_or_module snd_ad1836_spi_probed(struct ad1836_spi *spi)
+int  __init_or_module snd_ad1836_spi_probed(struct ad1836_spi *spi)
 {
 	int err;
 
 	if (spi == NULL) {
 		platform_driver_unregister(&snd_ad1836_driver);
-		return;
+		return 0;
 	} else
 		ad1836_spi = spi;
 
 	device = platform_device_register_simple(DRIVER_NAME, 0, NULL, 0);
 	if (IS_ERR(device)) {
 		err = PTR_ERR(device);
-		ad1836_spi_done(spi);
 		platform_driver_unregister(&snd_ad1836_driver);
+		return err;
 	}
+
+	return 0;
 }
 
 static int __init snd_ad1836_init(void)

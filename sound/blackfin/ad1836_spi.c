@@ -67,7 +67,7 @@ int ad1836_spi_write(struct ad1836_spi *spi, unsigned short data)
 	return spi_sync(spi->spi, &m);
 }
 
-void snd_ad1836_spi_probed(struct ad1836_spi *spi);
+int snd_ad1836_spi_probed(struct ad1836_spi *spi);
 
 static int __devinit ad1836_spi_probe(struct spi_device *spi)
 {
@@ -81,9 +81,7 @@ static int __devinit ad1836_spi_probe(struct spi_device *spi)
 
 	chip->spi = spi;
 
-	snd_ad1836_spi_probed(chip);
-
-	return 0;
+	return snd_ad1836_spi_probed(chip);
 }
 
 static int __devexit ad1836_spi_remove(struct spi_device *spi)
