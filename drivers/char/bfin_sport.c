@@ -248,7 +248,7 @@ static irqreturn_t dma_rx_irq_handler(int irq, void *dev_id)
 static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id)
 {
 	struct sport_dev *dev = dev_id;
-	volatile unsigned int status ;
+	unsigned int status ;
 
 	pr_debug("%s enter\n", __FUNCTION__);
 	status = get_dma_curr_irqstat(dev->dma_tx_chan);
@@ -260,7 +260,7 @@ static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id)
 	while (!(status & TXHRE)) {
 		pr_debug("%s status:%x\n", __FUNCTION__, status);
 		udelay(1);
-		status = dev->regs->stat;
+		status = *(volatile unsigned short*)&dev->regs->stat;
 	}
 	/* Wait for the last byte sent out */
 	udelay(500);
@@ -359,13 +359,13 @@ static irqreturn_t sport_tx_handler(int irq, void *dev_id)
 	sport_tx_write(dev);
 
 	if (dev->tx_len != 0 && dev->tx_sent >= dev->tx_len && dev->config.int_clk) {
-		volatile unsigned int stat;
+		unsigned int stat;
 
 		stat = dev->regs->stat;
 		while (!(stat & TXHRE)) {
 			udelay(1);
 			pr_debug("%s:stat:%x\n", __FUNCTION__, stat);
-			stat = dev->regs->stat;
+			stat = *(volatile unsigned short*)&dev->regs->stat;
 		}
 		udelay(500);
 		dev->regs->tcr1 &= ~TSPEN;
