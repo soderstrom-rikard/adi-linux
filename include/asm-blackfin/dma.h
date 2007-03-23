@@ -84,7 +84,7 @@ struct dmasg {
 	short x_modify;
 	unsigned short y_count;
 	short y_modify;
-};
+} __attribute__((packed));
 
 struct dma_register {
 	unsigned long next_desc_ptr;	/* DMA Next Descriptor Pointer register */
