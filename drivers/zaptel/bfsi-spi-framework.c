@@ -484,7 +484,7 @@ void bfsi_disable_spi(void)
 }
 
 #if defined(CONFIG_BF533)
-const unsigned short reset_port[] = { GPIO_PF0, GPIO_PF1, GPIO_PF2, GPIO_PF3, GPIO_PF4, GPIO_PF5, GPIO_PF6, GPIO_PF7 };
+const unsigned short reset_port[] = { GPIO_0, GPIO_1, GPIO_2, GPIO_3, GPIO_4, GPIO_5, GPIO_6, GPIO_7 };
 #endif
 #if defined(CONFIG_BF537)
 const unsigned short reset_port[] = { NULL, GPIO_PF10, NULL, NULL, GPIO_PF6, GPIO_PF5, GPIO_PF4, NULL };
