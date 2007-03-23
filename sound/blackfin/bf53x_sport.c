@@ -868,9 +868,9 @@ struct bf53x_sport *bf53x_sport_init(int sport_num,
 	}
 
 	sport->dma_rx_chan = dma_rx;
-	sport->dma_rx = (struct dma_register_t*) dma_iobase[dma_rx];
+	sport->dma_rx = (struct dma_register*) dma_iobase[dma_rx];
 	sport->dma_tx_chan = dma_tx;
-	sport->dma_tx = (struct dma_register_t*) dma_iobase[dma_tx];
+	sport->dma_tx = (struct dma_register*) dma_iobase[dma_tx];
 	sport->err_irq = err_irq;
 	sport->rx_callback = rx_callback;
 	sport->tx_callback = tx_callback;
