@@ -80,7 +80,7 @@ static struct mtd_partition ezkit561_parts[] = {
 	 .name = "Linux root fs",
 	 .offset = EZKIT561_PART2_OFFSET,
 	 .size = EZKIT561_PART2_SIZE,
-	 .mask_flags = MTD_WRITEABLE	/* uncomment to force filesystem read-only */
+/*	 .mask_flags = MTD_WRITEABLE */	/* uncomment to force filesystem read-only */
 	 }
 };
 
