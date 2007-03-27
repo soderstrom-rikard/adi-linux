@@ -52,11 +52,11 @@ unsigned long bfin_get_addr_from_rp(unsigned long *ptr,
 		default:
 			pr_debug("BINFMT_FLAT: Unknown relocation type %x\n",
 				type);
-			
+
 			return 0;
 	}
 
-	/* 
+	/*
 	 * Stack-relative relocs contain the offset into the stack, we
 	 * have to add the stack's start address here and return 1 from
 	 * flat_addr_absolute to prevent the normal address calculations
@@ -70,7 +70,7 @@ unsigned long bfin_get_addr_from_rp(unsigned long *ptr,
 }
 EXPORT_SYMBOL(bfin_get_addr_from_rp);
 
-/* 
+/*
  * Insert the address ADDR into the symbol reference at RP;
  * RELVAL is the raw relocation-table entry from which RP is derived
  */
