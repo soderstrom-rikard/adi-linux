@@ -571,7 +571,7 @@ static void __init generate_cpl_tables(void)
 			 * rootfs size, there can be overlapping memory areas.
 			 */
 
-			if (as_1m) {
+			if (as_1m &&  i!=L1I_MEM && i!=L1D_MEM) {
 #ifdef CONFIG_MTD_UCLINUX
 				if (i == SDRAM_RAM_MTD) {
 					if ((cplb_data[SDRAM_KERN].end + 1) > cplb_data[SDRAM_RAM_MTD].start)
