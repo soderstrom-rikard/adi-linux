@@ -56,8 +56,6 @@
 #include <linux/delay.h>
 #include <asm/gpio.h>
 
-#define TIME_MEASURE_GPIO 6
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
 # error use the BlackFin CAN only with Kernel > 2.6
 #endif
@@ -77,7 +75,9 @@ static const BTR_TAB_BFCAN_T can_btr_tab_bfcan[] = {
  {0, 0, 0}  /* last entry */
 };
 
-
+#if CONFIG_TIME_MEASURE
+#define TIME_MEASURE_GPIO 6
+#endif
 
 
 /* Board reset
@@ -714,6 +714,9 @@ int CAN_VendorInit (int minor)
     /* looks like not needed in uClinux with internal ressources ? */
     /* It's Memory I/O */
     if(NULL == request_mem_region(Base[minor], can_range[minor], "CAN-IO")) {
+#if CONFIG_TIME_MEASURE
+	gpio_free(TIME_MEASURE_GPIO);
+#endif
 	return -EBUSY;
     }
 
@@ -732,6 +735,11 @@ int CAN_VendorInit (int minor)
         if( Can_RequestIrq( minor, IRQ[minor] , CAN_Interrupt) ) {
 	     printk(KERN_ERR "Can[%d]: Can't request IRQ %d \n",
 	     			minor, 		IRQ[minor]);
+		
+		release_mem_region(Base[minor], can_range[minor]);
+#if CONFIG_TIME_MEASURE
+    		gpio_free(TIME_MEASURE_GPIO);
+#endif	     
 	     DBGout(); return -EBUSY;
         }
     }
@@ -806,6 +814,8 @@ int Can_FreeIrq(int minor, int irq )
 {
     DBGin("Can_FreeIrq");
     IRQ_requested[minor] = 0;
+
+    release_mem_region(Base[minor], can_range[minor]);
 
     free_irq(irq, &Can_minors[minor]);
     free_irq(irq + 1, &Can_minors[minor]);
