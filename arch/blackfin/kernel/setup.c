@@ -117,6 +117,9 @@ static u_int get_dsp_rev_id(void)
 {
 	u_int id;
 	id = bfin_read_DSPID() & 0xffff;
+#if defined(CONFIG_BF561)
+	id>>=8;
+#endif
 	return id;
 }
 
