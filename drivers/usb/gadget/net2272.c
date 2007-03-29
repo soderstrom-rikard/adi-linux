@@ -2509,11 +2509,11 @@ static int net2272_probe (struct device *_dev)
 		/* Set PF0 to 0, PF1 to 1 make /AMS3 work properly */
 
 	if(gpio_request(GPIO_0, NULL)){
-		printk(KERN_ERR "net2272: Failed ro request GPIO_%d\n", GPIO_0);
+		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_0);
 		return -EBUSY;
 	}
 	if(gpio_request(GPIO_1, NULL)){
-		printk(KERN_ERR "net2272: Failed ro request GPIO_%d\n", GPIO_1);
+		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_1);
 		gpio_free(GPIO_0);
 		return -EBUSY;
 	}
@@ -2521,7 +2521,35 @@ static int net2272_probe (struct device *_dev)
 	gpio_direction_output(GPIO_1);
 	gpio_set_value(GPIO_0, 0);
 	gpio_set_value(GPIO_1, 1);
+#endif
 
+#if defined(CONFIG_BF533) || defined(CONFIG_BF561)
+	if(gpio_request(GPIO_11, NULL)) {
+		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_11);
+		gpio_free(GPIO_0);
+		gpio_free(GPIO_1);
+		return -EBUSY;
+	}
+	gpio_direction_output(GPIO_11);
+	/* Reset USB Chip */
+	gpio_set_value(GPIO_11, 0);
+	/* Hold it for 2ms */
+	mdelay(2);
+	gpio_set_value(GPIO_11, 1);
+#endif
+
+#ifdef CONFIG_BF537
+	if(gpio_request(GPIO_6, NULL)) {
+		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_6);
+		return -EBUSY;
+	}
+
+	gpio_direction_output(GPIO_6);
+	/* Reset USB Chip */
+	gpio_set_value(GPIO_6, 0);
+	/* Hold it for 2ms */
+	mdelay(2);
+	gpio_set_value(GPIO_6, 1);
 #endif
 
 #ifdef CONFIG_BFIN537_BLUETECHNIX_CM /* Set PH15 Low make /AMS2 work properly */
