@@ -217,11 +217,18 @@ static void bf561_gpio_unmask_irq(unsigned int irq)
 static unsigned int bf561_gpio_irq_startup(unsigned int irq)
 {
 	unsigned int ret;
+	u16 gpionr = irq - IRQ_PF0;
 
-	ret = gpio_request(irq - IRQ_PF0, NULL);
+	if (!(gpio_enabled[gpio_bank(gpionr)] & gpio_bit(gpionr))) {
+			
+		ret = gpio_request(gpionr, NULL);
+		if(ret)
+			return ret;
 
-	if (!ret)
-	  bf561_gpio_unmask_irq(irq);
+	}		
+
+	gpio_enabled[gpio_bank(gpionr)] |= gpio_bit(gpionr);
+	bf561_gpio_unmask_irq(irq);
 
   return ret;
 
@@ -231,15 +238,15 @@ static void bf561_gpio_irq_shutdown(unsigned int irq)
 {
 	bf561_gpio_mask_irq(irq);
 	gpio_free(irq - IRQ_PF0);
+	gpio_enabled[gpio_bank(irq - IRQ_PF0)] &= ~gpio_bit(irq - IRQ_PF0);
 }
 
 static int bf561_gpio_irq_type(unsigned int irq, unsigned int type)
 {
 
+	unsigned int ret;
 	u16 gpionr = irq - IRQ_PF0;
 
-		set_gpio_dir(gpionr, 0);
-		set_gpio_inen(gpionr, 1);
 
 		if (type == IRQ_TYPE_PROBE) {
 			/* only probe unenabled GPIO interrupt lines */
@@ -250,11 +257,26 @@ static int bf561_gpio_irq_type(unsigned int irq, unsigned int type)
 		}
 
 		if (type & (IRQ_TYPE_EDGE_RISING | IRQ_TYPE_EDGE_FALLING |
-			    IRQ_TYPE_LEVEL_HIGH | IRQ_TYPE_LEVEL_LOW))
+			    IRQ_TYPE_LEVEL_HIGH | IRQ_TYPE_LEVEL_LOW)) {
+
+		if (!(gpio_enabled[gpio_bank(gpionr)] & gpio_bit(gpionr))) {
+			
+			ret = gpio_request(gpionr, NULL);
+			if(ret)
+				return ret;
+
+		}
 
 			gpio_enabled[gpio_bank(gpionr)] |= gpio_bit(gpionr);
-		else
+		} else {
 			gpio_enabled[gpio_bank(gpionr)] &= ~gpio_bit(gpionr);
+			return 0;		
+		}
+
+
+		set_gpio_dir(gpionr, 0);
+		set_gpio_inen(gpionr, 1);
+
 
 		if (type & (IRQ_TYPE_EDGE_RISING | IRQ_TYPE_EDGE_FALLING)) {
 			gpio_edge_triggered[gpio_bank(gpionr)] |= gpio_bit(gpionr);
