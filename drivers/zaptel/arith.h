@@ -74,17 +74,17 @@ static inline int CONVOLVE(const int *coeffs, const short *hist, int len)
 	int sum;
 	/* Divide length by 16 */
 	len >>= 4;
-	
+
 	/* Clear our accumulator, mm4 */
-	
-	/* 
-	
+
+	/*
+
 	   For every set of eight...
-	
+
 	   Load 16 coefficients into four registers...
 	   Shift each word right 16 to make them shorts...
 	   Pack the resulting shorts into two registers...
-	   With the coefficients now in mm0 and mm2, load the 
+	   With the coefficients now in mm0 and mm2, load the
 	        history into mm1 and mm3...
 	   Multiply/add mm1 into mm0, and mm3 into mm2...
 	   Add mm2 into mm0 (without saturation, alas).  Now we have two half-results.
@@ -142,7 +142,7 @@ static inline int CONVOLVE(const int *coeffs, const short *hist, int len)
 		: "r" (coeffs), "r" (hist), "r" (len)
 		: "%ecx", "%edi", "%esi"
 	);
-		
+
 	return sum;
 }
 
@@ -185,7 +185,7 @@ static inline void UPDATE2(volatile int *taps, volatile short *taps_short, const
 		taps[i] += correction;
 		taps_short[i] = taps[i] >> 16;
 	}
-#endif	
+#endif
 }
 
 static inline int CONVOLVE2(const short *coeffs, const short *hist, int len)
@@ -193,11 +193,11 @@ static inline int CONVOLVE2(const short *coeffs, const short *hist, int len)
 	int sum;
 	/* Divide length by 16 */
 	len >>= 4;
-	
+
 	/* Clear our accumulator, mm4 */
-	
-	/* 
-	
+
+	/*
+
 	   For every set of eight...
 	   Load in eight coefficients and eight historic samples, multliply add and
 	   accumulate the result
@@ -236,7 +236,7 @@ static inline int CONVOLVE2(const short *coeffs, const short *hist, int len)
 		: "r" (coeffs), "r" (hist), "r" (len)
 		: "%ecx", "%edi", "%esi"
 	);
-		
+
 	return sum;
 }
 static inline short MAX16(const short *y, int len, int *pos)

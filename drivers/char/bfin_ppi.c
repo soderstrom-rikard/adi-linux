@@ -130,7 +130,7 @@ static void setup_gpio_for_PPI(unsigned char datalen)
 	unsigned short portmux;
 	unsigned short ppiCTRL;
 	unsigned short portCFG;
-	
+
 	// initialization
 	portG = syncBits = 0;
 	ppiCTRL = bfin_read_PPI_CONTROL();
@@ -342,7 +342,7 @@ static irqreturn_t ppi_irq(int irq, void *dev_id)
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
 	SSYNC();
 	spin_unlock_irqrestore(&ppi_lock, flags);
-	
+
 	// disable DMA
 	disable_dma(CH_PPI);
 
@@ -384,13 +384,13 @@ static irqreturn_t ppi_irq_error(int irq, void *dev_id)
 	unsigned long flags;
 
 	spin_lock_irqsave(&ppi_lock, flags);
-	
+
 	printk(KERN_ERR "PPI Error: PPI Status = 0x%X \n",
 	       bfin_read_PPI_STATUS());
 
 	/* Add some more Error Handling Code Here */
 	bfin_clear_PPI_STATUS();
-	
+
 	spin_unlock_irqrestore(&ppi_lock, flags);
 
 	return IRQ_HANDLED;
@@ -645,10 +645,10 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 	default:
 		goto err_inval;
 	}
-		
+
 	spin_unlock_irqrestore(&ppi_lock, flags);
 	return 0;
-	
+
 err_inval:
 	spin_unlock_irqrestore(&ppi_lock, flags);
 	return -EINVAL;
@@ -721,7 +721,7 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 		return 0;
 
 	spin_lock_irqsave(&ppi_lock, flags);
-	
+
 	pdev->done = 0;
 	pdev->access_mode = PPI_READ;
 
@@ -861,7 +861,7 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
 	SSYNC();
 	spin_unlock_irqrestore(&ppi_lock, flags);
-	
+
 	disable_dma(CH_PPI);
 
 	pr_debug("ppi_read: return\n");
@@ -915,7 +915,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 		return 0;
 
 	spin_lock_irqsave(&ppi_lock, flags);
-	
+
 	pdev->done = 0;
 	pdev->access_mode = PPI_WRITE;
 
@@ -1025,7 +1025,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	}
 	SSYNC();
 	spin_unlock_irqrestore(&ppi_lock, flags);
-	
+
 	enable_dma(CH_PPI);
 
 #if 0
@@ -1039,13 +1039,13 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 
 	// enable ppi
 	spin_lock_irqsave(&ppi_lock, flags);
-	
+
 	regdata = bfin_read_PPI_CONTROL();
 	regdata |= PORT_EN;
 	pdev->ppi_control = regdata;
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
 	SSYNC();
-	
+
 	pr_debug("PPI_CONTROL(enabled) = %04hX\n", regdata);
 
 #ifdef CONFIG_BF533
@@ -1066,7 +1066,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 #endif
 
 	spin_unlock_irqrestore(&ppi_lock, flags);
-	
+
 	/* Wait for DMA to finish */
 
 	if (!pdev->cont) {
@@ -1101,7 +1101,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	bfin_write_PPI_CONTROL(pdev->ppi_control);
 	SSYNC();
 	spin_unlock_irqrestore(&ppi_lock, flags);
-	
+
 	disable_dma(CH_PPI);
 
 	return count;
@@ -1142,7 +1142,7 @@ static int ppi_open(struct inode *inode, struct file *filp)
 		return -ENXIO;
 
 	spin_lock_irqsave(&ppi_lock, flags);
-	
+
 	if (ppiinfo.opened) {
 		spin_unlock_irqrestore(&ppi_lock, flags);
 		return -EMFILE;
@@ -1165,7 +1165,7 @@ static int ppi_open(struct inode *inode, struct file *filp)
 	filp->private_data = &ppiinfo;
 
 	ppi_reg_reset(filp->private_data);
-		
+
 	spin_unlock_irqrestore(&ppi_lock, flags);
 
 	/* Request DMA0 channel, and pass the interrupt handler */

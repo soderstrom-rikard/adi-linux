@@ -67,7 +67,7 @@ do \
 
 #endif /* CONFIG_ISO_SUPPORT */
 
-/*Debug For Entry/Exit of the functions */ 
+/*Debug For Entry/Exit of the functions */
 #undef HCD_DEBUG_LEVEL1
 #ifdef HCD_DEBUG_LEVEL1
 #define pehci_entry(format, args... ) printk(format, ##args)
@@ -97,7 +97,7 @@ do \
 #define pehci_check(format,args...) printk(format, ##args)
 #else
 #define pehci_check(format,args...)
-#endif 
+#endif
 /*******************END HOST CONTROLLER**********************************/
 
 
@@ -106,7 +106,7 @@ do \
 
 /* For MTP support */
 #undef MTP_ENABLE /* Enable to add MTP support on ISP1761 Device Controller
-                   * Requires MTP class driver 
+                   * Requires MTP class driver
                    */
 
 /*Debug Entery/Exit of Function as well as some other Information(I'm not sure)*/
@@ -184,7 +184,7 @@ do \
 
 
 /*******************START FOR HAL ***************************************/
-/*Debug For Entry and Exit of the functions */ 
+/*Debug For Entry and Exit of the functions */
 #undef HAL_DEBUG_LEVEL1
 #ifdef HAL_DEBUG_LEVEL1
 #define hal_entry(format, args... ) printk(format, ##args)
@@ -192,7 +192,7 @@ do \
 #define hal_entry(format, args...) do { } while(0)
 #endif
 
-/*Debug For Interrupt information */ 
+/*Debug For Interrupt information */
 #undef HAL_DEBUG_LEVEL2
 #ifdef HAL_DEBUG_LEVEL2
 #define hal_int(format, args... ) printk(format, ##args)
@@ -200,7 +200,7 @@ do \
 #define hal_int(format, args...) do { } while(0)
 #endif
 
-/*Debug For HAL Initialisation and Mem Initialisation */ 
+/*Debug For HAL Initialisation and Mem Initialisation */
 #undef HAL_DEBUG_LEVEL3
 #ifdef HAL_DEBUG_LEVEL3
 #define hal_init(format, args... ) printk(format, ##args)
@@ -213,7 +213,7 @@ do \
 
 /*******************START FOR ALL CONTROLLERS*****************************/
 #undef CONFIG_USB_OTG   /*undef for Host only and Device only */
-#define ISP1761_DEVICE 
+#define ISP1761_DEVICE
 
 #ifdef CONFIG_USB_DEBUG
 #define DEBUG

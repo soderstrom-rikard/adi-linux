@@ -22,7 +22,7 @@ static struct t4_reg_def xreginfo[] = {
 	{ 0x06, "VERSION" },
 	{ 0x07, "LEDS" },
 	{ 0x08, "GPIOCTL" },
-	{ 0x09, "GPIO" }, 
+	{ 0x09, "GPIO" },
 	{ 0x0A, "LADDR" },
 	{ 0x0b, "LDATA" },
 };
@@ -128,7 +128,7 @@ static struct t4_reg_def reginfo[] = {
 	{ 0x99, "GCM8", 1 },
 	{ 0xa0, "TSEO" },
 	{ 0xa1, "TSBS1" },
-	{ 0xa8, "TPC0" },	
+	{ 0xa8, "TPC0" },
 };
 
 static struct t4_reg_def t1_reginfo[] = {
@@ -226,7 +226,7 @@ static struct t4_reg_def t1_reginfo[] = {
 	{ 0x99, "GCM8", 1 },
 	{ 0xa0, "TSEO" },
 	{ 0xa1, "TSBS1" },
-	{ 0xa8, "TPC0" },	
+	{ 0xa8, "TPC0" },
 };
 
 static struct t4_reg_def t1_sreginfo[] = {

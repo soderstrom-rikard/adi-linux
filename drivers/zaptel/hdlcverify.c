@@ -51,11 +51,11 @@ int main(int argc, char *argv[])
 	int hdlccnt;
 	int x;
 	struct fasthdlc_state receiver;
-	
+
 	fasthdlc_precalc();
-	
+
 	fasthdlc_init(&receiver);
-	
+
 	hdlcin = open("random.hdlc", O_RDONLY);
 	if (hdlcin < 0) {
 		fprintf(stderr, "Unable to open %s: %s\n", "random.hdlc", strerror(errno));

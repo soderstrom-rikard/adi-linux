@@ -100,7 +100,7 @@ struct reg {
 	unsigned char value;
 };
 
-static int wecareregs[] = 
+static int wecareregs[] =
 { 5, 6, 9, 11, 12, 13, 17, 19, };
 
 struct wcfxo {
@@ -204,7 +204,7 @@ static struct fxo_mode {
 } fxo_modes[] =
 {
 	{ "FCC", 0, 0, 2, 0, 0, 0, 0 }, 	/* US */
-	{ "CTR21", 0, 0, 3, 0, 0, 3, 0 },	/* Austria, Belgium, Denmark, Finland, France, Germany, 
+	{ "CTR21", 0, 0, 3, 0, 0, 3, 0 },	/* Austria, Belgium, Denmark, Finland, France, Germany,
 										   Greece, Iceland, Ireland, Italy, Luxembourg, Netherlands,
 										   Norway, Portugal, Spain, Sweden, Switzerland, and UK */
 };
@@ -418,7 +418,7 @@ static void wcfxo_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 		return IRQ_NONE;
 #else
 		return;
-#endif		
+#endif
 
 	if (ints & 0x0c) {  /* if there is a rx interrupt pending */
 #ifdef ENABLE_TASKLETS
@@ -445,7 +445,7 @@ static void wcfxo_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 		return IRQ_RETVAL(1);
 #else
 		return;
-#endif		
+#endif
 	}
 
 	if (ints & 0x20) {
@@ -454,7 +454,7 @@ static void wcfxo_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 		return IRQ_RETVAL(1);
 #else
 		return;
-#endif		
+#endif
 	}
 	if (1 /* !(wc->report % 0xf) */) {
 		/* Check for BATTERY from register and debounce for 8 ms */
@@ -530,7 +530,7 @@ static void wcfxo_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 	}
 #ifdef LINUX26
 	return IRQ_RETVAL(1);
-#endif		
+#endif
 }
 
 static int wcfxo_setreg(struct wcfxo *wc, unsigned char reg, unsigned char value)
@@ -556,7 +556,7 @@ static int wcfxo_open(struct zt_chan *chan)
 	wc->usecount++;
 #ifndef LINUX26
 	MOD_INC_USE_COUNT;
-#endif	
+#endif
 	return 0;
 }
 
@@ -693,11 +693,11 @@ static int wcfxo_hardware_init(struct wcfxo *wc)
 	outl(wc->writedma,                    wc->ioaddr + WC_DMAWS);		/* Write start */
 	outl(wc->writedma + ZT_CHUNKSIZE * 8 - 4, wc->ioaddr + WC_DMAWI);		/* Middle (interrupt) */
 	outl(wc->writedma + ZT_CHUNKSIZE * 16 - 4, wc->ioaddr + WC_DMAWE);			/* End */
-	
+
 	outl(wc->readdma,                    	 wc->ioaddr + WC_DMARS);	/* Read start */
 	outl(wc->readdma + ZT_CHUNKSIZE * 8 - 4, 	 wc->ioaddr + WC_DMARI);	/* Middle (interrupt) */
 	outl(wc->readdma + ZT_CHUNKSIZE * 16 - 4, wc->ioaddr + WC_DMARE);	/* End */
-	
+
 	/* Clear interrupts */
 	outb(0xff, wc->ioaddr + WC_INTSTAT);
 	return 0;
@@ -740,7 +740,7 @@ static void wcfxo_reset_tdm(struct wcfxo *wc)
 	outb(0x0f, wc->ioaddr + WC_CNTL);
 }
 
-static void wcfxo_disable_interrupts(struct wcfxo *wc)	
+static void wcfxo_disable_interrupts(struct wcfxo *wc)
 {
 	outb(0x00, wc->ioaddr + WC_MASK0);
 	outb(0x00, wc->ioaddr + WC_MASK1);
@@ -790,7 +790,7 @@ static int wcfxo_init_daa(struct wcfxo *wc)
 	wcfxo_setreg(wc, 0x8, 0x1);	/* This value is M1 - 1 */
 	/* We want to sample at 8khz, so N2 = 9, M2 = 10 (N2-1, M2-1) */
 	wcfxo_setreg(wc, 0x9, 0x89);
-	
+
 	/* Wait until the PLL's are locked. Time is between 100 uSec and 1 mSec */
 	set_current_state(TASK_INTERRUPTIBLE);
 	schedule_timeout(1 + HZ/1000 + (ZT_CHUNKSIZE * HZ) / 800);
@@ -836,7 +836,7 @@ static int wcfxo_init_daa(struct wcfxo *wc)
 		set_current_state(TASK_INTERRUPTIBLE);
 		schedule_timeout(100);
 	} }
-#endif	
+#endif
 	return 0;
 }
 
@@ -853,7 +853,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 		printk("Too many interfaces\n");
 		return -EIO;
 	}
-	
+
 	if (pci_enable_device(pdev)) {
 		res = -EIO;
 	} else {
@@ -867,7 +867,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 			wc->variety = d->name;
 			wc->flags = d->flags;
 			/* Keep track of whether we need to free the region */
-			if (request_region(wc->ioaddr, 0xff, "wcfxo")) 
+			if (request_region(wc->ioaddr, 0xff, "wcfxo"))
 				wc->freeregion = 1;
 
 			/* Allocate enough memory for two zt chunks, receive and transmit.  Each sample uses
@@ -924,7 +924,7 @@ static int __devinit wcfxo_init_one(struct pci_dev *pdev, const struct pci_devic
 
 				/* Reset PCI chip and registers */
 				outb(0x0e, wc->ioaddr + WC_CNTL);
-				
+
 				if (wc->freeregion)
 					release_region(wc->ioaddr, 0xff);
 				kfree(wc);
@@ -959,7 +959,7 @@ static void __devexit wcfxo_remove_one(struct pci_dev *pdev)
 
 		/* In case hardware is still there */
 		wcfxo_disable_interrupts(wc);
-		
+
 		/* Immediately free resources */
 		pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 2 * 4, (void *)wc->writechunk, wc->writedma);
 		free_irq(pdev->irq, wc);

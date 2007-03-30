@@ -6,7 +6,7 @@
 #
 # First come the span definitions, in the format
 # span=<span num>,<timing>,<line build out (LBO)>,<framing>,<coding>[,yellow]
-# 
+#
 # The timing parameter determines the selection of primary, secondary, and
 # so on sync sources.  If this span should be considered a primary sync
 # source, then give it a value of "1".  For a secondary, use "2", and so on.
@@ -24,7 +24,7 @@
 #
 # The framing is one of "d4" or "esf" for T1 or "cas" or "ccs" for E1
 #
-# Note: "d4" could be referred to as "sf" or "superframe" 
+# Note: "d4" could be referred to as "sf" or "superframe"
 #
 # The coding is one of "ami" or "b8zs" for T1 or "ami" or "hdb3" for E1
 #
@@ -64,19 +64,19 @@
 # "fxogs"   : Channel(s) are signalled using FXO Groundstart protocol.
 # "fxoks"   : Channel(s) are signalled using FXO Koolstart protocol.
 # "sf"	    : Channel(s) are signalled using in-band single freq tone.
-#		Syntax as follows: 
+#		Syntax as follows:
 #		 channel# => sf:<rxfreq>,<rxbw>,<rxflag>,<txfreq>,<txlevel>,<txflag>
 #		rxfreq is rx tone freq in hz, rxbw is rx notch (and decode)
 #		bandwith in hz (typically 10.0), rxflag is either 'normal' or
-#		'inverted', txfreq is tx tone freq in hz, txlevel is tx tone 
-#		level in dbm, txflag is either 'normal' or 'inverted'. Set 
+#		'inverted', txfreq is tx tone freq in hz, txlevel is tx tone
+#		level in dbm, txflag is either 'normal' or 'inverted'. Set
 #		rxfreq or txfreq to 0.0 if that tone is not desired.
 # "unused"  : No signalling is performed, each channel in the list remains idle
 # "clear"   : Channel(s) are bundled into a single span.  No conversion or
 #             signalling is performed, and raw data is available on the master.
 # "indclear": Like "clear" except all channels are treated individually and
 #             are not bundled.  "bchan" is an alias for this.
-# "rawhdlc" : The zaptel driver performs HDLC encoding and decoding on the 
+# "rawhdlc" : The zaptel driver performs HDLC encoding and decoding on the
 #             bundle, and the resulting data is communicated via the master
 #             device.
 # "fcshdlc" : The zapdel driver performs HDLC encoding and decoding on the
@@ -88,7 +88,7 @@
 # "dacs"    : The zaptel driver cross connects the channels starting at
 #             the channel number listed at the end, after a colon
 # "dacsrbs" : The zaptel driver cross connects the channels starting at
-#             the channel number listed at the end, after a colon and 
+#             the channel number listed at the end, after a colon and
 #             also performs the DACSing of RBS bits
 #
 # The channel list is a comma-separated list of channels or ranges, for
@@ -122,7 +122,7 @@
 # overwritten by other users (if you allow non-root users to open /dev/zap/*
 # interfaces anyway.  Also this means they won't have to be loaded at runtime.
 # The format is "loadzone=<zone>" where the zone is a two letter country code.
-# 
+#
 # You may also specify a default zone with "defaultzone=<zone>" where zone
 # is a two letter country code.
 #

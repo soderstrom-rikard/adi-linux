@@ -718,7 +718,7 @@ static int __init bfin_lq035_fb_init(void)
 
 	i2c_add_driver(&ad5280_driver);
 
-	backlight_device_register("bf537-bl", NULL, &bfin_lq035fb_bl);
+	backlight_device_register("bf537-bl", NULL, NULL, &bfin_lq035fb_bl);
 	lcd_device_register(DRIVER_NAME, NULL, &lcd);
 
 	init_ports();
@@ -740,7 +740,7 @@ static void __exit bfin_lq035_fb_exit(void)
 
 	bfin_write_TIMER_DISABLE(TIMEN_SP|TIMEN_SPS|TIMEN_PS_CLS|TIMEN_LP|TIMEN_REV);
 	t_conf_done = 0;
-	
+
 	free_dma(CH_PPI);
 
 	unregister_framebuffer(&bfin_lq035_fb);

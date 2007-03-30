@@ -84,12 +84,12 @@ typedef struct
 	int16_t *fir_taps_short;	/* Echo FIR taps, shorts instead of ints */
 
     int curr_pos;
-	
+
     int taps;
     int tap_mask;
     int use_nlp;
     int use_suppressor;
-    
+
     int32_t supp_test1;
     int32_t supp_test2;
     int32_t supp1;
@@ -104,7 +104,7 @@ static echo_can_state_t *echo_can_create(int len, int adaption_mode);
 static void echo_can_free(echo_can_state_t *ec);
 static int16_t echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t rx);
 
-/* Original parameters : 
+/* Original parameters :
 #define MIN_TX_POWER_FOR_ADAPTION   256
 #define MIN_RX_POWER_FOR_ADAPTION   128
 */
@@ -112,7 +112,7 @@ static int16_t echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t rx);
 #define MIN_TX_POWER_FOR_ADAPTION   256
 #define MIN_RX_POWER_FOR_ADAPTION   64
 
-/* Better ones found by Jim 
+/* Better ones found by Jim
 #define MIN_TX_POWER_FOR_ADAPTION   128
 #define MIN_RX_POWER_FOR_ADAPTION   64
 */
@@ -121,7 +121,7 @@ static inline echo_can_state_t *echo_can_create(int len, int adaption_mode)
 {
     echo_can_state_t *ec;
     void *ptr;
-    
+
     ptr = ec = (echo_can_state_t *) MALLOC(sizeof(*ec) + len * sizeof(int32_t) +
 						   len * 3 * sizeof(int16_t));
     if (ec == NULL)
@@ -216,9 +216,9 @@ static inline int16_t echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
 		ec->latest_correction = 0;
 #ifdef USE_SHORTS
 		UPDATE2(ec->fir_taps, ec->fir_taps_short, ec->tx_history + ec->curr_pos, nsuppr, ec->taps);
-#else				
+#else
 		UPDATE(ec->fir_taps, ec->fir_taps_short, ec->tx_history + ec->curr_pos, nsuppr, ec->taps);
-#endif		
+#endif
 	   }  else
 	    {
         	ec->latest_correction = -3;

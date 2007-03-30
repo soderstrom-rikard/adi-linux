@@ -29,7 +29,7 @@
  * 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* 
+/*
  * PHY REGISTER NAMES
  */
 #define PHYREG_MODECTL		0x0000

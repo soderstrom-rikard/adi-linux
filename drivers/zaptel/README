@@ -29,12 +29,12 @@ wct1xxp		T100P - Single Span T1 Card
 wct11xp		TE110P - Single Span T1/E1 Card
 
 wcfxo		X100P - Single port FXO interface
-		X101P - Single port FXO interface 
+		X101P - Single port FXO interface
 
 wcfxs		TDM400P - Modular FXS/FXO interface (1-4 ports)
 
 wcusb or	S100U - Single port FXS USB Interface
-wcfxsusb	
+wcfxsusb
 
 torisa		Old Tormenta1 ISA Card
 
@@ -43,13 +43,13 @@ ztdummy		UHCI USB Zaptel Timing Only Interface
 
 What is the license for the zaptel driver?
 ===================================================
-libpri is distributed under the terms of the GNU General Public License, 
-which permit its use and linking with other GPL'd software only.  
+libpri is distributed under the terms of the GNU General Public License,
+which permit its use and linking with other GPL'd software only.
 The GNU GPL is included in the file LICENSE in this directory.
 
-If you wish to use the zaptel drivers in an application for which the 
+If you wish to use the zaptel drivers in an application for which the
 GPL is not appropriate (e.g. a proprietary embedded system), licenses
-under more flexible terms can be readily obtained through Digium, Inc. 
+under more flexible terms can be readily obtained through Digium, Inc.
 at reasonable cost.
 
 

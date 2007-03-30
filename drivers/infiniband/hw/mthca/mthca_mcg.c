@@ -32,7 +32,6 @@
  * $Id$
  */
 
-#include <linux/init.h>
 #include <linux/string.h>
 #include <linux/slab.h>
 
@@ -371,7 +370,7 @@ int mthca_multicast_detach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
 	return err;
 }
 
-int __devinit mthca_init_mcg_table(struct mthca_dev *dev)
+int mthca_init_mcg_table(struct mthca_dev *dev)
 {
 	int err;
 	int table_size = dev->limits.num_mgms + dev->limits.num_amgms;

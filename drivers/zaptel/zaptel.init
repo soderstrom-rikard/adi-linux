@@ -43,7 +43,7 @@ case "$1" in
 	rmmod wcfxsusb >& /dev/null
 	rmmod audio >& /dev/null
 	action "Loading zaptel framework: " modprobe zaptel
-       	echo -n "Waiting for zap to come online ..." 
+       	echo -n "Waiting for zap to come online ..."
 	TMOUT=10 # max secs to wait
 	while [ ! -d /dev/zap ] ; do
  		sleep 1
@@ -53,9 +53,9 @@ case "$1" in
 			exit 1
 		fi
 	done
-	echo "OK"	
+	echo "OK"
 	echo -n "Loading zaptel hardware modules: "
-	for x in $MODULES; do 
+	for x in $MODULES; do
 		if insmod ${x} ${ARGS} >& /dev/null; then
 			echo -n "$x "
 		fi
@@ -71,7 +71,7 @@ case "$1" in
   stop)
         # Stop daemons.
         echo -n "Unloading zaptel hardware drivers: "
-	for x in $RMODULES; do 
+	for x in $RMODULES; do
 		if rmmod ${x} >& /dev/null; then
 			echo -n "$x "
 		fi

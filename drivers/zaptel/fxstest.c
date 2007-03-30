@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 				if (regs.direct[x])
 					break;
 			}
-			if (x == NUM_REGS) 
+			if (x == NUM_REGS)
 				numregs = 60;
 			printf("Direct registers: \n");
 			for (x=0;x<numregs;x++) {
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 				regop.indirect = 0;
 			}
 			res = ioctl(fd, WCFXS_SET_REG, &regop);
-			if (res) 
+			if (res)
 				fprintf(stderr, "Unable to get registers on channel %s\n", argv[1]);
 			else
 				printf("Success.\n");

@@ -255,25 +255,10 @@ static int i8042_kbd_write(struct serio *port, unsigned char c)
 static int i8042_aux_write(struct serio *serio, unsigned char c)
 {
 	struct i8042_port *port = serio->port_data;
-	int retval;
 
-/*
- * Send the byte out.
- */
-
-	if (port->mux == -1)
-		retval = i8042_command(&c, I8042_CMD_AUX_SEND);
-	else
-		retval = i8042_command(&c, I8042_CMD_MUX_SEND + port->mux);
-
-/*
- * Make sure the interrupt happens and the character is received even
- * in the case the IRQ isn't wired, so that we can receive further
- * characters later.
- */
-
-	i8042_interrupt(0, NULL);
-	return retval;
+	return i8042_command(&c, port->mux == -1 ?
+					I8042_CMD_AUX_SEND :
+					I8042_CMD_MUX_SEND + port->mux);
 }
 
 /*
@@ -337,23 +322,27 @@ static irqreturn_t i8042_interrupt(int irq, void *dev_id)
 		dfl = 0;
 		if (str & I8042_STR_MUXERR) {
 			dbg("MUX error, status is %02x, data is %02x", str, data);
-			switch (data) {
-				default:
 /*
  * When MUXERR condition is signalled the data register can only contain
  * 0xfd, 0xfe or 0xff if implementation follows the spec. Unfortunately
- * it is not always the case. Some KBC just get confused which port the
- * data came from and signal error leaving the data intact. They _do not_
- * revert to legacy mode (actually I've never seen KBC reverting to legacy
- * mode yet, when we see one we'll add proper handling).
- * Anyway, we will assume that the data came from the same serio last byte
+ * it is not always the case. Some KBCs also report 0xfc when there is
+ * nothing connected to the port while others sometimes get confused which
+ * port the data came from and signal error leaving the data intact. They
+ * _do not_ revert to legacy mode (actually I've never seen KBC reverting
+ * to legacy mode yet, when we see one we'll add proper handling).
+ * Anyway, we process 0xfc, 0xfd, 0xfe and 0xff as timeouts, and for the
+ * rest assume that the data came from the same serio last byte
  * was transmitted (if transmission happened not too long ago).
  */
+
+			switch (data) {
+				default:
 					if (time_before(jiffies, last_transmit + HZ/10)) {
 						str = last_str;
 						break;
 					}
 					/* fall through - report timeout */
+				case 0xfc:
 				case 0xfd:
 				case 0xfe: dfl = SERIO_TIMEOUT; data = 0xfe; break;
 				case 0xff: dfl = SERIO_PARITY;  data = 0xfe; break;
@@ -382,7 +371,7 @@ static irqreturn_t i8042_interrupt(int irq, void *dev_id)
 	if (unlikely(i8042_suppress_kbd_ack))
 		if (port_no == I8042_KBD_PORT_NO &&
 		    (data == 0xfa || data == 0xfe)) {
-			i8042_suppress_kbd_ack = 0;
+			i8042_suppress_kbd_ack--;
 			goto out;
 		}
 
@@ -554,6 +543,7 @@ static int __devinit i8042_check_aux(void)
 {
 	int retval = -1;
 	int irq_registered = 0;
+	int aux_loop_broken = 0;
 	unsigned long flags;
 	unsigned char param;
 
@@ -570,7 +560,8 @@ static int __devinit i8042_check_aux(void)
  */
 
 	param = 0x5a;
-	if (i8042_command(&param, I8042_CMD_AUX_LOOP) || param != 0x5a) {
+	retval = i8042_command(&param, I8042_CMD_AUX_LOOP);
+	if (retval || param != 0x5a) {
 
 /*
  * External connection test - filters out AT-soldered PS/2 i8042's
@@ -583,6 +574,13 @@ static int __devinit i8042_check_aux(void)
 		if (i8042_command(&param, I8042_CMD_AUX_TEST) ||
 		    (param && param != 0xfa && param != 0xff))
 			return -1;
+
+/*
+ * If AUX_LOOP completed without error but returned unexpected data
+ * mark it as broken
+ */
+		if (!retval)
+			aux_loop_broken = 1;
 	}
 
 /*
@@ -606,7 +604,7 @@ static int __devinit i8042_check_aux(void)
  * used it for a PCI card or somethig else.
  */
 
-	if (i8042_noloop) {
+	if (i8042_noloop || aux_loop_broken) {
 /*
  * Without LOOP command we can't test AUX IRQ delivery. Assume the port
  * is working and hope we are right.
@@ -849,13 +847,14 @@ static long i8042_panic_blink(long count)
 	led ^= 0x01 | 0x04;
 	while (i8042_read_status() & I8042_STR_IBF)
 		DELAY;
-	i8042_suppress_kbd_ack = 1;
+	dbg("%02x -> i8042 (panic blink)", 0xed);
+	i8042_suppress_kbd_ack = 2;
 	i8042_write_data(0xed); /* set leds */
 	DELAY;
 	while (i8042_read_status() & I8042_STR_IBF)
 		DELAY;
 	DELAY;
-	i8042_suppress_kbd_ack = 1;
+	dbg("%02x -> i8042 (panic blink)", led);
 	i8042_write_data(led);
 	DELAY;
 	last_blink = count;

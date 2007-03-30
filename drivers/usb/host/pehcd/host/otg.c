@@ -26,7 +26,7 @@
  * Date                  Author                  Comments
  * --------------------------------------------------------------------
  * June 21, 2006          krishan                 Initial version
- * 
+ *
  **********************************************************************
  */
 
@@ -46,7 +46,7 @@ struct usb_device *phci_register_otg_device (struct isp1761_dev *dev)
     if(otgdev && otgdev->devnum == 0x2)
         return otgdev;
 
-    return NULL;        
+    return NULL;
 }
 
 /*suspend the otg port(0)
@@ -63,7 +63,7 @@ phci_suspend_otg_port(struct isp1761_dev *dev,
         otgurb->status = 0;
 
     /*complete the urb*/
-    otgurb->complete(otgurb,NULL);      
+    otgurb->complete(otgurb,NULL);
 
     /*reset the otghub urb status*/
     otgurb->status = -EINPROGRESS;

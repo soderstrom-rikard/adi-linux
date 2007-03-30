@@ -735,11 +735,11 @@ int CAN_VendorInit (int minor)
         if( Can_RequestIrq( minor, IRQ[minor] , CAN_Interrupt) ) {
 	     printk(KERN_ERR "Can[%d]: Can't request IRQ %d \n",
 	     			minor, 		IRQ[minor]);
-		
+
 		release_mem_region(Base[minor], can_range[minor]);
 #if CONFIG_TIME_MEASURE
     		gpio_free(TIME_MEASURE_GPIO);
-#endif	     
+#endif
 	     DBGout(); return -EBUSY;
         }
     }

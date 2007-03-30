@@ -29,6 +29,7 @@
 
 #include <linux/module.h>
 #include <linux/kernel_stat.h>
+#include <linux/sched.h>
 #include <asm/traps.h>
 #include <asm/blackfin.h>
 

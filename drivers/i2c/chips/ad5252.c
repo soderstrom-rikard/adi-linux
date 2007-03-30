@@ -176,7 +176,7 @@ int ad5252_detect(struct i2c_adapter *adapter, int address, int kind)
 
 	/*FIXME: Don't know why there needs to be a delay !!!*/
 	udelay(100);
-	
+
 	if ((err = i2c_attach_client(new_client)))
 		goto exit_free;
 

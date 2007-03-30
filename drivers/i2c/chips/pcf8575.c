@@ -1,10 +1,10 @@
 /*
     pcf8575.c - Part of lm_sensors, Linux kernel modules for hardware
              monitoring
-    Copyright (c) 2000  Frodo Looijaard <frodol@dds.nl>, 
+    Copyright (c) 2000  Frodo Looijaard <frodol@dds.nl>,
                         Philip Edelbrock <phil@netroedge.com>,
                         Dan Eaton <dan.eaton@rocketlogix.com>
-    Ported to Linux 2.6 by Aurelien Jarno <aurel32@debian.org> with 
+    Ported to Linux 2.6 by Aurelien Jarno <aurel32@debian.org> with
     the help of Jean Delvare <khali@linux-fr.org>
 
     Copyright (C) 2006 Michael Hennerich, Analog Devices Inc.
@@ -15,7 +15,7 @@
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
     (at your option) any later version.
-    
+
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -79,9 +79,9 @@ static ssize_t show_read(struct device *dev, struct device_attribute *attr, char
 	unsigned short val;
 
 		i2c_master_recv(client,data->buf,2);
-		
+
 		val = data->buf[0];
-		val |= data->buf[1]<<8;  
+		val |= data->buf[1]<<8;
 
 	return sprintf(buf, "%u\n", val);
 }
@@ -105,12 +105,12 @@ static ssize_t set_write(struct device *dev, struct device_attribute *attr, cons
 		return -EINVAL;
 
 	data->write = val;
-	
+
 	data->buf[0] = val & 0xFF;
 	data->buf[1] = val >> 8;
-	
+
 	i2c_master_send(client,data->buf,2);
-	
+
 	return count;
 }
 
@@ -127,17 +127,17 @@ static ssize_t set_set_bit(struct device *dev, struct device_attribute *attr, co
 		return -EINVAL;
 
 	i2c_master_recv(client,data->buf,2);
-		
+
 	dummy = data->buf[0];
-	dummy |= data->buf[1]<<8; 
+	dummy |= data->buf[1]<<8;
 
 	dummy |= 1 << val;
-	
+
 	data->buf[0] = dummy & 0xFF;
 	data->buf[1] = dummy >> 8;
-	
+
 	i2c_master_send(client,data->buf,2);
-	
+
 	return count;
 }
 
@@ -154,17 +154,17 @@ static ssize_t set_clear_bit(struct device *dev, struct device_attribute *attr, 
 		return -EINVAL;
 
 	i2c_master_recv(client,data->buf,2);
-		
+
 	dummy = data->buf[0];
-	dummy |= data->buf[1]<<8; 
+	dummy |= data->buf[1]<<8;
 
 	dummy &= ~(1 << val);
-	
+
 	data->buf[0] = dummy & 0xFF;
 	data->buf[1] = dummy >> 8;
-	
+
 	i2c_master_send(client,data->buf,2);
-	
+
 	return count;
 }
 
@@ -216,7 +216,7 @@ static int pcf8575_detect(struct i2c_adapter *adapter, int address, int kind)
 	/* Tell the I2C layer a new client has arrived */
 	if ((err = i2c_attach_client(new_client)))
 		goto exit_free;
-	
+
 
 	/* Register sysfs hooks */
 	err = device_create_file(&new_client->dev, &dev_attr_read);

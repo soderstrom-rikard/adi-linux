@@ -1,8 +1,8 @@
 /*
  * BSD Telephony Of Mexico "Tormenta" card LINUX driver, version 1.6 1/9/01
- * 
- * Working with the "Tormenta ISA" Card 
- * 
+ *
+ * Working with the "Tormenta ISA" Card
+ *
  *
  *   Part of the "Zapata" Computer Telephony Technology.
  *

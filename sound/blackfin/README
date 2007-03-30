@@ -5,7 +5,7 @@ Sun Nov 14 14:02:28 CET 2004
 overview
 ========
 
-this is a dropin replacement for <cvs.blackfin.uclinux.org:/cvsroot/uclinux533> 
+this is a dropin replacement for <cvs.blackfin.uclinux.org:/cvsroot/uclinux533>
 	.../uClinux-dist/linux-2.6.x/sound/blackfin
 containing a driver for the Analog Devices AD1836 sound chip connected
 to a Blackfin 533 sport + spi.  To use it, move the original out of
@@ -13,7 +13,7 @@ the way, and symlink in this directory. Be sure to add the blackfin/
 directories to Kconfig and Makefile in the sound/ directory.
 
 the subdirectory blackfin/test may be symlinked to
-	.../uClinux-dist/user/blkfin-test/audio_test. 
+	.../uClinux-dist/user/blkfin-test/audio_test.
 
 It contains three utilities to test the driver.
 
@@ -32,7 +32,7 @@ the uClinux top config.
 
 
 current status
-============== 
+==============
 
 half duplex operation works, full duplex needs thought + work.  access
 trough the OSS emulation layer works fine. Libalsa is not in
@@ -49,11 +49,11 @@ proc files
 for testing and debuging, a number of /proc files exist in adition to
 the standard Alsa ones:
 
-	/proc/asound/card?/registers	current status of ad1836 registers, 
+	/proc/asound/card?/registers	current status of ad1836 registers,
 					including the adc VU meters
 	/proc/asound/card?/sport	sport status & irq rate info
 	/proc/asound/card?/spi		spi irq rate info
-	/proc/asound/card?/chan_mask    determines which channels are 
+	/proc/asound/card?/chan_mask    determines which channels are
 					opened in 2,4,6 or 8 channel mode
 	/proc/asounc/card?/talktrough	get/set talktrough mode
 
@@ -90,8 +90,8 @@ sport and spi
 -------------
 
 /proc/asound/card0> cat sport
-irq tot: 4433 4659/100s                   
-irq rx:  2217 2330/100s                   
+irq tot: 4433 4659/100s
+irq rx:  2217 2330/100s
 irq tx:  2217 2330/100s
 sport  0 sts: 0x0008
 rx dma 1 cfg: 0x10db sts: 0x0008
@@ -137,7 +137,7 @@ test programs
 -------------
 
 ossrec and ossplay are very simple minded play and record programs for
-testing the driver though the /dev/dsp. 
+testing the driver though the /dev/dsp.
 
 	cd /tmp
 	ossrec lala

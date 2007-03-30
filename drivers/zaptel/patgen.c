@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <linux/types.h>
-#include <linux/ppp_defs.h> 
+#include <linux/ppp_defs.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -94,5 +94,5 @@ int main(int argc, char *argv[])
 		printf("(%d) Wrote %d bytes\n", packets++, res);
 #endif
 	}
-	
+
 }

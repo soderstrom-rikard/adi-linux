@@ -288,11 +288,11 @@ int main(int argc, char *argv[])
 
 	if (argc <= 1)
 		usage();
-  
+
 	sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
 	if (sock<0)
 		error("Unable to create socket: %s\n", strerror(errno));
-  
+
 	strcpy(req.ifr_name, argv[1]); /* Device name */
 
 	if (argc == 2) {
@@ -306,7 +306,7 @@ int main(int argc, char *argv[])
 			set_clock(sock, &arg, argc, argv);
 			continue;
 		}
-    
+
 		if (!parser(argv[arg], lines)) {
 			if (ioctl(sock, HDLCSLINE, &req))
 				error("Unable to set physical interface: %s\n",
@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
 			arg++;
 			continue;
 		}
-    
+
 		if (argc > arg+1 && !strcmp(argv[arg], "create")) /* PVC */ {
 			fr_pvc(sock, argv[++arg], 1);
 			arg++;
@@ -333,7 +333,7 @@ int main(int argc, char *argv[])
 			arg++;
 			continue;
 		}
-    
+
 		/* Set mode */
 		if (argc > arg+1 && !strcmp(argv[arg], "mode")) {
 			int mode = 0;

@@ -11,15 +11,15 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -212,15 +212,15 @@ static void ztd_sendmessage(struct zt_dynamic *z)
 		buf++; msglen++;
 		buf++; msglen++;
 	}
-	
+
 	for (x=0;x<z->span.channels;x++) {
 		memcpy(buf, z->chans[x].writechunk, ZT_CHUNKSIZE);
 		buf += ZT_CHUNKSIZE;
 		msglen += ZT_CHUNKSIZE;
 	}
-	
+
 	z->driver->transmit(z->pvt, z->msgbuf, msglen);
-	
+
 }
 
 static void __ztdynamic_run(void)
@@ -273,8 +273,8 @@ void zt_dynamic_receive(struct zt_span *span, unsigned char *msg, int msglen)
 	int nchans, master;
 	int newalarm;
 	unsigned short rxpos;
-	
-	
+
+
 	spin_lock_irqsave(&dlock, flags);
 	if (msglen < 6) {
 		spin_unlock_irqrestore(&dlock, flags);
@@ -285,7 +285,7 @@ void zt_dynamic_receive(struct zt_span *span, unsigned char *msg, int msglen)
 		ztd->err = newerr;
 		return;
 	}
-	
+
 	/* First, check the chunksize */
 	if (*msg != ZT_CHUNKSIZE) {
 		spin_unlock_irqrestore(&dlock, flags);
@@ -299,11 +299,11 @@ void zt_dynamic_receive(struct zt_span *span, unsigned char *msg, int msglen)
 	msg++;
 	sflags = *msg;
 	msg++;
-	
+
 	rxpos = ntohs(*((unsigned short *)msg));
 	msg++;
 	msg++;
-	
+
 	nchans = ntohs(*((unsigned short *)msg));
 	if (nchans != span->channels) {
 		spin_unlock_irqrestore(&dlock, flags);
@@ -316,7 +316,7 @@ void zt_dynamic_receive(struct zt_span *span, unsigned char *msg, int msglen)
 	}
 	msg++;
 	msg++;
-	
+
 	/* Okay now we've accepted the header, lets check our message
 	   length... */
 
@@ -329,7 +329,7 @@ void zt_dynamic_receive(struct zt_span *span, unsigned char *msg, int msglen)
 		/* Account for sigbits -- one short per 4 channels*/
 		xlen += ((nchans + 3) / 4) * 2;
 	}
-	
+
 	if (xlen != msglen) {
 		spin_unlock_irqrestore(&dlock, flags);
 		newerr = ERR_LEN | xlen;
@@ -339,9 +339,9 @@ void zt_dynamic_receive(struct zt_span *span, unsigned char *msg, int msglen)
 		ztd->err = newerr;
 		return;
 	}
-	
+
 	bits = 0;
-	
+
 	/* Record sigbits if present */
 	if (sflags & ZTD_FLAG_SIGBITS_PRESENT) {
 		for (x=0;x<nchans;x++) {
@@ -351,17 +351,17 @@ void zt_dynamic_receive(struct zt_span *span, unsigned char *msg, int msglen)
 				msg++;
 				msg++;
 			}
-			
+
 			/* Pick the right bits */
 			sig = (bits >> ((x % 4) << 2)) & 0xff;
-			
+
 			/* Update signalling if appropriate */
 			if (sig != span->chans[x].rxsig)
 				zt_rbsbits(&span->chans[x], sig);
-				
+
 		}
 	}
-	
+
 	/* Record data for channels */
 	for (x=0;x<nchans;x++) {
 		memcpy(span->chans[x].readchunk, msg, ZT_CHUNKSIZE);
@@ -369,9 +369,9 @@ void zt_dynamic_receive(struct zt_span *span, unsigned char *msg, int msglen)
 	}
 
 	master = ztd->master;
-	
+
 	spin_unlock_irqrestore(&dlock, flags);
-	
+
 	/* Check for Yellow alarm */
 	newalarm = span->alarms & ~(ZT_ALARM_YELLOW | ZT_ALARM_RED);
 	if (sflags & ZTD_FLAG_YELLOW_ALARM)
@@ -381,14 +381,14 @@ void zt_dynamic_receive(struct zt_span *span, unsigned char *msg, int msglen)
 		span->alarms = newalarm;
 		zt_alarm_notify(span);
 	}
-	
+
 	/* Keep track of last received packet */
 	ztd->rxjif = jiffies;
 
 	/* If this is our master span, then run everything */
 	if (master)
 		ztdynamic_run();
-	
+
 }
 
 static void dynamic_destroy(struct zt_dynamic *z)
@@ -473,7 +473,7 @@ static int destroy_dynamic(ZT_DYNAMIC_SPAN *zds)
 
 	/* Destroy it */
 	dynamic_destroy(z);
-	
+
 	return 0;
 }
 
@@ -494,7 +494,7 @@ static int ztd_open(struct zt_chan *chan)
 	}
 #ifndef LINUX26
 	MOD_INC_USE_COUNT;
-#endif	
+#endif
 	return 0;
 }
 
@@ -507,13 +507,13 @@ static int ztd_close(struct zt_chan *chan)
 {
 	struct zt_dynamic *z;
 	z = chan->span->pvt;
-	if (z) 
+	if (z)
 		z->usecount--;
 	if (z->dead && !z->usecount)
 		dynamic_destroy(z);
 #ifndef LINUX26
 	MOD_DEC_USE_COUNT;
-#endif	
+#endif
 	return 0;
 }
 
@@ -549,7 +549,7 @@ static int create_dynamic(ZT_DYNAMIC_SPAN *zds)
 
 	/* Allocate memory */
 	z = (struct zt_dynamic *)kmalloc(sizeof(struct zt_dynamic), GFP_KERNEL);
-	if (!z) 
+	if (!z)
 		return -ENOMEM;
 
 	/* Zero it out */
@@ -574,7 +574,7 @@ static int create_dynamic(ZT_DYNAMIC_SPAN *zds)
 		dynamic_destroy(z);
 		return -ENOMEM;
 	}
-	
+
 	/* Zero out -- probably not needed but why not */
 	memset(z->msgbuf, 0, bufsize);
 
@@ -601,7 +601,7 @@ static int create_dynamic(ZT_DYNAMIC_SPAN *zds)
 		z->chans[x].chanpos = x + 1;
 		z->chans[x].pvt = z;
 	}
-	
+
 	spin_lock_irqsave(&dlock, flags);
 	ztd = find_driver(zds->driver);
 	if (!ztd) {
@@ -787,7 +787,7 @@ static void check_for_red_alarm(unsigned long ignored)
 
 	/* Do the next one */
 	mod_timer(&alarmcheck, jiffies + 1 * HZ);
-	
+
 }
 
 int ztdynamic_init(void)

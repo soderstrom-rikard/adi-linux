@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <linux/types.h>
-#include <linux/ppp_defs.h> 
+#include <linux/ppp_defs.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 		}
 		for (x=0;x<bs;x++)  {
 			if (outbuf[x] != c) {
-				printf("(Error %d): Unexpected result, %d != %d, %d bytes since last error.\n", ++errors, outbuf[x], c, bytes); 
+				printf("(Error %d): Unexpected result, %d != %d, %d bytes since last error.\n", ++errors, outbuf[x], c, bytes);
 				c = outbuf[x];
 				bytes=0;
 			}
@@ -100,5 +100,5 @@ int main(int argc, char *argv[])
 		printf("(%d) Wrote %d bytes\n", packets++, res);
 #endif
 	}
-	
+
 }

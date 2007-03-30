@@ -3,7 +3,7 @@
  *
  * Mark Spencer <markster@linux-support.net>
  *
- * Simple, LMS Echo Canceller with double talk detection.  
+ * Simple, LMS Echo Canceller with double talk detection.
  * Partly based on the TI App note:
  *     "Digital Voice Echo Canceller with a TMS 32020"
  *
@@ -21,7 +21,7 @@
  */
 
 #ifndef _MEC_H
-#define _MEC_H 
+#define _MEC_H
 
 /* You have to express the size of the echo canceller in taps as
    a power of 2 (6 = 64 taps, 7 = 128 taps, 8 = 256 taps) */
@@ -62,7 +62,7 @@ typedef struct mark_ec {
 	short s_abs[NUM_TAPS];		/* Last N samples (relative to cpos) received (abs value) */
 	short u[NUM_TAPS];		/* Last N samples (relative to cpos) with echo removed */
 	short u_abs[NUM_TAPS];		/* Last N samples (relative to cpos) with echo removed */
-	
+
 	int Ly;				/* tx power */
 	int Lu;				/* Power of echo-cancelled output */
 
@@ -70,7 +70,7 @@ typedef struct mark_ec {
 	int Ts;				/* Short term power estimate of received signal */
 
 	int a[NUM_TAPS];		/* Tap weight coefficients (not relative) */
-	
+
 	short sdc[NUM_TAPS];		/* Near end signal before High Pass Filter */
 
 	int samples;			/* Sample count */
@@ -151,7 +151,7 @@ static INLINE int16_t echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
 
 	/* Bring in receive value (near-end signal) */
 	ec->sdc[ec->cpos] = rx;
-	
+
 	/* Bring in receive value absolute value */
 	oldrxabs = ec->s_abs[ec->cpos];
 	ec->s_abs[ec->cpos] = rxabs;
@@ -171,9 +171,9 @@ static INLINE int16_t echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
 		/* Go backwards in time and loop around circular buffer */
 		pos = (pos - 1) & TAP_MASK;
 	}
-	
+
 	r_hat >>= 16;
-	
+
 	if (ec->hangt > 0)
 		ec->hangt--;
 
@@ -191,46 +191,46 @@ static INLINE int16_t echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
 #ifdef OPTIMIZEDIV
 					/* We both have enough signal on the transmit   */
 					nsuppr = (suppr << 18) / ec->Ly;
-				
+
 					if (nsuppr > 32767)
 						nsuppr = 32767;
 					if (nsuppr < -32768)
 						nsuppr =  -32768;
-			
+
 					nsuppr /= ec->Ly;
-#else					
+#else
 					/* We both have enough signal on the transmit   */
 					nsuppr = (suppr << 16) / ec->Ly;
-				
+
 					if (nsuppr > 32767)
 						nsuppr = 32767;
 					if (nsuppr < -32768)
 						nsuppr =  -32768;
-			
-#endif					
-			
+
+#endif
+
 					/* Update coefficients */
 					pos = ec->cpos;
 #ifdef MIN_UPDATE
 					totalupd =0;
-#endif					
+#endif
 					for (x=0;x<NUM_TAPS;x++) {
 						register int adj;
 						adj = ec->y[pos] * nsuppr;
 #ifndef OPTIMIZEDIV
 						adj /= ec->Ly;
 						adj >>= BETA_POW;
-#else						
+#else
 						adj >>= BETA_POW + 2;
-#endif						
+#endif
 #ifdef PASSPOS
 						if (ec->pass > PASSPOS)
 							printf("tx: %d, old %d: %d, adj %d, nsuppr: %d, power: %d\n", tx, x, ec->a[x], adj, nsuppr, ec->Ly);
-#endif							
+#endif
 						ec->a[x] += adj;
 #ifdef MIN_UPDATE
 						totalupd += abs(adj);
-#endif						
+#endif
 						/* Go backwards in time and loop around circular buffer */
 						pos = (pos - 1) & TAP_MASK;
 					}
@@ -239,14 +239,14 @@ static INLINE int16_t echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
 					if (totalupd < MIN_UPDATE) {
 						ec->hangt += MIN_SKIP;
 					}
-#endif						
-				} 
-					
+#endif
+				}
+
 			}
 		} else
 			/* Near end speech detected */
 			ec->hangt = HANG_T;
-	} 
+	}
 
 	/* Save supression and absolute values */
 	supprabs = abs(suppr);
@@ -261,9 +261,9 @@ static INLINE int16_t echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
 	ec->Lu += (supprabs  >> SIGMA_LU_POW) - (oldsupprabs >> SIGMA_LU_POW);
 
 	/* Short term power of tx */
-	ec->Ty[ec->cpos] = ec->Ty[(ec->cpos - 1) & TAP_MASK] + 
+	ec->Ty[ec->cpos] = ec->Ty[(ec->cpos - 1) & TAP_MASK] +
 		((txabs >> SIGMA_YT_POW ) - (oldtxabs >> SIGMA_YT_POW));
-	
+
 	/* Keep track of highest */
 	if (ec->lastmax == ec->cpos) {
 		register int maxTy = 0;
@@ -288,7 +288,7 @@ static INLINE int16_t echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
 
 	/* Increment position memory */
 	ec->cpos = (ec->cpos + 1 ) & TAP_MASK;
-	
+
 	return suppr;
 }
 

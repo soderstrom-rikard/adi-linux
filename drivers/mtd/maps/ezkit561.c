@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * drivers/mtd/maps/ezkit561.c
  *
  * FLASH map for the ADI BF561 EZ-KIT
@@ -47,7 +45,7 @@
 #define EZKIT561_PART_COUNT 3
 
 /* First is similar to the bf5xx map, 256KiB u-boot, 768KiB kernel, then 7MiB filesystem */
-#if 0 
+#if 0
 #define EZKIT561_PART0_OFFSET 0x00000000
 #define EZKIT561_PART0_SIZE 0x40000
 #define EZKIT561_PART1_OFFSET (EZKIT561_PART0_OFFSET + EZKIT561_PART0_SIZE)

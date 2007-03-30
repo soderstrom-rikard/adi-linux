@@ -1,5 +1,5 @@
 /*
- * Zaptel configuration options 
+ * Zaptel configuration options
  *
  */
 #ifndef _ZCONFIG_H
@@ -33,15 +33,15 @@
 /*
  * Define if you want MMX optimizations in zaptel
  *
- * Note: CONFIG_ZAPTEL_MMX is generally incompatible with AMD 
+ * Note: CONFIG_ZAPTEL_MMX is generally incompatible with AMD
  * processors and can cause system instability!
- * 
+ *
  */
 /* #define CONFIG_ZAPTEL_MMX */
 
 /*
  * Pick your echo canceller: MARK2, MARK3, STEVE, or STEVE2 :)
- */ 
+ */
 /* #define ECHO_CAN_STEVE */
 /* #define ECHO_CAN_STEVE2 */
 /* #define ECHO_CAN_MARK */
@@ -49,7 +49,7 @@
 /* #define ECHO_CAN_MARK3 */
 
 /*
- * Uncomment for aggressive residual echo supression under 
+ * Uncomment for aggressive residual echo supression under
  * MARK2 echo canceller
  */
 /* #define AGGRESSIVE_SUPPRESSOR */

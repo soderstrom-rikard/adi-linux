@@ -2,7 +2,7 @@
  * Philips ISP176x host controller interface header file
  *
  * (c) 2002 Koninklijke Philips Electronics N.V. All rights reserved. <usb.linux@philips.com>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -18,15 +18,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  * File Name:   pehci.h
- * 
+ *
  * Refering linux kernel version 2.6.9
  *
- * History:     
+ * History:
  *
  * Date                Author                  Comments
  * ---------------------------------------------------------------------
  * May 16, 2003        krishan                  initial version
- *                                                                              
+ *
  ***********************************************************************/
 
 #ifndef __PEHCI_H__
@@ -58,9 +58,9 @@
 
 
 /*---------------------------------------------------
- *    Host controller related 
+ *    Host controller related
  -----------------------------------------------------*/
-// IRQ line for the ISP 1761 
+// IRQ line for the ISP 1761
 #define HCD_IRQ                 IRQ_GPIO(25)
 #define CMD_RESET               (1<<1)          /* reset HC not bus */
 #define CMD_RUN                 (1<<0)          /* start/stop HC */
@@ -75,7 +75,7 @@
 #define IN_PID                  (1)
 
 /* Bits MULTI*/
-#define MULTI(x)                ((x)<< 29)      
+#define MULTI(x)                ((x)<< 29)
 #define XFER_PER_UFRAME(x)      (((x) >> 29) & 0x3)
 
 /*Active, EP type and speed bits */
@@ -157,7 +157,7 @@ struct _isp1761_qha{
     u32   td_info2;   /* Second 32 bit */
     u32   td_info3;   /* third 32 bit */
     u32   td_info4;   /* fourth 32 bit */
-    u32   reserved[4];  
+    u32   reserved[4];
 };
 typedef struct _isp1761_qha isp1761_qha, *pisp1761_qha;
 
@@ -175,7 +175,7 @@ typedef struct _ehci_regs {
     u32                 frameindex;
 
     /*isp1761 interrupt specific registers*/
-    u32                 hwmodecontrol;  
+    u32                 hwmodecontrol;
     u32                 interrupt;
     u32                 interruptenable;
     u32                 interruptthreshold;
@@ -315,11 +315,11 @@ typedef struct isp1761_mem_addr {
     u8  blk_num;    /* number of the block*/
     u8  used;       /*used/free*/
 } isp1761_mem_addr_t;
-#else 
+#else
 typedef struct isp1761_mem_addr {
     void        *phy_addr;      /* Physical address of the memory */
     void     *virt_addr;        /* after ioremap() function call */
-    __u8          usage; 
+    __u8          usage;
     __u32       blk_size;    /*block size*/
 }isp1761_mem_addr_t;
 
@@ -337,7 +337,7 @@ struct ehci_itd {
 #define EHCI_ITD_LENGTH(tok)    (((tok)>>16) & 0x7fff)
 #define EHCI_ITD_IOC            (1 << 15)       /* interrupt on complete */
 
-    u32                 hw_bufp [7];    /* see EHCI 3.3.3 */ 
+    u32                 hw_bufp [7];    /* see EHCI 3.3.3 */
     u32                 hw_bufp_hi [7]; /* Appendix B */
 
     /* the rest is HCD-private */
@@ -365,7 +365,7 @@ struct ehci_itd {
 
 /*
  * EHCI Specification 0.95 Section 3.5
- * QTD: describe data transfer components (buffer, direction, ...) 
+ * QTD: describe data transfer components (buffer, direction, ...)
  * See Fig 3-6 "Queue Element Transfer Descriptor Block Diagram".
  *
  * These are associated only with "QH" (Queue Head) structures,
@@ -375,7 +375,7 @@ struct ehci_qtd {
     /* first part defined by EHCI spec */
     u32                 hw_next;          /* see EHCI 3.5.1 */
     u32                 hw_alt_next;      /* see EHCI 3.5.2 */
-    u32                 hw_token;         /* see EHCI 3.5.3 */       
+    u32                 hw_token;         /* see EHCI 3.5.3 */
 
     u32                 hw_buf [5];        /* see EHCI 3.5.4 */
     u32                 hw_buf_hi [5];        /* Appendix B */
@@ -386,7 +386,7 @@ struct ehci_qtd {
     struct urb          *urb;                   /* qtd's urb */
     size_t                      length;                 /* length of buffer */
     u32                         state;                  /*state of the qtd*/
-#define QTD_STATE_NEW                   0x100 
+#define QTD_STATE_NEW                   0x100
 #define QTD_STATE_DONE                  0x200
 #define QTD_STATE_SCHEDULED             0x400
 #define QTD_STATE_LAST                  0x800
@@ -442,7 +442,7 @@ typedef struct _phci_hcd {
     u8                                  *iobase;
     u32                                  iolength;
     u8                                   *plxiobase;
-    u32                                   plxiolength;  
+    u32                                   plxiolength;
 
     int                         irq;            /* irq allocated */
     int                         state;/*state of the host controller*/
@@ -499,8 +499,8 @@ static int phci_hcd_mem_init (void)
     }
     return 0;
 }
-    static void 
-phci_mem_cleanup(void) 
+    static void
+phci_mem_cleanup(void)
 {
     if (qha_cache && kmem_cache_destroy (qha_cache))
         err ("td_cache remained");
@@ -562,9 +562,9 @@ static inline void phci_mem_cleanup (void) { return; }
 #define         TD_PTD_BUFF_TYPE_ISTL   2       /* ISO buffer */
 #define         TD_PTD_TOTAL_BUFF_TYPES (TD_PTD_BUFF_TYPE_ISTL +1)
 /*maximum number of tds per transfer type*/
-#define         TD_PTD_MAX_BUFF_TDS     32              
+#define         TD_PTD_MAX_BUFF_TDS     32
 /*invalid td index in the headers*/
-#define         TD_PTD_INV_PTD_INDEX    0xFFFFFFFF      
+#define         TD_PTD_INV_PTD_INDEX    0xFFFFFFFF
 /*Host controller buffer defination*/
 #define         INVALID_FRAME_NUMBER    0xFFFFFFFF
 /*per td transfer size*/
@@ -575,7 +575,7 @@ static inline void phci_mem_cleanup (void) { return; }
 /*TD_PTD_MAP states*/
 #define TD_PTD_NEW                      0x0000
 #define TD_PTD_ACTIVE                   0x0001
-#define TD_PTD_IDLE                     0x0002 
+#define TD_PTD_IDLE                     0x0002
 #define TD_PTD_REMOVE                   0x0004
 #define TD_PTD_RELOAD                   0x0008
 #define TD_PTD_IN_SCHEDULE              0x0010
@@ -584,25 +584,25 @@ static inline void phci_mem_cleanup (void) { return; }
 #define PTD_RETRY(x)                    (((x) >> 23) & 0x3)
 #define PTD_PID(x)                      (((x) >> 10) & (0x3))
 #define PTD_NEXTTOGGLE(x)               (((x) >> 25) & (0x1))
-#define PTD_XFERRED_LENGTH(x)           ((x) & 0x7fff) 
+#define PTD_XFERRED_LENGTH(x)           ((x) & 0x7fff)
 #define PTD_XFERRED_NONHSLENGTH(x)      ((x) & 0x7ff)
-#define PTD_PING_STATE(x)               (((x) >> 26) & (0x1)) 
+#define PTD_PING_STATE(x)               (((x) >> 26) & (0x1))
 
 /* urb state*/
 #define DELETE_URB                      0x0008
 #define NO_TRANSFER_ACTIVE              0xFFFFFFFF
 #define MAX_PTD_BUFFER_SIZE             4096 /*max ptd size*/
 
-/*information of the td in headers of host memory*/ 
+/*information of the td in headers of host memory*/
 typedef struct td_ptd_map {
     u32         state;          /* ACTIVE, NEW, TO_BE_REMOVED */
     u8          datatoggle;     /*to preserve the data toggle for ATL/ISTL transfers*/
     u32         ptd_bitmap;     /* Bitmap of this ptd in HC headers */
     u32         ptd_header_addr;/* headers address of  this td */
-    u32         ptd_data_addr;  /*data address of this td to write in and read from*/ 
+    u32         ptd_data_addr;  /*data address of this td to write in and read from*/
     /*this is address is actual RAM address not the CPU address
      * RAM address = (CPU ADDRESS-0x400) >> 3
-     * */       
+     * */
     u32         ptd_ram_data_addr;
     u8          lasttd;       /*last td , complete the transfer*/
     struct ehci_qh *qh;       /* endpoint */
@@ -610,7 +610,7 @@ typedef struct td_ptd_map {
     struct ehci_itd *itd;         /*itd pointer*/
     /*iso specific only*/
     u32    grouptdmap;             /*if td need to complete with error, then process all the tds
-                                     in the groupmap    */   
+                                     in the groupmap    */
 } td_ptd_map_t;
 
 /*buffer(ATL/ISTL/INTL) managemnet*/

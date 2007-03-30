@@ -120,12 +120,12 @@ static int pflags_open(struct inode *inode, struct file *filp)
 		return -ENODEV;
 
 	spin_lock_irqsave(&pflags_lock, flags);
-	
+
 	if(gpio_request(minor, NULL)){
 		spin_unlock_irqrestore(&pflags_lock, flags);
 		return -EBUSY;
 	}
-		
+
 	spin_unlock_irqrestore(&pflags_lock, flags);
 
 	return 0;
@@ -141,7 +141,7 @@ static int pflags_release(struct inode *inode, struct file *filp)
 		return -ENODEV;
 
 	spin_lock_irqsave(&pflags_lock, flags);
-	
+
 	gpio_free(minor);
 
 	spin_unlock_irqrestore(&pflags_lock, flags);
@@ -190,7 +190,7 @@ static ssize_t pflags_read(struct file *filp, char *buf, size_t size, loff_t * o
 		return -EMSGSIZE;
 
 	gpio_direction_input(minor);
-	
+
 	bit = gpio_get_value(minor) ? "1" : "0";
 
 	return (copy_to_user(buf, bit, 2)) ? -EFAULT : 2;
@@ -242,7 +242,7 @@ static ssize_t pflags_write(struct file *filp, const char *buf, size_t size, lof
 		return -EFAULT;
 
 	gpio_direction_output(minor);
-	
+
 	gpio_set_value(minor, buf[0] == '0' ? 0 : 1);
 
 

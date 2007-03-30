@@ -13,7 +13,7 @@ comment "CMOS Camera Sensor Selection"
 
 choice
 	prompt "Target Sensor"
-	depends on VIDEO_BLACKFIN_MT9M001	
+	depends on VIDEO_BLACKFIN_MT9M001
 	default MT9V022
 
 config MT9V022

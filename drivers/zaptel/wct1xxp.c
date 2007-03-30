@@ -13,15 +13,15 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * $Id$
  */
@@ -103,7 +103,7 @@ static char *chips[] =
 	"Unknown Chip (7)",
 };
 
-static int chanmap_t1[] = 
+static int chanmap_t1[] =
 { 2,1,0,
   6,5,4,
   10,9,8,
@@ -113,7 +113,7 @@ static int chanmap_t1[] =
   26,25,24,
   30,29,28 };
 
-static int chanmap_e1[] = 
+static int chanmap_e1[] =
 { 2,1,0,
   7,6,5,4,
   11,10,9,8,
@@ -125,7 +125,7 @@ static int chanmap_e1[] =
 
 #ifdef FANCY_ALARM
 static int altab[] = {
-0, 0, 0, 1, 2, 3, 4, 6, 8, 9, 11, 13, 16, 18, 20, 22, 24, 25, 27, 28, 29, 30, 31, 31, 32, 31, 31, 30, 29, 28, 27, 25, 23, 22, 20, 18, 16, 13, 11, 9, 8, 6, 4, 3, 2, 1, 0, 0, 
+0, 0, 0, 1, 2, 3, 4, 6, 8, 9, 11, 13, 16, 18, 20, 22, 24, 25, 27, 28, 29, 30, 31, 31, 32, 31, 31, 30, 29, 28, 27, 25, 23, 22, 20, 18, 16, 13, 11, 9, 8, 6, 4, 3, 2, 1, 0, 0,
 };
 #endif
 
@@ -215,9 +215,9 @@ static int t1xxp_open(struct zt_chan *chan)
 	if (wc->dead)
 		return -ENODEV;
 	wc->usecount++;
-#ifndef LINUX26	
+#ifndef LINUX26
 	MOD_INC_USE_COUNT;
-#endif	
+#endif
 	return 0;
 }
 
@@ -290,11 +290,11 @@ static int t1xxp_close(struct zt_chan *chan)
 {
 	struct t1xxp *wc = chan->pvt;
 	wc->usecount--;
-#ifndef LINUX26	
+#ifndef LINUX26
 	MOD_DEC_USE_COUNT;
 #endif
 	/* If we're dead, release us now */
-	if (!wc->usecount && wc->dead) 
+	if (!wc->usecount && wc->dead)
 		t1xxp_release(wc);
 	return 0;
 }
@@ -304,7 +304,7 @@ static void t1xxp_enable_interrupts(struct t1xxp *wc)
 	/* Clear interrupts */
 	outb(0xff, wc->ioaddr + WC_INTSTAT);
 	/* Enable interrupts (we care about all of them) */
-	outb(0x3c /* 0x3f */, wc->ioaddr + WC_MASK0); 
+	outb(0x3c /* 0x3f */, wc->ioaddr + WC_MASK0);
 	/* No external interrupts */
 	outb(0x00, wc->ioaddr + WC_MASK1);
 }
@@ -325,7 +325,7 @@ static void __t1xxp_stop_dma(struct t1xxp *wc)
 	outb(0x00, wc->ioaddr + WC_OPER);
 }
 
-static void __t1xxp_disable_interrupts(struct t1xxp *wc)	
+static void __t1xxp_disable_interrupts(struct t1xxp *wc)
 {
 	outb(0x00, wc->ioaddr + WC_MASK0);
 	outb(0x00, wc->ioaddr + WC_MASK1);
@@ -401,7 +401,7 @@ static void t1xxp_t1_framer_start(struct t1xxp *wc)
 		while(endjiffies < jiffies);
 
 		spin_lock_irqsave(&wc->lock, flags);
-		
+
 		/* Reset LIRST bit and reset elastic stores */
 		__t1_set_reg(wc, 0xa, 0x30);
 
@@ -448,8 +448,8 @@ static void t1xxp_e1_framer_start(struct t1xxp *wc)
 	__t1_set_reg(wc, 0x13, tcr2);
 	__t1_set_reg(wc, 0x14, ccr1);
 	__t1_set_reg(wc, 0x18, 0x20);	/* 120 Ohm */
-	
-	
+
+
 #if 0	/* XXX Does LBO Matter? XXX */
 	/* Set outgoing LBO */
 	__t1_set_reg(wc, 0x7c, wc->span.txlevel << 5);
@@ -457,7 +457,7 @@ static void t1xxp_e1_framer_start(struct t1xxp *wc)
 
 	printk("Using %s/%s coding/framing%s 120 Ohms\n", coding, framing,crcing);
 	if (!alreadyrunning) {
-	
+
 		__t1_set_reg(wc,0x1b,0x8a); /* CCR3: LIRST & TSCLKM */
 		__t1_set_reg(wc,0x20,0x1b); /* TAFR */
 		__t1_set_reg(wc,0x21,0x5f); /* TNAFR */
@@ -471,7 +471,7 @@ static void t1xxp_e1_framer_start(struct t1xxp *wc)
 		while(endjiffies < jiffies);
 
 		spin_lock_irqsave(&wc->lock, flags);
-		
+
 		__t1_set_reg(wc, 0x1b, 0x9a);	/* Set ESR */
 		__t1_set_reg(wc, 0x1b, 0x82);	/* TSCLKM only now */
 
@@ -516,7 +516,7 @@ static int t1xxp_framer_hard_reset(struct t1xxp *wc)
 	if (wc->ise1) {
 		/* Set LOTCMC (switch to RCLCK if TCLK fails) */
 		__t1_set_reg(wc, 0x1a, 0x04);
-		
+
 	 	/* RSYNC is an input */
 		__t1_set_reg(wc, 0x10, 0x20);
 
@@ -530,7 +530,7 @@ static int t1xxp_framer_hard_reset(struct t1xxp *wc)
 		__t1_set_reg(wc, 0x1b, 0x82);
 
 
-		
+
 	} else {
 		/* Full-on sync required for T1 */
 		__t1_set_reg(wc, 0x2b, 0x08);
@@ -562,7 +562,7 @@ static int t1xxp_rbsbits(struct zt_chan *chan, int bits)
 	unsigned long flags;
 	int b,o;
 	unsigned char mask;
-	
+
 	/* Byte offset */
 	spin_lock_irqsave(&wc->lock, flags);
 	if (wc->ise1) {
@@ -789,9 +789,9 @@ static int t1xxp_software_init(struct t1xxp *wc)
 	init_waitqueue_head(&wc->span.maintq);
 	for (x=0;x<wc->span.channels;x++) {
 		sprintf(wc->chans[x].name, "WCT1/%d/%d", wc->num, x + 1);
-		wc->chans[x].sigcap = ZT_SIG_EM | ZT_SIG_CLEAR | ZT_SIG_EM_E1 | 
-				      ZT_SIG_FXSLS | ZT_SIG_FXSGS | 
-				      ZT_SIG_FXSKS | ZT_SIG_FXOLS | 
+		wc->chans[x].sigcap = ZT_SIG_EM | ZT_SIG_CLEAR | ZT_SIG_EM_E1 |
+				      ZT_SIG_FXSLS | ZT_SIG_FXSGS |
+				      ZT_SIG_FXSKS | ZT_SIG_FXOLS |
 				      ZT_SIG_FXOGS | ZT_SIG_FXOKS | ZT_SIG_CAS | ZT_SIG_SF;
 		wc->chans[x].pvt = wc;
 		wc->chans[x].chanpos = x + 1;
@@ -835,7 +835,7 @@ static inline void __handle_leds(struct t1xxp *wc)
 #endif
 	} else if (wc->span.alarms & ZT_ALARM_YELLOW) {
 		/* Yellow Alarm */
-		if (!(wc->blinktimer % 2)) 
+		if (!(wc->blinktimer % 2))
 			wc->ledtestreg = (wc->ledtestreg | BIT_LED1) & ~BIT_LED0;
 		else
 			wc->ledtestreg = (wc->ledtestreg | BIT_LED0) & ~BIT_LED1;
@@ -912,7 +912,7 @@ static void t1xxp_receiveprep(struct t1xxp *wc, int ints)
 		for (x=0;x<wc->span.channels;x++) {
 			/* XXX Optimize, remove * and + XXX */
 			/* Must map received channels into appropriate data */
-			wc->chans[x].readchunk[y] = 
+			wc->chans[x].readchunk[y] =
 				rxbuf[32 * y + ((wc->chanmap[x] + WC_OFFSET + wc->offset) & 0x1f)];
 		}
 		if (!wc->ise1) {
@@ -945,13 +945,13 @@ static void t1xxp_receiveprep(struct t1xxp *wc, int ints)
 			} else {
 				wc->miss = 0;
 			}
-		} 
+		}
 	}
 	/* Store the next canary */
 	canary = (unsigned int *)(rxbuf + ZT_CHUNKSIZE * 32 - 4);
 	*canary = (wc->canary++) | (CANARY << 16);
 	for (x=0;x<wc->span.channels;x++) {
-		zt_ec_chunk(&wc->chans[x], wc->chans[x].readchunk, 
+		zt_ec_chunk(&wc->chans[x], wc->chans[x].readchunk,
 			wc->ec_chunk2[x]);
 		memcpy(wc->ec_chunk2[x],wc->ec_chunk1[x],ZT_CHUNKSIZE);
 		memcpy(wc->ec_chunk1[x],wc->chans[x].writechunk,ZT_CHUNKSIZE);
@@ -1004,16 +1004,16 @@ static void __t1xxp_check_alarms(struct t1xxp *wc)
 	int x,j;
 
 	if (wc->ise1) {
-		__t1_set_reg(wc, 0x06, 0xff); 
+		__t1_set_reg(wc, 0x06, 0xff);
 		c = __t1_get_reg(wc, 0x6);
 	} else {
 		/* Get RIR2 */
 		c = __t1_get_reg(wc, 0x31);
 		wc->span.rxlevel = c >> 6;
-	
+
 		/* Get status register s*/
-		__t1_set_reg(wc, 0x20, 0xff); 
-		c = __t1_get_reg(wc, 0x20); 
+		__t1_set_reg(wc, 0x20, 0xff);
+		c = __t1_get_reg(wc, 0x20);
 	}
 
 	/* Assume no alarms */
@@ -1058,13 +1058,13 @@ static void __t1xxp_check_alarms(struct t1xxp *wc)
 	}
 
 	if (wc->ise1) {
-		if (c & 0x9) 
+		if (c & 0x9)
 			alarms |= ZT_ALARM_RED;
 		if (c & 0x2)
 			alarms |= ZT_ALARM_BLUE;
 	} else {
 		/* Check actual alarm status */
-		if (c & 0x3) 
+		if (c & 0x3)
 			alarms |= ZT_ALARM_RED;
 		if (c & 0x8)
 			alarms |= ZT_ALARM_BLUE;
@@ -1079,13 +1079,13 @@ static void __t1xxp_check_alarms(struct t1xxp *wc)
 		printk("Going into yellow alarm\n");
 #endif
 		if (wc->ise1)
-			__t1_set_reg(wc, 0x21, 0x7f); 
+			__t1_set_reg(wc, 0x21, 0x7f);
 		else
-			__t1_set_reg(wc, 0x35, 0x11); 
+			__t1_set_reg(wc, 0x35, 0x11);
 	}
 
 	if (wc->span.alarms != alarms) {
-		d = __control_get_reg(wc, WC_CLOCK); 
+		d = __control_get_reg(wc, WC_CLOCK);
 		start_alarm(wc);
 		if (!(alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE | ZT_ALARM_LOOPBACK)) &&
 		    wc->sync) {
@@ -1096,7 +1096,7 @@ static void __t1xxp_check_alarms(struct t1xxp *wc)
 			wc->span.syncsrc = 0;
 			d &= ~1;
 		}
-		__control_set_reg(wc, WC_CLOCK, d);  
+		__control_set_reg(wc, WC_CLOCK, d);
 	}
 	if (wc->alarmtimer)
 		alarms |= ZT_ALARM_RECOVER;
@@ -1145,14 +1145,14 @@ static void t1xxp_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 		return IRQ_NONE;
 #else
 		return;
-#endif		
+#endif
 
 	if (!wc->intcount) {
 		if (debug) printk("Got interrupt: 0x%04x\n", ints);
 	}
 	wc->intcount++;
 
-	if (wc->clocktimeout && !--wc->clocktimeout) 
+	if (wc->clocktimeout && !--wc->clocktimeout)
 		control_set_reg(wc, WC_CLOCK, 0x00 | wc->sync | wc->ise1);
 
 	if (ints & 0x0f) {
@@ -1182,10 +1182,10 @@ static void t1xxp_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 			__t1xxp_check_alarms(wc);
 		break;
 	}
-	
+
 	spin_unlock_irqrestore(&wc->lock, flags);
 
-	if (ints & 0x10) 
+	if (ints & 0x10)
 		printk("PCI Master abort\n");
 
 	if (ints & 0x20)
@@ -1193,7 +1193,7 @@ static void t1xxp_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 
 #ifdef LINUX26
 	return IRQ_RETVAL(1);
-#endif		
+#endif
 }
 
 static int t1xxp_hardware_init(struct t1xxp *wc)
@@ -1214,10 +1214,10 @@ static int t1xxp_hardware_init(struct t1xxp *wc)
 
 	/* Back to normal, with automatic DMA wrap around */
 	outb(DELAY | 0x01, wc->ioaddr + WC_CNTL);
-	
+
 	/* Make sure serial port and DMA are out of reset */
 	outb(inb(wc->ioaddr + WC_CNTL) & 0xf9, WC_CNTL);
-	
+
 	/* Setup DMA Addresses */
 	/* Start at writedma */
 	outl(wc->writedma,                    wc->ioaddr + WC_DMAWS);		/* Write start */
@@ -1225,13 +1225,13 @@ static int t1xxp_hardware_init(struct t1xxp *wc)
 	outl(wc->writedma + ZT_CHUNKSIZE * 32 - 4, wc->ioaddr + WC_DMAWI);		/* Middle (interrupt) */
 	/* Second frame */
 	outl(wc->writedma + ZT_CHUNKSIZE * 32 * 2 - 4, wc->ioaddr + WC_DMAWE);			/* End */
-	
+
 	outl(wc->readdma,                    	 wc->ioaddr + WC_DMARS);	/* Read start */
 	/* First frame */
 	outl(wc->readdma + ZT_CHUNKSIZE * 32 - 4, 	 wc->ioaddr + WC_DMARI);	/* Middle (interrupt) */
 	/* Second frame */
 	outl(wc->readdma + ZT_CHUNKSIZE * 32 * 2 - 4, wc->ioaddr + WC_DMARE);	/* End */
-	
+
 	if (debug) printk("Setting up DMA (write/read = %08lx/%08lx)\n", (long)wc->writedma, (long)wc->readdma);
 
 	/* Check out the controller */
@@ -1250,7 +1250,7 @@ static int t1xxp_hardware_init(struct t1xxp *wc)
 	/* Setup clock appropriately */
 	control_set_reg(wc, WC_CLOCK, 0x02 | wc->sync | wc->ise1);
 	wc->clocktimeout = 100;
-	
+
 	/* Reset the T1 and report */
 	t1xxp_framer_hard_reset(wc);
 	start_alarm(wc);
@@ -1263,7 +1263,7 @@ static int __devinit t1xxp_init_one(struct pci_dev *pdev, const struct pci_devic
 	int res;
 	struct t1xxp *wc;
 	unsigned int *canary;
-	
+
 	if (pci_enable_device(pdev)) {
 		res = -EIO;
 	} else {
@@ -1275,7 +1275,7 @@ static int __devinit t1xxp_init_one(struct pci_dev *pdev, const struct pci_devic
 			wc->dev = pdev;
 			wc->offset = 28;	/* And you thought 42 was the answer */
 
-			wc->writechunk = 
+			wc->writechunk =
 				/* 32 channels, Double-buffer, Read/Write */
 				(unsigned char *)pci_alloc_consistent(pdev, ZT_MAX_CHUNKSIZE * 32 * 2 * 2, &wc->writedma);
 			if (!wc->writechunk) {
@@ -1349,7 +1349,7 @@ static void __devexit t1xxp_remove_one(struct pci_dev *pdev)
 
 		/* In case hardware is still there */
 		__t1xxp_disable_interrupts(wc);
-		
+
 		t1xxp_stop_stuff(wc);
 
 		/* Immediately free resources */

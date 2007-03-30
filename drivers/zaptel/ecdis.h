@@ -57,7 +57,7 @@ static inline void echo_can_disable_detector_init (echo_can_disable_detector_sta
     	    	  (int32_t) ( 1.0000000*32768.0));
 
     det->channel_level = 0;
-    det->notch_level = 0;    
+    det->notch_level = 0;
     det->tone_present = FALSE;
     det->tone_cycle_duration = 0;
     det->good_cycles = 0;
@@ -69,7 +69,7 @@ static inline int echo_can_disable_detector_update (echo_can_disable_detector_st
                                       int16_t amp)
 {
     int16_t notched;
-    
+
     	notched = biquad2 (&det->notch, amp);
     	/* Estimate the overall energy in the channel, and the energy in
 	   the notch (i.e. overall channel energy - tone energy => noise).

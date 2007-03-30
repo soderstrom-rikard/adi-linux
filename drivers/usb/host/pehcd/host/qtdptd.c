@@ -26,7 +26,7 @@
  * Date                   Author                  Comments
  * --------------------------------------------------------------------
  * June 21, 2005          krishan                  Initial version
- *  
+ *
  **********************************************************************
  */
 
@@ -46,15 +46,15 @@ phci_hcd_release_td_ptd_index(struct ehci_qh *qh)
     td_ptd_map->state = TD_PTD_NEW;
     qh->qh_state = QH_STATE_IDLE;
     /*
-       set these values to NULL as schedule 
-       is based on these values, 
+       set these values to NULL as schedule
+       is based on these values,
        rather td_ptd_map state
      */
     td_ptd_map->qh = NULL;
     td_ptd_map->qtd = NULL;
 
     td_ptd_buff->active_ptd_bitmap &= ~td_ptd_map->ptd_bitmap;
-    
+
     /* Only pending transfers on current QH must be cleared */
     td_ptd_buff->pending_ptd_bitmap &= ~td_ptd_map->ptd_bitmap;
 
@@ -67,7 +67,7 @@ phci_hcd_release_td_ptd_index(struct ehci_qh *qh)
 print_ehci_qtd(struct ehci_qtd *qtd)
 {
     pehci_print("hwnext 0x%08x, altnext 0x%08x,token 0x%08x, length %d\n",
-            qtd->hw_next, qtd->hw_alt_next, 
+            qtd->hw_next, qtd->hw_alt_next,
             le32_to_cpu(qtd->hw_token), qtd->length);
 
     pehci_print("buf[0] 0x%08x\n",qtd->hw_buf[0]);
@@ -75,11 +75,11 @@ print_ehci_qtd(struct ehci_qtd *qtd)
 }
 
 /*delete all qtds linked with this urb*/
-static void 
+static void
 phci_hcd_qtd_list_free (
         phci_hcd                *ehci,
         struct urb              *urb,
-        struct list_head        *qtd_list) 
+        struct list_head        *qtd_list)
 {
     struct list_head    *entry, *temp;
 
@@ -92,7 +92,7 @@ phci_hcd_qtd_list_free (
         qha_free(qha_cache, qtd);
     }
 
-    pehci_entry("-- %s: Exit \n", __FUNCTION__);        
+    pehci_entry("-- %s: Exit \n", __FUNCTION__);
 }
 
 
@@ -102,7 +102,7 @@ phci_hcd_qtd_list_free (
  */
 static void
 phci_hcd_urb_free_priv(
-        phci_hcd *hcd,  
+        phci_hcd *hcd,
         urb_priv_t *urb_priv_to_remove,
         struct ehci_qh  *qh)
 {
@@ -115,7 +115,7 @@ phci_hcd_urb_free_priv(
 
             /* This is required when the device is abruptly disconnected and the
              * PTDs are not completely processed
-             */       
+             */
             if(qtd->length)
                 phci_hcd_mem_free(&qtd->mem_addr);
 
@@ -131,7 +131,7 @@ phci_hcd_urb_free_priv(
 
 
 /*allocate the qtd*/
-    struct ehci_qtd * 
+    struct ehci_qtd *
 phci_hcd_qtd_allocate(int mem_flags)
 {
 
@@ -152,11 +152,11 @@ phci_hcd_qtd_allocate(int mem_flags)
  * calculates host memory for current length transfer td,
  * maximum td length is 4K(custom made)
  * */
-static int 
+static int
 phci_hcd_qtd_fill(struct urb *urb,
-        struct ehci_qtd *qtd, 
-        dma_addr_t buf, 
-        size_t len, 
+        struct ehci_qtd *qtd,
+        dma_addr_t buf,
+        size_t len,
         int token,
         int *status)
 {
@@ -166,8 +166,8 @@ phci_hcd_qtd_fill(struct urb *urb,
     /*max lenggth is HC_ATL_PL_SIZE*/
     if(len > HC_ATL_PL_SIZE)
         count = HC_ATL_PL_SIZE;
-    else                
-        count = len;    
+    else
+        count = len;
     qtd->hw_token = cpu_to_le32 ((count << 16) | token);
     qtd->length = count;
 
@@ -183,10 +183,10 @@ phci_hcd_qtd_fill(struct urb *urb,
  * interrupt/bulk/control transfer length
  * and initilize qtds
  * */
-struct list_head* 
+struct list_head*
 phci_hcd_make_qtd(
-        phci_hcd *hcd, 
-        struct list_head *head, 
+        phci_hcd *hcd,
+        struct list_head *head,
         struct urb *urb,
         int  *status)
 {
@@ -196,12 +196,12 @@ phci_hcd_make_qtd(
     int                 len, maxpacket;
     int                 is_input;
     u32                 token;
-    int cnt = 0; 
+    int cnt = 0;
     urb_priv_t *urb_priv = (urb_priv_t *)urb->hcpriv;
 
-    pehci_entry("++ %s, Entered\n",__FUNCTION__);   
+    pehci_entry("++ %s, Entered\n",__FUNCTION__);
 
-    /*take the qtd from already allocated 
+    /*take the qtd from already allocated
       structure from hcd_submit_urb
      */
     qtd = urb_priv->qtd[cnt];
@@ -218,13 +218,13 @@ phci_hcd_make_qtd(
     token = QTD_STS_ACTIVE;
     token |= (EHCI_TUNE_CERR << 10);
 
-    len = urb->transfer_buffer_length; 
+    len = urb->transfer_buffer_length;
 
-    is_input = usb_pipein (urb->pipe); 
+    is_input = usb_pipein (urb->pipe);
 
-    if (usb_pipecontrol (urb->pipe)) { 
+    if (usb_pipecontrol (urb->pipe)) {
         /* SETUP pid */
-        if(phci_hcd_qtd_fill (urb,qtd, cpu_to_le32(urb->setup_packet), 
+        if(phci_hcd_qtd_fill (urb,qtd, cpu_to_le32(urb->setup_packet),
                     sizeof (struct usb_ctrlrequest),token | (2 /* "setup" */ << 8),
                     status) < 0)
             goto cleanup;
@@ -242,13 +242,13 @@ phci_hcd_make_qtd(
         qtd->urb = urb;
         qtd_prev->hw_next = QTD_NEXT (qtd->qtd_dma);
         list_add_tail (&qtd->qtd_list, head);
-    } 
+    }
 
     /*
      * data transfer stage:  buffer setup
      */
     len = urb->transfer_buffer_length;
-    if (likely (len > 0)) 
+    if (likely (len > 0))
         /*update the buffer address*/
         buf = cpu_to_le32(urb->transfer_buffer);
     else
@@ -269,7 +269,7 @@ phci_hcd_make_qtd(
      */
 
     for (;;) {
-        int this_qtd_len; 
+        int this_qtd_len;
         this_qtd_len = phci_hcd_qtd_fill (urb,qtd, buf, len, token,status);
         if(this_qtd_len < 0) goto cleanup;
         print_ehci_qtd(qtd);
@@ -325,7 +325,7 @@ phci_hcd_make_qtd(
     }
 
     /*this is our last td for current transfer*/
-    qtd->state |= QTD_STATE_LAST;       
+    qtd->state |= QTD_STATE_LAST;
 
     /*number of tds*/
     if(urb_priv->length != cnt){
@@ -336,7 +336,7 @@ phci_hcd_make_qtd(
     if (likely (!(urb->transfer_flags & URB_NO_INTERRUPT)))
         qtd->hw_token |= __constant_cpu_to_le32 (QTD_IOC);
 
-    pehci_entry("-- %s, Exit\n",__FUNCTION__);   
+    pehci_entry("-- %s, Exit\n",__FUNCTION__);
     return head;
 
 cleanup:
@@ -372,7 +372,7 @@ phci_hcd_fill_ptd_addresses(
     int i = 0;
     unsigned long tdlocation = 0;
     /*
-     * the below payloadlocation and 
+     * the below payloadlocation and
      * payloadsize are redundant
      * */
     unsigned long payloadlocation = 0;
@@ -428,17 +428,17 @@ phci_hcd_fill_ptd_addresses(
  * endpoint, if found returns a valid index
  * else invalid
  -----------------------------------------------------------*/
-static void     
+static void
 phci_hcd_get_qtd_ptd_index(struct ehci_qh *qh,
         struct ehci_qtd *qtd,
-        struct ehci_itd *itd) 
+        struct ehci_itd *itd)
 {
 
     u8  buff_type = td_ptd_pipe_x_buff_type[qh->type];
     u8  qtd_ptd_index;/*, index;*/
     /*this is the location of the ptd's skip map/done map, also
-      calculating the td header, payload, data start address 
-      location*/        
+      calculating the td header, payload, data start address
+      location*/
     u8  bitmap = 0x1;
     u8  max_ptds;
 
@@ -446,7 +446,7 @@ phci_hcd_get_qtd_ptd_index(struct ehci_qh *qh,
     pehci_entry("++ %s, Entered, buffer type %d\n",__FUNCTION__, buff_type);
 
     /* ATL PTDs can wait */
-    max_ptds = (buff_type == TD_PTD_BUFF_TYPE_ATL) 
+    max_ptds = (buff_type == TD_PTD_BUFF_TYPE_ATL)
         ? TD_PTD_MAX_BUFF_TDS : ptd_map_buff->max_ptds;
 
     for(qtd_ptd_index = 0; qtd_ptd_index < max_ptds; qtd_ptd_index++) {                 /* Find the first free slot */
@@ -463,9 +463,9 @@ phci_hcd_get_qtd_ptd_index(struct ehci_qh *qh,
             ptd_map_buff->map_list[qtd_ptd_index].itd  = itd;
             /*initialize endpoint(queuehead)*/
             ptd_map_buff->map_list[qtd_ptd_index].qh = qh;
-            ptd_map_buff->map_list[qtd_ptd_index].ptd_bitmap = 
+            ptd_map_buff->map_list[qtd_ptd_index].ptd_bitmap =
                 bitmap << qtd_ptd_index;
-            phci_hcd_fill_ptd_addresses(&ptd_map_buff->map_list[qtd_ptd_index],qh->qtd_ptd_index,buff_type); 
+            phci_hcd_fill_ptd_addresses(&ptd_map_buff->map_list[qtd_ptd_index],qh->qtd_ptd_index,buff_type);
             ptd_map_buff->map_list[qtd_ptd_index].lasttd = 0;
             ptd_map_buff->total_ptds ++;        /* update # of total td's */
             /*make the queuehead map, to process in the phci_schedule_ptds*/
@@ -480,13 +480,13 @@ phci_hcd_get_qtd_ptd_index(struct ehci_qh *qh,
 
 
 
-/* 
+/*
  * calculate the header location for the endpoint and
  * all tds on this endpoint will use the same
  * header location for all transfers on this endpoint.
  * also puts the endpoint into the linked state
  * */
-    static void 
+    static void
 phci_hcd_qh_link_async (phci_hcd *hcd, struct ehci_qh *qh, int *status)
 {
     struct ehci_qtd *qtd = 0;
@@ -531,8 +531,8 @@ phci_hcd_qh_link_async (phci_hcd *hcd, struct ehci_qh *qh, int *status)
 
 /*-------------------------------------------------------------------------*/
 
-/* 
- * mainly used for setting up current td on current 
+/*
+ * mainly used for setting up current td on current
  * endpoint(queuehead), endpoint may be new or
  * halted one
  * */
@@ -545,13 +545,13 @@ phci_hcd_qh_update (phci_hcd *ehci, struct ehci_qh *qh, struct ehci_qtd *qtd)
     qh->hw_qtd_next = QTD_NEXT (qtd->qtd_dma);
     qh->hw_alt_next = EHCI_LIST_END;
     /* HC must see latest qtd and qh data before we clear ACTIVE+HALT */
-    wmb (); 
+    wmb ();
     qh->hw_token &= __constant_cpu_to_le32 (QTD_TOGGLE | QTD_STS_PING);
 }
 
 /*
- * used for ATL, INT transfers  
- * function creates new endpoint, 
+ * used for ATL, INT transfers
+ * function creates new endpoint,
  * calculates bandwidth for interrupt transfers,
  * and initialize the qh based on endpoint type/speed
  * */
@@ -560,7 +560,7 @@ phci_hcd_make_qh (
         phci_hcd                *hcd,
         struct urb              *urb,
         struct list_head *qtd_list,
-        int *status) 
+        int *status)
 {
     struct ehci_qh              *qh = 0;
     u32                 info1 = 0, info2 = 0;
@@ -571,7 +571,7 @@ phci_hcd_make_qh (
     struct ehci_qtd *qtd = list_entry(qtd_list->next, struct ehci_qtd, qtd_list);
 
 
-    pehci_entry("++ %s: Entered\n",__FUNCTION__);   
+    pehci_entry("++ %s: Entered\n",__FUNCTION__);
 
     qh = phci_hcd_qh_alloc (hcd);
     if (!qh){
@@ -616,7 +616,7 @@ phci_hcd_make_qh (
         bustime = usb_check_bandwidth(urb->dev, urb);
 
         if(bustime < 0){
-            *status  = -ENOSPC; 
+            *status  = -ENOSPC;
             goto done;
         }
 
@@ -719,7 +719,7 @@ done:
     qh->hw_token = cpu_to_le32 (QTD_STS_HALT);
     if(!usb_pipecontrol(urb->pipe))
         usb_settoggle (urb->dev, usb_pipeendpoint (urb->pipe), !is_input, 1);
-    pehci_entry("-- %s: Exit, qh %p\n",__FUNCTION__,qh);   
+    pehci_entry("-- %s: Exit, qh %p\n",__FUNCTION__,qh);
     return qh;
 }
 
@@ -729,7 +729,7 @@ done:
  * Hardware maintains data toggle (like OHCI) ... here we (re)initialize
  * the hardware data toggle in the QH, and set the pseudo-toggle in udev
  * so we can see if usb_clear_halt() was called.  NOP for control, since
- * we set up qh->hw_info1 to always use the QTD toggle bits. 
+ * we set up qh->hw_info1 to always use the QTD toggle bits.
  */
     static inline void
 phci_hcd_clear_toggle (struct usb_device *udev, int ep, int is_out, struct ehci_qh *qh)
@@ -748,9 +748,9 @@ phci_hcd_clear_toggle (struct usb_device *udev, int ep, int is_out, struct ehci_
  * Returns null if it can't allocate a QH it needs to.
  * If the QH has TDs (urbs) already, that's great.
  */
-struct ehci_qh * 
+struct ehci_qh *
 phci_hcd_qh_append_tds (
-        phci_hcd                *hcd, 
+        phci_hcd                *hcd,
 	struct usb_host_endpoint *ep,
         struct urb              *urb,
         struct list_head        *qtd_list,
@@ -766,7 +766,7 @@ phci_hcd_qh_append_tds (
 
 
 
-    pehci_entry("++ %s: Entered\n",__FUNCTION__);   
+    pehci_entry("++ %s: Entered\n",__FUNCTION__);
 
     epnum = ep->desc.bEndpointAddress;
     qh = (struct ehci_qh *) *ptr;
@@ -791,7 +791,7 @@ phci_hcd_qh_append_tds (
 
             /*queue head is not empty just add the
               td at the end of it , and return from here
-             */  
+             */
             last_qtd->hw_next = hw_next;
 
             /*set the status as positive*/
@@ -803,7 +803,7 @@ phci_hcd_qh_append_tds (
             if(td_ptd_map->state == TD_PTD_NEW){
                 qh->qh_state = QH_STATE_IDLE;
             }
-            td_ptd_map->qtd = qtd;      
+            td_ptd_map->qtd = qtd;
             /* usb_clear_halt() means qh data toggle gets reset */
             if (usb_pipebulk (urb->pipe)
                     && unlikely (!usb_gettoggle (urb->dev,
@@ -828,16 +828,16 @@ phci_hcd_qh_append_tds (
         qh = phci_hcd_make_qh(hcd, urb, qtd_list, status);
         *ptr = qh;
     }
-    pehci_entry("-- %s: Exit qh %p\n",__FUNCTION__,qh);   
+    pehci_entry("-- %s: Exit qh %p\n",__FUNCTION__,qh);
     return qh;
 }
 
 /*link qtds to endpoint(qh)*/
-struct ehci_qh * 
+struct ehci_qh *
 phci_hcd_submit_async(
-        phci_hcd *hcd, 
+        phci_hcd *hcd,
 	struct usb_host_endpoint *ep,
-        struct list_head *qtd_list, 
+        struct list_head *qtd_list,
         struct urb *urb,
         int *status)
 
@@ -858,7 +858,7 @@ phci_hcd_submit_async(
     if (usb_pipein (urb->pipe) && !usb_pipecontrol (urb->pipe))
         epnum |= 0x10;
 
-    pehci_entry("++ %s, enter\n", __FUNCTION__);    
+    pehci_entry("++ %s, enter\n", __FUNCTION__);
 
 
 
@@ -900,7 +900,7 @@ phci_hcd_submit_async(
             phci_hcd_qh_link_async (hcd, qh,status);
     }
 
-cleanup:        
+cleanup:
     spin_unlock(&hcd_data_lock);
     /* free it from lock systme can sleep now */
     spin_unlock_irqrestore (&hcd->lock, flags);
@@ -918,7 +918,7 @@ cleanup:
  */
 static int
 phci_hcd_qhint_schedule(
-        phci_hcd *hcd, 
+        phci_hcd *hcd,
         struct ehci_qh *qh,
         struct ehci_qtd *qtd,
         struct _isp1761_qhint *qha,
@@ -953,7 +953,7 @@ phci_hcd_qhint_schedule(
     }
 
     /*
-       for full/low speed devices, as we 
+       for full/low speed devices, as we
        have seperate location for all the endpoints
        let the start split goto the first uframe, means 0 uframe
      */
@@ -1006,9 +1006,9 @@ done:
 /*link interrupts qtds to endpoint*/
 struct ehci_qh *
 phci_hcd_submit_interrupt(
-        phci_hcd *hcd, 
+        phci_hcd *hcd,
 	struct usb_host_endpoint *ep,
-        struct list_head *qtd_list, 
+        struct list_head *qtd_list,
         struct urb *urb,
         int *status)
 {
@@ -1025,7 +1025,7 @@ phci_hcd_submit_interrupt(
     dev = (struct hcd_dev *) bus_to_hcd(urb->dev->bus);
     epnum = ep->desc.bEndpointAddress;
 
-    pehci_entry("++ %s, enter\n", __FUNCTION__);    
+    pehci_entry("++ %s, enter\n", __FUNCTION__);
 
 
     /*check for more than one urb queued for this endpoint*/
@@ -1041,7 +1041,7 @@ phci_hcd_submit_interrupt(
             td_ptd_map_t                *td_ptd_map;
             ptd_map_buff = &(td_ptd_map_buff[qh->type]);
             td_ptd_map = &ptd_map_buff->map_list[qh->qtd_ptd_index];
-            ptd_map_buff->pending_ptd_bitmap |= td_ptd_map->ptd_bitmap; 
+            ptd_map_buff->pending_ptd_bitmap |= td_ptd_map->ptd_bitmap;
             /*NEW*/
             td_ptd_map->qtd = qtd;
             /* maybe reset hardware's data toggle in the qh */
@@ -1165,7 +1165,7 @@ phci_hcd_qha_from_qtd(
         token |= hubnum << 25;
         /*for non-high speed transfer
           reload and nak counts are zero
-         */  
+         */
         rl = 0x0;
         nk = 0x0;
 
@@ -1176,16 +1176,16 @@ phci_hcd_qha_from_qtd(
         se = 0x2;
 
     if(usb_pipeint(urb->pipe)){
-        /*      reload count and nakcount is 
+        /*      reload count and nakcount is
                 required for only async transfers
          */
         rl = 0x0;
     }
 
-    /*set the se field, should be zero for all 
+    /*set the se field, should be zero for all
       but low speed devices
      */
-    token |= se << 16;  
+    token |= se << 16;
     /*take the pid*/
     token |=  temp << 10;
 
@@ -1212,7 +1212,7 @@ phci_hcd_qha_from_qtd(
     /*use this field only if there
      * is something to transfer
      * */
-    if(length)  
+    if(length)
         td_info3 = data_addr << 8;
     /*RL Count, 16*/
     td_info3 |= (rl << 25);

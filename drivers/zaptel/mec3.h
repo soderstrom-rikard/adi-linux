@@ -4,8 +4,8 @@
  * Copyright (C) 2003, Digium, Inc.
  *
  * This program is free software and may be used
- * and distributed under the terms of the GNU General Public 
- * License, incorporated herein by reference.  
+ * and distributed under the terms of the GNU General Public
+ * License, incorporated herein by reference.
  *
  * Dedicated to the crew of the Columbia, STS-107 for their
  * bravery and courageous sacrifice for science.
@@ -75,7 +75,7 @@ typedef struct {
 #ifdef DO_BACKUP
 	int  	b_i[NTAPS];				/* Coefficients (backup1) */
 	int  	c_i[NTAPS];				/* Coefficients (backup2) */
-#endif	
+#endif
 	cbuf_s 	ref;					/* Reference excitation */
 	cbuf_s 	sig;					/* Signal (echo + near end + noise) */
 	cbuf_s	e;						/* Error */
@@ -129,7 +129,7 @@ static inline short echo_can_update(echo_can_state_t *ec, short ref, short sig)
 		memcpy(ec->b_i,ec->a_i,sizeof(ec->b_i));
 	} else
 		ec->backup--;
-#endif		
+#endif
 	/* Remove old samples from reference power calculation */
 	ec->refpwr -= ((ec->ref.buf[ec->pos] * ec->ref.buf[ec->pos]) >> POWER_OFFSET);
 
@@ -137,21 +137,21 @@ static inline short echo_can_update(echo_can_state_t *ec, short ref, short sig)
 	buf_add(&ec->ref, ref, ec->pos, ec->taps);
 	buf_add(&ec->sig, sig, ec->pos, ec->taps);
 
-	/* Add new reference power */	
+	/* Add new reference power */
 	ec->refpwr += ((ec->ref.buf[ec->pos] * ec->ref.buf[ec->pos]) >> POWER_OFFSET);
 
 
 	/* Calculate simulated echo */
-	se = CONVOLVE2(ec->a_s, ec->ref.buf + ec->pos, ec->taps);		
+	se = CONVOLVE2(ec->a_s, ec->ref.buf + ec->pos, ec->taps);
 	se >>= 15;
-	
+
 	u = sig - se;
 	if (ec->hcntr)
 		ec->hcntr--;
 
 	/* Store error */
 	buf_add(&ec->e, sig, ec->pos, ec->taps);
-	if ((ec->ref.max > MIN_TX_ENERGY) && 
+	if ((ec->ref.max > MIN_TX_ENERGY) &&
 	    (ec->sig.max > MIN_RX_ENERGY) &&
 		(ec->e.max > (ec->ref.max >> MAX_ATTENUATION_SHIFT))) {
 		/* We have sufficient energy */
@@ -163,7 +163,7 @@ static inline short echo_can_update(echo_can_state_t *ec, short ref, short sig)
 					refpwr = SIGMA_REF_PWR;
 				beta = (u << 16) / refpwr;
 				beta >>= STEP_SHIFT;
-				if (beta > MAX_BETA)	
+				if (beta > MAX_BETA)
 					beta = MAX_BETA;
 				if (beta < -MAX_BETA)
 					beta = -MAX_BETA;
@@ -183,21 +183,21 @@ static inline short echo_can_update(echo_can_state_t *ec, short ref, short sig)
 					ec->a_s[x] = ec->a_i[x] >> 16;
 				}
 			}
-#endif			
+#endif
 			/* Reset hang-time counter, and prevent backups */
 			ec->hcntr = HANG_TIME;
 #ifdef DO_BACKUP
 			ec->backup = BACKUP;
-#endif			
+#endif
 		}
 	}
-#ifndef NO_ECHO__SUPPRESSOR	
+#ifndef NO_ECHO__SUPPRESSOR
 	if (ec->e.max < (ec->ref.max >> SUPPR_SHIFT)) {
 		/* Suppress residual echo */
 		u *= u;
 		u >>= 16;
-	} 
-#endif	
+	}
+#endif
 	ec->pos--;
 	if (ec->pos < 0)
 		ec->pos = ec->taps-1;

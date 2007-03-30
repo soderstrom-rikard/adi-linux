@@ -289,7 +289,7 @@ static void bfin_config_ppi(struct adv7393fb_device *fbdev)
 	bfin_write_TIMER2_CONFIG(WDTH_CAP);
 	bfin_write_TIMER_ENABLE(TIMEN2);
 #endif
-	
+
 	bfin_write_PPI_CONTROL(0x381E);
 	bfin_write_PPI_FRAME(fbdev->modes[mode].tot_lines);
 	bfin_write_PPI_COUNT(fbdev->modes[mode].xres +

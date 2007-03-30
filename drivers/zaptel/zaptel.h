@@ -14,15 +14,15 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * $Id$
  */
@@ -33,7 +33,7 @@
 #ifdef __KERNEL__
 #include "zconfig.h"
 #include <linux/version.h>
-#ifdef CONFIG_ZAPATA_NET	
+#ifdef CONFIG_ZAPATA_NET
 #include <linux/hdlc.h>
 #endif
 #ifdef CONFIG_ZAPATA_PPP
@@ -69,7 +69,7 @@
 
 /* Line configuration */
 /* These apply to T1 */
-#define ZT_CONFIG_D4	 (1 << 4)	
+#define ZT_CONFIG_D4	 (1 << 4)
 #define ZT_CONFIG_ESF	 (1 << 5)
 #define ZT_CONFIG_AMI	 (1 << 6)
 #define ZT_CONFIG_B8ZS 	 (1 << 7)
@@ -308,7 +308,7 @@ typedef struct zt_indirect_data
 int	chan;
 int	op;
 void	*data;
-} ZT_INDIRECT_DATA;	
+} ZT_INDIRECT_DATA;
 
 
 /* ioctl definitions */
@@ -441,12 +441,12 @@ void	*data;
 #define ZT_LOADZONE		_IOW (ZT_CODE, 25, struct zt_tone_def_header)
 
 /*
- * Free a tone zone 
+ * Free a tone zone
  */
 #define ZT_FREEZONE		_IOW (ZT_CODE, 26, int)
 
 /*
- * Set buffer policy 
+ * Set buffer policy
  */
 #define ZT_SET_BUFINFO		_IOW (ZT_CODE, 27, struct zt_bufferinfo)
 
@@ -476,7 +476,7 @@ void	*data;
 #define ZT_AUDIOMODE		_IOW (ZT_CODE, 32, int)
 
 /*
- * Enable or disable echo cancellation on a channel 
+ * Enable or disable echo cancellation on a channel
  * The number is zero to disable echo cancellation and non-zero
  * to enable echo cancellation.  If the number is between 32
  * and 256, it will also set the number of taps in the echo canceller
@@ -484,7 +484,7 @@ void	*data;
 #define ZT_ECHOCANCEL		_IOW (ZT_CODE, 33, int)
 
 /*
- * Return a channel's channel number (useful for the /dev/zap/pseudo type interfaces 
+ * Return a channel's channel number (useful for the /dev/zap/pseudo type interfaces
  */
 #define ZT_CHANNO		_IOR (ZT_CODE, 34, int)
 
@@ -506,15 +506,15 @@ void	*data;
  */
 #define ZT_HDLCFCSMODE		_IOW (ZT_CODE, 37, int)
 
-/* 
+/*
  * Specify a channel on /dev/zap/chan -- must be done before any other ioctl's and is only
  * valid on /dev/zap/chan
  */
 #define ZT_SPECIFY		_IOW (ZT_CODE, 38, int)
 
 /*
- * Temporarily set the law on a channel to 
- * ZT_LAW_DEFAULT, ZT_LAW_ALAW, or ZT_LAW_MULAW.  Is reset on close.  
+ * Temporarily set the law on a channel to
+ * ZT_LAW_DEFAULT, ZT_LAW_ALAW, or ZT_LAW_MULAW.  Is reset on close.
  */
 #define ZT_SETLAW		_IOW (ZT_CODE, 39, int)
 
@@ -543,9 +543,9 @@ void	*data;
 /*
  * Display Channel Diagnostic Information on Console
  */
-#define ZT_CHANDIAG		_IOR (ZT_CODE, 44, int) 
+#define ZT_CHANDIAG		_IOR (ZT_CODE, 44, int)
 
-/* 
+/*
  * Obtain received signalling
  */
 #define ZT_GETRXBITS _IOR (ZT_CODE, 45, int)
@@ -612,8 +612,8 @@ void	*data;
  */
 #define ZT_DYNAMIC_CREATE	_IOWR (ZT_CODE, 80, struct zt_dynamic_span)
 
-/* 
- * Destroy a dynamic span 
+/*
+ * Destroy a dynamic span
  */
 #define ZT_DYNAMIC_DESTROY	_IOW (ZT_CODE, 81, struct zt_dynamic_span)
 
@@ -623,7 +623,7 @@ void	*data;
 #define ZT_TONEDETECT _IOW (ZT_CODE, 91, int)
 
 
-/* 
+/*
  * Startup or Shutdown a span
  */
 #define ZT_STARTUP		_IOW (ZT_CODE, 99, int)
@@ -672,28 +672,28 @@ struct zt_tone_def {		/* Structure for zone programming */
 				/* Now come the constants we need to make tones */
 	int shift;		/* How much to scale down the volume (2 is nice) */
 
-	/* 
+	/*
 		Calculate the next 6 factors using the following equations:
 		l = <level in dbm>, f1 = <freq1>, f2 = <freq2>
 		gain = pow(10.0, (l - 3.14) / 20.0) * 65536.0 / 2.0;
 
-		// Frequency factor 1 
+		// Frequency factor 1
 		fac_1 = 2.0 * cos(2.0 * M_PI * (f1/8000.0)) * 32768.0;
-		// Last previous two samples 
+		// Last previous two samples
 		init_v2_1 = sin(-4.0 * M_PI * (f1/8000.0)) * gain;
 		init_v3_1 = sin(-2.0 * M_PI * (f1/8000.0)) * gain;
 
-		// Frequency factor 2 
+		// Frequency factor 2
 		fac_2 = 2.0 * cos(2.0 * M_PI * (f2/8000.0)) * 32768.0;
-		// Last previous two samples 
+		// Last previous two samples
 		init_v2_2 = sin(-4.0 * M_PI * (f2/8000.0)) * gain;
 		init_v3_2 = sin(-2.0 * M_PI * (f2/8000.0)) * gain;
 	*/
-	int fac1;		
-	int init_v2_1;		
-	int init_v3_1;		
-	int fac2;		
-	int init_v2_2;		
+	int fac1;
+	int init_v2_1;
+	int init_v3_1;
+	int fac2;
+	int init_v2_2;
 	int init_v3_2;
 	int modulate;
 
@@ -914,7 +914,7 @@ struct zt_tone_state {
 
 #ifdef CONFIG_ZAPATA_NET
 struct zt_hdlc {
-#ifdef LINUX26	
+#ifdef LINUX26
 	struct net_device *netdev;
 #else
 	hdlc_device netdev;
@@ -981,23 +981,23 @@ struct zt_chan {
 	u_char swritechunk[ZT_MAX_CHUNKSIZE];	/* Buffer to be written */
 	u_char *readchunk;						/* Actual place to read from */
 	u_char sreadchunk[ZT_MAX_CHUNKSIZE];	/* Preallocated static area */
-	
+
 	/* Pointer to tx and rx gain tables */
 	u_char *rxgain;
 	u_char *txgain;
-	
+
 	/* Whether or not we have allocated gains or are using the default */
 	int gainalloc;
 
 	/* Specified by driver, readable by zaptel */
 	void *pvt;			/* Private channel data */
 	struct file *file;	/* File structure */
-	
-	
+
+
 	struct zt_span *span;		/* Span we're a member of */
 	int sig;			/* Signalling */
 	int sigcap;			/* Capability for signalling */
-	
+
 
 	/* Used only by zaptel -- NO DRIVER SERVICEABLE PARTS BELOW */
 	/* Buffer declarations */
@@ -1010,28 +1010,28 @@ struct zt_chan {
 	int		inwritebuf;
 	int		outwritebuf;
 	wait_queue_head_t writebufq; /* write wait queue */
-	
+
 	int		blocksize;	/* Block size */
 
 	int		eventinidx;  /* out index in event buf (circular) */
 	int		eventoutidx;  /* in index in event buf (circular) */
 	unsigned int	eventbuf[ZT_MAX_EVENTSIZE];  /* event circ. buffer */
 	wait_queue_head_t eventbufq; /* event wait queue */
-	
+
 	wait_queue_head_t txstateq;	/* waiting on the tx state to change */
-	
+
 	int		readn[ZT_MAX_NUM_BUFS];  /* # of bytes ready in read buf */
 	int		readidx[ZT_MAX_NUM_BUFS];  /* current read pointer */
 	int		writen[ZT_MAX_NUM_BUFS];  /* # of bytes ready in write buf */
 	int		writeidx[ZT_MAX_NUM_BUFS];  /* current write pointer */
-	
+
 	int		numbufs;			/* How many buffers in channel */
 	int		txbufpolicy;			/* Buffer policy */
 	int		rxbufpolicy;			/* Buffer policy */
 	int		txdisable;				/* Disable transmitter */
 	int 	rxdisable;				/* Disable receiver */
-	
-	
+
+
 	/* Tone zone stuff */
 	struct zt_zone *curzone;		/* Zone for selecting tones */
 	int 	tonezone;				/* Tone zone for this channel */
@@ -1053,10 +1053,10 @@ struct zt_chan {
 	int	afterdialingtimer;
 	int		cadencepos;				/* Where in the cadence we are */
 
-	/* I/O Mask */	
+	/* I/O Mask */
 	int		iomask;  /* I/O Mux signal mask */
 	wait_queue_head_t sel;	/* thingy for select stuff */
-	
+
 	/* HDLC state machines */
 	struct fasthdlc_state txhdlc;
 	struct fasthdlc_state rxhdlc;
@@ -1082,14 +1082,14 @@ struct zt_chan {
 	short	conflast[ZT_MAX_CHUNKSIZE];			/* Last conference sample -- base part of channel */
 	short	conflast1[ZT_MAX_CHUNKSIZE];		/* Last conference sample  -- pseudo part of channel */
 	short	conflast2[ZT_MAX_CHUNKSIZE];		/* Previous last conference sample -- pseudo part of channel */
-	
+
 
 	/* Is echo cancellation enabled or disabled */
 	int		echocancel;
 	echo_can_state_t	*ec;
 	echo_can_disable_detector_state_t txecdis;
 	echo_can_disable_detector_state_t rxecdis;
-	
+
 	int 	echostate;		/* State of echo canceller */
 	int		echolastupdate;	/* Last echo can update pos */
 	int		echotimer;		/* Timer for echo update */
@@ -1109,7 +1109,7 @@ struct zt_chan {
 
 	/* RING debounce timer */
 	int	ringdebtimer;
-	
+
 	/* RING trailing detector to make sure a RING is really over */
 	int ringtrailer;
 
@@ -1121,7 +1121,7 @@ struct zt_chan {
 	int 	itimerset;		/* what the itimer was set to last */
 	int 	itimer;
 	int 	otimer;
-	
+
 	/* RBS state */
 	int gotgs;
 	int txstate;
@@ -1166,7 +1166,7 @@ typedef enum {
 	ZT_RXSIG_RING,
 	ZT_RXSIG_INITIAL
 } zt_rxsig_t;
-	
+
 
 /* Span flags */
 #define ZT_FLAG_REGISTERED		(1 << 0)
@@ -1216,7 +1216,7 @@ struct zt_span {
 	int maintstat;			/* Maintenance state */
 	wait_queue_head_t maintq;	/* Maintenance queue */
 	int mainttimer;			/* Maintenance timer */
-	
+
 	int irqmisses;			/* Interrupt misses */
 
 	struct zt_chan *chans;		/* Member channel structures */
@@ -1228,13 +1228,13 @@ struct zt_span {
 
 	/* Opt: Configure the span (if appropriate) */
 	int (*spanconfig)(struct zt_span *span, struct zt_lineconfig *lc);
-	
+
 	/* Opt: Start the span */
 	int (*startup)(struct zt_span *span);
-	
+
 	/* Opt: Shutdown the span */
 	int (*shutdown)(struct zt_span *span);
-	
+
 	/* Opt: Enable maintenance modes */
 	int (*maint)(struct zt_span *span, int mode);
 
@@ -1247,33 +1247,33 @@ struct zt_span {
 
 	/* Opt: Close channel for I/O */
 	int (*close)(struct zt_chan *chan);
-	
+
 	/* Opt: IOCTL */
 	int (*ioctl)(struct zt_chan *chan, unsigned int cmd, unsigned long data);
-	
+
 	/* Opt: Native echo cancellation */
 	int (*echocan)(struct zt_chan *chan, int ecval);
 
 	/* Okay, now we get to the signalling.  You have several options: */
 
 	/* Option 1: If you're a T1 like interface, you can just provide a
-	   rbsbits function and we'll assert robbed bits for you.  Be sure to 
+	   rbsbits function and we'll assert robbed bits for you.  Be sure to
 	   set the ZT_FLAG_RBS in this case.  */
 
 	/* Opt: If the span uses A/B bits, set them here */
 	int (*rbsbits)(struct zt_chan *chan, int bits);
-	
+
 	/* Option 2: If you don't know about sig bits, but do have their
 	   equivalents (i.e. you can disconnect battery, detect off hook,
 	   generate ring, etc directly) then you can just specify a
 	   sethook function, and we'll call you with appropriate hook states
 	   to set.  Still set the ZT_FLAG_RBS in this case as well */
 	int (*hooksig)(struct zt_chan *chan, zt_txsig_t hookstate);
-	
+
 	/* Option 3: If you can't use sig bits, you can write a function
 	   which handles the individual hook states  */
 	int (*sethook)(struct zt_chan *chan, int hookstate);
-	
+
 	/* Opt: Dacs the contents of chan2 into chan1 if possible */
 	int (*dacs)(struct zt_chan *chan1, struct zt_chan *chan2);
 
@@ -1284,14 +1284,14 @@ struct zt_span {
 
 #ifdef CONFIG_DEVFS_FS
 	devfs_handle_t dhandle;  /* Directory name */
-#endif	
+#endif
 	/* If the watchdog detects no received data, it will call the
 	   watchdog routine */
 	int (*watchdog)(struct zt_span *span, int cause);
 #ifdef CONFIG_ZAPTEL_WATCHDOG
 	int watchcounter;
 	int watchstate;
-#endif	
+#endif
 };
 
 #define ZT_WATCHDOG_NOINTS		(1 << 0)
@@ -1406,7 +1406,7 @@ struct zt_tone {
 	int init_v2_2;
 	int init_v3_2;
 
-	int tonesamples;		/* How long to play this tone before 
+	int tonesamples;		/* How long to play this tone before
 					   going to the next (in samples) */
 	struct zt_tone *next;		/* Next tone in this sequence */
 

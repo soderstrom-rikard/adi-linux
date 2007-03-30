@@ -52,7 +52,7 @@ int obufnext(void)
 			res = 32767.0;
 		if (res < -32768.0)
 			res = -32768.0;
-	
+
 		pos++;
 	} else {
 		res = 0.0;
@@ -130,11 +130,11 @@ int main()
 		write(fdo2, obuf, sizeof(obuf));
 		write(fdo3, pred, sizeof(pred));
 		for (x=0;x<sizeof(ibuf)/sizeof(ibuf[0]);x++) {
- 			printf("(%5d/%5d/%5d) ", percent(ibuf[x], pred[x]) /*, (int)obuf[x] */, (int)ibuf[x], (int)pred[x]); 
+ 			printf("(%5d/%5d/%5d) ", percent(ibuf[x], pred[x]) /*, (int)obuf[x] */, (int)ibuf[x], (int)pred[x]);
 			obuf[x] = obufnext();
 			z++;
 			if (z == 4) {
-				printf("\n"); 
+				printf("\n");
 				z = 0;
 			}
 		}

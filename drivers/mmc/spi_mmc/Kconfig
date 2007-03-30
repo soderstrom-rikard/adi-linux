@@ -8,12 +8,12 @@ config SPI_MMC
         default n
         ---help---
 	MMC/SD card over SPI support.
-	
+
 	Say Y or M here if you want to attach an MMC/SD socket to the SPI port.
 	The "MMC support" option does not need to be enabled for this driver to work.
 
 	Read spi_mmc.txt documentation for details or more help.
-	
+
 config SPI_MMC_CS_CHAN
 	int "SPI chip select signal for MMC/SD card"
 	depends on SPI_MMC

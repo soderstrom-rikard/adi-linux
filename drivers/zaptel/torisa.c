@@ -1,25 +1,24 @@
 /*
  * Zapata Telephony "Tormenta" ISA card LINUX driver, version 2.2 11/29/01
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * Modified from original tor.c by Mark Spencer <markster@linux-support.net>
  *                     original by Jim Dixon <jim@lambdatel.com>
  */
 
-#include <linux/config.h>
 #include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
@@ -84,7 +83,7 @@ unsigned int *datxlt;
 /* This is the order that the data (audio) channels get
 scanned in. This was done in this rather poopy manner because when outputting
 (and inputting) a sine wave, such as in the case of TDD, any repeated samples
-(because of PCM bus contention) will result in nasty-sounding distortion. The 
+(because of PCM bus contention) will result in nasty-sounding distortion. The
 Mitel STPA chips (MT8920) have a contention mechanism, which results in a
 situation where, if the processor accesses a timeslot that is currently
 being transmitted or received, it will HOLD the bus until it is done with
@@ -102,10 +101,10 @@ first thing we do in the interrupt handler.  Worst case (30 microseconds)
 is that the MT8920 has only moved 7 channels.  That's where the 6 comes from.
 */
 
-static int chseq_t1[] = 
+static int chseq_t1[] =
 	{ 6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,1,2,3,4,5 } ;
 
-static int chseq_e1[] = 
+static int chseq_e1[] =
 	{ 6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,1,2,3,4,5 } ;
 
 static int *chseq;
@@ -122,9 +121,9 @@ static int loopupcnt[2];
 static int loopdowncnt[2];
 static int alarmtimer[2];
 
-static int channels_per_span = 24; 
+static int channels_per_span = 24;
 
-static int card_type = TYPE_T1; 
+static int card_type = TYPE_T1;
 
 static int prefmaster = 0;
 
@@ -203,7 +202,7 @@ static void set_clear(void)
 	for (s=0;s<2;s++) {
 		for (i=0;i<channels_per_span;i++) {
 			j = (i/8);
-			if (spans[s].chans[i].flags & ZT_FLAG_CLEAR) 
+			if (spans[s].chans[i].flags & ZT_FLAG_CLEAR)
 				val |= 1 << (i % 8);
 
 			if ((i % 8)==7) {
@@ -216,7 +215,7 @@ static void set_clear(void)
 			}
 		}
 	}
-		
+
 }
 
 /* device probe routine .. determines if the Tormenta device is present in
@@ -257,9 +256,9 @@ tor_probe(void)
 		t1out(1, 0x15, 0);
 		t1out(1, 0x19, 0);
 		t1out(1, 0x23, 0x55);
-		c1 = t1in(1, 0x23);  
+		c1 = t1in(1, 0x23);
 		if (c1 == 0x55) { /* if this is an E-1 card */
-	
+
 			clockvals = clockvals_e1;
 			chseq = chseq_e1;
 			channels_per_span = 31;
@@ -278,12 +277,12 @@ tor_probe(void)
 			setctlreg(MASTERCLOCK|INTENA);
 			while((long)(jiffies - delay) < 0);
 			irq = probe_irq_off(irqs);
-#else			
+#else
 			autoirq_setup(0);
 			setctlreg(MASTERCLOCK|INTENA);
 			/* Wait a jiffie -- that's plenty of time */
 			irq = autoirq_report(5);
-#endif			
+#endif
 		}
 		/* disable interrupts having gotten one */
 		setctlreg(MASTERCLOCK);
@@ -299,7 +298,7 @@ tor_probe(void)
 					((card_type == TYPE_E1) ? "E1" : "T1"),
 						base,irq);
 		} else
-			printk("ISA Tormenta %s Card found at base addr 0x%lx, but unable to determine IRQ.  Try using irq= option\n", 
+			printk("ISA Tormenta %s Card found at base addr 0x%lx, but unable to determine IRQ.  Try using irq= option\n",
 				((card_type == TYPE_E1) ? "E1" : "T1"), base );
 	   }
 	return status;
@@ -319,7 +318,7 @@ static void make_chans(void)
 			pvts[c].span = x;
 			chans[c].chanpos = y + 1;
 		}
-			
+
 }
 
 static int torisa_rbsbits(struct zt_chan *chan, int bits)
@@ -342,9 +341,9 @@ static int torisa_rbsbits(struct zt_chan *chan, int bits)
 		c |= (bits & 15) << (4 - m); /* put our new nibble here */
 		txsigs[k][b] = c;
 		  /* output them into the chip */
-		t1out(k + 1,0x40 + b,c); 
+		t1out(k + 1,0x40 + b,c);
 		return 0;
-	}						
+	}
 	n = chan->chanpos - 1;
 	k = p->span;
 	b = (n / 8); /* get byte number */
@@ -354,7 +353,7 @@ static int torisa_rbsbits(struct zt_chan *chan, int bits)
 	  /* set mask bit, if bit is to be set */
 	if (bits & ZT_ABIT) c |= m;
 	txsigs[k][b] = c;
-	write_lock_irqsave(&torisa, flags);	
+	write_lock_irqsave(&torisa, flags);
 	t1out(k + 1,0x70 + b,c);
 	b += 3; /* now points to b bit stuff */
 	  /* get current signalling values */
@@ -420,7 +419,7 @@ static int torisa_shutdown(struct zt_span *span)
 	for (i = 0; i< 0xff; i++) t1out(tspan, i, 0);
 	if (wasrunning)
 		spansstarted--;
-	write_unlock_irqrestore(&torisa, flags);	
+	write_unlock_irqrestore(&torisa, flags);
 	if (!spans[0].flags & ZT_FLAG_RUNNING &&
 	    !spans[1].flags & ZT_FLAG_RUNNING)
 		/* No longer in use, disable interrupts */
@@ -468,11 +467,11 @@ static int torisa_startup(struct zt_span *span)
 				t1out(tspan, i, 0);
 			for (i = 0x60; i< 0x80; i++)
 				t1out(tspan, i, 0);
-	
+
 			/* Full-on Sync required (RCR1) */
-			t1out(tspan, 0x2b, 8);	
+			t1out(tspan, 0x2b, 8);
 			/* RSYNC is an input (RCR2) */
-			t1out(tspan, 0x2c, 8);	
+			t1out(tspan, 0x2c, 8);
 			/* RBS enable (TCR1) */
 			t1out(tspan, 0x35, 0x10);
 			/* TSYNC to be output (TCR2) */
@@ -499,14 +498,14 @@ static int torisa_startup(struct zt_span *span)
 		}
 		t1out(tspan, 0x7c, span->txlevel << 5);
 
-		if (!alreadyrunning) {	
+		if (!alreadyrunning) {
 			/* LIRST to 1 in CCR3 */
 			t1out(tspan, 0x30, 1);
-	
+
 			/* Wait 100 ms */
 			endjif = jiffies + 10;
 			write_unlock_irqrestore(&torisa, flags);
-	
+
 			while(jiffies < endjif); /* wait 100 ms */
 
 			write_lock_irqsave(&torisa, flags);
@@ -539,7 +538,7 @@ static int torisa_startup(struct zt_span *span)
 			ccr1 |= 8; /* CCR1: Rx Sig mode: CCS */
 			coding = "CCS";
 		} else {
-			tcr1 |= 0x20; 
+			tcr1 |= 0x20;
 			coding = "CAS";
 		}
 		if (span->lineconfig & ZT_CONFIG_HDB3) {
@@ -549,7 +548,7 @@ static int torisa_startup(struct zt_span *span)
 		if (span->lineconfig & ZT_CONFIG_CRC4) {
 			ccr1 |= 0x11; /* CCR1: TX and TX CRC4 */
 			crcing = "/CRC4";
-		} 
+		}
 		t1out(tspan,0x12,tcr1);
 		t1out(tspan,0x14,ccr1);
 		t1out(tspan, 0x18, 0x80);
@@ -568,23 +567,23 @@ static int torisa_startup(struct zt_span *span)
 			write_lock_irqsave(&torisa, flags);
 			t1out(tspan,0x1b,0x9a); /* CCR3: set also ESR */
 			t1out(tspan,0x1b,0x82); /* CCR3: TSCLKM only now */
-			
+
 			/* output the clock info and enable interrupts */
 			setctlreg(clockvals[syncsrc] | INTENA);
 		}
 
 	}
 
-	write_unlock_irqrestore(&torisa, flags);	
+	write_unlock_irqrestore(&torisa, flags);
 
 	if (debug) {
 		if (card_type == TYPE_T1) {
-			if (alreadyrunning) 
+			if (alreadyrunning)
 				printk("TorISA: Reconfigured span %d (%s/%s) LBO: %s\n", span->spanno, coding, framing, zt_lboname(span->txlevel));
 			else
 				printk("TorISA: Startup span %d (%s/%s) LBO: %s\n", span->spanno, coding, framing, zt_lboname(span->txlevel));
 		} else {
-			if (alreadyrunning) 
+			if (alreadyrunning)
 				printk("TorISA: Reconfigured span %d (%s/%s%s) 120 ohms\n", span->spanno, coding, framing, crcing);
 			else
 				printk("TorISA: Startup span %d (%s/%s%s) 120 ohms\n", span->spanno, coding, framing, crcing);
@@ -599,18 +598,18 @@ static int torisa_spanconfig(struct zt_span *span, struct zt_lineconfig *lc)
 {
 	if (debug)
 		printk("TorISA: Configuring span %d\n", span->spanno);
-	/* XXX We assume lineconfig is okay and shouldn't XXX */	
+	/* XXX We assume lineconfig is okay and shouldn't XXX */
 	span->lineconfig = lc->lineconfig;
 	span->txlevel = lc->lbo;
 	span->rxlevel = 0;
 	span->syncsrc = syncsrc;
-	
+
 	/* remove this span number from the current sync sources, if there */
 	if (syncs[0] == span->spanno) syncs[0] = 0;
 	if (syncs[1] == span->spanno) syncs[1] = 0;
 	/* if a sync src, put it in proper place */
 	if (lc->sync) syncs[lc->sync - 1] = span->spanno;
-	
+
 	/* If we're already running, then go ahead and apply the changes */
 	if (span->flags & ZT_FLAG_RUNNING)
 		return torisa_startup(span);
@@ -627,11 +626,11 @@ static int torisa_chanconfig(struct zt_chan *chan, int sigtype)
 			printk("TorISA: Reconfigured channel %d (%s) sigtype %d\n", chan->channo, chan->name, sigtype);
 		else
 			printk("TorISA: Configured channel %d (%s) sigtype %d\n", chan->channo, chan->name, sigtype);
-	}		
-	write_lock_irqsave(&torisa, flags);	
+	}
+	write_lock_irqsave(&torisa, flags);
 	if (alreadyrunning && (card_type == TYPE_T1))
 		set_clear();
-	write_unlock_irqrestore(&torisa, flags);	
+	write_unlock_irqrestore(&torisa, flags);
 	return 0;
 }
 
@@ -639,7 +638,7 @@ static int torisa_open(struct zt_chan *chan)
 {
 #ifndef LINUX26
 	MOD_INC_USE_COUNT;
-#endif	
+#endif
 	return 0;
 }
 
@@ -654,7 +653,7 @@ static int torisa_close(struct zt_chan *chan)
 static int torisa_maint(struct zt_span *span, int cmd)
 {
 	int tspan = getspan(span);
-	
+
 	switch(cmd) {
 	case ZT_MAINT_NONE:
 		t1out(tspan,0x1a,4); /* clear system */
@@ -699,34 +698,34 @@ static void torisa_tasklet(unsigned long data)
 		   likely master last */
 		if (spans[1].flags & ZT_FLAG_RUNNING) {
 			/* Perform echo cancellation */
-			for (x=0;x<channels_per_span;x++) 
+			for (x=0;x<channels_per_span;x++)
 			{
 				for(y = 0; y < ZT_CHUNKSIZE; y++)
 				{
 					mychunk[1][y] = last_ecwrite[1][x];
-					last_ecwrite[1][x] = 
+					last_ecwrite[1][x] =
 						writedata[1-curread][x + channels_per_span][y];
 				}
-				zt_ec_chunk(&spans[1].chans[x], 
+				zt_ec_chunk(&spans[1].chans[x],
 					spans[1].chans[x].readchunk,mychunk[1]);
 			}
 			zt_receive(&spans[1]);
 		}
 		if (spans[0].flags & ZT_FLAG_RUNNING) {
 			/* Perform echo cancellation */
-			for (x=0;x<channels_per_span;x++) 
+			for (x=0;x<channels_per_span;x++)
 			{
 				for(y = 0; y < ZT_CHUNKSIZE; y++)
 				{
 					mychunk[0][y] = last_ecwrite[0][x];
 					last_ecwrite[0][x] = writedata[1-curread][x][y];
 				}
-				zt_ec_chunk(&spans[0].chans[x], 
+				zt_ec_chunk(&spans[0].chans[x],
 					spans[0].chans[x].readchunk,mychunk[0]);
 			}
 			zt_receive(&spans[0]);
 		}
-	
+
 		/* Prepare next set for transmission */
 		if (spans[1].flags & ZT_FLAG_RUNNING)
 			zt_transmit(&spans[1]);
@@ -749,10 +748,10 @@ static void torisa_intr(int irq, void *dev_id, struct pt_regs *regs)
 	static unsigned short rxword[33],txword[33];
 	unsigned char txc, rxc, c;
 	unsigned char abits, bbits, cbits, dbits;
-	
+
 
 	irqcount++;
-	
+
 	/* 1.  Do all I/O Immediately -- Normally we would ask for
 	   the transmission first, but because of the incredibly
 	   tight timing we're lucky to be able to do the I/O
@@ -763,9 +762,9 @@ static void torisa_intr(int irq, void *dev_id, struct pt_regs *regs)
 	   {
 #ifdef LINUX26
 		return IRQ_NONE;
-#else		
-		return; 
-#endif		
+#else
+		return;
+#endif
 	   }
 
 	  /* set outbit and put int 16 bit bus mode, reset interrupt enable */
@@ -774,7 +773,7 @@ static void torisa_intr(int irq, void *dev_id, struct pt_regs *regs)
 #if 0
 	if (!passno)
 		printk("Interrupt handler\n");
-#endif		
+#endif
 
 	/* Do the actual transmit and receive in poopy order */
 	for(n1 = 0; n1 < channels_per_span; n1++)
@@ -793,7 +792,7 @@ static void torisa_intr(int irq, void *dev_id, struct pt_regs *regs)
 	    n = chseq[n1];
 	    txword[n] = 0;
 	    if (n < oldn) {
-		/* We've circled around.  
+		/* We've circled around.
 		   Now we increment the passno and stuff */
 		if ((passno % ZT_CHUNKSIZE) == (ZT_CHUNKSIZE - 1)) {
 			/* Swap buffers */
@@ -806,7 +805,7 @@ static void torisa_intr(int irq, void *dev_id, struct pt_regs *regs)
 			if (!taskletpending) {
 				taskletpending = 1;
 				taskletsched++;
-				tasklet_hi_schedule(&torisa_tlet); 
+				tasklet_hi_schedule(&torisa_tlet);
 			} else {
 				txerrors++;
 			}
@@ -820,7 +819,7 @@ static void torisa_intr(int irq, void *dev_id, struct pt_regs *regs)
 			/* enter the transmit stuff with i being channel number,
 			   leaving with txc being character to transmit */
 			txc = writedata[curread][j * channels_per_span + n-1][passno % ZT_CHUNKSIZE];
-			txword[n] |= txc << (j * 8); 
+			txword[n] |= txc << (j * 8);
 
 			/* receive side */
 			i = n + (j * channels_per_span);  /* calc chan number */
@@ -902,13 +901,13 @@ static void torisa_intr(int irq, void *dev_id, struct pt_regs *regs)
 		if (card_type == TYPE_T1) {
 			c = t1in(i + 1,0x31); /* get RIR2 */
 			spans[i].rxlevel = c >> 6;  /* get rx level */
-			t1out(i + 1,0x20,0xff); 
+			t1out(i + 1,0x20,0xff);
 			c = t1in(i + 1,0x20);  /* get the status */
 			  /* detect the code, only if we are not sending one */
 			if ((!spans[i].mainttimer) && (c & 0x80))  /* if loop-up code detected */
 			   {
 				  /* set into remote loop, if not there already */
-				if ((loopupcnt[i]++ > 80) && 
+				if ((loopupcnt[i]++ > 80) &&
 					(spans[i].maintstat != ZT_MAINT_REMOTELOOP))
 				   {
 					t1out(i + 1,0x37,0x9c); /* remote loopback */
@@ -935,7 +934,7 @@ static void torisa_intr(int irq, void *dev_id, struct pt_regs *regs)
 				j |= ZT_ALARM_BLUE;
 			   }
 		} else { /* its an E1 card */
-			t1out(i + 1,6,0xff); 
+			t1out(i + 1,6,0xff);
 			c = t1in(i + 1,6);  /* get the status */
 			if (c & 9) /* if red alarm */
 			   {
@@ -954,18 +953,18 @@ static void torisa_intr(int irq, void *dev_id, struct pt_regs *regs)
 		if (spans[i].lineconfig & ZT_CONFIG_NOTOPEN)
 		   {
 			  /* go thru all chans, and count # open */
-			for(n = 0,k = (i * channels_per_span); k < (i * channels_per_span) + channels_per_span; k++) 
+			for(n = 0,k = (i * channels_per_span); k < (i * channels_per_span) + channels_per_span; k++)
 			   {
 				if ((chans[k].flags & ZT_FLAG_OPEN) ||
 				    (chans[k].flags & ZT_FLAG_NETDEV)) n++;
 			   }
 			  /* if none open, set alarm condition */
-			if (!n) j |= ZT_ALARM_NOTOPEN; 
+			if (!n) j |= ZT_ALARM_NOTOPEN;
 		   }
 		  /* if no more alarms, and we had some */
 		if ((!j) && spans[i].alarms)
 		   {
-			alarmtimer[i] = ZT_ALARMSETTLE_TIME; 
+			alarmtimer[i] = ZT_ALARMSETTLE_TIME;
 		   }
 		if (alarmtimer[i]) j |= ZT_ALARM_RECOVER;
 		  /* if going into alarm state, set yellow (remote) alarm */
@@ -999,14 +998,14 @@ static void torisa_intr(int irq, void *dev_id, struct pt_regs *regs)
 	if (syncs[0])
 	   {
 		  /* if no alarms, use it */
-		if (!(spans[syncs[0] - 1].alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE | 
+		if (!(spans[syncs[0] - 1].alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE |
 			ZT_ALARM_LOOPBACK))) mysyncsrc = syncs[0];
 	   }
 	   /* if we dont have one yet, and there is a secondary, see if we can use it */
 	if ((!mysyncsrc) && (syncs[1]))
 	   {
 		  /* if no alarms, use it */
-		if (!(spans[syncs[1] - 1].alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE | 
+		if (!(spans[syncs[1] - 1].alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE |
 			ZT_ALARM_LOOPBACK))) mysyncsrc = syncs[1];
 	   }
 	/* on the E1 card, the PLL takes a bit of time to lock going
@@ -1023,7 +1022,7 @@ static void torisa_intr(int irq, void *dev_id, struct pt_regs *regs)
 		   {
 			mysynccnt = 0;
 			syncsrc = mysyncsrc;
-		   } 
+		   }
 	   }
 	else syncsrc = mysyncsrc; /* otherwise on a T1 card, just use current value */
 	/* update sync src info */
@@ -1033,7 +1032,7 @@ static void torisa_intr(int irq, void *dev_id, struct pt_regs *regs)
 	setctlreg(clockvals[syncsrc] | INTENA);
 #ifdef LINUX26
 	return IRQ_RETVAL(1);
-#endif	
+#endif
 }
 
 

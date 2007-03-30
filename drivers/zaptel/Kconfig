@@ -16,7 +16,7 @@ config J11_JUMPER
 	depends on PBX
 	default 5
 	help
-	  Input from 1-7, no confliction with others. 
+	  Input from 1-7, no confliction with others.
 
 config J16_JUMPER
 	int "Select J16 jumper on PBX card"

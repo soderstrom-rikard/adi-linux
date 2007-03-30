@@ -1,4 +1,4 @@
-/* 
+/*
    Important constants for tuning mec2 echo can
  */
 #ifndef _MEC2_CONST_H

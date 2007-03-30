@@ -81,12 +81,12 @@ typedef struct
     int32_t *fir_taps32;	 /* 32-bit version of FIR taps */
 
     int curr_pos;
-	
+
     int taps;
     int tap_mask;
     int use_nlp;
     int use_suppressor;
-    
+
     int32_t supp_test1;
     int32_t supp_test2;
     int32_t supp1;
@@ -117,7 +117,7 @@ static inline echo_can_state_t *echo_can_create(int len, int adaption_mode)
 {
     echo_can_state_t *ec;
     void *ptr;
-    
+
     ptr = ec = (echo_can_state_t *) MALLOC(sizeof(*ec) + len * sizeof(int32_t) +
 						   len * sizeof(int16_t));
     if (ec == NULL)

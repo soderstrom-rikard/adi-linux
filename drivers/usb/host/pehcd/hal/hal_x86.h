@@ -25,7 +25,7 @@
  *
  * Date                Author                  Comments
  * ---------------------------------------------------------------------
- * Nov 29 2005        Prabhakar Kalasani      Initial Creation     
+ * Nov 29 2005        Prabhakar Kalasani      Initial Creation
  *
  **********************************************************************
  */
@@ -77,7 +77,7 @@
 #define tole(x) __constant_cpu_to_le32(x)
 #define tobe(x) __constant_cpu_to_be32(x)
 
-/* Definitions Related to Chip Address and CPU Physical Address 
+/* Definitions Related to Chip Address and CPU Physical Address
  * cpu_phy_add: CPU Physical Address , it uses 32 bit data per address
  * chip_add   : Chip Address, it uses double word(64) bit data per address
  */
@@ -112,10 +112,10 @@ struct phci_qh {
  *  mode as well.  The chips registers are mapped as follows:
  *
  *  Base address for pio mode: ioremap_nocache(PXA_CS2_BASE,PAGE_SIZE);
- *  Physical addresses for DMA transfers: 
+ *  Physical addresses for DMA transfers:
  *  Note also that these are normally defined in the platform specific header
  *  files.  DON'T define them within your driver, that's extremely non-portable.
- */  
+ */
 typedef struct isp1761_hal {
     void    *mem_base; /* Memory base */
     __u8        irq_usage;      /* NUmber of drivers using INT channel */

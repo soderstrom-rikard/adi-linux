@@ -2,7 +2,7 @@
  * Philips ISP176x Isochronous Transfer support code file
  *
  * (c) 2002 Koninklijke Philips Electronics N.V. All rights reserved. <usb.linux@philips.com>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -16,11 +16,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- * 
- * File Name: itdptd.c
- * 
  *
- * History:     
+ * File Name: itdptd.c
+ *
+ *
+ * History:
  *
  * Date                 Author/Modified by      Comments
  * ------------------------------------------------------------------------------
@@ -43,7 +43,7 @@
  * struct urb *urb
  *  - USB Request Block, contains information regarding the type and how much data
  *    is requested to be transferred.
- * void  * ptd 
+ * void  * ptd
  *  - Points to the ISO ptd structure that needs to be initialized
  *
  * API Description
@@ -72,7 +72,7 @@ void * phcd_iso_itd_to_ptd( phci_hcd *hcd,
     /*
      * For both ISO and INT endpoints descriptors, new bit fields we added to
      * specify whether or not the endpoint supports high bandwidth, and if so
-     * the number of additional packets that the endpoint can support during a 
+     * the number of additional packets that the endpoint can support during a
      * single microframe.
      * Bits 12:11 specify whether the endpoint supports high-bandwidth transfers
      * Valid values:
@@ -84,9 +84,9 @@ void * phcd_iso_itd_to_ptd( phci_hcd *hcd,
     max_packet = usb_maxpacket( urb->dev,
             urb->pipe,
             usb_pipeout(urb->pipe)
-            );  
+            );
 
-    /* 
+    /*
      * We need to add 1 since our Multi starts with 1 instead of the USB specs defined
      * zero (0).
      */
@@ -97,12 +97,12 @@ void * phcd_iso_itd_to_ptd( phci_hcd *hcd,
     length = itd->length;
 
     /*
-     * Set V bit to indicate that there is payload to be sent or received. And 
+     * Set V bit to indicate that there is payload to be sent or received. And
      * indicate that the current PTD is active.
      */
     td_info1 = QHA_VALID;
 
-    /* 
+    /*
      * Set the number of bytes that can be transferred by this PTD. This indicates
      * the depth of the data field.
      */
@@ -114,7 +114,7 @@ void * phcd_iso_itd_to_ptd( phci_hcd *hcd,
      */
     if (urb->dev->speed != USB_SPEED_HIGH)
     {
-        /* 
+        /*
          * According to the ISP1761 specs for sITDs, OUT token max packet should
          * not be more  than 188 bytes, while IN token max packet not more than
          * 192 bytes (ISP1761 Rev 3.01, Table 72, page 79
@@ -123,14 +123,14 @@ void * phcd_iso_itd_to_ptd( phci_hcd *hcd,
                 (max_packet > 192))
         {
             iso_dbg(ISO_DBG_INFO, "[phcd_iso_itd_to_ptd]: IN Max packet over maximum\n");
-            max_packet = 192;                   
+            max_packet = 192;
         }
 
         if((!usb_pipein(urb->pipe)) &&
                 (max_packet > 188))
         {
             iso_dbg(ISO_DBG_INFO, "[phcd_iso_itd_to_ptd]: OUT Max packet over maximum\n");
-            max_packet = 188;                   
+            max_packet = 188;
         }
     }
     td_info1 |= (max_packet << 18);
@@ -153,7 +153,7 @@ void * phcd_iso_itd_to_ptd( phci_hcd *hcd,
     iso_dbg(ISO_DBG_DATA, "[phcd_iso_itd_to_ptd]: DWORD0 = 0x%08x\n", iso_ptd->td_info1);
 
     /*
-     * Since the first bit have already been added on the first DWORD of the PTD         
+     * Since the first bit have already been added on the first DWORD of the PTD
      * we only need to add the last 3-bits of the endpoint number.
      */
     token = (usb_pipeendpoint(urb->pipe) & 0xE) >> 1;
@@ -167,10 +167,10 @@ void * phcd_iso_itd_to_ptd( phci_hcd *hcd,
     /* See a split transaction is needed */
     if(urb->dev->speed != USB_SPEED_HIGH)
     {
-        /* 
+        /*
          * If we are performing a SPLIT transaction indicate that it is so by setting
          * the S bit of the second DWORD.
-         */             
+         */
         token |= 1 << 14;
 
         port_num = urb->dev->ttport;
@@ -179,15 +179,15 @@ void * phcd_iso_itd_to_ptd( phci_hcd *hcd,
         /* Set the the port number of the hub or embedded TT */
         token |= port_num << 18;
 
-        /* 
+        /*
          * Set the hub address, this should be zero for the internal or
          * embedded hub
          */
         token |= hub_num << 25;
     } /* if(urb->dev->speed != USB_SPEED_HIGH) */
 
-    /* 
-     * Determine if the direction of this pipe is IN, if so set the Token bit of 
+    /*
+     * Determine if the direction of this pipe is IN, if so set the Token bit of
      * the second DWORD to indicate it as IN. Since it is initialized to zero and
      * zero indicates an OUT token, then we do not need anything to the Token bit
      * if it is an OUT token.
@@ -198,12 +198,12 @@ void * phcd_iso_itd_to_ptd( phci_hcd *hcd,
     /* Set endpoint type to Isochronous */
     token |= EPTYPE_ISO;
 
-    /* Set the second DWORD */  
-    iso_ptd->td_info2 = token;  
+    /* Set the second DWORD */
+    iso_ptd->td_info2 = token;
     iso_dbg(ISO_DBG_DATA, "[phcd_iso_itd_to_ptd]: DWORD1 = 0x%08x\n", iso_ptd->td_info2);
 
     /*
-     * Get the physical address of the memory location that was allocated for this PTD 
+     * Get the physical address of the memory location that was allocated for this PTD
      * in the PAYLOAD region, using the formula indicated in sectin 7.2.2 of the ISP1761 specs
      * rev 3.01 page 17 to 18.
      */
@@ -224,9 +224,9 @@ void * phcd_iso_itd_to_ptd( phci_hcd *hcd,
     iso_ptd->td_info3 = td_info3;
     iso_dbg(ISO_DBG_DATA, "[phcd_iso_itd_to_ptd]: DWORD2 = 0x%08x\n", iso_ptd->td_info3);
 
-    /* 
+    /*
      * Set the A bit of the fourth DWORD to 1 to indicate that this PTD is active.
-     * This have the same functionality with the V bit of DWORD0 
+     * This have the same functionality with the V bit of DWORD0
      */
     iso_ptd->td_info4 = QHA_ACTIVE;
     iso_dbg(ISO_DBG_DATA, "[phcd_iso_itd_to_ptd]: DWORD3 = 0x%08x\n", iso_ptd->td_info4);
@@ -235,7 +235,7 @@ void * phcd_iso_itd_to_ptd( phci_hcd *hcd,
     iso_ptd->td_info5 = itd->ssplit;
     iso_dbg(ISO_DBG_DATA, "[phcd_iso_itd_to_ptd]: DWORD4 = 0x%08x\n", iso_ptd->td_info5);
 
-    /* 
+    /*
      * Set the fifth DWORD to specify which uSOFs the complete split needs to be sent.
      * This is VALID only for IN (since ISO transfers don't have handshake stages)
      */
@@ -289,14 +289,14 @@ unsigned long phcd_iso_scheduling_info( phci_hcd *hcd,
     /* Determine how many 188 byte-transfers are needed to send all data */
     count = max_pkt/188;
 
-    /* 
-     * Check is the data is not a factor of 188, if it is not then we need 
+    /*
+     * Check is the data is not a factor of 188, if it is not then we need
      * one more 188 transfer to move the last set of data less than 188.
      */
     if(max_pkt % 188)
         count += 1;
 
-    /* 
+    /*
      * Remember that usof was initialized to 0x1 so that means
      * that usof is always guranteed a value of 0x1 and then
      * depending on the maxp, other bits of usof will also be set.
@@ -306,36 +306,36 @@ unsigned long phcd_iso_scheduling_info( phci_hcd *hcd,
 
     if(ep_in)
     {
-        /* 
+        /*
          * Send start split into first frame.
-         */     
+         */
         qhead->ssplit = 0x1;
 
-        /* 
+        /*
          * Inidicate that we can send a complete split starting from
          * the third uFrame to how much complete split is needed to
-         * retrieve all data. 
+         * retrieve all data.
          *
          * Of course, the first uFrame is reserved for the start split, the
          * second is reserved for the TT to send the request and get some
          * data.
-         */      
+         */
         qhead->csplit = (usof << 2);
     } /* if(ep_in) */
     else
     {
-        /* 
-         * For ISO OUT we don't need to send out a complete split 
+        /*
+         * For ISO OUT we don't need to send out a complete split
          * since we do not require and data coming in to us (since ISO
          * do not have integrity checking/handshake).
          *
-         * For start split we indicate that we send a start split from the 
+         * For start split we indicate that we send a start split from the
          * first uFrame up to the the last uFrame needed to retrieve all
          * data
          */
         qhead->ssplit = usof;
         qhead->csplit = 0;
-    } /* else for if(ep_in) */          
+    } /* else for if(ep_in) */
     return 0;
 }/* phcd_iso_scheduling_info */
 
@@ -357,9 +357,9 @@ unsigned long phcd_iso_scheduling_info( phci_hcd *hcd,
  * This is mainly responsible for:
  * - Initialize the following elements of the ITS structure
  *       > itd->length = length;        -- the size of the request
- *       > itd->multi = multi;          -- the number of transactions for 
+ *       > itd->multi = multi;          -- the number of transactions for
  *                                         this EP per micro frame
- *       > itd->hw_bufp[0] = buf_dma;   -- The base address of the buffer where 
+ *       > itd->hw_bufp[0] = buf_dma;   -- The base address of the buffer where
  *                                         to put the data (this base address was
  *                                         the buffer provided plus the offset)
  * - Allocating memory from the PAYLOAD memory area, where the data coming from
@@ -378,7 +378,7 @@ unsigned long phcd_iso_itd_fill ( phci_hcd *hcd,
     struct isp1761_mem_addr *mem_addr;
 
     iso_dbg(ISO_DBG_ENTRY, "phcd_iso_itd_fill entry\n");
-    /* 
+    /*
      * The value for both these variables are supplied by the one
      * who submitted the URB.
      */
@@ -398,8 +398,8 @@ unsigned long phcd_iso_itd_fill ( phci_hcd *hcd,
     pipe = urb->pipe;
     max_pkt = usb_maxpacket(urb->dev, pipe, usb_pipeout(pipe));
 
-    mult = 1 + ((max_pkt >> 11) & 0x3); 
-    max_pkt = max_pkt & 0x7FF;  
+    mult = 1 + ((max_pkt >> 11) & 0x3);
+    max_pkt = max_pkt & 0x7FF;
     max_pkt *= mult;
 
     if( (length < 0) || (max_pkt < length) )
@@ -409,14 +409,14 @@ unsigned long phcd_iso_itd_fill ( phci_hcd *hcd,
     }
     itd->buf_dma = buff_dma;
 
-    /* 
-     * Allocate memory in the PAYLOAD memory region for the 
+    /*
+     * Allocate memory in the PAYLOAD memory region for the
      * data buffer for this ITD
      */
     phci_hcd_mem_alloc(length, mem_addr, 0);
-    if( length && ( (mem_addr->phy_addr == 0 ) || 
+    if( length && ( (mem_addr->phy_addr == 0 ) ||
                 (mem_addr->virt_addr == 0) ) )
-    {   
+    {
         mem_addr = 0;
         iso_dbg(ISO_DBG_ERR, "[phcd_iso_itd_fill Error]: No payload memory available\n");
         return -ENOMEM;
@@ -431,7 +431,7 @@ unsigned long phcd_iso_itd_fill ( phci_hcd *hcd,
     /* Buffer address, one ptd per packet */
     itd->hw_bufp[0] = buff_dma;
 
-    iso_dbg(ISO_DBG_EXIT, "phcd_iso_itd_fill exit\n");  
+    iso_dbg(ISO_DBG_EXIT, "phcd_iso_itd_fill exit\n");
     return 0;
 } /* phcd_iso_itd_fill */
 
@@ -453,29 +453,29 @@ unsigned long phcd_iso_itd_fill ( phci_hcd *hcd,
  */
 void phcd_iso_get_itd_ptd_index( phci_hcd *hcd, struct ehci_itd *itd )
 {
-    td_ptd_map_buff_t *ptd_map_buff;    
+    td_ptd_map_buff_t *ptd_map_buff;
     unsigned long buff_type, max_ptds;
     unsigned char itd_index, bitmap;
 
     /* Local variable initialization */
     bitmap = 0x1;
     buff_type = td_ptd_pipe_x_buff_type[TD_PTD_BUFF_TYPE_ISTL];
-    ptd_map_buff = (td_ptd_map_buff_t *) &(td_ptd_map_buff[buff_type]); 
+    ptd_map_buff = (td_ptd_map_buff_t *) &(td_ptd_map_buff[buff_type]);
     max_ptds = ptd_map_buff->max_ptds;
 
-    for(itd_index = 0; itd_index < max_ptds; itd_index++) 
-    {   
-        /* 
+    for(itd_index = 0; itd_index < max_ptds; itd_index++)
+    {
+        /*
          * ISO have 32 PTDs, the first thing to do is look for a free PTD.
          */
-        if(ptd_map_buff->map_list[itd_index].state == TD_PTD_NEW) 
+        if(ptd_map_buff->map_list[itd_index].state == TD_PTD_NEW)
         {
-            /* 
+            /*
              * Determine if this is a newly allocated ITD by checking the
              * itd_index, since it was set to TD_PTD_INV_PTD_INDEX during
              * initialization
              */
-            if( itd->itd_index == TD_PTD_INV_PTD_INDEX ) 
+            if( itd->itd_index == TD_PTD_INV_PTD_INDEX )
             {
                 itd->itd_index = itd_index;
             }
@@ -489,20 +489,20 @@ void phcd_iso_get_itd_ptd_index( phci_hcd *hcd, struct ehci_itd *itd )
             ptd_map_buff->map_list[itd_index].itd  = itd;
             ptd_map_buff->map_list[itd_index].qh = NULL;
 
-            /* ptd_bitmap just holds the bit assigned to this PTD. */            
+            /* ptd_bitmap just holds the bit assigned to this PTD. */
             ptd_map_buff->map_list[itd_index].ptd_bitmap = bitmap << itd_index;
 
-            phci_hcd_fill_ptd_addresses(&ptd_map_buff->map_list[itd_index], 
-                    itd->itd_index, buff_type); 
+            phci_hcd_fill_ptd_addresses(&ptd_map_buff->map_list[itd_index],
+                    itd->itd_index, buff_type);
 
-            /* 
-             * Indicate that this ITD is the last in the list and update 
+            /*
+             * Indicate that this ITD is the last in the list and update
              * the number of active PTDs
              */
             ptd_map_buff->map_list[itd_index].lasttd = 0;
             ptd_map_buff->total_ptds ++;
 
-            /* TO DO: This variable is not used from what I have seen. */                       
+            /* TO DO: This variable is not used from what I have seen. */
             ptd_map_buff->active_ptd_bitmap |= (bitmap << itd_index);
             break;
         }/* if(ptd_map_buff->map_list[itd_index].state == TD_PTD_NEW) */
@@ -519,7 +519,7 @@ void phcd_iso_get_itd_ptd_index( phci_hcd *hcd, struct ehci_itd *itd )
  *  - USB Request Block, contains information regarding the type and how much data
  *    is requested to be transferred.
  * unsigned long status
- *  - Variable provided by the calling routine that contain the status of the 
+ *  - Variable provided by the calling routine that contain the status of the
  *        ITD list.
  *
  * API Description
@@ -537,15 +537,15 @@ void phcd_iso_itd_free_list( phci_hcd *hcd,
 
     /* Local variable initialization */
     ptd_map_buff = &(td_ptd_map_buff[TD_PTD_BUFF_TYPE_ISTL]);
-    first_itd = (struct ehci_itd *) urb->hcpriv;        
+    first_itd = (struct ehci_itd *) urb->hcpriv;
     itd = first_itd;
 
-    /* 
-     * Check if there is only one ITD, if so immediately 
+    /*
+     * Check if there is only one ITD, if so immediately
      * go and clean it up.
      */
     if(itd->hw_next == EHCI_LIST_END)
-    {           
+    {
         if(itd->itd_index != TD_PTD_INV_PTD_INDEX)
         {
             td_ptd_map = &ptd_map_buff->map_list[itd->itd_index];
@@ -567,9 +567,9 @@ void phcd_iso_itd_free_list( phci_hcd *hcd,
         /* Get the ITD following the head ITD */
         next_itd = (struct ehci_itd *) le32_to_cpu(itd->hw_next);
         if(next_itd->hw_next == EHCI_LIST_END)
-        {               
-            /* 
-             * If the next ITD is the end of the list, check if space have 
+        {
+            /*
+             * If the next ITD is the end of the list, check if space have
              * already been allocated in the PTD array.
              */
             if(next_itd->itd_index != TD_PTD_INV_PTD_INDEX)
@@ -579,11 +579,11 @@ void phcd_iso_itd_free_list( phci_hcd *hcd,
                 td_ptd_map->state = TD_PTD_NEW;
             }
 
-            /* 
+            /*
              * If the error is not about memory allocation problems, then
              * free up the memory used.
              */
-            if(status != -ENOMEM)       
+            if(status != -ENOMEM)
             {
                 iso_dbg(ISO_DBG_ERR,"[phcd_iso_itd_free_list Error]: Memory not available\n");
                 phci_hcd_mem_free(&next_itd->mem_addr);
@@ -593,9 +593,9 @@ void phcd_iso_itd_free_list( phci_hcd *hcd,
             list_del (&next_itd->itd_list);
             qha_free(qha_cache, next_itd);
             break;
-        } /* if(next_itd->hw_next == EHCI_LIST_END)*/ 
+        } /* if(next_itd->hw_next == EHCI_LIST_END)*/
 
-        /* 
+        /*
          * If ITD is not the end of the list, it only means that it already have everything allocated
          * and there is no need to check which procedure failed. So just free all resourcs immediately
          */
@@ -636,7 +636,7 @@ void phcd_iso_itd_free_list( phci_hcd *hcd,
  *  - USB Request Block, contains information regarding the type and how much data
  *    is requested to be transferred.
  * unsigned long *status
- *  - Variable provided by the calling routine that will contain the status of the 
+ *  - Variable provided by the calling routine that will contain the status of the
  *        phcd_submit_iso actions
  *
  * API Description
@@ -674,16 +674,16 @@ unsigned long phcd_submit_iso( phci_hcd *hcd,
 
     ep_in = usb_pipein(urb->pipe);
 
-    /* 
+    /*
      * Take the endpoint, if there is still no memory allocated
      * for it allocate some and indicate this is for ISO.
      */
     qhead  = ep->hcpriv;
     if(!qhead)
     {
-        /* 
+        /*
          * TO DO: Check who free this up, I did not observed this
-         * freed up 
+         * freed up
          */
         qhead = phci_hcd_qh_alloc(hcd);
         if(qhead == 0)
@@ -695,13 +695,13 @@ unsigned long phcd_submit_iso( phci_hcd *hcd,
         ep->hcpriv = qhead;
     } /* if(!qhead) */
 
-    /* 
-     * Get the number of additional packets that the endpoint can support during a 
+    /*
+     * Get the number of additional packets that the endpoint can support during a
      * single microframe.
      */
-    max_pkt = usb_maxpacket(urb->dev, urb->pipe, usb_pipeout(urb->pipe)); 
+    max_pkt = usb_maxpacket(urb->dev, urb->pipe, usb_pipeout(urb->pipe));
 
-    /* 
+    /*
      * We need to add 1 since our Multi starts with 1 instead of the USB specs defined
      * zero (0).
      */
@@ -716,22 +716,22 @@ unsigned long phcd_submit_iso( phci_hcd *hcd,
     if(urb->dev->speed == USB_SPEED_FULL)
     {
         if(urb->bandwidth == 0)
-        {                       
+        {
             bus_time = usb_check_bandwidth(urb->dev, urb);
             if(bus_time < 0)
-            {                           
+            {
                 usb_dec_dev_use(urb->dev);
                 *status = bus_time;
                 return *status;
             }
         }
-    } /*if(urb->dev->speed == USB_SPEED_FULL)  */   
+    } /*if(urb->dev->speed == USB_SPEED_FULL)  */
     else /*HIGH SPEED*/
     {
         high_speed = 1;
 
-        /* 
-         * Calculate bustime as dictated by the USB Specs Section 5.11.3 
+        /*
+         * Calculate bustime as dictated by the USB Specs Section 5.11.3
          * for high speed ISO
          */
         bus_time = 633232L;
@@ -759,11 +759,11 @@ unsigned long phcd_submit_iso( phci_hcd *hcd,
 
     if(qhead->next_uframe == -1 ||
             hcd->periodic_sched == 0)
-    {   
+    {
         /* Calculate the current frame number */
         if(urb->transfer_flags & URB_ISO_ASAP)
             start_frame = isp1761_reg_read32( hcd->dev,
-                    hcd->regs.frameindex, 
+                    hcd->regs.frameindex,
                     start_frame
                     );
         else
@@ -774,23 +774,23 @@ unsigned long phcd_submit_iso( phci_hcd *hcd,
         /* The only valid bits of the frame index is the lower 14 bits. */
         start_frame = start_frame & 0xFF;
 
-        /* 
-         * Remove the count for the micro frame (uSOF) and just leave the 
+        /*
+         * Remove the count for the micro frame (uSOF) and just leave the
          * count for the frame (SOF). Since 1 SOF is equal to 8 uSOF then
          * shift right by three is like dividing it by 8 (each shift is divide by two)
-         */ 
+         */
         start_frame >>= 3;
 
-        start_frame += 2;                           
+        start_frame += 2;
         qhead->next_uframe = start_frame + urb->number_of_packets;
 
     } /* if(qhead->next_uframe == -1 || hcd->periodic_sched == 0) */
     else
     {
-        /* 
-         * The periodic frame list size is only 32 elements deep, so we need 
-         * the frame index to be less than or equal to 32 (actually 31 if we 
-         * start from 0) 
+        /*
+         * The periodic frame list size is only 32 elements deep, so we need
+         * the frame index to be less than or equal to 32 (actually 31 if we
+         * start from 0)
          */
         start_frame = (qhead->next_uframe) % PTD_PERIODIC_SIZE;
         qhead->next_uframe = start_frame + urb->number_of_packets;
@@ -806,7 +806,7 @@ unsigned long phcd_submit_iso( phci_hcd *hcd,
     /* Make as many tds as number of packets */
     for(packets = 0; packets < urb->number_of_packets; packets++)
     {
-        /* 
+        /*
          * Allocate memory for the ITD data structure and initialize it.
          *
          * This data structure follows the format of the ITD
@@ -835,10 +835,10 @@ unsigned long phcd_submit_iso( phci_hcd *hcd,
         itd->itd_dma = cpu_to_le32(itd);
         itd->urb = urb;
 
-        /* 
+        /*
          * Indicate that this ITD is the last in the list.
          *
-         * Also set the itd_index to TD_PTD_INV_PTD_INDEX 
+         * Also set the itd_index to TD_PTD_INV_PTD_INDEX
          * (0xFFFFFFFF). This would indicate when we allocate
          * a PTD that this ITD did not have a PTD allocated
          * before.
@@ -859,13 +859,13 @@ unsigned long phcd_submit_iso( phci_hcd *hcd,
 
         /* Initialize the following elements of the ITS structure
          *      > itd->length = length;                 -- the size of the request
-         *      > itd->multi = multi;                   -- the number of transactions for 
+         *      > itd->multi = multi;                   -- the number of transactions for
          *                                         this EP per micro frame
-         *      > itd->hw_bufp[0] = buf_dma;    -- The base address of the buffer where 
+         *      > itd->hw_bufp[0] = buf_dma;    -- The base address of the buffer where
          *                                         to put the data (this base address was
          *                                         the buffer provided plus the offset)
-         * And then, allocating memory from the PAYLOAD memory area, where the data 
-         * coming from the requesting party will be placed or data requested by the 
+         * And then, allocating memory from the PAYLOAD memory area, where the data
+         * coming from the requesting party will be placed or data requested by the
          * requesting party will be retrieved when it is available.
          */
         *status  = phcd_iso_itd_fill(hcd, itd, urb, packets);
@@ -881,8 +881,8 @@ unsigned long phcd_submit_iso( phci_hcd *hcd,
             return *status;
         }
 
-        /* 
-         * If this ITD is not the head/root ITD, link this ITD to the ITD 
+        /*
+         * If this ITD is not the head/root ITD, link this ITD to the ITD
          * that came before it.
          */
         if(prev_itd)
@@ -890,7 +890,7 @@ unsigned long phcd_submit_iso( phci_hcd *hcd,
 
         prev_itd = itd;
 
-        /*               
+        /*
          * Allocate an ISO PTD from the ISO PTD map list and
          * set the equivalent bit of the allocated PTD to active
          * in the bitmap so that this PTD will be included into
@@ -908,7 +908,7 @@ unsigned long phcd_submit_iso( phci_hcd *hcd,
             {
                 phcd_iso_itd_free_list(hcd, urb, *status);
             }
-            return *status;                     
+            return *status;
         }
 
         /* Insert this td into the periodic list*/
@@ -924,7 +924,7 @@ unsigned long phcd_submit_iso( phci_hcd *hcd,
             urb->hcpriv = itd;
     }/* for(packets = 0; packets... */
 
-    spin_unlock_irqrestore(&hcd->lock, flags);   
+    spin_unlock_irqrestore(&hcd->lock, flags);
 
     /* Last td of current transaction*/
     itd->hw_next = EHCI_LIST_END;

@@ -1,7 +1,6 @@
 /*
  * Memory MAP
  * Common header file for blackfin BF561 of processors.
- *
  */
 
 #ifndef _MEM_MAP_561_H_

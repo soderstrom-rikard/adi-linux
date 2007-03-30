@@ -37,11 +37,11 @@ int main(int argc, char *argv[])
 	int x;
 	int flags;
 	struct fasthdlc_state transmitter;
-	
+
 	fasthdlc_precalc();
-	
+
 	fasthdlc_init(&transmitter);
-	
+
 	randin = open(RANDOM, O_RDONLY);
 	if (randin < 0) {
 		fprintf(stderr, "Unable to open %s: %s\n", RANDOM, strerror(errno));
@@ -100,6 +100,6 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Tried to write %d HDLC bytes, but wrote %d instead\n", cnt, res);
 			exit(1);
 		}
-		
+
 	}
 }

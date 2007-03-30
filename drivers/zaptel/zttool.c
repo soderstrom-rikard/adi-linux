@@ -14,21 +14,21 @@
  * it under thet erms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * Primary Author: Mark Spencer <markster@linux-support.net>
  *
  */
 
-#include <stdio.h> 
+#include <stdio.h>
 #include <getopt.h>
 #include <string.h>
 #include <stdarg.h>
@@ -98,7 +98,7 @@ static char *getalarms(int span, int err)
 	res = ioctl(ctl, ZT_SPANSTAT, &s[span]);
 	if (res) {
 		if (err)
-			fprintf(stderr, "Unable to get span info on span %d: %s\n", span, strerror(errno)); 
+			fprintf(stderr, "Unable to get span info on span %d: %s\n", span, strerror(errno));
 		return NULL;
 	}
 	strcpy(alarms, "");
@@ -127,7 +127,7 @@ static char *getalarms(int span, int err)
 		else
 			strcpy(alarms, "UNCONFIGURED");
 	}
-		
+
 	snprintf(tmp, sizeof(tmp), "%-15s %s", alarms, s[span].desc);
 	return tmp;
 }
@@ -137,7 +137,7 @@ static void add_cards(newtComponent spans)
 	int x;
 	char *s;
 	void *prev=NULL;
-	
+
 	if (spans)
 		prev = newtListboxGetCurrent(spans);
 	newtListboxClear(spans);
@@ -150,7 +150,7 @@ static void add_cards(newtComponent spans)
 	}
 	if (spans)
 		newtListboxSetCurrentByKey(spans, prev);
-	
+
 }
 
 static void sel_callback(newtComponent c, void *cbdata)
@@ -188,9 +188,9 @@ static void show_bits(int span, newtComponent bitbox, newtComponent inuse, newtC
 	char rcbits[80];
 	char rdbits[80];
 	char tmp[1024];
-	
+
 	int use = 0;
-	
+
 	memset(tabits,0, sizeof(tabits));
 	memset(tbbits,0, sizeof(tbbits));
 	memset(rabits,0, sizeof(rabits));
@@ -207,7 +207,7 @@ static void show_bits(int span, newtComponent bitbox, newtComponent inuse, newtC
 	memset(tdbits,32, s[span].totalchans);
 	memset(rcbits,32, s[span].totalchans);
 	memset(rdbits,32, s[span].totalchans);
-	
+
 	for (x=0;x<ZT_MAX_CHANNELS;x++) {
 		memset(&zp, 0, sizeof(zp));
 		zp.channo = x;
@@ -268,7 +268,7 @@ static void show_bits(int span, newtComponent bitbox, newtComponent inuse, newtC
 		}
 	}
 	snprintf(tmp, sizeof(tmp), "%s\n%s\n%s\n%s\n\n%s\n%s\n%s\n%s", tabits, tbbits,tcbits,tdbits,rabits,rbbits,rcbits,rdbits);
-	newtTextboxSetText(bitbox, tmp);	
+	newtTextboxSetText(bitbox, tmp);
 	sprintf(tmp, "%3d/%3d/%3d", s[span].totalchans, s[span].numchans, use);
 	newtTextboxSetText(inuse, tmp);
 	sprintf(tmp, "%s/", zt_txlevelnames[s[span].txlevel]);
@@ -279,14 +279,14 @@ static void show_bits(int span, newtComponent bitbox, newtComponent inuse, newtC
 	newtTextboxSetText(bpvcount, tmp);
 	sprintf(tmp, "%7d", s[span].irqmisses);
 	newtTextboxSetText(irqmisses, tmp);
-	newtTextboxSetText(alarms, alarmstr(span));	
+	newtTextboxSetText(alarms, alarmstr(span));
 	if (s[span].syncsrc > 0)
 		strcpy(tmp, s[s[span].syncsrc].desc);
 	else
 		strcpy(tmp, "Internally clocked");
 	newtTextboxSetText(syncsrc, tmp);
-	
-	
+
+
 }
 
 static void do_loop(int span, int looped)
@@ -336,7 +336,7 @@ static void show_span(int span)
 	newtComponent alarms;
 	newtComponent syncsrc;
 	newtComponent irqmisses;
-	
+
 	char s1[] = "         1111111111222222222333";
 	char s2[] = "1234567890123456789012345789012";
 	int max;
@@ -406,11 +406,11 @@ static void show_span(int span)
 
 	label = newtLabel(4,18,"RxD");
 	newtFormAddComponent(form, label);
-	
-	
+
+
 	label = newtLabel(4,7,"Total/Conf/Act: ");
 	newtFormAddComponent(form, label);
-	
+
 	inuse = newtTextbox(24,7,12,1,0);
 	newtFormAddComponent(form, inuse);
 
@@ -419,13 +419,13 @@ static void show_span(int span)
 
 	levels = newtTextbox(24,6,30,1,0);
 	newtFormAddComponent(form, levels);
-	
+
 	label = newtLabel(4,5,"Bipolar Viol: ");
 	newtFormAddComponent(form, label);
 
 	bpvcount = newtTextbox(24,5,30,1,0);
 	newtFormAddComponent(form, bpvcount);
-	
+
 	label = newtLabel(4,4,"IRQ Misses: ");
 	newtFormAddComponent(form, label);
 
@@ -443,7 +443,7 @@ static void show_span(int span)
 
 	alarms = newtTextbox(24,2,30,1,0);
 	newtFormAddComponent(form, alarms);
-	
+
 	for(;;) {
 		/* Wait for user to select something */
 		do {
@@ -468,7 +468,7 @@ static void show_span(int span)
 			case NEWT_KEY_F1:
 				show_span(-1);
 				break;
-#endif				
+#endif
 			case NEWT_KEY_F10:
 				goto out;
 			}
@@ -476,9 +476,9 @@ static void show_span(int span)
 		default:
 			break;
 		}
-	}	
+	}
 
-out:	
+out:
 	newtFormDestroy(form);
 	newtPopWindow();
 	newtPopHelpLine();
@@ -491,30 +491,30 @@ static void show_spans(void)
 	newtComponent label;
 	newtComponent sel;
 
-	
+
 	struct newtExitStruct es;
-	
-	
+
+
 	quit = newtButton(50,14,"Quit");
 	sel = newtButton(10,14,"Select");
-	
+
 	spans = newtListbox(5, 2, 10, NEWT_FLAG_SCROLL);
 	newtListboxSetWidth(spans, 65);
-	
+
 	label = newtLabel(5,1,"Alarms          Span");
-	
+
 	newtCenteredWindow(72,18, "Zapata Telephony Interfaces");
 	form = newtForm(NULL, NULL, 0);
-	
+
 	newtFormSetTimer(form, 200);
-	
+
 	newtFormAddComponents(form, spans, sel, quit, label, NULL);
 
 	newtComponentAddCallback(spans, sel_callback, NULL);
 
 	newtFormAddHotKey(form, NEWT_KEY_F1);
 	newtFormAddHotKey(form, NEWT_KEY_F10);
-	
+
 	for(;;) {
 		/* Wait for user to select something */
 		do {
@@ -563,7 +563,7 @@ int main(int argc, char *argv[])
 	}
 	newtInit();
 	newtCls();
-	
+
 	newtDrawRootText(0,0,"Zaptel Tool (C)2002 Linux Support Services, Inc.");
 	newtPushHelpLine("Welcome to the Zaptel Tool!");
 	show_spans();

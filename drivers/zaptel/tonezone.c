@@ -1,21 +1,21 @@
 /*
  * BSD Telephony Of Mexico "Tormenta" Tone Zone Support 2/22/01
- * 
- * Working with the "Tormenta ISA" Card 
+ *
+ * Working with the "Tormenta ISA" Card
  *
  * This program is free software; you can redistribute it and/or modify
  * it under thet erms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * Primary Author: Mark Spencer <markster@linux-support.net>
  *
@@ -76,45 +76,45 @@ static int build_tone(char *data, int size, struct tone_zone_sound *t, int *coun
 	s = strtok(dup, ",");
 	while(s && strlen(s)) {
 		/* Handle optional ! which signifies don't start here*/
-		if (s[0] == '!') 
+		if (s[0] == '!')
 			s++;
 		else if (firstnobang < 0) {
 #if 0
 			printf("First no bang: %s\n", s);
-#endif			
+#endif
 			firstnobang = *count;
 		}
 		if (sscanf(s, "%d+%d/%d", &freq1, &freq2, &time) == 3) {
 			/* f1+f2/time format */
 #if 0
 			printf("f1+f2/time format: %d, %d, %d\n", freq1, freq2, time);
-#endif			
+#endif
 		} else if (sscanf(s, "%d*%d/%d", &freq1, &freq2, &time) == 3) {
 			/* f1*f2/time format */
 			modulate = 1;
 #if 0
 			printf("f1+f2/time format: %d, %d, %d\n", freq1, freq2, time);
-#endif			
+#endif
 		} else if (sscanf(s, "%d+%d", &freq1, &freq2) == 2) {
 #if 0
 			printf("f1+f2 format: %d, %d\n", freq1, freq2);
-#endif			
+#endif
 			time = 0;
 		} else if (sscanf(s, "%d*%d", &freq1, &freq2) == 2) {
 			modulate = 1;
 #if 0
 			printf("f1+f2 format: %d, %d\n", freq1, freq2);
-#endif			
+#endif
 			time = 0;
 		} else if (sscanf(s, "%d/%d", &freq1, &time) == 2) {
 #if 0
 			printf("f1/time format: %d, %d\n", freq1, time);
-#endif			
+#endif
 			freq2 = 0;
 		} else if (sscanf(s, "%d", &freq1) == 1) {
-#if 0		
+#if 0
 			printf("f1 format: %d\n", freq1);
-#endif			
+#endif
 			firstnobang = *count;
 			freq2 = 0;
 			time = 0;
@@ -137,7 +137,7 @@ static int build_tone(char *data, int size, struct tone_zone_sound *t, int *coun
 		td->fac1 = 2.0 * cos(2.0 * M_PI * (freq1 / 8000.0)) * 32768.0;
 		td->init_v2_1 = sin(-4.0 * M_PI * (freq1 / 8000.0)) * gain;
 		td->init_v3_1 = sin(-2.0 * M_PI * (freq1 / 8000.0)) * gain;
-		
+
 		td->fac2 = 2.0 * cos(2.0 * M_PI * (freq2 / 8000.0)) * 32768.0;
 		td->init_v2_2 = sin(-4.0 * M_PI * (freq2 / 8000.0)) * gain;
 		td->init_v3_2 = sin(-2.0 * M_PI * (freq2 / 8000.0)) * gain;
@@ -208,7 +208,7 @@ static void dump_tone_zone(void *data)
 	int len=0;
 	z = data;
 	data += sizeof(*z);
-	printf("Header: %d tones, %d bytes of data, zone %d (%s)\n", 
+	printf("Header: %d tones, %d bytes of data, zone %d (%s)\n",
 		z->count, z->size, z->zone, z->name);
 	for (x=0;x < z->count; x++) {
 		td = data;
@@ -246,9 +246,9 @@ int tone_zone_register_zone(int fd, struct tone_zone *z)
 	space -= sizeof(struct zt_tone_def_header);
 	used += sizeof(struct zt_tone_def_header);
 	/*
-	 * Fill in ring cadence 
+	 * Fill in ring cadence
 	 */
-	for (x=0;x<ZT_MAX_CADENCE;x++) 
+	for (x=0;x<ZT_MAX_CADENCE;x++)
 		h->ringcadence[x] = z->ringcadence[x];
 	/* Put in an appropriate method for a kernel ioctl */
 	for (x=0;x<ZT_TONE_MAX;x++) {
@@ -256,7 +256,7 @@ int tone_zone_register_zone(int fd, struct tone_zone *z)
 			/* It's a real tone */
 #if 0
 			printf("Tone: %d, string: %s\n", z->tones[x].toneid, z->tones[x].data);
-#endif			
+#endif
 			res = build_tone(ptr, space, &z->tones[x], &count);
 			if (res < 0) {
 				fprintf(stderr, "Tone not built.\n");
@@ -275,7 +275,7 @@ int tone_zone_register_zone(int fd, struct tone_zone *z)
 	x = z->zone;
 	ioctl(fd, ZT_FREEZONE, &x);
 	res = ioctl(fd, ZT_LOADZONE, h);
-	if (res) 
+	if (res)
 		fprintf(stderr, "ioctl(ZT_LOADZONE) failed: %s\n", strerror(errno));
 	if (iopenedit)
 		close(fd);

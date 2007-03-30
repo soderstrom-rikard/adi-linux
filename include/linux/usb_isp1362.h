@@ -5,11 +5,11 @@
  */
 
 struct isp1362_platform_data {
-	// Enable internal pulldown resistors on downstream ports 
+	// Enable internal pulldown resistors on downstream ports
 	unsigned sel15Kres:1;
-	// Clock cannot be stopped 
+	// Clock cannot be stopped
 	unsigned clknotstop:1;
-	// On-chip overcurrent protection 
+	// On-chip overcurrent protection
 	unsigned oc_enable:1;
 	// INT output polarity
 	unsigned int_act_high:1;

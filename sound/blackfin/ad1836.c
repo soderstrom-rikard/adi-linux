@@ -1004,7 +1004,7 @@ static int snd_ad1836_hw_params(snd_pcm_substream_t *substream,
 #else //I2S in following
 static int snd_ad1836_hw_params(snd_pcm_substream_t *substream,
 					snd_pcm_hw_params_t *hwparams)
-{	
+{
 	snd_printk_marker();
 #ifdef LINPHONE_SETTING
 	if (snd_pcm_lib_malloc_pages(substream, AD1836_BUF_SZ) < 0)

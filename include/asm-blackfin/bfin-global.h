@@ -35,6 +35,7 @@
 #include <asm/ptrace.h>
 #include <asm/user.h>
 #include <linux/linkage.h>
+#include <linux/types.h>
 
 #if defined(CONFIG_DMA_UNCACHED_2M)
 # define DMA_UNCACHED_REGION (2 * 1024 * 1024)

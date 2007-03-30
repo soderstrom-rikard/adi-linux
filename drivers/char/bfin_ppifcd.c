@@ -458,7 +458,7 @@ static int ppi_open(struct inode *inode, struct file *filp)
 		return -ENXIO;
 
 	spin_lock_irqsave(&ppifcd_lock, flags);
-						
+
 	if (ppiinfo.opened) {
 		spin_unlock_irqrestore(&ppifcd_lock, flags);
 		return -EMFILE;

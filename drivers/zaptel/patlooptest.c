@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <linux/types.h>
-#include <linux/ppp_defs.h> 
+#include <linux/ppp_defs.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 
 	for(;;) {
 		res = bs;
-		for (x=0;x<bs;x++) 
+		for (x=0;x<bs;x++)
 			outbuf[x] = c1++;
 
 		res = write(fd,outbuf,bs);
@@ -122,5 +122,5 @@ int main(int argc, char *argv[])
 			return errors;
 		}
 	}
-	
+
 }

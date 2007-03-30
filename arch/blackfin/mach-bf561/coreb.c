@@ -65,8 +65,7 @@ static int coreb_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 static int coreb_open(struct inode *inode, struct file *file);
 static int coreb_release(struct inode *inode, struct file *file);
 
-static irqreturn_t coreb_dma_interrupt(int irq, void *dev_id,
-				       struct pt_regs *regs)
+static irqreturn_t coreb_dma_interrupt(int irq, void *dev_id)
 {
 	clear_dma_irqstat(CH_MEM_STREAM2_DEST);
 	coreb_dma_done = 1;
@@ -304,7 +303,7 @@ static struct miscdevice coreb_dev = {
 	&coreb_fops
 };
 
-static ssize_t coreb_show_status(struct class_device * class, char * buf)
+static ssize_t coreb_show_status(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	return sprintf(buf,
 		       "Base Address:\t0x%08lx\n"
@@ -326,7 +325,7 @@ static ssize_t coreb_show_status(struct class_device * class, char * buf)
 		       bfin_read_SICA_IMASK1(), bfin_read_SICB_IMASK1());
 }
 
-CLASS_DEVICE_ATTR(coreb_status, S_IRUGO, coreb_show_status, NULL);
+static DEVICE_ATTR(coreb_status, S_IRUGO, coreb_show_status, NULL);
 
 int __init bf561_coreb_init(void)
 {
@@ -360,7 +359,7 @@ int __init bf561_coreb_init(void)
 
 	misc_register(&coreb_dev);
 
-	if (class_device_create_file(coreb_dev.class, &class_device_attr_coreb_status))
+	if (device_create_file(coreb_dev.this_device, &dev_attr_coreb_status))
 		goto release_dma_src;
 
 	printk(KERN_INFO "BF561 Core B driver %s initialized.\n", MODULE_VER);
@@ -384,7 +383,7 @@ int __init bf561_coreb_init(void)
 
 void __exit bf561_coreb_exit(void)
 {
-	class_device_remove_file(coreb_dev.class, &class_device_attr_coreb_status);
+	device_remove_file(coreb_dev.this_device, &dev_attr_coreb_status);
 	misc_deregister(&coreb_dev);
 
 	release_mem_region(0xff610000, 0x4000);

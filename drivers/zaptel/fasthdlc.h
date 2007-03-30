@@ -5,15 +5,15 @@
  * implementation of standard HDLC protocol.
  *
  * This table based HDLC technology is PATENT PENDING, but will always be
- * remain freely distributable under the terms of the GPL version 2.0. 
+ * remain freely distributable under the terms of the GPL version 2.0.
  *
- * For non-GPL licensing, please contact Mark Spencer at 
+ * For non-GPL licensing, please contact Mark Spencer at
  * the below e-mail address.
  *
  * Copyright (C) 2001, Linux Support Services, Inc.
  *
  * Written by Mark Spencer <markster@linux-support.net>
- * 
+ *
  * Distributed under the terms of the GNU General Public License
  * Version 2.0.
  *
@@ -41,12 +41,12 @@ struct fasthdlc_state {
 #define FRAME_SEARCH	0
 #define PROCESS_FRAME	1
 
-/* 
+/*
 
    HDLC Search State table -- Look for a frame header.  The return value
    of this table is as follows:
 
-  |---8---|---7---|---6---|---5---|---4---|---3---|---2---|---1---| 
+  |---8---|---7---|---6---|---5---|---4---|---3---|---2---|---1---|
   |      Z E R O E S      |  Next |         Bits Consumed         |
   |-------|-------|-------|-------|-------|-------|-------|-------|
 
@@ -75,7 +75,7 @@ static unsigned char hdlc_search[256];
   Bits 14-12: Number of ones in a row, so far
   Bits 11-8:  The number of bits consumed (0-10)
   Bits 7-0:   The return data (if appropriate)
-  
+
   The next state is simply bit #15
 
 */
@@ -119,7 +119,7 @@ static inline char hdlc_search_precalc(unsigned char c)
 
 	/* If it's a flag, we go to state 1, and have
 	   consumed 8 bits */
-	if (c == 0x7e) 
+	if (c == 0x7e)
 		return 0x10 | 8;
 
 	/* If it's an abort, we stay in the same state
@@ -134,7 +134,7 @@ static inline char hdlc_search_precalc(unsigned char c)
 
 	/* If we get here, we must have at least one zero in us
 	   but we're not the flag.  So, start at the end (LSB) and
-	   work our way to the top (MSB) looking for a zero.  The 
+	   work our way to the top (MSB) looking for a zero.  The
 	   position of that 0 is most optimistic start of a real
 	   frame header */
 	x=1;
@@ -180,13 +180,13 @@ static inline unsigned int hdlc_frame_precalc(unsigned char x, unsigned short c)
 				/* Another one -- Some sort of signal frame */
 				if ((!(c & 0x0100)) && (bits == 6)) {
 					/* This is a frame terminator (10) */
-					return HFP(0, 
+					return HFP(0,
 						   0, 8, CONTROL_COMPLETE);
 				} else {
 					/* Yuck!  It's something else...
 					   Abort this entire frame, and
 					   start looking for a good frame */
-					return HFP(0, 
+					return HFP(0,
 						   0, consumed+1, CONTROL_ABORT);
 				}
 			} else {
@@ -200,9 +200,9 @@ static inline unsigned int hdlc_frame_precalc(unsigned char x, unsigned short c)
 			if (c & 0x0200) {
 				data |= 0x80;
 				ones++;
-			} else 
+			} else
 				ones=0;
-			bits++;	
+			bits++;
 		}
 		c <<= 1;
 	}
@@ -233,7 +233,7 @@ static inline void hdlc_frame_print(unsigned char x, unsigned short c, unsigned 
 	printf("Status: %s, ", status[(res & STATUS_MASK) >> 15]);
 	printf("Ones: %d, ", (res & ONES_MASK) >> 12);
 	printf("Data: %02x\n", res & 0xff);
-	
+
 }
 
 #endif
@@ -295,7 +295,7 @@ static inline void hdlc_encode_print(int x, unsigned char y, unsigned int val)
 	}
 	printf(" with %d ones now, %d bits in len\n", (val & 0xf00) >> 8, val & 0xf);
 
-		
+
 }
 #endif
 
@@ -356,7 +356,7 @@ static inline int fasthdlc_tx_load_nocheck(struct fasthdlc_state *h, unsigned ch
 static inline int fasthdlc_tx_load(struct fasthdlc_state *h, unsigned char c)
 {
 	/* Gotta have at least 10 bits left */
-	if (h->bits > 22) 
+	if (h->bits > 22)
 		return -1;
 	return fasthdlc_tx_load_nocheck(h, c);
 }
@@ -409,7 +409,7 @@ static inline int fasthdlc_rx_load(struct fasthdlc_state *h, unsigned char b)
 }
 
 /*
-   Returns a data character if available, logical OR'd with 
+   Returns a data character if available, logical OR'd with
    zero or more of RETURN_COMPLETE_FLAG, RETURN_DISCARD_FLAG,
    and RETURN_EMPTY_FLAG, signifying a complete frame, a
    discarded frame, or there is nothing to return.

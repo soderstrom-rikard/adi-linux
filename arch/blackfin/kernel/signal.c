@@ -33,6 +33,7 @@
 #include <linux/tty.h>
 #include <linux/personality.h>
 #include <linux/binfmts.h>
+#include <linux/freezer.h>
 
 #include <asm/uaccess.h>
 #include <asm/cacheflush.h>

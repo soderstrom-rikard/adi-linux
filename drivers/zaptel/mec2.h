@@ -1,6 +1,6 @@
 /*
  * Mark's Second Echo Canceller
- * 
+ *
  * Copyright (C) 2002, Digium, Inc.
  *
  * This program is free software and may be used and
@@ -56,7 +56,7 @@ typedef struct  {
 
   /* absolute time */
   int i_d;
-  
+
   /* pre-computed constants */
 
   int N_d;
@@ -122,12 +122,12 @@ static inline void init_cc(echo_can_state_t *ec, int N, int maxy, int maxu) {
   tmp += 3;
   tmp &= ~3L;
   ptr = (void *)tmp;
-  
+
   // reset parameters
   //
   ec->N_d = N;
   ec->beta2_i = DEFAULT_BETA1_I;
-  
+
   // allocate coefficient memory
   //
   ec->a_i = ptr;
@@ -138,7 +138,7 @@ static inline void init_cc(echo_can_state_t *ec, int N, int maxy, int maxu) {
   /* Reset Y circular buffer (short version) */
   init_cb_s(&ec->y_s, maxy, ptr);
   ptr += (sizeof(short) * (maxy) * 2);
-  
+
   /* Reset Sig circular buffer (short version for FIR filter) */
   init_cb_s(&ec->s_s, (1 << DEFAULT_ALPHA_ST_I), ptr);
   ptr += (sizeof(short) * (1 << DEFAULT_ALPHA_ST_I) * 2);
@@ -154,7 +154,7 @@ static inline void init_cc(echo_can_state_t *ec, int N, int maxy, int maxu) {
   // reset absolute time
   //
   ec->i_d = (int)0;
-  
+
   // reset the power computations (for y and u)
   //
   ec->Ly_i = DEFAULT_CUTOFF_I;
@@ -182,7 +182,7 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
   short u;
   int Py_i;
   int two_beta_i;
-  
+
   /***************************************************************************
   //
   // flow A on pg. 428
@@ -198,13 +198,13 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
   //  s_d = s_i_d;
   //  s_i_d = (float)(1.0 - gamma_d) * s_i_d
      + (float)(0.5 * (1.0 - gamma_d)) * (sdc_d - sdc_im1_d); */
-  
-  
+
+
   /* Delete last sample from power estimate */
   ec->y_tilde_i -= abs(get_cc_s(&ec->y_s, (1 << DEFAULT_ALPHA_YT_I) - 1 )) >> DEFAULT_ALPHA_YT_I;
   /* push the reference data onto the circular buffer */
   add_cc_s(&ec->y_s, iref);
- 
+
   /* eq. (2): compute r in fixed-point */
   rs = CONVOLVE2(ec->a_s, ec->y_s.buf_d + ec->y_s.idx_d, ec->N_d);
   rs >>= 15;
@@ -213,10 +213,10 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
   // note: the error is the same as the output signal when near-end
   // speech is not present
   */
-  u = isig - rs;  
-  
+  u = isig - rs;
+
   add_cc_s(&ec->u_s, u);
-  
+
 
 
   /* Delete oldest part of received s_tilde */
@@ -228,14 +228,14 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
   ec->y_tilde_i += abs(iref) >> DEFAULT_ALPHA_ST_I;
 
   /* Add to our list of recent y_tilde's */
-  add_cc_s(&ec->y_tilde_s, ec->y_tilde_i);		
+  add_cc_s(&ec->y_tilde_s, ec->y_tilde_i);
 
   /****************************************************************************
   //
   // flow B on pg. 428
-  // 
+  //
    ****************************************************************************/
-  
+
   /* compute the new convergence factor
   */
   Py_i = (ec->Ly_i >> DEFAULT_SIGMA_LY_I) * (ec->Ly_i >> DEFAULT_SIGMA_LY_I);
@@ -243,10 +243,10 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
   if (ec->HCNTR_d > 0) {
   	Py_i = (1 << 15);
   }
-  
+
 #if 0
   printf("Py: %e, Py_i: %e\n", Py, Py_i * AMPL_SCALE_1);
-#endif  
+#endif
 
   /* Vary rate of adaptation depending on position in the file
   // Do not do this for the first (DEFAULT_UPDATE_TIME) secs after speech
@@ -264,9 +264,9 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
   }
   else {ec->beta2_d = DEFAULT_BETA1;}
 #endif
-  
+
   ec->beta2_i = DEFAULT_BETA1_I;	/* Fixed point, inverted */
-  
+
   two_beta_i = (ec->beta2_i * Py_i) >> 15;	/* Fixed point version, inverted */
   if (!two_beta_i)
   	two_beta_i++;
@@ -286,7 +286,7 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
 #if 0
   printf("Float: %e, Int: %e\n", ec->Ly_d, (ec->Ly_i >> DEFAULT_SIGMA_LY_I) * AMPL_SCALE_1);
 #endif
-  
+
   if (ec->y_tilde_i > ec->max_y_tilde) {
   	/* New highest y_tilde with full life */
 	ec->max_y_tilde = ec->y_tilde_i;
@@ -308,13 +308,13 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
   /* update coefficients if no near-end speech and we have enough signal
    * to bother trying to update.
   */
-  if (!ec->HCNTR_d && !(ec->i_d % DEFAULT_M) && 
+  if (!ec->HCNTR_d && !(ec->i_d % DEFAULT_M) &&
       (ec->Lu_i > MIN_UPDATE_THRESH_I)) {
 	    // loop over all filter coefficients
 	    //
 	    for (k=0; k<ec->N_d; k++) {
-	      
-	      // eq. (7): compute an expectation over M_d samples 
+
+	      // eq. (7): compute an expectation over M_d samples
 	      //
 		  int grad2;
 	      grad2 = CONVOLVE2(ec->u_s.buf_d + ec->u_s.idx_d,
@@ -335,23 +335,23 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
  	u = u * (ec->Lu_i >> DEFAULT_SIGMA_LU_I) / ((ec->Ly_i >> (DEFAULT_SIGMA_LY_I)) + 1);
  	u = u * (ec->Lu_i >> DEFAULT_SIGMA_LU_I) / ((ec->Ly_i >> (DEFAULT_SIGMA_LY_I)) + 1);
   }
-#else	
+#else
   if ((ec->HCNTR_d == 0) && ((ec->Ly_i/(ec->Lu_i + 1)) > DEFAULT_SUPPR_I)) {
   	u = u * (ec->Lu_i >> DEFAULT_SIGMA_LU_I) / ((ec->Ly_i >> (DEFAULT_SIGMA_LY_I + 2)) + 1);
   }
-#endif	
-#endif  
+#endif
+#endif
 
 #if 0
   if ((ec->HCNTR_d == 0) && ((ec->Lu_d/ec->Ly_d) < DEFAULT_SUPPR) &&
-      (ec->Lu_d/ec->Ly_d > EC_MIN_DB_VALUE)) { 
+      (ec->Lu_d/ec->Ly_d > EC_MIN_DB_VALUE)) {
     suppr_factor = (10/(float)(SUPPR_FLOOR-SUPPR_CEIL))*log(ec->Lu_d/ec->Ly_d)
       - SUPPR_CEIL/(float)(SUPPR_FLOOR - SUPPR_CEIL);
 
     u_suppr = pow(10.0,(suppr_factor)*RES_SUPR_FACTOR/10.0)*u_suppr;
-    
+
   }
-#endif  
+#endif
   ec->i_d++;
   return u;
 }

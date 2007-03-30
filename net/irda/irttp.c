@@ -26,6 +26,7 @@
 
 #include <linux/skbuff.h>
 #include <linux/init.h>
+#include <linux/fs.h>
 #include <linux/seq_file.h>
 
 #include <asm/byteorder.h>
@@ -1147,7 +1148,7 @@ int irttp_connect_request(struct tsap_cb *self, __u8 dtsap_sel,
 		frame[3] = 0x02; /* Value length */
 
 		put_unaligned(cpu_to_be16((__u16) max_sdu_size),
-			      (__u16 *)(frame+4));
+			      (__be16 *)(frame+4));
 	} else {
 		/* Insert plain TTP header */
 		frame = skb_push(tx_skb, TTP_HEADER);
@@ -1394,7 +1395,7 @@ int irttp_connect_response(struct tsap_cb *self, __u32 max_sdu_size,
 		frame[3] = 0x02; /* Value length */
 
 		put_unaligned(cpu_to_be16((__u16) max_sdu_size),
-			      (__u16 *)(frame+4));
+			      (__be16 *)(frame+4));
 	} else {
 		/* Insert TTP header */
 		frame = skb_push(tx_skb, TTP_HEADER);
@@ -1454,6 +1455,7 @@ struct tsap_cb *irttp_dup(struct tsap_cb *orig, void *instance)
 
 	/* Not everything should be copied */
 	new->notify.instance = instance;
+	spin_lock_init(&new->lock);
 	init_timer(&new->todo_timer);
 
 	skb_queue_head_init(&new->rx_queue);

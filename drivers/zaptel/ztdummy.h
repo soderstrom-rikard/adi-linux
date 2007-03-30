@@ -78,7 +78,7 @@ typedef struct {
         struct urb *next_queued_urb;    // next queued urb for this EP
         struct urb *prev_queued_urb;
 #else
-        urb_t *next_queued_urb;         
+        urb_t *next_queued_urb;
         urb_t *prev_queued_urb;
 #endif
 	uhci_desc_t *bottom_qh;

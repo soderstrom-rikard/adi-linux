@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 		if (res < len) {
 			res = zap_getevent(z);
 			if (zap_dtmfwaiting(z)) {
-	            zap_getdtmf(z, 1, NULL, 0, 1, 1, 0);                    
+	            zap_getdtmf(z, 1, NULL, 0, 1, 1, 0);
 				printf("Got DTMF: %s\n", zap_dtmfbuf(z));
 				zap_clrdtmfn(z);
 			} else if (res) {

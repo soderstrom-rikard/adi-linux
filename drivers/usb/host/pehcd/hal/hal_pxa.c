@@ -25,7 +25,7 @@
  *
  * Date                Author                  Comments
  * ---------------------------------------------------------------------
- * Nov 29 2005        Prabhakar Kalasani      Initial Creation     
+ * Nov 29 2005        Prabhakar Kalasani      Initial Creation
  *
  **********************************************************************
  */
@@ -41,7 +41,7 @@
 #include <linux/init.h>
 #include <linux/timer.h>
 #include <linux/list.h>
-#include <linux/interrupt.h>  
+#include <linux/interrupt.h>
 #include <linux/usb.h>
 #include <linux/poll.h>
 #include <linux/platform_device.h>
@@ -78,7 +78,7 @@ static   __u32            isp1761_base = 0;
 #undef CONFIG_PM /* PM no workie yet. */
 
 /*--------------------------------------------------------------*
- *               Local Function 
+ *               Local Function
  *--------------------------------------------------------------*/
 
 static int  isp1761_remove (struct platform_device *pdev);
@@ -145,12 +145,12 @@ irqreturn_t isp1761_pci_dc_isr(int irq, void *data)
     return IRQ_HANDLED;
 }
 
-/* Interrupt Service Routine of isp1761                                   
+/* Interrupt Service Routine of isp1761
  * Reads the source of interrupt and calls the corresponding driver's ISR.
  * Before calling the driver's ISR clears the source of interrupt.
  * The drivers can get the source of interrupt from the dev->int_reg field
  */
-irqreturn_t     isp1761_pci_isr(int irq, void *__data) 
+irqreturn_t     isp1761_pci_isr(int irq, void *__data)
 {
     __u32               irq_mask = 0;
     struct isp1761_dev  *dev;
@@ -164,7 +164,7 @@ irqreturn_t     isp1761_pci_isr(int irq, void *__data)
 
     dev->int_reg &= irq_mask; /*shared irq ??*/
     /*call the Host Isr if any valid(minus otg)interrupt is present*/
-    if(dev->int_reg & ~HC_OTG_INTERRUPT)                
+    if(dev->int_reg & ~HC_OTG_INTERRUPT)
         dev->handler(dev,dev->isr_data);
 #ifdef OTG
 #ifndef MSEC_INT_BASED
@@ -172,21 +172,21 @@ irqreturn_t     isp1761_pci_isr(int irq, void *__data)
 #endif
     /*process otg interrupt if there is any*/
     if(dev->int_reg & HC_OTG_INTERRUPT){
-        u32     otg_int;        
+        u32     otg_int;
 #ifndef MSEC_INT_BASED
         mdelay(1);
 #endif
         otg_int = (dev->int_reg & HC_OTG_INTERRUPT);
-        /* Process OTG controller Driver 
-         * Since OTG is part of  HC interrupt register, 
+        /* Process OTG controller Driver
+         * Since OTG is part of  HC interrupt register,
          * the interrupt source will be HC interrupt Register
          * */
         dev = &isp1761_loc_dev[ISP1761_OTG];
         /* Read the source of  OTG_INT and clear the
            interrupt source */
-        dev->int_reg = otg_int; 
+        dev->int_reg = otg_int;
         dev->handler(dev, dev->isr_data,r);
-    }   
+    }
 #endif
     hal_entry("%s: Exit\n",__FUNCTION__);
     return IRQ_HANDLED;
@@ -205,12 +205,12 @@ driver:        { .name = "isp1761" }
 
 
 /*--------------------------------------------------------------*
- *               ISP1761 Read write routine 
+ *               ISP1761 Read write routine
  *--------------------------------------------------------------*/
 
 /* Write a 32 bit Register of isp1761 */
 void isp1761_reg_write32(struct isp1761_dev *dev,__u16 reg,__u32 data)
-{ 
+{
     /* Write the 32bit to the register address given to us*/
     writel(data,dev->baseaddress+reg);
     //printk("Wrote to 0x%08x value 0x%08x\n", isp1761_base + reg, data);
@@ -219,7 +219,7 @@ void isp1761_reg_write32(struct isp1761_dev *dev,__u16 reg,__u32 data)
 
 /* Read a 32 bit Register of isp1761 */
 __u32 isp1761_reg_read32(struct isp1761_dev *dev,__u16 reg,__u32 data)
-{ 
+{
 
     data = readl(dev->baseaddress + reg);
     //printk("Read from 0x%08x is 0x%08x\n", isp1761_base + reg, data);
@@ -229,46 +229,46 @@ __u32 isp1761_reg_read32(struct isp1761_dev *dev,__u16 reg,__u32 data)
 
 /* Read a 16 bit Register of isp1761 */
 __u16 isp1761_reg_read16(struct isp1761_dev *dev,__u16 reg,__u16 data)
-{ 
+{
     data = readw(dev->baseaddress+reg);
     return data;
 }
 
 /* Write a 16 bit Register of isp1761 */
 void isp1761_reg_write16(struct isp1761_dev *dev,__u16 reg,__u16 data)
-{ 
+{
     //printk("Wrote to 0x%08x value 0x%04x\n", isp1761_base + reg, data);
     writew(data,dev->baseaddress+reg);
 
 }
 
 /*--------------------------------------------------------------*
- *  
+ *
  * Module dtatils: isp1761_mem_read
  *
  * Memory read using PIO method.
  *
  *  Input: struct isp1761_driver *drv  -->  Driver structure.
- *                      __u32 start_add     --> Starting address of memory 
- *              __u32 end_add     ---> End address 
- *              
- *              __u32 * buffer      --> Buffer pointer.
- *              __u32 length       ---> Length 
- *              __u16 dir          ---> Direction ( Inc or Dec)
- *                      
- *  Output     int Length  ----> Number of bytes read 
+ *                      __u32 start_add     --> Starting address of memory
+ *              __u32 end_add     ---> End address
  *
- *  Called by: system function 
- * 
- * 
+ *              __u32 * buffer      --> Buffer pointer.
+ *              __u32 length       ---> Length
+ *              __u16 dir          ---> Direction ( Inc or Dec)
+ *
+ *  Output     int Length  ----> Number of bytes read
+ *
+ *  Called by: system function
+ *
+ *
  *--------------------------------------------------------------*/
 /* Memory read function PIO */
 
-int     
-isp1761_mem_read(struct isp1761_dev *dev, __u32 start_add, 
+int
+isp1761_mem_read(struct isp1761_dev *dev, __u32 start_add,
         __u32 end_add, __u32 * buffer, __u32 length, __u16 dir)
 {
-    u8 *temp_base_mem = 0;      
+    u8 *temp_base_mem = 0;
     u8 *one = (u8 *) buffer;
     u16 *two = (u16 *) buffer;
     int a = (int)length;
@@ -286,7 +286,7 @@ last:
     if(a == 2){
         *two=(u16)w;
         return 0;
-    }   
+    }
 
 
     if(a == 3){
@@ -313,37 +313,37 @@ last:
             goto last;
         }
         buffer += 1;
-        w = readl(temp_base_mem); 
+        w = readl(temp_base_mem);
     }
     return ((a < 0) || (a == 0))?0:(-1);
 
 }
 
 /*--------------------------------------------------------------*
- *  
+ *
  * Module dtatils: isp1761_mem_write
  *
  * Memory write using PIO method.
  *
  *  Input: struct isp1761_driver *drv  -->  Driver structure.
- *                      __u32 start_add     --> Starting address of memory 
- *              __u32 end_add     ---> End address 
- *              
- *              __u32 * buffer      --> Buffer pointer.
- *              __u32 length       ---> Length 
- *              __u16 dir          ---> Direction ( Inc or Dec)
- *                      
- *  Output     int Length  ----> Number of bytes read 
+ *                      __u32 start_add     --> Starting address of memory
+ *              __u32 end_add     ---> End address
  *
- *  Called by: system function 
- * 
- * 
+ *              __u32 * buffer      --> Buffer pointer.
+ *              __u32 length       ---> Length
+ *              __u16 dir          ---> Direction ( Inc or Dec)
+ *
+ *  Output     int Length  ----> Number of bytes read
+ *
+ *  Called by: system function
+ *
+ *
  *--------------------------------------------------------------*/
 
 /* Memory read function IO */
-int     
-isp1761_mem_write(struct isp1761_dev *dev, 
-        __u32 start_add, __u32 end_add, 
+int
+isp1761_mem_write(struct isp1761_dev *dev,
+        __u32 start_add, __u32 end_add,
         __u32 * buffer, __u32 length,
         __u16 dir)
 {
@@ -351,7 +351,7 @@ isp1761_mem_write(struct isp1761_dev *dev,
     int a = length;
     //u8 *temp = (u8*)buffer;
     u8 one      =(u8 )(*buffer);
-    u16 two     =(u16 )(*buffer);       
+    u16 two     =(u16 )(*buffer);
     temp_base_mem = (dev->baseaddress + start_add);
 
     if(a == 1){
@@ -363,7 +363,7 @@ isp1761_mem_write(struct isp1761_dev *dev,
         return 0;
     }
 
-    while(a>0){         
+    while(a>0){
         writel(*buffer, temp_base_mem);
         temp_base_mem = temp_base_mem+4;
         start_add +=4;
@@ -377,21 +377,21 @@ isp1761_mem_write(struct isp1761_dev *dev,
 
 }
 /*--------------------------------------------------------------*
- *  
+ *
  * Module dtatils: isp1761_check_mem_region
  *
- *  Check the memory region for Memory Mapping 
+ *  Check the memory region for Memory Mapping
  *  Check with the system about the availability of the region,
  *  and returns success, if available.
  *
  *  Input: struct isp1761_driver *drv  --> Driver structure.
- *  
- *  Output result  
- *         
  *
- *  Called by: system function 
- * 
- * 
+ *  Output result
+ *
+ *
+ *  Called by: system function
+ *
+ *
  *--------------------------------------------------------------*/
 
 int isp1761_check_mem_region(struct isp1761_dev *dev)
@@ -402,23 +402,23 @@ int isp1761_check_mem_region(struct isp1761_dev *dev)
 }/* End of isp1761_check_mem_region */
 
 /*--------------------------------------------------------------*
- *  
+ *
  * Module dtatils: isp1761_request_mem_region
  isp1761_release_mem_region
  isp1761_get_mem_params
 
  *
- *  If the check returns Success, we can request the region for 
+ *  If the check returns Success, we can request the region for
  *  Memory mapping of our chip memory
  *
  *  Input: struct isp1761_driver *drv  --> Driver structure.
- *  
- *  Output result  
- *         
  *
- *  Called by: system function 
- * 
- * 
+ *  Output result
+ *
+ *
+ *  Called by: system function
+ *
+ *
  *--------------------------------------------------------------*/
 
 struct resource* isp1761_request_mem_region(struct isp1761_dev *dev)
@@ -434,7 +434,7 @@ void isp1761_release_mem_region(struct isp1761_dev* dev)
     release_mem_region (dev->start, dev->length);
 }
 
-/* Get the start address and length of Mapped Memory */ 
+/* Get the start address and length of Mapped Memory */
 void isp1761_get_mem_params(struct isp1761_dev *dev,struct isp1761_driver *drv)
 {
     dev->start  =isp1761_loc_dev[drv->index].start;
@@ -443,32 +443,32 @@ void isp1761_get_mem_params(struct isp1761_dev *dev,struct isp1761_driver *drv)
 
 
 /*--------------------------------------------------------------*
- *  
+ *
  * Module dtatils: isp1761_request_irq
  *
  * This function registers the ISR of driver with this driver.
  * Since there is only one interrupt line, when the first driver
  * is registerd, will call the system function request_irq. The PLX
- * bridge needs enabling of interrupt in the interrupt control register to 
+ * bridge needs enabling of interrupt in the interrupt control register to
  * pass the local interrupts to the PCI (cpu).
  * For later registrations will just update the variables. On ISR, this driver
  * will look for registered handlers and calls the corresponding driver's
  * ISR "handler" function with "isr_data" as parameter.
  *
- *  Input: struct 
+ *  Input: struct
  *              (void (*handler)(struct isp1761_dev *, void *)-->handler.
  *               isp1761_driver *drv  --> Driver structure.
- *  Output result 
- *         0= complete 
+ *  Output result
+ *         0= complete
  *         1= error.
  *
- *  Called by: system function module_init 
- * 
- * 
+ *  Called by: system function module_init
+ *
+ *
  *--------------------------------------------------------------*/
 
 int isp1761_request_irq(void (*handler)(struct isp1761_dev *, void *),
-        struct isp1761_dev *dev, void *isr_data) 
+        struct isp1761_dev *dev, void *isr_data)
 {
     int result = 0;
     hal_entry("%s: Entered\n",__FUNCTION__);
@@ -495,25 +495,25 @@ int isp1761_request_irq(void (*handler)(struct isp1761_dev *, void *),
 } /* End of isp1761_request_irq */
 
 /*--------------------------------------------------------------*
- *  
+ *
  * Module dtatils: isp1761_free_irq
  *
  * This function de-registers the ISR of driver with this driver.
  * Since there is only one interrupt line, when the last driver
  * is de-registerd, will call the system function free_irq. The PLX
- * bridge needs disabling of interrupt in the interrupt control register to 
+ * bridge needs disabling of interrupt in the interrupt control register to
  * block the local interrupts to the PCI (cpu).
  *
- *  Input: struct 
+ *  Input: struct
  *              (void (*handler)(struct isp1761_dev *, void *)-->handler.
  *               isp1761_driver *drv  --> Driver structure.
- *  Output result 
- *         0= complete 
+ *  Output result
+ *         0= complete
  *         1= error.
  *
- *  Called by: system function module_init 
- * 
- * 
+ *  Called by: system function module_init
+ *
+ *
  *--------------------------------------------------------------*/
 
 void isp1761_free_irq(struct isp1761_dev *dev, void *isr_data)
@@ -557,7 +557,7 @@ void isp_1761_vfree(const void* objp)
 
 
 /*--------------------------------------------------------------*
- *  
+ *
  * Module dtatils: isp1761_register_driver
  *
  * This function is used by top driver (OTG, HCD, DCD) to register
@@ -567,16 +567,16 @@ void isp_1761_vfree(const void* objp)
  * corresponding to the driver is enabled
  *
  *  Input: struct isp1761_driver *drv  --> Driver structure.
- *  Output result 
- *         0= complete 
+ *  Output result
+ *         0= complete
  *         1= error.
  *
- *  Called by: system function module_init 
- * 
- * 
+ *  Called by: system function module_init
+ *
+ *
  *--------------------------------------------------------------*/
 
-int     isp1761_register_driver(struct isp1761_driver *drv) 
+int     isp1761_register_driver(struct isp1761_driver *drv)
 {
     struct isp1761_dev  *dev;
     int result;
@@ -589,7 +589,7 @@ int     isp1761_register_driver(struct isp1761_driver *drv)
     dev = &isp1761_loc_dev[drv->index];
     if(drv->index == ISP1761_DC){/*FIX for device*/
         result = drv->probe(dev,drv->id);
-    }else{              
+    }else{
         id = drv->id;
         if(dev->active) result = drv->probe(dev,id);
         else    result = -ENODEV;
@@ -606,7 +606,7 @@ int     isp1761_register_driver(struct isp1761_driver *drv)
 
 
 /*--------------------------------------------------------------*
- *  
+ *
  * Module dtatils: isp1761_unregister_driver
  *
  * This function is used by top driver (OTG, HCD, DCD) to de-register
@@ -616,13 +616,13 @@ int     isp1761_register_driver(struct isp1761_driver *drv)
  * call the remove function of the driver if registered
  *
  *  Input: struct isp1761_driver *drv  --> Driver structure.
- *  Output result 
- *         0= complete 
+ *  Output result
+ *         0= complete
  *         1= error.
  *
- *  Called by: system function module_init 
- * 
- * 
+ *  Called by: system function module_init
+ *
+ *
  *--------------------------------------------------------------*/
 
 
@@ -654,21 +654,21 @@ void    isp1761_unregister_driver(struct isp1761_driver *drv)
  *
  *  Module dtatils: isp1761_module_init
  *
- *  This  is the module initialization function. It registers to 
+ *  This  is the module initialization function. It registers to
  *  PCI driver for a PLX PCI bridge device. And also resets the
  *  internal data structures before registering to PCI driver.
  *
- *  Input: void 
- *  Output result 
- *         0= complete 
+ *  Input: void
+ *  Output result
+ *         0= complete
  *         1= error.
  *
- *  Called by: system function module_init 
- * 
- * 
- * 
+ *  Called by: system function module_init
+ *
+ *
+ *
  -------------------------------------------------------------------*/
-static int __init isp1761_module_init (void) 
+static int __init isp1761_module_init (void)
 {
     int result = 0;
     hal_entry("%s: Entered\n",__FUNCTION__);
@@ -685,24 +685,24 @@ static int __init isp1761_module_init (void)
  *
  *  Module dtatils: isp1761_module_cleanup
  *
- * This  is the module cleanup function. It de-registers from 
+ * This  is the module cleanup function. It de-registers from
  * PCI driver and resets the internal data structures.
  *
- *  Input: void 
+ *  Input: void
  *  Output void
  *
- *  Called by: system function module_cleanup 
- * 
- * 
- * 
+ *  Called by: system function module_cleanup
+ *
+ *
+ *
  --------------------------------------------------------------*/
 
-static void __exit isp1761_module_cleanup (void) 
+static void __exit isp1761_module_cleanup (void)
 {
     printk("Hal Module Cleanup\n");
     platform_driver_unregister(&isp1761_platform_driver);
     memset(isp1761_loc_dev,0,sizeof(isp1761_loc_dev));
-} 
+}
 
 
 /*--------------------------------------------------------------*
@@ -716,15 +716,15 @@ static void __exit isp1761_module_cleanup (void)
  * access to these controllers and do a software reset and makes them ready
  * for the drivers to play with them.
  *
- *  Input: 
- *              struct pci_dev *dev                     ----> PCI Devie data structure 
- *      const struct pci_device_id *id  ----> PCI Device ID 
+ *  Input:
+ *              struct pci_dev *dev                     ----> PCI Devie data structure
+ *      const struct pci_device_id *id  ----> PCI Device ID
  *  Output void
  *
- *  Called by: system function module_cleanup 
- * 
- * 
- * 
+ *  Called by: system function module_cleanup
+ *
+ *
+ *
  --------------------------------------------------------------**/
 
     static int __devinit
@@ -758,7 +758,7 @@ isp1761_probe (struct platform_device *pdev)
     loc_dev->io_len = ISP1761_REGSET_LEN; /*64K*/
     loc_dev->index = ISP1761_HC;/*zero*/
 
-    loc_dev->io_len = length; 
+    loc_dev->io_len = length;
     if(check_mem_region(loc_dev->io_base,length)<0){
         err("host controller already in use\n");
         return -EBUSY;
@@ -775,16 +775,16 @@ isp1761_probe (struct platform_device *pdev)
         err("memory map problem\n");
         release_mem_region(loc_dev->io_base,length);
         return -ENOMEM;
-    } 
+    }
 
     loc_dev->baseaddress = (u8*)address;
     //loc_dev->dmabase = (u8*)iobase;
 
-    hal_init(("isp1761 HC MEM Base= %p irq = %d\n", 
+    hal_init(("isp1761 HC MEM Base= %p irq = %d\n",
                 loc_dev->baseaddress,loc_dev->irq));
-#ifdef ISP1761_DEVICE   
+#ifdef ISP1761_DEVICE
 
-    /*initialize device controller framework*/  
+    /*initialize device controller framework*/
     loc_dev = &(isp1761_loc_dev[ISP1761_DC]);
     loc_dev->dev = &pdev->dev;
     loc_dev->irq = platform_get_irq(pdev, 0);
@@ -803,8 +803,8 @@ isp1761_probe (struct platform_device *pdev)
         u32 chipid = 0;
         chipid = readl(address + 0x270);
         info("pid %04x, vid %04x\n", (chipid & 0xffff), (chipid >> 16));
-    }   
-    hal_init(("isp1761 DC MEM Base= %lx irq = %d\n", 
+    }
+    hal_init(("isp1761 DC MEM Base= %lx irq = %d\n",
                 loc_dev->io_base,loc_dev->irq));
     /* Get the OTG Controller IO and INT resources
      * OTG controller resources are same as Host Controller resources
@@ -814,15 +814,15 @@ isp1761_probe (struct platform_device *pdev)
     loc_dev->irq = platform_get_irq(pdev, 0);
     loc_dev->io_base = isp1761_base;
     loc_dev->start   =  isp1761_base;
-    loc_dev->length  = ISP1761_REGSET_LEN;     
+    loc_dev->length  = ISP1761_REGSET_LEN;
     loc_dev->io_len = ISP1761_REGSET_LEN;
-    loc_dev->index = ISP1761_OTG; 
+    loc_dev->index = ISP1761_OTG;
     loc_dev->baseaddress = address; /*having the same address as of host*/
     loc_dev->active = 1;
     memcpy(loc_dev->name,"isp1761_otg",11);
     loc_dev->name[12] = '\0';
 
-    hal_init(("isp1761 OTG MEM Base= %lx irq = %x\n", 
+    hal_init(("isp1761 OTG MEM Base= %lx irq = %x\n",
                 loc_dev->io_base,loc_dev->irq));
 
 #endif
@@ -880,17 +880,17 @@ clean:
  * the corresponding removal functions. Also initializes the local variables
  * to zero.
  *
- *  Input: 
- *              struct pci_dev *dev                     ----> PCI Devie data structure 
- *    
+ *  Input:
+ *              struct pci_dev *dev                     ----> PCI Devie data structure
+ *
  *  Output void
  *
- *  Called by: system function module_cleanup 
- * 
- * 
- * 
+ *  Called by: system function module_cleanup
+ *
+ *
+ *
  --------------------------------------------------------------*/
-static int 
+static int
 isp1761_remove (struct platform_device *pdev)
 {
     struct isp1761_dev  *loc_dev;
@@ -898,7 +898,7 @@ isp1761_remove (struct platform_device *pdev)
     /*Lets handle the host first*/
     loc_dev  = &isp1761_loc_dev[ISP1761_HC];
     /*free the memory occupied by host*/
-    release_mem_region(loc_dev->io_base, loc_dev->io_len);      
+    release_mem_region(loc_dev->io_base, loc_dev->io_len);
     /*unmap the occupied memory resources*/
     iounmap(loc_dev->baseaddress);
     s_pdev = NULL;
@@ -912,20 +912,20 @@ isp1761_remove (struct platform_device *pdev)
  * PCI suspend function of ISP1761
  * This function is called from PCI Driver.
  * This functions checks the registerd drivers (HCD, DCD, OTG) and calls
- * the corresponding suspend functions if present. 
- *  Input: 
- *              struct pci_dev *dev                     ----> PCI Devie data structure 
- *    
+ * the corresponding suspend functions if present.
+ *  Input:
+ *              struct pci_dev *dev                     ----> PCI Devie data structure
+ *
  *  Output void
  *
- *  Called by: system function 
- * 
- * 
- * 
+ *  Called by: system function
+ *
+ *
+ *
  --------------------------------------------------------------*/
 
 #ifdef CONFIG_PM
-static int isp1761_pci_suspend (struct pci_dev *dev, __u32 state) 
+static int isp1761_pci_suspend (struct pci_dev *dev, __u32 state)
 {
     struct isp1761_dev  *loc_dev;
     int                 index;
@@ -957,15 +957,15 @@ static int isp1761_pci_suspend (struct pci_dev *dev, __u32 state)
  *  PCI resume function of ISP1761
  * This function is called from PCI Driver.
  * This functions checks the registerd drivers (HCD, DCD, OTG) and calls
- * the corresponding resume functions if present.  
- *  Input: 
- *              struct pci_dev *dev                     ----> PCI Devie data structure 
- *    
+ * the corresponding resume functions if present.
+ *  Input:
+ *              struct pci_dev *dev                     ----> PCI Devie data structure
+ *
  *  Output void
  *
  *  Called by: system function
- * 
- * 
+ *
+ *
  --------------------------------------------------------------*/
 #ifdef CONFIG_PM
 static int isp1761_pci_resume (struct pci_dev *dev)

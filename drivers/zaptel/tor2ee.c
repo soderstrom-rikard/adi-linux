@@ -12,15 +12,15 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -43,7 +43,7 @@
 
 #define NUM_REGS 0x86 >> 1
 
-static 
+static
 __u16 fcstab[256] =
 {
 	0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
@@ -115,7 +115,7 @@ static int manual = 0;
 #define PE_PCI_REVISION			0x0A
 #define PE_PCI_SUBSYS_ID		0x0C
 #define PE_PCI_SUBSYS_VENDOR		0x0E
-#define PE_PCI_MSB_NCP                  0x10     			   
+#define PE_PCI_MSB_NCP                  0x10
 #define PE_PCI_LSB_NCP                  0x12
 #define PE_PCI_MAXLAT_MINGRANT          0x14
 #define PE_PCI_INT_PIN                  0x16
@@ -147,7 +147,7 @@ static int manual = 0;
 #define PE_PCI_LSW_REMAP_P2L_ADDR3      0x4A
 #define PE_PCI_MSW_REMAP_P2L_ROM        0x4C
 #define PE_PCI_LSW_REMAP_P2L_ROM        0x4E
-#define PE_PCI_MSW_BRD_LADDR0           0x50       
+#define PE_PCI_MSW_BRD_LADDR0           0x50
 #define PE_PCI_LSW_BRD_LADDR0           0x52
 #define PE_PCI_MSW_BRD_LADDR1           0x54
 #define PE_PCI_LSW_BRD_LADDR1           0x56
@@ -156,7 +156,7 @@ static int manual = 0;
 #define PE_PCI_MSW_BRD_LADDR3           0x5C
 #define PE_PCI_LSW_BRD_LADDR3           0x5E
 #define PE_PCI_MSW_BRD_ROM              0x60
-#define PE_PCI_LSW_BRD_ROM              0x62    
+#define PE_PCI_LSW_BRD_ROM              0x62
 #define PE_PCI_MSW_CS0                  0x64
 #define PE_PCI_LSW_CS0                  0x66
 #define PE_PCI_MSW_CS1                  0x68
@@ -175,7 +175,7 @@ static int manual = 0;
 #define PE_PCI_LSW_PMDATA               0x82
 #define PE_PCI_MSW_PMDATAS              0x84
 #define PE_PCI_LSW_PMDATAS              0x86
-                         
+
 struct pci_eereg eeregs[] = {
 	{ PE_DEVICE_ID, "Device ID" },
 	{ PE_VENDOR_ID, "Vendor ID" },
@@ -195,7 +195,7 @@ struct pci_eereg eeregs[] = {
         { PE_PCI_LSW_PM_CNT_STAT    ,"LSW Power Management Control/Status"},
         { PE_PCI_MSW_HS_CNT_STAT    ,"MSW of Hot Swap Control/Status"},
         { PE_PCI_LSW_HS_NCP         ,"LSW of Hot Swap Next Capability Pointer/Hot Swap Control"},
-        { PE_PCI_VPD_ADDR           ,"PCI Vital Product Data Address"},    
+        { PE_PCI_VPD_ADDR           ,"PCI Vital Product Data Address"},
         { PE_PCI_VPD_NCP            ,"PCI Vital Product Data Next Capability Pointer"},
         { PE_PCI_MSW_RP2L_ADDR0     ,"MSW of Range for PCI-to-Local Address Space 0"},
         { PE_PCI_LSW_RP2L_ADDR0     ,"LSW of Range for PCI-to-Local Address Space 0"},
@@ -207,7 +207,7 @@ struct pci_eereg eeregs[] = {
         { PE_PCI_LSW_RP2L_ADDR3     ,"LSW of Range for PCI-to-Local Address Space 3"},
         { PE_PCI_MSW_RP2L_ROM       ,"MSW of Range for PCI-to-Local Expansion ROM"},
         { PE_PCI_LSW_RP2L_ROM       ,"LSW of Range for PCI-to-Local Expansion ROM"},
-        { PE_PCI_MSW_REMAP_P2L_ADDR0,"MSW of Local Base Address(Remap) PCI-to-Local Address Space 0"}, 
+        { PE_PCI_MSW_REMAP_P2L_ADDR0,"MSW of Local Base Address(Remap) PCI-to-Local Address Space 0"},
         { PE_PCI_LSW_REMAP_P2L_ADDR0,"LSW of Local Base Address(Remap) PCI-to-Local Address Space 0"},
         { PE_PCI_MSW_REMAP_P2L_ADDR1,"MSW of Local Base Address(Remap) PCI-to-Local Address Space 1"},
         { PE_PCI_LSW_REMAP_P2L_ADDR1,"LSW of Local Base Address(Remap) PCI-to-Local Address Space 1"},
@@ -221,11 +221,11 @@ struct pci_eereg eeregs[] = {
         { PE_PCI_LSW_BRD_LADDR0     ,"LSW of Bus Region Descriptors for Local Address Space 0"},
         { PE_PCI_MSW_BRD_LADDR1     ,"MSW of Bus Region Descriptors for Local Address Space 1"},
         { PE_PCI_LSW_BRD_LADDR1     ,"LSW of Bus Region Descriptors for Local Address Space 1"},
-        { PE_PCI_MSW_BRD_LADDR2     ,"MSW of Bus Region Descriptors for Local Address Space 2"},      
+        { PE_PCI_MSW_BRD_LADDR2     ,"MSW of Bus Region Descriptors for Local Address Space 2"},
         { PE_PCI_LSW_BRD_LADDR2     ,"LSW of Bus Region Descriptors for Local Address Space 2"},
         { PE_PCI_MSW_BRD_LADDR3     ,"MSW of Bus Region Descriptors for Local Address Space 3"},
         { PE_PCI_LSW_BRD_LADDR3     ,"LSW of Bus Region Descriptors for Local Address Space 3"},
-        { PE_PCI_MSW_BRD_ROM        ,"MSW of Bus Region Descriptors for Expansion ROM"},     
+        { PE_PCI_MSW_BRD_ROM        ,"MSW of Bus Region Descriptors for Expansion ROM"},
         { PE_PCI_LSW_BRD_ROM        ,"LSW of Bus Region Descriptors for Expansion ROM"},
         { PE_PCI_MSW_CS0            ,"MSW of Chip Select 0 Base And Range"},
         { PE_PCI_LSW_CS0            ,"LSW of Chip Select 0 Base And Range"},
@@ -244,9 +244,9 @@ struct pci_eereg eeregs[] = {
         { PE_PCI_MSW_PMDATA         ,"MSW of Hidden 1 Power Management Data Select"},
         { PE_PCI_LSW_PMDATA         ,"LSW of Hidden 1 Power Management Data Select"},
         { PE_PCI_MSW_PMDATAS        ,"MSW of Hidden 2 Power Management Data Scale"},
-        { PE_PCI_LSW_PMDATAS        ,"LSW of Hidden 2 Power Management Data Scale"} 
-}; 
- 
+        { PE_PCI_LSW_PMDATAS        ,"LSW of Hidden 2 Power Management Data Scale"}
+};
+
 #define NUM_EEREGS sizeof(eeregs) / sizeof(eeregs[0])
 
 /* This is the structure of an EEPROM file */
@@ -282,7 +282,7 @@ static void plx_clock(void)
 	write_cntrl();
 }
 
-static void plx_write_bit(int bit) 
+static void plx_write_bit(int bit)
 {
 	if (bit)
 		cntrl |= BIT_EE_WR;
@@ -339,7 +339,7 @@ static int plx_read_reg(int reg)
 		if (plx_read_bit())
 			res |= 1;
 	}
-	
+
 	/* Clear the CS again */
 	cntrl &= ~BIT_EE_CS;
 
@@ -530,7 +530,7 @@ attempt_retry:
 			}
 			usleep(1);
 		}
-	} 
+	}
 	return pci_read_long(dev, PLX_PCI_VPD_DATA);
 }
 
@@ -564,9 +564,9 @@ attempt_retry:
 				goto attempt_retry;
 			}
 			usleep(1);
-		} else 
+		} else
 			break;
-	} 
+	}
 	return 0;
 }
 
@@ -720,7 +720,7 @@ static void plx_manread(void)
 static void dump_pci_eeprom(struct pci_eeprom *ee)
 {
 	int x;
-	for (x=0;x<NUM_EEREGS;x++) 
+	for (x=0;x<NUM_EEREGS;x++)
 		printf("%60s(%04x): 0x%04x\n", eeregs[x].name, eeregs[x].pos, ee->data[eeregs[x].pos/2]);
 }
 
@@ -854,7 +854,7 @@ static void closemem(void)
 
 int detect_tormenta2(int index)
 {
-	/* Detect presense of Tormenta 2 card or return -1. 
+	/* Detect presense of Tormenta 2 card or return -1.
 	   Sets up base addresses, etc as necessary as well. */
 	int which=0;
 	char *variant;
@@ -864,17 +864,17 @@ int detect_tormenta2(int index)
 	dev = pci->devices;
 	while(dev) {
 #if 0
-		printf("[%d:%d:%d] VendorID: %04x DeviceID: %04x\n", 
-		       dev->bus, dev->dev, dev->func, dev->vendor_id, 
+		printf("[%d:%d:%d] VendorID: %04x DeviceID: %04x\n",
+		       dev->bus, dev->dev, dev->func, dev->vendor_id,
 		       dev->device_id);
 #endif
-		if (tor2_pci_match(dev->vendor_id, dev->device_id, &variant)) 
+		if (tor2_pci_match(dev->vendor_id, dev->device_id, &variant))
 			if (index == which++)
 				break;
 		dev = dev->next;
 	}
 	if (!dev) {
-		if (which) 
+		if (which)
 			fprintf(stderr, "Only %d Tormenta2 card(s) found\n", which);
 		else
 			fprintf(stderr, "No Tormenta2 card found in system\n");
@@ -886,7 +886,7 @@ int detect_tormenta2(int index)
 	       "PLX Control I/O Space: 0x%lx\n",
 	       variant,
 		dev->vendor_id, dev->device_id,
-	        dev->base_addr[0], dev->size[0], 
+	        dev->base_addr[0], dev->size[0],
 	        dev->base_addr[1]);
 	if (!dev->base_addr[0] || !dev->size[0]) {
 		fprintf(stderr, "Invalid base address info\n");
@@ -902,7 +902,7 @@ int detect_tormenta2(int index)
 
 void usage(int exitstatus)
 {
-	fprintf(stderr, 
+	fprintf(stderr,
 "tor2ee -- Tormenta 2 EEPROM controller\n"
 "Usage: tor2ee command [args...]\n"
 "       tor2ee detect\n"
@@ -938,7 +938,7 @@ static void modify(struct pci_eeprom *ee, int reg, int val)
 {
 	int x;
 	char *regn = "<Unknown>";
-	for (x=0;x<NUM_EEREGS;x++) 
+	for (x=0;x<NUM_EEREGS;x++)
 		if (eeregs[x].pos == reg)
 			regn = eeregs[x].name;
 	ee->data[reg/2] = val;

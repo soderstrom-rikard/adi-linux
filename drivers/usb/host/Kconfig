@@ -98,18 +98,18 @@ config USB_ISP1362_BFIN_GPIO_IRQ
 	range 50 97
         default 53
         help
-          Choose an PF pin as ISP1362's interrupt. This must corresponds to 
+          Choose an PF pin as ISP1362's interrupt. This must corresponds to
 	  the JP3 on usb daughter card. The available value is from 50 to 97.
 	  For more information look at include/asm-blackfin/mach-bfxxx/irq.h.
 
 config USB_ISP1760_HCD
-	tristate "ISP1760 HCD support"
-	depends on USB
-	default N
-	---help---
-	  Supports the Philips ISP1760 chip as a host controller
-	  To compile this driver as a module, choose M here: the
-	  module will be called isp1760-hcd.
+       tristate "ISP1760 HCD support"
+       depends on USB
+       default N
+       ---help---
+         Supports the Philips ISP1760 chip as a host controller
+         To compile this driver as a module, choose M here: the
+         module will be called isp1760-hcd.
 
 config USB_OHCI_HCD
 	tristate "OHCI HCD support"
@@ -185,7 +185,7 @@ config USB_U132_HCD
 	  adapter will *NOT* work with PC cards that do not contain an OHCI
 	  controller.
 
-	  For those PC cards that contain multiple OHCI controllers only ther
+	  For those PC cards that contain multiple OHCI controllers only the
 	  first one is used.
 
 	  The driver consists of two modules, the "ftdi-elan" module is a
@@ -213,17 +213,17 @@ config USB_SL811_HCD
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called sl811-hcd.
-	  
+
 config USB_SL811_BFIN_IRQ
         int "GPIO IRQ pin for Interrupt"
         depends on (BF537 && USB_SL811_HCD)
 	range 50 97
         default 54
         help
-          Choose an PF pin as SL811's interrupt. This must corresponds to 
+          Choose an PF pin as SL811's interrupt. This must corresponds to
 	  the JP5 on usb daughter card. The available value is from 50 to 97.
 	  For more information look at include/asm-blackfin/mach-bfxxx/irq.h.
-											    
+
 config USB_SL811_CS
 	tristate "CF/PCMCIA support for SL811HS HCD"
 	depends on USB_SL811_HCD && PCMCIA

@@ -1,14 +1,14 @@
 /*
   bfsi.c
   David Rowe 21 June 2006
- 
+
   Functions for Linux device drivers on the Blackfin that
   support interfacing the Blackfin to Silicon Labs chips.
 
   These functions are in a separate file from the target wcfxs driver
   so they can be re-used with different drivers, for example unit
   test software.
- 
+
   For various reasons the CPHA=1 (sofware controlled SPISEL)
   mode needs to be used, for example the SiLabs chip expects
   SPISEL to go high between 8 bit transfers and the timing
@@ -20,20 +20,20 @@
 
 /*
   Copyright (C) 2006 David Rowe
- 
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
 #include <linux/module.h>
@@ -126,9 +126,9 @@ static unsigned int dma_iobase[] =
 #define PRINTK(args...)
 #endif
 
-/* 
-   I found these macros from the bfin5xx_spi.c driver by Luke Yang 
-   useful - thanks Luke :-) 
+/*
+   I found these macros from the bfin5xx_spi.c driver by Luke Yang
+   useful - thanks Luke :-)
 */
 
 #define DEFINE_SPI_REG(reg, off) \
@@ -205,11 +205,11 @@ static unsigned int sport_dma_rx;
 static inline unsigned int cycles(void) {
   int ret;
 
-   __asm__ __volatile__ 
+   __asm__ __volatile__
    (
    "%0 = CYCLES;\n\t"
    : "=&d" (ret)
-   : 
+   :
    : "R1"
    );
 
@@ -218,7 +218,7 @@ static inline unsigned int cycles(void) {
 
 /*------------------------- SPI FUNCTIONS -----------------------------*/
 
-/* 
+/*
    After much experimentation I found that (i) TIMOD=00 (i.e. using
    read_RDBR() to start transfer) was the best way to start transfers
    and (ii) polling RXS was the best way to end transfers, see p10-30
@@ -234,11 +234,11 @@ void bfsi_spi_write_8_bits(u8 bits)
 
   flag = read_FLAG();
   flag_enable = flag & ~(1 << (chip_select + 8));
-  PRINTK("write: flag: 0x%04x flag_enable: 0x%04x \n", 
+  PRINTK("write: flag: 0x%04x flag_enable: 0x%04x \n",
 	 flag, flag_enable);
 
   /* drop SPISEL */
-  write_FLAG(flag_enable); 
+  write_FLAG(flag_enable);
 
   /* read kicks off transfer, detect end by polling RXS */
   write_TDBR(bits);
@@ -246,7 +246,7 @@ void bfsi_spi_write_8_bits(u8 bits)
   do {} while (!(read_STAT() & RXS) );
 
   /* raise SPISEL */
-  write_FLAG(flag); 
+  write_FLAG(flag);
 }
 
 u8 bfsi_spi_read_8_bits(void)
@@ -256,11 +256,11 @@ u8 bfsi_spi_read_8_bits(void)
 
   flag = read_FLAG();
   flag_enable = flag & ~(1 << (chip_select + 8));
-  PRINTK("read: flag: 0x%04x flag_enable: 0x%04x \n", 
+  PRINTK("read: flag: 0x%04x flag_enable: 0x%04x \n",
 	 flag, flag_enable);
 
   /* drop SPISEL */
-  write_FLAG(flag_enable); 
+  write_FLAG(flag_enable);
 
   /* read kicks off transfer, detect end by polling RXS, we
      read the shadow register to prevent another transfer
@@ -270,7 +270,7 @@ u8 bfsi_spi_read_8_bits(void)
   bits = bfin_read_SPI_SHADOW();
 
   /* raise SPISEL */
-  write_FLAG(flag); 
+  write_FLAG(flag);
 
   return bits;
 }
@@ -279,16 +279,16 @@ void bfsi_spi_set_cs(int card)
 {
 	int chip_select_mask;
 	u16 flag;
-	
+
 	if(card<2) chip_select = fxs_cs;
-	else 
+	else
 		chip_select = fxo_cs;
 	chip_select_mask = 1<<chip_select;
 	flag = 0xff00 | chip_select_mask;
 	write_FLAG(flag);
 }
 
-/* 
+/*
    chip_select_mask: the logical OR of all the chip selects we wish
    to use for SPI, for example if we wish to use SPISEL2 and SPISEL3
    chip_select_mask = (1<<2) | (1<<3).
@@ -297,11 +297,11 @@ void bfsi_spi_set_cs(int card)
    maximum speed when baud = 2, minimum when baud = 0xffff (0 & 1
    disable SPI port).
 
-   The maximum SPI clk for the Si Labs 3050 is 16.4MHz.  On a 
+   The maximum SPI clk for the Si Labs 3050 is 16.4MHz.  On a
    100MHz system clock Blackfin this means baud=4 minimum (12.5MHz).
 */
 
-void bfsi_spi_init(int baud) 
+void bfsi_spi_init(int baud)
 {
 	u16 ctl_reg;
 	int cs;
@@ -321,13 +321,13 @@ void bfsi_spi_init(int baud)
 #else
 	fxs_cs = 8-3;
 #endif
-	
+
 #if defined(CONFIG_J19_JUMPER)
 	fxo_cs = 8- CONFIG_J19_JUMPER;
 #else
 	fxo_cs = 8-2;
 #endif
-	
+
 #if defined(CONFIG_J16_CONFIG)
 	reset_bit = 8- CONFIG_J16_JUMPER;
 #else
@@ -336,7 +336,7 @@ void bfsi_spi_init(int baud)
 	printk("FXS_CS=%d\n",fxs_cs);
 	printk("FXO_CS=%d\n",fxo_cs);
 	printk("RESET bit = %d\n",reset_bit);
-		
+
 #if defined(CONFIG_BF537)
 	cs = fxs_cs;
 	if (cs == 1) {
@@ -433,13 +433,13 @@ void bfsi_reset(void) {
 	gpio_set_value(reset_port[reset_bit],0);
   	udelay(100);
 	gpio_set_value(reset_port[reset_bit],1);
-  	
-  	/* 
+
+  	/*
      	p24 3050 data sheet, allow 1ms for PLL lock, with
      	less than 1ms (1000us) I found register 2 would have
      	a value of 0 rather than 3, indicating a bad reset.
   	*/
-  	udelay(1000); 
+  	udelay(1000);
 }
 
 void bfsi_reset_free(void){
@@ -453,18 +453,18 @@ void bfsi_reset_free(void){
 static void init_sport0(void)
 {
 	/* set up FSYNC and optionally SCLK using Blackfin Serial port */
-  
+
 	/* Note: internalclock option not working at this stage - Tx side
-	   appears not to work, e.g. TFS pin never gets asserted. Not a 
+	   appears not to work, e.g. TFS pin never gets asserted. Not a
 	   huge problem as the BF internal clock is not at quite the
-	   right frequency (re-crystal of STAMP probably required), so 
+	   right frequency (re-crystal of STAMP probably required), so
 	   we really need an external clock anyway.  However it would
 	   be nice to know why it doesnt work! */
 
 	if (internalclock) {
 		bfin_write_SPORT0_RCLKDIV(24);  /* approx 2.048MHz PCLK            */
 		bfin_write_SPORT0_RFSDIV(255);  /* 8 kHz FSYNC with 2.048MHz PCLK  */
-	}		
+	}
 	else {
 		bfin_write_SPORT0_RFSDIV(255);  /* 8 kHz FSYNC with 2.048MHz PCLK  */
 	}
@@ -485,12 +485,12 @@ static void init_sport0(void)
 	/* Enable MCM 8 transmit & receive channels       */
 	bfin_write_SPORT0_MTCS0(0x000000FF);
 	bfin_write_SPORT0_MRCS0(0x000000FF);
-	
+
 	/* MCM window size of 8 with 0 offset             */
 	bfin_write_SPORT0_MCMC1(0x0000);
 
 	/* 0 bit delay between FS pulse and first data bit,
-	   multichannel frame mode enabled, 
+	   multichannel frame mode enabled,
 	   multichannel tx and rx DMA packing enabled */
 	bfin_write_SPORT0_MCMC2(0x001c);
 }
@@ -518,7 +518,7 @@ static int init_dma_wc(void)
 #if L1_DATA_A_LENGTH != 0
 	iRxBuffer1 = (char*)l1_data_A_sram_alloc(2*samples_per_chunk*8);
 	iTxBuffer1 = (char*)l1_data_A_sram_alloc(2*samples_per_chunk*8);
-#else	
+#else
   	dma_addr_t addr;
     	iRxBuffer1 = (char*)dma_alloc_coherent(NULL, 2*samples_per_chunk*8, &addr, 0);
     	iTxBuffer1 = (char*)dma_alloc_coherent(NULL, 2*samples_per_chunk*8, &addr, 0);
@@ -527,7 +527,7 @@ static int init_dma_wc(void)
     		printk("iRxBuffer1 = 0x%x\n", (int)iRxBuffer1);
     		printk("iTxBuffer1 = 0x%x\n", (int)iTxBuffer1);
 	}
-	
+
 	dma_rx->irq_status |= 0x02;
 	dma_rx->start_addr = (unsigned long)iRxBuffer1;
 	dma_rx->x_count = samples_per_chunk*8;
@@ -535,12 +535,12 @@ static int init_dma_wc(void)
 	dma_rx->y_count = 2;
 	dma_rx->y_modify = 1;
  	dma_rx->cfg = WNR | WDSIZE_8 | DI_EN | 0x1000 | DI_SEL | DMA2D;
-	
+
 	dma_tx->start_addr = (unsigned long)iTxBuffer1;
  	dma_tx->x_count = samples_per_chunk*8;
 	dma_tx->x_modify = 1;
 	dma_tx->y_count = 2;
-	dma_tx->y_modify = 1;	
+	dma_tx->y_modify = 1;
 	dma_tx->cfg = WDSIZE_8 | 0x1000 | DMA2D;
 
   	/* init test variables */
@@ -626,23 +626,23 @@ static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs)
 	struct dma_register_t *dma_rx = (struct dma_register_t*) dma_iobase[sport_dma_rx];
 
 	dma_rx->irq_status = 0x0001;
-  
+
   	read_samples = isr_read_processing();
   	write_samples = isr_write_processing();
   	if (bfsi_isr_callback != NULL) {
     		bfsi_isr_callback(read_samples, write_samples);
 	}
 
-  	isr_cycles_average = ( (u32)(TC-1)*isr_cycles_average + 
+  	isr_cycles_average = ( (u32)(TC-1)*isr_cycles_average +
 			 (((u32)isr_cycles_last)<<1) + TC) >> LTC;
 
   	if (isr_cycles_last > isr_cycles_worst)
     	isr_cycles_worst = isr_cycles_last;
 
-  	/* we sample right at the end to make sure we count cycles used to 
+  	/* we sample right at the end to make sure we count cycles used to
      		measure cycles! */
   	isr_cycles_last = cycles() - start_cycles;
-  
+
   	return IRQ_HANDLED;
 }
 
@@ -671,12 +671,12 @@ static void disable_sport0(void)
 	free_dma(sport_dma_rx);
 }
 
-int bfsi_proc_read(char *buf, char **start, off_t offset, 
+int bfsi_proc_read(char *buf, char **start, off_t offset,
 		    int count, int *eof, void *data)
 {
 	int len;
 
-	len = sprintf(buf, 
+	len = sprintf(buf,
 		      "readchunk_first.....: %d\n"
 		      "readchunk_second....: %d\n"
 		      "readchunk_didntswap.: %d\n"
@@ -702,7 +702,7 @@ int bfsi_proc_read(char *buf, char **start, off_t offset,
 	return len;
 }
 
-/* 
+/*
    Wrapper for entire SPORT setup, returns 1 for success, 0 for failure.
 
    The SPORT code is designed to deliver small arrays of size samples
@@ -714,7 +714,7 @@ int bfsi_proc_read(char *buf, char **start, off_t offset,
    for the read and write channels.  Read means the data was just
    read from the SPORT, so this is the "receive" PCM samples.  Write
    is the PCM data to be written to the SPORT.
-   
+
    The callbacks are called in the context of an interrupt service
    routine, so treat any code them like an ISR.
 
@@ -722,7 +722,7 @@ int bfsi_proc_read(char *buf, char **start, off_t offset,
    and running, and calls to the isr callback will start.  For testing
    it is OK to set the callback function pointer to NULL, say if you
    just want to look at the debug information.
-   
+
    If debug==1 then "cat /proc/bfsi" will display some debug
    information, something like:
 
@@ -760,7 +760,7 @@ int bfsi_proc_read(char *buf, char **start, off_t offset,
 */
 
 int bfsi_sport_init(
-  void (*isr_callback)(u8 *read_samples, u8 *write_samples), 
+  void (*isr_callback)(u8 *read_samples, u8 *write_samples),
   int samples,
   int debug
 )

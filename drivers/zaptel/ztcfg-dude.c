@@ -14,21 +14,21 @@
  * it under thet erms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * Primary Author: Mark Spencer <markster@linux-support.net>
  *
  */
 
-#include <stdio.h> 
+#include <stdio.h>
 #include <getopt.h>
 #include <string.h>
 #include <stdarg.h>
@@ -186,7 +186,7 @@ int dspanconfig(char *keyword, char *args)
 	strncpy(zds[numdynamic].addr, realargs[1], sizeof(zds[numdynamic].addr));
 	zds[numdynamic].numchans = chans;
 	zds[numdynamic].timing = timing;
-	
+
 	numdynamic++;
 	return 0;
 }
@@ -330,7 +330,7 @@ int apply_channels(int chans[], char *argstr)
 				return -1;
 			}
 			chans[chan]=1;
-		}		
+		}
 	}
 	return res;
 }
@@ -342,7 +342,7 @@ int parse_idle(int *i, char *s)
 		if (sscanf(s, "%c%c%c%c", &a,&b,&c,&d) == 4) {
 			if (((a == '0') || (a == '1')) && ((b == '0') || (b == '1')) && ((c == '0') || (c == '1')) && ((d == '0') || (d == '1'))) {
 				*i = 0;
-				if (a == '1') 
+				if (a == '1')
 					*i |= ZT_ABIT;
 				if (b == '1')
 					*i |= ZT_BBIT;
@@ -441,7 +441,7 @@ static int chanconfig(char *keyword, char *args)
 	res = apply_channels(chans, args);
 	if (res <= 0)
 		return -1;
-	for (x=1;x<ZT_MAX_CHANNELS;x++) 
+	for (x=1;x<ZT_MAX_CHANNELS;x++)
 		if (chans[x]) {
 			if (slineno[x]) {
 				error("Channel %d already configured as '%s' at line %d\n", x, sig[x], slineno[x]);
@@ -596,7 +596,7 @@ static void printconfig()
 	int configs=0;
 	printf("\nZaptel Configuration\n"
 	       "======================\n\n");
-	for (x=0;x<spans;x++) 
+	for (x=0;x<spans;x++)
 		printf("SPAN %d: %3s/%4s Build-out: %s\n",
 			x+1, ( lc[x].lineconfig & ZT_CONFIG_ESF ? "ESF" : "D4"),
 			(lc[x].lineconfig & ZT_CONFIG_B8ZS ? "B8ZS" :  "AMI"),
@@ -612,7 +612,7 @@ static void printconfig()
 				configs++;
 				printf("Channel %02d: %s (%s)", x, sig[x], laws[cc[x].deflaw]);
 				ps = 0;
-				for (y=1;y<ZT_MAX_CHANNELS;y++) 
+				for (y=1;y<ZT_MAX_CHANNELS;y++)
 					if (cc[y].master == x)  {
 						printf("%s%02d", ps++ ? " " : " (Slaves: ", y);
 					}
@@ -620,8 +620,8 @@ static void printconfig()
 			} else
 				if (cc[x].sigtype) configs++;
 		}
-	} else 
-		for (x=1;x<ZT_MAX_CHANNELS;x++) 
+	} else
+		for (x=1;x<ZT_MAX_CHANNELS;x++)
 			if (cc[x].sigtype)
 				configs++;
 	printf("\n%d channels configured.\n\n", configs);
@@ -663,7 +663,7 @@ static char *readline()
 	static char buf[256];
 	char *c;
 	do {
-		if (!fgets(buf, sizeof(buf), cf)) 
+		if (!fgets(buf, sizeof(buf), cf))
 			return NULL;
 		/* Strip comments */
 		c = strchr(buf, '#');
@@ -683,7 +683,7 @@ static void usage(char *argv0, int exitcode)
 		c = argv0;
 	else
 		c++;
-	fprintf(stderr, 
+	fprintf(stderr,
 		"Usage: %s [options]\n"
 		"    Valid options are:\n"
 		"  -c <filename>     -- Use <filename> instead of " CONFIG_FILENAME "\n"
@@ -727,7 +727,7 @@ int main(int argc, char *argv[])
 	cf = fopen(filename, "r");
 	if (cf) {
 		while((buf = readline())) {
-			if (debug & DEBUG_READER) 
+			if (debug & DEBUG_READER)
 				fprintf(stderr, "Line %d: %s\n", lineno, buf);
 			key = value = buf;
 			while(value && *value && (*value != '=')) value++;
@@ -750,7 +750,7 @@ int main(int argc, char *argv[])
 					break;
 				}
 			}
-			if (!found) 
+			if (!found)
 				error("Unknown keyword '%s'\n", key);
 		}
 		if (debug & DEBUG_READER)
@@ -770,7 +770,7 @@ int main(int argc, char *argv[])
 				fflush(stdout);
 			}
 			fd = open(MASTER_DEVICE, O_RDWR);
-			if (fd < 0) 
+			if (fd < 0)
 				error("Unable to open master device '%s'\n", MASTER_DEVICE);
 			else {
 				for (x=0;x<numdynamic;x++) {

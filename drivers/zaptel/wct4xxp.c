@@ -14,15 +14,15 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -63,7 +63,7 @@
 #define ENABLE_PREFETCH
 
 /* Support first generation cards? */
-#define SUPPORT_GEN1 
+#define SUPPORT_GEN1
 
 /* Define to get more attention-grabbing but slightly more I/O using
    alarm status */
@@ -97,7 +97,7 @@
  * remove_sequence is >= the insert_sequence which pertained when
  * flush_scheduled_work() was called.
  */
- 
+
 struct cpu_workqueue_struct {
 
 	spinlock_t lock;
@@ -176,7 +176,7 @@ static int polling = 0;
 
 #ifdef FANCY_ALARM
 static int altab[] = {
-0, 0, 0, 1, 2, 3, 4, 6, 8, 9, 11, 13, 16, 18, 20, 22, 24, 25, 27, 28, 29, 30, 31, 31, 32, 31, 31, 30, 29, 28, 27, 25, 23, 22, 20, 18, 16, 13, 11, 9, 8, 6, 4, 3, 2, 1, 0, 0, 
+0, 0, 0, 1, 2, 3, 4, 6, 8, 9, 11, 13, 16, 18, 20, 22, 24, 25, 27, 28, 29, 30, 31, 31, 32, 31, 31, 30, 29, 28, 27, 25, 23, 22, 20, 18, 16, 13, 11, 9, 8, 6, 4, 3, 2, 1, 0, 0,
 };
 #endif
 
@@ -206,7 +206,7 @@ static struct devtype wct410p2 = { "Wildcard TE410P (2nd Gen)", FLAG_2NDGEN };
 static struct devtype wct405p2 = { "Wildcard TE405P (2nd Gen)", FLAG_2NDGEN };
 static struct devtype wct205 = { "Wildcard TE205P ", FLAG_2NDGEN | FLAG_2PORT };
 static struct devtype wct210 = { "Wildcard TE210P ", FLAG_2NDGEN | FLAG_2PORT };
-	
+
 
 static int inirq = 0;
 
@@ -246,7 +246,7 @@ struct t4_span {
 #endif
 #ifdef ENABLE_WORKQUEUES
 	struct work_struct swork;
-#endif	
+#endif
 	struct zt_chan chans[0];		/* Individual channels */
 };
 
@@ -262,7 +262,7 @@ struct t4 {
 	int numspans;			/* Number of spans on the card */
 #ifdef VPM_SUPPORT
 	int vpm;
-#endif	
+#endif
 
 	int blinktimer;
 #ifdef FANCY_ALARM
@@ -329,7 +329,7 @@ static void __t4_check_sigbits(struct t4 *wc, int span);
 #define WC_RDADDR	0
 #define WC_WRADDR	1
 #define WC_COUNT	2
-#define WC_DMACTRL	3	
+#define WC_DMACTRL	3
 #define WC_INTR		4
 /* #define WC_GPIO		5 */
 #define WC_VERSION	6
@@ -368,7 +368,7 @@ static inline void __t4_pci_out(struct t4 *wc, const unsigned int addr, const un
 	if ((value != tmp) && (addr != WC_LEDS) && (addr != WC_LDATA) &&
 		(addr != WC_GPIO) && (addr != WC_INTR))
 		printk("Tried to load %08x into %08x, but got %08x instead\n", value, addr, tmp);
-#endif		
+#endif
 }
 
 static inline unsigned int __t4_pci_in(struct t4 *wc, const unsigned int addr)
@@ -403,7 +403,7 @@ static inline unsigned int t4_pci_in(struct t4 *wc, const unsigned int addr)
 {
 	unsigned int ret;
 	unsigned long flags;
-	
+
 	spin_lock_irqsave(&wc->reglock, flags);
 	ret = __t4_pci_in(wc, addr);
 	spin_unlock_irqrestore(&wc->reglock, flags);
@@ -442,7 +442,7 @@ static inline void __t4_framer_out(struct t4 *wc, int unit, const unsigned int a
 	__t4_pci_out(wc, WC_LADDR, (unit << 8) | (addr & 0xff) | (1 << 10));
 	__t4_pci_out(wc, WC_LADDR, (unit << 8) | (addr & 0xff) | (1 << 10) | WC_LWRITE);
 	__t4_pci_out(wc, WC_LADDR, (unit << 8) | (addr & 0xff) | (1 << 10));
-	__t4_pci_out(wc, WC_LADDR, (unit << 8) | (addr & 0xff));	
+	__t4_pci_out(wc, WC_LADDR, (unit << 8) | (addr & 0xff));
 	__t4_pci_out(wc, WC_LADDR, 0);
 	if (debug & DEBUG_REGS) printk("Write complete\n");
 #if 0
@@ -451,7 +451,7 @@ static inline void __t4_framer_out(struct t4 *wc, int unit, const unsigned int a
 	if (tmp != value) {
 		printk("Expected %d from unit %d register %d but got %d instead\n", value, unit, addr, tmp);
 	} }
-#endif	
+#endif
 }
 
 static inline void t4_framer_out(struct t4 *wc, int unit, const unsigned int addr, const unsigned int value)
@@ -501,11 +501,11 @@ static inline void __t4_vpm_out(struct t4 *wc, int unit, const unsigned int addr
 	__t4_pci_out(wc, WC_LADDR, (unit << 12) | (addr & 0x1ff) | (1 << 11));
 	__t4_pci_out(wc, WC_LADDR, (unit << 12) | (addr & 0x1ff) | (1 << 11) | WC_LWRITE);
 	__t4_pci_out(wc, WC_LADDR, (unit << 12) | (addr & 0x1ff) | (1 << 11));
-	__t4_pci_out(wc, WC_LADDR, (unit << 12) | (addr & 0x1ff));	
+	__t4_pci_out(wc, WC_LADDR, (unit << 12) | (addr & 0x1ff));
 	__t4_pci_out(wc, WC_LADDR, 0);
 	if (debug & DEBUG_REGS) printk("Write complete\n");
 
-      
+
 #if 0
 	{ unsigned int tmp;
 	tmp = t4_vpm_in(wc, unit, addr);
@@ -531,16 +531,16 @@ static void __t4_check_vpm(struct t4 *wc, unsigned int newio)
 	static unsigned int lastio = 0;
 	struct t4_span *ts;
 
-	if (debug && (newio != lastio)) 
+	if (debug && (newio != lastio))
 		printk("Last was %08x, new is %08x\n", lastio, newio);
 
 	lastio = newio;
- 
+
 	for(x = 0; x < 8; x++) {
 		if (newio & (1 << (7 - x)))
 			continue;
 		ts = wc->tspans[x%4];
-		/* Start of DTMF detection process */	
+		/* Start of DTMF detection process */
 		regval = __t4_vpm_in(wc, x, 0xb8);
 		__t4_vpm_out(wc, x, 0xb8, regval); /* Write 1 to clear */
 		regval = regval << 8;
@@ -554,13 +554,13 @@ static void __t4_check_vpm(struct t4 *wc, unsigned int newio)
 				if (!wc->t1e1)
 					base -= 4;
 				digit = __t4_vpm_in(wc, x, 0xa8 + i);
-				if (digit < 10) 
-					digit += '0'; 
-				else if (digit < 0xe) 
-					digit += 'A' - 0xe; 
-				else if (digit == 0xe) 
+				if (digit < 10)
+					digit += '0';
+				else if (digit < 0xe)
+					digit += 'A' - 0xe;
+				else if (digit == 0xe)
 					digit = '*';
-				else if (digit == 0xf) 
+				else if (digit == 0xf)
 					digit = '#';
 				energy = __t4_vpm_in(wc, x, 0x58 + channel);
 				energy = ZT_XLAW(energy, ts->chans);
@@ -584,14 +584,14 @@ static void __t4_check_vpm(struct t4 *wc, unsigned int newio)
 					int y;
 					spin_lock_irqsave(&chan->lock, flags);
 					for (y=0;y<chan->numbufs;y++) {
-						if (chan->readidx[y]) 
+						if (chan->readidx[y])
 							memset(chan->readbuf[chan->inreadbuf], ZT_XLAW(0, chan), chan->readidx[y]);
 					}
 					spin_unlock_irqrestore(&chan->lock, flags);
 				}
 				if (debug)
 					printk("Digit Seen: %d, Span: %d, channel: %d, energy: %02x, 'channel %d' chip %d\n", digit, x % 4, base + 1, energy, channel, x);
-				
+
 			}
 			regval = regval >> 1;
 		}
@@ -628,7 +628,7 @@ static void __set_clear(struct t4 *wc, int span)
 		for (i=0;i<31;i++) {
 			if (ts->span.chans[i].flags & ZT_FLAG_CLEAR)
 				ts->notclear &= ~(1 << i);
-			else 
+			else
 				ts->notclear |= (1 << i);
 		}
 	}
@@ -698,8 +698,8 @@ static int t4_echocan(struct zt_chan *chan, int eclen)
 		channel = chan->chanpos + 4;
 	if ((channel & 1))
 		unit += 4;
-	if(debug & DEBUG_ECHOCAN) 
-		printk("echocan: Card is %d, Channel is %d, Span is %d, unit is %d, unit offset is %d length %d\n", 
+	if(debug & DEBUG_ECHOCAN)
+		printk("echocan: Card is %d, Channel is %d, Span is %d, unit is %d, unit offset is %d length %d\n",
 			wc->num, chan->chanpos, chan->span->offset, unit, channel, eclen);
 	if (eclen)
 		t4_vpm_out(wc,unit,channel,0x3e);
@@ -820,9 +820,9 @@ static int t4_rbsbits(struct zt_chan *chan, int bits)
 	struct t4 *wc = chan->pvt;
 	struct t4_span *ts = wc->tspans[chan->span->offset];
 	unsigned long flags;
-	
+
 	if(debug & DEBUG_RBS) printk("Setting bits to %d on channel %s\n", bits, chan->name);
-	spin_lock_irqsave(&wc->reglock, flags);	
+	spin_lock_irqsave(&wc->reglock, flags);
 	k = chan->span->offset;
 	if (ts->spantype == TYPE_E1) { /* do it E1 way */
 		if (chan->chanpos == 16) {
@@ -838,7 +838,7 @@ static int t4_rbsbits(struct zt_chan *chan, int bits)
 		c |= (bits & 0xf) << (4 - m); /* put our new nibble here */
 		ts->txsigs[b] = c;
 		  /* output them to the chip */
-		__t4_framer_out(wc,k,0x71 + b,c); 
+		__t4_framer_out(wc,k,0x71 + b,c);
 	} else if (ts->span.lineconfig & ZT_CONFIG_D4) {
 		n = chan->chanpos - 1;
 		b = (n/4);
@@ -848,8 +848,8 @@ static int t4_rbsbits(struct zt_chan *chan, int bits)
 		c |= ((bits >> 2) & 0x3) << m; /* put our new nibble here */
 		ts->txsigs[b] = c;
 		  /* output them to the chip */
-		__t4_framer_out(wc,k,0x70 + b,c); 
-		__t4_framer_out(wc,k,0x70 + b + 6,c); 
+		__t4_framer_out(wc,k,0x70 + b,c);
+		__t4_framer_out(wc,k,0x70 + b + 6,c);
 	} else if (ts->span.lineconfig & ZT_CONFIG_ESF) {
 		n = chan->chanpos - 1;
 		b = (n/2);
@@ -859,8 +859,8 @@ static int t4_rbsbits(struct zt_chan *chan, int bits)
 		c |= (bits & 0xf) << (4 - m); /* put our new nibble here */
 		ts->txsigs[b] = c;
 		  /* output them to the chip */
-		__t4_framer_out(wc,k,0x70 + b,c); 
-	} 
+		__t4_framer_out(wc,k,0x70 + b,c);
+	}
 	spin_unlock_irqrestore(&wc->reglock, flags);
 	if (debug & DEBUG_RBS)
 		printk("Finished setting RBS bits\n");
@@ -888,13 +888,13 @@ static int t4_shutdown(struct zt_span *span)
 	if (wasrunning)
 		wc->spansstarted--;
 	__t4_set_led(wc, span->offset, WC_OFF);
-	if (((wc->numspans == 4) && 
+	if (((wc->numspans == 4) &&
 	    (!(wc->tspans[0]->span.flags & ZT_FLAG_RUNNING)) &&
 	    (!(wc->tspans[1]->span.flags & ZT_FLAG_RUNNING)) &&
 	    (!(wc->tspans[2]->span.flags & ZT_FLAG_RUNNING)) &&
 	    (!(wc->tspans[3]->span.flags & ZT_FLAG_RUNNING)))
-	    			|| 
-	    ((wc->numspans == 2) && 
+	    			||
+	    ((wc->numspans == 2) &&
 	    (!(wc->tspans[0]->span.flags & ZT_FLAG_RUNNING)) &&
 	    (!(wc->tspans[1]->span.flags & ZT_FLAG_RUNNING)))) {
 		/* No longer in use, disable interrupts */
@@ -920,7 +920,7 @@ static int t4_spanconfig(struct zt_span *span, struct zt_lineconfig *lc)
 	printk("About to enter spanconfig!\n");
 	if (debug & DEBUG_MAIN)
 		printk("TE%dXXP: Configuring span %d\n", wc->numspans, span->spanno);
-	/* XXX We assume lineconfig is okay and shouldn't XXX */	
+	/* XXX We assume lineconfig is okay and shouldn't XXX */
 	span->lineconfig = lc->lineconfig;
 	span->txlevel = lc->lbo;
 	span->rxlevel = 0;
@@ -928,7 +928,7 @@ static int t4_spanconfig(struct zt_span *span, struct zt_lineconfig *lc)
 		lc->sync = 0;
 	if (lc->sync > 4)
 		lc->sync = 0;
-	
+
 	/* remove this span number from the current sync sources, if there */
 	for(i = 0; i < wc->numspans; i++) {
 		if (wc->tspans[i]->sync == span->spanno) {
@@ -962,11 +962,11 @@ static int t4_chanconfig(struct zt_chan *chan, int sigtype)
 			printk("TE%dXXP: Reconfigured channel %d (%s) sigtype %d\n", wc->numspans, chan->channo, chan->name, sigtype);
 		else
 			printk("TE%dXXP: Configured channel %d (%s) sigtype %d\n", wc->numspans, chan->channo, chan->name, sigtype);
-	}		
-	spin_lock_irqsave(&wc->reglock, flags);	
+	}
+	spin_lock_irqsave(&wc->reglock, flags);
 	if (alreadyrunning)
 		__set_clear(wc, chan->span->offset);
-	spin_unlock_irqrestore(&wc->reglock, flags);	
+	spin_unlock_irqrestore(&wc->reglock, flags);
 	return 0;
 }
 
@@ -976,7 +976,7 @@ static int t4_open(struct zt_chan *chan)
 	MOD_INC_USE_COUNT;
 #else
 	try_module_get(THIS_MODULE);
-#endif	
+#endif
 
 	return 0;
 }
@@ -997,7 +997,7 @@ static void init_spans(struct t4 *wc)
 	int gen2;
 	int offset = 1;
 	struct t4_span *ts;
-	
+
 	gen2 = (wc->tspans[0]->spanflags & FLAG_2NDGEN);
 	if (!wc->t1e1)
 		offset += 4;
@@ -1028,7 +1028,7 @@ static void init_spans(struct t4 *wc)
 		if (gen2) {
 #ifdef VPM_SUPPORT
 			ts->span.echocan = t4_echocan;
-#endif			
+#endif
 			ts->span.dacs = t4_dacs;
 		}
 		ts->span.pvt = ts;
@@ -1060,9 +1060,9 @@ static void t4_serial_setup(struct t4 *wc, int unit)
 		printk("TE%dXXP: Setting up global serial parameters\n", wc->numspans);
 		t4_framer_out(wc, 0, 0x85, 0xe0);	/* GPC1: Multiplex mode enabled, FSC is output, active low, RCLK from channel 0 */
 		t4_framer_out(wc, 0, 0x08, 0x01);	/* IPC: Interrupt push/pull active low */
-	
+
 		/* Global clocks (8.192 Mhz CLK) */
-		t4_framer_out(wc, 0, 0x92, 0x00);	
+		t4_framer_out(wc, 0, 0x92, 0x00);
 		t4_framer_out(wc, 0, 0x93, 0x18);
 		t4_framer_out(wc, 0, 0x94, 0xfb);
 		t4_framer_out(wc, 0, 0x95, 0x0b);
@@ -1072,7 +1072,7 @@ static void t4_serial_setup(struct t4 *wc, int unit)
 		t4_framer_out(wc, 0, 0x99, 0xdf);
 	}
 
-	/* Configure interrupts */	
+	/* Configure interrupts */
 	t4_framer_out(wc, unit, 0x46, 0x00);	/* GCR: Interrupt on Activation/Deactivation of each */
 
 	/* Configure system interface */
@@ -1094,7 +1094,7 @@ static void t4_serial_setup(struct t4 *wc, int unit)
 		t4_framer_out(wc, unit, 0x24, 0x04);	/* RC0: Just shy of 1023 */
 		t4_framer_out(wc, unit, 0x25, 0x04);	/* RC1: The rest of RC0 */
 	}
-	
+
 	/* Configure ports */
 	t4_framer_out(wc, unit, 0x80, 0x00);	/* PC1: SPYR/SPYX input on RPA/XPA */
 	t4_framer_out(wc, unit, 0x81, 0x22);	/* PC2: RMFB/XSIG output/input on RPB/XPB */
@@ -1145,7 +1145,7 @@ static void __t4_set_timing_source_auto(struct t4 *wc)
 	wc->checktiming = 0;
 	for (x=0;x<wc->numspans;x++) {
 		if (wc->tspans[x]->sync) {
-			if ((wc->tspans[wc->tspans[x]->psync - 1]->span.flags & ZT_FLAG_RUNNING) && 
+			if ((wc->tspans[wc->tspans[x]->psync - 1]->span.flags & ZT_FLAG_RUNNING) &&
 				!(wc->tspans[wc->tspans[x]->psync - 1]->span.alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE) )) {
 					/* Valid timing source */
 					__t4_set_timing_source(wc, wc->tspans[x]->psync - 1);
@@ -1203,7 +1203,7 @@ static void __t4_configure_t1(struct t4 *wc, int unit, int lineconfig, int txlev
 	__t4_framer_out(wc, unit, 0x3a, lim2);	/* LIM2: 50% peak amplitude is a "1" */
 	__t4_framer_out(wc, unit, 0x38, 0x0a);	/* PCD: LOS after 176 consecutive "zeros" */
 	__t4_framer_out(wc, unit, 0x39, 0x15);	/* PCR: 22 "ones" clear LOS */
-	
+
 	/* Generate pulse mask for T1 */
 	switch(mytxlevel) {
 	case 3:
@@ -1243,8 +1243,8 @@ static void __t4_configure_t1(struct t4 *wc, int unit, int lineconfig, int txlev
 	if (!polling) {
 		__t4_check_alarms(wc, unit);
 		__t4_check_sigbits(wc, unit);
-	}		
-		
+	}
+
 	printk("TE%dXXP: Span %d configured for %s/%s\n", wc->numspans, unit + 1, framing, line);
 }
 
@@ -1303,15 +1303,15 @@ static void __t4_configure_e1(struct t4 *wc, int unit, int lineconfig)
 	__t4_framer_out(wc, unit, 0xbb, 0x0c);
 	__t4_framer_out(wc, unit, 0xbb, 0x00);
 	__t4_framer_out(wc, unit, 0xbb, 0x8c);
-	
+
 	__t4_framer_out(wc, unit, 0x3a, 0x20);	/* LIM2: 50% peak amplitude is a "1" */
 	__t4_framer_out(wc, unit, 0x38, 0x0a);	/* PCD: LOS after 176 consecutive "zeros" */
 	__t4_framer_out(wc, unit, 0x39, 0x15);	/* PCR: 22 "ones" clear LOS */
-	
+
 	__t4_framer_out(wc, unit, 0x20, 0x9f);	/* XSW: Spare bits all to 1 */
 	__t4_framer_out(wc, unit, 0x21, 0x1c|cas);	/* XSP: E-bit set when async. AXS auto, XSIF to 1 */
-	
-	
+
+
 	/* Generate pulse mask for E1 */
 	__t4_framer_out(wc, unit, 0x26, 0x54);	/* XPM0 */
 	__t4_framer_out(wc, unit, 0x27, 0x02);	/* XPM1 */
@@ -1377,7 +1377,7 @@ static int t4_startup(struct zt_span *span)
 	}
 	/* Note clear channel status */
 	__set_clear(wc, span->offset);
-	
+
 	if (!alreadyrunning) {
 		span->flags |= ZT_FLAG_RUNNING;
 		wc->spansstarted++;
@@ -1388,7 +1388,7 @@ static int t4_startup(struct zt_span *span)
 			wc->dmactrl = 0xc0000000 | (1 << 29) | wc->vpm;
 #else
 			wc->dmactrl = 0xc0000000 | (1 << 29);
-#endif			
+#endif
 		else
 #ifdef VPM_SUPPORT
 			wc->dmactrl = 0xc0000003 | (1 << 29) | wc->vpm;
@@ -1458,12 +1458,12 @@ static void t4_receiveprep(struct t4 *wc, int irq)
 	if (irq & 1) {
 		/* First part */
 		readchunk = wc->readchunk;
-		if (!wc->last0) 
+		if (!wc->last0)
 			dbl = 1;
 		wc->last0 = 0;
 	} else {
 		readchunk = wc->readchunk + ZT_CHUNKSIZE * 32;
-		if (wc->last0) 
+		if (wc->last0)
 			dbl = 1;
 		wc->last0 = 1;
 	}
@@ -1516,8 +1516,8 @@ static void t4_receiveprep(struct t4 *wc, int irq)
 		if (wc->tspans[x]->span.flags & ZT_FLAG_RUNNING) {
 			for (y=0;y<wc->tspans[x]->span.channels;y++) {
 				/* Echo cancel double buffered data */
-				zt_ec_chunk(&wc->tspans[x]->span.chans[y], 
-				    wc->tspans[x]->span.chans[y].readchunk, 
+				zt_ec_chunk(&wc->tspans[x]->span.chans[y],
+				    wc->tspans[x]->span.chans[y].readchunk,
 					wc->tspans[x]->ec_chunk2[y]);
 				memcpy(wc->tspans[x]->ec_chunk2[y],wc->tspans[x]->ec_chunk1[y],
 					ZT_CHUNKSIZE);
@@ -1543,11 +1543,11 @@ static inline void __receive_span(struct t4_span *ts)
 	if ((merged = ts->dtmfactive & ts->dtmfmutemask)) {
 		for (y=0;y<ts->span.channels;y++) {
 			/* Mute any DTMFs which are supposed to be muted */
-			if (merged & (1 << y)) 
+			if (merged & (1 << y))
 				memset(ts->span.chans[y].readchunk, ZT_XLAW(0, (ts->span.chans + y)), ZT_CHUNKSIZE);
 		}
 	}
-#endif	
+#endif
 
 #ifdef ENABLE_PREFETCH
 	prefetch((void *)(ts->readchunk));
@@ -1582,7 +1582,7 @@ static void workq_handlespan(void *data)
 {
 	struct t4_span *ts = data;
 	struct t4 *wc = ts->owner;
-	
+
 	__receive_span(ts);
 	__transmit_span(ts);
 	atomic_dec(&wc->worklist);
@@ -1618,7 +1618,7 @@ static void t4_transmitprep(struct t4 *wc, int irq)
 		writechunk = wc->writechunk + ZT_CHUNKSIZE * 32  + 1;
 	}
 	for (y=0;y<wc->numspans;y++) {
-		if (wc->tspans[y]->span.flags & ZT_FLAG_RUNNING) 
+		if (wc->tspans[y]->span.flags & ZT_FLAG_RUNNING)
 			zt_transmit(&wc->tspans[y]->span);
 	}
 
@@ -1626,7 +1626,7 @@ static void t4_transmitprep(struct t4 *wc, int irq)
 		/* Once per chunk */
 		for (z=0;z<24;z++) {
 			/* All T1/E1 channels */
-			tmp = (wc->tspans[3]->span.chans[z].writechunk[x]) | 
+			tmp = (wc->tspans[3]->span.chans[z].writechunk[x]) |
 				  (wc->tspans[2]->span.chans[z].writechunk[x] << 8) |
 				  (wc->tspans[1]->span.chans[z].writechunk[x] << 16) |
 				  (wc->tspans[0]->span.chans[z].writechunk[x] << 24);
@@ -1800,7 +1800,7 @@ static void __t4_check_alarms(struct t4 *wc, int span)
 	}
 
 	if (c & 0xa0) {
-		if (ts->alarmcount >= alarmdebounce) 
+		if (ts->alarmcount >= alarmdebounce)
 			alarms |= ZT_ALARM_RED;
 		else
 			ts->alarmcount++;
@@ -1809,12 +1809,12 @@ static void __t4_check_alarms(struct t4 *wc, int span)
 	if (c & 0x4)
 		alarms |= ZT_ALARM_BLUE;
 
-	if (((!ts->span.alarms) && alarms) || 
-	    (ts->span.alarms && (!alarms))) 
+	if (((!ts->span.alarms) && alarms) ||
+	    (ts->span.alarms && (!alarms)))
 		wc->checktiming = 1;
 
 	/* Keep track of recovering */
-	if ((!alarms) && ts->span.alarms) 
+	if ((!alarms) && ts->span.alarms)
 		ts->alarmtimer = ZT_ALARMSETTLE_TIME;
 	if (ts->alarmtimer)
 		alarms |= ZT_ALARM_RECOVER;
@@ -1844,7 +1844,7 @@ static void __t4_check_alarms(struct t4 *wc, int span)
 	   yellow alarm */
 	if (c & 0x10)
 		alarms |= ZT_ALARM_YELLOW;
-	if (ts->span.mainttimer || ts->span.maintstat) 
+	if (ts->span.mainttimer || ts->span.maintstat)
 		alarms |= ZT_ALARM_LOOPBACK;
 	ts->span.alarms = alarms;
 	zt_alarm_notify(&ts->span);
@@ -1938,7 +1938,7 @@ static void t4_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 	struct t4 *wc = dev_id;
 	unsigned long flags;
 	int x;
-	
+
 	unsigned int status;
 #if 0
 	unsigned int status2;
@@ -1948,7 +1948,7 @@ static void t4_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 	if (wc->intcount < 20)
 		printk("Pre-interrupt\n");
 #endif
-	
+
 	inirq = 1;
 	/* Make sure it's really for us */
 	status = t4_pci_in(wc, WC_INTR);
@@ -1960,7 +1960,7 @@ static void t4_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 		return IRQ_NONE;
 #else
 		return;
-#endif		
+#endif
 
 	if (!wc->spansstarted) {
 		printk("Not prepped yet!\n");
@@ -1968,20 +1968,20 @@ static void t4_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 		return IRQ_NONE;
 #else
 		return;
-#endif		
+#endif
 	}
 
 	wc->intcount++;
 #if 0
 	if (wc->intcount < 20)
 		printk("Got interrupt, status = %08x\n", status);
-#endif		
+#endif
 
 	if (status & 0x3) {
 		t4_receiveprep(wc, status);
 		t4_transmitprep(wc, status);
 	}
-	
+
 #if 0
 	if ((wc->intcount < 10) || !(wc->intcount % 1000)) {
 		status2 = t4_framer_in(wc, 0, 0x6f);
@@ -2019,7 +2019,7 @@ static void t4_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 	spin_unlock_irqrestore(&wc->reglock, flags);
 #ifdef LINUX26
 	return IRQ_RETVAL(1);
-#endif		
+#endif
 }
 #endif
 
@@ -2029,12 +2029,12 @@ static inline void __t4_framer_interrupt(struct t4 *wc, int span)
 	unsigned char gis, isr0=0, isr1=0, isr2=0, isr3=0, isr4;
 	struct t4_span *ts;
 
-	if (debug & DEBUG_FRAMER)	
+	if (debug & DEBUG_FRAMER)
 		printk("framer interrupt span %d:%d!\n", wc->num, span + 1);
 	ts = wc->tspans[span];
 
 	gis = __t4_framer_in(wc, span, 0x6e);
-	
+
 	if (ts->spantype == TYPE_E1) {
 		/* E1 checks */
 		if (gis & 0x1)
@@ -2047,9 +2047,9 @@ static inline void __t4_framer_interrupt(struct t4 *wc, int span)
 			isr3 = __t4_framer_in(wc, span, 0x6b);
 
 
-		if (isr0)  
+		if (isr0)
 			__t4_check_sigbits(wc, span);
-		
+
 		if ((isr3 & 0x38) || isr2 || isr1)
 			__t4_check_alarms(wc, span);
 		if (debug & DEBUG_FRAMER)
@@ -2065,10 +2065,10 @@ static inline void __t4_framer_interrupt(struct t4 *wc, int span)
 
 		if (isr0)
 			__t4_check_sigbits(wc, span);
-		if (isr2 || (isr3 & 0x08)) 
-			__t4_check_alarms(wc, span);		
+		if (isr2 || (isr3 & 0x08))
+			__t4_check_alarms(wc, span);
 		if (debug & DEBUG_FRAMER)
-			printk("gis: %02x, isr0: %02x, isr1: %02x, irs2: %02x, isr3: %02x\n", gis, isr0, isr1, isr2, isr3);	
+			printk("gis: %02x, isr0: %02x, isr1: %02x, irs2: %02x, isr3: %02x\n", gis, isr0, isr1, isr2, isr3);
 	}
 	if (debugslips && !ts->span.alarms) {
 		if (isr3 & 0x02)
@@ -2096,7 +2096,7 @@ static void t4_interrupt_gen2(int irq, void *dev_id, struct pt_regs *regs)
 	unsigned long flags;
 	unsigned char cis;
 	int x;
-	
+
 	unsigned int status;
 #if 0
 	unsigned int status2;
@@ -2106,7 +2106,7 @@ static void t4_interrupt_gen2(int irq, void *dev_id, struct pt_regs *regs)
 	if (wc->intcount < 20)
 		printk("2G: Pre-interrupt\n");
 #endif
-	
+
 	inirq = 1;
 	/* Make sure it's really for us */
 	status = t4_pci_in(wc, WC_INTR);
@@ -2120,7 +2120,7 @@ static void t4_interrupt_gen2(int irq, void *dev_id, struct pt_regs *regs)
 		return IRQ_NONE;
 #else
 		return;
-#endif		
+#endif
 
 	if (!wc->spansstarted) {
 		printk("Not prepped yet!\n");
@@ -2128,14 +2128,14 @@ static void t4_interrupt_gen2(int irq, void *dev_id, struct pt_regs *regs)
 		return IRQ_NONE;
 #else
 		return;
-#endif		
+#endif
 	}
 
 	wc->intcount++;
 #if 1
 	if (wc->intcount < 20)
 		printk("2G: Got interrupt, status = %08x, GIS = %04x\n", status, __t4_framer_in(wc, 0, 0x6f));
-#endif		
+#endif
 
 	if (status & 0x2) {
 #ifdef ENABLE_WORKQUEUES
@@ -2221,7 +2221,7 @@ static void t4_interrupt_gen2(int irq, void *dev_id, struct pt_regs *regs)
 							if (energy < (ts->dtmfenergy[y])) {
 								if (debug & DEBUG_DTMF)
 									printk("Finished digit on span %d, channel %d (energy = %02x < %02x) 'channel' %d, chip %d!\n", span, y + 1, energy, ts->dtmfenergy[y], channel, chip);
-								if (debug & DEBUG_DTMF)	
+								if (debug & DEBUG_DTMF)
 									printk("Finished digit '%c' on channel %d of span %d\n", ts->dtmfdigit[y], y + 1, span);
 								if (ts->dtmfmask & (1 << y))
 									zt_qevent_lock(&ts->span.chans[y], (ZT_EVENT_DTMFUP | ts->dtmfdigit[y]));
@@ -2242,7 +2242,7 @@ static void t4_interrupt_gen2(int irq, void *dev_id, struct pt_regs *regs)
 	}
 #endif
 
-#if 1 
+#if 1
 	__handle_leds(wc);
 #endif
 
@@ -2252,10 +2252,10 @@ static void t4_interrupt_gen2(int irq, void *dev_id, struct pt_regs *regs)
 
 #ifndef ENABLE_WORKQUEUES
 	t4_pci_out(wc, WC_INTR, 0);
-#endif	
+#endif
 #ifdef LINUX26
 	return IRQ_RETVAL(1);
-#endif		
+#endif
 }
 
 #ifdef SUPPORT_GEN1
@@ -2275,7 +2275,7 @@ static int t4_reset_dma(struct t4 *wc)
 	t4_pci_out(wc, WC_INTR, 0);
 #ifdef VPM_SUPPORT
 	wc->dmactrl = 0xc0000000 | (1 << 29) | wc->vpm;
-#else	
+#else
 	wc->dmactrl = 0xc0000000 | (1 << 29);
 #endif
 	if (noburst)
@@ -2306,7 +2306,7 @@ static void t4_vpm_init(struct t4 *wc)
 			else
 				printk("VPM: Not Present\n");
 			return;
-		}	
+		}
 
 		/* Setup GPIO's */
 		for (y=0;y<4;y++) {
@@ -2320,7 +2320,7 @@ static void t4_vpm_init(struct t4 *wc)
 		t4_vpm_out(wc, x, 0x1a3, reg & ~2);
 
 		/* Setup timeslots */
-		t4_vpm_out(wc, x, 0x02f, 0x20 | ((x%4) << 3)); 
+		t4_vpm_out(wc, x, 0x02f, 0x20 | ((x%4) << 3));
 		if (x < 4)
 			mask = 0x55555555;
 		else
@@ -2329,7 +2329,7 @@ static void t4_vpm_init(struct t4 *wc)
 		/* Setup Echo length (128 taps) */
 		t4_vpm_out(wc, x, 0x022, 0x00);
 		t4_vpm_out(wc, x, 0x023, 0x7f);
-		
+
 		/* Setup the tdm channel masks for all LV's*/
 		for (i=0;i<4;i++)
 			t4_vpm_out(wc, x, 0x30+i, (mask >> (i << 3)) & 0xff);
@@ -2347,7 +2347,7 @@ static void t4_vpm_init(struct t4 *wc)
 			reg &= ~0x01;
 		}
 		t4_vpm_out(wc,x,0x20,(reg | 0x20));
-		
+
 		/* Initialize echo cans */
 		for (i = 0 ; i < MAX_TDM_CHAN ; i++) {
 			if (mask & (0x00000001 << i))
@@ -2368,7 +2368,7 @@ static void t4_vpm_init(struct t4 *wc)
 			if (mask & (0x00000001 << i))
 				t4_vpm_out(wc,x,0x78 + i,0x01);
 		}
-      
+
         /* Enable DTMF detectors */
 		for (i=0;i<MAX_DTMF_DET;i++) {
 			if(x < 4)
@@ -2385,14 +2385,14 @@ static void t4_vpm_init(struct t4 *wc)
 			for(i = 0; i < 4; i++)
 				t4_vpm_out(wc, x, 0xc0+i, 0xaa);
 		}
-   } 
+   }
    printk("VPM: Present and operational\n");
    wc->vpm = T4_VPM_PRESENT;
 }
 
 #endif
 
-static void t4_tsi_reset(struct t4 *wc) 
+static void t4_tsi_reset(struct t4 *wc)
 {
 	int x;
 	for (x=0;x<128;x++) {
@@ -2433,7 +2433,7 @@ static void t4_tsi_unassign(struct t4 *wc, int tospan, int tochan)
 
 	tots = (tospan << 5) | (tochan);
 
-	if (!wc->t1e1) 
+	if (!wc->t1e1)
 		tots += 4;
 	spin_lock_irqsave(&wc->reglock, flags);
 	wc->dmactrl &= ~0x00007fff;
@@ -2471,7 +2471,7 @@ static int t4_hardware_init_1(struct t4 *wc, int gen2)
 	} else {
 		t4_pci_out(wc, WC_COUNT, ((ZT_MAX_CHUNKSIZE * 2 * 32 - 1) << 18) | ((ZT_MAX_CHUNKSIZE * 2 * 32 - 1) << 2));
 	}
-	
+
 	/* Reset pending interrupts */
 	t4_pci_out(wc, WC_INTR, 0x00000000);
 
@@ -2492,7 +2492,7 @@ static int t4_hardware_init_2(struct t4 *wc)
 	/* Setup LEDS, take out of reset */
 	t4_pci_out(wc, WC_LEDS, 0x000000ff);
 	t4_activate(wc);
-	
+
 	t4_framer_out(wc, 0, 0x4a, 0xaa);
 	falcver = t4_framer_in(wc, 0 ,0x4a);
 	printk("FALC version: %08x, Board ID: %02x\n", falcver, wc->order);
@@ -2560,8 +2560,8 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 	int y;
 	unsigned int *canary;
 #endif
-	
-	
+
+
 	if (pci_enable_device(pdev)) {
 		res = -EIO;
 	} else {
@@ -2575,7 +2575,7 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 			else
 				basesize = ZT_MAX_CHUNKSIZE * 32 * 2 * 4;
 
-			if (dt->flags & FLAG_2PORT) 
+			if (dt->flags & FLAG_2PORT)
 				wc->numspans = 2;
 			else
 				wc->numspans = 4;
@@ -2598,7 +2598,7 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 
 			wc->dev = pdev;
 
-			wc->writechunk = 
+			wc->writechunk =
 				/* 32 channels, Double-buffer, Read/Write, 4 spans */
 				(unsigned int *)pci_alloc_consistent(pdev, basesize * 2, &wc->writedma);
 			if (!wc->writechunk) {
@@ -2620,7 +2620,7 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 			/* Initialize canary */
 			canary = (unsigned int *)(wc->readchunk + ZT_CHUNKSIZE * 64 * 4 - 4);
 			*canary = (CANARY << 16) | (0xffff);
-#endif			
+#endif
 
 			/* Enable bus mastering */
 			pci_set_master(pdev);
@@ -2642,7 +2642,7 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 
 			wc->num = x;
 			cards[x] = wc;
-			
+
 
 #ifdef ENABLE_WORKQUEUES
 			if (dt->flags & FLAG_2NDGEN) {
@@ -2650,7 +2650,7 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 				sprintf(tmp, "te%dxxp[%d]", wc->numspans, wc->num);
 				wc->workq = create_workqueue(tmp);
 			}
-#endif			
+#endif
 
 			/* Allocate pieces we need here */
 			for (x=0;x<wc->numspans;x++) {
@@ -2674,7 +2674,7 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 					return -ENOMEM;
 #ifdef ENABLE_WORKQUEUES
 				INIT_WORK(&wc->tspans[x]->swork, workq_handlespan, wc->tspans[x]);
-#endif				
+#endif
 				wc->tspans[x]->spanflags |= dt->flags;
 			}
 
@@ -2684,14 +2684,14 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 
 
 #ifdef SUPPORT_GEN1
-			if (request_irq(pdev->irq, (dt->flags & FLAG_2NDGEN) ? t4_interrupt_gen2 :t4_interrupt, SA_INTERRUPT | SA_SHIRQ, (wc->numspans == 2) ? "wct2xxp" : "wct4xxp", wc)) 
+			if (request_irq(pdev->irq, (dt->flags & FLAG_2NDGEN) ? t4_interrupt_gen2 :t4_interrupt, SA_INTERRUPT | SA_SHIRQ, (wc->numspans == 2) ? "wct2xxp" : "wct4xxp", wc))
 #else
 			if (!(wc->tspans[0]->spanflags & FLAG_2NDGEN)) {
 				printk("This driver does not support 1st gen modules\n");
 				kfree(wc);
 				return -ENODEV;
-			}	
-			if (request_irq(pdev->irq, t4_interrupt_gen2, SA_INTERRUPT | SA_SHIRQ, "t4xxp", wc)) 
+			}
+			if (request_irq(pdev->irq, t4_interrupt_gen2, SA_INTERRUPT | SA_SHIRQ, "t4xxp", wc))
 #endif
 			{
 				printk("t4xxp: Unable to request IRQ %d\n", pdev->irq);
@@ -2714,7 +2714,7 @@ static int __devinit t4_init_one(struct pci_dev *pdev, const struct pci_device_i
 					}
 				}
 				/* If we found at least one, increment the highest order and search again, otherwise stop */
-				if (f) 
+				if (f)
 					highestorder++;
 				else
 					break;
@@ -2779,21 +2779,21 @@ static void __devexit t4_remove_one(struct pci_dev *pdev)
 			flush_workqueue(wc->workq);
 			destroy_workqueue(wc->workq);
 		}
-#endif			
+#endif
 #if 0
 		/* Stop any DMA */
 		__t1xxp_stop_dma(wc);
 
 		/* In case hardware is still there */
 		__t1xxp_disable_interrupts(wc);
-		
+
 		t1xxp_stop_stuff(wc);
 #endif
 
 		if (wc->membase)
 			iounmap((void *)wc->membase);
 
-		pci_release_regions(pdev);		
+		pci_release_regions(pdev);
 #if 0
 		if (wc->memaddr)
 			release_mem_region(wc->memaddr, wc->memlen);
@@ -2803,7 +2803,7 @@ static void __devexit t4_remove_one(struct pci_dev *pdev)
 		pci_free_consistent(pdev, ZT_MAX_CHUNKSIZE * 2 * 2 * 32 * 4, (void *)wc->writechunk, wc->writedma);
 #if 1
 		free_irq(pdev->irq, wc);
-#endif		
+#endif
 		cards[wc->num] = NULL;
 		pci_set_drvdata(pdev, NULL);
 		for (x=0;x<wc->numspans;x++) {

@@ -7,7 +7,7 @@ spi_mmc-objs := spi_mmc_core.o \
 		mmc_spi_mode.o \
 
 default:
-	
+
 transfer: clean copy
 
 clean:

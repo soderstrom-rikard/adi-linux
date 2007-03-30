@@ -5,7 +5,7 @@
 #include <linux/zaptel.h>
 #include <stdio.h>
 #include <linux/types.h>
-#include <linux/ppp_defs.h> 
+#include <linux/ppp_defs.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -122,7 +122,7 @@ int check_frame(unsigned char *outbuf, int res)
 	if (res != c) {
 		printf("Res is %d, expected %d\n", res, c+2);
 	}
-#endif	
+#endif
 	c = bit_next(c);
 	return 0;
 }
@@ -214,10 +214,10 @@ int main(int argc, char *argv[])
 			}
 #if 0
 		printf("Res is %d, buf0 is %d, buf1 is %d\n", res, outbuf[0], outbuf[1]);
-#endif		
+#endif
 			if (res < 2) {
 				fprintf(stderr, "Too small?  Only got %d bytes\n", res);
-			} 
+			}
 			check_frame(outbuf, res);
 		} else {
 			for (x=0;x<res;x++) {
@@ -261,5 +261,5 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-	
+
 }

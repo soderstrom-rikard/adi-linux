@@ -35,7 +35,7 @@
 #define REQUEST_NORMAL 4
 
 #define FLAG_RUNNING    (1 << 0)
- 
+
 /* Important data structures and data types */
 
 
@@ -91,7 +91,7 @@ struct stinky_urb {
         struct urb urb;
 #ifndef LINUX26
         struct iso_packet_descriptor isoframe[1];
-#endif		
+#endif
 #else
         urb_t urb;
         iso_packet_descriptor_t isoframe[1];

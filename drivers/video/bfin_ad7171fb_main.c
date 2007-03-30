@@ -223,7 +223,7 @@ static int bfin_fb_mmap(struct fb_info *info, struct vm_area_struct * vma)
 	/* we really dont need any map ... not sure how the smem_start will
 	   end up in the kernel
 	*/
-	if (adv7171_mmap) 
+	if (adv7171_mmap)
 		return -1;
 
 	vma->vm_start  = (int)rgb_buffer;
@@ -582,7 +582,7 @@ int __init bfin_ad7171_fb_init(void)
 	}
 	bfin_ad7171_fb_defined.red.length   = 8;
 	bfin_ad7171_fb_defined.green.length = 8;
-	bfin_ad7171_fb_defined.blue.length  = 8;	
+	bfin_ad7171_fb_defined.blue.length  = 8;
 
 	bfin_ad7171_fb.fbops = &bfin_ad7171_fb_ops;
 	bfin_ad7171_fb.var = bfin_ad7171_fb_defined;

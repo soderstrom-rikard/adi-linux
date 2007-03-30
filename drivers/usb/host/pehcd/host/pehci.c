@@ -2,7 +2,7 @@
  * Philips ISP176x Host Controller Interface code file
  *
  * (c) 2002 Koninklijke Philips Electronics N.V. All rights reserved. <usb.linux@philips.com>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -16,12 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- * 
+ *
  * File Name: pehci.c
- * 
+ *
  * Refering linux kernel version 2.6.9
  *
- * History:     
+ * History:
  *
  * Date                  Author                  Comments
  * ------------------------------------------------------------------------------
@@ -29,7 +29,7 @@
  * July 4, 2005          krishan                  Handling unprotected urbs
  * Feb 6, 2006           Grant H.                 Added ISO support
  * April 21, 2006        Grant H.                 Added bug fixes
- * 
+ *
  ********************************************************************************
  */
 
@@ -97,7 +97,7 @@ extern  unsigned long phcd_submit_iso( phci_hcd *hcd,
 #endif
 
 /*---------------------------------------------------
- *    Globals for EHCI 
+ *    Globals for EHCI
  -----------------------------------------------------*/
 
 /* used when updating hcd data */
@@ -106,10 +106,10 @@ static spinlock_t hcd_data_lock = SPIN_LOCK_UNLOCKED;
 static const char       hcd_name [] = "Philips";
 static td_ptd_map_buff_t td_ptd_map_buff[TD_PTD_TOTAL_BUFF_TYPES];      /* td-ptd map buffer for all 1362 buffers */
 
-static __u8             td_ptd_pipe_x_buff_type[TD_PTD_TOTAL_BUFF_TYPES] = {    
-    TD_PTD_BUFF_TYPE_ATL,                                       
-    TD_PTD_BUFF_TYPE_INTL,                                      
-    TD_PTD_BUFF_TYPE_ISTL                                       
+static __u8             td_ptd_pipe_x_buff_type[TD_PTD_TOTAL_BUFF_TYPES] = {
+    TD_PTD_BUFF_TYPE_ATL,
+    TD_PTD_BUFF_TYPE_INTL,
+    TD_PTD_BUFF_TYPE_ISTL
 };
 
 /*global memory blocks*/
@@ -117,7 +117,7 @@ isp1761_mem_addr_t memalloc[BLK_TOTAL];
 #include "mem.c"
 #include "qtdptd.c"
 
-#ifdef CONFIG_ISO_SUPPORT 
+#ifdef CONFIG_ISO_SUPPORT
 #include "itdptd.c"
 #endif /* CONFIG_ISO_SUPPORT */
 
@@ -126,7 +126,7 @@ pehci_rh_control (struct usb_hcd *usb_hcd,u16  typeReq,
         u16 wValue,u16 wIndex,char *buf,u16 wLength);
 
 /*----------------------------------------------------*/
-    static void 
+    static void
 pehci_complete_device_removal(phci_hcd *hcd,struct ehci_qh *qh)
 {
     td_ptd_map_t *td_ptd_map;
@@ -151,7 +151,7 @@ pehci_complete_device_removal(phci_hcd *hcd,struct ehci_qh *qh)
         return;
     }
     /*MUST not come down below this*/
-    err("Never Error: Should not come to this portion of code\n");    
+    err("Never Error: Should not come to this portion of code\n");
 
     return;
 }
@@ -272,8 +272,8 @@ pehci_hcd_td_ptd_submit_urb(phci_hcd *hcd,struct ehci_qh *qh,u8 bufftype)
         err("Never Error: Can not allocate memory for the current td,length %d\n",length);
         /*should not happen*/
         /*can happen only when we exceed the limit of devices we support
-          MAX 4 mass storage at a time*/        
-    }   
+          MAX 4 mass storage at a time*/
+    }
     phci_hcd_qha_from_qtd(hcd,qtd,qtd->urb, (void *)qha,
             td_ptd_map->ptd_ram_data_addr,
             qh
@@ -358,7 +358,7 @@ pehci_hcd_schedule_pending_ptds(phci_hcd *hcd,u32 donemap,u8 bufftype,u16 only)
 #endif
     u32 lastmap = 0;
     struct urb *urb = 0;
-    urb_priv_t *urbpriv = 0;    
+    urb_priv_t *urbpriv = 0;
     int length = 0;
     u32 ormask = 0,andmask = 0;
     u32 intormask = 0;
@@ -410,13 +410,13 @@ pehci_hcd_schedule_pending_ptds(phci_hcd *hcd,u32 donemap,u8 bufftype,u16 only)
         /*      can happen if donemap comes after
                 removal of the urb and associated tds
          */
-        if((td_ptd_map->state ==  TD_PTD_NEW) || 
+        if((td_ptd_map->state ==  TD_PTD_NEW) ||
                 (td_ptd_map->state == TD_PTD_REMOVE)){
             qh = td_ptd_map->qh;
             pehci_check("should not come here, map %x,pending map %x\n", td_ptd_map->ptd_bitmap,
                     ptd_map_buff->pending_ptd_bitmap);
 
-            pehci_check("buffer type %s\n", (bufftype == 0)?"ATL":"INTL");      
+            pehci_check("buffer type %s\n", (bufftype == 0)?"ATL":"INTL");
             donemap &= ~td_ptd_map->ptd_bitmap;
             /*clear the pending map*/
             ptd_map_buff->pending_ptd_bitmap &= ~td_ptd_map->ptd_bitmap;
@@ -471,7 +471,7 @@ pehci_hcd_schedule_pending_ptds(phci_hcd *hcd,u32 donemap,u8 bufftype,u16 only)
             if(list_empty(&qh->qtd_list)){
                 /*should not hapen again, as it comes here
                   when it has td in its map
-                 */     
+                 */
                 pehci_check("must not come here any more, td map %x\n",td_ptd_map->ptd_bitmap);
                 /*this location is idle and can be free next time if
                   no new transfers are comming for this*/
@@ -490,7 +490,7 @@ pehci_hcd_schedule_pending_ptds(phci_hcd *hcd,u32 donemap,u8 bufftype,u16 only)
         /*if there is already one qtd there in the transfer*/
         if(td_ptd_map->qtd){
             /*new schedule*/
-            qtd = td_ptd_map->qtd;      
+            qtd = td_ptd_map->qtd;
         }
 loadtd:
         /*should not happen*/
@@ -528,17 +528,17 @@ loadtd:
         /*take the urb*/
         urb = qtd->urb;
         /*sometimes we miss due to skipmap
-          so to make sure that we dont put again the 
+          so to make sure that we dont put again the
           same stuff
          */
         if(!(qtd->state & QTD_STATE_NEW))
-        {    
+        {
             err("Never Error: We should not put the same stuff\n");
             continue;
         }
 
         urbpriv = (urb_priv_t*)urb->hcpriv;
-        urbpriv->timeout = 0;   
+        urbpriv->timeout = 0;
 
         /*no more new*/
         qtd->state &= ~QTD_STATE_NEW;
@@ -557,7 +557,7 @@ loadtd:
             err("Never Error: Can not allocate memory for the current td,length %d\n",length);
             location++;
             continue;
-        }       
+        }
 
         pehci_check("qtd being scheduled %p, device %d,map %x\n", qtd,urb->dev->devnum,td_ptd_map->ptd_bitmap);
 
@@ -683,7 +683,7 @@ pehci_hcd_qtd_schedule(phci_hcd *hcd,struct ehci_qtd *qtd,
 
     urb = qtd->urb;
     urbpriv = (urb_priv_t*)urb->hcpriv;
-    urbpriv->timeout = 0;       
+    urbpriv->timeout = 0;
 
     /*NEW, now need to get the memory for this transfer*/
     length = qtd->length;
@@ -694,7 +694,7 @@ pehci_hcd_qtd_schedule(phci_hcd *hcd,struct ehci_qtd *qtd,
                 || (mem_addr->virt_addr == 0))){
         err("Never Error: Cannot allocate memory for the current td,length %d\n",length);
         return;
-    }   
+    }
 
     pehci_check("newqtd being scheduled, device: %d,map: %x\n", urb->dev->devnum,td_ptd_map->ptd_bitmap);
 
@@ -737,8 +737,8 @@ pehci_hcd_qtd_schedule(phci_hcd *hcd,struct ehci_qtd *qtd,
 
 
 
-static void 
-pehci_hcd_urb_complete(phci_hcd *hcd,struct ehci_qh *qh, struct urb *urb, 
+static void
+pehci_hcd_urb_complete(phci_hcd *hcd,struct ehci_qh *qh, struct urb *urb,
         td_ptd_map_t    *td_ptd_map)
 {
 
@@ -832,11 +832,11 @@ pehci_hcd_update_error_status(u32 ptdstatus,struct urb *urb)
  *
  * API Description
  * This is the ISOCHRONOUS Transfer handler, mainly responsible for:
- *  - Checking the periodic list if there are any ITDs for scheduling or 
+ *  - Checking the periodic list if there are any ITDs for scheduling or
  *    removal.
- *  - For ITD scheduling, converting an ITD into a PTD, which is the data 
+ *  - For ITD scheduling, converting an ITD into a PTD, which is the data
  *    structure that the host contrtoller can understand and process.
- *  - For ITD completion, checking the transfer status and performing the 
+ *  - For ITD completion, checking the transfer status and performing the
  *    required actions depending on status.
  *  - Freeing up memory used by an ITDs once it is not needed anymore.
  ************************************************************************/
@@ -844,11 +844,11 @@ void phcd_iso_handler(phci_hcd *hcd)
 {
     struct _isp1761_isoptd *iso_ptd;
     struct isp1761_mem_addr *mem_addr;
-    struct ehci_itd *itd, *current_itd; 
+    struct ehci_itd *itd, *current_itd;
     td_ptd_map_t *td_ptd_map;
     td_ptd_map_buff_t *ptd_map_buff;
 
-    struct list_head *itd_sched, *itd_remove, *position, *lst_temp;     
+    struct list_head *itd_sched, *itd_remove, *position, *lst_temp;
     struct urb *urb;
 
     unsigned long buff_stat, skip_map;
@@ -857,12 +857,12 @@ void phcd_iso_handler(phci_hcd *hcd)
     unsigned long uframe_cnt, usof_stat, length;
     unsigned char schedule, remove, last_td;
 
-    /* Local variable initialization */                 
+    /* Local variable initialization */
     buff_stat = 0;
     skip_map = 0;
     frame_num = 0;
     schedule = FALSE;
-    remove = FALSE;     
+    remove = FALSE;
     iso_ptd = &hcd->isotd;
     last_map = 0;
 
@@ -904,7 +904,7 @@ void phcd_iso_handler(phci_hcd *hcd)
 
     /* Process ITDs linked to this frame, checking for completed ITDs */
     itd_remove = &hcd->periodic_list[rmv_frm_num].itd_head;
-    iso_dbg(ISO_DBG_DATA, "[phcd_iso_handler]: Removal Frame number: %d\n", (int) rmv_frm_num);            
+    iso_dbg(ISO_DBG_DATA, "[phcd_iso_handler]: Removal Frame number: %d\n", (int) rmv_frm_num);
 
     /* For ITD scheduling, work on the ITD linked to the frame after the current frame */
     if(sched_frm_num == 31)
@@ -916,42 +916,42 @@ void phcd_iso_handler(phci_hcd *hcd)
 
     /* Process ITDs linked to this frame, checking if there are any that needs to be scheduled */
     itd_sched = &hcd->periodic_list[sched_frm_num].itd_head;
-    iso_dbg(ISO_DBG_DATA, "[phcd_iso_handler]: Schedule Frame number: %d\n", (int) sched_frm_num);         
+    iso_dbg(ISO_DBG_DATA, "[phcd_iso_handler]: Schedule Frame number: %d\n", (int) sched_frm_num);
 
     /* Check if the ITD lists are empty */
     if( !list_empty(itd_sched))
     {
-        iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: ISO schedule list not empty\n");          
+        iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: ISO schedule list not empty\n");
         schedule = TRUE;
     }
     else
     {
-        iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: ISO schedule list empty\n");              
+        iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: ISO schedule list empty\n");
     }
 
     if( !list_empty(itd_remove))
     {
-        iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: ISO remove list not empty\n");            
+        iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: ISO remove list not empty\n");
         remove = TRUE;
     }
     else
     {
-        iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: ISO remove list empty\n");                
+        iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: ISO remove list empty\n");
     }
 
     if( schedule == TRUE )
     {
-        iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: Something is scheduled\n");               
+        iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: Something is scheduled\n");
         /* There is an ITD to be scheduled, go over and check each ITD in this list */
         list_for_each(position, itd_sched)
         {
             /* Get an ITD in the list for processing */
             itd = list_entry(position, struct ehci_itd, itd_list);
 
-            iso_dbg(ISO_DBG_DATA, "[phcd_iso_handler]: ITD Index: %d\n", itd->itd_index);            
-            /* Get the PTD allocated for this ITD. */                   
+            iso_dbg(ISO_DBG_DATA, "[phcd_iso_handler]: ITD Index: %d\n", itd->itd_index);
+            /* Get the PTD allocated for this ITD. */
             td_ptd_map = &ptd_map_buff->map_list[itd->itd_index];
-            memset(iso_ptd, 0, sizeof(struct _isp1761_isoptd));                 
+            memset(iso_ptd, 0, sizeof(struct _isp1761_isoptd));
 
             /* Create a PTD from an ITD*/
             phcd_iso_itd_to_ptd( hcd,
@@ -964,7 +964,7 @@ void phcd_iso_handler(phci_hcd *hcd)
             ptd_map_buff->pending_ptd_bitmap &= ~td_ptd_map->ptd_bitmap;
 
             /*
-             * Place the newly initialized ISO PTD structure into the location allocated 
+             * Place the newly initialized ISO PTD structure into the location allocated
              * for this PTD in the ISO PTD memory region.
              */
             isp1761_mem_write( hcd->dev,
@@ -975,21 +975,21 @@ void phcd_iso_handler(phci_hcd *hcd)
                     0
                     );
 
-            /* 
+            /*
              * Set this flag to avoid unlinking before schedule
              * at particular frame number
              */
             td_ptd_map->state = TD_PTD_IN_SCHEDULE;
 
-            /* 
+            /*
              * If the length is not zero and the direction is OUT then copy the
              * data to be transferred into the PAYLOAD memory area.
              */
             if(itd->length)
             {
-                switch(PTD_PID(iso_ptd->td_info2)) 
+                switch(PTD_PID(iso_ptd->td_info2))
                 {
-                    case OUT_PID:                                       
+                    case OUT_PID:
                         /* Get the Payload memory allocated for this PTD */
                         mem_addr = &itd->mem_addr;
                         isp1761_mem_write( hcd->dev,
@@ -1011,19 +1011,19 @@ void phcd_iso_handler(phci_hcd *hcd)
              * Clear the bit corresponding to this PTD in the skip map so that it will be
              * processed on the next schedule traversal.
              */
-            skip_map &= ~td_ptd_map->ptd_bitmap;                
+            skip_map &= ~td_ptd_map->ptd_bitmap;
 
             iso_dbg(ISO_DBG_DATA, "[phcd_iso_handler]: Skip Map: 0x%08x\n", (unsigned int) skip_map);
             isp1761_reg_write32(hcd->dev, hcd->regs.isotdskipmap, skip_map);
 
-            /* 
-             * Update the last map register to indicate that the newly created PTD is the 
+            /*
+             * Update the last map register to indicate that the newly created PTD is the
              * last PTD added only if it is larger than the previous bitmap.
-             */                 
+             */
             if(last_map < td_ptd_map->ptd_bitmap)
             {
                 isp1761_reg_write32(hcd->dev, hcd->regs.isotdlastmap, td_ptd_map->ptd_bitmap);
-                iso_dbg(ISO_DBG_DATA, "[phcd_iso_handler]: Last Map: 0x%08x\n", td_ptd_map->ptd_bitmap);     
+                iso_dbg(ISO_DBG_DATA, "[phcd_iso_handler]: Last Map: 0x%08x\n", td_ptd_map->ptd_bitmap);
             }
 
             /*
@@ -1032,14 +1032,14 @@ void phcd_iso_handler(phci_hcd *hcd)
              */
             iso_dbg(ISO_DBG_DATA, "[phcd_iso_handler]: Buffer Status: 0x%08x\n", (unsigned int) (buff_stat | ISO_BUFFER));
             isp1761_reg_write32(hcd->dev, hcd->regs.buffer_status, (buff_stat | ISO_BUFFER));
-        } /* list_for_each(position, itd_sched) */      
+        } /* list_for_each(position, itd_sched) */
 
         iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: ISO-Frame scheduling done\n");
     } /* if( schedule == TRUE ) */
 
     if( remove == TRUE)
     {
-        iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: Something is for removal\n");             
+        iso_dbg(ISO_DBG_INFO, "[phcd_iso_handler]: Something is for removal\n");
         list_for_each_safe(position, lst_temp, itd_remove)
         {
             last_td = FALSE;
@@ -1050,7 +1050,7 @@ void phcd_iso_handler(phci_hcd *hcd)
             /* Get the PTD that was allocated for this particular ITD. */
             td_ptd_map = &ptd_map_buff->map_list[itd->itd_index];
 
-            iso_dbg(ISO_DBG_DATA, "[phcd_iso_handler]: ITD Index: %d\n", itd->itd_index);            
+            iso_dbg(ISO_DBG_DATA, "[phcd_iso_handler]: ITD Index: %d\n", itd->itd_index);
             urb = itd->urb;
 
             /*
@@ -1060,11 +1060,11 @@ void phcd_iso_handler(phci_hcd *hcd)
             mem_addr = &itd->mem_addr;
             memset(iso_ptd, 0, sizeof(struct _isp1761_isoptd));
 
-            /* 
+            /*
              * Read this ptd from the ram address,address is in the
              * td_ptd_map->ptd_header_addr
              */
-            isp1761_mem_read( hcd->dev, 
+            isp1761_mem_read( hcd->dev,
                     td_ptd_map->ptd_header_addr,
                     0,
                     (__u32 *) iso_ptd,
@@ -1084,7 +1084,7 @@ void phcd_iso_handler(phci_hcd *hcd)
             /* Go over the status of each of the 8 Micro Frames */
             for( uframe_cnt = 0; uframe_cnt < 8; uframe_cnt++)
             {
-                /* 
+                /*
                  * We go over the status one at a time. The status bits and their
                  * equivalent status are:
                  * Bit 0 - Transaction Error (IN and OUT)
@@ -1093,18 +1093,18 @@ void phcd_iso_handler(phci_hcd *hcd)
                  */
                 usof_stat = iso_ptd->td_info5 >> (8 + (uframe_cnt * 3));
 
-                switch(usof_stat & 0x7) 
+                switch(usof_stat & 0x7)
                 {
-                    case INT_UNDERRUN:                          
-                        iso_dbg(ISO_DBG_ERR, "[phcd_iso_handler Error]: Buffer underrun\n");         
+                    case INT_UNDERRUN:
+                        iso_dbg(ISO_DBG_ERR, "[phcd_iso_handler Error]: Buffer underrun\n");
                         urb->error_count++;
                         break;
-                    case INT_EXACT:                                     
-                        iso_dbg(ISO_DBG_ERR, "[phcd_iso_handler Error]: Transaction error\n");               
+                    case INT_EXACT:
+                        iso_dbg(ISO_DBG_ERR, "[phcd_iso_handler Error]: Transaction error\n");
                         urb->error_count++;
                         break;
-                    case INT_BABBLE:                                    
-                        iso_dbg(ISO_DBG_ERR, "[phcd_iso_handler Error]: Babble error\n");            
+                    case INT_BABBLE:
+                        iso_dbg(ISO_DBG_ERR, "[phcd_iso_handler Error]: Babble error\n");
                         urb->iso_frame_desc[itd->itd_index].status = -EOVERFLOW;
                         urb->error_count++;
                         break;
@@ -1114,7 +1114,7 @@ void phcd_iso_handler(phci_hcd *hcd)
             /*
              * Get the number of bytes transferred. This indicates the number of
              * bytes sent or received for this transaction.
-             */                 
+             */
             if(urb->dev->speed != USB_SPEED_HIGH)
                 /* Length is 1K for full/low speed device */
                 length = PTD_XFERRED_NONHSLENGTH(iso_ptd->td_info4);
@@ -1126,23 +1126,23 @@ void phcd_iso_handler(phci_hcd *hcd)
             if(iso_ptd->td_info4 & PTD_STATUS_HALTED)
             {
                 iso_dbg(ISO_DBG_ERR, "[phcd_iso_handler Error] PTD Halted\n");
-                /* 
+                /*
                  * When there is an error, do not process the other PTDs.
                  * Stop at the PTD with the error and remove all other PTDs.
                  */
                 td_ptd_map->lasttd = 1;
 
-                /* 
+                /*
                  * In case of halt, next transfer will start with toggle zero,
                  * USB specs, 5.8.5
-                 */                             
-                td_ptd_map->datatoggle = 0;                             
+                 */
+                td_ptd_map->datatoggle = 0;
             } /* if(iso_ptd->td_info4 & PTD_STATUS_HALTED) */
 
             /* Update the actual length of the transfer from the data we got earlier */
             urb->iso_frame_desc[itd->index].actual_length = length;
 
-            /* If the PTD have been executed properly the V bit should be cleared */                    
+            /* If the PTD have been executed properly the V bit should be cleared */
             if(iso_ptd->td_info1 & QHA_VALID)
             {
                 iso_dbg(ISO_DBG_ERR,"[phcd_iso_handler Error]: Valid bit not cleared\n");
@@ -1165,7 +1165,7 @@ void phcd_iso_handler(phci_hcd *hcd)
                 switch(PTD_PID(iso_ptd->td_info2))
                 {
                     case IN_PID:
-                        /* 
+                        /*
                          * Get the data from the PAYLOAD area and place it into
                          * the buffer provided by the requestor.
                          */
@@ -1177,7 +1177,7 @@ void phcd_iso_handler(phci_hcd *hcd)
                                 0
                                 );
                     case OUT_PID:
-                        /* 
+                        /*
                          * urb->actual length was initialized to zero, so for the first
                          * uFrame having it incremented immediately is not a problem.
                          */
@@ -1190,17 +1190,17 @@ void phcd_iso_handler(phci_hcd *hcd)
             {
                 /* Start removing the ITDs in the list */
                 while(1)
-                {                                       
-                    /* 
+                {
+                    /*
                      * This indicates that we are processing the tail PTD.
                      * Perform cleanup procedure on this last PTD
                      */
-                    if(itd->hw_next == EHCI_LIST_END) 
+                    if(itd->hw_next == EHCI_LIST_END)
                     {
                         td_ptd_map = &ptd_map_buff->map_list[itd->itd_index];
 
-                        /* 
-                         * Free up our allocation in the PAYLOAD area so that others can use 
+                        /*
+                         * Free up our allocation in the PAYLOAD area so that others can use
                          * it.
                          */
                         phci_hcd_mem_free(&itd->mem_addr);
@@ -1211,7 +1211,7 @@ void phcd_iso_handler(phci_hcd *hcd)
                         /* Free up the memory allocated for the ITD structure */
                         qha_free(qha_cache, itd);
 
-                        /* Indicate that the PTD we have used is now free */    
+                        /* Indicate that the PTD we have used is now free */
                         td_ptd_map->state = TD_PTD_NEW;
 
                         /* Decrease the number of active PTDs scheduled*/
@@ -1225,14 +1225,14 @@ void phcd_iso_handler(phci_hcd *hcd)
                         break;
                     } /* if(itd->hw_next == EHCI_LIST_END) */
 
-                    /* 
+                    /*
                      * This indicates that we stopped due to an error on a PTD that is
-                     * not the last in the list. We need to free up this PTD as well as 
+                     * not the last in the list. We need to free up this PTD as well as
                      * the PTDs after it.
                      */
                     else
                     {
-                        /* 
+                        /*
                          * Put the current ITD error onto this variable.
                          * We will be unlinking this from the list and free up its
                          * resources later.
@@ -1241,7 +1241,7 @@ void phcd_iso_handler(phci_hcd *hcd)
 
                         td_ptd_map = &ptd_map_buff->map_list[itd->itd_index];
 
-                        /* 
+                        /*
                          * Get the next ITD, and place it to the itd variable.
                          * In a way we are moving forward in the ITD list.
                          */
@@ -1266,9 +1266,9 @@ void phcd_iso_handler(phci_hcd *hcd)
                         skip_map |= td_ptd_map->ptd_bitmap;
                         isp1761_reg_write32(hcd->dev, hcd->regs.isotdskipmap, skip_map);
 
-                        /* 
-                         * Start all over again until it gets to the tail of the 
-                         * list of PTDs/ITDs 
+                        /*
+                         * Start all over again until it gets to the tail of the
+                         * list of PTDs/ITDs
                          */
                         continue;
                     } /* else of if(itd->hw_next == EHCI_LIST_END) */
@@ -1280,7 +1280,7 @@ void phcd_iso_handler(phci_hcd *hcd)
                 /* Check if there were ITDs that were not processed due to the error */
                 if(urb->status == -EINPROGRESS)
                 {
-                    if( (urb->actual_length != urb->transfer_buffer_length) && 
+                    if( (urb->actual_length != urb->transfer_buffer_length) &&
                             (urb->transfer_flags & URB_SHORT_NOT_OK))
                     {
                         iso_dbg(ISO_DBG_ERR,"[phcd_iso_handler Error]: Short Packet\n");
@@ -1305,9 +1305,9 @@ void phcd_iso_handler(phci_hcd *hcd)
                 continue;
             }/* if( last_td == TRUE ) */
 
-            /* 
+            /*
              * If the last_td is not set then we do not need to check for errors and directly
-             * proceed with the cleaning sequence.                       
+             * proceed with the cleaning sequence.
              */
 
             /* Decrement the count of active PTDs */
@@ -1322,12 +1322,12 @@ void phcd_iso_handler(phci_hcd *hcd)
             /* Free up the memory we allocated for the ITD structure */
             qha_free(qha_cache, itd);
 
-            /* 
+            /*
              * Clear the bit associated with this PTD from the grouptdmap and
              * make this PTD available for other transfers
              */
 
-            td_ptd_map->state = TD_PTD_NEW;         
+            td_ptd_map->state = TD_PTD_NEW;
 
             /* Skip this PTD during the next PTD processing. */
             skip_map |= td_ptd_map->ptd_bitmap;
@@ -1338,7 +1338,7 @@ void phcd_iso_handler(phci_hcd *hcd)
 
     /*
      * When there is no more PTDs queued for scheduling or removal
-     * clear the buffer status to indicate there are no more PTDs for 
+     * clear the buffer status to indicate there are no more PTDs for
      * processing and set the skip map to 1 to indicate that the first
      * PTD is also the last PTD.
      */
@@ -1349,7 +1349,7 @@ void phcd_iso_handler(phci_hcd *hcd)
         isp1761_reg_write32(hcd->dev, hcd->regs.buffer_status, buff_stat);
         isp1761_reg_write32(hcd->dev,hcd->regs.isotdlastmap, 0x1);
         hcd->periodic_sched = 0;
-    }           
+    }
 } /* end of phcd_iso_handler */
 
 #endif /* CONFIG_ISO_SUPPORT */
@@ -1382,7 +1382,7 @@ pehci_hcd_intl_worker(phci_hcd *hcd)
     td_ptd_map_t                *td_ptd_map;
     td_ptd_map_buff_t   *ptd_map_buff;
     struct isp1761_mem_addr *mem_addr = 0;
-    u32 dontschedule = 0;       
+    u32 dontschedule = 0;
 
     ptd_map_buff = &(td_ptd_map_buff[TD_PTD_BUFF_TYPE_INTL]);
     pendingmap = ptd_map_buff->pending_ptd_bitmap;
@@ -1575,15 +1575,15 @@ copylength:
 
         }
 
-schedule:    
+schedule:
         {
-            /*current td comes from qh->hw_current*/    
+            /*current td comes from qh->hw_current*/
             ptd_map_buff->pending_ptd_bitmap &= ~td_ptd_map->ptd_bitmap;
             ormask |= td_ptd_map->ptd_bitmap;
             ptd_map_buff->active_ptds++;
             pehci_check("inter schedule next qtd %p, active tds %d\n", qtd,ptd_map_buff->active_ptds);
             pehci_hcd_qtd_schedule(hcd,qtd,qh,td_ptd_map);
-        }        
+        }
 
     } /*end of while*/
 
@@ -1608,14 +1608,14 @@ pehci_hcd_atl_worker(phci_hcd *hcd)
 {
     u32 donemap = 0, donetoclear=0;
     u32 pendingmap = 0;
-    u32 rl = 0; 
+    u32 rl = 0;
     u32 mask = 0x1,index = 0;
     u32 location = 0;
     u32 nakcount = 0;
     u32 active = 0;
     u32 length = 0;
     u32 skipmap = 0;
-    u32 tempskipmap = 0;        
+    u32 tempskipmap = 0;
     u32 ormask=0;
     struct urb *urb;
     struct ehci_qtd *qtd = 0;
@@ -1624,18 +1624,18 @@ pehci_hcd_atl_worker(phci_hcd *hcd)
     struct _isp1761_qha *qha;
     td_ptd_map_t       *td_ptd_map;
     td_ptd_map_buff_t   *ptd_map_buff;
-    urb_priv_t          *urbpriv = 0;   
+    urb_priv_t          *urbpriv = 0;
     struct isp1761_mem_addr *mem_addr = 0;
-    u32 dontschedule = 0;       
+    u32 dontschedule = 0;
 
     ptd_map_buff = &(td_ptd_map_buff[TD_PTD_BUFF_TYPE_ATL]);
     pendingmap = ptd_map_buff->pending_ptd_bitmap;
 
 #ifdef MSEC_INT_BASED
     /*running on skipmap rather donemap,
-      some cases donemap may not be set 
+      some cases donemap may not be set
       for complete transfer
-     */                 
+     */
     skipmap = isp1761_reg_read32(hcd->dev, hcd->regs.atltdskipmap, skipmap);
     tempskipmap = ~skipmap;
     if(tempskipmap){
@@ -1682,7 +1682,7 @@ pehci_hcd_atl_worker(phci_hcd *hcd)
      * */
     donetoclear = donemap;
     /*we will be processing skipped tds also*/
-    donetoclear |= tempskipmap; 
+    donetoclear |= tempskipmap;
     /*process all the endpoints first those are done*/
     while(donetoclear){
         /*index is the number of endpoint open currently*/
@@ -1726,10 +1726,10 @@ pehci_hcd_atl_worker(phci_hcd *hcd)
             err("Never Error:QH and QTD must not be zero\n");
             donemap &= ~td_ptd_map->ptd_bitmap;
             /*in case pending*/
-            ptd_map_buff->pending_ptd_bitmap &= ~td_ptd_map->ptd_bitmap;            
+            ptd_map_buff->pending_ptd_bitmap &= ~td_ptd_map->ptd_bitmap;
             continue;
-        } 
-#ifdef MSEC_INT_BASED           
+        }
+#ifdef MSEC_INT_BASED
         /*new td must be scheduled*/
         if((qtd->state & QTD_STATE_NEW) /*&&
                                           (pendingmap & td_ptd_map->ptd_bitmap)*/){
@@ -1740,7 +1740,7 @@ pehci_hcd_atl_worker(phci_hcd *hcd)
             qh->hw_current = QTD_NEXT (qtd->qtd_dma);
             goto schedule;
         }
-#endif                  
+#endif
 
         urb = qtd->urb;
         urbpriv = (urb_priv_t *)urb->hcpriv;
@@ -1752,13 +1752,13 @@ pehci_hcd_atl_worker(phci_hcd *hcd)
             /*nothing to do*/
             ;
         }else{
-            /*if td is not done, lets check how long 
+            /*if td is not done, lets check how long
               its been scheduled
              */
             if(tempskipmap & td_ptd_map->ptd_bitmap){
                 /*i will give 20 msec to complete*/
                 if(urbpriv->timeout < 20){
-                    urbpriv->timeout++; 
+                    urbpriv->timeout++;
                     continue;
                 }
                 urbpriv->timeout++;
@@ -1766,14 +1766,14 @@ pehci_hcd_atl_worker(phci_hcd *hcd)
             }
 
         }
-#endif          
+#endif
         memset(qha, 0, sizeof(struct _isp1761_qha));
 
         /*read this ptd from the ram address,address is in the
           td_ptd_map->ptd_header_addr*/
         isp1761_mem_read(hcd->dev, td_ptd_map->ptd_header_addr,0,(u32 *)(qha),PHCI_QHA_LENGTH,0);
 
-#ifdef MSEC_INT_BASED   
+#ifdef MSEC_INT_BASED
         /*since we are running on skipmap
           tds will be checked for completion state
          */
@@ -1800,10 +1800,10 @@ pehci_hcd_atl_worker(phci_hcd *hcd)
             /*of course this is going to be as good
               as td that is done and donemap is set
               also skipmap is set
-             */                 
+             */
             donemap |= td_ptd_map->ptd_bitmap;
         }
-#endif          
+#endif
 
 
         /*clear the corrosponding mask register*/
@@ -1820,7 +1820,7 @@ pehci_hcd_atl_worker(phci_hcd *hcd)
         if(qha->td_info4 & PTD_STATUS_HALTED){
             qtd->state |= QTD_STATE_LAST;
 
-            donemap &= ~td_ptd_map->ptd_bitmap; 
+            donemap &= ~td_ptd_map->ptd_bitmap;
             /*in case pending*/
             ptd_map_buff->pending_ptd_bitmap &= ~td_ptd_map->ptd_bitmap;
             /*in case of halt, next transfer will start with toggle
@@ -1854,7 +1854,7 @@ pehci_hcd_atl_worker(phci_hcd *hcd)
 
                 pehci_print("xact error, info1 0x%08x,info4 0x%08x\n", qha->td_info1,qha->td_info4);
 
-                /*if this is the case then we need to 
+                /*if this is the case then we need to
                   resubmit the td again*/
                 qha->td_info1 |= QHA_VALID;
                 skipmap &= ~td_ptd_map->ptd_bitmap;
@@ -1924,8 +1924,8 @@ copylength:
          * */
         /*can we complete our transfer here*/
         if((urb->transfer_flags & URB_SHORT_NOT_OK)){
-            pehci_check("short read, length %d(expected %d)\n", 
-                    length, qtd->length);       
+            pehci_check("short read, length %d(expected %d)\n",
+                    length, qtd->length);
             urb->status = -EREMOTEIO;
             /*if this is the only td,donemap will be cleared
               at completion, otherwise take the next one
@@ -1943,7 +1943,7 @@ copylength:
     }
     /*preserve the current data toggle*/
     qh->datatoggle =td_ptd_map->datatoggle = PTD_NEXTTOGGLE(qha->td_info4);
-    qh->ping = PTD_PING_STATE(qha->td_info4);   
+    qh->ping = PTD_PING_STATE(qha->td_info4);
     /*copy data from*/
     switch(PTD_PID(qha->td_info2)){
         case IN_PID:
@@ -1972,7 +1972,7 @@ copylength:
         if(dontschedule){ /*cleanup will start from drivers*/
             dontschedule = 0;
             /*so that we can take next one*/
-            qh->qh_state = QH_STATE_TAKE_NEXT;                                  
+            qh->qh_state = QH_STATE_TAKE_NEXT;
             continue;
         }
         /*take the next if in the queue*/
@@ -1995,16 +1995,16 @@ copylength:
         }
     }
 
-schedule:    
+schedule:
     {
-        /*current td comes from qh->hw_current*/        
+        /*current td comes from qh->hw_current*/
         ptd_map_buff->pending_ptd_bitmap &= ~td_ptd_map->ptd_bitmap;
         td_ptd_map->qtd = (struct ehci_qtd *)(le32_to_cpu(qh->hw_current));
         qtd = td_ptd_map->qtd;
         ormask |= td_ptd_map->ptd_bitmap;
         ptd_map_buff->active_ptds++;
         pehci_hcd_qtd_schedule(hcd,qtd,qh,td_ptd_map);
-    }    
+    }
 
 } /*end of while*/
 
@@ -2035,7 +2035,7 @@ pehci_hub_descriptor (
     pehci_info("%s: number of ports %d\n", __FUNCTION__, ports);
 
     desc->bDescriptorType = 0x29;
-    desc->bPwrOn2PwrGood = 10;  
+    desc->bPwrOn2PwrGood = 10;
 
     desc->bHubContrCurrent = 0;
 
@@ -2087,7 +2087,7 @@ phci_check_reset_complete (phci_hcd *hcd,int index,int port_status)
 
 /*initialize all three buffer(iso/atl/int) type headers*/
     static void
-pehci_hcd_init_map_buffers(phci_hcd     *phci) 
+pehci_hcd_init_map_buffers(phci_hcd     *phci)
 {
     td_ptd_map_buff_t   *ptd_map_buff;
     u8                          buff_type, ptd_index;
@@ -2311,7 +2311,7 @@ pehci_hcd_irq1(struct usb_hcd *hcd)
 
 /*isr routine*/
     irqreturn_t
-pehci_hcd_irq(struct usb_hcd *usb_hcd) //struct isp1761_dev *dev, void *__irq_data, struct pt_regs *regs) 
+pehci_hcd_irq(struct usb_hcd *usb_hcd) //struct isp1761_dev *dev, void *__irq_data, struct pt_regs *regs)
 {
     struct isp1761_dev *dev;
     int work = 0;
@@ -2324,12 +2324,12 @@ pehci_hcd_irq(struct usb_hcd *usb_hcd) //struct isp1761_dev *dev, void *__irq_da
 	//return IRQ_HANDLED;
     }
 
-    /*our host*/        
+    /*our host*/
     pehci_hcd = usb_hcd_to_pehci_hcd(usb_hcd);
     dev = pehci_hcd->dev;
     intr = dev->int_reg;
     if(atomic_read(&pehci_hcd->nuofsofs)){
-        return IRQ_HANDLED;     
+        return IRQ_HANDLED;
     }
     atomic_inc(&pehci_hcd->nuofsofs);
     set_bit(HCD_FLAG_SAW_IRQ, &usb_hcd->flags);
@@ -2341,7 +2341,7 @@ pehci_hcd_irq(struct usb_hcd *usb_hcd) //struct isp1761_dev *dev, void *__irq_da
     if(intr & (HC_ATL_INT & INTR_ENABLE_MASK)){
         spin_lock(&pehci_hcd->lock);
         pehci_hcd_atl_worker(pehci_hcd, regs);
-        spin_unlock(&pehci_hcd->lock);  
+        spin_unlock(&pehci_hcd->lock);
         work = 0;       /*phci_atl_worker(hcd); */
     }
 
@@ -2596,9 +2596,9 @@ pehci_hcd_urb_enqueue(struct usb_hcd *usb_hcd,struct usb_host_endpoint *ep,struc
         }
         /*keep a copy of this*/
         urb->hcpriv = urb_priv;
-#ifdef CONFIG_ISO_SUPPORT               
+#ifdef CONFIG_ISO_SUPPORT
     }
-#endif       
+#endif
 
     switch(temp){
         case PIPE_INTERRUPT:
@@ -2620,18 +2620,18 @@ pehci_hcd_urb_enqueue(struct usb_hcd *usb_hcd,struct usb_host_endpoint *ep,struc
             if(status < 0)
                 return status;
             break;
-#ifdef CONFIG_ISO_SUPPORT        
+#ifdef CONFIG_ISO_SUPPORT
         case PIPE_ISOCHRONOUS:
-            iso_dbg(ISO_DBG_DATA,"[pehci_hcd_urb_enqueue]: URB Transfer buffer: 0x%08x\n", 
+            iso_dbg(ISO_DBG_DATA,"[pehci_hcd_urb_enqueue]: URB Transfer buffer: 0x%08x\n",
                     (long) urb->transfer_buffer);
-            iso_dbg(ISO_DBG_DATA,"[pehci_hcd_urb_enqueue]: URB Buffer Length: %d\n", 
+            iso_dbg(ISO_DBG_DATA,"[pehci_hcd_urb_enqueue]: URB Buffer Length: %d\n",
                     (long) urb->transfer_buffer_length);
             phcd_submit_iso(pehci_hcd, ep, urb, (unsigned long *) &status);
 
             return status;
 
             break;
-#endif          
+#endif
         default:
             return -ENODEV;
     }/*end of switch*/
@@ -2671,7 +2671,7 @@ pehci_hcd_urb_dequeue(struct usb_hcd  *usb_hcd,struct urb *urb)
 
     pehci_info("device %d\n",urb->dev->devnum);
 
-    spin_lock_irqsave(&hcd->lock, flags);       
+    spin_lock_irqsave(&hcd->lock, flags);
     switch (usb_pipetype (urb->pipe)) {
         case PIPE_CONTROL:
         case PIPE_BULK:
@@ -2692,7 +2692,7 @@ pehci_hcd_urb_dequeue(struct usb_hcd  *usb_hcd,struct urb *urb)
             /*tell atl worker this urb is going to be removed*/
             td_ptd_map->state = TD_PTD_REMOVE;
             urb_priv->state |= DELETE_URB;
-      
+
             /*read the skipmap, to see if this transfer has to be rescheduled*/
             skipmap=isp1761_reg_read32(hcd->dev,hcd->regs.atltdskipmap,skipmap);
             pehci_check("remove skip map %x, ptd map %x\n", skipmap, td_ptd_map->ptd_bitmap);
@@ -2724,13 +2724,13 @@ pehci_hcd_urb_dequeue(struct usb_hcd  *usb_hcd,struct urb *urb)
             qtd_list = &qh->qtd_list;
             /*this should remove all pending transfers*/
             pehci_check("num tds %d, urb length %d,device %d\n",
-                    urb_priv->length, urb->transfer_buffer_length,urb->dev->devnum); 
+                    urb_priv->length, urb->transfer_buffer_length,urb->dev->devnum);
 
             pehci_check("remove first qtd address %p\n", urb_priv->qtd[0]);
-            pehci_check("length of the urb %d, completed %d\n", 
+            pehci_check("length of the urb %d, completed %d\n",
                     urb->transfer_buffer_length, urb->actual_length);
             qtd = urb_priv->qtd[urb_priv->length-1];
-            pehci_check("qtd state is %x\n", qtd->state);       
+            pehci_check("qtd state is %x\n", qtd->state);
             pehci_hcd_urb_complete(hcd,qh,urb,td_ptd_map);
 
 #if 0 /* Set only for memory leak debugging */
@@ -2744,7 +2744,7 @@ pehci_hcd_urb_dequeue(struct usb_hcd  *usb_hcd,struct urb *urb)
                     for(i = 0, unfree = 0; i < mem_end; i++)
                     {
                         if(memalloc[i].used == 1)
-                            unfree++;                       
+                            unfree++;
                     }
                     printk("DBG: There are %d unfreed memory\n");
                 }
@@ -2778,7 +2778,7 @@ pehci_hcd_urb_dequeue(struct usb_hcd  *usb_hcd,struct urb *urb)
             qtd_list = &qh->qtd_list;
             pehci_hcd_urb_complete(hcd,qh,urb,td_ptd_map);
             if(!list_empty(qtd_list))
-            {   
+            {
                 err("Never Error: List must not be emplyt\n"); /*only one td in my endpoint*/
             }
             break;
@@ -3128,7 +3128,7 @@ static const struct hc_driver pehci_driver = {
 };
 
 /*probe the PCI host*/
-    int 
+    int
 pehci_hcd_probe(struct isp1761_dev *tmp_1761_dev , isp1761_id *ids )
 {
     struct usb_hcd          *usb_hcd;
@@ -3166,7 +3166,7 @@ pehci_hcd_probe(struct isp1761_dev *tmp_1761_dev , isp1761_id *ids )
 clean:
     return status;
 
-} 
+}
 
 /*remove the host controller*/
     static void
@@ -3219,7 +3219,7 @@ static int  __init pehci_module_init(void)
 
 }
 
-static void __exit pehci_module_cleanup (void) {        
+static void __exit pehci_module_cleanup (void) {
     isp1761_unregister_driver(&pehci_hcd_pci_driver);
 }
 

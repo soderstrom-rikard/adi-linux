@@ -1,10 +1,10 @@
 /*
     pca9543.c - Part of lm_sensors, Linux kernel modules for hardware
              monitoring
-    Copyright (c) 2000  Frodo Looijaard <frodol@dds.nl>, 
+    Copyright (c) 2000  Frodo Looijaard <frodol@dds.nl>,
                         Philip Edelbrock <phil@netroedge.com>,
                         Dan Eaton <dan.eaton@rocketlogix.com>
-    Ported to Linux 2.6 by Aurelien Jarno <aurel32@debian.org> with 
+    Ported to Linux 2.6 by Aurelien Jarno <aurel32@debian.org> with
     the help of Jean Delvare <khali@linux-fr.org>
 
     Copyright (C) 2007 Michael Hennerich, Analog Devices Inc.
@@ -15,7 +15,7 @@
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
     (at your option) any later version.
-    
+
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -36,7 +36,7 @@
     one for each of the downstream pairs, are provided. One interrupt
     output INT, which acts as an AND of the two interrupt inputs, is
     provided.
-  
+
 */
 
 #include <linux/module.h>
@@ -158,7 +158,7 @@ static int pca9543_detect(struct i2c_adapter *adapter, int address, int kind)
 	/* Tell the I2C layer a new client has arrived */
 	if ((err = i2c_attach_client(new_client)))
 		goto exit_free;
-	
+
 
 	/* Register sysfs hooks */
 	err = sysfs_create_group(&new_client->dev.kobj, &pca9543_attr_group);

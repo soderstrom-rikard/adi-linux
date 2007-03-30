@@ -56,13 +56,13 @@ static inline void fir16_create (fir16_state_t *fir,
         memset (fir->history, '\0', taps*sizeof (int16_t));
 }
 /*- End of function --------------------------------------------------------*/
-    
+
 static inline void fir16_free (fir16_state_t *fir)
 {
     FREE (fir->history);
 }
 /*- End of function --------------------------------------------------------*/
-    
+
 static inline int16_t fir16 (fir16_state_t *fir, int16_t sample)
 {
     int i;
@@ -97,13 +97,13 @@ static inline void fir32_create (fir32_state_t *fir,
     	memset (fir->history, '\0', taps*sizeof (int16_t));
 }
 /*- End of function --------------------------------------------------------*/
-    
+
 static inline void fir32_free (fir32_state_t *fir)
 {
     FREE (fir->history);
 }
 /*- End of function --------------------------------------------------------*/
-    
+
 static inline int16_t fir32 (fir32_state_t *fir, int16_t sample)
 {
     int i;

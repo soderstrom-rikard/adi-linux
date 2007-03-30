@@ -52,7 +52,7 @@ enum {
 	R2_ERASE_PARAM		= 0x40,
 	R2_OUT_OF_RANGE		= 0x80,
 	R2_CSD_OVERWRITE	= 0x80,
-// TODO: Format R3 response tokens 
+// TODO: Format R3 response tokens
 
 // Data response tokens
 	DR_MASK			= 0x0F,
@@ -122,7 +122,7 @@ struct csd_str {				/* __csd field name__*/
 *		mmc_spi function can use for its operations. It also have
 *		to support it with a function that can return a millisecond
 *		time counter for I/O timeouts.
-*		
+*
 *		NOTE: Every function defined here expect exclusive access to
 *		any MMC/SD card it is operating on. Functions should be considered
 *		critical sections. Also note that the read/write callbacks may a mutex

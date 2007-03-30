@@ -2,7 +2,7 @@ zaptel 1.0.9.1
  -- continue fxo operation after the magical 25 days
 zaptel 1.0.9
  -- add a pci id for rev I tdm cards
-zaptel 1.0.8 
+zaptel 1.0.8
  -- add support for 2nd gen hardware
  -- added some use counts to prevent kernel panics when improperly unloading modules
  -- fixed a problem in the Makefile that would cause problems if the system did not

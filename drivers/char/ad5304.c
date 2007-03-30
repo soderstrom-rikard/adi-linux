@@ -113,7 +113,7 @@ static int ad5304_release(struct inode *inode, struct file *flip)
 
 static int ad5304_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg)
 {
-	struct spi_device *spi = filp->private_data; 
+	struct spi_device *spi = filp->private_data;
 
 	pr_debug(DRIVER_NAME ": cmd=%X arg=%lX\n", cmd, arg);
 

@@ -775,7 +775,7 @@ static void isp1362_read_fifo(struct isp1362_hcd *isp1362_hcd, void *buf, u16 le
 #endif
 	if (len >= 2) {
 		RDBG("%s: Using readsw for %d words\n", __FUNCTION__, len >> 1);
-#if 1		
+#if 1
 		insw((unsigned long)isp1362_hcd->data_reg, dp, len >> 1);
 		dp += len & ~1;
 		len &= 1;

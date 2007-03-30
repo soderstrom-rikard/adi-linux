@@ -1,11 +1,11 @@
 To Configure
 ------------
-Do a "make" and a "make install".  You will need to enable a single channel 
+Do a "make" and a "make install".  You will need to enable a single channel
 in /etc/zaptel.conf by adding the following line somewhere near the top:
 
 fxoks=1
 
-To create a single channel with FXO Kewlstart signalling.  You may 
+To create a single channel with FXO Kewlstart signalling.  You may
 substitute "fxols" or "fxogs" for Loopstart and Groundstart signalling
 respectively.
 

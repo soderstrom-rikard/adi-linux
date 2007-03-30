@@ -1224,7 +1224,7 @@ void rndis_add_hdr (struct sk_buff *skb)
 	memset ((unsigned char*)header, 0, sizeof *header);
 	put_unaligned(__constant_cpu_to_le32(REMOTE_NDIS_PACKET_MSG), &header->MessageType);
 	put_unaligned(cpu_to_le32(skb->len), &header->MessageLength);
-	put_unaligned(__constant_cpu_to_le32(36), &header->DataOffset); 
+	put_unaligned(__constant_cpu_to_le32(36), &header->DataOffset);
 	put_unaligned(cpu_to_le32(skb->len - sizeof *header), &header->DataLength);
 }
 

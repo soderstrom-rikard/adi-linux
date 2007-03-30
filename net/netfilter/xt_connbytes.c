@@ -134,7 +134,19 @@ static int check(const char *tablename,
 	    sinfo->direction != XT_CONNBYTES_DIR_BOTH)
 		return 0;
 
+	if (nf_ct_l3proto_try_module_get(match->family) < 0) {
+		printk(KERN_WARNING "can't load conntrack support for "
+				    "proto=%d\n", match->family);
+		return 0;
+	}
+
 	return 1;
+}
+
+static void
+destroy(const struct xt_match *match, void *matchinfo)
+{
+	nf_ct_l3proto_module_put(match->family);
 }
 
 static struct xt_match xt_connbytes_match[] = {
@@ -143,6 +155,7 @@ static struct xt_match xt_connbytes_match[] = {
 		.family		= AF_INET,
 		.checkentry	= check,
 		.match		= match,
+		.destroy	= destroy,
 		.matchsize	= sizeof(struct xt_connbytes_info),
 		.me		= THIS_MODULE
 	},
@@ -151,6 +164,7 @@ static struct xt_match xt_connbytes_match[] = {
 		.family		= AF_INET6,
 		.checkentry	= check,
 		.match		= match,
+		.destroy	= destroy,
 		.matchsize	= sizeof(struct xt_connbytes_info),
 		.me		= THIS_MODULE
 	},

@@ -4,9 +4,9 @@
  * Written by Mark Spencer <markster@linux-support.net>
  * Based on previous works, designs, and architectures conceived and
  * written by Jim Dixon <jim@lambdatel.com>.
- * 
+ *
  * Special thanks to Steve Underwood <steve@coppice.org>
- * for substantial contributions to signal processing functions 
+ * for substantial contributions to signal processing functions
  * in zaptel and the zapata library.
  *
  * Yury Bokhoncovich <byg@cf1.ru>
@@ -23,15 +23,15 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * $Id$
  */
@@ -147,7 +147,7 @@ EXPORT_SYMBOL(zt_ec_chunk);
 EXPORT_SYMBOL(zt_ec_span);
 
 #ifdef CONFIG_PROC_FS
-static struct proc_dir_entry *proc_entries[ZT_MAX_SPANS]; 
+static struct proc_dir_entry *proc_entries[ZT_MAX_SPANS];
 #endif
 
 /* Here are a couple important little additions for devfs */
@@ -176,7 +176,7 @@ static struct class_simple *zap_class = NULL;
 
 static int deftaps = 64;
 
-static 
+static
 __u16 fcstab[256] =
 {
 	0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
@@ -236,7 +236,7 @@ static sumtype sums[(ZT_MAX_CONF + 1) * 3];
         class_device_create(class, devt, device, name)
 #endif
 
-/* Translate conference aliases into actual conferences 
+/* Translate conference aliases into actual conferences
    and vice-versa */
 static short confalias[ZT_MAX_CONF + 1];
 static short confrev[ZT_MAX_CONF + 1];
@@ -257,7 +257,7 @@ static struct
 
 /* There are three sets of conference sum accumulators. One for the current
 sample chunk (conf_sums), one for the next sample chunk (conf_sums_next), and
-one for the previous sample chunk (conf_sums_prev). The following routine 
+one for the previous sample chunk (conf_sums_prev). The following routine
 (rotate_sums) "rotates" the pointers to these accululator arrays as part
 of the events of sample chink processing as follows:
 
@@ -330,7 +330,7 @@ static inline void zt_kernel_fpu_begin(void)
 #else
 #define zt_kernel_fpu_begin kernel_fpu_begin
 #endif /* LINUX26 */
-#endif	
+#endif
 
 static struct zt_timer {
 	int ms;			/* Countdown */
@@ -348,7 +348,7 @@ static spinlock_t bigzaplock = SPIN_LOCK_UNLOCKED;
 struct zt_zone {
 	char name[40];	/* Informational, only */
 	int ringcadence[ZT_MAX_CADENCE];
-	struct zt_tone *tones[ZT_TONE_MAX]; 
+	struct zt_tone *tones[ZT_TONE_MAX];
 	/* Each of these is a circular list
 	   of zt_tones to generate what we
 	   want.  Use NULL if the tone is
@@ -356,7 +356,7 @@ struct zt_zone {
 };
 
 static struct zt_span *spans[ZT_MAX_SPANS];
-static struct zt_chan *chans[ZT_MAX_CHANNELS]; 
+static struct zt_chan *chans[ZT_MAX_CHANNELS];
 
 static int maxspans = 0;
 static int maxchans = 0;
@@ -381,7 +381,7 @@ static rwlock_t chan_lock = RW_LOCK_UNLOCKED;
 
 static struct zt_zone *tone_zones[ZT_TONE_ZONE_MAX];
 
-#define NUM_SIGS	10	
+#define NUM_SIGS	10
 
 
 static inline void rotate_sums(void)
@@ -416,7 +416,7 @@ static unsigned int in_sig[NUM_SIGS][2] = {
 	/* must have span to begin with */
 	if (!chan->span) return(-1);
 	  /* if RBS does not apply, return error */
-	if (!(chan->span->flags & ZT_FLAG_RBS) || 
+	if (!(chan->span->flags & ZT_FLAG_RBS) ||
 		!chan->span->rbsbits) return(-1);
 	if (chan->sig == ZT_SIG_CAS) {
 		static int printed = 0;
@@ -490,7 +490,7 @@ static int zaptel_proc_read(char *page, char **start, off_t off, int count, int 
 	if (!span)
 		return 0;
 
-	if (spans[span]->name) 
+	if (spans[span]->name)
 		len += sprintf(page + len, "Span %ld: %s ", span, spans[span]->name);
 	if (spans[span]->desc)
 		len += sprintf(page + len, "\"%s\"", spans[span]->desc);
@@ -533,7 +533,7 @@ static int zaptel_proc_read(char *page, char **start, off_t off, int count, int 
 			len += sprintf(page + len, "RECOVERING ");
 		if (spans[span]->alarms & ZT_ALARM_NOTOPEN)
 			len += sprintf(page + len, "NOTOPEN ");
-					
+
 	}
 	if (spans[span]->syncsrc && (spans[span]->syncsrc == spans[span]->spanno))
 		len += sprintf(page + len, "ClockSource ");
@@ -551,7 +551,7 @@ static int zaptel_proc_read(char *page, char **start, off_t off, int count, int 
 	len += sprintf(page + len, "\n");
 
 
-        for (x=1;x<ZT_MAX_CHANNELS;x++) {	
+        for (x=1;x<ZT_MAX_CHANNELS;x++) {
 		if (chans[x]) {
 			if (chans[x]->span && (chans[x]->span->spanno == span)) {
 				if (chans[x]->name)
@@ -666,7 +666,7 @@ static void zt_check_conf(int x)
 static void __qevent(struct zt_chan *chan, int event)
 {
 	  /* if full, ignore */
-	if ((chan->eventoutidx == 0) && (chan->eventinidx == (ZT_MAX_EVENTSIZE - 1))) 
+	if ((chan->eventoutidx == 0) && (chan->eventinidx == (ZT_MAX_EVENTSIZE - 1)))
 		return;
 	  /* if full, ignore */
 	if (chan->eventinidx == (chan->eventoutidx - 1)) return;
@@ -738,7 +738,7 @@ static int zt_reallocbufs(struct zt_chan *ss, int j, int numbufs)
 	/* We need to allocate our buffers now */
 	if (j) {
 		newbuf = kmalloc(j * 2 * numbufs, GFP_KERNEL);
-		if (!newbuf) 
+		if (!newbuf)
 			return (-ENOMEM);
 	} else
 		newbuf = NULL;
@@ -760,12 +760,12 @@ static int zt_reallocbufs(struct zt_chan *ss, int j, int numbufs)
 		}
 	}
 	/* Mark all buffers as empty */
-	for (x=0;x<numbufs;x++) 
-		ss->writen[x] = 
+	for (x=0;x<numbufs;x++)
+		ss->writen[x] =
 		ss->writeidx[x]=
 		ss->readn[x]=
 		ss->readidx[x] = 0;
-	
+
 	/* Keep track of where our data goes (if it goes
 	   anywhere at all) */
 	if (newbuf) {
@@ -820,7 +820,7 @@ static int __buf_pull(struct confq *q, u_char *data, struct zt_chan *c, char *la
 
 	/* If they thought there was no space then
 	   there is now where we just read */
-	if (q->inbuf < 0) 
+	if (q->inbuf < 0)
 		q->inbuf = oldoutbuf;
 	return 0;
 }
@@ -885,7 +885,7 @@ static int __buf_push(struct confq *q, u_char *data, char *label)
 	q->inbuf = (q->inbuf + 1) % ZT_CB_SIZE;
 
 	if (q->inbuf == q->outbuf) {
-		/* No space anymore... */	
+		/* No space anymore... */
 		q->inbuf = -1;
 	}
 	/* If they don't think data is ready, let
@@ -922,7 +922,7 @@ static void close_channel(struct zt_chan *chan)
 	struct ppp_channel *ppp;
 #endif
 
-	zt_reallocbufs(chan, 0, 0); 
+	zt_reallocbufs(chan, 0, 0);
 	spin_lock_irqsave(&chan->lock, flags);
 #ifdef CONFIG_ZAPATA_PPP
 	ppp = chan->ppp;
@@ -934,7 +934,7 @@ static void close_channel(struct zt_chan *chan)
 	chan->curzone = NULL;
 	chan->cadencepos = 0;
 	chan->pdialcount = 0;
-	zt_hangup(chan); 
+	zt_hangup(chan);
 	chan->itimerset = chan->itimer = 0;
 	chan->pulsecount = 0;
 	chan->pulsetimer = 0;
@@ -963,7 +963,7 @@ static void close_channel(struct zt_chan *chan)
 	if (oldconf) zt_check_conf(oldconf);
 	chan->gotgs = 0;
 	reset_conf(chan);
-	
+
 	if (chan->gainalloc && chan->rxgain)
 		rxgain = chan->rxgain;
 
@@ -1050,7 +1050,7 @@ static int start_tone(struct zt_chan *chan, int tone)
 	chan->pdialcount = 0;
 	chan->txdialbuf[0] = '\0';
 	chan->dialing =  0;
-	if ((tone >= ZT_TONE_MAX) || (tone < -1)) 
+	if ((tone >= ZT_TONE_MAX) || (tone < -1))
 		return -EINVAL;
 	/* Just wanted to stop the tone anyway */
 	if (tone < 0)
@@ -1075,7 +1075,7 @@ static int set_tone_zone(struct zt_chan *chan, int zone)
 	/* Assumes channel is already locked */
 	if ((zone >= ZT_TONE_ZONE_MAX) || (zone < -1))
 		return -EINVAL;
-	
+
 	read_lock(&zone_lock);
 	if (zone == -1) {
 		zone = default_zone;
@@ -1087,7 +1087,7 @@ static int set_tone_zone(struct zt_chan *chan, int zone)
 	} else {
 		res = -ENODATA;
 	}
-	
+
 	read_unlock(&zone_lock);
 	return res;
 }
@@ -1147,7 +1147,7 @@ static devfs_handle_t register_devfs_channel(struct zt_chan *chan, devfs_handle_
 	path_offset = strlen(path+path_offset);
 	link_offset += path_offset; /* Taking out the "zap" */
 	link_offset++; /* Add one more place for the '/'.  The path generated does not contain the '/' we need to strip */
-	
+
 	/* Set up the path of the file/link itself */
 	tmp_offset = devfs_generate_path(zaptel_devfs_dir, tmp, sizeof(tmp) - 1);
 	sprintf(buf, "/%d", chan->channo);
@@ -1168,7 +1168,7 @@ static int zt_chan_reg(struct zt_chan *chan)
 	int x;
 	int res=0;
 	unsigned long flags;
-	
+
 	write_lock_irqsave(&chan_lock, flags);
 	for (x=1;x<ZT_MAX_CHANNELS;x++) {
 		if (!chans[x]) {
@@ -1184,7 +1184,7 @@ static int zt_chan_reg(struct zt_chan *chan)
 			if (!chan->writechunk)
 				chan->writechunk = chan->swritechunk;
 			zt_set_law(chan, 0);
-			close_channel(chan); 
+			close_channel(chan);
 			/* set this AFTER running close_channel() so that
 				HDLC channels wont cause hangage */
 			chan->flags |= ZT_FLAG_REGISTERED;
@@ -1192,7 +1192,7 @@ static int zt_chan_reg(struct zt_chan *chan)
 			break;
 		}
 	}
-	write_unlock_irqrestore(&chan_lock, flags);	
+	write_unlock_irqrestore(&chan_lock, flags);
 	if (x >= ZT_MAX_CHANNELS)
 		printk(KERN_ERR "No more channels available\n");
 	return res;
@@ -1219,8 +1219,8 @@ static int zt_net_open(struct net_device *dev)
 	hdlc_device *hdlc = dev_to_hdlc(dev);
 	struct zt_chan *ms = hdlc_to_ztchan(hdlc);
 	int res = hdlc_open(hdlc);
-#endif	
-	                                                                                                                             
+#endif
+
 /*	if (!dev->hard_start_xmit) return res; is this really necessary? --byg */
 	if (res) /* this is necessary to avoid kernel panic when UNSPEC link encap, proven --byg */
 		return res;
@@ -1246,7 +1246,7 @@ static int zt_net_open(hdlc_device *hdlc)
 	ms->rxbufpolicy = ZT_POLICY_IMMEDIATE;
 
 	res = zt_reallocbufs(ms, ZT_DEFAULT_MTU_MRU, ZT_DEFAULT_NUM_BUFS);
-	if (res) 
+	if (res)
 		return res;
 
 	fasthdlc_init(&ms->rxhdlc);
@@ -1255,7 +1255,7 @@ static int zt_net_open(hdlc_device *hdlc)
 
 #ifndef LINUX26
 	MOD_INC_USE_COUNT;
-#endif	
+#endif
 #if CONFIG_ZAPATA_DEBUG
 	printk("ZAPNET: Opened channel %d name %s\n", ms->channo, ms->name);
 #endif
@@ -1297,10 +1297,10 @@ static void zt_net_close(hdlc_device *hdlc)
 #ifndef CONFIG_OLD_HDLC_API
 	hdlc_close(hdlc);
 #endif
-#endif	
+#endif
 #ifndef LINUX26
 	MOD_DEC_USE_COUNT;
-#endif	
+#endif
 #ifdef NEW_HDLC_INTERFACE
 	return 0;
 #else
@@ -1315,7 +1315,7 @@ static void zt_net_close(hdlc_device *hdlc)
 #ifdef LINUX26
 static int zt_net_attach(struct net_device *dev, unsigned short encoding,
         unsigned short parity)
-#else		
+#else
 static int zt_net_attach(hdlc_device *hdlc, unsigned short encoding,
         unsigned short parity)
 #endif
@@ -1342,7 +1342,7 @@ static int zt_net_attach(hdlc_device *hdlc, unsigned short encoding,
         return 0;
 }
 #endif
-																								 
+
 static struct zt_hdlc *zt_hdlc_alloc(void)
 {
 	struct zt_hdlc *tmp;
@@ -1364,7 +1364,7 @@ static int zt_xmit(struct sk_buff *skb, struct net_device *dev)
 #else
 	struct zt_chan *ss = (list_entry(dev, struct zt_hdlc, netdev.netdev)->chan);
 	struct net_device_stats *stats = &ss->hdlcnetdev->netdev.stats;
-#endif	
+#endif
 
 #else
 static int zt_xmit(hdlc_device *hdlc, struct sk_buff *skb)
@@ -1449,7 +1449,7 @@ static int zt_net_ioctl(hdlc_device *hdlc, struct ifreq *ifr, int cmd)
 static int zt_ppp_xmit(struct ppp_channel *ppp, struct sk_buff *skb)
 {
 
-	/* 
+	/*
 	 * If we can't handle the packet right now, return 0.  If we
 	 * we handle or drop it, return 1.  Always free if we return
 	 * 1 and never if we return 0
@@ -1575,7 +1575,7 @@ static void zt_chan_unreg(struct zt_chan *chan)
 	}
 #endif
 	maxchans = 0;
-	for (x=1;x<ZT_MAX_CHANNELS;x++) 
+	for (x=1;x<ZT_MAX_CHANNELS;x++)
 		if (chans[x]) {
 			maxchans = x + 1;
 			/* Remove anyone pointing to us as master
@@ -1612,7 +1612,7 @@ static ssize_t zt_chan_read(struct file *file, char *usrbuf, size_t count, int u
 	unsigned long flags;
 	/* Make sure count never exceeds 65k, and make sure it's unsigned */
 	count &= 0xffff;
-	if (!chan) 
+	if (!chan)
 		return -EINVAL;
 	if (count < 1)
 		return -EINVAL;
@@ -1634,7 +1634,7 @@ static ssize_t zt_chan_read(struct file *file, char *usrbuf, size_t count, int u
 	}
 	amnt = count;
 	if (chan->flags & ZT_FLAG_LINEAR) {
-		if (amnt > (chan->readn[chan->outreadbuf] << 1)) 
+		if (amnt > (chan->readn[chan->outreadbuf] << 1))
 			amnt = chan->readn[chan->outreadbuf] << 1;
 		if (amnt) {
 			/* There seems to be a max stack size, so we have
@@ -1656,7 +1656,7 @@ static ssize_t zt_chan_read(struct file *file, char *usrbuf, size_t count, int u
 			}
 		}
 	} else {
-		if (amnt > chan->readn[chan->outreadbuf]) 
+		if (amnt > chan->readn[chan->outreadbuf])
 			amnt = chan->readn[chan->outreadbuf];
 		if (amnt) {
 			if (copy_to_user(usrbuf, chan->readbuf[chan->outreadbuf], amnt))
@@ -1679,7 +1679,7 @@ static ssize_t zt_chan_read(struct file *file, char *usrbuf, size_t count, int u
 		chan->inreadbuf = oldbuf;
 	}
 	spin_unlock_irqrestore(&chan->lock, flags);
-	
+
 	return amnt;
 }
 
@@ -1690,7 +1690,7 @@ static ssize_t zt_chan_write(struct file *file, const char *usrbuf, size_t count
 	int res, amnt, oldbuf, rv,x;
 	/* Make sure count never exceeds 65k, and make sure it's unsigned */
 	count &= 0xffff;
-	if (!chan) 
+	if (!chan)
 		return -EINVAL;
 	if (count < 1)
 		return -EINVAL;
@@ -1709,7 +1709,7 @@ static ssize_t zt_chan_write(struct file *file, const char *usrbuf, size_t count
 		}
 		res = chan->inwritebuf;
 		spin_unlock_irqrestore(&chan->lock, flags);
-		if (res >= 0) 
+		if (res >= 0)
 			break;
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
@@ -1729,7 +1729,7 @@ static ssize_t zt_chan_write(struct file *file, const char *usrbuf, size_t count
 	}
 
 #if CONFIG_ZAPATA_DEBUG
-	printk("zt_chan_write(unit: %d, inwritebuf: %d, outwritebuf: %d amnt: %d\n", 
+	printk("zt_chan_write(unit: %d, inwritebuf: %d, outwritebuf: %d amnt: %d\n",
 		unit, chan->inwritebuf, chan->outwritebuf, amnt);
 #endif
 
@@ -1764,7 +1764,7 @@ static ssize_t zt_chan_write(struct file *file, const char *usrbuf, size_t count
 		spin_lock_irqsave(&chan->lock, flags);
 		chan->inwritebuf = (chan->inwritebuf + 1) % chan->numbufs;
 		if (chan->inwritebuf == chan->outwritebuf) {
-			/* Don't stomp on the transmitter, just wait for them to 
+			/* Don't stomp on the transmitter, just wait for them to
 			   wake us up */
 			chan->inwritebuf = -1;
 			/* Make sure the transmitter is transmitting in case of POLICY_WHEN_FULL */
@@ -1834,31 +1834,31 @@ static void zt_rbs_sethook(struct zt_chan *chan, int txsig, int txstate, int tim
 {
 static int outs[NUM_SIGS][5] = {
 /* We set the idle case of the ZT_SIG_NONE to this pattern to make idle E1 CAS
-channels happy. Should not matter with T1, since on an un-configured channel, 
+channels happy. Should not matter with T1, since on an un-configured channel,
 who cares what the sig bits are as long as they are stable */
 	{ ZT_SIG_NONE, 		ZT_ABIT | ZT_CBIT | ZT_DBIT, 0, 0, 0 },  /* no signalling */
 	{ ZT_SIG_EM, 		0, ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT,
 		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, 0 },  /* E and M */
-	{ ZT_SIG_FXSLS, 	ZT_BBIT | ZT_DBIT, 
+	{ ZT_SIG_FXSLS, 	ZT_BBIT | ZT_DBIT,
 		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT,
 			ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, 0 }, /* FXS Loopstart */
-	{ ZT_SIG_FXSGS, 	ZT_BBIT | ZT_DBIT, 
+	{ ZT_SIG_FXSGS, 	ZT_BBIT | ZT_DBIT,
 #ifdef CONFIG_CAC_GROUNDSTART
 		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, 0, 0 }, /* FXS Groundstart (CAC-style) */
 #else
 		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, ZT_ABIT | ZT_CBIT, 0 }, /* FXS Groundstart (normal) */
 #endif
-	{ ZT_SIG_FXSKS,		ZT_BBIT | ZT_DBIT, 
+	{ ZT_SIG_FXSKS,		ZT_BBIT | ZT_DBIT,
 		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT,
 			ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, 0 }, /* FXS Kewlstart */
 	{ ZT_SIG_FXOLS,		ZT_BBIT | ZT_DBIT, ZT_BBIT | ZT_DBIT, 0, 0 }, /* FXO Loopstart */
 	{ ZT_SIG_FXOGS,		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT,
 		 ZT_BBIT | ZT_DBIT, 0, 0 }, /* FXO Groundstart */
-	{ ZT_SIG_FXOKS,		ZT_BBIT | ZT_DBIT, ZT_BBIT | ZT_DBIT, 0, 
+	{ ZT_SIG_FXOKS,		ZT_BBIT | ZT_DBIT, ZT_BBIT | ZT_DBIT, 0,
 		ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT }, /* FXO Kewlstart */
-	{ ZT_SIG_SF,	ZT_BBIT | ZT_CBIT | ZT_DBIT, 
-			ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, 
-			ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT, 
+	{ ZT_SIG_SF,	ZT_BBIT | ZT_CBIT | ZT_DBIT,
+			ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT,
+			ZT_ABIT | ZT_BBIT | ZT_CBIT | ZT_DBIT,
 			ZT_BBIT | ZT_CBIT | ZT_DBIT },  /* no signalling */
 	{ ZT_SIG_EM_E1, 	ZT_DBIT, ZT_ABIT | ZT_BBIT | ZT_DBIT,
 		ZT_ABIT | ZT_BBIT | ZT_DBIT, ZT_DBIT },  /* E and M  E1 */
@@ -1884,7 +1884,7 @@ who cares what the sig bits are as long as they are stable */
 	if (chan->sig == ZT_SIG_DACS_RBS)
 		return;
 	chan->txstate = txstate;
-	
+
 	/* if tone signalling */
 	if (chan->sig == ZT_SIG_SF)
 	{
@@ -1892,7 +1892,7 @@ who cares what the sig bits are as long as they are stable */
 		if (chan->txtone) /* if set to make tone for tx */
 		{
 			if ((txsig && !(chan->toneflags & ZT_REVERSE_TXTONE)) ||
-			 ((!txsig) && (chan->toneflags & ZT_REVERSE_TXTONE))) 
+			 ((!txsig) && (chan->toneflags & ZT_REVERSE_TXTONE)))
 			{
 				set_txtone(chan,chan->txtone,chan->tx_v2,chan->tx_v3);
 			}
@@ -1980,11 +1980,11 @@ static int zt_hangup(struct zt_chan *chan)
 	if (!(chan->flags & ZT_FLAG_REGISTERED)) return res;
 	/* Mark all buffers as empty */
 	for (x = 0;x < chan->numbufs;x++) {
-		chan->writen[x] = 
+		chan->writen[x] =
 		chan->writeidx[x]=
 		chan->readn[x]=
 		chan->readidx[x] = 0;
-	}	
+	}
 	if (chan->readbuf[0]) {
 		chan->inreadbuf = 0;
 		chan->inwritebuf = 0;
@@ -2039,13 +2039,13 @@ static int initialize_channel(struct zt_chan *chan)
 	fasthdlc_init(&chan->rxhdlc);
 	fasthdlc_init(&chan->txhdlc);
 	chan->infcs = PPP_INITFCS;
-	
+
 	/* Timings for RBS */
 	chan->prewinktime = ZT_DEFAULT_PREWINKTIME;
 	chan->preflashtime = ZT_DEFAULT_PREFLASHTIME;
 	chan->winktime = ZT_DEFAULT_WINKTIME;
 	chan->flashtime = ZT_DEFAULT_FLASHTIME;
-	
+
 	if (chan->sig & __ZT_SIG_FXO)
 		chan->starttime = ZT_DEFAULT_RINGTIME;
 	else
@@ -2056,10 +2056,10 @@ static int initialize_channel(struct zt_chan *chan)
 	chan->pulsemaketime = ZT_DEFAULT_PULSEMAKETIME;
 	chan->pulsebreaktime = ZT_DEFAULT_PULSEBREAKTIME;
 	chan->pulseaftertime = ZT_DEFAULT_PULSEAFTERTIME;
-	
+
 	/* Initialize RBS timers */
 	chan->itimerset = chan->itimer = chan->otimer = 0;
-	chan->ringdebtimer = 0;		
+	chan->ringdebtimer = 0;
 
 	init_waitqueue_head(&chan->sel);
 	init_waitqueue_head(&chan->readbufq);
@@ -2069,7 +2069,7 @@ static int initialize_channel(struct zt_chan *chan)
 
 	/* Reset conferences */
 	reset_conf(chan);
-	
+
 	/* I/O Mask, etc */
 	chan->iomask = 0;
 	/* release conference resource if any */
@@ -2099,8 +2099,8 @@ static int initialize_channel(struct zt_chan *chan)
 	zt_set_law(chan,0);
 	zt_hangup(chan);
 
-	/* Make sure that the audio flag is cleared on a clear channel */	
-	if (chan->sig & ZT_SIG_CLEAR) 
+	/* Make sure that the audio flag is cleared on a clear channel */
+	if (chan->sig & ZT_SIG_CLEAR)
 		chan->flags &= ~ZT_FLAG_AUDIO;
 
 	if (chan->sig == ZT_SIG_CLEAR)
@@ -2177,7 +2177,7 @@ static int zt_timer_release(struct inode *inode, struct file *file)
 		kfree(t);
 #ifndef LINUX26
 		MOD_DEC_USE_COUNT;
-#endif		
+#endif
 	}
 	return 0;
 }
@@ -2189,7 +2189,7 @@ static int zt_specchan_open(struct inode *inode, struct file *file, int unit, in
 	printk("chans[unit]=%x, chans[unit]->sig=%x,unit=%x,-EBUSY=%x,-ENXIO=%x\n",chans[unit],chans[unit]->sig,unit,-EBUSY,-ENXIO);
 	if (chans[unit] && chans[unit]->sig) {
 		/* Make sure we're not already open, a net device, or a slave device */
-		if (chans[unit]->flags & ZT_FLAG_OPEN) 
+		if (chans[unit]->flags & ZT_FLAG_OPEN)
 			res = -EBUSY;
 		else if (chans[unit]->flags & ZT_FLAG_NETDEV)
 			res = -EBUSY;
@@ -2200,7 +2200,7 @@ static int zt_specchan_open(struct inode *inode, struct file *file, int unit, in
 		else {
 			/* Assume everything is going to be okay */
 			res = initialize_channel(chans[unit]);
-			if (chans[unit]->flags & ZT_FLAG_PSEUDO) 
+			if (chans[unit]->flags & ZT_FLAG_PSEUDO)
 				chans[unit]->flags |= ZT_FLAG_AUDIO;
 			if (chans[unit]->span && chans[unit]->span->open)
 				res = chans[unit]->span->open(chans[unit]);
@@ -2209,7 +2209,7 @@ static int zt_specchan_open(struct inode *inode, struct file *file, int unit, in
 #ifndef LINUX26
 				if (inc)
 					MOD_INC_USE_COUNT;
-#endif					
+#endif
 				chans[unit]->flags |= ZT_FLAG_OPEN;
 			} else {
 				close_channel(chans[unit]);
@@ -2258,7 +2258,7 @@ static struct zt_chan *zt_alloc_pseudo(void)
 	} else
 		sprintf(pseudo->name, "Pseudo/%d", pseudo->channo);
 	spin_unlock_irqrestore(&bigzaplock, flags);
-	return pseudo;	
+	return pseudo;
 }
 
 static void zt_free_pseudo(struct zt_chan *pseudo)
@@ -2277,7 +2277,7 @@ static int zt_open(struct inode *inode, struct file *file)
 	int unit = UNIT(file);
 	struct zt_chan *chan;
 	/* Minor 0: Special "control" descriptor */
-	if (!unit) 
+	if (!unit)
 		return zt_ctl_open(inode, file);
 	if (unit == 253) {
 		if (maxspans) {
@@ -2324,17 +2324,17 @@ static ssize_t zt_read(struct file *file, char *usrbuf, size_t count, loff_t *pp
 	if (!unit) {
 		return -EINVAL;
 	}
-	
-	if (unit == 253) 
+
+	if (unit == 253)
 		return -EINVAL;
-	
+
 	if (unit == 254) {
 		chan = file->private_data;
 		if (!chan)
 			return -EINVAL;
 		return zt_chan_read(file, usrbuf, count, chan->channo);
 	}
-	
+
 	if (unit == 255) {
 		chan = file->private_data;
 		if (!chan) {
@@ -2375,7 +2375,7 @@ static ssize_t zt_write(struct file *file, const char *usrbuf, size_t count, lof
 		return zt_chan_write(file, usrbuf, count, chan->channo);
 	}
 	return zt_chan_write(file, usrbuf, count, unit);
-	
+
 }
 
 /* No bigger than 32k for everything per tone zone */
@@ -2397,7 +2397,7 @@ ioctl_load_zone(unsigned long data)
 	int x;
 	int space;
 	int res;
-	
+
 	/* XXX Unnecessary XXX */
 	memset(samples, 0, sizeof(samples));
 	/* XXX Unnecessary XXX */
@@ -2468,7 +2468,7 @@ ioctl_load_zone(unsigned long data)
 		if (!z->tones[td.tone])
 			z->tones[td.tone] = t;
 	}
-	for (x=0;x<th.count;x++) 
+	for (x=0;x<th.count;x++)
 		/* Set "next" pointers */
 		samples[x]->next = samples[next[x]];
 
@@ -2569,12 +2569,12 @@ static void __do_dtmf(struct zt_chan *chan)
 					chan->pdialcount = c - '0';
 					/* a '0' is ten pulses */
 					if (!chan->pdialcount) chan->pdialcount = 10;
-					zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK, 
+					zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK,
 						ZT_TXSTATE_PULSEBREAK, chan->pulsebreaktime);
 					return;
 				}
 			} else {
-				chan->curtone = zt_dtmf_tone(c, (chan->digitmode == DIGIT_MODE_MFV1)); 
+				chan->curtone = zt_dtmf_tone(c, (chan->digitmode == DIGIT_MODE_MFV1));
 				chan->tonep = 0;
 				/* All done */
 				if (chan->curtone) {
@@ -2595,7 +2595,7 @@ static int zt_release(struct inode *inode, struct file *file)
 	int res;
 	struct zt_chan *chan;
 
-	if (!unit) 
+	if (!unit)
 		return zt_ctl_release(inode, file);
 	if (unit == 253) {
 		return zt_timer_release(inode, file);
@@ -2749,7 +2749,7 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 	/* This structure is huge and will bork a 4k stack */
 	struct zt_chan mychan;
 	unsigned long flags;
-#endif	
+#endif
 	int i,j;
 
 	switch(cmd) {
@@ -2767,7 +2767,7 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 		stack.param.sigtype = chan->sig;  /* get signalling type */
 		/* return non-zero if rx not in idle state */
 		if (chan->span) {
-			j = zt_q_sig(chan); 
+			j = zt_q_sig(chan);
 			if (j >= 0) { /* if returned with success */
 				stack.param.rxisoffhook = ((chan->rxsig & (j >> 8)) != (j & 0xff));
 			}
@@ -2785,7 +2785,7 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 			stack.param.txbits = -1;
 			stack.param.idlebits = 0;
 		}
-		if (chan->span && (chan->span->rbsbits || chan->span->hooksig) && 
+		if (chan->span && (chan->span->rbsbits || chan->span->hooksig) &&
 			!(chan->sig & ZT_SIG_CLEAR)) {
 			stack.param.rxhooksig = chan->rxhooksig;
 			stack.param.txhooksig = chan->txhooksig;
@@ -2793,8 +2793,8 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 			stack.param.rxhooksig = -1;
 			stack.param.txhooksig = -1;
 		}
-		stack.param.prewinktime = chan->prewinktime; 
-		stack.param.preflashtime = chan->preflashtime;		
+		stack.param.prewinktime = chan->prewinktime;
+		stack.param.preflashtime = chan->preflashtime;
 		stack.param.winktime = chan->winktime;
 		stack.param.flashtime = chan->flashtime;
 		stack.param.starttime = chan->starttime;
@@ -2851,7 +2851,7 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 		if (!i) i = unit;
 		  /* make sure channel number makes sense */
 		if ((i < 0) || (i > ZT_MAX_CHANNELS) || !chans[i]) return(-EINVAL);
-		
+
 		if (!(chans[i]->flags & ZT_FLAG_AUDIO)) return (-EINVAL);
 		stack.gain.chan = i; /* put the span # in here */
 		for (j=0;j<256;j++)  {
@@ -2885,9 +2885,9 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 			chans[i]->rxgain[j] = stack.gain.rxgain[j];
 			chans[i]->txgain[j] = stack.gain.txgain[j];
 		}
-		if (!memcmp(chans[i]->rxgain, defgain, 256) && 
+		if (!memcmp(chans[i]->rxgain, defgain, 256) &&
 		    !memcmp(chans[i]->txgain, defgain, 256)) {
-			/* This is really just a normal gain, so 
+			/* This is really just a normal gain, so
 			   deallocate the memory and go back to defaults */
 			if (chans[i]->gainalloc)
 				kfree(chans[i]->rxgain);
@@ -2991,7 +2991,7 @@ static int zt_common_ioctl(struct inode *node, struct file *file, unsigned int c
 
 static int (*zt_dynamic_ioctl)(unsigned int cmd, unsigned long data);
 
-void zt_set_dynamic_ioctl(int (*func)(unsigned int cmd, unsigned long data)) 
+void zt_set_dynamic_ioctl(int (*func)(unsigned int cmd, unsigned long data))
 {
 	zt_dynamic_ioctl = func;
 }
@@ -3013,7 +3013,7 @@ static void recalc_slaves(struct zt_chan *chan)
 	for (x=chan->chanpos;x<chan->span->channels;x++)
 		if (chan->span->chans[x].master == chan) {
 #if CONFIG_ZAPATA_DEBUG
-			printk("Channel %s, slave to %s, last is %s, its next will be %d\n", 
+			printk("Channel %s, slave to %s, last is %s, its next will be %d\n",
 			       chan->span->chans[x].name, chan->name, last->name, x);
 #endif
 			last->nextslave = x;
@@ -3118,7 +3118,7 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 			free_netdev(chans[ch.chan]->hdlcnetdev->netdev);
 #else
 			unregister_hdlc_device(&chans[ch.chan]->hdlcnetdev->netdev);
-#endif			
+#endif
 			kfree(chans[ch.chan]->hdlcnetdev);
 			chans[ch.chan]->hdlcnetdev = NULL;
 			chans[ch.chan]->flags &= ~ZT_FLAG_NETDEV;
@@ -3129,16 +3129,16 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 				printk(KERN_WARNING "Zaptel networking not supported by this build.\n");
 				return -ENOSYS;
 		}
-#endif		
+#endif
 		sigcap = chans[ch.chan]->sigcap;
 		/* If they support clear channel, then they support the HDLC and such through
 		   us.  */
-		if (sigcap & ZT_SIG_CLEAR) 
+		if (sigcap & ZT_SIG_CLEAR)
 			sigcap |= (ZT_SIG_HDLCRAW | ZT_SIG_HDLCFCS | ZT_SIG_HDLCNET | ZT_SIG_DACS);
-		
+
 		if ((sigcap & ch.sigtype) != ch.sigtype)
-			res =  -EINVAL;	
-		
+			res =  -EINVAL;
+
 		if (!res && chans[ch.chan]->span->chanconfig)
 			res = chans[ch.chan]->span->chanconfig(chans[ch.chan], ch.sigtype);
 		if (chans[ch.chan]->master) {
@@ -3179,11 +3179,11 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 				/* Setup conference properly */
 				chans[ch.chan]->confmode = ZT_CONF_DIGITALMON;
 				chans[ch.chan]->confna = ch.idlebits;
-				if (chans[ch.chan]->span && 
-				    chans[ch.chan]->span->dacs && 
-					chans[ch.idlebits] && 
-					chans[ch.chan]->span && 
-					(chans[ch.chan]->span->dacs == chans[ch.idlebits]->span->dacs)) 
+				if (chans[ch.chan]->span &&
+				    chans[ch.chan]->span->dacs &&
+					chans[ch.idlebits] &&
+					chans[ch.chan]->span &&
+					(chans[ch.chan]->span->dacs == chans[ch.idlebits]->span->dacs))
 					chans[ch.chan]->span->dacs(chans[ch.chan], chans[ch.idlebits]);
 			} else if (chans[ch.chan]->span && chans[ch.chan]->span->dacs)
 				chans[ch.chan]->span->dacs(chans[ch.chan], NULL);
@@ -3194,8 +3194,8 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 			}
 		}
 #ifdef CONFIG_ZAPATA_NET
-		if (!res && 
-			(newmaster == chans[ch.chan]) && 
+		if (!res &&
+			(newmaster == chans[ch.chan]) &&
 		        (chans[ch.chan]->sig == ZT_SIG_HDLCNET)) {
 			chans[ch.chan]->hdlcnetdev = zt_hdlc_alloc();
 			if (chans[ch.chan]->hdlcnetdev) {
@@ -3249,8 +3249,8 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 				res = -1;
 			}
 		}
-#endif		
-		if ((chans[ch.chan]->sig == ZT_SIG_HDLCNET) && 
+#endif
+		if ((chans[ch.chan]->sig == ZT_SIG_HDLCNET) &&
 		    (chans[ch.chan] == newmaster) &&
 		    !(chans[ch.chan]->flags & ZT_FLAG_NETDEV))
 			printk("Unable to register HDLC device for channel %s\n", chans[ch.chan]->name);
@@ -3270,7 +3270,7 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		}
 #if CONFIG_ZAPATA_DEBUG
 		printk("Configured channel %s, flags %04x, sig %04x\n", chans[ch.chan]->name, chans[ch.chan]->flags, chans[ch.chan]->sig);
-#endif		
+#endif
 		spin_unlock_irqrestore(&chans[ch.chan]->lock, flags);
 		return res;
 	case ZT_SFCONFIG:
@@ -3289,7 +3289,7 @@ static int zt_ctl_ioctl(struct inode *inode, struct file *file, unsigned int cmd
 		if (sf.txtone) /* if set to make tone for tx */
 		{
 			if ((chans[sf.chan]->txhooksig && !(sf.toneflag & ZT_REVERSE_TXTONE)) ||
-			 ((!chans[sf.chan]->txhooksig) && (sf.toneflag & ZT_REVERSE_TXTONE))) 
+			 ((!chans[sf.chan]->txhooksig) && (sf.toneflag & ZT_REVERSE_TXTONE)))
 			{
 				set_txtone(chans[sf.chan],sf.txtone,sf.tx_v2,sf.tx_v3);
 			}
@@ -3410,7 +3410,7 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 	unsigned long flags, flagso;
 	int i, j, k, rv;
 	int ret, c;
-	
+
 	if (!chan)
 		return -EINVAL;
 	switch(cmd) {
@@ -3612,7 +3612,7 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 			  /* if index overflow, set to beginning */
 			if (chan->eventoutidx >= ZT_MAX_EVENTSIZE)
 				chan->eventoutidx = 0;
-		   }		
+		   }
 		spin_unlock_irqrestore(&chan->lock, flags);
 		put_user(j,(int *)data);
 		break;
@@ -3647,7 +3647,7 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 	case ZT_SENDTONE:
 		get_user(j,(int *)data);
 		spin_lock_irqsave(&chan->lock, flags);
-		rv = start_tone(chan, j);	
+		rv = start_tone(chan, j);
 		spin_unlock_irqrestore(&chan->lock, flags);
 		return rv;
 	case ZT_GETCONF:  /* get conf stuff */
@@ -3670,7 +3670,7 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 		if (!i) i = chan->channo;
 		  /* make sure channel number makes sense */
 		if ((i < 1) || (i > ZT_MAX_CHANNELS) || (!chans[i])) return(-EINVAL);
-		if (!(chans[i]->flags & ZT_FLAG_AUDIO)) return (-EINVAL); 
+		if (!(chans[i]->flags & ZT_FLAG_AUDIO)) return (-EINVAL);
 		if (stack.conf.confmode && ((stack.conf.confmode & ZT_CONF_MODE_MASK) < 4)) {
 			/* Monitor mode -- it's a channel */
 			if ((stack.conf.confno < 0) || (stack.conf.confno >= ZT_MAX_CHANNELS) || !chans[stack.conf.confno]) return(-EINVAL);
@@ -3678,7 +3678,7 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 			  /* make sure conf number makes sense, too */
 			if ((stack.conf.confno < -1) || (stack.conf.confno > ZT_MAX_CONF)) return(-EINVAL);
 		}
-			
+
 		  /* if taking off of any conf, must have 0 mode */
 		if ((!stack.conf.confno) && stack.conf.confmode) return(-EINVAL);
 		  /* likewise if 0 mode must have no conf */
@@ -3686,7 +3686,7 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 		stack.conf.chan = i;  /* return with real channel # */
 		spin_lock_irqsave(&bigzaplock, flagso);
 		spin_lock_irqsave(&chan->lock, flags);
-		if (stack.conf.confno == -1) 
+		if (stack.conf.confno == -1)
 			stack.conf.confno = zt_first_empty_conference();
 		if ((stack.conf.confno < 1) && (stack.conf.confmode)) {
 			/* No more empty conferences */
@@ -3888,10 +3888,10 @@ static int zt_chanandpseudo_ioctl(struct inode *inode, struct file *file, unsign
 		rv = zt_common_ioctl(inode, file, cmd, data, unit);
 		/* if no span, just return with value */
 		if (!chan->span) return rv;
-		if ((rv == -ENOTTY) && chan->span->ioctl) 
+		if ((rv == -ENOTTY) && chan->span->ioctl)
 			rv = chan->span->ioctl(chan, cmd, data);
 		return rv;
-		
+
 	}
 	return 0;
 }
@@ -3966,7 +3966,7 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 			chan->flags &= ~(ZT_FLAG_HDLC | ZT_FLAG_FCS);
 			spin_unlock_irqrestore(&chan->lock, flags);
 		} else {
-			/* Coming out of audio mode, also clear all 
+			/* Coming out of audio mode, also clear all
 			   conferencing and gain related info as well
 			   as echo canceller */
 			spin_lock_irqsave(&chan->lock, flags);
@@ -4029,7 +4029,7 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 						chan->ppp = NULL;
 						return ret;
 					}
-						
+
 					if ((ret = ppp_register_channel(chan->ppp))) {
 						kfree(chan->ppp);
 						chan->ppp = NULL;
@@ -4175,7 +4175,7 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 		get_user(j,(int *)data);
 		if (chan->flags & ZT_FLAG_CLEAR)
 			return -EINVAL;
-		if (chan->sig == ZT_SIG_CAS) 
+		if (chan->sig == ZT_SIG_CAS)
 			return -EINVAL;
 		/* if no span, just do nothing */
 		if (!chan->span) return(0);
@@ -4224,7 +4224,7 @@ static int zt_chan_ioctl(struct inode *inode, struct file *file, unsigned int cm
 #if 0
 				rv = schluffen(&chan->txstateq);
 				if (rv) return rv;
-#endif				
+#endif
 				rv = 0;
 				break;
 			case ZT_WINK:
@@ -4394,7 +4394,7 @@ int zt_register(struct zt_span *span, int prefmaster)
 
 	for (x=0;x<span->channels;x++) {
 		span->chans[x].span = span;
-		zt_chan_reg(&span->chans[x]); 
+		zt_chan_reg(&span->chans[x]);
 	}
 
 #ifdef CONFIG_PROC_FS
@@ -4447,7 +4447,7 @@ int zt_unregister(struct zt_span *span)
 	if (span->flags & ZT_FLAG_RUNNING)
 		if (span->shutdown)
 			span->shutdown(span);
-			
+
 	if (spans[span->spanno] != span) {
 		printk(KERN_ERR "Span %s has spanno %d which is something else\n", span->name, span->spanno);
 		return -1;
@@ -4575,7 +4575,7 @@ __zt_lineartoalaw (short linear)
     {
          0xFF, 0x1FF, 0x3FF, 0x7FF, 0xFFF, 0x1FFF, 0x3FFF, 0x7FFF
     };
-    
+
     pcm_val = linear;
     if (pcm_val >= 0)
     {
@@ -4617,7 +4617,7 @@ static void  __init zt_conv_init(void)
 {
 	int i;
 
-	/* 
+	/*
 	 *  Set up mu-law conversion table
 	 */
 	for(i = 0;i < 256;i++)
@@ -4717,7 +4717,7 @@ static inline void __zt_process_getaudio_chunk(struct zt_chan *ss, unsigned char
 		case ZT_CONF_REALANDPSEUDO:
 			/* This strange mode takes the transmit buffer and
 				puts it on the conference, minus its last sample,
-				then outputs from the conference minus the 
+				then outputs from the conference minus the
 				real channel's last sample. */
 			  /* if to talk on conf */
 			if (ms->confmode & ZT_CONF_PSEUDO_TALKER) {
@@ -4926,7 +4926,7 @@ out in the later versions, and is put back now. */
 #ifdef CONFIG_ZAPATA_NET
 				if (ms->flags & ZT_FLAG_NETDEV)
 					netif_wake_queue(ztchan_to_dev(ms));
-#endif				
+#endif
 #ifdef CONFIG_ZAPATA_PPP
 				if (ms->flags & ZT_FLAG_PPP) {
 					ms->do_ppp_wakeup = 1;
@@ -4963,7 +4963,7 @@ out in the later versions, and is put back now. */
 		} else if (ms->flags & ZT_FLAG_HDLC) {
 			for (x=0;x<bytes;x++) {
 				/* Okay, if we're HDLC, then transmit a flag by default */
-				if (ms->txhdlc.bits < 8) 
+				if (ms->txhdlc.bits < 8)
 					fasthdlc_tx_frame_nocheck(&ms->txhdlc);
 				*(txb++) = fasthdlc_tx_run_nocheck(&ms->txhdlc);
 			}
@@ -4977,7 +4977,7 @@ out in the later versions, and is put back now. */
 			memset(txb, ZT_LIN2X(0, ms), bytes);	/* Lastly we use silence on telephony channels */
 			bytes = 0;
 		}
-	}	
+	}
 }
 
 static inline void rbs_itimer_expire(struct zt_chan *chan)
@@ -4991,22 +4991,22 @@ static inline void rbs_itimer_expire(struct zt_chan *chan)
 	    case ZT_SIG_FXOGS:
 	    case ZT_SIG_FXOKS:
 		__qevent(chan,ZT_EVENT_ONHOOK);
-		chan->gotgs = 0; 
+		chan->gotgs = 0;
 		break;
 #ifdef	EMFLASH
 	    case ZT_SIG_EM:
 	    case ZT_SIG_EM_E1:
 		if (chan->rxhooksig == ZT_RXSIG_ONHOOK) {
-			__qevent(chan,ZT_EVENT_ONHOOK); 
+			__qevent(chan,ZT_EVENT_ONHOOK);
 			break;
 		}
 		/* intentionally fall thru */
 #endif
 	    default:  /* otherwise, its definitely off hook */
-		__qevent(chan,ZT_EVENT_RINGOFFHOOK); 
+		__qevent(chan,ZT_EVENT_RINGOFFHOOK);
 		break;
 	   }
-	
+
 }
 
 static inline void __rbs_otimer_expire(struct zt_chan *chan)
@@ -5015,7 +5015,7 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 	/* Called with chan->lock held */
 
 	chan->otimer = 0;
-	/* Move to the next timer state */	
+	/* Move to the next timer state */
 	switch(chan->txstate) {
 	case ZT_TXSTATE_RINGOFF:
 		/* Turn on the ringer now that the silent time has passed */
@@ -5032,7 +5032,7 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 		zt_rbs_sethook(chan, ZT_TXSIG_START, ZT_TXSTATE_RINGON, len);
 		__qevent(chan, ZT_EVENT_RINGERON);
 		break;
-		
+
 	case ZT_TXSTATE_RINGON:
 		/* Turn off the ringer now that the loud time has passed */
 		++chan->cadencepos;
@@ -5048,18 +5048,18 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_RINGOFF, len);
 		__qevent(chan, ZT_EVENT_RINGEROFF);
 		break;
-		
+
 	case ZT_TXSTATE_START:
 		/* If we were starting, go off hook now ready to debounce */
 		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_AFTERSTART, ZT_AFTERSTART_TIME);
 		wake_up_interruptible(&chan->txstateq);
 		break;
-		
+
 	case ZT_TXSTATE_PREWINK:
 		/* Actually wink */
 		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_WINK, chan->winktime);
 		break;
-		
+
 	case ZT_TXSTATE_WINK:
 		/* Wink complete, go on hook and stabalize */
 		zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK, ZT_TXSTATE_ONHOOK, 0);
@@ -5067,7 +5067,7 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 			__qevent(chan, ZT_EVENT_HOOKCOMPLETE);
 		wake_up_interruptible(&chan->txstateq);
 		break;
-		
+
 	case ZT_TXSTATE_PREFLASH:
 		/* Actually flash */
 		zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK, ZT_TXSTATE_FLASH, chan->flashtime);
@@ -5079,7 +5079,7 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 			__qevent(chan, ZT_EVENT_HOOKCOMPLETE);
 		wake_up_interruptible(&chan->txstateq);
 		break;
-	
+
 	case ZT_TXSTATE_DEBOUNCE:
 		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_OFFHOOK, 0);
 		/* See if we've gone back on hook */
@@ -5087,7 +5087,7 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 			chan->itimerset = chan->itimer = chan->rxflashtime * 8;
 		wake_up_interruptible(&chan->txstateq);
 		break;
-		
+
 	case ZT_TXSTATE_AFTERSTART:
 		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_OFFHOOK, 0);
 		if (chan->file && (chan->file->f_flags & O_NONBLOCK))
@@ -5111,7 +5111,7 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 		break;
 
 	case ZT_TXSTATE_PULSEBREAK:
-		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_PULSEMAKE, 
+		zt_rbs_sethook(chan, ZT_TXSIG_OFFHOOK, ZT_TXSTATE_PULSEMAKE,
 			chan->pulsemaketime);
 		wake_up_interruptible(&chan->txstateq);
 		break;
@@ -5121,7 +5121,7 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 			chan->pdialcount--;
 		if (chan->pdialcount)
 		{
-			zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK, 
+			zt_rbs_sethook(chan, ZT_TXSIG_ONHOOK,
 				ZT_TXSTATE_PULSEBREAK, chan->pulsebreaktime);
 			break;
 		}
@@ -5144,11 +5144,11 @@ static inline void __rbs_otimer_expire(struct zt_chan *chan)
 static void __zt_hooksig_pvt(struct zt_chan *chan, zt_rxsig_t rxsig)
 {
 
-	/* State machines for receive hookstate transitions 
+	/* State machines for receive hookstate transitions
 		called with chan->lock held */
 
 	if ((chan->rxhooksig) == rxsig) return;
-	
+
 	if ((chan->flags & ZT_FLAG_SIGFREEZE)) return;
 
 	chan->rxhooksig = rxsig;
@@ -5161,9 +5161,9 @@ static void __zt_hooksig_pvt(struct zt_chan *chan, zt_rxsig_t rxsig)
 #ifdef	EMFLASH
 			if (chan->itimer)
 			{
-				__qevent(chan,ZT_EVENT_WINKFLASH); 
+				__qevent(chan,ZT_EVENT_WINKFLASH);
 				chan->itimerset = chan->itimer = 0;
-				break;				
+				break;
 			}
 #endif
 			/* set wink timer */
@@ -5173,16 +5173,16 @@ static void __zt_hooksig_pvt(struct zt_chan *chan, zt_rxsig_t rxsig)
 			/* This interface is now going on hook.
 			   Check for WINK, etc */
 			if (chan->itimer)
-				__qevent(chan,ZT_EVENT_WINKFLASH); 
+				__qevent(chan,ZT_EVENT_WINKFLASH);
 #ifdef	EMFLASH
 			else {
 				chan->itimerset = chan->itimer = chan->rxflashtime * 8;
 				chan->gotgs = 0;
-				break;				
+				break;
 			}
 #else
 			else {
-				__qevent(chan,ZT_EVENT_ONHOOK); 
+				__qevent(chan,ZT_EVENT_ONHOOK);
 				chan->gotgs = 0;
 			}
 #endif
@@ -5238,14 +5238,14 @@ static void __zt_hooksig_pvt(struct zt_chan *chan, zt_rxsig_t rxsig)
 						chan->pulsetimer = ZT_PULSETIMEOUT;
 						chan->itimer = chan->itimerset;
 						if (chan->pulsecount == 1)
-							__qevent(chan,ZT_EVENT_PULSE_START); 
-					} 
-			    } else 
-					__qevent(chan,ZT_EVENT_WINKFLASH); 
+							__qevent(chan,ZT_EVENT_PULSE_START);
+					}
+			    } else
+					__qevent(chan,ZT_EVENT_WINKFLASH);
 			} else {
 				  /* if havent got GS detect */
 				if (!chan->gotgs) {
-					__qevent(chan,ZT_EVENT_RINGOFFHOOK); 
+					__qevent(chan,ZT_EVENT_RINGOFFHOOK);
 					chan->gotgs = 1;
 					chan->itimerset = chan->itimer = 0;
 				}
@@ -5255,7 +5255,7 @@ static void __zt_hooksig_pvt(struct zt_chan *chan, zt_rxsig_t rxsig)
 		    case ZT_RXSIG_ONHOOK: /* went on hook */
 			  /* if not during offhook debounce time */
 			if ((chan->txstate != ZT_TXSTATE_DEBOUNCE) &&
-			    (chan->txstate != ZT_TXSTATE_KEWL) && 
+			    (chan->txstate != ZT_TXSTATE_KEWL) &&
 			    (chan->txstate != ZT_TXSTATE_AFTERKEWL)) {
 				chan->itimerset = chan->itimer = chan->rxflashtime * 8;
 			}
@@ -5315,7 +5315,7 @@ void zt_rbsbits(struct zt_chan *chan, int cursig)
 			__zt_hooksig_pvt(chan, ZT_RXSIG_RING);
 			break;
 		}
-		if ((chan->sig != ZT_SIG_FXSLS) && (cursig & ZT_ABIT)) { 
+		if ((chan->sig != ZT_SIG_FXSLS) && (cursig & ZT_ABIT)) {
 			    /* if went on hook */
 			__zt_hooksig_pvt(chan, ZT_RXSIG_ONHOOK);
 		} else {
@@ -5345,7 +5345,7 @@ static inline void __zt_ec_chunk(struct zt_chan *ss, unsigned char *rxchunk, con
 	if (ss->ec) {
 #if defined(CONFIG_ZAPTEL_MMX) || defined(ECHO_CAN_FP)
 		zt_kernel_fpu_begin();
-#endif		
+#endif
 		if (ss->echostate & __ECHO_STATE_MUTE) {
 			/* Special stuff for training the echo can */
 			for (x=0;x<ZT_CHUNKSIZE;x++) {
@@ -5365,7 +5365,7 @@ static inline void __zt_ec_chunk(struct zt_chan *ss, unsigned char *rxchunk, con
 					if (echo_can_traintap(ss->ec, ss->echolastupdate++, rxlin)) {
 #if 0
 						printk("Finished training (%d taps trained)!\n", ss->echolastupdate);
-#endif						
+#endif
 						ss->echostate = ECHO_STATE_ACTIVE;
 					}
 				}
@@ -5381,7 +5381,7 @@ static inline void __zt_ec_chunk(struct zt_chan *ss, unsigned char *rxchunk, con
 		}
 #if defined(CONFIG_ZAPTEL_MMX) || defined(ECHO_CAN_FP)
 		kernel_fpu_end();
-#endif		
+#endif
 	}
 	spin_unlock_irqrestore(&ss->lock, flags);
 }
@@ -5412,7 +5412,7 @@ long x,y;
 #define	SF_DETECT_SAMPLES (ZT_CHUNKSIZE * 5)
 #define	SF_DETECT_MIN_ENERGY 500
 #define	NB 14  /* number of bits to shift left */
-         
+
         /* determine energy level before filtering */
         for(i = 0; i < samples; i++)
         {
@@ -5425,7 +5425,7 @@ long x,y;
         {
                 x = amp[i] << NB;
                 y = s->x2 + (p1 * (s->x1 >> NB)) + x;
-                y += (p2 * (s->y2 >> NB)) + 
+                y += (p2 * (s->y2 >> NB)) +
 			(p3 * (s->y1 >> NB));
                 s->x2 = s->x1;
                 s->x1 = x;
@@ -5446,7 +5446,7 @@ long x,y;
 		s->samps = 0;
 		s->e1 = s->e2 = 0;
 	}
-	return(rv);		
+	return(rv);
 }
 
 static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char *rxb)
@@ -5464,7 +5464,7 @@ static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char
 		/* Be careful since memset is likely a macro */
 		rxb[0] = ZT_LIN2X(0, ms);
 		memset(&rxb[1], rxb[0], ZT_CHUNKSIZE - 1);  /* receive as silence if dialing */
-	} 
+	}
 	for (x=0;x<ZT_CHUNKSIZE;x++) {
 		rxb[x] = ms->rxgain[rxb[x]];
 		putlin[x] = ZT_XLAW(rxb[x], ms);
@@ -5485,7 +5485,7 @@ static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char
 			}
 		}
 	}
-#endif	
+#endif
 	/* if doing rx tone decoding */
 	if (ms->rxp1 && ms->rxp2 && ms->rxp3)
 	{
@@ -5510,13 +5510,13 @@ static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char
 				ms->rd.lastdetect = r;
 			}
 		}
-	}		
+	}
 
 	if (!(ms->flags &  ZT_FLAG_PSEUDO)) {
 		memcpy(ms->putlin, putlin, ZT_CHUNKSIZE * sizeof(short));
 		memcpy(ms->putraw, rxb, ZT_CHUNKSIZE);
 	}
-	
+
 	/* Take the rxc, twiddle it for conferencing if appropriate and put it
 	   back */
 	if ((!ms->confmute && !ms->afterdialingtimer) ||
@@ -5554,7 +5554,7 @@ static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char
 		case ZT_CONF_MONITORBOTH:	/* Monitor a channel's tx and rx mode */
 			  /* if not a pseudo-channel, ignore */
 			if (!(ms->flags & ZT_FLAG_PSEUDO)) break;
-			/* Note: Technically, saturation should be done at 
+			/* Note: Technically, saturation should be done at
 			   the end of the whole addition, but for performance
 			   reasons, we don't do that.  Besides, it only matters
 			   when you're so loud you're clipping anyway */
@@ -5616,7 +5616,7 @@ static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char
 				SCSS(ms->conflast, conf_sums_next[ms->_confn]);
 				/* Really add in new value */
 				ACSS(conf_sums_next[ms->_confn], ms->conflast);
-			} else 
+			} else
 				memset(ms->conflast, 0, ZT_CHUNKSIZE * sizeof(short));
 			  /* rxc unmodified */
 			break;
@@ -5634,7 +5634,7 @@ static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char
 				SCSS(ms->conflast, conf_sums[ms->_confn]);
 				/* Really add in new value */
 				ACSS(conf_sums[ms->_confn], ms->conflast);
-			} else 
+			} else
 				memset(ms->conflast, 0, ZT_CHUNKSIZE * sizeof(short));
 			for (x=0;x<ZT_CHUNKSIZE;x++)
 				rxb[x] = ZT_LIN2X((int)conf_sums_prev[ms->_confn][x], ms);
@@ -5648,7 +5648,7 @@ static inline void __zt_process_putaudio_chunk(struct zt_chan *ss, unsigned char
 			} else {
 				memcpy(rxb, chans[ms->confna]->putraw, ZT_CHUNKSIZE);
 			}
-			break;			
+			break;
 		}
 	}
 }
@@ -5663,7 +5663,7 @@ static inline void __zt_putbuf_chunk(struct zt_chan *ss, unsigned char *rxb)
 #if defined(CONFIG_ZAPATA_NET)  || defined(CONFIG_ZAPATA_PPP)
 	/* SKB for receiving network stuff */
 	struct sk_buff *skb=NULL;
-#endif	
+#endif
 	int oldbuf;
 	int eof=0;
 	int abort=0;
@@ -5675,7 +5675,7 @@ static inline void __zt_putbuf_chunk(struct zt_chan *ss, unsigned char *rxb)
 	while(bytes) {
 #if defined(CONFIG_ZAPATA_NET)  || defined(CONFIG_ZAPATA_PPP)
 		skb = NULL;
-#endif	
+#endif
 		abort = 0;
 		eof = 0;
 		/* Next, figure out if we've got a buffer to receive into */
@@ -5705,7 +5705,7 @@ static inline void __zt_putbuf_chunk(struct zt_chan *ss, unsigned char *rxb)
 						}
 						continue;
 					} else if (res & RETURN_DISCARD_FLAG) {
-						/* This could be someone idling with 
+						/* This could be someone idling with
 						  "idle" instead of "flag" */
 						if (!ms->readidx[ms->inreadbuf])
 							continue;
@@ -5718,7 +5718,7 @@ static inline void __zt_putbuf_chunk(struct zt_chan *ss, unsigned char *rxb)
 						buf[ms->readidx[ms->inreadbuf]++] = rxc;
 						/* Pay attention to the possibility of an overrun */
 						if (ms->readidx[ms->inreadbuf] >= ms->blocksize) {
-							if (!ss->span->alarms) 
+							if (!ss->span->alarms)
 								printk(KERN_WARNING "HDLC Receiver overrun on channel %s (master=%s)\n", ss->name, ss->master->name);
 							abort=ZT_EVENT_OVERRUN;
 							/* Force the HDLC state back to frame-search mode */
@@ -5805,7 +5805,7 @@ static inline void __zt_putbuf_chunk(struct zt_chan *ss, unsigned char *rxb)
 					reuse the same one */
 					ms->readn[ms->inreadbuf] = 0;
 					ms->readidx[ms->inreadbuf] = 0;
-				} else 
+				} else
 #endif
 				{
 					ms->inreadbuf = (ms->inreadbuf + 1) % ms->numbufs;
@@ -5865,8 +5865,8 @@ out in the later versions, and is put back now. */
 						stats->rx_crc_errors++;
 					if (abort == ZT_EVENT_ABORT)
 						stats->rx_frame_errors++;
-				} else 
-#endif			
+				} else
+#endif
 #ifdef CONFIG_ZAPATA_PPP
 				if (ms->flags & ZT_FLAG_PPP) {
 					ms->do_ppp_error = 1;
@@ -5874,7 +5874,7 @@ out in the later versions, and is put back now. */
 				} else
 #endif
 
-				if ((ms->flags & ZT_FLAG_OPEN) && !ss->span->alarms) 
+				if ((ms->flags & ZT_FLAG_OPEN) && !ss->span->alarms)
 						/* Notify the receiver... */
 					__qevent(ss->master, abort);
 #if 0
@@ -5949,7 +5949,7 @@ static unsigned int zt_timer_poll(struct file *file, struct poll_table_struct *w
 	if (timer) {
 		poll_wait(file, &timer->sel, wait_table);
 		spin_lock_irqsave(&zaptimerlock, flags);
-		if (timer->tripped || timer->ping) 
+		if (timer->tripped || timer->ping)
 			ret |= POLLPRI;
 		spin_unlock_irqrestore(&zaptimerlock, flags);
 	} else
@@ -5960,8 +5960,8 @@ static unsigned int zt_timer_poll(struct file *file, struct poll_table_struct *w
 /* device poll routine */
 static unsigned int
 zt_chan_poll(struct file *file, struct poll_table_struct *wait_table, int unit)
-{   
-	
+{
+
 	struct zt_chan *chan = chans[unit];
 	int	ret;
 	unsigned long flags;
@@ -5999,7 +5999,7 @@ static unsigned int zt_poll(struct file *file, struct poll_table_struct *wait_ta
 
 	if (unit == 253)
 		return zt_timer_poll(file, wait_table);
-		
+
 	if (unit == 254) {
 		chan = file->private_data;
 		if (!chan)
@@ -6090,7 +6090,7 @@ static void __zt_getempty(struct zt_chan *ms, unsigned char *buf)
 			bytes = 0;
 		}
 	}
-		
+
 }
 
 static void __zt_receive_chunk(struct zt_chan *chan, unsigned char *buf)
@@ -6103,7 +6103,7 @@ static void __zt_receive_chunk(struct zt_chan *chan, unsigned char *buf)
 		buf = waste;
 	}
 	if ((chan->flags & ZT_FLAG_AUDIO) || (chan->confmode)) {
-#ifdef CONFIG_ZAPTEL_MMX                         
+#ifdef CONFIG_ZAPTEL_MMX
 		zt_kernel_fpu_begin();
 #endif
 		__zt_process_putaudio_chunk(chan, buf);
@@ -6156,7 +6156,7 @@ int zt_transmit(struct zt_span *span)
 								__zt_transmit_chunk(&span->chans[x], data);
 								pos = 0;
 							}
-							span->chans[z].writechunk[y] = data[pos++]; 
+							span->chans[z].writechunk[y] = data[pos++];
 							z = span->chans[z].nextslave;
 						} while(z);
 					}
@@ -6200,7 +6200,7 @@ int zt_receive(struct zt_span *span)
 #if 1
 #ifdef CONFIG_ZAPTEL_WATCHDOG
 	span->watchcounter--;
-#endif	
+#endif
 	for (x=0;x<span->channels;x++) {
 		if (span->chans[x].master == &span->chans[x]) {
 			spin_lock_irqsave(&span->chans[x].lock, flags);
@@ -6238,7 +6238,7 @@ int zt_receive(struct zt_span *span)
 				else if (span->chans[x].ringtrailer) {
 					span->chans[x].ringtrailer-= ZT_CHUNKSIZE;
 					/* See if RING trailer is expired */
-					if (!span->chans[x].ringtrailer && !span->chans[x].ringdebtimer) 
+					if (!span->chans[x].ringtrailer && !span->chans[x].ringdebtimer)
 						__qevent(&span->chans[x],ZT_EVENT_RINGOFFHOOK);
 				}
 			}
@@ -6250,7 +6250,7 @@ int zt_receive(struct zt_span *span)
 					if (span->chans[x].pulsecount)
 					{
 						if (span->chans[x].pulsecount > 12) {
-						
+
 							printk("Got pulse digit %d on %s???\n",
 						    span->chans[x].pulsecount,
 							span->chans[x].name);
@@ -6261,7 +6261,7 @@ int zt_receive(struct zt_span *span)
 						} else if (span->chans[x].pulsecount > 9) {
 							__qevent(&span->chans[x], ZT_EVENT_PULSEDIGIT | '0');
 						} else {
-							__qevent(&span->chans[x], ZT_EVENT_PULSEDIGIT | ('0' + 
+							__qevent(&span->chans[x], ZT_EVENT_PULSEDIGIT | ('0' +
 								span->chans[x].pulsecount));
 						}
 						span->chans[x].pulsecount = 0;
@@ -6275,7 +6275,7 @@ int zt_receive(struct zt_span *span)
 	if (span == master) {
 		/* Hold the big zap lock for the duration of major
 		   activities which touch all sorts of channels */
-		spin_lock_irqsave(&bigzaplock, flagso);			
+		spin_lock_irqsave(&bigzaplock, flagso);
 		/* Process any timers */
 		process_timers();
 		/* If we have dynamic stuff, call the ioctl with 0,0 parameters to
@@ -6306,7 +6306,7 @@ int zt_receive(struct zt_span *span)
 		if (maxlinks) {
 #ifdef CONFIG_ZAPTEL_MMX
 			zt_kernel_fpu_begin();
-#endif			
+#endif
 			  /* process all the conf links */
 			for(x = 1; x <= maxlinks; x++) {
 				  /* if we have a destination conf */
@@ -6317,7 +6317,7 @@ int zt_receive(struct zt_span *span)
 			}
 #ifdef CONFIG_ZAPTEL_MMX
 			kernel_fpu_end();
-#endif			
+#endif
 		}
 		/* do all the pseudo/conferenced channel transmits (putbuf's) */
 		for (x=1;x<maxchans;x++) {
@@ -6340,7 +6340,7 @@ int zt_receive(struct zt_span *span)
 				spin_unlock_irqrestore(&chans[x]->lock, flags);
 			}
 		}
-		spin_unlock_irqrestore(&bigzaplock, flagso);			
+		spin_unlock_irqrestore(&bigzaplock, flagso);
 	}
 #endif
 	return 0;
@@ -6383,13 +6383,13 @@ static void watchdog_check(unsigned long ignored)
 	int x;
 	unsigned long flags;
 	static int wdcheck=0;
-	
+
 	local_irq_save(flags);
 	for (x=0;x<maxspans;x++) {
 		if (spans[x] && (spans[x]->flags & ZT_FLAG_RUNNING)) {
 			if (spans[x]->watchcounter == ZT_WATCHDOG_INIT) {
 				/* Whoops, dead card */
-				if ((spans[x]->watchstate == ZT_WATCHSTATE_OK) || 
+				if ((spans[x]->watchstate == ZT_WATCHSTATE_OK) ||
 					(spans[x]->watchstate == ZT_WATCHSTATE_UNKNOWN)) {
 					spans[x]->watchstate = ZT_WATCHSTATE_RECOVERING;
 					if (spans[x]->watchdog) {
@@ -6476,7 +6476,7 @@ static int __init zt_init(void) {
 	rwlock_init(&chan_lock);
 #ifdef CONFIG_ZAPTEL_WATCHDOG
 	watchdog_init();
-#endif	
+#endif
 	return res;
 }
 

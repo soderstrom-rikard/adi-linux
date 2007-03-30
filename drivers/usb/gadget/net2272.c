@@ -408,7 +408,7 @@ done (struct net2272_ep *ep, struct net2272_request *req, int status)
 
 	dev = ep->dev;
 	if (req->mapped) {
-		pci_unmap_single ((struct pci_dev*)dev->pdev, req->req.dma, 
+		pci_unmap_single ((struct pci_dev*)dev->pdev, req->req.dma,
 			req->req.length, ep->is_in ? PCI_DMA_TODEVICE : \
 			PCI_DMA_FROMDEVICE);
 		req->req.dma = DMA_ADDR_INVALID;
@@ -875,7 +875,7 @@ net2272_queue (struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_flags)
 
 	/* set up dma mapping in case the caller didn't */
 	if (ep->dma && _req->dma == DMA_ADDR_INVALID) {
-		_req->dma = pci_map_single ((struct pci_dev*)dev->pdev, 
+		_req->dma = pci_map_single ((struct pci_dev*)dev->pdev,
 			_req->buf, _req->length, ep->is_in ? PCI_DMA_TODEVICE \
 			: PCI_DMA_FROMDEVICE);
 		req->mapped = 1;

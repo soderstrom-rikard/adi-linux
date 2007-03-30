@@ -52,6 +52,7 @@ SECTIONS
 
 	.text :
 	{
+		 _text = .;
 		 __stext = .;
 		*(.text)
 		SCHED_TEXT
@@ -133,13 +134,7 @@ SECTIONS
 		*(__param)
 		___stop___param = .;
 		___initcall_start = .;
-		*(.initcall1.init)
-		*(.initcall2.init)
-		*(.initcall3.init)
-		*(.initcall4.init)
-		*(.initcall5.init)
-		*(.initcall6.init)
-		*(.initcall7.init)
+		INITCALLS
 		___initcall_end = .;
 		___con_initcall_start = .;
 		*(.con_initcall.init)

@@ -1,6 +1,6 @@
 -- Tormenta2 -- PCI Telephony Interface Card -- VHDL for Xilinx Part
 -- version 1.4, 10/10/2002.
--- Copyright (c) 2001-2002, Jim Dixon. 
+-- Copyright (c) 2001-2002, Jim Dixon.
 --
 -- Jim Dixon <jim@lambdatel.com>
 -- Mark Spencer <mark@linux-support.net>
@@ -17,11 +17,11 @@
 -- The A4 die of the Dallas 21Q352 chip has a bug in it (well, it has several actually,
 -- but this is the one that effects us the most) where when you have it in IBO mode
 -- (where all 4 framers are combined into 1 8.192 Mhz backplane), the receive data
--- comes out of the chip late. So late, in fact, that its an entire HALF clock cycle 
+-- comes out of the chip late. So late, in fact, that its an entire HALF clock cycle
 -- off. So what we had to do is have a separate RSYSCLK signal (which was the TSYSCLK
 -- signal inverted) and a separate RSYNC signal (which corresponds to the RSYSCLK inverted
 -- signal as opposed to the TSYSCLK) that was 1/2 clock cycle early, so that the data comes
--- out at the correct time. 
+-- out at the correct time.
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -29,7 +29,7 @@ use IEEE.STD_LOGIC_ARITH.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 entity tormenta2 is
-    Port ( 
+    Port (
 -- GCK0 signal (Local bus clock)
 			  CLK : in std_logic;
 -- GCK1 signal 8.192 Mhz clock from mk1574 and drives SYSCLK's on Dallas chip
@@ -93,7 +93,7 @@ end tormenta2;
 
 architecture behavioral of tormenta2 is
 
-component RAMB4_S1_S16 
+component RAMB4_S1_S16
   port (
     ADDRA: IN std_logic_vector(11 downto 0);
 	 ADDRB: IN std_logic_vector(7 downto 0);
@@ -207,7 +207,7 @@ signal rsync_reva: std_logic;
 -- 	bit 2 - Dallas Chip Interrupt Active
 -- 0xC01 -- boardid as follows:
 --   bits 0-3 Board ID bits 0-3 (from rotary dip switch)
-	
+
 begin
 
 	-- Create statreg for user to be able to read
@@ -226,7 +226,7 @@ begin
 
 	-- Which ram we read into is from the 5th LSB of the counter
 	ramno <= lcounter(4);
-	-- Which buffer we're using is the most significant 
+	-- Which buffer we're using is the most significant
 	dbuf <= lcounter(13);
 	-- Our position is the bottom 4 bits, inverted, and then
 	-- the skip one, and then the next 8 bits.
@@ -236,7 +236,7 @@ begin
 	gndbus <= "0000000000000000";
 
 	txqt1: RAMB4_S1_S16 port map (
-		ADDRA => position,				-- Where are we in transmission 
+		ADDRA => position,				-- Where are we in transmission
 		ADDRB => ADDR(9 downto 2),	-- Address into our 16-bit words
 		DIA(0) => '0',					-- We never write from the serial side
 		DIB => D(31 downto 16),		-- Top 16-bits of data bus
@@ -252,7 +252,7 @@ begin
 		);
 
 	txqt2: RAMB4_S1_S16 port map (
-		ADDRA => position,				-- Where are we in transmission 
+		ADDRA => position,				-- Where are we in transmission
 		ADDRB => ADDR(9 downto 2),	-- Address into our 16-bit words
 		DIA(0) => '0',					-- We never write from the serial side
 		DIB => D(31 downto 16),		-- Top 16-bits of data bus
@@ -268,7 +268,7 @@ begin
 		);
 
 	txqb1: RAMB4_S1_S16 port map (
-		ADDRA => position,				-- Where are we in transmission 
+		ADDRA => position,				-- Where are we in transmission
 		ADDRB => ADDR(9 downto 2),	-- Address into our 16-bit words
 		DIA(0) => '0',					-- We never write from the serial side
 		DIB => D(15 downto 0),		-- Top 16-bits of data bus
@@ -284,7 +284,7 @@ begin
 		);
 
 	txqb2: RAMB4_S1_S16 port map (
-		ADDRA => position,			-- Where are we in transmission 
+		ADDRA => position,			-- Where are we in transmission
 		ADDRB => ADDR(9 downto 2),	-- Address into our 16-bit words
 		DIA(0) => '0',					-- We never write from the serial side
 		DIB => D(15 downto 0),		-- Top 16-bits of data bus
@@ -314,7 +314,7 @@ begin
 		RSTA => '0',
 		RSTB => '0'
 		);
-	
+
 	rxqt2: RAMB4_S1_S16 port map (
 		ADDRA => lposition,			-- Where to put the next sample
 		ADDRB => ADDR(9 downto 2),	-- Addressable output
@@ -369,7 +369,7 @@ begin
 	if (lclk'event and lclk = '1') then
 		cnt193 <= cnt193 + 1;
 		if (ctlreg(4) = '0') then -- For T1 operation
-			-- Go high after 96 samples and 
+			-- Go high after 96 samples and
 			-- low after 193 samples
 			if (cnt193 = "01100000") then
 				KHZ8000 <= '1';
@@ -411,7 +411,7 @@ end process txmux;
 process(CLK8192,lcounter(12 downto 0),ctlreg(7))
 begin
 	-- Make sure we're on the rising edge
-	if (CLK8192'event and CLK8192 = '1') then 
+	if (CLK8192'event and CLK8192 = '1') then
 		counter <= counter + 1;
 		-- We latch copies of ramno, dbuf, and position on this clock so that they
 		-- will be stable when the RX buffer stuff needs them on the other edge of the clock
@@ -419,11 +419,11 @@ begin
 		ldbuf <= dbuf;
 		lposition <= position;
 		if (lcounter(9 downto 0)="0000000000") then -- Generate TSSYNC signal
-			TSSYNC_LOCAL <= '1'; 
+			TSSYNC_LOCAL <= '1';
 		else
 			TSSYNC_LOCAL <= '0';
 		end if;
-		-- If we are on an 8 sample boundary, and interrupts are enabled, 
+		-- If we are on an 8 sample boundary, and interrupts are enabled,
 		if (((lcounter(12 downto 0)="0000000000000") and (ctlreg(0)='1'))) then
 			statreg(1) <= '1';
 		elsif (ctlreg(7)='1' or ctlreg(0)='0') then
@@ -435,7 +435,7 @@ begin
 			-- yellow. Half and half makes sorta orange (yuch!). Bit 1 of the ledcnt will
 			-- be 0 for 2 counts, then 1 for 1 count. Perfict for making yellow!
 			if (ledcnt="10") then
-				ledcnt <= "00"; -- 3 count sequence 
+				ledcnt <= "00"; -- 3 count sequence
 			else
 				ledcnt <= ledcnt + 1;
 			end if;
@@ -472,7 +472,7 @@ begin
 end process;
 
 -- Stuff to do on Falling edge of TSYSCLK
-process(CLK8192,counter(9 downto 0)) 
+process(CLK8192,counter(9 downto 0))
 begin
 if (CLK8192'event and CLK8192='0') then
 	lcounter <= counter;  -- save local copy of counter
@@ -484,7 +484,7 @@ if (CLK8192'event and CLK8192='0') then
 end if;
 end process;
 
--- Handle Data input requests 
+-- Handle Data input requests
 rxdata: process (ADDR(11 downto 10), rxq1out, rxq2out, RD, dbuf, statreg)
 begin
 	-- If in 32 bit space, Send data from the block we're not using
@@ -525,7 +525,7 @@ end process rxmux;
 -- Handle Writing of RAMs when in 32 bit space
 txdecode: process (WR, CLK, BE, dbuf, D, ADDR)
 begin
-	-- Make sure when we write to memory that we only 
+	-- Make sure when we write to memory that we only
 	-- enable the clock on the actual RAM units if the
 	-- top bit of address is '0', and is a full 32 bit access.
 	if ((addr(11) = '0') and (BE="0000") and (WR='0') and (CLK='1')) then
@@ -556,7 +556,7 @@ begin
 end process clkmux;
 
 -- Stuff to do on positive edge of Local bus clock
-process(CLK,ADDR(11 downto 10),RD,WR) 
+process(CLK,ADDR(11 downto 10),RD,WR)
 begin
 if (CLK'event and CLK='1') then -- On positive transition of clock
 	if  ((WR='0' or RD='0') and ADDR(11 downto 10)="10") then -- If in our address range
@@ -582,17 +582,17 @@ if (CLK'event and CLK='1') then -- On positive transition of clock
 			end if;
 		end if;
 	end if;
-	if ((statreg(1)='0') and (ctlreg(7)='1')) then -- if interrupt acked and de-asserted, ack the ack 
+	if ((statreg(1)='0') and (ctlreg(7)='1')) then -- if interrupt acked and de-asserted, ack the ack
 		ctlreg(7) <= '0';
 	end if;
-	if (ctlreg(0)='0') then -- if interrupts disabled, make sure ack is de-acked 
+	if (ctlreg(0)='0') then -- if interrupts disabled, make sure ack is de-acked
 		ctlreg(7) <= '0';
 	end if;
 end if;
 end process;
 
 -- Generate Dallas Read and Write Signals and Wait states
-process(CLK,ADDR(11 downto 8),RD,WR,waitcnt) 
+process(CLK,ADDR(11 downto 8),RD,WR,waitcnt)
 begin
 if ((WR='0' or RD='0') and ADDR(11 downto 10)="10") then  -- If during valid read or write
 	-- Stuff for CS for Dallas Chips
@@ -631,7 +631,7 @@ if ((WR='0' or RD='0') and ADDR(11 downto 10)="10") then  -- If during valid rea
 else  -- Not in read or write in the appropriate range, reset the stuff
 	READY <= '1';
 	DWR <= '1';
-	DRD <= '1';	
+	DRD <= '1';
 	CS(4 downto 1) <= "1111"; -- No CS outputs
 end if;
 if (waitcnt="100" and CLK='1' and WR='0') then -- De-activate the DWR signal at the final half cycle

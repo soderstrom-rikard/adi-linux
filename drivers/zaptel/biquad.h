@@ -50,17 +50,17 @@ static inline void biquad2_init (biquad2_state_t *bq,
     bq->a2 = a2;
     bq->b1 = b1;
     bq->b2 = b2;
-    
+
     bq->z1 = 0;
-    bq->z2 = 0;    
+    bq->z2 = 0;
 }
 /*- End of function --------------------------------------------------------*/
-    
+
 static inline int16_t biquad2 (biquad2_state_t *bq, int16_t sample)
 {
     int32_t y;
     int32_t z0;
-    
+
     z0 = sample*bq->gain + bq->z1*bq->a1 + bq->z2*bq->a2;
     y = z0 + bq->z1*bq->b1 + bq->z2*bq->b2;
 

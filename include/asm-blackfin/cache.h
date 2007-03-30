@@ -4,14 +4,14 @@
 #ifndef __ARCH_BLACKFIN_CACHE_H
 #define __ARCH_BLACKFIN_CACHE_H
 
-/* 
- * Bytes per L1 cache line 
+/*
+ * Bytes per L1 cache line
  * Blackfin loads 32 bytes for cache
  */
 #define L1_CACHE_SHIFT	5
 #define L1_CACHE_BYTES	(1 << L1_CACHE_SHIFT)
 
-/* 
+/*
  * Don't make __cacheline_aligned and
  * ____cacheline_aligned defined in include/linux/cache.h
  */

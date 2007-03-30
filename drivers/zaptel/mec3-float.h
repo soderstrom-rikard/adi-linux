@@ -4,8 +4,8 @@
  * Copyright (C) 2003, Digium, Inc.
  *
  * This program is free software and may be used
- * and distributed under the terms of the GNU General Public 
- * License, incorporated herein by reference.  
+ * and distributed under the terms of the GNU General Public
+ * License, incorporated herein by reference.
  *
  * Dedicated to the crew of the Columbia, STS-107 for their
  * bravery and courageous sacrifice for science.
@@ -69,7 +69,7 @@ typedef struct {
 	float  	b[NTAPS];				/* Coefficients */
 	float  	c[NTAPS];				/* Coefficients */
 	int backup;						/* Backup timer */
-#endif	
+#endif
 	cbuf_f 	ref;					/* Reference excitation */
 	cbuf_f 	sig;					/* Signal (echo + near end + noise) */
 	cbuf_f	e;						/* Error */
@@ -121,7 +121,7 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
 
 #if 0
 	printf("start: %d, finish: %d\n", ec->start, ec->finish);
-#endif	
+#endif
 
 #ifdef COEFF_BACKUP
 	if (!ec->backup) {
@@ -131,7 +131,7 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
 		memcpy(ec->b,ec->a,sizeof(ec->b));
 	} else
 		ec->backup--;
-#endif		
+#endif
 	/* Remove old samples from reference power calculation */
 	ec->refpwr -= (ec->ref.buf[ec->pos] * ec->ref.buf[ec->pos]);
 
@@ -139,13 +139,13 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
 	buf_add(&ec->ref, ref, ec->pos, ec->taps);
 	buf_add(&ec->sig, sig, ec->pos, ec->taps);
 
-	/* Add new reference power */	
+	/* Add new reference power */
 	ec->refpwr += (ec->ref.buf[ec->pos] * ec->ref.buf[ec->pos]);
 
 
 	/* Calculate simulated echo */
 	se = 0.0;
-	for (x=0;x<ec->taps;x++) 
+	for (x=0;x<ec->taps;x++)
 		se += ec->a[x] * ec->ref.buf[ec->pos + x];
 
 #if 0
@@ -159,7 +159,7 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
 
 	/* Store error */
 	buf_add(&ec->e, sig, ec->pos, ec->taps);
-	if ((ec->ref.max > MIN_TX_ENERGY) && 
+	if ((ec->ref.max > MIN_TX_ENERGY) &&
 	    (ec->sig.max > MIN_RX_ENERGY) &&
 		(ec->e.max * MAX_ATTENUATION > ec->ref.max)) {
 		/* We have sufficient energy */
@@ -171,7 +171,7 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
 				else
 					refpwr = ec->refpwr;
 				beta = STEP_SIZE * u / refpwr;
-				if (beta > MAX_BETA)	
+				if (beta > MAX_BETA)
 					beta = MAX_BETA;
 				if (beta < -MAX_BETA)
 					beta = -MAX_BETA;
@@ -193,12 +193,12 @@ static inline short echo_can_update(echo_can_state_t *ec, short iref, short isig
 			ec->hcntr = HANG_TIME;
 		}
 	}
-#ifndef NO_ECHO_SUPPRESSOR	
+#ifndef NO_ECHO_SUPPRESSOR
 	if (ec->e.max * SUPPR_ATTENUATION < ec->ref.max) {
 		/* Suppress residual echo */
 		u *= u;
-	} 
-#endif	
+	}
+#endif
 	ec->pos--;
 	if (ec->pos < 0)
 		ec->pos = ec->taps-1;

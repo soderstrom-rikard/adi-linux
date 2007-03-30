@@ -57,7 +57,11 @@ typedef union {
 } ktime_t;
 
 #define KTIME_MAX			((s64)~((u64)1 << 63))
-#define KTIME_SEC_MAX			(KTIME_MAX / NSEC_PER_SEC)
+#if (BITS_PER_LONG == 64)
+# define KTIME_SEC_MAX			(KTIME_MAX / NSEC_PER_SEC)
+#else
+# define KTIME_SEC_MAX			LONG_MAX
+#endif
 
 /*
  * ktime_t definitions when using the 64-bit scalar representation:
@@ -248,9 +252,9 @@ static inline struct timeval ktime_to_timeval(const ktime_t kt)
  *
  * Returns the scalar nanoseconds representation of kt
  */
-static inline u64 ktime_to_ns(const ktime_t kt)
+static inline s64 ktime_to_ns(const ktime_t kt)
 {
-	return (u64) kt.tv.sec * NSEC_PER_SEC + kt.tv.nsec;
+	return (s64) kt.tv.sec * NSEC_PER_SEC + kt.tv.nsec;
 }
 
 #endif

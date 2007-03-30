@@ -172,7 +172,7 @@ static struct tnode *inflate(struct trie *t, struct tnode *tn);
 static struct tnode *halve(struct trie *t, struct tnode *tn);
 static void tnode_free(struct tnode *tn);
 
-static kmem_cache_t *fn_alias_kmem __read_mostly;
+static struct kmem_cache *fn_alias_kmem __read_mostly;
 static struct trie *trie_local = NULL, *trie_main = NULL;
 
 
@@ -1187,7 +1187,7 @@ static int fn_trie_insert(struct fib_table *tb, struct fib_config *cfg)
 			u8 state;
 
 			err = -ENOBUFS;
-			new_fa = kmem_cache_alloc(fn_alias_kmem, SLAB_KERNEL);
+			new_fa = kmem_cache_alloc(fn_alias_kmem, GFP_KERNEL);
 			if (new_fa == NULL)
 				goto out;
 
@@ -1232,7 +1232,7 @@ static int fn_trie_insert(struct fib_table *tb, struct fib_config *cfg)
 		goto out;
 
 	err = -ENOBUFS;
-	new_fa = kmem_cache_alloc(fn_alias_kmem, SLAB_KERNEL);
+	new_fa = kmem_cache_alloc(fn_alias_kmem, GFP_KERNEL);
 	if (new_fa == NULL)
 		goto out;
 
@@ -1528,7 +1528,6 @@ static int trie_leaf_remove(struct trie *t, t_key key)
 	t->revision++;
 	t->size--;
 
-	preempt_disable();
 	tp = NODE_PARENT(n);
 	tnode_free((struct tnode *) n);
 
@@ -1538,7 +1537,6 @@ static int trie_leaf_remove(struct trie *t, t_key key)
 		rcu_assign_pointer(t->trie, trie_rebalance(t, tp));
 	} else
 		rcu_assign_pointer(t->trie, NULL);
-	preempt_enable();
 
 	return 1;
 }

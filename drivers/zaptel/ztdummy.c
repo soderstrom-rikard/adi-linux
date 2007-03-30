@@ -122,8 +122,8 @@ static void ztdummy_interrupt(int irq, void *dev_id, struct pt_regs *regs)
         zt_transmit(&ztd->span);
         if (monitor && (check_int==0)) {      /* for testing if interrupt gets triggered*/
             check_int = 1;
-            printk("ztdummy: interrupt triggered \n");     
-        }   
+            printk("ztdummy: interrupt triggered \n");
+        }
      }
 	return;
 }
@@ -153,7 +153,7 @@ int init_module(void)
 #ifndef LINUX26
     int irq;
     spinlock_t mylock = SPIN_LOCK_UNLOCKED;
-	
+
     if (uhci_devices==NULL){
         printk ("ztdummy: Uhci_devices pointer error.\n");
 	    return -ENODEV;
@@ -203,7 +203,7 @@ int init_module(void)
     alloc_td(s, &td, 0);
     fill_td(td, TD_CTRL_IOC, 0, 0);
     insert_td_horizontal(s, s->int_chain[0], td);	/* use int_chain[0] to get 1ms interrupts */
-#endif	
+#endif
 
     if (debug)
         printk("ztdummy: init() finished\n");

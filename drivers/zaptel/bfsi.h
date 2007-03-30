@@ -1,7 +1,7 @@
 /*
   bfsi.h
   David Rowe 21 June 2006
- 
+
   Header file for bfsi.h
 */
 
@@ -16,7 +16,7 @@ u8   bfsi_spi_read_8_bits(void);
 void bfsi_spi_write_8_bits(u8 bits);
 
 int  bfsi_sport_init(
-  void (*isr_callback)(u8 *read_samples, u8 *write_samples), 
+  void (*isr_callback)(u8 *read_samples, u8 *write_samples),
   int   num_samples,
   int   debug
 );

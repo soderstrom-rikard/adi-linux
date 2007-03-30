@@ -1,8 +1,8 @@
 /*
  * Flash memory access on BlackFin BF533 based devices
- * 
+ *
  * (C) 2004 LG Soft India
- * 
+ *
  */
 #include <linux/module.h>
 #include <linux/types.h>
@@ -36,7 +36,7 @@
 /* Addresses */
 #define ADDR_MANUFACTURER		(0x0000<<BUS_MAPPING)
 
-/* FIXME: Someone worked around this  
+/* FIXME: Someone worked around this
 #define ADDR_DEVICE_ID			(0x0002<<BUS_MAPPING)*/
 #define ADDR_DEVICE_ID			(0x0002)
 
@@ -61,7 +61,7 @@
 #define CMD_SECTOR_ERASE_UNLOCK_ADDR_4	(0x555<<BUS_MAPPING)
 #define CMD_SECTOR_ERASE_UNLOCK_ADDR_5	(0x2AA<<BUS_MAPPING)
 
-#define CMD_SECTOR_ERASE_UNLOCK_DATA_1	0xAA	
+#define CMD_SECTOR_ERASE_UNLOCK_DATA_1	0xAA
 #define CMD_SECTOR_ERASE_UNLOCK_DATA_2	0x55
 #define CMD_SECTOR_ERASE_UNLOCK_DATA_3	0x80
 #define CMD_SECTOR_ERASE_UNLOCK_DATA_4	0xAA
@@ -114,7 +114,7 @@ static void send_unlock(struct map_info *map, unsigned long base)
 	map->write(map, mw , base + ADDR_UNLOCK_3);
 }
 
-static int probe_new_chip(struct mtd_info *mtd, __u32 base, 
+static int probe_new_chip(struct mtd_info *mtd, __u32 base,
 			  struct flchip *chips,
 			  struct stm_flash_private *private,
 			  const struct stm_flash_info *table,
@@ -129,7 +129,7 @@ static int probe_new_chip(struct mtd_info *mtd, __u32 base,
 	temp.device_type = DEVICE_TYPE_X16;
 	temp.interleave = 1;
 	map->fldrv_priv = &temp;
-	
+
 	mw.x[0] = CMD_UNLOCK_DATA_1;
 	map->write(map, mw , base + ADDR_UNLOCK_1);
 	mw.x[0] = CMD_UNLOCK_DATA_2;
@@ -141,7 +141,7 @@ static int probe_new_chip(struct mtd_info *mtd, __u32 base,
 	map->write(map, mw , base + ADDR_UNLOCK_1);
 	mw.x[0] = CMD_UNLOCK_DATA_2;
 	map->write(map, mw , base + ADDR_UNLOCK_2);
-	mw.x[0] = 0x90; 
+	mw.x[0] = 0x90;
 	map->write(map, mw , base + ADDR_UNLOCK_3);
 
 	mfr_id1=map->read(map, base + ADDR_MANUFACTURER) ;
@@ -162,11 +162,11 @@ static int probe_new_chip(struct mtd_info *mtd, __u32 base,
 				for (j = 0; j < private->numchips; j++)
 				{
 					mfr_id1=map->read(map, chips[j].start +	ADDR_MANUFACTURER);
-						
+
 					dev_id1=map->read(map, chips[j].start +
 							 ADDR_DEVICE_ID) ;
 					if ((mfr_id1.x[0] == mfr_id) && ( dev_id1.x[0] == dev_id))
-	
+
 					{
 						/* Exit autoselect mode */
 						mw.x[0] = CMD_UNLOCK_DATA_1;
@@ -196,17 +196,17 @@ static int probe_new_chip(struct mtd_info *mtd, __u32 base,
 				private->numchips++;
 			}
 			printk("%s: Found %d x %ldMiB %s at 0x%08x\n",
-				map->name, temp.interleave, 
+				map->name, temp.interleave,
 				(table[i].size)/(1024*1024),
 				table[i].name, base);
-			
+
 			mtd->size += table[i].size * temp.interleave;
 			mtd->numeraseregions += table[i].numeraseregions;
 
 			break;
 		}
 	}
-	
+
 	printk("mfr id 0x%02x, dev_id 0x%02x\n", mfr_id, dev_id);
 
 	mw.x[0] = CMD_UNLOCK_DATA_1;
@@ -242,7 +242,7 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 		size: 0x00400000,
 		numeraseregions: 1,
 		regions: {
-		  { offset: 0x000000, erasesize: 0x10000, numblocks: 64}, 
+		  { offset: 0x000000, erasesize: 0x10000, numblocks: 64},
 		}
 	},
 	{
@@ -277,13 +277,13 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 	mtd->priv = map;
 
 	memset(&temp, 0, sizeof(temp));
-	
+
 	printk("%s: Probing for STM MW320D compatible flash...\n", map->name);
-	
+
 	if ((table_pos[0] = probe_new_chip(mtd, 0, NULL, &temp, table,
 					sizeof(table)/sizeof(table[0]))) == -1)
 	{
-		printk(KERN_WARNING 
+		printk(KERN_WARNING
 			"%s: Found no STM MW320D compatible device at "
 			"location zero\n", map->name);
 		kfree(mtd);
@@ -303,8 +303,8 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 			base += (1 << temp.chipshift))
 	{
 		int numchips = temp.numchips;
-		table_pos[numchips] = 
-			probe_new_chip(mtd, base, chips, &temp, 
+		table_pos[numchips] =
+			probe_new_chip(mtd, base, chips, &temp,
 				table, sizeof(table)/sizeof(table[0]));
 	}
 
@@ -330,7 +330,7 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 		dev_size = 0;
 		for (j = 0; j < table[table_pos[i]].numeraseregions; j++)
 		{
-			mtd->eraseregions[reg_idx].offset = offset + 
+			mtd->eraseregions[reg_idx].offset = offset +
 				(table[table_pos[i]].regions[j].offset *
 				 temp.interleave);
 			mtd->eraseregions[reg_idx].erasesize =
@@ -338,9 +338,9 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 				temp.interleave;
 			mtd->eraseregions[reg_idx].numblocks =
 				table[table_pos[i]].regions[j].numblocks;
-			if (mtd->erasesize < 
+			if (mtd->erasesize <
 					mtd->eraseregions[reg_idx].erasesize)
-				mtd->erasesize = 
+				mtd->erasesize =
 					mtd->eraseregions[reg_idx].erasesize;
 
 			dev_size += mtd->eraseregions[reg_idx].erasesize *
@@ -361,7 +361,7 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 	mtd->resume = stm_flash_resume;
 	mtd->writesize = 1;
 
-	private = kmalloc(sizeof(*private) + 
+	private = kmalloc(sizeof(*private) +
 			(sizeof(struct flchip) * temp.numchips), GFP_KERNEL);
 	if (!private) {
 		printk(KERN_WARNING
@@ -371,7 +371,7 @@ static struct mtd_info* stm_flash_probe(struct map_info *map)
 		return NULL;
 	}
 	memcpy(private, &temp, sizeof(temp));
-	memcpy(private->chips, chips, 
+	memcpy(private->chips, chips,
 		sizeof(struct flchip) * private->numchips);
 	for (i = 0; i < private->numchips; i++)
 	{
@@ -443,7 +443,7 @@ static void stm_flash_sync(struct mtd_info *mtd)
 
 		spin_lock_bh(chip->mutex);
 
-		if (chip->state == FL_SYNCING) 
+		if (chip->state == FL_SYNCING)
 		{
 			chip->state = chip->oldstate;
 			wake_up(&chip->wq);
@@ -452,7 +452,7 @@ static void stm_flash_sync(struct mtd_info *mtd)
 	}
 }
 
-static int read_one_chip(struct map_info *map, struct flchip *chip, 
+static int read_one_chip(struct map_info *map, struct flchip *chip,
 			loff_t addr, size_t len, unsigned char *buf)
 {
 	DECLARE_WAITQUEUE(wait, current);
@@ -486,7 +486,7 @@ retry:
 	addr += chip->start;
 
 	chip->state = FL_READY;
-	
+
 	if(addr&1){
 		map_word test = map->read(map, addr -1);
 		*buf++ = ((test.x[0] & 0xFF00)>>8);
@@ -557,13 +557,13 @@ extern void reset_flash(void);
 static int flash_is_busy(struct map_info *map, unsigned long addr)
 {
 	unsigned short toggled;
-	map_word read11,read21;	
-	
-	read11 = map->read(map,addr); 
-	read21 = map->read(map,addr); 
-	
+	map_word read11,read21;
+
+	read11 = map->read(map,addr);
+	read21 = map->read(map,addr);
+
 	toggled = (unsigned short)read11.x[0] ^ (unsigned short)read21.x[0];
-	
+
 	toggled &= (((unsigned short)1) << 6);
 
 	return toggled;
@@ -611,12 +611,12 @@ retry:
 	addr += chip->start;
 
 	send_unlock(map, chip->start);
-	mw.x[0] = datum;	
+	mw.x[0] = datum;
 	map->write(map, mw, addr);
 
 	times_left = 50000;
 	while (times_left-- && flash_is_busy(map, addr))
-	{		
+	{
 		if (need_resched())
 		{
 			spin_unlock_bh(chip->mutex);
@@ -632,7 +632,7 @@ retry:
 	} else {
 		unsigned long verify;
 		map_word mw;
-	
+
 		mw = map->read(map,addr);
 		verify = mw.x[0] ;
 		if(verify != datum)
@@ -677,7 +677,7 @@ static int stm_flash_write(struct mtd_info *mtd, loff_t to, size_t len,
 		unsigned char tmp_buf[4];
 		unsigned long datum;
 
-		map->copy_from(map, tmp_buf, 
+		map->copy_from(map, tmp_buf,
 			       bus_offset + private->chips[chipnum].start,
 			       map->bankwidth);
 		while (len && i < map->bankwidth)
@@ -723,7 +723,7 @@ static int stm_flash_write(struct mtd_info *mtd, loff_t to, size_t len,
 		else
 			return -EINVAL;
 
-		ret = write_one_word(map, &private->chips[chipnum], offset, 
+		ret = write_one_word(map, &private->chips[chipnum], offset,
 				datum);
 
 		if (ret)
@@ -750,7 +750,7 @@ static int stm_flash_write(struct mtd_info *mtd, loff_t to, size_t len,
 		unsigned char tmp_buf[2];
 		unsigned long datum;
 
-		map->copy_from(map, tmp_buf, 
+		map->copy_from(map, tmp_buf,
 				offset + private->chips[chipnum].start,
 				map->bankwidth);
 
@@ -764,7 +764,7 @@ static int stm_flash_write(struct mtd_info *mtd, loff_t to, size_t len,
 		else
 			return -EINVAL;
 
-		ret = write_one_word(map, &private->chips[chipnum], offset, 
+		ret = write_one_word(map, &private->chips[chipnum], offset,
 				datum);
 
 		if (ret)
@@ -823,7 +823,7 @@ retry:
 	mw.x[0] = CMD_SECTOR_ERASE_UNLOCK_DATA_5;
 	map->write(map, mw , chip->start + CMD_SECTOR_ERASE_UNLOCK_ADDR_5);
 
-	mw.x[0] = 0x30; 
+	mw.x[0] = 0x30;
 	map->write(map,mw,addr);
 
 	timeo = jiffies + (HZ * 20);
@@ -870,7 +870,7 @@ retry:
 		/* Latency issues. Drop the lock, wait a while, and retry. */
 		spin_unlock_bh(chip->mutex);
 
-		if (need_resched())		
+		if (need_resched())
 			schedule();
 		else
 			udelay(1);
@@ -884,11 +884,11 @@ retry:
 		int error = 0;
 		int verify;
 		map_word mw;
-		
-		for (address = addr; address < (addr + size); address += 2){	
+
+		for (address = addr; address < (addr + size); address += 2){
 			mw = map->read(map,address);
 			verify = mw.x[0];
-			if(verify != 0xFFFF)	
+			if(verify != 0xFFFF)
 			{
 				error = 1;
 				break;
@@ -937,7 +937,7 @@ static int stm_flash_erase(struct mtd_info *mtd, struct erase_info *instr)
 	/*
 	 * Skip all erase regions which are ended before the start of the
 	 * requested erase. Actually, to save on the calculations, we skip
-	 * to the first erase region which starts after the start of the 
+	 * to the first erase region which starts after the start of the
 	 * requested erase, and then go back one.
 	 */
 	while ((i < mtd->numeraseregions) &&
@@ -946,7 +946,7 @@ static int stm_flash_erase(struct mtd_info *mtd, struct erase_info *instr)
 	i--;
 
 	/*
-	 * OK. Now i is pointing at the erase region in which this erase 
+	 * OK. Now i is pointing at the erase region in which this erase
 	 * request starts. Check the start of the requested erase range
 	 * is aligned with the erase size which is in effect here.
 	 */

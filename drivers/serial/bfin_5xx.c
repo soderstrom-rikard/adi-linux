@@ -6,8 +6,6 @@
  * Created:
  * Description:  Driver for blackfin 5xx serial ports
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2006 Analog Devices Inc.
  *
@@ -69,7 +67,7 @@
 #ifdef CONFIG_SERIAL_BFIN_DMA
 static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart);
 #else
-static void bfin_serial_do_work(void *);
+static void bfin_serial_do_work(struct work_struct *work);
 static void bfin_serial_tx_chars(struct bfin_serial_port *uart);
 static void local_put_char(struct bfin_serial_port *uart, char ch);
 #endif
@@ -258,9 +256,9 @@ static irqreturn_t bfin_serial_int(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static void bfin_serial_do_work(void *port)
+static void bfin_serial_do_work(struct work_struct *work)
 {
-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+	struct bfin_serial_port *uart = container_of(work, struct bfin_serial_port, cts_workqueue);
 
 	bfin_serial_mctrl_check(uart);
 }
@@ -580,8 +578,8 @@ static void bfin_serial_shutdown(struct uart_port *port)
 }
 
 static void
-bfin_serial_set_termios(struct uart_port *port, struct termios *termios,
-		   struct termios *old)
+bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
+		   struct ktermios *old)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 	unsigned long flags;
@@ -753,8 +751,7 @@ static void __init bfin_serial_init_ports(void)
 			bfin_serial_resource[i].uart_rx_dma_channel;
 		init_timer(&(bfin_serial_ports[i].rx_dma_timer));
 #else
-		INIT_WORK(&bfin_serial_ports[i].cts_workqueue,
-				bfin_serial_do_work, &bfin_serial_ports[i]);
+		INIT_WORK(&bfin_serial_ports[i].cts_workqueue, bfin_serial_do_work);
 #endif
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
 		bfin_serial_ports[i].cts_pin	    =

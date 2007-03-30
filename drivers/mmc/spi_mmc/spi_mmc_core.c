@@ -16,7 +16,7 @@
 *
 * DESCRIPTION: SPI-MMC/SD Block device Driver.
 *
-* DEPENDENCIES: 1) A bunch of kernel headers, 
+* DEPENDENCIES: 1) A bunch of kernel headers,
 *		2) mmc_spi_mode - platform independent layer for doing
 *		communication with MMC over any SPI channel. It implements
 *		the important parts of the MMC-SPI protocol.
@@ -53,7 +53,7 @@
 * Oct,  2006 - 	Processing request on a dedicated work queue. Mode RM_FULL
 *              	does not leave calling process DW(dead waiting) any more.
 *	       	Minor Improvements to mmc_spi_mode.c. /Hans
-* Aug,  2006 - 	Relies on common SPI framework now and very little BFIN code 
+* Aug,  2006 - 	Relies on common SPI framework now and very little BFIN code
 *              	Multiple Block Write operations is working.
 *              	Several other improvements. /Hans
 * June, 2006 - 	First release with lots of ADI Blackfin specific code. /Hans
@@ -69,7 +69,7 @@
 *		> Kingston 128 MB MMC.
 *		> SanDisk 256 MB SD.
 *
-*	       A few were tested with full read/write badblocks test. 
+*	       A few were tested with full read/write badblocks test.
 *
 **************************************************************
 *
@@ -133,7 +133,7 @@ MODULE_LICENSE("GPL");
 	#define DPRINTK(x...)   printk("%lu, %s(): %d ", jiffies, __PRETTY_FUNCTION__, __LINE__);printk(x);
 #else
 	#define DPRINTK(x...)	do { } while (0)
-#endif 
+#endif
 
 // Kconfig parameters
 #ifndef CONFIG_SPI_MMC_CS_CHAN
@@ -142,7 +142,7 @@ MODULE_LICENSE("GPL");
 
 #ifndef CONFIG_SPI_MMC_CARD_DETECT_PFLAG
 #define CARD_DETECT_IRQ (IRQ_PF0 + 5)
-#else 
+#else
 #define CARD_DETECT_IRQ (IRQ_PF0 + CONFIG_SPI_MMC_CARD_DETECT_PFLAG)
 #endif
 
@@ -201,12 +201,12 @@ static int request_mode = RM_FULL;
  *		nsect	- number of sectors to transfer
  *		buffer	- pointer to buffer to retrieve or put data
  *		write	- true for write operation, false for read
- *		
+ *
  * Lock status: Assumed that lock is not held upon entry.
  *
  * Returns:     0 for OK, any other number is an error
  *
- * Notes:	
+ * Notes:
  *
  */
 static short spi_mmc_transfer(mmc_info_t *pdev, unsigned long sector, unsigned long nsect, char *buffer, int write)
@@ -215,10 +215,10 @@ static short spi_mmc_transfer(mmc_info_t *pdev, unsigned long sector, unsigned l
 	unsigned int nsect_xf=0;
 	short  rval=0;
 	short retry_flag=0;
-	
+
 	down_interruptible(&card_sema);
 	pdev->pi.last_block = offset;
-	
+
 	/* Multiple write block operations */
 	if((nsect >= MULTIPLE_BLOCK_WRITE_TRESH) && MBW_ALLOWED && write && pdev->pi.mbw_works) {
 		if(mmc_spi_write_mult_mmc_block(&(pdev->msd), buffer, offset, nsect)) {
@@ -247,7 +247,7 @@ static short spi_mmc_transfer(mmc_info_t *pdev, unsigned long sector, unsigned l
 		}
 		nsect_xf++;
 	}
-	out:		
+	out:
 	up(&card_sema);
 
 	return rval;
@@ -316,12 +316,12 @@ static void spi_mmc_process_request(mmc_info_t *pdev, struct request *req)
  *		a work queue
  *
  * Arguments:   arg that is the device structure mmc_info_t
- *		
+ *
  * Lock status: Nothing
  *
  * Returns:     Nothing
  *
- * Notes:	
+ * Notes:
  *
  */
 static void spi_mmc_transfer_worker(void* arg)
@@ -346,7 +346,7 @@ static void spi_mmc_transfer_worker(void* arg)
 			spin_lock(&pdev->queue_lock);
 			end_request(req, 0);
 			spin_unlock(&pdev->queue_lock);
-		} 
+		}
 		if(pdev->card_in_bay) {
 			pdev->current_req = req;
 			spi_mmc_process_request(pdev, req);
@@ -359,7 +359,7 @@ static void spi_mmc_transfer_worker(void* arg)
 			spin_lock(&pdev->queue_lock);
 			end_request(req, 0);
 			spin_unlock(&pdev->queue_lock);
-		} 
+		}
 
 		// grab the next request and continue
 		spin_lock(&pdev->queue_lock);
@@ -374,12 +374,12 @@ static void spi_mmc_transfer_worker(void* arg)
  * Purpose:     Strategy function that simply starts the request processing on a work queue
  *
  * Arguments:   q	- the address to reqeust queue given by the I/O scheduler
- *		
+ *
  * Lock status: Assumed that lock is not held upon entry.
  *
  * Returns	nothing
  *
- * Notes:	
+ * Notes:
  *
  */
 static void spi_mmc_strategy(request_queue_t *q)
@@ -393,7 +393,7 @@ static void spi_mmc_strategy(request_queue_t *q)
 
 	if(pdev->current_req == NULL)
 		return;
-	
+
 	// process rest of the dispatch queue on a dedicated kernel thread
 	schedule_work(&transfer_work);
 }
@@ -421,7 +421,7 @@ static int spi_mmc_xfer_bio(mmc_info_t *pdev, struct bio *bio)
 		if(error) {
 			if(spi_mmc_dev_init(pdev)) {
 				pdev->card_in_bay = 0;
-			}			
+			}
 		}
 		sector += bio_cur_sectors(bio);
 		__bio_kunmap_atomic(bio, KM_USERo);
@@ -444,7 +444,7 @@ static int spi_mmc_make_request(request_queue_t *q, struct bio *bio)
 * SPI-MMC callbacks
 *
 \**********************************************************************/
-static int write_func(unsigned char *buf, unsigned int count, void* priv_data) 
+static int write_func(unsigned char *buf, unsigned int count, void* priv_data)
 {
 	struct spi_transfer t;
 	struct spi_message m;
@@ -452,7 +452,7 @@ static int write_func(unsigned char *buf, unsigned int count, void* priv_data)
 	u8 chip_select;
 
 	pdev = (mmc_info_t*)priv_data;
-	
+
 	if(count <= 0)
 		return 0;
 
@@ -488,14 +488,14 @@ static int write_func(unsigned char *buf, unsigned int count, void* priv_data)
 
 	return count;
 }
-static int read_func(unsigned char *buf, unsigned int count, void* priv_data) 
+static int read_func(unsigned char *buf, unsigned int count, void* priv_data)
 {
 	struct spi_transfer t;
 	struct spi_message m;
 	mmc_info_t *pdev;
 
 	pdev = (mmc_info_t*)priv_data;
-	
+
 	if(count <= 0)
 		return 0;
 
@@ -518,17 +518,17 @@ static int read_func(unsigned char *buf, unsigned int count, void* priv_data)
 		DPRINTK("status: %d\n", m.status);
 		return m.status;
 	}
-	
+
 	//copy from DMA safe relay buffer
 	memcpy(buf, k_buffer, count);
 	return count;
 }
-		
+
 static unsigned long stamp_msec;
 static void reset_time_func(unsigned long msec)
 {
 	// set to sometime in the future
-	stamp_msec = jiffies + msec * HZ / 1000;	
+	stamp_msec = jiffies + msec * HZ / 1000;
 }
 static int elapsed_time_func(void)
 {
@@ -541,11 +541,11 @@ static int elapsed_time_func(void)
 * Block device operations and helpers
 *
 \**********************************************************************/
-static int spi_mmc_card_init(mmc_info_t* pdev) 
-{	
+static int spi_mmc_card_init(mmc_info_t* pdev)
+{
 	// TODO: get system clock frequency, preferrably platform independend, how?
 	// TODO: Adjust maximum speed to card maximum(said to be found in CSD reg.) and sclk.
-	
+
 	// set SPI to init rate
 	pdev->spi_speed_hz = SPI_CLOCK_INIT_HZ;
 
@@ -569,7 +569,7 @@ static int spi_mmc_init_regs(mmc_info_t* pdev)
 
 	memset(&(pdev->card.csd), 0, sizeof(pdev->card.csd));
 	memset(&(pdev->card.cid), 0, sizeof(pdev->card.cid));
-	
+
 	pdev->card.csd.mmca_vsn = pdev->msd.csd.mmca_vsn;
 	pdev->card.csd.cmdclass = pdev->msd.csd.cmdclass;
 	pdev->card.csd.tacc_clks = pdev->msd.csd.tacc_clks;
@@ -585,8 +585,8 @@ static int spi_mmc_init_regs(mmc_info_t* pdev)
 	pdev->card.cid.year = pdev->msd.cid.year;
 	pdev->card.cid.hwrev = pdev->msd.cid.hwrev;
 	pdev->card.cid.fwrev = pdev->msd.cid.fwrev;
-	pdev->card.cid.month = pdev->msd.cid.month;	
-	
+	pdev->card.cid.month = pdev->msd.cid.month;
+
 	// only return path for now
 	return 0;
 }
@@ -596,7 +596,7 @@ static int spi_mmc_init_regs(mmc_info_t* pdev)
  * Purpose:	Initializes the device
  *
  * Arguments:   pdev
- *		
+ *
  * Lock status: Assumed that lock IS held upon entry.
  *
  * Returns	-NODEV on init fail, 0 for success
@@ -609,7 +609,7 @@ static int spi_mmc_dev_init(mmc_info_t* pdev)
 	struct block_device *bdev;
 	static unsigned int last_read_serial=0;
 	unsigned int cap;
-	
+
 	// Low level init of card
 	if(spi_mmc_card_init(pdev)) {
 		return -ENODEV;
@@ -620,21 +620,21 @@ static int spi_mmc_dev_init(mmc_info_t* pdev)
 		printk(KERN_ERR "Could not read this MMC/SD card CSD/CID registers.\n");
 		return -ENODEV;
 	}
-	
+
 	// copy mmc_spi CSD CID data to linux version of CSD/CID
 	if(spi_mmc_init_regs(pdev)) {
 		printk(KERN_ERR "Unsupported CSD/CID registry entry.\n");
 		return -ENODEV;
 	}
-	
+
 	pdev->hardsect_size = (1 << pdev->card.csd.read_blkbits);
 	// set block device size parameters from card parameters(2^READ_BLOCK_LEN)
 	if(pdev->hardsect_size < KERNEL_SECTOR_SIZE) {
 		printk(KERN_ERR "MMC/SD has invalid sector size.\n");
 		return -ENODEV;
-	}	
+	}
 	pdev->nsectors = pdev->card.csd.capacity;
-	
+
 	// Show some device information to log if _NEW_ MMC was found
 	if(pdev->card.cid.serial != last_read_serial) {
 		cap = pdev->card.csd.capacity * (1 << pdev->card.csd.read_blkbits);
@@ -647,7 +647,7 @@ static int spi_mmc_dev_init(mmc_info_t* pdev)
 		memset(pdev->msd.error_log, 0, sizeof(pdev->msd.error_log));
 		memset(pdev->msd.status_log, 0, sizeof(pdev->msd.status_log));
 		pdev->msd.errors = 0;
-		
+
 		// assume that it works
 		pdev->pi.mbw_works=1;
 	}
@@ -655,7 +655,7 @@ static int spi_mmc_dev_init(mmc_info_t* pdev)
 	// Keep what number we got this time
 	last_read_serial = pdev->card.cid.serial;
 
-	return 0;	
+	return 0;
 }
 
 #ifdef CONFIG_BFIN
@@ -684,7 +684,7 @@ void spi_mmc_revalidate_timeout(mmc_info_t* pdev)
  * Purpose:	Interrupt handler triggerd by card_detect signal from MMC/SD card
  *
  * Arguments:   pdev
- *		
+ *
  * Lock status: Assumed that lock IS held upon entry.
  *
  * Returns	-NODEV on init fail, 0 for success
@@ -699,7 +699,7 @@ irqreturn_t spi_mmc_detect_irq_handler(int irq, void *dev_id, struct pt_regs *re
 	pdev = (mmc_info_t*)dev_id;
 
 	spi_mmc_delayed_revalidate(pdev, CARD_DETECT_INTERVAL);
-    
+
 	// return
 	return IRQ_HANDLED;
 }
@@ -721,7 +721,7 @@ static int spi_mmc_revalidate(struct gendisk *gd)
 	mmc_info_t* pdev = gd->private_data;
 
 	down_interruptible(&card_sema);
-	
+
 	if(spi_mmc_dev_init(pdev)) {
 		// No card
 		pdev->card_in_bay = 0;
@@ -732,7 +732,7 @@ static int spi_mmc_revalidate(struct gendisk *gd)
 		pdev->card_in_bay = 1;
 	}
 	set_capacity(pdev->gd, pdev->nsectors * (pdev->hardsect_size / KERNEL_SECTOR_SIZE));
-	
+
 	up(&card_sema);
 
 	return 0;
@@ -762,7 +762,7 @@ static int spi_mmc_ioctl(struct inode *inode, struct file *filp, unsigned int cm
 		memset(&geo, 0, sizeof(struct hd_geometry));
 
 		geo.cylinders	= get_capacity(bdev->bd_disk) / (GEO_HEADS * GEO_SECTORS);
-		geo.heads	= GEO_HEADS; 
+		geo.heads	= GEO_HEADS;
 		geo.sectors	= GEO_SECTORS;
 		geo.start	= 4; //get_start_sect(bdev);
 
@@ -782,7 +782,7 @@ static int spi_mmc_getgeo(struct block_device *bdev, struct hd_geometry *geo)
 	geo->heads	= GEO_HEADS;
 	geo->sectors	= GEO_SECTORS;
 	geo->start	= get_start_sect(bdev);
-	
+
 	return 0;
 }
 
@@ -793,7 +793,7 @@ static int spi_mmc_open(struct inode *inode, struct file *filp)
 	int rval = 0;
 
 	pdev  = (mmc_info_t*)(inode->i_bdev->bd_disk->private_data);
-	
+
 	//down(&open_lock);
 	pdev->users++;
 	DPRINTK("\n");
@@ -813,10 +813,10 @@ static int spi_mmc_open(struct inode *inode, struct file *filp)
 }
 
 static int spi_mmc_release(struct inode *inode, struct file *filp)
-{	
+{
 	mmc_info_t* pdev;
 	pdev  = (mmc_info_t*)(inode->i_bdev->bd_disk->private_data);
-	
+
 	// NOTE: Not sure whether this open_lock is needed anymore
 	//down(&open_lock);
 	DPRINTK("\n");
@@ -849,9 +849,9 @@ int spi_mmc_read_proc(char *buf, char **start, off_t offset, int count, int *eof
 	int len = 0;
 	int idx = 0;
 	unsigned int spi_speed_khz=0;
-	
+
 	spi_speed_khz = pdev->spi_speed_hz/1000;
-	
+
 	// add to len if iterative..
 	len += sprintf(buf+len, "Driver build date: %s\n", __DATE__);
 	len += sprintf(buf+len, "Driver author: %s\n", __DRIVER_AUTHOR);
@@ -900,7 +900,7 @@ int spi_mmc_read_proc(char *buf, char **start, off_t offset, int count, int *eof
 	len += sprintf(buf+len, "Performance for last 100 transfers\n");
 	len += sprintf(buf+len, "\t Mean read throughput:\t %d kB/s\n", pdev->pi.mean_read_tp);
 	len += sprintf(buf+len, "\t Mean write throughput:\t %d kB/s\n", pdev->pi.mean_write_tp);
-	
+
 
 	*eof=1;
 
@@ -910,10 +910,10 @@ int spi_mmc_read_proc(char *buf, char **start, off_t offset, int count, int *eof
 
 // Platform dependent lowlevel init for GPIO pin to use for card detection
 #if defined(CONFIG_SPI_MMC_CARD_DETECT) && defined(CONFIG_BFIN)
-static void spi_mmc_bfin_cd_setup(mmc_info_t *pdev) 
+static void spi_mmc_bfin_cd_setup(mmc_info_t *pdev)
 {
 	// request interrupt handler for card detect signal
-	if (request_irq(CARD_DETECT_IRQ, spi_mmc_detect_irq_handler, 
+	if (request_irq(CARD_DETECT_IRQ, spi_mmc_detect_irq_handler,
 		IRQF_TRIGGER_RISING|IRQF_TRIGGER_FALLING|IRQF_DISABLED, SPI_MMC_DEVNAME, pdev)) {
 		printk(KERN_WARNING "spi_mmc: IRQ %d is not free, No card detection.\n", IRQ_PROG_INTA);
 	}
@@ -924,7 +924,7 @@ static void spi_mmc_clean(void)
 {
 	mmc_info_t* pdev;
 	pdev = Devices;
-	
+
 #if defined(CONFIG_BFIN) && defined(CONFIG_SPI_MMC_CARD_DETECT)
 	del_timer(&pdev->revalidate_timer);
 	free_irq(CARD_DETECT_IRQ, pdev);
@@ -938,7 +938,7 @@ static void spi_mmc_clean(void)
 		blk_put_queue(pdev->gd->queue);
 		// if other kind of request are used, consider how to clean
 	}
-	
+
 	kfree(Devices);
 	remove_proc_entry(SPI_MMC_DEVNAME, NULL /* parent dir */);
 	unregister_blkdev(MAJOR_NUMBER, SPI_MMC_DEVNAME);
@@ -963,7 +963,7 @@ static int spi_mmc_dummy_remove(struct spi_device *spi) {
 static int __devinit spi_mmc_probe(struct spi_device *spi)
 {
 	mmc_info_t *pdev;
-	
+
 	/*
 	 * Get registered.
 	 */
@@ -973,7 +973,7 @@ static int __devinit spi_mmc_probe(struct spi_device *spi)
 	} else {
 		DPRINTK("Major number %d was ok\n", MAJOR_NUMBER);
 	}
-	
+
 	// allocate DMA safe buffer for SPI transactions
 	k_buffer = kmalloc(KERNEL_SECTOR_SIZE, GFP_KERNEL);
 
@@ -981,18 +981,18 @@ static int __devinit spi_mmc_probe(struct spi_device *spi)
 	pdev = kmalloc(sizeof(mmc_info_t), GFP_KERNEL);
 	// save pointer for module exit cleanup
 	Devices = pdev;
-	
+
 	if(!pdev) {
 		printk(KERN_WARNING "spi_mmc: could not allocate device structure.\n");
 		goto out;
 	}
-	
+
 	// register proc read function
 	create_proc_read_entry(SPI_MMC_DEVNAME, 0 /*def mode */, NULL /* parent dir */, spi_mmc_read_proc, NULL /* client data */);
 
 	/* reset the main descriptor */
 	memset(pdev, 0, sizeof(mmc_info_t));
-	
+
 	// set mmc_spi_mode callbacks
 	pdev->msd.read = read_func;
 	pdev->msd.write = write_func;
@@ -1008,7 +1008,7 @@ static int __devinit spi_mmc_probe(struct spi_device *spi)
 	pdev->revalidate_timer.data = (unsigned long) pdev;
 	pdev->revalidate_timer.function = (void *)spi_mmc_revalidate_timeout;
 #endif
-	
+
 	spin_lock_init(&pdev->queue_lock);
 	spin_lock_init(&pdev->dev_lock);
 
@@ -1030,7 +1030,7 @@ static int __devinit spi_mmc_probe(struct spi_device *spi)
 	pdev->max_hw_segments = 16;
 	pdev->max_sectors = 32;
 	pdev->max_segment_size = 8192;
-	
+
 	// initialize the gendisk descriptor
 	pdev->gd->private_data = pdev;
 	pdev->gd->major = MAJOR_NUMBER;
@@ -1040,7 +1040,7 @@ static int __devinit spi_mmc_probe(struct spi_device *spi)
 	//pdev->gd->flags |= GENHD_FL_REMOVABLE;	// not set even though it is removeable
 						//   as discussed in drivers/mmc/mmc_block.c
 	pdev->gd->fops = &spi_mmc_ops;
-	
+
 	// Allocation of request queue, spi_mmc_make_request is our custom make_request function
 	switch (request_mode) {
 		case RM_NOQUEUE:
@@ -1052,16 +1052,16 @@ static int __devinit spi_mmc_probe(struct spi_device *spi)
 		case RM_FULL:
 			pdev->gd->queue = blk_init_queue(spi_mmc_strategy, &pdev->queue_lock);
 			if (pdev->gd->queue == NULL)
-				goto out;		
+				goto out;
 			break;
 	}
 	pdev->gd->queue->queuedata = pdev;
-	
+
 	blk_queue_max_phys_segments(pdev->gd->queue, pdev->max_phys_segments);
 	blk_queue_max_hw_segments(pdev->gd->queue, pdev->max_hw_segments);
 	blk_queue_max_sectors(pdev->gd->queue, pdev->max_sectors);
 	blk_queue_max_segment_size(pdev->gd->queue, pdev->max_segment_size);
-	
+
 
 	// configure work to check for card in bay
 	PREPARE_WORK(&card_work, spi_mmc_media_worker, (void*)pdev);
@@ -1072,21 +1072,21 @@ static int __devinit spi_mmc_probe(struct spi_device *spi)
 	#if defined(CONFIG_SPI_MMC_CARD_DETECT) && defined(CONFIG_BFIN)
 	spi_mmc_bfin_cd_setup(pdev);
 	#endif
-	
+
 	// schedule to check for media
 	schedule_work(&card_work);
-	
+
 	// add this disk to system
 	add_disk(pdev->gd);
 
 
 	return 0;
-	
+
 	out:
 	DPRINTK("spi_mmc: probe failed!\n");
 	//up(&pdev->sem);
 	spi_mmc_clean();
-	return -ENODEV;	
+	return -ENODEV;
 }
 
 static struct spi_driver spi_mmc_driver = {

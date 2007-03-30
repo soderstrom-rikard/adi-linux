@@ -12,20 +12,20 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
 /* Save power at the expense of not always being able to transmit on hook.  If
-   this is set, we only transit on hook for some time after a ring 
+   this is set, we only transit on hook for some time after a ring
    (POWERSAVE_TIMEOUT) */
 
 /* #define PROSLIC_POWERSAVE */
@@ -139,7 +139,7 @@ static int set_aux_ctrl(struct wc_usb_pvt *p, char auxpins, int on);
 
 
 
-static int Wcusb_WriteWcRegs(struct usb_device *dev, unsigned char index, 
+static int Wcusb_WriteWcRegs(struct usb_device *dev, unsigned char index,
 					  unsigned char *data, int len)
 {
 	unsigned int pipe = usb_sndctrlpipe(dev, 0);
@@ -148,7 +148,7 @@ static int Wcusb_WriteWcRegs(struct usb_device *dev, unsigned char index,
 
 	requesttype = USB_DIR_OUT | USB_TYPE_VENDOR | USB_RECIP_DEVICE;
 
-	res = usb_control_msg(dev, pipe, REQUEST_NORMAL, requesttype, 
+	res = usb_control_msg(dev, pipe, REQUEST_NORMAL, requesttype,
 							0, index, data, len, CONTROL_TIMEOUT_JIFFIES);
 	if (res == -ETIMEDOUT) {
 		printk("wcusb: timeout on vendor write\n");
@@ -158,9 +158,9 @@ static int Wcusb_WriteWcRegs(struct usb_device *dev, unsigned char index,
 		return -1;
 	}
 	return 0;
-}					  
+}
 
-static int Wcusb_ReadWcRegs(struct usb_device *dev, unsigned char index, 
+static int Wcusb_ReadWcRegs(struct usb_device *dev, unsigned char index,
 					  unsigned char *data, int len)
 {
 	unsigned int pipe = usb_rcvctrlpipe(dev, 0);
@@ -169,7 +169,7 @@ static int Wcusb_ReadWcRegs(struct usb_device *dev, unsigned char index,
 
 	requesttype = USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_DEVICE;
 
-	res = usb_control_msg(dev, pipe, REQUEST_NORMAL, requesttype, 
+	res = usb_control_msg(dev, pipe, REQUEST_NORMAL, requesttype,
 							0, index, data, len, CONTROL_TIMEOUT_JIFFIES);
 	if (res == -ETIMEDOUT) {
 		printk("wcusb: timeout on vendor write\n");
@@ -181,7 +181,7 @@ static int Wcusb_ReadWcRegs(struct usb_device *dev, unsigned char index,
 		DPRINTK(("wcusb: Executed read, result = %d (data = %04x)\n", le32_to_cpu(res), (int) *data));
 	}
 	return 0;
-}					  
+}
 
 #ifdef USB2420
 #ifdef LINUX26
@@ -362,7 +362,7 @@ loop_start:
 				else if(d->data == 0xd && aux_pattern[d->i] == 0x1e) { digit = '2';}
 				else if(d->data == 0xb && aux_pattern[d->i] == 0x1e) { digit = '3';}
 				else if(d->data == 0x7 && aux_pattern[d->i] == 0x1e) {
-					p->hookstate = 0; /* On||Off */ 
+					p->hookstate = 0; /* On||Off */
 					zt_hooksig(&p->chan, ZT_RXSIG_ONHOOK);
 				}
 
@@ -378,7 +378,7 @@ loop_start:
 				else if(d->data == 0xd && aux_pattern[d->i] == 0x17) { digit = '8';}
 				else if(d->data == 0xb && aux_pattern[d->i] == 0x17) { digit = '9';}
 				else if(d->data == 0x7 && aux_pattern[d->i] == 0x17) d->scanned_event = 15; /* ReDial */
-	
+
 				else if(d->data == 0xe && aux_pattern[d->i] == 0xf) { digit = '*';}/* '*' */
 				else if(d->data == 0xd && aux_pattern[d->i] == 0xf) { digit = '0';}
 				else if(d->data == 0xb && aux_pattern[d->i] == 0xf) { digit = '#';} /* '#' */
@@ -462,9 +462,9 @@ static int wcusb_async_read(struct wc_usb_pvt *p, unsigned char index, unsigned 
 
 	FILL_CONTROL_URB(urb, p->dev, usb_rcvctrlpipe(p->dev, 0), (unsigned char *)&p->dr, data, len, complete, p);
 #ifdef LINUX26
-	if (usb_submit_urb(urb, GFP_KERNEL)) 
-#else	
-	if (usb_submit_urb(urb)) 
+	if (usb_submit_urb(urb, GFP_KERNEL))
+#else
+	if (usb_submit_urb(urb))
 #endif
 	{
 		printk("wcusb_async_read: control URB died\n");
@@ -500,7 +500,7 @@ static int wcusb_async_write(struct wc_usb_pvt *p, unsigned char index, unsigned
 #else
 	urb_t *urb = &p->control;
 	memset(urb, 0, sizeof(urb_t));
-	
+
 	p->dr.requesttype = USB_DIR_OUT | USB_TYPE_VENDOR | USB_RECIP_DEVICE;
 	p->dr.request = REQUEST_NORMAL;
 	p->dr.value = 0;
@@ -510,10 +510,10 @@ static int wcusb_async_write(struct wc_usb_pvt *p, unsigned char index, unsigned
 
 	FILL_CONTROL_URB(urb, p->dev, usb_sndctrlpipe(p->dev, 0), (unsigned char *)&p->dr, data, len, complete, p);
 #ifdef LINUX26
-	if (usb_submit_urb(urb, GFP_KERNEL)) 
-#else	
-	if (usb_submit_urb(urb)) 
-#endif	
+	if (usb_submit_urb(urb, GFP_KERNEL))
+#else
+	if (usb_submit_urb(urb))
+#endif
 	{
 		printk("wcusb_async_write: control URB died\n");
 		return -1;
@@ -566,7 +566,7 @@ static int waitForProSlicIndirectRegAccess(struct usb_device *dev)
 
 static int writeProSlicInDirectReg(struct usb_device *dev, unsigned char address, unsigned short data)
 {
-	
+
    if(!waitForProSlicIndirectRegAccess(dev))
 	{
 		if (!writeProSlicDirectReg(dev, IDA_LO,(unsigned char)(data & 0xFF)))
@@ -619,7 +619,7 @@ int writeProSlicDirectReg(struct usb_device *dev, unsigned char address, unsigne
 }
 
 static int readProSlicInDirectReg(struct usb_device *dev, unsigned char address, unsigned short *data)
-{ 
+{
     if (!waitForProSlicIndirectRegAccess(dev))
 	 {
 		if (!writeProSlicDirectReg(dev,IAA,address))
@@ -632,7 +632,7 @@ static int readProSlicInDirectReg(struct usb_device *dev, unsigned char address,
 				{
 					*data = data1 | (data2 << 8);
 					return 0;
-				} else 
+				} else
 					printk("Failed to read direct reg\n");
 			} else
 				printk("Failed to wait inside\n");
@@ -658,11 +658,11 @@ static int initializeIndirectRegisters(struct usb_device *dev)
 }
 
 static int verifyIndirectRegisters(struct usb_device *dev)
-{ 
+{
 	int passed = 1;
 	unsigned short i,j, initial;
 
-	for (i=0; i<43; i++) 
+	for (i=0; i<43; i++)
 	{
 		if(readProSlicInDirectReg(dev, (unsigned char) i, &j)) {
 			printk("Failed to read indirect register %d\n", i);
@@ -675,7 +675,7 @@ static int verifyIndirectRegisters(struct usb_device *dev)
 			 printk("!!!!!!! %s  iREG %X = %X  should be %X\n",
 				indirect_regs[i].name,i,j,initial );
 			 passed = 0;
-		}	
+		}
 	}
 
     if (passed) {
@@ -689,7 +689,7 @@ static int verifyIndirectRegisters(struct usb_device *dev)
 }
 
 static int calibrateAndActivateProSlic(struct usb_device *dev)
-{ 
+{
 	unsigned char x;
 
 	if(writeProSlicDirectReg(dev, 92, 0xc8))
@@ -729,7 +729,7 @@ static int calibrateAndActivateProSlic(struct usb_device *dev)
 
 static int InitProSlic(struct usb_device *dev)
 {
-    if (writeProSlicDirectReg(dev, 67, 0x0e)) 
+    if (writeProSlicDirectReg(dev, 67, 0x0e))
 		/* Disable Auto Power Alarm Detect and other "features" */
 		 return -1;
     if (initializeIndirectRegisters(dev)) {
@@ -764,9 +764,9 @@ static int InitProSlic(struct usb_device *dev)
 		 return -1;
     if (writeProSlicDirectReg(dev, 18, 0xff))     // clear all interrupt
 		 return -1;
-    if (writeProSlicDirectReg(dev, 19, 0xff)) 
+    if (writeProSlicDirectReg(dev, 19, 0xff))
 		 return -1;
-    if (writeProSlicDirectReg(dev, 20, 0xff)) 
+    if (writeProSlicDirectReg(dev, 20, 0xff))
 		 return -1;
     if (writeProSlicDirectReg(dev, 21, 0x00)) 	// enable interrupt
 		 return -1;
@@ -831,7 +831,7 @@ static int init_hardware(struct wc_usb_pvt *p)
 		printk("wcusb: Unable to setup USB interface 3 to altsetting 1\n");
 		return -1;
 	}
-	return 0; 
+	return 0;
 }
 
 /* Don't call from an interrupt context */
@@ -848,7 +848,7 @@ static int set_aux_ctrl(struct wc_usb_pvt *p, char uauxpins, int on)
 
 	return 0;
 }
-	
+
 static void wcusb_check_keypad(struct wc_usb_pvt *p)
 {
 	struct wc_keypad_data *d = p->pvt_data;
@@ -917,12 +917,12 @@ static void wcusb_read_complete(struct urb *q)
 	zt_receive(&p->span);
 
 	q->dev = p->dev;
-	
+
 #ifdef LINUX26
-	if (usb_submit_urb(q, GFP_KERNEL)) 
-#else	
-	if (usb_submit_urb(q)) 
-#endif	
+	if (usb_submit_urb(q, GFP_KERNEL))
+#else
+	if (usb_submit_urb(q))
+#endif
 	{
 		printk("wcusb: Read cycle failed\n");
 	}
@@ -945,7 +945,7 @@ static void wcusb_read_complete(struct urb *q)
 				p->newtxhook = p->idletxhookstate;
 		}
 	}
-#endif	
+#endif
 	return;
 }
 
@@ -970,12 +970,12 @@ static void wcusb_write_complete(struct urb *q)
 		chunk[x] = cpu_to_le16(ZT_MULAW(p->chan.writechunk[x]));
 	}
 	q->dev = p->dev;
-	
+
 #ifdef LINUX26
-	if (usb_submit_urb(q, GFP_KERNEL)) 
-#else	
-	if (usb_submit_urb(q)) 
-#endif	
+	if (usb_submit_urb(q, GFP_KERNEL))
+#else
+	if (usb_submit_urb(q))
+#endif
 	{
 		printk("wcusb: Write cycle failed\n");
 	}
@@ -1037,7 +1037,7 @@ static int prepare_transfer_urbs(struct wc_usb_pvt *p)
 		p->dataread[x].urb.transfer_flags = URB_ISO_ASAP;
 #else
 		p->dataread[x].urb.transfer_flags = USB_ISO_ASAP;
-#endif		
+#endif
 		p->dataread[x].urb.number_of_packets = 1;
 		p->dataread[x].urb.context = p;
 		p->dataread[x].urb.complete = wcusb_read_complete;
@@ -1060,7 +1060,7 @@ static int prepare_transfer_urbs(struct wc_usb_pvt *p)
 		p->datawrite[x].urb.iso_frame_desc[0].offset = 0;
 		p->datawrite[x].urb.transfer_buffer = p->writechunk + ZT_CHUNKSIZE * x;
 		p->datawrite[x].urb.transfer_buffer_length = ZT_CHUNKSIZE * 2;
-	
+
 	}
 	return 0;
 }
@@ -1074,9 +1074,9 @@ static int begin_transfer(struct wc_usb_pvt *p)
 
 	for (x = 0; x < 2; x++) {
 #ifdef LINUX26
-		if (usb_submit_urb(&p->dataread[x].urb, GFP_KERNEL)) 
+		if (usb_submit_urb(&p->dataread[x].urb, GFP_KERNEL))
 #else
-		if (usb_submit_urb(&p->dataread[x].urb)) 
+		if (usb_submit_urb(&p->dataread[x].urb))
 #endif
 		{
 			printk(KERN_ERR "wcusb: Read submit failed\n");
@@ -1085,8 +1085,8 @@ static int begin_transfer(struct wc_usb_pvt *p)
 #ifdef LINUX26
 		if (usb_submit_urb(&p->datawrite[x].urb, GFP_KERNEL))
 #else
-		if (usb_submit_urb(&p->datawrite[x].urb)) 
-#endif		
+		if (usb_submit_urb(&p->datawrite[x].urb))
+#endif
 		{
 			printk(KERN_ERR "wcusb: Write submit failed\n");
 			return -1;
@@ -1110,8 +1110,8 @@ static int wc_usb_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
 				p->idletxhookstate = 2;
 				p->lowpowertimer = POWERSAVE_TIME;
 			}
-#endif	
-	
+#endif
+
 			p->txhook = -1;
 			switch(txsig) {
 				case ZT_TXSIG_ONHOOK:
@@ -1166,7 +1166,7 @@ static int wc_usb_open(struct zt_chan *chan)
 	}
 #ifndef LINUX26
 	MOD_INC_USE_COUNT;
-#endif	
+#endif
 	p->usecount++;
 	return 0;
 }
@@ -1193,7 +1193,7 @@ static int wc_usb_close(struct zt_chan *chan)
 static struct wc_usb_pvt *wc_detect_device(struct usb_device *dev, struct wc_usb_pvt *orig)
 {
 	struct wc_usb_pvt *p;
-	
+
 	p = orig;
 	if (!p) {
 		p = kmalloc(sizeof(struct wc_usb_pvt), GFP_KERNEL);
@@ -1211,8 +1211,8 @@ static struct wc_usb_pvt *wc_detect_device(struct usb_device *dev, struct wc_usb
 	p->idletxhookstate = 1;
 #else
 	/* By default we can always send on hook */
-	p->idletxhookstate = 2;	
-#endif	
+	p->idletxhookstate = 2;
+#endif
 
 	printk("wcusb: wc_detect_device\n");
 	if (dev->descriptor.idProduct == 0xb210) {
@@ -1267,7 +1267,7 @@ static int wc_set_zaptel(struct wc_usb_pvt *p)
     init_waitqueue_head(&p->span.maintq);
     p->span.pvt = p;
     p->chan.pvt = p;
-	
+
 	/* Set the stream to just pass the data from the device uninhibited */
 	p->sample = STREAM_NORMAL;
 
@@ -1278,7 +1278,7 @@ static int wc_set_zaptel(struct wc_usb_pvt *p)
 
 	return 0;
 }
-	
+
 #ifdef LINUX26
 static int wc_usb_probe(struct usb_interface *intf, const struct usb_device_id *id)
 #else
@@ -1289,7 +1289,7 @@ static void *wc_usb_probe(struct usb_device *dev, unsigned int ifnum, const stru
 	struct wc_usb_desc *d = (struct wc_usb_desc *)id->driver_info;
 #ifdef LINUX26
 	struct usb_device *dev = interface_to_usbdev(intf);
-#endif	
+#endif
 
 	int x;
 	for (x=0;x<WC_MAX_IFACES;x++) {
@@ -1315,7 +1315,7 @@ static void *wc_usb_probe(struct usb_device *dev, unsigned int ifnum, const stru
 		return -ENODEV;
 #else
 		return NULL;
-#endif		
+#endif
 	}
 
 #ifndef LINUX26
@@ -1334,7 +1334,7 @@ static void *wc_usb_probe(struct usb_device *dev, unsigned int ifnum, const stru
 		printk("wcusb: problem preparing the urbs for transfer\n");
 		goto cleanup;
 	}
-	
+
 	if (d->flags & FLAG_FLIP_RELAYS) {
 		flip_relays(p, 1);
 	}
@@ -1353,7 +1353,7 @@ static void *wc_usb_probe(struct usb_device *dev, unsigned int ifnum, const stru
 		printk("wcusb: Rekindling a %s (%s)\n", d->name, p->span.name);
 	else
 		printk("wcusb: Found a %s (%s)\n", d->name, p->span.name);
-	
+
 	/* Reset deadness */
 	p->dead = 0;
 	/* Clear alarms */
@@ -1364,8 +1364,8 @@ static void *wc_usb_probe(struct usb_device *dev, unsigned int ifnum, const stru
 	return 0;
 #else
 	return p;
-#endif		
-	
+#endif
+
 cleanup:
 	printk("cleanup\n");
 	if (p) {
@@ -1378,7 +1378,7 @@ cleanup:
 	return -ENODEV;
 #else
 	return NULL;
-#endif	
+#endif
 }
 
 #ifdef LINUX26
@@ -1392,7 +1392,7 @@ static void wc_usb_disconnect(struct usb_device *dev, void *ptr)
 	struct wc_usb_pvt *p = usb_get_intfdata(intf);
 #else
 	struct wc_usb_pvt *p = ptr;
-#endif	
+#endif
 	if (p) {
 		StopTransmit(p);
 		p->dev = NULL;
@@ -1412,13 +1412,13 @@ static void wc_usb_disconnect(struct usb_device *dev, void *ptr)
 	printk("wcusb: Removed a Wildcard device\n");
 #ifdef LINUX26
 	usb_set_intfdata(intf, NULL);
-#endif		
+#endif
 	return;
 }
 
 static struct usb_device_id wc_dev_ids[] = {
           /* This needs to be a USB audio device, and it needs to be made by us and have the right device ID */
-	{ 
+	{
 		match_flags: (USB_DEVICE_ID_MATCH_INT_CLASS | USB_DEVICE_ID_MATCH_INT_SUBCLASS | USB_DEVICE_ID_MATCH_DEVICE),
 		bInterfaceClass: USB_CLASS_AUDIO,
 		bInterfaceSubClass: 1,
@@ -1426,7 +1426,7 @@ static struct usb_device_id wc_dev_ids[] = {
 		idProduct: 0x831c,            /* Product ID / Chip configuration (you can't change this) */
 		driver_info: (unsigned long)&wcusb,
 	},
-	{ 
+	{
 		match_flags: (USB_DEVICE_ID_MATCH_INT_CLASS | USB_DEVICE_ID_MATCH_INT_SUBCLASS | USB_DEVICE_ID_MATCH_DEVICE),
 		bInterfaceClass: USB_CLASS_AUDIO,
 		bInterfaceSubClass: 1,
@@ -1434,7 +1434,7 @@ static struct usb_device_id wc_dev_ids[] = {
 		idProduct: 0x831e,
 		driver_info: (unsigned long)&wcusb2,
 	},
-	{ 
+	{
 		match_flags: (USB_DEVICE_ID_MATCH_INT_CLASS | USB_DEVICE_ID_MATCH_INT_SUBCLASS | USB_DEVICE_ID_MATCH_DEVICE),
 		bInterfaceClass: USB_CLASS_AUDIO,
 		bInterfaceSubClass: 1,
@@ -1449,17 +1449,17 @@ static struct usb_driver wc_usb_driver =
 {
 #ifdef LINUX26
 	owner: THIS_MODULE,
-#else	
+#else
 	fops: NULL,
 	minor: 0,
-#endif	
+#endif
 	name: "wcusb",
 	probe: wc_usb_probe,
 	disconnect: wc_usb_disconnect,
 	id_table: wc_dev_ids,
 };
 
-static int __init wc_init (void) 
+static int __init wc_init (void)
 {
 	int res;
 	res = usb_register(&wc_usb_driver);
@@ -1467,7 +1467,7 @@ static int __init wc_init (void)
 		return res;
 	printk("Wildcard USB FXS Interface driver registered\n");
 	return 0;
-}	  
+}
 
 static void __exit wc_cleanup(void)
 {

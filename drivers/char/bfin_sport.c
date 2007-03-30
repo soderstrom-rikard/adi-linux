@@ -337,14 +337,14 @@ static inline void sport_tx_write(struct sport_dev *dev)
 	} else if (word_bytes == 2) {
 		while ((dev->tx_sent < dev->tx_len) && \
 				!(dev->regs->stat & TXF)) {
-			*(volatile unsigned short *)(&dev->regs->tx) = 
+			*(volatile unsigned short *)(&dev->regs->tx) =
 				*(unsigned short*)(dev->tx_buf + dev->tx_sent);
 			dev->tx_sent += 2;
 		}
 	} else if (word_bytes == 4) {
 		while ((dev->tx_sent < dev->tx_len) && \
 				!(dev->regs->stat & TXF)) {
-			*(volatile unsigned long *)dev->regs->tx = 
+			*(volatile unsigned long *)dev->regs->tx =
 				*(unsigned long*)(dev->tx_buf + dev->tx_sent);
 			dev->tx_sent += 4;
 		}
@@ -410,7 +410,7 @@ static irqreturn_t sport_err_handler(int irq, void *dev_id)
 					status & RUVF ? " RUVF" : "");
 	}
 
-	if (dev->config.dma_enabled || dev->config.int_clk) 
+	if (dev->config.dma_enabled || dev->config.int_clk)
 		send_sig(SIGABRT, dev->task, 1);
 
 	return IRQ_HANDLED;

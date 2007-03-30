@@ -14,15 +14,15 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * $Id$
  */
@@ -192,11 +192,11 @@ static void tor2_intr(int irq, void *dev_id, struct pt_regs *regs);
 
 
 /* translations of data channels for 24 channels in a 32 bit PCM highway */
-unsigned datxlt_t1[] = { 
+unsigned datxlt_t1[] = {
     1 ,2 ,3 ,5 ,6 ,7 ,9 ,10,11,13,14,15,17,18,19,21,22,23,25,26,27,29,30,31 };
 
 /* translations of data channels for 30/31 channels in a 32 bit PCM highway */
-unsigned datxlt_e1[] = { 
+unsigned datxlt_e1[] = {
     1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,
 	25,26,27,28,29,30,31 };
 
@@ -207,12 +207,12 @@ static int tor2_spanconfig(struct zt_span *span, struct zt_lineconfig *lc)
 
 	if (debug)
 		printk("Tor2: Configuring span %d\n", span->spanno);
-	/* XXX We assume lineconfig is okay and shouldn't XXX */	
+	/* XXX We assume lineconfig is okay and shouldn't XXX */
 	span->lineconfig = lc->lineconfig;
 	span->txlevel = lc->lbo;
 	span->rxlevel = 0;
 	span->syncsrc = p->tor->syncsrc;
-	
+
 	/* remove this span number from the current sync sources, if there */
 	for (i = 0; i < SPANS_PER_CARD; i++) {
 		if (p->tor->syncs[i] == span->spanno) {
@@ -244,13 +244,13 @@ static int tor2_chanconfig(struct zt_chan *chan, int sigtype)
 			printk("Tor2: Reconfigured channel %d (%s) sigtype %d\n", chan->channo, chan->name, sigtype);
 		else
 			printk("Tor2: Configured channel %d (%s) sigtype %d\n", chan->channo, chan->name, sigtype);
-	}		
+	}
 	/* nothing more to do if an E1 */
 	if (p->tor->cardtype == TYPE_E1) return 0;
-	spin_lock_irqsave(&p->tor->lock, flags);	
+	spin_lock_irqsave(&p->tor->lock, flags);
 	if (alreadyrunning)
 		set_clear(p->tor);
-	spin_unlock_irqrestore(&p->tor->lock, flags);	
+	spin_unlock_irqrestore(&p->tor->lock, flags);
 	return 0;
 }
 
@@ -266,7 +266,7 @@ static int tor2_close(struct zt_chan *chan)
 {
 #ifndef LINUX26
 	MOD_DEC_USE_COUNT;
-#endif	
+#endif
 	return 0;
 }
 
@@ -275,7 +275,7 @@ static void init_spans(struct tor2 *tor)
 	int x, y, c;
 	for (x = 0; x < SPANS_PER_CARD; x++) {
 		sprintf(tor->spans[x].name,
-                	"Tor2/%d/%d", 
+                	"Tor2/%d/%d",
 		        tor->num,
                         x + 1);
 		sprintf(tor->spans[x].desc,
@@ -427,7 +427,7 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 		goto err_out_release_plx_region;
 	}
 	pci_set_drvdata(pdev, tor);
-	printk("Detected %s at 0x%lx/0x%lx irq %d\n", tor->type, 
+	printk("Detected %s at 0x%lx/0x%lx irq %d\n", tor->type,
 		tor->xilinx32_region, tor->xilinx8_region,tor->irq);
 
 	for (x = 0; x < MAX_TOR_CARDS; x++) {
@@ -489,7 +489,7 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 	  /* de-assert write signal */
 	gpdata |= GPIO_WRITE;
 	*gpdata_io = cpu_to_le32(gpdata);
-	if (debug) printk("fwload: Loading done!\n");	
+	if (debug) printk("fwload: Loading done!\n");
 
 	/* Wait for FIFO to clear */
 	endjif = jiffies + 2;
@@ -536,7 +536,7 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 		tor->cardtype = TYPE_T1;
 		tor->datxlt = datxlt_t1;
 	}
-	init_spans(tor); 
+	init_spans(tor);
 
 	tor->order = tor->mem8[SWREG];
 	printk("Detected Card number: %d\n", tor->order);
@@ -554,7 +554,7 @@ static int __devinit tor2_probe(struct pci_dev *pdev, const struct pci_device_id
 			}
 		}
 		/* If we found at least one, increment the highest order and search again, otherwise stop */
-		if (f) 
+		if (f)
 			highestorder++;
 		else
 			break;
@@ -609,7 +609,7 @@ static void __devexit tor2_remove(struct pci_dev *pdev)
 
 	cards[tor->num] = 0;
 	pci_set_drvdata(pdev, NULL);
-	for (x = 0; x < 3; x++) 
+	for (x = 0; x < 3; x++)
 		if (tor->chans[x])
 			kfree(tor->chans[x]);
 	kfree(tor);
@@ -645,7 +645,7 @@ static void set_clear(struct tor2 *tor)
 	for (s = 0; s < SPANS_PER_CARD; s++) {
 		for (i = 0; i < 24; i++) {
 			j = (i/8);
-			if (tor->spans[s].chans[i].flags & ZT_FLAG_CLEAR) 
+			if (tor->spans[s].chans[i].flags & ZT_FLAG_CLEAR)
 				val |= 1 << (i % 8);
 
 			if ((i % 8)==7) {
@@ -658,7 +658,7 @@ static void set_clear(struct tor2 *tor)
 			}
 		}
 	}
-		
+
 }
 
 
@@ -670,7 +670,7 @@ static int tor2_rbsbits(struct zt_chan *chan, int bits)
 	unsigned long flags;
 #if 0
 	printk("Setting bits to %d on channel %s\n", bits, chan->name);
-#endif	
+#endif
 	if (p->tor->cardtype == TYPE_E1) { /* do it E1 way */
 		if (chan->chanpos == 16) return 0;
 		n = chan->chanpos - 1;
@@ -683,9 +683,9 @@ static int tor2_rbsbits(struct zt_chan *chan, int bits)
 		c |= (bits & 15) << (4 - m); /* put our new nibble here */
 		p->tor->txsigs[k][b] = c;
 		  /* output them to the chip */
-		t1out(p->tor,k + 1,0x40 + b,c); 
+		t1out(p->tor,k + 1,0x40 + b,c);
 		return 0;
-	}						
+	}
 	n = chan->chanpos - 1;
 	k = p->span;
 	b = (n / 8); /* get byte number */
@@ -695,7 +695,7 @@ static int tor2_rbsbits(struct zt_chan *chan, int bits)
 	  /* set mask bit, if bit is to be set */
 	if (bits & ZT_ABIT) c |= m;
 	p->tor->txsigs[k][b] = c;
-	spin_lock_irqsave(&p->tor->lock, flags);	
+	spin_lock_irqsave(&p->tor->lock, flags);
 	t1out(p->tor,k + 1,0x70 + b,c);
 	b += 3; /* now points to b bit stuff */
 	  /* get current signalling values */
@@ -759,7 +759,7 @@ static int tor2_shutdown(struct zt_span *span)
 	}
 	if (wasrunning)
 		p->tor->spansstarted--;
-	spin_unlock_irqrestore(&p->tor->lock, flags);	
+	spin_unlock_irqrestore(&p->tor->lock, flags);
 	if (!(p->tor->spans[0].flags & ZT_FLAG_RUNNING) &&
 	    !(p->tor->spans[1].flags & ZT_FLAG_RUNNING) &&
 	    !(p->tor->spans[2].flags & ZT_FLAG_RUNNING) &&
@@ -814,14 +814,14 @@ static int tor2_startup(struct zt_span *span)
 			p->tor->mem8[LEDREG] = 0;
 			/* Force re-evaluation of sync src */
 			/* Zero out all registers */
-			for (i = 0; i < 192; i++) 
+			for (i = 0; i < 192; i++)
 				t1out(p->tor,tspan, i, 0);
-		
+
 			/* Set up for Interleaved Serial Bus operation in byte mode */
 			/* Set up all the spans every time, so we are sure they are
                            in a consistent state. If we don't, a card without all
                            its spans configured misbehaves in strange ways. */
-			t1out(p->tor,1,0xb5,9); 
+			t1out(p->tor,1,0xb5,9);
 			t1out(p->tor,2,0xb5,8);
 			t1out(p->tor,3,0xb5,8);
 			t1out(p->tor,4,0xb5,8);
@@ -841,7 +841,7 @@ static int tor2_startup(struct zt_span *span)
 			ccr1 |= 8; /* CCR1: Rx Sig mode: CCS */
 			coding = "CCS";
 		} else {
-			tcr1 |= 0x20; 
+			tcr1 |= 0x20;
 			coding = "CAS";
 		}
 		if (span->lineconfig & ZT_CONFIG_HDB3) {
@@ -852,7 +852,7 @@ static int tor2_startup(struct zt_span *span)
 			ccr1 |= 0x11; /* CCR1: TX and TX CRC4 */
 			tcr2 |= 0x02; /* TCR2: CRC4 bit auto */
 			crcing = "/CRC4";
-		} 
+		}
 		t1out(p->tor,tspan,0x12,tcr1);
 		t1out(p->tor,tspan,0x13,tcr2);
 		t1out(p->tor,tspan,0x14,ccr1);
@@ -872,7 +872,7 @@ static int tor2_startup(struct zt_span *span)
 			spin_lock_irqsave(&p->tor->lock, flags);
 			t1out(p->tor,tspan,0x1b,0x9a); /* CCR3: set also ESR */
 			t1out(p->tor,tspan,0x1b,0x82); /* CCR3: TSCLKM only now */
-			
+
 			span->flags |= ZT_FLAG_RUNNING;
 			p->tor->spansstarted++;
 
@@ -883,7 +883,7 @@ static int tor2_startup(struct zt_span *span)
 		spin_unlock_irqrestore(&p->tor->lock, flags);
 
 		if (debug) {
-			if (alreadyrunning) 
+			if (alreadyrunning)
 				printk("Tor2: Reconfigured span %d (%s/%s%s) 120 Ohms\n", span->spanno, coding, framing, crcing);
 			else
 				printk("Tor2: Startup span %d (%s/%s%s) 120 Ohms\n", span->spanno, coding, framing, crcing);
@@ -895,31 +895,31 @@ static int tor2_startup(struct zt_span *span)
 			p->tor->mem8[CTLREG] = 0;
 			p->tor->mem8[LEDREG] = 0;
 			/* Zero out all registers */
-			for (i = 0; i < 160; i++) 
+			for (i = 0; i < 160; i++)
 				t1out(p->tor,tspan, i, 0);
-		
+
 			/* Set up for Interleaved Serial Bus operation in byte mode */
 			/* Set up all the spans every time, so we are sure they are
                            in a consistent state. If we don't, a card without all
                            its spans configured misbehaves in strange ways. */
-			t1out(p->tor,1,0x94,9); 
+			t1out(p->tor,1,0x94,9);
 			t1out(p->tor,2,0x94,8);
 			t1out(p->tor,3,0x94,8);
 			t1out(p->tor,4,0x94,8);
 			/* Full-on Sync required (RCR1) */
-			t1out(p->tor,tspan, 0x2b, 8);	
+			t1out(p->tor,tspan, 0x2b, 8);
 			/* RSYNC is an input (RCR2) */
-			t1out(p->tor,tspan, 0x2c, 8);	
+			t1out(p->tor,tspan, 0x2c, 8);
 			/* RBS enable (TCR1) */
 			t1out(p->tor,tspan, 0x35, 0x10);
 			/* TSYNC to be output (TCR2) */
 			t1out(p->tor,tspan, 0x36, 4);
 			/* Tx & Rx Elastic store, sysclk(s) = 2.048 mhz, loopback controls (CCR1) */
-			t1out(p->tor,tspan, 0x37, 0x9c); 
+			t1out(p->tor,tspan, 0x37, 0x9c);
 			/* Set up received loopup and loopdown codes */
-			t1out(p->tor,tspan, 0x12, 0x22); 
-			t1out(p->tor,tspan, 0x14, 0x80); 
-			t1out(p->tor,tspan, 0x15, 0x80); 
+			t1out(p->tor,tspan, 0x12, 0x22);
+			t1out(p->tor,tspan, 0x14, 0x80);
+			t1out(p->tor,tspan, 0x15, 0x80);
 			/* Setup japanese mode if appropriate */
 			t1out(p->tor,tspan,0x19,(japan ? 0x80 : 0x00)); /* no local loop */
 			t1out(p->tor,tspan,0x1e,(japan ? 0x80 : 0x00)); /* no local loop */
@@ -942,20 +942,20 @@ static int tor2_startup(struct zt_span *span)
 			t1out(p->tor,tspan,0x7e,0x1c); /* F bits pattern (0x1c) into FDL register */
 		}
 		t1out(p->tor,tspan, 0x7c, span->txlevel << 5);
-	
-		if (!alreadyrunning) {	
+
+		if (!alreadyrunning) {
 			/* LIRST to reset line interface */
 			t1out(p->tor,tspan, 0x0a, 0x80);
-	
+
 			/* Wait 100 ms */
 			endjif = jiffies + 10;
 
 			spin_unlock_irqrestore(&p->tor->lock, flags);
-	
+
 			while (jiffies < endjif); /* wait 100 ms */
 
 			spin_lock_irqsave(&p->tor->lock, flags);
-	
+
 			t1out(p->tor,tspan,0x0a,0x30); /* LIRST back to normal, Resetting elastic stores */
 
 			span->flags |= ZT_FLAG_RUNNING;
@@ -970,7 +970,7 @@ static int tor2_startup(struct zt_span *span)
 		spin_unlock_irqrestore(&p->tor->lock, flags);
 
 		if (debug) {
-			if (alreadyrunning) 
+			if (alreadyrunning)
 				printk("Tor2: Reconfigured span %d (%s/%s) LBO: %s\n", span->spanno, coding, framing, zt_lboname(span->txlevel));
 			else
 				printk("Tor2: Startup span %d (%s/%s) LBO: %s\n", span->spanno, coding, framing, zt_lboname(span->txlevel));
@@ -1053,8 +1053,8 @@ static inline void tor2_run(struct tor2 *tor)
 			   need to delay the transmit data 2 entire chunks so
 			   that the transmit will be in sync with the receive */
 			for (y=0;y<tor->spans[x].channels;y++) {
-				zt_ec_chunk(&tor->spans[x].chans[y], 
-				    tor->spans[x].chans[y].readchunk, 
+				zt_ec_chunk(&tor->spans[x].chans[y],
+				    tor->spans[x].chans[y].readchunk,
 					tor->ec_chunk2[x][y]);
 				memcpy(tor->ec_chunk2[x][y],tor->ec_chunk1[x][y],
 					ZT_CHUNKSIZE);
@@ -1122,14 +1122,14 @@ static int tor2_findsync(struct tor2 *tor)
 								goto found;
 						}
 					}
-				}		
+				}
 			}
 			if (nonzero)
 				p++;
-			else 
+			else
 				break;
 		}
-found:		
+found:
 		if ((syncnum != newsyncnum) || (syncsrc != newsyncsrc) || (newsyncspan != syncspan)) {
 			syncnum = newsyncnum;
 			syncsrc = newsyncsrc;
@@ -1137,7 +1137,7 @@ found:
 			if (debug) printk("New syncnum: %d, syncsrc: %d, syncspan: %d\n", syncnum, syncsrc, syncspan);
 		}
 	}
-#endif	
+#endif
 	/* update sync src info */
 	if (tor->syncsrc != syncsrc) {
 		tor->syncsrc = syncsrc;
@@ -1149,16 +1149,16 @@ found:
 #if 1
 			/* actually set the sync register */
 			tor->mem8[SYNCREG] = syncspan;
-#endif			
+#endif
 			if (debug) printk("Card %d, using sync span %d, master\n", tor->num, syncspan);
-			tor->master = MASTER;	
+			tor->master = MASTER;
 		} else {
 #if 1
 			/* time from the timing cable */
 			tor->mem8[SYNCREG] = SYNCEXTERN;
-#endif			
+#endif
 			tor->master = 0;
-			if (debug) printk("Card %d, using Timing Bus, NOT master\n", tor->num);	
+			if (debug) printk("Card %d, using Timing Bus, NOT master\n", tor->num);
 		}
 	}
 	spin_unlock_irqrestore(&synclock, flags);
@@ -1176,7 +1176,7 @@ static void tor2_intr(int irq, void *dev_id, struct pt_regs *regs)
 
 	unsigned char c, rxc;
 	unsigned char abits, bbits;
-	struct tor2 *tor = (struct tor2 *) dev_id;	
+	struct tor2 *tor = (struct tor2 *) dev_id;
 
 	  /* make sure its a real interrupt for us */
 	if (!(tor->mem8[STATREG] & INTACTIVE)) /* if not, just return */
@@ -1184,8 +1184,8 @@ static void tor2_intr(int irq, void *dev_id, struct pt_regs *regs)
 #ifdef LINUX26
 		return IRQ_NONE;
 #else
-		return; 
-#endif		
+		return;
+#endif
 	   }
 
 	if (tor->cardtype == TYPE_E1)
@@ -1283,7 +1283,7 @@ static void tor2_intr(int irq, void *dev_id, struct pt_regs *regs)
 				tor->spans[i].alarms &= ~ZT_ALARM_RECOVER;
 				if (tor->cardtype == TYPE_E1)
 					t1out(tor,i + 1,0x21,0x5f); /* turn off yel */
-				else 
+				else
 					t1out(tor,i + 1,0x35,0x10); /* turn off yel */
 				zt_alarm_notify(&tor->spans[i]);  /* let them know */
 			   }
@@ -1298,13 +1298,13 @@ static void tor2_intr(int irq, void *dev_id, struct pt_regs *regs)
 		if (tor->cardtype == TYPE_T1) {
 			c = t1in(tor,i + 1,0x31); /* get RIR2 */
 			tor->spans[i].rxlevel = c >> 6;  /* get rx level */
-			t1out(tor,i + 1,0x20,0xff); 
+			t1out(tor,i + 1,0x20,0xff);
 			c = t1in(tor,i + 1,0x20);  /* get the status */
 			  /* detect the code, only if we are not sending one */
 			if ((!tor->spans[i].mainttimer) && (c & 0x80))  /* if loop-up code detected */
 			   {
 				  /* set into remote loop, if not there already */
-				if ((tor->loopupcnt[i]++ > 80) && 
+				if ((tor->loopupcnt[i]++ > 80) &&
 					(tor->spans[i].maintstat != ZT_MAINT_REMOTELOOP))
 				   {
 					t1out(tor,i + 1,0x1e,(japan ? 0x80 : 0x00)); /* no local loop */
@@ -1333,7 +1333,7 @@ static void tor2_intr(int irq, void *dev_id, struct pt_regs *regs)
 				j |= ZT_ALARM_BLUE;
 			   }
 		} else { /* its an E1 card */
-			t1out(tor,i + 1,6,0xff); 
+			t1out(tor,i + 1,6,0xff);
 			c = t1in(tor,i + 1,6);  /* get the status */
 			if (c & 9) /* if red alarm */
 			   {
@@ -1352,18 +1352,18 @@ static void tor2_intr(int irq, void *dev_id, struct pt_regs *regs)
 		if (tor->spans[i].lineconfig & ZT_CONFIG_NOTOPEN)
 		   {
 			  /* go thru all chans, and count # open */
-			for (n = 0,k = 0; k < tor->spans[i].channels; k++) 
+			for (n = 0,k = 0; k < tor->spans[i].channels; k++)
 			   {
 				if (((tor->chans[i] + k)->flags & ZT_FLAG_OPEN) ||
 				    ((tor->chans[i] + k)->flags & ZT_FLAG_NETDEV)) n++;
 			   }
 			  /* if none open, set alarm condition */
-			if (!n) j |= ZT_ALARM_NOTOPEN; 
+			if (!n) j |= ZT_ALARM_NOTOPEN;
 		   }
 		  /* if no more alarms, and we had some */
 		if ((!j) && tor->spans[i].alarms)
 		   {
-			tor->alarmtimer[i] = ZT_ALARMSETTLE_TIME; 
+			tor->alarmtimer[i] = ZT_ALARMSETTLE_TIME;
 		   }
 		if (tor->alarmtimer[i]) j |= ZT_ALARM_RECOVER;
 		  /* if going into alarm state, set yellow alarm */
@@ -1419,7 +1419,7 @@ static void tor2_intr(int irq, void *dev_id, struct pt_regs *regs)
 		if (tor->psyncs[0])
 		   {
 			  /* if no alarms, use it */
-			if (!(tor->spans[tor->psyncs[0] - 1].alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE | 
+			if (!(tor->spans[tor->psyncs[0] - 1].alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE |
 				ZT_ALARM_LOOPBACK))) {
 					tor->syncsrc = tor->psyncs[0];
 					syncsrc = tor->syncs[0];
@@ -1430,7 +1430,7 @@ static void tor2_intr(int irq, void *dev_id, struct pt_regs *regs)
 			   /* if we dont have one yet, and there is one specified at this level, see if we can use it */
 			if ((!tor->syncsrc) && (tor->psyncs[i])) {
 				  /* if no alarms, use it */
-				if (!(tor->spans[tor->psyncs[i] - 1].alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE | 
+				if (!(tor->spans[tor->psyncs[i] - 1].alarms & (ZT_ALARM_RED | ZT_ALARM_BLUE |
 					ZT_ALARM_LOOPBACK))) {
 						tor->syncsrc = tor->psyncs[i];
 						syncsrc = tor->syncs[i];

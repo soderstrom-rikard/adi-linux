@@ -119,6 +119,8 @@ struct TWIKeypad
   unsigned long irq_handled;
   unsigned long events_sended;
   unsigned long events_processed;
+  struct workqueue_struct *twi_keypad_workqueue;
+  struct work_struct twi_keypad_work;
 };
 
 
@@ -137,9 +139,6 @@ static struct i2c_client_address_data addr_data = {
 
 static irqreturn_t twi_keypad_irq_handler (int irq, void *dev_id);
 static short read_state (struct TWIKeypad *TWIKeypad);
-
-static struct workqueue_struct *twi_keypad_workqueue;
-static struct work_struct twi_keypad_work;
 
 static int
 pcf8574_kp_probe (struct i2c_adapter *adap, int addr, int kind)
@@ -231,9 +230,9 @@ read_state (struct TWIKeypad *TWIKeypad)
 
 
 static void
-check_and_notify (void *arg)
+check_and_notify (struct work_struct *work)
 {
-  struct TWIKeypad *TWIKeypad = (struct TWIKeypad *) arg;
+  struct TWIKeypad *TWIKeypad = container_of(work, struct TWIKeypad, twi_keypad_work);
   unsigned char nextstate = read_state (TWIKeypad);
   TWIKeypad->statechanged = TWIKeypad->laststate ^ nextstate;
 
@@ -259,7 +258,7 @@ static irqreturn_t
 twi_keypad_irq_handler (int irq, void *dev_id)
 {
   disable_irq(CONFIG_BFIN_TWIKEYPAD_IRQ_PFX);
-  queue_work(twi_keypad_workqueue, &twi_keypad_work);
+ // queue_work(twi_keypad_workqueue, &twi_keypad_work);
 
   DPRINTK ("twi_keypad_irq_handler \n");
   return IRQ_HANDLED;
@@ -354,8 +353,8 @@ twi_keypad_init (void)
   DPRINTK ("twikeypad: Keypad driver for bf5xx IRQ %d\n", IRQ_PROG_INTA);
 
   /* Set up our workqueue. */
-  INIT_WORK(&twi_keypad_work, check_and_notify, TWIKeypad);
-  twi_keypad_workqueue = create_singlethread_workqueue("twi_keypad");
+  INIT_WORK(&TWIKeypad->twi_keypad_work, check_and_notify);
+  TWIKeypad->twi_keypad_workqueue = create_singlethread_workqueue("twi_keypad");
   
   return 0;
 

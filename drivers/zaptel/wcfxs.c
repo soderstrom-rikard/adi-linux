@@ -14,15 +14,15 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -51,7 +51,7 @@
 #define STANDALONE_ZAPATA 1
 /*
  *  Define for audio vs. register based ring detection
- *  
+ *
  */
 /* #define AUDIO_RINGCHECK  */
 
@@ -138,7 +138,7 @@ static struct fxo_mode {
 {
 	{ "FCC", 0, 0, 0, 1, 0, 0x3, 0, 0 }, 	/* US, Canada */
 	{ "TBR21", 0, 0, 0, 0, 1, 0x3, 0, 0x2, 0x7e6c, 0x023a },
-										/* Austria, Belgium, Denmark, Finland, France, Germany, 
+										/* Austria, Belgium, Denmark, Finland, France, Germany,
 										   Greece, Iceland, Ireland, Italy, Luxembourg, Netherlands,
 										   Norway, Portugal, Spain, Sweden, Switzerland, and UK */
 	{ "ARGENTINA", 0, 0, 0, 0, 0, 0x3, 0, 0 },
@@ -297,7 +297,7 @@ struct calregs {
 	unsigned char vals[NUM_CAL_REGS];
 };
 
-#define POLL_PERIOD_TIME 	8		
+#define POLL_PERIOD_TIME 	8
 #define QUEUE_CHECK_STATUS	0x01
 #define QUEUE_SET_LINEFEED	0x02
 struct wcfxs {
@@ -316,7 +316,7 @@ struct wcfxs {
 	int cards;
 	int cardflag;		/* Bit-map of present cards */
 	spinlock_t lock;
-#ifdef BFIN_SPI_FRAMEWORK 
+#ifdef BFIN_SPI_FRAMEWORK
 	struct workqueue_struct *workqueue;
 	struct work_struct bfin_work_queue;
 	int queue_branch;
@@ -331,9 +331,9 @@ struct wcfxs {
 			int pegcount[NUM_CARDS];
 			int peg[NUM_CARDS];
 			int ring[NUM_CARDS];
-#else			
+#else
 			int wasringing[NUM_CARDS];
-#endif			
+#endif
 			int ringdebounce[NUM_CARDS];
 			int offhook[NUM_CARDS];
 			int battdebounce[NUM_CARDS];
@@ -386,7 +386,7 @@ static void init_dma_wc(void);
 static int init_sport_interrupts(void);
 static void enable_dma_sport0(void);
 static void disable_sport0(void);
-int wcfxs_proc_read(char *buf, char **start, off_t offset, 
+int wcfxs_proc_read(char *buf, char **start, off_t offset,
 		    int count, int *eof, void *data);
 #endif
 
@@ -580,7 +580,7 @@ static inline void wcfxs_receiveprep(struct wcfxs *wc, u8 *readchunk)
 	/* select which ping-pong buffer to write to */
 
 	x = (int)*pDMA1_CURR_ADDR - (int)iRxBuffer1;
-	/* possible values for x are 8*ZT_CHUNKSIZE=0x40 at the end of the 
+	/* possible values for x are 8*ZT_CHUNKSIZE=0x40 at the end of the
 	   first row and 2*8*ZT_CHUNKSIZE=0x80 at the end of the second
 	   row */
 	if (x == 8*ZT_CHUNKSIZE) {
@@ -620,7 +620,7 @@ static inline void wcfxs_receiveprep(struct wcfxs *wc, u8 *readchunk)
 #ifdef AUDIO_RINGCHECK
 	for (x=0;x<wc->cards;x++)
 		ring_check(wc, x);
-#endif		
+#endif
 	/* XXX We're wasting 8 taps.  We should get closer :( */
 	echo_before = cycles();
 	for (x=0;x<wc->cards;x++) {
@@ -663,7 +663,7 @@ static inline void __write_8bits(struct wcfxs *wc, unsigned char bits)
 	*pFIO_FLAG_C = BIT_CS;
 	udelay(DELAY);
 
-	/* debug code used to trap CS problem discussed above 
+	/* debug code used to trap CS problem discussed above
 	if (*pFIO_FLAG_D & BIT_CS)
 		printk("Error: CS is high! 0x%4x\n", *pFIO_FLAG_D);
 	*/
@@ -672,7 +672,7 @@ static inline void __write_8bits(struct wcfxs *wc, unsigned char bits)
 		/* Send out each bit, MSB first, drop SCLK as we do so */
 		*pFIO_FLAG_C = BIT_SCLK;
 		if (bits & 0x80) {
-			
+
 			*pFIO_FLAG_S = BIT_SDI;
 		}
 		else {
@@ -724,7 +724,7 @@ static inline void __reset_spi(struct wcfxs *wc)
 	/* Now raise SCLK high again and repeat */
 
 	*pFIO_FLAG_S = BIT_SCLK;
-	udelay(DELAY);	
+	udelay(DELAY);
 }
 
 static inline unsigned char __read_8bits(struct wcfxs *wc)
@@ -739,7 +739,7 @@ static inline unsigned char __read_8bits(struct wcfxs *wc)
 
 	*pFIO_FLAG_C = BIT_CS;
 	udelay(DELAY);
-	
+
 	for (x=0;x<8;x++) {
 		res <<= 1;
 		/* reset SCLK */
@@ -756,7 +756,7 @@ static inline unsigned char __read_8bits(struct wcfxs *wc)
 
 		*pFIO_FLAG_S = BIT_SCLK;
 		udelay(DELAY);
-		
+
 	}
 
 	/* Finally raise CS back high again */
@@ -782,7 +782,7 @@ static inline void __wcfxs_setcard(struct wcfxs *wc, int card)
 		__wcfxs_setcreg(wc, WC_CS, (1 << card));
                 #endif
 #ifdef FXS_FXO_CARD
-		bfsi_spi_set_cs(card);	
+		bfsi_spi_set_cs(card);
 #endif
 	   wc->curcard = card;
 	}
@@ -809,11 +809,11 @@ static void wcfxs_setreg(struct wcfxs *wc, int card, unsigned char reg, unsigned
 	unsigned long flags;
 #if defined(TEST_SPI_DELAY)
 	unsigned int start,end;
-#endif	
+#endif
 
 #if defined(TEST_SPI_DELAY)
 	start = cycles();
-#endif	
+#endif
 	spin_lock_irqsave(&wc->lock, flags);
 	__wcfxs_setreg(wc, card, reg, value);
 	spin_unlock_irqrestore(&wc->lock, flags);
@@ -825,7 +825,7 @@ static void wcfxs_setreg(struct wcfxs *wc, int card, unsigned char reg, unsigned
 		start += end;
 	}
 	printk(KERN_DEBUG "SPI-DTX %d \n",start);
-#endif	
+#endif
 }
 
 static unsigned char __wcfxs_getreg(struct wcfxs *wc, int card, unsigned char reg)
@@ -857,13 +857,13 @@ static unsigned char wcfxs_getreg(struct wcfxs *wc, int card, unsigned char reg)
 {
 	unsigned long flags;
 	unsigned char res;
-#if defined(TEST_SPI_DELAY)	
+#if defined(TEST_SPI_DELAY)
 	unsigned int start,end;
 #endif
 
 #if defined(TEST_SPI_DELAY)
 	start = cycles();
-#endif	
+#endif
 	spin_lock_irqsave(&wc->lock, flags);
 	res = __wcfxs_getreg(wc, card, reg);
 	spin_unlock_irqrestore(&wc->lock, flags);
@@ -875,7 +875,7 @@ static unsigned char wcfxs_getreg(struct wcfxs *wc, int card, unsigned char reg)
 		start += end;
 	}
 	printk(KERN_DEBUG "SPI-DRX %d \n",start);
-#endif	
+#endif
 	return res;
 }
 
@@ -923,12 +923,12 @@ static int wcfxs_proslic_setreg_indirect(struct wcfxs *wc, int card, unsigned ch
 	int res = -1;
 #if defined(TEST_SPI_DELAY)
 	unsigned int start,end;
-#endif	
+#endif
 
 #if defined(TEST_SPI_DELAY)
 	start = cycles();
-#endif	
-	/* Translate 3215 addresses */ 
+#endif
+	/* Translate 3215 addresses */
 	if (wc->flags[card] & FLAG_3215) {
 		address = translate_3215(address);
 		if (address == 255)
@@ -950,22 +950,22 @@ static int wcfxs_proslic_setreg_indirect(struct wcfxs *wc, int card, unsigned ch
 		start += end;
 	}
 	printk(KERN_DEBUG "SPI-ITX %d \n",start);
-#endif	
+#endif
 	return res;
 }
 
 static int wcfxs_proslic_getreg_indirect(struct wcfxs *wc, int card, unsigned char address)
-{ 
+{
 	unsigned long flags;
 	int res = -1;
 	char *p=NULL;
 #if defined(TEST_SPI_DELAY)
 	unsigned int start,end;
-#endif	
+#endif
 
 #if defined(TEST_SPI_DELAY)
 	start = cycles();
-#endif	
+#endif
 	/* Translate 3215 addresses */
 	if (wc->flags[card] & FLAG_3215) {
 		address = translate_3215(address);
@@ -995,7 +995,7 @@ static int wcfxs_proslic_getreg_indirect(struct wcfxs *wc, int card, unsigned ch
 		start += end;
 	}
 	printk(KERN_DEBUG "SPI-IRX %d \n",start);
-#endif	
+#endif
 	return res;
 }
 #endif
@@ -1014,12 +1014,12 @@ static int wcfxs_proslic_init_indirect_regs(struct wcfxs *wc, int card)
 }
 
 static int wcfxs_proslic_verify_indirect_regs(struct wcfxs *wc, int card)
-{ 
+{
 	int passed = 1;
 	unsigned short i, initial;
 	int j;
 
-	for (i=0; i<sizeof(indirect_regs) / sizeof(indirect_regs[0]); i++) 
+	for (i=0; i<sizeof(indirect_regs) / sizeof(indirect_regs[0]); i++)
 	{
 		if((j = wcfxs_proslic_getreg_indirect(wc, card, (unsigned char) indirect_regs[i].address)) < 0) {
 			printk("Failed to read indirect register %d\n", i);
@@ -1032,7 +1032,7 @@ static int wcfxs_proslic_verify_indirect_regs(struct wcfxs *wc, int card)
 			 printk("!!!!!!! %s  iREG %X = %X  should be %X\n",
 				indirect_regs[i].name,indirect_regs[i].address,j,initial );
 			 passed = 0;
-		}	
+		}
 	}
 
     if (passed) {
@@ -1049,7 +1049,7 @@ static inline void wcfxs_voicedaa_check_hook(struct wcfxs *wc, int card)
 {
 #ifndef AUDIO_RINGCHECK
 	unsigned char res;
-#endif	
+#endif
 	signed char b;
 	int poopy = 0;
 	/* Try to track issues that plague slot one FXO's */
@@ -1057,7 +1057,7 @@ static inline void wcfxs_voicedaa_check_hook(struct wcfxs *wc, int card)
 	if ((b & 0x2) || !(b & 0x8)) {
 		/* Not good -- don't look at anything else */
 		if (debug)
-			printk("Poopy (%02x) on card %d!\n", b, card + 1); 
+			printk("Poopy (%02x) on card %d!\n", b, card + 1);
 		poopy++;
 	}
 	b &= 0x9b;
@@ -1099,20 +1099,20 @@ static inline void wcfxs_voicedaa_check_hook(struct wcfxs *wc, int card)
 				}
 				wc->mod.fxo.ringdebounce[card] = 0;
 			}
-				
+
 		}
 	}
 #endif
 	b = wcfxs_getreg(wc, card, 29);
-#if 0 
+#if 0
 	{
 		static int count = 0;
 		if (!(count++ % 100)) {
-			printk("Card %d: Voltage: %d  Debounce %d\n", card + 1, 
+			printk("Card %d: Voltage: %d  Debounce %d\n", card + 1,
 			       b, wc->mod.fxo.battdebounce[card]);
 		}
 	}
-#endif	
+#endif
 	if (abs(b) < BATT_THRESH) {
 		wc->mod.fxo.nobatttimer[card]++;
 #if 0
@@ -1141,8 +1141,8 @@ static inline void wcfxs_voicedaa_check_hook(struct wcfxs *wc, int card)
 	} else if (abs(b) > BATT_THRESH) {
 		if (!wc->mod.fxo.battery[card] && !wc->mod.fxo.battdebounce[card]) {
 			if (debug)
-				printk("BATTERY on %d/%d (%s)!\n", wc->span.spanno, card + 1, 
-					(b < 0) ? "-" : "+");			    
+				printk("BATTERY on %d/%d (%s)!\n", wc->span.spanno, card + 1,
+					(b < 0) ? "-" : "+");
 #ifdef	ZERO_BATT_RING
 			if (wc->onhook) {
 				wc->onhook = 0;
@@ -1164,7 +1164,7 @@ static inline void wcfxs_voicedaa_check_hook(struct wcfxs *wc, int card)
 			wc->mod.fxo.lastpol[card] = -1;
 			wc->mod.fxo.polaritydebounce[card] = POLARITY_DEBOUNCE;
 		    }
-		} 
+		}
 		if (wc->mod.fxo.lastpol[card] <= 0) {
 		    if (b > 0) {
 			wc->mod.fxo.lastpol[card] = 1;
@@ -1182,8 +1182,8 @@ static inline void wcfxs_voicedaa_check_hook(struct wcfxs *wc, int card)
 		if (wc->mod.fxo.polaritydebounce[card] < 1) {
 		    if (wc->mod.fxo.lastpol[card] != wc->mod.fxo.polarity[card]) {
 			if (debug)
-				printk("%lu Polarity reversed (%d -> %d)\n", jiffies, 
-			       wc->mod.fxo.polarity[card], 
+				printk("%lu Polarity reversed (%d -> %d)\n", jiffies,
+			       wc->mod.fxo.polarity[card],
 			       wc->mod.fxo.lastpol[card]);
 			if (wc->mod.fxo.polarity[card])
 			    zt_qevent_lock(&wc->chans[card], ZT_EVENT_POLARITY);
@@ -1212,7 +1212,7 @@ static inline void wcfxs_proslic_check_hook(struct wcfxs *wc, int card)
 	} else {
 		if (wc->mod.fxs.debounce[card] > 0) {
 			wc->mod.fxs.debounce[card]-= 4 * ZT_CHUNKSIZE * POLL_PERIOD_TIME;
-			if(wc->mod.fxs.debounce[card]<0) 
+			if(wc->mod.fxs.debounce[card]<0)
 				wc->mod.fxs.debounce[card]=0;
 #if 0
 			printk("Sustaining hook %d, %d\n", hook, wc->mod.fxs.debounce[card]);
@@ -1227,18 +1227,18 @@ static inline void wcfxs_proslic_check_hook(struct wcfxs *wc, int card)
 				/* Off hook */
 #if 1
 				if (debug)
-#endif				
+#endif
 					printk("wcfxs: Card %d Going off hook\n", card);
 				zt_hooksig(&wc->chans[card], ZT_RXSIG_OFFHOOK);
 				if (robust)
 					wcfxs_init_proslic(wc, card, 1, 0, 1);
 				wc->mod.fxs.oldrxhook[card] = 1;
-			
+
 			} else if (wc->mod.fxs.oldrxhook[card] && !wc->mod.fxs.debouncehook[card]) {
 				/* On hook */
 #if 1
 				if (debug)
-#endif				
+#endif
 					printk("wcfxs: Card %d Going on hook\n", card);
 				zt_hooksig(&wc->chans[card], ZT_RXSIG_ONHOOK);
 				wc->mod.fxs.oldrxhook[card] = 0;
@@ -1247,7 +1247,7 @@ static inline void wcfxs_proslic_check_hook(struct wcfxs *wc, int card)
 	}
 	wc->mod.fxs.lastrxhook[card] = hook;
 
-	
+
 }
 
 static inline void wcfxs_proslic_recheck_sanity(struct wcfxs *wc, int card)
@@ -1293,7 +1293,7 @@ static void wcfxs_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 		return IRQ_NONE;
 #else
 		return;
-#endif		
+#endif
 
 	if (ints & 0x10) {
 		/* Stop DMA, wait for watchdog */
@@ -1303,16 +1303,16 @@ static void wcfxs_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 		return IRQ_RETVAL(1);
 #else
 		return;
-#endif		
+#endif
 	}
-	
+
 	if (ints & 0x20) {
 		printk("PCI Target abort\n");
 #ifdef LINUX26
 		return IRQ_RETVAL(1);
 #else
 		return;
-#endif		
+#endif
 	}
 
 	for (x=0;x<4;x++) {
@@ -1340,8 +1340,8 @@ static void wcfxs_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 
 #ifdef LINUX26
 	return IRQ_RETVAL(1);
-#endif		
-	
+#endif
+
 }
 #endif
 
@@ -1351,10 +1351,10 @@ static void bfin_work_queue(void *data)
 	struct wcfxs *wc = data;
 	int x;
 
-	if(wc->queue_branch == QUEUE_CHECK_STATUS){	
+	if(wc->queue_branch == QUEUE_CHECK_STATUS){
 		wc->intcount++;
 		x = wc->intcount % 4;
-	
+
 		/* check hook switch (FXS) and ringing (FXO) */
 		if ((x < wc->cards) && (wc->cardflag & (1 << x))) {
 			if (wc->modtype[x] == MOD_TYPE_FXS) {
@@ -1363,13 +1363,13 @@ static void bfin_work_queue(void *data)
 					wcfxs_proslic_recheck_sanity(wc, x);
 			} else if (wc->modtype[x] == MOD_TYPE_FXO) {
 				/* ring detection, despite name */
-				wcfxs_voicedaa_check_hook(wc, x); 
+				wcfxs_voicedaa_check_hook(wc, x);
 			}
 		}
 
 		if (!(wc->intcount % 200)) {  //the formerly 10000 has been changed to 10000/50 = 200
 			/* Accept an alarm once per 10 seconds */
-			for (x=0;x<4;x++) 
+			for (x=0;x<4;x++)
 				if (wc->modtype[x] == MOD_TYPE_FXS) {
 					if (wc->mod.fxs.palarms[x])
 						wc->mod.fxs.palarms[x]--;
@@ -1393,7 +1393,7 @@ void regular_interrupt_processing(u8 *read_samples, u8 *write_samples) {
 	wc->intcount++;
 	x = wc->intcount % 4;
 
-	// check hook switch (FXS) and ringing (FXO) 
+	// check hook switch (FXS) and ringing (FXO)
 
 	if ((x < wc->cards) && (wc->cardflag & (1 << x))) {
 		if (wc->modtype[x] == MOD_TYPE_FXS) {
@@ -1401,26 +1401,26 @@ void regular_interrupt_processing(u8 *read_samples, u8 *write_samples) {
 			if (!(wc->intcount & 0xfc))
 				wcfxs_proslic_recheck_sanity(wc, x);
 		} else if (wc->modtype[x] == MOD_TYPE_FXO) {
-			// ring detection, despite name 
-			wcfxs_voicedaa_check_hook(wc, x); 
+			// ring detection, despite name
+			wcfxs_voicedaa_check_hook(wc, x);
 		}
 	}
 
 	if (!(wc->intcount % 10000)) {
-		// Accept an alarm once per 10 seconds 
-		for (x=0;x<4;x++) 
+		// Accept an alarm once per 10 seconds
+		for (x=0;x<4;x++)
 			if (wc->modtype[x] == MOD_TYPE_FXS) {
 				if (wc->mod.fxs.palarms[x])
 					wc->mod.fxs.palarms[x]--;
 			}
 	}
 
-#endif  
+#endif
 	/* handle speech samples */
 
 	wcfxs_transmitprep(wc, write_samples);
 	wcfxs_receiveprep(wc, read_samples);
-#ifdef BFIN_SPI_FRAMEWORK	
+#ifdef BFIN_SPI_FRAMEWORK
 	poll_timer ++;
 	if(poll_timer >= POLL_PERIOD_TIME ){
 		poll_timer = 0;
@@ -1428,7 +1428,7 @@ void regular_interrupt_processing(u8 *read_samples, u8 *write_samples) {
 		/* activate work queue for hook check and ringing */
 		queue_work(wc->workqueue, &wc->bfin_work_queue);
 	}
-#endif	
+#endif
 }
 
 static int wcfxs_voicedaa_insane(struct wcfxs *wc, int card)
@@ -1506,7 +1506,7 @@ static int wcfxs_proslic_insane(struct wcfxs *wc, int card)
 	/* Just be sure it's setup right. */
 	wcfxs_setreg(wc, card, 30, 0);
 
-	if (debug) 
+	if (debug)
 		printk("ProSLIC on module %d seems sane.\n", card);
 	return 0;
 }
@@ -1648,7 +1648,7 @@ static int wcfxs_proslic_manual_calibrate(struct wcfxs *wc, int card){
 /*******************************The following is the manual gain mismatch calibration****************************/
 /*******************************This is also available as a function *******************************************/
 	// Delay 10ms
-	origjiffies=jiffies; 
+	origjiffies=jiffies;
 	while((jiffies-origjiffies)<1);
 	wcfxs_proslic_setreg_indirect(wc, card, 88,0);
 	wcfxs_proslic_setreg_indirect(wc,card,89,0);
@@ -1663,7 +1663,7 @@ static int wcfxs_proslic_manual_calibrate(struct wcfxs *wc, int card){
 	for ( i=0x1f; i>0; i--)
 	{
 		wcfxs_setreg(wc, card, 98,i);
-		origjiffies=jiffies; 
+		origjiffies=jiffies;
 		while((jiffies-origjiffies)<4);
 		if((wcfxs_getreg(wc,card,88)) == 0)
 			break;
@@ -1672,7 +1672,7 @@ static int wcfxs_proslic_manual_calibrate(struct wcfxs *wc, int card){
 	for ( i=0x1f; i>0; i--)
 	{
 		wcfxs_setreg(wc, card, 99,i);
-		origjiffies=jiffies; 
+		origjiffies=jiffies;
 		while((jiffies-origjiffies)<4);
 		if((wcfxs_getreg(wc,card,89)) == 0)
 			break;
@@ -1708,7 +1708,7 @@ static int wcfxs_proslic_calibrate(struct wcfxs *wc, int card)
 
 	/* Perform all calibrations */
 	wcfxs_setreg(wc, card, 97, 0x1f);
-	
+
 	/* Begin, no speedup */
 	wcfxs_setreg(wc, card, 96, 0x5f);
 
@@ -1720,7 +1720,7 @@ static int wcfxs_proslic_calibrate(struct wcfxs *wc, int card)
 			return -1;
 		}
 	}
-	
+
 	if (debug) {
 		/* Print calibration parameters */
 		printk("Calibration Vector Regs 98 - 107: \n");
@@ -1732,7 +1732,7 @@ static int wcfxs_proslic_calibrate(struct wcfxs *wc, int card)
 }
 #endif
 
-/* wait 'foo' jiffies then return.  
+/* wait 'foo' jiffies then return.
 
    DR - modified to use a better delay mechanism that the orginal
    busy-waiting method, which locked the kernel up for some rather
@@ -1750,7 +1750,7 @@ static int wcfxs_init_voicedaa(struct wcfxs *wc, int card, int fast, int manual,
 	unsigned char reg16=0, reg26=0, reg30=0, reg31=0;
 	long newjiffies;
 //	wc->modtype[card] = MOD_TYPE_FXO;
-	
+
 	//printk("Entering: wcfxs_init_voicedaa\n");
 
 	/* Sanity check */
@@ -1772,7 +1772,7 @@ static int wcfxs_init_voicedaa(struct wcfxs *wc, int card, int fast, int manual,
 	reg16 |= (fxo_modes[_opermode].rz << 1);
 	reg16 |= (fxo_modes[_opermode].rt);
 	wcfxs_setreg(wc, card, 16, reg16);
-	
+
 	/* Set DC Termination:
 	   Tip/Ring voltage adjust, minimum operational current, current limitation */
 	reg26 |= (fxo_modes[_opermode].dcv << 6);
@@ -1809,15 +1809,15 @@ static int wcfxs_init_voicedaa(struct wcfxs *wc, int card, int fast, int manual,
 		return -1;
 	}
 	if (debug)
-		printk("  ISO-Cap is now up, line side: %02x rev %02x\n", 
+		printk("  ISO-Cap is now up, line side: %02x rev %02x\n",
 		       wcfxs_getreg(wc, card, 11) >> 4,
 		       (wcfxs_getreg(wc, card, 13) >> 2) & 0xf);
 
 	/* Enable on-hook line monitor */
 	wcfxs_setreg(wc, card, 5, 0x08);
 
-	/* DR 6/1105: Debug code used to trap bad reads, 
-	   see notes in __write_8bits 
+	/* DR 6/1105: Debug code used to trap bad reads,
+	   see notes in __write_8bits
 	{
 	        int i;
 		unsigned char r;
@@ -1833,7 +1833,7 @@ static int wcfxs_init_voicedaa(struct wcfxs *wc, int card, int fast, int manual,
        		printk("  1000 reads OK!\n");
 	}
 	*/
-	
+
 	/* Optional digital loopback, used for testing Blackfin DMA */
 
 	if (loopback) {
@@ -1860,7 +1860,7 @@ static int wcfxs_init_proslic(struct wcfxs *wc, int card, int fast, int manual, 
 	/* Sanity check the ProSLIC */
 	if (!sane && wcfxs_proslic_insane(wc, card))
 		return -2;
-	
+
 	if (sane) {
 		/* Make sure we turn off the DC->DC converter to prevent anything from blowing up */
 		wcfxs_setreg(wc, card, 14, 0x10);
@@ -2012,11 +2012,11 @@ static int wcfxs_init_proslic(struct wcfxs *wc, int card, int fast, int manual, 
 
 	/* Beef up Ringing voltage to 89V */
 	if (boostringer) {
-		if (wcfxs_proslic_setreg_indirect(wc, card, 21, 0x1d1)) 
+		if (wcfxs_proslic_setreg_indirect(wc, card, 21, 0x1d1))
 			return -1;
 		printk("Boosting ringinger on slot %d (89V peak)\n", card + 1);
 	} else if (lowpower) {
-		if (wcfxs_proslic_setreg_indirect(wc, card, 21, 0x108)) 
+		if (wcfxs_proslic_setreg_indirect(wc, card, 21, 0x108))
 			return -1;
 		printk("Reducing ring power on slot %d (50V peak)\n", card + 1);
 	}
@@ -2054,7 +2054,7 @@ static int wcfxs_ioctl(struct zt_chan *chan, unsigned int cmd, unsigned long dat
 			stats.tipvolt = (signed char)wcfxs_getreg(wc, chan->chanpos - 1, 29) * 1000;
 			stats.ringvolt = (signed char)wcfxs_getreg(wc, chan->chanpos - 1, 29) * 1000;
 			stats.batvolt = (signed char)wcfxs_getreg(wc, chan->chanpos - 1, 29) * 1000;
-		} else 
+		} else
 			return -EINVAL;
 		if (copy_to_user((struct wcfxs_stats *)data, &stats, sizeof(stats)))
 			return -EFAULT;
@@ -2106,7 +2106,7 @@ static int wcfxs_open(struct zt_chan *chan)
 	MOD_INC_USE_COUNT;
 #else
 	try_module_get(THIS_MODULE);
-#endif	
+#endif
 	return 0;
 }
 
@@ -2132,7 +2132,7 @@ static int wcfxs_close(struct zt_chan *chan)
 		wc->mod.fxs.idletxhookstate[chan->chanpos - 1] = 1;
 
 	/* If we're dead, release us now */
-	if (!wc->usecount && wc->dead) 
+	if (!wc->usecount && wc->dead)
 		wcfxs_release(wc);
 	return 0;
 }
@@ -2197,7 +2197,7 @@ static int wcfxs_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
 		wc->queue_card_pos = chan->chanpos-1;
 		wc->queue_reg_value = wc->mod.fxs.lasttxhook[chan->chanpos-1];
 		queue_work(wc->workqueue, &wc->bfin_work_queue);
-	        	
+
 #else
 		wcfxs_setreg(wc, chan->chanpos - 1, 64, wc->mod.fxs.lasttxhook[chan->chanpos-1]);
 #endif
@@ -2252,12 +2252,12 @@ static void wcfxs_post_initialize(struct wcfxs *wc)
 	}
 }
 
-int wcfxs_proc_read(char *buf, char **start, off_t offset, 
+int wcfxs_proc_read(char *buf, char **start, off_t offset,
 		    int count, int *eof, void *data)
 {
 	int len;
 
-	len = sprintf(buf, 
+	len = sprintf(buf,
 		      "3050 reg5.....: 0x%x\n"
 		      "3050 reg12....: 0x%x\n"
 		      "3050 loop_i...: 0x%x\n"
@@ -2300,14 +2300,14 @@ static int wcfxs_hardware_init(struct wcfxs *wc)
 	bfsi_sport_init(regular_interrupt_processing, ZT_CHUNKSIZE, debug);
 #ifndef BFIN_SPI_FRAMEWORK
 	bfsi_reset();
-	
+
 	#ifdef DAISY
 	/* put 3210 in daisy chain mode */
 	bfsi_spi_set_cs(0);
 	__write_8bits(wc, 0x00); /* reg 0 write */
 	__write_8bits(wc, 0x80); /* value to write (set bit 7) */
 	#endif
-#endif	
+#endif
 	/* configure daughter cards */
 
 	for (x=0;x<wc->cards;x++) {
@@ -2338,10 +2338,10 @@ printk("FXS detect..... card=%d\n",x);
 						printk("Module %d: Installed -- MANUAL FXS\n",x);
 					} else {
 						printk("Module %d: FAILED FXS (%s)\n", x, fxshonormode ? fxo_modes[_opermode].name : "FCC");
-					} 
-				} 
+					}
+				}
 			}
-		}else { 
+		}else {
 printk("FXO detect..... card=%d\n",x);
 			if (!(ret = wcfxs_init_voicedaa(wc, x, 0, 0, sane))) {
 				wc->cardflag |= (1 << x);
@@ -2366,7 +2366,7 @@ static int wcfxs_init_one(struct wcfxs_desc *d)
 	int x;
 	int y;
 	static int initd_ifaces=0;
-	
+
 	init_ok = 0;
 
 	if(initd_ifaces){
@@ -2379,7 +2379,7 @@ static int wcfxs_init_one(struct wcfxs_desc *d)
 		printk("Too many interfaces\n");
 		return -EIO;
 	}
-	
+
 	wc = kmalloc(sizeof(struct wcfxs), GFP_KERNEL);
 	if (wc) {
 		ifaces[x] = wc;
@@ -2394,12 +2394,12 @@ static int wcfxs_init_one(struct wcfxs_desc *d)
 		wc->pos = x;
 		wc->variety = d->name;
 		wc->irq = IRQ_SPORT0_RX;
-#ifdef BFIN_SPI_FRAMEWORK		
+#ifdef BFIN_SPI_FRAMEWORK
 		/* initilize the workqueue*/
 		INIT_WORK(&wc->bfin_work_queue,bfin_work_queue,wc);
 		wc->workqueue = create_singlethread_workqueue(d->name);
 #endif
-		
+
 		devs = wc;
 		for (y=0;y<NUM_CARDS;y++)
 			wc->flags[y] = d->flags;
@@ -2419,7 +2419,7 @@ static int wcfxs_init_one(struct wcfxs_desc *d)
  		init_ok = 1;
 
 		wcfxs_post_initialize(wc);
-			
+
 		printk("Found: %s (%d modules)\n", wc->variety, wc->cards);
 		res = 0;
 	} else
@@ -2438,7 +2438,7 @@ static void wcfxs_release(struct wcfxs *wc)
 		zt_unregister(&wc->span);
 #ifdef BFIN_SPI_FRAMEWORK
 		destroy_workqueue(wc->workqueue);
-#endif		
+#endif
 		kfree(wc);
 	}
         remove_proc_entry("wcfxs", NULL);
@@ -2476,7 +2476,7 @@ static int __init wcfxs_init(void)
 	}
 	#endif
 
-	wcfxs_init_one(&wcfxs_bf);   
+	wcfxs_init_one(&wcfxs_bf);
 
 	wait_just_a_bit(10);
 
@@ -2493,8 +2493,8 @@ static void __exit wcfxs_cleanup(void)
 		for(r=0; r<ZT_CHUNKSIZE*2; r++) {
 			printk("[%03d] ", r*8);
 			for(c=0; c<8; c++) {
-				printk("0x%02x 0x%02x  ", 
-				       iTxBuffer1[r*8+c]&0xff, 
+				printk("0x%02x 0x%02x  ",
+				       iTxBuffer1[r*8+c]&0xff,
 				       iRxBuffer1[r*8+c]&0xff);
 			}
 			printk("\n");
@@ -2545,16 +2545,16 @@ static void init_sport0(void)
 	/* set up FSYNC and optionally SCLK using Blackfin Serial port */
 
 	/* Note: internalclock option not working at this stage - Tx side
-	   appears not to work, e.g. TFS pin never gets asserted. Not a 
+	   appears not to work, e.g. TFS pin never gets asserted. Not a
 	   huge problem as the BF internal clock is not at quite the
-	   right frequency (re-crystal of STAMP probably required), so 
+	   right frequency (re-crystal of STAMP probably required), so
 	   we really need an external clock anyway.  However it would
 	   be nice to know why it doesnt work! */
 
 	if (internalclock) {
 		*pSPORT0_RCLKDIV = 24;  /* approx 2.048MHz PCLK            */
 		*pSPORT0_RFSDIV = 255;  /* 8 kHz FSYNC with 2.048MHz PCLK  */
-	}		
+	}
 	else {
 		*pSPORT0_RFSDIV = 255;  /* 8 kHz FSYNC with 2.048MHz PCLK  */
 	}
@@ -2575,12 +2575,12 @@ static void init_sport0(void)
 	/* Enable MCM 8 transmit & receive channels       */
 	*pSPORT0_MTCS0 = 0x000000FF;
 	*pSPORT0_MRCS0 = 0x000000FF;
-	
+
 	/* MCM window size of 8 with 0 offset             */
 	*pSPORT0_MCMC1 = 0x0000;
 
 	/* 0 bit delay between FS pulse and first data bit,
-	   multichannel frame mode enabled, 
+	   multichannel frame mode enabled,
 	   multichannel tx and rx DMA packing enabled */
 	*pSPORT0_MCMC2 = 0x001c;
 }
@@ -2591,7 +2591,7 @@ static void init_dma_wc(void)
 {
 	/* Set up DMA1 to receive, map DMA1 to Sport0 RX */
 	*pDMA1_PERIPHERAL_MAP = 0x1000;
-	
+
 	*pDMA1_IRQ_STATUS |= 0x2;
 
 	iRxBuffer1 = (char*)l1_data_A_sram_alloc(2*ZT_CHUNKSIZE*8);
@@ -2606,15 +2606,15 @@ static void init_dma_wc(void)
 	/* Inner loop address increment */
 	*pDMA1_X_MODIFY	= 1;
 	*pDMA1_Y_MODIFY = 1;
-	*pDMA1_Y_COUNT = 2;	
-	
+	*pDMA1_Y_COUNT = 2;
+
 	/* Configure DMA1
 	   8-bit transfers, Interrupt on completion, Autobuffer mode */
-	*pDMA1_CONFIG = WNR | WDSIZE_8 | DI_EN | 0x1000 | DI_SEL | DMA2D; 
+	*pDMA1_CONFIG = WNR | WDSIZE_8 | DI_EN | 0x1000 | DI_SEL | DMA2D;
 
 	/* Set up DMA2 to transmit, map DMA2 to Sport0 TX */
 	*pDMA2_PERIPHERAL_MAP = 0x2000;
-	
+
 	/* Configure DMA2 8-bit transfers, Autobuffer mode */
 	*pDMA2_CONFIG = WDSIZE_8 | 0x1000 | DMA2D;
 
@@ -2640,7 +2640,7 @@ static void init_dma_wc(void)
 
 static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs)
 {
-	
+
 	/* confirm interrupt handling, write 1 to DMA_DONE bit */
 	*pDMA1_IRQ_STATUS = 0x0001;
 	SSYNC(); /* note without this line ints dont
@@ -2664,7 +2664,7 @@ static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs)
 
 static int init_sport_interrupts(void)
 {
-  	if(request_irq(IRQ_SPORT0_RX, sport0_rx_isr, 
+  	if(request_irq(IRQ_SPORT0_RX, sport0_rx_isr,
 		       SA_INTERRUPT, "sport wcfxs", NULL) != 0) {
     		return -EBUSY;
 	}
@@ -2713,12 +2713,12 @@ static void disable_sport0(void)
 	SSYNC();
 }
 
-int wcfxs_proc_read(char *buf, char **start, off_t offset, 
+int wcfxs_proc_read(char *buf, char **start, off_t offset,
 		    int count, int *eof, void *data)
 {
 	int len;
 
-	len = sprintf(buf, 
+	len = sprintf(buf,
 		      "readchunk_first.....: %d\n"
 		      "readchunk_second....: %d\n"
 		      "readchunk_didntswap.: %d\n"

@@ -14,21 +14,21 @@
  * it under thet erms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * Primary Author: Mark Spencer <markster@linux-support.net>
  *
  */
 
-#include <stdio.h> 
+#include <stdio.h>
 #include <getopt.h>
 #include <string.h>
 #include <stdarg.h>
@@ -91,12 +91,12 @@ int audio_open(void)
 		close(fd);
 		return -1;
 	}
-	if (speed != 8000) 
+	if (speed != 8000)
 		fprintf(stderr, "Warning: Requested 8000 Hz, got %d\n", speed);
 	if (ioctl(fd, SNDCTL_DSP_SETFRAGMENT, &fragsize)) {
 		fprintf(stderr, "Sound card won't let me set fragment size to 10 64-byte buffers (%x)\n"
 						"so sound may be choppy: %s.\n", fragsize, strerror(errno));
-	}	
+	}
 	bzero(&ispace, sizeof(ispace));
 	bzero(&ospace, sizeof(ospace));
 
@@ -108,9 +108,9 @@ int audio_open(void)
 		/* They don't support block size stuff, so just return but notify the user */
 		fprintf(stderr, "Sound card won't let me know the output buffering...\n");
 	}
-	fprintf(stderr, "New input space:  %d of %d %d byte fragments (%d bytes left)\n", 
+	fprintf(stderr, "New input space:  %d of %d %d byte fragments (%d bytes left)\n",
 		ispace.fragments, ispace.fragstotal, ispace.fragsize, ispace.bytes);
-	fprintf(stderr, "New output space:  %d of %d %d byte fragments (%d bytes left)\n", 
+	fprintf(stderr, "New output space:  %d of %d %d byte fragments (%d bytes left)\n",
 		ospace.fragments, ospace.fragstotal, ospace.fragsize, ospace.bytes);
 	return fd;
 }
@@ -172,10 +172,10 @@ void draw_bar(int avg, int max)
 		avg = barlen;
 	if (max > barlen)
 		max = barlen;
-	
-	if (avg > 0) 
+
+	if (avg > 0)
 		memset(bar, '#', avg);
-	if (max > 0) 
+	if (max > 0)
 		memset(bar + max, '*', 1);
 
 	bar[barlen+1] = '\0';
@@ -197,7 +197,7 @@ void visualize(short *tx, short *rx, int cnt)
 	float ms;
 	static struct timeval last;
 	struct timeval tv;
-	
+
 	gettimeofday(&tv, NULL);
 	ms = (tv.tv_sec - last.tv_sec) * 1000.0 + (tv.tv_usec - last.tv_usec) / 1000.0;
 	for (x=0;x<cnt;x++) {
@@ -206,16 +206,16 @@ void visualize(short *tx, short *rx, int cnt)
 	}
 	txavg = abs(txavg / cnt);
 	rxavg = abs(rxavg / cnt);
-	
+
 	if (txavg > txbest)
 		txbest = txavg;
 	if (rxavg > rxbest)
 		rxbest = rxavg;
-	
+
 	/* Update no more than 10 times a second */
 	if (ms < 100)
 		return;
-	
+
 	/* Save as max levels, if greater */
 	if (txbest > txmax) {
 		txmax = txbest;
@@ -235,7 +235,7 @@ void visualize(short *tx, short *rx, int cnt)
 	draw_bar(txbest, txmax);
 	txbest = 0;
 	rxbest = 0;
-	
+
 	/* If we have had the same max hits for x times, clear the values */
 	sametxmax++;
 	samerxmax++;
@@ -330,19 +330,19 @@ int main(int argc, char *argv[])
 	/* Now, copy from pseudo to audio */
 	for (;;) {
 		res = read(pfd, buf, sizeof(buf));
-		if (res < 1) 
+		if (res < 1)
 			break;
 		if (visual) {
 			res2 = read(pfd2, buf2, res);
-			if (res2 < 1) 
+			if (res2 < 1)
 				break;
 			if (res == res2)
 				visualize((short *)buf, (short *)buf2, res/2);
 			else
 				printf("Huh?  res = %d, res2 = %d?\n", res, res2);
-			
+
 		} else {
-			if (ofh)	        
+			if (ofh)
 				fwrite(buf, 1, res, ofh);
 		 	if (afd) {
 				if (stereo) {

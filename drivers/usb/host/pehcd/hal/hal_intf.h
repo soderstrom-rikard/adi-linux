@@ -2,7 +2,7 @@
  * Philips ISP176x Hardware Access Interface header file
  *
  * (c) 2002 Koninklijke Philips Electronics N.V. All rights reserved. <usb.linux@philips.com>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -19,12 +19,12 @@
  *
  * File Name:   hal_intf.h
  *
- * History:     
+ * History:
  *
  * Date                Author                  Comments
  * ---------------------------------------------------------------------
- * Nov 29 2005        Prabhakar Kalasani      Initial Creation     
- *               
+ * Nov 29 2005        Prabhakar Kalasani      Initial Creation
+ *
  ***********************************************************************/
 
 #ifndef __HAL_INTF_H__
@@ -158,8 +158,8 @@ void    isp1761_free_irq(struct isp1761_dev* dev,void* isr_data);
 
 __u32   isp1761_reg_read32(isp1761_dev_t *dev,__u16 reg,__u32 data);
 void    isp1761_reg_write32(isp1761_dev_t *dev,__u16 reg,__u32 data);
-int     isp1761_mem_read(isp1761_dev_t *dev, __u32 start_add, 
+int     isp1761_mem_read(isp1761_dev_t *dev, __u32 start_add,
         __u32 end_add, __u32 * buffer, __u32 length, __u16 dir);
-int     isp1761_mem_write(isp1761_dev_t *dev, __u32 start_add, 
+int     isp1761_mem_write(isp1761_dev_t *dev, __u32 start_add,
         __u32 end_add, __u32 * buffer, __u32 length, __u16 dir);
 #endif /* __HAL_INTF_H__ */

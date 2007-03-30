@@ -12,15 +12,15 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -39,7 +39,7 @@
  *               PCI BUS                  +----- Span 4
  *
  *  All communicatiosn to the framer (21Q352) are performed
- *  through the PCI 9030 part using memory mapped I/O.  
+ *  through the PCI 9030 part using memory mapped I/O.
  *
  *  The Tormenta 2 requires a 2 2k wondows memory space
  *  which is mapped as follows:
@@ -136,7 +136,7 @@ static inline int tor2_pci_match(int vendorid, int deviceid, char **variant)
 	/* Returns 1 if this is a tormenta card or 0 if it isn't */
 	int x;
 	for (x = 0; x< sizeof(tor2_pci_ids) / sizeof(tor2_pci_ids[0]); x++)
-		if (((tor2_pci_ids[x].vendor == PCI_ANY_ID) || 
+		if (((tor2_pci_ids[x].vendor == PCI_ANY_ID) ||
 			(tor2_pci_ids[x].vendor == vendorid)) &&
 		    ((tor2_pci_ids[x].device == PCI_ANY_ID) ||
 			(tor2_pci_ids[x].device == deviceid))) {

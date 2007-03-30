@@ -498,8 +498,8 @@ int bf53x_sport_config_rx_dma(struct bf53x_sport *sport, void *buf,
 	x_count = fragsize / size;
 	y_count = 0;
 
-	/* for fragments larger than 64k words we use 2d dma, 
-	 * denote fragecount as two numbers' mutliply and both of them 
+	/* for fragments larger than 64k words we use 2d dma,
+	 * denote fragecount as two numbers' mutliply and both of them
 	 * are less than 64k.*/
 	if (x_count >= 0x10000) {
 		int i, count=x_count;
@@ -560,8 +560,8 @@ int bf53x_sport_config_tx_dma(struct bf53x_sport *sport, void *buf,
 	x_count = fragsize/size;
 	y_count = 0;
 
-	/* for fragments larger than 64k words we use 2d dma, 
-	 * denote fragecount as two numbers' mutliply and both of them 
+	/* for fragments larger than 64k words we use 2d dma,
+	 * denote fragecount as two numbers' mutliply and both of them
 	 * are less than 64k.*/
 	if (x_count >= 0x10000) {
 		int i, count = x_count;

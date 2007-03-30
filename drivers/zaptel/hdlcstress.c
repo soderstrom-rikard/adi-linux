@@ -5,7 +5,7 @@
 #include <linux/zaptel.h>
 #include <stdio.h>
 #include <linux/types.h>
-#include <linux/ppp_defs.h> 
+#include <linux/ppp_defs.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -182,11 +182,11 @@ int main(int argc, char *argv[])
 		send_packet(outbuf, 50);
 #if 0
 		printf("Wrote %d of %d bytes\n", res, c);
-#endif		
+#endif
 		c = bit_next(c);
 #if 0
 		printf("(%d) Wrote %d bytes\n", packets++, res);
 #endif
 	}
-	
+
 }

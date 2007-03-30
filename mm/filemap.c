@@ -1297,8 +1297,6 @@ generic_file_aio_read(struct kiocb *iocb, const struct iovec *iov,
 		if (pos < size) {
 			retval = generic_file_direct_IO(READ, iocb,
 						iov, pos, nr_segs);
-			if (retval > 0 && !is_sync_kiocb(iocb))
-				retval = -EIOCBQUEUED;
 			if (retval > 0)
 				*ppos = pos + retval;
 		}
@@ -1561,7 +1559,6 @@ no_cached_page:
 	 * effect.
 	 */
 	error = page_cache_read(file, pgoff);
-	grab_swap_token();
 
 	/*
 	 * The page we want has now been added to the page cache.
@@ -2009,6 +2006,7 @@ int should_remove_suid(struct dentry *dentry)
 
 	return 0;
 }
+EXPORT_SYMBOL(should_remove_suid);
 
 int __remove_suid(struct dentry *dentry, int kill)
 {
@@ -2163,15 +2161,14 @@ generic_file_direct_write(struct kiocb *iocb, const struct iovec *iov,
 	 * Sync the fs metadata but not the minor inode changes and
 	 * of course not the data as we did direct DMA for the IO.
 	 * i_mutex is held, which protects generic_osync_inode() from
-	 * livelocking.
+	 * livelocking.  AIO O_DIRECT ops attempt to sync metadata here.
 	 */
-	if (written >= 0 && ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
+	if ((written >= 0 || written == -EIOCBQUEUED) &&
+	    ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
 		int err = generic_osync_inode(inode, mapping, OSYNC_METADATA);
 		if (err < 0)
 			written = err;
 	}
-	if (written == count && !is_sync_kiocb(iocb))
-		written = -EIOCBQUEUED;
 	return written;
 }
 EXPORT_SYMBOL(generic_file_direct_write);
@@ -2390,7 +2387,7 @@ __generic_file_aio_write_nolock(struct kiocb *iocb, const struct iovec *iov,
 	if (count == 0)
 		goto out;
 
-	err = remove_suid(file->f_dentry);
+	err = remove_suid(file->f_path.dentry);
 	if (err)
 		goto out;
 
@@ -2517,7 +2514,8 @@ generic_file_direct_IO(int rw, struct kiocb *iocb, const struct iovec *iov,
 	struct file *file = iocb->ki_filp;
 	struct address_space *mapping = file->f_mapping;
 	ssize_t retval;
-	size_t write_len = 0;
+	size_t write_len;
+	pgoff_t end = 0; /* silence gcc */
 
 	/*
 	 * If it's a write, unmap all mmappings of the file up-front.  This
@@ -2526,23 +2524,46 @@ generic_file_direct_IO(int rw, struct kiocb *iocb, const struct iovec *iov,
 	 */
 	if (rw == WRITE) {
 		write_len = iov_length(iov, nr_segs);
+		end = (offset + write_len - 1) >> PAGE_CACHE_SHIFT;
 	       	if (mapping_mapped(mapping))
 			unmap_mapping_range(mapping, offset, write_len, 0);
 	}
 
 	retval = filemap_write_and_wait(mapping);
-	if (retval == 0) {
-		retval = mapping->a_ops->direct_IO(rw, iocb, iov,
-						offset, nr_segs);
-		if (rw == WRITE && mapping->nrpages) {
-			pgoff_t end = (offset + write_len - 1)
-						>> PAGE_CACHE_SHIFT;
-			int err = invalidate_inode_pages2_range(mapping,
+	if (retval)
+		goto out;
+
+	/*
+	 * After a write we want buffered reads to be sure to go to disk to get
+	 * the new data.  We invalidate clean cached page from the region we're
+	 * about to write.  We do this *before* the write so that we can return
+	 * -EIO without clobbering -EIOCBQUEUED from ->direct_IO().
+	 */
+	if (rw == WRITE && mapping->nrpages) {
+		retval = invalidate_inode_pages2_range(mapping,
 					offset >> PAGE_CACHE_SHIFT, end);
-			if (err)
-				retval = err;
-		}
+		if (retval)
+			goto out;
 	}
+
+	retval = mapping->a_ops->direct_IO(rw, iocb, iov, offset, nr_segs);
+	if (retval)
+		goto out;
+
+	/*
+	 * Finally, try again to invalidate clean pages which might have been
+	 * faulted in by get_user_pages() if the source of the write was an
+	 * mmap()ed region of the file we're writing.  That's a pretty crazy
+	 * thing to do, so we don't support it 100%.  If this invalidation
+	 * fails and we have -EIOCBQUEUED we ignore the failure.
+	 */
+	if (rw == WRITE && mapping->nrpages) {
+		int err = invalidate_inode_pages2_range(mapping,
+					      offset >> PAGE_CACHE_SHIFT, end);
+		if (err && retval >= 0)
+			retval = err;
+	}
+out:
 	return retval;
 }
 

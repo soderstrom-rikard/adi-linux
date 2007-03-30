@@ -131,7 +131,7 @@ static irqreturn_t ad9960_ppi_irq(int irq, void *dev_id, struct pt_regs *regs)
 	struct ad9960_device_t *pdev = (struct ad9960_device_t*)dev_id;
 
 	pr_debug("ad9960_ppi_irq: begin\n");
-	
+
 	spin_lock(&pdev->lock);
 	/* Acknowledge DMA Interrupt*/
 	clear_dma_irqstat(CH_PPI);
@@ -215,11 +215,11 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 			desc_count, (unsigned int)descriptors);
 
 	pr_debug("ad9960_read: configuring descriptor\n");
-	descriptors[desc_count-1].next_desc_addr_lo = 
+	descriptors[desc_count-1].next_desc_addr_lo =
 		(unsigned short)(((int)(&descriptors[0]))&0xFFFF);
-	descriptors[desc_count-1].start_addr_lo = 
+	descriptors[desc_count-1].start_addr_lo =
 		_ramend + ((desc_count-1)*65535*65535);
-	descriptors[desc_count-1].start_addr_hi = 
+	descriptors[desc_count-1].start_addr_hi =
 		(_ramend + ((desc_count-1) * 65535 * 65535)) >> 16;
 	descriptors[desc_count-1].cfg = 0x0097;
 
@@ -299,7 +299,7 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 	dma_buf = (void*)pdev->buffer;
 
 	pr_debug("ad9960_write: \n");
-	
+
 	spin_lock(&pdev->lock);
 
 	if(count <= 0)
@@ -321,9 +321,9 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 	/* configure ppi port for DMA read*/
 	if (count <= 0xFFFF) {
 		if (buf[0] == 1) {
-			/* 
-			 * One-shot mode: Does not autobuffer, 
-			 * but does wait for FS 
+			/*
+			 * One-shot mode: Does not autobuffer,
+			 * but does wait for FS
 			 */
 			pr_debug("Processing one-shot TX\n");
 			bfin_write_PPI_CONTROL(0x780E);
@@ -355,7 +355,7 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 			data_pointer = ((unsigned int)_ramend)+((unsigned int)(2*i*65536));
 			pr_debug("ad9960_write: configuring descriptor %i at %08X",
 				"Buffer at 0x%08X\n",i,(unsigned int)&descriptors[i],data_pointer);
-			descriptors[i].next_desc_addr_lo = 
+			descriptors[i].next_desc_addr_lo =
 				(unsigned short)(((int)(&descriptors[i+1]))&0xFFFF);
 			descriptors[i].start_addr_lo = data_pointer&0xFFFF;
 			descriptors[i].start_addr_hi = data_pointer>>16;
@@ -369,7 +369,7 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 		count_remain = count_remain - (((unsigned int)(desc_count-1)) * 65536);
 		pr_debug("ad9960_write: configuring last descriptor %i Buffer at 0x%08X-0x%08X\n",
 					desc_count-1,data_pointer,data_pointer+count_remain);
-		descriptors[desc_count-1].next_desc_addr_lo = 
+		descriptors[desc_count-1].next_desc_addr_lo =
 			(unsigned short)(((int)(&descriptors[0])) & 0xFFFF);
 		descriptors[desc_count-1].start_addr_lo = data_pointer & 0xFFFF;
 		descriptors[desc_count-1].start_addr_hi = data_pointer >> 16;
@@ -379,7 +379,7 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 		descriptors[desc_count-1].x_modify = 2;
 
 		set_dma_config(CH_PPI, 0x6804);
-		set_dma_next_desc_addr(CH_PPI,((unsigned long)&descriptors[0]));	
+		set_dma_next_desc_addr(CH_PPI,((unsigned long)&descriptors[0]));
 	}
 
 	pr_debug("ad9960_write: SETUP DMA : DONE \n");
@@ -413,7 +413,7 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 
 	/* DPRINTK("PPI wait_event_interruptible done\n"); */
 
-#if 0	
+#if 0
 	l1_data_A_sram_free((u_long)dma_buf);
 	disable_dma(CH_PPI);
 	SSYNC();
@@ -433,14 +433,14 @@ static int ad9960_ioctl(struct inode *inode, struct file *filp, uint cmd, unsign
 	struct spi_command * spi_cmd = ((struct spi_command *)((void *)arg));
 	unsigned short value = (spi_cmd->address)<<8|(spi_cmd->toWrite);
 	unsigned long  sclk;
-	unsigned short readin;    
+	unsigned short readin;
 
 	switch (cmd) {
 	case CMD_SPI_WRITE:
-		pr_debug("ad9960_ioctl: CMD_SPI_WRITE addr: %x, data: %x\n", 
+		pr_debug("ad9960_ioctl: CMD_SPI_WRITE addr: %x, data: %x\n",
 				(value&0xff00)>>8, (value&0x00ff));
 		spin_lock(&ad9960_info.lock);
-		ad9960_spi_read(ad9960_info.spi_dev, value,&readin);   
+		ad9960_spi_read(ad9960_info.spi_dev, value,&readin);
 		spi_cmd->readBack = readin&0x00FF;
 		spin_unlock(&ad9960_info.lock);
 		pr_debug("ad9960_ioctl: CMD_SPI_WRITE read: %04x\n",readin);
@@ -455,7 +455,7 @@ static int ad9960_ioctl(struct inode *inode, struct file *filp, uint cmd, unsign
 	case CMD_GET_PPI_BUF:
 		pr_debug("ad9960_ioctl: CMD_GET_PPI_BUF\n");
 		spin_lock(&ad9960_info.lock);
-		copy_to_user((unsigned long *)arg, &ad9960_info.buffer, 
+		copy_to_user((unsigned long *)arg, &ad9960_info.buffer,
 				sizeof(unsigned long));
 		spin_unlock(&ad9960_info.lock);
 	default:
@@ -526,7 +526,7 @@ static int ad9960_open (struct inode *inode, struct file *filp)
 		ad9960_spi_write(ad9960_info.spi_dev, 0x1F00);
 	}
 	spin_unlock(&ad9960_info.lock);
-	
+
 	pr_debug("ppi_open: return \n");
 
 	return 0;
@@ -645,7 +645,7 @@ static int __init ad9960_init(void)
 	int result;
 
 	/* Enable PPI_CLK(PF15) and PPI_FS1(PF9) */
-	bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x8200);    
+	bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x8200);
 	/* PF8 select AD9960 TX/RX */
 	gpio_request(CONFIG_AD9960_TX_RX_PIN, NULL);
 	gpio_direction_output(CONFIG_AD9960_TX_RX_PIN);

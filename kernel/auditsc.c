@@ -64,6 +64,7 @@
 #include <linux/tty.h>
 #include <linux/selinux.h>
 #include <linux/binfmts.h>
+#include <linux/highmem.h>
 #include <linux/syscalls.h>
 
 #include "audit.h"
@@ -730,34 +731,34 @@ static inline void audit_free_context(struct audit_context *context)
 		printk(KERN_ERR "audit: freed %d contexts\n", count);
 }
 
-static void audit_log_task_context(struct audit_buffer *ab)
+void audit_log_task_context(struct audit_buffer *ab)
 {
 	char *ctx = NULL;
-	ssize_t len = 0;
+	unsigned len;
+	int error;
+	u32 sid;
 
-	len = security_getprocattr(current, "current", NULL, 0);
-	if (len < 0) {
-		if (len != -EINVAL)
+	selinux_get_task_sid(current, &sid);
+	if (!sid)
+		return;
+
+	error = selinux_sid_to_string(sid, &ctx, &len);
+	if (error) {
+		if (error != -EINVAL)
 			goto error_path;
 		return;
 	}
 
-	ctx = kmalloc(len, GFP_KERNEL);
-	if (!ctx)
-		goto error_path;
-
-	len = security_getprocattr(current, "current", ctx, len);
-	if (len < 0 )
-		goto error_path;
-
 	audit_log_format(ab, " subj=%s", ctx);
+	kfree(ctx);
 	return;
 
 error_path:
-	kfree(ctx);
 	audit_panic("error in audit_log_task_context");
 	return;
 }
+
+EXPORT_SYMBOL(audit_log_task_context);
 
 static void audit_log_task_info(struct audit_buffer *ab, struct task_struct *tsk)
 {
@@ -778,8 +779,8 @@ static void audit_log_task_info(struct audit_buffer *ab, struct task_struct *tsk
 			if ((vma->vm_flags & VM_EXECUTABLE) &&
 			    vma->vm_file) {
 				audit_log_d_path(ab, "exe=",
-						 vma->vm_file->f_dentry,
-						 vma->vm_file->f_vfsmnt);
+						 vma->vm_file->f_path.dentry,
+						 vma->vm_file->f_path.mnt);
 				break;
 			}
 			vma = vma->vm_next;
@@ -823,10 +824,12 @@ static void audit_log_exit(struct audit_context *context, struct task_struct *ts
 				 context->return_code);
 
 	mutex_lock(&tty_mutex);
+	read_lock(&tasklist_lock);
 	if (tsk->signal && tsk->signal->tty && tsk->signal->tty->name)
 		tty = tsk->signal->tty->name;
 	else
 		tty = "(none)";
+	read_unlock(&tasklist_lock);
 	audit_log_format(ab,
 		  " a0=%lx a1=%lx a2=%lx a3=%lx items=%d"
 		  " ppid=%d pid=%d auid=%u uid=%u gid=%u"
@@ -1486,6 +1489,8 @@ uid_t audit_get_loginuid(struct audit_context *ctx)
 {
 	return ctx ? ctx->loginuid : -1;
 }
+
+EXPORT_SYMBOL(audit_get_loginuid);
 
 /**
  * __audit_mq_open - record audit data for a POSIX MQ open

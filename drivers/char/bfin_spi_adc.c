@@ -237,7 +237,7 @@ static ssize_t adc_spi_read (struct file *filp, char *buf, size_t count, loff_t 
 
 
 	pr_debug(" triggerpos = %d \n",bfin_spi_adc->triggerpos);
-	pr_debug(" skfs = %d \n",(u32)bfin_spi_adc->skfs);	
+	pr_debug(" skfs = %d \n",(u32)bfin_spi_adc->skfs);
 	pr_debug(" count = %d \n",(u32)count);
 
 	if (!(bfin_spi_adc->timeout < 0) && (!bfin_spi_adc->triggerpos))
