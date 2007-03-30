@@ -191,8 +191,8 @@ static void dma_init_xmit(void *data, size_t bufsize, size_t fragsize)
 	/* Close the circle */
 	dev.tx_desc[fragcount - 1].next = (unsigned long)dev.tx_desc;
 
-	DMA4->NEXT_DESC_PTR = (struct bf53x_dma*)(unsigned long)dev.tx_desc;
-	DMA4->CONFIG = (unsigned long)dev.tx_desc->dma_config;
+	SPORT_DMA_TX->NEXT_DESC_PTR = (struct bf53x_dma*)(unsigned long)dev.tx_desc;
+	SPORT_DMA_TX->CONFIG = (unsigned long)dev.tx_desc->dma_config;
 }
 
 static void dma_init_recv(void *data, size_t bufsize, size_t fragsize)
@@ -227,8 +227,8 @@ static void dma_init_recv(void *data, size_t bufsize, size_t fragsize)
 	/* Close the circle */
 	dev.rx_desc[fragcount - 1].next = (unsigned long)dev.rx_desc;
 
-	DMA3->NEXT_DESC_PTR = (struct bf53x_dma*)(unsigned long)dev.rx_desc;
-	DMA3->CONFIG = dev.rx_desc->dma_config;
+	SPORT_DMA_RX->NEXT_DESC_PTR = (struct bf53x_dma*)(unsigned long)dev.rx_desc;
+	SPORT_DMA_RX->CONFIG = dev.rx_desc->dma_config;
 }
 
 // 1 = enable, -1 = disable, other = don't change
@@ -384,7 +384,7 @@ void ac97_sport_set_talkthrough_mode(void)
 static int set_current_tx_fragment(void)
 {
 	return dev.tx_currfrag =
-	    ((u32) (DMA4->CURR_ADDR) -
+	    ((u32) (SPORT_DMA_TX->CURR_ADDR) -
 	     (unsigned long)dev.txbuf) / (sizeof(struct ac97_frame) *
 					  dev.fragsize);
 }
@@ -392,7 +392,7 @@ static int set_current_tx_fragment(void)
 static int set_current_rx_fragment(void)
 {
 	return dev.tx_currfrag =
-	    ((u32) (DMA3->CURR_ADDR) -
+	    ((u32) (SPORT_DMA_RX->CURR_ADDR) -
 	     (unsigned long)dev.rxbuf) / (sizeof(struct ac97_frame) *
 					  dev.fragsize);
 }
@@ -470,7 +470,7 @@ int ac97_sport_handle_rx(void)
 	int prevfrag, nowready;
 	struct ac97_frame *fragp;
 
-	if (!(DMA3->IRQ_STATUS & DMA_DONE))
+	if (!(SPORT_DMA_RX->IRQ_STATUS & DMA_DONE))
 		return -EINPROGRESS;
 
 	prevfrag = set_current_rx_fragment();
@@ -492,7 +492,7 @@ int ac97_sport_handle_rx(void)
 
 	dev.rx_lastfrag = prevfrag;	/* last fragment handled by irq */
 
-	DMA3->IRQ_STATUS = DMA_DONE;
+	SPORT_DMA_RX->IRQ_STATUS = DMA_DONE;
 
 	return 0;
 }
@@ -501,7 +501,7 @@ int ac97_sport_handle_tx(void)
 {
 	int i;
 
-	if (!(DMA4->IRQ_STATUS & DMA_DONE))
+	if (!(SPORT_DMA_TX->IRQ_STATUS & DMA_DONE))
 		return -EINPROGRESS;
 
 	if (dev.codec_ready) {
@@ -536,7 +536,7 @@ int ac97_sport_handle_tx(void)
 		wake_up(&dev.audio_out_wait);
 	}			// codec ready
 
-	DMA4->IRQ_STATUS = DMA_DONE;
+	SPORT_DMA_TX->IRQ_STATUS = DMA_DONE;
 
 	return 0;
 }				// handle tx
@@ -584,7 +584,7 @@ int ac97_sport_get_register(int reg, __u16 * pval)
 static int rx_used(void)
 {
 	long bytes =
-	    ((unsigned long)DMA3->CURR_ADDR -
+	    ((unsigned long)SPORT_DMA_RX->CURR_ADDR -
 	     (unsigned long)(dev.rxbuf + dev.rx_tail));
 	int frames = bytes >> LOG_BYTES_PER_FRAME;
 
@@ -598,7 +598,7 @@ static int tx_used(void)
 {
 	long bytes =
 	    ((unsigned long)(dev.txbuf + dev.tx_head) -
-	     (u32) (DMA4->CURR_ADDR));
+	     (u32) (SPORT_DMA_TX->CURR_ADDR));
 	int frames = bytes >> LOG_BYTES_PER_FRAME;
 
 	if (frames < 0)
