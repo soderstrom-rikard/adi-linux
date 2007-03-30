@@ -802,8 +802,18 @@ static void isp1362_write_fifo(struct isp1362_hcd *isp1362_hcd, void *buf, u16 l
 {
 	u8 *dp = buf;
 	u16 data;
+	u8 *temp = NULL;
 
 	_BUG_ON(!irqs_disabled());
+	if((unsigned)dp & 0x1) {
+		temp = kmalloc(len, GFP_KERNEL);
+		if (temp == NULL) {
+			printk(KERN_ERR "No memory available\n");
+			return;
+		}
+		memcpy(temp, dp, len);
+		dp = temp;
+	}
 	if (!len) {
 		return;
 	}
@@ -840,6 +850,9 @@ static void isp1362_write_fifo(struct isp1362_hcd *isp1362_hcd, void *buf, u16 l
 			data, (u32)dp);
 	  DUMMY_DELAY_ACCESS;
 		isp1362_write_data16(isp1362_hcd, data);
+	}
+	if (temp) {
+		kfree(temp);
 	}
 }
 
