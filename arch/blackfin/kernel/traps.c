@@ -35,6 +35,8 @@
 #include <asm/irq_handler.h>
 #include <linux/interrupt.h>
 #include <linux/module.h>
+#include <linux/kallsyms.h>
+
 #ifdef CONFIG_KGDB
 # include <linux/debugger.h>
 # include <linux/kgdb.h>
@@ -52,9 +54,6 @@ asmlinkage void trap_c(struct pt_regs *fp);
 
 int kstack_depth_to_print = 48;
 
-#ifdef CONFIG_KALLSYMS
-#include <linux/kallsyms.h>
-#endif
 static int printk_address(unsigned long address)
 {
 	struct vm_list_struct *vml;
