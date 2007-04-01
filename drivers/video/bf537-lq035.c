@@ -337,8 +337,6 @@ static int config_dma(void)
 {
 	u32 i;
 
-	assert(fb_buffer);
-
 	if(landscape) {
 
 		for (i=0;i<U_LINES;i++)
