@@ -1216,12 +1216,14 @@ int rndis_set_param_medium (u8 configNr, u32 medium, u32 speed)
  */
 void rndis_add_hdr (struct sk_buff *skb)
 {
-	struct rndis_packet_msg_type	*header;
+	void *buf;
+	struct rndis_packet_msg_type *header;
 
 	if (!skb)
 		return;
-	header = (void *) skb_push (skb, sizeof *header);
-	memset ((unsigned char*)header, 0, sizeof *header);
+	buf = (void *) skb_push (skb, sizeof *header);
+	memset (buf, 0, sizeof *header);
+	header = (struct rndis_packet_msg_type *)buf;
 	put_unaligned(__constant_cpu_to_le32(REMOTE_NDIS_PACKET_MSG), &header->MessageType);
 	put_unaligned(cpu_to_le32(skb->len), &header->MessageLength);
 	put_unaligned(__constant_cpu_to_le32(36), &header->DataOffset);
