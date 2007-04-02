@@ -35,6 +35,14 @@
 
 #include <linux/linkage.h>
 
+/* void *memcpy(void *dest, const void *src, size_t n);
+ * R0 = To Address (dest) (leave unchanged to form result)
+ * R1 = From Address (src)
+ * R2 = count
+ *
+ * Note: Favours word alignment
+ */
+
 #ifdef CONFIG_MEMCPY_L1
 .section .l1.text
 #else
@@ -44,8 +52,8 @@
 .align 2
 
 ENTRY(_memcpy)
-	CC = R2 <=  0;	/* length not positive?*/
-	IF CC JUMP  .L_P1L2147483647;	/* Nothing to do */
+	CC = R2 <=  0;	/* length not positive? */
+	IF CC JUMP .L_P1L2147483647;	/* Nothing to do */
 
 	P0 = R0 ;	/* dst*/
 	P1 = R1 ;	/* src*/
@@ -104,7 +112,7 @@ ENTRY(_memcpy)
 .Lbytes_left:	P2 = R3;
 .Lnot_aligned:
 	/* From here, we're copying byte-by-byte. */
-	LSETUP (.Lbyte_start , .Lbyte_end) LC0=P2;
+	LSETUP (.Lbyte_start, .Lbyte_end) LC0=P2;
 	R0 = R1;	/* Save src address for return */
 .Lbyte_start:
 	R1 = B[P1++] (X);
@@ -115,11 +123,11 @@ ENTRY(_memcpy)
 	RTS;
 
 .Lhas_overlap:
-/* Need to reverse the copying, because the
- * dst would clobber the src.
- * Don't bother to work out alignment for
- * the reverse case.
- */
+	/* Need to reverse the copying, because the
+	 * dst would clobber the src.
+	 * Don't bother to work out alignment for
+	 * the reverse case.
+	 */
 	R0 = R1;	/* save src for later. */
 	P0 = P0 + P2;
 	P0 += -1;

@@ -29,15 +29,17 @@
 
 #include <linux/linkage.h>
 
-.align 2
-
-/*
- * C Library function MEMCMP
- * R0 = First Address
- * R1 = Second Address
- * R2 = count
+/* int memcmp(const void *s1, const void *s2, size_t n);
+ * R0 = First Address (s1)
+ * R1 = Second Address (s2)
+ * R2 = count (n)
+ *
  * Favours word aligned data.
  */
+
+.text
+
+.align 2
 
 ENTRY(_memcmp)
 	I1 = P3;
@@ -45,23 +47,21 @@ ENTRY(_memcmp)
 	P3 = R1;			/* P3 = s2 Address  */
 	P2 = R2 ;			/* P2 = count */
 	CC = R2 <= 7(IU);
-	IF CC JUMP  .Ltoo_small;
+	IF CC JUMP .Ltoo_small;
 	I0 = R1;			/* s2 */
 	R1 = R1 | R0;		/* OR addresses together */
 	R1 <<= 30;		/* check bottom two bits */
 	CC =  AZ;			/* AZ set if zero. */
-	IF !CC JUMP  .Lbytes ;	/* Jump if addrs not aligned. */
+	IF !CC JUMP .Lbytes ;	/* Jump if addrs not aligned. */
 
 	P1 = P2 >> 2;		/* count = n/4 */
 	R3 =  3;
 	R2 = R2 & R3;		/* remainder */
 	P2 = R2;			/* set remainder */
 
-	LSETUP (.Lquad_loop_s , .Lquad_loop_e) LC0=P1;
+	LSETUP (.Lquad_loop_s, .Lquad_loop_e) LC0=P1;
 .Lquad_loop_s:
-	NOP;
-	R0 = [P0++];
-	R1 = [I0++];
+	MNOP || R0 = [P0++] || R1 = [I0++];
 	CC = R0 == R1;
 	IF !CC JUMP .Lquad_different;
 .Lquad_loop_e:
@@ -73,7 +73,7 @@ ENTRY(_memcmp)
 	IF CC JUMP .Lfinished;	/* very unlikely*/
 
 .Lbytes:
-	LSETUP (.Lbyte_loop_s , .Lbyte_loop_e) LC0=P2;
+	LSETUP (.Lbyte_loop_s, .Lbyte_loop_e) LC0=P2;
 .Lbyte_loop_s:
 	R1 = B[P3++](Z);	/* *s2 */
 	R0 = B[P0++](Z);	/* *s1 */
@@ -88,14 +88,14 @@ ENTRY(_memcmp)
 	RTS;
 
 .Lquad_different:
-/* We've read two quads which don't match.
- * Can't just compare them, because we're
- * a little-endian machine, so the MSBs of
- * the regs occur at later addresses in the
- * string.
- * Arrange to re-read those two quads again,
- * byte-by-byte.
- */
+	/* We've read two quads which don't match.
+	 * Can't just compare them, because we're
+	 * a little-endian machine, so the MSBs of
+	 * the regs occur at later addresses in the
+	 * string.
+	 * Arrange to re-read those two quads again,
+	 * byte-by-byte.
+	 */
 	P0 += -4;		/* back up to the start of the */
 	P3 = I0;		/* quads, and increase the*/
 	P2 += 4;		/* remainder count*/
@@ -106,3 +106,5 @@ ENTRY(_memcmp)
 	R0 = 0;
 	P3 = I1;
 	RTS;
+
+.size _memcmp,.-_memcmp

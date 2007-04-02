@@ -43,7 +43,7 @@ ENTRY(_memmove)
 	I1 = P3;
 	P0 = R0;                  /* P0 = To address */
 	P3 = R1;                  /* P3 = From Address */
-	P2 = R2 ;                 /* P2 = count */
+	P2 = R2;                  /* P2 = count */
 	CC = P2 == 0;             /* Check zero count*/
 	IF CC JUMP .Lfinished;    /* very unlikely */
 
@@ -55,11 +55,11 @@ ENTRY(_memmove)
 .Lno_overlap:
 	R3 = 11;
 	CC = R2 <= R3;
-	IF CC JUMP  .Lbytes;
+	IF CC JUMP .Lbytes;
 	R3 = R1 | R0;             /* OR addresses together */
 	R3 <<= 30;                /* check bottom two bits */
 	CC =  AZ;                 /* AZ set if zero.*/
-	IF !CC JUMP  .Lbytes ;    /* Jump if addrs not aligned.*/
+	IF !CC JUMP .Lbytes;      /* Jump if addrs not aligned.*/
 
 	I0 = P3;
 	P1 = P2 >> 2;             /* count = n/4 */
@@ -69,7 +69,7 @@ ENTRY(_memmove)
 	P2 = R2;                  /* set remainder */
 	R1 = [I0++];
 
-	LSETUP (.Lquad_loop , .Lquad_loop) LC0=P1;
+	LSETUP (.Lquad_loop, .Lquad_loop) LC0=P1;
 .Lquad_loop: MNOP || [P0++] = R1 || R1 = [I0++];
 	[P0++] = R1;
 
@@ -79,7 +79,7 @@ ENTRY(_memmove)
 	P3 = I1;
 	RTS;
 
-.Lbytes:     LSETUP (.Lbyte2_s , .Lbyte2_e) LC0=P2;
+.Lbytes:     LSETUP (.Lbyte2_s, .Lbyte2_e) LC0=P2;
 .Lbyte2_s:   R1 = B[P3++](Z);
 .Lbyte2_e:   B[P0++] = R1;
 
@@ -99,3 +99,5 @@ ENTRY(_memmove)
 .Lno_loop: B[P0] = R1;
 	P3 = I1;
 	RTS;
+
+.size _memmove,.-_memmove
