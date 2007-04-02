@@ -167,6 +167,8 @@ struct zone {
 	 */
 	unsigned long		lowmem_reserve[MAX_NR_ZONES];
 
+	unsigned long 		max_pagecache_pages;
+
 #ifdef CONFIG_NUMA
 	int node;
 	/*
@@ -541,6 +543,8 @@ int percpu_pagelist_fraction_sysctl_handler(struct ctl_table *, int, struct file
 int sysctl_min_unmapped_ratio_sysctl_handler(struct ctl_table *, int,
 			struct file *, void __user *, size_t *, loff_t *);
 int sysctl_min_slab_ratio_sysctl_handler(struct ctl_table *, int,
+			struct file *, void __user *, size_t *, loff_t *);
+int sysctl_pagecache_ratio_sysctl_handler(struct ctl_table *, int,
 			struct file *, void __user *, size_t *, loff_t *);
 
 #include <linux/topology.h>

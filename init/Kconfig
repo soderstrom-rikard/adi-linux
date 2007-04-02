@@ -456,24 +456,7 @@ config BIG_ORDER_ALLOC_NOFAIL_MAGIC
 	default 3
 	help
 	 Let big-order allocations loop until memory gets free. Specified Value
-	 expresses the order. 
-	 	
-config LIMIT_PAGECACHE
-	bool "Limit page caches" if EMBEDDED
-	help
-	 In default, free memory can be used as page cache for block device
-	 or file system until free memory is very low. This option gives a
-	 chance to limit memory used page cache.
-
-config PAGECACHE_LIMIT_TOTAL
-	int "Total page cache limit in MB unit"
-	depends on LIMIT_PAGECACHE
-	default 10
-
-config PAGECACHE_LIMIT
-	int "Page cache limit for every file in page unit"
-	depends on LIMIT_PAGECACHE
-	default 32
+	 expresses the order.
 
 choice
        prompt "Page frame management algorithm"

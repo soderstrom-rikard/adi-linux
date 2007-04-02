@@ -12,7 +12,6 @@
 #include <asm/uaccess.h>
 #include <linux/gfp.h>
 
-extern long total_pagecache_limit;
 /*
  * Bits in mapping->flags.  The lower __GFP_BITS_SHIFT bits are the page
  * allocation mode flags.
@@ -63,12 +62,13 @@ static inline struct page *__page_cache_alloc(gfp_t gfp)
 
 static inline struct page *page_cache_alloc(struct address_space *x)
 {
-	return __page_cache_alloc(mapping_gfp_mask(x));
+	return __page_cache_alloc(mapping_gfp_mask(x)| __GFP_PAGECACHE);
 }
 
 static inline struct page *page_cache_alloc_cold(struct address_space *x)
 {
-	return __page_cache_alloc(mapping_gfp_mask(x)|__GFP_COLD);
+	return __page_cache_alloc(mapping_gfp_mask(x) |
+			 __GFP_COLD | __GFP_PAGECACHE);
 }
 
 typedef int filler_t(void *, struct page *);

@@ -1069,20 +1069,6 @@ extern int filemap_populate(struct vm_area_struct *, unsigned long,
 
 /* mm/page-writeback.c */
 int write_one_page(struct page *page, int wait);
-/* possible outcome of pageout() */
-
-typedef enum {
-	/* failed to write page out, page is locked */
-	PAGE_KEEP,
-	/* move page to the active list, page is locked */
-	PAGE_ACTIVATE,
-	/* page has been sent to the disk successfully, page is unlocked */
-	PAGE_SUCCESS,
-	/* page is clean and locked */
-	PAGE_CLEAN,
-} pageout_t;
-
-pageout_t pageout(struct page *page, struct address_space *mapping);
 
 /* readahead.c */
 #define VM_MAX_READAHEAD	128	/* kbytes */

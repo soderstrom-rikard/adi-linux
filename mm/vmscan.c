@@ -117,11 +117,6 @@ long vm_total_pages;	/* The total number of pages which the VM controls */
 
 static LIST_HEAD(shrinker_list);
 static DECLARE_RWSEM(shrinker_rwsem);
-#ifdef CONFIG_LIMIT_PAGECACHE
-long total_pagecache_limit = CONFIG_PAGECACHE_LIMIT_TOTAL * 1024 / 4;
-#else
-long total_pagecache_limit = 0x7FFFFFFF;
-#endif
 
 /*
  * Add a shrinker callback to be called from the vm
@@ -298,11 +293,23 @@ static void handle_write_error(struct address_space *mapping,
 	unlock_page(page);
 }
 
+/* possible outcome of pageout() */
+typedef enum {
+	/* failed to write page out, page is locked */
+	PAGE_KEEP,
+	/* move page to the active list, page is locked */
+	PAGE_ACTIVATE,
+	/* page has been sent to the disk successfully, page is unlocked */
+	PAGE_SUCCESS,
+	/* page is clean and locked */
+	PAGE_CLEAN,
+} pageout_t;
+
 /*
  * pageout is called by shrink_page_list() for each dirty page.
  * Calls ->writepage().
  */
-pageout_t pageout(struct page *page, struct address_space *mapping)
+static pageout_t pageout(struct page *page, struct address_space *mapping)
 {
 	/*
 	 * If the page is dirty, only perform writeback if that write
@@ -925,6 +932,15 @@ static unsigned long shrink_zone(int priority, struct zone *zone,
 	else
 		nr_inactive = 0;
 
+	/*
+	 * If the page cache is too big then focus on page cache
+	 * and ignore anonymous pages
+	 */
+	if (sc->may_swap && (zone_page_state(zone, NR_FILE_PAGES) -
+			zone_page_state(zone, NR_FILE_MAPPED))
+			> zone->max_pagecache_pages)
+		sc->may_swap = 0;
+
 	while (nr_active || nr_inactive) {
 		if (nr_active) {
 			nr_to_scan = min(nr_active,
@@ -1309,7 +1325,6 @@ static int kswapd(void *p)
 	order = 0;
 	for ( ; ; ) {
 		unsigned long new_order;
-		long over_limit;
 
 		try_to_freeze();
 
@@ -1327,11 +1342,8 @@ static int kswapd(void *p)
 			order = pgdat->kswapd_max_order;
 		}
 		finish_wait(&pgdat->kswapd_wait, &wait);
-		balance_pgdat(pgdat, order);
 
-		over_limit = (long)global_page_state(NR_FILE_PAGES) - total_pagecache_limit;
-		if (over_limit > 0)
-			shrink_all_memory(over_limit);
+		balance_pgdat(pgdat, order);
 	}
 	return 0;
 }
@@ -1347,10 +1359,8 @@ void wakeup_kswapd(struct zone *zone, int order)
 		return;
 
 	pgdat = zone->zone_pgdat;
-	if (zone_watermark_ok(zone, order, zone->pages_low, 0, 0)) {
-		if ((long)global_page_state(NR_FILE_PAGES) < total_pagecache_limit)
-			return;
-	}
+	if (zone_watermark_ok(zone, order, zone->pages_low, 0, 0))
+		return;
 	if (pgdat->kswapd_max_order < order)
 		pgdat->kswapd_max_order = order;
 	if (!cpuset_zone_allowed_hardwall(zone, GFP_KERNEL))
@@ -1360,6 +1370,7 @@ void wakeup_kswapd(struct zone *zone, int order)
 	wake_up_interruptible(&pgdat->kswapd_wait);
 }
 
+#ifdef CONFIG_PM
 /*
  * Helper function for shrink_all_memory().  Tries to reclaim 'nr_pages' pages
  * from LRU lists system-wide, for given pass and priority, and returns the
@@ -1508,6 +1519,7 @@ out:
 
 	return ret;
 }
+#endif
 
 /* It's optimal to keep kswapds on the same CPUs as their memory, but
    not required for correctness.  So if the last cpu in a node goes
