@@ -144,13 +144,13 @@ struct bf53x_dma {
 #define MDMA_S1 ((struct bf53x_dma*)((unsigned long) MDMA_S1_NEXT_DESC_PTR))	// 0xFFC00EC0
 
 #ifdef BF533_FAMILY
- #define SPORT_DMA_RX	 DMA1
- #define SPORT_DMA_TX	 DMA2
+#define SPORT_DMA_RX	 DMA1
+#define SPORT_DMA_TX	 DMA2
 #endif
 
 #ifdef BF537_FAMILY
- #define SPORT_DMA_RX	 DMA3
- #define SPORT_DMA_TX	 DMA4
+#define SPORT_DMA_RX	 DMA3
+#define SPORT_DMA_TX	 DMA4
 #endif
 
 #endif /*__BF53X_STRUCTS_H__*/
