@@ -3,7 +3,8 @@
 
 #include <asm-generic/4level-fixup.h>
 
-#include <asm/setup.h>
+#include <asm/page.h>
+#include <asm/cplb.h>
 
 typedef pte_t *pte_addr_t;
 /*
@@ -14,7 +15,12 @@ typedef pte_t *pte_addr_t;
 #define pgd_bad(pgd)		(0)
 #define pgd_clear(pgdp)
 #define kern_addr_valid(addr)	(1)
-#define	pmd_offset(a, b)	((void *)0)
+
+#define pmd_offset(a, b)	((void *)0)
+#define pmd_none(x)		(!pmd_val(x))
+#define pmd_present(x)		(pmd_val(x))
+#define pmd_clear(xp)		do { set_pmd(xp, __pmd(0)); } while (0)
+#define pmd_bad(x)		(pmd_val(x) & ~PAGE_MASK)
 
 #define kern_addr_valid(addr) (1)
 
@@ -37,6 +43,32 @@ static inline int pte_file(pte_t pte)
 	return 0;
 }
 
+#define set_pte(pteptr, pteval) (*(pteptr) = pteval)
+#define set_pte_at(mm, addr, ptep, pteval) set_pte(ptep, pteval)
+
+/*
+ * Page assess control based on Blackfin CPLB management
+ */
+#define _PAGE_RD	(CPLB_USER_RD)
+#define _PAGE_WR	(CPLB_USER_WR)
+#define _PAGE_USER	(CPLB_USER_RD | CPLB_USER_WR)
+#define _PAGE_ACCESSED	CPLB_ALL_ACCESS
+#define _PAGE_DIRTY	(CPLB_DIRTY)
+
+#define PTE_BIT_FUNC(fn, op) \
+	static inline pte_t pte_##fn(pte_t _pte) { _pte.pte op; return _pte; }
+
+PTE_BIT_FUNC(rdprotect, &= ~_PAGE_RD);
+PTE_BIT_FUNC(mkread, |= _PAGE_RD);
+PTE_BIT_FUNC(wrprotect, &= ~_PAGE_WR);
+PTE_BIT_FUNC(mkwrite, |= _PAGE_WR);
+PTE_BIT_FUNC(exprotect, &= ~_PAGE_USER);
+PTE_BIT_FUNC(mkexec, |= _PAGE_USER);
+PTE_BIT_FUNC(mkclean, &= ~_PAGE_DIRTY);
+PTE_BIT_FUNC(mkdirty, |= _PAGE_DIRTY);
+PTE_BIT_FUNC(mkold, &= ~_PAGE_ACCESSED);
+PTE_BIT_FUNC(mkyoung, |= _PAGE_ACCESSED);
+
 /*
  * ZERO_PAGE is a global shared page that is always zero: used
  * for zero-mapped memory areas etc..
@@ -58,5 +90,7 @@ extern unsigned int kobjsize(const void *objp);
  */
 #define	VMALLOC_START	0
 #define	VMALLOC_END	0xffffffff
+
+#include <asm-generic/pgtable.h>
 
 #endif				/* _BLACKFIN_PGTABLE_H */
