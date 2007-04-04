@@ -42,8 +42,8 @@
 .align 2
 
 ENTRY(_memchr)
-	P0 = R0;             // P0 = address
-	P2 = R2;             // P2 = count
+	P0 = R0;             /* P0 = address */
+	P2 = R2;             /* P2 = count */
 	R1 = R1.B(Z);
 	CC = R2 == 0;
 	IF CC JUMP .Lfailed;
