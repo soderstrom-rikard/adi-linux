@@ -173,6 +173,9 @@ SECTIONS
 		 __sbss_l1 = .;
 		*(.l1.bss)
 
+		. = ALIGN(32);
+		*(.data_l1.cacheline_aligned)
+
 		. = ALIGN(4);
 		 __ebss_l1 = .;
 	} > l1_data_a AT > ram
@@ -197,6 +200,11 @@ SECTIONS
 		. = ALIGN(0x2000);
 		*(.data.init_task)
 		*(.data)
+
+		. = ALIGN(32);
+		*(.data.cacheline_aligned)
+
+		. = ALIGN(0x2000);
 		__edata = .;
 	} > ram
 

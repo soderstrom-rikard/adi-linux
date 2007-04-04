@@ -513,6 +513,14 @@ config IP_CHECKSUM_L1
 	  If enabled IP Checksum function is linked
 	  into L1 instruction memory.(less latency)
 
+config CACHELINE_ALIGNED_L1
+	bool "Locate cacheline_aligned data to L1 Data Memory"
+	default y
+	depends on !BF531
+	help
+	  If enabled cacheline_anligned data is linked
+	  into L1 data memory.(less latency)
+
 config SYSCALL_TAB_L1
 	bool "Locate Syscall Table L1 Data Memory"
 	default n
