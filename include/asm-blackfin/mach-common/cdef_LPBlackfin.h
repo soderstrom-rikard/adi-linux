@@ -6,9 +6,7 @@
   * Created:     ?
   * Description:
   *
-  *
   * Modified:
-  *
   *
   * Bugs:         Enter bugs at http://blackfin.uclinux.org/
   *

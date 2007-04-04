@@ -23,4 +23,4 @@ struct scatterlist {
 
 #define ISA_DMA_THRESHOLD	(0xffffffff)
 
-#endif
+#endif				/* !(_BLACKFIN_SCATTERLIST_H) */
