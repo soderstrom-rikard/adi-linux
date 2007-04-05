@@ -63,6 +63,7 @@
 
 #define USE_FIXED_SAMPLERATE
 #define QUICK_HACK_PROC_VOLUME	/*Provide means of controlling the volume - until standart AC97 mixer is supported */
+#define QUICK_HACK_PROC_AC97_REG_ACCESS
 
 #define BUFFER_SIZE	0x2000
 #define FRAGMENT_SIZE	0x0800
@@ -429,7 +430,7 @@ static int ad1981b_ioctl(struct inode *inode, struct file *file,
 	case OSS_GETVERSION:
 		return put_user(SOUND_VERSION, (int *)arg);
 	case SNDCTL_DSP_SYNC:
-		if (file->f_mode & FMODE_WRITE)
+		return 0;
 
 	case SNDCTL_DSP_SETDUPLEX:
 			return 0;
@@ -594,6 +595,32 @@ static int ad1981_read_proc(char *page, char **start, off_t off,
 }
 #endif
 
+#ifdef QUICK_HACK_PROC_AC97_REG_ACCESS
+static int ad1981_ac97_write_proc(struct file *file, const char __user * buffer,
+			     unsigned long count, void *data)
+{
+	s8 line[16];
+	u32 val = 0;
+
+	if (count <= 16) {
+		copy_from_user(line, buffer, count);
+		val = simple_strtoul(line, NULL, 16);
+	}
+
+	if (((val >> 16) & 0xFF) <= 0x7E) {
+		ac97_sport_set_register((val >> 16) & 0xFF, val & 0xFFFF);
+	}
+
+	return count;
+}
+
+static int ad1981_ac97_read_proc(char *page, char **start, off_t off,
+			    int count, int *eof, void *data)
+{
+	return -1;
+}
+#endif
+
 /*
  * module initialisation
  */
@@ -602,6 +629,7 @@ static int __init ad1981b_install(void)
 {
 
 	struct proc_dir_entry *entry;
+	struct proc_dir_entry *entry_reg_access;
 
 	/* Install the audio device, register interrupts, etc */
 	dev_audio = register_sound_dsp(&ad1981b_audio_fops, -1);
@@ -691,6 +719,18 @@ static int __init ad1981b_install(void)
 		entry->read_proc = ad1981_read_proc;
 		entry->write_proc = ad1981_write_proc;
 		entry->data = NULL;
+	}
+#endif
+
+#ifdef QUICK_HACK_PROC_AC97_REG_ACCESS
+	if ((entry_reg_access =
+	     create_proc_entry("driver/ad1981_AC97_REGS", 0, NULL)) == NULL) {
+		printk(KERN_ERR "%s: unable to create /proc entry\n",
+		       __FUNCTION__);
+	} else {
+		entry_reg_access->read_proc = ad1981_ac97_read_proc;
+		entry_reg_access->write_proc = ad1981_ac97_write_proc;
+		entry_reg_access->data = NULL;
 	}
 #endif
 
