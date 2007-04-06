@@ -90,25 +90,34 @@ void __init bf53x_cache_init(void)
 
 void bf53x_relocate_l1_mem(void)
 {
-	unsigned long l1_length;
+	unsigned long l1_code_length;
+	unsigned long l1_data_a_length;
+	unsigned long l1_data_b_length;
 
-	l1_length = _etext_l1 - _stext_l1;
-	if (l1_length > L1_CODE_LENGTH)
-		l1_length = L1_CODE_LENGTH;
+	l1_code_length = _etext_l1 - _stext_l1;
+	if (l1_code_length > L1_CODE_LENGTH)
+		l1_code_length = L1_CODE_LENGTH;
 	/* cannot complain as printk is not available as yet.
 	 * But we can continue booting and complain later!
 	 */
 
 	/* Copy _stext_l1 to _etext_l1 to L1 instruction SRAM */
-	dma_memcpy(_stext_l1, _l1_lma_start, l1_length);
+	dma_memcpy(_stext_l1, _l1_lma_start, l1_code_length);
 
-	l1_length = _ebss_l1 - _sdata_l1;
-	if (l1_length > L1_DATA_A_LENGTH)
-		l1_length = L1_DATA_A_LENGTH;
+	l1_data_a_length = _ebss_l1 - _sdata_l1;
+	if (l1_data_a_length > L1_DATA_A_LENGTH)
+		l1_data_a_length = L1_DATA_A_LENGTH;
 
-	/* Copy _sdata_l1 to _ebss_l1 to L1 instruction SRAM */
-	dma_memcpy(_sdata_l1, _l1_lma_start + (_etext_l1 - _stext_l1),
-		   l1_length);
+	/* Copy _sdata_l1 to _ebss_l1 to L1 data bank A SRAM */
+	dma_memcpy(_sdata_l1, _l1_lma_start + l1_code_length, l1_data_a_length);
+
+	l1_data_b_length = _ebss_b_l1 - _sdata_b_l1;
+	if (l1_data_b_length > L1_DATA_B_LENGTH)
+		l1_data_b_length = L1_DATA_B_LENGTH;
+
+	/* Copy _sdata_b_l1 to _ebss_b_l1 to L1 data bank B SRAM */
+	dma_memcpy(_sdata_b_l1, _l1_lma_start + l1_code_length +
+			l1_data_a_length, l1_data_b_length);
 
 }
 

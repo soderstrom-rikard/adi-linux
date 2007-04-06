@@ -115,3 +115,5 @@ EXPORT_SYMBOL(_ebss_l1);
 EXPORT_SYMBOL(_stext_l1);
 EXPORT_SYMBOL(_etext_l1);
 EXPORT_SYMBOL(_sdata_l1);
+EXPORT_SYMBOL(_ebss_b_l1);
+EXPORT_SYMBOL(_sdata_b_l1);
