@@ -70,6 +70,7 @@ config IRQCHIP_DEMUX_GPIO
 	default y
 
 source "init/Kconfig"
+source "kernel/Kconfig.preempt"
 
 menu "Blackfin Processor Options"
 

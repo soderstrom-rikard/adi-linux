@@ -68,6 +68,7 @@ SECTIONS
 		*(__vermagic)		/* Kernel version magic */
 		*(.rodata1)
 		*(.fixup)
+		*(.spinlock.text)
 
 		/* Kernel symbol table: Normal symbols */
 		. = ALIGN(4);
