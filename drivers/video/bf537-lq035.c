@@ -655,7 +655,7 @@ static int __init bfin_lq035_fb_init(void)
 
 
 #if L1_DATA_A_LENGTH != 0
-	dma_desc_table = (unsigned long*)l1_data_sram_alloc(sizeof(unsigned long) * 2 * (LCD_Y_RES + U_LINES));
+	dma_desc_table = (unsigned long*)l1_data_A_sram_alloc(sizeof(unsigned long) * 2 * (LCD_Y_RES + U_LINES));
 #else
 	dma_desc_table = dma_alloc_coherent(NULL,sizeof(unsigned long) * 2 * (LCD_Y_RES + U_LINES), &dma_handle, 0);
 #endif

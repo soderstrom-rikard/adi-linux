@@ -165,7 +165,7 @@ static void dma_init_xmit(void *data, size_t bufsize, size_t fragsize)
 
 #if L1_DATA_A_LENGTH != 0
 	dev.tx_desc = (struct dma_descriptor_block *)
-	    l1_data_sram_alloc(sizeof(struct dma_descriptor_block) *
+	    l1_data_A_sram_alloc(sizeof(struct dma_descriptor_block) *
 				 fragcount);
 #else
 	dev.tx_desc =
@@ -201,7 +201,7 @@ static void dma_init_recv(void *data, size_t bufsize, size_t fragsize)
 
 #if L1_DATA_A_LENGTH != 0
 	dev.rx_desc = (struct dma_descriptor_block *)
-	    l1_data_sram_alloc(sizeof(struct dma_descriptor_block) *
+	    l1_data_A_sram_alloc(sizeof(struct dma_descriptor_block) *
 				 fragcount);
 #else
 	dev.rx_desc =

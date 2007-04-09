@@ -134,25 +134,25 @@ static struct fb_ops bfin_adv7393_fb_ops = {
 static int dma_desc_list(struct adv7393fb_device *fbdev, u16 arg)
 {
 	if (arg == BUILD) {	/* Build */
-		fbdev->vb1 = l1_data_sram_alloc(sizeof(struct dmasg));
+		fbdev->vb1 = l1_data_A_sram_alloc(sizeof(struct dmasg));
 		if (fbdev->vb1 == NULL)
 			goto error;
 		else
 			memset(fbdev->vb1, 0, sizeof(struct dmasg));
 
-		fbdev->av1 = l1_data_sram_alloc(sizeof(struct dmasg));
+		fbdev->av1 = l1_data_A_sram_alloc(sizeof(struct dmasg));
 		if (fbdev->av1 == NULL)
 			goto error;
 		else
 			memset(fbdev->av1, 0, sizeof(struct dmasg));
 
-		fbdev->vb2 = l1_data_sram_alloc(sizeof(struct dmasg));
+		fbdev->vb2 = l1_data_A_sram_alloc(sizeof(struct dmasg));
 		if (fbdev->vb2 == NULL)
 			goto error;
 		else
 			memset(fbdev->vb2, 0, sizeof(struct dmasg));
 
-		fbdev->av2 = l1_data_sram_alloc(sizeof(struct dmasg));
+		fbdev->av2 = l1_data_A_sram_alloc(sizeof(struct dmasg));
 		if (fbdev->av2 == NULL)
 			goto error;
 		else

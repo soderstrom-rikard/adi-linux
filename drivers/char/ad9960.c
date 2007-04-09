@@ -122,6 +122,9 @@ int ad9960_spi_read(struct ad9960_spi *spi, unsigned short data,
 		unsigned short *buf);
 int ad9960_spi_write(struct ad9960_spi *spi, unsigned short data);
 
+/* extern unsigned long l1_data_A_sram_alloc(unsigned long size); */
+/* extern int l1_data_A_sram_free(unsigned long addr); */
+
 static irqreturn_t ad9960_ppi_irq(int irq, void *dev_id, struct pt_regs *regs)
 {
 
@@ -206,7 +209,7 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 	bfin_write_PPI_DELAY(7);
 
 	desc_count = 1; /* One descriptor is enough for 4GB of DMA buffer */
-	descriptors = (struct dmasgsmall_t *)l1_data_sram_alloc(
+	descriptors = (struct dmasgsmall_t *)l1_data_A_sram_alloc(
 			desc_count * sizeof(struct dmasgsmall_t));
 	pr_debug("ad9960_read: allocated %i descriptors starting at 0x%08X\n",
 			desc_count, (unsigned int)descriptors);
@@ -343,7 +346,7 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 			desc_count++;
 
 		pr_debug("%i = (%i/65536)+1\n", desc_count, (int)count);
-		descriptors = (struct dmasgsmall_t*)l1_data_sram_alloc(
+		descriptors = (struct dmasgsmall_t*)l1_data_A_sram_alloc(
 				desc_count * sizeof(struct dmasgsmall_t));
 		pr_debug("ad9960_write: allocated %i descriptors starting at 0x%08X\n",
 					desc_count,(unsigned int)descriptors);

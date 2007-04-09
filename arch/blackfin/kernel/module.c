@@ -183,7 +183,7 @@ module_frob_arch_sections(Elf_Ehdr * hdr, Elf_Shdr * sechdrs,
 			((strcmp(".data", secstrings + s->sh_name)==0) &&
 			 (hdr->e_flags & FLG_DATA_IN_L1) && (s->sh_size > 0))) {
 			mod->arch.data_a_l1 = s;
-			dest = l1_data_sram_alloc(s->sh_size);
+			dest = l1_data_A_sram_alloc(s->sh_size);
 			if (dest == NULL) {
 				printk(KERN_ERR
 					"module %s: L1 data memory allocation failed\n",
@@ -198,7 +198,7 @@ module_frob_arch_sections(Elf_Ehdr * hdr, Elf_Shdr * sechdrs,
 			((strcmp(".bss", secstrings + s->sh_name)==0) &&
 			 (hdr->e_flags & FLG_DATA_IN_L1) && (s->sh_size > 0))) {
 			mod->arch.bss_a_l1 = s;
-			dest = l1_data_sram_alloc(s->sh_size);
+			dest = l1_data_A_sram_alloc(s->sh_size);
 			if (dest == NULL) {
 				printk(KERN_ERR
 					"module %s: L1 data memory allocation failed\n",
