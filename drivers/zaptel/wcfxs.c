@@ -437,16 +437,6 @@ volatile char *iRxBuffer1;
 #endif
 #endif
 
-#ifdef TMP_DR
-#if L1_DATA_A_LENGTH != 0
-
-extern unsigned long l1_data_A_sram_alloc(unsigned long size);
-
-extern int l1_data_A_sram_free(unsigned long addr);
-
-#endif
-#endif
-
 static int wcfxs_init_proslic(struct wcfxs *wc, int card, int fast , int manual, int sane);
 static void wait_just_a_bit(int foo);
 
@@ -2594,7 +2584,7 @@ static void init_dma_wc(void)
 
 	*pDMA1_IRQ_STATUS |= 0x2;
 
-	iRxBuffer1 = (char*)l1_data_A_sram_alloc(2*ZT_CHUNKSIZE*8);
+	iRxBuffer1 = (char*)l1_data_sram_alloc(2*ZT_CHUNKSIZE*8);
 	printk("iRxBuffer1 = 0x%x\n", (int)iRxBuffer1);
 
 	/* Start address of data buffer */
@@ -2618,7 +2608,7 @@ static void init_dma_wc(void)
 	/* Configure DMA2 8-bit transfers, Autobuffer mode */
 	*pDMA2_CONFIG = WDSIZE_8 | 0x1000 | DMA2D;
 
-	iTxBuffer1 = (char*)l1_data_A_sram_alloc(2*ZT_CHUNKSIZE*8);
+	iTxBuffer1 = (char*)l1_data_sram_alloc(2*ZT_CHUNKSIZE*8);
 	printk("iTxBuffer1 = 0x%x\n", (int)iTxBuffer1);
 
 	/* Start address of data buffer */
@@ -2692,8 +2682,8 @@ static void enable_dma_sport0(void)
 
 	SSYNC();
 
-	l1_data_A_sram_free((unsigned long)iTxBuffer1);
-	l1_data_A_sram_free((unsigned long)iRxBuffer1);
+	l1_data_sram_free((unsigned long)iTxBuffer1);
+	l1_data_sram_free((unsigned long)iRxBuffer1);
 
 }
 

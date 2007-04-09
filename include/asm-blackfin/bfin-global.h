@@ -70,6 +70,7 @@ extern void bfin_gpio_interrupt_setup(int irq, int irq_pfx, int type);
 extern void *l1_data_A_sram_alloc(size_t);
 extern void *l1_data_B_sram_alloc(size_t);
 extern void *l1_inst_sram_alloc(size_t);
+extern void *l1_data_sram_alloc(size_t);
 extern void *l1_data_sram_zalloc(size_t);
 extern int l1_data_A_sram_free(const void*);
 extern int l1_data_B_sram_free(const void*);

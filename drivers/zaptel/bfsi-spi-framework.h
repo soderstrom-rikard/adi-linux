@@ -66,14 +66,6 @@
 #define TC    1024 /* time constant    */
 #define LTC   10   /* base 2 log of TC */
 
-/* use L1 SRAM if we can otherwise (e.g BF532) no big deal */
-/*
-#if L1_DATA_A_LENGTH != 0
-extern unsigned long l1_data_A_sram_alloc(unsigned long size);
-extern int l1_data_A_sram_free(unsigned long addr);
-#endif
-*/
-
 static u8 *iTxBuffer1;
 static u8 *iRxBuffer1;
 
@@ -503,7 +495,7 @@ static void init_dma_wc(void)
 #endif
 
 #if L1_DATA_A_LENGTH != 0
-  iRxBuffer1 = (char*)l1_data_A_sram_alloc(2*samples_per_chunk*8);
+  iRxBuffer1 = (char*)l1_data_sram_alloc(2*samples_per_chunk*8);
 #else
   {
     dma_addr_t addr;
@@ -556,7 +548,7 @@ static void init_dma_wc(void)
 #endif
 
 #if L1_DATA_A_LENGTH != 0
-  iTxBuffer1 = (char*)l1_data_A_sram_alloc(2*samples_per_chunk*8);
+  iTxBuffer1 = (char*)l1_data_sram_alloc(2*samples_per_chunk*8);
 #else
   {
     dma_addr_t addr;
@@ -932,8 +924,8 @@ void bfsi_sport_close(void)
     free_irq(IRQ_SPORT0_RX, NULL);
   }
 #if L1_DATA_A_LENGTH != 0
-  l1_data_A_sram_free(iTxBuffer1);
-  l1_data_A_sram_free(iRxBuffer1);
+  l1_data_sram_free(iTxBuffer1);
+  l1_data_sram_free(iRxBuffer1);
 #else
   dma_free_coherent(NULL, 2*samples_per_chunk*8, iTxBuffer1, 0);
   dma_free_coherent(NULL, 2*samples_per_chunk*8, iRxBuffer1, 0);

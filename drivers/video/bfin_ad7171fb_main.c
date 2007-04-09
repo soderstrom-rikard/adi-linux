@@ -605,12 +605,12 @@ int __init bfin_ad7171_fb_init(void)
 
 static int bfin_ad7171_fb_open(struct fb_info *info, int user)
 {
-	rgb_l1 = (unsigned char *)l1_data_A_sram_alloc(RGB_WIDTH*3);
+	rgb_l1 = (unsigned char *)l1_data_sram_alloc(RGB_WIDTH*3);
 	if (!rgb_l1) {
 		printk(KERN_ERR "alloc rgb l1 buffer failed\n");
 		return -ENOMEM;
 	}
-	yuv_l1 = (unsigned char *)l1_data_A_sram_alloc(RGB_WIDTH*2);
+	yuv_l1 = (unsigned char *)l1_data_sram_alloc(RGB_WIDTH*2);
 	if (!yuv_l1) {
 		printk(KERN_ERR "alloc YCbCr l1 buffer failed\n");
 		return -ENOMEM;
@@ -635,9 +635,9 @@ static int bfin_ad7171_fb_open(struct fb_info *info, int user)
 static int bfin_ad7171_fb_release(struct fb_info *info, int user)
 {
 	if (rgb_l1)
-		l1_data_A_sram_free(rgb_l1);
+		l1_data_sram_free(rgb_l1);
 	if (yuv_l1)
-		l1_data_A_sram_free(yuv_l1);
+		l1_data_sram_free(yuv_l1);
 	del_timer(&bfin_framebuffer_timer);
 	bfin_disable_dma();
 	bfin_disable_ppi();

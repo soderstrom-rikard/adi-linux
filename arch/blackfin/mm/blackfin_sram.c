@@ -283,12 +283,6 @@ void *l1_data_A_sram_alloc(size_t size)
 	addr = _l1_sram_alloc(size, l1_data_A_sram, ARRAY_SIZE(l1_data_A_sram));
 #endif
 
-#if L1_DATA_B_LENGTH != 0
-	if (!addr)
-		addr = _l1_sram_alloc(size, l1_data_B_sram,
-				   ARRAY_SIZE(l1_data_B_sram));
-#endif
-
 	/* add mutex operation */
 	spin_unlock_irqrestore(&l1_data_sram_lock, flags);
 
@@ -307,17 +301,11 @@ int l1_data_A_sram_free(const void *addr)
 	/* add mutex operation */
 	spin_lock_irqsave(&l1_data_sram_lock, flags);
 
-#if L1_DATA_B_LENGTH != 0
-	if (L1_DATA_B_START == ((unsigned long)addr & ~0x0000FFFF))
-		ret = _l1_sram_free(addr,
-				   l1_data_B_sram, ARRAY_SIZE(l1_data_B_sram));
-	else
-#endif
 #if L1_DATA_A_LENGTH != 0
-		ret = _l1_sram_free(addr,
-				   l1_data_A_sram, ARRAY_SIZE(l1_data_A_sram));
+	ret = _l1_sram_free(addr,
+			   l1_data_A_sram, ARRAY_SIZE(l1_data_A_sram));
 #else
-		ret = -1;
+	ret = -1;
 #endif
 
 	/* add mutex operation */
@@ -326,20 +314,6 @@ int l1_data_A_sram_free(const void *addr)
 	return ret;
 }
 EXPORT_SYMBOL(l1_data_A_sram_free);
-
-void *l1_data_sram_zalloc(size_t size)
-{
-	void *addr = l1_data_A_sram_alloc(size);
-	memset(addr, 0x00, size);
-	return addr;
-}
-EXPORT_SYMBOL(l1_data_sram_zalloc);
-
-int l1_data_sram_free(const void *addr)
-{
-	return l1_data_A_sram_free(addr);
-}
-EXPORT_SYMBOL(l1_data_sram_free);
 
 void *l1_data_B_sram_alloc(size_t size)
 {
@@ -385,6 +359,38 @@ int l1_data_B_sram_free(const void *addr)
 #endif
 }
 EXPORT_SYMBOL(l1_data_B_sram_free);
+
+void *l1_data_sram_alloc(size_t size)
+{
+	void *addr = l1_data_A_sram_alloc(size);
+
+	if (!addr)
+		addr = l1_data_B_sram_alloc(size);
+
+	return addr;
+}
+EXPORT_SYMBOL(l1_data_sram_alloc);
+
+void *l1_data_sram_zalloc(size_t size)
+{
+	void *addr = l1_data_sram_alloc(size);
+
+	if (addr)
+		memset(addr, 0x00, size);
+
+	return addr;
+}
+EXPORT_SYMBOL(l1_data_sram_zalloc);
+
+int l1_data_sram_free(const void *addr)
+{
+	int ret;
+	ret = l1_data_A_sram_free(addr);
+	if (ret == -1)
+		ret = l1_data_B_sram_free(addr);
+	return ret;
+}
+EXPORT_SYMBOL(l1_data_sram_free);
 
 void *l1_inst_sram_alloc(size_t size)
 {

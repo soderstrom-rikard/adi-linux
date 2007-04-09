@@ -620,7 +620,7 @@ static int sport_config_rx_dummy(struct bf53x_sport *sport, size_t size)
 	sport_printd(KERN_INFO, "%s entered\n", __FUNCTION__);
 	dma = sport->dma_rx;
 #if L1_DATA_A_LENGTH != 0
-	desc = (struct dmasg*)l1_data_A_sram_alloc(2 * sizeof(*desc));
+	desc = (struct dmasg*)l1_data_sram_alloc(2 * sizeof(*desc));
 #else
 	{
 		dma_addr_t addr;
@@ -655,7 +655,7 @@ static int sport_config_tx_dummy(struct bf53x_sport *sport, size_t size)
 	dma = sport->dma_tx;
 
 #if L1_DATA_A_LENGTH != 0
-	desc = (struct dmasg*)l1_data_A_sram_alloc(2 * sizeof(*desc));
+	desc = (struct dmasg*)l1_data_sram_alloc(2 * sizeof(*desc));
 #else
 	{
 		dma_addr_t addr;
@@ -881,7 +881,7 @@ struct bf53x_sport *bf53x_sport_init(int sport_num,
 			sport->regs, sport->dma_rx, sport->dma_tx);
 
 #if L1_DATA_A_LENGTH != 0
-	sport->dummy_buf = l1_data_A_sram_alloc(DUMMY_BUF_LEN);
+	sport->dummy_buf = l1_data_sram_alloc(DUMMY_BUF_LEN);
 #else
 	sport->dummy_buf = kmalloc(DUMMY_BUF_LEN, GFP_KERNEL);
 #endif
@@ -936,9 +936,9 @@ void bf53x_sport_done(struct bf53x_sport *sport)
 				sport->dma_tx_desc, 0);
 
 #if L1_DATA_A_LENGTH != 0
-	l1_data_A_sram_free(sport->dummy_rx_desc);
-	l1_data_A_sram_free(sport->dummy_tx_desc);
-	l1_data_A_sram_free(sport->dummy_buf);
+	l1_data_sram_free(sport->dummy_rx_desc);
+	l1_data_sram_free(sport->dummy_tx_desc);
+	l1_data_sram_free(sport->dummy_buf);
 #else
 	dma_free_coherent(NULL, 2*sizeof(struct dmasg), sport->dummy_rx_desc, 0);
 	dma_free_coherent(NULL, 2*sizeof(struct dmasg), sport->dummy_tx_desc, 0);
