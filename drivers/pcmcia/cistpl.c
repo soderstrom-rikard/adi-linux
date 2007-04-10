@@ -1093,7 +1093,7 @@ static int parse_cftable_entry(tuple_t *tuple,
 	break;
     case 0x20:
 	entry->mem.nwin = 1;
-	entry->mem.win[0].len = le16_to_cpu(get_unaligned(__le16 *)p) << 8;
+	entry->mem.win[0].len = le16_to_cpu(get_unaligned((__le16 *)p)) << 8;
 	entry->mem.win[0].card_addr = 0;
 	entry->mem.win[0].host_addr = 0;
 	p += 2;
