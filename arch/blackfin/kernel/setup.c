@@ -210,6 +210,11 @@ void __init setup_arch(char **cmdline_p)
 		panic("ANOMALY 05000273, SCLK can not be same as CCLK");
 #endif
 
+#if defined(ANOMALY_05000266)
+	bfin_read_IMDMA_D0_IRQ_STATUS();
+	bfin_read_IMDMA_D1_IRQ_STATUS();
+#endif
+
 #ifdef DEBUG_SERIAL_EARLY_INIT
 	bfin_console_init();	/* early console registration */
 	/* this give a chance to get printk() working before crash. */
