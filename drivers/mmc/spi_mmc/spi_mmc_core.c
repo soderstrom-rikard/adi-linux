@@ -164,8 +164,6 @@ enum {
 };
 
 static DECLARE_MUTEX(card_sema);
-static DECLARE_WORK(card_work, NULL, NULL);
-static DECLARE_WORK(transfer_work, NULL, NULL);
 
 static mmc_info_t* Devices;
 static int spi_mmc_card_init(mmc_info_t* pdev);
@@ -324,14 +322,13 @@ static void spi_mmc_process_request(mmc_info_t *pdev, struct request *req)
  * Notes:
  *
  */
-static void spi_mmc_transfer_worker(void* arg)
+static void spi_mmc_transfer_worker(struct work_struct *work)
 {
-	mmc_info_t *pdev;
+	mmc_info_t *pdev = container_of(work, mmc_info_t, transfer_work);
 	struct request *req;
 	request_queue_t *q;
 
 	// cast void* argument
-	pdev = (mmc_info_t*)arg;
 	req = pdev->current_req;
 	q = pdev->gd->queue;
 
@@ -395,7 +392,7 @@ static void spi_mmc_strategy(request_queue_t *q)
 		return;
 
 	// process rest of the dispatch queue on a dedicated kernel thread
-	schedule_work(&transfer_work);
+	schedule_work(&pdev->transfer_work);
 }
 
 static int spi_mmc_xfer_bio(mmc_info_t *pdev, struct bio *bio)
@@ -664,7 +661,7 @@ void spi_mmc_delayed_revalidate(mmc_info_t *pdev, int timeout)
 {
 	/* guess card is removed */
 	if (pdev->card_in_bay || timeout == 0) {
-		schedule_work(&card_work);
+		schedule_work(&pdev->card_work);
 	} else {
 		int j = jiffies + msecs_to_jiffies(timeout);
 		pdev->card_in_bay = 0;
@@ -675,7 +672,7 @@ void spi_mmc_delayed_revalidate(mmc_info_t *pdev, int timeout)
 static
 void spi_mmc_revalidate_timeout(mmc_info_t* pdev)
 {
-	schedule_work(&card_work);
+	schedule_work(&pdev->card_work);
 }
 
 /*
@@ -693,7 +690,7 @@ void spi_mmc_revalidate_timeout(mmc_info_t* pdev)
  *
  */
 
-irqreturn_t spi_mmc_detect_irq_handler(int irq, void *dev_id, struct pt_regs *regs)
+irqreturn_t spi_mmc_detect_irq_handler(int irq, void *dev_id)
 {
 	mmc_info_t* pdev;
 	pdev = (mmc_info_t*)dev_id;
@@ -707,11 +704,9 @@ irqreturn_t spi_mmc_detect_irq_handler(int irq, void *dev_id, struct pt_regs *re
 
 // Worker for doing the revalidation work when it is considered
 // a too lengthy or impossible process since it will do some sleeping etc.
-static void spi_mmc_media_worker(void* arg)
+static void spi_mmc_media_worker(struct work_struct *work)
 {
-	mmc_info_t* pdev;
-
-	pdev = (mmc_info_t*)arg;
+	mmc_info_t* pdev = container_of(work, mmc_info_t, card_work);
 
 	spi_mmc_revalidate(pdev->gd);
 }
@@ -1064,17 +1059,17 @@ static int __devinit spi_mmc_probe(struct spi_device *spi)
 
 
 	// configure work to check for card in bay
-	PREPARE_WORK(&card_work, spi_mmc_media_worker, (void*)pdev);
-	PREPARE_WORK(&transfer_work, spi_mmc_transfer_worker, (void*)pdev);
+	INIT_WORK(&pdev->card_work, spi_mmc_media_worker);
+	INIT_WORK(&pdev->transfer_work, spi_mmc_transfer_worker);
 
 
-	// NOTE: add init for card detection pin here
+	/* NOTE: add init for card detection pin here*/
 	#if defined(CONFIG_SPI_MMC_CARD_DETECT) && defined(CONFIG_BFIN)
 	spi_mmc_bfin_cd_setup(pdev);
 	#endif
 
 	// schedule to check for media
-	schedule_work(&card_work);
+	schedule_work(&pdev->card_work);
 
 	// add this disk to system
 	add_disk(pdev->gd);

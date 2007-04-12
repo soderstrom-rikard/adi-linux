@@ -33,6 +33,8 @@ struct Mmc_info {
 	struct work_struct *cd_ws;	/* The work struct that defines what to do*/
 	struct request *current_req;	/* The current request in process  */
 	struct timer_list revalidate_timer;
+	struct work_struct card_work;
+	struct work_struct transfer_work;
 };
 
 typedef struct Mmc_info mmc_info_t;
