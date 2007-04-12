@@ -1,5 +1,5 @@
 
-// struct for keeping performace data for debugging
+/* struct for keeping performace data for debugging */
 struct perf_info {
 	unsigned short mean_read_tp;
 	unsigned short mean_write_tp;
@@ -7,7 +7,7 @@ struct perf_info {
 	unsigned short mbw_works;
 };
 
-// internal representation of the MMC over SPI block device
+/* internal representation of the MMC over SPI block device */
 struct Mmc_info {
 	unsigned int hardsect_size;	/* Sector size in bytes */
 	unsigned int nsectors;		/* Number of sectors */
@@ -39,4 +39,4 @@ struct Mmc_info {
 
 typedef struct Mmc_info mmc_info_t;
 
-//static int spi_mmc_release(struct inode *inode, struct file *filp);
+/* static int spi_mmc_release(struct inode *inode, struct file *filp); */
