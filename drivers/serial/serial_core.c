@@ -185,11 +185,15 @@ static int uart_startup(struct uart_state *state, int init_hw)
 			uart_change_speed(state, NULL);
 
 			/*
-			 * Setup the RTS and DTR signals once the
-			 * port is open and ready to respond.
+			 * Setup the RTS (in the case of hardware flow control)
+			 * and DTR signals once the port is open and ready to
+			 * respond.
 			 */
-			if (info->tty->termios->c_cflag & CBAUD)
-				uart_set_mctrl(port, TIOCM_RTS | TIOCM_DTR);
+			if (info->tty->termios->c_cflag & CBAUD) {
+				uart_set_mctrl(port, TIOCM_DTR);
+				if (info->flags & UIF_CTS_FLOW)
+					uart_set_mctrl(port, TIOCM_RTS);
+			}
 		}
 
 		if (info->flags & UIF_CTS_FLOW) {
@@ -230,10 +234,14 @@ static void uart_shutdown(struct uart_state *state)
 		info->flags &= ~UIF_INITIALIZED;
 
 		/*
-		 * Turn off DTR and RTS early.
+		 * Turn off DTR and RTS (in the case of hardware flow control)
+		 * early.
 		 */
-		if (!info->tty || (info->tty->termios->c_cflag & HUPCL))
-			uart_clear_mctrl(port, TIOCM_DTR | TIOCM_RTS);
+		if (!info->tty || (info->tty->termios->c_cflag & HUPCL)) {
+			uart_clear_mctrl(port, TIOCM_DTR);
+			if (info->flags & UIF_CTS_FLOW)
+				uart_clear_mctrl(port, TIOCM_RTS);
+               }
 
 		/*
 		 * clear delta_msr_wait queue to avoid mem leaks: we may free
@@ -1160,14 +1168,16 @@ static void uart_set_termios(struct tty_struct *tty, struct ktermios *old_termio
 	uart_change_speed(state, old_termios);
 
 	/* Handle transition to B0 status */
-	if ((old_termios->c_cflag & CBAUD) && !(cflag & CBAUD))
-		uart_clear_mctrl(state->port, TIOCM_RTS | TIOCM_DTR);
+	if ((old_termios->c_cflag & CBAUD) && !(cflag & CBAUD)) {
+		uart_clear_mctrl(state->port, TIOCM_DTR);
+		if (state->info->flags & UIF_CTS_FLOW)
+			uart_clear_mctrl(state->port, TIOCM_RTS);
+       }
 
 	/* Handle transition away from B0 status */
 	if (!(old_termios->c_cflag & CBAUD) && (cflag & CBAUD)) {
 		unsigned int mask = TIOCM_DTR;
-		if (!(cflag & CRTSCTS) ||
-		    !test_bit(TTY_THROTTLED, &tty->flags))
+		if (!test_bit(TTY_THROTTLED, &tty->flags))
 			mask |= TIOCM_RTS;
 		uart_set_mctrl(state->port, mask);
 	}
@@ -1411,10 +1421,14 @@ static void uart_update_termios(struct uart_state *state)
 		uart_change_speed(state, NULL);
 
 		/*
-		 * And finally enable the RTS and DTR signals.
+		 * And finally enable the RTS (in the of case hardware flow
+		 * control) and DTR signals.
 		 */
-		if (tty->termios->c_cflag & CBAUD)
-			uart_set_mctrl(port, TIOCM_DTR | TIOCM_RTS);
+		if (tty->termios->c_cflag & CBAUD) {
+			uart_set_mctrl(port, TIOCM_DTR);
+			if (state->info->flags & UIF_CTS_FLOW)
+				uart_set_mctrl(port, TIOCM_RTS);
+		}
 	}
 }
 
