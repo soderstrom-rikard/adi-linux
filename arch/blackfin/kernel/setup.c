@@ -293,6 +293,11 @@ void __init setup_arch(char **cmdline_p)
 
 	memory_end -= mtd_size;
 
+	if (mtd_size == 0) {
+		console_init();
+		panic("Don't boot kernel without rootfs attached.\n");
+	}
+
 	/* Relocate MTD image to the top of memory after the uncached memory area */
 	dma_memcpy((char *)memory_end, __bss_stop, mtd_size);
 
