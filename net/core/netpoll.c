@@ -464,11 +464,17 @@ int __netpoll_rx(struct sk_buff *skb)
 		goto out;
 	if (!pskb_may_pull(skb, iph->ihl*4))
 		goto out;
+
+	/*
+	 * Our transport medium may have padded the buffer out.
+	 * Now we trim to the true length of the frame.
+	 */
+	if (pskb_trim_rcsum(skb, len))
+		goto out;
+
 	if (ip_fast_csum((u8 *)iph, iph->ihl) != 0)
 		goto out;
 
-	skb->ip_summed = CHECKSUM_UNNECESSARY;
-	
 	len = ntohs(iph->tot_len);
 	if (skb->len < len || len < iph->ihl*4)
 		goto out;
