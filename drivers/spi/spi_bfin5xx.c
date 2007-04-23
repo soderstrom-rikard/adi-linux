@@ -1126,7 +1126,7 @@ static int __init bfin5xx_spi_probe(struct platform_device *pdev)
 
 	platform_info = dev->platform_data;
 
-	/* Allocate master with space for drv_data and null dma buffer */
+	/* Allocate master with space for drv_data */
 	master = spi_alloc_master(dev, sizeof(struct driver_data) + 16);
 	if (!master) {
 		dev_err(&pdev->dev, "can not alloc spi_master\n");
