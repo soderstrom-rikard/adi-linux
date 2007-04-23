@@ -34,6 +34,7 @@
 #include <linux/cpu.h>
 #include <linux/module.h>
 #include <linux/console.h>
+#include <linux/tty.h>
 
 #include <linux/ext2_fs.h>
 #include <linux/cramfs_fs.h>
