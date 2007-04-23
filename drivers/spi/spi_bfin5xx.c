@@ -1032,7 +1032,7 @@ static void cleanup(const struct spi_device *spi)
 	kfree(chip);
 }
 
-static int init_queue(struct driver_data *drv_data)
+static inline int init_queue(struct driver_data *drv_data)
 {
 	INIT_LIST_HEAD(&drv_data->queue);
 	spin_lock_init(&drv_data->lock);
@@ -1054,7 +1054,7 @@ static int init_queue(struct driver_data *drv_data)
 	return 0;
 }
 
-static int start_queue(struct driver_data *drv_data)
+static inline int start_queue(struct driver_data *drv_data)
 {
 	unsigned long flags;
 
@@ -1076,7 +1076,7 @@ static int start_queue(struct driver_data *drv_data)
 	return 0;
 }
 
-static int stop_queue(struct driver_data *drv_data)
+static inline int stop_queue(struct driver_data *drv_data)
 {
 	unsigned long flags;
 	unsigned limit = 500;
@@ -1103,7 +1103,7 @@ static int stop_queue(struct driver_data *drv_data)
 	return status;
 }
 
-static int destroy_queue(struct driver_data *drv_data)
+static inline int destroy_queue(struct driver_data *drv_data)
 {
 	int status;
 
