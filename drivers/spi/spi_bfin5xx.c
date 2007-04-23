@@ -1116,7 +1116,7 @@ static int destroy_queue(struct driver_data *drv_data)
 	return 0;
 }
 
-static int bfin5xx_spi_probe(struct platform_device *pdev)
+static int __init bfin5xx_spi_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct bfin5xx_spi_master *platform_info;
@@ -1172,7 +1172,7 @@ static int bfin5xx_spi_probe(struct platform_device *pdev)
 }
 
 /* stop hardware and remove the driver */
-static int bfin5xx_spi_remove(struct platform_device *pdev)
+static int __devexit bfin5xx_spi_remove(struct platform_device *pdev)
 {
 	struct driver_data *drv_data = platform_get_drvdata(pdev);
 	int status = 0;
@@ -1259,7 +1259,7 @@ static int bfin5xx_spi_resume(struct platform_device *pdev)
 #define bfin5xx_spi_resume NULL
 #endif				/* CONFIG_PM */
 
-static struct platform_driver driver = {
+static struct platform_driver bfin5xx_spi_driver = {
 	.driver = {
 		   .name = "bfin-spi-master",
 		   .bus = &platform_bus_type,
@@ -1273,15 +1273,14 @@ static struct platform_driver driver = {
 
 static int __init bfin5xx_spi_init(void)
 {
-	platform_driver_register(&driver);
-	return 0;
+	return platform_driver_register(&bfin5xx_spi_driver);
 }
 
 module_init(bfin5xx_spi_init);
 
 static void __exit bfin5xx_spi_exit(void)
 {
-	platform_driver_unregister(&driver);
+	platform_driver_unregister(&bfin5xx_spi_driver);
 }
 
 module_exit(bfin5xx_spi_exit);
