@@ -121,34 +121,6 @@ void bf53x_relocate_l1_mem(void)
 
 }
 
-/* Get the DSP Revision ID */
-static u_int get_dsp_rev_id(void)
-{
-	u_int id;
-	id = bfin_read_DSPID() & 0xffff;
-#if defined(CONFIG_BF561)
-	id>>=8;
-#endif
-	return id;
-}
-
-static inline u_int get_compiled_rev_id(void)
-{
-#if defined(CONFIG_BF_REV_0_0)
-	return 0;
-#elif defined(CONFIG_BF_REV_0_1)
-	return 1;
-#elif defined(CONFIG_BF_REV_0_2)
-	return 2;
-#elif defined(CONFIG_BF_REV_0_3)
-	return 3;
-#elif defined(CONFIG_BF_REV_0_4)
-	return 4;
-#elif defined(CONFIG_BF_REV_0_5)
-	return 5;
-#endif
-}
-
 /*
  * Initial parsing of the command line.  Currently, we support:
  *  - Controlling the linux memory size: mem=xxx[KMG]
@@ -196,7 +168,7 @@ static __init void parse_cmdline_early(char *cmdline_p)
 
 void __init setup_arch(char **cmdline_p)
 {
-	int bootmap_size, id;
+	int bootmap_size;
 	unsigned long l1_length, sclk, cclk;
 #ifdef CONFIG_MTD_UCLINUX
 	unsigned long mtd_phys = 0;
@@ -329,30 +301,23 @@ void __init setup_arch(char **cmdline_p)
 	init_mm.brk = (unsigned long)0;
 
 	init_leds();
-	id = get_dsp_rev_id();
 
-	printk(KERN_INFO
-	       "Blackfin support (C) 2004-2006 Analog Devices, Inc.\n");
-	printk(KERN_INFO "Compiled for ADSP-%s Rev. 0.%d\n", CPU,
-	       get_compiled_rev_id());
-	if (id != get_compiled_rev_id())
-		printk(KERN_ERR
-		       "Warning: Compiled for Rev %d, but running on Rev %d\n",
-			get_compiled_rev_id(), id );
-	if (id < SUPPORTED_DSPID)
-		printk(KERN_ERR
-		       "Warning: Unsupported Chip Revision ADSP-%s Rev. 0.%d detected\n",
-		       CPU, id);
-	printk(KERN_INFO
-	       "Blackfin uClinux support by http://blackfin.uclinux.org/\n");
+	printk(KERN_INFO "Blackfin support (C) 2004-2007 Analog Devices, Inc.\n");
+	printk(KERN_INFO "Compiled for ADSP-%s Rev 0.%d\n", CPU, bfin_compiled_revid());
+	if (bfin_revid() != bfin_compiled_revid())
+		printk(KERN_ERR "Warning: Compiled for Rev %d, but running on Rev %d\n",
+		       bfin_compiled_revid(), bfin_revid());
+	if (bfin_revid() < SUPPORTED_REVID)
+		printk(KERN_ERR "Warning: Unsupported Chip Revision ADSP-%s Rev 0.%d detected\n",
+		       CPU, bfin_revid());
+	printk(KERN_INFO "Blackfin Linux support by http://blackfin.uclinux.org/\n");
 
 	printk(KERN_INFO "Processor Speed: %lu MHz core clock and %lu Mhz System Clock\n",
 	       cclk / 1000000,  sclk / 1000000);
 
 #if defined(ANOMALY_05000273)
 	if ((cclk >> 1) <= sclk)
-		printk(KERN_ERR
-		       "\n\n\nANOMALY_05000273: CCLK must be >= 2*SCLK !!!\n\n\n");
+		printk("\n\n\nANOMALY_05000273: CCLK must be >= 2*SCLK !!!\n\n\n");
 #endif
 
 	printk(KERN_INFO "Board Memory: %ldMB\n", physical_mem_end >> 20);
@@ -778,21 +743,19 @@ EXPORT_SYMBOL(get_sclk);
 static int show_cpuinfo(struct seq_file *m, void *v)
 {
 	char *cpu, *mmu, *fpu, *name;
-#ifdef CONFIG_BLKFIN_CACHE_LOCK
-	int lock;
-#endif
+	uint32_t revid;
 
 	u_long cclk = 0, sclk = 0;
-	u_int id, dcache_size = 0, dsup_banks = 0;
+	u_int dcache_size = 0, dsup_banks = 0;
 
 	cpu = CPU;
 	mmu = "none";
 	fpu = "none";
+	revid = bfin_revid();
 	name = bfin_board_name;
 
 	cclk = get_cclk();
 	sclk = get_sclk();
-	id = get_dsp_rev_id();
 
 	seq_printf(m, "CPU:\t\tADSP-%s Rev. 0.%d\n"
 		   "MMU:\t\t%s\n"
@@ -801,7 +764,7 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 		   "System Clock:\t%9lu Hz\n"
 		   "BogoMips:\t%lu.%02lu\n"
 		   "Calibration:\t%lu loops\n",
-		   cpu, id, mmu, fpu,
+		   cpu, revid, mmu, fpu,
 		   cclk,
 		   sclk,
 		   (loops_per_jiffy * HZ) / 500000,
@@ -856,8 +819,7 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 		   dsup_banks, BLKFIN_DSUBBANKS, BLKFIN_DWAYS,
 		   BLKFIN_DLINES);
 #ifdef CONFIG_BLKFIN_CACHE_LOCK
-	lock = read_iloc();
-	switch (lock) {
+	switch (read_iloc()) {
 	case WAY0_L:
 		seq_printf(m, "Way0 Locked-Down\n");
 		break;

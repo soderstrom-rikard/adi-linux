@@ -7,6 +7,7 @@
  */
 #define current_text_addr() ({ __label__ _l; _l: &&_l;})
 
+#include <asm/blackfin.h>
 #include <asm/segment.h>
 #include <linux/compiler.h>
 
@@ -101,5 +102,29 @@ unsigned long get_wchan(struct task_struct *p);
 #define	KSTK_ESP(tsk)	((tsk) == current ? rdusp() : (tsk)->thread.usp)
 
 #define cpu_relax()    	barrier()
+
+/* Get the Silicon Revision of the chip */
+static inline uint32_t bfin_revid(void)
+{
+	/* stored in the upper 4 bits */
+	return bfin_read_CHIPID() >> 28;
+}
+
+static inline uint32_t bfin_compiled_revid(void)
+{
+#if defined(CONFIG_BF_REV_0_0)
+	return 0;
+#elif defined(CONFIG_BF_REV_0_1)
+	return 1;
+#elif defined(CONFIG_BF_REV_0_2)
+	return 2;
+#elif defined(CONFIG_BF_REV_0_3)
+	return 3;
+#elif defined(CONFIG_BF_REV_0_4)
+	return 4;
+#elif defined(CONFIG_BF_REV_0_5)
+	return 5;
+#endif
+}
 
 #endif

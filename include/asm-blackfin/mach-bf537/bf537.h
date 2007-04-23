@@ -30,7 +30,7 @@
 #ifndef __MACH_BF537_H__
 #define __MACH_BF537_H__
 
-#define SUPPORTED_DSPID 2
+#define SUPPORTED_REVID 2
 
 /* Masks for generic ERROR IRQ demultiplexing used in int-priority-sc.c */
 
