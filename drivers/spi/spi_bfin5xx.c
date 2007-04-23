@@ -1203,7 +1203,6 @@ static int bfin5xx_spi_remove(struct platform_device *pdev)
 	return 0;
 }
 
-/* PM, do nothing now */
 #ifdef CONFIG_PM
 static int suspend_devices(struct device *dev, void *pm_message)
 {
