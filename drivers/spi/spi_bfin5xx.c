@@ -988,37 +988,41 @@ static int setup(struct spi_device *spi)
 	chip->flag = ((u16) spi_flg << 8) | (1 << (spi->chip_select));
 	chip->chip_select_num = spi->chip_select;
 
-	if (chip->bits_per_word <= 8) {
+	switch (chip->bits_per_word) {
+	case 8:
 		chip->n_bytes = 1;
 		chip->width = CFG_SPI_WORDSIZE8;
-		chip->read =
-		    chip->cs_change_per_word ? u8_cs_chg_reader : u8_reader;
-		chip->write =
-		    chip->cs_change_per_word ? u8_cs_chg_writer : u8_writer;
-		chip->duplex =
-		    chip->cs_change_per_word ? u8_cs_chg_duplex : u8_duplex;
-		pr_debug("8bit: chip->write is %p, u8_writer is %p\n",
-			 chip->write, u8_writer);
-	} else if (spi->bits_per_word <= 16) {
+		chip->read = chip->cs_change_per_word ?
+			u8_cs_chg_reader : u8_reader;
+		chip->write = chip->cs_change_per_word ?
+			u8_cs_chg_writer : u8_writer;
+		chip->duplex = chip->cs_change_per_word ?
+			u8_cs_chg_duplex : u8_duplex;
+		break;
+
+	case 16:
 		chip->n_bytes = 2;
 		chip->width = CFG_SPI_WORDSIZE16;
-		chip->read =
-		    chip->cs_change_per_word ? u16_cs_chg_reader : u16_reader;
-		chip->write =
-		    chip->cs_change_per_word ? u16_cs_chg_writer : u16_writer;
-		chip->duplex =
-		    chip->cs_change_per_word ? u16_cs_chg_duplex : u16_duplex;
-		pr_debug("16bit: chip->write is %p, u16_writer is %p\n",
-			 chip->write, u16_writer);
-	} else {
-		dev_err(&spi->dev, "invalid wordsize\n");
+		chip->read = chip->cs_change_per_word ?
+			u16_cs_chg_reader : u16_reader;
+		chip->write = chip->cs_change_per_word ?
+			u16_cs_chg_writer : u16_writer;
+		chip->duplex = chip->cs_change_per_word ?
+			u16_cs_chg_duplex : u16_duplex;
+		break;
+
+	default:
+		dev_err(&spi->dev, "%d bits_per_word is not supported\n",
+				chip->bits_per_word);
 		kfree(chip);
 		return -ENODEV;
 	}
-	pr_debug
-	    ("setup spi chip %s, width is %d, dma is %d, ctl_reg is 0x%x, flag_reg is 0x%x\n",
-	     spi->modalias, chip->width, chip->enable_dma, chip->ctl_reg,
-	     chip->flag);
+
+	pr_debug("setup spi chip %s, width is %d, dma is %d,",
+			spi->modalias, chip->width, chip->enable_dma);
+	pr_debug("ctl_reg is 0x%x, flag_reg is 0x%x\n",
+			chip->ctl_reg, chip->flag);
+
 	spi_set_ctldata(spi, chip);
 
 	return 0;
