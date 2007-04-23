@@ -171,8 +171,10 @@ static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
 		if (ch != 0) {
 			in_break = 0;
 			ch = UART_GET_CHAR(uart);
-		}
-		return;
+			if (bfin_revid() < 5)
+				return;
+		} else
+			return;
 	}
 #endif
 
