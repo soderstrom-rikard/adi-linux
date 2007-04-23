@@ -477,7 +477,6 @@ config SERIAL_SA1100
 	bool "SA1100 serial port support"
 	depends on ARM && ARCH_SA1100
 	select SERIAL_CORE
-	select SERIAL_BFIN_UART0 if (BF531 || BF532 || BF533 || BF561)
 	help
 	  If you have a machine based on a SA1100/SA1110 StrongARM(R) CPU you
 	  can enable its onboard serial port by enabling this option.
@@ -500,8 +499,8 @@ config SERIAL_SA1100_CONSOLE
 	  kernel at boot time.)
 
 config SERIAL_BFIN
-	tristate "Blackfin serial port support (EXPERIMENTAL)"
-	depends on BFIN && EXPERIMENTAL
+	tristate "Blackfin serial port support"
+	depends on BFIN
 	select SERIAL_CORE
 	select SERIAL_BFIN_UART0 if (BF531 || BF532 || BF533 || BF561)
 	help
@@ -516,7 +515,7 @@ config SERIAL_BFIN_CONSOLE
 	select SERIAL_CORE_CONSOLE
 
 choice
-	prompt  "Blackfin UART Mode"
+	prompt "UART Mode"
 	depends on SERIAL_BFIN
 	default SERIAL_BFIN_DMA
 	help
@@ -524,14 +523,14 @@ choice
 	  of CPUs
 
 config SERIAL_BFIN_DMA
-	bool "Blackfin UART DMA mode"
+	bool "DMA mode"
 	depends on DMA_UNCACHED_1M
 	help
 	  This driver works under DMA mode. If this option is selected, the
 	  blackfin simple dma driver is also enabled.
 
 config SERIAL_BFIN_PIO
-	bool "Blackfin UART PIO mode"
+	bool "PIO mode"
 	help
 	  This driver works under PIO mode.
 
@@ -1090,7 +1089,7 @@ config SERIAL_NETX_CONSOLE
 	  CPU you can make it the console by answering Y to this option.
 
 config SERIAL_BFIN_SPORT
-	tristate "Blackfin SPORT emulate UART"
+	tristate "Blackfin SPORT emulate UART (EXPERIMENTAL)"
 	depends on BFIN && EXPERIMENTAL
 	select SERIAL_CORE
 	help
