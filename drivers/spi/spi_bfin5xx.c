@@ -931,8 +931,9 @@ static int setup(struct spi_device *spi)
 	}
 	chip_select_flag |= (1 << (spi->chip_select));
 
+	/* Zero (the default) here means 8 bits */
 	if (!spi->bits_per_word)
-		spi->bits_per_word = 16;
+		spi->bits_per_word = 8;
 
 	if (spi->bits_per_word != 8 && spi->bits_per_word != 16)
 		return -EINVAL;
