@@ -76,7 +76,6 @@ DEFINE_SPI_REG(SHAW, 0x18)
 #define QUEUE_RUNNING 0
 #define QUEUE_STOPPED 1
 int dma_requested;
-char chip_select_flag;
 
 struct driver_data {
 	/* Driver model hookup */
@@ -922,15 +921,7 @@ static int setup(struct spi_device *spi)
 	struct chip_data *chip;
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
 	u8 spi_flg;
-
-	if (chip_select_flag & (1 << (spi->chip_select))) {
-		printk(KERN_ERR
-		       "spi_bfin: error: %s is using the same chip selection as another device.\n",
-		       spi->modalias);
-		return -ENODEV;
-	}
-	chip_select_flag |= (1 << (spi->chip_select));
-
+	
 	/* Zero (the default) here means 8 bits */
 	if (!spi->bits_per_word)
 		spi->bits_per_word = 8;
