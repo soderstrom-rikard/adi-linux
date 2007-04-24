@@ -241,7 +241,7 @@ static int device_suspended(struct device *dev)
 static int ad7877_read(struct device *dev, u16 reg)
 {
 	struct spi_device	*spi = to_spi_device(dev);
-	struct ser_req		*req = kzalloc(sizeof *req, SLAB_KERNEL);
+	struct ser_req		*req = kzalloc(sizeof *req, GFP_KERNEL);
 	int			status;
 
 	if (!req)
@@ -272,7 +272,7 @@ static int ad7877_read(struct device *dev, u16 reg)
 static int ad7877_write(struct device *dev, u16 reg, u16 val)
 {
 	struct spi_device	*spi = to_spi_device(dev);
-	struct ser_req		*req = kzalloc(sizeof *req, SLAB_KERNEL);
+	struct ser_req		*req = kzalloc(sizeof *req, GFP_KERNEL);
 	int			status;
 
 	if (!req)
@@ -302,7 +302,7 @@ static int ad7877_read_adc(struct device *dev, unsigned command)
 {
 	struct spi_device	*spi = to_spi_device(dev);
 	struct ad7877		*ts = dev_get_drvdata(dev);
-	struct ser_req		*req = kzalloc(sizeof *req, SLAB_KERNEL);
+	struct ser_req		*req = kzalloc(sizeof *req, GFP_KERNEL);
 	int			status;
 	int			sample;
 	int			i;
@@ -508,12 +508,12 @@ static DEVICE_ATTR(gpio4, 0664, ad7877_gpio4_show, ad7877_gpio4_store);
 static struct attribute *ad7877_attributes[] = {
 	&dev_attr_temp1.attr,
 	&dev_attr_temp2.attr,
-	&dev_attr_aux1.attr, 
-	&dev_attr_aux2.attr, 
-	&dev_attr_bat1.attr, 
-	&dev_attr_bat2.attr, 
+	&dev_attr_aux1.attr,
+	&dev_attr_aux2.attr,
+	&dev_attr_bat1.attr,
+	&dev_attr_bat2.attr,
 	&dev_attr_disable.attr,
-	&dev_attr_dac.attr,  
+	&dev_attr_dac.attr,
 	&dev_attr_gpio4.attr,
 	NULL
 };
@@ -634,20 +634,20 @@ static int ad7877_thread(void *_ts)
 			status = spi_sync(ts->spi, &ts->msg);
 			if (status)
 				dev_err(&ts->spi->dev, "spi_sync --> %d\n", status);
-	
+
 			ad7877_rx(ts);
-	
+
 			spin_lock_irqsave(&ts->lock, flags);
-	
+
 	                ts->intr_flag = 0;
 			ts->pending = 0;
-	
+
 			if (!device_suspended(&ts->spi->dev)) {
 				ts->irq_disabled = 0;
 				enable_irq(ts->spi->irq);
 				mod_timer(&ts->timer, jiffies + TS_PEN_UP_TIMEOUT);
 			}
-	
+
 			spin_unlock_irqrestore(&ts->lock, flags);
 	}
         	try_to_freeze();
@@ -836,7 +836,7 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 			 AD7877_MODE_SEQ1 | AD7877_DFR;
 
 	ad7877_write((struct device *) spi, AD7877_REG_CTRL1, ts->cmd_crtl1);
-	
+
 	ts->cmd_dummy = 0;
 
 	m = &ts->msg;
