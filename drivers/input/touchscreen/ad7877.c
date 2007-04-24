@@ -56,6 +56,7 @@
 #include <linux/kthread.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/ad7877.h>
+#include <linux/freezer.h>
 #include <asm/irq.h>
 
 #ifdef	CONFIG_BFIN
