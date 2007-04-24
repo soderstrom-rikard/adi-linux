@@ -710,9 +710,8 @@ static void pump_transfers(unsigned long data)
 			dma_width = WDSIZE_8;
 		}
 
-		/* Go baby, go */
 		/* set transfer width,direction. And enable spi */
-		cr = (read_CTRL() & (~BIT_CTL_TIMOD));	/* clear the TIMOD bits */
+		cr = (read_CTRL() & (~BIT_CTL_TIMOD));
 
 		/* dirty hack for autobuffer DMA mode */
 		if (drv_data->tx_dma == 0xFFFF) {
@@ -771,7 +770,6 @@ static void pump_transfers(unsigned long data)
 
 		}
 	} else {		/* IO mode write then read */
-		/* Go baby, go */
 		pr_debug("doing IO transfer\n");
 
 		write_STAT(BIT_STAT_CLR);
