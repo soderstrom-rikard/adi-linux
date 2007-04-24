@@ -527,8 +527,9 @@ static void *next_transfer(struct driver_data *drv_data)
 		return DONE_STATE;
 }
 
-/* caller already set message->status; dma and pio irqs are blocked
- * give finished message back
+/*
+ * caller already set message->status;
+ * dma and pio irqs are blocked give finished message back
  */
 static void giveback(struct driver_data *drv_data)
 {
@@ -548,6 +549,7 @@ static void giveback(struct driver_data *drv_data)
 				   struct spi_transfer, transfer_list);
 
 	msg->state = NULL;
+
 	/* disable chip select signal. And not stop spi in autobuffer mode */
 	if (drv_data->tx_dma != 0xFFFF) {
 		write_FLAG(0xFF00);
@@ -566,7 +568,8 @@ static irqreturn_t dma_irq_handler(int irq, void *dev_id, struct pt_regs *regs)
 	pr_debug("in dma_irq_handler\n");
 	clear_dma_irqstat(CH_SPI);
 
-	/* wait for the last transaction shifted out.  yes, these two
+	/*
+	 * wait for the last transaction shifted out.  yes, these two
 	 * while loops are supposed to be the same (see the HRM).
 	 */
 	if (drv_data->tx != NULL) {
@@ -608,8 +611,11 @@ static void pump_transfers(unsigned long data)
 	transfer = drv_data->cur_transfer;
 	chip = drv_data->cur_chip;
 
-	/* if msg is error or done, report it back using complete() callback */
-	/* Handle for abort */
+	/*
+	 * if msg is error or done, report it back using complete() callback
+	 */
+
+	 /* Handle for abort */
 	if (message->state == ERROR_STATE) {
 		message->status = -EIO;
 		giveback(drv_data);
@@ -675,7 +681,6 @@ static void pump_transfers(unsigned long data)
 	     drv_data->write, chip->write, null_writer);
 
 	/* speed and width has been set on per message */
-
 	message->state = RUNNING_STATE;
 	dma_config = 0;
 
@@ -689,8 +694,12 @@ static void pump_transfers(unsigned long data)
 
 	pr_debug("now pumping a transfer: width is %d, len is %d\n", width,
 		 transfer->len);
-	/* Try to map dma buffer and do a dma transfer if successful */
-	/* use different way to r/w according to drv_data->cur_chip->enable_dma */
+
+	/*
+	 * Try to map dma buffer and do a dma transfer if
+	 * successful use different way to r/w according to
+	 * drv_data->cur_chip->enable_dma
+	 */
 	if (drv_data->cur_chip->enable_dma && drv_data->len > 6) {
 
 		write_STAT(BIT_STAT_CLR);
@@ -698,8 +707,8 @@ static void pump_transfers(unsigned long data)
 		clear_dma_irqstat(CH_SPI);
 		bfin_spi_disable(drv_data);
 
-		pr_debug("doing dma transfer\n");
 		/* config dma channel */
+		pr_debug("doing dma transfer\n");
 		if (width == CFG_SPI_WORDSIZE16) {
 			set_dma_x_count(CH_SPI, drv_data->len);
 			set_dma_x_modify(CH_SPI, 2);
@@ -725,6 +734,7 @@ static void pump_transfers(unsigned long data)
 			enable_dma(CH_SPI);
 			write_CTRL(cr | CFG_SPI_DMAWRITE | (width << 8) |
 				   (CFG_SPI_ENABLE << 14));
+
 			/* just return here, there can only be one transfer in this mode */
 			message->status = 0;
 			giveback(drv_data);
@@ -758,6 +768,7 @@ static void pump_transfers(unsigned long data)
 			write_CTRL(cr);
 		} else if (drv_data->tx != NULL) {
 			pr_debug("doing DMA out.\n");
+
 			/* start dma */
 			dma_enable_irq(CH_SPI);
 			dma_config = (RESTART | dma_width | DI_EN);
@@ -769,12 +780,14 @@ static void pump_transfers(unsigned long data)
 				   (CFG_SPI_ENABLE << 14));
 
 		}
-	} else {		/* IO mode write then read */
+	} else {
+		/* IO mode write then read */
 		pr_debug("doing IO transfer\n");
 
 		write_STAT(BIT_STAT_CLR);
 
-		if (drv_data->tx != NULL && drv_data->rx != NULL) {	/* full duplex mode */
+		if (drv_data->tx != NULL && drv_data->rx != NULL) {
+			/* full duplex mode */
 			BUG_ON((drv_data->tx_end - drv_data->tx) !=
 			       (drv_data->rx_end - drv_data->rx));
 			cr = (read_CTRL() & (~BIT_CTL_TIMOD));	/* clear the TIMOD bits */
@@ -790,7 +803,8 @@ static void pump_transfers(unsigned long data)
 
 			if (drv_data->tx != drv_data->tx_end)
 				tranf_success = 0;
-		} else if (drv_data->tx != NULL) {	/* write only half duplex */
+		} else if (drv_data->tx != NULL) {
+			/* write only half duplex */
 			cr = (read_CTRL() & (~BIT_CTL_TIMOD));	/* clear the TIMOD bits */
 			cr |=
 			    CFG_SPI_WRITE | (width << 8) | (CFG_SPI_ENABLE <<
@@ -804,8 +818,8 @@ static void pump_transfers(unsigned long data)
 
 			if (drv_data->tx != drv_data->tx_end)
 				tranf_success = 0;
-		} else if (drv_data->rx != NULL) {	/* read only half duplex */
-
+		} else if (drv_data->rx != NULL) {
+			/* read only half duplex */
 			cr = (read_CTRL() & (~BIT_CTL_TIMOD));	/* cleare the TIMOD bits */
 			cr |=
 			    CFG_SPI_READ | (width << 8) | (CFG_SPI_ENABLE <<
@@ -884,7 +898,10 @@ static void pump_messages(struct work_struct *work)
 	spin_unlock_irqrestore(&drv_data->lock, flags);
 }
 
-/* got a msg to transfer, queue it in drv_data->queue. And kick off message pumper */
+/*
+ * got a msg to transfer, queue it in drv_data->queue.
+ * And kick off message pumper
+ */
 static int transfer(struct spi_device *spi, struct spi_message *msg)
 {
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
@@ -919,7 +936,7 @@ static int setup(struct spi_device *spi)
 	struct chip_data *chip;
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
 	u8 spi_flg;
-	
+
 	/* Zero (the default) here means 8 bits */
 	if (!spi->bits_per_word)
 		spi->bits_per_word = 8;
@@ -953,8 +970,10 @@ static int setup(struct spi_device *spi)
 	if (spi->mode & SPI_CPHA)
 		chip->ctl_reg &= CPHA;
 
-	/* if any one SPI chip is registered and wants DMA, request the
-	   DMA channel for it */
+	/*
+	 * if any one SPI chip is registered and wants DMA, request the
+	 * DMA channel for it
+	 */
 	if (chip->enable_dma && !dma_requested) {
 		/* register dma irq handler */
 		if (request_dma(CH_SPI, "BF53x_SPI_DMA") < 0) {
@@ -971,8 +990,10 @@ static int setup(struct spi_device *spi)
 		dma_requested = 1;
 	}
 
-	/* Notice: for blackfin, the speed_hz is the value of register
-	   SPI_BAUD, not the real baudrate */
+	/*
+	 * Notice: for blackfin, the speed_hz is the value of register
+	 * SPI_BAUD, not the real baudrate
+	 */
 	chip->baud = hz_to_spi_baud(spi->max_speed_hz);
 	spi_flg = ~(1 << (spi->chip_select));
 	chip->flag = ((u16) spi_flg << 8) | (1 << (spi->chip_select));
@@ -1018,7 +1039,10 @@ static int setup(struct spi_device *spi)
 	return 0;
 }
 
-/* callback for spi framework. clean driver specific data */
+/*
+ * callback for spi framework.
+ * clean driver specific data
+ */
 static void cleanup(const struct spi_device *spi)
 {
 	struct chip_data *chip = spi_get_ctldata((struct spi_device *)spi);
@@ -1078,10 +1102,12 @@ static inline int stop_queue(struct driver_data *drv_data)
 
 	spin_lock_irqsave(&drv_data->lock, flags);
 
-	/* This is a bit lame, but is optimized for the common execution path.
+	/*
+	 * This is a bit lame, but is optimized for the common execution path.
 	 * A wait_queue on the drv_data->busy could be used, but then the common
 	 * execution path (pump_messages) would be required to call wake_up or
-	 * friends on every SPI message. Do this instead */
+	 * friends on every SPI message. Do this instead
+	 */
 	drv_data->run = QUEUE_STOPPED;
 	while (!list_empty(&drv_data->queue) && drv_data->busy && limit--) {
 		spin_unlock_irqrestore(&drv_data->lock, flags);
