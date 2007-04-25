@@ -191,42 +191,50 @@ static void restore_state(struct driver_data *drv_data)
 	bfin_spi_disable(drv_data);
 	pr_debug("restoring spi ctl state\n");
 
-#if defined(CONFIG_BF534)||defined(CONFIG_BF536)||defined(CONFIG_BF537)
-	if (chip->chip_select_num == 1) {
-		pr_debug("set for chip select 1\n");
+#if defined(CONFIG_BF534) || defined(CONFIG_BF536) || defined(CONFIG_BF537)
+	pr_debug("chip select number is %d\n", chip->chip_select_num);
+	
+	switch (chip->chip_select_num)
+	case 1:
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3c00);
 		SSYNC();
-
-	} else if (chip->chip_select_num == 2 || chip->chip_select_num == 3) {
-		pr_debug("set for chip select 2\n");
+		break;
+	
+	case 2:
+	case 3:
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJSE_SPI);
 		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
 		SSYNC();
-
-	} else if (chip->chip_select_num == 4) {
+		break;
+	
+	case 4:
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS4E_SPI);
 		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3840);
 		SSYNC();
-
-	} else if (chip->chip_select_num == 5) {
+		break;
+	
+	case 5:
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS5E_SPI);
 		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3820);
 		SSYNC();
+		break;
 
-	} else if (chip->chip_select_num == 6) {
+	case 6:
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS6E_SPI);
 		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3810);
 		SSYNC();
-
-	} else if (chip->chip_select_num == 7) {
+		break;
+	
+	case 7:
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJCE_SPI);
 		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
 		SSYNC();
+		break;
 	}
 #endif
 
