@@ -937,6 +937,12 @@ static int setup(struct spi_device *spi)
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
 	u8 spi_flg;
 
+	/* Abort device setup if requested features are not supported */
+	if (spi->mode & ~(SPI_CPOL | SPI_CPHA | SPI_LSB_FIRST)) {
+		dev_err(&spi->dev, "requested mode not fully supported\n");
+		return -EINVAL;
+	}
+
 	/* Zero (the default) here means 8 bits */
 	if (!spi->bits_per_word)
 		spi->bits_per_word = 8;
@@ -965,10 +971,15 @@ static int setup(struct spi_device *spi)
 		chip->cs_chg_udelay = chip_info->cs_chg_udelay;
 	}
 
+	/* translate common spi framework into our register */
 	if (spi->mode & SPI_CPOL)
 		chip->ctl_reg |= CPOL;
 	if (spi->mode & SPI_CPHA)
 		chip->ctl_reg |= CPHA;
+	if (spi->mode & SPI_LSB_FIRST)
+		chip->ctl_reg |= LSBF;
+	/* we dont support running in slave mode (yet?) */
+	chip->ctl_reg |= MSTR;
 
 	/*
 	 * if any one SPI chip is registered and wants DMA, request the
