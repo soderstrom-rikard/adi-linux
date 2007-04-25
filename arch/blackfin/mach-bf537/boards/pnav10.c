@@ -258,7 +258,6 @@ static struct flash_platform_data bfin_spi_flash_data = {
 
 /* SPI flash chip (m25p64) */
 static struct bfin5xx_spi_chip spi_flash_chip_info = {
-	.ctl_reg = 0x1C00,       /* with enable bit unset */
 	.enable_dma = 0,         /* use dma transfer with this chip*/
 	.bits_per_word = 8,
 };
@@ -268,7 +267,6 @@ static struct bfin5xx_spi_chip spi_flash_chip_info = {
 	|| defined(CONFIG_SPI_ADC_BF533_MODULE)
 /* SPI ADC chip */
 static struct bfin5xx_spi_chip spi_adc_chip_info = {
-	.ctl_reg = 0x1000,
 	.enable_dma = 1,         /* use dma transfer with this chip*/
 	.bits_per_word = 16,
 };
@@ -277,7 +275,6 @@ static struct bfin5xx_spi_chip spi_adc_chip_info = {
 #if defined(CONFIG_SND_BLACKFIN_AD1836) \
 	|| defined(CONFIG_SND_BLACKFIN_AD1836_MODULE)
 static struct bfin5xx_spi_chip ad1836_spi_chip_info = {
-	.ctl_reg = 0x1000,
 	.enable_dma = 0,
 	.bits_per_word = 16,
 };
@@ -285,7 +282,6 @@ static struct bfin5xx_spi_chip ad1836_spi_chip_info = {
 
 #if defined(CONFIG_AD9960) || defined(CONFIG_AD9960_MODULE)
 static struct bfin5xx_spi_chip ad9960_spi_chip_info = {
-	.ctl_reg = 0x1000,
 	.enable_dma = 0,
 	.bits_per_word = 16,
 };
@@ -293,7 +289,6 @@ static struct bfin5xx_spi_chip ad9960_spi_chip_info = {
 
 #if defined(CONFIG_SPI_MMC) || defined(CONFIG_SPI_MMC_MODULE)
 static struct bfin5xx_spi_chip spi_mmc_chip_info = {
-	.ctl_reg = 0x1c00,
 	.enable_dma = 1,
 	.bits_per_word = 8,
 };
@@ -301,7 +296,7 @@ static struct bfin5xx_spi_chip spi_mmc_chip_info = {
 
 #if defined(CONFIG_PBX)
 static struct bfin5xx_spi_chip spi_si3xxx_chip_info = {
-	.ctl_reg	= 0x1c04,
+	.ctl_reg	= 0x4, /* send zero */
 	.enable_dma	= 0,
 	.bits_per_word	= 8,
 	.cs_change_per_word = 1,
@@ -312,7 +307,6 @@ static struct bfin5xx_spi_chip spi_si3xxx_chip_info = {
 #if defined(CONFIG_TOUCHSCREEN_AD7877) || defined(CONFIG_TOUCHSCREEN_AD7877_MODULE)
 static struct bfin5xx_spi_chip spi_ad7877_chip_info = {
 	.cs_change_per_word = 1,
-	.ctl_reg = 0x1000,
 	.enable_dma = 0,
 	.bits_per_word = 16,
 };
@@ -343,6 +337,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.chip_select = 1, /* Framework chip select. On STAMP537 it is SPISSEL1*/
 		.platform_data = &bfin_spi_flash_data,
 		.controller_data = &spi_flash_chip_info,
+		.mode = SPI_MODE_3,
 	},
 #endif
 
@@ -385,6 +380,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.chip_select = 7,
 		.platform_data = NULL,
 		.controller_data = &spi_mmc_chip_info,
+		.mode = SPI_MODE_3,
 	},
 	{
 		.modalias = "spi_mmc",
@@ -393,7 +389,8 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.chip_select = CONFIG_SPI_MMC_CS_CHAN,
 		.platform_data = NULL,
 		.controller_data = &spi_mmc_chip_info,
-},
+		.mode = SPI_MODE_3,
+	},
 #endif
 #if defined(CONFIG_PBX)
 	{
@@ -402,14 +399,15 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.bus_num	= 1,
 		.chip_select	= 3,
 		.controller_data= &spi_si3xxx_chip_info,
+		.mode = SPI_MODE_3,
 	},
-
 	{
 		.modalias	= "fxo-spi",
 		.max_speed_hz	= 12500000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num	= 1,
 		.chip_select	= 2,
 		.controller_data= &spi_si3xxx_chip_info,
+		.mode = SPI_MODE_3,
 	},
 #endif
 #if defined(CONFIG_TOUCHSCREEN_AD7877) || defined(CONFIG_TOUCHSCREEN_AD7877_MODULE)
