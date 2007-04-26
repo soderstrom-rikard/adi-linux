@@ -194,7 +194,7 @@ static void restore_state(struct driver_data *drv_data)
 #if defined(CONFIG_BF534) || defined(CONFIG_BF536) || defined(CONFIG_BF537)
 	pr_debug("chip select number is %d\n", chip->chip_select_num);
 	
-	switch (chip->chip_select_num)
+	switch (chip->chip_select_num) {
 	case 1:
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3c00);
 		SSYNC();
