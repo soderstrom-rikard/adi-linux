@@ -29,6 +29,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/blackfin.h>
 
 .align 2
 
@@ -40,9 +41,16 @@ ENTRY(_insl)
 	SSYNC;
 	LSETUP( .Llong_loop_s, .Llong_loop_e) LC0 = P2;
 .Llong_loop_s: R0 = [P0];
+#ifdef ANOMALY_05000257	/* Verify! */
+	 	[P1++] = R0;
+		NOP;
+.Llong_loop_e: 	NOP;
+#else
 .Llong_loop_e: [P1++] = R0;
-	sti R3;
+#endif
+sti R3;
 	RTS;
+
 
 ENTRY(_insw)
 	P0 = R0;	/* P0 = port */
@@ -52,7 +60,13 @@ ENTRY(_insw)
 	SSYNC;
 	LSETUP( .Lword_loop_s, .Lword_loop_e) LC0 = P2;
 .Lword_loop_s: R0 = W[P0];
-.Lword_loop_e: W[P1++] = R0;
+#ifdef ANOMALY_05000257	/* Verify! */
+	 	W[P1++] = R0;
+		NOP;
+.Lword_loop_e: 	NOP;
+#else
+.Lword_loop_e: [P1++] = R0;
+#endif
 	sti R3;
 	RTS;
 
@@ -64,6 +78,12 @@ ENTRY(_insb)
 	SSYNC;
 	LSETUP( .Lbyte_loop_s, .Lbyte_loop_e) LC0 = P2;
 .Lbyte_loop_s: R0 = B[P0];
-.Lbyte_loop_e: B[P1++] = R0;
+#ifdef ANOMALY_05000257	/* Verify! */
+	 	B[P1++] = R0;
+		NOP;
+.Lbyte_loop_e: 	NOP;
+#else
+.Lbyte_loop_e: [P1++] = R0;
+#endif
 	sti R3;
 	RTS;
