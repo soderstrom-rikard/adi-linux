@@ -339,10 +339,8 @@ static int load_elf_fdpic_binary(struct linux_binprm *bprm,
 	/* load the executable and interpreter into memory */
 	retval = elf_fdpic_map_file(&exec_params, bprm->file, current->mm,
 				    "executable");
-	if (retval < 0) {
-		printk(KERN_ERR "Unable to load executable\n");
+	if (retval < 0)
 		goto error_kill;
-	}
 
 	if (interpreter_name) {
 		retval = elf_fdpic_map_file(&interp_params, interpreter,
@@ -1090,10 +1088,8 @@ static int elf_fdpic_map_file_by_direct_mmap(struct elf_fdpic_params *params,
 			down_write(&mm->mmap_sem);
 			do_munmap(mm, maddr, phdr->p_memsz + disp);
 			up_write(&mm->mmap_sem);
-			if (l1_addr == NULL) {
-				printk(KERN_ERR "Not enough L1 instruction sram\n");
+			if (l1_addr == NULL)
 				return -ENOMEM;
-			}
 			kdebug("[%x] -> l1_addr = %x of len = %x\n",
 			       maddr + disp, l1_addr, phdr->p_memsz);
 			maddr = (unsigned long)l1_addr;
@@ -1112,19 +1108,12 @@ static int elf_fdpic_map_file_by_direct_mmap(struct elf_fdpic_params *params,
 			else
 				l1_addr = sram_alloc_with_lsl(phdr->p_memsz, L1_DATA_SRAM);
 			if (l1_addr != NULL)
-				memcpy(l1_addr, (const void *)(maddr + disp), phdr->p_memsz);
+				memcpy(l1_addr, (const void *)(maddr + disp), phdr->p_memsz) ;
 			down_write(&mm->mmap_sem);
 			do_munmap(mm, maddr, phdr->p_memsz + disp);
 			up_write(&mm->mmap_sem);
-			if (l1_addr == NULL) {
-				if (phdr->p_vaddr == 0xff800000)
-					printk(KERN_ERR "Not enough L1 data bank A sram\n");
-				else if (phdr->p_vaddr == 0xff900000)
-					printk(KERN_ERR "Not enough L1 data bank B sram\n");
-				else
-					printk(KERN_ERR "Not enough L1 data sram\n");
+			if (l1_addr == NULL)
 				return -ENOMEM;
-			}
 			kdebug("[%x] -> l1_addr = %x of len = %x\n",
 			       maddr + disp, l1_addr, phdr->p_memsz);
 			maddr = (unsigned long)l1_addr;
