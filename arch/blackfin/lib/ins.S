@@ -65,7 +65,7 @@ ENTRY(_insw)
 		NOP;
 .Lword_loop_e: 	NOP;
 #else
-.Lword_loop_e: [P1++] = R0;
+.Lword_loop_e: W[P1++] = R0;
 #endif
 	sti R3;
 	RTS;
@@ -83,7 +83,7 @@ ENTRY(_insb)
 		NOP;
 .Lbyte_loop_e: 	NOP;
 #else
-.Lbyte_loop_e: [P1++] = R0;
+.Lbyte_loop_e: B[P1++] = R0;
 #endif
 	sti R3;
 	RTS;
