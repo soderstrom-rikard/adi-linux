@@ -87,7 +87,7 @@ static unsigned long current_brightness;  /* backlight */
 /* AD5280 vcomm */
 static unsigned char vcomm_value = 150;
 
-#define	AD5280_DRV_NAME		"ad5280"
+static char ad5280_drv_name[] = "ad5280";
 static struct i2c_driver ad5280_driver;
 static struct i2c_client* ad5280_client;
 
@@ -106,6 +106,8 @@ static void set_vcomm(void)
 
 	if (ad5280_client) {
 		nr = i2c_smbus_write_byte_data(ad5280_client, 0x00, vcomm_value);
+		if(nr)
+			printk(KERN_ERR DRIVER_NAME ": i2c_smbus_write_byte_data fail: %d\n", nr);
 	}
 }
 
@@ -119,7 +121,7 @@ static int ad5280_probe(struct i2c_adapter *adap, int addr, int kind)
 		return -ENOMEM;
 
 	memset(client, 0, sizeof(struct i2c_client));
-	strncpy(client->name, AD5280_DRV_NAME, I2C_NAME_SIZE);
+	strncpy(client->name, ad5280_drv_name, I2C_NAME_SIZE);
 	client->addr = addr;
 	client->adapter = adap;
 	client->driver = &ad5280_driver;
@@ -156,6 +158,10 @@ static struct i2c_driver ad5280_driver = {
 	.id              = 0x65,
 	.attach_adapter  = ad5280_attach,
 	.detach_client   = ad5280_detach_client,
+	.driver		= {
+		.name	= ad5280_drv_name,
+		.owner	= THIS_MODULE,
+	},
 };
 
 #ifdef CONFIG_PNAV10
