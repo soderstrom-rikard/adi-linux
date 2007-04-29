@@ -126,7 +126,7 @@ struct chip_data {
 
 	u8 chip_select_num;
 	u8 n_bytes;
-	u32 width;		/* 0 or 1 */
+	u8 width;		/* 0 or 1 */
 	u8 enable_dma;
 	u8 bits_per_word;	/* 8 or 16 */
 	u8 cs_change_per_word;
@@ -617,7 +617,8 @@ static void pump_transfers(unsigned long data)
 	struct spi_transfer *transfer = NULL;
 	struct spi_transfer *previous = NULL;
 	struct chip_data *chip = NULL;
-	u16 cr, width, dma_width, dma_config;
+	u8 width;
+	u16 cr, dma_width, dma_config;
 	u32 tranf_success = 1;
 
 	/* Get current state information */
