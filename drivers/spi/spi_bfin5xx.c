@@ -136,7 +136,7 @@ struct chip_data {
 	void (*duplex) (struct driver_data *);
 };
 
-void bfin_spi_enable(struct driver_data *drv_data)
+static void bfin_spi_enable(struct driver_data *drv_data)
 {
 	u16 cr;
 
@@ -145,7 +145,7 @@ void bfin_spi_enable(struct driver_data *drv_data)
 	SSYNC();
 }
 
-void bfin_spi_disable(struct driver_data *drv_data)
+static void bfin_spi_disable(struct driver_data *drv_data)
 {
 	u16 cr;
 
