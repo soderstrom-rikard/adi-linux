@@ -1287,27 +1287,23 @@ static int bfin5xx_spi_resume(struct platform_device *pdev)
 #endif				/* CONFIG_PM */
 
 static struct platform_driver bfin5xx_spi_driver = {
-	.driver = {
-		   .name = "bfin-spi-master",
-		   .bus = &platform_bus_type,
-		   .owner = THIS_MODULE,
-		   },
-	.probe = bfin5xx_spi_probe,
-	.remove = __devexit_p(bfin5xx_spi_remove),
-	.suspend = bfin5xx_spi_suspend,
-	.resume = bfin5xx_spi_resume,
+	.driver 	= {
+		.name	= "bfin-spi-master",
+		.owner	= THIS_MODULE,
+	},
+	.suspend	= bfin5xx_spi_suspend,
+	.resume		= bfin5xx_spi_resume,
+	.remove		= __devexit_p(bfin5xx_spi_remove),
 };
 
 static int __init bfin5xx_spi_init(void)
 {
-	return platform_driver_register(&bfin5xx_spi_driver);
+	return platform_driver_probe(&bfin5xx_spi_driver, bfin5xx_spi_probe);
 }
-
 module_init(bfin5xx_spi_init);
 
 static void __exit bfin5xx_spi_exit(void)
 {
 	platform_driver_unregister(&bfin5xx_spi_driver);
 }
-
 module_exit(bfin5xx_spi_exit);
