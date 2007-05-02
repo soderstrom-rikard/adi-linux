@@ -737,6 +737,37 @@ static int __init ad1981b_install(void)
 	return 0;
 }
 
+
+void __exit ad1981b_exit(void)
+{
+
+	unregister_sound_mixer(dev_mixer);
+	unregister_sound_dsp(dev_audio);
+
+#if defined(IRQ_SPORT0)
+	free_irq(IRQ_SPORT0, NULL);
+#endif
+
+#if defined(DEF_IRQ_SPORT0_RX)
+	free_irq(DEF_IRQ_SPORT0_RX, NULL);
+#endif
+
+#if defined(DEF_IRQ_SPORT0_TX)
+	free_irq(DEF_IRQ_SPORT0_TX, NULL);
+#endif
+
+	ac97_sport_close();
+
+#ifdef QUICK_HACK_PROC_VOLUME
+	remove_proc_entry("driver/ad1981_volume", NULL);
+#endif
+
+#ifdef QUICK_HACK_PROC_AC97_REG_ACCESS
+	remove_proc_entry("driver/ad1981_AC97_REGS", NULL);
+#endif
+
+}
+
 int __init init_ad1981b(void)
 {
 	/* Find the audio device */
@@ -748,6 +779,8 @@ int __init init_ad1981b(void)
 }
 
 module_init(init_ad1981b);
+module_exit(ad1981b_exit);
+
 MODULE_AUTHOR("Luuk van Dijk & Bas Vermeulen <blackfin@mndmttr.nl>");
 MODULE_DESCRIPTION("BF537/AD1981B");
 MODULE_LICENSE("GPL");

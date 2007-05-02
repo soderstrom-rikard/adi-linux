@@ -320,6 +320,10 @@ int ac97_sport_open(size_t bufsize, size_t fragsize)
 
 void ac97_sport_close(void)
 {
+
+	SPORT_DMA_RX->CONFIG = 0;
+	SPORT_DMA_TX->CONFIG = 0;
+	
 	sport_enable(-1, -1);
 
 #if L1_DATA_A_LENGTH != 0
