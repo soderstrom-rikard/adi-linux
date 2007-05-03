@@ -123,6 +123,14 @@ extern void insb(const void __iomem *port, void *addr, unsigned long count);
 extern void insw(const void __iomem *port, void *addr, unsigned long count);
 extern void insl(const void __iomem *port, void *addr, unsigned long count);
 
+extern void dma_outsb(void __iomem *port, const void *addr, unsigned long count);
+extern void dma_outsw(void __iomem *port, const void *addr, unsigned long count);
+extern void dma_outsl(void __iomem *port, const void *addr, unsigned long count);
+
+extern void dma_insb(const void __iomem *port, void *addr, unsigned long count);
+extern void dma_insw(const void __iomem *port, void *addr, unsigned long count);
+extern void dma_insl(const void __iomem *port, void *addr, unsigned long count);
+
 /*
  * Map some physical address range into the kernel address space.
  */
