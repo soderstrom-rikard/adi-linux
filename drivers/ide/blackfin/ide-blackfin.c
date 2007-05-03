@@ -81,6 +81,8 @@ static inline void hwif_setup(ide_hwif_t *hwif)
 	default_hwif_iops(hwif);
 
 	hwif->mmio  = 2;
+	hwif->OUTSW  = dma_outsw;
+	hwif->INSW  = dma_insw;
 	hwif->OUTL  = NULL;
 	hwif->INL   = NULL;
 	hwif->OUTSL = NULL;
