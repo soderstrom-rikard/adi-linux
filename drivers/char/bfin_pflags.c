@@ -13,6 +13,7 @@
  *               Copyright 2004-2006 Analog Devices Inc.
  * Jan 10, 2005  Changed Michael Hennerich
  * Apr 20, 2005  Changed added PROC entry Michael Hennerich
+ * Oct 26, 2006  Tidy up exit, dynamic major  Phil Wilshire
  * Apr 19, 2007  Add /sys/class/pflag, make PROC obsolete -- Jean-Christian de Rivaz
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
