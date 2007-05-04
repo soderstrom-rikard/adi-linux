@@ -13,6 +13,7 @@
  *               Copyright 2004-2006 Analog Devices Inc.
  * Jan 10, 2005  Changed Michael Hennerich
  * Apr 20, 2005  Changed added PROC entry Michael Hennerich
+ * Apr 19, 2007  Add /sys/class/pflag, make PROC obsolete -- Jean-Christian de Rivaz
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
@@ -58,17 +59,22 @@
 #include <linux/init.h>
 #include <linux/fs.h>
 #include <linux/major.h>
+#include <linux/device.h>
 #include <linux/poll.h>
 #include <linux/interrupt.h>
+#include <linux/module.h>
+#include <linux/kernel.h>
 #include <asm/uaccess.h>
 #include <asm/blackfin.h>
 #include <asm/gpio.h>
+#if defined(CONFIG_BF533_PFLAGS_PROC)
 #include <linux/proc_fs.h>
+#endif
 #include <linux/spinlock.h>
 #include "bfin_pflags.h"
 
-
-#define PFLAG_MAJOR 253		//experimental
+static int major = 0;
+module_param(major, int, 0444);
 
 static DEFINE_SPINLOCK(pflags_lock);
 
@@ -243,18 +249,30 @@ static ssize_t pflags_write(struct file *filp, const char *buf, size_t size, lof
 
 	gpio_direction_output(minor);
 
-	gpio_set_value(minor, buf[0] == '0' ? 0 : 1);
+	pr_debug("pfbits driver: pflag_write = %c\n", buf[0]);
 
+		switch (*buf) {
+		case '0':
+			gpio_set_value(minor, 0);
+			break;
+		case '1':
+			gpio_set_value(minor, 1);
+			break;
+		case 'T':
+			set_gpio_toggle(minor);
+			break;
+		default:
+			return -EINVAL;
+		}
 
 	return size;
 
 }
 
 /*
- *  Info exported via "/proc/driver/pflags".
+ *  Info exported via "/sys/class/pflag/status".
  */
-
-static int pflags_proc_output(char *buf)
+static ssize_t pflag_status_show(struct class *class, char *buf)
 {
 	char *p;
 	unsigned short i;
@@ -274,10 +292,16 @@ static int pflags_proc_output(char *buf)
 	return p - buf;
 }
 
+#if defined(CONFIG_BF533_PFLAGS_PROC)
+/*
+ *  Info exported via "/proc/driver/pflags".
+ *  For backward compatibility only.
+ *  Use "/sys/class/pflag/status" instead.
+ */
 static int pflags_read_proc(char *page, char **start, off_t off,
 		 int count, int *eof, void *data)
 {
-	int len = pflags_proc_output(page);
+	int len = pflag_status_show(NULL, page);
 	if (len <= off + count)
 		*eof = 1;
 	*start = page + off;
@@ -288,6 +312,7 @@ static int pflags_read_proc(char *page, char **start, off_t off,
 		len = 0;
 	return len;
 }
+#endif
 
 /***********************************************************
 *
@@ -372,22 +397,61 @@ static struct file_operations pflags_fops = {
       .release = pflags_release,
 };
 
+static struct class *pflag_class;
+
+static CLASS_ATTR(status, S_IRUGO, &pflag_status_show, NULL);
+
 static int __init blackfin_pflags_init(void)
 {
-	register_chrdev(PFLAG_MAJOR, "pflag", &pflags_fops);
-
-	create_proc_read_entry("driver/pflags", 0, 0, pflags_read_proc, NULL);
+	int minor;
+	char minor_name[8];
+        int res;
 
 	printk(KERN_INFO "pfx: pfbits driver for bf5xx\n");
 
+	res = register_chrdev(major, "pflag", &pflags_fops);
+        if ( res < 0 ) {
+		printk(KERN_WARNING 
+		       "unable to register major %d \n", major);
+		return -EIO;
+	}
+        major = res;
+
+#if defined(CONFIG_BF533_PFLAGS_PROC)
+	if(!create_proc_read_entry("driver/pflags", 0, 0, pflags_read_proc, NULL)) {
+		printk(KERN_INFO "pflag: can't create proc entry!\n");
+		goto release_chrdev;
+	}
+#endif
+        pflag_class = class_create(THIS_MODULE, "pflag");
+	if (class_create_file(pflag_class, &class_attr_status)) {
+		goto release_proc;
+	}
+	for (minor = 0; minor < MAX_BLACKFIN_GPIOS; minor++) {
+		sprintf(minor_name, "pf%d", minor);
+		device_create(pflag_class, NULL,
+			      MKDEV(major, minor), minor_name);
+	}
+	
+
 	return 0;
+release_proc:
+#if defined(CONFIG_BF533_PFLAGS_PROC)
+	remove_proc_entry("driver/pflags", NULL);
+release_chrdev:
+#endif
+	unregister_chrdev(major, "pflag");
+exit:
+	return -ENOMEM;
 }
 
-void __exit blackfin_plags_exit(void)
+void __exit blackfin_pflags_exit(void)
 {
+#if defined(CONFIG_BF533_PFLAGS_PROC)
 	remove_proc_entry("driver/pflags", NULL);
-	unregister_chrdev(PFLAG_MAJOR, "pflag");
+#endif
+	unregister_chrdev(major, "pflag");
 }
 
 module_init(blackfin_pflags_init);
-module_exit(blackfin_plags_exit);
+module_exit(blackfin_pflags_exit);
