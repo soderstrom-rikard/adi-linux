@@ -115,6 +115,18 @@ config AD5304
 
 	  If unsure, say N.
 
+config BF5xx_TEA5764
+	tristate "TEA5764 FM/RDS RX"
+	depends on I2C && EXPERIMENTAL && BFIN
+	default n
+	---help---
+
+config BF5xx_FBDMA
+	tristate "Framebuffer DMA BitBlit / Fill Rect Support"
+	depends EXPERIMENTAL && BFIN
+	default n
+	---help---
+
 config VT
 	bool "Virtual terminal" if EMBEDDED
 	select INPUT
