@@ -744,7 +744,7 @@ void *safe_dma_memcpy(void *dest, const void *src, size_t size)
 }
 EXPORT_SYMBOL(safe_dma_memcpy);
 
-void dma_outsb(void __iomem *addr, const void *buf, unsigned long len)
+void dma_outsb(void __iomem *addr, const void *buf, unsigned short len)
 {
 
 	unsigned long flags;
@@ -754,12 +754,12 @@ void dma_outsb(void __iomem *addr, const void *buf, unsigned long len)
 	blackfin_dcache_flush_range((unsigned int)buf,(unsigned int)(buf) + len);
 
    	bfin_write_MDMA_D0_START_ADDR(addr);
-	bfin_write_MDMA_D0_X_COUNT((u16)len);
+	bfin_write_MDMA_D0_X_COUNT(len);
 	bfin_write_MDMA_D0_X_MODIFY(0);
 	bfin_write_MDMA_D0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
 	bfin_write_MDMA_S0_START_ADDR(buf);
-	bfin_write_MDMA_S0_X_COUNT((u16)len);
+	bfin_write_MDMA_S0_X_COUNT(len);
 	bfin_write_MDMA_S0_X_MODIFY(1);
 	bfin_write_MDMA_S0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
@@ -778,18 +778,18 @@ void dma_outsb(void __iomem *addr, const void *buf, unsigned long len)
 EXPORT_SYMBOL(dma_outsb);
 
 
-void dma_insb(const void __iomem *addr, void *buf, unsigned long len)
+void dma_insb(const void __iomem *addr, void *buf, unsigned short len)
 {
 	unsigned long flags;
 		
 	local_irq_save(flags);
    	bfin_write_MDMA_D0_START_ADDR(buf);
-	bfin_write_MDMA_D0_X_COUNT((u16)len);
+	bfin_write_MDMA_D0_X_COUNT(len);
 	bfin_write_MDMA_D0_X_MODIFY(1);
 	bfin_write_MDMA_D0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
 	bfin_write_MDMA_S0_START_ADDR(addr);
-	bfin_write_MDMA_S0_X_COUNT((u16)len);
+	bfin_write_MDMA_S0_X_COUNT(len);
 	bfin_write_MDMA_S0_X_MODIFY(0);
 	bfin_write_MDMA_S0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
@@ -809,7 +809,7 @@ void dma_insb(const void __iomem *addr, void *buf, unsigned long len)
 }
 EXPORT_SYMBOL(dma_insb);
 
-void dma_outsw(void __iomem *addr, const void  *buf, unsigned long len)
+void dma_outsw(void __iomem *addr, const void  *buf, unsigned short len)
 {
 	unsigned long flags;
 	
@@ -818,12 +818,12 @@ void dma_outsw(void __iomem *addr, const void  *buf, unsigned long len)
 	blackfin_dcache_flush_range((unsigned int)buf,(unsigned int)(buf) + len);
 
    	bfin_write_MDMA_D0_START_ADDR(addr);
-	bfin_write_MDMA_D0_X_COUNT((u16)len);
+	bfin_write_MDMA_D0_X_COUNT(len);
 	bfin_write_MDMA_D0_X_MODIFY(0);
 	bfin_write_MDMA_D0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
 	bfin_write_MDMA_S0_START_ADDR(buf);
-	bfin_write_MDMA_S0_X_COUNT((u16)len);
+	bfin_write_MDMA_S0_X_COUNT(len);
 	bfin_write_MDMA_S0_X_MODIFY(2);
 	bfin_write_MDMA_S0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
@@ -841,19 +841,19 @@ void dma_outsw(void __iomem *addr, const void  *buf, unsigned long len)
 }
 EXPORT_SYMBOL(dma_outsw);
 
-void dma_insw(const void __iomem *addr, void *buf, unsigned long len)
+void dma_insw(const void __iomem *addr, void *buf, unsigned short len)
 {
 	unsigned long flags;
 		
 	local_irq_save(flags);
 	
    	bfin_write_MDMA_D0_START_ADDR(buf);
-	bfin_write_MDMA_D0_X_COUNT((u16)len);
+	bfin_write_MDMA_D0_X_COUNT(len);
 	bfin_write_MDMA_D0_X_MODIFY(2);
 	bfin_write_MDMA_D0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
 	bfin_write_MDMA_S0_START_ADDR(addr);
-	bfin_write_MDMA_S0_X_COUNT((u16)len);
+	bfin_write_MDMA_S0_X_COUNT(len);
 	bfin_write_MDMA_S0_X_MODIFY(0);
 	bfin_write_MDMA_S0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
@@ -873,7 +873,7 @@ void dma_insw(const void __iomem *addr, void *buf, unsigned long len)
 }
 EXPORT_SYMBOL(dma_insw);
 
-void dma_outsl(void __iomem *addr, const void *buf, unsigned long len)
+void dma_outsl(void __iomem *addr, const void *buf, unsigned short len)
 {
 	unsigned long flags;
 	
@@ -882,12 +882,12 @@ void dma_outsl(void __iomem *addr, const void *buf, unsigned long len)
 	blackfin_dcache_flush_range((unsigned int)buf,(unsigned int)(buf) + len);
 
    	bfin_write_MDMA_D0_START_ADDR(addr);
-	bfin_write_MDMA_D0_X_COUNT((u16)len);
+	bfin_write_MDMA_D0_X_COUNT(len);
 	bfin_write_MDMA_D0_X_MODIFY(0);
 	bfin_write_MDMA_D0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
 	bfin_write_MDMA_S0_START_ADDR(buf);
-	bfin_write_MDMA_S0_X_COUNT((u16)len);
+	bfin_write_MDMA_S0_X_COUNT(len);
 	bfin_write_MDMA_S0_X_MODIFY(4);
 	bfin_write_MDMA_S0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
@@ -905,19 +905,19 @@ void dma_outsl(void __iomem *addr, const void *buf, unsigned long len)
 }
 EXPORT_SYMBOL(dma_outsl);
 
-void dma_insl(const void __iomem *addr, void *buf, unsigned long len)
+void dma_insl(const void __iomem *addr, void *buf, unsigned short len)
 {
 	unsigned long flags;
 	
 	local_irq_save(flags);
 	
    	bfin_write_MDMA_D0_START_ADDR(buf);
-	bfin_write_MDMA_D0_X_COUNT((u16)len);
+	bfin_write_MDMA_D0_X_COUNT(len);
 	bfin_write_MDMA_D0_X_MODIFY(4);
 	bfin_write_MDMA_D0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
 	bfin_write_MDMA_S0_START_ADDR(addr);
-	bfin_write_MDMA_S0_X_COUNT((u16)len);
+	bfin_write_MDMA_S0_X_COUNT(len);
 	bfin_write_MDMA_S0_X_MODIFY(0);
 	bfin_write_MDMA_S0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
