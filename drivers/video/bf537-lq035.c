@@ -382,7 +382,7 @@ static int config_dma(void)
 	return 0;
 }
 
-static void init_ports(void)
+static int request_ports(void)
 {
 	/*
 		UD:      PF13
@@ -393,11 +393,16 @@ static void init_ports(void)
 
 
 #if (defined(UD) &&  defined(LBR))
-	if (gpio_request(UD, NULL))
+	if (gpio_request(UD, NULL)) {
 		printk(KERN_ERR"Requesting GPIO %d faild\n",UD);
+		return -EFAULT;
+	}
 
-	if (gpio_request(LBR, NULL))
+	if (gpio_request(LBR, NULL)) {
 		printk(KERN_ERR"Requesting GPIO %d faild\n",LBR);
+		gpio_free(UD);
+		return -EFAULT;
+	}
 
 	gpio_direction_output(UD);
 	gpio_direction_output(LBR);
@@ -406,8 +411,14 @@ static void init_ports(void)
 	gpio_set_value(LBR,1);
 #endif
 
-	if (gpio_request(MOD, NULL))
+	if (gpio_request(MOD, NULL)) {
 		printk(KERN_ERR"Requesting GPIO %d faild\n",MOD);
+#if (defined(UD) &&  defined(LBR))
+		gpio_free(LBR);
+		gpio_free(UD);
+#endif
+		return -EFAULT;
+	}
 
 	gpio_direction_output(MOD);
 	gpio_set_value(MOD,1);
@@ -428,6 +439,16 @@ static void init_ports(void)
 
 	bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0xFFFF);
 	SSYNC();
+	return 0;
+}
+
+static void free_ports(void)
+{
+#if (defined(UD) &&  defined(LBR))
+	gpio_free(LBR);
+	gpio_free(UD);
+#endif
+	gpio_free(MOD);
 }
 
 static struct fb_info bfin_lq035_fb;
@@ -600,6 +621,7 @@ static struct backlight_properties bfin_lq035fb_bl = {
 	.get_brightness	= bl_get_brightness,
 };
 
+static struct backlight_device *bl_dev;
 
 static int lcd_get_power(struct lcd_device* dev)
 {
@@ -636,29 +658,40 @@ static int lcd_check_fb(struct fb_info* fi)
 }
 
 static struct lcd_properties lcd = {
-	.owner			= THIS_MODULE,
-	.get_power		= lcd_get_power,
-	.set_power		= lcd_set_power,
-	.max_contrast   = 255,
+	.owner		= THIS_MODULE,
+	.get_power	= lcd_get_power,
+	.set_power	= lcd_set_power,
+	.max_contrast	= 255,
 	.get_contrast   = lcd_get_contrast,
 	.set_contrast   = lcd_set_contrast,
-	.check_fb		= lcd_check_fb,
+	.check_fb	= lcd_check_fb,
 };
+
+static struct lcd_device *lcd_dev;
 
 static int __init bfin_lq035_fb_init(void)
 {
-	printk(KERN_INFO DRIVER_NAME ": FrameBuffer initializing...\n");
+	printk(KERN_INFO DRIVER_NAME ": FrameBuffer initializing...");
 
-	if (request_dma(CH_PPI, "BF533_PPI_DMA") < 0)
+	if (request_dma(CH_PPI, "BF533_PPI_DMA") < 0) {
+		printk(KERN_ERR DRIVER_NAME ": couldn't request PPI dma.\n");
 		return -EFAULT;
+	}
+
+	if(request_ports()) {
+		printk(KERN_ERR DRIVER_NAME ": couldn't request gpio port.\n");
+		free_dma(CH_PPI);
+		return -EFAULT;
+	}
 
 	fb_buffer = dma_alloc_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), &dma_handle, GFP_KERNEL);
 
 	if (NULL == fb_buffer) {
 		printk(KERN_ERR DRIVER_NAME ": couldn't allocate dma buffer.\n");
+		free_dma(CH_PPI);
+		free_ports();
 		return -ENOMEM;
 	}
-
 
 #if L1_DATA_A_LENGTH != 0
 	dma_desc_table = (unsigned long*)l1_data_sram_alloc(sizeof(unsigned long) * 2 * (LCD_Y_RES + U_LINES));
@@ -668,10 +701,11 @@ static int __init bfin_lq035_fb_init(void)
 
 	if (NULL == dma_desc_table) {
 		printk(KERN_ERR DRIVER_NAME ": couldn't allocate dma descriptor.\n");
+		free_dma(CH_PPI);
+		free_ports();
 		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
 		return -ENOMEM;
 	}
-
 
 	memset(fb_buffer, 0xff, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8));
 
@@ -714,7 +748,8 @@ static int __init bfin_lq035_fb_init(void)
 
 	if (register_framebuffer(&bfin_lq035_fb) < 0) {
 		printk(KERN_ERR DRIVER_NAME ": unable to register framebuffer.\n");
-
+		free_dma(CH_PPI);
+		free_ports();
 		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
 		fb_buffer = NULL;
 		return -EINVAL;
@@ -722,11 +757,10 @@ static int __init bfin_lq035_fb_init(void)
 
 	i2c_add_driver(&ad5280_driver);
 
-	backlight_device_register("bf537-bl", NULL, NULL, &bfin_lq035fb_bl);
-	lcd_device_register(DRIVER_NAME, NULL, &lcd);
+	bl_dev = backlight_device_register("bf537-bl", NULL, NULL, &bfin_lq035fb_bl);
+	lcd_dev = lcd_device_register(DRIVER_NAME, NULL, &lcd);
 
-	init_ports();
-
+	printk(KERN_INFO "Done.\n");
 	return 0;
 }
 
@@ -747,15 +781,13 @@ static void __exit bfin_lq035_fb_exit(void)
 
 	free_dma(CH_PPI);
 
+	lcd_device_unregister(lcd_dev);
+	backlight_device_unregister(bl_dev);
+
 	unregister_framebuffer(&bfin_lq035_fb);
 	i2c_del_driver(&ad5280_driver);
 
-#if (defined(UD) &&  defined(LBR))
-	gpio_free(LBR);
-	gpio_free(UD);
-#endif
-
-	gpio_free(MOD);
+	free_ports();
 
 	printk(KERN_INFO DRIVER_NAME ": Unregister LCD driver.\n");
 }
