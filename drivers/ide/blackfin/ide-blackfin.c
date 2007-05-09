@@ -52,6 +52,21 @@
   #define AX_BITMASK (1<<CONFIG_BFIN_IDE_ADDRESS_AX)
 #endif
 
+static void mm_outsw(unsigned long addr, void *buf, u32 len)
+{
+	if (len > 255)
+		dma_outsw((void __iomem *)addr, buf, len);
+	else
+		outsw((void __iomem *)addr, buf, len);
+}
+
+static void mm_insw(unsigned long addr, void *buf, u32 len)
+{
+	if (len > 255)
+		dma_insw((const void __iomem *)addr, buf, len);
+	else
+		insw((const void __iomem *)addr, buf, len);
+}
 
 static inline void hw_setup(hw_regs_t *hw)
 {
@@ -81,8 +96,8 @@ static inline void hwif_setup(ide_hwif_t *hwif)
 	default_hwif_iops(hwif);
 
 	hwif->mmio  = 2;
-	hwif->OUTSW  = dma_outsw;
-	hwif->INSW  = dma_insw;
+	hwif->OUTSW  = mm_outsw; 
+	hwif->INSW  = mm_insw;
 	hwif->OUTL  = NULL;
 	hwif->INL   = NULL;
 	hwif->OUTSL = NULL;
