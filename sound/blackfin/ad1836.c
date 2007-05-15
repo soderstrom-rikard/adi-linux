@@ -1114,7 +1114,7 @@ static int snd_ad1836_capture_prepare(snd_pcm_substream_t *substream)
 	fragsize_bytes *= 12;
 	word_len = 2;
 #else
-	wor_len = 4;
+	word_len = 4;
 #endif
 
 	err = bf53x_sport_config_rx_dma(chip->sport, buf_addr , fragcount,
