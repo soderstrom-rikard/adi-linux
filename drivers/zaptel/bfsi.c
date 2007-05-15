@@ -491,8 +491,8 @@ static void init_sport0(void)
 
 static int init_dma_wc(void)
 {
-	struct dma_register_t *dma_rx = (struct dma_register_t*) dma_iobase[sport_dma_rx];
-	struct dma_register_t *dma_tx = (struct dma_register_t*) dma_iobase[sport_dma_tx];
+	struct dma_register *dma_rx = (struct dma_register*) dma_iobase[sport_dma_rx];
+	struct dma_register *dma_tx = (struct dma_register*) dma_iobase[sport_dma_tx];
 
         if (request_dma(sport_dma_rx, "SPORT RX Data") == -EBUSY) {
                 printk(KERN_ERR "Failed to request RX dma %d\n", sport_dma_rx);
@@ -545,7 +545,7 @@ static int init_dma_wc(void)
 static u8 *isr_write_processing(void) {
 	u8 *writechunk;
 	int x;
-	struct dma_register_t *dma_tx = (struct dma_register_t*) dma_iobase[sport_dma_tx];
+	struct dma_register *dma_tx = (struct dma_register*) dma_iobase[sport_dma_tx];
 
 	/* select which ping-pong buffer to write to */
 	unsigned char *curr = *(unsigned char**) &(dma_tx->curr_addr_ptr_lo);
@@ -581,7 +581,7 @@ static u8 *isr_write_processing(void) {
 static u8 *isr_read_processing(void) {
 	u8 *readchunk;
 	int x;
-	struct dma_register_t *dma_rx = (struct dma_register_t*) dma_iobase[sport_dma_rx];
+	struct dma_register *dma_rx = (struct dma_register*) dma_iobase[sport_dma_rx];
 
 	/* select which ping-pong buffer to write to */
 	unsigned char *curr = *(unsigned char**) &(dma_rx->curr_addr_ptr_lo);
@@ -615,7 +615,7 @@ static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs)
   	unsigned int  start_cycles = cycles();
   	u8 *read_samples;
   	u8 *write_samples;
-	struct dma_register_t *dma_rx = (struct dma_register_t*) dma_iobase[sport_dma_rx];
+	struct dma_register *dma_rx = (struct dma_register*) dma_iobase[sport_dma_rx];
 
 	dma_rx->irq_status = 0x0001;
 

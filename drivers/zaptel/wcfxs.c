@@ -2386,7 +2386,7 @@ static int wcfxs_init_one(struct wcfxs_desc *d)
 		wc->irq = IRQ_SPORT0_RX;
 #ifdef BFIN_SPI_FRAMEWORK
 		/* initilize the workqueue*/
-		INIT_WORK(&wc->bfin_work_queue,bfin_work_queue,wc);
+		INIT_WORK(&wc->bfin_work_queue,bfin_work_queue);
 		wc->workqueue = create_singlethread_workqueue(d->name);
 #endif
 
