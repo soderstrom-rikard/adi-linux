@@ -418,7 +418,7 @@ static int dpmc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
 
 		case IOCTL_DISABLE_WDOG_TIMER:
 			disable_wdog_timer();
-			if (bfin_read_WDOG_CTL() == TMR_DIS)
+			if (bfin_read_WDOG_CTL() == 0x0AD0)
 				return 0;
 			else
 				return -1;
