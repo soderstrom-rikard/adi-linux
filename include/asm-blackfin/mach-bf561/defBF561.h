@@ -849,6 +849,32 @@
 #define PDWN                   0x00000020	/* Put the PLL in a Deep Sleep state */
 #define BYPASS                 0x00000100	/* Bypass the PLL */
 
+/* VR_CTL Masks																	*/
+#define	FREQ			0x0003	/* Switching Oscillator Frequency For Regulator	*/
+#define	HIBERNATE		0x0000	/* 		Powerdown/Bypass On-Board Regulation	*/
+#define	FREQ_333		0x0001	/* 		Switching Frequency Is 333 kHz			*/
+#define	FREQ_667		0x0002	/* 		Switching Frequency Is 667 kHz			*/
+#define	FREQ_1000		0x0003	/* 		Switching Frequency Is 1 MHz			*/
+
+#define GAIN			0x000C	/* Voltage Level Gain	*/
+#define	GAIN_5			0x0000	/* 		GAIN = 5		*/
+#define	GAIN_10			0x0004	/* 		GAIN = 10		*/
+#define	GAIN_20			0x0008	/* 		GAIN = 20		*/
+#define	GAIN_50			0x000C	/* 		GAIN = 50		*/
+
+#define	VLEV			0x00F0	/* Internal Voltage Level					*/
+#define	VLEV_085 		0x0060	/* 		VLEV = 0.85 V (-5% - +10% Accuracy)	*/
+#define	VLEV_090		0x0070	/* 		VLEV = 0.90 V (-5% - +10% Accuracy)	*/
+#define	VLEV_095		0x0080	/* 		VLEV = 0.95 V (-5% - +10% Accuracy)	*/
+#define	VLEV_100		0x0090	/* 		VLEV = 1.00 V (-5% - +10% Accuracy)	*/
+#define	VLEV_105		0x00A0	/* 		VLEV = 1.05 V (-5% - +10% Accuracy)	*/
+#define	VLEV_110		0x00B0	/* 		VLEV = 1.10 V (-5% - +10% Accuracy)	*/
+#define	VLEV_115		0x00C0	/* 		VLEV = 1.15 V (-5% - +10% Accuracy)	*/
+#define	VLEV_120		0x00D0	/* 		VLEV = 1.20 V (-5% - +10% Accuracy)	*/
+
+#define	WAKE			0x0100	/* Enable RTC/Reset Wakeup From Hibernate	*/
+#define	SCKELOW			0x8000	/* Do Not Drive SCKE High During Reset After Hibernate */
+
 /* CHIPID Masks */
 #define CHIPID_VERSION         0xF0000000
 #define CHIPID_FAMILY          0x0FFFF000
@@ -904,14 +930,27 @@
 #define IWR_ENABLE(x)	       (1 << (x))	/* Wakeup Enable Peripheral #x */
 #define IWR_DISABLE(x) (0xFFFFFFFF ^ (1 << (x)))	/* Wakeup Disable Peripheral #x */
 
-/* *********  WATCHDOG TIMER MASKS  ********************8 */
+/* *********  WATCHDOG TIMER MASKS  ********************* */
 
 /* Watchdog Timer WDOG_CTL Register */
-#define ICTL(x) ((x<<1) & 0x0006)
-#define ENABLE_RESET     0x00000000	/* Set Watchdog Timer to generate reset */
-#define ENABLE_NMI       0x00000002	/* Set Watchdog Timer to generate non-maskable interrupt */
-#define ENABLE_GPI       0x00000004	/* Set Watchdog Timer to generate general-purpose interrupt */
-#define DISABLE_EVT      0x00000006	/* Disable Watchdog Timer interrupts */
+#define WDEV(x) (((x)<<1) & 0x0006) /* event generated on roll over */
+#define WDEV_RESET 0x0000 /* generate reset event on roll over */
+#define WDEV_NMI 0x0002 /* generate NMI event on roll over */
+#define WDEV_GPI 0x0004 /* generate GP IRQ on roll over */
+#define WDEV_NONE 0x0006 /* no event on roll over */
+#define WDEN 0x0FF0 /* enable watchdog */
+#define WDDIS 0x0AD0 /* disable watchdog */
+#define WDRO 0x8000 /* watchdog rolled over latch */ 
+
+#define ICTL		WDEV
+#define ENABLE_RESET	WDEV_RESET
+#define WDOG_RESET	WDEV_RESET
+#define ENABLE_NMI	WDEV_NMI
+#define WDOG_NMI	WDEV_NMI
+#define ENABLE_GPI	WDEV_GPI
+#define WDOG_GPI	WDEV_GPI
+#define DISABLE_EVT	WDEV_NONE
+#define WDOG_NONE	WDEV_NONE
 
 #define TMR_EN		0x0000
 #define TMR_DIS		0x0AD0
@@ -1214,18 +1253,18 @@
 #define TIMIL9		0x0002
 #define TIMIL10		0x0004
 #define TIMIL11		0x0008
-#define TOVL_ERR0	0x00000010
-#define TOVL_ERR1	0x00000020
-#define TOVL_ERR2	0x00000040
-#define TOVL_ERR3	0x00000080
-#define TOVL_ERR4	0x00100000
-#define TOVL_ERR5	0x00200000
-#define TOVL_ERR6	0x00400000
-#define TOVL_ERR7	0x00800000
-#define TOVL_ERR8	0x0010
-#define TOVL_ERR9	0x0020
-#define TOVL_ERR10	0x0040
-#define TOVL_ERR11	0x0080
+#define TOVF_ERR0	0x00000010
+#define TOVF_ERR1	0x00000020
+#define TOVF_ERR2	0x00000040
+#define TOVF_ERR3	0x00000080
+#define TOVF_ERR4	0x00100000
+#define TOVF_ERR5	0x00200000
+#define TOVF_ERR6	0x00400000
+#define TOVF_ERR7	0x00800000
+#define TOVF_ERR8	0x0010
+#define TOVF_ERR9	0x0020
+#define TOVF_ERR10	0x0040
+#define TOVF_ERR11	0x0080
 #define TRUN0		0x00001000
 #define TRUN1		0x00002000
 #define TRUN2		0x00004000
@@ -1251,18 +1290,18 @@
 #define TIMIL9_P	0x01
 #define TIMIL10_P	0x02
 #define TIMIL11_P	0x03
-#define TOVL_ERR0_P	0x04
-#define TOVL_ERR1_P	0x05
-#define TOVL_ERR2_P	0x06
-#define TOVL_ERR3_P	0x07
-#define TOVL_ERR4_P	0x14
-#define TOVL_ERR5_P	0x15
-#define TOVL_ERR6_P	0x16
-#define TOVL_ERR7_P	0x17
-#define TOVL_ERR8_P	0x04
-#define TOVL_ERR9_P	0x05
-#define TOVL_ERR10_P	0x06
-#define TOVL_ERR11_P	0x07
+#define TOVF_ERR0_P	0x04
+#define TOVF_ERR1_P	0x05
+#define TOVF_ERR2_P	0x06
+#define TOVF_ERR3_P	0x07
+#define TOVF_ERR4_P	0x14
+#define TOVF_ERR5_P	0x15
+#define TOVF_ERR6_P	0x16
+#define TOVF_ERR7_P	0x17
+#define TOVF_ERR8_P	0x04
+#define TOVF_ERR9_P	0x05
+#define TOVF_ERR10_P	0x06
+#define TOVF_ERR11_P	0x07
 #define TRUN0_P		0x0C
 #define TRUN1_P		0x0D
 #define TRUN2_P		0x0E
@@ -1275,6 +1314,32 @@
 #define TRUN9_P		0x0D
 #define TRUN10_P	0x0E
 #define TRUN11_P	0x0F
+
+/* Alternate Deprecated Macros Provided For Backwards Code Compatibility */
+#define TOVL_ERR0 TOVF_ERR0
+#define TOVL_ERR1 TOVF_ERR1
+#define TOVL_ERR2 TOVF_ERR2
+#define TOVL_ERR3 TOVF_ERR3
+#define TOVL_ERR4 TOVF_ERR4
+#define TOVL_ERR5 TOVF_ERR5
+#define TOVL_ERR6 TOVF_ERR6
+#define TOVL_ERR7 TOVF_ERR7
+#define TOVL_ERR8 TOVF_ERR8
+#define TOVL_ERR9 TOVF_ERR9
+#define TOVL_ERR10 TOVF_ERR10
+#define TOVL_ERR11 TOVF_ERR11
+#define TOVL_ERR0_P TOVF_ERR0_P
+#define TOVL_ERR1_P TOVF_ERR1_P
+#define TOVL_ERR2_P TOVF_ERR2_P
+#define TOVL_ERR3_P TOVF_ERR3_P
+#define TOVL_ERR4_P TOVF_ERR4_P
+#define TOVL_ERR5_P TOVF_ERR5_P
+#define TOVL_ERR6_P TOVF_ERR6_P
+#define TOVL_ERR7_P TOVF_ERR7_P
+#define TOVL_ERR8_P TOVF_ERR8_P
+#define TOVL_ERR9_P TOVF_ERR9_P
+#define TOVL_ERR10_P TOVF_ERR10_P
+#define TOVL_ERR11_P TOVF_ERR11_P
 
 /* TIMERx_CONFIG Registers */
 #define PWM_OUT		0x0001
@@ -1699,19 +1764,5 @@
 #define SDRS			0x00000008	/* SDRAM is in reset state */
 #define SDEASE		    0x00000010	/* SDRAM EAB sticky error status - W1C */
 #define BGSTAT			0x00000020	/* Bus granted */
-
-/*VR_CTL Masks*/
-#define WAKE                    0x100
-#define VLEV_6                  0x60
-#define VLEV_7                  0x70
-#define VLEV_8                  0x80
-#define VLEV_9                  0x90
-#define VLEV_10                 0xA0
-#define VLEV_11                 0xB0
-#define VLEV_12                 0xC0
-#define VLEV_13                 0xD0
-#define VLEV_14                 0xE0
-#define VLEV_15                 0xF0
-#define FREQ_3                  0x03
 
 #endif				/* _DEF_BF561_H */
