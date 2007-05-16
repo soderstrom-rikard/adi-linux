@@ -254,7 +254,6 @@ static irqreturn_t bfin_serial_rx_int(int irq, void *dev_id)
 static irqreturn_t bfin_serial_tx_int(int irq, void *dev_id)
 {
 	struct bfin_serial_port *uart = dev_id;
-	unsigned short status;
 
 	spin_lock(&uart->port.lock);
 	while ((UART_GET_IIR(uart) & IIR_STATUS) == IIR_TX_READY)
