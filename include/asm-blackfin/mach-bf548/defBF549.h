@@ -34,17 +34,11 @@
 /* Include all Core registers and bit definitions */
 #include <asm/mach-common/def_LPBlackfin.h>
 
-#ifdef _MISRA_RULES
-#pragma diag(push)
-#pragma diag(suppress:misra_rule_19_4)
-#pragma diag(suppress:misra_rule_19_7)
-#endif /* _MISRA_RULES */
-
 
 /* SYSTEM & MMR ADDRESS DEFINITIONS FOR ADSP-BF549 */
 
 /* Include defBF54x_base.h for the set of #defines that are common to all ADSP-BF54x processors */
-#include <defBF54x_base.h>
+#include "defBF54x_base.h"
 
 /* The following are the #defines needed by ADSP-BF549 that are not in the common header */
 
@@ -3474,9 +3468,5 @@
 
 #define SET_CDRCPSEL(x)  ( ( (x) & 0xFF ) << 24)
 #define SET_FMCPSEL(x)   ( ( (x) & 0xFF ) << 24)
-
-#ifdef _MISRA_RULES
-#pragma diag(pop)
-#endif /* _MISRA_RULES */
 
 #endif /* _DEF_BF549_H */
