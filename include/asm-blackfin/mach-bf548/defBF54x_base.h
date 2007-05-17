@@ -1,25 +1,35 @@
 /*
-** defBF54x_base.h
-**
-** Copyright (C) 2006-2007 Analog Devices Inc., All Rights Reserved.
-**
-************************************************************************************
-**
-** This include file contains a list of macro "defines" to enable the programmer
-** to use symbolic names for the registers common to the ADSP-BF54x peripherals.
-**  
-************************************************************************************
-** System MMR Register Map
-************************************************************************************/
+ * File:         include/asm-blackfin/mach-bf548/defBF54x_base.h
+ * Based on:
+ * Author:
+ *
+ * Created:
+ * Description:
+ *
+ * Rev:
+ *
+ * Modified:
+ *
+ * Bugs:         Enter bugs at http://blackfin.uclinux.org/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; see the file COPYING.
+ * If not, write to the Free Software Foundation,
+ * 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
 
 #ifndef _DEF_BF54X_H
 #define _DEF_BF54X_H
-
-#ifdef _MISRA_RULES
-#pragma diag(push)
-#pragma diag(suppress:misra_rule_19_4)
-#pragma diag(suppress:misra_rule_19_7)
-#endif /* _MISRA_RULES */
 
 
 /* ************************************************************** */
@@ -1703,14 +1713,14 @@
 #define                    WDSIZE  0xc        /* Transfer Word Size */
 #define                     DMA2D  0x10       /* DMA Mode */
 #define                    nDMA2D  0x0       
-#define                      SYNC  0x20       /* Work Unit Transitions */
-#define                     nSYNC  0x0       
+#define                   RESTART  0x20       /* Work Unit Transitions */
+#define                  nRESTART  0x0       
 #define                    DI_SEL  0x40       /* Data Interrupt Timing Select */
 #define                   nDI_SEL  0x0       
 #define                     DI_EN  0x80       /* Data Interrupt Enable */
 #define                    nDI_EN  0x0       
 #define                    NDSIZE  0xf00      /* Flex Descriptor Size */
-#define                      FLOW  0xf000     /* Next Operation */
+#define                   DMAFLOW  0xf000     /* Next Operation */
 
 /* Bit masks for DMAx_IRQ_STATUS, MDMA_Sx_IRQ_STATUS, MDMA_Dx_IRQ_STATUS */
 
@@ -3893,7 +3903,7 @@
 #define                   nIFSGEN  0x0       
 #define                      POLC  0x1800     /* Frame Sync and Data Driving/Sampling Edges */
 #define                      POLS  0x6000     /* Frame Sync Polarity */
-#define                      DLEN  0x38000    /* Data Length */
+#define                   DLENGTH  0x38000    /* Data Length */
 #define                   SKIP_EN  0x40000    /* Skip Enable */
 #define                  nSKIP_EN  0x0       
 #define                   SKIP_EO  0x80000    /* Skip Even or Odd */
@@ -4243,8 +4253,8 @@
 
 /* Bit masks for SPORTx_MCMC1 */
 
-#define                     WSIZE  0xf000     /* Window Size */
-#define                      WOFF  0x3ff      /* Windows Offset */
+#define                  SP_WSIZE  0xf000     /* Window Size */
+#define                   SP_WOFF  0x3ff      /* Windows Offset */
 
 /* Bit masks for SPORTx_MCMC2 */
 
@@ -4888,9 +4898,5 @@ PORTJ_FER registers
 #define PINT1_IRQ PINT1_REQUEST
 #define PINT2_IRQ PINT2_REQUEST
 #define PINT3_IRQ PINT3_REQUEST
-
-#ifdef _MISRA_RULES
-#pragma diag(pop)
-#endif /* _MISRA_RULES */
 
 #endif /* _DEF_BF54X_H */
