@@ -2611,13 +2611,6 @@ static int net2272_probe (struct device *_dev)
 	dev->dma_dreq_polarity = 0;
 	dev->dma_busy = 0;
 
-	// See if there..., can remove this test for production code
-	if (net2272_present(dev))
-	{
-		WARN(dev, "2272 not found!\n");
-		retval = -ENODEV;
-		goto done;
-	}
 	usb_reset (dev);
 	usb_reinit (dev);
 
@@ -2648,6 +2641,14 @@ static int net2272_probe (struct device *_dev)
 	if (retval) goto done;
 	retval = device_create_file (&pdev->dev, &dev_attr_registers);
 	if (retval) goto done;
+
+	// See if there..., can remove this test for production code
+	if (net2272_present(dev))
+	{
+		WARN(dev, "2272 not found!\n");
+		retval = -ENODEV;
+		goto done;
+	}
 
 	return 0;
 
