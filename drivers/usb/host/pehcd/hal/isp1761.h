@@ -36,7 +36,12 @@
 
 /*******************START HOST CONTROLLER********************************/
 /* Host controller conditional defines*/
-#define MSEC_INT_BASED                                  /* define to run host on SOF interrupt */
+//#define MSEC_INT_BASED                                  /* define to run host on SOF interrupt */
+#undef MSEC_INT_BASED 
+
+//#define CONFIG_ISP176X_HW_MODE	(2 | 0x100)	/* 32-bit Mode, IRQ Falling Edge Triggered */ 
+#define CONFIG_ISP176X_HW_MODE		(2)		/* 16-bit Mode, IRQ Falling Edge Triggered */ 
+
 
 /* For Iso support */
 #ifdef MSEC_INT_BASED /* Iso support is only currently available in this mode */

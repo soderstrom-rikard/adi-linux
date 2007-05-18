@@ -2327,6 +2327,11 @@ pehci_hcd_irq(struct usb_hcd *usb_hcd) //struct isp1761_dev *dev, void *__irq_da
     /*our host*/
     pehci_hcd = usb_hcd_to_pehci_hcd(usb_hcd);
     dev = pehci_hcd->dev;
+
+    /* Get the source of interrupts for Host Controller*/
+    dev->int_reg = isp1761_reg_read32(dev, HC_INTERRUPT_REG,dev->int_reg);
+    isp1761_reg_write32(dev,HC_INTERRUPT_REG,dev->int_reg);
+
     intr = dev->int_reg;
     if(atomic_read(&pehci_hcd->nuofsofs)){
         return IRQ_HANDLED;
@@ -2340,14 +2345,14 @@ pehci_hcd_irq(struct usb_hcd *usb_hcd) //struct isp1761_dev *dev, void *__irq_da
         work = 1;       /* phci_iso_worker(hcd); */
     if(intr & (HC_ATL_INT & INTR_ENABLE_MASK)){
         spin_lock(&pehci_hcd->lock);
-        pehci_hcd_atl_worker(pehci_hcd, regs);
+        pehci_hcd_atl_worker(pehci_hcd);
         spin_unlock(&pehci_hcd->lock);
         work = 0;       /*phci_atl_worker(hcd); */
     }
 
     if(intr & (HC_INTL_INT & INTR_ENABLE_MASK)){
         spin_lock(&pehci_hcd->lock);
-        pehci_hcd_intl_worker(pehci_hcd, regs);
+        pehci_hcd_intl_worker(pehci_hcd);
         spin_unlock(&pehci_hcd->lock);
         work = 0;       /*phci_intl_worker(hcd); */
     }
@@ -2369,29 +2374,42 @@ pehci_hcd_reset(
 {
     u32         command = 0;
     u32         temp = 0;
+    int 	retValCMD, retValHS = 0;
     phci_hcd *hcd = usb_hcd_to_pehci_hcd(usb_hcd);
     /*reset the host controller */
     temp &= 0;
     temp |= 1;
     isp1761_reg_write32(hcd->dev,HC_RESET_REG, temp);
-    mdelay(50);
+    mdelay(100);
 
     /*reset the ehci controller registers*/
     temp = 0;
     temp |= (1<<1);
     isp1761_reg_write32(hcd->dev,HC_RESET_REG, temp);
+    mdelay(100);
 
-    isp1761_reg_write32(hcd->dev,HC_HW_MODE_REG, 2); // 16-bit data bus. falling edge intr
+    isp1761_reg_write32(hcd->dev,HC_HW_MODE_REG, CONFIG_ISP176X_HW_MODE); // 16-bit data bus. falling edge intr
     isp1761_reg_write32(hcd->dev,0x374, 0x00800018); // Configure port 1 as HC
-
+    mdelay(10);
     /*read the command register */
     command = isp1761_reg_read32(hcd->dev,HC_USBCMD_REG,command);
-
     command |= CMD_RESET;
-    /*write back and wait for, 250 msec */
-    isp1761_reg_write32(hcd->dev,HC_USBCMD_REG,command);
-    /*wait for maximum 250 msecs*/
-    return pehci_hcd_handshake(hcd,HC_USBCMD_REG, CMD_RESET,0, 250 * 1000);
+
+    /*wait for maximum 250 msecs*/ 
+    retValHS = pehci_hcd_handshake(hcd,hcd->regs.command, CMD_RESET,0, 250 * 1000); 
+
+    /*This appears to be required to allow the USBCMD_REG to be read to 
+      see if reset was successful after a second reset. */
+    mdelay(10); 
+
+    /* 2nd bit should be zero if successfully reset.  Top bits 
+      will be unknown (reserved) and probably not zero. */
+    retValCMD = isp1761_reg_read32(hcd->dev, HC_USBCMD_REG, retValCMD); 
+
+    pehci_check("(pehci_hcd_reset) HC USB Reset (0x%x,%s)", 
+      retValCMD, (retValCMD & 0x2) == 0 ? "success":"failure"); 
+
+   return retValHS;
 }
 
 
