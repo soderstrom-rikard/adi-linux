@@ -150,7 +150,7 @@ static void local_put_char(struct bfin_serial_port *uart, char ch)
 
 static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
 {
-	struct tty_struct *tty = uart->port.info?uart->port.info->tty:0;
+	struct tty_struct *tty = uart->port.info->tty;
 	unsigned int status, ch, flg;
 #ifdef BF533_FAMILY
 	static int in_break = 0;
@@ -185,27 +185,32 @@ static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
 		uart->port.icount.brk++;
 		if (uart_handle_break(&uart->port))
 			goto ignore_char;
-		flg = TTY_BREAK;
-	} else if (status & PE) {
-		flg = TTY_PARITY;
+	}
+	if (status & PE)
 		uart->port.icount.parity++;
-	} else if (status & OE) {
-		flg = TTY_OVERRUN;
+	if (status & OE)
 		uart->port.icount.overrun++;
-	} else if (status & FE) {
-		flg = TTY_FRAME;
+	if (status & FE)
 		uart->port.icount.frame++;
-	} else
+
+	status &= uart->port.read_status_mask;
+
+	if (status & BI)
+		flg = TTY_BREAK;
+	else if (status & PE)
+		flg = TTY_PARITY;
+	else if (status & FE)
+		flg = TTY_FRAME;
+	else
 		flg = TTY_NORMAL;
 
 	if (uart_handle_sysrq_char(&uart->port, ch))
 		goto ignore_char;
-	if (tty)
-		uart_insert_char(&uart->port, status, 2, ch, flg);
 
-ignore_char:
-	if (tty)
-		tty_flip_buffer_push(tty);
+	uart_insert_char(&uart->port, status, OE, ch, flg);
+
+ ignore_char:
+	tty_flip_buffer_push(tty);
 }
 
 static void bfin_serial_tx_chars(struct bfin_serial_port *uart)
@@ -324,7 +329,7 @@ static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart)
 	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
 
-static void bfin_serial_dma_rx_chars(struct bfin_serial_port * uart)
+static void bfin_serial_dma_rx_chars(struct bfin_serial_port *uart)
 {
 	struct tty_struct *tty = uart->port.info->tty;
 	int i, flg, status;
@@ -336,25 +341,32 @@ static void bfin_serial_dma_rx_chars(struct bfin_serial_port * uart)
 		uart->port.icount.brk++;
 		if (uart_handle_break(&uart->port))
 			goto dma_ignore_char;
-		flg = TTY_BREAK;
-	} else if (status & PE) {
-		flg = TTY_PARITY;
+	}
+	if (status & PE)
 		uart->port.icount.parity++;
-	} else if (status & OE) {
-		flg = TTY_OVERRUN;
+	if (status & OE)
 		uart->port.icount.overrun++;
-	} else if (status & FE) {
-		flg = TTY_FRAME;
+	if (status & FE)
 		uart->port.icount.frame++;
-	} else
+
+	status &= uart->port.read_status_mask;
+
+	if (status & BI)
+		flg = TTY_BREAK;
+	else if (status & PE)
+		flg = TTY_PARITY;
+	else if (status & FE)
+		flg = TTY_FRAME;
+	else
 		flg = TTY_NORMAL;
 
 	for (i = uart->rx_dma_buf.head; i < uart->rx_dma_buf.tail; i++) {
 		if (uart_handle_sysrq_char(&uart->port, uart->rx_dma_buf.buf[i]))
 			goto dma_ignore_char;
-		uart_insert_char(&uart->port, status, 2, uart->rx_dma_buf.buf[i], flg);
+		uart_insert_char(&uart->port, status, OE, uart->rx_dma_buf.buf[i], flg);
 	}
-dma_ignore_char:
+
+ dma_ignore_char:
 	tty_flip_buffer_push(tty);
 }
 
@@ -619,9 +631,27 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 			lcr |= EPS;
 	}
 
-	/* These controls are not implemented for this port */
-	termios->c_iflag |= INPCK;
-	termios->c_iflag &= ~(IGNPAR | IGNBRK);
+	port->read_status_mask = OE;
+	if (termios->c_iflag & INPCK)
+		port->read_status_mask |= (FE | PE);
+	if (termios->c_iflag & (BRKINT | PARMRK))
+		port->read_status_mask |= BI;
+
+	/*
+	 * Characters to ignore
+	 */
+	port->ignore_status_mask = 0;
+	if (termios->c_iflag & IGNPAR)
+		port->ignore_status_mask |= FE | PE;
+	if (termios->c_iflag & IGNBRK) {
+		port->ignore_status_mask |= BI;
+		/*
+		 * If we're ignoring parity and break indicators,
+		 * ignore overruns too (for real raw support).
+		 */
+		if (termios->c_iflag & IGNPAR)
+			port->ignore_status_mask |= OE;
+	}
 
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
 	quot = uart_get_divisor(port, baud);
