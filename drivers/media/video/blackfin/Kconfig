@@ -1,3 +1,16 @@
+
+config VIDEO_BLACKFIN_CAM
+	tristate "Blackfin Camera driver"
+	depends on BFIN && VIDEO_DEV && I2C
+	select VS6524
+	default n
+	help
+	  V4L Support for ST VS6524 camera attached to
+	  the Blackfin PPI.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called blackfin_cam.
+
 config VIDEO_BLACKFIN_MT9M001
 	tristate "Micron Camera driver for BF537"
 	depends on BFIN && VIDEO_DEV && I2C
@@ -13,17 +26,27 @@ comment "CMOS Camera Sensor Selection"
 
 choice
 	prompt "Target Sensor"
-	depends on VIDEO_BLACKFIN_MT9M001
+	depends on VIDEO_BLACKFIN_MT9M001 || VIDEO_BLACKFIN_CAM	
 	default MT9V022
 
 config MT9V022
 	bool "MT9V022"
 	help
-	  Micron MT9V022 Semsor Support
+	  Micron MT9V022 Sensor Support
 
 config MT9M001
 	bool "MT9M001"
 	help
-	  Micron MT9M001 Semsor Support
+	  Micron MT9M001 Sensor Support
+
+config VS6524
+	bool "VS6524"
+	help
+	  ST VS6524 Sensor Support
+
+config OV7760
+	bool "OV7760"
+	help
+	  ST OV7760 Sensor Support
 
 endchoice
