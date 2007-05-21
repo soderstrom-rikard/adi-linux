@@ -2460,8 +2460,7 @@ static int net2272_remove (struct device *_dev)
 	if (dev->got_irq)
 		free_irq (pdev->resource [1].start, dev);
 
-	release_mem_region (pdev->resource [0].start,
-			pdev->resource [0].end - pdev->resource [0].start + 1);
+	release_mem_region (pdev->resource [0].start, 0xF0);
 
 	if (dev->base_addr)
 		iounmap (dev->base_addr);
@@ -2569,7 +2568,7 @@ static int net2272_probe (struct device *_dev)
 	}
 
 	/* alloc, and start init */
-	dev = kmalloc (sizeof *dev, SLAB_KERNEL);
+	dev = kmalloc (sizeof *dev, GFP_KERNEL);
 	if (dev == NULL) {
 		printk ("can't allocate memory!\n");
 		retval = -ENOMEM;
