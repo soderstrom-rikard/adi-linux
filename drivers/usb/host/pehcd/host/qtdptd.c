@@ -1114,7 +1114,8 @@ phci_hcd_qha_from_qtd(
     /*for non high speed devices*/
     u32     portnum = 0;
     u32     hubnum = 0;
-    u32 se = 0,rl = 0xf,nk = 0xf;
+    /*u32 se = 0,rl = 0xf,nk = 0xf;*/
+    u32 se = 0,rl = RELOAD_CNT,nk = NAK_CNT, cerr = CERR;
     u8 datatoggle = 0;
     struct isp1761_mem_addr *mem_addr = &qtd->mem_addr;
     u32 data_addr = 0;
@@ -1235,10 +1236,14 @@ phci_hcd_qha_from_qtd(
     /*dt*/
     td_info4 |= datatoggle << 25;/*QHA_DATA_TOGGLE; */
     /*3 retry count for setup else forever*/
-    if(PTD_PID(qha->td_info2) == SETUP_PID)
+
+    /*if(PTD_PID(qha->td_info2) == SETUP_PID)
         td_info4 |= (3 << 23);
     else
-        td_info4 |= (0 << 23);
+        td_info4 |= (0 << 23);*/
+
+    td_info4 |= (CERR << 23); 
+
     /*nak count*/
     td_info4 |= (nk << 19);
 

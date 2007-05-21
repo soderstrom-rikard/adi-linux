@@ -2317,6 +2317,7 @@ pehci_hcd_irq(struct usb_hcd *usb_hcd) //struct isp1761_dev *dev, void *__irq_da
     int work = 0;
     phci_hcd    *pehci_hcd;
     u32 intr = 0;
+    __u32 irq_mask = 0;
 
     if(!(usb_hcd->state & USB_STATE_READY)){
         //info("interrupt handler state not ready yet\n");
@@ -2331,6 +2332,10 @@ pehci_hcd_irq(struct usb_hcd *usb_hcd) //struct isp1761_dev *dev, void *__irq_da
     /* Get the source of interrupts for Host Controller*/
     dev->int_reg = isp1761_reg_read32(dev, HC_INTERRUPT_REG,dev->int_reg);
     isp1761_reg_write32(dev,HC_INTERRUPT_REG,dev->int_reg);
+
+    irq_mask = isp1761_reg_read32(dev, HC_INTENABLE_REG,irq_mask);
+
+    dev->int_reg &= irq_mask; /*shared irq ??*/
 
     intr = dev->int_reg;
     if(atomic_read(&pehci_hcd->nuofsofs)){
@@ -2374,7 +2379,7 @@ pehci_hcd_reset(
 {
     u32         command = 0;
     u32         temp = 0;
-    int 	retValCMD, retValHS = 0;
+    int 	retValCMD = 0, retValHS = 0;
     phci_hcd *hcd = usb_hcd_to_pehci_hcd(usb_hcd);
     /*reset the host controller */
     temp &= 0;
@@ -2394,6 +2399,8 @@ pehci_hcd_reset(
     /*read the command register */
     command = isp1761_reg_read32(hcd->dev,HC_USBCMD_REG,command);
     command |= CMD_RESET;
+
+    isp1761_reg_write32(hcd->dev,HC_USBCMD_REG ,command);
 
     /*wait for maximum 250 msecs*/ 
     retValHS = pehci_hcd_handshake(hcd,hcd->regs.command, CMD_RESET,0, 250 * 1000); 

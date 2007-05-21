@@ -48,6 +48,27 @@
 #define CONFIG_ISO_SUPPORT /* Comment out to remove isochronous transfer support */
 #endif
 
+
+#if !defined(MSEC_INT_BASED)
+#define HW_NAK_RETRY
+#undef SW_NAK_RETRY
+#else
+#undef HW_NAK_RETRY
+#define SW_NAK_RETRY
+#endif
+
+#ifdef HW_NAK_RETRY
+#define RELOAD_CNT 0x0
+#define NAK_CNT 0x0
+#define CERR 0x2
+#endif
+
+#ifdef SW_NAK_RETRY
+#define RELOAD_CNT 0xf
+#define NAK_CNT 0xf
+#define CERR 0x3
+#endif
+
 #ifdef CONFIG_ISO_SUPPORT
 
 #define ISO_DBG_ENTRY FALSE

@@ -52,6 +52,13 @@
 #include <asm/unaligned.h>
 #include <asm/dma.h>
 
+
+#if defined(CONFIG_BFIN)
+#define DUMMY_DELAY_ACCESS bfin_read16(ASYNC_BANK0_BASE)
+#else
+#define DUMMY_DELAY_ACCESS do{} while(0)
+#endif
+
 /*--------------------------------------------------------------*
  *               linux system include files
  *--------------------------------------------------------------*/
@@ -212,6 +219,7 @@ driver:        { .name = "isp1761" }
 void isp1761_reg_write32(struct isp1761_dev *dev,__u16 reg,__u32 data)
 {
     /* Write the 32bit to the register address given to us*/
+    DUMMY_DELAY_ACCESS;
     writel(data,dev->baseaddress+reg);
     //printk("Wrote to 0x%08x value 0x%08x\n", isp1761_base + reg, data);
 }
@@ -238,6 +246,7 @@ __u16 isp1761_reg_read16(struct isp1761_dev *dev,__u16 reg,__u16 data)
 void isp1761_reg_write16(struct isp1761_dev *dev,__u16 reg,__u16 data)
 {
     //printk("Wrote to 0x%08x value 0x%04x\n", isp1761_base + reg, data);
+    DUMMY_DELAY_ACCESS;
     writew(data,dev->baseaddress+reg);
 
 }
@@ -264,6 +273,7 @@ void isp1761_reg_write16(struct isp1761_dev *dev,__u16 reg,__u16 data)
  *--------------------------------------------------------------*/
 /* Memory read function PIO */
 
+#if 0
 int
 isp1761_mem_read(struct isp1761_dev *dev, __u32 start_add,
         __u32 end_add, __u32 * buffer, __u32 length, __u16 dir)
@@ -376,6 +386,184 @@ isp1761_mem_write(struct isp1761_dev *dev,
     return ((a < 0) || (a == 0))?0:(-1);
 
 }
+
+#endif
+
+/* Memory read function PIO */
+int     
+isp1761_mem_read(struct isp1761_dev *dev, __u32 start_add, 
+        __u32 end_add, __u32 * buffer, __u32 length, __u16 dir)
+{
+    u32 *buf_long;
+    u8 *buf_byte;
+    u8 *temp_base_mem;
+    u32 w1;
+    u32 w2;
+    u32 offset;
+    u32 shift1;
+    u32 shift2;
+    int temp_length;
+    int ret_val = -1;
+
+    if ((buffer != 0) && (length > 0) && (((u32)start_add & 0x03) == 0))
+    {
+        temp_base_mem = (dev->baseaddress + start_add);
+
+        // initialize the Register 0x33C
+        //writel(start_add, dev->baseaddress + 0x33c);
+        isp1761_reg_write32(dev, 0x33c, start_add);
+
+        // the 90nsec delay to wait for the 33c address to take
+        // is taken care of in isp1761_reg_write32
+
+        buf_byte = (u8*)buffer;
+        offset = ((u32)buffer & 0x03);
+        temp_length = length;
+        // align the write buffer and/or perform any sub 4 byte
+        // transfers
+        w1 = readl(temp_base_mem);
+        temp_base_mem += 4;
+        w2 = w1;
+
+        while ((((u32)buf_byte & 0x03) > 0) && (temp_length > 0))
+        {
+            *buf_byte++ = (u8)w2;
+            w2 >>= 8;
+            temp_length--;
+        }
+
+        // do any 32 bit transfers
+        buf_long = (u32 *)(buf_byte);
+
+        if (offset == 0)
+        {
+            // note: the read may run past the end of the 1761 address
+            // space, this _might_ be a problem if this read occurs beyond
+            // the end of the ram (highly unlikely this will ever occur)
+            while (temp_length > 3)
+            {
+                *buf_long++ = w1;
+                w1 = readl(temp_base_mem);
+                temp_base_mem += 4;
+                temp_length -= 4;
+            }
+        }
+        else
+        {
+            // work out the offset/shifts
+            offset = 4 - offset;
+            shift2 = offset * 8;
+            shift1 = 32 - shift2;
+
+            // note: the read may run past the end of the 1761 address
+            // space, this might be a problem if this read occurs beyond
+            // the end of the ram (highly unlikely this will ever occur)
+            while (temp_length > 3)
+            {
+                w2 = readl(temp_base_mem);
+                temp_base_mem += 4;
+                temp_length -= 4;
+                *buf_long++ = (w1 >> shift1) | (w2 << shift2);
+                w1 = w2;
+            }
+            // do an extra read to make make up all 4 bytes
+            w2 = readl(temp_base_mem);
+            w1 = (w1 >> shift1) | (w2 << shift2);
+        }
+
+        // do any residual transfer
+        buf_byte = (u8 *)(buf_long);
+        while (temp_length > 0)
+        {
+            *buf_byte++ = (u8)w1;
+            w1 >>= 8;
+            temp_length--;
+        }
+        ret_val = 0;
+    }
+
+    if (ret_val < 0)
+    {
+        printk("isp1761_mem_read ERROR\n");
+    }
+    return ret_val;
+}
+
+/* Memory write function IO */
+int     
+isp1761_mem_write(struct isp1761_dev *dev, 
+        __u32 start_add, __u32 end_add, 
+        __u32 * buffer, __u32 length,
+        __u16 dir)
+{
+    u32 *buf_long;
+    u8 *temp_base_mem;
+    u32 offset;
+    u32 w1;
+    u32 w2;
+    u32 shift1;
+    u32 shift2;
+    int temp_length = length;
+    int ret_val = -1;
+    if ((buffer != 0) && (length > 0) && (((u32)start_add & 0x03) == 0))
+    {
+        temp_base_mem = (dev->baseaddress + start_add);
+        temp_length = length;
+
+        // determine if this is an aligned transfer
+        offset = ((u32)buffer & 0x03);
+
+        if (offset == 0)
+        {
+            // aligned buffer transfer
+            buf_long = (u32 *)buffer;
+
+            // note: all 1761 buffers are 32 bit aligned so any extra
+            // bytes written to the 1761 buffer are harmless
+            while (temp_length > 0)
+            {
+                w1 = *buf_long++;
+                writel(cpu_to_le32(w1), temp_base_mem);
+                temp_base_mem += 4;
+                temp_length -= 4;
+            }
+        }
+        else
+        {
+            // work out the offset/shifts
+            offset = 4 - offset;
+            shift2 = offset * 8;
+            shift1 = 32 - shift2;
+
+            // do all buffer reads as longs, any reads from before
+            // the buffer (in the case of unaligned buffer) is harmless
+            buf_long = (u32 *)((u32)buffer & ~0x03);
+            w1 = *buf_long++;
+
+            // note: all 1761 buffers are 32 bit aligned so any extra
+            // bytes written to the 1761 buffer are harmless
+            while (temp_length > 0)
+            {
+                w2 = *buf_long++;
+                writel(cpu_to_le32((w1 >> shift1) | (w2 << shift2)), temp_base_mem);
+                temp_base_mem += 4;
+                temp_length -= 4;
+                w1 = w2;
+            }
+
+        }
+        ret_val = 0;
+    }
+
+    if (ret_val < 0)
+    {
+        printk("isp1761_mem_write ERROR\n");
+    }
+    return ret_val;
+}
+
+
+
 /*--------------------------------------------------------------*
  *
  * Module dtatils: isp1761_check_mem_region
