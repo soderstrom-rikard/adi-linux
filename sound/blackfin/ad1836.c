@@ -1630,13 +1630,13 @@ static int snd_bf53x_ad1836_reset(ad1836_t *chip)
 #define FlashA_PortA_Dir	0x20270006
 #define FlashA_PortA_Data	0x20270004
 
-	bfin_write(FlashA_PortA_Dir,0x1);	/* configure flag as an output pin */
+	bfin_write8(FlashA_PortA_Dir,0x1);	/* configure flag as an output pin */
 
 	snd_printk(KERN_INFO "resetting ezkit using flash flag pin\n");
-	bfin_write(FlashA_PortA_Data,0x0);	/* reset is active low */
+	bfin_write8(FlashA_PortA_Data,0x0);	/* reset is active low */
 	udelay(1);			/* hold low */
 
-	bfin_write(FlashA_PortA_Data,0x1);	/* re-enable */
+	bfin_write8(FlashA_PortA_Data,0x1);	/* re-enable */
 	udelay(400);			/* 4500 MCLK recovery time */
 
 #endif /* CONFIG_BFIN533_EZKIT */
