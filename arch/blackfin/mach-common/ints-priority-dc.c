@@ -220,12 +220,12 @@ static unsigned int bf561_gpio_irq_startup(unsigned int irq)
 	u16 gpionr = irq - IRQ_PF0;
 
 	if (!(gpio_enabled[gpio_bank(gpionr)] & gpio_bit(gpionr))) {
-			
+
 		ret = gpio_request(gpionr, NULL);
 		if(ret)
 			return ret;
 
-	}		
+	}
 
 	gpio_enabled[gpio_bank(gpionr)] |= gpio_bit(gpionr);
 	bf561_gpio_unmask_irq(irq);
@@ -260,7 +260,7 @@ static int bf561_gpio_irq_type(unsigned int irq, unsigned int type)
 			    IRQ_TYPE_LEVEL_HIGH | IRQ_TYPE_LEVEL_LOW)) {
 
 		if (!(gpio_enabled[gpio_bank(gpionr)] & gpio_bit(gpionr))) {
-			
+
 			ret = gpio_request(gpionr, NULL);
 			if(ret)
 				return ret;
@@ -270,7 +270,7 @@ static int bf561_gpio_irq_type(unsigned int irq, unsigned int type)
 			gpio_enabled[gpio_bank(gpionr)] |= gpio_bit(gpionr);
 		} else {
 			gpio_enabled[gpio_bank(gpionr)] &= ~gpio_bit(gpionr);
-			return 0;		
+			return 0;
 		}
 
 

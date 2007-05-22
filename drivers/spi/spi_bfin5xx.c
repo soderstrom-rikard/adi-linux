@@ -173,7 +173,7 @@ static int flush(struct driver_data *drv_data)
 	/* wait for stop and clear stat */
 	while (!(read_STAT() & BIT_STAT_SPIF) && limit--)
 		continue;
-	
+
 	write_STAT(BIT_STAT_CLR);
 
 	return limit;
@@ -198,7 +198,7 @@ static void restore_state(struct driver_data *drv_data)
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3c00);
 		SSYNC();
 		break;
-	
+
 	case 2:
 	case 3:
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJSE_SPI);
@@ -206,14 +206,14 @@ static void restore_state(struct driver_data *drv_data)
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
 		SSYNC();
 		break;
-	
+
 	case 4:
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS4E_SPI);
 		SSYNC();
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3840);
 		SSYNC();
 		break;
-	
+
 	case 5:
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS5E_SPI);
 		SSYNC();
@@ -227,7 +227,7 @@ static void restore_state(struct driver_data *drv_data)
 		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3810);
 		SSYNC();
 		break;
-	
+
 	case 7:
 		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJCE_SPI);
 		SSYNC();
@@ -331,7 +331,7 @@ static void u8_reader(struct driver_data *drv_data)
 		*(u8 *) (drv_data->rx) = read_RDBR();
 		++drv_data->rx;
 	}
-	
+
 	while (!(read_STAT() & BIT_STAT_RXS))
 		continue;
 	*(u8 *) (drv_data->rx) = read_SHAW();
@@ -454,7 +454,7 @@ static void u16_reader(struct driver_data *drv_data)
 		*(u16 *) (drv_data->rx) = read_RDBR();
 		drv_data->rx += 2;
 	}
-	
+
 	while (!(read_STAT() & BIT_STAT_RXS))
 		continue;
 	*(u16 *) (drv_data->rx) = read_SHAW();
