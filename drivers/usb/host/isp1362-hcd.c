@@ -488,7 +488,7 @@ static void remove_ptd(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep *ep)
   processed urbs.
 */
 static void finish_request(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep *ep,
-			   struct urb *urb, struct pt_regs *regs, int status)
+			   struct urb *urb, int status)
      __releases(isp1362_hcd->lock)
      __acquires(isp1362_hcd->lock)
 {
@@ -556,8 +556,7 @@ static void finish_request(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep *e
 /*
  * Analyze transfer results, handle partial transfers and errors
 */
-static void postproc_ep(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep *ep,
-			struct pt_regs *regs)
+static void postproc_ep(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep *ep)
 {
 	struct urb *urb = get_urb(ep);
 	struct usb_device *udev;
@@ -709,11 +708,11 @@ static void postproc_ep(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep *ep,
 	if (urbstat != -EINPROGRESS) {
 		DBG(2, "%s: Finishing ep %p req %d urb %p status %d\n", __FUNCTION__,
 		    ep, ep->num_req, urb, urbstat);
-		finish_request(isp1362_hcd, ep, urb, regs, urbstat);
+		finish_request(isp1362_hcd, ep, urb, urbstat);
 	}
 }
 
-static void finish_unlinks(struct isp1362_hcd *isp1362_hcd, struct pt_regs *regs)
+static void finish_unlinks(struct isp1362_hcd *isp1362_hcd)
 {
 	struct isp1362_ep *ep;
 	struct isp1362_ep *tmp;
@@ -734,7 +733,7 @@ static void finish_unlinks(struct isp1362_hcd *isp1362_hcd, struct pt_regs *regs
 
 			DBG(1, "%s: Finishing req %d ep %p from remove_list\n", __FUNCTION__,
 			    ep->num_req, ep);
-			finish_request(isp1362_hcd, ep, urb, regs, -ESHUTDOWN);
+			finish_request(isp1362_hcd, ep, urb, -ESHUTDOWN);
 		}
 		WARN_ON(list_empty(&ep->active));
 		if (!list_empty(&ep->active)) {
@@ -953,7 +952,7 @@ static void start_iso_transfers(struct isp1362_hcd *isp1362_hcd)
 
 		if (diff > urb->number_of_packets) {
 			// time frame for this URB has elapsed
-			finish_request(isp1362_hcd, ep, urb, NULL, -EOVERFLOW);
+			finish_request(isp1362_hcd, ep, urb, -EOVERFLOW);
 			continue;
 		} else if (diff < -1) {
 			// URB is not due in this frame or the next one.
@@ -1008,7 +1007,7 @@ static void start_iso_transfers(struct isp1362_hcd *isp1362_hcd)
 }
 
 static void finish_transfers(struct isp1362_hcd *isp1362_hcd, unsigned long done_map,
-			     struct isp1362_ep_queue *epq, struct pt_regs *regs)
+			     struct isp1362_ep_queue *epq)
 {
 	struct isp1362_ep *ep;
 	struct isp1362_ep *tmp;
@@ -1042,7 +1041,7 @@ static void finish_transfers(struct isp1362_hcd *isp1362_hcd, unsigned long done
 			}
 			DBG(1, "%s: Postprocessing %s ep %p req %d\n", __FUNCTION__, epq->name,
 			    ep, ep->num_req);
-			postproc_ep(isp1362_hcd, ep, regs);
+			postproc_ep(isp1362_hcd, ep);
 		}
 		if (!done_map) {
 			break;
@@ -1055,8 +1054,7 @@ static void finish_transfers(struct isp1362_hcd *isp1362_hcd, unsigned long done
 	atomic_dec(&epq->finishing);
 }
 
-static void finish_iso_transfers(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep_queue *epq,
-				 struct pt_regs *regs)
+static void finish_iso_transfers(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep_queue *epq)
 {
 	struct isp1362_ep *ep;
 	struct isp1362_ep *tmp;
@@ -1074,13 +1072,13 @@ static void finish_iso_transfers(struct isp1362_hcd *isp1362_hcd, struct isp1362
 
 		isp1362_read_ptd(isp1362_hcd, ep, epq);
 		DBG(1, "%s: Postprocessing %s ep %p\n", __FUNCTION__, epq->name, ep);
-		postproc_ep(isp1362_hcd, ep, regs);
+		postproc_ep(isp1362_hcd, ep);
 	}
 	WARN_ON(epq->blk_size != 0);
 	atomic_dec(&epq->finishing);
 }
 
-static irqreturn_t isp1362_irq(struct usb_hcd *hcd, struct pt_regs *regs)
+static irqreturn_t isp1362_irq(struct usb_hcd *hcd)
 {
 	int handled = 0;
 	struct isp1362_hcd *isp1362_hcd = hcd_to_isp1362_hcd(hcd);
@@ -1109,7 +1107,7 @@ static irqreturn_t isp1362_irq(struct usb_hcd *hcd, struct pt_regs *regs)
 		DBG(3, "%s: SOF\n", __FUNCTION__);
 		isp1362_hcd->fmindex = isp1362_read_reg32(isp1362_hcd, HCFMNUM);
 		if (!list_empty(&isp1362_hcd->remove_list)) {
-			finish_unlinks(isp1362_hcd, regs);
+			finish_unlinks(isp1362_hcd);
 		}
 		if (!list_empty(&isp1362_hcd->async) && !(irqstat & HCuPINT_ATL)) {
 			if (list_empty(&isp1362_hcd->atl_queue.active)) {
@@ -1151,7 +1149,7 @@ static irqreturn_t isp1362_irq(struct usb_hcd *hcd, struct pt_regs *regs)
 		WARN_ON((irqstat & (HCuPINT_ISTL0 | HCuPINT_ISTL1)) ==
 			(HCuPINT_ISTL0 | HCuPINT_ISTL1));
 		finish_iso_transfers(isp1362_hcd,
-				     &isp1362_hcd->istl_queue[isp1362_hcd->istl_flip], regs);
+				     &isp1362_hcd->istl_queue[isp1362_hcd->istl_flip]);
 		start_iso_transfers(isp1362_hcd);
 		isp1362_hcd->istl_flip = 1 - isp1362_hcd->istl_flip;
 	}
@@ -1175,7 +1173,7 @@ static irqreturn_t isp1362_irq(struct usb_hcd *hcd, struct pt_regs *regs)
 		WARN_ON(!done_map);
 		if (done_map) {
 			DBG(3, "%s: INTL done_map %08x\n", __func__, done_map);
-			finish_transfers(isp1362_hcd, done_map, &isp1362_hcd->intl_queue, regs);
+			finish_transfers(isp1362_hcd, done_map, &isp1362_hcd->intl_queue);
 			start_intl_transfers(isp1362_hcd);
 		}
 	}
@@ -1195,7 +1193,7 @@ static irqreturn_t isp1362_irq(struct usb_hcd *hcd, struct pt_regs *regs)
 		}
 		if (done_map) {
 			DBG(3, "%s: ATL done_map %08x\n", __func__, done_map);
-			finish_transfers(isp1362_hcd, done_map, &isp1362_hcd->atl_queue, regs);
+			finish_transfers(isp1362_hcd, done_map, &isp1362_hcd->atl_queue);
 			start_atl_transfers(isp1362_hcd);
 		}
 		handled = 1;
@@ -1452,7 +1450,7 @@ static int isp1362_urb_enqueue(struct usb_hcd *hcd, struct usb_host_endpoint *he
 		spin_unlock(&urb->lock);
 		WARN("%s: Finishing ep %p req %d before submission with status %08x\n",
 		     __func__, ep, ep->num_req, urb->status);
-		finish_request(isp1362_hcd, ep, urb, NULL, 0);
+		finish_request(isp1362_hcd, ep, urb, 0);
 		retval = 0;
 		goto fail;
 	}
@@ -1515,7 +1513,7 @@ static int isp1362_urb_dequeue(struct usb_hcd *hcd, struct urb *urb)
 		if (urb) {
 			DBG(1, "%s: Finishing ep %p req %d\n", __func__, ep,
 			    ep->num_req);
-			finish_request(isp1362_hcd, ep, urb, NULL, -ESHUTDOWN);
+			finish_request(isp1362_hcd, ep, urb, -ESHUTDOWN);
 		} else {
 			DBG(1, "%s: urb %p active; wait4irq\n", __func__, urb);
 		}
@@ -1583,15 +1581,21 @@ static int isp1362_hub_status_data(struct usb_hcd *hcd, char *buf)
 {
 	struct isp1362_hcd *isp1362_hcd = hcd_to_isp1362_hcd(hcd);
 	int ports, i, changed = 0;
-	int can_suspend = hcd->can_wakeup;
+	unsigned long flags;
 
 	if (!HC_IS_RUNNING(hcd->state)) {
 		return -ESHUTDOWN;
 	}
 
+	/* Report no status change now, if we are scheduled to be
+	   called later */
+	if (timer_pending(&hcd->rh_timer))
+		return 0;
+
 	ports = isp1362_hcd->rhdesca & RH_A_NDP;
 	BUG_ON(ports > 2);
 
+	spin_lock_irqsave(&isp1362_hcd->lock, flags);
 	/* init status */
 	if (isp1362_hcd->rhstatus & (RH_HS_LPSC | RH_HS_OCIC)) {
 		buf[0] = changed = 1;
@@ -1612,26 +1616,8 @@ static int isp1362_hub_status_data(struct usb_hcd *hcd, char *buf)
 		if (!(status & RH_PS_CCS)) {
 			continue;
 		}
-		if ((status & RH_PS_PSS) && hcd->remote_wakeup) {
-			continue;
-		}
-		can_suspend = 0;
 	}
-#if defined(CONFIG_USB_SUSPEND) || defined(CONFIG_PM)
-	if (can_suspend && !changed &&
-	    list_empty(&isp1362_hcd->async) &&
-	    list_empty(&isp1362_hcd->periodic) &&
-	    list_empty(&isp1362_hcd->isoc) &&
-	    (isp1362_read_reg32(isp1362_hcd, HCCONTROL) & OHCI_CTRL_HCFS) == OHCI_USB_OPER &&
-	    time_after(jiffies, isp1362_hcd->next_statechange) &&
-	    usb_trylock_device(hcd->self.root_hub)) {
-		DBG(0, "%s: Autosuspending root hub\n", __FUNCTION__);
-		isp1362_set_mask16(isp1362_hcd, HCHWCFG, HCHWCFG_CLKNOTSTOP);
-		(void) isp1362_bus_suspend(hcd);
-		hcd->state = HC_STATE_RUNNING;
-		usb_unlock_device(hcd->self.root_hub);
-	}
-#endif
+	spin_unlock_irqrestore(&isp1362_hcd->lock, flags);
 	return changed;
 }
 
@@ -1899,17 +1885,17 @@ static int isp1362_bus_suspend(struct usb_hcd *hcd)
 		mdelay(7);
 		if (isp1362_read_reg16(isp1362_hcd, HCuPINT) & HCuPINT_ATL) {
 			u32 done_map = isp1362_read_reg32(isp1362_hcd, HCATLDONE);
-			finish_transfers(isp1362_hcd, done_map, &isp1362_hcd->atl_queue, NULL);
+			finish_transfers(isp1362_hcd, done_map, &isp1362_hcd->atl_queue);
 		}
 		if (isp1362_read_reg16(isp1362_hcd, HCuPINT) & HCuPINT_INTL) {
 			u32 done_map = isp1362_read_reg32(isp1362_hcd, HCINTLDONE);
-			finish_transfers(isp1362_hcd, done_map, &isp1362_hcd->intl_queue, NULL);
+			finish_transfers(isp1362_hcd, done_map, &isp1362_hcd->intl_queue);
 		}
 		if (isp1362_read_reg16(isp1362_hcd, HCuPINT) & HCuPINT_ISTL0) {
-			finish_iso_transfers(isp1362_hcd, &isp1362_hcd->istl_queue[0] , NULL);
+			finish_iso_transfers(isp1362_hcd, &isp1362_hcd->istl_queue[0]);
 		}
 		if (isp1362_read_reg16(isp1362_hcd, HCuPINT) & HCuPINT_ISTL1) {
-			finish_iso_transfers(isp1362_hcd, &isp1362_hcd->istl_queue[1], NULL);
+			finish_iso_transfers(isp1362_hcd, &isp1362_hcd->istl_queue[1]);
 		}
 	}
 	DBG(0, "%s: HCINTSTAT: %08x\n", __FUNCTION__,
@@ -1919,11 +1905,6 @@ static int isp1362_bus_suspend(struct usb_hcd *hcd)
 
 	/* Suspend hub */
 	isp1362_hcd->hc_control = OHCI_USB_SUSPEND;
-	/* maybe resume can wake root hub */
-	if (hcd->remote_wakeup) {
-		DBG(0, "%s: Enabling RWE\n", __FUNCTION__);
-		isp1362_hcd->hc_control |= OHCI_CTRL_RWE;
-	}
 	isp1362_show_reg(isp1362_hcd, HCCONTROL);
 	isp1362_write_reg32(isp1362_hcd, HCCONTROL, isp1362_hcd->hc_control);
 	isp1362_show_reg(isp1362_hcd, HCCONTROL);
@@ -2017,9 +1998,6 @@ static int isp1362_bus_resume(struct usb_hcd *hcd)
 	mdelay(20 /* usb 11.5.1.10 */ + 15);
 
 	isp1362_hcd->hc_control = OHCI_USB_OPER;
-	if (hcd->can_wakeup) {
-		isp1362_hcd->hc_control |= OHCI_CTRL_RWC;
-	}
 	spin_lock_irqsave(&isp1362_hcd->lock, flags);
 	isp1362_show_reg(isp1362_hcd, HCCONTROL);
 	isp1362_write_reg32(isp1362_hcd, HCCONTROL, isp1362_hcd->hc_control);
@@ -2394,10 +2372,10 @@ static int isp1362_mem_config(struct usb_hcd *hcd)
 	dev_info(hcd->self.controller, "ISP1362 Memory usage:\n");
 	dev_info(hcd->self.controller, "  ISTL:    2 * %4d:     %4d @ $%04x:$%04x\n",
 		 istl_size / 2, istl_size, 0, istl_size / 2);
-	dev_info(hcd->self.controller, "  INTL: %4d * (%3d+8):  %4d @ $%04x\n",
+	dev_info(hcd->self.controller, "  INTL: %4d * (%3ld+8):  %4d @ $%04x\n",
 		 ISP1362_INTL_BUFFERS, intl_blksize - PTD_HEADER_SIZE,
 		 intl_size, istl_size);
-	dev_info(hcd->self.controller, "  ATL : %4d * (%3d+8):  %4d @ $%04x\n",
+	dev_info(hcd->self.controller, "  ATL : %4d * (%3ld+8):  %4d @ $%04x\n",
 		 atl_buffers, atl_blksize - PTD_HEADER_SIZE,
 		 atl_size, istl_size + intl_size);
 	dev_info(hcd->self.controller, "  USED/FREE:   %4d      %4d\n", total,
@@ -2749,10 +2727,6 @@ static int isp1362_hc_start(struct usb_hcd *hcd)
 	}
 
 	isp1362_hcd->hc_control = OHCI_USB_OPER;
-	if (board->remote_wakeup_connected) {
-		hcd->can_wakeup = 1;
-		isp1362_hcd->hc_control |= OHCI_CTRL_RWC;
-	}
 
 	udev->speed = USB_SPEED_FULL;
 	hcd->state = HC_STATE_RUNNING;
@@ -3001,8 +2975,7 @@ static int isp1362_resume(struct platform_device *pdev)
 
 	DBG(0, "%s: Resuming\n", __FUNCTION__);
 
-	if (pdev->dev.power.power_state.event == PM_EVENT_SUSPEND
-			|| !hcd->can_wakeup) {
+	if (pdev->dev.power.power_state.event == PM_EVENT_SUSPEND) {
 		DBG(0, "%s: Resume RH ports\n", __FUNCTION__);
 		spin_lock_irqsave(&isp1362_hcd->lock, flags);
 		isp1362_write_reg32(isp1362_hcd, HCRHSTATUS, RH_HS_LPSC);

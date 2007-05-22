@@ -63,7 +63,7 @@ static inline void delayed_insw(unsigned int addr, void *buf, int len)
   unsigned short *bp = (unsigned short *) buf;
   while (len--){
     DUMMY_DELAY_ACCESS;
-    *bp++ = inw(addr);
+    *bp++ = inw((void*)addr);
   }
 }
 
