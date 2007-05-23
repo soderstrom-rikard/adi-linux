@@ -542,12 +542,6 @@ config 83xx_WDT
 	tristate "MPC83xx Watchdog Timer"
 	depends on WATCHDOG && PPC_83xx
 
-# Blackfin Architecture
-
-config BLACKFIN_WD
-	tristate "Blackfin Watchdog Timer"
-	depends on WATCHDOG && BLACKFIN
-
 config MV64X60_WDT
 	tristate "MV64X60 (Marvell Discovery) Watchdog Timer"
 	depends on WATCHDOG && MV64X60
@@ -631,6 +625,19 @@ config SH_WDT_MMAP
 	help
 	  If you say Y here, user applications will be able to mmap the
 	  WDT/CPG registers.
+
+# Blackfin Architecture
+
+config BFIN_WDT
+	tristate "Blackfin On-Chip Watchdog Timer"
+	depends on WATCHDOG && BLACKFIN
+	---help---
+	  If you say yes here you will get support for the Blackfin On-Chip
+	  Watchdog Timer. If you have one of these processors and wish to
+	  have watchdog support enabled, say Y, otherwise say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called bfin_wdt.
 
 # SPARC64 Architecture
 

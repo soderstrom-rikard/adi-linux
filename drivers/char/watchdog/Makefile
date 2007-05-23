@@ -65,7 +65,6 @@ obj-$(CONFIG_SBC_EPX_C3_WATCHDOG) += sbc_epx_c3.o
 # PowerPC Architecture
 obj-$(CONFIG_8xx_WDT) += mpc8xx_wdt.o
 obj-$(CONFIG_83xx_WDT) += mpc83xx_wdt.o
-obj-$(CONFIG_BLACKFIN_WD) += blackfin_wd.o
 obj-$(CONFIG_MV64X60_WDT) += mv64x60_wdt.o
 obj-$(CONFIG_BOOKE_WDT) += booke_wdt.o
 
@@ -80,6 +79,9 @@ obj-$(CONFIG_WDT_RM9K_GPI) += rm9k_wdt.o
 
 # SUPERH Architecture
 obj-$(CONFIG_SH_WDT) += shwdt.o
+
+# Blackfin Architecture
+obj-$(CONFIG_BFIN_WDT) += bfin_wdt.o
 
 # SPARC64 Architecture
 

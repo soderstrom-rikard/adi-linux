@@ -252,7 +252,30 @@ advantechwdt.c -- Advantech Single Board Computer
 	GETSUPPORT returns WDIOF_KEEPALIVEPING and WDIOF_SETTIMEOUT.
 	The GETSTATUS call returns if the device is open or not.
 	[FIXME -- silliness again?]
-	
+
+bfin_wdt.c -- Blackfin On-Chip Watchdog Timer
+
+	Timeout defaults to 20 seconds and is limited to 2^32 /
+	System Clock HZ, supports SETTIMEOUT.
+
+	Supports CONFIG_WATCHDOG_NOWAYOUT.
+
+	GETSUPPORT returns WDIOF_KEEPALIVEPING and WDIOF_SETTIMEOUT.
+
+	GETBOOTSTATUS is supported.  GETSTATUS returns whether the
+	watchdog timer has expired (useful when watchdog generates an
+	interrupt rather than resets the processor).
+
+	The watchdog can be configured to reset the part, signal an
+	interrupt, or issue an NMI.
+
+	The dual core parts have two watchdog devices.  Only the
+	watchdog on the core actually running Linux is supported.
+
+	The default interrupt behavior is for waking up the processor.
+	Board people can customize this behavior; see the driver for
+	more information.
+
 booke_wdt.c -- PowerPC BookE Watchdog Timer
 
 	Timeout default varies according to frequency, supports
