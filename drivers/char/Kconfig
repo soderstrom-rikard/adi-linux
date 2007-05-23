@@ -31,13 +31,13 @@ config BF5xx_PFLAGS
 	depends on BFIN
 	default n
 	---help---
-	Thei option enable the driver to control the GPIO signals
+	This option enable the driver to control the GPIO signals
 	of the Blackfin processors. It make a new class
 	/sys/class/pflag/ with a "pf" device per signal.
 
 config BF5xx_PFLAGS_PROC
 	bool "Obsolet /proc/drivers/pflags entry"
-	depends on BF533_PFLAGS
+	depends on BF5xx_PFLAGS
 	default n
 	---help---
 	The pflag driver has a /sys/class/pflag/status that show
