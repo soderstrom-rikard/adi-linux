@@ -95,6 +95,8 @@ struct uCam_device_t;
 #define  MAX_BUFFER_SIZE (MAX_FRAME_WIDTH * MAX_FRAME_HEIGHT * DEFAULT_DEPTH/8)
 
 static unsigned char *top_buffer;	/* TOP Video Buffer */
+static unsigned char *bottom_buffer;    /* Bottom Video Buffer */
+
 static dma_addr_t dma_handle;
 
 static unsigned int global_gain = 127;
@@ -1020,8 +1022,8 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			vm->frames = uCAM_NUM_BUFS;
 			vm->size = uCam_dev->size;
 			vm->offsets[0] = 0x00000000;
-			vm->offsets[1] = (u32) top_buffer - 0x1000;
-			uCam_dev->buffer[0].data = (void *)0x00001000;
+			vm->offsets[1] = (u32) (top_buffer - bottom_buffer);
+			uCam_dev->buffer[0].data = (void *)bottom_buffer;
 			uCam_dev->buffer[1].data = (void *)top_buffer;
 
 			uCam_dev->dma_buf = &uCam_dev->buffer[0];
@@ -1306,6 +1308,7 @@ static int uCam_open(struct inode *inode, struct file *filp)
 		return -EMFILE;
 	}
 
+	bottom_buffer = 0x1000;
 #if !defined(USE_2ND_BUF_IN_CACHED_MEM)
 	top_buffer =
 	    dma_alloc_coherent(NULL, MAX_BUFFER_SIZE, &dma_handle, GFP_KERNEL);
@@ -1314,6 +1317,13 @@ static int uCam_open(struct inode *inode, struct file *filp)
 #endif
 	if (NULL == top_buffer) {
 		printk(KERN_ERR ": couldn't allocate dma buffer.\n");
+		return -ENOMEM;
+	}
+
+	if ((bottom_buffer == 0x1000) &&
+	    ((bottom_buffer + MAX_BUFFER_SIZE) >= CONFIG_BOOT_LOAD)) {
+		printk(KERN_ERR ": couldn't allocate bottom buffer -"
+			" kernel start address too low\n");
 		return -ENOMEM;
 	}
 
