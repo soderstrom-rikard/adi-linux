@@ -311,7 +311,7 @@ static int bfin_wdt_ioctl(struct inode *inode, struct file *file,
 			return -ENOTTY;
 
 		case WDIOC_GETSUPPORT:
-			if (copy_to_user(argp, &bfin_wdt_info, sizeof(bfin_wdt_info))
+			if (copy_to_user(argp, &bfin_wdt_info, sizeof(bfin_wdt_info)))
 				return -EFAULT;
 			else
 				return 0;
