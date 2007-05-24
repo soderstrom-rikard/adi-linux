@@ -607,6 +607,7 @@ int conf_split_config(void)
 		strcpy(d, ".h");
 
 		/* Assume directory path already exists. */
+		unlink(path); /* work around non-POSIX compliant systems (like Darwin) */
 		fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (fd == -1) {
 			if (errno != ENOENT) {
