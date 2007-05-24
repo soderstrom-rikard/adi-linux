@@ -142,9 +142,6 @@ static int bfin_wdt_start(void)
  */
 static int bfin_wdt_running(void)
 {
-	stamp("WDOG_CTL = 0X%04X, (pWDOG_CTL & WDEN_MASK) = 0X%04X, WDEN_DISABLE = 0X%04X",
-		bfin_read_WDOG_CTL(), (bfin_read_WDOG_CTL() & WDEN_MASK),
-		WDEN_DISABLE);
 	return ((bfin_read_WDOG_CTL() & WDEN_MASK) != WDEN_DISABLE);
 }
 
@@ -265,7 +262,8 @@ static int bfin_wdt_release(struct inode *inode, struct file *file)
  *
  *	Pings the watchdog on write.
  */
-static ssize_t bfin_wdt_write(struct file *file, const char __user *data, size_t len, loff_t *ppos)
+static ssize_t bfin_wdt_write(struct file *file, const char __user *data,
+                              size_t len, loff_t *ppos)
 {
 	stampit();
 
@@ -301,7 +299,7 @@ static ssize_t bfin_wdt_write(struct file *file, const char __user *data, size_t
  *	watchdog API.
  */
 static int bfin_wdt_ioctl(struct inode *inode, struct file *file,
-                    unsigned int cmd, unsigned long arg)
+                          unsigned int cmd, unsigned long arg)
 {
 	void __user *argp = (void __user *)arg;
 	int __user *p = argp;
@@ -313,7 +311,10 @@ static int bfin_wdt_ioctl(struct inode *inode, struct file *file,
 			return -ENOTTY;
 
 		case WDIOC_GETSUPPORT:
-			return (copy_to_user(argp, &bfin_wdt_info, sizeof(bfin_wdt_info)) ? -EFAULT : 0);
+			if (copy_to_user(argp, &bfin_wdt_info, sizeof(bfin_wdt_info))
+				return -EFAULT;
+			else
+				return 0;
 
 		case WDIOC_GETSTATUS: {
 			int ret = bfin_wdt_expired;
@@ -376,7 +377,8 @@ static int bfin_wdt_ioctl(struct inode *inode, struct file *file,
  *	Handles specific events, such as turning off the watchdog during a
  *	shutdown event.
  */
-static int bfin_wdt_notify_sys(struct notifier_block *this, unsigned long code, void *unused)
+static int bfin_wdt_notify_sys(struct notifier_block *this, unsigned long code,
+                               void *unused)
 {
 	stampit();
 
