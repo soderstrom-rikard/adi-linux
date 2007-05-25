@@ -521,7 +521,7 @@ static int check_supported_cpu(unsigned int cpu)
 
 	if ((eax & CPUID_XFAM) == CPUID_XFAM_K8) {
 		if (((eax & CPUID_USE_XFAM_XMOD) != CPUID_USE_XFAM_XMOD) ||
-		    ((eax & CPUID_XMOD) > CPUID_XMOD_REV_G)) {
+		    ((eax & CPUID_XMOD) > CPUID_XMOD_REV_MASK)) {
 			printk(KERN_INFO PFX "Processor cpuid %x not supported\n", eax);
 			goto out;
 		}
@@ -1289,7 +1289,11 @@ static unsigned int powernowk8_get (unsigned int cpu)
 	if (query_current_values_with_pending_wait(data))
 		goto out;
 
-	khz = find_khz_freq_from_fid(data->currfid);
+	if (cpu_family == CPU_HW_PSTATE)
+		khz = find_khz_freq_from_fiddid(data->currfid, data->currdid);
+	else
+		khz = find_khz_freq_from_fid(data->currfid);
+
 
 out:
 	set_cpus_allowed(current, oldmask);

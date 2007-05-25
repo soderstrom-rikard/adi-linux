@@ -142,7 +142,7 @@ struct ctl_table_header *Can_systable = NULL;
 
 void register_systables(void)
 {
-    Can_systable = register_sysctl_table( Can_sys_table, 0 );
+    Can_systable = register_sysctl_table(Can_sys_table);
 }
 
 void unregister_systables(void)

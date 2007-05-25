@@ -1,14 +1,15 @@
 #ifndef _ASM_M32R_MMU_H
 #define _ASM_M32R_MMU_H
 
-
 #if !defined(CONFIG_MMU)
+
 typedef struct {
 	struct vm_list_struct	*vmlist;
 	unsigned long		end_brk;
 	unsigned long		stack_start;
 } mm_context_t;
-#else
+
+#else /* CONFIG_MMU */
 
 /* Default "unsigned long" context */
 #ifndef CONFIG_SMP
@@ -17,5 +18,6 @@ typedef unsigned long mm_context_t;
 typedef unsigned long mm_context_t[NR_CPUS];
 #endif
 
-#endif  /* CONFIG_MMU */
-#endif  /* _ASM_M32R_MMU_H */
+#endif /* CONFIG_MMU */
+
+#endif /* _ASM_M32R_MMU_H */

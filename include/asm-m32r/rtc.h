@@ -1,9 +1,5 @@
-/* $Id$ */
-
 #ifndef __RTC_H__
 #define __RTC_H__
-
-
 
    /* Dallas DS1302 clock/calendar register numbers. */
 #  define RTC_SECONDS      0

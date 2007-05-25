@@ -9,8 +9,6 @@
  *    published by the Free Software Foundation; either version 2 of
  *    the License, or (at your option) any later version.
  * =====================================================================
- * Version: $Id$
- * =====================================================================
  */
 
 #ifndef GIGASET_INTERFACE_H

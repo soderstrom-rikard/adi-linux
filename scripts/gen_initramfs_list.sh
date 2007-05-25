@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright (C) Martin Schlemmer <azarah@nosferatu.za.org>
-# Copyright (c) 2006           Sam Ravnborg <sam@ravnborg.org>
+# Copyright (C) 2006 Sam Ravnborg <sam@ravnborg.org>
 #
 # Released under the terms of the GNU GPL
 #
@@ -17,15 +17,15 @@ cat << EOF
 Usage:
 $0 [-o <file>] [-u <uid>] [-g <gid>] {-d | <cpio_source>} ...
 	-o <file>      Create gzipped initramfs file named <file> using
-	               gen_init_cpio and gzip
+		       gen_init_cpio and gzip
 	-u <uid>       User ID to map to user ID 0 (root).
-	               <uid> is only meaningful if <cpio_source>
-	               is a directory.
+		       <uid> is only meaningful if <cpio_source>
+		       is a directory.
 	-g <gid>       Group ID to map to group ID 0 (root).
-	               <gid> is only meaningful if <cpio_source>
-	               is a directory.
+		       <gid> is only meaningful if <cpio_source>
+		       is a directory.
 	<cpio_source>  File list or directory for cpio archive.
-	               If <cpio_source> is a .cpio file it will be used
+		       If <cpio_source> is a .cpio file it will be used
 		       as direct input to initramfs.
 	-d             Output the default cpio list.
 
@@ -34,6 +34,12 @@ sequentially and immediately.  -u and -g states are preserved across
 <cpio_source> options so an explicit "-u 0 -g 0" is required
 to reset the root/group mapping.
 EOF
+}
+
+# awk style field access
+# $1 - field number; rest is argument string
+field() {
+	shift $1 ; echo $1
 }
 
 list_default_initramfs() {
@@ -107,8 +113,8 @@ parse() {
 	local gid="$4"
 	local ftype=$(filetype "${location}")
 	# remap uid/gid to 0 if necessary
-	[ "$root_uid" = "squash" ] && uid=0 || [ "$uid" -eq "$root_uid" ] && uid=0
-	[ "$root_gid" = "squash" ] && gid=0 || [ "$gid" -eq "$root_gid" ] && gid=0
+	[ "$uid" -eq "$root_uid" ] && uid=0
+	[ "$gid" -eq "$root_gid" ] && gid=0
 	local str="${mode} ${uid} ${gid}"
 
 	[ "${ftype}" == "invalid" ] && return 0
@@ -119,22 +125,17 @@ parse() {
 			str="${ftype} ${name} ${location} ${str}"
 			;;
 		"nod")
-			local dev_type=
-			local maj=$(LC_ALL=C ls -l "${location}" | \
-					gawk '{sub(/,/, "", $5); print $5}')
-			local min=$(LC_ALL=C ls -l "${location}" | \
-					gawk '{print $6}')
+			local dev=`LC_ALL=C ls -l "${location}"`
+			local maj=`field 5 ${dev}`
+			local min=`field 6 ${dev}`
+			maj=${maj%,}
 
-			if [ -b "${location}" ]; then
-				dev_type="b"
-			else
-				dev_type="c"
-			fi
-			str="${ftype} ${name} ${str} ${dev_type} ${maj} ${min}"
+			[ -b "${location}" ] && dev="b" || dev="c"
+
+			str="${ftype} ${name} ${str} ${dev} ${maj} ${min}"
 			;;
 		"slink")
-			local target=$(LC_ALL=C ls -l "${location}" | \
-					gawk '{print $11}')
+			local target=`field 11 $(LC_ALL=C ls -l "${location}")`
 			str="${ftype} ${name} ${target} ${str}"
 			;;
 		*)

@@ -1211,9 +1211,6 @@ int rndis_set_param_medium (u8 configNr, u32 medium, u32 speed)
 	return 0;
 }
 
-/* The pointer of header is not aligned, it will cause alignment exception.
- * Use a temporary variable to avoid it.
- */
 void rndis_add_hdr (struct sk_buff *skb)
 {
 	struct rndis_packet_msg_type	*header;
@@ -1422,7 +1419,6 @@ int __devinit rndis_init (void)
 			return -EIO;
 		}
 
-		rndis_connect_state [i]->nlink = 1;
 		rndis_connect_state [i]->write_proc = rndis_proc_write;
 		rndis_connect_state [i]->read_proc = rndis_proc_read;
 		rndis_connect_state [i]->data = (void *)

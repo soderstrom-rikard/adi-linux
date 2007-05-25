@@ -4,8 +4,6 @@
  *  Copyright (C) 2001 by Hiroyuki Kondo
  */
 
-/* $Id$ */
-
 #include <linux/linkage.h>
 #include <asm/assembler.h>
 #include <asm/smp.h>
@@ -345,5 +343,4 @@ ENTRY(m32r_otlb_entrys)
 
 #endif  /* CONFIG_MMU */
 
-.end
-
+	.end

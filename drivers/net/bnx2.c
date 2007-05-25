@@ -39,12 +39,9 @@
 #include <linux/if_vlan.h>
 #define BCM_VLAN 1
 #endif
-#ifdef NETIF_F_TSO
 #include <net/ip.h>
 #include <net/tcp.h>
 #include <net/checksum.h>
-#define BCM_TSO 1
-#endif
 #include <linux/workqueue.h>
 #include <linux/crc32.h>
 #include <linux/prefetch.h>
@@ -57,8 +54,8 @@
 
 #define DRV_MODULE_NAME		"bnx2"
 #define PFX DRV_MODULE_NAME	": "
-#define DRV_MODULE_VERSION	"1.5.5"
-#define DRV_MODULE_RELDATE	"February 1, 2007"
+#define DRV_MODULE_VERSION	"1.5.8.1"
+#define DRV_MODULE_RELDATE	"May 7, 2007"
 
 #define RUN_AT(x) (jiffies + (x))
 
@@ -1728,7 +1725,7 @@ bnx2_tx_int(struct bnx2 *bp)
 
 		tx_buf = &bp->tx_buf_ring[sw_ring_cons];
 		skb = tx_buf->skb;
-#ifdef BCM_TSO
+
 		/* partial BD completions possible with TSO packets */
 		if (skb_is_gso(skb)) {
 			u16 last_idx, last_ring_idx;
@@ -1744,7 +1741,7 @@ bnx2_tx_int(struct bnx2 *bp)
 				break;
 			}
 		}
-#endif
+
 		pci_unmap_single(bp->pdev, pci_unmap_addr(tx_buf, mapping),
 			skb_headlen(skb), PCI_DMA_TODEVICE);
 
@@ -2036,8 +2033,8 @@ bnx2_has_work(struct bnx2 *bp)
 	    (sblk->status_tx_quick_consumer_index0 != bp->hw_tx_cons))
 		return 1;
 
-	if (((sblk->status_attn_bits & STATUS_ATTN_BITS_LINK_STATE) != 0) !=
-	    bp->link_up)
+	if ((sblk->status_attn_bits & STATUS_ATTN_BITS_LINK_STATE) !=
+	    (sblk->status_attn_bits_ack & STATUS_ATTN_BITS_LINK_STATE))
 		return 1;
 
 	return 0;
@@ -3102,20 +3099,18 @@ bnx2_nvram_write(struct bnx2 *bp, u32 offset, u8 *data_buf,
 
 	if ((align_start = (offset32 & 3))) {
 		offset32 &= ~3;
-		len32 += (4 - align_start);
+		len32 += align_start;
+		if (len32 < 4)
+			len32 = 4;
 		if ((rc = bnx2_nvram_read(bp, offset32, start, 4)))
 			return rc;
 	}
 
 	if (len32 & 3) {
-	       	if ((len32 > 4) || !align_start) {
-			align_end = 4 - (len32 & 3);
-			len32 += align_end;
-			if ((rc = bnx2_nvram_read(bp, offset32 + len32 - 4,
-				end, 4))) {
-				return rc;
-			}
-		}
+		align_end = 4 - (len32 & 3);
+		len32 += align_end;
+		if ((rc = bnx2_nvram_read(bp, offset32 + len32 - 4, end, 4)))
+			return rc;
 	}
 
 	if (align_start || align_end) {
@@ -3190,17 +3185,17 @@ bnx2_nvram_write(struct bnx2 *bp, u32 offset, u8 *data_buf,
 		if ((rc = bnx2_enable_nvram_write(bp)) != 0)
 			goto nvram_write_end;
 
-		/* Erase the page */
-		if ((rc = bnx2_nvram_erase_page(bp, page_start)) != 0)
-			goto nvram_write_end;
-
-		/* Re-enable the write again for the actual write */
-		bnx2_enable_nvram_write(bp);
-
 		/* Loop to write back the buffer data from page_start to
 		 * data_start */
 		i = 0;
 		if (bp->flash_info->buffered == 0) {
+			/* Erase the page */
+			if ((rc = bnx2_nvram_erase_page(bp, page_start)) != 0)
+				goto nvram_write_end;
+
+			/* Re-enable the write again for the actual write */
+			bnx2_enable_nvram_write(bp);
+
 			for (addr = page_start; addr < data_start;
 				addr += 4, i += 4) {
 
@@ -3426,6 +3421,9 @@ bnx2_init_chip(struct bnx2 *bp)
 	val = REG_RD(bp, BNX2_MQ_CONFIG);
 	val &= ~BNX2_MQ_CONFIG_KNL_BYP_BLK_SIZE;
 	val |= BNX2_MQ_CONFIG_KNL_BYP_BLK_SIZE_256;
+	if (CHIP_ID(bp) == CHIP_ID_5709_A0 || CHIP_ID(bp) == CHIP_ID_5709_A1)
+		val |= BNX2_MQ_CONFIG_HALT_DIS;
+
 	REG_WR(bp, BNX2_MQ_CONFIG, val);
 
 	val = 0x10000 + (MAX_CID_CNT * MB_KERNEL_CTX_SIZE);
@@ -4470,9 +4468,7 @@ bnx2_vlan_rx_kill_vid(struct net_device *dev, uint16_t vid)
 	struct bnx2 *bp = netdev_priv(dev);
 
 	bnx2_netif_stop(bp);
-
-	if (bp->vlgrp)
-		bp->vlgrp->vlan_devices[vid] = NULL;
+	vlan_group_set_device(bp->vlgrp, vid, NULL);
 	bnx2_set_rx_mode(dev);
 
 	bnx2_netif_start(bp);
@@ -4514,9 +4510,7 @@ bnx2_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		vlan_tag_flags |=
 			(TX_BD_FLAGS_VLAN_TAG | (vlan_tx_tag_get(skb) << 16));
 	}
-#ifdef BCM_TSO
-	if ((mss = skb_shinfo(skb)->gso_size) &&
-		(skb->len > (bp->dev->mtu + ETH_HLEN))) {
+	if ((mss = skb_shinfo(skb)->gso_size)) {
 		u32 tcp_opt_len, ip_tcp_len;
 
 		if (skb_header_cloned(skb) &&
@@ -4547,7 +4541,6 @@ bnx2_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		}
 	}
 	else
-#endif
 	{
 		mss = 0;
 	}
@@ -5544,10 +5537,8 @@ static const struct ethtool_ops bnx2_ethtool_ops = {
 	.set_tx_csum		= ethtool_op_set_tx_csum,
 	.get_sg			= ethtool_op_get_sg,
 	.set_sg			= ethtool_op_set_sg,
-#ifdef BCM_TSO
 	.get_tso		= ethtool_op_get_tso,
 	.set_tso		= bnx2_set_tso,
-#endif
 	.self_test_count	= bnx2_self_test_count,
 	.self_test		= bnx2_self_test,
 	.get_strings		= bnx2_get_strings,
@@ -5573,6 +5564,9 @@ bnx2_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 	case SIOCGMIIREG: {
 		u32 mii_regval;
 
+		if (!netif_running(dev))
+			return -EAGAIN;
+
 		spin_lock_bh(&bp->phy_lock);
 		err = bnx2_read_phy(bp, data->reg_num & 0x1f, &mii_regval);
 		spin_unlock_bh(&bp->phy_lock);
@@ -5585,6 +5579,9 @@ bnx2_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 	case SIOCSMIIREG:
 		if (!capable(CAP_NET_ADMIN))
 			return -EPERM;
+
+		if (!netif_running(dev))
+			return -EAGAIN;
 
 		spin_lock_bh(&bp->phy_lock);
 		err = bnx2_write_phy(bp, data->reg_num & 0x1f, data->val_in);
@@ -5954,8 +5951,7 @@ bnx2_init_board(struct pci_dev *pdev, struct net_device *dev)
 	 * responding after a while.
 	 *
 	 * AMD believes this incompatibility is unique to the 5706, and
-	 * prefers to locally disable MSI rather than globally disabling it
-	 * using pci_msi_quirk.
+	 * prefers to locally disable MSI rather than globally disabling it.
 	 */
 	if (CHIP_NUM(bp) == CHIP_NUM_5706 && disable_msi == 0) {
 		struct pci_dev *amd_8132 = NULL;
@@ -6104,9 +6100,7 @@ bnx2_init_one(struct pci_dev *pdev, const struct pci_device_id *ent)
 #ifdef BCM_VLAN
 	dev->features |= NETIF_F_HW_VLAN_TX | NETIF_F_HW_VLAN_RX;
 #endif
-#ifdef BCM_TSO
 	dev->features |= NETIF_F_TSO | NETIF_F_TSO_ECN;
-#endif
 
 	netif_carrier_off(bp->dev);
 
@@ -6154,6 +6148,7 @@ bnx2_suspend(struct pci_dev *pdev, pm_message_t state)
 		reset_code = BNX2_DRV_MSG_CODE_SUSPEND_NO_WOL;
 	bnx2_reset_chip(bp, reset_code);
 	bnx2_free_skbs(bp);
+	pci_save_state(pdev);
 	bnx2_set_power_state(bp, pci_choose_state(pdev, state));
 	return 0;
 }
@@ -6167,6 +6162,7 @@ bnx2_resume(struct pci_dev *pdev)
 	if (!netif_running(dev))
 		return 0;
 
+	pci_restore_state(pdev);
 	bnx2_set_power_state(bp, PCI_D0);
 	netif_device_attach(dev);
 	bnx2_init_nic(bp);

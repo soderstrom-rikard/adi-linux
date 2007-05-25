@@ -882,7 +882,7 @@ unsigned long do_mmap_pgoff(struct file *file,
 			goto shared;
 		}
 
-		dont_share_VMAs:
+	dont_share_VMAs:
 		vma = NULL;
 
 		/* obtain the address at which to make a shared mapping
@@ -1221,11 +1221,11 @@ EXPORT_SYMBOL(unmap_mapping_range);
  * ask for an unmapped area at which to create a mapping on a file
  */
 unsigned long get_unmapped_area(struct file *file, unsigned long addr,
-		unsigned long len, unsigned long pgoff,
-		unsigned long flags)
+				unsigned long len, unsigned long pgoff,
+				unsigned long flags)
 {
 	unsigned long (*get_area)(struct file *, unsigned long, unsigned long,
-			unsigned long, unsigned long);
+				  unsigned long, unsigned long);
 
 	get_area = current->mm->get_unmapped_area;
 	if (file && file->f_op && file->f_op->get_unmapped_area)
@@ -1236,6 +1236,7 @@ unsigned long get_unmapped_area(struct file *file, unsigned long addr,
 
 	return get_area(file, addr, len, pgoff, flags);
 }
+
 EXPORT_SYMBOL(get_unmapped_area);
 
 /*
