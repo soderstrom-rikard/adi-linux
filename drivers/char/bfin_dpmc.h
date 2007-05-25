@@ -83,4 +83,6 @@ void disable_wdog_timer(void);
 #define CONSOLE_BAUD_RATE 57600
 #elif defined(CONFIG_BAUD_115200)
 #define CONSOLE_BAUD_RATE 115200
+#else
+#define CONSOLE_BAUD_RATE 57600
 #endif
