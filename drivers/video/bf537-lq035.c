@@ -615,30 +615,28 @@ static int bl_get_brightness(struct backlight_device *bd)
 	return current_brightness;;
 }
 
-static struct backlight_properties bfin_lq035fb_bl = {
-	.owner			= THIS_MODULE,
-	.max_brightness	= MAX_BRIGHENESS,
+static struct backlight_ops bfin_lq035fb_bl_ops = {
 	.get_brightness	= bl_get_brightness,
 };
 
 static struct backlight_device *bl_dev;
 
-static int lcd_get_power(struct lcd_device* dev)
+static int bfin_lcd_get_power(struct lcd_device* dev)
 {
 	return 0;
 }
 
-static int lcd_set_power(struct lcd_device* dev, int power)
+static int bfin_lcd_set_power(struct lcd_device* dev, int power)
 {
 	return 0;
 }
 
-static int lcd_get_contrast(struct lcd_device* dev)
+static int bfin_lcd_get_contrast(struct lcd_device* dev)
 {
 	return (int)vcomm_value;
 }
 
-static int lcd_set_contrast(struct lcd_device* dev, int contrast)
+static int bfin_lcd_set_contrast(struct lcd_device* dev, int contrast)
 {
 	if (contrast > 255)
 		contrast = 255;
@@ -650,21 +648,19 @@ static int lcd_set_contrast(struct lcd_device* dev, int contrast)
 	return 0;
 }
 
-static int lcd_check_fb(struct fb_info* fi)
+static int bfin_lcd_check_fb(struct fb_info* fi)
 {
 	if (!fi || (fi == &bfin_lq035_fb))
 		return 1;
 	return 0;
 }
 
-static struct lcd_properties lcd = {
-	.owner		= THIS_MODULE,
-	.get_power	= lcd_get_power,
-	.set_power	= lcd_set_power,
-	.max_contrast	= 255,
-	.get_contrast   = lcd_get_contrast,
-	.set_contrast   = lcd_set_contrast,
-	.check_fb	= lcd_check_fb,
+static struct lcd_ops bfin_lcd_ops = {
+	.get_power	= bfin_lcd_get_power,
+	.set_power	= bfin_lcd_set_power,
+	.get_contrast   = bfin_lcd_get_contrast,
+	.set_contrast   = bfin_lcd_set_contrast,
+	.check_fb	= bfin_lcd_check_fb,
 };
 
 static struct lcd_device *lcd_dev;
@@ -757,8 +753,11 @@ static int __init bfin_lq035_fb_init(void)
 
 	i2c_add_driver(&ad5280_driver);
 
-	bl_dev = backlight_device_register("bf537-bl", NULL, NULL, &bfin_lq035fb_bl);
-	lcd_dev = lcd_device_register(DRIVER_NAME, NULL, &lcd);
+	bl_dev = backlight_device_register("bf537-bl", NULL, NULL, &bfin_lq035fb_bl_ops);
+	bl_dev->props.max_brightness = MAX_BRIGHENESS;
+	
+	lcd_dev = lcd_device_register(DRIVER_NAME, NULL, &bfin_lcd_ops);
+	lcd_dev->props.max_contrast = 255,
 
 	printk(KERN_INFO "Done.\n");
 	return 0;
