@@ -40,6 +40,7 @@
 #include <linux/init.h>
 #include <linux/string.h>
 #include <linux/device.h>
+#include <linux/miscdevice.h>
 #include <linux/spi/spi.h>
 #include <linux/delay.h>
 
@@ -637,6 +638,12 @@ static struct spi_driver ad9960_spi_driver = {
 	.remove         = __devexit_p(ad9960_spi_remove),
 };
 
+static struct miscdevice ad9960_dev = {
+	AD9960_MINOR,
+	"ad9960",
+	&ad9960_fops
+};
+
 static int __init ad9960_init(void)
 {
 	int result;
@@ -656,7 +663,7 @@ static int __init ad9960_init(void)
 	memset(&ad9960_info, 0, sizeof(struct ad9960_device_t));
 
 	spi_register_driver(&ad9960_spi_driver);
-	result = register_chrdev(AD9960_MAJOR, AD9960_DEVNAME, &ad9960_fops);
+	result = misc_register(&ad9960_dev);
 	if (result < 0) {
 		printk(KERN_WARNING "ad9960: can't get minor %d\n", AD9960_MAJOR);
 		return result;
@@ -683,7 +690,7 @@ static int __init ad9960_init(void)
 static void __exit ad9960_exit(void)
 {
 	gpio_free(CONFIG_AD9960_TX_RX_PIN);
-	unregister_chrdev(AD9960_MAJOR, AD9960_DEVNAME);
+	misc_deregister(&ad9960_dev);
 	spi_unregister_driver(&ad9960_spi_driver);
 }
 module_init(ad9960_init);
@@ -691,3 +698,4 @@ module_exit(ad9960_exit);
 
 MODULE_AUTHOR("Aubrey Li");
 MODULE_LICENSE("GPL");
+MODULE_ALIAS_MISCDEV(AD9960_MINOR);
