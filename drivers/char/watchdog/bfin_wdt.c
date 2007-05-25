@@ -519,7 +519,7 @@ static struct file_operations bfin_wdt_fops = {
 
 static struct miscdevice bfin_wdt_miscdev = {
 	.minor    = WATCHDOG_MINOR,
-	.name     = WATCHDOG_NAME,
+	.name     = "watchdog",
 	.fops     = &bfin_wdt_fops,
 };
 
