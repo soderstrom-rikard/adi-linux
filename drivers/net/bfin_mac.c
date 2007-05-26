@@ -61,6 +61,7 @@
 #include <asm/irq.h>
 #include <asm/blackfin.h>
 #include <asm/delay.h>
+#include <asm/cacheflush.h>
 
 #include "bfin_mac.h"
 
