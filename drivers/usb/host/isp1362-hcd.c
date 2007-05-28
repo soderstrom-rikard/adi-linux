@@ -541,11 +541,6 @@ static void finish_request(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep *e
 		    isp1362_hcd->load[ep->branch] - ep->load);
 		isp1362_hcd->load[ep->branch] -= ep->load;
 		ep->branch = PERIODIC_SIZE;
-		if (urb->bandwidth) {
-			DBG(0, "%s: Releasing bandwidth for urb %p ep %p req %d\n",
-			    __FUNCTION__, urb, ep, ep->num_req);
-			usb_release_bandwidth(urb->dev, urb, usb_pipeisoc(urb->pipe));
-		}
 	}
 	// async deschedule
 	if (!list_empty(&ep->schedule)) {
@@ -1437,7 +1432,6 @@ static int isp1362_urb_enqueue(struct usb_hcd *hcd, struct usb_host_endpoint *he
 		} else {
 			DBG(1, "%s: ep %p already scheduled\n", __func__, ep);
 		}
-		usb_claim_bandwidth(udev, urb, ep->load / ep->interval, type == PIPE_ISOCHRONOUS);
 		DBG(2, "%s: load %d bandwidth %d -> %d\n", __FUNCTION__,
 		    ep->load / ep->interval, isp1362_hcd->load[ep->branch],
 		    isp1362_hcd->load[ep->branch] + ep->load);
