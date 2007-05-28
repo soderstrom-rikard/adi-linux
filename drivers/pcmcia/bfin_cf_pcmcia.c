@@ -260,7 +260,7 @@ static int __init bfin_cf_probe(struct device *dev)
 	pr_debug("%s: %s\n", driver_name, bfin_cf_present(cf->cd_pfx) ? "present" : "(not present)");
 
 	cf->socket.owner = THIS_MODULE;
-	cf->socket.dev.dev = dev;
+	cf->socket.dev.parent = dev;
 	cf->socket.ops = &bfin_cf_ops;
 	cf->socket.resource_ops = &pccard_static_ops;
 	cf->socket.features = SS_CAP_PCCARD | SS_CAP_STATIC_MAP
