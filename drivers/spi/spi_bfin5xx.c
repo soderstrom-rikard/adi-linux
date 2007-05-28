@@ -697,8 +697,7 @@ static void pump_transfers(unsigned long data)
 	drv_data->read = drv_data->rx ? chip->read : null_reader;
 	drv_data->duplex = chip->duplex ? chip->duplex : null_writer;
 	dev_dbg(&drv_data->pdev->dev,
-		"transfer: drv_data->write is %p,
-		chip->write is %p, null_wr is %p\n",
+		"transfer: drv_data->write is %p, chip->write is %p, null_wr is %p\n",
    		drv_data->write, chip->write, null_writer);
 
 	/* speed and width has been set on per message */
@@ -910,8 +909,7 @@ static void pump_messages(struct work_struct *work)
 	drv_data->cur_chip = spi_get_ctldata(drv_data->cur_msg->spi);
 	restore_state(drv_data);
 	dev_dbg(&drv_data->pdev->dev,
-		"got a message to pump, state is set to:
-	       	baud %d, flag 0x%x, ctl 0x%x\n",
+		"got a message to pump, state is set to: baud %d, flag 0x%x, ctl 0x%x\n",
    		drv_data->cur_chip->baud, drv_data->cur_chip->flag,
    		drv_data->cur_chip->ctl_reg);
 	
