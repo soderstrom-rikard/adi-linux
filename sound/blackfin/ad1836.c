@@ -274,7 +274,7 @@ static unsigned int in_chan_masks[] = {CAP_LINE, CAP_MIC|CAP_LINE, CAP_SPDIF};
 
 #ifdef MULTI_SUBSTREAM
 typedef struct {
-	snd_pcm_substream_t*	substream;
+	struct snd_pcm_substream*	substream;
 	snd_pcm_uframes_t	dma_offset;
 	snd_pcm_uframes_t	buffer_frames;
 	snd_pcm_uframes_t	period_frames;
@@ -313,7 +313,7 @@ struct snd_ad1836 {
 	int      poll_reg;  /* index of the ad1836 register last queried */
 
 	/* if non-null, current subtream running */
-	snd_pcm_substream_t *rx_substream;
+	struct snd_pcm_substream *rx_substream;
 #ifdef MULTI_SUBSTREAM
 	int	tx_dma_started;
 	int	tx_status;
@@ -330,14 +330,14 @@ struct snd_ad1836 {
 	substream_info_t	tx_substreams[3];
 #else
 	/* if non-null, current subtream running */
-	snd_pcm_substream_t *tx_substream;
+	struct snd_pcm_substream *tx_substream;
 #endif
 
 };
 
 #ifdef MULTI_SUBSTREAM
 static inline int find_substream(ad1836_t *chip,
-		snd_pcm_substream_t *substream,	substream_info_t **info)
+		struct snd_pcm_substream *substream,	substream_info_t **info)
 {
 	if (chip->tx_substreams[0].substream == substream) {
 		*info = &chip->tx_substreams[0];
@@ -386,8 +386,8 @@ static void snd_ad1836_read_registers(ad1836_t *chip)
 
 #ifndef NOCONTROLS
 
-static int snd_ad1836_volume_info(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_info_t *uinfo)
+static int snd_ad1836_volume_info(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_info *uinfo)
 {
 	uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
 	uinfo->count = CHANNELS_OUTPUT;
@@ -397,8 +397,8 @@ static int snd_ad1836_volume_info(snd_kcontrol_t *kcontrol,
 }
 
 
-static int snd_ad1836_volume_get(snd_kcontrol_t *kcontrol,
-					snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_volume_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 	int i;
@@ -409,8 +409,8 @@ static int snd_ad1836_volume_get(snd_kcontrol_t *kcontrol,
 }
 
 
-static int snd_ad1836_volume_put(snd_kcontrol_t *kcontrol,
-					snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_volume_put(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
 {
 
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
@@ -431,8 +431,8 @@ static int snd_ad1836_volume_put(snd_kcontrol_t *kcontrol,
 }
 
 #ifdef ADC2_IS_MIC
-static int snd_ad1836_adc_gain_info(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_info_t *uinfo)
+static int snd_ad1836_adc_gain_info(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_info *uinfo)
 {
 	uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
 	uinfo->count = 2;
@@ -441,8 +441,8 @@ static int snd_ad1836_adc_gain_info(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_adc_gain_get(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_adc_gain_get(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 	ucontrol->value.integer.value[0] = ADC_GAIN_LEFT(chip->chip_registers[ADC_CTRL_1]);
@@ -450,8 +450,8 @@ static int snd_ad1836_adc_gain_get(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_adc_gain_put(snd_kcontrol_t *kcontrol,
-					snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_adc_gain_put(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
 {
 
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
@@ -481,8 +481,8 @@ static int snd_ad1836_adc_gain_put(snd_kcontrol_t *kcontrol,
 }
 #endif
 
-static int snd_ad1836_playback_mute_info(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_info_t *uinfo)
+static int snd_ad1836_playback_mute_info(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_info *uinfo)
 {
 	uinfo->type = SNDRV_CTL_ELEM_TYPE_BOOLEAN;
 	uinfo->count = CHANNELS_OUTPUT;
@@ -491,8 +491,8 @@ static int snd_ad1836_playback_mute_info(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_playback_mute_get(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_playback_mute_get(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 	int i;
@@ -502,8 +502,8 @@ static int snd_ad1836_playback_mute_get(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_playback_mute_put(snd_kcontrol_t *kcontrol,
-					snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_playback_mute_put(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
 {
 
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
@@ -524,8 +524,8 @@ static int snd_ad1836_playback_mute_put(snd_kcontrol_t *kcontrol,
 }
 
 
-static int snd_ad1836_capture_mute_info(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_info_t *uinfo)
+static int snd_ad1836_capture_mute_info(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_info *uinfo)
 {
 	uinfo->type = SNDRV_CTL_ELEM_TYPE_BOOLEAN;
 	uinfo->count = CHANNELS_INPUT;
@@ -534,8 +534,8 @@ static int snd_ad1836_capture_mute_info(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_capture_mute_get(snd_kcontrol_t *kcontrol,
-					snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_capture_mute_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 	int i;
@@ -545,8 +545,8 @@ static int snd_ad1836_capture_mute_get(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_capture_mute_put(snd_kcontrol_t *kcontrol,
-					snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_capture_mute_put(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
 {
 
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
@@ -567,8 +567,8 @@ static int snd_ad1836_capture_mute_put(snd_kcontrol_t *kcontrol,
 
 }
 
-static int snd_ad1836_deemph_info(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_info_t *uinfo)
+static int snd_ad1836_deemph_info(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_info *uinfo)
 {
 	static const char *names[] = { "Off", "44.1kHz", "32kHz", "48kHz" };
 	uinfo->type = SNDRV_CTL_ELEM_TYPE_ENUMERATED;
@@ -579,8 +579,8 @@ static int snd_ad1836_deemph_info(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_deemph_get(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_deemph_get(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 	ucontrol->value.enumerated.item[0] =
@@ -588,8 +588,8 @@ static int snd_ad1836_deemph_get(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_deemph_put(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_deemph_put(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 	if (ucontrol->value.enumerated.item[0] !=
@@ -602,8 +602,8 @@ static int snd_ad1836_deemph_put(snd_kcontrol_t *kcontrol,
 
 }
 
-static int snd_ad1836_filter_info(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_info_t *uinfo)
+static int snd_ad1836_filter_info(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_info *uinfo)
 {
 	uinfo->type = SNDRV_CTL_ELEM_TYPE_BOOLEAN;
 	uinfo->count = 1;
@@ -612,8 +612,8 @@ static int snd_ad1836_filter_info(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_filter_get(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_filter_get(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 	ucontrol->value.integer.value[0] =
@@ -621,8 +621,8 @@ static int snd_ad1836_filter_get(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_filter_put(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_filter_put(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 	if (ucontrol->value.integer.value[0] != ((chip->chip_registers\
@@ -635,8 +635,8 @@ static int snd_ad1836_filter_put(snd_kcontrol_t *kcontrol,
 }
 
 
-static int snd_ad1836_diffip_info(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_info_t *uinfo)
+static int snd_ad1836_diffip_info(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_info *uinfo)
 {
 	uinfo->type = SNDRV_CTL_ELEM_TYPE_BOOLEAN;
 	uinfo->count = 2;
@@ -645,8 +645,8 @@ static int snd_ad1836_diffip_info(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_diffip_get(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_diffip_get(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 	ucontrol->value.integer.value[0] =
@@ -656,8 +656,8 @@ static int snd_ad1836_diffip_get(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_diffip_put(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_diffip_put(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 	int change = 0;
@@ -681,8 +681,8 @@ static int snd_ad1836_diffip_put(snd_kcontrol_t *kcontrol,
 
 #define CAPTURE_SOURCE_NUMBER 2
 
-static int snd_ad1836_mux_info(snd_kcontrol_t *kcontrol,
-					snd_ctl_elem_info_t *uinfo)
+static int snd_ad1836_mux_info(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_info *uinfo)
 {
 	static char *texts[CAPTURE_SOURCE_NUMBER] = {
 		"Line", "Mic"
@@ -697,8 +697,8 @@ static int snd_ad1836_mux_info(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_mux_get(snd_kcontrol_t *kcontrol,
-					snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_mux_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 
@@ -710,8 +710,8 @@ static int snd_ad1836_mux_get(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_mux_put(snd_kcontrol_t *kcontrol,
-					snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_mux_put(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 	int i;
@@ -726,8 +726,8 @@ static int snd_ad1836_mux_put(snd_kcontrol_t *kcontrol,
 }
 
 #define OUTPUT_NUMBER 3
-static int snd_ad1836_playback_sel_info(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_info_t *uinfo)
+static int snd_ad1836_playback_sel_info(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_info *uinfo)
 {
 	static char *texts[OUTPUT_NUMBER] = {"Line", "Black", "Orange"};
 
@@ -740,8 +740,8 @@ static int snd_ad1836_playback_sel_info(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_playback_sel_get(snd_kcontrol_t *kcontrol,
-					snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_playback_sel_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 
@@ -755,8 +755,8 @@ static int snd_ad1836_playback_sel_get(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_playback_sel_put(snd_kcontrol_t *kcontrol,
-					snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_playback_sel_put(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 
@@ -775,8 +775,8 @@ static int snd_ad1836_playback_sel_put(snd_kcontrol_t *kcontrol,
 }
 #endif
 
-static int snd_ad1836_vu_info(snd_kcontrol_t *kcontrol,
-						snd_ctl_elem_info_t *uinfo)
+static int snd_ad1836_vu_info(struct snd_kcontrol *kcontrol,
+						struct snd_ctl_elem_info *uinfo)
 {
 	uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
 	uinfo->count = CHANNELS_INPUT;
@@ -786,8 +786,8 @@ static int snd_ad1836_vu_info(snd_kcontrol_t *kcontrol,
 }
 
 
-static int snd_ad1836_vu_get(snd_kcontrol_t *kcontrol,
-					snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_vu_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
 {
 	ad1836_t *chip = snd_kcontrol_chip(kcontrol);
 	int i;
@@ -797,7 +797,7 @@ static int snd_ad1836_vu_get(snd_kcontrol_t *kcontrol,
 	return 0;
 }
 
-static int snd_ad1836_vu_put(snd_kcontrol_t *kcontrol, snd_ctl_elem_value_t *ucontrol)
+static int snd_ad1836_vu_put(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
 {
 	return 0;
 }
@@ -815,7 +815,7 @@ static int snd_ad1836_vu_put(snd_kcontrol_t *kcontrol, snd_ctl_elem_value_t *uco
 
 /* NOTE: I have no idea if I chose the .name fields properly.. */
 
-static snd_kcontrol_new_t snd_ad1836_controls[] __devinitdata = {
+static struct snd_kcontrol_new snd_ad1836_controls[] __devinitdata = {
 	KTRLRW(MIXER, "Master Playback Volume",   snd_ad1836_volume),
 #ifdef ADC2_IS_MIC
 	KTRLRW(MIXER, "Mic Capture Volume",    snd_ad1836_adc_gain),
@@ -846,7 +846,7 @@ static snd_kcontrol_new_t snd_ad1836_controls[] __devinitdata = {
  *                pcm methods
  *************************************************************/
 
-static snd_pcm_hardware_t snd_ad1836_playback_hw = {
+static struct snd_pcm_hardware snd_ad1836_playback_hw = {
 	.info = ( SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER ),
 #ifdef LINPHONE_SETTING
 	.formats =          SNDRV_PCM_FMTBIT_S16_LE,
@@ -870,7 +870,7 @@ static snd_pcm_hardware_t snd_ad1836_playback_hw = {
 	.periods_max =      FRAGMENTS_MAX,
 };
 
-static snd_pcm_hardware_t snd_ad1836_capture_hw = {
+static struct snd_pcm_hardware snd_ad1836_capture_hw = {
 	.info = ( SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER ),
 #ifdef LINPHONE_SETTING
 	.formats =          SNDRV_PCM_FMTBIT_S16_LE,
@@ -894,7 +894,7 @@ static snd_pcm_hardware_t snd_ad1836_capture_hw = {
 	.periods_max =      FRAGMENTS_MAX,
 };
 
-static int snd_ad1836_playback_open(snd_pcm_substream_t *substream)
+static int snd_ad1836_playback_open(struct snd_pcm_substream *substream)
 {
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
 
@@ -917,7 +917,7 @@ static int snd_ad1836_playback_open(snd_pcm_substream_t *substream)
 	return 0;
 }
 
-static int snd_ad1836_capture_open(snd_pcm_substream_t *substream)
+static int snd_ad1836_capture_open(struct snd_pcm_substream *substream)
 {
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
 
@@ -928,7 +928,7 @@ static int snd_ad1836_capture_open(snd_pcm_substream_t *substream)
 	return 0;
 }
 
-static int snd_ad1836_playback_close(snd_pcm_substream_t *substream)
+static int snd_ad1836_playback_close(struct snd_pcm_substream *substream)
 {
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
 
@@ -954,7 +954,7 @@ static int snd_ad1836_playback_close(snd_pcm_substream_t *substream)
 }
 
 
-static int snd_ad1836_capture_close(snd_pcm_substream_t *substream)
+static int snd_ad1836_capture_close(struct snd_pcm_substream *substream)
 {
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
 
@@ -965,8 +965,8 @@ static int snd_ad1836_capture_close(snd_pcm_substream_t *substream)
 }
 
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
-static int snd_ad1836_hw_params(snd_pcm_substream_t *substream,
-					snd_pcm_hw_params_t *hwparams)
+static int snd_ad1836_hw_params(struct snd_pcm_substream *substream,
+					struct snd_pcm_hw_params *hwparams)
 {
 	/*
 	 *  Allocate all available memory for our DMA buffer.
@@ -1002,8 +1002,8 @@ static int snd_ad1836_hw_params(snd_pcm_substream_t *substream,
 	return 0;
 }
 #else //I2S in following
-static int snd_ad1836_hw_params(snd_pcm_substream_t *substream,
-					snd_pcm_hw_params_t *hwparams)
+static int snd_ad1836_hw_params(struct snd_pcm_substream *substream,
+					struct snd_pcm_hw_params *hwparams)
 {
 	snd_printk_marker();
 #ifdef LINPHONE_SETTING
@@ -1018,7 +1018,7 @@ static int snd_ad1836_hw_params(snd_pcm_substream_t *substream,
 }
 #endif
 
-static int snd_ad1836_hw_free(snd_pcm_substream_t * substream)
+static int snd_ad1836_hw_free(struct snd_pcm_substream * substream)
 {
 	snd_printk_marker();
 #ifdef MULTI_SUBSTREAM
@@ -1031,11 +1031,11 @@ static int snd_ad1836_hw_free(snd_pcm_substream_t * substream)
 	return 0;
 }
 
-static int snd_ad1836_playback_prepare(snd_pcm_substream_t *substream)
+static int snd_ad1836_playback_prepare(struct snd_pcm_substream *substream)
 {
 
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
-	snd_pcm_runtime_t *runtime = substream->runtime;
+	struct snd_pcm_runtime *runtime = substream->runtime;
 
 #ifndef MULTI_SUBSTREAM
 	int fragsize_bytes = frames_to_bytes(runtime, runtime->period_size);
@@ -1091,10 +1091,10 @@ static int snd_ad1836_playback_prepare(snd_pcm_substream_t *substream)
 	return err;
 }
 
-static int snd_ad1836_capture_prepare(snd_pcm_substream_t *substream)
+static int snd_ad1836_capture_prepare(struct snd_pcm_substream *substream)
 {
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
-	snd_pcm_runtime_t *runtime = substream->runtime;
+	struct snd_pcm_runtime *runtime = substream->runtime;
 
 	void *buf_addr      = (void*) runtime->dma_area;
 	int  fragcount      = runtime->periods;
@@ -1123,7 +1123,7 @@ static int snd_ad1836_capture_prepare(snd_pcm_substream_t *substream)
 	return err;
 }
 
-static int snd_ad1836_playback_trigger(snd_pcm_substream_t *substream, int cmd)
+static int snd_ad1836_playback_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
 #ifdef MULTI_SUBSTREAM
@@ -1171,7 +1171,7 @@ static int snd_ad1836_playback_trigger(snd_pcm_substream_t *substream, int cmd)
 	return 0;
 }
 
-static int snd_ad1836_capture_trigger(snd_pcm_substream_t *substream, int cmd)
+static int snd_ad1836_capture_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
 
@@ -1197,7 +1197,7 @@ static int snd_ad1836_capture_trigger(snd_pcm_substream_t *substream, int cmd)
 	return 0;
 }
 
-static snd_pcm_uframes_t snd_ad1836_playback_pointer(snd_pcm_substream_t *substream)
+static snd_pcm_uframes_t snd_ad1836_playback_pointer(struct snd_pcm_substream *substream)
 {
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
 #ifdef MULTI_SUBSTREAM
@@ -1205,7 +1205,7 @@ static snd_pcm_uframes_t snd_ad1836_playback_pointer(snd_pcm_substream_t *substr
 #endif
 
 #ifndef MULTI_SUBSTREAM
-	snd_pcm_runtime_t *runtime = substream->runtime;
+	struct snd_pcm_runtime *runtime = substream->runtime;
 #endif
 	unsigned long diff = bf53x_sport_curr_offset_tx(chip->sport);
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
@@ -1242,10 +1242,10 @@ static snd_pcm_uframes_t snd_ad1836_playback_pointer(snd_pcm_substream_t *substr
 }
 
 
-static snd_pcm_uframes_t snd_ad1836_capture_pointer(snd_pcm_substream_t *substream)
+static snd_pcm_uframes_t snd_ad1836_capture_pointer(struct snd_pcm_substream *substream)
 {
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
-	snd_pcm_runtime_t *runtime = substream->runtime;
+	struct snd_pcm_runtime *runtime = substream->runtime;
 
 	unsigned long diff = bf53x_sport_curr_offset_rx(chip->sport);
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
@@ -1273,7 +1273,7 @@ static snd_pcm_uframes_t snd_ad1836_capture_pointer(snd_pcm_substream_t *substre
 }
 
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
-static int snd_ad1836_playback_copy(snd_pcm_substream_t *substream, int channel,
+static int snd_ad1836_playback_copy(struct snd_pcm_substream *substream, int channel,
 		snd_pcm_uframes_t pos, void *src, snd_pcm_uframes_t count)
 {
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
@@ -1363,7 +1363,7 @@ static int snd_ad1836_playback_copy(snd_pcm_substream_t *substream, int channel,
 	return 0;
 }
 
-static int snd_ad1836_capture_copy(snd_pcm_substream_t *substream, int channel,
+static int snd_ad1836_capture_copy(struct snd_pcm_substream *substream, int channel,
 	snd_pcm_uframes_t pos, void *dst, snd_pcm_uframes_t count)
 {
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
@@ -1396,7 +1396,7 @@ static int snd_ad1836_capture_copy(snd_pcm_substream_t *substream, int channel,
 #elif defined(CONFIG_SND_BLACKFIN_AD1836_I2S)
 
 #ifdef LINPHONE_SETTING
-static int snd_ad1836_playback_copy(snd_pcm_substream_t *substream, int channel,
+static int snd_ad1836_playback_copy(struct snd_pcm_substream *substream, int channel,
 		snd_pcm_uframes_t pos, void *src, snd_pcm_uframes_t count)
 {
 	int i, curr;
@@ -1418,7 +1418,7 @@ static int snd_ad1836_playback_copy(snd_pcm_substream_t *substream, int channel,
 	}
 	return 0;
 }
-static int snd_ad1836_capture_copy(snd_pcm_substream_t *substream, int channel,
+static int snd_ad1836_capture_copy(struct snd_pcm_substream *substream, int channel,
 		snd_pcm_uframes_t pos, void *dst, snd_pcm_uframes_t count)
 {
 	int i, curr;
@@ -1440,7 +1440,7 @@ static int snd_ad1836_capture_copy(snd_pcm_substream_t *substream, int channel,
 	return 0;
 }
 #else
-static int snd_ad1836_playback_copy(snd_pcm_substream_t *substream, int channel,
+static int snd_ad1836_playback_copy(struct snd_pcm_substream *substream, int channel,
 		snd_pcm_uframes_t pos, void *src, snd_pcm_uframes_t count)
 {
 	int i, curr;
@@ -1464,7 +1464,7 @@ static int snd_ad1836_playback_copy(snd_pcm_substream_t *substream, int channel,
 	return 0;
 }
 
-static int snd_ad1836_capture_copy(snd_pcm_substream_t *substream, int channel,
+static int snd_ad1836_capture_copy(struct snd_pcm_substream *substream, int channel,
 		snd_pcm_uframes_t pos, void *dst, snd_pcm_uframes_t count)
 {
 	int i, curr;
@@ -1492,7 +1492,7 @@ static int snd_ad1836_capture_copy(snd_pcm_substream_t *substream, int channel,
 
 #endif
 
-static int snd_ad1836_playback_silence(snd_pcm_substream_t *substream,
+static int snd_ad1836_playback_silence(struct snd_pcm_substream *substream,
 		int channel, snd_pcm_uframes_t pos, snd_pcm_uframes_t count)
 {
 	unsigned char *buf = substream->runtime->dma_area;
@@ -1516,7 +1516,7 @@ static int snd_ad1836_playback_silence(snd_pcm_substream_t *substream,
 	return 0;
 }
 
-static int snd_ad1836_capture_silence(snd_pcm_substream_t *substream,
+static int snd_ad1836_capture_silence(struct snd_pcm_substream *substream,
 	int channel, snd_pcm_uframes_t pos, snd_pcm_uframes_t count)
 {
 	unsigned char *buf = substream->runtime->dma_area;
@@ -1540,7 +1540,7 @@ static int snd_ad1836_capture_silence(snd_pcm_substream_t *substream,
 }
 
 /* pcm method tables */
-static snd_pcm_ops_t snd_ad1836_playback_ops = {
+static struct snd_pcm_ops snd_ad1836_playback_ops = {
 	.open      = snd_ad1836_playback_open,
 	.close     = snd_ad1836_playback_close,
 	.ioctl     = snd_pcm_lib_ioctl,
@@ -1553,7 +1553,7 @@ static snd_pcm_ops_t snd_ad1836_playback_ops = {
 	.silence   = snd_ad1836_playback_silence,
 };
 
-static snd_pcm_ops_t snd_ad1836_capture_ops = {
+static struct snd_pcm_ops snd_ad1836_capture_ops = {
 	.open  = snd_ad1836_capture_open,
 	.close = snd_ad1836_capture_close,
 	.ioctl = snd_pcm_lib_ioctl,
@@ -1581,7 +1581,7 @@ static int snd_ad1836_stop(struct snd_ad1836 *chip)
 	return 0;
 }
 
-static int snd_ad1836_dev_free(snd_device_t *device)
+static int snd_ad1836_dev_free(struct snd_device *device)
 {
 	struct snd_ad1836 *chip = (ad1836_t *)device->device_data;
 
@@ -1594,7 +1594,7 @@ static int snd_ad1836_dev_free(snd_device_t *device)
 	return snd_ad1836_stop(chip);
 }
 
-static snd_device_ops_t snd_ad1836_ops = {
+static struct snd_device_ops snd_ad1836_ops = {
 	.dev_free = snd_ad1836_dev_free,
 };
 
@@ -1822,8 +1822,8 @@ static void snd_ad1836_sport_err(void *data)
 	printk(KERN_ERR DRIVER_NAME ":%s: err happened on sport\n", __FUNCTION__);
 }
 
-static void snd_ad1836_proc_registers_read(snd_info_entry_t * entry,
-						snd_info_buffer_t * buffer)
+static void snd_ad1836_proc_registers_read(struct snd_info_entry * entry,
+						struct snd_info_buffer * buffer)
 {
 	int i;
 	ad1836_t *chip = (ad1836_t*) entry->private_data;
@@ -1851,8 +1851,8 @@ static void snd_ad1836_proc_registers_read(snd_info_entry_t * entry,
 	return;
 }
 
-static void snd_ad1836_proc_registers_write(snd_info_entry_t * entry,
-						snd_info_buffer_t * buffer)
+static void snd_ad1836_proc_registers_write(struct snd_info_entry * entry,
+						struct snd_info_buffer * buffer)
 {
 	ad1836_t *chip = (ad1836_t*) entry->private_data;
 	char line[8];
@@ -1867,7 +1867,7 @@ static void snd_ad1836_proc_registers_write(snd_info_entry_t * entry,
 static int __devinit snd_ad1836_proc_create(struct snd_ad1836 *ad1836)
 {
 	int err;
-	snd_info_entry_t *proc_entry;
+	struct snd_info_entry *proc_entry;
 
 	err = snd_card_proc_new(ad1836->card, "registers", &proc_entry);
 	if (err) goto __proc_err;
