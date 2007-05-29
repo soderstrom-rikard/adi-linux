@@ -95,14 +95,14 @@
 static struct platform_device *device = NULL;
 
 typedef struct snd_ad73311 {
-	snd_card_t*         card;
+	struct snd_card*         card;
 	struct bf53x_sport* sport;
 	spinlock_t    ad73311_lock;
 
-	snd_pcm_t* pcm;
+	struct snd_pcm* pcm;
 
-	snd_pcm_substream_t* rx_substream;
-	snd_pcm_substream_t* tx_substream;
+	struct snd_pcm_substream* rx_substream;
+	struct snd_pcm_substream* tx_substream;
 
 	int runmode;
 #define RUN_RX 0x1
@@ -116,7 +116,7 @@ static void snd_ad73311_stop(void);
  *                pcm methods
  *************************************************************/
 
-static snd_pcm_hardware_t snd_ad73311_play_hw = {
+static struct snd_pcm_hardware snd_ad73311_play_hw = {
 	.info = (SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER),
 	.formats =          SNDRV_PCM_FMTBIT_S16_LE,
 	.rates =            SNDRV_PCM_RATE_8000,
@@ -130,7 +130,7 @@ static snd_pcm_hardware_t snd_ad73311_play_hw = {
 	.periods_min =      FRAGMENTS_MIN,
 	.periods_max =      FRAGMENTS_MAX,
 };
-static snd_pcm_hardware_t snd_ad73311_cap_hw = {
+static struct snd_pcm_hardware snd_ad73311_cap_hw = {
 	.info = (SNDRV_PCM_INFO_INTERLEAVED |SNDRV_PCM_INFO_BLOCK_TRANSFER),
 	.formats =          SNDRV_PCM_FMTBIT_S16_LE,
 	.rates =            SNDRV_PCM_RATE_8000,
@@ -145,7 +145,7 @@ static snd_pcm_hardware_t snd_ad73311_cap_hw = {
 	.periods_max =      FRAGMENTS_MAX,
 };
 
-static int snd_ad73311_play_open(snd_pcm_substream_t *substream)
+static int snd_ad73311_play_open(struct snd_pcm_substream *substream)
 {
 	ad73311_t *chip = snd_pcm_substream_chip(substream);
 
@@ -157,7 +157,7 @@ static int snd_ad73311_play_open(snd_pcm_substream_t *substream)
 	return 0;
 }
 
-static int snd_ad73311_cap_open(snd_pcm_substream_t *substream)
+static int snd_ad73311_cap_open(struct snd_pcm_substream *substream)
 {
 	ad73311_t *chip = snd_pcm_substream_chip(substream);
 
@@ -169,7 +169,7 @@ static int snd_ad73311_cap_open(snd_pcm_substream_t *substream)
 	return 0;
 }
 
-static int snd_ad73311_play_close(snd_pcm_substream_t *substream)
+static int snd_ad73311_play_close(struct snd_pcm_substream *substream)
 {
 	ad73311_t *chip = snd_pcm_substream_chip(substream);
 	snd_printk_marker();
@@ -178,7 +178,7 @@ static int snd_ad73311_play_close(snd_pcm_substream_t *substream)
 	return 0;
 }
 
-static int snd_ad73311_cap_close(snd_pcm_substream_t *substream)
+static int snd_ad73311_cap_close(struct snd_pcm_substream *substream)
 {
 	ad73311_t *chip = snd_pcm_substream_chip(substream);
 
@@ -188,8 +188,8 @@ static int snd_ad73311_cap_close(snd_pcm_substream_t *substream)
 	return 0;
 }
 
-static int snd_ad73311_hw_params(snd_pcm_substream_t *substream,
-		snd_pcm_hw_params_t* hwparams)
+static int snd_ad73311_hw_params(struct snd_pcm_substream *substream,
+		struct snd_pcm_hw_params* hwparams)
 {
 	snd_printk_marker();
 	if (snd_pcm_lib_malloc_pages(substream, params_buffer_bytes(hwparams)) < 0)
@@ -198,7 +198,7 @@ static int snd_ad73311_hw_params(snd_pcm_substream_t *substream,
 	return 0;
 }
 
-static int snd_ad73311_hw_free(snd_pcm_substream_t *substream)
+static int snd_ad73311_hw_free(struct snd_pcm_substream *substream)
 {
 	snd_printk_marker();
 	snd_pcm_lib_free_pages(substream);
@@ -206,10 +206,10 @@ static int snd_ad73311_hw_free(snd_pcm_substream_t *substream)
 	return 0;
 }
 
-static int snd_ad73311_play_pre(snd_pcm_substream_t *substream)
+static int snd_ad73311_play_pre(struct snd_pcm_substream *substream)
 {
 	ad73311_t *chip = snd_pcm_substream_chip(substream);
-	snd_pcm_runtime_t *runtime = substream->runtime;
+	struct snd_pcm_runtime *runtime = substream->runtime;
 	int period_bytes = frames_to_bytes(runtime, runtime->period_size);
 
 	snd_assert((substream == chip->tx_substream), return -EINVAL);
@@ -222,11 +222,11 @@ static int snd_ad73311_play_pre(snd_pcm_substream_t *substream)
 				runtime->periods, period_bytes, WORD_LENGTH);
 }
 
-static int snd_ad73311_cap_pre(snd_pcm_substream_t *substream)
+static int snd_ad73311_cap_pre(struct snd_pcm_substream *substream)
 {
 
 	ad73311_t *chip = snd_pcm_substream_chip(substream);
-	snd_pcm_runtime_t *runtime = substream->runtime;
+	struct snd_pcm_runtime *runtime = substream->runtime;
 	int  period_bytes = frames_to_bytes(runtime, runtime->period_size);
 
 	snd_printk_marker();
@@ -239,7 +239,7 @@ static int snd_ad73311_cap_pre(snd_pcm_substream_t *substream)
 				runtime->periods, period_bytes, WORD_LENGTH);
 }
 
-static int snd_ad73311_play_trigger(snd_pcm_substream_t *substream, int cmd)
+static int snd_ad73311_play_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	ad73311_t *chip = snd_pcm_substream_chip(substream);
 
@@ -269,7 +269,7 @@ static int snd_ad73311_play_trigger(snd_pcm_substream_t *substream, int cmd)
 	return 0;
 }
 
-static int snd_ad73311_cap_trigger(snd_pcm_substream_t *substream, int cmd)
+static int snd_ad73311_cap_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	ad73311_t *chip = snd_pcm_substream_chip(substream);
 
@@ -300,7 +300,7 @@ static int snd_ad73311_cap_trigger(snd_pcm_substream_t *substream, int cmd)
 	return 0;
 }
 
-static snd_pcm_uframes_t snd_ad73311_play_ptr(snd_pcm_substream_t *substream)
+static snd_pcm_uframes_t snd_ad73311_play_ptr(struct snd_pcm_substream *substream)
 {
 	ad73311_t *chip = snd_pcm_substream_chip(substream);
 
@@ -313,7 +313,7 @@ static snd_pcm_uframes_t snd_ad73311_play_ptr(snd_pcm_substream_t *substream)
 	return frames;
 }
 
-static snd_pcm_uframes_t snd_ad73311_cap_ptr(snd_pcm_substream_t *substream)
+static snd_pcm_uframes_t snd_ad73311_cap_ptr(struct snd_pcm_substream *substream)
 {
 	ad73311_t *chip = snd_pcm_substream_chip(substream);
 
@@ -352,7 +352,7 @@ void print_32x4(void *data)
 	);
 }
 
-static int snd_ad73311_play_copy(snd_pcm_substream_t *substream, int channel,
+static int snd_ad73311_play_copy(struct snd_pcm_substream *substream, int channel,
 		snd_pcm_uframes_t pos, void *src, snd_pcm_uframes_t count)
 {
 	unsigned char *dst = substream->runtime->dma_area;
@@ -363,7 +363,7 @@ static int snd_ad73311_play_copy(snd_pcm_substream_t *substream, int channel,
 	return 0;
 }
 
-static int snd_ad73311_cap_copy(snd_pcm_substream_t *substream, int channel,
+static int snd_ad73311_cap_copy(struct snd_pcm_substream *substream, int channel,
 		snd_pcm_uframes_t pos, void *dst, snd_pcm_uframes_t count)
 {
 	unsigned char *src = substream->runtime->dma_area;
@@ -376,7 +376,7 @@ static int snd_ad73311_cap_copy(snd_pcm_substream_t *substream, int channel,
 
 /* pcm method tables */
 
-static snd_pcm_ops_t snd_ad73311_play_ops = {
+static struct snd_pcm_ops snd_ad73311_play_ops = {
 	.open      = snd_ad73311_play_open,
 	.close     = snd_ad73311_play_close,
 	.ioctl     = snd_pcm_lib_ioctl,
@@ -389,7 +389,7 @@ static snd_pcm_ops_t snd_ad73311_play_ops = {
 };
 
 
-static snd_pcm_ops_t snd_ad73311_cap_ops = {
+static struct snd_pcm_ops snd_ad73311_cap_ops = {
 	.open  = snd_ad73311_cap_open,
 	.close = snd_ad73311_cap_close,
 	.ioctl = snd_pcm_lib_ioctl,
