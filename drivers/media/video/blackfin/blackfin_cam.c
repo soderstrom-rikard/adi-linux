@@ -612,7 +612,6 @@ static int sensor_detect_client(struct i2c_adapter *adapter, int address,
 		goto error_out;
 
 	cam_control(new_client, CAM_CMD_SET_PIXFMT, default_palette(force_palette));
-	cam_control(new_client, CAM_CMD_SET_FRAMERATE, 30);
 
 	err = bcap_init_v4l(data);
 

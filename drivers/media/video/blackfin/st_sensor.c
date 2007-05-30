@@ -135,6 +135,8 @@ static int vs_init(struct i2c_client *client, u32 arg)
 
 	WriteByte(client, BUSERCOMMAND, 0x2); /* RUN */
 
+	vs_set_framerate(client, MAX_FRAMERATE); /* set max frame rate */
+
 	if (vs_probe(client))
 		return -ENODEV;
 
@@ -181,11 +183,19 @@ static int vs_set_pixfmt(struct i2c_client *client, u32 arg)
 static int vs_set_framerate(struct i2c_client *client, u32 arg)
 {
 
+	if(arg <= MAX_FRAMERATE){
+
+	if(arg == 0)
+		arg = MAX_FRAMERATE; /* 0 widely means max fps */
+
 	WriteByte(client, UWDESIREDFRAMERATE_NUM_MSB,  MSB(arg));
 	WriteByte(client, UWDESIREDFRAMERATE_NUM_LSB, LSB(arg));
 	WriteByte(client, BDESIREDFRAMERATE_DEN, 0x1);
 
 	return 0;
+	}
+	
+	return -EPERM;
 
 }
 

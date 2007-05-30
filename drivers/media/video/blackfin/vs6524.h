@@ -81,6 +81,8 @@ int cam_control(struct i2c_client *client, u32 cmd, u32 arg);
 #define MIN_FRAME_WIDTH    80
 #define MIN_FRAME_HEIGHT   60
 
+#define MAX_FRAMERATE  30
+
 #define X_RES(x) (x >> 16)
 #define Y_RES(x) (x & 0xFFFF)
 #define MSB(x)(x >> 8)
