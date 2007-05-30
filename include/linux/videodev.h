@@ -261,6 +261,8 @@ struct video_code
 
 #define BASE_VIDIOCPRIVATE	192		/* 192-255 are private */
 
+#define VIDIOSFPS		_IOW('v',BASE_VIDIOCPRIVATE+20, int)			/* Set fps */
+
 /* VIDIOCSWRITEMODE */
 #define VID_WRITE_MPEG_AUD		0
 #define VID_WRITE_MPEG_VID		1

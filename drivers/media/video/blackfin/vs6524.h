@@ -1,18 +1,32 @@
-
-# define POL_C              	0x0000
-# define POL_S              	0x0000
-# define PIXEL_PER_LINE     	640
-# define LINES_PER_FRAME    	480
-# define CFG_GP_Input_3Syncs	0x0020
-# define GP_Input_Mode      	0x000C
-# define PPI_DATA_LEN       	DLEN_8
-# define PPI_PACKING        	PACK_EN
-# define DMA_FLOW_MODE      	0x0000	/* STOPMODE */
-# define DMA_WDSIZE_16      	WDSIZE_16
-
-#undef USE_GPIO
-#define I2C_SENSOR_ID  (0x20)
-#define DEFAULT_DEPTH 16
+/*
+ * File:         drivers/media/video/blackfin/vs6524.h
+ * Based on:
+ * Author:       Michael Hennerich <hennerich@blackfin.uclinux.org>
+ *
+ * Created:
+ * Description:  Command driver for STM VS6524 sensor
+ *
+ *
+ * Modified:
+ *               Copyright 2004-2007 Analog Devices Inc.
+ *
+ * Bugs:         Enter bugs at http://blackfin.uclinux.org/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see the file COPYING, or write
+ * to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 
 /*0 = VIDEO_PALETTE_GREY
@@ -22,9 +36,32 @@
 
 #define DEFAULT_FORMAT 	3
 
+#undef USE_ITU656
 #undef USE_2ND_BUF_IN_CACHED_MEM
-#undef USE_PPI_ERROR
+#define USE_PPI_ERROR
 #undef USE_PROC
+#undef USE_GPIO
+
+# define POL_C              	0x0000
+# define POL_S              	0x0000
+# define PIXEL_PER_LINE     	640
+# define LINES_PER_FRAME    	480
+# define PPI_DATA_LEN       	DLEN_8
+# define PPI_PACKING        	PACK_EN
+# define DMA_FLOW_MODE      	0x0000	/* STOPMODE */
+# define DMA_WDSIZE_16      	WDSIZE_16
+
+#ifdef USE_ITU656
+# define CFG_GP_Input_3Syncs	0x0000
+# define GP_Input_Mode      	0x0040
+#else
+# define CFG_GP_Input_3Syncs	0x0020
+# define GP_Input_Mode      	0x000C
+#endif
+
+
+#define I2C_SENSOR_ID  (0x20)
+#define DEFAULT_DEPTH 16
 
 #define SENSOR_NAME "VS6524"
 
@@ -46,12 +83,12 @@ int cam_control(struct i2c_client *client, u32 cmd, u32 arg);
 
 #define X_RES(x) (x >> 16)
 #define Y_RES(x) (x & 0xFFFF)
-#define MSB(x)(x >> 8)	
+#define MSB(x)(x >> 8)
 #define LSB(x)(x & 0xFF)
 
 #define RES(x,y)	(x << 16) | (y & 0xFFFF)
 
-#define RES_VGA		RES(640,480)	
+#define RES_VGA		RES(640,480)
 #define RES_QVGA	RES(320,240)
 #define RES_QQVGA	RES(160,120)
 
@@ -66,6 +103,17 @@ enum {
 	CAM_CMD_SET_FRAMERATE,
 	CAM_CMD_SET_PIXFMT,
 	CAM_CMD_EXIT,
+	CAM_CMD_SET_CONTRAST,
+	CAM_CMD_SET_SATURATION,
+	CAM_CMD_SET_HOR_MIRROR,
+	CAM_CMD_SET_VERT_MIRROR,
+	CAM_CMD_SET_FLICKER_FREQ,
+	CAM_CMD_GET_FRAMERATE,
+	CAM_CMD_GET_FLICKER_FREQ,
+	CAM_CMD_GET_VERT_MIRROR,
+	CAM_CMD_GET_HOR_MIRROR,
+	CAM_CMD_GET_SATURATION,
+	CAM_CMD_GET_CONTRAST,
 };
 
 #define VS6524_ID 				 524

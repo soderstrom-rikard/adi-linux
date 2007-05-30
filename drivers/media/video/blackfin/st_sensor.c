@@ -27,7 +27,7 @@
  * to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
- 
+
 #include <linux/delay.h>
 #include <linux/errno.h>
 #include <linux/fs.h>
@@ -50,7 +50,6 @@
 #include <media/v4l2-dev.h>
 
 #include "vs6524.h"
-
 
 static int WriteByte(struct i2c_client *client,
 				 unsigned short offset, unsigned char data)
@@ -84,15 +83,22 @@ static int ReadByte(struct i2c_client *client, unsigned short offset,
 	return 0;
 }
 
+static unsigned char get_reg(struct i2c_client *client, unsigned short offset)
+{
+	u8 buf[1];
+
+	ReadByte(client, offset, &buf[0]);
+
+	return buf[0];
+}
+
 static int vs_probe(struct i2c_client *client)
 {
 
-	u8 buf[2];	
+	u8 buf[2];
 
 	ReadByte(client, DEVICEID_MSB, &buf[0]);
 	ReadByte(client, DEVICEID_LSB, &buf[1]);
-
-//	printk(" %x %x \n",buf[0],buf[1]);
 
 	if(((buf[0] << 8) | (buf[1] & 0xFF)) == VS6524_ID)
 		return 0;
@@ -110,12 +116,24 @@ static int vs_init(struct i2c_client *client, u32 arg)
 
 	WriteByte(client, ENABLE_IO, 0x1);
 
-	WriteByte(client, BUSERCOMMAND, 0x2); /* RUN */
-	WriteByte(client, BDATAFORMAT0, 0x3); /* RGB565 */
+#ifdef USE_ITU656
+	WriteByte(client, BCODECHECKEN, 0x7); /* allow all */
+	WriteByte(client, BDATAFORMAT0, 0x1); /* REC601 */
 
+	WriteByte(client, BSYNCCODESETUP, 0x19); /* ITU656 TOGGLE 1,2 */
+	WriteByte(client, BSYNCCODESETUP, 0x9); /* ITU656 TOGGLE 1,2 */
+
+#else
 	WriteByte(client, BCODECHECKEN, 0x0); /* allow all */
-	WriteByte(client, BSYNCCODESETUP, 0x1); /* mode 2 */
 	WriteByte(client, BRGBSETUP, 0x1); /*SWAP R-B*/
+	WriteByte(client, BDATAFORMAT0, 0x3); /* RGB565 */
+	WriteByte(client, BSYNCCODESETUP, 0x1); /* SYNC */
+
+	WriteByte(client, BHSYNCSETUP, 0xF); /* Active lines only, Automatic */
+
+#endif
+
+	WriteByte(client, BUSERCOMMAND, 0x2); /* RUN */
 
 	if (vs_probe(client))
 		return -ENODEV;
@@ -130,7 +148,7 @@ static int vs_exit(struct i2c_client *client, u32 arg)
 	WriteByte(client, BUSERCOMMAND, 0x4); /* STOP */
 	WriteByte(client, ENABLE_IO, 0x0);
 	WriteByte(client, MICROENABLE, 0x0);
-	
+
 	return 0;
 
 }
@@ -162,19 +180,36 @@ static int vs_set_pixfmt(struct i2c_client *client, u32 arg)
 
 static int vs_set_framerate(struct i2c_client *client, u32 arg)
 {
-	
+
 	WriteByte(client, UWDESIREDFRAMERATE_NUM_MSB,  MSB(arg));
 	WriteByte(client, UWDESIREDFRAMERATE_NUM_LSB, LSB(arg));
-	WriteByte(client, BDESIREDFRAMERATE_DEN, 0x1);		
+	WriteByte(client, BDESIREDFRAMERATE_DEN, 0x1);
 
 	return 0;
+
+}
+
+static int vs_get_framerate(struct i2c_client *client, u32 arg)
+{
+
+	u8 buf[3];
+	int ret;
+
+	ReadByte(client, UWDESIREDFRAMERATE_NUM_MSB, &buf[0]);
+	ReadByte(client, UWDESIREDFRAMERATE_NUM_LSB, &buf[1]);
+	ReadByte(client, BDESIREDFRAMERATE_DEN, &buf[2]);
+
+	ret = (((buf[0] << 8) | buf[1]) / buf[2]);
+
+	return ret;
+
 
 }
 
 static int vs_set_window(struct i2c_client *client, u32 res)
 {
 	WriteByte(client, BIMAGESIZE0, 0x4);
-		
+
 	WriteByte(client, BCROPHSTARTMSB0, MSB((MAX_FRAME_WIDTH - X_RES(res))/2));
 	WriteByte(client, BCROPHSTARTLSB0, LSB((MAX_FRAME_WIDTH - X_RES(res))/2));
 
@@ -183,10 +218,10 @@ static int vs_set_window(struct i2c_client *client, u32 res)
 
 	WriteByte(client, BCROPHSIZEMSB0, MSB(X_RES(res)));
 	WriteByte(client, BCROPHSIZELSB0, LSB(X_RES(res)));
-		
+
 	WriteByte(client, BCROPVSIZEMSB0, MSB(Y_RES(res)));
 	WriteByte(client, BCROPVSIZELSB0, LSB(Y_RES(res)));
-		
+
 	WriteByte(client, FENABLECROP0, 0x1);
 
 	return 0;
@@ -198,17 +233,17 @@ static int  vs_set_resolution(struct i2c_client *client, u32 res)
 
 	switch (res) {
 	case RES_VGA:
-		WriteByte(client, FENABLECROP0, 0x0);		
+		WriteByte(client, FENABLECROP0, 0x0);
 		WriteByte(client, BSUBSAMPLE0, 0x1);
 		WriteByte(client, BIMAGESIZE0, 0x1);
 		break;
 	case RES_QVGA:
-		WriteByte(client, FENABLECROP0, 0x0);		
+		WriteByte(client, FENABLECROP0, 0x0);
 		WriteByte(client, BSUBSAMPLE0, 0x1);
 		WriteByte(client, BIMAGESIZE0, 0x2);
 		break;
 	case RES_QQVGA:
-		WriteByte(client, FENABLECROP0, 0x0);		
+		WriteByte(client, FENABLECROP0, 0x0);
 		WriteByte(client, BSUBSAMPLE0, 0x1);
 		WriteByte(client, BIMAGESIZE0, 0x3);
 		break;
@@ -245,6 +280,39 @@ int cam_control(struct i2c_client *client, u32 cmd, u32 arg)
 		return vs_set_pixfmt(client, arg);
 	case CAM_CMD_EXIT:
 		return vs_exit(client, arg);
+	case CAM_CMD_SET_CONTRAST:
+		WriteByte(client, BCONTRAST0, arg & 0xFF);
+		break;
+	case CAM_CMD_SET_SATURATION:
+		WriteByte(client, BCOLOURSATURATION0, arg & 0xFF);
+		break;
+	case CAM_CMD_SET_HOR_MIRROR:
+		WriteByte(client, FHORIZONTALMIRROR0, arg & 0x1);
+		break;
+	case CAM_CMD_SET_VERT_MIRROR:
+		WriteByte(client, FVERTICALFLIP0, arg & 0x1);
+		break;
+	case CAM_CMD_SET_FLICKER_FREQ:
+		WriteByte(client, BLIGHTINGFREQUENCYHZ, 2 * arg);
+		break;
+	case CAM_CMD_GET_FRAMERATE:
+		(*(unsigned char *) (arg)) = vs_get_framerate(client, 0);
+		break;
+	case CAM_CMD_GET_FLICKER_FREQ:
+		(*(unsigned char *) (arg)) = get_reg(client, BLIGHTINGFREQUENCYHZ) / 2;
+		break;
+	case CAM_CMD_GET_VERT_MIRROR:
+		(*(unsigned char *) (arg)) = get_reg(client, FVERTICALFLIP0) & 0x1;
+		break;
+	case CAM_CMD_GET_HOR_MIRROR:
+		(*(unsigned char *) (arg)) = get_reg(client, FHORIZONTALMIRROR0) & 0x1;
+		break;
+	case CAM_CMD_GET_SATURATION:
+		(*(unsigned char *) (arg)) = get_reg(client, BCOLOURSATURATION0);
+		break;
+	case CAM_CMD_GET_CONTRAST:
+		(*(unsigned char *) (arg)) = get_reg(client, BCONTRAST0);
+		break;
 	default:
 		return -ENOIOCTLCMD;
 	}

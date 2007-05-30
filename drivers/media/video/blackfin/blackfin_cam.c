@@ -6,10 +6,9 @@
  * Created:
  * Description:  V4L driver for Blackfin
  *
- * Rev:          $Id: mt9m001.c 2792 2007-03-02 16:21:01Z hennerich $
  *
  * Modified:
- *               Copyright 2004-2006 Analog Devices Inc.
+ *               Copyright 2004-2007 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
@@ -61,22 +60,25 @@
 #include <asm/uaccess.h>
 #include <asm/gpio.h>
 
+
+//#define VIDIOSFPS (BASE_VIDIOCPRIVATE+1)
+
 #if defined(CONFIG_BF537)
-# define  uCAM_STANDBY  GPIO_PG11
-# define  uCAM_LEDS     GPIO_PG8
-# define  uCAM_TRIGGER  GPIO_PG13
+# define  bcap_STANDBY  GPIO_PG11
+# define  bcap_LEDS     GPIO_PG8
+# define  bcap_TRIGGER  GPIO_PG13
 #endif
 
 #if defined(CONFIG_BF533)
-# define  uCAM_STANDBY  GPIO_8
-# define  uCAM_LEDS     GPIO_11
-# define  uCAM_TRIGGER  GPIO_6
-# define  uCAM_FS3      GPIO_3
+# define  bcap_STANDBY  GPIO_8
+# define  bcap_LEDS     GPIO_11
+# define  bcap_TRIGGER  GPIO_6
+# define  bcap_FS3      GPIO_3
 #endif
 
-#define  uCAM_NUM_BUFS 2
-#define  VID_HARDWARE_UCAM  13	/* experimental */
-#define  I2C_DRIVERID_UCAM  81	/* experimental (next avail. in i2c-id.h) */
+#define  BCAP_NUM_BUFS 2
+#define  VID_HARDWARE_BCAP  13	/* experimental */
+#define  I2C_DRIVERID_BCAP  81	/* experimental (next avail. in i2c-id.h) */
 #define NO_TRIGGER  16
 
 #ifdef CONFIG_VS6524
@@ -90,13 +92,12 @@
 #define GPIO_SET_VALUE(x,y) do{}while(0)
 #endif
 
-struct uCam_device_t;
+struct bcap_device_t;
 
 #define  MAX_BUFFER_SIZE (MAX_FRAME_WIDTH * MAX_FRAME_HEIGHT * DEFAULT_DEPTH/8)
 
 static unsigned char *top_buffer;	/* TOP Video Buffer */
 static unsigned char *bottom_buffer;    /* Bottom Video Buffer */
-
 static dma_addr_t dma_handle;
 
 static unsigned int global_gain = 127;
@@ -105,9 +106,9 @@ static unsigned int perfnum = 0;
 static unsigned int force_palette = DEFAULT_FORMAT;
 
 struct i2c_client *i2c_global_client = NULL;	/* just needed for proc ... */
-struct mt9m001_data {
+struct sensor_data {
 	struct i2c_client client;
-	struct uCam_device_t *uCam_dev;
+	struct bcap_device_t *bcap_dev;
 	unsigned char reg[128];
 	int input;
 	int enable;
@@ -125,12 +126,11 @@ static u16 normal_i2c[] = {
 };
 
 I2C_CLIENT_INSMOD;
-static struct i2c_driver mt9m001_driver;
+static struct i2c_driver sensor_driver;
 
 struct ppi_device_t {
-	struct uCam_device_t *uCam_dev;
+	struct bcap_device_t *bcap_dev;
 	int opened;
-	int nonblock;
 	unsigned short irqnum;
 	unsigned short done;
 	unsigned short dma_config;
@@ -141,11 +141,10 @@ struct ppi_device_t {
 	unsigned short ppi_status;
 	unsigned short ppi_delay;
 	unsigned short ppi_trigger_gpio;
-	struct fasync_struct *fasyc;
 	wait_queue_head_t *rx_avail;
 };
 
-struct uCam_buffer {
+struct bcap_buffer {
 	unsigned char *data;
 	wait_queue_head_t wq;
 	volatile int state;
@@ -166,7 +165,7 @@ enum {
 	FRAME_ERROR = 4,	/* < Error                            */
 };
 
-struct uCam_device_t {
+struct bcap_device_t {
 	int frame_count;
 	struct video_device *videodev;
 	struct ppi_device_t *ppidev;
@@ -178,15 +177,17 @@ struct uCam_device_t {
 	size_t size;
 	struct timeval *stv;
 	struct timeval *etv;
-	struct uCam_buffer buffer[uCAM_NUM_BUFS];
-	struct uCam_buffer *next_buf;
-	struct uCam_buffer *dma_buf;
-	struct uCam_buffer *ready_buf;
+	struct bcap_buffer buffer[BCAP_NUM_BUFS];
+	struct bcap_buffer *next_buf;
+	struct bcap_buffer *dma_buf;
+	struct bcap_buffer *ready_buf;
 	spinlock_t lock;
 };
-static struct video_device uCam_template;
-struct uCam_device_t *uCam_dev;
-static DECLARE_WAIT_QUEUE_HEAD(uCam_waitqueue);
+static struct video_device bcap_template;
+struct bcap_device_t *bcap_dev;
+static DECLARE_WAIT_QUEUE_HEAD(bcap_waitqueue);
+
+static DEFINE_MUTEX(bcam_sysfs_lock);
 
 static inline unsigned int cycles(void)
 {
@@ -209,29 +210,230 @@ default_palette(int palette)
 	}
 }
 
-void ucam_reg_reset(struct ppi_device_t *pdev)
+/* Returns number of bits per pixel (regardless of where they are located;
+ * planar or not), or zero for unsupported format.
+ */
+static inline int
+get_depth(int palette)
 {
-	pr_debug("ucam_reg_reset:\n");
+	switch (palette) {
+	case VIDEO_PALETTE_GREY:    return 8;
+	case VIDEO_PALETTE_YUV420:  return 12;
+	case VIDEO_PALETTE_YUV420P: return 12; /* Planar */
+	case VIDEO_PALETTE_YUV422:  return 16;
+	case VIDEO_PALETTE_RGB565:  return 16;
+	case VIDEO_PALETTE_UYVY:    return 16;
+	case VIDEO_PALETTE_YUYV:    return 16;
+	default:		    return 0;  /* Invalid format */
+	}
+}
+
+
+/****************************************************************************
+ *  sysfs
+ ***************************************************************************/
+
+static u8 bcam_strtou8(const char* buff, size_t len, ssize_t* count)
+{
+	char str[5];
+	char* endp;
+	unsigned long val;
+
+	if (len < 4) {
+		strncpy(str, buff, len);
+		str[len+1] = '\0';
+	} else {
+		strncpy(str, buff, 4);
+		str[4] = '\0';
+	}
+
+	val = simple_strtoul(str, &endp, 0);
+
+	*count = 0;
+	if (val <= 0xff)
+		*count = (ssize_t)(endp - str);
+	if ((*count) && (len == *count+1) && (buff[*count] == '\n'))
+		*count += 1;
+
+	return (u8)val;
+}
+
+
+static ssize_t bcam_sysfs_show_val(struct class_device* cd, char* buf, int cmd)
+{
+	struct bcap_device_t* cam;
+	ssize_t count;
+	u8 val[1];
+
+	if (mutex_lock_interruptible(&bcam_sysfs_lock))
+		return -ERESTARTSYS;
+
+	cam = video_get_drvdata(to_video_device(cd));
+	if (!cam) {
+		mutex_unlock(&bcam_sysfs_lock);
+		return -ENODEV;
+	}
+
+
+	if (cam_control(cam->client, cmd, (u32)val) < 0) {
+		mutex_unlock(&bcam_sysfs_lock);
+		return -EIO;
+	}
+
+	count = sprintf(buf, "%d\n", val[0]);
+
+	mutex_unlock(&bcam_sysfs_lock);
+
+	return count;
+}
+
+static ssize_t
+bcam_sysfs_store_val(struct class_device* cd, const char* buf, size_t len, int cmd)
+{
+	struct bcap_device_t* cam;
+	u8 value;
+	ssize_t count;
+	int err;
+
+	if (mutex_lock_interruptible(&bcam_sysfs_lock))
+		return -ERESTARTSYS;
+
+	cam = video_get_drvdata(to_video_device(cd));
+
+	if (!cam) {
+		mutex_unlock(&bcam_sysfs_lock);
+		return -ENODEV;
+	}
+
+	value = bcam_strtou8(buf, len, &count);
+
+	if (!count) {
+		mutex_unlock(&bcam_sysfs_lock);
+		return -EINVAL;
+	}
+
+	err = cam_control(cam->client, cmd, value);
+
+	if (err) {
+		mutex_unlock(&bcam_sysfs_lock);
+		return -EIO;
+	}
+
+	mutex_unlock(&bcam_sysfs_lock);
+
+	return count;
+}
+
+
+static ssize_t bcam_fps_show(struct class_device* cd, char* buf)
+{
+
+	return bcam_sysfs_show_val(cd, buf, CAM_CMD_GET_FRAMERATE);
+}
+
+static ssize_t
+bcam_fps_store(struct class_device* cd, const char* buf, size_t len)
+{
+	return bcam_sysfs_store_val(cd, buf,len, CAM_CMD_SET_FRAMERATE);
+}
+
+static CLASS_DEVICE_ATTR(fps, S_IRUGO | S_IWUSR,
+			 bcam_fps_show, bcam_fps_store);
+
+
+static ssize_t bcam_flicker_show(struct class_device* cd, char* buf)
+{
+	return bcam_sysfs_show_val(cd, buf, CAM_CMD_GET_FLICKER_FREQ);
+}
+
+static ssize_t
+bcam_flicker_store(struct class_device* cd, const char* buf, size_t len)
+{
+	return bcam_sysfs_store_val(cd, buf,len, CAM_CMD_SET_FLICKER_FREQ);
+}
+
+static CLASS_DEVICE_ATTR(flicker, S_IRUGO | S_IWUSR,
+			 bcam_flicker_show, bcam_flicker_store);
+
+static ssize_t bcam_h_mirror_show(struct class_device* cd, char* buf)
+{
+	return bcam_sysfs_show_val(cd, buf, CAM_CMD_GET_HOR_MIRROR);
+}
+
+static ssize_t
+bcam_h_mirror_store(struct class_device* cd, const char* buf, size_t len)
+{
+	return bcam_sysfs_store_val(cd, buf,len, CAM_CMD_SET_HOR_MIRROR);
+}
+
+static CLASS_DEVICE_ATTR(h_mirror, S_IRUGO | S_IWUSR,
+			 bcam_h_mirror_show, bcam_h_mirror_store);
+
+static ssize_t bcam_v_mirror_show(struct class_device* cd, char* buf)
+{
+	return bcam_sysfs_show_val(cd, buf, CAM_CMD_GET_VERT_MIRROR);
+}
+
+static ssize_t
+bcam_v_mirror_store(struct class_device* cd, const char* buf, size_t len)
+{
+	return bcam_sysfs_store_val(cd, buf,len, CAM_CMD_SET_VERT_MIRROR);
+}
+
+static CLASS_DEVICE_ATTR(v_mirror, S_IRUGO | S_IWUSR,
+			 bcam_v_mirror_show, bcam_v_mirror_store);
+
+
+static int bcam_create_sysfs(struct bcap_device_t* cam)
+{
+	struct video_device *v4ldev = cam->videodev;
+	int rc;
+
+	rc = video_device_create_file(v4ldev, &class_device_attr_fps);
+	if (rc) goto err;
+	rc = video_device_create_file(v4ldev, &class_device_attr_flicker);
+	if (rc) goto err_flicker;
+	rc = video_device_create_file(v4ldev, &class_device_attr_v_mirror);
+	if (rc) goto err_v_mirror;
+	rc = video_device_create_file(v4ldev, &class_device_attr_h_mirror);
+	if (rc) goto err_h_mirror;
+
+	return 0;
+
+err_h_mirror:
+	video_device_remove_file(v4ldev, &class_device_attr_v_mirror);
+err_v_mirror:
+	video_device_remove_file(v4ldev, &class_device_attr_flicker);
+err_flicker:
+	video_device_remove_file(v4ldev, &class_device_attr_fps);
+err:
+	return rc;
+}
+
+void bcap_reg_reset(struct ppi_device_t *pdev)
+{
+	pr_debug("bcap_reg_reset:\n");
 
 	bfin_clear_PPI_STATUS();
 	bfin_write_PPI_CONTROL(pdev->ppi_control & ~PORT_EN);
 	bfin_write_PPI_DELAY(pdev->ppi_delay);
+#if !defined(USE_ITU656)
 	bfin_write_PPI_COUNT(pdev->pixel_per_line - 1);
+#endif
 	bfin_write_PPI_FRAME(pdev->lines_per_frame);
 }
 
 
-static size_t ppi2dma(struct ppi_device_t *ppidev, char *buf, size_t count)
+static size_t bcap_ppi2dma(struct ppi_device_t *ppidev, char *buf, size_t count)
 {
-	int ierr;
-
-	ppidev->done = 0;
 
 	if (count <= 0)
 		return 0;
 
-	pr_debug("ppi2dma: reading %zi bytes (%dx%d) into [0x%p]\n",
-		 count, ppidev->uCam_dev->width, ppidev->uCam_dev->height, buf);
+	ppidev->done = 0;
+
+	pr_debug("bcap_ppi2dma: reading %zi bytes (%dx%d) into [0x%p]\n",
+		 count, ppidev->bcap_dev->width, ppidev->bcap_dev->height, buf);
 
 	set_dma_start_addr(CH_PPI, (u_long) buf);
 
@@ -240,82 +442,65 @@ static size_t ppi2dma(struct ppi_device_t *ppidev, char *buf, size_t count)
 	/* Enable PPI  */
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
 
-	if (ppidev->nonblock) {
-		pr_debug("ppi2dma: awaiting IRQ...\n");
-		return -EAGAIN;
-	} else {
-		printk("ppi2dma: PPI wait_event_interruptible\n");
-		ierr =
-		    wait_event_interruptible(*(ppidev->rx_avail), ppidev->done);
-		if (ierr) {
-			/* waiting is broken by a signal */
-			pr_debug("PPI wait_event_interruptible ierr\n");
-			return ierr;
-		}
-		pr_debug("ppi2dma: PPI wait_event_interruptible done\n");
-	}
-
-	disable_dma(CH_PPI);
-
-	pr_debug("ppi2dma: done read in %zi bytes for [0x%p-0x%p]\n", count,
+	pr_debug("bcap_ppi2dma: done read in %zi bytes for [0x%p-0x%p]\n", count,
 		 buf, (buf + count));
 
 	return count;
 }
 
-static irqreturn_t ppifcd_irq(int irq, void *dev_id)
+static irqreturn_t bcap_ppi_irq(int irq, void *dev_id)
 {
 	size_t count = 0;
-	struct uCam_buffer *tmp_buf;
+	struct bcap_buffer *tmp_buf;
 	struct ppi_device_t *pdev = (struct ppi_device_t *)dev_id;
-	struct uCam_device_t *uCam_dev = pdev->uCam_dev;
+	struct bcap_device_t *bcap_dev = pdev->bcap_dev;
 	BUG_ON(dev_id == NULL);
 
 	/*  Acknowledge DMA Interrupt  */
 	clear_dma_irqstat(CH_PPI);
 
+	disable_dma(CH_PPI);
+
 	/*  disable ppi  */
 	bfin_write_PPI_CONTROL(pdev->ppi_control & ~PORT_EN);
 
 	pdev->done = 1;
-	pr_debug("->ppifcd_irq: pdev->done=%d (%ld)\n", pdev->done,
+
+	pr_debug("->bcap_ppi_irq: pdev->done=%d (%ld)\n", pdev->done,
 		 jiffies * 1000 / HZ);
 
-	uCam_dev->dma_buf->state = FRAME_DONE;
-	pr_debug("->ppifcd_irq: active buffer [0x%p] done\n",
-		 uCam_dev->dma_buf->data);
-	pr_debug("->ppifcd_irq: next [0x%p] state %d\n",
-		 uCam_dev->next_buf->data, uCam_dev->next_buf->state);
+	bcap_dev->dma_buf->state = FRAME_DONE;
+	pr_debug("->bcap_ppi_irq: active buffer [0x%p] done\n",
+		 bcap_dev->dma_buf->data);
+	pr_debug("->bcap_ppi_irq: next [0x%p] state %d\n",
+		 bcap_dev->next_buf->data, bcap_dev->next_buf->state);
 
-	if (waitqueue_active(&uCam_dev->dma_buf->wq))
-		wake_up_interruptible(&uCam_dev->dma_buf->wq);
+	if (waitqueue_active(&bcap_dev->dma_buf->wq))
+		wake_up_interruptible(&bcap_dev->dma_buf->wq);
 
 	/* if next frame is ready for grabbing */
-	if (uCam_dev->next_buf->state == FRAME_READY) {
-		pr_debug("->ppifcd_irq: initiating next grab [0x%p]\n",
-			 uCam_dev->next_buf->data);
-		tmp_buf = uCam_dev->dma_buf;
-		uCam_dev->dma_buf = uCam_dev->next_buf;
-		uCam_dev->next_buf = tmp_buf;
-		uCam_dev->dma_buf->state = FRAME_GRABBING;
+	if (bcap_dev->next_buf->state == FRAME_READY) {
+		pr_debug("->bcap_ppi_irq: initiating next grab [0x%p]\n",
+			 bcap_dev->next_buf->data);
+		tmp_buf = bcap_dev->dma_buf;
+		bcap_dev->dma_buf = bcap_dev->next_buf;
+		bcap_dev->next_buf = tmp_buf;
+		bcap_dev->dma_buf->state = FRAME_GRABBING;
 		count =
-		    ppi2dma(uCam_dev->ppidev, uCam_dev->dma_buf->data,
-			    uCam_dev->size);
+		    bcap_ppi2dma(bcap_dev->ppidev, bcap_dev->dma_buf->data,
+			    bcap_dev->size);
 	}
-
-	if (pdev->fasyc)
-		kill_fasync(&(pdev->fasyc), SIGIO, POLLIN);
-	wake_up_interruptible(pdev->rx_avail);
 
 	return IRQ_HANDLED;
 }
 
 #if defined(USE_PPI_ERROR)
-static irqreturn_t ppifcd_irq_error(int irq, void *dev_id)
+static irqreturn_t bcap_ppi_irq_error(int irq, void *dev_id)
 {
+
 	BUG_ON(dev_id == NULL);
 
-	printk("-->ppifcd_irq_error: PPI Status = 0x%X\n",
+	pr_debug("-->bcap_ppi_irq_error: PPI Status = 0x%X\n",
 		 bfin_read_PPI_STATUS());
 	bfin_clear_PPI_STATUS();
 
@@ -323,74 +508,73 @@ static irqreturn_t ppifcd_irq_error(int irq, void *dev_id)
 }
 #endif
 
-static int ppi_fasync(int fd, struct file *filp, int on)
-{
-	struct ppi_device_t *pdev = uCam_dev->ppidev;
-	return fasync_helper(fd, filp, on, &(pdev->fasyc));
-}
 
-
-static int mt9m001_init_v4l(struct mt9m001_data *data)
+static int bcap_init_v4l(struct sensor_data *data)
 {
 	int err, i;
 
-	pr_debug("Registering uCam device\n");
+	pr_debug("Registering bcap device\n");
 
 	err = -ENOMEM;
-	uCam_dev = kmalloc(sizeof(struct uCam_device_t), GFP_KERNEL);
-	if (uCam_dev == NULL)
+	bcap_dev = kmalloc(sizeof(struct bcap_device_t), GFP_KERNEL);
+	if (bcap_dev == NULL)
 		goto error_out;
-	uCam_dev->ppidev = kmalloc(sizeof(struct ppi_device_t), GFP_KERNEL);
-	if (uCam_dev->ppidev == NULL)
+	bcap_dev->ppidev = kmalloc(sizeof(struct ppi_device_t), GFP_KERNEL);
+	if (bcap_dev->ppidev == NULL)
 		goto error_out_dev;
-	uCam_dev->videodev = kmalloc(sizeof(struct video_device), GFP_KERNEL);
-	if (uCam_dev->videodev == NULL)
+	bcap_dev->videodev = kmalloc(sizeof(struct video_device), GFP_KERNEL);
+	if (bcap_dev->videodev == NULL)
 		goto error_out_ppi;
 
-	pr_debug("  Configuring PPIFCD\n");
-	ucam_reg_reset(uCam_dev->ppidev);
-	uCam_dev->ppidev->opened = 0;
-	uCam_dev->ppidev->uCam_dev = uCam_dev;
+	pr_debug("  Configuring ppi\n");
+	bcap_reg_reset(bcap_dev->ppidev);
+	bcap_dev->ppidev->opened = 0;
+	bcap_dev->ppidev->bcap_dev = bcap_dev;
 
 	pr_debug("  Configuring Video4Linux driver\n");
-	for (i = 0; i < uCAM_NUM_BUFS; i++)
-		init_waitqueue_head(&uCam_dev->buffer[i].wq);
+	for (i = 0; i < BCAP_NUM_BUFS; i++)
+		init_waitqueue_head(&bcap_dev->buffer[i].wq);
 
-	memcpy(uCam_dev->videodev, &uCam_template, sizeof(uCam_template));
-	uCam_dev->frame_count = 0;
-	err = video_register_device(uCam_dev->videodev, VFL_TYPE_GRABBER, 0);
+	memcpy(bcap_dev->videodev, &bcap_template, sizeof(bcap_template));
+	bcap_dev->frame_count = 0;
+	err = video_register_device(bcap_dev->videodev, VFL_TYPE_GRABBER, 0);
 	if (err) {
 		printk(KERN_NOTICE
 		       "Unable to register Video4Linux driver for %s\n",
-		       uCam_dev->videodev->name);
+		       bcap_dev->videodev->name);
 		goto error_out_video;
 	}
 
-	uCam_dev->client = &data->client;
-	uCam_dev->lock = SPIN_LOCK_UNLOCKED;
-	data->uCam_dev = uCam_dev;
+
+	video_set_drvdata(bcap_dev->videodev, bcap_dev);
+
+	bcap_dev->client = &data->client;
+	bcap_dev->lock = SPIN_LOCK_UNLOCKED;
+	data->bcap_dev = bcap_dev;
+
+	bcam_create_sysfs(bcap_dev);
 
 	printk(KERN_INFO "%s: V4L driver %s now ready\n", sensor_name,
-	       uCam_dev->videodev->name);
+	       bcap_dev->videodev->name);
 
 	return 0;
 
       error_out_video:
-	kfree(uCam_dev->videodev);
+	kfree(bcap_dev->videodev);
       error_out_ppi:
-	kfree(uCam_dev->ppidev);
+	kfree(bcap_dev->ppidev);
       error_out_dev:
-	kfree(uCam_dev);
+	kfree(bcap_dev);
       error_out:
 	return err;
 }
 
-static int mt9m001_detect_client(struct i2c_adapter *adapter, int address,
+static int sensor_detect_client(struct i2c_adapter *adapter, int address,
 				 int kind)
 {
 	int err;
 	struct i2c_client *new_client;
-	struct mt9m001_data *data;
+	struct sensor_data *data;
 	u16 tmp = 0;
 
 	printk(KERN_INFO "%s: detecting client on address 0x%x\n", sensor_name,
@@ -402,7 +586,7 @@ static int mt9m001_detect_client(struct i2c_adapter *adapter, int address,
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 		return 0;
 
-	data = kzalloc(sizeof(struct mt9m001_data), GFP_KERNEL);
+	data = kzalloc(sizeof(struct sensor_data), GFP_KERNEL);
 	if (data == NULL)
 		return -ENOMEM;
 	data->input = 0;
@@ -412,7 +596,7 @@ static int mt9m001_detect_client(struct i2c_adapter *adapter, int address,
 	i2c_set_clientdata(new_client, data);
 	new_client->addr = address;
 	new_client->adapter = adapter;
-	new_client->driver = &mt9m001_driver;
+	new_client->driver = &sensor_driver;
 	strcpy(new_client->name, sensor_name);
 
 	err = i2c_attach_client(new_client);
@@ -430,7 +614,7 @@ static int mt9m001_detect_client(struct i2c_adapter *adapter, int address,
 	cam_control(new_client, CAM_CMD_SET_PIXFMT, default_palette(force_palette));
 	cam_control(new_client, CAM_CMD_SET_FRAMERATE, 30);
 
-	err = mt9m001_init_v4l(data);
+	err = bcap_init_v4l(data);
 
 	if (err)
 		goto error_out;
@@ -443,19 +627,19 @@ static int mt9m001_detect_client(struct i2c_adapter *adapter, int address,
 	return err;
 }
 
-static int mt9m001_attach_adapter(struct i2c_adapter *adapter)
+static int sensor_attach_adapter(struct i2c_adapter *adapter)
 {
 	int i;
 	BUG_ON(adapter == NULL);
 	pr_debug("%s: starting probe for adapter %s (0x%x)\n", sensor_name,
 		 adapter->name, adapter->id);
-	i = i2c_probe(adapter, &addr_data, &mt9m001_detect_client);
+	i = i2c_probe(adapter, &addr_data, &sensor_detect_client);
 	return i;
 }
 
-static int mt9m001_detach_client(struct i2c_client *client)
+static int sensor_detach_client(struct i2c_client *client)
 {
-	struct mt9m001_data *data;
+	struct sensor_data *data;
 	int err;
 
 	if ((err = i2c_detach_client(client)))
@@ -463,31 +647,31 @@ static int mt9m001_detach_client(struct i2c_client *client)
 
 	data = i2c_get_clientdata(client);
 
-	video_unregister_device(data->uCam_dev->videodev);
-	kfree(data->uCam_dev->videodev);
-	kfree(data->uCam_dev->ppidev);
-	kfree(data->uCam_dev);
+	video_unregister_device(data->bcap_dev->videodev);
+	kfree(data->bcap_dev->videodev);
+	kfree(data->bcap_dev->ppidev);
+	kfree(data->bcap_dev);
 
 	kfree(data);
 
 	return 0;
 }
 
-static int mt9m001_command(struct i2c_client *client, unsigned int cmd,
+static int sensor_command(struct i2c_client *client, unsigned int cmd,
 			   void *arg)
 {
 	/* as yet unimplemented */
 	return -EINVAL;
 }
 
-static struct i2c_driver mt9m001_driver = {
+static struct i2c_driver sensor_driver = {
 	.driver = {
 		   .name = SENSOR_NAME,
 		   },
-	.id = I2C_DRIVERID_UCAM,
-	.attach_adapter = mt9m001_attach_adapter,
-	.detach_client = mt9m001_detach_client,
-	.command = mt9m001_command,
+	.id = I2C_DRIVERID_BCAP,
+	.attach_adapter = sensor_attach_adapter,
+	.detach_client = sensor_detach_client,
+	.command = sensor_command,
 };
 
 /*
@@ -495,7 +679,7 @@ static struct i2c_driver mt9m001_driver = {
  */
 #if defined(USE_PROC)
 
-static int mt9m001_proc_read(char *buf, char **start, off_t offset, int count,
+static int sensor_proc_read(char *buf, char **start, off_t offset, int count,
 			     int *eof, void *data)
 {
 	int i;
@@ -503,7 +687,7 @@ static int mt9m001_proc_read(char *buf, char **start, off_t offset, int count,
 	int len = 0;
 
 	for (i = 0; i < sizeof(i2c_regs) / sizeof(*i2c_regs); ++i) {
-		uCam_i2c_read(i2c_global_client, i2c_regs[i].regnum, &tmp, 1);
+		bcap_i2c_read(i2c_global_client, i2c_regs[i].regnum, &tmp, 1);
 		len += sprintf(&buf[len], "Reg 0x%02x: = 0x%04x %-40s",
 			       i2c_regs[i].regnum, tmp, i2c_regs[i].name);
 		if (!((i + 1) % 2))
@@ -516,7 +700,7 @@ static int mt9m001_proc_read(char *buf, char **start, off_t offset, int count,
 	return len;
 }
 
-static int mt9m001_proc_write(struct file *file, const char *buf,
+static int sensor_proc_write(struct file *file, const char *buf,
 			      unsigned long count, void *data)
 {
 	int reg = 0, val = 0, i;
@@ -525,23 +709,23 @@ static int mt9m001_proc_write(struct file *file, const char *buf,
 		if (i2c_regs[i].regnum == reg) {
 			printk("writing register 0x%02x (%s) with 0x%04x\n",
 			       reg, i2c_regs[i].name, val);
-			uCam_i2c_write(i2c_global_client, reg, val);
+			bcap_i2c_write(i2c_global_client, reg, val);
 			break;
 		}
 	}
 	return count;
 }
 
-static int mt9m001_proc_init(void)
+static int sensor_proc_init(void)
 {
 	struct proc_dir_entry *ptr;
 	pr_debug("  Configuring proc\n");
-	ptr = create_proc_entry("uCam", S_IFREG | S_IRUGO, NULL);
+	ptr = create_proc_entry("bcap", S_IFREG | S_IRUGO, NULL);
 	if (!ptr)
 		return -1;
 	ptr->owner = THIS_MODULE;
-	ptr->read_proc = mt9m001_proc_read;
-	ptr->write_proc = mt9m001_proc_write;
+	ptr->read_proc = sensor_proc_read;
+	ptr->write_proc = sensor_proc_write;
 	return 0;
 }
 #endif				/* DEBUG PROC FILE */
@@ -560,7 +744,7 @@ static int v4l2_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			memset(cap, 0, sizeof(struct video_capability));
 			cap->capabilities =
 			    V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_READWRITE;
-			strcpy(cap->driver, "uCam");
+			strcpy(cap->driver, "bcap");
 
 			/* driver[16] - canonical name for this device */
 			strcpy(cap->card, "Blackfin Cam");
@@ -809,24 +993,6 @@ static int v4l2_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 }
 #endif
 
-/* Returns number of bits per pixel (regardless of where they are located;
- * planar or not), or zero for unsupported format.
- */
-static inline int
-get_depth(int palette)
-{
-	switch (palette) {
-	case VIDEO_PALETTE_GREY:    return 8;
-	case VIDEO_PALETTE_YUV420:  return 12;
-	case VIDEO_PALETTE_YUV420P: return 12; /* Planar */
-	case VIDEO_PALETTE_YUV422:  return 16;
-	case VIDEO_PALETTE_RGB565:  return 16;
-	case VIDEO_PALETTE_UYVY:    return 16;
-	case VIDEO_PALETTE_YUYV:    return 16;
-	default:		    return 0;  /* Invalid format */
-	}
-}
-
 
 static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		     unsigned long arg)
@@ -851,11 +1017,11 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 			/*  maxwidth - maximum capture width in pixels */
 			cap->maxwidth = MAX_FRAME_WIDTH;
-			uCam_dev->width = 0;
+			bcap_dev->width = 0;
 
 			/* maxheight - maximum capture height in pixels */
-			cap->maxheight = MAX_FRAME_HEIGHT; 
-			uCam_dev->height = 0;
+			cap->maxheight = MAX_FRAME_HEIGHT;
+			bcap_dev->height = 0;
 
 			/* minwidth - minimum capture width in pixels */
 			cap->minwidth = MIN_FRAME_WIDTH;
@@ -926,7 +1092,7 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 					 p->palette);
 				return -EINVAL;
 			}
-			
+
 			return 0;
 		}
 
@@ -963,8 +1129,8 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 			printk("  ...using %dx%d window\n", vw->width,
 				 vw->height);
-			uCam_dev->width = vw->width;
-			uCam_dev->height = vw->height;
+			bcap_dev->width = vw->width;
+			bcap_dev->height = vw->height;
 
 			return 0;
 		}
@@ -1014,21 +1180,21 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			pr_debug("VIDIOCGMBUF called (%ld)\n",
 				 jiffies * 1000 / HZ);
 			memset(vm, 0, sizeof(struct video_mbuf));
-			uCam_dev->size = MAX_FRAME_HEIGHT * MAX_FRAME_WIDTH * (get_depth(default_palette(force_palette))/8);
+			bcap_dev->size = MAX_FRAME_HEIGHT * MAX_FRAME_WIDTH * (get_depth(default_palette(force_palette))/8);
 			pr_debug("  capture %zi byte, %dx%d (WxH) frame\n",
-				 uCam_dev->size,
-				 uCam_dev->width, uCam_dev->height);
+				 bcap_dev->size,
+				 bcap_dev->width, bcap_dev->height);
 
-			vm->frames = uCAM_NUM_BUFS;
-			vm->size = uCam_dev->size;
+			vm->frames = BCAP_NUM_BUFS;
+			vm->size = bcap_dev->size;
 			vm->offsets[0] = 0x00000000;
 			vm->offsets[1] = (u32) (top_buffer - bottom_buffer);
-			uCam_dev->buffer[0].data = (void *)bottom_buffer;
-			uCam_dev->buffer[1].data = (void *)top_buffer;
+			bcap_dev->buffer[0].data = (void *)bottom_buffer;
+			bcap_dev->buffer[1].data = (void *)top_buffer;
 
-			uCam_dev->dma_buf = &uCam_dev->buffer[0];
-			uCam_dev->ready_buf = &uCam_dev->buffer[0];
-			uCam_dev->next_buf = &uCam_dev->buffer[1];
+			bcap_dev->dma_buf = &bcap_dev->buffer[0];
+			bcap_dev->ready_buf = &bcap_dev->buffer[0];
+			bcap_dev->next_buf = &bcap_dev->buffer[1];
 			return 0;
 		}
 
@@ -1045,121 +1211,124 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			struct video_mmap *vm = (struct video_mmap *)arg;
 
 			BUG_ON(vm == NULL);
-			BUG_ON(uCam_dev == NULL);
-			BUG_ON(uCam_dev->ppidev == NULL);
-			BUG_ON(uCam_dev->ppidev->rx_avail == NULL);
+			BUG_ON(bcap_dev == NULL);
+			BUG_ON(bcap_dev->ppidev == NULL);
+			BUG_ON(bcap_dev->ppidev->rx_avail == NULL);
 
 			i = vm->frame;
 
 			pr_debug("VIDIOCMCAPTURE(%d) called (%ld)\n", i,
 				 jiffies * 1000 / HZ);
-			
-			if (i >= uCAM_NUM_BUFS) {
+
+			if (i >= BCAP_NUM_BUFS) {
 				pr_debug("VIDIOCMCAPTURE: invalid frame (%d)",
 					 vm->frame);
 				return -EINVAL;
 			}
 
-			if (uCam_dev->height != vm->height
-			    || uCam_dev->width != vm->width) {
-				
-				uCam_dev->height = vm->height;
-				uCam_dev->width = vm->width;
+			if (bcap_dev->height != vm->height
+			    || bcap_dev->width != vm->width) {
 
-				bfin_write_PPI_CONTROL(uCam_dev->ppidev->
+				bcap_dev->height = vm->height;
+				bcap_dev->width = vm->width;
+
+				bfin_write_PPI_CONTROL(bcap_dev->ppidev->
 						       ppi_control & ~PORT_EN);
 
-				cam_control(uCam_dev->client, CAM_CMD_SET_RESOLUTION, RES(uCam_dev->width,uCam_dev->height));
-				
-				uCam_dev->ppidev->pixel_per_line =
-				    uCam_dev->width;
-				uCam_dev->ppidev->lines_per_frame =
-				    uCam_dev->height;
+				cam_control(bcap_dev->client, CAM_CMD_SET_RESOLUTION, RES(bcap_dev->width,bcap_dev->height));
+
+				bcap_dev->ppidev->pixel_per_line =
+				    bcap_dev->width;
+				bcap_dev->ppidev->lines_per_frame =
+				    bcap_dev->height;
 
 				set_dma_config(CH_PPI,
-					       uCam_dev->ppidev->dma_config);
+					       bcap_dev->ppidev->dma_config);
 
 
-				if (uCam_dev->ppidev->bpp > 8)
+				if (bcap_dev->ppidev->bpp > 8)
 					set_dma_x_count(CH_PPI,
-						uCam_dev->ppidev->pixel_per_line);
+						bcap_dev->ppidev->pixel_per_line);
 				else
 					set_dma_x_count(CH_PPI,
-						uCam_dev->ppidev->pixel_per_line / 2);
+						bcap_dev->ppidev->pixel_per_line / 2);
 				/* Div 2 because of 16-bit packing */
 
 
 				set_dma_y_count(CH_PPI,
-						uCam_dev->ppidev->lines_per_frame);
+						bcap_dev->ppidev->lines_per_frame);
 
-				bfin_write_PPI_FRAME(uCam_dev->ppidev->
+				bfin_write_PPI_FRAME(bcap_dev->ppidev->
 						     lines_per_frame);
 
-				bfin_write_PPI_DELAY(uCam_dev->ppidev->
+				bfin_write_PPI_DELAY(bcap_dev->ppidev->
 						     ppi_delay);
 
 
-
-				if (uCam_dev->ppidev->bpp > 8)
-					bfin_write_PPI_COUNT(uCam_dev->ppidev->
+#if !defined(USE_ITU656)
+				if (bcap_dev->ppidev->bpp > 8)
+					bfin_write_PPI_COUNT(bcap_dev->ppidev->
 							     pixel_per_line * 2 - 1);
 				else
-					bfin_write_PPI_COUNT(uCam_dev->ppidev->
+					bfin_write_PPI_COUNT(bcap_dev->ppidev->
 							     pixel_per_line - 1);
 
+#endif
 
-
-				if (uCam_dev->ppidev->bpp > 8
-				    || uCam_dev->ppidev->dma_config & WDSIZE_16) {
+				if (bcap_dev->ppidev->bpp > 8
+				    || bcap_dev->ppidev->dma_config & WDSIZE_16) {
 					set_dma_x_modify(CH_PPI, 2);
 					set_dma_y_modify(CH_PPI, 2);
-				
+
 				}else {
 					set_dma_x_modify(CH_PPI, 1);
 					set_dma_y_modify(CH_PPI, 1);
-				}		
+				}
 
 				pr_debug("  setting PPI to %dx%d\n",
-					 uCam_dev->ppidev->pixel_per_line,
-					 uCam_dev->ppidev->lines_per_frame);
+					 bcap_dev->ppidev->pixel_per_line,
+					 bcap_dev->ppidev->lines_per_frame);
 
-				uCam_dev->size = uCam_dev->width * uCam_dev->height * 
+				bcap_dev->size = bcap_dev->width * bcap_dev->height *
 					(get_depth(default_palette(force_palette))/8);
 
 			}
 
 			pr_debug("  capture %zi byte, %dx%d (WxH) frame\n",
-				 uCam_dev->size,
-				 uCam_dev->width, uCam_dev->height);
+				 bcap_dev->size,
+				 bcap_dev->width, bcap_dev->height);
 
-			uCam_dev->buffer[i].state = FRAME_READY;
+			bcap_dev->buffer[i].state = FRAME_READY;
 
-			spin_lock(uCam_dev->lock);
+			spin_lock(bcap_dev->lock);
 			/* if DMA not busy, initiate DMA
 			 *  ow DMA handled by interrupt
 			 */
-			if (uCam_dev->ppidev->done) {
+
+
+
+			if (bcap_dev->ppidev->done) {
 				if (perfnum) {
-					uCam_dev->buffer[i].scyc = cycles();
-					uCam_dev->buffer[i].stime = jiffies;
+					bcap_dev->buffer[i].scyc = cycles();
+					bcap_dev->buffer[i].stime = jiffies;
 				}
-				GPIO_SET_VALUE(uCAM_LEDS, 1);
-				uCam_dev->dma_buf = &uCam_dev->buffer[i];
-				uCam_dev->dma_buf->state = FRAME_GRABBING;
+				GPIO_SET_VALUE(bcap_LEDS, 1);
+				bcap_dev->dma_buf = &bcap_dev->buffer[i];
+				bcap_dev->dma_buf->state = FRAME_GRABBING;
 				pr_debug("  grabbing frame %d [0x%p]\n", i,
-					 uCam_dev->dma_buf->data);
+					 bcap_dev->dma_buf->data);
 				count =
-				    ppi2dma(uCam_dev->ppidev,
-					    uCam_dev->dma_buf->data,
-					    uCam_dev->size);
+				    bcap_ppi2dma(bcap_dev->ppidev,
+					    bcap_dev->dma_buf->data,
+					    bcap_dev->size);
 			} else {
-				uCam_dev->next_buf = &uCam_dev->buffer[i];
+				bcap_dev->next_buf = &bcap_dev->buffer[i];
 				pr_debug
 				    ("  PPI busy with [0x%p] - ISR will capture to [0x%p] later\n",
-				     uCam_dev->dma_buf->data,
-				     uCam_dev->buffer[i].data);
+				     bcap_dev->dma_buf->data,
+				     bcap_dev->buffer[i].data);
 			}
-			spin_unlock(uCam_dev->lock);
+			spin_unlock(bcap_dev->lock);
 
 			return 0;
 		}
@@ -1173,60 +1342,63 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			pr_debug("VIDIOCSYNC(%d) called (%ld)\n", i,
 				 jiffies * 1000 / HZ);
 
-			switch (uCam_dev->buffer[i].state) {
+			switch (bcap_dev->buffer[i].state) {
 			case FRAME_UNUSED:
 				return -EINVAL;
 			case FRAME_READY:
-			case VIDIOCSYNC:
+			case FRAME_GRABBING:
+
 			      redo:
-				if (!uCam_dev->ppidev)
+				if (!bcap_dev->ppidev)
 					return -EIO;
 
+
 				ret =
-				    wait_event_interruptible(uCam_dev->
+				    wait_event_interruptible(bcap_dev->
 							     buffer[i].wq,
-							     (uCam_dev->
-							      buffer[i].state ==
-							      FRAME_DONE));
+							     (bcap_dev->buffer[i].state == FRAME_DONE));
+
 				if (ret)
 					return -EINTR;
 				pr_debug
 				    ("Synch Ready on frame %d, grabstate = %d",
-				     i, uCam_dev->buffer[i].state);
-				if (uCam_dev->buffer[i].state == FRAME_ERROR) {
+				     i, bcap_dev->buffer[i].state);
+				if (bcap_dev->buffer[i].state == FRAME_ERROR) {
 					goto redo;
 				}
 			case FRAME_ERROR:
+
 				/* because irq_err does not restart dma fall through */
 			case FRAME_DONE:
-				uCam_dev->buffer[i].state = FRAME_UNUSED;
+
+				bcap_dev->buffer[i].state = FRAME_UNUSED;
 
 				blackfin_dcache_invalidate_range((u_long)
-								 uCam_dev->
+								 bcap_dev->
 								 dma_buf->data,
 								 (u_long)
-								 (uCam_dev->
+								 (bcap_dev->
 								  dma_buf->data +
-								  uCam_dev->
+								  bcap_dev->
 								  size));
 
-				uCam_dev->ready_buf = &uCam_dev->buffer[i];
+				bcap_dev->ready_buf = &bcap_dev->buffer[i];
 				pr_debug("  ready_buf = [0x%p]\n",
-					 uCam_dev->ready_buf->data);
+					 bcap_dev->ready_buf->data);
 
-				uCam_dev->frame_count++;
+				bcap_dev->frame_count++;
 
 				if (perfnum) {
-					uCam_dev->buffer[i].ecyc = cycles();
-					uCam_dev->buffer[i].etime = jiffies;
+					bcap_dev->buffer[i].ecyc = cycles();
+					bcap_dev->buffer[i].etime = jiffies;
 					printk
 					    ("  frame %d(0x%p): %-8d cycles, %ld msec\n",
-					     uCam_dev->frame_count,
-					     uCam_dev->ready_buf->data,
-					     uCam_dev->buffer[i].ecyc -
-					     uCam_dev->buffer[i].scyc,
-					     (uCam_dev->buffer[i].etime -
-					      uCam_dev->buffer[i].stime) *
+					     bcap_dev->frame_count,
+					     bcap_dev->ready_buf->data,
+					     bcap_dev->buffer[i].ecyc -
+					     bcap_dev->buffer[i].scyc,
+					     (bcap_dev->buffer[i].etime -
+					      bcap_dev->buffer[i].stime) *
 					     1000 / HZ);
 				}
 				break;
@@ -1275,6 +1447,13 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		pr_debug("VIDIOCSVBIFMT called\n");
 		return -EINVAL;
 
+	case VIDIOSFPS:{
+		unsigned int val = *((unsigned int *)arg);
+		cam_control(bcap_dev->client, CAM_CMD_SET_FRAMERATE, (u8)val);
+		return 0;
+		}
+
+
 	default:
 		pr_debug("unknown/unsupported V4L ioctl command (%08x)\n", cmd);
 		return -ENOIOCTLCMD;
@@ -1289,26 +1468,27 @@ static void v4l_release(struct video_device *vdev)
 	kfree(vdev);
 }
 
-static int uCam_open(struct inode *inode, struct file *filp)
+static int bcap_open(struct inode *inode, struct file *filp)
 {
-	pr_debug("uCam_open called\n");
+	pr_debug("bcap_open called\n");
 
 	try_module_get(THIS_MODULE);
 
-	if (!uCam_dev) {
+	if (!bcap_dev) {
 		printk("  ...specified video device not found!\n");
 		return -ENODEV;
 	}
 
-	pr_debug("uCam_open:\n");
+	pr_debug("bcap_open:\n");
 
 	/* FIXME: use a proper mutex here */
-	if (uCam_dev->ppidev->opened) {
-		printk("  ppi opened already (%d users)\n", uCam_dev->user);
+	if (bcap_dev->ppidev->opened) {
+		printk("  ppi opened already (%d users)\n", bcap_dev->user);
 		return -EMFILE;
 	}
 
-	bottom_buffer = 0x1000;
+	bottom_buffer = (unsigned char*)0x1000;
+
 #if !defined(USE_2ND_BUF_IN_CACHED_MEM)
 	top_buffer =
 	    dma_alloc_coherent(NULL, MAX_BUFFER_SIZE, &dma_handle, GFP_KERNEL);
@@ -1320,45 +1500,49 @@ static int uCam_open(struct inode *inode, struct file *filp)
 		return -ENOMEM;
 	}
 
-	if ((bottom_buffer == 0x1000) &&
-	    ((bottom_buffer + MAX_BUFFER_SIZE) >= CONFIG_BOOT_LOAD)) {
+	if ((bottom_buffer == (unsigned char*) 0x1000) &&
+	    ((bottom_buffer + MAX_BUFFER_SIZE) >= (unsigned char*) CONFIG_BOOT_LOAD)) {
 		printk(KERN_ERR ": couldn't allocate bottom buffer -"
 			" kernel start address too low\n");
+#if !defined(USE_2ND_BUF_IN_CACHED_MEM)
+			dma_free_coherent(NULL, MAX_BUFFER_SIZE, top_buffer, dma_handle);
+#else
+			kfree(top_buffer);
+#endif
 		return -ENOMEM;
 	}
 
-	memset(uCam_dev->ppidev, 0, sizeof(struct ppi_device_t));
+	memset(bcap_dev->ppidev, 0, sizeof(struct ppi_device_t));
 
-	uCam_dev->ppidev->opened = 1;
-	pr_debug("uCam open setting PPI done\n");
-	uCam_dev->ppidev->done = 1;	/* initially ppi is "done" */
-	uCam_dev->ppidev->dma_config =
+	bcap_dev->ppidev->opened = 1;
+	pr_debug("bcap open setting PPI done\n");
+	bcap_dev->ppidev->done = 1;	/* initially ppi is "done" */
+	bcap_dev->ppidev->dma_config =
 	    (DMA_FLOW_MODE | WNR | RESTART | DMA_WDSIZE_16 | DMA2D | DI_EN);
-	uCam_dev->ppidev->pixel_per_line = PIXEL_PER_LINE;
-	uCam_dev->ppidev->lines_per_frame = LINES_PER_FRAME;
-	uCam_dev->ppidev->bpp = DEFAULT_DEPTH;
-	uCam_dev->ppidev->ppi_control =
+	bcap_dev->ppidev->pixel_per_line = PIXEL_PER_LINE;
+	bcap_dev->ppidev->lines_per_frame = LINES_PER_FRAME;
+	bcap_dev->ppidev->bpp = DEFAULT_DEPTH;
+	bcap_dev->ppidev->ppi_control =
 	    POL_S | POL_C | PPI_DATA_LEN | PPI_PACKING | CFG_GP_Input_3Syncs |
 	    GP_Input_Mode;
-	uCam_dev->ppidev->ppi_status = 0;
-	uCam_dev->ppidev->ppi_delay = 0;
-	uCam_dev->ppidev->ppi_trigger_gpio = NO_TRIGGER;
-	uCam_dev->ppidev->rx_avail = &uCam_waitqueue;
-	uCam_dev->ppidev->irqnum = IRQ_PPI;
-	uCam_dev->ppidev->nonblock = 1;
-	uCam_dev->ppidev->uCam_dev = uCam_dev;
+	bcap_dev->ppidev->ppi_status = 0;
+	bcap_dev->ppidev->ppi_delay = 0;
+	bcap_dev->ppidev->ppi_trigger_gpio = NO_TRIGGER;
+	bcap_dev->ppidev->rx_avail = &bcap_waitqueue;
+	bcap_dev->ppidev->irqnum = IRQ_PPI;
+	bcap_dev->ppidev->bcap_dev = bcap_dev;
 
 	if (request_dma(CH_PPI, "PPI_DMA") < 0) {
 		printk(KERN_ERR "%s: Unable to attach PPI DMA channel\n",
 		       sensor_name);
 		return -EFAULT;
 	} else
-		set_dma_callback(CH_PPI, ppifcd_irq, uCam_dev->ppidev);
+		set_dma_callback(CH_PPI, bcap_ppi_irq, bcap_dev->ppidev);
 
 #if defined(USE_PPI_ERROR)
 	if (request_irq
-	    (IRQ_PPI_ERROR, ppifcd_irq_error, 0, "PPI ERROR",
-	     uCam_dev->ppidev)) {
+	    (IRQ_PPI_ERROR, bcap_ppi_irq_error, 0, "PPI ERROR",
+	     bcap_dev->ppidev)) {
 		printk(KERN_ERR "%s: Unable to attach PPI error IRQ\n",
 		       sensor_name);
 		free_dma(CH_PPI);
@@ -1373,22 +1557,22 @@ static int uCam_open(struct inode *inode, struct file *filp)
 #endif
 
 	pr_debug("  specified video device opened sucessfullly\n");
-	uCam_dev->user++;
+	bcap_dev->user++;
 
 	return 0;
 }
 
-static ssize_t uCam_read(struct file *filp, char *buf, size_t count,
+static ssize_t bcap_read(struct file *filp, char *buf, size_t count,
 			 loff_t * pos)
 {
 	int Hoff = 12;
 	int Woff = 20;
 	ssize_t res = 0;
 
-	pr_debug("uCam_read called\n");
+	pr_debug("bcap_read called\n");
 
-	GPIO_SET_VALUE(uCAM_LEDS, 1);
-	GPIO_SET_VALUE(uCAM_TRIGGER, 1);
+	GPIO_SET_VALUE(bcap_LEDS, 1);
+	GPIO_SET_VALUE(bcap_TRIGGER, 1);
 
 	/* Window control registers
 	 * 0x01 10:0 first row to be read out (default 0x000C, 12)
@@ -1397,59 +1581,59 @@ static ssize_t uCam_read(struct file *filp, char *buf, size_t count,
 	 * 0x04 10:0 window width  (num cols-1) (default 0x04FF, 1279)
 	 * set start X,Y & W,H in Camera via I2C
 	 */
-	if (uCam_dev->height == 512 && uCam_dev->width == 640) {
+	if (bcap_dev->height == 512 && bcap_dev->width == 640) {
 		Hoff += 320;
 		Woff += 256;
 	}
 
-	BUG_ON(uCam_dev->ppidev == NULL);
-	uCam_dev->ppidev->pixel_per_line = uCam_dev->width;
-	uCam_dev->ppidev->lines_per_frame = uCam_dev->height - 1;
-	ucam_reg_reset(uCam_dev->ppidev);
+	BUG_ON(bcap_dev->ppidev == NULL);
+	bcap_dev->ppidev->pixel_per_line = bcap_dev->width;
+	bcap_dev->ppidev->lines_per_frame = bcap_dev->height - 1;
+	bcap_reg_reset(bcap_dev->ppidev);
 	SSYNC();
 
 	pr_debug
 	    ("Frame %d reading %zi bytes %dx%d starting at (%d,%d) from pos (start at 0x%p) ...  ",
-	     uCam_dev->frame_count, count, uCam_dev->width, uCam_dev->height,
+	     bcap_dev->frame_count, count, bcap_dev->width, bcap_dev->height,
 	     Hoff, Woff, pos);
 	pr_debug("ppi_count and ppi_frame are %d,%d\n", bfin_read_PPI_COUNT(),
 		 bfin_read_PPI_FRAME());
 
-	res = ppi2dma(uCam_dev->ppidev, uCam_dev->buffer[0].data, count);
+	res = bcap_ppi2dma(bcap_dev->ppidev, bcap_dev->buffer[0].data, count);
 
 	pr_debug("done (read %zi/%zi bytes)\n", res, count);
-	uCam_dev->frame_count++;
+	bcap_dev->frame_count++;
 
-	GPIO_SET_VALUE(uCAM_LEDS, 0);
-	GPIO_SET_VALUE(uCAM_TRIGGER, 0);
+	GPIO_SET_VALUE(bcap_LEDS, 0);
+	GPIO_SET_VALUE(bcap_TRIGGER, 0);
 
 	return res;
 }
 
-static int uCam_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
+static int bcap_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		      unsigned long arg)
 {
 	return video_usercopy(inode, filp, cmd, arg, (void *)v4l_ioctl);
 }
 
-static int uCam_mmap(struct file *filp, struct vm_area_struct *vma)
+static int bcap_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	BUG_ON(uCam_dev == NULL);
+	BUG_ON(bcap_dev == NULL);
 	vma->vm_flags |= VM_MAYSHARE;
-	vma->vm_start = (u32) uCam_dev->ready_buf->data;
+	vma->vm_start = (u32) bcap_dev->ready_buf->data;
 	vma->vm_end = vma->vm_start + (MAX_FRAME_HEIGHT * MAX_FRAME_WIDTH * (get_depth(default_palette(force_palette))/8));
 
-	pr_debug("uCam_mmap: vm mapped to [0x%p-0x%p]\n", (void *)vma->vm_start,
+	pr_debug("bcap_mmap: vm mapped to [0x%p-0x%p]\n", (void *)vma->vm_start,
 		 (void *)vma->vm_end);
 	return 0;
 }
 
-static int uCam_close(struct inode *inode, struct file *filp)
+static int bcap_close(struct inode *inode, struct file *filp)
 {
-	struct ppi_device_t *pdev = uCam_dev->ppidev;
-	pr_debug("uCam_close called\n");
+	struct ppi_device_t *pdev = bcap_dev->ppidev;
+	pr_debug("bcap_close called\n");
 #if defined(USE_PPI_ERROR)
-	free_irq(IRQ_PPI_ERROR, uCam_dev->ppidev);
+	free_irq(IRQ_PPI_ERROR, bcap_dev->ppidev);
 #endif
 
 #if !defined(USE_2ND_BUF_IN_CACHED_MEM)
@@ -1457,118 +1641,118 @@ static int uCam_close(struct inode *inode, struct file *filp)
 #else
 	kfree(top_buffer);
 #endif
-	ucam_reg_reset(pdev);
-	ppi_fasync(-1, filp, 0);
+	bcap_reg_reset(pdev);
 	free_dma(CH_PPI);
 	pdev->opened = 0;
-	GPIO_SET_VALUE(uCAM_LEDS, 0);
+	GPIO_SET_VALUE(bcap_LEDS, 0);
 	pr_debug("  ...specified video device closed sucessfullly\n");
-	uCam_dev->user--;
+	bcap_dev->user--;
 	module_put(THIS_MODULE);
-	uCam_dev->frame_count = 0;
+	bcap_dev->frame_count = 0;
 
 	return 0;
 }
 
-static struct file_operations uCam_fops = {
+static struct file_operations bcap_fops = {
 	.owner = THIS_MODULE,
-	.open = uCam_open,
-	.release = uCam_close,
-	.ioctl = uCam_ioctl,
+	.open = bcap_open,
+	.release = bcap_close,
+	.ioctl = bcap_ioctl,
 	.compat_ioctl = (void *)v4l_ioctl,
 	.llseek = no_llseek,
-	.read = uCam_read,
-	.mmap = uCam_mmap,
+	.read = bcap_read,
+	.mmap = bcap_mmap,
 };
 
-static struct video_device uCam_template = {
+static struct video_device bcap_template = {
 	.owner = THIS_MODULE,
 	.name = "Blackfin CMOS Camera",
 	.type = VID_TYPE_CAPTURE | VID_TYPE_MONOCHROME,
 	.type2 = V4L2_CAP_VIDEO_CAPTURE,
-	.hardware = VID_HARDWARE_UCAM,
-	.fops = &uCam_fops,
+	.hardware = VID_HARDWARE_BCAP,
+	.fops = &bcap_fops,
 	.release = &v4l_release,
 	.minor = 0,
 };
 
-static __exit void mt9m001_exit(void)
+static __exit void bcap_exit(void)
 {
 	int err;
 
 	cam_control(i2c_global_client, CAM_CMD_EXIT, 1);
 
-	if ((err = i2c_del_driver(&mt9m001_driver))) {
+	if ((err = i2c_del_driver(&sensor_driver))) {
 		printk(KERN_WARNING "%s: could not del i2c driver: %i\n",
 		       sensor_name, err);
 		return;
 	}
 
+
 #if defined(USE_PROC)
-	remove_proc_entry("uCam", &proc_root);
+	remove_proc_entry("bcap", &proc_root);
 #endif
 	/*  Turn FS3 frame synch off  */
 
 #if defined(BF533_FAMILY)
-	gpio_free(uCAM_FS3);
+	gpio_free(bcap_FS3);
 #endif
 
 #ifdef USE_GPIO
-	gpio_free(uCAM_LEDS);
-	gpio_free(uCAM_TRIGGER);
-	gpio_free(uCAM_STANDBY);
+	gpio_free(bcap_LEDS);
+	gpio_free(bcap_TRIGGER);
+	gpio_free(bcap_STANDBY);
 #endif
 }
 
-static __init void mt9m001_init_cam_gpios(void)
+static __init void bcap_init_cam_gpios(void)
 {
 	pr_debug("Initializing camera\n");
 
 #ifdef USE_GPIO
 
-	if (gpio_request(uCAM_LEDS, NULL)) {
-		printk(KERN_ERR "uCam_open: Failed ro request GPIO_%d \n",
-		       uCAM_LEDS);
+	if (gpio_request(bcap_LEDS, NULL)) {
+		printk(KERN_ERR "bcap_open: Failed ro request GPIO_%d \n",
+		       bcap_LEDS);
 		return;
 	}
-	if (gpio_request(uCAM_TRIGGER, NULL)) {
-		printk(KERN_ERR "uCam_open: Failed ro request GPIO_%d \n",
-		       uCAM_TRIGGER);
-		gpio_free(uCAM_LEDS);
-		return;
-	}
-
-	if (gpio_request(uCAM_STANDBY, NULL)) {
-		printk(KERN_ERR "uCam_open: Failed ro request GPIO_%d \n",
-		       uCAM_STANDBY);
-		gpio_free(uCAM_LEDS);
-		gpio_free(uCAM_TRIGGER);
+	if (gpio_request(bcap_TRIGGER, NULL)) {
+		printk(KERN_ERR "bcap_open: Failed ro request GPIO_%d \n",
+		       bcap_TRIGGER);
+		gpio_free(bcap_LEDS);
 		return;
 	}
 
-	gpio_direction_output(uCAM_LEDS);
+	if (gpio_request(bcap_STANDBY, NULL)) {
+		printk(KERN_ERR "bcap_open: Failed ro request GPIO_%d \n",
+		       bcap_STANDBY);
+		gpio_free(bcap_LEDS);
+		gpio_free(bcap_TRIGGER);
+		return;
+	}
+
+	gpio_direction_output(bcap_LEDS);
 
 	/* this will flash the LEDs to say hello */
-	gpio_set_value(uCAM_LEDS, 1);
+	gpio_set_value(bcap_LEDS, 1);
 	mdelay(1);
-	gpio_set_value(uCAM_LEDS, 0);
+	gpio_set_value(bcap_LEDS, 0);
 
 	/* Set trigger mode */
-	gpio_direction_output(uCAM_TRIGGER);
-	gpio_set_value(uCAM_TRIGGER, 0);
+	gpio_direction_output(bcap_TRIGGER);
+	gpio_set_value(bcap_TRIGGER, 0);
 
 	/* Take out of standby mode */
-	gpio_direction_output(uCAM_STANDBY);
-	gpio_set_value(uCAM_STANDBY, 0);
+	gpio_direction_output(bcap_STANDBY);
+	gpio_set_value(bcap_STANDBY, 0);
 
 #endif
 
 }
 
-static __init int mt9m001_init(void)
+static __init int bcap_init(void)
 {
 	int err;
-	mt9m001_init_cam_gpios();
+	bcap_init_cam_gpios();
 
 	if (global_gain > 127) {
 		printk(KERN_WARNING
@@ -1577,7 +1761,7 @@ static __init int mt9m001_init(void)
 		global_gain = 127;
 	}
 
-	err = i2c_add_driver(&mt9m001_driver);
+	err = i2c_add_driver(&sensor_driver);
 	if (err) {
 		printk(KERN_WARNING "%s: could not add i2c driver: %i\n",
 		       sensor_name, err);
@@ -1585,31 +1769,31 @@ static __init int mt9m001_init(void)
 	}
 
 #if defined(USE_PROC)
-	if (mt9m001_proc_init())
+	if (sensor_proc_init())
 		printk(KERN_WARNING "Could not create proc entry\n");
 #endif
 	/*  Turn FS3 frame synch off  */
 
 #if defined(BF533_FAMILY)
-	if (gpio_request(uCAM_FS3, NULL)) {
-		printk(KERN_ERR "uCam_open: Failed ro request GPIO_%d (FS3)\n",
-		       uCAM_FS3);
+	if (gpio_request(bcap_FS3, NULL)) {
+		printk(KERN_ERR "bcap_open: Failed ro request GPIO_%d (FS3)\n",
+		       bcap_FS3);
 		return -EBUSY;
 	}
 
 	gpio_direction_output(GPIO_3);
-	gpio_set_value(uCAM_FS3, 0);
+	gpio_set_value(bcap_FS3, 0);
 #endif
 
 #if 0
-	struct mt9m001_data *data;
-	data = kzalloc(sizeof(struct mt9m001_data), GFP_KERNEL);
+	struct sensor_data *data;
+	data = kzalloc(sizeof(struct sensor_data), GFP_KERNEL);
 	if (data == NULL)
 		return -ENOMEM;
 	data->input = 0;
 	data->enable = 1;
 
-	mt9m001_init_v4l(data);
+	bcap_init_v4l(data);
 #endif
 
 	printk(KERN_INFO "%s: i2c driver ready\n", sensor_name);
@@ -1630,5 +1814,5 @@ MODULE_PARM_DESC(force_palette,
 	"2 = VIDEO_PALETTE_YUV422"
 	"3 = VIDEO_PALETTE_UYVY\n");
 
-module_init(mt9m001_init);
-module_exit(mt9m001_exit);
+module_init(bcap_init);
+module_exit(bcap_exit);
