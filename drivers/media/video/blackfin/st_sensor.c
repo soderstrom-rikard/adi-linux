@@ -107,53 +107,6 @@ static int vs_probe(struct i2c_client *client)
 
 }
 
-static int vs_init(struct i2c_client *client, u32 arg)
-{
-
-
-	WriteByte(client, MICROENABLE, 0x6);
-	mdelay(1);
-
-	WriteByte(client, ENABLE_IO, 0x1);
-
-#ifdef USE_ITU656
-	WriteByte(client, BCODECHECKEN, 0x7); /* allow all */
-	WriteByte(client, BDATAFORMAT0, 0x1); /* REC601 */
-
-	WriteByte(client, BSYNCCODESETUP, 0x19); /* ITU656 TOGGLE 1,2 */
-	WriteByte(client, BSYNCCODESETUP, 0x9); /* ITU656 TOGGLE 1,2 */
-
-#else
-	WriteByte(client, BCODECHECKEN, 0x0); /* allow all */
-	WriteByte(client, BRGBSETUP, 0x1); /*SWAP R-B*/
-	WriteByte(client, BDATAFORMAT0, 0x3); /* RGB565 */
-	WriteByte(client, BSYNCCODESETUP, 0x1); /* SYNC */
-
-	WriteByte(client, BHSYNCSETUP, 0xF); /* Active lines only, Automatic */
-
-#endif
-
-	WriteByte(client, BUSERCOMMAND, 0x2); /* RUN */
-
-	vs_set_framerate(client, MAX_FRAMERATE); /* set max frame rate */
-
-	if (vs_probe(client))
-		return -ENODEV;
-
-	return 0;
-
-}
-
-static int vs_exit(struct i2c_client *client, u32 arg)
-{
-
-	WriteByte(client, BUSERCOMMAND, 0x4); /* STOP */
-	WriteByte(client, ENABLE_IO, 0x0);
-	WriteByte(client, MICROENABLE, 0x0);
-
-	return 0;
-
-}
 
 static int vs_set_pixfmt(struct i2c_client *client, u32 arg)
 {
@@ -275,6 +228,54 @@ static int  vs_set_resolution(struct i2c_client *client, u32 res)
 	}
 
 	return 0;
+}
+
+static int vs_init(struct i2c_client *client, u32 arg)
+{
+
+
+	WriteByte(client, MICROENABLE, 0x6);
+	mdelay(1);
+
+	WriteByte(client, ENABLE_IO, 0x1);
+
+#ifdef USE_ITU656
+	WriteByte(client, BCODECHECKEN, 0x7); /* allow all */
+	WriteByte(client, BDATAFORMAT0, 0x1); /* REC601 */
+
+	WriteByte(client, BSYNCCODESETUP, 0x19); /* ITU656 TOGGLE 1,2 */
+	WriteByte(client, BSYNCCODESETUP, 0x9); /* ITU656 TOGGLE 1,2 */
+
+#else
+	WriteByte(client, BCODECHECKEN, 0x0); /* allow all */
+	WriteByte(client, BRGBSETUP, 0x1); /*SWAP R-B*/
+	WriteByte(client, BDATAFORMAT0, 0x3); /* RGB565 */
+	WriteByte(client, BSYNCCODESETUP, 0x1); /* SYNC */
+
+	WriteByte(client, BHSYNCSETUP, 0xF); /* Active lines only, Automatic */
+
+#endif
+
+	WriteByte(client, BUSERCOMMAND, 0x2); /* RUN */
+
+	vs_set_framerate(client, MAX_FRAMERATE); /* set max frame rate */
+
+	if (vs_probe(client))
+		return -ENODEV;
+
+	return 0;
+
+}
+
+static int vs_exit(struct i2c_client *client, u32 arg)
+{
+
+	WriteByte(client, BUSERCOMMAND, 0x4); /* STOP */
+	WriteByte(client, ENABLE_IO, 0x0);
+	WriteByte(client, MICROENABLE, 0x0);
+
+	return 0;
+
 }
 
 int cam_control(struct i2c_client *client, u32 cmd, u32 arg)
