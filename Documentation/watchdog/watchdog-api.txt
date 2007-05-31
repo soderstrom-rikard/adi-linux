@@ -262,19 +262,11 @@ bfin_wdt.c -- Blackfin On-Chip Watchdog Timer
 
 	GETSUPPORT returns WDIOF_KEEPALIVEPING and WDIOF_SETTIMEOUT.
 
-	GETBOOTSTATUS is supported.  GETSTATUS returns whether the
-	watchdog timer has expired (useful when watchdog generates an
-	interrupt rather than resets the processor).
-
-	The watchdog can be configured to reset the part, signal an
-	interrupt, or issue an NMI.
+	GETBOOTSTATUS is supported.  GETSTATUS returns the same thing
+	as GETBOOTSTATUS [FIXME -- seems to be useless?].
 
 	The dual core parts have two watchdog devices.  Only the
 	watchdog on the core actually running Linux is supported.
-
-	The default interrupt behavior is for waking up the processor.
-	Board people can customize this behavior; see the driver for
-	more information.
 
 booke_wdt.c -- PowerPC BookE Watchdog Timer
 

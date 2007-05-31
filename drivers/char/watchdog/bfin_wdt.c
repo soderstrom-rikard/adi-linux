@@ -12,29 +12,6 @@
  * Licensed under the GPL-2 or later.
  */
 
-/* Notes for people customizing General Purpose Interrupt (GPI) behavior.
- *
- * Normally when the watchdog times out, you reboot the system.  In
- * some scenarios, you would rather have the machine come to a complete
- * halt.  Or perhaps you want to wake the system up from sleep.  If the
- * board provides some watchdog functions, we'll call those.  Otherwise,
- * we'll let the GPI event wake up the processor if it's put to sleep.
- *
- * The functions you should implement in your board file:
- *
- *	irqreturn_t bfin_board_watchdog_interrupt(void);
- *		called when the interrupt is fired.  perhaps you want to execute
- *		kernel_halt() or do some other crazy stuff.
- *
- *	int bfin_board_watchdog_suspend(void);
- *		called when suspending this device.  default behavior is to either
- *		mark watchdog as a wakeup source (GPI) or turn it off (RESET).
- *
- *	int bfin_board_watchdog_resume(void);
- *		called when resuming this device.  default behavior is to either
- *		unmark watchdog as a wakeup source (GPI) or turn it on (RESET).
- */
-
 #include <linux/platform_device.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
@@ -88,14 +65,12 @@
 
 /* some defaults */
 #define WATCHDOG_TIMEOUT 20
-#define WATCHDOG_ACTION 0 /* 0 = ICTL_RESET */
 
 static unsigned int timeout = WATCHDOG_TIMEOUT;
 static int nowayout = WATCHDOG_NOWAYOUT;
-static unsigned int action = WATCHDOG_ACTION;
 static struct watchdog_info bfin_wdt_info;
 static unsigned long open_check;
-static char expect_close, bfin_wdt_expired = 0;
+static char expect_close;
 static spinlock_t bfin_wdt_spinlock = SPIN_LOCK_UNLOCKED;
 
 /**
@@ -118,7 +93,7 @@ static int bfin_wdt_keepalive(void)
 static int bfin_wdt_stop(void)
 {
 	stampit();
-	bfin_write_WDOG_CTL((bfin_read_WDOG_CTL() & ~WDEN_MASK) | WDEN_DISABLE);
+	bfin_write_WDOG_CTL(WDEN_DISABLE);
 	return 0;
 }
 
@@ -131,7 +106,7 @@ static int bfin_wdt_stop(void)
 static int bfin_wdt_start(void)
 {
 	stampit();
-	bfin_write_WDOG_CTL((bfin_read_WDOG_CTL() & ~WDEN_MASK) | WDEN_ENABLE);
+	bfin_write_WDOG_CTL(WDEN_ENABLE | ICTL_RESET);
 	return 0;
 }
 
@@ -142,6 +117,7 @@ static int bfin_wdt_start(void)
  */
 static int bfin_wdt_running(void)
 {
+	stampit();
 	return ((bfin_read_WDOG_CTL() & WDEN_MASK) != WDEN_DISABLE);
 }
 
@@ -177,33 +153,6 @@ static int bfin_wdt_set_timeout(unsigned long t)
 	timeout = t;
 
 	return 0;
-}
-
-/**
- *	bfin_wdt_interrupt - General Purpose Watchdog Interrupt Handler
- *	@irq: irq # that triggered us
- *	@dev_id: this device instance
- *
- *	Call board-specific ISR if it exists, otherwise we need to stop
- *	and start the watchdog -- simply forcing a reload of the count
- *	will not reset the interrupt status.
- *
- *	Note: While we could interrogate the WDR0 bit in WDOG_CTL, that
- *	      requires us to turn off/on the watchdog to clear it.  So
- *	      we'll just suck it up and mimic the bit with bfin_wdt_expired.
- */
-extern irqreturn_t bfin_board_watchdog_interrupt(void) __attribute__((weak));
-static irqreturn_t bfin_wdt_interrupt(int irq, void *dev_id)
-{
-	bfin_wdt_expired = 1;
-	if (bfin_board_watchdog_interrupt) {
-		return bfin_board_watchdog_interrupt();
-	} else {
-		bfin_wdt_stop();
-		bfin_wdt_keepalive();
-		bfin_wdt_start();
-		return IRQ_HANDLED;
-	}
 }
 
 /**
@@ -316,12 +265,7 @@ static int bfin_wdt_ioctl(struct inode *inode, struct file *file,
 			else
 				return 0;
 
-		case WDIOC_GETSTATUS: {
-			int ret = bfin_wdt_expired;
-			bfin_wdt_expired = 0;
-			return put_user(ret, p);
-		}
-
+		case WDIOC_GETSTATUS:
 		case WDIOC_GETBOOTSTATUS:
 			return put_user(!!(_bfin_swrst & SWRST_RESET_WDOG), p);
 
@@ -388,54 +332,8 @@ static int bfin_wdt_notify_sys(struct notifier_block *this, unsigned long code,
 	return NOTIFY_DONE;
 }
 
-/**
- *	bfin_wdt_probe - Init per-device settings
- *	@pdev: device being probed
- *
- *	If we are in GPI mode, grab the interrupt.
- */
-static int __devinit bfin_wdt_probe(struct platform_device *pdev)
-{
-	int ret;
-
-	stampit();
-
-	if (action == ICTL_GPI) {
-		ret = request_irq(IRQ_WATCH, bfin_wdt_interrupt,
-		                  IRQF_DISABLED, WATCHDOG_NAME, pdev);
-		if (ret) {
-			printk(KERN_ERR PFX "unable to allocate watchdog IRQ %i (err=%d)\n",
-			       IRQ_WATCH, ret);
-			clear_bit(0, &open_check);
-			return ret;
-		}
-
-		device_init_wakeup(&pdev->dev, 0);
-	}
-
-	return 0;
-}
-
-/**
- *	bfin_wdt_remove - Free per-device settings
- *	@pdev: device being removed
- *
- *	If we were in GPI mode, free the interrupt.
- */
-static int __devexit bfin_wdt_remove(struct platform_device *pdev)
-{
-	stampit();
-
-	if (action == ICTL_GPI) {
-		device_init_wakeup(&pdev->dev, 0);
-		free_irq(IRQ_WATCH, pdev);
-	}
-
-	return 0;
-}
-
 #ifdef CONFIG_PM
-static int bfin_wdt_pm_state;
+static int state_before_suspend;
 
 /**
  *	bfin_wdt_suspend - suspend the watchdog
@@ -446,20 +344,12 @@ static int bfin_wdt_pm_state;
  *	TODO: is this even right?  Doesn't seem to be any
  *	      standard in the watchdog world ...
  */
-extern int bfin_board_watchdog_suspend(void) __attribute__((weak));
 static int bfin_wdt_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	stampit();
 
-	if (bfin_board_watchdog_suspend) {
-		return bfin_board_watchdog_suspend();
-	} else if (action == ICTL_GPI) {
-		if (device_may_wakeup(&pdev->dev))
-			enable_irq_wake(IRQ_WATCH);
-	} else {
-		bfin_wdt_pm_state = bfin_wdt_running();
-		bfin_wdt_stop();
-	}
+	state_before_suspend = bfin_wdt_running();
+	bfin_wdt_stop();
 
 	return 0;
 }
@@ -470,17 +360,11 @@ static int bfin_wdt_suspend(struct platform_device *pdev, pm_message_t state)
  *
  *	If the watchdog was running, turn it back on.
  */
-extern int bfin_board_watchdog_resume(void) __attribute__((weak));
 static int bfin_wdt_resume(struct platform_device *pdev)
 {
 	stampit();
 
-	if (bfin_board_watchdog_resume) {
-		return bfin_board_watchdog_resume();
-	} else if (action == ICTL_GPI) {
-		if (device_may_wakeup(&pdev->dev))
-			disable_irq_wake(IRQ_WATCH);
-	} else if (bfin_wdt_pm_state) {
+	if (state_before_suspend) {
 		bfin_wdt_set_timeout(timeout);
 		bfin_wdt_start();
 	}
@@ -502,8 +386,6 @@ static struct platform_driver bfin_wdt_driver = {
 		.name  = WATCHDOG_NAME,
 		.owner = THIS_MODULE,
 	},
-	.probe     = bfin_wdt_probe,
-	.remove    = __devexit_p(bfin_wdt_remove),
 	.suspend   = bfin_wdt_suspend,
 	.resume    = bfin_wdt_resume,
 };
@@ -542,7 +424,6 @@ static struct notifier_block bfin_wdt_notifier = {
  */
 static int __init bfin_wdt_init(void)
 {
-	const u16 code2action[] = { ICTL_RESET, ICTL_NMI, ICTL_GPI, ICTL_NONE };
 	int ret;
 
 	stampit();
@@ -550,15 +431,6 @@ static int __init bfin_wdt_init(void)
 	/* Check that the timeout value is within range */
 	if (bfin_wdt_set_timeout(timeout))
 		return -EINVAL;
-
-	/* Check that the action value is within range */
-	if (action >= ARRAY_SIZE(code2action)) {
-		printk(KERN_ERR PFX "invalid action, must be: 0 (reboot), 1 (NMI), 2 (GPI), 3 (none)\n");
-		return -EINVAL;
-	} else {
-		action = code2action[action];
-		bfin_write_WDOG_CTL((bfin_read_WDOG_CTL() & ~ICTL_MASK) | action);
-	}
 
 	/* Since this is an on-chip device and needs no board-specific
 	 * resources, we'll handle all the platform device stuff here.
@@ -585,8 +457,8 @@ static int __init bfin_wdt_init(void)
 		return ret;
 	}
 
-	printk(KERN_INFO PFX "initialized: action=%d timeout=%d sec (nowayout=%d)\n",
-	       action, timeout, nowayout);
+	printk(KERN_INFO PFX "initialized: timeout=%d sec (nowayout=%d)\n",
+	       timeout, nowayout);
 
 	return 0;
 }
@@ -616,6 +488,3 @@ MODULE_PARM_DESC(timeout, "Watchdog timeout in seconds. (1<=timeout<=((2^32)/SCL
 
 module_param(nowayout, int, 0);
 MODULE_PARM_DESC(nowayout, "Watchdog cannot be stopped once started (default=" __MODULE_STRING(WATCHDOG_NOWAYOUT) ")");
-
-module_param(action, uint, 0);
-MODULE_PARM_DESC(action, "Watchdog timeout action: 0 for reboot, 1 for NMI, 2 for General Purpose Interrupt, 3 for none (default=" __MODULE_STRING(WATCHDOG_ACTION) ")");
