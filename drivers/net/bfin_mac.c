@@ -913,11 +913,15 @@ static int bfin_mac_probe(struct platform_device *pdev)
 	struct net_device *ndev;
 
 	ndev = alloc_etherdev(sizeof(struct bf537mac_local));
-
 	if (!ndev) {
 		printk(KERN_WARNING CARDNAME ": could not allocate device\n");
 		return -ENOMEM;
 	}
+
+	SET_MODULE_OWNER(ndev);
+	SET_NETDEV_DEV(ndev, &pdev->dev);
+
+	platform_set_drvdata(pdev, ndev);
 
 	if (bf537mac_probe(ndev) != 0) {
 		platform_set_drvdata(pdev, NULL);
@@ -925,11 +929,6 @@ static int bfin_mac_probe(struct platform_device *pdev)
 		printk(KERN_WARNING CARDNAME ": not found\n");
 		return -ENODEV;
 	}
-
-	SET_MODULE_OWNER(ndev);
-	SET_NETDEV_DEV(ndev, &pdev->dev);
-
-	platform_set_drvdata(pdev, ndev);
 
 	return 0;
 }
