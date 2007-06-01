@@ -55,7 +55,7 @@
 /* definitions */
 
 #define AD9960_MAJOR          240   /* experiential */
-#define AD9960_MINOR         0
+#define AD9960_MINOR          252
 
 #define AD9960_DEVNAME       "AD9960"
 #define AD9960_INTNAME       "AD9960-INT"  /* Should be less than 19 chars. */

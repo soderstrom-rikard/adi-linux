@@ -54,7 +54,7 @@
 
 /* definitions */
 
-#define FBDMA_MINOR         0
+#define FBDMA_MINOR         253
 
 #define FBDMA_DEVNAME       "FBDMAFCP"
 #define FBDMA_INTNAME       "FBDMA-FCP-INT"	/* Should be less than 19 chars. */

@@ -40,6 +40,7 @@
 #include <linux/string.h>
 #include <linux/interrupt.h>
 #include <linux/device.h>
+#include <linux/miscdevice.h>
 #include <linux/spi/spi.h>
 #include <linux/spinlock.h>
 
@@ -55,7 +56,7 @@
 #define TIMEOUT		       50
 
 #define SPI_ADC_MAJOR          252   /* experiential */
-#define SPI0_ADC_MINOR         0
+#define SPI0_ADC_MINOR         251
 
 #define SPI_ADC_DEVNAME       "BFIN_SPI_ADC"
 #define SPI_ADC_INTNAME       "BFIN_SPIINT"  /* Should be less than 19 chars. */
@@ -360,10 +361,16 @@ static struct spi_driver bfin_spi_adc_driver = {
 	.remove	= __devexit_p(bfin_spi_adc_remove),
 };
 
+static struct miscdevice bfin_adc_dev = {
+	SPI0_ADC_MINOR,
+	"spi",
+	&bfin_spi_adc_fops
+};
+
 static int __init bfin_spi_adc_init(void)
 {
 	int result;
-	result = register_chrdev(SPI_ADC_MAJOR, SPI_ADC_DEVNAME, &bfin_spi_adc_fops);
+	result = misc_register(&bfin_adc_dev);
 	if (result < 0) {
 		printk(KERN_WARNING "SPI: can't get minor %d\n", SPI_ADC_MAJOR);
 		return result;
@@ -374,8 +381,8 @@ static int __init bfin_spi_adc_init(void)
 
 static void __exit bfin_spi_adc_exit(void)
 {
-	unregister_chrdev(SPI_ADC_MAJOR, SPI_ADC_DEVNAME);
 	spi_unregister_driver(&bfin_spi_adc_driver);
+	misc_deregister(&bfin_adc_dev);
 }
 
 module_init(bfin_spi_adc_init);
