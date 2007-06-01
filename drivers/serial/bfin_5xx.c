@@ -26,6 +26,7 @@
  * to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
+#define DEBUG
 
 #if defined(CONFIG_SERIAL_BFIN_CONSOLE) && defined(CONFIG_MAGIC_SYSRQ)
 #define SUPPORT_SYSRQ
@@ -84,11 +85,19 @@ static void bfin_serial_stop_tx(struct uart_port *port)
 #ifdef CONFIG_SERIAL_BFIN_DMA
 	disable_dma(uart->tx_dma_channel);
 #else
+#ifdef CONFIG_BF54x
+	/* Waiting for Transmission Finished */
+	while(!(UART_GET_LSR(uart) & TFI)) {};
+	/* Clear TFI bit */
+	UART_PUT_LSR(uart, TFI);
+	UART_CLEAR_IER(uart, ETBEI);
+#else
 	unsigned short ier;
 
 	ier = UART_GET_IER(uart);
 	ier &= ~ETBEI;
 	UART_PUT_IER(uart, ier);
+#endif
 #endif
 }
 
@@ -102,11 +111,15 @@ static void bfin_serial_start_tx(struct uart_port *port)
 #ifdef CONFIG_SERIAL_BFIN_DMA
 	bfin_serial_dma_tx_chars(uart);
 #else
+#ifdef CONFIG_BF54x
+	UART_SET_IER(uart, ETBEI);
+#else
 	unsigned short ier;
 	ier = UART_GET_IER(uart);
 	ier |= ETBEI;
 	UART_PUT_IER(uart, ier);
 	bfin_serial_tx_chars(uart);
+#endif
 #endif
 }
 
@@ -116,11 +129,15 @@ static void bfin_serial_start_tx(struct uart_port *port)
 static void bfin_serial_stop_rx(struct uart_port *port)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+#ifdef CONFIG_BF54x
+	UART_CLEAR_IER(uart, ERBFI);
+#else
 	unsigned short ier;
 
 	ier = UART_GET_IER(uart);
 	ier &= ~ERBFI;
 	UART_PUT_IER(uart, ier);
+#endif
 }
 
 /*
@@ -250,10 +267,21 @@ static irqreturn_t bfin_serial_rx_int(int irq, void *dev_id)
 {
 	struct bfin_serial_port *uart = dev_id;
 
+#ifdef CONFIG_BF54x
+	unsigned short status;
+	spin_lock(&uart->port.lock);
+	status = UART_GET_LSR(uart);
+	while ((UART_GET_IER(uart) & ERBFI) && (status & DR)) {
+		bfin_serial_rx_chars(uart);
+		status = UART_GET_LSR(uart);
+	}
+	spin_unlock(&uart->port.lock);
+#else
 	spin_lock(&uart->port.lock);
 	while ((UART_GET_IIR(uart) & IIR_STATUS) == IIR_RX_READY)
 		bfin_serial_rx_chars(uart);
 	spin_unlock(&uart->port.lock);
+#endif
 	return IRQ_HANDLED;
 }
 
@@ -261,10 +289,21 @@ static irqreturn_t bfin_serial_tx_int(int irq, void *dev_id)
 {
 	struct bfin_serial_port *uart = dev_id;
 
+#ifdef CONFIG_BF54x
+	unsigned short status;
+	spin_lock(&uart->port.lock);
+	status = UART_GET_LSR(uart);
+	while((UART_GET_IER(uart) & ETBEI) && (status & THRE)) {
+		bfin_serial_tx_chars(uart);
+		status = UART_GET_LSR(uart);
+	}
+	spin_unlock(&uart->port.lock);
+#else
 	spin_lock(&uart->port.lock);
 	while ((UART_GET_IIR(uart) & IIR_STATUS) == IIR_TX_READY)
 		bfin_serial_tx_chars(uart);
 	spin_unlock(&uart->port.lock);
+#endif
 	return IRQ_HANDLED;
 }
 
@@ -275,7 +314,6 @@ static void bfin_serial_do_work(struct work_struct *work)
 
 	bfin_serial_mctrl_check(uart);
 }
-
 #endif
 
 #ifdef CONFIG_SERIAL_BFIN_DMA
@@ -586,7 +624,11 @@ static int bfin_serial_startup(struct uart_port *port)
 		return -EBUSY;
 	}
 #endif
+#ifdef CONFIG_BF54x
+	UART_SET_IER(uart, ERBFI);
+#else
 	UART_PUT_IER(uart, UART_GET_IER(uart) | ERBFI);
+#endif
 	return 0;
 }
 
@@ -674,29 +716,41 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 
 	/* Disable UART */
 	ier = UART_GET_IER(uart);
+#ifdef CONFIG_BF54x
+	UART_CLEAR_IER(uart, 0xF);
+#else
 	UART_PUT_IER(uart, 0);
+#endif
 
+#ifndef CONFIG_BF54x
 	/* Set DLAB in LCR to Access DLL and DLH */
 	val = UART_GET_LCR(uart);
 	val |= DLAB;
 	UART_PUT_LCR(uart, val);
 	SSYNC();
+#endif
 
 	UART_PUT_DLL(uart, quot & 0xFF);
 	SSYNC();
 	UART_PUT_DLH(uart, (quot >> 8) & 0xFF);
 	SSYNC();
 
+#ifndef CONFIG_BF54x
 	/* Clear DLAB in LCR to Access THR RBR IER */
 	val = UART_GET_LCR(uart);
 	val &= ~DLAB;
 	UART_PUT_LCR(uart, val);
 	SSYNC();
+#endif
 
 	UART_PUT_LCR(uart, lcr);
 
 	/* Enable UART */
+#ifdef CONFIG_BF54x
+	UART_SET_IER(uart, ier);
+#else
 	UART_PUT_IER(uart, ier);
+#endif
 
 	val = UART_GET_GCTL(uart);
 	val |= UCEN;
@@ -808,15 +862,15 @@ static void __init bfin_serial_init_ports(void)
 			bfin_serial_resource[i].uart_rts_pin;
 #endif
 		bfin_serial_hw_init(&bfin_serial_ports[i]);
-
 	}
+
 }
 
 #ifdef CONFIG_SERIAL_BFIN_CONSOLE
 static void bfin_serial_console_putchar(struct uart_port *port, int ch)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
-	while (!(UART_GET_LSR(uart)))
+	while (!(UART_GET_LSR(uart) & THRE))
 		barrier();
 	UART_PUT_CHAR(uart, ch);
 	SSYNC();
@@ -868,18 +922,22 @@ bfin_serial_console_get_options(struct bfin_serial_port *uart, int *baud,
 			case 2:	*bits = 7; break;
 			case 3:	*bits = 8; break;
 		}
+#ifndef CONFIG_BF54x
 		/* Set DLAB in LCR to Access DLL and DLH */
 		val = UART_GET_LCR(uart);
 		val |= DLAB;
 		UART_PUT_LCR(uart, val);
+#endif
 
 		dll = UART_GET_DLL(uart);
 		dlh = UART_GET_DLH(uart);
 
+#ifndef CONFIG_BF54x
 		/* Clear DLAB in LCR to Access THR RBR IER */
 		val = UART_GET_LCR(uart);
 		val &= ~DLAB;
 		UART_PUT_LCR(uart, val);
+#endif
 
 		*baud = get_sclk() / (16*(dll | dlh << 8));
 	}
