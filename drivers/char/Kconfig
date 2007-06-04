@@ -962,6 +962,7 @@ config GEN_RTC_X
 
 config BLACKFIN_DPMC
 	bool "Blackfin Power Management support"
+	depends on PM
 	default n
 	help
 	  This feature is not completly tested. This module is under construction.
