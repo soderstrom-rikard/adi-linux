@@ -44,6 +44,7 @@
 #include <asm/blackfin.h>
 #include <asm/dma.h>
 #include <asm/cacheflush.h>
+#include <linux/miscdevice.h>
 
 #include "bfin_ppifcd.h"
 
@@ -52,9 +53,7 @@
 /* definitions */
 
 
-#define PPI_MAJOR          241	/* experiential */
-#define PPI0_MINOR         0
-#define PPI1_MINOR         1
+#define PPI0_MINOR         248
 
 #define PPI_DEVNAME       "PPIFCP"
 #define PPI_INTNAME       "PPI-FCP-INT"	/* Should be less than 19 chars. */
@@ -575,6 +574,12 @@ static struct file_operations ppi_fops = {
 	fasync:  ppi_fasync,
 };
 
+static struct miscdevice bfin_ppi_dev = {
+	PPI0_MINOR,
+	"ppi",
+	&ppi_fops
+};
+
 /*
  * FUNCTION NAME: ppifcd_init / init_module
  *
@@ -599,9 +604,9 @@ int __init ppifcd_init(void)
 {
 	int result;
 
-	result = register_chrdev(PPI_MAJOR, PPI_DEVNAME, &ppi_fops);
+	result = misc_register(&bfin_ppi_dev);
 	if (result < 0) {
-		printk(KERN_WARNING "PPI: can't get minor %d\n", PPI_MAJOR);
+		printk(KERN_WARNING "PPI: can't get minor %d\n", PPI0_MINOR);
 		return result;
 	}
 	printk(KERN_INFO "PPI: ADSP PPI Frame Capture Driver IRQ:%d \n",
@@ -630,7 +635,7 @@ int __init ppifcd_init(void)
  */
 void __exit ppifcd_uninit(void)
 {
-	unregister_chrdev(PPI_MAJOR, PPI_DEVNAME);
+	misc_deregister(&bfin_ppi_dev);
 	printk(KERN_ALERT "Goodbye PPI\n");
 }
 
