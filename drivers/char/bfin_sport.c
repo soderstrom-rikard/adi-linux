@@ -49,6 +49,7 @@
 #include <linux/fcntl.h>
 #include <linux/cdev.h>
 #include <linux/delay.h>
+#include <linux/device.h>
 #include <asm/blackfin.h>
 #include <asm/bfin_sport.h>
 #include <asm/dma.h>
@@ -679,6 +680,25 @@ static int sport_ioctl(struct inode *inode, struct file *filp,
 	return 0;
 }
 
+static ssize_t sport_status_show(struct class *sport_class, char *buf)
+{
+	char *p;
+	unsigned short i;
+	p = buf;
+
+	if(sport_devices) {
+		for (i = 0; i < sport_nr_devs; i++)
+			p += sprintf(p,
+				"sport%d:\nrx_irq=%d, rx_received=%d, tx_irq=%d, tx_sent=%d,\n"
+				"mode=%d, channels=%d, data_format=%d, word_len=%d.\n",
+				i, sport_devices[i].rx_irq, sport_devices[i].rx_received,
+				sport_devices[i].tx_irq, sport_devices[i].tx_sent,
+				sport_devices[i].config.mode, sport_devices[i].config.channels,
+				sport_devices[i].config.data_format, sport_devices[i].config.word_len);
+	}
+	return p - buf;
+}
+
 static struct file_operations sport_fops = {
 	.owner =    THIS_MODULE,
 	.read =     sport_read,
@@ -687,6 +707,10 @@ static struct file_operations sport_fops = {
 	.open =     sport_open,
 	.release =  sport_release,
 };
+
+static struct class *sport_class;
+
+static CLASS_ATTR(status, S_IRUGO, &sport_status_show, NULL);
 
 static void sport_cleanup_module(void)
 {
@@ -699,10 +723,6 @@ static void sport_cleanup_module(void)
 		}
 		kfree(sport_devices);
 	}
-
-#ifdef SPORT_DEBUG
-	sport_remove_proc();
-#endif
 
 	unregister_chrdev_region(devno, sport_nr_devs);
 }
@@ -719,8 +739,10 @@ static void sport_setup_cdev(struct sport_dev *dev, int index)
 		printk(KERN_NOTICE "Error %d adding sport%d", err, index);
 }
 
-static int sport_init_module(void)
+static int __init sport_init_module(void)
 {
+	int minor;
+	char minor_name[8];
 	int result, i;
 	dev_t dev = 0;
 
@@ -739,6 +761,17 @@ static int sport_init_module(void)
 	}
 	memset(sport_devices, 0, sport_nr_devs * sizeof(struct sport_dev));
 
+        sport_class = class_create(THIS_MODULE, "sport");
+	if ((result=class_create_file(sport_class, &class_attr_status)) != 0) {
+		sport_cleanup_module();
+		return result;
+	}
+	for (minor = 0; minor < sport_nr_devs; minor++) {
+		sprintf(minor_name, "sport%d", minor);
+		device_create(sport_class, NULL,
+			      MKDEV(sport_major, minor), minor_name);
+	}
+	
         /* Initialize each device. */
 	for (i = 0; i < sport_nr_devs; i++) {
 		sport_setup_cdev(&sport_devices[i], i);
