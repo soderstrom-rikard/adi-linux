@@ -41,6 +41,7 @@
 #include <linux/string.h>
 #include <linux/spinlock.h>
 #include <linux/delay.h>
+#include <linux/miscdevice.h>
 
 #include <asm/io.h>
 #include <asm/irq.h>
@@ -58,8 +59,7 @@
 
 #undef	DEBUG
 
-#define PPI_MAJOR          241	/* experiential */
-#define PPI0_MINOR         0
+#define PPI0_MINOR         249
 
 #define PPI_DEVNAME       "ppi"
 #define PPI_INTNAME       "ppiint"	/* Should be less than 19 chars. */
@@ -1239,6 +1239,12 @@ static struct file_operations ppi_fops = {
       fasync:ppi_fasync,
 };
 
+static struct miscdevice bfin_ppi_dev = {
+	PPI0_MINOR,
+	"ppi",
+	&ppi_fops
+};
+
 /*
  * FUNCTION NAME: ppi_init / init_module
  *
@@ -1263,9 +1269,9 @@ int __init ppi_init(void)
 {
 	int result;
 
-	result = register_chrdev(PPI_MAJOR, PPI_DEVNAME, &ppi_fops);
+	result = misc_register(&bfin_ppi_dev);
 	if (result < 0) {
-		printk(KERN_WARNING "PPI: can't get major %d\n", PPI_MAJOR);
+		printk(KERN_WARNING "PPI: can't get minor %d\n", PPI0_MINOR);
 		return result;
 	}
 	printk(KERN_INFO "PPI: PPI-EKC Driver INIT IRQ:%d \n", PPI_IRQ_NUM);
@@ -1293,7 +1299,7 @@ int __init ppi_init(void)
  */
 void __exit ppi_uninit(void)
 {
-	unregister_chrdev(PPI_MAJOR, PPI_DEVNAME);
+	misc_deregister(&bfin_ppi_dev);
 	printk(KERN_ALERT "Goodbye PPI\n");
 }
 
