@@ -32,6 +32,7 @@
 #include <linux/device.h>
 #include <linux/spi/spi.h>
 #include <linux/spinlock.h>
+#include <linux/miscdevice.h>
 #include <asm/cacheflush.h>
 
 #include <linux/ad5304.h>
@@ -187,8 +188,14 @@ static struct spi_driver ad5304_spi_driver = {
 
 static int ad5304_device_major;
 
+static struct class *ad5304_class;
+
+static CLASS_ATTR(status, S_IRUGO, NULL, NULL);
+
 static int __init ad5304_spi_init(void)
 {
+	int minor;
+	char minor_name[8];
 	int ret;
 	pr_stamp();
 
@@ -205,6 +212,17 @@ static int __init ad5304_spi_init(void)
 	if (ret) {
 		unregister_chrdev(ad5304_device_major, DRIVER_NAME);
 		return ret;
+	}
+
+        ad5304_class = class_create(THIS_MODULE, "ad5304");
+	if (class_create_file(ad5304_class, &class_attr_status)) {
+		unregister_chrdev(ad5304_device_major, DRIVER_NAME);
+		spi_unregister_driver(&ad5304_spi_driver);
+	}
+	for (minor = 0; minor < NUM_AD5304_DEVS; minor++) {
+		sprintf(minor_name, "ad5304-%d", minor);
+		device_create(ad5304_class, NULL,
+			      MKDEV(ad5304_device_major, minor), minor_name);
 	}
 
 	return 0;
