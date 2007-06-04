@@ -83,8 +83,8 @@
 #ifndef __ARCH_BLACKFIN_GPIO_H__
 #define __ARCH_BLACKFIN_GPIO_H__
 
-#define gpio_bank(x) ((x) >> 4)
-#define gpio_bit(x)  (1<<((x) & 0xF))
+#define gpio_bank(x) ((x + 15) >> 4)
+#define gpio_bit(x)  (1<<((x % 16) & 0xF))
 #define gpio_sub_n(x) ((x) & 0xF)
 
 #define GPIO_BANKSIZE 16
@@ -204,6 +204,10 @@
 
 #endif
 
+#ifdef BF548_FAMILY
+#include <asm-blackfin/mach-bf548/gpio.h>
+#endif
+
 #ifdef BF561_FAMILY
 #define MAX_BLACKFIN_GPIOS 48
 #define PORT_FIO0 GPIO_0
@@ -264,6 +268,7 @@ unsigned short get_gpiop_maska(unsigned short);
 unsigned short get_gpiop_maskb(unsigned short);
 unsigned short get_gpiop_data(unsigned short);
 
+#ifndef BF548_FAMILY
 struct gpio_port_t {
 	unsigned short data;
 	unsigned short dummy1;
@@ -299,6 +304,7 @@ struct gpio_port_t {
 	unsigned short dummy16;
 	unsigned short inen;
 };
+#endif
 
 #ifdef CONFIG_PM
 #define PM_WAKE_RISING	0x1
