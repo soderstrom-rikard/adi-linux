@@ -487,8 +487,9 @@ static void __fill_code_cplbtab(struct cplb_tab *t, int i, u32 a_start, u32 a_en
 					cplb_data[i].end,
 					SIZE_4M,
 					cplb_data[i].i_conf);
-		} else {
+		} else
 #endif
+		{
 			fill_cplbtab(t,
 					cplb_data[i].start,
 					a_start,
