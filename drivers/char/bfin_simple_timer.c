@@ -40,6 +40,7 @@
 #include <linux/module.h>
 #include <linux/proc_fs.h>
 #include <linux/interrupt.h>
+#include <linux/device.h>
 #include <asm/bf5xx_timers.h>
 #include <asm/irq.h>
 #include <asm/bfin_simple_timer.h>
@@ -177,6 +178,19 @@ int timer_read_proc(char *buf, char **start, off_t offset, int cnt, int *eof, vo
 	return ret;
 }
 
+static ssize_t timer_status_show(struct class *timer_class, char *buf)
+{
+	char *p;
+	unsigned short i;
+	p = buf;
+
+	for (i=0; i<MAX_BLACKFIN_GPTIMERS; ++i){
+		p += sprintf(p, "timer %2d isr count: %lu\n", i, isr_count[i]);
+	}
+
+	return p - buf;
+}
+
 static struct proc_dir_entry *timer_dir_entry;
 static struct file_operations fops = {
    .owner   = THIS_MODULE,
@@ -185,7 +199,13 @@ static struct file_operations fops = {
    .release = timer_close,
 };
 
+static struct class *timer_class;
+
+static CLASS_ATTR(status, S_IRUGO, &timer_status_show, NULL);
+
 int __init timer_initialize(void){
+	int minor;
+	char minor_name[8];
 	int err;
 	err = register_chrdev(TIMER_MAJOR, DRV_NAME, &fops);
 	if (err < 0){
@@ -194,6 +214,19 @@ int __init timer_initialize(void){
 	}
 	timer_dir_entry = create_proc_entry(DRV_NAME, 0444, &proc_root);
 	if (timer_dir_entry) timer_dir_entry->read_proc = &timer_read_proc;
+
+        timer_class = class_create(THIS_MODULE, "timer");
+	if ((err = class_create_file(timer_class, &class_attr_status)) != 0) {
+		remove_proc_entry(DRV_NAME, &proc_root);
+		unregister_chrdev(TIMER_MAJOR, DRV_NAME);
+		return err;
+	}
+	for (minor = 0; minor < MAX_BLACKFIN_GPTIMERS; minor++) {
+		sprintf(minor_name, "timer%d", minor);
+		device_create(timer_class, NULL,
+			      MKDEV(TIMER_MAJOR, minor), minor_name);
+	}
+	
 	DPRINTK("module loaded\n");
 	return 0;
 }
