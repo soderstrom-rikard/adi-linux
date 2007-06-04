@@ -26,6 +26,8 @@
  * to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
+#include <asm/blackfin.h>
+#include <asm/dma.h>
 
 struct dma_register *base_addr[MAX_BLACKFIN_DMA_CHANNEL] = {
 	(struct dma_register *) DMA0_NEXT_DESC_PTR,
