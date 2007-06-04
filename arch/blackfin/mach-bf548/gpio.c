@@ -141,8 +141,6 @@ void gpio_free(unsigned short gpio)
 		return;
 	}
 
-	default_gpio(gpio);
-
 	reserved_map[gpio_bank(gpio)] &= ~gpio_bit(gpio);
 
 	local_irq_restore(flags);
