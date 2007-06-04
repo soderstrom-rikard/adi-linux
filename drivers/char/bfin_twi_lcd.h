@@ -29,7 +29,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#define LCD_MAJOR          60	/* experiential */
+#define LCD_MINOR          250	/* experiential */
 #define LCD_DEVNAME       "twi_lcd"
 #define LCD_DRIVER		  "TWI LCD Driver v0.00"
 

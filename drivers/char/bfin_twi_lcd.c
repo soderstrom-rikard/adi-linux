@@ -256,16 +256,22 @@ static struct file_operations lcd_fops = {
       open:lcd_open,
 };
 
-static int lcd_init(void)
+static struct miscdevice bfin_twi_lcd_dev = {
+	LCD_MINOR,
+	"lcd",
+	&lcd_fops
+};
+
+static int __init lcd_init(void)
 {
 
 	int result;
 	pr_info("%s\n", LCD_DRIVER);
 
-	result = register_chrdev(LCD_MAJOR, LCD_DEVNAME, &lcd_fops);
+	result = misc_register(&bfin_twi_lcd_dev);
 	if (result < 0) {
 		printk(KERN_WARNING "bfin_twi_lcd: can't get minor %d\n",
-		       LCD_MAJOR);
+		       MISC_MAJOR);
 		return result;
 	}
 
@@ -367,7 +373,7 @@ static int drv_HD_I2C_load(void)
 static void __exit lcd_exit(void)
 {
 	i2c_del_driver(&pcf8574_lcd_driver);
-	unregister_chrdev(LCD_MAJOR, LCD_DEVNAME);
+	misc_deregister(&bfin_twi_lcd_dev);
 	printk(KERN_ALERT "Goodbye LCD\n");
 }
 
