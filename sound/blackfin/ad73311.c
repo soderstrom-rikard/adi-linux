@@ -41,6 +41,8 @@
 #include <linux/dma-mapping.h>
 #include <linux/delay.h>
 #include <linux/platform_device.h>
+#include <linux/module.h>
+#include <linux/moduleparam.h>
 
 #include <asm/blackfin.h>
 #include <asm/cacheflush.h>
@@ -91,6 +93,14 @@
 #define DRIVER_NAME "AD73311"
 #define CHIP_NAME "Analog Devices AD73311L"
 #define PCM_NAME "AD73311 PCM"
+
+static unsigned int input_gain = 0x2;
+module_param(input_gain, uint, 0);
+MODULE_PARM_DESC(input_gain, "Input gain setting (0 <= input_gain <= 7)");
+
+static unsigned int output_gain = 0x2;
+module_param(output_gain, uint, 0);
+MODULE_PARM_DESC(output_gain, "Output gain setting (0 <= output_gain <= 7)");
 
 static struct platform_device *device = NULL;
 
@@ -468,7 +478,7 @@ static int snd_ad73311_configure(void)
 #endif
 	ctrl_regs[1] = AD_CONTROL | AD_WRITE | CTRL_REG_C | PUDEV | PUADC | \
 				PUDAC | PUREF | REFUSE ;/* Register C */
-	ctrl_regs[2] = AD_CONTROL | AD_WRITE | CTRL_REG_D | OGS(0) | IGS(5);
+	ctrl_regs[2] = AD_CONTROL | AD_WRITE | CTRL_REG_D | OGS(output_gain) | IGS(input_gain);
 	ctrl_regs[3] = AD_CONTROL | AD_WRITE | CTRL_REG_E | DA(0x1f);
 	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F | SEEN ;
 //	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F | ALB;
@@ -675,6 +685,16 @@ static struct platform_driver snd_ad73311_driver = {
 static int __init snd_ad73311_init(void)
 {
 	int err;
+
+	if (input_gain > 7) {
+		printk(KERN_NOTICE DRIVER_NAME ": valid input_gain values are 0 to 7 inclusive\n");
+		return -EINVAL;
+	}
+
+	if (output_gain > 7) {
+		printk(KERN_NOTICE DRIVER_NAME ": valid output_gain values are 0 to 7 inclusive\n");
+		return -EINVAL;
+	}
 
 	if ((err = platform_driver_register(&snd_ad73311_driver))<0)
 		return err;
