@@ -145,10 +145,10 @@ static void bfin_internal_mask_irq(unsigned int irq)
 	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() &
 			     ~(1 << (irq - (IRQ_CORETMR + 1))));
 #else
-	unsigned mask_num, mask_bit;
-	mask_num = (irq - (IRQ_CORETMR +1))/32;
+	unsigned mask_bank, mask_bit;
+	mask_bank = (irq - (IRQ_CORETMR +1))/32;
 	mask_bit = (irq - (IRQ_CORETMR + 1))%32;
-	bfin_write_SIC_IMASK( mask_num, bfin_read_SIC_IMASK(mask_num) & \
+	bfin_write_SIC_IMASK( mask_bank, bfin_read_SIC_IMASK(mask_bank) & \
 			    ~(1 << mask_bit));
 #endif
 	SSYNC();
@@ -160,10 +160,10 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() |
 			     (1 << (irq - (IRQ_CORETMR + 1))));
 #else
-	unsigned mask_num, mask_bit;
-	mask_num = (irq - (IRQ_CORETMR +1))/32;
+	unsigned mask_bank, mask_bit;
+	mask_bank = (irq - (IRQ_CORETMR +1))/32;
 	mask_bit = (irq - (IRQ_CORETMR + 1))%32;
-	bfin_write_SIC_IMASK(mask_num, bfin_read_SIC_IMASK(mask_num) | \
+	bfin_write_SIC_IMASK(mask_bank, bfin_read_SIC_IMASK(mask_bank) | \
 			( 1 << mask_bit));
 #endif
 	SSYNC();
@@ -578,23 +578,35 @@ void do_irq(int vec, struct pt_regs *fp)
 	} else {
 		struct ivgx *ivg = ivg7_13[vec - IVG7].ifirst;
 		struct ivgx *ivg_stop = ivg7_13[vec - IVG7].istop;
-		unsigned long sic_status;
+#ifdef CONFIG_BF54x
+		unsigned long sic_status[3];
 
-#ifndef CONFIG_BF54x
+		SSYNC();
+		sic_status[0] = bfin_read_SIC_ISR(0);
+		sic_status[1] = bfin_read_SIC_ISR(1);
+		sic_status[2] = bfin_read_SIC_ISR(2);
+		SSYNC();
+		for(;; ivg++) {
+			if (ivg >= ivg_stop) {
+				atomic_inc(&num_spurious);
+				return;
+			}
+			if (sic_status[(ivg->irqno - IVG7)/32] & ivg->isrflag)
+				break;
+		}
+#else
+		unsigned long sic_status;
 		SSYNC();
 		sic_status = bfin_read_SIC_IMASK() & bfin_read_SIC_ISR();
-#endif
 
 		for (;; ivg++) {
-#ifdef CONFIG_BF54x
-			sic_status = bfin_read_SIC_IMASK(ivg->irqno / 32);
-#endif
 			if (ivg >= ivg_stop) {
 				atomic_inc(&num_spurious);
 				return;
 			} else if (sic_status & ivg->isrflag)
 				break;
 		}
+#endif
 		vec = ivg->irqno;
 	}
 	asm_do_IRQ(vec, fp);
