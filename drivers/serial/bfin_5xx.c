@@ -81,6 +81,10 @@ static void bfin_serial_stop_tx(struct uart_port *port)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 
+#ifdef CONFIG_BF54x
+	while(!(UART_GET_LSR(uart) & TEMT)) {};
+#endif
+
 #ifdef CONFIG_SERIAL_BFIN_DMA
 	disable_dma(uart->tx_dma_channel);
 #else
@@ -361,9 +365,13 @@ static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart)
 	set_dma_x_count(uart->tx_dma_channel, uart->tx_count);
 	set_dma_x_modify(uart->tx_dma_channel, 1);
 	enable_dma(uart->tx_dma_channel);
+#ifdef CONFIG_BF54x
+	UART_SET_IER(uart, ETBEI);
+#else
 	ier = UART_GET_IER(uart);
 	ier |= ETBEI;
 	UART_PUT_IER(uart, ier);
+#endif
 	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
 
@@ -443,9 +451,13 @@ static irqreturn_t bfin_serial_dma_tx_int(int irq, void *dev_id)
 	if (!(get_dma_curr_irqstat(uart->tx_dma_channel)&DMA_RUN)) {
 		clear_dma_irqstat(uart->tx_dma_channel);
 		disable_dma(uart->tx_dma_channel);
+#ifdef CONFIG_BF54x
+		UART_CLEAR_IER(uart, ETBEI);
+#else
 		ier = UART_GET_IER(uart);
 		ier &= ~ETBEI;
 		UART_PUT_IER(uart, ier);
+#endif
 		xmit->tail = (xmit->tail+uart->tx_count) &(UART_XMIT_SIZE -1);
 		uart->port.icount.tx+=uart->tx_count;
 
