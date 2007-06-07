@@ -82,7 +82,8 @@ static void bfin_serial_stop_tx(struct uart_port *port)
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 
 #ifdef CONFIG_BF54x
-	while(!(UART_GET_LSR(uart) & TEMT)) {};
+	while (!(UART_GET_LSR(uart) & TEMT))
+		continue;
 #endif
 
 #ifdef CONFIG_SERIAL_BFIN_DMA
@@ -90,7 +91,8 @@ static void bfin_serial_stop_tx(struct uart_port *port)
 #else
 #ifdef CONFIG_BF54x
 	/* Waiting for Transmission Finished */
-	while(!(UART_GET_LSR(uart) & TFI)) {};
+	while (!(UART_GET_LSR(uart) & TFI))
+		continue;
 	/* Clear TFI bit */
 	UART_PUT_LSR(uart, TFI);
 	UART_CLEAR_IER(uart, ETBEI);
@@ -296,7 +298,7 @@ static irqreturn_t bfin_serial_tx_int(int irq, void *dev_id)
 	unsigned short status;
 	spin_lock(&uart->port.lock);
 	status = UART_GET_LSR(uart);
-	while((UART_GET_IER(uart) & ETBEI) && (status & THRE)) {
+	while ((UART_GET_IER(uart) & ETBEI) && (status & THRE)) {
 		bfin_serial_tx_chars(uart);
 		status = UART_GET_LSR(uart);
 	}
