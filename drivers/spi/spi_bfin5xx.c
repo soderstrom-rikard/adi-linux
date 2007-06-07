@@ -582,14 +582,23 @@ static irqreturn_t dma_irq_handler(int irq, void *dev_id)
 	dev_dbg(&drv_data->pdev->dev, "in dma_irq_handler\n");
 	clear_dma_irqstat(CH_SPI);
 
+
+	/* Wait for DMA to complete */
+	while (get_dma_curr_irqstat(CH_SPI) & DMA_RUN)
+		continue;
+	
 	/*
 	 * wait for the last transaction shifted out.  yes, these two
 	 * while loops are supposed to be the same (see the HRM).
 	 */
 	if (drv_data->tx != NULL) {
-		while (bfin_read_SPI_STAT() & TXS)
+	/*	while (bfin_read_SPI_STAT() & TXS)
 			continue;
 		while (bfin_read_SPI_STAT() & TXS)
+			continue;
+	*/
+		while ((bfin_read_SPI_STAT() & TXS) ||
+			(bfin_read_SPI_STAT() & TXS))
 			continue;
 	}
 
