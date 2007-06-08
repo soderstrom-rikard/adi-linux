@@ -1105,6 +1105,8 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			struct video_window *vw = (struct video_window *)arg;
 			pr_debug("VIDIOCGWIN called\n");
 			memset(vw, 0, sizeof(*vw));
+			vw->width = bcap_dev->width;
+			vw->height = bcap_dev->height;
 			return 0;
 		}
 
