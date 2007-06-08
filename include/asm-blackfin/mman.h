@@ -24,6 +24,7 @@
 #define MAP_NONBLOCK	0x10000	/* do not block on IO */
 #define MAP_UNINITIALIZE 0x4000000  /* For anonymous mmap, memory could
                                     be uninitialized. */
+#define MAP_SPLIT_PAGES  0x8000000  /* Conserve memory (nommu only). */
 
 #define MS_ASYNC	1	/* sync memory asynchronously */
 #define MS_INVALIDATE	2	/* invalidate the caches */

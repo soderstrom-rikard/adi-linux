@@ -36,7 +36,6 @@ void *high_memory;
 struct page *mem_map;
 unsigned long max_mapnr;
 unsigned long num_physpages;
-unsigned long askedalloc, realalloc;
 atomic_t vm_committed_space = ATOMIC_INIT(0);
 int sysctl_overcommit_memory = OVERCOMMIT_GUESS; /* heuristic overcommit */
 int sysctl_overcommit_ratio = 50; /* default is 50% */
@@ -317,6 +316,25 @@ static void show_process_blocks(void)
 #endif /* DEBUG */
 
 /*
+ * Free the memory allocated for a VMA.
+ */
+static void free_vma_pages(struct vm_area_struct *vma)
+{
+	unsigned long len = vma->vm_end - vma->vm_start;
+
+	if (vma->vm_flags & VM_SPLIT_PAGES)
+		while (len) {
+			free_pages(vma->vm_start, 0);
+			vma->vm_start += PAGE_SIZE;
+			len -= PAGE_SIZE;
+		}
+	else {
+		struct page *p = virt_to_page(vma->vm_start);
+		free_pages(vma->vm_start, (unsigned long)p[1].lru.prev);
+	}
+}
+
+/*
  * add a VMA into a process's mm_struct in the appropriate place in the list
  * - should be called with mm->mmap_sem held writelocked
  */
@@ -379,28 +397,6 @@ static inline struct vm_area_struct *find_vma_exact(struct mm_struct *mm,
 			return vml->vma;
 		if (vml->vma->vm_start > addr)
 			break;
-	}
-
-	return NULL;
-}
-
-/*
- * find a VMA in the global tree
- */
-static inline struct vm_area_struct *find_nommu_vma(unsigned long start)
-{
-	struct vm_area_struct *vma;
-	struct rb_node *n = nommu_vma_tree.rb_node;
-
-	while (n) {
-		vma = rb_entry(n, struct vm_area_struct, vm_rb);
-
-		if (start < vma->vm_start)
-			n = n->rb_left;
-		else if (start > vma->vm_start)
-			n = n->rb_right;
-		else
-			return vma;
 	}
 
 	return NULL;
@@ -473,6 +469,89 @@ static void delete_nommu_vma(struct vm_area_struct *vma)
 
 	/* remove from the master list */
 	rb_erase(&vma->vm_rb, &nommu_vma_tree);
+}
+
+/*
+ * Split up a large order allocation for the vma into single pages and
+ * set the VM_SPLIT_PAGES flag.  Free any excess pages beyond the end of
+ * the vma.
+ */
+static void nommu_split_pages(struct vm_area_struct *vma)
+{
+	int order;
+	struct page *page;
+	unsigned long to_free, size;
+
+	if (vma->vm_flags & VM_SPLIT_PAGES)
+		return;
+
+	page = virt_to_page(vma->vm_start);
+	size = PAGE_ALIGN(vma->vm_end - vma->vm_start);
+	order = (unsigned long)page[1].lru.prev;
+
+	split_compound_page(page, order);
+	vma->vm_flags |= VM_SPLIT_PAGES;
+
+	to_free = (PAGE_SIZE << order) - size;
+	while (to_free) {
+		to_free -= PAGE_SIZE;
+		free_pages(vma->vm_end + to_free, 0);
+	}
+}
+
+
+/*
+ * Split a vma into two pieces at address 'addr', a new vma is allocated
+ * either for the first part or the the tail.
+ */
+static int split_nommu_vma(struct mm_struct * mm, struct vm_area_struct * vma,
+			   unsigned long addr, int new_below,
+			   struct vm_list_struct **insert_point)
+{
+	struct vm_area_struct *new;
+	struct vm_list_struct *vml = NULL;
+
+	if (vma->vm_flags & VM_SHARED)
+		return -EINVAL;
+	if (vma->vm_file)
+		return -EINVAL;
+	if (mm->map_count >= sysctl_max_map_count)
+		return -ENOMEM;
+
+	new = kmalloc(sizeof(struct vm_area_struct), GFP_KERNEL);
+	if (!new)
+		return -ENOMEM;
+	vml = kzalloc(sizeof(struct vm_list_struct), GFP_KERNEL);
+	if (!vml) {
+		kfree(new);
+		return -ENOMEM;
+	}
+
+	nommu_split_pages(vma);
+	/* most fields are the same, copy all, and then fixup */
+	*new = *vma;
+
+	if (new_below) {
+		vma->vm_start = addr;
+		vma->vm_pgoff += (addr - new->vm_start) >> PAGE_SHIFT;
+
+		new->vm_end = addr;
+	} else {
+		new->vm_start = addr;
+		new->vm_pgoff += (addr - vma->vm_start) >> PAGE_SHIFT;
+
+		vma->vm_end = addr;
+	}
+
+	if (new->vm_ops && new->vm_ops->open)
+		new->vm_ops->open(new);
+
+	add_nommu_vma(new);
+	vml->vma = new;
+	vml->next = *insert_point;
+	*insert_point = vml;
+
+	return 0;
 }
 
 /*
@@ -686,9 +765,6 @@ static unsigned long determine_vm_flags(struct file *file,
 	if ((flags & MAP_PRIVATE) && (current->ptrace & PT_PTRACED))
 		vm_flags &= ~VM_MAYSHARE;
 
-	if (flags & MAP_UNINITIALIZE)
-		vm_flags |= VM_UNINITIALIZE;
-
 	return vm_flags;
 }
 
@@ -713,10 +789,12 @@ static int do_mmap_shared_file(struct vm_area_struct *vma, unsigned long len)
 /*
  * set up a private mapping or an anonymous shared mapping
  */
-static int do_mmap_private(struct vm_area_struct *vma, unsigned long len)
+static int do_mmap_private(struct vm_area_struct *vma, unsigned long len,
+			   unsigned long flags)
 {
 	void *base;
-	int ret;
+	int ret, order;
+	unsigned long total_len = len;
 
 	/* invoke the file's mapping function so that it can keep track of
 	 * shared mappings on devices or memory
@@ -735,11 +813,16 @@ static int do_mmap_private(struct vm_area_struct *vma, unsigned long len)
 		 * make a private copy of the data and map that instead */
 	}
 
+	len = PAGE_ALIGN(len);
+
 	/* allocate some memory to hold the mapping
 	 * - note that this may not return a page-aligned address if the object
 	 *   we're allocating is smaller than a page
 	 */
-	base = kmalloc(len, GFP_KERNEL|__GFP_COMP);
+	order = get_order(len);
+	total_len = PAGE_SIZE << order;
+
+	base = (void *)__get_free_pages(GFP_KERNEL|__GFP_COMP, order);
 	if (!base)
 		goto enomem;
 
@@ -747,8 +830,21 @@ static int do_mmap_private(struct vm_area_struct *vma, unsigned long len)
 	vma->vm_end = vma->vm_start + len;
 	vma->vm_flags |= VM_MAPPED_COPY;
 
+	/*
+	 * Must always set the VM_SPLIT_PAGES flag for single-page allocations,
+	 * to avoid trying to get the order of the compound page later on.
+	 */
+	if (len == PAGE_SIZE)
+		vma->vm_flags |= VM_SPLIT_PAGES;
+	else if (flags & MAP_SPLIT_PAGES
+#ifdef CONFIG_NP2
+	    || len < total_len
+#endif
+	    )
+		nommu_split_pages(vma);
+
 #ifdef WARN_ON_SLACK
-	if (len + WARN_ON_SLACK <= kobjsize(result))
+	if (len + WARN_ON_SLACK <= total_len)
 		printk("Allocation of %lu bytes from process %d has %lu bytes of slack\n",
 		       len, current->pid, kobjsize(result) - len);
 #endif
@@ -775,14 +871,14 @@ static int do_mmap_private(struct vm_area_struct *vma, unsigned long len)
 
 	} else {
 		/* if it's an anonymous mapping, then just clear it */
-		if (!(vma->vm_flags & VM_UNINITIALIZE))
+		if (!(flags & MAP_UNINITIALIZE))
 			memset(base, 0, len);
 	}
 
 	return 0;
 
 error_free:
-	kfree(base);
+	free_vma_pages(vma);
 	vma->vm_start = 0;
 	return ret;
 
@@ -930,29 +1026,18 @@ unsigned long do_mmap_pgoff(struct file *file,
 	if (file && vma->vm_flags & VM_SHARED)
 		ret = do_mmap_shared_file(vma, len);
 	else
-		ret = do_mmap_private(vma, len);
+		ret = do_mmap_private(vma, len, flags);
 	if (ret < 0)
 		goto error;
 
 	/* okay... we have a mapping; now we have to register it */
 	result = (void *) vma->vm_start;
 
-	if (vma->vm_flags & VM_MAPPED_COPY) {
-		realalloc += kobjsize(result);
-		askedalloc += len;
-	}
-
-	realalloc += kobjsize(vma);
-	askedalloc += sizeof(*vma);
-
 	current->mm->total_vm += len >> PAGE_SHIFT;
 
 	add_nommu_vma(vma);
 
  shared:
-	realalloc += kobjsize(vml);
-	askedalloc += sizeof(*vml);
-
 	add_vma_to_mm(current->mm, vml);
 
 	up_write(&nommu_vma_sem);
@@ -1016,13 +1101,8 @@ static void put_vma(struct vm_area_struct *vma)
 			/* IO memory and memory shared directly out of the pagecache from
 			 * ramfs/tmpfs mustn't be released here */
 			if (vma->vm_flags & VM_MAPPED_COPY) {
-				realalloc -= kobjsize((void *) vma->vm_start);
-				askedalloc -= vma->vm_end - vma->vm_start;
-				kfree((void *) vma->vm_start);
+				free_vma_pages(vma);
 			}
-
-			realalloc -= kobjsize(vma);
-			askedalloc -= sizeof(*vma);
 
 			if (vma->vm_file)
 				fput(vma->vm_file);
@@ -1033,46 +1113,87 @@ static void put_vma(struct vm_area_struct *vma)
 	}
 }
 
-/*
- * release a mapping
- * - under NOMMU conditions the parameters must match exactly to the mapping to
- *   be removed
- */
-int do_munmap(struct mm_struct *mm, unsigned long addr, size_t len)
+static void unmap_one_vma (struct mm_struct *mm, struct vm_area_struct *vma,
+			   struct vm_list_struct **parent)
 {
-	struct vm_list_struct *vml, **parent;
-	unsigned long end = addr + len;
-
-#ifdef DEBUG
-	printk("do_munmap:\n");
-#endif
-
-	for (parent = &mm->context.vmlist; *parent; parent = &(*parent)->next) {
-		if ((*parent)->vma->vm_start > addr)
-			break;
-		if ((*parent)->vma->vm_start == addr &&
-		    ((len == 0) || ((*parent)->vma->vm_end == end)))
-			goto found;
-	}
-
-	printk("munmap of non-mmaped memory by process %d (%s): %p\n",
-	       current->pid, current->comm, (void *) addr);
-	return -EINVAL;
-
- found:
+	struct vm_list_struct *vml;
+	size_t len = vma->vm_end - vma->vm_start;
 	vml = *parent;
 
 	put_vma(vml->vma);
 
 	*parent = vml->next;
-	realalloc -= kobjsize(vml);
-	askedalloc -= sizeof(*vml);
 	kfree(vml);
 
 	update_hiwater_vm(mm);
 	mm->total_vm -= len >> PAGE_SHIFT;
 	mm->map_count--;
+}
+/*
+ * release a mapping
+ * Under NOMMU conditions the parameters must match exactly to the mapping to
+ * be removed.  However, we can relax this requirement for anonymous memory, to
+ * make malloc's job a little easier.
+ */
+int do_munmap(struct mm_struct *mm, unsigned long addr, size_t len)
+{
+	struct vm_list_struct **parent;
+	unsigned long end;
+	struct vm_area_struct *vma = 0;
 
+#ifdef DEBUG
+	printk("do_munmap:\n");
+#endif
+
+	if ((len = PAGE_ALIGN(len)) == 0)
+		return -EINVAL;
+	end = addr + len;
+	for (parent = &mm->context.vmlist; *parent;) {
+		int err;
+		vma = (*parent)->vma;
+
+		/* If no overlap, try next one.  */
+		if (vma->vm_end <= addr) {
+			parent = &(*parent)->next;
+			continue;
+		}
+		/* Trying to unmap before the start of the VMA?  */
+		if (vma->vm_start > addr)
+			break;
+
+		/* We found something that covers the area to unmap.  */
+
+		if (vma->vm_start < addr) {
+			err = split_nommu_vma(mm, vma, addr, 1, parent);
+			parent = &(*parent)->next;
+			if (err == -EINVAL)
+				break;
+			if (err)
+				return err;
+		}
+		if (vma->vm_end > end) {
+			err = split_nommu_vma(mm, vma, end, 0, &(*parent)->next);
+			if (err == -EINVAL)
+				break;
+			if (err)
+				return err;
+		}
+
+		/* Set up another round for the remaining area to unmap.  */
+		addr = vma->vm_end;
+		len -= vma->vm_end - vma->vm_start;
+
+		unmap_one_vma(mm, vma, parent);
+
+		if (!len)
+			goto done;
+	}
+
+	printk("munmap of non-mmaped memory by process %d (%s)\n",
+	       current->pid, current->comm);
+	return -EINVAL;
+
+ done:
 #ifdef DEBUG
 	show_process_blocks();
 #endif
@@ -1109,8 +1230,6 @@ void exit_mmap(struct mm_struct * mm)
 			mm->context.vmlist = tmp->next;
 			put_vma(tmp->vma);
 
-			realalloc -= kobjsize(tmp);
-			askedalloc -= sizeof(*tmp);
 			kfree(tmp);
 		}
 
@@ -1140,6 +1259,7 @@ unsigned long do_mremap(unsigned long addr,
 			unsigned long flags, unsigned long new_addr)
 {
 	struct vm_area_struct *vma;
+	unsigned long max_len;
 
 	/* insanity checks first */
 	if (new_len == 0)
@@ -1158,14 +1278,26 @@ unsigned long do_mremap(unsigned long addr,
 	if (vma->vm_flags & VM_MAYSHARE)
 		return (unsigned long) -EPERM;
 
-	if (new_len > kobjsize((void *) addr))
+	if (vma->vm_flags & VM_SPLIT_PAGES)
+		max_len = old_len;
+	else {
+		struct page *page = virt_to_page(vma->vm_start);
+		int order = (int)page[1].lru.prev;
+		max_len = PAGE_SIZE << order;
+	}
+
+	if (new_len > max_len)
 		return (unsigned long) -ENOMEM;
 
 	/* all checks complete - do it */
+
 	vma->vm_end = vma->vm_start + new_len;
 
-	askedalloc -= old_len;
-	askedalloc += new_len;
+	if (vma->vm_flags & VM_SPLIT_PAGES)
+		while (old_len > new_len) {
+			old_len -= PAGE_SIZE;
+			free_pages(vma->vm_start + old_len, 0);
+		}
 
 	return vma->vm_start;
 }
@@ -1175,6 +1307,15 @@ asmlinkage unsigned long sys_mremap(unsigned long addr,
 	unsigned long flags, unsigned long new_addr)
 {
 	unsigned long ret;
+
+	if (addr & ~PAGE_MASK)
+		return -EINVAL;
+
+	old_len = PAGE_ALIGN(old_len);
+	new_len = PAGE_ALIGN(new_len);
+
+	if (new_len == 0 || old_len == 0)
+		return -EINVAL;
 
 	down_write(&current->mm->mmap_sem);
 	ret = do_mremap(addr, old_len, new_len, flags, new_addr);

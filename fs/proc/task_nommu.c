@@ -18,20 +18,26 @@ char *task_mem(struct mm_struct *mm, char *buffer)
         
 	down_read(&mm->mmap_sem);
 	for (vml = mm->context.vmlist; vml; vml = vml->next) {
+		unsigned long size, len;
+
 		if (!vml->vma)
 			continue;
 
 		bytes += kobjsize(vml);
+		len = vml->vma->vm_end - vml->vma->vm_start;
+		if (!(vml->vma->vm_flags & VM_SPLIT_PAGES))
+			size = PAGE_SIZE << get_order(len);
+		else
+			size = len;
 		if (atomic_read(&mm->mm_count) > 1 ||
 		    atomic_read(&vml->vma->vm_usage) > 1
 		    ) {
-			sbytes += kobjsize((void *) vml->vma->vm_start);
+			sbytes += size;
 			sbytes += kobjsize(vml->vma);
 		} else {
-			bytes += kobjsize((void *) vml->vma->vm_start);
+			bytes += size;
 			bytes += kobjsize(vml->vma);
-			slack += kobjsize((void *) vml->vma->vm_start) -
-				(vml->vma->vm_end - vml->vma->vm_start);
+			slack += size - len;
 		}
 	}
 

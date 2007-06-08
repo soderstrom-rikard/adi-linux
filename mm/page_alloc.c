@@ -862,6 +862,16 @@ void split_page(struct page *page, unsigned int order)
 }
 
 /*
+ * Like split_page, but calls destroy_compound_page first
+ */
+void split_compound_page(struct page *page, unsigned int order)
+{
+	VM_BUG_ON(!PageCompound(page));
+	destroy_compound_page(page, order);
+	split_page(page, order);
+}
+
+/*
  * Really, prep_compound_page() should be called from __rmqueue_bulk().  But
  * we cheat by calling it from here, in the order > 0 path.  Saves a branch
  * or two.
