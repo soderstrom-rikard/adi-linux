@@ -225,14 +225,14 @@ _Flash_Setup_ADV_Reset:
         P1.H = hi(flashA_csio);
         R0 = 0x0;
         W[P1] = R0;
-        ssync;
+        SSYNC(R0);
 
     //Direction control registers.
         P1.H = hi(flashA_csio);
         P1.L = lo(flashA_csio) + portA_data_dir;
         R0 = 0xFFFF(Z);
         W[P1] = R0;                      //Set direction to output.
-        ssync;
+        SSYNC(R1);
 
         //De-assert reset from ADP7171 device (flashA portA bit 2)
 
@@ -703,7 +703,7 @@ _DmaMemCpy:
 	P0.L = lo(MDMA_D0_CONFIG);
 	P0.H = hi(MDMA_D0_CONFIG);
 	W[P0] = R0.L;
-	ssync;
+	ssync(R3);
 
 	// now poll to see when dma completes
 	P0.L = lo(MDMA_D0_IRQ_STATUS);
