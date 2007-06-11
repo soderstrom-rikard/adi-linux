@@ -71,7 +71,7 @@ config GENERIC_CALIBRATE_DELAY
 
 config IRQCHIP_DEMUX_GPIO
 	bool
-	depends on BF53x
+	depends on (BF53x || BF561)
 	default y
 
 source "init/Kconfig"
@@ -172,7 +172,7 @@ endchoice
 
 config BF53x
 	bool
-	depends on (BF531 || BF533 || BF534 || BF536 || BF537)
+	depends on (BF531 || BF532 || BF533 || BF534 || BF536 || BF537)
 	default y
 
 config BF54x
