@@ -73,7 +73,7 @@ ENTRY(_memmove)
 #ifdef ANOMALY_05000202
 .Lquad_loops:
 	[P0++] = R1;
-.Lquad_loope
+.Lquad_loope:
 	R1 = [I0++];
 #else
 .Lquad_loops:
