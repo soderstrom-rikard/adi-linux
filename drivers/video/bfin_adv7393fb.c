@@ -65,6 +65,7 @@
 static struct adv7393fb_device *drv;
 static int mode = VMODE;
 static int mem = VMEM;
+static int nocursor = 1;
 
 /*
  * I2C driver
@@ -123,12 +124,14 @@ static struct fb_ops bfin_adv7393_fb_ops = {
 	.fb_open = bfin_adv7393_fb_open,
 	.fb_release = bfin_adv7393_fb_release,
 	.fb_check_var = bfin_adv7393_fb_check_var,
-	.fb_set_par = bfin_adv7393_fb_set_par,
 	.fb_pan_display = bfin_adv7393_fb_pan_display,
 	.fb_blank = bfin_adv7393_fb_blank,
-	.fb_fillrect = bfin_adv7393_fb_fillrect,
-	.fb_imageblit = bfin_adv7393_fb_imageblit,
+	.fb_fillrect		= cfb_fillrect,
+	.fb_copyarea		= cfb_copyarea,
+	.fb_imageblit		= cfb_imageblit,
 	.fb_mmap = bfin_fb_mmap,
+	.fb_cursor = bfin_adv7393_fb_cursor,
+	.fb_setcolreg = bfin_adv7393_fb_setcolreg,
 };
 
 static int dma_desc_list(struct adv7393fb_device *fbdev, u16 arg)
@@ -307,12 +310,13 @@ static void bfin_disable_ppi(void)
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() & ~PORT_EN);
 }
 
+
 static inline int adv7393_write(struct i2c_client *client, u8 reg, u8 value)
 {
    if (client) {
        return i2c_smbus_write_byte_data(client, reg, value);
     } else {
-      printk(KERN_ERR "adv7393_read failed - check I2C Support\n");
+      printk(KERN_ERR "adv7393_write failed - check I2C Support\n");
       return(-1);
     }
 
@@ -342,6 +346,29 @@ adv7393_write_block(struct i2c_client *client,
 		len -= 2;
 	}
 	return ret;
+}
+
+
+static int adv7393_mode(u16 mode)
+{
+	switch (mode) {
+	case POWER_ON:
+		adv7393_write(drv->i2c_adv7393_client, 0x00, 0x1E);	/* ADV7393 Sleep mode OFF */
+		break;
+	case POWER_DOWN:
+		adv7393_write(drv->i2c_adv7393_client, 0x00, 0x1F);	/* ADV7393 Sleep mode ON */
+		break;
+	case BLANK_OFF:
+		adv7393_write(drv->i2c_adv7393_client, 0x82, 0xCB);	/*Pixel Data Valid */
+		break;
+	case BLANK_ON:
+		adv7393_write(drv->i2c_adv7393_client, 0x82, 0x8B);	/*Pixel Data Invalid */
+		break;
+	default:
+		return -EINVAL;
+		break;
+	}
+	return 0;
 }
 
 /*
@@ -409,6 +436,9 @@ adv7393_detect_client(struct i2c_adapter *adapter, int address, int kind)
 		       I2C_NAME(drv->i2c_adv7393_client));
 	}
 
+	if (drv->open)
+		adv7393_mode(BLANK_OFF);
+
 	return 0;
 }
 
@@ -448,27 +478,6 @@ static struct i2c_driver i2c_driver_adv7393 = {
 	.detach_client = adv7393_detach_client,
 };
 
-static int adv7393_mode(u16 mode)
-{
-	switch (mode) {
-	case POWER_ON:
-		adv7393_write(drv->i2c_adv7393_client, 0x00, 0x1E);	/* ADV7393 Sleep mode OFF */
-		break;
-	case POWER_DOWN:
-		adv7393_write(drv->i2c_adv7393_client, 0x00, 0x1F);	/* ADV7393 Sleep mode ON */
-		break;
-	case BLANK_OFF:
-		adv7393_write(drv->i2c_adv7393_client, 0x82, 0xCB);	/*Pixel Data Valid */
-		break;
-	case BLANK_ON:
-		adv7393_write(drv->i2c_adv7393_client, 0x82, 0x8B);	/*Pixel Data Invalid */
-		break;
-	default:
-		return -EINVAL;
-		break;
-	}
-	return 0;
-}
 
 static irqreturn_t ppi_irq_error(int irq, void *dev_id, struct pt_regs *regs)
 {
@@ -593,7 +602,7 @@ int __init bfin_adv7393_fb_init(void)
 		       "FB: couldn't allocate dma buffer (%d bytes) \n",
 		       (u32) fbdev->fb_len);
 		ret = -ENOMEM;
-		goto out_5;
+		goto out_7;
 	}
 
 	memset(fbdev->fb_mem, 0, fbdev->fb_len);
@@ -623,6 +632,20 @@ int __init bfin_adv7393_fb_init(void)
 	fbdev->info.par = &bfin_par;
 	fbdev->info.flags = FBINFO_DEFAULT;
 
+	if (!(fbdev->info.pseudo_palette = kmalloc(sizeof(u32) * 16, GFP_KERNEL))) {
+		printk(KERN_ERR "Fail to allocate pseudo_palette\n");
+		ret = -ENOMEM;
+		goto out_6;
+	}
+	memset(fbdev->info.pseudo_palette, 0, sizeof(u32) * 16);
+
+	if (fb_alloc_cmap(&fbdev->info.cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0) < 0) {
+		printk(KERN_ERR "Fail to allocate colormap (%d entries)\n",
+			   BFIN_LCD_NBR_PALETTE_ENTRIES);
+		ret = -EFAULT;
+		goto out_5;
+	}
+
 	if (request_dma(CH_PPI, "BF5xx_PPI_DMA") < 0) {
 		printk(KERN_ERR
 		       "\n bfin_adv7393_fb: unable to request PPI DMA\n");
@@ -638,13 +661,13 @@ int __init bfin_adv7393_fb_init(void)
 		goto out_3;
 	}
 
-	disable_irq(IRQ_PPI_ERROR);
-
 	if (i2c_add_driver(&i2c_driver_adv7393)) {
 		printk(KERN_ERR "I2C Driver Initialisation failed\n");
 		ret = -EFAULT;
 		goto out_2;
 	}
+
+	fbdev->open = 0;
 
 	if (register_framebuffer(&fbdev->info) < 0) {
 		printk(KERN_ERR
@@ -682,6 +705,10 @@ int __init bfin_adv7393_fb_init(void)
 	dma_free_coherent(NULL, fbdev->fb_len, fbdev->fb_mem,
 			  fbdev->dma_handle);
       out_5:
+	fb_dealloc_cmap(&fbdev->info.cmap);   
+      out_6:
+	kfree(fbdev->info.pseudo_palette);   	
+      out_7:
 	kfree(fbdev);
 
 	return ret;
@@ -697,8 +724,8 @@ static int bfin_adv7393_fb_open(struct fb_info *info, int user)
 		return -ENOMEM;
 	}
 
+	fbdev->open = 1;
 	dma_desc_list(fbdev, BUILD);
-	enable_irq(IRQ_PPI_ERROR);
 	adv7393_mode(BLANK_OFF);
 	bfin_config_ppi(fbdev);
 	bfin_config_dma(fbdev);
@@ -713,12 +740,11 @@ static int bfin_adv7393_fb_release(struct fb_info *info, int user)
 	struct adv7393fb_device *fbdev = to_adv7393fb_device(info);
 
 	adv7393_mode(BLANK_ON);
-	disable_irq(IRQ_PPI_ERROR);
 	bfin_disable_dma();
 	bfin_disable_ppi();
 	dma_desc_list(fbdev, DESTRUCT);
 	adv7393_mmap = 0;
-
+	fbdev->open = 0;
 	return 0;
 }
 
@@ -751,12 +777,6 @@ bfin_adv7393_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 	}
 
 	return 0;
-}
-
-static int bfin_adv7393_fb_set_par(struct fb_info *info)
-{
-	printk(KERN_INFO "%s: called ... not implemented\n", __FUNCTION__);
-	return -EINVAL;
 }
 
 static int
@@ -814,16 +834,49 @@ static int bfin_adv7393_fb_blank(int blank, struct fb_info *info)
 	return 0;
 }
 
-static void
-bfin_adv7393_fb_fillrect(struct fb_info *info, const struct fb_fillrect *rect)
+
+int bfin_adv7393_fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
 {
-	printk(KERN_INFO "%s: called ... not implemented\n", __FUNCTION__);
+	if (nocursor)
+		return 0;
+	else
+		return -EINVAL;	/* just to force soft_cursor() call */
 }
 
-static void
-bfin_adv7393_fb_imageblit(struct fb_info *info, const struct fb_image *image)
+static int bfin_adv7393_fb_setcolreg(u_int regno, u_int red, u_int green, u_int blue,
+			 u_int transp, struct fb_info *info)
 {
-	printk(KERN_INFO "%s: called ... not implemented\n", __FUNCTION__);
+	if (regno >= BFIN_LCD_NBR_PALETTE_ENTRIES)
+		return -EINVAL;
+
+	if (info->var.grayscale) {
+		/* grayscale = 0.30*R + 0.59*G + 0.11*B */
+		red = green = blue =
+		    (red * 77 + green * 151 + blue * 28) >> 8;
+	}
+
+	if (info->fix.visual == FB_VISUAL_TRUECOLOR) {
+
+		u32 value;
+		/* Place color in the pseudopalette */
+		if (regno > 16)
+			return -EINVAL;
+
+		red   >>= (16 - info->var.red.length);
+		green >>= (16 - info->var.green.length);
+		blue  >>= (16 - info->var.blue.length);
+
+		value = (red   << info->var.red.offset) |
+			(green << info->var.green.offset)|
+			(blue  << info->var.blue.offset);
+		value &= 0xFFFF;
+
+		((u32 *) (info->pseudo_palette))[regno] = value;
+
+	}
+
+
+	return 0;
 }
 
 static void __exit bfin_adv7393_fb_exit(void)
@@ -837,6 +890,8 @@ static void __exit bfin_adv7393_fb_exit(void)
 	unregister_framebuffer(&drv->info);
 	i2c_del_driver(&i2c_driver_adv7393);
 	remove_proc_entry("driver/adv7393", NULL);
+	fb_dealloc_cmap(&drv->info.cmap);   
+	kfree(drv->info.pseudo_palette);  
 
 #if defined(BF533_FAMILY)
 	gpio_free(GPIO_3);	/* FS3 */
@@ -857,6 +912,9 @@ module_param(mem, int, 0);
 MODULE_PARM_DESC(mem,
 	"Size of frame buffer memory 1=Single 2=Double Size"
 	"(allows y-panning / frame stacking)");
+
+module_param(nocursor, int, 0644);
+MODULE_PARM_DESC(nocursor, "cursor enable/disable");
 
 module_init(bfin_adv7393_fb_init);
 module_exit(bfin_adv7393_fb_exit);

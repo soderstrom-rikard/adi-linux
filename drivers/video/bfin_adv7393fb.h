@@ -32,6 +32,8 @@
 #ifndef __BFIN_ADV7393FB_H__
 #define __BFIN_ADV7393FB_H__
 
+#define BFIN_LCD_NBR_PALETTE_ENTRIES	256
+
 #ifdef CONFIG_NTSC
 # define VMODE 0
 #endif
@@ -305,7 +307,7 @@ struct adv7393fb_device {
 	size_t regs_len;
 	size_t fb_len;
 	size_t line_len;
-
+	u16 open;
 	u16 *fb_mem;		/* RGB Buffer */
 
 };
@@ -317,13 +319,10 @@ static int bfin_adv7393_fb_open(struct fb_info *info, int user);
 static int bfin_adv7393_fb_release(struct fb_info *info, int user);
 static int bfin_adv7393_fb_check_var(struct fb_var_screeninfo *var,
 				     struct fb_info *info);
-static int bfin_adv7393_fb_set_par(struct fb_info *info);
+
 static int bfin_adv7393_fb_pan_display(struct fb_var_screeninfo *var,
 				       struct fb_info *info);
-static void bfin_adv7393_fb_fillrect(struct fb_info *info,
-				     const struct fb_fillrect *rect);
-static void bfin_adv7393_fb_imageblit(struct fb_info *info,
-				      const struct fb_image *image);
+
 static int bfin_adv7393_fb_blank(int blank, struct fb_info *info);
 static int bfin_fb_mmap(struct fb_info *info, struct vm_area_struct *vma);
 
@@ -337,5 +336,9 @@ static inline int adv7393_write(struct i2c_client *client, u8 reg, u8 value);
 static inline int adv7393_read(struct i2c_client *client, u8 reg);
 static int adv7393_write_block(struct i2c_client *client, const u8 * data,
 			       unsigned int len);
+
+int bfin_adv7393_fb_cursor(struct fb_info *info, struct fb_cursor *cursor);
+static int bfin_adv7393_fb_setcolreg(u_int regno, u_int red, u_int green, u_int blue,
+			 u_int transp, struct fb_info *info);
 
 #endif
