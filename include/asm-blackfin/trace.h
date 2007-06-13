@@ -43,8 +43,8 @@
 # define DEBUG_STOP_HWTRACE(preg, dreg) trace_buffer_stop(preg, dreg)
 
 #else
-# define DEBUG_START_HWTRACE
-# define DEBUG_STOP_HWTRACE
+# define DEBUG_START_HWTRACE(preg, dreg)
+# define DEBUG_STOP_HWTRACE(preg, dreg)
 #endif
 
 #endif /* __ASSEMBLY__ */
