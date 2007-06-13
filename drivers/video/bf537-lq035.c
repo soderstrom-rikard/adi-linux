@@ -55,6 +55,7 @@
 
 #define MAX_BRIGHENESS 	95
 #define MIN_BRIGHENESS  5
+#define BFIN_LCD_NBR_PALETTE_ENTRIES	256
 
 static unsigned char* fb_buffer;          /* RGB Buffer */
 static dma_addr_t dma_handle;             /* ? */
@@ -81,6 +82,10 @@ MODULE_PARM_DESC(landscape,
 module_param(bgr, int, 0);
 MODULE_PARM_DESC(bgr,
 	"BGR use 16-bit BGR-565 instead of RGB-565");
+
+static int nocursor = 1;
+module_param(nocursor, int, 0644);
+MODULE_PARM_DESC(nocursor, "cursor enable/disable");
 
 static unsigned long current_brightness;  /* backlight */
 
@@ -598,6 +603,50 @@ static int direct_mmap(struct fb_info *info, struct vm_area_struct * vma)
 	return 0 ;
 }
 
+int bfin_lq035_fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
+{
+	if (nocursor)
+		return 0;
+	else
+		return -EINVAL;	/* just to force soft_cursor() call */
+}
+
+static int bfin_lq035_fb_setcolreg(u_int regno, u_int red, u_int green, u_int blue,
+			 u_int transp, struct fb_info *info)
+{
+	if (regno >= BFIN_LCD_NBR_PALETTE_ENTRIES)
+		return -EINVAL;
+
+	if (info->var.grayscale) {
+		/* grayscale = 0.30*R + 0.59*G + 0.11*B */
+		red = green = blue =
+		    (red * 77 + green * 151 + blue * 28) >> 8;
+	}
+
+	if (info->fix.visual == FB_VISUAL_TRUECOLOR) {
+
+		u32 value;
+		/* Place color in the pseudopalette */
+		if (regno > 16)
+			return -EINVAL;
+
+		red   >>= (16 - info->var.red.length);
+		green >>= (16 - info->var.green.length);
+		blue  >>= (16 - info->var.blue.length);
+
+		value = (red   << info->var.red.offset) |
+			(green << info->var.green.offset)|
+			(blue  << info->var.blue.offset);
+		value &= 0xFFFF;
+
+		((u32 *) (info->pseudo_palette))[regno] = value;
+
+	}
+
+
+	return 0;
+}
+
 static struct fb_ops bfin_lq035_fb_ops = {
 	.owner 			= THIS_MODULE,
 	.fb_open		= bfin_lq035_fb_open,
@@ -608,6 +657,8 @@ static struct fb_ops bfin_lq035_fb_ops = {
 	.fb_copyarea		= cfb_copyarea,
 	.fb_imageblit		= cfb_imageblit,
 	.fb_mmap		= direct_mmap,
+	.fb_cursor		= bfin_lq035_fb_cursor,
+	.fb_setcolreg		= bfin_lq035_fb_setcolreg,
 };
 
 static int bl_get_brightness(struct backlight_device *bd)
@@ -742,12 +793,34 @@ static int __init bfin_lq035_fb_init(void)
 	bfin_lq035_fb.fix = bfin_lq035_fb_fix;
 	bfin_lq035_fb.flags = FBINFO_DEFAULT;
 
+
+	if (!(bfin_lq035_fb.pseudo_palette = kmalloc(sizeof(u32) * 16, GFP_KERNEL))) {
+		printk(KERN_ERR DRIVER_NAME "Fail to allocate pseudo_palette\n");
+		free_dma(CH_PPI);
+		free_ports();
+		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
+		return -ENOMEM;
+	}
+	memset(bfin_lq035_fb.pseudo_palette, 0, sizeof(u32) * 16);
+
+	if (fb_alloc_cmap(&bfin_lq035_fb.cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0) < 0) {
+		printk(KERN_ERR DRIVER_NAME "Fail to allocate colormap (%d entries)\n",
+			   BFIN_LCD_NBR_PALETTE_ENTRIES);
+		free_dma(CH_PPI);
+		free_ports();
+		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
+		kfree(bfin_lq035_fb.pseudo_palette);
+		return -EFAULT;
+	}
+
 	if (register_framebuffer(&bfin_lq035_fb) < 0) {
 		printk(KERN_ERR DRIVER_NAME ": unable to register framebuffer.\n");
 		free_dma(CH_PPI);
 		free_ports();
 		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
 		fb_buffer = NULL;
+		kfree(bfin_lq035_fb.pseudo_palette);
+		fb_dealloc_cmap(&bfin_lq035_fb.cmap);
 		return -EINVAL;
 	}
 
@@ -779,6 +852,11 @@ static void __exit bfin_lq035_fb_exit(void)
 	t_conf_done = 0;
 
 	free_dma(CH_PPI);
+
+
+	kfree(bfin_lq035_fb.pseudo_palette);
+	fb_dealloc_cmap(&bfin_lq035_fb.cmap);
+
 
 	lcd_device_unregister(lcd_dev);
 	backlight_device_unregister(bl_dev);
