@@ -30,7 +30,7 @@
 #include <linux/linkage.h>
 #include <linux/init.h>
 #include <asm/blackfin.h>
-#include <trace.h>
+#include <asm/trace.h>
 
 #if CONFIG_BFIN_KERNEL_CLOCK
 #include <asm/mach/mem_init.h>
