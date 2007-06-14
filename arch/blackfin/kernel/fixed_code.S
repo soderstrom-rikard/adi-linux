@@ -19,7 +19,7 @@ ENTRY(_sigreturn_stub)
 	P0 = __NR_rt_sigreturn;
 	EXCPT 0;
 	/* Speculative execution paranoia.  */
-0:	JUMP.S 0b; 
+0:	JUMP.S 0b;
 ENDPROC (_sigreturn_stub)
 
 .align 16
@@ -55,7 +55,7 @@ ENTRY(_atomic_cas32)
 ENDPROC (_atomic_cas32)
 
 .align 16
-	/* 
+	/*
 	 * Atomic add, 32 bit.
 	 * Inputs:	P0: memory address to use
 	 *		R0: value to add
@@ -70,7 +70,7 @@ ENTRY(_atomic_add32)
 ENDPROC (_atomic_add32)
 
 .align 16
-	/* 
+	/*
 	 * Atomic sub, 32 bit.
 	 * Inputs:	P0: memory address to use
 	 *		R0: value to subtract
@@ -85,7 +85,7 @@ ENTRY(_atomic_sub32)
 ENDPROC (_atomic_sub32)
 
 .align 16
-	/* 
+	/*
 	 * Atomic ior, 32 bit.
 	 * Inputs:	P0: memory address to use
 	 *		R0: value to ior
@@ -100,7 +100,7 @@ ENTRY(_atomic_ior32)
 ENDPROC (_atomic_ior32)
 
 .align 16
-	/* 
+	/*
 	 * Atomic ior, 32 bit.
 	 * Inputs:	P0: memory address to use
 	 *		R0: value to ior
@@ -115,7 +115,7 @@ ENTRY(_atomic_and32)
 ENDPROC (_atomic_ior32)
 
 .align 16
-	/* 
+	/*
 	 * Atomic ior, 32 bit.
 	 * Inputs:	P0: memory address to use
 	 *		R0: value to ior
