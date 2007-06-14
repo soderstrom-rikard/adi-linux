@@ -1,0 +1,20 @@
+#!/bin/sh
+
+update=false
+if [ "$1" = "-u" ] ; then
+	update=true
+	shift
+fi
+
+jobs=$(grep -cs processor /proc/cpuinfo)
+jobs=$((${jobs:-1} * 2))
+
+for b in $(cd arch/blackfin/configs ; echo *_defconfig) ; do
+	echo "### $b"
+	make -s $b > /dev/null
+	make -s -j${jobs} "$@"
+	if ${update} ; then
+		diff -u .config arch/blackfin/configs/$b || :
+		sed -e 4d .config > arch/blackfin/configs/$b
+	fi
+done
