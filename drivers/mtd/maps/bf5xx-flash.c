@@ -119,7 +119,7 @@ static map_word bf5xx_read(struct map_info *map, unsigned long ofs)
 
 	switch_to_flash(&save);
 	SSYNC();
-	nValue = readw(CONFIG_EBIU_FLASH_BASE + ofs);
+	nValue = readw((void*)CONFIG_EBIU_FLASH_BASE + ofs);
 	SSYNC();
 	switch_back(&save);
 
