@@ -67,7 +67,6 @@ static __inline__ void bfin_write_VR_CTL(unsigned int val)
 	bfin_write32(SICA_IWR0, iwr0);
 	bfin_write32(SICA_IWR1, iwr1);
 	bfin_write32(SICA_IWR2, iwr2);
-	
 }
 #define bfin_read_PLL_STAT()		bfin_read16(PLL_STAT)
 #define bfin_write_PLL_STAT(val)	bfin_write16(PLL_STAT, val)
