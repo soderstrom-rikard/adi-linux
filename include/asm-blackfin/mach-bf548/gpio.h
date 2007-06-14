@@ -187,8 +187,10 @@
 #define GPIO_PJ11	155
 #define GPIO_PJ12	156
 #define GPIO_PJ13	157
+#define GPIO_PJ14	158
+#define GPIO_PJ15	159
 
-#define MAX_BLACKFIN_GPIOS GPIO_PJ13
+#define MAX_BLACKFIN_GPIOS 160
 
 struct gpio_port_t {
 	unsigned short port_fer;
