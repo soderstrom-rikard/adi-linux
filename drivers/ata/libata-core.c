@@ -5951,6 +5951,10 @@ int ata_device_add(const struct ata_probe_ent *ent)
 		}
 	}
 
+	/* enable irq after probe if it is asked to be disabled when request*/
+	if(ent->irq_flags & IRQF_DISABLED)
+		enable_irq(ent->irq);
+
 	/* probes are done, now scan each port's disk(s) */
 	DPRINTK("host probe begin\n");
 	for (i = 0; i < host->n_ports; i++) {

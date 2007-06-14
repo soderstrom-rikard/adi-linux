@@ -183,7 +183,7 @@ static int __devinit pata_platform_probe(struct platform_device *pdev)
 	ae.n_ports = 1;
 	ae.pio_mask = pio_mask;
 	ae.irq = platform_get_irq(pdev, 0);
-	ae.irq_flags = 0;
+	ae.irq_flags = ((struct pata_platform_info *)(pdev->dev.platform_data))->irq_type;
 	ae.port_flags = ATA_FLAG_SLAVE_POSS | ATA_FLAG_SRST;
 
 	/*

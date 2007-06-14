@@ -35,6 +35,7 @@
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
 #include <linux/usb_isp1362.h>
+#include <linux/pata_platform.h>
 #include <asm/irq.h>
 #include <asm/bfin5xx_spi.h>
 
@@ -316,6 +317,43 @@ static struct platform_device bfin_mac_device = {
 };
 #endif
 
+#if defined(CONFIG_PATA_PLATFORM) || defined(CONFIG_PATA_PLATFORM_MODULE)
+#define PATA_INT	64
+
+static struct pata_platform_info bfin_pata_platform_data = {
+	.ioport_shift = 2,
+	.irq_type = IRQF_TRIGGER_HIGH | IRQF_DISABLED,
+};
+
+static struct resource bfin_pata_resources[] = {
+	{
+		.start = 0x2030C000,
+		.end = 0x2030C01F,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = 0x2030D018,
+		.end = 0x2030D01B,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = PATA_INT,
+		.end = PATA_INT,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_pata_device = {
+	.name = "pata_platform",
+	.id = -1,
+	.num_resources = ARRAY_SIZE(bfin_pata_resources),
+	.resource = bfin_pata_resources,
+	.dev = {
+		.platform_data = &bfin_pata_platform_data,
+	}
+};
+#endif
+
 static struct platform_device *cm_bf537_devices[] __initdata = {
 #if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)
 	&rtc_device,
@@ -349,6 +387,10 @@ static struct platform_device *cm_bf537_devices[] __initdata = {
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
 	&spi_bfin_master_device,
 #endif
+
+#if defined(CONFIG_PATA_PLATFORM) || defined(CONFIG_PATA_PLATFORM_MODULE)
+	&bfin_pata_device,
+#endif
 };
 
 static int __init cm_bf537_init(void)
@@ -357,6 +399,10 @@ static int __init cm_bf537_init(void)
 	platform_add_devices(cm_bf537_devices, ARRAY_SIZE(cm_bf537_devices));
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
 	spi_register_board_info(bfin_spi_board_info, ARRAY_SIZE(bfin_spi_board_info));
+#endif
+
+#if defined(CONFIG_PATA_PLATFORM) || defined(CONFIG_PATA_PLATFORM_MODULE)
+	irq_desc[PATA_INT].status |= IRQ_NOAUTOEN;
 #endif
 	return 0;
 }
