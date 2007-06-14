@@ -39,6 +39,7 @@
 #include <linux/backlight.h>
 #include <linux/lcd.h>
 #include <linux/i2c.h>
+#include <linux/spinlock.h>
 #include <linux/dma-mapping.h>
 #include <linux/platform_device.h>
 
@@ -62,6 +63,8 @@ static dma_addr_t dma_handle;             /* ? */
 static unsigned long* dma_desc_table;
 static int lq035_mmap = 0;
 static int t_conf_done = 0;
+static int lq035_open_cnt = 0;
+static DEFINE_SPINLOCK(bfin_lq035_lock);
 
 #ifdef CONFIG_FB_BFIN_LANDSCAPE
 static int landscape = 1;
@@ -491,37 +494,54 @@ static struct fb_fix_screeninfo bfin_lq035_fb_fix __initdata = {
 
 static int bfin_lq035_fb_open(struct fb_info* info, int user)
 {
-	bfin_write_PPI_CONTROL(0);
-	SSYNC();
+	unsigned long flags;
 
-	set_vcomm();
-	config_dma();
-	config_ppi();
+	spin_lock_irqsave(&bfin_lq035_lock, flags);
+	lq035_open_cnt++;
+	spin_unlock_irqrestore(&bfin_lq035_lock, flags);
 
-	/* start dma */
-	enable_dma(CH_PPI);
-	SSYNC();
-	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
-	SSYNC();
-
-	if(!t_conf_done) {
-		config_timers();
-		start_timers();
+	if(lq035_open_cnt <= 1) {
+		bfin_write_PPI_CONTROL(0);
+		SSYNC();
+	
+		set_vcomm();
+		config_dma();
+		config_ppi();
+	
+		/* start dma */
+		enable_dma(CH_PPI);
+		SSYNC();
+		bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
+		SSYNC();
+	
+		if(!t_conf_done) {
+			config_timers();
+			start_timers();
+		}
+		/* gpio_set_value(MOD,1); */
 	}
-//	gpio_set_value(MOD,1);
 
 	return 0;
 }
 
 static int bfin_lq035_fb_release(struct fb_info* info, int user)
 {
+	unsigned long flags;
 
-	disable_dma(CH_PPI);
-
-	bfin_write_PPI_CONTROL(0);
-	SSYNC();
-
+	spin_lock_irqsave(&bfin_lq035_lock, flags);
+	lq035_open_cnt--;
 	lq035_mmap = 0;
+	spin_unlock_irqrestore(&bfin_lq035_lock, flags);
+
+
+	if(lq035_open_cnt <= 0) {
+
+		bfin_write_PPI_CONTROL(0);
+		SSYNC();
+	
+		disable_dma(CH_PPI);
+	}
+
 	return 0;
 }
 
@@ -581,8 +601,15 @@ void bfin_lq035_fb_rotate(struct fb_info *fbi, int angle)
 
 static int direct_mmap(struct fb_info *info, struct vm_area_struct * vma)
 {
+
+	unsigned long flags;
+
 	if (lq035_mmap)
 		return -1;
+
+	spin_lock_irqsave(&bfin_lq035_lock, flags);
+	lq035_mmap = 1;
+	spin_unlock_irqrestore(&bfin_lq035_lock, flags);
 
 	if(landscape) {
 		vma->vm_start = (unsigned long)fb_buffer;
@@ -599,7 +626,7 @@ static int direct_mmap(struct fb_info *info, struct vm_area_struct * vma)
 	 *   include/linux/mm.h
 	 */
 	vma->vm_flags |=  VM_MAYSHARE;
-	lq035_mmap = 1;
+
 	return 0 ;
 }
 
