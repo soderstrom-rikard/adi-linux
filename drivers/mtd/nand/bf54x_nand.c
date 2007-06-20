@@ -6,7 +6,7 @@
  *
  * Blackfin BF54x on-chip NAND flash controler driver
  *
- * Derived from drivers/mtd/nand/bf54x.c
+ * Derived from drivers/mtd/nand/s3c2410.c
  * Copyright (c) 2007 Ben Dooks <ben@simtec.co.uk>
  *
  * Changelog:
