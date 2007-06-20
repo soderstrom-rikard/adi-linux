@@ -94,6 +94,23 @@ static struct platform_device bfin_uart_device = {
 };
 #endif
 
+#if defined(CONFIG_USB_BF54x_HCD) || defined(CONFIG_USB_BF54x_HCD_MODULE)
+static struct resource bf54x_hcd_resources[] = {
+	{
+		.start = 0xFFC03C00,
+		.end = 0xFFC040FF,
+		.flags = IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device bf54x_hcd = {
+	.name = "bf54x-hcd",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(bf54x_hcd_resources),
+	.resource = bf54x_hcd_resources,
+};
+#endif
+
 static struct platform_device *ezkit_devices[] __initdata = {
 #if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)
 	&rtc_device,
@@ -101,6 +118,9 @@ static struct platform_device *ezkit_devices[] __initdata = {
 
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
 	&bfin_uart_device,
+#endif
+#if defined(CONFIG_USB_BF54x_HCD) || defined(CONFIG_USB_BF54x_HCD_MODULE)
+	&bf54x_hcd,
 #endif
 };
 

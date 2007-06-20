@@ -265,4 +265,8 @@ config USB_SL811_CS
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called "sl811_cs".
-
+config USB_BF54x_HCD
+	tristate "BF54x HCD support"
+	depends on USB && (BF542 || BF544 || BF548 || BF549)
+	help
+	 BF54x host controller support
