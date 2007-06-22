@@ -30,168 +30,27 @@ machine-$(CONFIG_BF561) := bf561
 MACHINE := $(machine-y)
 export MACHINE
 
-ifdef CONFIG_BF531
+cpu-$(CONFIG_BF531) := bf531
+cpu-$(CONFIG_BF532) := bf532
+cpu-$(CONFIG_BF533) := bf533
+cpu-$(CONFIG_BF534) := bf534
+cpu-$(CONFIG_BF536) := bf536
+cpu-$(CONFIG_BF537) := bf537
+cpu-$(CONFIG_BF548) := bf548
+cpu-$(CONFIG_BF549) := bf549
+cpu-$(CONFIG_BF561) := bf561
 
-ifdef CONFIG_BF_REV_0_3
-CFLAGS		+= -mcpu=bf531-0.3
-AFLAGS		+= -mcpu=bf531-0.3
-else ifdef CONFIG_BF_REV_0_4
-CFLAGS		+= -mcpu=bf531-0.4
-AFLAGS		+= -mcpu=bf531-0.4
-else ifdef CONFIG_BF_REV_0_5
-CFLAGS		+= -mcpu=bf531-0.5
-AFLAGS		+= -mcpu=bf531-0.5
-else ifdef CONFIG_BF_REV_NONE
-CFLAGS		+= -mcpu=bf531-none
-AFLAGS		+= -mcpu=bf531-none
-else ifdef CONFIG_BF_REV_ANY
-CFLAGS		+= -mcpu=bf531-any
-AFLAGS		+= -mcpu=bf531-any
-else
-CFLAGS		+= -mcpu=bf531
-AFLAGS		+= -mcpu=bf531
-endif
+rev-$(CONFIG_BF_REV_0_0)  := 0.0
+rev-$(CONFIG_BF_REV_0_1)  := 0.1
+rev-$(CONFIG_BF_REV_0_2)  := 0.2
+rev-$(CONFIG_BF_REV_0_3)  := 0.3
+rev-$(CONFIG_BF_REV_0_4)  := 0.4
+rev-$(CONFIG_BF_REV_0_5)  := 0.5
+rev-$(CONFIG_BF_REV_NONE) := none
+rev-$(CONFIG_BF_REV_ANY)  := any
 
-else ifdef CONFIG_BF532
-
-ifdef CONFIG_BF_REV_0_3
-CFLAGS		+= -mcpu=bf532-0.3
-AFLAGS		+= -mcpu=bf532-0.3
-else ifdef CONFIG_BF_REV_0_4
-CFLAGS		+= -mcpu=bf532-0.4
-AFLAGS		+= -mcpu=bf532-0.4
-else ifdef CONFIG_BF_REV_0_5
-CFLAGS		+= -mcpu=bf532-0.5
-AFLAGS		+= -mcpu=bf532-0.5
-else ifdef CONFIG_BF_REV_NONE
-CFLAGS		+= -mcpu=bf532-none
-AFLAGS		+= -mcpu=bf532-none
-else ifdef CONFIG_BF_REV_ANY
-CFLAGS		+= -mcpu=bf532-any
-AFLAGS		+= -mcpu=bf532-any
-else
-CFLAGS		+= -mcpu=bf532
-AFLAGS		+= -mcpu=bf532
-endif
-
-else ifdef CONFIG_BF533
-
-ifdef CONFIG_BF_REV_0_3
-CFLAGS		+= -mcpu=bf533-0.3
-AFLAGS		+= -mcpu=bf533-0.3
-else ifdef CONFIG_BF_REV_0_4
-CFLAGS		+= -mcpu=bf533-0.4
-AFLAGS		+= -mcpu=bf533-0.4
-else ifdef CONFIG_BF_REV_0_5
-CFLAGS		+= -mcpu=bf533-0.5
-AFLAGS		+= -mcpu=bf533-0.5
-else ifdef CONFIG_BF_REV_NONE
-CFLAGS		+= -mcpu=bf533-none
-AFLAGS		+= -mcpu=bf533-none
-else ifdef CONFIG_BF_REV_ANY
-CFLAGS		+= -mcpu=bf533-any
-AFLAGS		+= -mcpu=bf533-any
-else
-CFLAGS		+= -mcpu=bf533
-AFLAGS		+= -mcpu=bf533
-endif
-
-else ifdef CONFIG_BF534
-
-ifdef CONFIG_BF_REV_0_2
-CFLAGS		+= -mcpu=bf534-0.2
-AFLAGS		+= -mcpu=bf534-0.2
-else ifdef CONFIG_BF_REV_0_3
-CFLAGS		+= -mcpu=bf534-0.3
-AFLAGS		+= -mcpu=bf534-0.3
-else ifdef CONFIG_BF_REV_NONE
-CFLAGS		+= -mcpu=bf534-none
-AFLAGS		+= -mcpu=bf534-none
-else ifdef CONFIG_BF_REV_ANY
-CFLAGS		+= -mcpu=bf534-any
-AFLAGS		+= -mcpu=bf534-any
-else
-CFLAGS		+= -mcpu=bf534
-AFLAGS		+= -mcpu=bf534
-endif
-
-else ifdef CONFIG_BF536
-
-ifdef CONFIG_BF_REV_0_2
-CFLAGS		+= -mcpu=bf536-0.2
-AFLAGS		+= -mcpu=bf536-0.2
-else ifdef CONFIG_BF_REV_0_3
-CFLAGS		+= -mcpu=bf536-0.3
-AFLAGS		+= -mcpu=bf536-0.3
-else ifdef CONFIG_BF_REV_NONE
-CFLAGS		+= -mcpu=bf536-none
-AFLAGS		+= -mcpu=bf536-none
-else ifdef CONFIG_BF_REV_ANY
-CFLAGS		+= -mcpu=bf536-any
-AFLAGS		+= -mcpu=bf536-any
-else
-CFLAGS		+= -mcpu=bf536
-AFLAGS		+= -mcpu=bf536
-endif
-
-else ifdef CONFIG_BF537
-
-ifdef CONFIG_BF_REV_0_2
-CFLAGS		+= -mcpu=bf537-0.2
-AFLAGS		+= -mcpu=bf537-0.2
-else ifdef CONFIG_BF_REV_0_3
-CFLAGS		+= -mcpu=bf537-0.3
-AFLAGS		+= -mcpu=bf537-0.3
-else ifdef CONFIG_BF_REV_NONE
-CFLAGS		+= -mcpu=bf537-none
-AFLAGS		+= -mcpu=bf537-none
-else ifdef CONFIG_BF_REV_ANY
-CFLAGS		+= -mcpu=bf537-any
-AFLAGS		+= -mcpu=bf537-any
-else
-CFLAGS		+= -mcpu=bf537
-AFLAGS		+= -mcpu=bf537
-endif
-
-else ifdef CONFIG_BF549
-
-ifdef CONFIG_BF_REV_0_0
-CFLAGS		+= -mcpu=bf549-0.0
-AFLAGS		+= -mcpu=bf549-0.0
-else ifdef CONFIG_BF_REV_NONE
-CFLAGS		+= -mcpu=bf539-none
-AFLAGS		+= -mcpu=bf539-none
-else ifdef CONFIG_BF_REV_ANY
-CFLAGS		+= -mcpu=bf539-any
-AFLAGS		+= -mcpu=bf539-any
-else
-CFLAGS		+= -mcpu=bf539
-AFLAGS		+= -mcpu=bf539
-endif
-
-else ifdef CONFIG_BF561
-
-ifdef CONFIG_BF_REV_0_3
-CFLAGS		+= -mcpu=bf561-0.3
-AFLAGS		+= -mcpu=bf561-0.3
-else ifdef CONFIG_BF_REV_0_4
-CFLAGS		+= -mcpu=bf561-0.4
-AFLAGS		+= -mcpu=bf561-0.4
-else ifdef CONFIG_BF_REV_0_5
-CFLAGS		+= -mcpu=bf561-0.5
-AFLAGS		+= -mcpu=bf561-0.5
-else ifdef CONFIG_BF_REV_NONE
-CFLAGS		+= -mcpu=bf561-none
-AFLAGS		+= -mcpu=bf561-none
-else ifdef CONFIG_BF_REV_ANY
-CFLAGS		+= -mcpu=bf561-any
-AFLAGS		+= -mcpu=bf561-any
-else
-CFLAGS		+= -mcpu=bf561
-AFLAGS		+= -mcpu=bf561
-endif
-
-endif
+CFLAGS += -mcpu=$(cpu-y)-$(rev-y)
+AFLAGS += -mcpu=$(cpu-y)-$(rev-y)
 
 head-y   := arch/$(ARCH)/mach-$(MACHINE)/head.o arch/$(ARCH)/kernel/init_task.o
 
