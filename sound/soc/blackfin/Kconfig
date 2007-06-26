@@ -1,0 +1,35 @@
+menu "SoC Audio for the ADI Blackfin"
+
+config SND_BF5XX_SOC
+	tristate "SoC Audio for the  ADI BF5xx chip"
+	depends on BFIN && SND_SOC
+	help
+	  Say Y or M if you want to add support for codecs attached to
+	  the BF5xx AC97 interface. You will also need
+	  to select the audio interfaces to support below.
+
+config SND_BF5XX_AC97
+	tristate
+	select SND_AC97_CODEC
+
+config SND_BF5XX_SOC_AC97
+	tristate
+	select AC97_BUS
+	select SND_SOC_AC97_BUS
+
+config SND_BF5XX_SOC_BF548_EZKIT
+	tristate "SoC AC97 Audio support for BF548 ezkit"
+	depends on SND_BF5XX_SOC
+	select SND_BF5XX_SOC_AC97
+	select SND_SOC_AD1980
+	help
+	  Say Y if you want to add support for SoC audio on BF548-EZKIT.
+
+config SND_BF5XX_SPORT_NUM
+	int "Set a SPORT for Sound chip"
+	depends on SND_BF5XX_SOC
+	default 0
+	help
+	  Set the correct SPORT for sound chip.
+
+endmenu

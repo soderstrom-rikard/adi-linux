@@ -13,3 +13,7 @@ config SND_SOC_WM8750
 config SND_SOC_WM9712
 	tristate
 	depends on SND_SOC
+
+config SND_SOC_AD1980
+	tristate
+	depends on SND_SOC

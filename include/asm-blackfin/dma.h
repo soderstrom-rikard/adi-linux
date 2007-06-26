@@ -109,9 +109,7 @@ struct dma_register {
 
 	unsigned long curr_desc_ptr;	/* DMA Current Descriptor Pointer
 					   register */
-	unsigned short curr_addr_ptr_lo;	/* DMA Current Address Pointer
-						   register */
-	unsigned short curr_addr_ptr_hi;	/* DMA Current Address Pointer
+	unsigned long curr_addr_ptr;	/* DMA Current Address Pointer
 						   register */
 	unsigned short irq_status;	/* DMA irq status register */
 	unsigned short dummy6;
