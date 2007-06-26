@@ -163,7 +163,7 @@ static struct cplb_desc cplb_data[] = {
 		.psize = SIZE_1M,
 		.attr = INITIAL_T | SWITCH_T | D_CPLB,
 		.d_conf = SDRAM_DNON_CHBL,
-		.valid = 1,//(DMA_UNCACHED_REGION > 0),
+		.valid = 1,
 		.name = "SDRAM Uncached DMA ZONE",
 	},
 	{
