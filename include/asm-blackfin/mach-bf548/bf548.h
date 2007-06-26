@@ -267,11 +267,11 @@
 * approx 16 for smaller 1MB page size CPLBs for allignment purposes
 * 1 for L1 Data Memory
 * 1 for CONFIG_DEBUG_HUNT_FOR_ZERO
-* 1 for ASYNC Memory
+* 64 for ASYNC Memory (4+64MB / 4MB)
 */
 
 
-#define MAX_SWITCH_D_CPLBS (((CONFIG_MEM_SIZE / 4) + 16 + 1 + 1 + 1) * 2)
+#define MAX_SWITCH_D_CPLBS (((CONFIG_MEM_SIZE / 4) + 16 + 1 + 1 + 64) * 2)
 
 /*
 * Number of required instruction CPLB switchtable entries
