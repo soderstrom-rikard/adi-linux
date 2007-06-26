@@ -111,6 +111,28 @@ static struct platform_device bf54x_hcd = {
 };
 #endif
 
+#if defined(CONFIG_PATA_BF54X) || defined(CONFIG_PATA_BF54X_MODULE)
+static struct resource bfin_atapi_resources[] = {
+	{
+		.start = 0xFFC03800,
+		.end = 0xFFC0386F,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = 155,
+		.end = 155,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_atapi_device = {
+	.name = "bf54x-atapi",
+	.id = -1,
+	.num_resources = ARRAY_SIZE(bfin_atapi_resources),
+	.resource = bfin_atapi_resources,
+};
+#endif
+
 static struct platform_device *ezkit_devices[] __initdata = {
 #if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)
 	&rtc_device,
@@ -121,6 +143,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #endif
 #if defined(CONFIG_USB_BF54x_HCD) || defined(CONFIG_USB_BF54x_HCD_MODULE)
 	&bf54x_hcd,
+#endif
+
+#if defined(CONFIG_PATA_BF54X) || defined(CONFIG_PATA_BF54X_MODULE)
+	&bfin_atapi_device,
 #endif
 };
 
