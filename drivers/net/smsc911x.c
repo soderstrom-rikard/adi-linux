@@ -48,6 +48,9 @@
  *
  *   30/12/2006 steve.glendinning@smsc.com
  *     - Fix for external PHY initialisation
+ *
+ *   26/06/2007 hennerich@blackfin.uclinux.org
+ *     - Fixed style and ported to linux-2.6.21
  */
 
 #include <linux/crc32.h>
