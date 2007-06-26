@@ -87,7 +87,7 @@ void __init l1sram_init(void)
 	       L1_SCRATCH_LENGTH >> 10);
 
 	memset(&l1_ssram, 0x00, sizeof(l1_ssram));
-	l1_ssram[0].paddr = (void*)L1_SCRATCH_START;
+	l1_ssram[0].paddr = (void *)L1_SCRATCH_START;
 	l1_ssram[0].size = L1_SCRATCH_LENGTH;
 	l1_ssram[0].flag = SRAM_SLT_FREE;
 
@@ -99,7 +99,7 @@ void __init l1_data_sram_init(void)
 {
 #if L1_DATA_A_LENGTH != 0
 	memset(&l1_data_A_sram, 0x00, sizeof(l1_data_A_sram));
-	l1_data_A_sram[0].paddr = (void*)L1_DATA_A_START + (_ebss_l1 - _sdata_l1);
+	l1_data_A_sram[0].paddr = (void *)L1_DATA_A_START + (_ebss_l1 - _sdata_l1);
 	l1_data_A_sram[0].size = L1_DATA_A_LENGTH - (_ebss_l1 - _sdata_l1);
 	l1_data_A_sram[0].flag = SRAM_SLT_FREE;
 
@@ -108,7 +108,7 @@ void __init l1_data_sram_init(void)
 #endif
 #if L1_DATA_B_LENGTH != 0
 	memset(&l1_data_B_sram, 0x00, sizeof(l1_data_B_sram));
-	l1_data_B_sram[0].paddr = (void*)L1_DATA_B_START + (_ebss_b_l1 - _sdata_b_l1);
+	l1_data_B_sram[0].paddr = (void *)L1_DATA_B_START + (_ebss_b_l1 - _sdata_b_l1);
 	l1_data_B_sram[0].size = L1_DATA_B_LENGTH - (_ebss_b_l1 - _sdata_b_l1);
 	l1_data_B_sram[0].flag = SRAM_SLT_FREE;
 
@@ -124,7 +124,7 @@ void __init l1_inst_sram_init(void)
 {
 #if L1_CODE_LENGTH != 0
 	memset(&l1_inst_sram, 0x00, sizeof(l1_inst_sram));
-	l1_inst_sram[0].paddr = (void*)L1_CODE_START + (_etext_l1 - _stext_l1);
+	l1_inst_sram[0].paddr = (void *)L1_CODE_START + (_etext_l1 - _stext_l1);
 	l1_inst_sram[0].size = L1_CODE_LENGTH - (_etext_l1 - _stext_l1);
 	l1_inst_sram[0].flag = SRAM_SLT_FREE;
 
@@ -556,10 +556,10 @@ static void _l1sram_proc_read(char *buf, int *len, const char *desc,
 	for (i = 0; i < array_size; ++i) {
 		const char *alloc_type;
 		switch (pfree[i].flag) {
-			case SRAM_SLT_NULL:      alloc_type = "NULL"; break;
-			case SRAM_SLT_FREE:      alloc_type = "FREE"; break;
-			case SRAM_SLT_ALLOCATED: alloc_type = "ALLOCATED"; break;
-			default:                 alloc_type = "????"; break;
+		case SRAM_SLT_NULL:      alloc_type = "NULL"; break;
+		case SRAM_SLT_FREE:      alloc_type = "FREE"; break;
+		case SRAM_SLT_ALLOCATED: alloc_type = "ALLOCATED"; break;
+		default:                 alloc_type = "????"; break;
 		}
 		*len += sprintf(&buf[*len], "%p-%p %8i %4i %s\n",
 			pfree[i].paddr, pfree[i].paddr + pfree[i].size,

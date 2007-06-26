@@ -35,16 +35,14 @@
 #include <linux/smp.h>
 #include <linux/spinlock.h>
 #include <linux/delay.h>
-#include <asm/system.h>
-#include <asm/ptrace.h>		/* for linux pt_regs struct */
+#include <linux/ptrace.h>		/* for linux pt_regs struct */
 #include <linux/kgdb.h>
-#ifdef CONFIG_GDB_CONSOLE
 #include <linux/console.h>
-#endif
 #include <linux/init.h>
 #include <linux/debugger.h>
 #include <linux/errno.h>
-#include <asm/irq.h>
+#include <linux/irq.h>
+#include <asm/system.h>
 #include <asm/traps.h>
 #include <asm/blackfin.h>
 
@@ -133,7 +131,6 @@ void sleeping_thread_to_gdb_regs(unsigned long *gdb_regs, struct task_struct *p)
 	gdb_regs[BFIN_SP] = p->thread.ksp;
 	gdb_regs[BFIN_PC] = p->thread.pc;
 	gdb_regs[BFIN_SEQSTAT] = p->thread.seqstat;
-
 }
 
 void gdb_regs_to_regs(unsigned long *gdb_regs, struct pt_regs *regs)
@@ -186,7 +183,7 @@ void gdb_regs_to_regs(unsigned long *gdb_regs, struct pt_regs *regs)
 	regs->retn = gdb_regs[BFIN_RETN];
 	regs->rete = gdb_regs[BFIN_RETE];
 	regs->pc = gdb_regs[BFIN_PC];
-	
+
 #if 0				/* can't change these */
 	regs->astat = gdb_regs[BFIN_ASTAT];
 	regs->seqstat = gdb_regs[BFIN_SEQSTAT];
@@ -213,7 +210,7 @@ int kgdb_arch_init(void)
 int kgdb_set_hw_break(unsigned long addr)
 {
 	int breakno;
-	for (breakno=0;breakno<HW_BREAKPOINT_NUM;breakno++)
+	for (breakno = 0; breakno < HW_BREAKPOINT_NUM; breakno++)
 		if (!breakinfo[breakno].occupied) {
 			breakinfo[breakno].occupied = 1;
 			breakinfo[breakno].enabled = 1;
@@ -228,7 +225,7 @@ int kgdb_set_hw_break(unsigned long addr)
 int kgdb_remove_hw_break(unsigned long addr)
 {
 	int breakno;
-	for (breakno=0;breakno<HW_BREAKPOINT_NUM;breakno++)
+	for (breakno = 0; breakno < HW_BREAKPOINT_NUM; breakno++)
 		if (breakinfo[breakno].addr == addr)
 			memset(&(breakinfo[breakno]), 0, sizeof(struct hw_breakpoint));
 
@@ -361,12 +358,12 @@ void kgdb_correct_hw_break(void)
 	if (correctit) {
 		wpdactl &= ~WPAND;
 		wpdactl |= WPPWR;
-/*printk("correct_hw_break: wpdactl=0x%x\n", wpdactl);*/
+		/*printk("correct_hw_break: wpdactl=0x%x\n", wpdactl);*/
 		__asm__ volatile (
 			"[%0] = %1;"
 			"csync;nop;nop;nop;"
 			::"a"(WPIACTL), "d"(wpdactl));
-/*		kgdb_show_info();*/
+		/*kgdb_show_info();*/
 	}
 }
 
@@ -450,4 +447,3 @@ struct kgdb_arch arch_kgdb_ops = {
 	.gdb_bpt_instr = {0xa1},
 	.flags = KGDB_HW_BREAKPOINT,
 };
-
