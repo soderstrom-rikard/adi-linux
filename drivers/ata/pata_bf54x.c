@@ -37,7 +37,7 @@
 #include <linux/libata.h>
 #include <linux/platform_device.h>
 
-#define DRV_NAME		"pata_bf54x"
+#define DRV_NAME		"pata-bf54x"
 #define DRV_VERSION		"0.1"
 
 #define ATA_REG_CTRL		0x0E
@@ -157,29 +157,6 @@
 #define ATAPI_SET_ULTRA_TIM_3(base, val)\
 	bfin_write16(base + ATAPI_OFFSET_ULTRA_TIM_3, val)
 
-
-#define CONFIG_ATAPI_TEOC_REG		0
-#define CONFIG_ATAPI_T2_REG		0
-#define CONFIG_ATAPI_T4_REG		0x3
-#define CONFIG_ATAPI_T2_PIO		0x11
-#define CONFIG_ATAPI_T1_REG		0x7
-#define CONFIG_ATAPI_TEOC_PIO		0x2c
-#define CONFIG_ATAPI_TM			0
-#define CONFIG_ATAPI_TD			0
-#define CONFIG_ATAPI_TKR		0
-#define CONFIG_ATAPI_TKW		0
-#define CONFIG_ATAPI_TEOC		0
-#define CONFIG_ATAPI_TH			0
-#define CONFIG_ATAPI_TENV		0
-#define CONFIG_ATAPI_TACK		0
-#define CONFIG_ATAPI_TCYC_TDVS		0
-#define CONFIG_ATAPI_TDVS		0
-#define CONFIG_ATAPI_TMLI		0
-#define CONFIG_ATAPI_TSS		0
-#define CONFIG_ATAPI_TRP		0
-#define CONFIG_ATAPI_TZAH		0
-
-
 /**
  * PIO Mode - Frequency compatibility
  */
@@ -190,8 +167,8 @@ static u32 pio_fsclk[] =
 /**
  * MDMA Mode - Frequency compatibility
  */
-/*               mode:      0          1           2        */
-static u32 mdma_fsclk[] = { 33333333,  33333333,   33333333 };
+/*               mode:      0         1         2        */
+static u32 mdma_fsclk[] = { 33333333, 33333333, 33333333 };
 
 /**
  * UDMA Mode - Frequency compatibility
@@ -270,7 +247,6 @@ static u32 udma_tenvmin = 20;
 static u32 udma_tackmin = 20;
 static u32 udma_tssmin = 50;
 
-
 /**
  *
  *	Function:       num_clocks_min
@@ -292,8 +268,6 @@ static unsigned short num_clocks_min(unsigned long tmin,
 
 	return result;
 }
-
-/* PIO transfer mode table */
 
 /**
  *	bfin_set_piomode - Initialize host controller PATA PIO timings
@@ -320,7 +294,7 @@ static void bfin_set_piomode (struct ata_port *ap, struct ata_device *adev)
 	* transfers cannot be supported at this frequency.
 	*/
 	n6 = num_clocks_min(t6min, fsclk);
-	if ((pio_fsclk[mode] <= fsclk) && n6 >= 1) {
+	if (mode >= 0 && mode <= 4 && (pio_fsclk[mode] <= fsclk) && n6 >= 1) {
 		/* calculate the timing values for register transfers. */
 
 		/* DIOR/DIOW to end cycle time */
@@ -365,6 +339,10 @@ static void bfin_set_piomode (struct ata_port *ap, struct ata_device *adev)
 			ATAPI_SET_CONTROL(base,
 				ATAPI_GET_CONTROL(base) & ~IORDY_EN);
 		}
+
+		/* Disable host ATAPI PIO interrupts */
+		ATAPI_SET_INT_MASK(base, ATAPI_GET_INT_MASK(base)
+			& ~(PIO_DONE_MASK | HOST_TERM_XFER_MASK));
 		SSYNC();
 	}
 }
@@ -392,7 +370,7 @@ static void bfin_set_dmamode (struct ata_port *ap, struct ata_device *adev)
 	unsigned short nmin, tcyc;
 
 	mode = adev->dma_mode - XFER_UDMA_0;
-	if (mode >= 0) {
+	if (mode >= 0 && mode <= 5) {
 		/* the most restrictive timing value is t6 and tc,
 		 * the DIOW - data hold. If one SCLK pulse is longer
 		 * than this minimum value then register
@@ -434,6 +412,14 @@ static void bfin_set_dmamode (struct ata_port *ap, struct ata_device *adev)
 					(tcyc_tdvs<<8 | tdvs));
 				ATAPI_SET_ULTRA_TIM_2(base, (tmli<<8 | tss));
 				ATAPI_SET_ULTRA_TIM_3(base, (trp<<8 | tzah));
+
+				/* Enable host ATAPI Untra DMA interrupts */
+				ATAPI_SET_INT_MASK(base,
+					ATAPI_GET_INT_MASK(base)
+					| UDMAIN_DONE_MASK
+					| UDMAOUT_DONE_MASK
+					| UDMAIN_TERM_MASK
+					| UDMAOUT_TERM_MASK);
 				SSYNC();
 				return;
 			}
@@ -441,7 +427,7 @@ static void bfin_set_dmamode (struct ata_port *ap, struct ata_device *adev)
 	}
 
 	mode = adev->dma_mode - XFER_MW_DMA_0;
-	if (mode >= 0) {
+	if (mode >= 0 && mode <= 2) {
 		/* the most restrictive timing value is tf, the DMACK to
 		 * read data released. If one SCLK pulse is longer than
 		 * this maximum value then the MDMA mode
@@ -477,6 +463,10 @@ static void bfin_set_dmamode (struct ata_port *ap, struct ata_device *adev)
 			ATAPI_SET_MULTI_TIM_0(base, (tm<<8 | td));
 			ATAPI_SET_MULTI_TIM_1(base, (tkr<<8 | tkw));
 			ATAPI_SET_MULTI_TIM_2(base, (teoc<<8 | th));
+
+			/* Enable host ATAPI Multi DMA interrupts */
+			ATAPI_SET_INT_MASK(base, ATAPI_GET_INT_MASK(base)
+				| MULTI_DONE_MASK | MULTI_TERM_MASK);
 			SSYNC();
 			return;
 		}
@@ -495,8 +485,11 @@ static void inline wait_complete(unsigned long base, unsigned short mask)
 	unsigned short status;
 
 	do {
-		status = ATAPI_GET_STATUS(base) & mask;
-	} while (status);
+		status = ATAPI_GET_INT_STATUS(base) & mask;
+	} while (~status);
+
+	ATAPI_SET_INT_STATUS(base, mask);
+	SSYNC();
 }
 
 /**
@@ -510,9 +503,6 @@ static void inline wait_complete(unsigned long base, unsigned short mask)
 static void write_atapi_register(unsigned long base,
 		unsigned long ata_reg, unsigned short value)
 {
-	/* Disable all ATA interrupts */
-	ATAPI_SET_INT_MASK(base, 0);
-
 	/* Set transfer length to 1 */
 	ATAPI_SET_XFER_LEN(base, 1);
 
@@ -541,7 +531,7 @@ static void write_atapi_register(unsigned long base,
 	/* Wait for the interrupt to indicate the end of the transfer.
 	 * (We need to wait on and clear rhe ATA_DEV_INT interrupt status)
 	 */
-	wait_complete(base, PIO_XFER_ON);
+	wait_complete(base, PIO_DONE_INT);
 }
 
 /**
@@ -555,9 +545,6 @@ static void write_atapi_register(unsigned long base,
 static unsigned short read_atapi_register(unsigned long base,
 		unsigned long ata_reg)
 {
-	/* Disable all ATA interrupts */
-	ATAPI_SET_INT_MASK(base, 0);
-
 	/* Set transfer length to 1 */
 	ATAPI_SET_XFER_LEN(base, 1);
 
@@ -582,7 +569,7 @@ static unsigned short read_atapi_register(unsigned long base,
 	 * (PIO_DONE interrupt is set and it doesn't seem to matter
 	 * that we don't clear it)
 	 */
-	wait_complete(base, PIO_XFER_ON);
+	wait_complete(base, PIO_DONE_INT);
 
 	/* Read the ATA_DEV_RXBUF register with write data (to be
 	 * written into the device).
@@ -602,9 +589,6 @@ static void write_atapi_register_data(unsigned long base,
 		int len, unsigned short *buf)
 {
 	int i;
-
-	/* Disable all ATA interrupts */
-	ATAPI_SET_INT_MASK(base, 0);
 
 	/* Set transfer length to 1 */
 	ATAPI_SET_XFER_LEN(base, 1);
@@ -636,7 +620,7 @@ static void write_atapi_register_data(unsigned long base,
 		 * (We need to wait on and clear rhe ATA_DEV_INT
 		 * interrupt status)
 		 */
-		wait_complete(base, PIO_XFER_ON);
+		wait_complete(base, PIO_DONE_INT);
 	}
 }
 
@@ -652,9 +636,6 @@ static void read_atapi_register_data(unsigned long base,
 		int len, unsigned short *buf)
 {
 	int i;
-
-	/* Disable all ATA interrupts */
-	ATAPI_SET_INT_MASK(base, 0);
 
 	/* Set transfer length to 1 */
 	ATAPI_SET_XFER_LEN(base, 1);
@@ -681,7 +662,7 @@ static void read_atapi_register_data(unsigned long base,
 		 * (PIO_DONE interrupt is set and it doesn't seem to matter
 		 * that we don't clear it)
 		 */
-		wait_complete(base, PIO_XFER_ON);
+		wait_complete(base, PIO_DONE_INT);
 
 		/* Read the ATA_DEV_RXBUF register with write data (to be
 		 * written into the device).
@@ -1316,12 +1297,24 @@ static int bfin_config_atapi_gpio(struct ata_probe_ent *ae)
 {
 	bfin_write_PORTF_FER(0xffff);
 	bfin_write_PORTF_MUX(0x55555555);
-	bfin_write_PORTG_FER(0x1c);
+	bfin_write_PORTF_DIR_SET(0xffff);
+
+	bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0x1c);
 	bfin_write_PORTG_MUX((bfin_read_PORTG_MUX() & ~0x3f0) | 0x150);
-	bfin_write_PORTH_FER(0x4);
+	bfin_write_PORTG_DIR_SET(0x1c);
+
+	bfin_write_PORTH_FER(bfin_read_PORTH_FER() | 0x4);
 	bfin_write_PORTH_MUX((bfin_read_PORTH_MUX() & ~0x30) | 0x10);
-	bfin_write_PORTI_FER(0x7f8);
-	bfin_write_PORTI_MUX(bfin_read_PORTI_MUX() & ~0x3fffc0);
+	bfin_write_PORTH_DIR_SET(0x4);
+
+	bfin_write_PORTJ_FER(0x7f8);
+	bfin_write_PORTJ_MUX(bfin_read_PORTI_MUX() & ~0x3fffc0);
+	bfin_write_PORTJ_DIR_SET(0x5f8);
+	bfin_write_PORTJ_DIR_CLEAR(0x200);
+	bfin_write_PORTJ_INEN(0x200);
+
+	bfin_write_PINT2_ASSIGN(0x0707);
+	bfin_write_PINT2_MASK_SET(0x200);
 	SSYNC();
 
 	return 0;
@@ -1354,6 +1347,10 @@ static int bfin_reset_controller(struct ata_probe_ent *ae)
 	do {
 		status = read_atapi_register(base, ATA_REG_STATUS);
 	} while (count-- && (status & ATA_BUSY));
+
+	/* Enable only ATAPI Device interrupt */
+	ATAPI_SET_INT_MASK(base, 1);
+	SSYNC();
 
 	return (!count);
 }
