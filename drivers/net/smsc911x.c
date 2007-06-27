@@ -2046,7 +2046,7 @@ static int smsc911x_drv_probe(struct platform_device *pdev)
 	if (retval < 0)
 		goto out_unmap_io_3;
 
-	retval = request_irq(dev->irq, smsc911x_irqhandler, SA_INTERRUPT,
+	retval = request_irq(dev->irq, smsc911x_irqhandler, IRQF_TRIGGER_FALLING | SA_INTERRUPT,
 			     SMSC_CHIPNAME, dev);
 	if (retval) {
 		SMSC_WARNING("Unable to claim requested irq: %d", dev->irq);
