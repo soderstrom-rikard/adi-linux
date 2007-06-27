@@ -70,6 +70,16 @@ static irqreturn_t bf54x_hcd_irq(struct usb_hcd *hcd)
 	return ret;
 }
 
+static int bf54x_hcd_start(struct usb_hcd *hcd)
+{
+	return 0;
+}
+
+static void bf54x_hcd_stop(struct usb_hcd *hcd)
+{
+
+}
+
 static void bf54x_tx_zero_buffer(void)
 {
 }
@@ -335,6 +345,9 @@ static struct hc_driver bf54x_hc_driver = {
 	 */
 	.irq =			bf54x_hcd_irq,
 	.flags =		HCD_USB11 | HCD_MEMORY,
+	/* Basic lifecycle operations */
+	.start =		bf54x_hcd_start,
+	.stop =			bf54x_hcd_stop,
 
 	/*
 	 * managing i/o requests and associated device resources
@@ -417,12 +430,10 @@ static void bf54x_config_host(void)
 	 * we come up as B-Device in case no cable plugged in,
 	 * we wait for user to plug in the usb cable
 	 */
+#if 0
 	if (bfin_read_USB_OTG_DEV_CTL() & (1 << 7))
 		bf54x_hcd_wait_connect();
-
-	/* wait for the connection interrupt */
-	while (!(bfin_read_USB_INTRUSB() & CONN_B))
-		;
+#endif
 
 	/* clear connection interrupt */
 	bfin_write_USB_INTRUSB(bfin_read_USB_INTRUSB() | CONN_B);
@@ -456,12 +467,13 @@ bf54x_hcd_probe(struct platform_device *dev)
 	struct usb_hcd		*hcd;
 	struct bf54x_hcd	*bf54x_hcd;
 	struct resource		*addr, *data;
-	int			irq = 0;
+	int			irq = 11;
 	void __iomem		*addr_reg;
 	void __iomem		*data_reg;
 	int			retval;
 	u8			tmp, ioaddr = 0;
 
+	addr = platform_get_resource(dev, IORESOURCE_MEM, 0);
 	/* Perform some primitive checking with the device */
 	if ((bfin_read_USB_GLOBINTR() != 0x111)
 			|| (bfin_read_USB_INTRTXE() != 0x00FF)
@@ -487,6 +499,8 @@ bf54x_hcd_probe(struct platform_device *dev)
 	hcd = usb_create_hcd(&bf54x_hc_driver, &dev->dev, dev->dev.bus_id);
 	if (!hcd)
 		return -ENOMEM;
+
+	hcd->rsrc_start = addr->start;
 
 	/* Configure PLL oscillator register */
 	bfin_write_USB_PLLOSC_CTRL(0x30a8);
