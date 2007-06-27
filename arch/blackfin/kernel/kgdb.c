@@ -236,118 +236,97 @@ void kgdb_remove_all_hw_break(void)
 {
 	memset(breakinfo, 0, sizeof(struct hw_breakpoint)*8);
 }
+
 /*
 void kgdb_show_info(void)
 {
-	int a0, ac0, actl, stat;
-	__asm__ volatile ("%0 = [%1];" :"=&d"(a0): "a"(WPIA0));
-	__asm__ volatile ("%0 = [%1];" :"=&d"(ac0): "a"(WPIACNT0));
-	__asm__ volatile ("%0 = [%1];" :"=&d"(actl): "a"(WPIACTL));
-	__asm__ volatile ("%0 = [%1];" :"=&d"(stat): "a"(WPSTAT));
-	printk("hwd: wpia0=0x%x, wpiacnt0=%d, wpiactl=0x%x, wpstat=0x%x\n", a0, ac0, actl, stat);
+	printk(KERN_DEBUG "hwd: wpia0=0x%x, wpiacnt0=%d, wpiactl=0x%x, wpstat=0x%x\n",
+		bfin_read_WPIA0(), bfin_read_WPIACNT0(),
+		bfin_read_WPIACTL(), bfin_read_WPSTAT());
 }
 */
+
 void kgdb_correct_hw_break(void)
 {
 	int breakno;
 	int correctit;
-	unsigned int wpdactl;
-
-	__asm__ volatile ("%0 = [%1];":"=&d"(wpdactl):"p"(WPDACTL));
+	uint32_t wpdactl = bfin_read_WPDACTL();
 
 	correctit = 0;
 	for (breakno = 0; breakno < HW_BREAKPOINT_NUM; breakno++) {
 		if (breakinfo[breakno].type == 1) {
 			switch (breakno) {
 			case 0:
-				if (breakinfo[breakno].enabled && !(wpdactl&WPIAEN0)) {
+				if (breakinfo[breakno].enabled && !(wpdactl & WPIAEN0)) {
 					correctit = 1;
 					wpdactl &= ~(WPIREN01|EMUSW0);
 					wpdactl |= WPIAEN0|WPICNTEN0;
-					__asm__ volatile (
-						"[%0] = %1;"
-						"[%2] = %3;"
-						::"p"(WPIA0), "d"(breakinfo[breakno].addr),
-						"p"(WPIACNT0), "d"(breakinfo[breakno].skip));
-				} else if (!breakinfo[breakno].enabled && (wpdactl&WPIAEN0)) {
+					bfin_write_WPIA0(breakinfo[breakno].addr);
+					bfin_write_WPIACNT0(breakinfo[breakno].skip);
+				} else if (!breakinfo[breakno].enabled && (wpdactl & WPIAEN0)) {
 					correctit = 1;
 					wpdactl &= ~WPIAEN0;
 				}
 				break;
 
 			case 1:
-				if (breakinfo[breakno].enabled && !(wpdactl&WPIAEN1)) {
+				if (breakinfo[breakno].enabled && !(wpdactl & WPIAEN1)) {
 					correctit = 1;
 					wpdactl &= ~(WPIREN01|EMUSW1);
 					wpdactl |= WPIAEN1|WPICNTEN1;
-					__asm__ volatile (
-						"[%0] = %1;"
-						"[%2] = %3;"
-						::"p"(WPIA1), "d"(breakinfo[breakno].addr),
-						"p"(WPIACNT1), "d"(breakinfo[breakno].skip));
-				} else if (!breakinfo[breakno].enabled && (wpdactl&WPIAEN1)) {
+					bfin_write_WPIA1(breakinfo[breakno].addr);
+					bfin_write_WPIACNT1(breakinfo[breakno].skip);
+				} else if (!breakinfo[breakno].enabled && (wpdactl & WPIAEN1)) {
 					correctit = 1;
 					wpdactl &= ~WPIAEN1;
 				}
 				break;
 
 			case 2:
-				if (breakinfo[breakno].enabled && !(wpdactl&WPIAEN2)) {
+				if (breakinfo[breakno].enabled && !(wpdactl & WPIAEN2)) {
 					correctit = 1;
 					wpdactl &= ~(WPIREN23|EMUSW2);
 					wpdactl |= WPIAEN2|WPICNTEN2;
-					__asm__ volatile (
-						"[%0] = %1;"
-						"[%2] = %3;"
-						::"p"(WPIA2), "d"(breakinfo[breakno].addr),
-						"p"(WPIACNT2), "d"(breakinfo[breakno].skip));
-				} else if (!breakinfo[breakno].enabled && (wpdactl&WPIAEN2)) {
+					bfin_write_WPIA2(breakinfo[breakno].addr);
+					bfin_write_WPIACNT2(breakinfo[breakno].skip);
+				} else if (!breakinfo[breakno].enabled && (wpdactl & WPIAEN2)) {
 					correctit = 1;
 					wpdactl &= ~WPIAEN2;
 				}
 				break;
 
 			case 3:
-				if (breakinfo[breakno].enabled && !(wpdactl&WPIAEN3)) {
+				if (breakinfo[breakno].enabled && !(wpdactl & WPIAEN3)) {
 					correctit = 1;
 					wpdactl &= ~(WPIREN23|EMUSW3);
 					wpdactl |= WPIAEN3|WPICNTEN3;
-					__asm__ volatile (
-						"[%0] = %1;"
-						"[%2] = %3;"
-						::"p"(WPIA3), "d"(breakinfo[breakno].addr),
-						"p"(WPIACNT3), "d"(breakinfo[breakno].skip));
-				} else if (!breakinfo[breakno].enabled && (wpdactl&WPIAEN3)) {
+					bfin_write_WPIA3(breakinfo[breakno].addr);
+					bfin_write_WPIACNT3(breakinfo[breakno].skip);
+				} else if (!breakinfo[breakno].enabled && (wpdactl & WPIAEN3)) {
 					correctit = 1;
 					wpdactl &= ~WPIAEN3;
 				}
 				break;
 			case 4:
-				if (breakinfo[breakno].enabled && !(wpdactl&WPIAEN4)) {
+				if (breakinfo[breakno].enabled && !(wpdactl & WPIAEN4)) {
 					correctit = 1;
 					wpdactl &= ~(WPIREN45|EMUSW4);
 					wpdactl |= WPIAEN4|WPICNTEN4;
-					__asm__ volatile (
-						"[%0] = %1;"
-						"[%2] = %3;"
-						::"p"(WPIA4), "d"(breakinfo[breakno].addr),
-						"p"(WPIACNT4), "d"(breakinfo[breakno].skip));
-				} else if (!breakinfo[breakno].enabled && (wpdactl&WPIAEN4)) {
+					bfin_write_WPIA4(breakinfo[breakno].addr);
+					bfin_write_WPIACNT4(breakinfo[breakno].skip);
+				} else if (!breakinfo[breakno].enabled && (wpdactl & WPIAEN4)) {
 					correctit = 1;
 					wpdactl &= ~WPIAEN4;
 				}
 				break;
 			case 5:
-				if (breakinfo[breakno].enabled && !(wpdactl&WPIAEN5)) {
+				if (breakinfo[breakno].enabled && !(wpdactl & WPIAEN5)) {
 					correctit = 1;
 					wpdactl &= ~(WPIREN45|EMUSW5);
 					wpdactl |= WPIAEN5|WPICNTEN5;
-					__asm__ volatile (
-						"[%0] = %1;"
-						"[%2] = %3;"
-						::"p"(WPIA5), "d"(breakinfo[breakno].addr),
-						"p"(WPIACNT5), "d"(breakinfo[breakno].skip));
-				} else if (!breakinfo[breakno].enabled && (wpdactl&WPIAEN5)) {
+					bfin_write_WPIA5(breakinfo[breakno].addr);
+					bfin_write_WPIACNT5(breakinfo[breakno].skip);
+				} else if (!breakinfo[breakno].enabled && (wpdactl & WPIAEN5)) {
 					correctit = 1;
 					wpdactl &= ~WPIAEN5;
 				}
@@ -359,10 +338,8 @@ void kgdb_correct_hw_break(void)
 		wpdactl &= ~WPAND;
 		wpdactl |= WPPWR;
 		/*printk("correct_hw_break: wpdactl=0x%x\n", wpdactl);*/
-		__asm__ volatile (
-			"[%0] = %1;"
-			"csync;nop;nop;nop;"
-			::"a"(WPIACTL), "d"(wpdactl));
+		bfin_write_WPDACTL(wpdactl);
+		CSYNC();
 		/*kgdb_show_info();*/
 	}
 }
@@ -370,12 +347,8 @@ void kgdb_correct_hw_break(void)
 void kgdb_disable_hw_debug(struct pt_regs *regs)
 {
 	/* Disable hardware debugging while we are in kgdb */
-	__asm__ volatile (
-		"r0 = [%0];"
-		"bitclr (r0, 0);"
-		"[%0] = r0;"
-		"csync;nop;nop;nop;"
-		: : "a"(WPIACTL) : "R0");
+	bfin_write_WPIACTL(bfin_read_WPIACTL() & ~0x1);
+	CSYNC();
 }
 
 void kgdb_post_master_code(struct pt_regs *regs, int eVector, int err_code)
@@ -422,10 +395,8 @@ int kgdb_arch_handle_exception(int exceptionVector, int signo,
 			debugger_step = 1;
 		}
 
-		__asm__ volatile (
-			"%0 = [%1];"
-			"csync;nop;nop;nop;"
-			: "=r" (wp_status) : "a"(WPSTAT));
+		wp_status = bfin_read_WPSTAT();
+		CSYNC();
 
 		if (exceptionVector == VEC_WATCH) {
 			for (breakno = 0; breakno < 6; ++breakno) {
@@ -436,9 +407,10 @@ int kgdb_arch_handle_exception(int exceptionVector, int signo,
 			}
 		}
 		kgdb_correct_hw_break();
-		__asm__ volatile ("[%0] = %1;" : :"a"(WPSTAT), "d"(0));
 
-		return (0);
+		bfin_write_WPSTAT(0);
+
+		return 0;
 	}			/* switch */
 	return -1;		/* this means that we do not want to exit from the handler */
 }
