@@ -9,12 +9,15 @@ fi
 jobs=$(grep -cs processor /proc/cpuinfo)
 jobs=$((${jobs:-1} * 2))
 
+ret=0
 for b in $(cd arch/blackfin/configs ; echo *_defconfig) ; do
 	echo "### $b"
 	make -s $b > /dev/null
 	make -s -j${jobs} "$@"
+	((ret+=$?))
 	if ${update} ; then
 		diff -u .config arch/blackfin/configs/$b || :
 		sed -e 4d .config > arch/blackfin/configs/$b
 	fi
 done
+exit ${ret}
