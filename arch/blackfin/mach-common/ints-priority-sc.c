@@ -434,6 +434,7 @@ static void bfin_demux_gpio_irq(unsigned int intb_irq,
 				struct irq_desc *intb_desc)
 {
 	u16 i;
+	struct irq_desc *desc;
 
 	for (i = 0; i < MAX_BLACKFIN_GPIOS; i += 16) {
 		int irq = IRQ_PF0 + i;
@@ -443,7 +444,7 @@ static void bfin_demux_gpio_irq(unsigned int intb_irq,
 
 		while (mask) {
 			if (mask & 1) {
-				struct irq_desc *desc = irq_desc + irq;
+				desc = irq_desc + irq;
 				desc->handle_irq(irq, desc);
 			}
 			irq++;
@@ -674,6 +675,7 @@ static void bfin_demux_gpio_irq(unsigned int intb_irq,
 {
 	u8 bank, pint_val;
 	u32 request, irq;
+	struct irq_desc *desc;
 
 	switch (intb_irq) {
 	case IRQ_PINT0:
@@ -688,6 +690,8 @@ static void bfin_demux_gpio_irq(unsigned int intb_irq,
 	case IRQ_PINT1:
 		bank = 1;
 		break;
+	default:
+		return;
 	}
 
 	pint_val = bank * NR_PINT_BITS;
@@ -697,7 +701,7 @@ static void bfin_demux_gpio_irq(unsigned int intb_irq,
 	while (request) {
 		if (request & 1) {
 			irq = pint2irq_lut[pint_val] + SYS_IRQS;
-			struct irq_desc *desc = irq_desc + irq;
+			desc = irq_desc + irq;
 			desc->handle_irq(irq, desc);
 		}
 		pint_val++;
