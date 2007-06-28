@@ -464,7 +464,7 @@ static void bfin_demux_gpio_irq(unsigned int intb_irq,
 #define PINT_BIT(x)		(1 << (PINT_2_BIT(x)))
 
 static unsigned char irq2pint_lut[NR_PINTS];
-static unsigned short pint2irq_lut[NR_PINT_SYS_IRQS * NR_PINT_BITS];
+static unsigned char pint2irq_lut[NR_PINT_SYS_IRQS * NR_PINT_BITS];
 
 struct pin_int_t {
 	unsigned int mask_set;
@@ -521,7 +521,7 @@ void init_pint_lut(void)
 			irq_base += (bit % 8) + ((bit / 8) & 1 ? 8 : 0);
 			bit_pos = bit + bank * NR_PINT_BITS;
 
-			pint2irq_lut[bit_pos] = irq_base;
+			pint2irq_lut[bit_pos] = irq_base - SYS_IRQS;
 			irq2pint_lut[irq_base - SYS_IRQS] = bit_pos;
 
 		}
@@ -543,9 +543,11 @@ static void bfin_gpio_ack_irq(unsigned int irq)
 static void bfin_gpio_mask_ack_irq(unsigned int irq)
 {
 	u8 pint_val = irq2pint_lut[irq - SYS_IRQS];
+	u32 pintbit = PINT_BIT(pint_val);
+	u8 bank = PINT_2_BANK(pint_val);
 
-	pint[PINT_2_BANK(pint_val)]->request = PINT_BIT(pint_val);
-	pint[PINT_2_BANK(pint_val)]->mask_clear = PINT_BIT(pint_val);
+	pint[bank]->request = pintbit;
+	pint[bank]->mask_clear = pintbit;
 	SSYNC();
 }
 
@@ -560,9 +562,11 @@ static void bfin_gpio_mask_irq(unsigned int irq)
 static void bfin_gpio_unmask_irq(unsigned int irq)
 {
 	u8 pint_val = irq2pint_lut[irq - SYS_IRQS];
+	u32 pintbit = PINT_BIT(pint_val);
+	u8 bank = PINT_2_BANK(pint_val);
 
-	pint[PINT_2_BANK(pint_val)]->request = PINT_BIT(pint_val);
-	pint[PINT_2_BANK(pint_val)]->mask_set = PINT_BIT(pint_val);
+	pint[bank]->request = pintbit;
+	pint[bank]->mask_set = pintbit;
 	SSYNC();
 }
 
@@ -600,6 +604,8 @@ static int bfin_gpio_irq_type(unsigned int irq, unsigned int type)
 	unsigned int ret;
 	u16 gpionr = irq - IRQ_PA0;
 	u8 pint_val = irq2pint_lut[irq - SYS_IRQS];
+	u32 pintbit = PINT_BIT(pint_val);
+	u8 bank = PINT_2_BANK(pint_val);
 
 	if (pint_val == IRQ_NOT_AVAIL)
 		return -ENODEV;
@@ -628,20 +634,20 @@ static int bfin_gpio_irq_type(unsigned int irq, unsigned int type)
 	gpio_direction_input(gpionr);
 
 	if (type & (IRQ_TYPE_EDGE_RISING | IRQ_TYPE_EDGE_FALLING)) {
-		pint[PINT_2_BANK(pint_val)]->edge_set = PINT_BIT(pint_val);
+		pint[bank]->edge_set = pintbit;
 	} else {
-		pint[PINT_2_BANK(pint_val)]->edge_clear = PINT_BIT(pint_val);
+		pint[bank]->edge_clear = pintbit;
 	}
 
 	if ((type & (IRQ_TYPE_EDGE_FALLING | IRQ_TYPE_LEVEL_LOW)))
-		pint[PINT_2_BANK(pint_val)]->invert_set = PINT_BIT(pint_val);	/* low or falling edge denoted by one */
+		pint[bank]->invert_set = pintbit;	/* low or falling edge denoted by one */
 	else
-		pint[PINT_2_BANK(pint_val)]->invert_set = PINT_BIT(pint_val);	/* high or rising edge denoted by zero */
+		pint[bank]->invert_set = pintbit;	/* high or rising edge denoted by zero */
 
 	if (type & (IRQ_TYPE_EDGE_RISING | IRQ_TYPE_EDGE_FALLING))
-		pint[PINT_2_BANK(pint_val)]->invert_set = PINT_BIT(pint_val);
+		pint[bank]->invert_set = pintbit;
 	else
-		pint[PINT_2_BANK(pint_val)]->invert_set = PINT_BIT(pint_val);
+		pint[bank]->invert_set = pintbit;
 
 	SSYNC();
 
@@ -690,7 +696,7 @@ static void bfin_demux_gpio_irq(unsigned int intb_irq,
 
 	while (request) {
 		if (request & 1) {
-			irq = pint2irq_lut[pint_val];
+			irq = pint2irq_lut[pint_val] + SYS_IRQS;
 			struct irq_desc *desc = irq_desc + irq;
 			desc->handle_irq(irq, desc);
 		}
@@ -859,7 +865,7 @@ void do_irq(int vec, struct pt_regs *fp)
 		sic_status[0] = bfin_read_SIC_ISR(0) & bfin_read_SIC_IMASK(0);
 		sic_status[1] = bfin_read_SIC_ISR(1) & bfin_read_SIC_IMASK(1);
 		sic_status[2] = bfin_read_SIC_ISR(2) & bfin_read_SIC_IMASK(2);
-		SSYNC();
+
 		for (;; ivg++) {
 			if (ivg >= ivg_stop) {
 				atomic_inc(&num_spurious);
