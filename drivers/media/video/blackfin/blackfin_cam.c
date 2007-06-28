@@ -508,6 +508,70 @@ static irqreturn_t bcap_ppi_irq_error(int irq, void *dev_id)
 }
 #endif
 
+/* reset sensor and PPI when capture window size changed */
+static int bcap_reset_wsize(u32 height, u32 width)
+{
+	if (height < MIN_FRAME_HEIGHT || height > MAX_FRAME_HEIGHT) {
+		printk(KERN_ERR, "  ...no valid height\n");
+		return -EINVAL;
+	}
+	if (width < MIN_FRAME_WIDTH || width > MAX_FRAME_WIDTH) {
+		printk(KERN_ERR, "  ...no valid width \n");
+		return -EINVAL;
+	}
+
+	bcap_dev->height = height;
+	bcap_dev->width = width;
+
+	bfin_write_PPI_CONTROL(bcap_dev->ppidev->ppi_control & ~PORT_EN);
+
+	cam_control(bcap_dev->client, CAM_CMD_SET_RESOLUTION,
+			RES(bcap_dev->width, bcap_dev->height));
+
+	bcap_dev->ppidev->pixel_per_line = bcap_dev->width;
+	bcap_dev->ppidev->lines_per_frame = bcap_dev->height;
+
+	set_dma_config(CH_PPI, bcap_dev->ppidev->dma_config);
+
+
+	if (bcap_dev->ppidev->bpp > 8)
+		set_dma_x_count(CH_PPI, bcap_dev->ppidev->pixel_per_line);
+	else
+		set_dma_x_count(CH_PPI, bcap_dev->ppidev->pixel_per_line / 2);
+		/* Div 2 because of 16-bit packing */
+
+
+	set_dma_y_count(CH_PPI, bcap_dev->ppidev->lines_per_frame);
+
+	bfin_write_PPI_FRAME(bcap_dev->ppidev->lines_per_frame);
+
+	bfin_write_PPI_DELAY(bcap_dev->ppidev->ppi_delay);
+
+
+#if !defined(USE_ITU656)
+	if (bcap_dev->ppidev->bpp > 8)
+		bfin_write_PPI_COUNT(bcap_dev->ppidev->pixel_per_line * 2 - 1);
+	else
+		bfin_write_PPI_COUNT(bcap_dev->ppidev->pixel_per_line - 1);
+#endif
+
+	if (bcap_dev->ppidev->bpp > 8 ||
+			bcap_dev->ppidev->dma_config & WDSIZE_16) {
+		set_dma_x_modify(CH_PPI, 2);
+		set_dma_y_modify(CH_PPI, 2);
+	}else {
+		set_dma_x_modify(CH_PPI, 1);
+		set_dma_y_modify(CH_PPI, 1);
+	}
+
+	pr_debug("  setting PPI to %dx%d\n", bcap_dev->ppidev->pixel_per_line,
+			bcap_dev->ppidev->lines_per_frame);
+
+	bcap_dev->size = bcap_dev->width * bcap_dev->height *
+			  (get_depth(default_palette(force_palette))/8);
+
+	return 0;
+}
 
 static int bcap_init_v4l(struct sensor_data *data)
 {
@@ -1016,11 +1080,9 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 			/*  maxwidth - maximum capture width in pixels */
 			cap->maxwidth = MAX_FRAME_WIDTH;
-			bcap_dev->width = 0;
 
 			/* maxheight - maximum capture height in pixels */
 			cap->maxheight = MAX_FRAME_HEIGHT;
-			bcap_dev->height = 0;
 
 			/* minwidth - minimum capture width in pixels */
 			cap->minwidth = MIN_FRAME_WIDTH;
@@ -1117,21 +1179,12 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 				pr_debug("  ...no valid flags\n");
 				return -EINVAL;
 			}
-			if (vw->height < MIN_FRAME_HEIGHT
-			    || vw->height > MAX_FRAME_HEIGHT) {
-				printk("  ...no valid height\n");
+
+			if (bcap_reset_wsize(vw->height, vw->width))
 				return -EINVAL;
-			}
-			if (vw->width < MIN_FRAME_WIDTH
-			    || vw->width > MAX_FRAME_WIDTH) {
-				printk("  ...no valid width \n");
-				return -EINVAL;
-			}
 
 			printk("  ...using %dx%d window\n", vw->width,
 				 vw->height);
-			bcap_dev->width = vw->width;
-			bcap_dev->height = vw->height;
 
 			return 0;
 		}
@@ -1181,7 +1234,6 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			pr_debug("VIDIOCGMBUF called (%ld)\n",
 				 jiffies * 1000 / HZ);
 			memset(vm, 0, sizeof(struct video_mbuf));
-			bcap_dev->size = MAX_FRAME_HEIGHT * MAX_FRAME_WIDTH * (get_depth(default_palette(force_palette))/8);
 			pr_debug("  capture %zi byte, %dx%d (WxH) frame\n",
 				 bcap_dev->size,
 				 bcap_dev->width, bcap_dev->height);
@@ -1229,70 +1281,7 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 			if (bcap_dev->height != vm->height
 			    || bcap_dev->width != vm->width) {
-
-				bcap_dev->height = vm->height;
-				bcap_dev->width = vm->width;
-
-				bfin_write_PPI_CONTROL(bcap_dev->ppidev->
-						       ppi_control & ~PORT_EN);
-
-				cam_control(bcap_dev->client, CAM_CMD_SET_RESOLUTION, RES(bcap_dev->width,bcap_dev->height));
-
-				bcap_dev->ppidev->pixel_per_line =
-				    bcap_dev->width;
-				bcap_dev->ppidev->lines_per_frame =
-				    bcap_dev->height;
-
-				set_dma_config(CH_PPI,
-					       bcap_dev->ppidev->dma_config);
-
-
-				if (bcap_dev->ppidev->bpp > 8)
-					set_dma_x_count(CH_PPI,
-						bcap_dev->ppidev->pixel_per_line);
-				else
-					set_dma_x_count(CH_PPI,
-						bcap_dev->ppidev->pixel_per_line / 2);
-				/* Div 2 because of 16-bit packing */
-
-
-				set_dma_y_count(CH_PPI,
-						bcap_dev->ppidev->lines_per_frame);
-
-				bfin_write_PPI_FRAME(bcap_dev->ppidev->
-						     lines_per_frame);
-
-				bfin_write_PPI_DELAY(bcap_dev->ppidev->
-						     ppi_delay);
-
-
-#if !defined(USE_ITU656)
-				if (bcap_dev->ppidev->bpp > 8)
-					bfin_write_PPI_COUNT(bcap_dev->ppidev->
-							     pixel_per_line * 2 - 1);
-				else
-					bfin_write_PPI_COUNT(bcap_dev->ppidev->
-							     pixel_per_line - 1);
-
-#endif
-
-				if (bcap_dev->ppidev->bpp > 8
-				    || bcap_dev->ppidev->dma_config & WDSIZE_16) {
-					set_dma_x_modify(CH_PPI, 2);
-					set_dma_y_modify(CH_PPI, 2);
-
-				}else {
-					set_dma_x_modify(CH_PPI, 1);
-					set_dma_y_modify(CH_PPI, 1);
-				}
-
-				pr_debug("  setting PPI to %dx%d\n",
-					 bcap_dev->ppidev->pixel_per_line,
-					 bcap_dev->ppidev->lines_per_frame);
-
-				bcap_dev->size = bcap_dev->width * bcap_dev->height *
-					(get_depth(default_palette(force_palette))/8);
-
+				bcap_reset_wsize(vm->height, vm->width);
 			}
 
 			pr_debug("  capture %zi byte, %dx%d (WxH) frame\n",
@@ -1305,8 +1294,6 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			/* if DMA not busy, initiate DMA
 			 *  ow DMA handled by interrupt
 			 */
-
-
 
 			if (bcap_dev->ppidev->done) {
 				if (perfnum) {
@@ -1557,6 +1544,7 @@ static int bcap_open(struct inode *inode, struct file *filp)
 	bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~0x0E00);
 #endif
 
+	bcap_reset_wsize(MAX_FRAME_HEIGHT, MAX_FRAME_WIDTH);
 	pr_debug("  specified video device opened sucessfullly\n");
 	bcap_dev->user++;
 
@@ -1621,8 +1609,8 @@ static int bcap_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	BUG_ON(bcap_dev == NULL);
 	vma->vm_flags |= VM_MAYSHARE;
-	vma->vm_start = (u32) bcap_dev->ready_buf->data;
-	vma->vm_end = vma->vm_start + (MAX_FRAME_HEIGHT * MAX_FRAME_WIDTH * (get_depth(default_palette(force_palette))/8));
+	vma->vm_start = (u32) bcap_dev->buffer[0].data;
+	vma->vm_end = vma->vm_start + bcap_dev->size;
 
 	pr_debug("bcap_mmap: vm mapped to [0x%p-0x%p]\n", (void *)vma->vm_start,
 		 (void *)vma->vm_end);
