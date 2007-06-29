@@ -3,7 +3,6 @@
 /*
  * This file contains the system call numbers.
  */
-#define __NR_restart_syscall	  0
 #define __NR_exit		  1
 #define __NR_fork		  2
 #define __NR_read		  3
@@ -33,7 +32,7 @@
 #define __NR_alarm		 27
 				/* 28 __NR_oldfstat obsolete */
 #define __NR_pause		 29
-#define __NR_utime		 30
+				/* 30 __NR_utime obsolete */
 				/* 31 __NR_stty obsolete */
 				/* 32 __NR_gtty obsolete */
 #define __NR_access		 33
@@ -85,15 +84,15 @@
 #define __NR_settimeofday	 79
 #define __NR_getgroups		 80
 #define __NR_setgroups		 81
-#define __NR_select		 82
+				/* 82 __NR_select obsolete */
 #define __NR_symlink		 83
 				/* 84 __NR_oldlstat obsolete */
 #define __NR_readlink		 85
-#define __NR_uselib		 86
-#define __NR_swapon		 87
+				/* 86 __NR_uselib obsolete */
+				/* 87 __NR_swapon obsolete */
 #define __NR_reboot		 88
 				/* 89 __NR_readdir obsolete */
-#define __NR_mmap		 90
+				/* 90 __NR_mmap obsolete */
 #define __NR_munmap		 91
 #define __NR_truncate		 92
 #define __NR_ftruncate		 93
@@ -118,7 +117,7 @@
 				/* 112 __NR_idle obsolete */
 				/* 113 __NR_vm86old */
 #define __NR_wait4		114
-#define __NR_swapoff		115
+				/* 115 __NR_swapoff obsolete */
 #define __NR_sysinfo		116
 				/* 117 __NR_ipc oboslete */
 #define __NR_fsync		118
@@ -138,7 +137,7 @@
 #define __NR_getpgid		132
 #define __NR_fchdir		133
 #define __NR_bdflush		134
-#define __NR_sysfs		135
+				/* 135 was sysfs */
 #define __NR_personality	136
 				/* 137 __NR_afs_syscall */
 #define __NR_setfsuid		138
@@ -147,16 +146,16 @@
 #define __NR_getdents		141
 				/* 142 __NR__newselect obsolete */
 #define __NR_flock		143
-#define __NR_msync		144
+				/* 144 __NR_msync obsolete */
 #define __NR_readv		145
 #define __NR_writev		146
 #define __NR_getsid		147
 #define __NR_fdatasync		148
 #define __NR__sysctl		149
-#define __NR_mlock		150
-#define __NR_munlock		151
-#define __NR_mlockall		152
-#define __NR_munlockall		153
+				/* 150 __NR_mlock */
+				/* 151 __NR_munlock */
+				/* 152 __NR_mlockall */
+				/* 153 __NR_munlockall */
 #define __NR_sched_setparam		154
 #define __NR_sched_getparam		155
 #define __NR_sched_setscheduler		156
@@ -166,13 +165,13 @@
 #define __NR_sched_get_priority_min	160
 #define __NR_sched_rr_get_interval	161
 #define __NR_nanosleep		162
-#define __NR_mremap		163
+				/* 163 __NR_mremap */
 #define __NR_setresuid		164
 #define __NR_getresuid		165
 				/* 166 __NR_vm86 */
 				/* 167 __NR_query_module */
-#define __NR_poll		168
-#define __NR_nfsservctl		169
+				/* 168 __NR_poll */
+				/* 169 __NR_nfsservctl */
 #define __NR_setresgid		170
 #define __NR_getresgid		171
 #define __NR_prctl		172
@@ -221,14 +220,14 @@
 #define __NR_setfsuid32		215
 #define __NR_setfsgid32		216
 #define __NR_pivot_root		217
-#define __NR_mincore		218
-#define __NR_madvise		219
+				/* 218 __NR_mincore */
+				/* 219 __NR_madvise */
 #define __NR_getdents64		220
 #define __NR_fcntl64		221
 				/* 222 reserved for TUX */
 				/* 223 reserved for TUX */
 #define __NR_gettid		224
-#define __NR_readahead		225
+				/* 225 __NR_readahead */
 #define __NR_setxattr		226
 #define __NR_lsetxattr		227
 #define __NR_fsetxattr		228
@@ -262,7 +261,7 @@
 #define __NR_epoll_create	255
 #define __NR_epoll_ctl		256
 #define __NR_epoll_wait		257
-#define __NR_remap_file_pages	258
+				/* 258 __NR_remap_file_pages */
 #define __NR_set_tid_address	259
 #define __NR_timer_create	260
 #define __NR_timer_settime	(__NR_timer_create+1)
@@ -279,16 +278,16 @@
 #define __NR_utimes		272
 #define __NR_fadvise64_64	273
 				/* 274 __NR_vserver */
-#define __NR_mbind		275
-#define __NR_get_mempolicy	276
-#define __NR_set_mempolicy	277
+				/* 275 __NR_mbind */
+				/* 276 __NR_get_mempolicy */
+				/* 277 __NR_set_mempolicy */
 #define __NR_mq_open 		278
 #define __NR_mq_unlink		(__NR_mq_open+1)
 #define __NR_mq_timedsend	(__NR_mq_open+2)
 #define __NR_mq_timedreceive	(__NR_mq_open+3)
 #define __NR_mq_notify		(__NR_mq_open+4)
 #define __NR_mq_getsetattr	(__NR_mq_open+5)
-#define __NR_kexec_load		284
+				/* 284 __NR_sys_kexec_load */
 #define __NR_waitid		285
 #define __NR_add_key		286
 #define __NR_request_key	287
@@ -298,7 +297,7 @@
 #define __NR_inotify_init	291
 #define __NR_inotify_add_watch	292
 #define __NR_inotify_rm_watch	293
-#define __NR_migrate_pages	294
+				/* 294 __NR_migrate_pages */
 #define __NR_openat		295
 #define __NR_mkdirat		296
 #define __NR_mknodat		297
@@ -353,31 +352,13 @@
 #define __NR_shmdt		340
 #define __NR_shmget		341
 
-#define __NR_set_robust_list	342
-#define __NR_get_robust_list	343
-#define __NR_splice		344
-#define __NR_sync_file_range	345
-#define __NR_tee		346
-#define __NR_vmsplice		347
-#define __NR_move_pages		348
-#define __NR_getcpu		349
-#define __NR_epoll_pwait	350
-#define __NR_utimensat		351
-#define __NR_signalfd		352
-#define __NR_timerfd		353
-#define __NR_eventfd		354
-#define __NR_pread64		355
-#define __NR_pwrite64		356
-#define __NR_fadvise64		357
-
-#define __NR_syscall		358
+#define __NR_syscall		342
 #define NR_syscalls		__NR_syscall
 
 #ifdef __KERNEL__
 #define __ARCH_WANT_IPC_PARSE_VERSION
 #define __ARCH_WANT_STAT64
 #define __ARCH_WANT_SYS_ALARM
-#define __ARCH_WANT_SYS_UTIME
 #define __ARCH_WANT_SYS_GETHOSTNAME
 #define __ARCH_WANT_SYS_PAUSE
 #define __ARCH_WANT_SYS_SGETMASK

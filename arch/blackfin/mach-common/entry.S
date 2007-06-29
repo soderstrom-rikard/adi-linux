@@ -876,7 +876,7 @@ ENTRY(_sys_call_table)
 	.long _sys_alarm
 	.long _sys_ni_syscall	/* old fstat */
 	.long _sys_pause
-	.long _sys_utime	/* 30 */
+	.long _sys_ni_syscall	/* old utime */ /* 30 */
 	.long _sys_ni_syscall	/* old stty syscall holder */
 	.long _sys_ni_syscall	/* old gtty syscall holder */
 	.long _sys_access
@@ -981,14 +981,14 @@ ENTRY(_sys_call_table)
 	.long _sys_getpgid
 	.long _sys_fchdir
 	.long _sys_bdflush
-	.long _sys_sysfs	/* 135 */
+	.long _sys_ni_syscall	/* 135 */ /* sys_sysfs */
 	.long _sys_personality
 	.long _sys_ni_syscall	/* for afs_syscall */
 	.long _sys_setfsuid	/* setfsuid16 */
 	.long _sys_setfsgid	/* setfsgid16 */
 	.long _sys_llseek	/* 140 */
 	.long _sys_getdents
-	.long _sys_select
+	.long _sys_ni_syscall	/* sys_select */
 	.long _sys_flock
 	.long _sys_ni_syscall	/* sys_msync */
 	.long _sys_readv		/* 145 */
@@ -1014,7 +1014,7 @@ ENTRY(_sys_call_table)
 	.long _sys_getresuid	/* getresuid16 */	/* 165 */
 	.long _sys_ni_syscall	/* for vm86 */
 	.long _sys_ni_syscall	/* old "query_module" */
-	.long _sys_poll
+	.long _sys_ni_syscall	/* sys_poll */
 	.long _sys_ni_syscall	/* sys_nfsservctl */
 	.long _sys_setresgid	/* setresgid16 */	/* 170 */
 	.long _sys_getresgid	/* getresgid16 */
@@ -1071,7 +1071,7 @@ ENTRY(_sys_call_table)
 	.long _sys_ni_syscall	/* reserved for TUX */
 	.long _sys_ni_syscall
 	.long _sys_gettid
-	.long _sys_readahead
+	.long _sys_ni_syscall	/* 225 */ /* sys_readahead */
 	.long _sys_setxattr
 	.long _sys_lsetxattr
 	.long _sys_fsetxattr
@@ -1121,9 +1121,9 @@ ENTRY(_sys_call_table)
 	.long _sys_utimes
 	.long _sys_fadvise64_64
 	.long _sys_ni_syscall /* vserver */
-	.long _sys_mbind	/* 275 */
-	.long _sys_get_mempolicy
-	.long _sys_set_mempolicy
+	.long _sys_ni_syscall /* 275, mbind */
+	.long _sys_ni_syscall /* get_mempolicy */
+	.long _sys_ni_syscall /* set_mempolicy */
 	.long _sys_mq_open
 	.long _sys_mq_unlink
 	.long _sys_mq_timedsend	/* 280 */
@@ -1140,7 +1140,7 @@ ENTRY(_sys_call_table)
 	.long _sys_inotify_init
 	.long _sys_inotify_add_watch
 	.long _sys_inotify_rm_watch
-	.long _sys_migrate_pages
+	.long _sys_ni_syscall /* migrate_pages */
 	.long _sys_openat	/* 295 */
 	.long _sys_mkdirat
 	.long _sys_mknodat
@@ -1188,24 +1188,6 @@ ENTRY(_sys_call_table)
 	.long _sys_shmctl
 	.long _sys_shmdt	/* 340 */
 	.long _sys_shmget
-	.long _sys_set_robust_list
-	.long _sys_get_robust_list
-	.long _sys_splice
-	.long _sys_sync_file_range	/* 345 */
-	.long _sys_tee
-	.long _sys_vmsplice
-	.long _sys_move_pages
-	.long _sys_getcpu
-	.long _sys_epoll_pwait		/* 350 */
-/* New syscalls for 2.6.22
-	.long _sys_utimensat
-	.long _sys_signalfd
-	.long _sys_timerfd
-	.long _sys_eventfd
-*/
-	.long _sys_pread64	/* 355 */
-	.long _sys_pwrite64
-	.long _sys_fadvise64
 	.rept NR_syscalls-(.-_sys_call_table)/4
 	.long _sys_ni_syscall
 	.endr
