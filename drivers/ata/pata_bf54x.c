@@ -428,7 +428,7 @@ static void bfin_set_dmamode (struct ata_port *ap, struct ata_device *adev)
 					ATAPI_GET_CONTROL(base)
 					| UDMAIN_FIFO_THRS);
 				SSYNC();
-				return;
+				goto success;
 			}
 		}
 	}
@@ -475,9 +475,24 @@ static void bfin_set_dmamode (struct ata_port *ap, struct ata_device *adev)
 			ATAPI_SET_INT_MASK(base, ATAPI_GET_INT_MASK(base)
 				| MULTI_DONE_MASK | MULTI_TERM_MASK);
 			SSYNC();
-			return;
+			goto success;
 		}
 	}
+	return;
+
+success:
+	if (request_dma(CH_ATAPI_RX, "BFIN ATAPI RX DMA") >= 0) {
+		if (request_dma(CH_ATAPI_TX, "BFIN ATAPI TX DMA") >= 0) {
+			return;
+		}
+		free_dma(CH_ATAPI_RX);
+	}
+	adev->dma_mode = 0;
+	adev->udma_mask = 0;
+	adev->mwdma_mask = 0;
+	ap->udma_mask = 0;
+	ap->mwdma_mask = 0;
+	printk(KERN_INFO "Unable to request ATAPI DMA!\n");
 }
 
 /**
@@ -853,6 +868,7 @@ static void bfin_bmdma_setup (struct ata_queued_cmd *qc)
 {
 	struct ata_port *ap = qc->ap;
 	unsigned long base = (unsigned long)ap->ioaddr.ctl_addr;
+	unsigned short config = WDSIZE_16;
 
 	/* Reset all transfer count */
 	ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base) | TFRCNT_RST);
@@ -861,16 +877,25 @@ static void bfin_bmdma_setup (struct ata_queued_cmd *qc)
 	if (qc->tf.flags & ATA_TFLAG_WRITE) {
 		ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base)
 			| XFER_DIR));
+		/* fill the ATAPI DMA controller */
+		set_dma_config(CH_ATAPI_TX, config);
+		set_dma_start_addr(CH_ATAPI_TX, qc->ap->prd[0].addr);
+		set_dma_x_count(CH_ATAPI_TX, (qc->ap->prd[0].flags_len >> 1));
+		set_dma_x_modify(CH_ATAPI_TX, 2);
 	} else {
 		ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base)
 			& ~XFER_DIR));
+		/* fill the ATAPI DMA controller */
+		config |= WNR;
+		set_dma_config(CH_ATAPI_RX, config);
+		set_dma_start_addr(CH_ATAPI_RX, qc->ap->prd[0].addr);
+		set_dma_x_count(CH_ATAPI_RX, (qc->ap->prd[0].flags_len >> 1));
+		set_dma_x_modify(CH_ATAPI_RX, 2);
 	}
 
 	/* Set transfer length to buffer len */
-	ATAPI_SET_XFER_LEN(base, qc->ap->prd[0].flags_len);
-
-	/* fill the ATAPI DMA controller */
-/*	qc->ap->prd[0].addr */
+	ATAPI_SET_XFER_LEN(base, (qc->nbytes >> 1));
+	SSYNC();
 }
 
 /**
@@ -885,17 +910,22 @@ static void bfin_bmdma_start (struct ata_queued_cmd *qc)
 	struct ata_port *ap = qc->ap;
 	unsigned long base = (unsigned long)ap->ioaddr.ctl_addr;
 
-	/* start ATAPI DMA controller*/
-
 	/* Enable ATAPI DMA operation*/
 	if (ap->udma_mask) {
 		ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base)
 			| ULTRA_START);
 		SSYNC();
-	} else if (ap->mwdma_mask) {
+	} else {
 		ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base)
 			| MULTI_START);
 		SSYNC();
+	}
+
+	/* start ATAPI DMA controller*/
+	if (qc->tf.flags & ATA_TFLAG_WRITE) {
+		enable_dma(CH_ATAPI_TX);
+	} else {
+		enable_dma(CH_ATAPI_RX);
 	}
 }
 
@@ -906,13 +936,12 @@ static void bfin_bmdma_start (struct ata_queued_cmd *qc)
 
 static void bfin_bmdma_stop (struct ata_queued_cmd *qc)
 {
-	struct ata_port *ap = qc->ap;
-	unsigned long base = (unsigned long)ap->ioaddr.ctl_addr;
-
 	/* stop ATAPI DMA controller*/
-
-	/* one-PIO-cycle guaranteed wait, per spec, for HDMA1:0 transition */
-	ata_altstatus(ap);	/* dummy read */
+	if (qc->tf.flags & ATA_TFLAG_WRITE) {
+		disable_dma(CH_ATAPI_TX);
+	} else {
+		disable_dma(CH_ATAPI_RX);
+	}
 }
 
 /**
@@ -1291,6 +1320,14 @@ static void bfin_bmdma_irq_clear (struct ata_port *ap)
 	SSYNC();
 }
 
+void bfin_port_stop(struct ata_port *ap)
+{
+	if (ap->udma_mask != 0 || ap->mwdma_mask != 0) {
+		free_dma(CH_ATAPI_RX);
+		free_dma(CH_ATAPI_TX);
+	}
+}
+
 static struct scsi_host_template bfin_sht = {
 	.module			= THIS_MODULE,
 	.name			= DRV_NAME,
@@ -1343,6 +1380,8 @@ static const struct ata_port_operations bfin_pata_ops = {
 	.irq_clear		= bfin_bmdma_irq_clear,
 	.irq_on			= bfin_irq_on,
 	.irq_ack		= bfin_irq_ack,
+
+	.port_stop		= bfin_port_stop,
 };
 
 static struct ata_port_info bfin_port_info[] = {
