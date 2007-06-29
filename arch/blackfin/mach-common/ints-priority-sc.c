@@ -501,6 +501,8 @@ unsigned short get_irq_base(u8 bank, u8 bmap)
 	return irq_base;
 
 }
+
+	/* Whenever PINTx_ASSIGN is altered init_pint_lut() must be executed! */
 void init_pint_lut(void)
 {
 	u16 bank, bit, irq_base, bit_pos;
@@ -755,6 +757,13 @@ int __init init_arch_irq(void)
 	CSYNC();
 
 #if defined(CONFIG_IRQCHIP_DEMUX_GPIO) && defined(CONFIG_BF54x)
+#ifdef CONFIG_PINTx_REASSIGN
+	pint[0]->assign = CONFIG_PINT0_ASSIGN;
+	pint[1]->assign = CONFIG_PINT1_ASSIGN;
+	pint[2]->assign = CONFIG_PINT2_ASSIGN;
+	pint[3]->assign = CONFIG_PINT3_ASSIGN;
+#endif
+	/* Whenever PINTx_ASSIGN is altered init_pint_lut() must be executed! */
 	init_pint_lut();
 #endif
 
