@@ -1,6 +1,6 @@
 /*
  * file:	include/asm-blackfin/mach-bf548/irq.h
- * based on:	include/asm-blackfin/mach-bf537/irq.h 
+ * based on:	include/asm-blackfin/mach-bf537/irq.h
  * author:	Roy Huang (roy.huang@analog.com)
  *
  * created:
@@ -190,7 +190,7 @@ Events         (highest priority)  EMU         0
 #define IRQ_PB12	BFIN_PB_IRQ(12)
 #define IRQ_PB13	BFIN_PB_IRQ(13)
 #define IRQ_PB14	BFIN_PB_IRQ(14)
-#define IRQ_PB15	BFIN_PB_IRQ(15)
+#define IRQ_PB15	BFIN_PB_IRQ(15)		/* N/A */
 
 #define BFIN_PC_IRQ(x)	((x) + IRQ_PB15 + 1)
 #define IRQ_PC0		BFIN_PC_IRQ(0)
@@ -207,8 +207,8 @@ Events         (highest priority)  EMU         0
 #define IRQ_PC11	BFIN_PC_IRQ(11)
 #define IRQ_PC12	BFIN_PC_IRQ(12)
 #define IRQ_PC13	BFIN_PC_IRQ(13)
-#define IRQ_PC14	BFIN_PC_IRQ(14)
-#define IRQ_PC15	BFIN_PC_IRQ(15)
+#define IRQ_PC14	BFIN_PC_IRQ(14)		/* N/A */
+#define IRQ_PC15	BFIN_PC_IRQ(15)		/* N/A */
 
 #define BFIN_PD_IRQ(x)	((x) + IRQ_PC15 + 1)
 #define IRQ_PD0		BFIN_PD_IRQ(0)
@@ -297,8 +297,8 @@ Events         (highest priority)  EMU         0
 #define IRQ_PH11	BFIN_PH_IRQ(11)
 #define IRQ_PH12	BFIN_PH_IRQ(12)
 #define IRQ_PH13	BFIN_PH_IRQ(13)
-#define IRQ_PH14	BFIN_PH_IRQ(14)
-#define IRQ_PH15	BFIN_PH_IRQ(15)
+#define IRQ_PH14	BFIN_PH_IRQ(14)		/* N/A */
+#define IRQ_PH15	BFIN_PH_IRQ(15)		/* N/A */
 
 #define BFIN_PI_IRQ(x)	((x) + IRQ_PH15 + 1)
 #define IRQ_PI0		BFIN_PI_IRQ(0)
@@ -334,8 +334,8 @@ Events         (highest priority)  EMU         0
 #define IRQ_PJ11	BFIN_PJ_IRQ(11)
 #define IRQ_PJ12	BFIN_PJ_IRQ(12)
 #define IRQ_PJ13	BFIN_PJ_IRQ(13)
-#define IRQ_PJ14	BFIN_PJ_IRQ(14)
-#define IRQ_PJ15	BFIN_PJ_IRQ(15)
+#define IRQ_PJ14	BFIN_PJ_IRQ(14)		/* N/A */
+#define IRQ_PJ15	BFIN_PJ_IRQ(15)		/* N/A */
 #endif
 
 #ifdef CONFIG_IRQCHIP_DEMUX_GPIO
