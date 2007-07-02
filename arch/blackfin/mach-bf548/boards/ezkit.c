@@ -38,6 +38,8 @@
 #include <linux/irq.h>
 #include <linux/interrupt.h>
 #include <asm/bfin5xx_spi.h>
+#include <asm/dma.h>
+#include <asm/mach/nand.h>
 
 /*
  * Name the Board for the /proc/cpuinfo
@@ -155,6 +157,52 @@ static struct platform_device bfin_atapi_device = {
 };
 #endif
 
+#if defined(CONFIG_MTD_NAND_BF54X) || defined(CONFIG_MTD_NAND_BF54X_MODULE)
+static struct mtd_partition partition_info[] = {
+	{
+		.name = "linux kernel",
+		.offset = 0,
+		.size = 4 * SIZE_1M,
+	},
+	{
+		.name = "file system",
+		.offset = 4 * SIZE_1M,
+		.size = (1024-4) * SIZE_1M,
+	},
+};
+
+static struct bf54x_nand_platform bf54x_nand_platform = {
+	.page_size = NFC_PG_SIZE_256,
+	.data_width = NFC_NWIDTH_8,
+	.partitions = partition_info,
+	.nr_partitions = ARRAY_SIZE(partition_info),
+	.enable_dma = 1,
+};
+
+static struct resource bf54x_nand_resources[] = {
+	{
+		.start = 0xFFC03B00,
+		.end = 0xFFC03B4F,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = CH_NFC,
+		.end = CH_NFC,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bf54x_nand_device = {
+	.name = "bf54x-nand",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(bf54x_nand_resources),
+	.resource = bf54x_nand_resources,
+	.dev = {
+		.platform_data = &bf54x_nand_platform,
+	},
+};
+#endif
+
 static struct platform_device *ezkit_devices[] __initdata = {
 #if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)
 	&rtc_device,
@@ -174,6 +222,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 
 #if defined(CONFIG_PATA_BF54X) || defined(CONFIG_PATA_BF54X_MODULE)
 	&bfin_atapi_device,
+#endif
+
+#if defined(CONFIG_MTD_NAND_BF54X) || defined(CONFIG_MTD_NAND_BF54X_MODULE)
+	&bf54x_nand_device,
 #endif
 };
 
