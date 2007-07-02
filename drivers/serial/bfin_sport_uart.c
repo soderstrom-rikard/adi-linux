@@ -128,7 +128,7 @@ static int sport_uart_setup(struct sport_uart_port *up, int sclk, int baud_rate)
 
 	/* Set RCR1 and RCR2 */
 	SPORT_PUT_RCR1(up, (RCKFE | LARFS | LRFS | RFSR | IRCLK));
-	SPORT_PUT_RCR2(up, 28);
+	SPORT_PUT_RCR2(up, 29);
 	pr_debug("%s RCR1:%x, RCR2:%x\n", __FUNCTION__, SPORT_GET_RCR1(up), SPORT_GET_RCR2(up));
 
 	tclkdiv = sclk/(2 * baud_rate) - 1;
