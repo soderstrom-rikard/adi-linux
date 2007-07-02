@@ -880,8 +880,8 @@ static void bfin_bmdma_setup (struct ata_queued_cmd *qc)
 			| XFER_DIR));
 		/* fill the ATAPI DMA controller */
 		set_dma_config(CH_ATAPI_TX, config);
-		set_dma_start_addr(CH_ATAPI_TX, qc->ap->prd[0].addr);
-		set_dma_x_count(CH_ATAPI_TX, (qc->ap->prd[0].flags_len >> 1));
+		set_dma_start_addr(CH_ATAPI_TX, qc->buf_virt);
+		set_dma_x_count(CH_ATAPI_TX, (qc->nbytes >> 1));
 		set_dma_x_modify(CH_ATAPI_TX, 2);
 	} else {
 		ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base)
@@ -889,8 +889,8 @@ static void bfin_bmdma_setup (struct ata_queued_cmd *qc)
 		/* fill the ATAPI DMA controller */
 		config |= WNR;
 		set_dma_config(CH_ATAPI_RX, config);
-		set_dma_start_addr(CH_ATAPI_RX, qc->ap->prd[0].addr);
-		set_dma_x_count(CH_ATAPI_RX, (qc->ap->prd[0].flags_len >> 1));
+		set_dma_start_addr(CH_ATAPI_RX, qc->buf_virt);
+		set_dma_x_count(CH_ATAPI_RX, (qc->nbytes >> 1));
 		set_dma_x_modify(CH_ATAPI_RX, 2);
 	}
 
@@ -1337,7 +1337,7 @@ static struct scsi_host_template bfin_sht = {
 	.can_queue		= ATA_DEF_QUEUE,
 	.this_id		= ATA_SHT_THIS_ID,
 /*	.sg_tablesize		= LIBATA_MAX_PRD,*/
-	.sg_tablesize		= 1,
+	.sg_tablesize		= SG_NONE,
 	.cmd_per_lun		= ATA_SHT_CMD_PER_LUN,
 	.emulated		= ATA_SHT_EMULATED,
 	.use_clustering		= ATA_SHT_USE_CLUSTERING,
