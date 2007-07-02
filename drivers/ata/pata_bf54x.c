@@ -36,6 +36,7 @@
 #include <scsi/scsi_host.h>
 #include <linux/libata.h>
 #include <linux/platform_device.h>
+#include <asm/dma.h>
 
 #define DRV_NAME		"pata-bf54x"
 #define DRV_VERSION		"0.1"
