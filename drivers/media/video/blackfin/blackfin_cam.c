@@ -68,6 +68,10 @@
 #include "vs6624.h"
 #endif
 
+#ifdef CONFIG_MT9V022
+#include "mt9v022.h"
+#endif
+
 #ifdef USE_GPIO
 #define GPIO_SET_VALUE(x,y) gpio_set_value(x,y)
 #else
