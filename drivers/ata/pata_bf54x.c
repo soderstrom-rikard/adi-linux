@@ -38,7 +38,7 @@
 #include <linux/platform_device.h>
 #include <asm/dma.h>
 
-#define DRV_NAME		"pata-bf54x"
+#define DRV_NAME		"bf54x-atapi"
 #define DRV_VERSION		"0.1"
 
 #define ATA_REG_CTRL		0x0E
@@ -509,7 +509,7 @@ static void inline wait_complete(unsigned long base, unsigned short mask)
 
 	do {
 		status = ATAPI_GET_INT_STATUS(base) & mask;
-	} while (~status);
+	} while (!status);
 
 	ATAPI_SET_INT_STATUS(base, mask);
 	SSYNC();
@@ -880,7 +880,7 @@ static void bfin_bmdma_setup (struct ata_queued_cmd *qc)
 			| XFER_DIR));
 		/* fill the ATAPI DMA controller */
 		set_dma_config(CH_ATAPI_TX, config);
-		set_dma_start_addr(CH_ATAPI_TX, qc->buf_virt);
+		set_dma_start_addr(CH_ATAPI_TX, (unsigned long)qc->buf_virt);
 		set_dma_x_count(CH_ATAPI_TX, (qc->nbytes >> 1));
 		set_dma_x_modify(CH_ATAPI_TX, 2);
 	} else {
@@ -889,7 +889,7 @@ static void bfin_bmdma_setup (struct ata_queued_cmd *qc)
 		/* fill the ATAPI DMA controller */
 		config |= WNR;
 		set_dma_config(CH_ATAPI_RX, config);
-		set_dma_start_addr(CH_ATAPI_RX, qc->buf_virt);
+		set_dma_start_addr(CH_ATAPI_RX, (unsigned long)qc->buf_virt);
 		set_dma_x_count(CH_ATAPI_RX, (qc->nbytes >> 1));
 		set_dma_x_modify(CH_ATAPI_RX, 2);
 	}
@@ -1321,12 +1321,17 @@ static void bfin_bmdma_irq_clear (struct ata_port *ap)
 	SSYNC();
 }
 
-void bfin_port_stop(struct ata_port *ap)
+static void bfin_port_stop(struct ata_port *ap)
 {
 	if (ap->udma_mask != 0 || ap->mwdma_mask != 0) {
 		free_dma(CH_ATAPI_RX);
 		free_dma(CH_ATAPI_TX);
 	}
+}
+
+static int bfin_port_start(struct ata_port *ap)
+{
+	return 0;
 }
 
 static struct scsi_host_template bfin_sht = {
@@ -1382,6 +1387,7 @@ static const struct ata_port_operations bfin_pata_ops = {
 	.irq_on			= bfin_irq_on,
 	.irq_ack		= bfin_irq_ack,
 
+	.port_start		= bfin_port_start,
 	.port_stop		= bfin_port_stop,
 };
 
@@ -1417,7 +1423,7 @@ static int bfin_config_atapi_gpio(struct ata_probe_ent *ae)
 	bfin_write_PORTG_DIR_SET(0x1c);
 
 	bfin_write_PORTH_FER(bfin_read_PORTH_FER() | 0x4);
-	bfin_write_PORTH_MUX((bfin_read_PORTH_MUX() & ~0x30) | 0x10);
+	bfin_write_PORTH_MUX(bfin_read_PORTH_MUX() & ~0x30);
 	bfin_write_PORTH_DIR_SET(0x4);
 
 	bfin_write_PORTJ_FER(0x7f8);
@@ -1485,7 +1491,7 @@ static int __devinit bfin_atapi_probe(struct platform_device *pdev)
 {
 	struct resource *res;
 	struct ata_probe_ent ae;
-	int board_idx = 1;
+	int board_idx = 0;
 	int rc;
 
 	/*
@@ -1551,19 +1557,30 @@ static int __devexit bfin_atapi_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int bfin_atapi_suspend(struct platform_device *dev)
+{
+	return 0;
+}
+
+static int bfin_atapi_resume(struct platform_device *dev)
+{
+	return 0;
+}
+
 static struct platform_driver bfin_atapi_driver = {
 	.probe			= bfin_atapi_probe,
 	.remove			= __devexit_p(bfin_atapi_remove),
+	.suspend		= bfin_atapi_suspend,
+	.resume			= bfin_atapi_resume,
 	.driver = {
 		.name		= DRV_NAME,
 		.owner		= THIS_MODULE,
 	},
 };
 
-
 static int __init bfin_atapi_init (void)
 {
-	DPRINTK("register bfin atapi driver\n");
+	pr_info("register bfin atapi driver\n");
 	return platform_driver_register(&bfin_atapi_driver);
 }
 
