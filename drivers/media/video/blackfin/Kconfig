@@ -2,7 +2,6 @@
 config VIDEO_BLACKFIN_CAM
 	tristate "Blackfin Camera driver"
 	depends on BFIN && VIDEO_DEV && I2C
-	select VS6524
 	default n
 	help
 	  V4L Support for ST VS6524 camera attached to
@@ -44,9 +43,9 @@ config VS6524
 	help
 	  ST VS6524 Sensor Support
 
-config OV7760
-	bool "OV7760"
+config VS6624
+	bool "VS6624"
 	help
-	  ST OV7760 Sensor Support
+	  ST VS6624 Sensor Support
 
 endchoice

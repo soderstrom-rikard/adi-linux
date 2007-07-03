@@ -40,7 +40,6 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/poll.h>
-#include <linux/proc_fs.h>
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
@@ -52,7 +51,6 @@
 #include <media/v4l2-dev.h>
 
 #include <asm/blackfin.h>
-
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/dma.h>
@@ -60,31 +58,15 @@
 #include <asm/uaccess.h>
 #include <asm/gpio.h>
 
-
-//#define VIDIOSFPS (BASE_VIDIOCPRIVATE+1)
-
-#if defined(CONFIG_BF537)
-# define  bcap_STANDBY  GPIO_PG11
-# define  bcap_LEDS     GPIO_PG8
-# define  bcap_TRIGGER  GPIO_PG13
-#endif
-
-#if defined(CONFIG_BF533)
-# define  bcap_STANDBY  GPIO_8
-# define  bcap_LEDS     GPIO_11
-# define  bcap_TRIGGER  GPIO_6
-# define  bcap_FS3      GPIO_3
-#endif
-
-#define  BCAP_NUM_BUFS 2
-#define  VID_HARDWARE_BCAP  13	/* experimental */
-#define  I2C_DRIVERID_BCAP  81	/* experimental (next avail. in i2c-id.h) */
-#define NO_TRIGGER  16
+#include "blackfin_cam.h"
 
 #ifdef CONFIG_VS6524
 #include "vs6524.h"
 #endif
 
+#ifdef CONFIG_VS6624
+#include "vs6624.h"
+#endif
 
 #ifdef USE_GPIO
 #define GPIO_SET_VALUE(x,y) gpio_set_value(x,y)
@@ -97,7 +79,7 @@ struct bcap_device_t;
 #define  MAX_BUFFER_SIZE (MAX_FRAME_WIDTH * MAX_FRAME_HEIGHT * DEFAULT_DEPTH/8)
 
 static unsigned char *top_buffer;	/* TOP Video Buffer */
-static unsigned char *bottom_buffer;    /* Bottom Video Buffer */
+static unsigned char *bottom_buffer;	/* Bottom Video Buffer */
 static dma_addr_t dma_handle;
 
 static unsigned int global_gain = 127;
@@ -105,18 +87,8 @@ static unsigned int debug = 0;
 static unsigned int perfnum = 0;
 static unsigned int force_palette = DEFAULT_FORMAT;
 
-struct i2c_client *i2c_global_client = NULL;	/* just needed for proc ... */
-struct sensor_data {
-	struct i2c_client client;
-	struct bcap_device_t *bcap_dev;
-	unsigned char reg[128];
-	int input;
-	int enable;
-	int bright;
-	int contrast;
-	int hue;
-	int sat;
-};
+struct i2c_client *i2c_global_client = NULL;
+
 static const char sensor_name[] = SENSOR_NAME;
 struct i2c_adapter *adapter;
 static u16 normal_i2c[] = {
@@ -126,68 +98,11 @@ static u16 normal_i2c[] = {
 };
 
 I2C_CLIENT_INSMOD;
+
 static struct i2c_driver sensor_driver;
-
-struct ppi_device_t {
-	struct bcap_device_t *bcap_dev;
-	int opened;
-	unsigned short irqnum;
-	unsigned short done;
-	unsigned short dma_config;
-	unsigned short pixel_per_line;
-	unsigned short lines_per_frame;
-	unsigned short bpp;
-	unsigned short ppi_control;
-	unsigned short ppi_status;
-	unsigned short ppi_delay;
-	unsigned short ppi_trigger_gpio;
-	wait_queue_head_t *rx_avail;
-};
-
-struct bcap_buffer {
-	unsigned char *data;
-	wait_queue_head_t wq;
-	volatile int state;
-	unsigned int scyc;	/* < start cycle for frame  */
-	unsigned int ecyc;	/* < end cycle for frame    */
-	unsigned long stime;	/* < start time for frame   */
-	unsigned long etime;	/* < end time for frame     */
-};
-
-/*
- * States for each frame buffer.
- */
-enum {
-	FRAME_UNUSED = 0,	/* < Unused                           */
-	FRAME_READY = 1,	/* < Ready to start grabbing          */
-	FRAME_GRABBING = 2,	/* < Grabbing the frame               */
-	FRAME_DONE = 3,		/* < Grabbing done, frame not synced  */
-	FRAME_ERROR = 4,	/* < Error                            */
-};
-
-struct bcap_device_t {
-	int frame_count;
-	struct video_device *videodev;
-	struct ppi_device_t *ppidev;
-	struct i2c_client *client;
-	int user;
-	char name[32];
-	int width;
-	int height;
-	size_t size;
-	struct timeval *stv;
-	struct timeval *etv;
-	struct bcap_buffer buffer[BCAP_NUM_BUFS];
-	struct bcap_buffer *next_buf;
-	struct bcap_buffer *dma_buf;
-	struct bcap_buffer *ready_buf;
-	spinlock_t lock;
-};
 static struct video_device bcap_template;
 struct bcap_device_t *bcap_dev;
 static DECLARE_WAIT_QUEUE_HEAD(bcap_waitqueue);
-
-static DEFINE_MUTEX(bcam_sysfs_lock);
 
 static inline unsigned int cycles(void)
 {
@@ -196,14 +111,17 @@ static inline unsigned int cycles(void)
 	return ret;
 }
 
-static inline int
-default_palette(int palette)
+static inline int default_palette(int palette)
 {
 	switch (palette) {
-	case 0:  return VIDEO_PALETTE_GREY;
-	case 1:  return VIDEO_PALETTE_RGB565;
-	case 2:  return VIDEO_PALETTE_YUV422;
-	case 3:  return VIDEO_PALETTE_UYVY;
+	case 0:
+		return VIDEO_PALETTE_GREY;
+	case 1:
+		return VIDEO_PALETTE_RGB565;
+	case 2:
+		return VIDEO_PALETTE_YUV422;
+	case 3:
+		return VIDEO_PALETTE_UYVY;
 
 	default:
 		return VIDEO_PALETTE_RGB565;
@@ -213,201 +131,26 @@ default_palette(int palette)
 /* Returns number of bits per pixel (regardless of where they are located;
  * planar or not), or zero for unsupported format.
  */
-static inline int
-get_depth(int palette)
+static inline int get_depth(int palette)
 {
 	switch (palette) {
-	case VIDEO_PALETTE_GREY:    return 8;
-	case VIDEO_PALETTE_YUV420:  return 12;
-	case VIDEO_PALETTE_YUV420P: return 12; /* Planar */
-	case VIDEO_PALETTE_YUV422:  return 16;
-	case VIDEO_PALETTE_RGB565:  return 16;
-	case VIDEO_PALETTE_UYVY:    return 16;
-	case VIDEO_PALETTE_YUYV:    return 16;
-	default:		    return 0;  /* Invalid format */
+	case VIDEO_PALETTE_GREY:
+		return 8;
+	case VIDEO_PALETTE_YUV420:
+		return 12;
+	case VIDEO_PALETTE_YUV420P:
+		return 12;	/* Planar */
+	case VIDEO_PALETTE_YUV422:
+		return 16;
+	case VIDEO_PALETTE_RGB565:
+		return 16;
+	case VIDEO_PALETTE_UYVY:
+		return 16;
+	case VIDEO_PALETTE_YUYV:
+		return 16;
+	default:
+		return 0;	/* Invalid format */
 	}
-}
-
-
-/****************************************************************************
- *  sysfs
- ***************************************************************************/
-
-static u8 bcam_strtou8(const char* buff, size_t len, ssize_t* count)
-{
-	char str[5];
-	char* endp;
-	unsigned long val;
-
-	if (len < 4) {
-		strncpy(str, buff, len);
-		str[len+1] = '\0';
-	} else {
-		strncpy(str, buff, 4);
-		str[4] = '\0';
-	}
-
-	val = simple_strtoul(str, &endp, 0);
-
-	*count = 0;
-	if (val <= 0xff)
-		*count = (ssize_t)(endp - str);
-	if ((*count) && (len == *count+1) && (buff[*count] == '\n'))
-		*count += 1;
-
-	return (u8)val;
-}
-
-
-static ssize_t bcam_sysfs_show_val(struct class_device* cd, char* buf, int cmd)
-{
-	struct bcap_device_t* cam;
-	ssize_t count;
-	u8 val[1];
-
-	if (mutex_lock_interruptible(&bcam_sysfs_lock))
-		return -ERESTARTSYS;
-
-	cam = video_get_drvdata(to_video_device(cd));
-	if (!cam) {
-		mutex_unlock(&bcam_sysfs_lock);
-		return -ENODEV;
-	}
-
-
-	if (cam_control(cam->client, cmd, (u32)val) < 0) {
-		mutex_unlock(&bcam_sysfs_lock);
-		return -EIO;
-	}
-
-	count = sprintf(buf, "%d\n", val[0]);
-
-	mutex_unlock(&bcam_sysfs_lock);
-
-	return count;
-}
-
-static ssize_t
-bcam_sysfs_store_val(struct class_device* cd, const char* buf, size_t len, int cmd)
-{
-	struct bcap_device_t* cam;
-	u8 value;
-	ssize_t count;
-	int err;
-
-	if (mutex_lock_interruptible(&bcam_sysfs_lock))
-		return -ERESTARTSYS;
-
-	cam = video_get_drvdata(to_video_device(cd));
-
-	if (!cam) {
-		mutex_unlock(&bcam_sysfs_lock);
-		return -ENODEV;
-	}
-
-	value = bcam_strtou8(buf, len, &count);
-
-	if (!count) {
-		mutex_unlock(&bcam_sysfs_lock);
-		return -EINVAL;
-	}
-
-	err = cam_control(cam->client, cmd, value);
-
-	if (err) {
-		mutex_unlock(&bcam_sysfs_lock);
-		return -EIO;
-	}
-
-	mutex_unlock(&bcam_sysfs_lock);
-
-	return count;
-}
-
-
-static ssize_t bcam_fps_show(struct class_device* cd, char* buf)
-{
-
-	return bcam_sysfs_show_val(cd, buf, CAM_CMD_GET_FRAMERATE);
-}
-
-static ssize_t
-bcam_fps_store(struct class_device* cd, const char* buf, size_t len)
-{
-	return bcam_sysfs_store_val(cd, buf,len, CAM_CMD_SET_FRAMERATE);
-}
-
-static CLASS_DEVICE_ATTR(fps, S_IRUGO | S_IWUSR,
-			 bcam_fps_show, bcam_fps_store);
-
-
-static ssize_t bcam_flicker_show(struct class_device* cd, char* buf)
-{
-	return bcam_sysfs_show_val(cd, buf, CAM_CMD_GET_FLICKER_FREQ);
-}
-
-static ssize_t
-bcam_flicker_store(struct class_device* cd, const char* buf, size_t len)
-{
-	return bcam_sysfs_store_val(cd, buf,len, CAM_CMD_SET_FLICKER_FREQ);
-}
-
-static CLASS_DEVICE_ATTR(flicker, S_IRUGO | S_IWUSR,
-			 bcam_flicker_show, bcam_flicker_store);
-
-static ssize_t bcam_h_mirror_show(struct class_device* cd, char* buf)
-{
-	return bcam_sysfs_show_val(cd, buf, CAM_CMD_GET_HOR_MIRROR);
-}
-
-static ssize_t
-bcam_h_mirror_store(struct class_device* cd, const char* buf, size_t len)
-{
-	return bcam_sysfs_store_val(cd, buf,len, CAM_CMD_SET_HOR_MIRROR);
-}
-
-static CLASS_DEVICE_ATTR(h_mirror, S_IRUGO | S_IWUSR,
-			 bcam_h_mirror_show, bcam_h_mirror_store);
-
-static ssize_t bcam_v_mirror_show(struct class_device* cd, char* buf)
-{
-	return bcam_sysfs_show_val(cd, buf, CAM_CMD_GET_VERT_MIRROR);
-}
-
-static ssize_t
-bcam_v_mirror_store(struct class_device* cd, const char* buf, size_t len)
-{
-	return bcam_sysfs_store_val(cd, buf,len, CAM_CMD_SET_VERT_MIRROR);
-}
-
-static CLASS_DEVICE_ATTR(v_mirror, S_IRUGO | S_IWUSR,
-			 bcam_v_mirror_show, bcam_v_mirror_store);
-
-
-static int bcam_create_sysfs(struct bcap_device_t* cam)
-{
-	struct video_device *v4ldev = cam->videodev;
-	int rc;
-
-	rc = video_device_create_file(v4ldev, &class_device_attr_fps);
-	if (rc) goto err;
-	rc = video_device_create_file(v4ldev, &class_device_attr_flicker);
-	if (rc) goto err_flicker;
-	rc = video_device_create_file(v4ldev, &class_device_attr_v_mirror);
-	if (rc) goto err_v_mirror;
-	rc = video_device_create_file(v4ldev, &class_device_attr_h_mirror);
-	if (rc) goto err_h_mirror;
-
-	return 0;
-
-err_h_mirror:
-	video_device_remove_file(v4ldev, &class_device_attr_v_mirror);
-err_v_mirror:
-	video_device_remove_file(v4ldev, &class_device_attr_flicker);
-err_flicker:
-	video_device_remove_file(v4ldev, &class_device_attr_fps);
-err:
-	return rc;
 }
 
 void bcap_reg_reset(struct ppi_device_t *pdev)
@@ -422,7 +165,6 @@ void bcap_reg_reset(struct ppi_device_t *pdev)
 #endif
 	bfin_write_PPI_FRAME(pdev->lines_per_frame);
 }
-
 
 static size_t bcap_ppi2dma(struct ppi_device_t *ppidev, char *buf, size_t count)
 {
@@ -442,8 +184,8 @@ static size_t bcap_ppi2dma(struct ppi_device_t *ppidev, char *buf, size_t count)
 	/* Enable PPI  */
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
 
-	pr_debug("bcap_ppi2dma: done read in %zi bytes for [0x%p-0x%p]\n", count,
-		 buf, (buf + count));
+	pr_debug("bcap_ppi2dma: done read in %zi bytes for [0x%p-0x%p]\n",
+		 count, buf, (buf + count));
 
 	return count;
 }
@@ -488,7 +230,7 @@ static irqreturn_t bcap_ppi_irq(int irq, void *dev_id)
 		bcap_dev->dma_buf->state = FRAME_GRABBING;
 		count =
 		    bcap_ppi2dma(bcap_dev->ppidev, bcap_dev->dma_buf->data,
-			    bcap_dev->size);
+				 bcap_dev->size);
 	}
 
 	return IRQ_HANDLED;
@@ -512,11 +254,11 @@ static irqreturn_t bcap_ppi_irq_error(int irq, void *dev_id)
 static int bcap_reset_wsize(u32 height, u32 width)
 {
 	if (height < MIN_FRAME_HEIGHT || height > MAX_FRAME_HEIGHT) {
-		printk(KERN_ERR, "  ...no valid height\n");
+		printk(KERN_ERR "  ...no valid height\n");
 		return -EINVAL;
 	}
 	if (width < MIN_FRAME_WIDTH || width > MAX_FRAME_WIDTH) {
-		printk(KERN_ERR, "  ...no valid width \n");
+		printk(KERN_ERR "  ...no valid width \n");
 		return -EINVAL;
 	}
 
@@ -525,28 +267,25 @@ static int bcap_reset_wsize(u32 height, u32 width)
 
 	bfin_write_PPI_CONTROL(bcap_dev->ppidev->ppi_control & ~PORT_EN);
 
-	cam_control(bcap_dev->client, CAM_CMD_SET_RESOLUTION,
-			RES(bcap_dev->width, bcap_dev->height));
+	bcap_dev->cam_ops->cam_control(bcap_dev->client, CAM_CMD_SET_RESOLUTION,
+				       RES(bcap_dev->width, bcap_dev->height));
 
 	bcap_dev->ppidev->pixel_per_line = bcap_dev->width;
 	bcap_dev->ppidev->lines_per_frame = bcap_dev->height;
 
 	set_dma_config(CH_PPI, bcap_dev->ppidev->dma_config);
 
-
 	if (bcap_dev->ppidev->bpp > 8)
 		set_dma_x_count(CH_PPI, bcap_dev->ppidev->pixel_per_line);
 	else
 		set_dma_x_count(CH_PPI, bcap_dev->ppidev->pixel_per_line / 2);
-		/* Div 2 because of 16-bit packing */
-
+	/* Div 2 because of 16-bit packing */
 
 	set_dma_y_count(CH_PPI, bcap_dev->ppidev->lines_per_frame);
 
 	bfin_write_PPI_FRAME(bcap_dev->ppidev->lines_per_frame);
 
 	bfin_write_PPI_DELAY(bcap_dev->ppidev->ppi_delay);
-
 
 #if !defined(USE_ITU656)
 	if (bcap_dev->ppidev->bpp > 8)
@@ -556,21 +295,28 @@ static int bcap_reset_wsize(u32 height, u32 width)
 #endif
 
 	if (bcap_dev->ppidev->bpp > 8 ||
-			bcap_dev->ppidev->dma_config & WDSIZE_16) {
+	    bcap_dev->ppidev->dma_config & WDSIZE_16) {
 		set_dma_x_modify(CH_PPI, 2);
 		set_dma_y_modify(CH_PPI, 2);
-	}else {
+	} else {
 		set_dma_x_modify(CH_PPI, 1);
 		set_dma_y_modify(CH_PPI, 1);
 	}
 
 	pr_debug("  setting PPI to %dx%d\n", bcap_dev->ppidev->pixel_per_line,
-			bcap_dev->ppidev->lines_per_frame);
+		 bcap_dev->ppidev->lines_per_frame);
 
 	bcap_dev->size = bcap_dev->width * bcap_dev->height *
-			  (get_depth(default_palette(force_palette))/8);
+	    (get_depth(default_palette(force_palette)) / 8);
 
 	return 0;
+}
+
+static int bcap_create_sysfs(struct bcap_device_t *cam)
+{
+	struct video_device *v4ldev = cam->videodev;
+
+	return cam->cam_ops->create_sysfs(v4ldev);
 }
 
 static int bcap_init_v4l(struct sensor_data *data)
@@ -609,14 +355,15 @@ static int bcap_init_v4l(struct sensor_data *data)
 		goto error_out_video;
 	}
 
-
 	video_set_drvdata(bcap_dev->videodev, bcap_dev);
 
 	bcap_dev->client = &data->client;
 	bcap_dev->lock = SPIN_LOCK_UNLOCKED;
 	data->bcap_dev = bcap_dev;
 
-	bcam_create_sysfs(bcap_dev);
+	bcap_dev->cam_ops = data->cam_ops;
+
+	bcap_create_sysfs(bcap_dev);
 
 	printk(KERN_INFO "%s: V4L driver %s now ready\n", sensor_name,
 	       bcap_dev->videodev->name);
@@ -634,7 +381,7 @@ static int bcap_init_v4l(struct sensor_data *data)
 }
 
 static int sensor_detect_client(struct i2c_adapter *adapter, int address,
-				 int kind)
+				int kind)
 {
 	int err;
 	struct i2c_client *new_client;
@@ -653,8 +400,6 @@ static int sensor_detect_client(struct i2c_adapter *adapter, int address,
 	data = kzalloc(sizeof(struct sensor_data), GFP_KERNEL);
 	if (data == NULL)
 		return -ENOMEM;
-	data->input = 0;
-	data->enable = 1;
 
 	i2c_global_client = new_client = &data->client;
 	i2c_set_clientdata(new_client, data);
@@ -669,13 +414,18 @@ static int sensor_detect_client(struct i2c_adapter *adapter, int address,
 
 	pr_debug("%s: detected I2C client (id = %04x)\n", sensor_name, tmp);
 
+	data->cam_ops = register_camera();
 
-	err = cam_control(new_client, CAM_CMD_INIT, 1);
+	if (!data->cam_ops)
+		goto error_out;
+
+	err = data->cam_ops->cam_control(new_client, CAM_CMD_INIT, 1);
 
 	if (err)
 		goto error_out;
 
-	cam_control(new_client, CAM_CMD_SET_PIXFMT, default_palette(force_palette));
+	data->cam_ops->cam_control(new_client, CAM_CMD_SET_PIXFMT,
+				   default_palette(force_palette));
 
 	err = bcap_init_v4l(data);
 
@@ -705,10 +455,12 @@ static int sensor_detach_client(struct i2c_client *client)
 	struct sensor_data *data;
 	int err;
 
+	data = i2c_get_clientdata(client);
+
+	data->cam_ops->cam_control(i2c_global_client, CAM_CMD_EXIT, 1);
+
 	if ((err = i2c_detach_client(client)))
 		return err;
-
-	data = i2c_get_clientdata(client);
 
 	video_unregister_device(data->bcap_dev->videodev);
 	kfree(data->bcap_dev->videodev);
@@ -721,7 +473,7 @@ static int sensor_detach_client(struct i2c_client *client)
 }
 
 static int sensor_command(struct i2c_client *client, unsigned int cmd,
-			   void *arg)
+			  void *arg)
 {
 	/* as yet unimplemented */
 	return -EINVAL;
@@ -736,62 +488,6 @@ static struct i2c_driver sensor_driver = {
 	.detach_client = sensor_detach_client,
 	.command = sensor_command,
 };
-
-/*
- * FIXME: We should not be putting random things into proc - this is a NO-NO
- */
-#if defined(USE_PROC)
-
-static int sensor_proc_read(char *buf, char **start, off_t offset, int count,
-			     int *eof, void *data)
-{
-	int i;
-	u16 tmp = 0;
-	int len = 0;
-
-	for (i = 0; i < sizeof(i2c_regs) / sizeof(*i2c_regs); ++i) {
-		bcap_i2c_read(i2c_global_client, i2c_regs[i].regnum, &tmp, 1);
-		len += sprintf(&buf[len], "Reg 0x%02x: = 0x%04x %-40s",
-			       i2c_regs[i].regnum, tmp, i2c_regs[i].name);
-		if (!((i + 1) % 2))
-			len += sprintf(&buf[len], "\n");
-	}
-	if (i % 2)
-		len += sprintf(&buf[len], "\n");
-
-	*eof = 1;
-	return len;
-}
-
-static int sensor_proc_write(struct file *file, const char *buf,
-			      unsigned long count, void *data)
-{
-	int reg = 0, val = 0, i;
-	sscanf(buf, "%i %i", &reg, &val);
-	for (i = 0; i < sizeof(i2c_regs) / sizeof(*i2c_regs); ++i) {
-		if (i2c_regs[i].regnum == reg) {
-			printk("writing register 0x%02x (%s) with 0x%04x\n",
-			       reg, i2c_regs[i].name, val);
-			bcap_i2c_write(i2c_global_client, reg, val);
-			break;
-		}
-	}
-	return count;
-}
-
-static int sensor_proc_init(void)
-{
-	struct proc_dir_entry *ptr;
-	pr_debug("  Configuring proc\n");
-	ptr = create_proc_entry("bcap", S_IFREG | S_IRUGO, NULL);
-	if (!ptr)
-		return -1;
-	ptr->owner = THIS_MODULE;
-	ptr->read_proc = sensor_proc_read;
-	ptr->write_proc = sensor_proc_write;
-	return 0;
-}
-#endif				/* DEBUG PROC FILE */
 
 #if 0
 static int v4l2_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
@@ -1056,7 +752,6 @@ static int v4l2_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 }
 #endif
 
-
 static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		     unsigned long arg)
 {
@@ -1143,7 +838,8 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	case VIDIOCSPICT:{
 			struct video_picture *p = (struct video_picture *)arg;
 			pr_debug("VIDIOCSPICT called\n");
-			if (p->depth != get_depth(default_palette(force_palette))) {
+			if (p->depth !=
+			    get_depth(default_palette(force_palette))) {
 				pr_debug("  not a valid depth (%d)\n",
 					 p->depth);
 				return -EINVAL;
@@ -1184,7 +880,7 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 				return -EINVAL;
 
 			printk("  ...using %dx%d window\n", vw->width,
-				 vw->height);
+			       vw->height);
 
 			return 0;
 		}
@@ -1307,8 +1003,8 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 					 bcap_dev->dma_buf->data);
 				count =
 				    bcap_ppi2dma(bcap_dev->ppidev,
-					    bcap_dev->dma_buf->data,
-					    bcap_dev->size);
+						 bcap_dev->dma_buf->data,
+						 bcap_dev->size);
 			} else {
 				bcap_dev->next_buf = &bcap_dev->buffer[i];
 				pr_debug
@@ -1340,11 +1036,10 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 				if (!bcap_dev->ppidev)
 					return -EIO;
 
-
 				ret =
-				    wait_event_interruptible(bcap_dev->
-							     buffer[i].wq,
-							     (bcap_dev->buffer[i].state == FRAME_DONE));
+				    wait_event_interruptible(bcap_dev->buffer[i].wq,
+							     (bcap_dev->buffer[i].state ==
+							      FRAME_DONE));
 
 				if (ret)
 					return -EINTR;
@@ -1362,13 +1057,10 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 				bcap_dev->buffer[i].state = FRAME_UNUSED;
 
 				blackfin_dcache_invalidate_range((u_long)
-								 bcap_dev->
-								 dma_buf->data,
+								 bcap_dev->dma_buf->data,
 								 (u_long)
-								 (bcap_dev->
-								  dma_buf->data +
-								  bcap_dev->
-								  size));
+								 (bcap_dev->dma_buf->data +
+								  bcap_dev->size));
 
 				bcap_dev->ready_buf = &bcap_dev->buffer[i];
 				pr_debug("  ready_buf = [0x%p]\n",
@@ -1436,11 +1128,12 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		return -EINVAL;
 
 	case VIDIOSFPS:{
-		unsigned int val = *((unsigned int *)arg);
-		cam_control(bcap_dev->client, CAM_CMD_SET_FRAMERATE, (u8)val);
-		return 0;
+			unsigned int val = *((unsigned int *)arg);
+			bcap_dev->cam_ops->cam_control(bcap_dev->client,
+						       CAM_CMD_SET_FRAMERATE,
+						       (u8) val);
+			return 0;
 		}
-
 
 	default:
 		pr_debug("unknown/unsupported V4L ioctl command (%08x)\n", cmd);
@@ -1448,8 +1141,6 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	}
 	return 0;
 }
-
-
 
 static void v4l_release(struct video_device *vdev)
 {
@@ -1475,27 +1166,29 @@ static int bcap_open(struct inode *inode, struct file *filp)
 		return -EMFILE;
 	}
 
-	bottom_buffer = (unsigned char*)0x1000;
+	bottom_buffer = (unsigned char *)0x1000;
 
 #if !defined(USE_2ND_BUF_IN_CACHED_MEM)
 	top_buffer =
 	    dma_alloc_coherent(NULL, MAX_BUFFER_SIZE, &dma_handle, GFP_KERNEL);
 #else
-	top_buffer =kmalloc(MAX_BUFFER_SIZE, GFP_KERNEL);
+	top_buffer = kmalloc(MAX_BUFFER_SIZE, GFP_KERNEL);
 #endif
 	if (NULL == top_buffer) {
 		printk(KERN_ERR ": couldn't allocate dma buffer.\n");
 		return -ENOMEM;
 	}
 
-	if ((bottom_buffer == (unsigned char*) 0x1000) &&
-	    ((bottom_buffer + MAX_BUFFER_SIZE) >= (unsigned char*) CONFIG_BOOT_LOAD)) {
+	if ((bottom_buffer == (unsigned char *)0x1000) &&
+	    ((bottom_buffer + MAX_BUFFER_SIZE) >=
+	     (unsigned char *)CONFIG_BOOT_LOAD)) {
 		printk(KERN_ERR ": couldn't allocate bottom buffer -"
-			" kernel start address too low\n");
+		       " kernel start address too low\n");
 #if !defined(USE_2ND_BUF_IN_CACHED_MEM)
-			dma_free_coherent(NULL, MAX_BUFFER_SIZE, top_buffer, dma_handle);
+		dma_free_coherent(NULL, MAX_BUFFER_SIZE, top_buffer,
+				  dma_handle);
 #else
-			kfree(top_buffer);
+		kfree(top_buffer);
 #endif
 		return -ENOMEM;
 	}
@@ -1668,18 +1361,12 @@ static __exit void bcap_exit(void)
 {
 	int err;
 
-	cam_control(i2c_global_client, CAM_CMD_EXIT, 1);
-
 	if ((err = i2c_del_driver(&sensor_driver))) {
 		printk(KERN_WARNING "%s: could not del i2c driver: %i\n",
 		       sensor_name, err);
 		return;
 	}
 
-
-#if defined(USE_PROC)
-	remove_proc_entry("bcap", &proc_root);
-#endif
 	/*  Turn FS3 frame synch off  */
 
 #if defined(BF533_FAMILY)
@@ -1757,10 +1444,6 @@ static __init int bcap_init(void)
 		return err;
 	}
 
-#if defined(USE_PROC)
-	if (sensor_proc_init())
-		printk(KERN_WARNING "Could not create proc entry\n");
-#endif
 	/*  Turn FS3 frame synch off  */
 
 #if defined(BF533_FAMILY)
@@ -1779,8 +1462,6 @@ static __init int bcap_init(void)
 	data = kzalloc(sizeof(struct sensor_data), GFP_KERNEL);
 	if (data == NULL)
 		return -ENOMEM;
-	data->input = 0;
-	data->enable = 1;
 
 	bcap_init_v4l(data);
 #endif
@@ -1798,10 +1479,10 @@ module_param(debug, int, 0);
 module_param(force_palette, int, 0);
 
 MODULE_PARM_DESC(force_palette,
-	"0 = VIDEO_PALETTE_GREY"
-	"1 = VIDEO_PALETTE_RGB565"
-	"2 = VIDEO_PALETTE_YUV422"
-	"3 = VIDEO_PALETTE_UYVY\n");
+		 "0 = VIDEO_PALETTE_GREY"
+		 "1 = VIDEO_PALETTE_RGB565"
+		 "2 = VIDEO_PALETTE_YUV422"
+		 "3 = VIDEO_PALETTE_UYVY\n");
 
 module_init(bcap_init);
 module_exit(bcap_exit);

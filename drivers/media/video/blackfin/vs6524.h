@@ -28,6 +28,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#ifndef VS6524_H
+#define VS6524_H
+
+#include "blackfin_cam.h"
 
 /*0 = VIDEO_PALETTE_GREY
   1 = VIDEO_PALETTE_RGB565
@@ -36,20 +40,14 @@
 
 #define DEFAULT_FORMAT 	3
 
-#undef USE_ITU656
-#undef USE_2ND_BUF_IN_CACHED_MEM
-#define USE_PPI_ERROR
-#undef USE_PROC
-#undef USE_GPIO
-
-# define POL_C              	0x0000
-# define POL_S              	0x0000
-# define PIXEL_PER_LINE     	640
-# define LINES_PER_FRAME    	480
-# define PPI_DATA_LEN       	DLEN_8
-# define PPI_PACKING        	PACK_EN
-# define DMA_FLOW_MODE      	0x0000	/* STOPMODE */
-# define DMA_WDSIZE_16      	WDSIZE_16
+#define POL_C              	0x0000
+#define POL_S              	0x0000
+#define PIXEL_PER_LINE     	640
+#define LINES_PER_FRAME    	480
+#define PPI_DATA_LEN       	DLEN_8
+#define PPI_PACKING        	PACK_EN
+#define DMA_FLOW_MODE      	0x0000	/* STOPMODE */
+#define DMA_WDSIZE_16      	WDSIZE_16
 
 #ifdef USE_ITU656
 # define CFG_GP_Input_3Syncs	0x0000
@@ -59,22 +57,12 @@
 # define GP_Input_Mode      	0x000C
 #endif
 
-
 #define I2C_SENSOR_ID  (0x20)
 #define DEFAULT_DEPTH 16
 
 #define SENSOR_NAME "VS6524"
 
-struct i2c_registers {
-	int regnum;
-	char name[50];
-};
-
-struct i2c_registers i2c_regs[] = {
-
-};
-
-int cam_control(struct i2c_client *client, u32 cmd, u32 arg);
+struct bcap_camera_ops *register_camera(void);
 
 #define MAX_FRAME_WIDTH  640
 #define MAX_FRAME_HEIGHT 480
@@ -83,51 +71,15 @@ int cam_control(struct i2c_client *client, u32 cmd, u32 arg);
 
 #define MAX_FRAMERATE  30
 
-#define X_RES(x) (x >> 16)
-#define Y_RES(x) (x & 0xFFFF)
-#define MSB(x)(x >> 8)
-#define LSB(x)(x & 0xFF)
-
-#define RES(x,y)	(x << 16) | (y & 0xFFFF)
-
-#define RES_VGA		RES(640,480)
-#define RES_QVGA	RES(320,240)
-#define RES_QQVGA	RES(160,120)
-
-#define RES_CIF		RES(352,288)
-#define RES_QCIF	RES(176,144)
-#define RES_SQCIF	RES(128,96)
-
-/* Controls */
-enum {
-	CAM_CMD_INIT,
-	CAM_CMD_SET_RESOLUTION,
-	CAM_CMD_SET_FRAMERATE,
-	CAM_CMD_SET_PIXFMT,
-	CAM_CMD_EXIT,
-	CAM_CMD_SET_CONTRAST,
-	CAM_CMD_SET_SATURATION,
-	CAM_CMD_SET_HOR_MIRROR,
-	CAM_CMD_SET_VERT_MIRROR,
-	CAM_CMD_SET_FLICKER_FREQ,
-	CAM_CMD_GET_FRAMERATE,
-	CAM_CMD_GET_FLICKER_FREQ,
-	CAM_CMD_GET_VERT_MIRROR,
-	CAM_CMD_GET_HOR_MIRROR,
-	CAM_CMD_GET_SATURATION,
-	CAM_CMD_GET_CONTRAST,
-};
-
 #define VS6524_ID 				 524
-
 
 #define MICROENABLE				 0xC003
 #define ENABLE_IO				 0xC034
 
 #define DEVICEID_MSB				 0x0001
 #define DEVICEID_LSB				 0x0002
-#define BFIRMWAREVSNMAJOR
-#define BFIRMWAREVSNMINOR
+#define BFIRMWAREVSNMAJOR			 0x0004
+#define BFIRMWAREVSNMINOR			 0x0006
 #define BPATCHVSNMAJOR				 0x0008
 #define BPATCHVSNMINOR				 0x000a
 
@@ -278,7 +230,7 @@ enum {
 
 #define IR2COEFFICIENT				 0x1a08
 
-//#define FDISABLE				 0x1c80
+/*#define FDISABLE                               0x1c80*/
 #define FPLOWTHRESHOLD				 0x1c83
 #define FPLOWTHRESHOLDLSB			 0x1c84
 #define FPLOWTHRESHOLDMSB			 0x1c83
@@ -306,3 +258,5 @@ enum {
 #define MINIMUMDAMPEROUTPUT_MSB			 0x80e7
 #define MINIMUMDAMPEROUTPUT_LSB			 0x80e8
 #define UNCLIPEDCOMPLIEDTIME			 0x1289
+
+#endif				/* VS6524_H */
