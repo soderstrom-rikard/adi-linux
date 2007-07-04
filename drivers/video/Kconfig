@@ -578,6 +578,15 @@ config FB_BFIN_BGR
 	help
 	 BGR use 16-bit BGR-565 instead of RGB-565
 
+config FB_BF54x_LQ043
+	tristate "SHARP LQ043 TFT LCD (BF548 EZKIT)"
+	depends on FB && (BF54x)
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	help
+	 This is the framebuffer device driver for a SHARP LQ043T1DG01 TFT LCD
+
 config FB_STI
 	tristate "HP STI frame buffer device support"
 	depends on FB && PARISC
