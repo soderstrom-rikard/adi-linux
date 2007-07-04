@@ -42,6 +42,22 @@
  * ready.
  */
 
+/* Thanks to Axel Alatalo <axel@rubico.se> for fixing sport rx bug. Sometimes
+ * sport receives data incorrectly. The following is Axel's words.
+ * As EE-191, sport rx samples 3 times of the UART baudrate and takes the
+ * middle smaple of every 3 samples as the data bit. For a 8-N-1 UART setting,
+ * 30 samples will be required for a byte. If transmitter sends a 1/3 bit short
+ * byte due to buadrate drift, then the 30th sample of a byte, this sample is
+ * also the third sample of the stop bit, will happens on the immediately
+ * following start bit which will be thrown away and missed. Thus since parts
+ * of the startbit will be missed and the receiver will begin to drift, the
+ * effect accumulates over time until synchronization is lost.
+ * If only require 2 samples of the stopbit (by sampling in total 29 samples),
+ * then a to short byte as in the case above will be tolerated. Then the 1/3
+ * early startbit will trigger a framesync since the last read is complete
+ * after only 2/3 stopbit and framesync is active during the last 1/3 looking
+ * for a possible early startbit. */
+
 //#define DEBUG
 
 #include <linux/module.h>
@@ -99,7 +115,7 @@ static inline unsigned int rx_one_byte(struct sport_uart_port *up)
 	__asm__ volatile (
 		"R5 = 0;\n\t"
 		"P0 = 8;\n\t"
-		"R1 = 0x1901(Z);\n\t"
+		"R1 = 0x1801(Z);\n\t"
 		"R3 = 0x0300(Z);\n\t"
 		"R4 = 0;\n\t"
 		"LSETUP(loop_s, loop_e) LC0 = P0;\nloop_s:\t" 
@@ -128,7 +144,7 @@ static int sport_uart_setup(struct sport_uart_port *up, int sclk, int baud_rate)
 
 	/* Set RCR1 and RCR2 */
 	SPORT_PUT_RCR1(up, (RCKFE | LARFS | LRFS | RFSR | IRCLK));
-	SPORT_PUT_RCR2(up, 29);
+	SPORT_PUT_RCR2(up, 28);
 	pr_debug("%s RCR1:%x, RCR2:%x\n", __FUNCTION__, SPORT_GET_RCR1(up), SPORT_GET_RCR2(up));
 
 	tclkdiv = sclk/(2 * baud_rate) - 1;
