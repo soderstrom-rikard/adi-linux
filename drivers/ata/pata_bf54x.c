@@ -281,7 +281,7 @@ static unsigned short num_clocks_min(unsigned long tmin,
  *	None (inherited from caller).
  */
 
-static void bfin_set_piomode (struct ata_port *ap, struct ata_device *adev)
+static void bfin_set_piomode(struct ata_port *ap, struct ata_device *adev)
 {
 	int mode = adev->pio_mode - XFER_PIO_0;
 	unsigned long base = (unsigned long)ap->ioaddr.ctl_addr;
@@ -500,10 +500,26 @@ success:
  *
  *    Function:       wait_complete
  *
- *    Description:    Waits on the appropriate interrupt from the Device
+ *    Description:    Waits the transfer to stop
  *
  */
 static void inline wait_complete(unsigned long base, unsigned short mask)
+{
+	unsigned short status;
+
+	do {
+		status = ATAPI_GET_STATUS(base) & mask;
+	} while (status);
+}
+
+/**
+ *
+ *    Function:       wait_complete
+ *
+ *    Description:    Waits the interrupt from device
+ *
+ */
+static void inline wait_interrupt(unsigned long base, unsigned short mask)
 {
 	unsigned short status;
 
@@ -526,12 +542,6 @@ static void inline wait_complete(unsigned long base, unsigned short mask)
 static void write_atapi_register(unsigned long base,
 		unsigned long ata_reg, unsigned short value)
 {
-	/* Reset all transfer count */
-	ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base) | TFRCNT_RST);
-
-	/* Set transfer length to 1 */
-	ATAPI_SET_XFER_LEN(base, 1);
-
 	/* Program the ATA_DEV_TXBUF register with write data (to be
 	 * written into the device).
 	 */
@@ -557,7 +567,7 @@ static void write_atapi_register(unsigned long base,
 	/* Wait for the interrupt to indicate the end of the transfer.
 	 * (We need to wait on and clear rhe ATA_DEV_INT interrupt status)
 	 */
-	wait_complete(base, PIO_DONE_INT);
+	wait_interrupt(base, PIO_DONE_INT);
 }
 
 /**
@@ -571,12 +581,7 @@ static void write_atapi_register(unsigned long base,
 static unsigned short read_atapi_register(unsigned long base,
 		unsigned long ata_reg)
 {
-	/* Reset all transfer count */
-	ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base) | TFRCNT_RST);
-
-	/* Set transfer length to 1 */
-	ATAPI_SET_XFER_LEN(base, 1);
-
+	unsigned short buf;
 	/* Program the ATA_DEV_ADDR register with address of the
 	 * device register (0x01 to 0x0F).
 	 */
@@ -598,7 +603,7 @@ static unsigned short read_atapi_register(unsigned long base,
 	 * (PIO_DONE interrupt is set and it doesn't seem to matter
 	 * that we don't clear it)
 	 */
-	wait_complete(base, PIO_DONE_INT);
+	wait_interrupt(base, PIO_DONE_INT);
 
 	/* Read the ATA_DEV_RXBUF register with write data (to be
 	 * written into the device).
@@ -623,7 +628,7 @@ static void write_atapi_register_data(unsigned long base,
 	ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base) | TFRCNT_RST);
 
 	/* Set transfer length to 1 */
-	ATAPI_SET_XFER_LEN(base, 1);
+	ATAPI_SET_XFER_LEN(base, len);
 
 	/* Program the ATA_DEV_ADDR register with address of the
 	 * ATA_REG_DATA
@@ -652,7 +657,7 @@ static void write_atapi_register_data(unsigned long base,
 		 * (We need to wait on and clear rhe ATA_DEV_INT
 		 * interrupt status)
 		 */
-		wait_complete(base, PIO_DONE_INT);
+		wait_interrupt(base, PIO_DONE_INT);
 	}
 }
 
@@ -673,7 +678,7 @@ static void read_atapi_register_data(unsigned long base,
 	ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base) | TFRCNT_RST);
 
 	/* Set transfer length to 1 */
-	ATAPI_SET_XFER_LEN(base, 1);
+	ATAPI_SET_XFER_LEN(base, len);
 
 	/* Program the ATA_DEV_ADDR register with address of the
 	 * ATA_REG_DATA
@@ -697,7 +702,7 @@ static void read_atapi_register_data(unsigned long base,
 		 * (PIO_DONE interrupt is set and it doesn't seem to matter
 		 * that we don't clear it)
 		 */
-		wait_complete(base, PIO_DONE_INT);
+		wait_interrupt(base, PIO_DONE_INT);
 
 		/* Read the ATA_DEV_RXBUF register with write data (to be
 		 * written into the device).
@@ -911,22 +916,24 @@ static void bfin_bmdma_start (struct ata_queued_cmd *qc)
 	struct ata_port *ap = qc->ap;
 	unsigned long base = (unsigned long)ap->ioaddr.ctl_addr;
 
-	/* Enable ATAPI DMA operation*/
-	if (ap->udma_mask) {
-		ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base)
-			| ULTRA_START);
-		SSYNC();
-	} else {
-		ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base)
-			| MULTI_START);
-		SSYNC();
-	}
+	if (ap->udma_mask && ap->mwdma_mask) {
+		/* Enable ATAPI DMA operation*/
+		if (ap->udma_mask) {
+			ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base)
+				| ULTRA_START);
+			SSYNC();
+		} else {
+			ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base)
+				| MULTI_START);
+			SSYNC();
+		}
 
-	/* start ATAPI DMA controller*/
-	if (qc->tf.flags & ATA_TFLAG_WRITE) {
-		enable_dma(CH_ATAPI_TX);
-	} else {
-		enable_dma(CH_ATAPI_RX);
+		/* start ATAPI DMA controller*/
+		if (qc->tf.flags & ATA_TFLAG_WRITE) {
+			enable_dma(CH_ATAPI_TX);
+		} else {
+			enable_dma(CH_ATAPI_RX);
+		}
 	}
 }
 
@@ -937,11 +944,15 @@ static void bfin_bmdma_start (struct ata_queued_cmd *qc)
 
 static void bfin_bmdma_stop (struct ata_queued_cmd *qc)
 {
-	/* stop ATAPI DMA controller*/
-	if (qc->tf.flags & ATA_TFLAG_WRITE) {
-		disable_dma(CH_ATAPI_TX);
-	} else {
-		disable_dma(CH_ATAPI_RX);
+	struct ata_port *ap = qc->ap;
+
+	if (ap->udma_mask && ap->mwdma_mask) {
+		/* stop ATAPI DMA controller*/
+		if (qc->tf.flags & ATA_TFLAG_WRITE) {
+			disable_dma(CH_ATAPI_TX);
+		} else {
+			disable_dma(CH_ATAPI_RX);
+		}
 	}
 }
 
@@ -1414,6 +1425,7 @@ static struct ata_port_info bfin_port_info[] = {
  */
 static int bfin_config_atapi_gpio(struct ata_probe_ent *ae)
 {
+#if 0
 	bfin_write_PORTF_FER(0xffff);
 	bfin_write_PORTF_MUX(0x55555555);
 	bfin_write_PORTF_DIR_SET(0xffff);
@@ -1421,6 +1433,7 @@ static int bfin_config_atapi_gpio(struct ata_probe_ent *ae)
 	bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0x1c);
 	bfin_write_PORTG_MUX((bfin_read_PORTG_MUX() & ~0x3f0) | 0x150);
 	bfin_write_PORTG_DIR_SET(0x1c);
+#endif
 
 	bfin_write_PORTH_FER(bfin_read_PORTH_FER() | 0x4);
 	bfin_write_PORTH_MUX(bfin_read_PORTH_MUX() & ~0x30);
@@ -1455,11 +1468,11 @@ static int bfin_reset_controller(struct ata_probe_ent *ae)
 
 	/* Assert the RESET signal 25us*/
 	ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base) | DEV_RST);
-	mdelay(25);
+	udelay(30);
 
 	/* Negate the RESET signal for 2ms*/
 	ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base) & ~DEV_RST);
-	mdelay(2000);
+	udelay(2100);
 
 	/* Wait on Busy flag to clear */
 	count = 10000000;
