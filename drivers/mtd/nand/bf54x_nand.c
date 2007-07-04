@@ -131,11 +131,13 @@ static void bf54x_nand_hwcontrol(struct mtd_info *mtd, int cmd,
 	if (cmd == NAND_CMD_NONE)
 		return;
 
+	while (bfin_read_NFC_STAT() & WB_FULL)
+		continue;
+
 	if (ctrl & NAND_CLE)
 		bfin_write_NFC_CMD(cmd);
 	else
 		bfin_write_NFC_ADDR(cmd);
-
 	SSYNC();
 }
 
@@ -247,7 +249,7 @@ static int bf54x_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 
 	ret = bf54x_nand_correct_data_256(mtd, dat, read_ecc, calc_ecc);
 
-	/* If page size is 512, correct second 256 bytes*/
+	/* If page size is 512, correct second 256 bytes */
 	if (mtd->writesize == 512) {
 		dat += 256;
 		read_ecc += 8;
@@ -315,17 +317,39 @@ static int bf54x_nand_calculate_ecc(struct mtd_info *mtd,
 static void bf54x_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 {
 	int i;
+	unsigned short val;
 
 	/*
 	 * Data reads are requested by first writing to NFC_DATA_RD
 	 * and then reading back from NFC_READ.
 	 */
-	bfin_write_NFC_DATA_RD(0x5555);
+	for (i = 0; i < len; i++) {
+		while (bfin_read_NFC_STAT() & WB_FULL)
+			continue;
 
-	SSYNC();
+		/* Contents do not matter */
+		bfin_write_NFC_DATA_RD(0x5555);
+		SSYNC();
 
-	for (i = 0; i < len; i++)
+		while ((bfin_read_NFC_IRQSTAT() & RD_RDY) != RD_RDY)
+			continue;
+
 		buf[i] = bfin_read_NFC_READ();
+
+		val = bfin_read_NFC_IRQSTAT();
+		val |= RD_RDY;
+		bfin_write_NFC_IRQSTAT(val);
+		SSYNC();
+	}
+}
+
+static uint8_t bf54x_nand_read_byte(struct mtd_info *mtd)
+{
+	uint8_t val;
+
+	bf54x_nand_read_buf(mtd, &val, 1);
+
+	return val;
 }
 
 static void bf54x_nand_write_buf(struct mtd_info *mtd,
@@ -333,10 +357,13 @@ static void bf54x_nand_write_buf(struct mtd_info *mtd,
 {
 	int i;
 
-	for (i = 0; i < len; i++)
-		bfin_write_NFC_DATA_WR(buf[i]);
+	for (i = 0; i < len; i++) {
+		while (bfin_read_NFC_STAT() & WB_FULL)
+			continue;
 
-	SSYNC();
+		bfin_write_NFC_DATA_WR(buf[i]);
+		SSYNC();
+	}
 }
 
 static void bf54x_nand_read_buf16(struct mtd_info *mtd, uint8_t *buf, int len)
@@ -382,78 +409,62 @@ static irqreturn_t bf54x_nand_dma_irq (int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static void bf54x_nand_dma_rw_buf(struct mtd_info *mtd, uint8_t *buf,
-					int len, int is_write)
+static int bf54x_nand_dma_rw_page(struct mtd_info *mtd, struct nand_chip *chip,
+					uint8_t *buf, int is_read)
 {
-
 	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
 	struct bf54x_nand_platform *plat = info->platform;
 	unsigned short val;
 
-	val = DI_EN | RESTART;
+	bfin_write_NFC_RST(0x1);
+	SSYNC();
 
-	/* setup word size */
-	if (plat->data_width == NFC_NWIDTH_8)
-		val |= WDSIZE_8;
-	else if (plat->data_width == NFC_NWIDTH_16)
-		val |= WDSIZE_16;
+	set_dma_config(CH_NFC, 0x0);
+	set_dma_start_addr(CH_NFC, (unsigned long) buf);
+	set_dma_x_count(CH_NFC, (plat->page_size >> 2));
+	set_dma_x_modify(CH_NFC, 4);
 
 	/* setup write or read operation */
-	if (is_write)
+	val = DI_EN | WDSIZE_32;
+	if (is_read)
 		val |= WNR;
-
 	set_dma_config(CH_NFC, val);
-
-	set_dma_start_addr(CH_NFC, (unsigned long) buf);
-
-	set_dma_x_count(CH_NFC, len);
-
-	set_dma_x_modify(CH_NFC, 1);
 
 	set_dma_callback(CH_NFC, (void *) bf54x_nand_dma_irq, (void *) info);
 
 	enable_dma(CH_NFC);
 
 	/* Start PAGE read/write operation */
-	if (is_write)
-		bfin_write_NFC_PGCTL(0x2);
-	else
+	if (is_read)
 		bfin_write_NFC_PGCTL(0x1);
+	else
+		bfin_write_NFC_PGCTL(0x2);
+	SSYNC();
 
 	wait_for_completion(&info->dma_completion);
+
+	return 0;
 }
 
-static inline void bf54x_nand_dma_read_buf(struct mtd_info *mtd,
-						uint8_t *buf, int len)
+static int bf54x_nand_dma_read_page(struct mtd_info *mtd,
+					struct nand_chip *chip, uint8_t *buf)
 {
-	bf54x_nand_dma_rw_buf(mtd, buf, len, 0);
+	return bf54x_nand_dma_rw_page(mtd, chip, buf, 1);
 }
 
-static inline void bf54x_nand_dma_write_buf(struct mtd_info *mtd,
-						const uint8_t *buf, int len)
+static void bf54x_nand_dma_write_page(struct mtd_info *mtd,
+				struct nand_chip *chip, const uint8_t *buf)
 {
-	bf54x_nand_dma_rw_buf(mtd, (uint8_t *) buf, len, 1);
+	bf54x_nand_dma_rw_page(mtd, chip, (uint8_t *) buf, 0);
 }
 
 /*----------------------------------------------------------------------------
  * System initialization functions
  */
 
-/*
- * BF54X NFC hardware initialization
- *  - pin mux setup
- *  - clear interrupt status
- */
-static int bf54x_nand_hw_init(struct bf54x_nand_info *info,
-				struct platform_device *pdev)
+static int bf54x_nand_dma_init(struct bf54x_nand_info *info)
 {
-	return 0;
-}
-
-static int bf54x_nand_dma_init(struct bf54x_nand_info *info,
-				struct platform_device *pdev)
-{
-	struct bf54x_nand_platform *plat = to_nand_plat(pdev);
+	struct bf54x_nand_platform *plat = info->platform;
 	int ret;
 	unsigned short val;
 
@@ -472,7 +483,7 @@ static int bf54x_nand_dma_init(struct bf54x_nand_info *info,
 	/* Request NFC DMA channel */
 	ret = request_dma(CH_NFC, "BF54X NFC driver");
 	if (ret < 0) {
-		dev_err(&pdev->dev, " unable to get DMA channel\n");
+		dev_err(info->device, " unable to get DMA channel\n");
 		return 1;
 	}
 
@@ -480,6 +491,57 @@ static int bf54x_nand_dma_init(struct bf54x_nand_info *info,
 	disable_dma(CH_NFC);
 
 	return 0;
+}
+
+/*
+ * BF54X NFC hardware initialization
+ *  - pin mux setup
+ *  - clear interrupt status
+ */
+static int bf54x_nand_hw_init(struct bf54x_nand_info *info)
+{
+	int err = 0;
+	unsigned short val;
+	struct bf54x_nand_platform *plat = info->platform;
+
+	if (!info)
+		return -EINVAL;
+
+	/* setup NFC_CTL register */
+	dev_info(info->device,
+		"page_size=%d, data_width=%d, wr_dly=%d, rd_dly=%d\n",
+		(plat->page_size ? 512 : 256),
+		(plat->data_width ? 16 : 8),
+		plat->wr_dly, plat->rd_dly);
+
+	val = (plat->page_size << NFC_PG_SIZE_OFFSET) |
+		(plat->data_width << NFC_NWIDTH_OFFSET) |
+		(plat->rd_dly << NFC_RDDLY_OFFSET) |
+		(plat->rd_dly << NFC_WRDLY_OFFSET);
+	dev_dbg(info->device, "NFC_CTL is 0x%04x\n", val);
+
+	bfin_write_NFC_CTL(val);
+	SSYNC();
+
+	/* clear interrupt status */
+	bfin_write_NFC_IRQMASK(0x0);
+	SSYNC();
+	val = bfin_read_NFC_IRQSTAT();
+	bfin_write_NFC_IRQSTAT(val);
+	SSYNC();
+
+	/* enable GPIO function enable register */
+	val = bfin_read_PORTJ_FER();
+	val |= 6;
+	bfin_write_PORTJ_FER(val);
+	SSYNC();
+
+	/* DMA initialization  */
+	if (bf54x_nand_dma_init(info)) {
+		err = -ENXIO;
+	}
+
+	return err;
 }
 
 /*----------------------------------------------------------------------------
@@ -540,7 +602,6 @@ static int bf54x_nand_probe(struct platform_device *pdev)
 	struct nand_chip *chip = NULL;
 	struct mtd_info *mtd = NULL;
 	int err = 0;
-	unsigned short ctl;
 
 	dev_dbg(&pdev->dev, "(%p)\n", pdev);
 
@@ -564,26 +625,20 @@ static int bf54x_nand_probe(struct platform_device *pdev)
 	info->device     = &pdev->dev;
 	info->platform   = plat;
 
-	/* initialise the hardware */
-	err = bf54x_nand_hw_init(info, pdev);
-	if (err != 0)
-		goto exit_error;
-
 	/* initialise chip data struct */
 	chip = &info->chip;
 
-	if (!plat->data_width)
+	if (plat->data_width)
 		chip->options |= NAND_BUSWIDTH_16;
 
-	if (plat->enable_dma) {
-		chip->read_buf = bf54x_nand_dma_read_buf;
-		chip->write_buf = bf54x_nand_dma_write_buf;
-	} else {
-		chip->read_buf = (plat->data_width) ?
-				bf54x_nand_read_buf16 : bf54x_nand_read_buf;
-		chip->write_buf = (plat->data_width) ?
-				bf54x_nand_write_buf16 : bf54x_nand_write_buf;
-	}
+	chip->options |= NAND_SKIP_BBTSCAN;
+
+	chip->read_buf = (plat->data_width) ?
+			bf54x_nand_read_buf16 : bf54x_nand_read_buf;
+	chip->write_buf = (plat->data_width) ?
+			bf54x_nand_write_buf16 : bf54x_nand_write_buf;
+
+	chip->read_byte    = bf54x_nand_read_byte;
 
 	chip->cmd_ctrl     = bf54x_nand_hwcontrol;
 	chip->dev_ready    = bf54x_nand_devready;
@@ -601,58 +656,38 @@ static int bf54x_nand_probe(struct platform_device *pdev)
 	mtd->priv	= chip;
 	mtd->owner	= THIS_MODULE;
 
-	/* scan hardware nand chip and setup mtd info data struct */
-	if (nand_scan_ident(mtd, 1)) {
-		err = -ENXIO;
+	/* initialise the hardware */
+	err = bf54x_nand_hw_init(info);
+	if (err != 0)
 		goto exit_error;
-	}
 
 	/* setup hardware ECC data struct */
 	if (hardware_ecc) {
-		if (mtd->writesize == 256) {
+		if (plat->page_size == NFC_PG_SIZE_256) {
 			chip->ecc.bytes = 8;
 			chip->ecc.layout = &bf54x_oob_256_8bytes;
-			plat->page_size = NFC_PG_SIZE_256;
-		} else if (mtd->writesize == 512) {
+			chip->ecc.size = 256;
+		} else if (mtd->writesize == NFC_PG_SIZE_512) {
 			chip->ecc.bytes = 16;
 			chip->ecc.layout = &bf54x_oob_512_16bytes;
-			plat->page_size = NFC_PG_SIZE_512;
+			chip->ecc.size = 512;
 		}
 
 		chip->ecc.calculate = bf54x_nand_calculate_ecc;
 		chip->ecc.correct   = bf54x_nand_correct_data;
 		chip->ecc.mode	    = NAND_ECC_HW;
-		chip->ecc.size      = mtd->writesize;
 		chip->ecc.hwctl	    = bf54x_nand_enable_hwecc;
+		chip->ecc.read_page = bf54x_nand_dma_read_page;
+		chip->ecc.write_page = bf54x_nand_dma_write_page;
 	} else {
 		chip->ecc.mode	    = NAND_ECC_SOFT;
 	}
 
-	if (nand_scan_tail(mtd)) {
+	/* scan hardware nand chip and setup mtd info data struct */
+	if (nand_scan(mtd, 1)) {
 		err = -ENXIO;
 		goto exit_error;
 	}
-
-	/* DMA initialization  */
-	if (bf54x_nand_dma_init(info, pdev)) {
-		err = -ENXIO;
-		goto exit_error;
-	}
-
-	/* using nand_scan(mtd) mtd information to setup NFC_CTRL MMR */
-	dev_info(info->device,
-		"page_size=%d, data_width=%d, wr_dly=%d, rd_dly=%d\n",
-		mtd->writesize, (plat->data_width ? 16 : 8),
-		plat->wr_dly, plat->rd_dly);
-
-	ctl = (plat->page_size << NFC_PG_SIZE_OFFSET) |
-	      (plat->data_width << NFC_NWIDTH_OFFSET) |
-	      (plat->rd_dly << NFC_RDDLY_OFFSET) |
-	      (plat->rd_dly << NFC_WRDLY_OFFSET);
-	dev_dbg(info->device, "NFC_CTL is 0x%lx\n", ctl);
-
-	bfin_write_NFC_CTL(ctl);
-	SSYNC();
 
 	/* add NAND partition */
 	bf54x_nand_add_partition(info);
@@ -660,7 +695,7 @@ static int bf54x_nand_probe(struct platform_device *pdev)
 	dev_dbg(&pdev->dev, "initialised ok\n");
 	return 0;
 
- exit_error:
+exit_error:
 	bf54x_nand_remove(pdev);
 
 	if (err == 0)
@@ -683,7 +718,7 @@ static int bf54x_nand_resume(struct platform_device *dev)
 	struct bf54x_nand_info *info = platform_get_drvdata(dev);
 
 	if (info)
-		bf54x_nand_hw_init(info, dev);
+		bf54x_nand_hw_init(info);
 
 	return 0;
 }
