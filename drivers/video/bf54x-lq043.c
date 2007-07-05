@@ -197,7 +197,7 @@ static void config_ppi(void)
 	if (outp_rgb666) {
 		bfin_write_EPPI0_CONTROL((EPPI_CONTROL & ~DLENGTH) | DLEN_18 | RGB_FMT_EN);
 	}else {
-		bfin_write_EPPI0_CONTROL((EPPI_CONTROL & ~DLENGTH) | DLEN_24 & ~RGB_FMT_EN);
+		bfin_write_EPPI0_CONTROL(((EPPI_CONTROL & ~DLENGTH) | DLEN_24) & ~RGB_FMT_EN);
 	}
 
 }
