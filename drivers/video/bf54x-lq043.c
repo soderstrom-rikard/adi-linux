@@ -68,9 +68,13 @@ static int lq035_mmap;
 static int lq035_open_cnt;
 static DEFINE_SPINLOCK(bfin_lq035_lock);
 
-static int nocursor = 1;
+static int nocursor;
 module_param(nocursor, int, 0644);
 MODULE_PARM_DESC(nocursor, "cursor enable/disable");
+
+static int outp_rgb666;
+module_param(outp_rgb666, int, 0);
+MODULE_PARM_DESC(outp_rgb666, "Output 18-bit RGB666");
 
 #define DISP     		GPIO_PE3
 
@@ -82,26 +86,27 @@ MODULE_PARM_DESC(nocursor, "cursor enable/disable");
 
 #define ACTIVE_VIDEO_MEM_SIZE	(LCD_Y_RES*LCD_X_RES*(LCD_BPP/8))
 
-/*	-- Horizontal synchronizing --
+/* 	-- Horizontal synchronizing --
+ *
+ * Timing characteristics taken from the SHARP LQ043T1DG01 datasheet
+ * (LCY-W-06602A Page 9 of 22)
+ *
+ * Clock Frequency 	1/Tc Min 7.83 Typ 9.00 Max 9.26 MHz
+ *
+ * Period 		TH - 525 - Clock
+ * Pulse width 		THp - 41 - Clock
+ * Horizontal period 	THd - 480 - Clock
+ * Back porch 		THb - 2 - Clock
+ * Front porch 		THf - 2 - Clock
+ *
+ * -- Vertical synchronizing --
+ * Period 		TV - 286 - Line
+ * Pulse width 		TVp - 10 - Line
+ * Vertical period 	TVd - 272 - Line
+ * Back porch 		TVb - 2 - Line
+ * Front porch 		TVf - 2 - Line
+ */
 
- Timing characteristics taken from the SHARP LQ043T1DG01 datasheet
- (LCY-W-06602A Page 9 of 22)
-
- Clock Frequency 	1/Tc Min 7.83 Typ 9.00 Max 9.26 MHz
-
- Period 		TH - 525 - Clock
- Pulse width 		THp - 41 - Clock
- Horizontal period 	THd - 480 - Clock
- Back porch 		THb - 2 - Clock
- Front porch 		THf - 2 - Clock
-
-	-- Vertical synchronizing --
- Period 		TV - 286 - Line
- Pulse width 		TVp - 10 - Line
- Vertical period 	TVd - 272 - Line
- Back porch 		TVb - 2 - Line
- Front porch 		TVf - 2 - Line
-*/
 
 #define	LCD_CLK         	(8*1000*1000)	/* 8MHz */
 
@@ -137,22 +142,23 @@ MODULE_PARM_DESC(nocursor, "cursor enable/disable");
 
 #define EPPI_CLIP		0xFF00FF00
 
-    /* EPPI Control register configuration value for RGB out
-       - EPPI as Output
-       GP 2 frame sync mode,
-       Internal Clock generation disabled, Internal FS generation enabled,
-       Receives samples on EPPI_CLK raising edge, Transmits samples on EPPI_CLK falling edge,
-       FS1 & FS2 are active high,
-       DLEN = 6 (24 bits for RGB888 out) or 5 (18 bits for RGB666 out)
-       DMA Unpacking disabled when RGB Formating is enabled, otherwise DMA unpacking enabled
-       Swapping Disabled,
-       One (DMA) Channel Mode,
-       RGB Formatting Enabled for RGB666 output, disabled for RGB888 output
-       Regular watermark - when FIFO is 75% full,
-       Urgent watermark - when FIFO is 25% full
-     */
+/* EPPI Control register configuration value for RGB out
+ * - EPPI as Output
+ * GP 2 frame sync mode,
+ * Internal Clock generation disabled, Internal FS generation enabled,
+ * Receives samples on EPPI_CLK raising edge, Transmits samples on EPPI_CLK falling edge,
+ * FS1 & FS2 are active high,
+ * DLEN = 6 (24 bits for RGB888 out) or 5 (18 bits for RGB666 out)
+ * DMA Unpacking disabled when RGB Formating is enabled, otherwise DMA unpacking enabled
+ * Swapping Enabled,
+ * One (DMA) Channel Mode,
+ * RGB Formatting Enabled for RGB666 output, disabled for RGB888 output
+ * Regular watermark - when FIFO is 75% full,
+ * Urgent watermark - when FIFO is 25% full
+ */
 
-#define EPPI_CONTROL		0x68136E2E
+#define EPPI_CONTROL		(0x68136E2E | SWAPEN)
+
 
 static inline u16 get_eppi_clkdiv(u32 target_ppi_clk)
 {
@@ -184,7 +190,15 @@ static void config_ppi(void)
 
 	bfin_write_EPPI0_CLKDIV(eppi_clkdiv);
 
-	bfin_write_EPPI0_CONTROL(EPPI_CONTROL);
+/*
+ * DLEN = 6 (24 bits for RGB888 out) or 5 (18 bits for RGB666 out)
+ * RGB Formatting Enabled for RGB666 output, disabled for RGB888 output
+ */
+	if (outp_rgb666) {
+		bfin_write_EPPI0_CONTROL((EPPI_CONTROL & ~DLENGTH) | DLEN_18 | RGB_FMT_EN);
+	}else {
+		bfin_write_EPPI0_CONTROL((EPPI_CONTROL & ~DLENGTH) | DLEN_24 & ~RGB_FMT_EN);
+	}
 
 }
 
@@ -221,9 +235,10 @@ static int request_ports(void)
 	bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0x1F);
 	bfin_write_PORTG_MUX(bfin_read_PORTG_MUX() & 0xFFFFFC00);
 
-	bfin_write_PORTD_FER(bfin_read_PORTD_FER() | 0x3F);
-	bfin_write_PORTD_MUX(bfin_read_PORTD_MUX() | 0xFFF);
-
+	if (!outp_rgb666) {
+		bfin_write_PORTD_FER(bfin_read_PORTD_FER() | 0x3F);
+		bfin_write_PORTD_MUX(bfin_read_PORTD_MUX() | 0xFFF);
+	}
 	SSYNC();
 
 	gpio_set_value(DISP, 1);
@@ -317,7 +332,7 @@ static int bfin_bf54x_fb_check_var(struct fb_var_screeninfo *var,
 				   struct fb_info *info)
 {
 
-	if (var->bits_per_pixel != 24) {
+	if (var->bits_per_pixel != LCD_BPP) {
 		pr_debug("%s: depth not supported: %u BPP\n", __FUNCTION__,
 			 var->bits_per_pixel);
 		return -EINVAL;
@@ -405,7 +420,7 @@ static int bfin_bf54x_fb_setcolreg(u_int regno, u_int red, u_int green,
 		value = (red << info->var.red.offset) |
 		    (green << info->var.green.offset) |
 		    (blue << info->var.blue.offset);
-		value &= 0xFFFF;
+		value &= 0xFFFFFF;
 
 		((u32 *) (info->pseudo_palette))[regno] = value;
 
