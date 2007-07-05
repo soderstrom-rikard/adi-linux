@@ -261,9 +261,9 @@ static unsigned short num_clocks_min(unsigned long tmin,
 	unsigned long tmp ;
 	unsigned short result;
 
-	tmp = (tmin/1000) * (fsclk/1000) / 1000;
+	tmp = tmin * (fsclk/1000/1000) / 1000;
 	result = (unsigned short)tmp;
-	if (tmp*1000 < (tmin*fsclk)) {
+	if ((tmp*1000*1000) < (tmin*(fsclk/1000))) {
 		result++;
 	}
 
@@ -500,26 +500,10 @@ success:
  *
  *    Function:       wait_complete
  *
- *    Description:    Waits the transfer to stop
- *
- */
-static void inline wait_complete(unsigned long base, unsigned short mask)
-{
-	unsigned short status;
-
-	do {
-		status = ATAPI_GET_STATUS(base) & mask;
-	} while (status);
-}
-
-/**
- *
- *    Function:       wait_complete
- *
  *    Description:    Waits the interrupt from device
  *
  */
-static void inline wait_interrupt(unsigned long base, unsigned short mask)
+static void inline wait_complete(unsigned long base, unsigned short mask)
 {
 	unsigned short status;
 
@@ -567,7 +551,7 @@ static void write_atapi_register(unsigned long base,
 	/* Wait for the interrupt to indicate the end of the transfer.
 	 * (We need to wait on and clear rhe ATA_DEV_INT interrupt status)
 	 */
-	wait_interrupt(base, PIO_DONE_INT);
+	wait_complete(base, PIO_DONE_INT);
 }
 
 /**
@@ -603,7 +587,7 @@ static unsigned short read_atapi_register(unsigned long base,
 	 * (PIO_DONE interrupt is set and it doesn't seem to matter
 	 * that we don't clear it)
 	 */
-	wait_interrupt(base, PIO_DONE_INT);
+	wait_complete(base, PIO_DONE_INT);
 
 	/* Read the ATA_DEV_RXBUF register with write data (to be
 	 * written into the device).
@@ -643,6 +627,7 @@ static void write_atapi_register_data(unsigned long base,
 	ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base) & ~PIO_USE_DMA));
 	SSYNC();
 
+
 	for (i = 0; i < len; i++) {
 		/* Program the ATA_DEV_TXBUF register with write data (to be
 		 * written into the device).
@@ -657,8 +642,8 @@ static void write_atapi_register_data(unsigned long base,
 		 * (We need to wait on and clear rhe ATA_DEV_INT
 		 * interrupt status)
 		 */
-		wait_interrupt(base, PIO_DONE_INT);
 	}
+	wait_complete(base, PIO_DONE_INT);
 }
 
 /**
@@ -702,7 +687,7 @@ static void read_atapi_register_data(unsigned long base,
 		 * (PIO_DONE interrupt is set and it doesn't seem to matter
 		 * that we don't clear it)
 		 */
-		wait_interrupt(base, PIO_DONE_INT);
+		wait_complete(base, PIO_DONE_INT);
 
 		/* Read the ATA_DEV_RXBUF register with write data (to be
 		 * written into the device).
@@ -1425,16 +1410,6 @@ static struct ata_port_info bfin_port_info[] = {
  */
 static int bfin_config_atapi_gpio(struct ata_probe_ent *ae)
 {
-#if 0
-	bfin_write_PORTF_FER(0xffff);
-	bfin_write_PORTF_MUX(0x55555555);
-	bfin_write_PORTF_DIR_SET(0xffff);
-
-	bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0x1c);
-	bfin_write_PORTG_MUX((bfin_read_PORTG_MUX() & ~0x3f0) | 0x150);
-	bfin_write_PORTG_DIR_SET(0x1c);
-#endif
-
 	bfin_write_PORTH_FER(bfin_read_PORTH_FER() | 0x4);
 	bfin_write_PORTH_MUX(bfin_read_PORTH_MUX() & ~0x30);
 	bfin_write_PORTH_DIR_SET(0x4);
@@ -1448,6 +1423,8 @@ static int bfin_config_atapi_gpio(struct ata_probe_ent *ae)
 	bfin_write_PINT2_ASSIGN(0x0707);
 	bfin_write_PINT2_MASK_SET(0x200);
 	SSYNC();
+
+	init_pint_lut();
 
 	return 0;
 }
@@ -1570,21 +1547,9 @@ static int __devexit bfin_atapi_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static int bfin_atapi_suspend(struct platform_device *dev)
-{
-	return 0;
-}
-
-static int bfin_atapi_resume(struct platform_device *dev)
-{
-	return 0;
-}
-
 static struct platform_driver bfin_atapi_driver = {
 	.probe			= bfin_atapi_probe,
 	.remove			= __devexit_p(bfin_atapi_remove),
-	.suspend		= bfin_atapi_suspend,
-	.resume			= bfin_atapi_resume,
 	.driver = {
 		.name		= DRV_NAME,
 		.owner		= THIS_MODULE,

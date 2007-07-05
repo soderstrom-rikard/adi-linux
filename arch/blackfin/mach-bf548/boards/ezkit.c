@@ -143,8 +143,8 @@ static struct resource bfin_atapi_resources[] = {
 		.flags = IORESOURCE_MEM,
 	},
 	{
-		.start = 155,
-		.end = 155,
+		.start = IRQ_PJ9,
+		.end = IRQ_PJ9,
 		.flags = IORESOURCE_IRQ,
 	},
 };
