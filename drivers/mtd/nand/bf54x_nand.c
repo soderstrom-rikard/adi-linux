@@ -404,44 +404,53 @@ static irqreturn_t bf54x_nand_dma_irq (int irq, void *dev_id)
 {
 	struct bf54x_nand_info *info = (struct bf54x_nand_info *) dev_id;
 
+	clear_dma_irqstat(CH_NFC);
+	disable_dma(CH_NFC);
 	complete(&info->dma_completion);
 
 	return IRQ_HANDLED;
 }
 
-static int bf54x_nand_dma_rw_page(struct mtd_info *mtd, struct nand_chip *chip,
-					uint8_t *buf, int is_read)
+static int bf54x_nand_dma_rw_buf(struct mtd_info *mtd, uint8_t *buf,
+				int len, int is_read)
 {
 	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
 	struct bf54x_nand_platform *plat = info->platform;
+	unsigned short page_size = (plat->page_size ? 512 : 256);
+	int steps, i;
+	uint8_t *p = buf;
 	unsigned short val;
+
+	dev_dbg(info->device, " mtd->%p, buf->%p, len %d, is_read %d\n",
+			mtd, buf, len, is_read);
 
 	bfin_write_NFC_RST(0x1);
 	SSYNC();
 
-	set_dma_config(CH_NFC, 0x0);
-	set_dma_start_addr(CH_NFC, (unsigned long) buf);
-	set_dma_x_count(CH_NFC, (plat->page_size >> 2));
-	set_dma_x_modify(CH_NFC, 4);
+	steps = len / page_size;
+	for (i = 0; i < steps; i++) {
+		/* setup DMA register with Blackfin DMA API */
+		set_dma_config(CH_NFC, 0x0);
+		set_dma_start_addr(CH_NFC, (unsigned long) p);
+		set_dma_x_count(CH_NFC, (page_size >> 2));
+		set_dma_x_modify(CH_NFC, 4);
 
-	/* setup write or read operation */
-	val = DI_EN | WDSIZE_32;
-	if (is_read)
-		val |= WNR;
-	set_dma_config(CH_NFC, val);
+		/* setup write or read operation */
+		val = DI_EN | WDSIZE_32;
+		if (is_read)
+			val |= WNR;
+		set_dma_config(CH_NFC, val);
+		enable_dma(CH_NFC);
 
-	set_dma_callback(CH_NFC, (void *) bf54x_nand_dma_irq, (void *) info);
-
-	enable_dma(CH_NFC);
-
-	/* Start PAGE read/write operation */
-	if (is_read)
-		bfin_write_NFC_PGCTL(0x1);
-	else
-		bfin_write_NFC_PGCTL(0x2);
-	SSYNC();
-
-	wait_for_completion(&info->dma_completion);
+		/* Start PAGE read/write operation */
+		if (is_read)
+			bfin_write_NFC_PGCTL(0x1);
+		else
+			bfin_write_NFC_PGCTL(0x2);
+		SSYNC();
+		wait_for_completion(&info->dma_completion);
+		p += page_size;
+	}
 
 	return 0;
 }
@@ -449,13 +458,42 @@ static int bf54x_nand_dma_rw_page(struct mtd_info *mtd, struct nand_chip *chip,
 static int bf54x_nand_dma_read_page(struct mtd_info *mtd,
 					struct nand_chip *chip, uint8_t *buf)
 {
-	return bf54x_nand_dma_rw_page(mtd, chip, buf, 1);
+	return bf54x_nand_dma_rw_buf(mtd, buf, mtd->writesize, 1);
 }
 
 static void bf54x_nand_dma_write_page(struct mtd_info *mtd,
 				struct nand_chip *chip, const uint8_t *buf)
 {
-	bf54x_nand_dma_rw_page(mtd, chip, (uint8_t *) buf, 0);
+	bf54x_nand_dma_rw_buf(mtd, (uint8_t *)buf, mtd->writesize, 0);
+}
+
+static void bf54x_nand_dma_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
+{
+	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
+	struct bf54x_nand_platform *plat = info->platform;
+	unsigned short page_size = (plat->page_size ? 512 : 256);
+
+	if (len < page_size) {
+		bf54x_nand_read_buf(mtd, buf, len);
+		return;
+	}
+
+	bf54x_nand_dma_rw_buf(mtd, buf, len, 1);
+}
+
+static void bf54x_nand_dma_write_buf(struct mtd_info *mtd,
+				const uint8_t *buf, int len)
+{
+	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
+	struct bf54x_nand_platform *plat = info->platform;
+	unsigned short page_size = (plat->page_size ? 512 : 256);
+
+	if (len < page_size) {
+		bf54x_nand_write_buf(mtd, buf, len);
+		return;
+	}
+
+	bf54x_nand_dma_rw_buf(mtd, (uint8_t *)buf, len, 0);
 }
 
 /*----------------------------------------------------------------------------
@@ -486,6 +524,8 @@ static int bf54x_nand_dma_init(struct bf54x_nand_info *info)
 		dev_err(info->device, " unable to get DMA channel\n");
 		return 1;
 	}
+
+	set_dma_callback(CH_NFC, (void *) bf54x_nand_dma_irq, (void *) info);
 
 	/* Turn off the DMA channel first */
 	disable_dma(CH_NFC);
@@ -633,10 +673,15 @@ static int bf54x_nand_probe(struct platform_device *pdev)
 
 	chip->options |= NAND_SKIP_BBTSCAN;
 
-	chip->read_buf = (plat->data_width) ?
+	if (plat->enable_dma) {
+		chip->read_buf = bf54x_nand_dma_read_buf;
+		chip->write_buf = bf54x_nand_dma_write_buf;
+	} else {
+		chip->read_buf = (plat->data_width) ?
 			bf54x_nand_read_buf16 : bf54x_nand_read_buf;
-	chip->write_buf = (plat->data_width) ?
+		chip->write_buf = (plat->data_width) ?
 			bf54x_nand_write_buf16 : bf54x_nand_write_buf;
+	}
 
 	chip->read_byte    = bf54x_nand_read_byte;
 
