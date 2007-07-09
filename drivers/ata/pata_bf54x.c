@@ -603,7 +603,7 @@ static unsigned short read_atapi_register(unsigned long base,
  *
  */
 
-static void write_atapi_register_data(unsigned long base,
+static void write_atapi_data(unsigned long base,
 		int len, unsigned short *buf)
 {
 	int i;
@@ -612,7 +612,7 @@ static void write_atapi_register_data(unsigned long base,
 	ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base) | TFRCNT_RST);
 
 	/* Set transfer length to 1 */
-	ATAPI_SET_XFER_LEN(base, len);
+	ATAPI_SET_XFER_LEN(base, 1);
 
 	/* Program the ATA_DEV_ADDR register with address of the
 	 * ATA_REG_DATA
@@ -626,7 +626,6 @@ static void write_atapi_register_data(unsigned long base,
 	/* ensure PIO DMA is not set */
 	ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base) & ~PIO_USE_DMA));
 	SSYNC();
-
 
 	for (i = 0; i < len; i++) {
 		/* Program the ATA_DEV_TXBUF register with write data (to be
@@ -642,8 +641,8 @@ static void write_atapi_register_data(unsigned long base,
 		 * (We need to wait on and clear rhe ATA_DEV_INT
 		 * interrupt status)
 		 */
+		wait_complete(base, PIO_DONE_INT);
 	}
-	wait_complete(base, PIO_DONE_INT);
 }
 
 /**
@@ -654,7 +653,7 @@ static void write_atapi_register_data(unsigned long base,
  *
  */
 
-static void read_atapi_register_data(unsigned long base,
+static void read_atapi_data(unsigned long base,
 		int len, unsigned short *buf)
 {
 	int i;
@@ -663,7 +662,7 @@ static void read_atapi_register_data(unsigned long base,
 	ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base) | TFRCNT_RST);
 
 	/* Set transfer length to 1 */
-	ATAPI_SET_XFER_LEN(base, len);
+	ATAPI_SET_XFER_LEN(base, 1);
 
 	/* Program the ATA_DEV_ADDR register with address of the
 	 * ATA_REG_DATA
@@ -1160,9 +1159,9 @@ static void bfin_data_xfer (struct ata_device *adev, unsigned char *buf,
 
 	/* Transfer multiple of 2 bytes */
 	if (write_data) {
-		write_atapi_register_data(base, words, buf16);
+		write_atapi_data(base, words, buf16);
 	} else {
-		read_atapi_register_data(base, words, buf16);
+		read_atapi_data(base, words, buf16);
 	}
 
 	/* Transfer trailing 1 byte, if any. */
@@ -1172,10 +1171,9 @@ static void bfin_data_xfer (struct ata_device *adev, unsigned char *buf,
 
 		if (write_data) {
 			memcpy(align_buf, trailing_buf, 1);
-			write_atapi_register_data(base, 1, align_buf);
-			write_atapi_register(base, ATA_REG_DATA, align_buf[0]);
+			write_atapi_data(base, 1, align_buf);
 		} else {
-			read_atapi_register_data(base, 1, align_buf);
+			read_atapi_data(base, 1, align_buf);
 			memcpy(trailing_buf, align_buf, 1);
 		}
 	}
