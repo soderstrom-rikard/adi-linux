@@ -512,7 +512,6 @@ static void inline wait_complete(unsigned long base, unsigned short mask)
 	} while (!status);
 
 	ATAPI_SET_INT_STATUS(base, mask);
-	SSYNC();
 }
 
 /**
@@ -542,11 +541,9 @@ static void write_atapi_register(unsigned long base,
 
 	/* ensure PIO DMA is not set */
 	ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base) & ~PIO_USE_DMA));
-	SSYNC();
 
 	/* and start the transfer */
 	ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base) | PIO_START));
-	SSYNC();
 
 	/* Wait for the interrupt to indicate the end of the transfer.
 	 * (We need to wait on and clear rhe ATA_DEV_INT interrupt status)
@@ -577,11 +574,9 @@ static unsigned short read_atapi_register(unsigned long base,
 
 	/* ensure PIO DMA is not set */
 	ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base) & ~PIO_USE_DMA));
-	SSYNC();
 
 	/* and start the transfer */
 	ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base) | PIO_START));
-	SSYNC();
 
 	/* Wait for the interrupt to indicate the end of the transfer.
 	 * (PIO_DONE interrupt is set and it doesn't seem to matter
@@ -625,7 +620,6 @@ static void write_atapi_data(unsigned long base,
 
 	/* ensure PIO DMA is not set */
 	ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base) & ~PIO_USE_DMA));
-	SSYNC();
 
 	for (i = 0; i < len; i++) {
 		/* Program the ATA_DEV_TXBUF register with write data (to be
@@ -635,7 +629,6 @@ static void write_atapi_data(unsigned long base,
 
 		/* and start the transfer */
 		ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base) | PIO_START));
-		SSYNC();
 
 		/* Wait for the interrupt to indicate the end of the transfer.
 		 * (We need to wait on and clear rhe ATA_DEV_INT
@@ -675,12 +668,10 @@ static void read_atapi_data(unsigned long base,
 
 	/* ensure PIO DMA is not set */
 	ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base) & ~PIO_USE_DMA));
-	SSYNC();
 
 	for (i = 0; i < len; i++) {
 		/* and start the transfer */
 		ATAPI_SET_CONTROL(base, (ATAPI_GET_CONTROL(base) | PIO_START));
-		SSYNC();
 
 		/* Wait for the interrupt to indicate the end of the transfer.
 		 * (PIO_DONE interrupt is set and it doesn't seem to matter
