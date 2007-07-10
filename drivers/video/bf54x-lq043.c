@@ -57,10 +57,17 @@
 #include <asm/dma-mapping.h>
 #include <asm/dma.h>
 #include <asm/gpio.h>
+#include <asm/portmux.h>
 
 #define DRIVER_NAME "bf54x-lq043"
 
 #define BFIN_LCD_NBR_PALETTE_ENTRIES	256
+
+#define EPPI0_18 {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3, \
+ P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, P_PPI0_D8, P_PPI0_D9, P_PPI0_D10, \
+ P_PPI0_D11, P_PPI0_D12, P_PPI0_D13, P_PPI0_D14, P_PPI0_D15, P_PPI0_D16, P_PPI0_D17, 0}
+
+#define EPPI0_24 {P_PPI0_D18, P_PPI0_D19, P_PPI0_D20, P_PPI0_D21, P_PPI0_D22, P_PPI0_D23, 0}
 
 static unsigned char *fb_buffer;	/* RGB Buffer */
 static dma_addr_t dma_handle;
@@ -220,27 +227,33 @@ static int config_dma(void)
 
 static int request_ports(void)
 {
+
+	u16 eppi_req_18[] = EPPI0_18;
+
 	if (gpio_request(DISP, NULL)) {
 		printk(KERN_ERR "Requesting GPIO %d faild\n", DISP);
-
 		return -EFAULT;
 	}
 
-	gpio_direction_output(DISP);
-	gpio_set_value(DISP, 1);
-
-	bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0xFFFF);
-	bfin_write_PORTF_MUX(0);
-
-	bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0x1F);
-	bfin_write_PORTG_MUX(bfin_read_PORTG_MUX() & 0xFFFFFC00);
+	if (peripheral_request_list(eppi_req_18, NULL)) {
+		printk(KERN_ERR "Requesting Peripherals faild\n");
+		gpio_free(DISP);
+		return -EFAULT;
+	}
 
 	if (!outp_rgb666) {
-		bfin_write_PORTD_FER(bfin_read_PORTD_FER() | 0x3F);
-		bfin_write_PORTD_MUX(bfin_read_PORTD_MUX() | 0xFFF);
-	}
-	SSYNC();
 
+		u16 eppi_req_24[] = EPPI0_24;
+
+		if (peripheral_request_list(eppi_req_24, NULL)) {
+			printk(KERN_ERR "Requesting Peripherals faild\n");
+			peripheral_free_list(eppi_req_18);
+			gpio_free(DISP);
+			return -EFAULT;
+		}
+	}
+
+	gpio_direction_output(DISP);
 	gpio_set_value(DISP, 1);
 
 	return 0;
@@ -248,7 +261,17 @@ static int request_ports(void)
 
 static void free_ports(void)
 {
+
+	u16 eppi_req_18[] = EPPI0_18;
+
 	gpio_free(DISP);
+
+	peripheral_free_list(eppi_req_18);
+
+	if (!outp_rgb666) {
+		u16 eppi_req_24[] = EPPI0_24;
+		peripheral_free_list(eppi_req_24);
+	}
 }
 
 static struct fb_info bfin_bf54x_fb;
@@ -493,7 +516,7 @@ static struct lcd_device *lcd_dev;
 
 static int __init bfin_bf54x_fb_init(void)
 {
-	printk(KERN_INFO DRIVER_NAME ": FrameBuffer initializing...");
+	printk(KERN_INFO DRIVER_NAME ": FrameBuffer initializing...\n");
 
 	if (request_dma(CH_EPPI0, "CH_EPPI0") < 0) {
 		printk(KERN_ERR DRIVER_NAME
