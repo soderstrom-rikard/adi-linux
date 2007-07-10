@@ -922,7 +922,7 @@ config SMSC911X
 
 config DM9000
 	tristate "DM9000 support"
-	depends on (ARM || MIPS) && NET_ETHERNET
+	depends on (ARM || MIPS || BLACKFIN) && NET_ETHERNET
 	select CRC32
 	select MII
 	---help---
