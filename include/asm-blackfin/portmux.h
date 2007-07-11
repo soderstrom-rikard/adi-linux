@@ -501,16 +501,16 @@
 #define P_SPI0_SS P_UNDEF
 #endif
 
-#ifndef P_SPI0_SEL1
-#define P_SPI0_SEL1 P_UNDEF
+#ifndef P_SPI0_SSEL1
+#define P_SPI0_SSEL1 P_UNDEF
 #endif
 
-#ifndef P_SPI0_SEL2
-#define P_SPI0_SEL2 P_UNDEF
+#ifndef P_SPI0_SSEL2
+#define P_SPI0_SSEL2 P_UNDEF
 #endif
 
-#ifndef P_SPI0_SEL3
-#define P_SPI0_SEL3 P_UNDEF
+#ifndef P_SPI0_SSEL3
+#define P_SPI0_SSEL3 P_UNDEF
 #endif
 
 #ifndef P_UART0_TX
@@ -729,16 +729,16 @@
 #define P_PPI0_D17 P_UNDEF
 #endif
 
-#ifndef P_SPI1_SEL1
-#define P_SPI1_SEL1 P_UNDEF
+#ifndef P_SPI1_SSEL1
+#define P_SPI1_SSEL1 P_UNDEF
 #endif
 
-#ifndef P_SPI1_SEL2
-#define P_SPI1_SEL2 P_UNDEF
+#ifndef P_SPI1_SSEL2
+#define P_SPI1_SSEL2 P_UNDEF
 #endif
 
-#ifndef P_SPI1_SEL3
-#define P_SPI1_SEL3 P_UNDEF
+#ifndef P_SPI1_SSEL3
+#define P_SPI1_SSEL3 P_UNDEF
 #endif
 
 #ifndef P_SPI1_SCK
