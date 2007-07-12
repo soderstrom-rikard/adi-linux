@@ -38,15 +38,15 @@
 #define SO_BINDTODEVICE	25
 
 /* Socket filtering */
-#define SO_ATTACH_FILTER        26
-#define SO_DETACH_FILTER        27
+#define SO_ATTACH_FILTER	26
+#define SO_DETACH_FILTER	27
 
-#define SO_PEERNAME             28
+#define SO_PEERNAME		28
 #define SO_TIMESTAMP		29
 #define SCM_TIMESTAMP		SO_TIMESTAMP
 
 #define SO_ACCEPTCONN		30
-#define SO_PEERSEC             31
+#define SO_PEERSEC		31
 #define SO_PASSSEC		34
 
 #endif				/* _ASM_SOCKET_H */

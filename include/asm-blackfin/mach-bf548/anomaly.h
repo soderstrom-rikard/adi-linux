@@ -39,7 +39,7 @@
 			    Channel DMA stops */
 #define ANOMALY_05000122 /* Rx.H can not be used to access 16-bit System MMR
 			    registers. */
-#define ANOMALY_05000245 /* Spurious Hardware Error from an Access in the 
+#define ANOMALY_05000245 /* Spurious Hardware Error from an Access in the
 			    Shadow of a Conditional Branch */
 #define ANOMALY_05000255 /* Entering Hibernate Mode with RTC Seconds event
 			    interrupt not functional */
@@ -48,8 +48,8 @@
 #define ANOMALY_05000272 /* Certain data cache write through modes fail for
 			    VDDint <=0.9V */
 #define ANOMALY_05000281 /* False Hardware Error Exception when ISR context is
-                            not restored */
-#define ANOMALY_05000310 /* False Hardware Errors Caused by Fetches at the 
+			    not restored */
+#define ANOMALY_05000310 /* False Hardware Errors Caused by Fetches at the
 			    Boundary of Reserved Memory */
 #define ANOMALY_05000312 /* Errors When SSYNC, CSYNC, or Loads to LT, LB and
 			    LC Registers Are Interrupted */

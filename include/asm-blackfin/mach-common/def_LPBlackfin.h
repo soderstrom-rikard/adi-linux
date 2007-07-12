@@ -58,7 +58,7 @@
                                             "%0 = [%1];\n\t"\
   : "=d"(__v) : "a"(addr)); __v; })
 
-#define bfin_write8(addr,val) ({ \
+#define bfin_write8(addr, val) ({ \
 		__asm__ __volatile__ ("NOP;\n\t" \
 			"b[%0] = %1;\n\t" \
 			: : "a"(addr), "d"(val) : "memory");})

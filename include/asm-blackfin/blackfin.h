@@ -94,14 +94,14 @@ static inline void CSYNC (void)
 #if defined(ANOMALY_05000312) && defined(ANOMALY_05000244)
 #define SSYNC(scratch) cli scratch; nop; nop; SSYNC; sti scratch;
 #define CSYNC(scratch) cli scratch; nop; nop; CSYNC; sti scratch;
- 
+
 #elif defined(ANOMALY_05000312) && !defined(ANOMALY_05000244)
 #define SSYNC(scratch) cli scratch; nop; nop; SSYNC; sti scratch;
 #define CSYNC(scratch) cli scratch; nop; nop; CSYNC; sti scratch;
 
 #elif !defined(ANOMALY_05000312) && defined(ANOMALY_05000244)
-#define SSYNC(scratch) nop; nop; nop; SSYNC; 
-#define CSYNC(scratch) nop; nop; nop; CSYNC; 
+#define SSYNC(scratch) nop; nop; nop; SSYNC;
+#define CSYNC(scratch) nop; nop; nop; CSYNC;
 
 #elif !defined(ANOMALY_05000312) && !defined(ANOMALY_05000244)
 #define SSYNC(scratch) SSYNC;

@@ -43,7 +43,8 @@
 #endif
 
 /* Issues that are common to 0.5, 0.4, and 0.3 silicon */
-#if  (defined(CONFIG_BF_REV_0_5) || defined(CONFIG_BF_REV_0_4) || defined(CONFIG_BF_REV_0_3))
+#if  (defined(CONFIG_BF_REV_0_5) || defined(CONFIG_BF_REV_0_4) \
+		|| defined(CONFIG_BF_REV_0_3))
 #define ANOMALY_05000074 /* A multi issue instruction with dsp32shiftimm in
                             slot1 and store of a P register in slot 2 is not
                             supported */
@@ -76,7 +77,8 @@
                             control */
 #define ANOMALY_05000283 /* A system MMR write is stalled indefinitely when
                             killed in a particular stage*/
-#define ANOMALY_05000311 /* Erroneous flag pin operations under specific sequences*/
+#define ANOMALY_05000311 /* Erroneous flag pin operations under specific
+			    sequences */
 #define ANOMALY_05000312 /* Errors when SSYNC, CSYNC, or loads to LT, LB and LC
 			    registers are interrupted */
 #define ANOMALY_05000313 /* PPI Is Level-Sensitive on First Transfer  */
@@ -177,7 +179,7 @@
 #endif /* only on 0.3 silicon */
 
 #if defined(CONFIG_BF_REV_0_2)
-#define ANOMALY_05000067 /* Watchpoints (Hardware Breakpoints) are not 
+#define ANOMALY_05000067 /* Watchpoints (Hardware Breakpoints) are not
 			  *  supported */
 #define ANOMALY_05000109 /* Reserved bits in SYSCFG register not set at
 			  *  power on */
@@ -186,15 +188,15 @@
 			  *  handlers */
 #define ANOMALY_05000123 /* DTEST_COMMAND initiated memory access may be
 			  *  incorrect if data cache or DMA is active */
-#define ANOMALY_05000124 /* DMA Lock-up at CCLK to SCLK ratios of 4:1, 2:1, 
+#define ANOMALY_05000124 /* DMA Lock-up at CCLK to SCLK ratios of 4:1, 2:1,
 			  *  or 1:1 */
 #define ANOMALY_05000125 /* Erroneous exception when enabling cache */
-#define ANOMALY_05000126 /* SPI clock polarity and phase bits incorrect 
+#define ANOMALY_05000126 /* SPI clock polarity and phase bits incorrect
 			  *  during booting */
 #define ANOMALY_05000137 /* DMEM_CONTROL is not set on Reset */
 #define ANOMALY_05000138 /* SPI boot will not complete if there is a zero fill
 			  * block in the loader file */
-#define ANOMALY_05000140 /* Allowing the SPORT RX FIFO to fill will cause an 
+#define ANOMALY_05000140 /* Allowing the SPORT RX FIFO to fill will cause an
 			  *  overflow */
 #define ANOMALY_05000141 /* An Infinite Stall occurs with a particular sequence
 			  *  of consecutive dual dag events */
@@ -211,7 +213,7 @@
 #define ANOMALY_05000147 /* The source MDMA descriptor may stop with a DMA
 			  *  Error */
 #define ANOMALY_05000148 /* When booting from a 16-bit asynchronous memory
-			  *  device, the upper 8-bits of each word must be 
+			  *  device, the upper 8-bits of each word must be
 			  *  0x00 */
 #define ANOMALY_05000153 /* Frame Delay in SPORT Multichannel Mode */
 #define ANOMALY_05000154 /* SPORT TFS signal is active in Multi-channel mode
@@ -224,12 +226,12 @@
 #define ANOMALY_05000163 /* SPORT transmit data is not gated by external frame
 			  *  sync in certain conditions */
 #define ANOMALY_05000168 /* SDRAM auto-refresh and subsequent Power Ups */
-#define ANOMALY_05000169 /* DATA CPLB page miss can result in lost 
+#define ANOMALY_05000169 /* DATA CPLB page miss can result in lost
 			  *  write-through cache data writes */
 #define ANOMALY_05000173 /* DMA vs Core accesses to external memory */
 #define ANOMALY_05000174 /* Cache Fill Buffer Data lost */
 #define ANOMALY_05000175 /* Overlapping Sequencer and Memory Stalls */
-#define ANOMALY_05000176 /* Multiplication of (-1) by (-1) followed by an 
+#define ANOMALY_05000176 /* Multiplication of (-1) by (-1) followed by an
 			  *  accumulator saturation */
 #define ANOMALY_05000181 /* Disabling the PPI resets the PPI configuration
 			  *  registers */

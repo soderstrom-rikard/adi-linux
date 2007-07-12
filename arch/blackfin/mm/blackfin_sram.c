@@ -99,7 +99,8 @@ void __init l1_data_sram_init(void)
 {
 #if L1_DATA_A_LENGTH != 0
 	memset(&l1_data_A_sram, 0x00, sizeof(l1_data_A_sram));
-	l1_data_A_sram[0].paddr = (void *)L1_DATA_A_START + (_ebss_l1 - _sdata_l1);
+	l1_data_A_sram[0].paddr = (void *)L1_DATA_A_START +
+					(_ebss_l1 - _sdata_l1);
 	l1_data_A_sram[0].size = L1_DATA_A_LENGTH - (_ebss_l1 - _sdata_l1);
 	l1_data_A_sram[0].flag = SRAM_SLT_FREE;
 
@@ -108,7 +109,8 @@ void __init l1_data_sram_init(void)
 #endif
 #if L1_DATA_B_LENGTH != 0
 	memset(&l1_data_B_sram, 0x00, sizeof(l1_data_B_sram));
-	l1_data_B_sram[0].paddr = (void *)L1_DATA_B_START + (_ebss_b_l1 - _sdata_b_l1);
+	l1_data_B_sram[0].paddr = (void *)L1_DATA_B_START +
+				(_ebss_b_l1 - _sdata_b_l1);
 	l1_data_B_sram[0].size = L1_DATA_B_LENGTH - (_ebss_b_l1 - _sdata_b_l1);
 	l1_data_B_sram[0].flag = SRAM_SLT_FREE;
 
@@ -206,7 +208,9 @@ static void *_l1_sram_alloc_max(struct l1_sram_piece *pfree, int count,
 }
 
 /* L1 memory free function */
-static int _l1_sram_free(const void *addr, struct l1_sram_piece *pfree, int count)
+static int _l1_sram_free(const void *addr,
+			struct l1_sram_piece *pfree,
+			int count)
 {
 	int i, index = 0;
 
@@ -548,7 +552,7 @@ EXPORT_SYMBOL(sram_alloc_with_lsl);
  * Until then, we need some sort of visibility into the L1 alloc.
  */
 static void _l1sram_proc_read(char *buf, int *len, const char *desc,
-                              struct l1_sram_piece *pfree, const int array_size)
+		struct l1_sram_piece *pfree, const int array_size)
 {
 	int i;
 
@@ -567,19 +571,23 @@ static void _l1sram_proc_read(char *buf, int *len, const char *desc,
 	}
 }
 static int l1sram_proc_read(char *buf, char **start, off_t offset, int count,
-                            int *eof, void *data)
+		int *eof, void *data)
 {
 	int len = 0;
 
-	_l1sram_proc_read(buf, &len, "Scratchpad", l1_ssram, ARRAY_SIZE(l1_ssram));
+	_l1sram_proc_read(buf, &len, "Scratchpad",
+			l1_ssram, ARRAY_SIZE(l1_ssram));
 #if L1_DATA_A_LENGTH != 0
-	_l1sram_proc_read(buf, &len, "Data A", l1_data_A_sram, ARRAY_SIZE(l1_data_A_sram));
+	_l1sram_proc_read(buf, &len, "Data A",
+			l1_data_A_sram, ARRAY_SIZE(l1_data_A_sram));
 #endif
 #if L1_DATA_B_LENGTH != 0
-	_l1sram_proc_read(buf, &len, "Data B", l1_data_B_sram, ARRAY_SIZE(l1_data_B_sram));
+	_l1sram_proc_read(buf, &len, "Data B",
+			l1_data_B_sram, ARRAY_SIZE(l1_data_B_sram));
 #endif
 #if L1_CODE_LENGTH != 0
-	_l1sram_proc_read(buf, &len, "Instruction", l1_inst_sram, ARRAY_SIZE(l1_inst_sram));
+	_l1sram_proc_read(buf, &len, "Instruction",
+			l1_inst_sram, ARRAY_SIZE(l1_inst_sram));
 #endif
 
 	return len;

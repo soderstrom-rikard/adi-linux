@@ -500,15 +500,18 @@ u32 gpio_pm_setup(void)
 
 			while (mask) {
 				if (mask & 1) {
-					reserved_map[gpio_bank(gpio)] |= gpio_bit(gpio);
-					bfin_gpio_wakeup_type(gpio, wakeup_flags_map[gpio]);
+					reserved_map[gpio_bank(gpio)] |=
+							gpio_bit(gpio);
+					bfin_gpio_wakeup_type(gpio,
+						wakeup_flags_map[gpio]);
 					set_gpio_data(gpio, 0); /*Clear*/
 				}
 				gpio++;
 				mask >>= 1;
 			}
 
-			sic_iwr |= 1 << (sic_iwr_irqs[bank] - (IRQ_CORETMR + 1));
+			sic_iwr |= 1 <<
+				(sic_iwr_irqs[bank] - (IRQ_CORETMR + 1));
 			gpio_bankb[bank]->maskb_set = wakeup_map[gpio_bank(i)];
 		}
 	}
