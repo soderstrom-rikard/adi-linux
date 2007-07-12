@@ -39,7 +39,6 @@
 #endif
 #include <linux/pata_platform.h>
 #include <linux/irq.h>
-#include <linux/irq.h>
 #include <linux/interrupt.h>
 #include <linux/usb_sl811.h>
 #include <asm/bfin5xx_spi.h>
