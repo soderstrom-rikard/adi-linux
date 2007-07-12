@@ -37,9 +37,11 @@
 #include <linux/libata.h>
 #include <linux/platform_device.h>
 #include <asm/dma.h>
+#include <asm/gpio.h>
+#include <asm/portmux.h>
 
 #define DRV_NAME		"bf54x-atapi"
-#define DRV_VERSION		"0.1"
+#define DRV_VERSION		"0.6"
 
 #define ATA_REG_CTRL		0x0E
 #define ATA_REG_ALTSTATUS	ATA_REG_CTRL
@@ -1219,7 +1221,7 @@ static unsigned char bfin_irq_ack (struct ata_port *ap, unsigned int chk_drq)
 	status = ata_busy_wait(ap, bits, 1000);
 	if (status & bits)
 		if (ata_msg_err(ap))
-			printk(KERN_ERR "abnormal status 0x%X\n", status);
+			dev_err(ap->dev, "abnormal status 0x%X\n", status);
 
 	/* get controller status; clear intr, err bits */
 	ATAPI_SET_INT_STATUS(base, ATAPI_GET_INT_STATUS(base)|ATAPI_DEV_INT
@@ -1334,7 +1336,7 @@ static int bfin_port_start(struct ata_port *ap)
 		}
 		ap->udma_mask = 0;
 		ap->mwdma_mask = 0;
-		pr_debug("Unable to request ATAPI DMA!\n");
+		dev_err(ap->dev, "Unable to request ATAPI DMA!\n");
 		return -EBUSY;
 	}
 	return 0;
@@ -1414,29 +1416,6 @@ static struct ata_port_info bfin_port_info[] = {
 	},
 };
 
-
-/**
- *
- *	Function:       bfin_config_atapi_gpio
- *
- *	Description:    Configures the ATAPI pins for use
- *
- */
-static int bfin_config_atapi_gpio(struct ata_probe_ent *ae)
-{
-	bfin_write_PORTH_FER(bfin_read_PORTH_FER() | 0x4);
-	bfin_write_PORTH_MUX(bfin_read_PORTH_MUX() & ~0x30);
-	bfin_write_PORTH_DIR_SET(0x4);
-
-	bfin_write_PORTJ_FER(0x7f8);
-	bfin_write_PORTJ_MUX(bfin_read_PORTI_MUX() & ~0x3fffc0);
-	bfin_write_PORTJ_DIR_SET(0x5f8);
-	bfin_write_PORTJ_DIR_CLEAR(0x200);
-	bfin_write_PORTJ_INEN(0x200);
-
-	return 0;
-}
-
 /**
  *	bfin_reset_controller - initialize BF54x ATAPI controller.
  */
@@ -1473,6 +1452,22 @@ static int bfin_reset_controller(struct ata_probe_ent *ae)
 }
 
 /**
+ *	atapi_io_port - define atapi peripheral port pins.
+ */
+static unsigned short atapi_io_port[] = {
+	P_ATAPI_RESET,
+	P_ATAPI_DIOR,
+	P_ATAPI_DIOW,
+	P_ATAPI_CS0,
+	P_ATAPI_CS1,
+	P_ATAPI_DMACK,
+	P_ATAPI_DMARQ,
+	P_ATAPI_INTRQ,
+	P_ATAPI_IORDY,
+	0
+};
+
+/**
  *	bfin_atapi_probe	-	attach a bfin atapi interface
  *	@pdev: platform device
  *
@@ -1490,7 +1485,6 @@ static int __devinit bfin_atapi_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct ata_probe_ent ae;
 	int board_idx = 0;
-	int rc;
 
 	/*
 	 * Simple resource validation ..
@@ -1524,16 +1518,22 @@ static int __devinit bfin_atapi_probe(struct platform_device *pdev)
 	ae.irq_flags	= IRQF_SHARED;
 	ae.port[0].ctl_addr = (void *)res->start;
 
-	rc = bfin_config_atapi_gpio(&ae);
-	if (rc)
-		return rc;
+	if (peripheral_request_list(atapi_io_port, "atapi-io-port")) {
+		dev_err(&pdev->dev, "Requesting Peripherals faild\n");
+		return -EFAULT;
+	}
 
-	rc = bfin_reset_controller(&ae);
-	if (rc)
-		return rc;
+	if (bfin_reset_controller(&ae)) {
+		peripheral_free_list(atapi_io_port);
+		dev_err(&pdev->dev, "Fail to reset ATAPI device\n");
+		return -EFAULT;
+	}
 
-	if (unlikely(ata_device_add(&ae) == 0))
+	if (unlikely(ata_device_add(&ae) == 0)) {
+		peripheral_free_list(atapi_io_port);
+		dev_err(&pdev->dev, "Fail to attach ATAPI device\n");
 		return -ENODEV;
+	}
 
 	return 0;
 }
@@ -1551,6 +1551,8 @@ static int __devexit bfin_atapi_remove(struct platform_device *pdev)
 	struct ata_host *host = dev_get_drvdata(dev);
 
 	ata_host_detach(host);
+
+	peripheral_free_list(atapi_io_port);
 
 	return 0;
 }
