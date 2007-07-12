@@ -14,6 +14,12 @@
 #define P_MAYSHARE	0x2000
 #define P_DONTCARE	0x1000
 
+
+int peripheral_request(unsigned short per, const char *label);
+void peripheral_free(unsigned short per);
+int peripheral_request_list(unsigned short per[], const char *label);
+void peripheral_free_list(unsigned short per[]);
+
 #include <asm/gpio.h>
 #include <asm/mach/portmux.h>
 
@@ -511,6 +517,22 @@
 
 #ifndef P_SPI0_SSEL3
 #define P_SPI0_SSEL3 P_UNDEF
+#endif
+
+#ifndef P_SPI0_SSEL4
+#define P_SPI0_SSEL4 P_UNDEF
+#endif
+
+#ifndef P_SPI0_SSEL5
+#define P_SPI0_SSEL5 P_UNDEF
+#endif
+
+#ifndef P_SPI0_SSEL6
+#define P_SPI0_SSEL6 P_UNDEF
+#endif
+
+#ifndef P_SPI0_SSEL7
+#define P_SPI0_SSEL7 P_UNDEF
 #endif
 
 #ifndef P_UART0_TX
