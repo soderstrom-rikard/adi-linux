@@ -1,6 +1,6 @@
 /*
  * Blackfin On-Chip Watchdog Driver
- *  Supports BF53[123]/BF53[467]/BF561
+ *  Supports BF53[123]/BF53[467]/BF54[2489]/BF561
  *
  * Originally based on softdog.c
  * Copyright 2006-2007 Analog Devices Inc.
