@@ -459,6 +459,13 @@ static int request_ports(void)
 
 static void free_ports(void)
 {
+
+	u16 ppi_req[] = PPI0_16;
+	u16 tmr_req[] = TIMERS;
+
+	peripheral_free_list(ppi_req);
+	peripheral_free_list(tmr_req);
+
 #if (defined(UD) &&  defined(LBR))
 	gpio_free(LBR);
 	gpio_free(UD);
