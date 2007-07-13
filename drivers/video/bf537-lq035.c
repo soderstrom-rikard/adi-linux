@@ -49,6 +49,7 @@
 #include <asm/dma-mapping.h>
 #include <asm/dma.h>
 #include <asm/gpio.h>
+#include <asm/portmux.h>
 
 #define DRIVER_NAME "bf537-lq035"
 
@@ -57,6 +58,10 @@
 #define MAX_BRIGHENESS 	95
 #define MIN_BRIGHENESS  5
 #define BFIN_LCD_NBR_PALETTE_ENTRIES	256
+
+#define PPI0_16 {P_PPI0_CLK, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3, \
+ P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, P_PPI0_D8, P_PPI0_D9, P_PPI0_D10, \
+ P_PPI0_D11, P_PPI0_D12, P_PPI0_D13, P_PPI0_D14, P_PPI0_D15, 0}
 
 static unsigned char* fb_buffer;          /* RGB Buffer */
 static dma_addr_t dma_handle;             /* ? */
@@ -209,6 +214,8 @@ static struct i2c_driver ad5280_driver = {
 
 #define	FREQ_PPI_CLK         (5*1024*1024)  /* PPI_CLK 5MHz */
 
+#define TIMERS {P_TMR0, P_TMR1, P_TMR2, P_TMR3, P_TMR5}
+
 #else
 
 #define UD      GPIO_PF13	/* Up / Down */
@@ -248,6 +255,7 @@ static struct i2c_driver ad5280_driver = {
 #define bfin_read_TIMER_REV_COUNTER	bfin_read_TIMER5_COUNTER
 
 #define	FREQ_PPI_CLK         (6*1000*1000)  /* PPI_CLK 6MHz */
+#define TIMERS {P_TMR0, P_TMR1, P_TMR5, P_TMR6, P_TMR7}
 
 #endif
 
@@ -392,6 +400,10 @@ static int config_dma(void)
 
 static int request_ports(void)
 {
+
+	u16 ppi_req[] = PPI0_16;
+	u16 tmr_req[] = TIMERS;
+
 	/*
 		UD:      PF13
 		MOD:     PF10
@@ -399,14 +411,24 @@ static int request_ports(void)
 		PPI_CLK: PF15
 	*/
 
+	if (peripheral_request_list(ppi_req, DRIVER_NAME)) {
+		printk(KERN_ERR "Requesting Peripherals PPI faild\n");
+		return -EFAULT;
+	}
+
+	if (peripheral_request_list(tmr_req, DRIVER_NAME)) {
+		peripheral_free_list(ppi_req);
+		printk(KERN_ERR "Requesting Peripherals TMR faild\n");
+		return -EFAULT;
+	}
 
 #if (defined(UD) &&  defined(LBR))
-	if (gpio_request(UD, NULL)) {
+	if (gpio_request(UD, DRIVER_NAME)) {
 		printk(KERN_ERR"Requesting GPIO %d faild\n",UD);
 		return -EFAULT;
 	}
 
-	if (gpio_request(LBR, NULL)) {
+	if (gpio_request(LBR, DRIVER_NAME)) {
 		printk(KERN_ERR"Requesting GPIO %d faild\n",LBR);
 		gpio_free(UD);
 		return -EFAULT;
@@ -419,7 +441,7 @@ static int request_ports(void)
 	gpio_set_value(LBR,1);
 #endif
 
-	if (gpio_request(MOD, NULL)) {
+	if (gpio_request(MOD, DRIVER_NAME)) {
 		printk(KERN_ERR"Requesting GPIO %d faild\n",MOD);
 #if (defined(UD) &&  defined(LBR))
 		gpio_free(LBR);
@@ -431,21 +453,6 @@ static int request_ports(void)
 	gpio_direction_output(MOD);
 	gpio_set_value(MOD,1);
 
-#ifdef CONFIG_PNAV10
-	bfin_write_PORTF_FER(bfin_read_PORTF_FER() | (1U<<15)|(1U<<8)|(1U<<9)|(1U<<4)|(1U<<6)|(1U<<7));
-
-	/* Enable PPI Data, TMR2, TMR5 */
-	bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~(PGTE_SPORT|PGRE_SPORT|PGSE_SPORT|PFFE_PPI|PFS6E_SPI|PFS4E_SPI|PFFE|PFS4E));
-#else
-	bfin_write_PORTF_FER(bfin_read_PORTF_FER() | (1U<<15)|(1U<<8)|(1U<<9)|(1U<<4)|(1U<<2)|(1U<<3));
-
-	/* Enable PPI Data, TMR2, TMR5 */
-	bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~(PGTE_SPORT|PGRE_SPORT|PGSE_SPORT|PFFE_PPI|PFS6E_SPI|PFS4E_SPI));
-	/* Enable TMR6 TMR7 */
-	bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFTE_TIMER);
-#endif
-
-	bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0xFFFF);
 	SSYNC();
 	return 0;
 }
@@ -503,17 +510,17 @@ static int bfin_lq035_fb_open(struct fb_info* info, int user)
 	if(lq035_open_cnt <= 1) {
 		bfin_write_PPI_CONTROL(0);
 		SSYNC();
-	
+
 		set_vcomm();
 		config_dma();
 		config_ppi();
-	
+
 		/* start dma */
 		enable_dma(CH_PPI);
 		SSYNC();
 		bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
 		SSYNC();
-	
+
 		if(!t_conf_done) {
 			config_timers();
 			start_timers();
@@ -538,7 +545,7 @@ static int bfin_lq035_fb_release(struct fb_info* info, int user)
 
 		bfin_write_PPI_CONTROL(0);
 		SSYNC();
-	
+
 		disable_dma(CH_PPI);
 	}
 
@@ -855,7 +862,7 @@ static int __init bfin_lq035_fb_init(void)
 
 	bl_dev = backlight_device_register("bf537-bl", NULL, NULL, &bfin_lq035fb_bl_ops);
 	bl_dev->props.max_brightness = MAX_BRIGHENESS;
-	
+
 	lcd_dev = lcd_device_register(DRIVER_NAME, NULL, &bfin_lcd_ops);
 	lcd_dev->props.max_contrast = 255,
 
