@@ -65,6 +65,8 @@
 
 #include "bfin_mac.h"
 
+#undef DRV_DEBUG
+
 #define CARDNAME "bfin_mac"
 
 MODULE_LICENSE("GPL");
@@ -381,7 +383,7 @@ static void bf537mac_setphy(struct net_device *dev)
 
 	if (lp->Loopback) {
 		phydat |= (1 << 14);	/* enable TX->RX loopback */
-#if 0
+#ifdef DRV_DEBUG
 		write_phy_reg(lp->PhyAddr, PHYREG_MODECTL, phydat);
 #endif
 	}
@@ -403,7 +405,7 @@ static void bf537mac_setphy(struct net_device *dev)
 		/* enable PHY_INT */
 		sysctl = bfin_read_EMAC_SYSCTL();
 		sysctl |= 0x1;
-#if 0
+#ifdef DRV_DEBUG
 		bfin_write_EMAC_SYSCTL(sysctl);
 #endif
 	}
@@ -469,7 +471,7 @@ void setup_system_regs(struct net_device *dev)
 
 	bfin_write_EMAC_OPMODE(opmode);
 
-#if 0
+#ifdef DRV_DEBUG
 	bfin_write_EMAC_MMC_CTL(RSTC | CROLL | MMCE);
 #endif
 	bfin_write_EMAC_MMC_CTL(RSTC | CROLL);
@@ -620,7 +622,7 @@ static void bf537mac_rx(struct net_device *dev)
 	current_rx_ptr->skb = new_skb;
 	current_rx_ptr->desc_a.start_addr = (unsigned long)new_skb->data - 2;
 
-#if 0
+#ifdef DRV_DEBUG
 	int i;
 	if (len >= 64) {
 		for (i = 0; i < len; i++) {
@@ -914,7 +916,7 @@ static int __init bf537mac_probe(struct net_device *dev)
 	dev->tx_timeout = bf537mac_timeout;
 	dev->get_stats = bf537mac_query_statistics;
 	dev->set_multicast_list = bf537mac_set_multicast_list;
-#if 0
+#ifdef DVR_DEBUG
 	dev->ethtool_ops = &bf537mac_ethtool_ops;
 #endif
 #ifdef CONFIG_NET_POLL_CONTROLLER
