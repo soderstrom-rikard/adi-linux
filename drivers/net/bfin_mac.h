@@ -1,17 +1,19 @@
 /*
- * File:         drivers/net/bfin_mac.h
+ * File:	drivers/net/bfin_mac.c
  * Based on:
- * Author:       Luke Yang <luke.yang@analog.com>
+ * Maintainer:
+ * 		Bryan Wu <bryan.wu@analog.com>
+ *
+ * Original author:
+ * 		Luke Yang <luke.yang@analog.com>
  *
  * Created:
  * Description:
  *
- * Rev:          $Id$
- *
  * Modified:
- *               Copyright 2004-2006 Analog Devices Inc.
+ *		Copyright 2004-2006 Analog Devices Inc.
  *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
+ * Bugs:	Enter bugs at http://blackfin.uclinux.org/
  *
  * This program is free software ;  you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,37 +59,30 @@
 
 #define BFIN_MAC_CSUM_OFFLOAD
 
-typedef struct _DMA_CONFIG {
-	unsigned short b_DMA_EN:1;	/* Bit 0 : DMA Enable */
-	unsigned short b_WNR:1;		/* Bit 1 : DMA Direction */
-	unsigned short b_WDSIZE:2;	/* Bit 2 & 3 : DMA Tranfer Word size */
-	unsigned short b_DMA2D:1;	/* Bit 4 : DMA Mode 2D or 1D */
-	unsigned short b_RESTART:1;	/* Bit 5 : Retain the FIFO */
-	unsigned short b_DI_SEL:1;	/* Bit 6 : Data Interrupt Timing Select */
-	unsigned short b_DI_EN:1;	/* Bit 7 : Data Interrupt Enable */
-	unsigned short b_NDSIZE:4;	/* Bit 8 to 11 : Flex descriptor Size */
-	unsigned short b_FLOW:3;	/* Bit 12 to 14 : FLOW */
-} DMA_CONFIG_REG;
+struct dma_config_reg {
+	unsigned short b_DMA_EN:1;  /* Bit 0 : DMA Enable */
+	unsigned short b_WNR:1;     /* Bit 1 : DMA Direction */
+	unsigned short b_WDSIZE:2;  /* Bit 2 & 3 : DMA Tranfer Word size */
+	unsigned short b_DMA2D:1;   /* Bit 4 : DMA Mode 2D or 1D */
+	unsigned short b_RESTART:1; /* Bit 5 : Retain the FIFO */
+	unsigned short b_DI_SEL:1;  /* Bit 6 : Data Interrupt Timing Select */
+	unsigned short b_DI_EN:1;   /* Bit 7 : Data Interrupt Enable */
+	unsigned short b_NDSIZE:4;  /* Bit 8 to 11 : Flex descriptor Size */
+	unsigned short b_FLOW:3;    /* Bit 12 to 14 : FLOW */
+};
 
 struct dma_descriptor {
 	struct dma_descriptor *next_dma_desc;
 	unsigned long start_addr;
-	DMA_CONFIG_REG config;
+	struct dma_config_reg config;
 	unsigned short x_count;
 };
-
-#if 0
-struct status_area {
-  unsigned short ip_hdr_chksum;         /* the IP header checksum */
-  unsigned short ip_payload_chksum;     /* the IP header and payload checksum */
-  unsigned long  status_word;           /* the frame status word */
-};
-#endif
 
 struct status_area_rx {
 #if defined(BFIN_MAC_CSUM_OFFLOAD)
 	unsigned short ip_hdr_csum;	/* ip header checksum */
-	unsigned short ip_payload_csum;	/* ip payload(udp or tcp or others) checksum */
+	/* ip payload(udp or tcp or others) checksum */
+	unsigned short ip_payload_csum;
 #endif
 	unsigned long status_word;	/* the frame status word */
 };
@@ -102,7 +97,7 @@ struct net_dma_desc_rx {
 	struct sk_buff *skb;
 	struct dma_descriptor desc_a;
 	struct dma_descriptor desc_b;
-	volatile struct status_area_rx status;
+	struct status_area_rx status;
 };
 
 /* use two descriptors for a packet */
@@ -111,8 +106,8 @@ struct net_dma_desc_tx {
 	struct sk_buff *skb;
 	struct dma_descriptor desc_a;
 	struct dma_descriptor desc_b;
-	volatile unsigned char packet[1560];
-	volatile struct status_area_tx status;
+	unsigned char packet[1560];
+	struct status_area_tx status;
 };
 
 struct bf537mac_local {
