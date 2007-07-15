@@ -65,8 +65,6 @@
 
 #include "bfin_mac.h"
 
-#undef DRV_DEBUG
-
 #define CARDNAME "bfin_mac"
 
 MODULE_LICENSE("GPL");
@@ -180,7 +178,7 @@ static int desc_list_init(void)
 			rx_list_tail = tmp_desc_rx;
 		}
 
-		/* allocat a new skb for next time receive */
+		/* allocate a new skb for next time receive */
 		new_skb = dev_alloc_skb(PKT_BUF_SZ + 2);
 		if (!new_skb) {
 			printk(KERN_NOTICE CARDNAME
@@ -344,19 +342,16 @@ static void write_phy_reg(u16 PHYAddr, u16 RegAddr, u32 Data)
 static void bf537mac_setphy(struct net_device *dev)
 {
 	u16 phydat;
-	u32 sysctl;
 	struct bf537mac_local *lp = netdev_priv(dev);
 
-	pr_debug("start settting up phy\n");
-
 	/* Program PHY registers */
-	phydat = 0;
+	pr_debug("start setting up phy\n");
 
 	/* issue a reset */
 	raw_write_phy_reg(lp->PhyAddr, PHYREG_MODECTL, 0x8000);
 
 	/* wait half a second */
-	udelay(500);
+	msleep(500);
 
 	phydat = read_phy_reg(lp->PhyAddr, PHYREG_MODECTL);
 
@@ -381,15 +376,11 @@ static void bf537mac_setphy(struct net_device *dev)
 		}
 	}
 
-	if (lp->Loopback) {
+	if (lp->Loopback)
 		phydat |= (1 << 14);	/* enable TX->RX loopback */
-#ifdef DRV_DEBUG
-		write_phy_reg(lp->PhyAddr, PHYREG_MODECTL, phydat);
-#endif
-	}
 
 	write_phy_reg(lp->PhyAddr, PHYREG_MODECTL, phydat);
-	udelay(500);
+	msleep(500);
 
 	phydat = read_phy_reg(lp->PhyAddr, PHYREG_MODECTL);
 	/* check for SMSC PHY */
@@ -402,25 +393,19 @@ static void bf537mac_setphy(struct net_device *dev)
 
 		/* enable interrupts */
 		write_phy_reg(lp->PhyAddr, 30, 0x0ff);
-		/* enable PHY_INT */
-		sysctl = bfin_read_EMAC_SYSCTL();
-		sysctl |= 0x1;
-#ifdef DRV_DEBUG
-		bfin_write_EMAC_SYSCTL(sysctl);
-#endif
 	}
 }
 
 /**************************************************************************/
 void setup_system_regs(struct net_device *dev)
 {
-	int PHYADDR;
+	int phyaddr;
 	unsigned short sysctl, phydat;
 	u32 opmode;
 	struct bf537mac_local *lp = netdev_priv(dev);
 	int count = 0;
 
-	PHYADDR = lp->PhyAddr;
+	phyaddr = lp->PhyAddr;
 
 	/* Enable PHY output */
 	if (!(bfin_read_VR_CTL() & PHYCLKOE))
@@ -440,12 +425,12 @@ void setup_system_regs(struct net_device *dev)
 	/* full duplex          */
 	/* 100 Mbps             */
 	phydat = PHY_ANEG_EN | PHY_DUPLEX | PHY_SPD_SET;
-	write_phy_reg(PHYADDR, PHYREG_MODECTL, phydat);
+	write_phy_reg(phyaddr, PHYREG_MODECTL, phydat);
 
 	/* test if full duplex supported */
 	do {
 		msleep(100);
-		phydat = read_phy_reg(PHYADDR, PHYREG_MODESTAT);
+		phydat = read_phy_reg(phyaddr, PHYREG_MODESTAT);
 		if (count > 30) {
 			printk(KERN_NOTICE CARDNAME ": Link is down\n");
 			printk(KERN_NOTICE CARDNAME
@@ -455,7 +440,7 @@ void setup_system_regs(struct net_device *dev)
 		count++;
 	} while (!(phydat & 0x0004));
 
-	phydat = read_phy_reg(PHYADDR, PHYREG_ANLPAR);
+	phydat = read_phy_reg(phyaddr, PHYREG_ANLPAR);
 
 	if ((phydat & 0x0100) || (phydat & 0x0040)) {
 		opmode = FDMODE;
@@ -471,9 +456,6 @@ void setup_system_regs(struct net_device *dev)
 
 	bfin_write_EMAC_OPMODE(opmode);
 
-#ifdef DRV_DEBUG
-	bfin_write_EMAC_MMC_CTL(RSTC | CROLL | MMCE);
-#endif
 	bfin_write_EMAC_MMC_CTL(RSTC | CROLL);
 
 	/* Initialize the TX DMA channel registers */
@@ -608,7 +590,7 @@ static void bf537mac_rx(struct net_device *dev)
 	struct bf537mac_local *lp = netdev_priv(dev);
 	unsigned short len;
 
-	/* allocat a new skb for next time receive */
+	/* allocate a new skb for next time receive */
 	skb = current_rx_ptr->skb;
 	new_skb = dev_alloc_skb(PKT_BUF_SZ + 2);
 	if (!new_skb) {
@@ -621,18 +603,6 @@ static void bf537mac_rx(struct net_device *dev)
 	skb_reserve(new_skb, 2);
 	current_rx_ptr->skb = new_skb;
 	current_rx_ptr->desc_a.start_addr = (unsigned long)new_skb->data - 2;
-
-#ifdef DRV_DEBUG
-	int i;
-	if (len >= 64) {
-		for (i = 0; i < len; i++) {
-			printk(KERN_DEBUG "%.2x-", ((unsigned char *)pkt)[i]);
-			if (((i % 8) == 0) && (i != 0))
-				printk(KERN_DEBUG "\n");
-		}
-	printk(KERN_DEBUG"\n");
-	}
-#endif
 
 	len = (unsigned short)((current_rx_ptr->status.status_word) & RX_FRLEN);
 	skb_put(skb, len);
@@ -916,9 +886,6 @@ static int __init bf537mac_probe(struct net_device *dev)
 	dev->tx_timeout = bf537mac_timeout;
 	dev->get_stats = bf537mac_query_statistics;
 	dev->set_multicast_list = bf537mac_set_multicast_list;
-#ifdef DVR_DEBUG
-	dev->ethtool_ops = &bf537mac_ethtool_ops;
-#endif
 #ifdef CONFIG_NET_POLL_CONTROLLER
 	dev->poll_controller = bf537mac_poll;
 #endif
