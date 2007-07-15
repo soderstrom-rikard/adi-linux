@@ -65,18 +65,21 @@
 
 #include "bfin_mac.h"
 
-#define CARDNAME "bfin_mac"
+#define DRV_NAME	"bfin_mac"
+#define DRV_VERSION	"1.0"
+#define DRV_AUTHOR	"Bryan Wu, Luke Yang"
+#define DRV_DESC	"Blackfin BF53[67] on-chip Ethernet MAC driver"
 
+MODULE_AUTHOR(DRV_AUTHOR);
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Bryan Wu, Luke Yang");
-MODULE_DESCRIPTION("Blackfin MAC Driver");
+MODULE_DESCRIPTION(DRV_DESC);
 
 #if defined(CONFIG_BFIN_MAC_USE_L1)
 # define bfin_mac_alloc(dma_handle, size)  l1_data_sram_zalloc(size)
 # define bfin_mac_free(dma_handle, ptr)    l1_data_sram_free(ptr)
 #else
 # define bfin_mac_alloc(dma_handle, size) \
-	 dma_alloc_coherent(NULL, size, dma_handle, GFP_NORMAL)
+	dma_alloc_coherent(NULL, size, dma_handle, GFP_KERNEL)
 # define bfin_mac_free(dma_handle, ptr) \
 	dma_free_coherent(NULL, sizeof(*ptr), ptr, dma_handle)
 #endif
@@ -104,6 +107,10 @@ static int desc_list_init(void)
 	int i;
 	struct sk_buff *new_skb;
 #if !defined(CONFIG_BFIN_MAC_USE_L1)
+	/*
+	 * This dma_handle is useless in Blackfin dma_alloc_coherent().
+	 * The real dma handler is the return value of dma_alloc_coherent().
+	 */
 	dma_addr_t dma_handle;
 #endif
 
@@ -183,7 +190,7 @@ static int desc_list_init(void)
 		/* allocate a new skb for next time receive */
 		new_skb = dev_alloc_skb(PKT_BUF_SZ + 2);
 		if (!new_skb) {
-			printk(KERN_NOTICE CARDNAME
+			printk(KERN_NOTICE DRV_NAME
 			       ": init: low on mem - packet dropped\n");
 			goto init_error;
 		}
@@ -232,7 +239,7 @@ static int desc_list_init(void)
 
 init_error:
 	desc_list_free();
-	printk(KERN_ERR CARDNAME ": kmalloc failed\n");
+	printk(KERN_ERR DRV_NAME ": kmalloc failed\n");
 	return -ENOMEM;
 }
 
@@ -308,7 +315,7 @@ static void poll_mdc_done(void)
 	while ((bfin_read_EMAC_STAADD()) & STABUSY) {
 		mdelay(10);
 		if (timeout_cnt-- < 0) {
-			printk(KERN_ERR CARDNAME
+			printk(KERN_ERR DRV_NAME
 			": wait MDC/MDIO transaction to complete timeout\n");
 			break;
 		}
@@ -442,8 +449,8 @@ void setup_system_regs(struct net_device *dev)
 		msleep(100);
 		phydat = read_phy_reg(phyaddr, PHYREG_MODESTAT);
 		if (count > 30) {
-			printk(KERN_NOTICE CARDNAME ": Link is down\n");
-			printk(KERN_NOTICE CARDNAME
+			printk(KERN_NOTICE DRV_NAME ": Link is down\n");
+			printk(KERN_NOTICE DRV_NAME
 				 "please check your network connection\n");
 			break;
 		}
@@ -456,7 +463,7 @@ void setup_system_regs(struct net_device *dev)
 		opmode = FDMODE;
 	} else {
 		opmode = 0;
-		printk(KERN_INFO CARDNAME
+		printk(KERN_INFO DRV_NAME
 			": Network is set to half duplex\n");
 	}
 
@@ -483,9 +490,12 @@ void setup_system_regs(struct net_device *dev)
 
 void setup_mac_addr(u8 * mac_addr)
 {
+	u32 addr_low = le32_to_cpu(*(__le32 *) & mac_addr[0]);
+	u16 addr_hi = le16_to_cpu(*(__le16 *) & mac_addr[4]);
+
 	/* this depends on a little-endian machine */
-	bfin_write_EMAC_ADDRLO(*(u32 *) & mac_addr[0]);
-	bfin_write_EMAC_ADDRHI(*(u16 *) & mac_addr[4]);
+	bfin_write_EMAC_ADDRLO(addr_low);
+	bfin_write_EMAC_ADDRHI(addr_hi);
 }
 
 static void adjust_tx_list(void)
@@ -510,7 +520,7 @@ static void adjust_tx_list(void)
 				goto adjust_head;
 			}
 			if (timeout_cnt-- < 0) {
-				printk(KERN_ERR CARDNAME
+				printk(KERN_ERR DRV_NAME
 				": wait for adjust tx list head timeout\n");
 				break;
 			}
@@ -530,7 +540,7 @@ adjust_head:
 			dev_kfree_skb(tx_list_head->skb);
 			tx_list_head->skb = NULL;
 		} else {
-			printk(KERN_ERR CARDNAME
+			printk(KERN_ERR DRV_NAME
 			       ": no sk_buff in a transmitted frame!\n");
 		}
 		tx_list_head = tx_list_head->next;
@@ -610,7 +620,7 @@ static void bf537mac_rx(struct net_device *dev)
 	skb = current_rx_ptr->skb;
 	new_skb = dev_alloc_skb(PKT_BUF_SZ + 2);
 	if (!new_skb) {
-		printk(KERN_NOTICE CARDNAME
+		printk(KERN_NOTICE DRV_NAME
 		       ": rx: low on mem - packet dropped\n");
 		lp->stats.rx_dropped++;
 		goto out;
@@ -819,7 +829,7 @@ static int bf537mac_open(struct net_device *dev)
 	 * address using ifconfig eth0 hw ether xx:xx:xx:xx:xx:xx
 	 */
 	if (!is_valid_ether_addr(dev->dev_addr)) {
-		printk(KERN_WARNING CARDNAME ": no valid ethernet hw addr\n");
+		printk(KERN_WARNING DRV_NAME ": no valid ethernet hw addr\n");
 		return -EINVAL;
 	}
 
@@ -866,10 +876,10 @@ static int __init bf537mac_probe(struct net_device *dev)
 	int retval;
 
 	/* Grab the MAC address in the MAC */
-	*(u32 *) (&(dev->dev_addr[0])) = bfin_read_EMAC_ADDRLO();
-	*(u16 *) (&(dev->dev_addr[4])) = (u16) bfin_read_EMAC_ADDRHI();
+	*(__le32 *) (&(dev->dev_addr[0])) = cpu_to_le32(bfin_read_EMAC_ADDRLO());
+	*(__le16 *) (&(dev->dev_addr[4])) = cpu_to_le16((u16) bfin_read_EMAC_ADDRHI());
 
-/* probe mac */
+	/* probe mac */
 	/*todo: how to proble? which is revision_register */
 	bfin_write_EMAC_ADDRLO(0x12345678);
 	if (bfin_read_EMAC_ADDRLO() != 0x12345678) {
@@ -922,7 +932,7 @@ static int __init bf537mac_probe(struct net_device *dev)
 	if (request_irq
 	    (IRQ_MAC_RX, bf537mac_interrupt, IRQF_DISABLED | IRQF_SHARED,
 	     "BFIN537_MAC_RX", dev)) {
-		printk(KERN_WARNING CARDNAME
+		printk(KERN_WARNING DRV_NAME
 		       ": Unable to attach BlackFin MAC RX interrupt\n");
 		return -EBUSY;
 	}
@@ -934,7 +944,8 @@ static int __init bf537mac_probe(struct net_device *dev)
 	retval = register_netdev(dev);
 	if (retval == 0) {
 		/* now, print out the card info, in a short format.. */
-		printk(KERN_INFO "Blackfin mac net device registered\n");
+		printk(KERN_INFO "%s: Version %s, %s\n",
+			 DRV_NAME, DRV_VERSION, DRV_DESC);
 	}
 
 err_out:
@@ -947,7 +958,7 @@ static int bfin_mac_probe(struct platform_device *pdev)
 
 	ndev = alloc_etherdev(sizeof(struct bf537mac_local));
 	if (!ndev) {
-		printk(KERN_WARNING CARDNAME ": could not allocate device\n");
+		printk(KERN_WARNING DRV_NAME ": could not allocate device\n");
 		return -ENOMEM;
 	}
 
@@ -959,7 +970,7 @@ static int bfin_mac_probe(struct platform_device *pdev)
 	if (bf537mac_probe(ndev) != 0) {
 		platform_set_drvdata(pdev, NULL);
 		free_netdev(ndev);
-		printk(KERN_WARNING CARDNAME ": not found\n");
+		printk(KERN_WARNING DRV_NAME ": not found\n");
 		return -ENODEV;
 	}
 
@@ -997,7 +1008,7 @@ static struct platform_driver bfin_mac_driver = {
 	.resume = bfin_mac_resume,
 	.suspend = bfin_mac_suspend,
 	.driver = {
-		   .name = CARDNAME,
+		   .name = DRV_NAME,
 		   },
 };
 
