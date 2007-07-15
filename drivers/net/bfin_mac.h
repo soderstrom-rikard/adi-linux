@@ -59,22 +59,10 @@
 
 #define BFIN_MAC_CSUM_OFFLOAD
 
-struct dma_config_reg {
-	unsigned short b_DMA_EN:1;  /* Bit 0 : DMA Enable */
-	unsigned short b_WNR:1;     /* Bit 1 : DMA Direction */
-	unsigned short b_WDSIZE:2;  /* Bit 2 & 3 : DMA Tranfer Word size */
-	unsigned short b_DMA2D:1;   /* Bit 4 : DMA Mode 2D or 1D */
-	unsigned short b_RESTART:1; /* Bit 5 : Retain the FIFO */
-	unsigned short b_DI_SEL:1;  /* Bit 6 : Data Interrupt Timing Select */
-	unsigned short b_DI_EN:1;   /* Bit 7 : Data Interrupt Enable */
-	unsigned short b_NDSIZE:4;  /* Bit 8 to 11 : Flex descriptor Size */
-	unsigned short b_FLOW:3;    /* Bit 12 to 14 : FLOW */
-};
-
 struct dma_descriptor {
 	struct dma_descriptor *next_dma_desc;
 	unsigned long start_addr;
-	struct dma_config_reg config;
+	unsigned short config;
 	unsigned short x_count;
 };
 
