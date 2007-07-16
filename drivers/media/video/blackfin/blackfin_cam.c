@@ -57,6 +57,7 @@
 #include <asm/cacheflush.h>
 #include <asm/uaccess.h>
 #include <asm/gpio.h>
+#include <asm/portmux.h>
 
 #include "blackfin_cam.h"
 
@@ -71,6 +72,7 @@
 #ifdef CONFIG_MT9V022
 #include "mt9v022.h"
 #endif
+
 
 #ifdef USE_GPIO
 #define GPIO_SET_VALUE(x,y) gpio_set_value(x,y)
@@ -155,6 +157,25 @@ static inline int get_depth(int palette)
 	default:
 		return 0;	/* Invalid format */
 	}
+}
+
+static int setup_pin_mux(int action)
+{
+
+	u16 pin_req[] = PPI0_8;
+
+
+	if (action) {
+		if (peripheral_request_list(pin_req, DRV_NAME)) {
+			printk(KERN_ERR DRV_NAME
+			": Requesting Peripherals failed\n");
+			return -EFAULT;
+		}
+	} else {
+		peripheral_free_list(pin_req);
+	}
+
+	return 0;
 }
 
 void bcap_reg_reset(struct ppi_device_t *pdev)
@@ -1373,6 +1394,9 @@ static __exit void bcap_exit(void)
 
 	/*  Turn FS3 frame synch off  */
 
+
+	setup_pin_mux(0);
+
 #if defined(BF533_FAMILY)
 	gpio_free(bcap_FS3);
 #endif
@@ -1390,19 +1414,19 @@ static __init void bcap_init_cam_gpios(void)
 
 #ifdef USE_GPIO
 
-	if (gpio_request(bcap_LEDS, NULL)) {
+	if (gpio_request(bcap_LEDS, DRV_NAME)) {
 		printk(KERN_ERR "bcap_open: Failed ro request GPIO_%d \n",
 		       bcap_LEDS);
 		return;
 	}
-	if (gpio_request(bcap_TRIGGER, NULL)) {
+	if (gpio_request(bcap_TRIGGER, DRV_NAME)) {
 		printk(KERN_ERR "bcap_open: Failed ro request GPIO_%d \n",
 		       bcap_TRIGGER);
 		gpio_free(bcap_LEDS);
 		return;
 	}
 
-	if (gpio_request(bcap_STANDBY, NULL)) {
+	if (gpio_request(bcap_STANDBY, DRV_NAME)) {
 		printk(KERN_ERR "bcap_open: Failed ro request GPIO_%d \n",
 		       bcap_STANDBY);
 		gpio_free(bcap_LEDS);
@@ -1451,7 +1475,7 @@ static __init int bcap_init(void)
 	/*  Turn FS3 frame synch off  */
 
 #if defined(BF533_FAMILY)
-	if (gpio_request(bcap_FS3, NULL)) {
+	if (gpio_request(bcap_FS3, DRV_NAME)) {
 		printk(KERN_ERR "bcap_open: Failed ro request GPIO_%d (FS3)\n",
 		       bcap_FS3);
 		return -EBUSY;
@@ -1460,6 +1484,12 @@ static __init int bcap_init(void)
 	gpio_direction_output(GPIO_3);
 	gpio_set_value(bcap_FS3, 0);
 #endif
+
+
+	err = setup_pin_mux(1);
+
+	if (err)
+		return err;
 
 #if 0
 	struct sensor_data *data;

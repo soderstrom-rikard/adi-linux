@@ -49,6 +49,11 @@
 # define  bcap_FS3      GPIO_3
 #endif
 
+#define DRV_NAME	"blackfin-cam"
+
+#define PPI0_8 {P_PPI0_CLK, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3, \
+ P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, P_PPI0_FS1, P_PPI0_FS2, 0}
+
 #define BCAP_NUM_BUFS 2
 #define VID_HARDWARE_BCAP  13	/* experimental */
 #define I2C_DRIVERID_BCAP  81	/* experimental (next avail. in i2c-id.h) */
