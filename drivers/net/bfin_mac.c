@@ -209,7 +209,6 @@ static int desc_list_init(void)
 		b->config |= a->config | DI_EN;
 		b->start_addr = (unsigned long)(&(r->status));
 		b->x_count = 0;
-		b->next_dma_desc = a;
 
 		rx_list_tail->desc_b.next_dma_desc = a;
 		rx_list_tail->next = r;
