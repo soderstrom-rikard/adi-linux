@@ -103,8 +103,6 @@ static struct net_dma_desc_rx *rx_desc;
 
 static int desc_list_init(void)
 {
-	struct net_dma_desc_tx *tmp_desc_tx;
-	struct net_dma_desc_rx *tmp_desc_rx;
 	int i;
 	struct sk_buff *new_skb;
 #if !defined(CONFIG_BFIN_MAC_USE_L1)
@@ -115,78 +113,67 @@ static int desc_list_init(void)
 	dma_addr_t dma_handle;
 #endif
 
-	tx_desc =
-	    bfin_mac_alloc(&dma_handle,
-			   sizeof(struct net_dma_desc_tx) *
-			   CONFIG_BFIN_TX_DESC_NUM);
+	tx_desc = bfin_mac_alloc(&dma_handle,
+				sizeof(struct net_dma_desc_tx) *
+				CONFIG_BFIN_TX_DESC_NUM);
 	if (tx_desc == NULL)
 		goto init_error;
 
-	rx_desc =
-	    bfin_mac_alloc(&dma_handle,
-			   sizeof(struct net_dma_desc_rx) *
-			   CONFIG_BFIN_RX_DESC_NUM);
+	rx_desc = bfin_mac_alloc(&dma_handle,
+				sizeof(struct net_dma_desc_rx) *
+				CONFIG_BFIN_RX_DESC_NUM);
 	if (rx_desc == NULL)
 		goto init_error;
 
 	/* init tx_list */
+	tx_list_head = tx_list_tail = tx_desc;
+
 	for (i = 0; i < CONFIG_BFIN_TX_DESC_NUM; i++) {
+		struct net_dma_desc_tx *t = tx_desc + i;
+		struct dma_descriptor *a = &(t->desc_a);
+		struct dma_descriptor *b = &(t->desc_b);
 
-		tmp_desc_tx = tx_desc + i;
+		/*
+		 * disable DMA
+		 * read from memory WNR = 0
+		 * wordsize is 32 bits
+		 * 6 half words is desc size
+		 * large desc flow
+		 */
+		a->config |= WDSIZE_32 | NDSIZE_6 | DMAFLOW_LARGE;
+		a->start_addr = (unsigned long)t->packet;
+		a->x_count = 0;
+		a->next_dma_desc = b;
 
-		if (i == 0) {
-			tx_list_head = tmp_desc_tx;
-			tx_list_tail = tmp_desc_tx;
-		}
 
-		tmp_desc_tx->desc_a.start_addr =
-		    (unsigned long)tmp_desc_tx->packet;
-		tmp_desc_tx->desc_a.x_count = 0;
-		/* disabled */
-		tmp_desc_tx->desc_a.config = 0;
-		/* read from memory WNR = 0 */
-		/* wordsize is 32 bits */
-		tmp_desc_tx->desc_a.config |= WDSIZE_32;
-		/* 6 half words is desc size. */
-		tmp_desc_tx->desc_a.config |= NDSIZE_6;
-		/* large desc flow */
-		tmp_desc_tx->desc_a.config |= DMAFLOW_LARGE;
-		tmp_desc_tx->desc_a.next_dma_desc = &(tmp_desc_tx->desc_b);
+		/*
+		 * enabled DMA
+		 * write to memory WNR = 1
+		 * wordsize is 32 bits
+		 * disable interrupt
+		 * 6 half words is desc size
+		 * large desc flow
+		 */
+		b->config |= a->config | DMAEN | WNR;
+		b->start_addr = (unsigned long)(&(t->status));
+		b->x_count = 0;
 
-		tmp_desc_tx->desc_b.start_addr =
-		    (unsigned long)(&(tmp_desc_tx->status));
-		tmp_desc_tx->desc_b.x_count = 0;
-		/* enabled */
-		tmp_desc_tx->desc_b.config |= DMAEN;
-		/* write to memory */
-		tmp_desc_tx->desc_b.config |= WNR;
-		/* wordsize is 32 bits */
-		tmp_desc_tx->desc_b.config |= WDSIZE_32;
-		/* disable interrupt */
-		tmp_desc_tx->desc_b.config &= ~DI_EN;
-		/* 6 half words is desc size. */
-		tmp_desc_tx->desc_b.config |= NDSIZE_6;
-		/* stop mode */
-		tmp_desc_tx->desc_b.config |= DMAFLOW_LARGE;
-		tmp_desc_tx->skb = NULL;
-		tx_list_tail->desc_b.next_dma_desc = &(tmp_desc_tx->desc_a);
-		tx_list_tail->next = tmp_desc_tx;
-
-		tx_list_tail = tmp_desc_tx;
+		t->skb = NULL;
+		tx_list_tail->desc_b.next_dma_desc = a;
+		tx_list_tail->next = t;
+		tx_list_tail = t;
 	}
 	tx_list_tail->next = tx_list_head;	/* tx_list is a circle */
 	tx_list_tail->desc_b.next_dma_desc = &(tx_list_head->desc_a);
 	current_tx_ptr = tx_list_head;
 
 	/* init rx_list */
+	rx_list_head = rx_list_tail = rx_desc;
+
 	for (i = 0; i < CONFIG_BFIN_RX_DESC_NUM; i++) {
-
-		tmp_desc_rx = rx_desc + i;
-
-		if (i == 0) {
-			rx_list_head = tmp_desc_rx;
-			rx_list_tail = tmp_desc_rx;
-		}
+		struct net_dma_desc_rx *r = rx_desc + i;
+		struct dma_descriptor *a = &(r->desc_a);
+		struct dma_descriptor *b = &(r->desc_b);
 
 		/* allocate a new skb for next time receive */
 		new_skb = dev_alloc_skb(PKT_BUF_SZ + 2);
@@ -196,41 +183,37 @@ static int desc_list_init(void)
 			goto init_error;
 		}
 		skb_reserve(new_skb, 2);
-		tmp_desc_rx->skb = new_skb;
+		r->skb = new_skb;
+		/*
+		 * enabled DMA
+		 * write to memory WNR = 1
+		 * wordsize is 32 bits
+		 * disable interrupt
+		 * 6 half words is desc size
+		 * large desc flow
+		 */
+		a->config |= DMAEN | WNR | WDSIZE_32 | NDSIZE_6 | DMAFLOW_LARGE;
 		/* since RXDWA is enabled */
-		tmp_desc_rx->desc_a.start_addr =
-		    (unsigned long)new_skb->data - 2;
-		tmp_desc_rx->desc_a.x_count = 0;
-		/* enabled */
-		tmp_desc_rx->desc_a.config |= DMAEN;
-		/* Write to memory */
-		tmp_desc_rx->desc_a.config |= WNR;
-		/* wordsize is 32 bits */
-		tmp_desc_rx->desc_a.config |= WDSIZE_32;
-		/* 6 half words is desc size. */
-		tmp_desc_rx->desc_a.config |= NDSIZE_6;
-		/* large desc flow */
-		tmp_desc_rx->desc_a.config |= DMAFLOW_LARGE;
-		tmp_desc_rx->desc_a.next_dma_desc = &(tmp_desc_rx->desc_b);
+		a->start_addr = (unsigned long)new_skb->data - 2;
+		a->x_count = 0;
+		a->next_dma_desc = b;
 
-		tmp_desc_rx->desc_b.start_addr =
-		    (unsigned long)(&(tmp_desc_rx->status));
-		tmp_desc_rx->desc_b.x_count = 0;
-		/* enabled */
-		tmp_desc_rx->desc_b.config |= DMAEN;
-		/* Write to memory */
-		tmp_desc_rx->desc_b.config |= WNR;
-		/* wordsize is 32 bits */
-		tmp_desc_rx->desc_b.config |= WDSIZE_32;
-		tmp_desc_rx->desc_b.config |= NDSIZE_6;
-		/* enable interrupt */
-		tmp_desc_rx->desc_b.config |= DI_EN;
-		/* large mode */
-		tmp_desc_rx->desc_b.config |= DMAFLOW_LARGE;
-		rx_list_tail->desc_b.next_dma_desc = &(tmp_desc_rx->desc_a);
+		/*
+		 * enabled DMA
+		 * write to memory WNR = 1
+		 * wordsize is 32 bits
+		 * enable interrupt
+		 * 6 half words is desc size
+		 * large desc flow
+		 */
+		b->config |= a->config | DI_EN;
+		b->start_addr = (unsigned long)(&(r->status));
+		b->x_count = 0;
+		b->next_dma_desc = a;
 
-		rx_list_tail->next = tmp_desc_rx;
-		rx_list_tail = tmp_desc_rx;
+		rx_list_tail->desc_b.next_dma_desc = a;
+		rx_list_tail->next = r;
+		rx_list_tail = r;
 	}
 	rx_list_tail->next = rx_list_head;	/* rx_list is a circle */
 	rx_list_tail->desc_b.next_dma_desc = &(rx_list_head->desc_a);
@@ -246,38 +229,38 @@ init_error:
 
 static void desc_list_free(void)
 {
-	struct net_dma_desc_rx *tmp_desc_rx;
-	struct net_dma_desc_tx *tmp_desc_tx;
+	struct net_dma_desc_rx *r;
+	struct net_dma_desc_tx *t;
 	int i;
 #if !defined(CONFIG_BFIN_MAC_USE_L1)
 	dma_addr_t dma_handle = 0;
 #endif
 
 	if (tx_desc != NULL) {
-		tmp_desc_tx = tx_list_head;
+		t = tx_list_head;
 		for (i = 0; i < CONFIG_BFIN_TX_DESC_NUM; i++) {
-			if (tmp_desc_tx != NULL) {
-				if (tmp_desc_tx->skb) {
-					dev_kfree_skb(tmp_desc_tx->skb);
-					tmp_desc_tx->skb = NULL;
+			if (t != NULL) {
+				if (t->skb) {
+					dev_kfree_skb(t->skb);
+					t->skb = NULL;
 				}
 
 			}
-			tmp_desc_tx = tmp_desc_tx->next;
+			t = t->next;
 		}
 		bfin_mac_free(dma_handle, tx_desc);
 	}
 
 	if (rx_desc != NULL) {
-		tmp_desc_rx = rx_list_head;
+		r = rx_list_head;
 		for (i = 0; i < CONFIG_BFIN_RX_DESC_NUM; i++) {
-			if (tmp_desc_rx != NULL) {
-				if (tmp_desc_rx->skb) {
-					dev_kfree_skb(tmp_desc_rx->skb);
-					tmp_desc_rx->skb = NULL;
+			if (r != NULL) {
+				if (r->skb) {
+					dev_kfree_skb(r->skb);
+					r->skb = NULL;
 				}
 			}
-			tmp_desc_rx = tmp_desc_rx->next;
+			r = r->next;
 		}
 		bfin_mac_free(dma_handle, rx_desc);
 	}
