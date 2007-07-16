@@ -62,6 +62,7 @@
 
 #include <asm/blackfin.h>
 #include <asm/cacheflush.h>
+#include <asm/portmux.h>
 
 #include "bfin_mac.h"
 
@@ -285,25 +286,25 @@ static void desc_list_free(void)
 /*---PHY CONTROL AND CONFIGURATION-----------------------------------------*/
 
 /* Set FER regs to MUX in Ethernet pins */
-static void setup_pin_mux(void)
+static int setup_pin_mux(int action)
 {
-	unsigned int fer_val;
-
-	/*
-	 * FER reg bug work-around
-	 * read it once
-	 */
-	fer_val = bfin_read_PORTH_FER();
-
 #if defined(CONFIG_BFIN_MAC_RMII)
-	fer_val = 0xC373;
+	u16 pin_req[] = P_RMII0;
 #else
-	fer_val = 0xffff;
+	u16 pin_req[] = P_MII0;
 #endif
-	/* write it twice to the same value */
 
-	bfin_write_PORTH_FER(fer_val);
-	bfin_write_PORTH_FER(fer_val);
+	if (action) {
+		if (peripheral_request_list(pin_req, DRV_NAME)) {
+			printk(KERN_ERR DRV_NAME
+			": Requesting Peripherals failed\n");
+			return -EFAULT;
+		}
+	} else {
+		peripheral_free_list(pin_req);
+	}
+
+	return 0;
 }
 
 /* Wait until the previous MDC/MDIO transaction has completed */
@@ -888,6 +889,12 @@ static int __init bf537mac_probe(struct net_device *dev)
 		goto err_out;
 	}
 
+	/* set the GPIO pins to Ethernet mode */
+	retval = setup_pin_mux(1);
+
+	if (retval)
+		return retval;
+
 	/*Is it valid? (Did bootloader initialize it?) */
 	if (!is_valid_ether_addr(dev->dev_addr)) {
 		/* Grab the MAC from the board somehow - this is done in the
@@ -923,9 +930,6 @@ static int __init bf537mac_probe(struct net_device *dev)
 	lp->Negotiate = 1;
 	lp->FlowControl = 0;
 	spin_lock_init(&lp->lock);
-
-	/* set the GPIO pins to Ethernet mode */
-	setup_pin_mux();
 
 	/* now, enable interrupts */
 	/* register irq handler */
@@ -988,6 +992,8 @@ static int bfin_mac_remove(struct platform_device *pdev)
 	free_irq(IRQ_MAC_RX, ndev);
 
 	free_netdev(ndev);
+
+	setup_pin_mux(0);
 
 	return 0;
 }
