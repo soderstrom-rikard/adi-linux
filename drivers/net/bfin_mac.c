@@ -140,11 +140,10 @@ static int desc_list_init(void)
 		 * 6 half words is desc size
 		 * large desc flow
 		 */
-		a->config |= WDSIZE_32 | NDSIZE_6 | DMAFLOW_LARGE;
+		a->config = WDSIZE_32 | NDSIZE_6 | DMAFLOW_LARGE;
 		a->start_addr = (unsigned long)t->packet;
 		a->x_count = 0;
 		a->next_dma_desc = b;
-
 
 		/*
 		 * enabled DMA
@@ -154,7 +153,7 @@ static int desc_list_init(void)
 		 * 6 half words is desc size
 		 * large desc flow
 		 */
-		b->config |= a->config | DMAEN | WNR;
+		b->config = DMAEN | WNR | WDSIZE_32 | NDSIZE_6 | DMAFLOW_LARGE;
 		b->start_addr = (unsigned long)(&(t->status));
 		b->x_count = 0;
 
@@ -184,6 +183,7 @@ static int desc_list_init(void)
 		}
 		skb_reserve(new_skb, 2);
 		r->skb = new_skb;
+
 		/*
 		 * enabled DMA
 		 * write to memory WNR = 1
@@ -192,7 +192,7 @@ static int desc_list_init(void)
 		 * 6 half words is desc size
 		 * large desc flow
 		 */
-		a->config |= DMAEN | WNR | WDSIZE_32 | NDSIZE_6 | DMAFLOW_LARGE;
+		a->config = DMAEN | WNR | WDSIZE_32 | NDSIZE_6 | DMAFLOW_LARGE;
 		/* since RXDWA is enabled */
 		a->start_addr = (unsigned long)new_skb->data - 2;
 		a->x_count = 0;
@@ -206,7 +206,8 @@ static int desc_list_init(void)
 		 * 6 half words is desc size
 		 * large desc flow
 		 */
-		b->config |= a->config | DI_EN;
+		b->config = DMAEN | WNR | WDSIZE_32 | DI_EN |
+				NDSIZE_6 | DMAFLOW_LARGE;
 		b->start_addr = (unsigned long)(&(r->status));
 		b->x_count = 0;
 
@@ -235,29 +236,24 @@ static void desc_list_free(void)
 	dma_addr_t dma_handle = 0;
 #endif
 
-	if (tx_desc != NULL) {
+	if (tx_desc) {
 		t = tx_list_head;
 		for (i = 0; i < CONFIG_BFIN_TX_DESC_NUM; i++) {
-			if (t != NULL) {
-				if (t->skb) {
-					dev_kfree_skb(t->skb);
-					t->skb = NULL;
-				}
-
+			if (t->skb) {
+				dev_kfree_skb(t->skb);
+				t->skb = NULL;
 			}
 			t = t->next;
 		}
 		bfin_mac_free(dma_handle, tx_desc);
 	}
 
-	if (rx_desc != NULL) {
+	if (rx_desc) {
 		r = rx_list_head;
 		for (i = 0; i < CONFIG_BFIN_RX_DESC_NUM; i++) {
-			if (r != NULL) {
-				if (r->skb) {
-					dev_kfree_skb(r->skb);
-					r->skb = NULL;
-				}
+			if (r->skb) {
+				dev_kfree_skb(r->skb);
+				r->skb = NULL;
 			}
 			r = r->next;
 		}
@@ -282,9 +278,8 @@ static int setup_pin_mux(int action)
 			": Requesting Peripherals failed\n");
 			return -EFAULT;
 		}
-	} else {
+	} else
 		peripheral_free_list(pin_req);
-	}
 
 	return 0;
 }
@@ -361,19 +356,18 @@ static void bf537mac_setphy(struct net_device *dev)
 	write_phy_reg(lp->PhyAddr, PHYREG_ANAR, phydat);
 
 	phydat = 0;
-	if (lp->Negotiate) {
+	if (lp->Negotiate)
 		phydat |= 0x1000;	/* enable auto negotiation */
-	} else {
-		if (lp->FullDuplex) {
+	else {
+		if (lp->FullDuplex)
 			phydat |= (1 << 8);	/* full duplex */
-		} else {
+		else
 			phydat &= (~(1 << 8));	/* half duplex */
-		}
-		if (!lp->Port10) {
+
+		if (!lp->Port10)
 			phydat |= (1 << 13);	/* 100 Mbps */
-		} else {
+		else
 			phydat &= (~(1 << 13));	/* 10 Mbps */
-		}
 	}
 
 	if (lp->Loopback)
@@ -572,17 +566,16 @@ static int bf537mac_hard_start_xmit(struct sk_buff *skb,
 	/* enable this packet's dma */
 	current_tx_ptr->desc_a.config |= DMAEN;
 
-	if (bfin_read_DMA2_IRQ_STATUS() & 0x08) {
-		/* tx dma is running, just return */
+	/* tx dma is running, just return */
+	if (bfin_read_DMA2_IRQ_STATUS() & 0x08)
 		goto out;
-	} else {
-		/* tx dma is not running */
-		bfin_write_DMA2_NEXT_DESC_PTR(&(current_tx_ptr->desc_a));
-		/* dma enabled, read from memory, size is 6 */
-		bfin_write_DMA2_CONFIG(current_tx_ptr->desc_a.config);
-		/* Turn on the EMAC tx */
-		bfin_write_EMAC_OPMODE(bfin_read_EMAC_OPMODE() | TE);
-	}
+
+	/* tx dma is not running */
+	bfin_write_DMA2_NEXT_DESC_PTR(&(current_tx_ptr->desc_a));
+	/* dma enabled, read from memory, size is 6 */
+	bfin_write_DMA2_CONFIG(current_tx_ptr->desc_a.config);
+	/* Turn on the EMAC tx */
+	bfin_write_EMAC_OPMODE(bfin_read_EMAC_OPMODE() | TE);
 
 out:
 	adjust_tx_list();
