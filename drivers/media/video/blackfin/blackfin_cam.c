@@ -1256,12 +1256,6 @@ static int bcap_open(struct inode *inode, struct file *filp)
 	}
 #endif
 
-#if (defined(CONFIG_BF537) || defined(CONFIG_BF536) || defined(CONFIG_BF534))
-	bfin_write_PORTG_FER(0x00FF);
-	bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x8300);
-	bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~0x0E00);
-#endif
-
 	bcap_reset_wsize(MAX_FRAME_HEIGHT, MAX_FRAME_WIDTH);
 	pr_debug("  specified video device opened sucessfullly\n");
 	bcap_dev->user++;
