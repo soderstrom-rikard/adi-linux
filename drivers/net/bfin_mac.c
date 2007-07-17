@@ -67,7 +67,7 @@
 #include "bfin_mac.h"
 
 #define DRV_NAME	"bfin_mac"
-#define DRV_VERSION	"1.0"
+#define DRV_VERSION	"1.1"
 #define DRV_AUTHOR	"Bryan Wu, Luke Yang"
 #define DRV_DESC	"Blackfin BF53[67] on-chip Ethernet MAC driver"
 
@@ -89,8 +89,6 @@ MODULE_DESCRIPTION(DRV_DESC);
 
 #define MAX_TIMEOUT_CNT	500
 
-static void desc_list_free(void);
-
 /* pointers to maintain transmit list */
 static struct net_dma_desc_tx *tx_list_head;
 static struct net_dma_desc_tx *tx_list_tail;
@@ -100,6 +98,44 @@ static struct net_dma_desc_rx *current_rx_ptr;
 static struct net_dma_desc_tx *current_tx_ptr;
 static struct net_dma_desc_tx *tx_desc;
 static struct net_dma_desc_rx *rx_desc;
+
+static void desc_list_free(void)
+{
+	struct net_dma_desc_rx *r;
+	struct net_dma_desc_tx *t;
+	int i;
+#if !defined(CONFIG_BFIN_MAC_USE_L1)
+	dma_addr_t dma_handle = 0;
+#endif
+
+	if (tx_desc) {
+		t = tx_list_head;
+		for (i = 0; i < CONFIG_BFIN_TX_DESC_NUM; i++) {
+			if (t) {
+				if (t->skb) {
+					dev_kfree_skb(t->skb);
+					t->skb = NULL;
+				}
+				t = t->next;
+			}
+		}
+		bfin_mac_free(dma_handle, tx_desc);
+	}
+
+	if (rx_desc) {
+		r = rx_list_head;
+		for (i = 0; i < CONFIG_BFIN_RX_DESC_NUM; i++) {
+			if (r) {
+				if (r->skb) {
+					dev_kfree_skb(r->skb);
+					r->skb = NULL;
+				}
+				r = r->next;
+			}
+		}
+		bfin_mac_free(dma_handle, rx_desc);
+	}
+}
 
 static int desc_list_init(void)
 {
@@ -227,39 +263,6 @@ init_error:
 	return -ENOMEM;
 }
 
-static void desc_list_free(void)
-{
-	struct net_dma_desc_rx *r;
-	struct net_dma_desc_tx *t;
-	int i;
-#if !defined(CONFIG_BFIN_MAC_USE_L1)
-	dma_addr_t dma_handle = 0;
-#endif
-
-	if (tx_desc) {
-		t = tx_list_head;
-		for (i = 0; i < CONFIG_BFIN_TX_DESC_NUM; i++) {
-			if (t->skb) {
-				dev_kfree_skb(t->skb);
-				t->skb = NULL;
-			}
-			t = t->next;
-		}
-		bfin_mac_free(dma_handle, tx_desc);
-	}
-
-	if (rx_desc) {
-		r = rx_list_head;
-		for (i = 0; i < CONFIG_BFIN_RX_DESC_NUM; i++) {
-			if (r->skb) {
-				dev_kfree_skb(r->skb);
-				r->skb = NULL;
-			}
-			r = r->next;
-		}
-		bfin_mac_free(dma_handle, rx_desc);
-	}
-}
 
 /*---PHY CONTROL AND CONFIGURATION-----------------------------------------*/
 
@@ -763,13 +766,11 @@ static void bf537mac_set_multicast_list(struct net_device *dev)
 		sysctl = bfin_read_EMAC_OPMODE();
 		sysctl |= RAF;
 		bfin_write_EMAC_OPMODE(sysctl);
-	} else if (dev->flags & IFF_ALLMULTI || dev->mc_count > 16) {
+	} else if (dev->flags & IFF_ALLMULTI || dev->mc_count) {
 		/* accept all multicast */
 		sysctl = bfin_read_EMAC_OPMODE();
 		sysctl |= PAM;
 		bfin_write_EMAC_OPMODE(sysctl);
-	} else if (dev->mc_count) {
-		/* set multicast */
 	} else {
 		/* clear promisc or multicast mode */
 		sysctl = bfin_read_EMAC_OPMODE();
