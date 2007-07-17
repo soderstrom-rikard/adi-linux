@@ -1411,7 +1411,11 @@ static struct ata_port_info bfin_port_info[] = {
 				| ATA_FLAG_NO_LEGACY,
 		.pio_mask	= 0x1f,	/* pio0-4 */
 		.mwdma_mask	= 0,
-		.udma_mask	= ATA_UDMA6,
+#ifdef CONFIG_PATA_BF54X_DMA
+		.udma_mask	= ATA_UDMA5,
+#else
+		.udma_mask	= 0,
+#endif
 		.port_ops	= &bfin_pata_ops,
 	},
 };

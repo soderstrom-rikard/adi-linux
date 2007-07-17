@@ -580,6 +580,25 @@ config PATA_BF54X
 
 	  If unsure, say N.
 
+choice
+	prompt "Blackfin 54x ATAPI mode"
+	depends on PATA_BF54X
+	default PATA_BF54X_DMA
+	help
+	  This option selects bf54x ATAPI controller working mode.
+
+config PATA_BF54X_PIO
+	bool "PIO mode"
+	help
+	  Blackfin ATAPI controller works under PIO mode.
+
+config PATA_BF54X_DMA
+	bool "DMA mode"
+	help
+	  Blackfin ATAPI controller works under DMA mode.
+
+endchoice
+
 endif
 endmenu
 
