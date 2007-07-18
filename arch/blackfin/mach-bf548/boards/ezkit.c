@@ -160,14 +160,14 @@ static struct platform_device bfin_atapi_device = {
 #if defined(CONFIG_MTD_NAND_BF54X) || defined(CONFIG_MTD_NAND_BF54X_MODULE)
 static struct mtd_partition partition_info[] = {
 	{
-		.name = "linux kernel",
+		.name = "Linux Kernel",
 		.offset = 0,
 		.size = 4 * SIZE_1M,
 	},
 	{
-		.name = "file system",
+		.name = "File System",
 		.offset = 4 * SIZE_1M,
-		.size = (1024-4) * SIZE_1M,
+		.size = (256 - 4) * SIZE_1M,
 	},
 };
 
@@ -176,7 +176,8 @@ static struct bf54x_nand_platform bf54x_nand_platform = {
 	.data_width = NFC_NWIDTH_8,
 	.partitions = partition_info,
 	.nr_partitions = ARRAY_SIZE(partition_info),
-	.enable_dma = 1,
+	.rd_dly = 3,
+	.wr_dly = 3,
 };
 
 static struct resource bf54x_nand_resources[] = {

@@ -44,7 +44,4 @@ struct bf54x_nand_platform {
 	/* NAND MTD partition information */
 	int                     nr_partitions;
 	struct mtd_partition    *partitions;
-
-	/* DMA stuff */
-	int			enable_dma;
 };

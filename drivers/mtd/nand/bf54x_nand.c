@@ -9,8 +9,19 @@
  * Derived from drivers/mtd/nand/s3c2410.c
  * Copyright (c) 2007 Ben Dooks <ben@simtec.co.uk>
  *
+ * Derived from drivers/mtd/nand/cafe.c
+ * Copyright © 2006 Red Hat, Inc.
+ * Copyright © 2006 David Woodhouse <dwmw2@infradead.org>
+ *
  * Changelog:
  *	12-Jun-2007  Bryan Wu:  Initial version
+ *	18-Jul-2007  Bryan Wu:
+ *		- ECC_HW and ECC_SW supported
+ *		- DMA supported in ECC_HW
+ *		- YAFFS tested as rootfs in both ECC_HW and ECC_SW
+ *
+ * TODO:
+ * 	Enable JFFS2 over NAND as rootfs
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +46,7 @@
 #include <linux/ioport.h>
 #include <linux/platform_device.h>
 #include <linux/delay.h>
+#include <linux/dma-mapping.h>
 #include <linux/err.h>
 #include <linux/slab.h>
 #include <linux/io.h>
@@ -46,7 +58,13 @@
 
 #include <asm/blackfin.h>
 #include <asm/dma.h>
+#include <asm/cacheflush.h>
 #include <asm/mach/nand.h>
+
+#define DRV_NAME	"bf54x-nand"
+#define DRV_VERSION	"1.0"
+#define DRV_AUTHOR	"Bryan Wu <bryan.wu@analog.com>"
+#define DRV_DESC	"BF54x on-chip NAND FLash Controller Driver"
 
 #ifdef CONFIG_MTD_NAND_BF54X_HWECC
 int hardware_ecc = 1;
@@ -57,28 +75,6 @@ int hardware_ecc = 0;
 /*----------------------------------------------------------------------------
  * Data structures for bf54x nand flash controller driver
  */
-
-/* 256 page date hardware ecc generate 8 bytes ecc code */
-static struct nand_ecclayout bf54x_oob_256_8bytes = {
-	.eccbytes = 4,
-	.eccpos = {0, 1, 2, 3},
-	.oobfree = {
-		{.offset = 4,
-		.length = 4}
-	},
-};
-
-/* 512 page date hardware ecc generate 16 bytes ecc code */
-static struct nand_ecclayout bf54x_oob_512_16bytes = {
-	.eccbytes = 8,
-	.eccpos = {0, 1, 2, 3, 8, 9, 10, 11},
-	.oobfree = {
-		{.offset = 4,
-		.length = 4},
-		{.offset = 12,
-		.length = 4}
-	},
-};
 
 /* bf54x nand info */
 struct bf54x_nand_info {
@@ -148,8 +144,12 @@ static void bf54x_nand_hwcontrol(struct mtd_info *mtd, int cmd,
  */
 static int bf54x_nand_devready(struct mtd_info *mtd)
 {
-	SSYNC();
-	return (bfin_read_NFC_STAT() & NFC_STAT_NBUSY);
+	unsigned short val = bfin_read_NFC_IRQSTAT();
+
+	if ((val & NBUSYIRQ) == NBUSYIRQ)
+		return 1;
+	else
+		return 0;
 }
 
 /*----------------------------------------------------------------------------
@@ -174,50 +174,24 @@ static int bf54x_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
 					u_char *read_ecc, u_char *calc_ecc)
 {
 	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
-	unsigned int syndrome[5];
-	unsigned int full[2];
-	unsigned short *stored = (unsigned short *) read_ecc;
-	unsigned short *calced = (unsigned short *) calc_ecc;
+	u32 syndrome[5];
+	u32 calced, stored;
 	int i;
+	unsigned short failing_bit, failing_byte;
+	u_char data;
 
-	dev_dbg(info->device, "(%p,%p,%p,%p)\n", mtd, dat, read_ecc, calc_ecc);
+	calced = calc_ecc[0] | (calc_ecc[1] << 8) | (calc_ecc[2] << 16);
+	stored = read_ecc[0] | (read_ecc[1] << 8) | (read_ecc[2] << 16);
 
-	full[0] = (calced[0] & 0x3FF) | ((calced[1] & 0x3FF) << 10);
-	full[1] = (stored[0] & 0x3FF) | ((stored[1] & 0x3FF) << 10);
-
-	dev_dbg(info->device, "full[0] 0x%08x, full[1] 0x%08x\n",
-		full[0], full[1]);
-
-	syndrome[0] = (full[0] ^ full[1]) & 0x3FFFFF;
-	syndrome[1] = (stored[0] ^ calced[0]) & 0x3FF;
-	syndrome[2] = (calced[0] ^ calced[1]) & 0x3FF;
-	syndrome[3] = (stored[0] ^ stored[1]) & 0x3FF;
-	syndrome[4] = (syndrome[2] ^ syndrome[3]) & 0x3FF;
-
-	for (i = 0; i < 5; i++)
-		dev_dbg(info->device, "syndrome[%d] 0x%08x\n", i, syndrome[i]);
+	syndrome[0] = (calced ^ stored);
 
 	/*
 	 * syndrome 0: all zero
 	 * No error in data
 	 * No action
 	 */
-	if (syndrome[0] == 0)
+	if (!syndrome[0] || !calced || !stored)
 		return 0;
-
-	/*
-	 * sysdrome 0: exactly 11 bits are one, each parity
-	 * and parity' pair is 1 & 0 or 0 & 1.
-	 * 1-bit correctable error
-	 * Correct the error
-	 */
-	if (count_bits(syndrome[0]) == 11 && syndrome[4] == 0x7FF) {
-		dev_dbg(info->device, "1-bit correctable error, correct it.\n");
-		dev_dbg(info->device, "syndrome[1] 0x%08x\n", syndrome[1]);
-		/* TODO */
-
-		return 0;
-	}
 
 	/*
 	 * sysdrome 0: only one bit is one
@@ -227,6 +201,35 @@ static int bf54x_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
 	if (count_bits(syndrome[0]) == 1) {
 		dev_err(info->device, "ECC data was incorrect!\n");
 		return 1;
+	}
+
+	syndrome[1] = (calced & 0x7FF) ^ (stored & 0x7FF);
+	syndrome[2] = (calced & 0x7FF) ^ ((calced >> 11) & 0x7FF);
+	syndrome[3] = (stored & 0x7FF) ^ ((stored >> 11) & 0x7FF);
+	syndrome[4] = syndrome[2] ^ syndrome[3];
+
+	for (i = 0; i < 5; i++)
+		dev_info(info->device, "syndrome[%d] 0x%08x\n", i, syndrome[i]);
+
+	dev_info(info->device, "calced[0x%08x], stored[0x%08x]\n", calced, stored);
+
+	/*
+	 * sysdrome 0: exactly 11 bits are one, each parity
+	 * and parity' pair is 1 & 0 or 0 & 1.
+	 * 1-bit correctable error
+	 * Correct the error
+	 */
+	if (count_bits(syndrome[0]) == 11 && syndrome[4] == 0x7FF) {
+		dev_info(info->device, "1-bit correctable error, correct it.\n");
+		dev_info(info->device, "syndrome[1] 0x%08x\n", syndrome[1]);
+
+		failing_bit = syndrome[1] & 0x7;
+		failing_byte = syndrome[1] >> 0x3;
+		data = *(dat + failing_byte);
+		data = data ^ (0x1 << failing_bit);
+		*(dat + failing_byte) = data;
+
+		return 0;
 	}
 
 	/*
@@ -244,13 +247,16 @@ static int bf54x_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
 
 static int bf54x_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 					u_char *read_ecc, u_char *calc_ecc)
-{
+{	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
+	struct bf54x_nand_platform *plat = info->platform;
+	unsigned short page_size = (plat->page_size ? 512 : 256);
+
 	int ret;
 
 	ret = bf54x_nand_correct_data_256(mtd, dat, read_ecc, calc_ecc);
 
 	/* If page size is 512, correct second 256 bytes */
-	if (mtd->writesize == 512) {
+	if (page_size == 512) {
 		dat += 256;
 		read_ecc += 8;
 		calc_ecc += 8;
@@ -262,51 +268,46 @@ static int bf54x_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 
 static void bf54x_nand_enable_hwecc(struct mtd_info *mtd, int mode)
 {
-	unsigned short rst;
-
 	/*
 	 * This register must be written before each page is
 	 * transferred to generate the correct ECC register
 	 * values.
 	 */
-	SSYNC();
+	return;
 
-	rst = bfin_read_NFC_RST();
-	rst |= 0x1;
-	bfin_write_NFC_RST(rst);
-
-	SSYNC();
 }
 
 static int bf54x_nand_calculate_ecc(struct mtd_info *mtd,
 		const u_char *dat, u_char *ecc_code)
 {
 	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
-	unsigned short ecc;
-	unsigned short *code = (unsigned short *)ecc_code;
-
-	SSYNC();
+	struct bf54x_nand_platform *plat = info->platform;
+	u16 page_size = (plat->page_size ? 512 : 256);
+	u16 ecc0, ecc1;
+	u32 code[2];
+	u8 *p;
+	int bytes = 3, i;
 
 	/* first 4 bytes ECC code for 256 page size */
-	ecc = bfin_read_NFC_ECC0();
-	code[0] = ecc && 0x3FF;
+	ecc0 = bfin_read_NFC_ECC0();
+	ecc1 = bfin_read_NFC_ECC1();
 
-	ecc = bfin_read_NFC_ECC1();
-	code[1] = ecc && 0x3FF;
+	code[0] = (ecc0 & 0x3FF) | ((ecc1 & 0x3FF) << 11);
 
-	dev_dbg(info->device, "returning ecc %04x%04x\n", code[0], code[1]);
+	dev_dbg(info->device, "returning ecc 0x%08x\n", code[0]);
 
 	/* second 4 bytes ECC code for 512 page size */
-	if (mtd->writesize == 512) {
-		ecc = bfin_read_NFC_ECC2();
-		code[2] = ecc && 0x3FF;
-
-		ecc = bfin_read_NFC_ECC3();
-		code[3] = ecc && 0x3FF;
-
-		dev_dbg(info->device, "returning ecc %04x%04x\n",
-			code[0], code[1]);
+	if (page_size == 512) {
+		ecc0 = bfin_read_NFC_ECC2();
+		ecc1 = bfin_read_NFC_ECC3();
+		code[1] = (ecc0 & 0x3FF) | ((ecc1 & 0x3FF) << 11);
+		bytes = 6;
+		dev_dbg(info->device, "returning ecc 0x%08x\n", code[1]);
 	}
+
+	p = (u8 *)code;
+	for (i = 0; i < bytes; i++)
+		ecc_code[i] = p[i];
 
 	return 0;
 }
@@ -328,7 +329,7 @@ static void bf54x_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 			continue;
 
 		/* Contents do not matter */
-		bfin_write_NFC_DATA_RD(0x5555);
+		bfin_write_NFC_DATA_RD(0x0000);
 		SSYNC();
 
 		while ((bfin_read_NFC_IRQSTAT() & RD_RDY) != RD_RDY)
@@ -411,74 +412,66 @@ static irqreturn_t bf54x_nand_dma_irq (int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int bf54x_nand_dma_rw_buf(struct mtd_info *mtd, uint8_t *buf,
-				int len, int is_read)
+static int bf54x_nand_dma_rw(struct mtd_info *mtd,
+				uint8_t *buf, int is_read)
 {
 	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
 	struct bf54x_nand_platform *plat = info->platform;
 	unsigned short page_size = (plat->page_size ? 512 : 256);
-	int steps, i;
-	uint8_t *p = buf;
 	unsigned short val;
 
 	dev_dbg(info->device, " mtd->%p, buf->%p, len %d, is_read %d\n",
-			mtd, buf, len, is_read);
+			mtd, buf, is_read);
+
+	if (is_read)
+		invalidate_dcache_range((unsigned int)buf,
+				(unsigned int)(buf + page_size));
+	else
+		flush_dcache_range((unsigned int)buf,
+				(unsigned int)(buf + page_size));
 
 	bfin_write_NFC_RST(0x1);
 	SSYNC();
 
-	steps = len / page_size;
-	for (i = 0; i < steps; i++) {
-		/* setup DMA register with Blackfin DMA API */
-		set_dma_config(CH_NFC, 0x0);
-		set_dma_start_addr(CH_NFC, (unsigned long) p);
-		set_dma_x_count(CH_NFC, (page_size >> 2));
-		set_dma_x_modify(CH_NFC, 4);
+	disable_dma(CH_NFC);
+	clear_dma_irqstat(CH_NFC);
 
-		/* setup write or read operation */
-		val = DI_EN | WDSIZE_32;
-		if (is_read)
-			val |= WNR;
-		set_dma_config(CH_NFC, val);
-		enable_dma(CH_NFC);
+	/* setup DMA register with Blackfin DMA API */
+	set_dma_config(CH_NFC, 0x0);
+	set_dma_start_addr(CH_NFC, (unsigned long) buf);
+	set_dma_x_count(CH_NFC, (page_size >> 2));
+	set_dma_x_modify(CH_NFC, 4);
 
-		/* Start PAGE read/write operation */
-		if (is_read)
-			bfin_write_NFC_PGCTL(0x1);
-		else
-			bfin_write_NFC_PGCTL(0x2);
-		SSYNC();
-		wait_for_completion(&info->dma_completion);
-		p += page_size;
-	}
+	/* setup write or read operation */
+	val = DI_EN | WDSIZE_32;
+	if (is_read)
+		val |= WNR;
+	set_dma_config(CH_NFC, val);
+	enable_dma(CH_NFC);
+
+	/* Start PAGE read/write operation */
+	if (is_read)
+		bfin_write_NFC_PGCTL(0x1);
+	else
+		bfin_write_NFC_PGCTL(0x2);
+	wait_for_completion(&info->dma_completion);
 
 	return 0;
 }
 
-static int bf54x_nand_dma_read_page(struct mtd_info *mtd,
-					struct nand_chip *chip, uint8_t *buf)
-{
-	return bf54x_nand_dma_rw_buf(mtd, buf, mtd->writesize, 1);
-}
-
-static void bf54x_nand_dma_write_page(struct mtd_info *mtd,
-				struct nand_chip *chip, const uint8_t *buf)
-{
-	bf54x_nand_dma_rw_buf(mtd, (uint8_t *)buf, mtd->writesize, 0);
-}
-
-static void bf54x_nand_dma_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
+static void bf54x_nand_dma_read_buf(struct mtd_info *mtd,
+					uint8_t *buf, int len)
 {
 	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
 	struct bf54x_nand_platform *plat = info->platform;
 	unsigned short page_size = (plat->page_size ? 512 : 256);
 
-	if (len < page_size) {
-		bf54x_nand_read_buf(mtd, buf, len);
-		return;
-	}
+	dev_dbg(info->device, "mtd->%p, buf->%p, int %d\n", mtd, buf, len);
 
-	bf54x_nand_dma_rw_buf(mtd, buf, len, 1);
+	if (len == page_size)
+		bf54x_nand_dma_rw(mtd, buf, 1);
+	else
+		bf54x_nand_read_buf(mtd, buf, len);
 }
 
 static void bf54x_nand_dma_write_buf(struct mtd_info *mtd,
@@ -488,12 +481,12 @@ static void bf54x_nand_dma_write_buf(struct mtd_info *mtd,
 	struct bf54x_nand_platform *plat = info->platform;
 	unsigned short page_size = (plat->page_size ? 512 : 256);
 
-	if (len < page_size) {
-		bf54x_nand_write_buf(mtd, buf, len);
-		return;
-	}
+	dev_dbg(info->device, "mtd->%p, buf->%p, len %d\n", mtd, buf, len);
 
-	bf54x_nand_dma_rw_buf(mtd, (uint8_t *)buf, len, 0);
+	if (len == page_size)
+		bf54x_nand_dma_rw(mtd, (uint8_t *)buf, 0);
+	else
+		bf54x_nand_write_buf(mtd, buf, len);
 }
 
 /*----------------------------------------------------------------------------
@@ -502,12 +495,12 @@ static void bf54x_nand_dma_write_buf(struct mtd_info *mtd,
 
 static int bf54x_nand_dma_init(struct bf54x_nand_info *info)
 {
-	struct bf54x_nand_platform *plat = info->platform;
 	int ret;
 	unsigned short val;
+	struct bf54x_nand_platform *plat = info->platform;
 
 	/* Do not use dma */
-	if (!plat->enable_dma)
+	if (!hardware_ecc)
 		return 0;
 
 	init_completion(&info->dma_completion);
@@ -522,14 +515,13 @@ static int bf54x_nand_dma_init(struct bf54x_nand_info *info)
 	ret = request_dma(CH_NFC, "BF54X NFC driver");
 	if (ret < 0) {
 		dev_err(info->device, " unable to get DMA channel\n");
-		return 1;
+		return ret;
 	}
 
 	set_dma_callback(CH_NFC, (void *) bf54x_nand_dma_irq, (void *) info);
 
 	/* Turn off the DMA channel first */
 	disable_dma(CH_NFC);
-
 	return 0;
 }
 
@@ -671,17 +663,12 @@ static int bf54x_nand_probe(struct platform_device *pdev)
 	if (plat->data_width)
 		chip->options |= NAND_BUSWIDTH_16;
 
-	chip->options |= NAND_SKIP_BBTSCAN;
+	chip->options |= NAND_CACHEPRG | NAND_SKIP_BBTSCAN;
 
-	if (plat->enable_dma) {
-		chip->read_buf = bf54x_nand_dma_read_buf;
-		chip->write_buf = bf54x_nand_dma_write_buf;
-	} else {
-		chip->read_buf = (plat->data_width) ?
-			bf54x_nand_read_buf16 : bf54x_nand_read_buf;
-		chip->write_buf = (plat->data_width) ?
-			bf54x_nand_write_buf16 : bf54x_nand_write_buf;
-	}
+	chip->read_buf = (plat->data_width) ?
+		bf54x_nand_read_buf16 : bf54x_nand_read_buf;
+	chip->write_buf = (plat->data_width) ?
+		bf54x_nand_write_buf16 : bf54x_nand_write_buf;
 
 	chip->read_byte    = bf54x_nand_read_byte;
 
@@ -709,21 +696,19 @@ static int bf54x_nand_probe(struct platform_device *pdev)
 	/* setup hardware ECC data struct */
 	if (hardware_ecc) {
 		if (plat->page_size == NFC_PG_SIZE_256) {
-			chip->ecc.bytes = 8;
-			chip->ecc.layout = &bf54x_oob_256_8bytes;
+			chip->ecc.bytes = 3;
 			chip->ecc.size = 256;
 		} else if (mtd->writesize == NFC_PG_SIZE_512) {
-			chip->ecc.bytes = 16;
-			chip->ecc.layout = &bf54x_oob_512_16bytes;
+			chip->ecc.bytes = 6;
 			chip->ecc.size = 512;
 		}
 
+		chip->read_buf      = bf54x_nand_dma_read_buf;
+		chip->write_buf     = bf54x_nand_dma_write_buf;
 		chip->ecc.calculate = bf54x_nand_calculate_ecc;
 		chip->ecc.correct   = bf54x_nand_correct_data;
 		chip->ecc.mode	    = NAND_ECC_HW;
 		chip->ecc.hwctl	    = bf54x_nand_enable_hwecc;
-		chip->ecc.read_page = bf54x_nand_dma_read_page;
-		chip->ecc.write_page = bf54x_nand_dma_write_page;
 	} else {
 		chip->ecc.mode	    = NAND_ECC_SOFT;
 	}
@@ -780,14 +765,15 @@ static struct platform_driver bf54x_nand_driver = {
 	.suspend	= bf54x_nand_suspend,
 	.resume		= bf54x_nand_resume,
 	.driver		= {
-		.name	= "bf54x-nand",
+		.name	= DRV_NAME,
 		.owner	= THIS_MODULE,
 	},
 };
 
 static int __init bf54x_nand_init(void)
 {
-	printk(KERN_INFO "BF54X NAND Driver, (c) 2007 Analog Devices, Inc.\n");
+	printk(KERN_INFO "%s, Version %s (c) 2007 Analog Devices, Inc.\n",
+		DRV_DESC, DRV_VERSION);
 
 	return platform_driver_register(&bf54x_nand_driver);
 }
@@ -801,5 +787,5 @@ module_init(bf54x_nand_init);
 module_exit(bf54x_nand_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Bryan Wu <bryan.wu@analog.com");
-MODULE_DESCRIPTION("BF54X MTD NAND driver");
+MODULE_AUTHOR(DRV_AUTHOR);
+MODULE_DESCRIPTION(DRV_DESC);
