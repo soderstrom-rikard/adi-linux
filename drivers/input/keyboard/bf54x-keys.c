@@ -154,7 +154,7 @@ static irqreturn_t bfin_kpad_isr(int irq, void *dev_id)
 					+ bf54x_kpad->keyup_test_jiffies;
 		add_timer(&bf54x_kpad->timer);
 
-bf		return IRQ_HANDLED;
+		return IRQ_HANDLED;
 	}
 
 	input_report_key(bf54x_kpad->input, key, 0);
