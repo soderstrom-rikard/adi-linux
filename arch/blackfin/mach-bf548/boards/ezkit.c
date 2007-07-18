@@ -41,6 +41,7 @@
 #include <asm/dma.h>
 #include <asm/mach/nand.h>
 #include <asm/mach/bf54x_keys.h>
+#include <linux/spi/ad7877.h>
 
 /*
  * Name the Board for the /proc/cpuinfo
@@ -50,6 +51,28 @@ char *bfin_board_name = "ADSP-BF548-EZKIT";
 /*
  *  Driver needs to know address, irq and flag pin.
  */
+
+#if defined(CONFIG_TOUCHSCREEN_AD7877) || defined(CONFIG_TOUCHSCREEN_AD7877_MODULE)
+static struct bfin5xx_spi_chip spi_ad7877_chip_info = {
+	.cs_change_per_word = 1,
+	.enable_dma = 0,
+	.bits_per_word = 16,
+};
+
+static const struct ad7877_platform_data bfin_ad7877_ts_info = {
+	.model			= 7877,
+	.vref_delay_usecs	= 50,	/* internal, no capacitor */
+	.x_plate_ohms		= 419,
+	.y_plate_ohms		= 486,
+	.pressure_max		= 1000,
+	.pressure_min		= 0,
+	.stopacq_polarity 	= 1,
+	.first_conversion_delay = 3,
+	.acquisition_time 	= 1,
+	.averaging 		= 1,
+	.pen_down_acc_interval 	= 1,
+};
+#endif
 
 #if defined(CONFIG_KEYBOARD_BFIN) || defined(CONFIG_KEYBOARD_BFIN_MODULE)
 static int bf548_keymap[] = {
@@ -257,6 +280,17 @@ static struct platform_device bf54x_nand_device = {
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
 /* all SPI peripherals info goes here */
 static struct spi_board_info bf54x_spi_board_info[] __initdata = {
+#if defined(CONFIG_TOUCHSCREEN_AD7877) || defined(CONFIG_TOUCHSCREEN_AD7877_MODULE)
+{
+	.modalias		= "ad7877",
+	.platform_data		= &bfin_ad7877_ts_info,
+	.irq			= IRQ_PJ11,
+	.max_speed_hz		= 12500000,     /* max spi clock (SCK) speed in HZ */
+	.bus_num		= 1,
+	.chip_select  		= 2,
+	.controller_data = &spi_ad7877_chip_info,
+},
+#endif
 };
 
 /* SPI controller data */
