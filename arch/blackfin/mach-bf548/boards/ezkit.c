@@ -40,6 +40,7 @@
 #include <asm/bfin5xx_spi.h>
 #include <asm/dma.h>
 #include <asm/mach/nand.h>
+#include <asm/mach/bf54x_keys.h>
 
 /*
  * Name the Board for the /proc/cpuinfo
@@ -49,6 +50,55 @@ char *bfin_board_name = "ADSP-BF548-EZKIT";
 /*
  *  Driver needs to know address, irq and flag pin.
  */
+
+#if defined(CONFIG_KEYBOARD_BFIN) || defined(CONFIG_KEYBOARD_BFIN_MODULE)
+static int bf548_keymap[] = {
+	KEYVAL(0, 0, KEY_ENTER),
+	KEYVAL(0, 1, KEY_HELP),
+	KEYVAL(0, 2, KEY_0),
+	KEYVAL(0, 3, KEY_BACKSPACE),
+	KEYVAL(1, 0, KEY_TAB),
+	KEYVAL(1, 1, KEY_9),
+	KEYVAL(1, 2, KEY_8),
+	KEYVAL(1, 3, KEY_7),
+	KEYVAL(2, 0, KEY_DOWN),
+	KEYVAL(2, 1, KEY_6),
+	KEYVAL(2, 2, KEY_5),
+	KEYVAL(2, 3, KEY_4),
+	KEYVAL(3, 0, KEY_UP),
+	KEYVAL(3, 1, KEY_3),
+	KEYVAL(3, 2, KEY_2),
+	KEYVAL(3, 3, KEY_1),
+};
+
+static struct bfin_kpad_platform_data bf54x_kpad_data = {
+	.rows			= 4,
+	.cols			= 4,
+	.keymap 		= bf548_keymap,
+	.keymapsize 		= ARRAY_SIZE(bf548_keymap),
+	.debounce_time		= 5000,	/* ns (5ms) */
+	.coldrive_time		= 1000, /* ns (1ms) */
+	.keyup_test_interval	= 50, /* ms (50ms) */
+};
+
+static struct resource bf54x_kpad_resources[] = {
+	{
+		.start = IRQ_KEY,
+		.end = IRQ_KEY,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bf54x_kpad_device = {
+	.name		= "bf54x-keys",
+	.id		= -1,
+	.num_resources 	= ARRAY_SIZE(bf54x_kpad_resources),
+	.resource 	= bf54x_kpad_resources,
+	.dev		= {
+		.platform_data = &bf54x_kpad_data,
+	},
+};
+#endif
 
 #if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)
 static struct platform_device rtc_device = {
@@ -252,6 +302,11 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
 	&bf54x_spi_master_device,
 #endif
+
+#if defined(CONFIG_KEYBOARD_BFIN) || defined(CONFIG_KEYBOARD_BFIN_MODULE)
+	&bf54x_kpad_device,
+#endif
+
 };
 
 static int __init stamp_init(void)
