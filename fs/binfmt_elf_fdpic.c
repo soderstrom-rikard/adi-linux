@@ -374,8 +374,7 @@ static int load_elf_fdpic_binary(struct linux_binprm *bprm,
 	down_write(&current->mm->mmap_sem);
 	current->mm->start_brk = do_mmap(NULL, 0, stack_size,
 					 PROT_READ | PROT_WRITE | PROT_EXEC,
-					 MAP_PRIVATE | MAP_ANONYMOUS | MAP_GROWSDOWN
-					 | MAP_SPLIT_PAGES, 0);
+					 MAP_PRIVATE | MAP_ANONYMOUS | MAP_GROWSDOWN, 0);
 
 	if (IS_ERR_VALUE(current->mm->start_brk)) {
 		up_write(&current->mm->mmap_sem);
@@ -905,7 +904,7 @@ static int elf_fdpic_map_file_constdisp_on_uclinux(
 	down_write(&mm->mmap_sem);
 	maddr = do_mmap(NULL, load_addr, top - base,
 			PROT_READ | PROT_WRITE | PROT_EXEC,
-			mflags | MAP_SPLIT_PAGES, 0);
+			mflags, 0);
 	up_write(&mm->mmap_sem);
 	if (IS_ERR_VALUE(maddr))
 		return (int) maddr;
@@ -1007,7 +1006,7 @@ static int elf_fdpic_map_file_by_direct_mmap(struct elf_fdpic_params *params,
 		if (phdr->p_flags & PF_W) prot |= PROT_WRITE;
 		if (phdr->p_flags & PF_X) prot |= PROT_EXEC;
 
-		flags = MAP_PRIVATE | MAP_DENYWRITE | MAP_SPLIT_PAGES;
+		flags = MAP_PRIVATE | MAP_DENYWRITE;
 		if (params->flags & ELF_FDPIC_FLAG_EXECUTABLE)
 			flags |= MAP_EXECUTABLE;
 

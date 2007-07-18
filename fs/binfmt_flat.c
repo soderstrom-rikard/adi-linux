@@ -541,7 +541,7 @@ static int load_flat_file(struct linux_binprm * bprm,
 		down_write(&current->mm->mmap_sem);
 		textpos = do_mmap(bprm->file, 0, text_len,
 				  PROT_READ | PROT_EXEC,
-				  MAP_PRIVATE|MAP_SPLIT_PAGES, 0);
+				  MAP_PRIVATE, 0);
 		up_write(&current->mm->mmap_sem);
 		if (!textpos  || textpos >= (unsigned long) -4096) {
 			if (!textpos)
@@ -556,7 +556,7 @@ static int load_flat_file(struct linux_binprm * bprm,
 		down_write(&current->mm->mmap_sem);
 		realdatastart = do_mmap(0, 0, len,
 					PROT_READ|PROT_WRITE|PROT_EXEC,
-					MAP_PRIVATE|MAP_SPLIT_PAGES, 0);
+					MAP_PRIVATE, 0);
 		up_write(&current->mm->mmap_sem);
 
 		if (realdatastart == 0 || realdatastart >= (unsigned long)-4096) {
@@ -601,7 +601,7 @@ static int load_flat_file(struct linux_binprm * bprm,
 		down_write(&current->mm->mmap_sem);
 		textpos = do_mmap(0, 0, len,
 				  PROT_READ | PROT_EXEC | PROT_WRITE,
-				  MAP_PRIVATE | MAP_SPLIT_PAGES, 0);
+				  MAP_PRIVATE, 0);
 		up_write(&current->mm->mmap_sem);
 
 		if (!textpos  || textpos >= (unsigned long) -4096) {
