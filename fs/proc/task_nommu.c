@@ -81,7 +81,7 @@ unsigned long task_vsize(struct mm_struct *mm)
 	down_read(&mm->mmap_sem);
 	for (tbp = mm->context.vmlist; tbp; tbp = tbp->next) {
 		if (tbp->vma)
-			vsize += kobjsize((void *) tbp->vma->vm_start);
+			vsize += tbp->vma->vm_end - tbp->vma->vm_start;
 	}
 	up_read(&mm->mmap_sem);
 	return vsize;
@@ -98,7 +98,7 @@ int task_statm(struct mm_struct *mm, int *shared, int *text,
 		size += kobjsize(tbp);
 		if (tbp->vma) {
 			size += kobjsize(tbp->vma);
-			size += kobjsize((void *) tbp->vma->vm_start);
+			size += tbp->vma->vm_end - tbp->vma->vm_start;
 		}
 	}
 
