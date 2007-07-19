@@ -1168,7 +1168,7 @@ static inline int destroy_queue(struct driver_data *drv_data)
 static int setup_pin_mux(int action)
 {
 
-	u16 pin_req[] = {P_SPI0_SCK, P_SPI0_MISO, P_SPI0_MOSI};
+	u16 pin_req[] = {P_SPI0_SCK, P_SPI0_MISO, P_SPI0_MOSI, 0};
 
 	if (action) {
 		if (peripheral_request_list(pin_req, DRV_NAME)) {
@@ -1200,7 +1200,7 @@ static int __init bfin5xx_spi_probe(struct platform_device *pdev)
 
 	if (setup_pin_mux(1)) {
 		dev_err(&pdev->dev, ": Requesting Peripherals failed\n");
-		goto out_error_queue_alloc;
+		goto out_error;
 	}
 
 	drv_data = spi_master_get_devdata(master);
@@ -1236,9 +1236,11 @@ static int __init bfin5xx_spi_probe(struct platform_device *pdev)
 	dev_dbg(&pdev->dev, "controller probe successfully\n");
 	return status;
 
-      out_error_queue_alloc:
+out_error_queue_alloc:
 	destroy_queue(drv_data);
+out_error:
 	spi_master_put(master);
+
 	return status;
 }
 
