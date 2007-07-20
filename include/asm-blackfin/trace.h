@@ -11,7 +11,11 @@
  */
 
 #define BFIN_TRACE_INIT ((CONFIG_DEBUG_BFIN_HWTRACE_COMPRESSION << 4) | 0x03)
+#ifdef CONFIG_DEBUG_BFIN_HWTRACE_EXPAND
 #define BFIN_TRACE_ON   (BFIN_TRACE_INIT | (CONFIG_DEBUG_BFIN_HWTRACE_EXPAND << 2))
+#else
+#define BFIN_TRACE_ON   (BFIN_TRACE_INIT)
+#endif
 
 #ifndef __ASSEMBLY__
 extern unsigned long trace_buff_offset;
@@ -51,7 +55,7 @@ extern unsigned long software_trace_buff[];
 	dreg = 0x1;			\
 	[preg] = dreg;
 
-#define trace_buffer_start(preg, dreg) \
+#define trace_buffer_start(preg, dreg)	\
 	preg.L = LO(TBUFCTL);		\
 	preg.H = HI(TBUFCTL);		\
 	dreg = BFIN_TRACE_ON;		\
