@@ -143,7 +143,7 @@ static void setup_desc(struct dmasg *desc, void *buf, int fragcount,
 	/* make circular */
 	desc[fragcount-1].next_desc_addr = (unsigned long)desc;
 
-	printk(KERN_ERR "setup desc: desc0=%p, next0=%lx, desc1=%p,"
+	pr_debug("setup desc: desc0=%p, next0=%lx, desc1=%p,"
 		"next1=%lx\nx_count=%x,y_count=%x,addr=0x%lx,cfs=0x%x\n",
 		&(desc[0]), desc[0].next_desc_addr,
 		&(desc[1]), desc[1].next_desc_addr,
@@ -153,9 +153,6 @@ static void setup_desc(struct dmasg *desc, void *buf, int fragcount,
 
 static int sport_start(struct sport_device *sport)
 {
-	dma_dump_regs(sport->dma_rx_chan);
-	dma_dump_regs(sport->dma_tx_chan);
-
 	enable_dma(sport->dma_rx_chan);
 	enable_dma(sport->dma_tx_chan);
 	sport->regs->tcr1 |= TSPEN;
