@@ -1,5 +1,5 @@
-
-/* struct for keeping performace data for debugging */
+	
+// struct for keeping performace data for debugging
 struct perf_info {
 	unsigned short mean_read_tp;
 	unsigned short mean_write_tp;
@@ -7,7 +7,7 @@ struct perf_info {
 	unsigned short mbw_works;
 };
 
-/* internal representation of the MMC over SPI block device */
+// internal representation of the MMC over SPI block device
 struct Mmc_info {
 	unsigned int hardsect_size;	/* Sector size in bytes */
 	unsigned int nsectors;		/* Number of sectors */
@@ -17,6 +17,7 @@ struct Mmc_info {
 	unsigned short max_sectors;
 	unsigned short max_segment_size;
 	unsigned short errors;
+	unsigned short inits;
 	short users;			/* How many "users"(nr. of opens issued by kernel) */
 	short media_change;		/* Flag a media change? */
 	short need_re_init;		/* If abruptly aborted, MMC may need to re-init */
@@ -25,18 +26,18 @@ struct Mmc_info {
 	spinlock_t dev_lock;		/* device lock for critical access to MMC device */
 	struct semaphore sem;		/* MUTEX */
 	struct gendisk *gd;		/* The gendisk structure */
-	struct mmc_spi_dev msd;		/* mmc_spi read/write methods to use */
+	struct mmc_spi_dev msd;		/* callbacks towards mmc_spi_mode driver */
 	struct mmc_card card;		/* structure for holding card information */
 	struct perf_info pi;		/* struct holding numbers on performace */
 	struct spi_device *spi_dev;	/* The assigned spi_device */
 	struct workqueue_struct *cd_wq; /* Card detect work queue */
-	struct work_struct *cd_ws;	/* The work struct that defines what to do*/
+	struct work_struct cd_ws;
+	struct workqueue_struct *dt_wq; /* Data transfer work queue */
+	struct work_struct dt_ws;
 	struct request *current_req;	/* The current request in process  */
 	struct timer_list revalidate_timer;
-	struct work_struct card_work;
-	struct work_struct transfer_work;
 };
 
 typedef struct Mmc_info mmc_info_t;
 
-/* static int spi_mmc_release(struct inode *inode, struct file *filp); */
+//static int spi_mmc_release(struct inode *inode, struct file *filp);

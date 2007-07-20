@@ -1,19 +1,19 @@
-// For developing, set this. Can be set from Kconfig.
+// For developing, set this. Can also be set from Kconfig.
 #ifndef CONFIG_SPI_MMC_DEBUG_MODE
 //#define CONFIG_SPI_MMC_DEBUG_MODE
 #endif
 
 enum {
-	MMC_INIT_TIMEOUT 	= 200,	// msec, Timeout when polling for R1_OK at init of MMC/SDs
-	MMC_COMMAND_TIMEOUT	= 200,	// msec, Time to wait for command responses
-	MMC_COMMAND_MAXPOLLS	= 50,	// bytes, how many bytes to poll for response
-	MMC_PROG_TIMEOUT	= 5000,	// msec, Programming busy time to wait
+	MMC_INIT_TIMEOUT 	= 5000,	// msec, Timeout when polling for R1_OK at init of MMC/SDs
+	MMC_COMMAND_TIMEOUT	= 5000,	// msec or bytes to wait for command responses
+	MMC_PROG_TIMEOUT	= 500000,	// msec or bytes Programming busy time to wait
 	BUSY_BLOCK_LEN 		= 1,	// Busy response blockwise(w. DMA preferably, size
 	BUSY_BLOCK_LEN_SHORT	= 16,	// Short version, multiple block waits are much faster
 	MMC_SECTOR_SIZE		= 512,	// Size of MMC sectors, this should actually be fetched from
 	SD_PRE_CMD_ZEROS	= 4,	// Send so many zeros if in SD mode(wake up from pos. sleep)
 	SD_CLK_CNTRL		= 2,	// Extra clocks to send to make SDs happy
 	LOG_LEN			= 16,	// Log this many errors,
+	WRB_LEN			= 256,	// Length of response buffer
 
 // Card command classes
 	/* could be implemented to ensure compability */
@@ -52,7 +52,7 @@ enum {
 	R2_ERASE_PARAM		= 0x40,
 	R2_OUT_OF_RANGE		= 0x80,
 	R2_CSD_OVERWRITE	= 0x80,
-// TODO: Format R3 response tokens
+// TODO: Format R3 response tokens 
 
 // Data response tokens
 	DR_MASK			= 0x0F,
@@ -117,33 +117,33 @@ struct csd_str {				/* __csd field name__*/
 };
 
 /**
-*	mmc_spi_dev - External functions need to configure this struct
+*	mmc_spi_dev - Implementation need to configure this struct
 *		with callback functions to read and write data that the
-*		mmc_spi function can use for its operations. It also have
-*		to support it with a function that can return a millisecond
-*		time counter for I/O timeouts.
-*
+*		mmc_spi function can use for its operations.
+	
 *		NOTE: Every function defined here expect exclusive access to
 *		any MMC/SD card it is operating on. Functions should be considered
 *		critical sections. Also note that the read/write callbacks may a mutex
-*		if they may be executed by another context.
+*		if they can be executed by another context.
 */
 struct mmc_spi_dev {
 	int		(*read)(unsigned char *buf, unsigned int nbytes, void *priv_data);
 	int		(*write)(unsigned char *buf, unsigned int nbytes, void *priv_data);
-	void		(*reset_time)(unsigned long msec); /* set time to wait for(use before polling) */
-	int		(*elapsed_time)(void); /* evaluates to true after configured msec */
-	void		*priv_data;	/* incomming pointer to private data */
+    void	(*assert)(void);
+    void	(*deassert)(void);
+	void		*priv_data;	/* incomming pointer to private data for callbacks */
 	unsigned char 	raw_csd[18];	/* raw csd data to use with external parser */
 	unsigned char 	raw_cid[18];	/* raw cid data to use with external parser */
 	struct cid_str 	cid;		/* internal represent. of cid data */
 	struct csd_str 	csd;		/* internal represent. of csd data */
-	int		sd;		/* true if SD card found */
+	int		sd;					/* true if SD card found */
 	int		log_len;
+	unsigned int	est_write_lat;	/* [bytes] */
 	unsigned short	force_cs_high;	/* true if write/read callbacks should ask for CS high */
-	unsigned int	errors;		/* total amount of errors recorded since card insertion */
-	unsigned short	error_log[LOG_LEN];	/* structure keeping error log */
-	unsigned short	status_log[LOG_LEN];	/* structure keeping status if error */
+	unsigned int	errors;			/* total amount of errors recorded since card insertion */
+	unsigned char	cmd_log[LOG_LEN];
+	unsigned short	error_log[LOG_LEN];
+	unsigned short	status_log[LOG_LEN]; /* Status is not checked anymore since some cards will cry */
 };
 
 short mmc_spi_get_card(struct mmc_spi_dev *pdev);

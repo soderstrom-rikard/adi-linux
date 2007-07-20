@@ -4,47 +4,81 @@
 
 config SPI_MMC
 	tristate "MMC/SD for SPI support (EXPERIMENTAL)"
-        depends on EXPERIMENTAL && SPI
-        default n
-        ---help---
-	MMC/SD card over SPI support.
+	depends on EXPERIMENTAL
+	default n
+	help
+	  MMC/SD card over SPI support.
+	
+	  Say Y or M here if you want to attach an MMC/SD socket to the SPI port.
+	  The "MMC support" option does not need to be enabled for this driver to work.
 
-	Say Y or M here if you want to attach an MMC/SD socket to the SPI port.
-	The "MMC support" option does not need to be enabled for this driver to work.
+	  Note, deselct SPI framework driver and any drivers depending on it to make this
+	  driver use the blackfin SPI bus directly in PIO mode.
 
-	Read spi_mmc.txt documentation for details or more help.
+	  Read spi_mmc.txt documentation for details or more help.
+
+choice
+	prompt "SPI driver"
+	depends on SPI_MMC
+
+config SPI_MMC_FRAMEWORK_DRIVER
+	bool "SPI framework master"
+	depends on SPI
+	help
+	  Will use the SPI master of the system. This option is platform indepenent.
+
+config SPI_MMC_BFIN_PIO_SPI
+	bool "Blackfin SPI bus directly"
+	depends on BFIN
+	help
+	  Will use Blackfin SPI bus directly. No other SPI device should be used with this option.
+	  The MMC/SD card will be driven in SPI PIO mode. This is a failsafe option for testing.
+
+	  Enable SPI framework to use the SPI master instead.
+
+	  NOTE! Using this when SPI framework driver is enabled is not recommended.
+endchoice
+
 
 config SPI_MMC_CS_CHAN
 	int "SPI chip select signal for MMC/SD card"
 	depends on SPI_MMC
-	range 0 7
+	range 0 16
 	default "4"
 	help
-	Set the Chip Select signal to use for the MMC/SD card.
+	  Set the Chip Select signal to use for the MMC/SD card. This number is one of the
+	  SPI master controller SPISEL signals.
+
+config SPI_MMC_MAX_HZ
+	int "SPI clock limit for MMC/SD transfers"
+	depends on SPI_MMC
+	range 400000 30000000
+	default "20000000"
+	help
+	  Maximum clock to aim for when configuring the underlaying SPI device. It may
+	  not be possible to set it exactly to this value since the actual clock could
+	  depend on an integer division from a reference. Cards seldom support higher
+	  clocks than 20Mhz over the SPI bus.
 
 config SPI_MMC_CARD_DETECT
 	bool "MMC/SD Card detect support (EXPERIMENTAL)"
 	depends on SPI_MMC && BFIN
 	default "n"
 	help
-	Supported platforms can make use of card detect signal to sense insertion
-	and removal of card. Hotplug events could be generated for userspace to
-	take action, such as mounting partitions. Debug mode is not available
-	with card detection.
+	  MMC/SD card insertion can be detected with a dedicated signal. Configure the IRQ#
+	  that is triggered by this signal on falling edge.
 
-config SPI_MMC_CARD_DETECT_PFLAG
-	int "Card detect PFx number"
+config SPI_MMC_CARD_DETECT_INT
+	int "IRQ# for card detection"
 	depends on SPI_MMC_CARD_DETECT
 	default "5"
 	help
-	Which PFx number to use for card detection.
+	  Which IRQ number to use for card detection.
 
 config SPI_MMC_DEBUG_MODE
 	bool "Print debug text on errors"
 	depends on SPI_MMC && !SPI_MMC_CARD_DETECT
 	default n
-	---help---
-	Will print verobse debug data during MMC/SD errors of any kind. Note that
-	during card initialization errors are normal. Also note that a small debug
-	log can be found in /proc/spi_mmc entry.
-#endmenu
+	help
+	  Will print verobse debug data during MMC/SD errors of any kind. Note that
+	  during card initialization errors are normal.
