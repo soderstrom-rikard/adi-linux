@@ -114,13 +114,6 @@ void __init blackfin_ide_init(void)
 	  udelay(5000);
 #endif
 
-	if (!request_region(CONFIG_BFIN_IDE_BASE, AX_BITMASK + BFIN_IDE_GAP*8, "ide-blackfin"))
-		goto out_busy;
-	if (!request_region(CONFIG_BFIN_IDE_ALT, BFIN_IDE_GAP, "ide-blackfin")) {
-		release_region(CONFIG_BFIN_IDE_BASE, BFIN_IDE_GAP*2);
-		goto out_busy;
-	}
-
 	hw_setup(&hw);
 
 	set_irq_type(hw.irq, IRQF_TRIGGER_HIGH);
