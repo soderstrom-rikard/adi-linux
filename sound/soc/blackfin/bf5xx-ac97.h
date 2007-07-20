@@ -11,32 +11,26 @@
 
 extern struct snd_ac97_bus_ops bf5xx_ac97_ops;
 
-/*
- * frame communicated over the ac97 sport link
- */
+/* Frame format in memory, only support stereo currently */
 struct ac97_frame {
-	__u16 ac97_tag;		/* slot 0 */
-#define TAG_VALID 0x8000
-#define TAG_CMD   0x6000
-#define TAG_PCM_LEFT   0x1000
-#define TAG_PCM_RIGHT  0x0800
-#define TAG_PCM  (TAG_PCM_LEFT|TAG_PCM_RIGHT)
-	__u16 ac97_addr;	/* slot 1 */
-	__u16 ac97_data;	/* slot 2 */
-	__u32 ac97_pcm;		/* slot 3 and 4: left and right pcm data */
-	__u16 stuff[11];	/* pad to 16 words */
+	u16 ac97_tag;		/* slot 0 */
+	u16 ac97_addr;		/* slot 1 */
+	u16 ac97_data;		/* slot 2 */
+	u32 ac97_pcm;		/* slot 3 and 4: left and right pcm data */
 } __attribute__ ((packed));
 
-struct sport_ac97 {
-	__u16	register_dirty[128/16];
-	int *cmd_count;
-};
+#define TAG_VALID		0x8000
+#define TAG_CMD			0x6000
+#define TAG_PCM_LEFT		0x1000
+#define TAG_PCM_RIGHT		0x0800
+#define TAG_PCM			(TAG_PCM_LEFT | TAG_PCM_RIGHT)
+
 extern struct snd_soc_cpu_dai bfin_ac97_dai;
 
-void bf5xx_ac97_pcm16_to_frame(struct ac97_frame *dst, const __u16 *src, \
+void bf5xx_ac97_pcm32_to_frame(struct ac97_frame *dst, const u32 *src, \
 		size_t count);
 
-void bf5xx_ac97_frame_to_pcm16(const struct ac97_frame *src, __u16 *dst, \
+void bf5xx_ac97_frame_to_pcm32(const struct ac97_frame *src, u32 *dst, \
 		size_t count);
 
 #endif

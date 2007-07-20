@@ -23,9 +23,8 @@
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/soc.h>
-#include <sound/soc-dapm.h>
 
-
+#include <asm/gpio.h>
 #include "../codecs/ad1980.h"
 #include "bf5xx-sport.h"
 #include "bf5xx-pcm.h"
@@ -64,50 +63,8 @@ struct sport_device *sport_handle;
 
 static struct snd_soc_machine bf548_ezkit;
 
-#define TOSA_HP        0
-#define TOSA_MIC_INT   1
-#define TOSA_HEADSET   2
-#define TOSA_HP_OFF    3
-#define TOSA_SPK_ON    0
-#define TOSA_SPK_OFF   1
-
-static int bf548_ezkit_jack_func;
-static int bf548_ezkit_spk_func;
-
-static void bf548_ezkit_ext_control(struct snd_soc_codec *codec)
-{
-	int spk = 0, mic_int = 0, hp = 0, hs = 0;
-
-	/* set up jack connection */
-	switch (bf548_ezkit_jack_func) {
-	case TOSA_HP:
-		hp = 1;
-		break;
-	case TOSA_MIC_INT:
-		mic_int = 1;
-		break;
-	case TOSA_HEADSET:
-		hs = 1;
-		break;
-	}
-
-	if (bf548_ezkit_spk_func == TOSA_SPK_ON)
-		spk = 1;
-
-	snd_soc_dapm_set_endpoint(codec, "Speaker", spk);
-	snd_soc_dapm_set_endpoint(codec, "Mic (Internal)", mic_int);
-	snd_soc_dapm_set_endpoint(codec, "Headphone Jack", hp);
-	snd_soc_dapm_set_endpoint(codec, "Headset Jack", hs);
-	snd_soc_dapm_sync_endpoints(codec);
-}
-
 static int bf548_ezkit_startup(struct snd_pcm_substream *substream)
 {
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec *codec = rtd->socdev->codec;
-
-	/* check the jack status at stream startup */
-	bf548_ezkit_ext_control(codec);
 	return 0;
 }
 
@@ -115,143 +72,8 @@ static struct snd_soc_ops bf548_ezkit_ops = {
 	.startup = bf548_ezkit_startup,
 };
 
-static int bf548_ezkit_get_jack(struct snd_kcontrol *kcontrol,
-	struct snd_ctl_elem_value *ucontrol)
-{
-	ucontrol->value.integer.value[0] = bf548_ezkit_jack_func;
-	return 0;
-}
-
-static int bf548_ezkit_set_jack(struct snd_kcontrol *kcontrol,
-	struct snd_ctl_elem_value *ucontrol)
-{
-	struct snd_soc_codec *codec =  snd_kcontrol_chip(kcontrol);
-
-	if (bf548_ezkit_jack_func == ucontrol->value.integer.value[0])
-		return 0;
-
-	bf548_ezkit_jack_func = ucontrol->value.integer.value[0];
-	bf548_ezkit_ext_control(codec);
-	return 1;
-}
-
-static int bf548_ezkit_get_spk(struct snd_kcontrol *kcontrol,
-	struct snd_ctl_elem_value *ucontrol)
-{
-	ucontrol->value.integer.value[0] = bf548_ezkit_spk_func;
-	return 0;
-}
-
-static int bf548_ezkit_set_spk(struct snd_kcontrol *kcontrol,
-	struct snd_ctl_elem_value *ucontrol)
-{
-	struct snd_soc_codec *codec =  snd_kcontrol_chip(kcontrol);
-
-	if (bf548_ezkit_spk_func == ucontrol->value.integer.value[0])
-		return 0;
-
-	bf548_ezkit_spk_func = ucontrol->value.integer.value[0];
-	bf548_ezkit_ext_control(codec);
-	return 1;
-}
-
-/* bf548_ezkit dapm event handlers */
-static int bf548_ezkit_hp_event(struct snd_soc_dapm_widget *w, int event)
-{
-	return 0;
-}
-
-/* bf548_ezkit machine dapm widgets */
-static const struct snd_soc_dapm_widget bf548_ezkit_dapm_widgets[] = {
-SND_SOC_DAPM_HP("Headphone Jack", bf548_ezkit_hp_event),
-SND_SOC_DAPM_HP("Headset Jack", NULL),
-SND_SOC_DAPM_MIC("Mic (Internal)", NULL),
-SND_SOC_DAPM_SPK("Speaker", NULL),
-};
-
-/* bf548_ezkit audio map */
-static const char *audio_map[][3] = {
-
-	/* headphone connected to HPOUTL, HPOUTR */
-	{"Headphone Jack", NULL, "HPOUTL"},
-	{"Headphone Jack", NULL, "HPOUTR"},
-
-	/* ext speaker connected to LOUT2, ROUT2 */
-	{"Speaker", NULL, "LOUT2"},
-	{"Speaker", NULL, "ROUT2"},
-
-	/* internal mic is connected to mic1, mic2 differential - with bias */
-	{"MIC1", NULL, "Mic Bias"},
-	{"MIC2", NULL, "Mic Bias"},
-	{"Mic Bias", NULL, "Mic (Internal)"},
-
-	/* headset is connected to HPOUTR, and LINEINR with bias */
-	{"Headset Jack", NULL, "HPOUTR"},
-	{"LINEINR", NULL, "Mic Bias"},
-	{"Mic Bias", NULL, "Headset Jack"},
-
-	{NULL, NULL, NULL},
-};
-
-static const char *jack_function[] = {"Headphone", "Mic", "Line", "Headset",
-	"Off"};
-static const char *spk_function[] = {"On", "Off"};
-static const struct soc_enum bf548_ezkit_enum[] = {
-	SOC_ENUM_SINGLE_EXT(5, jack_function),
-	SOC_ENUM_SINGLE_EXT(2, spk_function),
-};
-
-static const struct snd_kcontrol_new bf548_ezkit_controls[] = {
-	SOC_ENUM_EXT("Jack Function", bf548_ezkit_enum[0], bf548_ezkit_get_jack,
-		bf548_ezkit_set_jack),
-	SOC_ENUM_EXT("Speaker Function", bf548_ezkit_enum[1], \
-			bf548_ezkit_get_spk, bf548_ezkit_set_spk),
-};
-
 static int bf548_ezkit_ac97_init(struct snd_soc_codec *codec)
 {
-	int i, err;
-
-	/* Set pin 2, 3, 4, 6, 7 of PORT C to function 00 */
-	if (sport_num == 0) {
-		bfin_write_PORTC_FER(bfin_read_PORTC_FER() | 0xDC);
-		bfin_write_PORTC_MUX(bfin_read_PORTC_MUX() & ~(0xF3F0));
-		sport_params[0].dma_rx = base_addr[CH_SPORT0_RX];
-		sport_params[0].dma_tx = base_addr[CH_SPORT0_TX];
-	} else {
-		printk(KERN_ERR "SPORT %x not support currently\n", sport_num);
-	}
-	sport_handle = sport_init(&sport_params[sport_num], codec->ac97);
-	if (!sport_handle)
-		return -ENODEV;
-
-	sport_set_multichannel(sport_handle, 16, 1);
-	sport_config_rx(sport_handle, IRFS, 0xF, 0, (16*16-1));
-	sport_config_tx(sport_handle, ITFS, 0xF, 0, (16*16-1));
-
-	snd_soc_dapm_set_endpoint(codec, "OUT3", 0);
-	snd_soc_dapm_set_endpoint(codec, "MONOOUT", 0);
-
-	/* add bf548_ezkit specific controls */
-	for (i = 0; i < ARRAY_SIZE(bf548_ezkit_controls); i++) {
-		err = snd_ctl_add(codec->card, snd_soc_cnew( \
-				&bf548_ezkit_controls[i], codec, NULL));
-		if (err < 0)
-			return err;
-	}
-
-	/* add bf548_ezkit specific widgets */
-	for (i = 0; i < ARRAY_SIZE(bf548_ezkit_dapm_widgets); i++) {
-		snd_soc_dapm_new_control(codec, &bf548_ezkit_dapm_widgets[i]);
-	}
-
-	/* set up bf548_ezkit specific audio path audio_map */
-	for (i = 0; audio_map[i][0] != NULL; i++) {
-		snd_soc_dapm_connect_input(codec, audio_map[i][0],
-			audio_map[i][1], audio_map[i][2]);
-	}
-
-	snd_soc_dapm_sync_endpoints(codec);
 	return 0;
 }
 
@@ -264,8 +86,38 @@ static struct snd_soc_dai_link bf548_ezkit_dai = {
 	.ops = &bf548_ezkit_ops,
 };
 
+static int bf548_probe(struct platform_device *pdev)
+{
+	/* Set pin 2, 3, 4, 6, 7 of PORT C to function 00 */
+	if (sport_num == 0) {
+		bfin_write_PORTC_FER(bfin_read_PORTC_FER() | 0xDC);
+		bfin_write_PORTC_MUX(bfin_read_PORTC_MUX() & ~(0xF3F0));
+	} else {
+		printk(KERN_ERR "SPORT %x not support currently\n", sport_num);
+		return -ENODEV;
+	}
+	/* Request PB3 as reset pin */
+	if (gpio_request(GPIO_PB3, NULL)) {
+		printk(KERN_ERR "Failed to request PB3 for reset\n");
+		return -1;
+	}
+	gpio_direction_output(GPIO_PB3);
+	gpio_set_value(GPIO_PB3, 1);
+
+	sport_handle = sport_init(&sport_params[sport_num], NULL);
+	if (!sport_handle)
+		return -ENODEV;
+
+	sport_set_multichannel(sport_handle, 16, 0x1F, 1);
+	sport_config_rx(sport_handle, IRFS, 0xF, 0, (16*16-1));
+	sport_config_tx(sport_handle, ITFS, 0xF, 0, (16*16-1));
+
+	return 0;
+}
+
 static struct snd_soc_machine bf548_ezkit = {
 	.name = "bf548-ezkit",
+	.probe = bf548_probe,
 	.dai_link = &bf548_ezkit_dai,
 	.num_links = 1,
 };

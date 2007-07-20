@@ -6,8 +6,6 @@
  * Created:
  * Description:
  *
- * Rev:          $Id: $
- *
  *               Copyright 2004-2007 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
@@ -38,30 +36,30 @@
 #include <asm/dma.h>
 
 struct sport_register {
-	unsigned short tcr1;    unsigned short reserved0;
-	unsigned short tcr2;    unsigned short reserved1;
-	unsigned short tclkdiv; unsigned short reserved2;
-	unsigned short tfsdiv;  unsigned short reserved3;
-	unsigned long tx;
-	unsigned long reserved_l0;
-	unsigned long rx;
-	unsigned long reserved_l1;
-	unsigned short rcr1;    unsigned short reserved4;
-	unsigned short rcr2;    unsigned short reserved5;
-	unsigned short rclkdiv; unsigned short reserved6;
-	unsigned short rfsdiv;  unsigned short reserved7;
-	unsigned short stat;    unsigned short reserved8;
-	unsigned short chnl;    unsigned short reserved9;
-	unsigned short mcmc1;   unsigned short reserved10;
-	unsigned short mcmc2;   unsigned short reserved11;
-	unsigned long mtcs0;
-	unsigned long mtcs1;
-	unsigned long mtcs2;
-	unsigned long mtcs3;
-	unsigned long mrcs0;
-	unsigned long mrcs1;
-	unsigned long mrcs2;
-	unsigned long mrcs3;
+	u16 tcr1;	u16 reserved0;
+	u16 tcr2;	u16 reserved1;
+	u16 tclkdiv;	u16 reserved2;
+	u16 tfsdiv;	u16 reserved3;
+	u32 tx;
+	u32 reserved_l0;
+	u32 rx;
+	u32 reserved_l1;
+	u16 rcr1;	u16 reserved4;
+	u16 rcr2;	u16 reserved5;
+	u16 rclkdiv;	u16 reserved6;
+	u16 rfsdiv;	u16 reserved7;
+	u16 stat;	u16 reserved8;
+	u16 chnl;	u16 reserved9;
+	u16 mcmc1;	u16 reserved10;
+	u16 mcmc2;	u16 reserved11;
+	u32 mtcs0;
+	u32 mtcs1;
+	u32 mtcs2;
+	u32 mtcs3;
+	u32 mrcs0;
+	u32 mrcs1;
+	u32 mrcs2;
+	u32 mrcs3;
 };
 
 #define DESC_ELEMENT_COUNT 9
@@ -72,14 +70,14 @@ struct sport_device {
 	int err_irq;
 	struct sport_register *regs;
 
-	struct dma_register *dma_rx;
-	struct dma_register *dma_tx;
 	unsigned char *rx_buf;
 	unsigned char *tx_buf;
 	unsigned int rx_fragsize;
 	unsigned int tx_fragsize;
 	unsigned int rx_frags;
 	unsigned int tx_frags;
+	unsigned int rx_wdsize;
+	unsigned int tx_wdsize;
 
 #define DUMMY_BUF_LEN 8
 	/* for dummy dma transfer */
@@ -91,7 +89,7 @@ struct sport_device {
 	unsigned int rx_desc_bytes;
 	unsigned int tx_desc_bytes;
 
-	unsigned int rx_run:1, /* rx is running */
+	unsigned int rx_run:1; /* rx is running */
 	unsigned int tx_run:1; /* tx is running */
 
 	struct dmasg *dummy_rx_desc;
@@ -112,8 +110,11 @@ struct sport_device {
 	int tx_tdm_count;
 
 	void (*rx_callback)(void *data);
+	void *rx_data;
 	void (*tx_callback)(void *data);
+	void *tx_data;
 	void (*err_callback)(void *data);
+	void *err_data;
 
 	void *private_data;
 };
@@ -125,8 +126,6 @@ struct sport_param {
 	int dma_tx_chan;
 	int err_irq;
 	struct sport_register *regs;
-	struct dma_register *dma_rx;
-	struct dma_register *dma_tx;
 };
 
 struct sport_device *sport_init(struct sport_param *param,
@@ -139,7 +138,7 @@ void sport_done(struct sport_device *sport);
 /* note: multichannel is in units of 8 channels, tdm_count is number of channels
  *  NOT / 8 ! all channels are enabled by default */
 int sport_set_multichannel(struct sport_device *sport, int tdm_count,
-		int packed);
+		u32 mask, int packed);
 
 int sport_config_rx(struct sport_device *sport,
 		unsigned int rcr1, unsigned int rcr2,
@@ -173,4 +172,13 @@ unsigned long sport_curr_offset_tx(struct sport_device *sport);
 void incfrag(struct sport_device *sport, int *frag, int tx);
 void decfrag(struct sport_device *sport, int *frag, int tx);
 
+int sport_set_rx_callback(struct sport_device *sport,
+		       void (*rx_callback)(void *), void *rx_data);
+int sport_set_tx_callback(struct sport_device *sport,
+		       void (*tx_callback)(void *), void *tx_data);
+int sport_set_err_callback(struct sport_device *sport,
+		       void (*err_callback)(void *), void *err_data);
+
+int sport_send_and_recv(struct sport_device *sport, u8 *out_data, \
+		u8 *in_data, int len);
 #endif /* BF53X_SPORT_H */

@@ -16,6 +16,7 @@
 #include <linux/interrupt.h>
 #include <linux/wait.h>
 #include <linux/delay.h>
+#include <linux/proc_fs.h>
 
 #include <sound/driver.h>
 #include <sound/core.h>
@@ -25,109 +26,135 @@
 #include <sound/soc.h>
 
 #include <asm/irq.h>
+#include <asm/gpio.h>
 #include <linux/mutex.h>
 
 #include "bf5xx-sport.h"
 #include "bf5xx-ac97.h"
 
-static struct sport_ac97 ac97_dev;
+static int *cmd_count;
 
-#define reg_set_clean(reg)	(ac97_dev.register_dirty[(reg) >> 4] &= \
-		~(1 << ((reg) & 0xf)))
-#define reg_set_dirty(reg)	(ac97_dev.register_dirty[(reg) >> 4] |= \
-		(1 << ((reg) & 0xf)))
-#define reg_is_dirty(reg)	(ac97_dev.register_dirty[(reg) >> 4] & \
-		(1 << ((reg) & 0xf)))
-#define reg_any_dirty()		(ac97_dev.register_dirty[0] || \
-		ac97_dev.register_dirty[1] || ac97_dev.register_dirty[2] || \
-		ac97_dev.register_dirty[3] || ac97_dev.register_dirty[4] || \
-		ac97_dev.register_dirty[5] || ac97_dev.register_dirty[6] || \
-		ac97_dev.register_dirty[7])
-
-void bf5xx_ac97_pcm16_to_frame(struct ac97_frame *dst, const __u16 *src, \
+void bf5xx_ac97_pcm32_to_frame(struct ac97_frame *dst, const __u32 *src, \
 		size_t count)
 {
 	while (count--) {
-		(dst++)->ac97_pcm = (*src << 16) | *src;
+		dst->ac97_tag = TAG_VALID | TAG_PCM;
+		(dst++)->ac97_pcm = *src++;
 	}
 }
 
-void bf5xx_ac97_frame_to_pcm16(const struct ac97_frame *src, __u16 *dst, \
+void bf5xx_ac97_frame_to_pcm32(const struct ac97_frame *src, __u32 *dst, \
 		size_t count)
 {
 	while (count--) {
-		/* Left channel */
-		*(dst++) = (unsigned short)((src)->ac97_pcm & 0xFFFF);
-		/* Right channel */
-		*(dst++) = (unsigned short)(((src)->ac97_pcm >> 16) & 0xFFFF);
+		*(dst++) = (src++)->ac97_pcm;
 	}
 }
 static unsigned int sport_tx_curr_frag(struct sport_device *sport)
 {
-	return sport->tx_curr_frag = (sport->dma_tx->curr_addr_ptr - \
-			(unsigned long)sport->tx_buf) / \
+	return sport->tx_curr_frag = sport_curr_offset_tx(sport) / \
 			(sizeof(struct ac97_frame) * sport->tx_fragsize);
 }
 
 static unsigned int sport_rx_curr_frag(struct sport_device *sport)
 {
-	return sport->rx_curr_frag = (sport->dma_rx->curr_addr_ptr - \
-			(unsigned long)sport->rx_buf) / \
+	return sport->rx_curr_frag = sport_curr_offset_rx(sport) / \
 			(sizeof(struct ac97_frame) * sport->rx_fragsize);
 }
 
-
 static void enqueue_cmd(struct snd_ac97 *ac97, __u16 addr, __u16 data)
 {
-	struct sport_device *sport = ac97->private_data;
+	struct sport_device *sport = sport_handle;
 	int nextfrag = sport_tx_curr_frag(sport);
 	struct ac97_frame *nextwrite;
 
 	incfrag(sport, &nextfrag, 1);
 	incfrag(sport, &nextfrag, 1);
 
+	pr_debug("sport->tx_buf:%p, nextfrag:0x%x\n", sport->tx_buf, nextfrag);
 	nextwrite = (struct ac97_frame *)(sport->tx_buf + \
 			nextfrag * sport->tx_frags);
-	nextwrite[ac97_dev.cmd_count[nextfrag]].ac97_addr = addr;
-	nextwrite[ac97_dev.cmd_count[nextfrag]].ac97_data = data;
-	nextwrite[ac97_dev.cmd_count[nextfrag]].ac97_tag |= TAG_CMD;
-	++ac97_dev.cmd_count[nextfrag];
+	nextwrite[cmd_count[nextfrag]].ac97_tag |= TAG_CMD;
+	nextwrite[cmd_count[nextfrag]].ac97_addr = addr;
+	nextwrite[cmd_count[nextfrag]].ac97_data = data;
+	++cmd_count[nextfrag];
 	pr_debug("ac97_sport: Inserting %02x/%04x into fragment %d\n",
-	       addr >> 8, data, nextfrag);
+			addr >> 8, data, nextfrag);
 }
 
 static unsigned short bf5xx_ac97_read(struct snd_ac97 *ac97,
 	unsigned short reg)
 {
-	if ((reg > 127) || (reg & 0x1))
-		return -EINVAL;
+	struct ac97_frame out_frame[2], in_frame[2];
 
-	if (reg_is_dirty(reg))
-		return -EAGAIN;
+	pr_debug("%s enter 0x%x\n", __FUNCTION__, reg);
 
-	return ac97->regs[reg];
+	/* When dma descriptor is enabled, the register should not be read */
+	if (sport_handle->tx_run || sport_handle->rx_run) {
+		printk(KERN_ERR "Could you send a mail to author "
+				"to report this?\n");
+		return -EFAULT;
+	}
+
+	memset(&out_frame, 0, 2 * sizeof(struct ac97_frame));
+	memset(&in_frame, 0, 2 * sizeof(struct ac97_frame));
+	out_frame[0].ac97_tag = TAG_VALID | TAG_CMD;
+	out_frame[0].ac97_addr = ((reg << 8) | 0x8000);
+	sport_send_and_recv(sport_handle, (unsigned char *)&out_frame,
+			(unsigned char *)&in_frame,
+			2 * sizeof(struct ac97_frame));
+	return in_frame[1].ac97_data;
 }
 
 static void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
 	unsigned short val)
 {
-	if ((reg > 127) || (reg & 0x1)) {
-		printk(KERN_ERR "Register out of range\n");
-		return ;
+	pr_debug("%s enter 0x%x:0x%04x\n", __FUNCTION__, reg, val);
+
+	if (sport_handle->tx_run) {
+		enqueue_cmd(ac97, (reg << 8), val); /* write */
+		enqueue_cmd(ac97, (reg << 8) | 0x8000, 0); /* read back */
+	} else {
+		struct ac97_frame frame;
+		memset(&frame, 0, sizeof(struct ac97_frame));
+		frame.ac97_tag = TAG_VALID | TAG_CMD;
+		frame.ac97_addr = (reg << 8);
+		frame.ac97_data = val;
+		sport_send_and_recv(sport_handle, (unsigned char *)&frame, \
+				NULL, sizeof(struct ac97_frame));
 	}
-
-	enqueue_cmd(ac97, reg << 8, val); /* write */
-	enqueue_cmd(ac97, (reg << 8) | 0x8000, 0); /* read back */
-
-	reg_set_dirty(reg);
 }
 
 static void bf5xx_ac97_warm_reset(struct snd_ac97 *ac97)
 {
+	pr_debug("%s enter\n", __FUNCTION__);
+
+	/* It is specified for bf548-ezkit */
+	/* Set RFS (PORT C4) to gpio mode and drive it high for 2us */
+	bfin_write_PORTC_FER(bfin_read_PORTC_FER() & ~0x10);
+	bfin_write_PORTC_DIR_SET(0x10); /* Direction output */
+	bfin_write_PORTC_SET(0x10); /* Set value to 1 */
+	SSYNC();
+	udelay(2);
+	bfin_write_PORTC_CLEAR(0x10); /* Set value to 0 */
+	SSYNC();
+
+	/* Reset it to SPORT function, assume PORTC_MUX is unchanged */
+	bfin_write_PORTC_FER(bfin_read_PORTC_FER() | 0x10);
+	SSYNC();
 }
 
 static void bf5xx_ac97_cold_reset(struct snd_ac97 *ac97)
 {
+	pr_debug("%s enter\n", __FUNCTION__);
+
+	/* It is specified for bf548-ezkit */
+	gpio_set_value(GPIO_PB3, 0);
+	/* Keep reset pin low for 1 us */
+	udelay(1);
+	gpio_set_value(GPIO_PB3, 1);
+	/* Wait for bit clock recover */
+	udelay(1);
 }
 
 struct snd_ac97_bus_ops soc_ac97_ops = {
@@ -156,18 +183,48 @@ static int bf5xx_ac97_resume(struct platform_device *pdev,
 #define bf5xx_ac97_resume	NULL
 #endif
 
+static struct proc_dir_entry *ac_entry;
+
+/* Test purpose */
+static int proc_write(struct file *file, const char __user *buffer,
+		unsigned long count, void *data)
+{
+	char c;
+	struct ac97_frame frame;
+	struct ac97_frame out_frame[2], in_frame[2];
+
+	unsigned long reg = simple_strtoul(buffer, NULL, 16);
+
+	/* Read out vendor register */
+	memset(&out_frame, 0, 2 * sizeof(struct ac97_frame));
+	out_frame[0].ac97_tag = TAG_VALID | TAG_CMD;
+	out_frame[0].ac97_addr = (unsigned short) ((reg << 8) | 0x8000);
+	sport_send_and_recv(sport_handle, (unsigned char *)&out_frame,
+				(unsigned char *)&in_frame,
+				2 * sizeof(struct ac97_frame));
+	pr_debug("0x%x:%04x\n", out_frame[0].ac97_addr, in_frame[1].ac97_data);
+
+	return count;
+}
+
 static int bf5xx_ac97_probe(struct platform_device *pdev)
 {
-	ac97_dev.cmd_count = kmalloc(sport_handle->tx_frags * sizeof(int), \
-			GFP_KERNEL);
-	if (ac97_dev.cmd_count == NULL)
+	cmd_count = kmalloc(sport_handle->tx_frags * sizeof(int), GFP_KERNEL);
+	if (cmd_count == NULL)
 		return -ENOMEM;
 
+	ac_entry = create_proc_entry("driver/sport_ac97", 0600, NULL);
+	ac_entry->read_proc = NULL;
+	ac_entry->write_proc = proc_write;
+	ac_entry->data = sport_handle;
 	return 0;
 }
 
 static void bf5xx_ac97_remove(struct platform_device *pdev)
 {
+	kfree(cmd_count);
+	cmd_count = NULL;
+	remove_proc_entry("driver/sport_ac97", NULL);
 }
 
 struct snd_soc_cpu_dai bfin_ac97_dai = {
@@ -180,19 +237,19 @@ struct snd_soc_cpu_dai bfin_ac97_dai = {
 	.resume = bf5xx_ac97_resume,
 	.playback = {
 		.stream_name = "AC97 Playback",
-		.channels_min = 1,
-		.channels_max = 6,
-		.rates = SNDRV_PCM_RATE_CONTINUOUS,
+		.channels_min = 2,
+		.channels_max = 2,
+		.rates = SNDRV_PCM_RATE_48000,
 		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
 	.capture = {
 		.stream_name = "AC97 Capture",
 		.channels_min = 2,
 		.channels_max = 2,
-		.rates = SNDRV_PCM_RATE_CONTINUOUS,
+		.rates = SNDRV_PCM_RATE_48000,
 		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
 };
 EXPORT_SYMBOL_GPL(bfin_ac97_dai);
 
 MODULE_AUTHOR("Roy Huang");
-MODULE_DESCRIPTION("AC97 driver for the ADI Blackfin chip");
+MODULE_DESCRIPTION("AC97 driver for ADI Blackfin");
 MODULE_LICENSE("GPL");
