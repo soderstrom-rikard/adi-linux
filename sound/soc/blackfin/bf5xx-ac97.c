@@ -50,16 +50,11 @@ void bf5xx_ac97_frame_to_pcm32(const struct ac97_frame *src, __u32 *dst, \
 		*(dst++) = (src++)->ac97_pcm;
 	}
 }
+
 static unsigned int sport_tx_curr_frag(struct sport_device *sport)
 {
 	return sport->tx_curr_frag = sport_curr_offset_tx(sport) / \
 			(sizeof(struct ac97_frame) * sport->tx_fragsize);
-}
-
-static unsigned int sport_rx_curr_frag(struct sport_device *sport)
-{
-	return sport->rx_curr_frag = sport_curr_offset_rx(sport) / \
-			(sizeof(struct ac97_frame) * sport->rx_fragsize);
 }
 
 static void enqueue_cmd(struct snd_ac97 *ac97, __u16 addr, __u16 data)
@@ -154,7 +149,7 @@ static void bf5xx_ac97_cold_reset(struct snd_ac97 *ac97)
 	udelay(1);
 	gpio_set_value(GPIO_PB3, 1);
 	/* Wait for bit clock recover */
-	udelay(1);
+	mdelay(1);
 }
 
 struct snd_ac97_bus_ops soc_ac97_ops = {
@@ -189,10 +184,7 @@ static struct proc_dir_entry *ac_entry;
 static int proc_write(struct file *file, const char __user *buffer,
 		unsigned long count, void *data)
 {
-	char c;
-	struct ac97_frame frame;
 	struct ac97_frame out_frame[2], in_frame[2];
-
 	unsigned long reg = simple_strtoul(buffer, NULL, 16);
 
 	/* Read out vendor register */

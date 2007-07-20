@@ -28,8 +28,6 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-
-#define DEBUG
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/delay.h>
@@ -933,7 +931,7 @@ int sport_send_and_recv(struct sport_device *sport, u8 *out_data, \
 		status = *(volatile unsigned short*)&sport->regs->stat;
 	}
 	/* Wait for the last byte sent out */
-	udelay(5);
+	udelay(20);
 	pr_debug("sport status:0x%04x\n", status);
 
 __over:
@@ -947,11 +945,8 @@ __over:
 		disable_dma(sport->dma_rx_chan);
 		clear_dma_irqstat(sport->dma_rx_chan);
 	}
-	/* Clear sport stat */
-	sport->regs->stat = 0x36;
+	SSYNC();
 	local_irq_restore(flags);
 
 	return 0;
-
 }
-

@@ -229,8 +229,7 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 		if (!buf->area)
 			continue;
 
-		dma_free_coherent(NULL, buf->bytes * \
-				sizeof(struct ac97_frame) / 4 , buf->area, 0);
+		dma_free_coherent(NULL, buf->bytes, buf->area, 0);
 		buf->area = NULL;
 	}
 }
