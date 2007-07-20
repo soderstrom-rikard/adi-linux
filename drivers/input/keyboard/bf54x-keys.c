@@ -267,7 +267,7 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 	/* setup input device */
 	set_bit(EV_KEY, bf54x_kpad->input->evbit);
 
-	for (i = 0; pdata->keymap[i] != 0; i++)
+	for (i = 0; i < pdata->keymapsize; i++)
 		set_bit(pdata->keymap[i] & KEY_MAX, bf54x_kpad->input->keybit);
 
 	error = input_register_device(bf54x_kpad->input);
