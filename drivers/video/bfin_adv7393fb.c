@@ -288,10 +288,10 @@ static void bfin_config_ppi(struct adv7393fb_device *fbdev)
 #endif
 
 
-#if defined(ANOMALY_05000183)
-	bfin_write_TIMER2_CONFIG(WDTH_CAP);
-	bfin_write_TIMER_ENABLE(TIMEN2);
-#endif
+	if (ANOMALY_05000183) {
+		bfin_write_TIMER2_CONFIG(WDTH_CAP);
+		bfin_write_TIMER_ENABLE(TIMEN2);
+	}
 
 	bfin_write_PPI_CONTROL(0x381E);
 	bfin_write_PPI_FRAME(fbdev->modes[mode].tot_lines);
