@@ -27,6 +27,8 @@
 #define ANOMALY_05000265 (1)
 /* Certain Data Cache Writethrough Modes Fail for Vddint <= 0.9V */
 #define ANOMALY_05000272 (1)
+/* False Hardware Error Exception when ISR context is not restored */
+#define ANOMALY_05000281 (1)
 /* False Hardware Errors Caused by Fetches at the Boundary of Reserved Memory */
 #define ANOMALY_05000310 (1)
 /* Errors When SSYNC, CSYNC, or Loads to LT, LB and LC Registers Are Interrupted */
