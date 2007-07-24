@@ -50,7 +50,7 @@
 #define DRV_NAME 	"bf54x-keys"
 #define TIME_SCALE	100	/* 100 ns */
 #define	MAX_MULT	(0xFF * TIME_SCALE)
-
+#define MAX_RC		8	/* Max Row/Col */
 
 static u16 per_rows[] = {
 	P_KEY_ROW7,
@@ -210,14 +210,14 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 			msecs_to_jiffies(pdata->keyup_test_interval);
 	}
 
-	if (peripheral_request_list(&per_rows[pdata->rows - 1], DRV_NAME)) {
+	if (peripheral_request_list(&per_rows[MAX_RC - pdata->rows], DRV_NAME)) {
 		printk(KERN_ERR DRV_NAME
 		": Requesting Peripherals failed\n");
 		error = -EFAULT;
 		goto out;
 	}
 
-	if (peripheral_request_list(&per_cols[pdata->cols - 1], DRV_NAME)) {
+	if (peripheral_request_list(&per_cols[MAX_RC - pdata->cols], DRV_NAME)) {
 		printk(KERN_ERR DRV_NAME
 		": Requesting Peripherals failed\n");
 		error = -EFAULT;
@@ -304,9 +304,9 @@ out4:
 out3:
 	free_irq(bf54x_kpad->irq, pdev);
 out2:
-	peripheral_free_list(&per_cols[pdata->cols - 1]);
+	peripheral_free_list(&per_cols[MAX_RC - pdata->cols]);
 out1:
-	peripheral_free_list(&per_rows[pdata->rows - 1]);
+	peripheral_free_list(&per_rows[MAX_RC - pdata->rows]);
 out:
 	kfree(bf54x_kpad);
 
@@ -322,8 +322,8 @@ static int __devexit bfin_kpad_remove(struct platform_device *pdev)
 	del_timer_sync(&bf54x_kpad->timer);
 	free_irq(bf54x_kpad->irq, pdev);
 
-	peripheral_free_list(&per_rows[pdata->rows - 1]);
-	peripheral_free_list(&per_rows[pdata->cols - 1]);
+	peripheral_free_list(&per_rows[MAX_RC - pdata->rows]);
+	peripheral_free_list(&per_cols[MAX_RC - pdata->cols]);
 
 	input_unregister_device(bf54x_kpad->input);
 
