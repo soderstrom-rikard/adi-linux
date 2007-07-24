@@ -214,7 +214,7 @@ static int restore_state(struct driver_data *drv_data)
 		chip->chip_select_requested = 1;
 	}
 
-	if (!ret)
+	if (ret)
 		dev_dbg(&drv_data->pdev->dev,
 			": request chip select number %d failed\n",
 			chip->chip_select_num);
