@@ -812,7 +812,7 @@ static int bf537mac_open(struct net_device *dev)
 	}
 
 	/* initial rx and tx list */
-	ret = desc_list_init();
+	retval = desc_list_init();
 
 	if (retval)
 		return retval;
