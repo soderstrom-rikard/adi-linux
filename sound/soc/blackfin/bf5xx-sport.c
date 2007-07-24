@@ -5,9 +5,6 @@
  *
  * Created:      Tue Sep 21 10:52:42 CEST 2004
  * Description:
- *
- * Rev:          $Id: $
- *
  *               Copyright 2004-2007 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
@@ -429,6 +426,7 @@ int sport_config_rx_dma(struct sport_device *sport, void *buf,
 	sport->rx_desc_bytes = fragcount * sizeof(struct dmasg);
 
 	if (!sport->dma_rx_desc) {
+		printk(KERN_ERR "Failed to allocate memory for rx desc\n");
 		return -ENOMEM;
 	}
 
@@ -490,6 +488,7 @@ int sport_config_tx_dma(struct sport_device *sport, void *buf,
 			fragcount * sizeof(struct dmasg), &addr, 0);
 	sport->tx_desc_bytes = fragcount * sizeof(struct dmasg);
 	if (!sport->dma_tx_desc) {
+		printk(KERN_ERR "Failed to allocate memory for tx desc\n");
 		return -ENOMEM;
 	}
 
@@ -523,8 +522,10 @@ static int sport_config_rx_dummy(struct sport_device *sport, size_t wordlen)
 		desc = dma_alloc_coherent(NULL, 2 * sizeof(*desc), &addr, 0);
 	}
 #endif
-	if (desc == NULL)
+	if (desc == NULL) {
+		printk(KERN_ERR "Failed to allocate memory for dummy rx desc\n");
 		return -ENOMEM;
+	}
 
 	memset(desc, 0, 2 * sizeof(*desc));
 	sport->dummy_rx_desc = desc;
@@ -556,8 +557,10 @@ static int sport_config_tx_dummy(struct sport_device *sport, size_t wordlen)
 		desc = dma_alloc_coherent(NULL, 2*sizeof(*desc), &addr, 0);
 	}
 #endif
-	if (!desc)
+	if (!desc) {
+		printk(KERN_ERR "Failed to allocate memory for dummy tx desc\n");
 		return -ENOMEM;
+	}
 
 	memset(desc, 0, 2 * sizeof(*desc));
 	sport->dummy_tx_desc = desc;

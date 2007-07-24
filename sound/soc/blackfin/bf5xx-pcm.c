@@ -44,7 +44,7 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 				  SNDRV_PCM_INFO_BLOCK_TRANSFER,
 	.formats		= SNDRV_PCM_FMTBIT_S16_LE,
 	.period_bytes_min	= 32,
-	.period_bytes_max	= 16 * 1024 - 32,
+	.period_bytes_max	= 0x10000,
 	.periods_min		= 1,
 	.periods_max		= PAGE_SIZE/32,
 	.buffer_bytes_max	= 0x20000, /* 128 kbytes */
@@ -90,6 +90,8 @@ static int bf5xx_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	struct sport_device *sport = substream->runtime->private_data;
 	int ret = 0;
 
+	pr_debug("%s %s\n", substream->stream?"Capture":"Playback", \
+			cmd?" start":" stop");
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
@@ -201,8 +203,10 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 	buf->dev.dev = pcm->card->dev;
 	buf->private_data = NULL;
 	buf->area = dma_alloc_coherent(pcm->card->dev, size, &buf->addr, GFP_KERNEL);
-	if (!buf->area)
+	if (!buf->area) {
+		printk(KERN_ERR "Failed to allocate dma memory\n");
 		return -ENOMEM;
+	}
 	buf->bytes = size;
 
 	pr_debug("%s, area:%p, size:0x%08lx\n", __FUNCTION__, buf->area, buf->bytes);

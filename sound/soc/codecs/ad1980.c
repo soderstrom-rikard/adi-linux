@@ -240,7 +240,7 @@ static int ad1980_soc_probe(struct platform_device *pdev)
 	if (ac97_read(codec, AC97_VENDOR_ID2) != 0x5370)
 		goto reset_err;
 
-	ac97_write(codec, AC97_MASTER, 0x0f0f); /* unmute line out volume */
+	ac97_write(codec, AC97_MASTER, 0x0000); /* unmute line out volume */
 	ac97_write(codec, AC97_PCM, 0x0000);	/* unmute PCM out volume */
 	ac97_write(codec, AC97_REC_SEL, 0x0404);/* Select line in */
 	ac97_write(codec, AC97_REC_GAIN, 0x0000);/* unmute record volume */

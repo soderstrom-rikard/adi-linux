@@ -180,21 +180,21 @@ static int bf5xx_ac97_resume(struct platform_device *pdev,
 
 static struct proc_dir_entry *ac_entry;
 
-/* Test purpose */
+/* Test purpose, read out an register from codec */
 static int proc_write(struct file *file, const char __user *buffer,
 		unsigned long count, void *data)
 {
 	struct ac97_frame out_frame[2], in_frame[2];
 	unsigned long reg = simple_strtoul(buffer, NULL, 16);
 
-	/* Read out vendor register */
 	memset(&out_frame, 0, 2 * sizeof(struct ac97_frame));
 	out_frame[0].ac97_tag = TAG_VALID | TAG_CMD;
 	out_frame[0].ac97_addr = (unsigned short) ((reg << 8) | 0x8000);
 	sport_send_and_recv(sport_handle, (unsigned char *)&out_frame,
 				(unsigned char *)&in_frame,
 				2 * sizeof(struct ac97_frame));
-	pr_debug("0x%x:%04x\n", out_frame[0].ac97_addr, in_frame[1].ac97_data);
+	printk(KERN_INFO"0x%x:%04x\n", out_frame[0].ac97_addr, \
+			in_frame[1].ac97_data);
 
 	return count;
 }
