@@ -59,10 +59,9 @@ MODULE_LICENSE("GPL");
 
 #define DEFINE_SPI_REG(reg, off) \
 static inline u16 read_##reg(void) \
-	{ return *(unsigned short *)(SPI0_REGBASE + off); } \
+	{ return bfin_read16(SPI0_REGBASE + off); } \
 static inline void write_##reg(u16 v) \
-	{*(unsigned short *)(SPI0_REGBASE + off) = v;\
-		SSYNC(); }
+	{bfin_write16(SPI0_REGBASE + off, v); }
 
 DEFINE_SPI_REG(CTRL, 0x00)
 DEFINE_SPI_REG(FLAG, 0x04)
@@ -145,7 +144,6 @@ static void bfin_spi_enable(struct driver_data *drv_data)
 
 	cr = read_CTRL();
 	write_CTRL(cr | BIT_CTL_ENABLE);
-	SSYNC();
 }
 
 static void bfin_spi_disable(struct driver_data *drv_data)
@@ -154,7 +152,6 @@ static void bfin_spi_disable(struct driver_data *drv_data)
 
 	cr = read_CTRL();
 	write_CTRL(cr & (~BIT_CTL_ENABLE));
-	SSYNC();
 }
 
 /* Caculate the SPI_BAUD register value based on input HZ */
@@ -277,7 +274,6 @@ static void u8_cs_chg_writer(struct driver_data *drv_data)
 
 	while (drv_data->tx < drv_data->tx_end) {
 		write_FLAG(chip->flag);
-		SSYNC();
 
 		write_TDBR(*(u8 *) (drv_data->tx));
 		while (read_STAT() & BIT_STAT_TXS)
@@ -285,13 +281,13 @@ static void u8_cs_chg_writer(struct driver_data *drv_data)
 		while (!(read_STAT() & BIT_STAT_SPIF))
 			continue;
 		write_FLAG(0xFF00 | chip->flag);
-		SSYNC();
+
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		++drv_data->tx;
 	}
 	write_FLAG(0xFF00);
-	SSYNC();
+
 }
 
 static void u8_reader(struct driver_data *drv_data)
@@ -323,7 +319,6 @@ static void u8_cs_chg_reader(struct driver_data *drv_data)
 
 	while (drv_data->rx < drv_data->rx_end) {
 		write_FLAG(chip->flag);
-		SSYNC();
 
 		read_RDBR();	/* kick off */
 		while (!(read_STAT() & BIT_STAT_RXS))
@@ -332,13 +327,13 @@ static void u8_cs_chg_reader(struct driver_data *drv_data)
 			continue;
 		*(u8 *) (drv_data->rx) = read_SHAW();
 		write_FLAG(0xFF00 | chip->flag);
-		SSYNC();
+
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		++drv_data->rx;
 	}
 	write_FLAG(0xFF00);
-	SSYNC();
+
 }
 
 static void u8_duplex(struct driver_data *drv_data)
@@ -362,7 +357,7 @@ static void u8_cs_chg_duplex(struct driver_data *drv_data)
 
 	while (drv_data->rx < drv_data->rx_end) {
 		write_FLAG(chip->flag);
-		SSYNC();
+
 
 		write_TDBR(*(u8 *) (drv_data->tx));
 		while (!(read_STAT() & BIT_STAT_SPIF))
@@ -371,14 +366,14 @@ static void u8_cs_chg_duplex(struct driver_data *drv_data)
 			continue;
 		*(u8 *) (drv_data->rx) = read_RDBR();
 		write_FLAG(0xFF00 | chip->flag);
-		SSYNC();
+
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		++drv_data->rx;
 		++drv_data->tx;
 	}
 	write_FLAG(0xFF00);
-	SSYNC();
+
 }
 
 static void u16_writer(struct driver_data *drv_data)
@@ -404,7 +399,6 @@ static void u16_cs_chg_writer(struct driver_data *drv_data)
 
 	while (drv_data->tx < drv_data->tx_end) {
 		write_FLAG(chip->flag);
-		SSYNC();
 
 		write_TDBR(*(u16 *) (drv_data->tx));
 		while ((read_STAT() & BIT_STAT_TXS))
@@ -412,13 +406,12 @@ static void u16_cs_chg_writer(struct driver_data *drv_data)
 		while (!(read_STAT() & BIT_STAT_SPIF))
 			continue;
 		write_FLAG(0xFF00 | chip->flag);
-		SSYNC();
+
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		drv_data->tx += 2;
 	}
 	write_FLAG(0xFF00);
-	SSYNC();
 }
 
 static void u16_reader(struct driver_data *drv_data)
@@ -446,7 +439,6 @@ static void u16_cs_chg_reader(struct driver_data *drv_data)
 
 	while (drv_data->rx < drv_data->rx_end) {
 		write_FLAG(chip->flag);
-		SSYNC();
 
 		read_RDBR();	/* kick off */
 		while (!(read_STAT() & BIT_STAT_RXS))
@@ -455,13 +447,12 @@ static void u16_cs_chg_reader(struct driver_data *drv_data)
 			continue;
 		*(u16 *) (drv_data->rx) = read_SHAW();
 		write_FLAG(0xFF00 | chip->flag);
-		SSYNC();
+
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		drv_data->rx += 2;
 	}
 	write_FLAG(0xFF00);
-	SSYNC();
 }
 
 static void u16_duplex(struct driver_data *drv_data)
@@ -485,7 +476,6 @@ static void u16_cs_chg_duplex(struct driver_data *drv_data)
 
 	while (drv_data->tx < drv_data->tx_end) {
 		write_FLAG(chip->flag);
-		SSYNC();
 
 		write_TDBR(*(u16 *) (drv_data->tx));
 		while (!(read_STAT() & BIT_STAT_SPIF))
@@ -494,14 +484,13 @@ static void u16_cs_chg_duplex(struct driver_data *drv_data)
 			continue;
 		*(u16 *) (drv_data->rx) = read_RDBR();
 		write_FLAG(0xFF00 | chip->flag);
-		SSYNC();
+
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		drv_data->rx += 2;
 		drv_data->tx += 2;
 	}
 	write_FLAG(0xFF00);
-	SSYNC();
 }
 
 /* test if ther is more transfer to be done */
@@ -803,7 +792,6 @@ static void pump_transfers(unsigned long data)
 				"IO duplex: cr is 0x%x\n", cr);
 
 			write_CTRL(cr);
-			SSYNC();
 
 			drv_data->duplex(drv_data);
 
@@ -818,7 +806,6 @@ static void pump_transfers(unsigned long data)
 				"IO write: cr is 0x%x\n", cr);
 
 			write_CTRL(cr);
-			SSYNC();
 
 			drv_data->write(drv_data);
 
@@ -833,7 +820,6 @@ static void pump_transfers(unsigned long data)
 				"IO read: cr is 0x%x\n", cr);
 
 			write_CTRL(cr);
-			SSYNC();
 
 			drv_data->read(drv_data);
 			if (drv_data->rx != drv_data->rx_end)
