@@ -345,6 +345,14 @@ void set_dma_sg(unsigned int channel, struct dmasg *sg, int nr_sg)
 }
 EXPORT_SYMBOL(set_dma_sg);
 
+void set_dma_curr_addr(unsigned int channel, unsigned long addr)
+{
+	BUG_ON(!(dma_ch[channel].chan_status != DMA_CHANNEL_FREE
+	       && channel < MAX_BLACKFIN_DMA_CHANNEL));
+
+	dma_ch[channel].regs->curr_addr_ptr = addr;
+	SSYNC();
+}
 /*------------------------------------------------------------------------------
  *	Get the DMA status of a specific DMA channel from the system.
  *-----------------------------------------------------------------------------*/

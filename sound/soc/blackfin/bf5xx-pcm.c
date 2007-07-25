@@ -123,11 +123,12 @@ static snd_pcm_uframes_t bf5xx_pcm_pointer(struct snd_pcm_substream *substream)
 	struct sport_device *sport = runtime->private_data;
 	unsigned int curr;
 
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		curr = sport_curr_offset_tx(sport) / sizeof(struct ac97_frame);
-		pr_debug("Playback pointer curr:0x%0x\n", curr);
-	} else
+	else
 		curr = sport_curr_offset_rx(sport) / sizeof(struct ac97_frame);
+	pr_debug("%s pointer curr:0x%0x\n", substream->stream ? \
+			"Capture":"Playback", curr);
 
 	return curr;
 }

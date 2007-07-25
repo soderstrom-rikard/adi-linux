@@ -180,7 +180,7 @@ static int bf5xx_ac97_resume(struct platform_device *pdev,
 
 static struct proc_dir_entry *ac_entry;
 
-/* Test purpose, read out an register from codec */
+/* For test purpose, read a register from codec */
 static int proc_write(struct file *file, const char __user *buffer,
 		unsigned long count, void *data)
 {

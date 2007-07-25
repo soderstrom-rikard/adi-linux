@@ -1,9 +1,8 @@
 /*
  * ad1980.c  --  ALSA Soc AD1980 codec support
  *
- * Copyright 2006 Wolfson Microelectronics PLC.
- * Author: Liam Girdwood
- *         liam.girdwood@wolfsonmicro.com or linux@wolfsonmicro.com
+ * Copyright:	Analog Device Inc.
+ * Author:	Roy Huang <roy.huang@analog.com>
  *
  *  This program is free software; you can redistribute  it and/or modify it
  *  under  the terms of  the GNU General  Public License as published by the
@@ -11,7 +10,7 @@
  *  option) any later version.
  *
  *  Revision history
- *    4th Feb 2006   Initial version.
+ *    1st July 2007   Initial version.
  */
 
 #include <linux/init.h>
@@ -56,6 +55,12 @@ static const u16 ad1980_reg[] = {
 	0x0000, 0x0000, 0x4144, 0x5370  /* 78 - 7e */
 };
 
+static const char *ad1980_rec_sel[] = {"Mic", "CD", "NC", "AUX", "Line",
+		"Stereo Mix", "Mono Mix", "Phone"};
+
+static const struct soc_enum ad1980_cap_src =
+	SOC_ENUM_DOUBLE(AC97_REC_SEL, 8, 0, 7, ad1980_rec_sel);
+
 static const struct snd_kcontrol_new ad1980_snd_ac97_controls[] = {
 SOC_DOUBLE("Master Playback Volume", AC97_MASTER, 8, 0, 31, 1),
 SOC_SINGLE("Master Playback Switch", AC97_MASTER, 15, 1, 1),
@@ -80,10 +85,12 @@ SOC_DOUBLE("Line HP Swap Switch", AC97_AD_MISC, 10, 5, 1, 0),
 
 SOC_DOUBLE("Surround Playback Volume", AC97_SURROUND_MASTER, 8, 0, 31, 1),
 SOC_DOUBLE("Surround Playback Switch", AC97_SURROUND_MASTER, 15, 7, 1, 1),
+
+SOC_ENUM("Capture Source", ad1980_cap_src),
+
+SOC_SINGLE("Mic Boost Switch", AC97_MIC, 6, 1, 0),
 };
 
-static const struct snd_kcontrol_new ad1980_snd_line_hp_swap_control = {
-};
 /* add non dapm controls */
 static int ad1980_add_controls(struct snd_soc_codec *codec)
 {
@@ -242,7 +249,6 @@ static int ad1980_soc_probe(struct platform_device *pdev)
 
 	ac97_write(codec, AC97_MASTER, 0x0000); /* unmute line out volume */
 	ac97_write(codec, AC97_PCM, 0x0000);	/* unmute PCM out volume */
-	ac97_write(codec, AC97_REC_SEL, 0x0404);/* Select line in */
 	ac97_write(codec, AC97_REC_GAIN, 0x0000);/* unmute record volume */
 
 	ad1980_add_controls(codec);

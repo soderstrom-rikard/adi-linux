@@ -215,6 +215,7 @@ static inline int sport_rx_dma_start(struct sport_device *sport, int dummy)
 	set_dma_x_modify(sport->dma_rx_chan, 0);
 	set_dma_config(sport->dma_rx_chan, (DMAFLOW_LARGE | NDSIZE_9 | \
 				WDSIZE_16 | WNR));
+	set_dma_curr_addr(sport->dma_rx_chan, sport->curr_rx_desc->start_addr);
 	SSYNC();
 
 	return 0;
@@ -234,7 +235,7 @@ static inline int sport_tx_dma_start(struct sport_device *sport, int dummy)
 	set_dma_x_count(sport->dma_tx_chan, 0);
 	set_dma_x_modify(sport->dma_tx_chan, 0);
 	set_dma_config(sport->dma_tx_chan, (DMAFLOW_LARGE | NDSIZE_9 | WDSIZE_16));
-
+	set_dma_curr_addr(sport->dma_tx_chan, sport->curr_tx_desc->start_addr);
 	SSYNC();
 
 	return 0;
@@ -390,8 +391,8 @@ int sport_config_rx_dma(struct sport_device *sport, void *buf,
 	unsigned int cfg;
 	dma_addr_t addr;
 
-	pr_debug("%s( %p, %d, 0x%lx %ld )\n", __FUNCTION__, buf,
-			fragcount, fragsize, wordlen);
+	pr_debug("%s buf:%p, frag:%d, fragsize:0x%lx wordlen:%ld )\n", \
+			__FUNCTION__, buf, fragcount, fragsize, wordlen);
 
 	x_count = fragsize / wordlen;
 	y_count = 0;
@@ -678,6 +679,7 @@ static irqreturn_t rx_handler(int irq, void *dev_id)
 	unsigned int rx_stat;
 	struct sport_device *sport = dev_id;
 
+	pr_debug("%s enter\n", __FUNCTION__);
 	sport_check_status(sport, NULL, &rx_stat, NULL);
 	if (!(rx_stat & DMA_DONE)) {
 		printk(KERN_ERR "rx dma is already stopped\n");
@@ -695,6 +697,7 @@ static irqreturn_t tx_handler(int irq, void *dev_id)
 	unsigned int tx_stat;
 	struct sport_device *sport = dev_id;
 
+	pr_debug("%s enter\n", __FUNCTION__);
 	sport_check_status(sport, NULL, NULL, &tx_stat);
 	if (!(tx_stat & DMA_DONE)) {
 		printk(KERN_ERR "tx dma is already stopped\n");
