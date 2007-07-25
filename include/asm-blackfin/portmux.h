@@ -151,6 +151,22 @@ void peripheral_free_list(unsigned short per[]);
 #define P_SPI2_SSEL3 P_UNDEF
 #endif
 
+#ifndef P_SPI2_SSEL4
+#define P_SPI2_SSEL4 P_UNDEF
+#endif
+
+#ifndef P_SPI2_SSEL5
+#define P_SPI2_SSEL5 P_UNDEF
+#endif
+
+#ifndef P_SPI2_SSEL6
+#define P_SPI2_SSEL6 P_UNDEF
+#endif
+
+#ifndef P_SPI2_SSEL7
+#define P_SPI2_SSEL7 P_UNDEF
+#endif
+
 #ifndef P_SPI2_SCK
 #define P_SPI2_SCK P_UNDEF
 #endif
@@ -761,6 +777,23 @@ void peripheral_free_list(unsigned short per[]);
 
 #ifndef P_SPI1_SSEL3
 #define P_SPI1_SSEL3 P_UNDEF
+#endif
+
+
+#ifndef P_SPI1_SSEL4
+#define P_SPI1_SSEL4 P_UNDEF
+#endif
+
+#ifndef P_SPI1_SSEL5
+#define P_SPI1_SSEL5 P_UNDEF
+#endif
+
+#ifndef P_SPI1_SSEL6
+#define P_SPI1_SSEL6 P_UNDEF
+#endif
+
+#ifndef P_SPI1_SSEL7
+#define P_SPI1_SSEL7 P_UNDEF
 #endif
 
 #ifndef P_SPI1_SCK
