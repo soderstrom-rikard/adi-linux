@@ -2,7 +2,7 @@
  * File:	linux/drivers/serial/bfin_sport_uart.c
  *
  * Based on:	drivers/serial/bfin_5xx.c by Aubrey Li.
- * Author:	Roy Huang <roy.huang>analog.com>
+ * Author:	Roy Huang <roy.huang@analog.com>
  * 
  * Created:	Nov 22, 2006
  * Copyright:	(C) Analog Device Inc.
@@ -328,10 +328,10 @@ static void sport_stop_tx(struct uart_port *port)
 		udelay(1);
 		stat = SPORT_GET_STAT(up);
 	}
-	/* Althoug the Hold register is empty, but last byte is still
-	 * not sent out yet. If buad rate is lower than default 57600,
-	 * it needs to delay longer. For example, if the baud rate is 
-	 * 9600, the delay is at least 2ms by experience */
+	/* Althoug the hold register is empty, last byte is still in shift
+	 * register and not sent out yet. If baud rate is lower than default,
+	 * delay should be longer. For example, if the baud rate is 9600,
+	 * the delay must be at least 2ms by experience */
 	udelay(500);
 
 	SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) & ~TSPEN));

@@ -593,6 +593,9 @@ static ssize_t sport_write(struct file *filp, const char __user *buf, size_t cou
 		if (word_bytes == 3) word_bytes = 4;
 
 		pr_debug("DMA mode\n");
+		flush_dcache_range((unsigned long)buf, \
+				(unsigned long)(buf + count));
+
 		/* Configure dma */
 		dma_config = (RESTART | sport_wordsize(cfg->word_len) | DI_EN);
 		xcount = count / word_bytes;
@@ -627,18 +630,13 @@ static ssize_t sport_write(struct file *filp, const char __user *buf, size_t cou
 	pr_debug("wait for transfer finished\n");
 	if (wait_event_interruptible(dev->waitq, dev->wait_con ) < 0) {
 		pr_debug("Receive a signal to interrupt\n");
-	dev->wait_con = 0;
+		dev->wait_con = 0;
 		mutex_unlock(&dev->mutex);
 		return -ERESTARTSYS;
 	}
 	dev->wait_con = 0;
 	pr_debug("waiting over\n");
 
-	/* Flush the data from cache to memory */
-	if (cfg->dma_enabled) {
-		flush_dcache_range((unsigned long)buf, \
-				(unsigned long)(buf + count));
-	}
 	mutex_unlock(&dev->mutex);
 
 	return count;
