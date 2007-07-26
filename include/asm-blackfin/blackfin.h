@@ -56,6 +56,7 @@ static inline void CSYNC(void)
 		__asm__ __volatile__(
 			"nop;"
 			"nop;"
+			"nop;"
 			"csync;"
 		);
 	else
