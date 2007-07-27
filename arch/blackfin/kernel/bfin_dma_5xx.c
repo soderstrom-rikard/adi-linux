@@ -358,6 +358,8 @@ void set_dma_curr_addr(unsigned int channel, unsigned long addr)
 	dma_ch[channel].regs->curr_addr_ptr = addr;
 	SSYNC();
 }
+EXPORT_SYMBOL(set_dma_curr_addr);
+
 /*------------------------------------------------------------------------------
  *	Get the DMA status of a specific DMA channel from the system.
  *-----------------------------------------------------------------------------*/

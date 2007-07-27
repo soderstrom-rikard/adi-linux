@@ -76,12 +76,11 @@ struct sport_device {
 	unsigned int tx_fragsize;
 	unsigned int rx_frags;
 	unsigned int tx_frags;
-	unsigned int rx_wdsize;
-	unsigned int tx_wdsize;
+	unsigned int wdsize;
 
-#define DUMMY_BUF_LEN 8
 	/* for dummy dma transfer */
 	void *dummy_buf;
+	unsigned int dummy_count;
 
 	/* DMA descriptor ring head of current audio stream*/
 	struct dmasg *dma_rx_desc;
@@ -128,8 +127,8 @@ struct sport_param {
 	struct sport_register *regs;
 };
 
-struct sport_device *sport_init(struct sport_param *param,
-		void *private_data);
+struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
+		unsigned dummy_count, void *private_data);
 
 void sport_done(struct sport_device *sport);
 
@@ -155,10 +154,10 @@ int sport_config_tx(struct sport_device *sport,
 /* this is not a very general api, it sets the dma to 2d autobuffer mode */
 
 int sport_config_rx_dma(struct sport_device *sport, void *buf,
-		int fragcount, size_t fragsize_bytes, size_t size);
+		int fragcount, size_t fragsize_bytes);
 
 int sport_config_tx_dma(struct sport_device *sport, void *buf,
-		int fragcount, size_t fragsize_bytes, size_t size);
+		int fragcount, size_t fragsize_bytes);
 
 int sport_tx_start(struct sport_device *sport);
 int sport_tx_stop(struct sport_device *sport);

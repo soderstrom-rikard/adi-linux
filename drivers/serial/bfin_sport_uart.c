@@ -328,7 +328,7 @@ static void sport_stop_tx(struct uart_port *port)
 		udelay(1);
 		stat = SPORT_GET_STAT(up);
 	}
-	/* Althoug the hold register is empty, last byte is still in shift
+	/* Although the hold register is empty, last byte is still in shift
 	 * register and not sent out yet. If baud rate is lower than default,
 	 * delay should be longer. For example, if the baud rate is 9600,
 	 * the delay must be at least 2ms by experience */

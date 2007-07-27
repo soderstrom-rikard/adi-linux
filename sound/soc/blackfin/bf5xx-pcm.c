@@ -1,6 +1,7 @@
 /*
  * linux/sound/arm/bf5xx-pcm.c -- ALSA PCM interface for the Blackfin
  *
+ * Author:	Roy Huang <roy.huang@analog.com>
  * Copyright:	(C) 2007 Analog Device Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -76,11 +77,11 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_tx_dma(sport, runtime->dma_area, runtime->periods,
-				runtime->period_size * sizeof(struct ac97_frame), 2);
+				runtime->period_size * sizeof(struct ac97_frame));
 	} else {
 		sport_set_rx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_rx_dma(sport, runtime->dma_area, runtime->periods,
-				runtime->period_size * sizeof(struct ac97_frame), 2);
+				runtime->period_size * sizeof(struct ac97_frame));
 	}
 	return 0;
 }
@@ -168,8 +169,10 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 
 	if (sport_handle != NULL)
 		runtime->private_data = sport_handle;
-	else
+	else {
 		printk(KERN_ERR "sport_handle is NULL\n");
+		return -1;
+	}
 	return 0;
 
  out:

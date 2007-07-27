@@ -104,7 +104,8 @@ static int bf548_probe(struct platform_device *pdev)
 	gpio_direction_output(GPIO_PB3);
 	gpio_set_value(GPIO_PB3, 1);
 
-	sport_handle = sport_init(&sport_params[sport_num], NULL);
+	sport_handle = sport_init(&sport_params[sport_num], 2, \
+			10 * sizeof(struct ac97_frame), NULL);
 	if (!sport_handle)
 		return -ENODEV;
 

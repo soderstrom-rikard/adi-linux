@@ -71,6 +71,9 @@ SOC_SINGLE("Headphone Playback Switch", AC97_HEADPHONE, 15, 1, 1),
 SOC_DOUBLE("PCM Playback Volume", AC97_PCM, 8, 0, 31, 1),
 SOC_SINGLE("PCM Playback Switch", AC97_PCM, 15, 1, 1),
 
+SOC_DOUBLE("PCM Capture Volume", AC97_REC_GAIN, 8, 0, 31, 0),
+SOC_SINGLE("PCM Capture Switch", AC97_REC_GAIN, 15, 1, 1),
+
 SOC_SINGLE("Mono Playback Volume", AC97_MASTER_MONO, 0, 31, 1),
 SOC_SINGLE("Mono Playback Switch", AC97_MASTER_MONO, 15, 1, 1),
 

@@ -120,7 +120,7 @@ int sport_config_tx(struct sport_device *sport, unsigned int tcr1,
 
 static void setup_desc(struct dmasg *desc, void *buf, int fragcount,
 		size_t fragsize, unsigned int cfg,
-		unsigned int x_count, unsigned int ycount, size_t wordlen)
+		unsigned int x_count, unsigned int ycount, size_t wdsize)
 {
 
 	int i;
@@ -130,9 +130,9 @@ static void setup_desc(struct dmasg *desc, void *buf, int fragcount,
 		desc[i].start_addr = (unsigned long)buf + i*fragsize;
 		desc[i].cfg = cfg;
 		desc[i].x_count = x_count;
-		desc[i].x_modify = wordlen;
+		desc[i].x_modify = wdsize;
 		desc[i].y_count = ycount;
-		desc[i].y_modify = wordlen;
+		desc[i].y_modify = wdsize;
 	}
 
 	/* make circular */
@@ -370,9 +370,9 @@ int sport_tx_stop(struct sport_device *sport)
 	return 0;
 }
 
-static inline int compute_wdsize(size_t wordlen)
+static inline int compute_wdsize(size_t wdsize)
 {
-	switch (wordlen) {
+	switch (wdsize) {
 	case 1:
 		return WDSIZE_8;
 	case 2:
@@ -384,17 +384,17 @@ static inline int compute_wdsize(size_t wordlen)
 }
 
 int sport_config_rx_dma(struct sport_device *sport, void *buf,
-		int fragcount, size_t fragsize, size_t wordlen)
+		int fragcount, size_t fragsize)
 {
 	unsigned int x_count;
 	unsigned int y_count;
 	unsigned int cfg;
 	dma_addr_t addr;
 
-	pr_debug("%s buf:%p, frag:%d, fragsize:0x%lx wordlen:%ld )\n", \
-			__FUNCTION__, buf, fragcount, fragsize, wordlen);
+	pr_debug("%s buf:%p, frag:%d, fragsize:0x%lx\n", __FUNCTION__, \
+			buf, fragcount, fragsize);
 
-	x_count = fragsize / wordlen;
+	x_count = fragsize / sport->wdsize;
 	y_count = 0;
 
 	/* for fragments larger than 64k words we use 2d dma,
@@ -433,30 +433,30 @@ int sport_config_rx_dma(struct sport_device *sport, void *buf,
 
 	sport->rx_buf = buf;
 
-	cfg     = 0x7000 | DI_EN | compute_wdsize(wordlen) | WNR | \
+	cfg     = 0x7000 | DI_EN | compute_wdsize(sport->wdsize) | WNR | \
 		  (DESC_ELEMENT_COUNT << 8); /* large descriptor mode */
 
 	if (y_count != 0)
 		cfg |= DMA2D;
 
 	setup_desc(sport->dma_rx_desc, buf, fragcount, fragsize,
-			cfg|DMAEN, x_count, y_count, wordlen);
+			cfg|DMAEN, x_count, y_count, sport->wdsize);
 
 	return 0;
 }
 
-int sport_config_tx_dma(struct sport_device *sport, void *buf,
-		int fragcount, size_t fragsize, size_t wordlen)
+int sport_config_tx_dma(struct sport_device *sport, void *buf, \
+		int fragcount, size_t fragsize)
 {
 	unsigned int x_count;
 	unsigned int y_count;
 	unsigned int cfg;
 	dma_addr_t addr;
 
-	pr_debug("%s buf:%p, fragcount:%d, fragsize:0x%lx, wordlen:%lx\n",
-			__FUNCTION__, buf, fragcount, fragsize, wordlen);
+	pr_debug("%s buf:%p, fragcount:%d, fragsize:0x%lx\n",
+			__FUNCTION__, buf, fragcount, fragsize);
 
-	x_count = fragsize/wordlen;
+	x_count = fragsize/sport->wdsize;
 	y_count = 0;
 
 	/* for fragments larger than 64k words we use 2d dma,
@@ -495,21 +495,21 @@ int sport_config_tx_dma(struct sport_device *sport, void *buf,
 
 	sport->tx_buf = buf;
 
-	cfg     = 0x7000 | DI_EN | compute_wdsize(wordlen) | \
+	cfg     = 0x7000 | DI_EN | compute_wdsize(sport->wdsize) | \
 		  (DESC_ELEMENT_COUNT << 8); /* large descriptor mode */
 
 	if (y_count != 0)
 		cfg |= DMA2D;
 
 	setup_desc(sport->dma_tx_desc, buf, fragcount, fragsize,
-			cfg|DMAEN, x_count, y_count, wordlen);
+			cfg|DMAEN, x_count, y_count, sport->wdsize);
 
 	return 0;
 }
 
 /* setup dummy dma descriptor ring, which don't generate interrupts,
  * the x_modify is set to 0 */
-static int sport_config_rx_dummy(struct sport_device *sport, size_t wordlen)
+static int sport_config_rx_dummy(struct sport_device *sport)
 {
 	struct dmasg *desc;
 	unsigned config;
@@ -533,9 +533,9 @@ static int sport_config_rx_dummy(struct sport_device *sport, size_t wordlen)
 
 	desc->next_desc_addr = (unsigned long)desc;
 	desc->start_addr = (unsigned long)sport->dummy_buf;
-	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(wordlen) | WNR | DMAEN;
+	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(sport->wdsize) | WNR | DMAEN;
 	desc->cfg = config;
-	desc->x_count = 0x80;
+	desc->x_count = sport->dummy_count;
 	desc->x_modify = 0;
 	desc->y_count = 0;
 	desc->y_modify = 0;
@@ -543,7 +543,7 @@ static int sport_config_rx_dummy(struct sport_device *sport, size_t wordlen)
 	return 0;
 }
 
-static int sport_config_tx_dummy(struct sport_device *sport, size_t wordlen)
+static int sport_config_tx_dummy(struct sport_device *sport)
 {
 	struct dmasg *desc;
 	unsigned int config;
@@ -567,10 +567,10 @@ static int sport_config_tx_dummy(struct sport_device *sport, size_t wordlen)
 	sport->dummy_tx_desc = desc;
 
 	desc->next_desc_addr = (unsigned long)desc;
-	desc->start_addr = (unsigned long)sport->dummy_buf + wordlen;
-	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(wordlen) | DMAEN;
+	desc->start_addr = (unsigned long)sport->dummy_buf + sport->wdsize;
+	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(sport->wdsize) | DMAEN;
 	desc->cfg = config;
-	desc->x_count = 0x80;
+	desc->x_count = sport->dummy_count;
 	desc->x_modify = 0;
 	desc->y_count = 0;
 	desc->y_modify = 0;
@@ -767,13 +767,14 @@ int sport_set_err_callback(struct sport_device *sport,
 	return 0;
 }
 
-struct sport_device *sport_init(struct sport_param *param,
-		void *private_data)
+struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
+		unsigned dummy_count, void *private_data)
 {
 	struct sport_device *sport;
 
 	pr_debug("%s enter\n", __FUNCTION__);
 	BUG_ON(param == NULL);
+	BUG_ON(wdsize == 0 || dummy_count == 0);
 	sport = kmalloc(sizeof(struct sport_device), GFP_KERNEL);
 	if (!sport) {
 		printk(KERN_ERR "Failed to allocate for sport device\n");
@@ -822,19 +823,22 @@ struct sport_device *sport_init(struct sport_param *param,
 			sport->dma_rx_chan, sport->dma_tx_chan,
 			sport->err_irq, sport->regs);
 
+	sport->wdsize = wdsize;
+	sport->dummy_count = dummy_count;
+
 #if L1_DATA_A_LENGTH != 0
-	sport->dummy_buf = l1_data_sram_alloc(DUMMY_BUF_LEN);
+	sport->dummy_buf = l1_data_sram_alloc(wdsize * 2);
 #else
-	sport->dummy_buf = kmalloc(DUMMY_BUF_LEN, GFP_KERNEL);
+	sport->dummy_buf = kmalloc(wdsize * 2, GFP_KERNEL);
 #endif
 	if (sport->dummy_buf == NULL) {
 		printk(KERN_ERR "Failed to allocate dummy buffer\n");
 		goto __error;
 	}
 
-	memset(sport->dummy_buf, 0, DUMMY_BUF_LEN);
-	sport_config_rx_dummy(sport, DUMMY_BUF_LEN/2);
-	sport_config_tx_dummy(sport, DUMMY_BUF_LEN/2);
+	memset(sport->dummy_buf, 0, wdsize * 2);
+	sport_config_rx_dummy(sport);
+	sport_config_tx_dummy(sport);
 
 	return sport;
 __error:
