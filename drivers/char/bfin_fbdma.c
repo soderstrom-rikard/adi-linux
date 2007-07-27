@@ -187,7 +187,7 @@ static int fbdma_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		*pdev->l1_data_dummy = ptr->color;
 		ptr->srcdesc.start_addr = (unsigned long)pdev->l1_data_dummy;
 
-#if defined(CONFIG_BLKFIN_DCACHE)
+#if defined(CONFIG_BFIN_DCACHE)
 	if(ptr->dstdesc.start_addr < memory_end)
 		blackfin_dcache_invalidate_range(ptr->dstdesc.start_addr,
 	ptr->dstdesc.start_addr+(ptr->dstdesc.x_count * ptr->dstdesc.x_modify * ptr->dstdesc.y_count));
@@ -195,7 +195,7 @@ static int fbdma_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 
 	} else {
 
-#if defined(CONFIG_BLKFIN_DCACHE) && defined(CONFIG_BLKFIN_WB)
+#if defined(CONFIG_BFIN_DCACHE) && defined(CONFIG_BFIN_WB)
 	blackfin_dcache_flush_range(ptr->srcdesc.start_addr,
 	ptr->srcdesc.start_addr+(ptr->srcdesc.x_count * ptr->srcdesc.x_modify * ptr->srcdesc.y_count));
 #endif
