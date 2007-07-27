@@ -578,7 +578,7 @@ config FB_BFIN_BGR
 	help
 	 BGR use 16-bit BGR-565 instead of RGB-565
 
-config FB_BF54x_LQ043
+config FB_BF54X_LQ043
 	tristate "SHARP LQ043 TFT LCD (BF548 EZKIT)"
 	depends on FB && (BF54x)
 	select FB_CFB_FILLRECT

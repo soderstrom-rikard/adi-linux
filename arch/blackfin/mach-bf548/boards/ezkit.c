@@ -35,10 +35,10 @@
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
 #include <linux/irq.h>
-#include <linux/irq.h>
 #include <linux/interrupt.h>
 #include <asm/bfin5xx_spi.h>
 #include <asm/dma.h>
+#include <asm/gpio.h>
 #include <asm/mach/nand.h>
 #include <asm/mach/bf54x_keys.h>
 #include <linux/spi/ad7877.h>
@@ -51,6 +51,38 @@ char *bfin_board_name = "ADSP-BF548-EZKIT";
 /*
  *  Driver needs to know address, irq and flag pin.
  */
+
+#if defined(CONFIG_FB_BF54X_LQ043) || defined(CONFIG_FB_BF54X_LQ043_MODULE)
+
+#include <asm/mach/bf54x-lq043.h>
+
+static struct bfin_bf54xfb_mach_info bf54x_lq043_data = {
+	.width =	480,
+	.height =	272,
+	.xres =		{480, 480, 480},
+	.yres =		{272, 272, 272},
+	.bpp =		{24, 24, 24},
+	.disp =		GPIO_PE3,
+};
+
+static struct resource bf54x_lq043_resources[] = {
+	{
+		.start = IRQ_EPPI0_ERR,
+		.end = IRQ_EPPI0_ERR,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bf54x_lq043_device = {
+	.name		= "bf54x-lq043",
+	.id		= -1,
+	.num_resources 	= ARRAY_SIZE(bf54x_lq043_resources),
+	.resource 	= bf54x_lq043_resources,
+	.dev		= {
+		.platform_data = &bf54x_lq043_data,
+	},
+};
+#endif
 
 #if defined(CONFIG_KEYBOARD_BFIN) || defined(CONFIG_KEYBOARD_BFIN_MODULE)
 static int bf548_keymap[] = {
@@ -358,6 +390,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
 	&bfin_uart_device,
+#endif
+
+#if defined(CONFIG_FB_BF54X_LQ043) || defined(CONFIG_FB_BF54X_LQ043_MODULE)
+	&bf54x_lq043_device,
 #endif
 
 #if defined(CONFIG_SMSC911X) || defined(CONFIG_SMSC911X_MODULE)

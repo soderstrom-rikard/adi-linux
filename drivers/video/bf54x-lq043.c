@@ -46,7 +46,6 @@
 #include <linux/device.h>
 #include <linux/backlight.h>
 #include <linux/lcd.h>
-#include <linux/i2c.h>
 #include <linux/spinlock.h>
 #include <linux/dma-mapping.h>
 #include <linux/platform_device.h>
@@ -59,7 +58,12 @@
 #include <asm/gpio.h>
 #include <asm/portmux.h>
 
+#include <asm/mach/bf54x-lq043.h>
+
+#define NO_BL_SUPPORT
+
 #define DRIVER_NAME "bf54x-lq043"
+static char driver_name[] = DRIVER_NAME;
 
 #define BFIN_LCD_NBR_PALETTE_ENTRIES	256
 
@@ -69,11 +73,20 @@
 
 #define EPPI0_24 {P_PPI0_D18, P_PPI0_D19, P_PPI0_D20, P_PPI0_D21, P_PPI0_D22, P_PPI0_D23, 0}
 
-static unsigned char *fb_buffer;	/* RGB Buffer */
-static dma_addr_t dma_handle;
-static int lq035_mmap;
-static int lq035_open_cnt;
-static DEFINE_SPINLOCK(bfin_lq035_lock);
+struct bfin_bf54xfb_info {
+	struct fb_info *fb;
+	struct device *dev;
+
+	struct bfin_bf54xfb_mach_info *mach_info;
+
+	unsigned char *fb_buffer;	/* RGB Buffer */
+
+	dma_addr_t dma_handle;
+	int lq043_mmap;
+	int lq043_open_cnt;
+	int irq;
+	spinlock_t lock;	/* lock */
+};
 
 static int nocursor;
 module_param(nocursor, int, 0644);
@@ -83,15 +96,11 @@ static int outp_rgb666;
 module_param(outp_rgb666, int, 0);
 MODULE_PARM_DESC(outp_rgb666, "Output 18-bit RGB666");
 
-#define DISP     		GPIO_PE3
-
 #define LCD_X_RES		480	/*Horizontal Resolution */
 #define LCD_Y_RES		272	/* Vertical Resolution */
 
 #define LCD_BPP			24	/* Bit Per Pixel */
 #define	DMA_BUS_SIZE		32
-
-#define ACTIVE_VIDEO_MEM_SIZE	(LCD_Y_RES*LCD_X_RES*(LCD_BPP/8))
 
 /* 	-- Horizontal synchronizing --
  *
@@ -114,7 +123,6 @@ MODULE_PARM_DESC(outp_rgb666, "Output 18-bit RGB666");
  * Front porch 		TVf - 2 - Line
  */
 
-
 #define	LCD_CLK         	(8*1000*1000)	/* 8MHz */
 
 /* # active data to transfer after Horizontal Delay clock */
@@ -133,16 +141,16 @@ MODULE_PARM_DESC(outp_rgb666, "Output 18-bit RGB666");
 #define EPPI_FS1W_HBL		41
 
 /* FS1 (Hsync) Period (Typical) */
-#define EPPI_FS1P_AVPL		525
+#define EPPI_FS1P_AVPL		EPPI_LINE
 
 /* Horizontal Delay clock after assertion of Hsync (Typical) */
 #define EPPI_HDELAY		43
 
 /* FS2 (Vsync) Width    = FS1 (Hsync) Period * 10 */
-#define EPPI_FS2W_LVB		(EPPI_FS1P_AVPL * 10)
+#define EPPI_FS2W_LVB		(EPPI_LINE * 10)
 
  /* FS2 (Vsync) Period   = FS1 (Hsync) Period * Lines per Frame */
-#define EPPI_FS2P_LAVF		(EPPI_FS1P_AVPL * EPPI_FRAME)
+#define EPPI_FS2P_LAVF		(EPPI_LINE * EPPI_FRAME)
 
 /* Vertical Delay after assertion of Vsync (2 Lines) */
 #define EPPI_VDELAY		12
@@ -160,12 +168,11 @@ MODULE_PARM_DESC(outp_rgb666, "Output 18-bit RGB666");
  * Swapping Enabled,
  * One (DMA) Channel Mode,
  * RGB Formatting Enabled for RGB666 output, disabled for RGB888 output
- * Regular watermark - when FIFO is 75% full,
- * Urgent watermark - when FIFO is 25% full
+ * Regular watermark - when FIFO is 100% full,
+ * Urgent watermark - when FIFO is 75% full
  */
 
-#define EPPI_CONTROL		(0x68136E2E | SWAPEN)
-
+#define EPPI_CONTROL		(0x20136E2E | SWAPEN)
 
 static inline u16 get_eppi_clkdiv(u32 target_ppi_clk)
 {
@@ -176,7 +183,7 @@ static inline u16 get_eppi_clkdiv(u32 target_ppi_clk)
 	return (((sclk / target_ppi_clk) / 2) - 1);
 }
 
-static void config_ppi(void)
+static void config_ppi(struct bfin_bf54xfb_info *fbi)
 {
 
 	u16 eppi_clkdiv = get_eppi_clkdiv(LCD_CLK);
@@ -201,15 +208,17 @@ static void config_ppi(void)
  * DLEN = 6 (24 bits for RGB888 out) or 5 (18 bits for RGB666 out)
  * RGB Formatting Enabled for RGB666 output, disabled for RGB888 output
  */
-	if (outp_rgb666) {
-		bfin_write_EPPI0_CONTROL((EPPI_CONTROL & ~DLENGTH) | DLEN_18 | RGB_FMT_EN);
-	}else {
-		bfin_write_EPPI0_CONTROL(((EPPI_CONTROL & ~DLENGTH) | DLEN_24) & ~RGB_FMT_EN);
-	}
+	if (outp_rgb666)
+		bfin_write_EPPI0_CONTROL((EPPI_CONTROL & ~DLENGTH) | DLEN_18 |
+					 RGB_FMT_EN);
+	else
+		bfin_write_EPPI0_CONTROL(((EPPI_CONTROL & ~DLENGTH) | DLEN_24) &
+					 ~RGB_FMT_EN);
+
 
 }
 
-static int config_dma(void)
+static int config_dma(struct bfin_bf54xfb_info *fbi)
 {
 
 	set_dma_config(CH_EPPI0,
@@ -220,24 +229,25 @@ static int config_dma(void)
 	set_dma_x_modify(CH_EPPI0, DMA_BUS_SIZE / 8);
 	set_dma_y_count(CH_EPPI0, LCD_Y_RES);
 	set_dma_y_modify(CH_EPPI0, DMA_BUS_SIZE / 8);
-	set_dma_start_addr(CH_EPPI0, (unsigned long)fb_buffer);
+	set_dma_start_addr(CH_EPPI0, (unsigned long)fbi->fb_buffer);
 
 	return 0;
 }
 
-static int request_ports(void)
+static int request_ports(struct bfin_bf54xfb_info *fbi)
 {
 
 	u16 eppi_req_18[] = EPPI0_18;
+	u16 disp = fbi->mach_info->disp;
 
-	if (gpio_request(DISP, NULL)) {
-		printk(KERN_ERR "Requesting GPIO %d faild\n", DISP);
+	if (gpio_request(disp, NULL)) {
+		printk(KERN_ERR "Requesting GPIO %d faild\n", disp);
 		return -EFAULT;
 	}
 
-	if (peripheral_request_list(eppi_req_18, NULL)) {
+	if (peripheral_request_list(eppi_req_18, DRIVER_NAME)) {
 		printk(KERN_ERR "Requesting Peripherals faild\n");
-		gpio_free(DISP);
+		gpio_free(disp);
 		return -EFAULT;
 	}
 
@@ -245,26 +255,26 @@ static int request_ports(void)
 
 		u16 eppi_req_24[] = EPPI0_24;
 
-		if (peripheral_request_list(eppi_req_24, NULL)) {
+		if (peripheral_request_list(eppi_req_24, DRIVER_NAME)) {
 			printk(KERN_ERR "Requesting Peripherals faild\n");
 			peripheral_free_list(eppi_req_18);
-			gpio_free(DISP);
+			gpio_free(disp);
 			return -EFAULT;
 		}
 	}
 
-	gpio_direction_output(DISP);
-	gpio_set_value(DISP, 1);
+	gpio_direction_output(disp);
+	gpio_set_value(disp, 1);
 
 	return 0;
 }
 
-static void free_ports(void)
+static void free_ports(struct bfin_bf54xfb_info *fbi)
 {
 
 	u16 eppi_req_18[] = EPPI0_18;
 
-	gpio_free(DISP);
+	gpio_free(fbi->mach_info->disp);
 
 	peripheral_free_list(eppi_req_18);
 
@@ -274,79 +284,49 @@ static void free_ports(void)
 	}
 }
 
-static struct fb_info bfin_bf54x_fb;
-
-static struct fb_var_screeninfo bfin_bf54x_fb_defined = {
-	.bits_per_pixel = LCD_BPP,
-	.activate = FB_ACTIVATE_TEST,
-	.xres = LCD_X_RES,	/*default portrait mode RGB */
-	.yres = LCD_Y_RES,
-	.xres_virtual = LCD_X_RES,
-	.yres_virtual = LCD_Y_RES,
-	.height = -1,
-	.width = -1,
-	.left_margin = 0,
-	.right_margin = 0,
-	.upper_margin = 0,
-	.lower_margin = 0,
-	.red = {16, 8, 0},
-	.green = {8, 8, 0},
-	.blue = {0, 8, 0},
-	.transp = {0, 0, 0},
-};
-
-static struct fb_fix_screeninfo bfin_bf54x_fb_fix __initdata = {
-	.id = DRIVER_NAME,
-	.smem_len = ACTIVE_VIDEO_MEM_SIZE,
-	.type = FB_TYPE_PACKED_PIXELS,
-	.visual = FB_VISUAL_TRUECOLOR,
-	.xpanstep = 0,
-	.ypanstep = 0,
-	.line_length = LCD_X_RES * (LCD_BPP / 8),
-	.accel = FB_ACCEL_NONE,
-};
-
 static int bfin_bf54x_fb_open(struct fb_info *info, int user)
 {
-	unsigned long flags;
+	struct bfin_bf54xfb_info *fbi = info->par;
 
-	spin_lock_irqsave(&bfin_lq035_lock, flags);
-	lq035_open_cnt++;
-	spin_unlock_irqrestore(&bfin_lq035_lock, flags);
+	spin_lock(&fbi->lock);
+	fbi->lq043_open_cnt++;
 
-	if (lq035_open_cnt <= 1) {
+	if (fbi->lq043_open_cnt <= 1) {
 
 		bfin_write_EPPI0_CONTROL(0);
 		SSYNC();
 
-		config_dma();
-		config_ppi();
+		config_dma(fbi);
+		config_ppi(fbi);
 
 		/* start dma */
 		enable_dma(CH_EPPI0);
-		SSYNC();
 		bfin_write_EPPI0_CONTROL(bfin_read_EPPI0_CONTROL() | EPPI_EN);
-		SSYNC();
 	}
+
+	spin_unlock(&fbi->lock);
 
 	return 0;
 }
 
 static int bfin_bf54x_fb_release(struct fb_info *info, int user)
 {
-	unsigned long flags;
+	struct bfin_bf54xfb_info *fbi = info->par;
 
-	spin_lock_irqsave(&bfin_lq035_lock, flags);
-	lq035_open_cnt--;
-	lq035_mmap = 0;
-	spin_unlock_irqrestore(&bfin_lq035_lock, flags);
+	spin_lock(&fbi->lock);
 
-	if (lq035_open_cnt <= 0) {
+	fbi->lq043_open_cnt--;
+	fbi->lq043_mmap = 0;
+
+	if (fbi->lq043_open_cnt <= 0) {
 
 		bfin_write_EPPI0_CONTROL(0);
 		SSYNC();
 		disable_dma(CH_EPPI0);
+		memset(fbi->fb_buffer, 0, info->fix.smem_len);
 	}
+
+	spin_unlock(&fbi->lock);
 
 	return 0;
 }
@@ -382,21 +362,21 @@ static int bfin_bf54x_fb_check_var(struct fb_var_screeninfo *var,
 	return 0;
 }
 
-static int direct_mmap(struct fb_info *info, struct vm_area_struct *vma)
+static int bfin_bf54x_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 {
 
-	unsigned long flags;
+	struct bfin_bf54xfb_info *fbi = info->par;
 
-	if (lq035_mmap)
+	if (fbi->lq043_mmap)
 		return -1;
 
-	spin_lock_irqsave(&bfin_lq035_lock, flags);
-	lq035_mmap = 1;
-	spin_unlock_irqrestore(&bfin_lq035_lock, flags);
+	spin_lock(&fbi->lock);
+	fbi->lq043_mmap = 1;
+	spin_unlock(&fbi->lock);
 
-	vma->vm_start = (unsigned long)(fb_buffer);
+	vma->vm_start = (unsigned long)(fbi->fb_buffer);
 
-	vma->vm_end = vma->vm_start + ACTIVE_VIDEO_MEM_SIZE;
+	vma->vm_end = vma->vm_start + info->fix.smem_len;
 	/* For those who don't understand how mmap works, go read
 	 *   Documentation/nommu-mmap.txt.
 	 * For those that do, you will know that the VM_MAYSHARE flag
@@ -460,17 +440,18 @@ static struct fb_ops bfin_bf54x_fb_ops = {
 	.fb_fillrect = cfb_fillrect,
 	.fb_copyarea = cfb_copyarea,
 	.fb_imageblit = cfb_imageblit,
-	.fb_mmap = direct_mmap,
+	.fb_mmap = bfin_bf54x_fb_mmap,
 	.fb_cursor = bfin_bf54x_fb_cursor,
 	.fb_setcolreg = bfin_bf54x_fb_setcolreg,
 };
 
+#ifndef NO_BL_SUPPORT
 static int bl_get_brightness(struct backlight_device *bd)
 {
 	return 0;
 }
 
-static struct backlight_ops bfin_lq035fb_bl_ops = {
+static struct backlight_ops bfin_lq043fb_bl_ops = {
 	.get_brightness = bl_get_brightness,
 };
 
@@ -513,118 +494,293 @@ static struct lcd_ops bfin_lcd_ops = {
 };
 
 static struct lcd_device *lcd_dev;
+#endif
 
-static int __init bfin_bf54x_fb_init(void)
+static irqreturn_t bfin_bf54x_irq_error(int irq, void *dev_id)
 {
+
+	/*struct bfin_bf54xfb_info *info = (struct bfin_bf54xfb_info *)dev_id;*/
+
+	u16 status = bfin_read_EPPI0_STATUS();
+
+	bfin_write_EPPI0_STATUS(0xFFFF);
+
+	if (status) {
+		bfin_write_EPPI0_CONTROL(bfin_read_EPPI0_CONTROL() & ~EPPI_EN);
+		disable_dma(CH_EPPI0);
+
+		/* start dma */
+		enable_dma(CH_EPPI0);
+		bfin_write_EPPI0_CONTROL(bfin_read_EPPI0_CONTROL() | EPPI_EN);
+		bfin_write_EPPI0_STATUS(0xFFFF);
+	}
+
+	return IRQ_HANDLED;
+}
+
+static int __init bfin_bf54x_probe(struct platform_device *pdev)
+{
+	struct bfin_bf54xfb_info *info;
+	struct fb_info *fbinfo;
+	int ret;
+
 	printk(KERN_INFO DRIVER_NAME ": FrameBuffer initializing...\n");
 
 	if (request_dma(CH_EPPI0, "CH_EPPI0") < 0) {
 		printk(KERN_ERR DRIVER_NAME
 		       ": couldn't request CH_EPPI0 DMA\n");
-		return -EFAULT;
+		ret = -EFAULT;
+		goto out1;
 	}
 
-	if (request_ports()) {
-		printk(KERN_ERR DRIVER_NAME ": couldn't request gpio port.\n");
-		free_dma(CH_EPPI0);
-		return -EFAULT;
+	fbinfo =
+	    framebuffer_alloc(sizeof(struct bfin_bf54xfb_info), &pdev->dev);
+	if (!fbinfo) {
+		ret = -ENOMEM;
+		goto out2;
 	}
 
-	fb_buffer =
-	    dma_alloc_coherent(NULL, ACTIVE_VIDEO_MEM_SIZE, &dma_handle,
+	info = fbinfo->par;
+	info->fb = fbinfo;
+	info->dev = &pdev->dev;
+
+	platform_set_drvdata(pdev, fbinfo);
+
+	strcpy(fbinfo->fix.id, driver_name);
+
+	info->mach_info = pdev->dev.platform_data;
+
+	if (info->mach_info == NULL) {
+		dev_err(&pdev->dev,
+			"no platform data for lcd, cannot attach\n");
+		ret = -EINVAL;
+		goto out3;
+	}
+
+	fbinfo->fix.type = FB_TYPE_PACKED_PIXELS;
+	fbinfo->fix.type_aux = 0;
+	fbinfo->fix.xpanstep = 0;
+	fbinfo->fix.ypanstep = 0;
+	fbinfo->fix.ywrapstep = 0;
+	fbinfo->fix.accel = FB_ACCEL_NONE;
+	fbinfo->fix.visual = FB_VISUAL_TRUECOLOR;
+
+	fbinfo->var.nonstd = 0;
+	fbinfo->var.activate = FB_ACTIVATE_NOW;
+	fbinfo->var.height = info->mach_info->height;
+	fbinfo->var.width = info->mach_info->width;
+	fbinfo->var.accel_flags = 0;
+	fbinfo->var.vmode = FB_VMODE_NONINTERLACED;
+
+	fbinfo->fbops = &bfin_bf54x_fb_ops;
+	fbinfo->flags = FBINFO_FLAG_DEFAULT;
+
+	fbinfo->var.xres = info->mach_info->xres.defval;
+	fbinfo->var.xres_virtual = info->mach_info->xres.defval;
+	fbinfo->var.yres = info->mach_info->yres.defval;
+	fbinfo->var.yres_virtual = info->mach_info->yres.defval;
+	fbinfo->var.bits_per_pixel = info->mach_info->bpp.defval;
+
+	fbinfo->var.upper_margin = 0;
+	fbinfo->var.lower_margin = 0;
+	fbinfo->var.vsync_len = 0;
+
+	fbinfo->var.left_margin = 0;
+	fbinfo->var.right_margin = 0;
+	fbinfo->var.hsync_len = 0;
+
+	fbinfo->var.red.offset = 16;
+	fbinfo->var.green.offset = 8;
+	fbinfo->var.blue.offset = 0;
+	fbinfo->var.transp.offset = 0;
+	fbinfo->var.red.length = 8;
+	fbinfo->var.green.length = 8;
+	fbinfo->var.blue.length = 8;
+	fbinfo->var.transp.length = 0;
+	fbinfo->fix.smem_len = info->mach_info->xres.max *
+	    info->mach_info->yres.max * info->mach_info->bpp.max / 8;
+
+	fbinfo->fix.line_length = fbinfo->var.xres_virtual *
+	    fbinfo->var.bits_per_pixel / 8;
+
+	info->fb_buffer =
+	    dma_alloc_coherent(NULL, fbinfo->fix.smem_len, &info->dma_handle,
 			       GFP_KERNEL);
 
-	if (NULL == fb_buffer) {
+	if (NULL == info->fb_buffer) {
 		printk(KERN_ERR DRIVER_NAME
 		       ": couldn't allocate dma buffer.\n");
-		free_dma(CH_EPPI0);
-		free_ports();
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto out3;
 	}
 
-	memset(fb_buffer, 0xff, ACTIVE_VIDEO_MEM_SIZE);
+	memset(info->fb_buffer, 0, fbinfo->fix.smem_len);
 
-	bfin_bf54x_fb.screen_base = (void *)fb_buffer;
-	bfin_bf54x_fb_fix.smem_start = (int)fb_buffer;
+	fbinfo->screen_base = (void *)info->fb_buffer;
+	fbinfo->fix.smem_start = (int)info->fb_buffer;
 
-	bfin_bf54x_fb.fbops = &bfin_bf54x_fb_ops;
-	bfin_bf54x_fb.var = bfin_bf54x_fb_defined;
+	fbinfo->fbops = &bfin_bf54x_fb_ops;
 
-	bfin_bf54x_fb.fix = bfin_bf54x_fb_fix;
-	bfin_bf54x_fb.flags = FBINFO_DEFAULT;
-
-	bfin_bf54x_fb.pseudo_palette = kmalloc(sizeof(u32) * 16, GFP_KERNEL);
-
-	if (!bfin_bf54x_fb.pseudo_palette) {
+	fbinfo->pseudo_palette = kmalloc(sizeof(u32) * 16, GFP_KERNEL);
+	if (!fbinfo->pseudo_palette) {
 		printk(KERN_ERR DRIVER_NAME
 		       "Fail to allocate pseudo_palette\n");
-		free_dma(CH_EPPI0);
-		free_ports();
-		dma_free_coherent(NULL, ACTIVE_VIDEO_MEM_SIZE, fb_buffer,
-				  dma_handle);
-		return -ENOMEM;
-	}
-	memset(bfin_bf54x_fb.pseudo_palette, 0, sizeof(u32) * 16);
 
-	if (fb_alloc_cmap(&bfin_bf54x_fb.cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0)
+		ret = -ENOMEM;
+		goto out4;
+	}
+
+	memset(fbinfo->pseudo_palette, 0, sizeof(u32) * 16);
+
+	if (fb_alloc_cmap(&fbinfo->cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0)
 	    < 0) {
 		printk(KERN_ERR DRIVER_NAME
 		       "Fail to allocate colormap (%d entries)\n",
 		       BFIN_LCD_NBR_PALETTE_ENTRIES);
-		free_dma(CH_EPPI0);
-		free_ports();
-		dma_free_coherent(NULL, ACTIVE_VIDEO_MEM_SIZE, fb_buffer,
-				  dma_handle);
-		kfree(bfin_bf54x_fb.pseudo_palette);
-		return -EFAULT;
+		ret = -EFAULT;
+		goto out5;
 	}
 
-	if (register_framebuffer(&bfin_bf54x_fb) < 0) {
+	if (request_ports(info)) {
+		printk(KERN_ERR DRIVER_NAME ": couldn't request gpio port.\n");
+		ret = -EFAULT;
+		goto out6;
+	}
+
+	info->irq = platform_get_irq(pdev, 0);
+	if (info->irq < 0) {
+		ret = -EINVAL;
+		goto out7;
+	}
+
+	if (request_irq(info->irq, (void *)bfin_bf54x_irq_error, IRQF_DISABLED,
+			"PPI ERROR", info) < 0) {
+		printk(KERN_ERR DRIVER_NAME
+		       ": unable to request PPI ERROR IRQ\n");
+		ret = -EFAULT;
+		goto out7;
+	}
+
+	if (register_framebuffer(fbinfo) < 0) {
 		printk(KERN_ERR DRIVER_NAME
 		       ": unable to register framebuffer.\n");
-		free_dma(CH_EPPI0);
-		free_ports();
-		dma_free_coherent(NULL, ACTIVE_VIDEO_MEM_SIZE, fb_buffer,
-				  dma_handle);
-		fb_buffer = NULL;
-		kfree(bfin_bf54x_fb.pseudo_palette);
-		fb_dealloc_cmap(&bfin_bf54x_fb.cmap);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto out8;
 	}
-
+#ifndef NO_BL_SUPPORT
 	bl_dev =
 	    backlight_device_register("bf54x-bl", NULL, NULL,
-				      &bfin_lq035fb_bl_ops);
+				      &bfin_lq043fb_bl_ops);
 	bl_dev->props.max_brightness = 255;
 
 	lcd_dev = lcd_device_register(DRIVER_NAME, NULL, &bfin_lcd_ops);
 	lcd_dev->props.max_contrast = 255, printk(KERN_INFO "Done.\n");
+#endif
+
+	return 0;
+
+out8:
+	free_irq(info->irq, info);
+out7:
+	free_ports(info);
+out6:
+	fb_dealloc_cmap(&fbinfo->cmap);
+out5:
+	kfree(fbinfo->pseudo_palette);
+out4:
+	dma_free_coherent(NULL, fbinfo->fix.smem_len, info->fb_buffer,
+			  info->dma_handle);
+out3:
+	framebuffer_release(fbinfo);
+out2:
+	free_dma(CH_EPPI0);
+out1:
+	platform_set_drvdata(pdev, NULL);
+
+	return ret;
+}
+
+static int bfin_bf54x_remove(struct platform_device *pdev)
+{
+
+	struct fb_info *fbinfo = platform_get_drvdata(pdev);
+	struct bfin_bf54xfb_info *info = fbinfo->par;
+
+	free_dma(CH_EPPI0);
+	free_irq(info->irq, info);
+
+	if (info->fb_buffer != NULL)
+		dma_free_coherent(NULL, fbinfo->fix.smem_len, info->fb_buffer,
+				  info->dma_handle);
+
+	kfree(fbinfo->pseudo_palette);
+	fb_dealloc_cmap(&fbinfo->cmap);
+
+#ifndef NO_BL_SUPPORT
+	lcd_device_unregister(lcd_dev);
+	backlight_device_unregister(bl_dev);
+#endif
+
+	unregister_framebuffer(fbinfo);
+
+	free_ports(info);
+
+	printk(KERN_INFO DRIVER_NAME ": Unregister LCD driver.\n");
+
 	return 0;
 }
 
-static void __exit bfin_bf54x_fb_exit(void)
+#ifdef CONFIG_PM
+static int bfin_bf54x_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	if (fb_buffer != NULL)
-		dma_free_coherent(NULL, ACTIVE_VIDEO_MEM_SIZE, fb_buffer,
-				  dma_handle);
+	struct fb_info *fbinfo = platform_get_drvdata(pdev);
+	struct bfin_bf54xfb_info *info = fbinfo->par;
 
-	free_dma(CH_EPPI0);
+	bfin_write_EPPI0_CONTROL(bfin_read_EPPI0_CONTROL() & ~EPPI_EN);
+	disable_dma(CH_EPPI0);
+	bfin_write_EPPI0_STATUS(0xFFFF);
 
-	kfree(bfin_bf54x_fb.pseudo_palette);
-	fb_dealloc_cmap(&bfin_bf54x_fb.cmap);
+	return 0;
+}
 
-	lcd_device_unregister(lcd_dev);
-	backlight_device_unregister(bl_dev);
+static int bfin_bf54x_resume(struct platform_device *pdev)
+{
+	struct fb_info *fbinfo = platform_get_drvdata(pdev);
+	struct bfin_bf54xfb_info *info = fbinfo->par;
 
-	unregister_framebuffer(&bfin_bf54x_fb);
+	enable_dma(CH_EPPI0);
+	bfin_write_EPPI0_CONTROL(bfin_read_EPPI0_CONTROL() | EPPI_EN);
 
-	free_ports();
+	return 0;
+}
+#else
+#define bfin_bf54x_suspend	NULL
+#define bfin_bf54x_resume	NULL
+#endif
 
-	printk(KERN_INFO DRIVER_NAME ": Unregister LCD driver.\n");
+static struct platform_driver bfin_bf54x_driver = {
+	.probe = bfin_bf54x_probe,
+	.remove = bfin_bf54x_remove,
+	.suspend = bfin_bf54x_suspend,
+	.resume = bfin_bf54x_resume,
+	.driver = {
+		   .name = DRIVER_NAME,
+		   .owner = THIS_MODULE,
+		   },
+};
+
+static int __devinit bfin_bf54x_driver_init(void)
+{
+	return platform_driver_register(&bfin_bf54x_driver);
+}
+
+static void __exit bfin_bf54x_driver_cleanup(void)
+{
+	platform_driver_unregister(&bfin_bf54x_driver);
 }
 
 MODULE_DESCRIPTION("Blackfin BF54x TFT LCD Driver");
 MODULE_LICENSE("GPL");
 
-module_init(bfin_bf54x_fb_init);
-module_exit(bfin_bf54x_fb_exit);
+module_init(bfin_bf54x_driver_init);
+module_exit(bfin_bf54x_driver_cleanup);
