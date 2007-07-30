@@ -33,6 +33,7 @@
 #include <linux/irq.h>
 #include <linux/interrupt.h>
 #include <linux/pata_platform.h>
+#include <asm/dma.h>
 #include <asm/bfin5xx_spi.h>
 
 /*
@@ -141,17 +142,33 @@ static struct bfin5xx_spi_chip ad1836_spi_chip_info = {
 #endif
 #endif
 
+/* SPI (0) */
+static struct resource bfin_spi0_resource[] = {
+	[0] = {
+		.start = SPI0_REGBASE,
+		.end   = SPI0_REGBASE + 0xFF,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = CH_SPI,
+		.end   = CH_SPI,
+		.flags = IORESOURCE_IRQ,
+	}
+};
+
 /* SPI controller data */
-static struct bfin5xx_spi_master spi_bfin_master_info = {
+static struct bfin5xx_spi_master bfin_spi0_info = {
 	.num_chipselect = 8,
 	.enable_dma = 1,  /* master has the ability to do dma transfer */
 };
 
-static struct platform_device spi_bfin_master_device = {
-	.name = "bfin-spi-master",
-	.id = 1, /* Bus number */
+static struct platform_device bfin_spi0_device = {
+	.name = "bfin-spi",
+	.id = 0, /* Bus number */
+	.num_resources = ARRAY_SIZE(bfin_spi0_resource),
+	.resource = bfin_spi0_resource,
 	.dev = {
-		.platform_data = &spi_bfin_master_info, /* Passed to driver */
+		.platform_data = &bfin_spi0_info, /* Passed to driver */
 	},
 };
 
@@ -161,7 +178,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 	{
 		.modalias = "ad1836-spi",
 		.max_speed_hz = 3125000,     /* max spi clock (SCK) speed in HZ */
-		.bus_num = 1,
+		.bus_num = 0,
 		.chip_select = CONFIG_SND_BLACKFIN_SPI_PFBIT,
 		.controller_data = &ad1836_spi_chip_info,
 	},
@@ -210,7 +227,7 @@ static struct platform_device *ezkit_devices[] __initdata = {
 	&smc91x_device,
 #endif
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
-	&spi_bfin_master_device,
+	&bfin_spi0_device,
 #endif
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
 	&bfin_uart_device,

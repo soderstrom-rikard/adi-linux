@@ -348,7 +348,7 @@ static struct spi_board_info bf54x_spi_board_info[] __initdata = {
 		/* the modalias must be the same as spi device driver name */
 		.modalias = "m25p80", /* Name of spi_driver for this device */
 		.max_speed_hz = 25000000,     /* max spi clock (SCK) speed in HZ */
-		.bus_num = 1, /* Framework bus number */
+		.bus_num = 0, /* Framework bus number */
 		.chip_select = 1, /* SPI_SSEL1*/
 		.platform_data = &bfin_spi_flash_data,
 		.controller_data = &spi_flash_chip_info,
@@ -368,6 +368,20 @@ static struct spi_board_info bf54x_spi_board_info[] __initdata = {
 #endif
 };
 
+/* SPI (0) */
+static struct resource bfin_spi0_resource[] = {
+	[0] = {
+		.start = SPI0_REGBASE,
+		.end   = SPI0_REGBASE + 0xFF,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = CH_SPI0,
+		.end   = CH_SPI0,
+		.flags = IORESOURCE_IRQ,
+	}
+};
+
 /* SPI controller data */
 static struct bfin5xx_spi_master bf54x_spi_master_info = {
 	.num_chipselect = 8,
@@ -375,8 +389,10 @@ static struct bfin5xx_spi_master bf54x_spi_master_info = {
 };
 
 static struct platform_device bf54x_spi_master_device = {
-	.name = "bfin-spi-master",
-	.id = 1, /* Bus number */
+	.name = "bfin-spi",
+	.id = 0, /* Bus number */
+	.num_resources = ARRAY_SIZE(bfin_spi0_resource),
+	.resource = bfin_spi0_resource,
 	.dev = {
 		.platform_data = &bf54x_spi_master_info, /* Passed to driver */
 		},

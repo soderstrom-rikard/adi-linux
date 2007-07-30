@@ -150,12 +150,6 @@
 #define CFG_SPI_CS6VALUE    6
 #define CFG_SPI_CS7VALUE    7
 
-#if defined(CONFIG_BF54x)
-#define CH_SPI			CH_SPI0
-#define bfin_read_SPI_STAT	bfin_read_SPI0_STAT
-#endif
-
-
 /* device.platform_data for SSP controller devices */
 struct bfin5xx_spi_master {
 	u16 num_chipselect;
