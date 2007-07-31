@@ -51,7 +51,6 @@
 struct bfin_twi_iface {
 	struct mutex		twi_lock;
 	int			irq;
-	u32			regs_base;
 	spinlock_t		lock;
 	char			read_write;
 	u8			command;
@@ -70,13 +69,13 @@ struct bfin_twi_iface {
 	int			cur_msg;
 };
 
-static struct bfin_twi_iface twi_iface;
+static u32 twi_regs_base;
 
 #define DEFINE_TWI_REG(reg, off) \
 static inline u16 read_##reg(void) \
-	{ return bfin_read16(twi_iface.regs_base + off); } \
+	{ return bfin_read16(twi_regs_base + off); } \
 static inline void write_##reg(u16 v) \
-	{bfin_write16(twi_iface.regs_base + off, v); }
+	{bfin_write16(twi_regs_base + off, v); }
 
 DEFINE_TWI_REG(CLKDIV, 0x00)
 DEFINE_TWI_REG(CONTROL, 0x04)
@@ -624,10 +623,17 @@ static int i2c_bfin_twi_resume(struct platform_device *dev)
 
 static int i2c_bfin_twi_probe(struct platform_device *pdev)
 {
-	struct bfin_twi_iface *iface = &twi_iface;
+	struct bfin_twi_iface *iface;
 	struct i2c_adapter *p_adap;
 	struct resource *res;
 	int rc;
+
+	iface = kzalloc(sizeof(struct bfin_twi_iface), GFP_KERNEL);
+	if (!iface) {
+		dev_err(&(pdev->dev), "Cannot allocate memory\n");
+		rc = -ENOMEM;
+		goto out_error_nomem;
+	}
 
 	mutex_init(&(iface->twi_lock));
 	spin_lock_init(&(iface->lock));
@@ -641,8 +647,8 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 		goto out_error_get_res;
 	}
 
-	iface->regs_base = (u32) ioremap(res->start, (res->end - res->start)+1);
-	if (!iface->regs_base) {
+	twi_regs_base = (u32) ioremap(res->start, (res->end - res->start)+1);
+	if (!twi_regs_base) {
 		dev_err(&(pdev->dev), "Cannot map IO\n");
 		rc = -ENXIO;
 		goto out_error_ioremap;
@@ -695,15 +701,17 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 		platform_set_drvdata(pdev, iface);
 
 	dev_info(&(pdev->dev), "Blackfin I2C TWI driver, regs_base @ 0x%08x\n",
-		iface->regs_base);
+		twi_regs_base);
 
 	return rc;
 
 out_error_req_irq:
 out_error_no_irq:
-	iounmap((void *)iface->regs_base);
+	iounmap((void *)twi_regs_base);
 out_error_ioremap:
 out_error_get_res:
+	kfree(iface);
+out_error_nomem:
 	return rc;
 }
 
