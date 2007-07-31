@@ -527,7 +527,7 @@ static struct resource bfin_spi0_resource[] = {
 		.start = CH_SPI,
 		.end   = CH_SPI,
 		.flags = IORESOURCE_IRQ,
-	}
+	},
 };
 
 static struct platform_device bfin_spi0_device = {
@@ -569,9 +569,24 @@ static struct platform_device bfin_uart_device = {
 #endif
 
 #if defined(CONFIG_I2C_BLACKFIN_TWI) || defined(CONFIG_I2C_BLACKFIN_TWI_MODULE)
+static struct resource bfin_twi0_resource[] = {
+	[0] = {
+		.start = 0xFFC01400,
+		.end   = 0xFFC014FF,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = IRQ_TWI,
+		.end   = IRQ_TWI,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
 static struct platform_device i2c_bfin_twi_device = {
 	.name = "i2c-bfin-twi",
 	.id = 0,
+	.num_resources = ARRAY_SIZE(bfin_twi0_resource),
+	.resource = bfin_twi0_resource,
 };
 #endif
 
