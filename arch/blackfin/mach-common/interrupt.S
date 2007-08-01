@@ -177,8 +177,11 @@ ENTRY(_evt_ivhw)
 	jump .Lcommon_restore_context;
 #endif
 
-/* interrupt routine for evt2 - 2.  This is NMI.  */
-ENTRY(_evt_evt2)
+/* Interrupt routine for evt2 (NMI).
+ * We don't actually use this, so just dump a hardware trace to figure
+ * out how exactly we got here ...
+ */
+ENTRY(_evt_nmi)
 	SAVE_CONTEXT
 #ifdef CONFIG_FRAME_POINTER
 	fp = 0;
@@ -191,13 +194,12 @@ ENTRY(_evt_evt2)
 	r7.l = W[p5];
 1:
 #endif
-	r0 = IRQ_NMI;
-	r1 =  sp;
 	SP += -12;
-	call _asm_do_IRQ;
+	call _dump_bfin_trace_buffer;
 	SP += 12;
 	RESTORE_CONTEXT
 	rtn;
+ENDPROC(_evt_nmi)
 
 /* interrupt routine for core timer - 6 */
 ENTRY(_evt_timer)
