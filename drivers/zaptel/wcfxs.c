@@ -40,8 +40,7 @@
 #include "wcfxs.h"
 
 //#define TEST_SPI_DELAY		1
-#define BFIN_SPI_FRAMEWORK	1
-#ifdef BFIN_SPI_FRAMEWORK
+#ifdef CONFIG_PBX_USE_SPI_FRAMEWORK
 #include "bfsi-spi-framework.c"
 #else
 #include "bfsi.c"
@@ -257,7 +256,7 @@ static struct fxo_mode {
 
 /* ------------------------ Blackfin -------------------------*/
 
-#ifndef BFIN_SPI_FRAMEWORK
+#ifndef CONFIG_PBX_USE_SPI_FRAMEWORK
 #define SPI_BAUDS   4 /* 12.5 MHz for 100MHz system clock */
 #define __write_8bits(X, Y) bfsi_spi_write_8_bits(Y)
 #define __read_8bits(X) bfsi_spi_read_8_bits()
@@ -316,7 +315,7 @@ struct wcfxs {
 	int cards;
 	int cardflag;		/* Bit-map of present cards */
 	spinlock_t lock;
-#ifdef BFIN_SPI_FRAMEWORK
+#ifdef CONFIG_PBX_USE_SPI_FRAMEWORK
 	struct workqueue_struct *workqueue;
 	struct work_struct bfin_work_queue;
 	int queue_branch;
@@ -404,7 +403,7 @@ static struct wcfxs *devs;
 
 static int loopback = 0;
 static int reg5, reg12, loop_i, line_v;
-#ifdef BFIN_SPI_FRAMEWORK
+#ifdef CONFIG_PBX_USE_SPI_FRAMEWORK
 static int poll_timer = 0;
 #endif
 
@@ -764,7 +763,7 @@ static inline unsigned char __read_8bits(struct wcfxs *wc)
 #endif
 
 /* we have only one card at the moment */
-#ifndef BFIN_SPI_FRAMEWORK
+#ifndef CONFIG_PBX_USE_SPI_FRAMEWORK
 static inline void __wcfxs_setcard(struct wcfxs *wc, int card)
 {
 	if (wc->curcard != card) {
@@ -1335,7 +1334,7 @@ static void wcfxs_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 }
 #endif
 
-#ifdef BFIN_SPI_FRAMEWORK
+#ifdef CONFIG_PBX_USE_SPI_FRAMEWORK
 static void bfin_work_queue(struct work_struct *work)
 {
 	struct wcfxs *wc = container_of(work, struct wcfxs, bfin_work_queue);
@@ -1377,7 +1376,7 @@ static void bfin_work_queue(struct work_struct *work)
 void regular_interrupt_processing(u8 *read_samples, u8 *write_samples) {
   struct wcfxs *wc = devs;
 
-#ifndef BFIN_SPI_FRAMEWORK
+#ifndef CONFIG_PBX_USE_SPI_FRAMEWORK
 	int x;
 
 	wc->intcount++;
@@ -1410,7 +1409,7 @@ void regular_interrupt_processing(u8 *read_samples, u8 *write_samples) {
 
 	wcfxs_transmitprep(wc, write_samples);
 	wcfxs_receiveprep(wc, read_samples);
-#ifdef BFIN_SPI_FRAMEWORK
+#ifdef CONFIG_PBX_USE_SPI_FRAMEWORK
 	poll_timer ++;
 	if(poll_timer >= POLL_PERIOD_TIME ){
 		poll_timer = 0;
@@ -2182,7 +2181,7 @@ static int wcfxs_hooksig(struct zt_chan *chan, zt_txsig_t txsig)
 		if (debug)
 			printk("Setting FXS hook state to %d (%02x)\n", txsig, reg);
 
-#ifdef BFIN_SPI_FRAMEWORK
+#ifdef CONFIG_PBX_USE_SPI_FRAMEWORK
 		wc->queue_branch = QUEUE_SET_LINEFEED;
 		wc->queue_card_pos = chan->chanpos-1;
 		wc->queue_reg_value = wc->mod.fxs.lasttxhook[chan->chanpos-1];
@@ -2263,7 +2262,7 @@ static int wcfxs_hardware_init(struct wcfxs *wc)
 	/* Hardware stuff */
 	unsigned char x;
 
-#ifdef BFIN_SPI_FRAMEWORK
+#ifdef CONFIG_PBX_USE_SPI_FRAMEWORK
 	bfsi_reset();
 	bfsi_spi_init(wc);
 #else
@@ -2288,7 +2287,7 @@ static int wcfxs_hardware_init(struct wcfxs *wc)
 	#endif
 
 	bfsi_sport_init(regular_interrupt_processing, ZT_CHUNKSIZE, debug);
-#ifndef BFIN_SPI_FRAMEWORK
+#ifndef CONFIG_PBX_USE_SPI_FRAMEWORK
 	bfsi_reset();
 
 	#ifdef DAISY
@@ -2384,7 +2383,7 @@ static int wcfxs_init_one(struct wcfxs_desc *d)
 		wc->pos = x;
 		wc->variety = d->name;
 		wc->irq = IRQ_SPORT0_RX;
-#ifdef BFIN_SPI_FRAMEWORK
+#ifdef CONFIG_PBX_USE_SPI_FRAMEWORK
 		/* initilize the workqueue*/
 		INIT_WORK(&wc->bfin_work_queue, bfin_work_queue);
 		wc->workqueue = create_singlethread_workqueue(d->name);
@@ -2426,7 +2425,7 @@ static void wcfxs_release(struct wcfxs *wc)
 	if (init_ok) {
 		free_irq(wc->irq, NULL);
 		zt_unregister(&wc->span);
-#ifdef BFIN_SPI_FRAMEWORK
+#ifdef CONFIG_PBX_USE_SPI_FRAMEWORK
 		destroy_workqueue(wc->workqueue);
 #endif
 		kfree(wc);

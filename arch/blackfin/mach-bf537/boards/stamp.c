@@ -473,7 +473,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.modalias = "fxs-spi",
 		.max_speed_hz = 12500000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0,
-		.chip_select = 3,
+		.chip_select = 8 - CONFIG_J11_JUMPER,
 		.controller_data = &spi_si3xxx_chip_info,
 		.mode = SPI_MODE_3,
 	},
@@ -481,7 +481,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.modalias = "fxo-spi",
 		.max_speed_hz = 12500000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0,
-		.chip_select = 2,
+		.chip_select = 8 - CONFIG_J19_JUMPER,
 		.controller_data = &spi_si3xxx_chip_info,
 		.mode = SPI_MODE_3,
 	},

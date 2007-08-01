@@ -11,23 +11,37 @@ config PBX
 	  PBX is Private Branch eXchange. BF533 and BF537 STAMP board now
 	  support PBX card which has 2 FXS ports, as well as 2 FXO ports.
 
+config PBX_USE_SPI_FRAMEWORK
+	bool "Use SPI framework"
+	depends on PBX && SPI
+	default y
+	help
+	  If you want to more than one SPI devices in your system, choose y. 
+
 config J11_JUMPER
-	int "Select J11 jumper on PBX card"
+	int "FXS chip select PIN (J11) on PBX card"
 	depends on PBX
+	range 3 3 if (BF537 || BF536 || BF534)
+	range 1 7
+	default 3 if (BF537 || BF536 || BF534)
 	default 5
 	help
 	  Input from 1-7, no confliction with others.
 
 config J16_JUMPER
-	int "Select J16 jumper on PBX card"
+	int "Reset PIN (J16) on PBX card"
 	depends on PBX
+	range 1 7
 	default 4
 	help
 	  Input from 1-7, no confliction with others.
 
 config J19_JUMPER
-	int "Select J19 jumper on PBX card"
+	int "FSO chip select PIN (J19) on PBX card"
 	depends on PBX
+	range 2 2 if (BF537 || BF536 || BF534)
+	range 1 7
+	default 2 if (BF537 || BF536 || BF534)
 	default 6
 	help
 	  Input form 1-7, no confliction with others.
