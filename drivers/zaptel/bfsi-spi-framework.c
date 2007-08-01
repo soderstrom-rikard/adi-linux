@@ -142,7 +142,7 @@ static int init_ok = 0;
 /* isr callback installed by user */
 
 static void (*bfsi_isr_callback)(u8 *read_samples, u8 *write_samples) = NULL;
-static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs);
+static irqreturn_t sport0_rx_isr(int irq, void *dev_id);
 
 /* debug variables */
 
@@ -479,7 +479,7 @@ void bfsi_disable_spi(void)
 const unsigned short reset_port[] = { GPIO_0, GPIO_1, GPIO_2, GPIO_3, GPIO_4, GPIO_5, GPIO_6, GPIO_7 };
 #endif
 #if defined(CONFIG_BF537)
-const unsigned short reset_port[] = { NULL, GPIO_PF10, NULL, NULL, GPIO_PF6, GPIO_PF5, GPIO_PF4, NULL };
+const unsigned short reset_port[] = { 0, GPIO_PF10, 0, 0, GPIO_PF6, GPIO_PF5, GPIO_PF4, 0 };
 #endif
 /*-------------------------- RESET FUNCTION ----------------------------*/
 void bfsi_reset(void) {
@@ -488,9 +488,8 @@ void bfsi_reset(void) {
 #else
 	reset_bit = 8-4;
 #endif
-	if (reset_port[reset_bit] == NULL){
+	if (reset_port[reset_bit] == 0)
                 PRINTK("Error: cannot set reset to this bit! \n");
-	}
 	gpio_request(reset_port[reset_bit],NULL);
 	PRINTK("toggle reset\n");
 	gpio_direction_output(reset_port[reset_bit]);
@@ -572,11 +571,11 @@ static int init_dma_wc(void)
                 return -EBUSY;
         }
         if (request_dma(sport_dma_tx, "SPORT TX Data") == -EBUSY) {
-	        printk(KERN_ERR "Failed to request TX dma %d\n", dma_tx);
+		printk(KERN_ERR "Failed to request TX dma %d\n", (unsigned int) dma_tx);
                 return -EBUSY;
         }
         if (set_dma_callback(sport_dma_rx, sport0_rx_isr, NULL) != 0) {
-                printk(KERN_ERR "Failed to request RX irq %d\n", dma_rx);
+		printk(KERN_ERR "Failed to request RX irq %d\n", (unsigned int) dma_rx);
                 return -EBUSY;
         }
 
@@ -621,8 +620,7 @@ static u8 *isr_write_processing(void) {
 	struct dma_register *dma_tx = (struct dma_register*) dma_iobase[sport_dma_tx];
 
 	/* select which ping-pong buffer to write to */
-	unsigned char *curr = *(unsigned char**) &(dma_tx->curr_addr_ptr_lo);
-	x = (int)curr  - (int)iTxBuffer1;
+	x = dma_tx->curr_addr_ptr  - (int)iTxBuffer1;
 
 	/* for some reason x for tx tends to be 0xe and 0x4e, whereas
 	   x for rx is 0x40 and 0x80.  Note sure why they would be
@@ -657,8 +655,7 @@ static u8 *isr_read_processing(void) {
 	struct dma_register *dma_rx = (struct dma_register*) dma_iobase[sport_dma_rx];
 
 	/* select which ping-pong buffer to write to */
-	unsigned char *curr = *(unsigned char**) &(dma_rx->curr_addr_ptr_lo);
-	x = (int)curr  - (int)iRxBuffer1;
+	x = dma_rx->curr_addr_ptr  - (int)iRxBuffer1;
 
 	/* possible values for x are 8*samples_per_chunk=0x40 at the
 	   end of the first row and 2*8*samples_per_chunk=0x80 at the
@@ -683,7 +680,7 @@ static u8 *isr_read_processing(void) {
 }
 
 /* called each time the DMA finishes one "line" */
-static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs)
+static irqreturn_t sport0_rx_isr(int irq, void *dev_id)
 {
   	unsigned int  start_cycles = cycles();
   	u8 *read_samples;
