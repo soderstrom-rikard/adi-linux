@@ -124,6 +124,7 @@ struct driver_data {
 	size_t rx_map_len;
 	size_t tx_map_len;
 	u8 n_bytes;
+	int cs_change;
 	void (*write) (struct driver_data *);
 	void (*read) (struct driver_data *);
 	void (*duplex) (struct driver_data *);
@@ -188,6 +189,26 @@ static int flush(struct driver_data *drv_data)
 	return limit;
 }
 
+/* Chip select operation functions for cs_change flag */
+static void cs_active(struct chip_data *chip)
+{
+	u16 flag = read_FLAG();
+
+	flag |= chip->flag;
+	flag &= ~(chip->flag << 8);
+
+	write_FLAG(flag);
+}
+
+static void cs_deactive(struct chip_data *chip)
+{
+	u16 flag = read_FLAG();
+
+	flag |= (chip->flag << 8);
+
+	write_FLAG(flag);
+}
+
 #define MAX_SPI0_SSEL	7
 
 /* stop controller and re-config current chip*/
@@ -207,7 +228,7 @@ static int restore_state(struct driver_data *drv_data)
 	/* Load the registers */
 	write_CTRL(chip->ctl_reg);
 	write_BAUD(chip->baud);
-	write_FLAG(chip->flag);
+	cs_active(chip);
 
 	if (!chip->chip_select_requested) {
 		int i = chip->chip_select_num;
@@ -282,20 +303,20 @@ static void u8_cs_chg_writer(struct driver_data *drv_data)
 	struct chip_data *chip = drv_data->cur_chip;
 
 	while (drv_data->tx < drv_data->tx_end) {
-		write_FLAG(chip->flag);
+		cs_active(chip);
 
 		write_TDBR(*(u8 *) (drv_data->tx));
 		while (read_STAT() & BIT_STAT_TXS)
 			continue;
 		while (!(read_STAT() & BIT_STAT_SPIF))
 			continue;
-		write_FLAG(0xFF00 | chip->flag);
+		cs_deactive(chip);
 
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		++drv_data->tx;
 	}
-	write_FLAG(0xFF00);
+	cs_deactive(chip);
 
 }
 
@@ -327,7 +348,7 @@ static void u8_cs_chg_reader(struct driver_data *drv_data)
 	struct chip_data *chip = drv_data->cur_chip;
 
 	while (drv_data->rx < drv_data->rx_end) {
-		write_FLAG(chip->flag);
+		cs_active(chip);
 
 		read_RDBR();	/* kick off */
 		while (!(read_STAT() & BIT_STAT_RXS))
@@ -335,13 +356,13 @@ static void u8_cs_chg_reader(struct driver_data *drv_data)
 		while (!(read_STAT() & BIT_STAT_SPIF))
 			continue;
 		*(u8 *) (drv_data->rx) = read_SHAW();
-		write_FLAG(0xFF00 | chip->flag);
+		cs_deactive(chip);
 
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		++drv_data->rx;
 	}
-	write_FLAG(0xFF00);
+	cs_deactive(chip);
 
 }
 
@@ -365,7 +386,7 @@ static void u8_cs_chg_duplex(struct driver_data *drv_data)
 	struct chip_data *chip = drv_data->cur_chip;
 
 	while (drv_data->rx < drv_data->rx_end) {
-		write_FLAG(chip->flag);
+		cs_active(chip);
 
 
 		write_TDBR(*(u8 *) (drv_data->tx));
@@ -374,15 +395,14 @@ static void u8_cs_chg_duplex(struct driver_data *drv_data)
 		while (!(read_STAT() & BIT_STAT_RXS))
 			continue;
 		*(u8 *) (drv_data->rx) = read_RDBR();
-		write_FLAG(0xFF00 | chip->flag);
+		cs_deactive(chip);
 
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		++drv_data->rx;
 		++drv_data->tx;
 	}
-	write_FLAG(0xFF00);
-
+	cs_deactive(chip);
 }
 
 static void u16_writer(struct driver_data *drv_data)
@@ -407,20 +427,20 @@ static void u16_cs_chg_writer(struct driver_data *drv_data)
 	struct chip_data *chip = drv_data->cur_chip;
 
 	while (drv_data->tx < drv_data->tx_end) {
-		write_FLAG(chip->flag);
+		cs_active(chip);
 
 		write_TDBR(*(u16 *) (drv_data->tx));
 		while ((read_STAT() & BIT_STAT_TXS))
 			continue;
 		while (!(read_STAT() & BIT_STAT_SPIF))
 			continue;
-		write_FLAG(0xFF00 | chip->flag);
+		cs_deactive(chip);
 
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		drv_data->tx += 2;
 	}
-	write_FLAG(0xFF00);
+	cs_deactive(chip);
 }
 
 static void u16_reader(struct driver_data *drv_data)
@@ -447,7 +467,7 @@ static void u16_cs_chg_reader(struct driver_data *drv_data)
 	struct chip_data *chip = drv_data->cur_chip;
 
 	while (drv_data->rx < drv_data->rx_end) {
-		write_FLAG(chip->flag);
+		cs_active(chip);
 
 		read_RDBR();	/* kick off */
 		while (!(read_STAT() & BIT_STAT_RXS))
@@ -455,13 +475,13 @@ static void u16_cs_chg_reader(struct driver_data *drv_data)
 		while (!(read_STAT() & BIT_STAT_SPIF))
 			continue;
 		*(u16 *) (drv_data->rx) = read_SHAW();
-		write_FLAG(0xFF00 | chip->flag);
+		cs_deactive(chip);
 
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		drv_data->rx += 2;
 	}
-	write_FLAG(0xFF00);
+	cs_deactive(chip);
 }
 
 static void u16_duplex(struct driver_data *drv_data)
@@ -484,7 +504,7 @@ static void u16_cs_chg_duplex(struct driver_data *drv_data)
 	struct chip_data *chip = drv_data->cur_chip;
 
 	while (drv_data->tx < drv_data->tx_end) {
-		write_FLAG(chip->flag);
+		cs_active(chip);
 
 		write_TDBR(*(u16 *) (drv_data->tx));
 		while (!(read_STAT() & BIT_STAT_SPIF))
@@ -492,14 +512,14 @@ static void u16_cs_chg_duplex(struct driver_data *drv_data)
 		while (!(read_STAT() & BIT_STAT_RXS))
 			continue;
 		*(u16 *) (drv_data->rx) = read_RDBR();
-		write_FLAG(0xFF00 | chip->flag);
+		cs_deactive(chip);
 
 		if (chip->cs_chg_udelay)
 			udelay(chip->cs_chg_udelay);
 		drv_data->rx += 2;
 		drv_data->tx += 2;
 	}
-	write_FLAG(0xFF00);
+	cs_deactive(chip);
 }
 
 /* test if ther is more transfer to be done */
@@ -524,6 +544,7 @@ static void *next_transfer(struct driver_data *drv_data)
  */
 static void giveback(struct driver_data *drv_data)
 {
+	struct chip_data *chip = drv_data->cur_chip;
 	struct spi_transfer *last_transfer;
 	unsigned long flags;
 	struct spi_message *msg;
@@ -543,9 +564,12 @@ static void giveback(struct driver_data *drv_data)
 
 	/* disable chip select signal. And not stop spi in autobuffer mode */
 	if (drv_data->tx_dma != 0xFFFF) {
-		write_FLAG(0xFF00);
+		cs_deactive(chip);
 		bfin_spi_disable(drv_data);
 	}
+
+	if (!drv_data->cs_change)
+		cs_deactive(chip);
 
 	if (msg->complete)
 		msg->complete(msg->context);
@@ -555,6 +579,7 @@ static irqreturn_t dma_irq_handler(int irq, void *dev_id)
 {
 	struct driver_data *drv_data = (struct driver_data *)dev_id;
 	struct spi_message *msg = drv_data->cur_msg;
+	struct chip_data *chip = drv_data->cur_chip;
 
 	dev_dbg(&drv_data->pdev->dev, "in dma_irq_handler\n");
 	clear_dma_irqstat(spi_dma_ch);
@@ -581,6 +606,9 @@ static irqreturn_t dma_irq_handler(int irq, void *dev_id)
 	bfin_spi_disable(drv_data);
 
 	msg->actual_length += drv_data->len_in_bytes;
+
+	if (drv_data->cs_change)
+		cs_deactive(chip);
 
 	/* Move to next transfer */
 	msg->state = next_transfer(drv_data);
@@ -668,6 +696,7 @@ static void pump_transfers(unsigned long data)
 	drv_data->rx_dma = transfer->rx_dma;
 	drv_data->tx_dma = transfer->tx_dma;
 	drv_data->len_in_bytes = transfer->len;
+	drv_data->cs_change = transfer->cs_change;
 
 	width = chip->width;
 	if (width == CFG_SPI_WORDSIZE16) {
@@ -692,7 +721,7 @@ static void pump_transfers(unsigned long data)
 	} else {
 		write_BAUD(chip->baud);
 	}
-	write_FLAG(chip->flag);
+	cs_active(chip);
 
 	dev_dbg(&drv_data->pdev->dev,
 		"now pumping a transfer: width is %d, len is %d\n",
@@ -845,6 +874,9 @@ static void pump_transfers(unsigned long data)
 		} else {
 			/* Update total byte transfered */
 			message->actual_length += drv_data->len;
+
+			if (drv_data->cs_change)
+				cs_deactive(chip);
 
 			/* Move to next transfer of this msg */
 			message->state = next_transfer(drv_data);
