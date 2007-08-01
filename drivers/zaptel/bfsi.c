@@ -548,8 +548,7 @@ static u8 *isr_write_processing(void) {
 	struct dma_register *dma_tx = (struct dma_register*) dma_iobase[sport_dma_tx];
 
 	/* select which ping-pong buffer to write to */
-	unsigned char *curr = *(unsigned char**) &(dma_tx->curr_addr_ptr_lo);
-	x = (int)curr  - (int)iTxBuffer1;
+	x = dma_tx->curr_addr_ptr - (int)iTxBuffer1;
 
 	/* for some reason x for tx tends to be 0xe and 0x4e, whereas
 	   x for rx is 0x40 and 0x80.  Note sure why they would be
@@ -584,8 +583,7 @@ static u8 *isr_read_processing(void) {
 	struct dma_register *dma_rx = (struct dma_register*) dma_iobase[sport_dma_rx];
 
 	/* select which ping-pong buffer to write to */
-	unsigned char *curr = *(unsigned char**) &(dma_rx->curr_addr_ptr_lo);
-	x = (int)curr  - (int)iRxBuffer1;
+	x = dma_rx->curr_addr_ptr - (int)iRxBuffer1;
 
 	/* possible values for x are 8*samples_per_chunk=0x40 at the
 	   end of the first row and 2*8*samples_per_chunk=0x80 at the
