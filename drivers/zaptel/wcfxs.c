@@ -1336,9 +1336,9 @@ static void wcfxs_interrupt(int irq, void *dev_id, struct pt_regs *regs)
 #endif
 
 #ifdef BFIN_SPI_FRAMEWORK
-static void bfin_work_queue(void *data)
+static void bfin_work_queue(struct work_struct *work)
 {
-	struct wcfxs *wc = data;
+	struct wcfxs *wc = container_of(work, struct wcfxs, bfin_work_queue);
 	int x;
 
 	if(wc->queue_branch == QUEUE_CHECK_STATUS){
@@ -2386,7 +2386,7 @@ static int wcfxs_init_one(struct wcfxs_desc *d)
 		wc->irq = IRQ_SPORT0_RX;
 #ifdef BFIN_SPI_FRAMEWORK
 		/* initilize the workqueue*/
-		INIT_WORK(&wc->bfin_work_queue,bfin_work_queue);
+		INIT_WORK(&wc->bfin_work_queue, bfin_work_queue);
 		wc->workqueue = create_singlethread_workqueue(d->name);
 #endif
 
