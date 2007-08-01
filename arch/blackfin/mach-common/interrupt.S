@@ -178,26 +178,12 @@ ENTRY(_evt_ivhw)
 #endif
 
 /* Interrupt routine for evt2 (NMI).
- * We don't actually use this, so just dump a hardware trace to figure
- * out how exactly we got here ...
+ * We don't actually use this, so just return.
+ * For inner circle type details, please see:
+ * http://docs.blackfin.uclinux.org/doku.php?id=linux:nmi
  */
 ENTRY(_evt_nmi)
-	SAVE_CONTEXT
-#ifdef CONFIG_FRAME_POINTER
-	fp = 0;
-#endif
-#if ANOMALY_05000283
-	cc = r7 == r7;
-	p5.h = 0xffc0;
-	p5.l = 0x0014;
-	if cc jump 1f;
-	r7.l = W[p5];
-1:
-#endif
-	SP += -12;
-	call _dump_bfin_trace_buffer;
-	SP += 12;
-	RESTORE_CONTEXT
+.weak _evt_nmi
 	rtn;
 ENDPROC(_evt_nmi)
 
