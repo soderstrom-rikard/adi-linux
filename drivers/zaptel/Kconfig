@@ -21,7 +21,7 @@ config PBX_USE_SPI_FRAMEWORK
 config J11_JUMPER
 	int "FXS chip select PIN (J11) on PBX card"
 	depends on PBX
-	range 3 3 if (BF537 || BF536 || BF534)
+	range 2 4 if (BF537 || BF536 || BF534)
 	range 1 7
 	default 3 if (BF537 || BF536 || BF534)
 	default 5
@@ -31,6 +31,7 @@ config J11_JUMPER
 config J16_JUMPER
 	int "Reset PIN (J16) on PBX card"
 	depends on PBX
+	range 2 4 if (BF537 || BF536 || BF534)
 	range 1 7
 	default 4
 	help
@@ -39,7 +40,7 @@ config J16_JUMPER
 config J19_JUMPER
 	int "FSO chip select PIN (J19) on PBX card"
 	depends on PBX
-	range 2 2 if (BF537 || BF536 || BF534)
+	range 2 4 if (BF537 || BF536 || BF534)
 	range 1 7
 	default 2 if (BF537 || BF536 || BF534)
 	default 6
