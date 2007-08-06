@@ -37,6 +37,7 @@
 #include <linux/irq.h>
 #include <linux/interrupt.h>
 #include <asm/bfin5xx_spi.h>
+#include <asm/cplb.h>
 #include <asm/dma.h>
 #include <asm/gpio.h>
 #include <asm/mach/nand.h>
