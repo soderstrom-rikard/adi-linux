@@ -362,7 +362,7 @@ static struct spi_board_info bf54x_spi_board_info[] __initdata = {
 	.platform_data		= &bfin_ad7877_ts_info,
 	.irq			= IRQ_PJ11,
 	.max_speed_hz		= 12500000,     /* max spi clock (SCK) speed in HZ */
-	.bus_num		= 1,
+	.bus_num		= 0,
 	.chip_select  		= 2,
 	.controller_data = &spi_ad7877_chip_info,
 },
