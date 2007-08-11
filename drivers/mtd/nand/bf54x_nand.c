@@ -497,6 +497,7 @@ static int bf54x_nand_dma_init(struct bf54x_nand_info *info)
 {
 	int ret;
 	unsigned short val;
+	struct bf54x_nand_platform *plat = info->platform;
 
 	/* Do not use dma */
 	if (!hardware_ecc)

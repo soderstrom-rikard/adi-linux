@@ -166,7 +166,7 @@ static irqreturn_t bfin_rtc_interrupt(int irq, void *dev_id)
 		events |= RTC_UF | RTC_IRQF;
 	}
 
-	rtc_update_irq(&rtc->rtc_dev->class_dev, 1, events);
+	rtc_update_irq(rtc->rtc_dev, 1, events);
 
 	spin_unlock_irq(&rtc->lock);
 

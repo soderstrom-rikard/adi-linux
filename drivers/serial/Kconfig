@@ -5,6 +5,7 @@
 #
 
 menu "Serial drivers"
+	depends on HAS_IOMEM
 
 #
 # The new 8250/16550 serial drivers
@@ -73,17 +74,21 @@ config SERIAL_8250_PCI
 	depends on SERIAL_8250 && PCI
 	default SERIAL_8250
 	help
-	  This builds standard PCI serial support. You may be able to
-	  disable this feature if you only need legacy serial support.
-	  Saves about 9K.
+	  Say Y here if you have PCI serial ports.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called 8250_pci.
 
 config SERIAL_8250_PNP
 	tristate "8250/16550 PNP device support" if EMBEDDED
 	depends on SERIAL_8250 && PNP
 	default SERIAL_8250
 	help
-	  This builds standard PNP serial support. You may be able to
-	  disable this feature if you only need legacy serial support.
+	  Say Y here if you have serial ports described by PNPBIOS or ACPI.
+	  These are typically ports built into the system board.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called 8250_pnp.
 
 config SERIAL_8250_HP300
 	tristate
@@ -254,6 +259,15 @@ config SERIAL_8250_AU1X00
 	  to this option.  The driver can handle 1 or 2 serial ports.
 	  If unsure, say N.
 
+config SERIAL_8250_RM9K
+	bool "Support for MIPS RM9xxx integrated serial port"
+	depends on SERIAL_8250 != n && SERIAL_RM9000
+	select SERIAL_8250_SHARE_IRQ
+	help
+	  Selecting this option will add support for the integrated serial
+	  port hardware found on MIPS RM9122 and similar processors.
+	  If unsure, say N.
+
 comment "Non-8250 serial port support"
 
 config SERIAL_AMBA_PL010
@@ -344,6 +358,23 @@ config SERIAL_ATMEL_TTYAT
 	  /dev/, and pass "console=ttyATn" to the kernel.
 
 	  Say Y if you have an external 8250/16C550 UART.  If unsure, say N.
+
+config SERIAL_KS8695
+	bool "Micrel KS8695 (Centaur) serial port support"
+	depends on ARCH_KS8695
+	select SERIAL_CORE
+	help
+	  This selects the Micrel Centaur KS8695 UART.  Say Y here.
+
+config SERIAL_KS8695_CONSOLE
+	bool "Support for console on KS8695 (Centaur) serial port"
+	depends on SERIAL_KS8695=y
+	select SERIAL_CORE_CONSOLE
+	help
+	  Say Y here if you wish to use a KS8695 (Centaur) UART as the
+	  system console (the system console is the device which
+	  receives all kernel messages and warnings and which allows
+	  logins in single user mode).
 
 config SERIAL_CLPS711X
 	tristate "CLPS711X serial port support"

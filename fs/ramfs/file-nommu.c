@@ -16,7 +16,6 @@
 #include <linux/highmem.h>
 #include <linux/init.h>
 #include <linux/string.h>
-#include <linux/smp_lock.h>
 #include <linux/backing-dev.h>
 #include <linux/ramfs.h>
 #include <linux/quotaops.h>
@@ -200,7 +199,7 @@ static int ramfs_nommu_setattr(struct dentry *dentry, struct iattr *ia)
 	ret = inode_change_ok(inode, ia);
 	if (ret)
 		return ret;
-	
+
 	/* by providing our own setattr() method, we skip this quotaism */
 	if ((old_ia_valid & ATTR_UID && ia->ia_uid != inode->i_uid) ||
 	    (old_ia_valid & ATTR_GID && ia->ia_gid != inode->i_gid))

@@ -386,17 +386,6 @@ static void build_initial_tok_table(void)
 	table_cnt = pos;
 }
 
-static void *find_token(unsigned char *str, int len, unsigned char *token)
-{
-	int i;
-
-	for (i = 0; i < len - 1; i++) {
-		if (str[i] == token[0] && str[i+1] == token[1])
-			return &str[i];
-	}
-	return NULL;
-}
-
 /* replace a given token in all the valid symbols. Use the sampled symbols
  * to update the counts */
 static void compress_symbols(unsigned char *str, int idx)
@@ -410,7 +399,7 @@ static void compress_symbols(unsigned char *str, int idx)
 		p1 = table[i].sym;
 
 		/* find the token on the symbol */
-		p2 = find_token(p1, len, str);
+		p2 = memmem(p1, len, str, 2);
 		if (!p2) continue;
 
 		/* decrease the counts for this symbol's tokens */
@@ -429,7 +418,7 @@ static void compress_symbols(unsigned char *str, int idx)
 			if (size < 2) break;
 
 			/* find the token on the symbol */
-			p2 = find_token(p1, size, str);
+			p2 = memmem(p1, size, str, 2);
 
 		} while (p2);
 

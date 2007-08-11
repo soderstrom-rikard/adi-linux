@@ -1,10 +1,9 @@
 #
 # Makefile for the memory technology device drivers.
 #
-# $Id$
 
 # Core functionality.
-mtd-y				:= mtdcore.o mtdbdi.o
+mtd-y				:= mtdcore.o mtdsuper.o mtdbdi.o
 mtd-$(CONFIG_MTD_PARTITIONS)	+= mtdpart.o
 obj-$(CONFIG_MTD)		+= $(mtd-y)
 
@@ -28,3 +27,5 @@ nftl-objs		:= nftlcore.o nftlmount.o
 inftl-objs		:= inftlcore.o inftlmount.o
 
 obj-y		+= chips/ maps/ devices/ nand/ onenand/
+
+obj-$(CONFIG_MTD_UBI)		+= ubi/

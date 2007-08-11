@@ -6,8 +6,6 @@
  * Created:
  * Description:  sound driver for ad1981 (ac97) on sport0 on bf537/6/4
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright (C) 2003 Luuk van Dijk & Bas Vermeulen, BuyWays B.V.
  *               Copyright 2004-2006 Analog Devices Inc.

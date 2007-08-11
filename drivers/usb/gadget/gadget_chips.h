@@ -105,6 +105,12 @@
 #define gadget_is_imx(g)	0
 #endif
 
+#ifdef CONFIG_USB_GADGET_FSL_USB2
+#define gadget_is_fsl_usb2(g)	!strcmp("fsl-usb2-udc", (g)->name)
+#else
+#define gadget_is_fsl_usb2(g)	0
+#endif
+
 /* Mentor high speed function controller */
 #ifdef CONFIG_USB_GADGET_MUSBHSFC
 #define gadget_is_musbhsfc(g)	!strcmp("musbhsfc_udc", (g)->name)
@@ -183,7 +189,9 @@ static inline int usb_gadget_controller_number(struct usb_gadget *gadget)
 		return 0x17;
 	else if (gadget_is_husb2dev(gadget))
 		return 0x18;
-	else if (gadget_is_net2272(gadget))
+	else if (gadget_is_fsl_usb2(gadget))
 		return 0x19;
+	else if (gadget_is_net2272(gadget))
+		return 0x20;
 	return -ENOENT;
 }

@@ -1,4 +1,13 @@
-/* $Id$ */
+/*
+ * JFFS2 -- Journalling Flash File System, Version 2.
+ *
+ * Copyright © 2001-2007 Red Hat, Inc.
+ *
+ * Created by David Woodhouse <dwmw2@infradead.org>
+ *
+ * For licensing information, see the file 'LICENCE' in this directory.
+ *
+ */
 
 #ifndef _JFFS2_FS_SB
 #define _JFFS2_FS_SB

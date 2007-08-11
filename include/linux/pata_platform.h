@@ -8,7 +8,6 @@ struct pata_platform_info {
 	 * spacing used by ata_std_ports().
 	 */
 	unsigned int ioport_shift;
-	unsigned int irq_type;
 };
 
 #endif /* __LINUX_PATA_PLATFORM_H */

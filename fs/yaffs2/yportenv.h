@@ -39,6 +39,7 @@
 #include <linux/mm.h>
 #include <linux/string.h>
 #include <linux/slab.h>
+#include <linux/sched.h>
 #include <linux/vmalloc.h>
 
 #define YCHAR char

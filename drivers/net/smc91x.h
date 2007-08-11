@@ -57,7 +57,7 @@
 
 #elif defined(CONFIG_BFIN)
 
-#define SMC_IRQ_FLAGS		IRQF_TRIGGER_HIGH	
+#define SMC_IRQ_FLAGS		IRQF_TRIGGER_HIGH
 #define RPC_LSA_DEFAULT		RPC_LED_100_10
 #define RPC_LSB_DEFAULT		RPC_LED_TX_RX
 
@@ -94,11 +94,11 @@
 #define SMC_GET_MAC_ADDR(addr)					\
 	do {							\
 		unsigned int __v;				\
-		__v = SMC_inw( ioaddr, ADDR0_REG );		\
+		__v = SMC_inw(ioaddr, ADDR0_REG);		\
 		addr[0] = __v; addr[1] = __v >> 8;		\
-		__v = SMC_inw( ioaddr, ADDR1_REG );		\
+		__v = SMC_inw(ioaddr, ADDR1_REG);		\
 		addr[2] = __v; addr[3] = __v >> 8;		\
-		__v = SMC_inw( ioaddr, ADDR2_REG );		\
+		__v = SMC_inw(ioaddr, ADDR2_REG);		\
 		addr[4] = __v; addr[5] = __v >> 8;		\
 		if (*(u32 *)(&addr[0]) == 0xFFFFFFFF) {		\
 			random_ether_addr(addr);		\
@@ -244,6 +244,7 @@ SMC_outw(u16 val, void __iomem *ioaddr, int reg)
 #define	SMC_IRQ_FLAGS (( \
 		   machine_is_omap_h2() \
 		|| machine_is_omap_h3() \
+		|| machine_is_omap_h4() \
 		|| (machine_is_omap_innovator() && !cpu_is_omap1510()) \
 	) ? IRQF_TRIGGER_FALLING : IRQF_TRIGGER_RISING)
 
@@ -279,6 +280,37 @@ SMC_outw(u16 val, void __iomem *ioaddr, int reg)
 #define SMC_outw(v, a, r)	outw(v, (a) + (r))
 #define SMC_insw(a, r, p, l)	insw((a) + (r), p, l)
 #define SMC_outsw(a, r, p, l)	outsw((a) + (r), p, l)
+
+#elif   defined(CONFIG_SUPERH)
+
+#ifdef CONFIG_SOLUTION_ENGINE
+#define SMC_CAN_USE_8BIT       0
+#define SMC_CAN_USE_16BIT      1
+#define SMC_CAN_USE_32BIT      0
+#define SMC_IO_SHIFT           0
+#define SMC_NOWAIT             1
+
+#define SMC_inw(a, r)          inw((a) + (r))
+#define SMC_outw(v, a, r)      outw(v, (a) + (r))
+#define SMC_insw(a, r, p, l)   insw((a) + (r), p, l)
+#define SMC_outsw(a, r, p, l)  outsw((a) + (r), p, l)
+
+#else /* BOARDS */
+
+#define SMC_CAN_USE_8BIT       1
+#define SMC_CAN_USE_16BIT      1
+#define SMC_CAN_USE_32BIT      1
+
+#define SMC_inb(a, r)          inb((a) + (r))
+#define SMC_inw(a, r)          inw((a) + (r))
+#define SMC_outb(v, a, r)      outb(v, (a) + (r))
+#define SMC_outw(v, a, r)      outw(v, (a) + (r))
+#define SMC_insw(a, r, p, l)   insw((a) + (r), p, l)
+#define SMC_outsw(a, r, p, l)  outsw((a) + (r), p, l)
+
+#endif  /* BOARDS */
+
+#define set_irq_type(irq, type) do {} while (0)
 
 #elif   defined(CONFIG_M32R)
 

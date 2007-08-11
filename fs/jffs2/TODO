@@ -30,8 +30,6 @@ $Id$
      the full dirent, we only need to go to the flash in lookup() when we think we've
      got a match, and in readdir(). 
    - Doubly-linked next_in_ino list to allow us to free obsoleted raw_node_refs immediately?
-   - Remove totlen from jffs2_raw_node_ref? Need to have totlen passed into
-	jffs2_mark_node_obsolete(). Can all callers work it out?
    - Remove size from jffs2_raw_node_frag. 
 
 dedekind:

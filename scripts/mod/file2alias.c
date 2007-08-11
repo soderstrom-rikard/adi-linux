@@ -353,11 +353,16 @@ static int do_pcmcia_entry(const char *filename,
 
 static int do_of_entry (const char *filename, struct of_device_id *of, char *alias)
 {
+    int len;
     char *tmp;
-    sprintf (alias, "of:N%sT%sC%s",
+    len = sprintf (alias, "of:N%sT%s",
                     of->name[0] ? of->name : "*",
-                    of->type[0] ? of->type : "*",
-                    of->compatible[0] ? of->compatible : "*");
+                    of->type[0] ? of->type : "*");
+
+    if (of->compatible[0])
+        sprintf (&alias[len], "%sC%s",
+                     of->type[0] ? "*" : "",
+                     of->compatible);
 
     /* Replace all whitespace with underscores */
     for (tmp = alias; tmp && *tmp; tmp++)
@@ -418,7 +423,9 @@ static int do_input_entry(const char *filename, struct input_device_id *id,
 		do_input(alias, id->evbit, 0, INPUT_DEVICE_ID_EV_MAX);
 	sprintf(alias + strlen(alias), "k*");
 	if (id->flags & INPUT_DEVICE_ID_MATCH_KEYBIT)
-		do_input(alias, id->keybit, INPUT_DEVICE_ID_KEY_MIN_INTERESTING, INPUT_DEVICE_ID_KEY_MAX);
+		do_input(alias, id->keybit,
+			 INPUT_DEVICE_ID_KEY_MIN_INTERESTING,
+			 INPUT_DEVICE_ID_KEY_MAX);
 	sprintf(alias + strlen(alias), "r*");
 	if (id->flags & INPUT_DEVICE_ID_MATCH_RELBIT)
 		do_input(alias, id->relbit, 0, INPUT_DEVICE_ID_REL_MAX);

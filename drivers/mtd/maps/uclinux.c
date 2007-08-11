@@ -17,7 +17,6 @@
 #include <linux/fs.h>
 #include <linux/romfs_fs.h>
 #include <linux/major.h>
-#include <linux/root_dev.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/map.h>
 #include <linux/mtd/partitions.h>
@@ -126,10 +125,6 @@ int __init uclinux_mtd_init(void)
 #else
 	add_mtd_device(mtd);
 #endif
-
-	printk("uclinux[mtd]: set %s:%s to be root filesystem\n",
-	     	uclinux_romfs[0].name, name);
-	ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, 0);
 
 	return(0);
 }

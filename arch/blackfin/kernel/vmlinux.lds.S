@@ -46,7 +46,7 @@ SECTIONS
 		__text = .;
 		_text = .;
 		__stext = .;
-		*(.text)
+		TEXT_TEXT
 		SCHED_TEXT
 		LOCK_TEXT
 		*(.text.lock)
@@ -72,7 +72,7 @@ SECTIONS
 		__sdata = .;
 		. = ALIGN(THREAD_SIZE);
 		*(.data.init_task)
-		*(.data)
+		DATA_DATA
 		CONSTRUCTORS
 
 		. = ALIGN(32);

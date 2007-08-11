@@ -209,7 +209,8 @@ static struct file_operations yaffs_file_operations = {
 	.mmap = generic_file_mmap,
 	.flush = yaffs_file_flush,
 	.fsync = yaffs_sync_object,
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0))
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)) && \
+	(LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22))
 	.sendfile = generic_file_sendfile,
 #endif
 
