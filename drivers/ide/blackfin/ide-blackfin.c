@@ -119,14 +119,14 @@ void __init blackfin_ide_init(void)
 	set_irq_type(hw.irq, IRQF_TRIGGER_HIGH);
 
 	/* register if */
-	idx = ide_register_hw(&hw, &hwif);
+	idx = ide_register_hw(&hw, 1, &hwif);
 	if (idx == -1) {
 		printk(KERN_ERR "ide-Blackfin: IDE I/F register failed\n");
 		return;
 	}
 
 	hwif_setup(hwif);
-        create_proc_ide_interfaces();
+	ide_proc_register_port(hwif);
 
 	printk(KERN_INFO "ide%d: Blackfin generic IDE interface\n", idx);
 	return;
