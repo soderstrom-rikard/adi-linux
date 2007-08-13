@@ -413,9 +413,6 @@ static int sensor_detect_client(struct i2c_adapter *adapter, int address,
 	struct sensor_data *data;
 	u16 tmp = 0;
 
-	printk(KERN_INFO "%s: detecting client on address 0x%x\n", sensor_name,
-	       address << 1);
-
 	if (address != normal_i2c[0] && address != normal_i2c[1])
 		return -ENODEV;
 
@@ -426,6 +423,13 @@ static int sensor_detect_client(struct i2c_adapter *adapter, int address,
 	if (data == NULL)
 		return -ENOMEM;
 
+	data->cam_ops = get_camops();
+
+	if (!data->cam_ops) {
+		err = -ENODEV;
+		goto error_out;
+	};
+
 	i2c_global_client = new_client = &data->client;
 	i2c_set_clientdata(new_client, data);
 	new_client->addr = address;
@@ -433,16 +437,14 @@ static int sensor_detect_client(struct i2c_adapter *adapter, int address,
 	new_client->driver = &sensor_driver;
 	strcpy(new_client->name, sensor_name);
 
+	printk(KERN_INFO "%s: detecting client on address 0x%x\n", sensor_name,
+	       address << 1);
+
 	err = i2c_attach_client(new_client);
 	if (err)
 		goto error_out;
 
 	pr_debug("%s: detected I2C client (id = %04x)\n", sensor_name, tmp);
-
-	data->cam_ops = register_camera();
-
-	if (!data->cam_ops)
-		goto error_out;
 
 	err = data->cam_ops->cam_control(new_client, CAM_CMD_INIT, 1);
 
@@ -459,7 +461,7 @@ static int sensor_detect_client(struct i2c_adapter *adapter, int address,
 
 	return 0;
 
-      error_out:
+error_out:
 	kfree(data);
 	printk(KERN_ERR "%s: init error 0x%x\n", sensor_name, err);
 	return err;
@@ -1379,6 +1381,12 @@ static struct video_device bcap_template = {
 static __exit void bcap_exit(void)
 {
 	int err;
+	struct bcap_camera_ops *ops;
+
+	ops = get_camops();
+
+	if (ops->power != NULL)
+		ops->power(0);
 
 	if ((err = i2c_del_driver(&sensor_driver))) {
 		printk(KERN_WARNING "%s: could not del i2c driver: %i\n",
@@ -1450,6 +1458,13 @@ static __init void bcap_init_cam_gpios(void)
 static __init int bcap_init(void)
 {
 	int err;
+	struct bcap_camera_ops *ops;
+
+	ops = get_camops();
+
+	if (ops->power != NULL)
+		ops->power(1);
+
 	bcap_init_cam_gpios();
 
 	if (global_gain > 127) {
@@ -1478,7 +1493,6 @@ static __init int bcap_init(void)
 	gpio_direction_output(GPIO_3);
 	gpio_set_value(bcap_FS3, 0);
 #endif
-
 
 	err = setup_pin_mux(1);
 

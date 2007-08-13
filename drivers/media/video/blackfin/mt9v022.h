@@ -66,7 +66,7 @@
 
 #define SENSOR_NAME 		"MT9V022"
 
-struct bcap_camera_ops *register_camera(void);
+struct bcap_camera_ops *get_camops(void);
 
 #define MAX_FRAMERATE		30
 

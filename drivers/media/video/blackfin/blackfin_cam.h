@@ -160,6 +160,7 @@ struct sensor_data {
 struct bcap_camera_ops {
 	int (*cam_control) (struct i2c_client * client, u32 cmd, u32 arg);
 	int (*create_sysfs) (struct video_device * v4ldev);
+	int (*power) (u32 arg);
 };
 
 #endif				/* BLACKFIN_CAM_H */

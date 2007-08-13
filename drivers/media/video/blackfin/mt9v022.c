@@ -374,15 +374,15 @@ err:
 static struct bcap_camera_ops mt9v022_ops = {
 	cam_control,
 	mt9v022_create_sysfs,
-
+	NULL,
 };
 
-struct bcap_camera_ops *register_camera(void)
+struct bcap_camera_ops *get_camops(void)
 {
 	return (&mt9v022_ops);
 
 }
-EXPORT_SYMBOL(register_camera);
+EXPORT_SYMBOL(get_camops);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");

@@ -525,15 +525,15 @@ err:
 static struct bcap_camera_ops vs6524_ops = {
 	cam_control,
 	vs6524_create_sysfs,
-
+	NULL,
 };
 
-struct bcap_camera_ops *register_camera(void)
+struct bcap_camera_ops *get_camops(void)
 {
 	return (&vs6524_ops);
 
 }
-EXPORT_SYMBOL(register_camera);
+EXPORT_SYMBOL(get_camops);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");

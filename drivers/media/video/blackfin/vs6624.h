@@ -40,6 +40,8 @@
 
 #define DEFAULT_FORMAT 	3
 
+#define VS6624_PWDN		GPIO_PF10
+
 #undef USE_ITU656
 #undef USE_2ND_BUF_IN_CACHED_MEM
 #define USE_PPI_ERROR
@@ -68,7 +70,7 @@
 
 #define SENSOR_NAME "VS6624"
 
-struct bcap_camera_ops *register_camera(void);
+struct bcap_camera_ops *get_camops(void);
 
 #define MAX_FRAME_WIDTH  640
 #define MAX_FRAME_HEIGHT 480
@@ -79,14 +81,14 @@ struct bcap_camera_ops *register_camera(void);
 
 #define VS6624_ID 				 624
 #define PWR_MAN_SETUP_MODE_SELECT		0xc003	/* (7:0) */
-#define PWR_MAN_DIO_ENABLE			0xc044	/* (7:0) */
+#define PWR_MAN_DIO_ENABLE			0xc044	/* (7:0) */
 #define uwDeviceId				0x0001	/* (7:0) IndexLo 0x0002 */
-#define DeviceID_MSB				0x0001	/* (7:0) */
-#define DeviceID_LSB				0x0002	/* (7:0) */
-#define bFirmwareVsnMajor			0x0004	/* (7:0) */
-#define bFirmwareVsnMinor			0x0006	/* (7:0) */
-#define bPatchVsnMajor				0x0008	/* (7:0) */
-#define bPatchVsnMinor				0x000a	/* (7:0) */
+#define DeviceID_MSB				0x0001	/* (7:0) */
+#define DeviceID_LSB				0x0002	/* (7:0) */
+#define bFirmwareVsnMajor			0x0004	/* (7:0) */
+#define bFirmwareVsnMinor			0x0006	/* (7:0) */
+#define bPatchVsnMajor				0x0008	/* (7:0) */
+#define bPatchVsnMinor				0x000a	/* (7:0) */
 
 #define bUserCommand				0x0180	/* (7:0) */
 #define bManualNextState			0x0186	/* (7:0) */
@@ -105,39 +107,39 @@ struct bcap_camera_ops *register_camera(void);
 #define SensorMode				0x0308	/* (7:0) */
 
 #define bImageSize0				0x0380	/* (7:0) */
-#define uwManualHSize0				0x0383	/* (7:0) IndexLo 0x0384 */
-#define uwManualHSizeMSB0			0x0383	/* (7:0) */
-#define uwManualHSizeLSB0			0x0384	/* (7:0) */
+#define uwManualHSize0				0x0383	/* (7:0) IndexLo 0x0384 */
+#define uwManualHSizeMSB0			0x0383	/* (7:0) */
+#define uwManualHSizeLSB0			0x0384	/* (7:0) */
 #define uwManualVSize0				0x0387	/* (7:0) IndexLo 0x0388 */
-#define uwManualVSizeMSB0			0x0387	/* (7:0) */
-#define uwManualVSizeLSB0			0x0388	/* (7:0) */
+#define uwManualVSizeMSB0			0x0387	/* (7:0) */
+#define uwManualVSizeLSB0			0x0388	/* (7:0) */
 #define uwZoomStepHSize0			0x038b	/* (7:0) IndexLo 0x038c */
-#define uwZoomStepHSizeMSB0			0x038b	/* (7:0) */
-#define uwZoomStepHSizeLSB0			0x038c	/* (7:0) */
+#define uwZoomStepHSizeMSB0			0x038b	/* (7:0) */
+#define uwZoomStepHSizeLSB0			0x038c	/* (7:0) */
 #define uwZoomStepVSize0			0x038f	/* (7:0) IndexLo 0x0390 */
-#define uwZoomStepVSizeMSB0			0x038f	/* (7:0) */
-#define uwZoomStepVSizeLSB0			0x0390	/* (7:0) */
+#define uwZoomStepVSizeMSB0			0x038f	/* (7:0) */
+#define uwZoomStepVSizeLSB0			0x0390	/* (7:0) */
 #define bZoomControl0				0x0392	/* (7:0) */
 #define uwPanStepHSize0				0x0395	/* (7:0) IndexLo 0x0396 */
-#define uwPanStepHSizeMSB0			0x0395	/* (7:0) */
-#define uwPanStepHSizeLSB0			0x0396	/* (7:0) */
+#define uwPanStepHSizeMSB0			0x0395	/* (7:0) */
+#define uwPanStepHSizeLSB0			0x0396	/* (7:0) */
 #define uwPanStepVSize0				0x0399	/* (7:0) IndexLo 0x039a */
-#define uwPanStepVSizeMSB0			0x0399	/* (7:0) */
-#define uwPanStepVSizeLSB0			0x039a	/* (7:0)             */
+#define uwPanStepVSizeMSB0			0x0399	/* (7:0) */
+#define uwPanStepVSizeLSB0			0x039a	/* (7:0) */
 #define bPanControl0				0x039c	/* (7:0) */
 #define bCropControl0				0x039e	/* (7:0) */
 #define uwManualCropHorizontalStart0		0x03a1	/* (7:0) IndexLo 0x03a2 */
 #define uwManualCropHorizontalSize0		0x03a5	/* (7:0) IndexLo 0x03a6 */
 #define uwManualCropVerticalStart0		0x03a9	/* (7:0) IndexLo 0x03aa */
-#define uwManualCropVerticalSize0		0x03ad	/* (7:0) IndexLo 0x03ae */
-#define bCropHStartMSB0				0x03a1	/* (7:0) */
-#define bCropHStartLSB0				0x03a2	/* (7:0) */
-#define bCropVStartMSB0				0x03a9	/* (7:0) */
-#define bCropVStartLSB0				0x03aa	/* (7:0) */
-#define bCropHSizeMSB0				0x03a5	/* (7:0) */
-#define bCropHSizeLSB0				0x03a6	/* (7:0) */
-#define bCropVSizeMSB0				0x03ad	/* (7:0) */
-#define bCropVSizeLSB0				0x03ae	/* (7:0) */
+#define uwManualCropVerticalSize0		0x03ad	/* (7:0) IndexLo 0x03ae */
+#define bCropHStartMSB0				0x03a1	/* (7:0) */
+#define bCropHStartLSB0				0x03a2	/* (7:0) */
+#define bCropVStartMSB0				0x03a9	/* (7:0) */
+#define bCropVStartLSB0				0x03aa	/* (7:0) */
+#define bCropHSizeMSB0				0x03a5	/* (7:0) */
+#define bCropHSizeLSB0				0x03a6	/* (7:0) */
+#define bCropVSizeMSB0				0x03ad	/* (7:0) */
+#define bCropVSizeLSB0				0x03ae	/* (7:0) */
 #define bDataFormat0				0x03b0	/* (7:0) */
 #define bBayerOutputAlignment0			0x03b2	/* (7:0) */
 #define bContrast0				0x03b4	/* (7:0) */
@@ -161,14 +163,14 @@ struct bcap_camera_ops *register_camera(void);
 #define uwManualCropHorizontalSize1		0x0425	/* (7:0) IndexLo 0x0426 */
 #define uwManualCropVerticalStart1		0x0429	/* (7:0) IndexLo 0x042a */
 #define uwManualCropVerticalSize1		0x042d	/* (7:0) IndexLo 0x042e */
-#define bCropHStartMSB1				0x0421	/* (7:0) */
-#define bCropHStartLSB1				0x0422	/* (7:0) */
-#define bCropVStartMSB1				0x0429	/* (7:0) */
-#define bCropVStartLSB1				0x042a	/* (7:0) */
-#define bCropHSizeMSB1				0x0425	/* (7:0) */
-#define bCropHSizeLSB1				0x0426	/* (7:0) */
-#define bCropVSizeMSB1				0x042d	/* (7:0) */
-#define bCropVSizeLSB1				0x042e	/* (7:0) */
+#define bCropHStartMSB1				0x0421	/* (7:0) */
+#define bCropHStartLSB1				0x0422	/* (7:0) */
+#define bCropVStartMSB1				0x0429	/* (7:0) */
+#define bCropVStartLSB1				0x042a	/* (7:0) */
+#define bCropHSizeMSB1				0x0425	/* (7:0) */
+#define bCropHSizeLSB1				0x0426	/* (7:0) */
+#define bCropVSizeMSB1				0x042d	/* (7:0) */
+#define bCropVSizeLSB1				0x042e	/* (7:0) */
 #define bDataFormat1				0x0430	/* (7:0) */
 #define bBayerOutputAlignment1			0x0432	/* (7:0) */
 #define bContrast1				0x0434	/* (7:0) */
@@ -188,7 +190,7 @@ struct bcap_camera_ops *register_camera(void);
 #define fSmoothLineReading			0x058c	/* (7:0) */
 
 #define uwExternalClockFrequencyMhzNumerator	0x0605	/* (7:0) IndexLo 0x0606 */
-#define bExternalClockFrequencyMhzDenominator	0x0608	/* (7:0) */
+#define bExternalClockFrequencyMhzDenominator	0x0608	/* (7:0) */
 
 #define fpExternalClockFrequencyMhz		0x0681	/* (7:0) IndexLo 0x0682 */
 
@@ -200,16 +202,16 @@ struct bcap_camera_ops *register_camera(void);
 #define fFlickerCompatibleFrameLength		0x0c82	/* (7:0) */
 
 #define fpFlickerFreePeriod_us			0x0d05	/* (7:0) IndexLo 0x0d06 */
-#define fAntiFlickerEnabled			0x0d08	/* (7:0) */
+#define fAntiFlickerEnabled			0x0d08	/* (7:0) */
 
-#define uwDesiredFrameRate_Num			0x0d81	/* (7:0) IndexLo 0x0d82 */
-#define uwDesiredFrameRate_Num_MSB		0x0d81	/* (7:0) */
-#define uwDesiredFrameRate_Num_LSB		0x0d82	/* (7:0) */
-#define bDesiredFrameRate_Den			0x0d84	/* (7:0) */
+#define uwDesiredFrameRate_Num			0x0d81	/* (7:0) IndexLo 0x0d82 */
+#define uwDesiredFrameRate_Num_MSB		0x0d81	/* (7:0) */
+#define uwDesiredFrameRate_Num_LSB		0x0d82	/* (7:0) */
+#define bDesiredFrameRate_Den			0x0d84	/* (7:0) */
 
 #define fpRequestedFrameRate_Hz			0x0e01	/* (7:0) IndexLo 0x0e02 */
-#define fpRequestedFrameRate_Hz_MSB		0x0e01	/* (7:0) */
-#define fpRequestedFrameRate_Hz_LSB		0x0e02	/* (7:0) */
+#define fpRequestedFrameRate_Hz_MSB		0x0e01	/* (7:0) */
+#define fpRequestedFrameRate_Hz_LSB		0x0e02	/* (7:0) */
 #define fpMaxFrameRate_Hz			0x0e05	/* (7:0) IndexLo 0x0e06 */
 #define fpMinFrameRate_Hz			0x0e09	/* (7:0) IndexLo 0x0e0a */
 #define fChangePending				0x0e0c	/* (7:0) */
@@ -219,12 +221,12 @@ struct bcap_camera_ops *register_camera(void);
 #define fDisableFrameRateDamper			0x0e80	/* (7:0) */
 #define bImpliedGainThresholdLow_num		0x0e82	/* (7:0) */
 #define bImpliedGainThresholdLow_den		0x0e84	/* (7:0) */
-#define bImpliedGainThresholdHigh_num		0x0e86	/* (7:0) */
-#define bImpliedGainThresholdHigh_den		0x0e88	/* (7:0) */
-#define bUserMinimumFrameRate_Hz		0x0e8a	/* (7:0) */
-#define bUserMaximumFrameRate_Hz		0x0e8c	/* (7:0) */
-#define bRelativeChange_num			0x0e8e	/* (7:0) */
-#define bRelativeChange_den			0x0e90	/* (7:0) */
+#define bImpliedGainThresholdHigh_num		0x0e86	/* (7:0) */
+#define bImpliedGainThresholdHigh_den		0x0e88	/* (7:0) */
+#define bUserMinimumFrameRate_Hz		0x0e8a	/* (7:0) */
+#define bUserMaximumFrameRate_Hz		0x0e8c	/* (7:0) */
+#define bRelativeChange_num			0x0e8e	/* (7:0) */
+#define bRelativeChange_den			0x0e90	/* (7:0) */
 #define fDivorceMinFrameRateFromMaxIntegration	0x0e92	/* (7:0) */
 
 #define fpImpliedGain				0x0f01	/* (7:0) IndexLo 0x0f02 */
@@ -245,9 +247,9 @@ struct bcap_camera_ops *register_camera(void);
 #define ExposureControls_bMode			0x1180	/* (7:0) */
 #define bExposureMetering			0x1182	/* (7:0) */
 #define bManualExposureTime_s_num		0x1184	/* (7:0) */
-#define bManualExposureTime_s_den		0x1186	/* (7:0) */
+#define bManualExposureTime_s_den		0x1186	/* (7:0) */
 #define fpManualDesiredExposureTime_us		0x1189	/* (7:0) IndexLo 0x118a */
-#define iExposureCompensation			0x1190	/* (7:0) Signed       */
+#define iExposureCompensation			0x1190	/* (7:0) Signed */
 #define uwDirectModeCoarseIntegration_lines	0x1195	/* (7:0) IndexLo 0x1196 */
 #define uwDirectModeFineIntegration_pixels	0x1199	/* (7:0) IndexLo 0x119a */
 #define uwDirectModeCodedAnalogGain		0x119d	/* (7:0) IndexLo 0x119e */
@@ -277,7 +279,7 @@ struct bcap_camera_ops *register_camera(void);
 #define fpFineClampThreshold			0x1231	/* (7:0) IndexLo 0x1232 */
 #define fpMaximumManualExposureTime_s		0x1235	/* (7:0) IndexLo 0x1236 */
 #define fpRelativeStabilityThresholdForAutoFocus 0x1239	/*  (7:0) IndexLo 0x123a */
-#define bLeakShift				0x123c	/* (7:0) */
+#define bLeakShift				0x123c	/* (7:0) */
 
 #define fpLeakyEnergy				0x1281	/* (7:0) IndexLo 0x1282 */
 #define fpRelativeStep				0x1285	/* (7:0) IndexLo 0x1286 */
@@ -291,14 +293,14 @@ struct bcap_camera_ops *register_camera(void);
 #define uwCodedAnalogGainPending		0x132b	/* (7:0) IndexLo 0x132c */
 
 #define bWhiteBalanceMode			0x1480	/* (7:0) */
-#define bManualRedGain				0x1482	/* (7:0) */
-#define bManualGreenGain			0x1484	/* (7:0) */
-#define bManualBlueGain				0x1486	/* (7:0) */
+#define bManualRedGain				0x1482	/* (7:0) */
+#define bManualGreenGain			0x1484	/* (7:0) */
+#define bManualBlueGain				0x1486	/* (7:0) */
 #define fpFlashRedGain				0x148b	/* (7:0) IndexLo 0x148c */
 #define fpFlashGreenGain			0x148f	/* (7:0) IndexLo 0x1490 */
 #define fpFlashBlueGain				0x1493	/* (7:0) IndexLo 0x1494 */
 
-#define bStatus					0x1500	/* (7:0) */
+#define bStatus					0x1500	/* (7:0) */
 #define fpRedGain				0x1505	/* (7:0) IndexLo 0x1506 */
 #define fpGreenGain				0x1509	/* (7:0) IndexLo 0x150a */
 #define fpBlueGain				0x150d	/* (7:0) IndexLo 0x150e */
@@ -326,7 +328,7 @@ struct bcap_camera_ops *register_camera(void);
 #define fpConstrainedRedPoint			0x1709	/* (7:0) IndexLo 0x170a */
 #define fpConstrainedBluePoint			0x170d	/* (7:0) IndexLo 0x170e */
 
-#define bMaxNumberOfFramesToWaitForStability	0x1880	/* (7:0) */
+#define bMaxNumberOfFramesToWaitForStability	0x1880	/* (7:0) */
 
 #define fWhiteBalanceStable			0x1900	/* (7:0) */
 #define fExposureStable				0x1902	/* (7:0) */
@@ -337,7 +339,7 @@ struct bcap_camera_ops *register_camera(void);
 #define fpRedTilt				0x1985	/* (7:0) IndexLo 0x1986 */
 #define fpGreenTilt				0x1989	/* (7:0) IndexLo 0x198a */
 #define fpBlueTilt				0x198d	/* (7:0) IndexLo 0x198e */
-#define bBlackCorrectionOffset			0x1990	/* (7:0) */
+#define bBlackCorrectionOffset			0x1990	/* (7:0) */
 
 #define uwSensorAnalogGainFloor			0x1a01	/* (7:0) IndexLo 0x1a02 */
 #define uwSensorAnalogGainCeiling		0x1a05	/* (7:0) IndexLo 0x1a06 */
@@ -350,14 +352,14 @@ struct bcap_camera_ops *register_camera(void);
 
 #define uwHorizontalOffset			0x1d01	/* (7:0) IndexLo 0x1d02 */
 #define uwVerticalOffset			0x1d05	/* (7:0) IndexLo 0x1d06 */
-#define iR2RCoefficient				0x1d08	/* (7:0) Signed       */
-#define iR2GRCoefficient			0x1d0a	/* (7:0) Signed       */
-#define iR2GBCoefficient			0x1d0c	/* (7:0) Signed       */
-#define iR2BCoefficient				0x1d0e	/* (7:0) Signed       */
-#define iR4RCoefficient				0x1d10	/* (7:0) Signed       */
-#define iR4GRCoefficient			0x1d12	/* (7:0) Signed       */
-#define iR4GBCoefficient			0x1d14	/* (7:0) Signed       */
-#define iR4BCoefficient				0x1d16	/* (7:0) Signed       */
+#define iR2RCoefficient				0x1d08	/* (7:0) Signed */
+#define iR2GRCoefficient			0x1d0a	/* (7:0) Signed */
+#define iR2GBCoefficient			0x1d0c	/* (7:0) Signed */
+#define iR2BCoefficient				0x1d0e	/* (7:0) Signed */
+#define iR4RCoefficient				0x1d10	/* (7:0) Signed */
+#define iR4GRCoefficient			0x1d12	/* (7:0) Signed */
+#define iR4GBCoefficient			0x1d14	/* (7:0) Signed */
+#define iR4BCoefficient				0x1d16	/* (7:0) Signed */
 
 #define ScythefDisableFilter			0x1d80	/* (7:0) */
 #define JackfDisableFilter			0x1e00	/* (7:0) */
@@ -376,14 +378,14 @@ struct bcap_camera_ops *register_camera(void);
 #define fpRInB					0x1f91	/* (7:0) IndexLo 0x1f92 */
 #define fpGInB					0x1f95	/* (7:0) IndexLo 0x1f96 */
 
-#define bUserPeakGain				0x2000	/* (7:0) */
+#define bUserPeakGain				0x2000	/* (7:0) */
 #define fDisableGainDamping			0x2002	/* (7:0) */
 #define fpDamperLowThreshold_Gain		0x2005	/* (7:0) IndexLo 0x2006 */
 #define fpDamperHighThreshold_Gain		0x2009	/* (7:0) IndexLo 0x200a */
 #define fpMinimumDamperOutput_Gain		0x200d	/* (7:0) IndexLo 0x200e */
-#define bUserPeakLoThresh			0x2010	/* (7:0) */
+#define bUserPeakLoThresh			0x2010	/* (7:0) */
 #define fDisableCoringDamping			0x2012	/* (7:0) */
-#define bUserPeakHiThresh			0x2014	/* (7:0) */
+#define bUserPeakHiThresh			0x2014	/* (7:0) */
 #define fpDamperLowThreshold_Coring		0x2017	/* (7:0) IndexLo 0x2018 */
 #define fpDamperHighThreshold_Coring		0x201b	/* (7:0) IndexLo 0x201c */
 #define fpMinimumDamperOutput_Coring		0x201f	/* (7:0) IndexLo 0x2020 */
@@ -443,11 +445,11 @@ struct bcap_camera_ops *register_camera(void);
 
 #define fGammaManuCtrl1				0x2300	/* (7:0) */
 #define bRPeakGamma1				0x2302	/* (7:0) */
-#define bGPeakGamma1				0x2304	/* (7:0) */
-#define bBPeakGamma1				0x2306	/* (7:0) */
-#define bRUnPeakGamma1				0x2308	/* (7:0) */
-#define bGUnPeakGamma1				0x230a	/* (7:0) */
-#define bBUnPeakGamma1				0x230c	/* (7:0) */
+#define bGPeakGamma1				0x2304	/* (7:0) */
+#define bBPeakGamma1				0x2306	/* (7:0) */
+#define bRUnPeakGamma1				0x2308	/* (7:0) */
+#define bGUnPeakGamma1				0x230a	/* (7:0) */
+#define bBUnPeakGamma1				0x230c	/* (7:0) */
 
 #define uwLumaExcursion0			0x2381	/* (7:0) IndexLo 0x2382 */
 #define uwLumaMidpointTimes20			0x2385	/* (7:0) IndexLo 0x2386 */
@@ -465,32 +467,32 @@ struct bcap_camera_ops *register_camera(void);
 #define fpDamperHighThreshold			0x248b	/* (7:0) IndexLo 0x248c */
 #define fpDamperOutput				0x248f	/* (7:0) IndexLo 0x2490 */
 
-#define bCodeCheckEn				0x2580	/* (7:0) */
-#define bBlankFormat				0x2582	/* (7:0) */
-#define bSyncCodeSetup				0x2584	/* (7:0) */
-#define bHSyncSetup				0x2586	/* (7:0) */
-#define bVSyncSetup				0x2588	/* (7:0) */
-#define bPClkSetup				0x258a	/* (7:0) */
-#define fPclkEn				^	0x258c	/* (7:0) */
-#define bOpfSpSetup				0x258e	/* (7:0) */
-#define bBlankData_MSB				0x2590	/* (7:0) */
-#define bBlankData_LSB				0x2592	/* (7:0) */
-#define bRgbSetup				0x2594	/* (7:0) */
-#define bYuvSetup				0x2596	/* (7:0) */
-#define bVsyncRisingCoarseH			0x2598	/* (7:0) */
-#define bVsyncRisingCoarseL			0x259a	/* (7:0) */
-#define bVsyncRisingFineH			0x259c	/* (7:0) */
-#define bVsyncRisingFineL			0x259e	/* (7:0) */
-#define bVsyncFallingCoarseH			0x25a0	/* (7:0) */
-#define bVsyncFallingCoarseL			0x25a2	/* (7:0) */
-#define bVsyncFallingFineH			0x25a4	/* (7:0) */
-#define bVsyncFallingFineL			0x25a6	/* (7:0) */
-#define bHsyncRisingH				0x25a8	/* (7:0) */
-#define bHsyncRisingL				0x25aa	/* (7:0) */
-#define bHsyncFallingH				0x25ac	/* (7:0) */
-#define bHsyncFallingL				0x25ae	/* (7:0) */
-#define bOutputInterface			0x25b0	/* (7:0) */
-#define bCCPExtraData				0x25b2	/* (7:0) */
+#define bCodeCheckEn				0x2580	/* (7:0) */
+#define bBlankFormat				0x2582	/* (7:0) */
+#define bSyncCodeSetup				0x2584	/* (7:0) */
+#define bHSyncSetup				0x2586	/* (7:0) */
+#define bVSyncSetup				0x2588	/* (7:0) */
+#define bPClkSetup				0x258a	/* (7:0) */
+#define fPclkEn					0x258c	/* (7:0) */
+#define bOpfSpSetup				0x258e	/* (7:0) */
+#define bBlankData_MSB				0x2590	/* (7:0) */
+#define bBlankData_LSB				0x2592	/* (7:0) */
+#define bRgbSetup				0x2594	/* (7:0) */
+#define bYuvSetup				0x2596	/* (7:0) */
+#define bVsyncRisingCoarseH			0x2598	/* (7:0) */
+#define bVsyncRisingCoarseL			0x259a	/* (7:0) */
+#define bVsyncRisingFineH			0x259c	/* (7:0) */
+#define bVsyncRisingFineL			0x259e	/* (7:0) */
+#define bVsyncFallingCoarseH			0x25a0	/* (7:0) */
+#define bVsyncFallingCoarseL			0x25a2	/* (7:0) */
+#define bVsyncFallingFineH			0x25a4	/* (7:0) */
+#define bVsyncFallingFineL			0x25a6	/* (7:0) */
+#define bHsyncRisingH				0x25a8	/* (7:0) */
+#define bHsyncRisingL				0x25aa	/* (7:0) */
+#define bHsyncFallingH				0x25ac	/* (7:0) */
+#define bHsyncFallingL				0x25ae	/* (7:0) */
+#define bOutputInterface			0x25b0	/* (7:0) */
+#define bCCPExtraData				0x25b2	/* (7:0) */
 
 #define NoRAfDisable				0x2600	/* (7:0) */
 #define bUsage					0x2602	/* (7:0) */
@@ -833,7 +835,7 @@ static const u16 patch_p2[][2] = {
 };
 
 static const u16 patch_run_setup[][2] = {
-	{0x2596, 0x01},		/* U first */
+/*	{0x2596, 0x01},*/	/* U first */
 	{0x1d18, 0x00},		/* Enableconstrainedwhitebalance */
 	{0x200d, 0x3c},		/* Damper PeakGain Output MSB */
 	{0x200e, 0x66},		/* Damper PeakGain Output LSB */
@@ -872,6 +874,72 @@ static const u16 patch_run_setup[][2] = {
 	{0x1611, 0x30},		/* Max Distance from Locus MSB */
 	{0x1612, 0x8f},		/* Max Distance from Locus MSB */
 	{0x1614, 0x01}		/* Enable constrainer */
+};
+
+static const u16 vs6624_default[][2] = {
+	{0x3b4, 0x84},
+	{0x3b6, 0x75},
+	{0x3b8, 0x11},
+	{0x434, 0x84},
+	{0x436, 0x75},
+	{0x438, 0x11},
+	{0x3b4, 0x84},
+	{0x3b6, 0x75},
+	{0x3b8, 0x11},
+	{0x434, 0x84},
+	{0x436, 0x75},
+	{0x438, 0x11},
+	{0x1482, 0x80},
+	{0x1484, 0x80},
+	{0x1486, 0x80},
+	{0x1480, 0x1},
+	{0x1190, 0xfe},
+	{0x1182, 0x0},
+	{0xc80, 0x64},
+	{0x1190, 0xfe},
+	{0x2000, 0xe},
+	{0x2010, 0x28},
+	{0x2000, 0xe},
+	{0x2010, 0x28},
+	{0x3ba, 0x0},
+	{0x3bc, 0x0},
+	{0x38b, 0x0},
+	{0x38c, 0x1},
+	{0x38f, 0x0},
+	{0x390, 0x1},
+	{0x395, 0x0},
+	{0x396, 0xf},
+	{0x399, 0x0},
+	{0x39a, 0xf},
+	{0x308, 0x1},
+	{0x2584, 0x21},
+	{0xe80, 0x0},
+	{0xd84, 0x1},
+	{0xd82, 0xf},
+	{0x2000, 0xe},
+	{0x2010, 0x28},
+	{0x3ba, 0x0},
+	{0x3bc, 0x0},
+	{0x1182, 0x0},
+	{0xc80, 0x64},
+	{0x1190, 0xfe},
+	{0x3b4, 0x84},
+	{0x3b6, 0x75},
+	{0x3b8, 0x11},
+	{0x434, 0x84},
+	{0x436, 0x75},
+	{0x438, 0x11},
+	{0x1480, 0x1},
+	{0x38b, 0x0},
+	{0x38c, 0x1},
+	{0x38f, 0x0},
+	{0x390, 0x1},
+	{0x395, 0x0},
+	{0x396, 0xf},
+	{0x399, 0x0},
+	{0x39a, 0xf},
+	{0x482, 0x0},
+	{0x2594, 0x1},
 };
 
 #endif				/* VS6624_H */

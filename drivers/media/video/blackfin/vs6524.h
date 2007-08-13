@@ -62,7 +62,7 @@
 
 #define SENSOR_NAME "VS6524"
 
-struct bcap_camera_ops *register_camera(void);
+struct bcap_camera_ops *get_camops(void);
 
 #define MAX_FRAME_WIDTH  640
 #define MAX_FRAME_HEIGHT 480

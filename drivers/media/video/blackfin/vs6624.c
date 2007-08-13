@@ -48,10 +48,16 @@
 #include <linux/timex.h>
 #include <linux/wait.h>
 #include <media/v4l2-dev.h>
+#include <asm/gpio.h>
 
 #include "vs6624.h"
 
 static DEFINE_MUTEX(vs6624_sysfs_lock);
+static struct vs6624_config {
+	u32 pixfmt;
+	u32 framerate;
+} vs6624_config;
+
 
 static int WriteByte(struct i2c_client *client,
 		     unsigned short offset, unsigned char data)
@@ -137,8 +143,32 @@ static int vs_probe(struct i2c_client *client)
 
 }
 
+static int vs_powerup(u32 arg)
+{
+
+	if (arg) {
+		if (gpio_request(VS6624_PWDN, "VS6624 Power Down")) {
+		printk(KERN_ERR "%s: Failed to request GPIO %d\n",
+		SENSOR_NAME, VS6624_PWDN);
+			return -EFAULT;
+		}
+		gpio_direction_output(VS6624_PWDN);
+		gpio_set_value(VS6624_PWDN, 1);
+		mdelay(100);
+	} else {
+		gpio_direction_input(VS6624_PWDN);
+		gpio_free(VS6624_PWDN);
+	}
+
+	return 0;
+
+}
+
+
 static int vs_set_pixfmt(struct i2c_client *client, u32 arg)
 {
+
+	vs6624_config.pixfmt = arg;
 
 	switch (arg) {
 	case VIDEO_PALETTE_UYVY:
@@ -175,10 +205,42 @@ static int vs_set_framerate(struct i2c_client *client, u32 arg)
 		WriteByte(client, uwDesiredFrameRate_Num_MSB, MSB(arg));
 		WriteByte(client, uwDesiredFrameRate_Num_LSB, LSB(arg));
 		WriteByte(client, bDesiredFrameRate_Den, 0x1);
+
+		vs6624_config.framerate = arg;
+
 		return 0;
 	}
 
 	return -EPERM;
+
+}
+
+static int vs_reset_restore(struct i2c_client *client)
+{
+
+	vs_powerup(0);
+	mdelay(1);
+	vs_powerup(1);
+
+	WriteSequence(client, patch_p1, sizeof(patch_p1) / (sizeof(u16) * 2));
+
+	WriteByte(client, PWR_MAN_DIO_ENABLE, 0x1);
+	WriteByte(client, PWR_MAN_SETUP_MODE_SELECT, 0x2);
+	mdelay(10);
+
+	WriteSequence(client, patch_p2, sizeof(patch_p2) / (sizeof(u16) * 2));
+
+	WriteSequence(client, vs6624_default, sizeof(vs6624_default) / (sizeof(u16) * 2));
+
+	WriteByte(client, bHSyncSetup, 0xF);	/* Active lines only, Automatic */
+
+	WriteSequence(client, patch_run_setup,
+		      sizeof(patch_run_setup) / (sizeof(u16) * 2));
+
+	vs_set_pixfmt(client, vs6624_config.pixfmt);
+	vs_set_framerate(client, vs6624_config.framerate);
+
+	return 0;
 
 }
 
@@ -241,84 +303,59 @@ static int vs_set_image_size(struct i2c_client *client, u32 res)
 static int vs_set_resolution(struct i2c_client *client, u32 res)
 {
 
-/*      WriteByte(client, bUserCommand, 0x4);*/ /* STOP */
+	vs_reset_restore(client);
+
 
 	switch (res) {
 	case RES_VGA:
-/*              WriteByte(client, bCropControl0, 0x1);*/
 		WriteByte(client, bImageSize0, 0x2);
 		break;
 	case RES_QVGA:
-/*              WriteByte(client, bCropControl0, 0x1);*/
 		WriteByte(client, bImageSize0, 0x4);
 		break;
 	case RES_QQVGA:
-/*              WriteByte(client, bCropControl0, 0x1);*/
 		WriteByte(client, bImageSize0, 0x6);
 		break;
 	case RES_CIF:
-/*              WriteByte(client, bCropControl0, 0x1);*/
 		WriteByte(client, bImageSize0, 0x3);
 		break;
 	case RES_QCIF:
-/*              WriteByte(client, bCropControl0, 0x1);*/
 		WriteByte(client, bImageSize0, 0x5);;
 		break;
 	case RES_SQCIF:
-/*              WriteByte(client, bCropControl0, 0x1);*/
 		WriteByte(client, bImageSize0, 0x6);
 		break;
 	default:
 		vs_set_image_size(client, res);
 	}
 
-	WriteByte(client, bTimeToPowerdown, 0xff);
-	WriteByte(client, bUserCommand, 0x4);	/* STOP */
-	mdelay(10);
-	WriteByte(client, bUserCommand, 0x2);	/* RUN */
-/*      poll_ready(client);*/
 
-/*      WriteSequence(client, patch_run_setup, sizeof(patch_run_setup) / (sizeof(u16) * 2));*/
+	WriteByte(client, bUserCommand, 0x2);	/* RUN */
 
 	return 0;
 }
 
+
+
 static int vs_init(struct i2c_client *client, u32 arg)
 {
 
-	WriteByte(client, PWR_MAN_SETUP_MODE_SELECT, 0x0);
+	WriteSequence(client, patch_p1, sizeof(patch_p1) / (sizeof(u16) * 2));
 
-/*      WriteSequence(client, patch_p1, sizeof(patch_p1) / (sizeof(u16) * 2)); */
-/*      mdelay(1);*/
 	WriteByte(client, PWR_MAN_DIO_ENABLE, 0x1);
-	mdelay(1);
 	WriteByte(client, PWR_MAN_SETUP_MODE_SELECT, 0x2);
-	mdelay(50);
+	mdelay(10);
 
-/*      WriteSequence(client, patch_p2, sizeof(patch_p2) / (sizeof(u16) * 2));*/
-/*      mdelay(1);*/
-	WriteSequence(client, patch_run_setup,
-		      sizeof(patch_run_setup) / (sizeof(u16) * 2));
-	mdelay(1);
-	WriteByte(client, SensorMode, 0x2);	/*VGA Mode */
-	mdelay(1);
-#ifdef USE_ITU656
-	WriteByte(client, bCodeCheckEn, 0x3);	/* supress 0xFF 0x00 */
-	WriteByte(client, bDataFormat0, 0x1);	/* REC601 */
+	WriteSequence(client, patch_p2, sizeof(patch_p2) / (sizeof(u16) * 2));
 
-	WriteByte(client, bSyncCodeSetup, 0x19);	/* ITU656 TOGGLE 1,2 */
-	WriteByte(client, bSyncCodeSetup, 0x9);	/* ITU656 TOGGLE 1,2 */
+	WriteSequence(client, vs6624_default, sizeof(vs6624_default) / (sizeof(u16) * 2));
 
-#else
-	WriteByte(client, bCodeCheckEn, 0x0);	/* allow all */
-	WriteByte(client, bSyncCodeSetup, 0x1);	/* SYNC */
 	WriteByte(client, bHSyncSetup, 0xF);	/* Active lines only, Automatic */
 
-#endif
+	WriteSequence(client, patch_run_setup,
+		      sizeof(patch_run_setup) / (sizeof(u16) * 2));
 
-/*      vs_set_framerate(client, MAX_FRAMERATE);*/ /* set max frame rate */
-
-/*      WriteByte(client, bUserCommand, 0x2);*/ /* RUN */
+	vs_set_framerate(client, MAX_FRAMERATE); /* set max frame rate */
 
 	if (vs_probe(client))
 		return -ENODEV;
@@ -583,15 +620,15 @@ err:
 static struct bcap_camera_ops vs6624_ops = {
 	cam_control,
 	vs6624_create_sysfs,
-
+	vs_powerup,
 };
 
-struct bcap_camera_ops *register_camera(void)
+struct bcap_camera_ops *get_camops(void)
 {
 	return (&vs6624_ops);
 
 }
-EXPORT_SYMBOL(register_camera);
+EXPORT_SYMBOL(get_camops);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
