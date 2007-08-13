@@ -552,7 +552,6 @@ static void write_atapi_register(unsigned long base,
 static unsigned short read_atapi_register(unsigned long base,
 		unsigned long ata_reg)
 {
-	unsigned short buf;
 	/* Program the ATA_DEV_ADDR register with address of the
 	 * device register (0x01 to 0x0F).
 	 */
@@ -1079,7 +1078,8 @@ static unsigned int bfin_bus_softreset (struct ata_port *ap,
  *	Note: Original code is ata_std_softreset().
  */
 
-static int bfin_std_softreset (struct ata_port *ap, unsigned int *classes)
+static int bfin_std_softreset(struct ata_port *ap, unsigned int *classes,
+		unsigned long deadline)
 {
 	unsigned int slave_possible = ap->flags & ATA_FLAG_SLAVE_POSS;
 	unsigned int devmask = 0, err_mask;
@@ -1424,9 +1424,9 @@ static struct ata_port_info bfin_port_info[] = {
  *	bfin_reset_controller - initialize BF54x ATAPI controller.
  */
 
-static int bfin_reset_controller(struct ata_probe_ent *ae)
+static int bfin_reset_controller(struct ata_host *host)
 {
-	unsigned long base = (unsigned long)ae->port[0].ctl_addr;
+	unsigned long base = (unsigned long)host->ports[0]->ioaddr.ctl_addr;
 	int count;
 	unsigned short status;
 
@@ -1486,9 +1486,11 @@ static unsigned short atapi_io_port[] = {
  */
 static int __devinit bfin_atapi_probe(struct platform_device *pdev)
 {
-	struct resource *res;
-	struct ata_probe_ent ae;
 	int board_idx = 0;
+	struct resource *res;
+	struct ata_host *host;
+	const struct ata_port_info *ppi[] =
+		{ &bfin_port_info[board_idx], NULL };
 
 	/*
 	 * Simple resource validation ..
@@ -1508,32 +1510,25 @@ static int __devinit bfin_atapi_probe(struct platform_device *pdev)
 	/*
 	 * Now that that's out of the way, wire up the port..
 	 */
-	memset(&ae, 0, sizeof(struct ata_probe_ent));
-	INIT_LIST_HEAD(&ae.node);
-	ae.dev		= &pdev->dev;
-	ae.n_ports	= 1;
-	ae.irq		= platform_get_irq(pdev, 0);
-	ae.sht		= bfin_port_info[board_idx].sht;
-	ae.port_flags	= bfin_port_info[board_idx].flags;
-	ae.pio_mask	= bfin_port_info[board_idx].pio_mask;
-	ae.mwdma_mask	= bfin_port_info[board_idx].mwdma_mask;
-	ae.udma_mask	= bfin_port_info[board_idx].udma_mask;
-	ae.port_ops	= bfin_port_info[board_idx].port_ops;
-	ae.irq_flags	= IRQF_SHARED;
-	ae.port[0].ctl_addr = (void *)res->start;
+	host = ata_host_alloc_pinfo(&pdev->dev, ppi, 1);
+	if (!host)
+		return -ENOMEM;
+
+	host->ports[0]->ioaddr.ctl_addr = (void *)res->start;
 
 	if (peripheral_request_list(atapi_io_port, "atapi-io-port")) {
 		dev_err(&pdev->dev, "Requesting Peripherals faild\n");
 		return -EFAULT;
 	}
 
-	if (bfin_reset_controller(&ae)) {
+	if (bfin_reset_controller(host)) {
 		peripheral_free_list(atapi_io_port);
 		dev_err(&pdev->dev, "Fail to reset ATAPI device\n");
 		return -EFAULT;
 	}
 
-	if (unlikely(ata_device_add(&ae) == 0)) {
+	if (ata_host_activate(host, platform_get_irq(pdev, 0),
+		ata_interrupt, IRQF_SHARED, &bfin_sht) != 0) {
 		peripheral_free_list(atapi_io_port);
 		dev_err(&pdev->dev, "Fail to attach ATAPI device\n");
 		return -ENODEV;
