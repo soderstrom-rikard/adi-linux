@@ -306,9 +306,45 @@ static unsigned char wcfxs_getreg(struct wcfxs *wc, int card, unsigned char reg)
 	return value;
 }
 
+static int __wait_access(struct wcfxs *wc, int card)
+{
+	unsigned char data;
+	long origjiffies;
+	int count = 0;
+
+	#define MAX 6000 /* attempts */
+
+	origjiffies = jiffies;
+	/* Wait for indirect access */
+	while (count++ < MAX)
+	{
+		data = wcfxs_getreg(wc, card, I_STATUS);
+
+		if (!data)
+			return 0;
+	}
+
+	if (count > (MAX-1))
+		printk(" ##### Loop error (%02x) #####\n", data);
+
+	return 0;
+}
+
+static unsigned char translate_3215(unsigned char address)
+{
+	int x;
+	for (x=0;x<sizeof(indirect_regs)/sizeof(indirect_regs[0]);x++) {
+		if (indirect_regs[x].address == address) {
+			address = indirect_regs[x].altaddr;
+			break;
+		}
+	}
+	return address;
+}
+
 static int wcfxs_proslic_setreg_indirect(struct wcfxs *wc, int card, unsigned char address, unsigned short data)
 {
-	int res;
+	int res=-1;
 #if defined(TEST_SPI_DELAY)
 	unsigned int start,end;
 #endif
@@ -316,14 +352,22 @@ static int wcfxs_proslic_setreg_indirect(struct wcfxs *wc, int card, unsigned ch
 #if defined(TEST_SPI_DELAY)
 	start = cycles();
 #endif
-	res = wcfxs_getreg(wc,card,ID_ACCES_STATUS);
-	if(res)
-		udelay(100);
-	res = wcfxs_setreg(wc,card,IDA_LO,(unsigned char)(data &0xff));
-	if(res) return res;
-	res = wcfxs_setreg(wc,card,IDA_HI,(unsigned char)((data &0xff00)>>8));
-	if(res) return res;
-	res = wcfxs_setreg(wc,card,IAA,address);
+	/* Translate 3215 addresses */
+	if (wc->flags[card] & FLAG_3215) {
+		address = translate_3215(address);
+		if (address == 255)
+			return 0;
+	}
+
+	if(!__wait_access(wc, card)) {
+		res = wcfxs_setreg(wc,card,IDA_LO,(unsigned char)(data &0xff));
+		if(res) return res;
+
+		res = wcfxs_setreg(wc,card,IDA_HI,(unsigned char)((data &0xff00)>>8));
+		if(res) return res;
+
+		res = wcfxs_setreg(wc,card,IAA,address);
+	}
 #if defined(TEST_SPI_DELAY)
 	end = cycles();
 	if(start <= end) start = end - start;
@@ -338,7 +382,7 @@ static int wcfxs_proslic_setreg_indirect(struct wcfxs *wc, int card, unsigned ch
 
 static int wcfxs_proslic_getreg_indirect(struct wcfxs *wc, int card, unsigned char address)
 {
-	int res;
+	int res=-1;
 	unsigned char data1,data2;
 #if defined(TEST_SPI_DELAY)
 	unsigned int start,end;
@@ -347,16 +391,22 @@ static int wcfxs_proslic_getreg_indirect(struct wcfxs *wc, int card, unsigned ch
 #if defined(TEST_SPI_DELAY)
 	start = cycles();
 #endif
-	res = wcfxs_setreg(wc,card,IAA,address);
-	if(res)  return res;
-	res = wcfxs_getreg(wc,card,ID_ACCES_STATUS);
-	if(res)
-		udelay(100);
-	data1 = wcfxs_getreg(wc,card,IDA_LO);
-	data2 = wcfxs_getreg(wc,card,IDA_HI);
-	res = data2;
-	res *= 256;
-	res += data1;
+	/* Translate 3215 addresses */
+	if (wc->flags[card] & FLAG_3215) {
+		address = translate_3215(address);
+		if (address == 255)
+			return 0;
+	}
+	if (!__wait_access(wc, card)) {
+		res = wcfxs_setreg(wc,card,IAA,address);
+		if(res)  return res;
+
+		if (!__wait_access(wc, card)) {
+			data1 = wcfxs_getreg(wc,card,IDA_LO);
+			data2 = wcfxs_getreg(wc,card,IDA_HI);
+			res = data1 | (data2 << 8);
+		}
+	}
 #if defined(TEST_SPI_DELAY)
 	end = cycles();
 	if(start <= end) start = end - start;

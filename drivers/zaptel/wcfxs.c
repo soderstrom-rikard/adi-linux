@@ -39,14 +39,6 @@
 #include "proslic.h"
 #include "wcfxs.h"
 
-//#define TEST_SPI_DELAY		1
-#ifdef CONFIG_PBX_USE_SPI_FRAMEWORK
-#include "bfsi-spi-framework.c"
-#else
-#include "bfsi.c"
-#include "bfsi.h"
-#endif
-
 #define STANDALONE_ZAPATA 1
 /*
  *  Define for audio vs. register based ring detection
@@ -371,6 +363,14 @@ struct wcfxs_desc {
 	char *name;
 	int flags;
 };
+
+//#define TEST_SPI_DELAY		1
+#ifdef CONFIG_PBX_USE_SPI_FRAMEWORK
+#include "bfsi-spi-framework.c"
+#else
+#include "bfsi.c"
+#include "bfsi.h"
+#endif
 
 static struct wcfxs_desc wcfxs_bf = { "Blackfin STAMP", 0 };
 static int acim2tiss[16] = { 0x0, 0x1, 0x4, 0x5, 0x7, 0x0, 0x0, 0x6, 0x0, 0x0, 0x0, 0x2, 0x0, 0x3 };
