@@ -398,7 +398,7 @@ static int __init bf53xPFbuttons_init(void)
 		bf53xPFbuttons->dev->keycodesize =
 		    sizeof(bf53xPFbuttons->btncode);
 		bf53xPFbuttons->dev->keycodemax =
-		    ARRAY_SIZE(bf53xPFbuttons->btncode);
+		    ARRAY_SIZE(bf53xPFbuttons_btncode);
 
 		for (i = 0; i < BUTTONS; i++) {
 			set_bit(bf53xPFbuttons->btncode[i],
