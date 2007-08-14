@@ -214,7 +214,7 @@ static struct i2c_driver ad5280_driver = {
 
 #define	FREQ_PPI_CLK         (5*1024*1024)  /* PPI_CLK 5MHz */
 
-#define TIMERS {P_TMR0, P_TMR1, P_TMR2, P_TMR3, P_TMR5}
+#define TIMERS {P_TMR0, P_TMR1, P_TMR2, P_TMR3, P_TMR5, 0}
 
 #else
 
@@ -255,7 +255,7 @@ static struct i2c_driver ad5280_driver = {
 #define bfin_read_TIMER_REV_COUNTER	bfin_read_TIMER5_COUNTER
 
 #define	FREQ_PPI_CLK         (6*1000*1000)  /* PPI_CLK 6MHz */
-#define TIMERS {P_TMR0, P_TMR1, P_TMR5, P_TMR6, P_TMR7}
+#define TIMERS {P_TMR0, P_TMR1, P_TMR5, P_TMR6, P_TMR7, 0}
 
 #endif
 
