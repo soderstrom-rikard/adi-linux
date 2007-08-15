@@ -1332,8 +1332,8 @@ static int bfin_port_start(struct ata_port *ap)
 		}
 		ap->udma_mask = 0;
 		ap->mwdma_mask = 0;
-		dev_err(ap->dev, "Unable to request ATAPI DMA!\n");
-		return -EBUSY;
+		dev_err(ap->dev, "Unable to request ATAPI DMA!"
+			" Continue in PIO mode.\n");
 	}
 	return 0;
 }
