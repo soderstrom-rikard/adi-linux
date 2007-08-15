@@ -3,6 +3,7 @@
 /*
  * This file contains the system call numbers.
  */
+#define __NR_restart_syscall	  0
 #define __NR_exit		  1
 #define __NR_fork		  2
 #define __NR_read		  3
@@ -171,7 +172,7 @@
 				/* 166 __NR_vm86 */
 				/* 167 __NR_query_module */
 				/* 168 __NR_poll */
-				/* 169 __NR_nfsservctl */
+#define __NR_nfsservctl		169
 #define __NR_setresgid		170
 #define __NR_getresgid		171
 #define __NR_prctl		172
@@ -227,7 +228,7 @@
 				/* 222 reserved for TUX */
 				/* 223 reserved for TUX */
 #define __NR_gettid		224
-				/* 225 __NR_readahead */
+#define __NR_readahead		225
 #define __NR_setxattr		226
 #define __NR_lsetxattr		227
 #define __NR_fsetxattr		228
@@ -287,7 +288,7 @@
 #define __NR_mq_timedreceive	(__NR_mq_open+3)
 #define __NR_mq_notify		(__NR_mq_open+4)
 #define __NR_mq_getsetattr	(__NR_mq_open+5)
-				/* 284 __NR_sys_kexec_load */
+#define __NR_kexec_load		284
 #define __NR_waitid		285
 #define __NR_add_key		286
 #define __NR_request_key	287
@@ -352,7 +353,18 @@
 #define __NR_shmdt		340
 #define __NR_shmget		341
 
-#define __NR_syscall		342
+#define __NR_splice		342
+#define __NR_sync_file_range	343
+#define __NR_tee		344
+#define __NR_vmsplice		345
+
+#define __NR_epoll_pwait	346
+#define __NR_utimensat		347
+#define __NR_signalfd		348
+#define __NR_timerfd		349
+#define __NR_eventfd		350
+
+#define __NR_syscall		351
 #define NR_syscalls		__NR_syscall
 
 #ifdef __KERNEL__
