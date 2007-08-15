@@ -397,9 +397,8 @@ static void bfin_set_dmamode (struct ata_port *ap, struct ata_device *adev)
 			/* increase tcyc - tdvs (tcyc_tdvs) until we meed
 			 * the minimum cycle length
 			 */
-			while ( (tdvs + tcyc_tdvs) < tcyc ) {
-				tcyc_tdvs++;
-			}
+			if (tdvs + tcyc_tdvs < tcyc)
+				tcyc_tdvs = tcyc - tdvs;
 
 			/* Mow assign the values required for the timing
 			 * registers
@@ -460,9 +459,8 @@ static void bfin_set_dmamode (struct ata_port *ap, struct ata_device *adev)
 			n0  = num_clocks_min(mdma_t0min[mode], fsclk);
 
 			/* increase tk until we meed the minimum cycle length */
-			while ( (tkw+td) < n0 ) {
-				tkw++;
-			}
+			if (tkw + td < n0)
+				tkw = n0 - td;
 
 			/* DIOR negated pulse width - read */
 			tkr = num_clocks_min(mdma_tkrmin[mode], fsclk);
