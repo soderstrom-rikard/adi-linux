@@ -41,6 +41,7 @@
 #include <linux/irq.h>
 #include <asm/dma.h>
 #include <asm/bfin5xx_spi.h>
+#include <asm/reboot.h>
 
 /*
  * Name the Board for the /proc/cpuinfo
@@ -424,3 +425,13 @@ static int __init stamp_init(void)
 }
 
 arch_initcall(stamp_init);
+
+void native_machine_restart(char *cmd)
+{
+#if defined(CONFIG_BFIN_SHARED_FLASH_ENET)
+# define BIT_TO_SET (1 << CONFIG_ENET_FLASH_PIN)
+	bfin_write_FIO_INEN(~BIT_TO_SET);
+	bfin_write_FIO_DIR(BIT_TO_SET);
+	bfin_write_FIO_FLAG_C(BIT_TO_SET);
+#endif
+}

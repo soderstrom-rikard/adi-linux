@@ -43,6 +43,7 @@
 #include <linux/usb_sl811.h>
 #include <asm/dma.h>
 #include <asm/bfin5xx_spi.h>
+#include <asm/reboot.h>
 #include <linux/spi/ad7877.h>
 
 /*
@@ -714,3 +715,10 @@ static int __init stamp_init(void)
 }
 
 arch_initcall(stamp_init);
+
+void native_machine_restart(char *cmd)
+{
+	/* workaround reboot hang when booting from SPI */
+	if ((bfin_read_SYSCR() & 0x7) == 0x3)
+		bfin_gpio_reset_spi0_ssel1();
+}
