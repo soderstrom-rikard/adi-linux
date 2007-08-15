@@ -312,9 +312,8 @@ static void bfin_set_piomode(struct ata_port *ap, struct ata_device *adev)
 		n0  = num_clocks_min(reg_t0min[mode], fsclk);
 
 		/* increase t2 until we meed the minimum cycle length */
-		while ((t2_reg + teoc_reg) < n0) {
-			t2_reg++;
-		}
+		if (t2_reg + teoc_reg < n0)
+			t2_reg = n0 - teoc_reg;
 
 		/* calculate the timing values for pio transfers. */
 
@@ -326,9 +325,8 @@ static void bfin_set_piomode(struct ata_port *ap, struct ata_device *adev)
 		n0  = num_clocks_min(pio_t0min[mode], fsclk);
 
 		/* increase t2 until we meed the minimum cycle length */
-		while ((t2_pio + teoc_pio) < n0) {
-			t2_pio++;
-		}
+		if (t2_pio + teoc_pio < n0)
+			t2_pio = n0 - teoc_pio;
 
 		/* Address valid to DIOR/DIORW */
 		t1_reg = num_clocks_min(pio_t1min[mode], fsclk);
