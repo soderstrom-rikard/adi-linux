@@ -613,7 +613,7 @@ void bfin_lq035_fb_rotate(struct fb_info *fbi, int angle)
 #endif
 }
 
-static int direct_mmap(struct fb_info *info, struct vm_area_struct * vma)
+static int bfin_lq035_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 {
 
 	unsigned long flags;
@@ -697,7 +697,7 @@ static struct fb_ops bfin_lq035_fb_ops = {
 	.fb_fillrect		= cfb_fillrect,
 	.fb_copyarea		= cfb_copyarea,
 	.fb_imageblit		= cfb_imageblit,
-	.fb_mmap		= direct_mmap,
+	.fb_mmap		= bfin_lq035_fb_mmap,
 	.fb_cursor		= bfin_lq035_fb_cursor,
 	.fb_setcolreg		= bfin_lq035_fb_setcolreg,
 };
@@ -757,7 +757,7 @@ static struct lcd_ops bfin_lcd_ops = {
 
 static struct lcd_device *lcd_dev;
 
-static int __init bfin_lq035_fb_init(void)
+static int __init bfin_lq035_probe(struct platform_device *pdev)
 {
 	printk(KERN_INFO DRIVER_NAME ": FrameBuffer initializing...");
 
@@ -877,7 +877,7 @@ static int __init bfin_lq035_fb_init(void)
 	return 0;
 }
 
-static void __exit bfin_lq035_fb_exit(void)
+static int bfin_lq035_remove(struct platform_device *pdev)
 {
 	if (fb_buffer != NULL)
 		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
@@ -908,10 +908,67 @@ static void __exit bfin_lq035_fb_exit(void)
 	free_ports();
 
 	printk(KERN_INFO DRIVER_NAME ": Unregister LCD driver.\n");
+
+	return 0;
 }
+
+#ifdef CONFIG_PM
+static int bfin_lq035_suspend(struct platform_device *pdev, pm_message_t state)
+{
+
+	if (lq035_open_cnt > 0) {
+		bfin_write_PPI_CONTROL(0);
+		SSYNC();
+		disable_dma(CH_PPI);
+	}
+	return 0;
+}
+
+static int bfin_lq035_resume(struct platform_device *pdev)
+{
+
+	if (lq035_open_cnt > 0) {
+		bfin_write_PPI_CONTROL(0);
+		SSYNC();
+
+		config_dma();
+		config_ppi();
+
+		enable_dma(CH_PPI);
+		bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
+		SSYNC();
+	}
+	return 0;
+}
+#else
+#define bfin_lq035_suspend	NULL
+#define bfin_lq035_resume	NULL
+#endif
+
+static struct platform_driver bfin_lq035_driver = {
+	.probe = bfin_lq035_probe,
+	.remove = bfin_lq035_remove,
+	.suspend = bfin_lq035_suspend,
+	.resume = bfin_lq035_resume,
+	.driver = {
+		   .name = DRIVER_NAME,
+		   .owner = THIS_MODULE,
+		   },
+};
+
+static int __devinit bfin_lq035_driver_init(void)
+{
+	return platform_driver_register(&bfin_lq035_driver);
+}
+
+static void __exit bfin_lq035_driver_cleanup(void)
+{
+	platform_driver_unregister(&bfin_lq035_driver);
+}
+
 
 MODULE_DESCRIPTION("SHARP LQ035Q7DB03 TFT LCD Driver");
 MODULE_LICENSE("GPL");
 
-module_init(bfin_lq035_fb_init);
-module_exit(bfin_lq035_fb_exit);
+module_init(bfin_lq035_driver_init);
+module_exit(bfin_lq035_driver_cleanup);
