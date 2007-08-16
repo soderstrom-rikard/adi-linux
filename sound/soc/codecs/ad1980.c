@@ -196,6 +196,7 @@ static int ad1980_soc_probe(struct platform_device *pdev)
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec;
 	int ret = 0;
+	u16 vendor_id2;
 
 	printk(KERN_INFO "AD1980 SoC Audio Codec\n");
 
@@ -247,8 +248,10 @@ static int ad1980_soc_probe(struct platform_device *pdev)
 	if (ac97_read(codec, AC97_VENDOR_ID1) != 0x4144)
 		goto reset_err;
 
-	if (ac97_read(codec, AC97_VENDOR_ID2) != 0x5370) {
-		if (ac97_read(codec, AC97_VENDOR_ID2) != 0x5374)
+	vendor_id2 = ac97_read(codec, AC97_VENDOR_ID2);
+
+	if (vendor_id2 != 0x5370) {
+		if (vendor_id2 != 0x5374)
 			goto reset_err;
 		else
 			printk(KERN_WARNING "ad1980: Expected AD1980 but "
