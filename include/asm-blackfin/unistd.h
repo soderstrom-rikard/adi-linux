@@ -363,8 +363,11 @@
 #define __NR_signalfd		348
 #define __NR_timerfd		349
 #define __NR_eventfd		350
+#define __NR_pread64		351
+#define __NR_pwrite64		352
+#define __NR_fadvise64		353
 
-#define __NR_syscall		351
+#define __NR_syscall		354
 #define NR_syscalls		__NR_syscall
 
 #ifdef __KERNEL__

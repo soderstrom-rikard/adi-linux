@@ -1249,6 +1249,9 @@ ENTRY(_sys_call_table)
 	.long _sys_signalfd
 	.long _sys_timerfd
 	.long _sys_eventfd	/* 350 */
+	.long _sys_pread64
+	.long _sys_pwrite64
+	.long _sys_fadvise64
 	.rept NR_syscalls-(.-_sys_call_table)/4
 	.long _sys_ni_syscall
 	.endr
