@@ -27,6 +27,7 @@
 
 #include <asm/irq.h>
 #include <asm/gpio.h>
+#include <asm/portmux.h>
 #include <linux/mutex.h>
 
 #include "bf5xx-sport.h"
@@ -123,34 +124,44 @@ static void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
 
 static void bf5xx_ac97_warm_reset(struct snd_ac97 *ac97)
 {
+#if defined(CONFIG_BF54x) || defined(CONFIG_BF561) || \
+ (defined(BF537_FAMILY) && (CONFIG_SND_BF5XX_SPORT_NUM == 1))
+
+#define CONCAT(a, b, c) a ## b ## c
+#define BFIN_SPORT_RFS(x) CONCAT(P_SPORT, x, _RFS)
+
+	u16 per = BFIN_SPORT_RFS(CONFIG_SND_BF5XX_SPORT_NUM);
+	u16 gpio = P_IDENT(BFIN_SPORT_RFS(CONFIG_SND_BF5XX_SPORT_NUM));
+
 	pr_debug("%s enter\n", __FUNCTION__);
 
-	/* It is specified for bf548-ezkit */
-	/* Set RFS (PORT C4) to gpio mode and drive it high for 2us */
-	bfin_write_PORTC_FER(bfin_read_PORTC_FER() & ~0x10);
-	bfin_write_PORTC_DIR_SET(0x10); /* Direction output */
-	bfin_write_PORTC_SET(0x10); /* Set value to 1 */
-	SSYNC();
+	peripheral_free(per);
+	gpio_request(gpio, NULL);
+	gpio_direction_output(gpio);
+	gpio_set_value(gpio, 1);
 	udelay(2);
-	bfin_write_PORTC_CLEAR(0x10); /* Set value to 0 */
-	SSYNC();
-
-	/* Reset it to SPORT function, assume PORTC_MUX is unchanged */
-	bfin_write_PORTC_FER(bfin_read_PORTC_FER() | 0x10);
-	SSYNC();
+	gpio_set_value(gpio, 0);
+	udelay(1);
+	gpio_free(gpio);
+	peripheral_request(per, "soc-audio");
+#else
+	printk(KERN_INFO"%s: Not implemented\n", __FUNCTION__);
+#endif
 }
 
 static void bf5xx_ac97_cold_reset(struct snd_ac97 *ac97)
 {
+#ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
 	pr_debug("%s enter\n", __FUNCTION__);
 
 	/* It is specified for bf548-ezkit */
-	gpio_set_value(GPIO_PB3, 0);
+	gpio_set_value(CONFIG_SND_BF5XX_RESET_GPIO_NUM, 0);
 	/* Keep reset pin low for 1 us */
 	udelay(1);
-	gpio_set_value(GPIO_PB3, 1);
+	gpio_set_value(CONFIG_SND_BF5XX_RESET_GPIO_NUM, 1);
 	/* Wait for bit clock recover */
 	mdelay(1);
+#endif
 }
 
 struct snd_ac97_bus_ops soc_ac97_ops = {
