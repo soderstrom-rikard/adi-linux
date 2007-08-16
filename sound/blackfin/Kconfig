@@ -79,16 +79,6 @@ config SND_BLACKFIN_AD1836_I2S_LINPHONE
 	  In order to avoid rate convertion in alsa library or oss emulation
 	  layer, let AD1836 support 16 bits, 8k, momo mode.
 
-config SND_BLACKFIN_AD1981B
-	tristate "AD1981B AC97 SPORT0 Audio support (EXPERIMENTAL)"
-	depends on BFIN_SINGLE_CORE && EXPERIMENTAL
-	select SND_PCM
-	help
-	  Select this if you have an AD1981B connected to the SPORT0 port
-	  This driver only supports BF537/6/4 BF533/2/1 
-
-	  If unsure, say N.
-
 config SND_BLACKFIN_SPORT
 	int "Blackfin Audio SPORT port"
 	depends on SND_BLACKFIN_AD1836
