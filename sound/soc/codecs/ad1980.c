@@ -247,8 +247,14 @@ static int ad1980_soc_probe(struct platform_device *pdev)
 	if (ac97_read(codec, AC97_VENDOR_ID1) != 0x4144)
 		goto reset_err;
 
-	if (ac97_read(codec, AC97_VENDOR_ID2) != 0x5370)
-		goto reset_err;
+	if (ac97_read(codec, AC97_VENDOR_ID2) != 0x5370) {
+		if (ac97_read(codec, AC97_VENDOR_ID2) != 0x5374)
+			goto reset_err;
+		else
+			printk(KERN_WARNING "ad1980: Expected AD1980 but "
+				"found AD1981 - This might not work in all "
+				"cases\n");
+	}
 
 	ac97_write(codec, AC97_MASTER, 0x0000); /* unmute line out volume */
 	ac97_write(codec, AC97_PCM, 0x0000);	/* unmute PCM out volume */
