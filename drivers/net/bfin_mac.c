@@ -994,11 +994,9 @@ static int bfin_mac_suspend(struct platform_device *pdev, pm_message_t mesg)
 {
 	struct net_device *net_dev = platform_get_drvdata(pdev);
 
-	if (netif_running(net_dev)) {
-		netif_stop_queue(net_dev);
-		netif_device_detach(net_dev);
-		bf537mac_disable();
-	}
+	if (netif_running(net_dev))
+		bf537mac_close(net_dev);
+
 	return 0;
 }
 
@@ -1006,11 +1004,9 @@ static int bfin_mac_resume(struct platform_device *pdev)
 {
 	struct net_device *net_dev = platform_get_drvdata(pdev);
 
-	if (netif_running(net_dev)) {
-		bf537mac_enable(net_dev);
-		netif_device_attach(net_dev);
-		netif_start_queue(net_dev);
-	}
+	if (netif_running(net_dev))
+		bf537mac_open(net_dev);
+
 	return 0;
 }
 #else
