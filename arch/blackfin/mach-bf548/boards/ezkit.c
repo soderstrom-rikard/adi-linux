@@ -234,7 +234,7 @@ static struct resource bfin_atapi_resources[] = {
 };
 
 static struct platform_device bfin_atapi_device = {
-	.name = "bf54x-atapi",
+	.name = "pata-bf54x",
 	.id = -1,
 	.num_resources = ARRAY_SIZE(bfin_atapi_resources),
 	.resource = bfin_atapi_resources,
