@@ -52,6 +52,12 @@ static struct platform_device rtc_device = {
 };
 #endif
 
+#if defined(CONFIG_FB_BFIN_7393) || defined(CONFIG_FB_BFIN_7393_MODULE)
+static struct platform_device bfin_fb_adv7393_device = {
+	.name = "bfin-adv7393",
+};
+#endif
+
 /*
  *  USB-LAN EzExtender board
  *  Driver needs to know address, irq and flag pin.
@@ -255,6 +261,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
 	&bfin_spi0_device,
+#endif
+
+#if defined(CONFIG_FB_BFIN_7393) || defined(CONFIG_FB_BFIN_7393_MODULE)
+	&bfin_fb_adv7393_device,
 #endif
 
 #if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)

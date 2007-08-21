@@ -53,9 +53,11 @@
 #include <asm/dma.h>
 #include <asm/uaccess.h>
 #include <asm/gpio.h>
+#include <asm/portmux.h>
 
 #include <linux/dma-mapping.h>
 #include <linux/proc_fs.h>
+#include <linux/platform_device.h>
 
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
@@ -129,7 +131,7 @@ static struct fb_ops bfin_adv7393_fb_ops = {
 	.fb_fillrect		= cfb_fillrect,
 	.fb_copyarea		= cfb_copyarea,
 	.fb_imageblit		= cfb_imageblit,
-	.fb_mmap = bfin_fb_mmap,
+	.fb_mmap = bfin_adv7393_fb_mmap,
 	.fb_cursor = bfin_adv7393_fb_cursor,
 	.fb_setcolreg = bfin_adv7393_fb_setcolreg,
 };
@@ -234,7 +236,7 @@ error:
 }
 
 static int adv7393_mmap = 0;
-static int bfin_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
+static int bfin_adv7393_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 {
 	/* we really dont need any map ... not sure how the smem_start will
 	 * end up in the kernel
@@ -281,12 +283,6 @@ static void bfin_disable_dma(void)
 
 static void bfin_config_ppi(struct adv7393fb_device *fbdev)
 {
-#if defined(BF537_FAMILY)
-	bfin_write_PORTG_FER(0xFFFF);	/* PPI[15:0]    */
-	bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x8300);	/* PF.15 PPI_CLK FS1 FS2 */
-	bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~0x0E00);
-#endif
-
 
 	if (ANOMALY_05000183) {
 		bfin_write_TIMER2_CONFIG(WDTH_CAP);
@@ -479,7 +475,7 @@ static struct i2c_driver i2c_driver_adv7393 = {
 };
 
 
-static irqreturn_t ppi_irq_error(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t ppi_irq_error(int irq, void *dev_id)
 {
 
 	struct adv7393fb_device *fbdev = (struct adv7393fb_device *)dev_id;
@@ -545,11 +541,12 @@ adv7393_write_proc(struct file *file, const char __user * buffer,
 	return count;
 }
 
-int __init bfin_adv7393_fb_init(void)
+static int __init bfin_adv7393_fb_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct proc_dir_entry *entry;
 	int num_modes = ARRAY_SIZE(known_modes);
+	u16 ppi_req[] = PPI0_16;
 
 	struct adv7393fb_device *fbdev = NULL;
 
@@ -571,6 +568,8 @@ int __init bfin_adv7393_fb_init(void)
 
 	drv = fbdev;
 
+	platform_set_drvdata(pdev, fbdev);
+
 	fbdev->modes = known_modes;
 
 	printk(KERN_NOTICE "\nbfin_adv7393_fb: initializing: %s \n",
@@ -584,7 +583,7 @@ int __init bfin_adv7393_fb_init(void)
 	    fbdev->modes[mode].xres * (fbdev->modes[mode].bpp / 8);
 
 #if defined(BF533_FAMILY)
-	if(gpio_request(GPIO_3, NULL)){
+	if (gpio_request(GPIO_3, "PPI0_FS3")) {
 		printk(KERN_ERR "BF5xx bfin_adv7393_fb: Failed ro request GPIO_%d (FS3)\n", GPIO_3);
 		return -EBUSY;
 	}
@@ -592,6 +591,13 @@ int __init bfin_adv7393_fb_init(void)
 	gpio_direction_output(GPIO_3);
 	gpio_set_value(GPIO_3, 0);
 #endif
+
+
+	if (peripheral_request_list(ppi_req, DRIVER_NAME)) {
+		printk(KERN_ERR "Requesting Peripherals PPI faild\n");
+		ret = -EFAULT;
+		goto out_8;
+	}
 
 	fbdev->fb_mem =
 	    dma_alloc_coherent(NULL, fbdev->fb_len, &fbdev->dma_handle,
@@ -693,24 +699,26 @@ int __init bfin_adv7393_fb_init(void)
 
 	return 0;
 
-      out_0:
+out_0:
 	unregister_framebuffer(&fbdev->info);
-      out_1:
+out_1:
 	i2c_del_driver(&i2c_driver_adv7393);
-      out_2:
+out_2:
 	free_irq(IRQ_PPI_ERROR, fbdev);
-      out_3:
+out_3:
 	free_dma(CH_PPI);
-      out_4:
+out_4:
 	dma_free_coherent(NULL, fbdev->fb_len, fbdev->fb_mem,
 			  fbdev->dma_handle);
-      out_5:
-	fb_dealloc_cmap(&fbdev->info.cmap);   
-      out_6:
-	kfree(fbdev->info.pseudo_palette);   	
-      out_7:
+out_5:
+	fb_dealloc_cmap(&fbdev->info.cmap);
+out_6:
+	kfree(fbdev->info.pseudo_palette);
+out_7:
+	peripheral_free_list(ppi_req);
+out_8:
 	kfree(fbdev);
-
+	platform_set_drvdata(pdev, NULL);
 	return ret;
 }
 
@@ -879,8 +887,10 @@ static int bfin_adv7393_fb_setcolreg(u_int regno, u_int red, u_int green, u_int 
 	return 0;
 }
 
-static void __exit bfin_adv7393_fb_exit(void)
+static int bfin_adv7393_fb_remove(struct platform_device *pdev)
 {
+	u16 ppi_req[] = PPI0_16;
+
 	adv7393_mode(POWER_DOWN);
 
 	if (drv->fb_mem)
@@ -890,14 +900,72 @@ static void __exit bfin_adv7393_fb_exit(void)
 	unregister_framebuffer(&drv->info);
 	i2c_del_driver(&i2c_driver_adv7393);
 	remove_proc_entry("driver/adv7393", NULL);
-	fb_dealloc_cmap(&drv->info.cmap);   
-	kfree(drv->info.pseudo_palette);  
+	fb_dealloc_cmap(&drv->info.cmap);
+	kfree(drv->info.pseudo_palette);
 
 #if defined(BF533_FAMILY)
 	gpio_free(GPIO_3);	/* FS3 */
 #endif
-
+	peripheral_free_list(ppi_req);
 	kfree(drv);
+
+	return 0;
+}
+
+#ifdef CONFIG_PM
+static int bfin_adv7393_fb_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	struct adv7393fb_device *fbdev = platform_get_drvdata(pdev);
+
+	if (fbdev->open) {
+		bfin_disable_dma();
+		bfin_disable_ppi();
+		dma_desc_list(fbdev, DESTRUCT);
+	}
+	adv7393_mode(POWER_DOWN);
+
+	return 0;
+}
+
+static int bfin_adv7393_fb_resume(struct platform_device *pdev)
+{
+	struct adv7393fb_device *fbdev = platform_get_drvdata(pdev);
+
+	adv7393_mode(POWER_ON);
+
+	if (fbdev->open) {
+		dma_desc_list(fbdev, BUILD);
+		bfin_config_ppi(fbdev);
+		bfin_config_dma(fbdev);
+		bfin_enable_ppi();
+	}
+
+	return 0;
+}
+#else
+#define bfin_adv7393_fb_suspend	NULL
+#define bfin_adv7393_fb_resume	NULL
+#endif
+
+static struct platform_driver bfin_adv7393_fb_driver = {
+	.probe = bfin_adv7393_fb_probe,
+	.remove = bfin_adv7393_fb_remove,
+	.suspend = bfin_adv7393_fb_suspend,
+	.resume = bfin_adv7393_fb_resume,
+	.driver = {
+		   .name = DRIVER_NAME,
+		   .owner = THIS_MODULE,
+		   },
+};
+
+static int __devinit bfin_adv7393_fb_driver_init(void)
+{
+	return platform_driver_register(&bfin_adv7393_fb_driver);
+}
+
+static void __exit bfin_adv7393_fb_driver_cleanup(void)
+{
+	platform_driver_unregister(&bfin_adv7393_fb_driver);
 }
 
 MODULE_LICENSE("GPL");
@@ -916,5 +984,5 @@ MODULE_PARM_DESC(mem,
 module_param(nocursor, int, 0644);
 MODULE_PARM_DESC(nocursor, "cursor enable/disable");
 
-module_init(bfin_adv7393_fb_init);
-module_exit(bfin_adv7393_fb_exit);
+module_init(bfin_adv7393_fb_driver_init);
+module_exit(bfin_adv7393_fb_driver_cleanup);

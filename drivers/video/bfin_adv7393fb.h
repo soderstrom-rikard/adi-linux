@@ -82,6 +82,12 @@ enum {
 #define   I2C_ADV7393        0x54
 #define I2C_NAME(x) (x)->name
 
+#define DRIVER_NAME "bfin-adv7393"
+
+#define PPI0_16 {P_PPI0_CLK, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3, \
+ P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, P_PPI0_D8, P_PPI0_D9, P_PPI0_D10, \
+ P_PPI0_D11, P_PPI0_D12, P_PPI0_D13, P_PPI0_D14, P_PPI0_D15, P_PPI0_FS1, P_PPI0_FS2, 0}
+
 struct adv7393fb_modes {
 	const s8 name[25];	/* Full name */
 	u16 xres;		/* Active Horizonzal Pixels  */
@@ -324,7 +330,7 @@ static int bfin_adv7393_fb_pan_display(struct fb_var_screeninfo *var,
 				       struct fb_info *info);
 
 static int bfin_adv7393_fb_blank(int blank, struct fb_info *info);
-static int bfin_fb_mmap(struct fb_info *info, struct vm_area_struct *vma);
+static int bfin_adv7393_fb_mmap(struct fb_info *info, struct vm_area_struct *vma);
 
 static void bfin_config_ppi(struct adv7393fb_device *fbdev);
 static int bfin_config_dma(struct adv7393fb_device *fbdev);

@@ -80,6 +80,12 @@ static struct platform_device smc91x_device = {
 };
 #endif
 
+#if defined(CONFIG_FB_BFIN_7393) || defined(CONFIG_FB_BFIN_7393_MODULE)
+static struct platform_device bfin_fb_adv7393_device = {
+	.name = "bfin-adv7393",
+};
+#endif
+
 #if defined(CONFIG_USB_NET2272) || defined(CONFIG_USB_NET2272_MODULE)
 static struct resource net2272_bfin_resources[] = {
 	{
@@ -372,6 +378,10 @@ static struct platform_device *stamp_devices[] __initdata = {
 
 #if defined(CONFIG_SMC91X) || defined(CONFIG_SMC91X_MODULE)
 	&smc91x_device,
+#endif
+
+#if defined(CONFIG_FB_BFIN_7393) || defined(CONFIG_FB_BFIN_7393_MODULE)
+	&bfin_fb_adv7393_device,
 #endif
 
 #if defined(CONFIG_USB_NET2272) || defined(CONFIG_USB_NET2272_MODULE)
