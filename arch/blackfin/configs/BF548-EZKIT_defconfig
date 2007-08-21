@@ -1,6 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.22.2
+# Linux kernel version: 2.6.22.4
+# Tue Aug 21 18:01:12 2007
 #
 # CONFIG_MMU is not set
 # CONFIG_FPU is not set
@@ -544,7 +545,7 @@ CONFIG_MTD_RAM=y
 #
 CONFIG_MTD_COMPLEX_MAPPINGS=y
 # CONFIG_MTD_BF5xx is not set
-CONFIG_MTD_UCLINUX=y
+# CONFIG_MTD_UCLINUX is not set
 # CONFIG_MTD_PLATRAM is not set
 
 #
