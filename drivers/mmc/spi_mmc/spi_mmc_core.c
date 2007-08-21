@@ -480,13 +480,13 @@ static int spi_mmc_xfer_bio(mmc_info_t *pdev, struct bio *bio)
 
 	/* do each segment independently */
 	bio_for_each_segment(bvec, bio, i) {
-		unsigned char *buffer = __bio_kmap_atomic(bio, i, KM_USERo);
+		unsigned char *buffer = __bio_kmap_atomic(bio, i, KM_USER0);
 		if(pdev->card_in_bay) {
 			error = spi_mmc_transfer(pdev, sector, bio_cur_sectors(bio),
 				 buffer, bio_data_dir(bio) == WRITE);
 		} else {
 			// Just return with error if card was pulled from socket
-			__bio_kunmap_atomic(bio, KM_USERo);
+			__bio_kunmap_atomic(bio, KM_USER0);
 			return -EIO;
 		}
 		// On error, check if card is still present in socket
@@ -498,7 +498,7 @@ static int spi_mmc_xfer_bio(mmc_info_t *pdev, struct bio *bio)
 			}			
 		}
 		sector += bio_cur_sectors(bio);
-		__bio_kunmap_atomic(bio, KM_USERo);
+		__bio_kunmap_atomic(bio, KM_USER0);
 	}
 	return error;
 }
