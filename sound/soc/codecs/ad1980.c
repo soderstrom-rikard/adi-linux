@@ -159,6 +159,9 @@ EXPORT_SYMBOL_GPL(ad1980_dai);
 
 static int ad1980_reset(struct snd_soc_codec *codec, int try_warm)
 {
+	u16 retry_cnt = 0;
+
+retry:
 	if (try_warm && soc_ac97_ops.warm_reset) {
 		soc_ac97_ops.warm_reset(codec->ac97);
 		if (ac97_read(codec, AC97_RESET) == 0x0090)
@@ -176,6 +179,9 @@ static int ad1980_reset(struct snd_soc_codec *codec, int try_warm)
 	return 0;
 
 err:
+	while (retry_cnt++ < 10)
+		goto retry;
+
 	printk(KERN_ERR "AD1980 AC97 reset failed\n");
 	return -EIO;
 }

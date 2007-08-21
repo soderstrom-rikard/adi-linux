@@ -935,10 +935,14 @@ int sport_send_and_recv(struct sport_device *sport, u8 *out_data, \
 			goto __over;
 	}
 	status = sport->regs->stat;
+	wait = 0;
+
 	while (!(status & TXHRE)) {
 		pr_debug("sport status:0x%04x\n", status);
 		udelay(1);
 		status = *(volatile unsigned short*)&sport->regs->stat;
+		if (wait++ > 1000)
+			goto __over;
 	}
 	/* Wait for the last byte sent out */
 	udelay(20);

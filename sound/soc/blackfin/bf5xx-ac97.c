@@ -156,8 +156,8 @@ static void bf5xx_ac97_cold_reset(struct snd_ac97 *ac97)
 
 	/* It is specified for bf548-ezkit */
 	gpio_set_value(CONFIG_SND_BF5XX_RESET_GPIO_NUM, 0);
-	/* Keep reset pin low for 1 us */
-	udelay(1);
+	/* Keep reset pin low for 1 ms */
+	mdelay(1);
 	gpio_set_value(CONFIG_SND_BF5XX_RESET_GPIO_NUM, 1);
 	/* Wait for bit clock recover */
 	mdelay(1);
