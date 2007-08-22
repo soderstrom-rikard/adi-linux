@@ -961,12 +961,10 @@ static struct platform_driver bfin_adv7393_fb_driver = {
 static int __devinit bfin_adv7393_fb_driver_init(void)
 {
 
-#if defined(CONFIG_KMOD) && defined(MODULE)
 #if  defined(CONFIG_I2C_BLACKFIN_TWI) || defined(CONFIG_I2C_BLACKFIN_TWI_MODULE)
 	request_module("i2c-bfin-twi");
 #else
 	request_module("i2c-bfin-gpio");
-#endif
 #endif
 
 	return platform_driver_register(&bfin_adv7393_fb_driver);

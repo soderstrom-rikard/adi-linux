@@ -1460,12 +1460,10 @@ static __init int bcap_init(void)
 	int err;
 	struct bcap_camera_ops *ops;
 
-#if defined(CONFIG_KMOD) && defined(MODULE)
 #if  defined(CONFIG_I2C_BLACKFIN_TWI) || defined(CONFIG_I2C_BLACKFIN_TWI_MODULE)
 	request_module("i2c-bfin-twi");
 #else
 	request_module("i2c-bfin-gpio");
-#endif
 #endif
 
 	ops = get_camops();
