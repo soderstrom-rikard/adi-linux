@@ -288,6 +288,13 @@ static struct platform_device bf54x_nand_device = {
 };
 #endif
 
+#if defined(CONFIG_SDH_BFIN) || defined(CONFIG_SDH_BFIN)
+static struct platform_device bf54x_sdh_device = {
+	.name = "bfin-sdh",
+	.id = 0,
+};
+#endif
+
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
 /* all SPI peripherals info goes here */
 #if defined(CONFIG_MTD_M25P80) \
@@ -449,6 +456,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 
 #if defined(CONFIG_MTD_NAND_BF54X) || defined(CONFIG_MTD_NAND_BF54X_MODULE)
 	&bf54x_nand_device,
+#endif
+
+#if defined(CONFIG_SDH_BFIN) || defined(CONFIG_SDH_BFIN)
+	&bf54x_sdh_device,
 #endif
 
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)

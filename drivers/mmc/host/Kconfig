@@ -100,3 +100,12 @@ config MMC_TIFM_SD
           To compile this driver as a module, choose M here: the
 	  module will be called tifm_sd.
 
+config SDH_BFIN
+	tristate "Blackfin Secure Digital Host support"
+	depends on MMC && BF54x
+	help
+	  Say Y or M to enable Secure Digital Host interface on BF54x series
+	  processor.
+
+	  If unsure, say N.
+
