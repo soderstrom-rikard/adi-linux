@@ -127,6 +127,16 @@ struct bf537mac_local {
 	unsigned short IntMask;	/* interrupt mask */
 	unsigned char Mac[6];	/* MAC address of the board */
 	spinlock_t lock;
+
+	/* MII and PHY stuffs */
+	int old_link;          /* used by bf537_adjust_link */
+	int old_speed;
+	int old_duplex;
+
+	struct phy_device *phydev;
+	struct mii_bus mii_bus;
+
+	uint32_t msg_enable;
 };
 
 extern void get_bf537_ether_addr(char *addr);
