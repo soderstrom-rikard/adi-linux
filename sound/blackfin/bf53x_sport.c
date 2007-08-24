@@ -65,9 +65,20 @@
 #include <asm/blackfin.h>
 #include <asm/dma.h>
 #include <asm/cacheflush.h>
+#include <asm/portmux.h>
 
 /* delay between frame sync pulse and first data bit in multichannel mode */
 #define FRAME_DELAY (1<<12)
+
+#define DRV_NAME "bf53x_sport"
+
+unsigned short pin_req_sport0[] =
+	{P_SPORT0_TFS, P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS, \
+	 P_SPORT0_DRPRI, P_SPORT0_RSCLK, 0};
+
+unsigned short pin_req_sport1[] =
+	{P_SPORT1_TFS, P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, \
+	P_SPORT1_DRPRI, P_SPORT1_RSCLK, 0};
 
 static unsigned int sport_iobase[] = {SPORT0_TCR1, SPORT1_TCR1 };
 
@@ -909,7 +920,25 @@ struct bf53x_sport *bf53x_sport_init(int sport_num,
 	}
 #endif
 
+
+	if (sport->sport_num) {
+		if (peripheral_request_list(pin_req_sport1, DRV_NAME))
+			goto __init_err5;
+	} else {
+		if (peripheral_request_list(pin_req_sport0, DRV_NAME))
+			goto __init_err5;
+	}
+
 	return sport;
+
+__init_err5:
+#if L1_DATA_A_LENGTH != 0
+	l1_data_sram_free(sport->dummy_buf);
+#else
+	kfree(sport->dummy_buf);
+#endif
+	printk(KERN_ERR DRV_NAME
+		": Requesting Peripherals failed\n");
 
 __init_err4:
 	free_irq(sport->err_irq, sport);
@@ -928,6 +957,13 @@ void bf53x_sport_done(struct bf53x_sport *sport)
 		return;
 
 	sport_stop(sport);
+
+	if (sport->sport_num) {
+		peripheral_free_list(pin_req_sport1);
+	} else {
+		peripheral_free_list(pin_req_sport0);
+	}
+
 	if (sport->dma_rx_desc)
 		dma_free_coherent(NULL, sport->rx_desc_bytes, \
 				sport->dma_rx_desc, 0);
@@ -947,6 +983,7 @@ void bf53x_sport_done(struct bf53x_sport *sport)
 	free_dma(sport->dma_rx_chan);
 	free_dma(sport->dma_tx_chan);
 	free_irq(sport->err_irq, sport);
+
 
 	kfree(sport);
 }
