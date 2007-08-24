@@ -48,6 +48,7 @@
 #include <asm/blackfin.h>
 #include <asm/dma.h>
 #include <asm/cacheflush.h>
+#include <asm/portmux.h>
 
 #include <asm/bf5xx_timers.h>
 
@@ -61,8 +62,16 @@
 
 #define PPI0_MINOR         249
 
-#define PPI_DEVNAME       "ppi"
+#define PPI_DEVNAME       "PPIdev"
 #define PPI_INTNAME       "ppiint"	/* Should be less than 19 chars. */
+
+u16 per_req_ppi0_7[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_D0, P_PPI0_D1,\
+	 P_PPI0_D2, P_PPI0_D3, P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, 0};
+
+u16 per_req_ppi8_15[] = {P_PPI0_D15, P_PPI0_D14, P_PPI0_D13, P_PPI0_D12,\
+			 P_PPI0_D11, P_PPI0_D10, P_PPI0_D9, P_PPI0_D8, 0};
+
+u16 per_req_ppi_fs[] = {P_PPI0_FS2, P_PPI0_FS3, 0};
 
 typedef struct Ppi_Device_t {
 	unsigned char opened;
@@ -95,7 +104,6 @@ static DECLARE_WAIT_QUEUE_HEAD(ppi_wq0);
 static DEFINE_SPINLOCK(ppi_lock);
 
 static ppi_device_t ppiinfo;
-static int get_ppi_reg(unsigned int addr, unsigned short *pdata);
 
 /*
  * FUNCTION NAME: get_ppi_reg
@@ -117,153 +125,9 @@ static int get_ppi_reg(unsigned int addr, unsigned short *pdata);
  */
 static int get_ppi_reg(unsigned int addr, unsigned short *pdata)
 {
-	*pdata = inw(addr);
+	*pdata = bfin_read16(addr);
 	return 0;
 }
-
-#ifdef CONFIG_BF537
-static void setup_gpio_for_PPI(unsigned char datalen)
-{
-	unsigned short regdata;
-	unsigned short syncBits;
-	unsigned short portG;
-	unsigned short portmux;
-	unsigned short ppiCTRL;
-	unsigned short portCFG;
-
-	// initialization
-	portG = syncBits = 0;
-	ppiCTRL = bfin_read_PPI_CONTROL();
-	portCFG = (ppiCTRL & PORT_CFG) >> 4;
-	portmux = bfin_read_PORT_MUX();
-
-	if (ppiCTRL & PORT_DIR) {	// we're doing output
-		switch (portCFG) {
-		case CFG_PPI_PORT_CFG_SYNC1:
-			syncBits |= PF9;	// enable FS1
-			break;
-		case CFG_PPI_PORT_CFG_SYNC23:
-			syncBits |= (PF9 | PF8);	//enable FS1, FS2
-			//syncBits |= ( PF9 | PF8 | PF7); //enable FS1, FS2, FS3
-			//portmux |= PFFE_PPI; //enable FS3 in PORT_MUX
-			break;
-		default:
-			break;
-		}
-	} else {		// we're doing input
-		switch (portCFG) {
-		case CFG_PPI_PORT_CFG_XSYNC1:
-			syncBits |= PF9;	// enable FS1 only
-			break;
-		case CFG_PPI_PORT_CFG_XSYNC23:
-			syncBits |= (PF9 | PF8);	//enable FS1, FS2
-			//syncBits |= ( PF9 | PF8 | PF7); //enable FS1, FS2, FS3
-			//portmux |= PFFE_PPI; //enable FS3 in PORT_MUX
-			break;
-		default:
-			break;
-		}
-	}
-
-	regdata = bfin_read_PORTF_FER();
-	regdata |= syncBits;
-	regdata |= PF15;	//enable PPI_CLK
-	bfin_write_PORTF_FER(regdata);
-	SSYNC();
-	pr_debug("PORTF_FER = 0x%04X\n", regdata);
-
-	// enable GPIO pins for PPI data
-	// note:  the switch falls through to pick up lower pins
-
-	switch (datalen) {
-	case CFG_PPI_DATALEN_16:
-		portG |= PG15;
-	case CFG_PPI_DATALEN_15:
-		portG |= PG14;
-	case CFG_PPI_DATALEN_14:
-		portG |= PG13;
-		portmux &= ~PGTE;	// enable bits 13 14 15
-	case CFG_PPI_DATALEN_13:
-		portG |= PG12;
-	case CFG_PPI_DATALEN_12:
-		portG |= PG11;
-	case CFG_PPI_DATALEN_11:
-		portG |= PG10;
-		portmux &= ~PGRE;	// enable bits 10 11 12
-	case CFG_PPI_DATALEN_10:
-		portG |= (PG9 | PG8);
-		portmux &= ~PGSE;	// enable bits 8 & 9
-	case CFG_PPI_DATALEN_8:
-		portG |= 0xFF;
-		break;
-	default:
-		portG = 0xFFFF;	//enable all 16 data bits
-		break;
-	}
-
-	regdata = bfin_read_PORTG_FER();
-	regdata |= portG;
-	bfin_write_PORTG_FER(regdata);
-	SSYNC();
-	//pr_debug("PORTG_FER = 0x%04X\n", regdata);
-
-	if (ppiCTRL & PORT_DIR) {	// we're doing output
-		// clear corresponding pins in PORTGIO_INEN register
-		regdata = bfin_read_PORTGIO_INEN();
-		regdata &= ~portG;
-		bfin_write_PORTGIO_INEN(regdata);
-		SSYNC();
-
-		regdata = bfin_read_PORTGIO_DIR();
-		regdata |= portG;
-		bfin_write_PORTGIO_DIR(regdata);
-		SSYNC();
-
-		regdata = bfin_read_PORTFIO_DIR();
-		regdata |= syncBits;	//sync bits are output
-		regdata &= ~PF15;	//ppi_clock is input
-		bfin_write_PORTFIO_DIR(regdata);
-		SSYNC();
-		pr_debug("PORTFIO_DIR = 0x%04X\n", regdata);
-
-		regdata = bfin_read_PORTFIO_INEN();
-		regdata &= ~syncBits;
-		regdata |= PF15;	// enable PPI_CLK for input
-		bfin_write_PORTFIO_INEN(regdata);
-		SSYNC();
-		pr_debug("PORTFIO_INEN = 0x%04X\n", regdata);
-	} else {		// were doing input
-		// set corresponding bits in PORTGIO_INEN register
-		regdata = bfin_read_PORTGIO_INEN();
-		regdata |= portG;
-		bfin_write_PORTGIO_INEN(regdata);
-		SSYNC();
-
-		regdata = bfin_read_PORTGIO_DIR();
-		regdata &= ~portG;
-		bfin_write_PORTGIO_DIR(regdata);
-		SSYNC();
-
-		regdata = bfin_read_PORTFIO_INEN();
-		regdata |= syncBits;
-		regdata |= PF15;	//enable ppi_clock
-		bfin_write_PORTFIO_INEN(regdata);
-		SSYNC();
-		pr_debug("PORTFIO_INEN = 0x%04X\n", regdata);
-
-		regdata = bfin_read_PORTFIO_DIR();
-		regdata &= ~syncBits;
-		regdata &= ~PF15;	//enable PPI_CLOCK for input
-		bfin_write_PORTFIO_DIR(regdata);
-		SSYNC();
-		pr_debug("PORTFIO_DIR = 0x%04X\n", regdata);
-	}
-
-	bfin_write_PORT_MUX(portmux);
-	SSYNC();
-	pr_debug("PORT_MUX = 0x%04X (after)\n", portmux);
-}
-#endif
 
 /*
  * FUNCTION NAME: ppi_reg_reset
@@ -475,6 +339,16 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 			regdata |= ((unsigned short)arg << 4);
 			pdev->ppi_control = regdata;
 			bfin_write_PPI_CONTROL(pdev->ppi_control);
+
+			if (arg == CFG_PPI_PORT_CFG_SYNC23 ||
+				 arg == CFG_PPI_PORT_CFG_XSYNC23)
+			if (peripheral_request_list(per_req_ppi_fs, PPI_DEVNAME)) {
+				spin_unlock_irqrestore(&ppi_lock, flags);
+				printk(KERN_ERR PPI_DEVNAME
+				": Requesting Peripherals failed\n");
+				return -EBUSY;
+			}
+
 			break;
 		}
 	case CMD_PPI_FIELD_SELECT:
@@ -536,6 +410,14 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 			regdata |= (arg << 11);
 			pdev->ppi_control = regdata;
 			bfin_write_PPI_CONTROL(pdev->ppi_control);
+
+			if (peripheral_request_list(&per_req_ppi8_15[7 - arg],
+						 PPI_DEVNAME)) {
+				spin_unlock_irqrestore(&ppi_lock, flags);
+				printk(KERN_ERR PPI_DEVNAME
+				": Requesting Peripherals failed\n");
+				return -EBUSY;
+			}
 			break;
 		}
 	case CMD_PPI_CLK_EDGE:
@@ -637,9 +519,6 @@ ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 	case CMD_PPI_SETGPIO:
 		{
 			pr_debug("ppi_ioctl: CMD_PPI_SETGPIO\n");
-#ifdef CONFIG_BF537
-			setup_gpio_for_PPI(ppiinfo.datalen);
-#endif
 			break;
 		}
 	default:
@@ -1170,6 +1049,13 @@ static int ppi_open(struct inode *inode, struct file *filp)
 
 	/* Request DMA0 channel, and pass the interrupt handler */
 
+
+	if (peripheral_request_list(per_req_ppi0_7, PPI_DEVNAME)) {
+		printk(KERN_ERR PPI_DEVNAME
+		": Requesting Peripherals failed\n");
+		return -EBUSY;
+	}
+
 	if (request_dma(CH_PPI, "BF533_PPI_DMA") < 0) {
 		panic("Unable to attach BlackFin PPI DMA channel\n");
 		return -EFAULT;
@@ -1222,6 +1108,10 @@ static int ppi_release(struct inode *inode, struct file *filp)
 	ppi_reg_reset(pdev);
 	pdev->opened = 0;
 	spin_unlock_irqrestore(&ppi_lock, flags);
+
+	peripheral_free_list(per_req_ppi0_7);
+	peripheral_free_list(&per_req_ppi8_15[7 - pdev->datalen]);
+	peripheral_free_list(per_req_ppi_fs);
 
 	ppi_fasync(-1, filp, 0);
 
@@ -1300,7 +1190,7 @@ int __init ppi_init(void)
 void __exit ppi_uninit(void)
 {
 	misc_deregister(&bfin_ppi_dev);
-	printk(KERN_ALERT "Goodbye PPI\n");
+	printk(KERN_INFO "Goodbye PPI\n");
 }
 
 module_init(ppi_init);
