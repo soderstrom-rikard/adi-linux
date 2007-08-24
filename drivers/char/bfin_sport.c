@@ -58,6 +58,8 @@
 #include <asm/system.h>
 #include <asm/uaccess.h>
 #include <asm/signal.h>
+#include <asm/gpio.h>
+#include <asm/portmux.h>
 
 int sport_major =   SPORT_MAJOR;
 int sport_minor =   0;
@@ -65,6 +67,15 @@ int sport_nr_devs = SPORT_NR_DEVS;	/* number of bare sport devices */
 
 struct sport_dev *sport_devices;	/* allocated in sport_init_module */
 
+unsigned short pin_req_sport0[] =
+	{P_SPORT0_TFS, P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS, \
+	 P_SPORT0_DRPRI, P_SPORT0_RSCLK, P_SPORT0_DRSEC, P_SPORT0_DTSEC, 0};
+
+unsigned short pin_req_sport1[] =
+	{P_SPORT1_TFS, P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, \
+	P_SPORT1_DRPRI, P_SPORT1_RSCLK, P_SPORT1_DRSEC, P_SPORT1_DTSEC, 0};
+
+#define DRV_NAME "bf5xx-sportdev"
 
 #undef assert
 
@@ -446,26 +457,41 @@ static int sport_open(struct inode *inode, struct file *filp)
 
 	if (request_irq(dev->rx_irq, sport_rx_handler, IRQF_SHARED, "sport_rx", dev) < 0) {
 		printk(KERN_ERR "Unable to request sport rx irq\n");
-		goto fail;
+		goto fail1;
 	}
 
 	if (request_irq(dev->sport_err_irq, sport_err_handler, 0, "sport_err", dev) < 0) {
 		printk(KERN_ERR "Unable to request sport err irq\n");
-		goto fail;
+		goto fail2;
 	}
 
-#if defined(CONFIG_BF534) || defined(CONFIG_BF536) || defined(CONFIG_BF537)
+
 	if (dev->sport_num == 0) {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~(PJSE|PJCE(3)));
-		SSYNC();
+		if (peripheral_request_list(pin_req_sport0, DRV_NAME)) {
+			goto fail3;
+		}
 	} if (dev->sport_num == 1) {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PGTE|PGRE|PGSE);
-		bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0xFF00);
-		SSYNC();
+		if (peripheral_request_list(pin_req_sport1, DRV_NAME)) {
+			goto fail4;
+		}
 	}
-#endif
+
 	dev->task = current;
+
 	return 0;
+
+fail4:
+	if (dev->sport_num == 0)
+		peripheral_free_list(pin_req_sport0);
+fail3:
+	printk(KERN_ERR DRV_NAME
+		": Requesting Peripherals failed\n");
+
+	free_irq(dev->sport_err_irq, dev);
+fail2:
+	free_irq(dev->rx_irq, dev);
+fail1:
+	free_irq(dev->tx_irq, dev);
 
 fail:
 	free_dma(dev->dma_rx_chan);
@@ -492,6 +518,12 @@ static int sport_release(struct inode *inode, struct file *filp)
 		free_irq(dev->rx_irq, dev);
 	}
 	free_irq(dev->sport_err_irq, dev);
+
+	if (dev->sport_num == 0)
+		peripheral_free_list(pin_req_sport0);
+
+	if (dev->sport_num == 1)
+		peripheral_free_list(pin_req_sport1);
 
 	return 0;
 }
@@ -660,15 +692,14 @@ static int sport_ioctl(struct inode *inode, struct file *filp,
 		/* Test purpose */
 		case ENABLE_AD73311:
 #define GPIO_SE 4
+		gpio_request(GPIO_SE, "AD73311 SE");
+		gpio_direction_output(GPIO_SE);
+
 			if (arg == 0) { /* Disable ad73311 */
 				/* Pull down SE pin on AD73311 */
-				*(unsigned short*)FIO_DIR |= (1 << GPIO_SE);
-				*(unsigned short*)FIO_FLAG_C = (1 << GPIO_SE);
-				SSYNC();
+				gpio_set_value(GPIO_SE, 0);
 			} else if (arg == 1) { /* Enable ad73311 */
-				*(unsigned short*)FIO_DIR |= (1 << GPIO_SE);
-				*(unsigned short*)FIO_FLAG_S = (1 << GPIO_SE);
-				SSYNC();
+				gpio_set_value(GPIO_SE, 1);
 			}
 			break;
 		default:
@@ -769,7 +800,7 @@ static int __init sport_init_module(void)
 		device_create(sport_class, NULL,
 			      MKDEV(sport_major, minor), minor_name);
 	}
-	
+
         /* Initialize each device. */
 	for (i = 0; i < sport_nr_devs; i++) {
 		sport_setup_cdev(&sport_devices[i], i);
@@ -777,13 +808,13 @@ static int __init sport_init_module(void)
 		mutex_init(&sport_devices[i].mutex);
 		init_waitqueue_head(&sport_devices[i].waitq);
 	}
-	sport_devices[0].regs = (struct sport_register*) 0xFFC00800;
+	sport_devices[0].regs = (struct sport_register *) SPORT0_TCR1;
 	sport_devices[0].dma_rx_chan = CH_SPORT0_RX;
 	sport_devices[0].dma_tx_chan = CH_SPORT0_TX;
 	sport_devices[0].rx_irq = IRQ_SPORT0_RX;
 	sport_devices[0].tx_irq = IRQ_SPORT0_TX;
 	sport_devices[0].sport_err_irq = IRQ_SPORT0_ERROR;
-	sport_devices[1].regs = (struct sport_register*) 0xFFC00900;
+	sport_devices[1].regs = (struct sport_register *) SPORT1_TCR1;
 	sport_devices[1].dma_rx_chan = CH_SPORT1_RX;
 	sport_devices[1].dma_tx_chan = CH_SPORT1_TX;
 	sport_devices[1].rx_irq = IRQ_SPORT1_RX;
