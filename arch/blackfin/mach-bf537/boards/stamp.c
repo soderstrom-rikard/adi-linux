@@ -202,15 +202,13 @@ static struct resource sl811_hcd_resources[] = {
 #if defined(CONFIG_USB_SL811_BFIN_USE_VBUS)
 void sl811_port_power(struct device *dev, int is_on)
 {
-	unsigned short mask = (1 << CONFIG_USB_SL811_BFIN_GPIO_VBUS);
-
-	bfin_write_PORT_FER(bfin_read_PORT_FER() & ~mask);
-	bfin_write_FIO_DIR(bfin_read_FIO_DIR() | mask);
+	gpio_request(CONFIG_USB_SL811_BFIN_GPIO_VBUS, "usb:SL811_VBUS");
+	gpio_direction_output(CONFIG_USB_SL811_BFIN_GPIO_VBUS);
 
 	if (is_on)
-		bfin_write_FIO_FLAG_S(mask);
+		gpio_set_value(CONFIG_USB_SL811_BFIN_GPIO_VBUS, 1);
 	else
-		bfin_write_FIO_FLAG_C(mask);
+		gpio_set_value(CONFIG_USB_SL811_BFIN_GPIO_VBUS, 0);
 }
 #endif
 
