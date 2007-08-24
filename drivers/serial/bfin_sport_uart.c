@@ -3,9 +3,9 @@
  *
  * Based on:	drivers/serial/bfin_5xx.c by Aubrey Li.
  * Author:	Roy Huang <roy.huang@analog.com>
- * 
+ *
  * Created:	Nov 22, 2006
- * Copyright:	(C) Analog Device Inc.
+ * Copyright:	(c) 2006-2007 Analog Devices Inc.
  * Description: this driver enable SPORTs on Blackfin emulate UART.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -27,7 +27,7 @@
 /*
  * This driver and the hardware supported are in term of EE-191 of ADI.
  * http://www.analog.com/UploadedFiles/Application_Notes/399447663EE191.pdf
- * This application note describe how to implement a UART on a Sharc DSP, 
+ * This application note describe how to implement a UART on a Sharc DSP,
  * but this driver is implemented on Blackfin Processor.
  */
 
@@ -71,8 +71,19 @@
 #include <linux/serial_core.h>
 
 #include <asm/delay.h>
+#include <asm/portmux.h>
 
 #include "bfin_sport_uart.h"
+
+unsigned short pin_req_sport0[] =
+	{P_SPORT0_TFS, P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS, \
+	 P_SPORT0_DRPRI, P_SPORT0_RSCLK, P_SPORT0_DRSEC, P_SPORT0_DTSEC, 0};
+
+unsigned short pin_req_sport1[] =
+	{P_SPORT1_TFS, P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, \
+	P_SPORT1_DRPRI, P_SPORT1_RSCLK, P_SPORT1_DRSEC, P_SPORT1_DTSEC, 0};
+
+#define DRV_NAME "bfin-sport-uart"
 
 struct sport_uart_port {
 	struct uart_port	port;
@@ -118,8 +129,8 @@ static inline unsigned int rx_one_byte(struct sport_uart_port *up)
 		"R1 = 0x1801(Z);\n\t"
 		"R3 = 0x0300(Z);\n\t"
 		"R4 = 0;\n\t"
-		"LSETUP(loop_s, loop_e) LC0 = P0;\nloop_s:\t" 
-		"R2 = extract(%1, R1.L)(Z);\n\t" 
+		"LSETUP(loop_s, loop_e) LC0 = P0;\nloop_s:\t"
+		"R2 = extract(%1, R1.L)(Z);\n\t"
 		"R2 <<= R4;\n\t"
 		"R5 = R5 | R2;\n\t"
 		"R1 = R1 - R3;\nloop_e:\t"
@@ -171,7 +182,7 @@ static irqreturn_t sport_uart_rx_irq(int irq, void *dev_id)
 		up->port.icount.rx++;
 
 		if (uart_handle_sysrq_char(&up->port, ch))
-			;	
+			;
 		else
 			tty_insert_flip_char(tty, ch, TTY_NORMAL);
 	} while (SPORT_GET_STAT(up) & RXNE);
@@ -223,36 +234,33 @@ static int sport_startup(struct uart_port *port)
 	pr_debug("%s enter\n", __FUNCTION__);
 	memset(buffer, 20, '\0');
 	snprintf(buffer, 20, "%s rx", up->name);
-	retval = request_irq(up->rx_irq, sport_uart_rx_irq, SA_SAMPLE_RANDOM, buffer, up);
+	retval = request_irq(up->rx_irq, sport_uart_rx_irq, IRQF_SAMPLE_RANDOM, buffer, up);
 	if (retval) {
 		printk(KERN_ERR "Unable to request interrupt %s\n", buffer);
 		return retval;
 	}
 
 	snprintf(buffer, 20, "%s tx", up->name);
-	retval = request_irq(up->tx_irq, sport_uart_tx_irq, SA_SAMPLE_RANDOM, buffer, up);
+	retval = request_irq(up->tx_irq, sport_uart_tx_irq, IRQF_SAMPLE_RANDOM, buffer, up);
 	if (retval) {
 		printk(KERN_ERR "Unable to request interrupt %s\n", buffer);
-		return retval;
+		goto fail1;
 	}
 
 	snprintf(buffer, 20, "%s err", up->name);
-	retval = request_irq(up->err_irq, sport_uart_err_irq, SA_SAMPLE_RANDOM, buffer, up);
+	retval = request_irq(up->err_irq, sport_uart_err_irq, IRQF_SAMPLE_RANDOM, buffer, up);
 	if (retval) {
 		printk(KERN_ERR "Unable to request interrupt %s\n", buffer);
-		return retval;
+		goto fail2;
 	}
 
-#if defined(CONFIG_BF534) || defined(CONFIG_BF536) || defined(CONFIG_BF537)
 	if (port->line) {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PGTE|PGRE|PGSE);
-		bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0xFF00);
-		SSYNC();
+		if (peripheral_request_list(pin_req_sport1, DRV_NAME))
+			goto fail3;
 	} else {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~(PJSE|PJCE(3)));
-		SSYNC();
+		if (peripheral_request_list(pin_req_sport0, DRV_NAME))
+			goto fail3;
 	}
-#endif
 
 	sport_uart_setup(up, get_sclk(), port->uartclk);
 
@@ -261,6 +269,20 @@ static int sport_startup(struct uart_port *port)
 	SSYNC();
 
 	return 0;
+
+
+fail3:
+	printk(KERN_ERR DRV_NAME
+		": Requesting Peripherals failed\n");
+
+	free_irq(up->err_irq, up);
+fail2:
+	free_irq(up->tx_irq, up);
+fail1:
+	free_irq(up->rx_irq, up);
+
+	return retval;
+
 }
 
 static void sport_uart_tx_chars(struct sport_uart_port *up)
@@ -296,7 +318,7 @@ static unsigned int sport_tx_empty(struct uart_port *port)
 {
 	struct sport_uart_port *up = (struct sport_uart_port *)port;
 	unsigned int stat;
-	
+
 	stat = SPORT_GET_STAT(up);
 	pr_debug("%s stat:%04x\n", __FUNCTION__, stat);
 	if (stat & TXHRE) {
@@ -384,6 +406,12 @@ static void sport_shutdown(struct uart_port *port)
 	SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) & ~TSPEN));
 	SPORT_PUT_RCR1(up, (SPORT_GET_RCR1(up) & ~RSPEN));
 	SSYNC();
+
+	if (port->line) {
+		peripheral_free_list(pin_req_sport1);
+	} else {
+		peripheral_free_list(pin_req_sport0);
+	}
 
 	free_irq(up->rx_irq, up);
 	free_irq(up->tx_irq, up);
@@ -546,7 +574,7 @@ static struct platform_driver sport_uart_driver = {
 	.suspend	= sport_uart_suspend,
 	.resume		= sport_uart_resume,
 	.driver		= {
-		.name	= "bfin-sport-uart",
+		.name	= DRV_NAME,
 	},
 };
 
