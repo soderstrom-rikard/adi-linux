@@ -905,22 +905,6 @@ struct bf53x_sport *bf53x_sport_init(int sport_num,
  	sport_config_rx_dummy(sport, DUMMY_BUF_LEN/2);
 	sport_config_tx_dummy(sport, DUMMY_BUF_LEN/2);
 
-#if defined(CONFIG_BF534) || defined(CONFIG_BF536) || defined(CONFIG_BF537)
-	if (sport->sport_num) {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PGTE|PGRE|PGSE);
-		SSYNC();
-		/*    printk("sport: mux=0x%x\n", bfin_read_PORT_MUX());*/
-		bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0xFF00);
-		SSYNC();
-		/*    printk("sport: gfer=0x%x\n", bfin_read_PORTG_FER());*/
-	} else {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~(PJSE|PJCE(3)));
-		SSYNC();
-		/*    printk("sport: mux=0x%x\n", bfin_read_PORT_MUX());*/
-	}
-#endif
-
-
 	if (sport->sport_num) {
 		if (peripheral_request_list(pin_req_sport1, DRV_NAME))
 			goto __init_err5;
