@@ -60,6 +60,7 @@
 #include <asm/dma.h>
 #include <asm/cacheflush.h>
 #include <asm/mach/nand.h>
+#include <asm/portmux.h>
 
 #define DRV_NAME	"bf54x-nand"
 #define DRV_VERSION	"1.0"
@@ -71,6 +72,8 @@ int hardware_ecc = 1;
 #else
 int hardware_ecc = 0;
 #endif
+
+unsigned short pin_req[] = {P_NAND_CE, P_NAND_RB, 0};
 
 /*----------------------------------------------------------------------------
  * Data structures for bf54x nand flash controller driver
@@ -561,11 +564,12 @@ static int bf54x_nand_hw_init(struct bf54x_nand_info *info)
 	bfin_write_NFC_IRQSTAT(val);
 	SSYNC();
 
-	/* enable GPIO function enable register */
-	val = bfin_read_PORTJ_FER();
-	val |= 6;
-	bfin_write_PORTJ_FER(val);
-	SSYNC();
+	if (peripheral_request_list(pin_req, DRV_NAME)) {
+		printk(KERN_ERR DRV_NAME
+		": Requesting Peripherals failed\n");
+		return -EFAULT;
+	}
+
 
 	/* DMA initialization  */
 	if (bf54x_nand_dma_init(info)) {
@@ -611,6 +615,8 @@ static int bf54x_nand_remove(struct platform_device *pdev)
 		nand_release(mtd);
 		kfree(mtd);
 	}
+
+	peripheral_free_list(pin_req);
 
 	/* free the common resources */
 	kfree(info);
