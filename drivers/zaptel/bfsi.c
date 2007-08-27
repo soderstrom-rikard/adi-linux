@@ -50,6 +50,7 @@
 #include <asm/dma.h>
 #include <linux/dma-mapping.h>
 #include <asm/irq.h>
+#include <asm/portmux.h>
 #include <linux/proc_fs.h>
 #include <linux/platform_device.h>
 #include <linux/spi/spi.h>
@@ -155,9 +156,10 @@ static u8 *iTxBuffer1;
 static u8 *iRxBuffer1;
 
 static int samples_per_chunk;
-static int internalclock = 0;
-static int bfsi_debug = 0;
-static int init_ok = 0;
+static int internalclock;
+static int bfsi_debug;
+static int init_ok;
+static int p_requested;
 
 /* isr callback installed by user */
 
@@ -166,23 +168,23 @@ static irqreturn_t sport0_rx_isr(int irq, void *dev_id, struct pt_regs * regs);
 
 /* debug variables */
 
-static int readchunk_first = 0;
-static int readchunk_second = 0;
-static int readchunk_didntswap = 0;
+static int readchunk_first;
+static int readchunk_second;
+static int readchunk_didntswap;
 static unsigned char* lastreadchunk;
 
-static int writechunk_first = 0;
-static int writechunk_second = 0;
-static int writechunk_didntswap = 0;
+static int writechunk_first;
+static int writechunk_second;
+static int writechunk_didntswap;
 static unsigned char* lastwritechunk;
 
 /* previous and worst case number of cycles we took to process an
    interrupt */
 
-static u16 isr_cycles_last = 0;
-static u32 isr_cycles_worst = 0;
-static u32 isr_cycles_average = 0; /* scaled up by 2x */
-static u32 echo_sams = 0;
+static u16 isr_cycles_last;
+static u32 isr_cycles_worst;
+static u32 isr_cycles_average; /* scaled up by 2x */
+static u32 echo_sams;
 
 /* remember SPI chip select */
 static int chip_select;
@@ -280,6 +282,22 @@ void bfsi_spi_set_cs(int card)
 	write_FLAG(flag);
 }
 
+
+static int setup_pin_mux(int action)
+{
+	u16 pin_req[] = {P_SPI0_SCK, P_SPI0_MISO, P_SPI0_MOSI, 0};
+
+	if (action) {
+		if (peripheral_request_list(pin_req, "bfsi:SPI")) {
+			return -EFAULT;
+		}
+	} else {
+		peripheral_free_list(pin_req);
+	}
+
+	return 0;
+}
+
 /*
    chip_select_mask: the logical OR of all the chip selects we wish
    to use for SPI, for example if we wish to use SPISEL2 and SPISEL3
@@ -296,7 +314,9 @@ void bfsi_spi_set_cs(int card)
 void bfsi_spi_init(int baud)
 {
 	u16 ctl_reg;
-	int cs;
+	u16 ssel[] = {P_SPI0_SSEL1, P_SPI0_SSEL2, P_SPI0_SSEL3,
+				P_SPI0_SSEL4, P_SPI0_SSEL5,
+				P_SPI0_SSEL6, P_SPI0_SSEL7};
 
   	if (baud < 4) {
     		printk("baud = %d may mean SPI clock too fast for Si labs 3050"
@@ -329,45 +349,27 @@ void bfsi_spi_init(int baud)
 	printk("FXO_CS=%d\n",fxo_cs);
 	printk("RESET bit = %d\n",reset_bit);
 
-#if defined(CONFIG_BF537)
-	cs = fxo_cs;
-	if (cs == 1) {
-		PRINTK("set for chip select 1\n");
-		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3c00);
-		SSYNC();
+	if (!p_requested) {
+		if (setup_pin_mux(1))
+			goto fail;
 
-	} else if (cs == 2 || cs == 3 ) {
-		PRINTK("set for chip select 2\n");
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJSE_SPI);
-		SSYNC();
-		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
-		SSYNC();
+		if (peripheral_request(ssel[fxs_cs-1], "bfsi:FXS CS"))
+			goto fail1;
 
-	} else if (cs == 4) {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS4E_SPI);
-		SSYNC();
-		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3840);
-		SSYNC();
+		if (peripheral_request(ssel[fxo_cs-1], "bfsi:FX0 CS"))
+			goto fail2;
 
-	} else if (cs == 5) {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS5E_SPI);
-		SSYNC();
-		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3820);
-		SSYNC();
+		p_requested++;
 
-	} else if (cs == 6) {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS6E_SPI);
-		SSYNC();
-		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3810);
-		SSYNC();
-
-	} else if (cs == 7) {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJCE_SPI);
-		SSYNC();
-		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
-		SSYNC();
+	return;
+fail2:
+	peripheral_free(ssel[fxs_cs-1]);
+fail1:
+	setup_pin_mux(0);
+fail:
+	printk(KERN_ERR "Requesting Peripherals SPI failed\n");
 	}
-#endif
+
 }
 
 #if defined(CONFIG_BF533)
