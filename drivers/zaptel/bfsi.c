@@ -330,43 +330,6 @@ void bfsi_spi_init(int baud)
 	printk("RESET bit = %d\n",reset_bit);
 
 #if defined(CONFIG_BF537)
-	cs = fxs_cs;
-	if (cs == 1) {
-		PRINTK("set for chip select 1\n");
-		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3c00);
-		SSYNC();
-
-	} else if (cs == 2 || cs == 3 ) {
-		PRINTK("set for chip select 2\n");
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJSE_SPI);
-		SSYNC();
-		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
-		SSYNC();
-
-	} else if (cs == 4) {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS4E_SPI);
-		SSYNC();
-		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3840);
-		SSYNC();
-
-	} else if (cs == 5) {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS5E_SPI);
-		SSYNC();
-		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3820);
-		SSYNC();
-
-	} else if (cs == 6) {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PFS6E_SPI);
-		SSYNC();
-		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3810);
-		SSYNC();
-
-	} else if (cs == 7) {
-		bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJCE_SPI);
-		SSYNC();
-		bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x3800);
-		SSYNC();
-	}
 	cs = fxo_cs;
 	if (cs == 1) {
 		PRINTK("set for chip select 1\n");
