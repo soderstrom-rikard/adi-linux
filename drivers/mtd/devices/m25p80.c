@@ -422,6 +422,7 @@ static struct flash_info __devinitdata m25p_data [] = {
 	{ "m25p16", 0x14, 0x2015, 64 * 1024, 32 },
 	{ "m25p32", 0x15, 0x2016, 64 * 1024, 64 },
 	{ "m25p64", 0x16, 0x2017, 64 * 1024, 128 },
+	{ "m25p128", 0xFF, 0x2018, 256 * 1024, 64 }, /* Electronic Signature (RES Instruction) NA */
 };
 
 /*
