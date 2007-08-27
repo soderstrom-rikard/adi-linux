@@ -197,8 +197,7 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 	/* Disable dma */
 	disable_dma(CH_PPI);
 	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 1);
-	bfin_write_PORTG_FER(0xFFFF);
-	SSYNC();
+
 
 	/* setup PPI */
 	if(buf[0] == 1)		/* Show only Channel I (skip Channel Q) */
