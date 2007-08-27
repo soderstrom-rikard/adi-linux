@@ -39,12 +39,15 @@
 #include <linux/init.h>
 #include <linux/string.h>
 #include <linux/spinlock.h>
+#include <linux/delay.h>
+#include <linux/miscdevice.h>
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/blackfin.h>
 #include <asm/dma.h>
 #include <asm/cacheflush.h>
-#include <linux/miscdevice.h>
+#include <asm/portmux.h>
+#include <asm/gpio.h>
 
 #include "bfin_ppifcd.h"
 
@@ -76,6 +79,10 @@ typedef struct PPI_Device_t {
 	struct fasync_struct *fasyc;
 	wait_queue_head_t *rx_avail;
 } ppi_device_t;
+
+u16 ppi_req[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2, P_PPI0_D0,\
+	 P_PPI0_D1, P_PPI0_D2, P_PPI0_D3, P_PPI0_D4, P_PPI0_D5, P_PPI0_D6,\
+	 P_PPI0_D7, 0};
 
 /************************************************************/
 
@@ -271,6 +278,15 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd,
 			pr_debug("ppi_ioctl: CMD_SET_TRIGGER_GPIO\n");
 
 			pdev->ppi_trigger_gpio = (unsigned short)arg;
+
+			if (gpio_request(pdev->ppi_trigger_gpio, PPI_DEVNAME)) {
+				printk(KERN_ERR"Requesting GPIO %d faild\n",
+						pdev->ppi_trigger_gpio);
+				return -EFAULT;
+			}
+
+			gpio_direction_output(pdev->ppi_trigger_gpio);
+
 			break;
 		}
 	case CMD_PPI_GET_ALLCONFIG:
@@ -388,10 +404,9 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count,
 	SSYNC();
 
 	if (pdev->ppi_trigger_gpio < NO_TRIGGER) {
-		bfin_write_FIO_FLAG_S(1 << pdev->ppi_trigger_gpio);
-		SSYNC();
-		bfin_write_FIO_FLAG_C(1 << pdev->ppi_trigger_gpio);
-		SSYNC();
+		gpio_set_value(pdev->ppi_trigger_gpio, 1);
+		udelay(1);
+		gpio_set_value(pdev->ppi_trigger_gpio, 0);
 	}
 
 	pr_debug("ppi_read: PPI ENABLED : DONE\n");
@@ -507,12 +522,6 @@ static int ppi_open(struct inode *inode, struct file *filp)
 	request_irq(IRQ_PPI_ERROR, (void *)ppifcd_irq_error, IRQF_DISABLED,
 		    "PPI ERROR", filp->private_data);
 
-#if (defined(CONFIG_BF537) || defined(CONFIG_BF534) || defined(CONFIG_BF536))
-	bfin_write_PORTG_FER(0x00FF);	/* PPI[7:0]    */
-	bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x8300);	/* PF.15 PPI_CLK FS1 FS2 */
-	bfin_write_PORT_MUX(bfin_read_PORT_MUX() & ~0x0E00);
-#endif
-
 	spin_unlock_irqrestore(&ppifcd_lock, flags);
 
 	pr_debug("ppi_open: return\n");
@@ -604,6 +613,11 @@ int __init ppifcd_init(void)
 {
 	int result;
 
+	if (peripheral_request_list(ppi_req, PPI_DEVNAME)) {
+		printk(KERN_ERR "Requesting Peripherals PPI faild\n");
+		return -EFAULT;
+	}
+
 	result = misc_register(&bfin_ppi_dev);
 	if (result < 0) {
 		printk(KERN_WARNING "PPI: can't get minor %d\n", PPI0_MINOR);
@@ -635,6 +649,12 @@ int __init ppifcd_init(void)
  */
 void __exit ppifcd_uninit(void)
 {
+
+	if (ppiinfo.ppi_trigger_gpio != NO_TRIGGER)
+		gpio_free(ppiinfo.ppi_trigger_gpio);
+
+	peripheral_free_list(ppi_req);
+
 	misc_deregister(&bfin_ppi_dev);
 	printk(KERN_ALERT "Goodbye PPI\n");
 }
