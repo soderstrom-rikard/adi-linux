@@ -72,11 +72,11 @@
 
 #define DRV_NAME "bf53x_sport"
 
-unsigned short pin_req_sport0[] =
+unsigned short bfin_snd_pin_req_sport0[] =
 	{P_SPORT0_TFS, P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS, \
 	 P_SPORT0_DRPRI, P_SPORT0_RSCLK, 0};
 
-unsigned short pin_req_sport1[] =
+unsigned short bfin_snd_pin_req_sport1[] =
 	{P_SPORT1_TFS, P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, \
 	P_SPORT1_DRPRI, P_SPORT1_RSCLK, 0};
 
@@ -906,10 +906,10 @@ struct bf53x_sport *bf53x_sport_init(int sport_num,
 	sport_config_tx_dummy(sport, DUMMY_BUF_LEN/2);
 
 	if (sport->sport_num) {
-		if (peripheral_request_list(pin_req_sport1, DRV_NAME))
+		if (peripheral_request_list(bfin_snd_pin_req_sport1, DRV_NAME))
 			goto __init_err5;
 	} else {
-		if (peripheral_request_list(pin_req_sport0, DRV_NAME))
+		if (peripheral_request_list(bfin_snd_pin_req_sport0, DRV_NAME))
 			goto __init_err5;
 	}
 
@@ -943,9 +943,9 @@ void bf53x_sport_done(struct bf53x_sport *sport)
 	sport_stop(sport);
 
 	if (sport->sport_num) {
-		peripheral_free_list(pin_req_sport1);
+		peripheral_free_list(bfin_snd_pin_req_sport1);
 	} else {
-		peripheral_free_list(pin_req_sport0);
+		peripheral_free_list(bfin_snd_pin_req_sport0);
 	}
 
 	if (sport->dma_rx_desc)

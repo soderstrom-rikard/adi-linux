@@ -80,7 +80,7 @@ typedef struct PPI_Device_t {
 	wait_queue_head_t *rx_avail;
 } ppi_device_t;
 
-u16 ppi_req[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2, P_PPI0_D0,\
+u16 ppifcd_ppi_req[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2, P_PPI0_D0,\
 	 P_PPI0_D1, P_PPI0_D2, P_PPI0_D3, P_PPI0_D4, P_PPI0_D5, P_PPI0_D6,\
 	 P_PPI0_D7, 0};
 
@@ -613,7 +613,7 @@ int __init ppifcd_init(void)
 {
 	int result;
 
-	if (peripheral_request_list(ppi_req, PPI_DEVNAME)) {
+	if (peripheral_request_list(ppifcd_ppi_req, PPI_DEVNAME)) {
 		printk(KERN_ERR "Requesting Peripherals PPI faild\n");
 		return -EFAULT;
 	}
@@ -653,7 +653,7 @@ void __exit ppifcd_uninit(void)
 	if (ppiinfo.ppi_trigger_gpio != NO_TRIGGER)
 		gpio_free(ppiinfo.ppi_trigger_gpio);
 
-	peripheral_free_list(ppi_req);
+	peripheral_free_list(ppifcd_ppi_req);
 
 	misc_deregister(&bfin_ppi_dev);
 	printk(KERN_ALERT "Goodbye PPI\n");

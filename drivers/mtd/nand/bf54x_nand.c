@@ -73,7 +73,7 @@ int hardware_ecc = 1;
 int hardware_ecc = 0;
 #endif
 
-unsigned short pin_req[] = {P_NAND_CE, P_NAND_RB, 0};
+unsigned short bfin_nfc_pin_req[] = {P_NAND_CE, P_NAND_RB, 0};
 
 /*----------------------------------------------------------------------------
  * Data structures for bf54x nand flash controller driver
@@ -564,7 +564,7 @@ static int bf54x_nand_hw_init(struct bf54x_nand_info *info)
 	bfin_write_NFC_IRQSTAT(val);
 	SSYNC();
 
-	if (peripheral_request_list(pin_req, DRV_NAME)) {
+	if (peripheral_request_list(bfin_nfc_pin_req, DRV_NAME)) {
 		printk(KERN_ERR DRV_NAME
 		": Requesting Peripherals failed\n");
 		return -EFAULT;
@@ -616,7 +616,7 @@ static int bf54x_nand_remove(struct platform_device *pdev)
 		kfree(mtd);
 	}
 
-	peripheral_free_list(pin_req);
+	peripheral_free_list(bfin_nfc_pin_req);
 
 	/* free the common resources */
 	kfree(info);

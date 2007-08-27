@@ -67,11 +67,11 @@ int sport_nr_devs = SPORT_NR_DEVS;	/* number of bare sport devices */
 
 struct sport_dev *sport_devices;	/* allocated in sport_init_module */
 
-unsigned short pin_req_sport0[] =
+unsigned short bfin_char_pin_req_sport0[] =
 	{P_SPORT0_TFS, P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS, \
 	 P_SPORT0_DRPRI, P_SPORT0_RSCLK, P_SPORT0_DRSEC, P_SPORT0_DTSEC, 0};
 
-unsigned short pin_req_sport1[] =
+unsigned short bfin_char_pin_req_sport1[] =
 	{P_SPORT1_TFS, P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, \
 	P_SPORT1_DRPRI, P_SPORT1_RSCLK, P_SPORT1_DRSEC, P_SPORT1_DTSEC, 0};
 
@@ -467,11 +467,11 @@ static int sport_open(struct inode *inode, struct file *filp)
 
 
 	if (dev->sport_num == 0) {
-		if (peripheral_request_list(pin_req_sport0, DRV_NAME)) {
+		if (peripheral_request_list(bfin_char_pin_req_sport0, DRV_NAME)) {
 			goto fail3;
 		}
 	} if (dev->sport_num == 1) {
-		if (peripheral_request_list(pin_req_sport1, DRV_NAME)) {
+		if (peripheral_request_list(bfin_char_pin_req_sport1, DRV_NAME)) {
 			goto fail4;
 		}
 	}
@@ -482,7 +482,7 @@ static int sport_open(struct inode *inode, struct file *filp)
 
 fail4:
 	if (dev->sport_num == 0)
-		peripheral_free_list(pin_req_sport0);
+		peripheral_free_list(bfin_char_pin_req_sport0);
 fail3:
 	printk(KERN_ERR DRV_NAME
 		": Requesting Peripherals failed\n");
@@ -520,10 +520,10 @@ static int sport_release(struct inode *inode, struct file *filp)
 	free_irq(dev->sport_err_irq, dev);
 
 	if (dev->sport_num == 0)
-		peripheral_free_list(pin_req_sport0);
+		peripheral_free_list(bfin_char_pin_req_sport0);
 
 	if (dev->sport_num == 1)
-		peripheral_free_list(pin_req_sport1);
+		peripheral_free_list(bfin_char_pin_req_sport1);
 
 	return 0;
 }

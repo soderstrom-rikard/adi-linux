@@ -66,7 +66,7 @@
 #define CMD_GET_PPI_BUF		0x4
 
 
-u16 ppi_req[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2,\
+u16 ad9960_ppi_req[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2,\
  P_PPI0_D3, P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, P_PPI0_D8, P_PPI0_D9,\
  P_PPI0_D10, P_PPI0_D11, P_PPI0_D12, P_PPI0_D13, P_PPI0_D14, P_PPI0_D15, 0};
 
@@ -652,14 +652,14 @@ static int __init ad9960_init(void)
 {
 	int result;
 
-	if (peripheral_request_list(ppi_req, AD9960_DEVNAME)) {
+	if (peripheral_request_list(ad9960_ppi_req, AD9960_DEVNAME)) {
 		printk(KERN_ERR"Requesting Peripherals PPI faild\n");
 		return -EFAULT;
 	}
 
 	/* PF8 select AD9960 TX/RX */
 	if (gpio_request(CONFIG_AD9960_TX_RX_PIN, AD9960_DEVNAME)) {
-		peripheral_free_list(ppi_req);
+		peripheral_free_list(ad9960_ppi_req);
 		printk(KERN_ERR"Requesting GPIO %d faild\n",
 				CONFIG_AD9960_TX_RX_PIN);
 
@@ -703,7 +703,7 @@ static int __init ad9960_init(void)
 static void __exit ad9960_exit(void)
 {
 	gpio_free(CONFIG_AD9960_TX_RX_PIN);
-	peripheral_free_list(ppi_req);
+	peripheral_free_list(ad9960_ppi_req);
 	misc_deregister(&ad9960_dev);
 	spi_unregister_driver(&ad9960_spi_driver);
 }

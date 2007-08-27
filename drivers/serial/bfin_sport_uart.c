@@ -75,11 +75,11 @@
 
 #include "bfin_sport_uart.h"
 
-unsigned short pin_req_sport0[] =
+unsigned short bfin_uart_pin_req_sport0[] =
 	{P_SPORT0_TFS, P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS, \
 	 P_SPORT0_DRPRI, P_SPORT0_RSCLK, P_SPORT0_DRSEC, P_SPORT0_DTSEC, 0};
 
-unsigned short pin_req_sport1[] =
+unsigned short bfin_uart_pin_req_sport1[] =
 	{P_SPORT1_TFS, P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, \
 	P_SPORT1_DRPRI, P_SPORT1_RSCLK, P_SPORT1_DRSEC, P_SPORT1_DTSEC, 0};
 
@@ -255,10 +255,10 @@ static int sport_startup(struct uart_port *port)
 	}
 
 	if (port->line) {
-		if (peripheral_request_list(pin_req_sport1, DRV_NAME))
+		if (peripheral_request_list(bfin_uart_pin_req_sport1, DRV_NAME))
 			goto fail3;
 	} else {
-		if (peripheral_request_list(pin_req_sport0, DRV_NAME))
+		if (peripheral_request_list(bfin_uart_pin_req_sport0, DRV_NAME))
 			goto fail3;
 	}
 
@@ -408,9 +408,9 @@ static void sport_shutdown(struct uart_port *port)
 	SSYNC();
 
 	if (port->line) {
-		peripheral_free_list(pin_req_sport1);
+		peripheral_free_list(bfin_uart_pin_req_sport1);
 	} else {
-		peripheral_free_list(pin_req_sport0);
+		peripheral_free_list(bfin_uart_pin_req_sport0);
 	}
 
 	free_irq(up->rx_irq, up);
