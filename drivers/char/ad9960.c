@@ -49,6 +49,7 @@
 #include <asm/dma.h>
 #include <asm/cacheflush.h>
 #include <asm/bfin5xx_spi.h>
+#include <asm/portmux.h>
 
 /************************************************************/
 
@@ -63,6 +64,11 @@
 #define CMD_SPI_WRITE		0x1
 #define CMD_GET_SCLK		0x2
 #define CMD_GET_PPI_BUF		0x4
+
+
+u16 ppi_req[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2,\
+ P_PPI0_D3, P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, P_PPI0_D8, P_PPI0_D9,\
+ P_PPI0_D10, P_PPI0_D11, P_PPI0_D12, P_PPI0_D13, P_PPI0_D14, P_PPI0_D15, 0};
 
 extern unsigned long physical_mem_end;
 
@@ -265,7 +271,7 @@ static ssize_t ad9960_read (struct file *filp, char *buf, size_t count, loff_t *
 		if(ierr)
 		{
 			/* waiting is broken by a signal */
-			printk("PPI wait_event_interruptible ierr\n");
+			printk(KERN_ERR "PPI wait_event_interruptible ierr\n");
 			return ierr;
 		}
 	}
@@ -349,8 +355,9 @@ static ssize_t ad9960_write (struct file *filp, const char *buf, size_t count, l
 
 		for (i=0;i < (desc_count-1);i++) {
 			data_pointer = ((unsigned int)_ramend)+((unsigned int)(2*i*65536));
-			pr_debug("ad9960_write: configuring descriptor %i at %08X",
-				"Buffer at 0x%08X\n",i,(unsigned int)&descriptors[i],data_pointer);
+			pr_debug("ad9960_write: configuring descriptor %i at %08X"
+				"Buffer at 0x%08X\n", i, (unsigned int)&descriptors[i],
+				data_pointer);
 			descriptors[i].next_desc_addr_lo =
 				(unsigned short)(((int)(&descriptors[i+1]))&0xFFFF);
 			descriptors[i].start_addr_lo = data_pointer&0xFFFF;
@@ -646,14 +653,23 @@ static int __init ad9960_init(void)
 {
 	int result;
 
-	/* Enable PPI_CLK(PF15) and PPI_FS1(PF9) */
-	bfin_write_PORTF_FER(bfin_read_PORTF_FER() | 0x8200);
+	if (peripheral_request_list(ppi_req, AD9960_DEVNAME)) {
+		printk(KERN_ERR"Requesting Peripherals PPI faild\n");
+		return -EFAULT;
+	}
+
 	/* PF8 select AD9960 TX/RX */
-	gpio_request(CONFIG_AD9960_TX_RX_PIN, NULL);
+	if (gpio_request(CONFIG_AD9960_TX_RX_PIN, AD9960_DEVNAME)) {
+		peripheral_free_list(ppi_req);
+		printk(KERN_ERR"Requesting GPIO %d faild\n",
+				CONFIG_AD9960_TX_RX_PIN);
+
+		return -EFAULT;
+	}
+
 	gpio_direction_output(CONFIG_AD9960_TX_RX_PIN);
 	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 1);
 
-	bfin_write_PORTG_FER(0xFFFF);
 	bfin_write_TIMER0_CONFIG(bfin_read_TIMER0_CONFIG() | OUT_DIS);
 	SSYNC();
 
@@ -666,7 +682,7 @@ static int __init ad9960_init(void)
 		printk(KERN_WARNING "ad9960: can't get minor %d\n", AD9960_MAJOR);
 		return result;
 	}
-	printk("ad9960: AD9960 driver, irq:%d \n",IRQ_PPI);
+	printk(KERN_INFO "ad9960: AD9960 driver, irq:%d \n", IRQ_PPI);
 
 	ad9960_info.buffer = (unsigned short *)_ramend;
 	spin_lock_init(&ad9960_info.lock);
@@ -688,6 +704,7 @@ static int __init ad9960_init(void)
 static void __exit ad9960_exit(void)
 {
 	gpio_free(CONFIG_AD9960_TX_RX_PIN);
+	peripheral_free_list(ppi_req);
 	misc_deregister(&ad9960_dev);
 	spi_unregister_driver(&ad9960_spi_driver);
 }
