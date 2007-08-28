@@ -18,6 +18,9 @@
 #include <linux/dma-mapping.h>
 #include <linux/mmc/host.h>
 #include <linux/proc_fs.h>
+
+#include <asm/cacheflush.h>
+
 #include "../core/mmc_ops.h"
 
 #include <asm/dma.h>
@@ -91,6 +94,7 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	unsigned int dma_cfg;
 	int i;
 
+	pr_debug("%s enter\n", __FUNCTION__);
 	host->data = data;
 	data_ctl = 0;
 	dma_cfg = 0;
@@ -105,7 +109,7 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 		data_ctl |= DTX_DIR;
 
 	BUG_ON(data->blksz & (data->blksz -1));
-	data_ctl |= (ffs(data->blksz) << 4);
+	data_ctl |= ((ffs(data->blksz) -1) << 4);
 
 	bfin_write_SDH_DATA_CTL(data_ctl);
 
@@ -121,7 +125,7 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 
 	sdh_enable_stat_irq(host, (DAT_CRC_FAIL | DAT_TIME_OUT | DAT_END));
 
-	dma_cfg |= DMAFLOW_ARRAY | NDSIZE_5 | WDSIZE_32 | DMAEN;
+	dma_cfg |= DMAFLOW_ARRAY | NDSIZE_5 | RESTART | WDSIZE_32 | DMAEN;
 	host->dma_len = dma_map_sg(mmc_dev(host->mmc), data->sg, data->sg_len, host->dma_dir);
 
 	for (i = 0; i < host->dma_len; i++) {
@@ -129,14 +133,22 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 		host->sg_cpu[i].cfg = dma_cfg;
 		host->sg_cpu[i].x_count = sg_dma_len(&data->sg[i]) / 4;
 		host->sg_cpu[i].x_modify = 4;
+		pr_debug("%d: start_addr:0x%lx, cfg:0x%x, x_count:0x%x, x_modify:0x%x\n",
+				i, host->sg_cpu[i].start_addr, host->sg_cpu[i].cfg,
+				host->sg_cpu[i].x_count, host->sg_cpu[i].x_modify);
 	}
+	flush_dcache_range((unsigned int)host->sg_cpu, \
+			(unsigned int)host->sg_cpu + \
+			host->dma_len * sizeof(struct dma_desc_array));
 	/* Set the last descriptor to stop mode */
-	host->sg_cpu[host->dma_len - 1].cfg &= ~DMAFLOW;
+	host->sg_cpu[host->dma_len - 1].cfg &= ~(DMAFLOW | NDSIZE);
+	host->sg_cpu[host->dma_len - 1].cfg |= DI_EN;
 
-	set_dma_start_addr(host->dma_ch, host->sg_dma);
+	set_dma_curr_desc_addr(host->dma_ch, host->sg_dma);
 	set_dma_x_count(host->dma_ch, 0);
 	set_dma_x_modify(host->dma_ch, 0);
 	set_dma_config(host->dma_ch, dma_cfg);
+/*	dump_dma_registers(host->dma_ch); */
 }
 
 static void sdh_start_cmd(struct sdh_host *host, struct mmc_command *cmd)
@@ -168,6 +180,7 @@ static void sdh_start_cmd(struct sdh_host *host, struct mmc_command *cmd)
 
 	bfin_write_SDH_ARGUMENT(cmd->arg);
 	bfin_write_SDH_COMMAND(sdh_cmd | CMD_E);
+	bfin_write_SDH_CLK_CTL(bfin_read_SDH_CLK_CTL() | CLK_E);
 	SSYNC();
 }
 
@@ -183,7 +196,6 @@ static void sdh_finish_request(struct sdh_host *host, struct mmc_request *mrq)
 static int sdh_cmd_done(struct sdh_host *host, unsigned int stat)
 {
 	struct mmc_command *cmd = host->cmd;
-	unsigned int resp_cmd;
 
 	pr_debug("%s enter cmd:%p\n", __FUNCTION__, cmd);
 	if (!cmd)
@@ -207,7 +219,7 @@ static int sdh_cmd_done(struct sdh_host *host, unsigned int stat)
 	sdh_disable_stat_irq(host, (CMD_SENT | CMD_RESP_END | CMD_TIME_OUT | CMD_CRC_FAIL));
 
 	if (host->data && cmd->error == MMC_ERR_NONE)
-		sdh_enable_stat_irq(host, DAT_END);
+		sdh_enable_stat_irq(host, DAT_END | RX_OVERRUN | TX_UNDERRUN | DAT_TIME_OUT);
 	else
 		sdh_finish_request(host, host->mrq);
 
@@ -218,7 +230,7 @@ static int sdh_data_done(struct sdh_host *host, unsigned int stat)
 {
 	struct mmc_data *data = host->data;
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter stat:0x%x\n", __FUNCTION__, stat);
 	if (!data)
 		return 0;
 
@@ -296,37 +308,39 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		unsigned long clk_div;
 
 		clk_div = get_sclk() / (2 * ios->clock);
-		if (clk_div != 0)
-			clk_div -= 1;
 		if (clk_div > 0xff)
 			clk_div = 0xFF;
 		clk_ctl |= clk_div & 0xFF;
 		clk_ctl |= CLK_E;
 		host->clk_div = clk_div;
+		/* Calculate the actual clock */
+		ios->clock = get_sclk() / (2 * (clk_div + 1));
 	} else
 		sdh_stop_clock(host);
 
 	if (ios->bus_mode == MMC_BUSMODE_OPENDRAIN)
 		pwr_ctl |= SD_CMD_OD | ROD_CTL;
 
-	if (ios->bus_width == MMC_BUS_WIDTH_4)
+	if (ios->bus_width == MMC_BUS_WIDTH_4) {
+		u16 cfg = bfin_read_SDH_CFG();
+		cfg &= ~0x80;
+		cfg |= 0x40;
+		bfin_write_SDH_CFG(cfg);
 		clk_ctl |= WIDE_BUS;
-
-	bfin_write_SDH_CLK_CTL(bfin_read_SDH_CLK_CTL() | clk_ctl);
-
-	if (host->power_mode != ios->power_mode) {
-		host->power_mode = ios->power_mode;
-
-		if (ios->power_mode == MMC_POWER_ON)
-			pwr_ctl |= PWR_ON;
-
-		bfin_write_SDH_PWR_CTL(bfin_read_SDH_PWR_CTL() | pwr_ctl);
 	}
+
+	bfin_write_SDH_CLK_CTL(clk_ctl);
+
+	host->power_mode = ios->power_mode;
+	if (ios->power_mode == MMC_POWER_ON)
+		pwr_ctl |= PWR_ON;
+
+	bfin_write_SDH_PWR_CTL(pwr_ctl);
 	SSYNC();
 
 	spin_unlock_irqrestore(&host->lock, flags);
 
-	pr_debug("SDH: clk_div = 0x%x ios->clock:0x%x\n", host->clk_div, ios->clock);
+	pr_debug("SDH: clk_div = 0x%x ios->clock:%d\n", host->clk_div, ios->clock);
 }
 
 static const struct mmc_host_ops sdh_ops = {
@@ -359,7 +373,6 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 		SSYNC();
 	}
 
-	bfin_write_SDH_STATUS_CLR(CMD_SENT_STAT | CMD_RESP_END_STAT);
 	status = bfin_read_SDH_STATUS();
 	if (status & (CMD_SENT | CMD_RESP_END | CMD_TIME_OUT | CMD_CRC_FAIL)) {
 		sdh_cmd_done(host, status);
@@ -368,8 +381,16 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 		SSYNC();
 	}
 
+	status = bfin_read_SDH_STATUS();
 	if (status & (DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL))
 		sdh_data_done(host, status);
+
+	if (status & (RX_OVERRUN | TX_UNDERRUN)) {
+		bfin_write_SDH_DATA_CTL(0); /* Disable data transfer */
+		printk(KERN_ERR "FIFO ERROR: %s\n", (status & RX_OVERRUN) ? \
+				"RX OVERRUN": "TX UNDERRUN");
+		bfin_write_SDH_STATUS_CLR(RX_OVERRUN_STAT | TX_UNDERRUN);
+	}
 
 	pr_debug("%s exit\n\n", __FUNCTION__);
 
@@ -385,11 +406,12 @@ static int proc_write(struct file *file, const char __user *buffer,
 	struct sdh_host *host = data;
 	int err;
 	u32 ocr;
+	u8 *ext_csd;
 	unsigned long cmd = simple_strtoul(buffer, NULL, 16);
 
 	switch (cmd) {
 	case 0:
-/*		dump_registers(); */
+/*	dump_registers(); */
 		break;
 	case 1:
 		mmc_claim_host(host->mmc);
@@ -400,6 +422,17 @@ static int proc_write(struct file *file, const char __user *buffer,
 			printk(KERN_ERR "OCR:0x%08x\n", ocr);
 		else
 			printk(KERN_ERR "Respond err:%d\n", err);
+		break;
+	case 2:
+		/* dump dma registers */
+		dump_dma_registers(host->dma_ch);
+		break;
+	case 3:
+		mmc_claim_host(host->mmc);
+		ext_csd = kmalloc(512, GFP_KERNEL);
+		err = mmc_send_ext_csd(host->mmc->card, ext_csd);
+		kfree(ext_csd);
+		mmc_release_host(host->mmc);
 		break;
 	default:
 		printk(KERN_ERR "%ld not support\n", cmd);
@@ -429,6 +462,7 @@ static int sdh_probe(struct platform_device *pdev)
 	mmc->ocr_avail = MMC_VDD_32_33|MMC_VDD_33_34;
 	mmc->f_min = get_sclk() >> 9;
 	mmc->f_max = get_sclk();
+	mmc->caps = MMC_CAP_MMC_HIGHSPEED;
 	host = mmc_priv(mmc);
 	host->mmc = mmc;
 
