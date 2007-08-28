@@ -24,6 +24,8 @@ void bfin_reset(void)
 {
 	/* force BMODE and disable Core B (as needed) */
 	bfin_write_SYSCR(0x20);
+	SSYNC();
+
 	while (1) {
 		/* initiate system soft reset with magic 0x7 */
 		bfin_write_SWRST(0x7);
