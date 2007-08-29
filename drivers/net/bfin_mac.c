@@ -339,6 +339,8 @@ static int mdiobus_write(struct mii_bus *bus, int phy_addr, int regnum,
 				STAOP |
 				STABUSY);
 
+	mdio_poll();
+
 	return 0;
 }
 
@@ -859,6 +861,7 @@ static void bf537mac_shutdown(struct net_device *dev)
  */
 static int bf537mac_open(struct net_device *dev)
 {
+	struct bf537mac_local *lp = netdev_priv(dev);
 	int retval;
 	pr_debug("%s: %s\n", dev->name, __FUNCTION__);
 
@@ -878,6 +881,7 @@ static int bf537mac_open(struct net_device *dev)
 	if (retval)
 		return retval;
 
+	phy_start(lp->phydev);
 	setup_system_regs(dev);
 	bf537mac_disable();
 	bf537mac_enable();
@@ -897,10 +901,13 @@ static int bf537mac_open(struct net_device *dev)
  */
 static int bf537mac_close(struct net_device *dev)
 {
+	struct bf537mac_local *lp = netdev_priv(dev);
 	pr_debug("%s: %s\n", dev->name, __FUNCTION__);
 
 	netif_stop_queue(dev);
 	netif_carrier_off(dev);
+
+	phy_stop(lp->phydev);
 
 	/* clear everything */
 	bf537mac_shutdown(dev);
