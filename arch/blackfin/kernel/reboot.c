@@ -9,12 +9,15 @@
 #include <linux/interrupt.h>
 #include <asm/bfin-global.h>
 #include <asm/reboot.h>
+#include <asm/system.h>
 
-static inline void bfin_spin_forever(void)
-{
-	while (1)
-		asm volatile ("idle");
-}
+#if defined(BF537_FAMILY) || defined(BF533_FAMILY)
+#define SYSCR_VAL 	0x0
+#elif defined(BF561_FAMILY)
+#define SYSCR_VAL 	0x20
+#elif defined(BF548_FAMILY)
+#define SYSCR_VAL 	0x10
+#endif
 
 /* A system soft reset makes external memory unusable
  * so force this function into L1.
@@ -23,16 +26,18 @@ __attribute__((l1_text))
 void bfin_reset(void)
 {
 	/* force BMODE and disable Core B (as needed) */
-	bfin_write_SYSCR(0x20);
-	SSYNC();
+	bfin_write_SYSCR(SYSCR_VAL);
+
+	/* we use asm ssync here because it's save and we save some L1 */
+	asm("ssync;");
 
 	while (1) {
 		/* initiate system soft reset with magic 0x7 */
 		bfin_write_SWRST(0x7);
-		SSYNC();
+		asm("ssync;");
 		/* clear system soft reset */
 		bfin_write_SWRST(0);
-		SSYNC();
+		asm("ssync;");
 		/* issue core reset */
 		asm("raise 1");
 	}
@@ -53,8 +58,7 @@ void machine_restart(char *cmd)
 __attribute__((weak))
 void native_machine_halt(void)
 {
-	local_irq_disable();
-	bfin_spin_forever();
+	idle_with_irq_disabled();
 }
 
 void machine_halt(void)
@@ -65,8 +69,7 @@ void machine_halt(void)
 __attribute__((weak))
 void native_machine_power_off(void)
 {
-	local_irq_disable();
-	bfin_spin_forever();
+	idle_with_irq_disabled();
 }
 
 void machine_power_off(void)
