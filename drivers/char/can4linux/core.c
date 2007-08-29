@@ -7,12 +7,12 @@ set tagprg="global -t $1"
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
- *
+ * 
  * Copyright (c) 2001 port GmbH Halle/Saale
  * (c) 2001 Heinz-Jürgen Oertel (oe@port.de)
  *          Claus Schroeter (clausi@chemie.fu-berlin.de)
  *------------------------------------------------------------------
- * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/core.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
+ * $Header: /z2/cvsroot/products/0530/software/can4linux/src/core.c,v 1.3 2007/02/08 11:39:17 oe Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -61,9 +61,9 @@ open(), close(), read(), write() and ioctl() calls
 ( can_open(), can_close(), can_read(), can_write(), can_ioctl() ).
 
 The driver itself is highly configurable
-using the /proc interface of the LINUX kernel.
+using the /proc interface of the LINUX kernel. 
 
-The following listing shows a typical configuration with three boards:
+The following listing shows a typical configuration with three boards: 
 
 \code
 $ grep . /proc/sys/Can/\*
@@ -92,13 +92,36 @@ but does the most configurations at compile time.
 That means especially that only one CAN controller support with
 a special register access method is compiled into the driver.
 Actually the only CAN controller supported by this version
-is the Philips SJA 1000 in both the compatibility mode
-\b BasicCAN and the Philips \PeliCAN mode (compile time selectable).
+is the Philips SJA 1000 in both the compatibility mode 
+\b BasicCAN and the Philips \b PeliCAN mode (compile time selectable).
 
 The version of can4linux currently available at the uClinux CVS tree
 is also supporting the Motorola FlexCAN module as ist is implemented
 on Motorolas ColdFire 5282 CPU and the Analog Devices BlackFin DSP with CAN.
 
+Since version 3.4.6 can4linux 
+assumes that your distribution uses \b udev to have the device
+`/dev/can[0-9]' automatically created.
+It is usually necessary to change the device access rights set by \b udev .
+With the Fedora Core >= 4 or SuSE/novell you can do: 
+
+\code
+echo 'KERNEL=="[Cc]an*", NAME="%k", MODE="0666"' \
+     > /etc/udev/rules.d/91-Can.rules
+\endcode
+
+Alternatively create the device inodes in
+/lib/udev/devices .
+At system start-up,
+the contents of that directory is copied to the /dev directory
+with the same ownership and permissions as the files in /lib/udev/devices. 
+
+
+The driver creates class Can,
+with information in /sys/class/Can/
+
+
+See also udev (7)
 
 The following sections are describing the \e sysctl entries.
 
@@ -121,7 +144,7 @@ Read the CAN register access model.
 The following models are currently supported:
 \li m - memory access, the registers are directly mapped into memory
 \li f - fast register access, special mode for the 82527
-     uses memory locations for register addresses
+     uses memory locations for register addresses 
      (ELIMA)
 \li p - port I/O,  80x86 specific I/O address range
      (AT-CAN-MINI)
@@ -141,7 +164,7 @@ to \e Outc .
 With the most boards using a Philips SJA1000,
 by changing the value of the \e Outc it is possible
 to inhibit generating the CAN Acknowledge.
-Using this feature, it is possible to implement a
+Using this feature, it is possible to implement a 
 \b listen \b only
 mode.
 Please refer the CAN controller documenattion for more details.
@@ -160,7 +183,7 @@ time out value for waiting for a successful transmission
 counter for CAN controller tx error conditions
 
 \par dbgMask
-if compiled with debugging support, writing a value greater then 0
+if compiled with debugging support, writing a value greater then 0 
 enables debugging to \b syslogd .
 The value is bit coded.
 \code
@@ -209,16 +232,17 @@ erstellt
 #include <linux/fs.h>			/* register_chrdev() */
 #include <linux/pci.h>
 #include "defs.h"
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
-#include <linux/device.h>
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0) 
+# include <linux/device.h>
+#endif
+#ifdef CONFIG_DEVFS_FS
+#include <linux/devfs_fs_kernel.h>
+#include <linux/miscdevice.h>
 #endif
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 
-MODULE_AUTHOR("H.-J.Oertel <oe@port.de>");
-MODULE_DESCRIPTION("CAN fieldbus driver");
-MODULE_LICENSE("GPL");
 
 #define CANREGDEVNAME "Can"
 
@@ -227,9 +251,11 @@ MODULE_LICENSE("GPL");
 int IRQ_requested[MAX_CHANNELS]             = { 0 };
 int Can_minors[MAX_CHANNELS]                = { 0 }; /* used as IRQ dev_id */
 #ifdef CONFIG_DEVFS_FS
-devfs_handle_t can_dev_handle[MAX_CHANNELS] = { 0 };
+	#if (LINUX_VERSION_CODE <= KERNEL_VERSION(2,5,50))
+		devfs_handle_t can_dev_handle[MAX_CHANNELS] = { 0 };
+	#endif
 #endif
-int Can_major 				    = CAN_MAJOR;
+int Can_major 				    = CAN_MAJOR; 
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
@@ -242,7 +268,7 @@ that any member of the structure which you don't explicitly assign
 will be initialized to NULL by gcc.
 */
 
-static struct file_operations can_fops = {
+static struct file_operations can_fops = { 
     .owner	=	THIS_MODULE,
     .open	=	can_open,
     .release	=	can_close,
@@ -253,19 +279,20 @@ static struct file_operations can_fops = {
     .fasync	=	can_fasync,
 };
 
+static struct class *can_class;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0) 
 static int __init can_init(void)
 #else
 static int init_module(void)
 #endif
 {
-int i;
+int i, err = 0;
 #ifdef CONFIG_DEVFS_FS
-char devname[];
+char devname[32];
 #endif
 
     /* do you want do see debug message already while loading the driver ?
@@ -275,37 +302,60 @@ char devname[];
 
     DBGin("init_module");
 #ifdef CONFIG_DEVFS_FS
+
     /* If we have devfs, create /dev/canX to put files in there */
     for (i=0; i < MAX_CHANNELS; i++) {
+ #if (LINUX_VERSION_CODE <= KERNEL_VERSION(2,5,50))
       sprintf(devname, "can%i", i);
-      can_dev_handle[i]=devfs_register(NULL, devname,
+      can_dev_handle[i] = devfs_register(NULL, devname,
 		     0,
 		     Can_major, i, S_IFCHR | S_IRUGO | S_IWUGO,
 		     &can_fops,
 		     NULL);
+ #else
+	devfs_mk_cdev(MKDEV(Can_major, i), 
+	      S_IFCHR | S_IRUGO | S_IWUGO,
+	      "can%d", i);
+ #endif
+
 
     }
-    devfs_register_chrdev(Can_major, CANREGDEVNAME, &can_fops);
+    register_chrdev(Can_major, CANREGDEVNAME, &can_fops);
 
-#else /* no devfs, do it the "classic" way  */
-    if( (i = register_chrdev(Can_major, CANREGDEVNAME, &can_fops)) ) {
+#else	/* no devfs, do it the "classic" way  */
+	/* and try udev support */
+    if( (i = register_chrdev(Can_major, CANREGDEVNAME, &can_fops))) {
 	printk(KERN_ERR "-> can't get Major %d = %d\n", Can_major, i);
 	return(-EIO);
+    }
+    /* udev support */
+    can_class = class_create(THIS_MODULE, CANREGDEVNAME);
+    if( IS_ERR(can_class)) {
+	printk("No udev support.\n");
+	err = PTR_ERR(can_class);
+	goto out_devfs;
+    }
+    for (i = 0; i < MAX_CHANNELS; i++) {
+	class_device_create(can_class, NULL, MKDEV(Can_major, i),
+		NULL, "can%d", i);
     }
 #endif
 
     printk(KERN_INFO __CAN_TYPE__ "CAN Driver " VERSION " (c) " __DATE__  "\n");
 #if defined(MCF5282)
     printk(KERN_INFO " FlexCAN port by H.J. Oertel (oe@port.de)\n");
+#elif defined(AD_BLACKFIN)
+    printk(KERN_INFO " BlackFin port by H.J. Oertel (oe@port.de)\n");
 #else
     printk(KERN_INFO " H.J. Oertel (oe@port.de)\n");
     /* printk(KERN_INFO " C.Schroeter (clausi@chemie.fu-berlin.de), H.D. Stich\n");  */
 #endif
-
+	    
 
 
     /*
     initialize the variables layed down in /proc/sys/Can
+    ====================================================
     */
     for (i = 0; i < MAX_CHANNELS; i++) {
 	IOModel[i]       = IO_MODEL;
@@ -339,14 +389,42 @@ char devname[];
 	IRQ[i] = IRQ_CAN_RX;
 #endif
 
+#if defined(VCMA9)
+	Base[i] = 0x28000000;
+	Can_sysctl_table[SYSCTL_IRQ  - 1].mode = 0444;
+	Can_sysctl_table[SYSCTL_BASE - 1].mode = 0444;
+# if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0))
+	IRQ[i] = 37 + 16;
+# else
+	IRQ[i] = 37;
+# endif
+
+#endif
+
+
 #if defined(CCPC104)
         pc104_irqsetup();
         IRQ[i]           = 67;          /* The only possible vector on CTRLink's 5282 CPU */
         Base[i]          = 0x40000280;
 #endif
-    }
+
+    } /* end of for loop initializing all CAN channels */
+    /*
+    ====================================================
+    */
+
+#if defined(VCMA9)
+    /* only one SJA1000 available
+     * we can check if it is available when loading the module
+     */
+     if(!controller_available(0x28000000, 1)) {
+	err =  -EIO;
+	goto out_class;
+     }
+#endif
+
     /* after initializing channel based parameters
-     * finish some entries
+     * finish some entries 
      * and do drivers specific initialization
      */
     IOModel[i] = '\0';
@@ -363,8 +441,8 @@ char devname[];
     /* printk(KERN_INFO "CAN pci test loaded\n"); */
     /* dbgMask = 0; */
     if(pcimod_scan()) {
-	unregister_chrdev(Can_major, CANREGDEVNAME);
-	return -EIO;
+	err = -EIO;
+	goto out_class;
     }
 #endif
 #if defined(CCPC104)
@@ -384,10 +462,17 @@ char devname[];
 
     DBGout();
     return 0;
+
+
+out_class:
+    class_destroy(can_class);
+out_devfs:
+    unregister_chrdev(Can_major, CANREGDEVNAME);
+    return err;
 }
 
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0) 
 static void can_exit(void)
 #else
 static void cleanup_module(void)
@@ -397,10 +482,10 @@ static void cleanup_module(void)
 int i;
 void *ptr;
 #endif
-
+    
     DBGin("cleanup_module");
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0) 
   if (MOD_IN_USE) {
     printk(KERN_WARNING "Can : device busy, remove delayed\n");
   }
@@ -409,22 +494,25 @@ void *ptr;
 
 #ifdef KVASER_PCICAN
 
+extern void disable_pci_interrupt(unsigned int base);
+
     i = 0;
     ptr = NULL;
     /* The pointer to dev can be used up to four times,
-     * but we have to rellease the region only once */
+     * but we have to release the region only once */
     while(Can_pcidev[i]) {
 	if( ptr !=  Can_pcidev[i]) {
 
-	    /* disbale PCI board interrupts */
+ printk(KERN_INFO " release\n");
+	    /* disable PCI board interrupts */
 	    disable_pci_interrupt(pci_resource_start(Can_pcidev[i], 0));
-#if 0
-	    printk(KERN_DEBUG "release Kvaser CAN region 2\n");
+#if 1
+	    /* printk(KERN_DEBUG "release Kvaser CAN region 2 (XILINX)\n"); */
 	    pci_release_region(Can_pcidev[i], 2);   /*release xilinx */
 #endif
-	    printk(KERN_DEBUG "release Kvaser CAN region (CAN)\n");
+	    /* printk(KERN_DEBUG "release Kvaser CAN region 1 (CAN)\n"); */
 	    pci_release_region(Can_pcidev[i], 1); /*release i/o */
-	    printk(KERN_DEBUG "release Kvaser CAN region (PCI)\n");
+	    /* printk(KERN_DEBUG "release Kvaser CAN region 0 (PCI)\n"); */
 	    pci_release_region(Can_pcidev[i], 0);   /*release pci */
 
 	}
@@ -433,23 +521,31 @@ void *ptr;
     }
 
 #endif
- /* printk(KERN_INFO " released all mem regions\n"); */
+ printk(KERN_INFO " released all mem regions\n");
 
 #ifndef CONFIG_DEVFS_FS
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,23)
     if( unregister_chrdev(Can_major, CANREGDEVNAME) != 0 ){
         printk(KERN_ERR "can't unregister " CANREGDEVNAME ", device busy \n");
     } else {
         printk(KERN_INFO CANREGDEVNAME ": successfully removed\n");
     }
-#else
-    unregister_chrdev(Can_major, CANREGDEVNAME);
-#endif
+    if( !IS_ERR(can_class)) {
+	int i;
+	for (i = 0; i < MAX_CHANNELS; i++) {
+	    class_device_destroy(can_class, MKDEV(Can_major, i));
+	}
+	class_destroy(can_class);
+    }
+
 #else
     for (i = 0; i < MAX_CHANNELS; i++) {
-      devfs_unregister(can_dev_handle[i]);
+      #if (LINUX_VERSION_CODE <= KERNEL_VERSION(2,5,50))
+      	devfs_unregister(can_dev_handle[i]);
+      #else
+	devfs_remove("can%d", i);
+      #endif
     }
-    devfs_unregister_chrdev(Can_major, CANREGDEVNAME);
+    unregister_chrdev(Can_major, CANREGDEVNAME);
 #endif
 #if LDDK_USE_PROCINFO
     unregister_procinfo();
@@ -462,10 +558,16 @@ void *ptr;
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0) 
 module_init(can_init);
 module_exit(can_exit);
-EXPORT_NO_SYMBOLS;
+/* EXPORT_NO_SYMBOLS; */
 
 #endif
 
+MODULE_AUTHOR("H.-J.Oertel <oe@port.de>");
+MODULE_DESCRIPTION("CAN fieldbus driver");
+MODULE_LICENSE("GPL");
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0) 
+MODULE_VERSION("3.4");
+#endif

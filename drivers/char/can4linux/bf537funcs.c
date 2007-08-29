@@ -55,6 +55,7 @@
 #include "defs.h"
 #include <linux/delay.h>
 #include <asm/gpio.h>
+#include <asm/portmux.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
 # error use the BlackFin CAN only with Kernel > 2.6
@@ -79,6 +80,9 @@ static const BTR_TAB_BFCAN_T can_btr_tab_bfcan[] = {
 #define TIME_MEASURE_GPIO 6
 #endif
 
+#define DRV_NAME "bfin_can"
+
+unsigned short bfin_can_pin_req[] = {P_CAN0_RX, P_CAN0_TX, 0};
 
 /* Board reset
    means the following procedure:
@@ -701,9 +705,16 @@ int CAN_VendorInit (int minor)
     can_range[minor] = 0x600;
 /* End: 1. Vendor specific part ------------------------------------------- */
 
+    if (peripheral_request_list(bfin_can_pin_req, DRV_NAME)) {
+	printk(KERN_ERR "Can[%d]: Failed ro request peripherals\n",minor);
+	return -EBUSY; 	
+    }
+
+
 #if CONFIG_TIME_MEASURE
-    if(gpio_request(TIME_MEASURE_GPIO, NULL)){
+    if(gpio_request(TIME_MEASURE_GPIO, DRV_NAME)){
 	printk(KERN_ERR "Can[%d]: Failed ro request GPIO_%d\n",minor, TIME_MEASURE_GPIO);
+	peripheral_free_list(bfin_can_pin_req);
 	return -EBUSY;
     }
     gpio_direction_output(TIME_MEASURE_GPIO);
@@ -714,6 +725,7 @@ int CAN_VendorInit (int minor)
     /* looks like not needed in uClinux with internal ressources ? */
     /* It's Memory I/O */
     if(NULL == request_mem_region(Base[minor], can_range[minor], "CAN-IO")) {
+	peripheral_free_list(bfin_can_pin_req);
 #if CONFIG_TIME_MEASURE
 	gpio_free(TIME_MEASURE_GPIO);
 #endif
@@ -734,8 +746,9 @@ int CAN_VendorInit (int minor)
     if( IRQ[minor] > 0 ) {
         if( Can_RequestIrq( minor, IRQ[minor] , CAN_Interrupt) ) {
 	     printk(KERN_ERR "Can[%d]: Can't request IRQ %d \n",
-	     			minor, 		IRQ[minor]);
+	     			minor, IRQ[minor]);
 
+		peripheral_free_list(bfin_can_pin_req);
 		release_mem_region(Base[minor], can_range[minor]);
 #if CONFIG_TIME_MEASURE
     		gpio_free(TIME_MEASURE_GPIO);
@@ -815,7 +828,7 @@ int Can_FreeIrq(int minor, int irq )
     DBGin("Can_FreeIrq");
     IRQ_requested[minor] = 0;
 
-    release_mem_region(Base[minor], can_range[minor]);
+    //release_mem_region(Base[minor], can_range[minor]);
 
     free_irq(irq, &Can_minors[minor]);
     free_irq(irq + 1, &Can_minors[minor]);
@@ -824,6 +837,8 @@ int Can_FreeIrq(int minor, int irq )
 #if CONFIG_TIME_MEASURE
     gpio_free(TIME_MEASURE_GPIO);
 #endif
+
+    peripheral_free_list(bfin_can_pin_req);
 
     DBGout();
     return 0;

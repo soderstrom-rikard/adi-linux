@@ -21,8 +21,8 @@
 /**
 * \file can.h
 * \author Heinz-Jürgen Oertel, port GmbH
-* $Revision$
-* $Date$
+* $Revision: 1.12 $
+* $Date: 2006/09/08 09:45:19 $
 *
 * can4linux interface definitions
 *
@@ -34,6 +34,7 @@
 #ifndef __CAN_H
 #define __CAN_H
 
+/*  #include "/usr/include/stdint.h" */
 
 # define CAN4LINUXVERSION 0x0304 /*(Version 3.4)*/
 
@@ -65,12 +66,12 @@
 */
 typedef struct {
     /** flags, indicating or controlling special message properties */
-    int             flags;
-    int             cob;	 /**< CAN object number, used in Full CAN  */
-    unsigned   long id;		 /**< CAN message ID, 4 bytes  */
-    struct timeval  timestamp;	 /**< time stamp for received messages */
-    short      int  length;	 /**< number of bytes in the CAN message */
+    int32_t         flags;
+    int16_t         cob;	 /**< CAN object number, used in Full CAN  */
+    uint32_t        id;		 /**< CAN message ID, 4 bytes  */
+    int16_t        length;	 /**< number of bytes in the CAN message */
     unsigned   char data[CAN_MSG_LENGTH]; /**< data, 0...8 bytes */
+    struct timeval  timestamp;	 /**< time stamp for received messages */
 } canmsg_t;
 
 
@@ -91,12 +92,12 @@ typedef struct {
 /**
  IOCTL Command request parameter structure */
 struct Command_par {
-    int cmd;			/**< special driver command */
-    int target;			/**< special configuration target */
-    unsigned long val1;		/**< 1. parameter for the target */
-    unsigned long val2;		/**< 2. parameter for the target */
-    int error;	 		/**< return value */
-    unsigned long retval;	/**< return value */
+    int16_t cmd;			/**< special driver command */
+    int16_t target;			/**< special configuration target */
+    uint32_t val1;		/**< 1. parameter for the target */
+    uint32_t val2;		/**< 2. parameter for the target */
+    int16_t error;	 		/**< return value */
+    uint32_t retval;	/**< return value */
 };
 
 
@@ -111,18 +112,18 @@ typedef struct Command_par  Config_par_t ; /**< Configuration parameter struct *
 /**
  IOCTL generic CAN controller status request parameter structure */
 typedef struct CanStatusPar { 
-    unsigned int baud;			/**< actual bit rate */
-    unsigned int status;		/**< CAN controller status register */
-    unsigned int error_warning_limit;	/**< the error warning limit */
-    unsigned int rx_errors;		/**< content of RX error counter */
-    unsigned int tx_errors;		/**< content of TX error counter */
-    unsigned int error_code;		/**< content of error code register */
-    unsigned int rx_buffer_size;	/**< size of rx buffer  */
-    unsigned int rx_buffer_used;	/**< number of messages */
-    unsigned int tx_buffer_size;	/**< size of tx buffer  */
-    unsigned int tx_buffer_used;	/**< number of messages */
-    unsigned long retval;		/**< return value */
-    unsigned int type;			/**< CAN controller / driver type */
+    uint16_t baud;			/**< actual bit rate */
+    uint16_t status;		/**< CAN controller status register */
+    uint16_t error_warning_limit;	/**< the error warning limit */
+    uint16_t rx_errors;		/**< content of RX error counter */
+    uint16_t tx_errors;		/**< content of TX error counter */
+    uint16_t error_code;		/**< content of error code register */
+    uint16_t rx_buffer_size;	/**< size of rx buffer  */
+    uint16_t rx_buffer_used;	/**< number of messages */
+    uint16_t tx_buffer_size;	/**< size of tx buffer  */
+    uint16_t tx_buffer_used;	/**< number of messages */
+    uint16_t retval;		/**< return value */
+    uint16_t type;			/**< CAN controller / driver type */
 } CanStatusPar_t;
 
 /**
@@ -139,26 +140,26 @@ typedef struct CanStatusPar {
 /**
  IOCTL Send request parameter structure */
 typedef struct Send_par {
+    int16_t error;	 		/**< return value for errno */
+    uint32_t retval;	/**< return value */
     canmsg_t *Tx;		/**< CAN message struct  */
-    int error;	 		/**< return value for errno */
-    unsigned long retval;	/**< return value */
 } Send_par_t ;
 
 /**
  IOCTL Receive request parameter structure */
 typedef struct Receive_par {
+    int16_t error;	 		/**< return value for errno */
+    uint32_t retval;	/**< return value */
     canmsg_t *Rx;		/**< CAN message struct  */
-    int error;	 		/**< return value for errno */
-    unsigned long retval;	/**< return value */
 } Receive_par_t ;
 
 /**
 IOCTL ConfigureRTR request parameter structure */
 typedef struct ConfigureRTR_par {
-    unsigned message;		/**< CAN message ID */
+    uint32_t message;		/**< CAN message ID */
+    int16_t error;	 		/**< return value for errno */
+    uint32_t retval;	/**< return value */
     canmsg_t *Tx;		/**< CAN message struct  */
-    int error;	 		/**< return value for errno */
-    unsigned long retval;	/**< return value */
 } ConfigureRTR_par_t ;
 
 /**

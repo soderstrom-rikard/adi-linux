@@ -7,14 +7,14 @@
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
  *
- *
+ * 
  * Copyright (c) 2001 port GmbH Halle/Saale
  * (c) 2001 Heinz-Jürgen Oertel (oe@port.de)
  *          Claus Schroeter (clausi@chemie.fu-berlin.de)
  * Copyright (c) 2003  Phil Wilshire ( philwil@sysdcs.com)
 
  *------------------------------------------------------------------
- * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/async.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
+ * $Header: /z2/cvsroot/products/0530/software/can4linux/src/async.c,v 1.1 2006/04/21 16:25:56 oe Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -22,8 +22,8 @@
  * modification history
  * --------------------
  * $Log: async.c,v $
- * Revision 1.2  2006/03/30 15:21:45  hennerich
- * Apply Blackfin can4linux patch form port GmbH
+ * Revision 1.1  2006/04/21 16:25:56  oe
+ * - new version with new file structure for all architectures
  *
  * Revision 1.1  2004/05/14 10:06:53  oe
  * - started supporting async notification
@@ -95,7 +95,7 @@
 *
 *
 * \returns
-* return 0
+* return 0 
 * or -1 if an error occurred (in which case, errno is set appropriately).
 *
 * \par ERRORS
@@ -125,7 +125,7 @@ can_data_t *dev = (can_data_t *)file->private_data;
     DBGin("can_fasync");
     {
       retval = fasync_helper(fd, file, count, &dev->fasyncptr);
-      DBGprint(DBG_DATA,(" -- async  count %d  retval %d\n",
+      DBGprint(DBG_DATA,(" -- async  count %d  retval %d\n", 
 			 count, retval));
       if ( retval > 0 )
 	retval = 0;

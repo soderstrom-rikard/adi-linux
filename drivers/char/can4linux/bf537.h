@@ -35,6 +35,9 @@
 #ifndef __BLACKFIN_CAN_H
 #define __BLACKFIN_CAN_H
 
+//#define CONFIG_DEVFS_FS
+
+
 extern unsigned int Base[];
 
 

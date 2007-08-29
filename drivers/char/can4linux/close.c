@@ -5,14 +5,14 @@
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
- *
+ * 
  * Copyright (c) 2001 port GmbH Halle/Saale
  * (c) 2001 Heinz-Jürgen Oertel (oe@port.de)
  *          Claus Schroeter (clausi@chemie.fu-berlin.de)
  * derived from the the LDDK can4linux version
  *     (c) 1996,1997 Claus Schroeter (clausi@chemie.fu-berlin.de)
  *------------------------------------------------------------------
- * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/close.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
+ * $Header: /z2/cvsroot/products/0530/software/can4linux/src/close.c,v 1.2 2006/06/21 13:18:32 oe Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -56,7 +56,7 @@ extern int Can_isopen[];   		/* device minor already opened */
 *
 * the following errors can occur
 *
-* \arg \c BADF \b fd isn't a valid open file descriptor
+* \arg \c BADF \b fd isn't a valid open file descriptor 
 *
 
 */
@@ -69,6 +69,8 @@ unsigned int minor = iminor(inode);
     CAN_StopChip(minor);
 
 
+
+#if !defined(PCM3680) && !defined(CPC_104) && !defined(CPC_PCM_104)
     /* call this before freeing any memory or io area.
      * this can contain registers needed by Can_FreeIrq()
      */
@@ -82,19 +84,29 @@ unsigned int minor = iminor(inode);
     /* since Vx.y (2.4?) macros defined in ioport.h,
        called is  __release_region()  */
 #if defined(CAN_PORT_IO) && !defined(KVASER_PCICAN)
-    release_region(Base[minor], can_range[minor] );
+    release_region(Base[minor], can_range[minor]);
 #else
 # if defined(CAN_INDEXED_PORT_IO)
-    release_region(Base[minor],2);
+    release_region(Base[minor], 2);
 # else
 #  ifndef CAN4LINUX_PCI
     /* release I/O memory mapping -> release virtual memory */
-    iounmap((void*)Base[minor]);
+    /* printk("iounmap %p \n", can_base[minor]); */
+    iounmap(can_base[minor]);
+
     /* Release the memory region */
+    /* printk("release mem %x \n", Base[minor]); */
     release_mem_region(Base[minor], can_range[minor]);
+
 #  endif
 # endif
 #endif
+
+
+
+#else  /* !defined(TARGETS with CAN_Release() in target.c */
+    CAN_Release(minor);
+#endif /* !defined(TARGETS with CAN_Release() in target.c */
 
 #ifdef CAN_USE_FILTER
     Can_FilterCleanup(minor);

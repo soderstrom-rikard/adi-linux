@@ -7,7 +7,7 @@
 
 # Used release tag for this software version
 VERSION=3
-REL=4
+REL=4.6
 RELEASE=CAN4LINUX-$(VERSION)_$(REL)
 DVERSION=$(VERSION).$(REL)
 
@@ -25,7 +25,7 @@ CTAGS =	elvtags -tsevl
 ECHO  = /bin/echo
 DATE  =$(shell date)
 
-TITLE = LINUX driver module example
+TITLE = LINUX driver module example 
 
 #
 # The driver major device number
@@ -47,9 +47,9 @@ CAN_MODULE = can.ko
 # All other Targets are assuming to have an SJA1000
 # CPC_PCI  implies PeliCAN
 ##
-## Supported TARGET= IME_SLIMLINE | ATCANMINI_PELICAN | CPC_PCI | CPC_CARD
+## Supported TARGET= IME_SLIMLINE | ATCANMINI_PELICAN | CPC_PCI | CPC_CARD 
 ## | IXXAT_PCI03 | PCM3680 | PC104_200 | SBS_PC7 | TRM816 | GENERIC_I82527
-## | CC_CANPCI | AD_BLACKFI | KVASER_PCICAN
+## | CC_CANPCI | AD_BLACKFIN | KVASER_PCICAN | VCMA9 | CPC104 | CPC_PCM_104
 ##
 ## compile DigiTec FC-CAN as ATCANMINI_PELICAN
 ##
@@ -90,6 +90,10 @@ ifdef CONFIG_CAN_BLACKFIN
 TARGET = AD_BLACKFIN
 endif
 
+ifdef CONFIG_CAN_VCMA9
+TARGET = VCMA9
+endif
+
 ifdef THIS_IS_HERE_FOR_REFERENCE
 #TARGET=IXXAT_PCI03
 #TARGET=IME_SLIMLINE
@@ -104,6 +108,9 @@ ifdef THIS_IS_HERE_FOR_REFERENCE
 #TARGET=CC_CANPCI
 #TARGET=AD_BLACKFIN
 #TARGET=KVASER_PCICAN
+#TARGET=VCMA9
+#TARGET=CPC104
+#TARGET=CPC_PCM_104
 endif
 
 ##########################################################################
@@ -121,8 +128,8 @@ OBJDIR = obj
 # else
 # NODEBUG
 # doesn't compile any debug code into the driver
-DEBUG=DEBUG=1
 DEBUG=NODEBUG
+DEBUG=DEBUG=1
 
 # all definitions for compiling the sources
 # CAN_PORT_IO		- use port I/O instead of memory I/O
@@ -137,11 +144,11 @@ DEBUG=NODEBUG
 
 
 ifeq "$(TARGET)" "CPC_PCI"
-# CPC-PCI PeliCAN  PCI (only with SJA1000) ------------------------------------
+# EMS Wünsche CPC-PCI PeliCAN  PCI (only with SJA1000) ------------------------
+# http://www.ems-wuensche.com
 DEFS =  -D$(TARGET) -D$(DEBUG) -DDEFAULT_DEBUG -DCAN_MAJOR=$(CAN_MAJOR)\
 	-DCAN4LINUX_PCI \
-	-DCAN_SYSCLK=8
-
+	-DCAN_SYSCLK=8 \
 	#-DIODEBUG
 
 TARGET_MATCHED = true
@@ -160,7 +167,8 @@ TARGET_MATCHED = true
 endif
 
 ifeq "$(TARGET)" "CC_CANPCI"
-# CPC-PCI PeliCAN  PCI (only with SJA1000) ------------------------------------
+# Contemporary Controls
+# CC PCI PeliCAN  PCI (only with SJA1000) ------------------------------------
 DEFS =  -D$(TARGET) -D$(DEBUG) -DDEFAULT_DEBUG -DCAN_MAJOR=$(CAN_MAJOR)\
 	-DCAN4LINUX_PCI \
 	-DCAN_PORT_IO   \
@@ -171,6 +179,8 @@ DEFS =  -D$(TARGET) -D$(DEBUG) -DDEFAULT_DEBUG -DCAN_MAJOR=$(CAN_MAJOR)\
 TARGET_MATCHED = true
 endif
 
+# port GmbH AT-CAN-MINI
+# Arcom AIM104-CAN
 ifeq "$(TARGET)" "ATCANMINI_PELICAN"
 # AT-CAN-MINI PeliCAN ISA (only with SJA1000) --------------------------------
 DEFS =  -D$(TARGET) -D$(DEBUG) -DDEFAULT_DEBUG -DCAN_MAJOR=$(CAN_MAJOR) \
@@ -206,6 +216,17 @@ ifeq "$(TARGET)" "PCM3680"
 # http://www.advantech.gr/epc/products/pcm3680.htm
 DEFS =  -D$(TARGET) -D$(DEBUG) -DDEFAULT_DEBUG -DCAN_MAJOR=$(CAN_MAJOR) \
 	-DCAN_SYSCLK=8
+
+TARGET_MATCHED = true
+endif
+
+ifeq "$(TARGET)" "CPC104"
+# EMS Wünsche CPC-104 PC104 board 1xCAN (only with SJA1000) -------------------
+# should work for the ISA series CPC-XT as well (not tested yet)
+# http://www.ems-wuensche.com
+DEFS =  -D$(TARGET) -D$(DEBUG) -DDEFAULT_DEBUG -DCAN_MAJOR=$(CAN_MAJOR) \
+	-DCAN_SYSCLK=8 \
+	-DPC104_OPTION_ROM
 
 TARGET_MATCHED = true
 endif
@@ -258,12 +279,36 @@ ifeq "$(TARGET)" "AD_BLACKFIN"
 # integrated CAN of the Analog Devices BlackFin DSP
 DEFS =  -D$(TARGET) -D$(DEBUG) -DCAN_MAJOR=$(CAN_MAJOR) \
 	-DCAN_SYSCLK=125 \
-	-DMAX_CHANNELS=1 -DCONFIG_TIME_MEASURE=0
+	-DMAX_CHANNELS=1 \
+	#-DCONFIG_TIME_MEASURE=1
 
 TARGET_MATCHED = true
 endif
 
+ifeq "$(TARGET)" "VCMA9"
+# external SJA1000
+DEFS =  -D$(TARGET) -D$(DEBUG) -DCAN_MAJOR=$(CAN_MAJOR) \
+	-DCAN_SYSCLK=12 \
+	-DMAX_CHANNELS=1 \
+	-DMAX_BUFSIZE=512
 
+TARGET_MATCHED = true
+endif
+
+ifeq "$(TARGET)" "CPC_PCM_104"
+# This is a special Target Supporting two different PC104 boards
+# CPC-104 by EMS Wünsche at addresses in the range 0xD0000 to 0xD7FFF
+# PCM3680 by Advantech in the range from 0yd8000 to 0xDFFFF
+# -----------------------------------------------------------------------------
+DEFS =  -D$(TARGET) -D$(DEBUG) -DDEFAULT_DEBUG -DCAN_MAJOR=$(CAN_MAJOR) \
+	-DCAN_SYSCLK=8 \
+	-DPC104_OPTION_ROM
+
+TARGET_MATCHED = true
+endif
+
+# general compiler switches
+DEFS += -Wno-undef
 
 
 ifneq ($(KERNELRELEASE),)
@@ -304,6 +349,7 @@ can-objs	:= core.o	\
 	    endif
 	    ifeq "$(TARGET)" "PCM3680"
 		can-objs += sja1000funcs.o
+		can-objs += pcm3680.o
 	    endif
 	    ifeq "$(TARGET)" "TRM816"
 		can-objs += sja1000funcs.o
@@ -327,8 +373,18 @@ can-objs	:= core.o	\
 		can-objs += sja1000funcs.o
 		can-objs += kvaser_pci.o
 	    endif
-
-
+	    ifeq "$(TARGET)" "VCMA9"
+		can-objs += sja1000funcs.o
+		can-objs += mpl_vcma9.o
+	    endif
+	    ifeq "$(TARGET)" "CPC104"
+		can-objs += sja1000funcs.o
+		can-objs += cpc_104.o
+	    endif
+	    ifeq "$(TARGET)" "CPC_PCM_104"
+		can-objs += sja1000funcs.o
+		can-objs += cpc_pcm_104.o
+	    endif
 else
 #KDIR	:=/home/oertel/pakete/linux/
 #KDIR	:=/usr/src/linux-2.6.15.3/
@@ -337,7 +393,8 @@ PWD	:= $(shell pwd)
 
 ifndef TARGET
 all:
-	@echo "Plese specify TARGET= at command line"
+	@echo "Please specify TARGET= at command line" 
+	@echo "  \"make help\" will help" 
 else
 all:
 	@echo "compile with KDIR=$(KDIR)"
@@ -353,7 +410,7 @@ load:
 	/sbin/insmod $(CAN_MODULE)
 	@echo "Loading etc/$(CONFIG).conf CAN configuration"
 	./utils/cansetup ./etc/$(CONFIG).conf
-	#echo 7 >/proc/sys/Can/dbgMask
+	echo 7 >/proc/sys/Can/dbgMask
 
 
 
@@ -385,7 +442,7 @@ inodes:
 
 
 ctags:
-	$(CTAGS)  *.[ch]
+	$(CTAGS)  *.[ch] 
 
 
 #### HTML Manual section. #################################

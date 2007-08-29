@@ -7,12 +7,12 @@
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
  *
- *
+ * 
  * Copyright (c) 2001 port GmbH Halle/Saale
  * (c) 2001 Heinz-Jürgen Oertel (oe@port.de)
  *          Claus Schroeter (clausi@chemie.fu-berlin.de)
  *------------------------------------------------------------------
- * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/write.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
+ * $Header: /z2/cvsroot/products/0530/software/can4linux/src/write.c,v 1.3 2007/02/07 15:26:30 oe Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -82,9 +82,10 @@ unsigned int minor = __LDDK_MINOR;
 msg_fifo_t *TxFifo = &Tx_Buf[minor];
 canmsg_t *addr;
 canmsg_t tx;
-unsigned long flags;
+unsigned long flags;  /* still needed for local_irq_save() ? */
 int written        = 0;
 int blocking;
+unsigned long _cnt;
 
     DBGin("can_write");
 #ifdef DEBUG_COUNTER
@@ -96,7 +97,7 @@ int blocking;
     blocking = !(file->f_flags & O_NONBLOCK);
 
 /* DEBUG_TTY(1, "write: %d", count); */
-    DBGprint(DBG_DATA,(" -- write %d msg\n", count));
+    DBGprint(DBG_DATA,(" -- write %d msg\n", (int)count));
     /* printk("w[%d/%d]", minor, TxFifo->active); */
     addr = (canmsg_t *)buffer;
 
@@ -106,7 +107,7 @@ int blocking;
     while( written < count ) {
 	/* enter critical section */
 
-	/* local_irq_save(flags); */
+	local_irq_save(flags);
 
 	/* Do we really need to protect something here ????
 	 * e.g. in this case the TxFifo->free[TxFifo->head] value
@@ -137,10 +138,10 @@ int blocking;
 
 	if( TxFifo->active ) {
 	    /* more than one data and actual data in queue,
-	     * add this message to the Tx queue
+	     * add this message to the Tx queue 
 	     */
 	    __lddk_copy_from_user(	/* copy one message to FIFO */
-		    (canmsg_t *) &(TxFifo->data[TxFifo->head]),
+		    (canmsg_t *) &(TxFifo->data[TxFifo->head]), 
 		    (canmsg_t *) &addr[written],
 		    sizeof(canmsg_t) );
 	    TxFifo->free[TxFifo->head] = BUF_FULL; /* now this entry is FULL */
@@ -148,7 +149,7 @@ int blocking;
 
 	} else {
 	    __lddk_copy_from_user(
-		    (canmsg_t *) &tx,
+		    (canmsg_t *) &tx, 
 		    (canmsg_t *) &addr[written],
 		    sizeof(canmsg_t) );
 	  /* f - fast -- use interrupts */
@@ -159,7 +160,7 @@ int blocking;
 	  CAN_SendMessage( minor, &tx);  /* Send, no wait */
 	}
         written++;
-        /* local_irq_restore(flags); */
+        local_irq_restore(flags);
     }
     DBGout();
     return written;

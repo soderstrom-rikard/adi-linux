@@ -11,7 +11,7 @@
  * (c) 2001 Heinz-Jürgen Oertel (oe@port.de)
  *          Claus Schroeter (clausi@chemie.fu-berlin.de)
  *------------------------------------------------------------------
- * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/read.c,v 1.2 2006/03/30 15:21:45 hennerich Exp $
+ * $Header: /z2/cvsroot/products/0530/software/can4linux/src/read.c,v 1.2 2006/09/08 09:47:37 oe Exp $
  *
  *--------------------------------------------------------------------------
  *
@@ -27,7 +27,7 @@
 * $Revision$
 * $Date$
 *
-* Module Description
+* Module Description 
 * see Doxygen Doc for all possibilities
 *
 *
@@ -84,12 +84,12 @@
 * \param buf The destination data buffer (array of CAN canmsg_t).
 * \param count The number of bytes to read.
 *
-* read() attempts to read up to \a count CAN messages
+* read() attempts to read up to \a count CAN messages 
 * (\b not \b bytes! ) from file descriptor fd
 * into the buffer starting at buf.
-* buf must be large enough to hold count times the size of
+* buf must be large enough to hold count times the size of 
 * one CAN message structure \b canmsg_t.
-*
+* 
 * \code
 int got;
 canmsg_t rx[80];			// receive buffer for read()
@@ -128,16 +128,18 @@ canmsg_t rx[80];			// receive buffer for read()
 __LDDK_READ_TYPE can_read( __LDDK_READ_PARAM )
 {
 size_t written = 0;
+unsigned long _cnt;		/* return value of copy_*_user */ 
+
   DBGin("can_read");
   {
 	unsigned int minor = __LDDK_MINOR;
 	msg_fifo_t *RxFifo = &Rx_Buf[minor];
-	canmsg_t *addr;
+	canmsg_t *addr; 
 	int blocking;
 
 	addr = (canmsg_t *)buffer;
 	blocking = !(file->f_flags & O_NONBLOCK);
-
+	
 	if( !access_ok( VERIFY_WRITE, buffer, count * sizeof(canmsg_t) )) {
 	   DBGout();
 	   return -EINVAL;
@@ -155,18 +157,18 @@ size_t written = 0;
 		    if(wait_event_interruptible(CanWait[minor], \
 			RxFifo->tail != RxFifo->head ))
 			return -ERESTARTSYS;
-		} else
+		} else 
 		    break;
-	    }
+	    }	
 
 	    /* copy one message to the user process */
-	    __lddk_copy_to_user( (canmsg_t *) &(addr[written]),
+	     __lddk_copy_to_user( (canmsg_t *) &(addr[written]),
 			(canmsg_t *) &(RxFifo->data[RxFifo->tail]),
 			sizeof(canmsg_t) );
 	    written++;
 	    RxFifo->tail = ++(RxFifo->tail) % MAX_BUFSIZE;
 	}
-    }
+    } 
     DBGout();
     return(written);
 }
