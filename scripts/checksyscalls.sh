@@ -109,6 +109,33 @@ cat << EOF
 #define __IGNORE_getpmsg
 #define __IGNORE_putpmsg
 #define __IGNORE_vserver
+
+/* Skip some MMU/NUMA/SMP related syscalls which are not for Blackfin */
+#define __IGNORE_utime
+#define __IGNORE_select
+#define __IGNORE_uselib
+#define __IGNORE_swapon
+#define __IGNORE_mmap
+#define __IGNORE_swapoff
+#define __IGNORE_sysfs
+#define __IGNORE_msync
+#define __IGNORE_mlock
+#define __IGNORE_munlock
+#define __IGNORE_mlockall
+#define __IGNORE_munlockall
+#define __IGNORE_mremap
+#define __IGNORE_poll
+#define __IGNORE_mincore
+#define __IGNORE_madvise
+#define __IGNORE_remap_file_pages
+#define __IGNORE_mbind
+#define __IGNORE_get_mempolicy
+#define __IGNORE_set_mempolicy
+#define __IGNORE_migrate_pages
+#define __IGNORE_set_robust_list
+#define __IGNORE_get_robust_list
+#define __IGNORE_move_pages
+#define __IGNORE_getcpu
 EOF
 }
 
