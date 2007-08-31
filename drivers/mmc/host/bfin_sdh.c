@@ -9,6 +9,20 @@
  * published by the Free Software Foundation.
  *
  */
+/* In term of ADSP_BF54x_Blackfin_Processor_Peripheral_Hardware_Reference,
+ * the SDH allows software to detect a card when it is inserted into its slot.
+ * The SD_DATA3 pin powers up low due to a special pull-down resistor. When an
+ * SD Card is inserted in its slot, the resistance increases and a rising edge
+ * is detected by the SDH module.
+ * But this doesn't work sometimes. When a MMC/SD card is inserted, the voltage
+ * doesn't rise on SD_DATA3. In term of The MultiMediaCard System Specification,
+ * SD_DATA3 is used as CS pin in SPI mode. The MultiMediaCard wakes up in the
+ * MultiMediaCard mode. During the scan procedure, host will send CMD0 to reset
+ * MMC card, if CS pin is low, MMC card will enter SPI mode. Of course Secure
+ * Digital Host controller is not a SPI controller. So the Card detect function
+ * has to be disabled. After card is inserted run "echo 0 > /proc/driver/sdh"
+ * to trigger card scanning */
+
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/ioport.h>
@@ -28,7 +42,19 @@
 #define DRIVER_NAME	"bfin-sdh"
 
 #define NR_SG	32
-/* static void dump_registers( void ); */
+static void dump_registers(void)
+{
+	printk(KERN_INFO "PWR_CTL:0x%04x, CLK_CTL:0x%04x, ARGUMENT:0x%08x, COMMAND:0x%04x, RESP_CMD:0x%04x\n"
+			"RESP0:0x%08x, DATA_TIMER:0x%08x, DATA_LEN:0x%04x, DATA_CTL:0x%04x, DATA_CNT:0x%04x\n"
+			"STATUS:0x%08x, MASK0:0x%08x, MASK1:0x%08x, FIFO_CNT:0x%04x, E_STATUS:0x%04x\n"
+			"E_MASK:0x%04x, SDH_CFG:0x%04x, RD_WAIT_EN:0x%04x\n",
+			bfin_read_SDH_PWR_CTL(), bfin_read_SDH_CLK_CTL(), bfin_read_SDH_ARGUMENT(),
+			bfin_read_SDH_COMMAND(), bfin_read_SDH_RESP_CMD(), bfin_read_SDH_RESPONSE0(),
+			bfin_read_SDH_DATA_TIMER(), bfin_read_SDH_DATA_LGTH(), bfin_read_SDH_DATA_CTL(),
+			bfin_read_SDH_DATA_CNT(), bfin_read_SDH_STATUS(), bfin_read_SDH_MASK0(), bfin_read_SDH_MASK1(),
+			bfin_read_SDH_FIFO_CNT(), bfin_read_SDH_E_STATUS(), bfin_read_SDH_E_MASK(),
+			bfin_read_SDH_CFG(), bfin_read_SDH_RD_WAIT_EN());
+}
 
 struct dma_desc_array {
 	unsigned long	start_addr;
@@ -94,7 +120,7 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	unsigned int dma_cfg;
 	int i;
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter flags:0x%x\n", __FUNCTION__, data->flags);
 	host->data = data;
 	data_ctl = 0;
 	dma_cfg = 0;
@@ -148,7 +174,12 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	set_dma_x_count(host->dma_ch, 0);
 	set_dma_x_modify(host->dma_ch, 0);
 	set_dma_config(host->dma_ch, dma_cfg);
-/*	dump_dma_registers(host->dma_ch); */
+	dump_dma_registers(host->dma_ch);
+
+	bfin_write_SDH_DATA_CTL(bfin_read_SDH_DATA_CTL() | DTX_DMA_E | DTX_E);
+	SSYNC();
+
+	pr_debug("%s exit\n", __FUNCTION__);
 }
 
 static void sdh_start_cmd(struct sdh_host *host, struct mmc_command *cmd)
@@ -235,7 +266,7 @@ static int sdh_data_done(struct sdh_host *host, unsigned int stat)
 		return 0;
 
 	disable_dma(host->dma_ch);
-	dma_unmap_sg(mmc_dev(host->mmc), data->sg, host->dma_len,
+	dma_unmap_sg(mmc_dev(host->mmc), data->sg, data->sg_len,
 		     host->dma_dir);
 
 	if (stat & DAT_TIME_OUT) {
@@ -257,6 +288,7 @@ static int sdh_data_done(struct sdh_host *host, unsigned int stat)
 
 	sdh_disable_stat_irq(host, DAT_END);
 	bfin_write_SDH_STATUS_CLR(DAT_END_STAT);
+	bfin_write_SDH_DATA_CTL(0);
 	SSYNC();
 
 	host->data = NULL;
@@ -276,16 +308,16 @@ static void sdh_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	pr_debug("%s enter, mrp:%p, cmd:%p\n", __FUNCTION__, mrq, mrq->cmd);
 	WARN_ON(host->mrq != NULL);
 
-	host->data = NULL;
 	host->mrq = mrq;
+	host->data = mrq->data;
 
-	if (mrq->data) {
+	if (mrq->data && mrq->data->flags & MMC_DATA_READ)
 		sdh_setup_data(host, mrq->data);
-		bfin_write_SDH_DATA_CTL(bfin_read_SDH_DATA_CTL() | DTX_DMA_E | DTX_E);
-		SSYNC();
-	}
 
 	sdh_start_cmd(host, mrq->cmd);
+
+	if (mrq->data && mrq->data->flags & MMC_DATA_WRITE)
+		sdh_setup_data(host, mrq->data);
 }
 
 static int sdh_get_ro(struct mmc_host *mmc)
@@ -353,7 +385,8 @@ static irqreturn_t sdh_dma_irq(int irq, void *devid)
 {
 	struct sdh_host *host = devid;
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter, irq_stat:0x%04x\n", __FUNCTION__,\
+			get_dma_curr_irqstat(host->dma_ch));
 	clear_dma_irqstat(host->dma_ch);
 	SSYNC();
 
@@ -364,9 +397,10 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 {
 	struct sdh_host *host = devid;
 	unsigned int status;
+	int handled = 0;
 
 	pr_debug("%s enter\n", __FUNCTION__);
-/*	dump_registers(); */
+	dump_registers();
 	if (bfin_read_SDH_E_STATUS() & SD_CARD_DET) {
 		mmc_detect_change(host->mmc, 0);
 		bfin_write_SDH_E_STATUS(SD_CARD_DET);
@@ -375,7 +409,7 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 
 	status = bfin_read_SDH_STATUS();
 	if (status & (CMD_SENT | CMD_RESP_END | CMD_TIME_OUT | CMD_CRC_FAIL)) {
-		sdh_cmd_done(host, status);
+		handled |= sdh_cmd_done(host, status);
 		bfin_write_SDH_STATUS_CLR( CMD_SENT_STAT | CMD_RESP_END_STAT | \
 				CMD_TIMEOUT_STAT | CMD_CRC_FAIL_STAT);
 		SSYNC();
@@ -383,7 +417,7 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 
 	status = bfin_read_SDH_STATUS();
 	if (status & (DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL))
-		sdh_data_done(host, status);
+		handled |= sdh_data_done(host, status);
 
 	if (status & (RX_OVERRUN | TX_UNDERRUN)) {
 		bfin_write_SDH_DATA_CTL(0); /* Disable data transfer */
@@ -394,7 +428,7 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 
 	pr_debug("%s exit\n\n", __FUNCTION__);
 
-	return IRQ_HANDLED;
+	return IRQ_RETVAL(handled);
 }
 
 static struct proc_dir_entry *ac_entry;
@@ -411,11 +445,24 @@ static int proc_write(struct file *file, const char __user *buffer,
 
 	switch (cmd) {
 	case 0:
-/*	dump_registers(); */
+		mmc_detect_change(host->mmc, 0);
 		break;
 	case 1:
+		dump_registers();
+		break;
+	case 2:
+		/* dump dma registers */
+		dump_dma_registers(host->dma_ch);
+		break;
+	case 3:
+		/* Send CMD0 to card */
 		mmc_claim_host(host->mmc);
+		err = mmc_go_idle(host->mmc);
+		mmc_release_host(host->mmc);
+		break;
+	case 4:
 		/* Send CMD1 to cards */
+		mmc_claim_host(host->mmc);
 		err = mmc_send_op_cond(host->mmc, 0, &ocr);
 		mmc_release_host(host->mmc);
 		if (err == MMC_ERR_NONE)
@@ -423,11 +470,7 @@ static int proc_write(struct file *file, const char __user *buffer,
 		else
 			printk(KERN_ERR "Respond err:%d\n", err);
 		break;
-	case 2:
-		/* dump dma registers */
-		dump_dma_registers(host->dma_ch);
-		break;
-	case 3:
+	case 5:
 		mmc_claim_host(host->mmc);
 		ext_csd = kmalloc(512, GFP_KERNEL);
 		err = mmc_send_ext_csd(host->mmc->card, ext_csd);
@@ -462,7 +505,7 @@ static int sdh_probe(struct platform_device *pdev)
 	mmc->ocr_avail = MMC_VDD_32_33|MMC_VDD_33_34;
 	mmc->f_min = get_sclk() >> 9;
 	mmc->f_max = get_sclk();
-	mmc->caps = MMC_CAP_MMC_HIGHSPEED;
+	mmc->caps = MMC_CAP_MMC_HIGHSPEED | MMC_CAP_4_BIT_DATA;
 	host = mmc_priv(mmc);
 	host->mmc = mmc;
 
@@ -506,6 +549,11 @@ static int sdh_probe(struct platform_device *pdev)
 	bfin_write_SDH_CFG(bfin_read_SDH_CFG() | CLKS_EN);
 	SSYNC();
 
+	/* Disable card detect pin */
+#if 1
+	bfin_write_SDH_CFG((bfin_read_SDH_CFG() & 0x1F) | 0x60);
+	SSYNC();
+#endif
 	ac_entry = create_proc_entry("driver/sdh", 0600, NULL);
 	ac_entry->read_proc = NULL;
 	ac_entry->write_proc = proc_write;
