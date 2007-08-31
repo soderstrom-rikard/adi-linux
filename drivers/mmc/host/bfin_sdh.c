@@ -42,19 +42,6 @@
 #define DRIVER_NAME	"bfin-sdh"
 
 #define NR_SG	32
-static void dump_registers(void)
-{
-	printk(KERN_INFO "PWR_CTL:0x%04x, CLK_CTL:0x%04x, ARGUMENT:0x%08x, COMMAND:0x%04x, RESP_CMD:0x%04x\n"
-			"RESP0:0x%08x, DATA_TIMER:0x%08x, DATA_LEN:0x%04x, DATA_CTL:0x%04x, DATA_CNT:0x%04x\n"
-			"STATUS:0x%08x, MASK0:0x%08x, MASK1:0x%08x, FIFO_CNT:0x%04x, E_STATUS:0x%04x\n"
-			"E_MASK:0x%04x, SDH_CFG:0x%04x, RD_WAIT_EN:0x%04x\n",
-			bfin_read_SDH_PWR_CTL(), bfin_read_SDH_CLK_CTL(), bfin_read_SDH_ARGUMENT(),
-			bfin_read_SDH_COMMAND(), bfin_read_SDH_RESP_CMD(), bfin_read_SDH_RESPONSE0(),
-			bfin_read_SDH_DATA_TIMER(), bfin_read_SDH_DATA_LGTH(), bfin_read_SDH_DATA_CTL(),
-			bfin_read_SDH_DATA_CNT(), bfin_read_SDH_STATUS(), bfin_read_SDH_MASK0(), bfin_read_SDH_MASK1(),
-			bfin_read_SDH_FIFO_CNT(), bfin_read_SDH_E_STATUS(), bfin_read_SDH_E_MASK(),
-			bfin_read_SDH_CFG(), bfin_read_SDH_RD_WAIT_EN());
-}
 
 struct dma_desc_array {
 	unsigned long	start_addr;
@@ -174,7 +161,6 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	set_dma_x_count(host->dma_ch, 0);
 	set_dma_x_modify(host->dma_ch, 0);
 	set_dma_config(host->dma_ch, dma_cfg);
-	dump_dma_registers(host->dma_ch);
 
 	bfin_write_SDH_DATA_CTL(bfin_read_SDH_DATA_CTL() | DTX_DMA_E | DTX_E);
 	SSYNC();
@@ -400,7 +386,6 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 	int handled = 0;
 
 	pr_debug("%s enter\n", __FUNCTION__);
-	dump_registers();
 	if (bfin_read_SDH_E_STATUS() & SD_CARD_DET) {
 		mmc_detect_change(host->mmc, 0);
 		bfin_write_SDH_E_STATUS(SD_CARD_DET);
@@ -431,9 +416,6 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 	return IRQ_RETVAL(handled);
 }
 
-static struct proc_dir_entry *ac_entry;
-
-/* For test purpose, read a register from codec */
 static int proc_write(struct file *file, const char __user *buffer,
 		unsigned long count, void *data)
 {
@@ -447,36 +429,6 @@ static int proc_write(struct file *file, const char __user *buffer,
 	case 0:
 		mmc_detect_change(host->mmc, 0);
 		break;
-	case 1:
-		dump_registers();
-		break;
-	case 2:
-		/* dump dma registers */
-		dump_dma_registers(host->dma_ch);
-		break;
-	case 3:
-		/* Send CMD0 to card */
-		mmc_claim_host(host->mmc);
-		err = mmc_go_idle(host->mmc);
-		mmc_release_host(host->mmc);
-		break;
-	case 4:
-		/* Send CMD1 to cards */
-		mmc_claim_host(host->mmc);
-		err = mmc_send_op_cond(host->mmc, 0, &ocr);
-		mmc_release_host(host->mmc);
-		if (err == MMC_ERR_NONE)
-			printk(KERN_ERR "OCR:0x%08x\n", ocr);
-		else
-			printk(KERN_ERR "Respond err:%d\n", err);
-		break;
-	case 5:
-		mmc_claim_host(host->mmc);
-		ext_csd = kmalloc(512, GFP_KERNEL);
-		err = mmc_send_ext_csd(host->mmc->card, ext_csd);
-		kfree(ext_csd);
-		mmc_release_host(host->mmc);
-		break;
 	default:
 		printk(KERN_ERR "%ld not support\n", cmd);
 		break;
@@ -489,6 +441,7 @@ static int sdh_probe(struct platform_device *pdev)
 {
 	struct mmc_host *mmc;
 	struct sdh_host *host = NULL;
+	struct proc_dir_entry *sd_entry;
 	int ret;
 
 	mmc = mmc_alloc_host(sizeof(struct sdh_host), &pdev->dev);
@@ -554,10 +507,10 @@ static int sdh_probe(struct platform_device *pdev)
 	bfin_write_SDH_CFG((bfin_read_SDH_CFG() & 0x1F) | 0x60);
 	SSYNC();
 #endif
-	ac_entry = create_proc_entry("driver/sdh", 0600, NULL);
-	ac_entry->read_proc = NULL;
-	ac_entry->write_proc = proc_write;
-	ac_entry->data = host;
+	sd_entry = create_proc_entry("driver/sdh", 0600, NULL);
+	sd_entry->read_proc = NULL;
+	sd_entry->write_proc = proc_write;
+	sd_entry->data = host;
 
 	return 0;
 
@@ -589,6 +542,8 @@ static int sdh_remove(struct platform_device *pdev)
 
 		mmc_free_host(mmc);
 	}
+	remove_proc_entry("driver/sdh", NULL);
+
 	return 0;
 }
 
