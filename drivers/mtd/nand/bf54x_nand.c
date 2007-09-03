@@ -50,6 +50,7 @@
 #include <linux/err.h>
 #include <linux/slab.h>
 #include <linux/io.h>
+#include <linux/bitops.h>
 
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
@@ -157,18 +158,9 @@ static int bf54x_nand_devready(struct mtd_info *mtd)
 
 /*----------------------------------------------------------------------------
  * ECC functions
- *
  * These allow the bf54x to use the controller's ECC
  * generator block to ECC the data as it passes through
  */
-static inline int count_bits(uint32_t byte)
-{
-	int res = 0;
-
-	for (; byte; byte >>= 1)
-		res += byte & 0x01;
-	return res;
-}
 
 /*
  * ECC error correction function
@@ -201,7 +193,7 @@ static int bf54x_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
 	 * ECC data was incorrect
 	 * No action
 	 */
-	if (count_bits(syndrome[0]) == 1) {
+	if (hweight32(syndrome[0]) == 1) {
 		dev_err(info->device, "ECC data was incorrect!\n");
 		return 1;
 	}
@@ -222,7 +214,7 @@ static int bf54x_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
 	 * 1-bit correctable error
 	 * Correct the error
 	 */
-	if (count_bits(syndrome[0]) == 11 && syndrome[4] == 0x7FF) {
+	if (hweight32(syndrome[0]) == 11 && syndrome[4] == 0x7FF) {
 		dev_info(info->device, "1-bit correctable error, correct it.\n");
 		dev_info(info->device, "syndrome[1] 0x%08x\n", syndrome[1]);
 
