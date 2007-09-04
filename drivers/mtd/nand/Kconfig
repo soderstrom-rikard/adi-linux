@@ -131,23 +131,24 @@ config MTD_NAND_AU1550
 	  This enables the driver for the NAND flash controller on the
 	  AMD/Alchemy 1550 SOC.
 
-config MTD_NAND_BF54X
-	tristate "NAND Flash support for Blackfin BF54X SoC DSP"
+config MTD_NAND_BF5XX
+	tristate "Blackfin on-chip NAND Flash Controller driver"
 	depends on BF54x && MTD_NAND
 	help
-	  This enables the NAND flash controller on the BF54X SoC DPSs
+	  This enables the Blackfin on-chip NAND flash controller
 
 	  No board specific support is done by this driver, each board
 	  must advertise a platform_device for the driver to attach.
 
-config MTD_NAND_BF54X_HWECC
-	bool "BF54X NAND Hardware ECC"
-	depends on MTD_NAND_BF54X
+	  This driver can also be built as a module. If so, the module
+	  will be called bf5xx-nand.
+
+config MTD_NAND_BF5XX_HWECC
+	bool "BF5XX NAND Hardware ECC"
+	depends on MTD_NAND_BF5XX
 	help
-	  Enable the use of the BF54X's internal ECC generator when
-	  using NAND. Early versions of the chip have had problems with
-	  incorrect ECC generation, and if using these, the default of
-	  software ECC is preferable.
+	  Enable the use of the BF5XX's internal ECC generator when
+	  using NAND.
 
 config MTD_NAND_RTC_FROM4
 	tristate "Renesas Flash ROM 4-slot interface board (FROM_BOARD4)"

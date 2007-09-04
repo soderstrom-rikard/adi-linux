@@ -1,10 +1,10 @@
-/* linux/drivers/mtd/nand/bf54x_nand.c
+/* linux/drivers/mtd/nand/bf5xx_nand.c
  *
  * Copyright 2006-2007 Analog Devices Inc.
  *	http://blackfin.uclinux.org/
  *	Bryan Wu <bryan.wu@analog.com>
  *
- * Blackfin BF54x on-chip NAND flash controler driver
+ * Blackfin BF5xx on-chip NAND flash controler driver
  *
  * Derived from drivers/mtd/nand/s3c2410.c
  * Copyright (c) 2007 Ben Dooks <ben@simtec.co.uk>
@@ -60,35 +60,35 @@
 #include <asm/blackfin.h>
 #include <asm/dma.h>
 #include <asm/cacheflush.h>
-#include <asm/mach/nand.h>
+#include <asm/nand.h>
 #include <asm/portmux.h>
 
-#define DRV_NAME	"bf54x-nand"
-#define DRV_VERSION	"1.0"
+#define DRV_NAME	"bf5xx-nand"
+#define DRV_VERSION	"1.2"
 #define DRV_AUTHOR	"Bryan Wu <bryan.wu@analog.com>"
-#define DRV_DESC	"BF54x on-chip NAND FLash Controller Driver"
+#define DRV_DESC	"BF5xx on-chip NAND FLash Controller Driver"
 
-#ifdef CONFIG_MTD_NAND_BF54X_HWECC
-int hardware_ecc = 1;
+#ifdef CONFIG_MTD_NAND_BF5XX_HWECC
+static int hardware_ecc = 1;
 #else
-int hardware_ecc = 0;
+static int hardware_ecc;
 #endif
 
-unsigned short bfin_nfc_pin_req[] = {P_NAND_CE, P_NAND_RB, 0};
+static unsigned short bfin_nfc_pin_req[] = {P_NAND_CE, P_NAND_RB, 0};
 
 /*----------------------------------------------------------------------------
- * Data structures for bf54x nand flash controller driver
+ * Data structures for bf5xx nand flash controller driver
  */
 
-/* bf54x nand info */
-struct bf54x_nand_info {
+/* bf5xx nand info */
+struct bf5xx_nand_info {
 	/* mtd info */
 	struct nand_hw_control		controller;
 	struct mtd_info			mtd;
 	struct nand_chip		chip;
 
 	/* platform info */
-	struct bf54x_nand_platform	*platform;
+	struct bf5xx_nand_platform	*platform;
 
 	/* device info */
 	struct device			*device;
@@ -100,17 +100,17 @@ struct bf54x_nand_info {
 /*----------------------------------------------------------------------------
  * Conversion functions
  */
-static struct bf54x_nand_info *mtd_to_nand_info(struct mtd_info *mtd)
+static struct bf5xx_nand_info *mtd_to_nand_info(struct mtd_info *mtd)
 {
-	return container_of(mtd, struct bf54x_nand_info, mtd);
+	return container_of(mtd, struct bf5xx_nand_info, mtd);
 }
 
-static struct bf54x_nand_info *to_nand_info(struct platform_device *pdev)
+static struct bf5xx_nand_info *to_nand_info(struct platform_device *pdev)
 {
 	return platform_get_drvdata(pdev);
 }
 
-static struct bf54x_nand_platform *to_nand_plat(struct platform_device *pdev)
+static struct bf5xx_nand_platform *to_nand_plat(struct platform_device *pdev)
 {
 	return pdev->dev.platform_data;
 }
@@ -121,11 +121,11 @@ static struct bf54x_nand_platform *to_nand_plat(struct platform_device *pdev)
  */
 
 /*
- * bf54x_nand_hwcontrol
+ * bf5xx_nand_hwcontrol
  *
  * Issue command and address cycles to the chip
  */
-static void bf54x_nand_hwcontrol(struct mtd_info *mtd, int cmd,
+static void bf5xx_nand_hwcontrol(struct mtd_info *mtd, int cmd,
 				   unsigned int ctrl)
 {
 	if (cmd == NAND_CMD_NONE)
@@ -142,11 +142,11 @@ static void bf54x_nand_hwcontrol(struct mtd_info *mtd, int cmd,
 }
 
 /*
- * bf54x_nand_devready()
+ * bf5xx_nand_devready()
  *
  * returns 0 if the nand is busy, 1 if it is ready
  */
-static int bf54x_nand_devready(struct mtd_info *mtd)
+static int bf5xx_nand_devready(struct mtd_info *mtd)
 {
 	unsigned short val = bfin_read_NFC_IRQSTAT();
 
@@ -158,17 +158,17 @@ static int bf54x_nand_devready(struct mtd_info *mtd)
 
 /*----------------------------------------------------------------------------
  * ECC functions
- * These allow the bf54x to use the controller's ECC
+ * These allow the bf5xx to use the controller's ECC
  * generator block to ECC the data as it passes through
  */
 
 /*
  * ECC error correction function
  */
-static int bf54x_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
+static int bf5xx_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
 					u_char *read_ecc, u_char *calc_ecc)
 {
-	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
+	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
 	u32 syndrome[5];
 	u32 calced, stored;
 	int i;
@@ -206,7 +206,9 @@ static int bf54x_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
 	for (i = 0; i < 5; i++)
 		dev_info(info->device, "syndrome[%d] 0x%08x\n", i, syndrome[i]);
 
-	dev_info(info->device, "calced[0x%08x], stored[0x%08x]\n", calced, stored);
+	dev_info(info->device,
+		"calced[0x%08x], stored[0x%08x]\n",
+		calced, stored);
 
 	/*
 	 * sysdrome 0: exactly 11 bits are one, each parity
@@ -215,8 +217,10 @@ static int bf54x_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
 	 * Correct the error
 	 */
 	if (hweight32(syndrome[0]) == 11 && syndrome[4] == 0x7FF) {
-		dev_info(info->device, "1-bit correctable error, correct it.\n");
-		dev_info(info->device, "syndrome[1] 0x%08x\n", syndrome[1]);
+		dev_info(info->device,
+			"1-bit correctable error, correct it.\n");
+		dev_info(info->device,
+			"syndrome[1] 0x%08x\n", syndrome[1]);
 
 		failing_bit = syndrome[1] & 0x7;
 		failing_byte = syndrome[1] >> 0x3;
@@ -240,28 +244,28 @@ static int bf54x_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
 	return 1;
 }
 
-static int bf54x_nand_correct_data(struct mtd_info *mtd, u_char *dat,
+static int bf5xx_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 					u_char *read_ecc, u_char *calc_ecc)
-{	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
-	struct bf54x_nand_platform *plat = info->platform;
+{	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
+	struct bf5xx_nand_platform *plat = info->platform;
 	unsigned short page_size = (plat->page_size ? 512 : 256);
 
 	int ret;
 
-	ret = bf54x_nand_correct_data_256(mtd, dat, read_ecc, calc_ecc);
+	ret = bf5xx_nand_correct_data_256(mtd, dat, read_ecc, calc_ecc);
 
 	/* If page size is 512, correct second 256 bytes */
 	if (page_size == 512) {
 		dat += 256;
 		read_ecc += 8;
 		calc_ecc += 8;
-		ret = bf54x_nand_correct_data_256(mtd, dat, read_ecc, calc_ecc);
+		ret = bf5xx_nand_correct_data_256(mtd, dat, read_ecc, calc_ecc);
 	}
 
 	return ret;
 }
 
-static void bf54x_nand_enable_hwecc(struct mtd_info *mtd, int mode)
+static void bf5xx_nand_enable_hwecc(struct mtd_info *mtd, int mode)
 {
 	/*
 	 * This register must be written before each page is
@@ -272,11 +276,11 @@ static void bf54x_nand_enable_hwecc(struct mtd_info *mtd, int mode)
 
 }
 
-static int bf54x_nand_calculate_ecc(struct mtd_info *mtd,
+static int bf5xx_nand_calculate_ecc(struct mtd_info *mtd,
 		const u_char *dat, u_char *ecc_code)
 {
-	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
-	struct bf54x_nand_platform *plat = info->platform;
+	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
+	struct bf5xx_nand_platform *plat = info->platform;
 	u16 page_size = (plat->page_size ? 512 : 256);
 	u16 ecc0, ecc1;
 	u32 code[2];
@@ -310,7 +314,7 @@ static int bf54x_nand_calculate_ecc(struct mtd_info *mtd,
 /*----------------------------------------------------------------------------
  * PIO mode for buffer writing and reading
  */
-static void bf54x_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
+static void bf5xx_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 {
 	int i;
 	unsigned short val;
@@ -339,16 +343,16 @@ static void bf54x_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 	}
 }
 
-static uint8_t bf54x_nand_read_byte(struct mtd_info *mtd)
+static uint8_t bf5xx_nand_read_byte(struct mtd_info *mtd)
 {
 	uint8_t val;
 
-	bf54x_nand_read_buf(mtd, &val, 1);
+	bf5xx_nand_read_buf(mtd, &val, 1);
 
 	return val;
 }
 
-static void bf54x_nand_write_buf(struct mtd_info *mtd,
+static void bf5xx_nand_write_buf(struct mtd_info *mtd,
 				const uint8_t *buf, int len)
 {
 	int i;
@@ -362,7 +366,7 @@ static void bf54x_nand_write_buf(struct mtd_info *mtd,
 	}
 }
 
-static void bf54x_nand_read_buf16(struct mtd_info *mtd, uint8_t *buf, int len)
+static void bf5xx_nand_read_buf16(struct mtd_info *mtd, uint8_t *buf, int len)
 {
 	int i;
 	u16 *p = (u16 *) buf;
@@ -380,7 +384,7 @@ static void bf54x_nand_read_buf16(struct mtd_info *mtd, uint8_t *buf, int len)
 		p[i] = bfin_read_NFC_READ();
 }
 
-static void bf54x_nand_write_buf16(struct mtd_info *mtd,
+static void bf5xx_nand_write_buf16(struct mtd_info *mtd,
 				const uint8_t *buf, int len)
 {
 	int i;
@@ -396,9 +400,9 @@ static void bf54x_nand_write_buf16(struct mtd_info *mtd,
 /*----------------------------------------------------------------------------
  * DMA functions for buffer writing and reading
  */
-static irqreturn_t bf54x_nand_dma_irq (int irq, void *dev_id)
+static irqreturn_t bf5xx_nand_dma_irq(int irq, void *dev_id)
 {
-	struct bf54x_nand_info *info = (struct bf54x_nand_info *) dev_id;
+	struct bf5xx_nand_info *info = (struct bf5xx_nand_info *) dev_id;
 
 	clear_dma_irqstat(CH_NFC);
 	disable_dma(CH_NFC);
@@ -407,15 +411,15 @@ static irqreturn_t bf54x_nand_dma_irq (int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int bf54x_nand_dma_rw(struct mtd_info *mtd,
+static int bf5xx_nand_dma_rw(struct mtd_info *mtd,
 				uint8_t *buf, int is_read)
 {
-	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
-	struct bf54x_nand_platform *plat = info->platform;
+	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
+	struct bf5xx_nand_platform *plat = info->platform;
 	unsigned short page_size = (plat->page_size ? 512 : 256);
 	unsigned short val;
 
-	dev_dbg(info->device, " mtd->%p, buf->%p, len %d, is_read %d\n",
+	dev_dbg(info->device, " mtd->%p, buf->%p, is_read %d\n",
 			mtd, buf, is_read);
 
 	if (is_read)
@@ -454,41 +458,41 @@ static int bf54x_nand_dma_rw(struct mtd_info *mtd,
 	return 0;
 }
 
-static void bf54x_nand_dma_read_buf(struct mtd_info *mtd,
+static void bf5xx_nand_dma_read_buf(struct mtd_info *mtd,
 					uint8_t *buf, int len)
 {
-	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
-	struct bf54x_nand_platform *plat = info->platform;
+	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
+	struct bf5xx_nand_platform *plat = info->platform;
 	unsigned short page_size = (plat->page_size ? 512 : 256);
 
 	dev_dbg(info->device, "mtd->%p, buf->%p, int %d\n", mtd, buf, len);
 
 	if (len == page_size)
-		bf54x_nand_dma_rw(mtd, buf, 1);
+		bf5xx_nand_dma_rw(mtd, buf, 1);
 	else
-		bf54x_nand_read_buf(mtd, buf, len);
+		bf5xx_nand_read_buf(mtd, buf, len);
 }
 
-static void bf54x_nand_dma_write_buf(struct mtd_info *mtd,
+static void bf5xx_nand_dma_write_buf(struct mtd_info *mtd,
 				const uint8_t *buf, int len)
 {
-	struct bf54x_nand_info *info = mtd_to_nand_info(mtd);
-	struct bf54x_nand_platform *plat = info->platform;
+	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
+	struct bf5xx_nand_platform *plat = info->platform;
 	unsigned short page_size = (plat->page_size ? 512 : 256);
 
 	dev_dbg(info->device, "mtd->%p, buf->%p, len %d\n", mtd, buf, len);
 
 	if (len == page_size)
-		bf54x_nand_dma_rw(mtd, (uint8_t *)buf, 0);
+		bf5xx_nand_dma_rw(mtd, (uint8_t *)buf, 0);
 	else
-		bf54x_nand_write_buf(mtd, buf, len);
+		bf5xx_nand_write_buf(mtd, buf, len);
 }
 
 /*----------------------------------------------------------------------------
  * System initialization functions
  */
 
-static int bf54x_nand_dma_init(struct bf54x_nand_info *info)
+static int bf5xx_nand_dma_init(struct bf5xx_nand_info *info)
 {
 	int ret;
 	unsigned short val;
@@ -506,13 +510,13 @@ static int bf54x_nand_dma_init(struct bf54x_nand_info *info)
 	SSYNC();
 
 	/* Request NFC DMA channel */
-	ret = request_dma(CH_NFC, "BF54X NFC driver");
+	ret = request_dma(CH_NFC, "BF5XX NFC driver");
 	if (ret < 0) {
 		dev_err(info->device, " unable to get DMA channel\n");
 		return ret;
 	}
 
-	set_dma_callback(CH_NFC, (void *) bf54x_nand_dma_irq, (void *) info);
+	set_dma_callback(CH_NFC, (void *) bf5xx_nand_dma_irq, (void *) info);
 
 	/* Turn off the DMA channel first */
 	disable_dma(CH_NFC);
@@ -520,15 +524,15 @@ static int bf54x_nand_dma_init(struct bf54x_nand_info *info)
 }
 
 /*
- * BF54X NFC hardware initialization
+ * BF5XX NFC hardware initialization
  *  - pin mux setup
  *  - clear interrupt status
  */
-static int bf54x_nand_hw_init(struct bf54x_nand_info *info)
+static int bf5xx_nand_hw_init(struct bf5xx_nand_info *info)
 {
 	int err = 0;
 	unsigned short val;
-	struct bf54x_nand_platform *plat = info->platform;
+	struct bf5xx_nand_platform *plat = info->platform;
 
 	if (!info)
 		return -EINVAL;
@@ -564,9 +568,8 @@ static int bf54x_nand_hw_init(struct bf54x_nand_info *info)
 
 
 	/* DMA initialization  */
-	if (bf54x_nand_dma_init(info)) {
+	if (bf5xx_nand_dma_init(info))
 		err = -ENXIO;
-	}
 
 	return err;
 }
@@ -574,7 +577,7 @@ static int bf54x_nand_hw_init(struct bf54x_nand_info *info)
 /*----------------------------------------------------------------------------
  * Device management interface
  */
-static int bf54x_nand_add_partition(struct bf54x_nand_info *info)
+static int bf5xx_nand_add_partition(struct bf5xx_nand_info *info)
 {
 	struct mtd_info *mtd = &info->mtd;
 
@@ -588,9 +591,9 @@ static int bf54x_nand_add_partition(struct bf54x_nand_info *info)
 #endif
 }
 
-static int bf54x_nand_remove(struct platform_device *pdev)
+static int bf5xx_nand_remove(struct platform_device *pdev)
 {
-	struct bf54x_nand_info *info = to_nand_info(pdev);
+	struct bf5xx_nand_info *info = to_nand_info(pdev);
 	struct mtd_info *mtd = NULL;
 
 	platform_set_drvdata(pdev, NULL);
@@ -617,17 +620,17 @@ static int bf54x_nand_remove(struct platform_device *pdev)
 }
 
 /*
- * bf54x_nand_probe
+ * bf5xx_nand_probe
  *
  * called by device layer when it finds a device matching
  * one our driver can handled. This code checks to see if
  * it can allocate all necessary resources then calls the
  * nand layer to look for devices
  */
-static int bf54x_nand_probe(struct platform_device *pdev)
+static int bf5xx_nand_probe(struct platform_device *pdev)
 {
-	struct bf54x_nand_platform *plat = to_nand_plat(pdev);
-	struct bf54x_nand_info *info = NULL;
+	struct bf5xx_nand_platform *plat = to_nand_plat(pdev);
+	struct bf5xx_nand_info *info = NULL;
 	struct nand_chip *chip = NULL;
 	struct mtd_info *mtd = NULL;
 	int err = 0;
@@ -663,14 +666,14 @@ static int bf54x_nand_probe(struct platform_device *pdev)
 	chip->options |= NAND_CACHEPRG | NAND_SKIP_BBTSCAN;
 
 	chip->read_buf = (plat->data_width) ?
-		bf54x_nand_read_buf16 : bf54x_nand_read_buf;
+		bf5xx_nand_read_buf16 : bf5xx_nand_read_buf;
 	chip->write_buf = (plat->data_width) ?
-		bf54x_nand_write_buf16 : bf54x_nand_write_buf;
+		bf5xx_nand_write_buf16 : bf5xx_nand_write_buf;
 
-	chip->read_byte    = bf54x_nand_read_byte;
+	chip->read_byte    = bf5xx_nand_read_byte;
 
-	chip->cmd_ctrl     = bf54x_nand_hwcontrol;
-	chip->dev_ready    = bf54x_nand_devready;
+	chip->cmd_ctrl     = bf5xx_nand_hwcontrol;
+	chip->dev_ready    = bf5xx_nand_devready;
 
 	chip->priv	   = &info->mtd;
 	chip->controller   = &info->controller;
@@ -686,7 +689,7 @@ static int bf54x_nand_probe(struct platform_device *pdev)
 	mtd->owner	= THIS_MODULE;
 
 	/* initialise the hardware */
-	err = bf54x_nand_hw_init(info);
+	err = bf5xx_nand_hw_init(info);
 	if (err != 0)
 		goto exit_error;
 
@@ -695,17 +698,17 @@ static int bf54x_nand_probe(struct platform_device *pdev)
 		if (plat->page_size == NFC_PG_SIZE_256) {
 			chip->ecc.bytes = 3;
 			chip->ecc.size = 256;
-		} else if (mtd->writesize == NFC_PG_SIZE_512) {
+		} else if (plat->page_size == NFC_PG_SIZE_512) {
 			chip->ecc.bytes = 6;
 			chip->ecc.size = 512;
 		}
 
-		chip->read_buf      = bf54x_nand_dma_read_buf;
-		chip->write_buf     = bf54x_nand_dma_write_buf;
-		chip->ecc.calculate = bf54x_nand_calculate_ecc;
-		chip->ecc.correct   = bf54x_nand_correct_data;
+		chip->read_buf      = bf5xx_nand_dma_read_buf;
+		chip->write_buf     = bf5xx_nand_dma_write_buf;
+		chip->ecc.calculate = bf5xx_nand_calculate_ecc;
+		chip->ecc.correct   = bf5xx_nand_correct_data;
 		chip->ecc.mode	    = NAND_ECC_HW;
-		chip->ecc.hwctl	    = bf54x_nand_enable_hwecc;
+		chip->ecc.hwctl	    = bf5xx_nand_enable_hwecc;
 	} else {
 		chip->ecc.mode	    = NAND_ECC_SOFT;
 	}
@@ -717,13 +720,13 @@ static int bf54x_nand_probe(struct platform_device *pdev)
 	}
 
 	/* add NAND partition */
-	bf54x_nand_add_partition(info);
+	bf5xx_nand_add_partition(info);
 
 	dev_dbg(&pdev->dev, "initialised ok\n");
 	return 0;
 
 exit_error:
-	bf54x_nand_remove(pdev);
+	bf5xx_nand_remove(pdev);
 
 	if (err == 0)
 		err = -EINVAL;
@@ -733,55 +736,55 @@ exit_error:
 /* PM Support */
 #ifdef CONFIG_PM
 
-static int bf54x_nand_suspend(struct platform_device *dev, pm_message_t pm)
+static int bf5xx_nand_suspend(struct platform_device *dev, pm_message_t pm)
 {
-	struct bf54x_nand_info *info = platform_get_drvdata(dev);
+	struct bf5xx_nand_info *info = platform_get_drvdata(dev);
 
 	return 0;
 }
 
-static int bf54x_nand_resume(struct platform_device *dev)
+static int bf5xx_nand_resume(struct platform_device *dev)
 {
-	struct bf54x_nand_info *info = platform_get_drvdata(dev);
+	struct bf5xx_nand_info *info = platform_get_drvdata(dev);
 
 	if (info)
-		bf54x_nand_hw_init(info);
+		bf5xx_nand_hw_init(info);
 
 	return 0;
 }
 
 #else
-#define bf54x_nand_suspend NULL
-#define bf54x_nand_resume NULL
+#define bf5xx_nand_suspend NULL
+#define bf5xx_nand_resume NULL
 #endif
 
 /* driver device registration */
-static struct platform_driver bf54x_nand_driver = {
-	.probe		= bf54x_nand_probe,
-	.remove		= bf54x_nand_remove,
-	.suspend	= bf54x_nand_suspend,
-	.resume		= bf54x_nand_resume,
+static struct platform_driver bf5xx_nand_driver = {
+	.probe		= bf5xx_nand_probe,
+	.remove		= bf5xx_nand_remove,
+	.suspend	= bf5xx_nand_suspend,
+	.resume		= bf5xx_nand_resume,
 	.driver		= {
 		.name	= DRV_NAME,
 		.owner	= THIS_MODULE,
 	},
 };
 
-static int __init bf54x_nand_init(void)
+static int __init bf5xx_nand_init(void)
 {
 	printk(KERN_INFO "%s, Version %s (c) 2007 Analog Devices, Inc.\n",
 		DRV_DESC, DRV_VERSION);
 
-	return platform_driver_register(&bf54x_nand_driver);
+	return platform_driver_register(&bf5xx_nand_driver);
 }
 
-static void __exit bf54x_nand_exit(void)
+static void __exit bf5xx_nand_exit(void)
 {
-	platform_driver_unregister(&bf54x_nand_driver);
+	platform_driver_unregister(&bf5xx_nand_driver);
 }
 
-module_init(bf54x_nand_init);
-module_exit(bf54x_nand_exit);
+module_init(bf5xx_nand_init);
+module_exit(bf5xx_nand_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR(DRV_AUTHOR);

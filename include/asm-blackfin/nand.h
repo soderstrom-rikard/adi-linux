@@ -1,16 +1,16 @@
-/* linux/include/asm-blackfin/mach-bf548/nand.h
+/* linux/include/asm-blackfin/nand.h
  *
  * Copyright (c) 2007 Analog Devices, Inc.
  *	Bryan Wu <bryan.wu@analog.com>
  *
- * BF54X - NAND flash controller platfrom_device info
+ * BF5XX - NAND flash controller platfrom_device info
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
 
-/* struct bf54x_nand_platform
+/* struct bf5xx_nand_platform
  *
  * define a interface between platfrom board specific code and
  * bf54x NFC driver.
@@ -32,7 +32,7 @@
 
 #define NFC_STAT_NBUSY		1
 
-struct bf54x_nand_platform {
+struct bf5xx_nand_platform {
 	/* NAND chip information */
 	unsigned short		page_size;
 	unsigned short		data_width;

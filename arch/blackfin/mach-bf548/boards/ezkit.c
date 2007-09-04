@@ -40,7 +40,7 @@
 #include <asm/cplb.h>
 #include <asm/dma.h>
 #include <asm/gpio.h>
-#include <asm/mach/nand.h>
+#include <asm/nand.h>
 #include <asm/mach/bf54x_keys.h>
 #include <linux/spi/ad7877.h>
 
@@ -241,7 +241,7 @@ static struct platform_device bfin_atapi_device = {
 };
 #endif
 
-#if defined(CONFIG_MTD_NAND_BF54X) || defined(CONFIG_MTD_NAND_BF54X_MODULE)
+#if defined(CONFIG_MTD_NAND_BF5XX) || defined(CONFIG_MTD_NAND_BF5XX_MODULE)
 static struct mtd_partition partition_info[] = {
 	{
 		.name = "Linux Kernel",
@@ -255,7 +255,7 @@ static struct mtd_partition partition_info[] = {
 	},
 };
 
-static struct bf54x_nand_platform bf54x_nand_platform = {
+static struct bf5xx_nand_platform bf5xx_nand_platform = {
 	.page_size = NFC_PG_SIZE_256,
 	.data_width = NFC_NWIDTH_8,
 	.partitions = partition_info,
@@ -264,7 +264,7 @@ static struct bf54x_nand_platform bf54x_nand_platform = {
 	.wr_dly = 3,
 };
 
-static struct resource bf54x_nand_resources[] = {
+static struct resource bf5xx_nand_resources[] = {
 	{
 		.start = 0xFFC03B00,
 		.end = 0xFFC03B4F,
@@ -277,13 +277,13 @@ static struct resource bf54x_nand_resources[] = {
 	},
 };
 
-static struct platform_device bf54x_nand_device = {
-	.name = "bf54x-nand",
+static struct platform_device bf5xx_nand_device = {
+	.name = "bf5xx-nand",
 	.id = 0,
-	.num_resources = ARRAY_SIZE(bf54x_nand_resources),
-	.resource = bf54x_nand_resources,
+	.num_resources = ARRAY_SIZE(bf5xx_nand_resources),
+	.resource = bf5xx_nand_resources,
 	.dev = {
-		.platform_data = &bf54x_nand_platform,
+		.platform_data = &bf5xx_nand_platform,
 	},
 };
 #endif
@@ -454,8 +454,8 @@ static struct platform_device *ezkit_devices[] __initdata = {
 	&bfin_atapi_device,
 #endif
 
-#if defined(CONFIG_MTD_NAND_BF54X) || defined(CONFIG_MTD_NAND_BF54X_MODULE)
-	&bf54x_nand_device,
+#if defined(CONFIG_MTD_NAND_BF5XX) || defined(CONFIG_MTD_NAND_BF5XX_MODULE)
+	&bf5xx_nand_device,
 #endif
 
 #if defined(CONFIG_SDH_BFIN) || defined(CONFIG_SDH_BFIN)
