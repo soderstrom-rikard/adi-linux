@@ -60,7 +60,7 @@ extern inline int strcmp(const char *cs, const char *ct)
 	 */
 	int __res1, __res2;
 
-	__asm__
+	__asm__ __volatile__
        ("1:\t%2 = B[%0++] (Z);\n\t" /* get *cs */
 		"%3 = B[%1++] (Z);\n\t"	/* get *ct */
 		"CC = %2 == %3;\n\t"	/* compare a byte */
@@ -71,7 +71,7 @@ extern inline int strcmp(const char *cs, const char *ct)
 		"2:\t%2 = %2 - %3;\n"	/* *cs - *ct */
         "3:\n"
 	: "+&a" (cs), "+&a" (ct), "=&d" (__res1), "=&d" (__res2)
-      : :	"CC");
+	     ::"memory", "CC");
 
 	return __res1;
 }
@@ -86,7 +86,7 @@ extern inline int strncmp(const char *cs, const char *ct, size_t count)
 
 	if (!count)
 		return 0;
-	__asm__
+	__asm__ __volatile__
        ("1:\t%3 = B[%0++] (Z);\n\t"        /* get *cs */
 		"%4 = B[%1++] (Z);\n\t"	/* get *ct */
 		"CC = %3 == %4;\n\t"	/* compare a byte */
@@ -101,7 +101,7 @@ extern inline int strncmp(const char *cs, const char *ct, size_t count)
         "3:\t%3 = %3 - %4;\n"          /* *cs - *ct */
         "4:"
 	: "+&a" (cs), "+&a" (ct), "+&da" (count), "=&d" (__res1), "=&d" (__res2)
-      : :	"CC");
+	     ::"memory", "CC");
 	return __res1;
 }
 
