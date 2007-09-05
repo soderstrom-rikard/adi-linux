@@ -36,7 +36,17 @@ extern inline char *strncpy(char *dest, const char *src, size_t n)
 	     "%2 += -1;\n\t"
 	     "CC = %2 == 0;\n\t"
 	     "if ! cc jump 1b (bp);\n"
+	     "jump 4f;\n\t"
         "2:\n"
+	     /* if src is shorter than n, we need to null pad bytes now */
+	     "%3 = 0;\n\t"
+	    "3:\n"
+	     "%2 += -1;\n\t"
+	     "CC = %2 == 0;\n\t"
+	     "if cc jump 4f;\n\t"
+	     "B [%0++] = %3;\n\t"
+	     "jump 3b;\n\t"
+	    "4:\n"
 	: "+&a" (dest), "+&a" (src), "+&da" (n), "=&d" (temp)
 	     ::"memory", "CC");
 	return xdest;
