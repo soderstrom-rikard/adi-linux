@@ -45,7 +45,10 @@ extern inline char *strncpy(char *dest, const char *src, size_t n)
 #define __HAVE_ARCH_STRCMP
 extern inline int strcmp(const char *cs, const char *ct)
 {
-	char __res1, __res2;
+	/* need to use int's here so the char's in the assembly don't get
+	 * sign extended incorrectly when we don't want them to be
+	 */
+	int __res1, __res2;
 
 	__asm__
        ("1:\t%2 = B[%0++] (Z);\n\t" /* get *cs */
@@ -66,7 +69,10 @@ extern inline int strcmp(const char *cs, const char *ct)
 #define __HAVE_ARCH_STRNCMP
 extern inline int strncmp(const char *cs, const char *ct, size_t count)
 {
-	char __res1, __res2;
+	/* need to use int's here so the char's in the assembly don't get
+	 * sign extended incorrectly when we don't want them to be
+	 */
+	int __res1, __res2;
 
 	if (!count)
 		return 0;
