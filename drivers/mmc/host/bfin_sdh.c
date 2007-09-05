@@ -303,9 +303,10 @@ static void sdh_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	sdh_start_cmd(host, mrq->cmd);
 
 	/* Without delay, there are CRC errors when write data to cards */
-	udelay(5);
-	if (mrq->data && mrq->data->flags & MMC_DATA_WRITE)
+	if (mrq->data && mrq->data->flags & MMC_DATA_WRITE) {
+		udelay(5);
 		sdh_setup_data(host, mrq->data);
+	}
 }
 
 static int sdh_get_ro(struct mmc_host *mmc)
