@@ -370,35 +370,31 @@ static void bf537_adjust_link(struct net_device *dev)
 				opmode &= ~(FDMODE);
 
 			bfin_write_EMAC_OPMODE(opmode);
-
 			lp->old_duplex = phydev->duplex;
 		}
 
 		if (phydev->speed != lp->old_speed) {
+#if defined(CONFIG_BFIN_MAC_RMII)
 			u32 opmode = bfin_read_EMAC_OPMODE();
-			new_state = 1;
 			bf537mac_disable();
 			switch (phydev->speed) {
 			case 10:
-#if defined(CONFIG_BFIN_MAC_RMII)
 				opmode |= RMII_10;
-#endif
 				break;
 			case 100:
-#if defined(CONFIG_BFIN_MAC_RMII)
 				opmode &= ~(RMII_10);
-#endif
 				break;
 			default:
-				if (netif_msg_link(lp))
-					printk(KERN_WARNING
+				printk(KERN_WARNING
 					"%s: Ack!  Speed (%d) is not 10/100!\n",
 					DRV_NAME, phydev->speed);
 				break;
 			}
 			bfin_write_EMAC_OPMODE(opmode);
 			bf537mac_enable();
+#endif
 
+			new_state = 1;
 			lp->old_speed = phydev->speed;
 		}
 
@@ -414,8 +410,11 @@ static void bf537_adjust_link(struct net_device *dev)
 		lp->old_duplex = -1;
 	}
 
-	if (new_state && netif_msg_link(lp))
+	if (new_state) {
+		u32 opmode = bfin_read_EMAC_OPMODE();
 		phy_print_status(phydev);
+		pr_debug("EMAC_OPMODE = 0x%08x\n", opmode);
+	}
 
 	spin_unlock_irqrestore(&lp->lock, flags);
 }
@@ -473,7 +472,7 @@ static int mii_probe(struct net_device *dev)
 			      | SUPPORTED_100baseT_Half
 			      | SUPPORTED_100baseT_Full
 			      | SUPPORTED_Autoneg
-			      /* | SUPPORTED_Pause | SUPPORTED_Asym_Pause */
+			      | SUPPORTED_Pause | SUPPORTED_Asym_Pause
 			      | SUPPORTED_MII
 			      | SUPPORTED_TP);
 
@@ -987,13 +986,6 @@ static int __init bf537mac_probe(struct net_device *dev)
 	dev->poll_controller = bf537mac_poll;
 #endif
 
-	/* fill in some of the fields */
-	lp->version = 1;
-	lp->PhyAddr = 0x01;
-	lp->CLKIN = 25;
-	lp->FullDuplex = 0;
-	lp->Negotiate = 1;
-	lp->FlowControl = 0;
 	spin_lock_init(&lp->lock);
 
 	/* now, enable interrupts */
