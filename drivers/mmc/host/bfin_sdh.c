@@ -270,7 +270,8 @@ static int sdh_data_done(struct sdh_host *host, unsigned int stat)
 	if (data->error == MMC_ERR_NONE)
 		data->bytes_xfered = data->blocks * data->blksz;
 	else
-		data->bytes_xfered = 0;
+		data->bytes_xfered = data->blocks * data->blksz - \
+				     bfin_read_SDH_DATA_CNT();
 
 	sdh_disable_stat_irq(host, DAT_END);
 	bfin_write_SDH_STATUS_CLR(DAT_END_STAT);
@@ -461,7 +462,7 @@ static int sdh_probe(struct platform_device *pdev)
 	mmc->ocr_avail = MMC_VDD_32_33|MMC_VDD_33_34;
 	mmc->f_min = get_sclk() >> 9;
 	mmc->f_max = get_sclk();
-	mmc->caps = MMC_CAP_MMC_HIGHSPEED | MMC_CAP_4_BIT_DATA;
+	mmc->caps = MMC_CAP_MMC_HIGHSPEED | MMC_CAP_4_BIT_DATA | MMC_CAP_MULTIWRITE;
 	host = mmc_priv(mmc);
 	host->mmc = mmc;
 
