@@ -34,9 +34,6 @@
 #include <linux/proc_fs.h>
 
 #include <asm/cacheflush.h>
-
-#include "../core/mmc_ops.h"
-
 #include <asm/dma.h>
 
 #define DRIVER_NAME	"bfin-sdh"
@@ -163,6 +160,7 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	set_dma_config(host->dma_ch, dma_cfg);
 
 	bfin_write_SDH_DATA_CTL(bfin_read_SDH_DATA_CTL() | DTX_DMA_E | DTX_E);
+
 	SSYNC();
 
 	pr_debug("%s exit\n", __FUNCTION__);
@@ -235,9 +233,12 @@ static int sdh_cmd_done(struct sdh_host *host, unsigned int stat)
 
 	sdh_disable_stat_irq(host, (CMD_SENT | CMD_RESP_END | CMD_TIME_OUT | CMD_CRC_FAIL));
 
-	if (host->data && cmd->error == MMC_ERR_NONE)
+	if (host->data && cmd->error == MMC_ERR_NONE) {
+		if (host->data->flags & MMC_DATA_WRITE)
+			sdh_setup_data(host, host->data);
+
 		sdh_enable_stat_irq(host, DAT_END | RX_OVERRUN | TX_UNDERRUN | DAT_TIME_OUT);
-	else
+	} else
 		sdh_finish_request(host, host->mrq);
 
 	return 1;
@@ -255,17 +256,10 @@ static int sdh_data_done(struct sdh_host *host, unsigned int stat)
 	dma_unmap_sg(mmc_dev(host->mmc), data->sg, data->sg_len,
 		     host->dma_dir);
 
-	if (stat & DAT_TIME_OUT) {
+	if (stat & DAT_TIME_OUT)
 		data->error = MMC_ERR_TIMEOUT;
-		sdh_disable_stat_irq(host, DAT_TIME_OUT);
-		bfin_write_SDH_STATUS_CLR(DAT_TIMEOUT_STAT);
-		SSYNC();
-	} else if (stat & DAT_CRC_FAIL) {
+	else if (stat & DAT_CRC_FAIL)
 		data->error = MMC_ERR_BADCRC;
-		sdh_disable_stat_irq(host, DAT_CRC_FAIL);
-		bfin_write_SDH_STATUS_CLR(DAT_CRC_FAIL_STAT);
-		SSYNC();
-	}
 
 	if (data->error == MMC_ERR_NONE)
 		data->bytes_xfered = data->blocks * data->blksz;
@@ -273,8 +267,9 @@ static int sdh_data_done(struct sdh_host *host, unsigned int stat)
 		data->bytes_xfered = data->blocks * data->blksz - \
 				     bfin_read_SDH_DATA_CNT();
 
-	sdh_disable_stat_irq(host, DAT_END);
-	bfin_write_SDH_STATUS_CLR(DAT_END_STAT);
+	sdh_disable_stat_irq(host, DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL);
+	bfin_write_SDH_STATUS_CLR(DAT_END_STAT | DAT_TIMEOUT_STAT | \
+			DAT_CRC_FAIL_STAT | DAT_BLK_END_STAT);
 	bfin_write_SDH_DATA_CTL(0);
 	SSYNC();
 
@@ -302,12 +297,6 @@ static void sdh_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		sdh_setup_data(host, mrq->data);
 
 	sdh_start_cmd(host, mrq->cmd);
-
-	/* Without delay, there are CRC errors when write data to cards */
-	if (mrq->data && mrq->data->flags & MMC_DATA_WRITE) {
-		udelay(5);
-		sdh_setup_data(host, mrq->data);
-	}
 }
 
 static int sdh_get_ro(struct mmc_host *mmc)
@@ -424,9 +413,6 @@ static int proc_write(struct file *file, const char __user *buffer,
 		unsigned long count, void *data)
 {
 	struct sdh_host *host = data;
-	int err;
-	u32 ocr;
-	u8 *ext_csd;
 	unsigned long cmd = simple_strtoul(buffer, NULL, 16);
 
 	switch (cmd) {
