@@ -349,8 +349,9 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	spin_unlock_irqrestore(&host->lock, flags);
 
-	pr_debug("SDH: clk_div = 0x%x actual clock:%ld\n",
-			host->clk_div, get_sclk()/(2 * (host->clk_div + 1)));
+	pr_debug("SDH: clk_div = 0x%x actual clock:%ld expected clock:%d\n",
+			host->clk_div, host->clk_div?get_sclk()/(2 * (host->clk_div + 1)):0,
+			ios->clock);
 }
 
 static const struct mmc_host_ops sdh_ops = {
@@ -447,7 +448,7 @@ static int sdh_probe(struct platform_device *pdev)
 	mmc->ocr_avail = MMC_VDD_32_33|MMC_VDD_33_34;
 	mmc->f_min = get_sclk() >> 9;
 	mmc->f_max = get_sclk();
-	mmc->caps = MMC_CAP_MMC_HIGHSPEED | MMC_CAP_4_BIT_DATA | MMC_CAP_MULTIWRITE | MMC_CAP_SD_HIGHSPEED;
+	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MULTIWRITE ;
 	host = mmc_priv(mmc);
 	host->mmc = mmc;
 
