@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.22.6
-# Mon Sep 10 15:08:21 2007
+# Mon Sep 10 17:04:10 2007
 #
 # CONFIG_MMU is not set
 # CONFIG_FPU is not set
@@ -507,7 +507,7 @@ CONFIG_MTD=y
 # CONFIG_MTD_CONCAT is not set
 CONFIG_MTD_PARTITIONS=y
 # CONFIG_MTD_REDBOOT_PARTS is not set
-# CONFIG_MTD_CMDLINE_PARTS is not set
+CONFIG_MTD_CMDLINE_PARTS=y
 
 #
 # User Modules And Translation Layers
@@ -633,10 +633,11 @@ CONFIG_SCSI_PROC_FS=y
 #
 # SCSI support type (disk, tape, CD-ROM)
 #
-# CONFIG_BLK_DEV_SD is not set
+CONFIG_BLK_DEV_SD=y
 # CONFIG_CHR_DEV_ST is not set
 # CONFIG_CHR_DEV_OSST is not set
-# CONFIG_BLK_DEV_SR is not set
+CONFIG_BLK_DEV_SR=y
+# CONFIG_BLK_DEV_SR_VENDOR is not set
 # CONFIG_CHR_DEV_SG is not set
 # CONFIG_CHR_DEV_SCH is not set
 
