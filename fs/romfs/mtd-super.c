@@ -529,7 +529,7 @@ error:
 static struct inode *romfs_alloc_inode(struct super_block *sb)
 {
 	struct romfs_inode_info *inode;
-	inode = kmem_cache_alloc(romfs_inode_cachep, SLAB_KERNEL);
+	inode = kmem_cache_alloc(romfs_inode_cachep, GFP_KERNEL);
 	return inode ? &inode->vfs_inode : NULL;
 }
 
@@ -907,9 +907,7 @@ static void romfs_i_init_once(void *_inode, kmem_cache_t *cachep,
 {
 	struct romfs_inode_info *inode = _inode;
 
-	if ((flags & (SLAB_CTOR_VERIFY|SLAB_CTOR_CONSTRUCTOR)) ==
-	    SLAB_CTOR_CONSTRUCTOR)
-		inode_init_once(&inode->vfs_inode);
+	inode_init_once(&inode->vfs_inode);
 }
 
 /*
