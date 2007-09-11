@@ -1660,6 +1660,7 @@ static int snd_ad1836_configure(ad1836_t *chip)
 {
 	int err = 0;
 	struct bf53x_sport *sport= chip->sport;
+	uint16_t temp;
 
 	snd_printk_marker();
 
@@ -1670,6 +1671,12 @@ static int snd_ad1836_configure(ad1836_t *chip)
 	/* power-up DAC and ADC */
 	err = err || snd_ad1836_set_register(chip, DAC_CTRL_1, DAC_PWRDWN, 0);
 	err = err || snd_ad1836_set_register(chip, ADC_CTRL_1, ADC_PWRDWN, 0);
+
+	ad1836_spi_read(chip->spi, (ADC_PEAK_1L << 12) | ADC_READ, &temp);
+	if (temp == 0xffff) {
+		printk(KERN_ERR "AD1836 Card is not attached\n");
+		return -ENODEV;
+	}
 
 	/* sport in aux/slave mode cf daughtercard schematics */
 	err = err || snd_ad1836_set_register(chip, ADC_CTRL_2,
@@ -1962,13 +1969,15 @@ static int __devinit snd_ad1836_probe(struct platform_device *pdev)
 	ad1836->rx_dma_buf = dma_alloc_coherent(NULL, AD1836_BUF_SZ, &addr, 0);
 	if (!ad1836->rx_dma_buf) {
 		printk(KERN_ERR DRIVER_NAME ": Failed to allocate DMA buffer\n");
-		return -ENOMEM;
+		err = -ENOMEM;
+		goto __free_card;
 	}
 	ad1836->tx_dma_buf = dma_alloc_coherent(NULL, AD1836_BUF_SZ, &addr, 0);
 	if (!ad1836->tx_dma_buf) {
 		dma_free_coherent(NULL, AD1836_BUF_SZ, ad1836->rx_dma_buf, 0);
 		printk(KERN_ERR DRIVER_NAME ": Failed to allocate DMA buffer\n");
-		return -ENOMEM;
+		err = -ENOMEM;
+		goto __free_card;
 	}
 #endif
 
@@ -2027,6 +2036,7 @@ __sport_err:
 	dma_free_coherent(NULL, AD1836_BUF_SZ, ad1836->rx_dma_buf, 0);
 	dma_free_coherent(NULL, AD1836_BUF_SZ, ad1836->tx_dma_buf, 0);
 #endif
+__free_card:
 	snd_card_free(card);
 	return err;
 }
