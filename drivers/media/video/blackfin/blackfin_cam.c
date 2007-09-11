@@ -1380,7 +1380,6 @@ static struct video_device bcap_template = {
 
 static __exit void bcap_exit(void)
 {
-	int err;
 	struct bcap_camera_ops *ops;
 
 	ops = get_camops();
@@ -1388,14 +1387,9 @@ static __exit void bcap_exit(void)
 	if (ops->power != NULL)
 		ops->power(0);
 
-	if ((err = i2c_del_driver(&sensor_driver))) {
-		printk(KERN_WARNING "%s: could not del i2c driver: %i\n",
-		       sensor_name, err);
-		return;
-	}
+	i2c_del_driver(&sensor_driver);
 
 	/*  Turn FS3 frame synch off  */
-
 
 	setup_pin_mux(0);
 
