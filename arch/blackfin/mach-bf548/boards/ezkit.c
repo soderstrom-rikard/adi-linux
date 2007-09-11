@@ -36,6 +36,7 @@
 #include <linux/spi/flash.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
+#include <linux/usb/musb.h>
 #include <asm/bfin5xx_spi.h>
 #include <asm/cplb.h>
 #include <asm/dma.h>
@@ -216,6 +217,51 @@ static struct platform_device bf54x_hcd = {
 	.id = 0,
 	.num_resources = ARRAY_SIZE(bf54x_hcd_resources),
 	.resource = bf54x_hcd_resources,
+};
+#endif
+
+#if defined(CONFIG_USB_MUSB_HDRC) || defined(CONFIG_USB_MUSB_HDRC_MODULE)
+static struct resource musb_resources[] = {
+	[0] = {
+		.start	= 0xFFC03C00,
+		.end	= 0xFFC040FF,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {	/* general IRQ */
+		.start	= IRQ_USB_INT0,
+		.end	= IRQ_USB_INT0,
+		.flags	= IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL,
+	},
+	[2] = {	/* DMA IRQ */
+		.start	= IRQ_USB_DMA,
+		.end	= IRQ_USB_DMA,
+		.flags	= IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL,
+	},
+};
+
+static struct musb_hdrc_platform_data musb_plat = {
+#ifdef CONFIG_USB_MUSB_OTG
+	.mode		= MUSB_OTG,
+#elif CONFIG_USB_MUSB_HDRC_HCD
+	.mode		= MUSB_HOST,
+#elif CONFIG_USB_GADGET_MUSB_HDRC
+	.mode		= MUSB_PERIPHERAL,
+#endif
+	.multipoint	= 1,
+};
+
+static u64 musb_dmamask = ~(u32)0;
+
+static struct platform_device musb_device = {
+	.name		= "musb_hdrc",
+	.id		= 0,
+	.dev = {
+		.dma_mask		= &musb_dmamask,
+		.coherent_dma_mask	= 0xffffffff,
+		.platform_data		= &musb_plat,
+	},
+	.num_resources	= ARRAY_SIZE(musb_resources),
+	.resource	= musb_resources,
 };
 #endif
 
@@ -448,6 +494,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 
 #if defined(CONFIG_USB_BF54x_HCD) || defined(CONFIG_USB_BF54x_HCD_MODULE)
 	&bf54x_hcd,
+#endif
+
+#if defined(CONFIG_USB_MUSB_HDRC) || defined(CONFIG_USB_MUSB_HDRC_MODULE)
+	&musb_device,
 #endif
 
 #if defined(CONFIG_PATA_BF54X) || defined(CONFIG_PATA_BF54X_MODULE)

@@ -52,5 +52,7 @@ obj-$(CONFIG_USB_TEST)		+= misc/
 obj-$(CONFIG_USB_TRANCEVIBRATOR)+= misc/
 obj-$(CONFIG_USB_USS720)	+= misc/
 
+obj-$(CONFIG_USB_MUSB_HDRC)	+= musb/
+
 obj-$(CONFIG_USB_ATM)		+= atm/
 obj-$(CONFIG_USB_SPEEDTOUCH)	+= atm/
