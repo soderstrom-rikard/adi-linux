@@ -49,7 +49,6 @@
 #define TWI_I2C_MODE_REPEAT		0x08
 
 struct bfin_twi_iface {
-	struct mutex		twi_lock;
 	int			irq;
 	spinlock_t		lock;
 	char			read_write;
@@ -303,12 +302,8 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 	if (!(read_CONTROL() & TWI_ENA))
 		return -ENXIO;
 
-	mutex_lock(&iface->twi_lock);
-
 	while (read_MASTER_STAT() & BUSBUSY) {
-		mutex_unlock(&iface->twi_lock);
 		yield();
-		mutex_lock(&iface->twi_lock);
 	}
 
 	iface->pmsg = msgs;
@@ -378,9 +373,6 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 
 	rc = iface->result;
 
-	/* Release mutex */
-	mutex_unlock(&iface->twi_lock);
-
 	if (rc == 1)
 		return num;
 	else
@@ -401,12 +393,8 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 	if (!(read_CONTROL() & TWI_ENA))
 		return -ENXIO;
 
-	mutex_lock(&iface->twi_lock);
-
 	while (read_MASTER_STAT() & BUSBUSY) {
-		mutex_unlock(&iface->twi_lock);
 		yield();
-		mutex_lock(&iface->twi_lock);
 	}
 
 	iface->writeNum = 0;
@@ -574,9 +562,6 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 
 	rc = (iface->result >= 0) ? 0 : -1;
 
-	/* Release mutex */
-	mutex_unlock(&iface->twi_lock);
-
 	return rc;
 }
 
@@ -635,7 +620,6 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 		goto out_error_nomem;
 	}
 
-	mutex_init(&(iface->twi_lock));
 	spin_lock_init(&(iface->lock));
 	init_completion(&(iface->complete));
 
