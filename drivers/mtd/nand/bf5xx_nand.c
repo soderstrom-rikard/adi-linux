@@ -76,7 +76,7 @@ static int hardware_ecc;
 
 static unsigned short bfin_nfc_pin_req[] = {P_NAND_CE, P_NAND_RB, 0};
 
-/*----------------------------------------------------------------------------
+/*
  * Data structures for bf5xx nand flash controller driver
  */
 
@@ -97,7 +97,7 @@ struct bf5xx_nand_info {
 	struct completion		dma_completion;
 };
 
-/*----------------------------------------------------------------------------
+/*
  * Conversion functions
  */
 static struct bf5xx_nand_info *mtd_to_nand_info(struct mtd_info *mtd)
@@ -115,8 +115,7 @@ static struct bf5xx_nand_platform *to_nand_plat(struct platform_device *pdev)
 	return pdev->dev.platform_data;
 }
 
-
-/*----------------------------------------------------------------------------
+/*
  * struct nand_chip interface function pointers
  */
 
@@ -132,7 +131,7 @@ static void bf5xx_nand_hwcontrol(struct mtd_info *mtd, int cmd,
 		return;
 
 	while (bfin_read_NFC_STAT() & WB_FULL)
-		continue;
+		cpu_relax();
 
 	if (ctrl & NAND_CLE)
 		bfin_write_NFC_CMD(cmd);
@@ -156,7 +155,7 @@ static int bf5xx_nand_devready(struct mtd_info *mtd)
 		return 0;
 }
 
-/*----------------------------------------------------------------------------
+/*
  * ECC functions
  * These allow the bf5xx to use the controller's ECC
  * generator block to ECC the data as it passes through
@@ -246,10 +245,10 @@ static int bf5xx_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
 
 static int bf5xx_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 					u_char *read_ecc, u_char *calc_ecc)
-{	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
+{
+	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
 	struct bf5xx_nand_platform *plat = info->platform;
 	unsigned short page_size = (plat->page_size ? 512 : 256);
-
 	int ret;
 
 	ret = bf5xx_nand_correct_data_256(mtd, dat, read_ecc, calc_ecc);
@@ -267,13 +266,7 @@ static int bf5xx_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 
 static void bf5xx_nand_enable_hwecc(struct mtd_info *mtd, int mode)
 {
-	/*
-	 * This register must be written before each page is
-	 * transferred to generate the correct ECC register
-	 * values.
-	 */
 	return;
-
 }
 
 static int bf5xx_nand_calculate_ecc(struct mtd_info *mtd,
@@ -311,7 +304,7 @@ static int bf5xx_nand_calculate_ecc(struct mtd_info *mtd,
 	return 0;
 }
 
-/*----------------------------------------------------------------------------
+/*
  * PIO mode for buffer writing and reading
  */
 static void bf5xx_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
@@ -325,14 +318,14 @@ static void bf5xx_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 	 */
 	for (i = 0; i < len; i++) {
 		while (bfin_read_NFC_STAT() & WB_FULL)
-			continue;
+			cpu_relax();
 
 		/* Contents do not matter */
 		bfin_write_NFC_DATA_RD(0x0000);
 		SSYNC();
 
 		while ((bfin_read_NFC_IRQSTAT() & RD_RDY) != RD_RDY)
-			continue;
+			cpu_relax();
 
 		buf[i] = bfin_read_NFC_READ();
 
@@ -359,7 +352,7 @@ static void bf5xx_nand_write_buf(struct mtd_info *mtd,
 
 	for (i = 0; i < len; i++) {
 		while (bfin_read_NFC_STAT() & WB_FULL)
-			continue;
+			cpu_relax();
 
 		bfin_write_NFC_DATA_WR(buf[i]);
 		SSYNC();
@@ -397,12 +390,12 @@ static void bf5xx_nand_write_buf16(struct mtd_info *mtd,
 	SSYNC();
 }
 
-/*----------------------------------------------------------------------------
+/*
  * DMA functions for buffer writing and reading
  */
 static irqreturn_t bf5xx_nand_dma_irq(int irq, void *dev_id)
 {
-	struct bf5xx_nand_info *info = (struct bf5xx_nand_info *) dev_id;
+	struct bf5xx_nand_info *info = dev_id;
 
 	clear_dma_irqstat(CH_NFC);
 	disable_dma(CH_NFC);
@@ -422,6 +415,12 @@ static int bf5xx_nand_dma_rw(struct mtd_info *mtd,
 	dev_dbg(info->device, " mtd->%p, buf->%p, is_read %d\n",
 			mtd, buf, is_read);
 
+	/*
+	 * Before starting a dma transfer, be sure to invalidate/flush
+	 * the cache over the address range of your DMA buffer to
+	 * prevent cache coherency problems. Otherwise very subtle bugs
+	 * can be introduced to your driver.
+	 */
 	if (is_read)
 		invalidate_dcache_range((unsigned int)buf,
 				(unsigned int)(buf + page_size));
@@ -429,6 +428,11 @@ static int bf5xx_nand_dma_rw(struct mtd_info *mtd,
 		flush_dcache_range((unsigned int)buf,
 				(unsigned int)(buf + page_size));
 
+	/*
+	 * This register must be written before each page is
+	 * transferred to generate the correct ECC register
+	 * values.
+	 */
 	bfin_write_NFC_RST(0x1);
 	SSYNC();
 
@@ -488,7 +492,7 @@ static void bf5xx_nand_dma_write_buf(struct mtd_info *mtd,
 		bf5xx_nand_write_buf(mtd, buf, len);
 }
 
-/*----------------------------------------------------------------------------
+/*
  * System initialization functions
  */
 
@@ -534,9 +538,6 @@ static int bf5xx_nand_hw_init(struct bf5xx_nand_info *info)
 	unsigned short val;
 	struct bf5xx_nand_platform *plat = info->platform;
 
-	if (!info)
-		return -EINVAL;
-
 	/* setup NFC_CTL register */
 	dev_info(info->device,
 		"page_size=%d, data_width=%d, wr_dly=%d, rd_dly=%d\n",
@@ -566,7 +567,6 @@ static int bf5xx_nand_hw_init(struct bf5xx_nand_info *info)
 		return -EFAULT;
 	}
 
-
 	/* DMA initialization  */
 	if (bf5xx_nand_dma_init(info))
 		err = -ENXIO;
@@ -574,7 +574,7 @@ static int bf5xx_nand_hw_init(struct bf5xx_nand_info *info)
 	return err;
 }
 
-/*----------------------------------------------------------------------------
+/*
  * Device management interface
  */
 static int bf5xx_nand_add_partition(struct bf5xx_nand_info *info)
@@ -597,9 +597,6 @@ static int bf5xx_nand_remove(struct platform_device *pdev)
 	struct mtd_info *mtd = NULL;
 
 	platform_set_drvdata(pdev, NULL);
-
-	if (!info)
-		return 0;
 
 	/* first thing we need to do is release all our mtds
 	 * and their partitions, then go through freeing the
