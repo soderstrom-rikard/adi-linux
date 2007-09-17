@@ -576,8 +576,8 @@ static struct platform_device bfin_uart_device = {
 #if defined(CONFIG_I2C_BLACKFIN_TWI) || defined(CONFIG_I2C_BLACKFIN_TWI_MODULE)
 static struct resource bfin_twi0_resource[] = {
 	[0] = {
-		.start = 0xFFC01400,
-		.end   = 0xFFC014FF,
+		.start = TWI0_REGBASE,
+		.end   = TWI0_REGBASE + 0xFF,
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {

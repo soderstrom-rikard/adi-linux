@@ -21,18 +21,6 @@
 #ifndef _SPI_CHANNEL_H_
 #define _SPI_CHANNEL_H_
 
-#ifdef SPI0_CTL
-#define SPI0_REGBASE       SPI0_CTL
-#else
-#define SPI0_REGBASE       SPI_CTL
-#endif
-#ifdef SPI1_CTL
-#define SPI1_REGBASE       SPI1_CTL
-#endif
-#ifdef SPI2_CTL
-#define SPI2_REGBASE       SPI2_CTL
-#endif
-
 #define SPI_READ              0
 #define SPI_WRITE             1
 

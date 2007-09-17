@@ -480,8 +480,8 @@ static struct platform_device bf54x_spi_master1 = {
 #if defined(CONFIG_I2C_BLACKFIN_TWI) || defined(CONFIG_I2C_BLACKFIN_TWI_MODULE)
 static struct resource bfin_twi0_resource[] = {
 	[0] = {
-		.start = 0xFFC00700,
-		.end   = 0xFFC007FF,
+		.start = TWI0_REGBASE,
+		.end   = TWI0_REGBASE + 0xFF,
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
@@ -500,8 +500,8 @@ static struct platform_device i2c_bfin_twi0_device = {
 
 static struct resource bfin_twi1_resource[] = {
 	[0] = {
-		.start = 0xFFC02208,
-		.end   = 0xFFC022FF,
+		.start = TWI1_REGBASE,
+		.end   = TWI1_REGBASE + 0xFF,
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
