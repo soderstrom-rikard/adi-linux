@@ -480,8 +480,8 @@ static struct platform_device bf54x_spi_master1 = {
 #if defined(CONFIG_I2C_BLACKFIN_TWI) || defined(CONFIG_I2C_BLACKFIN_TWI_MODULE)
 static struct resource bfin_twi0_resource[] = {
 	[0] = {
-		.start = 0xFFC01400,
-		.end   = 0xFFC014FF,
+		.start = 0xFFC00700,
+		.end   = 0xFFC007FF,
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
@@ -496,6 +496,26 @@ static struct platform_device i2c_bfin_twi0_device = {
 	.id = 0,
 	.num_resources = ARRAY_SIZE(bfin_twi0_resource),
 	.resource = bfin_twi0_resource,
+};
+
+static struct resource bfin_twi1_resource[] = {
+	[0] = {
+		.start = 0xFFC02208,
+		.end   = 0xFFC022FF,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = IRQ_TWI1,
+		.end   = IRQ_TWI1,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device i2c_bfin_twi1_device = {
+	.name = "i2c-bfin-twi",
+	.id = 1,
+	.num_resources = ARRAY_SIZE(bfin_twi1_resource),
+	.resource = bfin_twi1_resource,
 };
 #endif
 
@@ -547,6 +567,7 @@ static struct platform_device *ezkit_devices[] __initdata = {
 
 #if defined(CONFIG_I2C_BLACKFIN_TWI) || defined(CONFIG_I2C_BLACKFIN_TWI_MODULE)
 	&i2c_bfin_twi0_device,
+	&i2c_bfin_twi1_device,
 #endif
 };
 
