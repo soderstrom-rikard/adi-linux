@@ -349,13 +349,13 @@ static struct platform_device bf54x_sdh_device = {
 static struct mtd_partition bfin_spi_flash_partitions[] = {
 	{
 		.name = "bootloader",
-		.size = 0x00030000,
+		.size = 0x00040000,
 		.offset = 0,
 		.mask_flags = MTD_CAP_ROM
 	}, {
 		.name = "linux kernel",
-		.size = 0x1d0000,
-		.offset = 0x30000
+		.size = 0x1c0000,
+		.offset = 0x40000
 	}
 };
 
@@ -436,17 +436,41 @@ static struct resource bfin_spi0_resource[] = {
 	}
 };
 
+/* SPI (1) */
+static struct resource bfin_spi1_resource[] = {
+	[0] = {
+		.start = SPI1_REGBASE,
+		.end   = SPI1_REGBASE + 0xFF,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = CH_SPI1,
+		.end   = CH_SPI1,
+		.flags = IORESOURCE_IRQ,
+	}
+};
+
 /* SPI controller data */
 static struct bfin5xx_spi_master bf54x_spi_master_info = {
 	.num_chipselect = 8,
 	.enable_dma = 1,  /* master has the ability to do dma transfer */
 };
 
-static struct platform_device bf54x_spi_master_device = {
+static struct platform_device bf54x_spi_master0 = {
 	.name = "bfin-spi",
 	.id = 0, /* Bus number */
 	.num_resources = ARRAY_SIZE(bfin_spi0_resource),
 	.resource = bfin_spi0_resource,
+	.dev = {
+		.platform_data = &bf54x_spi_master_info, /* Passed to driver */
+		},
+};
+
+static struct platform_device bf54x_spi_master1 = {
+	.name = "bfin-spi",
+	.id = 1, /* Bus number */
+	.num_resources = ARRAY_SIZE(bfin_spi1_resource),
+	.resource = bfin_spi1_resource,
 	.dev = {
 		.platform_data = &bf54x_spi_master_info, /* Passed to driver */
 		},
@@ -513,7 +537,8 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #endif
 
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
-	&bf54x_spi_master_device,
+	&bf54x_spi_master0,
+	&bf54x_spi_master1,
 #endif
 
 #if defined(CONFIG_KEYBOARD_BFIN) || defined(CONFIG_KEYBOARD_BFIN_MODULE)
