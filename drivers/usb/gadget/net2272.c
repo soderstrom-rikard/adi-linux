@@ -33,7 +33,7 @@
 #include <linux/slab.h>
 #include <linux/smp_lock.h>
 #include <linux/timer.h>
-#include <linux/usb_ch9.h>
+#include <linux/usb/ch9.h>
 #include <linux/usb_gadget.h>
 #include <linux/platform_device.h>
 
