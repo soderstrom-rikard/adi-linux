@@ -1061,7 +1061,7 @@ ENTRY(_sys_call_table)
 	.long _sys_sched_get_priority_min  /* 160 */
 	.long _sys_sched_rr_get_interval
 	.long _sys_nanosleep
-	.long _sys_ni_syscall	/* sys_mremap */
+	.long _sys_mremap
 	.long _sys_setresuid	/* setresuid16 */
 	.long _sys_getresuid	/* getresuid16 */	/* 165 */
 	.long _sys_ni_syscall	/* for vm86 */
@@ -1252,6 +1252,8 @@ ENTRY(_sys_call_table)
 	.long _sys_pread64
 	.long _sys_pwrite64
 	.long _sys_fadvise64
+	.long _sys_set_robust_list
+	.long _sys_get_robust_list	/* 355 */
 	.rept NR_syscalls-(.-_sys_call_table)/4
 	.long _sys_ni_syscall
 	.endr

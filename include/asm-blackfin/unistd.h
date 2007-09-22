@@ -166,7 +166,7 @@
 #define __NR_sched_get_priority_min	160
 #define __NR_sched_rr_get_interval	161
 #define __NR_nanosleep		162
-				/* 163 __NR_mremap */
+#define __NR_mremap		163
 #define __NR_setresuid		164
 #define __NR_getresuid		165
 				/* 166 __NR_vm86 */
@@ -366,8 +366,10 @@
 #define __NR_pread64		351
 #define __NR_pwrite64		352
 #define __NR_fadvise64		353
+#define __NR_set_robust_list	354
+#define __NR_get_robust_list	355
 
-#define __NR_syscall		354
+#define __NR_syscall		356
 #define NR_syscalls		__NR_syscall
 
 /* Old optional stuff no one actually uses */
@@ -388,7 +390,6 @@
 #define __IGNORE_munlock
 #define __IGNORE_mlockall
 #define __IGNORE_munlockall
-#define __IGNORE_mremap
 #define __IGNORE_mincore
 #define __IGNORE_madvise
 #define __IGNORE_remap_file_pages
@@ -396,8 +397,6 @@
 #define __IGNORE_get_mempolicy
 #define __IGNORE_set_mempolicy
 #define __IGNORE_migrate_pages
-#define __IGNORE_set_robust_list
-#define __IGNORE_get_robust_list
 #define __IGNORE_move_pages
 #define __IGNORE_getcpu
 
