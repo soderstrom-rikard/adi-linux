@@ -1019,6 +1019,16 @@ menu "Kernel hacking"
 
 source "lib/Kconfig.debug"
 
+config DEBUG_MMRS
+	bool "Generate Blackfin MMR tree"
+	select DEBUG_FS
+	help
+	  Create a tree of Blackfin MMRs via the debugfs tree.  If
+	  you enable this, you will find all MMRs laid out in the
+	  /sys/kernel/debug/blackfin/ directory where you can read/write
+	  MMRs directly from userspace.  This is obviously just a debug
+	  feature.
+
 config DEBUG_HWERR
 	bool "Hardware error interrupt debugging"
 	depends on DEBUG_KERNEL
