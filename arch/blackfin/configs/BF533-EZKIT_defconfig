@@ -1,6 +1,6 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.22.2
+# Linux kernel version: 2.6.22.6
 #
 # CONFIG_MMU is not set
 # CONFIG_FPU is not set
@@ -682,7 +682,7 @@ CONFIG_INPUT_EVDEV=m
 #
 # CONFIG_AD9960 is not set
 # CONFIG_SPI_ADC_BF533 is not set
-# CONFIG_BF5xx_PFLAGS is not set
+# CONFIG_BFIN_PFLAGS is not set
 # CONFIG_BF5xx_PPIFCD is not set
 # CONFIG_BF5xx_TIMERS is not set
 # CONFIG_BF5xx_PPI is not set
@@ -818,6 +818,10 @@ CONFIG_USB_ARCH_HAS_HCD=y
 # CONFIG_USB_ARCH_HAS_OHCI is not set
 # CONFIG_USB_ARCH_HAS_EHCI is not set
 # CONFIG_USB is not set
+
+#
+# Enable Host or Gadget support to see Inventra options
+#
 
 #
 # NOTE: USB_STORAGE enables SCSI, and 'SCSI disk support'
@@ -1086,6 +1090,7 @@ CONFIG_ENABLE_MUST_CHECK=y
 # CONFIG_HEADERS_CHECK is not set
 # CONFIG_DEBUG_KERNEL is not set
 # CONFIG_DEBUG_BUGVERBOSE is not set
+# CONFIG_DEBUG_MMRS is not set
 CONFIG_DEBUG_HUNT_FOR_ZERO=y
 CONFIG_DEBUG_BFIN_HWTRACE_ON=y
 CONFIG_DEBUG_BFIN_HWTRACE_COMPRESSION_OFF=y
@@ -1094,6 +1099,7 @@ CONFIG_DEBUG_BFIN_HWTRACE_COMPRESSION_OFF=y
 CONFIG_DEBUG_BFIN_HWTRACE_COMPRESSION=0
 # CONFIG_DEBUG_BFIN_HWTRACE_EXPAND is not set
 # CONFIG_DEBUG_BFIN_NO_KERN_HWTRACE is not set
+# CONFIG_EARLY_PRINTK is not set
 CONFIG_CPLB_INFO=y
 CONFIG_ACCESS_CHECK=y
 
