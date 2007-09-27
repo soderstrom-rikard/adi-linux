@@ -432,6 +432,8 @@ int sport_config_rx_dma(struct sport_device *sport, void *buf,
 	}
 
 	sport->rx_buf = buf;
+	sport->rx_fragsize = fragsize;
+	sport->rx_frags = fragcount;
 
 	cfg     = 0x7000 | DI_EN | compute_wdsize(sport->wdsize) | WNR | \
 		  (DESC_ELEMENT_COUNT << 8); /* large descriptor mode */
@@ -494,7 +496,8 @@ int sport_config_tx_dma(struct sport_device *sport, void *buf, \
 	}
 
 	sport->tx_buf = buf;
-
+	sport->tx_fragsize = fragsize;
+	sport->tx_frags = fragcount;
 	cfg     = 0x7000 | DI_EN | compute_wdsize(sport->wdsize) | \
 		  (DESC_ELEMENT_COUNT << 8); /* large descriptor mode */
 

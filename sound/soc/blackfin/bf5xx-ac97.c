@@ -55,7 +55,7 @@ void bf5xx_ac97_frame_to_pcm32(const struct ac97_frame *src, __u32 *dst, \
 static unsigned int sport_tx_curr_frag(struct sport_device *sport)
 {
 	return sport->tx_curr_frag = sport_curr_offset_tx(sport) / \
-			(sizeof(struct ac97_frame) * sport->tx_fragsize);
+			sport->tx_fragsize;
 }
 
 static void enqueue_cmd(struct snd_ac97 *ac97, __u16 addr, __u16 data)
@@ -64,13 +64,13 @@ static void enqueue_cmd(struct snd_ac97 *ac97, __u16 addr, __u16 data)
 	int nextfrag = sport_tx_curr_frag(sport);
 	struct ac97_frame *nextwrite;
 
-	pr_debug("%s enter\n", __FUNCTION__);
 	incfrag(sport, &nextfrag, 1);
 	incfrag(sport, &nextfrag, 1);
 
-	pr_debug("sport->tx_buf:%p, nextfrag:0x%x\n", sport->tx_buf, nextfrag);
 	nextwrite = (struct ac97_frame *)(sport->tx_buf + \
-			nextfrag * sport->tx_frags);
+			nextfrag * sport->tx_fragsize);
+	pr_debug("sport->tx_buf:%p, nextfrag:0x%x nextwrite:%p, cmd_count:%d\n",
+			sport->tx_buf, nextfrag, nextwrite, cmd_count[nextfrag]);
 	nextwrite[cmd_count[nextfrag]].ac97_tag |= TAG_CMD;
 	nextwrite[cmd_count[nextfrag]].ac97_addr = addr;
 	nextwrite[cmd_count[nextfrag]].ac97_data = data;
@@ -213,7 +213,7 @@ static int proc_write(struct file *file, const char __user *buffer,
 
 static int bf5xx_ac97_probe(struct platform_device *pdev)
 {
-	cmd_count = kmalloc(sport_handle->tx_frags * sizeof(int), GFP_KERNEL);
+	cmd_count = (int *)get_zeroed_page(GFP_KERNEL);
 	if (cmd_count == NULL)
 		return -ENOMEM;
 
@@ -226,7 +226,7 @@ static int bf5xx_ac97_probe(struct platform_device *pdev)
 
 static void bf5xx_ac97_remove(struct platform_device *pdev)
 {
-	kfree(cmd_count);
+	free_page((unsigned long)cmd_count);
 	cmd_count = NULL;
 	remove_proc_entry("driver/sport_ac97", NULL);
 }
