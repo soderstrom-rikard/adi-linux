@@ -169,6 +169,7 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 {
 	struct bf54x_kpad *bf54x_kpad;
 	struct bfin_kpad_platform_data *pdata = pdev->dev.platform_data;
+	struct input_dev *input;
 	int i, error;
 
 
@@ -184,9 +185,9 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 
 	bf54x_kpad = kzalloc(sizeof(struct bf54x_kpad), GFP_KERNEL);
 
-	if (!bf54x_kpad) {
+	if (!bf54x_kpad)
 		return -ENOMEM;
-	}
+
 
 	platform_set_drvdata(pdev, bf54x_kpad);
 
@@ -243,37 +244,45 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 	}
 
 
-	bf54x_kpad->input = input_allocate_device();
+	input = input_allocate_device();
 
-	if (!bf54x_kpad->input) {
+	if (!input) {
 		error = -ENOMEM;
 		goto out3;
 	}
 
-	bf54x_kpad->input->name = pdev->name;
-	bf54x_kpad->input->phys = "bf54x-keys/input0";
-	bf54x_kpad->input->cdev.dev = &pdev->dev;
-	bf54x_kpad->input->private = bf54x_kpad;
+	bf54x_kpad->input = input;
 
-	bf54x_kpad->input->id.bustype = BUS_HOST;
-	bf54x_kpad->input->id.vendor = 0x0001;
-	bf54x_kpad->input->id.product = 0x0001;
-	bf54x_kpad->input->id.version = 0x0100;
+	input->name = pdev->name;
+	input->phys = "bf54x-keys/input0";
+	input->cdev.dev = &pdev->dev;
+	input->private = bf54x_kpad;
 
-	bf54x_kpad->input->keycode = pdata->keymap;
-	bf54x_kpad->input->keycodesize = sizeof(unsigned int);
-	bf54x_kpad->input->keycodemax = pdata->keymapsize;
+	input->id.bustype = BUS_HOST;
+	input->id.vendor = 0x0001;
+	input->id.product = 0x0001;
+	input->id.version = 0x0100;
+
+	input->keycode = pdata->keymap;
+	input->keycodesize = sizeof(unsigned short);
+	input->keycodemax = pdata->keymapsize;
 
 	/* setup input device */
-	set_bit(EV_KEY, bf54x_kpad->input->evbit);
+	set_bit(EV_KEY, input->evbit);
+
+	if (pdata->repeat)
+		set_bit(EV_REP, input->evbit);
 
 	for (i = 0; i < pdata->keymapsize; i++)
-		set_bit(pdata->keymap[i] & KEY_MAX, bf54x_kpad->input->keybit);
+		__set_bit(pdata->keymap[i] & KEY_MAX, input->keybit);
 
-	error = input_register_device(bf54x_kpad->input);
+	__clear_bit(KEY_RESERVED, input->keybit);
+
+	error = input_register_device(input);
 
 	if (error) {
-		printk(KERN_ERR DRV_NAME": Unable to register input device\n");
+		printk(KERN_ERR DRV_NAME
+			": Unable to register input device (%d)\n", error);
 		goto out4;
 	}
 
@@ -300,7 +309,7 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 
 
 out4:
-	input_free_device(bf54x_kpad->input);
+	input_free_device(input);
 out3:
 	free_irq(bf54x_kpad->irq, pdev);
 out2:
@@ -309,6 +318,7 @@ out1:
 	peripheral_free_list(&per_rows[MAX_RC - pdata->rows]);
 out:
 	kfree(bf54x_kpad);
+	platform_set_drvdata(pdev, NULL);
 
 	return error;
 }
@@ -328,6 +338,7 @@ static int __devexit bfin_kpad_remove(struct platform_device *pdev)
 	input_unregister_device(bf54x_kpad->input);
 
 	kfree(bf54x_kpad);
+	platform_set_drvdata(pdev, NULL);
 
 	return 0;
 }

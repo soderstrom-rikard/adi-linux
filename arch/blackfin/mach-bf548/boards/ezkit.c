@@ -43,6 +43,7 @@
 #include <asm/gpio.h>
 #include <asm/nand.h>
 #include <asm/mach/bf54x_keys.h>
+#include <linux/input.h>
 #include <linux/spi/ad7877.h>
 
 /*
@@ -111,6 +112,7 @@ static struct bfin_kpad_platform_data bf54x_kpad_data = {
 	.cols			= 4,
 	.keymap 		= bf548_keymap,
 	.keymapsize 		= ARRAY_SIZE(bf548_keymap),
+	.repeat			= 0,
 	.debounce_time		= 5000,	/* ns (5ms) */
 	.coldrive_time		= 1000, /* ns (1ms) */
 	.keyup_test_interval	= 50, /* ms (50ms) */

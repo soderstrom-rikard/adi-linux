@@ -1,13 +1,12 @@
 #ifndef _BFIN_KPAD_H
 #define _BFIN_KPAD_H
 
-#include <linux/input.h>
-
 struct bfin_kpad_platform_data {
 	int rows;
 	int cols;
 	int *keymap;
-	unsigned int keymapsize;
+	unsigned short keymapsize;
+	unsigned short repeat;
 	u32 debounce_time;	/* in ns */
 	u32 coldrive_time;	/* in ns */
 	u32 keyup_test_interval; /* in ms */
