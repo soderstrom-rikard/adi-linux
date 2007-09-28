@@ -696,16 +696,18 @@ static int bfin_serial_startup(struct uart_port *port)
 	uart->rx_dma_timer.expires = jiffies + DMA_RX_FLUSH_JIFFIES;
 	add_timer(&(uart->rx_dma_timer));
 #else
-# ifdef	CONFIG_KGDB_UART
-	if (uart->port.line != CONFIG_KGDB_UART_PORT && request_irq
-# else
-	if (request_irq
-# endif
-	    (uart->port.irq, bfin_serial_rx_int, IRQF_DISABLED,
+	if (request_irq(uart->port.irq, bfin_serial_rx_int, IRQF_DISABLED,
 	     "BFIN_UART_RX", uart)) {
+# ifdef	CONFIG_KGDB_UART
+		if (uart->port.line != CONFIG_KGDB_UART_PORT) {
+# endif
 		printk(KERN_NOTICE "Unable to attach BlackFin UART RX interrupt\n");
 		return -EBUSY;
+# ifdef	CONFIG_KGDB_UART
+		}
+# endif
 	}
+
 
 	if (request_irq
 	    (uart->port.irq+1, bfin_serial_tx_int, IRQF_DISABLED,
@@ -1153,10 +1155,6 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 		port = 0;
 	bfin_serial_init_ports();
 	bfin_early_serial_console.index = port;
-#ifdef CONFIG_KGDB_UART
-	kgdb_entry_state = 0;
-	init_kgdb_uart();
-#endif
 	uart = &bfin_serial_ports[port];
 	t.c_cflag = cflag;
 	t.c_iflag = 0;
@@ -1254,7 +1252,7 @@ static int __init bfin_serial_init(void)
 	int ret;
 #ifdef CONFIG_KGDB_UART
 	struct bfin_serial_port *uart = &bfin_serial_ports[CONFIG_KGDB_UART_PORT];
-	struct termios t;
+	struct ktermios t;
 #endif
 
 	pr_info("Serial: Blackfin serial driver\n");
@@ -1271,7 +1269,7 @@ static int __init bfin_serial_init(void)
 	}
 #ifdef CONFIG_KGDB_UART
 	if (uart->port.cons->index != CONFIG_KGDB_UART_PORT) {
-		request_irq(uart->port.irq, bfin_serial_int,
+		request_irq(uart->port.irq, bfin_serial_rx_int,
 			IRQF_DISABLED, "BFIN_UART_RX", uart);
 		pr_info("Request irq for kgdb uart port\n");
 		UART_PUT_IER(uart, UART_GET_IER(uart) | ERBFI);
