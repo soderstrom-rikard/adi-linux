@@ -5,7 +5,7 @@
  *
  * created: 10/2005
  * description: Blackfin generic IDE interface
- *	
+ *
  * rev:
  *
  * modified:
@@ -38,6 +38,8 @@
 #include <asm/delay.h>
 #include <asm/blackfin.h>
 
+#undef USE_IDE_PIO_MODE_DMA
+
 #define CF_ATASEL_ENA	CONFIG_CF_ATASEL_ENA
 #define CF_ATASEL_DIS	CONFIG_CF_ATASEL_DIS
 
@@ -52,6 +54,7 @@
   #define AX_BITMASK (1<<CONFIG_BFIN_IDE_ADDRESS_AX)
 #endif
 
+#ifdef USE_IDE_PIO_MODE_DMA
 static void mm_outsw(unsigned long addr, void *buf, u32 len)
 {
 	if (len > 255)
@@ -67,6 +70,7 @@ static void mm_insw(unsigned long addr, void *buf, u32 len)
 	else
 		insw((const void __iomem *)addr, buf, len);
 }
+#endif
 
 static inline void hw_setup(hw_regs_t *hw)
 {
@@ -95,9 +99,14 @@ static inline void hwif_setup(ide_hwif_t *hwif)
 {
 	default_hwif_iops(hwif);
 
-	hwif->mmio  = 2;
-	hwif->OUTSW  = mm_outsw; 
+	hwif->mmio  = 1;
+#ifdef USE_IDE_PIO_MODE_DMA
+	hwif->OUTSW  = mm_outsw;
 	hwif->INSW  = mm_insw;
+#else
+	hwif->OUTSW  = outsw;
+	hwif->INSW  = insw;
+#endif
 	hwif->OUTSL = NULL;
 	hwif->INSL  = NULL;
 }
@@ -131,6 +140,4 @@ void __init blackfin_ide_init(void)
 	printk(KERN_INFO "ide%d: Blackfin generic IDE interface\n", idx);
 	return;
 
-out_busy:
-	printk(KERN_ERR "ide-blackfin: IDE I/F resource already used.\n");
 }
