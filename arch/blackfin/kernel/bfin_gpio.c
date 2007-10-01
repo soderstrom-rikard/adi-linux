@@ -362,9 +362,12 @@ inline u16 get_portmux(unsigned short portno)
 static void default_gpio(unsigned short gpio)
 {
 	unsigned short bank, bitmask;
+	unsigned long flags;
 
 	bank = gpio_bank(gpio);
 	bitmask = gpio_bit(gpio);
+
+	local_irq_save(flags);
 
 	gpio_bankb[bank]->maska_clear = bitmask;
 	gpio_bankb[bank]->maskb_clear = bitmask;
@@ -374,6 +377,9 @@ static void default_gpio(unsigned short gpio)
 	gpio_bankb[bank]->polar &= ~bitmask;
 	gpio_bankb[bank]->both &= ~bitmask;
 	gpio_bankb[bank]->edge &= ~bitmask;
+	AWA_DUMMY_READ(edge);
+	local_irq_restore(flags);
+
 }
 #else
 # define default_gpio(...)  do { } while (0)
