@@ -583,19 +583,39 @@ config EBIU_FLASH_BASE
 	default 0x20000000
 
 menu "FLASH_EBIU_AMBCTL Control"
-	depends on MTD_BF5xx
+	depends on MTD_BF5xx && BFIN_SHARED_FLASH_ENET
 config BFIN_FLASH_BANK_0
 	hex "Bank 0"
 	default 0x7BB0
+	help
+	  For boards that share the async memory bank with both Flash and
+	  the Ethernet, these settings allow you to have EBIU settings just
+	  when the Flash is active.  The other EBIU settings in the main
+	  Blackfin menu will be utilized when the Flash is not active.
 config BFIN_FLASH_BANK_1
 	hex "Bank 1"
 	default 0x7BB0
+	help
+	  For boards that share the async memory bank with both Flash and
+	  the Ethernet, these settings allow you to have EBIU settings just
+	  when the Flash is active.  The other EBIU settings in the main
+	  Blackfin menu will be utilized when the Flash is not active.
 config BFIN_FLASH_BANK_2
 	hex "Bank 2"
 	default 0x7BB0
+	help
+	  For boards that share the async memory bank with both Flash and
+	  the Ethernet, these settings allow you to have EBIU settings just
+	  when the Flash is active.  The other EBIU settings in the main
+	  Blackfin menu will be utilized when the Flash is not active.
 config BFIN_FLASH_BANK_3
 	hex "Bank 3"
 	default 0x7BB0
+	help
+	  For boards that share the async memory bank with both Flash and
+	  the Ethernet, these settings allow you to have EBIU settings just
+	  when the Flash is active.  The other EBIU settings in the main
+	  Blackfin menu will be utilized when the Flash is not active.
 endmenu
 
 config MTD_UCLINUX
