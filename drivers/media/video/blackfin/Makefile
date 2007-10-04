@@ -1,5 +1,6 @@
 obj-$(CONFIG_VIDEO_BLACKFIN_CAM) += blackfin_cam.o
 
+ifeq ($(CONFIG_VIDEO_BLACKFIN_CAM),y)
 ifeq ($(CONFIG_VS6524),y)
   obj-$(CONFIG_VIDEO_BLACKFIN_CAM)	+= vs6524.o
 endif
@@ -10,6 +11,7 @@ endif
 
 ifeq ($(CONFIG_MT9V022),y)
   obj-$(CONFIG_VIDEO_BLACKFIN_CAM)	+= mt9v022.o
+endif
 endif
 
 obj-$(CONFIG_VIDEO_BLACKFIN_MT9M001) += mt9m001.o

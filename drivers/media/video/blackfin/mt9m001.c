@@ -1661,14 +1661,7 @@ static struct video_device uCam_template = {
 
 static __exit void mt9m001_exit(void)
 {
-	int err;
-
-	if ((err = i2c_del_driver(&mt9m001_driver))) {
-		printk(KERN_WARNING "%s: could not del i2c driver: %i\n",
-		       sensor_name, err);
-		return;
-	}
-
+	i2c_del_driver(&mt9m001_driver);
 	remove_proc_entry("uCam", &proc_root);
 
 	/*  Turn FS3 frame synch off  */
