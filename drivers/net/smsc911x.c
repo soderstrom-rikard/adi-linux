@@ -128,6 +128,7 @@ static inline void smsc911x_reg_write(u32 val, struct smsc911x_data *pdata,
 
 #endif				/* SMSC_CAN_USE_32BIT */
 
+#ifndef CONFIG_BFIN
 /* Writes a packet to the TX_DATA_FIFO */
 static inline void
 smsc911x_tx_writefifo(struct smsc911x_data *pdata, unsigned int *buf,
@@ -145,6 +146,30 @@ smsc911x_rx_readfifo(struct smsc911x_data *pdata, unsigned int *buf,
 	while (wordcount--)
 		*buf++ = smsc911x_reg_read(pdata, RX_DATA_FIFO);
 }
+
+#else
+/* Writes a packet to the TX_DATA_FIFO */
+static inline void
+smsc911x_tx_writefifo(struct smsc911x_data *pdata, unsigned int *buf,
+		      unsigned int wordcount)
+{
+	if (wordcount > 24)
+		dma_outsl((u_long)pdata->ioaddr + TX_DATA_FIFO, buf, wordcount);
+	else
+		outsl((u_long)pdata->ioaddr + TX_DATA_FIFO, buf, wordcount);
+}
+
+/* Reads a packet out of the RX_DATA_FIFO */
+static inline void
+smsc911x_rx_readfifo(struct smsc911x_data *pdata, unsigned int *buf,
+		     unsigned int wordcount)
+{
+	if (wordcount > 24)
+		dma_insl((u_long)pdata->ioaddr + RX_DATA_FIFO, buf, wordcount);
+	else
+		insl((u_long)pdata->ioaddr + RX_DATA_FIFO, buf, wordcount);
+}
+#endif
 
 /* waits for MAC not busy, with timeout.  Only called by smsc911x_mac_read
  * and smsc911x_mac_write, so assumes phy_lock is held */
@@ -2046,7 +2071,7 @@ static int smsc911x_drv_probe(struct platform_device *pdev)
 	if (retval < 0)
 		goto out_unmap_io_3;
 
-	retval = request_irq(dev->irq, smsc911x_irqhandler, IRQF_TRIGGER_FALLING | SA_INTERRUPT,
+	retval = request_irq(dev->irq, smsc911x_irqhandler, IRQF_TRIGGER_FALLING | IRQF_DISABLED,
 			     SMSC_CHIPNAME, dev);
 	if (retval) {
 		SMSC_WARNING("Unable to claim requested irq: %d", dev->irq);
