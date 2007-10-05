@@ -462,6 +462,10 @@ static void *__dma_memcpy(void *dest, const void *src, size_t size)
 		blackfin_dcache_flush_range((unsigned int)src,
 					    (unsigned int)(src + size));
 
+	if ((unsigned long)dest < memory_end)
+		blackfin_dcache_invalidate_range((unsigned int)dest,
+						 (unsigned int)(dest + size));
+
 	bfin_write_MDMA_D0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
 	if ((unsigned long)src < (unsigned long)dest)
@@ -569,6 +573,8 @@ static void *__dma_memcpy(void *dest, const void *src, size_t size)
 		}
 	}
 
+	SSYNC();
+
 	while (!(bfin_read_MDMA_D0_IRQ_STATUS() & DMA_DONE))
 		;
 
@@ -578,9 +584,6 @@ static void *__dma_memcpy(void *dest, const void *src, size_t size)
 	bfin_write_MDMA_S0_CONFIG(0);
 	bfin_write_MDMA_D0_CONFIG(0);
 
-	if ((unsigned long)dest < memory_end)
-		blackfin_dcache_invalidate_range((unsigned int)dest,
-						 (unsigned int)(dest + size));
 	local_irq_restore(flags);
 
 	return dest;
