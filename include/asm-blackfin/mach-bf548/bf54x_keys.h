@@ -4,7 +4,7 @@
 struct bfin_kpad_platform_data {
 	int rows;
 	int cols;
-	int *keymap;
+	unsigned int *keymap;
 	unsigned short keymapsize;
 	unsigned short repeat;
 	u32 debounce_time;	/* in ns */

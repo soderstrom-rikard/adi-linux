@@ -52,7 +52,7 @@
 #define	MAX_MULT	(0xFF * TIME_SCALE)
 #define MAX_RC		8	/* Max Row/Col */
 
-static u16 per_rows[] = {
+static const u16 per_rows[] = {
 	P_KEY_ROW7,
 	P_KEY_ROW6,
 	P_KEY_ROW5,
@@ -64,7 +64,7 @@ static u16 per_rows[] = {
 	0
 };
 
-static u16 per_cols[] = {
+static const u16 per_cols[] = {
 	P_KEY_COL7,
 	P_KEY_COL6,
 	P_KEY_COL5,
@@ -80,17 +80,19 @@ struct bf54x_kpad {
 	struct input_dev *input;
 	int irq;
 	int lastkey;
+	unsigned int *keycode;
 	struct timer_list timer;
 	unsigned int keyup_test_jiffies;
 };
 
-static inline int bfin_kpad_find_key(struct bfin_kpad_platform_data *pdata, u16 keyident)
+static inline int bfin_kpad_find_key(struct bf54x_kpad *bf54x_kpad,
+			 struct input_dev *input, u16 keyident)
 {
 	u16 i;
 
-	for (i = 0; i < pdata->keymapsize; i++)
-		if ((pdata->keymap[i] >> 16) == keyident)
-			return pdata->keymap[i] & 0xffff;
+	for (i = 0; i < input->keycodemax; i++)
+		if ((bf54x_kpad->keycode[i] >> 16) == keyident)
+			return bf54x_kpad->keycode[i] & 0xffff;
 	return -1;
 }
 
@@ -137,28 +139,27 @@ static void bfin_kpad_timer(unsigned long data)
 static irqreturn_t bfin_kpad_isr(int irq, void *dev_id)
 {
 	struct platform_device *pdev = dev_id;
-	struct bfin_kpad_platform_data *pdata = pdev->dev.platform_data;
 	struct bf54x_kpad *bf54x_kpad = platform_get_drvdata(pdev);
+	struct input_dev *input = bf54x_kpad->input;
 	int key;
 	u16 rowcol = bfin_read_KPAD_ROWCOL();
 
-	key = bfin_kpad_find_key(pdata, rowcol);
+	key = bfin_kpad_find_key(bf54x_kpad, input, rowcol);
 
-	input_report_key(bf54x_kpad->input, key, 1);
-	input_sync(bf54x_kpad->input);
+	input_report_key(input, key, 1);
+	input_sync(input);
 
 	if (bfin_kpad_get_keypressed(bf54x_kpad)) {
 		disable_irq(bf54x_kpad->irq);
 		bf54x_kpad->lastkey = key;
-		bf54x_kpad->timer.expires = jiffies
-					+ bf54x_kpad->keyup_test_jiffies;
-		add_timer(&bf54x_kpad->timer);
+		mod_timer(&bf54x_kpad->timer, jiffies
+				+ bf54x_kpad->keyup_test_jiffies);
 
 		return IRQ_HANDLED;
 	}
 
-	input_report_key(bf54x_kpad->input, key, 0);
-	input_sync(bf54x_kpad->input);
+	input_report_key(input, key, 0);
+	input_sync(input);
 
 	bfin_kpad_clear_irq();
 
@@ -188,9 +189,14 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 	if (!bf54x_kpad)
 		return -ENOMEM;
 
-
 	platform_set_drvdata(pdev, bf54x_kpad);
 
+	bf54x_kpad->keycode = kmalloc(pdata->keymapsize * sizeof(unsigned int), GFP_KERNEL);
+
+	if (!bf54x_kpad->keycode) {
+		error = -ENOMEM;
+		goto out;
+	}
 
 	if (!pdata->debounce_time || !pdata->debounce_time > MAX_MULT ||
 		!pdata->coldrive_time || !pdata->coldrive_time > MAX_MULT) {
@@ -211,14 +217,14 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 			msecs_to_jiffies(pdata->keyup_test_interval);
 	}
 
-	if (peripheral_request_list(&per_rows[MAX_RC - pdata->rows], DRV_NAME)) {
+	if (peripheral_request_list((u16 *)&per_rows[MAX_RC - pdata->rows], DRV_NAME)) {
 		printk(KERN_ERR DRV_NAME
 		": Requesting Peripherals failed\n");
 		error = -EFAULT;
-		goto out;
+		goto out0;
 	}
 
-	if (peripheral_request_list(&per_cols[MAX_RC - pdata->cols], DRV_NAME)) {
+	if (peripheral_request_list((u16 *)&per_cols[MAX_RC - pdata->cols], DRV_NAME)) {
 		printk(KERN_ERR DRV_NAME
 		": Requesting Peripherals failed\n");
 		error = -EFAULT;
@@ -243,7 +249,6 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 		goto out2;
 	}
 
-
 	input = input_allocate_device();
 
 	if (!input) {
@@ -256,25 +261,29 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 	input->name = pdev->name;
 	input->phys = "bf54x-keys/input0";
 	input->cdev.dev = &pdev->dev;
-	input->private = bf54x_kpad;
+
+	input_set_drvdata(input, bf54x_kpad);
 
 	input->id.bustype = BUS_HOST;
 	input->id.vendor = 0x0001;
 	input->id.product = 0x0001;
 	input->id.version = 0x0100;
 
-	input->keycode = pdata->keymap;
-	input->keycodesize = sizeof(unsigned short);
+	input->keycodesize = sizeof(unsigned int);
 	input->keycodemax = pdata->keymapsize;
 
+	memcpy(bf54x_kpad->keycode, pdata->keymap, input->keycodesize * input->keycodemax);
+
+	input->keycode = bf54x_kpad->keycode;
+
 	/* setup input device */
-	set_bit(EV_KEY, input->evbit);
+	__set_bit(EV_KEY, input->evbit);
 
 	if (pdata->repeat)
-		set_bit(EV_REP, input->evbit);
+		__set_bit(EV_REP, input->evbit);
 
-	for (i = 0; i < pdata->keymapsize; i++)
-		__set_bit(pdata->keymap[i] & KEY_MAX, input->keybit);
+	for (i = 0; i < input->keycodemax; i++)
+		__set_bit(bf54x_kpad->keycode[i] & KEY_MAX, input->keybit);
 
 	__clear_bit(KEY_RESERVED, input->keybit);
 
@@ -288,10 +297,7 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 
 	/* Init Keypad Key Up/Release test timer */
 
-	init_timer(&bf54x_kpad->timer);
-	bf54x_kpad->timer.function = bfin_kpad_timer;
-	bf54x_kpad->timer.data = (unsigned long) pdev;
-
+	setup_timer(&bf54x_kpad->timer, bfin_kpad_timer, (unsigned long) pdev);
 
 	bfin_write_KPAD_PRESCALE(bfin_kpad_get_prescale(TIME_SCALE));
 
@@ -313,9 +319,11 @@ out4:
 out3:
 	free_irq(bf54x_kpad->irq, pdev);
 out2:
-	peripheral_free_list(&per_cols[MAX_RC - pdata->cols]);
+	peripheral_free_list((u16 *)&per_cols[MAX_RC - pdata->cols]);
 out1:
-	peripheral_free_list(&per_rows[MAX_RC - pdata->rows]);
+	peripheral_free_list((u16 *)&per_rows[MAX_RC - pdata->rows]);
+out0:
+	kfree(bf54x_kpad->keycode);
 out:
 	kfree(bf54x_kpad);
 	platform_set_drvdata(pdev, NULL);
@@ -332,38 +340,21 @@ static int __devexit bfin_kpad_remove(struct platform_device *pdev)
 	del_timer_sync(&bf54x_kpad->timer);
 	free_irq(bf54x_kpad->irq, pdev);
 
-	peripheral_free_list(&per_rows[MAX_RC - pdata->rows]);
-	peripheral_free_list(&per_cols[MAX_RC - pdata->cols]);
+	peripheral_free_list((u16 *)&per_rows[MAX_RC - pdata->rows]);
+	peripheral_free_list((u16 *)&per_cols[MAX_RC - pdata->cols]);
 
 	input_unregister_device(bf54x_kpad->input);
 
+	kfree(bf54x_kpad->keycode);
 	kfree(bf54x_kpad);
 	platform_set_drvdata(pdev, NULL);
 
 	return 0;
 }
 
-#ifdef CONFIG_PM
-static int bfin_kpad_suspend(struct platform_device *pdev, pm_message_t state)
-{
-	return 0;
-}
-
-static int bfin_kpad_resume(struct platform_device *pdev)
-{
-
-	return 0;
-}
-#else
-#define bfin_kpad_suspend	NULL
-#define bfin_kpad_resume	NULL
-#endif
-
 struct platform_driver bfin_kpad_device_driver = {
 	.probe		= bfin_kpad_probe,
 	.remove		= __devexit_p(bfin_kpad_remove),
-	.suspend	= bfin_kpad_suspend,
-	.resume		= bfin_kpad_resume,
 	.driver		= {
 		.name	= DRV_NAME,
 	}

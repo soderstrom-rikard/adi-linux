@@ -88,7 +88,7 @@ static struct platform_device bf54x_lq043_device = {
 #endif
 
 #if defined(CONFIG_KEYBOARD_BFIN) || defined(CONFIG_KEYBOARD_BFIN_MODULE)
-static int bf548_keymap[] = {
+static unsigned int bf548_keymap[] = {
 	KEYVAL(0, 0, KEY_ENTER),
 	KEYVAL(0, 1, KEY_HELP),
 	KEYVAL(0, 2, KEY_0),
