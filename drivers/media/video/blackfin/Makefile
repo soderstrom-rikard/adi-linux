@@ -1,18 +1,6 @@
-obj-$(CONFIG_VIDEO_BLACKFIN_CAM) += blackfin_cam.o
-
-ifeq ($(CONFIG_VIDEO_BLACKFIN_CAM),y)
-ifeq ($(CONFIG_VS6524),y)
-  obj-$(CONFIG_VIDEO_BLACKFIN_CAM)	+= vs6524.o
-endif
-
-ifeq ($(CONFIG_VS6624),y)
-  obj-$(CONFIG_VIDEO_BLACKFIN_CAM)	+= vs6624.o
-endif
-
-ifeq ($(CONFIG_MT9V022),y)
-  obj-$(CONFIG_VIDEO_BLACKFIN_CAM)	+= mt9v022.o
-endif
-endif
+bfin-cam-sensor-$(CONFIG_VS6524)  := vs6524.o
+bfin-cam-sensor-$(CONFIG_VS6624)  := vs6624.o
+bfin-cam-sensor-$(CONFIG_MT9V022) := mt9v022.o
+obj-$(CONFIG_VIDEO_BLACKFIN_CAM)  := blackfin_cam.o $(bfin-cam-sensor-y)
 
 obj-$(CONFIG_VIDEO_BLACKFIN_MT9M001) += mt9m001.o
-
