@@ -79,8 +79,8 @@ static const u16 per_cols[] = {
 struct bf54x_kpad {
 	struct input_dev *input;
 	int irq;
-	int lastkey;
-	unsigned int *keycode;
+	unsigned short lastkey;
+	unsigned short *keycode;
 	struct timer_list timer;
 	unsigned int keyup_test_jiffies;
 };
@@ -91,11 +91,22 @@ static inline int bfin_kpad_find_key(struct bf54x_kpad *bf54x_kpad,
 	u16 i;
 
 	for (i = 0; i < input->keycodemax; i++)
-		if ((bf54x_kpad->keycode[i] >> 16) == keyident)
-			return bf54x_kpad->keycode[i] & 0xffff;
+		if (bf54x_kpad->keycode[i  + input->keycodemax] == keyident)
+			return bf54x_kpad->keycode[i];
 	return -1;
 }
 
+static inline void bfin_keycodecpy(unsigned short *keycode, unsigned int *pdata_kc,
+			 struct input_dev *input)
+{
+	u16 i;
+
+	for (i = 0; i < input->keycodemax; i++) {
+		keycode[i] = pdata_kc[i] & 0xffff;
+		keycode[i + input->keycodemax] = pdata_kc[i] >> 16;
+	}
+
+}
 
 static inline u16 bfin_kpad_get_prescale(u32 timescale)
 {
@@ -191,7 +202,9 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, bf54x_kpad);
 
-	bf54x_kpad->keycode = kmalloc(pdata->keymapsize * sizeof(unsigned int), GFP_KERNEL);
+	/* Allocate memory for keymap followed by private LUT */
+
+	bf54x_kpad->keycode = kmalloc(pdata->keymapsize * sizeof(unsigned short) * 2, GFP_KERNEL);
 
 	if (!bf54x_kpad->keycode) {
 		error = -ENOMEM;
@@ -260,7 +273,8 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 
 	input->name = pdev->name;
 	input->phys = "bf54x-keys/input0";
-	input->cdev.dev = &pdev->dev;
+
+	input->dev.parent = &pdev->dev;
 
 	input_set_drvdata(input, bf54x_kpad);
 
@@ -269,10 +283,10 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 	input->id.product = 0x0001;
 	input->id.version = 0x0100;
 
-	input->keycodesize = sizeof(unsigned int);
+	input->keycodesize = sizeof(unsigned short);
 	input->keycodemax = pdata->keymapsize;
 
-	memcpy(bf54x_kpad->keycode, pdata->keymap, input->keycodesize * input->keycodemax);
+	bfin_keycodecpy(bf54x_kpad->keycode, pdata->keymap, input);
 
 	input->keycode = bf54x_kpad->keycode;
 
