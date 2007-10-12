@@ -1,11 +1,9 @@
-menu "SoC Audio for the ADI Blackfin"
-
 config SND_BF5XX_SOC
-	tristate "SoC Audio for the  ADI BF5xx chip"
+	tristate "SoC Audio for the ADI BF5xx chip"
 	depends on BFIN && SND_SOC
 	help
 	  Say Y or M if you want to add support for codecs attached to
-	  the BF5xx AC97 interface. You will also need
+	  the BF5xx AC97 interface.  You will also need
 	  to select the audio interfaces to support below.
 
 config SND_BF5XX_AC97
@@ -44,16 +42,15 @@ config SND_BF5XX_SPORT_NUM
 
 config SND_BF5XX_HAVE_COLD_RESET
 	bool "BOARD has COLD Reset GPIO"
+	depends on SND_BF5XX_SOC
 	default y if BFIN548_EZKIT
 	default n if !BFIN548_EZKIT
 	
 config SND_BF5XX_RESET_GPIO_NUM
 	int "Set a GPIO for cold reset"
-	depends on SND_BF5XX_SOC && SND_BF5XX_HAVE_COLD_RESET
+	depends on SND_BF5XX_HAVE_COLD_RESET
 	range 0 159
 	default 19 if BFIN548_EZKIT
 	default 5 if BFIN537_STAMP
 	help
 	  Set the correct GPIO for RESET the sound chip.
-
-endmenu
