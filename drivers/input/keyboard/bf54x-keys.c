@@ -47,7 +47,7 @@
 #include <asm/portmux.h>
 #include <asm/mach/bf54x_keys.h>
 
-#define DRV_NAME 	"bf54x-keys"
+#define DRV_NAME	"bf54x-keys"
 #define TIME_SCALE	100	/* 100 ns */
 #define	MAX_MULT	(0xFF * TIME_SCALE)
 #define MAX_RC		8	/* Max Row/Col */
@@ -86,26 +86,26 @@ struct bf54x_kpad {
 };
 
 static inline int bfin_kpad_find_key(struct bf54x_kpad *bf54x_kpad,
-			 struct input_dev *input, u16 keyident)
+			struct input_dev *input, u16 keyident)
 {
 	u16 i;
 
 	for (i = 0; i < input->keycodemax; i++)
-		if (bf54x_kpad->keycode[i  + input->keycodemax] == keyident)
+		if (bf54x_kpad->keycode[i + input->keycodemax] == keyident)
 			return bf54x_kpad->keycode[i];
 	return -1;
 }
 
-static inline void bfin_keycodecpy(unsigned short *keycode, unsigned int *pdata_kc,
-			 struct input_dev *input)
+static inline void bfin_keycodecpy(unsigned short *keycode,
+			const unsigned int *pdata_kc,
+			unsigned short keymapsize)
 {
-	u16 i;
+	unsigned int i;
 
-	for (i = 0; i < input->keycodemax; i++) {
+	for (i = 0; i < keymapsize; i++) {
 		keycode[i] = pdata_kc[i] & 0xffff;
-		keycode[i + input->keycodemax] = pdata_kc[i] >> 16;
+		keycode[i + keymapsize] = pdata_kc[i] >> 16;
 	}
-
 }
 
 static inline u16 bfin_kpad_get_prescale(u32 timescale)
@@ -133,8 +133,8 @@ static void bfin_kpad_timer(unsigned long data)
 
 	if (bfin_kpad_get_keypressed(bf54x_kpad)) {
 		/* Try again later */
-		mod_timer(&bf54x_kpad->timer, jiffies
-				+ bf54x_kpad->keyup_test_jiffies);
+		mod_timer(&bf54x_kpad->timer,
+			  jiffies + bf54x_kpad->keyup_test_jiffies);
 		return;
 	}
 
@@ -163,16 +163,14 @@ static irqreturn_t bfin_kpad_isr(int irq, void *dev_id)
 	if (bfin_kpad_get_keypressed(bf54x_kpad)) {
 		disable_irq(bf54x_kpad->irq);
 		bf54x_kpad->lastkey = key;
-		mod_timer(&bf54x_kpad->timer, jiffies
-				+ bf54x_kpad->keyup_test_jiffies);
+		mod_timer(&bf54x_kpad->timer,
+			  jiffies + bf54x_kpad->keyup_test_jiffies);
+	} else {
+		input_report_key(input, key, 0);
+		input_sync(input);
 
-		return IRQ_HANDLED;
+		bfin_kpad_clear_irq();
 	}
-
-	input_report_key(input, key, 0);
-	input_sync(input);
-
-	bfin_kpad_clear_irq();
 
 	return IRQ_HANDLED;
 }
@@ -184,68 +182,69 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 	struct input_dev *input;
 	int i, error;
 
-
 	if (!pdata->rows || !pdata->cols || !pdata->keymap) {
-		printk(KERN_ERR DRV_NAME"No rows, cols or keymap from pdata\n");
+		printk(KERN_ERR DRV_NAME
+			": No rows, cols or keymap from pdata\n");
 		return -EINVAL;
 	}
 
-	if (!pdata->keymapsize || pdata->keymapsize > (pdata->rows * pdata->cols)) {
-		printk(KERN_ERR DRV_NAME"Invalid keymapsize\n");
+	if (!pdata->keymapsize ||
+	    pdata->keymapsize > (pdata->rows * pdata->cols)) {
+		printk(KERN_ERR DRV_NAME ": Invalid keymapsize\n");
 		return -EINVAL;
 	}
 
 	bf54x_kpad = kzalloc(sizeof(struct bf54x_kpad), GFP_KERNEL);
-
 	if (!bf54x_kpad)
 		return -ENOMEM;
 
 	platform_set_drvdata(pdev, bf54x_kpad);
 
 	/* Allocate memory for keymap followed by private LUT */
-
-	bf54x_kpad->keycode = kmalloc(pdata->keymapsize * sizeof(unsigned short) * 2, GFP_KERNEL);
-
+	bf54x_kpad->keycode = kmalloc(pdata->keymapsize *
+					sizeof(unsigned short) * 2, GFP_KERNEL);
 	if (!bf54x_kpad->keycode) {
 		error = -ENOMEM;
 		goto out;
 	}
 
 	if (!pdata->debounce_time || !pdata->debounce_time > MAX_MULT ||
-		!pdata->coldrive_time || !pdata->coldrive_time > MAX_MULT) {
+	    !pdata->coldrive_time || !pdata->coldrive_time > MAX_MULT) {
 		printk(KERN_ERR DRV_NAME
-			"Invalid Debounce/Columdrive Time from pdata\n");
+			": Invalid Debounce/Columdrive Time from pdata\n");
 		bfin_write_KPAD_MSEL(0xFF0);	/* Default MSEL	*/
 	} else {
-		bfin_write_KPAD_MSEL(((pdata->debounce_time / TIME_SCALE)
-			 & DBON_SCALE) | (((pdata->coldrive_time / TIME_SCALE) << 8)
-			  & COLDRV_SCALE));
+		bfin_write_KPAD_MSEL(
+			((pdata->debounce_time / TIME_SCALE)
+						& DBON_SCALE) |
+			(((pdata->coldrive_time / TIME_SCALE) << 8)
+						& COLDRV_SCALE));
 
 	}
 
-	if (!pdata->keyup_test_interval) {
+	if (!pdata->keyup_test_interval)
 		bf54x_kpad->keyup_test_jiffies = msecs_to_jiffies(50);
-	} else {
+	else
 		bf54x_kpad->keyup_test_jiffies =
 			msecs_to_jiffies(pdata->keyup_test_interval);
-	}
 
-	if (peripheral_request_list((u16 *)&per_rows[MAX_RC - pdata->rows], DRV_NAME)) {
+	if (peripheral_request_list((u16 *)&per_rows[MAX_RC - pdata->rows],
+				    DRV_NAME)) {
 		printk(KERN_ERR DRV_NAME
-		": Requesting Peripherals failed\n");
+			": Requesting Peripherals failed\n");
 		error = -EFAULT;
 		goto out0;
 	}
 
-	if (peripheral_request_list((u16 *)&per_cols[MAX_RC - pdata->cols], DRV_NAME)) {
+	if (peripheral_request_list((u16 *)&per_cols[MAX_RC - pdata->cols],
+				    DRV_NAME)) {
 		printk(KERN_ERR DRV_NAME
-		": Requesting Peripherals failed\n");
+			": Requesting Peripherals failed\n");
 		error = -EFAULT;
 		goto out1;
 	}
 
 	bf54x_kpad->irq = platform_get_irq(pdev, 0);
-
 	if (bf54x_kpad->irq < 0) {
 		error = -ENODEV;
 		goto out2;
@@ -253,7 +252,6 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 
 	error = request_irq(bf54x_kpad->irq, bfin_kpad_isr,
 				 IRQF_SAMPLE_RANDOM, DRV_NAME, pdev);
-
 	if (error) {
 		printk(KERN_ERR DRV_NAME
 			": unable to claim irq %d; error %d\n",
@@ -262,7 +260,6 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 	}
 
 	input = input_allocate_device();
-
 	if (!input) {
 		error = -ENOMEM;
 		goto out3;
@@ -272,7 +269,6 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 
 	input->name = pdev->name;
 	input->phys = "bf54x-keys/input0";
-
 	input->dev.parent = &pdev->dev;
 
 	input_set_drvdata(input, bf54x_kpad);
@@ -284,10 +280,9 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 
 	input->keycodesize = sizeof(unsigned short);
 	input->keycodemax = pdata->keymapsize;
-
-	bfin_keycodecpy(bf54x_kpad->keycode, pdata->keymap, input);
-
 	input->keycode = bf54x_kpad->keycode;
+
+	bfin_keycodecpy(bf54x_kpad->keycode, pdata->keymap, pdata->keymapsize);
 
 	/* setup input device */
 	__set_bit(EV_KEY, input->evbit);
@@ -297,11 +292,9 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 
 	for (i = 0; i < input->keycodemax; i++)
 		__set_bit(bf54x_kpad->keycode[i] & KEY_MAX, input->keybit);
-
 	__clear_bit(KEY_RESERVED, input->keybit);
 
 	error = input_register_device(input);
-
 	if (error) {
 		printk(KERN_ERR DRV_NAME
 			": Unable to register input device (%d)\n", error);
@@ -318,14 +311,12 @@ static int __devinit bfin_kpad_probe(struct platform_device *pdev)
 				(((pdata->rows - 1) << 10) & KPAD_ROWEN) |
 				(2 & KPAD_IRQMODE));
 
-
 	bfin_write_KPAD_CTL(bfin_read_KPAD_CTL() | KPAD_EN);
 
 	printk(KERN_ERR DRV_NAME
 		": Blackfin BF54x Keypad registered IRQ %d\n", bf54x_kpad->irq);
 
 	return 0;
-
 
 out4:
 	input_free_device(input);
@@ -349,14 +340,13 @@ static int __devexit bfin_kpad_remove(struct platform_device *pdev)
 	struct bfin_kpad_platform_data *pdata = pdev->dev.platform_data;
 	struct bf54x_kpad *bf54x_kpad = platform_get_drvdata(pdev);
 
-
 	del_timer_sync(&bf54x_kpad->timer);
 	free_irq(bf54x_kpad->irq, pdev);
 
+	input_unregister_device(bf54x_kpad->input);
+
 	peripheral_free_list((u16 *)&per_rows[MAX_RC - pdata->rows]);
 	peripheral_free_list((u16 *)&per_cols[MAX_RC - pdata->cols]);
-
-	input_unregister_device(bf54x_kpad->input);
 
 	kfree(bf54x_kpad->keycode);
 	kfree(bf54x_kpad);
