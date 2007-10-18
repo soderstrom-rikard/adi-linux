@@ -14,3 +14,4 @@ obj-$(CONFIG_BFIN_DMA_5XX)           += bfin_dma_5xx.o
 obj-$(CONFIG_DUAL_CORE_TEST_MODULE)  += dualcore_test.o
 obj-$(CONFIG_KGDB)                   += kgdb.o
 obj-$(CONFIG_EARLY_PRINTK)           += early_printk.o
+obj-$(CONFIG_DEBUG_MMRS)             += debug-mmrs.o
