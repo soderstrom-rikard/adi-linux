@@ -171,7 +171,7 @@ static int sport_stop(struct sport_device *sport)
 
 static inline int sport_hook_rx_dummy(struct sport_device *sport)
 {
-	struct dmasg *desc, temp_desc;
+	struct dmasg *desc;
 	unsigned long flags;
 
 	BUG_ON(sport->dummy_rx_desc == NULL);
@@ -183,10 +183,6 @@ static inline int sport_hook_rx_dummy(struct sport_device *sport)
 
 	local_irq_save(flags);
 	desc = (struct dmasg *)get_dma_next_desc_ptr(sport->dma_rx_chan);
-	/* Copy the descriptor which will be damaged to backup */
-	temp_desc = *desc;
-	desc->x_count = 0x10;
-	desc->y_count = 0;
 	desc->next_desc_addr = (unsigned long)(sport->dummy_rx_desc);
 	local_irq_restore(flags);
 	/* Waiting for dummy buffer descriptor is already hooked*/
@@ -194,8 +190,6 @@ static inline int sport_hook_rx_dummy(struct sport_device *sport)
 			sizeof(struct dmasg)) != \
 			(unsigned long)sport->dummy_rx_desc) {}
 	sport->curr_rx_desc = sport->dummy_rx_desc;
-	/* Restore the damaged descriptor */
-	*desc = temp_desc;
 
 	return 0;
 }
@@ -292,7 +286,7 @@ int sport_rx_stop(struct sport_device *sport)
 
 static inline int sport_hook_tx_dummy(struct sport_device *sport)
 {
-	struct dmasg *desc, temp_desc;
+	struct dmasg *desc;
 	unsigned long flags;
 
 	BUG_ON(sport->dummy_tx_desc == NULL);
@@ -304,10 +298,6 @@ static inline int sport_hook_tx_dummy(struct sport_device *sport)
 	/* Shorten the time on last normal descriptor */
 	local_irq_save(flags);
 	desc = (struct dmasg *)get_dma_next_desc_ptr(sport->dma_tx_chan);
-	/* Store the descriptor which will be damaged */
-	temp_desc = *desc;
-	desc->x_count = 0x10;
-	desc->y_count = 0;
 	desc->next_desc_addr = (unsigned long)(sport->dummy_tx_desc);
 	local_irq_restore(flags);
 	/* Waiting for dummy buffer descriptor is already hooked*/
@@ -315,8 +305,6 @@ static inline int sport_hook_tx_dummy(struct sport_device *sport)
 			sizeof(struct dmasg)) != \
 			(unsigned long)sport->dummy_tx_desc) {}
 	sport->curr_tx_desc = sport->dummy_tx_desc;
-	/* Restore the damaged descriptor */
-	*desc = temp_desc;
 
 	return 0;
 }
