@@ -523,7 +523,7 @@ export KBUILD_IMAGE ?= vmlinux
 #
 # INSTALL_PATH specifies where to place the updated kernel and system map
 # images. Default is /boot, but you can set it to other values
-export	INSTALL_PATH ?= /boot
+export	INSTALL_PATH ?= /tftpboot
 
 #
 # INSTALL_MOD_PATH specifies a prefix to MODLIB for module directory
