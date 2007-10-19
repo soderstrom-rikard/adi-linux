@@ -50,7 +50,7 @@
 #include <asm/cacheflush.h>
 #include <asm/portmux.h>
 
-#include <asm/bf5xx_timers.h>
+#include <asm/gptimers.h>
 
 #include "bfin_ppi.h"
 

@@ -62,7 +62,6 @@ obj-$(CONFIG_SPI_ADC_BF533) += bfin_spi_adc.o
 obj-$(CONFIG_BFIN_TIMER_LATENCY) += bfin_timer_latency.o
 obj-$(CONFIG_BF5xx_PFLAGS) += bfin_pflags.o
 obj-$(CONFIG_BF5xx_PPIFCD) += bfin_ppifcd.o
-obj-$(CONFIG_BF5xx_TIMERS)       += bf5xx_timers.o
 obj-$(CONFIG_BFIN_SIMPLE_TIMER)  += bfin_simple_timer.o
 obj-$(CONFIG_BF5xx_PPI)          += bfin_ppi.o
 obj-$(CONFIG_BFIN_SPORT)  += bfin_sport.o

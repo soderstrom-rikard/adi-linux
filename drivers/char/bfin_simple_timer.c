@@ -41,7 +41,7 @@
 #include <linux/proc_fs.h>
 #include <linux/interrupt.h>
 #include <linux/device.h>
-#include <asm/bf5xx_timers.h>
+#include <asm/gptimers.h>
 #include <asm/irq.h>
 #include <asm/bfin_simple_timer.h>
 #include <asm/bfin-global.h>
@@ -127,7 +127,8 @@ static int timer_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigne
 	return 0;
 }
 
-static irqreturn_t timer_isr(int irq, void *dev_id, struct pt_regs *regs){
+static irqreturn_t timer_isr(int irq, void *dev_id)
+{
 	int minor = (int)dev_id;
 #if (MAX_BLACKFIN_GPTIMERS > 8)
 	int octet = BFIN_TIMER_OCTET(minor);
@@ -152,7 +153,7 @@ static int timer_open(struct inode *inode, struct file *filp){
 	if(!sysclk)
 	  sysclk = get_sclk();
 	if (minor >= MAX_BLACKFIN_GPTIMERS) return -ENODEV;
-	err = request_irq(timer_code[minor].irq, (void*)timer_isr, IRQF_DISABLED, DRV_NAME, (void*)minor);
+	err = request_irq(timer_code[minor].irq, timer_isr, IRQF_DISABLED, DRV_NAME, (void *)minor);
 	if (err < 0){
 		printk(KERN_ERR "request_irq(%d) failed\n", timer_code[minor].irq);
 		return err;
