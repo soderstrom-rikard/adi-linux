@@ -279,6 +279,9 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd,
 
 			pdev->ppi_trigger_gpio = (unsigned short)arg;
 
+			if (pdev->ppi_trigger_gpio == NO_TRIGGER) {
+				break;
+			}
 			if (gpio_request(pdev->ppi_trigger_gpio, PPI_DEVNAME)) {
 				printk(KERN_ERR"Requesting GPIO %d faild\n",
 						pdev->ppi_trigger_gpio);
