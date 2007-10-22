@@ -41,7 +41,7 @@ config MTD_NAND_BFIN
 	tristate "NAND Flash device for BF537 STAMP board"
 	depends on BFIN && MTD_NAND && MTD_PARTITIONS
 	help
-	  This enables the driver for the NAND flash ST-NAND123W3A 
+	  This enables the driver for the NAND flash ST-NAND123W3A
 	  for Blackfin Processors
 
 config BFIN_NAND_BASE
@@ -54,7 +54,7 @@ config BFIN_NAND_BASE
 config BFIN_NAND_CLE
 	int "NAND Flash Command Latch Enable (CLE) Address strobe A[x]"
 	depends on MTD_NAND_BFIN
-	range 1 19 
+	range 1 19
 	default 2
 	help
 	  NAND Flash Command Latch Enable (CLE) Address strobe A[x]
@@ -70,7 +70,7 @@ config BFIN_NAND_ALE
 config BFIN_NAND_READY
 	int "NAND Flash Ready Strobe PF[x]"
 	depends on MTD_NAND_BFIN
-	range 0 15 if (BF533 || BF532 || BF531) 
+	range 0 15 if (BF533 || BF532 || BF531)
 	range 0 47 if (BF534 || BF536 || BF537)
 	range 0 47 if BF561
 	default 3
@@ -133,7 +133,7 @@ config MTD_NAND_AU1550
 
 config MTD_NAND_BF5XX
 	tristate "Blackfin on-chip NAND Flash Controller driver"
-	depends on BF54x && MTD_NAND
+	depends on (BF54x || BF52x) && MTD_NAND
 	help
 	  This enables the Blackfin on-chip NAND flash controller
 
