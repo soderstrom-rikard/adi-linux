@@ -52,6 +52,10 @@
  *	  01-Jul-2005   Ben Dooks <ben@simtec.co.uk>
  *			* fixed spinlock call without pointer
  *			* ensure spinlock is initialised
+
+	  21-Oct-2007 	Javier Herrero <jherrero@hvsistemas.es>
+			* Some modifications for use with Blackfin,
+			  tested in HV Sistemas H8606 board
  */
 
 #include <linux/module.h>
@@ -66,6 +70,7 @@
 #include <linux/dm9000.h>
 #include <linux/delay.h>
 #include <linux/platform_device.h>
+#include <linux/irq.h>
 
 #include <asm/delay.h>
 #include <asm/irq.h>
@@ -111,9 +116,15 @@
 #define writesb	outsb
 #define writesw	outsw
 #define writesl	outsl
+#define IRQT_HIGH (1<<3)
 #define DM9000_IRQ_FLAGS	(IRQF_SHARED | IRQF_TRIGGER_HIGH)
 #else
 #define DM9000_IRQ_FLAGS	IRQF_SHARED
+#endif
+
+#ifdef	CONFIG_BLKFIN_DCACHE
+#undef	outw
+#define outw(x, addr)	({ (void)writew(x, addr); SSYNC(); })
 #endif
 
 /*
@@ -129,6 +140,10 @@ typedef struct board_info {
 	void __iomem *io_addr;	/* Register I/O base address */
 	void __iomem *io_data;	/* Data I/O address */
 	u16 irq;		/* IRQ */
+
+#ifdef	CONFIG_BFIN
+	u16 irq2;		/* IRQ */
+#endif
 
 	u16 tx_pkt_cnt;
 	u16 queue_pkt_len;
@@ -427,10 +442,8 @@ dm9000_probe(struct platform_device *pdev)
 
 	spin_lock_init(&db->lock);
 
-	if (pdev->num_resources < 2) {
-		ret = -ENODEV;
-		goto out;
-	} else if (pdev->num_resources == 2) {
+	switch (pdev->num_resources) {
+	case 2:
 		base = pdev->resource[0].start;
 
 		if (!request_mem_region(base, 4, ndev->name)) {
@@ -440,19 +453,22 @@ dm9000_probe(struct platform_device *pdev)
 
 		ndev->base_addr = base;
 		ndev->irq = pdev->resource[1].start;
-		db->io_addr = (void __iomem *)base;
-		db->io_data = (void __iomem *)(base + 4);
+		db->io_addr = (void *)base;
+		db->io_data = (void *)(base + 4);
 
-		/* ensure at least we have a default set of IO routines */
-		dm9000_set_io(db, 2);
+		break;
 
-	} else {
+	case 3:
+#ifdef	CONFIG_BFIN
+	case 4:
+		db->irq_res  = platform_get_resource(pdev, IORESOURCE_IRQ, 1);
+		db->irq2     = db->irq_res->start;
+#endif
 		db->addr_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 		db->data_res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
 		db->irq_res  = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 
-		if (db->addr_res == NULL || db->data_res == NULL ||
-		    db->irq_res == NULL) {
+		if (db->addr_res == NULL || db->data_res == NULL) {
 			printk(KERN_ERR PFX "insufficient resources\n");
 			ret = -ENOENT;
 			goto out;
@@ -501,7 +517,85 @@ dm9000_probe(struct platform_device *pdev)
 
 		/* ensure at least we have a default set of IO routines */
 		dm9000_set_io(db, iosize);
+
 	}
+
+
+/*	if (pdev->num_resources < 2) {
+		ret = -ENODEV;
+		goto out;
+	} else if (pdev->num_resources == 2) {
+		base = pdev->resource[0].start;
+
+		if (!request_mem_region(base, 4, ndev->name)) {
+			ret = -EBUSY;
+			goto out;
+		}
+
+		ndev->base_addr = base;
+		ndev->irq = pdev->resource[1].start;
+		db->io_addr = (void __iomem *)base;
+		db->io_data = (void __iomem *)(base + 4);*/
+
+		/* ensure at least we have a default set of IO routines */
+/*		dm9000_set_io(db, 2);
+
+	} else {
+		db->addr_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+		db->data_res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+		db->irq_res  = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+
+		if (db->addr_res == NULL || db->data_res == NULL ||
+		    db->irq_res == NULL) {
+			printk(KERN_ERR PFX "insufficient resources\n");
+			ret = -ENOENT;
+			goto out;
+		}
+
+		i = res_size(db->addr_res);
+		db->addr_req = request_mem_region(db->addr_res->start, i,
+						  pdev->name);
+
+		if (db->addr_req == NULL) {
+			printk(KERN_ERR PFX "cannot claim address reg area\n");
+			ret = -EIO;
+			goto out;
+		}
+
+		db->io_addr = ioremap(db->addr_res->start, i);
+
+		if (db->io_addr == NULL) {
+			printk(KERN_ERR "failed to ioremap address reg\n");
+			ret = -EINVAL;
+			goto out;
+		}
+
+		iosize = res_size(db->data_res);
+		db->data_req = request_mem_region(db->data_res->start, iosize,
+						  pdev->name);
+
+		if (db->data_req == NULL) {
+			printk(KERN_ERR PFX "cannot claim data reg area\n");
+			ret = -EIO;
+			goto out;
+		}
+
+		db->io_data = ioremap(db->data_res->start, iosize);
+
+		if (db->io_data == NULL) {
+			printk(KERN_ERR "failed to ioremap data reg\n");
+			ret = -EINVAL;
+			goto out;
+		}*/
+
+		/* fill in parameters for net-dev structure */
+
+/*		ndev->base_addr = (unsigned long)db->io_addr;
+		ndev->irq	= db->irq_res->start;*/
+
+		/* ensure at least we have a default set of IO routines */
+/*		dm9000_set_io(db, iosize);
+	}*/
 
 	/* check to see if anything is being over-ridden */
 	if (pdata != NULL) {
@@ -629,6 +723,36 @@ dm9000_open(struct net_device *dev)
 
 	PRINTK2("entering dm9000_open\n");
 
+#ifdef CONFIG_BFIN
+#if !defined(CONFIG_IRQCHIP_DEMUX_GPIO)
+#define	LAN_FIO_PATTERN		(1 << (db->irq2 - IRQ_PF0))
+	CSYNC();
+
+	bfin_write_FIO_MASKB_C(LAN_FIO_PATTERN);
+
+	SSYNC();
+
+	bfin_write_FIO_POLAR(bfin_read_FIO_POLAR() & ~LAN_FIO_PATTERN);
+	bfin_write_FIO_EDGE (bfin_read_FIO_EDGE()  & ~LAN_FIO_PATTERN);
+	bfin_write_FIO_BOTH (bfin_read_FIO_BOTH()  & ~LAN_FIO_PATTERN);
+
+	bfin_write_FIO_DIR  (bfin_read_FIO_DIR()   & ~LAN_FIO_PATTERN);
+	bfin_write_FIO_FLAG_C			 (LAN_FIO_PATTERN);
+	bfin_write_FIO_INEN (bfin_read_FIO_INEN()  |  LAN_FIO_PATTERN);
+
+	SSYNC();
+
+	bfin_write_FIO_MASKB_S(LAN_FIO_PATTERN);
+#else
+#ifdef	CONFIG_IRQCHIP_DEMUX_GPIO
+	dev->irq = db->irq = db->irq2;
+#else
+	db->irq = dev->irq;
+#endif
+	set_irq_type(dev->irq, IRQT_HIGH);
+#endif
+#endif
+
 	if (request_irq(dev->irq, &dm9000_interrupt, DM9000_IRQ_FLAGS, dev->name, dev))
 		return -EAGAIN;
 
@@ -691,6 +815,7 @@ dm9000_init_dm9000(struct net_device *dev)
 	db->tx_pkt_cnt = 0;
 	db->queue_pkt_len = 0;
 	dev->trans_start = 0;
+	spin_lock_init(&db->lock);
 }
 
 /*
@@ -715,7 +840,12 @@ dm9000_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	/* Move data to DM9000 TX RAM */
 	writeb(DM9000_MWCMD, db->io_addr);
 
+#ifdef CONFIG_BLACKFIN
+	{ int i, len = ((skb->len + 1) >> 1);
+	for (i = 0; i < len; i++) outw(((u16 *)skb->data)[i], db->io_data); }
+#else
 	(db->outblk)(db->io_data, skb->data, skb->len);
+#endif
 	db->stats.tx_bytes += skb->len;
 
 	/* TX control: First packet immediately send, second packet queue */
@@ -832,6 +962,11 @@ dm9000_interrupt(int irq, void *dev_id)
 
 	/* A real interrupt coming */
 	db = (board_info_t *) dev->priv;
+
+#if	defined(CONFIG_BFIN) && !defined(CONFIG_IRQCHIP_DEMUX_GPIO)
+    if (!(bfin_read_FIO_FLAG_D() & LAN_FIO_PATTERN)) return IRQ_NONE;
+#endif
+
 	spin_lock(&db->lock);
 
 	/* Save previous register address */
@@ -933,7 +1068,12 @@ dm9000_rx(struct net_device *dev)
 		GoodPacket = true;
 		writeb(DM9000_MRCMD, db->io_addr);
 
+#ifdef CONFIG_BFIN
+		rxhdr.RxStatus = inw(db->io_data);
+		rxhdr.RxLen    = inw(db->io_data);
+#else
 		(db->inblk)(db->io_data, &rxhdr, sizeof(rxhdr));
+#endif
 
 		RxLen = rxhdr.RxLen;
 
@@ -971,7 +1111,13 @@ dm9000_rx(struct net_device *dev)
 
 			/* Read received packet from RX SRAM */
 
+#ifdef CONFIG_BFIN
+			{ int i, len = ((RxLen + 1) >> 1);
+			for (i = 0; i < len; i++)
+			    ((u16 *)rdptr)[i] = inw(db->io_data); }
+#else
 			(db->inblk)(db->io_data, rdptr, RxLen);
+#endif
 			db->stats.rx_bytes += RxLen;
 
 			/* Pass to upper layer */
