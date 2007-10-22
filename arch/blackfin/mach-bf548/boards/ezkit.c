@@ -568,7 +568,7 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #endif
 
 #if defined(CONFIG_I2C_BLACKFIN_TWI) || defined(CONFIG_I2C_BLACKFIN_TWI_MODULE)
-	&i2c_bfin_twi0_device,
+/*	&i2c_bfin_twi0_device, */
 	&i2c_bfin_twi1_device,
 #endif
 };
