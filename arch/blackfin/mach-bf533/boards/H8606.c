@@ -61,30 +61,16 @@ static struct platform_device rtc_device = {
  */
  #if	defined(CONFIG_DM9000) || defined(CONFIG_DM9000_MODULE)
 static struct resource dm9000_resources[] = {
-    [0] = {
-	.start		= 0x20300000,
-	.end		= 0x20300000,
-	.flags		= IORESOURCE_MEM,
-    },
-    [1] = {
-	.start		= IRQ_PROG_INTB,
-	.end		= IRQ_PROG_INTB,
-	.flags		= IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL,
-    },
-    [2] = {
-	    /*
-	    *  denotes the flag pin and is used directly if
-	    *  CONFIG_IRQCHIP_DEMUX_GPIO is defined.
-	    */
-	.start		= IRQ_PF10,
-	.end		= IRQ_PF10,
-	.flags		= IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL,
-    },
-    [3] = {
-	.start		= 0x20300004,
-	.end		= 0x20300004,
-	.flags		= IORESOURCE_MEM,
-    },
+	[0] = {
+		.start	= 0x20300000,
+		.end	= 0x20300000 + 8,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= IRQ_PF10,
+		.end	= IRQ_PF10,
+		.flags	= (IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHEDGE),
+	},
 };
 
 static struct platform_device dm9000_device = {
