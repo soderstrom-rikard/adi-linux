@@ -136,7 +136,6 @@ static void printk_address(unsigned long address)
 
 done:
 	write_unlock_irqrestore(&tasklist_lock, flags);
-	return;
 }
 #endif
 
