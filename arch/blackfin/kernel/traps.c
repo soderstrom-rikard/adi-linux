@@ -65,8 +65,7 @@ void __init trap_init(void)
 
 int kstack_depth_to_print = 48;
 
-#ifdef CONFIG_DEBUG_BFIN_HWTRACE_ON
-static void printk_address(unsigned long address)
+static void decode_address(char *buf, unsigned long address)
 {
 	struct vm_list_struct *vml;
 	struct task_struct *p;
@@ -88,13 +87,19 @@ static void printk_address(unsigned long address)
 		/* yeah! kernel space! */
 		if (!modname)
 			modname = delim = "";
-		printk("<0x%p> { %s%s%s%s + 0x%lx }",
+		sprintf(buf, "<0x%p> { %s%s%s%s + 0x%lx }",
 		              (void *)address, delim, modname, delim, symname,
 		              (unsigned long)offset);
 		return;
 
 	}
 #endif
+
+	/* Maybe null pointer? */
+	if (address < 1024) {
+		sprintf(buf, "<0x%p> /* Looks like Null? */", (void *)address);
+		return;
+	}
 
 	/* looks like we're off in user-land, so let's walk all the
 	 * mappings of all our processes and see if we can't be a whee
@@ -131,7 +136,7 @@ static void printk_address(unsigned long address)
 				else
 					offset = (address - vma->vm_start) + (vma->vm_pgoff << PAGE_SHIFT);
 
-				printk("<0x%p> [ %s + 0x%lx ]",
+				sprintf(buf, "<0x%p> [ %s + 0x%lx ]",
 					(void *)address, name, offset);
 				if (!in_exception)
 					mmput(mm);
@@ -145,12 +150,11 @@ static void printk_address(unsigned long address)
 	}
 
 	/* we were unable to find this address anywhere */
-	printk("[<0x%p>]", (void *)address);
+	sprintf(buf, "[<0x%p>]", (void *)address);
 
 done:
 	write_unlock_irqrestore(&tasklist_lock, flags);
 }
-#endif
 
 asmlinkage void double_fault_c(struct pt_regs *fp)
 {
@@ -451,6 +455,7 @@ void dump_bfin_trace_buffer(void)
 {
 #ifdef CONFIG_DEBUG_BFIN_HWTRACE_ON
 	int tflags, i = 0;
+	char buf[150];
 #ifdef CONFIG_DEBUG_BFIN_HWTRACE_EXPAND
 	int j, index;
 #endif
@@ -461,11 +466,10 @@ void dump_bfin_trace_buffer(void)
 
 	if (likely(bfin_read_TBUFSTAT() & TBUFCNT)) {
 		for (; bfin_read_TBUFSTAT() & TBUFCNT; i++) {
-			printk(KERN_EMERG "%4i Target : ", i);
-			printk_address((unsigned long)bfin_read_TBUF());
-			printk("\n" KERN_EMERG "     Source : ");
-			printk_address((unsigned long)bfin_read_TBUF());
-			printk("\n");
+			decode_address(buf, (unsigned long)bfin_read_TBUF());
+			printk(KERN_EMERG "%4i Target : %s\n", i, buf);
+			decode_address(buf, (unsigned long)bfin_read_TBUF());
+			printk(KERN_EMERG "     Source : %s\n", buf);
 		}
 	}
 
@@ -477,17 +481,16 @@ void dump_bfin_trace_buffer(void)
 
 	j = (1 << CONFIG_DEBUG_BFIN_HWTRACE_EXPAND_LEN) * 128;
 	while (j) {
-		printk(KERN_EMERG "%4i Target : ", i);
-		printk_address(software_trace_buff[index]);
+		decode_address(buf, software_trace_buff[index]);
+		printk(KERN_EMERG "%4i Target : %s\n", i, buf);
 		index -= 1;
 		if (index < 0 )
 			index = EXPAND_LEN;
-		printk("\n" KERN_EMERG "     Source : ");
-		printk_address(software_trace_buff[index]);
+		decode_address(buf, software_trace_buff[index]);
+		printk(KERN_EMERG "     Source : %s\n", buf);
 		index -= 1;
 		if (index < 0)
 			index = EXPAND_LEN;
-		printk("\n");
 		j--;
 		i++;
 	}
@@ -571,6 +574,8 @@ EXPORT_SYMBOL(dump_stack);
 
 void dump_bfin_regs(struct pt_regs *fp, void *retaddr)
 {
+	char buf [150];
+
 	if (current->pid) {
 		printk(KERN_EMERG "\n" KERN_EMERG "CURRENT PROCESS:\n"
 			KERN_EMERG "\n");
@@ -674,10 +679,10 @@ void dump_bfin_regs(struct pt_regs *fp, void *retaddr)
 	printk(KERN_EMERG "\n" KERN_EMERG "USP: %08lx   ASTAT: %08lx\n",
 		rdusp(), fp->astat);
 	if ((long)fp->seqstat & SEQSTAT_EXCAUSE) {
-		printk(KERN_EMERG "DCPLB_FAULT_ADDR=%p\n",
-			(void *)bfin_read_DCPLB_FAULT_ADDR());
-		printk(KERN_EMERG "ICPLB_FAULT_ADDR=%p\n",
-			(void *)bfin_read_ICPLB_FAULT_ADDR());
+		decode_address(buf, bfin_read_DCPLB_FAULT_ADDR());
+		printk(KERN_EMERG "DCPLB_FAULT_ADDR: %s\n", buf);
+		decode_address(buf, bfin_read_ICPLB_FAULT_ADDR());
+		printk(KERN_EMERG "ICPLB_FAULT_ADDR: %s\n", buf);
 	}
 
 	printk("\n\n");
