@@ -36,6 +36,7 @@
 #include <asm/blackfin.h>
 #include <asm/irq_handler.h>
 #include <asm/trace.h>
+#include <asm/fixed_code.h>
 
 #ifdef CONFIG_KGDB
 # include <linux/debugger.h>
@@ -96,7 +97,7 @@ static void decode_address(char *buf, unsigned long address)
 #endif
 
 	/* Maybe null pointer? */
-	if (address < 1024) {
+	if (address < (FIXED_CODE_START - 1)) {
 		sprintf(buf, "<0x%p> /* Looks like Null? */", (void *)address);
 		return;
 	}
