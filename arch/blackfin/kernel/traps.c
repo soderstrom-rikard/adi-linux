@@ -96,9 +96,15 @@ static void decode_address(char *buf, unsigned long address)
 	}
 #endif
 
-	/* Maybe null pointer? */
-	if (address < (FIXED_CODE_START - 1)) {
-		sprintf(buf, "<0x%p> /* Looks like Null? */", (void *)address);
+	/* Problem in fixed code section? */
+	if (address >= FIXED_CODE_START && address <= FIXED_CODE_END) {
+		sprintf(buf, "<0x%p> /* Maybe fixed code section */", (void *)address);
+		return;
+	}
+
+	/* Problem somewhere before the kernel start address */
+	if (address < CONFIG_BOOT_LOAD) {
+		sprintf(buf, "<0x%p> /* Maybe null pointer? */", (void *)address);
 		return;
 	}
 
