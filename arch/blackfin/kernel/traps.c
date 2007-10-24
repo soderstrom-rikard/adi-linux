@@ -40,6 +40,19 @@
 #ifdef CONFIG_KGDB
 # include <linux/debugger.h>
 # include <linux/kgdb.h>
+
+# define CHK_DEBUGGER_TRAP() \
+	do { \
+		CHK_DEBUGGER(trapnr, sig, info.si_code, fp, ); \
+	} while (0)
+# define CHK_DEBUGGER_TRAP_MAYBE() \
+	do { \
+		if (kgdb_connected) \
+			CHK_DEBUGGER_TRAP(); \
+	} while (0)
+#else
+# define CHK_DEBUGGER_TRAP() do { } while (0)
+# define CHK_DEBUGGER_TRAP_MAYBE() do { } while (0)
 #endif
 
 /* Initiate the event table handler */
@@ -155,21 +168,6 @@ asmlinkage void trap_c(struct pt_regs *fp)
 	int sig = 0;
 	siginfo_t info;
 	unsigned long trapnr = fp->seqstat & SEQSTAT_EXCAUSE;
-
-#ifdef CONFIG_KGDB
-# define CHK_DEBUGGER_TRAP() \
-	do { \
-		CHK_DEBUGGER(trapnr, sig, info.si_code, fp, ); \
-	} while (0)
-# define CHK_DEBUGGER_TRAP_MAYBE() \
-	do { \
-		if (kgdb_connected) \
-			CHK_DEBUGGER_TRAP(); \
-	} while (0)
-#else
-# define CHK_DEBUGGER_TRAP() do { } while (0)
-# define CHK_DEBUGGER_TRAP_MAYBE() do { } while (0)
-#endif
 
 	trace_buffer_save(j);
 
