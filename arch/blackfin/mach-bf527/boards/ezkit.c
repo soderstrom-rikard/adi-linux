@@ -104,6 +104,26 @@ void __exit bfin_isp1761_exit(void)
 arch_initcall(bfin_isp1761_init);
 #endif
 
+#if defined(CONFIG_FB_BF52X_T350MCQB) || defined(CONFIG_FB_BF52X_T350MCQB_MODULE)
+
+#include <asm/mach/bf52x-t350mcqb.h>
+
+static struct resource bf52x_t350mcqb_resources[] = {
+	{
+		.start = IRQ_PPI_ERROR,
+		.end = IRQ_PPI_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bf52x_t350mcqb_device = {
+	.name		= "bfin-t350mcqb",
+	.id		= -1,
+	.num_resources 	= ARRAY_SIZE(bf52x_t350mcqb_resources),
+	.resource 	= bf52x_t350mcqb_resources,
+};
+#endif
+
 #if defined(CONFIG_MTD_NAND_BF5XX) || defined(CONFIG_MTD_NAND_BF5XX_MODULE)
 static struct mtd_partition partition_info[] = {
 	{
@@ -741,6 +761,10 @@ static struct platform_device *stamp_devices[] __initdata = {
 
 #if defined(CONFIG_FB_BF537_LQ035) || defined(CONFIG_FB_BF537_LQ035_MODULE)
 	&bfin_fb_device,
+#endif
+
+#if defined(CONFIG_FB_BF52X_T350MCQB) || defined(CONFIG_FB_BF52X_T350MCQB_MODULE)
+	&bf52x_t350mcqb_device,
 #endif
 
 #if defined(CONFIG_FB_BFIN_7393) || defined(CONFIG_FB_BFIN_7393_MODULE)
