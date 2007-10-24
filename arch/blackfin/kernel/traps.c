@@ -182,6 +182,28 @@ asmlinkage void trap_c(struct pt_regs *fp)
 
 	trace_buffer_save(j);
 
+	/* Important - be very careful dereferncing pointers - will lead to
+	 * double faults if the stack has become corrupt
+	 */
+
+	/* If the fault was caused by a kernel thread, or interrupt handler
+	 * we will kernel panic, so the system reboots.
+	 * If KGDB is enabled, don't set this for kernel breakpoints
+	*/
+	if ((bfin_read_IPEND() & 0xFFC0)
+#ifdef CONFIG_KGDB
+		&& trapnr != VEC_EXCPT02
+#endif
+	){
+		console_verbose();
+		oops_in_progress = 1;
+	} else if (current) {
+		if (current->mm == NULL) {
+			console_verbose();
+			oops_in_progress = 1;
+		}
+	}
+
 	/* trap_c() will be called for exceptions. During exceptions
 	 * processing, the pc value should be set with retx value.
 	 * With this change we can cleanup some code in signal.c- TODO
@@ -423,7 +445,7 @@ asmlinkage void trap_c(struct pt_regs *fp)
 		dump_bfin_regs(fp, (void *)fp->retx);
 		dump_bfin_trace_buffer();
 		show_stack(current, &stack);
-		if (current->mm == NULL)
+		if (oops_in_progress)
 			panic("Kernel exception");
 	}
 	info.si_signo = sig;
@@ -583,29 +605,31 @@ void dump_bfin_regs(struct pt_regs *fp, void *retaddr)
 {
 	char buf [150];
 
-	if (current->pid) {
-		printk(KERN_EMERG "\n" KERN_EMERG "CURRENT PROCESS:\n"
-			KERN_EMERG "\n");
-		printk(KERN_EMERG "COMM=%s PID=%d\n",
-			current->comm, current->pid);
-	} else {
-		printk
-		    (KERN_EMERG "\n" KERN_EMERG
-		     "No Valid pid - Either things are really messed up,"
-		     " or you are in the kernel\n");
-	}
+	if (!oops_in_progress) {
+		if (current->pid && current->mm) {
+			printk(KERN_EMERG "\n" KERN_EMERG "CURRENT PROCESS:\n"
+				KERN_EMERG "\n");
+			printk(KERN_EMERG "COMM=%s PID=%d\n",
+				current->comm, current->pid);
 
-	if (current->mm) {
-		printk(KERN_EMERG "TEXT = 0x%p-0x%p  DATA = 0x%p-0x%p\n"
-		       KERN_EMERG "BSS = 0x%p-0x%p   USER-STACK = 0x%p\n"
-		       KERN_EMERG "\n",
-		       (void *)current->mm->start_code,
-		       (void *)current->mm->end_code,
-		       (void *)current->mm->start_data,
-		       (void *)current->mm->end_data,
-		       (void *)current->mm->end_data,
-		       (void *)current->mm->brk,
-		       (void *)current->mm->start_stack);
+			printk(KERN_EMERG "TEXT = 0x%p-0x%p  DATA = 0x%p-0x%p\n"
+				KERN_EMERG "BSS = 0x%p-0x%p   USER-STACK = 0x%p\n"
+				KERN_EMERG "\n",
+				(void *)current->mm->start_code,
+				(void *)current->mm->end_code,
+				(void *)current->mm->start_data,
+				(void *)current->mm->end_data,
+				(void *)current->mm->end_data,
+				(void *)current->mm->brk,
+				(void *)current->mm->start_stack);
+		} else {
+			printk
+			    (KERN_EMERG "\n" KERN_EMERG
+			     "No Valid pid - Either things are really messed up,"
+			     " or you are in the kernel\n");
+		}
+	} else {
+		printk(KERN_EMERG "Kernel or interrupt fault\n");
 	}
 
 	printk(KERN_EMERG "return address: [0x%p]; contents of:", retaddr);
