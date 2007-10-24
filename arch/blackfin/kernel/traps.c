@@ -97,7 +97,7 @@ static void decode_address(char *buf, unsigned long address)
 #endif
 
 	/* Problem in fixed code section? */
-	if (address >= FIXED_CODE_START && address <= FIXED_CODE_END) {
+	if (address >= FIXED_CODE_START && address < FIXED_CODE_END) {
 		sprintf(buf, "<0x%p> /* Maybe fixed code section */", (void *)address);
 		return;
 	}
