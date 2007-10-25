@@ -104,9 +104,7 @@ void __exit bfin_isp1761_exit(void)
 arch_initcall(bfin_isp1761_init);
 #endif
 
-#if defined(CONFIG_FB_BF52X_T350MCQB) || defined(CONFIG_FB_BF52X_T350MCQB_MODULE)
-
-#include <asm/mach/bf52x-t350mcqb.h>
+#if defined(CONFIG_FB_BFIN_T350MCQB) || defined(CONFIG_FB_BFIN_T350MCQB_MODULE)
 
 static struct resource bf52x_t350mcqb_resources[] = {
 	{
@@ -763,7 +761,7 @@ static struct platform_device *stamp_devices[] __initdata = {
 	&bfin_fb_device,
 #endif
 
-#if defined(CONFIG_FB_BF52X_T350MCQB) || defined(CONFIG_FB_BF52X_T350MCQB_MODULE)
+#if defined(CONFIG_FB_BFIN_T350MCQB) || defined(CONFIG_FB_BFIN_T350MCQB_MODULE)
 	&bf52x_t350mcqb_device,
 #endif
 

@@ -32,30 +32,20 @@
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/string.h>
-#include <linux/mm.h>
-#include <linux/tty.h>
-#include <linux/slab.h>
-#include <linux/delay.h>
 #include <linux/fb.h>
-#include <linux/ioport.h>
 #include <linux/init.h>
 #include <linux/types.h>
 #include <linux/interrupt.h>
-#include <linux/sched.h>
-#include <linux/timer.h>
 #include <linux/device.h>
 #include <linux/backlight.h>
 #include <linux/lcd.h>
-#include <linux/spinlock.h>
 #include <linux/dma-mapping.h>
 #include <linux/platform_device.h>
 
 #include <asm/blackfin.h>
 #include <asm/irq.h>
-#include <asm/dpmc.h>
 #include <asm/dma-mapping.h>
 #include <asm/dma.h>
-#include <asm/gpio.h>
 #include <asm/portmux.h>
 #include <asm/gptimers.h>
 
@@ -70,25 +60,24 @@
 
 #define CLOCKS_PER_PIX		3
 
-/* HS and VS timing parameters (all in number of PPI clk ticks) */
+	/*
+	 * HS and VS timing parameters (all in number of PPI clk ticks)
+	 */
+
+#define U_LINE		1				/* Blanking Lines */
+
 #define H_ACTPIX	(LCD_X_RES * CLOCKS_PER_PIX)	/* active horizontal pixel */
 #define H_PERIOD	(408 * CLOCKS_PER_PIX)		/* HS period */
 #define H_PULSE		90				/* HS pulse width */
 #define H_START		204				/* first valid pixel */
 
-#define U_LINE		1				/* Blanking Lines */
-
 #define	V_LINES		(LCD_Y_RES + U_LINE)		/* total vertical lines */
 #define V_PULSE		(3 * H_PERIOD)			/* VS pulse width (1-5 H_PERIODs) */
 #define V_PERIOD	(H_PERIOD * V_LINES)		/* VS period */
 
-
 #define ACTIVE_VIDEO_MEM_OFFSET	(U_LINE * H_ACTPIX)
 
 #define BFIN_LCD_NBR_PALETTE_ENTRIES	256
-
-#define PPI0_8 {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2, P_PPI0_D0, P_PPI0_D1, \
- P_PPI0_D2, P_PPI0_D3, P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, 0}
 
 #define DRIVER_NAME "bfin-t350mcqb"
 static char driver_name[] = DRIVER_NAME;
@@ -120,14 +109,24 @@ static void bfin_t350mcqb_config_ppi(struct bfin_t350mcqbfb_info *fbi)
 	bfin_write_PPI_COUNT(H_ACTPIX-1);
 	bfin_write_PPI_FRAME(V_LINES);
 
-	bfin_write_PPI_CONTROL(PPI_TX_MODE		|	/* output mode , PORT_DIR */
-				PPI_XFER_TYPE_11	|	/* sync mode XFR_TYPE */
-				PPI_PORT_CFG_01		|	/* two frame sync PORT_CFG */
-				PPI_PACK_EN		|	/* packing enabled PACK_EN */
-				PPI_POLS_1);			/* faling edge syncs POLS */
+	bfin_write_PPI_CONTROL(PPI_TX_MODE |	   /* output mode , PORT_DIR */
+				PPI_XFER_TYPE_11 | /* sync mode XFR_TYPE */
+				PPI_PORT_CFG_01 |  /* two frame sync PORT_CFG */
+				PPI_PACK_EN |	   /* packing enabled PACK_EN */
+				PPI_POLS_1);	   /* faling edge syncs POLS */
 }
 
-static void bfin_t350mcqb_start_timers(void) /* CHECK with HW */
+static inline void bfin_t350mcqb_disable_ppi(void)
+{
+	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() & ~PORT_EN);
+}
+
+static inline void bfin_t350mcqb_enable_ppi(void)
+{
+	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
+}
+
+static void bfin_t350mcqb_start_timers(void)
 {
 	unsigned long flags;
 
@@ -137,7 +136,7 @@ static void bfin_t350mcqb_start_timers(void) /* CHECK with HW */
 	local_irq_restore(flags);
 }
 
-static void bfin_t350mcqb_stop_timers(void) /* CHECK with HW */
+static void bfin_t350mcqb_stop_timers(void)
 {
 	disable_gptimers(TIMER0bit | TIMER1bit);
 
@@ -166,7 +165,7 @@ static void bfin_t350mcqb_init_timers(void)
 
 }
 
-static int bfin_t350mcqb_config_dma(struct bfin_t350mcqbfb_info *fbi)
+static void bfin_t350mcqb_config_dma(struct bfin_t350mcqbfb_info *fbi)
 {
 
 	set_dma_config(CH_PPI,
@@ -180,23 +179,23 @@ static int bfin_t350mcqb_config_dma(struct bfin_t350mcqbfb_info *fbi)
 	set_dma_y_modify(CH_PPI, DMA_BUS_SIZE / 8);
 	set_dma_start_addr(CH_PPI, (unsigned long)fbi->fb_buffer);
 
-
-	return 0;
 }
 
 static int bfin_t350mcqb_request_ports(int action)
 {
-
-	u16 ppi0_req_8[] = PPI0_8;
+	u16 ppi0_req_8[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2,
+			    P_PPI0_D0, P_PPI0_D1, P_PPI0_D2,
+			    P_PPI0_D3, P_PPI0_D4, P_PPI0_D5,
+			    P_PPI0_D6, P_PPI0_D7, 0};
 
 	if (action) {
 		if (peripheral_request_list(ppi0_req_8, DRIVER_NAME)) {
 			printk(KERN_ERR "Requesting Peripherals faild\n");
 			return -EFAULT;
 		}
-	} else {
+	} else
 		peripheral_free_list(ppi0_req_8);
-	}
+
 	return 0;
 }
 
@@ -209,17 +208,16 @@ static int bfin_t350mcqb_fb_open(struct fb_info *info, int user)
 
 	if (fbi->lq043_open_cnt <= 1) {
 
-		bfin_write_PPI_CONTROL(0);
+		bfin_t350mcqb_disable_ppi();
 		SSYNC();
 
 		bfin_t350mcqb_config_dma(fbi);
 		bfin_t350mcqb_config_ppi(fbi);
-
 		bfin_t350mcqb_init_timers();
 
 		/* start dma */
 		enable_dma(CH_PPI);
-		bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
+		bfin_t350mcqb_enable_ppi();
 		bfin_t350mcqb_start_timers();
 	}
 
@@ -238,8 +236,7 @@ static int bfin_t350mcqb_fb_release(struct fb_info *info, int user)
 	fbi->lq043_mmap = 0;
 
 	if (fbi->lq043_open_cnt <= 0) {
-
-		bfin_write_PPI_CONTROL(0);
+		bfin_t350mcqb_disable_ppi();
 		SSYNC();
 		disable_dma(CH_PPI);
 		bfin_t350mcqb_stop_timers();
@@ -284,7 +281,6 @@ static int bfin_t350mcqb_fb_check_var(struct fb_var_screeninfo *var,
 
 static int bfin_t350mcqb_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 {
-
 	struct bfin_t350mcqbfb_info *fbi = info->par;
 
 	if (fbi->lq043_mmap)
@@ -418,19 +414,18 @@ static struct lcd_device *lcd_dev;
 
 static irqreturn_t bfin_t350mcqb_irq_error(int irq, void *dev_id)
 {
-
 	/*struct bfin_t350mcqbfb_info *info = (struct bfin_t350mcqbfb_info *)dev_id;*/
 
 	u16 status = bfin_read_PPI_STATUS();
 	bfin_write_PPI_STATUS(0xFFFF);
 
 	if (status) {
-		bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() & ~PORT_EN);
+		bfin_t350mcqb_disable_ppi();
 		disable_dma(CH_PPI);
 
 		/* start dma */
 		enable_dma(CH_PPI);
-		bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
+		bfin_t350mcqb_enable_ppi();
 		bfin_write_PPI_STATUS(0xFFFF);
 	}
 
@@ -444,7 +439,7 @@ static int __init bfin_t350mcqb_probe(struct platform_device *pdev)
 	int ret;
 
 	printk(KERN_INFO DRIVER_NAME ": %dx%d %d-bit RGB FrameBuffer initializing...\n",
-					 LCD_X_RES, LCD_X_RES, LCD_BPP);
+					 LCD_X_RES, LCD_Y_RES, LCD_BPP);
 
 	if (request_dma(CH_PPI, "CH_PPI") < 0) {
 		printk(KERN_ERR DRIVER_NAME
@@ -478,27 +473,16 @@ static int __init bfin_t350mcqb_probe(struct platform_device *pdev)
 
 	fbinfo->var.nonstd = 0;
 	fbinfo->var.activate = FB_ACTIVATE_NOW;
-	fbinfo->var.height = LCD_Y_RES;
-	fbinfo->var.width = LCD_X_RES;
+	fbinfo->var.height = -1;
+	fbinfo->var.width = -1;
 	fbinfo->var.accel_flags = 0;
 	fbinfo->var.vmode = FB_VMODE_NONINTERLACED;
-
-	fbinfo->fbops = &bfin_t350mcqb_fb_ops;
-	fbinfo->flags = FBINFO_FLAG_DEFAULT;
 
 	fbinfo->var.xres = LCD_X_RES;
 	fbinfo->var.xres_virtual = LCD_X_RES;
 	fbinfo->var.yres = LCD_Y_RES;
 	fbinfo->var.yres_virtual = LCD_Y_RES;
 	fbinfo->var.bits_per_pixel = LCD_BPP;
-
-	fbinfo->var.upper_margin = 0;
-	fbinfo->var.lower_margin = 0;
-	fbinfo->var.vsync_len = 0;
-
-	fbinfo->var.left_margin = 0;
-	fbinfo->var.right_margin = 0;
-	fbinfo->var.hsync_len = 0;
 
 	fbinfo->var.red.offset = 0;
 	fbinfo->var.green.offset = 8;
@@ -512,6 +496,10 @@ static int __init bfin_t350mcqb_probe(struct platform_device *pdev)
 
 	fbinfo->fix.line_length = fbinfo->var.xres_virtual *
 	    fbinfo->var.bits_per_pixel / 8;
+
+
+	fbinfo->fbops = &bfin_t350mcqb_fb_ops;
+	fbinfo->flags = FBINFO_FLAG_DEFAULT;
 
 	info->fb_buffer =
 	    dma_alloc_coherent(NULL, fbinfo->fix.smem_len, &info->dma_handle,
@@ -646,7 +634,7 @@ static int bfin_t350mcqb_suspend(struct platform_device *pdev, pm_message_t stat
 	struct fb_info *fbinfo = platform_get_drvdata(pdev);
 	struct bfin_t350mcqbfb_info *info = fbinfo->par;
 
-	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() & ~PORT_EN);
+	bfin_t350mcqb_disable_ppi();
 	disable_dma(CH_PPI);
 	bfin_write_PPI_STATUS(0xFFFF);
 
@@ -659,7 +647,7 @@ static int bfin_t350mcqb_resume(struct platform_device *pdev)
 	struct bfin_t350mcqbfb_info *info = fbinfo->par;
 
 	enable_dma(CH_PPI);
-	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
+	bfin_t350mcqb_enable_ppi();
 
 	return 0;
 }
@@ -689,7 +677,7 @@ static void __exit bfin_t350mcqb_driver_cleanup(void)
 	platform_driver_unregister(&bfin_t350mcqb_driver);
 }
 
-MODULE_DESCRIPTION("Blackfin BF54x TFT LCD Driver");
+MODULE_DESCRIPTION("Blackfin TFT LCD Driver");
 MODULE_LICENSE("GPL");
 
 module_init(bfin_t350mcqb_driver_init);

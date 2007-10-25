@@ -639,6 +639,7 @@ config FB_BF54X_LQ043
 config FB_BFIN_T350MCQB
 	tristate "Varitronix COG-T350MCQB TFT LCD display (BF527 EZKIT)"
 	depends on FB && BFIN
+	select BFIN_GPTIMERS
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
