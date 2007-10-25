@@ -446,34 +446,34 @@ asmlinkage void trap_c(struct pt_regs *fp)
 	if (sig != SIGTRAP) {
 		unsigned long stack;
 		dump_bfin_regs(fp, (void *)fp->retx);
-		dump_bfin_trace_buffer();
+
+		/* Print out the trace buffer if it makes sense */
+#ifndef CONFIG_DEBUG_BFIN_NO_KERN_HWTRACE
+		if (trapnr == VEC_CPLB_I_M || trapnr == VEC_CPLB_M)
+			printk(KERN_NOTICE "No trace since you do not have "
+				"CONFIG_DEBUG_BFIN_NO_KERN_HWTRACE enabled\n"
+				KERN_NOTICE "\n");
+		else
+#endif
+			dump_bfin_trace_buffer();
 		show_stack(current, &stack);
-		if (oops_in_progress)
+		if (oops_in_progress) {
+#ifndef CONFIG_ACCESS_CHECK
+			printk(KERN_EMERG "Hey - dork - please turn on "
+				"CONFIG_ACCESS_CHECK\n");
+#endif
 			panic("Kernel exception");
+		}
+
+		/* Ensure that bad return addresses don't end up in an infinite
+		 * loop, due to speculative loads/reads
+		 */
+		fp->pc = SAFE_USER_INSTRUCTION;
 	}
 	info.si_signo = sig;
 	info.si_errno = 0;
 	info.si_addr = (void *)fp->pc;
 	force_sig_info(sig, &info, current);
-
-	/* if the address that we are about to return to is not valid, set it
-	 * to a valid address, if we have a current application or panic
-	 */
-	if (!(fp->pc <= physical_mem_end
-#if L1_CODE_LENGTH != 0
-	    || (fp->pc >= L1_CODE_START &&
-	        fp->pc <= (L1_CODE_START + L1_CODE_LENGTH))
-#endif
-	)) {
-		if (current->mm) {
-			fp->pc = current->mm->start_code;
-		} else {
-			printk(KERN_EMERG
-				"I can't return to memory that doesn't exist"
-				" - bad things happen\n");
-			panic("Help - I've fallen and can't get up\n");
-		}
-	}
 
 	trace_buffer_restore(j);
 	return;
@@ -583,6 +583,7 @@ void show_stack(struct task_struct *task, unsigned long *stack)
 			printk("\n" KERN_NOTICE "       ");
 		printk(" %08lx", *stack++);
 	}
+	printk("\n");
 
 	show_trace(task, stack);
 }
@@ -630,8 +631,7 @@ void dump_bfin_regs(struct pt_regs *fp, void *retaddr)
 		printk(KERN_NOTICE "Kernel or interrupt exception\n");
 	}
 
-	printk(KERN_NOTICE "return address: [0x%p]; contents of:", retaddr);
-	if (retaddr != 0 && retaddr <= (void *)physical_mem_end
+	if (retaddr >= (void *)FIXED_CODE_START  && retaddr < (void *)physical_mem_end
 #if L1_CODE_LENGTH != 0
 	    /* FIXME: Copy the code out of L1 Instruction SRAM through dma
 	       memcpy.  */
@@ -641,6 +641,7 @@ void dump_bfin_regs(struct pt_regs *fp, void *retaddr)
 	) {
 		int i = ((unsigned int)retaddr & 0xFFFFFFF0) - 32;
 		unsigned short x = 0;
+		printk(KERN_NOTICE "return address: [0x%p]; contents of:", retaddr);
 		for (; i < ((unsigned int)retaddr & 0xFFFFFFF0) + 32; i += 2) {
 			if (!(i & 0xF))
 				printk("\n" KERN_NOTICE "0x%08x: ", i);
@@ -650,9 +651,10 @@ void dump_bfin_regs(struct pt_regs *fp, void *retaddr)
 #ifndef CONFIG_DEBUG_HWERR
 			/* If one of the last few instructions was a STI
 			 * it is likely that the error occured awhile ago
-			 * and we just noticed
+			 * and we just noticed. This only happens in kernel
+			 * context, which should mean an oops is happening
 			 */
-			if (x >= 0x0040 && x <= 0x0047 && i <= 0)
+			if (oops_in_progress && x >= 0x0040 && x <= 0x0047 && i <= 0)
 				panic("\n\nWARNING : You should reconfigure"
 					" the kernel to turn on\n"
 					" 'Hardware error interrupt"
@@ -669,13 +671,20 @@ void dump_bfin_regs(struct pt_regs *fp, void *retaddr)
 	} else
 		printk("\n" KERN_NOTICE
 			"Cannot look at the [PC] for it is"
-			"in unreadable L1 SRAM - sorry\n");
+			" in unreadable memory - sorry\n");
 
 	printk(KERN_NOTICE "\n" KERN_NOTICE "SEQUENCER STATUS:\n");
-	printk(KERN_NOTICE "RETE: %08lx   RETN: %08lx   RETX: %08lx   RETS: %08lx\n",
-		fp->rete, fp->retn, fp->retx, fp->rets);
-	printk(KERN_NOTICE "SEQSTAT: %08lx  IPEND: %04lx  SYSCFG: %04lx\n",
+	printk(KERN_NOTICE " SEQSTAT: %08lx  IPEND: %04lx  SYSCFG: %04lx\n",
 		(long)fp->seqstat, fp->ipend, fp->syscfg);
+
+	decode_address(buf, fp->rete);
+	printk(KERN_NOTICE " RETE: %s\n", buf);
+	decode_address(buf, fp->retn);
+	printk(KERN_NOTICE " RETN: %s\n", buf);
+	decode_address(buf, fp->retx);
+	printk(KERN_NOTICE " RETX: %s\n", buf);
+	decode_address(buf, fp->rets);
+	printk(KERN_NOTICE " RETS: %s\n", buf);
 
 	if ((long)fp->seqstat & SEQSTAT_EXCAUSE) {
 		decode_address(buf, bfin_read_DCPLB_FAULT_ADDR());
