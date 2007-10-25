@@ -260,9 +260,9 @@ static int ad1980_soc_probe(struct platform_device *pdev)
 		if (vendor_id2 != 0x5374)
 			goto reset_err;
 		else
-			printk(KERN_WARNING "ad1980: Expected AD1980 but "
-				"found AD1981 - This might not work in all "
-				"cases\n");
+			printk(KERN_WARNING "ad1980: "
+				"Found AD1981 - only 2/2 IN/OUT Channels "
+				"supported\n");
 	}
 
 	ac97_write(codec, AC97_MASTER, 0x0000); /* unmute line out volume */
