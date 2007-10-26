@@ -71,7 +71,7 @@ config SPI_MMC_CARD_DETECT
 config SPI_MMC_CARD_DETECT_INT
 	int "IRQ# for card detection"
 	depends on SPI_MMC_CARD_DETECT
-	default "5"
+	default "55"
 	help
 	  Which IRQ number to use for card detection.
 
