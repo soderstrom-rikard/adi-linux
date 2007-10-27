@@ -190,6 +190,7 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot)
 	 */
 	return kmalloc(size, (gfp_mask | __GFP_COMP) & ~__GFP_HIGHMEM);
 }
+EXPORT_SYMBOL(__vmalloc);
 
 struct page * vmalloc_to_page(void *addr)
 {
