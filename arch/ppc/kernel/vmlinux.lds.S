@@ -144,11 +144,6 @@ SECTIONS
 
   . = ALIGN(4096);
   __init_end = .;
-
-  . = ALIGN(4096);
-  _sextratext = .;
-  _eextratext = .;
-
   __bss_start = .;
   .bss       :
   {
