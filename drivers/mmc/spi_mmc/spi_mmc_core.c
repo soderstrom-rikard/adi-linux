@@ -435,6 +435,7 @@ void spi_mmc_transfer_worker(struct work_struct *work)
 		// grab the next request and continue
 		spin_lock(&pdev->queue_lock);
 		req = elv_next_request(q);
+		spin_unlock(&pdev->queue_lock);
 	}
 }
 
