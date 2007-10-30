@@ -36,7 +36,7 @@
 #include <asm/cacheflush.h>
 
 #include "bf5xx-sport.h"
-
+#include "bf5xx-ac97.h"
 /* delay between frame sync pulse and first data bit in multichannel mode */
 #define FRAME_DELAY (1<<12)
 
@@ -558,7 +558,8 @@ static int sport_config_tx_dummy(struct sport_device *sport)
 	sport->dummy_tx_desc = desc;
 
 	desc->next_desc_addr = (unsigned long)desc;
-	desc->start_addr = (unsigned long)sport->dummy_buf + sport->wdsize;
+	desc->start_addr = (unsigned long)sport->dummy_buf + \
+		sizeof(struct ac97_frame);
 	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(sport->wdsize) | DMAEN;
 	desc->cfg = config;
 	desc->x_count = sport->dummy_count;
@@ -762,7 +763,8 @@ struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 		unsigned dummy_count, void *private_data)
 {
 	struct sport_device *sport;
-
+	struct ac97_frame *dummy_dst;
+	int count;
 	pr_debug("%s enter\n", __FUNCTION__);
 	BUG_ON(param == NULL);
 	BUG_ON(wdsize == 0 || dummy_count == 0);
@@ -816,7 +818,7 @@ struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 
 	sport->wdsize = wdsize;
 	sport->dummy_count = dummy_count;
-
+/*
 #if L1_DATA_A_LENGTH != 0
 	sport->dummy_buf = l1_data_sram_alloc(wdsize * 2);
 #else
@@ -828,6 +830,25 @@ struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 	}
 
 	memset(sport->dummy_buf, 0, wdsize * 2);
+*/
+#if L1_DATA_A_LENGTH != 0
+	sport->dummy_buf = l1_data_sram_alloc(sizeof(struct ac97_frame) * 2);
+#else
+	sport->dummy_buf = kmalloc(sizeof(struct ac97_frame) * 2, GFP_KERNEL);
+#endif
+	if (sport->dummy_buf == NULL) {
+		printk(KERN_ERR "Failed to allocate dummy buffer\n");
+		goto __error;
+	}
+
+	memset(sport->dummy_buf, 0, sizeof(struct ac97_frame) * 2);
+	dummy_dst = (struct ac97_frame *)sport->dummy_buf;
+	for (count = 0; count < 2; count++) {
+
+		dummy_dst->ac97_tag = TAG_VALID | TAG_PCM;
+		(dummy_dst++)->ac97_pcm = 0;
+	}
+
 	sport_config_rx_dummy(sport);
 	sport_config_tx_dummy(sport);
 
