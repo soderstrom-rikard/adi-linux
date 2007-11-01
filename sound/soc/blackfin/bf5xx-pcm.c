@@ -139,10 +139,11 @@ static	int bf5xx_pcm_copy(struct snd_pcm_substream *substream, int channel,
 		    void __user *buf, snd_pcm_uframes_t count)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-
+	struct sport_device *sport = runtime->private_data;
 	pr_debug("%s copy pos:0x%lx count:0x%lx\n",
 			substream->stream?"Capture":"Playback", pos, count);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		sport->stream_tx_pos = pos;
 		bf5xx_ac97_pcm32_to_frame(
 				(struct ac97_frame *)runtime->dma_area + pos,
 				buf, count);

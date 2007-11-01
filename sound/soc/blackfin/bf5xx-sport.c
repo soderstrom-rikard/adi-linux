@@ -286,8 +286,9 @@ int sport_rx_stop(struct sport_device *sport)
 
 static inline int sport_hook_tx_dummy(struct sport_device *sport)
 {
-	struct dmasg *desc;
+	/*struct dmasg *desc;*/
 	unsigned long flags;
+	int desc_pos;
 
 	BUG_ON(sport->dummy_tx_desc == NULL);
 	BUG_ON(sport->curr_tx_desc == sport->dummy_tx_desc);
@@ -297,8 +298,14 @@ static inline int sport_hook_tx_dummy(struct sport_device *sport)
 
 	/* Shorten the time on last normal descriptor */
 	local_irq_save(flags);
+	desc_pos = sport->stream_tx_pos / \
+		(sport->tx_fragsize/sizeof(struct ac97_frame));
+	sport->dma_tx_desc[desc_pos].next_desc_addr = \
+		(unsigned long)sport->dummy_tx_desc;
+	/*
 	desc = (struct dmasg *)get_dma_next_desc_ptr(sport->dma_tx_chan);
 	desc->next_desc_addr = (unsigned long)(sport->dummy_tx_desc);
+	*/
 	local_irq_restore(flags);
 	/* Waiting for dummy buffer descriptor is already hooked*/
 	while ((get_dma_curr_desc_ptr(sport->dma_tx_chan) - \
