@@ -45,6 +45,8 @@ int heap_stack_gap = 0;
 EXPORT_SYMBOL(mem_map);
 EXPORT_SYMBOL(__vm_enough_memory);
 EXPORT_SYMBOL(num_physpages);
+EXPORT_SYMBOL(high_memory);
+EXPORT_SYMBOL(max_mapnr);
 
 /* list of shareable VMAs */
 struct rb_root nommu_vma_tree = RB_ROOT;
