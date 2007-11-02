@@ -18,6 +18,15 @@ config SND_SOC_WM9712
 	tristate
 	depends on SND_SOC
 
+config SND_SOC_WM8960
+	tristate
+	depends on SND_SOC
+
 config SND_SOC_AD1980
 	tristate
 	depends on SND_SOC
+	
+config SND_SOC_WM8731_SPI
+	bool "Control interface: Use SPI instead of I2C"
+	depends on SND_SOC_WM8731
+	default n

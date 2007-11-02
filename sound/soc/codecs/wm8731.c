@@ -19,6 +19,7 @@
 #include <linux/pm.h>
 #include <linux/i2c.h>
 #include <linux/platform_device.h>
+#include <linux/spi/spi.h>
 #include <sound/driver.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
@@ -590,7 +591,7 @@ pcm_err:
 
 static struct snd_soc_device *wm8731_socdev;
 
-#if defined (CONFIG_I2C) || defined (CONFIG_I2C_MODULE)
+#if defined (CONFIG_I2C) || defined (CONFIG_I2C_MODULE) && !defined (CONFIG_SND_SOC_WM8731_SPI)
 
 /*
  * WM8731 2 wire address is determined by GPIO5
@@ -682,6 +683,62 @@ static struct i2c_client client_template = {
 };
 #endif
 
+#ifdef CONFIG_SPI_MASTER && defined (CONFIG_SND_SOC_WM8731_SPI)
+static int __devinit wm8731_spi_probe(struct spi_device *spi)
+{
+	struct snd_soc_device *socdev = wm8731_socdev;
+	struct snd_soc_codec *codec = socdev->codec;
+	int ret;
+
+	codec->control_data = spi;
+
+	ret = wm8731_init(socdev);
+	if (ret < 0) {
+		err("failed to initialise WM8731\n");
+	}
+
+	return ret;
+}
+
+static int __devexit wm8731_spi_remove(struct spi_device *spi)
+{
+	return 0;
+}
+
+static struct spi_driver wm8731_spi_driver = {
+	.driver = {
+		.name	= "wm8731",
+		.bus	= &spi_bus_type,
+		.owner	= THIS_MODULE,
+	},
+	.probe		= wm8731_spi_probe,
+	.remove		= __devexit_p(wm8731_spi_remove),
+};
+
+static int wm8731_spi_write(struct spi_device *spi, const char *data, int len)
+{
+	struct spi_transfer t;
+	struct spi_message m;
+	u16 msg[2];
+
+	if (len <= 0)
+		return 0;
+
+	msg[0] = (data[0] << 8) + data[1];
+
+	spi_message_init(&m);
+	memset(&t, 0, (sizeof t));
+
+	t.tx_buf = &msg[0];
+	t.len = len;
+
+	spi_message_add_tail(&t, &m);
+	spi_sync(spi, &m);
+
+	return len;
+}
+#endif /* CONFIG_SPI_MASTER */
+
 static int wm8731_probe(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
@@ -710,7 +767,7 @@ static int wm8731_probe(struct platform_device *pdev)
 	INIT_LIST_HEAD(&codec->dapm_paths);
 
 	wm8731_socdev = socdev;
-#if defined (CONFIG_I2C) || defined (CONFIG_I2C_MODULE)
+#if defined (CONFIG_I2C) || defined (CONFIG_I2C_MODULE) && !defined (CONFIG_SND_SOC_WM8731_SPI)
 	if (setup->i2c_address) {
 		normal_i2c[0] = setup->i2c_address;
 		codec->hw_write = (hw_write_t)i2c_master_send;
@@ -718,8 +775,14 @@ static int wm8731_probe(struct platform_device *pdev)
 		if (ret != 0)
 			printk(KERN_ERR "can't add i2c driver");
 	}
+#elif defined (CONFIG_SPI_MASTER) && defined (CONFIG_SND_SOC_WM8731_SPI)
+	codec->hw_write = (hw_write_t)wm8731_spi_write;
+	ret = spi_register_driver(&wm8731_spi_driver);
+	if (ret != 0)
+		printk(KERN_ERR "can't add spi driver");
 #else
 	/* Add other interfaces here */
+
 #endif
 	return ret;
 }
@@ -735,8 +798,10 @@ static int wm8731_remove(struct platform_device *pdev)
 
 	snd_soc_free_pcms(socdev);
 	snd_soc_dapm_free(socdev);
-#if defined (CONFIG_I2C) || defined (CONFIG_I2C_MODULE)
+#if defined (CONFIG_I2C) || defined (CONFIG_I2C_MODULE) && !defined (CONFIG_SND_SOC_WM8731_SPI)
 	i2c_del_driver(&wm8731_i2c_driver);
+#elif defined (CONFIG_SPI_MASTER) && defined (CONFIG_SND_SOC_WM8731_SPI)
+	spi_unregister_driver(&wm8731_spi_driver);
 #endif
 	kfree(codec->private_data);
 	kfree(codec);
