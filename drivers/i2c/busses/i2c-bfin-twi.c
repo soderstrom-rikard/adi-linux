@@ -7,10 +7,6 @@
  *
  * Copyright (c) 2005-2007 Analog Devices, Inc.
  *
- * Modified:
- *	Aug 01, 2007 add platform_resource interface to support multi-port
- *		     TWI controllers. (Bryan Wu <bryan.wu@analog.com>)
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -76,7 +72,7 @@ struct bfin_twi_iface {
 	struct i2c_msg 		*pmsg;
 	int			msg_num;
 	int			cur_msg;
-	u32			regs_base;
+	void __iomem		*regs_base;
 	int			bus_num;
 };
 
@@ -339,7 +335,7 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 
 	pmsg = &msgs[0];
 	if (pmsg->flags & I2C_M_TEN) {
-		dev_err(&(adap->dev), "10 bits addr not supported !\n");
+		dev_err(&adap->dev, "10 bits addr not supported!\n");
 		return -EINVAL;
 	}
 
@@ -497,7 +493,7 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 	write_FIFO_CTL(iface, 0);
 
 	/* clear int stat */
-	write_INT_STAT(iface, MERR|MCOMP|XMTSERV|RCVSERV);
+	write_INT_STAT(iface, MERR | MCOMP | XMTSERV | RCVSERV);
 
 	/* Set Transmit device address */
 	write_MASTER_ADDR(iface, addr);
@@ -643,7 +639,7 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 
 	iface = kzalloc(sizeof(struct bfin_twi_iface), GFP_KERNEL);
 	if (!iface) {
-		dev_err(&(pdev->dev), "Cannot allocate memory\n");
+		dev_err(&pdev->dev, "Cannot allocate memory\n");
 		rc = -ENOMEM;
 		goto out_error_nomem;
 	}
@@ -654,21 +650,21 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	/* Find and map our resources */
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
-		dev_err(&(pdev->dev), "Cannot get IORESOURCE_MEM\n");
+		dev_err(&pdev->dev, "Cannot get IORESOURCE_MEM\n");
 		rc = -ENOENT;
 		goto out_error_get_res;
 	}
 
-	iface->regs_base = (u32) ioremap(res->start, (res->end - res->start)+1);
-	if (!iface->regs_base) {
-		dev_err(&(pdev->dev), "Cannot map IO\n");
+	iface->regs_base = ioremap(res->start, (res->end - res->start)+1);
+	if (iface->regs_base == NULL) {
+		dev_err(&pdev->dev, "Cannot map IO\n");
 		rc = -ENXIO;
 		goto out_error_ioremap;
 	}
 
 	iface->irq = platform_get_irq(pdev, 0);
 	if (iface->irq < 0) {
-		dev_err(&(pdev->dev), "No DMA channel specified\n");
+		dev_err(&pdev->dev, "No IRQ specified\n");
 		rc = -ENOENT;
 		goto out_error_no_irq;
 	}
@@ -678,8 +674,8 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	iface->timeout_timer.function = bfin_twi_timeout;
 	iface->timeout_timer.data = (unsigned long)iface;
 
-	p_adap = &(iface->adap);
-	p_adap->id = I2C_HW_B_BLACKFIN;
+	p_adap = &iface->adap;
+	p_adap->id = I2C_HW_BLACKFIN;
 	strlcpy(p_adap->name, pdev->name, sizeof(p_adap->name));
 	p_adap->algo = &bfin_twi_algorithm;
 	p_adap->algo_data = iface;
@@ -691,7 +687,7 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	rc = request_irq(iface->irq, bfin_twi_interrupt_entry,
 		IRQF_DISABLED, pdev->name, iface);
 	if (rc) {
-		dev_err(&(pdev->dev), "can't get IRQ %d !\n", iface->irq);
+		dev_err(&pdev->dev, "can't get IRQ %d !\n", iface->irq);
 		rc = -ENODEV;
 		goto out_error_req_irq;
 	}
@@ -714,14 +710,14 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	else
 		platform_set_drvdata(pdev, iface);
 
-	dev_info(&(pdev->dev), "%s, Version %s, regs_base@0x%08x\n",
+	dev_info(&pdev->dev, "%s, Version %s, regs_base@%p\n",
 		DRV_DESC, DRV_VERSION, iface->regs_base);
 
 	return rc;
 
 out_error_req_irq:
 out_error_no_irq:
-	iounmap((void *)iface->regs_base);
+	iounmap(iface->regs_base);
 out_error_ioremap:
 out_error_get_res:
 	kfree(iface);
