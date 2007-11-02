@@ -9,6 +9,9 @@ config SND_BF5XX_SOC
 config SND_BF5XX_AC97
 	tristate
 	select SND_AC97_CODEC
+	
+config SND_BF5XX_SOC_I2S
+	tristate
 
 config SND_BF5XX_SOC_AC97
 	tristate
@@ -22,6 +25,22 @@ config SND_BF5XX_SOC_BF548_EZKIT
 	select SND_SOC_AD1980
 	help
 	  Say Y if you want to add support for SoC audio on BF548-EZKIT.
+
+config SND_BF5XX_SOC_WM8750
+	tristate "SoC WM8750 Audio support for BF5xx ezkit"
+	depends on SND_BF5XX_SOC
+	select SND_BF5XX_SOC_I2S
+	select SND_SOC_WM8750
+	help
+	  Say Y if you want to add support for SoC audio on BF548-EZKIT.
+
+config SND_BF5XX_SOC_WM8731
+	tristate "SoC WM8731 Audio support for BF5xx ezkit"
+	depends on SND_BF5XX_SOC
+	select SND_BF5XX_SOC_I2S
+	select SND_SOC_WM8731
+	help
+	  Say Y if you want to add support for SoC audio on BF527-EZKIT.
 
 config SND_BF5XX_SOC_BF5xx
 	tristate "SoC AC97 Audio support for BF5xx"
