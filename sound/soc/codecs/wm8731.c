@@ -683,7 +683,7 @@ static struct i2c_client client_template = {
 };
 #endif
 
-#ifdef CONFIG_SPI_MASTER && defined (CONFIG_SND_SOC_WM8731_SPI)
+#if defined(CONFIG_SPI_MASTER) && defined(CONFIG_SND_SOC_WM8731_SPI)
 static int __devinit wm8731_spi_probe(struct spi_device *spi)
 {
 	struct snd_soc_device *socdev = wm8731_socdev;
