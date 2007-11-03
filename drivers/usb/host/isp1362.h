@@ -33,7 +33,7 @@
 
 // insert platform specific definitions for other machines here
 //#elif defined(CONFIG_ARCH_)
-#elif defined(CONFIG_BFIN)
+#elif defined(CONFIG_BLACKFIN)
 
 #include <asm/io.h>
 #define USE_32BIT		0

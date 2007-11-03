@@ -53,7 +53,7 @@
 #include <asm/dma.h>
 
 
-#if defined(CONFIG_BFIN)
+#if defined(CONFIG_BLACKFIN)
 #define DUMMY_DELAY_ACCESS bfin_read16(ASYNC_BANK0_BASE)
 #else
 #define DUMMY_DELAY_ACCESS do{} while(0)

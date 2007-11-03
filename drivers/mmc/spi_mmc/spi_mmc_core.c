@@ -126,7 +126,7 @@
 #include <linux/spi/spi.h>
 
 // Blackfin Dependencies
-#ifdef CONFIG_BFIN
+#ifdef CONFIG_BLACKFIN
 #include <asm/blackfin.h>
 #include <asm/cacheflush.h>
 #endif
@@ -569,7 +569,7 @@ static int write_func(unsigned char *buf, unsigned int count, void* priv_data)
 
 	// Use DMA safe buffer as relay
 	memcpy(k_buffer, buf, count);
-	#ifdef CONFIG_BFIN
+	#ifdef CONFIG_BLACKFIN
 	blackfin_dcache_flush_range((unsigned long)k_buffer,(unsigned long)(k_buffer+count));
 	#endif
 
@@ -608,7 +608,7 @@ static int read_func(unsigned char *buf, unsigned int count, void* priv_data)
 	if(count <= 0)
 		return 0;
 
-	#ifdef CONFIG_BFIN
+	#ifdef CONFIG_BLACKFIN
 	/* Invalidate allocated memory in Data Cache */
 	blackfin_dcache_invalidate_range((unsigned long)k_buffer,(unsigned long)(k_buffer+count));
 	#endif
@@ -783,7 +783,7 @@ static int spi_mmc_dev_init(mmc_info_t* pdev)
 	return 0;	
 }
 
-#if defined(CONFIG_BFIN) && defined(CONFIG_SPI_MMC_CARD_DETECT)
+#if defined(CONFIG_BLACKFIN) && defined(CONFIG_SPI_MMC_CARD_DETECT)
 static inline
 void spi_mmc_delayed_revalidate(mmc_info_t *pdev, int timeout)
 {
@@ -1057,7 +1057,7 @@ static void spi_mmc_clean(void)
 	mmc_info_t* pdev;
 	pdev = Devices;
 	
-#if defined(CONFIG_BFIN) && defined(CONFIG_SPI_MMC_CARD_DETECT)
+#if defined(CONFIG_BLACKFIN) && defined(CONFIG_SPI_MMC_CARD_DETECT)
 	del_timer(&pdev->revalidate_timer);
 	free_irq(IRQ_PROG_INTA, pdev);
 #endif

@@ -22,10 +22,6 @@
 
 #include <asm/io.h>
 
-#if !defined (CONFIG_BFIN) && !defined(CONFIG_BF561)
-#warn Intended for use with BF561 ezkit, proceed at your own risk!!!
-#endif
-
 /* 8 MiB flash wired to ASYNC mem bank 0 */
 #define EZKIT561_FLASH_BASE 0x20000000
 #define EZKIT561_FLASH_SIZE 0x00800000
