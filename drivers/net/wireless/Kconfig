@@ -306,7 +306,7 @@ config AIRO
 
 config HERMES
 	tristate "Hermes chipset 802.11b support (Orinoco/Prism2/Symbol)"
-	depends on (BFIN || PPC_PMAC || PCI || PCMCIA) && WLAN_80211
+	depends on (BLACKFIN || PPC_PMAC || PCI || PCMCIA) && WLAN_80211
 	select WIRELESS_EXT
 	---help---
 	  A driver for 802.11b wireless cards based on the "Hermes" or
@@ -438,7 +438,7 @@ config PCMCIA_SPECTRUM
 
 config WLAN_BLACKFIN
 	tristate "Blackfin WLAN card support"
-	depends on NET_RADIO && BFIN && HERMES
+	depends on NET_RADIO && BLACKFIN && HERMES
 	---help---
 	  A driver for "Hermes" chipset based PCMCIA wireless adaptors, such
 	  as the Lucent WavelanIEEE/Orinoco cards and their OEM (Cabletron/

@@ -1,6 +1,6 @@
 config SND_BF5XX_SOC
 	tristate "SoC Audio for the ADI BF5xx chip"
-	depends on BFIN && SND_SOC
+	depends on BLACKFIN && SND_SOC
 	help
 	  Say Y or M if you want to add support for codecs attached to
 	  the BF5xx AC97 interface.  You will also need

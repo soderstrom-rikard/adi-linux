@@ -1,7 +1,7 @@
 
 config VIDEO_BLACKFIN_CAM
 	tristate "Blackfin Camera driver"
-	depends on BFIN && VIDEO_DEV && I2C
+	depends on BLACKFIN && VIDEO_DEV && I2C
 	default n
 	help
 	  V4L Support for ST VS6524, VS6624 sensor Micron MT9M001, MT9V022 
@@ -12,7 +12,7 @@ config VIDEO_BLACKFIN_CAM
 
 config VIDEO_BLACKFIN_MT9M001
 	tristate "Micron Camera driver for BF537 (DEPRECIATED)"
-	depends on BFIN && VIDEO_DEV && I2C
+	depends on BLACKFIN && VIDEO_DEV && I2C
 	default n
 	help
 	  V4L Support for the Micron MT9M001 camera attached to

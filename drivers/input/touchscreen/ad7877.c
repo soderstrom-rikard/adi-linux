@@ -59,7 +59,7 @@
 #include <linux/freezer.h>
 #include <asm/irq.h>
 
-#ifdef	CONFIG_BFIN
+#ifdef	CONFIG_BLACKFIN
 #include <asm/blackfin.h>
 #endif
 

@@ -5,7 +5,7 @@
 menu "Character devices"
 config AD9960
 	bool "AD9960 chip driver"
-	depends on BFIN
+	depends on BLACKFIN
 	select SPI
 	select SPI_BFIN
 	default n
@@ -20,7 +20,7 @@ config AD9960_TX_RX_PIN
 
 config SPI_ADC_BF533
 	bool "Blackfin BF53x ADSP SPI ADC support"
-	depends on BFIN
+	depends on BLACKFIN
 	select SPI
 	select SPI_BFIN
 	default n
@@ -28,7 +28,7 @@ config SPI_ADC_BF533
 
 config BF5xx_PFLAGS
 	tristate "Blackfin BF53x Programmable Flags Driver"
-	depends on BFIN
+	depends on BLACKFIN
 	default n
 	---help---
 	This option enable the driver to control the GPIO signals
@@ -47,7 +47,7 @@ config BF5xx_PFLAGS_PROC
 
 config BF5xx_PPIFCD
 	bool "Blackfin BF5xx PPI Camera frame capture driver"
-	depends on BFIN
+	depends on BLACKFIN
 	default n
 	---help---
 	  If you say Y here, you will get support for various CMOS Camera Modules
@@ -64,26 +64,26 @@ config BFIN_SIMPLE_TIMER
 
 config BF5xx_PPI
 	bool "Blackfin BF5xx PPI Driver"
-	depends on BFIN
+	depends on BLACKFIN
 	select BFIN_GPTIMERS
 	default n
 	---help---
 
 config BFIN_SPORT
 	bool "Blackfin BF53x SPORT support"
-	depends on BFIN
+	depends on BLACKFIN
 	default n
 	---help---
 
 config BFIN_TIMER_LATENCY
 	bool "Blackfin 5xx interrupt latency test"
-	depends on BFIN
+	depends on BLACKFIN
 	default n
 	---help---
 
 config TWI_LCD
 	tristate "TWI/I2C LCD support for HD44780 based LCD modules"
-	depends on I2C && EXPERIMENTAL && BFIN
+	depends on I2C && EXPERIMENTAL && BLACKFIN
 	default n
 	---help---
 
@@ -109,13 +109,13 @@ config AD5304
 
 config BF5xx_TEA5764
 	tristate "TEA5764 FM/RDS RX"
-	depends on I2C && EXPERIMENTAL && BFIN
+	depends on I2C && EXPERIMENTAL && BLACKFIN
 	default n
 	---help---
 
 config BF5xx_FBDMA
 	tristate "Framebuffer DMA BitBlit / Fill Rect Support"
-	depends EXPERIMENTAL && BFIN
+	depends EXPERIMENTAL && BLACKFIN
 	default n
 	---help---
 
@@ -884,7 +884,7 @@ config NVRAM
 
 config RTC
 	tristate "Enhanced Real Time Clock Support"
-	depends on !PPC && !PARISC && !IA64 && !M68K && (!SPARC || PCI) && !FRV && !ARM && !BFIN && !SUPERH && !S390
+	depends on !PPC && !PARISC && !IA64 && !M68K && (!SPARC || PCI) && !FRV && !ARM && !BLACKFIN && !SUPERH && !S390
 	---help---
 	  If you say Y here and create a character special file /dev/rtc with
 	  major number 10 and minor number 135 using mknod ("man mknod"), you

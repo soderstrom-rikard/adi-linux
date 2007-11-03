@@ -566,7 +566,7 @@ config MTD_EZKIT561
 
 config MTD_BF5xx
 	tristate "Blackfin BF5xx Flash Chip Support"
-	depends on BFIN
+	depends on BLACKFIN
 	select MTD_PARTITIONS
 	help
 	  Flash Chip from ST Microelctronics

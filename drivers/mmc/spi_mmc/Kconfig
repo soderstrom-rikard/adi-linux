@@ -29,7 +29,7 @@ config SPI_MMC_FRAMEWORK_DRIVER
 
 config SPI_MMC_BFIN_PIO_SPI
 	bool "Blackfin SPI bus directly"
-	depends on BFIN
+	depends on BLACKFIN
 	help
 	  Will use Blackfin SPI bus directly. No other SPI device should be used with this option.
 	  The MMC/SD card will be driven in SPI PIO mode. This is a failsafe option for testing.
@@ -62,7 +62,7 @@ config SPI_MMC_MAX_HZ
 
 config SPI_MMC_CARD_DETECT
 	bool "MMC/SD Card detect support (EXPERIMENTAL)"
-	depends on SPI_MMC && BFIN
+	depends on SPI_MMC && BLACKFIN
 	default "n"
 	help
 	  MMC/SD card insertion can be detected with a dedicated signal. Configure the IRQ#

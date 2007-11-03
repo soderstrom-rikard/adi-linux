@@ -36,7 +36,7 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <asm/uaccess.h>	/* FIXME remove procfs writes */
-#ifdef CONFIG_BFIN
+#ifdef CONFIG_BLACKFIN
 #include <asm/blackfin.h>
 #else
 #include <asm/arch/hardware.h>

@@ -432,7 +432,7 @@ static int
 write_packet (struct net2272_ep *ep,
 		u8 *buf, struct net2272_request *req, unsigned max)
 {
-#ifdef CONFIG_BFIN
+#ifdef CONFIG_BLACKFIN
 	u16		__iomem *ep_data =(u16*) (ep->dev->base_addr + EP_DATA);
 #else
 	u16		__iomem *ep_data = ep->dev->base_addr + EP_DATA;
@@ -547,7 +547,7 @@ static int
 read_packet (struct net2272_ep *ep,
 		u8 *buf, struct net2272_request *req, unsigned avail)
 {
-#ifdef CONFIG_BFIN
+#ifdef CONFIG_BLACKFIN
 	u16			__iomem *ep_data = (u16*)(ep->dev->base_addr + EP_DATA);
 #else
 	u16			__iomem *ep_data = ep->dev->base_addr + EP_DATA;
@@ -2496,7 +2496,7 @@ static int net2272_probe (struct device *_dev)
 		dev_warn (&pdev->dev, "ignoring\n");
 		return -EBUSY;
 	}
-#ifdef CONFIG_BFIN
+#ifdef CONFIG_BLACKFIN
 	{
 		struct resource *iomem;
 

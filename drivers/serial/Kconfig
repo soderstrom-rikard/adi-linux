@@ -528,7 +528,7 @@ config SERIAL_SA1100_CONSOLE
 
 config SERIAL_BFIN
 	tristate "Blackfin serial port support"
-	depends on BFIN
+	depends on BLACKFIN
 	select SERIAL_CORE
 	select SERIAL_BFIN_UART0 if (BF531 || BF532 || BF533 || BF561)
 	help
@@ -1189,7 +1189,7 @@ config SERIAL_OF_PLATFORM
 
 config SERIAL_BFIN_SPORT
 	tristate "Blackfin SPORT emulate UART (EXPERIMENTAL)"
-	depends on BFIN && EXPERIMENTAL
+	depends on BLACKFIN && EXPERIMENTAL
 	select SERIAL_CORE
 	help
 	  Enble support SPORT emulate UART on Blackfin series.

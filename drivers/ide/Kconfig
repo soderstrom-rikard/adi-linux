@@ -310,7 +310,7 @@ config IDE_GENERIC
 
 config IDE_BFIN
 	bool "IDE support on Blackfin CPU (DEPRECATED; see help)"
-	depends on IDE && BFIN
+	depends on IDE && BLACKFIN
 	default y
 	help
 	  This driver is deprecated in favor of using the Generic

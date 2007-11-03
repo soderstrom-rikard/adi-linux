@@ -44,10 +44,6 @@
 #include <asm/unaligned.h>
 #include <asm/gpio.h>
 
-#ifndef CONFIG_BFIN
-#error This is for BlackFin BF5xx boards only
-#endif
-
 #define BFIN_FLASH_AMBCTL0VAL	((CONFIG_BFIN_FLASH_BANK_1 << 16) | CONFIG_BFIN_FLASH_BANK_0)
 #define BFIN_FLASH_AMBCTL1VAL	((CONFIG_BFIN_FLASH_BANK_3 << 16) | CONFIG_BFIN_FLASH_BANK_2)
 

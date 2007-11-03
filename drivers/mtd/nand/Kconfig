@@ -39,7 +39,7 @@ config MTD_NAND_MUSEUM_IDS
 
 config MTD_NAND_BFIN
 	tristate "NAND Flash device for BF537 STAMP board"
-	depends on BFIN && MTD_NAND && MTD_PARTITIONS
+	depends on BLACKFIN && MTD_NAND && MTD_PARTITIONS
 	help
 	  This enables the driver for the NAND flash ST-NAND123W3A
 	  for Blackfin Processors

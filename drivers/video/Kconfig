@@ -530,7 +530,7 @@ config FB_VGA16
 
 config FB_BFIN_7171
 	tristate "Blackfin ADI7171 video encoder on uClinux"
-	depends on FB && BFIN
+	depends on FB && BLACKFIN
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
@@ -544,7 +544,7 @@ config FB_BFIN_7171
 
 config FB_BFIN_7393
 	tristate "Blackfin ADV7393 Video encoder on uClinux"
-	depends on FB && BFIN
+	depends on FB && BLACKFIN
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
@@ -638,7 +638,7 @@ config FB_BF54X_LQ043
 
 config FB_BFIN_T350MCQB
 	tristate "Varitronix COG-T350MCQB TFT LCD display (BF527 EZKIT)"
-	depends on FB && BFIN
+	depends on FB && BLACKFIN
 	select BFIN_GPTIMERS
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA

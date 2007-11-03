@@ -14,7 +14,7 @@
  *  - SL811S (or HS in slave mode) has four A+B sets, at 00, 10, 20, 30
  */
 
-#ifdef CONFIG_BFIN
+#ifdef CONFIG_BLACKFIN
   #define DUMMY_DELAY_ACCESS bfin_read16(ASYNC_BANK0_BASE);
 #else
   #define DUMMY_DELAY_ACCESS do{} while(0)

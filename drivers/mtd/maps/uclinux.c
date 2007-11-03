@@ -60,7 +60,7 @@ int __init uclinux_mtd_init(void)
 	struct mtd_info *mtd;
 	struct map_info *mapp;
 	char name[20];
-#ifdef CONFIG_BFIN
+#ifdef CONFIG_BLACKFIN
 	unsigned long addr = (unsigned long) memory_mtd_start;
 #else
 	extern char _ebss;

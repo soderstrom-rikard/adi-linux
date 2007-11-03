@@ -128,7 +128,7 @@ static inline void smsc911x_reg_write(u32 val, struct smsc911x_data *pdata,
 
 #endif				/* SMSC_CAN_USE_32BIT */
 
-#ifndef CONFIG_BFIN
+#ifndef CONFIG_BLACKFIN
 /* Writes a packet to the TX_DATA_FIFO */
 static inline void
 smsc911x_tx_writefifo(struct smsc911x_data *pdata, unsigned int *buf,
