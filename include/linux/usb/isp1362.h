@@ -5,31 +5,31 @@
  */
 
 struct isp1362_platform_data {
-	// Enable internal pulldown resistors on downstream ports
+	/* Enable internal pulldown resistors on downstream ports */
 	unsigned sel15Kres:1;
-	// Clock cannot be stopped
+	/* Clock cannot be stopped */
 	unsigned clknotstop:1;
-	// On-chip overcurrent protection
+	/* On-chip overcurrent protection */
 	unsigned oc_enable:1;
-	// INT output polarity
+	/* INT output polarity */
 	unsigned int_act_high:1;
-	// INT edge or level triggered
+	/* INT edge or level triggered */
 	unsigned int_edge_triggered:1;
-	// DREQ output polarity
+	/* DREQ output polarity */
 	unsigned dreq_act_high:1;
-	// DACK input polarity
+	/* DACK input polarity */
 	unsigned dack_act_high:1;
-	// chip can be resumed via H_WAKEUP pin
+	/* chip can be resumed via H_WAKEUP pin */
 	unsigned remote_wakeup_connected:1;
-	// Switch or not to switch (keep always powered)
+	/* Switch or not to switch (keep always powered) */
 	unsigned no_power_switching:1;
-	// Ganged port power switching (0) or individual port power switching (1)
+	/* Ganged port power switching (0) or individual port power switching (1) */
 	unsigned power_switching_mode:1;
-	// Given port_power, msec/2 after power on till power good
+	/* Given port_power, msec/2 after power on till power good */
 	u8 potpg;
-	// Hardware reset set/clear
+	/* Hardware reset set/clear */
 	void (*reset) (struct device *dev, int set);
-	// Clock start/stop
+	/* Clock start/stop */
 	void (*clock) (struct device *dev, int start);
 	/* Inter-io delay (ns). The chip is picky about access timings; it
 	   expects at least:

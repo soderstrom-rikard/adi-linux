@@ -20,7 +20,7 @@
   1. Configure your memory controller if it can accomodate such delays (the best)
   2. Implement platform-specific delay function possibly
      combined with configuring the memory controller; see
-     include/linux/usb_isp1362.h for more info.
+     include/linux/usb/isp1362.h for more info.
   3. Use ndelay (easiest, poorest).
 
   Use the corresponding macros USE_PLATFORM_DELAY and USE_NDELAY in the
@@ -76,7 +76,7 @@
 #include <linux/list.h>
 #include <linux/interrupt.h>
 #include <linux/usb.h>
-#include <linux/usb_isp1362.h>
+#include <linux/usb/isp1362.h>
 #include <linux/platform_device.h>
 #include <linux/pm.h>
 
