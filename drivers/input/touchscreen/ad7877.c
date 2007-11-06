@@ -204,7 +204,7 @@ struct ad7877 {
 
 	u16 conversion_data[AD7877_NR_SENSE];
 
-	struct spi_transfer	xfer[3];
+	struct spi_transfer	xfer[13];
 	struct spi_message	msg;
 
 	int intr_flag;
@@ -701,6 +701,7 @@ static int ad7877_resume(struct spi_device *spi)
 static inline void ad7877_setup_ts_def_msg(struct spi_device *spi, struct ad7877 *ts)
 {
 	struct spi_message	*m;
+	u16 i;
 
 	ts->cmd_crtl2 = AD7877_WRITEADD(AD7877_REG_CTRL2) | AD7877_POL(ts->stopacq_polarity) |\
 			AD7877_AVG(ts->averaging) | AD7877_PM(1) |\
@@ -730,10 +731,12 @@ static inline void ad7877_setup_ts_def_msg(struct spi_device *spi, struct ad7877
 
 	spi_message_add_tail(&ts->xfer[1], m);
 
-	ts->xfer[2].rx_buf = &ts->conversion_data[AD7877_SEQ_YPOS];
-	ts->xfer[2].len = AD7877_NR_SENSE * sizeof(u16);
+	for (i = 0; i < 11; i++) {
+		ts->xfer[i + 2].rx_buf = &ts->conversion_data[AD7877_SEQ_YPOS + i];
+		ts->xfer[i + 2].len = 2;
 
-	spi_message_add_tail(&ts->xfer[2], m);
+		spi_message_add_tail(&ts->xfer[i+2], m);
+	}
 }
 
 static int __devinit ad7877_probe(struct spi_device *spi)
