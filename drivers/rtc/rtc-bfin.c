@@ -1,6 +1,6 @@
 /*
  * Blackfin On-Chip Real Time Clock Driver
- *  Supports BF53[123]/BF53[467]/BF54[2489]
+ *  Supports BF52[257]/BF53[123]/BF53[467]/BF54[24789]
  *
  * Copyright 2004-2007 Analog Devices Inc.
  *
@@ -201,89 +201,68 @@ static void bfin_rtc_release(struct device *dev)
 	free_irq(IRQ_RTC, dev);
 }
 
+static void bfin_rtc_int_set(struct bfin_rtc *rtc, u16 rtc_int)
+{
+	bfin_write_RTC_ISTAT(rtc_int);
+	bfin_write_RTC_ICTL(bfin_read_RTC_ICTL() | rtc_int);
+}
+static void bfin_rtc_int_clear(struct bfin_rtc *rtc, u16 rtc_int)
+{
+	bfin_write_RTC_ICTL(bfin_read_RTC_ICTL() & rtc_int);
+}
+static void bfin_rtc_int_set_alarm(struct bfin_rtc *rtc)
+{
+	/* Blackfin has different bits for whether the alarm is
+	 * more than 24 hours away.
+	 */
+	bfin_rtc_int_set(rtc, (rtc->rtc_alarm.tm_yday == -1 ? RTC_ISTAT_ALARM : RTC_ISTAT_ALARM_DAY));
+}
 static int bfin_rtc_ioctl(struct device *dev, unsigned int cmd, unsigned long arg)
 {
 	struct bfin_rtc *rtc = dev_get_drvdata(dev);
+	int ret = 0;
 
 	dev_dbg_stamp(dev);
+
+	spin_lock_irq(&rtc->lock);
+	rtc_bfin_sync_pending();
 
 	switch (cmd) {
 	case RTC_PIE_ON:
 		dev_dbg_stamp(dev);
-		spin_lock_irq(&rtc->lock);
-		rtc_bfin_sync_pending();
-		bfin_write_RTC_ISTAT(RTC_ISTAT_STOPWATCH);
+		bfin_rtc_int_set(rtc, RTC_ISTAT_STOPWATCH);
 		bfin_write_RTC_SWCNT(rtc->rtc_dev->irq_freq);
-		bfin_write_RTC_ICTL(bfin_read_RTC_ICTL() | RTC_ISTAT_STOPWATCH);
-		spin_unlock_irq(&rtc->lock);
-		return 0;
+		break;
 	case RTC_PIE_OFF:
 		dev_dbg_stamp(dev);
-		spin_lock_irq(&rtc->lock);
-		rtc_bfin_sync_pending();
-		bfin_write_RTC_SWCNT(0);
-		bfin_write_RTC_ICTL(bfin_read_RTC_ICTL() & ~RTC_ISTAT_STOPWATCH);
-		spin_unlock_irq(&rtc->lock);
-		return 0;
+		bfin_rtc_int_clear(rtc, ~RTC_ISTAT_STOPWATCH);
+		break;
 
 	case RTC_UIE_ON:
 		dev_dbg_stamp(dev);
-		spin_lock_irq(&rtc->lock);
-		rtc_bfin_sync_pending();
-		bfin_write_RTC_ISTAT(RTC_ISTAT_SEC);
-		bfin_write_RTC_ICTL(bfin_read_RTC_ICTL() | RTC_ISTAT_SEC);
-		spin_unlock_irq(&rtc->lock);
-		return 0;
+		bfin_rtc_int_set(rtc, RTC_ISTAT_SEC);
+		break;
 	case RTC_UIE_OFF:
 		dev_dbg_stamp(dev);
-		spin_lock_irq(&rtc->lock);
-		rtc_bfin_sync_pending();
-		bfin_write_RTC_ICTL(bfin_read_RTC_ICTL() & ~RTC_ISTAT_SEC);
-		spin_unlock_irq(&rtc->lock);
-		return 0;
+		bfin_rtc_int_clear(rtc, ~RTC_ISTAT_SEC);
+		break;
 
-	case RTC_AIE_ON: {
-		unsigned long rtc_alarm;
-		u16 which_alarm;
-		int ret = 0;
-
+	case RTC_AIE_ON:
 		dev_dbg_stamp(dev);
-
-		spin_lock_irq(&rtc->lock);
-
-		rtc_bfin_sync_pending();
-		if (rtc->rtc_alarm.tm_yday == -1) {
-			struct rtc_time now;
-			rtc_bfin_to_tm(bfin_read_RTC_STAT(), &now);
-			now.tm_sec = rtc->rtc_alarm.tm_sec;
-			now.tm_min = rtc->rtc_alarm.tm_min;
-			now.tm_hour = rtc->rtc_alarm.tm_hour;
-			ret = rtc_tm_to_time(&now, &rtc_alarm);
-			which_alarm = RTC_ISTAT_ALARM;
-		} else {
-			ret = rtc_tm_to_time(&rtc->rtc_alarm, &rtc_alarm);
-			which_alarm = RTC_ISTAT_ALARM_DAY;
-		}
-		if (ret == 0) {
-			bfin_write_RTC_ISTAT(which_alarm);
-			bfin_write_RTC_ALARM(rtc_time_to_bfin(rtc_alarm));
-			bfin_write_RTC_ICTL(bfin_read_RTC_ICTL() | which_alarm);
-		}
-
-		spin_unlock_irq(&rtc->lock);
-
-		return ret;
-	}
+		bfin_rtc_int_set_alarm(rtc);
+		break;
 	case RTC_AIE_OFF:
 		dev_dbg_stamp(dev);
-		spin_lock_irq(&rtc->lock);
-		rtc_bfin_sync_pending();
-		bfin_write_RTC_ICTL(bfin_read_RTC_ICTL() & ~(RTC_ISTAT_ALARM | RTC_ISTAT_ALARM_DAY));
-		spin_unlock_irq(&rtc->lock);
-		return 0;
+		bfin_rtc_int_clear(rtc, ~(RTC_ISTAT_ALARM | RTC_ISTAT_ALARM_DAY));
+		break;
+
+	default:
+		ret = -ENOIOCTLCMD;
 	}
 
-	return -ENOIOCTLCMD;
+	spin_unlock_irq(&rtc->lock);
+
+	return ret;
 }
 
 static int bfin_rtc_read_time(struct device *dev, struct rtc_time *tm)
@@ -309,13 +288,11 @@ static int bfin_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	dev_dbg_stamp(dev);
 
 	spin_lock_irq(&rtc->lock);
-
 	ret = rtc_tm_to_time(tm, &now);
 	if (ret == 0) {
 		rtc_bfin_sync_pending();
 		bfin_write_RTC_STAT(rtc_time_to_bfin(now));
 	}
-
 	spin_unlock_irq(&rtc->lock);
 
 	return ret;
@@ -326,6 +303,7 @@ static int bfin_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	struct bfin_rtc *rtc = dev_get_drvdata(dev);
 	dev_dbg_stamp(dev);
 	alrm->time = rtc->rtc_alarm;
+	rtc_bfin_sync_pending();
 	alrm->enabled = !!(bfin_read_RTC_ICTL() & (RTC_ISTAT_ALARM | RTC_ISTAT_ALARM_DAY));
 	return 0;
 }
@@ -333,8 +311,22 @@ static int bfin_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 static int bfin_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct bfin_rtc *rtc = dev_get_drvdata(dev);
+	unsigned long rtc_alarm;
+
 	dev_dbg_stamp(dev);
+
+	if (rtc_tm_to_time(&alrm->time, &rtc_alarm))
+		return -EINVAL;
+
 	rtc->rtc_alarm = alrm->time;
+
+	spin_lock_irq(&rtc->lock);
+	rtc_bfin_sync_pending();
+	bfin_write_RTC_ALARM(rtc_time_to_bfin(rtc_alarm));
+	if (alrm->enabled)
+		bfin_rtc_int_set_alarm(rtc);
+	spin_unlock_irq(&rtc->lock);
+
 	return 0;
 }
 
