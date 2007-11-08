@@ -2584,6 +2584,11 @@ config AX88180
 	---help---
 	  Support for AX88180 chipset.
 	  To compile this driver as a module, choose M here
+	  
+config AX88180_16BIT
+	bool "Select AX88180 16-bit IO Mode"
+	depends on AX88180
+	default y	
 
 endif # NETDEV_10000
 
