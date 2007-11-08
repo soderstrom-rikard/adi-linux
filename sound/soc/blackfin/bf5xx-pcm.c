@@ -75,6 +75,11 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 	struct sport_device *sport = runtime->private_data;
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		/*Don't re-config descriptor when it is to be hooked to dummy*/
+		if (sport->wait_dummy_tx == 1) {
+			sport->wait_dummy_tx = 0;
+			return 0;
+		}
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_tx_dma(sport, runtime->dma_area, runtime->periods,
 				runtime->period_size * sizeof(struct ac97_frame));
@@ -139,11 +144,10 @@ static	int bf5xx_pcm_copy(struct snd_pcm_substream *substream, int channel,
 		    void __user *buf, snd_pcm_uframes_t count)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	struct sport_device *sport = runtime->private_data;
+
 	pr_debug("%s copy pos:0x%lx count:0x%lx\n",
 			substream->stream?"Capture":"Playback", pos, count);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		sport->stream_tx_pos = pos;
 		bf5xx_ac97_pcm32_to_frame(
 				(struct ac97_frame *)runtime->dma_area + pos,
 				buf, count);

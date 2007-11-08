@@ -31,10 +31,10 @@
 #include "bf5xx-pcm.h"
 #include "bf5xx-ac97.h"
 
-#define PIN_REQ_SPORT_0 {P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS, \
+#define PIN_REQ_SPORT_0 {P_SPORT0_TFS, P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS, \
 		 P_SPORT0_DRPRI, P_SPORT0_RSCLK, 0}
 
-#define PIN_REQ_SPORT_1 {P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, \
+#define PIN_REQ_SPORT_1 {P_SPORT1_TFS, P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, \
 		 P_SPORT1_DRPRI, P_SPORT1_RSCLK, 0}
 
 
@@ -104,7 +104,7 @@ static int bf5xx_probe(struct platform_device *pdev)
 	gpio_set_value(CONFIG_SND_BF5XX_RESET_GPIO_NUM, 1);
 #endif
 	sport_handle = sport_init(&sport_params[sport_num], 2, \
-			10 * sizeof(struct ac97_frame), NULL);
+			sizeof(struct ac97_frame), NULL);
 	if (!sport_handle) {
 		peripheral_free_list(&sport_req[sport_num][0]);
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
