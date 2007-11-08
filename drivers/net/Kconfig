@@ -2576,6 +2576,15 @@ config MLX4_DEBUG
 	  debug_level module parameter (which can also be set after
 	  the driver is loaded through sysfs).
 
+config AX88180
+	tristate "AX88180 Gigabit Ethernet support"
+	depends on (ARM || BLACKFIN || MIPS) && NET_ETHERNET
+	select CRC32
+	select MII
+	---help---
+	  Support for AX88180 chipset.
+	  To compile this driver as a module, choose M here
+
 endif # NETDEV_10000
 
 source "drivers/net/tokenring/Kconfig"
