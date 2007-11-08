@@ -912,7 +912,7 @@ static inline int check_modstruct_version(Elf_Shdr *sechdrs,
 	const unsigned long *crc;
 	struct module *owner;
 
-	if (!__find_symbol("_struct_module", &owner, &crc, 1))
+	if (!__find_symbol("struct_module", &owner, &crc, 1))
 		BUG();
 	return check_version(sechdrs, versindex, "struct_module", mod,
 			     crc);
