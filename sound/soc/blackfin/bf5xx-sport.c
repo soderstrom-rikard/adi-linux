@@ -36,7 +36,7 @@
 #include <asm/cacheflush.h>
 
 #include "bf5xx-sport.h"
-
+#include "bf5xx-ac97.h"
 /* delay between frame sync pulse and first data bit in multichannel mode */
 #define FRAME_DELAY (1<<12)
 
@@ -165,13 +165,11 @@ static int sport_stop(struct sport_device *sport)
 
 	disable_dma(sport->dma_rx_chan);
 	disable_dma(sport->dma_tx_chan);
-
-	sport->wait_dummy_tx = 0;
 	if (sport->bak_tx_desc_p) {
 		*sport->bak_tx_desc_p = sport->bak_tx_desc;
 		sport->bak_tx_desc_p = NULL;
 	}
-
+	sport->wait_dummy_tx = 0;
 	return 0;
 }
 
@@ -191,7 +189,7 @@ static inline int sport_hook_rx_dummy(struct sport_device *sport)
 	desc = (struct dmasg *)get_dma_next_desc_ptr(sport->dma_rx_chan);
 	/* Copy the descriptor which will be damaged to backup */
 	temp_desc = *desc;
-	desc->x_count = 0x5;
+	desc->x_count = 0xa;
 	desc->y_count = 0;
 	desc->next_desc_addr = (unsigned long)(sport->dummy_rx_desc);
 	local_irq_restore(flags);
@@ -302,46 +300,32 @@ static inline int sport_hook_tx_dummy(struct sport_device *sport)
 	unsigned long flags;
 
 	BUG_ON(sport->dummy_tx_desc == NULL);
-
 	sport->dummy_tx_desc->next_desc_addr = \
 			(unsigned long)sport->dummy_tx_desc;
-
+	/* Shorten the time on last normal descriptor */
 	local_irq_save(flags);
 	desc = (struct dmasg *)get_dma_next_desc_ptr(sport->dma_tx_chan);
-	/* Store the descriptor which will be damaged */
 	sport->bak_tx_desc_p = desc;
 	sport->bak_tx_desc = *desc;
-	/* Shorten the time on last normal descriptor */
-	desc->x_count = 0x5;
-	desc->y_count = 0;
+	desc->x_count = 0xa;
+	desc->start_addr = sport->dummy_tx_desc->start_addr;
+	/* Store the descriptor which will be damaged */
 	desc->next_desc_addr = (unsigned long)(sport->dummy_tx_desc);
 	local_irq_restore(flags);
-
+	/* Waiting for dummy buffer descriptor is already hooked*/
 	sport->wait_dummy_tx = 1;
-
 	return 0;
 }
 
 int sport_tx_start(struct sport_device *sport)
 {
 	unsigned flags;
-
 	pr_debug("%s: tx_run:%d, rx_run:%d\n", __FUNCTION__,
 			sport->tx_run, sport->rx_run);
 	if (sport->tx_run)
 		return -EBUSY;
 
 	if (sport->rx_run) {
-		BUG_ON(sport->dma_tx_desc == NULL);
-
-		/* Hook the normal buffer descriptor */
-		while (get_dma_next_desc_ptr(sport->dma_tx_chan) != \
-			(unsigned long)sport->dummy_tx_desc) {}
-
-		if (sport->bak_tx_desc_p) {
-			*sport->bak_tx_desc_p = sport->bak_tx_desc;
-			sport->bak_tx_desc_p = NULL;
-		}
 		local_irq_save(flags);
 		sport->dummy_tx_desc->next_desc_addr = \
 			(unsigned long)(sport->dma_tx_desc);
@@ -577,11 +561,12 @@ static int sport_config_tx_dummy(struct sport_device *sport)
 	sport->dummy_tx_desc = desc;
 
 	desc->next_desc_addr = (unsigned long)desc;
-	desc->start_addr = (unsigned long)sport->dummy_buf + sport->wdsize;
+	desc->start_addr = (unsigned long)sport->dummy_buf + \
+		sizeof(struct ac97_frame);
 	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(sport->wdsize) | DMAEN;
 	desc->cfg = config;
 	desc->x_count = sport->dummy_count;
-	desc->x_modify = 0;
+	desc->x_modify = sport->wdsize;
 	desc->y_count = 0;
 	desc->y_modify = 0;
 
@@ -706,12 +691,23 @@ static irqreturn_t tx_handler(int irq, void *dev_id)
 {
 	unsigned int tx_stat;
 	struct sport_device *sport = dev_id;
-
+	unsigned long ptr;
 	pr_debug("%s enter\n", __FUNCTION__);
 	sport_check_status(sport, NULL, NULL, &tx_stat);
 	if (!(tx_stat & DMA_DONE)) {
 		printk(KERN_ERR "tx dma is already stopped\n");
 		return IRQ_HANDLED;
+	}
+
+	if (sport->wait_dummy_tx) {
+		ptr = get_dma_next_desc_ptr(sport->dma_tx_chan);
+		if (ptr == (unsigned long)sport->dummy_tx_desc) {
+			if (sport->bak_tx_desc_p) {
+				*sport->bak_tx_desc_p = sport->bak_tx_desc;
+				sport->bak_tx_desc_p = NULL;
+				sport->wait_dummy_tx = 0;
+			}
+		}
 	}
 
 	if (sport->tx_callback) {
@@ -781,7 +777,8 @@ struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 		unsigned dummy_count, void *private_data)
 {
 	struct sport_device *sport;
-
+	struct ac97_frame *dummy_dst;
+	int count;
 	pr_debug("%s enter\n", __FUNCTION__);
 	BUG_ON(param == NULL);
 	BUG_ON(wdsize == 0 || dummy_count == 0);
@@ -837,16 +834,23 @@ struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 	sport->dummy_count = dummy_count;
 
 #if L1_DATA_A_LENGTH != 0
-	sport->dummy_buf = l1_data_sram_alloc(wdsize * 2);
+	sport->dummy_buf = l1_data_sram_alloc(sizeof(struct ac97_frame) * 2);
 #else
-	sport->dummy_buf = kmalloc(wdsize * 2, GFP_KERNEL);
+	sport->dummy_buf = kmalloc(sizeof(struct ac97_frame) * 2, GFP_KERNEL);
 #endif
 	if (sport->dummy_buf == NULL) {
 		printk(KERN_ERR "Failed to allocate dummy buffer\n");
 		goto __error;
 	}
 
-	memset(sport->dummy_buf, 0, wdsize * 2);
+	memset(sport->dummy_buf, 0, sizeof(struct ac97_frame) * 2);
+	dummy_dst = (struct ac97_frame *)sport->dummy_buf;
+	for (count = 0; count < 2; count++) {
+
+		dummy_dst->ac97_tag = TAG_VALID | TAG_PCM;
+		(dummy_dst++)->ac97_pcm = 0;
+	}
+
 	sport_config_rx_dummy(sport);
 	sport_config_tx_dummy(sport);
 

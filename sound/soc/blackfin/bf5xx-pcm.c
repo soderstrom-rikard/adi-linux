@@ -77,7 +77,6 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		/*Don't re-config descriptor when it is to be hooked to dummy*/
 		if (sport->wait_dummy_tx == 1) {
-			sport->wait_dummy_tx = 0;
 			return 0;
 		}
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
