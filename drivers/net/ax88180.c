@@ -48,7 +48,7 @@
  * 1.Modify to support AX88180 US2 chip. 
  * 2.Modify to support AX88180 US2 burst data access function.
  *
- *
+ * 3 Port to blackfin PSW
  *
  *
  *
@@ -59,13 +59,14 @@
  * ========================================================================
  */
 
-#include <linux/config.h>
+//#include <linux/config.h>
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
 #include <linux/types.h>
 #include <linux/interrupt.h>
+#include <linux/irq.h>
 #include <linux/ioport.h>
 #include <linux/string.h>
 #include <linux/init.h>
@@ -77,14 +78,15 @@
 #include <linux/timer.h>
 #include <linux/delay.h>
 #include <linux/crc32.h>
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
 #include <linux/ethtool.h>
-#endif
 #include <linux/mii.h>
 #include <linux/if_ether.h>
 
 #include <asm/io.h>
-#include <asm/uaccess.h>		/* User space memory access functions */
+#include <asm/irq.h>
+#include <asm/uaccess.h>	       /* User space memory access functions */
+#include <asm/blackfin.h>
+
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
 #	ifdef CONFIG_BOARD_S3C2440_SMDK
@@ -97,7 +99,9 @@
 #		include <asm/arch/regs-irq.h>
 #	endif
 #endif
+
 #include "ax88180.h"
+
 
 
 /*
@@ -106,10 +110,10 @@
  * ===========================================================================
  */
 #define	DRV_NAME	"ax88180"
-#define	DRV_VERSION	"v1.1.0"
+#define	DRV_VERSION	"v1.1.0=psw-1"
 
 static char version[] __initdata = 
-KERN_INFO "ax88180: ASIX AX88180 Non-PCI 32-bit Gigabit Ethernet Driver " DRV_VERSION "\n" 
+KERN_INFO "ax88180: ASIX AX88180 Non-PCI 32/16-bit Gigabit Ethernet Driver " DRV_VERSION "\n" 
 KERN_INFO "ax88180: Please visit http://www.asix.com.tw for the latest driver.\n";
 
 
@@ -143,26 +147,30 @@ struct _AX88180_PRIVATE {
 } AX88180_PRIVATE, *PAX88180_PRIVATE;
 
 static unsigned long Log_MemBase = 0;
+
 unsigned long mem = PLATFORM_MEMBASE; 
-unsigned long irq = PLATFORM_IRQ;
 unsigned int jumbo = DISABLE_JUMBO; 
 unsigned int media = 0;
 
-
+//Set up the system in 16 bit mode
+#define SET_16_BIT \
+*(volatile unsigned short *)(Log_MemBase + 0x0000) = 0;\
+*(volatile unsigned short *)(Log_MemBase + 0x0006) = 0x0010;\
+*(volatile unsigned short *)(Log_MemBase + 0x0000) = 0x0001;
 
 #define	PRINTK(flag, args...) if (flag & DEBUG_FLAGS) printk(args)	
 
 //Access RXBUFFER_START/TXBUFFER_START to read RX buffer/write TX buffer
-#define READ_RXBUF(data) data = *(const volatile unsigned long * const)(Log_MemBase + RXBUFFER_START)
-#define WRITE_TXBUF(data) *(volatile unsigned long *)(Log_MemBase + TXBUFFER_START) = data
+#define READ_RXBUF(data) data = *(const volatile unsigned short * const)(Log_MemBase + RXBUFFER_START)
+#define WRITE_TXBUF(data) *(volatile unsigned short *)(Log_MemBase + TXBUFFER_START) = data
 
-#define READ_MACREG(regaddr, regdata) regdata = *(volatile unsigned long *)(Log_MemBase + regaddr)
+#define READ_MACREG(regaddr, regdata) regdata = *(volatile unsigned short *)(Log_MemBase + regaddr)
 #define WRITE_MACREG(regaddr, regdata) { \
-	*(volatile unsigned long *)(Log_MemBase + regaddr) = regdata; \
+	*(volatile unsigned short *)(Log_MemBase + regaddr) = regdata; \
 	}
 
 #define READ_PHYREG(phyaddr, regaddr, regdata) { \
-	unsigned long tmpval1, k1; \
+	unsigned short tmpval1, k1; \
 	WRITE_MACREG(MDIOCTRL, READ_PHY | (regaddr << 8) | phyaddr); \
 	for (k1 = 0; k1 < 10000; k1++) { \
 		READ_MACREG(MDIOCTRL, tmpval1); \
@@ -174,7 +182,7 @@ unsigned int media = 0;
 	READ_MACREG(MDIODP, regdata); \
 }
 #define WRITE_PHYREG(phyaddr, regaddr, regdata) { \
-	unsigned long tmpval2, k2; \
+	unsigned short tmpval2, k2; \
 	WRITE_MACREG(MDIODP, regdata); \
 	WRITE_MACREG(MDIOCTRL, WRITE_PHY | (regaddr << 8) | phyaddr); \
 	for (k2 = 0; k2 < 10000; k2++) { \
@@ -187,7 +195,7 @@ unsigned int media = 0;
 }
 
 #define RESET_MAC { \
-	unsigned long tmpval3; \
+	unsigned short tmpval3; \
 	WRITE_MACREG(MISC, MISC_RESET_MAC); \
 	READ_MACREG(MISC, tmpval3); \
 	WRITE_MACREG(MISC, MISC_NORMAL); \
@@ -202,15 +210,17 @@ unsigned int media = 0;
 	WRITE_MACREG(MACCFG2, DEFAULT_MACCFG2); \
 	WRITE_MACREG(MACCFG3, DEFAULT_MACCFG3); \
 	WRITE_MACREG(TXLEN, DEFAULT_TXLEN); \
-	WRITE_MACREG(TXPAUT, DEFAULT_TXPAUT); \
+	WRITE_MACREG(TXPAUT, DEFAULT_TXPAUT_PSW); \
 	WRITE_MACREG(RXBTHD0, DEFAULT_RXBTHD0); \
 	WRITE_MACREG(RXBTHD1, DEFAULT_RXBTHD1); \
 	WRITE_MACREG(RXFULTHD, DEFAULT_RXFULTHD); \
 	WRITE_MACREG(DOGTHD0, DEFAULT_DOGTHD0); \
 	WRITE_MACREG(DOGTHD1, DEFAULT_DOGTHD1); \
 }
+
+
 #define RESET_PHY { \
-	unsigned long tmpval3a, k3a; \
+	unsigned short tmpval3a, k3a; \
 	WRITE_PHYREG(pax88180_local->PhyAddr, BMCR, PHY_RESET); \
 	for (k3a = 0; k3a < 500; k3a++) { \
 		READ_PHYREG(pax88180_local->PhyAddr, BMCR, tmpval3a); \
@@ -233,23 +243,38 @@ unsigned int media = 0;
 #define	STOP_READ_RXBUFF 	WRITE_MACREG(RXINDICATOR, RX_STOP_READ)
 
 /* Display all AX88180 MAC registers onto console screen */
-#define	DISPLAY_ALLMACREG { \
-	unsigned long tmpval4; \
+#define	DISPLAY_ONEMACREG { \
+	unsigned short tmpval4; \
 	int k4; \
-	PRINTK(DEBUG_MSG, "ax88180: AX88180 MAC Registers:\n"); \
-	for (k4 = 0xFC00; k4 <= 0xFCFF; k4+=4) { \
+	PRINTK(DRIVER_MSG, "ax88180: AX88180 MAC Registers:\n"); \
+	for (k4 = 0x1F00; k4 <= 0x1F04; k4+=4) { \
 		READ_MACREG(k4, tmpval4); \
-		PRINTK(DEBUG_MSG, "0x%04x=0x%08lx ", k4, tmpval4); \
+		PRINTK(DRIVER_MSG, "0x%04x=0x%08x ", k4,(unsigned int)tmpval4);\
 		if ((k4 & 0xF) == 0xC) \
-			PRINTK(DEBUG_MSG, "\n"); \
+			PRINTK(DRIVER_MSG, "\n"); \
 	} \
-	PRINTK(DEBUG_MSG, "\n"); \
+	PRINTK(DRIVER_MSG, "\n"); \
 }
+
+#define	DISPLAY_ALLMACREG { \
+	unsigned short tmpval4; \
+	int k4; \
+	PRINTK(DRIVER_MSG, "ax88180: AX88180 MAC Registers:\n"); \
+	for (k4 = 0x1F00; k4 <= 0x1FFF; k4+=4) { \
+		READ_MACREG(k4, tmpval4); \
+		PRINTK(DRIVER_MSG \
+		       , "0x%04x=0x%08x ", k4,(unsigned int)tmpval4);\
+		if ((k4 & 0xF) == 0xC) \
+			PRINTK(DRIVER_MSG, "\n"); \
+	} \
+	PRINTK(DRIVER_MSG, "\n"); \
+}
+
 
 //allan3
 /* Display all AX88180 PHY registers onto console screen */
 #define	DISPLAY_ALLPHYREG { \
-	unsigned long tmpval5; \
+	unsigned short tmpval5; \
 	PRINTK(DEBUG_MSG, "ax88180: AX88180 PHY Registers: (media=%d)\n", media); \
 	READ_PHYREG(pax88180_local->PhyAddr, BMCR, tmpval5); \
 	PRINTK(DEBUG_MSG, "BMCR=0x%04x ", (unsigned int)tmpval5); \
@@ -289,13 +314,63 @@ unsigned int media = 0;
 		PRINTK(DEBUG_MSG, "CIS_AUX=0x%04x \n", (unsigned int)tmpval5); \
 	} \
 	READ_MACREG(RXCFG, tmpval5); \
-	PRINTK(DEBUG_MSG, "RXCFG=0x%08lx ", tmpval5); \
+	PRINTK(DEBUG_MSG, "RXCFG=0x%08x ", (unsigned int)tmpval5); \
 	READ_MACREG(MACCFG0, tmpval5); \
-	PRINTK(DEBUG_MSG, "MACCFG0=0x%08lx ", tmpval5); \
+	PRINTK(DEBUG_MSG, "MACCFG0=0x%08x ", (unsigned int)tmpval5); \
 	READ_MACREG(MACCFG1, tmpval5); \
-	PRINTK(DEBUG_MSG, "MACCFG1=0x%08lx ", tmpval5); \
+	PRINTK(DEBUG_MSG, "MACCFG1=0x%08x ", (unsigned int)tmpval5); \
 	READ_MACREG(MACCFG2, tmpval5); \
-	PRINTK(DEBUG_MSG, "MACCFG2=0x%08lx \n\n", tmpval5); \
+	PRINTK(DEBUG_MSG, "MACCFG2=0x%08x \n\n", (unsigned int)tmpval5); \
+}
+/* Display all AX88180 PHY registers onto console screen */
+#define	DISPLAY_ALLPHYREG_ERROR { \
+	unsigned short tmpval5; \
+	PRINTK(ERROR_MSG, "ax88180: AX88180 PHY Registers: (media=%d)\n", media); \
+	READ_PHYREG(pax88180_local->PhyAddr, BMCR, tmpval5); \
+	PRINTK(ERROR_MSG, "BMCR=0x%04x ", (unsigned int)tmpval5); \
+	READ_PHYREG(pax88180_local->PhyAddr, BMSR, tmpval5); \
+	PRINTK(ERROR_MSG, "BMSR=0x%04x ", (unsigned int)tmpval5); \
+	READ_PHYREG(pax88180_local->PhyAddr, PHYIDR0, tmpval5); \
+	PRINTK(ERROR_MSG, "PHYIDR0=0x%04x ", (unsigned int)tmpval5); \
+	READ_PHYREG(pax88180_local->PhyAddr, PHYIDR1, tmpval5); \
+	PRINTK(ERROR_MSG, "PHYIDR1=0x%04x ", (unsigned int)tmpval5); \
+	READ_PHYREG(pax88180_local->PhyAddr, ANAR, tmpval5); \
+	PRINTK(ERROR_MSG, "ANAR=0x%04x ", (unsigned int)tmpval5); \
+	READ_PHYREG(pax88180_local->PhyAddr, ANLPAR, tmpval5); \
+	PRINTK(ERROR_MSG, "ANLPAR=0x%04x \n", (unsigned int)tmpval5); \
+	READ_PHYREG(pax88180_local->PhyAddr, ANER, tmpval5); \
+	PRINTK(ERROR_MSG, "ANER=0x%04x ", (unsigned int)tmpval5); \
+	READ_PHYREG(pax88180_local->PhyAddr, AUX_1000_CTRL, tmpval5); \
+	PRINTK(ERROR_MSG, "1G_CTRL=0x%04x ", (unsigned int)tmpval5); \
+	READ_PHYREG(pax88180_local->PhyAddr, AUX_1000_STATUS, tmpval5); \
+	PRINTK(ERROR_MSG, "1G_STATUS=0x%04x \n", (unsigned int)tmpval5); \
+	if (pax88180_local->PhyID0 == MARVELL_88E1111_PHYIDR0) { \
+		READ_PHYREG(pax88180_local->PhyAddr, M88_SSR, tmpval5); \
+		PRINTK(ERROR_MSG, "M88_SSR=0x%04x ", (unsigned int)tmpval5); \
+		READ_PHYREG(pax88180_local->PhyAddr, M88_IER, tmpval5); \
+		PRINTK(ERROR_MSG, "M88_IER=0x%04x ", (unsigned int)tmpval5); \
+		READ_PHYREG(pax88180_local->PhyAddr, M88_ISR, tmpval5); \
+		PRINTK(ERROR_MSG, "M88_ISR=0x%04x ", (unsigned int)tmpval5); \
+		READ_PHYREG(pax88180_local->PhyAddr, M88_EXT_SCR, tmpval5); \
+		PRINTK(ERROR_MSG, "M88_EXT_SCR=0x%04x ", (unsigned int)tmpval5); \
+		READ_PHYREG(pax88180_local->PhyAddr, M88_EXT_SSR, tmpval5); \
+		PRINTK(ERROR_MSG, "M88_EXT_SSR=0x%04x \n", (unsigned int)tmpval5); \
+	} else if (pax88180_local->PhyID0 == CICADA_CIS8201_PHYIDR0) { \
+		READ_PHYREG(pax88180_local->PhyAddr, CIS_IMR, tmpval5); \
+		PRINTK(ERROR_MSG, "CIS_IMR=0x%04x ", (unsigned int)tmpval5); \
+		READ_PHYREG(pax88180_local->PhyAddr, CIS_ISR, tmpval5); \
+		PRINTK(ERROR_MSG, "CIS_ISR=0x%04x ", (unsigned int)tmpval5); \
+		READ_PHYREG(pax88180_local->PhyAddr, CIS_AUX_CTRL_STATUS, tmpval5); \
+		PRINTK(ERROR_MSG, "CIS_AUX=0x%04x \n", (unsigned int)tmpval5); \
+	} \
+	READ_MACREG(RXCFG, tmpval5); \
+	PRINTK(ERROR_MSG, "RXCFG=0x%08x ", (unsigned int)tmpval5); \
+	READ_MACREG(MACCFG0, tmpval5); \
+	PRINTK(ERROR_MSG, "MACCFG0=0x%08x ", (unsigned int)tmpval5); \
+	READ_MACREG(MACCFG1, tmpval5); \
+	PRINTK(ERROR_MSG, "MACCFG1=0x%08x ", (unsigned int)tmpval5); \
+	READ_MACREG(MACCFG2, tmpval5); \
+	PRINTK(ERROR_MSG, "MACCFG2=0x%08x \n\n", (unsigned int)tmpval5); \
 }
 
 
@@ -310,14 +385,12 @@ static void ax88180_tx_timeout(struct net_device *global_dev);
 static struct net_device_stats * ax88180_get_stats(struct net_device *global_dev);
 static void ax88180_set_multicast_list(struct net_device *global_dev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-#ifdef CONFIG_BOARD_S3C2440_SMDK
-int set_external_irq(int irq, int edge, int pullup);
-#endif
-static void ax88180_interrupt(int irq, void *global_dev_id, struct pt_regs * regs);
-#else
-static irqreturn_t ax88180_interrupt(int irq, void *global_dev_id, struct pt_regs * regs);
-#endif
+static irqreturn_t ax88180_interrupt(int irq, void *global_dev_id/*, struct pt_regs * regs*/);
+
+
+static int bfin_setup_irq(struct net_device *global_dev, int num);
+static int bfin_cleanup_irq(struct net_device *global_dev, int num);
+static int bfin_reset_irq(int irq);
 
 static int ax88180_initialization(struct net_device *global_dev);
 static void ax88180_PHY_initial(struct net_device *global_dev);
@@ -327,14 +400,11 @@ static void get_CicadaPHY_meida_mode(struct net_device *global_dev);
 static void ax88180_rx_handler(struct net_device *global_dev);
 static void ax88180_tx_handler(struct net_device *global_dev);
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
 static int ax88180_ioctl(struct net_device *global_dev, struct ifreq *rq, int cmd);
 static int ax88180_ethtool_ioctl(struct net_device *global_dev, void *useraddr);
 static int mdio_read(struct net_device *global_dev, int phy_id, int regaddr);
 static void mdio_write(struct net_device *global_dev, int phy_id, int regaddr, int regval);
-#endif
 
-int set_external_irq(int irq, int edge, int pullup);
 
 
 /*
@@ -345,37 +415,43 @@ int set_external_irq(int irq, int edge, int pullup);
 #ifdef MODULE
 
 MODULE_AUTHOR("Allan Chou <allan@asix.com.tw>");
-MODULE_DESCRIPTION("ASIX AX88180 Non-PCI 32-bit Gigabit Ethernet Driver");
+MODULE_DESCRIPTION("ASIX AX88180 Non-PCI 16-bit Gigabit Ethernet Driver");
 MODULE_LICENSE("GPL");
 
 /*
  *****************************************************************************
  * AX88180 module mode driver optional parameters:
  * Syntax: insmod ax88180.o mem=0xXXXXXXXX irq=0xXX media=<media_type> jumbo=x 
- *   mem	Set memory base address (default is 0x08000000)
- *   irq	Set IRQ number (default is 0x27)
+ *   mem	Set memory base address (default is 0x20200000)
+ *   irq	Set IRQ number (default is 0x37)
  *   media	Set media mode (0:auto, 1:100full, 2:100half, 3:10full 4:10half)
  *   jumbo	Enable/disable Jumbo frame (1=enable, 0=disable)(default is 0)
  * 
+ *   pfnum      PF4 interrupt flag to use
+ *   pfedge     PF4 interrupt edge to use 0 = FALLING 1 = RISING
+
  * example: insmod ax88180.o mem=0x08000000 irq=0x27 media=auto jumbo=0 
  *
  *****************************************************************************
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-MODULE_PARM(media, "i");
-MODULE_PARM(mem, "i");
-MODULE_PARM(irq, "i");
-MODULE_PARM(jumbo, "i");
-#else
+
+/*
+ * mods from working issue
+ * 2*HZ
+ * swab removed
+ */
+static int pfnum = 4;
+static int pfedge = 0;
+
+//module_param(mem, int, 0);
 module_param(media, int, 0);
 module_param(jumbo, int, 0);
-module_param(mem, long, 0);
-module_param(irq, long, 0);
-#endif
+module_param(pfnum, int, 0);
+module_param(pfedge, int, 0);
 
-MODULE_PARM_DESC(media, "Media Mode(auto, 100full, 100half, 10full or 10half)");
-MODULE_PARM_DESC(mem, "Memory Base Address");
-MODULE_PARM_DESC(irq, "Interrupt Number");
+
+MODULE_PARM_DESC(media, "Media Mode(auto, 100full, 100half, 10full or 10half)");MODULE_PARM_DESC(pfnum, "PFnum (default 4)");
+MODULE_PARM_DESC(pfedge, "PFnum default falling (0)");
 MODULE_PARM_DESC(jumbo, "Jumbo Frame(1=enable, 0=disable");
 
 static struct net_device dev_ax;
@@ -387,6 +463,22 @@ module_init(ax88180_init_module);
 module_exit(ax88180_cleanup_module);
 
 
+/*
+ *****************************************************************************
+ * swabber
+ *****************************************************************************
+ */
+int swab(unsigned short val) 
+{
+  unsigned char c;
+  unsigned char * sp;
+  sp = (unsigned char *)&val;
+  c = sp[0];
+  sp[0]=sp[1];
+  sp[1]=c;
+
+  return 0;
+}
 /*
  *****************************************************************************
  * ax88180_init_module()
@@ -403,19 +495,20 @@ static int __init ax88180_init_module(void)
 
 	global_dev = &dev_ax;
 
-	global_dev->irq = irq;
 	global_dev->base_addr = mem;
 	global_dev->init = ax88180_probe;
+	bfin_setup_irq(global_dev, pfnum);
+
 	if(register_netdev(global_dev) == 0) {
 		PRINTK(INIT_MSG, "ax88180: ax88180_init_module end ..........\n");
 		return 0;
 	}
-
+	
 	if (mem != 0) {
-		PRINTK(WARNING_MSG, "AX88180: No AX88180 card found at memory = %#lx\n", mem);
+	  PRINTK(WARNING_MSG, "AX88180: No AX88180 card found at memory = %#lx\n", mem);
 	}
 	else {
-		PRINTK(WARNING_MSG, "AX88180: You must supply \"mem=0xNNNNNNN\" value(s) for AX88180.\n");
+	  PRINTK(WARNING_MSG, "AX88180: You must supply \"mem=0xNNNNNNN\" value(s) for AX88180.\n");
 	}
 	return -ENXIO;
 }
@@ -438,7 +531,7 @@ static void __exit ax88180_cleanup_module(void)
 
 	if (global_dev != NULL) {
 		unregister_netdev(global_dev);
-		free_irq(global_dev->irq, global_dev);
+		bfin_cleanup_irq(global_dev, pfnum);
 	}
 
 	if (Log_MemBase != 0) {
@@ -491,14 +584,16 @@ int __init ax88180_probe(struct net_device *global_dev)
 
 /*
 	//allan9 add for debugging
-	unsigned long tmp_data;
+	unsigned short tmp_data;
 	unsigned long rx_packet_len;
 	unsigned int packet_len;
-	unsigned long rxcurt_ptr, rxbound_ptr;
+	unsigned short rxcurt_ptr, rxbound_ptr;
 	int i;
 */
 
 	PRINTK(DRIVER_MSG, "%s", version);
+	PRINTK(DRIVER_MSG, "bfin AMBCTL0 %04x", bfin_read_EBIU_AMBCTL0());
+	PRINTK(DRIVER_MSG, "bfin AMBCTL1 %04x", bfin_read_EBIU_AMBCTL1());
 
 	PRINTK(INIT_MSG, "ax88180: ax88180_probe beginning ..........\n");
 
@@ -533,39 +628,23 @@ int __init ax88180_probe(struct net_device *global_dev)
 	pax88180_local->Phy_MemBase = phy_membase;
 	Log_MemBase = (unsigned long)ioremap(pax88180_local->Phy_MemBase, AX88180_MEMORY_SIZE);
 
-//	PRINTK(DEBUG_MSG, "ax88180: global_dev =0x%p, pax88180_local=0x%p, Log_MemBase=0x%08lx\n", 
-//		global_dev, pax88180_local, Log_MemBase);
 
-	PRINTK(DRIVER_MSG, "ax88180: Allocate AX88180 at Phy_MemBase=0x%08lx. (name=%s, IRQ=0x%x)\n", 
-		pax88180_local->Phy_MemBase, global_dev->name, (unsigned int)irq);
+	PRINTK(DRIVER_MSG, "ax88180: global_dev =0x%p, pax88180_local=0x%p, Log_MemBase=0x%p\n", 
+	       global_dev, (void *)pax88180_local, (void *)Log_MemBase);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-#ifdef CONFIG_BOARD_S3C2440_SMDK
-	/* Configure SAMSUNG S3C2440A controller for AX88780 operation */
-	BANKCON1 = BANKCON1_6CLKS_PAGE;
+        // PSW correcting if needed for no MMU
+	Log_MemBase = phy_membase;
+;
+	PRINTK(DRIVER_MSG, "ax88180: Allocate AX88180 at Phy_MemBase=0x%08x. (name=%s, IRQ=0x%x)\n" 
+	       , (unsigned int)pax88180_local->Phy_MemBase
+	       , global_dev->name, (unsigned int)global_dev->irq);
 
-	PRINTK(DEBUG_MSG, "ax88780: CLKDIVN=0x%04x, CAMDIVN=0x%04x, BANKCON1=0x%04x\n",
-	CLKDIVN, CAMDIVN, BANKCON1);
-	PRINTK(DEBUG_MSG, "ax88780: UBRDIV0=0x%04x, UBRDIV1=0x%04x, UBRDIV2=0x%04x\n",
-	UBRDIV0, UBRDIV1, UBRDIV2);
-	PRINTK(DEBUG_MSG, "ax88780: BWSCON=0x%08x, MISCCR=0x%06x\n", BWSCON, MISCCR);
-
-	set_external_irq(irq, EXT_LOWLEVEL, GPIO_PULLUP_DIS);
-	EINTMASK &= ~EINT11_MASK; 
-	EXTINT1 |= FLTEN11;
-#endif
-#else
-#ifdef CONFIG_ARCH_S3C2410
-	/* Configure SAMSUNG S3C2440A controller for AX88780 operation */
-	__raw_writel(S3C2410_BANKCON_Tacc6, S3C2410_BANKCON1);
-#endif
-#endif
 
 	/* Initialize the Ethernet Device structure */
 	ether_setup(global_dev);
-
+	PRINTK(DRIVER_MSG, "ax88180: ether_setup\n"); 
 	global_dev->base_addr = mem;
-	global_dev->irq = irq;
+	//	global_dev->irq = irq;
 
 	pax88180_local->MediaMode = media;
 	pax88180_local->JumboFlag = jumbo;
@@ -577,12 +656,16 @@ int __init ax88180_probe(struct net_device *global_dev)
 	global_dev->stop		= ax88180_stop;
 	global_dev->hard_start_xmit 	= ax88180_start_xmit;
 	global_dev->tx_timeout		= ax88180_tx_timeout;
-	global_dev->watchdog_timeo	= 200*HZ;
+	//	global_dev->watchdog_timeo	= 200*HZ;
+
+	global_dev->watchdog_timeo	= 2*HZ;
 	global_dev->get_stats		= ax88180_get_stats;
 	global_dev->set_multicast_list	= ax88180_set_multicast_list;
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
 	global_dev->do_ioctl		= ax88180_ioctl;
-#endif
+
+	PRINTK(DRIVER_MSG, "ax88180: display one MAC REG\n"); 
+	DISPLAY_ONEMACREG;
+	PRINTK(DRIVER_MSG, "ax88180: display ALL MAC REG\n"); 
 
 	//allan9 add for debugging
 	DISPLAY_ALLMACREG;
@@ -598,9 +681,9 @@ int __init ax88180_probe(struct net_device *global_dev)
 	READ_RXBUF(rx_packet_len);
     	if ( (rx_packet_len > 0) && (rx_packet_len <= MAX_RX_SIZE) ){
 		packet_len = (unsigned int)rx_packet_len;
-		PRINTK(DEBUG_MSG, "ax88180: Rx packet length = 0x%08lx\n", rx_packet_len);
+		PRINTK(DEBUG_MSG, "ax88180: Rx packet length = 0x%04x\n", rx_packet_len);
 
-		for (i = 0; i < (packet_len - 4); i += 4) {
+		for (i = 0; i < (packet_len - 2); i += 2) {
 			READ_RXBUF(tmp_data);
 			PRINTK(DEBUG_MSG, "ax88180: Rx data #%d = 0x%08lx\n", i, tmp_data);
 		}
@@ -666,17 +749,12 @@ out:
 static int ax88180_open(struct net_device *global_dev)
 {
 	struct _AX88180_PRIVATE *pax88180_local;
-	unsigned long tmp_regval;
+	unsigned short tmp_regval;
 	int rtn = -ENODEV;
 
 	PRINTK(INIT_MSG, "ax88180: ax88180_open beginning ..........\n");
 
 	pax88180_local = (struct _AX88180_PRIVATE *) global_dev->priv;
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-	/* Indicate this module is in use */
-	MOD_INC_USE_COUNT;
-#endif
 
 	if (pax88180_local->rx_buf == NULL) {
 		/* Try to allocate memory space for RX buffer */
@@ -684,9 +762,6 @@ static int ax88180_open(struct net_device *global_dev)
 		if (pax88180_local->rx_buf == NULL) {
 			PRINTK(ERROR_MSG, "ax88180: Fail to allocate a RX buffer space!\n");
       			PRINTK(INIT_MSG, "ax88180: ax88180_open fail end ..........\n");
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-			MOD_DEC_USE_COUNT;
-#endif
 			return -ENOMEM;
 		}
 	}
@@ -700,9 +775,6 @@ static int ax88180_open(struct net_device *global_dev)
 		/* Release allocated resource here */
 		PRINTK(ERROR_MSG, "ax88180: Fail to initialize AX88180 controller!!\n");
 		PRINTK(INIT_MSG, "ax88180: ax88180_open fail end ..........\n");
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-		MOD_DEC_USE_COUNT;
-#endif
 		return rtn;
 	}
 
@@ -710,14 +782,20 @@ static int ax88180_open(struct net_device *global_dev)
 	INIT_TXRX_VARIABLES;
 
 	/* Declare Interrupt routine to the allocated IRQ */
-	rtn = request_irq(global_dev->irq, &ax88180_interrupt, 0, global_dev->name, global_dev);
+	if(pfedge) {
+	  set_irq_type(global_dev->irq, IRQF_TRIGGER_RISING);
+	} else {
+	  set_irq_type(global_dev->irq, IRQF_TRIGGER_FALLING);
+	}
+	rtn = request_irq(global_dev->irq
+			  , &ax88180_interrupt, 0
+			  , global_dev->name, global_dev);
+	
 	if (rtn) {
-		/* Release allocated resource here */
-		PRINTK(ERROR_MSG, "ax88180: Fail to request IRQ (0x%x)\n", global_dev->irq);
+	        /* Release allocated resource here */
+	        PRINTK(ERROR_MSG, "ax88180: Failed to request IRQ (0x%x)\n"
+		       , global_dev->irq);
 		PRINTK(INIT_MSG, "ax88180: ax88180_open fail end ..........\n");
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-		MOD_DEC_USE_COUNT;
-#endif
 		return rtn;
 	}
 
@@ -729,13 +807,13 @@ static int ax88180_open(struct net_device *global_dev)
 
 	/* Check if there is any invalid interrupt status. If yes, clear it. */
 	READ_MACREG(ISR, tmp_regval);
-	PRINTK(INIT_MSG, "ax88180: The interrupt status = 0x%08lx\n", tmp_regval);
+	PRINTK(INIT_MSG, "ax88180: The interrupt status = 0x%04x\n", tmp_regval);
 	if (tmp_regval)
 		WRITE_MACREG(ISR, tmp_regval);
 
 	/* Display all AX88180 MAC and PHY registers onto console screen */
-	DISPLAY_ALLMACREG;
-	DISPLAY_ALLPHYREG;
+	//DISPLAY_ALLMACREG;
+	//DISPLAY_ALLPHYREG;
 
 	/* Inform upper protocol to start sending packets */
 	netif_start_queue(global_dev);
@@ -767,16 +845,23 @@ static int ax88180_stop(struct net_device *global_dev)
 	pax88180_local = (struct _AX88180_PRIVATE *) global_dev->priv;
 
 /*
-	PRINTK(DEBUG_MSG, "ax88180: global_dev =0x%p, pax88180_local=0x%p, dev_name=%s\n", 
-		global_dev, pax88180_local, global_dev->name);
+	PRINTK(DEBUG_MSG
+	, "ax88180: global_dev =0x%p, pax88180_local=0x%p, dev_name=%s\n" 
+	, global_dev, pax88180_local, global_dev->name);
 
-	PRINTK(DEBUG_MSG, "ax88180: Phy_MemBase=0x%08lx, Log_MemBase=0x%08lx\n", 
-		pax88180_local->Phy_MemBase, Log_MemBase);
+	PRINTK(DEBUG_MSG
+        , "ax88180: Phy_MemBase=0x%08lx, Log_MemBase=0x%08lx\n" 
+	, pax88180_local->Phy_MemBase, Log_MemBase);
 */
 
 	spin_lock_irqsave(&pax88180_local->lock, flags);
 
 	kfree(pax88180_local->rx_buf);
+	
+	DISABLE_INTERRUPT;
+
+	/* Stop AX88180 TX/RX functions */
+	WRITE_MACREG(CMD, 0);
 
 	/* Inform upper layer to stop sending packets to device driver */
 	if (netif_device_present(global_dev)) {
@@ -788,27 +873,25 @@ static int ax88180_stop(struct net_device *global_dev)
 
 	spin_unlock_irqrestore(&pax88180_local->lock, flags);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-	/* Indicate this module is NOT used now */
-	MOD_DEC_USE_COUNT;
-#endif
 
 	/* Driver initialization successful */
-	PRINTK(DRIVER_MSG, "ax88180: The AX88180 driver is unloaded successfully.\n");
+	PRINTK(DRIVER_MSG
+        , "ax88180: The AX88180 driver is unloaded successfully.\n");
 
 	PRINTK(INIT_MSG, "ax88180: ax88180_stop end ..........\n");
 	return 0;
 }
 
 
-static int ax88180_start_xmit(struct sk_buff *skb, struct net_device *global_dev)
+static int ax88180_start_xmit(struct sk_buff *skb
+			      , struct net_device *global_dev)
 {
 	struct _AX88180_PRIVATE *pax88180_local;
 	unsigned char *txdata;
 	unsigned long TXDES_addr;
-	unsigned long txcmd_txdp, txbs_txdp;
-	unsigned long txdes0_val, txdes1_val, txdes2_val, txdes3_val;
-	unsigned long tmp_data;
+	unsigned short txcmd_txdp, txbs_txdp;
+	unsigned short txdes0_val, txdes1_val, txdes2_val, txdes3_val;
+	unsigned short tmp_data;
 	int i;
 
 	pax88180_local = (struct _AX88180_PRIVATE *) global_dev->priv;
@@ -827,8 +910,11 @@ static int ax88180_start_xmit(struct sk_buff *skb, struct net_device *global_dev
 	//allan9 add to make sure TX machine is OK 
 	i = 0;
 	READ_MACREG(TXBS, tmp_data);
-	READ_MACREG(TXBS, tmp_data);
-	PRINTK(TX_MSG, "ax88180: Checking available TXDP (TXBS=0x%08lx)......\n", tmp_data);
+	SSYNC();
+	//READ_MACREG(TXBS, tmp_data);
+	PRINTK(TX_MSG
+        , "ax88180: Checking available TXDP (TXBS=0x%04x)......\n"
+	       , tmp_data);
 	while (tmp_data & txbs_txdp) {
 		pax88180_local->NextTxDesc++;
 		pax88180_local->NextTxDesc &= TXDP_MASK; 
@@ -848,35 +934,44 @@ static int ax88180_start_xmit(struct sk_buff *skb, struct net_device *global_dev
 		}
 	}
 
-	PRINTK(TX_MSG, "ax88180: TXDP%d is available, i=%d\n", (int)pax88180_local->FirstTxDesc, i);
+	PRINTK(TX_MSG, "ax88180: TXDP%d is available, i=%d\n"
+	       , (int)pax88180_local->FirstTxDesc, i);
 	//allan9 end
 
 	txcmd_txdp = pax88180_local->FirstTxDesc << 13;
+
+        // PSW this is the target TXDES register 32 bits is OK 
 	TXDES_addr = TXDES0 + (pax88180_local->FirstTxDesc << 2);
 
 	WRITE_MACREG(TXCMD, txcmd_txdp | skb->len | TX_START_WRITE);
 
 	//allan9 add for debugging
-	PRINTK(DEBUG_MSG, "ax88180: TX packets (len=0x%x, TXDP%d=0x%08lx)\n", 
+	PRINTK(TX_MSG, "ax88180: TX packets (len=0x%x, TXDP%d=0x%08lx)\n", 
 		skb->len, (int)pax88180_local->FirstTxDesc, TXDES_addr);
-	PRINTK(DEBUG_MSG, "[");
-//	for (i = 0; i < skb->len; i++) {
-	for (i = 0; i < 64; i++) {
-		PRINTK(DEBUG_MSG, "0x%02x ", *(txdata + i));
+	if (0) {
+	PRINTK(TX_MSG, "[");
+	for (i = 0; i < skb->len; i++) {
+//	for (i = 0; i < 64; i++) {
+		PRINTK(TX_MSG, "0x%02x ", *(txdata + i));
 		if ( (i & 0xF) == 0xF )
-			PRINTK(DEBUG_MSG, "\n");
+			PRINTK(TX_MSG, "\n");
 	}
-	PRINTK(DEBUG_MSG, "]\n");
-
+	PRINTK(TX_MSG, "]\n");
+	}
 	//alln 2006.05.25 modify to support burst mode
-/*
-	for (i = 0; i < skb->len; i += 4) {
-		tmp_data = (unsigned long)*(txdata + i) + (unsigned long)(*(txdata + i + 1) << 8) 
-		    + (unsigned long)(*(txdata + i + 2) << 16) + (unsigned long)(*(txdata + i + 3) << 24);
-		WRITE_TXBUF(tmp_data);
+
+	for (i = 0; i < skb->len; i += 2) {
+	  tmp_data =    
+	    (unsigned short)*(txdata + i) 
+	    + (unsigned short)(*(txdata + i + 1) << 8); 
+	  
+	  WRITE_TXBUF(tmp_data);
 	}
-*/
-	memcpy ((void *)(Log_MemBase + TXBUFFER_START), txdata, (skb->len + (4 - skb->len%4)) );
+
+// PSW 32 bit mode 
+//	memcpy ((void *)(Log_MemBase + TXBUFFER_START), txdata, (skb->len + (4 - skb->len%4)) );
+
+//	memcpy ((void *)(Log_MemBase + TXBUFFER_START), txdata, (skb->len + (2 - skb->len%2)) );
 
 	WRITE_MACREG(TXCMD, txcmd_txdp | skb->len);
 	WRITE_MACREG(TXBS, txbs_txdp);
@@ -889,24 +984,27 @@ static int ax88180_start_xmit(struct sk_buff *skb, struct net_device *global_dev
 	READ_MACREG(TXDES1, txdes1_val);
 	READ_MACREG(TXDES2, txdes2_val);
 	READ_MACREG(TXDES3, txdes3_val);
-	PRINTK(TX_MSG, "ax88180: TXCMD=0x%08lx, TXBS=0x%08lx\n", txcmd_txdp, txbs_txdp);
-	PRINTK(TX_MSG, "ax88180: TXDES0=0x%08lx, TXDES1=0x%08lx, TXDES2=0x%08lx, TXDES3=0x%08lx\n", 
-		txdes0_val, txdes1_val, txdes2_val, txdes3_val);
+	PRINTK(TX_MSG
+    , "ax88180: TXCMD=0x%04x, TXBS=0x%04x\n", txcmd_txdp, txbs_txdp);
+	PRINTK(TX_MSG
+    , "ax88180: TXDES0=0x%04x, TXDES1=0x%04x, TXDES2=0x%04x, TXDES3=0x%04x\n"
+	       , txdes0_val, txdes1_val, txdes2_val, txdes3_val);
 
 	pax88180_local->stats.tx_packets++;
 	pax88180_local->stats.tx_bytes += skb->len;
 	dev_kfree_skb(skb);
 	global_dev->trans_start = jiffies;
 
-	if (pax88180_local->JumboFlag == ENABLE_JUMBO)
+	if (pax88180_local->JumboFlag == ENABLE_JUMBO) {
 		pax88180_local->NextTxDesc += 2;
-	else 
+	} else { 
 		pax88180_local->NextTxDesc++;
-
+	}
 	pax88180_local->NextTxDesc &= TXDP_MASK; 
 
 	/* Inform upper layer to send next queued packets now */
-//	netif_wake_queue(global_dev);			//allan9 move to ax88180_tx_handler routine 
+	//	netif_wake_queue(global_dev);
+	//allan9 move to ax88180_tx_handler routine 
 
 //	spin_unlock_irq(&pax88180_local->lock);
 
@@ -994,7 +1092,8 @@ static void ax88180_set_multicast_list(struct net_device *global_dev)
 
 	pax88180_local = (struct _AX88180_PRIVATE *) global_dev->priv;
 
-	PRINTK(OTHERS_MSG, "ax88180: ax88180_set_multicast_list beginning ..........\n");
+	PRINTK(OTHERS_MSG
+          , "ax88180: ax88180_set_multicast_list beginning ..........\n");
 
       	pax88180_local->RxFilterMode = DEFAULT_RXFILTER;
 
@@ -1007,23 +1106,102 @@ static void ax88180_set_multicast_list(struct net_device *global_dev)
 
 		/* Handle Rx multicast hash table here */
 		mc_hash_table[0] = mc_hash_table[1] = 0;
-		for (i = 0, mc_list = global_dev->mc_list; (mc_list != NULL) && (i < global_dev->mc_count); 
+		for (i = 0, mc_list = global_dev->mc_list; 
+		     (mc_list != NULL) && (i < global_dev->mc_count); 
 		     i++, mc_list = mc_list->next) {
-			crc_val = ether_crc(ETH_ALEN, mc_list->dmi_addr);	
+
+			crc_val = ether_crc(ETH_ALEN, mc_list->dmi_addr);
 			set_bit(crc_val >> 26, mc_hash_table);
 		}
+
 		WRITE_MACREG(HASHTAB0, (unsigned int)mc_hash_table[0]);
 		WRITE_MACREG(HASHTAB1, (unsigned int)(mc_hash_table[0] >> 16));
 		WRITE_MACREG(HASHTAB2, (unsigned int)mc_hash_table[1]);
 		WRITE_MACREG(HASHTAB3, (unsigned int)(mc_hash_table[1] >> 16));
 	}
+
 	WRITE_MACREG(RXFILTER, pax88180_local->RxFilterMode);
 
-	PRINTK(OTHERS_MSG, "ax88180: ax88180_set_multicast_list end ..........\n");
+	PRINTK(OTHERS_MSG
+	       , "ax88180: ax88180_set_multicast_list end ..........\n");
 	return;
 }
 
 
+/*
+ *****************************************************************************
+ * bfin reset irq 
+ * clears PF4
+ ***************************************************************************** 
+ */
+static int bfin_irq_mask=0;
+
+static int bfin_setup_irq(struct net_device *global_dev, int num)
+{
+  int ret;
+  ret = 0;
+  bfin_irq_mask = 1<<num;
+
+#if defined(CONFIG_IRQCHIP_DEMUX_GPIO)
+  global_dev->irq = IRQ_PF0 + num;
+
+#else
+#error   
+  global_dev->irq = IRQ_PROG_INTA;
+
+  // direction
+  bfin_write_FIO_DIR(bfin_read_FIO_DIR() & ~(1 << num));
+
+  // input enable
+  bfin_write_FIO_INEN(bfin_read_FIO_INEN() | (1 << num));
+
+  if(pfedge) {
+    bfin_write_FIO_EDGE(bfin_read_FIO_EDGE() | (1 << num));
+  } else {
+    bfin_write_FIO_EDGE(bfin_read_FIO_EDGE() & ~(1 << num));
+  }
+
+ 
+  // unmaskbfin_setup_irq
+  bfin_write_FIO_MASKA_S(bfin_irq_mask);
+
+  if (request_irq(global_dev->irq
+		  , &ax88180_interrupt, 0, global_dev->name, global_dev)) {
+    
+    printk(KERN_WARNING "IRQ %d is not free.\n", global_dev->irq);
+    ret = -EIO;
+  }
+  
+#endif
+
+  return ret;
+}
+
+static int bfin_cleanup_irq(struct net_device *global_dev, int num)
+{
+#if defined(CONFIG_IRQCHIP_DEMUX_GPIO)
+  
+  //free_irq(global_dev->irq, global_dev);
+  
+#else
+  
+  bfin_write_FIO_MASKA_C(bfin_irq_mask);
+  //free_irq(global_dev->irq, global_dev);
+#endif
+
+  return 0;
+}
+
+static int bfin_reset_irq(int irq)
+{
+#if defined(CONFIG_IRQCHIP_DEMUX_GPIO)
+  //do nothing I think
+#else
+  bfin_write_FIO_MASK_C(bfin_irq_mask); /* clear irq status  */
+
+#endif
+  return 0;
+}
 /*
  *****************************************************************************
  * ax88180_interrupt()
@@ -1032,36 +1210,31 @@ static void ax88180_set_multicast_list(struct net_device *global_dev)
  *
  ***************************************************************************** 
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-static void ax88180_interrupt(int irq, void *global_dev_id, struct pt_regs * regs)
-#else
-static irqreturn_t ax88180_interrupt(int irq, void *global_dev_id, struct pt_regs * regs)
-#endif
+static irqreturn_t ax88180_interrupt(int irq, void *global_dev_id)
 {
+
 	struct net_device *global_dev = global_dev_id;
 	struct _AX88180_PRIVATE *pax88180_local;
-	unsigned long ISR_Status;
-	unsigned long rxcurt_ptr, rxbound_ptr;
-	unsigned long bmsr_val;
-	unsigned long tmp_regval;
+	unsigned short ISR_Status;
+	unsigned short rxcurt_ptr, rxbound_ptr;
+	unsigned short bmsr_val;
+	unsigned short tmp_regval;
 	int i;
 
+        bfin_reset_irq(irq);
 	pax88180_local = (struct _AX88180_PRIVATE *) global_dev->priv;
 
 	/* Read and check interrupt status here...... */
 	READ_MACREG(ISR, ISR_Status);
 	if ( (ISR_Status == 0) || (ISR_Status & ~DEFAULT_IMR) ) {
 //		PRINTK(WARNING_MSG, "ax88180: Not our interrupt!!\n");
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-		return;
-#else
-		return 0;
-#endif
+		return IRQ_RETVAL(0);
 	}
 
 	PRINTK(INT_MSG, "ax88180: ax88180_interrupt beginning ..........\n");
 
 	//allan9 add for debugging
+
 //	DISPLAY_ALLMACREG;		
 //	DISPLAY_ALLPHYREG;
 
@@ -1070,38 +1243,51 @@ static irqreturn_t ax88180_interrupt(int irq, void *global_dev_id, struct pt_reg
 
 	/* Clear the interrupt status */
 	WRITE_MACREG(ISR, ISR_Status);
-	PRINTK(INT_MSG, "ax88180: The interrupt status = 0x%08lx\n", ISR_Status);
+	PRINTK(INT_MSG
+	       , "ax88180: The interrupt status = 0x%04x\n", ISR_Status);
 
 	/* Handle AX88180 interrupt events */
 	if (ISR_Status & ISR_WATCHDOG) {
-		PRINTK(DRIVER_MSG, "ax88180: Watchdog Timer interrupt (ISR = 0x%08lx)\n", ISR_Status);
+		PRINTK(DRIVER_MSG
+		       , "ax88180: Watchdog Timer interrupt (ISR = 0x%04x)\n"
+		       , ISR_Status);
 	} 
 
 	if (ISR_Status & ISR_RX) {
+
 		ax88180_rx_handler(global_dev);
+
 	} 
 
 	if (ISR_Status & ISR_TX) {
+
 		ax88180_tx_handler(global_dev);
 	} 
 
 	if (ISR_Status & ISR_RXBUFFOVR) {
+
 		pax88180_local->rxbuf_overflow_count++;
 		pax88180_local->stats.rx_fifo_errors++;
 
 		READ_MACREG(RXCURT, rxcurt_ptr);
 		READ_MACREG(RXBOUND, rxbound_ptr);
-		PRINTK(ERROR_MSG, "ax88180: RX Buffer overflow!! (count=%d, RXBOUND=0x%08lx, RXCURT=0x%08lx)\n", 
-			(int)pax88180_local->rxbuf_overflow_count, rxbound_ptr, rxcurt_ptr);
-		PRINTK(ERROR_MSG, "ax88180: The interrupt status = 0x%08lx\n", ISR_Status);
+
+		PRINTK(ERROR_MSG
+, "ax88180: RX Buffer overflow!! (count=%d, RXBOUND=0x%04x, RXCURT=0x%04x)\n" 
+		       , (int)pax88180_local->rxbuf_overflow_count
+		       , rxbound_ptr, rxcurt_ptr);
+
+		PRINTK(ERROR_MSG, "ax88180: The interrupt status = 0x%04x\n"
+		       , ISR_Status);
 
 		if (pax88180_local->rxbuf_overflow_count > 10) {	
-			RESET_MAC;
+		        RESET_MAC;
 			INIT_TXRX_VARIABLES;
 		}
 	} 
 
 	if (ISR_Status & ISR_PHY) {
+
 		/* Read ISR register once to clear Marvell PHY interrupt bit */
 		READ_PHYREG(pax88180_local->PhyAddr, M88_ISR, tmp_regval);
 
@@ -1115,15 +1301,18 @@ static irqreturn_t ax88180_interrupt(int irq, void *global_dev_id, struct pt_reg
 		}
 
 		if (bmsr_val & LINKOK) {
-			PRINTK(WARNING_MSG, "ax88180: The cable is connected.\n");
+			PRINTK(WARNING_MSG
+			       , "ax88180: The cable is connected.\n");
 			netif_carrier_on(global_dev);
 
-			if (pax88180_local->ForceMedia == AUTO_MEDIA) 
+			if (pax88180_local->ForceMedia == AUTO_MEDIA) { 
 				ax88180_meida_config(global_dev);
+			}
 
 			DISPLAY_ALLPHYREG;
 		} else {
-			PRINTK(WARNING_MSG, "ax88180: The cable is disconnected.\n");
+			PRINTK(WARNING_MSG
+			       , "ax88180: The cable is disconnected.\n");
 			netif_carrier_off(global_dev);
 			DISPLAY_ALLPHYREG;
 		}
@@ -1133,12 +1322,7 @@ static irqreturn_t ax88180_interrupt(int irq, void *global_dev_id, struct pt_reg
 	ENABLE_INTERRUPT;
 
 	PRINTK(INT_MSG, "ax88180: ax88180_interrupt end ..........\n\n");
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-	return;
-#else
-	return IRQ_RETVAL(0);
-#endif
+	return IRQ_HANDLED;
 }
 
 
@@ -1158,8 +1342,8 @@ static int ax88180_initialization(struct net_device *global_dev)
 {
 	struct _AX88180_PRIVATE *pax88180_local;
 //	unsigned long flags;
-	unsigned long macid0_val, macid1_val, macid2_val;
-	unsigned long tmp_regval;
+	unsigned short macid0_val, macid1_val, macid2_val;
+	unsigned short tmp_regval;
 	int i;
 
 	pax88180_local = (struct _AX88180_PRIVATE *) global_dev->priv;
@@ -1168,6 +1352,7 @@ static int ax88180_initialization(struct net_device *global_dev)
 
 //	spin_lock_irqsave(&pax88180_local->lock, flags);
 
+	SET_16_BIT;
 	RESET_MAC;
 
 	/* Reload MAC address from EEPROM */
@@ -1226,7 +1411,7 @@ static int ax88180_initialization(struct net_device *global_dev)
 	/* Configure MAC media mode registers */
 	ax88180_meida_config(global_dev);
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
+
 	/* Initial MII interface information for ethtool ioctl */
 	pax88180_local->mii_if.dev = global_dev;
 	pax88180_local->mii_if.phy_id = pax88180_local->PhyAddr;
@@ -1237,7 +1422,6 @@ static int ax88180_initialization(struct net_device *global_dev)
 	pax88180_local->mii_if.force_media = pax88180_local->ForceMedia; 
 	pax88180_local->mii_if.full_duplex = pax88180_local->LineSpeed;
 	pax88180_local->mii_if.force_media = pax88180_local->DuplexMode; 
-#endif
 
 	WRITE_MACREG(RXFILTER, DEFAULT_RXFILTER);
 
@@ -1297,11 +1481,11 @@ static void ax88180_PHY_initial(struct net_device *global_dev)
 			PRINTK(ERROR_MSG, "ax88180: Unknown PHY chipset!!\n");
 
 			//allan9 add for debugging
-			DISPLAY_ALLPHYREG;
+			DISPLAY_ALLPHYREG_ERROR;
 		}
 	}
 
-	PRINTK(INIT_MSG, "ax88180: PHY_Addr=0x%lx, PHY_ID=0x%04x, media=%d\n", 
+	PRINTK(INIT_MSG, "ax88180: PHY_Addr=0x%08lx, PHY_ID=0x%04x, media=%d\n", 
 		pax88180_local->PhyAddr, (unsigned int)pax88180_local->PhyID0, media); 
 
 	switch (pax88180_local->MediaMode) {
@@ -1650,13 +1834,13 @@ static void ax88180_rx_handler(struct net_device *global_dev)
 	struct _AX88180_PRIVATE *pax88180_local;
 	struct sk_buff *skb;
 	unsigned char *rxdata;
-//	unsigned long tmp_data;
-	unsigned long rx_packet_len;
+	unsigned short tmp_data;
+	unsigned short rx_packet_len;
 	unsigned int data_size;
-//	unsigned int dword_count, byte_count;
-	unsigned long rxcurt_ptr, rxbound_ptr, next_ptr;
+	unsigned int sword_count, byte_count;
+	unsigned short rxcurt_ptr, rxbound_ptr, next_ptr;
 	int i;
-//	int j;
+	int j;
 
 	pax88180_local = (struct _AX88180_PRIVATE *) global_dev->priv;
 
@@ -1668,20 +1852,32 @@ static void ax88180_rx_handler(struct net_device *global_dev)
 	READ_MACREG(RXBOUND, rxbound_ptr);
 	next_ptr = (rxbound_ptr + 1) & RX_PAGE_NUM_MASK;
 
-	PRINTK(RX_MSG, "ax88180: RX original RXBOUND=0x%08lx, RXCURT=0x%08lx\n", rxbound_ptr, rxcurt_ptr);
+	PRINTK(RX_MSG, "ax88180: RX original RXBOUND=0x%04x, RXCURT=0x%04x\n"
+	       , rxbound_ptr, rxcurt_ptr);
 
 	while (next_ptr != rxcurt_ptr) {
 		START_READ_RXBUFF;
+		SSYNC();
 		READ_RXBUF(rx_packet_len);
+		SSYNC();
+		PRINTK(RX_MSG, "ax88180: Rx packet length (len=0x%04x)\n"
+		       , rx_packet_len);
  	  	if ( (rx_packet_len == 0) || (rx_packet_len > MAX_RX_SIZE) ) {
 			pax88180_local->stats.rx_errors++;
 			STOP_READ_RXBUFF;
+			SSYNC();
 			RESET_MAC;
-			PRINTK(ERROR_MSG, "ax88180: Invalid Rx packet length!! (len=0x%08lx)\n", rx_packet_len);
-			PRINTK(ERROR_MSG, "ax88180: RX RXBOUND=0x%08lx, RXCURT=0x%08lx\n", rxbound_ptr, rxcurt_ptr);
-			PRINTK(RX_MSG, "ax88180: ax88180_rx_handler fail end ..........\n");
+			PRINTK(ERROR_MSG
+			, "ax88180: Invalid Rx packet length!! (len=0x%04x)\n"
+			       , rx_packet_len);
+			PRINTK(ERROR_MSG
+			, "ax88180: RX RXBOUND=0x%04x, RXCURT=0x%04x\n"
+			       , rxbound_ptr, rxcurt_ptr);
+			PRINTK(RX_MSG
+                        , "ax88180: ax88180_rx_handler fail end ..........\n");
 			return;
 		}
+
 		data_size = (unsigned int)rx_packet_len;
 		rxbound_ptr += (((data_size + 0xF) & 0xFFF0) >> 4) + 1;
 		rxbound_ptr &= RX_PAGE_NUM_MASK;
@@ -1690,6 +1886,7 @@ static void ax88180_rx_handler(struct net_device *global_dev)
 		if (skb == NULL) {
 			pax88180_local->stats.rx_dropped++;
 			STOP_READ_RXBUFF;
+			SSYNC();
 			PRINTK(ERROR_MSG, "ax88180: No available memory space. Dropping RX packets!!\n");
 			PRINTK(RX_MSG, "ax88180: ax88180_rx_handler fail end ..........\n");
 			return;
@@ -1701,25 +1898,66 @@ static void ax88180_rx_handler(struct net_device *global_dev)
 		skb->dev = global_dev;
 		rxdata = skb_put(skb, data_size);
 
-		memcpy (pax88180_local->rx_buf, (void *)(Log_MemBase + RXBUFFER_START), (data_size + 4 - data_size%4));
-		memcpy (rxdata, pax88180_local->rx_buf, data_size);
+		//memcpy (pax88180_local->rx_buf, (void *)(Log_MemBase + RXBUFFER_START), (data_size + 4 - data_size%4));
 
-/*
-		dword_count = data_size >> 2;
-		byte_count = data_size & 0x3;
-		for (i = 0; i < dword_count; i++) {
-			READ_RXBUF(tmp_data);
-			*((unsigned long *)rxdata + i)= tmp_data;
+		//memcpy (pax88180_local->rx_buf, (void *)(Log_MemBase + RXBUFFER_START), (data_size + 2 - data_size%2));
+
+		// PSW memcpy may not work here
+		//memcpy (rxdata, pax88180_local->rx_buf, data_size);
+
+
+		// sword_count = data_size >> 2;		// Divide by 4 for 32-bit words
+		sword_count = data_size >> 1;		// Divide by 2 for 16-bit words
+		byte_count = data_size & 0x1;
+		PRINTK(RX_MSG, "swords %d bytes %d [\n"
+		       ,sword_count, byte_count);
+
+		//psw read debug
+		for (i = 0; i < sword_count; i++) {
+		        READ_RXBUF(tmp_data);
+			SSYNC();
+			//PSW swab(tmp_data);
+			// PRINTK(RX_MSG, "0x%04x ", tmp_data);
+			//if ( (i & 0xF) == 0xF )
+			//  PRINTK(RX_MSG, "\n");
+			
+			*((unsigned short *)rxdata + i)= tmp_data;
 		}
+
+
 		if (byte_count != 0) {
 			READ_RXBUF(tmp_data);
+         		SSYNC();
+			//PSW swab(tmp_data);
+			//PRINTK(RX_MSG, "0x%04x ", tmp_data);
 			for (j = 0; j < byte_count; j++) {
-				*(rxdata + (dword_count * 4) + j) = (unsigned char)(tmp_data >> (j *8));
+				*(rxdata + (sword_count * 2) + j) = (unsigned char)(tmp_data >> (j * 8));
 			}
 		}
-*/
+
+		//PRINTK(RX_MSG, "]\n");
 
 		STOP_READ_RXBUFF;
+		SSYNC();
+
+
+		PRINTK(RX_MSG, " received data (bytes) byte_count %d [\n"
+		       , byte_count);
+		if ((sword_count >= 16) && (sword_count <= 25)) {
+		  for (i = 0; i < (sword_count*2); i+=2) {
+		    PRINTK(RX_MSG, "%02x %02x "
+			   , rxdata[i]
+			   , rxdata[i+1]);
+		    if ((i & 0x1F) == 0x10)
+		      PRINTK(RX_MSG, "\n");
+		  }
+		  
+		  if (byte_count != 0) {
+		    PRINTK(RX_MSG, "0x%04x "
+			   , *((unsigned short *)rxdata + i));
+		  }
+		  PRINTK(RX_MSG, "]\n");
+		}
 
 		skb->protocol = eth_type_trans(skb, global_dev);
 		netif_rx(skb);
@@ -1730,6 +1968,7 @@ static void ax88180_rx_handler(struct net_device *global_dev)
 		WRITE_MACREG(RXBOUND, rxbound_ptr);
 
 		PRINTK(DEBUG_MSG, "ax88180: Rx data size = 0x%x\n", data_size);
+		if (0) {
 		PRINTK(DEBUG_MSG, "[");
 		for (i = 0; i < data_size; i++) {
 			PRINTK(DEBUG_MSG, "0x%02x ", *(rxdata + i));
@@ -1737,17 +1976,19 @@ static void ax88180_rx_handler(struct net_device *global_dev)
 				PRINTK(DEBUG_MSG, "\n");
 		}
 		PRINTK(DEBUG_MSG, "]\n");
+		}
 
 		READ_MACREG(RXCURT, rxcurt_ptr);
 		READ_MACREG(RXBOUND, rxbound_ptr);
 		next_ptr = (rxbound_ptr + 1) & RX_PAGE_NUM_MASK;
 
-		PRINTK(RX_MSG, "ax88180: RX updated RXBOUND=0x%08lx, RXCURT=0x%08lx\n", 
+		PRINTK(RX_MSG, "ax88180: RX updated RXBOUND=0x%04x, RXCURT=0x%04x\n", 
 			rxbound_ptr, rxcurt_ptr);
 	}
 
-	if (pax88180_local->rxbuf_overflow_count > 0)
+	if (pax88180_local->rxbuf_overflow_count > 0) {
 		pax88180_local->rxbuf_overflow_count--;
+	}
 
 //	spin_unlock_irq(&pax88180_local->lock);
 
@@ -1781,7 +2022,6 @@ static void ax88180_tx_handler(struct net_device *global_dev)
 
 
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
 /*
  *****************************************************************************
  * ax88180_ioctl()
@@ -1904,7 +2144,8 @@ static int mdio_read(struct net_device *global_dev, int phy_id, int regaddr)
  *
  ***************************************************************************** 
  */
-static void mdio_write(struct net_device *global_dev, int phy_id, int regaddr, int regval)
+static void mdio_write(struct net_device *global_dev, int phy_id
+		       , int regaddr, int regval)
 {
 	WRITE_PHYREG(phy_id, (unsigned long)regaddr, (unsigned long)regval);
 
@@ -1913,4 +2154,3 @@ static void mdio_write(struct net_device *global_dev, int phy_id, int regaddr, i
 	PRINTK(DEBUG_MSG, "ax88180: mdio_write regval=0x%04x\n", regval);
 	return;
 }
-#endif
