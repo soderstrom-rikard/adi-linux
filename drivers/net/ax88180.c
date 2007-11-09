@@ -162,9 +162,8 @@ unsigned int media;
 	WRITE_MACREG(MDIOCTRL, READ_PHY | (regaddr << 8) | phyaddr); \
 	for (k1 = 0; k1 < 10000; k1++) { \
 		READ_MACREG(MDIOCTRL, tmpval1); \
-		if ((tmpval1 & READ_PHY) == 0) { \
+		if ((tmpval1 & READ_PHY) == 0) \
 			break; \
-		} \
 		udelay(1); \
 	} \
 	READ_MACREG(MDIODP, regdata); \
@@ -175,9 +174,8 @@ unsigned int media;
 	WRITE_MACREG(MDIOCTRL, WRITE_PHY | (regaddr << 8) | phyaddr); \
 	for (k2 = 0; k2 < 10000; k2++) { \
 		READ_MACREG(MDIOCTRL, tmpval2); \
-		if ((tmpval2 & WRITE_PHY) == 0) { \
+		if ((tmpval2 & WRITE_PHY) == 0) \
 			break; \
-		} \
 		udelay(1); \
 	} \
 }
@@ -208,9 +206,9 @@ unsigned int media;
 
 #define RESET_PHY { \
 	unsigned int tmpval3a, k3a; \
-	WRITE_PHYREG(pax88180_local->PhyAddr, BMCR, PHY_RESET); \
+	WRITE_PHYREG(lp->PhyAddr, BMCR, PHY_RESET); \
 	for (k3a = 0; k3a < 500; k3a++) { \
-		READ_PHYREG(pax88180_local->PhyAddr, BMCR, tmpval3a); \
+		READ_PHYREG(lp->PhyAddr, BMCR, tmpval3a); \
 		if (!(tmpval3a & PHY_RESET)) \
 			break; \
 		mdelay(1); \
@@ -218,9 +216,9 @@ unsigned int media;
 }
 
 #define	INIT_TXRX_VARIABLES { \
-	pax88180_local->FirstTxDesc = TXDP0; \
-	pax88180_local->NextTxDesc = TXDP0; \
-	pax88180_local->rxbuf_overflow_count = 0; \
+	lp->FirstTxDesc = TXDP0; \
+	lp->NextTxDesc = TXDP0; \
+	lp->rxbuf_overflow_count = 0; \
 }
 
 #define	ENABLE_INTERRUPT	WRITE_MACREG(IMR, DEFAULT_IMR)
@@ -247,41 +245,41 @@ unsigned int media;
 #define	DISPLAY_ALLPHYREG { \
 	unsigned int tmpval5; \
 	PRINTK(DEBUG_MSG, "ax88180: AX88180 PHY Registers: (media=%d)\n", media); \
-	READ_PHYREG(pax88180_local->PhyAddr, BMCR, tmpval5); \
+	READ_PHYREG(lp->PhyAddr, BMCR, tmpval5); \
 	PRINTK(DEBUG_MSG, "BMCR=0x%04x ", (unsigned int)tmpval5); \
-	READ_PHYREG(pax88180_local->PhyAddr, BMSR, tmpval5); \
+	READ_PHYREG(lp->PhyAddr, BMSR, tmpval5); \
 	PRINTK(DEBUG_MSG, "BMSR=0x%04x ", (unsigned int)tmpval5); \
-	READ_PHYREG(pax88180_local->PhyAddr, PHYIDR0, tmpval5); \
+	READ_PHYREG(lp->PhyAddr, PHYIDR0, tmpval5); \
 	PRINTK(DEBUG_MSG, "PHYIDR0=0x%04x ", (unsigned int)tmpval5); \
-	READ_PHYREG(pax88180_local->PhyAddr, PHYIDR1, tmpval5); \
+	READ_PHYREG(lp->PhyAddr, PHYIDR1, tmpval5); \
 	PRINTK(DEBUG_MSG, "PHYIDR1=0x%04x ", (unsigned int)tmpval5); \
-	READ_PHYREG(pax88180_local->PhyAddr, ANAR, tmpval5); \
+	READ_PHYREG(lp->PhyAddr, ANAR, tmpval5); \
 	PRINTK(DEBUG_MSG, "ANAR=0x%04x ", (unsigned int)tmpval5); \
-	READ_PHYREG(pax88180_local->PhyAddr, ANLPAR, tmpval5); \
+	READ_PHYREG(lp->PhyAddr, ANLPAR, tmpval5); \
 	PRINTK(DEBUG_MSG, "ANLPAR=0x%04x \n", (unsigned int)tmpval5); \
-	READ_PHYREG(pax88180_local->PhyAddr, ANER, tmpval5); \
+	READ_PHYREG(lp->PhyAddr, ANER, tmpval5); \
 	PRINTK(DEBUG_MSG, "ANER=0x%04x ", (unsigned int)tmpval5); \
-	READ_PHYREG(pax88180_local->PhyAddr, AUX_1000_CTRL, tmpval5); \
+	READ_PHYREG(lp->PhyAddr, AUX_1000_CTRL, tmpval5); \
 	PRINTK(DEBUG_MSG, "1G_CTRL=0x%04x ", (unsigned int)tmpval5); \
-	READ_PHYREG(pax88180_local->PhyAddr, AUX_1000_STATUS, tmpval5); \
+	READ_PHYREG(lp->PhyAddr, AUX_1000_STATUS, tmpval5); \
 	PRINTK(DEBUG_MSG, "1G_STATUS=0x%04x \n", (unsigned int)tmpval5); \
-	if (pax88180_local->PhyID0 == MARVELL_88E1111_PHYIDR0) { \
-		READ_PHYREG(pax88180_local->PhyAddr, M88_SSR, tmpval5); \
+	if (lp->PhyID0 == MARVELL_88E1111_PHYIDR0) { \
+		READ_PHYREG(lp->PhyAddr, M88_SSR, tmpval5); \
 		PRINTK(DEBUG_MSG, "M88_SSR=0x%04x ", (unsigned int)tmpval5); \
-		READ_PHYREG(pax88180_local->PhyAddr, M88_IER, tmpval5); \
+		READ_PHYREG(lp->PhyAddr, M88_IER, tmpval5); \
 		PRINTK(DEBUG_MSG, "M88_IER=0x%04x ", (unsigned int)tmpval5); \
-		READ_PHYREG(pax88180_local->PhyAddr, M88_ISR, tmpval5); \
+		READ_PHYREG(lp->PhyAddr, M88_ISR, tmpval5); \
 		PRINTK(DEBUG_MSG, "M88_ISR=0x%04x ", (unsigned int)tmpval5); \
-		READ_PHYREG(pax88180_local->PhyAddr, M88_EXT_SCR, tmpval5); \
+		READ_PHYREG(lp->PhyAddr, M88_EXT_SCR, tmpval5); \
 		PRINTK(DEBUG_MSG, "M88_EXT_SCR=0x%04x ", (unsigned int)tmpval5); \
-		READ_PHYREG(pax88180_local->PhyAddr, M88_EXT_SSR, tmpval5); \
+		READ_PHYREG(lp->PhyAddr, M88_EXT_SSR, tmpval5); \
 		PRINTK(DEBUG_MSG, "M88_EXT_SSR=0x%04x \n", (unsigned int)tmpval5); \
-	} else if (pax88180_local->PhyID0 == CICADA_CIS8201_PHYIDR0) { \
-		READ_PHYREG(pax88180_local->PhyAddr, CIS_IMR, tmpval5); \
+	} else if (lp->PhyID0 == CICADA_CIS8201_PHYIDR0) { \
+		READ_PHYREG(lp->PhyAddr, CIS_IMR, tmpval5); \
 		PRINTK(DEBUG_MSG, "CIS_IMR=0x%04x ", (unsigned int)tmpval5); \
-		READ_PHYREG(pax88180_local->PhyAddr, CIS_ISR, tmpval5); \
+		READ_PHYREG(lp->PhyAddr, CIS_ISR, tmpval5); \
 		PRINTK(DEBUG_MSG, "CIS_ISR=0x%04x ", (unsigned int)tmpval5); \
-		READ_PHYREG(pax88180_local->PhyAddr, CIS_AUX_CTRL_STATUS, tmpval5); \
+		READ_PHYREG(lp->PhyAddr, CIS_AUX_CTRL_STATUS, tmpval5); \
 		PRINTK(DEBUG_MSG, "CIS_AUX=0x%04x \n", (unsigned int)tmpval5); \
 	} \
 	READ_MACREG(RXCFG, tmpval5); \
@@ -296,17 +294,15 @@ unsigned int media;
 
 
 /* Index to functions, as function prototypes. */
-static int ax88180_probe(struct net_device *ndev);
 
+static int ax88180_probe(struct net_device *ndev);
 static int ax88180_open(struct net_device *ndev);
 static int ax88180_stop(struct net_device *ndev);
 static int ax88180_start_xmit(struct sk_buff *skb, struct net_device *ndev);
 static void ax88180_tx_timeout(struct net_device *ndev);
 static struct net_device_stats *ax88180_get_stats(struct net_device *ndev);
 static void ax88180_set_multicast_list(struct net_device *ndev);
-
 static irqreturn_t ax88180_interrupt(int irq, void *ndev_id);
-
 static int ax88180_initialization(struct net_device *ndev);
 static void ax88180_PHY_initial(struct net_device *ndev);
 static void ax88180_meida_config(struct net_device *ndev);
@@ -314,7 +310,6 @@ static void get_MarvellPHY_meida_mode(struct net_device *ndev);
 static void get_CicadaPHY_meida_mode(struct net_device *ndev);
 static void ax88180_rx_handler(struct net_device *ndev);
 static void ax88180_tx_handler(struct net_device *ndev);
-
 static int ax88180_ioctl(struct net_device *ndev, struct ifreq *rq, int cmd);
 static int ax88180_ethtool_ioctl(struct net_device *ndev, void *useraddr);
 static int mdio_read(struct net_device *ndev, int phy_id, int regaddr);
@@ -376,49 +371,41 @@ MODULE_PARM_DESC(jumbo, "Jumbo Frame(1=enable, 0=disable");
  */
 int ax88180_probe(struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned int phy_membase = ndev->base_addr;
 
-	PRINTK(DRIVER_MSG, "%s", version);
+	printk(KERN_INFO, "%s", version);
 
 	PRINTK(INIT_MSG, "ax88180: ax88180_probe beginning ..........\n");
 
-	pax88180_local->Phy_MemBase = phy_membase;
-	Log_MemBase = (unsigned int)ioremap(pax88180_local->Phy_MemBase, AX88180_MEMORY_SIZE);
-
-
-	PRINTK(DRIVER_MSG, "ax88180: ndev =0x%p, pax88180_local=0x%p, Log_MemBase=0x%p\n",
-	       ndev, (void *)pax88180_local, (void *)Log_MemBase);
-
-
-	PRINTK(DRIVER_MSG, "ax88180: Allocate AX88180 at Phy_MemBase=0x%04x. (name=%s, IRQ=%d)\n"
-	       , (unsigned int)pax88180_local->Phy_MemBase
-	       , ndev->name, (unsigned int)ndev->irq);
+	lp->Phy_MemBase = phy_membase;
+	Log_MemBase = (unsigned int)ioremap(lp->Phy_MemBase, AX88180_MEMORY_SIZE);
 
 
 	/* Initialize the Ethernet Device structure */
 	ether_setup(ndev);
 
-	pax88180_local->MediaMode = media;
-	pax88180_local->JumboFlag = jumbo;
-	pax88180_local->PhyAddr = MARVELL_88E1111_PHYADDR;
-	pax88180_local->rx_buf = NULL;
+	lp->MediaMode = media;
+	lp->JumboFlag = jumbo;
+	lp->PhyAddr = MARVELL_88E1111_PHYADDR;
+	lp->rx_buf = NULL;
 
 	/* Declare ax88180 routines here */
 	ndev->open		= ax88180_open;
 	ndev->stop		= ax88180_stop;
 	ndev->hard_start_xmit 	= ax88180_start_xmit;
-	ndev->tx_timeout		= ax88180_tx_timeout;
+	ndev->tx_timeout	= ax88180_tx_timeout;
 	ndev->watchdog_timeo	= 5*HZ;
 	ndev->get_stats		= ax88180_get_stats;
 	ndev->set_multicast_list	= ax88180_set_multicast_list;
 	ndev->do_ioctl		= ax88180_ioctl;
 
-
 	dev_alloc_name(ndev, "eth%d");
 
+	PRINTK(INIT_MSG, "ax88180: ax88180_probe end ..........\n");
 
-	PRINTK(DRIVER_MSG, "ax88180: ax88180_probe end ..........\n");
+	printk(KERN_INFO"ax88180: name=%s, Phy_MemBase=0x%04x, IRQ=%d, media=%d, jumbo=%u\n",
+			ndev->name, lp->Phy_MemBase, ndev->irq, media, jumbo);
 	return 0;
 }
 
@@ -440,16 +427,16 @@ int ax88180_probe(struct net_device *ndev)
  */
 static int ax88180_open(struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned short tmp_regval;
 	int rtn = -ENODEV;
 
 	PRINTK(INIT_MSG, "ax88180: ax88180_open beginning ..........\n");
 
-	if (pax88180_local->rx_buf == NULL) {
+	if (lp->rx_buf == NULL) {
 		/* Try to allocate memory space for RX buffer */
-		pax88180_local->rx_buf = kzalloc(MAX_RX_SIZE, GFP_KERNEL);
-		if (pax88180_local->rx_buf == NULL) {
+		lp->rx_buf = kzalloc(MAX_RX_SIZE, GFP_KERNEL);
+		if (lp->rx_buf == NULL) {
 			PRINTK(ERROR_MSG, "ax88180: Fail to allocate a RX buffer space!\n");
       			PRINTK(INIT_MSG, "ax88180: ax88180_open fail end ..........\n");
 			return -ENOMEM;
@@ -500,8 +487,8 @@ static int ax88180_open(struct net_device *ndev)
 	netif_start_queue(ndev);
 
 	/* Driver initialization successful */
-	PRINTK(DRIVER_MSG, "ax88180: name=%s, Phy_MemBase=0x%04x, IRQ=0x%x, media=%d, jumbo=%u\n",
-			ndev->name, pax88180_local->Phy_MemBase, ndev->irq, media, jumbo);
+	PRINTK(DRIVER_MSG, "ax88180: name=%s, Phy_MemBase=0x%04x, IRQ=%d, media=%d, jumbo=%u\n",
+			ndev->name, lp->Phy_MemBase, ndev->irq, media, jumbo);
 	PRINTK(DRIVER_MSG, "ax88180: The AX88180 driver is loaded successfully.\n");
 
 	PRINTK(INIT_MSG, "ax88180: ax88180_open end ..........\n");
@@ -518,12 +505,12 @@ static int ax88180_open(struct net_device *ndev)
  */
 static int ax88180_stop(struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned int flags;
 
 	PRINTK(INIT_MSG, "ax88180: ax88180_stop beginning ..........\n");
 
-	spin_lock_irqsave(&pax88180_local->lock, flags);
+	spin_lock_irqsave(&lp->lock, flags);
 
 	DISABLE_INTERRUPT;
 
@@ -539,7 +526,7 @@ static int ax88180_stop(struct net_device *ndev)
 	/* Release interrupt */
 	free_irq(ndev->irq, ndev);
 
-	spin_unlock_irqrestore(&pax88180_local->lock, flags);
+	spin_unlock_irqrestore(&lp->lock, flags);
 
 	/* Driver initialization successful */
 	PRINTK(DRIVER_MSG
@@ -552,7 +539,7 @@ static int ax88180_stop(struct net_device *ndev)
 static int ax88180_start_xmit(struct sk_buff *skb
 			      , struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned char *txdata;
 	unsigned int TXDES_addr;
 	unsigned int txcmd_txdp, txbs_txdp;
@@ -566,8 +553,8 @@ static int ax88180_start_xmit(struct sk_buff *skb
 	/* Inform upper layer to stop sending packets to device driver */
 	netif_stop_queue(ndev);
 
-	pax88180_local->FirstTxDesc = pax88180_local->NextTxDesc;
-	txbs_txdp = 1 << pax88180_local->FirstTxDesc;
+	lp->FirstTxDesc = lp->NextTxDesc;
+	txbs_txdp = 1 << lp->FirstTxDesc;
 
 	/* allan9 add to make sure TX machine is OK */
 	i = 0;
@@ -577,18 +564,18 @@ static int ax88180_start_xmit(struct sk_buff *skb
         , "ax88180: Checking available TXDP (TXBS=0x%04x)......\n"
 	       , tmp_data);
 	while (tmp_data & txbs_txdp) {
-		pax88180_local->NextTxDesc++;
-		pax88180_local->NextTxDesc &= TXDP_MASK;
-		pax88180_local->FirstTxDesc = pax88180_local->NextTxDesc;
-		txbs_txdp = 1 << pax88180_local->FirstTxDesc;
+		lp->NextTxDesc++;
+		lp->NextTxDesc &= TXDP_MASK;
+		lp->FirstTxDesc = lp->NextTxDesc;
+		txbs_txdp = 1 << lp->FirstTxDesc;
 		READ_MACREG(TXBS, tmp_data);
 		i++;
 
 		if (i > 1000) {
 			RESET_MAC;
-			pax88180_local->NextTxDesc = TXDP0;
-			pax88180_local->FirstTxDesc = pax88180_local->NextTxDesc;
-			txbs_txdp = 1 << pax88180_local->FirstTxDesc;
+			lp->NextTxDesc = TXDP0;
+			lp->FirstTxDesc = lp->NextTxDesc;
+			txbs_txdp = 1 << lp->FirstTxDesc;
 			READ_MACREG(TXBS, tmp_data);
 			i = 0;
 			PRINTK(ERROR_MSG, "ax88180: No available TXDP!!\n");
@@ -596,12 +583,12 @@ static int ax88180_start_xmit(struct sk_buff *skb
 	}
 
 	PRINTK(TX_MSG, "ax88180: TXDP%d is available, i=%d\n"
-	       , (int)pax88180_local->FirstTxDesc, i);
+	       , (int)lp->FirstTxDesc, i);
 
 
-	txcmd_txdp = pax88180_local->FirstTxDesc << 13;
+	txcmd_txdp = lp->FirstTxDesc << 13;
 
-	TXDES_addr = TXDES0 + (pax88180_local->FirstTxDesc << 2);
+	TXDES_addr = TXDES0 + (lp->FirstTxDesc << 2);
 
 	WRITE_MACREG(TXCMD, txcmd_txdp | skb->len | TX_START_WRITE);
 
@@ -611,16 +598,16 @@ static int ax88180_start_xmit(struct sk_buff *skb
 		if (skb->len & 0x1)
 			i++;
 
-		if (i > 23) {
+		if (i > 23)
 			dma_outsw(Log_MemBase + TXBUFFER_START, txdata, i);
-		} else {
+		else
 			outsw(Log_MemBase + TXBUFFER_START, txdata, i);
-		}
+
 	} else {
 		for (i = 0; i < skb->len; i += 2) {
 		  tmp_data =
-			(unsigned short)*(txdata + i) +
-			(unsigned short)(*(txdata + i + 1) << 8);
+			(unsigned short) txdata[i] +
+			(unsigned short) txdata[i + 1] << 8;
 		  WRITE_TXBUF(tmp_data);
 		}
 	}
@@ -630,18 +617,18 @@ static int ax88180_start_xmit(struct sk_buff *skb
 		if (skb->len & 0x3)
 			i++;
 
-		if (i > 18) {
+		if (i > 18)
 			dma_outsl(Log_MemBase + TXBUFFER_START, txdata, i);
-		} else {
+		else
 			outsl(Log_MemBase + TXBUFFER_START, txdata, i);
-		}
+
 	} else {
 		for (i = 0; i < skb->len; i += 4) {
 			tmp_data =
-			    (unsigned int)*(txdata + i) +
-			    (unsigned int)(*(txdata + i + 1) << 8) +
-			    (unsigned int)(*(txdata + i + 2) << 16) +
-			    (unsigned int)(*(txdata + i + 3) << 24);
+			    (unsigned int)txdata[i] +
+			    ((unsigned int)txdata[i + 1] << 8) +
+			    ((unsigned int)txdata[i + 2] << 16) +
+			    ((unsigned int)txdata[i + 3] << 24);
 			WRITE_TXBUF(tmp_data);
 		}
 	}
@@ -651,17 +638,17 @@ static int ax88180_start_xmit(struct sk_buff *skb
 	WRITE_MACREG(TXBS, txbs_txdp);
 	WRITE_MACREG(TXDES_addr, TXDPx_ENABLE | skb->len);
 
-	pax88180_local->stats.tx_packets++;
-	pax88180_local->stats.tx_bytes += skb->len;
+	lp->stats.tx_packets++;
+	lp->stats.tx_bytes += skb->len;
 	dev_kfree_skb(skb);
 	ndev->trans_start = jiffies;
 
-	if (pax88180_local->JumboFlag == ENABLE_JUMBO) {
-		pax88180_local->NextTxDesc += 2;
-	} else {
-		pax88180_local->NextTxDesc++;
-	}
-	pax88180_local->NextTxDesc &= TXDP_MASK;
+	if (lp->JumboFlag == ENABLE_JUMBO)
+		lp->NextTxDesc += 2;
+	else
+		lp->NextTxDesc++;
+
+	lp->NextTxDesc &= TXDP_MASK;
 
 	PRINTK(TX_MSG, "ax88180: ax88180_start_xmit end ..........\n\n");
 	return 0;
@@ -675,7 +662,7 @@ static int ax88180_start_xmit(struct sk_buff *skb
  */
 static void ax88180_tx_timeout(struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 
 	PRINTK(TX_MSG, "ax88180: ax88180_tx_timeout beginning ..........\n");
 
@@ -687,7 +674,6 @@ static void ax88180_tx_timeout(struct net_device *ndev)
 	netif_wake_queue(ndev);
 
 	PRINTK(TX_MSG, "ax88180: ax88180_tx_timeout end ..........\n");
-	return;
 }
 
 
@@ -701,31 +687,31 @@ static void ax88180_tx_timeout(struct net_device *ndev)
  */
 static struct net_device_stats *ax88180_get_stats(struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned int tmp_regval;
 	unsigned int flags;
 
 	PRINTK(OTHERS_MSG, "ax88180: ax88180_get_stats beginning..........\n");
 
-	spin_lock_irqsave(&pax88180_local->lock, flags);
+	spin_lock_irqsave(&lp->lock, flags);
 
 	/* Update the statistics counter here..... */
 	READ_MACREG(RXIPCRCCNT, tmp_regval);
-	pax88180_local->stats.rx_errors += tmp_regval;
+	lp->stats.rx_errors += tmp_regval;
 	WRITE_MACREG(RXIPCRCCNT, 0);
 
 	READ_MACREG(RXCRCCNT, tmp_regval);
-	pax88180_local->stats.rx_errors += tmp_regval;
+	lp->stats.rx_errors += tmp_regval;
 	WRITE_MACREG(RXCRCCNT, 0);
 
 	READ_MACREG(TXFAILCNT, tmp_regval);
-	pax88180_local->stats.tx_errors += tmp_regval;
+	lp->stats.tx_errors += tmp_regval;
 	WRITE_MACREG(TXFAILCNT, 0);
 
-	spin_unlock_irqrestore(&pax88180_local->lock, flags);
+	spin_unlock_irqrestore(&lp->lock, flags);
 
 	PRINTK(OTHERS_MSG, "ax88180: ax88180_get_stats end ..........\n");
-	return &pax88180_local->stats;
+	return &lp->stats;
 }
 
 
@@ -736,7 +722,7 @@ static struct net_device_stats *ax88180_get_stats(struct net_device *ndev)
  */
 static void ax88180_set_multicast_list(struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	struct dev_mc_list *mc_list;
 	unsigned int mc_hash_table[2];
 	int crc_val,i;
@@ -744,14 +730,14 @@ static void ax88180_set_multicast_list(struct net_device *ndev)
 	PRINTK(OTHERS_MSG
           , "ax88180: ax88180_set_multicast_list beginning ..........\n");
 
-      	pax88180_local->RxFilterMode = DEFAULT_RXFILTER;
+	lp->RxFilterMode = DEFAULT_RXFILTER;
 
-	if (ndev->flags & IFF_PROMISC) {
-		pax88180_local->RxFilterMode |= RX_RXANY;
-	} else if (ndev->flags & IFF_ALLMULTI) {
-		pax88180_local->RxFilterMode |= RX_MULTICAST;
-	} else if (ndev->flags & IFF_MULTICAST) {
-		pax88180_local->RxFilterMode |= RX_MULTI_HASH;
+	if (ndev->flags & IFF_PROMISC)
+		lp->RxFilterMode |= RX_RXANY;
+	else if (ndev->flags & IFF_ALLMULTI)
+		lp->RxFilterMode |= RX_MULTICAST;
+	else if (ndev->flags & IFF_MULTICAST) {
+		lp->RxFilterMode |= RX_MULTI_HASH;
 
 		/* Handle Rx multicast hash table here */
 		mc_hash_table[0] = mc_hash_table[1] = 0;
@@ -769,11 +755,10 @@ static void ax88180_set_multicast_list(struct net_device *ndev)
 		WRITE_MACREG(HASHTAB3, (unsigned int)(mc_hash_table[1] >> 16));
 	}
 
-	WRITE_MACREG(RXFILTER, pax88180_local->RxFilterMode);
+	WRITE_MACREG(RXFILTER, lp->RxFilterMode);
 
 	PRINTK(OTHERS_MSG
 	       , "ax88180: ax88180_set_multicast_list end ..........\n");
-	return;
 }
 
 /*
@@ -788,7 +773,7 @@ static irqreturn_t ax88180_interrupt(int irq, void *ndev_id)
 {
 
 	struct net_device *ndev = ndev_id;
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned int ISR_Status;
 	unsigned int rxcurt_ptr, rxbound_ptr;
 	unsigned int bmsr_val;
@@ -813,37 +798,37 @@ static irqreturn_t ax88180_interrupt(int irq, void *ndev_id)
 	       , "ax88180: The interrupt status = 0x%04x\n", ISR_Status);
 
 	/* Handle AX88180 interrupt events */
-	if (ISR_Status & ISR_WATCHDOG) {
+	if (ISR_Status & ISR_WATCHDOG)
 		PRINTK(DRIVER_MSG
 		       , "ax88180: Watchdog Timer interrupt (ISR = 0x%04x)\n"
 		       , ISR_Status);
-	}
 
-	if (ISR_Status & ISR_RX) {
+
+	if (ISR_Status & ISR_RX)
 		ax88180_rx_handler(ndev);
-	}
 
-	if (ISR_Status & ISR_TX) {
+
+	if (ISR_Status & ISR_TX)
 		ax88180_tx_handler(ndev);
-	}
+
 
 	if (ISR_Status & ISR_RXBUFFOVR) {
 
-		pax88180_local->rxbuf_overflow_count++;
-		pax88180_local->stats.rx_fifo_errors++;
+		lp->rxbuf_overflow_count++;
+		lp->stats.rx_fifo_errors++;
 
 		READ_MACREG(RXCURT, rxcurt_ptr);
 		READ_MACREG(RXBOUND, rxbound_ptr);
 
 		PRINTK(ERROR_MSG, "ax88180: RX Buffer overflow!!"
 			"(count=%d, RXBOUND=0x%04x, RXCURT=0x%04x)\n"
-		       , (int)pax88180_local->rxbuf_overflow_count
+		       , (int)lp->rxbuf_overflow_count
 		       , rxbound_ptr, rxcurt_ptr);
 
 		PRINTK(ERROR_MSG, "ax88180: The interrupt status = 0x%04x\n"
 		       , ISR_Status);
 
-		if (pax88180_local->rxbuf_overflow_count > 10) {
+		if (lp->rxbuf_overflow_count > 10) {
 		        RESET_MAC;
 			INIT_TXRX_VARIABLES;
 		}
@@ -852,14 +837,14 @@ static irqreturn_t ax88180_interrupt(int irq, void *ndev_id)
 	if (ISR_Status & ISR_PHY) {
 
 		/* Read ISR register once to clear Marvell PHY interrupt bit */
-		READ_PHYREG(pax88180_local->PhyAddr, M88_ISR, tmp_regval);
+		READ_PHYREG(lp->PhyAddr, M88_ISR, tmp_regval);
 
 		/* Waiting 200 msecs for PHY link stable */
 		for (i = 0; i < 200; i++) {
-			READ_PHYREG(pax88180_local->PhyAddr, BMSR, bmsr_val);
-			if (bmsr_val & LINKOK) {
+			READ_PHYREG(lp->PhyAddr, BMSR, bmsr_val);
+			if (bmsr_val & LINKOK)
 				break;
-			}
+
 			mdelay(1);
 		}
 
@@ -868,7 +853,7 @@ static irqreturn_t ax88180_interrupt(int irq, void *ndev_id)
 			       , "ax88180: The cable is connected.\n");
 			netif_carrier_on(ndev);
 
-			if (pax88180_local->ForceMedia == AUTO_MEDIA)
+			if (lp->ForceMedia == AUTO_MEDIA)
 				ax88180_meida_config(ndev);
 
 			/* DISPLAY_ALLPHYREG; */
@@ -894,7 +879,7 @@ static irqreturn_t ax88180_interrupt(int irq, void *ndev_id)
  */
 static int ax88180_initialization(struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned int macid0_val, macid1_val, macid2_val;
 	unsigned int tmp_regval;
 	int i;
@@ -968,15 +953,15 @@ static int ax88180_initialization(struct net_device *ndev)
 
 
 	/* Initial MII interface information for ethtool ioctl */
-	pax88180_local->mii_if.dev = ndev;
-	pax88180_local->mii_if.phy_id = pax88180_local->PhyAddr;
-	pax88180_local->mii_if.phy_id_mask = 0x1F;
-	pax88180_local->mii_if.reg_num_mask = 0x1F;
-	pax88180_local->mii_if.mdio_read = mdio_read;
-	pax88180_local->mii_if.mdio_write = mdio_write;
-	pax88180_local->mii_if.force_media = pax88180_local->ForceMedia;
-	pax88180_local->mii_if.full_duplex = pax88180_local->LineSpeed;
-	pax88180_local->mii_if.force_media = pax88180_local->DuplexMode;
+	lp->mii_if.dev = ndev;
+	lp->mii_if.phy_id = lp->PhyAddr;
+	lp->mii_if.phy_id_mask = 0x1F;
+	lp->mii_if.reg_num_mask = 0x1F;
+	lp->mii_if.mdio_read = mdio_read;
+	lp->mii_if.mdio_write = mdio_write;
+	lp->mii_if.force_media = lp->ForceMedia;
+	lp->mii_if.full_duplex = lp->LineSpeed;
+	lp->mii_if.force_media = lp->DuplexMode;
 
 	WRITE_MACREG(RXFILTER, DEFAULT_RXFILTER);
 
@@ -995,7 +980,7 @@ static int ax88180_initialization(struct net_device *ndev)
  */
 static void ax88180_PHY_initial(struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned int bmcr_val, anar_val, bmsr_val;
 	unsigned int aux_1000_ctrl;
 	unsigned int tmp_regval;
@@ -1004,95 +989,94 @@ static void ax88180_PHY_initial(struct net_device *ndev)
 	PRINTK(INIT_MSG, "ax88180: ax88180_PHY_initial beginning ..........\n");
 
 	/* Check avaliable PHY chipset  */
-	pax88180_local->PhyAddr = MARVELL_88E1111_PHYADDR;
-	READ_PHYREG(pax88180_local->PhyAddr, PHYIDR0, pax88180_local->PhyID0);
-	if (pax88180_local->PhyID0 == MARVELL_88E1111_PHYIDR0) {
+	lp->PhyAddr = MARVELL_88E1111_PHYADDR;
+	READ_PHYREG(lp->PhyAddr, PHYIDR0, lp->PhyID0);
+	if (lp->PhyID0 == MARVELL_88E1111_PHYIDR0) {
 		PRINTK(DRIVER_MSG, "ax88180: Found Marvell 88E1111 PHY chipset. (PHY Addr=0x%x)\n",
-			(unsigned int)pax88180_local->PhyAddr);
-		READ_PHYREG(pax88180_local->PhyAddr, M88_EXT_SSR, tmp_regval);
+			(unsigned int)lp->PhyAddr);
+		READ_PHYREG(lp->PhyAddr, M88_EXT_SSR, tmp_regval);
 		if ((tmp_regval & HWCFG_MODE_MASK) == RGMII_COPPER_MODE) {
-			WRITE_PHYREG(pax88180_local->PhyAddr, M88_EXT_SCR, DEFAULT_EXT_SCR);
+			WRITE_PHYREG(lp->PhyAddr, M88_EXT_SCR, DEFAULT_EXT_SCR);
 			RESET_PHY;
-			WRITE_PHYREG(pax88180_local->PhyAddr, M88_IER, LINK_CHANGE_INT);
+			WRITE_PHYREG(lp->PhyAddr, M88_IER, LINK_CHANGE_INT);
 		}
 	} else {
-		pax88180_local->PhyAddr = CICADA_CIS8201_PHYADDR;
-		READ_PHYREG(pax88180_local->PhyAddr, PHYIDR0, pax88180_local->PhyID0);
-		if (pax88180_local->PhyID0 == CICADA_CIS8201_PHYIDR0) {
+		lp->PhyAddr = CICADA_CIS8201_PHYADDR;
+		READ_PHYREG(lp->PhyAddr, PHYIDR0, lp->PhyID0);
+		if (lp->PhyID0 == CICADA_CIS8201_PHYIDR0) {
 			PRINTK(DRIVER_MSG, "ax88180: Found CICADA CIS8201 PHY chipset. (PHY Addr=0x%x)\n",
-				(unsigned int)pax88180_local->PhyAddr);
-			WRITE_PHYREG(pax88180_local->PhyAddr, CIS_IMR, (CIS_INT_ENABLE | LINK_CHANGE_INT));
+				(unsigned int)lp->PhyAddr);
+			WRITE_PHYREG(lp->PhyAddr, CIS_IMR, (CIS_INT_ENABLE | LINK_CHANGE_INT));
 
 			/* Set CIS_SMI_PRIORITY bit before force the media mode  */
-			READ_PHYREG(pax88180_local->PhyAddr, CIS_AUX_CTRL_STATUS, tmp_regval);
+			READ_PHYREG(lp->PhyAddr, CIS_AUX_CTRL_STATUS, tmp_regval);
 			tmp_regval &= ~CIS_SMI_PRIORITY;
-			if (pax88180_local->MediaMode != MEDIA_AUTO)
+			if (lp->MediaMode != MEDIA_AUTO)
 				tmp_regval |= CIS_SMI_PRIORITY;
-			WRITE_PHYREG(pax88180_local->PhyAddr, CIS_AUX_CTRL_STATUS, tmp_regval);
+			WRITE_PHYREG(lp->PhyAddr, CIS_AUX_CTRL_STATUS, tmp_regval);
 		} else {
 			PRINTK(ERROR_MSG, "ax88180: Unknown PHY chipset!!\n");
 		}
 	}
 
 	PRINTK(INIT_MSG, "ax88180: PHY_Addr=0x%08lx, PHY_ID=0x%04x, media=%d\n",
-		pax88180_local->PhyAddr, (unsigned int)pax88180_local->PhyID0, media);
+		lp->PhyAddr, (unsigned int)lp->PhyID0, media);
 
-	switch (pax88180_local->MediaMode) {
+	switch (lp->MediaMode) {
 	default:
 	case MEDIA_AUTO:
 		PRINTK(INIT_MSG, "ax88180: The meida mode is autosense.\n");
-		pax88180_local->ForceMedia = AUTO_MEDIA;
+		lp->ForceMedia = AUTO_MEDIA;
 		aux_1000_ctrl = DEFAULT_AUX_1000_CTRL;
 		anar_val = (ANAR_PAUSE | ANAR_100FULL | ANAR_100HALF | ANAR_10FULL | ANAR_10HALF | ANAR_8023BIT);
 		break;
 
 	case MEDIA_100FULL:
 		PRINTK(INIT_MSG, "ax88180: The meida mode is forced to 100full.\n");
-		pax88180_local->ForceMedia = FORCE_MEDIA;
+		lp->ForceMedia = FORCE_MEDIA;
 		aux_1000_ctrl = 0;
 		anar_val = (ANAR_PAUSE | ANAR_100FULL | ANAR_8023BIT);
 		break;
 
 	case MEDIA_100HALF:
 		PRINTK(INIT_MSG, "ax88180: The meida mode is forced to 100half.\n");
-		pax88180_local->ForceMedia = FORCE_MEDIA;
+		lp->ForceMedia = FORCE_MEDIA;
 		aux_1000_ctrl = 0;
 		anar_val = (ANAR_100HALF | ANAR_8023BIT);
 		break;
 
 	case MEDIA_10FULL:
 		PRINTK(INIT_MSG, "ax88180: The meida mode is forced to 10full.\n");
-		pax88180_local->ForceMedia = FORCE_MEDIA;
+		lp->ForceMedia = FORCE_MEDIA;
 		aux_1000_ctrl = 0;
 		anar_val = (ANAR_PAUSE | ANAR_10FULL | ANAR_8023BIT);
 		break;
 
 	case MEDIA_10HALF:
 		PRINTK(INIT_MSG, "ax88180: The meida mode is forced to 10half.\n");
-		pax88180_local->ForceMedia = FORCE_MEDIA;
+		lp->ForceMedia = FORCE_MEDIA;
 		aux_1000_ctrl = 0;
 		anar_val = (ANAR_10HALF | ANAR_8023BIT);
 		break;
 	}
-	WRITE_PHYREG(pax88180_local->PhyAddr, AUX_1000_CTRL, aux_1000_ctrl);
-	WRITE_PHYREG(pax88180_local->PhyAddr, ANAR, anar_val);
+	WRITE_PHYREG(lp->PhyAddr, AUX_1000_CTRL, aux_1000_ctrl);
+	WRITE_PHYREG(lp->PhyAddr, ANAR, anar_val);
 
 	/* Enable and restart auto-negotiation operation */
 	bmcr_val = (AUTONEG_EN | RESTART_AUTONEG);
-	WRITE_PHYREG(pax88180_local->PhyAddr, BMCR, bmcr_val);
+	WRITE_PHYREG(lp->PhyAddr, BMCR, bmcr_val);
 
 	/* Waiting 5 secs for PHY link stable */
 	PRINTK(DRIVER_MSG, "ax88180: Waiting for auto-negotiation completion......\n");
 	for (i = 0; i < 5000; i++) {
-		READ_PHYREG(pax88180_local->PhyAddr, BMSR, bmsr_val);
-		if (bmsr_val & LINKOK) {
+		READ_PHYREG(lp->PhyAddr, BMSR, bmsr_val);
+		if (bmsr_val & LINKOK)
 			break;
-		}
+
 		mdelay(1);
 	}
 
 	PRINTK(INIT_MSG, "ax88180: ax88180_PHY_initial end ..........\n");
-	return;
 }
 
 
@@ -1106,7 +1090,7 @@ static void ax88180_PHY_initial(struct net_device *ndev)
  */
 static void ax88180_meida_config(struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned int bmcr_val, bmsr_val;
 	unsigned int rxcfg_val, maccfg0_val, maccfg1_val;
 	int i;
@@ -1115,16 +1099,16 @@ static void ax88180_meida_config(struct net_device *ndev)
 
 	/* Waiting 200 msecs for PHY link stable */
 	for (i = 0; i < 200; i++) {
-		READ_PHYREG(pax88180_local->PhyAddr, BMSR, bmsr_val);
-		if (bmsr_val & LINKOK) {
+		READ_PHYREG(lp->PhyAddr, BMSR, bmsr_val);
+		if (bmsr_val & LINKOK)
 			break;
-		}
+
 		mdelay(1);
 	}
 
-	READ_PHYREG(pax88180_local->PhyAddr, BMSR, bmsr_val);
+	READ_PHYREG(lp->PhyAddr, BMSR, bmsr_val);
 	if (bmsr_val & LINKOK) {
-		READ_PHYREG(pax88180_local->PhyAddr, BMCR, bmcr_val);
+		READ_PHYREG(lp->PhyAddr, BMCR, bmcr_val);
 		if (bmcr_val & AUTONEG_EN) {
 			/* Waiting for Auto-negotiation completion */
 			PRINTK(INIT_MSG, "ax88180: Auto-negotiation is enabled. Waiting for NWay completion.....\n");
@@ -1134,7 +1118,7 @@ static void ax88180_meida_config(struct net_device *ndev)
 					break;
 				}
 				mdelay(1);
-				READ_PHYREG(pax88180_local->PhyAddr, BMSR, bmsr_val);
+				READ_PHYREG(lp->PhyAddr, BMSR, bmsr_val);
 			}
 			if (i >= 5000)
 				PRINTK(INIT_MSG, "ax88180: Auto-negotiation is NOT completed!!\n");
@@ -1145,26 +1129,26 @@ static void ax88180_meida_config(struct net_device *ndev)
 			(unsigned int)bmcr_val, (unsigned int)bmsr_val);
 
 		/* Get real media mode here */
-		if (pax88180_local->PhyID0 == MARVELL_88E1111_PHYIDR0) {
+		if (lp->PhyID0 == MARVELL_88E1111_PHYIDR0)
 			get_MarvellPHY_meida_mode(ndev);
-		} else if (pax88180_local->PhyID0 == CICADA_CIS8201_PHYIDR0) {
+		else if (lp->PhyID0 == CICADA_CIS8201_PHYIDR0)
 			get_CicadaPHY_meida_mode(ndev);
-		} else {
-			pax88180_local->RealMediaMode = MEDIA_1000FULL;
-		}
+		else
+			lp->RealMediaMode = MEDIA_1000FULL;
 
-		switch (pax88180_local->RealMediaMode) {
+
+		switch (lp->RealMediaMode) {
 		default:
 		case MEDIA_1000FULL:
 			PRINTK(DRIVER_MSG, "ax88180: Set to 1000Mbps Full-duplex mode.\n");
-			pax88180_local->LineSpeed = SPEED_1000;
-			pax88180_local->DuplexMode = DUPLEX_FULL;
+			lp->LineSpeed = SPEED_1000;
+			lp->DuplexMode = DUPLEX_FULL;
 
 			rxcfg_val = RXFLOW_ENABLE | DEFAULT_RXCFG;
 			maccfg0_val = TXFLOW_ENABLE | DEFAULT_MACCFG0;
 			maccfg1_val = GIGA_MODE_EN | RXFLOW_EN | FULLDUPLEX | DEFAULT_MACCFG1;
 
-			if (pax88180_local->JumboFlag == ENABLE_JUMBO) {
+			if (lp->JumboFlag == ENABLE_JUMBO) {
 				PRINTK(DRIVER_MSG, "ax88180: Enable Jumbo Frame function.\n");
 				maccfg1_val |= RXJUMBO_EN | JUMBO_LEN_15K;
 				ndev->mtu = MAX_JUMBO_MTU;
@@ -1173,8 +1157,8 @@ static void ax88180_meida_config(struct net_device *ndev)
 
 		case MEDIA_1000HALF:
 			PRINTK(DRIVER_MSG, "ax88180: Set to 1000Mbps Half-duplex mode.\n");
-			pax88180_local->LineSpeed = SPEED_1000;
-			pax88180_local->DuplexMode = DUPLEX_HALF;
+			lp->LineSpeed = SPEED_1000;
+			lp->DuplexMode = DUPLEX_HALF;
 
 			rxcfg_val = DEFAULT_RXCFG;
 			maccfg0_val = DEFAULT_MACCFG0;
@@ -1184,8 +1168,8 @@ static void ax88180_meida_config(struct net_device *ndev)
 
 		case MEDIA_100FULL:
 			PRINTK(DRIVER_MSG, "ax88180: Set to 100Mbps Full-duplex mode.\n");
-			pax88180_local->LineSpeed = SPEED_100;
-			pax88180_local->DuplexMode = DUPLEX_FULL;
+			lp->LineSpeed = SPEED_100;
+			lp->DuplexMode = DUPLEX_FULL;
 
 			rxcfg_val = RXFLOW_ENABLE | DEFAULT_RXCFG;
 			maccfg0_val = SPEED100 | TXFLOW_ENABLE | DEFAULT_MACCFG0;
@@ -1195,8 +1179,8 @@ static void ax88180_meida_config(struct net_device *ndev)
 
 		case MEDIA_100HALF:
 			PRINTK(DRIVER_MSG, "ax88180: Set to 100Mbps Half-duplex mode.\n");
-			pax88180_local->LineSpeed = SPEED_100;
-			pax88180_local->DuplexMode = DUPLEX_HALF;
+			lp->LineSpeed = SPEED_100;
+			lp->DuplexMode = DUPLEX_HALF;
 
 			rxcfg_val = DEFAULT_RXCFG;
 			maccfg0_val = SPEED100 | DEFAULT_MACCFG0;
@@ -1206,8 +1190,8 @@ static void ax88180_meida_config(struct net_device *ndev)
 
 		case MEDIA_10FULL:
 			PRINTK(DRIVER_MSG, "ax88180: Set to 10Mbps Full-duplex mode.\n");
-			pax88180_local->LineSpeed = SPEED_10;
-			pax88180_local->DuplexMode = DUPLEX_FULL;
+			lp->LineSpeed = SPEED_10;
+			lp->DuplexMode = DUPLEX_FULL;
 
 			rxcfg_val = RXFLOW_ENABLE | DEFAULT_RXCFG;
 			maccfg0_val = TXFLOW_ENABLE | DEFAULT_MACCFG0;
@@ -1217,8 +1201,8 @@ static void ax88180_meida_config(struct net_device *ndev)
 
 		case MEDIA_10HALF:
 			PRINTK(DRIVER_MSG, "ax88180: Set to 10Mbps Half-duplex mode.\n");
-			pax88180_local->LineSpeed = SPEED_10;
-			pax88180_local->DuplexMode = DUPLEX_HALF;
+			lp->LineSpeed = SPEED_10;
+			lp->DuplexMode = DUPLEX_HALF;
 
 			rxcfg_val = DEFAULT_RXCFG;
 			maccfg0_val = DEFAULT_MACCFG0;
@@ -1229,14 +1213,14 @@ static void ax88180_meida_config(struct net_device *ndev)
 	} else {
 		PRINTK(INIT_MSG, "ax88180: The cable is disconnected!!\n");
 		/* Set to default media mode (1000FULL) */
-		pax88180_local->LineSpeed = SPEED_1000;
-		pax88180_local->DuplexMode = DUPLEX_FULL;
+		lp->LineSpeed = SPEED_1000;
+		lp->DuplexMode = DUPLEX_FULL;
 
 		rxcfg_val = RXFLOW_ENABLE | DEFAULT_RXCFG;
 		maccfg0_val = TXFLOW_ENABLE | DEFAULT_MACCFG0;
 		maccfg1_val = GIGA_MODE_EN | RXFLOW_EN | FULLDUPLEX | DEFAULT_MACCFG1;
 
-		if (pax88180_local->JumboFlag == ENABLE_JUMBO) {
+		if (lp->JumboFlag == ENABLE_JUMBO) {
 			maccfg1_val |= RXJUMBO_EN | JUMBO_LEN_15K;
 			ndev->mtu = MAX_JUMBO_MTU;
 		}
@@ -1247,7 +1231,6 @@ static void ax88180_meida_config(struct net_device *ndev)
 	WRITE_MACREG(MACCFG1, maccfg1_val);
 
 	PRINTK(INIT_MSG, "ax88180: ax88180_meida_config end ..........\n");
-	return;
 }
 
 
@@ -1261,7 +1244,7 @@ static void ax88180_meida_config(struct net_device *ndev)
  */
 static void get_MarvellPHY_meida_mode(struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned int m88_ssr;
 	int i;
 
@@ -1269,43 +1252,42 @@ static void get_MarvellPHY_meida_mode(struct net_device *ndev)
 
 	/* Get the real media mode */
 	for (i = 0; i < 200; i++) {
-		READ_PHYREG(pax88180_local->PhyAddr, M88_SSR, m88_ssr);
-		if (m88_ssr & SSR_MEDIA_RESOLVED_OK) {
+		READ_PHYREG(lp->PhyAddr, M88_SSR, m88_ssr);
+		if (m88_ssr & SSR_MEDIA_RESOLVED_OK)
 			break;
-		}
+
 		mdelay(1);
 	}
 
-	READ_PHYREG(pax88180_local->PhyAddr, M88_SSR, m88_ssr);
+	READ_PHYREG(lp->PhyAddr, M88_SSR, m88_ssr);
 	switch (m88_ssr & SSR_MEDIA_MASK) {
 	default:
 	case SSR_1000FULL:
-		pax88180_local->RealMediaMode = MEDIA_1000FULL;
+		lp->RealMediaMode = MEDIA_1000FULL;
 		break;
 
 	case SSR_1000HALF:
-		pax88180_local->RealMediaMode = MEDIA_1000HALF;
+		lp->RealMediaMode = MEDIA_1000HALF;
 		break;
 
 	case SSR_100FULL:
-		pax88180_local->RealMediaMode = MEDIA_100FULL;
+		lp->RealMediaMode = MEDIA_100FULL;
 		break;
 
 	case SSR_100HALF:
-		pax88180_local->RealMediaMode = MEDIA_100HALF;
+		lp->RealMediaMode = MEDIA_100HALF;
 		break;
 
 	case SSR_10FULL:
-		pax88180_local->RealMediaMode = MEDIA_10FULL;
+		lp->RealMediaMode = MEDIA_10FULL;
 		break;
 
 	case SSR_10HALF:
-		pax88180_local->RealMediaMode = MEDIA_10HALF;
+		lp->RealMediaMode = MEDIA_10HALF;
 		break;
 	}
 
 	PRINTK(INIT_MSG, "ax88180: get_MarvellPHY_meida_mode end ..........\n");
-	return;
 }
 
 
@@ -1319,41 +1301,40 @@ static void get_MarvellPHY_meida_mode(struct net_device *ndev)
  */
 static void get_CicadaPHY_meida_mode(struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned int tmp_regval;
 
 	PRINTK(INIT_MSG, "ax88180: get_CicadaPHY_meida_mode beginning ..........\n");
 
-	READ_PHYREG(pax88180_local->PhyAddr, CIS_AUX_CTRL_STATUS, tmp_regval);
+	READ_PHYREG(lp->PhyAddr, CIS_AUX_CTRL_STATUS, tmp_regval);
 	switch (tmp_regval & CIS_MEDIA_MASK) {
 	default:
 	case CIS_1000FULL:
-		pax88180_local->RealMediaMode = MEDIA_1000FULL;
+		lp->RealMediaMode = MEDIA_1000FULL;
 		break;
 
 	case CIS_1000HALF:
-		pax88180_local->RealMediaMode = MEDIA_1000HALF;
+		lp->RealMediaMode = MEDIA_1000HALF;
 		break;
 
 	case CIS_100FULL:
-		pax88180_local->RealMediaMode = MEDIA_100FULL;
+		lp->RealMediaMode = MEDIA_100FULL;
 		break;
 
 	case CIS_100HALF:
-		pax88180_local->RealMediaMode = MEDIA_100HALF;
+		lp->RealMediaMode = MEDIA_100HALF;
 		break;
 
 	case CIS_10FULL:
-		pax88180_local->RealMediaMode = MEDIA_10FULL;
+		lp->RealMediaMode = MEDIA_10FULL;
 		break;
 
 	case CIS_10HALF:
-		pax88180_local->RealMediaMode = MEDIA_10HALF;
+		lp->RealMediaMode = MEDIA_10HALF;
 		break;
 	}
 
 	PRINTK(INIT_MSG, "ax88180: get_CicadaPHY_meida_mode end ..........\n");
-	return;
 }
 
 
@@ -1367,13 +1348,13 @@ static void get_CicadaPHY_meida_mode(struct net_device *ndev)
  */
 static void ax88180_rx_handler(struct net_device *ndev)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	struct sk_buff *skb;
 	unsigned char *rxdata;
 	unsigned int tmp_data;
 	unsigned int rx_packet_len;
 	unsigned int data_size;
-	unsigned int sword_count, byte_count;
+	unsigned int word_count, byte_count;
 	unsigned int rxcurt_ptr, rxbound_ptr, next_ptr;
 	int j;
 
@@ -1394,7 +1375,7 @@ static void ax88180_rx_handler(struct net_device *ndev)
 		PRINTK(RX_MSG, "ax88180: Rx packet length (len=0x%04x)\n"
 		       , rx_packet_len);
  	  	if ( (rx_packet_len == 0) || (rx_packet_len > MAX_RX_SIZE) ) {
-			pax88180_local->stats.rx_errors++;
+			lp->stats.rx_errors++;
 			STOP_READ_RXBUFF;
 
 			RESET_MAC;
@@ -1415,7 +1396,7 @@ static void ax88180_rx_handler(struct net_device *ndev)
 
 		skb = dev_alloc_skb(data_size + NET_IP_ALIGN);
 		if (skb == NULL) {
-			pax88180_local->stats.rx_dropped++;
+			lp->stats.rx_dropped++;
 			STOP_READ_RXBUFF;
 
 			PRINTK(ERROR_MSG, "ax88180: No available memory space. Dropping RX packets!!\n");
@@ -1430,41 +1411,42 @@ static void ax88180_rx_handler(struct net_device *ndev)
 		rxdata = skb_put(skb, data_size);
 
 #ifdef CONFIG_AX88180_16BIT
-		sword_count = data_size >> 1;	/* Divide by 2 for 16-bit words */
+		word_count = data_size >> 1;	/* Divide by 2 for 16-bit words */
 		byte_count = data_size & 0x1;
-		PRINTK(RX_MSG, "swords %d bytes %d [\n", sword_count, byte_count);
-
-		if (sword_count > 24)
-			dma_insw(Log_MemBase + RXBUFFER_START, rxdata, sword_count);
-		else
-			insw(Log_MemBase + RXBUFFER_START, rxdata, sword_count);
-
-		if (byte_count != 0) {
-			READ_RXBUF(tmp_data);
-			for (j = 0; j < byte_count; j++) {
-				*(rxdata + (sword_count * 2) + j) =
-					(unsigned char)(tmp_data >> (j * 8));
-			}
-		}
-#else
-		sword_count = data_size >> 2;	/* Divide by 4 for 32-bit words */
-		byte_count = data_size & 0x3;
-		PRINTK(RX_MSG, "swords %d bytes %d [\n", sword_count, byte_count);
+		PRINTK(RX_MSG, "swords %d bytes %d [\n", word_count, byte_count);
 
 #ifdef CONFIG_BLACKFIN
-		insl_16(Log_MemBase + RXBUFFER_START, rxdata, sword_count);
+		if (word_count > 24)
+			dma_insw(Log_MemBase + RXBUFFER_START, rxdata, word_count);
+		else
+#endif
+			insw(Log_MemBase + RXBUFFER_START, rxdata, word_count);
+
+		if (byte_count != 0) {
+			READ_RXBUF(tmp_data);
+			for (j = 0; j < byte_count; j++)
+				rxdata[(word_count * 2) + j] =
+					(unsigned char)(tmp_data >> (j * 8));
+
+		}
 #else
-		insl(Log_MemBase + RXBUFFER_START, rxdata, sword_count);
+		word_count = data_size >> 2;	/* Divide by 4 for 32-bit words */
+		byte_count = data_size & 0x3;
+		PRINTK(RX_MSG, "dwords %d bytes %d [\n", word_count, byte_count);
+
+#ifdef CONFIG_BLACKFIN
+		insl_16(Log_MemBase + RXBUFFER_START, rxdata, word_count);
+#else
+		insl(Log_MemBase + RXBUFFER_START, rxdata, word_count);
 #endif
 		if (byte_count != 0) {
 			READ_RXBUF(tmp_data);
-			for (j = 0; j < byte_count; j++) {
-				*(rxdata + (sword_count * 4) + j) =
+			for (j = 0; j < byte_count; j++)
+				rxdata[(word_count * 4) + j] =
 					(unsigned char)(tmp_data >> (j * 8));
-			}
+
 		}
 #endif
-
 		STOP_READ_RXBUFF;
 
 		PRINTK(RX_MSG, " received data (bytes) byte_count %d [\n"
@@ -1473,8 +1455,8 @@ static void ax88180_rx_handler(struct net_device *ndev)
 		skb->protocol = eth_type_trans(skb, ndev);
 		netif_rx(skb);
 		ndev->last_rx = jiffies;
-		pax88180_local->stats.rx_packets++;
-		pax88180_local->stats.rx_bytes += data_size;
+		lp->stats.rx_packets++;
+		lp->stats.rx_bytes += data_size;
 
 		WRITE_MACREG(RXBOUND, rxbound_ptr);
 
@@ -1488,13 +1470,10 @@ static void ax88180_rx_handler(struct net_device *ndev)
 			rxbound_ptr, rxcurt_ptr);
 	}
 
-	if (pax88180_local->rxbuf_overflow_count > 0) {
-		pax88180_local->rxbuf_overflow_count--;
-	}
-
+	if (lp->rxbuf_overflow_count > 0)
+		lp->rxbuf_overflow_count--;
 
 	PRINTK(RX_MSG, "ax88180: ax88180_rx_handler end ..........\n");
-	return;
 }
 
 
@@ -1514,7 +1493,6 @@ static void ax88180_tx_handler(struct net_device *ndev)
 	netif_wake_queue(ndev);
 
 	PRINTK(TX_MSG, "ax88180: ax88180_tx_handler end ..........\n");
-	return;
 }
 
 
@@ -1553,7 +1531,7 @@ static int ax88180_ioctl(struct net_device *ndev, struct ifreq *rq, int cmd)
  */
 static int ax88180_ethtool_ioctl(struct net_device *ndev, void *useraddr)
 {
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 	u32 ethcmd;
 
 	PRINTK(OTHERS_MSG, "ax88180: ax88180_ethtool_ioctl beginning ..........\n");
@@ -1573,9 +1551,9 @@ static int ax88180_ethtool_ioctl(struct net_device *ndev, void *useraddr)
 
 	case ETHTOOL_GSET: {
 		struct ethtool_cmd ecmd = { ETHTOOL_GSET };
-		spin_lock_irq(&pax88180_local->lock);
-		mii_ethtool_gset(&pax88180_local->mii_if, &ecmd);
-		spin_unlock_irq(&pax88180_local->lock);
+		spin_lock_irq(&lp->lock);
+		mii_ethtool_gset(&lp->mii_if, &ecmd);
+		spin_unlock_irq(&lp->lock);
 		if (copy_to_user(useraddr, &ecmd, sizeof(ecmd)))
 			return -EFAULT;
 		return 0;
@@ -1586,19 +1564,19 @@ static int ax88180_ethtool_ioctl(struct net_device *ndev, void *useraddr)
 		struct ethtool_cmd ecmd;
 		if (copy_from_user(&ecmd, useraddr, sizeof(ecmd)))
 			return -EFAULT;
-		spin_lock_irq(&pax88180_local->lock);
-		r = mii_ethtool_sset(&pax88180_local->mii_if, &ecmd);
-		spin_unlock_irq(&pax88180_local->lock);
+		spin_lock_irq(&lp->lock);
+		r = mii_ethtool_sset(&lp->mii_if, &ecmd);
+		spin_unlock_irq(&lp->lock);
 		return r;
 	}
 
 	case ETHTOOL_NWAY_RST: {
-		return mii_nway_restart(&pax88180_local->mii_if);
+		return mii_nway_restart(&lp->mii_if);
 	}
 
 	case ETHTOOL_GLINK: {
 		struct ethtool_value edata = {ETHTOOL_GLINK};
-		edata.data = mii_link_ok(&pax88180_local->mii_if);
+		edata.data = mii_link_ok(&lp->mii_if);
 		if (copy_to_user(useraddr, &edata, sizeof(edata)))
 			return -EFAULT;
 		return 0;
@@ -1639,8 +1617,6 @@ static void mdio_write(struct net_device *ndev, int phy_id
 		       , int regaddr, int regval)
 {
 	WRITE_PHYREG(phy_id, (unsigned int)regaddr, (unsigned int)regval);
-
-	return;
 }
 /*
  *****************************************************************************
@@ -1685,7 +1661,7 @@ static int ax88180_drv_probe(struct platform_device *pdev)
 static int ax88180_drv_remove(struct platform_device *pdev)
 {
 	struct net_device *ndev = platform_get_drvdata(pdev);
-	struct ax88180_local *pax88180_local = netdev_priv(ndev);
+	struct ax88180_local *lp = netdev_priv(ndev);
 
 
 	PRINTK(INIT_MSG, "ax88180: ax88180_cleanup_module beginning ..........\n");
@@ -1693,8 +1669,7 @@ static int ax88180_drv_remove(struct platform_device *pdev)
 	if (ndev != NULL)
 		unregister_netdev(ndev);
 
-
-	kfree(pax88180_local->rx_buf);
+	kfree(lp->rx_buf);
 
 	if (Log_MemBase != 0)
 		iounmap((void *)Log_MemBase);
