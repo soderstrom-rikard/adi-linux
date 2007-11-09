@@ -374,7 +374,7 @@ int ax88180_probe(struct net_device *ndev)
 	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned int phy_membase = ndev->base_addr;
 
-	printk(KERN_INFO, "%s", version);
+	printk(KERN_INFO"%s", version);
 
 	PRINTK(INIT_MSG, "ax88180: ax88180_probe beginning ..........\n");
 
@@ -597,11 +597,13 @@ static int ax88180_start_xmit(struct sk_buff *skb
 		i = skb->len / 2;
 		if (skb->len & 0x1)
 			i++;
-
+#ifdef CONFIG_BLACKFIN
 		if (i > 23)
 			dma_outsw(Log_MemBase + TXBUFFER_START, txdata, i);
 		else
+#endif
 			outsw(Log_MemBase + TXBUFFER_START, txdata, i);
+
 
 	} else {
 		for (i = 0; i < skb->len; i += 2) {
@@ -617,9 +619,11 @@ static int ax88180_start_xmit(struct sk_buff *skb
 		if (skb->len & 0x3)
 			i++;
 
+#ifdef CONFIG_BLACKFIN
 		if (i > 18)
 			dma_outsl(Log_MemBase + TXBUFFER_START, txdata, i);
 		else
+#endif
 			outsl(Log_MemBase + TXBUFFER_START, txdata, i);
 
 	} else {
@@ -1351,6 +1355,7 @@ static void ax88180_rx_handler(struct net_device *ndev)
 	struct ax88180_local *lp = netdev_priv(ndev);
 	struct sk_buff *skb;
 	unsigned char *rxdata;
+	unsigned short *rxdata16;
 	unsigned int tmp_data;
 	unsigned int rx_packet_len;
 	unsigned int data_size;
@@ -1437,7 +1442,15 @@ static void ax88180_rx_handler(struct net_device *ndev)
 #ifdef CONFIG_BLACKFIN
 		insl_16(Log_MemBase + RXBUFFER_START, rxdata, word_count);
 #else
-		insl(Log_MemBase + RXBUFFER_START, rxdata, word_count);
+		/* Read fom 32-bit IO and write to 16-bit alligned buffer */
+		/* insl(Log_MemBase + RXBUFFER_START, rxdata, word_count); */
+		rxdata16 = rxdata;
+		for (j = 0; j < (word_count << 1); ) {
+			READ_RXBUF(tmp_data);
+			rxdata16[j++] = tmp_data & 0xFFFF;
+			rxdata16[j++] = tmp_data >> 16;
+
+		}
 #endif
 		if (byte_count != 0) {
 			READ_RXBUF(tmp_data);
