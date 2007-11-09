@@ -63,7 +63,7 @@
 
 /* AX88180 Memory Mapping Definition */
 
-#ifdef CONFIG_DRIVER_AX88180_16BIT
+#ifdef CONFIG_AX88180_16BIT
 #define	RXBUFFER_START			0x2000
 #define TXBUFFER_START			0x1000
 #else
