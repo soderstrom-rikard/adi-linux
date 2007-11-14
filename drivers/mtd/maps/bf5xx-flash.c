@@ -255,7 +255,7 @@ int __init bf5xx_mtd_init(void)
 	 * Static partition definition selection
 	 */
 	part_type = "static";
-#ifdef CONFIG_BFIN
+#ifdef CONFIG_BLACKFIN
 	parts = bf5xx_partitions;
 	nb_parts = NB_OF(bf5xx_partitions);
 #endif
