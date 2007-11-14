@@ -3563,7 +3563,12 @@ static inline int interactive_sleep(enum sleep_type sleep_type)
 /*
  * schedule() is the main scheduler function.
  */
-asmlinkage void __sched schedule(void)
+#ifdef CONFIG_SCHEDULE_L1
+__attribute__((l1_text))
+#else
+__sched
+#endif
+asmlinkage void schedule(void)
 {
 	struct task_struct *prev, *next;
 	struct prio_array *array;
@@ -3722,11 +3727,7 @@ switch_tasks:
 	if (unlikely(test_thread_flag(TIF_NEED_RESCHED)))
 		goto need_resched;
 
-#ifdef CONFIG_SCHEDULE_L1
-}__attribute__((l1_text))
-#else
 }
-#endif
 EXPORT_SYMBOL(schedule);
 
 #ifdef CONFIG_PREEMPT
