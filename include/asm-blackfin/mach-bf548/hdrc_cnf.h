@@ -68,20 +68,20 @@
 /* If an Tx endpoint shares a FIFO with an Rx endpoint then the Rx FIFO size */
 /* must be the same as the Tx FIFO size. */
 /* All endpoints 1 to 15 must be defined, unused endpoints should be set to 2. */
-#define MUSB_C_EP1T_BITS 10
-#define MUSB_C_EP1R_BITS 10
-#define MUSB_C_EP2T_BITS 9
-#define MUSB_C_EP2R_BITS 9
-#define MUSB_C_EP3T_BITS 3
-#define MUSB_C_EP3R_BITS 3
-#define MUSB_C_EP4T_BITS 3
-#define MUSB_C_EP4R_BITS 3
-#define MUSB_C_EP5T_BITS 3
-#define MUSB_C_EP5R_BITS 3
-#define MUSB_C_EP6T_BITS 3
-#define MUSB_C_EP6R_BITS 3
-#define MUSB_C_EP7T_BITS 3
-#define MUSB_C_EP7R_BITS 3
+#define MUSB_C_EP1T_BITS 7
+#define MUSB_C_EP1R_BITS 7
+#define MUSB_C_EP2T_BITS 7
+#define MUSB_C_EP2R_BITS 7
+#define MUSB_C_EP3T_BITS 7
+#define MUSB_C_EP3R_BITS 7
+#define MUSB_C_EP4T_BITS 7
+#define MUSB_C_EP4R_BITS 7
+#define MUSB_C_EP5T_BITS 10
+#define MUSB_C_EP5R_BITS 10
+#define MUSB_C_EP6T_BITS 10
+#define MUSB_C_EP6R_BITS 10
+#define MUSB_C_EP7T_BITS 10
+#define MUSB_C_EP7R_BITS 10
 #define MUSB_C_EP8T_BITS 2
 #define MUSB_C_EP8R_BITS 2
 #define MUSB_C_EP9T_BITS 2
@@ -129,16 +129,16 @@
 
 
 /* Define the following constant to include a DMA controller. */
-#define MUSB_C_DMA
+/*`define MUSB_C_DMA */
 
 /* Define the following constant if 2 or more DMA channels are required. */
-#define MUSB_C_DMA2
+/*`define MUSB_C_DMA2 */
 
 /* Define the following constant if 3 or more DMA channels are required. */
-#define MUSB_C_DMA3
+/*`define MUSB_C_DMA3 */
 
 /* Define the following constant if 4 or more DMA channels are required. */
-#define MUSB_C_DMA4
+/*`define MUSB_C_DMA4 */
 
 /* Define the following constant if 5 or more DMA channels are required. */
 /*`define C_DMA5 */
@@ -166,13 +166,13 @@
 #define MUSB_C_NUM_EPS 8
 
 /* C_EPMAX_BITS is equal to the largest endpoint FIFO word address bits */
-#define MUSB_C_EPMAX_BITS 12
+#define MUSB_C_EPMAX_BITS 10
 
 /* C_RAM_BITS is the number of address bits required to address the RAM (32-bit
  * addresses).  It is defined as log2 of the sum of 2** of all the endpoint FIFO
  * dword address bits (rounded up).
  */
-#define MUSB_C_RAM_BITS 12
+#define MUSB_C_RAM_BITS 13
 
 #define clk_get(dev, id) NULL
 #define clk_put(clock)

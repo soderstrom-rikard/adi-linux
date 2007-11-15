@@ -66,17 +66,6 @@
 
 #define MUSB_DEVCTL		USB_OFFSET(USB_OTG_DEV_CTL)	/* 8 bit */
 
-/* These are always controlled through the INDEX register */
-#define MUSB_TXFIFOSZ		0x62	/* 8-bit (see masks) */
-#define MUSB_RXFIFOSZ		0x63	/* 8-bit (see masks) */
-#define MUSB_TXFIFOADD		0x64	/* 16-bit offset shifted right 3 */
-#define MUSB_RXFIFOADD		0x66	/* 16-bit offset shifted right 3 */
-
-/* REVISIT: vctrl/vstatus: optional vendor utmi+phy register at 0x68 */
-#define MUSB_HWVERS		0x6C	/* 8 bit */
-
-#define MUSB_EPINFO		0x78	/* 8 bit */
-#define MUSB_RAMINFO		0x79	/* 8 bit */
 #define MUSB_LINKINFO		USB_OFFSET(USB_LINKINFO)/* 8 bit */
 #define MUSB_VPLEN		USB_OFFSET(USB_VPLEN)	/* 8 bit */
 #define MUSB_HS_EOF1		USB_OFFSET(USB_HS_EOF1)	/* 8 bit */
@@ -102,23 +91,11 @@
 
 /* Offsets to endpoint registers in indexed model (using INDEX register) */
 #define MUSB_INDEXED_OFFSET(_epnum, _offset)	\
-	(0x10 + (_offset))
+	(0x40 + (_offset))
 
 /* Offsets to endpoint registers in flat models */
 #define MUSB_FLAT_OFFSET(_epnum, _offset)	\
-	(USB_OFFSET(USB_EP_NI0_TXMAXP) + (0x400 * (_epnum)) + (_offset))
-
-/* "bus control"/target registers, for host side multipoint (external hubs) */
-#define MUSB_TXFUNCADDR		0x00
-#define MUSB_TXHUBADDR		0x02
-#define MUSB_TXHUBPORT		0x03
-
-#define MUSB_RXFUNCADDR		0x04
-#define MUSB_RXHUBADDR		0x06
-#define MUSB_RXHUBPORT		0x07
-
-#define MUSB_BUSCTL_OFFSET(_epnum, _offset) \
-	(0x80 + (8*(_epnum)) + (_offset))
+	(USB_OFFSET(USB_EP_NI0_TXMAXP) + (0x40 * (_epnum)) + (_offset))
 
 /*
  * MUSB Register bits

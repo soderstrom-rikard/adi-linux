@@ -609,6 +609,7 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 	}
 
 	if (csr & MUSB_RXCSR_RXPKTRDY) {
+get_more:
 		len = musb_readw(epio, MUSB_RXCOUNT);
 		if (request->actual < request->length) {
 #ifdef CONFIG_USB_INVENTRA_DMA
@@ -719,6 +720,17 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 			csr |= MUSB_RXCSR_P_WZC_BITS;
 			csr &= ~MUSB_RXCSR_RXPKTRDY;
 			musb_writew(epio, MUSB_RXCSR, csr);
+
+#ifdef CONFIG_BLACKFIN
+			/* REVISIT Because there is no IRQ for further
+			 * packages in FIFO, so read out all data in the
+			 * FIFO until the request finished */
+			csr = musb_readw(epio, MUSB_RXCSR);
+			if ((csr & MUSB_RXCSR_RXPKTRDY)
+				&& (request->actual < request->length)
+				&& (len >= musb_ep->packet_sz))
+				goto get_more;
+#endif
 		}
 	}
 

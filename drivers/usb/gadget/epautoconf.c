@@ -274,6 +274,17 @@ struct usb_ep * __devinit usb_ep_autoconfig (
 		ep = find_ep (gadget, "ep1-bulk");
 		if (ep && ep_matches (gadget, ep, desc))
 			return ep;
+#ifdef CONFIG_BLACKFIN
+	} else if (gadget_is_musbhsfc(gadget) || gadget_is_musbhdrc(gadget)) {
+		if (USB_ENDPOINT_XFER_BULK == type) {
+			if (USB_DIR_IN & desc->bEndpointAddress)
+				ep = find_ep (gadget, "ep5in");
+			else
+				ep = find_ep (gadget, "ep6out");
+		}
+		if (ep && ep_matches (gadget, ep, desc))
+			return ep;
+#endif
 	}
 
 	/* Second, look at endpoints until an unclaimed one looks usable */

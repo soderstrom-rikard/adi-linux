@@ -34,7 +34,7 @@ static void tusb_source_power(struct musb *musb, int is_on);
  * Checks the revision. We need to use the DMA register as 3.0 does not
  * have correct versions for TUSB_PRCM_REV or TUSB_INT_CTRL_REV.
  */
-static u8 tusb_get_revision(struct musb *musb)
+u8 tusb_get_revision(struct musb *musb)
 {
 	void __iomem	*tbase = musb->ctrl_base;
 	u32		die_id;
@@ -422,18 +422,15 @@ static void musb_do_idle(unsigned long _musb)
 
 	switch (musb->xceiv.state) {
 	case OTG_STATE_A_WAIT_BCON:
-	case OTG_STATE_A_WAIT_VRISE:
-	case OTG_STATE_A_IDLE:
 		if ((musb->a_wait_bcon != 0)
 			&& (musb->idle_timeout == 0
 				|| time_after(jiffies, musb->idle_timeout))) {
 			DBG(4, "Nothing connected %s, turning off VBUS\n",
 					otg_state_string(musb));
-			tusb_source_power(musb, 0);
-			musb->xceiv.state = OTG_STATE_A_IDLE;
-			musb->is_active = 0;
 		}
-		break;
+		/* FALLTHROUGH */
+	case OTG_STATE_A_IDLE:
+		tusb_source_power(musb, 0);
 	default:
 		break;
 	}
@@ -485,7 +482,9 @@ void musb_platform_try_idle(struct musb *musb, unsigned long timeout)
 	if (timeout == 0)
 		timeout = default_timeout;
 
-	if (musb->is_active) {
+	/* Never idle if active, or when VBUS timeout is not set as host */
+	if (musb->is_active || ((musb->a_wait_bcon == 0)
+			&& (musb->xceiv.state == OTG_STATE_A_WAIT_BCON))) {
 		DBG(4, "%s active, deleting timer\n", otg_state_string(musb));
 		del_timer(&musb_idle_timer);
 		last_timer = jiffies;
@@ -533,7 +532,6 @@ static void tusb_source_power(struct musb *musb, int is_on)
 	if (is_on) {
 		if (musb->set_clock)
 			musb->set_clock(musb->clock, 1);
-		musb->is_active = 1;
 		timer = OTG_TIMER_MS(OTG_TIME_A_WAIT_VRISE);
 		musb->xceiv.default_a = 1;
 		musb->xceiv.state = OTG_STATE_A_WAIT_VRISE;
@@ -550,17 +548,17 @@ static void tusb_source_power(struct musb *musb, int is_on)
 		otg_stat = musb_readl(tbase, TUSB_DEV_OTG_STAT);
 		if (!(otg_stat & TUSB_DEV_OTG_STAT_ID_STATUS)) {
 			switch (musb->xceiv.state) {
-			case OTG_STATE_A_WAIT_VFALL:
-				musb->is_active = 1;
-				break;
 			case OTG_STATE_A_WAIT_VRISE:
-				musb->is_active = 1;
+			case OTG_STATE_A_WAIT_BCON:
 				musb->xceiv.state = OTG_STATE_A_WAIT_VFALL;
 				break;
+			case OTG_STATE_A_WAIT_VFALL:
+				musb->xceiv.state = OTG_STATE_A_IDLE;
+				break;
 			default:
-				musb->is_active = 0;
 				musb->xceiv.state = OTG_STATE_A_IDLE;
 			}
+			musb->is_active = 0;
 			musb->xceiv.default_a = 1;
 			MUSB_HST_MODE(musb);
 		} else {
@@ -778,11 +776,7 @@ tusb_otg_ints(struct musb *musb, u32 int_src, void __iomem *tbase)
 					break;
 				}
 				musb->xceiv.state = OTG_STATE_A_WAIT_BCON;
-				/* CONNECT can wake if a_wait_bcon is set */
-				if (musb->a_wait_bcon != 0)
-					musb->is_active = 0;
-				else
-					musb->is_active = 1;
+				musb->is_active = 0;
 				idle_timeout = jiffies
 					+ msecs_to_jiffies(musb->a_wait_bcon);
 			} else {
@@ -804,6 +798,7 @@ tusb_otg_ints(struct musb *musb, u32 int_src, void __iomem *tbase)
 			break;
 		}
 	}
+	schedule_work(&musb->irq_work);
 
 	return idle_timeout;
 }

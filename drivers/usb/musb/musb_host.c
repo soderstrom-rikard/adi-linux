@@ -599,12 +599,14 @@ musb_rx_reinit(struct musb *musb, struct musb_qh *qh, struct musb_hw_ep *ep)
 
 	/* target addr and (for multipoint) hub addr/port */
 	if (musb->is_multipoint) {
+#ifndef CONFIG_BLACKFIN
 		musb_writeb(ep->target_regs, MUSB_RXFUNCADDR,
 			qh->addr_reg);
 		musb_writeb(ep->target_regs, MUSB_RXHUBADDR,
 			qh->h_addr_reg);
 		musb_writeb(ep->target_regs, MUSB_RXHUBPORT,
 			qh->h_port_reg);
+#endif
 	} else
 		musb_writeb(musb->mregs, MUSB_FADDR, qh->addr_reg);
 
@@ -613,6 +615,10 @@ musb_rx_reinit(struct musb *musb, struct musb_qh *qh, struct musb_hw_ep *ep)
 	musb_writeb(ep->regs, MUSB_RXINTERVAL, qh->intv_reg);
 	/* NOTE: bulk combining rewrites high bits of maxpacket */
 	musb_writew(ep->regs, MUSB_RXMAXP, qh->maxpacket);
+
+	printk("MUSB_RXTYPE 0x%04x\n", musb_readb(ep->regs, MUSB_RXTYPE));
+	printk("MUSB_RXINTERVAL 0x%04x\n", musb_readb(ep->regs, MUSB_RXINTERVAL));
+	printk("MUSB_RXMAXP 0x%04x\n", musb_readw(ep->regs, MUSB_RXMAXP));
 
 	ep->rx_reinit = 0;
 }
@@ -718,6 +724,7 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 
 		/* target addr and (for multipoint) hub addr/port */
 		if (musb->is_multipoint) {
+#ifndef CONFIG_BLACKFIN
 			musb_writeb(mbase,
 				MUSB_BUSCTL_OFFSET(epnum, MUSB_TXFUNCADDR),
 				qh->addr_reg);
@@ -727,6 +734,7 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 			musb_writeb(mbase,
 				MUSB_BUSCTL_OFFSET(epnum, MUSB_TXHUBPORT),
 				qh->h_port_reg);
+#endif
 /* FIXME if !epnum, do the same for RX ... */
 		} else
 			musb_writeb(mbase, MUSB_FADDR, qh->addr_reg);
@@ -931,6 +939,11 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 		DBG(7, "RXCSR%d := %04x\n", epnum, csr);
 		musb_writew(hw_ep->regs, MUSB_RXCSR, csr);
 		csr = musb_readw(hw_ep->regs, MUSB_RXCSR);
+
+		printk("MUSB_RXCSR%d := %04x\n", epnum, csr);
+		printk("MUSB_RXTYPE 0x%04x\n", musb_readb(hw_ep->regs, MUSB_RXTYPE));
+		printk("MUSB_RXINTERVAL 0x%04x\n", musb_readb(hw_ep->regs, MUSB_RXINTERVAL));
+		printk("MUSB_RXMAXP 0x%04x\n", musb_readw(hw_ep->regs, MUSB_RXMAXP));
 	}
 }
 
@@ -1513,9 +1526,9 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 
 #ifdef CONFIG_USB_INVENTRA_DMA
 		/* done if urb buffer is full or short packet is recd */
-		done = ((urb->actual_length + xfer_len) >=
-				urb->transfer_buffer_length)
-			|| (dma->actual_len & (qh->maxpacket - 1));
+		done = (urb->actual_length + xfer_len >=
+				urb->transfer_buffer_length
+			|| dma->actual_len < qh->maxpacket);
 
 		/* send IN token for next packet, without AUTOREQ */
 		if (!done) {
@@ -1959,7 +1972,14 @@ static int musb_urb_dequeue(struct usb_hcd *hcd, struct urb *urb)
 	unsigned long		flags;
 	int			status = -ENOENT;
 
-	DBG(4, "urb=%p, dev%d ep%d%s\n", urb,
+	int epnum = usb_pipeendpoint(urb->pipe);
+	struct musb_hw_ep	*hw_ep = musb->endpoints + epnum;
+	void __iomem		*epio = hw_ep->regs;
+
+	musb_ep_select(musb->mregs, epnum);
+	printk("epio %p, RXCSR 0x%04x, RXCOUNT 0x%04x\n", epio, musb_readw(epio, MUSB_RXCSR), musb_readw(epio, MUSB_RXCOUNT));
+
+	printk("urb=%p, dev%d ep%d%s\n", urb,
 			usb_pipedevice(urb->pipe),
 			usb_pipeendpoint(urb->pipe),
 			usb_pipein(urb->pipe) ? "in" : "out");
@@ -2128,9 +2148,14 @@ static int musb_bus_suspend(struct usb_hcd *hcd)
 {
 	struct musb	*musb = hcd_to_musb(hcd);
 
-	if (is_host_active(musb) && musb->is_active)
+	if (musb->xceiv.state == OTG_STATE_A_SUSPEND)
+		return 0;
+
+	if (is_host_active(musb) && musb->is_active) {
+		WARN("trying to suspend as %s is_active=%i\n",
+			otg_state_string(musb), musb->is_active);
 		return -EBUSY;
-	else
+	} else
 		return 0;
 }
 
