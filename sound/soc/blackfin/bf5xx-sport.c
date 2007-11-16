@@ -85,6 +85,7 @@ int sport_set_multichannel(struct sport_device *sport,
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_set_multichannel);
 
 int sport_config_rx(struct sport_device *sport, unsigned int rcr1,
 		unsigned int rcr2, unsigned int clkdiv, unsigned int fsdiv)
@@ -101,6 +102,7 @@ int sport_config_rx(struct sport_device *sport, unsigned int rcr1,
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_config_rx);
 
 int sport_config_tx(struct sport_device *sport, unsigned int tcr1,
 		unsigned int tcr2, unsigned int clkdiv, unsigned int fsdiv)
@@ -117,6 +119,7 @@ int sport_config_tx(struct sport_device *sport, unsigned int tcr1,
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_config_tx);
 
 static void setup_desc(struct dmasg *desc, void *buf, int fragcount,
 		size_t fragsize, unsigned int cfg,
@@ -267,6 +270,7 @@ int sport_rx_start(struct sport_device *sport)
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_rx_start);
 
 int sport_rx_stop(struct sport_device *sport)
 {
@@ -288,6 +292,7 @@ int sport_rx_stop(struct sport_device *sport)
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_rx_stop);
 
 static inline int sport_hook_tx_dummy(struct sport_device *sport)
 {
@@ -347,6 +352,7 @@ int sport_tx_start(struct sport_device *sport)
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_tx_start);
 
 int sport_tx_stop(struct sport_device *sport)
 {
@@ -367,6 +373,7 @@ int sport_tx_stop(struct sport_device *sport)
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_tx_stop);
 
 static inline int compute_wdsize(size_t wdsize)
 {
@@ -444,6 +451,7 @@ int sport_config_rx_dma(struct sport_device *sport, void *buf,
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_config_rx_dma);
 
 int sport_config_tx_dma(struct sport_device *sport, void *buf, \
 		int fragcount, size_t fragsize)
@@ -507,6 +515,7 @@ int sport_config_tx_dma(struct sport_device *sport, void *buf, \
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_config_tx_dma);
 
 /* setup dummy dma descriptor ring, which don't generate interrupts,
  * the x_modify is set to 0 */
@@ -586,12 +595,14 @@ unsigned long sport_curr_offset_rx(struct sport_device *sport)
 
 	return ((unsigned char *)curr - sport->rx_buf);
 }
+EXPORT_SYMBOL(sport_curr_offset_rx);
 
 unsigned long sport_curr_offset_tx(struct sport_device *sport)
 {
 	unsigned long curr = get_dma_curr_addr(sport->dma_tx_chan);
 	return ((unsigned char *)curr - sport->tx_buf);
 }
+EXPORT_SYMBOL(sport_curr_offset_tx);
 
 void incfrag(struct sport_device *sport, int *frag, int tx)
 {
@@ -698,7 +709,6 @@ static irqreturn_t tx_handler(int irq, void *dev_id)
 {
 	unsigned int tx_stat;
 	struct sport_device *sport = dev_id;
-	unsigned long ptr;
 	pr_debug("%s enter\n", __FUNCTION__);
 	sport_check_status(sport, NULL, NULL, &tx_stat);
 	if (!(tx_stat & DMA_DONE)) {
@@ -749,6 +759,7 @@ int sport_set_rx_callback(struct sport_device *sport,
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_set_rx_callback);
 
 int sport_set_tx_callback(struct sport_device *sport,
 		void (*tx_callback)(void *), void *tx_data)
@@ -759,6 +770,8 @@ int sport_set_tx_callback(struct sport_device *sport,
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_set_tx_callback);
+
 int sport_set_err_callback(struct sport_device *sport,
 		void (*err_callback)(void *), void *err_data)
 {
@@ -768,6 +781,7 @@ int sport_set_err_callback(struct sport_device *sport,
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_set_err_callback);
 
 struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 		unsigned dummy_count, void *private_data)
@@ -861,6 +875,7 @@ __init_err1:
 	kfree(sport);
 	return NULL;
 }
+EXPORT_SYMBOL(sport_init);
 
 void sport_done(struct sport_device *sport)
 {
