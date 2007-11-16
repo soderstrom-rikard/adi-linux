@@ -165,11 +165,6 @@ static int sport_stop(struct sport_device *sport)
 
 	disable_dma(sport->dma_rx_chan);
 	disable_dma(sport->dma_tx_chan);
-	if (sport->bak_tx_desc_p) {
-		*sport->bak_tx_desc_p = sport->bak_tx_desc;
-		sport->bak_tx_desc_p = NULL;
-	}
-	sport->wait_dummy_tx = 0;
 	return 0;
 }
 
@@ -296,24 +291,32 @@ int sport_rx_stop(struct sport_device *sport)
 
 static inline int sport_hook_tx_dummy(struct sport_device *sport)
 {
-	struct dmasg *desc;
+	struct dmasg *desc, temp_desc;
 	unsigned long flags;
 
 	BUG_ON(sport->dummy_tx_desc == NULL);
+	BUG_ON(sport->curr_tx_desc == sport->dummy_tx_desc);
+
 	sport->dummy_tx_desc->next_desc_addr = \
 			(unsigned long)sport->dummy_tx_desc;
+
 	/* Shorten the time on last normal descriptor */
 	local_irq_save(flags);
 	desc = (struct dmasg *)get_dma_next_desc_ptr(sport->dma_tx_chan);
-	sport->bak_tx_desc_p = desc;
-	sport->bak_tx_desc = *desc;
-	desc->x_count = 0xa;
-	desc->start_addr = sport->dummy_tx_desc->start_addr;
 	/* Store the descriptor which will be damaged */
+	temp_desc = *desc;
+	desc->x_count = 0xa;
+	desc->y_count = 0;
 	desc->next_desc_addr = (unsigned long)(sport->dummy_tx_desc);
 	local_irq_restore(flags);
 	/* Waiting for dummy buffer descriptor is already hooked*/
-	sport->wait_dummy_tx = 1;
+	while ((get_dma_curr_desc_ptr(sport->dma_tx_chan) - \
+			sizeof(struct dmasg)) != \
+			(unsigned long)sport->dummy_tx_desc) {}
+	sport->curr_tx_desc = sport->dummy_tx_desc;
+	/* Restore the damaged descriptor */
+	*desc = temp_desc;
+
 	return 0;
 }
 
@@ -326,10 +329,14 @@ int sport_tx_start(struct sport_device *sport)
 		return -EBUSY;
 
 	if (sport->rx_run) {
+		BUG_ON(sport->dma_tx_desc == NULL);
+		BUG_ON(sport->curr_tx_desc != sport->dummy_tx_desc);
+		/* Hook the normal buffer descriptor */
 		local_irq_save(flags);
 		sport->dummy_tx_desc->next_desc_addr = \
-			(unsigned long)(sport->dma_tx_desc);
+				(unsigned long)(sport->dma_tx_desc);
 		local_irq_restore(flags);
+		sport->curr_tx_desc = sport->dma_tx_desc;
 	} else {
 		sport_tx_dma_start(sport, 0);
 		/* Let rx dma run the dummy buffer */
@@ -697,17 +704,6 @@ static irqreturn_t tx_handler(int irq, void *dev_id)
 	if (!(tx_stat & DMA_DONE)) {
 		printk(KERN_ERR "tx dma is already stopped\n");
 		return IRQ_HANDLED;
-	}
-
-	if (sport->wait_dummy_tx) {
-		ptr = get_dma_next_desc_ptr(sport->dma_tx_chan);
-		if (ptr == (unsigned long)sport->dummy_tx_desc) {
-			if (sport->bak_tx_desc_p) {
-				*sport->bak_tx_desc_p = sport->bak_tx_desc;
-				sport->bak_tx_desc_p = NULL;
-				sport->wait_dummy_tx = 0;
-			}
-		}
 	}
 
 	if (sport->tx_callback) {

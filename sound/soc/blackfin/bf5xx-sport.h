@@ -115,10 +115,6 @@ struct sport_device {
 	void (*err_callback)(void *data);
 	void *err_data;
 
-	struct dmasg *bak_tx_desc_p;
-	struct dmasg bak_tx_desc;
-	unsigned int wait_dummy_tx:1;
-
 	void *private_data;
 };
 
