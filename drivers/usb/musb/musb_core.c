@@ -1457,6 +1457,7 @@ static int __init musb_core_init(u16 musb_type, struct musb *musb)
 	musb->endpoints[0].max_packet_sz_rx = MUSB_EP0_FIFOSIZE;
 #ifdef CONFIG_BLACKFIN
 	musb->endpoints[0].is_shared_fifo = true;
+	musb->is_multipoint = 0;
 #endif
 
 	/* discover endpoint configuration */

@@ -594,7 +594,12 @@ musb_rx_reinit(struct musb *musb, struct musb_qh *qh, struct musb_hw_ep *ep)
 			WARN("rx%d, packet/%d ready?\n", ep->epnum,
 				musb_readw(ep->regs, MUSB_RXCOUNT));
 
+#ifdef CONFIG_BLACKFIN
+		musb_h_flush_rxfifo(ep, 0);
+#else
 		musb_h_flush_rxfifo(ep, MUSB_RXCSR_CLRDATATOG);
+#endif
+
 	}
 
 	/* target addr and (for multipoint) hub addr/port */
@@ -615,10 +620,6 @@ musb_rx_reinit(struct musb *musb, struct musb_qh *qh, struct musb_hw_ep *ep)
 	musb_writeb(ep->regs, MUSB_RXINTERVAL, qh->intv_reg);
 	/* NOTE: bulk combining rewrites high bits of maxpacket */
 	musb_writew(ep->regs, MUSB_RXMAXP, qh->maxpacket);
-
-	printk("MUSB_RXTYPE 0x%04x\n", musb_readb(ep->regs, MUSB_RXTYPE));
-	printk("MUSB_RXINTERVAL 0x%04x\n", musb_readb(ep->regs, MUSB_RXINTERVAL));
-	printk("MUSB_RXMAXP 0x%04x\n", musb_readw(ep->regs, MUSB_RXMAXP));
 
 	ep->rx_reinit = 0;
 }
@@ -706,8 +707,10 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 					qh->epnum, 1))
 				csr |= MUSB_TXCSR_H_WR_DATATOGGLE
 					| MUSB_TXCSR_H_DATATOGGLE;
+#ifndef CONFIG_BLACKFIN
 			else
 				csr |= MUSB_TXCSR_CLRDATATOG;
+#endif
 
 			/* twice in case of double packet buffering */
 			musb_writew(epio, MUSB_TXCSR, csr);
@@ -939,11 +942,6 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 		DBG(7, "RXCSR%d := %04x\n", epnum, csr);
 		musb_writew(hw_ep->regs, MUSB_RXCSR, csr);
 		csr = musb_readw(hw_ep->regs, MUSB_RXCSR);
-
-		printk("MUSB_RXCSR%d := %04x\n", epnum, csr);
-		printk("MUSB_RXTYPE 0x%04x\n", musb_readb(hw_ep->regs, MUSB_RXTYPE));
-		printk("MUSB_RXINTERVAL 0x%04x\n", musb_readb(hw_ep->regs, MUSB_RXINTERVAL));
-		printk("MUSB_RXMAXP 0x%04x\n", musb_readw(hw_ep->regs, MUSB_RXMAXP));
 	}
 }
 
@@ -1972,14 +1970,7 @@ static int musb_urb_dequeue(struct usb_hcd *hcd, struct urb *urb)
 	unsigned long		flags;
 	int			status = -ENOENT;
 
-	int epnum = usb_pipeendpoint(urb->pipe);
-	struct musb_hw_ep	*hw_ep = musb->endpoints + epnum;
-	void __iomem		*epio = hw_ep->regs;
-
-	musb_ep_select(musb->mregs, epnum);
-	printk("epio %p, RXCSR 0x%04x, RXCOUNT 0x%04x\n", epio, musb_readw(epio, MUSB_RXCSR), musb_readw(epio, MUSB_RXCOUNT));
-
-	printk("urb=%p, dev%d ep%d%s\n", urb,
+	DBG(4, "urb=%p, dev%d ep%d%s\n", urb,
 			usb_pipedevice(urb->pipe),
 			usb_pipeendpoint(urb->pipe),
 			usb_pipein(urb->pipe) ? "in" : "out");

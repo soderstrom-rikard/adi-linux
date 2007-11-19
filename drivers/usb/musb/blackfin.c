@@ -34,7 +34,7 @@
 #include "musb_core.h"
 #include "blackfin.h"
 
-#undef CONFIG_BLACKFIN_USB_DMA
+#define CONFIG_BLACKFIN_USB_DMA
 
 static struct otg_transceiver *xceiv;
 
