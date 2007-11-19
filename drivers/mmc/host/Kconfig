@@ -102,7 +102,7 @@ config MMC_TIFM_SD
 
 config SDH_BFIN
 	tristate "Blackfin Secure Digital Host support"
-	depends on MMC && BF54x
+	depends on MMC && (BF54x && !BF544)
 	help
 	  Say Y or M to enable Secure Digital Host interface on BF54x series
 	  processor.
