@@ -33,16 +33,56 @@
 #include "bf5xx-sport.h"
 #include "bf5xx-ac97.h"
 
-
-#define PIN_REQ_SPORT_0 {P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS, \
+#ifdef CONFIG_BF548
+#define PIN_REQ_SPORT_0 {P_SPORT0_TFS, P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS, \
 		 P_SPORT0_DRPRI, P_SPORT0_RSCLK, 0}
 
+#define PIN_REQ_SPORT_1 {P_SPORT1_TFS, P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, \
+		 P_SPORT1_DRPRI, P_SPORT1_RSCLK, 0}
+
+#define PIN_REQ_SPORT_2 {P_SPORT2_TFS, P_SPORT2_DTPRI, P_SPORT2_TSCLK, P_SPORT2_RFS, \
+		 P_SPORT2_DRPRI, P_SPORT2_RSCLK, 0}
+
+#define PIN_REQ_SPORT_3 {P_SPORT3_TFS, P_SPORT3_DTPRI, P_SPORT3_TSCLK, P_SPORT3_RFS, \
+		 P_SPORT3_DRPRI, P_SPORT3_RSCLK, 0}
+#else
+#define PIN_REQ_SPORT_0 {P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS, \
+		 P_SPORT0_DRPRI, P_SPORT0_RSCLK, 0}
 #define PIN_REQ_SPORT_1 {P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, \
 		 P_SPORT1_DRPRI, P_SPORT1_RSCLK, 0}
+#endif
 
 static int *cmd_count;
 static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
 
+#ifdef CONFIG_BF548
+static struct sport_param sport_params[4] = {
+	{
+		.dma_rx_chan	= CH_SPORT0_RX,
+		.dma_tx_chan	= CH_SPORT0_TX,
+		.err_irq	= IRQ_SPORT0_ERR,
+		.regs		= (struct sport_register *)SPORT0_TCR1,
+	},
+	{
+		.dma_rx_chan	= CH_SPORT1_RX,
+		.dma_tx_chan	= CH_SPORT1_TX,
+		.err_irq	= IRQ_SPORT1_ERR,
+		.regs		= (struct sport_register *)SPORT1_TCR1,
+	},
+	{
+		.dma_rx_chan	= CH_SPORT2_RX,
+		.dma_tx_chan	= CH_SPORT2_TX,
+		.err_irq	= IRQ_SPORT2_ERR,
+		.regs		= (struct sport_register *)SPORT2_TCR1,
+	},
+	{
+		.dma_rx_chan	= CH_SPORT3_RX,
+		.dma_tx_chan	= CH_SPORT3_TX,
+		.err_irq	= IRQ_SPORT3_ERR,
+		.regs		= (struct sport_register *)SPORT3_TCR1,
+	}
+};
+#else
 static struct sport_param sport_params[2] = {
 	{
 		.dma_rx_chan	= CH_SPORT0_RX,
@@ -57,6 +97,7 @@ static struct sport_param sport_params[2] = {
 		.regs		= (struct sport_register *)SPORT1_TCR1,
 	}
 };
+#endif
 
 struct sport_device *sport_handle;
 EXPORT_SYMBOL(sport_handle);
@@ -241,7 +282,12 @@ static int proc_write(struct file *file, const char __user *buffer,
 
 static int bf5xx_ac97_probe(struct platform_device *pdev)
 {
+#ifdef CONFIG_BF548
+	u16 sport_req[][7] = {PIN_REQ_SPORT_0, PIN_REQ_SPORT_1,
+				 PIN_REQ_SPORT_2, PIN_REQ_SPORT_3};
+#else
 	u16 sport_req[][7] = {PIN_REQ_SPORT_0, PIN_REQ_SPORT_1};
+#endif
 	cmd_count = (int *)get_zeroed_page(GFP_KERNEL);
 	if (cmd_count == NULL)
 		return -ENOMEM;
