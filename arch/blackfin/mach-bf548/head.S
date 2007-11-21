@@ -160,22 +160,22 @@ ENTRY(__stext)
 
 	p2.h = hi(EBIU_MBSCTL);
 	p2.l = lo(EBIU_MBSCTL);
-	r0.h = hi(CONFIG_EBUI_MBSCTLVAL);
-	r0.l = lo(CONFIG_EBUI_MBSCTLVAL);
+	r0.h = hi(CONFIG_EBIU_MBSCTLVAL);
+	r0.l = lo(CONFIG_EBIU_MBSCTLVAL);
 	[p2] = r0;
 	ssync;
 
 	p2.h = hi(EBIU_MODE);
 	p2.l = lo(EBIU_MODE);
-	r0.h = hi(CONFIG_EBUI_MODEVAL);
-	r0.l = lo(CONFIG_EBUI_MODEVAL);
+	r0.h = hi(CONFIG_EBIU_MODEVAL);
+	r0.l = lo(CONFIG_EBIU_MODEVAL);
 	[p2] = r0;
 	ssync;
 
 	p2.h = hi(EBIU_FCTL);
 	p2.l = lo(EBIU_FCTL);
-	r0.h = hi(CONFIG_EBUI_FCTLVAL);
-	r0.l = lo(CONFIG_EBUI_FCTLVAL);
+	r0.h = hi(CONFIG_EBIU_FCTLVAL);
+	r0.l = lo(CONFIG_EBIU_FCTLVAL);
 	[p2] = r0;
 	ssync;
 
