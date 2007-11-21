@@ -663,7 +663,7 @@ static int spi_mmc_card_init(mmc_info_t* pdev)
 #ifdef CONFIG_SPI_MMC_BFIN_PIO_SPI
 	bfin_pio_spi_set_hz(SPI_CLOCK_INIT_HZ);
 #else
-	pdev->spi_speed_hz = SPI_CLOCK_INIT_HZ;
+	pdev->spi_speed_hz = SPI_CLOCK_MAX_HZ;
 #endif
 
 	// MMC card init
