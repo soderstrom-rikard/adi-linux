@@ -847,7 +847,7 @@ static struct snd_kcontrol_new snd_ad1836_controls[] __devinitdata = {
  *************************************************************/
 
 static struct snd_pcm_hardware snd_ad1836_playback_hw = {
-	.info = ( SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER ),
+	.info = (SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER | SNDRV_PCM_INFO_RESUME),
 #ifdef LINPHONE_SETTING
 	.formats =          SNDRV_PCM_FMTBIT_S16_LE,
 	.rates =            SNDRV_PCM_RATE_8000,
@@ -871,7 +871,7 @@ static struct snd_pcm_hardware snd_ad1836_playback_hw = {
 };
 
 static struct snd_pcm_hardware snd_ad1836_capture_hw = {
-	.info = ( SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER ),
+	.info = (SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER | SNDRV_PCM_INFO_RESUME),
 #ifdef LINPHONE_SETTING
 	.formats =          SNDRV_PCM_FMTBIT_S16_LE,
 	.rates =            SNDRV_PCM_RATE_8000,
@@ -1137,6 +1137,7 @@ static int snd_ad1836_playback_trigger(struct snd_pcm_substream *substream, int 
 	spin_lock(&chip->ad1836_lock);
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
+	case SNDRV_PCM_TRIGGER_RESUME:
 #ifdef MULTI_SUBSTREAM
 		if (!chip->tx_dma_started) {
 			chip->dma_pos = 0;
@@ -1149,6 +1150,7 @@ static int snd_ad1836_playback_trigger(struct snd_pcm_substream *substream, int 
 		bf53x_sport_tx_start(chip->sport);
 #endif
 		break;
+	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_STOP:
 #ifdef MULTI_SUBSTREAM
 		chip->tx_status &= ~ (1 << index);
@@ -1181,8 +1183,10 @@ static int snd_ad1836_capture_trigger(struct snd_pcm_substream *substream, int c
 	snd_assert(substream == chip->rx_substream, return -EINVAL);
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
+	case SNDRV_PCM_TRIGGER_RESUME:
 		bf53x_sport_rx_start(chip->sport);
 		break;
+	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_STOP:
 		bf53x_sport_rx_stop(chip->sport);
 		break;
@@ -2075,9 +2079,30 @@ static int snd_ad1836_suspend(struct platform_device *pdev, pm_message_t state)
 static int snd_ad1836_resume(struct platform_device *pdev)
 {
 	struct snd_card *card = platform_get_drvdata(pdev);
-
+	struct snd_ad1836 *ad1836 = card->private_data;
+	int err = 0;
 	snd_printk_marker();
-
+	/*re-configure sport*/
+#ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
+	err = err || bf53x_sport_config_rx(ad1836->sport, RFSR, 0x1f, 0, 0);
+	err = err || bf53x_sport_config_tx(ad1836->sport, TFSR, 0x1f, 0, 0);
+	/*Set 8 channels and packed */
+	err = err || bf53x_sport_set_multichannel(ad1836->sport, 8, 1);
+	if (err)
+		snd_printk(KERN_ERR "Unable to set sport configuration\n");
+#elif defined(CONFIG_SND_BLACKFIN_AD1836_I2S)
+#ifdef LINPHONE_SETTING
+	/* Set word length to 16 bits */
+	err = err || bf53x_sport_config_rx(ad1836->sport, (RCKFE | RFSR), (RSFSE | 0xf), 0, 0);
+	err = err || bf53x_sport_config_tx(ad1836->sport, (TCKFE | TFSR), (TSFSE | 0xf), 0, 0);
+#else
+	/* Set word length to 24 bits */
+	err = err || bf53x_sport_config_rx(ad1836->sport, (RCKFE | RFSR), (RSFSE | 0x17), 0, 0);
+	err = err || bf53x_sport_config_tx(ad1836->sport, (TCKFE | TFSR), (TSFSE | 0x17), 0, 0);
+#endif
+	if (err)
+		snd_printk(KERN_ERR "Unable to set sport configuration\n");
+#endif
 	snd_power_change_state(card, SNDRV_CTL_POWER_D0);
 	return 0;
 }
