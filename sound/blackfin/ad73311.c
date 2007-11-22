@@ -127,7 +127,7 @@ static void snd_ad73311_stop(void);
  *************************************************************/
 
 static struct snd_pcm_hardware snd_ad73311_play_hw = {
-	.info = (SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER),
+	.info = (SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER | SNDRV_PCM_INFO_RESUME),
 	.formats =          SNDRV_PCM_FMTBIT_S16_LE,
 	.rates =            SNDRV_PCM_RATE_8000,
 	.rate_min =         8000,
@@ -141,7 +141,7 @@ static struct snd_pcm_hardware snd_ad73311_play_hw = {
 	.periods_max =      FRAGMENTS_MAX,
 };
 static struct snd_pcm_hardware snd_ad73311_cap_hw = {
-	.info = (SNDRV_PCM_INFO_INTERLEAVED |SNDRV_PCM_INFO_BLOCK_TRANSFER),
+	.info = (SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER | SNDRV_PCM_INFO_RESUME),
 	.formats =          SNDRV_PCM_FMTBIT_S16_LE,
 	.rates =            SNDRV_PCM_RATE_8000,
 	.rate_min =         8000,
@@ -255,22 +255,23 @@ static int snd_ad73311_play_trigger(struct snd_pcm_substream *substream, int cmd
 
 	spin_lock(&chip->ad73311_lock);
 	switch (cmd) {
-		case SNDRV_PCM_TRIGGER_START:
-			bf53x_sport_tx_start(chip->sport);
-			if (!(chip->runmode & RUN_RX))
-				snd_ad73311_startup();
+	case SNDRV_PCM_TRIGGER_START:
+	case SNDRV_PCM_TRIGGER_RESUME:
+		bf53x_sport_tx_start(chip->sport);
+		if (!(chip->runmode & RUN_RX))
+			snd_ad73311_startup();
 			chip->runmode |= RUN_TX;
-			break;
-		case SNDRV_PCM_TRIGGER_STOP:
-			chip->runmode &= ~RUN_TX;
-			bf53x_sport_tx_stop(chip->sport);
-			if (!chip->runmode & RUN_RX) {
-				snd_ad73311_stop();
-			}
-			break;
-		default:
-			spin_unlock(&chip->ad73311_lock);
-			return -EINVAL;
+		break;
+	case SNDRV_PCM_TRIGGER_STOP:
+	case SNDRV_PCM_TRIGGER_SUSPEND:
+		chip->runmode &= ~RUN_TX;
+		bf53x_sport_tx_stop(chip->sport);
+		if (!chip->runmode & RUN_RX)
+			snd_ad73311_stop();
+		break;
+	default:
+		spin_unlock(&chip->ad73311_lock);
+		return -EINVAL;
 	}
 	spin_unlock(&chip->ad73311_lock);
 
@@ -286,23 +287,23 @@ static int snd_ad73311_cap_trigger(struct snd_pcm_substream *substream, int cmd)
 	spin_lock(&chip->ad73311_lock);
 	snd_assert(substream == chip->rx_substream, return -EINVAL);
 	switch (cmd) {
-		case SNDRV_PCM_TRIGGER_START:
-			bf53x_sport_rx_start(chip->sport);
-			if (!(chip->runmode & RUN_TX)) {
-				snd_ad73311_startup();
-			}
-			chip->runmode |= RUN_RX;
-			break;
-		case SNDRV_PCM_TRIGGER_STOP:
-			chip->runmode &= ~RUN_RX;
-			bf53x_sport_rx_stop(chip->sport);
-			if (!(chip->runmode & RUN_TX)) {
-				snd_ad73311_stop();
-			}
-			break;
-		default:
-			spin_unlock(&chip->ad73311_lock);
-			return -EINVAL;
+	case SNDRV_PCM_TRIGGER_START:
+	case SNDRV_PCM_TRIGGER_RESUME:
+		bf53x_sport_rx_start(chip->sport);
+		if (!(chip->runmode & RUN_TX))
+			snd_ad73311_startup();
+		chip->runmode |= RUN_RX;
+		break;
+	case SNDRV_PCM_TRIGGER_STOP:
+	case SNDRV_PCM_TRIGGER_SUSPEND:
+		chip->runmode &= ~RUN_RX;
+		bf53x_sport_rx_stop(chip->sport);
+		if (!(chip->runmode & RUN_TX))
+			snd_ad73311_stop();
+		break;
+	default:
+		spin_unlock(&chip->ad73311_lock);
+		return -EINVAL;
 	}
 	spin_unlock(&chip->ad73311_lock);
 
@@ -662,8 +663,13 @@ static int snd_ad73311_suspend(struct platform_device *pdev, pm_message_t state)
 }
 static int snd_ad73311_resume(struct platform_device *pdev)
 {
+	int err = 0;
 	struct snd_card *card = platform_get_drvdata(pdev);
-
+	struct snd_ad73311 *ad73311 = card->private_data;
+	err = bf53x_sport_config_rx(ad73311->sport, RFSR, 0xF, 0, 0);
+	err = err || bf53x_sport_config_tx(ad73311->sport, TFSR, 0xF, 0, 0);
+	if (err)
+		snd_printk(KERN_ERR "Unable to set sport configuration\n");
 	snd_power_change_state(card, SNDRV_CTL_POWER_D0);
 
 	return 0;
