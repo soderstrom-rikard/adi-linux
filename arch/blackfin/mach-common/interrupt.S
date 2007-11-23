@@ -117,8 +117,8 @@ __common_int_entry:
 
 #if ANOMALY_05000283 || ANOMALY_05000315
 	cc = r7 == r7;
-	p5.h = 0xffc0;
-	p5.l = 0x0014;
+	p5.h = HI(CHIPID);
+	p5.l = LO(CHIPID);
 	if cc jump 1f;
 	r7.l = W[p5];
 1:
@@ -140,8 +140,8 @@ ENTRY(_evt_ivhw)
 #endif
 #if ANOMALY_05000283
 	cc = r7 == r7;
-	p5.h = 0xffc0;
-	p5.l = 0x0014;
+	p5.h = HI(CHIPID);
+	p5.l = LO(CHIPID);
 	if cc jump 1f;
 	r7.l = W[p5];
 1:
