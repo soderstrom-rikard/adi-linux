@@ -200,9 +200,9 @@ config TWI_KEYPAD
 config BFIN_TWIKEYPAD_IRQ_PFX
 	int "GPIO for Interrupt"
 	depends on (BLACKFIN && TWI_KEYPAD)
-	range 33 120
 	default "72" if BFIN537_STAMP
 	default "39" if BFIN533_STAMP
+	default "212" if BFIN548_EZKIT
 	help
 	  Choose an GPIO as Keypad interrupt [33..120]
 
