@@ -198,7 +198,7 @@ config TWI_KEYPAD
 	  module will be called twi_keypad.
 
 config BFIN_TWIKEYPAD_IRQ_PFX
-	int "GPIO for Interrupt"
+	int "IRQ"
 	depends on (BLACKFIN && TWI_KEYPAD)
 	default "72" if BFIN537_STAMP
 	default "39" if BFIN533_STAMP
