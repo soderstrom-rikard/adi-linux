@@ -392,7 +392,7 @@ ENTRY(_set_dram_srfs)
 #if defined(CONFIG_BF54x)
 .LSRR_MODE:
 	R2 = [P0];
-	CC = BITTST(R3, SRACK);
+	CC = BITTST(R3, 5);
 	if !CC JUMP .LSRR_MODE;
 #endif
 	RTS;
