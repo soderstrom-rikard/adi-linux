@@ -373,7 +373,7 @@ ENTRY(_sleep_deeper)
 
 ENTRY(_set_dram_srfs)
 	/*  set the dram to self refresh mode */
-#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)
+#if defined(CONFIG_BF54x)
 	P0.H = hi(EBIU_RSTCTL);
 	P0.L = lo(EBIU_RSTCTL);
 	R2 = [P0];
@@ -389,7 +389,7 @@ ENTRY(_set_dram_srfs)
 	R2 = R2|R3;
 	[P0] = R2;
 	ssync;
-#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)
+#if defined(CONFIG_BF54x)
 .LSRR_MODE:
 	R2 = [P0];
 	CC = BITTST(R3, SRACK);
@@ -399,7 +399,7 @@ ENTRY(_set_dram_srfs)
 
 ENTRY(_unset_dram_srfs)
 	/*  set the dram out of self refresh mode */
-#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)
+#if defined(CONFIG_BF54x)
 	P0.H = hi(EBIU_RSTCTL);
 	P0.L = lo(EBIU_RSTCTL);
 	R2 = [P0];
