@@ -649,6 +649,42 @@ config FB_BFIN_T350MCQB
 	 It uses PPI[0..7] PPI_FS1, PPI_FS2 and PPI_CLK. 
 
 
+config FB_HITACHI_TX09
+	tristate "Hitachi TX09D70VM1CDA TFT LCD"
+	depends on FB && (BF537 || BF561)
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	help
+	  This is the framebuffer device for a HITACHI TX09D70VM1CDA
+	  TFT LCD attached to a CM-BF537E or CM-BF561 from Bluetechnix.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called hitachi-tx09.
+
+config FB_HITACHI_TX09_LANDSCAPE
+	bool "Use Landscape 320x240 instead of Portrait 240x320"
+	depends on FB_HITACHI_TX09
+	default n
+	help
+	  Use 320x240 instead of native 240x320 Resolution
+
+config FB_HITACHI_TX09_REFRESHRATE
+	int "Refresh rate"
+	depends on FB_HITACHI_TX09
+	range 25 70
+	default 52
+	help
+	  Refresh rate of the LCD in Hz. According to data sheet, must
+	  be in the interval [52...68].
+
+config CONFIG_FB_HITACHI_TX09_CURSOR
+	bool "Enable/Disable cursor"
+	depends on FB_HITACHI_TX09
+	default n
+	help
+	  Enable the cursor
+
 config FB_STI
 	tristate "HP STI frame buffer device support"
 	depends on FB && PARISC
