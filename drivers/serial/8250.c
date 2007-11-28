@@ -92,9 +92,7 @@ static unsigned int nr_uarts = CONFIG_SERIAL_8250_RUNTIME_UARTS;
  */
 #define CONFIG_HUB6 1
 
-#ifndef CONFIG_BLACKFIN
 #include <asm/serial.h>
-#endif
 
 /*
  * SERIAL_PORT_DFNS tells us about built-in ports that have no
@@ -1546,8 +1544,8 @@ static int serial_link_irq_chain(struct uart_8250_port *up)
 		i->head = &up->list;
 		spin_unlock_irq(&i->lock);
 
-#ifdef CONFIG_BLACKFIN
-		irq_flags |= IRQF_TRIGGER_HIGH;
+#ifdef SERIAL_EXTRA_IRQ_FLAGS
+		irq_flags |= SERIAL_EXTRA_IRQ_FLAGS;
 #endif
 
 		ret = request_irq(up->port.irq, serial8250_interrupt,
