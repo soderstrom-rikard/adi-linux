@@ -249,6 +249,11 @@ config MEM_MT48LC32M16A2TG_75
 	depends on (BFIN527_EZKIT)
 	default y
 
+config MEM_MT46V32M16_6T
+        bool
+        depends on (BFIN548_EZKIT)
+        default y
+
 config BFIN_SHARED_FLASH_ENET
 	bool
 	depends on (BFIN533_STAMP)

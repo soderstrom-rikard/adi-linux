@@ -29,7 +29,7 @@
  * 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#if (CONFIG_MEM_MT46V32M16)
+#if (CONFIG_MEM_MT46V32M16_6T)
 #endif
 
 #define	mem_DDRCTL0	0x23FE8287
