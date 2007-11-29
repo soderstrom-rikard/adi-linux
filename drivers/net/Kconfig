@@ -2390,6 +2390,20 @@ config ATL1
 	  To compile this driver as a module, choose M here.  The module
 	  will be called atl1.
 
+config AX88180
+	tristate "AX88180 Gigabit Ethernet support"
+	depends on (ARM || BLACKFIN || MIPS) && NET_ETHERNET
+	select CRC32
+	select MII
+	---help---
+	  Support for AX88180 chipset.
+	  To compile this driver as a module, choose M here
+	  
+config AX88180_16BIT
+	bool "Select AX88180 16-bit IO Mode"
+	depends on AX88180
+	default y
+
 endif # NETDEV_1000
 
 #
@@ -2575,20 +2589,6 @@ config MLX4_DEBUG
 	  mlx4_core driver.  The output can be turned on via the
 	  debug_level module parameter (which can also be set after
 	  the driver is loaded through sysfs).
-
-config AX88180
-	tristate "AX88180 Gigabit Ethernet support"
-	depends on (ARM || BLACKFIN || MIPS) && NET_ETHERNET
-	select CRC32
-	select MII
-	---help---
-	  Support for AX88180 chipset.
-	  To compile this driver as a module, choose M here
-	  
-config AX88180_16BIT
-	bool "Select AX88180 16-bit IO Mode"
-	depends on AX88180
-	default y	
 
 endif # NETDEV_10000
 
