@@ -2392,7 +2392,7 @@ config ATL1
 
 config AX88180
 	tristate "AX88180 Gigabit Ethernet support"
-	depends on (ARM || BLACKFIN || MIPS) && NET_ETHERNET
+	depends on (ARM || BLACKFIN || MIPS)
 	select CRC32
 	select MII
 	---help---
