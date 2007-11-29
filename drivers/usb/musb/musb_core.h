@@ -65,7 +65,8 @@ struct musb_ep;
  * arch-specific files.  Discrete chips will need a build tweak.
  * So will using AHB IDs from silicon that provides them.
  */
-#ifdef CONFIG_BF54x
+#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)
+/* FIXME: We better move this into <asm/...> */
 #include <asm/mach/hdrc_cnf.h>
 #else
 #include <asm/arch/hdrc_cnf.h>

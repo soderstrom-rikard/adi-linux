@@ -30,11 +30,20 @@
 
 #include <asm/io.h>
 #include <asm/cacheflush.h>
+#include <asm/gpio.h>
 
 #include "musb_core.h"
 #include "blackfin.h"
 
-#define CONFIG_BLACKFIN_USB_DMA
+/* FIXME: Add this option to the platfrom device file */
+
+#ifdef CONFIG_BFIN548_EZKIT
+#define GPIO_USB_VRSEL	GPIO_PE7
+#elif CONFIG_BFIN527_EZKIT
+#define GPIO_USB_VRSEL	GPIO_PG13
+#else
+#error You need to specify a GPIO controlling VRSEL
+#endif
 
 static struct otg_transceiver *xceiv;
 
@@ -80,9 +89,9 @@ static void dump_fifo_data(u8 *buf, u16 len)
 #define dump_fifo_data(buf, len)	do{} while (0)
 #endif
 
-#ifdef CONFIG_BLACKFIN_USB_DMA
+#ifdef CONFIG_MUSB_PIO_ONLY
 
-#define USB_DMA_BASE		0xFFC04000
+#define USB_DMA_BASE		USB_DMA_INTERRUPT
 #define USB_DMAx_CTRL		0x04
 #define USB_DMAx_ADDR_LOW	0x08
 #define USB_DMAx_ADDR_HIGH	0x0C
@@ -113,7 +122,7 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 
 	dump_fifo_data(src, len);
 
-#ifdef CONFIG_BLACKFIN_USB_DMA
+#ifdef CONFIG_MUSB_PIO_ONLY
 	flush_dcache_range((unsigned int)src,
 		(unsigned int)(src + len));
 
@@ -195,7 +204,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 	DBG(4, "%cX ep%d fifo %p count %d buf %p\n",
 			'R', hw_ep->epnum, fifo, len, dst);
 
-#ifdef CONFIG_BLACKFIN_USB_DMA
+#ifdef CONFIG_MUSB_PIO_ONLY
 	invalidate_dcache_range((unsigned int)dst,
 		(unsigned int)(dst + len));
 
@@ -345,20 +354,27 @@ int musb_platform_resume(struct musb *musb);
 
 int __init musb_platform_init(struct musb *musb)
 {
+
 	/*
 	 * Rev 1.0 BF549 EZ-KITs require PE7 to be high for both DEVICE
 	 * and OTG HOST modes, while rev 1.1 and greater require PE7 to
 	 * be low for DEVICE mode and high for HOST mode. We set it high
 	 * here because we are in host mode
 	 */
-	bfin_write_PORTE_DIR_SET(bfin_read_PORTE_DIR_SET() | 0x0080);
-	SSYNC();
+
+	if (gpio_request(GPIO_USB_VRSEL, "USB_VRSEL")) {
+		printk(KERN_ERR "Failed ro request USB_VRSEL GPIO_%d \n",
+		       GPIO_USB_VRSEL);
+		return;
+	}
+	gpio_direction_output(GPIO_USB_VRSEL);
+
+
 #ifdef CONFIG_USB_MUSB_PERIPHERAL
-	bfin_write_PORTE_CLEAR(bfin_read_PORTE_CLEAR() | 0x0080);
+	gpio_set_value(GPIO_USB_VRSEL, 0);
 #else
-	bfin_write_PORTE_SET(bfin_read_PORTE_SET() | 0x0080);
+	gpio_set_value(GPIO_USB_VRSEL, 1);
 #endif
-	SSYNC();
 
 	/* Anomaly #05000346 */
 	bfin_write_USB_APHY_CALIB(0x5411);
@@ -421,7 +437,7 @@ int musb_platform_exit(struct musb *musb)
 {
 
 	bfin_vbus_power(musb, 0 /*off*/, 1);
-
+	gpio_free(GPIO_USB_VRSEL);
 	musb_platform_suspend(musb);
 
 	return 0;

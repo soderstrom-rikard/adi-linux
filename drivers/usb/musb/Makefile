@@ -22,6 +22,10 @@ ifeq ($(CONFIG_BF54x),y)
 	musb_hdrc-objs	+= blackfin.o
 endif
 
+ifeq ($(CONFIG_BF52x),y)
+	musb_hdrc-objs	+= blackfin.o
+endif
+
 ifeq ($(CONFIG_USB_GADGET_MUSB_HDRC),y)
 	musb_hdrc-objs		+= musb_gadget_ep0.o musb_gadget.o
 endif
