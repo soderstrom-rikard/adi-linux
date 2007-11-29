@@ -76,7 +76,11 @@ struct m25p {
 	struct semaphore	lock;
 	struct mtd_info		mtd;
 	unsigned		partitioned;
+#ifdef CONFIG_M25PXX_USE_FAST_READ
+	u8			command[5];
+#else
 	u8			command[4];
+#endif
 };
 
 static inline struct m25p *mtd_to_m25p(struct mtd_info *mtd)
