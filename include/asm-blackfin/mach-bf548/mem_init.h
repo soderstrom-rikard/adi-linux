@@ -32,6 +32,10 @@
 #if (CONFIG_MEM_MT46V32M16)
 #endif
 
+#define	mem_DDRCTL0	0x23FE8287
+#define	mem_DDRCTL1	0x10022223
+#define	mem_DDRCTL2	0x00000021
+
 #if defined CONFIG_CLKIN_HALF
 #define CLKIN_HALF       1
 #else

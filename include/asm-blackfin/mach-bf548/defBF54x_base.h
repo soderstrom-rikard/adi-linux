@@ -2257,6 +2257,10 @@
 
 #define                      CSEL  0x30       /* Core Select */
 #define                      SSEL  0xf        /* System Select */
+#define			CSEL_DIV1	0x0000	/* CCLK = VCO / 1 */
+#define			CSEL_DIV2	0x0010	/* CCLK = VCO / 2 */
+#define			CSEL_DIV4	0x0020	/* CCLK = VCO / 4 */
+#define			CSEL_DIV8	0x0030	/* CCLK = VCO / 8 */
 
 /* Bit masks for PLL_CTL */
 
