@@ -89,7 +89,7 @@ static void dump_fifo_data(u8 *buf, u16 len)
 #define dump_fifo_data(buf, len)	do{} while (0)
 #endif
 
-#ifdef CONFIG_MUSB_PIO_ONLY
+#if defined(CONFIG_BF54x)
 
 #define USB_DMA_BASE		USB_DMA_INTERRUPT
 #define USB_DMAx_CTRL		0x04
@@ -122,7 +122,7 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 
 	dump_fifo_data(src, len);
 
-#ifdef CONFIG_MUSB_PIO_ONLY
+#if defined(CONFIG_BF54x)
 	flush_dcache_range((unsigned int)src,
 		(unsigned int)(src + len));
 
@@ -157,6 +157,7 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_CTRL), 0);
 	SSYNC();
 #else
+#if (0)
 	/* we can't assume unaligned reads work */
 	if (likely((0x01 & (u16) src) == 0)) {
 		data = (u16 *) src;
@@ -187,6 +188,11 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 		}
 	}
 	SSYNC();
+#else
+	BUG_ON((unsigned long)src & 0x01);
+	outsw(fifo, src, len & 0x01 ? (len >> 1) + 1 : len >> 1);
+#endif
+
 #endif
 }
 
@@ -204,7 +210,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 	DBG(4, "%cX ep%d fifo %p count %d buf %p\n",
 			'R', hw_ep->epnum, fifo, len, dst);
 
-#ifdef CONFIG_MUSB_PIO_ONLY
+#if defined(CONFIG_BF54x)
 	invalidate_dcache_range((unsigned int)dst,
 		(unsigned int)(dst + len));
 
@@ -240,6 +246,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 	SSYNC();
 #else
 	/* we can't assume unaligned writes work */
+#if (0)
 	if (likely((0x01 & (unsigned long) dst) == 0)) {
 		data = (u16 *) dst;
 
@@ -260,6 +267,11 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 		readsb(fifo, dst, len);
 	}
 	SSYNC();
+#else
+	BUG_ON((unsigned long)dst & 0x01);
+	insw(fifo, dst, len & 0x01 ? (len >> 1) + 1 : len >> 1);
+#endif
+
 #endif
 
 	dump_fifo_data(dst, len);
@@ -392,7 +404,7 @@ int __init musb_platform_init(struct musb *musb)
 	bfin_write_USB_PLLOSC_CTRL(0x30a8);
 	SSYNC();
 
-	bfin_write_USB_SRP_CLKDIV(4061);
+	bfin_write_USB_SRP_CLKDIV((get_sclk()/1000) / 32 - 1);
 	SSYNC();
 
 	bfin_write_USB_EP_NI0_RXMAXP(64);
