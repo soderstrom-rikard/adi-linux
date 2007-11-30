@@ -1151,6 +1151,8 @@ static unsigned char bfin_bmdma_status(struct ata_port *ap)
 		host_stat |= ATA_DMA_ERR;
 	}
 
+	pr_debug("ATAPI: host_stat=0x%x\n", host_stat);
+
 	return host_stat;
 }
 
