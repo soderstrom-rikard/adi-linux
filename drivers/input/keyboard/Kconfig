@@ -261,5 +261,14 @@ config KEYBOARD_BFIN
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called bf54x-keypad.
-	  
+
+config KEYBOARD_OPENCORES
+	tristate "OpenCores Keyboard Controller"
+	help
+	  Say Y here if you want to use the OpenCores Keyboard Controller
+	  http://www.opencores.org/projects.cgi/web/keyboardcontroller/overview
+
+	  To comile this driver as a module, choose M here. the
+	  module will be called opencores-kbd.
+
 endif
