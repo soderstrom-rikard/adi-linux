@@ -46,6 +46,7 @@
 #include <linux/irq.h>
 
 #define DRV_NAME "opencores-kbd"
+#define NUM_KEYS 128
 
 struct opencores_kbd {
 	struct input_dev *input;
@@ -74,17 +75,15 @@ static int __devinit opencores_kbd_probe(struct platform_device *pdev)
 	struct opencores_kbd *opencores_kbd;
 	int i, error;
 
-	opencores_kbd = kzalloc(sizeof(struct opencores_kbd), GFP_KERNEL);
+	opencores_kbd = kzalloc(sizeof(*opencores_kbd), GFP_KERNEL);
 	if (!opencores_kbd)
 		return -ENOMEM;
 
-	opencores_kbd->keycode = kmalloc(128 * sizeof(unsigned short), GFP_KERNEL);
+	opencores_kbd->keycode = kmalloc(NUM_KEYS * sizeof(unsigned short), GFP_KERNEL);
 	if (!opencores_kbd->keycode) {
 		error = -ENOMEM;
 		goto out;
 	}
-
-	for (i = 0; i < 128; i++) opencores_kbd->keycode[i] = i;
 
 	platform_set_drvdata(pdev, opencores_kbd);
 
@@ -122,14 +121,16 @@ static int __devinit opencores_kbd_probe(struct platform_device *pdev)
 	input->id.product = 0x0001;
 	input->id.version = 0x0100;
 
-	input->keycodesize = sizeof(opencores_kbd->keycode);
-	input->keycodemax = 128;
+	input->keycodesize = sizeof(*opencores_kbd->keycode);
+	input->keycodemax = NUM_KEYS;
 	input->keycode = opencores_kbd->keycode;
 
 	__set_bit(EV_KEY, input->evbit);
 
-	for (i = 0; i < input->keycodemax; i++)
+	for (i = 0; i < input->keycodemax; i++) {
+		opencores_kbd->keycode[i] = i;
 		__set_bit(opencores_kbd->keycode[i] & KEY_MAX, input->keybit);
+	}
 	__clear_bit(KEY_RESERVED, input->keybit);
 
 	error = input_register_device(opencores_kbd->input);
