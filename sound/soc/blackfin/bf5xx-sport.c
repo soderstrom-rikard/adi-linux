@@ -697,6 +697,7 @@ static irqreturn_t rx_handler(int irq, void *dev_id)
 	if (!(rx_stat & DMA_DONE)) {
 		printk(KERN_ERR "rx dma is already stopped\n");
 	}
+	sport->rx_next_desc = get_dma_next_desc_ptr(sport->dma_rx_chan);
 	if (sport->rx_callback) {
 		sport->rx_callback(sport->rx_data);
 		return IRQ_HANDLED;
@@ -715,7 +716,7 @@ static irqreturn_t tx_handler(int irq, void *dev_id)
 		printk(KERN_ERR "tx dma is already stopped\n");
 		return IRQ_HANDLED;
 	}
-
+	sport->tx_next_desc = get_dma_next_desc_ptr(sport->dma_tx_chan);
 	if (sport->tx_callback) {
 		sport->tx_callback(sport->tx_data);
 		return IRQ_HANDLED;
@@ -726,7 +727,7 @@ static irqreturn_t tx_handler(int irq, void *dev_id)
 
 static irqreturn_t err_handler(int irq, void *dev_id)
 {
-	unsigned int status;
+	unsigned int status = 0;
 	struct sport_device *sport = dev_id;
 
 	pr_debug("%s\n", __FUNCTION__);
@@ -736,13 +737,42 @@ static irqreturn_t err_handler(int irq, void *dev_id)
 	}
 
 	if (status & (TOVF|TUVF|ROVF|RUVF)) {
-		printk(KERN_WARNING  "sport status error:%s%s%s%s\n",
+		printk(KERN_INFO  "sport status error:%s%s%s%s\n",
 				status & TOVF ? " TOVF" : "",
 				status & TUVF ? " TUVF" : "",
 				status & ROVF ? " ROVF" : "",
 				status & RUVF ? " RUVF" : "");
-		sport_stop(sport);
+		if (status & TOVF || status & TUVF) {
+			disable_dma(sport->dma_tx_chan);
+			set_dma_next_desc_addr(sport->dma_tx_chan, \
+				sport->tx_next_desc);
+			set_dma_x_count(sport->dma_tx_chan, 0);
+			set_dma_x_modify(sport->dma_tx_chan, 0);
+			set_dma_config(sport->dma_tx_chan, (DMAFLOW_LARGE | \
+				NDSIZE_9 | WDSIZE_16));
+			set_dma_curr_addr(sport->dma_tx_chan, \
+				((struct dmasg *)sport->tx_next_desc)->start_addr);
+			SSYNC();
+			enable_dma(sport->dma_tx_chan);
+		} else {
+			disable_dma(sport->dma_rx_chan);
+			set_dma_next_desc_addr(sport->dma_rx_chan, \
+				sport->rx_next_desc);
+			set_dma_x_count(sport->dma_rx_chan, 0);
+			set_dma_x_modify(sport->dma_rx_chan, 0);
+			set_dma_config(sport->dma_rx_chan, (DMAFLOW_LARGE | \
+				NDSIZE_9 | WDSIZE_16 | WNR));
+			set_dma_curr_addr(sport->dma_rx_chan, \
+				((struct dmasg *)sport->rx_next_desc)->start_addr);
+			SSYNC();
+			enable_dma(sport->dma_rx_chan);
+
+		}
 	}
+	status = sport->regs->stat;
+	if (status & (TOVF|TUVF|ROVF|RUVF))
+		sport->regs->stat = (status & (TOVF|TUVF|ROVF|RUVF));
+	SSYNC();
 
 	if (sport->err_callback)
 		sport->err_callback(sport->err_data);
