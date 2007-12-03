@@ -28,6 +28,11 @@ static inline void set_fs(mm_segment_t fs)
 
 #define segment_eq(a,b) ((a) == (b))
 
+#define VERIFY_READ	0
+#define VERIFY_WRITE	1
+
+#define access_ok(type, addr, size) _access_ok((unsigned long)(addr), (size))
+
 static inline int is_in_rom(unsigned long addr)
 {
 	/*
@@ -60,17 +65,6 @@ extern int _access_ok(unsigned long addr, unsigned long size)__attribute__((l1_t
 extern int _access_ok(unsigned long addr, unsigned long size);
 #endif
 #endif
-
-#define VERIFY_READ	0
-#define VERIFY_WRITE	1
-
-static inline int access_ok(int type, const void __user *p, unsigned long size)
-{
-	if ((type == VERIFY_READ) && (size == 0))
-		return 1;
-
-	return _access_ok((unsigned long)p, size);
-}
 
 /*
  * The exception table consists of pairs of addresses: the first is the
