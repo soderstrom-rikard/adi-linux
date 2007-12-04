@@ -68,7 +68,7 @@
 #include <asm/uaccess.h>
 #include <asm/blackfin.h>
 #include <asm/gpio.h>
-#if defined(CONFIG_BF533_PFLAGS_PROC)
+#if defined(CONFIG_BF5xx_PFLAGS_PROC)
 #include <linux/proc_fs.h>
 #endif
 #include <linux/spinlock.h>
@@ -293,7 +293,7 @@ static ssize_t pflag_status_show(struct class *class, char *buf)
 	return p - buf;
 }
 
-#if defined(CONFIG_BF533_PFLAGS_PROC)
+#if defined(CONFIG_BF5xx_PFLAGS_PROC)
 /*
  *  Info exported via "/proc/driver/pflags".
  *  For backward compatibility only.
@@ -418,7 +418,7 @@ static int __init blackfin_pflags_init(void)
 	}
         major = res;
 
-#if defined(CONFIG_BF533_PFLAGS_PROC)
+#if defined(CONFIG_BF5xx_PFLAGS_PROC)
 	if(!create_proc_read_entry("driver/pflags", 0, 0, pflags_read_proc, NULL)) {
 		printk(KERN_INFO "pflag: can't create proc entry!\n");
 		goto release_chrdev;
@@ -437,7 +437,7 @@ static int __init blackfin_pflags_init(void)
 
 	return 0;
 release_proc:
-#if defined(CONFIG_BF533_PFLAGS_PROC)
+#if defined(CONFIG_BF5xx_PFLAGS_PROC)
 	remove_proc_entry("driver/pflags", NULL);
 release_chrdev:
 #endif
@@ -448,7 +448,7 @@ exit:
 
 void __exit blackfin_pflags_exit(void)
 {
-#if defined(CONFIG_BF533_PFLAGS_PROC)
+#if defined(CONFIG_BF5xx_PFLAGS_PROC)
 	remove_proc_entry("driver/pflags", NULL);
 #endif
 	unregister_chrdev(major, "pflag");
