@@ -35,6 +35,7 @@
 #include <asm/cacheflush.h>
 #include <asm/blackfin.h>
 #include <asm/irq_handler.h>
+#include <linux/irq.h>
 #include <asm/trace.h>
 #include <asm/fixed_code.h>
 #include <asm/dma.h>
@@ -755,6 +756,9 @@ void dump_bfin_mem(struct pt_regs *fp)
 void show_regs(struct pt_regs *fp)
 {
 	char buf [150];
+	struct irqaction *action;
+	unsigned int i;
+	unsigned long flags;
 
 	printk(KERN_NOTICE "\n" KERN_NOTICE "SEQUENCER STATUS:\n");
 	printk(KERN_NOTICE " SEQSTAT: %08lx  IPEND: %04lx  SYSCFG: %04lx\n",
@@ -763,6 +767,32 @@ void show_regs(struct pt_regs *fp)
 		(fp->seqstat & SEQSTAT_HWERRCAUSE) >> 14);
 	printk(KERN_NOTICE "  EXCAUSE   : 0x%lx\n",
 		fp->seqstat & SEQSTAT_EXCAUSE);
+	for (i = 6; i <= 15 ; i++) {
+		if (fp->ipend & (1 << i)) {
+			decode_address(buf, bfin_read32(EVT0 + 4*i));
+			printk(KERN_NOTICE "  physical IVG%i asserted : %s\n", i, buf);
+		}
+	}
+
+	/* if no interrupts are going off, don't print this out */
+	if (fp->ipend & ~0x3F) {
+		for (i = 0; i < (NR_IRQS - 1); i++) {
+			spin_lock_irqsave(&irq_desc[i].lock, flags);
+			action = irq_desc[i].action;
+			if (!action)
+				goto unlock;
+
+			decode_address(buf, (unsigned int)action->handler);
+			printk(KERN_NOTICE "  logical irq %3d mapped  : %s", i, buf);
+			for (action = action->next; action; action = action->next) {
+				decode_address(buf, (unsigned int)action->handler);
+				printk(", %s", buf);
+			}
+			printk("\n");
+unlock:
+			spin_unlock_irqrestore(&irq_desc[i].lock, flags);
+		}
+	}
 
 	decode_address(buf, fp->rete);
 	printk(KERN_NOTICE " RETE: %s\n", buf);
