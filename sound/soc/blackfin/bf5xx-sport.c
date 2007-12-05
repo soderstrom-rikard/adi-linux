@@ -181,7 +181,7 @@ static inline int sport_hook_rx_dummy(struct sport_device *sport)
 
 	/* Maybe the dummy buffer descriptor ring is damaged */
 	sport->dummy_rx_desc->next_desc_addr = \
-			(unsigned long)sport->dummy_rx_desc;
+			(unsigned long)(sport->dummy_rx_desc+1);
 
 	local_irq_save(flags);
 	desc = (struct dmasg *)get_dma_next_desc_ptr(sport->dma_rx_chan);
@@ -256,6 +256,9 @@ int sport_rx_start(struct sport_device *sport)
 		BUG_ON(sport->dma_rx_desc == NULL);
 		BUG_ON(sport->curr_rx_desc != sport->dummy_rx_desc);
 		local_irq_save(flags);
+		while ((get_dma_curr_desc_ptr(sport->dma_rx_chan) - \
+			sizeof(struct dmasg)) != \
+			(unsigned long)sport->dummy_rx_desc) {}
 		sport->dummy_rx_desc->next_desc_addr = \
 				(unsigned long)(sport->dma_rx_desc);
 		local_irq_restore(flags);
@@ -303,7 +306,7 @@ static inline int sport_hook_tx_dummy(struct sport_device *sport)
 	BUG_ON(sport->curr_tx_desc == sport->dummy_tx_desc);
 
 	sport->dummy_tx_desc->next_desc_addr = \
-			(unsigned long)sport->dummy_tx_desc;
+			(unsigned long)(sport->dummy_tx_desc+1);
 
 	/* Shorten the time on last normal descriptor */
 	local_irq_save(flags);
@@ -338,6 +341,9 @@ int sport_tx_start(struct sport_device *sport)
 		BUG_ON(sport->curr_tx_desc != sport->dummy_tx_desc);
 		/* Hook the normal buffer descriptor */
 		local_irq_save(flags);
+		while ((get_dma_curr_desc_ptr(sport->dma_tx_chan) - \
+			sizeof(struct dmasg)) != \
+			(unsigned long)sport->dummy_tx_desc) {}
 		sport->dummy_tx_desc->next_desc_addr = \
 				(unsigned long)(sport->dma_tx_desc);
 		local_irq_restore(flags);
@@ -537,19 +543,18 @@ static int sport_config_rx_dummy(struct sport_device *sport)
 		printk(KERN_ERR "Failed to allocate memory for dummy rx desc\n");
 		return -ENOMEM;
 	}
-
 	memset(desc, 0, 2 * sizeof(*desc));
 	sport->dummy_rx_desc = desc;
-
-	desc->next_desc_addr = (unsigned long)desc;
 	desc->start_addr = (unsigned long)sport->dummy_buf;
 	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(sport->wdsize) | WNR | DMAEN;
 	desc->cfg = config;
 	desc->x_count = sport->dummy_count;
-	desc->x_modify = 0;
+	desc->x_modify = sport->wdsize;
 	desc->y_count = 0;
 	desc->y_modify = 0;
-
+	memcpy(desc+1, desc, sizeof(*desc));
+	desc->next_desc_addr = (unsigned long)(desc+1);
+	desc[1].next_desc_addr = (unsigned long)desc;
 	return 0;
 }
 
@@ -572,11 +577,8 @@ static int sport_config_tx_dummy(struct sport_device *sport)
 		printk(KERN_ERR "Failed to allocate memory for dummy tx desc\n");
 		return -ENOMEM;
 	}
-
 	memset(desc, 0, 2 * sizeof(*desc));
 	sport->dummy_tx_desc = desc;
-
-	desc->next_desc_addr = (unsigned long)desc;
 	desc->start_addr = (unsigned long)sport->dummy_buf + \
 		sizeof(struct ac97_frame);
 	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(sport->wdsize) | DMAEN;
@@ -585,7 +587,9 @@ static int sport_config_tx_dummy(struct sport_device *sport)
 	desc->x_modify = sport->wdsize;
 	desc->y_count = 0;
 	desc->y_modify = 0;
-
+	memcpy(desc+1, desc, sizeof(*desc));
+	desc->next_desc_addr = (unsigned long)(desc+1);
+	desc[1].next_desc_addr = (unsigned long)desc;
 	return 0;
 }
 
@@ -715,6 +719,7 @@ static irqreturn_t tx_handler(int irq, void *dev_id)
 		printk(KERN_ERR "tx dma is already stopped\n");
 		return IRQ_HANDLED;
 	}
+	sport->tx_next_desc = get_dma_next_desc_ptr(sport->dma_tx_chan);
 	if (sport->tx_callback) {
 		sport->tx_callback(sport->tx_data);
 		return IRQ_HANDLED;
@@ -748,7 +753,6 @@ static irqreturn_t err_handler(int irq, void *dev_id)
 			disable_dma(sport->dma_rx_chan);
 			sport_rx_dma_start(sport, 0);
 			enable_dma(sport->dma_rx_chan);
-
 		}
 	}
 	status = sport->regs->stat;

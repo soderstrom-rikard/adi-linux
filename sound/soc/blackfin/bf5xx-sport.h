@@ -114,7 +114,7 @@ struct sport_device {
 	void *tx_data;
 	void (*err_callback)(void *data);
 	void *err_data;
-
+	unsigned long tx_next_desc;
 	void *private_data;
 };
 

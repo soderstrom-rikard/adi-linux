@@ -309,7 +309,7 @@ static int bf5xx_ac97_probe(struct platform_device *pdev)
 	gpio_set_value(CONFIG_SND_BF5XX_RESET_GPIO_NUM, 1);
 #endif
 	sport_handle = sport_init(&sport_params[sport_num], 2, \
-			sizeof(struct ac97_frame), NULL);
+			10*sizeof(struct ac97_frame), NULL);
 	if (!sport_handle) {
 		peripheral_free_list(&sport_req[sport_num][0]);
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
