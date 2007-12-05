@@ -174,11 +174,12 @@
  */
 #define MUSB_C_RAM_BITS 13
 
-#define clk_get(dev, id) NULL
-#define clk_put(clock)
-#define clk_disable(clock)
+#define clk_get(dev, id)	NULL
+#define clk_put(clock)		do {} while (0)
+#define clk_enable(clock)	do {} while (0)
+#define clk_disable(clock)	do {} while (0)
 
-#define dma_controller_create(musb, regs) NULL
-#define dma_controller_destroy(c)
+#define dma_controller_create(musb, regs)	NULL
+#define dma_controller_destroy(c)		do {} while (0)
 
 #endif	/* __ARCH_MUSB_HDRC_CNF */

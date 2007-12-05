@@ -20,7 +20,8 @@ config USB_MUSB_HDRC
 	  Texas Instruments parts using this IP include DaVinci 644x,
 	  OMAP 243x, OMAP 343x, and TUSB 6010.
 
-	  Analog Devices parts using this IP include Blackfin BF54x.
+	  Analog Devices parts using this IP include Blackfin BF54x,
+	  BF525 and BF527.
 
 	  If you do not know what this is, please say N.
 
@@ -32,7 +33,7 @@ config USB_MUSB_SOC
 	depends on USB_MUSB_HDRC
 	default y if ARCH_DAVINCI
 	default y if ARCH_OMAP2430
-	default y if ARCH_OMAP343X
+	default y if ARCH_OMAP34XX
 	default y if BF54x
 	default y if BF52x
 	help
@@ -47,9 +48,9 @@ comment "OMAP 243x high speed USB support"
 	depends on USB_MUSB_HDRC && ARCH_OMAP2430
 
 comment "OMAP 343x high speed USB support"
-	depends on USB_MUSB_HDRC && ARCH_OMAP343X
+	depends on USB_MUSB_HDRC && ARCH_OMAP34XX
 
-comment "Blackfin BF54x high speed USB support"
+comment "Blackfin BF54x, BF525 and BF527 high speed USB support"
 	depends on USB_MUSB_HDRC && (BF54x || BF525 || BF527)
 
 config USB_TUSB6010
@@ -153,7 +154,7 @@ config MUSB_PIO_ONLY
 config USB_INVENTRA_DMA
 	bool
 	depends on USB_MUSB_HDRC && !MUSB_PIO_ONLY
-	default ARCH_OMAP2430 || ARCH_OMAP343X
+	default ARCH_OMAP2430 || ARCH_OMAP34XX
 	help
 	  Enable DMA transfers using Mentor's engine.
 

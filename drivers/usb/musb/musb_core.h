@@ -481,7 +481,7 @@ extern void musb_platform_disable(struct musb *musb);
 
 extern void musb_hnp_stop(struct musb *musb);
 
-#ifdef CONFIG_USB_TUSB6010
+#if defined(CONFIG_USB_TUSB6010) || defined(CONFIG_BLACKFIN)
 extern void musb_platform_try_idle(struct musb *musb, unsigned long timeout);
 extern int musb_platform_get_vbus_status(struct musb *musb);
 extern void musb_platform_set_mode(struct musb *musb, u8 musb_mode);

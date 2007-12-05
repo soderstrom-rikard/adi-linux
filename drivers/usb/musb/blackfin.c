@@ -307,8 +307,64 @@ static irqreturn_t blackfin_interrupt(int irq, void *__hci)
 	return IRQ_HANDLED;
 }
 
+/* Almost 1 second */
+#define TIMER_DELAY	(1 * HZ)
+
+static struct timer_list conn_timer;
+
+static void conn_timer_handler(unsigned long _musb)
+{
+	struct musb *musb = (void *)_musb;
+	unsigned long flags;
+	u16 val;
+
+	spin_lock_irqsave(&musb->lock, flags);
+	switch (musb->xceiv.state) {
+	case OTG_STATE_A_IDLE:
+	case OTG_STATE_A_WAIT_BCON:
+		/* Start a new session */
+		val = musb_readw(musb->mregs, MUSB_DEVCTL);
+		val |= MUSB_DEVCTL_SESSION;
+		musb_writew(musb->mregs, MUSB_DEVCTL, val);
+
+		val = musb_readw(musb->mregs, MUSB_DEVCTL);
+		if (!(val & MUSB_DEVCTL_BDEVICE)) {
+			gpio_set_value(GPIO_USB_VRSEL, 1);
+			musb->xceiv.state = OTG_STATE_A_WAIT_BCON;
+		} else {
+			gpio_set_value(GPIO_USB_VRSEL, 0);
+
+			/* Ignore VBUSERROR and SUSPEND IRQ */
+			val = musb_readb(musb->mregs, MUSB_INTRUSBE);
+			val &= ~MUSB_INTR_VBUSERROR;
+			musb_writeb(musb->mregs, MUSB_INTRUSBE, val);
+
+			val = MUSB_INTR_SUSPEND | MUSB_INTR_VBUSERROR;
+			musb_writeb(musb->mregs, MUSB_INTRUSB, val);
+
+			val = MUSB_POWER_HSENAB;
+			musb_writeb(musb->mregs, MUSB_POWER, val);
+		}
+		mod_timer(&conn_timer, jiffies + TIMER_DELAY);
+		break;
+
+	default:
+		DBG(1, "%s state not handled\n", otg_state_string(musb));
+		break;
+	}
+	spin_unlock_irqrestore(&musb->lock, flags);
+
+	DBG(4, "state is %s\n", otg_state_string(musb));
+
+	return;
+}
+
 void musb_platform_enable(struct musb *musb)
 {
+	if (is_host_enabled(musb)) {
+		mod_timer(&conn_timer, jiffies + TIMER_DELAY);
+		musb->a_wait_bcon = TIMER_DELAY;
+	}
 }
 
 void musb_platform_disable(struct musb *musb)
@@ -321,35 +377,10 @@ static void bfin_vbus_power(struct musb *musb, int is_on, int sleeping)
 
 static void bfin_set_vbus(struct musb *musb, int is_on)
 {
-	u8 devctl;
-	/* HDRC controls CPEN, but beware current surges during device
-	 * connect.  They can trigger transient overcurrent conditions
-	 * that must be ignored.
-	 */
-
-	devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
-
-	if (is_on) {
-		musb->is_active = 1;
-		musb->xceiv.default_a = 1;
-		musb->xceiv.state = OTG_STATE_A_WAIT_VRISE;
-		devctl |= MUSB_DEVCTL_SESSION;
-
-		MUSB_HST_MODE(musb);
-	} else {
-		musb->is_active = 0;
-
-		/* NOTE:  we're skipping A_WAIT_VFALL -> A_IDLE and
-		 * jumping right to B_IDLE...
-		 */
-
-		musb->xceiv.default_a = 0;
-		musb->xceiv.state = OTG_STATE_B_IDLE;
-		devctl &= ~MUSB_DEVCTL_SESSION;
-
-		MUSB_DEV_MODE(musb);
-	}
-	musb_writeb(musb->mregs, MUSB_DEVCTL, devctl);
+	if (is_on)
+		gpio_set_value(GPIO_USB_VRSEL, 1);
+	else
+		gpio_set_value(GPIO_USB_VRSEL, 0);
 
 	DBG(1, "VBUS %s, devctl %02x "
 		/* otg %3x conf %08x prcm %08x */ "\n",
@@ -360,6 +391,21 @@ static void bfin_set_vbus(struct musb *musb, int is_on)
 static int bfin_set_power(struct otg_transceiver *x, unsigned mA)
 {
 	return 0;
+}
+
+void musb_platform_try_idle(struct musb *musb, unsigned long timeout)
+{
+	if (is_host_enabled(musb))
+		mod_timer(&conn_timer, jiffies + TIMER_DELAY);
+}
+
+int musb_platform_get_vbus_status(struct musb *musb)
+{
+	return 0;
+}
+
+void musb_platform_set_mode(struct musb *musb, u8 musb_mode)
+{
 }
 
 int musb_platform_resume(struct musb *musb);
@@ -376,17 +422,10 @@ int __init musb_platform_init(struct musb *musb)
 
 	if (gpio_request(GPIO_USB_VRSEL, "USB_VRSEL")) {
 		printk(KERN_ERR "Failed ro request USB_VRSEL GPIO_%d \n",
-		       GPIO_USB_VRSEL);
-		return;
+			GPIO_USB_VRSEL);
+		return -ENODEV;
 	}
 	gpio_direction_output(GPIO_USB_VRSEL);
-
-
-#ifdef CONFIG_USB_MUSB_PERIPHERAL
-	gpio_set_value(GPIO_USB_VRSEL, 0);
-#else
-	gpio_set_value(GPIO_USB_VRSEL, 1);
-#endif
 
 	/* Anomaly #05000346 */
 	bfin_write_USB_APHY_CALIB(0x5411);
@@ -424,8 +463,11 @@ int __init musb_platform_init(struct musb *musb)
 				EP5_RX_ENA | EP6_RX_ENA | EP7_RX_ENA);
 	SSYNC();
 
-	if (is_host_enabled(musb))
+	if (is_host_enabled(musb)) {
 		musb->board_set_vbus = bfin_set_vbus;
+		setup_timer(&conn_timer,
+			conn_timer_handler, (unsigned long) musb);
+	}
 	if (is_peripheral_enabled(musb))
 		musb->xceiv.set_power = bfin_set_power;
 
