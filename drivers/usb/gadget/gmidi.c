@@ -1037,6 +1037,8 @@ static int gmidi_in_open(struct snd_rawmidi_substream *substream)
 
 static int gmidi_in_close(struct snd_rawmidi_substream *substream)
 {
+	struct gmidi_device *dev = substream->rmidi->private_data;
+
 	VDBG(dev, "gmidi_in_close\n");
 	return 0;
 }
@@ -1063,6 +1065,8 @@ static int gmidi_out_open(struct snd_rawmidi_substream *substream)
 
 static int gmidi_out_close(struct snd_rawmidi_substream *substream)
 {
+	struct gmidi_device *dev = substream->rmidi->private_data;
+
 	VDBG(dev, "gmidi_out_close\n");
 	return 0;
 }
@@ -1253,8 +1257,7 @@ autoconf_fail:
 		err = -ENOMEM;
 		goto fail;
 	}
-	dev->req->buf = usb_ep_alloc_buffer(gadget->ep0, USB_BUFSIZ,
-				&dev->req->dma, GFP_KERNEL);
+	dev->req->buf = kmalloc(USB_BUFSIZ, GFP_KERNEL);
 	if (!dev->req->buf) {
 		err = -ENOMEM;
 		goto fail;
