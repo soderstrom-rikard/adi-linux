@@ -299,21 +299,12 @@ static int bf5xx_ac97_probe(struct platform_device *pdev)
 
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
 	/* Request PB3 as reset pin */
-#if defined(CONFIG_BF54x)
-	if (gpio_request(CONFIG_SND_BF5XX_RESET_GPIO_NUM, NULL)) {
-		printk(KERN_ERR "Failed to request GPIO_%d for reset\n",
-				CONFIG_SND_BF5XX_RESET_GPIO_NUM);
-		peripheral_free_list(&sport_req[sport_num][0]);
-		return -1;
-	}
-#else
 	if (gpio_request(CONFIG_SND_BF5XX_RESET_GPIO_NUM, "SND_AD198x RESET")) {
 		printk(KERN_ERR "Failed to request GPIO_%d for reset\n",
 				CONFIG_SND_BF5XX_RESET_GPIO_NUM);
 		peripheral_free_list(&sport_req[sport_num][0]);
 		return -1;
 	}
-#endif
 	gpio_direction_output(CONFIG_SND_BF5XX_RESET_GPIO_NUM);
 	gpio_set_value(CONFIG_SND_BF5XX_RESET_GPIO_NUM, 1);
 #endif
