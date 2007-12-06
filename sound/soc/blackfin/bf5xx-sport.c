@@ -719,7 +719,6 @@ static irqreturn_t tx_handler(int irq, void *dev_id)
 		printk(KERN_ERR "tx dma is already stopped\n");
 		return IRQ_HANDLED;
 	}
-	sport->tx_next_desc = get_dma_next_desc_ptr(sport->dma_tx_chan);
 	if (sport->tx_callback) {
 		sport->tx_callback(sport->tx_data);
 		return IRQ_HANDLED;
