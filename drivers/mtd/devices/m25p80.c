@@ -54,6 +54,7 @@
 
 /* Define max times to check status register before we give up. */
 #define	MAX_READY_WAIT_COUNT	100000
+#define	CMD_SIZE		4
 
 #ifdef CONFIG_M25PXX_USE_FAST_READ
 #define OPCODE_READ 	OPCODE_FAST_READ
@@ -76,11 +77,7 @@ struct m25p {
 	struct semaphore	lock;
 	struct mtd_info		mtd;
 	unsigned		partitioned;
-#ifdef CONFIG_M25PXX_USE_FAST_READ
-	u8			command[5];
-#else
-	u8			command[4];
-#endif
+	u8			command[CMD_SIZE + FAST_READ_DUMMY_BYTE];
 };
 
 static inline struct m25p *mtd_to_m25p(struct mtd_info *mtd)
@@ -178,12 +175,7 @@ static int erase_sector(struct m25p *flash, u32 offset)
 	flash->command[2] = offset >> 8;
 	flash->command[3] = offset;
 
-	/* NOTE:
-	 * When using FAST_READ, sizeof(flash->command) including
-	 * 1 byte DUMMY_BYTE. So cut 1 byte in erasing operation.
-	 */
-	spi_write(flash->spi, flash->command,
-		(sizeof(flash->command) - FAST_READ_DUMMY_BYTE));
+	spi_write(flash->spi, flash->command, CMD_SIZE);
 
 	return 0;
 }
@@ -267,10 +259,10 @@ static int m25p80_read(struct mtd_info *mtd, loff_t from, size_t len,
 
 	/* NOTE:
 	 * OPCODE_FAST_READ (if available) is faster.
-	 * sizeof(flash->command) including 1 byte DUMMY_BYTE.
+	 * Should add 1 byte DUMMY_BYTE.
 	 */
 	t[0].tx_buf = flash->command;
-	t[0].len = sizeof(flash->command);
+	t[0].len = CMD_SIZE + FAST_READ_DUMMY_BYTE;
 	spi_message_add_tail(&t[0], &m);
 
 	t[1].rx_buf = buf;
@@ -298,7 +290,7 @@ static int m25p80_read(struct mtd_info *mtd, loff_t from, size_t len,
 
 	spi_sync(flash->spi, &m);
 
-	*retlen = m.actual_length - sizeof(flash->command);
+	*retlen = m.actual_length - CMD_SIZE - FAST_READ_DUMMY_BYTE;
 
 	up(&flash->lock);
 
@@ -335,12 +327,8 @@ static int m25p80_write(struct mtd_info *mtd, loff_t to, size_t len,
 	spi_message_init(&m);
 	memset(t, 0, (sizeof t));
 
-	/* NOTE:
-	 * When using FAST_READ, sizeof(flash->command) including
-	 * 1 byte DUMMY_BYTE. So cut 1 byte in writing operation.
-	 */
 	t[0].tx_buf = flash->command;
-	t[0].len = sizeof(flash->command) - FAST_READ_DUMMY_BYTE;
+	t[0].len = CMD_SIZE;
 	spi_message_add_tail(&t[0], &m);
 
 	t[1].tx_buf = buf;
@@ -369,8 +357,7 @@ static int m25p80_write(struct mtd_info *mtd, loff_t to, size_t len,
 
 		spi_sync(flash->spi, &m);
 
-		*retlen = m.actual_length - sizeof(flash->command)
-				+ FAST_READ_DUMMY_BYTE;
+		*retlen = m.actual_length - CMD_SIZE;
 	} else {
 		u32 i;
 
@@ -380,8 +367,7 @@ static int m25p80_write(struct mtd_info *mtd, loff_t to, size_t len,
 		t[1].len = page_size;
 		spi_sync(flash->spi, &m);
 
-		*retlen = m.actual_length - sizeof(flash->command)
-				+ FAST_READ_DUMMY_BYTE;
+		*retlen = m.actual_length - CMD_SIZE;
 
 		/* write everything in PAGESIZE chunks */
 		for (i = page_size; i < len; i += page_size) {
@@ -404,9 +390,7 @@ static int m25p80_write(struct mtd_info *mtd, loff_t to, size_t len,
 			spi_sync(flash->spi, &m);
 
 			if (retlen)
-				*retlen += m.actual_length
-					- sizeof(flash->command)
-					+ FAST_READ_DUMMY_BYTE;
+				*retlen += m.actual_length - CMD_SIZE;
 		}
 	}
 
