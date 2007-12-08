@@ -382,7 +382,10 @@ config SCLK_DIV
 config MAX_VCO_HZ
 	int
 	default 600000000 if BF522
+	default 400000000 if BF523
+	default 400000000 if BF524
 	default 600000000 if BF525
+	default 400000000 if BF526
 	default 600000000 if BF527
 	default 400000000 if BF531
 	default 400000000 if BF532
@@ -394,6 +397,8 @@ config MAX_VCO_HZ
 	default 533333333 if BF539
 	default 600000000 if BF542
 	default 533333333 if BF544
+	default 600000000 if BF547
+	default 600000000 if BF548
 	default 533333333 if BF549
 	default 600000000 if BF561
 
