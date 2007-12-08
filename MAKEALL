@@ -21,11 +21,11 @@ procs() {
 		return
 	fi
 	case $cpu in
-		BF52[257])   echo BF52{2,5,7};;
-		BF53[123])   echo BF53{1,2,3};;
-		BF53[467])   echo BF53{4,6,7};;
-		BF54[24789]) echo BF54{2,4,7,9,8};;
-		BF561)       echo BF561;;
+		BF52[234567]) echo BF52{2,3,4,5,6,7};;
+		BF53[123])    echo BF53{1,2,3};;
+		BF53[467])    echo BF53{4,6,7};;
+		BF54[24789])  echo BF54{2,4,7,9,8};;
+		BF561)        echo BF561;;
 	esac
 }
 
