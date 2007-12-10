@@ -10,17 +10,6 @@ config VIDEO_BLACKFIN_CAM
 	  To compile this driver as a module, choose M here: the
 	  module will be called blackfin_cam.
 
-config VIDEO_BLACKFIN_MT9M001
-	tristate "Micron Camera driver for BF537 (DEPRECIATED)"
-	depends on BLACKFIN && VIDEO_DEV && I2C
-	default n
-	help
-	  V4L Support for the Micron MT9M001 camera attached to
-	  the Blackfin PPI.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called mt9m001.
-
 comment "CMOS Camera Sensor Selection"
 
 choice
