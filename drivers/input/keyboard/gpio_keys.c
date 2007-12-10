@@ -27,6 +27,18 @@
 
 #include <asm/gpio.h>
 
+#if defined(CONFIG_BLACKFIN) && !defined(BF548_FAMILY)
+
+/*
+ * On some Blackfin CPUs reading edge triggered
+ * GPIOs doesn't return the current value
+ */
+
+#define GPIOKEYS_EDGE_SENSE(x) set_gpio_edge(gpio, x)
+#else
+#define GPIOKEYS_EDGE_SENSE(x) do {} while (0)
+#endif
+
 static irqreturn_t gpio_keys_isr(int irq, void *dev_id)
 {
 	int i;
@@ -40,8 +52,9 @@ static irqreturn_t gpio_keys_isr(int irq, void *dev_id)
 
 		if (irq == gpio_to_irq(gpio)) {
 			unsigned int type = button->type ?: EV_KEY;
+			GPIOKEYS_EDGE_SENSE(0);
 			int state = (gpio_get_value(gpio) ? 1 : 0) ^ button->active_low;
-
+			GPIOKEYS_EDGE_SENSE(1);
 			input_event(input, type, button->code, !!state);
 			input_sync(input);
 		}
