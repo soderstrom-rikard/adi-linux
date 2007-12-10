@@ -178,15 +178,13 @@ static struct gpio_port_t *gpio_array[gpio_bank(MAX_BLACKFIN_GPIOS)] = {
 #endif
 
 static unsigned short reserved_gpio_map[gpio_bank(MAX_BLACKFIN_GPIOS)];
-static unsigned short reserved_peri_map[gpio_bank(MAX_BLACKFIN_GPIOS + 16)];
+static unsigned short reserved_peri_map[gpio_bank(MAX_RESOURCES)];
 
-#define MAX_RESOURCES 		256
 #define RESOURCE_LABEL_SIZE 	16
 
-struct str_ident {
+static struct str_ident {
 	char name[RESOURCE_LABEL_SIZE];
-} *str_ident;
-
+} str_ident[MAX_RESOURCES];
 
 #ifdef CONFIG_PM
 static unsigned short wakeup_map[gpio_bank(MAX_BLACKFIN_GPIOS)];
@@ -418,12 +416,6 @@ static void default_gpio(unsigned short gpio)
 
 static int __init bfin_gpio_init(void)
 {
-	str_ident = kcalloc(MAX_RESOURCES,
-				 sizeof(struct str_ident), GFP_KERNEL);
-	if (str_ident == NULL)
-		return -ENOMEM;
-
-	memset(str_ident, 0, MAX_RESOURCES * sizeof(struct str_ident));
 
 	printk(KERN_INFO "Blackfin GPIO Controller\n");
 
