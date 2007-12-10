@@ -2507,11 +2507,11 @@ static int net2272_probe (struct device *_dev)
 #ifdef CONFIG_BF533
 		/* Set PF0 to 0, PF1 to 1 make /AMS3 work properly */
 
-	if(gpio_request(GPIO_0, NULL)){
+	if (gpio_request(GPIO_0, driver_name)) {
 		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_0);
 		return -EBUSY;
 	}
-	if(gpio_request(GPIO_1, NULL)){
+	if (gpio_request(GPIO_1, driver_name)) {
 		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_1);
 		gpio_free(GPIO_0);
 		return -EBUSY;
@@ -2523,7 +2523,7 @@ static int net2272_probe (struct device *_dev)
 #endif
 
 #if defined(CONFIG_BF533) || defined(CONFIG_BF561)
-	if(gpio_request(GPIO_11, NULL)) {
+	if (gpio_request(GPIO_11, driver_name)) {
 		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_11);
 		gpio_free(GPIO_0);
 		gpio_free(GPIO_1);
@@ -2538,7 +2538,7 @@ static int net2272_probe (struct device *_dev)
 #endif
 
 #ifdef CONFIG_BF537
-	if(gpio_request(GPIO_6, NULL)) {
+	if (gpio_request(GPIO_6, driver_name)) {
 		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_6);
 		return -EBUSY;
 	}
@@ -2552,7 +2552,7 @@ static int net2272_probe (struct device *_dev)
 #endif
 
 #ifdef CONFIG_BFIN537_BLUETECHNIX_CM /* Set PH15 Low make /AMS2 work properly */
-	if(gpio_request(GPIO_47, NULL)){
+	if (gpio_request(GPIO_47, driver_name)) {
 		printk(KERN_ERR "net2272: Failed ro request GPIO_%d\n", GPIO_47);
 		return -EBUSY;
 	}

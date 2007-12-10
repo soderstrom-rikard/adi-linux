@@ -540,7 +540,7 @@ void bfsi_reset(void) {
 #endif
 	if (reset_port[reset_bit] == 0)
                 PRINTK("Error: cannot set reset to this bit! \n");
-	gpio_request(reset_port[reset_bit],NULL);
+	gpio_request(reset_port[reset_bit], "bfsi: RESET");
 	PRINTK("toggle reset\n");
 	gpio_direction_output(reset_port[reset_bit]);
        	PRINTK("set reset bit OK! \n");

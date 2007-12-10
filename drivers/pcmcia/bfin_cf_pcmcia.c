@@ -215,7 +215,7 @@ static int __init bfin_cf_probe(struct device *dev)
 	if (cd_pfx > MAX_BLACKFIN_GPIOS)
 		return -EINVAL;
 
-	if(gpio_request(cd_pfx, NULL)){
+	if (gpio_request(cd_pfx, "pcmcia: CD")) {
 		printk(KERN_ERR "BF5xx flash: Failed ro request Card Detect GPIO_%d\n", cd_pfx);
 		return -EBUSY;
 	}
