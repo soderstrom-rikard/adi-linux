@@ -249,6 +249,9 @@ static char *get_label(unsigned short ident)
 
 static int cmp_label(unsigned short ident, const char *label)
 {
+	if (label == NULL)
+		dump_stack();
+
 	if (label && str_ident)
 		return strncmp(str_ident[ident].name,
 				 label, strlen(label));
@@ -777,6 +780,14 @@ void gpio_pm_restore(void)
 }
 
 #endif
+#else /* BF548_FAMILY */
+
+unsigned short get_gpio_dir(unsigned short gpio)
+{
+	return (0x01 & (gpio_array[gpio_bank(gpio)]->port_dir_clear >> gpio_sub_n(gpio)));
+}
+EXPORT_SYMBOL(get_gpio_dir);
+
 #endif /* BF548_FAMILY */
 
 /***********************************************************
@@ -1196,10 +1207,10 @@ static int gpio_proc_read(char *buf, char **start, off_t offset,
 
 	for (c = 0; c < MAX_RESOURCES; c++) {
 		if (!check_gpio(c) && (reserved_gpio_map[gpio_bank(c)] & gpio_bit(c)))
-			len = sprintf(buf, "GPIO_%d: %s \tGPIO %s\n", c,
+			len = sprintf(buf, "GPIO_%d: %s \t\tGPIO %s\n", c,
 				 get_label(c), get_gpio_dir(c) ? "OUTPUT" : "INPUT");
 		else if (reserved_peri_map[gpio_bank(c)] & gpio_bit(c))
-			len = sprintf(buf, "GPIO_%d: %s \tPeripheral\n", c, get_label(c));
+			len = sprintf(buf, "GPIO_%d: %s \t\tPeripheral\n", c, get_label(c));
 		else
 			continue;
 		buf += len;
