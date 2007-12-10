@@ -1195,7 +1195,7 @@ static int gpio_proc_read(char *buf, char **start, off_t offset,
 	int c, outlen = 0;
 
 	for (c = 0; c < MAX_RESOURCES; c++) {
-		if (reserved_gpio_map[gpio_bank(c)] & gpio_bit(c))
+		if (!check_gpio(c) && (reserved_gpio_map[gpio_bank(c)] & gpio_bit(c)))
 			len = sprintf(buf, "GPIO_%d: %s \tGPIO %s\n", c,
 				 get_label(c), get_gpio_dir(c) ? "OUTPUT" : "INPUT");
 		else if (reserved_peri_map[gpio_bank(c)] & gpio_bit(c))
