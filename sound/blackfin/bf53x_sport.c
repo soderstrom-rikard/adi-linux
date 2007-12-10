@@ -278,7 +278,6 @@ static inline int sport_hook_rx_dummy(struct bf53x_sport *sport)
 {
 	struct dmasg *desc, temp_desc;
 	unsigned long flags;
-	struct dma_register *dma = sport->dma_rx;
 
 	SPORT_ASSERT(sport->dummy_rx_desc != NULL);
 	SPORT_ASSERT(sport->curr_rx_desc != sport->dummy_rx_desc);
@@ -287,7 +286,7 @@ static inline int sport_hook_rx_dummy(struct bf53x_sport *sport)
 			(unsigned long)(sport->dummy_rx_desc+1);
 
 	local_irq_save(flags);
-	desc = (struct dmasg*)dma->next_desc_ptr;
+	desc = (struct dmasg *)get_dma_next_desc_ptr(sport->dma_rx_chan);
 	/* Copy the descriptor which will be damaged to backup */
 	temp_desc = *desc;
 	desc->x_count=0x10;
@@ -295,7 +294,7 @@ static inline int sport_hook_rx_dummy(struct bf53x_sport *sport)
 	desc->next_desc_addr = (unsigned long)(sport->dummy_rx_desc);
 	local_irq_restore(flags);
 	/* Waiting for dummy buffer descriptor is already hooked*/
-	while ((*(volatile unsigned long*)&dma->curr_desc_ptr - \
+	while ((get_dma_curr_desc_ptr(sport->dma_rx_chan) - \
 			sizeof(struct dmasg)) != \
 			(unsigned long)sport->dummy_rx_desc) {}
 	sport->curr_rx_desc = sport->dummy_rx_desc;
@@ -354,7 +353,6 @@ static inline int sport_tx_dma_start(struct bf53x_sport *sport, int dummy)
 int bf53x_sport_rx_start(struct bf53x_sport *sport)
 {
 	unsigned long flags;
-	struct dma_register *dma = sport->dma_rx;
 
 	if (sport->rx_run)
 		return -EBUSY;
@@ -364,7 +362,7 @@ int bf53x_sport_rx_start(struct bf53x_sport *sport)
 		SPORT_ASSERT(sport->dma_rx_desc != NULL);
 		SPORT_ASSERT(sport->curr_rx_desc == sport->dummy_rx_desc);
 		local_irq_save(flags);
-		while ((*(unsigned long *)&dma->curr_desc_ptr - \
+		while ((get_dma_curr_desc_ptr(sport->dma_rx_chan) - \
 			sizeof(struct dmasg)) != \
 			(unsigned long)sport->dummy_rx_desc) {}
 		sport->dummy_rx_desc->next_desc_addr = \
@@ -406,7 +404,6 @@ static inline int sport_hook_tx_dummy(struct bf53x_sport *sport)
 {
 	struct dmasg *desc, temp_desc;
 	unsigned long flags;
-	struct dma_register *dma = sport->dma_tx;
 
 	SPORT_ASSERT(sport->dummy_tx_desc != NULL);
 	SPORT_ASSERT(sport->curr_tx_desc != sport->dummy_tx_desc);
@@ -416,7 +413,7 @@ static inline int sport_hook_tx_dummy(struct bf53x_sport *sport)
 
 	/* Shorten the time on last normal descriptor */
 	local_irq_save(flags);
-	desc = (struct dmasg*)dma->next_desc_ptr;
+	desc = (struct dmasg *)get_dma_next_desc_ptr(sport->dma_tx_chan);
 	/* Store the descriptor which will be damaged */
 	temp_desc = *desc;
 	desc->x_count = 0x10;
@@ -424,7 +421,7 @@ static inline int sport_hook_tx_dummy(struct bf53x_sport *sport)
 	desc->next_desc_addr = (unsigned long)(sport->dummy_tx_desc);
 	local_irq_restore(flags);
 	/* Waiting for dummy buffer descriptor is already hooked*/
-	while ((*(unsigned long *)&dma->curr_desc_ptr - \
+	while ((get_dma_curr_desc_ptr(sport->dma_tx_chan) - \
 			sizeof(struct dmasg)) != \
 			(unsigned long)sport->dummy_tx_desc) {}
 	sport->curr_tx_desc = sport->dummy_tx_desc;
@@ -449,7 +446,7 @@ int bf53x_sport_tx_start(struct bf53x_sport *sport)
 		SPORT_ASSERT(sport->curr_tx_desc == sport->dummy_tx_desc);
 		/* Hook the normal buffer descriptor */
 		local_irq_save(flags);
-		while ((*(unsigned long *)&dma->curr_desc_ptr - \
+		while ((get_dma_curr_desc_ptr(sport->dma_tx_chan) - \
 			sizeof(struct dmasg)) != \
 			(unsigned long)sport->dummy_tx_desc) {}
 		sport->dummy_tx_desc->next_desc_addr = \
