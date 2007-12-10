@@ -73,6 +73,10 @@
 #include "mt9v022.h"
 #endif
 
+#ifdef CONFIG_OV9655
+#include "ov9655.h"
+#endif
+
 
 #ifdef USE_GPIO
 #define GPIO_SET_VALUE(x,y) gpio_set_value(x,y)

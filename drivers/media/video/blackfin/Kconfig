@@ -40,4 +40,12 @@ config VS6624
 	help
 	  ST VS6624 Sensor Support
 
+config OV9655
+	bool "OV9655"
+	depends on VIDEO_BLACKFIN_CAM && EXPERIMENTAL
+	help
+	  Omnivision OV9655 Sensor Support
+	  This is work in progress. NOT YET COMPLETE.
+
+
 endchoice
