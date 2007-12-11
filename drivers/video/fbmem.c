@@ -1161,7 +1161,7 @@ fb_mmap(struct file *file, struct vm_area_struct * vma)
 	struct fb_info *info = registered_fb[fbidx];
 	struct fb_ops *fb = info->fbops;
 	unsigned long off;
-#if !defined(__sparc__) || defined(__sparc_v9__)
+#if (!defined(__sparc__) || defined(__sparc_v9__)) && !defined(__bfin__)
 	unsigned long start;
 	u32 len;
 #endif
@@ -1179,7 +1179,7 @@ fb_mmap(struct file *file, struct vm_area_struct * vma)
 		return res;
 	}
 
-#if defined(__sparc__) && !defined(__sparc_v9__)
+#if (defined(__sparc__) && !defined(__sparc_v9__)) || defined(__bfin__)
 	/* Should never get here, all fb drivers should have their own
 	   mmap routines */
 	return -EINVAL;
