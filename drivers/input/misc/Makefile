@@ -8,7 +8,6 @@ obj-$(CONFIG_INPUT_SPARCSPKR)		+= sparcspkr.o
 obj-$(CONFIG_INPUT_PCSPKR)		+= pcspkr.o
 obj-$(CONFIG_INPUT_M68K_BEEP)		+= m68kspkr.o
 obj-$(CONFIG_INPUT_IXP4XX_BEEPER)	+= ixp4xx-beeper.o
-obj-$(CONFIG_BF53X_PFBUTTONS)		+= bf53x_pfbuttons.o
 obj-$(CONFIG_TWI_KEYPAD)		+= twi_keypad.o
 obj-$(CONFIG_INPUT_COBALT_BTNS)		+= cobalt_btns.o
 obj-$(CONFIG_INPUT_WISTRON_BTNS)	+= wistron_btns.o
