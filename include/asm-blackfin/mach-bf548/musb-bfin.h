@@ -86,6 +86,7 @@
 #define MUSB_NAKLIMIT0		MUSB_TXINTERVAL	/* Re-used for EP0 */
 #define MUSB_RXTYPE		0x1C
 #define MUSB_RXINTERVAL		0x20
+#define MUSB_TXCOUNT		0x28
 #define MUSB_FIFOSIZE		0x28
 #define MUSB_CONFIGDATA		MUSB_FIFOSIZE	/* Re-used for EP0 */
 

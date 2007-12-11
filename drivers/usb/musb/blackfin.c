@@ -107,6 +107,7 @@ static void dump_fifo_data(u8 *buf, u16 len)
 void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 {
 	void __iomem *fifo = hw_ep->fifo;
+	void __iomem *epio = hw_ep->regs;
 	int i;
 	u16 *data;
 	u8 epnum = hw_ep->epnum;
@@ -114,15 +115,17 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 
 	prefetch((u8 *)src);
 
-	bfin_write_USB_TXCOUNT(len);
-	SSYNC();
+	musb_writew(epio, MUSB_FIFOSIZE, len);
 
-	DBG(4, "TX ep%d fifo %p count %d buf %p\n",
-			hw_ep->epnum, fifo, len, src);
+	DBG(4, "TX ep%d fifo %p count %d buf %p, epio %p\n",
+			hw_ep->epnum, fifo, len, src, epio);
 
 	dump_fifo_data(src, len);
 
-#if defined(CONFIG_BF54x)
+#if defined(CONFIG_MUSB_PIO_ONLY)
+	BUG_ON((unsigned long)src & 0x01);
+	outsw(fifo, src, len & 0x01 ? (len >> 1) + 1 : len >> 1);
+#else
 	flush_dcache_range((unsigned int)src,
 		(unsigned int)(src + len));
 
@@ -156,43 +159,6 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 	/* Reset DMA */
 	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_CTRL), 0);
 	SSYNC();
-#else
-#if (0)
-	/* we can't assume unaligned reads work */
-	if (likely((0x01 & (u16) src) == 0)) {
-		data = (u16 *) src;
-
-		if (len & 0x01) {
-			u8 last = 0;
-			for (i = 0; i < ((len - 1) >> 1); i++) {
-				bfin_write16(fifo, *data);
-				data++;
-			}
-			last = *(src + len - 2);
-			bfin_write16(fifo, last);
-		}
-		else {
-			for (i = 0; i < (len >> 1); i++) {
-				bfin_write16(fifo, *data);
-				data++;
-			}
-		}
-	} else  {
-		u16 first = *src;
-		data = (u16 *) (src + 1);
-		bfin_write16(fifo, first);
-
-		for (i = 0; i < ((len - 1) >> 1); i++) {
-			bfin_write16(fifo, *data);
-			data++;
-		}
-	}
-	SSYNC();
-#else
-	BUG_ON((unsigned long)src & 0x01);
-	outsw(fifo, src, len & 0x01 ? (len >> 1) + 1 : len >> 1);
-#endif
-
 #endif
 }
 
@@ -210,7 +176,10 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 	DBG(4, "%cX ep%d fifo %p count %d buf %p\n",
 			'R', hw_ep->epnum, fifo, len, dst);
 
-#if defined(CONFIG_BF54x)
+#if defined(CONFIG_MUSB_PIO_ONLY)
+	BUG_ON((unsigned long)dst & 0x01);
+	insw(fifo, dst, len & 0x01 ? (len >> 1) + 1 : len >> 1);
+#else
 	invalidate_dcache_range((unsigned int)dst,
 		(unsigned int)(dst + len));
 
@@ -244,34 +213,6 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 	/* Reset DMA */
 	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_CTRL), 0);
 	SSYNC();
-#else
-	/* we can't assume unaligned writes work */
-#if (0)
-	if (likely((0x01 & (unsigned long) dst) == 0)) {
-		data = (u16 *) dst;
-
-		if (len & 0x01) {
-			for (i = 0; i < ((len - 1) >> 1); i++) {
-				*data = bfin_read16(fifo);
-				data++;
-			}
-			*((u8 *)data + 1) = (u8) bfin_read16(fifo);
-		}
-		else {
-			for (i = 0; i < (len >> 1); i++)
-				*data++ = bfin_read16(fifo);
-		}
-	} else  {
-		/* byte aligned */
-		BUG();
-		readsb(fifo, dst, len);
-	}
-	SSYNC();
-#else
-	BUG_ON((unsigned long)dst & 0x01);
-	insw(fifo, dst, len & 0x01 ? (len >> 1) + 1 : len >> 1);
-#endif
-
 #endif
 
 	dump_fifo_data(dst, len);

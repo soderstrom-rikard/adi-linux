@@ -693,7 +693,9 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 			/* ASSERT:  TXCSR_DMAENAB was already cleared */
 
 			/* flush all old state, set default */
+#ifndef CONFIG_BLACKFIN
 			musb_h_tx_flush_fifo(hw_ep);
+#endif
 			csr &= ~(MUSB_TXCSR_H_NAKTIMEOUT
 					| MUSB_TXCSR_DMAMODE
 					| MUSB_TXCSR_FRCDATATOG
