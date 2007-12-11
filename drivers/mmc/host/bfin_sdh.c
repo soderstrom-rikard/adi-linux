@@ -260,6 +260,8 @@ static int sdh_data_done(struct sdh_host *host, unsigned int stat)
 		data->error = MMC_ERR_TIMEOUT;
 	else if (stat & DAT_CRC_FAIL)
 		data->error = MMC_ERR_BADCRC;
+	else if (stat & (RX_OVERRUN | TX_UNDERRUN))
+		data->error = MMC_ERR_FIFO;
 
 	if (data->error == MMC_ERR_NONE)
 		data->bytes_xfered = data->blocks * data->blksz;
@@ -267,9 +269,9 @@ static int sdh_data_done(struct sdh_host *host, unsigned int stat)
 		data->bytes_xfered = data->blocks * data->blksz - \
 				     bfin_read_SDH_DATA_CNT();
 
-	sdh_disable_stat_irq(host, DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL);
+	sdh_disable_stat_irq(host, DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL | RX_OVERRUN | TX_UNDERRUN);
 	bfin_write_SDH_STATUS_CLR(DAT_END_STAT | DAT_TIMEOUT_STAT | \
-			DAT_CRC_FAIL_STAT | DAT_BLK_END_STAT);
+			DAT_CRC_FAIL_STAT | DAT_BLK_END_STAT | RX_OVERRUN | TX_UNDERRUN);
 	bfin_write_SDH_DATA_CTL(0);
 	SSYNC();
 
@@ -398,16 +400,16 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 	}
 
 	status = bfin_read_SDH_STATUS();
-	if (status & (DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL))
+	if (status & (DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL | RX_OVERRUN | TX_UNDERRUN))
 		handled |= sdh_data_done(host, status);
-
+	/*
 	if (status & (RX_OVERRUN | TX_UNDERRUN)) {
-		bfin_write_SDH_DATA_CTL(0); /* Disable data transfer */
+		bfin_write_SDH_DATA_CTL(0);
 		printk(KERN_ERR "FIFO ERROR: %s\n", (status & RX_OVERRUN) ? \
 				"RX OVERRUN": "TX UNDERRUN");
 		bfin_write_SDH_STATUS_CLR(RX_OVERRUN_STAT | TX_UNDERRUN);
 	}
-
+	*/
 	pr_debug("%s exit\n\n", __FUNCTION__);
 
 	return IRQ_RETVAL(handled);
