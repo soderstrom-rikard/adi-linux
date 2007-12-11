@@ -128,7 +128,7 @@ static int pflags_open(struct inode *inode, struct file *filp)
 
 	spin_lock_irqsave(&pflags_lock, flags);
 
-	if(gpio_request(minor, NULL)){
+	if (gpio_request(minor, "pflags")) {
 		spin_unlock_irqrestore(&pflags_lock, flags);
 		return -EBUSY;
 	}
