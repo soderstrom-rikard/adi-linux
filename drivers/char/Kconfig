@@ -113,12 +113,6 @@ config BF5xx_TEA5764
 	default n
 	---help---
 
-config BF5xx_FBDMA
-	tristate "Framebuffer DMA BitBlit / Fill Rect Support"
-	depends EXPERIMENTAL && BLACKFIN
-	default n
-	---help---
-
 config VT
 	bool "Virtual terminal" if EMBEDDED
 	depends on !S390
