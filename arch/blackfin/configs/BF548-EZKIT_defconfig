@@ -171,7 +171,8 @@ CONFIG_BFIN548_EZKIT=y
 #
 # BF548 Specific Configuration
 #
-CONFIG_DEB_DMA_URGENT=y
+
+# CONFIG_DEB_DMA_URGENT is not set
 
 #
 # Interrupt Priority Assignment
