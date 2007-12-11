@@ -107,12 +107,6 @@ config AD5304
 
 	  If unsure, say N.
 
-config BF5xx_TEA5764
-	tristate "TEA5764 FM/RDS RX"
-	depends on I2C && EXPERIMENTAL && BLACKFIN
-	default n
-	---help---
-
 config VT
 	bool "Virtual terminal" if EMBEDDED
 	depends on !S390

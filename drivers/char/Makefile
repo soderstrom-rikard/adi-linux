@@ -68,7 +68,6 @@ obj-$(CONFIG_BFIN_SPORT)  += bfin_sport.o
 obj-$(CONFIG_BLACKFIN_DPMC) 	+= bfin_dpmc.o
 obj-$(CONFIG_TWI_LCD)	+= bfin_twi_lcd.o
 obj-$(CONFIG_AD5304)		+= ad5304.o
-obj-$(CONFIG_BF5xx_TEA5764) 	+= tea5764.o
 
 obj-$(CONFIG_PRINTER)		+= lp.o
 obj-$(CONFIG_TIPAR)		+= tipar.o
