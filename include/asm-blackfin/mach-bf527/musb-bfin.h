@@ -198,7 +198,7 @@
 
 /* TXCSR in Peripheral and Host mode */
 #define MUSB_TXCSR_AUTOSET		0x8000
-#define MUSB_TXCSR_MODE			0x2000
+#define MUSB_TXCSR_MODE			0x0000	/* Not implemented - HW has seperate Tx/Rx FIFO */
 #define MUSB_TXCSR_DMAENAB		0x1000
 #define MUSB_TXCSR_FRCDATATOG		0x0800
 #define MUSB_TXCSR_DMAMODE		0x0400

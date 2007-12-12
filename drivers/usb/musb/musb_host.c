@@ -594,12 +594,11 @@ musb_rx_reinit(struct musb *musb, struct musb_qh *qh, struct musb_hw_ep *ep)
 			WARN("rx%d, packet/%d ready?\n", ep->epnum,
 				musb_readw(ep->regs, MUSB_RXCOUNT));
 
-#ifdef CONFIG_BLACKFIN
-		musb_h_flush_rxfifo(ep, 0);
-#else
-		musb_h_flush_rxfifo(ep, MUSB_RXCSR_CLRDATATOG);
-#endif
-
+		csr = musb_readw(ep->regs, MUSB_TXCSR);
+		if (csr & MUSB_TXCSR_MODE)
+			musb_h_flush_rxfifo(ep, MUSB_RXCSR_CLRDATATOG);
+		else
+			musb_h_flush_rxfifo(ep, 0);
 	}
 
 	/* target addr and (for multipoint) hub addr/port */
@@ -693,9 +692,9 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 			/* ASSERT:  TXCSR_DMAENAB was already cleared */
 
 			/* flush all old state, set default */
-#ifndef CONFIG_BLACKFIN
-			musb_h_tx_flush_fifo(hw_ep);
-#endif
+			if (csr & MUSB_TXCSR_MODE)
+				musb_h_tx_flush_fifo(hw_ep);
+
 			csr &= ~(MUSB_TXCSR_H_NAKTIMEOUT
 					| MUSB_TXCSR_DMAMODE
 					| MUSB_TXCSR_FRCDATATOG
@@ -709,10 +708,9 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 					qh->epnum, 1))
 				csr |= MUSB_TXCSR_H_WR_DATATOGGLE
 					| MUSB_TXCSR_H_DATATOGGLE;
-#ifndef CONFIG_BLACKFIN
 			else
-				csr |= MUSB_TXCSR_CLRDATATOG;
-#endif
+				if (csr & MUSB_TXCSR_MODE)
+					csr |= MUSB_TXCSR_CLRDATATOG;
 
 			/* twice in case of double packet buffering */
 			musb_writew(epio, MUSB_TXCSR, csr);
