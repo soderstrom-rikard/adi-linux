@@ -184,7 +184,7 @@ int ad5252_detect(struct i2c_adapter *adapter, int address, int kind)
 	ad5252_init_client(new_client);
 
 	/* Register sysfs hooks */
-	err = evice_create_file(&new_client->dev, &dev_attr_read_w1);
+	err = device_create_file(&new_client->dev, &dev_attr_read_w1);
 	err |= device_create_file(&new_client->dev, &dev_attr_read_w3);
 	err |= device_create_file(&new_client->dev, &dev_attr_write_w1);
 	err |= device_create_file(&new_client->dev, &dev_attr_write_w3);
