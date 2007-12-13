@@ -1041,7 +1041,9 @@ static int snd_ad1836_playback_prepare(struct snd_pcm_substream *substream)
 	int fragsize_bytes = frames_to_bytes(runtime, runtime->period_size);
 #endif
 	int err=0;
+#ifndef MULTI_SUBSTREAM
 	int word_len = 4;
+#endif
 
 #ifdef MULTI_SUBSTREAM
 	substream_info_t *sub_info = NULL;
@@ -1499,8 +1501,10 @@ static int snd_ad1836_capture_copy(struct snd_pcm_substream *substream, int chan
 static int snd_ad1836_playback_silence(struct snd_pcm_substream *substream,
 		int channel, snd_pcm_uframes_t pos, snd_pcm_uframes_t count)
 {
-	unsigned char *buf = substream->runtime->dma_area;
 
+#if defined(CONFIG_SND_BLACKFIN_AD1836_I2S) || defined(LINPHONE_SETTING) || !defined(MULTI_SUBSTREAM)
+	unsigned char *buf = substream->runtime->dma_area;
+#endif
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
 #ifndef MULTI_SUBSTREAM
 	buf += pos * 8 * 4;
