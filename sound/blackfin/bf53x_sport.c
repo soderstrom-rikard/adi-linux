@@ -434,7 +434,6 @@ static inline int sport_hook_tx_dummy(struct bf53x_sport *sport)
 int bf53x_sport_tx_start(struct bf53x_sport *sport)
 {
 	unsigned flags;
-	struct dma_register *dma = sport->dma_tx;
 
 	sport_printd(KERN_INFO, "%s: tx_run:%d, rx_run:%d\n",
 			__FUNCTION__, sport->tx_run, sport->rx_run);
