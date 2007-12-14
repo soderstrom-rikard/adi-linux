@@ -129,6 +129,16 @@ ENTRY(_ex_syscall)
 ENDPROC(_ex_syscall)
 
 ENTRY(_ex_soft_bp)
+	r6 = syscfg;
+	bitclr (r7, 0);
+	syscfg = R7;
+
+	p4.l = lo(IPEND);
+	p4.h = hi(IPEND);
+	r6 = [p4];
+	CC = BITTST (r6, 5);
+	if CC jump _bfin_return_from_exception;
+
 	r7 = retx;
 	r7 += -2;
 	retx = r7;
@@ -156,6 +166,7 @@ ENTRY(_ex_single_step)
 	r7 = [p4];
 	cc = r6 == r7;
 	if !cc jump _ex_trap_c;
+	jump _bfin_return_from_exception;
 ENDPROC(_ex_single_step)
 
 ENTRY(_bfin_return_from_exception)
