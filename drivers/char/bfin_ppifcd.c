@@ -289,7 +289,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd,
 			}
 
 			gpio_direction_output(pdev->ppi_trigger_gpio);
-
+			gpio_set_value(pdev->ppi_trigger_gpio, 0);
 			break;
 		}
 	case CMD_PPI_GET_ALLCONFIG:
