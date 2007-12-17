@@ -249,8 +249,10 @@ static char *get_label(unsigned short ident)
 
 static int cmp_label(unsigned short ident, const char *label)
 {
-	if (label == NULL)
+	if (label == NULL) {
+		printk(KERN_ERR"Please provide none-null label\n");
 		dump_stack();
+	}
 
 	if (label && str_ident)
 		return strncmp(str_ident[ident].name,
