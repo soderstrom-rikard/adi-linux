@@ -133,12 +133,31 @@ ENTRY(_ex_soft_bp)
 	bitclr (r6, 0);
 	syscfg = r6;
 
+	/* check if in hardware events handler */
 	p4.l = lo(IPEND);
 	p4.h = hi(IPEND);
 	r6 = [p4];
 	CC = BITTST (r6, 5);
-	if CC jump _bfin_return_from_exception;
+	if !CC jump .Lreal_softbp;
 
+	/* check if in soft bp or single step handler */
+	P4.l = _out_ptr_excause;
+	P4.h = _out_ptr_excause;
+	R7 = [P4];
+	R6.l = _excause_circ_buf;
+	R6.h = _excause_circ_buf;
+	R7 = R7 + R6;
+	P4 = R7;
+	R6 = [P4];
+	R7 = 0xFF;
+	R6 = R6 & R7;
+	R7 = 0x10;	/* EXCAUSE single step */
+	CC = R6 == R7;
+	if CC jump _bfin_return_from_exception;
+	R7 = 0x1;	/* EXCAUSE soft bp */
+	CC = R6 == R7;
+	if CC jump _bfin_return_from_exception;
+.Lreal_softbp:
 	r7 = retx;
 	r7 += -2;
 	retx = r7;
@@ -149,24 +168,12 @@ ENTRY(_ex_single_step)
 	r7 = retx;
 	r6 = reti;
 	cc = r7 == r6;
-	if cc jump _bfin_return_from_exception
+	if cc jump _bfin_return_from_exception;
+
 	r7 = syscfg;
 	bitclr (r7, 0);
 	syscfg = R7;
-
-	p5.l = lo(IPEND);
-	p5.h = hi(IPEND);
-	r6 = [p5];
-	cc = bittst(r6, 5);
-	if !cc jump _ex_trap_c;
-	p4.l = lo(EVT5);
-	p4.h = hi(EVT5);
-	r6.h = _exception_to_level5;
-	r6.l = _exception_to_level5;
-	r7 = [p4];
-	cc = r6 == r7;
-	if !cc jump _ex_trap_c;
-	jump _bfin_return_from_exception;
+	jump _ex_trap_c;
 ENDPROC(_ex_single_step)
 
 ENTRY(_bfin_return_from_exception)
