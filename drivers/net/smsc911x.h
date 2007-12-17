@@ -1,7 +1,7 @@
 /***************************************************************************
  *
- * Copyright (C) 2004-2006 SMSC
- * Copyright (C) 2005-2006 ARM
+ * Copyright (C) 2004-2007  SMSC
+ * Copyright (C) 2005 ARM
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,13 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
- */
+ ***************************************************************************/
 #ifndef __SMSC911X_H__
 #define __SMSC911X_H__
 
 #define SMSC_CAN_USE_32BIT	1
-#define TX_FIFO_LOW_THRESHOLD	((u32)1600)
-#define SMSC911X_EEPROM_SIZE	((u32)7)
+#define TX_FIFO_LOW_THRESHOLD	(u32)1600
+#define SMSC911X_EEPROM_SIZE	(u32)7
 #define USE_DEBUG 		0
 
 /* implements a PHY loopback test at initialisation time, to ensure a packet
@@ -32,6 +32,13 @@
 
 /* 10/100 LED link-state inversion when media is disconnected */
 #define USE_LED1_WORK_AROUND
+
+/* platform_device configuration data, should be assigned to
+ * the platform_device's dev.platform_data */
+struct smsc911x_platform_config {
+	unsigned int irq_polarity;
+	unsigned int irq_type;
+};
 
 #if USE_DEBUG >= 1
 #define SMSC_WARNING(fmt, args...) \
@@ -42,50 +49,12 @@
 #endif				/* USE_DEBUG >= 1 */
 
 #if USE_DEBUG >= 2
-#define SMSC_TRACE(fmt, args...) \
+#define SMSC_TRACE(fmt,args...) \
 		printk(KERN_EMERG "SMSC_TRACE: %s: " fmt "\n", \
 			__FUNCTION__ , ## args)
 #else
 #define SMSC_TRACE(msg, args...)
 #endif				/* USE_DEBUG >= 2 */
-
-struct smsc911x_data {
-	void __iomem *ioaddr;
-	unsigned int idrev;
-	unsigned int generation; /* used to decide which workarounds apply */
-
-	/* This needs to be acquired before calling any of below:
-	 * smsc911x_mac_read(), smsc911x_mac_write()
-	 * smsc911x_phy_read(), smsc911x_phy_write()
-	 */
-	spinlock_t phy_lock;
-
-	struct net_device_stats stats;
-	struct mii_if_info mii;
-	unsigned int using_extphy;
-	u32 msg_enable;
-#ifdef USE_LED1_WORK_AROUND
-	unsigned int gpio_setting;
-	unsigned int gpio_orig_setting;
-#endif
-	struct timer_list link_poll_timer;
-	int stop_link_poll;
-	int software_irq_signal;
-
-#ifdef USE_PHY_WORK_AROUND
-#define MIN_PACKET_SIZE (64)
-	char loopback_tx_pkt[MIN_PACKET_SIZE];
-	char loopback_rx_pkt[MIN_PACKET_SIZE];
-	unsigned int resetcount;
-#endif
-
-	/* Members for Multicast filter workaround */
-	unsigned int multicast_update_pending;
-	unsigned int set_bits_mask;
-	unsigned int clear_bits_mask;
-	unsigned int hashhi;
-	unsigned int hashlo;
-};
 
 /* SMSC911x registers and bitfields */
 #define RX_DATA_FIFO			0x00
@@ -414,4 +383,3 @@ struct smsc911x_data {
 					 LPA_PAUSE_ASYM)
 
 #endif				/* __SMSC911X_H__ */
-
