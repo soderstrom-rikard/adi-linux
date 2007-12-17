@@ -130,8 +130,8 @@ ENDPROC(_ex_syscall)
 
 ENTRY(_ex_soft_bp)
 	r6 = syscfg;
-	bitclr (r7, 0);
-	syscfg = R7;
+	bitclr (r6, 0);
+	syscfg = r6;
 
 	p4.l = lo(IPEND);
 	p4.h = hi(IPEND);
