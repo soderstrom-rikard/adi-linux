@@ -129,35 +129,6 @@ ENTRY(_ex_syscall)
 ENDPROC(_ex_syscall)
 
 ENTRY(_ex_soft_bp)
-	r6 = syscfg;
-	bitclr (r6, 0);
-	syscfg = r6;
-
-	/* check if in hardware events handler */
-	p4.l = lo(IPEND);
-	p4.h = hi(IPEND);
-	r6 = [p4];
-	CC = BITTST (r6, 5);
-	if !CC jump .Lreal_softbp;
-
-	/* check if in soft bp or single step handler */
-	P4.l = _out_ptr_excause;
-	P4.h = _out_ptr_excause;
-	R7 = [P4];
-	R6.l = _excause_circ_buf;
-	R6.h = _excause_circ_buf;
-	R7 = R7 + R6;
-	P4 = R7;
-	R6 = [P4];
-	R7 = 0xFF;
-	R6 = R6 & R7;
-	R7 = 0x10;	/* EXCAUSE single step */
-	CC = R6 == R7;
-	if CC jump _bfin_return_from_exception;
-	R7 = 0x1;	/* EXCAUSE soft bp */
-	CC = R6 == R7;
-	if CC jump _bfin_return_from_exception;
-.Lreal_softbp:
 	r7 = retx;
 	r7 += -2;
 	retx = r7;
