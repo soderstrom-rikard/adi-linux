@@ -75,7 +75,7 @@ typedef struct PPI_Device_t {
 	unsigned short ppi_control;
 	unsigned short ppi_status;
 	unsigned short ppi_delay;
-	unsigned short ppi_trigger_gpio;
+	short ppi_trigger_gpio;
 	struct fasync_struct *fasyc;
 	wait_queue_head_t *rx_avail;
 } ppi_device_t;
@@ -406,7 +406,7 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count,
 	bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
 	SSYNC();
 
-	if (pdev->ppi_trigger_gpio < NO_TRIGGER) {
+	if (pdev->ppi_trigger_gpio > NO_TRIGGER) {
 		gpio_set_value(pdev->ppi_trigger_gpio, 1);
 		udelay(1);
 		gpio_set_value(pdev->ppi_trigger_gpio, 0);
@@ -566,6 +566,9 @@ static int ppi_release(struct inode *inode, struct file *filp)
 	free_dma(CH_PPI);
 
 	free_irq(IRQ_PPI_ERROR, filp->private_data);
+
+	if (pdev->ppi_trigger_gpio > NO_TRIGGER)
+		gpio_free(pdev->ppi_trigger_gpio);
 
 	ppifcd_reg_reset(pdev);
 	pdev->opened = 0;
