@@ -289,6 +289,8 @@ ad7142_detach_client(struct i2c_client *client)
 {
 	int rc;
 
+	free_irq(CONFIG_BFIN_JOYSTICK_IRQ_PFX, ad7142_interrupt);
+
 	rc = i2c_detach_client(client);
 	if (!rc)
 		kfree(i2c_get_clientdata(client));
@@ -428,7 +430,6 @@ static int ad7142_open(struct input_dev *dev)
 
 static void ad7142_close(struct input_dev *dev)
 {
-	free_irq(CONFIG_BFIN_JOYSTICK_IRQ_PFX, ad7142_interrupt);
 	kthread_stop(ad7142_task);
 }
 
