@@ -15,9 +15,19 @@
  */
 
 #ifdef CONFIG_BLACKFIN
-  #define DUMMY_DELAY_ACCESS bfin_read16(ASYNC_BANK0_BASE);
+#if defined(CONFIG_DUMMY_DELAY_BANK0)
+# define DUMMY_DELAY_ACCESS bfin_read8(ASYNC_BANK0_BASE);
+#elif defined(CONFIG_DUMMY_DELAY_BANK1)
+# define DUMMY_DELAY_ACCESS bfin_read8(ASYNC_BANK1_BASE);
+#elif defined(CONFIG_DUMMY_DELAY_BANK2)
+# define DUMMY_DELAY_ACCESS bfin_read8(ASYNC_BANK2_BASE);
+#elif defined(CONFIG_DUMMY_DELAY_BANK3)
+# define DUMMY_DELAY_ACCESS bfin_read8(ASYNC_BANK3_BASE);
+#elif defined(CONFIG_NO_DUMMY_DELAY)
+# define DUMMY_DELAY_ACCESS do {} while (0)
+#endif
 #else
-  #define DUMMY_DELAY_ACCESS do{} while(0)
+# define DUMMY_DELAY_ACCESS do {} while (0)
 #endif
 
 #define SL811_EP_A(base)	((base) + 0)
@@ -216,6 +226,12 @@ static inline void sl811_write(struct sl811 *sl811, int reg, u8 val)
 	writeb(val, sl811->data_reg);
 }
 
+static inline void sl811_writeb(u8 val, void __iomem *addr)
+{
+	DUMMY_DELAY_ACCESS;
+	writeb(val, addr);
+}
+
 static inline void
 sl811_write_buf(struct sl811 *sl811, int addr, const void *buf, size_t count)
 {
@@ -224,13 +240,13 @@ sl811_write_buf(struct sl811 *sl811, int addr, const void *buf, size_t count)
 
 	if (!count)
 		return;
-	writeb(addr, sl811->addr_reg);
 	DUMMY_DELAY_ACCESS;
+	writeb(addr, sl811->addr_reg);
 	data = buf;
 	data_reg = sl811->data_reg;
 	do {
+		DUMMY_DELAY_ACCESS;
 		writeb(*data++, data_reg);
-	  DUMMY_DELAY_ACCESS;
 	} while (--count);
 }
 
@@ -242,13 +258,13 @@ sl811_read_buf(struct sl811 *sl811, int addr, void *buf, size_t count)
 
 	if (!count)
 		return;
-	writeb(addr, sl811->addr_reg);
 	DUMMY_DELAY_ACCESS;
+	writeb(addr, sl811->addr_reg);
 	data = buf;
 	data_reg = sl811->data_reg;
 	do {
-		*data++ = readb(data_reg);
 		DUMMY_DELAY_ACCESS;
+		*data++ = readb(data_reg);
 	} while (--count);
 }
 

@@ -248,13 +248,42 @@ config USB_SL811_HCD
 
 config USB_SL811_BFIN_IRQ
         int "GPIO IRQ pin for Interrupt"
-        depends on (BF537 && USB_SL811_HCD)
-	range 50 97
+        depends on (BLACKFIN && USB_SL811_HCD)
         default 54
         help
-          Choose an PF pin as SL811's interrupt. This must corresponds to
-	  the JP5 on usb daughter card. The available value is from 50 to 97.
+          Choose an IRQ_Pxx pin as SL811's interrupt. This must corresponds to
+	  the JP5 on usb daughter card.
 	  For more information look at include/asm-blackfin/mach-bfxxx/irq.h.
+
+choice
+	prompt "Dummy Delay ASYNC Memory Bank"
+        depends on (BLACKFIN && USB_SL811_HCD)
+	help
+	  In order to run Blackfin SCLK > 80MHz, additional bus cycles needs to
+	  be introduced between two successive bus accesses. The SL811 requires
+	  85ns between /CS inactive and /CS active. This is achieved by doing a
+	  dummy read from a different memory bank before each bus access.
+	  Depending on how fast you run SCLK the total memory number of cycles
+	  that needs to be introduced by the dummy access ranges form 3-5 cycles.
+	  For more information consult the Blackfin online documentation wiki
+	  http://docs.blackfin.uclinux.org
+
+config NO_DUMMY_DELAY
+	bool "No Dummy Delay"
+
+config DUMMY_DELAY_BANK0
+	bool "Bank0"
+
+config DUMMY_DELAY_BANK1
+	bool "Bank1"
+
+config DUMMY_DELAY_BANK2
+	bool "Bank2"
+
+config DUMMY_DELAY_BANK3
+	bool "Bank3"
+
+endchoice
 
 config USB_SL811_CS
 	tristate "CF/PCMCIA support for SL811HS HCD"
