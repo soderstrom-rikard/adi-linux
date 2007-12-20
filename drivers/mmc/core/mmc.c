@@ -358,6 +358,9 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 	/*
 	 * Activate wide bus (if supported).
 	 */
+/*Currently,Blackfin 54x only support 1 bit MMC,while support 4 bit SD */
+/*So if card type is MMC don't enable 4 bit mode*/
+#if !defined(CONFIG_BF54x)
 	if ((card->csd.mmca_vsn >= CSD_SPEC_VER_4) &&
 		(host->caps & MMC_CAP_4_BIT_DATA)) {
 		err = mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
@@ -367,7 +370,7 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 
 		mmc_set_bus_width(card->host, MMC_BUS_WIDTH_4);
 	}
-
+#endif
 	if (!oldcard)
 		host->card = card;
 
