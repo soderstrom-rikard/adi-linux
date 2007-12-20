@@ -1108,7 +1108,7 @@ irqreturn_t musb_h_ep0_irq(struct musb *musb)
 	if (unlikely(!urb)) {
 		/* stop endpoint since we have no place for its data, this
 		 * SHOULD NEVER HAPPEN! */
-		DBG(1, "no URB for end 0\n");
+		ERR("no URB for end 0\n");
 
 		musb_writew(epio, MUSB_CSR0, MUSB_CSR0_FLUSHFIFO);
 		musb_writew(epio, MUSB_CSR0, MUSB_CSR0_FLUSHFIFO);
@@ -1132,6 +1132,8 @@ irqreturn_t musb_h_ep0_irq(struct musb *musb)
 			else
 				csr = MUSB_CSR0_H_STATUSPKT
 					| MUSB_CSR0_TXPKTRDY;
+
+			csr |= MUSB_CSR0_H_DIS_PING;
 
 			/* flag status stage */
 			musb->ep0_stage = MUSB_EP0_STATUS;
@@ -1834,9 +1836,6 @@ static int musb_urb_enqueue(
 		/* FALLTHROUGH */
 	case USB_ENDPOINT_XFER_ISOC:
 		/* iso always uses log encoding */
-		break;
-	case USB_ENDPOINT_XFER_CONTROL:
-		interval = (USB_SPEED_HIGH == urb->dev->speed) ? 8 : 0;
 		break;
 	default:
 		/* REVISIT we actually want to use NAK limits, hinting to the
