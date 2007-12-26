@@ -525,36 +525,6 @@ config BFIN_SCRATCH_REG_CYCLES
 
 endchoice
 
-config I2C_BLACKFIN_GPIO
-	bool "Blackfin I2C GPIO SDA/SCL Selection"
-	default n
-	select I2C
-	select I2C_GPIO
-
-config I2C_GPIO_SDA
-	depends on I2C_BLACKFIN_GPIO
-	int "SDA GPIO pin number"
-	range 0 15 if (BF533 || BF532 || BF531)
-	range 0 47 if (BF534 || BF536 || BF537)
-	range 0 47 if BF561
-	default 2 if !BF561
-	default 1 if BF561
-
-config I2C_GPIO_SCL
-	depends on I2C_BLACKFIN_GPIO
-	int "SCL GPIO pin number"
-	range 0 15 if (BF533 || BF532 || BF531)
-	range 0 47 if (BF534 || BF536 || BF537)
-	range 0 47 if BF561
-	default 3 if !BF561
-	default 0 if BF561
-
-config I2C_GPIO_UDELAY
-	depends on I2C_BLACKFIN_GPIO
-	int "Cycle Delay in uSec"
-	range 5 100
-	default 40
-
 endmenu
 
 menu "Blackfin Kernel Optimizations"

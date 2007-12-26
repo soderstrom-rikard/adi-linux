@@ -274,11 +274,11 @@ static struct platform_device bfin_device_gpiokeys = {
 #include <linux/i2c-gpio.h>
 
 static struct i2c_gpio_platform_data i2c_gpio_data = {
-	.sda_pin		= CONFIG_I2C_GPIO_SDA,
-	.scl_pin		= CONFIG_I2C_GPIO_SCL,
+	.sda_pin		= 1,
+	.scl_pin		= 0,
 	.sda_is_open_drain	= 1,
 	.scl_is_open_drain	= 1,
-	.udelay			= CONFIG_I2C_GPIO_UDELAY,
+	.udelay			= 40,
 };
 
 static struct platform_device i2c_gpio_device = {
