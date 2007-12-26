@@ -139,12 +139,23 @@ ENTRY(_ex_single_step)
 	r7 = retx;
 	r6 = reti;
 	cc = r7 == r6;
-	if cc jump _bfin_return_from_exception;
-
+	if cc jump _bfin_return_from_exception
 	r7 = syscfg;
 	bitclr (r7, 0);
 	syscfg = R7;
-	jump _ex_trap_c;
+
+	p5.l = lo(IPEND);
+	p5.h = hi(IPEND);
+	r6 = [p5];
+	cc = bittst(r6, 5);
+	if !cc jump _ex_trap_c;
+	p4.l = lo(EVT5);
+	p4.h = hi(EVT5);
+	r6.h = _exception_to_level5;
+	r6.l = _exception_to_level5;
+	r7 = [p4];
+	cc = r6 == r7;
+	if !cc jump _ex_trap_c;
 ENDPROC(_ex_single_step)
 
 ENTRY(_bfin_return_from_exception)
