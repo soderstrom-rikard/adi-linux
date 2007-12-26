@@ -23,8 +23,10 @@ static void i2c_gpio_setsda_dir(void *data, int state)
 
 	if (state)
 		gpio_direction_input(pdata->sda_pin);
-	else
-		gpio_direction_output(pdata->sda_pin, 0);
+	else {
+		gpio_direction_output(pdata->sda_pin);
+		gpio_set_value(pdata->sda_pin, 0);
+	}
 }
 
 /*
@@ -46,8 +48,11 @@ static void i2c_gpio_setscl_dir(void *data, int state)
 
 	if (state)
 		gpio_direction_input(pdata->scl_pin);
-	else
-		gpio_direction_output(pdata->scl_pin, 0);
+
+	else {
+		gpio_direction_output(pdata->sda_pin);
+		gpio_set_value(pdata->sda_pin, 0);
+	}
 }
 
 /*
@@ -104,7 +109,8 @@ static int __init i2c_gpio_probe(struct platform_device *pdev)
 		goto err_request_scl;
 
 	if (pdata->sda_is_open_drain) {
-		gpio_direction_output(pdata->sda_pin, 1);
+		gpio_direction_output(pdata->sda_pin);
+		gpio_set_value(pdata->scl_pin, 1);
 		bit_data->setsda = i2c_gpio_setsda_val;
 	} else {
 		gpio_direction_input(pdata->sda_pin);
@@ -112,7 +118,8 @@ static int __init i2c_gpio_probe(struct platform_device *pdev)
 	}
 
 	if (pdata->scl_is_open_drain || pdata->scl_is_output_only) {
-		gpio_direction_output(pdata->scl_pin, 1);
+		gpio_direction_output(pdata->scl_pin);
+		gpio_set_value(pdata->scl_pin, 1);
 		bit_data->setscl = i2c_gpio_setscl_val;
 	} else {
 		gpio_direction_input(pdata->scl_pin);
