@@ -496,6 +496,7 @@ asmlinkage void trap_c(struct pt_regs *fp)
 			dump_bfin_trace_buffer();
 		show_stack(current, &stack);
 		if (oops_in_progress) {
+			print_modules();
 #ifndef CONFIG_ACCESS_CHECK
 			printk(KERN_EMERG "Please turn on "
 			       "CONFIG_ACCESS_CHECK\n");
