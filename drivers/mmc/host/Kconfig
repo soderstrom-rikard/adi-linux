@@ -104,8 +104,11 @@ config SDH_BFIN
 	tristate "Blackfin Secure Digital Host support"
 	depends on MMC && (BF54x && !BF544)
 	help
-	  Say Y or M to enable Secure Digital Host interface on BF54x series
-	  processor.
+	  If you say yes here you will get support for the Blackfin on-chip
+	  Secure Digital Host interface.  This includes support for MMC and
+	  SD cards.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called bfin_sdh.
 
 	  If unsure, say N.
-
