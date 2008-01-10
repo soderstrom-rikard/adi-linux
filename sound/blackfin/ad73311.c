@@ -575,8 +575,7 @@ static int __devinit snd_ad73311_probe(struct platform_device *pdev)
 		return -EBUSY;
 	}
 
-	gpio_direction_output(GPIO_SE);
-	gpio_set_value(GPIO_SE, 0);
+	gpio_direction_output(GPIO_SE, 0);
 
 	if ((err = snd_ad73311_configure()) < 0)
 		return -EFAULT;
