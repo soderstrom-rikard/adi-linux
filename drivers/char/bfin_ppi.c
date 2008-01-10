@@ -805,7 +805,8 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 					       DMAFLOW_STOP,	// no chained DMA operation
 					       INTR_ON_BUF,	// interrupt when whole transfer complete
 					       (pdev->numlines) ? DIMENSION_2D : DIMENSION_LINEAR,	// 2D or 1D
-					       DATA_SIZE_16);
+					       DATA_SIZE_16,
+					       DMA_SYNC_RESTART);
 	pr_debug("dma_config = 0x%04X\n", pdev->dma_config);
 	set_dma_config(CH_PPI, pdev->dma_config);
 	set_dma_start_addr(CH_PPI, (unsigned long)buf);

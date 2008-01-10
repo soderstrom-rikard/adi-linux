@@ -387,7 +387,12 @@ static int config_dma(void)
 
 	} else {
 
-		set_dma_config(CH_PPI, set_bfin_dma_config(DIR_READ,DMA_FLOW_AUTO,INTR_DISABLE,DIMENSION_2D,DATA_SIZE_16));
+		set_dma_config(CH_PPI, set_bfin_dma_config(DIR_READ,
+				DMA_FLOW_AUTO,
+				INTR_DISABLE,
+				DIMENSION_2D,
+				DATA_SIZE_16,
+				DMA_NOSYNC_KEEP_DMA_BUF));
 		set_dma_x_count(CH_PPI, LCD_X_RES);
 		set_dma_x_modify(CH_PPI,LCD_BBP/8);
 		set_dma_y_count(CH_PPI, LCD_Y_RES+U_LINES);
