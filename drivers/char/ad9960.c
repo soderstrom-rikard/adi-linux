@@ -9,7 +9,7 @@
  * Prototype:
  *
  * Modified:
- *               Copyright 2004-2005 Analog Devices Inc.
+ *               Copyright 2004-2008 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *

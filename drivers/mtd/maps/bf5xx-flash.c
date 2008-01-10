@@ -10,7 +10,7 @@
  *
  * Modified:
  *               Copyright 2000 Nicolas Pitre <nico@cam.org>
- *               Copyright 2000-2006 Analog Devices Inc.
+ *               Copyright 2005-2008 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
