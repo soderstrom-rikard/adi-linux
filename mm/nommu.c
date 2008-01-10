@@ -31,6 +31,7 @@
 #include <asm/uaccess.h>
 #include <asm/tlb.h>
 #include <asm/tlbflush.h>
+#include <asm/mmu_context.h>
 
 void *high_memory;
 struct page *mem_map;
@@ -329,9 +330,18 @@ static void show_process_blocks(void)
 /*
  * Free the memory allocated for a VMA.
  */
-static void free_vma_pages(struct vm_area_struct *vma)
+static void free_vma_pages(struct mm_struct *mm, struct vm_area_struct *vma)
 {
-	unsigned long len = vma->vm_end - vma->vm_start;
+	long len = vma->vm_end - vma->vm_start;
+
+#ifdef CONFIG_MPU
+	while (len > 0) {
+		len -= PAGE_SIZE;
+		protect_page(mm, vma->vm_start + len, 0);
+	}
+	update_protections(mm);
+	len = vma->vm_end - vma->vm_start;
+#endif
 
 	if (vma->vm_flags & VM_SPLIT_PAGES)
 		while (len) {
@@ -352,9 +362,19 @@ static void free_vma_pages(struct vm_area_struct *vma)
 static void add_vma_to_mm(struct mm_struct *mm, struct vm_list_struct *vml)
 {
 	struct vm_list_struct **ppv;
+	struct vm_area_struct *vma = vml->vma;
+	long len = vma->vm_end - vma->vm_start;
+
+#ifdef CONFIG_MPU
+	while (len > 0) {
+		len -= PAGE_SIZE;
+		protect_page(mm, vma->vm_start + len, vma->vm_flags);
+	}
+	update_protections(mm);
+#endif
 
 	for (ppv = &current->mm->context.vmlist; *ppv; ppv = &(*ppv)->next)
-		if ((*ppv)->vma->vm_start > vml->vma->vm_start)
+		if ((*ppv)->vma->vm_start > vma->vm_start)
 			break;
 
 	vml->next = *ppv;
@@ -889,7 +909,7 @@ static int do_mmap_private(struct vm_area_struct *vma, unsigned long len,
 	return 0;
 
 error_free:
-	free_vma_pages(vma);
+	free_vma_pages(current->mm, vma);
 	vma->vm_start = 0;
 	return ret;
 
@@ -1098,7 +1118,7 @@ unsigned long do_mmap_pgoff(struct file *file,
 /*
  * handle mapping disposal for uClinux
  */
-static void put_vma(struct vm_area_struct *vma)
+static void put_vma(struct mm_struct *mm, struct vm_area_struct *vma)
 {
 	if (vma) {
 		down_write(&nommu_vma_sem);
@@ -1112,7 +1132,7 @@ static void put_vma(struct vm_area_struct *vma)
 			/* IO memory and memory shared directly out of the pagecache from
 			 * ramfs/tmpfs mustn't be released here */
 			if (vma->vm_flags & VM_MAPPED_COPY) {
-				free_vma_pages(vma);
+				free_vma_pages(mm, vma);
 			}
 
 			if (vma->vm_file)
@@ -1131,7 +1151,7 @@ static void unmap_one_vma (struct mm_struct *mm, struct vm_area_struct *vma,
 	size_t len = vma->vm_end - vma->vm_start;
 	vml = *parent;
 
-	put_vma(vml->vma);
+	put_vma(mm, vml->vma);
 
 	*parent = vml->next;
 	kfree(vml);
@@ -1239,7 +1259,7 @@ void exit_mmap(struct mm_struct * mm)
 
 		while ((tmp = mm->context.vmlist)) {
 			mm->context.vmlist = tmp->next;
-			put_vma(tmp->vma);
+			put_vma(mm, tmp->vma);
 
 			kfree(tmp);
 		}
