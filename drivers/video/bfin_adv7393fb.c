@@ -588,8 +588,7 @@ static int __init bfin_adv7393_fb_probe(struct platform_device *pdev)
 		return -EBUSY;
 	}
 
-	gpio_direction_output(GPIO_3);
-	gpio_set_value(GPIO_3, 0);
+	gpio_direction_output(GPIO_3, 0);
 #endif
 
 

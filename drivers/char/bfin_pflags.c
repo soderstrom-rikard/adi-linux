@@ -254,13 +254,10 @@ static ssize_t pflags_write(struct file *filp, const char *buf, size_t size, lof
 
 		switch (*buf) {
 		case '0':
-			gpio_set_value(minor, 0);
+			gpio_direction_output(minor, 0);
 			break;
 		case '1':
-			gpio_set_value(minor, 1);
-			break;
-		case 'T':
-			set_gpio_toggle(minor);
+			gpio_direction_output(minor, 1);
 			break;
 		default:
 			return -EINVAL;

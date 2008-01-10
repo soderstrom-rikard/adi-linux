@@ -2516,10 +2516,8 @@ static int net2272_probe (struct device *_dev)
 		gpio_free(GPIO_0);
 		return -EBUSY;
 	}
-	gpio_direction_output(GPIO_0);
-	gpio_direction_output(GPIO_1);
-	gpio_set_value(GPIO_0, 0);
-	gpio_set_value(GPIO_1, 1);
+	gpio_direction_output(GPIO_0, 0);
+	gpio_direction_output(GPIO_1, 1);
 #endif
 
 #if defined(CONFIG_BF533) || defined(CONFIG_BF561)
@@ -2529,9 +2527,8 @@ static int net2272_probe (struct device *_dev)
 		gpio_free(GPIO_1);
 		return -EBUSY;
 	}
-	gpio_direction_output(GPIO_11);
+	gpio_direction_output(GPIO_11, 0);
 	/* Reset USB Chip */
-	gpio_set_value(GPIO_11, 0);
 	/* Hold it for 2ms */
 	mdelay(2);
 	gpio_set_value(GPIO_11, 1);
@@ -2543,9 +2540,8 @@ static int net2272_probe (struct device *_dev)
 		return -EBUSY;
 	}
 
-	gpio_direction_output(GPIO_6);
+	gpio_direction_output(GPIO_6, 0);
 	/* Reset USB Chip */
-	gpio_set_value(GPIO_6, 0);
 	/* Hold it for 2ms */
 	mdelay(2);
 	gpio_set_value(GPIO_6, 1);
@@ -2556,8 +2552,7 @@ static int net2272_probe (struct device *_dev)
 		printk(KERN_ERR "net2272: Failed ro request GPIO_%d\n", GPIO_47);
 		return -EBUSY;
 	}
-	gpio_direction_output(GPIO_47);
-	gpio_set_value(GPIO_47, 0);
+	gpio_direction_output(GPIO_47, 0);
 #endif
 	}
 #endif

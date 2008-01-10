@@ -351,9 +351,7 @@ static int request_ports(int action)
 			return -EFAULT;
 		}
 
-		gpio_set_value(PCI_PIN, 0);
-		SSYNC();
-		gpio_direction_output(PCI_PIN);
+		gpio_direction_output(PCI_PIN, 0);
 		SSYNC();
 	} else {
 		peripheral_free_list(ppi_req);

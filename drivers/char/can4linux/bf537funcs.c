@@ -8,7 +8,7 @@
  *
  *
  * Copyright (c) 2003-2006 port GmbH Halle/Saale
- * (c) 2006 Heinz-Jürgen Oertel (oe@port.de)
+ * (c) 2006 Heinz-Jï¿½rgen Oertel (oe@port.de)
  *------------------------------------------------------------------
  * $Header: /cvsroot/uclinux533/uClinux-dist/linux-2.6.x/drivers/char/can4linux/bf537funcs.c,v 1.3 2006/06/28 01:51:33 magicyang Exp $
  *
@@ -717,7 +717,7 @@ int CAN_VendorInit (int minor)
 	peripheral_free_list(bfin_can_pin_req);
 	return -EBUSY;
     }
-    gpio_direction_output(TIME_MEASURE_GPIO);
+    gpio_direction_output(TIME_MEASURE_GPIO, 0);
 #endif
 
     /* Request the controllers address space */
@@ -772,26 +772,23 @@ int Can_RequestIrq(int minor, int irq,
 int err=0;
 
     DBGin("Can_RequestIrq");
-    /*
-
-    int request_irq(unsigned int irq,			// interrupt number
-              void (*handler)(int, void *, struct pt_regs *), // pointer to ISR
-		              irq, dev_id, registers on stack
-              unsigned long irqflags, const char *devname,
-              void *dev_id);
-
-       dev_id - The device ID of this handler (see below).
-       This parameter is usually set to NULL,
-       but should be non-null if you wish to do  IRQ  sharing.
-       This  doesn't  matter when hooking the
-       interrupt, but is required so  that,  when  free_irq()  is
-       called,  the  correct driver is unhooked.  Since this is a
-       void *, it can point to anything (such  as  a  device-spe­
-       cific  structure,  or even empty space), but make sure you
-       pass the same pointer to free_irq().
-
-    */
-
+	/*
+	*int request_irq(unsigned int irq,			// interrupt number
+	*     void (*handler)(int, void *, struct pt_regs *), // pointer to ISR
+	*	              irq, dev_id, registers on stack
+	*    unsigned long irqflags, const char *devname,
+	*    void *dev_id);
+	*
+	* dev_id - The device ID of this handler (see below).
+	* This parameter is usually set to NULL,
+	* but should be non-null if you wish to do  IRQ  sharing.
+	* This  doesn't  matter when hooking the
+	* interrupt, but is required so  that,  when  free_irq()  is
+	* called,  the  correct driver is unhooked.  Since this is a
+	* void *, it can point to anything (such  as  a  device-speï¿½
+	* cific  structure,  or even empty space), but make sure you
+	* pass the same pointer to free_irq()
+	*/
 
     /* we don't need to share the Interrupt with any other driver
      * request_irq doeas not need the IRQF_SHARED flag */
@@ -874,13 +871,13 @@ inline void reset_led(void)
  * |||||||||||________________________
  *
  *
- * Interruot Latency from CAN EOF to Strt ISR app. 6 µs
- * Within the ISR, it takes about 7µs to call do_gettimeofday()
+ * Interruot Latency from CAN EOF to Strt ISR app. 6 ï¿½s
+ * Within the ISR, it takes about 7ï¿½s to call do_gettimeofday()
  * Using the set_led() and reset_led() functions takes app. 200ns
  * for each call.
- * The receive ISR lasts for about 15 µs (without do_gettimeofday())
+ * The receive ISR lasts for about 15 ï¿½s (without do_gettimeofday())
  * Another time consuming thing is wake_up_interruptible()
- * which takes about 10µs
+ * which takes about 10ï¿½s
  *
  * #define IRQ_CAN_RX          22
  * #define IRQ_CAN_TX          23
@@ -995,7 +992,7 @@ set_led();
 
 
 	/* Getting a precises time takes a lot of time
-	 * (additional 7 µs of ISR time )
+	 * (additional 7 ï¿½s of ISR time )
 	 * if a time stamp is not needed, it can be switched of
 	 * by ioctl() */
 	if(timestamp[minor]) {

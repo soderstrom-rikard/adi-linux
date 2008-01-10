@@ -439,11 +439,9 @@ static int request_ports(void)
 		return -EFAULT;
 	}
 
-	gpio_direction_output(UD);
-	gpio_direction_output(LBR);
+	gpio_direction_output(UD, 0);
+	gpio_direction_output(LBR, 1);
 
-	gpio_set_value(UD,0);
-	gpio_set_value(LBR,1);
 #endif
 
 	if (gpio_request(MOD, DRIVER_NAME)) {
@@ -455,8 +453,7 @@ static int request_ports(void)
 		return -EFAULT;
 	}
 
-	gpio_direction_output(MOD);
-	gpio_set_value(MOD,1);
+	gpio_direction_output(MOD, 1);
 
 	SSYNC();
 	return 0;

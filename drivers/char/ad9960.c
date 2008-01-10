@@ -666,8 +666,7 @@ static int __init ad9960_init(void)
 		return -EFAULT;
 	}
 
-	gpio_direction_output(CONFIG_AD9960_TX_RX_PIN);
-	gpio_set_value(CONFIG_AD9960_TX_RX_PIN, 1);
+	gpio_direction_output(CONFIG_AD9960_TX_RX_PIN, 1);
 
 	bfin_write_TIMER0_CONFIG(bfin_read_TIMER0_CONFIG() | OUT_DIS);
 	SSYNC();

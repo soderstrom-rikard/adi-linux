@@ -97,9 +97,8 @@ static inline int setup_pfpins(void)
 		printk(KERN_ERR "BF5xx flash: Failed ro request GPIO_%d\n", CONFIG_ENET_FLASH_PIN);
 		return -EBUSY;
 	}
-	gpio_direction_output(CONFIG_ENET_FLASH_PIN);
 
-	return 0;
+	return gpio_direction_output(CONFIG_ENET_FLASH_PIN, 1);
 }
 #else
 static inline int setup_pfpins(void) {return 0;}

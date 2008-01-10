@@ -152,8 +152,7 @@ static int vs_powerup(u32 arg)
 		SENSOR_NAME, VS6624_PWDN);
 			return -EFAULT;
 		}
-		gpio_direction_output(VS6624_PWDN);
-		gpio_set_value(VS6624_PWDN, 1);
+		gpio_direction_output(VS6624_PWDN, 1);
 		mdelay(100);
 	} else {
 		gpio_direction_input(VS6624_PWDN);

@@ -385,9 +385,8 @@ void bfsi_reset(void) {
 	}
 	gpio_request(reset_port[reset_bit], "bfsi: RESET");
 	PRINTK("toggle reset\n");
-	gpio_direction_output(reset_port[reset_bit]);
+	gpio_direction_output(reset_port[reset_bit], 0);
        	PRINTK("set reset bit OK! \n");
-	gpio_set_value(reset_port[reset_bit],0);
   	udelay(100);
 	gpio_set_value(reset_port[reset_bit],1);
 

@@ -1434,20 +1434,17 @@ static __init void bcap_init_cam_gpios(void)
 		return;
 	}
 
-	gpio_direction_output(bcap_LEDS);
+	gpio_direction_output(bcap_LEDS, 1);
 
 	/* this will flash the LEDs to say hello */
-	gpio_set_value(bcap_LEDS, 1);
 	mdelay(1);
 	gpio_set_value(bcap_LEDS, 0);
 
 	/* Set trigger mode */
-	gpio_direction_output(bcap_TRIGGER);
-	gpio_set_value(bcap_TRIGGER, 0);
+	gpio_direction_output(bcap_TRIGGER, 0);
 
 	/* Take out of standby mode */
-	gpio_direction_output(bcap_STANDBY);
-	gpio_set_value(bcap_STANDBY, 0);
+	gpio_direction_output(bcap_STANDBY, 0);
 
 #endif
 
@@ -1494,8 +1491,7 @@ static __init int bcap_init(void)
 		return -EBUSY;
 	}
 
-	gpio_direction_output(GPIO_3);
-	gpio_set_value(bcap_FS3, 0);
+	gpio_direction_output(bcap_FS3, 0);
 #endif
 
 	err = setup_pin_mux(1);

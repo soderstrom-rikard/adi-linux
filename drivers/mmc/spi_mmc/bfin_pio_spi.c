@@ -123,7 +123,7 @@ void bfin_pio_spi_init(int cs_chan)
 		printk(KERN_ERR DRV_NAME":bfin_pio_spi: Failed ro request GPIO_%d\n",
 		       spi_ssel);
 	}
-	gpio_direction_output(spi_ssel);
+	gpio_direction_output(spi_ssel, 1);
 
 	write_BAUD(0x0100);
 
