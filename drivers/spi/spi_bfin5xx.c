@@ -543,7 +543,7 @@ static void giveback(struct driver_data *drv_data)
 		bfin_spi_disable(drv_data);
 	}
 
-	if (drv_data->cs_change)
+	if (!drv_data->cs_change)
 		cs_deactive(drv_data, chip);
 
 	if (msg->complete)
