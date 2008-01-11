@@ -554,7 +554,7 @@ config SLUB_DEBUG
 	  no support for cache validation etc.
 
 config BIG_ORDER_ALLOC_NOFAIL_MAGIC
-	int "Big Order Alloction No FAIL Magic"
+	int "Big Order Allocation No FAIL Magic"
 	depends on EMBEDDED
 	range 3 10
 	default 3
