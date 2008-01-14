@@ -58,6 +58,7 @@ obj-$(CONFIG_SGI_MBCS)		+= mbcs.o
 obj-$(CONFIG_BRIQ_PANEL)	+= briq_panel.o
 
 obj-$(CONFIG_AD9960)		+= ad9960.o
+obj-$(CONFIG_BFIN_OTP)		+= bfin-otp.o
 obj-$(CONFIG_SPI_ADC_BF533) += bfin_spi_adc.o
 obj-$(CONFIG_BFIN_TIMER_LATENCY) += bfin_timer_latency.o
 obj-$(CONFIG_BF5xx_PFLAGS) += bfin_pflags.o
