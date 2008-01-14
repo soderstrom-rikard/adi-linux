@@ -313,8 +313,15 @@ static int bf5xx_nand_calculate_ecc(struct mtd_info *mtd,
 	}
 
 	p = (u8 *)code;
-	for (i = 0; i < bytes; i++)
+	for (i = 0; i < bytes; i++) {
+		/* For 512 page size, should copy
+		 * p[0], p[1], p[2], p[4], p[5], p[6]
+		 */
+		if (i == 3)
+			i = 4;
+
 		ecc_code[i] = p[i];
+	}
 
 	return 0;
 }
