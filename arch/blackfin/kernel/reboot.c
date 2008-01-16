@@ -30,7 +30,6 @@
 __attribute__((l1_text))
 void bfin_reset(void)
 {
-	int cntr;
 	/* force BMODE and disable Core B (as needed) */
 	bfin_write_SYSCR(SYSCR_VAL);
 
@@ -40,12 +39,16 @@ void bfin_reset(void)
 	while (1) {
 		/* initiate system soft reset with magic 0x7 */
 		bfin_write_SWRST(0x7);
-		for (cntr = 0; cntr < SWRST_DELAY; cntr++)
-			asm("NOP;");
+
+		/* Wait for System reset to actually reset, needs to be 5 SCLKs, */
+		/* Assume CCLK / SCLK ratio is worst case (15), and use 5*15     */
+
+		asm("LSETUP(.Lfoo,.Lfoo) LC0 = %0\n .Lfoo: NOP;\n"
+		 : : "a" (SWRST_DELAY) : "LC0", "LT0", "LB0");
+
 		/* clear system soft reset */
 		bfin_write_SWRST(0);
-		for (cntr = 0; cntr < SWRST_DELAY; cntr++)
-			asm("NOP;");
+		asm("ssync;");
 		/* issue core reset */
 		asm("raise 1");
 	}
