@@ -205,7 +205,7 @@ static void bf5xx_ac97_warm_reset(struct snd_ac97 *ac97)
 	pr_debug("%s enter\n", __FUNCTION__);
 
 	peripheral_free(per);
-	gpio_request(gpio, NULL);
+	gpio_request(gpio, "bf5xx-ac97");
 	gpio_direction_output(gpio, 1);
 	udelay(2);
 	gpio_set_value(gpio, 0);

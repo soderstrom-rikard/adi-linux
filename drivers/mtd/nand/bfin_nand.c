@@ -209,7 +209,7 @@ int __init bfin_nand_init (void)
 	
 	/* Configure GPIO-BFIN_NAND_READY */
 
-	if (gpio_request(CONFIG_BFIN_NAND_READY, NULL))
+	if (gpio_request(CONFIG_BFIN_NAND_READY, "bfin_nand"))
 		printk(KERN_ERR"Requesting NAND Ready GPIO %d faild\n",CONFIG_BFIN_NAND_READY);
 
 	gpio_direction_input(CONFIG_BFIN_NAND_READY);

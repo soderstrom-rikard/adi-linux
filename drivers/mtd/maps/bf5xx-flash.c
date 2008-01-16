@@ -93,7 +93,7 @@ static inline void switch_back(struct flash_save *save) {}
 #if defined(CONFIG_BFIN_SHARED_FLASH_ENET)
 static inline int setup_pfpins(void)
 {
-	if(gpio_request(CONFIG_ENET_FLASH_PIN, NULL)){
+	if (gpio_request(CONFIG_ENET_FLASH_PIN, "bf5xx-flash")) {
 		printk(KERN_ERR "BF5xx flash: Failed ro request GPIO_%d\n", CONFIG_ENET_FLASH_PIN);
 		return -EBUSY;
 	}
