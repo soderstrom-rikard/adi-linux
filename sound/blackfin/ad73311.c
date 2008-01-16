@@ -570,7 +570,7 @@ static int __devinit snd_ad73311_probe(struct platform_device *pdev)
 	if (device != NULL)
 		return -ENOENT;
 
-	if(gpio_request(GPIO_SE, NULL)){
+	if (gpio_request(GPIO_SE, "AD73311")) {
 		printk(KERN_ERR "%s: Failed ro request GPIO_%d\n",__FUNCTION__, GPIO_SE);
 		return -EBUSY;
 	}
