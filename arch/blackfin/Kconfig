@@ -762,7 +762,7 @@ config L1_MAX_PIECE
 
 
 config MPU
-	bool "Enable the memory protection unit"
+	bool "Enable the memory protection unit (EXPERIMENTAL)"
 	default n
 	help
 	  Use the processor's MPU to protect applications from accessing
