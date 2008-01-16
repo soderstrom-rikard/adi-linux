@@ -19,12 +19,18 @@
 #define SYSCR_VAL 	0x10
 #endif
 
+/*
+ * Delay min 5 SCLK cycles using worst case CCLK/SCLK ratio (15)
+ */
+#define SWRST_DELAY	(5 * 15)
+
 /* A system soft reset makes external memory unusable
  * so force this function into L1.
  */
 __attribute__((l1_text))
 void bfin_reset(void)
 {
+	int cntr;
 	/* force BMODE and disable Core B (as needed) */
 	bfin_write_SYSCR(SYSCR_VAL);
 
@@ -34,12 +40,12 @@ void bfin_reset(void)
 	while (1) {
 		/* initiate system soft reset with magic 0x7 */
 		bfin_write_SWRST(0x7);
-		bfin_read_SWRST();
-		asm("ssync;");
+		for (cntr = 0; cntr < SWRST_DELAY; cntr++)
+			asm("NOP;");
 		/* clear system soft reset */
 		bfin_write_SWRST(0);
-		bfin_read_SWRST();
-		asm("ssync;");
+		for (cntr = 0; cntr < SWRST_DELAY; cntr++)
+			asm("NOP;");
 		/* issue core reset */
 		asm("raise 1");
 	}
