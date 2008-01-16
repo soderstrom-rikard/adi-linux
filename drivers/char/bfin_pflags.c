@@ -248,7 +248,6 @@ static ssize_t pflags_write(struct file *filp, const char *buf, size_t size, lof
 	if (!buf)
 		return -EFAULT;
 
-	gpio_direction_output(minor);
 
 	pr_debug("pfbits driver: pflag_write = %c\n", buf[0]);
 
@@ -439,7 +438,7 @@ release_proc:
 release_chrdev:
 #endif
 	unregister_chrdev(major, "pflag");
-exit:
+
 	return -ENOMEM;
 }
 
