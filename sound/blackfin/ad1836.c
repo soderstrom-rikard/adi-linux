@@ -1599,7 +1599,7 @@ static int snd_ad1836_dev_free(struct snd_device *device)
 	dma_free_coherent(NULL, AD1836_BUF_SZ, chip->rx_dma_buf, 0);
 	dma_free_coherent(NULL, AD1836_BUF_SZ, chip->tx_dma_buf, 0);
 #endif
-	return snd_ad1836_stop(chip);
+	return 0;
 }
 
 static struct snd_device_ops snd_ad1836_ops = {
