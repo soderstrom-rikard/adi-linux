@@ -234,8 +234,7 @@ static struct adv7393fb_modes known_modes[] = {
 		.tot_lines = 525,	/* Total Lines per Frame */
 		.boeft_blank = 16 + 40,	/* Before Odd/Even Field Transition No. of Blank Pixels */
 		.aoeft_blank = 122 + 40,	/* After Odd/Even Field Transition No. of Blank Pixels */
-		.adv7393_i2c_initd =
-		init_NTSC,
+		.adv7393_i2c_initd = init_NTSC,
 		.adv7393_i2c_initd_len = sizeof(init_NTSC)
 	},
 	/* PAL 640x480 CRT Experimental */
@@ -245,9 +244,9 @@ static struct adv7393fb_modes known_modes[] = {
 		.yres = 480,	/* Active Vertical Pixels  */
 		.bpp = 16,
 		.vmode = FB_VMODE_INTERLACED,
-		.a_lines = 288 - 48,	/* Active Liens per Field */
-		.vb1_lines = 24 + 48,	/* Vertical Blanking Field 1 Lines */
-		.vb2_lines = 25 + 48,	/* Vertical Blanking Field 2 Lines */
+		.a_lines = 288 - 20,	/* Active Liens per Field */
+		.vb1_lines = 24 + 20,	/* Vertical Blanking Field 1 Lines */
+		.vb2_lines = 25 + 20,	/* Vertical Blanking Field 2 Lines */
 		.tot_lines = 625,	/* Total Lines per Frame */
 		.boeft_blank = 12 + 40,	/* Before Odd/Even Field Transition No. of Blank Pixels */
 		.aoeft_blank = 132 + 40,	/* After Odd/Even Field Transition No. of Blank Pixels */
