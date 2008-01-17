@@ -1067,6 +1067,11 @@ irqreturn_t musb_h_ep0_irq(struct musb *musb)
 	} else if (csr & MUSB_CSR0_H_NAKTIMEOUT) {
 		DBG(2, "control NAK timeout\n");
 
+		/* For some ill-behaved USB stick, control transfer should
+		 * disable PING packet
+		 */
+		musb->disable_ping = 1;
+
 		/* NOTE:  this code path would be a good place to PAUSE a
 		 * control transfer, if another one is queued, so that
 		 * ep0 is more likely to stay busy.
@@ -1108,7 +1113,7 @@ irqreturn_t musb_h_ep0_irq(struct musb *musb)
 	if (unlikely(!urb)) {
 		/* stop endpoint since we have no place for its data, this
 		 * SHOULD NEVER HAPPEN! */
-		ERR("no URB for end 0\n");
+		DBG(1, "no URB for end 0\n");
 
 		musb_writew(epio, MUSB_CSR0, MUSB_CSR0_FLUSHFIFO);
 		musb_writew(epio, MUSB_CSR0, MUSB_CSR0_FLUSHFIFO);
@@ -1133,7 +1138,8 @@ irqreturn_t musb_h_ep0_irq(struct musb *musb)
 				csr = MUSB_CSR0_H_STATUSPKT
 					| MUSB_CSR0_TXPKTRDY;
 
-			csr |= MUSB_CSR0_H_DIS_PING;
+			if (musb->disable_ping)
+				csr |= MUSB_CSR0_H_DIS_PING;
 
 			/* flag status stage */
 			musb->ep0_stage = MUSB_EP0_STATUS;
@@ -1837,6 +1843,11 @@ static int musb_urb_enqueue(
 	case USB_ENDPOINT_XFER_ISOC:
 		/* iso always uses log encoding */
 		break;
+	case USB_ENDPOINT_XFER_CONTROL:
+		if (!musb->disable_ping) {
+			interval = (USB_SPEED_HIGH == urb->dev->speed) ? 8 : 0;
+			break;
+		}
 	default:
 		/* REVISIT we actually want to use NAK limits, hinting to the
 		 * transfer scheduling logic to try some other qh, e.g. try

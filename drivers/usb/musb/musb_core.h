@@ -402,6 +402,9 @@ struct musb {
 	unsigned is_multipoint:1;
 	unsigned ignore_disconnect:1;	/* during bus resets */
 
+	/* Disable PING packet to cope with ill-behaved usb thumb drives. */
+	unsigned disable_ping:1;
+
 #ifdef C_MP_TX
 	unsigned bulk_split:1;
 #define	can_bulk_split(musb,type) \
