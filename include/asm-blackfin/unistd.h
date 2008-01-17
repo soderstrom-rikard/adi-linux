@@ -369,7 +369,9 @@
 #define __NR_set_robust_list	354
 #define __NR_get_robust_list	355
 
-#define __NR_syscall		356
+#define __NR_semtimedop		356
+
+#define __NR_syscall		357
 #define NR_syscalls		__NR_syscall
 
 /* Old optional stuff no one actually uses */
