@@ -565,11 +565,12 @@ config MTD_EZKIT561
 	  Map for the CFI compliant 8 MiB flash chip on BF561 EZKIT dev boards
 
 config MTD_BF5xx
-	tristate "Blackfin BF5xx Flash Chip Support"
-	depends on BLACKFIN
+	tristate "Blackfin BF533-STAMP Flash Chip Support"
+	depends on BFIN533_STAMP
 	select MTD_PARTITIONS
 	help
-	  Flash Chip from ST Microelctronics
+	  Map driver which allows for simultaneous utilization of
+	  ethernet and ST parallel flash.
 
 config BFIN_FLASH_SIZE
 	depends on MTD_BF5xx
