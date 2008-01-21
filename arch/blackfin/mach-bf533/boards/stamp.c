@@ -133,7 +133,7 @@ static struct physmap_flash_data stamp_flash_data = {
 
 static struct resource stamp_flash_resource[] = {
 	{
-		.name  = "stm_flash",
+		.name  = "cfi_probe",
 		.start = 0x20000000,
 		.end   = 0x203fffff,
 		.flags = IORESOURCE_MEM,
