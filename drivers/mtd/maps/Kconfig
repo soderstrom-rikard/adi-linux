@@ -560,27 +560,15 @@ config MTD_PCMCIA_ANONYMOUS
 
 config MTD_BF5xx
 	tristate "Blackfin BF533-STAMP Flash Chip Support"
-	depends on BFIN533_STAMP
+	depends on BFIN533_STAMP && MTD_CFI
 	select MTD_PARTITIONS
 	help
 	  Map driver which allows for simultaneous utilization of
-	  ethernet and ST parallel flash.
+	  ethernet and CFI parallel flash.
 
-config BFIN_FLASH_SIZE
-	depends on MTD_BF5xx
-	hex "Size in bytes HEX"
-	default 0x400000 if BFIN533_STAMP || BFIN537_STAMP
-	default 0x200000 if BFIN533_EZKIT
-
-config EBIU_FLASH_BASE
-	depends on MTD_BF5xx
-	hex "Base Address in HEX"
-	default 0x20000000
-
-menu "FLASH_EBIU_AMBCTL Control"
-	depends on MTD_BF5xx && BFIN_SHARED_FLASH_ENET
 config BFIN_FLASH_BANK_0
-	hex "Bank 0"
+	hex "EBIU_AMBCTL For Flash (Bank 0)"
+	depends on MTD_BF5xx
 	default 0x7BB0
 	help
 	  For boards that share the async memory bank with both Flash and
@@ -588,7 +576,8 @@ config BFIN_FLASH_BANK_0
 	  when the Flash is active.  The other EBIU settings in the main
 	  Blackfin menu will be utilized when the Flash is not active.
 config BFIN_FLASH_BANK_1
-	hex "Bank 1"
+	hex "EBIU_AMBCTL For Flash (Bank 1)"
+	depends on MTD_BF5xx
 	default 0x7BB0
 	help
 	  For boards that share the async memory bank with both Flash and
@@ -596,7 +585,8 @@ config BFIN_FLASH_BANK_1
 	  when the Flash is active.  The other EBIU settings in the main
 	  Blackfin menu will be utilized when the Flash is not active.
 config BFIN_FLASH_BANK_2
-	hex "Bank 2"
+	hex "EBIU_AMBCTL For Flash (Bank 2)"
+	depends on MTD_BF5xx
 	default 0x7BB0
 	help
 	  For boards that share the async memory bank with both Flash and
@@ -604,14 +594,14 @@ config BFIN_FLASH_BANK_2
 	  when the Flash is active.  The other EBIU settings in the main
 	  Blackfin menu will be utilized when the Flash is not active.
 config BFIN_FLASH_BANK_3
-	hex "Bank 3"
+	hex "EBIU_AMBCTL For Flash (Bank 3)"
+	depends on MTD_BF5xx
 	default 0x7BB0
 	help
 	  For boards that share the async memory bank with both Flash and
 	  the Ethernet, these settings allow you to have EBIU settings just
 	  when the Flash is active.  The other EBIU settings in the main
 	  Blackfin menu will be utilized when the Flash is not active.
-endmenu
 
 config MTD_UCLINUX
 	tristate "Generic uClinux RAM/ROM filesystem support"

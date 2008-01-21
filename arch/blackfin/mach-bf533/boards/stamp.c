@@ -515,12 +515,10 @@ static int __init stamp_init(void)
 		return ret;
 
 #if defined(CONFIG_SMC91X) || defined(CONFIG_SMC91X_MODULE)
-# if defined(CONFIG_BFIN_SHARED_FLASH_ENET)
 	/* setup BF533_STAMP CPLD to route AMS3 to Ethernet MAC */
 	bfin_write_FIO_DIR(bfin_read_FIO_DIR() | (1 << CONFIG_ENET_FLASH_PIN));
 	bfin_write_FIO_FLAG_S(1 << CONFIG_ENET_FLASH_PIN);
 	SSYNC();
-# endif
 #endif
 
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
@@ -537,10 +535,8 @@ arch_initcall(stamp_init);
 
 void native_machine_restart(char *cmd)
 {
-#if defined(CONFIG_BFIN_SHARED_FLASH_ENET)
-# define BIT_TO_SET (1 << CONFIG_ENET_FLASH_PIN)
+#define BIT_TO_SET (1 << CONFIG_ENET_FLASH_PIN)
 	bfin_write_FIO_INEN(~BIT_TO_SET);
 	bfin_write_FIO_DIR(BIT_TO_SET);
 	bfin_write_FIO_FLAG_C(BIT_TO_SET);
-#endif
 }
