@@ -558,12 +558,6 @@ config MTD_PCMCIA_ANONYMOUS
 
 	  If unsure, say N.
 
-config MTD_EZKIT561
-	tristate "Blackfin BF561 EZKIT Flash Chip Support"
-	depends on (BFIN561_EZKIT) && MTD_PARTITIONS
-	help
-	  Map for the CFI compliant 8 MiB flash chip on BF561 EZKIT dev boards
-
 config MTD_BF5xx
 	tristate "Blackfin BF533-STAMP Flash Chip Support"
 	depends on BFIN533_STAMP
