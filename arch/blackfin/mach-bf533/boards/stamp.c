@@ -32,6 +32,7 @@
 #include <linux/platform_device.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/mtd/physmap.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
 #if defined(CONFIG_USB_ISP1362_HCD) || defined(CONFIG_USB_ISP1362_HCD_MODULE)
@@ -107,6 +108,50 @@ static struct platform_device net2272_bfin_device = {
 	.resource = net2272_bfin_resources,
 };
 #endif
+
+static struct mtd_partition stamp_partitions[] = {
+	{
+		.name   = "Bootloader",
+		.size   = 0x20000,
+		.offset = 0,
+	}, {
+		.name   = "Kernel",
+		.size   = 0xE0000,
+		.offset = MTDPART_OFS_APPEND,
+	}, {
+		.name   = "RootFS",
+		.size   = MTDPART_SIZ_FULL,
+		.offset = MTDPART_OFS_APPEND,
+	}
+};
+
+static struct physmap_flash_data stamp_flash_data = {
+	.width    = 2,
+	.parts    = stamp_partitions,
+	.nr_parts = ARRAY_SIZE(stamp_partitions),
+};
+
+static struct resource stamp_flash_resource[] = {
+	{
+		.name  = "stm_flash",
+		.start = 0x20000000,
+		.end   = 0x203fffff,
+		.flags = IORESOURCE_MEM,
+	}, {
+		.start = CONFIG_ENET_FLASH_PIN,
+		.flags = IORESOURCE_IRQ,
+	}
+};
+
+static struct platform_device stamp_flash_device = {
+	.name          = "BF5xx-Flash",
+	.id            = 0,
+	.dev = {
+		.platform_data = &stamp_flash_data,
+	},
+	.num_resources = ARRAY_SIZE(stamp_flash_resource),
+	.resource      = stamp_flash_resource,
+};
 
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
 /* all SPI peripherals info goes here */
@@ -457,6 +502,7 @@ static struct platform_device *stamp_devices[] __initdata = {
 #if defined(CONFIG_I2C_GPIO) || defined(CONFIG_I2C_GPIO_MODULE)
 	&i2c_gpio_device,
 #endif
+	&stamp_flash_device,
 };
 
 static int __init stamp_init(void)
