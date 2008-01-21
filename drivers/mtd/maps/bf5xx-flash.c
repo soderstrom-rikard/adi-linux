@@ -153,7 +153,7 @@ static int __init bf5xx_flash_probe(struct platform_device *dev)
 	enet_flash_pin = platform_get_irq(dev, 0);
 
 	bf5xx_map.bankwidth = pdata->width;
-	bf5xx_map.size = memory->end - memory->start;
+	bf5xx_map.size = memory->end - memory->start + 1;
 	bf5xx_map.virt = (void __iomem *)memory->start;
 	bf5xx_map.phys = memory->start;
 
