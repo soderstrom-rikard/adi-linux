@@ -172,12 +172,14 @@ static int sport_configure(struct sport_dev *dev, struct sport_config *config)
 		tcr1 |= (config->lsb_first << 4) | (config->fsync << 10) | \
 			(config->data_indep << 11) | (config->act_low << 12) | \
 			(config->late_fsync << 13) | (config->tckfe << 14) ;
-		tcr2 |= config->sec_en;
+		if (config->sec_en)
+			tcr2 |= TXSE;
 
 		rcr1 |= (config->lsb_first << 4) | (config->fsync << 10) | \
 			(config->data_indep << 11) | (config->act_low << 12) | \
 			(config->late_fsync << 13) | (config->tckfe << 14) ;
-		rcr2 |= config->sec_en;
+		if (config->sec_en)
+			rcr2 |= RXSE;
 	}
 
 	/* Using internal clock*/
