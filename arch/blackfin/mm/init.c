@@ -127,9 +127,8 @@ void __init paging_init(void)
 
 void __init mem_init(void)
 {
-	unsigned int codek = 0, datak = 0, initk = 0;
+	unsigned int codek = 0, datak = 0, initk = 0, reservedpages = 0;
 	unsigned long tmp;
-	unsigned int len = _ramend - _rambase;
 	unsigned long start_mem = memory_start;
 	unsigned long end_mem = memory_end;
 
@@ -138,19 +137,28 @@ void __init mem_init(void)
 
 	start_mem = PAGE_ALIGN(start_mem);
 	max_mapnr = num_physpages = MAP_NR(high_memory);
-	printk(KERN_INFO "Physical pages: %lx\n", num_physpages);
+	printk(KERN_INFO "Kernel managed physical pages: %lu\n", num_physpages);
 
 	/* This will put all memory onto the freelists. */
 	totalram_pages = free_all_bootmem();
 
 	codek = (_etext - _stext) >> 10;
-	datak = (__bss_stop - __bss_start) >> 10;
 	initk = (__init_end - __init_begin) >> 10;
+	datak = ((_ramstart - CONFIG_BOOT_LOAD) >> 10) - codek - initk;
 
-	tmp = nr_free_pages() << PAGE_SHIFT;
+	reservedpages = 0;
+	/* do not count kernel image */
+	for (tmp = (start_mem >> PAGE_SHIFT); tmp < max_mapnr; tmp++)
+		if (PageReserved(pfn_to_page(tmp)))
+			reservedpages++;
+#if (defined(CONFIG_BFIN_ICACHE) && ANOMALY_05000263)
+	reservedpages += (_ramend - memory_end - DMA_UNCACHED_REGION) >> PAGE_SHIFT;
+#endif
+
 	printk(KERN_INFO
-	     "Memory available: %luk/%uk RAM, (%uk init code, %uk kernel code, %uk data, %uk dma)\n",
-	     tmp >> 10, len >> 10, initk, codek, datak, DMA_UNCACHED_REGION >> 10);
+	     "Memory available: %luk/%luk RAM, (%uk init code, %uk kernel code, %uk data, %uk dma, %uk reserved)\n",
+	     (unsigned long) nr_free_pages() << (PAGE_SHIFT-10), _ramend >> 10,
+	     initk, codek, datak, DMA_UNCACHED_REGION >> 10, reservedpages << (PAGE_SHIFT-10));
 
 	/* Initialize the blackfin L1 Memory. */
 	l1sram_init();
