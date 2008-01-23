@@ -447,8 +447,8 @@ static struct platform_device bfin_device_gpiokeys = {
 static struct i2c_gpio_platform_data i2c_gpio_data = {
 	.sda_pin		= 2,
 	.scl_pin		= 3,
-	.sda_is_open_drain	= 1,
-	.scl_is_open_drain	= 1,
+	.sda_is_open_drain	= 0,
+	.scl_is_open_drain	= 0,
 	.udelay			= 40,
 };
 
