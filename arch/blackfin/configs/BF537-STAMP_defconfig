@@ -1,7 +1,6 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.22.14
-# Wed Dec  5 18:21:43 2007
+# Linux kernel version: 2.6.22.16
 #
 # CONFIG_MMU is not set
 # CONFIG_FPU is not set
@@ -116,7 +115,10 @@ CONFIG_PREEMPT_VOLUNTARY=y
 # Processor and Board Settings
 #
 # CONFIG_BF522 is not set
+# CONFIG_BF523 is not set
+# CONFIG_BF524 is not set
 # CONFIG_BF525 is not set
+# CONFIG_BF526 is not set
 # CONFIG_BF527 is not set
 # CONFIG_BF531 is not set
 # CONFIG_BF532 is not set
@@ -171,6 +173,7 @@ CONFIG_IRQ_WATCH=13
 CONFIG_BFIN537_STAMP=y
 # CONFIG_BFIN537_BLUETECHNIX_CM is not set
 # CONFIG_PNAV10 is not set
+# CONFIG_CAMSIG_MINOTAUR is not set
 # CONFIG_GENERIC_BF537_BOARD is not set
 
 #
@@ -275,6 +278,7 @@ CONFIG_BFIN_DCACHE=y
 # CONFIG_BFIN_WB is not set
 CONFIG_BFIN_WT=y
 CONFIG_L1_MAX_PIECE=16
+# CONFIG_MPU is not set
 
 #
 # Asynchonous Memory Configuration
@@ -518,7 +522,6 @@ CONFIG_MTD_CFI_I2=y
 # CONFIG_MTD_CFI_INTELEXT is not set
 CONFIG_MTD_CFI_AMDSTD=m
 # CONFIG_MTD_CFI_STAA is not set
-# CONFIG_MTD_MW320D is not set
 CONFIG_MTD_CFI_UTIL=m
 CONFIG_MTD_RAM=y
 CONFIG_MTD_ROM=m
@@ -706,7 +709,6 @@ CONFIG_INPUT_MISC=y
 # CONFIG_INPUT_POWERMATE is not set
 # CONFIG_INPUT_YEALINK is not set
 # CONFIG_INPUT_UINPUT is not set
-# CONFIG_BF53X_PFBUTTONS is not set
 CONFIG_TWI_KEYPAD=m
 CONFIG_BFIN_TWIKEYPAD_IRQ_PFX=72
 
@@ -730,8 +732,6 @@ CONFIG_BFIN_SPORT=y
 CONFIG_TWI_LCD=m
 CONFIG_TWI_LCD_SLAVE_ADDR=34
 # CONFIG_AD5304 is not set
-# CONFIG_BF5xx_TEA5764 is not set
-# CONFIG_BF5xx_FBDMA is not set
 # CONFIG_VT is not set
 # CONFIG_SERIAL_NONSTANDARD is not set
 
@@ -804,7 +804,6 @@ CONFIG_I2C_CHARDEV=m
 #
 # I2C Hardware Bus support
 #
-# CONFIG_I2C_BLACKFIN_GPIO is not set
 CONFIG_I2C_BLACKFIN_TWI=m
 CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ=50
 # CONFIG_I2C_GPIO is not set

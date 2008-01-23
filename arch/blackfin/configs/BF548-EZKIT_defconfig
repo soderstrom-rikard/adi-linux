@@ -1,6 +1,6 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.22.14
+# Linux kernel version: 2.6.22.16
 #
 # CONFIG_MMU is not set
 # CONFIG_FPU is not set
@@ -344,6 +344,7 @@ CONFIG_BFIN_DCACHE=y
 # CONFIG_BFIN_WB is not set
 CONFIG_BFIN_WT=y
 CONFIG_L1_MAX_PIECE=16
+# CONFIG_MPU is not set
 
 #
 # Asynchonous Memory Configuration
@@ -353,6 +354,7 @@ CONFIG_L1_MAX_PIECE=16
 # EBIU_AMGCTL Global Control
 #
 CONFIG_C_AMCKEN=y
+# CONFIG_C_CDPRIO is not set
 # CONFIG_C_AMBEN is not set
 # CONFIG_C_AMBEN_B0 is not set
 # CONFIG_C_AMBEN_B0_B1 is not set
@@ -541,7 +543,6 @@ CONFIG_MTD_CFI_I2=y
 CONFIG_MTD_CFI_INTELEXT=y
 # CONFIG_MTD_CFI_AMDSTD is not set
 # CONFIG_MTD_CFI_STAA is not set
-# CONFIG_MTD_MW320D is not set
 CONFIG_MTD_CFI_UTIL=y
 CONFIG_MTD_RAM=y
 # CONFIG_MTD_ROM is not set
@@ -555,7 +556,6 @@ CONFIG_MTD_PHYSMAP=y
 CONFIG_MTD_PHYSMAP_START=0x20000000
 CONFIG_MTD_PHYSMAP_LEN=0x400000
 CONFIG_MTD_PHYSMAP_BANKWIDTH=2
-# CONFIG_MTD_BF5xx is not set
 # CONFIG_MTD_UCLINUX is not set
 # CONFIG_MTD_PLATRAM is not set
 
@@ -790,6 +790,8 @@ CONFIG_INPUT_MISC=y
 # CONFIG_BF5xx_PPIFCD is not set
 # CONFIG_BFIN_SIMPLE_TIMER is not set
 # CONFIG_BF5xx_PPI is not set
+CONFIG_BFIN_OTP=y
+# CONFIG_BFIN_OTP_WRITE_ENABLE is not set
 # CONFIG_BFIN_SPORT is not set
 # CONFIG_BFIN_TIMER_LATENCY is not set
 # CONFIG_TWI_LCD is not set
@@ -863,7 +865,6 @@ CONFIG_I2C_CHARDEV=y
 #
 # I2C Hardware Bus support
 #
-# CONFIG_I2C_BLACKFIN_GPIO is not set
 CONFIG_I2C_BLACKFIN_TWI=y
 CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ=50
 # CONFIG_I2C_GPIO is not set
