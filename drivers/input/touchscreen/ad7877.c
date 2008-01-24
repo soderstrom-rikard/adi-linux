@@ -223,9 +223,6 @@ struct ad7877 {
 
 static int gpio3;
 
-static struct task_struct *ad7877_task;
-static DECLARE_WAIT_QUEUE_HEAD(ad7877_wait);
-
 static void ad7877_enable(struct ad7877 *ts);
 static void ad7877_disable(struct ad7877 *ts);
 
@@ -575,6 +572,7 @@ static irqreturn_t ad7877_irq(int irq, void *handle)
 {
 	struct ad7877 *ts = handle;
 	unsigned long flags;
+	int status;
 
 	spin_lock_irqsave(&ts->lock, flags);
 
@@ -586,47 +584,40 @@ static irqreturn_t ad7877_irq(int irq, void *handle)
 
 	ts->intr_flag = 1;
 
-	wake_up_interruptible(&ad7877_wait);
-
 	spin_unlock_irqrestore(&ts->lock, flags);
+
+	status = spi_async(ts->spi, &ts->msg);
+
+	if (status)
+		dev_err(&ts->spi->dev, "spi_sync --> %d\n", status);
+
 
 	return IRQ_HANDLED;
 }
 
 
-static int ad7877_thread(void *_ts)
+static void ad7877_callback(void *_ts)
 {
 	struct ad7877 *ts = _ts;
-	int status;
 	unsigned long flags;
 
-        do {
-		wait_event_interruptible(ad7877_wait, kthread_should_stop() || (ts->intr_flag!=0));
+	if (ts->intr_flag) {
 
-		if(ts->intr_flag) {
-			status = spi_sync(ts->spi, &ts->msg);
-			if (status)
-				dev_err(&ts->spi->dev, "spi_sync --> %d\n", status);
+		ad7877_rx(ts);
 
-			ad7877_rx(ts);
+		spin_lock_irqsave(&ts->lock, flags);
 
-			spin_lock_irqsave(&ts->lock, flags);
+		ts->intr_flag = 0;
+		ts->pending = 0;
 
-	                ts->intr_flag = 0;
-			ts->pending = 0;
-
-			if (!device_suspended(&ts->spi->dev)) {
-				ts->irq_disabled = 0;
-				enable_irq(ts->spi->irq);
-				mod_timer(&ts->timer, jiffies + TS_PEN_UP_TIMEOUT);
-			}
-
-			spin_unlock_irqrestore(&ts->lock, flags);
+		if (!device_suspended(&ts->spi->dev)) {
+			ts->irq_disabled = 0;
+			enable_irq(ts->spi->irq);
+			mod_timer(&ts->timer, jiffies + TS_PEN_UP_TIMEOUT);
 		}
-        	try_to_freeze();
-        } while (!kthread_should_stop());
-        printk(KERN_DEBUG "ad7877: ktsd kthread exiting\n");
-        return 0;
+
+		spin_unlock_irqrestore(&ts->lock, flags);
+	}
 }
 
 
@@ -701,7 +692,7 @@ static int ad7877_resume(struct spi_device *spi)
 static inline void ad7877_setup_ts_def_msg(struct spi_device *spi, struct ad7877 *ts)
 {
 	struct spi_message	*m;
-	u16 i;
+	int i;
 
 	ts->cmd_crtl2 = AD7877_WRITEADD(AD7877_REG_CTRL2) | AD7877_POL(ts->stopacq_polarity) |\
 			AD7877_AVG(ts->averaging) | AD7877_PM(1) |\
@@ -720,6 +711,9 @@ static inline void ad7877_setup_ts_def_msg(struct spi_device *spi, struct ad7877
 	m = &ts->msg;
 
 	spi_message_init(m);
+
+	m->complete = ad7877_callback;
+	m->context = ts;
 
 	ts->xfer[0].tx_buf = &ts->cmd_crtl1;
 	ts->xfer[0].len = 2;
@@ -831,7 +825,7 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 
 	/* Request AD7877 /DAV GPIO interrupt */
 
-	if (request_irq(spi->irq, ad7877_irq, IRQF_TRIGGER_LOW,
+	if (request_irq(spi->irq, ad7877_irq, IRQF_TRIGGER_LOW | IRQF_SAMPLE_RANDOM,
 			spi->dev.driver->name, ts)) {
 		dev_dbg(&spi->dev, "irq %d busy?\n", spi->irq);
 		err = -EBUSY;
@@ -854,21 +848,13 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 
 	err = input_register_device(input_dev);
 	if (err)
-		goto err_remove_attr;
+		goto err_idev;
 
 	ts->intr_flag = 0;
 
-	ad7877_task = kthread_run(ad7877_thread, ts, "ad7877_ktsd");
-
-        if (IS_ERR(ad7877_task)) {
-		printk(KERN_ERR "ts: Failed to start ad7877_task\n");
-		goto err_unregister_idev;
-        }
-
 	return 0;
 
-err_unregister_idev:
-	input_unregister_device(input_dev);
+err_idev:
 	input_dev = NULL; /* so we don't try to free it later */
 
 err_remove_attr:
@@ -894,8 +880,6 @@ static int __devexit ad7877_remove(struct spi_device *spi)
 	struct ad7877		*ts = dev_get_drvdata(&spi->dev);
 
 	ad7877_suspend(spi, PMSG_SUSPEND);
-
-	kthread_stop(ad7877_task);
 
 	sysfs_remove_group(&spi->dev.kobj, &ad7877_attr_group);
 
