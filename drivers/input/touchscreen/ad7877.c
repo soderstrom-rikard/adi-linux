@@ -10,7 +10,6 @@
  * Created:	Nov, 10th 2006
  * Description:	AD7877 based touchscreen, sensor (ADCs), DAC and GPIO driver
  *
- * Rev:         $Id$
  *
  * Modified:
  *
