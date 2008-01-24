@@ -3,7 +3,7 @@
  *
  * Based on: 	ads7846.c
  *
- *		Copyright (C) 2006 Michael Hennerich, Analog Devices Inc.
+ *		Copyright (C) 2008 Michael Hennerich, Analog Devices Inc.
  *
  * Author:	Michael Hennerich, Analog Devices Inc.
  *
@@ -13,7 +13,7 @@
  * Rev:         $Id$
  *
  * Modified:
- *              Copyright 2004-2007 Analog Devices Inc.
+ *              Copyright 2004-2008 Analog Devices Inc.
  *
  * Bugs:        Enter bugs at http://blackfin.uclinux.org/
  *
@@ -53,15 +53,9 @@
 #include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/slab.h>
-#include <linux/kthread.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/ad7877.h>
-#include <linux/freezer.h>
 #include <asm/irq.h>
-
-#ifdef	CONFIG_BLACKFIN
-#include <asm/blackfin.h>
-#endif
 
 #define	TS_PEN_UP_TIMEOUT	msecs_to_jiffies(50)
 
@@ -128,7 +122,6 @@ enum {
 	AD7877_SEQ_TEMP1 = 8,
 	AD7877_SEQ_TEMP2 = 9,
 	AD7877_SEQ_Z1    = 10,
-
 	AD7877_NR_SENSE  = 11,
 };
 
@@ -440,13 +433,14 @@ static ssize_t ad7877_gpio3_store(struct device *dev,
 
 	i = simple_strtoul(buf, &endp, 10);
 
-	if (i) {
+	if (i)
 		ts->gpio3=1;
-	} else {
+	else
 		ts->gpio3=0;
-	}
 
-	ad7877_write(dev, AD7877_REG_EXTWRITE, AD7877_EXTW_GPIO_DATA | (ts->gpio4 << 4) | (ts->gpio3 << 5));
+
+	ad7877_write(dev, AD7877_REG_EXTWRITE, AD7877_EXTW_GPIO_DATA |
+		 (ts->gpio4 << 4) | (ts->gpio3 << 5));
 
 	return count;
 }
@@ -471,13 +465,14 @@ static ssize_t ad7877_gpio4_store(struct device *dev,
 
 	i = simple_strtoul(buf, &endp, 10);
 
-	if (i) {
+	if (i)
 		ts->gpio4=1;
-	} else {
+	else
 		ts->gpio4=0;
-	}
 
-	ad7877_write(dev, AD7877_REG_EXTWRITE, AD7877_EXTW_GPIO_DATA | (ts->gpio4 << 4) | (ts->gpio3 << 5));
+
+	ad7877_write(dev, AD7877_REG_EXTWRITE, AD7877_EXTW_GPIO_DATA |
+		 (ts->gpio4 << 4) | (ts->gpio3 << 5));
 
 	return count;
 }
@@ -591,7 +586,6 @@ static irqreturn_t ad7877_irq(int irq, void *handle)
 	if (status)
 		dev_err(&ts->spi->dev, "spi_sync --> %d\n", status);
 
-
 	return IRQ_HANDLED;
 }
 
@@ -694,14 +688,17 @@ static inline void ad7877_setup_ts_def_msg(struct spi_device *spi, struct ad7877
 	struct spi_message	*m;
 	int i;
 
-	ts->cmd_crtl2 = AD7877_WRITEADD(AD7877_REG_CTRL2) | AD7877_POL(ts->stopacq_polarity) |\
-			AD7877_AVG(ts->averaging) | AD7877_PM(1) |\
-			AD7877_TMR(ts->pen_down_acc_interval) | AD7877_ACQ(ts->acquisition_time) |\
+	ts->cmd_crtl2 = AD7877_WRITEADD(AD7877_REG_CTRL2) |
+			AD7877_POL(ts->stopacq_polarity) |
+			AD7877_AVG(ts->averaging) | AD7877_PM(1) |
+			AD7877_TMR(ts->pen_down_acc_interval) |
+			AD7877_ACQ(ts->acquisition_time) |
 			AD7877_FCD(ts->first_conversion_delay);
 
 	ad7877_write((struct device *) spi, AD7877_REG_CTRL2, ts->cmd_crtl2);
 
-	ts->cmd_crtl1 = AD7877_WRITEADD(AD7877_REG_CTRL1) | AD7877_READADD(AD7877_REG_XPLUS-1) |\
+	ts->cmd_crtl1 = AD7877_WRITEADD(AD7877_REG_CTRL1) |
+			AD7877_READADD(AD7877_REG_XPLUS-1) |
 			AD7877_MODE_SEQ1 | AD7877_DFR;
 
 	ad7877_write((struct device *) spi, AD7877_REG_CTRL1, ts->cmd_crtl1);
@@ -813,13 +810,15 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 	verify = ad7877_read((struct device *) spi, AD7877_REG_SEQ1);
 
 	if (verify != AD7877_MM_SEQUENCE){
-		printk(KERN_ERR "%s: Failed to probe %s\n", spi->dev.bus_id, input_dev->name);
+		printk(KERN_ERR "%s: Failed to probe %s\n", spi->dev.bus_id,
+			 input_dev->name);
 		err = -ENODEV;
 		goto err_free_mem;
 	}
 
-	if(gpio3)
-		ad7877_write((struct device *) spi, AD7877_REG_EXTWRITE, AD7877_EXTW_GPIO_3_CONF);
+	if (gpio3)
+		ad7877_write((struct device *) spi, AD7877_REG_EXTWRITE,
+			 AD7877_EXTW_GPIO_3_CONF);
 
 	ad7877_setup_ts_def_msg(spi, ts);
 
@@ -838,7 +837,7 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 	if (err)
 		goto err_remove_attr;
 
-	if(gpio3)
+	if (gpio3)
 		err = device_create_file(&spi->dev, &dev_attr_gpio3);
 	else
 		err = device_create_file(&spi->dev, &dev_attr_aux3);
@@ -861,7 +860,7 @@ err_remove_attr:
 
 	sysfs_remove_group(&spi->dev.kobj, &ad7877_attr_group);
 
-	if(gpio3)
+	if (gpio3)
 		device_remove_file(&spi->dev, &dev_attr_gpio3);
 	else
 		device_remove_file(&spi->dev, &dev_attr_aux3);
@@ -883,7 +882,7 @@ static int __devexit ad7877_remove(struct spi_device *spi)
 
 	sysfs_remove_group(&spi->dev.kobj, &ad7877_attr_group);
 
-	if(gpio3)
+	if (gpio3)
 		device_remove_file(&spi->dev, &dev_attr_gpio3);
 	else
 		device_remove_file(&spi->dev, &dev_attr_aux3);
