@@ -459,7 +459,7 @@ static int ad7142_probe(struct i2c_adapter *adap, int addr, int kind)
 fail_register:
 	input_free_device(input_dev);
 fail_allocate:
-	free_irq(data->irq, ad7142_interrupt);
+	free_irq(data->irq, data);
 fail_check:
 	i2c_detach_client(client);
 fail_attach:
@@ -475,16 +475,19 @@ static int ad7142_attach(struct i2c_adapter *adap)
 static int ad7142_detach(struct i2c_client *client)
 {
 	struct ad7142_data *data = i2c_get_clientdata(client);
+	int rc;
 
-	free_irq(data->irq, ad7142_interrupt);
+	free_irq(data->irq, data);
 
 	flush_scheduled_work();
 
 	input_unregister_device(data->input_dev);
 
+	rc = i2c_detach_client(client);
+
 	kfree(data);
 
-	return i2c_detach_client(client);
+	return rc;
 }
 
 
