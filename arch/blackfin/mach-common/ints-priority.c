@@ -774,11 +774,10 @@ static struct irq_chip bfin_gpio_irqchip = {
 };
 
 static void bfin_demux_gpio_irq(unsigned int inta_irq,
-				struct irq_desc *inta_desc)
+				struct irq_desc *desc)
 {
 	u8 bank, pint_val;
 	u32 request, irq;
-	struct irq_desc *desc;
 
 	switch (inta_irq) {
 	case IRQ_PINT0:
@@ -863,6 +862,8 @@ int __init init_arch_irq(void)
 	SSYNC();
 
 	local_irq_disable();
+
+	init_exception_buff();
 
 #ifdef CONFIG_BF54x
 # ifdef CONFIG_PINTx_REASSIGN
@@ -958,11 +959,8 @@ int __init init_arch_irq(void)
 	}
 #endif
 
-#ifndef CONFIG_BF54x
-	for (irq = IRQ_PF0; irq < NR_IRQS; irq++) {
-#else
-	for (irq = IRQ_PA0; irq < NR_IRQS; irq++) {
-#endif
+	for (irq = GPIO_IRQ_BASE; irq < NR_IRQS; irq++) {
+
 		set_irq_chip(irq, &bfin_gpio_irqchip);
 		/* if configured as edge, then will be changed to do_edge_IRQ */
 		set_irq_handler(irq, handle_level_irq);
