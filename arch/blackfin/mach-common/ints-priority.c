@@ -69,6 +69,10 @@ unsigned long irq_flags = 0x1f;
 /* The number of spurious interrupts */
 atomic_t num_spurious;
 
+#ifdef CONFIG_PM
+unsigned long bfin_sic_iwr[3];	/* Up to 3 SIC_IWRx registers */
+#endif
+
 struct ivgx {
 	/* irq number for request_irq, available in mach-bf533/irq.h */
 	unsigned int irqno;
@@ -178,6 +182,27 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 	SSYNC();
 }
 
+#ifdef CONFIG_PM
+int bfin_internal_set_wake(unsigned int irq, unsigned int state)
+{
+	unsigned bank, bit;
+	unsigned long flags;
+	bank = (irq - (IRQ_CORETMR + 1)) / 32;
+	bit = (irq - (IRQ_CORETMR + 1)) % 32;
+
+	local_irq_save(flags);
+
+	if (state)
+		bfin_sic_iwr[bank] |= (1 << bit);
+	else
+		bfin_sic_iwr[bank] &= ~(1 << bit);
+
+	local_irq_restore(flags);
+
+	return 0;
+}
+#endif
+
 static struct irq_chip bfin_core_irqchip = {
 	.ack = ack_noop,
 	.mask = bfin_core_mask_irq,
@@ -188,6 +213,9 @@ static struct irq_chip bfin_internal_irqchip = {
 	.ack = ack_noop,
 	.mask = bfin_internal_mask_irq,
 	.unmask = bfin_internal_unmask_irq,
+#ifdef CONFIG_PM
+	.set_wake = bfin_internal_set_wake,
+#endif
 };
 
 #ifdef BF537_GENERIC_ERROR_INT_DEMUX
@@ -434,6 +462,20 @@ static int bfin_gpio_irq_type(unsigned int irq, unsigned int type)
 	return 0;
 }
 
+#ifdef CONFIG_PM
+int bfin_gpio_set_wake(unsigned int irq, unsigned int state)
+{
+	unsigned gpio = irq_to_gpio(irq);
+
+	if (state)
+		gpio_pm_wakeup_request(gpio, PM_WAKE_IGNORE);
+	else
+		gpio_pm_wakeup_free(gpio);
+
+	return 0;
+}
+#endif
+
 static struct irq_chip bfin_gpio_irqchip = {
 	.ack = bfin_gpio_ack_irq,
 	.mask = bfin_gpio_mask_irq,
@@ -441,7 +483,10 @@ static struct irq_chip bfin_gpio_irqchip = {
 	.unmask = bfin_gpio_unmask_irq,
 	.set_type = bfin_gpio_irq_type,
 	.startup = bfin_gpio_irq_startup,
-	.shutdown = bfin_gpio_irq_shutdown
+	.shutdown = bfin_gpio_irq_shutdown,
+#ifdef CONFIG_PM
+	.set_wake = bfin_gpio_set_wake,
+#endif
 };
 
 static void bfin_demux_gpio_irq(unsigned int inta_irq,
@@ -487,7 +532,7 @@ static void bfin_demux_gpio_irq(unsigned int inta_irq,
 	}
 
 	if (search) {
-		for (i = 0; i < MAX_BLACKFIN_GPIOS; i += 16) {
+		for (i = 0; i < MAX_BLACKFIN_GPIOS; i += GPIO_BANKSIZE) {
 			irq += i;
 
 			mask = get_gpiop_data(i) &

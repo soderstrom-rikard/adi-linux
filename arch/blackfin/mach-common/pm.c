@@ -67,42 +67,30 @@ void bfin_pm_suspend_standby_enter(void)
 	gpio_pm_wakeup_request(CONFIG_PM_WAKEUP_GPIO_NUMBER, WAKEUP_TYPE);
 #endif
 
-#if defined(CONFIG_PM_WAKEUP_BY_GPIO) || defined(CONFIG_PM_WAKEUP_GPIO_API)
-	{
-		u32 flags;
+	u32 flags;
 
-		local_irq_save(flags);
+	local_irq_save(flags);
+	gpio_pm_setup();
 
-		sleep_deeper(gpio_pm_setup()); /*Goto Sleep*/
-
-		gpio_pm_restore();
-
-#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)
-		bfin_write_SIC_IWR0(IWR_ENABLE_ALL);
-		bfin_write_SIC_IWR1(IWR_ENABLE_ALL);
-# ifdef CONFIG_BF54x
-		bfin_write_SIC_IWR2(IWR_ENABLE_ALL);
-# endif
+#ifdef CONFIG_PM_BFIN_SLEEP_DEEPER
+	sleep_deeper(bfin_sic_iwr[0], bfin_sic_iwr[1], bfin_sic_iwr[2]);
 #else
-		bfin_write_SIC_IWR(IWR_ENABLE_ALL);
+	sleep_mode(bfin_sic_iwr[0], bfin_sic_iwr[1], bfin_sic_iwr[2]);
 #endif
 
-		local_irq_restore(flags);
-	}
-#endif
+	gpio_pm_restore();
 
-#if defined(CONFIG_PM_WAKEUP_GPIO_BY_SIC_IWR)
-	sleep_deeper(CONFIG_PM_WAKEUP_SIC_IWR);
-# if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)
+#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)  || defined(CONFIG_BF561)
 	bfin_write_SIC_IWR0(IWR_ENABLE_ALL);
 	bfin_write_SIC_IWR1(IWR_ENABLE_ALL);
-#  ifdef CONFIG_BF54x
+# ifdef CONFIG_BF54x
 	bfin_write_SIC_IWR2(IWR_ENABLE_ALL);
-#  endif
-# else
-	bfin_write_SIC_IWR(IWR_ENABLE_ALL);
 # endif
-#endif				/* CONFIG_PM_WAKEUP_GPIO_BY_SIC_IWR */
+#else
+	bfin_write_SIC_IWR(IWR_ENABLE_ALL);
+#endif
+
+	local_irq_restore(flags);
 }
 
 

@@ -40,9 +40,6 @@ static int dpmc_write_proc(struct file *file, const char __user * buffer, unsign
 
 void fullon_mode(void);
 void active_mode(void);
-void sleep_mode(u32 sic_iwr);
-void deep_sleep(u32 sic_iwr);
-void hibernate_mode(u32 sic_iwr);
 void program_wdog_timer(unsigned long);
 void unmask_wdog_wakeup_evt(void);
 void clear_wdog_wakeup_evt(void);

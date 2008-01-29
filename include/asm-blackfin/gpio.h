@@ -381,6 +381,7 @@ struct gpio_port_t {
 #define PM_WAKE_HIGH	0x4
 #define PM_WAKE_LOW	0x8
 #define PM_WAKE_BOTH_EDGES	(PM_WAKE_RISING | PM_WAKE_FALLING)
+#define PM_WAKE_IGNORE	0xF0
 
 int gpio_pm_wakeup_request(unsigned gpio, unsigned char type);
 void gpio_pm_wakeup_free(unsigned gpio);

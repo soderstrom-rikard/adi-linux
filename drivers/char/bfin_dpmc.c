@@ -182,6 +182,19 @@ unsigned long get_sdrrcval(unsigned long sc)
 	return sdrrcval;
 }
 
+void dpmc_iwr_enable_all(void)
+{
+#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)  || defined(CONFIG_BF561)
+		bfin_write_SIC_IWR0(IWR_ENABLE_ALL);
+		bfin_write_SIC_IWR1(IWR_ENABLE_ALL);
+# ifdef CONFIG_BF54x
+		bfin_write_SIC_IWR2(IWR_ENABLE_ALL);
+# endif
+#else
+		dpmc_iwr_enable_all();
+#endif
+}
+
 int get_closest_ssel(int a, int b, int c, unsigned long vco, unsigned long clock)
 {
 	int t1, t2, t3;
@@ -261,7 +274,7 @@ static int dpmc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
 			change_baud(CONSOLE_BAUD_RATE);
 #endif
 			change_baud(CONSOLE_BAUD_RATE);
-			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
+			dpmc_iwr_enable_all();
 			SSYNC();
 
 			break;
@@ -269,18 +282,18 @@ static int dpmc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
 		case IOCTL_ACTIVE_MODE:
 			active_mode();
 			change_baud(CONSOLE_BAUD_RATE);
-			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
+			dpmc_iwr_enable_all();
 			SSYNC();
 			break;
 
 		case IOCTL_SLEEP_MODE:
-			sleep_mode(IWR_ENABLE(IRQ_RTC - IVG7));
-			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
+			sleep_mode(IWR_ENABLE(IRQ_RTC - IVG7), IWR_DISABLE_ALL, IWR_DISABLE_ALL);
+			dpmc_iwr_enable_all();
 			SSYNC();
 			break;
 
 		case IOCTL_DEEP_SLEEP_MODE:
-			deep_sleep(IWR_ENABLE(IRQ_RTC - IVG7));
+			deep_sleep(IWR_ENABLE(IRQ_RTC - IVG7), IWR_DISABLE_ALL, IWR_DISABLE_ALL);
 
 /* Active Mode SCLK = CCLK is hazardous condition Anomlay 05000273 */
 /* Changed deep_sleep to return to Full On Mode */
@@ -288,19 +301,19 @@ static int dpmc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
 			/* Needed since it comes back to active mode */
 			change_baud(CONSOLE_BAUD_RATE);
 #endif
-			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
+			dpmc_iwr_enable_all();
 			SSYNC();
 			break;
 
 		case IOCTL_SLEEP_DEEPER_MODE:
-			sleep_deeper(IWR_ENABLE(IRQ_RTC - IVG7));
-			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
+			sleep_deeper(IWR_ENABLE(IRQ_RTC - IVG7), IWR_DISABLE_ALL, IWR_DISABLE_ALL);
+			dpmc_iwr_enable_all();
 			SSYNC();
 			break;
 
 		case IOCTL_HIBERNATE_MODE:
-			hibernate_mode(IWR_ENABLE(IRQ_RTC - IVG7));
-			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
+			hibernate_mode(IWR_ENABLE(IRQ_RTC - IVG7), IWR_DISABLE_ALL, IWR_DISABLE_ALL);
+			dpmc_iwr_enable_all();
 			SSYNC();
 			break;
 
@@ -351,7 +364,7 @@ static int dpmc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
 					sclk_mhz = change_sclk((vco_mhz/(DEF_SSEL * MHZ)));
 				change_baud(CONSOLE_BAUD_RATE);
 			}
-			bfin_write_SIC_IWR(IWR_ENABLE_ALL);
+			dpmc_iwr_enable_all();
 			SSYNC();
 			copy_to_user((unsigned long *)arg, &vco_mhz, sizeof(unsigned long));
 			break;
@@ -833,8 +846,8 @@ static int dpmc_write_proc(struct file *file, const char __user * buffer,
 	}
 
 	if (val) {
-		sleep_deeper(val);
-		bfin_write_SIC_IWR(IWR_ENABLE_ALL);
+		sleep_deeper(val, 0, 0);
+		dpmc_iwr_enable_all();
 	}
 
 	return count;
