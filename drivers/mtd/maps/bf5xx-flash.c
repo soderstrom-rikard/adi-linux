@@ -145,8 +145,13 @@ static struct map_info bf5xx_map = {
 	.copy_to   = bf5xx_copy_to,
 };
 
+#ifdef CONFIG_MTD_PARTITIONS
+static const char *part_probe_types[] = { "cmdlinepart", "RedBoot", NULL };
+#endif
+
 static int __init bf5xx_flash_probe(struct platform_device *dev)
 {
+	int ret;
 	struct physmap_flash_data *pdata = dev->dev.platform_data;
 	struct resource *memory = platform_get_resource(dev, IORESOURCE_MEM, 0);
 
@@ -168,10 +173,19 @@ static int __init bf5xx_flash_probe(struct platform_device *dev)
 	if (!bf5xx_mtd)
 		return -ENXIO;
 
-	if (pdata->nr_parts) {
+#ifdef CONFIG_MTD_PARTITIONS
+	ret = parse_mtd_partitions(bf5xx_mtd, part_probe_types, &pdata->parts, 0);
+	if (ret > 0) {
+		pr_init(KERN_NOTICE DRIVER_NAME ": Using commandline partition definition\n");
+		add_mtd_partitions(bf5xx_mtd, pdata->parts, ret);
+
+	} else if (pdata->nr_parts) {
 		pr_init(KERN_NOTICE DRIVER_NAME ": Using board partition definition\n");
 		add_mtd_partitions(bf5xx_mtd, pdata->parts, pdata->nr_parts);
-	} else {
+
+	} else
+#endif
+	{
 		pr_init(KERN_NOTICE DRIVER_NAME ": no partition info available, registering whole flash at once\n");
 		add_mtd_device(bf5xx_mtd);
 	}
@@ -182,7 +196,9 @@ static int __init bf5xx_flash_probe(struct platform_device *dev)
 static int __devexit bf5xx_flash_remove(struct platform_device *dev)
 {
 	gpio_free(enet_flash_pin);
+#ifdef CONFIG_MTD_PARTITIONS
 	del_mtd_partitions(bf5xx_mtd);
+#endif
 	map_destroy(bf5xx_mtd);
 	return 0;
 }
