@@ -98,8 +98,7 @@ static void __init search_IAR(void)
 
 		for (irqn = 0; irqn < NR_PERI_INTS; irqn++) {
 			int iar_shift = (irqn & 7) * 4;
-				if (ivg ==
-			    (0xf &
+				if (ivg == (0xf &
 #ifndef CONFIG_BF52x
 			     bfin_read32((unsigned long *)SIC_IAR0 +
 					 (irqn >> 3)) >> iar_shift)) {
@@ -206,8 +205,7 @@ static void bfin_generic_error_mask_irq(unsigned int irq)
 	if (!error_int_mask) {
 		local_irq_disable();
 		bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() &
-				     ~(1 <<
-				       (IRQ_GENERIC_ERROR -
+				     ~(1 << (IRQ_GENERIC_ERROR -
 					(IRQ_CORETMR + 1))));
 		SSYNC();
 		local_irq_enable();
@@ -232,7 +230,7 @@ static struct irq_chip bfin_generic_error_irqchip = {
 };
 
 static void bfin_demux_error_irq(unsigned int int_err_irq,
-				 struct irq_desc *intb_desc)
+				 struct irq_desc *inta_desc)
 {
 	int irq = 0;
 
@@ -446,27 +444,81 @@ static struct irq_chip bfin_gpio_irqchip = {
 	.shutdown = bfin_gpio_irq_shutdown
 };
 
-static void bfin_demux_gpio_irq(unsigned int intb_irq,
-				struct irq_desc *intb_desc)
+static void bfin_demux_gpio_irq(unsigned int inta_irq,
+				struct irq_desc *desc)
 {
-	u16 i;
-	struct irq_desc *desc;
+	unsigned int i, gpio, mask, irq, search = 0;
 
-	for (i = 0; i < MAX_BLACKFIN_GPIOS; i += 16) {
-		int irq = IRQ_PF0 + i;
-		int flag_d = get_gpiop_data(i);
-		int mask =
-		    flag_d & (gpio_enabled[gpio_bank(i)] & get_gpiop_maska(i));
-
-		while (mask) {
-			if (mask & 1) {
-				desc = irq_desc + irq;
-				desc->handle_irq(irq, desc);
-			}
-			irq++;
-			mask >>= 1;
-		}
+	switch (inta_irq) {
+#if defined(CONFIG_BF53x)
+	case IRQ_PROG_INTA:
+		irq = IRQ_PF0;
+		search = 1;
+		break;
+# if defined(BF537_FAMILY) && !(defined(CONFIG_BFIN_MAC) || defined(CONFIG_BFIN_MAC_MODULE))
+	case IRQ_MAC_RX:
+		irq = IRQ_PH0;
+		break;
+# endif
+#elif defined(CONFIG_BF52x)
+	case IRQ_PORTF_INTA:
+		irq = IRQ_PF0;
+		break;
+	case IRQ_PORTG_INTA:
+		irq = IRQ_PG0;
+		break;
+	case IRQ_PORTH_INTA:
+		irq = IRQ_PH0;
+		break;
+#elif defined(CONFIG_BF561)
+	case IRQ_PROG0_INTA:
+		irq = IRQ_PF0;
+		break;
+	case IRQ_PROG1_INTA:
+		irq = IRQ_PF16;
+		break;
+	case IRQ_PROG2_INTA:
+		irq = IRQ_PF32;
+		break;
+#endif
+	default:
+		BUG();
+		return;
 	}
+
+	if (search) {
+		for (i = 0; i < MAX_BLACKFIN_GPIOS; i += 16) {
+			irq += i;
+
+			mask = get_gpiop_data(i) &
+				(gpio_enabled[gpio_bank(i)] &
+				get_gpiop_maska(i));
+
+			while (mask) {
+				if (mask & 1) {
+					desc = irq_desc + irq;
+					desc->handle_irq(irq, desc);
+				}
+				irq++;
+				mask >>= 1;
+			}
+		}
+	} else {
+			gpio = irq_to_gpio(irq);
+			mask = get_gpiop_data(gpio) &
+				(gpio_enabled[gpio_bank(gpio)] &
+				get_gpiop_maska(gpio));
+
+			do {
+				if (mask & 1) {
+					desc = irq_desc + irq;
+					desc->handle_irq(irq, desc);
+				}
+				irq++;
+				mask >>= 1;
+			} while (mask);
+	}
+
 }
 
 #else				/* CONFIG_BF54x */
@@ -721,14 +773,14 @@ static struct irq_chip bfin_gpio_irqchip = {
 	.shutdown = bfin_gpio_irq_shutdown
 };
 
-static void bfin_demux_gpio_irq(unsigned int intb_irq,
-				struct irq_desc *intb_desc)
+static void bfin_demux_gpio_irq(unsigned int inta_irq,
+				struct irq_desc *inta_desc)
 {
 	u8 bank, pint_val;
 	u32 request, irq;
 	struct irq_desc *desc;
 
-	switch (intb_irq) {
+	switch (inta_irq) {
 	case IRQ_PINT0:
 		bank = 0;
 		break;
@@ -795,7 +847,7 @@ int __init init_arch_irq(void)
 	int irq;
 	unsigned long ilat = 0;
 	/*  Disable all the peripheral intrs  - page 4-29 HW Ref manual */
-#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)
+#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x) || defined(CONFIG_BF561)
 	bfin_write_SIC_IMASK0(SIC_UNMASK_ALL);
 	bfin_write_SIC_IMASK1(SIC_UNMASK_ALL);
 	bfin_write_SIC_IWR0(IWR_ENABLE_ALL);
@@ -874,6 +926,19 @@ int __init init_arch_irq(void)
 				set_irq_chained_handler(irq,
 							bfin_demux_gpio_irq);
 				break;
+#elif defined(CONFIG_BF561)
+			case IRQ_PROG0_INTA:
+				set_irq_chained_handler(irq,
+							bfin_demux_gpio_irq);
+				break;
+			case IRQ_PROG1_INTA:
+				set_irq_chained_handler(irq,
+							bfin_demux_gpio_irq);
+				break;
+			case IRQ_PROG2_INTA:
+				set_irq_chained_handler(irq,
+							bfin_demux_gpio_irq);
+				break;
 #endif
 			default:
 				set_irq_handler(irq, handle_simple_irq);
@@ -936,7 +1001,7 @@ void do_irq(int vec, struct pt_regs *fp)
 	} else {
 		struct ivgx *ivg = ivg7_13[vec - IVG7].ifirst;
 		struct ivgx *ivg_stop = ivg7_13[vec - IVG7].istop;
-#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)
+#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x) || defined(CONFIG_BF561)
 		unsigned long sic_status[3];
 
 		SSYNC();
