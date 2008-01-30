@@ -27,7 +27,7 @@
 #define DRIVER_NAME "bfin-otp"
 #define PFX DRIVER_NAME ": "
 
-DEFINE_MUTEX(bfin_otp_lock);
+static DEFINE_MUTEX(bfin_otp_lock);
 
 /* OTP Boot ROM functions */
 #define _BOOTROM_OTP_COMMAND           0xEF000018
@@ -162,7 +162,6 @@ static int __init bfin_otp_init(void)
 
 	cdev_init(&bfin_otp_cdev, &bfin_otp_fops);
 	bfin_otp_cdev.owner = THIS_MODULE;
-	bfin_otp_cdev.ops = &bfin_otp_fops;
 
 	ret = cdev_add(&bfin_otp_cdev, bfin_otp_dev_node, 1);
 	if (ret) {
