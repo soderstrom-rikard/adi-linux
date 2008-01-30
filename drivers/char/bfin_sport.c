@@ -762,8 +762,7 @@ static void sport_setup_cdev(struct sport_dev *dev, int index)
 
 	cdev_init(&dev->cdev, &sport_fops);
 	dev->cdev.owner = THIS_MODULE;
-	dev->cdev.ops = &sport_fops;
-	err = cdev_add (&dev->cdev, devno, 1);
+	err = cdev_add(&dev->cdev, devno, 1);
 	if (err)
 		printk(KERN_NOTICE "Error %d adding sport%d", err, index);
 }
