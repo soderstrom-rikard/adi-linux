@@ -80,6 +80,9 @@ config BFIN_OTP
 	  to the secure memory pages however.  You will need to write your
 	  own secure code and reader for that.
 
+	  Consult the datasheet to make sure your voltages are OK while
+	  reading from the OTP memory.
+
 	  To compile this driver as a module, choose M here: the module
 	  will be called bfin-otp.
 
@@ -94,6 +97,9 @@ config BFIN_OTP_WRITE_ENABLE
 	  OTP pages.  This is dangerous by nature as you can only program
 	  the pages once, so only enable this option when you actually
 	  need it so as to not inadvertently clobber data.
+
+	  Consult the datasheet to make sure your voltages and junction
+	  temperatures are in within range while writing to OTP memory.
 
 	  If unsure, say N.
 
