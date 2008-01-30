@@ -51,7 +51,6 @@ static void switch_to_flash(struct flash_save *save)
 	local_irq_save(save->flags);
 
 	gpio_set_value(enet_flash_pin, 0);
-	SSYNC();
 
 	save->ambctl0 = bfin_read_EBIU_AMBCTL0();
 	save->ambctl1 = bfin_read_EBIU_AMBCTL1();
@@ -78,9 +77,10 @@ static map_word bf5xx_read(struct map_info *map, unsigned long ofs)
 	struct flash_save save;
 
 	switch_to_flash(&save);
-	SSYNC();
+
 	nValue = readw(map->virt + ofs);
 	SSYNC();
+
 	switch_back(&save);
 
 	test.x[0] = (u16)nValue;
@@ -119,7 +119,6 @@ static void bf5xx_write(struct map_info *map, map_word d1, unsigned long ofs)
 
 	switch_to_flash(&save);
 
-	SSYNC();
 	writew(d, map->virt + ofs);
 	SSYNC();
 
@@ -133,6 +132,7 @@ static void bf5xx_copy_to(struct map_info *map, unsigned long to, const void *fr
 	switch_to_flash(&save);
 
 	memcpy(map->virt + to, from, len);
+	SSYNC();
 
 	switch_back(&save);
 }
