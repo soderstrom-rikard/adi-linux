@@ -1,5 +1,5 @@
 /*
- * File:         arch/blackfin/mach-common/ints-priority-sc.c
+ * File:         arch/blackfin/mach-common/ints-priority.c
  * Based on:
  * Author:
  *
@@ -13,7 +13,7 @@
  *               2002 Arcturus Networks Inc. MaTed <mated@sympatico.ca>
  *               2003 Metrowerks/Motorola
  *               2003 Bas Vermeulen <bas@buyways.nl>
- *               Copyright 2004-2007 Analog Devices Inc.
+ *               Copyright 2004-2008 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
@@ -808,6 +808,74 @@ static int bfin_gpio_irq_type(unsigned int irq, unsigned int type)
 	return 0;
 }
 
+#ifdef CONFIG_PM
+u32 pint_saved_masks[NR_PINT_SYS_IRQS];
+u32 pint_wakeup_masks[NR_PINT_SYS_IRQS];
+
+int bfin_gpio_set_wake(unsigned int irq, unsigned int state)
+{
+	u32 pint_irq;
+	u8 pint_val = irq2pint_lut[irq - SYS_IRQS];
+	u32 bank = PINT_2_BANK(pint_val);
+	u32 pintbit = PINT_BIT(pint_val);
+
+	switch (bank) {
+	case 0:
+		pint_irq = IRQ_PINT0;
+		break;
+	case 2:
+		pint_irq = IRQ_PINT2;
+		break;
+	case 3:
+		pint_irq = IRQ_PINT3;
+		break;
+	case 1:
+		pint_irq = IRQ_PINT1;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	bfin_internal_set_wake(pint_irq, state);
+
+	if (state)
+		pint_wakeup_masks[bank] |= pintbit;
+	else
+		pint_wakeup_masks[bank] &= ~pintbit;
+
+	return 0;
+}
+
+u32 bfin_pm_setup(void)
+{
+	u32 val, i;
+
+	for (i = 0; i < NR_PINT_SYS_IRQS; i++) {
+		val = pint[i]->mask_clear;
+		pint_saved_masks[i] = val;
+		if (val ^ pint_wakeup_masks[i]) {
+			pint[i]->mask_clear = val;
+			pint[i]->mask_set = pint_wakeup_masks[i];
+		}
+	}
+
+	return 0;
+}
+
+void bfin_pm_restore(void)
+{
+	u32 i, val;
+
+	for (i = 0; i < NR_PINT_SYS_IRQS; i++) {
+		val = pint_saved_masks[i];
+		if (val ^ pint_wakeup_masks[i]) {
+			pint[i]->mask_clear = pint[i]->mask_clear;
+			pint[i]->mask_set = val;
+		}
+	}
+}
+#endif
+
 static struct irq_chip bfin_gpio_irqchip = {
 	.ack = bfin_gpio_ack_irq,
 	.mask = bfin_gpio_mask_irq,
@@ -815,7 +883,10 @@ static struct irq_chip bfin_gpio_irqchip = {
 	.unmask = bfin_gpio_unmask_irq,
 	.set_type = bfin_gpio_irq_type,
 	.startup = bfin_gpio_irq_startup,
-	.shutdown = bfin_gpio_irq_shutdown
+	.shutdown = bfin_gpio_irq_shutdown,
+#ifdef CONFIG_PM
+	.set_wake = bfin_gpio_set_wake,
+#endif
 };
 
 static void bfin_demux_gpio_irq(unsigned int inta_irq,

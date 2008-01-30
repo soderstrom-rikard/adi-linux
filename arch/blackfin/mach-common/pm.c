@@ -4,7 +4,7 @@
  * Author:       Cliff Brake <cbrake@accelent.com> Copyright (c) 2001
  *
  * Created:      2001
- * Description:  Power management for the bfin
+ * Description:  Blackfin power management
  *
  * Modified:     Nicolas Pitre - PXA250 support
  *                Copyright (c) 2002 Monta Vista Software, Inc.
@@ -12,7 +12,7 @@
  *                Copyright (c) 2002 Monta Vista Software, Inc.
  *               Dirk Behme <dirk.behme@de.bosch.com> - OMAP1510/1610
  *                Copyright 2004
- *               Copyright 2004-2006 Analog Devices Inc.
+ *               Copyright 2004-2008 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
@@ -70,7 +70,7 @@ void bfin_pm_suspend_standby_enter(void)
 	u32 flags;
 
 	local_irq_save(flags);
-	gpio_pm_setup();
+	bfin_pm_setup();
 
 #ifdef CONFIG_PM_BFIN_SLEEP_DEEPER
 	sleep_deeper(bfin_sic_iwr[0], bfin_sic_iwr[1], bfin_sic_iwr[2]);
@@ -78,7 +78,7 @@ void bfin_pm_suspend_standby_enter(void)
 	sleep_mode(bfin_sic_iwr[0], bfin_sic_iwr[1], bfin_sic_iwr[2]);
 #endif
 
-	gpio_pm_restore();
+	bfin_pm_restore();
 
 #if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)  || defined(CONFIG_BF561)
 	bfin_write_SIC_IWR0(IWR_ENABLE_ALL);
