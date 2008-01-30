@@ -426,6 +426,10 @@ static __init void parse_cmdline_early(char *cmdline_p)
  */
 static __init void  memory_setup(void)
 {
+#ifdef CONFIG_MTD_UCLINUX
+	unsigned long mtd_phys = 0;
+#endif
+
 	_rambase = (unsigned long)_stext;
 	_ramstart = (unsigned long)__bss_stop;
 
@@ -625,9 +629,6 @@ static __init void setup_bootmem_allocator(void)
 void __init setup_arch(char **cmdline_p)
 {
 	unsigned long l1_length, sclk, cclk;
-#ifdef CONFIG_MTD_UCLINUX
-	unsigned long mtd_phys = 0;
-#endif
 
 #ifdef CONFIG_DUMMY_CONSOLE
 	conswitchp = &dummy_con;
