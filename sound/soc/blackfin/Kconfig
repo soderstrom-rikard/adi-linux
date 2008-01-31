@@ -6,6 +6,13 @@ config SND_BF5XX_SOC
 	  the BF5xx AC97 interface.  You will also need
 	  to select the audio interfaces to support below.
 
+config SND_MMAP_SUPPORT
+	bool "Enable True MMAP Support"
+	depends on SND_BF5XX_SOC
+	default y
+	help
+	  Say y if you want driver to support mmap way.
+
 config SND_BF5XX_AC97
 	tristate
 	select SND_AC97_CODEC

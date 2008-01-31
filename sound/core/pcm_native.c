@@ -3413,6 +3413,12 @@ out:
 }
 #endif /* CONFIG_SND_SUPPORT_OLD_API */
 
+unsigned long dummy_get_unmapped_area(struct file *file, unsigned long addr,
+				      unsigned long len, unsigned long pgoff, unsigned long flags)
+{
+	return 0;
+}
+
 /*
  *  Register section
  */
@@ -3429,6 +3435,7 @@ const struct file_operations snd_pcm_f_ops[2] = {
 		.compat_ioctl = 	snd_pcm_ioctl_compat,
 		.mmap =			snd_pcm_mmap,
 		.fasync =		snd_pcm_fasync,
+		.get_unmapped_area =	dummy_get_unmapped_area,
 	},
 	{
 		.owner =		THIS_MODULE,
@@ -3441,5 +3448,6 @@ const struct file_operations snd_pcm_f_ops[2] = {
 		.compat_ioctl = 	snd_pcm_ioctl_compat,
 		.mmap =			snd_pcm_mmap,
 		.fasync =		snd_pcm_fasync,
+		.get_unmapped_area =	dummy_get_unmapped_area,
 	}
 };

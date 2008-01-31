@@ -114,7 +114,14 @@ struct sport_device {
 	void *tx_data;
 	void (*err_callback)(void *data);
 	void *err_data;
-
+	unsigned char *tx_dma_buf;
+	unsigned char *rx_dma_buf;
+#ifdef CONFIG_SND_MMAP_SUPPORT
+	dma_addr_t tx_dma_phy;
+	dma_addr_t rx_dma_phy;
+	int tx_pos;/*pcm sample count*/
+	int rx_pos;
+#endif
 	void *private_data;
 };
 

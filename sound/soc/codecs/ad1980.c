@@ -222,8 +222,11 @@ static int ad1980_soc_probe(struct platform_device *pdev)
 			ARRAY_SIZE(ad1980_reg));
 	codec->reg_cache_size = sizeof(u16) * ARRAY_SIZE(ad1980_reg);
 	codec->reg_cache_step = 2;
-
+#ifdef CONFIG_SND_MMAP_SUPPORT
+	codec->name = "AD1980-MMAP";
+#else
 	codec->name = "AD1980";
+#endif
 	codec->owner = THIS_MODULE;
 	codec->dai = &ad1980_dai;
 	codec->num_dai = 1;
