@@ -2460,8 +2460,6 @@ static int net2272_remove (struct device *_dev)
 	if (dev->got_irq)
 		free_irq (pdev->resource [1].start, dev);
 
-	release_mem_region (pdev->resource [0].start, 0xF0);
-
 	if (dev->base_addr)
 		iounmap (dev->base_addr);
 
@@ -2585,13 +2583,6 @@ static int net2272_probe (struct device *_dev)
 
 	dev->enabled = 1;
 
-	// FIXME, hardcoding register base memory resource length to 0xF0!
-	if (!request_mem_region (base,
-				0xF0,  driver_name)) {
-		DEBUG (dev, "get request memory region!\n");
-		retval = -EBUSY;
-		goto done;
-	}
 	dev->base_addr = ioremap_nocache (base, 256);
 	if (!dev->base_addr) {
 		DEBUG (dev, "can't map memory\n");
