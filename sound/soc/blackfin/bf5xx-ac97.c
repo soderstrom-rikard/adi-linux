@@ -292,7 +292,7 @@ static int bf5xx_ac97_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	if (peripheral_request_list(&sport_req[sport_num][0], "soc-audio")) {
-		printk(KERN_ERR "Requesting Peripherals faild\n");
+		printk(KERN_ERR "Requesting Peripherals failed\n");
 		return -EFAULT;
 		}
 

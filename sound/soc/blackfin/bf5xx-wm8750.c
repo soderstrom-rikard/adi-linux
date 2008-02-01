@@ -196,7 +196,7 @@ static int bf5xx_probe(struct platform_device *pdev)
 
 	printd("%s\n", __func__);
 	if (peripheral_request_list(&sport_req[sport_num][0], "soc-audio")) {
-		printk(KERN_ERR "Requesting Peripherals faild\n");
+		printk(KERN_ERR "Requesting Peripherals failed\n");
 		return -EFAULT;
 	}
 
