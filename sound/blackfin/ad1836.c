@@ -890,8 +890,8 @@ static struct snd_pcm_hardware snd_ad1836_capture_hw = {
 	.buffer_bytes_max = PCM_BUFFER_MAX,
 	.period_bytes_min = FRAGMENT_SIZE_MIN,
 	.period_bytes_max = PCM_BUFFER_MAX/2,
-	.periods_min =      FRAGMENTS_MIN,
-	.periods_max =      FRAGMENTS_MAX,
+	.periods_min =      8,
+	.periods_max =      8,
 };
 
 static int snd_ad1836_playback_open(struct snd_pcm_substream *substream)
