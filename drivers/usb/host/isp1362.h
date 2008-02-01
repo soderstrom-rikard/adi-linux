@@ -41,7 +41,9 @@
 #define USE_PLATFORM_DELAY	0
 #define USE_NDELAY		1
 
-#define DUMMY_DELAY_ACCESS bfin_read16(ASYNC_BANK0_BASE)
+#define DUMMY_DELAY_ACCESS do { bfin_read16(ASYNC_BANK0_BASE); bfin_read16(ASYNC_BANK0_BASE);	\
+				 bfin_read16(ASYNC_BANK0_BASE); 				\
+			     } while (0)
 
 #undef insw
 #undef outsw

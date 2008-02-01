@@ -1692,10 +1692,6 @@ static int isp1362_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 		}
 		tmp = isp1362_hcd->rhport[--wIndex];
 		put_unaligned (cpu_to_le32(tmp), (__le32 *) buf);
-#ifndef	VERBOSE
-		if (*(u16 *) (buf + 2))	/* only if wPortChange is interesting */
-#endif
-			DBG(0, "GetPortStatus: port[%d]  %08x\n", wIndex + 1, tmp);
 		break;
 	case ClearPortFeature:
 		DBG(0, "ClearPortFeature: ");
@@ -2623,7 +2619,6 @@ static int isp1362_hc_start(struct usb_hcd *hcd)
 	int ret;
 	struct isp1362_hcd *isp1362_hcd = hcd_to_isp1362_hcd(hcd);
 	struct isp1362_platform_data *board = isp1362_hcd->board;
-	struct usb_device *udev;
 	u16 hwcfg;
 	u16 chipid;
 	unsigned long flags;
@@ -2714,15 +2709,7 @@ static int isp1362_hc_start(struct usb_hcd *hcd)
 
 	spin_unlock_irqrestore(&isp1362_hcd->lock, flags);
 
-	udev = usb_alloc_dev(NULL, &hcd->self, 0);
-	if (!udev) {
-		isp1362_hc_stop(hcd);
-		return -ENOMEM;
-	}
-
 	isp1362_hcd->hc_control = OHCI_USB_OPER;
-
-	udev->speed = USB_SPEED_FULL;
 	hcd->state = HC_STATE_RUNNING;
 
 	spin_lock_irqsave(&isp1362_hcd->lock, flags);
@@ -2905,7 +2892,7 @@ static int __init isp1362_probe(struct platform_device *pdev)
 	}
 #endif
 
-	retval = usb_add_hcd(hcd, irq, IRQF_TRIGGER_LOW | SA_INTERRUPT | SA_SHIRQ);
+	retval = usb_add_hcd(hcd, irq, IRQF_TRIGGER_LOW | IRQF_DISABLED | IRQF_SHARED);
 	if (retval != 0) {
 		goto err6;
 	}
