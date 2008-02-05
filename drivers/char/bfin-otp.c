@@ -23,6 +23,7 @@
 
 #define stamp(fmt, args...) pr_debug("%s:%i: " fmt "\n", __func__, __LINE__, ## args)
 #define stampit() stamp("here i am")
+#define pr_init(fmt, args...) ({ static const __initdata char __fmt[] = fmt; printk(__fmt, ## args); })
 
 #define DRIVER_NAME "bfin-otp"
 #define PFX DRIVER_NAME ": "
@@ -158,11 +159,11 @@ static int __init bfin_otp_init(void)
 
 	ret = misc_register(&bfin_otp_misc_device);
 	if (ret) {
-		printk(KERN_ERR PFX "unable to register a misc device\n");
+		pr_init(KERN_ERR PFX "unable to register a misc device\n");
 		return ret;
 	}
 
-	printk(KERN_INFO PFX "initialized\n");
+	pr_init(KERN_INFO PFX "initialized\n");
 
 	return 0;
 }
