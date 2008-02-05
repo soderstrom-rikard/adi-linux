@@ -9,11 +9,11 @@
  * Licensed under the GPL-2 or later.
  */
 
-#include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/errno.h>
 #include <linux/fs.h>
 #include <linux/init.h>
+#include <linux/miscdevice.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/types.h>
@@ -132,14 +132,16 @@ static ssize_t bfin_otp_write(struct file *filp, const char __user *buff, size_t
 # define bfin_otp_write NULL
 #endif
 
-static struct class *bfin_otp_class;
-static dev_t bfin_otp_dev_node;
-static struct cdev bfin_otp_cdev;
-
 static struct file_operations bfin_otp_fops = {
 	.owner    = THIS_MODULE,
 	.read     = bfin_otp_read,
 	.write    = bfin_otp_write,
+};
+
+static struct miscdevice bfin_otp_misc_device = {
+	.minor    = MISC_DYNAMIC_MINOR,
+	.name     = DRIVER_NAME,
+	.fops     = &bfin_otp_fops,
 };
 
 /**
@@ -154,24 +156,11 @@ static int __init bfin_otp_init(void)
 
 	stampit();
 
-	ret = alloc_chrdev_region(&bfin_otp_dev_node, 0, 1, "otp");
+	ret = misc_register(&bfin_otp_misc_device);
 	if (ret) {
-		printk(KERN_ERR PFX "unable to get a char device\n");
+		printk(KERN_ERR PFX "unable to register a misc device\n");
 		return ret;
 	}
-
-	cdev_init(&bfin_otp_cdev, &bfin_otp_fops);
-	bfin_otp_cdev.owner = THIS_MODULE;
-
-	ret = cdev_add(&bfin_otp_cdev, bfin_otp_dev_node, 1);
-	if (ret) {
-		unregister_chrdev_region(bfin_otp_dev_node, 1);
-		printk(KERN_ERR PFX "unable to register char device\n");
-		return ret;
-	}
-
-	bfin_otp_class = class_create(THIS_MODULE, "otp");
-	device_create(bfin_otp_class, NULL, bfin_otp_dev_node, "otp");
 
 	printk(KERN_INFO PFX "initialized\n");
 
@@ -188,10 +177,7 @@ static void __exit bfin_otp_exit(void)
 {
 	stampit();
 
-	device_destroy(bfin_otp_class, bfin_otp_dev_node);
-	class_destroy(bfin_otp_class);
-	unregister_chrdev_region(bfin_otp_dev_node, 1);
-	cdev_del(&bfin_otp_cdev);
+	misc_deregister(&bfin_otp_misc_device);
 }
 
 module_init(bfin_otp_init);
