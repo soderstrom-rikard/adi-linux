@@ -157,7 +157,8 @@ enum {
 		AD7877_READADD(AD7877_REG_ ## x))
 
 
-#define AD7877_MM_SEQUENCE (AD7877_SEQ_YPLUS_BIT | AD7877_SEQ_XPLUS_BIT | AD7877_SEQ_Z2_BIT | AD7877_SEQ_Z1_BIT)
+#define AD7877_MM_SEQUENCE (AD7877_SEQ_YPLUS_BIT | AD7877_SEQ_XPLUS_BIT | \
+		AD7877_SEQ_Z2_BIT | AD7877_SEQ_Z1_BIT)
 /*--------------------------------------------------------------------------*/
 
 /*
@@ -193,7 +194,7 @@ struct ad7877 {
 	u8			averaging;
 	u8			pen_down_acc_interval;
 
-	u16 conversion_data[AD7877_NR_SENSE];
+	u16 			conversion_data[AD7877_NR_SENSE];
 
 	struct spi_transfer	xfer[13];
 	struct spi_message	msg;
@@ -209,19 +210,12 @@ struct ad7877 {
 	unsigned		disabled:1;
 	unsigned		gpio3:1;
 	unsigned		gpio4:1;
-
 };
 
 static int gpio3;
 
 static void ad7877_enable(struct ad7877 *ts);
 static void ad7877_disable(struct ad7877 *ts);
-
-static int device_suspended(struct device *dev)
-{
-	struct ad7877 *ts = dev_get_drvdata(dev);
-	return dev->power.power_state.event != PM_EVENT_ON || ts->disabled;
-}
 
 static int ad7877_read(struct device *dev, u16 reg)
 {
@@ -234,7 +228,8 @@ static int ad7877_read(struct device *dev, u16 reg)
 
 	spi_message_init(&req->msg);
 
-	req->command = (u16) (AD7877_WRITEADD(AD7877_REG_CTRL1) | AD7877_READADD(reg));
+	req->command = (u16) (AD7877_WRITEADD(AD7877_REG_CTRL1) |
+			AD7877_READADD(reg));
 	req->xfer[0].tx_buf = &req->command;
 	req->xfer[0].len = 2;
 
@@ -246,7 +241,7 @@ static int ad7877_read(struct device *dev, u16 reg)
 
 	status = spi_sync(spi, &req->msg);
 
-	if (req->msg.status)
+	if (status == 0)
 		status = req->msg.status;
 
 	kfree(req);
@@ -272,7 +267,7 @@ static int ad7877_write(struct device *dev, u16 reg, u16 val)
 
 	status = spi_sync(spi, &req->msg);
 
-	if (req->msg.status)
+	if (status == 0)
 		status = req->msg.status;
 
 	kfree(req);
@@ -295,8 +290,9 @@ static int ad7877_read_adc(struct device *dev, unsigned command)
 	spi_message_init(&req->msg);
 
 	/* activate reference, so it has time to settle; */
-	req->ref_on = AD7877_WRITEADD(AD7877_REG_CTRL2) | AD7877_POL(ts->stopacq_polarity) |\
-			 AD7877_AVG(0) | AD7877_PM(2) | AD7877_TMR(0) |\
+	req->ref_on = AD7877_WRITEADD(AD7877_REG_CTRL2) |
+			 AD7877_POL(ts->stopacq_polarity) |
+			 AD7877_AVG(0) | AD7877_PM(2) | AD7877_TMR(0) |
 			 AD7877_ACQ(ts->acquisition_time) | AD7877_FCD(0);
 
 	req->command = (u16) command;
@@ -330,7 +326,7 @@ static int ad7877_read_adc(struct device *dev, unsigned command)
 	ts->irq_disabled = 0;
 	enable_irq(spi->irq);
 
-	if (req->msg.status)
+	if (status == 0)
 		status = req->msg.status;
 
 	sample = req->sample;
@@ -431,11 +427,7 @@ static ssize_t ad7877_gpio3_store(struct device *dev,
 
 	i = simple_strtoul(buf, &endp, 10);
 
-	if (i)
-		ts->gpio3=1;
-	else
-		ts->gpio3=0;
-
+	ts->gpio3 = !!i;
 
 	ad7877_write(dev, AD7877_REG_EXTWRITE, AD7877_EXTW_GPIO_DATA |
 		 (ts->gpio4 << 4) | (ts->gpio3 << 5));
@@ -463,11 +455,7 @@ static ssize_t ad7877_gpio4_store(struct device *dev,
 
 	i = simple_strtoul(buf, &endp, 10);
 
-	if (i)
-		ts->gpio4=1;
-	else
-		ts->gpio4=0;
-
+	ts->gpio4 = !!i;
 
 	ad7877_write(dev, AD7877_REG_EXTWRITE, AD7877_EXTW_GPIO_DATA |
 		 (ts->gpio4 << 4) | (ts->gpio3 << 5));
@@ -519,7 +507,7 @@ static void ad7877_rx(void *ads)
 	if (x == MAX_12BIT)
 		x = 0;
 
-	if (likely(x && z1 && !device_suspended(&ts->spi->dev))) {
+	if (likely(x && z1)) {
 		/* compute touch pressure resistance using equation #2 */
 		Rt = z2;
 		Rt -= z1;
@@ -535,14 +523,11 @@ static void ad7877_rx(void *ads)
 		input_report_abs(input_dev, ABS_Y, y);
 		input_report_abs(input_dev, ABS_PRESSURE, Rt);
 		input_sync(input_dev);
-	}
-
 #ifdef	VERBOSE
-	if (Rt)
 		pr_debug("%s: %d/%d/%d%s\n", ts->spi->dev.bus_id,
 			x, y, Rt, Rt ? "" : " UP");
 #endif
-
+	}
 }
 
 static inline void ad7877_ts_event_release(struct ad7877 *ts)
@@ -601,12 +586,9 @@ static void ad7877_callback(void *_ts)
 
 		ts->intr_flag = 0;
 		ts->pending = 0;
-
-		if (!device_suspended(&ts->spi->dev)) {
-			ts->irq_disabled = 0;
-			enable_irq(ts->spi->irq);
-			mod_timer(&ts->timer, jiffies + TS_PEN_UP_TIMEOUT);
-		}
+		ts->irq_disabled = 0;
+		enable_irq(ts->spi->irq);
+		mod_timer(&ts->timer, jiffies + TS_PEN_UP_TIMEOUT);
 
 		spin_unlock_irqrestore(&ts->lock, flags);
 	}
@@ -615,7 +597,6 @@ static void ad7877_callback(void *_ts)
 
 /*--------------------------------------------------------------------------*/
 
-/* Must be called with ts->lock held */
 static void ad7877_disable(struct ad7877 *ts)
 {
 	unsigned long flags;
@@ -625,24 +606,20 @@ static void ad7877_disable(struct ad7877 *ts)
 
 	ts->disabled = 1;
 
-	if (!ts->pending) {
-		spin_lock_irqsave(&ts->lock, flags);
-		ts->irq_disabled = 1;
-		disable_irq(ts->spi->irq);
-		spin_unlock_irqrestore(&ts->lock, flags);
-	} else {
-		/* the kthread will run at least once more, and
-		 * leave everything in a clean state, IRQ disabled
-		 */
-		while (ts->pending)
-			msleep(1);
+	spin_lock_irqsave(&ts->lock, flags);
+	ts->irq_disabled = 1;
+	disable_irq(ts->spi->irq);
+	spin_unlock_irqrestore(&ts->lock, flags);
 
-	}
+	while (ts->pending) /* Wait for spi_async callback */
+		msleep(1);
+
+	if (del_timer_sync(&ts->timer))
+		ad7877_ts_event_release(ts);
 
 	/* we know the chip's in lowpower mode since we always
 	 * leave it that way after every request
 	 */
-
 }
 
 /* Must be called with ts->lock held */
@@ -664,18 +641,15 @@ static int ad7877_suspend(struct spi_device *spi, pm_message_t message)
 {
 	struct ad7877 *ts = dev_get_drvdata(&spi->dev);
 
-	spi->dev.power.power_state = message;
 	ad7877_disable(ts);
 
 	return 0;
-
 }
 
 static int ad7877_resume(struct spi_device *spi)
 {
 	struct ad7877 *ts = dev_get_drvdata(&spi->dev);
 
-	spi->dev.power.power_state = PMSG_ON;
 	ad7877_enable(ts);
 
 	return 0;
@@ -683,7 +657,7 @@ static int ad7877_resume(struct spi_device *spi)
 
 static inline void ad7877_setup_ts_def_msg(struct spi_device *spi, struct ad7877 *ts)
 {
-	struct spi_message	*m;
+	struct spi_message *m;
 	int i;
 
 	ts->cmd_crtl2 = AD7877_WRITEADD(AD7877_REG_CTRL2) |
@@ -760,7 +734,6 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 	}
 
 	dev_set_drvdata(&spi->dev, ts);
-	spi->dev.power.power_state = PMSG_ON;
 
 	ts->spi = spi;
 	ts->input = input_dev;
@@ -808,7 +781,7 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 	verify = ad7877_read((struct device *) spi, AD7877_REG_SEQ1);
 
 	if (verify != AD7877_MM_SEQUENCE){
-		printk(KERN_ERR "%s: Failed to probe %s\n", spi->dev.bus_id,
+		dev_err(&spi->dev, "%s: Failed to probe %s\n", spi->dev.bus_id,
 			 input_dev->name);
 		err = -ENODEV;
 		goto err_free_mem;
@@ -845,14 +818,11 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 
 	err = input_register_device(input_dev);
 	if (err)
-		goto err_idev;
+		goto err_remove_attr;
 
 	ts->intr_flag = 0;
 
 	return 0;
-
-err_idev:
-	input_dev = NULL; /* so we don't try to free it later */
 
 err_remove_attr:
 
