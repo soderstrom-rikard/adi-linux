@@ -29,15 +29,17 @@ procs() {
 	esac
 }
 
+make="make -s ARCH=blackfin CROSS_COMPILE=bfin-uclinux-"
+
 ret=0
 for b in $(cd arch/blackfin/configs ; echo *_defconfig) ; do
 	echo "### $b"
-	make -s $b > /dev/null
+	${make} $b >& /dev/null
 	for p in $(procs) ; do
 		echo -n "###### $p: "
 		sed -i 1iCONFIG_${p}=y .config
-		yes "" | make -s oldconfig >& /dev/null
-		make -s -j${jobs} "$@" >& $b.$p.log
+		yes "" | ${make} oldconfig >& /dev/null
+		${make} -j${jobs} "$@" >& $b.$p.log
 		if [[ $? -eq 0 ]] ; then
 			echo "OK"
 		else
