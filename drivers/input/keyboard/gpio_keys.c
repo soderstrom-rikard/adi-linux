@@ -110,6 +110,8 @@ static int __devinit gpio_keys_probe(struct platform_device *pdev)
 		goto fail;
 	}
 
+	device_init_wakeup(&pdev->dev, 0);
+
 	return 0;
 
  fail:
@@ -137,9 +139,44 @@ static int __devexit gpio_keys_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM
+static int gpio_keys_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	struct gpio_keys_platform_data *pdata = pdev->dev.platform_data;
+	int i;
+
+	if (device_may_wakeup(&pdev->dev))
+		for (i = 0; i < pdata->nbuttons; i++) {
+			int irq = gpio_to_irq(pdata->buttons[i].gpio);
+			enable_irq_wake(irq);
+		}
+
+	return 0;
+}
+
+static int gpio_keys_resume(struct platform_device *pdev)
+{
+	struct gpio_keys_platform_data *pdata = pdev->dev.platform_data;
+	int i;
+
+	if (device_may_wakeup(&pdev->dev))
+		for (i = 0; i < pdata->nbuttons; i++) {
+			int irq = gpio_to_irq(pdata->buttons[i].gpio);
+			disable_irq_wake(irq);
+		}
+
+	return 0;
+}
+#else
+# define gpio_keys_suspend NULL
+# define gpio_keys_resume  NULL
+#endif
+
 struct platform_driver gpio_keys_device_driver = {
 	.probe		= gpio_keys_probe,
 	.remove		= __devexit_p(gpio_keys_remove),
+	.suspend	= gpio_keys_suspend,
+	.resume		= gpio_keys_resume,
 	.driver		= {
 		.name	= "gpio-keys",
 	}
