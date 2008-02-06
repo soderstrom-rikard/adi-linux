@@ -72,9 +72,8 @@
 #include <linux/proc_fs.h>
 #endif
 #include <linux/spinlock.h>
-#include "bfin_pflags.h"
 
-static int major = 0;
+static int major; /* = 0 */
 module_param(major, int, 0444);
 
 static DEFINE_SPINLOCK(pflags_lock);
@@ -272,9 +271,10 @@ static ssize_t pflags_write(struct file *filp, const char *buf, size_t size, lof
 static ssize_t pflag_status_show(struct class *class, char *buf)
 {
 	char *p;
-	unsigned short i;
 	p = buf;
 
+#ifndef CONFIG_BF54x
+	unsigned short i;
 
 	p += sprintf(p, "PIN\t:DATA DIR INEN EDGE BOTH POLAR MASKA MASKB\n");
 	p += sprintf(p, "(1/0)\t:H/L  0/I E/D  E/L  B/S   L/H   S/C   S/C\n");
@@ -286,6 +286,9 @@ static ssize_t pflag_status_show(struct class *class, char *buf)
 			     get_gpio_inen(i), get_gpio_edge(i),
 			     get_gpio_both(i), get_gpio_polar(i),
 			     get_gpio_maska(i), get_gpio_maskb(i));
+#else
+	p += sprintf(p, "Not Supported\n");
+#endif
 	return p - buf;
 }
 
@@ -311,85 +314,10 @@ static int pflags_read_proc(char *page, char **start, off_t off,
 }
 #endif
 
-/***********************************************************
-*
-* FUNCTION NAME :pflags_ioctl
-*
-* INPUTS/OUTPUTS:
-* in_inode - Description of openned file.
-* in_filp - Description of openned file.
-* in_cmd - Command passed into ioctl system call.
-* in/out_arg - It is parameters which is specified by last command
-*
-* RETURN:
-* 0 OK
-* -EINVAL
-*
-* FUNCTION(S) CALLED:
-*
-* GLOBAL VARIABLES REFERENCED:
-*
-* GLOBAL VARIABLES MODIFIED: NIL
-*
-* DESCRIPTION:
-*
-* CAUTION:
-*************************************************************
-* MODIFICATION HISTORY :
-**************************************************************/
-static int pflags_ioctl(struct inode *inode, struct file *filp, uint cmd,
-	     unsigned long arg)
-{
-	int minor = check_minor(filp->f_dentry->d_inode);
-
-	if (minor < 0)
-		return -ENODEV;
-
-	pr_debug("%s: minor = %d\n",__FUNCTION__, minor);
-
-	switch (cmd) {
-	case SET_FIO_DIR:
-		{
-			pr_debug("%s: SET_FIO_DIR arg = %d\n",__FUNCTION__, (int)arg);
-			set_gpio_dir(minor, arg);
-			break;
-		}
-	case SET_FIO_POLAR:
-		{
-			pr_debug("%s: SET_FIO_POLAR arg = %d\n",__FUNCTION__, (int)arg);
-			set_gpio_polar(minor, arg);
-			break;
-		}
-	case SET_FIO_EDGE:
-		{
-			pr_debug("%s: SET_FIO_EDGE arg = %d\n",__FUNCTION__, (int)arg);
-			set_gpio_edge(minor, arg);
-			break;
-		}
-	case SET_FIO_BOTH:
-		{
-			pr_debug("%s: SET_FIO_BOTH arg = %d\n",__FUNCTION__, (int)arg);
-			set_gpio_both(minor, arg);
-			break;
-		}
-	case SET_FIO_INEN:
-		{
-			pr_debug("%s: SET_FIO_INEN arg = %d\n",__FUNCTION__, (int)arg);
-			set_gpio_inen(minor, arg);
-			break;
-		}
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 
 static struct file_operations pflags_fops = {
       .read    = pflags_read,
       .write   = pflags_write,
-      .ioctl   = pflags_ioctl,
       .open    = pflags_open,
       .release = pflags_release,
 };
