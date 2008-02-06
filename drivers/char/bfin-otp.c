@@ -68,7 +68,7 @@ static u32 (* const otp_write)(u32 page, u32 flags, u64 *page_content) = (void *
  *
  *	All reads must be in half page chunks (half page == 64 bits).
  */
-ssize_t bfin_otp_read(struct file *file, char __user *buff, size_t count, loff_t *pos)
+static ssize_t bfin_otp_read(struct file *file, char __user *buff, size_t count, loff_t *pos)
 {
 	ssize_t bytes_done;
 	u32 page, flags, ret;
