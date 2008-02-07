@@ -172,6 +172,14 @@
 
 #define A_SG_INT_CAUSE 0x5c
 
+#define S_HIPIODRBDROPERR    11
+#define V_HIPIODRBDROPERR(x) ((x) << S_HIPIODRBDROPERR)
+#define F_HIPIODRBDROPERR    V_HIPIODRBDROPERR(1U)
+
+#define S_LOPIODRBDROPERR    10
+#define V_LOPIODRBDROPERR(x) ((x) << S_LOPIODRBDROPERR)
+#define F_LOPIODRBDROPERR    V_LOPIODRBDROPERR(1U)
+
 #define S_RSPQDISABLED    3
 #define V_RSPQDISABLED(x) ((x) << S_RSPQDISABLED)
 #define F_RSPQDISABLED    V_RSPQDISABLED(1U)
@@ -1160,6 +1168,8 @@
 
 #define A_TP_MOD_CHANNEL_WEIGHT 0x434
 
+#define A_TP_MOD_RATE_LIMIT 0x438
+
 #define A_TP_PIO_ADDR 0x440
 
 #define A_TP_PIO_DATA 0x444
@@ -1213,6 +1223,15 @@
 #define V_TXDROPCNTCH0RCVD(x) ((x) << S_TXDROPCNTCH0RCVD)
 #define G_TXDROPCNTCH0RCVD(x) (((x) >> S_TXDROPCNTCH0RCVD) & \
 			       M_TXDROPCNTCH0RCVD)
+
+#define A_TP_PROXY_FLOW_CNTL 0x4b0
+
+#define A_TP_EMBED_OP_FIELD0 0x4e8
+#define A_TP_EMBED_OP_FIELD1 0x4ec
+#define A_TP_EMBED_OP_FIELD2 0x4f0
+#define A_TP_EMBED_OP_FIELD3 0x4f4
+#define A_TP_EMBED_OP_FIELD4 0x4f8
+#define A_TP_EMBED_OP_FIELD5 0x4fc
 
 #define A_ULPRX_CTL 0x500
 
@@ -1307,6 +1326,7 @@
 #define V_D0_WEIGHT(x) ((x) << S_D0_WEIGHT)
 
 #define A_PM1_RX_CFG 0x5c0
+#define A_PM1_RX_MODE 0x5c4
 
 #define A_PM1_RX_INT_ENABLE 0x5d8
 
@@ -1375,6 +1395,7 @@
 #define A_PM1_RX_INT_CAUSE 0x5dc
 
 #define A_PM1_TX_CFG 0x5e0
+#define A_PM1_TX_MODE 0x5e4
 
 #define A_PM1_TX_INT_ENABLE 0x5f8
 
@@ -1916,6 +1937,10 @@
 
 #define A_XGM_RXFIFO_CFG 0x884
 
+#define S_RXFIFO_EMPTY    31
+#define V_RXFIFO_EMPTY(x) ((x) << S_RXFIFO_EMPTY)
+#define F_RXFIFO_EMPTY    V_RXFIFO_EMPTY(1U)
+
 #define S_RXFIFOPAUSEHWM    17
 #define M_RXFIFOPAUSEHWM    0xfff
 
@@ -1939,6 +1964,10 @@
 #define F_DISERRFRAMES    V_DISERRFRAMES(1U)
 
 #define A_XGM_TXFIFO_CFG 0x888
+
+#define S_UNDERUNFIX    22
+#define V_UNDERUNFIX(x) ((x) << S_UNDERUNFIX)
+#define F_UNDERUNFIX    V_UNDERUNFIX(1U)
 
 #define S_TXIPG    13
 #define M_TXIPG    0xff
@@ -2013,9 +2042,26 @@
 #define V_XAUIIMP(x) ((x) << S_XAUIIMP)
 
 #define A_XGM_RX_MAX_PKT_SIZE 0x8a8
-#define A_XGM_RX_MAX_PKT_SIZE_ERR_CNT 0x9a4
+
+#define S_RXMAXFRAMERSIZE    17
+#define M_RXMAXFRAMERSIZE    0x3fff
+#define V_RXMAXFRAMERSIZE(x) ((x) << S_RXMAXFRAMERSIZE)
+#define G_RXMAXFRAMERSIZE(x) (((x) >> S_RXMAXFRAMERSIZE) & M_RXMAXFRAMERSIZE)
+
+#define S_RXENFRAMER    14
+#define V_RXENFRAMER(x) ((x) << S_RXENFRAMER)
+#define F_RXENFRAMER    V_RXENFRAMER(1U)
+
+#define S_RXMAXPKTSIZE    0
+#define M_RXMAXPKTSIZE    0x3fff
+#define V_RXMAXPKTSIZE(x) ((x) << S_RXMAXPKTSIZE)
+#define G_RXMAXPKTSIZE(x) (((x) >> S_RXMAXPKTSIZE) & M_RXMAXPKTSIZE)
 
 #define A_XGM_RESET_CTRL 0x8ac
+
+#define S_XGMAC_STOP_EN    4
+#define V_XGMAC_STOP_EN(x) ((x) << S_XGMAC_STOP_EN)
+#define F_XGMAC_STOP_EN    V_XGMAC_STOP_EN(1U)
 
 #define S_XG2G_RESET_    3
 #define V_XG2G_RESET_(x) ((x) << S_XG2G_RESET_)

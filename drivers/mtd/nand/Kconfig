@@ -41,7 +41,7 @@ config MTD_NAND_BFIN
 	tristate "NAND Flash device for BF537 STAMP board"
 	depends on BLACKFIN && MTD_NAND && MTD_PARTITIONS
 	help
-	  This enables the driver for the NAND flash ST-NAND123W3A
+	  This enables the driver for the NAND flash ST-NAND123W3A 
 	  for Blackfin Processors
 
 config BFIN_NAND_BASE
@@ -54,7 +54,7 @@ config BFIN_NAND_BASE
 config BFIN_NAND_CLE
 	int "NAND Flash Command Latch Enable (CLE) Address strobe A[x]"
 	depends on MTD_NAND_BFIN
-	range 1 19
+	range 1 19 
 	default 2
 	help
 	  NAND Flash Command Latch Enable (CLE) Address strobe A[x]
@@ -70,7 +70,7 @@ config BFIN_NAND_ALE
 config BFIN_NAND_READY
 	int "NAND Flash Ready Strobe PF[x]"
 	depends on MTD_NAND_BFIN
-	range 0 15 if (BF533 || BF532 || BF531)
+	range 0 15 if (BF533 || BF532 || BF531) 
 	range 0 47 if (BF534 || BF536 || BF537)
 	range 0 47 if BF561
 	default 3
@@ -193,10 +193,10 @@ config MTD_NAND_S3C2410_HWECC
 
 config MTD_NAND_NDFC
 	tristate "NDFC NanD Flash Controller"
-	depends on 44x
+	depends on 4xx && !PPC_MERGE
 	select MTD_NAND_ECC_SMC
 	help
-	 NDFC Nand Flash Controllers are integrated in EP44x SoCs
+	 NDFC Nand Flash Controllers are integrated in IBM/AMCC's 4xx SoCs
 
 config MTD_NAND_S3C2410_CLKSTOP
 	bool "S3C2410 NAND IDLE clock stop"
@@ -296,7 +296,7 @@ config MTD_NAND_CAFE
 	select REED_SOLOMON
 	select REED_SOLOMON_DEC16
 	help
-	  Use NAND flash attached to the CAFÉ chip designed for the $100
+	  Use NAND flash attached to the CAFÉ chip designed for the OLPC
 	  laptop.
 
 config MTD_NAND_CS553X
@@ -339,5 +339,11 @@ config MTD_NAND_PLATFORM
 	  devices. You will need to provide platform-specific functions
 	  via platform_data.
 
+config MTD_ALAUDA
+	tristate "MTD driver for Olympus MAUSB-10 and Fujifilm DPC-R1"
+	depends on MTD_NAND && USB
+	help
+	  These two (and possibly other) Alauda-based cardreaders for
+	  SmartMedia and xD allow raw flash access.
 
 endif # MTD_NAND

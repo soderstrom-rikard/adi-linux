@@ -21,7 +21,7 @@
 #include <sys/types.h>
 #endif
 
-#if defined(__arm__) || defined(__mips__) || defined(bfin)
+#if defined(__arm__) || defined(__mips__) || defined(__avr32__) || defined(bfin)
 /* This (ioaddr_t) is exposed to userspace & hence cannot be changed. */
 typedef u_int   ioaddr_t;
 #else

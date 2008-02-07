@@ -35,6 +35,7 @@
 #include <linux/slab.h>
 #include <linux/ioport.h>
 #include <linux/fcntl.h>
+#include <linux/fs.h>
 #include <linux/sched.h>
 #include <linux/delay.h>
 

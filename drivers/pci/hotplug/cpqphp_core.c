@@ -45,7 +45,7 @@
 
 #include "cpqphp.h"
 #include "cpqphp_nvram.h"
-#include "../../../arch/i386/pci/pci.h"	/* horrible hack showing how processor dependent we are... */
+#include "../../../arch/x86/pci/pci.h"	/* horrible hack showing how processor dependent we are... */
 
 
 /* Global variables */
@@ -117,12 +117,10 @@ static inline int is_slot66mhz(struct slot *slot)
 
 /**
  * detect_SMBIOS_pointer - find the System Management BIOS Table in mem region.
- *
  * @begin: begin pointer for region to be scanned.
  * @end: end pointer for region to be scanned.
  *
- * Returns pointer to the head of the SMBIOS tables (or NULL)
- *
+ * Returns pointer to the head of the SMBIOS tables (or %NULL).
  */
 static void __iomem * detect_SMBIOS_pointer(void __iomem *begin, void __iomem *end)
 {
@@ -157,9 +155,9 @@ static void __iomem * detect_SMBIOS_pointer(void __iomem *begin, void __iomem *e
 
 /**
  * init_SERR - Initializes the per slot SERR generation.
+ * @ctrl: controller to use
  *
  * For unexpected switch opens
- *
  */
 static int init_SERR(struct controller * ctrl)
 {
@@ -224,14 +222,15 @@ static int pci_print_IRQ_route (void)
 
 /**
  * get_subsequent_smbios_entry: get the next entry from bios table.
- *
- * Gets the first entry if previous == NULL
- * Otherwise, returns the next entry
- * Uses global SMBIOS Table pointer
- *
+ * @smbios_start: where to start in the SMBIOS table
+ * @smbios_table: location of the SMBIOS table
  * @curr: %NULL or pointer to previously returned structure
  *
- * returns a pointer to an SMBIOS structure or NULL if none found
+ * Gets the first entry if previous == NULL;
+ * otherwise, returns the next entry.
+ * Uses global SMBIOS Table pointer.
+ *
+ * Returns a pointer to an SMBIOS structure or NULL if none found.
  */
 static void __iomem *get_subsequent_smbios_entry(void __iomem *smbios_start,
 						void __iomem *smbios_table,
@@ -272,17 +271,18 @@ static void __iomem *get_subsequent_smbios_entry(void __iomem *smbios_start,
 
 
 /**
- * get_SMBIOS_entry
- *
- * @type:SMBIOS structure type to be returned
+ * get_SMBIOS_entry - return the requested SMBIOS entry or %NULL
+ * @smbios_start: where to start in the SMBIOS table
+ * @smbios_table: location of the SMBIOS table
+ * @type: SMBIOS structure type to be returned
  * @previous: %NULL or pointer to previously returned structure
  *
- * Gets the first entry of the specified type if previous == NULL
+ * Gets the first entry of the specified type if previous == %NULL;
  * Otherwise, returns the next entry of the given type.
- * Uses global SMBIOS Table pointer
- * Uses get_subsequent_smbios_entry
+ * Uses global SMBIOS Table pointer.
+ * Uses get_subsequent_smbios_entry.
  *
- * returns a pointer to an SMBIOS structure or %NULL if none found
+ * Returns a pointer to an SMBIOS structure or %NULL if none found.
  */
 static void __iomem *get_SMBIOS_entry(void __iomem *smbios_start,
 					void __iomem *smbios_table,
@@ -549,7 +549,7 @@ get_slot_mapping(struct pci_bus *bus, u8 bus_num, u8 dev_num, u8 *slot)
 			 * slot. */
 			bus->number = tbus;
 			pci_bus_read_config_dword(bus, PCI_DEVFN(tdevice, 0),
-						PCI_REVISION_ID, &work);
+						PCI_CLASS_REVISION, &work);
 
 			if ((work >> 8) == PCI_TO_PCI_BRIDGE_CLASS) {
 				pci_bus_read_config_dword(bus,
@@ -581,7 +581,9 @@ get_slot_mapping(struct pci_bus *bus, u8 bus_num, u8 dev_num, u8 *slot)
 
 /**
  * cpqhp_set_attention_status - Turns the Amber LED for a slot on or off
- *
+ * @ctrl: struct controller to use
+ * @func: PCI device/function info
+ * @status: LED control flag: 1 = LED on, 0 = LED off
  */
 static int
 cpqhp_set_attention_status(struct controller *ctrl, struct pci_func *func,
@@ -621,7 +623,8 @@ cpqhp_set_attention_status(struct controller *ctrl, struct pci_func *func,
 
 /**
  * set_attention_status - Turns the Amber LED for a slot on or off
- *
+ * @hotplug_slot: slot to change LED on
+ * @status: LED control flag
  */
 static int set_attention_status (struct hotplug_slot *hotplug_slot, u8 status)
 {
@@ -796,7 +799,6 @@ static int cpqhpc_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	u8 num_of_slots = 0;
 	u8 hp_slot = 0;
 	u8 device;
-	u8 rev;
 	u8 bus_cap;
 	u16 temp_word;
 	u16 vendor_id;
@@ -823,9 +825,8 @@ static int cpqhpc_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	}
 	dbg("Vendor ID: %x\n", vendor_id);
 
-	rc = pci_read_config_byte(pdev, PCI_REVISION_ID, &rev);
-	dbg("revision: %d\n", rev);
-	if (rc || ((vendor_id == PCI_VENDOR_ID_COMPAQ) && (!rev))) {
+	dbg("revision: %d\n", pdev->revision);
+	if ((vendor_id == PCI_VENDOR_ID_COMPAQ) && (!pdev->revision)) {
 		err(msg_HPC_rev_error);
 		rc = -ENODEV;
 		goto err_disable_device;
@@ -836,7 +837,7 @@ static int cpqhpc_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	 * For Intel, each SSID bit identifies a PHP capability.
 	 * Also Intel HPC's may have RID=0.
 	 */
-	if ((rev > 2) || (vendor_id == PCI_VENDOR_ID_INTEL)) {
+	if ((pdev->revision > 2) || (vendor_id == PCI_VENDOR_ID_INTEL)) {
 		// TODO: This code can be made to support non-Compaq or Intel subsystem IDs
 		rc = pci_read_config_word(pdev, PCI_SUBSYSTEM_VENDOR_ID, &subsystem_vid);
 		if (rc) {
@@ -870,7 +871,7 @@ static int cpqhpc_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 
 		switch (subsystem_vid) {
 			case PCI_VENDOR_ID_COMPAQ:
-				if (rev >= 0x13) { /* CIOBX */
+				if (pdev->revision >= 0x13) { /* CIOBX */
 					ctrl->push_flag = 1;
 					ctrl->slot_switch_type = 1;
 					ctrl->push_button = 1;
@@ -1075,7 +1076,7 @@ static int cpqhpc_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	memcpy(ctrl->pci_bus, pdev->bus, sizeof(*ctrl->pci_bus));
 
 	ctrl->bus = pdev->bus->number;
-	ctrl->rev = rev;
+	ctrl->rev = pdev->revision;
 	dbg("bus device function rev: %d %d %d %d\n", ctrl->bus,
 		PCI_SLOT(pdev->devfn), PCI_FUNC(pdev->devfn), ctrl->rev);
 

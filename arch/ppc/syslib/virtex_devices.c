@@ -71,6 +71,44 @@
 	}, \
 }
 
+/*
+ * ML300/ML403 Video Device: shortcut macro for single instance
+ */
+#define XPAR_TFT(num) { \
+	.name = "xilinxfb", \
+	.id = num, \
+	.num_resources = 1, \
+	.resource = (struct resource[]) { \
+		{ \
+			.start = XPAR_TFT_##num##_BASEADDR, \
+			.end = XPAR_TFT_##num##_BASEADDR+7, \
+			.flags = IORESOURCE_IO, \
+		}, \
+	}, \
+}
+
+#define XPAR_AC97_CONTROLLER_REFERENCE(num) { \
+	.name = "ml403_ac97cr", \
+	.id = num, \
+	.num_resources = 3, \
+	.resource = (struct resource[]) { \
+		{ \
+			.start = XPAR_OPB_AC97_CONTROLLER_REF_##num##_BASEADDR, \
+			.end = XPAR_OPB_AC97_CONTROLLER_REF_##num##_HIGHADDR, \
+			.flags = IORESOURCE_MEM, \
+		}, \
+		{ \
+			.start = XPAR_INTC_0_AC97_CONTROLLER_REF_##num##_PLAYBACK_VEC_ID, \
+			.end = XPAR_INTC_0_AC97_CONTROLLER_REF_##num##_PLAYBACK_VEC_ID, \
+			.flags = IORESOURCE_IRQ, \
+		}, \
+		{ \
+			.start = XPAR_INTC_0_AC97_CONTROLLER_REF_##num##_RECORD_VEC_ID, \
+			.end = XPAR_INTC_0_AC97_CONTROLLER_REF_##num##_RECORD_VEC_ID, \
+			.flags = IORESOURCE_IRQ, \
+		}, \
+	}, \
+}
 
 /* UART 8250 driver platform data table */
 struct plat_serial8250_port virtex_serial_platform_data[] = {
@@ -146,20 +184,25 @@ struct platform_device virtex_platform_devices[] = {
 	XPAR_SYSACE(1),
 #endif
 
-	/* ML300/403 reference design framebuffer */
 #if defined(XPAR_TFT_0_BASEADDR)
-	{
-		.name		= "xilinxfb",
-		.id		= 0,
-		.num_resources	= 1,
-		.resource = (struct resource[]) {
-			{
-				.start	= XPAR_TFT_0_BASEADDR,
-				.end	= XPAR_TFT_0_BASEADDR+7,
-				.flags	= IORESOURCE_IO,
-			},
-		},
-	},
+	XPAR_TFT(0),
+#endif
+#if defined(XPAR_TFT_1_BASEADDR)
+	XPAR_TFT(1),
+#endif
+#if defined(XPAR_TFT_2_BASEADDR)
+	XPAR_TFT(2),
+#endif
+#if defined(XPAR_TFT_3_BASEADDR)
+	XPAR_TFT(3),
+#endif
+
+	/* AC97 Controller Reference instances */
+#if defined(XPAR_OPB_AC97_CONTROLLER_REF_0_BASEADDR)
+	XPAR_AC97_CONTROLLER_REFERENCE(0),
+#endif
+#if defined(XPAR_OPB_AC97_CONTROLLER_REF_1_BASEADDR)
+	XPAR_AC97_CONTROLLER_REFERENCE(1),
 #endif
 };
 

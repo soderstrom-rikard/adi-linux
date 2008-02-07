@@ -33,6 +33,7 @@
 
 #include <linux/mtd/partitions.h>
 #include <linux/device.h>
+#include <linux/i2c.h>
 #include <linux/spi/spi.h>
 
  /* USB Device */
@@ -64,6 +65,7 @@ extern void __init at91_add_device_mmc(short mmc_id, struct at91_mmc_data *data)
 
  /* Ethernet (EMAC & MACB) */
 struct at91_eth_data {
+	u32		phy_mask;
 	u8		phy_irq_pin;	/* PHY IRQ */
 	u8		is_rmii;	/* using RMII interface? */
 };
@@ -93,7 +95,7 @@ struct at91_nand_data {
 extern void __init at91_add_device_nand(struct at91_nand_data *data);
 
  /* I2C*/
-extern void __init at91_add_device_i2c(void);
+extern void __init at91_add_device_i2c(struct i2c_board_info *devices, int nr_devices);
 
  /* SPI */
 extern void __init at91_add_device_spi(struct spi_board_info *devices, int nr_devices);
@@ -128,5 +130,8 @@ extern void __init at91_add_device_ac97(struct atmel_ac97_data *data);
 extern u8 at91_leds_cpu;
 extern u8 at91_leds_timer;
 extern void __init at91_init_leds(u8 cpu_led, u8 timer_led);
+
+/* FIXME: this needs a better location, but gets stuff building again */
+extern int at91_suspend_entering_slow_clock(void);
 
 #endif

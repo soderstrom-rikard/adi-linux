@@ -65,9 +65,9 @@ struct bfin_twi_iface {
 
 #define DEFINE_TWI_REG(reg, off) \
 static inline u16 read_##reg(struct bfin_twi_iface *iface) \
-	{ return bfin_read16(iface->regs_base + off); } \
+	{ return bfin_read16(iface->regs_base + (off)); } \
 static inline void write_##reg(struct bfin_twi_iface *iface, u16 v) \
-	{bfin_write16(iface->regs_base + off, v); }
+	{ bfin_write16(iface->regs_base + (off), v); }
 
 DEFINE_TWI_REG(CLKDIV, 0x00)
 DEFINE_TWI_REG(CONTROL, 0x04)
@@ -641,7 +641,7 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 		goto out_error_get_res;
 	}
 
-	iface->regs_base = ioremap(res->start, (res->end - res->start)+1);
+	iface->regs_base = ioremap(res->start, res->end - res->start + 1);
 	if (iface->regs_base == NULL) {
 		dev_err(&pdev->dev, "Cannot map IO\n");
 		rc = -ENXIO;
@@ -673,7 +673,7 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	rc = request_irq(iface->irq, bfin_twi_interrupt_entry,
 		IRQF_DISABLED, pdev->name, iface);
 	if (rc) {
-		dev_err(&pdev->dev, "can't get IRQ %d !\n", iface->irq);
+		dev_err(&pdev->dev, "Can't get IRQ %d !\n", iface->irq);
 		rc = -ENODEV;
 		goto out_error_req_irq;
 	}

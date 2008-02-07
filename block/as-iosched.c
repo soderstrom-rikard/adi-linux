@@ -796,7 +796,7 @@ static void update_write_batch(struct as_data *ad)
  * as_completed_request is to be called when a request has completed and
  * returned something to the requesting process, be it an error or data.
  */
-static void as_completed_request(request_queue_t *q, struct request *rq)
+static void as_completed_request(struct request_queue *q, struct request *rq)
 {
 	struct as_data *ad = q->elevator->elevator_data;
 
@@ -853,7 +853,8 @@ out:
  * reference unless it replaces the request at somepart of the elevator
  * (ie. the dispatch queue)
  */
-static void as_remove_queued_request(request_queue_t *q, struct request *rq)
+static void as_remove_queued_request(struct request_queue *q,
+				     struct request *rq)
 {
 	const int data_dir = rq_is_sync(rq);
 	struct as_data *ad = q->elevator->elevator_data;
@@ -879,7 +880,7 @@ static void as_remove_queued_request(request_queue_t *q, struct request *rq)
 }
 
 /*
- * as_fifo_expired returns 0 if there are no expired reads on the fifo,
+ * as_fifo_expired returns 0 if there are no expired requests on the fifo,
  * 1 otherwise.  It is ratelimited so that we only perform the check once per
  * `fifo_expire' interval.  Otherwise a large number of expired requests
  * would create a hopeless seekstorm.
@@ -978,7 +979,7 @@ static void as_move_to_dispatch(struct as_data *ad, struct request *rq)
  * read/write expire, batch expire, etc, and moves it to the dispatch
  * queue. Returns 1 if a request was found, 0 otherwise.
  */
-static int as_dispatch_request(request_queue_t *q, int force)
+static int as_dispatch_request(struct request_queue *q, int force)
 {
 	struct as_data *ad = q->elevator->elevator_data;
 	const int reads = !list_empty(&ad->fifo_list[REQ_SYNC]);
@@ -1096,7 +1097,8 @@ dispatch_writes:
 		ad->batch_data_dir = REQ_ASYNC;
 		ad->current_write_count = ad->write_batch_count;
 		ad->write_batch_idled = 0;
-		rq = ad->next_rq[ad->batch_data_dir];
+		rq = rq_entry_fifo(ad->fifo_list[REQ_ASYNC].next);
+		ad->last_check_fifo[REQ_ASYNC] = jiffies;
 		goto dispatch_request;
 	}
 
@@ -1139,7 +1141,7 @@ fifo_expired:
 /*
  * add rq to rbtree and fifo
  */
-static void as_add_request(request_queue_t *q, struct request *rq)
+static void as_add_request(struct request_queue *q, struct request *rq)
 {
 	struct as_data *ad = q->elevator->elevator_data;
 	int data_dir;
@@ -1158,7 +1160,7 @@ static void as_add_request(request_queue_t *q, struct request *rq)
 	as_add_rq_rb(ad, rq);
 
 	/*
-	 * set expire time (only used for reads) and add to fifo list
+	 * set expire time and add to fifo list
 	 */
 	rq_set_fifo_time(rq, jiffies + ad->fifo_expire[data_dir]);
 	list_add_tail(&rq->queuelist, &ad->fifo_list[data_dir]);
@@ -1167,7 +1169,7 @@ static void as_add_request(request_queue_t *q, struct request *rq)
 	RQ_SET_STATE(rq, AS_RQ_QUEUED);
 }
 
-static void as_activate_request(request_queue_t *q, struct request *rq)
+static void as_activate_request(struct request_queue *q, struct request *rq)
 {
 	WARN_ON(RQ_STATE(rq) != AS_RQ_DISPATCHED);
 	RQ_SET_STATE(rq, AS_RQ_REMOVED);
@@ -1175,7 +1177,7 @@ static void as_activate_request(request_queue_t *q, struct request *rq)
 		atomic_dec(&RQ_IOC(rq)->aic->nr_dispatched);
 }
 
-static void as_deactivate_request(request_queue_t *q, struct request *rq)
+static void as_deactivate_request(struct request_queue *q, struct request *rq)
 {
 	WARN_ON(RQ_STATE(rq) != AS_RQ_REMOVED);
 	RQ_SET_STATE(rq, AS_RQ_DISPATCHED);
@@ -1189,7 +1191,7 @@ static void as_deactivate_request(request_queue_t *q, struct request *rq)
  * is not empty - it is used in the block layer to check for plugging and
  * merging opportunities
  */
-static int as_queue_empty(request_queue_t *q)
+static int as_queue_empty(struct request_queue *q)
 {
 	struct as_data *ad = q->elevator->elevator_data;
 
@@ -1198,7 +1200,7 @@ static int as_queue_empty(request_queue_t *q)
 }
 
 static int
-as_merge(request_queue_t *q, struct request **req, struct bio *bio)
+as_merge(struct request_queue *q, struct request **req, struct bio *bio)
 {
 	struct as_data *ad = q->elevator->elevator_data;
 	sector_t rb_key = bio->bi_sector + bio_sectors(bio);
@@ -1216,7 +1218,8 @@ as_merge(request_queue_t *q, struct request **req, struct bio *bio)
 	return ELEVATOR_NO_MERGE;
 }
 
-static void as_merged_request(request_queue_t *q, struct request *req, int type)
+static void as_merged_request(struct request_queue *q, struct request *req,
+			      int type)
 {
 	struct as_data *ad = q->elevator->elevator_data;
 
@@ -1234,7 +1237,7 @@ static void as_merged_request(request_queue_t *q, struct request *req, int type)
 	}
 }
 
-static void as_merged_requests(request_queue_t *q, struct request *req,
+static void as_merged_requests(struct request_queue *q, struct request *req,
 			 	struct request *next)
 {
 	/*
@@ -1285,7 +1288,7 @@ static void as_work_handler(struct work_struct *work)
 	spin_unlock_irqrestore(q->queue_lock, flags);
 }
 
-static int as_may_queue(request_queue_t *q, int rw)
+static int as_may_queue(struct request_queue *q, int rw)
 {
 	int ret = ELV_MQUEUE_MAY;
 	struct as_data *ad = q->elevator->elevator_data;
@@ -1318,14 +1321,13 @@ static void as_exit_queue(elevator_t *e)
 /*
  * initialize elevator private data (as_data).
  */
-static void *as_init_queue(request_queue_t *q)
+static void *as_init_queue(struct request_queue *q)
 {
 	struct as_data *ad;
 
-	ad = kmalloc_node(sizeof(*ad), GFP_KERNEL, q->node);
+	ad = kmalloc_node(sizeof(*ad), GFP_KERNEL | __GFP_ZERO, q->node);
 	if (!ad)
 		return NULL;
-	memset(ad, 0, sizeof(*ad));
 
 	ad->q = q; /* Identify what queue the data belongs to */
 
@@ -1462,7 +1464,9 @@ static struct elevator_type iosched_as = {
 
 static int __init as_init(void)
 {
-	return elv_register(&iosched_as);
+	elv_register(&iosched_as);
+
+	return 0;
 }
 
 static void __exit as_exit(void)

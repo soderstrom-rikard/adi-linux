@@ -25,15 +25,10 @@
 #include <linux/ethtool.h>
 #include <linux/mii.h>
 #include <linux/phy.h>
-
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
 #include <linux/skbuff.h>
-
 #include <linux/platform_device.h>
-#include <linux/netdevice.h>
-#include <linux/etherdevice.h>
-#include <linux/skbuff.h>
 
 #include <asm/dma.h>
 #include <linux/dma-mapping.h>
@@ -631,8 +626,8 @@ out:
 	adjust_tx_list();
 	current_tx_ptr = current_tx_ptr->next;
 	dev->trans_start = jiffies;
-	lp->stats.tx_packets++;
-	lp->stats.tx_bytes += (skb->len);
+	dev->stats.tx_packets++;
+	dev->stats.tx_bytes += (skb->len);
 	return 0;
 }
 
@@ -648,7 +643,7 @@ static void bf537mac_rx(struct net_device *dev)
 	if (!new_skb) {
 		printk(KERN_NOTICE DRV_NAME
 		       ": rx: low on mem - packet dropped\n");
-		lp->stats.rx_dropped++;
+		dev->stats.rx_dropped++;
 		goto out;
 	}
 	/* reserve 2 bytes for RXDWA padding */
@@ -676,8 +671,8 @@ static void bf537mac_rx(struct net_device *dev)
 #endif
 
 	netif_rx(skb);
-	lp->stats.rx_packets++;
-	lp->stats.rx_bytes += len;
+	dev->stats.rx_packets++;
+	dev->stats.rx_bytes += len;
 	current_rx_ptr->status.status_word = 0x00000000;
 	current_rx_ptr = current_rx_ptr->next;
 
@@ -786,20 +781,6 @@ static void bf537mac_timeout(struct net_device *dev)
 	/* We can accept TX packets again */
 	dev->trans_start = jiffies;
 	netif_wake_queue(dev);
-}
-
-/*
- * Get the current statistics.
- * This may be called with the card open or closed.
- */
-static struct net_device_stats *bf537mac_query_statistics(struct net_device
-							  *dev)
-{
-	struct bf537mac_local *lp = netdev_priv(dev);
-
-	pr_debug("%s: %s\n", dev->name, __FUNCTION__);
-
-	return &lp->stats;
 }
 
 static void bf537mac_multicast_hash(struct net_device *dev)
@@ -1009,7 +990,6 @@ static int __init bf537mac_probe(struct net_device *dev)
 	dev->hard_start_xmit = bf537mac_hard_start_xmit;
 	dev->set_mac_address = bf537mac_set_mac_address;
 	dev->tx_timeout = bf537mac_timeout;
-	dev->get_stats = bf537mac_query_statistics;
 	dev->set_multicast_list = bf537mac_set_multicast_list;
 #ifdef CONFIG_NET_POLL_CONTROLLER
 	dev->poll_controller = bf537mac_poll;
@@ -1049,7 +1029,6 @@ static int bfin_mac_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	SET_MODULE_OWNER(ndev);
 	SET_NETDEV_DEV(ndev, &pdev->dev);
 
 	platform_set_drvdata(pdev, ndev);

@@ -12,8 +12,8 @@ LDFLAGS_vmlinux  := -X
 OBJCOPYFLAGS     := -O binary -R .note -R .comment -S
 GZFLAGS          := -9
 
-CFLAGS           += $(call cc-option,-mno-fdpic)
-AFLAGS           += $(call cc-option,-mno-fdpic)
+KBUILD_CFLAGS           += $(call cc-option,-mno-fdpic)
+KBUILD_AFLAGS           += $(call cc-option,-mno-fdpic)
 CFLAGS_MODULE    += -mlong-calls
 KALLSYMS         += --symbol-prefix=_
 
@@ -69,8 +69,8 @@ rev-$(CONFIG_BF_REV_0_5)  := 0.5
 rev-$(CONFIG_BF_REV_NONE) := none
 rev-$(CONFIG_BF_REV_ANY)  := any
 
-CFLAGS += -mcpu=$(cpu-y)-$(rev-y)
-AFLAGS += -mcpu=$(cpu-y)-$(rev-y)
+KBUILD_CFLAGS += -mcpu=$(cpu-y)-$(rev-y)
+KBUILD_AFLAGS += -mcpu=$(cpu-y)-$(rev-y)
 
 head-y   := arch/$(ARCH)/mach-$(MACHINE)/head.o arch/$(ARCH)/kernel/init_task.o
 

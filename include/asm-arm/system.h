@@ -75,7 +75,20 @@
 #ifndef __ASSEMBLY__
 
 #include <linux/linkage.h>
+#include <linux/stringify.h>
 #include <linux/irqflags.h>
+
+/*
+ * The CPU ID never changes at run time, so we might as well tell the
+ * compiler that it's constant.  Use this function to read the CPU ID
+ * rather than directly reading processor_id or read_cpuid() directly.
+ */
+static inline unsigned int read_cpuid_id(void) __attribute_const__;
+
+static inline unsigned int read_cpuid_id(void)
+{
+	return read_cpuid(CPUID_ID);
+}
 
 #define __exception	__attribute__((section(".exception.text")))
 
@@ -253,16 +266,6 @@ extern struct task_struct *__switch_to(struct task_struct *, struct thread_info 
 do {									\
 	last = __switch_to(prev,task_thread_info(prev), task_thread_info(next));	\
 } while (0)
-
-/*
- * On SMP systems, when the scheduler does migration-cost autodetection,
- * it needs a way to flush as much of the CPU's caches as possible.
- *
- * TODO: fill this in!
- */
-static inline void sched_cacheflush(void)
-{
-}
 
 #if defined(CONFIG_CPU_SA1100) || defined(CONFIG_CPU_SA110)
 /*

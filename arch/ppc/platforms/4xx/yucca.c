@@ -31,6 +31,7 @@
 #include <linux/tty.h>
 #include <linux/serial.h>
 #include <linux/serial_core.h>
+#include <linux/serial_8250.h>
 
 #include <asm/system.h>
 #include <asm/pgtable.h>
@@ -210,6 +211,7 @@ static void __init yucca_setup_pcie_fpga_rootpoint(int port)
 		break;
 
 	default:
+		iounmap(pcie_reg_fpga_base);
 		return;
 	}
 

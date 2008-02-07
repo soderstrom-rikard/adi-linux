@@ -28,21 +28,21 @@
 
 #define DRV_NAME	"bfin-spi"
 #define DRV_AUTHOR	"Bryan Wu, Luke Yang"
-#define DRV_DESC	"Blackfin BF5xx on-chip SPI Contoller Driver"
+#define DRV_DESC	"Blackfin BF5xx on-chip SPI Controller Driver"
 #define DRV_VERSION	"1.0"
 
 MODULE_AUTHOR(DRV_AUTHOR);
 MODULE_DESCRIPTION(DRV_DESC);
 MODULE_LICENSE("GPL");
 
-#define IS_DMA_ALIGNED(x) (((u32)(x)&0x07)==0)
+#define IS_DMA_ALIGNED(x) (((u32)(x)&0x07) == 0)
 
-#define START_STATE ((void*)0)
-#define RUNNING_STATE ((void*)1)
-#define DONE_STATE ((void*)2)
-#define ERROR_STATE ((void*)-1)
-#define QUEUE_RUNNING 0
-#define QUEUE_STOPPED 1
+#define START_STATE	((void *)0)
+#define RUNNING_STATE	((void *)1)
+#define DONE_STATE	((void *)2)
+#define ERROR_STATE	((void *)-1)
+#define QUEUE_RUNNING	0
+#define QUEUE_STOPPED	1
 
 struct driver_data {
 	/* Driver model hookup */
@@ -713,8 +713,8 @@ static void pump_transfers(unsigned long data)
 	} else {
 		drv_data->len = transfer->len;
 	}
-	dev_dbg(&drv_data->pdev->dev,
-		"transfer: drv_data->write is %p, chip->write is %p, null_wr is %p\n",
+	dev_dbg(&drv_data->pdev->dev, "transfer: ",
+		"drv_data->write is %p, chip->write is %p, null_wr is %p\n",
 		drv_data->write, chip->write, null_writer);
 
 	/* speed and width has been set on per message */
@@ -776,9 +776,12 @@ static void pump_transfers(unsigned long data)
 			enable_dma(drv_data->dma_channel);
 
 			/* start SPI transfer */
-			write_CTRL(drv_data, (cr | CFG_SPI_DMAWRITE | BIT_CTL_ENABLE));
+			write_CTRL(drv_data,
+				(cr | CFG_SPI_DMAWRITE | BIT_CTL_ENABLE));
 
-			/* just return here, there can only be one transfer in this mode */
+			/* just return here, there can only be one transfer
+			 * in this mode
+			 */
 			message->status = 0;
 			giveback(drv_data);
 			return;
@@ -803,7 +806,8 @@ static void pump_transfers(unsigned long data)
 			enable_dma(drv_data->dma_channel);
 
 			/* start SPI transfer */
-			write_CTRL(drv_data, (cr | CFG_SPI_DMAREAD | BIT_CTL_ENABLE));
+			write_CTRL(drv_data,
+				(cr | CFG_SPI_DMAREAD | BIT_CTL_ENABLE));
 
 		} else if (drv_data->tx != NULL) {
 			dev_dbg(&drv_data->pdev->dev, "doing DMA out.\n");
@@ -817,7 +821,8 @@ static void pump_transfers(unsigned long data)
 			enable_dma(drv_data->dma_channel);
 
 			/* start SPI transfer */
-			write_CTRL(drv_data, (cr | CFG_SPI_DMAWRITE | BIT_CTL_ENABLE));
+			write_CTRL(drv_data,
+				(cr | CFG_SPI_DMAWRITE | BIT_CTL_ENABLE));
 		}
 	} else {
 		/* IO mode write then read */
@@ -883,8 +888,10 @@ static void pump_transfers(unsigned long data)
 /* pop a msg from queue and kick off real transfer */
 static void pump_messages(struct work_struct *work)
 {
-	struct driver_data *drv_data = container_of(work, struct driver_data, pump_messages);
+	struct driver_data *drv_data;
 	unsigned long flags;
+
+	drv_data = container_of(work, struct driver_data, pump_messages);
 
 	/* Lock queue and check for queue work */
 	spin_lock_irqsave(&drv_data->lock, flags);
@@ -916,8 +923,8 @@ static void pump_messages(struct work_struct *work)
 	drv_data->cur_transfer = list_entry(drv_data->cur_msg->transfers.next,
 					    struct spi_transfer, transfer_list);
 
-	dev_dbg(&drv_data->pdev->dev,
-		"got a message to pump, state is set to: baud %d, flag 0x%x, ctl 0x%x\n",
+	dev_dbg(&drv_data->pdev->dev, "got a message to pump, "
+		"state is set to: baud %d, flag 0x%x, ctl 0x%x\n",
 		drv_data->cur_chip->baud, drv_data->cur_chip->flag,
 		drv_data->cur_chip->ctl_reg);
 
@@ -1013,13 +1020,15 @@ static int setup(struct spi_device *spi)
 
 	/* chip_info isn't always needed */
 	if (chip_info) {
-		/* Make sure people stop trying to set fields via ctl_reg when they
-		 * should actually be using common SPI framework.  Currently we let
-		 * through: WOM EMISO PSSE GM SZ TIMOD.  Not sure if a user actually
-		 * needs/uses any of these, but let's assume (for now) they do.
+		/* Make sure people stop trying to set fields via ctl_reg
+		 * when they should actually be using common SPI framework.
+		 * Currently we let through: WOM EMISO PSSE GM SZ TIMOD.
+		 * Not sure if a user actually needs/uses any of these,
+		 * but let's assume (for now) they do.
 		 */
-		if (chip_info->ctl_reg & (SPE | MSTR | CPOL | CPHA | LSBF | SIZE)) {
-			dev_err(&spi->dev, "do not set bits in ctl_reg that the SPI framework provides\n");
+		if (chip_info->ctl_reg & (SPE|MSTR|CPOL|CPHA|LSBF|SIZE)) {
+			dev_err(&spi->dev, "do not set bits in ctl_reg "
+				"that the SPI framework manages\n");
 			return -EINVAL;
 		}
 
@@ -1100,7 +1109,7 @@ static int setup(struct spi_device *spi)
 		return -ENODEV;
 	}
 
-	dev_dbg(&spi->dev, "setup spi chip %s, width is %d, dma is %d,",
+	dev_dbg(&spi->dev, "setup spi chip %s, width is %d, dma is %d\n",
 			spi->modalias, chip->width, chip->enable_dma);
 	dev_dbg(&spi->dev, "ctl_reg is 0x%x, flag_reg is 0x%x\n",
 			chip->ctl_reg, chip->flag);
@@ -1128,7 +1137,8 @@ static void cleanup(struct spi_device *spi)
 
 	if ((chip->chip_select_num > 0)
 		&& (chip->chip_select_num <= spi->master->num_chipselect))
-		peripheral_free(ssel[spi->master->bus_num][chip->chip_select_num-1]);
+		peripheral_free(ssel[spi->master->bus_num]
+					[chip->chip_select_num-1]);
 
 	kfree(chip);
 }
@@ -1148,7 +1158,7 @@ static inline int init_queue(struct driver_data *drv_data)
 	/* init messages workqueue */
 	INIT_WORK(&drv_data->pump_messages, pump_messages);
 	drv_data->workqueue =
-	    create_singlethread_workqueue(drv_data->master->cdev.dev->bus_id);
+	    create_singlethread_workqueue(drv_data->master->dev.parent->bus_id);
 	if (drv_data->workqueue == NULL)
 		return -EBUSY;
 
@@ -1387,8 +1397,9 @@ static int bfin5xx_spi_resume(struct platform_device *pdev)
 #define bfin5xx_spi_resume NULL
 #endif				/* CONFIG_PM */
 
+MODULE_ALIAS("bfin-spi-master");	/* for platform bus hotplug */
 static struct platform_driver bfin5xx_spi_driver = {
-	.driver 	= {
+	.driver	= {
 		.name	= DRV_NAME,
 		.owner	= THIS_MODULE,
 	},

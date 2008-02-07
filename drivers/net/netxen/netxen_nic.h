@@ -65,8 +65,8 @@
 
 #define _NETXEN_NIC_LINUX_MAJOR 3
 #define _NETXEN_NIC_LINUX_MINOR 4
-#define _NETXEN_NIC_LINUX_SUBVERSION 2
-#define NETXEN_NIC_LINUX_VERSIONID  "3.4.2"
+#define _NETXEN_NIC_LINUX_SUBVERSION 18
+#define NETXEN_NIC_LINUX_VERSIONID  "3.4.18"
 
 #define NETXEN_NUM_FLASH_SECTORS (64)
 #define NETXEN_FLASH_SECTOR_SIZE (64 * 1024)
@@ -309,23 +309,26 @@ struct netxen_ring_ctx {
 	((cmd_desc)->port_ctxid |= ((var) & 0xF0))
 
 #define netxen_set_cmd_desc_flags(cmd_desc, val)	\
-	((cmd_desc)->flags_opcode &= ~cpu_to_le16(0x7f), \
-	(cmd_desc)->flags_opcode |= cpu_to_le16((val) & 0x7f))
+	(cmd_desc)->flags_opcode = ((cmd_desc)->flags_opcode & \
+		~cpu_to_le16(0x7f)) | cpu_to_le16((val) & 0x7f)
 #define netxen_set_cmd_desc_opcode(cmd_desc, val)	\
-	((cmd_desc)->flags_opcode &= ~cpu_to_le16(0x3f<<7), \
-	(cmd_desc)->flags_opcode |= cpu_to_le16(((val & 0x3f)<<7)))
+	(cmd_desc)->flags_opcode = ((cmd_desc)->flags_opcode & \
+		~cpu_to_le16((u16)0x3f << 7)) | cpu_to_le16(((val) & 0x3f) << 7)
 
 #define netxen_set_cmd_desc_num_of_buff(cmd_desc, val)	\
-	((cmd_desc)->num_of_buffers_total_length &= ~cpu_to_le32(0xff), \
-	(cmd_desc)->num_of_buffers_total_length |= cpu_to_le32((val) & 0xff))
+	(cmd_desc)->num_of_buffers_total_length = \
+		((cmd_desc)->num_of_buffers_total_length & \
+		~cpu_to_le32(0xff)) | cpu_to_le32((val) & 0xff)
 #define netxen_set_cmd_desc_totallength(cmd_desc, val)	\
-	((cmd_desc)->num_of_buffers_total_length &= ~cpu_to_le32(0xffffff00), \
-	(cmd_desc)->num_of_buffers_total_length |= cpu_to_le32(val << 8))
+	(cmd_desc)->num_of_buffers_total_length = \
+		((cmd_desc)->num_of_buffers_total_length & \
+		~cpu_to_le32((u32)0xffffff << 8)) | \
+		cpu_to_le32(((val) & 0xffffff) << 8)
 
 #define netxen_get_cmd_desc_opcode(cmd_desc)	\
-	((le16_to_cpu((cmd_desc)->flags_opcode) >> 7) & 0x003F)
+	((le16_to_cpu((cmd_desc)->flags_opcode) >> 7) & 0x003f)
 #define netxen_get_cmd_desc_totallength(cmd_desc)	\
-	(le32_to_cpu((cmd_desc)->num_of_buffers_total_length) >> 8)
+	((le32_to_cpu((cmd_desc)->num_of_buffers_total_length) >> 8) & 0xffffff)
 
 struct cmd_desc_type0 {
 	u8 tcp_hdr_offset;	/* For LSO only */
@@ -412,29 +415,29 @@ struct rcv_desc {
 #define netxen_get_sts_desc_lro_last_frag(status_desc)	\
 	(((status_desc)->lro & 0x80) >> 7)
 
-#define netxen_get_sts_port(status_desc)	\
-	(le64_to_cpu((status_desc)->status_desc_data) & 0x0F)
-#define netxen_get_sts_status(status_desc)	\
-	((le64_to_cpu((status_desc)->status_desc_data) >> 4) & 0x0F)
-#define netxen_get_sts_type(status_desc)	\
-	((le64_to_cpu((status_desc)->status_desc_data) >> 8) & 0x0F)
-#define netxen_get_sts_totallength(status_desc)	\
-	((le64_to_cpu((status_desc)->status_desc_data) >> 12) & 0xFFFF)
-#define netxen_get_sts_refhandle(status_desc)	\
-	((le64_to_cpu((status_desc)->status_desc_data) >> 28) & 0xFFFF)
-#define netxen_get_sts_prot(status_desc)	\
-	((le64_to_cpu((status_desc)->status_desc_data) >> 44) & 0x0F)
+#define netxen_get_sts_port(sts_data)	\
+	((sts_data) & 0x0F)
+#define netxen_get_sts_status(sts_data)	\
+	(((sts_data) >> 4) & 0x0F)
+#define netxen_get_sts_type(sts_data)	\
+	(((sts_data) >> 8) & 0x0F)
+#define netxen_get_sts_totallength(sts_data)	\
+	(((sts_data) >> 12) & 0xFFFF)
+#define netxen_get_sts_refhandle(sts_data)	\
+	(((sts_data) >> 28) & 0xFFFF)
+#define netxen_get_sts_prot(sts_data)	\
+	(((sts_data) >> 44) & 0x0F)
+#define netxen_get_sts_opcode(sts_data)	\
+	(((sts_data) >> 58) & 0x03F)
+
 #define netxen_get_sts_owner(status_desc)	\
 	((le64_to_cpu((status_desc)->status_desc_data) >> 56) & 0x03)
-#define netxen_get_sts_opcode(status_desc)	\
-	((le64_to_cpu((status_desc)->status_desc_data) >> 58) & 0x03F)
-
-#define netxen_clear_sts_owner(status_desc)	\
-	((status_desc)->status_desc_data &=	\
-	~cpu_to_le64(((unsigned long long)3) << 56 ))
-#define netxen_set_sts_owner(status_desc, val)	\
-	((status_desc)->status_desc_data |=	\
-	cpu_to_le64(((unsigned long long)((val) & 0x3)) << 56 ))
+#define netxen_set_sts_owner(status_desc, val)	{ \
+	(status_desc)->status_desc_data = \
+		((status_desc)->status_desc_data & \
+		~cpu_to_le64(0x3ULL << 56)) | \
+		cpu_to_le64((u64)((val) & 0x3) << 56); \
+}
 
 struct status_desc {
 	/* Bit pattern: 0-3 port, 4-7 status, 8-11 type, 12-27 total_length
@@ -880,6 +883,7 @@ struct netxen_adapter {
 	struct netxen_adapter *master;
 	struct net_device *netdev;
 	struct pci_dev *pdev;
+	struct napi_struct napi;
 	struct net_device_stats net_stats;
 	unsigned char mac_addr[ETH_ALEN];
 	int mtu;
@@ -918,7 +922,7 @@ struct netxen_adapter {
 	u16 link_duplex;
 	u16 state;
 	u16 link_autoneg;
-	int rcsum;
+	int rx_csum;
 	int status;
 	spinlock_t stats_lock;
 
@@ -1097,109 +1101,6 @@ int netxen_nic_change_mtu(struct net_device *netdev, int new_mtu);
 int netxen_nic_set_mac(struct net_device *netdev, void *p);
 struct net_device_stats *netxen_nic_get_stats(struct net_device *netdev);
 
-static inline void netxen_nic_disable_int(struct netxen_adapter *adapter)
-{
-	uint32_t	mask = 0x7ff;
-	int retries = 32;
-
-	DPRINTK(1, INFO, "Entered ISR Disable \n");
-
-	switch (adapter->portnum) {
-	case 0:
-		writel(0x0, NETXEN_CRB_NORMALIZE(adapter, CRB_SW_INT_MASK_0));
-		break;
-	case 1:
-		writel(0x0, NETXEN_CRB_NORMALIZE(adapter, CRB_SW_INT_MASK_1));
-		break;
-	case 2:
-		writel(0x0, NETXEN_CRB_NORMALIZE(adapter, CRB_SW_INT_MASK_2));
-		break;
-	case 3:
-		writel(0x0, NETXEN_CRB_NORMALIZE(adapter, CRB_SW_INT_MASK_3));
-		break;
-	}
-
-	if (adapter->intr_scheme != -1 &&
-		adapter->intr_scheme != INTR_SCHEME_PERPORT) {
-		writel(mask,
-			(void *)(PCI_OFFSET_SECOND_RANGE(adapter, ISR_INT_MASK)));
-	}
-
-	/* Window = 0 or 1 */
-	if (!(adapter->flags & NETXEN_NIC_MSI_ENABLED)) {
-		do {
-			writel(0xffffffff, (void *)
-				(PCI_OFFSET_SECOND_RANGE(adapter, ISR_INT_TARGET_STATUS)));
-			mask = readl((void *)
-					(pci_base_offset(adapter, ISR_INT_VECTOR)));
-			if (!(mask & 0x80))
-				break;
-			udelay(10);
-		} while (--retries);
-
-		if (!retries) {
-			printk(KERN_NOTICE "%s: Failed to disable interrupt completely\n",
-					netxen_nic_driver_name);
-		}
-	}
-
-	DPRINTK(1, INFO, "Done with Disable Int\n");
-
-	return;
-}
-
-static inline void netxen_nic_enable_int(struct netxen_adapter *adapter)
-{
-	u32 mask;
-
-	DPRINTK(1, INFO, "Entered ISR Enable \n");
-
-	if (adapter->intr_scheme != -1 &&
-		adapter->intr_scheme != INTR_SCHEME_PERPORT) {
-		switch (adapter->ahw.board_type) {
-		case NETXEN_NIC_GBE:
-			mask  =  0x77b;
-			break;
-		case NETXEN_NIC_XGBE:
-			mask  =  0x77f;
-			break;
-		default:
-			mask  =  0x7ff;
-			break;
-		}
-
-		writel(mask,
-			(void *)(PCI_OFFSET_SECOND_RANGE(adapter, ISR_INT_MASK)));
-	}
-	switch (adapter->portnum) {
-	case 0:
-		writel(0x1, NETXEN_CRB_NORMALIZE(adapter, CRB_SW_INT_MASK_0));
-		break;
-	case 1:
-		writel(0x1, NETXEN_CRB_NORMALIZE(adapter, CRB_SW_INT_MASK_1));
-		break;
-	case 2:
-		writel(0x1, NETXEN_CRB_NORMALIZE(adapter, CRB_SW_INT_MASK_2));
-		break;
-	case 3:
-		writel(0x1, NETXEN_CRB_NORMALIZE(adapter, CRB_SW_INT_MASK_3));
-		break;
-	}
-
-	if (!(adapter->flags & NETXEN_NIC_MSI_ENABLED)) {
-		mask = 0xbff;
-		if (adapter->intr_scheme != -1 &&
-			adapter->intr_scheme != INTR_SCHEME_PERPORT) {
-			writel(0X0, NETXEN_CRB_NORMALIZE(adapter, CRB_INT_VECTOR));
-		}
-		writel(mask,
-			(void *)(PCI_OFFSET_SECOND_RANGE(adapter, ISR_INT_TARGET_MASK)));
-	}
-
-	DPRINTK(1, INFO, "Done with enable Int\n");
-
-	return;
-}
 
 /*
  * NetXen Board information
@@ -1221,7 +1122,7 @@ static const struct netxen_brdinfo netxen_boards[] = {
 	{NETXEN_BRDTYPE_P2_SB31_2G, 2, "Dual Gb"},
 };
 
-#define NUM_SUPPORTED_BOARDS (sizeof(netxen_boards)/sizeof(struct netxen_brdinfo))
+#define NUM_SUPPORTED_BOARDS ARRAY_SIZE(netxen_boards)
 
 static inline void get_brd_port_by_type(u32 type, int *ports)
 {
@@ -1282,8 +1183,7 @@ dma_watchdog_shutdown_poll_result(struct netxen_adapter *adapter)
 	    NETXEN_CAM_RAM(NETXEN_CAM_RAM_DMA_WATCHDOG_CTRL), &ctrl, 4))
 		printk(KERN_ERR "failed to read dma watchdog status\n");
 
-	return ((netxen_get_dma_watchdog_enabled(ctrl) == 0) &&
-		(netxen_get_dma_watchdog_disabled(ctrl) == 0));
+	return (netxen_get_dma_watchdog_enabled(ctrl) == 0);
 }
 
 static inline int

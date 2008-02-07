@@ -299,7 +299,7 @@ static void bfin_set_piomode(struct ata_port *ap, struct ata_device *adev)
 	*/
 	n6 = num_clocks_min(t6min, fsclk);
 	if (mode >= 0 && mode <= 4 && n6 >= 1) {
-		dev_dbg(adev->ap->dev, "set piomode: mode=%d, fsclk=%ud\n", mode, fsclk);
+		dev_dbg(adev->link->ap->dev, "set piomode: mode=%d, fsclk=%ud\n", mode, fsclk);
 		/* calculate the timing values for register transfers. */
 		while (mode > 0 && pio_fsclk[mode] > fsclk)
 			mode--;
@@ -376,7 +376,7 @@ static void bfin_set_dmamode(struct ata_port *ap, struct ata_device *adev)
 
 	mode = adev->dma_mode - XFER_UDMA_0;
 	if (mode >= 0 && mode <= 5) {
-		dev_dbg(adev->ap->dev, "set udmamode: mode=%d\n", mode);
+		dev_dbg(adev->link->ap->dev, "set udmamode: mode=%d\n", mode);
 		/* the most restrictive timing value is t6 and tc,
 		 * the DIOW - data hold. If one SCLK pulse is longer
 		 * than this minimum value then register
@@ -433,7 +433,7 @@ static void bfin_set_dmamode(struct ata_port *ap, struct ata_device *adev)
 
 	mode = adev->dma_mode - XFER_MW_DMA_0;
 	if (mode >= 0 && mode <= 2) {
-		dev_dbg(adev->ap->dev, "set mdmamode: mode=%d\n", mode);
+		dev_dbg(adev->link->ap->dev, "set mdmamode: mode=%d\n", mode);
 		/* the most restrictive timing value is tf, the DMACK to
 		 * read data released. If one SCLK pulse is longer than
 		 * this maximum value then the MDMA mode
@@ -1092,14 +1092,15 @@ static unsigned int bfin_bus_softreset(struct ata_port *ap,
  *	Note: Original code is ata_std_softreset().
  */
 
-static int bfin_std_softreset(struct ata_port *ap, unsigned int *classes,
+static int bfin_std_softreset(struct ata_link *link, unsigned int *classes,
 		unsigned long deadline)
 {
+	struct ata_port *ap = link->ap;
 	unsigned int slave_possible = ap->flags & ATA_FLAG_SLAVE_POSS;
 	unsigned int devmask = 0, err_mask;
 	u8 err;
 
-	if (ata_port_offline(ap)) {
+	if (ata_link_offline(link)) {
 		classes[0] = ATA_DEV_NONE;
 		goto out;
 	}
@@ -1122,9 +1123,11 @@ static int bfin_std_softreset(struct ata_port *ap, unsigned int *classes,
 	}
 
 	/* determine by signature whether we have ATA or ATAPI devices */
-	classes[0] = ata_dev_try_classify(ap, 0, &err);
+	classes[0] = ata_dev_try_classify(&ap->link.device[0],
+				devmask & (1 << 0), &err);
 	if (slave_possible && err != 0x81)
-		classes[1] = ata_dev_try_classify(ap, 1, &err);
+		classes[1] = ata_dev_try_classify(&ap->link.device[1],
+					devmask & (1 << 1), &err);
 
  out:
 	return 0;
@@ -1167,7 +1170,7 @@ static unsigned char bfin_bmdma_status(struct ata_port *ap)
 static void bfin_data_xfer(struct ata_device *adev, unsigned char *buf,
 			   unsigned int buflen, int write_data)
 {
-	struct ata_port *ap = adev->ap;
+	struct ata_port *ap = adev->link->ap;
 	unsigned int words = buflen >> 1;
 	unsigned short *buf16 = (u16 *) buf;
 	void __iomem *base = (void __iomem *)ap->ioaddr.ctl_addr;
@@ -1206,7 +1209,9 @@ static void bfin_irq_clear(struct ata_port *ap)
 	void __iomem *base = (void __iomem *)ap->ioaddr.ctl_addr;
 
 	dev_dbg(ap->dev, "in atapi irq clear\n");
-	ATAPI_SET_INT_STATUS(base, 0x1FF);
+	ATAPI_SET_INT_STATUS(base, ATAPI_GET_INT_STATUS(base)|ATAPI_DEV_INT
+		| MULTI_DONE_INT | UDMAIN_DONE_INT | UDMAOUT_DONE_INT
+		| MULTI_TERM_INT | UDMAIN_TERM_INT | UDMAOUT_TERM_INT);
 }
 
 /**
@@ -1231,33 +1236,6 @@ static unsigned char bfin_irq_on(struct ata_port *ap)
 	bfin_irq_clear(ap);
 
 	return tmp;
-}
-
-/**
- *	bfin_irq_ack - Acknowledge a device interrupt.
- *	@ap: Port on which interrupts are enabled.
- *
- *	Note: Original code is ata_irq_ack().
- */
-
-static unsigned char bfin_irq_ack(struct ata_port *ap, unsigned int chk_drq)
-{
-	void __iomem *base = (void __iomem *)ap->ioaddr.ctl_addr;
-	unsigned int bits = chk_drq ? ATA_BUSY | ATA_DRQ : ATA_BUSY;
-	unsigned char status;
-
-	dev_dbg(ap->dev, "in atapi irq ack\n");
-	status = ata_busy_wait(ap, bits, 1000);
-	if (status & bits)
-		if (ata_msg_err(ap))
-			dev_err(ap->dev, "abnormal status 0x%X\n", status);
-
-	/* get controller status; clear intr, err bits */
-	ATAPI_SET_INT_STATUS(base, ATAPI_GET_INT_STATUS(base)|ATAPI_DEV_INT
-		| MULTI_DONE_INT | UDMAIN_DONE_INT | UDMAOUT_DONE_INT
-		| MULTI_TERM_INT | UDMAIN_TERM_INT | UDMAOUT_TERM_INT);
-
-	return bfin_bmdma_status(ap);
 }
 
 /**
@@ -1308,8 +1286,9 @@ void bfin_bmdma_thaw(struct ata_port *ap)
  *	Note: Original code is ata_std_postreset().
  */
 
-static void bfin_std_postreset(struct ata_port *ap, unsigned int *classes)
+static void bfin_std_postreset(struct ata_link *link, unsigned int *classes)
 {
+	struct ata_port *ap = link->ap;
 	void __iomem *base = (void __iomem *)ap->ioaddr.ctl_addr;
 
 	/* re-enable interrupts */
@@ -1391,7 +1370,6 @@ static struct scsi_host_template bfin_sht = {
 };
 
 static const struct ata_port_operations bfin_pata_ops = {
-	.port_disable		= ata_port_disable,
 	.set_piomode		= bfin_set_piomode,
 	.set_dmamode		= bfin_set_dmamode,
 
@@ -1419,7 +1397,6 @@ static const struct ata_port_operations bfin_pata_ops = {
 	.irq_handler		= ata_interrupt,
 	.irq_clear		= bfin_irq_clear,
 	.irq_on			= bfin_irq_on,
-	.irq_ack		= bfin_irq_ack,
 
 	.port_start		= bfin_port_start,
 	.port_stop		= bfin_port_stop,
@@ -1507,10 +1484,8 @@ static int __devinit bfin_atapi_probe(struct platform_device *pdev)
 	int board_idx = 0;
 	struct resource *res;
 	struct ata_host *host;
-#ifdef CONFIG_PATA_BF54X_DMA
 	unsigned int fsclk = get_sclk();
 	int udma_mode = 5;
-#endif
 	const struct ata_port_info *ppi[] =
 		{ &bfin_port_info[board_idx], NULL };
 
@@ -1529,13 +1504,11 @@ static int __devinit bfin_atapi_probe(struct platform_device *pdev)
 	if (res == NULL)
 		return -EINVAL;
 
-#ifdef CONFIG_PATA_BF54X_DMA
-	bfin_port_info[board_idx].udma_mask = ATA_UDMA5;
-	while (udma_mode > 0 && udma_fsclk[udma_mode] > fsclk) {
+	while (bfin_port_info[board_idx].udma_mask > 0 &&
+			udma_fsclk[udma_mode] > fsclk) {
 		udma_mode--;
 		bfin_port_info[board_idx].udma_mask >>= 1;
 	}
-#endif
 
 	/*
 	 * Now that that's out of the way, wire up the port..
@@ -1611,9 +1584,25 @@ static struct platform_driver bfin_atapi_driver = {
 	},
 };
 
+#define ATAPI_MODE_SIZE		10
+static char bfin_atapi_mode[ATAPI_MODE_SIZE];
+
 static int __init bfin_atapi_init(void)
 {
 	pr_info("register bfin atapi driver\n");
+
+	switch(bfin_atapi_mode[0]) {
+	case 'p':
+	case 'P':
+		break;
+	case 'm':
+	case 'M':
+		bfin_port_info[0].mwdma_mask = ATA_MWDMA2;
+		break;
+	default:
+		bfin_port_info[0].udma_mask = ATA_UDMA5;
+	};
+
 	return platform_driver_register(&bfin_atapi_driver);
 }
 
@@ -1624,6 +1613,13 @@ static void __exit bfin_atapi_exit(void)
 
 module_init(bfin_atapi_init);
 module_exit(bfin_atapi_exit);
+/*
+ * ATAPI mode:
+ * pio/PIO
+ * udma/UDMA (default)
+ * mwdma/MWDMA
+ */
+module_param_string(bfin_atapi_mode, bfin_atapi_mode, ATAPI_MODE_SIZE, 0);
 
 MODULE_AUTHOR("Sonic Zhang <sonic.zhang@analog.com>");
 MODULE_DESCRIPTION("PATA driver for blackfin 54x ATAPI controller");

@@ -872,7 +872,7 @@ static int __init bfin_lq035_probe(struct platform_device *pdev)
 	bl_dev = backlight_device_register("bf537-bl", NULL, NULL, &bfin_lq035fb_bl_ops);
 	bl_dev->props.max_brightness = MAX_BRIGHENESS;
 
-	lcd_dev = lcd_device_register(DRIVER_NAME, NULL, &bfin_lcd_ops);
+	lcd_dev = lcd_device_register(DRIVER_NAME, &pdev->dev, NULL, &bfin_lcd_ops);
 	lcd_dev->props.max_contrast = 255,
 
 	printk(KERN_INFO "Done.\n");

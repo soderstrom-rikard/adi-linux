@@ -254,6 +254,8 @@ int put_cmsg_compat(struct msghdr *kmsg, int level, int type, int len, void *dat
 	if (copy_to_user(CMSG_COMPAT_DATA(cm), data, cmlen - sizeof(struct compat_cmsghdr)))
 		return -EFAULT;
 	cmlen = CMSG_COMPAT_SPACE(len);
+	if (kmsg->msg_controllen < cmlen)
+		cmlen = kmsg->msg_controllen;
 	kmsg->msg_control += cmlen;
 	kmsg->msg_controllen -= cmlen;
 	return 0;
@@ -276,7 +278,8 @@ void scm_detach_fds_compat(struct msghdr *kmsg, struct scm_cookie *scm)
 		err = security_file_receive(fp[i]);
 		if (err)
 			break;
-		err = get_unused_fd();
+		err = get_unused_fd_flags(MSG_CMSG_CLOEXEC & kmsg->msg_flags
+					  ? O_CLOEXEC : 0);
 		if (err < 0)
 			break;
 		new_fd = err;

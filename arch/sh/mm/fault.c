@@ -32,8 +32,8 @@ asmlinkage void __kprobes do_page_fault(struct pt_regs *regs,
 	struct task_struct *tsk;
 	struct mm_struct *mm;
 	struct vm_area_struct * vma;
-	unsigned long page;
 	int si_code;
+	int fault;
 	siginfo_t info;
 
 	trace_hardirqs_on();
@@ -125,20 +125,18 @@ good_area:
 	 * the fault.
 	 */
 survive:
-	switch (handle_mm_fault(mm, vma, address, writeaccess)) {
-		case VM_FAULT_MINOR:
-			tsk->min_flt++;
-			break;
-		case VM_FAULT_MAJOR:
-			tsk->maj_flt++;
-			break;
-		case VM_FAULT_SIGBUS:
-			goto do_sigbus;
-		case VM_FAULT_OOM:
+	fault = handle_mm_fault(mm, vma, address, writeaccess);
+	if (unlikely(fault & VM_FAULT_ERROR)) {
+		if (fault & VM_FAULT_OOM)
 			goto out_of_memory;
-		default:
-			BUG();
+		else if (fault & VM_FAULT_SIGBUS)
+			goto do_sigbus;
+		BUG();
 	}
+	if (fault & VM_FAULT_MAJOR)
+		tsk->maj_flt++;
+	else
+		tsk->min_flt++;
 
 	up_read(&mm->mmap_sem);
 	return;
@@ -170,24 +168,37 @@ no_context:
  * terminate things with extreme prejudice.
  *
  */
-	if (address < PAGE_SIZE)
-		printk(KERN_ALERT "Unable to handle kernel NULL pointer dereference");
-	else
-		printk(KERN_ALERT "Unable to handle kernel paging request");
-	printk(" at virtual address %08lx\n", address);
-	printk(KERN_ALERT "pc = %08lx\n", regs->pc);
-	page = (unsigned long)get_TTB();
-	if (page) {
-		page = ((unsigned long *) page)[address >> PGDIR_SHIFT];
-		printk(KERN_ALERT "*pde = %08lx\n", page);
-		if (page & _PAGE_PRESENT) {
-			page &= PAGE_MASK;
-			address &= 0x003ff000;
-			page = ((unsigned long *) __va(page))[address >> PAGE_SHIFT];
-			printk(KERN_ALERT "*pte = %08lx\n", page);
+
+	bust_spinlocks(1);
+
+	if (oops_may_print()) {
+		__typeof__(pte_val(__pte(0))) page;
+
+		if (address < PAGE_SIZE)
+			printk(KERN_ALERT "Unable to handle kernel NULL "
+					  "pointer dereference");
+		else
+			printk(KERN_ALERT "Unable to handle kernel paging "
+					  "request");
+		printk(" at virtual address %08lx\n", address);
+		printk(KERN_ALERT "pc = %08lx\n", regs->pc);
+		page = (unsigned long)get_TTB();
+		if (page) {
+			page = ((__typeof__(page) *)page)[address >> PGDIR_SHIFT];
+			printk(KERN_ALERT "*pde = %08lx\n", page);
+			if (page & _PAGE_PRESENT) {
+				page &= PAGE_MASK;
+				address &= 0x003ff000;
+				page = ((__typeof__(page) *)
+						__va(page))[address >>
+							    PAGE_SHIFT];
+				printk(KERN_ALERT "*pte = %08lx\n", page);
+			}
 		}
 	}
+
 	die("Oops", regs, writeaccess);
+	bust_spinlocks(0);
 	do_exit(SIGKILL);
 
 /*
@@ -196,14 +207,14 @@ no_context:
  */
 out_of_memory:
 	up_read(&mm->mmap_sem);
-	if (is_init(current)) {
+	if (is_global_init(current)) {
 		yield();
 		down_read(&mm->mmap_sem);
 		goto survive;
 	}
 	printk("VM: killing process %s\n", tsk->comm);
 	if (user_mode(regs))
-		do_exit(SIGKILL);
+		do_group_exit(SIGKILL);
 	goto no_context;
 
 do_sigbus:
@@ -247,9 +258,6 @@ asmlinkage int __kprobes __do_page_fault(struct pt_regs *regs,
 	pmd_t *pmd;
 	pte_t *pte;
 	pte_t entry;
-	struct mm_struct *mm = current->mm;
-	spinlock_t *ptl = NULL;
-	int ret = 1;
 
 #ifdef CONFIG_SH_KGDB
 	if (kgdb_nofault && kgdb_bus_err_hook)
@@ -263,12 +271,11 @@ asmlinkage int __kprobes __do_page_fault(struct pt_regs *regs,
 	 */
 	if (address >= P3SEG && address < P3_ADDR_MAX) {
 		pgd = pgd_offset_k(address);
-		mm = NULL;
 	} else {
-		if (unlikely(address >= TASK_SIZE || !mm))
+		if (unlikely(address >= TASK_SIZE || !current->mm))
 			return 1;
 
-		pgd = pgd_offset(mm, address);
+		pgd = pgd_offset(current->mm, address);
 	}
 
 	pud = pud_offset(pgd, address);
@@ -278,34 +285,19 @@ asmlinkage int __kprobes __do_page_fault(struct pt_regs *regs,
 	if (pmd_none_or_clear_bad(pmd))
 		return 1;
 
-	if (mm)
-		pte = pte_offset_map_lock(mm, pmd, address, &ptl);
-	else
-		pte = pte_offset_kernel(pmd, address);
-
+	pte = pte_offset_kernel(pmd, address);
 	entry = *pte;
 	if (unlikely(pte_none(entry) || pte_not_present(entry)))
-		goto unlock;
+		return 1;
 	if (unlikely(writeaccess && !pte_write(entry)))
-		goto unlock;
+		return 1;
 
 	if (writeaccess)
 		entry = pte_mkdirty(entry);
 	entry = pte_mkyoung(entry);
 
-#ifdef CONFIG_CPU_SH4
-	/*
-	 * ITLB is not affected by "ldtlb" instruction.
-	 * So, we need to flush the entry by ourselves.
-	 */
-	local_flush_tlb_one(get_asid(), address & PAGE_MASK);
-#endif
-
 	set_pte(pte, entry);
 	update_mmu_cache(NULL, address, entry);
-	ret = 0;
-unlock:
-	if (mm)
-		pte_unmap_unlock(pte, ptl);
-	return ret;
+
+	return 0;
 }

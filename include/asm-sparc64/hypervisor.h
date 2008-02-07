@@ -98,7 +98,7 @@
 #define HV_FAST_MACH_EXIT		0x00
 
 #ifndef __ASSEMBLY__
-extern void sun4v_mach_exit(unsigned long exit_core);
+extern void sun4v_mach_exit(unsigned long exit_code);
 #endif
 
 /* Domain services.  */
@@ -708,6 +708,10 @@ extern unsigned long sun4v_mmu_tsb_ctx0(unsigned long num_descriptions,
  * ARG0 and ARG1 are both reserved and must be set to zero.
  */
 #define HV_FAST_MMU_DEMAP_ALL		0x24
+
+#ifndef __ASSEMBLY__
+extern void sun4v_mmu_demap_all(void);
+#endif
 
 /* mmu_map_perm_addr()
  * TRAP:	HV_FAST_TRAP

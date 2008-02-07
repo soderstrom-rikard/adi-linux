@@ -1198,10 +1198,11 @@ static int __init sunsu_kbd_ms_init(struct uart_sunsu_port *up)
 	if (up->port.type == PORT_UNKNOWN)
 		return -ENODEV;
 
-	printk("%s: %s port at %lx, irq %u\n",
+	printk("%s: %s port at %llx, irq %u\n",
 	       to_of_device(up->port.dev)->node->full_name,
 	       (up->su_type == SU_PORT_KBD) ? "Keyboard" : "Mouse",
-	       up->port.mapbase, up->port.irq);
+	       (unsigned long long) up->port.mapbase,
+	       up->port.irq);
 
 #ifdef CONFIG_SERIO
 	serio = &up->serio;
@@ -1371,28 +1372,12 @@ static struct console sunsu_console = {
  *	Register console.
  */
 
-static inline struct console *SUNSU_CONSOLE(int num_uart)
+static inline struct console *SUNSU_CONSOLE(void)
 {
-	int i;
-
-	if (con_is_present())
-		return NULL;
-
-	for (i = 0; i < num_uart; i++) {
-		int this_minor = sunsu_reg.minor + i;
-
-		if ((this_minor - 64) == (serial_console - 1))
-			break;
-	}
-	if (i == num_uart)
-		return NULL;
-
-	sunsu_console.index = i;
-
 	return &sunsu_console;
 }
 #else
-#define SUNSU_CONSOLE(num_uart)		(NULL)
+#define SUNSU_CONSOLE()			(NULL)
 #define sunsu_serial_console_init()	do { } while (0)
 #endif
 
@@ -1482,6 +1467,8 @@ static int __devinit su_probe(struct of_device *op, const struct of_device_id *m
 
 	up->port.ops = &sunsu_pops;
 
+	sunserial_console_match(SUNSU_CONSOLE(), dp,
+				&sunsu_reg, up->port.line);
 	err = uart_add_one_port(&sunsu_reg, &up->port);
 	if (err)
 		goto out_unmap;
@@ -1541,14 +1528,12 @@ static struct of_platform_driver su_driver = {
 	.remove		= __devexit_p(su_remove),
 };
 
-static int num_uart;
-
 static int __init sunsu_init(void)
 {
 	struct device_node *dp;
 	int err;
+	int num_uart = 0;
 
-	num_uart = 0;
 	for_each_node_by_name(dp, "su") {
 		if (su_get_type(dp) == SU_PORT_PORT)
 			num_uart++;
@@ -1565,27 +1550,22 @@ static int __init sunsu_init(void)
 	}
 
 	if (num_uart) {
-		sunsu_reg.minor = sunserial_current_minor;
-		sunsu_reg.nr = num_uart;
-		err = uart_register_driver(&sunsu_reg);
+		err = sunserial_register_minors(&sunsu_reg, num_uart);
 		if (err)
 			return err;
-		sunsu_reg.tty_driver->name_base = sunsu_reg.minor - 64;
-		sunserial_current_minor += num_uart;
-		sunsu_reg.cons = SUNSU_CONSOLE(num_uart);
 	}
 
 	err = of_register_driver(&su_driver, &of_bus_type);
 	if (err && num_uart)
-		uart_unregister_driver(&sunsu_reg);
+		sunserial_unregister_minors(&sunsu_reg, num_uart);
 
 	return err;
 }
 
 static void __exit sunsu_exit(void)
 {
-	if (num_uart)
-		uart_unregister_driver(&sunsu_reg);
+	if (sunsu_reg.nr)
+		sunserial_unregister_minors(&sunsu_reg, sunsu_reg.nr);
 }
 
 module_init(sunsu_init);

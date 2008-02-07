@@ -60,8 +60,7 @@ xattr_permission(struct inode *inode, const char *name, int mask)
 		if (!S_ISREG(inode->i_mode) && !S_ISDIR(inode->i_mode))
 			return -EPERM;
 		if (S_ISDIR(inode->i_mode) && (inode->i_mode & S_ISVTX) &&
-		    (mask & MAY_WRITE) && (current->fsuid != inode->i_uid) &&
-		    !capable(CAP_FOWNER))
+		    (mask & MAY_WRITE) && !is_owner_or_cap(inode))
 			return -EPERM;
 	}
 
@@ -268,7 +267,7 @@ sys_fsetxattr(int fd, char __user *name, void __user *value,
 	if (!f)
 		return error;
 	dentry = f->f_path.dentry;
-	audit_inode(NULL, dentry->d_inode);
+	audit_inode(NULL, dentry);
 	error = setxattr(dentry, name, value, size, flags);
 	fput(f);
 	return error;
@@ -350,7 +349,7 @@ sys_fgetxattr(int fd, char __user *name, void __user *value, size_t size)
 	f = fget(fd);
 	if (!f)
 		return error;
-	audit_inode(NULL, f->f_path.dentry->d_inode);
+	audit_inode(NULL, f->f_path.dentry);
 	error = getxattr(f->f_path.dentry, name, value, size);
 	fput(f);
 	return error;
@@ -423,7 +422,7 @@ sys_flistxattr(int fd, char __user *list, size_t size)
 	f = fget(fd);
 	if (!f)
 		return error;
-	audit_inode(NULL, f->f_path.dentry->d_inode);
+	audit_inode(NULL, f->f_path.dentry);
 	error = listxattr(f->f_path.dentry, list, size);
 	fput(f);
 	return error;
@@ -486,7 +485,7 @@ sys_fremovexattr(int fd, char __user *name)
 	if (!f)
 		return error;
 	dentry = f->f_path.dentry;
-	audit_inode(NULL, dentry->d_inode);
+	audit_inode(NULL, dentry);
 	error = removexattr(dentry, name);
 	fput(f);
 	return error;

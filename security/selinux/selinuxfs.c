@@ -65,7 +65,12 @@ static DEFINE_MUTEX(sel_mutex);
 /* global data for booleans */
 static struct dentry *bool_dir = NULL;
 static int bool_num = 0;
+static char **bool_pending_names;
 static int *bool_pending_values = NULL;
+
+/* global data for classes */
+static struct dentry *class_dir = NULL;
+static unsigned long last_class_ino;
 
 extern void selnl_notify_setenforce(int val);
 
@@ -99,6 +104,8 @@ enum sel_inos {
 	SEL_MEMBER,	/* compute polyinstantiation membership decision */
 	SEL_CHECKREQPROT, /* check requested protection, not kernel-applied one */
 	SEL_COMPAT_NET,	/* whether to use old compat network packet controls */
+	SEL_REJECT_UNKNOWN, /* export unknown reject handling to userspace */
+	SEL_DENY_UNKNOWN, /* export unknown deny handling to userspace */
 	SEL_INO_NEXT,	/* The next inode number to use */
 };
 
@@ -106,6 +113,7 @@ static unsigned long sel_last_ino = SEL_INO_NEXT - 1;
 
 #define SEL_INITCON_INO_OFFSET 	0x01000000
 #define SEL_BOOL_INO_OFFSET	0x02000000
+#define SEL_CLASS_INO_OFFSET	0x04000000
 #define SEL_INO_MASK		0x00ffffff
 
 #define TMPBUFLEN	12
@@ -170,6 +178,23 @@ out:
 static const struct file_operations sel_enforce_ops = {
 	.read		= sel_read_enforce,
 	.write		= sel_write_enforce,
+};
+
+static ssize_t sel_read_handle_unknown(struct file *filp, char __user *buf,
+					size_t count, loff_t *ppos)
+{
+	char tmpbuf[TMPBUFLEN];
+	ssize_t length;
+	ino_t ino = filp->f_path.dentry->d_inode->i_ino;
+	int handle_unknown = (ino == SEL_REJECT_UNKNOWN) ?
+		security_get_reject_unknown() : !security_get_allow_unknown();
+
+	length = scnprintf(tmpbuf, TMPBUFLEN, "%d", handle_unknown);
+	return simple_read_from_buffer(buf, count, ppos, tmpbuf, length);
+}
+
+static const struct file_operations sel_handle_unknown_ops = {
+	.read		= sel_read_handle_unknown,
 };
 
 #ifdef CONFIG_SECURITY_SELINUX_DISABLE
@@ -237,6 +262,11 @@ static const struct file_operations sel_policyvers_ops = {
 
 /* declaration for sel_write_load */
 static int sel_make_bools(void);
+static int sel_make_classes(void);
+
+/* declaration for sel_make_class_dirs */
+static int sel_make_dir(struct inode *dir, struct dentry *dentry,
+			unsigned long *ino);
 
 static ssize_t sel_read_mls(struct file *filp, char __user *buf,
 				size_t count, loff_t *ppos)
@@ -287,10 +317,23 @@ static ssize_t sel_write_load(struct file * file, const char __user * buf,
 		goto out;
 
 	ret = sel_make_bools();
+	if (ret) {
+		length = ret;
+		goto out1;
+	}
+
+	ret = sel_make_classes();
 	if (ret)
 		length = ret;
 	else
 		length = count;
+
+out1:
+
+	printk(KERN_INFO "SELinux: policy loaded with handle_unknown=%s\n",
+	       (security_get_reject_unknown() ? "reject" :
+		(security_get_allow_unknown() ? "allow" : "deny")));
+
 	audit_log(current->audit_context, GFP_KERNEL, AUDIT_MAC_POLICY_LOAD,
 		"policy loaded auid=%u",
 		audit_get_loginuid(current->audit_context));
@@ -790,15 +833,16 @@ static ssize_t sel_read_bool(struct file *filep, char __user *buf,
 	ssize_t length;
 	ssize_t ret;
 	int cur_enforcing;
-	struct inode *inode;
+	struct inode *inode = filep->f_path.dentry->d_inode;
+	unsigned index = inode->i_ino & SEL_INO_MASK;
+	const char *name = filep->f_path.dentry->d_name.name;
 
 	mutex_lock(&sel_mutex);
 
-	ret = -EFAULT;
-
-	/* check to see if this file has been deleted */
-	if (!filep->f_op)
+	if (index >= bool_num || strcmp(name, bool_pending_names[index])) {
+		ret = -EINVAL;
 		goto out;
+	}
 
 	if (count > PAGE_SIZE) {
 		ret = -EINVAL;
@@ -809,15 +853,13 @@ static ssize_t sel_read_bool(struct file *filep, char __user *buf,
 		goto out;
 	}
 
-	inode = filep->f_path.dentry->d_inode;
-	cur_enforcing = security_get_bool_value(inode->i_ino&SEL_INO_MASK);
+	cur_enforcing = security_get_bool_value(index);
 	if (cur_enforcing < 0) {
 		ret = cur_enforcing;
 		goto out;
 	}
-
 	length = scnprintf(page, PAGE_SIZE, "%d %d", cur_enforcing,
-			  bool_pending_values[inode->i_ino&SEL_INO_MASK]);
+			  bool_pending_values[index]);
 	ret = simple_read_from_buffer(buf, count, ppos, page, length);
 out:
 	mutex_unlock(&sel_mutex);
@@ -830,9 +872,11 @@ static ssize_t sel_write_bool(struct file *filep, const char __user *buf,
 			      size_t count, loff_t *ppos)
 {
 	char *page = NULL;
-	ssize_t length = -EFAULT;
+	ssize_t length;
 	int new_value;
-	struct inode *inode;
+	struct inode *inode = filep->f_path.dentry->d_inode;
+	unsigned index = inode->i_ino & SEL_INO_MASK;
+	const char *name = filep->f_path.dentry->d_name.name;
 
 	mutex_lock(&sel_mutex);
 
@@ -840,16 +884,19 @@ static ssize_t sel_write_bool(struct file *filep, const char __user *buf,
 	if (length)
 		goto out;
 
-	/* check to see if this file has been deleted */
-	if (!filep->f_op)
+	if (index >= bool_num || strcmp(name, bool_pending_names[index])) {
+		length = -EINVAL;
 		goto out;
+	}
 
 	if (count >= PAGE_SIZE) {
 		length = -ENOMEM;
 		goto out;
 	}
+
 	if (*ppos != 0) {
 		/* No partial writes. */
+		length = -EINVAL;
 		goto out;
 	}
 	page = (char*)get_zeroed_page(GFP_KERNEL);
@@ -858,6 +905,7 @@ static ssize_t sel_write_bool(struct file *filep, const char __user *buf,
 		goto out;
 	}
 
+	length = -EFAULT;
 	if (copy_from_user(page, buf, count))
 		goto out;
 
@@ -868,8 +916,7 @@ static ssize_t sel_write_bool(struct file *filep, const char __user *buf,
 	if (new_value)
 		new_value = 1;
 
-	inode = filep->f_path.dentry->d_inode;
-	bool_pending_values[inode->i_ino&SEL_INO_MASK] = new_value;
+	bool_pending_values[index] = new_value;
 	length = count;
 
 out:
@@ -889,17 +936,13 @@ static ssize_t sel_commit_bools_write(struct file *filep,
 				      size_t count, loff_t *ppos)
 {
 	char *page = NULL;
-	ssize_t length = -EFAULT;
+	ssize_t length;
 	int new_value;
 
 	mutex_lock(&sel_mutex);
 
 	length = task_has_security(current, SECURITY__SETBOOL);
 	if (length)
-		goto out;
-
-	/* check to see if this file has been deleted */
-	if (!filep->f_op)
 		goto out;
 
 	if (count >= PAGE_SIZE) {
@@ -916,6 +959,7 @@ static ssize_t sel_commit_bools_write(struct file *filep,
 		goto out;
 	}
 
+	length = -EFAULT;
 	if (copy_from_user(page, buf, count))
 		goto out;
 
@@ -940,12 +984,9 @@ static const struct file_operations sel_commit_bools_ops = {
 	.write          = sel_commit_bools_write,
 };
 
-/* delete booleans - partial revoke() from
- * fs/proc/generic.c proc_kill_inodes */
-static void sel_remove_bools(struct dentry *de)
+static void sel_remove_entries(struct dentry *de)
 {
-	struct list_head *p, *node;
-	struct super_block *sb = de->d_sb;
+	struct list_head *node;
 
 	spin_lock(&dcache_lock);
 	node = de->d_subdirs.next;
@@ -965,18 +1006,6 @@ static void sel_remove_bools(struct dentry *de)
 	}
 
 	spin_unlock(&dcache_lock);
-
-	file_list_lock();
-	list_for_each(p, &sb->s_files) {
-		struct file * filp = list_entry(p, struct file, f_u.fu_list);
-		struct dentry * dentry = filp->f_path.dentry;
-
-		if (dentry->d_parent != de) {
-			continue;
-		}
-		filp->f_op = NULL;
-	}
-	file_list_unlock();
 }
 
 #define BOOL_DIR_NAME "booleans"
@@ -995,10 +1024,12 @@ static int sel_make_bools(void)
 	u32 sid;
 
 	/* remove any existing files */
+	kfree(bool_pending_names);
 	kfree(bool_pending_values);
+	bool_pending_names = NULL;
 	bool_pending_values = NULL;
 
-	sel_remove_bools(dir);
+	sel_remove_entries(dir);
 
 	if (!(page = (char*)get_zeroed_page(GFP_KERNEL)))
 		return -ENOMEM;
@@ -1037,18 +1068,19 @@ static int sel_make_bools(void)
 		d_add(dentry, inode);
 	}
 	bool_num = num;
+	bool_pending_names = names;
 	bool_pending_values = values;
 out:
 	free_page((unsigned long)page);
+	return ret;
+err:
 	if (names) {
 		for (i = 0; i < num; i++)
 			kfree(names[i]);
 		kfree(names);
 	}
-	return ret;
-err:
 	kfree(values);
-	sel_remove_bools(dir);
+	sel_remove_entries(dir);
 	ret = -ENOMEM;
 	goto out;
 }
@@ -1294,7 +1326,227 @@ out:
 	return ret;
 }
 
-static int sel_make_dir(struct inode *dir, struct dentry *dentry)
+static inline unsigned int sel_div(unsigned long a, unsigned long b)
+{
+	return a / b - (a % b < 0);
+}
+
+static inline unsigned long sel_class_to_ino(u16 class)
+{
+	return (class * (SEL_VEC_MAX + 1)) | SEL_CLASS_INO_OFFSET;
+}
+
+static inline u16 sel_ino_to_class(unsigned long ino)
+{
+	return sel_div(ino & SEL_INO_MASK, SEL_VEC_MAX + 1);
+}
+
+static inline unsigned long sel_perm_to_ino(u16 class, u32 perm)
+{
+	return (class * (SEL_VEC_MAX + 1) + perm) | SEL_CLASS_INO_OFFSET;
+}
+
+static inline u32 sel_ino_to_perm(unsigned long ino)
+{
+	return (ino & SEL_INO_MASK) % (SEL_VEC_MAX + 1);
+}
+
+static ssize_t sel_read_class(struct file * file, char __user *buf,
+				size_t count, loff_t *ppos)
+{
+	ssize_t rc, len;
+	char *page;
+	unsigned long ino = file->f_path.dentry->d_inode->i_ino;
+
+	page = (char *)__get_free_page(GFP_KERNEL);
+	if (!page) {
+		rc = -ENOMEM;
+		goto out;
+	}
+
+	len = snprintf(page, PAGE_SIZE, "%d", sel_ino_to_class(ino));
+	rc = simple_read_from_buffer(buf, count, ppos, page, len);
+	free_page((unsigned long)page);
+out:
+	return rc;
+}
+
+static const struct file_operations sel_class_ops = {
+	.read		= sel_read_class,
+};
+
+static ssize_t sel_read_perm(struct file * file, char __user *buf,
+				size_t count, loff_t *ppos)
+{
+	ssize_t rc, len;
+	char *page;
+	unsigned long ino = file->f_path.dentry->d_inode->i_ino;
+
+	page = (char *)__get_free_page(GFP_KERNEL);
+	if (!page) {
+		rc = -ENOMEM;
+		goto out;
+	}
+
+	len = snprintf(page, PAGE_SIZE,"%d", sel_ino_to_perm(ino));
+	rc = simple_read_from_buffer(buf, count, ppos, page, len);
+	free_page((unsigned long)page);
+out:
+	return rc;
+}
+
+static const struct file_operations sel_perm_ops = {
+	.read		= sel_read_perm,
+};
+
+static int sel_make_perm_files(char *objclass, int classvalue,
+				struct dentry *dir)
+{
+	int i, rc = 0, nperms;
+	char **perms;
+
+	rc = security_get_permissions(objclass, &perms, &nperms);
+	if (rc)
+		goto out;
+
+	for (i = 0; i < nperms; i++) {
+		struct inode *inode;
+		struct dentry *dentry;
+
+		dentry = d_alloc_name(dir, perms[i]);
+		if (!dentry) {
+			rc = -ENOMEM;
+			goto out1;
+		}
+
+		inode = sel_make_inode(dir->d_sb, S_IFREG|S_IRUGO);
+		if (!inode) {
+			rc = -ENOMEM;
+			goto out1;
+		}
+		inode->i_fop = &sel_perm_ops;
+		/* i+1 since perm values are 1-indexed */
+		inode->i_ino = sel_perm_to_ino(classvalue, i+1);
+		d_add(dentry, inode);
+	}
+
+out1:
+	for (i = 0; i < nperms; i++)
+		kfree(perms[i]);
+	kfree(perms);
+out:
+	return rc;
+}
+
+static int sel_make_class_dir_entries(char *classname, int index,
+					struct dentry *dir)
+{
+	struct dentry *dentry = NULL;
+	struct inode *inode = NULL;
+	int rc;
+
+	dentry = d_alloc_name(dir, "index");
+	if (!dentry) {
+		rc = -ENOMEM;
+		goto out;
+	}
+
+	inode = sel_make_inode(dir->d_sb, S_IFREG|S_IRUGO);
+	if (!inode) {
+		rc = -ENOMEM;
+		goto out;
+	}
+
+	inode->i_fop = &sel_class_ops;
+	inode->i_ino = sel_class_to_ino(index);
+	d_add(dentry, inode);
+
+	dentry = d_alloc_name(dir, "perms");
+	if (!dentry) {
+		rc = -ENOMEM;
+		goto out;
+	}
+
+	rc = sel_make_dir(dir->d_inode, dentry, &last_class_ino);
+	if (rc)
+		goto out;
+
+	rc = sel_make_perm_files(classname, index, dentry);
+
+out:
+	return rc;
+}
+
+static void sel_remove_classes(void)
+{
+	struct list_head *class_node;
+
+	list_for_each(class_node, &class_dir->d_subdirs) {
+		struct dentry *class_subdir = list_entry(class_node,
+					struct dentry, d_u.d_child);
+		struct list_head *class_subdir_node;
+
+		list_for_each(class_subdir_node, &class_subdir->d_subdirs) {
+			struct dentry *d = list_entry(class_subdir_node,
+						struct dentry, d_u.d_child);
+
+			if (d->d_inode)
+				if (d->d_inode->i_mode & S_IFDIR)
+					sel_remove_entries(d);
+		}
+
+		sel_remove_entries(class_subdir);
+	}
+
+	sel_remove_entries(class_dir);
+}
+
+static int sel_make_classes(void)
+{
+	int rc = 0, nclasses, i;
+	char **classes;
+
+	/* delete any existing entries */
+	sel_remove_classes();
+
+	rc = security_get_classes(&classes, &nclasses);
+	if (rc < 0)
+		goto out;
+
+	/* +2 since classes are 1-indexed */
+	last_class_ino = sel_class_to_ino(nclasses+2);
+
+	for (i = 0; i < nclasses; i++) {
+		struct dentry *class_name_dir;
+
+		class_name_dir = d_alloc_name(class_dir, classes[i]);
+		if (!class_name_dir) {
+			rc = -ENOMEM;
+			goto out1;
+		}
+
+		rc = sel_make_dir(class_dir->d_inode, class_name_dir,
+				&last_class_ino);
+		if (rc)
+			goto out1;
+
+		/* i+1 since class values are 1-indexed */
+		rc = sel_make_class_dir_entries(classes[i], i+1,
+				class_name_dir);
+		if (rc)
+			goto out1;
+	}
+
+out1:
+	for (i = 0; i < nclasses; i++)
+		kfree(classes[i]);
+	kfree(classes);
+out:
+	return rc;
+}
+
+static int sel_make_dir(struct inode *dir, struct dentry *dentry,
+			unsigned long *ino)
 {
 	int ret = 0;
 	struct inode *inode;
@@ -1306,7 +1558,7 @@ static int sel_make_dir(struct inode *dir, struct dentry *dentry)
 	}
 	inode->i_op = &simple_dir_inode_operations;
 	inode->i_fop = &simple_dir_operations;
-	inode->i_ino = ++sel_last_ino;
+	inode->i_ino = ++(*ino);
 	/* directory inodes start off with i_nlink == 2 (for "." entry) */
 	inc_nlink(inode);
 	d_add(dentry, inode);
@@ -1338,6 +1590,8 @@ static int sel_fill_super(struct super_block * sb, void * data, int silent)
 		[SEL_MEMBER] = {"member", &transaction_ops, S_IRUGO|S_IWUGO},
 		[SEL_CHECKREQPROT] = {"checkreqprot", &sel_checkreqprot_ops, S_IRUGO|S_IWUSR},
 		[SEL_COMPAT_NET] = {"compat_net", &sel_compat_net_ops, S_IRUGO|S_IWUSR},
+		[SEL_REJECT_UNKNOWN] = {"reject_unknown", &sel_handle_unknown_ops, S_IRUGO},
+		[SEL_DENY_UNKNOWN] = {"deny_unknown", &sel_handle_unknown_ops, S_IRUGO},
 		/* last one */ {""}
 	};
 	ret = simple_fill_super(sb, SELINUX_MAGIC, selinux_files);
@@ -1352,7 +1606,7 @@ static int sel_fill_super(struct super_block * sb, void * data, int silent)
 		goto err;
 	}
 
-	ret = sel_make_dir(root_inode, dentry);
+	ret = sel_make_dir(root_inode, dentry, &sel_last_ino);
 	if (ret)
 		goto err;
 
@@ -1385,7 +1639,7 @@ static int sel_fill_super(struct super_block * sb, void * data, int silent)
 		goto err;
 	}
 
-	ret = sel_make_dir(root_inode, dentry);
+	ret = sel_make_dir(root_inode, dentry, &sel_last_ino);
 	if (ret)
 		goto err;
 
@@ -1399,13 +1653,25 @@ static int sel_fill_super(struct super_block * sb, void * data, int silent)
 		goto err;
 	}
 
-	ret = sel_make_dir(root_inode, dentry);
+	ret = sel_make_dir(root_inode, dentry, &sel_last_ino);
 	if (ret)
 		goto err;
 
 	ret = sel_make_initcon_files(dentry);
 	if (ret)
 		goto err;
+
+	dentry = d_alloc_name(sb->s_root, "class");
+	if (!dentry) {
+		ret = -ENOMEM;
+		goto err;
+	}
+
+	ret = sel_make_dir(root_inode, dentry, &sel_last_ino);
+	if (ret)
+		goto err;
+
+	class_dir = dentry;
 
 out:
 	return ret;

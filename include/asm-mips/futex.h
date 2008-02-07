@@ -29,13 +29,13 @@
 		"	.set	mips3				\n"	\
 		"2:	sc	$1, %2				\n"	\
 		"	beqzl	$1, 1b				\n"	\
-		__WEAK_ORDERING_MB					\
+		__WEAK_LLSC_MB						\
 		"3:						\n"	\
 		"	.set	pop				\n"	\
 		"	.set	mips0				\n"	\
 		"	.section .fixup,\"ax\"			\n"	\
 		"4:	li	%0, %6				\n"	\
-		"	j	2b				\n"	\
+		"	j	3b				\n"	\
 		"	.previous				\n"	\
 		"	.section __ex_table,\"a\"		\n"	\
 		"	"__UA_ADDR "\t1b, 4b			\n"	\
@@ -55,13 +55,13 @@
 		"	.set	mips3				\n"	\
 		"2:	sc	$1, %2				\n"	\
 		"	beqz	$1, 1b				\n"	\
-		__WEAK_ORDERING_MB					\
+		__WEAK_LLSC_MB						\
 		"3:						\n"	\
 		"	.set	pop				\n"	\
 		"	.set	mips0				\n"	\
 		"	.section .fixup,\"ax\"			\n"	\
 		"4:	li	%0, %6				\n"	\
-		"	j	2b				\n"	\
+		"	j	3b				\n"	\
 		"	.previous				\n"	\
 		"	.section __ex_table,\"a\"		\n"	\
 		"	"__UA_ADDR "\t1b, 4b			\n"	\
@@ -75,7 +75,7 @@
 }
 
 static inline int
-futex_atomic_op_inuser (int encoded_op, int __user *uaddr)
+futex_atomic_op_inuser(int encoded_op, int __user *uaddr)
 {
 	int op = (encoded_op >> 28) & 7;
 	int cmp = (encoded_op >> 24) & 15;
@@ -152,7 +152,7 @@ futex_atomic_cmpxchg_inatomic(int __user *uaddr, int oldval, int newval)
 		"	.set	mips3					\n"
 		"2:	sc	$1, %1					\n"
 		"	beqzl	$1, 1b					\n"
-		__WEAK_ORDERING_MB
+		__WEAK_LLSC_MB
 		"3:							\n"
 		"	.set	pop					\n"
 		"	.section .fixup,\"ax\"				\n"
@@ -179,7 +179,7 @@ futex_atomic_cmpxchg_inatomic(int __user *uaddr, int oldval, int newval)
 		"	.set	mips3					\n"
 		"2:	sc	$1, %1					\n"
 		"	beqz	$1, 1b					\n"
-		__WEAK_ORDERING_MB
+		__WEAK_LLSC_MB
 		"3:							\n"
 		"	.set	pop					\n"
 		"	.section .fixup,\"ax\"				\n"
@@ -200,4 +200,4 @@ futex_atomic_cmpxchg_inatomic(int __user *uaddr, int oldval, int newval)
 }
 
 #endif
-#endif
+#endif /* _ASM_FUTEX_H */

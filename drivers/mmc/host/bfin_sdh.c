@@ -227,13 +227,13 @@ static int sdh_cmd_done(struct sdh_host *host, unsigned int stat)
 		}
 	}
 	if (stat & CMD_TIME_OUT)
-		cmd->error = MMC_ERR_TIMEOUT;
+		cmd->error = -ETIMEDOUT;
 	else if (stat & CMD_CRC_FAIL && cmd->flags & MMC_RSP_CRC)
-		cmd->error = MMC_ERR_BADCRC;
+		cmd->error = -EILSEQ;
 
 	sdh_disable_stat_irq(host, (CMD_SENT | CMD_RESP_END | CMD_TIME_OUT | CMD_CRC_FAIL));
 
-	if (host->data && cmd->error == MMC_ERR_NONE) {
+	if (host->data && !cmd->error) {
 		if (host->data->flags & MMC_DATA_WRITE)
 			sdh_setup_data(host, host->data);
 
@@ -257,13 +257,13 @@ static int sdh_data_done(struct sdh_host *host, unsigned int stat)
 		     host->dma_dir);
 
 	if (stat & DAT_TIME_OUT)
-		data->error = MMC_ERR_TIMEOUT;
+		data->error = -ETIMEDOUT;
 	else if (stat & DAT_CRC_FAIL)
-		data->error = MMC_ERR_BADCRC;
+		data->error = -EILSEQ;
 	else if (stat & (RX_OVERRUN | TX_UNDERRUN))
-		data->error = MMC_ERR_FIFO;
+		data->error = -EIO;
 
-	if (data->error == MMC_ERR_NONE)
+	if (!data->error)
 		data->bytes_xfered = data->blocks * data->blksz;
 	else
 		data->bytes_xfered = data->blocks * data->blksz - \

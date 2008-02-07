@@ -801,7 +801,7 @@ static void pbm_config_busmastering(struct pci_pbm_info *pbm)
 	pci_config_write8(addr, 64);
 }
 
-static void psycho_scan_bus(struct pci_pbm_info *pbm)
+static void __init psycho_scan_bus(struct pci_pbm_info *pbm)
 {
 	pbm_config_busmastering(pbm);
 	pbm->is_66mhz_capable = 0;
@@ -813,16 +813,19 @@ static void psycho_scan_bus(struct pci_pbm_info *pbm)
 	psycho_register_error_handlers(pbm);
 }
 
-static void psycho_iommu_init(struct pci_pbm_info *pbm)
+static int psycho_iommu_init(struct pci_pbm_info *pbm)
 {
 	struct iommu *iommu = pbm->iommu;
 	unsigned long i;
 	u64 control;
+	int err;
 
 	/* Register addresses. */
 	iommu->iommu_control  = pbm->controller_regs + PSYCHO_IOMMU_CONTROL;
 	iommu->iommu_tsbbase  = pbm->controller_regs + PSYCHO_IOMMU_TSBBASE;
 	iommu->iommu_flush    = pbm->controller_regs + PSYCHO_IOMMU_FLUSH;
+	iommu->iommu_tags     = iommu->iommu_flush + (0xa580UL - 0x0210UL);
+
 	/* PSYCHO's IOMMU lacks ctx flushing. */
 	iommu->iommu_ctxflush = 0;
 
@@ -845,7 +848,9 @@ static void psycho_iommu_init(struct pci_pbm_info *pbm)
 	/* Leave diag mode enabled for full-flushing done
 	 * in pci_iommu.c
 	 */
-	pci_iommu_table_init(iommu, IO_TSB_SIZE, 0xc0000000, 0xffffffff);
+	err = iommu_table_init(iommu, IO_TSB_SIZE, 0xc0000000, 0xffffffff);
+	if (err)
+		return err;
 
 	psycho_write(pbm->controller_regs + PSYCHO_IOMMU_TSBBASE,
 		     __pa(iommu->page_table));
@@ -858,6 +863,8 @@ static void psycho_iommu_init(struct pci_pbm_info *pbm)
 	/* If necessary, hook us up for starfire IRQ translations. */
 	if (this_is_starfire)
 		starfire_hookup(pbm->portid);
+
+	return 0;
 }
 
 #define PSYCHO_IRQ_RETRY	0x1a00UL
@@ -958,7 +965,7 @@ static void psycho_pbm_strbuf_init(struct pci_pbm_info *pbm,
 #define PSYCHO_MEMSPACE_B	0x180000000UL
 #define PSYCHO_MEMSPACE_SIZE	0x07fffffffUL
 
-static void psycho_pbm_init(struct pci_controller_info *p,
+static void __init psycho_pbm_init(struct pci_controller_info *p,
 			    struct device_node *dp, int is_pbm_a)
 {
 	struct property *prop;
@@ -1005,7 +1012,7 @@ static void psycho_pbm_init(struct pci_controller_info *p,
 
 #define PSYCHO_CONFIGSPACE	0x001000000UL
 
-void psycho_init(struct device_node *dp, char *model_name)
+void __init psycho_init(struct device_node *dp, char *model_name)
 {
 	struct linux_prom64_registers *pr_regs;
 	struct pci_controller_info *p;
@@ -1031,15 +1038,12 @@ void psycho_init(struct device_node *dp, char *model_name)
 	}
 
 	p = kzalloc(sizeof(struct pci_controller_info), GFP_ATOMIC);
-	if (!p) {
-		prom_printf("PSYCHO: Fatal memory allocation error.\n");
-		prom_halt();
-	}
+	if (!p)
+		goto fatal_memory_error;
 	iommu = kzalloc(sizeof(struct iommu), GFP_ATOMIC);
-	if (!iommu) {
-		prom_printf("PSYCHO: Fatal memory allocation error.\n");
-		prom_halt();
-	}
+	if (!iommu)
+		goto fatal_memory_error;
+
 	p->pbm_A.iommu = p->pbm_B.iommu = iommu;
 
 	p->pbm_A.portid = upa_portid;
@@ -1054,16 +1058,16 @@ void psycho_init(struct device_node *dp, char *model_name)
 	p->pbm_A.config_space = p->pbm_B.config_space =
 		(pr_regs[2].phys_addr + PSYCHO_CONFIGSPACE);
 
-	/*
-	 * Psycho's PCI MEM space is mapped to a 2GB aligned area, so
-	 * we need to adjust our MEM space mask.
-	 */
-	pci_memspace_mask = 0x7fffffffUL;
-
 	psycho_controller_hwinit(&p->pbm_A);
 
-	psycho_iommu_init(&p->pbm_A);
+	if (psycho_iommu_init(&p->pbm_A))
+		goto fatal_memory_error;
 
 	is_pbm_a = ((pr_regs[0].phys_addr & 0x6000) == 0x2000);
 	psycho_pbm_init(p, dp, is_pbm_a);
+	return;
+
+fatal_memory_error:
+	prom_printf("PSYCHO: Fatal memory allocation error.\n");
+	prom_halt();
 }

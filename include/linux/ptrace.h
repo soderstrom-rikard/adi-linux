@@ -97,6 +97,7 @@ extern void __ptrace_link(struct task_struct *child,
 extern void __ptrace_unlink(struct task_struct *child);
 extern void ptrace_untrace(struct task_struct *child);
 extern int ptrace_may_attach(struct task_struct *task);
+extern int __ptrace_may_attach(struct task_struct *task);
 
 static inline void ptrace_link(struct task_struct *child,
 			       struct task_struct *new_parent)
@@ -110,6 +111,8 @@ static inline void ptrace_unlink(struct task_struct *child)
 		__ptrace_unlink(child);
 }
 
+int generic_ptrace_peekdata(struct task_struct *tsk, long addr, long data);
+int generic_ptrace_pokedata(struct task_struct *tsk, long addr, long data);
 
 #ifndef force_successful_syscall_return
 /*

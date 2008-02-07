@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) by Jaroslav Kysela <perex@suse.cz>,
+ *  Copyright (c) by Jaroslav Kysela <perex@perex.cz>,
  *                   Takashi Iwai <tiwai@suse.de>
  *                   Creative Labs, Inc.
  *  Routines for control of EMU10K1 chips / mixer routines
@@ -58,6 +58,9 @@ static int snd_emu10k1_spdif_get(struct snd_kcontrol *kcontrol,
 	unsigned int idx = snd_ctl_get_ioffidx(kcontrol, &ucontrol->id);
 	unsigned long flags;
 
+	/* Limit: emu->spdif_bits */
+	if (idx >= 3)
+		return -EINVAL;
 	spin_lock_irqsave(&emu->reg_lock, flags);
 	ucontrol->value.iec958.status[0] = (emu->spdif_bits[idx] >> 0) & 0xff;
 	ucontrol->value.iec958.status[1] = (emu->spdif_bits[idx] >> 8) & 0xff;
@@ -77,6 +80,10 @@ static int snd_emu10k1_spdif_get_mask(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+/*
+ * Items labels in enum mixer controls assigning source data to
+ * each destination
+ */
 static char *emu1010_src_texts[] = { 
 	"Silence",
 	"Dock Mic A",
@@ -133,6 +140,9 @@ static char *emu1010_src_texts[] = {
 	"DSP 31",
 };
 
+/*
+ * List of data sources available for each destination
+ */
 static unsigned int emu1010_src_regs[] = {
 	EMU_SRC_SILENCE,/* 0 */
 	EMU_SRC_DOCK_MIC_A1, /* 1 */
@@ -189,6 +199,10 @@ static unsigned int emu1010_src_regs[] = {
 	EMU_SRC_ALICE_EMU32B+0xf, /* 52 */
 };
 
+/*
+ * Data destinations - physical EMU outputs.
+ * Each destination has an enum mixer control to choose a data source
+ */
 static unsigned int emu1010_output_dst[] = {
 	EMU_DST_DOCK_DAC1_LEFT1, /* 0 */
 	EMU_DST_DOCK_DAC1_RIGHT1, /* 1 */
@@ -216,6 +230,11 @@ static unsigned int emu1010_output_dst[] = {
 	EMU_DST_HANA_ADAT+7, /* 23 */
 };
 
+/*
+ * Data destinations - HANA outputs going to Alice2 (audigy) for
+ *   capture (EMU32 + I2S links)
+ * Each destination has an enum mixer control to choose a data source
+ */
 static unsigned int emu1010_input_dst[] = {
 	EMU_DST_ALICE2_EMU32_0,
 	EMU_DST_ALICE2_EMU32_1,
@@ -256,9 +275,12 @@ static int snd_emu1010_output_source_get(struct snd_kcontrol *kcontrol,
                                  struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_emu10k1 *emu = snd_kcontrol_chip(kcontrol);
-	int channel;
+	unsigned int channel;
 
 	channel = (kcontrol->private_value) & 0xff;
+	/* Limit: emu1010_output_dst, emu->emu1010.output_source */
+	if (channel >= 24)
+		return -EINVAL;
 	ucontrol->value.enumerated.item[0] = emu->emu1010.output_source[channel];
 	return 0;
 }
@@ -269,11 +291,17 @@ static int snd_emu1010_output_source_put(struct snd_kcontrol *kcontrol,
 	struct snd_emu10k1 *emu = snd_kcontrol_chip(kcontrol);
 	int change = 0;
 	unsigned int val;
-	int channel;
+	unsigned int channel;
 
+	val = ucontrol->value.enumerated.item[0];
+	if (val >= 53)
+		return -EINVAL;
 	channel = (kcontrol->private_value) & 0xff;
-	if (emu->emu1010.output_source[channel] != ucontrol->value.enumerated.item[0]) {
-		val = emu->emu1010.output_source[channel] = ucontrol->value.enumerated.item[0];
+	/* Limit: emu1010_output_dst, emu->emu1010.output_source */
+	if (channel >= 24)
+		return -EINVAL;
+	if (emu->emu1010.output_source[channel] != val) {
+		emu->emu1010.output_source[channel] = val;
 		change = 1;
 		snd_emu1010_fpga_link_dst_src_write(emu,
 			emu1010_output_dst[channel], emu1010_src_regs[val]);
@@ -285,9 +313,12 @@ static int snd_emu1010_input_source_get(struct snd_kcontrol *kcontrol,
                                  struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_emu10k1 *emu = snd_kcontrol_chip(kcontrol);
-	int channel;
+	unsigned int channel;
 
 	channel = (kcontrol->private_value) & 0xff;
+	/* Limit: emu1010_input_dst, emu->emu1010.input_source */
+	if (channel >= 22)
+		return -EINVAL;
 	ucontrol->value.enumerated.item[0] = emu->emu1010.input_source[channel];
 	return 0;
 }
@@ -298,11 +329,17 @@ static int snd_emu1010_input_source_put(struct snd_kcontrol *kcontrol,
 	struct snd_emu10k1 *emu = snd_kcontrol_chip(kcontrol);
 	int change = 0;
 	unsigned int val;
-	int channel;
+	unsigned int channel;
 
+	val = ucontrol->value.enumerated.item[0];
+	if (val >= 53)
+		return -EINVAL;
 	channel = (kcontrol->private_value) & 0xff;
-	if (emu->emu1010.input_source[channel] != ucontrol->value.enumerated.item[0]) {
-		val = emu->emu1010.input_source[channel] = ucontrol->value.enumerated.item[0];
+	/* Limit: emu1010_input_dst, emu->emu1010.input_source */
+	if (channel >= 22)
+		return -EINVAL;
+	if (emu->emu1010.input_source[channel] != val) {
+		emu->emu1010.input_source[channel] = val;
 		change = 1;
 		snd_emu1010_fpga_link_dst_src_write(emu,
 			emu1010_input_dst[channel], emu1010_src_regs[val]);
@@ -384,15 +421,7 @@ static struct snd_kcontrol_new snd_emu1010_input_enum_ctls[] __devinitdata = {
 
 
 
-
-static int snd_emu1010_adc_pads_info(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_info *uinfo)
-{
-	uinfo->type = SNDRV_CTL_ELEM_TYPE_BOOLEAN;
-	uinfo->count = 1;
-	uinfo->value.integer.min = 0;
-	uinfo->value.integer.max = 1;
-	return 0;
-}
+#define snd_emu1010_adc_pads_info	snd_ctl_boolean_mono_info
 
 static int snd_emu1010_adc_pads_get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
 {
@@ -440,14 +469,7 @@ static struct snd_kcontrol_new snd_emu1010_adc_pads[] __devinitdata = {
 	EMU1010_ADC_PADS("ADC1 14dB PAD 0202 Capture Switch", EMU_HANA_0202_ADC_PAD1),
 };
 
-static int snd_emu1010_dac_pads_info(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_info *uinfo)
-{
-	uinfo->type = SNDRV_CTL_ELEM_TYPE_BOOLEAN;
-	uinfo->count = 1;
-	uinfo->value.integer.min = 0;
-	uinfo->value.integer.max = 1;
-	return 0;
-}
+#define snd_emu1010_dac_pads_info	snd_ctl_boolean_mono_info
 
 static int snd_emu1010_dac_pads_get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
 {
@@ -500,17 +522,19 @@ static struct snd_kcontrol_new snd_emu1010_dac_pads[] __devinitdata = {
 static int snd_emu1010_internal_clock_info(struct snd_kcontrol *kcontrol,
 					  struct snd_ctl_elem_info *uinfo)
 {
-	static char *texts[2] = {
-		"44100", "48000"
+	static char *texts[4] = {
+		"44100", "48000", "SPDIF", "ADAT"
 	};
-
+		
 	uinfo->type = SNDRV_CTL_ELEM_TYPE_ENUMERATED;
 	uinfo->count = 1;
-	uinfo->value.enumerated.items = 2;
-	if (uinfo->value.enumerated.item > 1)
-                uinfo->value.enumerated.item = 1;
+	uinfo->value.enumerated.items = 4;
+	if (uinfo->value.enumerated.item >= uinfo->value.enumerated.items)
+		uinfo->value.enumerated.item = uinfo->value.enumerated.items - 1;
 	strcpy(uinfo->value.enumerated.name, texts[uinfo->value.enumerated.item]);
 	return 0;
+	
+	
 }
 
 static int snd_emu1010_internal_clock_get(struct snd_kcontrol *kcontrol,
@@ -530,6 +554,9 @@ static int snd_emu1010_internal_clock_put(struct snd_kcontrol *kcontrol,
 	int change = 0;
 
 	val = ucontrol->value.enumerated.item[0] ;
+	/* Limit: uinfo->value.enumerated.items = 4; */
+	if (val >= 4)
+		return -EINVAL;
 	change = (emu->emu1010.internal_clock != val);
 	if (change) {
 		emu->emu1010.internal_clock = val;
@@ -568,6 +595,44 @@ static int snd_emu1010_internal_clock_put(struct snd_kcontrol *kcontrol,
 			/* Unmute all */
 			snd_emu1010_fpga_write(emu, EMU_HANA_UNMUTE, EMU_UNMUTE );
 			break;
+			
+		case 2: /* Take clock from S/PDIF IN */
+			/* Mute all */
+			snd_emu1010_fpga_write(emu, EMU_HANA_UNMUTE, EMU_MUTE );
+			/* Default fallback clock 48kHz */
+			snd_emu1010_fpga_write(emu, EMU_HANA_DEFCLOCK, EMU_HANA_DEFCLOCK_48K );
+			/* Word Clock source, sync to S/PDIF input */
+			snd_emu1010_fpga_write(emu, EMU_HANA_WCLOCK,
+				EMU_HANA_WCLOCK_HANA_SPDIF_IN | EMU_HANA_WCLOCK_1X );
+			/* Set LEDs on Audio Dock */
+			snd_emu1010_fpga_write(emu, EMU_HANA_DOCK_LEDS_2,
+				EMU_HANA_DOCK_LEDS_2_EXT | EMU_HANA_DOCK_LEDS_2_LOCK );
+			/* FIXME: We should set EMU_HANA_DOCK_LEDS_2_LOCK only when clock signal is present and valid */	
+			/* Allow DLL to settle */
+			msleep(10);
+			/* Unmute all */
+			snd_emu1010_fpga_write(emu, EMU_HANA_UNMUTE, EMU_UNMUTE );
+			break;
+		
+		case 3: 			
+			/* Take clock from ADAT IN */
+			/* Mute all */
+			snd_emu1010_fpga_write(emu, EMU_HANA_UNMUTE, EMU_MUTE );
+			/* Default fallback clock 48kHz */
+			snd_emu1010_fpga_write(emu, EMU_HANA_DEFCLOCK, EMU_HANA_DEFCLOCK_48K );
+			/* Word Clock source, sync to ADAT input */
+			snd_emu1010_fpga_write(emu, EMU_HANA_WCLOCK,
+				EMU_HANA_WCLOCK_HANA_ADAT_IN | EMU_HANA_WCLOCK_1X );
+			/* Set LEDs on Audio Dock */
+			snd_emu1010_fpga_write(emu, EMU_HANA_DOCK_LEDS_2, EMU_HANA_DOCK_LEDS_2_EXT | EMU_HANA_DOCK_LEDS_2_LOCK );
+			/* FIXME: We should set EMU_HANA_DOCK_LEDS_2_LOCK only when clock signal is present and valid */	
+			/* Allow DLL to settle */
+			msleep(10);
+			/*   Unmute all */
+			snd_emu1010_fpga_write(emu, EMU_HANA_UNMUTE, EMU_UNMUTE );
+			 
+			
+			break;		
 		}
 	}
         return change;
@@ -628,7 +693,11 @@ static int snd_audigy_i2c_capture_source_put(struct snd_kcontrol *kcontrol,
 	 * update the capture volume from the cached value
 	 * for the particular source.
 	 */
-	source_id = ucontrol->value.enumerated.item[0]; /* Use 2 and 3 */
+	source_id = ucontrol->value.enumerated.item[0];
+	/* Limit: uinfo->value.enumerated.items = 2; */
+	/*        emu->i2c_capture_volume */
+	if (source_id >= 2)
+		return -EINVAL;
 	change = (emu->i2c_capture_source != source_id);
 	if (change) {
 		snd_emu10k1_i2c_write(emu, ADC_MUX, 0); /* Mute input */
@@ -679,9 +748,13 @@ static int snd_audigy_i2c_volume_get(struct snd_kcontrol *kcontrol,
 				 struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_emu10k1 *emu = snd_kcontrol_chip(kcontrol);
-	int source_id;
+	unsigned int source_id;
 
 	source_id = kcontrol->private_value;
+	/* Limit: emu->i2c_capture_volume */
+        /*        capture_source: uinfo->value.enumerated.items = 2 */
+	if (source_id >= 2)
+		return -EINVAL;
 
 	ucontrol->value.integer.value[0] = emu->i2c_capture_volume[source_id][0];
 	ucontrol->value.integer.value[1] = emu->i2c_capture_volume[source_id][1];
@@ -694,10 +767,14 @@ static int snd_audigy_i2c_volume_put(struct snd_kcontrol *kcontrol,
 	struct snd_emu10k1 *emu = snd_kcontrol_chip(kcontrol);
 	unsigned int ogain;
 	unsigned int ngain;
-	int source_id;
+	unsigned int source_id;
 	int change = 0;
 
 	source_id = kcontrol->private_value;
+	/* Limit: emu->i2c_capture_volume */
+        /*        capture_source: uinfo->value.enumerated.items = 2 */
+	if (source_id >= 2)
+		return -EINVAL;
 	ogain = emu->i2c_capture_volume[source_id][0]; /* Left */
 	ngain = ucontrol->value.integer.value[0];
 	if (ngain > 0xff)
@@ -705,7 +782,7 @@ static int snd_audigy_i2c_volume_put(struct snd_kcontrol *kcontrol,
 	if (ogain != ngain) {
 		if (emu->i2c_capture_source == source_id)
 			snd_emu10k1_i2c_write(emu, ADC_ATTEN_ADCL, ((ngain) & 0xff) );
-		emu->i2c_capture_volume[source_id][0] = ucontrol->value.integer.value[0];
+		emu->i2c_capture_volume[source_id][0] = ngain;
 		change = 1;
 	}
 	ogain = emu->i2c_capture_volume[source_id][1]; /* Right */
@@ -715,7 +792,7 @@ static int snd_audigy_i2c_volume_put(struct snd_kcontrol *kcontrol,
 	if (ogain != ngain) {
 		if (emu->i2c_capture_source == source_id)
 			snd_emu10k1_i2c_write(emu, ADC_ATTEN_ADCR, ((ngain) & 0xff));
-		emu->i2c_capture_volume[source_id][1] = ucontrol->value.integer.value[1];
+		emu->i2c_capture_volume[source_id][1] = ngain;
 		change = 1;
 	}
 
@@ -836,6 +913,9 @@ static int snd_emu10k1_spdif_put(struct snd_kcontrol *kcontrol,
 	unsigned int val;
 	unsigned long flags;
 
+	/* Limit: emu->spdif_bits */
+	if (idx >= 3)
+		return -EINVAL;
 	val = (ucontrol->value.iec958.status[0] << 0) |
 	      (ucontrol->value.iec958.status[1] << 8) |
 	      (ucontrol->value.iec958.status[2] << 16) |
@@ -855,7 +935,7 @@ static struct snd_kcontrol_new snd_emu10k1_spdif_mask_control =
 	.access =	SNDRV_CTL_ELEM_ACCESS_READ,
 	.iface =        SNDRV_CTL_ELEM_IFACE_PCM,
 	.name =         SNDRV_CTL_NAME_IEC958("",PLAYBACK,MASK),
-	.count =	4,
+	.count =	3,
 	.info =         snd_emu10k1_spdif_info,
 	.get =          snd_emu10k1_spdif_get_mask
 };
@@ -864,7 +944,7 @@ static struct snd_kcontrol_new snd_emu10k1_spdif_control =
 {
 	.iface =	SNDRV_CTL_ELEM_IFACE_PCM,
 	.name =         SNDRV_CTL_NAME_IEC958("",PLAYBACK,DEFAULT),
-	.count =	4,
+	.count =	3,
 	.info =         snd_emu10k1_spdif_info,
 	.get =          snd_emu10k1_spdif_get,
 	.put =          snd_emu10k1_spdif_put
@@ -1310,14 +1390,7 @@ static struct snd_kcontrol_new snd_emu10k1_efx_attn_control =
 	.put =          snd_emu10k1_efx_attn_put
 };
 
-static int snd_emu10k1_shared_spdif_info(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_info *uinfo)
-{
-	uinfo->type = SNDRV_CTL_ELEM_TYPE_BOOLEAN;
-	uinfo->count = 1;
-	uinfo->value.integer.min = 0;
-	uinfo->value.integer.max = 1;
-	return 0;
-}
+#define snd_emu10k1_shared_spdif_info	snd_ctl_boolean_mono_info
 
 static int snd_emu10k1_shared_spdif_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)

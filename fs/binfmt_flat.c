@@ -75,7 +75,7 @@ static int load_flat_shared_library(int id, struct lib_info *p);
 #endif
 
 static int load_flat_binary(struct linux_binprm *, struct pt_regs * regs);
-static int flat_core_dump(long signr, struct pt_regs * regs, struct file *file);
+static int flat_core_dump(long signr, struct pt_regs *regs, struct file *file, unsigned long limit);
 
 extern void dump_thread(struct pt_regs *, struct user *);
 
@@ -92,7 +92,7 @@ static struct linux_binfmt flat_format = {
  * Currently only a stub-function.
  */
 
-static int flat_core_dump(long signr, struct pt_regs * regs, struct file *file)
+static int flat_core_dump(long signr, struct pt_regs *regs, struct file *file, unsigned long limit)
 {
 	printk("Process %s:%d received signr %d and should have core dumped\n",
 			current->comm, current->pid, (int) signr);
@@ -115,7 +115,7 @@ static unsigned long create_flat_tables(
 	char * p = (char*)pp;
 	int argc = bprm->argc;
 	int envc = bprm->envc;
-	char dummy;
+	char uninitialized_var(dummy);
 
 	sp = (unsigned long *) ((-(unsigned long)sizeof(char *))&(unsigned long) p);
 
@@ -292,7 +292,6 @@ out_free_buf:
 	kfree(buf);
 out_free:
 	kfree(strm.workspace);
-out:
 	return retval;
 }
 
@@ -448,24 +447,29 @@ static int load_flat_file(struct linux_binprm * bprm,
 
 	if (strncmp(hdr->magic, "bFLT", 4)) {
 		/*
-		 * Previously, here was a printk to tell people
-		 *   "BINFMT_FLAT: bad header magic".
-		 * But for the kernel which also use ELF FD-PIC format, this
-		 * error message is confusing.
+		 * because a lot of people do not manage to produce good
+		 * flat binaries,  we leave this printk to help them realise
+		 * the problem.  We only print the error if its not a script file
 		 */
+		if (strncmp(hdr->magic, "#!", 2))
+			printk("BINFMT_FLAT: bad header magic\n");
 		return -ENOEXEC;
 	}
+
 #ifdef DEBUG
 	flags |= FLAT_FLAG_KTRACE;
 #endif
+
 	if (flags & FLAT_FLAG_KTRACE)
 		printk("BINFMT_FLAT: Loading file: %s\n", bprm->filename);
 
 	if (rev != FLAT_VERSION && rev != OLD_FLAT_VERSION) {
-		printk("BINFMT_FLAT: bad flat file version 0x%x (supported 0x%x and 0x%x)\n", rev, FLAT_VERSION, OLD_FLAT_VERSION);
+		printk("BINFMT_FLAT: bad flat file version 0x%x (supported "
+			"0x%lx and 0x%lx)\n",
+			rev, FLAT_VERSION, OLD_FLAT_VERSION);
 		return -ENOEXEC;
 	}
-
+	
 	/* Don't allow old format executables to use shared libraries */
 	if (rev == OLD_FLAT_VERSION && id != 0) {
 		printk("BINFMT_FLAT: shared libraries are not available before rev 0x%x\n",
@@ -524,7 +528,8 @@ static int load_flat_file(struct linux_binprm * bprm,
 	/*
 	 * calculate the extra space we need to map in
 	 */
-	extra = max(bss_len + stack_len, relocs * sizeof(unsigned long));
+	extra = max_t(unsigned long, bss_len + stack_len,
+			relocs * sizeof(unsigned long));
 
 	/*
 	 * there are a couple of cases here,  the separate code/data
@@ -555,8 +560,8 @@ static int load_flat_file(struct linux_binprm * bprm,
 		len = PAGE_ALIGN(len);
 		down_write(&current->mm->mmap_sem);
 		realdatastart = do_mmap(0, 0, len,
-					PROT_READ|PROT_WRITE|PROT_EXEC,
-					MAP_PRIVATE, 0);
+							PROT_READ|PROT_WRITE|PROT_EXEC,
+							MAP_PRIVATE, 0);
 		up_write(&current->mm->mmap_sem);
 
 		if (realdatastart == 0 || realdatastart >= (unsigned long)-4096) {
@@ -593,6 +598,7 @@ static int load_flat_file(struct linux_binprm * bprm,
 
 		reloc = (unsigned long *) (datapos+(ntohl(hdr->reloc_start)-text_len));
 		memp = realdatastart;
+
 		memp_size = len;
 	} else {
 
@@ -600,8 +606,8 @@ static int load_flat_file(struct linux_binprm * bprm,
 		len = PAGE_ALIGN(len);
 		down_write(&current->mm->mmap_sem);
 		textpos = do_mmap(0, 0, len,
-				  PROT_READ | PROT_EXEC | PROT_WRITE,
-				  MAP_PRIVATE, 0);
+						PROT_READ | PROT_EXEC | PROT_WRITE,
+						MAP_PRIVATE, 0);
 		up_write(&current->mm->mmap_sem);
 
 		if (!textpos  || textpos >= (unsigned long) -4096) {

@@ -62,7 +62,6 @@ struct rtable
 	
 	unsigned		rt_flags;
 	__u16			rt_type;
-	__u16			rt_multipath_alg;
 
 	__be32			rt_dst;	/* Path destination	*/
 	__be32			rt_src;	/* Path source		*/
@@ -110,7 +109,6 @@ struct in_device;
 extern int		ip_rt_init(void);
 extern void		ip_rt_redirect(__be32 old_gw, __be32 dst, __be32 new_gw,
 				       __be32 src, struct net_device *dev);
-extern void		ip_rt_advice(struct rtable **rp, int advice);
 extern void		rt_cache_flush(int how);
 extern int		__ip_route_output_key(struct rtable **, const struct flowi *flp);
 extern int		ip_route_output_key(struct rtable **, struct flowi *flp);
@@ -136,7 +134,7 @@ static inline void ip_rt_put(struct rtable * rt)
 
 #define IPTOS_RT_MASK	(IPTOS_TOS_MASK & ~3)
 
-extern __u8 ip_tos2prio[16];
+extern const __u8 ip_tos2prio[16];
 
 static inline char rt_tos2priority(u8 tos)
 {

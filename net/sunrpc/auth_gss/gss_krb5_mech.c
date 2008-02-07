@@ -147,13 +147,17 @@ gss_import_sec_context_kerberos(const void *p,
 	p = simple_get_bytes(p, end, &tmp, sizeof(tmp));
 	if (IS_ERR(p))
 		goto out_err_free_ctx;
-	if (tmp != SGN_ALG_DES_MAC_MD5)
+	if (tmp != SGN_ALG_DES_MAC_MD5) {
+		p = ERR_PTR(-ENOSYS);
 		goto out_err_free_ctx;
+	}
 	p = simple_get_bytes(p, end, &tmp, sizeof(tmp));
 	if (IS_ERR(p))
 		goto out_err_free_ctx;
-	if (tmp != SEAL_ALG_DES)
+	if (tmp != SEAL_ALG_DES) {
+		p = ERR_PTR(-ENOSYS);
 		goto out_err_free_ctx;
+	}
 	p = simple_get_bytes(p, end, &ctx->endtime, sizeof(ctx->endtime));
 	if (IS_ERR(p))
 		goto out_err_free_ctx;
@@ -201,7 +205,7 @@ gss_delete_sec_context_kerberos(void *internal_ctx) {
 	kfree(kctx);
 }
 
-static struct gss_api_ops gss_kerberos_ops = {
+static const struct gss_api_ops gss_kerberos_ops = {
 	.gss_import_sec_context	= gss_import_sec_context_kerberos,
 	.gss_get_mic		= gss_get_mic_kerberos,
 	.gss_verify_mic		= gss_verify_mic_kerberos,
@@ -231,6 +235,7 @@ static struct pf_desc gss_kerberos_pfs[] = {
 static struct gss_api_mech gss_kerberos_mech = {
 	.gm_name	= "krb5",
 	.gm_owner	= THIS_MODULE,
+	.gm_oid		= {9, (void *)"\x2a\x86\x48\x86\xf7\x12\x01\x02\x02"},
 	.gm_ops		= &gss_kerberos_ops,
 	.gm_pf_num	= ARRAY_SIZE(gss_kerberos_pfs),
 	.gm_pfs		= gss_kerberos_pfs,

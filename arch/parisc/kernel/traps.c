@@ -219,7 +219,7 @@ void die_if_kernel(char *str, struct pt_regs *regs, long err)
 			return; /* STFU */
 
 		printk(KERN_CRIT "%s (pid %d): %s (code %ld) at " RFMT "\n",
-			current->comm, current->pid, str, err, regs->iaoq[0]);
+			current->comm, task_pid_nr(current), str, err, regs->iaoq[0]);
 #ifdef PRINT_USER_FAULTS
 		/* XXX for debugging only */
 		show_regs(regs);
@@ -252,7 +252,7 @@ KERN_CRIT "                     ||     ||\n");
 	
 	if (err)
 		printk(KERN_CRIT "%s (pid %d): %s (code %ld)\n",
-			current->comm, current->pid, str, err);
+			current->comm, task_pid_nr(current), str, err);
 
 	/* Wot's wrong wif bein' racy? */
 	if (current->thread.flags & PARISC_KERNEL_DEATH) {
@@ -264,6 +264,7 @@ KERN_CRIT "                     ||     ||\n");
 
 	show_regs(regs);
 	dump_stack();
+	add_taint(TAINT_DIE);
 
 	if (in_interrupt())
 		panic("Fatal exception in interrupt");
@@ -302,7 +303,7 @@ static void handle_break(struct pt_regs *regs)
 	if (unlikely(iir == PARISC_BUG_BREAK_INSN && !user_mode(regs))) {
 		/* check if a BUG() or WARN() trapped here.  */
 		enum bug_trap_type tt;
-		tt = report_bug(regs->iaoq[0] & ~3);
+		tt = report_bug(regs->iaoq[0] & ~3, regs);
 		if (tt == BUG_TRAP_TYPE_WARN) {
 			regs->iaoq[0] += 4;
 			regs->iaoq[1] += 4;
@@ -316,7 +317,7 @@ static void handle_break(struct pt_regs *regs)
 	if (unlikely(iir != GDB_BREAK_INSN)) {
 		printk(KERN_DEBUG "break %d,%d: pid=%d command='%s'\n",
 			iir & 31, (iir>>13) & ((1<<13)-1),
-			current->pid, current->comm);
+			task_pid_nr(current), current->comm);
 		show_regs(regs);
 	}
 #endif
@@ -746,7 +747,7 @@ void handle_interruption(int code, struct pt_regs *regs)
 		if (user_mode(regs)) {
 #ifdef PRINT_USER_FAULTS
 			printk(KERN_DEBUG "\nhandle_interruption() pid=%d command='%s'\n",
-			    current->pid, current->comm);
+			    task_pid_nr(current), current->comm);
 			show_regs(regs);
 #endif
 			/* SIGBUS, for lack of a better one. */
@@ -771,7 +772,7 @@ void handle_interruption(int code, struct pt_regs *regs)
 		else
 			printk(KERN_DEBUG "User Fault (long pointer) (fault %d) ",
 			       code);
-		printk("pid=%d command='%s'\n", current->pid, current->comm);
+		printk("pid=%d command='%s'\n", task_pid_nr(current), current->comm);
 		show_regs(regs);
 #endif
 		si.si_signo = SIGSEGV;

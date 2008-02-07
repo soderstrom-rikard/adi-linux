@@ -17,6 +17,9 @@
 #include <linux/kexec.h>
 #include <linux/kdebug.h>
 #include <linux/tick.h>
+#include <linux/reboot.h>
+#include <linux/fs.h>
+#include <linux/preempt.h>
 #include <asm/uaccess.h>
 #include <asm/mmu_context.h>
 #include <asm/pgalloc.h>
@@ -118,7 +121,7 @@ void machine_power_off(void)
 void show_regs(struct pt_regs * regs)
 {
 	printk("\n");
-	printk("Pid : %d, Comm: %20s\n", current->pid, current->comm);
+	printk("Pid : %d, Comm: %20s\n", task_pid_nr(current), current->comm);
 	print_symbol("PC is at %s\n", instruction_pointer(regs));
 	printk("PC  : %08lx SP  : %08lx SR  : %08lx ",
 	       regs->pc, regs->regs[15], regs->sr);
@@ -319,9 +322,7 @@ static void ubc_set_tracing(int asid, unsigned long pc)
 	ctrl_outl(pc, UBC_BARA);
 
 #ifdef CONFIG_MMU
-	/* We don't have any ASID settings for the SH-2! */
-	if (current_cpu_data.type != CPU_SH7604)
-		ctrl_outb(asid, UBC_BASRA);
+	ctrl_outb(asid, UBC_BASRA);
 #endif
 
 	ctrl_outl(0, UBC_BAMRA);
@@ -349,12 +350,11 @@ struct task_struct *__switch_to(struct task_struct *prev,
 	unlazy_fpu(prev, task_pt_regs(prev));
 #endif
 
-#ifdef CONFIG_PREEMPT
+#if defined(CONFIG_GUSA) && defined(CONFIG_PREEMPT)
 	{
-		unsigned long flags;
 		struct pt_regs *regs;
 
-		local_irq_save(flags);
+		preempt_disable();
 		regs = task_pt_regs(prev);
 		if (user_mode(regs) && regs->regs[15] >= 0xc0000000) {
 			int offset = (int)regs->regs[15];
@@ -365,7 +365,7 @@ struct task_struct *__switch_to(struct task_struct *prev,
 				/* Go to rewind point */
 				regs->pc = regs->regs[0] + offset;
 		}
-		local_irq_restore(flags);
+		preempt_enable_no_resched();
 	}
 #endif
 
@@ -405,8 +405,8 @@ asmlinkage int sys_fork(unsigned long r4, unsigned long r5,
 			unsigned long r6, unsigned long r7,
 			struct pt_regs __regs)
 {
-	struct pt_regs *regs = RELOC_HIDE(&__regs, 0);
 #ifdef CONFIG_MMU
+	struct pt_regs *regs = RELOC_HIDE(&__regs, 0);
 	return do_fork(SIGCHLD, regs->regs[15], regs, 0, NULL, NULL);
 #else
 	/* fork almost works, enough to trick you into looking elsewhere :-( */
@@ -449,23 +449,20 @@ asmlinkage int sys_vfork(unsigned long r4, unsigned long r5,
 /*
  * sys_execve() executes a new program.
  */
-asmlinkage int sys_execve(char *ufilename, char **uargv,
-			  char **uenvp, unsigned long r7,
+asmlinkage int sys_execve(char __user *ufilename, char __user * __user *uargv,
+			  char __user * __user *uenvp, unsigned long r7,
 			  struct pt_regs __regs)
 {
 	struct pt_regs *regs = RELOC_HIDE(&__regs, 0);
 	int error;
 	char *filename;
 
-	filename = getname((char __user *)ufilename);
+	filename = getname(ufilename);
 	error = PTR_ERR(filename);
 	if (IS_ERR(filename))
 		goto out;
 
-	error = do_execve(filename,
-			  (char __user * __user *)uargv,
-			  (char __user * __user *)uenvp,
-			  regs);
+	error = do_execve(filename, uargv, uenvp, regs);
 	if (error == 0) {
 		task_lock(current);
 		current->ptrace &= ~PT_DTRACE;
@@ -478,7 +475,6 @@ out:
 
 unsigned long get_wchan(struct task_struct *p)
 {
-	unsigned long schedule_frame;
 	unsigned long pc;
 
 	if (!p || p == current || p->state == TASK_RUNNING)
@@ -488,10 +484,13 @@ unsigned long get_wchan(struct task_struct *p)
 	 * The same comment as on the Alpha applies here, too ...
 	 */
 	pc = thread_saved_pc(p);
+
+#ifdef CONFIG_FRAME_POINTER
 	if (in_sched_functions(pc)) {
-		schedule_frame = (unsigned long)p->thread.sp;
+		unsigned long schedule_frame = (unsigned long)p->thread.sp;
 		return ((unsigned long *)schedule_frame)[21];
 	}
+#endif
 
 	return pc;
 }

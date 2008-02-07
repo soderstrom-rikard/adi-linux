@@ -12,7 +12,7 @@
 #ifndef ___ASM_ARCH_REGS_LCD_H
 #define ___ASM_ARCH_REGS_LCD_H "$Id$"
 
-#define S3C2410_LCDREG(x) ((x) + S3C24XX_VA_LCD)
+#define S3C2410_LCDREG(x)	(x)
 
 /* LCD control registers */
 #define S3C2410_LCDCON1	    S3C2410_LCDREG(0x00)

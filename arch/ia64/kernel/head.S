@@ -178,7 +178,7 @@ swapper_pg_dir:
 halt_msg:
 	stringz "Halting kernel\n"
 
-	.text
+	.section .text.head,"ax"
 
 	.global start_ap
 
@@ -391,6 +391,8 @@ start_ap:
 self:	hint @pause
 	br.sptk.many self		// endless loop
 END(_start)
+
+	.text
 
 GLOBAL_ENTRY(ia64_save_debug_regs)
 	alloc r16=ar.pfs,1,0,0,0
@@ -1174,6 +1176,7 @@ tlb_purge_done:
 	RESTORE_REG(cr.dcr, r25, r17);;
 	RESTORE_REG(cr.iva, r25, r17);;
 	RESTORE_REG(cr.pta, r25, r17);;
+	srlz.d;;	// required not to violate RAW dependency
 	RESTORE_REG(cr.itv, r25, r17);;
 	RESTORE_REG(cr.pmv, r25, r17);;
 	RESTORE_REG(cr.cmcv, r25, r17);;

@@ -1,7 +1,6 @@
 /* $Id$ */
 #ifndef _ASMSPARC64_SHMPARAM_H
 #define _ASMSPARC64_SHMPARAM_H
-#ifdef __KERNEL__
 
 #include <asm/spitfire.h>
 
@@ -9,5 +8,4 @@
 /* attach addr a multiple of this */
 #define	SHMLBA	((PAGE_SIZE > L1DCACHE_SIZE) ? PAGE_SIZE : L1DCACHE_SIZE)
 
-#endif /* __KERNEL__ */
 #endif /* _ASMSPARC64_SHMPARAM_H */

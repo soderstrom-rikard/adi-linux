@@ -237,7 +237,7 @@ static int resume_detect_interrupts_are_broken(struct uhci_hcd *uhci)
 static int remote_wakeup_is_broken(struct uhci_hcd *uhci)
 {
 	int port;
-	char *sys_info;
+	const char *sys_info;
 	static char bad_Asus_board[] = "A7V8X";
 
 	/* One of Asus's motherboards has a bug which causes it to
@@ -378,7 +378,6 @@ static irqreturn_t uhci_irq(struct usb_hcd *hcd)
 {
 	struct uhci_hcd *uhci = hcd_to_uhci(hcd);
 	unsigned short status;
-	unsigned long flags;
 
 	/*
 	 * Read the interrupt status, and write it back to clear the
@@ -398,7 +397,7 @@ static irqreturn_t uhci_irq(struct usb_hcd *hcd)
 			dev_err(uhci_dev(uhci), "host controller process "
 					"error, something bad happened!\n");
 		if (status & USBSTS_HCH) {
-			spin_lock_irqsave(&uhci->lock, flags);
+			spin_lock(&uhci->lock);
 			if (uhci->rh_state >= UHCI_RH_RUNNING) {
 				dev_err(uhci_dev(uhci),
 					"host controller halted, "
@@ -415,16 +414,16 @@ static irqreturn_t uhci_irq(struct usb_hcd *hcd)
 				 * pending unlinks */
 				mod_timer(&hcd->rh_timer, jiffies);
 			}
-			spin_unlock_irqrestore(&uhci->lock, flags);
+			spin_unlock(&uhci->lock);
 		}
 	}
 
 	if (status & USBSTS_RD)
 		usb_hcd_poll_rh_status(hcd);
 	else {
-		spin_lock_irqsave(&uhci->lock, flags);
+		spin_lock(&uhci->lock);
 		uhci_scan_schedule(uhci);
-		spin_unlock_irqrestore(&uhci->lock, flags);
+		spin_unlock(&uhci->lock);
 	}
 
 	return IRQ_HANDLED;
@@ -730,10 +729,9 @@ static int uhci_rh_resume(struct usb_hcd *hcd)
 	int rc = 0;
 
 	spin_lock_irq(&uhci->lock);
-	if (!test_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags)) {
-		dev_warn(&hcd->self.root_hub->dev, "HC isn't running!\n");
+	if (!test_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags))
 		rc = -ESHUTDOWN;
-	} else if (!uhci->dead)
+	else if (!uhci->dead)
 		wakeup_rh(uhci);
 	spin_unlock_irq(&uhci->lock);
 	return rc;
@@ -934,7 +932,7 @@ static int __init uhci_hcd_init(void)
 	}
 
 	uhci_up_cachep = kmem_cache_create("uhci_urb_priv",
-		sizeof(struct urb_priv), 0, 0, NULL, NULL);
+		sizeof(struct urb_priv), 0, 0, NULL);
 	if (!uhci_up_cachep)
 		goto up_failed;
 

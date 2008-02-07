@@ -193,7 +193,7 @@ enum smi_action smi_handle_dr_smp_recv(struct ib_smp *smp, u8 node_type,
 			}
 			/* smp->hop_ptr updated when sending */
 			return (node_type == RDMA_NODE_IB_SWITCH ?
-				IB_SMI_HANDLE: IB_SMI_DISCARD);
+				IB_SMI_HANDLE : IB_SMI_DISCARD);
 		}
 
 		/* C14-13:4 -- hop_ptr = 0 -> give to SM */
@@ -212,7 +212,7 @@ enum smi_forward_action smi_check_forward_dr_smp(struct ib_smp *smp)
 	if (!ib_get_smp_direction(smp)) {
 		/* C14-9:2 -- intermediate hop */
 		if (hop_ptr && hop_ptr < hop_cnt)
-			return IB_SMI_SEND;
+			return IB_SMI_FORWARD;
 
 		/* C14-9:3 -- at the end of the DR segment of path */
 		if (hop_ptr == hop_cnt)
@@ -225,7 +225,7 @@ enum smi_forward_action smi_check_forward_dr_smp(struct ib_smp *smp)
 	} else {
 		/* C14-13:2  -- intermediate hop */
 		if (2 <= hop_ptr && hop_ptr <= hop_cnt)
-			return IB_SMI_SEND;
+			return IB_SMI_FORWARD;
 
 		/* C14-13:3 -- at the end of the DR segment of path */
 		if (hop_ptr == 1)
@@ -233,4 +233,14 @@ enum smi_forward_action smi_check_forward_dr_smp(struct ib_smp *smp)
 				IB_SMI_SEND : IB_SMI_LOCAL);
 	}
 	return IB_SMI_LOCAL;
+}
+
+/*
+ * Return the forwarding port number from initial_path for outgoing SMP and
+ * from return_path for returning SMP
+ */
+int smi_get_fwd_port(struct ib_smp *smp)
+{
+	return (!ib_get_smp_direction(smp) ? smp->initial_path[smp->hop_ptr+1] :
+		smp->return_path[smp->hop_ptr-1]);
 }

@@ -524,11 +524,16 @@ extern void disable_pci_interrupt(unsigned int base);
  printk(KERN_INFO " released all mem regions\n");
 
 #ifndef CONFIG_DEVFS_FS
+#if (LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22))
     if( unregister_chrdev(Can_major, CANREGDEVNAME) != 0 ){
         printk(KERN_ERR "can't unregister " CANREGDEVNAME ", device busy \n");
     } else {
         printk(KERN_INFO CANREGDEVNAME ": successfully removed\n");
     }
+#else
+    unregister_chrdev(Can_major, CANREGDEVNAME);
+#endif
+
     if( !IS_ERR(can_class)) {
 	int i;
 	for (i = 0; i < MAX_CHANNELS; i++) {
