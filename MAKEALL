@@ -37,12 +37,16 @@ for b in $(cd arch/blackfin/configs ; echo *_defconfig) ; do
 	${make} $b >& /dev/null
 	for p in $(procs) ; do
 		echo -n "###### $p: "
+		rm -f $b.$p.log*
 		sed -i 1iCONFIG_${p}=y .config
 		yes "" | ${make} oldconfig >& /dev/null
 		${make} -j${jobs} "$@" >& $b.$p.log
 		if [[ $? -eq 0 ]] ; then
 			echo "OK"
 		else
+			# "normalize" and "minimize" the error log
+			${make} -j1 "$@" >& $b.$p.log.FAIL
+			${make} -j1 "$@" >& $b.$p.log.FAIL
 			echo "FAIL"
 			((++ret))
 		fi
