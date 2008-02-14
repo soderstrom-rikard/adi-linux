@@ -356,7 +356,7 @@ static struct platform_device net2272_bfin_device = {
 static struct mtd_partition stamp_partitions[] = {
 	{
 		.name       = "Bootloader",
-		.size       = 0x20000,
+		.size       = 0x40000,
 		.offset     = 0,
 	}, {
 		.name       = "Kernel",
