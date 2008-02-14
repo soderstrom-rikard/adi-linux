@@ -141,6 +141,20 @@ config AD5304
 
 	  If unsure, say N.
 
+config SIMPLE_GPIO
+	tristate "Simple GPIO char interface"
+	depends on GENERIC_GPIO
+	default n
+	help
+	  If you say Y here, you will get support for a character device
+	  interface to the GPIO pins which will allow you to read and
+	  write GPIO values from userspace.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called simple-gpio.
+
+	  If unsure, it is safe to say Y.
+
 config VT
 	bool "Virtual terminal" if EMBEDDED
 	depends on !S390
