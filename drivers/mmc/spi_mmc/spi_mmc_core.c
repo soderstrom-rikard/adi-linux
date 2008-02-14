@@ -1059,7 +1059,7 @@ static void spi_mmc_clean(void)
 	
 #if defined(CONFIG_BLACKFIN) && defined(CONFIG_SPI_MMC_CARD_DETECT)
 	del_timer(&pdev->revalidate_timer);
-	free_irq(IRQ_PROG_INTA, pdev);
+	free_irq(CONFIG_SPI_MMC_CARD_DETECT_INT, pdev);
 #endif
 	// releasae disks and deallocate device array
 	if (pdev->gd) {
