@@ -65,13 +65,13 @@
 #define PPI_DEVNAME       "PPIdev"
 #define PPI_INTNAME       "ppiint"	/* Should be less than 19 chars. */
 
-u16 per_req_ppi0_7[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_D0, P_PPI0_D1,\
+static u16 per_req_ppi0_7[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_D0, P_PPI0_D1,\
 	 P_PPI0_D2, P_PPI0_D3, P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, 0};
 
-u16 per_req_ppi8_15[] = {P_PPI0_D15, P_PPI0_D14, P_PPI0_D13, P_PPI0_D12,\
+static u16 per_req_ppi8_15[] = {P_PPI0_D15, P_PPI0_D14, P_PPI0_D13, P_PPI0_D12,\
 			 P_PPI0_D11, P_PPI0_D10, P_PPI0_D9, P_PPI0_D8, 0};
 
-u16 per_req_ppi_fs[] = {P_PPI0_FS2, P_PPI0_FS3, 0};
+static u16 per_req_ppi_fs[] = {P_PPI0_FS2, P_PPI0_FS3, 0};
 
 typedef struct Ppi_Device_t {
 	unsigned char opened;
@@ -147,7 +147,7 @@ static int get_ppi_reg(unsigned int addr, unsigned short *pdata)
  *
  * CAUTION:
  */
-void ppi_reg_reset(ppi_device_t * pdev)
+static void ppi_reg_reset(ppi_device_t *pdev)
 {
 	bfin_write_PPI_CONTROL(0x0000);
 	bfin_clear_PPI_STATUS();
