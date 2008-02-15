@@ -233,6 +233,7 @@ static void default_enable(unsigned int irq)
  */
 static void default_disable(unsigned int irq)
 {
+	irq_desc[irq].chip->mask(irq);
 }
 
 /*
