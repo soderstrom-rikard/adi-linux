@@ -43,7 +43,7 @@
 #include <linux/clk.h>
 #include <linux/device.h>
 #include <linux/usb/ch9.h>
-#include <linux/usb_gadget.h>
+#include <linux/usb/gadget.h>
 #include <linux/usb.h>
 #include <linux/usb/otg.h>
 #include <linux/usb/musb.h>
@@ -484,12 +484,17 @@ extern void musb_platform_disable(struct musb *musb);
 
 extern void musb_hnp_stop(struct musb *musb);
 
-#if defined(CONFIG_USB_TUSB6010) || defined(CONFIG_BLACKFIN)
+#if defined(CONFIG_USB_TUSB6010) || defined(CONFIG_BLACKFIN) || \
+	defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP34XX)
 extern void musb_platform_try_idle(struct musb *musb, unsigned long timeout);
+#else
+#define musb_platform_try_idle(x, y)		do {} while (0)
+#endif
+
+#if defined(CONFIG_USB_TUSB6010) || defined(CONFIG_BLACKFIN)
 extern int musb_platform_get_vbus_status(struct musb *musb);
 extern void musb_platform_set_mode(struct musb *musb, u8 musb_mode);
 #else
-#define musb_platform_try_idle(x, y)		do {} while (0)
 #define musb_platform_get_vbus_status(x)	0
 #define musb_platform_set_mode(x, y)		do {} while (0)
 #endif
