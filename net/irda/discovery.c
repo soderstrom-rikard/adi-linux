@@ -40,6 +40,8 @@
 
 #include <net/irda/discovery.h>
 
+#include <asm/unaligned.h>
+
 /*
  * Function irlmp_add_discovery (cachelog, discovery)
  *
@@ -87,7 +89,7 @@ void irlmp_add_discovery(hashbin_t *cachelog, discovery_t *new)
 			 */
 			hashbin_remove_this(cachelog, (irda_queue_t *) node);
 			/* Check if hints bits are unchanged */
-			if(u16ho(node->data.hints) == u16ho(new->data.hints))
+			if (get_unaligned((__u16 *)node->data.hints) == get_unaligned((__u16 *)new->data.hints))
 				/* Set time of first discovery for this node */
 				new->firststamp = node->firststamp;
 			kfree(node);

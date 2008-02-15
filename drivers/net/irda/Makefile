@@ -34,6 +34,7 @@ obj-$(CONFIG_EP7211_IR)		+= ep7211_ir.o
 obj-$(CONFIG_AU1000_FIR)	+= au1k_ir.o
 # New SIR drivers
 obj-$(CONFIG_IRTTY_SIR)		+= irtty-sir.o	sir-dev.o
+obj-$(CONFIG_BFIN_SIR)          += bfin_sir.o
 # New dongles drivers for new SIR drivers
 obj-$(CONFIG_ESI_DONGLE)	+= esi-sir.o
 obj-$(CONFIG_TEKRAM_DONGLE)	+= tekram-sir.o

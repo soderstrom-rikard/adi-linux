@@ -17,6 +17,24 @@ config IRTTY_SIR
 
 	  If unsure, say Y.
 
+config BFIN_SIR
+	tristate "Blackfin SIR on UART"
+	depends on BLACKFIN && IRDA && (!SERIAL_BFIN_UART1 || !SERIAL_BFIN_UART0 )
+        help
+          Say Y here if your want to enable SIR function on Blackfin UART devices. 
+	  To activate this driver you can start irattach like:
+	  "irattach irda0 -s"
+	  
+	  Note that You need to turn off serial driver for UART0 or UART1 first.
+
+config BFIN_SIR0
+        bool "Blackfin SIR on UART0"
+        depends on BFIN_SIR && !SERIAL_BFIN_UART0
+
+config BFIN_SIR1
+        bool "Blackfin SIR on UART1"
+        depends on BFIN_SIR && !SERIAL_BFIN_UART1 && (BF52x || BF53x || BF54x)
+
 comment "Dongle support"
 
 config DONGLE

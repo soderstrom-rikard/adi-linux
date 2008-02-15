@@ -1083,7 +1083,7 @@ discovery_t *irlmp_get_discovery_response(void)
 
 	IRDA_ASSERT(irlmp != NULL, return NULL;);
 
-	u16ho(irlmp->discovery_rsp.data.hints) = irlmp->hints.word;
+	put_unaligned(irlmp->hints.word, (__u16 *)irlmp->discovery_rsp.data.hints);
 
 	/*
 	 *  Set character set for device name (we use ASCII), and
