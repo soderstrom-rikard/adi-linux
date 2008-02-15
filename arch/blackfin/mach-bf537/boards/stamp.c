@@ -364,7 +364,7 @@ static struct mtd_partition stamp_partitions[] = {
 		.offset     = MTDPART_OFS_APPEND,
 	}, {
 		.name       = "RootFS",
-		.size       = 0x400000 - 0x20000 - 0xE0000 - 0x10000,
+		.size       = 0x400000 - 0x40000 - 0xE0000 - 0x10000,
 		.offset     = MTDPART_OFS_APPEND,
 	}, {
 		.name       = "MAC Address",
@@ -410,11 +410,11 @@ static struct mtd_partition bfin_spi_flash_partitions[] = {
 	}, {
 		.name = "kernel",
 		.size = 0xe0000,
-		.offset = 0x20000
+		.offset = 0x40000
 	}, {
 		.name = "file system",
-		.size = 0x700000,
-		.offset = 0x00100000,
+		.size = 0x6e0000,
+		.offset = 0x00120000,
 	}
 };
 
