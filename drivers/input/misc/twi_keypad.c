@@ -1,6 +1,6 @@
 /************************************************************
 *
-* Copyright (C) 2006-2007, Analog Devices. All Rights Reserved
+* Copyright (C) 2006-2008, Analog Devices. All Rights Reserved
 *
 * FILE twi_keypad.c
 * PROGRAMMER(S): Michael Hennerich (Analog Devices Inc.)
@@ -51,32 +51,7 @@ MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
 MODULE_DESCRIPTION("TWI Keypad input driver");
 MODULE_LICENSE("GPL");
 
-#undef SENDASCII
-
-#define BUTTONS 16
-
-#ifdef SENDASCII
-static unsigned char twi_keypad_btncode[BUTTONS + 1] = {
-	[0] = KEY_RESERVED,
-	[1] = 'd',
-	[2] = '#',
-	[3] = '0',
-	[4] = '*',
-	[5] = 'c',
-	[6] = '9',
-	[7] = '8',
-	[8] = '7',
-	[9] = 'b',
-	[10] = '6',
-	[11] = '5',
-	[12] = '4',
-	[13] = 'a',
-	[14] = '3',
-	[15] = '2',
-	[16] = '1'
-};
-#else
-static unsigned char twi_keypad_btncode[BUTTONS + 1] = {
+static unsigned char twi_keypad_btncode[] = {
 	[0] = KEY_RESERVED,
 	[1] = KEY_ENTER,
 	[2] = KEY_BACKSLASH,
@@ -95,7 +70,6 @@ static unsigned char twi_keypad_btncode[BUTTONS + 1] = {
 	[15] = KEY_2,
 	[16] = KEY_1
 };
-#endif
 
 struct twikeypad {
 	unsigned char *btncode;
@@ -107,6 +81,7 @@ struct twikeypad {
 	unsigned long irq_handled;
 	unsigned long events_sended;
 	unsigned long events_processed;
+	int irq;
 	struct work_struct twi_keypad_work;
 };
 
@@ -151,8 +126,6 @@ static void check_and_notify(struct work_struct *work)
 	    container_of(work, struct twikeypad, twi_keypad_work);
 	unsigned char nextstate = read_state(lp);
 
-	pr_debug("%s\n", __FUNCTION__);
-
 	lp->statechanged = lp->laststate ^ nextstate;
 
 	if (lp->statechanged) {
@@ -165,16 +138,14 @@ static void check_and_notify(struct work_struct *work)
 	}
 	lp->laststate = nextstate;
 	input_sync(lp->idev);
-	enable_irq(CONFIG_BFIN_TWIKEYPAD_IRQ_PFX);
-
+	enable_irq(lp->irq);
 }
 
 static irqreturn_t twi_keypad_irq_handler(int irq, void *dev_id)
 {
 	struct twikeypad *lp = dev_id;
 
-	pr_debug("%s\n", __FUNCTION__);
-	disable_irq(CONFIG_BFIN_TWIKEYPAD_IRQ_PFX);
+	disable_irq(lp->irq);
 	schedule_work(&lp->twi_keypad_work);
 
 	return IRQ_HANDLED;
@@ -194,11 +165,13 @@ static int init_twikeypad(struct i2c_client *client)
 		goto fail;
 	}
 
-	if (request_irq(CONFIG_BFIN_TWIKEYPAD_IRQ_PFX, twi_keypad_irq_handler,
+	lp->irq = CONFIG_BFIN_TWIKEYPAD_IRQ_PFX;
+
+	if (request_irq(lp->irq, twi_keypad_irq_handler,
 			IRQF_TRIGGER_LOW, PCF8574_KP_DRV_NAME, lp)) {
 
 		printk(KERN_WARNING "twikeypad: IRQ %d is not free.\n",
-		       CONFIG_BFIN_TWIKEYPAD_IRQ_PFX);
+		       lp->irq);
 		ret = -EBUSY;
 		goto fail;
 	}
@@ -215,9 +188,10 @@ static int init_twikeypad(struct i2c_client *client)
 	idev->keycodesize = sizeof(twi_keypad_btncode);
 	idev->keycodemax = ARRAY_SIZE(twi_keypad_btncode);
 
-	for (i = 0; i <= BUTTONS; i++)
-		set_bit(lp->btncode[i], idev->keybit);
+	for (i = 0; i <= ARRAY_SIZE(twi_keypad_btncode); i++)
+		__set_bit(lp->btncode[i] & KEY_MAX, idev->keybit);
 
+	__clear_bit(KEY_RESERVED, idev->keybit);
 
 	sprintf(lp->name, "BF5xx twikeypad");
 	sprintf(lp->phys, "twikeypad/input0");
@@ -229,6 +203,8 @@ static int init_twikeypad(struct i2c_client *client)
 	idev->id.product = 0x0001;
 	idev->id.version = 0x0100;
 
+	input_set_drvdata(idev, lp);
+
 	input_register_device(lp->idev);
 
 	lp->statechanged = 0x0;
@@ -239,7 +215,7 @@ static int init_twikeypad(struct i2c_client *client)
 	INIT_WORK(&lp->twi_keypad_work, check_and_notify);
 
 	printk(KERN_INFO "input: %s at %s IRQ %d\n", lp->name, lp->phys,
-				 CONFIG_BFIN_TWIKEYPAD_IRQ_PFX);
+				 lp->irq);
 
 	return 0;
 
@@ -297,13 +273,12 @@ static int pcf8574_kp_detach_client(struct i2c_client *client)
 	struct twikeypad *lp = i2c_get_clientdata(client);
 	int rc;
 
-	free_irq(CONFIG_BFIN_TWIKEYPAD_IRQ_PFX, lp);
+	free_irq(lp->irq, lp);
 	input_unregister_device(lp->idev);
 	kfree(lp);
 
 	rc = i2c_detach_client(client);
-	if (rc == 0)
-		kfree(i2c_get_clientdata(client));
+
 	return rc;
 }
 
