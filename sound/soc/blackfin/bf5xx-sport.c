@@ -746,11 +746,17 @@ static irqreturn_t err_handler(int irq, void *dev_id)
 				status & RUVF ? " RUVF" : "");
 		if (status & TOVF || status & TUVF) {
 			disable_dma(sport->dma_tx_chan);
-			sport_tx_dma_start(sport, 0);
+			if (sport->tx_run)
+				sport_tx_dma_start(sport, 0);
+			else
+				sport_tx_dma_start(sport, 1);
 			enable_dma(sport->dma_tx_chan);
 		} else {
 			disable_dma(sport->dma_rx_chan);
-			sport_rx_dma_start(sport, 0);
+			if (sport->rx_run)
+				sport_rx_dma_start(sport, 0);
+			else
+				sport_rx_dma_start(sport, 1);
 			enable_dma(sport->dma_rx_chan);
 		}
 	}
