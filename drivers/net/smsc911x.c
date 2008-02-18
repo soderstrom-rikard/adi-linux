@@ -97,6 +97,9 @@ struct smsc911x_data {
 	unsigned int irq_polarity;
 	unsigned int irq_type;
 
+	struct net_device *dev;
+	struct napi_struct napi;
+
 	/* This needs to be acquired before calling any of below:
 	 * smsc911x_mac_read(), smsc911x_mac_write()
 	 * smsc911x_phy_read(), smsc911x_phy_write()
@@ -1009,13 +1012,16 @@ smsc911x_rx_fastforward(struct smsc911x_data *pdata, unsigned int pktbytes)
 }
 
 /* NAPI poll function */
-static int smsc911x_poll(struct net_device *dev, int *budget)
+static int smsc911x_poll(struct napi_struct *napi, int budget)
 {
-	struct smsc911x_data *pdata = netdev_priv(dev);
+	struct smsc911x_data *pdata = container_of(napi,
+						   struct smsc911x_data,
+						   napi);
+	struct net_device *dev = pdata->dev;
 	int npackets = 0;
-	int quota = min(dev->quota, *budget);
+	unsigned int temp;
 
-	while (npackets < quota) {
+	while (npackets < budget) {
 		unsigned int pktlength;
 		unsigned int pktwords;
 		unsigned int rxstat = smsc911x_rx_get_rxstatus(pdata);
@@ -1065,22 +1071,14 @@ static int smsc911x_poll(struct net_device *dev, int *budget)
 	pdata->stats.rx_dropped += smsc911x_reg_read(pdata, RX_DROP);
 	smsc911x_reg_write(INT_STS_RSFL_, pdata, INT_STS);
 
-	*budget -= npackets;
-	dev->quota -= npackets;
+	/* We processed all packets available.  Tell NAPI it can
+	 * stop polling then re-enable rx interrupts */
+	netif_rx_complete(dev, napi);
+	temp = smsc911x_reg_read(pdata, INT_EN);
+	temp |= INT_EN_RSFL_EN_;
+	smsc911x_reg_write(temp, pdata, INT_EN);
 
-	if (npackets < quota) {
-		unsigned int temp;
-		/* We processed all packets available.  Tell NAPI it can
-		 * stop polling then re-enable rx interrupts */
-		netif_rx_complete(dev);
-		temp = smsc911x_reg_read(pdata, INT_EN);
-		temp |= INT_EN_RSFL_EN_;
-		smsc911x_reg_write(temp, pdata, INT_EN);
-		return 0;
-	}
-
-	/* There are still packets waiting */
-	return 1;
+	return npackets;
 }
 
 /* Returns hash bit number for given MAC address
@@ -1313,6 +1311,8 @@ static int smsc911x_open(struct net_device *dev)
 	smsc911x_reg_write(TX_CFG_TX_ON_, pdata, TX_CFG);
 
 	netif_start_queue(dev);
+	napi_enable(&pdata->napi);
+
 	return 0;
 }
 
@@ -1327,6 +1327,7 @@ static int smsc911x_stop(struct net_device *dev)
 	smsc911x_reg_write((smsc911x_reg_read(pdata, INT_CFG) &
 			    (~INT_CFG_IRQ_EN_)), pdata, INT_CFG);
 	netif_stop_queue(dev);
+	napi_disable(&pdata->napi);
 
 	/* At this point all Rx and Tx activity is stopped */
 	pdata->stats.rx_dropped += smsc911x_reg_read(pdata, RX_DROP);
@@ -1539,7 +1540,7 @@ static irqreturn_t smsc911x_irqhandler(int irq, void *dev_id)
 		temp = smsc911x_reg_read(pdata, INT_EN);
 		temp &= (~INT_EN_RSFL_EN_);
 		smsc911x_reg_write(temp, pdata, INT_EN);
-		netif_rx_schedule(dev);
+		netif_rx_schedule(dev, &pdata->napi);
 		serviced = IRQ_HANDLED;
 	}
 
@@ -2022,13 +2023,14 @@ static int smsc911x_init(struct net_device *dev)
 	dev->set_multicast_list = smsc911x_set_multicast_list;
 	dev->flags |= IFF_MULTICAST;
 	dev->do_ioctl = smsc911x_do_ioctl;
-	dev->poll = smsc911x_poll;
-	dev->weight = 64;
+	netif_napi_add(dev, &pdata->napi, smsc911x_poll, 64);
 	dev->ethtool_ops = &smsc911x_ethtool_ops;
 
 #ifdef CONFIG_NET_POLL_CONTROLLER
 	dev->poll_controller = smsc911x_poll_controller;
 #endif				/* CONFIG_NET_POLL_CONTROLLER */
+
+	pdata->dev = dev;
 
 	pdata->mii.phy_id_mask = 0x1f;
 	pdata->mii.reg_num_mask = 0x1f;
@@ -2110,7 +2112,6 @@ static int smsc911x_drv_probe(struct platform_device *pdev)
 		goto out_release_io_1;
 	}
 
-	SET_MODULE_OWNER(dev);
 	SET_NETDEV_DEV(dev, &pdev->dev);
 
 	pdata = netdev_priv(dev);
