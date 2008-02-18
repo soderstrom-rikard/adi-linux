@@ -1376,7 +1376,6 @@ static struct video_device bcap_template = {
 	.name = "Blackfin CMOS Camera",
 	.type = VID_TYPE_CAPTURE | VID_TYPE_MONOCHROME,
 	.type2 = V4L2_CAP_VIDEO_CAPTURE,
-	.hardware = VID_HARDWARE_BCAP,
 	.fops = &bcap_fops,
 	.release = &v4l_release,
 	.minor = 0,
