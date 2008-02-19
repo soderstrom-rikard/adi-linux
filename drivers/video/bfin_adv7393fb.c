@@ -963,7 +963,7 @@ static int __devinit bfin_adv7393_fb_driver_init(void)
 #if  defined(CONFIG_I2C_BLACKFIN_TWI) || defined(CONFIG_I2C_BLACKFIN_TWI_MODULE)
 	request_module("i2c-bfin-twi");
 #else
-	request_module("i2c-bfin-gpio");
+	request_module("i2c-gpio");
 #endif
 
 	return platform_driver_register(&bfin_adv7393_fb_driver);
