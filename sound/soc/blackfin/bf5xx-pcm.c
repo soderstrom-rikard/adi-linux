@@ -349,15 +349,18 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 #ifdef CONFIG_SND_MMAP_SUPPORT
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 			runtime = substream->runtime;
-			dma_free_coherent(NULL, runtime->buffer_size * sizeof(struct ac97_frame),\
-				sport_handle->tx_dma_buf, 0);
+			if (sport_handle->tx_dma_buf)
+				dma_free_coherent(NULL, runtime->buffer_size * sizeof(struct ac97_frame),\
+					sport_handle->tx_dma_buf, 0);
 			sport_handle->tx_dma_buf = NULL;
-		} else {
+	} else {
+
 			runtime = substream->runtime;
-			dma_free_coherent(NULL, runtime->buffer_size * sizeof(struct ac97_frame), \
-				sport_handle->rx_dma_buf, 0);
+			if (sport_handle->rx_dma_buf)
+				dma_free_coherent(NULL, runtime->buffer_size * sizeof(struct ac97_frame), \
+					sport_handle->rx_dma_buf, 0);
 			sport_handle->rx_dma_buf = NULL;
-		}
+	}
 #endif
 		dma_free_coherent(NULL, buf->bytes, buf->area, 0);
 		buf->area = NULL;
