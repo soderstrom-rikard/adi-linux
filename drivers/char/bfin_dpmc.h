@@ -40,10 +40,6 @@ static int dpmc_write_proc(struct file *file, const char __user * buffer, unsign
 
 void fullon_mode(void);
 void active_mode(void);
-void program_wdog_timer(unsigned long);
-void unmask_wdog_wakeup_evt(void);
-void clear_wdog_wakeup_evt(void);
-void disable_wdog_timer(void);
 
 #define SDRAM_Tref  	64       /* Refresh period in milliseconds   */
 #define SDRAM_NRA   	8192     /* Number of row addresses in SDRAM */

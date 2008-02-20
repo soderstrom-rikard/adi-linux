@@ -429,34 +429,6 @@ static int dpmc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
 			copy_to_user((unsigned long *)arg, &vco_mhz, sizeof(unsigned long));
 			break;
 
-		case IOCTL_DISABLE_WDOG_TIMER:
-			disable_wdog_timer();
-			if (bfin_read_WDOG_CTL() == 0x0AD0)
-				return 0;
-			else
-				return -1;
-			break;
-
-		case IOCTL_UNMASK_WDOG_WAKEUP_EVENT:
-			unmask_wdog_wakeup_evt();
-			break;
-
-		case IOCTL_PROGRAM_WDOG_TIMER:
-			copy_from_user(&wdog_tm,(unsigned long *)arg,sizeof(unsigned long));
-			program_wdog_timer(wdog_tm);
-			if (bfin_read_WDOG_CNT() == wdog_tm)
-				return 0;
-			else
-				return -1;
-			break;
-
-		case IOCTL_CLEAR_WDOG_WAKEUP_EVENT:
-			clear_wdog_wakeup_evt();
-			if (bfin_read_WDOG_CTL() & 0x8000)
-				return -1;
-			else
-				return 0;
-			break;
 	}
 
 	return 0;

@@ -920,14 +920,6 @@ config GEN_RTC_X
 	  Provides an emulation for RTC_UIE which is required by some programs
 	  and may improve precision of the generic RTC support in some cases.
 
-config BLACKFIN_DPMC
-	bool "Blackfin Power Management support"
-	depends on PM
-	default n
-	help
-	  This feature is not completly tested. This module is under construction.
-	  Use at your own risk !
-
 config EFI_RTC
 	bool "EFI Real Time Clock Services"
 	depends on IA64
