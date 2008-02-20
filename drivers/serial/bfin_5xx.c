@@ -542,12 +542,14 @@ static irqreturn_t bfin_serial_dma_rx_int(int irq, void *dev_id)
 	unsigned short irqstat;
 
 	uart->rx_dma_nrows++;
-	if (uart->rx_dma_nrows == DMA_RX_YCOUNT) {
+	uart->rx_dma_buf.tail = DMA_RX_XCOUNT * uart->rx_dma_nrows;
+	bfin_serial_dma_rx_chars(uart);
+	if (uart->rx_dma_nrows >= DMA_RX_YCOUNT) {
 		uart->rx_dma_nrows = 0;
-		uart->rx_dma_buf.tail = DMA_RX_XCOUNT*DMA_RX_YCOUNT;
-		bfin_serial_dma_rx_chars(uart);
-		uart->rx_dma_buf.head = uart->rx_dma_buf.tail = 0;
+		uart->rx_dma_buf.tail = 0;
 	}
+	uart->rx_dma_buf.head = uart->rx_dma_buf.tail;
+
 	spin_lock(&uart->port.lock);
 	irqstat = get_dma_curr_irqstat(uart->rx_dma_channel);
 	clear_dma_irqstat(uart->rx_dma_channel);
