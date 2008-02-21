@@ -203,11 +203,3 @@ void __init time_init(void)
 	bfin_clocksource_init();
 	bfin_clockevent_init();
 }
-
-/*
-Local Variables:
-tab-width: 8
-indent-tabs-mode: t
-c-basic-offset: 8
-End:
-*/
