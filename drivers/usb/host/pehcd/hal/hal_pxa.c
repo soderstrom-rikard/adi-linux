@@ -663,12 +663,12 @@ int isp1761_request_irq(void (*handler)(struct isp1761_dev *, void *),
     hal_int("isp1761_request_irq: dev->index %x\n",dev->index);
     if(dev->index == ISP1761_DC){
         result = request_irq(dev->irq, isp1761_pci_dc_isr,
-                SA_SHIRQ,
+		IRQF_SHARED,
                 dev->name,
                 isr_data);
     }else {
         result= request_irq(dev->irq,isp1761_pci_isr,
-                SA_SHIRQ,
+		IRQF_SHARED,
                 dev->name,
                 isr_data);
     }

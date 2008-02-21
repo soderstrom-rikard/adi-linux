@@ -3184,7 +3184,7 @@ pehci_hcd_probe(struct isp1761_dev *tmp_1761_dev , isp1761_id *ids )
     /*lets keep our host here*/
     tmp_1761_dev->driver_data = usb_hcd;
 
-    status = usb_add_hcd(usb_hcd, tmp_1761_dev->irq, SA_INTERRUPT | SA_SHIRQ);
+    status = usb_add_hcd(usb_hcd, tmp_1761_dev->irq, IRQF_DISABLED | IRQF_SHARED);
     pehci_entry("-- %s: Exit\n",__FUNCTION__);
     return status;
 
