@@ -300,7 +300,6 @@ static void prepare_ptd(struct isp1362_hcd *isp1362_hcd, struct urb *urb, struct
 
 	ptd = &ep->ptd;
 
-	spin_lock(&urb->lock);
 	ep->data = (unsigned char *)urb->transfer_buffer + urb->actual_length;
 
 	switch (ep->nextpid) {
@@ -375,7 +374,6 @@ static void prepare_ptd(struct isp1362_hcd *isp1362_hcd, struct urb *urb, struct
 		ptd->faddr |= PTD_SF_ISO(fno);
 	}
 
-	spin_unlock(&urb->lock);
 	DBG(1, "%s: Finished\n", __FUNCTION__);
 }
 
@@ -499,11 +497,6 @@ static void finish_request(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep *e
 		ep->nextpid = USB_PID_SETUP;
 	}
 
-	spin_lock(&urb->lock);
-	if (urb->status == -EINPROGRESS) {
-		urb->status = status;
-	}
-	spin_unlock(&urb->lock);
 	URB_DBG("%s: req %d FA %d ep%d%s %s: len %d/%d %s stat %d\n", __func__,
 		ep->num_req, usb_pipedevice(urb->pipe),
 		usb_pipeendpoint(urb->pipe),
@@ -524,14 +517,23 @@ static void finish_request(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep *e
 		!(urb->transfer_flags & URB_SHORT_NOT_OK) ?
 		"short_ok" : "", urb->status);
 
+
+	usb_hcd_unlink_urb_from_ep(isp1362_hcd_to_hcd(isp1362_hcd), urb);
 	spin_unlock(&isp1362_hcd->lock);
-	usb_hcd_giveback_urb(isp1362_hcd_to_hcd(isp1362_hcd), urb);
+	usb_hcd_giveback_urb(isp1362_hcd_to_hcd(isp1362_hcd), urb, status);
 	spin_lock(&isp1362_hcd->lock);
 
 	// take idle endpoints out of the schedule right away
 	if (!list_empty(&ep->hep->urb_list)) {
 		return;
 	}
+
+	/* async deschedule */
+	if (!list_empty(&ep->schedule)) {
+		list_del_init(&ep->schedule);
+		return;
+	}
+
 
 	if (ep->interval) {
 		// periodic deschedule
@@ -541,10 +543,6 @@ static void finish_request(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep *e
 		    isp1362_hcd->load[ep->branch] - ep->load);
 		isp1362_hcd->load[ep->branch] -= ep->load;
 		ep->branch = PERIODIC_SIZE;
-	}
-	// async deschedule
-	if (!list_empty(&ep->schedule)) {
-		list_del_init(&ep->schedule);
 	}
 }
 
@@ -600,11 +598,10 @@ static void postproc_ep(struct isp1362_hcd *isp1362_hcd, struct isp1362_ep *ep)
 				// procede with the status stage
 				urb->actual_length += PTD_GET_COUNT(ptd);
 				BUG_ON(urb->actual_length > urb->transfer_buffer_length);
-				spin_lock(&urb->lock);
+
 				if (urb->status == -EINPROGRESS) {
 					urb->status = cc_to_error[PTD_DATAUNDERRUN];
 				}
-				spin_unlock(&urb->lock);
 			} else {
 				usb_settoggle(udev, ep->epnum, ep->nextpid == USB_PID_OUT,
 					      PTD_GET_TOGGLE(ptd));
@@ -1281,8 +1278,9 @@ static int balance(struct isp1362_hcd *isp1362_hcd, u16 interval, u16 load)
 
 /*-------------------------------------------------------------------------*/
 
-static int isp1362_urb_enqueue(struct usb_hcd *hcd, struct usb_host_endpoint *hep,
-			       struct urb *urb, gfp_t mem_flags)
+static int isp1362_urb_enqueue(struct usb_hcd *hcd,
+			       struct urb *urb,
+			       gfp_t mem_flags)
 {
 	struct isp1362_hcd *isp1362_hcd = hcd_to_isp1362_hcd(hcd);
 	struct usb_device *udev = urb->dev;
@@ -1290,6 +1288,7 @@ static int isp1362_urb_enqueue(struct usb_hcd *hcd, struct usb_host_endpoint *he
 	int is_out = !usb_pipein(pipe);
 	int type = usb_pipetype(pipe);
 	int epnum = usb_pipeendpoint(pipe);
+	struct usb_host_endpoint *hep = urb->ep;
 	struct isp1362_ep *ep = NULL;
 	unsigned long flags;
 	int retval = 0;
@@ -1324,6 +1323,8 @@ static int isp1362_urb_enqueue(struct usb_hcd *hcd, struct usb_host_endpoint *he
 	// avoid all allocations within spinlocks: request or endpoint
 	if (!hep->hcpriv) {
 		ep = kcalloc(1, sizeof *ep, mem_flags);
+		if (!ep)
+			return -ENOMEM;
 	}
 	spin_lock_irqsave(&isp1362_hcd->lock, flags);
 
@@ -1331,16 +1332,19 @@ static int isp1362_urb_enqueue(struct usb_hcd *hcd, struct usb_host_endpoint *he
 	if (!((isp1362_hcd->rhport[0] | isp1362_hcd->rhport[1]) &
 	      (1 << USB_PORT_FEAT_ENABLE)) ||
 	    !HC_IS_RUNNING(hcd->state)) {
+		kfree(ep);
 		retval = -ENODEV;
-		goto fail;
+		goto fail_not_linked;
+	}
+
+	retval = usb_hcd_link_urb_to_ep(hcd, urb);
+	if (retval) {
+		kfree(ep);
+		goto fail_not_linked;
 	}
 
 	if (hep->hcpriv) {
-		kfree(ep);
 		ep = hep->hcpriv;
-	} else if (!ep) {
-		retval = -ENOMEM;
-		goto fail;
 	} else {
 		INIT_LIST_HEAD(&ep->schedule);
 		INIT_LIST_HEAD(&ep->active);
@@ -1438,19 +1442,8 @@ static int isp1362_urb_enqueue(struct usb_hcd *hcd, struct usb_host_endpoint *he
 		isp1362_hcd->load[ep->branch] += ep->load;
 	}
 
-	/* in case of unlink-during-submit */
-	spin_lock(&urb->lock);
-	if (urb->status != -EINPROGRESS) {
-		spin_unlock(&urb->lock);
-		WARN("%s: Finishing ep %p req %d before submission with status %08x\n",
-		     __func__, ep, ep->num_req, urb->status);
-		finish_request(isp1362_hcd, ep, urb, 0);
-		retval = 0;
-		goto fail;
-	}
 	urb->hcpriv = hep;
 	ALIGNSTAT(isp1362_hcd, urb->transfer_buffer);
-	spin_unlock(&urb->lock);
 
 	switch (type) {
 	case PIPE_CONTROL:
@@ -1466,8 +1459,12 @@ static int isp1362_urb_enqueue(struct usb_hcd *hcd, struct usb_host_endpoint *he
 	default:
 		BUG();
 	}
-
  fail:
+	if (retval)
+		usb_hcd_unlink_urb_from_ep(hcd, urb);
+
+
+ fail_not_linked:
 	spin_unlock_irqrestore(&isp1362_hcd->lock, flags);
 	if (retval) {
 		DBG(0, "%s: urb %p failed with %d\n", __FUNCTION__, urb, retval);
@@ -1475,7 +1472,7 @@ static int isp1362_urb_enqueue(struct usb_hcd *hcd, struct usb_host_endpoint *he
 	return retval;
 }
 
-static int isp1362_urb_dequeue(struct usb_hcd *hcd, struct urb *urb)
+static int isp1362_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 {
 	struct isp1362_hcd *isp1362_hcd = hcd_to_isp1362_hcd(hcd);
 	struct usb_host_endpoint *hep;
@@ -1486,7 +1483,12 @@ static int isp1362_urb_dequeue(struct usb_hcd *hcd, struct urb *urb)
 	DBG(3, "%s: urb %p\n", __func__, urb);
 
 	spin_lock_irqsave(&isp1362_hcd->lock, flags);
+	retval = usb_hcd_check_unlink_urb(hcd, urb, status);
+	if (retval)
+	    goto done;
+
 	hep = urb->hcpriv;
+
 	if (!hep) {
 		spin_unlock_irqrestore(&isp1362_hcd->lock, flags);
 		return -EIDRM;
@@ -1507,7 +1509,7 @@ static int isp1362_urb_dequeue(struct usb_hcd *hcd, struct urb *urb)
 		if (urb) {
 			DBG(1, "%s: Finishing ep %p req %d\n", __func__, ep,
 			    ep->num_req);
-			finish_request(isp1362_hcd, ep, urb, -ESHUTDOWN);
+			finish_request(isp1362_hcd, ep, urb, status);
 		} else {
 			DBG(1, "%s: urb %p active; wait4irq\n", __func__, urb);
 		}
@@ -1515,6 +1517,7 @@ static int isp1362_urb_dequeue(struct usb_hcd *hcd, struct urb *urb)
 		WARN("%s: No EP in URB %p\n", __FUNCTION__, urb);
 		retval = -EINVAL;
 	}
+done:
 	spin_unlock_irqrestore(&isp1362_hcd->lock, flags);
 
 	DBG(3, "%s: exit\n",__func__);
