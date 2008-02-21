@@ -121,8 +121,10 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 			if (!sport->tx_dma_buf) {
 				printk(KERN_ERR "Failed to allocate memory for tx dma buf\n");
 				return -ENOMEM;
-			} else
+			} else {
+				sport->tx_buffer_size = runtime->buffer_size;
 				memset(sport->tx_dma_buf, 0, runtime->buffer_size * sizeof(struct ac97_frame));
+			}
 		}
 	} else {
 		if (!sport->rx_dma_buf) {
@@ -131,8 +133,10 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 			if (!sport->rx_dma_buf) {
 				printk(KERN_ERR "Failed to allocate memory for rx dma buf\n");
 				return -ENOMEM;
-			} else
+			} else {
+				sport->rx_buffer_size = runtime->buffer_size;
 				memset(sport->rx_dma_buf, 0, runtime->buffer_size * sizeof(struct ac97_frame));
+			}
 		}
 	}
 	memset(runtime->dma_area, 0, runtime->buffer_size * sizeof(struct ac97_frame));
@@ -335,9 +339,7 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 	struct snd_pcm_substream *substream;
 	struct snd_dma_buffer *buf;
 	int stream;
-#ifdef CONFIG_SND_MMAP_SUPPORT
-	struct snd_pcm_runtime *runtime;
-#endif
+
 	for (stream = 0; stream < 2; stream++) {
 		substream = pcm->streams[stream].substream;
 		if (!substream)
@@ -348,18 +350,16 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 			continue;
 #ifdef CONFIG_SND_MMAP_SUPPORT
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-			runtime = substream->runtime;
-			if (sport_handle->tx_dma_buf)
-				dma_free_coherent(NULL, runtime->buffer_size * sizeof(struct ac97_frame),\
-					sport_handle->tx_dma_buf, 0);
-			sport_handle->tx_dma_buf = NULL;
+		if (sport_handle->tx_dma_buf)
+			dma_free_coherent(NULL, sport_handle->tx_buffer_size * sizeof(struct ac97_frame),\
+				sport_handle->tx_dma_buf, 0);
+		sport_handle->tx_dma_buf = NULL;
 	} else {
 
-			runtime = substream->runtime;
-			if (sport_handle->rx_dma_buf)
-				dma_free_coherent(NULL, runtime->buffer_size * sizeof(struct ac97_frame), \
-					sport_handle->rx_dma_buf, 0);
-			sport_handle->rx_dma_buf = NULL;
+		if (sport_handle->rx_dma_buf)
+			dma_free_coherent(NULL, sport_handle->rx_buffer_size * sizeof(struct ac97_frame), \
+				sport_handle->rx_dma_buf, 0);
+		sport_handle->rx_dma_buf = NULL;
 	}
 #endif
 		dma_free_coherent(NULL, buf->bytes, buf->area, 0);

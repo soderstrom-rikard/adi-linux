@@ -121,6 +121,8 @@ struct sport_device {
 	dma_addr_t rx_dma_phy;
 	int tx_pos;/*pcm sample count*/
 	int rx_pos;
+	unsigned int tx_buffer_size;
+	unsigned int rx_buffer_size;
 #endif
 	void *private_data;
 };
