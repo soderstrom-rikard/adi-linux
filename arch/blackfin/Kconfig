@@ -53,6 +53,10 @@ config GENERIC_TIME
 	bool
 	default n
 
+config GENERIC_CLOCKEVENTS
+	bool
+	default n
+
 config GENERIC_GPIO
 	bool
 	default y
@@ -416,6 +420,14 @@ config MIN_SCLK_HZ
 comment "Kernel Timer/Scheduler"
 
 source kernel/Kconfig.hz
+
+config BFIN_CLOCKSOURCE
+	bool "Enable generic time framewrok, required for tickless system"
+	default n
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+
+source kernel/time/Kconfig
 
 comment "Memory Setup"
 
