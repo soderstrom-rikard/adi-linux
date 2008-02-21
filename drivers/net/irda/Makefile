@@ -5,7 +5,7 @@
 # Rewritten to use lists instead of if-statements.
 #
 
-# Old SIR drivers 
+# Old SIR drivers
 obj-$(CONFIG_IRPORT_SIR)	+= 		irport.o
 # FIR drivers
 obj-$(CONFIG_USB_IRDA)		+= irda-usb.o

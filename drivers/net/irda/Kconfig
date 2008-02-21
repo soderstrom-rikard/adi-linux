@@ -20,20 +20,44 @@ config IRTTY_SIR
 config BFIN_SIR
 	tristate "Blackfin SIR on UART"
 	depends on BLACKFIN && IRDA && (!SERIAL_BFIN_UART1 || !SERIAL_BFIN_UART0 )
-        help
-          Say Y here if your want to enable SIR function on Blackfin UART devices. 
+	help
+	  Say Y here if your want to enable SIR function on Blackfin UART devices.
 	  To activate this driver you can start irattach like:
 	  "irattach irda0 -s"
-	  
+	  Saying M, it will be built as a module named: bfin_sir.ko
+
 	  Note that You need to turn off serial driver for UART0 or UART1 first.
 
 config BFIN_SIR0
-        bool "Blackfin SIR on UART0"
-        depends on BFIN_SIR && !SERIAL_BFIN_UART0
+	bool "Blackfin SIR on UART0"
+	depends on BFIN_SIR && !SERIAL_BFIN_UART0
 
 config BFIN_SIR1
-        bool "Blackfin SIR on UART1"
-        depends on BFIN_SIR && !SERIAL_BFIN_UART1 && (BF52x || BF53x || BF54x)
+	bool "Blackfin SIR on UART1"
+	depends on BFIN_SIR && !SERIAL_BFIN_UART1 && (!BF531 && !BF532 && !BF533 && !BF561)
+
+choice
+	prompt "SIR Mode"
+	depends on BFIN_SIR
+	default SIR_BFIN_DMA
+	help
+	  This driver supports the built-in serial ports of the Blackfin family
+	  of CPUs
+
+config SIR_BFIN_DMA
+	bool "DMA mode"
+	depends on !DMA_UNCACHED_NONE
+	help
+	  This driver works under DMA mode.
+
+config SIR_BFIN_PIO
+	bool "PIO mode"
+	help
+	  This driver works under PIO mode.
+
+endchoice
+
+
 
 comment "Dongle support"
 
@@ -373,12 +397,12 @@ config SIGMATEL_FIR
 	select CRC32
 	---help---
 	  Say Y here if you want to build support for the SigmaTel STIr4200
-	  USB IrDA FIR bridge device driver.  
+	  USB IrDA FIR bridge device driver.
 
 	  USB bridge based on the SigmaTel STIr4200 don't conform to the
 	  IrDA-USB device class specification, and therefore need their
 	  own specific driver. Those dongles support SIR and FIR (4Mbps)
-	  speeds. 
+	  speeds.
 
 	  To compile it as a module, choose M here: the module will be called
 	  stir4200.
