@@ -923,8 +923,9 @@ void sport_done(struct sport_device *sport)
 	free_irq(sport->err_irq, sport);
 
 	kfree(sport);
+		sport = NULL;
 }
-
+EXPORT_SYMBOL(sport_done);
 /*
 * It is only used to send several bytes when dma is not enabled
  * sport controller is configured but not enabled.
