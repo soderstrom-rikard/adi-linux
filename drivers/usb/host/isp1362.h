@@ -100,7 +100,7 @@ static inline void delayed_insw(unsigned int addr, void *buf, int len)
 
 #define ISP1362_REG_WRITE_OFFSET	0x80
 
-#ifdef DEBUG
+#ifdef ISP1362_DEBUG
 typedef const unsigned int isp1362_reg_t;
 
 #define REG_WIDTH_16			0x000
@@ -635,7 +635,7 @@ static inline struct usb_hcd *isp1362_hcd_to_hcd(struct isp1362_hcd *isp1362_hcd
  * ISP1362 HW Interface
  */
 
-#ifdef DEBUG
+#ifdef ISP1362_DEBUG
 #define DBG(level, fmt...)	do {		\
 	if (dbg_level > level) {		\
 		printk(KERN_DEBUG fmt);		\
@@ -926,7 +926,7 @@ static void isp1362_write_fifo(struct isp1362_hcd *isp1362_hcd, void *buf, u16 l
 	}						\
 }
 
-#ifdef DEBUG
+#ifdef ISP1362_DEBUG
 #define isp1362_show_reg(d,r) {								\
 	if ((ISP1362_REG_##r & REG_WIDTH_MASK) == REG_WIDTH_32) {			\
 		DBG(0, "%-12s[%02x]: %08x\n", #r,					\
@@ -1075,7 +1075,7 @@ static void __attribute__((unused)) dump_data(char *buf, int len)
 	}
 }
 
-#if defined(DEBUG) && defined(PTD_TRACE)
+#if defined(ISP1362_DEBUG) && defined(PTD_TRACE)
 
 static void dump_ptd(struct ptd *ptd)
 {

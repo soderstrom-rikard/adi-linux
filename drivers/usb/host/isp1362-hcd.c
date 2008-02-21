@@ -39,9 +39,9 @@
 */
 
 #ifdef CONFIG_USB_DEBUG
- #define DEBUG
+ #define ISP1362_DEBUG
 #else
- #undef DEBUG
+ #undef ISP1362_DEBUG
 #endif
 
 /*
@@ -88,7 +88,7 @@
 #include <asm/unaligned.h>
 
 static int dbg_level = 0;
-#ifdef DEBUG
+#ifdef ISP1362_DEBUG
 module_param(dbg_level, int, 0644);
 #else
 module_param(dbg_level, int, 0);
@@ -230,7 +230,7 @@ static int claim_ptd_buffers(struct isp1362_ep_queue *epq, struct isp1362_ep *ep
 	}
 
 	DBG(1, "%s: Found %d PTDs[%d] for %d/%d byte\n", __FUNCTION__,
-	    num_ptds, found, len, epq->blk_size - PTD_HEADER_SIZE);
+	    num_ptds, found, len, (int)(epq->blk_size - PTD_HEADER_SIZE));
 	ptd_offset = get_ptd_offset(epq, found);
 	WARN_ON(ptd_offset < 0);
 	ep->ptd_offset = ptd_offset;
@@ -315,7 +315,7 @@ static void prepare_ptd(struct isp1362_hcd *isp1362_hcd, struct urb *urb, struct
 			len = max_transfer_size(epq, buf_len, ep->maxpacket);
 		}
 		DBG(1, "%s: IN    len %d/%d/%d from URB\n", __FUNCTION__, len, ep->maxpacket,
-		    buf_len);
+		    (int)buf_len);
 		break;
 	case USB_PID_OUT:
 		toggle = usb_gettoggle(urb->dev, ep->epnum, 1);
@@ -332,7 +332,7 @@ static void prepare_ptd(struct isp1362_hcd *isp1362_hcd, struct urb *urb, struct
 			     urb->transfer_flags & URB_ZERO_PACKET);
 		}
 		DBG(1, "%s: OUT   len %d/%d/%d from URB\n", __FUNCTION__, len, ep->maxpacket,
-		    buf_len);
+		    (int)buf_len);
 		break;
 	case USB_PID_SETUP:
 		toggle = 0;
@@ -2782,11 +2782,11 @@ static int __devexit isp1362_remove(struct platform_device *pdev)
 	iounmap(isp1362_hcd->addr_reg);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
-	DBG(0, "%s: release mem_region: %08lx\n", __FUNCTION__, res->start);
+	DBG(0, "%s: release mem_region: %08lx\n", __FUNCTION__, (long unsigned int)res->start);
 	if (res) release_mem_region(res->start, resource_len(res));
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	DBG(0, "%s: release mem_region: %08lx\n", __FUNCTION__, res->start);
+	DBG(0, "%s: release mem_region: %08lx\n", __FUNCTION__, (long unsigned int)res->start);
 	if (res) release_mem_region(res->start, resource_len(res));
 
 	DBG(0, "%s: put_hcd\n", __FUNCTION__);
@@ -2912,13 +2912,13 @@ static int __init isp1362_probe(struct platform_device *pdev)
 	DBG(0, "%s: Unmapping data_reg @ %08x\n", __FUNCTION__, (u32)data_reg);
 	iounmap(data_reg);
  err4:
-	DBG(0, "%s: Releasing mem region %08lx\n", __FUNCTION__, data->start);
+	DBG(0, "%s: Releasing mem region %08lx\n", __FUNCTION__, (long unsigned int)data->start);
 	release_mem_region(data->start, resource_len(data));
  err3:
 	DBG(0, "%s: Unmapping addr_reg @ %08x\n", __FUNCTION__, (u32)addr_reg);
 	iounmap(addr_reg);
  err2:
-	DBG(0, "%s: Releasing mem region %08lx\n", __FUNCTION__, addr->start);
+	DBG(0, "%s: Releasing mem region %08lx\n", __FUNCTION__, (long unsigned int)addr->start);
 	release_mem_region(addr->start, resource_len(addr));
  err1:
 	printk("init error, %d\n", retval);
