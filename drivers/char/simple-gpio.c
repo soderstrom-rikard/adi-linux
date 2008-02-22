@@ -198,9 +198,9 @@ static struct file_operations simple_gpio_fops = {
 static int __devinit simple_gpio_probe(struct platform_device *pdev)
 {
 	int ret;
-	struct resource *gpio_range = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-	int gpio_max = gpio_range->end - gpio_range->start + 1;
 	struct group_data *group_data;
+	struct resource *gpio_range = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+	int gpio, gpio_max = gpio_range->end - gpio_range->start + 1;
 
 	stampit();
 
@@ -229,8 +229,8 @@ static int __devinit simple_gpio_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	for (ret = gpio_range->start; ret < gpio_range->end; ++ret)
-		device_create(simple_gpio_class, &pdev->dev, group_data->dev_node + ret, "gpio%i", ret);
+	for (gpio = gpio_range->start; gpio < gpio_range->end; ++gpio)
+		device_create(simple_gpio_class, &pdev->dev, group_data->dev_node + gpio, "gpio%i", gpio);
 
 	device_init_wakeup(&pdev->dev, 1);
 
@@ -248,15 +248,16 @@ static int __devinit simple_gpio_probe(struct platform_device *pdev)
 static int __devexit simple_gpio_remove(struct platform_device *pdev)
 {
 	struct group_data *group_data = platform_get_drvdata(pdev);
-	int gpio;
+	struct resource *gpio_range = group_data->gpio_range;
+	int gpio, gpio_max = gpio_range->end - gpio_range->start + 1;
 
 	stampit();
 
-	for (gpio = group_data->gpio_range->start; gpio < group_data->gpio_range->end; ++gpio)
+	for (gpio = gpio_range->start; gpio < gpio_range->end; ++gpio)
 		device_destroy(simple_gpio_class, group_data->dev_node + gpio);
 
 	cdev_del(&group_data->cdev);
-	unregister_chrdev_region(group_data->dev_node, group_data->gpio_range->end - group_data->gpio_range->start + 1);
+	unregister_chrdev_region(group_data->dev_node, gpio_max);
 
 	kfree(group_data);
 
