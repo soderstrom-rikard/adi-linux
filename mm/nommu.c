@@ -1247,8 +1247,8 @@ int do_munmap(struct mm_struct *mm, unsigned long addr, size_t len)
 			goto done;
 	}
 
-	printk("munmap of non-mmaped memory by process %d (%s)\n",
-	       current->pid, current->comm);
+	printk(KERN_NOTICE "munmap of non-mmaped memory [%p-%p] by process %d (%s)\n",
+	       (void *)addr, (void *)addr+len, current->pid, current->comm);
 	return -EINVAL;
 
  done:
