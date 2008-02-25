@@ -1239,7 +1239,7 @@ int do_munmap(struct mm_struct *mm, unsigned long addr, size_t len)
 
 		/* Set up another round for the remaining area to unmap.  */
 		addr = vma->vm_end;
-		len -= vma->vm_end - vma->vm_start;
+		len -= PAGE_ALIGN(vma->vm_end - vma->vm_start);
 
 		unmap_one_vma(mm, vma, parent);
 
