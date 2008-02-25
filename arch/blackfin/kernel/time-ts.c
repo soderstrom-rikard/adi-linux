@@ -33,9 +33,9 @@ static inline unsigned long long cycles_2_ns(unsigned long long cyc)
 
 static cycle_t read_cycles(void)
 {
-	unsigned long tmp;
-	asm("%0 = cycles" : "=d"(tmp));
-	return tmp;
+	unsigned long tmp, tmp2;
+	asm("%0 = cycles; %1 = cycles2;" : "=d"(tmp), "=d"(tmp2));
+	return tmp | ((cycle_t)tmp2 << 32);
 }
 
 unsigned long long sched_clock(void)

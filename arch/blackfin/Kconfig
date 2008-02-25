@@ -422,8 +422,8 @@ comment "Kernel Timer/Scheduler"
 source kernel/Kconfig.hz
 
 config BFIN_CLOCKSOURCE
-	bool "Enable generic time framewrok, required for tickless system"
-	depends on !BFIN_SCRATCH_REG_CYCLES
+	bool "Enable generic time framework, required for tickless system (EXPERIMENTAL)"
+	depends on !BFIN_SCRATCH_REG_CYCLES && EXPERIMENTAL
 	default n
 	select GENERIC_TIME
 	select GENERIC_CLOCKEVENTS
