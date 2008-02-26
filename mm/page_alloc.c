@@ -1547,6 +1547,9 @@ restart:
 	if (page)
 		goto got_pg;
 
+	if (gfp_mask & __GFP_PAGECACHE)
+		goto nopage;
+
 	/* This allocation should allow future memory freeing. */
 
 rebalance:

@@ -93,6 +93,7 @@ static int two = 2;
 #endif
 
 static int zero;
+static int ten = 10;
 static int one_hundred = 100;
 
 /* this is needed for the proc_dointvec_minmax for [fs_]overflow UID and GID */
@@ -1089,7 +1090,7 @@ static struct ctl_table vm_table[] = {
 		.mode		= 0644,
 		.proc_handler	= &sysctl_pagecache_ratio_sysctl_handler,
 		.strategy	= &sysctl_intvec,
-		.extra1		= &zero,
+		.extra1		= &ten,
 		.extra2		= &one_hundred,
 	},
 /*
