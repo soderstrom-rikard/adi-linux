@@ -332,6 +332,9 @@ static void bf5xx_ac97_remove(struct platform_device *pdev)
 	free_page((unsigned long)cmd_count);
 	cmd_count = NULL;
 	remove_proc_entry("driver/sport_ac97", NULL);
+#ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
+	gpio_free(CONFIG_SND_BF5XX_RESET_GPIO_NUM);
+#endif
 }
 
 struct snd_soc_cpu_dai bfin_ac97_dai = {
