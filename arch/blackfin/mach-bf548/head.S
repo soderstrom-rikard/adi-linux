@@ -45,8 +45,6 @@
 
 #define INITIAL_STACK   0xFFB01000
 
-.text
-
 __INIT
 
 ENTRY(__start)
