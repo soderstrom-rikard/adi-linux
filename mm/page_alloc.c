@@ -1514,6 +1514,9 @@ restart:
 	if (NUMA_BUILD && (gfp_mask & GFP_THISNODE) == GFP_THISNODE)
 		goto nopage;
 
+	if (gfp_mask & __GFP_PAGECACHE)
+		drop_pagecache();
+
 	for (z = zonelist->zones; *z; z++)
 		wakeup_kswapd(*z, order);
 
