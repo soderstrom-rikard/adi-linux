@@ -396,6 +396,8 @@ static void sport_stop_rx(struct uart_port *port)
 {
 	struct sport_uart_port *up = (struct sport_uart_port *)port;
 
+	del_timer(&up->rx_timer);
+	up->once = 0;
 	pr_debug("%s enter\n", __FUNCTION__);
 	/* Disable sport to stop rx */
 	SPORT_PUT_RCR1(up, (SPORT_GET_RCR1(up) & ~RSPEN));
@@ -432,7 +434,6 @@ static void sport_shutdown(struct uart_port *port)
 	free_irq(up->rx_irq, up);
 	free_irq(up->tx_irq, up);
 	free_irq(up->err_irq, up);
-	del_timer(&up->rx_timer);
 }
 
 static void sport_set_termios(struct uart_port *port,
