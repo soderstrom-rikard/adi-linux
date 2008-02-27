@@ -31,6 +31,7 @@ static inline unsigned long long cycles_2_ns(unsigned long long cyc)
 	return (cyc * cyc2ns_scale) >> CYC2NS_SCALE_FACTOR;
 }
 
+#ifndef CONFIG_BFIN_SCRATCH_REG_CYCLES
 static cycle_t read_cycles(void)
 {
 	unsigned long tmp, tmp2;
@@ -44,6 +45,35 @@ unsigned long long sched_clock(void)
 	ticks64 = read_cycles();
 	return cycles_2_ns(ticks64);
 }
+
+
+static struct clocksource clocksource_bfin = {
+	.name		= "bfin_cycles",
+	.rating		= 350,
+	.read		= read_cycles,
+	.mask		= CLOCKSOURCE_MASK(64),
+	.shift		= 22,
+	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
+} ;
+
+static
+int bfin_clocksource_init(void)
+{
+	int ret;
+
+	clocksource_bfin.mult = clocksource_hz2mult(get_cclk(),
+						clocksource_bfin.shift);
+
+	ret = clocksource_register(&clocksource_bfin);
+	if (ret)
+		panic("failed to register clocksource");
+
+	return ret;
+
+}
+#else
+# define bfin_clocksource_init() {}
+#endif
 
 static int
 bfin_timer_set_next_event(unsigned long cycles,
@@ -101,31 +131,6 @@ static void bfin_timer_init(void)
 
 	/* now enable the timer */
 	CSYNC();
-}
-
-static struct clocksource clocksource_bfin = {
-	.name		= "bfin_cycles",
-	.rating		= 350,
-	.read		= read_cycles,
-	.mask		= CLOCKSOURCE_MASK(32),
-	.shift		= 22,
-	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
-} ;
-
-static
-int bfin_clocksource_init(void)
-{
-	int ret;
-
-	clocksource_bfin.mult = clocksource_hz2mult(get_cclk(),
-						clocksource_bfin.shift);
-
-	ret = clocksource_register(&clocksource_bfin);
-	if (ret)
-		panic("failed to register clocksource");
-
-	return ret;
-
 }
 
 /*
