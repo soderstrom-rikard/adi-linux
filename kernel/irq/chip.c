@@ -259,6 +259,17 @@ static void default_shutdown(unsigned int irq)
 
 
 /*
+ * default shutdown function
+ */
+static void default_shutdown(unsigned int irq)
+{
+	struct irq_desc *desc = irq_desc + irq;
+
+	desc->chip->mask(irq);
+	desc->status |= IRQ_MASKED;
+}
+
+/*
  * Fixup enable/disable function pointers
  */
 void irq_chip_set_defaults(struct irq_chip *chip)
@@ -269,6 +280,12 @@ void irq_chip_set_defaults(struct irq_chip *chip)
 		chip->disable = default_disable;
 	if (!chip->startup)
 		chip->startup = default_startup;
+	/*
+	 * We use chip->disable, when the user provided its own. When
+	 * we have default_disable set for chip->disable, then we need
+	 * to use default_shutdown, otherwise the irq line is not
+	 * disabled on free_irq():
+	 */
 	if (!chip->shutdown)
 		chip->shutdown = chip->disable != default_disable ?
 			chip->disable : default_shutdown;
