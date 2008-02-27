@@ -245,19 +245,6 @@ static unsigned int default_startup(unsigned int irq)
 	return 0;
 }
 
-
-/*
- * default shutdown function
- */
-static void default_shutdown(unsigned int irq)
-{
-	struct irq_desc *desc = irq_desc + irq;
-
-	desc->chip->mask(irq);
-	desc->status |= IRQ_MASKED;
-}
-
-
 /*
  * default shutdown function
  */
