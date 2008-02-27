@@ -28,6 +28,7 @@
  */
 
 #include <linux/linkage.h>
+#include <linux/init.h>
 #include <asm/blackfin.h>
 #include <asm/trace.h>
 #if CONFIG_BFIN_KERNEL_CLOCK
@@ -46,8 +47,9 @@
 
 .text
 
+__INIT
+
 ENTRY(__start)
-ENTRY(__stext)
 	/* R0: argument of command line string, passed from uboot, save it */
 	R7 = R0;
 	/* Enable Cycle Counter and Nesting Of Interrupts */
