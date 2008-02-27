@@ -12,6 +12,7 @@
 #include <linux/module.h>
 #include <linux/netdevice.h>
 #include <linux/interrupt.h>
+#include <linux/delay.h>
 #include <linux/platform_device.h>
 #include <linux/dma-mapping.h>
 
@@ -31,6 +32,21 @@
 #define DMA_SIR_RX_FLUSH_JIFS  3
 #endif
 
+static void turnaround_delay(unsigned long last_jif, int mtt)
+{
+	long ticks;
+
+	if (mtt <= 0)
+		return;
+	mtt -= jiffies_to_usecs(jiffies - last_jif);
+	if (mtt <= 10)
+		return;
+	ticks = mtt / (USEC_PER_SEC / HZ);
+	if (ticks > 0)
+		schedule_timeout_interruptible(1 + ticks);
+	else
+		udelay(mtt);
+}
 static void __init bfin_sir_init_ports(int i)
 {
 	sir_ports[i].membase   = (void __iomem *)bfin_sir_port_resource[i].base_addr;
@@ -102,7 +118,7 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 	unsigned long flags;
 	int ret = -EINVAL;
 	unsigned int quot;
-	unsigned short val, ier, lsr, lcr = 0;
+	unsigned short val, lsr, lcr = 0;
 
 	lcr = WLS(8);
 
@@ -119,8 +135,6 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 		do {
 			lsr = SIR_UART_GET_LSR(port);
 		} while (!(lsr & TEMT));
-
-		ier = SIR_UART_GET_IER(port);
 
 #ifndef CONFIG_BF54x
 		/* Set DLAB in LCR to Access DLL and DLH */
@@ -168,14 +182,12 @@ static void bfin_sir_tx_chars(struct net_device *dev)
 	struct bfin_sir_self *self = dev->priv;
 	struct bfin_sir_port *port = self->sir_port;
 
-	if ((SIR_UART_GET_LSR(port) & THRE) && self->tx_buff.len != 0) {
+	if (self->tx_buff.len != 0) {
 		chr = *(self->tx_buff.data);
 		SIR_UART_PUT_CHAR(port, chr);
 		self->tx_buff.data++;
 		self->tx_buff.len--;
-	}
-
-	if (self->tx_buff.len == 0) {
+	} else {
 		self->stats.tx_packets++;
 		self->stats.tx_bytes += self->tx_buff.data - self->tx_buff.head;
 		if (self->newspeed) {
@@ -193,10 +205,8 @@ static void bfin_sir_rx_chars(struct net_device *dev)
 {
 	struct bfin_sir_self *self = dev->priv;
 	struct bfin_sir_port *port = self->sir_port;
-	unsigned int status;
 	unsigned char ch;
 
-	status = SIR_UART_GET_LSR(port);
 	SIR_UART_CLEAR_LSR(port);
 	ch = SIR_UART_GET_CHAR(port);
 	async_unwrap_char(dev, &self->stats, &self->rx_buff, ch);
@@ -517,6 +527,10 @@ static int bfin_sir_hard_xmit(struct sk_buff *skb, struct net_device *dev)
 	struct bfin_sir_port *port = self->sir_port;
 	int speed = irda_get_next_speed(skb);
 
+	if (self->rx_buff.state != OUTSIDE_FRAME)
+		turnaround_delay(dev->last_rx, irda_get_mtt(skb));
+	bfin_sir_stop_rx(port);
+
 	if (speed != self->speed && speed != -1)
 		self->newspeed = speed;
 
@@ -635,9 +649,6 @@ err_startup:
 
 static int bfin_sir_stop(struct net_device *dev)
 {
-#ifdef DEBUG_SIR_PACKET
-	int i, j, rxd;
-#endif /* DEBUG_SIR_PACKET */
 	struct bfin_sir_self *self = dev->priv;
 
 	bfin_sir_shutdown(self->sir_port, dev);
@@ -708,7 +719,8 @@ static int __devinit bfin_sir_probe(struct platform_device *pdev)
 		baudrate_mask = IR_9600 | IR_19200 | IR_38400 | IR_57600 | IR_115200;
 
 		self->qos.baud_rate.bits &= baudrate_mask;
-		self->qos.min_turn_time.bits = 7; /* 1 ms or more */
+
+		self->qos.min_turn_time.bits = 1; /* 10 ms or more */
 
 		irda_qos_bits_to_value(&self->qos);
 
