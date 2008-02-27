@@ -213,6 +213,7 @@ ENTRY(__start)
 
 .LWAIT_HERE:
 	jump .LWAIT_HERE;
+ENDPROC(__start)
 
 ENTRY(_real_start)
 	[ -- sp ] = reti;
@@ -285,6 +286,9 @@ ENTRY(_real_start)
 	call _start_kernel;
 .L_exit:
 	jump.s	.L_exit;
+ENDPROC(_real_start)
+
+__FINIT
 
 .section .l1.text
 #if CONFIG_BFIN_KERNEL_CLOCK
@@ -450,6 +454,7 @@ ENTRY(_start_dma_code)
 	SSYNC;
 
 	RTS;
+ENDPROC(_start_dma_code)
 #endif /* CONFIG_BFIN_KERNEL_CLOCK */
 
 .data
