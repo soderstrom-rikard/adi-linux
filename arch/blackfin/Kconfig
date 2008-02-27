@@ -423,7 +423,7 @@ source kernel/Kconfig.hz
 
 config BFIN_CLOCKSOURCE
 	bool "Enable generic time framework, required for tickless system (EXPERIMENTAL)"
-	depends on !BFIN_SCRATCH_REG_CYCLES && EXPERIMENTAL
+	depends on EXPERIMENTAL
 	default n
 	select GENERIC_TIME
 	select GENERIC_CLOCKEVENTS
