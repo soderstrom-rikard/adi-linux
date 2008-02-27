@@ -88,7 +88,8 @@ unsigned short bfin_uart_pin_req_sport1[] =
 struct sport_uart_port {
 	struct uart_port	port;
 	char			*name;
-
+	struct timer_list	rx_timer;
+	int			once;
 	int			tx_irq;
 	int			rx_irq;
 	int			err_irq;
@@ -115,9 +116,10 @@ static inline void tx_one_byte(struct sport_uart_port *up, unsigned int value)
 	SPORT_PUT_TX(up, value);
 }
 
-static inline unsigned int rx_one_byte(struct sport_uart_port *up)
+static inline unsigned char rx_one_byte(struct sport_uart_port *up)
 {
-	unsigned int value, extract;
+	unsigned int value;
+	unsigned char extract;
 
 	value = SPORT_GET_RX32(up);
 	pr_debug("%s value:%x\n", __FUNCTION__, value);
@@ -171,11 +173,20 @@ static int sport_uart_setup(struct sport_uart_port *up, int sclk, int baud_rate)
 	return 0;
 }
 
+static void rx_push(unsigned long data)
+{
+	struct sport_uart_port *up = (struct sport_uart_port *)data;
+	struct tty_struct *tty = up->port.info->tty;
+	tty_flip_buffer_push(tty);
+	add_timer(&up->rx_timer);
+}
+
+
 static irqreturn_t sport_uart_rx_irq(int irq, void *dev_id)
 {
 	struct sport_uart_port *up = dev_id;
 	struct tty_struct *tty = up->port.info->tty;
-	unsigned int ch;
+	unsigned char ch;
 
 	do {
 		ch = rx_one_byte(up);
@@ -186,8 +197,10 @@ static irqreturn_t sport_uart_rx_irq(int irq, void *dev_id)
 		else
 			tty_insert_flip_char(tty, ch, TTY_NORMAL);
 	} while (SPORT_GET_STAT(up) & RXNE);
-	tty_flip_buffer_push(tty);
-
+	if (up->once == 0) {
+		add_timer(&up->rx_timer);
+		up->once = 1;
+	}
 	return IRQ_HANDLED;
 }
 
@@ -253,7 +266,10 @@ static int sport_startup(struct uart_port *port)
 		printk(KERN_ERR "Unable to request interrupt %s\n", buffer);
 		goto fail2;
 	}
-
+	init_timer(&up->rx_timer);
+	up->rx_timer.data = (unsigned long)up;
+	up->rx_timer.expires = jiffies + 5;
+	up->rx_timer.function = (void *)rx_push;
 	if (port->line) {
 		if (peripheral_request_list(bfin_uart_pin_req_sport1, DRV_NAME))
 			goto fail3;
@@ -416,6 +432,7 @@ static void sport_shutdown(struct uart_port *port)
 	free_irq(up->rx_irq, up);
 	free_irq(up->tx_irq, up);
 	free_irq(up->err_irq, up);
+	del_timer(&up->rx_timer);
 }
 
 static void sport_set_termios(struct uart_port *port,
