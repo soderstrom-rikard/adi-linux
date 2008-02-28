@@ -28,7 +28,7 @@ static inline void set_cyc2ns_scale(unsigned long cpu_khz)
 	cyc2ns_scale = (1000000 << CYC2NS_SCALE_FACTOR) / cpu_khz;
 }
 
-static inline unsigned long long cycles_2_ns(cycles_t cyc)
+static inline unsigned long long cycles_2_ns(cycle_t cyc)
 {
 	return (cyc * cyc2ns_scale) >> CYC2NS_SCALE_FACTOR;
 }
