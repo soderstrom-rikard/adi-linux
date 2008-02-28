@@ -56,8 +56,7 @@ static struct clocksource clocksource_bfin = {
 	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
 } ;
 
-static
-int bfin_clocksource_init(void)
+static int __init bfin_clocksource_init(void)
 {
 	int ret;
 
@@ -116,7 +115,7 @@ bfin_timer_set_mode(enum clock_event_mode mode,
 	}
 }
 
-static void bfin_timer_init(void)
+static void __init bfin_timer_init(void)
 {
 	/* power up the timer, but don't enable it just yet */
 	bfin_write_TCNTL(TMPWR);
@@ -162,7 +161,7 @@ irqreturn_t timer_interrupt(int irq, void *dummy)
 	return IRQ_HANDLED;
 }
 
-static int bfin_clockevent_init(void)
+static int __init bfin_clockevent_init(void)
 {
 	unsigned long rate;
 
