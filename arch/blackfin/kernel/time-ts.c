@@ -18,6 +18,7 @@
 
 #include <asm/blackfin.h>
 
+#ifdef CONFIG_CYCLES_CLOCKSOURCE
 static unsigned long cyc2ns_scale;
 #define CYC2NS_SCALE_FACTOR 10 /* 2^10, carefully chosen */
 
@@ -31,7 +32,6 @@ static inline unsigned long long cycles_2_ns(unsigned long long cyc)
 	return (cyc * cyc2ns_scale) >> CYC2NS_SCALE_FACTOR;
 }
 
-#ifdef CONFIG_CYCLES_CLOCKSOURCE
 static cycle_t read_cycles(void)
 {
 	unsigned long tmp, tmp2;
@@ -59,6 +59,8 @@ static struct clocksource clocksource_bfin = {
 static int __init bfin_clocksource_init(void)
 {
 	int ret;
+
+	set_cyc2ns_scale(get_cclk() / 1000);
 
 	clocksource_bfin.mult = clocksource_hz2mult(get_cclk(),
 						clocksource_bfin.shift);
@@ -163,15 +165,10 @@ irqreturn_t timer_interrupt(int irq, void *dummy)
 
 static int __init bfin_clockevent_init(void)
 {
-	unsigned long rate;
-
-	rate = get_cclk();
-
-	set_cyc2ns_scale(rate / 1000);
 	setup_irq(IRQ_CORETMR, &bfin_timer_irq);
 	bfin_timer_init();
 
-	clockevent_bfin.mult = div_sc(rate, NSEC_PER_SEC,
+	clockevent_bfin.mult = div_sc(get_cclk(), NSEC_PER_SEC,
 				      clockevent_bfin.shift);
 	clockevent_bfin.max_delta_ns =
 		clockevent_delta2ns(-1, &clockevent_bfin);
