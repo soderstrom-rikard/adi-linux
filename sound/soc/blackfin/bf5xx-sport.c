@@ -548,7 +548,7 @@ static int sport_config_rx_dummy(struct sport_device *sport)
 	desc->start_addr = (unsigned long)sport->dummy_buf;
 	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(sport->wdsize) | WNR | DMAEN;
 	desc->cfg = config;
-	desc->x_count = sport->dummy_count;
+	desc->x_count = sport->dummy_count/sport->wdsize;
 	desc->x_modify = sport->wdsize;
 	desc->y_count = 0;
 	desc->y_modify = 0;
@@ -583,7 +583,7 @@ static int sport_config_tx_dummy(struct sport_device *sport)
 		sizeof(struct ac97_frame);
 	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(sport->wdsize) | DMAEN;
 	desc->cfg = config;
-	desc->x_count = sport->dummy_count;
+	desc->x_count = sport->dummy_count/sport->wdsize;
 	desc->x_modify = sport->wdsize;
 	desc->y_count = 0;
 	desc->y_modify = 0;
