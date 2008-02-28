@@ -19,15 +19,16 @@
 #include <asm/blackfin.h>
 
 #ifdef CONFIG_CYCLES_CLOCKSOURCE
+
 static unsigned long cyc2ns_scale;
 #define CYC2NS_SCALE_FACTOR 10 /* 2^10, carefully chosen */
 
 static inline void set_cyc2ns_scale(unsigned long cpu_khz)
 {
-	cyc2ns_scale = (1000000 << CYC2NS_SCALE_FACTOR)/cpu_khz;
+	cyc2ns_scale = (1000000 << CYC2NS_SCALE_FACTOR) / cpu_khz;
 }
 
-static inline unsigned long long cycles_2_ns(unsigned long long cyc)
+static inline unsigned long long cycles_2_ns(cycles_t cyc)
 {
 	return (cyc * cyc2ns_scale) >> CYC2NS_SCALE_FACTOR;
 }
@@ -41,11 +42,8 @@ static cycle_t read_cycles(void)
 
 unsigned long long sched_clock(void)
 {
-	unsigned long long ticks64;
-	ticks64 = read_cycles();
-	return cycles_2_ns(ticks64);
+	return cycles_2_ns(read_cycles());
 }
-
 
 static struct clocksource clocksource_bfin = {
 	.name		= "bfin_cycles",
@@ -54,54 +52,46 @@ static struct clocksource clocksource_bfin = {
 	.mask		= CLOCKSOURCE_MASK(64),
 	.shift		= 22,
 	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
-} ;
+};
 
 static int __init bfin_clocksource_init(void)
 {
-	int ret;
-
 	set_cyc2ns_scale(get_cclk() / 1000);
 
-	clocksource_bfin.mult = clocksource_hz2mult(get_cclk(),
-						clocksource_bfin.shift);
+	clocksource_bfin.mult = clocksource_hz2mult(get_cclk(), clocksource_bfin.shift);
 
-	ret = clocksource_register(&clocksource_bfin);
-	if (ret)
+	if (clocksource_register(&clocksource_bfin))
 		panic("failed to register clocksource");
 
-	return ret;
-
+	return 0;
 }
+
 #else
-# define bfin_clocksource_init() {}
+# define bfin_clocksource_init()
 #endif
 
-static int
-bfin_timer_set_next_event(unsigned long cycles,
-			    struct clock_event_device *evt)
+static int bfin_timer_set_next_event(unsigned long cycles,
+                                     struct clock_event_device *evt)
 {
 	bfin_write_TCOUNT(cycles);
 	CSYNC();
 	return 0;
 }
 
-static void
-bfin_timer_set_mode(enum clock_event_mode mode,
-		    struct clock_event_device *evt)
+static void bfin_timer_set_mode(enum clock_event_mode mode,
+                                struct clock_event_device *evt)
 {
 	switch (mode) {
-	case CLOCK_EVT_MODE_PERIODIC:
-	{
+	case CLOCK_EVT_MODE_PERIODIC: {
 		unsigned long tcount = ((get_cclk() / (HZ * 1)) - 1);
-
 		bfin_write_TCNTL(TMPWR);
 		CSYNC();
 		bfin_write_TPERIOD(tcount);
 		bfin_write_TCOUNT(tcount);
 		bfin_write_TCNTL(TMPWR | TMREN | TAUTORLD);
 		CSYNC();
-	}
 		break;
+	}
 	case CLOCK_EVT_MODE_ONESHOT:
 		bfin_write_TCOUNT(0);
 		bfin_write_TCNTL(TMPWR | TMREN);
@@ -139,11 +129,12 @@ static void __init bfin_timer_init(void)
  * as well as call the "do_timer()" routine every clocktick
  */
 #ifdef CONFIG_CORE_TIMER_IRQ_L1
-irqreturn_t timer_interrupt(int irq, void *dummy)__attribute__((l1_text));
+__attribute__((l1_text))
 #endif
+irqreturn_t timer_interrupt(int irq, void *dummy);
 
 static struct irqaction bfin_timer_irq = {
-	.name		= "BFIN Timer Tick",
+	.name		= "Blackfin Core Timer",
 	.flags		= IRQF_DISABLED | IRQF_TIMER | IRQF_IRQPOLL,
 	.handler	= timer_interrupt,
 };
@@ -154,7 +145,7 @@ static struct clock_event_device clockevent_bfin = {
 	.shift		= 32,
 	.set_next_event = bfin_timer_set_next_event,
 	.set_mode	= bfin_timer_set_mode,
-} ;
+};
 
 irqreturn_t timer_interrupt(int irq, void *dummy)
 {
@@ -168,15 +159,12 @@ static int __init bfin_clockevent_init(void)
 	setup_irq(IRQ_CORETMR, &bfin_timer_irq);
 	bfin_timer_init();
 
-	clockevent_bfin.mult = div_sc(get_cclk(), NSEC_PER_SEC,
-				      clockevent_bfin.shift);
-	clockevent_bfin.max_delta_ns =
-		clockevent_delta2ns(-1, &clockevent_bfin);
-	clockevent_bfin.min_delta_ns =
-		clockevent_delta2ns(100, &clockevent_bfin);
+	clockevent_bfin.mult = div_sc(get_cclk(), NSEC_PER_SEC, clockevent_bfin.shift);
+	clockevent_bfin.max_delta_ns = clockevent_delta2ns(-1, &clockevent_bfin);
+	clockevent_bfin.min_delta_ns = clockevent_delta2ns(100, &clockevent_bfin);
 	clockevent_bfin.cpumask = cpumask_of_cpu(0);
-
 	clockevents_register_device(&clockevent_bfin);
+
 	return 0;
 }
 
@@ -198,9 +186,8 @@ void __init time_init(void)
 	/* Initialize xtime. From now on, xtime is updated with timer interrupts */
 	xtime.tv_sec = secs_since_1970;
 	xtime.tv_nsec = 0;
+	set_normalized_timespec(&wall_to_monotonic, -xtime.tv_sec, -xtime.tv_nsec);
 
-	set_normalized_timespec(&wall_to_monotonic,
-				-xtime.tv_sec, -xtime.tv_nsec);
 	bfin_clocksource_init();
 	bfin_clockevent_init();
 }
