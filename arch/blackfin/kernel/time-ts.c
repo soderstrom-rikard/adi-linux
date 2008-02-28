@@ -31,7 +31,7 @@ static inline unsigned long long cycles_2_ns(unsigned long long cyc)
 	return (cyc * cyc2ns_scale) >> CYC2NS_SCALE_FACTOR;
 }
 
-#ifndef CONFIG_BFIN_SCRATCH_REG_CYCLES
+#ifdef CONFIG_CYCLES_CLOCKSOURCE
 static cycle_t read_cycles(void)
 {
 	unsigned long tmp, tmp2;
