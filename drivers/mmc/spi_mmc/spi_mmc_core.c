@@ -393,7 +393,7 @@ void spi_mmc_transfer_worker(struct work_struct *work)
 {
 	mmc_info_t *pdev;
 	struct request *req;
-	request_queue_t *q;
+	struct request_queue *q;
 
 	// find our custom descriptor from the work 
 	//pdev = container_of(work, mmc_info_t, dt_ws);
@@ -453,7 +453,7 @@ void spi_mmc_transfer_worker(struct work_struct *work)
  * Notes:	
  *
  */
-static void spi_mmc_strategy(request_queue_t *q)
+static void spi_mmc_strategy(struct request_queue *q)
 {
 	mmc_info_t* pdev = (mmc_info_t*)q->queuedata;
 
@@ -504,13 +504,13 @@ static int spi_mmc_xfer_bio(mmc_info_t *pdev, struct bio *bio)
 	return error;
 }
 
-static int spi_mmc_make_request(request_queue_t *q, struct bio *bio)
+static int spi_mmc_make_request(struct request_queue *q, struct bio *bio)
 {
 	mmc_info_t *pdev = q->queuedata;
 	int error;
 
 	error = spi_mmc_xfer_bio(pdev, bio);
-	bio_endio(bio, bio->bi_size, error);
+	bio_endio(bio, error);
 	return 0;
 }
 
@@ -1256,8 +1256,9 @@ static int __devinit spi_mmc_probe(struct spi_device *spi)
 
 	return spi_mmc_block_setup(pdev);
 }
-#else
+#endif
 
+#ifdef CONFIG_SPI_MMC_BFIN_PIO_SPI
 static int spi_mmc_bfin_init(void)
 {
 	mmc_info_t *pdev;
