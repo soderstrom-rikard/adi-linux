@@ -2454,7 +2454,7 @@ static int isp1362_hc_reset(struct usb_hcd *hcd)
 	int ret = 0;
 	struct isp1362_hcd *isp1362_hcd = hcd_to_isp1362_hcd(hcd);
 	unsigned long t;
-	unsigned long timeout = 20;
+	unsigned long timeout = 100;
 	unsigned long flags;
 	int clkrdy = 0;
 
