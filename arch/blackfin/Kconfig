@@ -419,6 +419,7 @@ config GENERIC_TIME
 
 config GENERIC_CLOCKEVENTS
 	bool "Generic clock events"
+	depends on GENERIC_TIME
 	default y
 
 config CYCLES_CLOCKSOURCE
