@@ -172,7 +172,7 @@ static unsigned short bf5xx_ac97_read(struct snd_ac97 *ac97,
 	return in_frame[1].ac97_data;
 }
 
-static void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
+void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
 	unsigned short val)
 {
 	pr_debug("%s enter 0x%x:0x%04x\n", __FUNCTION__, reg, val);

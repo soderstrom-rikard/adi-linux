@@ -33,6 +33,7 @@ void bf5xx_ac97_pcm32_to_frame(struct ac97_frame *dst, const u32 *src, \
 void bf5xx_ac97_frame_to_pcm32(const struct ac97_frame *src, u32 *dst, \
 		size_t count);
 
-
+void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg, \
+	unsigned short val);
 
 #endif
