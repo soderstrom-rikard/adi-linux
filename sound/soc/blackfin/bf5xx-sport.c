@@ -357,7 +357,6 @@ int sport_tx_start(struct sport_device *sport)
 	sport->tx_run = 1;
 	bf5xx_ac97_write(NULL, 0x02, 0x0000);
 	bf5xx_ac97_write(NULL, 0x18, 0x0000);
-	bf5xx_ac97_write(NULL, 0x1c, 0x0000);
 	return 0;
 }
 EXPORT_SYMBOL(sport_tx_start);
@@ -366,6 +365,8 @@ int sport_tx_stop(struct sport_device *sport)
 {
 	if (!sport->tx_run)
 		return 0;
+	bf5xx_ac97_write(NULL, 0x02, 0x8000);
+	bf5xx_ac97_write(NULL, 0x18, 0x8000);
 	memset(sport->tx_buf, 0, sport->tx_frags*sport->tx_fragsize);
 	if (sport->rx_run) {
 		/* RX is still running, hook the dummy buffer */
