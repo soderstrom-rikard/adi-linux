@@ -182,13 +182,13 @@ static void bfin_t350mcqb_config_dma(struct bfin_t350mcqbfb_info *fbi)
 
 }
 
-static int bfin_t350mcqb_request_ports(int action)
-{
-	u16 ppi0_req_8[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2,
+static	u16 ppi0_req_8[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2,
 			    P_PPI0_D0, P_PPI0_D1, P_PPI0_D2,
 			    P_PPI0_D3, P_PPI0_D4, P_PPI0_D5,
 			    P_PPI0_D6, P_PPI0_D7, 0};
 
+static int bfin_t350mcqb_request_ports(int action)
+{
 	if (action) {
 		if (peripheral_request_list(ppi0_req_8, DRIVER_NAME)) {
 			printk(KERN_ERR "Requesting Peripherals faild\n");
@@ -520,7 +520,7 @@ static int __init bfin_t350mcqb_probe(struct platform_device *pdev)
 
 	fbinfo->fbops = &bfin_t350mcqb_fb_ops;
 
-	fbinfo->pseudo_palette = kmalloc(sizeof(u32) * 16, GFP_KERNEL);
+	fbinfo->pseudo_palette = kzalloc(sizeof(u32) * 16, GFP_KERNEL);
 	if (!fbinfo->pseudo_palette) {
 		printk(KERN_ERR DRIVER_NAME
 		       "Fail to allocate pseudo_palette\n");
@@ -528,8 +528,6 @@ static int __init bfin_t350mcqb_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 		goto out4;
 	}
-
-	memset(fbinfo->pseudo_palette, 0, sizeof(u32) * 16);
 
 	if (fb_alloc_cmap(&fbinfo->cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0)
 	    < 0) {
@@ -552,11 +550,11 @@ static int __init bfin_t350mcqb_probe(struct platform_device *pdev)
 		goto out7;
 	}
 
-	if (request_irq(info->irq, (void *)bfin_t350mcqb_irq_error, IRQF_DISABLED,
-			"PPI ERROR", info) < 0) {
+	ret = request_irq(info->irq, (void *)bfin_t350mcqb_irq_error, IRQF_DISABLED,
+			"PPI ERROR", info);
+	if (ret < 0) {
 		printk(KERN_ERR DRIVER_NAME
 		       ": unable to request PPI ERROR IRQ\n");
-		ret = -EFAULT;
 		goto out7;
 	}
 
