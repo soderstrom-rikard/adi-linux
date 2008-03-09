@@ -101,6 +101,7 @@ static ssize_t simple_gpio_write(struct file *file, const char __user *buf, size
 		case '\n': continue;
 		case 'I':
 		case 'O': dir = byte; break;
+		case 'T':
 		case '0':
 		case '1': uvalue = byte; break;
 		default:  return -EINVAL;
@@ -108,10 +109,12 @@ static ssize_t simple_gpio_write(struct file *file, const char __user *buf, size
 		stamp("processed byte '%c'", byte);
 	}
 
-	if (uvalue == '?')
-		value = gpio_get_value(gpio);
-	else
-		value = uvalue - '0';
+	switch (uvalue) {
+	case '?': value = gpio_get_value(gpio); break;
+	case 'T': value = !gpio_get_value(gpio); break;
+	default:  value = uvalue - '0'; break;
+	}
+
 	switch (dir) {
 	case 'I': gpio_direction_input(gpio); break;
 	case 'O': gpio_direction_output(gpio, value); break;
