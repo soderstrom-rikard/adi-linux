@@ -91,6 +91,7 @@ struct bfin_t350mcqbfb_info {
 	int lq043_open_cnt;
 	int irq;
 	spinlock_t lock;	/* lock */
+	u32 pseudo_pal[16];
 };
 
 static int nocursor;
@@ -520,14 +521,7 @@ static int __init bfin_t350mcqb_probe(struct platform_device *pdev)
 
 	fbinfo->fbops = &bfin_t350mcqb_fb_ops;
 
-	fbinfo->pseudo_palette = kzalloc(sizeof(u32) * 16, GFP_KERNEL);
-	if (!fbinfo->pseudo_palette) {
-		printk(KERN_ERR DRIVER_NAME
-		       "Fail to allocate pseudo_palette\n");
-
-		ret = -ENOMEM;
-		goto out4;
-	}
+	fbinfo->pseudo_palette = &info->pseudo_pal;
 
 	if (fb_alloc_cmap(&fbinfo->cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0)
 	    < 0) {
@@ -535,7 +529,7 @@ static int __init bfin_t350mcqb_probe(struct platform_device *pdev)
 		       "Fail to allocate colormap (%d entries)\n",
 		       BFIN_LCD_NBR_PALETTE_ENTRIES);
 		ret = -EFAULT;
-		goto out5;
+		goto out4;
 	}
 
 	if (bfin_t350mcqb_request_ports(1)) {
@@ -582,8 +576,6 @@ out7:
 	bfin_t350mcqb_request_ports(0);
 out6:
 	fb_dealloc_cmap(&fbinfo->cmap);
-out5:
-	kfree(fbinfo->pseudo_palette);
 out4:
 	dma_free_coherent(NULL, fbinfo->fix.smem_len, info->fb_buffer,
 			  info->dma_handle);
@@ -603,6 +595,8 @@ static int bfin_t350mcqb_remove(struct platform_device *pdev)
 	struct fb_info *fbinfo = platform_get_drvdata(pdev);
 	struct bfin_t350mcqbfb_info *info = fbinfo->par;
 
+	unregister_framebuffer(fbinfo);
+
 	free_dma(CH_PPI);
 	free_irq(info->irq, info);
 
@@ -610,7 +604,6 @@ static int bfin_t350mcqb_remove(struct platform_device *pdev)
 		dma_free_coherent(NULL, fbinfo->fix.smem_len, info->fb_buffer,
 				  info->dma_handle);
 
-	kfree(fbinfo->pseudo_palette);
 	fb_dealloc_cmap(&fbinfo->cmap);
 
 #ifndef NO_BL_SUPPORT
@@ -618,9 +611,10 @@ static int bfin_t350mcqb_remove(struct platform_device *pdev)
 	backlight_device_unregister(bl_dev);
 #endif
 
-	unregister_framebuffer(fbinfo);
-
 	bfin_t350mcqb_request_ports(0);
+
+	platform_set_drvdata(pdev, NULL);
+	framebuffer_release(fbinfo);
 
 	printk(KERN_INFO DRIVER_NAME ": Unregister LCD driver.\n");
 
