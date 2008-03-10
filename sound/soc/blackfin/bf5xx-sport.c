@@ -331,6 +331,7 @@ static inline int sport_hook_tx_dummy(struct sport_device *sport)
 int sport_tx_start(struct sport_device *sport)
 {
 	unsigned flags;
+	u16 *cache = sport->codec_reg_cache;
 	pr_debug("%s: tx_run:%d, rx_run:%d\n", __FUNCTION__,
 			sport->tx_run, sport->rx_run);
 	if (sport->tx_run)
@@ -355,8 +356,8 @@ int sport_tx_start(struct sport_device *sport)
 		sport_start(sport);
 	}
 	sport->tx_run = 1;
-	bf5xx_ac97_write(NULL, 0x02, 0x0000);
-	bf5xx_ac97_write(NULL, 0x18, 0x0000);
+	bf5xx_ac97_write(NULL, 0x02, (u16)cache[0x02 >> 1]);
+	bf5xx_ac97_write(NULL, 0x18, (u16)cache[0x18 >> 1]);
 	return 0;
 }
 EXPORT_SYMBOL(sport_tx_start);

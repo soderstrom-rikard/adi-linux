@@ -218,6 +218,7 @@ static int ad1980_soc_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 		goto cache_err;
 	}
+	sport_handle->codec_reg_cache = codec->reg_cache;
 	memcpy(codec->reg_cache, ad1980_reg, sizeof(u16) * \
 			ARRAY_SIZE(ad1980_reg));
 	codec->reg_cache_size = sizeof(u16) * ARRAY_SIZE(ad1980_reg);
