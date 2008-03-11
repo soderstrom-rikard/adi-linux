@@ -787,14 +787,10 @@ static int spi_mmc_dev_init(mmc_info_t* pdev)
 static inline
 void spi_mmc_delayed_revalidate(mmc_info_t *pdev, int timeout)
 {
+	int j = jiffies + msecs_to_jiffies(timeout);
 	/* guess card is removed */
-	if (pdev->card_in_bay || timeout == 0) {
-		schedule_work(&pdev->cd_ws);
-	} else {
-		int j = jiffies + msecs_to_jiffies(timeout);
-		pdev->card_in_bay = 0;
-		mod_timer(&pdev->revalidate_timer, j);
-	}
+	pdev->card_in_bay = 0;
+	mod_timer(&pdev->revalidate_timer, j);
 }
 
 static
