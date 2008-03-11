@@ -1349,9 +1349,6 @@ restart:
 	if (page)
 		goto got_pg;
 
-	if (gfp_mask & __GFP_PAGECACHE)
-		drop_pagecache();
-
 	/*
 	 * GFP_THISNODE (meaning __GFP_THISNODE, __GFP_NORETRY and
 	 * __GFP_NOWARN set) should not cause reclaim since the subsystem
@@ -1395,9 +1392,6 @@ restart:
 	page = get_page_from_freelist(gfp_mask, order, zonelist, alloc_flags);
 	if (page)
 		goto got_pg;
-
-	if (gfp_mask & __GFP_PAGECACHE)
-		goto nopage;
 
 	/* This allocation should allow future memory freeing. */
 
