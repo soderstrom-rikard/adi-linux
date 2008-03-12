@@ -23,15 +23,6 @@
 #include <asm/portmux.h>
 #include <asm/irq.h>
 
-#define DRV_NAME	"i2c-bfin-twi"
-#define DRV_AUTHOR	"Sonic Zhang, Bryan Wu"
-#define DRV_DESC	"Blackfin BF5xx on-chip I2C TWI Contoller Driver"
-#define DRV_VERSION	"1.8"
-
-MODULE_AUTHOR(DRV_AUTHOR);
-MODULE_DESCRIPTION(DRV_DESC);
-MODULE_LICENSE("GPL");
-
 #define POLL_TIMEOUT       (2 * HZ)
 
 /* SMBus mode*/
@@ -86,22 +77,21 @@ DEFINE_TWI_REG(XMT_DATA16, 0x84)
 DEFINE_TWI_REG(RCV_DATA8, 0x88)
 DEFINE_TWI_REG(RCV_DATA16, 0x8C)
 
-static int setup_pin_mux(int action, struct bfin_twi_iface *iface)
+static u16 pin_req[2][3] = {
+	{P_TWI0_SCL, P_TWI0_SDA, 0},
+	{P_TWI1_SCL, P_TWI1_SDA, 0},
+};
+
+static int setup_pin_mux(struct bfin_twi_iface *iface, int action)
 {
+	int rc = 0;
 
-	u16 pin_req[2][3] = {
-		{P_TWI0_SCL, P_TWI0_SDA, 0},
-		{P_TWI1_SCL, P_TWI1_SDA, 0},
-	};
-
-	if (action) {
-		if (peripheral_request_list(pin_req[iface->bus_num], DRV_NAME))
-			return -EFAULT;
-	} else {
+	if (action)
+		rc = peripheral_request_list(pin_req[iface->bus_num], "i2c-bfin-twi");
+	else
 		peripheral_free_list(pin_req[iface->bus_num]);
-	}
 
-	return 0;
+	return rc;
 }
 
 static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
@@ -668,7 +658,11 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	p_adap->class = I2C_CLASS_ALL;
 	p_adap->dev.parent = &pdev->dev;
 
-	setup_pin_mux(1, iface);
+	rc = setup_pin_mux(iface, 1);
+	if (rc) {
+		dev_err(&pdev->dev, "Can't setup Pin Mux!\n");
+		goto out_error_pin_mux;
+	}
 
 	rc = request_irq(iface->irq, bfin_twi_interrupt_entry,
 		IRQF_DISABLED, pdev->name, iface);
@@ -691,18 +685,24 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	SSYNC();
 
 	rc = i2c_add_adapter(p_adap);
-	if (rc < 0)
-		free_irq(iface->irq, iface);
-	else
-		platform_set_drvdata(pdev, iface);
+	if (rc < 0) {
+		dev_err(&pdev->dev, "Can't add i2c adapter!\n");
+		goto out_error_add_adapter;
+	}
 
-	dev_info(&pdev->dev, "%s, Version %s, regs_base@%p\n",
-		DRV_DESC, DRV_VERSION, iface->regs_base);
+	platform_set_drvdata(pdev, iface);
 
-	return rc;
+	dev_info(&pdev->dev, "Blackfin BF5xx on-chip I2C TWI Contoller, regs_base@%p\n",
+		iface->regs_base);
 
+	return 0;
+
+out_error_add_adapter:
+	free_irq(iface->irq, iface);
 out_error_req_irq:
 out_error_no_irq:
+	setup_pin_mux(iface, 0);
+out_error_pin_mux:
 	iounmap(iface->regs_base);
 out_error_ioremap:
 out_error_get_res:
@@ -719,7 +719,7 @@ static int i2c_bfin_twi_remove(struct platform_device *pdev)
 
 	i2c_del_adapter(&(iface->adap));
 	free_irq(iface->irq, iface);
-	setup_pin_mux(0, iface);
+	setup_pin_mux(iface, 0);
 
 	return 0;
 }
@@ -730,7 +730,7 @@ static struct platform_driver i2c_bfin_twi_driver = {
 	.suspend	= i2c_bfin_twi_suspend,
 	.resume		= i2c_bfin_twi_resume,
 	.driver		= {
-		.name	= DRV_NAME,
+		.name	= "i2c-bfin-twi",
 		.owner	= THIS_MODULE,
 	},
 };
@@ -747,3 +747,7 @@ static void __exit i2c_bfin_twi_exit(void)
 
 module_init(i2c_bfin_twi_init);
 module_exit(i2c_bfin_twi_exit);
+
+MODULE_AUTHOR("Bryan Wu, Sonic Zhang");
+MODULE_DESCRIPTION("Blackfin BF5xx on-chip I2C TWI Contoller Driver");
+MODULE_LICENSE("GPL");
