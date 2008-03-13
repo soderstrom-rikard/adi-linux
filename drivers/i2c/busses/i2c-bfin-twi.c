@@ -652,6 +652,7 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 
 	p_adap = &iface->adap;
 	p_adap->id = I2C_HW_BLACKFIN;
+	p_adap->nr = pdev->id;
 	strlcpy(p_adap->name, pdev->name, sizeof(p_adap->name));
 	p_adap->algo = &bfin_twi_algorithm;
 	p_adap->algo_data = iface;
@@ -684,7 +685,7 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	write_CONTROL(iface, read_CONTROL(iface) | TWI_ENA);
 	SSYNC();
 
-	rc = i2c_add_adapter(p_adap);
+	rc = i2c_add_numbered_adapter(p_adap);
 	if (rc < 0) {
 		dev_err(&pdev->dev, "Can't add i2c adapter!\n");
 		goto out_error_add_adapter;
