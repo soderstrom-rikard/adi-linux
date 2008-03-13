@@ -1218,9 +1218,8 @@ static int spi_mmc_block_setup(mmc_info_t *pdev)
 		return -ENODEV;
         }
 
-	// schedule to check for media on the shared queue
-    DPRINTK("schedule_work\n");
-	schedule_work(&pdev->cd_ws);
+	DPRINTK("spi_mmc: check media.\n");
+	spi_mmc_revalidate(pdev->gd);
 	#endif
 	
 	// add this disk to system
