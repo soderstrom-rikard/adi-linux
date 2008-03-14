@@ -1393,8 +1393,9 @@ restart:
 	if (page)
 		goto got_pg;
 
-	if (gfp_mask & __GFP_PAGECACHE)
-		drop_pagecache();
+#ifndef CONFIG_MMU
+	drop_pagecache();
+#endif
 
 	/* This allocation should allow future memory freeing. */
 
@@ -1465,8 +1466,9 @@ nofail_alloc:
 	 */
 	do_retry = 0;
 	if (!(gfp_mask & __GFP_NORETRY)) {
-		if (gfp_mask & __GFP_PAGECACHE)
-			drop_pagecache();
+#ifndef CONFIG_MMU
+		drop_pagecache();
+#endif
 		if ((order <= CONFIG_BIG_ORDER_ALLOC_NOFAIL_MAGIC) || (gfp_mask & __GFP_REPEAT))
 			do_retry = 1;
 		if (gfp_mask & __GFP_NOFAIL)
