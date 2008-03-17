@@ -433,11 +433,11 @@ static int ad7142_probe(struct i2c_adapter *adap, int addr, int kind)
 	input_dev = data->input_dev;
 	input_dev->open = ad7142_open;
 	input_dev->close = ad7142_close;
-	input_dev->evbit[0] = BIT(EV_KEY);
-	input_dev->keybit[LONG(BTN_BASE)] = BIT(BTN_BASE) | BIT(BTN_BASE2) |
-						BIT(BTN_BASE3) | BIT(BTN_BASE4);
-	input_dev->keybit[LONG(KEY_UP)] |= BIT(KEY_UP) | BIT(KEY_DOWN) |
-						BIT(KEY_LEFT) | BIT(KEY_RIGHT);
+	input_dev->evbit[0] = BIT_MASK(EV_KEY);
+	input_dev->keybit[BIT_WORD(BTN_BASE)] = BIT_MASK(BTN_BASE) | BIT_MASK(BTN_BASE2) |
+						BIT_MASK(BTN_BASE3) | BIT_MASK(BTN_BASE4);
+	input_dev->keybit[BIT_WORD(KEY_UP)] |= BIT_MASK(KEY_UP) | BIT_MASK(KEY_DOWN) |
+						BIT_MASK(KEY_LEFT) | BIT_MASK(KEY_RIGHT);
 
 	input_dev->name = "ad7142 joystick";
 	input_dev->phys = "ad7142/input0";
