@@ -72,10 +72,10 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 				   SNDRV_PCM_INFO_MMAP_VALID |
 				   SNDRV_PCM_INFO_BLOCK_TRANSFER,
 	.formats		= SNDRV_PCM_FMTBIT_S16_LE,
-	.period_bytes_min	= 2048,
-	.period_bytes_max	= 2048,
-	.periods_min		= 16,
-	.periods_max		= 16,
+	.period_bytes_min	= 6144,
+	.period_bytes_max	= 6144,
+	.periods_min		= 8,
+	.periods_max		= 8,
 	.buffer_bytes_max	= 0x20000, /* 128 kbytes */
 	.fifo_size		= 16,
 };
@@ -173,24 +173,10 @@ static int bf5xx_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 			cmd?" start":" stop");
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
-#ifdef CONFIG_SND_MMAP_SUPPORT
-		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-			bf5xx_mmap_copy(substream, runtime->period_size);
-			snd_pcm_period_elapsed(substream);
-			sport_tx_start(sport);
-			bf5xx_mmap_copy(substream, runtime->period_size);
-			snd_pcm_period_elapsed(substream);
-		} else {
-			sport_rx_start(sport);
-			bf5xx_mmap_copy(substream, runtime->period_size);
-			snd_pcm_period_elapsed(substream);
-		}
-#else
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 			sport_tx_start(sport);
 		else
 			sport_rx_start(sport);
-#endif
 		break;
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_SUSPEND:
@@ -221,9 +207,18 @@ static snd_pcm_uframes_t bf5xx_pcm_pointer(struct snd_pcm_substream *substream)
 	unsigned int curr;
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+#ifdef CONFIG_SND_MMAP_SUPPORT
+		curr = sport->tx_pos;
+#else
 		curr = sport_curr_offset_tx(sport) / sizeof(struct ac97_frame);
-	else
+#endif
+	else {
+#ifdef CONFIG_SND_MMAP_SUPPORT
+		curr = sport->rx_pos;
+#else
 		curr = sport_curr_offset_rx(sport) / sizeof(struct ac97_frame);
+#endif
+	}
 	pr_debug("%s pointer curr:0x%0x\n", substream->stream ? \
 			"Capture":"Playback", curr);
 
