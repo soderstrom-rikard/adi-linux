@@ -1128,15 +1128,6 @@ static unsigned long shrink_zone(int priority, struct zone *zone,
 	else
 		nr_inactive = 0;
 
-	/*
-	 * If the page cache is too big then focus on page cache
-	 * and ignore anonymous pages
-	 */
-	if (sc->may_swap && (zone_page_state(zone, NR_FILE_PAGES) -
-			zone_page_state(zone, NR_FILE_MAPPED))
-			> zone->max_pagecache_pages)
-		sc->may_swap = 0;
-
 	while (nr_active || nr_inactive) {
 		if (nr_active) {
 			nr_to_scan = min(nr_active,
