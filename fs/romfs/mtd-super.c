@@ -72,7 +72,7 @@ static inline struct romfs_inode_info *ROMFS_I(struct inode *inode)
 #define kdebug(FMT, ...) do {} while (0)
 #endif
 
-static kmem_cache_t *romfs_inode_cachep;
+static struct kmem_cache *romfs_inode_cachep;
 
 static const umode_t romfs_modemap[8] =
 {
@@ -148,7 +148,6 @@ static struct file_operations romfs_ro_fops = {
 	.llseek			= generic_file_llseek,
 	.read			= do_sync_read,
 	.aio_read		= generic_file_aio_read,
-	.sendfile		= generic_file_sendfile,
 #ifdef CONFIG_MMU
 	.mmap			= generic_file_readonly_mmap,
 #else
@@ -902,10 +901,9 @@ static struct file_system_type romfs_fs_type = {
 /*
  * inode storage initialiser
  */
-static void romfs_i_init_once(void *_inode, kmem_cache_t *cachep,
-			      unsigned long flags)
+static void romfs_i_init_once(struct kmem_cache *cachep, void *_inode)
 {
-	struct romfs_inode_info *inode = _inode;
+	struct romfs_inode_info *inode = (struct romfs_inode_info *)_inode;
 
 	inode_init_once(&inode->vfs_inode);
 }
@@ -923,7 +921,7 @@ static int __init init_romfs_fs(void)
 		kmem_cache_create("romfs_i",
 				  sizeof(struct romfs_inode_info), 0,
 				  SLAB_RECLAIM_ACCOUNT,
-				  romfs_i_init_once, NULL);
+				  romfs_i_init_once);
 
 	if (!romfs_inode_cachep) {
 		printk(KERN_ERR "ROMFS error: Failed to initialise inode cache\n");
