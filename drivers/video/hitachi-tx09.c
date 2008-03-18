@@ -515,7 +515,7 @@ static int tx09_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 
 	vma->vm_start = (unsigned long)fb_buffer;
 	vma->vm_end = vma->vm_start + 320 * 240 * 2;
-	vma->vm_flags |= VM_MAYSHARE;
+	vma->vm_flags |=  VM_MAYSHARE | VM_SHARED;
 
 	return 0;
 }

@@ -641,7 +641,7 @@ static int bfin_lq035_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 	 *   Other flags can be set, and are documented in
 	 *   include/linux/mm.h
 	 */
-	vma->vm_flags |=  VM_MAYSHARE;
+	vma->vm_flags |=  VM_MAYSHARE | VM_SHARED;
 
 	return 0 ;
 }

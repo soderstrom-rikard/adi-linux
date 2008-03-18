@@ -254,7 +254,7 @@ static int bfin_adv7393_fb_mmap(struct fb_info *info, struct vm_area_struct *vma
 	 *   include/linux/mm.h
 	 */
 
-	vma->vm_flags |= VM_MAYSHARE;
+	vma->vm_flags |=  VM_MAYSHARE | VM_SHARED;
 
 	return 0;
 
