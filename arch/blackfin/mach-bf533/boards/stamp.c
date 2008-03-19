@@ -484,6 +484,12 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 		.irq = 39,
 	},
 #endif
+#if defined(CONFIG_TWI_LCD) || defined(CONFIG_TWI_LCD_MODULE)
+	{
+		I2C_BOARD_INFO("pcf8574_lcd", 0x22),
+		.type = "pcf8574_lcd",
+	},
+#endif
 };
 #endif
 
