@@ -1,48 +1,16 @@
-/************************************************************
-*
-* Copyright (C) 2006-2008, Analog Devices. All Rights Reserved
-*
-* FILE twi_keypad.c
-* PROGRAMMER(S): Michael Hennerich (Analog Devices Inc.)
-*				 <hennerich@blackfin.uclinux.org>
-*
-*
-* DATE OF CREATION: Feb. 24th 2006
-*
-* SYNOPSIS:
-*
-* DESCRIPTION: TWI Driver for an 4x4 Keybaord Matrix connected to
-*              a PCF8574 I2C IO expander
-* CAUTION:
-**************************************************************
-* MODIFICATION HISTORY:
-* 24.02.2006 twi_keypad.c Created. (Michael Hennerich)
-* 27.11.2007 twi_keypad.c cleanup (Michael Hennerich)
-************************************************************
-*
-* This program is free software; you can distribute it and/or modify it
-* under the terms of the GNU General Public License (Version 2) as
-* published by the Free Software Foundation.
-*
-* This program is distributed in the hope it will be useful, but WITHOUT
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-* FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-* for more details.
-*
-* You should have received a copy of the GNU General Public License along
-* with this program; if not, write to the Free Software Foundation, Inc.,
-* 59 Temple Place - Suite 330, Boston MA 02111-1307, USA.
-*
-************************************************************/
+/*
+ * TWI Driver for an 4x4 Keybaord Matrix connected to a PCF8574 I2C IO expander
+ *
+ * Copyright 2005-2008 Analog Devices Inc.
+ *
+ * Enter bugs at http://blackfin.uclinux.org/
+ *
+ * Licensed under the GPL-2 or later.
+ */
 
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/input.h>
-#include <linux/major.h>
-#include <asm/uaccess.h>
-#include <asm/blackfin.h>
-#include <asm/irq.h>
-#include <linux/proc_fs.h>
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
 #include <linux/workqueue.h>
@@ -74,6 +42,7 @@ static unsigned char twi_keypad_btncode[] = {
 struct twikeypad {
 	unsigned char *btncode;
 	struct input_dev *idev;
+	struct i2c_client *client;
 	char name[64];
 	char phys[32];
 	unsigned char laststate;
@@ -81,33 +50,21 @@ struct twikeypad {
 	unsigned long irq_handled;
 	unsigned long events_sended;
 	unsigned long events_processed;
-	int irq;
 	struct work_struct twi_keypad_work;
 };
 
-#define	PCF8574_KP_DRV_NAME		"pcf8574_kp"
-static struct i2c_driver pcf8574_kp_driver;
-static struct i2c_client *pcf8574_kp_client;
-
-static unsigned short ignore[] = { I2C_CLIENT_END };
-static unsigned short normal_addr[] = { 0x27, I2C_CLIENT_END };
-
-static struct i2c_client_address_data addr_data = {
-	.normal_i2c = normal_addr,
-	.probe = ignore,
-	.ignore = ignore,
-};
+#define	PCF8574_KP_DRV_NAME "pcf8574_keypad"
 
 static short read_state(struct twikeypad *lp)
 {
 	unsigned char x, y, a, b;
 
-	if (pcf8574_kp_client) {
-		i2c_smbus_write_byte(pcf8574_kp_client, 240);
-		x = 0xF & (~(i2c_smbus_read_byte(pcf8574_kp_client) >> 4));
+	if (lp->client) {
+		i2c_smbus_write_byte(lp->client, 240);
+		x = 0xF & (~(i2c_smbus_read_byte(lp->client) >> 4));
 
-		i2c_smbus_write_byte(pcf8574_kp_client, 15);
-		y = 0xF & (~i2c_smbus_read_byte(pcf8574_kp_client));
+		i2c_smbus_write_byte(lp->client, 15);
+		y = 0xF & (~i2c_smbus_read_byte(lp->client));
 
 		for (a = 0; x > 0; a++)
 			x = x >> 1;
@@ -138,52 +95,62 @@ static void check_and_notify(struct work_struct *work)
 	}
 	lp->laststate = nextstate;
 	input_sync(lp->idev);
-	enable_irq(lp->irq);
+	enable_irq(lp->client->irq);
 }
 
 static irqreturn_t twi_keypad_irq_handler(int irq, void *dev_id)
 {
 	struct twikeypad *lp = dev_id;
 
-	disable_irq(lp->irq);
+	disable_irq_nosync(lp->client->irq);
 	schedule_work(&lp->twi_keypad_work);
 
 	return IRQ_HANDLED;
 }
 
-static int init_twikeypad(struct i2c_client *client)
+static int pcf8574_kp_probe(struct i2c_client *client)
 {
-	int i, ret;
+	int i, rc;
 	struct input_dev *idev;
 	struct twikeypad *lp;
 
+	if (i2c_smbus_write_byte(client, 240) < 0) {
+		dev_err(&client->dev, "in keypad probe: write fail\n");
+		return -ENODEV;
+	}
+
 	lp = kzalloc(sizeof(struct twikeypad), GFP_KERNEL);
-	idev = input_allocate_device();
-
-	if (!idev || !lp) {
-		ret = -ENOMEM;
-		goto fail;
-	}
-
-	lp->irq = CONFIG_BFIN_TWIKEYPAD_IRQ_PFX;
-
-	if (request_irq(lp->irq, twi_keypad_irq_handler,
-			IRQF_TRIGGER_LOW, PCF8574_KP_DRV_NAME, lp)) {
-
-		printk(KERN_WARNING "twikeypad: IRQ %d is not free.\n",
-		       lp->irq);
-		ret = -EBUSY;
-		goto fail;
-	}
+	if (!lp)
+		return -ENOMEM;
+	lp->client = client;
 
 	i2c_set_clientdata(client, lp);
+
+	if (client->irq > 0) {
+		rc = request_irq(client->irq, twi_keypad_irq_handler,
+			IRQF_TRIGGER_LOW, PCF8574_KP_DRV_NAME, lp);
+		if (rc) {
+			dev_err(&client->dev, "twikeypad: IRQ %d is not free.\n",
+				client->irq);
+			goto fail_irq;
+		}
+	} else
+		dev_warn(&client->dev, "IRQ not configured!\n");
+
+
+	idev = input_allocate_device();
+	if (!idev) {
+		dev_err(&client->dev, "Can't allocate input device\n");
+		rc = -ENOMEM;
+		goto fail_allocate;
+	}
 
 	lp->idev = idev;
 	lp->btncode = twi_keypad_btncode;
 
 	idev->evbit[0] = 0;
 
-	idev->evbit[0] |= BIT(EV_KEY);
+	idev->evbit[0] |= BIT_MASK(EV_KEY);
 	idev->keycode = lp->btncode;
 	idev->keycodesize = sizeof(twi_keypad_btncode);
 	idev->keycodemax = ARRAY_SIZE(twi_keypad_btncode);
@@ -205,7 +172,12 @@ static int init_twikeypad(struct i2c_client *client)
 
 	input_set_drvdata(idev, lp);
 
-	input_register_device(lp->idev);
+	rc = input_register_device(lp->idev);
+	if (rc) {
+		dev_err(&client->dev,
+			"Failed to register TWI keypad input device!\n");
+		goto fail_register;
+	}
 
 	lp->statechanged = 0x0;
 
@@ -214,81 +186,48 @@ static int init_twikeypad(struct i2c_client *client)
 	/* Set up our workqueue. */
 	INIT_WORK(&lp->twi_keypad_work, check_and_notify);
 
-	printk(KERN_INFO "input: %s at %s IRQ %d\n", lp->name, lp->phys,
-				 lp->irq);
+	dev_info(&client->dev, "input: %s at %s IRQ %d\n", lp->name, lp->phys,
+				 client->irq);
 
 	return 0;
 
-fail:
+
+fail_register:
+	input_set_drvdata(idev, NULL);
 	input_free_device(idev);
-	kfree(lp);
+fail_allocate:
+	free_irq(client->irq, lp);
+fail_irq:
 	i2c_set_clientdata(client, NULL);
-
-	return -1;
-}
-
-static int pcf8574_kp_probe(struct i2c_adapter *adap, int addr, int kind)
-{
-	struct i2c_client *client;
-	int rc;
-
-	client = kmalloc(sizeof(struct i2c_client), GFP_KERNEL);
-	if (!client)
-		return -ENOMEM;
-
-	memset(client, 0, sizeof(struct i2c_client));
-	strncpy(client->name, PCF8574_KP_DRV_NAME, I2C_NAME_SIZE);
-	client->addr = addr;
-	client->adapter = adap;
-	client->driver = &pcf8574_kp_driver;
-
-	rc = i2c_attach_client(client);
-
-	if (rc != 0) {
-		kfree(client);
-		printk(KERN_WARNING"i2c_attach_client fail: %d\n", rc);
-		return rc;
-	}
-
-	pcf8574_kp_client = client;
-
-	if (i2c_smbus_write_byte(pcf8574_kp_client, 240) < 0) {
-		printk(KERN_WARNING"in keypad probe: write fail\n");
-		return -1;
-	}
-
-	return init_twikeypad(client);
-}
-
-static int pcf8574_kp_attach(struct i2c_adapter *adap)
-{
-	if (adap->algo->functionality)
-		return i2c_probe(adap, &addr_data, pcf8574_kp_probe);
-	else
-		return pcf8574_kp_probe(adap, 0x27, 0);
-}
-
-static int pcf8574_kp_detach_client(struct i2c_client *client)
-{
-	struct twikeypad *lp = i2c_get_clientdata(client);
-	int rc;
-
-	free_irq(lp->irq, lp);
-	input_unregister_device(lp->idev);
 	kfree(lp);
-
-	rc = i2c_detach_client(client);
 
 	return rc;
 }
 
+
+
+static int __exit pcf8574_kp_remove(struct i2c_client *client)
+{
+	struct twikeypad *lp = i2c_get_clientdata(client);
+
+	if (client->irq > 0)
+		free_irq(client->irq, lp);
+
+	input_set_drvdata(lp->idev, NULL);
+	input_unregister_device(lp->idev);
+	kfree(lp);
+
+	i2c_set_clientdata(client, NULL);
+
+	return 0;
+}
+
 static struct i2c_driver pcf8574_kp_driver = {
 	.driver = {
-		   .name = PCF8574_KP_DRV_NAME,
-		   },
-	.id = 0x65,
-	.attach_adapter = pcf8574_kp_attach,
-	.detach_client = pcf8574_kp_detach_client,
+		.name = PCF8574_KP_DRV_NAME,
+	},
+	.probe = pcf8574_kp_probe,
+	.remove = __exit_p(pcf8574_kp_remove),
 };
 
 static int __init twi_keypad_init(void)
