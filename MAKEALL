@@ -1,5 +1,24 @@
 #!/bin/bash
 
+usage()
+{
+	cat <<-EOF
+	Usage: MAKEALL [options] [Blackfin platforms to build]
+
+	Options:
+	  -u     Update defconfigs after successful build
+	  -a     Build for all Blackfin variants (e.g. test BF537-STAMP on BF534/BF536)
+	  -c     Build kernel sources with C=1
+	  -cc    Build kernel sources with C=2
+	  -h     This help screen
+
+	If you do not specify any Blackfin platforms, the list will be taken
+	automatically from all the defconfigs found in arch/blackfin/configs/
+	EOF
+	[[ -n $* ]] && printf "\nError: $*\n" 1>&2 && exit 1
+	exit 0
+}
+
 update=false
 all=false
 makeargs=
@@ -9,7 +28,10 @@ while [[ -n $1 ]] ; do
 		-a)  all=true;;
 		-c)  makeargs="C=1";;
 		-cc) makeargs="C=2";;
-		*)   echo "Unknown argument $1"; exit 1;;
+		-h)  usage;;
+		--)  break;;
+		-*)  usage "Unknown argument $1";;
+		*)   break;;
 	esac
 	shift
 done
@@ -35,7 +57,9 @@ procs() {
 make="make -s ARCH=blackfin CROSS_COMPILE=bfin-uclinux-"
 
 ret=0
-for b in $(cd arch/blackfin/configs ; echo *_defconfig) ; do
+[[ -z $* ]] && set -- $(cd arch/blackfin/configs ; echo *_defconfig | sed s:_defconfig::g)
+for b in "$@" ; do
+	b="${b}_defconfig"
 	echo "### $b"
 	${make} $b >& /dev/null
 	for p in $(procs) ; do
@@ -43,13 +67,13 @@ for b in $(cd arch/blackfin/configs ; echo *_defconfig) ; do
 		rm -f $b.$p.log*
 		sed -i 1iCONFIG_${p}=y .config
 		yes "" | ${make} oldconfig >& /dev/null
-		${make} ${makeargs} -j${jobs} "$@" >& $b.$p.log
+		${make} ${makeargs} -j${jobs} >& $b.$p.log
 		if [[ $? -eq 0 ]] ; then
 			echo "OK"
 		else
 			# "normalize" and "minimize" the error log
-			${make} -j1 "$@" >& $b.$p.log.FAIL
-			${make} -j1 "$@" >& $b.$p.log.FAIL
+			${make} -j1 >& $b.$p.log.FAIL
+			${make} -j1 >& $b.$p.log.FAIL
 			echo "FAIL"
 			((++ret))
 		fi
