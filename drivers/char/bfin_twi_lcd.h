@@ -56,15 +56,6 @@
 static struct i2c_driver pcf8574_lcd_driver;
 static struct i2c_client *pcf8574_lcd_client;
 
-static unsigned short ignore[] = { I2C_CLIENT_END };
-static unsigned short normal_addr[] = { CONFIG_TWI_LCD_SLAVE_ADDR, I2C_CLIENT_END };
-
-static struct i2c_client_address_data addr_data = {
-  .normal_i2c = normal_addr,
-  .probe = ignore,
-  .ignore = ignore,
-};
-
 /* LCD Driver function headers and globals */
 
 static int currController = 0x2;

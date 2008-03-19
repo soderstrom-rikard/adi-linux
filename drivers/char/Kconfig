@@ -102,12 +102,6 @@ config TWI_LCD
 	default n
 	---help---
 
-config TWI_LCD_SLAVE_ADDR
-	int "I2C Slave Address"
-	depends on TWI_LCD
-	default 34
-	---help---
-
 config SIMPLE_GPIO
 	tristate "Simple GPIO char interface"
 	depends on GENERIC_GPIO

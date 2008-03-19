@@ -47,60 +47,26 @@
 
 #include "bfin_twi_lcd.h"
 
-static int pcf8574_lcd_probe(struct i2c_adapter *adap, int addr, int kind)
+static int __init pcf8574_lcd_probe(struct i2c_client *client)
 {
-	struct i2c_client *client;
-	int rc;
-
-	client = kmalloc(sizeof(struct i2c_client), GFP_KERNEL);
-	if (!client)
-		return -ENOMEM;
-
-	memset(client, 0, sizeof(struct i2c_client));
-	strncpy(client->name, PCF8574_LCD_DRV_NAME, I2C_NAME_SIZE);
-	client->addr = addr;
-	client->adapter = adap;
-	client->driver = &pcf8574_lcd_driver;
-
-	if ((rc = i2c_attach_client(client)) != 0) {
-		kfree(client);
-		printk(KERN_NOTICE "bfin_twi_lcd: i2c_attach_client fail: %d\n",
-		       rc);
-		lcd_present = 0;
-		return rc;
-	}
-
 	pcf8574_lcd_client = client;
-
 	drv_HD_I2C_load();
-
 	lcd_present = 1;
+
 	return 0;
 }
 
-static int pcf8574_lcd_attach(struct i2c_adapter *adap)
+static int __exit pcf8574_lcd_remove(struct i2c_client *client)
 {
-	if (adap->algo->functionality)
-		return i2c_probe(adap, &addr_data, pcf8574_lcd_probe);
-	else
-		return pcf8574_lcd_probe(adap, CONFIG_TWI_LCD_SLAVE_ADDR, 0);
-}
-
-static int pcf8574_lcd_detach_client(struct i2c_client *client)
-{
-	int rc;
-	if ((rc = i2c_detach_client(client)) == 0)
-		kfree(i2c_get_clientdata(client));
-	return rc;
+	return 0;
 }
 
 static struct i2c_driver pcf8574_lcd_driver = {
 	.driver = {
-		   .name = PCF8574_LCD_DRV_NAME,
-		   },
-	.id = 0x65,
-	.attach_adapter = pcf8574_lcd_attach,
-	.detach_client = pcf8574_lcd_detach_client,
+		.name = PCF8574_LCD_DRV_NAME,
+	},
+	.probe = pcf8574_lcd_probe,
+	.remove = __exit_p(pcf8574_lcd_remove),
 };
 
 static int lcd_ioctl(struct inode *inode, struct file *file,
@@ -265,7 +231,6 @@ static struct miscdevice bfin_twi_lcd_dev = {
 
 static int __init lcd_init(void)
 {
-
 	int result;
 	pr_info("%s\n", LCD_DRIVER);
 
@@ -276,9 +241,7 @@ static int __init lcd_init(void)
 		return result;
 	}
 
-	i2c_add_driver(&pcf8574_lcd_driver);
-
-	return 0;
+	return i2c_add_driver(&pcf8574_lcd_driver);
 }
 
 static void drv_HD_I2C_nibble(unsigned char controller, unsigned char nibble)
