@@ -8,7 +8,6 @@
  * Licensed under the GPL-2 or later.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/input.h>
@@ -397,10 +396,12 @@ static int ad7142_probe(struct i2c_client *client)
 	return 0;
 
 fail_register:
+	input_set_drvdata(input, NULL);
 	input_free_device(input);
 fail_allocate:
 	free_irq(client->irq, data);
 fail_irq:
+	i2c_set_clientdata(client, NULL);
 	kfree(data);
 	return rc;
 }
@@ -413,8 +414,13 @@ static int __exit ad7142_remove(struct i2c_client *client)
 		free_irq(client->irq, data);
 
 	flush_scheduled_work();
+
+	input_set_drvdata(data->input, NULL);
 	input_unregister_device(data->input);
+
 	kfree(data);
+
+	i2c_set_clientdata(client, NULL);
 	return 0;
 }
 
