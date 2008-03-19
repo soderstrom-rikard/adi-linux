@@ -2,11 +2,14 @@
 
 update=false
 all=false
+makeargs=
 while [[ -n $1 ]] ; do
 	case $1 in
-		-u) update=true;;
-		-a) all=true;;
-		*)  echo "Unknown argument $1"; exit 1;;
+		-u)  update=true;;
+		-a)  all=true;;
+		-c)  makeargs="C=1";;
+		-cc) makeargs="C=2";;
+		*)   echo "Unknown argument $1"; exit 1;;
 	esac
 	shift
 done
@@ -40,7 +43,7 @@ for b in $(cd arch/blackfin/configs ; echo *_defconfig) ; do
 		rm -f $b.$p.log*
 		sed -i 1iCONFIG_${p}=y .config
 		yes "" | ${make} oldconfig >& /dev/null
-		${make} -j${jobs} "$@" >& $b.$p.log
+		${make} ${makeargs} -j${jobs} "$@" >& $b.$p.log
 		if [[ $? -eq 0 ]] ; then
 			echo "OK"
 		else
