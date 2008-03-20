@@ -29,7 +29,7 @@
 #ifdef CONFIG_SIR_BFIN_DMA
 #define DMA_SIR_RX_XCNT        10
 #define DMA_SIR_RX_YCNT        (PAGE_SIZE / DMA_SIR_RX_XCNT)
-#define DMA_SIR_RX_FLUSH_JIFS  3
+#define DMA_SIR_RX_FLUSH_JIFS  4
 #endif
 
 static void turnaround_delay(unsigned long last_jif, int mtt)
@@ -361,8 +361,6 @@ static irqreturn_t bfin_sir_dma_rx_int(int irq, void *dev_id)
 	unsigned short irqstat;
 
 	tx_cnt = 0;
-	port->rx_dma_timer.expires = jiffies + DMA_SIR_RX_FLUSH_JIFS;
-	mod_timer(&(port->rx_dma_timer));
 
 	port->rx_dma_nrows++;
 	port->rx_dma_buf.tail = DMA_SIR_RX_XCNT * port->rx_dma_nrows;
@@ -378,6 +376,7 @@ static irqreturn_t bfin_sir_dma_rx_int(int irq, void *dev_id)
 	clear_dma_irqstat(port->rx_dma_channel);
 	spin_unlock(&self->lock);
 
+	mod_timer(&(port->rx_dma_timer), jiffies + DMA_SIR_RX_FLUSH_JIFS);
 	return IRQ_HANDLED;
 }
 #endif /* CONFIG_SIR_BFIN_DMA */
