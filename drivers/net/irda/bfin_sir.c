@@ -36,16 +36,9 @@ static void turnaround_delay(unsigned long last_jif, int mtt)
 {
 	long ticks;
 
-	if (mtt <= 0)
-		return;
-	mtt -= jiffies_to_usecs(jiffies - last_jif);
-	if (mtt <= 10)
-		return;
-	ticks = mtt / (USEC_PER_SEC / HZ);
-	if (ticks > 0)
-		schedule_timeout_interruptible(1 + ticks);
-	else
-		udelay(mtt);
+	mtt = mtt < 10000 ? 10000 : mtt;
+	ticks = 1 + mtt / (USEC_PER_SEC / HZ);
+	schedule_timeout_interruptible(ticks);
 }
 static void __init bfin_sir_init_ports(int i)
 {
@@ -67,7 +60,7 @@ static void bfin_sir_stop_tx(struct bfin_sir_port *port)
 	disable_dma(port->tx_dma_channel);
 #endif
 
-	while (!(SIR_UART_GET_LSR(port) & TEMT))
+	while (!(SIR_UART_GET_LSR(port) & THRE))
 		continue;
 #ifdef CONFIG_BF54x
 	SIR_UART_PUT_LSR(port, TFI);
@@ -115,7 +108,6 @@ static void bfin_sir_enable_rx(struct bfin_sir_port *port)
 
 static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 {
-	unsigned long flags;
 	int ret = -EINVAL;
 	unsigned int quot;
 	unsigned short val, lsr, lcr = 0;
@@ -131,10 +123,16 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 
 		quot = (port->clk + (8 * speed)) / (16 * speed);
 
-		local_irq_save(flags);
 		do {
 			lsr = SIR_UART_GET_LSR(port);
 		} while (!(lsr & TEMT));
+
+		/* Clear UCEN bit to reset the UART state machine
+		 * and control registers
+		 */
+		val = SIR_UART_GET_GCTL(port);
+		val &= ~UCEN;
+		SIR_UART_PUT_GCTL(port, val);
 
 #ifndef CONFIG_BF54x
 		/* Set DLAB in LCR to Access DLL and DLH */
@@ -163,17 +161,24 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 		val |= UCEN;
 		SIR_UART_PUT_GCTL(port, val);
 
-		local_irq_restore(flags);
 		ret = 0;
-		printk(KERN_NOTICE "bfin_sir: Set new speed %d\n", speed);
+		printk(KERN_DEBUG "bfin_sir: Set new speed %d\n", speed);
 		break;
 	default:
 		printk(KERN_WARNING "bfin_sir: Invalid speed %d\n", speed);
 		break;
 	}
 
+	val = SIR_UART_GET_GCTL(port);
+	/* If not add the 'RPOLC', we can't catch the receive interrupt.
+	 * It maybe related with HW layout.
+	 */
+	val |= IREN | RPOLC;
+	SIR_UART_PUT_GCTL(port, val);
 	return ret;
 }
+
+static int tx_cnt;
 
 #ifdef CONFIG_SIR_BFIN_PIO
 static void bfin_sir_tx_chars(struct net_device *dev)
@@ -192,12 +197,14 @@ static void bfin_sir_tx_chars(struct net_device *dev)
 		self->stats.tx_bytes += self->tx_buff.data - self->tx_buff.head;
 		if (self->newspeed) {
 			bfin_sir_set_speed(port, self->newspeed);
+			self->speed = self->newspeed;
 			self->newspeed = 0;
 		}
 		bfin_sir_stop_tx(port);
 		bfin_sir_enable_rx(port);
 		/* I'm hungry! */
 		netif_wake_queue(dev);
+		tx_cnt++;
 	}
 }
 
@@ -207,6 +214,7 @@ static void bfin_sir_rx_chars(struct net_device *dev)
 	struct bfin_sir_port *port = self->sir_port;
 	unsigned char ch;
 
+	tx_cnt = 0;
 	SIR_UART_CLEAR_LSR(port);
 	ch = SIR_UART_GET_CHAR(port);
 	async_unwrap_char(dev, &self->stats, &self->rx_buff, ch);
@@ -218,7 +226,6 @@ static irqreturn_t bfin_sir_rx_int(int irq, void *dev_id)
 	struct net_device *dev = dev_id;
 	struct bfin_sir_self *self = dev->priv;
 	struct bfin_sir_port *port = self->sir_port;
-
 	while ((SIR_UART_GET_LSR(port) & DR))
 		bfin_sir_rx_chars(dev);
 
@@ -291,7 +298,7 @@ static irqreturn_t bfin_sir_dma_tx_int(int irq, void *dev_id)
 		bfin_sir_enable_rx(port);
 		/* I'm hungry! */
 		netif_wake_queue(dev);
-
+		tx_cnt++;
 		port->tx_done = 1;
 	}
 	spin_unlock(&self->lock);
@@ -338,14 +345,12 @@ void bfin_sir_rx_dma_timeout(struct net_device *dev)
 	pos = port->rx_dma_nrows * DMA_SIR_RX_XCNT + x_pos;
 
 	if (pos > port->rx_dma_buf.tail) {
+		tx_cnt = 0;
 		port->rx_dma_buf.tail = pos;
 		bfin_sir_dma_rx_chars(dev);
 		port->rx_dma_buf.head = port->rx_dma_buf.tail;
 	}
 	spin_unlock_irqrestore(&self->lock, flags);
-
-	port->rx_dma_timer.expires = jiffies + DMA_SIR_RX_FLUSH_JIFS;
-	add_timer(&(port->rx_dma_timer));
 }
 
 static irqreturn_t bfin_sir_dma_rx_int(int irq, void *dev_id)
@@ -354,6 +359,10 @@ static irqreturn_t bfin_sir_dma_rx_int(int irq, void *dev_id)
 	struct bfin_sir_self *self = dev->priv;
 	struct bfin_sir_port *port = self->sir_port;
 	unsigned short irqstat;
+
+	tx_cnt = 0;
+	port->rx_dma_timer.expires = jiffies + DMA_SIR_RX_FLUSH_JIFS;
+	mod_timer(&(port->rx_dma_timer));
 
 	port->rx_dma_nrows++;
 	port->rx_dma_buf.tail = DMA_SIR_RX_XCNT * port->rx_dma_nrows;
@@ -375,8 +384,6 @@ static irqreturn_t bfin_sir_dma_rx_int(int irq, void *dev_id)
 
 static int bfin_sir_startup(struct bfin_sir_port *port, struct net_device *dev)
 {
-	unsigned short val;
-
 #ifdef CONFIG_SIR_BFIN_DMA
 	dma_addr_t dma_handle;
 
@@ -412,8 +419,6 @@ static int bfin_sir_startup(struct bfin_sir_port *port, struct net_device *dev)
 
 	port->rx_dma_timer.data = (unsigned long)(dev);
 	port->rx_dma_timer.function = (void *)bfin_sir_rx_dma_timeout;
-	port->rx_dma_timer.expires = jiffies + DMA_SIR_RX_FLUSH_JIFS;
-	add_timer(&(port->rx_dma_timer));
 
 #else
 
@@ -428,14 +433,6 @@ static int bfin_sir_startup(struct bfin_sir_port *port, struct net_device *dev)
 		return -EBUSY;
 	}
 #endif
-
-	val = SIR_UART_GET_GCTL(port);
-
-	/* If not add the 'RPOLC', we can't catch the receive interrupt.
-	 * It maybe related with HW layout.
-	 */
-	val |= IREN | RPOLC;
-	SIR_UART_PUT_GCTL(port, val);
 
 	return 0;
 }
@@ -482,6 +479,7 @@ static int bfin_sir_suspend(struct platform_device *pdev, pm_message_t state)
 		dev = (psir_ports+i)->dev;
 		self = dev->priv;
 		if (self->open) {
+			flush_scheduled_work();
 			bfin_sir_shutdown(self->sir_port, dev);
 			netif_device_detach(dev);
 		}
@@ -521,43 +519,48 @@ static int bfin_sir_resume(struct platform_device *pdev)
 #define bfin_sir_resume    NULL
 #endif
 
-static int bfin_sir_hard_xmit(struct sk_buff *skb, struct net_device *dev)
+static void bfin_sir_send_work(struct work_struct *work)
 {
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self  *self = container_of(work, struct bfin_sir_self, work);
+	struct net_device *dev = self->sir_port->dev;
 	struct bfin_sir_port *port = self->sir_port;
-	int speed = irda_get_next_speed(skb);
 
-	if (self->rx_buff.state != OUTSIDE_FRAME)
-		turnaround_delay(dev->last_rx, irda_get_mtt(skb));
-	bfin_sir_stop_rx(port);
+	while (self->rx_buff.state != OUTSIDE_FRAME)
+		turnaround_delay(dev->last_rx, self->mtt);
 
-	if (speed != self->speed && speed != -1)
-		self->newspeed = speed;
-
-	if (skb->len == 0) {
-		if (self->newspeed) {
-			self->newspeed = 0;
-
-			bfin_sir_set_speed(port, speed);
-			bfin_sir_enable_rx(port);
-			dev->trans_start = jiffies;
-		}
-		dev_kfree_skb(skb);
-		return 0;
+	if (tx_cnt >= 20) {
+		printk(KERN_DEBUG "\nReceiver dead detected, reset UART!\n");
+		bfin_sir_set_speed(port, self->speed);
 	}
-
-	netif_stop_queue(dev);
-
-	self->tx_buff.data = self->tx_buff.head;
-	self->tx_buff.len  = async_wrap_skb(skb, self->tx_buff.data, self->tx_buff.truesize);
+	bfin_sir_stop_rx(port);
 
 #ifdef CONFIG_SIR_BFIN_DMA
 	bfin_sir_dma_tx_chars(dev);
 #else
 	bfin_sir_enable_tx(port);
 #endif
-
 	dev->trans_start = jiffies;
+}
+
+static int bfin_sir_hard_xmit(struct sk_buff *skb, struct net_device *dev)
+{
+	struct bfin_sir_self *self = dev->priv;
+	int speed = irda_get_next_speed(skb);
+
+	netif_stop_queue(dev);
+
+	self->mtt = irda_get_mtt(skb);
+
+	if (speed != self->speed && speed != -1)
+		self->newspeed = speed;
+
+	self->tx_buff.data = self->tx_buff.head;
+	if (skb->len == 0)
+		self->tx_buff.len = 0;
+	else
+		self->tx_buff.len = async_wrap_skb(skb, self->tx_buff.data, self->tx_buff.truesize);
+
+	schedule_work(&self->work);
 	dev_kfree_skb(skb);
 
 	return 0;
@@ -616,6 +619,7 @@ static int bfin_sir_open(struct net_device *dev)
 	struct bfin_sir_port *port = self->sir_port;
 	int err = -ENOMEM;
 
+	self->newspeed = 0;
 	self->speed = 9600;
 
 	spin_lock_init(&self->lock);
@@ -629,6 +633,8 @@ static int bfin_sir_open(struct net_device *dev)
 	self->irlap = irlap_open(dev, &self->qos, "bfin_5xx");
 	if (!self->irlap)
 		goto err_irlap;
+
+	INIT_WORK(&self->work, bfin_sir_send_work);
 
 	/*
 	 * Now enable the interrupt then start the queue
@@ -651,6 +657,7 @@ static int bfin_sir_stop(struct net_device *dev)
 {
 	struct bfin_sir_self *self = dev->priv;
 
+	flush_scheduled_work();
 	bfin_sir_shutdown(self->sir_port, dev);
 
 	if (self->rxskb) {
