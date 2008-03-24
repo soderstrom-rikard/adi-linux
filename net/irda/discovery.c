@@ -283,9 +283,9 @@ struct irda_device_info *irlmp_copy_discoveries(hashbin_t *log, int *pn,
 		/* Mask out the ones we don't want :
 		 * We want to match the discovery mask, and to get only
 		 * the most recent one (unless we want old ones) */
-		if ((u16ho(discovery->data.hints) & mask) &&
+		if ((get_unaligned((__u16 *)discovery->data.hints) & mask) &&
 		    ((old_entries) ||
-		     ((jiffies - discovery->firststamp) < j_timeout)) ) {
+		     ((jiffies - discovery->firststamp) < j_timeout))) {
 			/* Create buffer as needed.
 			 * As this function get called a lot and most time
 			 * we don't have anything to put in the log (we are
