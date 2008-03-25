@@ -50,7 +50,6 @@ struct bfin_twi_iface {
 	int			msg_num;
 	int			cur_msg;
 	void __iomem		*regs_base;
-	int			bus_num;
 };
 
 
@@ -77,22 +76,10 @@ DEFINE_TWI_REG(XMT_DATA16, 0x84)
 DEFINE_TWI_REG(RCV_DATA8, 0x88)
 DEFINE_TWI_REG(RCV_DATA16, 0x8C)
 
-static u16 pin_req[2][3] = {
+static const u16 pin_req[2][3] = {
 	{P_TWI0_SCL, P_TWI0_SDA, 0},
 	{P_TWI1_SCL, P_TWI1_SDA, 0},
 };
-
-static int setup_pin_mux(struct bfin_twi_iface *iface, int action)
-{
-	int rc = 0;
-
-	if (action)
-		rc = peripheral_request_list(pin_req[iface->bus_num], "i2c-bfin-twi");
-	else
-		peripheral_free_list(pin_req[iface->bus_num]);
-
-	return rc;
-}
 
 static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 {
@@ -646,7 +633,6 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 		goto out_error_no_irq;
 	}
 
-	iface->bus_num = pdev->id;
 	init_timer(&(iface->timeout_timer));
 	iface->timeout_timer.function = bfin_twi_timeout;
 	iface->timeout_timer.data = (unsigned long)iface;
@@ -660,9 +646,9 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	p_adap->class = I2C_CLASS_ALL;
 	p_adap->dev.parent = &pdev->dev;
 
-	rc = setup_pin_mux(iface, 1);
+	rc = peripheral_request_list(pin_req[pdev->id], "i2c-bfin-twi");
 	if (rc) {
-		dev_err(&pdev->dev, "Can't setup Pin Mux!\n");
+		dev_err(&pdev->dev, "Can't setup pin mux!\n");
 		goto out_error_pin_mux;
 	}
 
@@ -703,7 +689,7 @@ out_error_add_adapter:
 	free_irq(iface->irq, iface);
 out_error_req_irq:
 out_error_no_irq:
-	setup_pin_mux(iface, 0);
+	peripheral_free_list(pin_req[pdev->id]);
 out_error_pin_mux:
 	iounmap(iface->regs_base);
 out_error_ioremap:
@@ -721,7 +707,9 @@ static int i2c_bfin_twi_remove(struct platform_device *pdev)
 
 	i2c_del_adapter(&(iface->adap));
 	free_irq(iface->irq, iface);
-	setup_pin_mux(iface, 0);
+	peripheral_free_list(pin_req[pdev->id]);
+	iounmap(iface->regs_base);
+	kfree(iface);
 
 	return 0;
 }
