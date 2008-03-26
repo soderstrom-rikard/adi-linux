@@ -26,10 +26,10 @@
 #define POLL_TIMEOUT       (2 * HZ)
 
 /* SMBus mode*/
-#define TWI_I2C_MODE_STANDARD		0x01
-#define TWI_I2C_MODE_STANDARDSUB	0x02
-#define TWI_I2C_MODE_COMBINED		0x04
-#define TWI_I2C_MODE_REPEAT		0x08
+#define TWI_I2C_MODE_STANDARD		1
+#define TWI_I2C_MODE_STANDARDSUB	2
+#define TWI_I2C_MODE_COMBINED		3	
+#define TWI_I2C_MODE_REPEAT		4
 
 struct bfin_twi_iface {
 	int			irq;
@@ -222,7 +222,7 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 			if (iface->pmsg[iface->cur_msg].len <= 255)
 				write_MASTER_CTL(iface,
 				iface->pmsg[iface->cur_msg].len << 6);
-			else if (iface->pmsg[iface->cur_msg].len > 255) {
+			else {
 				write_MASTER_CTL(iface, 0xff << 6);
 				iface->manual_stop = 1;
 			}
@@ -341,7 +341,7 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 
 	if (pmsg->len <= 255)
 		write_MASTER_CTL(iface, pmsg->len << 6);
-	else if (pmsg->len > 255) {
+	else {
 		write_MASTER_CTL(iface, 0xff << 6);
 		iface->manual_stop = 1;
 	}
