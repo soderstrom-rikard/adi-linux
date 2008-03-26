@@ -284,7 +284,7 @@ config JOYSTICK_XPAD_LEDS
 
 config JOYSTICK_AD7142
 	tristate "Analog Devices AD7142 Joystick support"
-	depends on BLACKFIN && I2C
+	depends on I2C
 	---help---
 	  Say Y here if you want to support an AD7142 joystick
 
