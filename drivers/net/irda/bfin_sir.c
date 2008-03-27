@@ -256,8 +256,16 @@ static void bfin_sir_dma_tx_chars(struct net_device *dev)
 	port->tx_done = 0;
 
 	if (self->tx_buff.len == 0) {
-		bfin_sir_stop_tx(port);
+		self->stats.tx_packets++;
+		if (self->newspeed) {
+			bfin_sir_set_speed(port, self->newspeed);
+			self->speed = self->newspeed;
+			self->newspeed = 0;
+		}
+		bfin_sir_enable_rx(port);
 		port->tx_done = 1;
+		netif_wake_queue(dev);
+		tx_cnt++;
 		return;
 	}
 
