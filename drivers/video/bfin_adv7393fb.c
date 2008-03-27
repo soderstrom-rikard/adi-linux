@@ -658,7 +658,7 @@ static int __init bfin_adv7393_fb_probe(struct platform_device *pdev)
 		goto out_4;
 	}
 
-	if (request_irq(IRQ_PPI_ERROR, (void *)ppi_irq_error, IRQF_DISABLED,
+	if (request_irq(IRQ_PPI_ERROR, ppi_irq_error, IRQF_DISABLED,
 			"PPI ERROR", fbdev) < 0) {
 		printk(KERN_ERR
 		       "\n bfin_adv7393_fb: unable to request PPI ERROR IRQ\n");
