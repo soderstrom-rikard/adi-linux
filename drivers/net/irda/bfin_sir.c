@@ -29,7 +29,7 @@
 #ifdef CONFIG_SIR_BFIN_DMA
 #define DMA_SIR_RX_XCNT        10
 #define DMA_SIR_RX_YCNT        (PAGE_SIZE / DMA_SIR_RX_XCNT)
-#define DMA_SIR_RX_FLUSH_JIFS  4
+#define DMA_SIR_RX_FLUSH_JIFS  (HZ * 4 / 250)
 #endif
 
 static void turnaround_delay(unsigned long last_jif, int mtt)
@@ -269,8 +269,6 @@ static void bfin_sir_dma_tx_chars(struct net_device *dev)
 		return;
 	}
 
-	spin_lock_irqsave(&self->lock, flags);
-
 	blackfin_dcache_flush_range((unsigned long)(self->tx_buff.data),
 					(unsigned long)(self->tx_buff.data+self->tx_buff.len));
 	set_dma_config(port->tx_dma_channel,
@@ -282,8 +280,6 @@ static void bfin_sir_dma_tx_chars(struct net_device *dev)
 	set_dma_x_modify(port->tx_dma_channel, 1);
 	enable_dma(port->tx_dma_channel);
 	bfin_sir_enable_tx(port);
-
-	spin_unlock_irqrestore(&self->lock, flags);
 }
 
 static irqreturn_t bfin_sir_dma_tx_int(int irq, void *dev_id)
@@ -301,6 +297,7 @@ static irqreturn_t bfin_sir_dma_tx_int(int irq, void *dev_id)
 		self->tx_buff.len = 0;
 		if (self->newspeed) {
 			bfin_sir_set_speed(port, self->newspeed);
+			self->speed = self->newspeed;
 			self->newspeed = 0;
 		}
 		bfin_sir_enable_rx(port);
@@ -369,6 +366,7 @@ static irqreturn_t bfin_sir_dma_rx_int(int irq, void *dev_id)
 	unsigned short irqstat;
 
 	tx_cnt = 0;
+	spin_lock(&self->lock);
 
 	port->rx_dma_nrows++;
 	port->rx_dma_buf.tail = DMA_SIR_RX_XCNT * port->rx_dma_nrows;
@@ -379,7 +377,6 @@ static irqreturn_t bfin_sir_dma_rx_int(int irq, void *dev_id)
 	}
 	port->rx_dma_buf.head = port->rx_dma_buf.tail;
 
-	spin_lock(&self->lock);
 	irqstat = get_dma_curr_irqstat(port->rx_dma_channel);
 	clear_dma_irqstat(port->rx_dma_channel);
 	spin_unlock(&self->lock);
