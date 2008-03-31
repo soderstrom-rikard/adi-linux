@@ -28,7 +28,7 @@
  * If not, write to the Free Software Foundation,
  * 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-#define MIN_DDR_SCLK(x)	(x*(CONFIG_SCLK_HZ/1000/1000+500)/1000 + 1)
+#define MIN_DDR_SCLK(x)	(x*(CONFIG_SCLK_HZ/1000/1000)*2/1000 + 1)
 #define MAX_DDR_SCLK(x)	(x*(CONFIG_SCLK_HZ/1000/1000)/1000)
 
 #if (CONFIG_MEM_MT46V32M16_6T)
