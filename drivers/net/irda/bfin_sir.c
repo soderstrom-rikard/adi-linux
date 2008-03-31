@@ -249,7 +249,6 @@ static void bfin_sir_dma_tx_chars(struct net_device *dev)
 {
 	struct bfin_sir_self *self = dev->priv;
 	struct bfin_sir_port *port = self->sir_port;
-	int flags = 0;
 
 	if (!port->tx_done)
 		return;
