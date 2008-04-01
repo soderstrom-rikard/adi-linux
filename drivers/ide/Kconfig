@@ -324,20 +324,6 @@ config BLK_DEV_PLATFORM
 
 	  If unsure, say N.
 
-config IDE_BFIN
-	bool "IDE support on Blackfin CPU (DEPRECATED; see help)"
-	depends on IDE && BLACKFIN
-	default y
-	help
-	  This driver is deprecated in favor of using the Generic
-	  platform device libata driver.  You can find this driver
-	  in the "Parallel ATA" menu.  Place hardware settings in
-	  the boards file.
-
-if (IDE_BFIN)
-source "drivers/ide/blackfin/Kconfig.ide"
-endif
-
 config BLK_DEV_CMD640
 	bool "CMD640 chipset bugfix/support"
 	depends on X86

@@ -41,9 +41,6 @@ ide-core-$(CONFIG_BLK_DEV_IDE_PMAC)	+= ppc/pmac.o
 # built-in only drivers from h8300/
 ide-core-$(CONFIG_IDE_H8300)		+= h8300/ide-h8300.o
 
-# built-in only drivers from Blackfin/
-ide-core-$(CONFIG_IDE_BFIN)		+= blackfin/ide-blackfin.o
-
 obj-$(CONFIG_BLK_DEV_IDE)		+= ide-core.o
 obj-$(CONFIG_IDE_GENERIC)		+= ide-generic.o
 
