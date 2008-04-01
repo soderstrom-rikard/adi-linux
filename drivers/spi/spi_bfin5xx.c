@@ -659,7 +659,7 @@ static void pump_transfers(unsigned long data)
 	}
 
 	if (transfer->rx_buf != NULL) {
-		full_duplex = drv_data->tx_buf != NULL;
+		full_duplex = transfer->tx_buf != NULL;
 		drv_data->rx = transfer->rx_buf;
 		drv_data->rx_end = drv_data->rx + transfer->len;
 		dev_dbg(&drv_data->pdev->dev, "rx_buf is %p, rx_end is %p\n",
