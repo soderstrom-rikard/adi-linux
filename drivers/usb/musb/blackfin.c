@@ -39,8 +39,10 @@
 
 #ifdef CONFIG_BFIN548_EZKIT
 #define GPIO_USB_VRSEL	GPIO_PE7
-#elif CONFIG_BFIN527_EZKIT
+#elif defined(CONFIG_BFIN527_EZKIT)
 #define GPIO_USB_VRSEL	GPIO_PG13
+#elif defined(CONFIG_BFIN548_BLUETECHNIX_CM)
+#define GPIO_USB_VRSEL	GPIO_PH6
 #else
 #error You need to specify a GPIO controlling VRSEL
 #endif
