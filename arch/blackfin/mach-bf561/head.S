@@ -139,26 +139,26 @@ ENTRY(__start)
 
 	/* Initialise UART - when booting from u-boot, the UART is not disabled
 	 * so if we dont initalize here, our serial console gets hosed */
-	p0.h = hi(UART_LCR);
-	p0.l = lo(UART_LCR);
+	p0.h = hi(UART0_LCR);
+	p0.l = lo(UART0_LCR);
 	r0 = 0x0(Z);
 	w[p0] = r0.L;	/* To enable DLL writes */
 	ssync;
 
-	p0.h = hi(UART_DLL);
-	p0.l = lo(UART_DLL);
+	p0.h = hi(UART0_DLL);
+	p0.l = lo(UART0_DLL);
 	r0 = 0x0(Z);
 	w[p0] = r0.L;
 	ssync;
 
-	p0.h = hi(UART_DLH);
-	p0.l = lo(UART_DLH);
+	p0.h = hi(UART0_DLH);
+	p0.l = lo(UART0_DLH);
 	r0 = 0x00(Z);
 	w[p0] = r0.L;
 	ssync;
 
-	p0.h = hi(UART_GCTL);
-	p0.l = lo(UART_GCTL);
+	p0.h = hi(UART0_GCTL);
+	p0.l = lo(UART0_GCTL);
 	r0 = 0x0(Z);
 	w[p0] = r0.L;	/* To enable UART clock */
 	ssync;

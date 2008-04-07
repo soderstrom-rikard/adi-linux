@@ -153,17 +153,6 @@
 #define bfin_write_UART_SCR(val)	bfin_write_UART1_SCR(val)
 #define bfin_read_UART_GCTL()		bfin_read_UART1_GCTL()
 #define bfin_write_UART_GCTL(val)	bfin_write_UART1_GCTL(val)
-#define UART_THR			UART1_THR
-#define UART_RBR			UART1_RBR
-#define UART_DLL			UART1_DLL
-#define UART_IER			UART1_IER
-#define UART_DLH			UART1_DLH
-#define UART_IIR			UART1_IIR
-#define UART_LCR			UART1_LCR
-#define UART_MCR			UART1_MCR
-#define UART_LSR			UART1_LSR
-#define UART_SCR			UART1_SCR
-#define UART_GCTL			UART1_GCTL
 
 /* PLL_DIV Masks */
 #define CCLK_DIV1 CSEL_DIV1	/* CCLK = VCO / 1 */
