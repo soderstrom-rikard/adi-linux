@@ -19,9 +19,11 @@ config IRTTY_SIR
 
 config BFIN_SIR
 	tristate "Blackfin SIR on UART"
-	depends on BLACKFIN && IRDA && (!SERIAL_BFIN_UART1 || !SERIAL_BFIN_UART0)
+	depends on BLACKFIN && IRDA && (!SERIAL_BFIN_UART1 || !SERIAL_BFIN_UART0) && BF537
 	help
-	  Say Y here if your want to enable SIR function on Blackfin UART devices.
+	  Say Y here if your want to enable SIR function on Blackfin UART 
+	  devices. Now it only implemented on BF537.
+
 	  To activate this driver you can start irattach like:
 	  "irattach irda0 -s"
 

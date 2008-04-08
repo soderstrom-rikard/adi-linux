@@ -532,7 +532,7 @@ static void bfin_sir_send_work(struct work_struct *work)
 		turnaround_delay(dev->last_rx, self->mtt);
 
 	if (tx_cnt >= 20) {
-		printk(KERN_DEBUG "\nReceiver dead detected, reset UART!\n");
+		/*printk(KERN_DEBUG "\nReceiver dead, reset UART!\n");*/
 		bfin_sir_set_speed(port, self->speed);
 	}
 	bfin_sir_stop_rx(port);
