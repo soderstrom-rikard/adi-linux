@@ -27,7 +27,7 @@ config SND_BF5XX_SOC_AC97
 
 config SND_BF5XX_SOC_BF548_EZKIT
 	tristate "SoC AC97 Audio support for BF548 ezkit"
-	depends on SND_BF5XX_SOC && BFIN548_EZKIT
+	depends on SND_BF5XX_SOC && BFIN548_EZKIT && !BF542 && !BF544
 	select SND_BF5XX_SOC_AC97
 	select SND_SOC_AD1980
 	help
