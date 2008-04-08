@@ -9,7 +9,8 @@
  *
  */
 
-#include "bfin_uart_reg.h"
+#include <linux/serial.h>
+#include <asm/dma.h>
 
 #define SIR_UART_GET_CHAR(port)   bfin_read16((port)->membase + OFFSET_RBR)
 #define SIR_UART_GET_DLL(port)    bfin_read16((port)->membase + OFFSET_DLL)
@@ -50,7 +51,7 @@ struct bfin_sir_port {
 #endif /* CONFIG_SIR_BFIN_DMA */
 };
 
-struct bfin_sir_port sir_ports[NR_PORTS];
+struct bfin_sir_port sir_ports[BFIN_UART_NR_PORTS];
 
 struct bfin_sir_port_res {
 	unsigned long   base_addr;

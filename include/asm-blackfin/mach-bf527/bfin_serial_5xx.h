@@ -29,7 +29,9 @@
  * 59 temple place - suite 330, boston, ma 02111-1307, usa.
  */
 
-#include "bfin_uart_reg.h"
+#include <linux/serial.h>
+#include <asm/dma.h>
+#include <asm/portmux.h>
 
 #define UART_GET_CHAR(uart)     bfin_read16(((uart)->port.membase + OFFSET_RBR))
 #define UART_GET_DLL(uart)	bfin_read16(((uart)->port.membase + OFFSET_DLL))
@@ -106,7 +108,7 @@ static inline void UART_CLEAR_LSR(struct bfin_serial_port *uart)
 	bfin_write16(uart->port.membase + OFFSET_LSR, -1);
 }
 
-struct bfin_serial_port bfin_serial_ports[NR_PORTS];
+struct bfin_serial_port bfin_serial_ports[BFIN_UART_NR_PORTS];
 struct bfin_serial_res {
 	unsigned long uart_base_addr;
 	int uart_irq;
