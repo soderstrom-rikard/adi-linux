@@ -112,21 +112,21 @@
 /* UART Controller (0xFFC00400 - 0xFFC004FF) */
 
 /*
- * Because include/linux/serial_reg.h have defined UART_XXX,
- * So we define blackfin uart regs to UART0_XXX, though BF561 have sigle uart.
+ * Because include/linux/serial_reg.h have defined UART_*,
+ * So we define blackfin uart regs to BFIN_UART0_*.
  */
-#define UART0_THR               0xFFC00400  /* Transmit Holding register */
-#define UART0_RBR               0xFFC00400  /* Receive Buffer register */
-#define UART0_DLL               0xFFC00400  /* Divisor Latch (Low-Byte) */
-#define UART0_IER               0xFFC00404  /* Interrupt Enable Register */
-#define UART0_DLH               0xFFC00404  /* Divisor Latch (High-Byte) */
-#define UART0_IIR               0xFFC00408  /* Interrupt Identification Register */
-#define UART0_LCR               0xFFC0040C  /* Line Control Register */
-#define UART0_MCR               0xFFC00410  /* Modem Control Register */
-#define UART0_LSR               0xFFC00414  /* Line Status Register */
-#define UART0_MSR               0xFFC00418  /* Modem Status Register */
-#define UART0_SCR               0xFFC0041C  /* SCR Scratch Register */
-#define UART0_GCTL              0xFFC00424  /* Global Control Register */
+#define BFIN_UART_THR			0xFFC00400  /* Transmit Holding register */
+#define BFIN_UART_RBR			0xFFC00400  /* Receive Buffer register */
+#define BFIN_UART_DLL			0xFFC00400  /* Divisor Latch (Low-Byte) */
+#define BFIN_UART_IER			0xFFC00404  /* Interrupt Enable Register */
+#define BFIN_UART_DLH			0xFFC00404  /* Divisor Latch (High-Byte) */
+#define BFIN_UART_IIR			0xFFC00408  /* Interrupt Identification Register */
+#define BFIN_UART_LCR			0xFFC0040C  /* Line Control Register */
+#define BFIN_UART_MCR			0xFFC00410  /* Modem Control Register */
+#define BFIN_UART_LSR			0xFFC00414  /* Line Status Register */
+#define BFIN_UART_MSR			0xFFC00418  /* Modem Status Register */
+#define BFIN_UART_SCR			0xFFC0041C  /* SCR Scratch Register */
+#define BFIN_UART_GCTL			0xFFC00424  /* Global Control Register */
 
 /* SPI Controller (0xFFC00500 - 0xFFC005FF) */
 #define SPI0_REGBASE          		0xFFC00500
