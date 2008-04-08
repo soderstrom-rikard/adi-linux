@@ -235,7 +235,7 @@ static int __init twi_keypad_init(void)
 	return i2c_add_driver(&pcf8574_kp_driver);
 }
 
-void __exit twi_keypad_exit(void)
+static void __exit twi_keypad_exit(void)
 {
 	i2c_del_driver(&pcf8574_kp_driver);
 }
