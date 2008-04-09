@@ -54,69 +54,6 @@
 #include <linux/platform_device.h>
 #include <linux/spi/spi.h>
 
-#ifdef CONFIG_BF561
-static unsigned int dma_iobase[MAX_BLACKFIN_DMA_CHANNEL] = {
-        DMA1_0_NEXT_DESC_PTR,
-        DMA1_1_NEXT_DESC_PTR,
-        DMA1_2_NEXT_DESC_PTR,
-        DMA1_3_NEXT_DESC_PTR,
-        DMA1_4_NEXT_DESC_PTR,
-        DMA1_5_NEXT_DESC_PTR,
-        DMA1_6_NEXT_DESC_PTR,
-        DMA1_7_NEXT_DESC_PTR,
-        DMA1_8_NEXT_DESC_PTR,
-        DMA1_9_NEXT_DESC_PTR,
-        DMA1_10_NEXT_DESC_PTR,
-        DMA1_11_NEXT_DESC_PTR,
-        DMA2_0_NEXT_DESC_PTR,
-        DMA2_1_NEXT_DESC_PTR,
-        DMA2_2_NEXT_DESC_PTR,
-        DMA2_3_NEXT_DESC_PTR,
-        DMA2_4_NEXT_DESC_PTR,
-        DMA2_5_NEXT_DESC_PTR,
-        DMA2_6_NEXT_DESC_PTR,
-        DMA2_7_NEXT_DESC_PTR,
-        DMA2_8_NEXT_DESC_PTR,
-        DMA2_9_NEXT_DESC_PTR,
-        DMA2_10_NEXT_DESC_PTR,
-        DMA2_11_NEXT_DESC_PTR,
-        MDMA1_D0_NEXT_DESC_PTR,
-        MDMA1_S0_NEXT_DESC_PTR,
-        MDMA1_D1_NEXT_DESC_PTR,
-        MDMA1_S1_NEXT_DESC_PTR,
-        MDMA2_D0_NEXT_DESC_PTR,
-        MDMA2_S0_NEXT_DESC_PTR,
-        MDMA2_D1_NEXT_DESC_PTR,
-        MDMA2_S1_NEXT_DESC_PTR,
-        IMDMA_D0_NEXT_DESC_PTR,
-        IMDMA_S0_NEXT_DESC_PTR,
-        IMDMA_D1_NEXT_DESC_PTR,
-        IMDMA_S1_NEXT_DESC_PTR,
-};
-#else
-static unsigned int dma_iobase[] =
-{
-        DMA0_NEXT_DESC_PTR,
-        DMA1_NEXT_DESC_PTR,
-        DMA2_NEXT_DESC_PTR,
-        DMA3_NEXT_DESC_PTR,
-        DMA4_NEXT_DESC_PTR,
-        DMA5_NEXT_DESC_PTR,
-        DMA6_NEXT_DESC_PTR,
-        DMA7_NEXT_DESC_PTR,
-#if (defined(CONFIG_BF537) || defined(CONFIG_BF534) || defined(CONFIG_BF536))
-        DMA8_NEXT_DESC_PTR,
-        DMA9_NEXT_DESC_PTR,
-        DMA10_NEXT_DESC_PTR,
-        DMA11_NEXT_DESC_PTR,
-#endif
-        MDMA_D0_NEXT_DESC_PTR,
-        MDMA_S0_NEXT_DESC_PTR,
-        MDMA_D1_NEXT_DESC_PTR,
-        MDMA_S1_NEXT_DESC_PTR
-};
-#endif
-
 /* enable this define to get verbose debugging info */
 //#define BFIN_SPI_DEBUG  1
 
@@ -612,8 +549,8 @@ static void init_sport0(void)
 
 static int init_dma_wc(void)
 {
-	struct dma_register *dma_rx = (struct dma_register*) dma_iobase[sport_dma_rx];
-	struct dma_register *dma_tx = (struct dma_register*) dma_iobase[sport_dma_tx];
+	struct dma_register *dma_rx = dma_io_base_addr[sport_dma_rx];
+	struct dma_register *dma_tx = dma_io_base_addr[sport_dma_tx];
 
         if (request_dma(sport_dma_rx, "SPORT RX Data") == -EBUSY) {
                 printk(KERN_ERR "Failed to request RX dma %d\n", sport_dma_rx);
@@ -666,7 +603,7 @@ static int init_dma_wc(void)
 static u8 *isr_write_processing(void) {
 	u8 *writechunk;
 	int x;
-	struct dma_register *dma_tx = (struct dma_register*) dma_iobase[sport_dma_tx];
+	struct dma_register *dma_tx = dma_io_base_addr[sport_dma_tx];
 
 	/* select which ping-pong buffer to write to */
 	x = dma_tx->curr_addr_ptr  - (int)iTxBuffer1;
@@ -701,7 +638,7 @@ static u8 *isr_write_processing(void) {
 static u8 *isr_read_processing(void) {
 	u8 *readchunk;
 	int x;
-	struct dma_register *dma_rx = (struct dma_register*) dma_iobase[sport_dma_rx];
+	struct dma_register *dma_rx = dma_io_base_addr[sport_dma_rx];
 
 	/* select which ping-pong buffer to write to */
 	x = dma_rx->curr_addr_ptr  - (int)iRxBuffer1;
@@ -734,7 +671,7 @@ static irqreturn_t sport0_rx_isr(int irq, void *dev_id)
   	unsigned int  start_cycles = cycles();
   	u8 *read_samples;
   	u8 *write_samples;
-	struct dma_register *dma_rx = (struct dma_register*) dma_iobase[sport_dma_rx];
+	struct dma_register *dma_rx = dma_io_base_addr[sport_dma_rx];
 
 	dma_rx->irq_status = 0x0001;
 
