@@ -282,7 +282,6 @@ static noinline int icplb_miss(void)
 
 static noinline int dcplb_protection_fault(void)
 {
-	unsigned long addr = bfin_read_DCPLB_FAULT_ADDR();
 	int status = bfin_read_DCPLB_STATUS();
 
 	nr_dcplb_prot++;
