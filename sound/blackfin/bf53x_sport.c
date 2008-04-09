@@ -316,7 +316,7 @@ static inline int sport_rx_dma_start(struct bf53x_sport *sport, int dummy)
 		sport->curr_rx_desc = sport->dma_rx_desc;
 
 	dma->next_desc_ptr = (unsigned long)(sport->curr_rx_desc);
-	dma->cfg           = DMAFLOW | NDSIZE | WDSIZE_32 | WNR;
+	dma->cfg           = DMAFLOW_LARGE | NDSIZE_9 | WDSIZE_32 | WNR;
 	dma->x_count       = 0;
 	dma->x_modify      = 0;
 	dma->y_count       = 0;
@@ -339,7 +339,7 @@ static inline int sport_tx_dma_start(struct bf53x_sport *sport, int dummy)
 		sport->curr_tx_desc = sport->dma_tx_desc;
 
 	dma->next_desc_ptr = (unsigned long)(sport->curr_tx_desc);
-	dma->cfg           = DMAFLOW | NDSIZE |WDSIZE_32 ;
+	dma->cfg           = DMAFLOW_LARGE | NDSIZE_9 | WDSIZE_32 ;
 	dma->x_count       = 0;
 	dma->x_modify      = 0;
 	dma->y_count       = 0;
@@ -645,7 +645,7 @@ static int sport_config_rx_dummy(struct bf53x_sport *sport, size_t size)
 	memset(desc, 0, 2 * sizeof(*desc));
 	sport->dummy_rx_desc = desc;
 	desc->start_addr = (unsigned long)sport->dummy_buf;
-	config = DMAFLOW | NDSIZE | compute_wdsize(size) | WNR | DMAEN;
+	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(size) | WNR | DMAEN;
 	desc->cfg = config;
 	desc->x_count = 0x80;
 	desc->x_modify = 0;
@@ -681,7 +681,7 @@ static int sport_config_tx_dummy(struct bf53x_sport *sport, size_t size)
 	memset(desc, 0, 2 * sizeof(*desc));
 	sport->dummy_tx_desc = desc;
 	desc->start_addr = (unsigned long)sport->dummy_buf + size;
-	config = DMAFLOW | NDSIZE | compute_wdsize(size) | DMAEN;
+	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(size) | DMAEN;
 	desc->cfg = config;
 	desc->x_count = 0x80;
 	desc->x_modify = 0;
