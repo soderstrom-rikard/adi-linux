@@ -55,7 +55,9 @@ static void __init bfin_sir_init_ports(int i)
 
 static void bfin_sir_stop_tx(struct bfin_sir_port *port)
 {
+#ifndef CONFIG_BF54x
 	unsigned short ier;
+#endif
 #ifdef CONFIG_SIR_BFIN_DMA
 	disable_dma(port->tx_dma_channel);
 #endif
@@ -74,7 +76,9 @@ static void bfin_sir_stop_tx(struct bfin_sir_port *port)
 
 static void bfin_sir_enable_tx(struct bfin_sir_port *port)
 {
+#ifndef CONFIG_BF54x
 	unsigned short ier;
+#endif
 #ifdef CONFIG_BF54x
 	SIR_UART_SET_IER(port, ETBEI);
 #else
