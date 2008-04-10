@@ -166,11 +166,12 @@ enum {
  */
 
 struct ser_req {
+	u16			reset;
 	u16			ref_on;
 	u16			command;
 	u16			sample;
 	struct spi_message	msg;
-	struct spi_transfer	xfer[5];
+	struct spi_transfer	xfer[6];
 };
 
 struct ad7877 {
@@ -199,8 +200,6 @@ struct ad7877 {
 	struct spi_transfer	xfer[13];
 	struct spi_message	msg;
 
-	int intr_flag;
-
 	spinlock_t		lock;
 	struct timer_list	timer;		/* P: lock */
 	unsigned		pendown:1;	/* P: lock */
@@ -208,6 +207,7 @@ struct ad7877 {
 
 	unsigned		irq_disabled:1;	/* P: lock */
 	unsigned		disabled:1;
+	unsigned 		intr_flag:1;
 	unsigned		gpio3:1;
 	unsigned		gpio4:1;
 };
@@ -221,7 +221,7 @@ static int ad7877_read(struct device *dev, u16 reg)
 {
 	struct spi_device	*spi = to_spi_device(dev);
 	struct ser_req		*req = kzalloc(sizeof *req, GFP_KERNEL);
-	int			status;
+	int			status, ret;
 
 	if (!req)
 		return -ENOMEM;
@@ -244,8 +244,10 @@ static int ad7877_read(struct device *dev, u16 reg)
 	if (status == 0)
 		status = req->msg.status;
 
+	ret = status ? status : req->sample;
 	kfree(req);
-	return status ? status : req->sample;
+
+	return ret;
 }
 
 static int ad7877_write(struct device *dev, u16 reg, u16 val)
@@ -295,36 +297,37 @@ static int ad7877_read_adc(struct device *dev, unsigned command)
 			 AD7877_AVG(0) | AD7877_PM(2) | AD7877_TMR(0) |
 			 AD7877_ACQ(ts->acquisition_time) | AD7877_FCD(0);
 
+	req->reset = AD7877_WRITEADD(AD7877_REG_CTRL1) | AD7877_MODE_NOC;
+
 	req->command = (u16) command;
 
-	req->xfer[0].tx_buf = &req->ref_on;
+	req->xfer[0].tx_buf = &req->reset;
 	req->xfer[0].len = 2;
-	req->xfer[0].delay_usecs = ts->vref_delay_usecs;
 
-	req->xfer[1].tx_buf = &req->command;
+	req->xfer[1].tx_buf = &req->ref_on;
 	req->xfer[1].len = 2;
 	req->xfer[1].delay_usecs = ts->vref_delay_usecs;
 
-	req->xfer[2].rx_buf = &req->sample;
+	req->xfer[2].tx_buf = &req->command;
 	req->xfer[2].len = 2;
+	req->xfer[2].delay_usecs = ts->vref_delay_usecs;
 
-	req->xfer[3].tx_buf = &ts->cmd_crtl2;	/*REF OFF*/
+	req->xfer[3].rx_buf = &req->sample;
 	req->xfer[3].len = 2;
 
-	req->xfer[4].tx_buf = &ts->cmd_crtl1;	/*DEFAULT*/
+	req->xfer[4].tx_buf = &ts->cmd_crtl2;	/*REF OFF*/
 	req->xfer[4].len = 2;
+
+	req->xfer[5].tx_buf = &ts->cmd_crtl1;	/*DEFAULT*/
+	req->xfer[5].len = 2;
 
 	/* group all the transfers together, so we can't interfere with
 	 * reading touchscreen state; disable penirq while sampling
 	 */
-	for (i = 0; i < 5; i++)
+	for (i = 0; i < 6; i++)
 		spi_message_add_tail(&req->xfer[i], &req->msg);
 
-	ts->irq_disabled = 1;
-	disable_irq(spi->irq);
 	status = spi_sync(spi, &req->msg);
-	ts->irq_disabled = 0;
-	enable_irq(spi->irq);
 
 	if (status == 0)
 		status = req->msg.status;
