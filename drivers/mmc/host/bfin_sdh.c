@@ -334,7 +334,11 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		sdh_stop_clock(host);
 
 	if (ios->bus_mode == MMC_BUSMODE_OPENDRAIN)
+#ifdef CONFIG_SDH_BFIN_MISSING_CMD_PULLUP_WORKAROUND
+		pwr_ctl |= ROD_CTL;
+#else
 		pwr_ctl |= SD_CMD_OD | ROD_CTL;
+#endif
 
 	if (ios->bus_width == MMC_BUS_WIDTH_4) {
 		u16 cfg = bfin_read_SDH_CFG();
