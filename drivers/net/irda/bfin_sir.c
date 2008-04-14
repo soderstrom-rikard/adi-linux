@@ -32,6 +32,8 @@
 #define DMA_SIR_RX_FLUSH_JIFS  (HZ * 4 / 250)
 #endif
 
+static int max_rate = 115200;
+
 static void turnaround_delay(unsigned long last_jif, int mtt)
 {
 	long ticks;
@@ -47,10 +49,10 @@ static void __init bfin_sir_init_ports(int i)
 	sir_ports[i].clk = get_sclk();
 #ifdef CONFIG_SIR_BFIN_DMA
 	sir_ports[i].tx_done        = 1;
-	sir_ports[i].rx_dma_channel = bfin_sir_port_resource[i].rx_dma_channel;
-	sir_ports[i].tx_dma_channel = bfin_sir_port_resource[i].tx_dma_channel;
 	init_timer(&(sir_ports[i].rx_dma_timer));
 #endif
+	sir_ports[i].rx_dma_channel = bfin_sir_port_resource[i].rx_dma_channel;
+	sir_ports[i].tx_dma_channel = bfin_sir_port_resource[i].tx_dma_channel;
 }
 
 static void bfin_sir_stop_tx(struct bfin_sir_port *port)
@@ -393,17 +395,20 @@ static int bfin_sir_startup(struct bfin_sir_port *port, struct net_device *dev)
 {
 #ifdef CONFIG_SIR_BFIN_DMA
 	dma_addr_t dma_handle;
+#endif /* CONFIG_SIR_BFIN_DMA */
 
-	if (request_dma(port->rx_dma_channel, "BFIN_SIR_RX") < 0) {
+	if (request_dma(port->rx_dma_channel, "BFIN_UART_RX") < 0) {
 		printk(KERN_WARNING "bfin_sir: Unable to attach SIR RX DMA channel\n");
 		return -EBUSY;
 	}
 
-	if (request_dma(port->tx_dma_channel, "BFIN_SIR_TX") < 0) {
+	if (request_dma(port->tx_dma_channel, "BFIN_UART_TX") < 0) {
 		printk(KERN_WARNING "bfin_sir: Unable to attach SIR TX DMA channel\n");
 		free_dma(port->rx_dma_channel);
 		return -EBUSY;
 	}
+
+#ifdef CONFIG_SIR_BFIN_DMA
 
 	set_dma_callback(port->rx_dma_channel, bfin_sir_dma_rx_int, dev);
 	set_dma_callback(port->tx_dma_channel, bfin_sir_dma_tx_int, dev);
@@ -460,15 +465,15 @@ static void bfin_sir_shutdown(struct bfin_sir_port *port, struct net_device *dev
 
 #ifdef CONFIG_SIR_BFIN_DMA
 	disable_dma(port->tx_dma_channel);
-	free_dma(port->tx_dma_channel);
 	disable_dma(port->rx_dma_channel);
-	free_dma(port->rx_dma_channel);
 	del_timer(&(port->rx_dma_timer));
 	dma_free_coherent(NULL, PAGE_SIZE, port->rx_dma_buf.buf, 0);
 #else
 	free_irq(port->irq+1, dev);
 	free_irq(port->irq, dev);
 #endif
+	free_dma(port->tx_dma_channel);
+	free_dma(port->rx_dma_channel);
 }
 
 #ifdef CONFIG_PM
@@ -637,7 +642,7 @@ static int bfin_sir_open(struct net_device *dev)
 
 	bfin_sir_set_speed(port, 9600);
 
-	self->irlap = irlap_open(dev, &self->qos, "bfin_5xx");
+	self->irlap = irlap_open(dev, &self->qos, DRIVER_NAME);
 	if (!self->irlap)
 		goto err_irlap;
 
@@ -703,6 +708,8 @@ static int __devinit bfin_sir_probe(struct platform_device *pdev)
 	unsigned int baudrate_mask;
 	int i, err = 0;
 
+	bfin_sir_hw_init();
+
 	for (i = 0; i < nr_sirs; i++) {
 		bfin_sir_init_ports(i);
 		dev = alloc_irdadev(sizeof(struct bfin_sir_self));
@@ -730,7 +737,14 @@ static int __devinit bfin_sir_probe(struct platform_device *pdev)
 
 		irda_init_max_qos_capabilies(&self->qos);
 
-		baudrate_mask = IR_9600 | IR_19200 | IR_38400 | IR_57600 | IR_115200;
+		baudrate_mask = IR_9600;
+
+		switch (max_rate) {
+		case 115200:		baudrate_mask |= IR_115200;
+		case 57600:		baudrate_mask |= IR_57600;
+		case 38400:		baudrate_mask |= IR_38400;
+		case 19200:		baudrate_mask |= IR_19200;
+		}
 
 		self->qos.baud_rate.bits &= baudrate_mask;
 
@@ -784,7 +798,7 @@ static struct platform_driver bfin_ir_driver = {
 	.suspend = bfin_sir_suspend,
 	.resume  = bfin_sir_resume,
 	.driver  = {
-		.name = "bfin_sir",
+		.name = DRIVER_NAME,
 	},
 };
 
@@ -800,6 +814,9 @@ static void __exit bfin_sir_exit(void)
 
 module_init(bfin_sir_init);
 module_exit(bfin_sir_exit);
+
+module_param(max_rate, int, 0);
+MODULE_PARM_DESC(max_rate, "Maximum baud rate (115200, 57600, 38400, 19200, 9600)");
 
 MODULE_AUTHOR("Graf.Yang <graf.yang@analog.com>");
 MODULE_DESCRIPTION("Blackfin IrDA driver");

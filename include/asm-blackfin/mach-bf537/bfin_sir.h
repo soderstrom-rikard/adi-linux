@@ -11,6 +11,7 @@
 
 #include <linux/serial.h>
 #include <asm/dma.h>
+#include <asm/portmux.h>
 
 #define SIR_UART_GET_CHAR(port)   bfin_read16((port)->membase + OFFSET_RBR)
 #define SIR_UART_GET_DLL(port)    bfin_read16((port)->membase + OFFSET_DLL)
@@ -46,9 +47,9 @@ struct bfin_sir_port {
 	struct dma_rx_buf       rx_dma_buf;
 	struct timer_list       rx_dma_timer;
 	int                     rx_dma_nrows;
+#endif /* CONFIG_SIR_BFIN_DMA */
 	unsigned int            tx_dma_channel;
 	unsigned int            rx_dma_channel;
-#endif /* CONFIG_SIR_BFIN_DMA */
 };
 
 struct bfin_sir_port sir_ports[BFIN_UART_NR_PORTS];
@@ -56,10 +57,8 @@ struct bfin_sir_port sir_ports[BFIN_UART_NR_PORTS];
 struct bfin_sir_port_res {
 	unsigned long   base_addr;
 	int             irq;
-#ifdef CONFIG_SIR_BFIN_DMA
 	unsigned int    rx_dma_channel;
 	unsigned int    tx_dma_channel;
-#endif
 };
 
 struct bfin_sir_port_res bfin_sir_port_resource[] = {
@@ -67,20 +66,16 @@ struct bfin_sir_port_res bfin_sir_port_resource[] = {
 	{
 	0xFFC00400,
 	IRQ_UART0_RX,
-#ifdef CONFIG_SIR_BFIN_DMA
 	CH_UART0_RX,
 	CH_UART0_TX,
-#endif
 	},
 #endif
 #ifdef CONFIG_BFIN_SIR1
 	{
 	0xFFC02000,
 	IRQ_UART1_RX,
-#ifdef CONFIG_SIR_BFIN_DMA
 	CH_UART1_RX,
 	CH_UART1_TX,
-#endif
 	},
 #endif
 };
@@ -121,3 +116,18 @@ static inline void SIR_UART_CLEAR_LSR(struct bfin_sir_port *port)
 	bfin_read16(port->membase + OFFSET_LSR);
 }
 
+#define DRIVER_NAME "bfin_sir"
+
+static void bfin_sir_hw_init(void)
+{
+#ifdef CONFIG_BFIN_SIR0
+	peripheral_request(P_UART0_TX, DRIVER_NAME);
+	peripheral_request(P_UART0_RX, DRIVER_NAME);
+#endif
+
+#ifdef CONFIG_BFIN_SIR1
+	peripheral_request(P_UART1_TX, DRIVER_NAME);
+	peripheral_request(P_UART1_RX, DRIVER_NAME);
+#endif
+	SSYNC();
+}
