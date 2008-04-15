@@ -31,7 +31,13 @@
 #ifndef _CDEF_BF52X_H
 #define _CDEF_BF52X_H
 
+#include <asm/system.h>
+#include <asm/blackfin.h>
+
 #include "defBF52x_base.h"
+
+/* Include core specific register pointer definitions 								*/
+#include <asm/mach-common/cdef_LPBlackfin.h>
 
 /* ==== begin from cdefBF534.h ==== */
 
