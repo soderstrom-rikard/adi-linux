@@ -43,7 +43,27 @@
 
 /* Clock and System Control (0xFFC0 0400-0xFFC0 07FF) */
 #define bfin_read_PLL_CTL()                  bfin_read16(PLL_CTL)
-#define bfin_write_PLL_CTL(val)              bfin_write16(PLL_CTL,val)
+/* Writing to PLL_CTL initiates a PLL relock sequence. */
+static __inline__ void bfin_write_PLL_CTL(unsigned int val)
+{
+	unsigned long flags, iwr;
+
+	if (val == bfin_read_PLL_CTL())
+		return;
+
+	local_irq_save(flags);
+	/* Enable the PLL Wakeup bit in SIC IWR */
+	iwr = bfin_read32(SIC_IWR);
+	/* Only allow PPL Wakeup) */
+	bfin_write32(SIC_IWR, IWR_ENABLE(0));
+
+	bfin_write16(PLL_CTL, val);
+	SSYNC();
+	asm("IDLE;");
+
+	bfin_write32(SIC_IWR, iwr);
+	local_irq_restore(flags);
+}
 #define bfin_read_PLL_STAT()                 bfin_read16(PLL_STAT)
 #define bfin_write_PLL_STAT(val)             bfin_write16(PLL_STAT,val)
 #define bfin_read_PLL_LOCKCNT()              bfin_read16(PLL_LOCKCNT)
