@@ -29,6 +29,7 @@
  */
 
 #ifndef _CDEF_BF52X_H
+#define _CDEF_BF52X_H
 
 #include "defBF52x_base.h"
 

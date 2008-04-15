@@ -47,7 +47,6 @@
 
 /* Clock and System Control (0xFFC00000 - 0xFFC000FF) */
 #define bfin_read_PLL_CTL()                  bfin_read16(PLL_CTL)
-#define bfin_write_PLL_CTL(val)              bfin_write16(PLL_CTL,val)
 /* Writing to PLL_CTL initiates a PLL relock sequence. */
 static __inline__ void bfin_write_PLL_CTL(unsigned int val)
 {
