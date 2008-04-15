@@ -56,6 +56,10 @@ static __inline__ void bfin_write_VR_CTL(unsigned int val)
 {
 	unsigned long flags, iwr0, iwr1;
 
+	if (val == bfin_read_VR_CTL())
+		return;
+
+	local_irq_save(flags);
 	/* Enable the PLL Wakeup bit in SIC IWR */
 	iwr0 = bfin_read32(SICA_IWR0);
 	iwr1 = bfin_read32(SICA_IWR1);
@@ -65,12 +69,11 @@ static __inline__ void bfin_write_VR_CTL(unsigned int val)
 
 	bfin_write16(VR_CTL, val);
 	SSYNC();
-
-	local_irq_save(flags);
 	asm("IDLE;");
-	local_irq_restore(flags);
+
 	bfin_write32(SICA_IWR0, iwr0);
 	bfin_write32(SICA_IWR1, iwr1);
+	local_irq_restore(flags);
 }
 #define bfin_read_PLL_STAT()                 bfin_read16(PLL_STAT)
 #define bfin_write_PLL_STAT(val)             bfin_write16(PLL_STAT,val)
