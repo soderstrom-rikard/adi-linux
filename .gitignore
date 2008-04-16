@@ -7,18 +7,27 @@
 #
 .*
 *.o
+*.o.*
 *.a
 *.s
 *.ko
 *.so
+*.so.dbg
 *.mod.c
+*.i
+*.lst
+*.symtypes
 
 #
 # Top-level generic files
 #
+tags
+TAGS
 vmlinux*
+!vmlinux.lds.S
 System.map
 Module.symvers
+!.gitignore
 
 #
 # Generated include files
@@ -29,4 +38,17 @@ include/config
 include/linux/autoconf.h
 include/linux/compile.h
 include/linux/version.h
+include/linux/utsrelease.h
 
+# stgit generated dirs
+patches-*
+
+# quilt's files
+patches
+series
+
+# cscope files
+cscope.*
+
+*.orig
+*.rej
