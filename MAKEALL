@@ -61,10 +61,10 @@ ret=0
 for b in "$@" ; do
 	b="${b}_defconfig"
 	echo "### $b"
-	${make} $b >& /dev/null
 	for p in $(procs) ; do
 		echo -n "###### $p: "
 		rm -f $b.$p.log*
+		${make} $b >& /dev/null
 		sed -i 1iCONFIG_${p}=y .config
 		yes "" | ${make} oldconfig >& /dev/null
 		${make} ${makeargs} -j${jobs} >& $b.$p.log
