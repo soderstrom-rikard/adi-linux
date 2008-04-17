@@ -250,7 +250,6 @@ int sport_rx_start(struct sport_device *sport)
 	pr_debug("%s enter\n", __FUNCTION__);
 	if (sport->rx_run)
 		return -EBUSY;
-
 	if (sport->tx_run) {
 		/* tx is running, rx is not running */
 		BUG_ON(sport->dma_rx_desc == NULL);
@@ -280,7 +279,6 @@ int sport_rx_stop(struct sport_device *sport)
 	pr_debug("%s enter\n", __FUNCTION__);
 	if (!sport->rx_run)
 		return 0;
-
 	if (sport->tx_run) {
 		/* TX dma is still running, hook the dummy buffer */
 		sport_hook_rx_dummy(sport);
@@ -331,12 +329,10 @@ static inline int sport_hook_tx_dummy(struct sport_device *sport)
 int sport_tx_start(struct sport_device *sport)
 {
 	unsigned flags;
-	u16 *cache = sport->codec_reg_cache;
 	pr_debug("%s: tx_run:%d, rx_run:%d\n", __FUNCTION__,
 			sport->tx_run, sport->rx_run);
 	if (sport->tx_run)
 		return -EBUSY;
-
 	if (sport->rx_run) {
 		BUG_ON(sport->dma_tx_desc == NULL);
 		BUG_ON(sport->curr_tx_desc != sport->dummy_tx_desc);
@@ -359,8 +355,6 @@ int sport_tx_start(struct sport_device *sport)
 		sport_start(sport);
 	}
 	sport->tx_run = 1;
-	bf5xx_ac97_write(NULL, 0x02, (u16)cache[0x02 >> 1]);
-	bf5xx_ac97_write(NULL, 0x18, (u16)cache[0x18 >> 1]);
 	return 0;
 }
 EXPORT_SYMBOL(sport_tx_start);
@@ -369,9 +363,6 @@ int sport_tx_stop(struct sport_device *sport)
 {
 	if (!sport->tx_run)
 		return 0;
-	bf5xx_ac97_write(NULL, 0x02, 0x8000);
-	bf5xx_ac97_write(NULL, 0x18, 0x8000);
-	memset(sport->tx_buf, 0, sport->tx_frags*sport->tx_fragsize);
 	if (sport->rx_run) {
 		/* RX is still running, hook the dummy buffer */
 		sport_hook_tx_dummy(sport);

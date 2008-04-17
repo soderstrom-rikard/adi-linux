@@ -125,7 +125,6 @@ struct sport_device {
 	unsigned int rx_buffer_size;
 #endif
 	void *private_data;
-	void *codec_reg_cache;
 };
 
 extern struct sport_device *sport_handle;
