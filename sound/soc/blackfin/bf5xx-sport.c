@@ -344,9 +344,6 @@ int sport_tx_start(struct sport_device *sport)
 		sport->dummy_tx_desc->next_desc_addr = \
 				(unsigned long)(sport->dma_tx_desc);
 		local_irq_restore(flags);
-		while ((get_dma_curr_desc_ptr(sport->dma_tx_chan) - \
-			sizeof(struct dmasg)) != \
-			(unsigned long)sport->dma_tx_desc) {}
 		sport->curr_tx_desc = sport->dma_tx_desc;
 	} else {
 		sport_tx_dma_start(sport, 0);
