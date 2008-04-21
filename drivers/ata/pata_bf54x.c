@@ -1354,7 +1354,7 @@ static int bfin_port_start(struct ata_port *ap)
 inline unsigned int bfin_ata_host_intr(struct ata_port *ap,
 				   struct ata_queued_cmd *qc)
 {
-	struct ata_eh_info *ehi = &ap->eh_info;
+	struct ata_eh_info *ehi = &ap->link.eh_info;
 	u8 status, host_stat = 0;
 
 	VPRINTK("ata%u: protocol %d task_state %d\n",
@@ -1459,7 +1459,6 @@ irqreturn_t bfin_ata_interrupt(int irq, void *dev_instance)
 			if (qc && (!(qc->tf.flags & ATA_TFLAG_POLLING)) &&
 			    (qc->flags & ATA_QCFLAG_ACTIVE))
 				handled |= bfin_ata_host_intr(ap, qc);
-
 		}
 	}
 
