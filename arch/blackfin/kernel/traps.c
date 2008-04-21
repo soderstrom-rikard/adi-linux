@@ -660,7 +660,8 @@ void dump_bfin_process(struct pt_regs *fp)
 	/* Because we are crashing, and pointers could be bad, we check things
 	 * pretty closely before we use them
 	 */
-	if (!((unsigned long)current & 0x3) && current->pid) {
+	if ((unsigned long)current >= FIXED_CODE_START &&
+	    !((unsigned long)current & 0x3) && current->pid) {
 		printk(KERN_NOTICE "CURRENT PROCESS:\n");
 		if (current->comm >= (char *)FIXED_CODE_START)
 			printk(KERN_NOTICE "COMM=%s PID=%d\n",
