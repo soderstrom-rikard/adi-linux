@@ -67,6 +67,8 @@ void __init trap_init(void)
 	CSYNC();
 }
 
+void *saved_icplb_fault_addr, *saved_dcplb_fault_addr;
+
 int kstack_depth_to_print = 48;
 
 static void decode_address(char *buf, unsigned long address)
@@ -832,9 +834,9 @@ unlock:
 
 	if (((long)fp->seqstat &  SEQSTAT_EXCAUSE) &&
 	    (((long)fp->seqstat & SEQSTAT_EXCAUSE) != VEC_HWERR)) {
-		decode_address(buf, bfin_read_DCPLB_FAULT_ADDR());
+		decode_address(buf, saved_dcplb_fault_addr);
 		printk(KERN_NOTICE "DCPLB_FAULT_ADDR: %s\n", buf);
-		decode_address(buf, bfin_read_ICPLB_FAULT_ADDR());
+		decode_address(buf, saved_icplb_fault_addr);
 		printk(KERN_NOTICE "ICPLB_FAULT_ADDR: %s\n", buf);
 	}
 
@@ -942,8 +944,8 @@ void panic_cplb_error(int cplb_panic, struct pt_regs *fp)
 
 	oops_in_progress = 1;
 
-	printk(KERN_EMERG "DCPLB_FAULT_ADDR=%p\n", (void *)bfin_read_DCPLB_FAULT_ADDR());
-	printk(KERN_EMERG "ICPLB_FAULT_ADDR=%p\n", (void *)bfin_read_ICPLB_FAULT_ADDR());
+	printk(KERN_EMERG "DCPLB_FAULT_ADDR=%p\n", saved_dcplb_fault_addr);
+	printk(KERN_EMERG "ICPLB_FAULT_ADDR=%p\n", saved_icplb_fault_addr);
 	dump_bfin_process(fp);
 	dump_bfin_mem(fp);
 	show_regs(fp);
