@@ -489,6 +489,7 @@ static void bfin_serial_dma_rx_chars(struct bfin_serial_port *uart)
 void bfin_serial_rx_dma_timeout(struct bfin_serial_port *uart)
 {
 	int x_pos, pos;
+	int flags = 0;
 
 	uart->rx_dma_nrows = get_dma_curr_ycount(uart->rx_dma_channel);
 	x_pos = get_dma_curr_xcount(uart->rx_dma_channel);
@@ -506,9 +507,11 @@ void bfin_serial_rx_dma_timeout(struct bfin_serial_port *uart)
 		uart->rx_dma_buf.tail = uart->rx_dma_buf.head;
 	}
 
+	spin_lock_irqsave(&uart->port.lock, flags);
 	del_timer(&(uart->rx_dma_timer));
 	uart->rx_dma_timer.expires = jiffies + DMA_RX_FLUSH_JIFFIES;
 	add_timer(&(uart->rx_dma_timer));
+	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
 
 static irqreturn_t bfin_serial_dma_tx_int(int irq, void *dev_id)
