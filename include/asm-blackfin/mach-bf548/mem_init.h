@@ -28,17 +28,14 @@
  * If not, write to the Free Software Foundation,
  * 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-#define MIN_SCLK_HZ	80000000
-#if CONFIG_SCLK_HZ < MIN_SCLK_HZ
-# error "CONFIG_SCLK_HZ is too small (<80M Hz) to drive DDR chips."
-#endif
-
 #define MIN_DDR_SCLK(x)	(x*(CONFIG_SCLK_HZ/1000/1000)/1000 + 1)
 #define MAX_DDR_SCLK(x)	(x*(CONFIG_SCLK_HZ/1000/1000)/1000)
+#define DDR_CLK_HZ(x)	(1000*1000*1000/x)
 
 #if (CONFIG_MEM_MT46V32M16_6T)
 #define DDR_SIZE	DEVSZ_512
 #define DDR_WIDTH	DEVWD_16
+#define DDR_MAX_tCK	13
 
 #define DDR_tRC		DDR_TRC(MIN_DDR_SCLK(60))
 #define DDR_tRAS	DDR_TRAS(MIN_DDR_SCLK(42))
@@ -55,6 +52,7 @@
 #if (CONFIG_MEM_MT46V32M16_5B)
 #define DDR_SIZE	DEVSZ_512
 #define DDR_WIDTH	DEVWD_16
+#define DDR_MAX_tCK	13
 
 #define DDR_tRC		DDR_TRC(MIN_DDR_SCLK(55))
 #define DDR_tRAS	DDR_TRAS(MIN_DDR_SCLK(40))
@@ -71,6 +69,7 @@
 #if (CONFIG_MEM_GENERIC_BOARD)
 #define DDR_SIZE	DEVSZ_512
 #define DDR_WIDTH	DEVWD_16
+#define DDR_MAX_tCK	13
 
 #define DDR_tRCD	DDR_TRCD(3)
 #define DDR_tWTR	DDR_TWTR(2)
@@ -83,13 +82,14 @@
 #define DDR_tREFI	DDR_TREFI(1288)
 #endif
 
-#if (CONFIG_SCLK_HZ <= 133333333)
-#define	DDR_CL		CL_2
-#elif (CONFIG_SCLK_HZ <= 166666666)
-#define	DDR_CL		CL_2_5
+#if (CONFIG_SCLK_HZ < DDR_CLK_HZ(DDR_MAX_tCK))
+# error "CONFIG_SCLK_HZ is too small (<DDR_CLK_HZ(DDR_MAX_tCK) Hz)."
+#elif(CONFIG_SCLK_HZ <= 133333333)
+# define	DDR_CL		CL_2
 #else
-#define	DDR_CL		CL_3
+# error "CONFIG_SCLK_HZ is too large (>133333333 Hz)."
 #endif
+
 
 #define mem_DDRCTL0	(DDR_tRP | DDR_tRAS | DDR_tRC | DDR_tRFC | DDR_tREFI)
 #define mem_DDRCTL1	(DDR_DATWIDTH | EXTBANK_1 | DDR_SIZE | DDR_WIDTH | DDR_tWTR \
