@@ -707,10 +707,7 @@ void dump_bfin_mem(struct pt_regs *fp)
 	unsigned short *addr, *erraddr, val = 0, err = 0;
 	char sti = 0, buf[6];
 
-	if (unlikely((fp->seqstat & SEQSTAT_EXCAUSE) == VEC_HWERR))
-		erraddr = (void *)fp->pc;
-	else
-		erraddr = (void *)fp->retx;
+	erraddr = (void *)fp->pc;
 
 	printk(KERN_NOTICE "return address: [0x%p]; contents of:", erraddr);
 
