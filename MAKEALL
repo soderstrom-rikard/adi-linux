@@ -61,6 +61,7 @@ ret=0
 for b in "$@" ; do
 	b="${b}_defconfig"
 	echo "### $b"
+	${make} $b >& /dev/null
 	for p in $(procs) ; do
 		echo -n "###### $p: "
 		rm -f $b.$p.log*
