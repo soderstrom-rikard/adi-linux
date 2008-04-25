@@ -1351,7 +1351,7 @@ static int bfin_port_start(struct ata_port *ap)
 	return 0;
 }
 
-inline unsigned int bfin_ata_host_intr(struct ata_port *ap,
+static unsigned int bfin_ata_host_intr(struct ata_port *ap,
 				   struct ata_queued_cmd *qc)
 {
 	struct ata_eh_info *ehi = &ap->link.eh_info;
@@ -1437,7 +1437,7 @@ idle_irq:
 	return 0;	/* irq not handled */
 }
 
-irqreturn_t bfin_ata_interrupt(int irq, void *dev_instance)
+static irqreturn_t bfin_ata_interrupt(int irq, void *dev_instance)
 {
 	struct ata_host *host = dev_instance;
 	unsigned int i;
