@@ -842,11 +842,11 @@ static struct platform_device bfin_gpios_device = {
 
 static const unsigned int cclk_vlev_datasheet[] =
 {
-	VRPAIR(VLEV_100, 400),
-	VRPAIR(VLEV_105, 426),
-	VRPAIR(VLEV_110, 500),
-	VRPAIR(VLEV_115, 533),
-	VRPAIR(VLEV_120, 600),
+	VRPAIR(VLEV_100, 400000000),
+	VRPAIR(VLEV_105, 426000000),
+	VRPAIR(VLEV_110, 500000000),
+	VRPAIR(VLEV_115, 533000000),
+	VRPAIR(VLEV_120, 600000000),
 };
 
 static struct bfin_dpmc_platform_data bfin_dmpc_vreg_data = {
