@@ -964,6 +964,11 @@ menu "CPU Frequency scaling"
 
 source "drivers/cpufreq/Kconfig"
 
+config CPU_VOLTAGE
+	bool "CPU Voltage scaling"
+	depends on (CPU_FREQ)
+	default y
+
 endmenu
 
 source "net/Kconfig"
