@@ -68,7 +68,7 @@ vreg_cpufreq_notifier(struct notifier_block *nb, unsigned long val, void *data)
 
 	if (val == CPUFREQ_PRECHANGE && freq->old < freq->new) {
 		bfin_set_vlev(bfin_get_vlev(freq->new));
-		udelay(pdata->vr_stettling_time); /* Wait until Volatge settled */
+		udelay(pdata->vr_settling_time); /* Wait until Volatge settled */
 
 	} else if (val == CPUFREQ_POSTCHANGE && freq->old > freq->new)
 		bfin_set_vlev(bfin_get_vlev(freq->new));

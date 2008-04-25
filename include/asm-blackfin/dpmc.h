@@ -68,7 +68,7 @@ extern unsigned long get_sclk(void);
 struct bfin_dpmc_platform_data {
 	const unsigned int *tuple_tab;
 	unsigned short tabsize;
-	unsigned short vr_stettling_time; /* in us */
+	unsigned short vr_settling_time; /* in us */
 };
 
 #define VRPAIR(vlev, freq) (((vlev) << 16) | ((freq) >> 16))
