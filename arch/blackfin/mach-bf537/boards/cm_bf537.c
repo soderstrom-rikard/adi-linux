@@ -41,6 +41,7 @@
 #include <asm/dma.h>
 #include <asm/bfin5xx_spi.h>
 #include <asm/portmux.h>
+#include <asm/dpmc.h>
 
 /*
  * Name the Board for the /proc/cpuinfo
@@ -428,7 +429,37 @@ static struct platform_device bfin_pata_device = {
 };
 #endif
 
+static const unsigned int cclk_vlev_datasheet[] =
+{
+	VRPAIR(VLEV_085, 250),
+	VRPAIR(VLEV_090, 376),
+	VRPAIR(VLEV_095, 426),
+	VRPAIR(VLEV_100, 426),
+	VRPAIR(VLEV_105, 476),
+	VRPAIR(VLEV_110, 476),
+	VRPAIR(VLEV_115, 476),
+	VRPAIR(VLEV_120, 500),
+	VRPAIR(VLEV_125, 533),
+	VRPAIR(VLEV_130, 600),
+};
+
+static struct bfin_dpmc_platform_data bfin_dmpc_vreg_data = {
+	.tuple_tab = cclk_vlev_datasheet,
+	.tabsize = ARRAY_SIZE(cclk_vlev_datasheet),
+	.vr_stettling_time = 25 /* us */,
+};
+
+static struct platform_device bfin_dpmc = {
+	.name = "bfin dpmc",
+	.dev = {
+		.platform_data = &bfin_dmpc_vreg_data,
+	},
+};
+
 static struct platform_device *cm_bf537_devices[] __initdata = {
+
+	&bfin_dpmc,
+
 #if defined(CONFIG_FB_HITACHI_TX09) || defined(CONFIG_FB_HITACHI_TX09_MODULE)
 	&hitachi_fb_device,
 #endif

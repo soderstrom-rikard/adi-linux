@@ -708,13 +708,13 @@ static const unsigned int cclk_vlev_datasheet[] =
 };
 
 static struct bfin_dpmc_platform_data bfin_dmpc_vreg_data = {
-	.tuple_tab        = cclk_vlev_datasheet,
-	.tabsize       = ARRAY_SIZE(cclk_vlev_datasheet),
+	.tuple_tab = cclk_vlev_datasheet,
+	.tabsize = ARRAY_SIZE(cclk_vlev_datasheet),
 	.vr_stettling_time = 25 /* us */,
 };
 
 static struct platform_device bfin_dpmc = {
-	.name      = "bfin dpmc",
+	.name = "bfin dpmc",
 	.dev = {
 		.platform_data = &bfin_dmpc_vreg_data,
 	},

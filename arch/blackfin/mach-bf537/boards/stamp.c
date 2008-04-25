@@ -47,6 +47,7 @@
 #include <asm/bfin5xx_spi.h>
 #include <asm/reboot.h>
 #include <asm/portmux.h>
+#include <asm/dpmc.h>
 #include <linux/spi/ad7877.h>
 
 /*
@@ -820,7 +821,37 @@ static struct platform_device bfin_pata_device = {
 };
 #endif
 
+static const unsigned int cclk_vlev_datasheet[] =
+{
+	VRPAIR(VLEV_085, 250),
+	VRPAIR(VLEV_090, 376),
+	VRPAIR(VLEV_095, 426),
+	VRPAIR(VLEV_100, 426),
+	VRPAIR(VLEV_105, 476),
+	VRPAIR(VLEV_110, 476),
+	VRPAIR(VLEV_115, 476),
+	VRPAIR(VLEV_120, 500),
+	VRPAIR(VLEV_125, 533),
+	VRPAIR(VLEV_130, 600),
+};
+
+static struct bfin_dpmc_platform_data bfin_dmpc_vreg_data = {
+	.tuple_tab = cclk_vlev_datasheet,
+	.tabsize = ARRAY_SIZE(cclk_vlev_datasheet),
+	.vr_stettling_time = 25 /* us */,
+};
+
+static struct platform_device bfin_dpmc = {
+	.name = "bfin dpmc",
+	.dev = {
+		.platform_data = &bfin_dmpc_vreg_data,
+	},
+};
+
 static struct platform_device *stamp_devices[] __initdata = {
+
+	&bfin_dpmc,
+
 #if defined(CONFIG_BFIN_CFPCMCIA) || defined(CONFIG_BFIN_CFPCMCIA_MODULE)
 	&bfin_pcmcia_cf_device,
 #endif
