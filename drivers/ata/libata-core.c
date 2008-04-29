@@ -7225,9 +7225,6 @@ int ata_host_activate(struct ata_host *host, int irq,
 	/* if failed, just free the IRQ and leave ports alone */
 	if (rc)
 		devm_free_irq(host->dev, irq, host);
-	/* enable irq after probe if it is asked to be disabled when request*/
-	else if (irq_flags & IRQF_DISABLED)
-		enable_irq(irq);
 
 	return rc;
 }
