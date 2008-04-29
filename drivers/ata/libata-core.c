@@ -7162,6 +7162,10 @@ int ata_host_register(struct ata_host *host, struct scsi_host_template *sht)
 		}
 	}
 
+	/* enable irq after probe if it is asked to be disabled when request*/
+	if (host->irq_flags & IRQF_DISABLED)
+		enable_irq(host->irq);
+
 	/* probes are done, now scan each port's disk(s) */
 	DPRINTK("host probe begin\n");
 	for (i = 0; i < host->n_ports; i++) {
@@ -7202,6 +7206,9 @@ int ata_host_activate(struct ata_host *host, int irq,
 		      struct scsi_host_template *sht)
 {
 	int i, rc;
+
+	host->irq = irq;
+	host->irq_flags = irq_flags;
 
 	rc = ata_host_start(host);
 	if (rc)
@@ -7292,6 +7299,10 @@ static void ata_port_detach(struct ata_port *ap)
 void ata_host_detach(struct ata_host *host)
 {
 	int i;
+
+	/* Disable irq if it is asked to be disabled when request*/
+	if (host->irq_flags & IRQF_DISABLED)
+		disable_irq(host->irq);
 
 	for (i = 0; i < host->n_ports; i++)
 		ata_port_detach(host->ports[i]);

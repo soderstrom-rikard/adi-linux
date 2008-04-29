@@ -426,6 +426,8 @@ struct ata_host {
 	void			*private_data;
 	const struct ata_port_operations *ops;
 	unsigned long		flags;
+	int			irq;
+	unsigned long		irq_flags;
 #ifdef CONFIG_ATA_ACPI
 	acpi_handle		acpi_handle;
 #endif
