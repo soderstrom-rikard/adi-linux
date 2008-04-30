@@ -770,7 +770,7 @@ pehci_hcd_urb_complete(phci_hcd *hcd,struct ehci_qh *qh, struct urb *urb,
         urb->status = 0;
 
     spin_unlock(&hcd->lock);
-    usb_hcd_giveback_urb (&hcd->usb_hcd, urb);
+    usb_hcd_giveback_urb(&hcd->usb_hcd, urb, urb->status);
     spin_lock(&hcd->lock);
 
     /*lets handle to the remove case*/
@@ -2402,19 +2402,19 @@ pehci_hcd_reset(
 
     isp1761_reg_write32(hcd->dev,HC_USBCMD_REG ,command);
 
-    /*wait for maximum 250 msecs*/ 
-    retValHS = pehci_hcd_handshake(hcd,hcd->regs.command, CMD_RESET,0, 250 * 1000); 
+    /*wait for maximum 250 msecs*/
+    retValHS = pehci_hcd_handshake(hcd, hcd->regs.command, CMD_RESET, 0, 250 * 1000);
 
-    /*This appears to be required to allow the USBCMD_REG to be read to 
+    /*This appears to be required to allow the USBCMD_REG to be read to
       see if reset was successful after a second reset. */
-    mdelay(10); 
+    mdelay(10);
 
-    /* 2nd bit should be zero if successfully reset.  Top bits 
+    /* 2nd bit should be zero if successfully reset.  Top bits
       will be unknown (reserved) and probably not zero. */
-    retValCMD = isp1761_reg_read32(hcd->dev, HC_USBCMD_REG, retValCMD); 
+    retValCMD = isp1761_reg_read32(hcd->dev, HC_USBCMD_REG, retValCMD);
 
-    pehci_check("(pehci_hcd_reset) HC USB Reset (0x%x,%s)", 
-      retValCMD, (retValCMD & 0x2) == 0 ? "success":"failure"); 
+    pehci_check("(pehci_hcd_reset) HC USB Reset (0x%x,%s)",
+      retValCMD, (retValCMD & 0x2) == 0 ? "success":"failure");
 
    return retValHS;
 }
@@ -2526,12 +2526,13 @@ pehci_hcd_stop(struct usb_hcd *usb_hcd)
 
 /*submit urb , other than root hub*/
     static int
-pehci_hcd_urb_enqueue(struct usb_hcd *usb_hcd,struct usb_host_endpoint *ep,struct urb *urb,gfp_t mem_flags)
+pehci_hcd_urb_enqueue(struct usb_hcd *usb_hcd, struct urb *urb, gfp_t mem_flags)
 {
 
     struct list_head    qtd_list;
     struct ehci_qh              *qh = 0;
     phci_hcd                    *pehci_hcd = usb_hcd_to_pehci_hcd(usb_hcd);
+    struct usb_host_endpoint 	*ep = urb->ep;
     int status  = 0;
     int temp = 0, max = 0,num_tds = 0,mult = 0;
     urb_priv_t   *urb_priv = NULL;
