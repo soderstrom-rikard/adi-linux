@@ -123,4 +123,40 @@ config SND_BFIN_AD73311_SE
 	  Enter the GPIO used to control AD73311's SE pin. Acceptable
 	  values are 0 to 7
 
+config SND_BFIN_AD73322
+	tristate "Cascaded AD73322 Audio support for BF53x"
+	depends on SND && BLACKFIN
+	select SND_PCM
+	help
+	  Select this if you have AD73322 connected in cascade mode connected to SPORT0 ports
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called snd-ad73322.
+
+	  If unsure, say N.
+
+config SND_BFIN_SPORT
+	int "Blackfin Audio SPORT port"
+	depends on SND_BFIN_AD73322
+	default 0
+	help
+	  Enter the Blackfin SPORT port to which your sound chip is connected
+	  acceptable values are 0 or 1
+
+config SND_BFIN_AD73322_SE
+	int "PF pin for AD73322 Chip Select"
+	depends on SND_BFIN_AD73322
+	default 14
+	help
+	  Enter the GPIO used to control AD73322's SE pin. Acceptable
+	  values are 0 to 14
+
+config SND_BFIN_AD73322_RESET
+	int "PF pin for AD73322 Chip Reset"
+	depends on SND_BFIN_AD73322
+	default 12
+	help
+	  Enter the GPIO used to control AD73322's RESET pin. Acceptable
+	  values are 0 to 14
+
 endmenu
