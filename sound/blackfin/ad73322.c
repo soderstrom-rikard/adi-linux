@@ -513,7 +513,7 @@ static int snd_ad73322_configure(void)
 		dev_addr = NUM_DEVICES_CHAIN - 1;
 		for (j=0; j<NUM_DEVICES_CHAIN; j++)
 		{
-			*pctrl_buffer++ = ctrl_regs[i]|(dev_addr<<11)|(reg_addr<<8);
+			*pctrl_buffer++ = ctrl_regs[i] | (dev_addr<<11) | (reg_addr<<8) | AD_CONTROL;
 			dev_addr--;
 		}
 	reg_addr++;
