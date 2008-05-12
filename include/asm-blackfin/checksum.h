@@ -95,6 +95,6 @@ csum_tcpudp_magic(__be32 saddr, __be32 daddr, unsigned short len,
  * in icmp.c
  */
 
-extern __sum16 ip_compute_csum(const unsigned char *buff, int len);
+extern __sum16 ip_compute_csum(const void *buff, int len);
 
 #endif				/* _BFIN_CHECKSUM_H */
