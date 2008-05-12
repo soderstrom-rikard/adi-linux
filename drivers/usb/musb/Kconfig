@@ -51,7 +51,7 @@ comment "OMAP 243x high speed USB support"
 comment "OMAP 343x high speed USB support"
 	depends on USB_MUSB_HDRC && ARCH_OMAP34XX
 
-comment "Blackfin BF54x, BF525 and BF527 high speed USB support"
+comment "Blackfin high speed USB support"
 	depends on USB_MUSB_HDRC && (BF54x && !BF544) || (BF52x && !BF522 && !BF523)
 
 config USB_TUSB6010
