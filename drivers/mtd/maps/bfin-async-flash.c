@@ -1,5 +1,5 @@
 /*
- * drivers/mtd/maps/bfin-flash.c
+ * drivers/mtd/maps/bfin-async-flash.c
  *
  * Handle the case where flash memory and ethernet mac/phy are
  * mapped onto the same async bank.  The BF533-STAMP does this
