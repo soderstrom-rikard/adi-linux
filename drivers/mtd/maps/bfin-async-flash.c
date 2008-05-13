@@ -90,22 +90,22 @@ static void bfin_copy_from(struct map_info *map, void *to, unsigned long from, s
 
 	if ((unsigned long)to & 0x1) {
 		for (i = 0; i < len; i += 2) {
-			u16 *dst = (u16 *)(to + i);
+			u16 *dst = to + i;
 			test = bfin_read(map, from + i);
 			put_unaligned(test.x[0], dst);
 		}
 	} else {
 		for (i = 0; i < len; i += 2) {
-			u16 *dst = (u16 *)(to + i);
+			u16 *dst = to + i;
 			test = bfin_read(map, from + i);
 			*dst = test.x[0];
 		}
 	}
 
 	if (len & 0x1) {
-		u8 *last_to_byte = (u8 *)(to + i);
+		u8 *last_to_byte = to + i;
 		test = bfin_read(map, from + i);
-		*last_to_byte = (u8)test.x[0];
+		*last_to_byte = test.x[0];
 	}
 }
 
@@ -114,7 +114,7 @@ static void bfin_write(struct map_info *map, map_word d1, unsigned long ofs)
 	struct async_state *state = (struct async_state *)map->map_priv_1;
 	u16 d;
 
-	d = (u16)d1.x[0];
+	d = d1.x[0];
 
 	switch_to_flash(state);
 
