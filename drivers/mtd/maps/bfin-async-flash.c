@@ -29,7 +29,7 @@
 #include <asm/io.h>
 #include <asm/unaligned.h>
 
-#define pr_devinit(fmt, args...) ({ static const __devinitdata char __fmt[] = fmt; printk(__fmt, ## args); })
+#define pr_devinit(fmt, args...) ({ static const __devinitconst char __fmt[] = fmt; printk(__fmt, ## args); })
 
 #define DRIVER_NAME "bfin-async-flash"
 
@@ -75,7 +75,6 @@ static map_word bfin_read(struct map_info *map, unsigned long ofs)
 	switch_to_flash(state);
 
 	word = readw(map->virt + ofs);
-	SSYNC();
 
 	switch_back(state);
 
@@ -85,28 +84,13 @@ static map_word bfin_read(struct map_info *map, unsigned long ofs)
 
 static void bfin_copy_from(struct map_info *map, void *to, unsigned long from, ssize_t len)
 {
-	size_t i;
-	map_word test;
+	struct async_state *state = (struct async_state *)map->map_priv_1;
 
-	if ((unsigned long)to & 0x1) {
-		for (i = 0; i < len; i += 2) {
-			u16 *dst = to + i;
-			test = bfin_read(map, from + i);
-			put_unaligned(test.x[0], dst);
-		}
-	} else {
-		for (i = 0; i < len; i += 2) {
-			u16 *dst = to + i;
-			test = bfin_read(map, from + i);
-			*dst = test.x[0];
-		}
-	}
+	switch_to_flash(state);
 
-	if (len & 0x1) {
-		u8 *last_to_byte = to + i;
-		test = bfin_read(map, from + i);
-		*last_to_byte = test.x[0];
-	}
+	memcpy(to, map->virt + from, len);
+
+	switch_back(state);
 }
 
 static void bfin_write(struct map_info *map, map_word d1, unsigned long ofs)
