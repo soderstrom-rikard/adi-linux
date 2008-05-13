@@ -762,10 +762,11 @@ static void isp1362_read_fifo(struct isp1362_hcd *isp1362_hcd, void *buf, u16 le
 	u8 *dp = buf;
 	u16 data;
 
-	_BUG_ON(!irqs_disabled());
-	if (!len) {
+	if (!len)
 		return;
-	}
+
+	_BUG_ON(!irqs_disabled());
+
 	RDBG("%s: Reading %d byte from fifo to mem @ %p\n", __FUNCTION__, len, buf);
 #if USE_32BIT
 	if (len >= 4) {
@@ -777,22 +778,13 @@ static void isp1362_read_fifo(struct isp1362_hcd *isp1362_hcd, void *buf, u16 le
 #endif
 	if (len >= 2) {
 		RDBG("%s: Using readsw for %d words\n", __FUNCTION__, len >> 1);
-#if 1
 		insw((unsigned long)isp1362_hcd->data_reg, dp, len >> 1);
 		dp += len & ~1;
 		len &= 1;
-#else
-		while(len >= 2) {
-			*dp = readw(isp1362_hcd->data_reg);
-			dp += 2;
-			len -= 2;
-		}
-#endif
 	}
 
 	BUG_ON(len & ~1);
 	if (len > 0) {
-	 DUMMY_DELAY_ACCESS;
 		data = isp1362_read_data16(isp1362_hcd);
 		RDBG("%s: Reading trailing byte %02x to mem @ %08x\n", __FUNCTION__,
 		     (u8)data, (u32)dp);
@@ -804,21 +796,24 @@ static void isp1362_write_fifo(struct isp1362_hcd *isp1362_hcd, void *buf, u16 l
 {
 	u8 *dp = buf;
 	u16 data;
-	u8 *temp = NULL;
+
+	if (!len)
+		return;
+
+	if((unsigned)dp & 0x1) {
+		/* not aligned */
+		for (; len > 1; len -= 2) {
+			data = *dp++;
+			data |= *dp++ << 8;
+			isp1362_write_data16(isp1362_hcd, data);
+		}
+		if (len)
+			isp1362_write_data16(isp1362_hcd, *dp);
+	return;
+	}
 
 	_BUG_ON(!irqs_disabled());
-	if((unsigned)dp & 0x1) {
-		temp = kmalloc(len, GFP_KERNEL);
-		if (temp == NULL) {
-			printk(KERN_ERR "No memory available\n");
-			return;
-		}
-		memcpy(temp, dp, len);
-		dp = temp;
-	}
-	if (!len) {
-		return;
-	}
+
 	RDBG("%s: Writing %d byte to fifo from memory @%p\n", __FUNCTION__, len, buf);
 #if USE_32BIT
 	if (len >= 4) {
@@ -830,17 +825,9 @@ static void isp1362_write_fifo(struct isp1362_hcd *isp1362_hcd, void *buf, u16 l
 #endif
 	if (len >= 2) {
 		RDBG("%s: Using writesw for %d words\n", __FUNCTION__, len >> 1);
-#if 1
 		outsw((unsigned long)isp1362_hcd->data_reg, dp, len >> 1);
 		dp += len & ~1;
 		len &= 1;
-#else
-		while(len >= 2) {
-			writew(*dp, isp1362_hcd->data_reg);
-			dp += 2;
-			len -= 2;
-		}
-#endif
 	}
 
 	BUG_ON(len & ~1);
@@ -850,11 +837,7 @@ static void isp1362_write_fifo(struct isp1362_hcd *isp1362_hcd, void *buf, u16 l
 		data = (u16)*dp;
 		RDBG("%s: Sending trailing byte %02x from mem @ %08x\n", __FUNCTION__,
 			data, (u32)dp);
-	  DUMMY_DELAY_ACCESS;
 		isp1362_write_data16(isp1362_hcd, data);
-	}
-	if (temp) {
-		kfree(temp);
 	}
 }
 
