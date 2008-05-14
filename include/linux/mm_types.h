@@ -88,11 +88,6 @@ struct page {
 	void *virtual;			/* Kernel virtual address (NULL if
 					   not kmapped, ie. highmem) */
 #endif /* WANT_PAGE_VIRTUAL */
-
-#ifdef CONFIG_NP2
-	struct list_head np2_piece;
-#endif
-	
 };
 
 /*

@@ -621,14 +621,6 @@ config SLUB_DEBUG
 	  SLUB sysfs support. /sys/slab will not exist and there will be
 	  no support for cache validation etc.
 
-config NP2
-	default n
-	bool "Allow non-power of 2 allocations"
-	depends on !MMU
-	help
-	  Allow allocations to consume a size that is not a power of 2.  This
-	  conserves memory, but can lead to quicker fragmentation.
-
 choice
 	prompt "Choose SLAB allocator"
 	default SLUB
