@@ -647,10 +647,6 @@ static int validate_mmap_request(struct file *file,
 	if ((pgoff + (len >> PAGE_SHIFT)) < pgoff)
 		return -EOVERFLOW;
 
-	/* Too many mappings? */
-	if (current->mm->map_count > sysctl_max_map_count)
-		return -ENOMEM;
-
 	if (file) {
 		/* validate file mapping requests */
 		struct address_space *mapping;
@@ -1013,10 +1009,6 @@ unsigned long do_mmap_pgoff(struct file *file,
 			vmpglen = vma->vm_end - vma->vm_start + PAGE_SIZE - 1;
 			vmpglen >>= PAGE_SHIFT;
 			if (pgoff >= vma->vm_pgoff + vmpglen)
-				continue;
-
-			if (vma->vm_pgoff != pgoff
-			    || vma->vm_end - vma->vm_start < len)
 				continue;
 
 			/* handle inexactly overlapping matches between mappings */
