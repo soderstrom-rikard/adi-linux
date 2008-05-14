@@ -47,7 +47,7 @@
 
 #define	POLL_INTERVAL	(2 * HZ)
 
-#define	CF_ATASEL_ENA 	0x20311802 /* Inverts RESET */
+#define	CF_ATASEL_ENA 	0x20311802	/* Inverts RESET */
 #define	CF_ATASEL_DIS 	0x20311800
 
 #define bfin_cf_present(pfx) (gpio_get_value(pfx))
@@ -57,27 +57,27 @@
 static const char driver_name[] = "bfin_cf_pcmcia";
 
 struct bfin_cf_socket {
-	struct pcmcia_socket	socket;
+	struct pcmcia_socket socket;
 
-	struct timer_list	timer;
-	unsigned		present:1;
-	unsigned		active:1;
+	struct timer_list timer;
+	unsigned present:1;
+	unsigned active:1;
 
-	struct platform_device	*pdev;
-	unsigned long		phys_cf_io;
-	unsigned long		phys_cf_attr;
-	u_int			irq;
-	u_short			cd_pfx;
+	struct platform_device *pdev;
+	unsigned long phys_cf_io;
+	unsigned long phys_cf_attr;
+	u_int irq;
+	u_short cd_pfx;
 };
 
 /*--------------------------------------------------------------------------*/
 static int bfin_cf_reset(void)
 {
-	  outw(0, CF_ATASEL_ENA);
-	  mdelay(200);
-	  outw(0, CF_ATASEL_DIS);
+	outw(0, CF_ATASEL_ENA);
+	mdelay(200);
+	outw(0, CF_ATASEL_DIS);
 
-	  return 0;
+	return 0;
 }
 
 static int bfin_cf_ss_init(struct pcmcia_socket *s)
@@ -88,13 +88,13 @@ static int bfin_cf_ss_init(struct pcmcia_socket *s)
 /* the timer is primarily to kick this socket's pccardd */
 static void bfin_cf_timer(unsigned long _cf)
 {
-	struct bfin_cf_socket	*cf = (void *) _cf;
+	struct bfin_cf_socket *cf = (void *)_cf;
 	unsigned short present = bfin_cf_present(cf->cd_pfx);
 
 	if (present != cf->present) {
 		cf->present = present;
 		pr_debug("%s: card %s\n", driver_name,
-			present ? "present" : "gone");
+			 present ? "present" : "gone");
 		pcmcia_parse_events(&cf->socket, SS_DETECT);
 	}
 
@@ -102,9 +102,9 @@ static void bfin_cf_timer(unsigned long _cf)
 		mod_timer(&cf->timer, jiffies + POLL_INTERVAL);
 }
 
-static int bfin_cf_get_status(struct pcmcia_socket *s, u_int *sp)
+static int bfin_cf_get_status(struct pcmcia_socket *s, u_int * sp)
 {
-	struct bfin_cf_socket	*cf;
+	struct bfin_cf_socket *cf;
 
 	if (!sp)
 		return -EINVAL;
@@ -125,7 +125,7 @@ static int
 bfin_cf_set_socket(struct pcmcia_socket *sock, struct socket_state_t *s)
 {
 
-	struct bfin_cf_socket	*cf;
+	struct bfin_cf_socket *cf;
 	cf = container_of(sock, struct bfin_cf_socket, socket);
 
 	switch (s->Vcc) {
@@ -138,14 +138,14 @@ bfin_cf_set_socket(struct pcmcia_socket *sock, struct socket_state_t *s)
 		return -EINVAL;
 	}
 
-	if (s->flags & SS_RESET){
+	if (s->flags & SS_RESET) {
 		disable_irq(cf->irq);
 		bfin_cf_reset();
 		enable_irq(cf->irq);
 	}
 
 	pr_debug("%s: Vcc %d, io_irq %d, flags %04x csc %04x\n",
-		driver_name, s->Vcc, s->io_irq, s->flags, s->csc_mask);
+		 driver_name, s->Vcc, s->io_irq, s->flags, s->csc_mask);
 
 	return 0;
 }
@@ -159,7 +159,8 @@ static int bfin_cf_ss_suspend(struct pcmcia_socket *s)
 /* regions are 2K each:  mem, attrib, io (and reserved-for-ide) */
 
 static int bfin_cf_set_io_map(struct pcmcia_socket *s, struct pccard_io_map *io)
-{ struct bfin_cf_socket	*cf;
+{
+	struct bfin_cf_socket *cf;
 
 	cf = container_of(s, struct bfin_cf_socket, socket);
 	io->flags &= MAP_ACTIVE | MAP_ATTRIB | MAP_16BIT;
@@ -171,7 +172,7 @@ static int bfin_cf_set_io_map(struct pcmcia_socket *s, struct pccard_io_map *io)
 static int
 bfin_cf_set_mem_map(struct pcmcia_socket *s, struct pccard_mem_map *map)
 {
-	struct bfin_cf_socket	*cf;
+	struct bfin_cf_socket *cf;
 
 	if (map->card_start)
 		return -EINVAL;
@@ -185,23 +186,23 @@ bfin_cf_set_mem_map(struct pcmcia_socket *s, struct pccard_mem_map *map)
 }
 
 static struct pccard_operations bfin_cf_ops = {
-	.init			= bfin_cf_ss_init,
-	.suspend		= bfin_cf_ss_suspend,
-	.get_status		= bfin_cf_get_status,
-	.set_socket		= bfin_cf_set_socket,
-	.set_io_map		= bfin_cf_set_io_map,
-	.set_mem_map	= bfin_cf_set_mem_map,
+	.init = bfin_cf_ss_init,
+	.suspend = bfin_cf_ss_suspend,
+	.get_status = bfin_cf_get_status,
+	.set_socket = bfin_cf_set_socket,
+	.set_io_map = bfin_cf_set_io_map,
+	.set_mem_map = bfin_cf_set_mem_map,
 };
 
 /*--------------------------------------------------------------------------*/
 
 static int __init bfin_cf_probe(struct platform_device *pdev)
 {
-	struct bfin_cf_socket	*cf;
-	struct resource		*io_mem,*attr_mem;
-	int			irq;
-	unsigned short		cd_pfx;
-	int			status = 0;
+	struct bfin_cf_socket *cf;
+	struct resource *io_mem, *attr_mem;
+	int irq;
+	unsigned short cd_pfx;
+	int status = 0;
 
 	printk(KERN_INFO "Blackfin CompactFlash/PCMCIA Socket Driver\n");
 
@@ -209,12 +210,14 @@ static int __init bfin_cf_probe(struct platform_device *pdev)
 	if (!irq)
 		return -EINVAL;
 
-	cd_pfx = platform_get_irq(pdev, 1); /*Card Detect GPIO PIN*/
+	cd_pfx = platform_get_irq(pdev, 1);	/*Card Detect GPIO PIN */
 	if (cd_pfx > MAX_BLACKFIN_GPIOS)
 		return -EINVAL;
 
 	if (gpio_request(cd_pfx, "pcmcia: CD")) {
-		printk(KERN_ERR "BF5xx flash: Failed ro request Card Detect GPIO_%d\n", cd_pfx);
+		printk(KERN_ERR
+		       "BF5xx flash: Failed ro request Card Detect GPIO_%d\n",
+		       cd_pfx);
 		return -EBUSY;
 	}
 	gpio_direction_input(cd_pfx);
@@ -227,7 +230,7 @@ static int __init bfin_cf_probe(struct platform_device *pdev)
 
 	init_timer(&cf->timer);
 	cf->timer.function = bfin_cf_timer;
-	cf->timer.data = (unsigned long) cf;
+	cf->timer.data = (unsigned long)cf;
 
 	cf->pdev = pdev;
 	platform_set_drvdata(pdev, cf);
@@ -248,21 +251,22 @@ static int __init bfin_cf_probe(struct platform_device *pdev)
 
 	/* pcmcia layer only remaps "real" memory */
 	cf->socket.io_offset = (unsigned long)
-			ioremap(cf->phys_cf_io, SZ_2K);
+	    ioremap(cf->phys_cf_io, SZ_2K);
 
 	if (!cf->socket.io_offset)
 		goto fail0;
 
 	pr_info("%s: on irq %d\n", driver_name, irq);
 
-	pr_debug("%s: %s\n", driver_name, bfin_cf_present(cf->cd_pfx) ? "present" : "(not present)");
+	pr_debug("%s: %s\n", driver_name,
+		 bfin_cf_present(cf->cd_pfx) ? "present" : "(not present)");
 
 	cf->socket.owner = THIS_MODULE;
 	cf->socket.dev.parent = &pdev->dev;
 	cf->socket.ops = &bfin_cf_ops;
 	cf->socket.resource_ops = &pccard_static_ops;
 	cf->socket.features = SS_CAP_PCCARD | SS_CAP_STATIC_MAP
-				| SS_CAP_MEM_ALIGN;
+	    | SS_CAP_MEM_ALIGN;
 	cf->socket.map_size = SZ_2K;
 
 	status = pcmcia_register_socket(&cf->socket);
@@ -274,7 +278,7 @@ static int __init bfin_cf_probe(struct platform_device *pdev)
 	return 0;
 
 fail2:
-	iounmap((void __iomem *) cf->socket.io_offset);
+	iounmap((void __iomem *)cf->socket.io_offset);
 	release_mem_region(cf->phys_cf_io, SZ_8K);
 
 fail0:
@@ -292,7 +296,7 @@ static int __devexit bfin_cf_remove(struct platform_device *pdev)
 	cf->active = 0;
 	pcmcia_unregister_socket(&cf->socket);
 	del_timer_sync(&cf->timer);
-	iounmap((void __iomem *) cf->socket.io_offset);
+	iounmap((void __iomem *)cf->socket.io_offset);
 	release_mem_region(cf->phys_cf_io, SZ_8K);
 	platform_set_drvdata(pdev, NULL);
 	kfree(cf);
@@ -311,15 +315,14 @@ static int bfin_cf_resume(struct platform_device *pdev)
 
 static struct platform_driver bfin_cf_driver = {
 	.driver = {
-		.name	= (char *) driver_name,
-		.owner	= THIS_MODULE,
-	},
-	.probe		= bfin_cf_probe,
-	.remove		= __devexit_p(bfin_cf_remove),
-	.suspend 	= bfin_cf_suspend,
-	.resume 	= bfin_cf_resume,
+		   .name = (char *)driver_name,
+		   .owner = THIS_MODULE,
+		   },
+	.probe = bfin_cf_probe,
+	.remove = __devexit_p(bfin_cf_remove),
+	.suspend = bfin_cf_suspend,
+	.resume = bfin_cf_resume,
 };
-
 
 static int __init bfin_cf_init(void)
 {
