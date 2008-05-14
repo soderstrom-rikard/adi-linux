@@ -6,7 +6,7 @@
  * omap_cf.c -- OMAP 16xx CompactFlash controller driver
  *
  * Copyright (c) 2005 David Brownell
- * Copyright (c) 2006 Michael Hennerich Analog Devices Inc.
+ * Copyright (c) 2006-2008 Michael Hennerich Analog Devices Inc.
  *
  * bugs:         enter bugs at http://blackfin.uclinux.org/
  *
@@ -41,14 +41,14 @@
 #include <asm/io.h>
 #include <asm/gpio.h>
 
-#define SZ_1K			0x00000400
-#define SZ_8K			0x00002000
-#define	SZ_2K			(2 * SZ_1K)
+#define	SZ_1K	0x00000400
+#define	SZ_8K	0x00002000
+#define	SZ_2K	(2 * SZ_1K)
 
 #define	POLL_INTERVAL	(2 * HZ)
 
-#define CF_ATASEL_ENA 	0x20311802 /* Inverts RESET */
-#define CF_ATASEL_DIS 	0x20311800
+#define	CF_ATASEL_ENA 	0x20311802 /* Inverts RESET */
+#define	CF_ATASEL_DIS 	0x20311800
 
 #define bfin_cf_present(pfx) (gpio_get_value(pfx))
 
@@ -78,7 +78,6 @@ static int bfin_cf_reset(void)
 	  outw(0, CF_ATASEL_DIS);
 
 	  return 0;
-
 }
 
 static int bfin_cf_ss_init(struct pcmcia_socket *s)
@@ -163,7 +162,7 @@ static int bfin_cf_set_io_map(struct pcmcia_socket *s, struct pccard_io_map *io)
 { struct bfin_cf_socket	*cf;
 
 	cf = container_of(s, struct bfin_cf_socket, socket);
-	io->flags &= MAP_ACTIVE|MAP_ATTRIB|MAP_16BIT;
+	io->flags &= MAP_ACTIVE | MAP_ATTRIB | MAP_16BIT;
 	io->start = cf->phys_cf_io;
 	io->stop = io->start + SZ_2K - 1;
 	return 0;
@@ -178,7 +177,7 @@ bfin_cf_set_mem_map(struct pcmcia_socket *s, struct pccard_mem_map *map)
 		return -EINVAL;
 	cf = container_of(s, struct bfin_cf_socket, socket);
 	map->static_start = cf->phys_cf_io;
-	map->flags &= MAP_ACTIVE|MAP_ATTRIB|MAP_16BIT;
+	map->flags &= MAP_ACTIVE | MAP_ATTRIB | MAP_16BIT;
 	if (map->flags & MAP_ATTRIB)
 		map->static_start = cf->phys_cf_attr;
 
@@ -196,10 +195,9 @@ static struct pccard_operations bfin_cf_ops = {
 
 /*--------------------------------------------------------------------------*/
 
-static int __init bfin_cf_probe(struct device *dev)
+static int __init bfin_cf_probe(struct platform_device *pdev)
 {
 	struct bfin_cf_socket	*cf;
-	struct platform_device	*pdev = to_platform_device(dev);
 	struct resource		*io_mem,*attr_mem;
 	int			irq;
 	unsigned short		cd_pfx;
@@ -221,7 +219,7 @@ static int __init bfin_cf_probe(struct device *dev)
 	}
 	gpio_direction_input(cd_pfx);
 
-	cf = kcalloc(1, sizeof *cf, GFP_KERNEL);
+	cf = kzalloc(sizeof *cf, GFP_KERNEL);
 	if (!cf)
 		return -ENOMEM;
 
@@ -232,7 +230,7 @@ static int __init bfin_cf_probe(struct device *dev)
 	cf->timer.data = (unsigned long) cf;
 
 	cf->pdev = pdev;
-	dev_set_drvdata(dev, cf);
+	platform_set_drvdata(pdev, cf);
 
 	cf->irq = irq;
 	cf->socket.pci_irq = irq;
@@ -260,7 +258,7 @@ static int __init bfin_cf_probe(struct device *dev)
 	pr_debug("%s: %s\n", driver_name, bfin_cf_present(cf->cd_pfx) ? "present" : "(not present)");
 
 	cf->socket.owner = THIS_MODULE;
-	cf->socket.dev.parent = dev;
+	cf->socket.dev.parent = &pdev->dev;
 	cf->socket.ops = &bfin_cf_ops;
 	cf->socket.resource_ops = &pccard_static_ops;
 	cf->socket.features = SS_CAP_PCCARD | SS_CAP_STATIC_MAP
@@ -281,12 +279,14 @@ fail2:
 
 fail0:
 	kfree(cf);
+	platform_set_drvdata(pdev, NULL);
+
 	return status;
 }
 
-static int __devexit bfin_cf_remove(struct device *dev)
+static int __devexit bfin_cf_remove(struct platform_device *pdev)
 {
-	struct bfin_cf_socket *cf = dev_get_drvdata(dev);
+	struct bfin_cf_socket *cf = platform_get_drvdata(pdev);
 
 	gpio_free(cf->cd_pfx);
 	cf->active = 0;
@@ -294,27 +294,41 @@ static int __devexit bfin_cf_remove(struct device *dev)
 	del_timer_sync(&cf->timer);
 	iounmap((void __iomem *) cf->socket.io_offset);
 	release_mem_region(cf->phys_cf_io, SZ_8K);
+	platform_set_drvdata(pdev, NULL);
 	kfree(cf);
 	return 0;
 }
 
-static struct device_driver bfin_cf_driver = {
-	.name		= (char *) driver_name,
-	.bus		= &platform_bus_type,
+static int bfin_cf_suspend(struct platform_device *pdev, pm_message_t mesg)
+{
+	return pcmcia_socket_dev_suspend(&pdev->dev, mesg);
+}
+
+static int bfin_cf_resume(struct platform_device *pdev)
+{
+	return pcmcia_socket_dev_resume(&pdev->dev);
+}
+
+static struct platform_driver bfin_cf_driver = {
+	.driver = {
+		.name	= (char *) driver_name,
+		.owner	= THIS_MODULE,
+	},
 	.probe		= bfin_cf_probe,
 	.remove		= __devexit_p(bfin_cf_remove),
-	.suspend 	= pcmcia_socket_dev_suspend,
-	.resume 	= pcmcia_socket_dev_resume,
+	.suspend 	= bfin_cf_suspend,
+	.resume 	= bfin_cf_resume,
 };
+
 
 static int __init bfin_cf_init(void)
 {
-	return driver_register(&bfin_cf_driver);
+	return platform_driver_register(&bfin_cf_driver);
 }
 
 static void __exit bfin_cf_exit(void)
 {
-	driver_unregister(&bfin_cf_driver);
+	platform_driver_unregister(&bfin_cf_driver);
 }
 
 module_init(bfin_cf_init);
