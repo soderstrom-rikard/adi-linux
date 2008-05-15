@@ -49,9 +49,20 @@ procs() {
 		BF52[234567]) echo BF52{2,3,4,5,6,7};;
 		BF53[123])    echo BF53{1,2,3};;
 		BF53[467])    echo BF53{4,6,7};;
+		BF53[89])     echo BF53{8,9};;
 		BF54[24789])  echo BF54{2,4,7,9,8};;
 		BF561)        echo BF561;;
+		*)            echo FIXME;;
 	esac
+}
+
+# workaround some kconfig dependencies which cannot be fully
+# expressed in the kconfig for whatever reasons
+check_kconfig() {
+	# disable MUSB if SOC isnt supported
+	if ! grep -qs USB_MUSB_SOC=y .config ; then
+		sed -i '/CONFIG_USB_MUSB_HDRC=y/d' .config
+	fi
 }
 
 make="make -s ARCH=blackfin CROSS_COMPILE=bfin-uclinux-"
@@ -67,6 +78,8 @@ for b in "$@" ; do
 		rm -f $b.$p.log*
 		${make} $b >& /dev/null
 		sed -i 1iCONFIG_${p}=y .config
+		yes "" | ${make} oldconfig >& /dev/null
+		check_kconfig
 		yes "" | ${make} oldconfig >& /dev/null
 		${make} ${makeargs} -j${jobs} >& $b.$p.log
 		if [[ $? -eq 0 ]] ; then
