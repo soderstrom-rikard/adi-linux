@@ -1854,9 +1854,6 @@ static int musb_urb_enqueue(
 	case USB_ENDPOINT_XFER_ISOC:
 		/* iso always uses log encoding */
 		break;
-	case USB_ENDPOINT_XFER_BULK:
-		interval = (USB_SPEED_HIGH == urb->dev->speed) ? 8 : 0;
-		break;
 	case USB_ENDPOINT_XFER_CONTROL:
 		if (!musb->disable_ping) {
 			interval = (USB_SPEED_HIGH == urb->dev->speed) ? 8 : 0;
