@@ -1182,6 +1182,11 @@ static int smsc911x_open(struct net_device *dev)
 		udelay(10);
 	}
 
+	/* Set MAC again in case it has been set from non-EEPROM source
+	 * (config or even bootloader)
+	 */
+	smsc911x_set_mac_address(pdata, dev->dev_addr);
+
 	if (unlikely(timeout == 0)) {
 		SMSC_WARNING("Timed out waiting for EEPROM "
 			     "busy bit to clear");
