@@ -125,8 +125,10 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 	dump_fifo_data(src, len);
 
 #if defined(CONFIG_MUSB_PIO_ONLY)
-	BUG_ON((unsigned long)src & 0x01);
-	outsw(fifo, src, len & 0x01 ? (len >> 1) + 1 : len >> 1);
+	if (unlikely((unsigned long)src & 0x01))
+		outsw_8(fifo, src, len & 0x01 ? (len >> 1) + 1 : len >> 1);
+	else
+		outsw(fifo, src, len & 0x01 ? (len >> 1) + 1 : len >> 1);
 #else
 	flush_dcache_range((unsigned int)src,
 		(unsigned int)(src + len));
@@ -179,8 +181,10 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 			'R', hw_ep->epnum, fifo, len, dst);
 
 #if defined(CONFIG_MUSB_PIO_ONLY)
-	BUG_ON((unsigned long)dst & 0x01);
-	insw(fifo, dst, len & 0x01 ? (len >> 1) + 1 : len >> 1);
+	if (unlikely((unsigned long)dst & 0x01))
+		insw_8(fifo, dst, len & 0x01 ? (len >> 1) + 1 : len >> 1);
+	else
+		insw(fifo, dst, len & 0x01 ? (len >> 1) + 1 : len >> 1);
 #else
 	invalidate_dcache_range((unsigned int)dst,
 		(unsigned int)(dst + len));
