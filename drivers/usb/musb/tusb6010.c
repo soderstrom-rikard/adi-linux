@@ -79,7 +79,7 @@ static int __init tusb_print_revision(struct musb *musb)
 	return tusb_get_revision(musb);
 }
 
-#define WBUS_QUIRK_MASK	(TUSB_PHY_OTG_CTRL_TESTM2 | TUSB_PHY_OTG_CTRL_TESTM1	\
+#define WBUS_QUIRK_MASK	(TUSB_PHY_OTG_CTRL_TESTM2 | TUSB_PHY_OTG_CTRL_TESTM1 \
 				| TUSB_PHY_OTG_CTRL_TESTM0)
 
 /*
@@ -89,7 +89,7 @@ static int __init tusb_print_revision(struct musb *musb)
 static void tusb_wbus_quirk(struct musb *musb, int enabled)
 {
 	void __iomem	*tbase = musb->ctrl_base;
-	static u32	phy_otg_ctrl = 0, phy_otg_ena = 0;
+	static u32	phy_otg_ctrl, phy_otg_ena;
 	u32		tmp;
 
 	if (enabled) {
@@ -477,7 +477,7 @@ done:
 void musb_platform_try_idle(struct musb *musb, unsigned long timeout)
 {
 	unsigned long		default_timeout = jiffies + msecs_to_jiffies(3);
-	static unsigned long	last_timer = 0;
+	static unsigned long	last_timer;
 
 	if (timeout == 0)
 		timeout = default_timeout;
@@ -740,7 +740,7 @@ tusb_otg_ints(struct musb *musb, u32 int_src, void __iomem *tbase)
 				break;
 			case OTG_STATE_A_WAIT_VFALL:
 				/* REVISIT this irq triggers during short
-				 * spikes causet by enumeration ...
+				 * spikes caused by enumeration ...
 				 */
 				if (musb->vbuserr_retry) {
 					musb->vbuserr_retry--;
@@ -888,7 +888,7 @@ static irqreturn_t tusb_interrupt(int irq, void *__hci)
 		musb_writel(tbase, TUSB_DMA_INT_CLEAR, dma_src);
 	}
 
-	/* EP interrupts. In OCP mode tusb6010 mirrors the MUSB * interrupts */
+	/* EP interrupts. In OCP mode tusb6010 mirrors the MUSB interrupts */
 	if (int_src & (TUSB_INT_SRC_USB_IP_TX | TUSB_INT_SRC_USB_IP_RX)) {
 		u32	musb_src = musb_readl(tbase, TUSB_USBIP_INT_SRC);
 
@@ -920,7 +920,7 @@ static int dma_off;
  * REVISIT:
  * - Check what is unnecessary in MGC_HdrcStart()
  */
-void musb_platform_enable(struct musb * musb)
+void musb_platform_enable(struct musb *musb)
 {
 	void __iomem	*tbase = musb->ctrl_base;
 
@@ -956,7 +956,7 @@ void musb_platform_enable(struct musb * musb)
 
 	if (is_dma_capable() && dma_off)
 		printk(KERN_WARNING "%s %s: dma not reactivated\n",
-				__FILE__, __FUNCTION__);
+				__FILE__, __func__);
 	else
 		dma_off = 1;
 }
@@ -972,7 +972,7 @@ void musb_platform_disable(struct musb *musb)
 
 	/* disable all IRQs */
 	musb_writel(tbase, TUSB_INT_MASK, ~TUSB_INT_MASK_RESERVED_BITS);
-	musb_writel(tbase, TUSB_USBIP_INT_MASK, 0);
+	musb_writel(tbase, TUSB_USBIP_INT_MASK, 0x7fffffff);
 	musb_writel(tbase, TUSB_DMA_INT_MASK, 0x7fffffff);
 	musb_writel(tbase, TUSB_GPIO_INT_MASK, 0x1ff);
 
@@ -980,7 +980,7 @@ void musb_platform_disable(struct musb *musb)
 
 	if (is_dma_capable() && !dma_off) {
 		printk(KERN_WARNING "%s %s: dma still active\n",
-				__FILE__, __FUNCTION__);
+				__FILE__, __func__);
 		dma_off = 1;
 	}
 }

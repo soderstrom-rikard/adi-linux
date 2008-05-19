@@ -321,8 +321,7 @@ static void txstate(struct musb *musb, struct musb_request *req)
 					csr |= (MUSB_TXCSR_DMAENAB |
 							MUSB_TXCSR_MODE);
 					/* against programming guide */
-				}
-				else
+				} else
 					csr |= (MUSB_TXCSR_AUTOSET
 							| MUSB_TXCSR_DMAENAB
 							| MUSB_TXCSR_DMAMODE
@@ -824,7 +823,7 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 		}
 
 		/* incomplete, and not short? wait for next IN packet */
-                if ((request->actual < request->length)
+		if ((request->actual < request->length)
 				&& (musb_ep->dma->actual_len
 					== musb_ep->packet_sz))
 			goto done;
@@ -1494,7 +1493,7 @@ static void musb_pullup(struct musb *musb, int is_on)
 #if 0
 static int musb_gadget_vbus_session(struct usb_gadget *gadget, int is_active)
 {
-	DBG(2, "<= %s =>\n", __FUNCTION__);
+	DBG(2, "<= %s =>\n", __func__);
 
 	/*
 	 * FIXME iff driver's softconnect flag is set (as it is during probe,
@@ -1555,7 +1554,7 @@ static struct musb *the_gadget;
 static void musb_gadget_release(struct device *dev)
 {
 	/* kref_put(WHAT) */
-	dev_dbg(dev, "%s\n", __FUNCTION__);
+	dev_dbg(dev, "%s\n", __func__);
 }
 
 
@@ -1700,7 +1699,7 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 	/* driver must be initialized to support peripheral mode */
 	if (!musb || !(musb->board_mode == MUSB_OTG
 				|| musb->board_mode != MUSB_OTG)) {
-		DBG(1,"%s, no dev??\n", __FUNCTION__);
+		DBG(1, "%s, no dev??\n", __func__);
 		return -ENODEV;
 	}
 
@@ -1814,7 +1813,7 @@ static void stop_activity(struct musb *musb, struct usb_gadget_driver *driver)
 		}
 
 		spin_unlock(&musb->lock);
-		driver->disconnect (&musb->g);
+		driver->disconnect(&musb->g);
 		spin_lock(&musb->lock);
 	}
 }
