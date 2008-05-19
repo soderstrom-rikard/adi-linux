@@ -122,8 +122,6 @@ static int write_sr(struct m25p *flash, u8 val)
 	flash->command[0] = OPCODE_WRSR;
 	flash->command[1] = val;
 
-	spi_write(flash->spi, flash->command, 2);
-
 	return spi_write(flash->spi, flash->command, 2);
 }
 
