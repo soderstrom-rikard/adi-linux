@@ -487,7 +487,7 @@ add_dataflash(struct spi_device *spi, char *name,
 	device->write = dataflash_write;
 	device->priv = priv;
 
-	dev_info(&spi->dev, "%s (%d KBytes) pagesize %d bytes "
+	dev_info(&spi->dev, "%s (%d KBytes) pagesize %d bytes, "
 		"erasesize %d bytes\n", name, device->size/1024,
 		 pagesize, pagesize * 8);	/* 8 pages = 1 block */
 	dev_set_drvdata(&spi->dev, priv);
@@ -551,48 +551,49 @@ static int __devinit dataflash_probe(struct spi_device *spi)
 	 * board setup should have set spi->max_speed_max to
 	 * match f(car) for continuous reads, mode 0 or 3.
 	 */
-	switch (status & 0x3c) {
+	switch (status & 0x3d) {
 	case 0x0c:	/* 0 0 1 1 x x */
+	case 0x0d:
 		status = add_dataflash(spi, "AT45DB011B", 512, 264, 9);
 		break;
 	case 0x14:	/* 0 1 0 1 x x */
+	case 0x15:
 		status = add_dataflash(spi, "AT45DB021B", 1025, 264, 9);
 		break;
 	case 0x1c:	/* 0 1 1 1 x x */
+	case 0x1d:
 		status = add_dataflash(spi, "AT45DB041x", 2048, 264, 9);
 		break;
 	case 0x24:	/* 1 0 0 1 x x */
+	case 0x25:
 		status = add_dataflash(spi, "AT45DB081B", 4096, 264, 9);
 		break;
+	case 0x2c:	/* 1 0 1 1 x 0 */
+		status = add_dataflash(spi, "AT45DB161x", 4096, 528, 10);
+		break;
+	case 0x34:	/* 1 1 0 1 x 0 */
+		status = add_dataflash(spi, "AT45DB321x", 8192, 528, 10);
+		break;
+	case 0x38:	/* 1 1 1 x x 0 */
+	case 0x3c:
+		status = add_dataflash(spi, "AT45DB642x", 8192, 1056, 11);
+		break;
+	/* Binary page size factory preset / user set */
+	case 0x2d:	/* 1 0 1 1 x 1 */
+		status = add_dataflash(spi, "AT45DB161x", 4096, 512, 9);
+		break;
+	case 0x35:	/* 1 1 0 1 x 1 */
+		status = add_dataflash(spi, "AT45DB321x", 8192, 512, 9);
+		break;
+	case 0x39:	/* 1 1 1 x x 1 */
+	case 0x3d:
+		status = add_dataflash(spi, "AT45DB642x", 8192, 1024, 10);
+		break;
+	/* obsolete AT45DB1282 not (yet?) supported */
 	default:
-		switch (status & 0x3d) { /* bit 0 valid */
-		case 0x2c:	/* 1 0 1 1 x 0 */
-			status = add_dataflash(spi, "AT45DB161x", 4096, 528, 10);
-			break;
-		case 0x34:	/* 1 1 0 1 x 0 */
-			status = add_dataflash(spi, "AT45DB321x", 8192, 528, 10);
-			break;
-		case 0x38:	/* 1 1 1 x x 0 */
-		case 0x3c:
-			status = add_dataflash(spi, "AT45DB642x", 8192, 1056, 11);
-			break;
-		/* Binary page size factory preset / user set */
-		case 0x2d:	/* 1 0 1 1 x 1 */
-			status = add_dataflash(spi, "AT45DB161x", 4096, 512, 9);
-			break;
-		case 0x35:	/* 1 1 0 1 x 1 */
-			status = add_dataflash(spi, "AT45DB321x", 8192, 512, 9);
-			break;
-		case 0x39:	/* 1 1 1 x x 1 */
-		case 0x3d:
-			status = add_dataflash(spi, "AT45DB642x", 8192, 1024, 10);
-			break;
-		/* obsolete AT45DB1282 not (yet?) supported */
-		default:
-			DEBUG(MTD_DEBUG_LEVEL1, "%s: unsupported device (%x)\n",
-					spi->dev.bus_id, status & 0x3c);
-			status = -ENODEV;
-		}
+		DEBUG(MTD_DEBUG_LEVEL1, "%s: unsupported device (%x)\n",
+				spi->dev.bus_id, status & 0x3c);
+		status = -ENODEV;
 	}
 
 	if (status < 0)
