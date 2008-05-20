@@ -35,10 +35,10 @@
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
+#include <linux/io.h>
 
 #include <pcmcia/ss.h>
 #include <pcmcia/cisreg.h>
-#include <asm/io.h>
 #include <asm/gpio.h>
 
 #define	SZ_1K	0x00000400
@@ -102,7 +102,7 @@ static void bfin_cf_timer(unsigned long _cf)
 		mod_timer(&cf->timer, jiffies + POLL_INTERVAL);
 }
 
-static int bfin_cf_get_status(struct pcmcia_socket *s, u_int * sp)
+static int bfin_cf_get_status(struct pcmcia_socket *s, u_int *sp)
 {
 	struct bfin_cf_socket *cf;
 
@@ -152,7 +152,7 @@ bfin_cf_set_socket(struct pcmcia_socket *sock, struct socket_state_t *s)
 
 static int bfin_cf_ss_suspend(struct pcmcia_socket *s)
 {
-	pr_debug("%s: %s\n", driver_name, __FUNCTION__);
+	pr_debug("%s: %s\n", driver_name, __func__);
 	return bfin_cf_set_socket(s, &dead_socket);
 }
 
@@ -228,9 +228,7 @@ static int __init bfin_cf_probe(struct platform_device *pdev)
 
 	cf->cd_pfx = cd_pfx;
 
-	init_timer(&cf->timer);
-	cf->timer.function = bfin_cf_timer;
-	cf->timer.data = (unsigned long)cf;
+	setup_timer(&cf->timer, bfin_cf_timer, (unsigned long)cf);
 
 	cf->pdev = pdev;
 	platform_set_drvdata(pdev, cf);
