@@ -67,28 +67,6 @@
 #define snd_printk_marker()
 #endif
 
-#if CONFIG_SND_BFIN_SPORT == 0
-#define SPORT_IRQ_ERR	IRQ_SPORT0_ERROR
-#define SPORT_DMA_RX	CH_SPORT0_RX
-#define SPORT_DMA_TX	CH_SPORT0_TX
-#define bfin_write_SPORT_TCR1	bfin_write_SPORT0_TCR1
-#define bfin_read_SPORT_TCR1	bfin_read_SPORT0_TCR1
-#define bfin_write_SPORT_TCR2	bfin_write_SPORT0_TCR2
-#define bfin_write_SPORT_TX16	bfin_write_SPORT0_TX16
-#define bfin_read_SPORT_STAT	bfin_read_SPORT0_STAT
-#elif CONFIG_SND_BFIN_SPORT == 1
-#define SPORT_IRQ_ERR	IRQ_SPORT1_ERROR
-#define SPORT_DMA_RX	CH_SPORT1_RX
-#define SPORT_DMA_TX	CH_SPORT1_TX
-#define bfin_write_SPORT_TCR1	bfin_write_SPORT1_TCR1
-#define bfin_read_SPORT_TCR1	bfin_read_SPORT1_TCR1
-#define bfin_write_SPORT_TCR2	bfin_write_SPORT1_TCR2
-#define bfin_write_SPORT_TX16	bfin_write_SPORT1_TX16
-#define bfin_read_SPORT_STAT	bfin_read_SPORT1_STAT
-#elif CONFIG_SND_BFIN_SPORT == 2
-#define HAVE_TWO_CARDS
-#endif
-
 #define GPIO_SE CONFIG_SND_BFIN_AD73322_SE
 #define GPIO_RESET CONFIG_SND_BFIN_AD73322_RESET
 /*8 means 4 AD73322 is connected in cascade mode,since every AD73322 has 2 
@@ -96,18 +74,20 @@
  */
 #define NUM_DEVICES_CHAIN 8
 
-struct cascade_frame {
-
-	short channel[NUM_DEVICES_CHAIN];
-};
-
 #undef CONFIG_SND_DEBUG_CURRPTR  /* causes output every frame! */
-
-#define PCM_BUFFER_MAX	0x10000	/* 64KB */
-#define FRAGMENT_SIZE_MIN	32
+#define AD73322_BUF_SZ 0x40000
+#define PCM_BUFFER_MAX	0x10000	/* 32KB */
+#define FRAGMENT_SIZE_MIN	(2*1024)
 #define FRAGMENTS_MIN	2
 #define FRAGMENTS_MAX	16
 #define WORD_LENGTH	2
+
+#define DMA_BUFFER_BYTES	AD73322_BUF_SZ
+#define DMA_PERIOD_BYTES	(FRAGMENT_SIZE_MIN*4)
+#define DMA_PERIODS		(DMA_BUFFER_BYTES / DMA_PERIOD_BYTES)
+#define DMA_FRAME_BYTES		16
+#define DMA_BUFFER_FRAMES	(DMA_BUFFER_BYTES/DMA_FRAME_BYTES)
+#define DMA_PERIOD_FRAMES	(DMA_PERIOD_BYTES/DMA_FRAME_BYTES)
 
 #define DRIVER_NAME "AD73322"
 #define CHIP_NAME "Analog Devices AD73322"
@@ -121,76 +101,154 @@ static unsigned int output_gain = 0x2;
 module_param(output_gain, uint, 0);
 MODULE_PARM_DESC(output_gain, "Output gain setting (0 <= output_gain <= 7)");
 
-#ifdef HAVE_TWO_CARDS
-static struct platform_device *device[2];
-#else
-static struct platform_device *device;
-#endif
+static struct platform_device *device ;
+
+typedef struct {
+	struct snd_pcm_substream*	substream;
+	snd_pcm_uframes_t	dma_offset;
+	snd_pcm_uframes_t	buffer_frames;
+	snd_pcm_uframes_t	period_frames;
+	unsigned int		periods;
+	unsigned int		frame_bytes;
+	/* Information about DMA */
+	snd_pcm_uframes_t	dma_inter_pos;
+	snd_pcm_uframes_t	dma_last_pos;
+	snd_pcm_uframes_t	dma_pos_base;
+	/* Information on virtual buffer */
+	snd_pcm_uframes_t	next_inter_pos;
+	snd_pcm_uframes_t	data_count;
+	snd_pcm_uframes_t	data_pos_base;
+	snd_pcm_uframes_t	boundary;
+} substream_info_t;
 
 typedef struct snd_ad73322 {
 	struct snd_card	*card;
 	struct bf53x_sport	*sport;
 	spinlock_t    ad73322_lock;
 	struct snd_pcm	*pcm[NUM_DEVICES_CHAIN];
-	struct snd_pcm_substream* rx_substream;
-	struct snd_pcm_substream* tx_substream;
-	int runmode;
-#define RUN_RX 0x1
-#define RUN_TX 0x2
+	int	tx_dma_started;
+	int	tx_status;
+	int	rx_dma_started;
+	int	rx_status;
+#define RUN_TX0 0x1
+#define RUN_TX1 0x2
+#define RUN_TX2 0x4
+#define RUN_TX3 0x8
+#define RUN_TX4 0x10
+#define RUN_TX5 0x20
+#define RUN_TX6 0x40
+#define RUN_TX7 0x80
+#define RUN_TX_ALL (RUN_TX0 | RUN_TX1 | RUN_TX2 | RUN_TX3| RUN_TX4| RUN_TX5| RUN_TX6| RUN_TX7)
+
+#define RUN_RX0 0x1
+#define RUN_RX1 0x2
+#define RUN_RX2 0x4
+#define RUN_RX3 0x8
+#define RUN_RX4 0x10
+#define RUN_RX5 0x20
+#define RUN_RX6 0x40
+#define RUN_RX7 0x80
+#define RUN_RX_ALL (RUN_RX0 | RUN_RX1 | RUN_RX2 | RUN_RX3| RUN_RX4| RUN_RX5| RUN_RX6| RUN_RX7)
+	snd_pcm_uframes_t	tx_dma_pos;
+	snd_pcm_uframes_t	rx_dma_pos;
+	substream_info_t	tx_substreams[8];
+	substream_info_t	rx_substreams[8];
+	unsigned char *tx_dma_buf;
+	unsigned char *rx_dma_buf;
 } ad73322_t;
-
-static int index[SNDRV_CARDS] = SNDRV_DEFAULT_IDX;
-module_param_array(index, int, NULL, 0444);
-MODULE_PARM_DESC(index, "Index value for the AD73322 soundcard.");
-
-static char *id[SNDRV_CARDS] = SNDRV_DEFAULT_STR;
-module_param_array(id, charp, NULL, 0444);
-MODULE_PARM_DESC(id, "ID string for the AD73322 soundcard.");
-
-static int enable[SNDRV_CARDS] = SNDRV_DEFAULT_ENABLE_PNP;
-module_param_array(enable, bool, NULL, 0444);
-MODULE_PARM_DESC(enable, "Enable AD73322 soundcard.");
-
 
 static int snd_ad73322_startup(void);
 static void snd_ad73322_stop(void);
 
-void bf5xx_pcm16_to_frame(struct cascade_frame *dst, const __u16 *src, size_t count, unsigned int dev){
-	int channel_idx = NUM_DEVICES_CHAIN-(dev+1);
-	while (count--)
-		(dst++)->channel[channel_idx] = *src++;
-}
-
-void bf5xx_frame_to_pcm16(const struct cascade_frame *src, __u16 *dst,size_t count, unsigned int dev){
-#if 0
-	/*Should get channel_idx in this way*/
-	int channel_idx = NUM_DEVICES_CHAIN-(dev+1);
-#endif	
-	/*for Valcom customer board only,since the Jacks for capture
-	aren't mapped in ADCs' order*/
-	int channel_idx = 0;	
-	switch(dev) {
-	case 0:channel_idx = 6; 
+static int get_cap_slotindex(int index)
+{
+	int slot_index = 6;
+	switch(index) {
+	case 0:slot_index = 6; 
 		break;
-	case 1:channel_idx = 7; 
+	case 1:slot_index = 7; 
 		break;
-	case 2:channel_idx = 4; 
+	case 2:slot_index = 4; 
 		break;
-	case 3:channel_idx = 5; 
+	case 3:slot_index = 5; 
 		break;
-	case 4:channel_idx = 2; 
+	case 4:slot_index = 2; 
 		break;
-	case 5:channel_idx = 3; 
+	case 5:slot_index = 3; 
 		break;
-	case 6:channel_idx = 0; 
+	case 6:slot_index = 0; 
 		break;
-	case 7:channel_idx = 1; 
+	case 7:slot_index = 1; 
 		break;
 	}
-	while (count--)
-		*dst++ = (src++)->channel[channel_idx];
+	return slot_index;
 }
 
+static inline int find_substream(ad73322_t *chip,
+		struct snd_pcm_substream *substream,	substream_info_t **info)
+{
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		if (chip->tx_substreams[0].substream == substream) {
+			*info = &chip->tx_substreams[0];
+			return 0;
+		} else if (chip->tx_substreams[1].substream == substream) {
+			*info = &chip->tx_substreams[1];
+			return 1;
+		} else if (chip->tx_substreams[2].substream == substream) {
+			*info = &chip->tx_substreams[2];
+			return 2;
+		} else if (chip->tx_substreams[3].substream == substream) {
+			*info = &chip->tx_substreams[3];
+			return 3;
+		} else if (chip->tx_substreams[4].substream == substream) {
+			*info = &chip->tx_substreams[4];
+			return 4;
+		} else if (chip->tx_substreams[5].substream == substream) {
+			*info = &chip->tx_substreams[5];
+			return 5;
+		} else if (chip->tx_substreams[6].substream == substream) {
+			*info = &chip->tx_substreams[6];
+			return 6;
+		} else if (chip->tx_substreams[7].substream == substream) {
+			*info = &chip->tx_substreams[7];
+			return 7;
+		} 
+		else {
+			*info = NULL;
+			return -1;
+		}
+	} else {
+		if (chip->rx_substreams[0].substream == substream) {
+			*info = &chip->rx_substreams[0];
+			return 0;
+		} else if (chip->rx_substreams[1].substream == substream) {
+			*info = &chip->rx_substreams[1];
+			return 1;
+		} else if (chip->rx_substreams[2].substream == substream) {
+			*info = &chip->rx_substreams[2];
+			return 2;
+		} else if (chip->rx_substreams[3].substream == substream) {
+			*info = &chip->rx_substreams[3];
+			return 3;
+		} else if (chip->rx_substreams[4].substream == substream) {
+			*info = &chip->rx_substreams[4];
+			return 4;
+		} else if (chip->rx_substreams[5].substream == substream) {
+			*info = &chip->rx_substreams[5];
+			return 5;
+		} else if (chip->rx_substreams[6].substream == substream) {
+			*info = &chip->rx_substreams[6];
+			return 6;
+		} else if (chip->rx_substreams[7].substream == substream) {
+			*info = &chip->rx_substreams[7];
+			return 7;
+		} 
+		else {
+			*info = NULL;
+			return -1;
+		}
+	}
+}
 /*************************************************************
  *                pcm methods
  *************************************************************/
@@ -229,48 +287,80 @@ static int snd_ad73322_play_open(struct snd_pcm_substream *substream)
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
 	snd_printk_marker();
 	substream->runtime->hw = snd_ad73322_play_hw;
-	chip->tx_substream = substream;
+	chip->tx_substreams[substream->pcm->device].substream = substream;
 	return 0;
 }
 
 static int snd_ad73322_cap_open(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
+
 	snd_printk_marker();
+
 	substream->runtime->hw = snd_ad73322_cap_hw;
-	chip->rx_substream = substream;
+	chip->rx_substreams[substream->pcm->device].substream = substream;
+
 	return 0;
 }
 
 static int snd_ad73322_play_close(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
+	substream_info_t *sub_info = NULL;
+	int index, i; 
+	int slot_index;
+	 
+	index = find_substream(chip, substream, &sub_info);
+	slot_index = NUM_DEVICES_CHAIN-(index+1);
 	snd_printk_marker();
-	chip->tx_substream = NULL;
+	if (index >= 0 && index <= 7) {
+		sub_info->substream = NULL;
+		for (i=0; i < DMA_BUFFER_FRAMES; i++)
+			*((unsigned short *)chip->tx_dma_buf+i*8 + slot_index) = 0;
+	}
 	return 0;
 }
 
 static int snd_ad73322_cap_close(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
+	substream_info_t *sub_info = NULL;
+	int index, slot_index, i; 
+	 
+	index = find_substream(chip, substream, &sub_info);
+	slot_index  = get_cap_slotindex(index);
 	snd_printk_marker();
-	chip->rx_substream = NULL;
+	if (index >= 0 && index <= 7) {
+		sub_info->substream = NULL;
+		for (i=0; i < DMA_BUFFER_FRAMES; i++)
+			*((unsigned short *)chip->rx_dma_buf+i*8 + slot_index) = 0;
+	}
 	return 0;
 }
 
 static int snd_ad73322_hw_params(struct snd_pcm_substream *substream,
 		struct snd_pcm_hw_params* hwparams)
-{
+{	ad73322_t *chip = snd_pcm_substream_chip(substream);
 	snd_printk_marker();
-	if (snd_pcm_lib_malloc_pages(substream, params_buffer_bytes(hwparams)) < 0)
-		return -ENOMEM;
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		substream->runtime->dma_area = chip->tx_dma_buf;
+		substream->runtime->dma_addr = (unsigned int)chip->tx_dma_buf;
+		substream->runtime->dma_bytes = AD73322_BUF_SZ;
+	} else {
+		substream->runtime->dma_area = chip->rx_dma_buf;
+		substream->runtime->dma_addr = (unsigned int)chip->rx_dma_buf;
+		substream->runtime->dma_bytes = AD73322_BUF_SZ;
+	}
 	return 0;
 }
 
 static int snd_ad73322_hw_free(struct snd_pcm_substream *substream)
 {
 	snd_printk_marker();
-	snd_pcm_lib_free_pages(substream);
+	substream->runtime->dma_area = NULL;
+	substream->runtime->dma_addr = 0;
+	substream->runtime->dma_bytes = 0;
+
 	return 0;
 }
 
@@ -278,14 +368,29 @@ static int snd_ad73322_play_pre(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	snd_assert((substream == chip->tx_substream), return -EINVAL);
-	snd_printk_marker();
-	snd_printd(KERN_INFO "%s channels:%d, period_bytes:0x%x, periods:%d\n",
-				__FUNCTION__, runtime->channels, period_bytes,
-							runtime->periods);
-	return bf53x_sport_config_tx_dma(chip->sport, runtime->dma_area,\
-			runtime->periods, runtime->period_size * sizeof(struct cascade_frame),\
-				WORD_LENGTH);
+	substream_info_t *sub_info = NULL;
+	int index = find_substream(chip, substream, &sub_info);
+	printk(KERN_ERR "play index = %d\n",index);
+	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
+	sub_info->period_frames = runtime->period_size;
+	sub_info->periods = runtime->periods;
+	sub_info->buffer_frames = runtime->buffer_size;
+	sub_info->frame_bytes = runtime->frame_bits / 8;
+	sub_info->dma_inter_pos = 0;
+	sub_info->dma_last_pos = 0;
+	sub_info->dma_pos_base = 0;
+	sub_info->next_inter_pos = sub_info->period_frames;
+	sub_info->data_count = 0;
+	sub_info->data_pos_base = 0;
+	sub_info->boundary = DMA_BUFFER_FRAMES * sub_info->buffer_frames;
+
+	while (sub_info->boundary * 2 <= (LONG_MAX - DMA_BUFFER_FRAMES * \
+			sub_info->buffer_frames)) {
+		sub_info->boundary *= 2;
+	}
+	sub_info->dma_offset = 0;
+	
+	return 0;
 }
 
 static int snd_ad73322_cap_pre(struct snd_pcm_substream *substream)
@@ -293,34 +398,61 @@ static int snd_ad73322_cap_pre(struct snd_pcm_substream *substream)
 
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	snd_printk_marker();
-	snd_assert((substream == chip->rx_substream), return -EINVAL);
-	snd_printd(KERN_INFO "%s channels:%d, period_bytes:%d, frag_count:%d\n",
-				__FUNCTION__, runtime->channels, period_bytes,
-							runtime->periods);
-	return bf53x_sport_config_rx_dma(chip->sport, runtime->dma_area,\
-			runtime->periods, runtime->period_size * sizeof(struct cascade_frame), \
-				WORD_LENGTH);
+	substream_info_t *sub_info = NULL;
+	int index = find_substream(chip, substream, &sub_info);
+	printk(KERN_ERR "cap index = %d\n",index);
+	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
+	sub_info->period_frames = runtime->period_size;
+	sub_info->periods = runtime->periods;
+	sub_info->buffer_frames = runtime->buffer_size;
+	sub_info->frame_bytes = runtime->frame_bits / 8;
+	sub_info->dma_inter_pos = 0;
+	sub_info->dma_last_pos = 0;
+	sub_info->dma_pos_base = 0;
+	sub_info->next_inter_pos = sub_info->period_frames;
+	sub_info->data_count = 0;
+	sub_info->data_pos_base = 0;
+	sub_info->boundary = DMA_BUFFER_FRAMES * sub_info->buffer_frames;
+
+	while (sub_info->boundary * 2 <= (LONG_MAX - DMA_BUFFER_FRAMES * \
+			sub_info->buffer_frames)) {
+		sub_info->boundary *= 2;
+	}
+	sub_info->dma_offset = 0;
+	return 0;
 }
+
+
 
 static int snd_ad73322_play_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
+	substream_info_t *sub_info = NULL;
+	int index = find_substream(chip, substream, &sub_info);
+	snd_assert((index >= 0 && index <= 7 && sub_info), return -EINVAL);
 	spin_lock(&chip->ad73322_lock);
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
-		bf53x_sport_tx_start(chip->sport);
-		if (!(chip->runmode & RUN_RX))
-			snd_ad73322_startup();
-			chip->runmode |= RUN_TX;
+		if (!chip->tx_dma_started) {
+			chip->tx_dma_pos = 0;
+			bf53x_sport_tx_start(chip->sport);
+			if (!(chip->rx_status & RUN_TX_ALL))
+				snd_ad73322_startup();
+			chip->tx_dma_started = 1;
+		}
+		sub_info->dma_offset = chip->tx_dma_pos;
+		chip->tx_status |= (1 << index);
 		break;
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_SUSPEND:
-		chip->runmode &= ~RUN_TX;
-		bf53x_sport_tx_stop(chip->sport);
-		if (!chip->runmode & RUN_RX)
-			snd_ad73322_stop();
+		chip->tx_status &= ~ (1 << index);
+		if (!(chip->tx_status & RUN_TX_ALL)) {
+			chip->tx_dma_started = 0;
+			bf53x_sport_tx_stop(chip->sport);
+			if (!(chip->rx_status & RUN_TX_ALL))
+				snd_ad73322_stop();
+		}
 		break;
 	default:
 		spin_unlock(&chip->ad73322_lock);
@@ -336,23 +468,32 @@ static int snd_ad73322_play_trigger(struct snd_pcm_substream *substream, int cmd
 static int snd_ad73322_cap_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
-
+	substream_info_t *sub_info = NULL;
+	int index = find_substream(chip, substream, &sub_info);
+	snd_assert((index >= 0 && index <= 7 && sub_info), return -EINVAL);
 	spin_lock(&chip->ad73322_lock);
-	snd_assert(substream == chip->rx_substream, return -EINVAL);
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
-		bf53x_sport_rx_start(chip->sport);
-		if (!(chip->runmode & RUN_TX))
-			snd_ad73322_startup();
-		chip->runmode |= RUN_RX;
+		if (!chip->rx_dma_started) {
+			chip->rx_dma_pos = 0;
+			bf53x_sport_rx_start(chip->sport);
+			if (!(chip->tx_status & RUN_TX_ALL))
+				snd_ad73322_startup();
+			chip->rx_dma_started = 1;
+		}
+		sub_info->dma_offset = chip->rx_dma_pos;
+		chip->rx_status |= (1 << index);
 		break;
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_SUSPEND:
-		chip->runmode &= ~RUN_RX;
-		bf53x_sport_rx_stop(chip->sport);
-		if (!(chip->runmode & RUN_TX))
-			snd_ad73322_stop();
+		chip->rx_status &= ~ (1 << index);
+		if (!(chip->rx_status & RUN_TX_ALL)) {
+			chip->rx_dma_started = 0;
+			bf53x_sport_rx_stop(chip->sport);
+			if (!(chip->tx_status & RUN_TX_ALL))
+				snd_ad73322_stop();
+		}
 		break;
 	default:
 		spin_unlock(&chip->ad73322_lock);
@@ -360,52 +501,146 @@ static int snd_ad73322_cap_trigger(struct snd_pcm_substream *substream, int cmd)
 	}
 	spin_unlock(&chip->ad73322_lock);
 
-//	printk(KERN_INFO"cmd:%s,runmode:0x%x\n", cmd?"start":"stop", chip->runmode);
+	snd_printd(KERN_INFO"cmd:%s,runmode:0x%x\n", cmd?"start":"stop",
+							chip->runmode);
 	return 0;
 }
 
 static snd_pcm_uframes_t snd_ad73322_play_ptr(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
+	substream_info_t *sub_info = NULL;
 	unsigned long diff = bf53x_sport_curr_offset_tx(chip->sport);
-	size_t frames = diff/sizeof(struct cascade_frame);
-	if (frames >= substream->runtime->buffer_size)
-		frames = 0;
+	unsigned long bytes_per_frame = 8*2;
+	size_t frames = diff / bytes_per_frame;
+	find_substream(chip, substream, &sub_info);
+	frames = (frames + DMA_BUFFER_FRAMES - sub_info->dma_offset) % \
+						DMA_BUFFER_FRAMES;
 
+	if (sub_info->dma_last_pos > frames) {
+		sub_info->dma_pos_base += DMA_BUFFER_FRAMES;
+		if (sub_info->dma_pos_base >= sub_info->boundary)
+			sub_info->dma_pos_base -= sub_info->boundary;
+	}
+	sub_info->dma_last_pos = frames;
+	frames = (frames + sub_info->dma_pos_base) % sub_info->buffer_frames;
 	return frames;
 }
 
 static snd_pcm_uframes_t snd_ad73322_cap_ptr(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
+	substream_info_t *sub_info = NULL;
 	unsigned long diff = bf53x_sport_curr_offset_rx(chip->sport);
-	size_t frames = diff/sizeof(struct cascade_frame);
+	unsigned long bytes_per_frame = 8*2;
+	size_t frames = diff / bytes_per_frame;
+	find_substream(chip, substream, &sub_info);
+	frames = (frames + DMA_BUFFER_FRAMES - sub_info->dma_offset) % \
+						DMA_BUFFER_FRAMES;
 
-#ifdef CONFIG_SND_DEBUG_CURRPTR
-	snd_printk(KERN_INFO " cap pos: 0x%04lx / %lx\n", frames, runtime->buffer_size);
-#endif
-	/* the loose syncing used here is accurate enough for alsa, but
-	   due to latency in the dma, the following may happen occasionally,
-	   and pcm_lib shouldn't complain */
-	if (frames >= substream->runtime->buffer_size)
-		frames = 0;
-
+	if (sub_info->dma_last_pos > frames) {
+		sub_info->dma_pos_base += DMA_BUFFER_FRAMES;
+		if (sub_info->dma_pos_base >= sub_info->boundary)
+			sub_info->dma_pos_base -= sub_info->boundary;
+	}
+	sub_info->dma_last_pos = frames;
+	frames = (frames + sub_info->dma_pos_base) % sub_info->buffer_frames;
 	return frames;
 }
 
 static int snd_ad73322_play_copy(struct snd_pcm_substream *substream, int channel,
 		snd_pcm_uframes_t pos, void *src, snd_pcm_uframes_t count)
 {
-	unsigned int dev = substream->pcm->device;
-	bf5xx_pcm16_to_frame((struct cascade_frame *)substream->runtime->dma_area+pos, src, count, dev);
+	ad73322_t *chip = snd_pcm_substream_chip(substream);
+	unsigned short *isrc = (unsigned short *)src;
+	unsigned short *dst = (unsigned short *)chip->tx_dma_buf;
+	substream_info_t *sub_info = NULL;
+	int index = find_substream(chip, substream, &sub_info);
+	snd_pcm_uframes_t start, temp_count, temp2_count;
+	int slot_index = NUM_DEVICES_CHAIN-(index+1);
+	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
+
+	if (index > 0 && index <=7 && !(chip->tx_status & (1<<index))) {
+		sub_info->data_count += count;
+		return 0;
+	}
+	start = (sub_info->data_pos_base + pos + sub_info->dma_offset) % \
+							DMA_BUFFER_FRAMES;
+	if (start + count > DMA_BUFFER_FRAMES) {
+		temp_count = DMA_BUFFER_FRAMES - start;
+		temp2_count = start + count - DMA_BUFFER_FRAMES;
+	} else {
+		temp_count = count;
+		temp2_count = 0;
+	}
+	dst += start * 8;
+	while (temp_count--) {
+		*(dst + slot_index) = *isrc++;
+		dst += 8;
+	}
+
+	if (temp2_count) {
+		dst = (unsigned short*)chip->tx_dma_buf;
+		while (temp2_count--) {
+			*(dst + slot_index) = *isrc++;
+			dst += 8;
+		}
+	}
+	sub_info->data_count += count;
+	if (sub_info->data_count >= sub_info->buffer_frames) {
+		sub_info->data_count -= sub_info->buffer_frames;
+		sub_info->data_pos_base += sub_info->buffer_frames;
+		if (sub_info->data_pos_base >= sub_info->boundary)
+			sub_info->data_pos_base -= sub_info->boundary;
+	}
 	return 0;
 }
 
 static int snd_ad73322_cap_copy(struct snd_pcm_substream *substream, int channel,
 		snd_pcm_uframes_t pos, void *dst, snd_pcm_uframes_t count)
 {
-	unsigned int dev = substream->pcm->device;
-	bf5xx_frame_to_pcm16((struct cascade_frame *)substream->runtime->dma_area+pos, dst, count, dev);
+	ad73322_t *chip = snd_pcm_substream_chip(substream);
+	unsigned short *idst = (unsigned short *)dst;
+	unsigned short *src = (unsigned short *)chip->rx_dma_buf;
+	substream_info_t *sub_info = NULL;
+	int index = find_substream(chip, substream, &sub_info);
+	snd_pcm_uframes_t start, temp_count, temp2_count;
+	int slot_index = get_cap_slotindex(index);
+	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
+
+	if (index > 0 && index <=7 && !(chip->tx_status & (1<<index))) {
+		sub_info->data_count += count;
+		return 0;
+	}
+	start = (sub_info->data_pos_base + pos + sub_info->dma_offset) % \
+							DMA_BUFFER_FRAMES;
+	if (start + count > DMA_BUFFER_FRAMES) {
+		temp_count = DMA_BUFFER_FRAMES - start;
+		temp2_count = start + count - DMA_BUFFER_FRAMES;
+	} else {
+		temp_count = count;
+		temp2_count = 0;
+	}
+	src += start * 8;
+	while (temp_count--) {
+		*idst++ = *(src +slot_index); 
+		src += 8;
+	}
+
+	if (temp2_count) {
+		dst = (unsigned short*)chip->tx_dma_buf;
+		while (temp2_count--) {
+			*idst++ = *(src +slot_index); 
+			src += 8;
+		}
+	}
+	sub_info->data_count += count;
+	if (sub_info->data_count >= sub_info->buffer_frames) {
+		sub_info->data_count -= sub_info->buffer_frames;
+		sub_info->data_pos_base += sub_info->buffer_frames;
+		if (sub_info->data_pos_base >= sub_info->boundary)
+			sub_info->data_pos_base -= sub_info->boundary;
+	}
 	return 0;
 }
 
@@ -436,20 +671,50 @@ static struct snd_pcm_ops snd_ad73322_cap_ops = {
 	.copy	   = snd_ad73322_cap_copy,
 };
 
+static inline void snd_ad73322_update(substream_info_t *sub_info)
+{
+	sub_info->dma_inter_pos += DMA_PERIOD_FRAMES;
+	if (sub_info->dma_inter_pos >= sub_info->boundary)
+		sub_info->dma_inter_pos -= sub_info->boundary;
+
+	if (sub_info->dma_inter_pos >= sub_info->next_inter_pos) {
+		snd_pcm_period_elapsed(sub_info->substream);
+		sub_info->next_inter_pos += sub_info->period_frames;
+		if (sub_info->next_inter_pos >= sub_info->boundary)
+			sub_info->next_inter_pos -= sub_info->boundary;
+	}
+}
+
+
 static void snd_ad73322_dma_rx(void *data)
 {
-	struct snd_ad73322 *chip = data;
-
-	if ((chip->rx_substream) && (chip->runmode & RUN_RX))
-		snd_pcm_period_elapsed(chip->rx_substream);
+	struct snd_ad73322 *ad73322 = data;
+	int index;
+	substream_info_t *sub_info = NULL;
+	ad73322->rx_dma_pos = (ad73322->rx_dma_pos + DMA_PERIOD_FRAMES) % \
+						DMA_BUFFER_FRAMES;
+	for (index = 0; index < 8; index++) {
+		sub_info = &ad73322->rx_substreams[index];
+		if (sub_info->substream && ad73322->rx_status & (1<<index)) {
+			snd_ad73322_update(sub_info);
+		}
+	}
 }
 
 static void snd_ad73322_dma_tx(void *data)
 {
-	struct snd_ad73322 *chip = data;
-	if ((chip->tx_substream) && (chip->runmode & RUN_TX)) {
-		snd_pcm_period_elapsed(chip->tx_substream);
+	struct snd_ad73322 *ad73322 = data;
+	int index;
+	substream_info_t *sub_info = NULL;
+	ad73322->tx_dma_pos = (ad73322->tx_dma_pos + DMA_PERIOD_FRAMES) % \
+						DMA_BUFFER_FRAMES;
+	for (index = 0; index < 8; index++) {
+		sub_info = &ad73322->tx_substreams[index];
+		if (sub_info->substream && ad73322->tx_status & (1<<index)) {
+			snd_ad73322_update(sub_info);
+		}
 	}
+
 }
 
 static void snd_ad73322_sport_err(void *data)
@@ -478,16 +743,18 @@ static void snd_ad73322_reset(void)
 {
 	int i;
 	snd_printd(KERN_INFO "%s is called\n", __FUNCTION__);
+	
 	/* Pull down GPIO_RESET pin on AD73322 */
 	gpio_direction_output(GPIO_RESET, 0);
-	for (i = 0; i < 50000; i++);
+	for(i=0; i<50000; i++);
 	gpio_direction_output(GPIO_RESET, 1);
+	
 }
 
 /*************************************************************
  *                 ALSA Card Level
  *************************************************************/
-static int snd_ad73322_configure(int dev_id)
+static int snd_ad73322_configure(void)
 {
 	short ctrl_regs[8];
 	short dev_addr,reg_addr;
@@ -508,57 +775,22 @@ static int snd_ad73322_configure(int dev_id)
 	
 	pctrl_buffer = &ctrl_buffer[0];
 	reg_addr = 1;
-	for (i = 0; i < 8; i++)
+	for (i=0; i<8; i++)
 	{
 		dev_addr = NUM_DEVICES_CHAIN - 1;
-		for (j = 0; j < NUM_DEVICES_CHAIN; j++)
+		for (j=0; j<NUM_DEVICES_CHAIN; j++)
 		{
 			*pctrl_buffer++ = ctrl_regs[i] | (dev_addr<<11) | (reg_addr<<8) | AD_CONTROL;
 			dev_addr--;
 		}
 	reg_addr++;
-	if (reg_addr == 8)
-		reg_addr = 0;
+	if(reg_addr == 8) reg_addr = 0;
 
 	}
 	snd_ad73322_startup();
 	snd_ad73322_reset();
 	local_irq_disable();
 	udelay(1);
-#ifdef HAVE_TWO_CARDS
-	bfin_write_SPORT0_TCR1(TFSR);
-	bfin_write_SPORT0_TCR2(0xF);
-	SSYNC();
-	for (i = 0; i < 8; i++) {
-		for (j = 0; j < NUM_DEVICES_CHAIN; j++)
-			bfin_write_SPORT0_TX16(ctrl_buffer[8*i+j]);
-		bfin_write_SPORT0_TCR1(bfin_read_SPORT0_TCR1() | TSPEN);
-		status = bfin_read_SPORT0_STAT();
-		while (!(status & TUVF)) {
-			udelay(1);
-			status = bfin_read_SPORT0_STAT();
-			SSYNC();
-		}
-		bfin_write_SPORT0_TCR1(bfin_read_SPORT0_TCR1() & ~TSPEN);
-	}
-	SSYNC();
-	bfin_write_SPORT1_TCR1(TFSR);
-	bfin_write_SPORT1_TCR2(0xF);
-	SSYNC();
-	for (i = 0; i < 8; i++) {
-		for (j = 0; j < NUM_DEVICES_CHAIN; j++)
-			bfin_write_SPORT1_TX16(ctrl_buffer[8*i+j]);
-		bfin_write_SPORT1_TCR1(bfin_read_SPORT1_TCR1() | TSPEN);
-		status = bfin_read_SPORT1_STAT();
-		while (!(status & TUVF)) {
-			udelay(1);
-			status = bfin_read_SPORT1_STAT();
-			SSYNC();
-		}
-		bfin_write_SPORT1_TCR1(bfin_read_SPORT1_TCR1() & ~TSPEN);
-	}
-	SSYNC();
-#else
 	bfin_write_SPORT_TCR1(TFSR);
 	bfin_write_SPORT_TCR2(0xF);
 	SSYNC();	
@@ -577,7 +809,6 @@ static int snd_ad73322_configure(int dev_id)
 	}	
 	bfin_write_SPORT_TCR1(bfin_read_SPORT_TCR1() & ~TSPEN);
 	SSYNC();
-#endif
 	local_irq_enable();
 	snd_ad73322_stop();
 
@@ -600,17 +831,8 @@ static int __devinit snd_ad73322_pcm(struct snd_ad73322 *ad73322, int dev)
 			&snd_ad73322_play_ops);
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE,
 			&snd_ad73322_cap_ops);
-
 	pcm->private_data = ad73322;
 	pcm->info_flags = 0;
-	/* uncached DMA buffers */
-	err = snd_pcm_lib_preallocate_pages_for_all(pcm,
-				SNDRV_DMA_TYPE_DEV,NULL, PCM_BUFFER_MAX,
-				PCM_BUFFER_MAX);
-	if (err) {
-		return -ENOMEM;
-	}
-
 	return 0;
 }
 
@@ -619,103 +841,70 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 	int err;
 	struct snd_card *card;
 	struct snd_ad73322 *ad73322;
-	struct bf53x_sport *sport = NULL;
+	struct bf53x_sport *sport;
 	int i;
-#if CONFIG_SND_BFIN_SPORT != 0
-	unsigned short tmp_reg;
-#endif
-	/*
+	dma_addr_t addr;
 	if (device != NULL)
 		return -ENOENT;
-	*/
-	if (pdev->id == 0) {
-		if (gpio_request(GPIO_SE, "AD73322")) {
-			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __FUNCTION__, GPIO_SE);
-			return -EBUSY;
-		}
 
-		if (gpio_request(GPIO_RESET, "AD73322RST")) {
-			printk(KERN_ERR "%s: Failed ro request GPIO_12\n", __FUNCTION__);
-			return -EBUSY;
-		}
-		gpio_direction_output(GPIO_SE, 0);
-		gpio_direction_output(GPIO_RESET, 0);
-#if CONFIG_SND_BFIN_SPORT != 0
-		tmp_reg = bfin_read_PORT_MUX();
-		bfin_write_PORT_MUX(tmp_reg|0x0E00);
-		bfin_write_PORTG_FER(0xFFFF);
-#endif
+	if (gpio_request(GPIO_SE, "AD73322")) {
+		printk(KERN_ERR "%s: Failed ro request GPIO_%d\n",__FUNCTION__, GPIO_SE);
+		return -EBUSY;
 	}
-	card = snd_card_new(index[pdev->id], id[pdev->id], THIS_MODULE, sizeof(struct snd_ad73322));
+
+	if (gpio_request(GPIO_RESET, "AD73322RST")) {
+		printk(KERN_ERR "%s: Failed ro request GPIO_12\n",__FUNCTION__);
+		return -EBUSY;
+	}
+	gpio_direction_output(GPIO_SE, 1);
+	gpio_direction_output(GPIO_RESET, 1);
+
+	card = snd_card_new(-1, NULL, THIS_MODULE, sizeof(struct snd_ad73322));
 	if (card == NULL)
 		return -ENOMEM;
-	err = snd_ad73322_configure(pdev->id);
-		if (err < 0)
-			return -EFAULT;
+	if ((err = snd_ad73322_configure()) < 0)
+		return -EFAULT;
 	ad73322 = card->private_data;
 	ad73322->card = card;
-#ifdef HAVE_TWO_CARDS
-	if (pdev->id == 0) {
-		sport = bf53x_sport_init(0,
-			CH_SPORT0_RX, snd_ad73322_dma_rx,
-			CH_SPORT0_TX, snd_ad73322_dma_tx,
-			IRQ_SPORT0_ERROR, snd_ad73322_sport_err, ad73322);
-		if (sport == NULL) {
-			err = -ENODEV;
-			goto __sport_err;
-		}
-	} else if (pdev->id == 1) {
-		sport = bf53x_sport_init(1,
-			CH_SPORT1_RX, snd_ad73322_dma_rx,
-			CH_SPORT1_TX, snd_ad73322_dma_tx,
-			IRQ_SPORT1_ERROR, snd_ad73322_sport_err, ad73322);
-		if (sport == NULL) {
-			err = -ENODEV;
-			goto __sport_err;
-		}
+	ad73322->tx_dma_buf = dma_alloc_coherent(NULL, AD73322_BUF_SZ, &addr, GFP_KERNEL);
+	if (!ad73322->tx_dma_buf) {
+		printk(KERN_ERR "Failed to allocate dma memory\n");
+		return -ENOMEM;
 	}
-#else
-	sport = bf53x_sport_init(CONFIG_SND_BFIN_SPORT,
-		SPORT_DMA_RX, snd_ad73322_dma_rx,
-		SPORT_DMA_TX, snd_ad73322_dma_tx,
-		SPORT_IRQ_ERR, snd_ad73322_sport_err, ad73322);
-	if (sport == NULL) {
+	ad73322->rx_dma_buf = dma_alloc_coherent(NULL, AD73322_BUF_SZ, &addr, GFP_KERNEL);
+	if (!ad73322->rx_dma_buf) {
+		dma_free_coherent(NULL, AD73322_BUF_SZ, ad73322->tx_dma_buf, 0);
+		printk(KERN_ERR "Failed to allocate dma memory\n");
+		return -ENOMEM;
+	}
+	if ((sport = bf53x_sport_init(CONFIG_SND_BFIN_SPORT,
+			SPORT_DMA_RX, snd_ad73322_dma_rx,
+			SPORT_DMA_TX, snd_ad73322_dma_tx,
+			SPORT_IRQ_ERR, snd_ad73322_sport_err, ad73322))
+			== NULL) {
 		err = -ENODEV;
 		goto __sport_err;
 	}
-#endif
+
 	ad73322->sport = sport;
 	for (i=0; i<NUM_DEVICES_CHAIN; i++) {
 		if ((err = snd_ad73322_pcm(ad73322, i)) < 0)
 			goto __nodev;
 	}
-	err = bf53x_sport_config_tx(sport, TFSR, 0xF, 0, 0);
-	err = err || bf53x_sport_config_rx(sport, RFSR, 0xF, 0, 0);
-	if (err)
-		goto __nodev;
+	bf53x_sport_config_rx(sport, RFSR, 0xF, 0, 0); 
+	bf53x_sport_config_rx_dma(sport, ad73322->rx_dma_buf,
+			DMA_PERIODS, DMA_PERIOD_BYTES, 2);
+	bf53x_sport_config_tx(sport, TFSR, 0xF, 0, 0);
+	bf53x_sport_config_tx_dma(sport, ad73322->tx_dma_buf,
+			DMA_PERIODS, DMA_PERIOD_BYTES, 2);
 	strcpy(card->driver, DRIVER_NAME);
 	strcpy(card->shortname, CHIP_NAME);
-#ifdef HAVE_TWO_CARDS
-	if (pdev->id == 0) {
-		sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
-			card->shortname,
-			CONFIG_SND_BFIN_AD73322_SE,
-			0,
-			CH_SPORT0_RX, CH_SPORT0_TX, IRQ_SPORT0_ERROR);
-	} else if (pdev->id == 1) {
-		sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
-			card->shortname,
-			CONFIG_SND_BFIN_AD73322_SE,
-			1,
-			CH_SPORT1_RX, CH_SPORT1_TX, IRQ_SPORT1_ERROR);
-	}
-#else
 	sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
 	        card->shortname,
 	        CONFIG_SND_BFIN_AD73322_SE,
 	        CONFIG_SND_BFIN_SPORT,
 	        SPORT_DMA_RX, SPORT_DMA_TX, SPORT_IRQ_ERR);
-#endif
+
 	snd_card_set_dev(card, (&pdev->dev));
 	if ((err = snd_card_register(card)) < 0) {
 		goto __nodev;
@@ -739,11 +928,12 @@ static int __devexit snd_ad73322_remove(struct platform_device *pdev)
 
 	card = platform_get_drvdata(pdev);
 	ad73322 = card->private_data;
-
+	dma_free_coherent(NULL, AD73322_BUF_SZ, ad73322->tx_dma_buf, 0);
+	dma_free_coherent(NULL, AD73322_BUF_SZ, ad73322->rx_dma_buf, 0);
 	snd_ad73322_stop();
 	bf53x_sport_done(ad73322->sport);
 	snd_card_free(card);
-
+	gpio_free(GPIO_RESET);
 	gpio_free(GPIO_SE);
 
 	platform_set_drvdata(pdev, NULL);
@@ -788,16 +978,12 @@ static struct platform_driver snd_ad73322_driver = {
 #endif
 	.driver		= {
 			.name = DRIVER_NAME,
-			.owner = THIS_MODULE,
 	},
 };
 
 static int __init snd_ad73322_init(void)
 {
 	int err;
-#ifdef HAVE_TWO_CARDS
-	int i;
-#endif
 
 	if (input_gain > 7) {
 		printk(KERN_NOTICE DRIVER_NAME ": valid input_gain values are 0 to 7 inclusive\n");
@@ -811,35 +997,20 @@ static int __init snd_ad73322_init(void)
 
 	if ((err = platform_driver_register(&snd_ad73322_driver))<0)
 		return err;
-#ifdef HAVE_TWO_CARDS
-	for (i = 0; i < 2; i++) {
-		device[i] = platform_device_register_simple(DRIVER_NAME, i, NULL, 0);
-		if (IS_ERR(device[i])) {
-			err = PTR_ERR(device[i]);
-			platform_driver_unregister(&snd_ad73322_driver);
-			return err;
-		}
-	}
-#else
+
 	device = platform_device_register_simple(DRIVER_NAME, 0, NULL, 0);
 	if (IS_ERR(device)) {
 		err = PTR_ERR(device);
 		platform_driver_unregister(&snd_ad73322_driver);
 		return err;
 	}
-#endif
+
 	return err;
 }
 
 static void __exit snd_ad73322_exit(void)
 {
-#ifdef HAVE_TWO_CARDS
-	int i;
-	for (i = 0; i < 2; i++)
-		platform_device_unregister(device[i]);
-#else
 	platform_device_unregister(device);
-#endif
 	platform_driver_unregister(&snd_ad73322_driver);
 }
 
