@@ -54,7 +54,7 @@
 #include <sound/pcm.h>
 #include <sound/initval.h>
 
-#include "ad73311.h"
+#include "ad73322.h"
 #include "bf53x_sport.h"
 
 #ifndef CONFIG_BFIN_DMA_5XX
@@ -69,10 +69,26 @@
 
 #define GPIO_SE CONFIG_SND_BFIN_AD73322_SE
 #define GPIO_RESET CONFIG_SND_BFIN_AD73322_RESET
-/*8 means 4 AD73322 is connected in cascade mode,since every AD73322 has 2 
- *DAC/ADC pairs
- */
-#define NUM_DEVICES_CHAIN 8
+
+#if CONFIG_SND_BFIN_SPORT == 0
+#define SPORT_IRQ_ERR	IRQ_SPORT0_ERROR
+#define SPORT_DMA_RX	CH_SPORT0_RX
+#define SPORT_DMA_TX	CH_SPORT0_TX
+#define bfin_write_SPORT_TCR1	bfin_write_SPORT0_TCR1
+#define bfin_read_SPORT_TCR1	bfin_read_SPORT0_TCR1
+#define bfin_write_SPORT_TCR2	bfin_write_SPORT0_TCR2
+#define bfin_write_SPORT_TX16	bfin_write_SPORT0_TX16
+#define bfin_read_SPORT_STAT	bfin_read_SPORT0_STAT
+#else
+#define SPORT_IRQ_ERR	IRQ_SPORT1_ERROR
+#define SPORT_DMA_RX	CH_SPORT1_RX
+#define SPORT_DMA_TX	CH_SPORT1_TX
+#define bfin_write_SPORT_TCR1	bfin_write_SPORT1_TCR1
+#define bfin_read_SPORT_TCR1	bfin_read_SPORT1_TCR1
+#define bfin_write_SPORT_TCR2	bfin_write_SPORT1_TCR2
+#define bfin_write_SPORT_TX16	bfin_write_SPORT1_TX16
+#define bfin_read_SPORT_STAT	bfin_read_SPORT1_STAT
+#endif
 
 #undef CONFIG_SND_DEBUG_CURRPTR  /* causes output every frame! */
 #define AD73322_BUF_SZ 0x40000
@@ -102,60 +118,6 @@ module_param(output_gain, uint, 0);
 MODULE_PARM_DESC(output_gain, "Output gain setting (0 <= output_gain <= 7)");
 
 static struct platform_device *device ;
-
-typedef struct {
-	struct snd_pcm_substream*	substream;
-	snd_pcm_uframes_t	dma_offset;
-	snd_pcm_uframes_t	buffer_frames;
-	snd_pcm_uframes_t	period_frames;
-	unsigned int		periods;
-	unsigned int		frame_bytes;
-	/* Information about DMA */
-	snd_pcm_uframes_t	dma_inter_pos;
-	snd_pcm_uframes_t	dma_last_pos;
-	snd_pcm_uframes_t	dma_pos_base;
-	/* Information on virtual buffer */
-	snd_pcm_uframes_t	next_inter_pos;
-	snd_pcm_uframes_t	data_count;
-	snd_pcm_uframes_t	data_pos_base;
-	snd_pcm_uframes_t	boundary;
-} substream_info_t;
-
-typedef struct snd_ad73322 {
-	struct snd_card	*card;
-	struct bf53x_sport	*sport;
-	spinlock_t    ad73322_lock;
-	struct snd_pcm	*pcm[NUM_DEVICES_CHAIN];
-	int	tx_dma_started;
-	int	tx_status;
-	int	rx_dma_started;
-	int	rx_status;
-#define RUN_TX0 0x1
-#define RUN_TX1 0x2
-#define RUN_TX2 0x4
-#define RUN_TX3 0x8
-#define RUN_TX4 0x10
-#define RUN_TX5 0x20
-#define RUN_TX6 0x40
-#define RUN_TX7 0x80
-#define RUN_TX_ALL (RUN_TX0 | RUN_TX1 | RUN_TX2 | RUN_TX3| RUN_TX4| RUN_TX5| RUN_TX6| RUN_TX7)
-
-#define RUN_RX0 0x1
-#define RUN_RX1 0x2
-#define RUN_RX2 0x4
-#define RUN_RX3 0x8
-#define RUN_RX4 0x10
-#define RUN_RX5 0x20
-#define RUN_RX6 0x40
-#define RUN_RX7 0x80
-#define RUN_RX_ALL (RUN_RX0 | RUN_RX1 | RUN_RX2 | RUN_RX3| RUN_RX4| RUN_RX5| RUN_RX6| RUN_RX7)
-	snd_pcm_uframes_t	tx_dma_pos;
-	snd_pcm_uframes_t	rx_dma_pos;
-	substream_info_t	tx_substreams[8];
-	substream_info_t	rx_substreams[8];
-	unsigned char *tx_dma_buf;
-	unsigned char *rx_dma_buf;
-} ad73322_t;
 
 static int snd_ad73322_startup(void);
 static void snd_ad73322_stop(void);
@@ -370,7 +332,7 @@ static int snd_ad73322_play_pre(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	substream_info_t *sub_info = NULL;
 	int index = find_substream(chip, substream, &sub_info);
-	printk(KERN_ERR "play index = %d\n",index);
+
 	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
 	sub_info->period_frames = runtime->period_size;
 	sub_info->periods = runtime->periods;
@@ -400,7 +362,7 @@ static int snd_ad73322_cap_pre(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	substream_info_t *sub_info = NULL;
 	int index = find_substream(chip, substream, &sub_info);
-	printk(KERN_ERR "cap index = %d\n",index);
+
 	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
 	sub_info->period_frames = runtime->period_size;
 	sub_info->periods = runtime->periods;
@@ -608,7 +570,7 @@ static int snd_ad73322_cap_copy(struct snd_pcm_substream *substream, int channel
 	int slot_index = get_cap_slotindex(index);
 	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
 
-	if (index > 0 && index <=7 && !(chip->tx_status & (1<<index))) {
+	if (index > 0 && index <=7 && !(chip->rx_status & (1<<index))) {
 		sub_info->data_count += count;
 		return 0;
 	}
@@ -628,7 +590,7 @@ static int snd_ad73322_cap_copy(struct snd_pcm_substream *substream, int channel
 	}
 
 	if (temp2_count) {
-		dst = (unsigned short*)chip->tx_dma_buf;
+		dst = (unsigned short*)chip->rx_dma_buf;
 		while (temp2_count--) {
 			*idst++ = *(src +slot_index); 
 			src += 8;
@@ -858,7 +820,12 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 	}
 	gpio_direction_output(GPIO_SE, 1);
 	gpio_direction_output(GPIO_RESET, 1);
-
+/*configure some pins of PORTG to SPORT1*/
+#if CONFIG_SND_BFIN_SPORT != 0
+		tmp_reg = bfin_read_PORT_MUX();
+		bfin_write_PORT_MUX(tmp_reg|0x0E00);
+		bfin_write_PORTG_FER(0xFFFF);
+#endif
 	card = snd_card_new(-1, NULL, THIS_MODULE, sizeof(struct snd_ad73322));
 	if (card == NULL)
 		return -ENOMEM;
