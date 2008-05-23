@@ -750,8 +750,8 @@ static int snd_ad73322_configure(void)
 	ctrl_regs[0] = MCDIV(0) | SCDIV(0) | DIRATE(0);
 	ctrl_regs[1] = PUDEV | PUADC | PUDAC | PUREF | REFUSE ;
 	ctrl_regs[2] = 0;
-	ctrl_regs[3] = 0;
-	ctrl_regs[4] = 0;
+	ctrl_regs[3] = DA(0x1f);
+	ctrl_regs[4] = SEEN;
 	ctrl_regs[5] = 0;
 	ctrl_regs[6] = 0;
 	
@@ -781,6 +781,7 @@ static int snd_ad73322_configure(void)
 		for (j = 0; j < NUM_DEVICES_CHAIN; j++)
 			bfin_write_SPORT0_TX16(ctrl_buffer[8*i+j]);
 		bfin_write_SPORT0_TCR1(bfin_read_SPORT0_TCR1() | TSPEN);
+		SSYNC();
 		status = bfin_read_SPORT0_STAT();
 		while (!(status & TUVF)) {
 			udelay(1);
@@ -788,6 +789,7 @@ static int snd_ad73322_configure(void)
 			SSYNC();
 		}
 		bfin_write_SPORT0_TCR1(bfin_read_SPORT0_TCR1() & ~TSPEN);
+		SSYNC();
 	}
 	SSYNC();
 	bfin_write_SPORT1_TCR1(TFSR);
@@ -797,6 +799,7 @@ static int snd_ad73322_configure(void)
 		for (j = 0; j < NUM_DEVICES_CHAIN; j++)
 			bfin_write_SPORT1_TX16(ctrl_buffer[8*i+j]);
 		bfin_write_SPORT1_TCR1(bfin_read_SPORT1_TCR1() | TSPEN);
+		SSYNC();
 		status = bfin_read_SPORT1_STAT();
 		while (!(status & TUVF)) {
 			udelay(1);
@@ -804,6 +807,7 @@ static int snd_ad73322_configure(void)
 			SSYNC();
 		}
 		bfin_write_SPORT1_TCR1(bfin_read_SPORT1_TCR1() & ~TSPEN);
+		SSYNC();
 	}
 	SSYNC();
 #else
