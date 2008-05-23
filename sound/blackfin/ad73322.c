@@ -79,7 +79,7 @@
 #define bfin_write_SPORT_TCR2	bfin_write_SPORT0_TCR2
 #define bfin_write_SPORT_TX16	bfin_write_SPORT0_TX16
 #define bfin_read_SPORT_STAT	bfin_read_SPORT0_STAT
-#else
+#elif CONFIG_SND_BFIN_SPORT == 1
 #define SPORT_IRQ_ERR	IRQ_SPORT1_ERROR
 #define SPORT_DMA_RX	CH_SPORT1_RX
 #define SPORT_DMA_TX	CH_SPORT1_TX
@@ -88,7 +88,17 @@
 #define bfin_write_SPORT_TCR2	bfin_write_SPORT1_TCR2
 #define bfin_write_SPORT_TX16	bfin_write_SPORT1_TX16
 #define bfin_read_SPORT_STAT	bfin_read_SPORT1_STAT
+#elif CONFIG_SND_BFIN_SPORT == 2
+#define HAVE_TWO_CARDS
 #endif
+
+#ifdef HAVE_TWO_CARDS
+#define CARD_NUM 2
+#else
+#define CARD_NUM 1
+#endif
+
+static struct platform_device *device[CARD_NUM];
 
 #undef CONFIG_SND_DEBUG_CURRPTR  /* causes output every frame! */
 #define AD73322_BUF_SZ 0x40000
@@ -117,7 +127,17 @@ static unsigned int output_gain = 0x2;
 module_param(output_gain, uint, 0);
 MODULE_PARM_DESC(output_gain, "Output gain setting (0 <= output_gain <= 7)");
 
-static struct platform_device *device ;
+static int index[SNDRV_CARDS] = SNDRV_DEFAULT_IDX;
+module_param_array(index, int, NULL, 0444);
+MODULE_PARM_DESC(index, "Index value for the AD73322 soundcard.");
+
+static char *id[SNDRV_CARDS] = SNDRV_DEFAULT_STR;
+module_param_array(id, charp, NULL, 0444);
+MODULE_PARM_DESC(id, "ID string for the AD73322 soundcard.");
+
+static int enable[SNDRV_CARDS] = SNDRV_DEFAULT_ENABLE_PNP;
+module_param_array(enable, bool, NULL, 0444);
+MODULE_PARM_DESC(enable, "Enable AD73322 soundcard.");
 
 static int snd_ad73322_startup(void);
 static void snd_ad73322_stop(void);
@@ -753,6 +773,40 @@ static int snd_ad73322_configure(void)
 	snd_ad73322_reset();
 	local_irq_disable();
 	udelay(1);
+#ifdef HAVE_TWO_CARDS
+	bfin_write_SPORT0_TCR1(TFSR);
+	bfin_write_SPORT0_TCR2(0xF);
+	SSYNC();
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < NUM_DEVICES_CHAIN; j++)
+			bfin_write_SPORT0_TX16(ctrl_buffer[8*i+j]);
+		bfin_write_SPORT0_TCR1(bfin_read_SPORT0_TCR1() | TSPEN);
+		status = bfin_read_SPORT0_STAT();
+		while (!(status & TUVF)) {
+			udelay(1);
+			status = bfin_read_SPORT0_STAT();
+			SSYNC();
+		}
+		bfin_write_SPORT0_TCR1(bfin_read_SPORT0_TCR1() & ~TSPEN);
+	}
+	SSYNC();
+	bfin_write_SPORT1_TCR1(TFSR);
+	bfin_write_SPORT1_TCR2(0xF);
+	SSYNC();
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < NUM_DEVICES_CHAIN; j++)
+			bfin_write_SPORT1_TX16(ctrl_buffer[8*i+j]);
+		bfin_write_SPORT1_TCR1(bfin_read_SPORT1_TCR1() | TSPEN);
+		status = bfin_read_SPORT1_STAT();
+		while (!(status & TUVF)) {
+			udelay(1);
+			status = bfin_read_SPORT1_STAT();
+			SSYNC();
+		}
+		bfin_write_SPORT1_TCR1(bfin_read_SPORT1_TCR1() & ~TSPEN);
+	}
+	SSYNC();
+#else
 	bfin_write_SPORT_TCR1(TFSR);
 	bfin_write_SPORT_TCR2(0xF);
 	SSYNC();	
@@ -769,8 +823,8 @@ static int snd_ad73322_configure(void)
 		}
 		bfin_write_SPORT_TCR1(bfin_read_SPORT_TCR1() & ~TSPEN);
 	}	
-	bfin_write_SPORT_TCR1(bfin_read_SPORT_TCR1() & ~TSPEN);
 	SSYNC();
+#endif
 	local_irq_enable();
 	snd_ad73322_stop();
 
@@ -806,31 +860,33 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 	struct bf53x_sport *sport;
 	int i;
 	dma_addr_t addr;
-	if (device != NULL)
-		return -ENOENT;
+#if CONFIG_SND_BFIN_SPORT != 0
+	unsigned short tmp_reg;
+#endif
+	if (pdev->id == 0) {
+	/*Only need to configure codecs once*/
+		if (gpio_request(GPIO_SE, "AD73322")) {
+			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __FUNCTION__, GPIO_SE);
+			return -EBUSY;
+		}
 
-	if (gpio_request(GPIO_SE, "AD73322")) {
-		printk(KERN_ERR "%s: Failed ro request GPIO_%d\n",__FUNCTION__, GPIO_SE);
-		return -EBUSY;
-	}
-
-	if (gpio_request(GPIO_RESET, "AD73322RST")) {
-		printk(KERN_ERR "%s: Failed ro request GPIO_12\n",__FUNCTION__);
-		return -EBUSY;
-	}
-	gpio_direction_output(GPIO_SE, 1);
-	gpio_direction_output(GPIO_RESET, 1);
-/*configure some pins of PORTG to SPORT1*/
+		if (gpio_request(GPIO_RESET, "AD73322RST")) {
+			printk(KERN_ERR "%s: Failed ro request GPIO_12\n", __FUNCTION__);
+			return -EBUSY;
+		}
+		gpio_direction_output(GPIO_SE, 0);
+		gpio_direction_output(GPIO_RESET, 0);
 #if CONFIG_SND_BFIN_SPORT != 0
 		tmp_reg = bfin_read_PORT_MUX();
 		bfin_write_PORT_MUX(tmp_reg|0x0E00);
 		bfin_write_PORTG_FER(0xFFFF);
 #endif
+	if ((err = snd_ad73322_configure()) < 0)
+		return -EFAULT;
+	}
 	card = snd_card_new(-1, NULL, THIS_MODULE, sizeof(struct snd_ad73322));
 	if (card == NULL)
 		return -ENOMEM;
-	if ((err = snd_ad73322_configure()) < 0)
-		return -EFAULT;
 	ad73322 = card->private_data;
 	ad73322->card = card;
 	ad73322->tx_dma_buf = dma_alloc_coherent(NULL, AD73322_BUF_SZ, &addr, GFP_KERNEL);
@@ -844,34 +900,70 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 		printk(KERN_ERR "Failed to allocate dma memory\n");
 		return -ENOMEM;
 	}
-	if ((sport = bf53x_sport_init(CONFIG_SND_BFIN_SPORT,
-			SPORT_DMA_RX, snd_ad73322_dma_rx,
-			SPORT_DMA_TX, snd_ad73322_dma_tx,
-			SPORT_IRQ_ERR, snd_ad73322_sport_err, ad73322))
-			== NULL) {
+#ifdef HAVE_TWO_CARDS
+	if (pdev->id == 0) {
+		sport = bf53x_sport_init(0,
+			CH_SPORT0_RX, snd_ad73322_dma_rx,
+			CH_SPORT0_TX, snd_ad73322_dma_tx,
+			IRQ_SPORT0_ERROR, snd_ad73322_sport_err, ad73322);
+		if (sport == NULL) {
+			err = -ENODEV;
+			goto __sport_err;
+		}
+	} else if (pdev->id == 1) {
+		sport = bf53x_sport_init(1,
+			CH_SPORT1_RX, snd_ad73322_dma_rx,
+			CH_SPORT1_TX, snd_ad73322_dma_tx,
+			IRQ_SPORT1_ERROR, snd_ad73322_sport_err, ad73322);
+		if (sport == NULL) {
+			err = -ENODEV;
+			goto __sport_err;
+		}
+	}
+#else
+	sport = bf53x_sport_init(CONFIG_SND_BFIN_SPORT,
+		SPORT_DMA_RX, snd_ad73322_dma_rx,
+		SPORT_DMA_TX, snd_ad73322_dma_tx,
+		SPORT_IRQ_ERR, snd_ad73322_sport_err, ad73322);
+	if (sport == NULL) {
 		err = -ENODEV;
 		goto __sport_err;
 	}
-
+#endif
 	ad73322->sport = sport;
 	for (i=0; i<NUM_DEVICES_CHAIN; i++) {
 		if ((err = snd_ad73322_pcm(ad73322, i)) < 0)
 			goto __nodev;
 	}
 	bf53x_sport_config_rx(sport, RFSR, 0xF, 0, 0); 
+	bf53x_sport_config_tx(sport, TFSR, 0xF, 0, 0);
 	bf53x_sport_config_rx_dma(sport, ad73322->rx_dma_buf,
 			DMA_PERIODS, DMA_PERIOD_BYTES, 2);
-	bf53x_sport_config_tx(sport, TFSR, 0xF, 0, 0);
 	bf53x_sport_config_tx_dma(sport, ad73322->tx_dma_buf,
 			DMA_PERIODS, DMA_PERIOD_BYTES, 2);
 	strcpy(card->driver, DRIVER_NAME);
 	strcpy(card->shortname, CHIP_NAME);
+#ifdef HAVE_TWO_CARDS
+	if (pdev->id == 0) {
+		sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
+			card->shortname,
+			CONFIG_SND_BFIN_AD73322_SE,
+			0,
+			CH_SPORT0_RX, CH_SPORT0_TX, IRQ_SPORT0_ERROR);
+	} else if (pdev->id == 1) {
+		sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
+			card->shortname,
+			CONFIG_SND_BFIN_AD73322_SE,
+			1,
+			CH_SPORT1_RX, CH_SPORT1_TX, IRQ_SPORT1_ERROR);
+	}
+#else
 	sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
 	        card->shortname,
 	        CONFIG_SND_BFIN_AD73322_SE,
 	        CONFIG_SND_BFIN_SPORT,
 	        SPORT_DMA_RX, SPORT_DMA_TX, SPORT_IRQ_ERR);
-
+#endif
 	snd_card_set_dev(card, (&pdev->dev));
 	if ((err = snd_card_register(card)) < 0) {
 		goto __nodev;
@@ -884,6 +976,8 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 __nodev:
 	bf53x_sport_done(sport);
 __sport_err:
+	dma_free_coherent(NULL, AD73322_BUF_SZ, ad73322->tx_dma_buf, 0);
+	dma_free_coherent(NULL, AD73322_BUF_SZ, ad73322->rx_dma_buf, 0);
 	snd_card_free(card);
 	return err;
 }
@@ -950,7 +1044,7 @@ static struct platform_driver snd_ad73322_driver = {
 
 static int __init snd_ad73322_init(void)
 {
-	int err;
+	int err, i;
 
 	if (input_gain > 7) {
 		printk(KERN_NOTICE DRIVER_NAME ": valid input_gain values are 0 to 7 inclusive\n");
@@ -965,11 +1059,13 @@ static int __init snd_ad73322_init(void)
 	if ((err = platform_driver_register(&snd_ad73322_driver))<0)
 		return err;
 
-	device = platform_device_register_simple(DRIVER_NAME, 0, NULL, 0);
-	if (IS_ERR(device)) {
-		err = PTR_ERR(device);
-		platform_driver_unregister(&snd_ad73322_driver);
-		return err;
+	for (i = 0; i < CARD_NUM; i++) {
+		device[i] = platform_device_register_simple(DRIVER_NAME, i, NULL, 0);
+		if (IS_ERR(device[i])) {
+			err = PTR_ERR(device[i]);
+			platform_driver_unregister(&snd_ad73322_driver);
+			return err;
+		}
 	}
 
 	return err;
@@ -977,7 +1073,10 @@ static int __init snd_ad73322_init(void)
 
 static void __exit snd_ad73322_exit(void)
 {
-	platform_device_unregister(device);
+	int i;
+
+	for (i = 0; i < CARD_NUM; i++)
+		platform_device_unregister(device[i]);
 	platform_driver_unregister(&snd_ad73322_driver);
 }
 
