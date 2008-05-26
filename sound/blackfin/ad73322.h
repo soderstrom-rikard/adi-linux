@@ -129,6 +129,7 @@ typedef struct snd_ad73322 {
 	substream_info_t	rx_substreams[8];
 	unsigned char *tx_dma_buf;
 	unsigned char *rx_dma_buf;
+	int card_index;
 } ad73322_t;
 
 #endif
