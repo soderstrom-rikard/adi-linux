@@ -143,13 +143,21 @@ config SND_BFIN_SPORT
 	  Enter the Blackfin SPORT port to which your sound chip is connected
 	  acceptable values are 0 or 1
 
-config SND_BFIN_AD73322_SE
-	int "PF pin for AD73322 Chip Select"
+config SND_BFIN_AD73322_SPORT0_SE
+	int "PF pin for AD73322 Chip Select on SPORT0"
+	depends on SND_BFIN_AD73322
+	default 10
+	help
+	  Enter the GPIO used to control AD73322's SE pin. Acceptable
+	  values are 0 to 10
+
+config SND_BFIN_AD73322_SPORT1_SE
+	int "PF pin for AD73322 Chip Select on SPORT1"
 	depends on SND_BFIN_AD73322
 	default 14
 	help
 	  Enter the GPIO used to control AD73322's SE pin. Acceptable
-	  values are 0 to 14
+	  values are 11 to 14
 
 config SND_BFIN_AD73322_RESET
 	int "PF pin for AD73322 Chip Reset"

@@ -67,10 +67,12 @@
 #define snd_printk_marker()
 #endif
 
-#define GPIO_SE CONFIG_SND_BFIN_AD73322_SE
+#define GPIO_SPORT0_SE CONFIG_SND_BFIN_AD73322_SPORT0_SE
+#define GPIO_SPORT1_SE CONFIG_SND_BFIN_AD73322_SPORT1_SE
 #define GPIO_RESET CONFIG_SND_BFIN_AD73322_RESET
 
 #if CONFIG_SND_BFIN_SPORT == 0
+#define CONFIG_SND_BFIN_AD73322_SE CONFIG_SND_BFIN_AD73322_SPORT0_SE
 #define SPORT_IRQ_ERR	IRQ_SPORT0_ERROR
 #define SPORT_DMA_RX	CH_SPORT0_RX
 #define SPORT_DMA_TX	CH_SPORT0_TX
@@ -80,6 +82,7 @@
 #define bfin_write_SPORT_TX16	bfin_write_SPORT0_TX16
 #define bfin_read_SPORT_STAT	bfin_read_SPORT0_STAT
 #elif CONFIG_SND_BFIN_SPORT == 1
+#define CONFIG_SND_BFIN_AD73322_SE CONFIG_SND_BFIN_AD73322_SPORT1_SE
 #define SPORT_IRQ_ERR	IRQ_SPORT1_ERROR
 #define SPORT_DMA_RX	CH_SPORT1_RX
 #define SPORT_DMA_TX	CH_SPORT1_TX
@@ -139,8 +142,8 @@ static int enable[SNDRV_CARDS] = SNDRV_DEFAULT_ENABLE_PNP;
 module_param_array(enable, bool, NULL, 0444);
 MODULE_PARM_DESC(enable, "Enable AD73322 soundcard.");
 
-static int snd_ad73322_startup(void);
-static void snd_ad73322_stop(void);
+static void snd_ad73322_startup(int index);
+static void snd_ad73322_stop(int index);
 
 static int get_cap_slotindex(int index)
 {
@@ -420,7 +423,7 @@ static int snd_ad73322_play_trigger(struct snd_pcm_substream *substream, int cmd
 			chip->tx_dma_pos = 0;
 			bf53x_sport_tx_start(chip->sport);
 			if (!(chip->rx_status & RUN_TX_ALL))
-				snd_ad73322_startup();
+				snd_ad73322_startup(chip->card_index);
 			chip->tx_dma_started = 1;
 		}
 		sub_info->dma_offset = chip->tx_dma_pos;
@@ -433,7 +436,7 @@ static int snd_ad73322_play_trigger(struct snd_pcm_substream *substream, int cmd
 			chip->tx_dma_started = 0;
 			bf53x_sport_tx_stop(chip->sport);
 			if (!(chip->rx_status & RUN_TX_ALL))
-				snd_ad73322_stop();
+				snd_ad73322_stop(chip->card_index);
 		}
 		break;
 	default:
@@ -461,7 +464,7 @@ static int snd_ad73322_cap_trigger(struct snd_pcm_substream *substream, int cmd)
 			chip->rx_dma_pos = 0;
 			bf53x_sport_rx_start(chip->sport);
 			if (!(chip->tx_status & RUN_TX_ALL))
-				snd_ad73322_startup();
+				snd_ad73322_startup(chip->card_index);
 			chip->rx_dma_started = 1;
 		}
 		sub_info->dma_offset = chip->rx_dma_pos;
@@ -474,7 +477,7 @@ static int snd_ad73322_cap_trigger(struct snd_pcm_substream *substream, int cmd)
 			chip->rx_dma_started = 0;
 			bf53x_sport_rx_stop(chip->sport);
 			if (!(chip->tx_status & RUN_TX_ALL))
-				snd_ad73322_stop();
+				snd_ad73322_stop(chip->card_index);
 		}
 		break;
 	default:
@@ -696,7 +699,6 @@ static void snd_ad73322_dma_tx(void *data)
 			snd_ad73322_update(sub_info);
 		}
 	}
-
 }
 
 static void snd_ad73322_sport_err(void *data)
@@ -707,18 +709,23 @@ static void snd_ad73322_sport_err(void *data)
 /*************************************************************
  *      card and device
  *************************************************************/
-static int snd_ad73322_startup(void)
+static void snd_ad73322_startup(int index)
 {
 	snd_printd(KERN_INFO "%s is called\n", __FUNCTION__);
-	gpio_direction_output(GPIO_SE, 1);
-	return 0;
+	if (index == 0)
+		gpio_direction_output(GPIO_SPORT0_SE, 1);
+	else
+		gpio_direction_output(GPIO_SPORT1_SE, 1);
 }
 
-static void snd_ad73322_stop(void)
+static void snd_ad73322_stop(int index)
 {
 	snd_printd(KERN_INFO "%s is called\n", __FUNCTION__);
 	/* Pull down SE pin on AD73322 */
-	gpio_direction_output(GPIO_SE, 0);
+	if (index == 0)
+		gpio_direction_output(GPIO_SPORT0_SE, 0);
+	else
+		gpio_direction_output(GPIO_SPORT1_SE, 0);
 }
 
 static void snd_ad73322_reset(void)
@@ -736,7 +743,7 @@ static void snd_ad73322_reset(void)
 /*************************************************************
  *                 ALSA Card Level
  *************************************************************/
-static int snd_ad73322_configure(void)
+static int snd_ad73322_configure(int index)
 {
 	short ctrl_regs[8];
 	short dev_addr,reg_addr;
@@ -769,11 +776,11 @@ static int snd_ad73322_configure(void)
 	if(reg_addr == 8) reg_addr = 0;
 
 	}
-	snd_ad73322_startup();
 	snd_ad73322_reset();
 	local_irq_disable();
 	udelay(1);
 #ifdef HAVE_TWO_CARDS
+	snd_ad73322_startup(0);
 	bfin_write_SPORT0_TCR1(TFSR);
 	bfin_write_SPORT0_TCR2(0xF);
 	SSYNC();
@@ -792,6 +799,8 @@ static int snd_ad73322_configure(void)
 		SSYNC();
 	}
 	SSYNC();
+	snd_ad73322_stop(0);
+	snd_ad73322_startup(1);
 	bfin_write_SPORT1_TCR1(TFSR);
 	bfin_write_SPORT1_TCR2(0xF);
 	SSYNC();
@@ -810,7 +819,9 @@ static int snd_ad73322_configure(void)
 		SSYNC();
 	}
 	SSYNC();
+	snd_ad73322_stop(1);
 #else
+	snd_ad73322_startup(index);
 	bfin_write_SPORT_TCR1(TFSR);
 	bfin_write_SPORT_TCR2(0xF);
 	SSYNC();	
@@ -828,9 +839,10 @@ static int snd_ad73322_configure(void)
 		bfin_write_SPORT_TCR1(bfin_read_SPORT_TCR1() & ~TSPEN);
 	}	
 	SSYNC();
+	snd_ad73322_stop(index);
 #endif
 	local_irq_enable();
-	snd_ad73322_stop();
+	
 
 	return 0;
 }
@@ -859,40 +871,70 @@ static int __devinit snd_ad73322_pcm(struct snd_ad73322 *ad73322, int dev)
 static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 {
 	int err;
-	struct snd_card *card;
-	struct snd_ad73322 *ad73322;
-	struct bf53x_sport *sport;
+	struct snd_card *card = NULL;
+	struct snd_ad73322 *ad73322 = NULL;
+	struct bf53x_sport *sport = NULL;
 	int i;
 	dma_addr_t addr;
 #if CONFIG_SND_BFIN_SPORT != 0
 	unsigned short tmp_reg;
 #endif
 	if (pdev->id == 0) {
-	/*Only need to configure codecs once*/
-		if (gpio_request(GPIO_SE, "AD73322")) {
-			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __FUNCTION__, GPIO_SE);
+#if CONFIG_SND_BFIN_SPORT == 0
+		if (gpio_request(GPIO_SPORT0_SE, "AD73322")) {
+			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __FUNCTION__, GPIO_SPORT0_SE);
 			return -EBUSY;
 		}
-
+		gpio_direction_output(GPIO_SPORT0_SE, 0);
+#elif CONFIG_SND_BFIN_SPORT == 1
+		if (gpio_request(GPIO_SPORT1_SE, "AD73322")) {
+			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __FUNCTION__, GPIO_SPORT1_SE);
+			return -EBUSY;
+		}
+		gpio_direction_output(GPIO_SPORT1_SE, 0);
+#elif CONFIG_SND_BFIN_SPORT == 2
+		if (gpio_request(GPIO_SPORT0_SE, "AD73322")) {
+			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __FUNCTION__, GPIO_SPORT0_SE);
+			return -EBUSY;
+		}
+		if (gpio_request(GPIO_SPORT1_SE, "AD73322")) {
+			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __FUNCTION__, GPIO_SPORT1_SE);
+			return -EBUSY;
+		}
+		gpio_direction_output(GPIO_SPORT0_SE, 0);
+		gpio_direction_output(GPIO_SPORT1_SE, 0);
+#endif
 		if (gpio_request(GPIO_RESET, "AD73322RST")) {
 			printk(KERN_ERR "%s: Failed ro request GPIO_12\n", __FUNCTION__);
 			return -EBUSY;
 		}
-		gpio_direction_output(GPIO_SE, 0);
 		gpio_direction_output(GPIO_RESET, 0);
 #if CONFIG_SND_BFIN_SPORT != 0
 		tmp_reg = bfin_read_PORT_MUX();
 		bfin_write_PORT_MUX(tmp_reg|0x0E00);
 		bfin_write_PORTG_FER(0xFFFF);
 #endif
-	if ((err = snd_ad73322_configure()) < 0)
-		return -EFAULT;
 	}
+
 	card = snd_card_new(-1, NULL, THIS_MODULE, sizeof(struct snd_ad73322));
 	if (card == NULL)
 		return -ENOMEM;
 	ad73322 = card->private_data;
 	ad73322->card = card;
+#ifdef HAVE_TWO_CARDS
+	ad73322->card_index = pdev->id;
+#else
+#if CONFIG_SND_BFIN_SPORT = 0
+	ad73322->card_index = 0;
+#elif CONFIG_SND_BFIN_SPORT = 1
+	ad73322->card_index = 1;
+#endif
+#endif
+	/*Only need to initialize CODECS once*/
+	if (pdev->id == 0) {
+		if ((err = snd_ad73322_configure(ad73322->card_index)) < 0)
+			return -EFAULT;
+	}
 	ad73322->tx_dma_buf = dma_alloc_coherent(NULL, AD73322_BUF_SZ, &addr, GFP_KERNEL);
 	if (!ad73322->tx_dma_buf) {
 		printk(KERN_ERR "Failed to allocate dma memory\n");
@@ -951,13 +993,13 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 	if (pdev->id == 0) {
 		sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
 			card->shortname,
-			CONFIG_SND_BFIN_AD73322_SE,
+			GPIO_SPORT0_SE,
 			0,
 			CH_SPORT0_RX, CH_SPORT0_TX, IRQ_SPORT0_ERROR);
 	} else if (pdev->id == 1) {
 		sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
 			card->shortname,
-			CONFIG_SND_BFIN_AD73322_SE,
+			GPIO_SPORT1_SE,
 			1,
 			CH_SPORT1_RX, CH_SPORT1_TX, IRQ_SPORT1_ERROR);
 	}
@@ -995,12 +1037,14 @@ static int __devexit snd_ad73322_remove(struct platform_device *pdev)
 	ad73322 = card->private_data;
 	dma_free_coherent(NULL, AD73322_BUF_SZ, ad73322->tx_dma_buf, 0);
 	dma_free_coherent(NULL, AD73322_BUF_SZ, ad73322->rx_dma_buf, 0);
-	snd_ad73322_stop();
+	snd_ad73322_stop(ad73322->card_index);
 	bf53x_sport_done(ad73322->sport);
-	snd_card_free(card);
 	gpio_free(GPIO_RESET);
-	gpio_free(GPIO_SE);
-
+	if (ad73322->card_index == 0)
+		gpio_free(GPIO_SPORT0_SE);
+	else
+		gpio_free(GPIO_SPORT1_SE);
+	snd_card_free(card);
 	platform_set_drvdata(pdev, NULL);
 
 	return 0;
