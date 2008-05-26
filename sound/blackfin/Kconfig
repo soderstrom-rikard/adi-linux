@@ -138,10 +138,11 @@ config SND_BFIN_AD73322
 config SND_BFIN_SPORT
 	int "Blackfin Audio SPORT port"
 	depends on SND_BFIN_AD73322
-	default 0
+	default 2
 	help
 	  Enter the Blackfin SPORT port to which your sound chip is connected
-	  acceptable values are 0 or 1
+	  acceptable values are 0 ,1 or 2.Input 0 or 1 if, you have one card on SPORT0 or SPORT1,
+	  Input 2 if you have two card on SPORT0 and SPORT1. 	
 
 config SND_BFIN_AD73322_SPORT0_SE
 	int "PF pin for AD73322 Chip Select on SPORT0"

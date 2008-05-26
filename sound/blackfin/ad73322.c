@@ -924,9 +924,9 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 #ifdef HAVE_TWO_CARDS
 	ad73322->card_index = pdev->id;
 #else
-#if CONFIG_SND_BFIN_SPORT = 0
+#if CONFIG_SND_BFIN_SPORT == 0
 	ad73322->card_index = 0;
-#elif CONFIG_SND_BFIN_SPORT = 1
+#elif CONFIG_SND_BFIN_SPORT == 1
 	ad73322->card_index = 1;
 #endif
 #endif
