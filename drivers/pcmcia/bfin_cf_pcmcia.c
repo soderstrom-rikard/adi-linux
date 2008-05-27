@@ -1,6 +1,5 @@
 /*
  * file: drivers/pcmcia/bfin_cf.c
- * author: Michael Hennerich (hennerich@blackfin.uclinux.org)
  *
  * based on: drivers/pcmcia/omap_cf.c
  * omap_cf.c -- OMAP 16xx CompactFlash controller driver
@@ -93,7 +92,7 @@ static void bfin_cf_timer(unsigned long _cf)
 
 	if (present != cf->present) {
 		cf->present = present;
-		pr_debug("%s: card %s\n", driver_name,
+		dev_dbg(&cf->pdev->dev, ": card %s\n",
 			 present ? "present" : "gone");
 		pcmcia_parse_events(&cf->socket, SS_DETECT);
 	}
@@ -144,15 +143,14 @@ bfin_cf_set_socket(struct pcmcia_socket *sock, struct socket_state_t *s)
 		enable_irq(cf->irq);
 	}
 
-	pr_debug("%s: Vcc %d, io_irq %d, flags %04x csc %04x\n",
-		 driver_name, s->Vcc, s->io_irq, s->flags, s->csc_mask);
+	dev_dbg(&cf->pdev->dev, ": Vcc %d, io_irq %d, flags %04x csc %04x\n",
+		 s->Vcc, s->io_irq, s->flags, s->csc_mask);
 
 	return 0;
 }
 
 static int bfin_cf_ss_suspend(struct pcmcia_socket *s)
 {
-	pr_debug("%s: %s\n", driver_name, __func__);
 	return bfin_cf_set_socket(s, &dead_socket);
 }
 
@@ -196,7 +194,7 @@ static struct pccard_operations bfin_cf_ops = {
 
 /*--------------------------------------------------------------------------*/
 
-static int __init bfin_cf_probe(struct platform_device *pdev)
+static int __devinit bfin_cf_probe(struct platform_device *pdev)
 {
 	struct bfin_cf_socket *cf;
 	struct resource *io_mem, *attr_mem;
@@ -204,19 +202,17 @@ static int __init bfin_cf_probe(struct platform_device *pdev)
 	unsigned short cd_pfx;
 	int status = 0;
 
-	printk(KERN_INFO "Blackfin CompactFlash/PCMCIA Socket Driver\n");
+	dev_info(&pdev->dev, "Blackfin CompactFlash/PCMCIA Socket Driver\n");
 
 	irq = platform_get_irq(pdev, 0);
 	if (!irq)
 		return -EINVAL;
 
 	cd_pfx = platform_get_irq(pdev, 1);	/*Card Detect GPIO PIN */
-	if (cd_pfx > MAX_BLACKFIN_GPIOS)
-		return -EINVAL;
 
 	if (gpio_request(cd_pfx, "pcmcia: CD")) {
-		printk(KERN_ERR
-		       "BF5xx flash: Failed ro request Card Detect GPIO_%d\n",
+		dev_err(&pdev->dev, 
+		       "Failed ro request Card Detect GPIO_%d\n",
 		       cd_pfx);
 		return -EBUSY;
 	}
@@ -254,9 +250,9 @@ static int __init bfin_cf_probe(struct platform_device *pdev)
 	if (!cf->socket.io_offset)
 		goto fail0;
 
-	pr_info("%s: on irq %d\n", driver_name, irq);
+	dev_err(&pdev->dev, ": on irq %d\n", irq);
 
-	pr_debug("%s: %s\n", driver_name,
+	dev_dbg(&pdev->dev, ": %s\n",
 		 bfin_cf_present(cf->cd_pfx) ? "present" : "(not present)");
 
 	cf->socket.owner = THIS_MODULE;
@@ -280,6 +276,7 @@ fail2:
 	release_mem_region(cf->phys_cf_io, SZ_8K);
 
 fail0:
+	gpio_free(cf->cd_pfx);
 	kfree(cf);
 	platform_set_drvdata(pdev, NULL);
 
@@ -335,5 +332,6 @@ static void __exit bfin_cf_exit(void)
 module_init(bfin_cf_init);
 module_exit(bfin_cf_exit);
 
+MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>")
 MODULE_DESCRIPTION("BFIN CF/PCMCIA Driver");
 MODULE_LICENSE("GPL");
