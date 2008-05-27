@@ -219,8 +219,10 @@ static int __devinit bfin_cf_probe(struct platform_device *pdev)
 	gpio_direction_input(cd_pfx);
 
 	cf = kzalloc(sizeof *cf, GFP_KERNEL);
-	if (!cf)
+	if (!cf) {
+		gpio_free(cd_pfx);
 		return -ENOMEM;
+	}
 
 	cf->cd_pfx = cd_pfx;
 
