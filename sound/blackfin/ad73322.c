@@ -776,6 +776,9 @@ static int snd_ad73322_configure(int index)
 	if(reg_addr == 8) reg_addr = 0;
 
 	}
+#ifndef HAVE_TWO_CARDS
+	snd_ad73322_startup(index);
+#endif
 	snd_ad73322_reset();
 	local_irq_disable();
 	udelay(1);
@@ -821,7 +824,6 @@ static int snd_ad73322_configure(int index)
 	SSYNC();
 	snd_ad73322_stop(1);
 #else
-	snd_ad73322_startup(index);
 	bfin_write_SPORT_TCR1(TFSR);
 	bfin_write_SPORT_TCR2(0xF);
 	SSYNC();	
