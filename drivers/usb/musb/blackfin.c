@@ -91,7 +91,7 @@ static void dump_fifo_data(u8 *buf, u16 len)
 #define dump_fifo_data(buf, len)	do{} while (0)
 #endif
 
-#if defined(CONFIG_BF54x)
+#ifndef CONFIG_MUSB_PIO_ONLY
 
 #define USB_DMA_BASE		USB_DMA_INTERRUPT
 #define USB_DMAx_CTRL		0x04
@@ -124,7 +124,7 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 
 	dump_fifo_data(src, len);
 
-#if defined(CONFIG_MUSB_PIO_ONLY)
+#if defined(CONFIG_MUSB_PIO_ONLY) || defined(CONFIG_BF52x)
 	if (unlikely((unsigned long)src & 0x01))
 		outsw_8(fifo, src, len & 0x01 ? (len >> 1) + 1 : len >> 1);
 	else

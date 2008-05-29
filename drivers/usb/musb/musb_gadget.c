@@ -711,13 +711,6 @@ get_more:
 					(request->buf + request->actual));
 			request->actual += fifo_count;
 
-			/* if we left anything in the fifo, read out
-			 * all data.
-			 */
-		        len = musb_readw(epio, MUSB_RXCOUNT);
-                        if ((len) && (request->actual < request->length))
-                            goto get_more;
-
 			/* ack the read! */
 			csr |= MUSB_RXCSR_P_WZC_BITS;
 			csr &= ~MUSB_RXCSR_RXPKTRDY;
