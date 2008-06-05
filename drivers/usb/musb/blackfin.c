@@ -91,7 +91,7 @@ static void dump_fifo_data(u8 *buf, u16 len)
 #define dump_fifo_data(buf, len)	do{} while (0)
 #endif
 
-#ifndef CONFIG_MUSB_PIO_ONLY
+#ifdef CONFIG_BF52x
 
 #define USB_DMA_BASE		USB_DMA_INTERRUPT
 #define USB_DMAx_CTRL		0x04
@@ -110,10 +110,6 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 {
 	void __iomem *fifo = hw_ep->fifo;
 	void __iomem *epio = hw_ep->regs;
-	int i;
-	u16 *data;
-	u8 epnum = hw_ep->epnum;
-	u16 dma_reg = 0;
 
 	prefetch((u8 *)src);
 
@@ -124,46 +120,10 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 
 	dump_fifo_data(src, len);
 
-#if defined(CONFIG_MUSB_PIO_ONLY) || defined(CONFIG_BF52x)
 	if (unlikely((unsigned long)src & 0x01))
 		outsw_8(fifo, src, len & 0x01 ? (len >> 1) + 1 : len >> 1);
 	else
 		outsw(fifo, src, len & 0x01 ? (len >> 1) + 1 : len >> 1);
-#else
-	flush_dcache_range((unsigned int)src,
-		(unsigned int)(src + len));
-
-	/* Setup DMA address register */
-	dma_reg = (u16) ((u32) src & 0xFFFF);
-	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_ADDR_LOW), dma_reg);
-	SSYNC();
-
-	dma_reg = (u16) (((u32) src >> 16) & 0xFFFF);
-	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_ADDR_HIGH), dma_reg);
-	SSYNC();
-
-	/* Setup DMA count register */
-	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_COUNT_LOW), len);
-	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_COUNT_HIGH), 0);
-	SSYNC();
-
-	/* Enable the DMA */
-	dma_reg = (epnum << 4) | DMA_ENA | INT_ENA | DIRECTION;
-	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_CTRL), dma_reg);
-	SSYNC();
-
-	/* Wait for compelete */
-	while(!(bfin_read_USB_DMA_INTERRUPT() & (1 << epnum)))
-		cpu_relax();
-
-	/* acknowledge dma interrupt */
-	bfin_write_USB_DMA_INTERRUPT(1 << epnum);
-	SSYNC();
-
-	/* Reset DMA */
-	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_CTRL), 0);
-	SSYNC();
-#endif
 }
 
 /*
@@ -180,12 +140,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 	DBG(4, "%cX ep%d fifo %p count %d buf %p\n",
 			'R', hw_ep->epnum, fifo, len, dst);
 
-#if defined(CONFIG_MUSB_PIO_ONLY)
-	if (unlikely((unsigned long)dst & 0x01))
-		insw_8(fifo, dst, len & 0x01 ? (len >> 1) + 1 : len >> 1);
-	else
-		insw(fifo, dst, len & 0x01 ? (len >> 1) + 1 : len >> 1);
-#else
+#if defined(CONFIG_BF52x)
 	invalidate_dcache_range((unsigned int)dst,
 		(unsigned int)(dst + len));
 
@@ -219,6 +174,11 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 	/* Reset DMA */
 	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_CTRL), 0);
 	SSYNC();
+#else
+	if (unlikely((unsigned long)dst & 0x01))
+		insw_8(fifo, dst, len & 0x01 ? (len >> 1) + 1 : len >> 1);
+	else
+		insw(fifo, dst, len & 0x01 ? (len >> 1) + 1 : len >> 1);
 #endif
 
 	dump_fifo_data(dst, len);

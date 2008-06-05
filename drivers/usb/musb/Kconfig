@@ -142,6 +142,7 @@ config MUSB_PIO_ONLY
 	bool 'Disable DMA (always use PIO)'
 	depends on USB_MUSB_HDRC
 	default y if USB_TUSB6010
+	default y if BF525 || BF527
 	help
 	  All data is copied between memory and FIFO by the CPU.
 	  DMA controllers are ignored.
@@ -154,7 +155,7 @@ config MUSB_PIO_ONLY
 config USB_INVENTRA_DMA
 	bool
 	depends on USB_MUSB_HDRC && !MUSB_PIO_ONLY
-	default ARCH_OMAP2430 || ARCH_OMAP34XX
+	default ARCH_OMAP2430 || ARCH_OMAP34XX || BLACKFIN
 	help
 	  Enable DMA transfers using Mentor's engine.
 

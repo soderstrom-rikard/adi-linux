@@ -39,6 +39,8 @@
 #include "omap2430.h"
 #endif
 
+#ifndef CONFIG_BLACKFIN
+
 #define MUSB_HSDMA_BASE		0x200
 #define MUSB_HSDMA_INTR		(MUSB_HSDMA_BASE + 0)
 #define MUSB_HSDMA_CONTROL		0x4
@@ -47,6 +49,21 @@
 
 #define MUSB_HSDMA_CHANNEL_OFFSET(_bChannel, _offset)		\
 		(MUSB_HSDMA_BASE + (_bChannel << 4) + _offset)
+
+#else
+
+#define MUSB_HSDMA_BASE		0x400
+#define MUSB_HSDMA_INTR		(MUSB_HSDMA_BASE + 0)
+#define MUSB_HSDMA_CONTROL		0x04
+#define MUSB_HSDMA_ADDR_LOW		0x08
+#define MUSB_HSDMA_ADDR_HIGH		0x0C
+#define MUSB_HSDMA_COUNT_LOW		0x10
+#define MUSB_HSDMA_COUNT_HIGH		0x14
+
+#define MUSB_HSDMA_CHANNEL_OFFSET(_bChannel, _offset)		\
+		(MUSB_HSDMA_BASE + (_bChannel * 0x20) + _offset)
+
+#endif
 
 /* control register (16-bit): */
 #define MUSB_HSDMA_ENABLE_SHIFT		0
@@ -203,13 +220,27 @@ static void configure_channel(struct dma_channel *pChannel,
 				: 0);
 
 	/* address/count */
+#ifndef CONFIG_BLACKFIN
 	musb_writel(mbase,
 		MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_ADDRESS),
 		dma_addr);
 	musb_writel(mbase,
 		MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_COUNT),
 		len);
-
+#else
+	musb_writew(mbase,
+		MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_ADDR_LOW),
+		((u16)((u32) dma_addr & 0xFFFF)));
+	musb_writew(mbase,
+		MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_ADDR_HIGH),
+		((u16)(((u32) dma_addr >> 16) & 0xFFFF)));
+	musb_writew(mbase,
+		MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_COUNT_LOW),
+		((u16)((u32) len & 0xFFFF)));
+	musb_writew(mbase,
+		MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_COUNT_HIGH),
+		((u16)(((u32) len >> 16) & 0xFFFF)));
+#endif
 	/* control (this should start things) */
 	musb_writew(mbase,
 		MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_CONTROL),
@@ -278,13 +309,27 @@ static int dma_channel_abort(struct dma_channel *pChannel)
 		musb_writew(mbase,
 			MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_CONTROL),
 			0);
+#ifndef CONFIG_BLACKFIN
 		musb_writel(mbase,
 			MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_ADDRESS),
 			0);
 		musb_writel(mbase,
 			MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_COUNT),
 			0);
-
+#else
+		musb_writew(mbase,
+			MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_ADDR_LOW),
+			0);
+		musb_writew(mbase,
+			MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_ADDR_HIGH),
+			0);
+		musb_writew(mbase,
+			MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_COUNT_LOW),
+			0);
+		musb_writew(mbase,
+			MUSB_HSDMA_CHANNEL_OFFSET(bChannel, MUSB_HSDMA_COUNT_HIGH),
+			0);
+#endif
 		pChannel->status = MUSB_DMA_STATUS_FREE;
 	}
 	return 0;
@@ -327,10 +372,22 @@ static irqreturn_t dma_controller_irq(int irq, void *private_data)
 			else {
 				u8 devctl;
 
+#ifndef CONFIG_BLACKFIN
 				dwAddress = musb_readl(mbase,
 						MUSB_HSDMA_CHANNEL_OFFSET(
 							bChannel,
 							MUSB_HSDMA_ADDRESS));
+#else
+				dwAddress = musb_readw(mbase,
+						MUSB_HSDMA_CHANNEL_OFFSET(
+							bChannel,
+							MUSB_HSDMA_ADDR_HIGH));
+				dwAddress = dwAddress << 16;
+				dwAddress |= musb_readw(mbase,
+						MUSB_HSDMA_CHANNEL_OFFSET(
+							bChannel,
+							MUSB_HSDMA_ADDR_LOW));
+#endif
 				pChannel->actual_len = dwAddress
 					- pImplChannel->dwStartAddress;
 
@@ -368,6 +425,10 @@ static irqreturn_t dma_controller_irq(int irq, void *private_data)
 			}
 		}
 	}
+
+	/* Clear DMA interrup flags */
+	musb_writeb(mbase, MUSB_HSDMA_INTR, int_hsdma);
+
 	retval = IRQ_HANDLED;
 done:
 	spin_unlock_irqrestore(&musb->lock, flags);
