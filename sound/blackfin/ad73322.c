@@ -730,12 +730,11 @@ static void snd_ad73322_stop(int index)
 
 static void snd_ad73322_reset(void)
 {
-	int i;
 	snd_printd(KERN_INFO "%s is called\n", __FUNCTION__);
 	
 	/* Pull down GPIO_RESET pin on AD73322 */
 	gpio_direction_output(GPIO_RESET, 0);
-	for(i=0; i<50000; i++);
+	udelay(100);
 	gpio_direction_output(GPIO_RESET, 1);
 	
 }
