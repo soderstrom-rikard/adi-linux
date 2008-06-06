@@ -734,7 +734,7 @@ static void snd_ad73322_reset(void)
 	
 	/* Pull down GPIO_RESET pin on AD73322 */
 	gpio_direction_output(GPIO_RESET, 0);
-	udelay(100);
+	udelay(150);
 	gpio_direction_output(GPIO_RESET, 1);
 	
 }
