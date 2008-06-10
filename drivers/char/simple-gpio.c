@@ -232,7 +232,7 @@ static int __devinit simple_gpio_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	for (gpio = gpio_range->start; gpio < gpio_max; ++gpio)
+	for (gpio = gpio_range->start; gpio <= gpio_range->end; ++gpio)
 		device_create(simple_gpio_class, &pdev->dev, group_data->dev_node + gpio, "gpio%i", gpio);
 
 	device_init_wakeup(&pdev->dev, 1);
@@ -256,7 +256,7 @@ static int __devexit simple_gpio_remove(struct platform_device *pdev)
 
 	stampit();
 
-	for (gpio = gpio_range->start; gpio < gpio_range->end; ++gpio)
+	for (gpio = gpio_range->start; gpio <= gpio_range->end; ++gpio)
 		device_destroy(simple_gpio_class, group_data->dev_node + gpio);
 
 	cdev_del(&group_data->cdev);
