@@ -238,7 +238,7 @@ static int __devinit simple_gpio_probe(struct platform_device *pdev)
 	device_init_wakeup(&pdev->dev, 1);
 
 	pr_devinit(KERN_INFO PFX "now handling %i GPIOs: %i - %i\n",
-		gpio_max, gpio_range->start, gpio_range->end);
+		gpio_max, gpio_range->start, gpio_range->end - 1);
 
 	return 0;
 }
