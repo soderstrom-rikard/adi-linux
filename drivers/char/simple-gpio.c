@@ -232,13 +232,13 @@ static int __devinit simple_gpio_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	for (gpio = gpio_range->start; gpio < gpio_range->end; ++gpio)
+	for (gpio = gpio_range->start; gpio < gpio_max; ++gpio)
 		device_create(simple_gpio_class, &pdev->dev, group_data->dev_node + gpio, "gpio%i", gpio);
 
 	device_init_wakeup(&pdev->dev, 1);
 
 	pr_devinit(KERN_INFO PFX "now handling %i GPIOs: %i - %i\n",
-		gpio_max, gpio_range->start, gpio_range->end - 1);
+		gpio_max, gpio_range->start, gpio_range->end);
 
 	return 0;
 }
