@@ -24,37 +24,41 @@
 #include <asm/dma.h>
 
 #include "bf5xx-pcm.h"
+#ifdef CONFIG_SND_BF5XX_SOC_AC97
 #include "bf5xx-ac97.h"
+#else
+#include "bf5xx-i2s.h"
+#endif
 #include "bf5xx-sport.h"
 
-#ifdef CONFIG_SND_MMAP_SUPPORT
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
 static void bf5xx_mmap_copy(struct snd_pcm_substream *substream,
 	 snd_pcm_uframes_t count)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct sport_device *sport = runtime->private_data;
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-			bf5xx_ac97_pcm32_to_frame(
-					(struct ac97_frame *)sport->tx_dma_buf + sport->tx_pos,
-					(__u32 *)runtime->dma_area+sport->tx_pos, count);
-			sport->tx_pos += runtime->period_size;
-			if (sport->tx_pos >= runtime->buffer_size)
-				sport->tx_pos %= runtime->buffer_size;
-		} else {
-			bf5xx_ac97_frame_to_pcm32(
-					(struct ac97_frame *)sport->rx_dma_buf + sport->rx_pos,
-					(__u32 *)runtime->dma_area+sport->rx_pos, count);
-			sport->rx_pos += runtime->period_size;
-			if (sport->rx_pos >= runtime->buffer_size)
-				sport->rx_pos %= runtime->buffer_size;
-		}
+		bf5xx_pcm_to_frame(
+				(struct audio_frame *)sport->tx_dma_buf + sport->tx_pos,
+				(__u32 *)runtime->dma_area + sport->tx_pos, count);
+		sport->tx_pos += runtime->period_size;
+		if (sport->tx_pos >= runtime->buffer_size)
+			sport->tx_pos %= runtime->buffer_size;
+	} else {
+		bf5xx_frame_to_pcm(
+				(struct audio_frame *)sport->rx_dma_buf + sport->rx_pos,
+				(__u32 *)runtime->dma_area + sport->rx_pos, count);
+		sport->rx_pos += runtime->period_size;
+		if (sport->rx_pos >= runtime->buffer_size)
+			sport->rx_pos %= runtime->buffer_size;
+	}
 }
 #endif
 
 static void bf5xx_dma_irq(void *data)
 {
 	struct snd_pcm_substream *pcm = data;
-#ifdef CONFIG_SND_MMAP_SUPPORT
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
 	struct snd_pcm_runtime *runtime = pcm->runtime;
 	bf5xx_mmap_copy(pcm, runtime->period_size);
 #endif
@@ -63,7 +67,7 @@ static void bf5xx_dma_irq(void *data)
 
 /* The memory size for pure pcm data is 128*1024 = 0x20000 bytes.
  * The total rx/tx buffer is for ac97 frame to hold all pcm data
- * is  0x20000 * sizeof(struct ac97_frame) / 4.
+ * is  0x20000 * sizeof(struct audio_frame) / 4.
  */
 #ifdef CONFIG_SND_MMAP_SUPPORT
 static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
@@ -71,7 +75,7 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 				   SNDRV_PCM_INFO_MMAP |
 				   SNDRV_PCM_INFO_MMAP_VALID |
 				   SNDRV_PCM_INFO_BLOCK_TRANSFER,
-	.formats		= SNDRV_PCM_FMTBIT_S16_LE,
+	.formats		= SNDRV_PCM_FMTBIT_S32_LE,
 	.period_bytes_min	= 6144,
 	.period_bytes_max	= 6144,
 	.periods_min		= 8,
@@ -83,7 +87,7 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 	.info			= SNDRV_PCM_INFO_INTERLEAVED |
 				  SNDRV_PCM_INFO_BLOCK_TRANSFER,
-	.formats		= SNDRV_PCM_FMTBIT_S16_LE,
+	.formats		= SNDRV_PCM_FMTBIT_S32_LE,
 	.period_bytes_min	= 32,
 	.period_bytes_max	= 0x10000,
 	.periods_min		= 1,
@@ -96,8 +100,7 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 static int bf5xx_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
 {
-	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * \
-			sizeof(struct ac97_frame) / 4;
+	size_t size = bf5xx_pcm_hardware.buffer_bytes_max;
 	snd_pcm_lib_malloc_pages(substream, size);
 
 	return 0;
@@ -113,51 +116,49 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct sport_device *sport = runtime->private_data;
-#ifdef CONFIG_SND_MMAP_SUPPORT
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		if (!sport->tx_dma_buf) {
 			sport->tx_dma_buf = dma_alloc_coherent(NULL, \
-				runtime->buffer_size * sizeof(struct ac97_frame), &sport->tx_dma_phy, GFP_KERNEL);
+				bf5xx_pcm_hardware.buffer_bytes_max, &sport->tx_dma_phy, GFP_KERNEL);
 			if (!sport->tx_dma_buf) {
 				printk(KERN_ERR "Failed to allocate memory for tx dma buf\n");
 				return -ENOMEM;
 			} else {
-				sport->tx_buffer_size = runtime->buffer_size;
-				memset(sport->tx_dma_buf, 0, runtime->buffer_size * sizeof(struct ac97_frame));
+				memset(sport->tx_dma_buf, 0, bf5xx_pcm_hardware.buffer_bytes_max);
 			}
 		}
 	} else {
 		if (!sport->rx_dma_buf) {
 			sport->rx_dma_buf = dma_alloc_coherent(NULL, \
-				runtime->buffer_size * sizeof(struct ac97_frame), &sport->rx_dma_phy, GFP_KERNEL);
+				bf5xx_pcm_hardware.buffer_bytes_max, &sport->rx_dma_phy, GFP_KERNEL);
 			if (!sport->rx_dma_buf) {
 				printk(KERN_ERR "Failed to allocate memory for rx dma buf\n");
 				return -ENOMEM;
 			} else {
-				sport->rx_buffer_size = runtime->buffer_size;
-				memset(sport->rx_dma_buf, 0, runtime->buffer_size * sizeof(struct ac97_frame));
+				memset(sport->rx_dma_buf, 0, bf5xx_pcm_hardware.buffer_bytes_max);
 			}
 		}
 	}
-	memset(runtime->dma_area, 0, runtime->buffer_size * sizeof(struct ac97_frame));
+	memset(runtime->dma_area, 0, runtime->buffer_size * sizeof(struct audio_frame));
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_tx_dma(sport, sport->tx_dma_buf, runtime->periods,
-				runtime->period_size * sizeof(struct ac97_frame));
+				runtime->period_size * sizeof(struct audio_frame));
 	} else {
 		sport_set_rx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_rx_dma(sport, sport->rx_dma_buf, runtime->periods,
-				runtime->period_size * sizeof(struct ac97_frame));
+				runtime->period_size * sizeof(struct audio_frame));
 	}
 #else
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_tx_dma(sport, runtime->dma_area, runtime->periods,
-				runtime->period_size * sizeof(struct ac97_frame));
+				runtime->period_size * sizeof(struct audio_frame));
 	} else {
 		sport_set_rx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_rx_dma(sport, runtime->dma_area, runtime->periods,
-				runtime->period_size * sizeof(struct ac97_frame));
+				runtime->period_size * sizeof(struct audio_frame));
 	}
 #endif
 	return 0;
@@ -173,35 +174,21 @@ static int bf5xx_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 			cmd?" start":" stop");
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
-#ifdef CONFIG_SND_MMAP_SUPPORT
-		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-			bf5xx_mmap_copy(substream, runtime->period_size);
-			sport_tx_start(sport);
-			bf5xx_mmap_copy(substream, runtime->period_size);
-			snd_pcm_period_elapsed(substream);
-		} else {
-			sport_rx_start(sport);
-			bf5xx_mmap_copy(substream, runtime->period_size);
-			snd_pcm_period_elapsed(substream);
-		}
-#else
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 			sport_tx_start(sport);
 		else
 			sport_rx_start(sport);
-#endif
 		break;
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-			pr_debug("stop dma\n");
-#ifdef CONFIG_SND_MMAP_SUPPORT
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
 			sport->tx_pos = 0;
 #endif
 			sport_tx_stop(sport);
 		} else {
-#ifdef CONFIG_SND_MMAP_SUPPORT
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
 			sport->rx_pos = 0;
 #endif
 			sport_rx_stop(sport);
@@ -219,13 +206,21 @@ static snd_pcm_uframes_t bf5xx_pcm_pointer(struct snd_pcm_substream *substream)
 	struct sport_device *sport = runtime->private_data;
 	unsigned int curr;
 
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		curr = sport_curr_offset_tx(sport) / sizeof(struct ac97_frame);
+		curr = sport->tx_pos;
 	else
-		curr = sport_curr_offset_rx(sport) / sizeof(struct ac97_frame);
+		curr = sport->rx_pos;
+#else
+
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+		curr = sport_curr_offset_tx(sport) / sizeof(struct audio_frame);
+	else {
+		curr = sport_curr_offset_rx(sport) / sizeof(struct audio_frame);
 	pr_debug("%s pointer curr:0x%0x\n", substream->stream ? \
 			"Capture":"Playback", curr);
-
+	}
+#endif
 	return curr;
 }
 
@@ -276,16 +271,15 @@ static	int bf5xx_pcm_copy(struct snd_pcm_substream *substream, int channel,
 		    void __user *buf, snd_pcm_uframes_t count)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-
 	pr_debug("%s copy pos:0x%lx count:0x%lx\n",
 			substream->stream?"Capture":"Playback", pos, count);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		bf5xx_ac97_pcm32_to_frame(
-				(struct ac97_frame *)runtime->dma_area + pos,
+		bf5xx_pcm_to_frame(
+				(struct audio_frame *)runtime->dma_area + pos,
 				buf, count);
 	else
-		bf5xx_ac97_frame_to_pcm32(
-				(struct ac97_frame *)runtime->dma_area + pos,
+		bf5xx_frame_to_pcm(
+				(struct audio_frame *)runtime->dma_area + pos,
 				buf, count);
 	return 0;
 }
@@ -311,8 +305,7 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 {
 	struct snd_pcm_substream *substream = pcm->streams[stream].substream;
 	struct snd_dma_buffer *buf = &substream->dma_buffer;
-	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * \
-			sizeof(struct ac97_frame) / 4;
+	size_t size = bf5xx_pcm_hardware.buffer_bytes_max;
 
 	buf->dev.type = SNDRV_DMA_TYPE_DEV;
 	buf->dev.dev = pcm->card->dev;
@@ -347,16 +340,16 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 		buf = &substream->dma_buffer;
 		if (!buf->area)
 			continue;
-#ifdef CONFIG_SND_MMAP_SUPPORT
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		if (sport_handle->tx_dma_buf)
-			dma_free_coherent(NULL, sport_handle->tx_buffer_size * sizeof(struct ac97_frame),\
+			dma_free_coherent(NULL, bf5xx_pcm_hardware.buffer_bytes_max, \
 				sport_handle->tx_dma_buf, 0);
 		sport_handle->tx_dma_buf = NULL;
 	} else {
 
 		if (sport_handle->rx_dma_buf)
-			dma_free_coherent(NULL, sport_handle->rx_buffer_size * sizeof(struct ac97_frame), \
+			dma_free_coherent(NULL, bf5xx_pcm_hardware.buffer_bytes_max, \
 				sport_handle->rx_dma_buf, 0);
 		sport_handle->rx_dma_buf = NULL;
 	}

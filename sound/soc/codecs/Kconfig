@@ -2,6 +2,15 @@ config SND_SOC_AC97_CODEC
 	tristate
 	depends on SND_SOC
 
+config SND_SOC_SSM2602
+	tristate
+	depends on SND_SOC
+
+config SND_SOC_SSM2602_SPI
+	bool "Control interface: Use SPI instead of I2C"
+	depends on SND_SOC_SSM2602
+	default n
+
 config SND_SOC_WM8731
 	tristate
 	depends on SND_SOC

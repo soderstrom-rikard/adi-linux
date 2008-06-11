@@ -4,7 +4,8 @@
  * Copyright 2007 Wolfson Microelectronics PLC.
  * Author: Liam Girdwood
  *         liam.girdwood@wolfsonmicro.com or linux@wolfsonmicro.com
- *
+ * modified by:Cliff Cai
+ *		cliff.cai@analog.com
  *  This program is free software; you can redistribute  it and/or modify it
  *  under  the terms of  the GNU General  Public License as published by the
  *  Free Software Foundation;  either version 2 of the  License, or (at your
@@ -33,10 +34,10 @@
 #include "bf5xx-sport.h"
 #include "bf5xx-i2s.h"
 
-#define BF53X_I2S_DEBUG
-
 #ifdef BF53X_I2S_DEBUG
 #define i2s_printd(format, arg...) printk(KERN_INFO"sport-i2s: " format, ## arg)
+#else
+#define i2s_printd(format, arg...)
 #endif
 
 #ifndef SLEN_T
@@ -62,282 +63,38 @@ struct bf5xx_i2s_port {
 	unsigned int rclkdiv;
 	unsigned int rfsdiv;
 };
+
+#ifdef CONFIG_PM
 static struct bf5xx_i2s_port bf5xx_i2s[NUM_SPORT_I2S];
+#endif
 
-/* playback I2S setup */
-static int bf5xx_i2s_set_tx_dai_fmt(struct snd_soc_cpu_dai *cpu_dai,
-		unsigned int fmt)
+void bf5xx_pcm_to_frame(struct audio_frame *dst, const __u32 *src, \
+		size_t count)
 {
-	i2s_printd("%s : fmt %x\n", __func__, fmt);
-
-	bf5xx_i2s[cpu_dai->id].tcr1 = 0;
-	bf5xx_i2s[cpu_dai->id].tcr2 = 0;
-	bf5xx_i2s[cpu_dai->id].tclkdiv = 0;
-	bf5xx_i2s[cpu_dai->id].tfsdiv = 0;
-
-	/* interface format */
-	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-	case SND_SOC_DAIFMT_I2S:
-		bf5xx_i2s[cpu_dai->id].tcr1 |= TFSR | TCKFE;
-		bf5xx_i2s[cpu_dai->id].tcr2 |= TSFSE;
-		break;
-	case SND_SOC_DAIFMT_LEFT_J:
-		bf5xx_i2s[cpu_dai->id].tcr1 |= TFSR | LATFS | LTFS;
-		bf5xx_i2s[cpu_dai->id].tcr2 |= TSFSE;
-		break;
-	}
-
-	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
-	case SND_SOC_DAIFMT_CBS_CFS:
-		bf5xx_i2s[cpu_dai->id].tcr1 |= ITCLK | ITFS;
-		break;
-	case SND_SOC_DAIFMT_CBM_CFS:
-		bf5xx_i2s[cpu_dai->id].tcr1 |= ITFS;
-		break;
-	case SND_SOC_DAIFMT_CBM_CFM:
-		break;
-	case SND_SOC_DAIFMT_CBS_CFM:
-		bf5xx_i2s[cpu_dai->id].tcr1 |= ITCLK;
-		break;
-	default:
-		break;
-	}
-	return 0;
+	__u32 *idst = (__u32 *)dst;
+	count = count * 8;
+	memcpy(idst, src, count);
 }
+EXPORT_SYMBOL(bf5xx_pcm_to_frame);
 
-/* capture I2S setup */
-static int bf5xx_i2s_set_rx_dai_fmt(struct snd_soc_cpu_dai *cpu_dai,
-		unsigned int fmt)
+void bf5xx_frame_to_pcm(const struct audio_frame *src, __u32 *dst, \
+		size_t count)
 {
-	i2s_printd("%s : fmt %x\n", __func__, fmt);
-
-	bf5xx_i2s[cpu_dai->id].rcr1 = 0;
-	bf5xx_i2s[cpu_dai->id].rcr2 = 0;
-	bf5xx_i2s[cpu_dai->id].rclkdiv = 0;
-	bf5xx_i2s[cpu_dai->id].rfsdiv = 0;
-
-	/* interface format */
-	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-	case SND_SOC_DAIFMT_I2S:
-		bf5xx_i2s[cpu_dai->id].rcr1 |= RFSR | RCKFE;
-		bf5xx_i2s[cpu_dai->id].rcr2 |= RSFSE;
-		break;
-	case SND_SOC_DAIFMT_LEFT_J:
-		bf5xx_i2s[cpu_dai->id].rcr1 |= RFSR | LARFS | LRFS;
-		bf5xx_i2s[cpu_dai->id].rcr2 |= RSFSE;
-		break;
-	}
-
-	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
-	case SND_SOC_DAIFMT_CBS_CFS:
-		bf5xx_i2s[cpu_dai->id].rcr1 |= IRCLK | IRFS;
-		break;
-	case SND_SOC_DAIFMT_CBM_CFS:
-		bf5xx_i2s[cpu_dai->id].rcr1 |= IRFS;
-		break;
-	case SND_SOC_DAIFMT_CBM_CFM:
-		break;
-	case SND_SOC_DAIFMT_CBS_CFM:
-		bf5xx_i2s[cpu_dai->id].rcr1 |= IRCLK;
-		break;
-	default:
-		break;
-	}
-	return 0;
+	__u32 *isrc = (__u32 *)src;
+	count = count * 8;
+	memcpy(dst, isrc, count);
 }
+EXPORT_SYMBOL(bf5xx_frame_to_pcm);
 
-static int bf5xx_i2s_set_dai_fmt(struct snd_soc_cpu_dai *cpu_dai,
-		unsigned int fmt)
+static int bf5xx_i2s_probe(struct platform_device *pdev)
 {
-	int ret;
-
-	ret = bf5xx_i2s_set_tx_dai_fmt(cpu_dai, fmt);
-	if (ret == 0)
-		return bf5xx_i2s_set_rx_dai_fmt(cpu_dai, fmt);
-	return ret;
-}
-
-static int bf5xx_i2s_tx_hw_params(struct snd_pcm_substream *substream,
-				struct snd_pcm_hw_params *params)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
-
-	i2s_printd("%s : sport %d\n", __func__, cpu_dai->id);
-
-	bf5xx_i2s[cpu_dai->id].tcr2 &= ~SLEN_T;
-	switch (params_format(params)) {
-	case SNDRV_PCM_FORMAT_S16_LE:
-		bf5xx_i2s[cpu_dai->id].tcr2 |= 15;
-		break;
-	case SNDRV_PCM_FORMAT_S24_LE:
-		bf5xx_i2s[cpu_dai->id].tcr2 |= 23;
-		break;
-	case SNDRV_PCM_FORMAT_S32_LE:
-		bf5xx_i2s[cpu_dai->id].tcr2 |= 31;
-		break;
-	}
+	/*We have to configure both RX and TX,
+	*TX and RX are not independent,currently,TX and RX are enabled at the same time
+	*DAI format:I2S,word length:32 bit,slave mode*/
+	sport_config_rx(sport_handle, RFSR | RCKFE, RSFSE|0x1f, 0, 0);
+	sport_config_tx(sport_handle, TFSR | TCKFE, TSFSE|0x1f, 0, 0);
 
 	return 0;
-}
-
-static int bf5xx_i2s_rx_hw_params(struct snd_pcm_substream *substream,
-				struct snd_pcm_hw_params *params)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
-
-	i2s_printd("%s : sport %d\n", __func__, cpu_dai->id);
-
-	bf5xx_i2s[cpu_dai->id].rcr2 &= ~SLEN_R;
-	switch (params_format(params)) {
-	case SNDRV_PCM_FORMAT_S16_LE:
-		bf5xx_i2s[cpu_dai->id].rcr2 |= 15;
-		break;
-	case SNDRV_PCM_FORMAT_S24_LE:
-		bf5xx_i2s[cpu_dai->id].rcr2 |= 23;
-		break;
-	case SNDRV_PCM_FORMAT_S32_LE:
-		bf5xx_i2s[cpu_dai->id].rcr2 |= 31;
-		break;
-	}
-
-	return 0;
-}
-
-static int bf5xx_i2s_hw_params(struct snd_pcm_substream *substream,
-				struct snd_pcm_hw_params *params)
-{
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		return bf5xx_i2s_tx_hw_params(substream, params);
-	else
-		return bf5xx_i2s_rx_hw_params(substream, params);
-}
-
-static int bf5xx_i2s_tx_prepare(struct snd_pcm_substream *substream)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
-	struct sport_device *sport =
-		(struct sport_device *)cpu_dai->private_data;
-
-	i2s_printd("%s : sport %d\n", __func__, cpu_dai->id);
-
-	return sport_config_tx(sport, bf5xx_i2s[cpu_dai->id].tcr1,
-		bf5xx_i2s[cpu_dai->id].tcr2,
-		bf5xx_i2s[cpu_dai->id].tclkdiv,
-		bf5xx_i2s[cpu_dai->id].tfsdiv);
-}
-
-static int bf5xx_i2s_rx_prepare(struct snd_pcm_substream *substream)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
-	struct sport_device *sport =
-		(struct sport_device *)cpu_dai->private_data;
-
-	i2s_printd("%s : sport %d\n", __func__, cpu_dai->id);
-
-	return sport_config_tx(sport, bf5xx_i2s[cpu_dai->id].rcr1,
-		bf5xx_i2s[cpu_dai->id].rcr2,
-		bf5xx_i2s[cpu_dai->id].rclkdiv,
-		bf5xx_i2s[cpu_dai->id].rfsdiv);
-}
-
-static int bf5xx_i2s_prepare(struct snd_pcm_substream *substream)
-{
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		return bf5xx_i2s_tx_prepare(substream);
-	else
-		return bf5xx_i2s_rx_prepare(substream);
-}
-
-static int bf5xx_i2s_tx_trigger(struct snd_pcm_substream *substream, int cmd)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
-	struct sport_device *sport =
-		(struct sport_device *)cpu_dai->private_data;
-	int ret = 0;
-
-	i2s_printd("%s : sport %d cmd %x\n", __func__, cpu_dai->id, cmd);
-	switch (cmd) {
-	case SNDRV_PCM_TRIGGER_RESUME:
-	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-	case SNDRV_PCM_TRIGGER_START:
-		ret = sport_tx_start(sport);
-		break;
-	case SNDRV_PCM_TRIGGER_STOP:
-	case SNDRV_PCM_TRIGGER_SUSPEND:
-	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-		ret = sport_tx_stop(sport);
-		break;
-	default:
-		ret = -EINVAL;
-	}
-
-	return ret;
-}
-
-static int bf5xx_i2s_rx_trigger(struct snd_pcm_substream *substream, int cmd)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
-	struct sport_device *sport =
-		(struct sport_device *)cpu_dai->private_data;
-	int ret = 0;
-
-	i2s_printd("%s : sport %d cmd %x\n", __func__, cpu_dai->id, cmd);
-	switch (cmd) {
-	case SNDRV_PCM_TRIGGER_RESUME:
-	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-	case SNDRV_PCM_TRIGGER_START:
-		ret = sport_rx_start(sport);
-		break;
-	case SNDRV_PCM_TRIGGER_STOP:
-	case SNDRV_PCM_TRIGGER_SUSPEND:
-	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-		ret = sport_rx_stop(sport);
-		break;
-	default:
-		ret = -EINVAL;
-	}
-
-	return ret;
-}
-
-static int bf5xx_i2s_trigger(struct snd_pcm_substream *substream, int cmd)
-{
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		return bf5xx_i2s_tx_trigger(substream, cmd);
-	else
-		return bf5xx_i2s_rx_trigger(substream, cmd);
-}
-
-static void bf5xx_i2s_shutdown(struct snd_pcm_substream *substream)
-{
-	i2s_printd("%s\n", __func__);
-}
-
-static int bf5xx_i2s_startup(struct snd_pcm_substream *substream)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
-	struct sport_device *sport =
-		(struct sport_device *)cpu_dai->private_data;
-
-	i2s_printd("%s : sport %d\n", __func__, cpu_dai->id);
-
-	/* FIXME: This function is called prior to snd_soc_ops startup,
-	 * so the sport handle is not yet passed to cpu_dai->private_data.
-
-	if (sport == NULL) {
-		printk(KERN_ERR "%s : invalid sport device\n", __func__);
-		return -EINVAL;
-	} else
-	 *
-	 */
-		return 0;
 }
 
 #ifdef CONFIG_PM
@@ -350,7 +107,7 @@ static int bf5xx_i2s_suspend(struct platform_device *dev,
 	i2s_printd("%s : sport %d\n", __func__, dai->id);
 	if (!dai->active)
 		return 0;
-
+79
 	if (dai->capture.active)
 		sport_rx_stop(sport);
 	if (dai->playback.active)
@@ -395,115 +152,25 @@ static int bf5xx_i2s_resume(struct platform_device *pdev,
 		SNDRV_PCM_RATE_44100 | SNDRV_PCM_RATE_48000 | \
 		SNDRV_PCM_RATE_96000)
 
-#define BF5XX_I2S_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE |\
-	SNDRV_PCM_FMTBIT_S32_LE)
-
-struct snd_soc_cpu_dai bf5xx_i2s_dai[NUM_SPORT_I2S] = {
-{
+#define BF5XX_I2S_FORMATS  SNDRV_PCM_FMTBIT_S32_LE
+struct snd_soc_cpu_dai bf5xx_i2s_dai = {
 	.name = "bf5xx-i2s-0",
 	.id = 0,
 	.type = SND_SOC_DAI_I2S,
+	.probe = bf5xx_i2s_probe,
 	.suspend = bf5xx_i2s_suspend,
 	.resume = bf5xx_i2s_resume,
 	.playback = {
-		.channels_min = 1,
+		.channels_min = 2,
 		.channels_max = 2,
-		.rates = BF5XX_I2S_RATES,
-		.formats = BF5XX_I2S_FORMATS,},
+		.rates = SNDRV_PCM_RATE_48000,
+		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
 	.capture = {
-		.channels_min = 1,
+		.channels_min = 2,
 		.channels_max = 2,
-		.rates = BF5XX_I2S_RATES,
-		.formats = BF5XX_I2S_FORMATS,},
-	.ops = {
-		.startup = bf5xx_i2s_startup,
-		.shutdown = bf5xx_i2s_shutdown,
-		.trigger = bf5xx_i2s_trigger,
-		.hw_params = bf5xx_i2s_hw_params,
-		.prepare = bf5xx_i2s_prepare,},
-	.dai_ops = {
-		.set_fmt = bf5xx_i2s_set_dai_fmt,
-	},
-},
-{
-	.name = "bf5xx-i2s-1",
-	.id = 1,
-	.type = SND_SOC_DAI_I2S,
-	.suspend = bf5xx_i2s_suspend,
-	.resume = bf5xx_i2s_resume,
-	.playback = {
-		.channels_min = 1,
-		.channels_max = 2,
-		.rates = BF5XX_I2S_RATES,
-		.formats = BF5XX_I2S_FORMATS,},
-	.capture = {
-		.channels_min = 1,
-		.channels_max = 2,
-		.rates = BF5XX_I2S_RATES,
-		.formats = BF5XX_I2S_FORMATS,},
-	.ops = {
-		.startup = bf5xx_i2s_startup,
-		.shutdown = bf5xx_i2s_shutdown,
-		.trigger = bf5xx_i2s_trigger,
-		.hw_params = bf5xx_i2s_hw_params,
-		.prepare = bf5xx_i2s_prepare,},
-	.dai_ops = {
-		.set_fmt = bf5xx_i2s_set_dai_fmt,
-	},
-},
-{
-	.name = "bf5xx-i2s-2",
-	.id = 2,
-	.type = SND_SOC_DAI_I2S,
-	.suspend = bf5xx_i2s_suspend,
-	.resume = bf5xx_i2s_resume,
-	.playback = {
-		.channels_min = 1,
-		.channels_max = 2,
-		.rates = BF5XX_I2S_RATES,
-		.formats = BF5XX_I2S_FORMATS,},
-	.capture = {
-		.channels_min = 1,
-		.channels_max = 2,
-		.rates = BF5XX_I2S_RATES,
-		.formats = BF5XX_I2S_FORMATS,},
-	.ops = {
-		.startup = bf5xx_i2s_startup,
-		.shutdown = bf5xx_i2s_shutdown,
-		.trigger = bf5xx_i2s_trigger,
-		.hw_params = bf5xx_i2s_hw_params,
-		.prepare = bf5xx_i2s_prepare,},
-	.dai_ops = {
-		.set_fmt = bf5xx_i2s_set_dai_fmt,
-	},
-},
-{
-	.name = "bf5xx-i2s-3",
-	.id = 3,
-	.type = SND_SOC_DAI_I2S,
-	.suspend = bf5xx_i2s_suspend,
-	.resume = bf5xx_i2s_resume,
-	.playback = {
-		.channels_min = 1,
-		.channels_max = 2,
-		.rates = BF5XX_I2S_RATES,
-		.formats = BF5XX_I2S_FORMATS,},
-	.capture = {
-		.channels_min = 1,
-		.channels_max = 2,
-		.rates = BF5XX_I2S_RATES,
-		.formats = BF5XX_I2S_FORMATS,},
-	.ops = {
-		.startup = bf5xx_i2s_startup,
-		.shutdown = bf5xx_i2s_shutdown,
-		.trigger = bf5xx_i2s_trigger,
-		.hw_params = bf5xx_i2s_hw_params,
-		.prepare = bf5xx_i2s_prepare,},
-	.dai_ops = {
-		.set_fmt = bf5xx_i2s_set_dai_fmt,
-	},
-},};
-
+		.rates = SNDRV_PCM_RATE_48000,
+		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
+};
 EXPORT_SYMBOL_GPL(bf5xx_i2s_dai);
 
 /* Module information */

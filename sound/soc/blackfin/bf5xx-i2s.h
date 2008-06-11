@@ -11,6 +11,17 @@
 
 #define NUM_SPORT_I2S	4 /* lrg - must be cpu dependant way to select this */
 
-extern struct snd_soc_cpu_dai bf5xx_i2s_dai[NUM_SPORT_I2S];
+extern struct snd_soc_cpu_dai bf5xx_i2s_dai;
+
+struct audio_frame {
+	u32 left_channel;
+	u32 right_channel;
+};
+
+void bf5xx_pcm_to_frame(struct audio_frame *dst, const __u32 *src, \
+		size_t count);
+
+void bf5xx_frame_to_pcm(const struct audio_frame *src, __u32 *dst, \
+		size_t count);
 
 #endif

@@ -30,13 +30,13 @@
 #include <linux/delay.h>
 #include <linux/dma-mapping.h>
 #include <asm/bug.h>
+#include <asm/gpio.h>
+#include <asm/portmux.h>
 #include <asm/dma.h>
 #include <asm/blackfin.h>
-#include <asm/dma.h>
 #include <asm/cacheflush.h>
 
 #include "bf5xx-sport.h"
-#include "bf5xx-ac97.h"
 /* delay between frame sync pulse and first data bit in multichannel mode */
 #define FRAME_DELAY (1<<12)
 
@@ -153,8 +153,8 @@ static int sport_start(struct sport_device *sport)
 {
 	enable_dma(sport->dma_rx_chan);
 	enable_dma(sport->dma_tx_chan);
-	sport->regs->tcr1 |= TSPEN;
 	sport->regs->rcr1 |= RSPEN;
+	sport->regs->tcr1 |= TSPEN;
 	SSYNC();
 
 	return 0;
@@ -216,7 +216,7 @@ static inline int sport_rx_dma_start(struct sport_device *sport, int dummy)
 	set_dma_x_count(sport->dma_rx_chan, 0);
 	set_dma_x_modify(sport->dma_rx_chan, 0);
 	set_dma_config(sport->dma_rx_chan, (DMAFLOW_LARGE | NDSIZE_9 | \
-				WDSIZE_16 | WNR));
+				WDSIZE_32 | WNR));
 	set_dma_curr_addr(sport->dma_rx_chan, sport->curr_rx_desc->start_addr);
 	SSYNC();
 
@@ -236,7 +236,7 @@ static inline int sport_tx_dma_start(struct sport_device *sport, int dummy)
 			(unsigned long)(sport->curr_tx_desc));
 	set_dma_x_count(sport->dma_tx_chan, 0);
 	set_dma_x_modify(sport->dma_tx_chan, 0);
-	set_dma_config(sport->dma_tx_chan, (DMAFLOW_LARGE | NDSIZE_9 | WDSIZE_16));
+	set_dma_config(sport->dma_tx_chan, (DMAFLOW_LARGE | NDSIZE_9 | WDSIZE_32));
 	set_dma_curr_addr(sport->dma_tx_chan, sport->curr_tx_desc->start_addr);
 	SSYNC();
 
@@ -246,7 +246,6 @@ static inline int sport_tx_dma_start(struct sport_device *sport, int dummy)
 int sport_rx_start(struct sport_device *sport)
 {
 	unsigned long flags;
-
 	pr_debug("%s enter\n", __FUNCTION__);
 	if (sport->rx_run)
 		return -EBUSY;
@@ -277,6 +276,7 @@ EXPORT_SYMBOL(sport_rx_start);
 int sport_rx_stop(struct sport_device *sport)
 {
 	pr_debug("%s enter\n", __FUNCTION__);
+
 	if (!sport->rx_run)
 		return 0;
 	if (sport->tx_run) {
@@ -346,6 +346,7 @@ int sport_tx_start(struct sport_device *sport)
 		local_irq_restore(flags);
 		sport->curr_tx_desc = sport->dma_tx_desc;
 	} else {
+
 		sport_tx_dma_start(sport, 0);
 		/* Let rx dma run the dummy buffer */
 		sport_rx_dma_start(sport, 1);
@@ -575,7 +576,7 @@ static int sport_config_tx_dummy(struct sport_device *sport)
 	memset(desc, 0, 2 * sizeof(*desc));
 	sport->dummy_tx_desc = desc;
 	desc->start_addr = (unsigned long)sport->dummy_buf + \
-		sizeof(struct ac97_frame);
+		sport->dummy_count;
 	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(sport->wdsize) | DMAEN;
 	desc->cfg = config;
 	desc->x_count = sport->dummy_count/sport->wdsize;
@@ -803,8 +804,6 @@ struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 		unsigned dummy_count, void *private_data)
 {
 	struct sport_device *sport;
-	struct ac97_frame *dummy_dst;
-	int count;
 	pr_debug("%s enter\n", __FUNCTION__);
 	BUG_ON(param == NULL);
 	BUG_ON(wdsize == 0 || dummy_count == 0);
@@ -826,7 +825,6 @@ struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 				sport->dma_rx_chan);
 		goto __init_err1;
 	}
-
 	if (set_dma_callback(sport->dma_rx_chan, rx_handler, sport) != 0) {
 		printk(KERN_ERR "Failed to request RX irq %d\n", \
 				sport->dma_rx_chan);
@@ -852,7 +850,7 @@ struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 		goto __init_err3;
 	}
 
-	pr_debug("dma rx:%d tx:%d, err irq:%d, regs:%p\n",
+	printk(KERN_ERR "dma rx:%d tx:%d, err irq:%d, regs:%p\n",
 			sport->dma_rx_chan, sport->dma_tx_chan,
 			sport->err_irq, sport->regs);
 
@@ -860,23 +858,16 @@ struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 	sport->dummy_count = dummy_count;
 
 #if L1_DATA_A_LENGTH != 0
-	sport->dummy_buf = l1_data_sram_alloc(sizeof(struct ac97_frame) * 2);
+	sport->dummy_buf = l1_data_sram_alloc(dummy_count * 2);
 #else
-	sport->dummy_buf = kmalloc(sizeof(struct ac97_frame) * 2, GFP_KERNEL);
+	sport->dummy_buf = kmalloc(dummy_count * 2, GFP_KERNEL);
 #endif
 	if (sport->dummy_buf == NULL) {
 		printk(KERN_ERR "Failed to allocate dummy buffer\n");
 		goto __error;
 	}
 
-	memset(sport->dummy_buf, 0, sizeof(struct ac97_frame) * 2);
-	dummy_dst = (struct ac97_frame *)sport->dummy_buf;
-	for (count = 0; count < 2; count++) {
-
-		dummy_dst->ac97_tag = TAG_VALID | TAG_PCM;
-		(dummy_dst++)->ac97_pcm = 0;
-	}
-
+	memset(sport->dummy_buf, 0, dummy_count * 2);
 	sport_config_rx_dummy(sport);
 	sport_config_tx_dummy(sport);
 
