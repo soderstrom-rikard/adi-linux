@@ -12,7 +12,7 @@
 extern struct snd_ac97_bus_ops bf5xx_ac97_ops;
 extern struct snd_ac97 *ac97;
 /* Frame format in memory, only support stereo currently */
-struct ac97_frame {
+struct audio_frame {
 	u16 ac97_tag;		/* slot 0 */
 	u16 ac97_addr;		/* slot 1 */
 	u16 ac97_data;		/* slot 2 */
@@ -27,13 +27,10 @@ struct ac97_frame {
 
 extern struct snd_soc_cpu_dai bfin_ac97_dai;
 
-void bf5xx_ac97_pcm32_to_frame(struct ac97_frame *dst, const u32 *src, \
+void bf5xx_pcm_to_frame(struct audio_frame *dst, const __u32 *src, \
 		size_t count);
 
-void bf5xx_ac97_frame_to_pcm32(const struct ac97_frame *src, u32 *dst, \
+void bf5xx_frame_to_pcm(const struct audio_frame *src, __u32 *dst, \
 		size_t count);
-
-void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg, \
-	unsigned short val);
 
 #endif
