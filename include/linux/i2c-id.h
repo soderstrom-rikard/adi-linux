@@ -125,6 +125,7 @@
 #define I2C_DRIVERID_LM4857 	92 	/* LM4857 Audio Amplifier */
 #define I2C_DRIVERID_VP27SMPX	93	/* Panasonic VP27s tuner internal MPX */
 #define I2C_DRIVERID_CS4270	94	/* Cirrus Logic 4270 audio codec */
+#define I2C_DRIVERID_SSM2602	100	/* BF52xC built in audio codec */
 
 #define I2C_DRIVERID_I2CDEV	900
 #define I2C_DRIVERID_ARP        902    /* SMBus ARP Client              */
