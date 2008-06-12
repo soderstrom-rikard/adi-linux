@@ -159,7 +159,7 @@ static int bf5xx_wm8731_init_dev(struct snd_soc_codec *codec)
 static struct snd_soc_dai_link bf5xx_wm8731_dai = {
 	.name = "wm8731",
 	.stream_name = "WM8731",
-	.cpu_dai = &bf5xx_i2s_dai[CONFIG_SND_BF5XX_SPORT_NUM],
+	.cpu_dai = &bf5xx_i2s_dai,
 	.codec_dai = &wm8731_dai,
 	.init = bf5xx_wm8731_init_dev,
 	.ops = &bf5xx_wm8731_ops,
