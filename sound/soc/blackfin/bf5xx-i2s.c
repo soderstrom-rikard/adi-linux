@@ -107,7 +107,6 @@ static int bf5xx_i2s_suspend(struct platform_device *dev,
 	i2s_printd("%s : sport %d\n", __func__, dai->id);
 	if (!dai->active)
 		return 0;
-79
 	if (dai->capture.active)
 		sport_rx_stop(sport);
 	if (dai->playback.active)
