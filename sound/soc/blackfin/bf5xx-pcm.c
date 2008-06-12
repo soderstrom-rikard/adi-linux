@@ -75,7 +75,7 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 				   SNDRV_PCM_INFO_MMAP |
 				   SNDRV_PCM_INFO_MMAP_VALID |
 				   SNDRV_PCM_INFO_BLOCK_TRANSFER,
-	.formats		= SNDRV_PCM_FMTBIT_S32_LE,
+	.formats		= SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S32_LE,
 	.period_bytes_min	= 6144,
 	.period_bytes_max	= 6144,
 	.periods_min		= 8,
@@ -87,7 +87,7 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 	.info			= SNDRV_PCM_INFO_INTERLEAVED |
 				  SNDRV_PCM_INFO_BLOCK_TRANSFER,
-	.formats		= SNDRV_PCM_FMTBIT_S32_LE,
+	.formats		= SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S32_LE,
 	.period_bytes_min	= 32,
 	.period_bytes_max	= 0x10000,
 	.periods_min		= 1,
@@ -124,10 +124,10 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 			if (!sport->tx_dma_buf) {
 				printk(KERN_ERR "Failed to allocate memory for tx dma buf\n");
 				return -ENOMEM;
-			} else {
+			} else
 				memset(sport->tx_dma_buf, 0, bf5xx_pcm_hardware.buffer_bytes_max);
-			}
-		}
+		} else
+			memset(sport->tx_dma_buf, 0, bf5xx_pcm_hardware.buffer_bytes_max);
 	} else {
 		if (!sport->rx_dma_buf) {
 			sport->rx_dma_buf = dma_alloc_coherent(NULL, \
@@ -135,12 +135,11 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 			if (!sport->rx_dma_buf) {
 				printk(KERN_ERR "Failed to allocate memory for rx dma buf\n");
 				return -ENOMEM;
-			} else {
+			} else
 				memset(sport->rx_dma_buf, 0, bf5xx_pcm_hardware.buffer_bytes_max);
-			}
-		}
+		} else
+			memset(sport->rx_dma_buf, 0, bf5xx_pcm_hardware.buffer_bytes_max);
 	}
-	memset(runtime->dma_area, 0, runtime->buffer_size * sizeof(struct audio_frame));
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_tx_dma(sport, sport->tx_dma_buf, runtime->periods,
