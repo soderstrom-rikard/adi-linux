@@ -76,11 +76,16 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 				   SNDRV_PCM_INFO_MMAP_VALID |
 				   SNDRV_PCM_INFO_BLOCK_TRANSFER,
 	.formats		= SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S32_LE,
+#if defined(CONFIG_SND_BF5XX_SOC_I2S)
+	.period_bytes_min	= 12288,
+	.period_bytes_max	= 12288,
+#else
 	.period_bytes_min	= 6144,
 	.period_bytes_max	= 6144,
+#endif
 	.periods_min		= 8,
 	.periods_max		= 8,
-	.buffer_bytes_max	= 0x20000, /* 128 kbytes */
+	.buffer_bytes_max	= 0x40000, /* 128 kbytes */
 	.fifo_size		= 16,
 };
 #else
@@ -92,7 +97,7 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 	.period_bytes_max	= 0x10000,
 	.periods_min		= 1,
 	.periods_max		= PAGE_SIZE/32,
-	.buffer_bytes_max	= 0x20000, /* 128 kbytes */
+	.buffer_bytes_max	= 0x40000, /* 128 kbytes */
 	.fifo_size		= 16,
 };
 #endif
