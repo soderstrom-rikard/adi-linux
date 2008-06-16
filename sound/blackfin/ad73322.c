@@ -756,8 +756,8 @@ static int snd_ad73322_configure(int index)
 	ctrl_regs[0] = MCDIV(0) | SCDIV(0) | DIRATE(0);
 	ctrl_regs[1] = PUDEV | PUADC | PUDAC | PUREF | REFUSE ;
 	ctrl_regs[2] = 0;
-	ctrl_regs[3] = DA(0x1f);
-	ctrl_regs[4] = SEEN;
+	ctrl_regs[3] = 0;
+	ctrl_regs[4] = INV;
 	ctrl_regs[5] = 0;
 	ctrl_regs[6] = 0;
 	
