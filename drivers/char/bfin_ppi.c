@@ -1110,6 +1110,7 @@ static int ppi_release(struct inode *inode, struct file *filp)
 	pdev->opened = 0;
 	spin_unlock_irqrestore(&ppi_lock, flags);
 
+	free_irq(IRQ_PPI_ERROR, NULL);
 	peripheral_free_list(per_req_ppi0_7);
 	peripheral_free_list(&per_req_ppi8_15[7 - pdev->datalen]);
 	peripheral_free_list(per_req_ppi_fs);
