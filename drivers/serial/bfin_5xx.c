@@ -49,6 +49,7 @@
 #define DMA_RX_YCOUNT		(PAGE_SIZE / DMA_RX_XCOUNT)
 
 #define DMA_RX_FLUSH_JIFFIES	(HZ / 50)
+#define CTS_CHECK_JIFFIES	(HZ / 50)
 
 #ifdef CONFIG_SERIAL_BFIN_DMA
 static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart);
@@ -345,15 +346,6 @@ static irqreturn_t bfin_serial_tx_int(int irq, void *dev_id)
 }
 #endif
 
-#ifdef CONFIG_SERIAL_BFIN_CTSRTS
-static void bfin_serial_do_work(struct work_struct *work)
-{
-	struct bfin_serial_port *uart = container_of(work, struct bfin_serial_port, cts_workqueue);
-
-	bfin_serial_mctrl_check(uart);
-}
-#endif
-
 #ifdef CONFIG_SERIAL_BFIN_DMA
 static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart)
 {
@@ -565,7 +557,10 @@ static void bfin_serial_mctrl_check(struct bfin_serial_port *uart)
 	uart_handle_cts_change(&uart->port, status & TIOCM_CTS);
 	if (!(status & TIOCM_CTS)) {
 		tty->hw_stopped = 1;
-		schedule_work(&uart->cts_workqueue);
+		uart->cts_timer.data = (unsigned long)(uart);
+		uart->cts_timer.function = (void *)bfin_serial_mctrl_check;
+		uart->cts_timer.expires = jiffies + CTS_CHECK_JIFFIES;
+		add_timer(&(uart->cts_timer));
 	} else {
 		tty->hw_stopped = 0;
 	}
@@ -884,7 +879,7 @@ static void __init bfin_serial_init_ports(void)
 		init_timer(&(bfin_serial_ports[i].rx_dma_timer));
 #endif
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
-		INIT_WORK(&bfin_serial_ports[i].cts_workqueue, bfin_serial_do_work);
+		init_timer(&(bfin_serial_ports[i].cts_timer));
 		bfin_serial_ports[i].cts_pin	    =
 			bfin_serial_resource[i].uart_cts_pin;
 		bfin_serial_ports[i].rts_pin	    =
