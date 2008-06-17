@@ -565,7 +565,7 @@ static int snd_ad73322_play_copy(struct snd_pcm_substream *substream, int channe
 	}
 
 	if (temp2_count) {
-		dst = (unsigned short*)chip->tx_dma_buf;
+		dst = (unsigned short *)chip->tx_dma_buf;
 		while (temp2_count--) {
 			*(dst + slot_index) = *isrc++;
 			dst += 8;
@@ -613,7 +613,7 @@ static int snd_ad73322_cap_copy(struct snd_pcm_substream *substream, int channel
 	}
 
 	if (temp2_count) {
-		dst = (unsigned short*)chip->rx_dma_buf;
+		src = (unsigned short *)chip->rx_dma_buf;
 		while (temp2_count--) {
 			*idst++ = *(src +slot_index); 
 			src += 8;
@@ -734,7 +734,7 @@ static void snd_ad73322_reset(void)
 	
 	/* Pull down GPIO_RESET pin on AD73322 */
 	gpio_direction_output(GPIO_RESET, 0);
-	udelay(150);
+	udelay(250);
 	gpio_direction_output(GPIO_RESET, 1);
 	
 }
@@ -756,8 +756,8 @@ static int snd_ad73322_configure(int index)
 	ctrl_regs[0] = MCDIV(0) | SCDIV(0) | DIRATE(0);
 	ctrl_regs[1] = PUDEV | PUADC | PUDAC | PUREF | REFUSE ;
 	ctrl_regs[2] = 0;
-	ctrl_regs[3] = 0;
-	ctrl_regs[4] = INV;
+	ctrl_regs[3] = DA(0x1f);
+	ctrl_regs[4] = SEEN;
 	ctrl_regs[5] = 0;
 	ctrl_regs[6] = 0;
 	
@@ -775,14 +775,10 @@ static int snd_ad73322_configure(int index)
 	if(reg_addr == 8) reg_addr = 0;
 
 	}
-#ifndef HAVE_TWO_CARDS
-	snd_ad73322_startup(index);
-#endif
 	snd_ad73322_reset();
 	local_irq_disable();
 	udelay(1);
 #ifdef HAVE_TWO_CARDS
-	snd_ad73322_startup(0);
 	bfin_write_SPORT0_TCR1(TFSR);
 	bfin_write_SPORT0_TCR2(0xF);
 	SSYNC();
@@ -802,7 +798,6 @@ static int snd_ad73322_configure(int index)
 	}
 	SSYNC();
 	snd_ad73322_stop(0);
-	snd_ad73322_startup(1);
 	bfin_write_SPORT1_TCR1(TFSR);
 	bfin_write_SPORT1_TCR2(0xF);
 	SSYNC();
@@ -886,13 +881,13 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __FUNCTION__, GPIO_SPORT0_SE);
 			return -EBUSY;
 		}
-		gpio_direction_output(GPIO_SPORT0_SE, 0);
+		gpio_direction_output(GPIO_SPORT0_SE, 1);
 #elif CONFIG_SND_BFIN_SPORT == 1
 		if (gpio_request(GPIO_SPORT1_SE, "AD73322")) {
 			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __FUNCTION__, GPIO_SPORT1_SE);
 			return -EBUSY;
 		}
-		gpio_direction_output(GPIO_SPORT1_SE, 0);
+		gpio_direction_output(GPIO_SPORT1_SE, 1);
 #elif CONFIG_SND_BFIN_SPORT == 2
 		if (gpio_request(GPIO_SPORT0_SE, "AD73322")) {
 			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __FUNCTION__, GPIO_SPORT0_SE);
@@ -902,8 +897,8 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __FUNCTION__, GPIO_SPORT1_SE);
 			return -EBUSY;
 		}
-		gpio_direction_output(GPIO_SPORT0_SE, 0);
-		gpio_direction_output(GPIO_SPORT1_SE, 0);
+		gpio_direction_output(GPIO_SPORT0_SE, 1);
+		gpio_direction_output(GPIO_SPORT1_SE, 1);
 #endif
 		if (gpio_request(GPIO_RESET, "AD73322RST")) {
 			printk(KERN_ERR "%s: Failed ro request GPIO_12\n", __FUNCTION__);
