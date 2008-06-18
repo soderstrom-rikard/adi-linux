@@ -576,12 +576,10 @@ static int ssm2602_init(struct snd_soc_device *socdev)
 	ssm2602_write(codec, SSM2602_LOUT1V, reg | 0x0100);
 	reg = ssm2602_read_reg_cache(codec, SSM2602_ROUT1V);
 	ssm2602_write(codec, SSM2602_ROUT1V, reg | 0x0100);
-	reg = ssm2602_read_reg_cache(codec, SSM2602_LINVOL);
 	ssm2602_write(codec, SSM2602_LINVOL, 0x0117);
-	reg = ssm2602_read_reg_cache(codec, SSM2602_RINVOL);
 	ssm2602_write(codec, SSM2602_RINVOL, 0x0117);
-	reg = ssm2602_read_reg_cache(codec, SSM2602_APANA);
-	ssm2602_write(codec, SSM2602_APANA, 0x0010);
+	/*select MIC as default input*/
+	ssm2602_write(codec, SSM2602_APANA, 0x0115);
 	ssm2602_write(codec, SSM2602_PWR, 0x0);
 
 	ssm2602_add_controls(codec);
