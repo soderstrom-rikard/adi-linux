@@ -74,7 +74,7 @@ MODULE_LICENSE("GPL");
  * that just queued one ISO frame per URB then iso transfers "should" work
  * using the normal urb status fields.
  */
-#define	DISABLE_ISO
+/* #define	DISABLE_ISO */
 
 // #define	QUIRK2
 #define	QUIRK3
