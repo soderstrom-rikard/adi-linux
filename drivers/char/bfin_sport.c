@@ -598,7 +598,7 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 static void dump_dma_regs(void)
 {
 #ifdef DEBUG
-	struct dma_register_t *dma = (struct dma_register_t *)DMA4_NEXT_DESC_PTR;
+	struct dma_register *dma = (struct dma_register *)DMA4_NEXT_DESC_PTR;
 
 	pr_debug("%s config:0x%04x, x_count:0x%04x,"
 			" x_modify:0x%04x\n", __FUNCTION__, dma->cfg,
