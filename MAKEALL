@@ -67,6 +67,11 @@ check_kconfig() {
 
 make="make -s ARCH=blackfin CROSS_COMPILE=bfin-uclinux-"
 
+if [[ ! -e arch/blackfin/configs ]] ; then
+	echo "Not in a kernel directory!?"
+	exit 1
+fi
+
 ret=0
 [[ -z $* ]] && set -- $(cd arch/blackfin/configs ; echo *_defconfig | sed s:_defconfig::g)
 for b in "$@" ; do
