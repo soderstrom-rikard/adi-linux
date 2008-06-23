@@ -114,29 +114,9 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 	struct sport_device *sport = runtime->private_data;
 #if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
 	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct audio_frame)/4;
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		if (!sport->tx_dma_buf) {
-			sport->tx_dma_buf = dma_alloc_coherent(NULL, \
-				size, &sport->tx_dma_phy, GFP_KERNEL);
-			if (!sport->tx_dma_buf) {
-				printk(KERN_ERR "Failed to allocate memory for tx dma buf\n");
-				return -ENOMEM;
-			} else
-				memset(sport->tx_dma_buf, 0, size);
-		} else
-			memset(sport->tx_dma_buf, 0, size);
-	} else {
-		if (!sport->rx_dma_buf) {
-			sport->rx_dma_buf = dma_alloc_coherent(NULL, \
-				size, &sport->rx_dma_phy, GFP_KERNEL);
-			if (!sport->rx_dma_buf) {
-				printk(KERN_ERR "Failed to allocate memory for rx dma buf\n");
-				return -ENOMEM;
-			} else
-				memset(sport->rx_dma_buf, 0, size);
-		} else
-			memset(sport->rx_dma_buf, 0, size);
-	}
+	/*clean up local buffer*/
+	memset(sport->tx_dma_buf, 0, size);
+	memset(sport->rx_dma_buf, 0, size);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_tx_dma(sport, sport->tx_dma_buf, runtime->periods,
@@ -322,7 +302,32 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 		sport_handle->tx_buf = buf->area;
 	else
 		sport_handle->rx_buf = buf->area;
-
+/*Need to allocate local buffer when enable MMAP for AC97 or TDM*/
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		if (!sport_handle->tx_dma_buf) {
+			sport_handle->tx_dma_buf = dma_alloc_coherent(NULL, \
+				size, &sport_handle->tx_dma_phy, GFP_KERNEL);
+			if (!sport_handle->tx_dma_buf) {
+				printk(KERN_ERR "Failed to allocate memory for tx dma buf\n");
+				return -ENOMEM;
+			} else
+				memset(sport_handle->tx_dma_buf, 0, size);
+		} else
+			memset(sport_handle->tx_dma_buf, 0, size);
+	} else {
+		if (!sport_handle->rx_dma_buf) {
+			sport_handle->rx_dma_buf = dma_alloc_coherent(NULL, \
+				size, &sport_handle->rx_dma_phy, GFP_KERNEL);
+			if (!sport_handle->rx_dma_buf) {
+				printk(KERN_ERR "Failed to allocate memory for rx dma buf\n");
+				return -ENOMEM;
+			} else
+				memset(sport_handle->rx_dma_buf, 0, size);
+		} else
+			memset(sport_handle->rx_dma_buf, 0, size);
+	}
+#endif
 	return 0;
 }
 
@@ -333,6 +338,18 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 	int stream;
 #if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
 	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct audio_frame)/4;
+#endif
+	for (stream = 0; stream < 2; stream++) {
+		substream = pcm->streams[stream].substream;
+		if (!substream)
+			continue;
+
+		buf = &substream->dma_buffer;
+		if (!buf->area)
+			continue;
+		dma_free_coherent(NULL, buf->bytes, buf->area, 0);
+		buf->area = NULL;
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		if (sport_handle->tx_dma_buf)
 			dma_free_coherent(NULL, size, \
@@ -346,16 +363,6 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 		sport_handle->rx_dma_buf = NULL;
 	}
 #endif
-	for (stream = 0; stream < 2; stream++) {
-		substream = pcm->streams[stream].substream;
-		if (!substream)
-			continue;
-
-		buf = &substream->dma_buffer;
-		if (!buf->area)
-			continue;
-		dma_free_coherent(NULL, buf->bytes, buf->area, 0);
-		buf->area = NULL;
 	}
 	if (sport_handle)
 		sport_done(sport_handle);
