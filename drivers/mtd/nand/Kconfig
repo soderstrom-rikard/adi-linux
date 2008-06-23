@@ -38,11 +38,14 @@ config MTD_NAND_MUSEUM_IDS
 	  of these chips were reused by later, larger chips.
 
 config MTD_NAND_BFIN
-	tristate "NAND Flash device for BF537 STAMP board"
+	tristate "NAND Flash device for BF537 STAMP board (DEPRECATED)"
 	depends on BLACKFIN && MTD_NAND && MTD_PARTITIONS
 	help
 	  This enables the driver for the NAND flash ST-NAND123W3A 
 	  for Blackfin Processors
+
+	  This is deprecated.  Please use the generic platform NAND
+	  driver instead.
 
 config BFIN_NAND_BASE
 	hex "NAND Flash Base Address"
