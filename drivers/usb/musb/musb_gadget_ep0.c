@@ -194,9 +194,24 @@ service_in_request(struct musb *musb, const struct usb_ctrlrequest *ctrlrequest)
 /*
  * Context:  caller holds controller lock
  */
+static void musb_g_ep0_flushfifo(struct musb *musb)
+{
+	void __iomem *regs = musb->control_ep->regs;
+	u8 csr = musb_readw(regs, MUSB_CSR0);
+
+	csr |= MUSB_CSR0_FLUSHFIFO;
+	musb_writew(regs, MUSB_CSR0, csr);
+}
+
+/*
+ * Context:  caller holds controller lock
+ */
 static void musb_g_ep0_giveback(struct musb *musb, struct usb_request *req)
 {
 	musb_g_giveback(&musb->endpoints[0].ep_in, req, 0);
+	if (req->status == 0)
+		musb_g_ep0_flushfifo(musb);
+
 	musb->ep0_state = MUSB_EP0_STAGE_SETUP;
 }
 
