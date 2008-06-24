@@ -64,7 +64,7 @@ static struct irq_desc bad_irq_desc = {
 	.chip = &bad_chip,
 	.handle_irq = handle_bad_irq,
 	.depth = 1,
-	.lock = __SPIN_LOCK_UNLOCKED(irq_desc->lock);
+	.lock = __SPIN_LOCK_UNLOCKED(irq_desc->lock),
 #ifdef CONFIG_SMP
 	.affinity = CPU_MASK_ALL
 #endif
