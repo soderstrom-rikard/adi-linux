@@ -53,25 +53,6 @@
 #define printd(format, arg...)
 #endif
 
-static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
-
-static struct sport_param sport_params[2] = {
-	{
-		.dma_rx_chan	= CH_SPORT0_RX,
-		.dma_tx_chan	= CH_SPORT0_TX,
-		.err_irq	= IRQ_SPORT0_ERROR,
-		.regs		= (struct sport_register *)SPORT0_TCR1,
-	},
-	{
-		.dma_rx_chan	= CH_SPORT1_RX,
-		.dma_tx_chan	= CH_SPORT1_TX,
-		.err_irq	= IRQ_SPORT1_ERROR,
-		.regs		= (struct sport_register *)SPORT1_TCR1,
-	}
-};
-
-struct sport_device *sport_handle;
-
 static struct snd_soc_machine bf5xx_ssm2602;
 
 static int bf5xx_ssm2602_startup(struct snd_pcm_substream *substream)
@@ -168,20 +149,6 @@ static struct snd_soc_dai_link bf5xx_ssm2602_dai = {
 static int bf5xx_probe(struct platform_device *pdev)
 {
 
-	u16 sport_req[][7] = { {P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
-		 P_SPORT0_DRPRI, P_SPORT0_RSCLK, 0}, {P_SPORT1_DTPRI,
-		 P_SPORT1_TSCLK, P_SPORT1_RFS, P_SPORT1_DRPRI, P_SPORT1_RSCLK, 0} };
-	if (peripheral_request_list(&sport_req[sport_num][0], "soc-audio")) {
-		printk(KERN_ERR "Requesting Peripherals failed\n");
-		return -EFAULT;
-	}
-
-	sport_handle = sport_init(&sport_params[sport_num], 4, \
-			10 * sizeof(u16), NULL);
-	if (!sport_handle) {
-		peripheral_free_list(&sport_req[sport_num][0]);
-		return -ENODEV;
-	}
 	return 0;
 }
 

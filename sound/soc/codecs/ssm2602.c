@@ -475,14 +475,11 @@ static int ssm2602_dapm_event(struct snd_soc_codec *codec, int event)
 	return 0;
 }
 
-#define ssm2602_RATES (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_11025 |\
+#define SSM2602_RATES (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_11025 |\
 		SNDRV_PCM_RATE_16000 | SNDRV_PCM_RATE_22050 |\
 		SNDRV_PCM_RATE_32000 | SNDRV_PCM_RATE_44100 |\
 		SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_88200 |\
 		SNDRV_PCM_RATE_96000)
-
-#define ssm2602_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE |\
-	SNDRV_PCM_FMTBIT_S24_LE)
 
 struct snd_soc_codec_dai ssm2602_dai = {
 	.name = "SSM2602",
@@ -490,13 +487,13 @@ struct snd_soc_codec_dai ssm2602_dai = {
 		.stream_name = "Playback",
 		.channels_min = 2,
 		.channels_max = 2,
-		.rates = SNDRV_PCM_RATE_48000,
+		.rates = SSM2602_RATES,
 		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
 	.capture = {
 		.stream_name = "Capture",
 		.channels_min = 2,
 		.channels_max = 2,
-		.rates = SNDRV_PCM_RATE_48000,
+		.rates = SSM2602_RATES,
 		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
 	.ops = {
 		.prepare = ssm2602_pcm_prepare,
@@ -576,8 +573,8 @@ static int ssm2602_init(struct snd_soc_device *socdev)
 	ssm2602_write(codec, SSM2602_LOUT1V, reg | 0x0100);
 	reg = ssm2602_read_reg_cache(codec, SSM2602_ROUT1V);
 	ssm2602_write(codec, SSM2602_ROUT1V, reg | 0x0100);
-	ssm2602_write(codec, SSM2602_LINVOL, 0x0117);
-	ssm2602_write(codec, SSM2602_RINVOL, 0x0117);
+	ssm2602_write(codec, SSM2602_LINVOL, 0x013f);
+	ssm2602_write(codec, SSM2602_RINVOL, 0x013f);
 	/*select MIC as default input*/
 	ssm2602_write(codec, SSM2602_APANA, 0x0115);
 	ssm2602_write(codec, SSM2602_PWR, 0x0);

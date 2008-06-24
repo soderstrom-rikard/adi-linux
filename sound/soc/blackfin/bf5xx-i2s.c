@@ -48,6 +48,25 @@
 #define                    SLEN_R  0x1f       /* SPORT Word Length */
 #endif
 
+static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
+
+static struct sport_param sport_params[2] = {
+	{
+		.dma_rx_chan	= CH_SPORT0_RX,
+		.dma_tx_chan	= CH_SPORT0_TX,
+		.err_irq	= IRQ_SPORT0_ERROR,
+		.regs		= (struct sport_register *)SPORT0_TCR1,
+	},
+	{
+		.dma_rx_chan	= CH_SPORT1_RX,
+		.dma_tx_chan	= CH_SPORT1_TX,
+		.err_irq	= IRQ_SPORT1_ERROR,
+		.regs		= (struct sport_register *)SPORT1_TCR1,
+	}
+};
+
+struct sport_device *sport_handle;
+EXPORT_SYMBOL(sport_handle);
 /*
  * This is setup by the audio & dai ops and written to sport during prepare ()
  */
@@ -63,10 +82,6 @@ struct bf5xx_i2s_port {
 	unsigned int rclkdiv;
 	unsigned int rfsdiv;
 };
-
-#ifdef CONFIG_PM
-static struct bf5xx_i2s_port bf5xx_i2s[NUM_SPORT_I2S];
-#endif
 
 void bf5xx_pcm_to_frame(struct audio_frame *dst, const __u32 *src, \
 		size_t count)
@@ -88,9 +103,24 @@ EXPORT_SYMBOL(bf5xx_frame_to_pcm);
 
 static int bf5xx_i2s_probe(struct platform_device *pdev)
 {
-	/*We have to configure both RX and TX,
-	*TX and RX are not independent,currently,TX and RX are enabled at the same time
-	*DAI format:I2S,word length:32 bit,slave mode*/
+	u16 sport_req[][7] = { {P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
+		 P_SPORT0_DRPRI, P_SPORT0_RSCLK, 0}, {P_SPORT1_DTPRI,
+		 P_SPORT1_TSCLK, P_SPORT1_RFS, P_SPORT1_DRPRI, P_SPORT1_RSCLK, 0} };
+	if (peripheral_request_list(&sport_req[sport_num][0], "soc-audio")) {
+		printk(KERN_ERR "Requesting Peripherals failed\n");
+		return -EFAULT;
+	}
+
+	sport_handle = sport_init(&sport_params[sport_num], 4, \
+			10 * sizeof(u16), NULL);
+	if (!sport_handle) {
+		peripheral_free_list(&sport_req[sport_num][0]);
+		return -ENODEV;
+	}
+	/* We need to configure both RX and TX here,they are not totally independent.
+	*  Currently,TX and RX are enabled at the same time,even if only one side is running.
+	*  DAI format:I2S,word length:32 bit,slave mode
+	*/
 	sport_config_rx(sport_handle, RFSR | RCKFE, RSFSE|0x1f, 0, 0);
 	sport_config_tx(sport_handle, TFSR | TCKFE, TSFSE|0x1f, 0, 0);
 
@@ -123,21 +153,12 @@ static int bf5xx_i2s_resume(struct platform_device *pdev,
 	i2s_printd("%s : sport %d\n", __func__, cpu_dai->id);
 	if (!dai->active)
 		return 0;
-
-	if (dai->capture.active) {
-		sport_config_tx(sport, bf5xx_i2s[dai->id].rcr1,
-			bf5xx_i2s[dai->id].rcr2,
-			bf5xx_i2s[dai->id].rclkdiv,
-			bf5xx_i2s[dai->id].rfsdiv);
+	sport_config_rx(sport_handle, RFSR | RCKFE, RSFSE|0x1f, 0, 0);
+	sport_config_tx(sport_handle, TFSR | TCKFE, TSFSE|0x1f, 0, 0);
+	if (dai->capture.active)
 		sport_rx_start(sport);
-	}
-	if (dai->playback.active) {
-		sport_config_tx(sport, bf5xx_i2s[dai->id].tcr1,
-			bf5xx_i2s[dai->id].tcr2,
-			bf5xx_i2s[dai->id].tclkdiv,
-			bf5xx_i2s[dai->id].tfsdiv);
+	if (dai->playback.active)
 		sport_tx_start(sport);
-	}
 	return 0;
 }
 
@@ -151,7 +172,6 @@ static int bf5xx_i2s_resume(struct platform_device *pdev,
 		SNDRV_PCM_RATE_44100 | SNDRV_PCM_RATE_48000 | \
 		SNDRV_PCM_RATE_96000)
 
-#define BF5XX_I2S_FORMATS  SNDRV_PCM_FMTBIT_S32_LE
 struct snd_soc_cpu_dai bf5xx_i2s_dai = {
 	.name = "bf5xx-i2s-0",
 	.id = 0,
@@ -162,12 +182,12 @@ struct snd_soc_cpu_dai bf5xx_i2s_dai = {
 	.playback = {
 		.channels_min = 2,
 		.channels_max = 2,
-		.rates = SNDRV_PCM_RATE_48000,
+		.rates = BF5XX_I2S_RATES,
 		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
 	.capture = {
 		.channels_min = 2,
 		.channels_max = 2,
-		.rates = SNDRV_PCM_RATE_48000,
+		.rates = BF5XX_I2S_RATES,
 		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
 };
 EXPORT_SYMBOL_GPL(bf5xx_i2s_dai);

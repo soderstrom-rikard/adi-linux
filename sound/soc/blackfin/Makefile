@@ -12,10 +12,10 @@ snd-ad1981-objs := bf548-ezkit.o
 snd-ad1981-objs := bf5xx-board.o
 snd-soc-bf5xx-wm8750-objs := bf5xx-wm8750.o
 snd-soc-bf5xx-wm8731-objs := bf5xx-wm8731.o
-snd-soc-bf5xx-ssm2602-objs := bf5xx-ssm2602.o
+snd-ssm2602-objs := bf5xx-ssm2602.o
 
 obj-$(CONFIG_SND_BF5XX_SOC_BF548_EZKIT) += snd-ad1981.o
 obj-$(CONFIG_SND_BF5XX_SOC_BF5xx) += snd-ad1981.o
 obj-$(CONFIG_SND_BF5XX_SOC_WM8750) += snd-soc-bf5xx-wm8750.o
 obj-$(CONFIG_SND_BF5XX_SOC_WM8731) += snd-soc-bf5xx-wm8731.o
-obj-$(CONFIG_SND_BF5XX_SOC_SSM2602) += snd-soc-bf5xx-ssm2602.o
+obj-$(CONFIG_SND_BF5XX_SOC_SSM2602) += snd-ssm2602.o
