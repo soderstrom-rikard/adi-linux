@@ -640,7 +640,7 @@ static int bf5xx_nand_add_partition(struct bf5xx_nand_info *info)
 #endif
 }
 
-static int __devexit bf5xx_nand_remove(struct platform_device *pdev)
+static int bf5xx_nand_remove(struct platform_device *pdev)
 {
 	struct bf5xx_nand_info *info = to_nand_info(pdev);
 	struct mtd_info *mtd = NULL;
@@ -815,7 +815,7 @@ static int bf5xx_nand_resume(struct platform_device *dev)
 /* driver device registration */
 static struct platform_driver bf5xx_nand_driver = {
 	.probe		= bf5xx_nand_probe,
-	.remove		= __devexit_p(bf5xx_nand_remove),
+	.remove		= bf5xx_nand_remove,
 	.suspend	= bf5xx_nand_suspend,
 	.resume		= bf5xx_nand_resume,
 	.driver		= {
