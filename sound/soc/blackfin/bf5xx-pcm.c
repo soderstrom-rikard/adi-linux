@@ -31,7 +31,7 @@
 #endif
 #include "bf5xx-sport.h"
 
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
 static void bf5xx_mmap_copy(struct snd_pcm_substream *substream,
 	 snd_pcm_uframes_t count)
 {
@@ -58,7 +58,7 @@ static void bf5xx_mmap_copy(struct snd_pcm_substream *substream,
 static void bf5xx_dma_irq(void *data)
 {
 	struct snd_pcm_substream *pcm = data;
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
 	struct snd_pcm_runtime *runtime = pcm->runtime;
 	bf5xx_mmap_copy(pcm, runtime->period_size);
 #endif
@@ -112,7 +112,10 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct sport_device *sport = runtime->private_data;
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
+	/* An intermediate buffer is introduced for implementing mmap for
+	 * SPORT working in TMD mode(include AC97).
+	 */
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
 	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct audio_frame)/4;
 	/*clean up local buffer*/
 	memset(sport->tx_dma_buf, 0, size);
@@ -159,12 +162,12 @@ static int bf5xx_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
 			sport->tx_pos = 0;
 #endif
 			sport_tx_stop(sport);
 		} else {
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
 			sport->rx_pos = 0;
 #endif
 			sport_rx_stop(sport);
@@ -182,7 +185,7 @@ static snd_pcm_uframes_t bf5xx_pcm_pointer(struct snd_pcm_substream *substream)
 	struct sport_device *sport = runtime->private_data;
 	unsigned int curr;
 
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		curr = sport->tx_pos;
 	else
@@ -302,8 +305,8 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 		sport_handle->tx_buf = buf->area;
 	else
 		sport_handle->rx_buf = buf->area;
-/*Need to allocate local buffer when enable MMAP for AC97 or TDM*/
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
+/*Need to allocate local buffer when enable MMAP for SPORT working in TMD mode(include AC97).*/
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		if (!sport_handle->tx_dma_buf) {
 			sport_handle->tx_dma_buf = dma_alloc_coherent(NULL, \
@@ -336,7 +339,7 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 	struct snd_pcm_substream *substream;
 	struct snd_dma_buffer *buf;
 	int stream;
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
 	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct audio_frame)/4;
 #endif
 	for (stream = 0; stream < 2; stream++) {
@@ -349,7 +352,7 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 			continue;
 		dma_free_coherent(NULL, buf->bytes, buf->area, 0);
 		buf->area = NULL;
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !defined(CONFIG_SND_BF5XX_SOC_I2S)
+#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		if (sport_handle->tx_dma_buf)
 			dma_free_coherent(NULL, size, \
