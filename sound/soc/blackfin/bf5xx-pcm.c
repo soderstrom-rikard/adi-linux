@@ -295,7 +295,7 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 	buf->private_data = NULL;
 	buf->area = dma_alloc_coherent(pcm->card->dev, size, &buf->addr, GFP_KERNEL);
 	if (!buf->area) {
-		printk(KERN_ERR "Failed to allocate dma memory\n");
+		printk(KERN_ERR "Failed to allocate dma memory-Please increase uncached DMA memory region\n");
 		return -ENOMEM;
 	}
 	buf->bytes = size;
@@ -312,7 +312,7 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 			sport_handle->tx_dma_buf = dma_alloc_coherent(NULL, \
 				size, &sport_handle->tx_dma_phy, GFP_KERNEL);
 			if (!sport_handle->tx_dma_buf) {
-				printk(KERN_ERR "Failed to allocate memory for tx dma buf\n");
+				printk(KERN_ERR "Failed to allocate memory for tx dma buf-Please increase uncached DMA memory region\n");
 				return -ENOMEM;
 			} else
 				memset(sport_handle->tx_dma_buf, 0, size);
@@ -323,7 +323,7 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 			sport_handle->rx_dma_buf = dma_alloc_coherent(NULL, \
 				size, &sport_handle->rx_dma_phy, GFP_KERNEL);
 			if (!sport_handle->rx_dma_buf) {
-				printk(KERN_ERR "Failed to allocate memory for rx dma buf\n");
+				printk(KERN_ERR "Failed to allocate memory for rx dma buf-Please increase uncached DMA memory region\n");
 				return -ENOMEM;
 			} else
 				memset(sport_handle->rx_dma_buf, 0, size);
