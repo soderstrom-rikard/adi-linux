@@ -24,7 +24,7 @@
 #include <asm/dma.h>
 
 #include "bf5xx-pcm.h"
-#ifdef CONFIG_SND_BF5XX_SOC_AC97
+#if (defined(CONFIG_SND_BF5XX_SOC_AC97) || defined(CONFIG_SND_BF5XX_SOC_AC97_MODULE))
 #include "bf5xx-ac97.h"
 #else
 #include "bf5xx-i2s.h"
@@ -92,7 +92,7 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 static int bf5xx_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
 {
-#ifdef CONFIG_SND_BF5XX_SOC_AC97
+#if (defined(CONFIG_SND_BF5XX_SOC_AC97) || defined(CONFIG_SND_BF5XX_SOC_AC97_MODULE))
 	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct audio_frame)/4;
 #else
 	size_t size = bf5xx_pcm_hardware.buffer_bytes_max;
@@ -284,7 +284,7 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 {
 	struct snd_pcm_substream *substream = pcm->streams[stream].substream;
 	struct snd_dma_buffer *buf = &substream->dma_buffer;
-#ifdef CONFIG_SND_BF5XX_SOC_AC97
+#if (defined(CONFIG_SND_BF5XX_SOC_AC97) || defined(CONFIG_SND_BF5XX_SOC_AC97_MODULE))
 	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct audio_frame)/4;
 #else
 	size_t size = bf5xx_pcm_hardware.buffer_bytes_max;

@@ -613,6 +613,7 @@ void incfrag(struct sport_device *sport, int *frag, int tx)
 	if (tx == 0 && *frag == sport->rx_frags)
 		*frag = 0;
 }
+EXPORT_SYMBOL(incfrag);
 
 void decfrag(struct sport_device *sport, int *frag, int tx)
 {
@@ -623,6 +624,7 @@ void decfrag(struct sport_device *sport, int *frag, int tx)
 	if (tx == 0 && *frag == 0)
 		*frag = sport->rx_frags;
 }
+EXPORT_SYMBOL(decfrag);
 
 static int sport_check_status(struct sport_device *sport,
 		unsigned int *sport_stat,
@@ -997,3 +999,4 @@ __over:
 
 	return 0;
 }
+EXPORT_SYMBOL(sport_send_and_recv);

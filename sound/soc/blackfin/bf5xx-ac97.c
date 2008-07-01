@@ -190,7 +190,6 @@ void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
 				NULL, sizeof(struct audio_frame));
 	}
 }
-EXPORT_SYMBOL(bf5xx_ac97_write);
 
 static void bf5xx_ac97_warm_reset(struct snd_ac97 *ac97)
 {
