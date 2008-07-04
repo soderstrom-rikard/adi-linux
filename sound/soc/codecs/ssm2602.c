@@ -136,8 +136,9 @@ static int ssm2602_write(struct snd_soc_codec *codec, unsigned int reg,
 }
 
 #define ssm2602_reset(c)	ssm2602_write(c, SSM2602_RESET, 0)
-
-static const char *ssm2602_input_select[] = {"Line In", "Mic"};
+/*Appending several "None"s just for OSS mixer use*/
+static const char *ssm2602_input_select[] = {"Line", "Mic", "None", "None", "None",
+		"None", "None", "None"};
 static const char *ssm2602_deemph[] = {"None", "32Khz", "44.1Khz", "48Khz"};
 
 static const struct soc_enum ssm2602_enum[] = {
@@ -153,15 +154,17 @@ SOC_DOUBLE_R("Master Playback ZC Switch", SSM2602_LOUT1V, SSM2602_ROUT1V,
 	7, 1, 0),
 
 SOC_DOUBLE_R("Capture Volume", SSM2602_LINVOL, SSM2602_RINVOL, 0, 31, 0),
-SOC_DOUBLE_R("Line Capture Switch", SSM2602_LINVOL, SSM2602_RINVOL, 7, 1, 1),
+SOC_DOUBLE_R("Capture Switch", SSM2602_LINVOL, SSM2602_RINVOL, 7, 1, 1),
 
 SOC_SINGLE("Mic Boost (+20dB)", SSM2602_APANA, 0, 1, 0),
-SOC_SINGLE("Capture Mic Switch", SSM2602_APANA, 1, 1, 1),
+SOC_SINGLE("Mic Switch", SSM2602_APANA, 1, 1, 1),
 
 SOC_SINGLE("Sidetone Playback Volume", SSM2602_APANA, 6, 3, 1),
 
 SOC_SINGLE("ADC High Pass Filter Switch", SSM2602_APDIGI, 0, 1, 1),
 SOC_SINGLE("Store DC Offset Switch", SSM2602_APDIGI, 4, 1, 0),
+
+SOC_ENUM("Capture Source", ssm2602_enum[0]),
 
 SOC_ENUM("Playback De-emphasis", ssm2602_enum[1]),
 };
@@ -223,7 +226,7 @@ static const char *intercon[][3] = {
 	{"LOUT", NULL, "Output Mixer"},
 
 	/* input mux */
-	{"Input Mux", "Line In", "Line Input"},
+	{"Input Mux", "Line", "Line Input"},
 	{"Input Mux", "Mic", "Mic Bias"},
 	{"ADC", NULL, "Input Mux"},
 
@@ -344,7 +347,7 @@ static int ssm2602_pcm_prepare(struct snd_pcm_substream *substream)
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->codec;
 	/* set active */
-	ssm2602_write(codec, SSM2602_ACTIVE, 0x0001);
+	ssm2602_write(codec, SSM2602_ACTIVE, ACTIVATE_CODEC);
 
 	return 0;
 }
@@ -357,7 +360,7 @@ static void ssm2602_shutdown(struct snd_pcm_substream *substream)
 	/* deactivate */
 	if (!codec->active) {
 		udelay(50);
-		ssm2602_write(codec, SSM2602_ACTIVE, 0x0);
+		ssm2602_write(codec, SSM2602_ACTIVE, 0);
 	}
 }
 
@@ -366,7 +369,7 @@ static int ssm2602_mute(struct snd_soc_codec_dai *dai, int mute)
 	struct snd_soc_codec *codec = dai->codec;
 	u16 mute_reg = ssm2602_read_reg_cache(codec, SSM2602_APDIGI) & 0xfff7;
 	if (mute)
-		ssm2602_write(codec, SSM2602_APDIGI, mute_reg | 0x8);
+		ssm2602_write(codec, SSM2602_APDIGI, mute_reg | ENABLE_DAC_MUTE);
 	else
 		ssm2602_write(codec, SSM2602_APDIGI, mute_reg);
 	return 0;
@@ -463,11 +466,11 @@ static int ssm2602_dapm_event(struct snd_soc_codec *codec, int event)
 		break;
 	case SNDRV_CTL_POWER_D3hot: /* Off, with power */
 		/* everything off except vref/vmid, */
-		ssm2602_write(codec, SSM2602_PWR, reg | 0x0040);
+		ssm2602_write(codec, SSM2602_PWR, reg | CLK_OUT_PDN);
 		break;
 	case SNDRV_CTL_POWER_D3cold: /* Off, without power */
 		/* everything off, dac mute, inactive */
-		ssm2602_write(codec, SSM2602_ACTIVE, 0x0);
+		ssm2602_write(codec, SSM2602_ACTIVE, 0);
 		ssm2602_write(codec, SSM2602_PWR, 0xffff);
 		break;
 	}
@@ -513,7 +516,7 @@ static int ssm2602_suspend(struct platform_device *pdev, pm_message_t state)
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->codec;
 
-	ssm2602_write(codec, SSM2602_ACTIVE, 0x0);
+	ssm2602_write(codec, SSM2602_ACTIVE, 0);
 	ssm2602_dapm_event(codec, SNDRV_CTL_POWER_D3cold);
 	return 0;
 }
@@ -567,17 +570,19 @@ static int ssm2602_init(struct snd_soc_device *socdev)
 		goto pcm_err;
 	}
 	/*power on device*/
-	ssm2602_write(codec, SSM2602_ACTIVE, 0x0);
+	ssm2602_write(codec, SSM2602_ACTIVE, 0);
 	/* set the update bits */
+	reg = ssm2602_read_reg_cache(codec, SSM2602_LINVOL);
+	ssm2602_write(codec, SSM2602_LINVOL, reg | LRIN_BOTH);
+	reg = ssm2602_read_reg_cache(codec, SSM2602_RINVOL);
+	ssm2602_write(codec, SSM2602_RINVOL, reg | RLIN_BOTH);
 	reg = ssm2602_read_reg_cache(codec, SSM2602_LOUT1V);
-	ssm2602_write(codec, SSM2602_LOUT1V, reg | 0x0100);
+	ssm2602_write(codec, SSM2602_LOUT1V, reg | LRHP_BOTH);
 	reg = ssm2602_read_reg_cache(codec, SSM2602_ROUT1V);
-	ssm2602_write(codec, SSM2602_ROUT1V, reg | 0x0100);
-	ssm2602_write(codec, SSM2602_LINVOL, 0x013f);
-	ssm2602_write(codec, SSM2602_RINVOL, 0x013f);
-	/*select MIC as default input*/
-	ssm2602_write(codec, SSM2602_APANA, 0x0115);
-	ssm2602_write(codec, SSM2602_PWR, 0x0);
+	ssm2602_write(codec, SSM2602_ROUT1V, reg | RLHP_BOTH);
+	/*select Line in as default input*/
+	ssm2602_write(codec, SSM2602_APANA, ENABLE_MIC_BOOST2 | SELECT_DAC | ENABLE_MIC_BOOST);
+	ssm2602_write(codec, SSM2602_PWR, 0);
 
 	ssm2602_add_controls(codec);
 	ssm2602_add_widgets(codec);
