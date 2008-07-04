@@ -613,7 +613,7 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 	 * Is skb->data always 16-bit aligned?
 	 * Do we need to memcpy((char *)(tail->packet + 2), skb->data, len)?
 	 */
-	if ((((unsigned int)(skb->data)) & 0x02) == 2) {
+	if ((((unsigned int)(skb->data)) & 0x01) == 0) {
 		/* move skb->data to current_tx_ptr payload */
 		data = (unsigned int)(skb->data) - 2;
 		*((unsigned short *)data) = (unsigned short)(skb->len);
