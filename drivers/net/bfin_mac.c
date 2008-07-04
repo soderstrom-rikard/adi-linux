@@ -609,6 +609,21 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 
 	current_tx_ptr->skb = skb;
 
+#if ANOMALY_05000285
+	/* HW supports odd aligned data buffer */
+	if (((unsigned int)(skb->data)) & 0x01) {
+		unsigned short sysctl = bfin_read_EMAC_SYSCTL();
+		sysctl |= TXDWA;
+		bfin_write_EMAC_SYSCTL(sysctl);
+	}
+
+	/* move skb->data to current_tx_ptr payload */
+	data = (unsigned int)(skb->data) - 2;
+	*((unsigned short *)data) = (unsigned short)(skb->len);
+	current_tx_ptr->desc_a.start_addr = (unsigned long)data;
+	/* this is important! */
+	blackfin_dcache_flush_range(data, (data + (skb->len)) + 2);
+#else
 	/*
 	 * Is skb->data always 16-bit aligned?
 	 * Do we need to memcpy((char *)(tail->packet + 2), skb->data, len)?
@@ -620,7 +635,6 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 		current_tx_ptr->desc_a.start_addr = (unsigned long)data;
 		/* this is important! */
 		blackfin_dcache_flush_range(data, (data + (skb->len)) + 2);
-
 	} else {
 		*((unsigned short *)(current_tx_ptr->packet)) =
 		    (unsigned short)(skb->len);
@@ -636,6 +650,7 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 							   packet + skb->len) +
 					    2);
 	}
+#endif
 
 	/* enable this packet's dma */
 	current_tx_ptr->desc_a.config |= DMAEN;
