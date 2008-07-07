@@ -612,8 +612,13 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 	if (ANOMALY_05000285) {
 		/*
 		 * TXDWA feature is not avaible to older revision < 0.3 silicon
+		 * of BF537
+		 *
+		 * Only if data buffer is ODD WORD alignment, we do not
+		 * need to memcpy
 		 */
-		if ((((u32)(skb->data)) & 0x02) == 2) {
+		u32 data_align = (u32)(skb->data) & 0x3;
+		if (data_align == 0x2) {
 			/* move skb->data to current_tx_ptr payload */
 			data = (u16 *)(skb->data) - 1;
 			*data = (u16)(skb->len);
@@ -635,9 +640,11 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 		}
 	} else {
 		/*
-		 *  TXDWA feature is avaible to revision < 0.3 silicon
+		 * TXDWA feature is avaible to revision < 0.3 silicon of
+		 * BF537 and always avaible to BF52x
 		 */
-		if ((((u32)(skb->data)) & 0x02) == 0) {
+		u32 data_align = (u32)(skb->data) & 0x3;
+		if (data == 0x0) {
 			u16 sysctl = bfin_read_EMAC_SYSCTL();
 			sysctl |= TXDWA;
 			bfin_write_EMAC_SYSCTL(sysctl);
@@ -650,7 +657,7 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 			blackfin_dcache_flush_range(
 					(u32)data,
 					(u32)((u8 *)data + skb->len + 4));
-		} else {
+		} else if (data == 0x2) {
 			u16 sysctl = bfin_read_EMAC_SYSCTL();
 			sysctl &= ~TXDWA;
 			bfin_write_EMAC_SYSCTL(sysctl);
@@ -663,6 +670,21 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 			blackfin_dcache_flush_range(
 					(u32)data,
 					(u32)((u8 *)data + skb->len + 4));
+		} else {
+			u16 sysctl = bfin_read_EMAC_SYSCTL();
+			sysctl &= ~TXDWA;
+			bfin_write_EMAC_SYSCTL(sysctl);
+
+			*((u16 *)(current_tx_ptr->packet)) = (u16)(skb->len);
+			memcpy((u8 *)(current_tx_ptr->packet + 2), skb->data,
+				skb->len);
+			current_tx_ptr->desc_a.start_addr =
+				(u32)current_tx_ptr->packet;
+			if (current_tx_ptr->status.status_word != 0)
+				current_tx_ptr->status.status_word = 0;
+			blackfin_dcache_flush_range(
+				(u32)current_tx_ptr->packet,
+				(u32)(current_tx_ptr->packet + skb->len + 2));
 		}
 	}
 
