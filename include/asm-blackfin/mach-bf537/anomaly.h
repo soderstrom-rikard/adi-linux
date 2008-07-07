@@ -103,7 +103,7 @@
 /* System MMR Write Is Stalled Indefinitely When Killed in a Particular Stage */
 #define ANOMALY_05000283 (__SILICON_REVISION__ < 3)
 /* New Feature: EMAC TX DMA Word Alignment (Not Available On Older Silicon) */
-#define ANOMALY_05000285 (__SILICON_REVISION__ > 2)
+#define ANOMALY_05000285 (__SILICON_REVISION__ < 3)
 /* SPORTs may receive bad data if FIFOs fill up */
 #define ANOMALY_05000288 (__SILICON_REVISION__ < 3)
 /* Memory to memory DMA source/destination descriptors must be in same memory space */
