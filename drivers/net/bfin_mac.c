@@ -613,9 +613,9 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 		/*
 		 * TXDWA feature is not avaible to older revision < 0.3 silicon
 		 */
-		if ((((u32)(skb->data)) & 0x02) == 0) {
+		if ((((u32)(skb->data)) & 0x02) == 2) {
 			/* move skb->data to current_tx_ptr payload */
-			data = (u16 *)(skb->data) - 2;
+			data = (u16 *)(skb->data) - 1;
 			*data = (u16)(skb->len);
 			current_tx_ptr->desc_a.start_addr = (u32)data;
 			/* this is important! */
