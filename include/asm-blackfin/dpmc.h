@@ -37,28 +37,20 @@ struct bfin_dpmc_platform_data {
 	[P0 + (x - SRAM_BASE_ADDRESS)] = R0;\
 
 #define PM_SYS_PUSH(x) \
-#ifdef x \
 	R0 = [P0 + (x - PLL_CTL)];\
 	[--SP] =  R0;\
-#endif \
 
 #define PM_SYS_POP(x) \
-#ifdef x \
 	R0 = [SP++];\
 	[P0 + (x - PLL_CTL)] = R0;\
-#endif \
 
 #define PM_SYS_PUSH16(x) \
-#ifdef x \
 	R0 = w[P0 + (x - PLL_CTL)];\
 	[--SP] =  R0;\
-#endif \
 
 #define PM_SYS_POP16(x) \
-#ifdef x \
 	R0 = [SP++];\
 	w[P0 + (x - PLL_CTL)] = R0;\
-#endif \
 
 #endif
 #endif	/* __KERNEL__ */
