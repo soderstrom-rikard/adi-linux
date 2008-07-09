@@ -38,8 +38,9 @@
 #include <linux/io.h>
 #include <linux/irq.h>
 
-#include <asm/dpmc.h>
 #include <asm/gpio.h>
+#include <asm/dma.h>
+#include <asm/dpmc.h>
 
 #ifdef CONFIG_PM_WAKEUP_GPIO_POLAR_H
 #define WAKEUP_TYPE	PM_WAKE_HIGH
@@ -61,13 +62,14 @@
 #define WAKEUP_TYPE	PM_WAKE_BOTH_EDGES
 #endif
 
+
 void bfin_pm_suspend_standby_enter(void)
 {
+	unsigned long flags;
+
 #ifdef CONFIG_PM_WAKEUP_BY_GPIO
 	gpio_pm_wakeup_request(CONFIG_PM_WAKEUP_GPIO_NUMBER, WAKEUP_TYPE);
 #endif
-
-	u32 flags;
 
 	local_irq_save(flags);
 	bfin_pm_setup();
@@ -93,6 +95,155 @@ void bfin_pm_suspend_standby_enter(void)
 	local_irq_restore(flags);
 }
 
+int bf53x_suspend_l1_mem(unsigned char *memptr)
+{
+	dma_memcpy(memptr, (const void *) L1_CODE_START, L1_CODE_LENGTH);
+	dma_memcpy(memptr + L1_CODE_LENGTH, (const void *) L1_DATA_A_START,
+			L1_DATA_A_LENGTH);
+	dma_memcpy(memptr + L1_CODE_LENGTH + L1_DATA_A_LENGTH,
+			(const void *) L1_DATA_B_START, L1_DATA_B_LENGTH);
+	memcpy(memptr + L1_CODE_LENGTH + L1_DATA_A_LENGTH +
+			L1_DATA_B_LENGTH, (const void *) L1_SCRATCH_START,
+			L1_SCRATCH_LENGTH);
+
+	return 0;
+}
+
+int bf53x_resume_l1_mem(unsigned char *memptr)
+{
+	dma_memcpy((void *) L1_CODE_START, memptr, L1_CODE_LENGTH);
+	dma_memcpy((void *) L1_DATA_A_START, memptr + L1_CODE_LENGTH,
+			L1_DATA_A_LENGTH);
+	dma_memcpy((void *) L1_DATA_B_START, memptr + L1_CODE_LENGTH +
+			L1_DATA_A_LENGTH, L1_DATA_B_LENGTH);
+	memcpy((void *) L1_SCRATCH_START, memptr + L1_CODE_LENGTH +
+			L1_DATA_A_LENGTH + L1_DATA_B_LENGTH, L1_SCRATCH_LENGTH);
+
+	return 0;
+}
+
+#ifdef CONFIG_BFIN_WB
+static void flushinv_all_dcache(void)
+{
+	u32 way, bank, subbank, set;
+	u32 status, addr;
+	u32 dmem_ctl = bfin_read_DMEM_CONTROL();
+
+	for (bank = 0; bank < 2; ++bank) {
+		if (!(dmem_ctl & (1 << (DMC1_P - bank))))
+			continue;
+
+		for (way = 0; way < 2; ++way)
+			for (subbank = 0; subbank < 4; ++subbank)
+				for (set = 0; set < 64; ++set) {
+
+					bfin_write_DTEST_COMMAND(
+						way << 26 |
+						bank << 23 |
+						subbank << 16 |
+						set << 5
+					);
+					CSYNC();
+					status = bfin_read_DTEST_DATA0();
+
+					/* only worry about valid/dirty entries */
+					if ((status & 0x3) != 0x3)
+						continue;
+
+					/* construct the address using the tag */
+					addr = (status & 0xFFFFC800) | (subbank << 12) | (set << 5);
+
+					/* flush it */
+					__asm__ __volatile__("FLUSHINV[%0];" : : "a"(addr));
+				}
+	}
+}
+#endif
+
+static inline void dcache_disable(void)
+{
+#ifdef CONFIG_BFIN_DCACHE
+	unsigned long ctrl;
+
+#ifdef CONFIG_BFIN_WB
+	flushinv_all_dcache();
+#endif
+	SSYNC();
+	ctrl = bfin_read_DMEM_CONTROL();
+	ctrl &= ~ENDCPLB;
+	bfin_write_DMEM_CONTROL(ctrl);
+	SSYNC();
+#endif
+}
+
+static inline void dcache_enable(void)
+{
+#ifdef CONFIG_BFIN_DCACHE
+	unsigned long ctrl;
+	SSYNC();
+	ctrl = bfin_read_DMEM_CONTROL();
+	ctrl |= ENDCPLB;
+	bfin_write_DMEM_CONTROL(ctrl);
+	SSYNC();
+#endif
+}
+
+static inline void icache_disable(void)
+{
+#ifdef CONFIG_BFIN_ICACHE
+	unsigned long ctrl;
+	SSYNC();
+	ctrl = bfin_read_IMEM_CONTROL();
+	ctrl &= ~ENICPLB;
+	bfin_write_IMEM_CONTROL(ctrl);
+	SSYNC();
+#endif
+}
+
+static inline void icache_enable(void)
+{
+#ifdef CONFIG_BFIN_ICACHE
+	unsigned long ctrl;
+	SSYNC();
+	ctrl = bfin_read_IMEM_CONTROL();
+	ctrl |= ENICPLB;
+	bfin_write_IMEM_CONTROL(ctrl);
+	SSYNC();
+#endif
+}
+
+int bfin_pm_suspend_mem_enter(void)
+{
+	unsigned long flags;
+
+	unsigned char *memptr = kmalloc(L1_CODE_LENGTH + L1_DATA_A_LENGTH
+					 + L1_DATA_B_LENGTH + L1_SCRATCH_LENGTH,
+					  GFP_KERNEL);
+
+	if (memptr == NULL) {
+		panic("bf53x_suspend_l1_mem malloc failed");
+		return -ENOMEM;
+	}
+
+	local_irq_save(flags);
+
+	dcache_disable();
+	icache_disable();
+	bf53x_suspend_l1_mem(memptr);
+
+	do_hibernate();
+
+	bf53x_resume_l1_mem(memptr);
+
+	icache_enable();
+	dcache_enable();
+
+	local_irq_restore(flags);
+	kfree(memptr);
+
+	return 0;
+}
+
 /*
  *	bfin_pm_valid - Tell the PM core that we only support the standby sleep
  *			state
@@ -101,7 +252,7 @@ void bfin_pm_suspend_standby_enter(void)
  */
 static int bfin_pm_valid(suspend_state_t state)
 {
-	return (state == PM_SUSPEND_STANDBY);
+	return (state == PM_SUSPEND_STANDBY || state == PM_SUSPEND_MEM);
 }
 
 /*
@@ -115,10 +266,9 @@ static int bfin_pm_enter(suspend_state_t state)
 	case PM_SUSPEND_STANDBY:
 		bfin_pm_suspend_standby_enter();
 		break;
-
 	case PM_SUSPEND_MEM:
-		return -ENOTSUPP;
-
+		bfin_pm_suspend_mem_enter();
+		break;
 	default:
 		return -EINVAL;
 	}
