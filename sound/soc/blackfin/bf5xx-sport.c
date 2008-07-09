@@ -40,6 +40,8 @@
 /* delay between frame sync pulse and first data bit in multichannel mode */
 #define FRAME_DELAY (1<<12)
 
+struct sport_device *sport_handle;
+EXPORT_SYMBOL(sport_handle);
 /* note: multichannel is in units of 8 channels,
  * tdm_count is # channels NOT / 8 ! */
 int sport_set_multichannel(struct sport_device *sport,
@@ -805,6 +807,7 @@ EXPORT_SYMBOL(sport_set_err_callback);
 struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 		unsigned dummy_count, void *private_data)
 {
+	int ret;
 	struct sport_device *sport;
 	pr_debug("%s enter\n", __FUNCTION__);
 	BUG_ON(param == NULL);
@@ -870,8 +873,16 @@ struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 	}
 
 	memset(sport->dummy_buf, 0, dummy_count * 2);
-	sport_config_rx_dummy(sport);
-	sport_config_tx_dummy(sport);
+	ret = sport_config_rx_dummy(sport);
+	if (ret) {
+		printk(KERN_ERR "Failed to config rx dummy ring\n");
+		goto __error;
+	}
+	ret = sport_config_tx_dummy(sport);
+	if (ret) {
+		printk(KERN_ERR "Failed to config tx dummy ring\n");
+		goto __error;
+	}
 
 	return sport;
 __error:
@@ -1000,3 +1011,8 @@ __over:
 	return 0;
 }
 EXPORT_SYMBOL(sport_send_and_recv);
+
+MODULE_AUTHOR("Roy Huang");
+MODULE_DESCRIPTION("SPORT driver for ADI Blackfin");
+MODULE_LICENSE("GPL");
+

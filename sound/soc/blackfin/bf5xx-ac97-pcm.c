@@ -1,12 +1,31 @@
 /*
- * linux/sound/arm/bf5xx-pcm.c -- ALSA PCM interface for the Blackfin
+ * File:         sound/soc/blackfin/bf5xx-ac97-pcm.c
+ * Author:       Cliff Cai <Cliff.Cai@analog.com>
  *
- * Author:	Roy Huang <roy.huang@analog.com>
- * Copyright:	(C) 2007 Analog Device Inc.
+ * Created:      Tue June 06 2008
+ * Description:  Driver for SSM2602 sound chip built in ADSP-BF52xC
+ *
+ * Rev:          $Id: bf5xx-ac97-pcm.c 4104 2008-06-06 06:51:48Z cliff $
+ *
+ * Modified:
+ *               Copyright 2008 Analog Devices Inc.
+ *
+ * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see the file COPYING, or write
+ * to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include <linux/module.h>
@@ -23,30 +42,26 @@
 
 #include <asm/dma.h>
 
-#include "bf5xx-pcm.h"
-#if (defined(CONFIG_SND_BF5XX_SOC_AC97) || defined(CONFIG_SND_BF5XX_SOC_AC97_MODULE))
+#include "bf5xx-ac97-pcm.h"
 #include "bf5xx-ac97.h"
-#else
-#include "bf5xx-i2s.h"
-#endif
 #include "bf5xx-sport.h"
 
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
+#if defined(CONFIG_SND_MMAP_SUPPORT)
 static void bf5xx_mmap_copy(struct snd_pcm_substream *substream,
 	 snd_pcm_uframes_t count)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct sport_device *sport = runtime->private_data;
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		bf5xx_pcm_to_frame(
-				(struct audio_frame *)sport->tx_dma_buf + sport->tx_pos,
+		bf5xx_pcm_to_ac97(
+				(struct ac97_frame *)sport->tx_dma_buf + sport->tx_pos,
 				(__u32 *)runtime->dma_area + sport->tx_pos, count);
 		sport->tx_pos += runtime->period_size;
 		if (sport->tx_pos >= runtime->buffer_size)
 			sport->tx_pos %= runtime->buffer_size;
 	} else {
-		bf5xx_frame_to_pcm(
-				(struct audio_frame *)sport->rx_dma_buf + sport->rx_pos,
+		bf5xx_ac97_to_pcm(
+				(struct ac97_frame *)sport->rx_dma_buf + sport->rx_pos,
 				(__u32 *)runtime->dma_area + sport->rx_pos, count);
 		sport->rx_pos += runtime->period_size;
 		if (sport->rx_pos >= runtime->buffer_size)
@@ -58,7 +73,7 @@ static void bf5xx_mmap_copy(struct snd_pcm_substream *substream,
 static void bf5xx_dma_irq(void *data)
 {
 	struct snd_pcm_substream *pcm = data;
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
+#if defined(CONFIG_SND_MMAP_SUPPORT)
 	struct snd_pcm_runtime *runtime = pcm->runtime;
 	bf5xx_mmap_copy(pcm, runtime->period_size);
 #endif
@@ -67,7 +82,7 @@ static void bf5xx_dma_irq(void *data)
 
 /* The memory size for pure pcm data is 128*1024 = 0x20000 bytes.
  * The total rx/tx buffer is for ac97 frame to hold all pcm data
- * is  0x20000 * sizeof(struct audio_frame) / 4.
+ * is  0x20000 * sizeof(struct ac97_frame) / 4.
  */
 #ifdef CONFIG_SND_MMAP_SUPPORT
 static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
@@ -80,7 +95,7 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 	.info			= SNDRV_PCM_INFO_INTERLEAVED |
 				  SNDRV_PCM_INFO_BLOCK_TRANSFER,
 #endif
-	.formats		= SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S32_LE,
+	.formats		= SNDRV_PCM_FMTBIT_S16_LE,
 	.period_bytes_min	= 32,
 	.period_bytes_max	= 0x10000,
 	.periods_min		= 1,
@@ -92,11 +107,8 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 static int bf5xx_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
 {
-#if (defined(CONFIG_SND_BF5XX_SOC_AC97) || defined(CONFIG_SND_BF5XX_SOC_AC97_MODULE))
-	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct audio_frame)/4;
-#else
-	size_t size = bf5xx_pcm_hardware.buffer_bytes_max;
-#endif
+	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct ac97_frame)/4;
+
 	snd_pcm_lib_malloc_pages(substream, size);
 
 	return 0;
@@ -115,29 +127,29 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 	/* An intermediate buffer is introduced for implementing mmap for
 	 * SPORT working in TMD mode(include AC97).
 	 */
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
-	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct audio_frame)/4;
-	/*clean up local buffer*/
+#if defined(CONFIG_SND_MMAP_SUPPORT)
+	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct ac97_frame)/4;
+	/*clean up intermediate buffer*/
 	memset(sport->tx_dma_buf, 0, size);
 	memset(sport->rx_dma_buf, 0, size);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_tx_dma(sport, sport->tx_dma_buf, runtime->periods,
-				runtime->period_size * sizeof(struct audio_frame));
+				runtime->period_size * sizeof(struct ac97_frame));
 	} else {
 		sport_set_rx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_rx_dma(sport, sport->rx_dma_buf, runtime->periods,
-				runtime->period_size * sizeof(struct audio_frame));
+				runtime->period_size * sizeof(struct ac97_frame));
 	}
 #else
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_tx_dma(sport, runtime->dma_area, runtime->periods,
-				runtime->period_size * sizeof(struct audio_frame));
+				runtime->period_size * sizeof(struct ac97_frame));
 	} else {
 		sport_set_rx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_rx_dma(sport, runtime->dma_area, runtime->periods,
-				runtime->period_size * sizeof(struct audio_frame));
+				runtime->period_size * sizeof(struct ac97_frame));
 	}
 #endif
 	return 0;
@@ -162,12 +174,12 @@ static int bf5xx_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
+#if defined(CONFIG_SND_MMAP_SUPPORT)
 			sport->tx_pos = 0;
 #endif
 			sport_tx_stop(sport);
 		} else {
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
+#if defined(CONFIG_SND_MMAP_SUPPORT)
 			sport->rx_pos = 0;
 #endif
 			sport_rx_stop(sport);
@@ -185,7 +197,7 @@ static snd_pcm_uframes_t bf5xx_pcm_pointer(struct snd_pcm_substream *substream)
 	struct sport_device *sport = runtime->private_data;
 	unsigned int curr;
 
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
+#if defined(CONFIG_SND_MMAP_SUPPORT)
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		curr = sport->tx_pos;
 	else
@@ -193,9 +205,9 @@ static snd_pcm_uframes_t bf5xx_pcm_pointer(struct snd_pcm_substream *substream)
 #else
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		curr = sport_curr_offset_tx(sport) / sizeof(struct audio_frame);
+		curr = sport_curr_offset_tx(sport) / sizeof(struct ac97_frame);
 	else {
-		curr = sport_curr_offset_rx(sport) / sizeof(struct audio_frame);
+		curr = sport_curr_offset_rx(sport) / sizeof(struct ac97_frame);
 	pr_debug("%s pointer curr:0x%0x\n", substream->stream ? \
 			"Capture":"Playback", curr);
 	}
@@ -230,6 +242,8 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 
 static int bf5xx_pcm_close(struct snd_pcm_substream *substream)
 {
+	pr_debug("%s enter\n", __FUNCTION__);
+	/*Nothing need to be cleared here*/
 	return 0;
 }
 
@@ -253,12 +267,12 @@ static	int bf5xx_pcm_copy(struct snd_pcm_substream *substream, int channel,
 	pr_debug("%s copy pos:0x%lx count:0x%lx\n",
 			substream->stream?"Capture":"Playback", pos, count);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		bf5xx_pcm_to_frame(
-				(struct audio_frame *)runtime->dma_area + pos,
+		bf5xx_pcm_to_ac97(
+				(struct ac97_frame *)runtime->dma_area + pos,
 				buf, count);
 	else
-		bf5xx_frame_to_pcm(
-				(struct audio_frame *)runtime->dma_area + pos,
+		bf5xx_ac97_to_pcm(
+				(struct ac97_frame *)runtime->dma_area + pos,
 				buf, count);
 	return 0;
 }
@@ -284,11 +298,7 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 {
 	struct snd_pcm_substream *substream = pcm->streams[stream].substream;
 	struct snd_dma_buffer *buf = &substream->dma_buffer;
-#if (defined(CONFIG_SND_BF5XX_SOC_AC97) || defined(CONFIG_SND_BF5XX_SOC_AC97_MODULE))
-	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct audio_frame)/4;
-#else
-	size_t size = bf5xx_pcm_hardware.buffer_bytes_max;
-#endif
+	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct ac97_frame)/4;
 
 	buf->dev.type = SNDRV_DMA_TYPE_DEV;
 	buf->dev.dev = pcm->card->dev;
@@ -306,7 +316,7 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 	else
 		sport_handle->rx_buf = buf->area;
 /*Need to allocate local buffer when enable MMAP for SPORT working in TMD mode(include AC97).*/
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
+#if defined(CONFIG_SND_MMAP_SUPPORT)
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		if (!sport_handle->tx_dma_buf) {
 			sport_handle->tx_dma_buf = dma_alloc_coherent(NULL, \
@@ -339,8 +349,8 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 	struct snd_pcm_substream *substream;
 	struct snd_dma_buffer *buf;
 	int stream;
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
-	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct audio_frame)/4;
+#if defined(CONFIG_SND_MMAP_SUPPORT)
+	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct ac97_frame)/4;
 #endif
 	for (stream = 0; stream < 2; stream++) {
 		substream = pcm->streams[stream].substream;
@@ -352,7 +362,7 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 			continue;
 		dma_free_coherent(NULL, buf->bytes, buf->area, 0);
 		buf->area = NULL;
-#if defined(CONFIG_SND_MMAP_SUPPORT) && !(defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE))
+#if defined(CONFIG_SND_MMAP_SUPPORT)
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		if (sport_handle->tx_dma_buf)
 			dma_free_coherent(NULL, size, \
@@ -401,14 +411,14 @@ int bf5xx_pcm_new(struct snd_card *card, struct snd_soc_codec_dai *dai,
 	return ret;
 }
 
-struct snd_soc_platform bf5xx_soc_platform = {
+struct snd_soc_platform bf5xx_ac97_soc_platform = {
 	.name		= "bf5xx-audio",
 	.pcm_ops 	= &bf5xx_pcm_ops,
 	.pcm_new	= bf5xx_pcm_new,
 	.pcm_free	= bf5xx_pcm_free_dma_buffers,
 };
-EXPORT_SYMBOL_GPL(bf5xx_soc_platform);
+EXPORT_SYMBOL_GPL(bf5xx_ac97_soc_platform);
 
-MODULE_AUTHOR("Roy Huang");
-MODULE_DESCRIPTION("ADI Blackfin PCM DMA module");
+MODULE_AUTHOR("Cliff Cai");
+MODULE_DESCRIPTION("ADI Blackfin AC97 PCM DMA module");
 MODULE_LICENSE("GPL");

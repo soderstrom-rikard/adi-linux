@@ -1,5 +1,5 @@
 /*
- * linux/sound/arm/bf5xx-pcm.h -- ALSA PCM interface for the Blackfin
+ * linux/sound/arm/bf5xx-ac97-pcm.h -- ALSA PCM interface for the Blackfin
  *
  * Copyright 2007 Analog Device Inc.
  *
@@ -8,8 +8,8 @@
  * published by the Free Software Foundation.
  */
 
-#ifndef _BF5XX_PCM_H
-#define _BF5XX_PCM_H
+#ifndef _BF5XX_AC97_PCM_H
+#define _BF5XX_AC97_PCM_H
 
 struct bf5xx_pcm_dma_params {
 	char *name;			/* stream identifier */
@@ -24,6 +24,6 @@ struct bf5xx_gpio {
 };
 
 /* platform data */
-extern struct snd_soc_platform bf5xx_soc_platform;
+extern struct snd_soc_platform bf5xx_ac97_soc_platform;
 
 #endif

@@ -5,7 +5,7 @@
  * Created:      Tue June 06 2008
  * Description:  Driver for SSM2602 sound chip built in ADSP-BF52xC
  *
- * Rev:          $Id: ssm2602.c 4104 2008-06-06 06:51:48Z cliff $
+ * Rev:          $Id: bf5xx-ssm2602.c 4104 2008-06-06 06:51:48Z cliff $
  *
  * Modified:
  *               Copyright 2008 Analog Devices Inc.
@@ -44,14 +44,8 @@
 #include <asm/portmux.h>
 #include "../codecs/ssm2602.h"
 #include "bf5xx-sport.h"
-#include "bf5xx-pcm.h"
+#include "bf5xx-i2s-pcm.h"
 #include "bf5xx-i2s.h"
-
-#ifdef BF53X_SSM2602_DEBUG
-#define printd(format, arg...) printk(KERN_INFO"bfin-SSM2602: " format, ## arg)
-#else
-#define printd(format, arg...)
-#endif
 
 static struct snd_soc_machine bf5xx_ssm2602;
 
@@ -60,7 +54,7 @@ static int bf5xx_ssm2602_startup(struct snd_pcm_substream *substream)
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
 
-	printd("%s\n", __func__);
+	pr_debug("%s enter\n", __FUNCTION__);
 	cpu_dai->private_data = sport_handle;
 	return 0;
 }
@@ -73,7 +67,7 @@ static int bf5xx_ssm2602_hw_params(struct snd_pcm_substream *substream,
 	unsigned int clk = 0;
 	int ret = 0;
 
-	printd("%s rate %d format %x\n", __func__, params_rate(params),
+	pr_debug("%s rate %d format %x\n", __FUNCTION__, params_rate(params),
 		params_format(params));
 	/*
 	 * WARNING - TODO
@@ -125,13 +119,7 @@ static struct snd_soc_ops bf5xx_ssm2602_ops = {
 
 static int bf5xx_ssm2602_init_dev(struct snd_soc_codec *codec)
 {
-	/*
-	 * NC codec pins -
-	 * Add any NC codec pins as follows :-
-	 *
-	 * snd_soc_dapm_set_endpoint(codec, "RINPUT1", 0);
-	 */
-	printd("%s\n", __func__);
+	pr_debug("%s enter\n", __FUNCTION__);
 
 	snd_soc_dapm_sync_endpoints(codec);
 	return 0;
@@ -146,12 +134,6 @@ static struct snd_soc_dai_link bf5xx_ssm2602_dai = {
 	.ops = &bf5xx_ssm2602_ops,
 };
 
-static int bf5xx_probe(struct platform_device *pdev)
-{
-
-	return 0;
-}
-
 /*
  * SSM2602 2 wire address is determined by CSB
  * state during powerup.
@@ -165,14 +147,13 @@ static struct ssm2602_setup_data bf5xx_ssm2602_setup = {
 
 static struct snd_soc_machine bf5xx_ssm2602 = {
 	.name = "bf5xx_ssm2602",
-	.probe = bf5xx_probe,
 	.dai_link = &bf5xx_ssm2602_dai,
 	.num_links = 1,
 };
 
 static struct snd_soc_device bf5xx_ssm2602_snd_devdata = {
 	.machine = &bf5xx_ssm2602,
-	.platform = &bf5xx_soc_platform,
+	.platform = &bf5xx_i2s_soc_platform,
 	.codec_dev = &soc_codec_dev_ssm2602,
 	.codec_data = &bf5xx_ssm2602_setup,
 };
@@ -183,7 +164,7 @@ static int __init bf5xx_ssm2602_init(void)
 {
 	int ret;
 
-	printd("%s\n", __func__);
+	pr_debug("%s enter\n", __FUNCTION__);
 	bf52x_ssm2602_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!bf52x_ssm2602_snd_device)
 		return -ENOMEM;
@@ -200,7 +181,7 @@ static int __init bf5xx_ssm2602_init(void)
 
 static void __exit bf5xx_ssm2602_exit(void)
 {
-	printd("%s\n", __func__);
+	pr_debug("%s enter\n", __FUNCTION__);
 	platform_device_unregister(bf52x_ssm2602_snd_device);
 }
 
@@ -209,6 +190,6 @@ module_exit(bf5xx_ssm2602_exit);
 
 /* Module information */
 MODULE_AUTHOR("Cliff Cai");
-MODULE_DESCRIPTION("ALSA SoC BF527-EZKIT");
+MODULE_DESCRIPTION("ALSA SoC SSM2602 BF527-EZKIT");
 MODULE_LICENSE("GPL");
 

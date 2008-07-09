@@ -99,10 +99,7 @@ static struct sport_param sport_params[2] = {
 };
 #endif
 
-struct sport_device *sport_handle;
-EXPORT_SYMBOL(sport_handle);
-
-void bf5xx_pcm_to_frame(struct audio_frame *dst, const __u32 *src, \
+void bf5xx_pcm_to_ac97(struct ac97_frame *dst, const __u32 *src, \
 		size_t count)
 {
 	while (count--) {
@@ -110,16 +107,16 @@ void bf5xx_pcm_to_frame(struct audio_frame *dst, const __u32 *src, \
 		(dst++)->ac97_pcm = *src++;
 	}
 }
-EXPORT_SYMBOL(bf5xx_pcm_to_frame);
+EXPORT_SYMBOL(bf5xx_pcm_to_ac97);
 
-void bf5xx_frame_to_pcm(const struct audio_frame *src, __u32 *dst, \
+void bf5xx_ac97_to_pcm(const struct ac97_frame *src, __u32 *dst, \
 		size_t count)
 {
 	while (count--) {
 		*(dst++) = (src++)->ac97_pcm;
 	}
 }
-EXPORT_SYMBOL(bf5xx_frame_to_pcm);
+EXPORT_SYMBOL(bf5xx_ac97_to_pcm);
 
 static unsigned int sport_tx_curr_frag(struct sport_device *sport)
 {
@@ -131,12 +128,12 @@ static void enqueue_cmd(struct snd_ac97 *ac97, __u16 addr, __u16 data)
 {
 	struct sport_device *sport = sport_handle;
 	int nextfrag = sport_tx_curr_frag(sport);
-	struct audio_frame *nextwrite;
+	struct ac97_frame *nextwrite;
 
 	incfrag(sport, &nextfrag, 1);
 	incfrag(sport, &nextfrag, 1);
 
-	nextwrite = (struct audio_frame *)(sport->tx_buf + \
+	nextwrite = (struct ac97_frame *)(sport->tx_buf + \
 			nextfrag * sport->tx_fragsize);
 	pr_debug("sport->tx_buf:%p, nextfrag:0x%x nextwrite:%p, cmd_count:%d\n",
 			sport->tx_buf, nextfrag, nextwrite, cmd_count[nextfrag]);
@@ -151,7 +148,7 @@ static void enqueue_cmd(struct snd_ac97 *ac97, __u16 addr, __u16 data)
 static unsigned short bf5xx_ac97_read(struct snd_ac97 *ac97,
 	unsigned short reg)
 {
-	struct audio_frame out_frame[2], in_frame[2];
+	struct ac97_frame out_frame[2], in_frame[2];
 
 	pr_debug("%s enter 0x%x\n", __FUNCTION__, reg);
 
@@ -162,13 +159,13 @@ static unsigned short bf5xx_ac97_read(struct snd_ac97 *ac97,
 		return -EFAULT;
 	}
 
-	memset(&out_frame, 0, 2 * sizeof(struct audio_frame));
-	memset(&in_frame, 0, 2 * sizeof(struct audio_frame));
+	memset(&out_frame, 0, 2 * sizeof(struct ac97_frame));
+	memset(&in_frame, 0, 2 * sizeof(struct ac97_frame));
 	out_frame[0].ac97_tag = TAG_VALID | TAG_CMD;
 	out_frame[0].ac97_addr = ((reg << 8) | 0x8000);
 	sport_send_and_recv(sport_handle, (unsigned char *)&out_frame,
 			(unsigned char *)&in_frame,
-			2 * sizeof(struct audio_frame));
+			2 * sizeof(struct ac97_frame));
 	return in_frame[1].ac97_data;
 }
 
@@ -181,13 +178,13 @@ void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
 		enqueue_cmd(ac97, (reg << 8), val); /* write */
 		enqueue_cmd(ac97, (reg << 8) | 0x8000, 0); /* read back */
 	} else {
-		struct audio_frame frame;
-		memset(&frame, 0, sizeof(struct audio_frame));
+		struct ac97_frame frame;
+		memset(&frame, 0, sizeof(struct ac97_frame));
 		frame.ac97_tag = TAG_VALID | TAG_CMD;
 		frame.ac97_addr = (reg << 8);
 		frame.ac97_data = val;
 		sport_send_and_recv(sport_handle, (unsigned char *)&frame, \
-				NULL, sizeof(struct audio_frame));
+				NULL, sizeof(struct ac97_frame));
 	}
 }
 
@@ -244,12 +241,52 @@ EXPORT_SYMBOL_GPL(soc_ac97_ops);
 static int bf5xx_ac97_suspend(struct platform_device *pdev,
 	struct snd_soc_cpu_dai *dai)
 {
+	struct sport_device *sport =
+		(struct sport_device *)dai->private_data;
+
+	pr_debug("%s : sport %d\n", __FUNCTION__, dai->id);
+	if (!dai->active)
+		return 0;
+	if (dai->capture.active)
+		sport_rx_stop(sport);
+	if (dai->playback.active)
+		sport_tx_stop(sport);
 	return 0;
 }
 
 static int bf5xx_ac97_resume(struct platform_device *pdev,
 	struct snd_soc_cpu_dai *dai)
 {
+	int ret;
+	struct sport_device *sport =
+		(struct sport_device *)dai->private_data;
+
+	pr_debug("%s : sport %d\n", __FUNCTION__, dai->id);
+	if (!dai->active)
+		return 0;
+	ret = sport_set_multichannel(sport_handle, 16, 0x1F, 1);
+
+	if (ret) {
+		printk(KERN_ERR "SPORT is busy!\n");
+		return -EBUSY;
+	}
+	ret = sport_config_rx(sport_handle, IRFS, 0xF, 0, (16*16-1));
+
+	if (ret) {
+		printk(KERN_ERR "SPORT is busy!\n");
+		return -EBUSY;
+	}
+	ret = sport_config_tx(sport_handle, ITFS, 0xF, 0, (16*16-1));
+
+	if (ret) {
+		printk(KERN_ERR "SPORT is busy!\n");
+		return -EBUSY;
+	}
+
+	if (dai->capture.active)
+		sport_rx_start(sport);
+	if (dai->playback.active)
+		sport_tx_start(sport);
 	return 0;
 }
 
@@ -264,15 +301,15 @@ static struct proc_dir_entry *ac_entry;
 static int proc_write(struct file *file, const char __user *buffer,
 		unsigned long count, void *data)
 {
-	struct audio_frame out_frame[2], in_frame[2];
+	struct ac97_frame out_frame[2], in_frame[2];
 	unsigned long reg = simple_strtoul(buffer, NULL, 16);
 
-	memset(&out_frame, 0, 2 * sizeof(struct audio_frame));
+	memset(&out_frame, 0, 2 * sizeof(struct ac97_frame));
 	out_frame[0].ac97_tag = TAG_VALID | TAG_CMD;
 	out_frame[0].ac97_addr = (unsigned short) ((reg << 8) | 0x8000);
 	sport_send_and_recv(sport_handle, (unsigned char *)&out_frame,
 				(unsigned char *)&in_frame,
-				2 * sizeof(struct audio_frame));
+				2 * sizeof(struct ac97_frame));
 	printk(KERN_INFO"0x%x:%04x\n", out_frame[0].ac97_addr, \
 			in_frame[1].ac97_data);
 
@@ -281,6 +318,7 @@ static int proc_write(struct file *file, const char __user *buffer,
 
 static int bf5xx_ac97_probe(struct platform_device *pdev)
 {
+	int ret;
 #if defined(CONFIG_BF54x)
 	u16 sport_req[][7] = {PIN_REQ_SPORT_0, PIN_REQ_SPORT_1,
 				 PIN_REQ_SPORT_2, PIN_REQ_SPORT_3};
@@ -307,7 +345,7 @@ static int bf5xx_ac97_probe(struct platform_device *pdev)
 	gpio_direction_output(CONFIG_SND_BF5XX_RESET_GPIO_NUM, 1);
 #endif
 	sport_handle = sport_init(&sport_params[sport_num], 2, \
-			sizeof(struct audio_frame), NULL);
+			sizeof(struct ac97_frame), NULL);
 	if (!sport_handle) {
 		peripheral_free_list(&sport_req[sport_num][0]);
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
@@ -315,11 +353,25 @@ static int bf5xx_ac97_probe(struct platform_device *pdev)
 #endif
 		return -ENODEV;
 	}
+	/*SPORT works in TDM mode to simulate AC97 transfers*/
+	ret = sport_set_multichannel(sport_handle, 16, 0x1F, 1);
 
-	sport_set_multichannel(sport_handle, 16, 0x1F, 1);
-	sport_config_rx(sport_handle, IRFS, 0xF, 0, (16*16-1));
-	sport_config_tx(sport_handle, ITFS, 0xF, 0, (16*16-1));
+	if (ret) {
+		printk(KERN_ERR "SPORT is busy!\n");
+		return -EBUSY;
+	}
+	ret = sport_config_rx(sport_handle, IRFS, 0xF, 0, (16*16-1));
 
+	if (ret) {
+		printk(KERN_ERR "SPORT is busy!\n");
+		return -EBUSY;
+	}
+	ret = sport_config_tx(sport_handle, ITFS, 0xF, 0, (16*16-1));
+
+	if (ret) {
+		printk(KERN_ERR "SPORT is busy!\n");
+		return -EBUSY;
+	}
 	ac_entry = create_proc_entry("driver/sport_ac97", 0600, NULL);
 	ac_entry->read_proc = NULL;
 	ac_entry->write_proc = proc_write;
