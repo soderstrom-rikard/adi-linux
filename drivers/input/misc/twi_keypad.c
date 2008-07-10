@@ -222,12 +222,41 @@ static int __exit pcf8574_kp_remove(struct i2c_client *client)
 	return 0;
 }
 
+static int pcf8574_kp_resume(struct i2c_client *client, pm_message_t mesg)
+{
+	struct twikeypad *lp = i2c_get_clientdata(client);
+	int rc;
+
+	if (client->irq > 0) {
+		rc = request_irq(client->irq, twi_keypad_irq_handler,
+			IRQF_TRIGGER_LOW, PCF8574_KP_DRV_NAME, lp);
+		if (rc) {
+			dev_err(&client->dev, "twikeypad: IRQ %d is not free.\n",
+				client->irq);
+			return -ENODEV;
+		}
+	}
+	return 0;
+}
+
+static int pcf8574_kp_suspend(struct i2c_client *client)
+{
+	struct twikeypad *lp = i2c_get_clientdata(client);
+
+	if (client->irq > 0)
+		free_irq(client->irq, lp);
+
+	return 0;
+}
+
 static struct i2c_driver pcf8574_kp_driver = {
 	.driver = {
 		.name = PCF8574_KP_DRV_NAME,
 	},
 	.probe = pcf8574_kp_probe,
 	.remove = __exit_p(pcf8574_kp_remove),
+	.suspend	= pcf8574_kp_suspend,
+	.resume		= pcf8574_kp_resume,
 };
 
 static int __init twi_keypad_init(void)
