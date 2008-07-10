@@ -69,7 +69,9 @@ ENTRY(_hibernate_mode)
 	R1 = W[P0](z);
 	BITSET (R1, 8);	/* WAKE */
 	BITSET (R1, 15); /* SCKELOW */
-//	BITSET (R1, 10); /* PHYWE */
+#if 0
+	BITSET (R1, 10); /* PHYWE */
+#endif
 	BITCLR (R1, 0);
 	BITCLR (R1, 1);
 	W[P0] = R1.L;
@@ -342,6 +344,7 @@ ENTRY(_test_pll_locked)
 
 .section .text
 
+
 ENTRY(_do_hibernate)
 	[--SP] = ( R7:0, P5:0 );
 	[--SP] =  RETS;
@@ -369,7 +372,9 @@ ENTRY(_do_hibernate)
 	PM_SYS_PUSH(SIC_IAR0)
 	PM_SYS_PUSH(SIC_IAR1)
 	PM_SYS_PUSH(SIC_IAR2)
+#ifdef SIC_IAR3
 	PM_SYS_PUSH(SIC_IAR3)
+#endif
 #ifdef SIC_IAR4
 	PM_SYS_PUSH(SIC_IAR4)
 	PM_SYS_PUSH(SIC_IAR5)
@@ -910,7 +915,9 @@ pm_resume_here:
 	PM_SYS_POP(SIC_IAR5)
 	PM_SYS_POP(SIC_IAR4)
 #endif
+#ifdef SIC_IAR3
 	PM_SYS_POP(SIC_IAR3)
+#endif
 	PM_SYS_POP(SIC_IAR2)
 	PM_SYS_POP(SIC_IAR1)
 	PM_SYS_POP(SIC_IAR0)
