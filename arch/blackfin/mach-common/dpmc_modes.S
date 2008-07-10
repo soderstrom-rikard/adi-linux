@@ -60,20 +60,19 @@ ENTRY(_hibernate_mode)
 	R2 = IWR_DISABLE_ALL;
 	call _set_sic_iwr;
 	call _set_dram_srfs;
-
+	SSYNC;
 	R0 = 0xFFFF (Z);
 	call _set_rtc_istat;
 
 	P0.H = hi(VR_CTL);
 	P0.L = lo(VR_CTL);
 	R1 = W[P0](z);
-	/* BITSET (R1, 8); */
-	BITSET (R1, 15);
+	BITSET (R1, 8);	/* WAKE */
+	BITSET (R1, 15); /* SCKELOW */
+//	BITSET (R1, 10); /* PHYWE */
 	BITCLR (R1, 0);
 	BITCLR (R1, 1);
 	W[P0] = R1.L;
-	SSYNC;
-
 	CLI R2;
 	IDLE;
 	IDLE;
@@ -349,7 +348,24 @@ ENTRY(_do_hibernate)
 	/* Save System MMRs */
 	P0.H = hi(PLL_CTL);
 	P0.L = lo(PLL_CTL);
+#ifdef SICA_IMASK1
+	PM_SYS_PUSH(SICA_IMASK1)
+#endif
+#ifdef SIC_IMASK1
+	PM_SYS_PUSH(SIC_IMASK1)
+#endif
+#ifdef SIC_IMASK2
+	PM_SYS_PUSH(SIC_IMASK2)
+#endif
+#ifdef SIC_IMASK
 	PM_SYS_PUSH(SIC_IMASK)
+#endif
+#ifdef SICA_IMASK0
+	PM_SYS_PUSH(SICA_IMASK0)
+#endif
+#ifdef SICA_IMASK1
+	PM_SYS_PUSH(SICA_IMASK1)
+#endif
 	PM_SYS_PUSH(SIC_IAR0)
 	PM_SYS_PUSH(SIC_IAR1)
 	PM_SYS_PUSH(SIC_IAR2)
@@ -898,7 +914,24 @@ pm_resume_here:
 	PM_SYS_POP(SIC_IAR2)
 	PM_SYS_POP(SIC_IAR1)
 	PM_SYS_POP(SIC_IAR0)
+#ifdef SICA_IMASK1
+	PM_SYS_POP(SICA_IMASK1)
+#endif
+#ifdef SICA_IMASK0
+	PM_SYS_POP(SICA_IMASK0)
+#endif
+#ifdef SIC_IMASK
 	PM_SYS_POP(SIC_IMASK)
+#endif
+#ifdef SIC_IMASK2
+	PM_SYS_POP(SIC_IMASK2)
+#endif
+#ifdef SIC_IMASK1
+	PM_SYS_POP(SIC_IMASK1)
+#endif
+#ifdef SIC_IMASK0
+	PM_SYS_POP(SIC_IMASK0)
+#endif
 
 	RETS = [SP++];
 	( R7:0, P5:0 ) = [SP++];
