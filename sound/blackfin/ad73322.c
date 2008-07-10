@@ -1035,7 +1035,9 @@ static int __devexit snd_ad73322_remove(struct platform_device *pdev)
 	dma_free_coherent(NULL, AD73322_BUF_SZ, ad73322->rx_dma_buf, 0);
 	snd_ad73322_stop(ad73322->card_index);
 	bf53x_sport_done(ad73322->sport);
-	gpio_free(GPIO_RESET);
+	/*only release it once*/
+	if (pdev->id == 0)
+		gpio_free(GPIO_RESET);
 	if (ad73322->card_index == 0)
 		gpio_free(GPIO_SPORT0_SE);
 	else
