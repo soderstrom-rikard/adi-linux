@@ -734,7 +734,7 @@ static void snd_ad73322_reset(void)
 	
 	/* Pull down GPIO_RESET pin on AD73322 */
 	gpio_direction_output(GPIO_RESET, 0);
-	udelay(8);
+	udelay(200);
 	gpio_direction_output(GPIO_RESET, 1);
 	
 }
@@ -979,6 +979,7 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 	}
 	bf53x_sport_config_rx(sport, RFSR, 0xF, 0, 0); 
 	bf53x_sport_config_tx(sport, TFSR, 0xF, 0, 0);
+	bf53x_sport_set_multichannel(sport, 1, 1);
 	bf53x_sport_config_rx_dma(sport, ad73322->rx_dma_buf,
 			DMA_PERIODS, DMA_PERIOD_BYTES, 2);
 	bf53x_sport_config_tx_dma(sport, ad73322->tx_dma_buf,
