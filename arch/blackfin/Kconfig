@@ -876,7 +876,7 @@ menu "Power management options"
 source "kernel/power/Kconfig"
 
 choice
-	prompt "Default Power Saving Mode"
+	prompt "Default Standby Power Saving Mode"
 	depends on PM
 	default PM_BFIN_SLEEP_DEEPER
 config  PM_BFIN_SLEEP_DEEPER
@@ -907,7 +907,7 @@ config  PM_BFIN_SLEEP
 endchoice
 
 config PM_WAKEUP_BY_GPIO
-	bool "Cause Wakeup Event by GPIO"
+	bool "Cause Wakeup form Standby by GPIO"
 
 config PM_WAKEUP_GPIO_NUMBER
 	int "Wakeup GPIO number"
@@ -931,6 +931,58 @@ config  PM_WAKEUP_GPIO_POLAR_EDGE_B
 	bool "Both EDGE"
 endchoice
 
+menu "Suspend Mem / Hibernate Wake-Up Selection"
+
+config PM_BFIN_WAKE_RTC
+	bool "RESET and RTC Wake-Up Enable"
+	depends on PM 
+	default n
+	help
+	  Enable RTC Wake-Up (Voltage Regulator Power-Up)
+
+config PM_BFIN_WAKE_PH6
+	bool "PHY or PH6 GP Wake-Up Enable"
+	depends on PM && (BF52x || BF534 || BF536 || BF537)
+	default n
+	help
+	  Enable PHY and PH6 GP Wake-Up (Voltage Regulator Power-Up)
+
+config PM_BFIN_WAKE_CAN
+	bool "CAN0/1 Wake-Up Enable"     
+	depends on PM && (BF54x || BF534 || BF536 || BF537)
+	default n
+	help
+	  Enable CAN0/1 Wake-Up (Voltage Regulator Power-Up)
+
+config PM_BFIN_WAKE_GP
+	bool "General-Purpose Wake-Up Enable"
+	depends on PM && BF54x
+	default n
+	help
+	  Enable General-Purpose Wake-Up (Voltage Regulator Power-Up)
+
+config PM_BFIN_WAKE_USB
+	bool "USB Wake-Up Enable"
+	depends on PM && (BF54x || BF52x)
+	default n
+	help
+	  Enable USB Wake-Up (Voltage Regulator Power-Up)
+
+config PM_BFIN_WAKE_KEYPAD
+	bool "Keypad Wake-Up Enable"   
+	depends on PM && BF54x
+	default n
+	help
+	  Enable Keypad Wake-Up (Voltage Regulator Power-Up)
+
+config PM_BFIN_WAKE_ROTARY
+	bool "Rotary Wake-Up Enable"
+	depends on PM && BF54x
+	default n
+	help
+	  Enable Rotary Wake-Up (Voltage Regulator Power-Up)
+
+endmenu 
 endmenu
 
 menu "CPU Frequency scaling"

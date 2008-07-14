@@ -215,6 +215,29 @@ static inline void icache_enable(void)
 int bfin_pm_suspend_mem_enter(void)
 {
 	unsigned long flags;
+	unsigned short wakeup = SCKELOW;
+
+#ifdef CONFIG_PM_BFIN_WAKE_RTC
+	wakeup |= WAKE;
+#endif
+#ifdef CONFIG_PM_BFIN_WAKE_PH6
+	wakeup |= PHYWE;
+#endif
+#ifdef CONFIG_PM_BFIN_WAKE_CAN
+	wakeup |= CANWE;
+#endif
+#ifdef CONFIG_PM_BFIN_WAKE_GP
+	wakeup |= GPWE;
+#endif
+#ifdef CONFIG_PM_BFIN_WAKE_USB
+	wakeup |= USBWE;
+#endif
+#ifdef CONFIG_PM_BFIN_WAKE_KEYPAD
+	wakeup |= KPADWE;
+#endif
+#ifdef CONFIG_PM_BFIN_WAKE_ROTARY
+	wakeup |= ROTWE;
+#endif
 
 	unsigned char *memptr = kmalloc(L1_CODE_LENGTH + L1_DATA_A_LENGTH
 					 + L1_DATA_B_LENGTH + L1_SCRATCH_LENGTH,
@@ -231,7 +254,7 @@ int bfin_pm_suspend_mem_enter(void)
 	icache_disable();
 	bf53x_suspend_l1_mem(memptr);
 
-	do_hibernate();
+	do_hibernate(wakeup);	/* Goodbye */
 
 	bf53x_resume_l1_mem(memptr);
 

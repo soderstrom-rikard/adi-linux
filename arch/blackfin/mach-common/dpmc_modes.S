@@ -56,6 +56,8 @@ ENTRY(_hibernate_mode)
 	[--SP] = ( R7:0, P5:0 );
 	[--SP] =  RETS;
 
+	R3 = R0;
+	R0 = IWR_DISABLE_ALL;
 	R1 = IWR_DISABLE_ALL;
 	R2 = IWR_DISABLE_ALL;
 	call _set_sic_iwr;
@@ -66,17 +68,9 @@ ENTRY(_hibernate_mode)
 
 	P0.H = hi(VR_CTL);
 	P0.L = lo(VR_CTL);
-	R1 = W[P0](z);
-	BITSET (R1, 8);	/* WAKE */
-	BITSET (R1, 15); /* SCKELOW */
-#if 0
-	BITSET (R1, 10); /* PHYWE */
-#endif
-	BITCLR (R1, 0);
-	BITCLR (R1, 1);
-	W[P0] = R1.L;
+
+	W[P0] = R3.L;
 	CLI R2;
-	IDLE;
 	IDLE;
 .Lforever:
 	jump .Lforever;
