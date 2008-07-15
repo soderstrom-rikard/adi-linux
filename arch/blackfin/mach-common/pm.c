@@ -72,7 +72,7 @@ void bfin_pm_suspend_standby_enter(void)
 #endif
 
 	local_irq_save(flags);
-	bfin_pm_setup();
+	bfin_pm_standby_setup();
 
 #ifdef CONFIG_PM_BFIN_SLEEP_DEEPER
 	sleep_deeper(bfin_sic_iwr[0], bfin_sic_iwr[1], bfin_sic_iwr[2]);
@@ -80,7 +80,7 @@ void bfin_pm_suspend_standby_enter(void)
 	sleep_mode(bfin_sic_iwr[0], bfin_sic_iwr[1], bfin_sic_iwr[2]);
 #endif
 
-	bfin_pm_restore();
+	bfin_pm_standby_restore();
 
 #if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)  || defined(CONFIG_BF561)
 	bfin_write_SIC_IWR0(IWR_ENABLE_ALL);
@@ -215,8 +215,21 @@ static inline void icache_enable(void)
 int bfin_pm_suspend_mem_enter(void)
 {
 	unsigned long flags;
-	unsigned short wakeup = SCKELOW;
+	int wakeup;
 
+	unsigned char *memptr = kmalloc(L1_CODE_LENGTH + L1_DATA_A_LENGTH
+					 + L1_DATA_B_LENGTH + L1_SCRATCH_LENGTH,
+					  GFP_KERNEL);
+
+	if (memptr == NULL) {
+		panic("bf53x_suspend_l1_mem malloc failed");
+		return -ENOMEM;
+	}
+
+	wakeup = bfin_read_VR_CTL() & ~FREQ;
+	wakeup |= SCKELOW;
+
+/* FIXME: merge this somehow with set_irq_wake */
 #ifdef CONFIG_PM_BFIN_WAKE_RTC
 	wakeup |= WAKE;
 #endif
@@ -239,16 +252,10 @@ int bfin_pm_suspend_mem_enter(void)
 	wakeup |= ROTWE;
 #endif
 
-	unsigned char *memptr = kmalloc(L1_CODE_LENGTH + L1_DATA_A_LENGTH
-					 + L1_DATA_B_LENGTH + L1_SCRATCH_LENGTH,
-					  GFP_KERNEL);
-
-	if (memptr == NULL) {
-		panic("bf53x_suspend_l1_mem malloc failed");
-		return -ENOMEM;
-	}
-
 	local_irq_save(flags);
+
+	blackfin_dma_suspend();
+	bfin_gpio_pm_hibernate_suspend();
 
 	dcache_disable();
 	icache_disable();
@@ -260,6 +267,9 @@ int bfin_pm_suspend_mem_enter(void)
 
 	icache_enable();
 	dcache_enable();
+
+	bfin_gpio_pm_hibernate_restore();
+	blackfin_dma_resume();
 
 	local_irq_restore(flags);
 	kfree(memptr);

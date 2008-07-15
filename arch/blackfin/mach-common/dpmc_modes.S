@@ -63,8 +63,6 @@ ENTRY(_hibernate_mode)
 	call _set_sic_iwr;
 	call _set_dram_srfs;
 	SSYNC;
-	R0 = 0xFFFF (Z);
-	call _set_rtc_istat;
 
 	P0.H = hi(VR_CTL);
 	P0.L = lo(VR_CTL);
@@ -343,6 +341,7 @@ ENTRY(_do_hibernate)
 	[--SP] = ( R7:0, P5:0 );
 	[--SP] =  RETS;
 	/* Save System MMRs */
+	R2 = R0;
 	P0.H = hi(PLL_CTL);
 	P0.L = lo(PLL_CTL);
 #ifdef SICA_IMASK1
@@ -417,70 +416,6 @@ ENTRY(_do_hibernate)
 	PM_SYS_PUSH(EBIU_MBSCTL)
 	PM_SYS_PUSH(EBIU_MODE)
 	PM_SYS_PUSH(EBIU_FCTL)
-#endif
-
-#ifdef PORTA_FER
-	PM_SYS_PUSH16(PORTA_FER)
-#endif
-#ifdef PORTA_MUX
-	PM_SYS_PUSH(PORTA_MUX)
-#endif
-#ifdef PORTB_FER
-	PM_SYS_PUSH16(PORTB_FER)
-#endif
-#ifdef PORTB_MUX
-	PM_SYS_PUSH(PORTB_MUX)
-#endif
-#ifdef PORTC_FER
-	PM_SYS_PUSH16(PORTC_FER)
-#endif
-#ifdef PORTC_MUX
-	PM_SYS_PUSH(PORTC_MUX)
-#endif
-#ifdef PORTD_FER
-	PM_SYS_PUSH16(PORTD_FER)
-#endif
-#ifdef PORTD_MUX
-	PM_SYS_PUSH(PORTD_MUX)
-#endif
-#ifdef PORTE_FER
-	PM_SYS_PUSH16(PORTE_FER)
-#endif
-#ifdef PORTE_MUX
-	PM_SYS_PUSH(PORTE_MUX)
-#endif
-#ifdef PORTF_FER
-	PM_SYS_PUSH16(PORTF_FER)
-#endif
-#ifdef PORTF_MUX
-	PM_SYS_PUSH(PORTF_MUX)
-#endif
-#ifdef PORTG_FER
-	PM_SYS_PUSH16(PORTG_FER)
-#endif
-#ifdef PORTG_MUX
-	PM_SYS_PUSH(PORTG_MUX)
-#endif
-#ifdef PORTH_FER
-	PM_SYS_PUSH16(PORTH_FER)
-#endif
-#ifdef PORTH_MUX
-	PM_SYS_PUSH(PORTH_MUX)
-#endif
-#ifdef PORTI_FER
-	PM_SYS_PUSH16(PORTI_FER)
-#endif
-#ifdef PORTI_MUX
-	PM_SYS_PUSH(PORTI_MUX)
-#endif
-#ifdef PORTJ_FER
-	PM_SYS_PUSH16(PORTJ_FER)
-#endif
-#ifdef PORTJ_MUX
-	PM_SYS_PUSH(PORTJ_MUX)
-#endif
-#ifdef BFIN_PORT_MUX
-	PM_SYS_PUSH16(BFIN_PORT_MUX)
 #endif
 
 	PM_SYS_PUSH16(SYSCR)
@@ -641,7 +576,7 @@ ENTRY(_do_hibernate)
 	[P0++] = SP;	/* Save Stack Pointer */
 	P0.H = _hibernate_mode;
 	P0.L = _hibernate_mode;
-	R0 = IWR_DISABLE_ALL;
+	R0 = R2;
 	call (P0); /* Goodbye */
 
 pm_resume_here:
@@ -795,72 +730,6 @@ pm_resume_here:
 	P0.L = lo(PLL_CTL);
 	PM_SYS_POP16(SYSCR)
 
-
-#ifdef BFIN_PORT_MUX
-	PM_SYS_POP16(BFIN_PORT_MUX)
-#endif
-#ifdef PORTJ_MUX
-	PM_SYS_POP(PORTJ_MUX)
-#endif
-#ifdef PORTJ_FER
-	PM_SYS_POP16(PORTJ_FER)
-#endif
-#ifdef PORTI_MUX
-	PM_SYS_POP(PORTI_MUX)
-#endif
-#ifdef PORTI_FER
-	PM_SYS_POP16(PORTI_FER)
-#endif
-#ifdef PORTH_MUX
-	PM_SYS_POP(PORTH_MUX)
-#endif
-#ifdef PORTH_FER
-	PM_SYS_POP16(PORTH_FER)
-#endif
-#ifdef PORTG_MUX
-	PM_SYS_POP(PORTG_MUX)
-#endif
-#ifdef PORTG_FER
-	PM_SYS_POP16(PORTG_FER)
-#endif
-#ifdef PORTF_MUX
-	PM_SYS_POP(PORTF_MUX)
-#endif
-#ifdef PORTF_FER
-	PM_SYS_POP16(PORTF_FER)
-#endif
-#ifdef PORTE_MUX
-	PM_SYS_POP(PORTE_MUX)
-#endif
-#ifdef PORTE_FER
-	PM_SYS_POP16(PORTE_FER)
-#endif
-#ifdef PORTD_MUX
-	PM_SYS_POP(PORTD_MUX)
-#endif
-#ifdef PORTD_FER
-	PM_SYS_POP16(PORTD_FER)
-#endif
-#ifdef PORTC_MUX
-	PM_SYS_POP(PORTC_MUX)
-#endif
-#ifdef PORTC_FER
-	PM_SYS_POP16(PORTC_FER)
-#endif
-#ifdef PORTB_MUX
-	PM_SYS_POP(PORTB_MUX)
-#endif
-#ifdef PORTB_FER
-	PM_SYS_POP16(PORTB_FER)
-#endif
-#ifdef PORTA_MUX
-	PM_SYS_POP(PORTA_MUX)
-#endif
-#ifdef PORTA_FER
-	PM_SYS_POP16(PORTA_FER)
-#endif
-
-
 #ifdef EBIU_FCTL
 	PM_SYS_POP(EBIU_FCTL)
 	PM_SYS_POP(EBIU_MODE)
@@ -933,6 +802,9 @@ pm_resume_here:
 #ifdef SIC_IMASK0
 	PM_SYS_POP(SIC_IMASK0)
 #endif
+
+	[--sp] = RETI;	/* Clear Global Interrupt Disable */
+	SP += 4;
 
 	RETS = [SP++];
 	( R7:0, P5:0 ) = [SP++];

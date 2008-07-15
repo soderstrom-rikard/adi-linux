@@ -145,7 +145,15 @@ struct dma_channel {
 	void *data;
 	unsigned int dma_enable_flag;
 	unsigned int loopback_flag;
+#ifdef CONFIG_PM
+	unsigned short saved_peripheral_map;
+#endif
 };
+
+#ifdef CONFIG_PM
+void blackfin_dma_suspend(void);
+void blackfin_dma_resume(void);
+#endif
 
 /*******************************************************************************
 *	DMA API's

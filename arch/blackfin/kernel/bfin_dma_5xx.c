@@ -472,6 +472,24 @@ unsigned long get_dma_curr_addr(unsigned int channel)
 }
 EXPORT_SYMBOL(get_dma_curr_addr);
 
+void blackfin_dma_suspend(void)
+{
+	int i;
+
+	for (i = 0; i < MAX_BLACKFIN_DMA_CHANNEL; i++)
+		dma_ch[i].saved_peripheral_map = dma_ch[i].regs->peripheral_map;
+
+}
+
+void blackfin_dma_resume(void)
+{
+	int i;
+
+	for (i = 0; i < MAX_BLACKFIN_DMA_CHANNEL; i++)
+		dma_ch[i].regs->peripheral_map = dma_ch[i].saved_peripheral_map;
+
+}
+
 static void *__dma_memcpy(void *dest, const void *src, size_t size)
 {
 	int direction;	/* 1 - address decrease, 0 - address increase */
