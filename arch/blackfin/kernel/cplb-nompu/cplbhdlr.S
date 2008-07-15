@@ -125,8 +125,6 @@ ENTRY(__cplb_hdr)
 	SP += -12;
 	call _panic_cplb_error;
 	SP += 12;
-	P0.H = _handle_bad_cplb;
-	P0.L = _handle_bad_cplb;
-	JUMP (P0);
+	JUMP.L _handle_bad_cplb;
 
 ENDPROC(__cplb_hdr)
