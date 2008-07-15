@@ -151,7 +151,7 @@ struct dma_channel {
 };
 
 #ifdef CONFIG_PM
-void blackfin_dma_suspend(void);
+int blackfin_dma_suspend(void);
 void blackfin_dma_resume(void);
 #endif
 

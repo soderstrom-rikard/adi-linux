@@ -215,7 +215,7 @@ static inline void icache_enable(void)
 int bfin_pm_suspend_mem_enter(void)
 {
 	unsigned long flags;
-	int wakeup;
+	int wakeup, ret;
 
 	unsigned char *memptr = kmalloc(L1_CODE_LENGTH + L1_DATA_A_LENGTH
 					 + L1_DATA_B_LENGTH + L1_SCRATCH_LENGTH,
@@ -254,7 +254,15 @@ int bfin_pm_suspend_mem_enter(void)
 
 	local_irq_save(flags);
 
-	blackfin_dma_suspend();
+	ret = blackfin_dma_suspend();
+
+	if (ret) {
+		local_irq_restore(flags);
+		kfree(memptr);
+		return ret;
+	}
+
+
 	bfin_gpio_pm_hibernate_suspend();
 
 	dcache_disable();

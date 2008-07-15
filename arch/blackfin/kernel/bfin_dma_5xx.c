@@ -472,13 +472,20 @@ unsigned long get_dma_curr_addr(unsigned int channel)
 }
 EXPORT_SYMBOL(get_dma_curr_addr);
 
-void blackfin_dma_suspend(void)
+int blackfin_dma_suspend(void)
 {
 	int i;
 
-	for (i = 0; i < MAX_BLACKFIN_DMA_CHANNEL; i++)
-		dma_ch[i].saved_peripheral_map = dma_ch[i].regs->peripheral_map;
+	for (i = 0; i < MAX_BLACKFIN_DMA_CHANNEL; i++) {
+		if (dma_ch[i].chan_status == DMA_CHANNEL_ENABLED) {
+			printk(KERN_ERR "DMA Channel %d failed to suspend\n", i);
+			return -EBUSY;
+		}
 
+		dma_ch[i].saved_peripheral_map = dma_ch[i].regs->peripheral_map;
+	}
+
+	return 0;
 }
 
 void blackfin_dma_resume(void)
