@@ -935,7 +935,7 @@ menu "Suspend Mem / Hibernate Wake-Up Selection"
 
 config PM_BFIN_WAKE_RTC
 	bool "RESET and RTC Wake-Up Enable"
-	depends on PM 
+	depends on PM
 	default n
 	help
 	  Enable RTC Wake-Up (Voltage Regulator Power-Up)
@@ -948,7 +948,7 @@ config PM_BFIN_WAKE_PH6
 	  Enable PHY and PH6 GP Wake-Up (Voltage Regulator Power-Up)
 
 config PM_BFIN_WAKE_CAN
-	bool "CAN0/1 Wake-Up Enable"     
+	bool "CAN0/1 Wake-Up Enable"
 	depends on PM && (BF54x || BF534 || BF536 || BF537)
 	default n
 	help
@@ -969,7 +969,7 @@ config PM_BFIN_WAKE_USB
 	  Enable USB Wake-Up (Voltage Regulator Power-Up)
 
 config PM_BFIN_WAKE_KEYPAD
-	bool "Keypad Wake-Up Enable"   
+	bool "Keypad Wake-Up Enable"
 	depends on PM && BF54x
 	default n
 	help
@@ -982,7 +982,7 @@ config PM_BFIN_WAKE_ROTARY
 	help
 	  Enable Rotary Wake-Up (Voltage Regulator Power-Up)
 
-endmenu 
+endmenu
 endmenu
 
 menu "CPU Frequency scaling"
