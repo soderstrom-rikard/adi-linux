@@ -32,6 +32,10 @@ ENDPROC (_sigreturn_stub)
 ENTRY(_atomic_xchg32)
 	R0 = [P0];
 	[P0] = R1;
+#if (ANOMALY_05000371)
+	nop;
+	nop;
+#endif
 	rts;
 ENDPROC (_atomic_xchg32)
 
@@ -66,6 +70,9 @@ ENTRY(_atomic_add32)
 	R1 = [P0];
 	R0 = R1 + R0;
 	[P0] = R0;
+#if (ANOMALY_05000371)
+	nop;
+#endif
 	rts;
 ENDPROC (_atomic_add32)
 
@@ -81,6 +88,9 @@ ENTRY(_atomic_sub32)
 	R1 = [P0];
 	R0 = R1 - R0;
 	[P0] = R0;
+#if (ANOMALY_05000371)
+	nop;
+#endif
 	rts;
 ENDPROC (_atomic_sub32)
 
@@ -96,6 +106,9 @@ ENTRY(_atomic_ior32)
 	R1 = [P0];
 	R0 = R1 | R0;
 	[P0] = R0;
+#if (ANOMALY_05000371)
+	nop;
+#endif
 	rts;
 ENDPROC (_atomic_ior32)
 
@@ -111,6 +124,9 @@ ENTRY(_atomic_and32)
 	R1 = [P0];
 	R0 = R1 & R0;
 	[P0] = R0;
+#if (ANOMALY_05000371)
+	nop;
+#endif
 	rts;
 ENDPROC (_atomic_and32)
 
@@ -126,6 +142,9 @@ ENTRY(_atomic_xor32)
 	R1 = [P0];
 	R0 = R1 ^ R0;
 	[P0] = R0;
+#if (ANOMALY_05000371)
+	nop;
+#endif
 	rts;
 ENDPROC (_atomic_xor32)
 
