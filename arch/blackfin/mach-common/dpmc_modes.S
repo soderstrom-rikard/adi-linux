@@ -64,6 +64,9 @@ ENTRY(_hibernate_mode)
 	call _set_dram_srfs;
 	SSYNC;
 
+	R0 = 0xFFFF (Z);
+	call _set_rtc_istat;
+
 	P0.H = hi(VR_CTL);
 	P0.L = lo(VR_CTL);
 
@@ -322,6 +325,11 @@ ENTRY(_set_rtc_istat)
 	P0.L = lo(RTC_ISTAT);
 	w[P0] = R0.L;
 	SSYNC;
+#elif (ANOMALY_05000371)
+	nop;
+	nop;
+	nop;
+	nop;
 #endif
 	RTS;
 
