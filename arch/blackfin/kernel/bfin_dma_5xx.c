@@ -472,6 +472,7 @@ unsigned long get_dma_curr_addr(unsigned int channel)
 }
 EXPORT_SYMBOL(get_dma_curr_addr);
 
+#ifdef CONFIG_PM
 int blackfin_dma_suspend(void)
 {
 	int i;
@@ -494,8 +495,8 @@ void blackfin_dma_resume(void)
 
 	for (i = 0; i < MAX_BLACKFIN_DMA_CHANNEL; i++)
 		dma_ch[i].regs->peripheral_map = dma_ch[i].saved_peripheral_map;
-
 }
+#endif
 
 static void *__dma_memcpy(void *dest, const void *src, size_t size)
 {
