@@ -3,8 +3,9 @@ config SND_BF5XX_I2S
 	depends on BLACKFIN && SND_SOC
 	help
 	  Say Y or M if you want to add support for codecs attached to
-	  the BF5xx AC97 interface.  You will also need
-	  to select the audio interfaces to support below.
+	  the Blackfin SPORT (synchronous serial ports) interface in I2S 
+	  mode (supports single stereo In/Out). 
+	  You will also need to select the audio interfaces to support below.
 
 config SND_BF5XX_SOC_SSM2602
 	tristate "SoC SSM2602 Audio support for BF52x ezkit"
@@ -21,8 +22,14 @@ config SND_BF5XX_AC97
 	depends on BLACKFIN && SND_SOC
 	help
 	  Say Y or M if you want to add support for codecs attached to
-	  the BF5xx AC97 interface. We configure SPORT to work in TDM mode to simulate AC-LINK.
+	  the Blackfin SPORT (synchronous serial ports) interface in slot 16 
+	  mode (pseudo AC97 interface).
 	  You will also need to select the audio interfaces to support below.
+
+	  Note:
+	  AC'97 codecs which do not implment the slot-16 mode will not function
+	  properly with this driver. This driver is known to work with the
+	  Analog Devices line of AC97 codecs.
 
 config SND_MMAP_SUPPORT
 	bool "Enable MMAP Support"
