@@ -390,8 +390,8 @@ isp1761_mem_write(struct isp1761_dev *dev,
 #endif
 
 /* Memory read function PIO */
-int     
-isp1761_mem_read(struct isp1761_dev *dev, __u32 start_add, 
+int
+isp1761_mem_read(struct isp1761_dev *dev, __u32 start_add,
         __u32 end_add, __u32 * buffer, __u32 length, __u16 dir)
 {
     u32 *buf_long;
@@ -413,8 +413,11 @@ isp1761_mem_read(struct isp1761_dev *dev, __u32 start_add,
         //writel(start_add, dev->baseaddress + 0x33c);
         isp1761_reg_write32(dev, 0x33c, start_add);
 
-        // the 90nsec delay to wait for the 33c address to take
-        // is taken care of in isp1761_reg_write32
+	/* Memory READ: Satisfy tp13 = 90ns bus timing
+	 * initial pre-fetch time
+	 */
+
+	DUMMY_DELAY_ACCESS;
 
         buf_byte = (u8*)buffer;
         offset = ((u32)buffer & 0x03);
@@ -490,11 +493,11 @@ isp1761_mem_read(struct isp1761_dev *dev, __u32 start_add,
 }
 
 /* Memory write function IO */
-int     
-isp1761_mem_write(struct isp1761_dev *dev, 
-        __u32 start_add, __u32 end_add, 
-        __u32 * buffer, __u32 length,
-        __u16 dir)
+int
+isp1761_mem_write(struct isp1761_dev *dev,
+	__u32 start_add, __u32 end_add,
+	__u32 *buffer, __u32 length,
+	__u16 dir)
 {
     u32 *buf_long;
     u8 *temp_base_mem;
