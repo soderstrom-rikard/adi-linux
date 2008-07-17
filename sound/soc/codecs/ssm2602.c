@@ -321,6 +321,8 @@ static int ssm2602_hw_params(struct snd_pcm_substream *substream,
 	int i = get_coeff(ssm2602->sysclk, params_rate(params));
 	u16 srate = (coeff_div[i].sr << 2) |
 		(coeff_div[i].bosr << 1) | coeff_div[i].usb;
+
+	ssm2602_write(codec, SSM2602_ACTIVE, 0);
 	ssm2602_write(codec, SSM2602_SRATE, srate);
 
 	/* bit size */
@@ -338,6 +340,7 @@ static int ssm2602_hw_params(struct snd_pcm_substream *substream,
 		break;
 	}
 	ssm2602_write(codec, SSM2602_IFACE, iface);
+	ssm2602_write(codec, SSM2602_ACTIVE, ACTIVATE_CODEC);
 	return 0;
 }
 
