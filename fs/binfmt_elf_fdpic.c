@@ -1120,6 +1120,44 @@ static int elf_fdpic_map_file_by_direct_mmap(struct elf_fdpic_params *params,
 			       maddr + disp, l1_addr, phdr->p_memsz);
 			maddr = (unsigned long)l1_addr;
 			disp = 0;
+		} else if (((params->hdr.e_flags & EF_BFIN_CODE_IN_L2)
+				|| (phdr->p_vaddr == 0xfeb00000))
+				&& (phdr->p_flags & PF_W) == 0
+				&& (phdr->p_flags & PF_X)) {
+			void *l2_addr;
+			l2_addr = sram_alloc_with_lsl(phdr->p_memsz, L2_SRAM);
+			if (l2_addr != NULL)
+				memcpy(l2_addr, (const void *)(maddr + disp), phdr->p_memsz);
+			down_write(&mm->mmap_sem);
+			do_munmap(mm, maddr, phdr->p_memsz + disp);
+			up_write(&mm->mmap_sem);
+			if (l2_addr == NULL) {
+				printk(KERN_ERR "Not enough L2 sram\n");
+				return -ENOMEM;
+			}
+			kdebug("[%x] -> l2_addr = %x of len = %x\n",
+			       maddr + disp, l2_addr, phdr->p_memsz);
+			maddr = (unsigned long)l2_addr;
+			disp = 0;
+		} else if (((params->hdr.e_flags & EF_BFIN_DATA_IN_L2)
+				|| phdr->p_vaddr == 0xfec00000)
+				&& (phdr->p_flags & PF_X) == 0
+				&& (phdr->p_flags & PF_W)) {
+			void *l2_addr;
+			l2_addr = sram_alloc_with_lsl(phdr->p_memsz, L2_SRAM);
+			if (l2_addr != NULL)
+				memcpy(l2_addr, (const void *)(maddr + disp), phdr->p_memsz);
+			down_write(&mm->mmap_sem);
+			do_munmap(mm, maddr, phdr->p_memsz + disp);
+			up_write(&mm->mmap_sem);
+			if (l2_addr == NULL) {
+				printk(KERN_ERR "Not enough L2 sram\n");
+				return -ENOMEM;
+			}
+			kdebug("[%x] -> l2_addr = %x of len = %x\n",
+			       maddr + disp, l2_addr, phdr->p_memsz);
+			maddr = (unsigned long)l2_addr;
+			disp = 0;
 		}
 
 		seg->addr = maddr + disp;

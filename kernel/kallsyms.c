@@ -58,6 +58,9 @@ static inline int is_kernel_text(unsigned long addr)
 	if ((addr >= (unsigned long)_stext && addr <= (unsigned long)_etext)
 #if defined(CONFIG_BLACKFIN)
              || (addr >= (unsigned long)_stext_l1 && addr <= (unsigned long)_etext_l1)
+# if defined(L2_LENGTH)
+		|| (addr >= (unsigned long)_stext_l2 && addr <= (unsigned long)_etext_l2)
+# endif
 #endif
 	)
 		return 1;
