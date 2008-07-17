@@ -644,7 +644,7 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 		 * BF537 and always avaible to BF52x
 		 */
 		u32 data_align = (u32)(skb->data) & 0x3;
-		if (data == 0x0) {
+		if (data_align == 0x0) {
 			u16 sysctl = bfin_read_EMAC_SYSCTL();
 			sysctl |= TXDWA;
 			bfin_write_EMAC_SYSCTL(sysctl);
@@ -657,7 +657,7 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 			blackfin_dcache_flush_range(
 					(u32)data,
 					(u32)((u8 *)data + skb->len + 4));
-		} else if (data == 0x2) {
+		} else if (data_align == 0x2) {
 			u16 sysctl = bfin_read_EMAC_SYSCTL();
 			sysctl &= ~TXDWA;
 			bfin_write_EMAC_SYSCTL(sysctl);
