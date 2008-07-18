@@ -359,6 +359,9 @@ ENTRY(_do_hibernate)
 	P0.H = hi(PLL_CTL);
 	P0.L = lo(PLL_CTL);
 
+#ifdef SIC_IMASK0
+	PM_SYS_PUSH(SIC_IMASK0)
+#endif
 #ifdef SIC_IMASK1
 	PM_SYS_PUSH(SIC_IMASK1)
 #endif
