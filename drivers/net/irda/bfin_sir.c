@@ -708,7 +708,7 @@ static int __devinit bfin_sir_probe(struct platform_device *pdev)
 	unsigned int baudrate_mask;
 	int i, err = 0;
 
-	bfin_sir_hw_init();
+	err = bfin_sir_hw_init();
 
 	for (i = 0; i < nr_sirs; i++) {
 		bfin_sir_init_ports(i);
