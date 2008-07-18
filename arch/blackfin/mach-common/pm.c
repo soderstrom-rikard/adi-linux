@@ -229,7 +229,7 @@ int bfin_pm_suspend_mem_enter(void)
 	wakeup = bfin_read_VR_CTL() & ~FREQ;
 	wakeup |= SCKELOW;
 
-/* FIXME: merge this somehow with set_irq_wake */
+	/* FIXME: merge this somehow with set_irq_wake */
 #ifdef CONFIG_PM_BFIN_WAKE_RTC
 	wakeup |= WAKE;
 #endif
@@ -294,19 +294,19 @@ static int bfin_pm_valid(suspend_state_t state)
 {
 	return (state == PM_SUSPEND_STANDBY
 #ifndef BF533_FAMILY
-/*
- * On BF533/2/1:
- * If we enter Hibernate the SCKE Pin is driven Low,
- * so that the SDRAM enters Self Refresh Mode.
- * However when the reset sequence that follows hibernate
- * state is executed, SCKE is driven High, taking the
- * SDRAM out of Self Refresh.
- *
- * If you reconfigure and access the SDRAM "very quickly",
- * you are likely to avoid errors, otherwise the SDRAM
- * start losing its contents.
- * An external HW workaround is possible using logic gates.
- */
+	/*
+	 * On BF533/2/1:
+	 * If we enter Hibernate the SCKE Pin is driven Low,
+	 * so that the SDRAM enters Self Refresh Mode.
+	 * However when the reset sequence that follows hibernate
+	 * state is executed, SCKE is driven High, taking the
+	 * SDRAM out of Self Refresh.
+	 *
+	 * If you reconfigure and access the SDRAM "very quickly",
+	 * you are likely to avoid errors, otherwise the SDRAM
+	 * start losing its contents.
+	 * An external HW workaround is possible using logic gates.
+	 */
 	|| state == PM_SUSPEND_MEM
 #endif
 	);
