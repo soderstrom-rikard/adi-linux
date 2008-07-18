@@ -262,7 +262,6 @@ int bfin_pm_suspend_mem_enter(void)
 		return ret;
 	}
 
-
 	bfin_gpio_pm_hibernate_suspend();
 
 	dcache_disable();
@@ -293,7 +292,24 @@ int bfin_pm_suspend_mem_enter(void)
  */
 static int bfin_pm_valid(suspend_state_t state)
 {
-	return (state == PM_SUSPEND_STANDBY || state == PM_SUSPEND_MEM);
+	return (state == PM_SUSPEND_STANDBY
+#ifndef BF533_FAMILY
+/*
+ * On BF533/2/1:
+ * If we enter Hibernate the SCKE Pin is driven Low,
+ * so that the SDRAM enters Self Refresh Mode.
+ * However when the reset sequence that follows hibernate
+ * state is executed, SCKE is driven High, taking the
+ * SDRAM out of Self Refresh.
+ *
+ * If you reconfigure and access the SDRAM "very quickly",
+ * you are likely to avoid errors, otherwise the SDRAM
+ * start losing its contents.
+ * An external HW workaround is possible using logic gates.
+ */
+	|| state == PM_SUSPEND_MEM
+#endif
+	);
 }
 
 /*
