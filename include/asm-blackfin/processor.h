@@ -115,7 +115,7 @@ static inline uint32_t __pure bfin_revid(void)
 	 * Incorrect Revision Number in DSPID Register
 	 */
 	if (revid == 0)
-		switch (bfin_read16(0xEF000014)) {
+		switch (bfin_read16(_BOOTROM_GET_DXE_ADDRESS_TWI)) {
 		case 0x0010:
 			revid = 0;
 			break;
