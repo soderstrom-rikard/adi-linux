@@ -43,6 +43,8 @@
 #define GPIO_USB_VRSEL	GPIO_PG13
 #elif defined(CONFIG_BFIN548_BLUETECHNIX_CM)
 #define GPIO_USB_VRSEL	GPIO_PH6
+#elif defined(CONFIG_BFIN527_BLUETECHNIX_CM)
+#define GPIO_USB_VRSEL	GPIO_PF11
 #else
 #error You need to specify a GPIO controlling VRSEL
 #endif
