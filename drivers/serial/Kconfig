@@ -627,7 +627,8 @@ config SERIAL_BFIN_DMA
 	depends on !DMA_UNCACHED_NONE && !KGDB_UART
 	help
 	  This driver works under DMA mode. If this option is selected, the
-	  blackfin simple dma driver is also enabled.
+	  blackfin simple dma driver is also enabled. Select this mode if you
+	  want to enable UART2/3 on bf54x.
 
 config SERIAL_BFIN_PIO
 	bool "PIO mode"
@@ -694,7 +695,7 @@ config UART1_RTS_PIN
 
 config SERIAL_BFIN_UART2
 	bool "Enable UART2"
-	depends on SERIAL_BFIN && (BF54x)
+	depends on SERIAL_BFIN && (BF54x) && SERIAL_BFIN_DMA
 	help
 	  Enable UART2
 
@@ -721,7 +722,7 @@ config UART2_RTS_PIN
 
 config SERIAL_BFIN_UART3
 	bool "Enable UART3"
-	depends on SERIAL_BFIN && (BF54x)
+	depends on SERIAL_BFIN && (BF54x) && SERIAL_BFIN_DMA
 	help
 	  Enable UART3
 
