@@ -82,6 +82,69 @@ unsigned short bfin_snd_pin_req_sport1[] =
 
 static unsigned int sport_iobase[] = {SPORT0_TCR1, SPORT1_TCR1 };
 
+#ifdef CONFIG_BF561
+static unsigned int dma_iobase[MAX_BLACKFIN_DMA_CHANNEL] = {
+	DMA1_0_NEXT_DESC_PTR,
+	DMA1_1_NEXT_DESC_PTR,
+	DMA1_2_NEXT_DESC_PTR,
+	DMA1_3_NEXT_DESC_PTR,
+	DMA1_4_NEXT_DESC_PTR,
+	DMA1_5_NEXT_DESC_PTR,
+	DMA1_6_NEXT_DESC_PTR,
+	DMA1_7_NEXT_DESC_PTR,
+	DMA1_8_NEXT_DESC_PTR,
+	DMA1_9_NEXT_DESC_PTR,
+	DMA1_10_NEXT_DESC_PTR,
+	DMA1_11_NEXT_DESC_PTR,
+	DMA2_0_NEXT_DESC_PTR,
+	DMA2_1_NEXT_DESC_PTR,
+	DMA2_2_NEXT_DESC_PTR,
+	DMA2_3_NEXT_DESC_PTR,
+	DMA2_4_NEXT_DESC_PTR,
+	DMA2_5_NEXT_DESC_PTR,
+	DMA2_6_NEXT_DESC_PTR,
+	DMA2_7_NEXT_DESC_PTR,
+	DMA2_8_NEXT_DESC_PTR,
+	DMA2_9_NEXT_DESC_PTR,
+	DMA2_10_NEXT_DESC_PTR,
+	DMA2_11_NEXT_DESC_PTR,
+	MDMA1_D0_NEXT_DESC_PTR,
+	MDMA1_S0_NEXT_DESC_PTR,
+	MDMA1_D1_NEXT_DESC_PTR,
+	MDMA1_S1_NEXT_DESC_PTR,
+	MDMA2_D0_NEXT_DESC_PTR,
+	MDMA2_S0_NEXT_DESC_PTR,
+	MDMA2_D1_NEXT_DESC_PTR,
+	MDMA2_S1_NEXT_DESC_PTR,
+	IMDMA_D0_NEXT_DESC_PTR,
+	IMDMA_S0_NEXT_DESC_PTR,
+	IMDMA_D1_NEXT_DESC_PTR,
+	IMDMA_S1_NEXT_DESC_PTR,
+};
+#else
+static unsigned int dma_iobase[] =
+{
+	DMA0_NEXT_DESC_PTR,
+	DMA1_NEXT_DESC_PTR,
+	DMA2_NEXT_DESC_PTR,
+	DMA3_NEXT_DESC_PTR,
+	DMA4_NEXT_DESC_PTR,
+	DMA5_NEXT_DESC_PTR,
+	DMA6_NEXT_DESC_PTR,
+	DMA7_NEXT_DESC_PTR,
+#if (defined(CONFIG_BF537) || defined(CONFIG_BF534) || defined(CONFIG_BF536))
+	DMA8_NEXT_DESC_PTR,
+	DMA9_NEXT_DESC_PTR,
+	DMA10_NEXT_DESC_PTR,
+	DMA11_NEXT_DESC_PTR,
+#endif
+	MDMA_D0_NEXT_DESC_PTR,
+	MDMA_S0_NEXT_DESC_PTR,
+	MDMA_D1_NEXT_DESC_PTR,
+	MDMA_S1_NEXT_DESC_PTR
+};
+#endif
+
 /* note: multichannel is in units of 8 channels,
  * tdm_count is # channels NOT / 8 ! */
 int bf53x_sport_set_multichannel(struct bf53x_sport *sport,
@@ -253,7 +316,7 @@ static inline int sport_rx_dma_start(struct bf53x_sport *sport, int dummy)
 		sport->curr_rx_desc = sport->dma_rx_desc;
 
 	dma->next_desc_ptr = (unsigned long)(sport->curr_rx_desc);
-	dma->cfg           = DMAFLOW_LARGE | NDSIZE_9 | WDSIZE_32 | WNR;
+	dma->cfg           = DMAFLOW | NDSIZE | WDSIZE_32 | WNR;
 	dma->x_count       = 0;
 	dma->x_modify      = 0;
 	dma->y_count       = 0;
@@ -276,7 +339,7 @@ static inline int sport_tx_dma_start(struct bf53x_sport *sport, int dummy)
 		sport->curr_tx_desc = sport->dma_tx_desc;
 
 	dma->next_desc_ptr = (unsigned long)(sport->curr_tx_desc);
-	dma->cfg           = DMAFLOW_LARGE | NDSIZE_9 | WDSIZE_32 ;
+	dma->cfg           = DMAFLOW | NDSIZE | WDSIZE_32 ;
 	dma->x_count       = 0;
 	dma->x_modify      = 0;
 	dma->y_count       = 0;
@@ -582,7 +645,7 @@ static int sport_config_rx_dummy(struct bf53x_sport *sport, size_t size)
 	memset(desc, 0, 2 * sizeof(*desc));
 	sport->dummy_rx_desc = desc;
 	desc->start_addr = (unsigned long)sport->dummy_buf;
-	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(size) | WNR | DMAEN;
+	config = DMAFLOW | NDSIZE | compute_wdsize(size) | WNR | DMAEN;
 	desc->cfg = config;
 	desc->x_count = 0x80;
 	desc->x_modify = 0;
@@ -618,7 +681,7 @@ static int sport_config_tx_dummy(struct bf53x_sport *sport, size_t size)
 	memset(desc, 0, 2 * sizeof(*desc));
 	sport->dummy_tx_desc = desc;
 	desc->start_addr = (unsigned long)sport->dummy_buf + size;
-	config = DMAFLOW_LARGE | NDSIZE_9 | compute_wdsize(size) | DMAEN;
+	config = DMAFLOW | NDSIZE | compute_wdsize(size) | DMAEN;
 	desc->cfg = config;
 	desc->x_count = 0x80;
 	desc->x_modify = 0;
@@ -789,7 +852,7 @@ struct bf53x_sport *bf53x_sport_init(int sport_num,
 		int dma_rx, void (*rx_callback)(void*),
 		int dma_tx, void (*tx_callback)(void*),
 		int err_irq, void (*err_callback)(void*),
-		void *data)
+		size_t size, void *data)
 {
 	struct bf53x_sport *sport;
 
@@ -831,9 +894,9 @@ struct bf53x_sport *bf53x_sport_init(int sport_num,
 	}
 
 	sport->dma_rx_chan = dma_rx;
-	sport->dma_rx = dma_io_base_addr[dma_rx];
+	sport->dma_rx = (struct dma_register *) dma_iobase[dma_rx];
 	sport->dma_tx_chan = dma_tx;
-	sport->dma_tx = dma_io_base_addr[dma_tx];
+	sport->dma_tx = (struct dma_register *) dma_iobase[dma_tx];
 	sport->err_irq = err_irq;
 	sport->rx_callback = rx_callback;
 	sport->tx_callback = tx_callback;
@@ -844,18 +907,18 @@ struct bf53x_sport *bf53x_sport_init(int sport_num,
 			sport->regs, sport->dma_rx, sport->dma_tx);
 
 #if L1_DATA_A_LENGTH != 0
-	sport->dummy_buf = l1_data_sram_alloc(DUMMY_BUF_LEN);
+	sport->dummy_buf = l1_data_sram_alloc(size * 2);
 #else
-	sport->dummy_buf = kmalloc(DUMMY_BUF_LEN, GFP_KERNEL);
+	sport->dummy_buf = kmalloc(size * 2, GFP_KERNEL);
 #endif
 	if (sport->dummy_buf == NULL) {
 		printk(KERN_ERR "Failed to allocate dummy buffer\n");
 		goto __init_err4;
  	}
 
-	memset(sport->dummy_buf, 0, DUMMY_BUF_LEN);
- 	sport_config_rx_dummy(sport, DUMMY_BUF_LEN/2);
-	sport_config_tx_dummy(sport, DUMMY_BUF_LEN/2);
+	memset(sport->dummy_buf, 0, size * 2);
+	sport_config_rx_dummy(sport, size);
+	sport_config_tx_dummy(sport, size);
 
 	if (sport->sport_num) {
 		if (peripheral_request_list(bfin_snd_pin_req_sport1, DRV_NAME))

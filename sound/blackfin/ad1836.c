@@ -1992,7 +1992,7 @@ static int __devinit snd_ad1836_probe(struct platform_device *pdev)
 	if ((sport = bf53x_sport_init(CONFIG_SND_BLACKFIN_SPORT,
 			SPORT_DMA_RX, snd_ad1836_dma_rx,
 			SPORT_DMA_TX, snd_ad1836_dma_tx,
-			SPORT_IRQ_ERR, snd_ad1836_sport_err, ad1836))
+			SPORT_IRQ_ERR, snd_ad1836_sport_err, 4, ad1836))
 			== NULL) {
 		printk(KERN_ERR DRIVER_NAME ": Failed to find device on sport\n");
 		err = -ENODEV;

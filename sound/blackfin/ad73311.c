@@ -590,7 +590,7 @@ static int __devinit snd_ad73311_probe(struct platform_device *pdev)
 	if ((sport = bf53x_sport_init(CONFIG_SND_BFIN_SPORT,
 			SPORT_DMA_RX, snd_ad73311_dma_rx,
 			SPORT_DMA_TX, snd_ad73311_dma_tx,
-			SPORT_IRQ_ERR, snd_ad73311_sport_err, ad73311))
+			SPORT_IRQ_ERR, snd_ad73311_sport_err, 2, ad73311))
 			== NULL) {
 		err = -ENODEV;
 		goto __sport_err;

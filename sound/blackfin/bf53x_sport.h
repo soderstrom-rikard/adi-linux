@@ -84,7 +84,6 @@ struct bf53x_sport {
 	unsigned char *rx_buf;
 	unsigned char *tx_buf;
 
-#define DUMMY_BUF_LEN 4
 	/* for dummy dma transfer */
 	void *dummy_buf;
 
@@ -121,7 +120,7 @@ struct bf53x_sport* bf53x_sport_init(int sport_num,
 		int dma_rx, void (*rx_callback)(void *),
 		int dma_tx, void (*tx_callback)(void *),
 		int err_irq, void (*err_callback)(void *),
-		void *data);
+		size_t size, void *data);
 
 void bf53x_sport_done(struct bf53x_sport* sport);
 
