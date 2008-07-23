@@ -732,6 +732,9 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 			port->ignore_status_mask |= OE;
 	}
 
+	while (!bfin_serial_tx_empty(port))
+		SSYNC();
+
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
 	quot = uart_get_divisor(port, baud);
 	spin_lock_irqsave(&uart->port.lock, flags);
