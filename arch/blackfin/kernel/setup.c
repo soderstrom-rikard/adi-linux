@@ -770,6 +770,9 @@ void __init setup_arch(char **cmdline_p)
 
 	_bfin_swrst = bfin_read_SWRST();
 
+	/* If we double fault, reset the system - otherwise we hang forever */
+	bfin_write_SWRST(DOUBLE_FAULT);
+
 	if (_bfin_swrst & RESET_DOUBLE)
 		printk(KERN_INFO "Recovering from Double Fault event\n");
 	else if (_bfin_swrst & RESET_WDOG)
