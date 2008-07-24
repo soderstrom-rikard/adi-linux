@@ -546,7 +546,7 @@ asmlinkage void trap_c(struct pt_regs *fp)
 
 /*
  * Similar to get_user, do some address checking, then dereference
- * Return 0 on sucess, 1 on bad address
+ * Return true on sucess, false on bad address
  */
 bool get_instruction(unsigned short *val, unsigned short *address)
 {
@@ -557,11 +557,11 @@ bool get_instruction(unsigned short *val, unsigned short *address)
 
 	/* Check for odd addresses */
 	if (addr & 0x1)
-		return 1;
+		return false;
 
 	/* Check that things do not wrap around */
-	if (address > (address + 2))
-		return 1;
+	if (addr > (addr + 2))
+		return false;
 
 	/*
 	 * Since we are in exception context, we need to do a little address checking
@@ -589,18 +589,18 @@ bool get_instruction(unsigned short *val, unsigned short *address)
 	    (!(bfin_read_EBIU_AMBCTL1() & B3RDYEN) &&
 	      addr >= ASYNC_BANK3_BASE && (addr + 2) <= (ASYNC_BANK3_BASE + ASYNC_BANK1_SIZE))) {
 		*val = *address;
-		return 0;
+		return true;
 	}
 
 #if L1_CODE_LENGTH != 0
 	if (addr >= L1_CODE_START && (addr + 2) <= (L1_CODE_START + L1_CODE_LENGTH)) {
 		dma_memcpy(val, address, 2);
-		return 0;
+		return true;
 	}
 #endif
 
 
-		return 1;
+	return false;
 }
 
 void dump_bfin_trace_buffer(void)
@@ -624,7 +624,7 @@ void dump_bfin_trace_buffer(void)
 			addr = (unsigned short *)bfin_read_TBUF();
 			decode_address(buf, (unsigned long)addr);
 			printk(KERN_NOTICE "     Source : %s ", buf);
-			if (!get_instruction(&val, addr)) {
+			if (get_instruction(&val, addr)) {
 				if (val == 0x0010)
 					printk("RTS");
 				else if (val == 0x0011)
@@ -697,21 +697,21 @@ bool is_bfin_call(unsigned short *addr)
 	unsigned short opcode = 0, *ins_addr;
 	ins_addr = (unsigned short *)addr;
 
-	if (get_instruction(&opcode, ins_addr))
-		return 0;
+	if (!get_instruction(&opcode, ins_addr))
+		return false;
 
 	if ((opcode >= 0x0060 && opcode <= 0x0067) ||
 	    (opcode >= 0x0070 && opcode <= 0x0077))
-		return 1;
+		return true;
 
 	ins_addr--;
-	if (get_instruction(&opcode, ins_addr))
-		return 0;
+	if (!get_instruction(&opcode, ins_addr))
+		return false;
 
 	if (opcode >= 0xE300 && opcode <= 0xE3FF)
-		return 1;
+		return true;
 
-	return 0;
+	return false;
 
 }
 void show_stack(struct task_struct *task, unsigned long *stack)
@@ -793,7 +793,7 @@ void show_stack(struct task_struct *task, unsigned long *stack)
 
 			ret_addr = 0;
 			if (!j && i % 8 == 0)
-				printk("\n" KERN_NOTICE);
+				printk("\n" KERN_NOTICE "%p:",addr);
 
 			/* if it is an odd address, or zero, just skip it */
 			if (*addr & 0x1 || !*addr)
