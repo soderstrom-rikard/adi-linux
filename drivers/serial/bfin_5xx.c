@@ -782,9 +782,6 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 			port->ignore_status_mask |= OE;
 	}
 
-	while (!bfin_serial_tx_empty(port))
-		SSYNC();
-
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
 	quot = uart_get_divisor(port, baud);
 	spin_lock_irqsave(&uart->port.lock, flags);
@@ -813,6 +810,9 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	val = UART_GET_GCTL(uart);
 	val |= UCEN;
 	UART_PUT_GCTL(uart, val);
+
+	/* Port speed changed, update the per-port timeout. */
+	uart_update_timeout(port, termios->c_cflag, baud);
 
 	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
@@ -917,6 +917,7 @@ static void __init bfin_serial_init_ports(void)
 
 	for (i = 0; i < nr_active_ports; i++) {
 		bfin_serial_ports[i].port.uartclk   = get_sclk();
+		bfin_serial_ports[i].port.fifosize  = BFIN_UART_TX_FIFO_SIZE;
 		bfin_serial_ports[i].port.ops       = &bfin_serial_pops;
 		bfin_serial_ports[i].port.line      = i;
 		bfin_serial_ports[i].port.iotype    = UPIO_MEM;
