@@ -1019,10 +1019,10 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 	}
 
 	/* Is it turned on? */
-	if (bfin_read_DMEM_CONTROL() & (ENDCPLB | DMC_ENABLE) != (ENDCPLB | DMC_ENABLE))
+	if ((bfin_read_DMEM_CONTROL() & (ENDCPLB | DMC_ENABLE)) != (ENDCPLB | DMC_ENABLE))
 		dcache_size = 0;
 
-	if (bfin_read_IMEM_CONTROL() & (IMC | ENICPLB) == (IMC | ENICPLB))
+	if ((bfin_read_IMEM_CONTROL() & (IMC | ENICPLB)) == (IMC | ENICPLB))
 		icache_size = 0;
 
 	seq_printf(m, "cache size\t: %d KB(L1 icache) "
