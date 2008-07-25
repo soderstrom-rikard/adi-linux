@@ -189,10 +189,8 @@ int i;
    and code from the "CAN_TX_RX_EXAMPLE/".
  */
 
-
-    bfin_write_PORT_MUX(bfin_read_PORT_MUX() | PJCE_CAN);   /* Enable CAN Pins On Port J */
-    SSYNC();
-
+    peripheral_request(P_CAN0_TX, DRV_NAME);
+    peripheral_request(P_CAN0_RX, DRV_NAME);
 
     /* SW Reset */
     CANoutw(minor, cancontrol, (CAN_SRS | CAN_CCR));

@@ -47,9 +47,13 @@ extern unsigned int Base[];
 #define UNSIGNED8 u8
 #define UNSIGNED16 u16
 
-
 #define BFCAN_BASE (0xFFC02A00)	/* Base address BF CAN module */
 
+#ifdef CONFIG_BF548
+#define IRQ_CAN_RX IRQ_CAN0_RX
+#define IRQ_CAN_TX IRQ_CAN0_TX
+#define IRQ_CAN_ERROR IRQ_CAN0_ERROR
+#endif
 
 /* can4linux does not use all the full CAN features, partly because it doesn't
    make sense.
