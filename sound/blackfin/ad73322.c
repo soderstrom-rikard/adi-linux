@@ -105,8 +105,8 @@ static struct platform_device *device[CARD_NUM];
 
 #undef CONFIG_SND_DEBUG_CURRPTR  /* causes output every frame! */
 #define AD73322_BUF_SZ 0x40000
-#define PCM_BUFFER_MAX	0x10000	/* 32KB */
-#define FRAGMENT_SIZE_MIN	(2*1024)
+#define PCM_BUFFER_MAX	0x10000	/* 64KB */
+#define FRAGMENT_SIZE_MIN	1024
 #define FRAGMENTS_MIN	2
 #define FRAGMENTS_MAX	16
 #define WORD_LENGTH	2
@@ -145,7 +145,7 @@ MODULE_PARM_DESC(enable, "Enable AD73322 soundcard.");
 static void snd_ad73322_startup(int index);
 static void snd_ad73322_stop(int index);
 
-static int get_cap_slotindex(int index)
+static inline int get_cap_slotindex(int index)
 {
 	int slot_index = 6;
 	switch(index) {
@@ -169,71 +169,6 @@ static int get_cap_slotindex(int index)
 	return slot_index;
 }
 
-static inline int find_substream(ad73322_t *chip,
-		struct snd_pcm_substream *substream,	substream_info_t **info)
-{
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		if (chip->tx_substreams[0].substream == substream) {
-			*info = &chip->tx_substreams[0];
-			return 0;
-		} else if (chip->tx_substreams[1].substream == substream) {
-			*info = &chip->tx_substreams[1];
-			return 1;
-		} else if (chip->tx_substreams[2].substream == substream) {
-			*info = &chip->tx_substreams[2];
-			return 2;
-		} else if (chip->tx_substreams[3].substream == substream) {
-			*info = &chip->tx_substreams[3];
-			return 3;
-		} else if (chip->tx_substreams[4].substream == substream) {
-			*info = &chip->tx_substreams[4];
-			return 4;
-		} else if (chip->tx_substreams[5].substream == substream) {
-			*info = &chip->tx_substreams[5];
-			return 5;
-		} else if (chip->tx_substreams[6].substream == substream) {
-			*info = &chip->tx_substreams[6];
-			return 6;
-		} else if (chip->tx_substreams[7].substream == substream) {
-			*info = &chip->tx_substreams[7];
-			return 7;
-		} 
-		else {
-			*info = NULL;
-			return -1;
-		}
-	} else {
-		if (chip->rx_substreams[0].substream == substream) {
-			*info = &chip->rx_substreams[0];
-			return 0;
-		} else if (chip->rx_substreams[1].substream == substream) {
-			*info = &chip->rx_substreams[1];
-			return 1;
-		} else if (chip->rx_substreams[2].substream == substream) {
-			*info = &chip->rx_substreams[2];
-			return 2;
-		} else if (chip->rx_substreams[3].substream == substream) {
-			*info = &chip->rx_substreams[3];
-			return 3;
-		} else if (chip->rx_substreams[4].substream == substream) {
-			*info = &chip->rx_substreams[4];
-			return 4;
-		} else if (chip->rx_substreams[5].substream == substream) {
-			*info = &chip->rx_substreams[5];
-			return 5;
-		} else if (chip->rx_substreams[6].substream == substream) {
-			*info = &chip->rx_substreams[6];
-			return 6;
-		} else if (chip->rx_substreams[7].substream == substream) {
-			*info = &chip->rx_substreams[7];
-			return 7;
-		} 
-		else {
-			*info = NULL;
-			return -1;
-		}
-	}
-}
 /*************************************************************
  *                pcm methods
  *************************************************************/
@@ -291,11 +226,9 @@ static int snd_ad73322_cap_open(struct snd_pcm_substream *substream)
 static int snd_ad73322_play_close(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
-	substream_info_t *sub_info = NULL;
-	int index, i; 
-	int slot_index;
-	 
-	index = find_substream(chip, substream, &sub_info);
+	int i, slot_index;
+	int index = substream->pcm->device;
+	substream_info_t *sub_info = (substream_info_t *)&(chip->tx_substreams[substream->pcm->device]);
 	slot_index = NUM_DEVICES_CHAIN-(index+1);
 	snd_printk_marker();
 	if (index >= 0 && index <= 7) {
@@ -309,10 +242,9 @@ static int snd_ad73322_play_close(struct snd_pcm_substream *substream)
 static int snd_ad73322_cap_close(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
-	substream_info_t *sub_info = NULL;
-	int index, slot_index, i; 
-	 
-	index = find_substream(chip, substream, &sub_info);
+	int slot_index, i;
+	int index = substream->pcm->device;
+	substream_info_t *sub_info = (substream_info_t *)&(chip->rx_substreams[substream->pcm->device]);
 	slot_index  = get_cap_slotindex(index);
 	snd_printk_marker();
 	if (index >= 0 && index <= 7) {
@@ -353,8 +285,8 @@ static int snd_ad73322_play_pre(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	substream_info_t *sub_info = NULL;
-	int index = find_substream(chip, substream, &sub_info);
+	substream_info_t *sub_info = (substream_info_t *)&(chip->tx_substreams[substream->pcm->device]);
+	int index = substream->pcm->device;
 
 	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
 	sub_info->period_frames = runtime->period_size;
@@ -383,8 +315,8 @@ static int snd_ad73322_cap_pre(struct snd_pcm_substream *substream)
 
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	substream_info_t *sub_info = NULL;
-	int index = find_substream(chip, substream, &sub_info);
+	substream_info_t *sub_info = (substream_info_t *)&(chip->rx_substreams[substream->pcm->device]);
+	int index = substream->pcm->device;
 
 	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
 	sub_info->period_frames = runtime->period_size;
@@ -412,8 +344,8 @@ static int snd_ad73322_cap_pre(struct snd_pcm_substream *substream)
 static int snd_ad73322_play_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
-	substream_info_t *sub_info = NULL;
-	int index = find_substream(chip, substream, &sub_info);
+	substream_info_t *sub_info = (substream_info_t *)&(chip->tx_substreams[substream->pcm->device]);
+	int index = substream->pcm->device;
 	snd_assert((index >= 0 && index <= 7 && sub_info), return -EINVAL);
 	spin_lock(&chip->ad73322_lock);
 	switch (cmd) {
@@ -453,8 +385,8 @@ static int snd_ad73322_play_trigger(struct snd_pcm_substream *substream, int cmd
 static int snd_ad73322_cap_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
-	substream_info_t *sub_info = NULL;
-	int index = find_substream(chip, substream, &sub_info);
+	substream_info_t *sub_info = (substream_info_t *)&(chip->rx_substreams[substream->pcm->device]);
+	int index = substream->pcm->device;
 	snd_assert((index >= 0 && index <= 7 && sub_info), return -EINVAL);
 	spin_lock(&chip->ad73322_lock);
 	switch (cmd) {
@@ -494,11 +426,10 @@ static int snd_ad73322_cap_trigger(struct snd_pcm_substream *substream, int cmd)
 static snd_pcm_uframes_t snd_ad73322_play_ptr(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
-	substream_info_t *sub_info = NULL;
+	substream_info_t *sub_info = (substream_info_t *)&(chip->tx_substreams[substream->pcm->device]);
 	unsigned long diff = bf53x_sport_curr_offset_tx(chip->sport);
 	unsigned long bytes_per_frame = 8*2;
 	size_t frames = diff / bytes_per_frame;
-	find_substream(chip, substream, &sub_info);
 	frames = (frames + DMA_BUFFER_FRAMES - sub_info->dma_offset) % \
 						DMA_BUFFER_FRAMES;
 
@@ -515,11 +446,10 @@ static snd_pcm_uframes_t snd_ad73322_play_ptr(struct snd_pcm_substream *substrea
 static snd_pcm_uframes_t snd_ad73322_cap_ptr(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
-	substream_info_t *sub_info = NULL;
+	substream_info_t *sub_info = (substream_info_t *)&(chip->rx_substreams[substream->pcm->device]);
 	unsigned long diff = bf53x_sport_curr_offset_rx(chip->sport);
 	unsigned long bytes_per_frame = 8*2;
 	size_t frames = diff / bytes_per_frame;
-	find_substream(chip, substream, &sub_info);
 	frames = (frames + DMA_BUFFER_FRAMES - sub_info->dma_offset) % \
 						DMA_BUFFER_FRAMES;
 
@@ -539,16 +469,11 @@ static int snd_ad73322_play_copy(struct snd_pcm_substream *substream, int channe
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
 	unsigned short *isrc = (unsigned short *)src;
 	unsigned short *dst = (unsigned short *)chip->tx_dma_buf;
-	substream_info_t *sub_info = NULL;
-	int index = find_substream(chip, substream, &sub_info);
+	substream_info_t *sub_info = (substream_info_t *)&(chip->tx_substreams[substream->pcm->device]);
+	int index = substream->pcm->device;
 	snd_pcm_uframes_t start, temp_count, temp2_count;
-	int slot_index = NUM_DEVICES_CHAIN-(index+1);
-	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
+	int slot_index = NUM_DEVICES_CHAIN-(index + 1);
 
-	if (index > 0 && index <=7 && !(chip->tx_status & (1<<index))) {
-		sub_info->data_count += count;
-		return 0;
-	}
 	start = (sub_info->data_pos_base + pos + sub_info->dma_offset) % \
 							DMA_BUFFER_FRAMES;
 	if (start + count > DMA_BUFFER_FRAMES) {
@@ -587,16 +512,11 @@ static int snd_ad73322_cap_copy(struct snd_pcm_substream *substream, int channel
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
 	unsigned short *idst = (unsigned short *)dst;
 	unsigned short *src = (unsigned short *)chip->rx_dma_buf;
-	substream_info_t *sub_info = NULL;
-	int index = find_substream(chip, substream, &sub_info);
+	substream_info_t *sub_info = (substream_info_t *)&(chip->rx_substreams[substream->pcm->device]);
+	int index = substream->pcm->device;
 	snd_pcm_uframes_t start, temp_count, temp2_count;
 	int slot_index = get_cap_slotindex(index);
-	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
 
-	if (index > 0 && index <=7 && !(chip->rx_status & (1<<index))) {
-		sub_info->data_count += count;
-		return 0;
-	}
 	start = (sub_info->data_pos_base + pos + sub_info->dma_offset) % \
 							DMA_BUFFER_FRAMES;
 	if (start + count > DMA_BUFFER_FRAMES) {
