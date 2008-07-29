@@ -205,20 +205,25 @@ static struct snd_pcm_hardware snd_ad73322_cap_hw = {
 static int snd_ad73322_play_open(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
+	int index = substream->pcm->device;
+	/*device index from 0 to 7*/
+	snd_assert((index >= 0 && index <= 7), return -EINVAL);
 	snd_printk_marker();
 	substream->runtime->hw = snd_ad73322_play_hw;
-	chip->tx_substreams[substream->pcm->device].substream = substream;
+	chip->tx_substreams[index].substream = substream;
+
 	return 0;
 }
 
 static int snd_ad73322_cap_open(struct snd_pcm_substream *substream)
 {
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
+	int index = substream->pcm->device;
 
+	snd_assert((index >= 0 && index <= 7), return -EINVAL);
 	snd_printk_marker();
-
 	substream->runtime->hw = snd_ad73322_cap_hw;
-	chip->rx_substreams[substream->pcm->device].substream = substream;
+	chip->rx_substreams[index].substream = substream;
 
 	return 0;
 }
