@@ -539,6 +539,15 @@ config MTD_BFIN_ASYNC
 
 	  If compiled as a module, it will be called bfin-async-flash.
 
+config MTD_GPIO_ADDR
+	tristate "GPIO-assisted Flash Chip Support"
+	select MTD_PARTITIONS
+	help
+	  Map driver which allows flashes to be partially physically addressed
+	  and assisted by GPIOs.
+
+	  If compiled as a module, it will be called gpio-addr-flash.
+
 config MTD_UCLINUX
 	tristate "Generic uClinux RAM/ROM filesystem support"
 	depends on MTD_PARTITIONS && MTD_RAM && !MMU
