@@ -124,7 +124,7 @@ static int bf5xx_i2s_resume(struct platform_device *pdev,
 	struct sport_device *sport =
 		(struct sport_device *)dai->private_data;
 
-	pr_debug("%s : sport %d\n", __FUNCTION__, cpu_dai->id);
+	pr_debug("%s : sport %d\n", __FUNCTION__, dai->id);
 	if (!dai->active)
 		return 0;
 	ret = sport_config_rx(sport_handle, RFSR | RCKFE, RSFSE|0x1f, 0, 0);
