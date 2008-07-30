@@ -54,7 +54,7 @@ static int bf5xx_ssm2602_startup(struct snd_pcm_substream *substream)
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	cpu_dai->private_data = sport_handle;
 	return 0;
 }
@@ -67,7 +67,7 @@ static int bf5xx_ssm2602_hw_params(struct snd_pcm_substream *substream,
 	unsigned int clk = 0;
 	int ret = 0;
 
-	pr_debug("%s rate %d format %x\n", __FUNCTION__, params_rate(params),
+	pr_debug("%s rate %d format %x\n", __func__, params_rate(params),
 		params_format(params));
 	/*
 	 * WARNING - TODO
@@ -119,7 +119,7 @@ static struct snd_soc_ops bf5xx_ssm2602_ops = {
 
 static int bf5xx_ssm2602_init_dev(struct snd_soc_codec *codec)
 {
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 
 	snd_soc_dapm_sync_endpoints(codec);
 	return 0;
@@ -164,7 +164,7 @@ static int __init bf5xx_ssm2602_init(void)
 {
 	int ret;
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	bf52x_ssm2602_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!bf52x_ssm2602_snd_device)
 		return -ENOMEM;
@@ -181,7 +181,7 @@ static int __init bf5xx_ssm2602_init(void)
 
 static void __exit bf5xx_ssm2602_exit(void)
 {
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	platform_device_unregister(bf52x_ssm2602_snd_device);
 }
 

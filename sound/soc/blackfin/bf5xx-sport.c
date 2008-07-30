@@ -47,7 +47,7 @@ EXPORT_SYMBOL(sport_handle);
 int sport_set_multichannel(struct sport_device *sport,
 		int tdm_count, u32 mask, int packed)
 {
-	pr_debug("%s tdm_count=%d mask:0x%08x packed=%d\n", __FUNCTION__,
+	pr_debug("%s tdm_count=%d mask:0x%08x packed=%d\n", __func__,
 			tdm_count, mask, packed);
 
 	if ((sport->regs->tcr1 & TSPEN) || (sport->regs->rcr1 & RSPEN))
@@ -248,7 +248,7 @@ static inline int sport_tx_dma_start(struct sport_device *sport, int dummy)
 int sport_rx_start(struct sport_device *sport)
 {
 	unsigned long flags;
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	if (sport->rx_run)
 		return -EBUSY;
 	if (sport->tx_run) {
@@ -277,7 +277,7 @@ EXPORT_SYMBOL(sport_rx_start);
 
 int sport_rx_stop(struct sport_device *sport)
 {
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 
 	if (!sport->rx_run)
 		return 0;
@@ -331,7 +331,7 @@ static inline int sport_hook_tx_dummy(struct sport_device *sport)
 int sport_tx_start(struct sport_device *sport)
 {
 	unsigned flags;
-	pr_debug("%s: tx_run:%d, rx_run:%d\n", __FUNCTION__,
+	pr_debug("%s: tx_run:%d, rx_run:%d\n", __func__,
 			sport->tx_run, sport->rx_run);
 	if (sport->tx_run)
 		return -EBUSY;
@@ -400,7 +400,7 @@ int sport_config_rx_dma(struct sport_device *sport, void *buf,
 	unsigned int cfg;
 	dma_addr_t addr;
 
-	pr_debug("%s buf:%p, frag:%d, fragsize:0x%lx\n", __FUNCTION__, \
+	pr_debug("%s buf:%p, frag:%d, fragsize:0x%lx\n", __func__, \
 			buf, fragcount, fragsize);
 
 	x_count = fragsize / sport->wdsize;
@@ -423,7 +423,7 @@ int sport_config_rx_dma(struct sport_device *sport, void *buf,
 		if (i == 0)
 			return -EINVAL;
 	}
-	pr_debug("%s(x_count:0x%x, y_count:0x%x)\n", __FUNCTION__,
+	pr_debug("%s(x_count:0x%x, y_count:0x%x)\n", __func__,
 			x_count, y_count);
 
 	if (sport->dma_rx_desc) {
@@ -466,7 +466,7 @@ int sport_config_tx_dma(struct sport_device *sport, void *buf, \
 	dma_addr_t addr;
 
 	pr_debug("%s buf:%p, fragcount:%d, fragsize:0x%lx\n",
-			__FUNCTION__, buf, fragcount, fragsize);
+			__func__, buf, fragcount, fragsize);
 
 	x_count = fragsize/sport->wdsize;
 	y_count = 0;
@@ -488,7 +488,7 @@ int sport_config_tx_dma(struct sport_device *sport, void *buf, \
 		if (i == 0)
 			return -EINVAL;
 	}
-	pr_debug("%s x_count:0x%x, y_count:0x%x\n", __FUNCTION__,
+	pr_debug("%s x_count:0x%x, y_count:0x%x\n", __func__,
 			x_count, y_count);
 
 
@@ -528,7 +528,7 @@ static int sport_config_rx_dummy(struct sport_device *sport)
 	struct dmasg *desc;
 	unsigned config;
 
-	pr_debug("%s entered\n", __FUNCTION__);
+	pr_debug("%s entered\n", __func__);
 #if L1_DATA_A_LENGTH != 0
 	desc = (struct dmasg*)l1_data_sram_alloc(2 * sizeof(*desc));
 #else
@@ -561,7 +561,7 @@ static int sport_config_tx_dummy(struct sport_device *sport)
 	struct dmasg *desc;
 	unsigned int config;
 
-	pr_debug("%s entered\n", __FUNCTION__);
+	pr_debug("%s entered\n", __func__);
 
 #if L1_DATA_A_LENGTH != 0
 	desc = (struct dmasg*)l1_data_sram_alloc(2 * sizeof(*desc));
@@ -696,7 +696,7 @@ static irqreturn_t rx_handler(int irq, void *dev_id)
 	unsigned int rx_stat;
 	struct sport_device *sport = dev_id;
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	sport_check_status(sport, NULL, &rx_stat, NULL);
 	if (!(rx_stat & DMA_DONE)) {
 		printk(KERN_ERR "rx dma is already stopped\n");
@@ -713,7 +713,7 @@ static irqreturn_t tx_handler(int irq, void *dev_id)
 {
 	unsigned int tx_stat;
 	struct sport_device *sport = dev_id;
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	sport_check_status(sport, NULL, NULL, &tx_stat);
 	if (!(tx_stat & DMA_DONE)) {
 		printk(KERN_ERR "tx dma is already stopped\n");
@@ -732,7 +732,7 @@ static irqreturn_t err_handler(int irq, void *dev_id)
 	unsigned int status = 0;
 	struct sport_device *sport = dev_id;
 
-	pr_debug("%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 	if (sport_check_status(sport, &status, NULL, NULL)) {
 		printk(KERN_ERR "error checking status ??");
 		return IRQ_NONE;
@@ -809,7 +809,7 @@ struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
 {
 	int ret;
 	struct sport_device *sport;
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	BUG_ON(param == NULL);
 	BUG_ON(wdsize == 0 || dummy_count == 0);
 	sport = kmalloc(sizeof(struct sport_device), GFP_KERNEL);
@@ -939,7 +939,7 @@ int sport_send_and_recv(struct sport_device *sport, u8 *out_data, \
 	unsigned long wait = 0;
 
 	pr_debug("%s enter, out_data:%p, in_data:%p len:%d\n", \
-			__FUNCTION__, out_data, in_data, len);
+			__func__, out_data, in_data, len);
 	pr_debug("tcr1:0x%04x, tcr2:0x%04x, tclkdiv:0x%04x, tfsdiv:0x%04x\n"
 			"mcmc1:0x%04x, mcmc2:0x%04x\n",
 			sport->regs->tcr1, sport->regs->tcr2,

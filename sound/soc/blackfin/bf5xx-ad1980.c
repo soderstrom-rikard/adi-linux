@@ -53,7 +53,7 @@ static int bf5xx_board_startup(struct snd_pcm_substream *substream)
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	cpu_dai->private_data = sport_handle;
 	return 0;
 }

@@ -88,7 +88,7 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 	struct sport_device *sport = runtime->private_data;
 	int period_bytes = frames_to_bytes(runtime, runtime->period_size);
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_tx_dma(sport, runtime->dma_area, runtime->periods, period_bytes);
@@ -136,7 +136,7 @@ static snd_pcm_uframes_t bf5xx_pcm_pointer(struct snd_pcm_substream *substream)
 	struct sport_device *sport = runtime->private_data;
 	unsigned int diff;
 	snd_pcm_uframes_t frames;
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		diff = sport_curr_offset_tx(sport);
 		frames = bytes_to_frames(substream->runtime, diff);
@@ -152,7 +152,7 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	int ret;
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	snd_soc_set_runtime_hwparams(substream, &bf5xx_pcm_hardware);
 
 	ret = snd_pcm_hw_constraint_integer(runtime, \
@@ -174,7 +174,7 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 
 static int bf5xx_pcm_close(struct snd_pcm_substream *substream)
 {
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	/*Nothing need to be cleared here*/
 
 	return 0;
@@ -220,7 +220,7 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 	}
 	buf->bytes = size;
 
-	pr_debug("%s, area:%p, size:0x%08lx\n", __FUNCTION__, buf->area, buf->bytes);
+	pr_debug("%s, area:%p, size:0x%08lx\n", __func__, buf->area, buf->bytes);
 	if (stream == SNDRV_PCM_STREAM_PLAYBACK)
 		sport_handle->tx_buf = buf->area;
 	else
@@ -257,7 +257,7 @@ int bf5xx_pcm_new(struct snd_card *card, struct snd_soc_codec_dai *dai,
 {
 	int ret = 0;
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	if (!card->dev->dma_mask)
 		card->dev->dma_mask = &bf5xx_pcm_dmamask;
 	if (!card->dev->coherent_dma_mask)

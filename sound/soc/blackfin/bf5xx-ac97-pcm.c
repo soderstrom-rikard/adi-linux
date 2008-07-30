@@ -220,7 +220,7 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	int ret;
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	snd_soc_set_runtime_hwparams(substream, &bf5xx_pcm_hardware);
 
 	ret = snd_pcm_hw_constraint_integer(runtime, \
@@ -242,7 +242,7 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 
 static int bf5xx_pcm_close(struct snd_pcm_substream *substream)
 {
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	/*Nothing need to be cleared here*/
 	return 0;
 }
@@ -310,7 +310,7 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 	}
 	buf->bytes = size;
 
-	pr_debug("%s, area:%p, size:0x%08lx\n", __FUNCTION__, buf->area, buf->bytes);
+	pr_debug("%s, area:%p, size:0x%08lx\n", __func__, buf->area, buf->bytes);
 	if (stream == SNDRV_PCM_STREAM_PLAYBACK)
 		sport_handle->tx_buf = buf->area;
 	else
@@ -388,7 +388,7 @@ int bf5xx_pcm_new(struct snd_card *card, struct snd_soc_codec_dai *dai,
 {
 	int ret = 0;
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	if (!card->dev->dma_mask)
 		card->dev->dma_mask = &bf5xx_pcm_dmamask;
 	if (!card->dev->coherent_dma_mask)

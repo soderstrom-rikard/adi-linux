@@ -150,7 +150,7 @@ static unsigned short bf5xx_ac97_read(struct snd_ac97 *ac97,
 {
 	struct ac97_frame out_frame[2], in_frame[2];
 
-	pr_debug("%s enter 0x%x\n", __FUNCTION__, reg);
+	pr_debug("%s enter 0x%x\n", __func__, reg);
 
 	/* When dma descriptor is enabled, the register should not be read */
 	if (sport_handle->tx_run || sport_handle->rx_run) {
@@ -172,7 +172,7 @@ static unsigned short bf5xx_ac97_read(struct snd_ac97 *ac97,
 void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
 	unsigned short val)
 {
-	pr_debug("%s enter 0x%x:0x%04x\n", __FUNCTION__, reg, val);
+	pr_debug("%s enter 0x%x:0x%04x\n", __func__, reg, val);
 
 	if (sport_handle->tx_run) {
 		enqueue_cmd(ac97, (reg << 8), val); /* write */
@@ -199,7 +199,7 @@ static void bf5xx_ac97_warm_reset(struct snd_ac97 *ac97)
 	u16 per = BFIN_SPORT_RFS(CONFIG_SND_BF5XX_SPORT_NUM);
 	u16 gpio = P_IDENT(BFIN_SPORT_RFS(CONFIG_SND_BF5XX_SPORT_NUM));
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 
 	peripheral_free(per);
 	gpio_request(gpio, "bf5xx-ac97");
@@ -210,14 +210,14 @@ static void bf5xx_ac97_warm_reset(struct snd_ac97 *ac97)
 	gpio_free(gpio);
 	peripheral_request(per, "soc-audio");
 #else
-	printk(KERN_INFO"%s: Not implemented\n", __FUNCTION__);
+	printk(KERN_INFO"%s: Not implemented\n", __func__);
 #endif
 }
 
 static void bf5xx_ac97_cold_reset(struct snd_ac97 *ac97)
 {
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 
 	/* It is specified for bf548-ezkit */
 	gpio_set_value(CONFIG_SND_BF5XX_RESET_GPIO_NUM, 0);
@@ -244,7 +244,7 @@ static int bf5xx_ac97_suspend(struct platform_device *pdev,
 	struct sport_device *sport =
 		(struct sport_device *)dai->private_data;
 
-	pr_debug("%s : sport %d\n", __FUNCTION__, dai->id);
+	pr_debug("%s : sport %d\n", __func__, dai->id);
 	if (!dai->active)
 		return 0;
 	if (dai->capture.active)
@@ -261,7 +261,7 @@ static int bf5xx_ac97_resume(struct platform_device *pdev,
 	struct sport_device *sport =
 		(struct sport_device *)dai->private_data;
 
-	pr_debug("%s : sport %d\n", __FUNCTION__, dai->id);
+	pr_debug("%s : sport %d\n", __func__, dai->id);
 	if (!dai->active)
 		return 0;
 	ret = sport_set_multichannel(sport_handle, 16, 0x1F, 1);

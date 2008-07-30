@@ -74,7 +74,7 @@ static int bf5xx_i2s_probe(struct platform_device *pdev)
 		printk(KERN_ERR "Requesting Peripherals failed\n");
 		return -EFAULT;
 	}
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	/*request DMA for SPORT*/
 	sport_handle = sport_init(&sport_params[sport_num], 4, \
 			2 * sizeof(u32), NULL);
@@ -107,7 +107,7 @@ static int bf5xx_i2s_suspend(struct platform_device *dev,
 	struct sport_device *sport =
 		(struct sport_device *)dai->private_data;
 
-	pr_debug("%s : sport %d\n", __FUNCTION__, dai->id);
+	pr_debug("%s : sport %d\n", __func__, dai->id);
 	if (!dai->active)
 		return 0;
 	if (dai->capture.active)
@@ -124,7 +124,7 @@ static int bf5xx_i2s_resume(struct platform_device *pdev,
 	struct sport_device *sport =
 		(struct sport_device *)dai->private_data;
 
-	pr_debug("%s : sport %d\n", __FUNCTION__, dai->id);
+	pr_debug("%s : sport %d\n", __func__, dai->id);
 	if (!dai->active)
 		return 0;
 	ret = sport_config_rx(sport_handle, RFSR | RCKFE, RSFSE|0x1f, 0, 0);
