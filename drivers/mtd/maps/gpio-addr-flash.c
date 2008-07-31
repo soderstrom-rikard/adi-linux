@@ -26,8 +26,6 @@
 #include <asm/gpio.h>
 #include <asm/io.h>
 
-#define stamp(fmt, args...) pr_debug("%s:%i: " fmt "\n", __func__, __LINE__, ## args)
-#define stampit() stamp("here i am")
 #define pr_devinit(fmt, args...) ({ static const __devinitconst char __fmt[] = fmt; printk(__fmt, ## args); })
 
 #define DRIVER_NAME "gpio-addr-flash"
@@ -35,9 +33,17 @@
 struct async_state {
 	struct mtd_info *mtd;
 	struct map_info map;
-	unsigned gpio_addr;
-	unsigned long boundary;
+	size_t gpio_count;
+	unsigned *gpio_addrs;
+	unsigned long win_size;
 };
+
+static void gf_set_gpios(struct async_state *state, unsigned long ofs)
+{
+	size_t i;
+	for (i = 0; i < state->gpio_count; ++i)
+		gpio_set_value(state->gpio_addrs[i], !!((ofs / state->win_size) & (1 << i)));
+}
 
 static map_word gf_read(struct map_info *map, unsigned long ofs)
 {
@@ -45,12 +51,9 @@ static map_word gf_read(struct map_info *map, unsigned long ofs)
 	u16 word;
 	map_word test;
 
-	stamp("gpio: %i, ofs = %lx", !!(ofs >= state->boundary), ofs);
+	gf_set_gpios(state, ofs);
 
-	gpio_set_value(state->gpio_addr, !!(ofs >= state->boundary));
-
-	word = readw(map->virt + (ofs % state->boundary));
-
+	word = readw(map->virt + (ofs % state->win_size));
 	test.x[0] = word;
 	return test;
 }
@@ -59,20 +62,13 @@ static void gf_copy_from(struct map_info *map, void *to, unsigned long from, ssi
 {
 	struct async_state *state = (struct async_state *)map->map_priv_1;
 
-	stamp("gpio: %i, to = %p, from = %lx, len = %lx", !!(from >= state->boundary), to, from, len);
+	gf_set_gpios(state, from);
 
-	gpio_set_value(state->gpio_addr, !!(from >= state->boundary));
+	/* BUG if operation crosss the win_size */
+	BUG_ON(!((from + len) % state->win_size <= (from + len)));
 
-	if ((from + len) % state->boundary <= (from + len)) {
-		/* operation does not cross the boundary, so one shot it */
-		memcpy(to, map->virt + (from % state->boundary), len);
-	} else {
-		/* operation does cross the boundary, so break it up */
-		stamp("two shot");
-		memcpy(to, map->virt + from, state->boundary - from);
-		gpio_set_value(state->gpio_addr, 1);
-		memcpy(to, map->virt + state->boundary, (from + len) % state->boundary);
-	}
+	/* operation does not cross the win_size, so one shot it */
+	memcpy_fromio(to, map->virt + (from % state->win_size), len);
 }
 
 static void gf_write(struct map_info *map, map_word d1, unsigned long ofs)
@@ -80,33 +76,23 @@ static void gf_write(struct map_info *map, map_word d1, unsigned long ofs)
 	struct async_state *state = (struct async_state *)map->map_priv_1;
 	u16 d;
 
-	stamp("gpio: %i, ofs = %lx", !!(ofs >= state->boundary), ofs);
+	gf_set_gpios(state, ofs);
 
 	d = d1.x[0];
-
-	gpio_set_value(state->gpio_addr, !!(ofs >= state->boundary));
-
-	writew(d, map->virt + (ofs % state->boundary));
+	writew(d, map->virt + (ofs % state->win_size));
 }
 
 static void gf_copy_to(struct map_info *map, unsigned long to, const void *from, ssize_t len)
 {
 	struct async_state *state = (struct async_state *)map->map_priv_1;
 
-	stamp("gpio: %i, to = %lx, from = %p, len = %lx", !!(to >= state->boundary), to, from, len);
+	gf_set_gpios(state, to);
 
-	gpio_set_value(state->gpio_addr, !!(to >= state->boundary));
+	/* BUG if operation crosss the win_size */
+	BUG_ON(!((to + len) % state->win_size <= (to + len)));
 
-	if ((to + len) % state->boundary <= (to + len)) {
-		/* operation does not cross the boundary, so one shot it */
-		memcpy(map->virt + (to % state->boundary), from, len);
-	} else {
-		/* operation does cross the boundary, so break it up */
-		stamp("two shot");
-		memcpy(map->virt + to, from, state->boundary - to);
-		gpio_set_value(state->gpio_addr, 1);
-		memcpy(map->virt + state->boundary, from, (to + len) % state->boundary);
-	}
+	/* operation does not cross the win_size, so one shot it */
+	memcpy_toio(map->virt + (to % state->win_size), from, len);
 }
 
 #ifdef CONFIG_MTD_PARTITIONS
@@ -116,14 +102,20 @@ static const char *part_probe_types[] = { "cmdlinepart", "RedBoot", NULL };
 static int __devinit gpio_flash_probe(struct platform_device *pdev)
 {
 	int ret;
+	size_t i;
 	struct physmap_flash_data *pdata = pdev->dev.platform_data;
 	struct resource *memory = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	struct resource *gpios = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 	struct async_state *state;
 
-	state = kzalloc(sizeof(*state), GFP_KERNEL);
+	state = kzalloc(sizeof(*state) + sizeof(unsigned) * gpios->end, GFP_KERNEL);
 	if (!state)
 		return -ENOMEM;
-	platform_set_drvdata(pdev, state);
+
+	state->gpio_count     = gpios->end;
+	state->gpio_addrs     = (void *)(state + 1);
+	state->win_size       = memory->end - memory->start + 1;
+	memcpy(state->gpio_addrs, (void *)gpios->start, sizeof(unsigned) * state->gpio_count);
 
 	state->map.name       = DRIVER_NAME;
 	state->map.read       = gf_read;
@@ -131,24 +123,29 @@ static int __devinit gpio_flash_probe(struct platform_device *pdev)
 	state->map.write      = gf_write;
 	state->map.copy_to    = gf_copy_to;
 	state->map.bankwidth  = pdata->width;
-	state->map.size       = (memory->end - memory->start + 1) * 2;
+	state->map.size       = state->win_size * (1 << state->gpio_count);
 	state->map.virt       = (void __iomem *)memory->start;
 	state->map.phys       = memory->start;
 	state->map.map_priv_1 = (unsigned long)state;
-	state->gpio_addr      = platform_get_irq(pdev, 0);
-	state->boundary       = memory->end - memory->start + 1;
 
-	if (gpio_request(state->gpio_addr, DRIVER_NAME)) {
-		pr_devinit(KERN_ERR DRIVER_NAME ": Failed to request gpio %d\n", state->gpio_addr);
-		kfree(state);
-		return -EBUSY;
+	platform_set_drvdata(pdev, state);
+
+	for (i = 0; i < state->gpio_count; ++i) {
+		if (gpio_request(state->gpio_addrs[i], DRIVER_NAME)) {
+			pr_devinit(KERN_ERR DRIVER_NAME ": Failed to request gpio %d\n", state->gpio_addrs[i]);
+			while (i--)
+				gpio_free(state->gpio_addrs[i]);
+			kfree(state);
+			return -EBUSY;
+		}
+		gpio_direction_output(state->gpio_addrs[i], 0);
 	}
-	gpio_direction_output(state->gpio_addr, 0);
 
 	pr_devinit(KERN_NOTICE DRIVER_NAME ": probing %d-bit flash bus\n", state->map.bankwidth * 8);
 	state->mtd = do_map_probe(memory->name, &state->map);
 	if (!state->mtd) {
-		gpio_free(state->gpio_addr);
+		for (i = 0; i < state->gpio_count; ++i)
+			gpio_free(state->gpio_addrs[i]);
 		kfree(state);
 		return -ENXIO;
 	}
@@ -176,7 +173,9 @@ static int __devinit gpio_flash_probe(struct platform_device *pdev)
 static int __devexit gpio_flash_remove(struct platform_device *pdev)
 {
 	struct async_state *state = platform_get_drvdata(pdev);
-	gpio_free(state->gpio_addr);
+	size_t i;
+	for (i = 0; i < state->gpio_count; ++i)
+		gpio_free(state->gpio_addrs[i]);
 #ifdef CONFIG_MTD_PARTITIONS
 	del_mtd_partitions(state->mtd);
 #endif
