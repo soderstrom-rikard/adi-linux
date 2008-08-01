@@ -118,35 +118,16 @@ ENTRY(__start)
 	SSYNC;
 
 	/* Initialise General-Purpose I/O Modules on BF537 */
-	/* Rev 0.0 Anomaly 05000212 - PORTx_FER,
-	 * PORT_MUX Registers Do Not accept "writes" correctly:
-	 */
 	p0.h = hi(BFIN_PORT_MUX);
 	p0.l = lo(BFIN_PORT_MUX);
-#if ANOMALY_05000212
-	R0.L = W[P0]; /* Read */
-	SSYNC;
-#endif
 	R0 = (PGDE_UART | PFTE_UART)(Z);
-#if ANOMALY_05000212
-	W[P0] = R0.L; /* Write */
-	SSYNC;
-#endif
 	W[P0] = R0.L; /* Enable both UARTS */
 	SSYNC;
 
+	/* Enable peripheral function of PORTF for UART0 and UART1 */
 	p0.h = hi(PORTF_FER);
 	p0.l = lo(PORTF_FER);
-#if ANOMALY_05000212
-	R0.L = W[P0]; /* Read */
-	SSYNC;
-#endif
 	R0 = 0x000F(Z);
-#if ANOMALY_05000212
-	W[P0] = R0.L; /* Write */
-	SSYNC;
-#endif
-	/* Enable peripheral function of PORTF for UART0 and UART1 */
 	W[P0] = R0.L;
 	SSYNC;
 
