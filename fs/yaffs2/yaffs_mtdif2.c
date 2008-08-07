@@ -204,7 +204,7 @@ int nandmtd2_MarkNANDBlockBad(struct yaffs_DeviceStruct *dev, int blockNo)
 }
 
 int nandmtd2_QueryNANDBlock(struct yaffs_DeviceStruct *dev, int blockNo,
-			    yaffs_BlockState * state, int *sequenceNumber)
+			    yaffs_BlockState * state, __u32 *sequenceNumber)
 {
 	struct mtd_info *mtd = (struct mtd_info *)(dev->genericDevice);
 	int retval;
