@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * viking.S: High speed Viking cache/mmu operations
  *
  * Copyright (C) 1997  Eddie C. Dost  (ecd@skynet.be)

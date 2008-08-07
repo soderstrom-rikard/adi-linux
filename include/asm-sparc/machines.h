@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * machines.h:  Defines for taking apart the machine type value in the
  *              idprom and determining the kind of machine we are on.
  *

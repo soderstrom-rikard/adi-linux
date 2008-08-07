@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * ranges.c: Handle ranges in newer proms for obio/sbus.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

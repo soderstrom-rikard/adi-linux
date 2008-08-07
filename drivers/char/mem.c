@@ -40,36 +40,7 @@
  */
 static inline int uncached_access(struct file *file, unsigned long addr)
 {
-#if defined(__i386__) && !defined(__arch_um__)
-	/*
-	 * On the PPro and successors, the MTRRs are used to set
-	 * memory types for physical addresses outside main memory,
-	 * so blindly setting PCD or PWT on those pages is wrong.
-	 * For Pentiums and earlier, the surround logic should disable
-	 * caching for the high addresses through the KEN pin, but
-	 * we maintain the tradition of paranoia in this code.
-	 */
-	if (file->f_flags & O_SYNC)
-		return 1;
- 	return !( test_bit(X86_FEATURE_MTRR, boot_cpu_data.x86_capability) ||
-		  test_bit(X86_FEATURE_K6_MTRR, boot_cpu_data.x86_capability) ||
-		  test_bit(X86_FEATURE_CYRIX_ARR, boot_cpu_data.x86_capability) ||
-		  test_bit(X86_FEATURE_CENTAUR_MCR, boot_cpu_data.x86_capability) )
-	  && addr >= __pa(high_memory);
-#elif defined(__x86_64__) && !defined(__arch_um__)
-	/* 
-	 * This is broken because it can generate memory type aliases,
-	 * which can cause cache corruptions
-	 * But it is only available for root and we have to be bug-to-bug
-	 * compatible with i386.
-	 */
-	if (file->f_flags & O_SYNC)
-		return 1;
-	/* same behaviour as i386. PAT always set to cached and MTRRs control the
-	   caching behaviour. 
-	   Hopefully a full PAT implementation will fix that soon. */	   
-	return 0;
-#elif defined(CONFIG_IA64)
+#if defined(CONFIG_IA64)
 	/*
 	 * On ia64, we ignore O_SYNC because we cannot tolerate memory attribute aliases.
 	 */
@@ -106,6 +77,36 @@ static inline int valid_mmap_phys_addr_range(unsigned long pfn, size_t size)
 	return 1;
 }
 #endif
+
+#ifdef CONFIG_NONPROMISC_DEVMEM
+static inline int range_is_allowed(unsigned long pfn, unsigned long size)
+{
+	u64 from = ((u64)pfn) << PAGE_SHIFT;
+	u64 to = from + size;
+	u64 cursor = from;
+
+	while (cursor < to) {
+		if (!devmem_is_allowed(pfn)) {
+			printk(KERN_INFO
+		"Program %s tried to access /dev/mem between %Lx->%Lx.\n",
+				current->comm, from, to);
+			return 0;
+		}
+		cursor += PAGE_SIZE;
+		pfn++;
+	}
+	return 1;
+}
+#else
+static inline int range_is_allowed(unsigned long pfn, unsigned long size)
+{
+	return 1;
+}
+#endif
+
+void __attribute__((weak)) unxlate_dev_mem_ptr(unsigned long phys, void *addr)
+{
+}
 
 /*
  * This funcion reads the *physical* memory. The f_pos points directly to the 
@@ -149,15 +150,25 @@ static ssize_t read_mem(struct file * file, char __user * buf,
 
 		sz = min_t(unsigned long, sz, count);
 
+		if (!range_is_allowed(p >> PAGE_SHIFT, count))
+			return -EPERM;
+
 		/*
 		 * On ia64 if a page has been mapped somewhere as
 		 * uncached, then it must also be accessed uncached
 		 * by the kernel or data corruption may occur
 		 */
 		ptr = xlate_dev_mem_ptr(p);
-
-		if (copy_to_user(buf, ptr, sz))
+		if (!ptr)
 			return -EFAULT;
+
+		if (copy_to_user(buf, ptr, sz)) {
+			unxlate_dev_mem_ptr(p, ptr);
+			return -EFAULT;
+		}
+
+		unxlate_dev_mem_ptr(p, ptr);
+
 		buf += sz;
 		p += sz;
 		count -= sz;
@@ -206,20 +217,32 @@ static ssize_t write_mem(struct file * file, const char __user * buf,
 
 		sz = min_t(unsigned long, sz, count);
 
+		if (!range_is_allowed(p >> PAGE_SHIFT, sz))
+			return -EPERM;
+
 		/*
 		 * On ia64 if a page has been mapped somewhere as
 		 * uncached, then it must also be accessed uncached
 		 * by the kernel or data corruption may occur
 		 */
 		ptr = xlate_dev_mem_ptr(p);
-
-		copied = copy_from_user(ptr, buf, sz);
-		if (copied) {
-			written += sz - copied;
+		if (!ptr) {
 			if (written)
 				break;
 			return -EFAULT;
 		}
+
+		copied = copy_from_user(ptr, buf, sz);
+		if (copied) {
+			written += sz - copied;
+			unxlate_dev_mem_ptr(p, ptr);
+			if (written)
+				break;
+			return -EFAULT;
+		}
+
+		unxlate_dev_mem_ptr(p, ptr);
+
 		buf += sz;
 		p += sz;
 		count -= sz;
@@ -228,6 +251,12 @@ static ssize_t write_mem(struct file * file, const char __user * buf,
 
 	*ppos += written;
 	return written;
+}
+
+int __attribute__((weak)) phys_mem_access_prot_allowed(struct file *file,
+	unsigned long pfn, unsigned long size, pgprot_t *vma_prot)
+{
+	return 1;
 }
 
 #ifndef __HAVE_PHYS_MEM_ACCESS_PROT
@@ -257,6 +286,35 @@ static unsigned long get_unmapped_area_mem(struct file *file,
 }
 #endif
 
+void __attribute__((weak))
+map_devmem(unsigned long pfn, unsigned long len, pgprot_t prot)
+{
+	/* nothing. architectures can override. */
+}
+
+void __attribute__((weak))
+unmap_devmem(unsigned long pfn, unsigned long len, pgprot_t prot)
+{
+	/* nothing. architectures can override. */
+}
+
+static void mmap_mem_open(struct vm_area_struct *vma)
+{
+	map_devmem(vma->vm_pgoff,  vma->vm_end - vma->vm_start,
+			vma->vm_page_prot);
+}
+
+static void mmap_mem_close(struct vm_area_struct *vma)
+{
+	unmap_devmem(vma->vm_pgoff,  vma->vm_end - vma->vm_start,
+			vma->vm_page_prot);
+}
+
+static struct vm_operations_struct mmap_mem_ops = {
+	.open  = mmap_mem_open,
+	.close = mmap_mem_close
+};
+
 static int mmap_mem(struct file * file, struct vm_area_struct * vma)
 {
 	size_t size = vma->vm_end - vma->vm_start;
@@ -270,20 +328,32 @@ static int mmap_mem(struct file * file, struct vm_area_struct * vma)
 		return -ENOSYS;
 #endif
 
+	if (!range_is_allowed(vma->vm_pgoff, size))
+		return -EPERM;
+
+	if (!phys_mem_access_prot_allowed(file, vma->vm_pgoff, size,
+						&vma->vm_page_prot))
+		return -EINVAL;
+
 	vma->vm_page_prot = phys_mem_access_prot(file, vma->vm_pgoff,
 						 size,
 						 vma->vm_page_prot);
+
+	vma->vm_ops = &mmap_mem_ops;
 
 	/* Remap-pfn-range will mark the range VM_IO and VM_RESERVED */
 	if (remap_pfn_range(vma,
 			    vma->vm_start,
 			    vma->vm_pgoff,
 			    size,
-			    vma->vm_page_prot))
+			    vma->vm_page_prot)) {
+		unmap_devmem(vma->vm_pgoff, size, vma->vm_page_prot);
 		return -EAGAIN;
+	}
 	return 0;
 }
 
+#ifdef CONFIG_DEVKMEM
 static int mmap_kmem(struct file * file, struct vm_area_struct * vma)
 {
 	unsigned long pfn;
@@ -304,6 +374,7 @@ static int mmap_kmem(struct file * file, struct vm_area_struct * vma)
 	vma->vm_pgoff = pfn;
 	return mmap_mem(file, vma);
 }
+#endif
 
 #ifdef CONFIG_CRASH_DUMP
 /*
@@ -342,6 +413,7 @@ static ssize_t read_oldmem(struct file *file, char __user *buf,
 extern long vread(char *buf, char *addr, unsigned long count);
 extern long vwrite(char *buf, char *addr, unsigned long count);
 
+#ifdef CONFIG_DEVKMEM
 /*
  * This function reads the *virtual* memory as seen by the kernel.
  */
@@ -546,6 +618,7 @@ static ssize_t write_kmem(struct file * file, const char __user * buf,
  	*ppos = p;
  	return virtr + wrote;
 }
+#endif
 
 #ifdef CONFIG_DEVPORT
 static ssize_t read_port(struct file * file, char __user * buf,
@@ -720,21 +793,19 @@ static const struct file_operations mem_fops = {
 	.write		= write_mem,
 	.mmap		= mmap_mem,
 	.open		= open_mem,
-#ifndef CONFIG_MMU
 	.get_unmapped_area = get_unmapped_area_mem,
-#endif
 };
 
-static struct file_operations kmem_fops = {
+#ifdef CONFIG_DEVKMEM
+static const struct file_operations kmem_fops = {
 	.llseek		= memory_lseek,
 	.read		= read_kmem,
 	.write		= write_kmem,
 	.mmap		= mmap_kmem,
 	.open		= open_kmem,
-#ifndef CONFIG_MMU
 	.get_unmapped_area = get_unmapped_area_mem,
-#endif
 };
+#endif
 
 static const struct file_operations null_fops = {
 	.llseek		= null_lseek,
@@ -811,13 +882,15 @@ static int memory_open(struct inode * inode, struct file * filp)
 {
 	switch (iminor(inode)) {
 		case 1:
-			filp->f_mapping->backing_dev_info = &mem_bdi;
 			filp->f_op = &mem_fops;
-			break;
-		case 2:
 			filp->f_mapping->backing_dev_info = &mem_bdi;
-			filp->f_op = &kmem_fops;
 			break;
+#ifdef CONFIG_DEVKMEM
+		case 2:
+			filp->f_op = &kmem_fops;
+			filp->f_mapping->backing_dev_info = &mem_bdi;
+			break;
+#endif
 		case 3:
 			filp->f_op = &null_fops;
 			break;
@@ -866,7 +939,9 @@ static const struct {
 	const struct file_operations	*fops;
 } devlist[] = { /* list of minor devices */
 	{1, "mem",     S_IRUSR | S_IWUSR | S_IRGRP, &mem_fops},
+#ifdef CONFIG_DEVKMEM
 	{2, "kmem",    S_IRUSR | S_IWUSR | S_IRGRP, &kmem_fops},
+#endif
 	{3, "null",    S_IRUGO | S_IWUGO,           &null_fops},
 #ifdef CONFIG_DEVPORT
 	{4, "port",    S_IRUSR | S_IWUSR | S_IRGRP, &port_fops},

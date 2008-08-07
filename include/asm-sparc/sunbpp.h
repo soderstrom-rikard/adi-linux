@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * include/asm-sparc/sunbpp.h
  */
 

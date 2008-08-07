@@ -6,8 +6,6 @@
  * Created:      12.07.2005 17:09
  * Description:  Simple PPI Frame Capture driver for ADSP-BF5xx
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2005-2006 Analog Devices Inc.
  *

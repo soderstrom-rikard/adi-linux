@@ -29,8 +29,8 @@
 
 #define stamp(fmt, args...) pr_debug("%s:%i: " fmt "\n", __func__, __LINE__, ## args)
 #define stampit() stamp("here i am")
-#define pr_devinit(fmt, args...) ({ static const __devinitdata char __fmt[] = fmt; printk(__fmt, ## args); })
-#define pr_init(fmt, args...) ({ static const __initdata char __fmt[] = fmt; printk(__fmt, ## args); })
+#define pr_devinit(fmt, args...) ({ static const __devinitconst char __fmt[] = fmt; printk(__fmt, ## args); })
+#define pr_init(fmt, args...) ({ static const __initconst char __fmt[] = fmt; printk(__fmt, ## args); })
 
 #define WATCHDOG_NAME "bfin-wdt"
 #define PFX WATCHDOG_NAME ": "
@@ -378,7 +378,7 @@ static int bfin_wdt_resume(struct platform_device *pdev)
 # define bfin_wdt_resume NULL
 #endif
 
-static struct file_operations bfin_wdt_fops = {
+static const struct file_operations bfin_wdt_fops = {
 	.owner    = THIS_MODULE,
 	.llseek   = no_llseek,
 	.write    = bfin_wdt_write,

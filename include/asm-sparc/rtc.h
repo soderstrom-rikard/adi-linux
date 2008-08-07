@@ -1,5 +1,4 @@
-/* $Id$
- *
+/*
  * rtc.h: Definitions for access to the Mostek real time clock
  *
  * Copyright (C) 1996 Thomas K. Dyas (tdyas@eden.rutgers.edu)

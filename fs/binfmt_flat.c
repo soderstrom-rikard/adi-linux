@@ -20,7 +20,6 @@
 #include <linux/sched.h>
 #include <linux/mm.h>
 #include <linux/mman.h>
-#include <linux/a.out.h>
 #include <linux/errno.h>
 #include <linux/signal.h>
 #include <linux/string.h>
@@ -544,9 +543,8 @@ static int load_flat_file(struct linux_binprm * bprm,
 		DBG_FLT("BINFMT_FLAT: ROM mapping of file (we hope)\n");
 
 		down_write(&current->mm->mmap_sem);
-		textpos = do_mmap(bprm->file, 0, text_len,
-				  PROT_READ | PROT_EXEC,
-				  MAP_PRIVATE, 0);
+		textpos = do_mmap(bprm->file, 0, text_len, PROT_READ|PROT_EXEC,
+				  MAP_PRIVATE|MAP_EXECUTABLE, 0);
 		up_write(&current->mm->mmap_sem);
 		if (!textpos  || textpos >= (unsigned long) -4096) {
 			if (!textpos)
@@ -560,8 +558,8 @@ static int load_flat_file(struct linux_binprm * bprm,
 		len = PAGE_ALIGN(len);
 		down_write(&current->mm->mmap_sem);
 		realdatastart = do_mmap(0, 0, len,
-							PROT_READ|PROT_WRITE|PROT_EXEC,
-							MAP_PRIVATE, 0);
+					PROT_READ|PROT_WRITE|PROT_EXEC,
+					MAP_PRIVATE, 0);
 		up_write(&current->mm->mmap_sem);
 
 		if (realdatastart == 0 || realdatastart >= (unsigned long)-4096) {
@@ -606,8 +604,8 @@ static int load_flat_file(struct linux_binprm * bprm,
 		len = PAGE_ALIGN(len);
 		down_write(&current->mm->mmap_sem);
 		textpos = do_mmap(0, 0, len,
-						PROT_READ | PROT_EXEC | PROT_WRITE,
-						MAP_PRIVATE, 0);
+				PROT_READ | PROT_EXEC | PROT_WRITE,
+				MAP_PRIVATE, 0);
 		up_write(&current->mm->mmap_sem);
 
 		if (!textpos  || textpos >= (unsigned long) -4096) {
@@ -789,17 +787,17 @@ static int load_flat_file(struct linux_binprm * bprm,
 		for (i=0; i < relocs; i++)
 			old_reloc(ntohl(reloc[i]));
 	}
-
+	
 	flush_icache_range(start_code, end_code);
 
 	/* zero the BSS,  BRK and stack areas */
-	memset((void*)(datapos + data_len), 0, bss_len +
+	memset((void*)(datapos + data_len), 0, bss_len + 
 			(memp + memp_size - stack_len -	/* end brk */
 			libinfo->lib_list[id].start_brk) +		/* start brk */
 			stack_len);
 
 	return 0;
- out_fail:
+out_fail:
 	if (flags & FLAT_FLAG_L1STK)
 		free_l1stack();
 	return result;
@@ -950,14 +948,8 @@ static int __init init_flat_binfmt(void)
 	return register_binfmt(&flat_format);
 }
 
-static void __exit exit_flat_binfmt(void)
-{
-	unregister_binfmt(&flat_format);
-}
-
 /****************************************************************************/
 
 core_initcall(init_flat_binfmt);
-module_exit(exit_flat_binfmt);
 
 /****************************************************************************/

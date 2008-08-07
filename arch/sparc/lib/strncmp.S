@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * strncmp.S: Hand optimized Sparc assembly of GCC output from GNU libc
  *            generic strncmp routine.
  */

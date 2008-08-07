@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * sbus.h:  Defines for the Sun SBus.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

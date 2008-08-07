@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * starfire.c: Starfire/E10000 support.
  *
  * Copyright (C) 1998 David S. Miller (davem@redhat.com)

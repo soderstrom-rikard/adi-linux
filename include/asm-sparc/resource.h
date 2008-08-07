@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * resource.h: Resource definitions.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

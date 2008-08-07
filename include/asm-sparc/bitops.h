@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * bitops.h: Bit string operations on the Sparc.
  *
  * Copyright 1995 David S. Miller (davem@caip.rutgers.edu)

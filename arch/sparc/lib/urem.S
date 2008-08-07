@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * urem.S:      This routine was taken from glibc-1.09 and is covered
  *              by the GNU Library General Public License Version 2.
  */

@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * pgtsun4.h:  Sun4 specific pgtable.h defines and code.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

@@ -1,5 +1,4 @@
-/* $Id$
- * 
+/*
  * Various shadow registers. Defines for these are in include/asm-etrax100/io.h
  */
 

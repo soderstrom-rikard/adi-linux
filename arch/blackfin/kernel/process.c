@@ -31,10 +31,9 @@
 #include <linux/smp_lock.h>
 #include <linux/unistd.h>
 #include <linux/user.h>
+#include <linux/uaccess.h>
 #include <linux/sched.h>
 #include <linux/tick.h>
-#include <linux/a.out.h>
-#include <linux/uaccess.h>
 #include <linux/fs.h>
 #include <linux/err.h>
 

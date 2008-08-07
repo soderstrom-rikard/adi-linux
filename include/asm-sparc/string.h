@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * string.h: External definitions for optimized assembly string
  *           routines for the Linux Kernel.
  *

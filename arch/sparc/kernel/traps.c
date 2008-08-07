@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * arch/sparc/kernel/traps.c
  *
  * Copyright 1995 David S. Miller (davem@caip.rutgers.edu)

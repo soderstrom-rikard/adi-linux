@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * msi.h:  Defines specific to the MBus - Sbus - Interface.
  *
  * Copyright (C) 1996 David S. Miller (davem@caip.rutgers.edu)

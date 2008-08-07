@@ -552,7 +552,7 @@ static void giveback(struct driver_data *drv_data)
 
 static irqreturn_t dma_irq_handler(int irq, void *dev_id)
 {
-	struct driver_data *drv_data = (struct driver_data *)dev_id;
+	struct driver_data *drv_data = dev_id;
 	struct chip_data *chip = drv_data->cur_chip;
 	struct spi_message *msg = drv_data->cur_msg;
 
@@ -742,7 +742,8 @@ static void pump_transfers(unsigned long data)
 	 * successful use different way to r/w according to
 	 * drv_data->cur_chip->enable_dma
 	 */
-	if (!full_duplex && drv_data->cur_chip->enable_dma && drv_data->len > 6) {
+	if (!full_duplex && drv_data->cur_chip->enable_dma
+				&& drv_data->len > 6) {
 
 		disable_dma(drv_data->dma_channel);
 		clear_dma_irqstat(drv_data->dma_channel);
@@ -1398,7 +1399,7 @@ static int bfin5xx_spi_resume(struct platform_device *pdev)
 #define bfin5xx_spi_resume NULL
 #endif				/* CONFIG_PM */
 
-MODULE_ALIAS("bfin-spi-master");	/* for platform bus hotplug */
+MODULE_ALIAS("platform:bfin-spi");
 static struct platform_driver bfin5xx_spi_driver = {
 	.driver	= {
 		.name	= DRV_NAME,

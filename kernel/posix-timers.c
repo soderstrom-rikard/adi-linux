@@ -37,7 +37,6 @@
 #include <linux/mutex.h>
 
 #include <asm/uaccess.h>
-#include <asm/semaphore.h>
 #include <linux/list.h>
 #include <linux/init.h>
 #include <linux/compiler.h>
@@ -256,8 +255,9 @@ static void schedule_next_timer(struct k_itimer *timr)
 	if (timr->it.real.interval.tv64 == 0)
 		return;
 
-	timr->it_overrun += hrtimer_forward(timer, timer->base->get_time(),
-					    timr->it.real.interval);
+	timr->it_overrun += (unsigned int) hrtimer_forward(timer,
+						timer->base->get_time(),
+						timr->it.real.interval);
 
 	timr->it_overrun_last = timr->it_overrun;
 	timr->it_overrun = -1;
@@ -310,8 +310,7 @@ int posix_timer_event(struct k_itimer *timr,int si_private)
 
 	if (timr->it_sigev_notify & SIGEV_THREAD_ID) {
 		struct task_struct *leader;
-		int ret = send_sigqueue(timr->it_sigev_signo, timr->sigq,
-					timr->it_process);
+		int ret = send_sigqueue(timr->sigq, timr->it_process, 0);
 
 		if (likely(ret >= 0))
 			return ret;
@@ -322,8 +321,7 @@ int posix_timer_event(struct k_itimer *timr,int si_private)
 		timr->it_process = leader;
 	}
 
-	return send_group_sigqueue(timr->it_sigev_signo, timr->sigq,
-				   timr->it_process);
+	return send_sigqueue(timr->sigq, timr->it_process, 1);
 }
 EXPORT_SYMBOL_GPL(posix_timer_event);
 
@@ -386,7 +384,7 @@ static enum hrtimer_restart posix_timer_fn(struct hrtimer *timer)
 					now = ktime_add(now, kj);
 			}
 #endif
-			timr->it_overrun +=
+			timr->it_overrun += (unsigned int)
 				hrtimer_forward(timer, now,
 						timr->it.real.interval);
 			ret = HRTIMER_RESTART;
@@ -403,7 +401,7 @@ static struct task_struct * good_sigevent(sigevent_t * event)
 	struct task_struct *rtn = current->group_leader;
 
 	if ((event->sigev_notify & SIGEV_THREAD_ID ) &&
-		(!(rtn = find_task_by_pid(event->sigev_notify_thread_id)) ||
+		(!(rtn = find_task_by_vpid(event->sigev_notify_thread_id)) ||
 		 !same_thread_group(rtn, current) ||
 		 (event->sigev_notify & ~SIGEV_THREAD_ID) != SIGEV_SIGNAL))
 		return NULL;
@@ -493,7 +491,7 @@ sys_timer_create(const clockid_t which_clock,
 		goto retry;
 	else if (error) {
 		/*
-		 * Wierd looking, but we return EAGAIN if the IDR is
+		 * Weird looking, but we return EAGAIN if the IDR is
 		 * full (proper POSIX return value for this)
 		 */
 		error = -EAGAIN;
@@ -662,7 +660,7 @@ common_timer_get(struct k_itimer *timr, struct itimerspec *cur_setting)
 	 */
 	if (iv.tv64 && (timr->it_requeue_pending & REQUEUE_PENDING ||
 	    (timr->it_sigev_notify & ~SIGEV_THREAD_ID) == SIGEV_NONE))
-		timr->it_overrun += hrtimer_forward(timer, now, iv);
+		timr->it_overrun += (unsigned int) hrtimer_forward(timer, now, iv);
 
 	remaining = ktime_sub(timer->expires, now);
 	/* Return 0 only, when the timer is expired and not pending */

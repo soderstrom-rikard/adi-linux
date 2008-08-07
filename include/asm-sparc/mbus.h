@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * mbus.h:  Various defines for MBUS modules.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

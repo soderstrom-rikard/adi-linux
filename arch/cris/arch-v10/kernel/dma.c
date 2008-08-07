@@ -1,6 +1,5 @@
 /* Wrapper for DMA channel allocator that updates DMA client muxing.
- * Copyright 2004, Axis Communications AB
- * $Id$
+ * Copyright 2004-2007, Axis Communications AB
  */
 
 #include <linux/kernel.h>

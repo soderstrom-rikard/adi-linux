@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * include/asm-sparc64/dma.h
  *
  * Copyright 1996 (C) David S. Miller (davem@caip.rutgers.edu)

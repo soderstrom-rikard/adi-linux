@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * generic.c: Generic Sparc mm routines that are not dependent upon
  *            MMU type but are Sparc specific.
  *

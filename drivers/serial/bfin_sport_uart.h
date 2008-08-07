@@ -3,7 +3,7 @@
  *
  * Based on:	include/asm-blackfin/mach-533/bfin_serial_5xx.h
  * Author:	Roy Huang <roy.huang>analog.com>
- * 
+ *
  * Created:	Nov 22, 2006
  * Copyright:	(C) Analog Device Inc.
  * Description: this driver enable SPORTs on Blackfin emulate UART.

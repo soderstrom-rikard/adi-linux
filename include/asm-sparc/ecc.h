@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * ecc.h: Definitions and defines for the external cache/memory
  *        controller on the sun4m.
  *

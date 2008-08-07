@@ -24,9 +24,6 @@
 #define SO_SNDTIMEO     0x4000
 #define SO_ACCEPTCONN	0x8000
 
-/* wha!??? */
-#define SO_DONTLINGER   (~SO_LINGER)  /* Older SunOS compat. hack */
-
 #define SO_SNDBUF	0x1001
 #define SO_RCVBUF	0x1002
 #define SO_SNDBUFFORCE	0x100a
@@ -57,4 +54,5 @@
 #define SO_SECURITY_ENCRYPTION_TRANSPORT	0x5002
 #define SO_SECURITY_ENCRYPTION_NETWORK		0x5004
 
+#define SO_MARK			0x0022
 #endif /* _ASM_SOCKET_H */

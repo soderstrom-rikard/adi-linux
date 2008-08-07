@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * promdevmap.c:  Map device/IO areas to virtual addresses.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

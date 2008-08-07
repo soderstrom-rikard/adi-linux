@@ -6,8 +6,6 @@
  * Created:      Feb. 27th 2006
  * Description:  TWI LCD driver (HD44780) connected to a PCF8574 I2C IO expander
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2006 Analog Devices Inc.
  *

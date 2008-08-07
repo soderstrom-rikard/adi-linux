@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * bbc.h: Defines for BootBus Controller found on UltraSPARC-III
  *        systems.
  *

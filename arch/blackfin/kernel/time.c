@@ -41,8 +41,7 @@
 /* This is an NTP setting */
 #define	TICK_SIZE (tick_nsec / 1000)
 
-static void time_sched_init(irqreturn_t(*timer_routine)
-			(int, void *));
+static void time_sched_init(irq_handler_t timer_routine);
 static unsigned long gettimeoffset(void);
 
 static struct irqaction bfin_timer_irq = {
@@ -51,7 +50,7 @@ static struct irqaction bfin_timer_irq = {
 };
 
 static void
-time_sched_init(irqreturn_t(*timer_routine) (int, void *))
+time_sched_init(irq_handler_t timer_routine)
 {
 	u32 tcount;
 
@@ -124,9 +123,6 @@ irqreturn_t timer_interrupt(int irq, void *dummy)
 
 	do_timer(1);
 
-#ifndef CONFIG_SMP
-	update_process_times(user_mode(get_irq_regs()));
-#endif
 	profile_tick(CPU_PROFILING);
 
 	/*
@@ -148,6 +144,11 @@ irqreturn_t timer_interrupt(int irq, void *dummy)
 			last_rtc_update = xtime.tv_sec - 600;
 	}
 	write_sequnlock(&xtime_lock);
+
+#ifndef CONFIG_SMP
+	update_process_times(user_mode(get_irq_regs()));
+#endif
+
 	return IRQ_HANDLED;
 }
 

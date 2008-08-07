@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * nosrmmu.c: This file is a bunch of dummies for sun4 compiles, 
  *         so that it does not need srmmu and avoid ifdefs.
  *

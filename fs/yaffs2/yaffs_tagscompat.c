@@ -1,21 +1,20 @@
 /*
- * YAFFS: Yet another FFS. A NAND-flash specific file system. 
- * yaffs_tagscompat.h: Tags compatability layer to use YAFFS1 formatted NAND.
+ * YAFFS: Yet Another Flash File System. A NAND-flash specific file system.
  *
- * Copyright (C) 2002 Aleph One Ltd.
+ * Copyright (C) 2002-2007 Aleph One Ltd.
+ *   for Toby Churchill Ltd and Brightstar Engineering
  *
  * Created by Charles Manning <charles@aleph1.co.uk>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
- *
- * $Id$
  */
 
 #include "yaffs_guts.h"
 #include "yaffs_tagscompat.h"
 #include "yaffs_ecc.h"
+#include "yaffs_getblockinfo.h"
 
 static void yaffs_HandleReadDataError(yaffs_Device * dev, int chunkInNAND);
 #ifdef NOTYET
@@ -47,7 +46,7 @@ static const char yaffs_countBitsTable[256] = {
 	4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
 };
 
-static int yaffs_CountBits(__u8 x)
+int yaffs_CountBits(__u8 x)
 {
 	int retVal;
 	retVal = yaffs_countBitsTable[x];
@@ -440,7 +439,7 @@ int yaffs_TagsCompatabilityReadChunkWithTagsFromNAND(yaffs_Device * dev,
 	yaffs_ECCResult eccResult;
 
 	static yaffs_Spare spareFF;
-	static int init;
+	static int init = 0;
 
 	if (!init) {
 		memset(&spareFF, 0xFF, sizeof(spareFF));
@@ -499,9 +498,9 @@ int yaffs_TagsCompatabilityMarkNANDBlockBad(struct yaffs_DeviceStruct *dev,
 }
 
 int yaffs_TagsCompatabilityQueryNANDBlock(struct yaffs_DeviceStruct *dev,
-					  int blockNo, yaffs_BlockState *
-					  state,
-					  int *sequenceNumber)
+					  int blockNo,
+					  yaffs_BlockState *state,
+					  __u32 *sequenceNumber)
 {
 
 	yaffs_Spare spare0, spare1;

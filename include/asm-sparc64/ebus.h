@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * ebus.h: PCI to Ebus pseudo driver software state.
  *
  * Copyright (C) 1997 Eddie C. Dost (ecd@skynet.be)

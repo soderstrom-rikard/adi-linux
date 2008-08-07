@@ -42,7 +42,6 @@
 #include <linux/delay.h>
 #include <linux/platform_device.h>
 #include <linux/input.h>
-#include <linux/irq.h>
 
 #include <asm/portmux.h>
 #include <asm/mach/bf54x_keys.h>
@@ -409,3 +408,4 @@ module_exit(bfin_kpad_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
 MODULE_DESCRIPTION("Keypad driver for BF54x Processors");
+MODULE_ALIAS("platform:bf54x-keys");

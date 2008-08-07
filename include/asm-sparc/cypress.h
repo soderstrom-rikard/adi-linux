@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * cypress.h: Cypress module specific definitions and defines.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

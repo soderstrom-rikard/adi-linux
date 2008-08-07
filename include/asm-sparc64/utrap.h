@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * include/asm-sparc64/utrap.h
  *
  * Copyright (C) 1997 Jakub Jelinek (jj@sunsite.mff.cuni.cz)

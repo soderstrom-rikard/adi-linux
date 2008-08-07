@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * sys32.S: I-cache tricks for 32-bit compatibility layer simple
  *          conversions.
  *

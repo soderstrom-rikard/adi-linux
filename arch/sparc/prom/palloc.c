@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * palloc.c:  Memory allocation from the Sun PROM.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

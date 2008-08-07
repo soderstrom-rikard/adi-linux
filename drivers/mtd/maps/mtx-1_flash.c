@@ -4,7 +4,7 @@
  * $Id$
  *
  * (C) 2005 Bruno Randolf <bruno.randolf@4g-systems.biz>
- * (C) 2005 Jörn Engel <joern@wohnheim.fh-wedel.de>
+ * (C) 2005 Joern Engel <joern@wohnheim.fh-wedel.de>
  *
  */
 

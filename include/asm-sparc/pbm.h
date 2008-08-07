@@ -1,4 +1,4 @@
-/* $Id$
+/*
  *
  * pbm.h: PCI bus module pseudo driver software state
  *        Adopted from sparc64 by V. Roganov and G. Raiko

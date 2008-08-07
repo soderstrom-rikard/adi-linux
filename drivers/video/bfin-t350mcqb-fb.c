@@ -302,7 +302,7 @@ static int bfin_t350mcqb_fb_mmap(struct fb_info *info, struct vm_area_struct *vm
 	 *   Other flags can be set, and are documented in
 	 *   include/linux/mm.h
 	 */
-	vma->vm_flags |=  VM_MAYSHARE | VM_SHARED;
+	vma->vm_flags |= VM_MAYSHARE | VM_SHARED;
 
 	return 0;
 }
@@ -544,7 +544,7 @@ static int __init bfin_t350mcqb_probe(struct platform_device *pdev)
 		goto out7;
 	}
 
-	ret = request_irq(info->irq, (void *)bfin_t350mcqb_irq_error, IRQF_DISABLED,
+	ret = request_irq(info->irq, bfin_t350mcqb_irq_error, IRQF_DISABLED,
 			"PPI ERROR", info);
 	if (ret < 0) {
 		printk(KERN_ERR DRIVER_NAME

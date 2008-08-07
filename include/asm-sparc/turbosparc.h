@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * turbosparc.h:  Defines specific to the TurboSparc module.
  *            This is SRMMU stuff.
  *

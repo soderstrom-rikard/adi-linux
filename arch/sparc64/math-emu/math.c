@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * arch/sparc64/math-emu/math.c
  *
  * Copyright (C) 1997,1999 Jakub Jelinek (jj@ultra.linux.cz)

@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * auxio.h:  Definitions and code for the Auxiliary I/O register.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

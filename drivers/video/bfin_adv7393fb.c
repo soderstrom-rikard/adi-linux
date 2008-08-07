@@ -6,8 +6,6 @@
  * Created:      May. 24th 2006
  * Description:  Frame buffer driver for ADV7393/2 video encoder
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2006 Analog Devices Inc.
  *
@@ -254,7 +252,7 @@ static int bfin_adv7393_fb_mmap(struct fb_info *info, struct vm_area_struct *vma
 	 *   include/linux/mm.h
 	 */
 
-	vma->vm_flags |=  VM_MAYSHARE | VM_SHARED;
+	vma->vm_flags |= VM_MAYSHARE | VM_SHARED;
 
 	return 0;
 

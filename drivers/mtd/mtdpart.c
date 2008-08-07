@@ -68,7 +68,7 @@ static int part_read (struct mtd_info *mtd, loff_t from, size_t len,
 }
 
 static int part_point (struct mtd_info *mtd, loff_t from, size_t len,
-			size_t *retlen, u_char **buf)
+			size_t *retlen, void **virt, resource_size_t *phys)
 {
 	struct mtd_part *part = PART(mtd);
 	if (from >= mtd->size)
@@ -76,14 +76,14 @@ static int part_point (struct mtd_info *mtd, loff_t from, size_t len,
 	else if (from + len > mtd->size)
 		len = mtd->size - from;
 	return part->master->point (part->master, from + part->offset,
-				    len, retlen, buf);
+				    len, retlen, virt, phys);
 }
 
-static void part_unpoint (struct mtd_info *mtd, u_char *addr, loff_t from, size_t len)
+static void part_unpoint(struct mtd_info *mtd, loff_t from, size_t len)
 {
 	struct mtd_part *part = PART(mtd);
 
-	part->master->unpoint (part->master, addr, from + part->offset, len);
+	part->master->unpoint(part->master, from + part->offset, len);
 }
 
 static unsigned long part_get_unmapped_area(struct mtd_info *mtd,
@@ -159,6 +159,20 @@ static int part_write (struct mtd_info *mtd, loff_t to, size_t len,
 	else if (to + len > mtd->size)
 		len = mtd->size - to;
 	return part->master->write (part->master, to + part->offset,
+				    len, retlen, buf);
+}
+
+static int part_panic_write (struct mtd_info *mtd, loff_t to, size_t len,
+			size_t *retlen, const u_char *buf)
+{
+	struct mtd_part *part = PART(mtd);
+	if (!(mtd->flags & MTD_WRITEABLE))
+		return -EROFS;
+	if (to >= mtd->size)
+		len = 0;
+	else if (to + len > mtd->size)
+		len = mtd->size - to;
+	return part->master->panic_write (part->master, to + part->offset,
 				    len, retlen, buf);
 }
 
@@ -362,6 +376,9 @@ int add_mtd_partitions(struct mtd_info *master,
 
 		slave->mtd.read = part_read;
 		slave->mtd.write = part_write;
+
+		if (master->panic_write)
+			slave->mtd.panic_write = part_panic_write;
 
 		if(master->point && master->unpoint){
 			slave->mtd.point = part_point;

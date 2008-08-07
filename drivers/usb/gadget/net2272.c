@@ -34,7 +34,7 @@
 #include <linux/smp_lock.h>
 #include <linux/timer.h>
 #include <linux/usb/ch9.h>
-#include <linux/usb/gadget.h>
+#include <linux/usb_gadget.h>
 #include <linux/platform_device.h>
 
 #include <asm/byteorder.h>
@@ -350,6 +350,39 @@ net2272_free_request (struct usb_ep *_ep, struct usb_request *_req)
 	req = container_of (_req, struct net2272_request, req);
 	WARN_ON (!list_empty (&req->queue));
 	kfree (req);
+}
+
+static void *
+net2272_alloc_buffer (
+	struct usb_ep	*_ep,
+	unsigned	bytes,
+	dma_addr_t	*dma,
+	gfp_t		gfp_flags
+)
+{
+	void			*retval;
+	struct net2272_ep	*ep;
+
+	ep = container_of (_ep, struct net2272_ep, ep);
+	if (!_ep)
+		return NULL;
+	*dma = DMA_ADDR_INVALID;
+	retval = kmalloc (bytes, gfp_flags);
+	if (retval)
+		*dma = virt_to_phys(retval);
+
+	return retval;
+}
+
+static void
+net2272_free_buffer (
+	struct usb_ep		*_ep,
+	void			*buf,
+	dma_addr_t		dma,
+	unsigned		bytes
+)
+{
+	kfree (buf);
 }
 
 static void
@@ -1058,6 +1091,9 @@ static struct usb_ep_ops net2272_ep_ops = {
 
 	.alloc_request	= net2272_alloc_request,
 	.free_request	= net2272_free_request,
+
+	.alloc_buffer	= net2272_alloc_buffer,
+	.free_buffer	= net2272_free_buffer,
 
 	.queue		= net2272_queue,
 	.dequeue	= net2272_dequeue,

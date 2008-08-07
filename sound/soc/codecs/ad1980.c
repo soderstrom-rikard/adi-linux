@@ -3,6 +3,7 @@
  *
  * Copyright:	Analog Device Inc.
  * Author:	Roy Huang <roy.huang@analog.com>
+ * 		Cliff Cai <cliff.cai@analog.com>
  *
  *  This program is free software; you can redistribute  it and/or modify it
  *  under  the terms of  the GNU General  Public License as published by the
@@ -317,5 +318,5 @@ struct snd_soc_codec_device soc_codec_dev_ad1980 = {
 EXPORT_SYMBOL_GPL(soc_codec_dev_ad1980);
 
 MODULE_DESCRIPTION("ASoC ad1980 driver");
-MODULE_AUTHOR("Roy Huang ");
+MODULE_AUTHOR("Roy Huang, Cliff Cai");
 MODULE_LICENSE("GPL");

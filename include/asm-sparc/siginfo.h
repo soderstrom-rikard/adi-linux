@@ -1,7 +1,3 @@
-/* $Id$
- * siginfo.c:
- */
-
 #ifndef _SPARC_SIGINFO_H
 #define _SPARC_SIGINFO_H
 

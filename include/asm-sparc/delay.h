@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * delay.h: Linux delay routines on the Sparc.
  *
  * Copyright (C) 1994 David S. Miller (davem@caip.rutgers.edu).

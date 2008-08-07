@@ -1,6 +1,3 @@
-/*
- * $Id$
- */
 #ifndef __SPARC_IO_H
 #define __SPARC_IO_H
 

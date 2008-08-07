@@ -50,7 +50,7 @@
 static __inline void
 swapfunc(char *a, char *b, int n, int swaptype)
 {
-	if (swaptype <= 1) 
+	if (swaptype <= 1)
 		swapcode(long, a, b, n)
 	else
 		swapcode(char, a, b, n)
@@ -74,8 +74,13 @@ med3(char *a, char *b, char *c, int (*cmp)(const void *, const void *))
               :(cmp(b, c) > 0 ? b : (cmp(a, c) < 0 ? a : c ));
 }
 
+#ifndef min
+#define min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
+
 void
-qsort(void *aa, size_t n, size_t es, int (*cmp)(const void *, const void *))
+yaffs_qsort(void *aa, size_t n, size_t es,
+	int (*cmp)(const void *, const void *))
 {
 	char *pa, *pb, *pc, *pd, *pl, *pm, *pn;
 	int d, r, swaptype, swap_cnt;
@@ -132,7 +137,7 @@ loop:	SWAPINIT(a, es);
 	}
 	if (swap_cnt == 0) {  /* Switch to insertion sort */
 		for (pm = (char *) a + es; pm < (char *) a + n * es; pm += es)
-			for (pl = pm; pl > (char *) a && cmp(pl - es, pl) > 0; 
+			for (pl = pm; pl > (char *) a && cmp(pl - es, pl) > 0;
 			     pl -= es)
 				swap(pl, pl - es);
 		return;
@@ -144,12 +149,12 @@ loop:	SWAPINIT(a, es);
 	r = min((long)(pd - pc), (long)(pn - pd - es));
 	vecswap(pb, pn - r, r);
 	if ((r = pb - pa) > es)
-		qsort(a, r / es, es, cmp);
-	if ((r = pd - pc) > es) { 
+		yaffs_qsort(a, r / es, es, cmp);
+	if ((r = pd - pc) > es) {
 		/* Iterate rather than recurse to save stack space */
 		a = pn - r;
 		n = r / es;
 		goto loop;
 	}
-/*		qsort(pn - r, r / es, es, cmp);*/
+/*		yaffs_qsort(pn - r, r / es, es, cmp);*/
 }

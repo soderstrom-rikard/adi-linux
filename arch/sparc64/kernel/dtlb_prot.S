@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * dtlb_prot.S: DTLB protection trap strategy.
  *              This is included directly into the trap table.
  *

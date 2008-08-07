@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * mxcc.h:  Definitions of the Viking MXCC registers
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

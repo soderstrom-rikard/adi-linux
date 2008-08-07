@@ -1,22 +1,18 @@
 /*
- * YAFFS: Yet another FFS. A NAND-flash specific file system. 
- * yaffs_ramdisk.h: yaffs ram disk component
+ * YAFFS: Yet another Flash File System . A NAND-flash specific file system.
  *
- * Copyright (C) 2002 Aleph One Ltd.
+ * Copyright (C) 2002-2007 Aleph One Ltd.
+ *   for Toby Churchill Ltd and Brightstar Engineering
  *
  * Created by Charles Manning <charles@aleph1.co.uk>
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
+ * it under the terms of the GNU Lesser General Public License version 2.1 as
  * published by the Free Software Foundation.
  *
- * $Id$
+ * Note: Only YAFFS headers are LGPL, YAFFS C code is covered by GPL.
  */
 
-/* This provides a ram disk under yaffs.
- * NB this is not intended for NAND emulation.
- * Use this with dev->useNANDECC enabled, then ECC overheads are not required.
- */
 #ifndef __YAFFS_TAGSCOMPAT_H__
 #define __YAFFS_TAGSCOMPAT_H__
 
@@ -34,7 +30,12 @@ int yaffs_TagsCompatabilityReadChunkWithTagsFromNAND(yaffs_Device * dev,
 int yaffs_TagsCompatabilityMarkNANDBlockBad(struct yaffs_DeviceStruct *dev,
 					    int blockNo);
 int yaffs_TagsCompatabilityQueryNANDBlock(struct yaffs_DeviceStruct *dev,
-					  int blockNo, yaffs_BlockState *
-					  state, int *sequenceNumber);
+					  int blockNo, 
+					  yaffs_BlockState *state,
+					  __u32 *sequenceNumber);
+
+void yaffs_CalcTagsECC(yaffs_Tags * tags);
+int yaffs_CheckECCOnTags(yaffs_Tags * tags);
+int yaffs_CountBits(__u8 byte);
 
 #endif

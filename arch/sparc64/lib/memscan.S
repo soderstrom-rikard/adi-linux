@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * memscan.S: Optimized memscan for Sparc64.
  *
  * Copyright (C) 1997,1998 Jakub Jelinek (jj@ultra.linux.cz)

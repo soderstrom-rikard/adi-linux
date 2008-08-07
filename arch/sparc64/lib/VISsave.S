@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * VISsave.S: Code for saving FPU register state for
  *            VIS routines. One should not call this directly,
  *            but use macros provided in <asm/visasm.h>.

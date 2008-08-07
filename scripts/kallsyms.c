@@ -7,14 +7,6 @@
  *
  * Usage: nm -n vmlinux | scripts/kallsyms [--all-symbols] > symbols.S
  *
- * ChangeLog:
- *
- * (25/Aug/2004) Paulo Marques <pmarques@grupopie.com>
- *      Changed the compression method from stem compression to "table lookup"
- *      compression
- * (10/Jul/2006) Robin Getz <rgetz@blackfin.uclinux.org>
- *      Add _stext_l1, _etext_l1 for the L1 memory section in Blackfin.
- *
  *      Table compression uses all the unused char codes on the symbols and
  *  maps these to the most used substrings (tokens). For instance, it might
  *  map char code 0xF7 to represent "write_" and then in every symbol where
@@ -33,13 +25,12 @@
 
 #define KSYM_NAME_LEN		128
 
-
 struct sym_entry {
 	unsigned long long addr;
 	unsigned int len;
+	unsigned int start_pos;
 	unsigned char *sym;
 };
-
 
 static struct sym_entry *table;
 static unsigned int table_size, table_cnt;
@@ -102,7 +93,7 @@ static int read_symbol(FILE *in, struct sym_entry *s)
 		_sinittext = s->addr;
 	else if (strcmp(sym, "_einittext") == 0)
 		_einittext = s->addr;
-	else if (strcmp(sym, "_stext_l1" ) == 0)
+	 else if (strcmp(sym, "_stext_l1" ) == 0)
 		_stext_l1 = s->addr;
 	else if (strcmp(sym, "_etext_l1" ) == 0)
 		_etext_l1 = s->addr;
@@ -121,6 +112,9 @@ static int read_symbol(FILE *in, struct sym_entry *s)
 		return -1;
 	/* exclude also MIPS ELF local symbols ($L123 instead of .L123) */
 	else if (str[0] == '$')
+		return -1;
+	/* exclude debugging symbols */
+	else if (stype == 'N')
 		return -1;
 
 	/* include the type field in the symbol name, so that it gets
@@ -172,13 +166,15 @@ static int symbol_valid(struct sym_entry *s)
 		    && (s->addr < _stext_l1 || s->addr > _etext_l1))
 			return 0;
 		/* Corner case.  Discard any symbols with the same value as
-		 * _etext or _einittext they can move between pass
-		 * 1 and 2 when the kallsyms data are added.  If these symbols
-		 * move then they may get dropped in pass 2, which breaks the
-		 * kallsyms rules.
+		 * _etext _einittext; they can move between pass 1 and 2 when
+		 * the kallsyms data are added.  If these symbols move then
+		 * they may get dropped in pass 2, which breaks the kallsyms
+		 * rules.
 		 */
-		if ((s->addr == _etext && strcmp((char*)s->sym + offset, "_etext")) ||
-		    (s->addr == _einittext && strcmp((char *)s->sym + offset, "_einittext")))
+		if ((s->addr == _etext &&
+				strcmp((char *)s->sym + offset, "_etext")) ||
+		    (s->addr == _einittext &&
+				strcmp((char *)s->sym + offset, "_einittext")))
 			return 0;
 	}
 
@@ -204,8 +200,10 @@ static void read_map(FILE *in)
 				exit (1);
 			}
 		}
-		if (read_symbol(in, &table[table_cnt]) == 0)
+		if (read_symbol(in, &table[table_cnt]) == 0) {
+			table[table_cnt].start_pos = table_cnt;
 			table_cnt++;
+		}
 	}
 }
 
@@ -508,6 +506,35 @@ static void optimize_token_table(void)
 	optimize_result();
 }
 
+static int compare_symbols(const void *a, const void *b)
+{
+	const struct sym_entry *sa;
+	const struct sym_entry *sb;
+	int wa, wb;
+
+	sa = a;
+	sb = b;
+
+	/* sort by address first */
+	if (sa->addr > sb->addr)
+		return 1;
+	if (sa->addr < sb->addr)
+		return -1;
+
+	/* sort by "weakness" type */
+	wa = (sa->sym[0] == 'w') || (sa->sym[0] == 'W');
+	wb = (sb->sym[0] == 'w') || (sb->sym[0] == 'W');
+	if (wa != wb)
+		return wa - wb;
+
+	/* sort by initial order, so that other symbols are left undisturbed */
+	return sa->start_pos - sb->start_pos;
+}
+
+static void sort_symbols(void)
+{
+	qsort(table, table_cnt, sizeof(struct sym_entry), compare_symbols);
+}
 
 int main(int argc, char **argv)
 {
@@ -529,6 +556,7 @@ int main(int argc, char **argv)
 		usage();
 
 	read_map(stdin);
+	sort_symbols();
 	optimize_token_table();
 	write_src();
 

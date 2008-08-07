@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * locks.S: SMP low-level lock primitives on Sparc.
  *
  * Copyright (C) 1996 David S. Miller (davem@caip.rutgers.edu)

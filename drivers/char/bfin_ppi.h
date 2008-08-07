@@ -6,8 +6,6 @@
  * Created:      May 5, 2005
  * Description:  It's driver of PPI in Analog Devices BF533 DSP
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright (C) 2005 Eastman Kodak Company
  *               Copyright 2005-2006 Analog Devices Inc.

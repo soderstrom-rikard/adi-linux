@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * io-unit.c:  IO-UNIT specific routines for memory management.
  *
  * Copyright (C) 1997,1998 Jakub Jelinek    (jj@sunsite.mff.cuni.cz)

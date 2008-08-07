@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * console.c: Routines that deal with sending and receiving IO
  *            to/from the current console device using the PROM.
  *

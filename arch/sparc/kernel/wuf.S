@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * wuf.S: Window underflow trap handler for the Sparc.
  *
  * Copyright (C) 1995 David S. Miller

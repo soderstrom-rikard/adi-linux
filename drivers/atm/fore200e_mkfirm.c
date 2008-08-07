@@ -1,6 +1,4 @@
 /*
-  $Id$
-
   mkfirm.c: generates a C readable file from a binary firmware image
 
   Christophe Lizzi (lizzi@{csti.fr, cnam.fr}), June 1999.

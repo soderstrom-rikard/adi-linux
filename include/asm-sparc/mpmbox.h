@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * mpmbox.h:  Interface and defines for the OpenProm mailbox
  *               facilities for MP machines under Linux.
  *

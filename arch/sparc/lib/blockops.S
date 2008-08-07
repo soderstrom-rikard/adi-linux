@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * blockops.S: Common block zero optimized routines.
  *
  * Copyright (C) 1996 David S. Miller (davem@caip.rutgers.edu)

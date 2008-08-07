@@ -1,4 +1,4 @@
-/*  $Id$
+/*
  *  arch/sparc/kernel/sun4d_irq.c:
  *			SS1000/SC2000 interrupt handling.
  *

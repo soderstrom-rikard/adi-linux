@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * trampoline.S: SMP cpu boot-up trampoline code.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

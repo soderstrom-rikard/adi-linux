@@ -1,4 +1,4 @@
-/* $Id$
+/*
  *  asm-sparc/btfixup.h:    Macros for boot time linking.
  *
  *  Copyright (C) 1998 Jakub Jelinek (jj@sunsite.mff.cuni.cz)

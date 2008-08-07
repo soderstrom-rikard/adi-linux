@@ -6,8 +6,6 @@
  * Created:
  * Description:  Simple driver for testing interrupt latencies.
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2005-2006 Analog Devices Inc.
  *

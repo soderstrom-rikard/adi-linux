@@ -83,7 +83,8 @@ struct cpufreq_real_policy {
 };
 
 struct cpufreq_policy {
-	cpumask_t		cpus;	/* affected CPUs */
+	cpumask_t		cpus;	/* CPUs requiring sw coordination */
+	cpumask_t		related_cpus; /* CPUs with any coordination */
 	unsigned int		shared_type; /* ANY or ALL affected CPUs
 						should set cpufreq */
 	unsigned int		cpu;    /* cpu nr of registered CPU */
@@ -167,6 +168,10 @@ struct cpufreq_governor {
 	char	name[CPUFREQ_NAME_LEN];
 	int 	(*governor)	(struct cpufreq_policy *policy,
 				 unsigned int event);
+	ssize_t	(*show_setspeed)	(struct cpufreq_policy *policy,
+					 char *buf);
+	int 	(*store_setspeed)	(struct cpufreq_policy *policy,
+					 unsigned int freq);
 	unsigned int max_transition_latency; /* HW must be able to switch to
 			next freq faster than this value in nano secs or we
 			will fallback to performance governor */
@@ -303,6 +308,9 @@ extern struct cpufreq_governor cpufreq_gov_performance;
 #endif
 #ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_performance)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_POWERSAVE)
+extern struct cpufreq_governor cpufreq_gov_powersave;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_powersave)
 #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE)
 extern struct cpufreq_governor cpufreq_gov_userspace;
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_userspace)

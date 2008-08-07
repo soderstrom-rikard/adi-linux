@@ -1,5 +1,4 @@
-/* $Id$
- * 
+/*
  *  linux/arch/cris/kernel/process.c
  *
  *  Copyright (C) 1995  Linus Torvalds

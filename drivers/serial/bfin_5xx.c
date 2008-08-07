@@ -748,7 +748,7 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 		break;
 	default:
 		printk(KERN_ERR "%s: word lengh not supported\n",
-			__FUNCTION__);
+			__func__);
 	}
 
 	if (termios->c_cflag & CSTOPB)
@@ -866,15 +866,15 @@ bfin_serial_verify_port(struct uart_port *port, struct serial_struct *ser)
  * Enable the IrDA function if tty->ldisc.num is N_IRDA.
  * In other cases, disable IrDA function.
  */
-static void bfin_set_ldisc(struct tty_struct *tty)
+static void bfin_serial_set_ldisc(struct uart_port *port)
 {
-	int line = tty->index;
+	int line = port->line;
 	unsigned short val;
 
-	if (line >= tty->driver->num)
+	if (line >= port->info->tty->driver->num)
 		return;
 
-	switch (tty->ldisc.num) {
+	switch (port->info->tty->ldisc.num) {
 	case N_IRDA:
 		val = UART_GET_GCTL(&bfin_serial_ports[line]);
 		val |= (IREN | RPOLC);
@@ -899,6 +899,7 @@ static struct uart_ops bfin_serial_pops = {
 	.startup	= bfin_serial_startup,
 	.shutdown	= bfin_serial_shutdown,
 	.set_termios	= bfin_serial_set_termios,
+	.set_ldisc	= bfin_serial_set_ldisc,
 	.type		= bfin_serial_type,
 	.release_port	= bfin_serial_release_port,
 	.request_port	= bfin_serial_request_port,
@@ -991,7 +992,7 @@ bfin_serial_console_get_options(struct bfin_serial_port *uart, int *baud,
 
 		*baud = get_sclk() / (16*(dll | dlh << 8));
 	}
-	pr_debug("%s:baud = %d, parity = %c, bits= %d\n", __FUNCTION__, *baud, *parity, *bits);
+	pr_debug("%s:baud = %d, parity = %c, bits= %d\n", __func__, *baud, *parity, *bits);
 }
 #endif
 
@@ -1227,6 +1228,7 @@ static struct platform_driver bfin_serial_driver = {
 	.resume		= bfin_serial_resume,
 	.driver		= {
 		.name	= "bfin-uart",
+		.owner	= THIS_MODULE,
 	},
 };
 
@@ -1244,7 +1246,6 @@ static int __init bfin_serial_init(void)
 
 	ret = uart_register_driver(&bfin_serial_reg);
 	if (ret == 0) {
-		bfin_serial_reg.tty_driver->set_ldisc = bfin_set_ldisc;
 		ret = platform_driver_register(&bfin_serial_driver);
 		if (ret) {
 			pr_debug("uart register failed\n");
@@ -1282,3 +1283,4 @@ MODULE_AUTHOR("Aubrey.Li <aubrey.li@analog.com>");
 MODULE_DESCRIPTION("Blackfin generic serial port driver");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS_CHARDEV_MAJOR(BFIN_SERIAL_MAJOR);
+MODULE_ALIAS("platform:bfin-uart");

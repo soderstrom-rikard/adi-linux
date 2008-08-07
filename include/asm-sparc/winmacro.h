@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * winmacro.h: Window loading-unloading macros.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

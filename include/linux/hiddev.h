@@ -2,8 +2,6 @@
 #define _HIDDEV_H
 
 /*
- * $Id$
- *
  *  Copyright (c) 1999-2000 Vojtech Pavlik
  *
  *  Sponsored by SuSE

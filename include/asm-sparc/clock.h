@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * clock.h:  Definitions for clock operations on the Sparc.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

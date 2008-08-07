@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * PeeCeeI.c: The emerging standard...
  *
  * Copyright (C) 1997 David S. Miller (davem@caip.rutgers.edu)

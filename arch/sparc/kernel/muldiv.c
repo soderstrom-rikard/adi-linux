@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * muldiv.c: Hardware multiply/division illegal instruction trap
  *		for sun4c/sun4 (which do not have those instructions)
  *

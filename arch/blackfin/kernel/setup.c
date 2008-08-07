@@ -654,8 +654,9 @@ static __init void setup_bootmem_allocator(void)
 	}
 
 	/* reserve memory before memory_start, including bootmap */
-	reserve_bootmem(PAGE_OFFSET, memory_start + bootmap_size +
-				 PAGE_SIZE - 1 - PAGE_OFFSET);
+	reserve_bootmem(PAGE_OFFSET,
+		memory_start + bootmap_size + PAGE_SIZE - 1 - PAGE_OFFSET,
+		BOOTMEM_DEFAULT);
 }
 
 #define EBSZ_TO_MEG(ebsz) \
@@ -1134,7 +1135,7 @@ static void c_stop(struct seq_file *m, void *v)
 {
 }
 
-struct seq_operations cpuinfo_op = {
+const struct seq_operations cpuinfo_op = {
 	.start = c_start,
 	.next = c_next,
 	.stop = c_stop,

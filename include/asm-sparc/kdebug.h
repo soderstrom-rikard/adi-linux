@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * kdebug.h:  Defines and definitions for debugging the Linux kernel
  *            under various kernel debuggers.
  *

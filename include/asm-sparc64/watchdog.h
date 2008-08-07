@@ -1,4 +1,4 @@
-/* $Id$
+/*
  *
  * watchdog - Driver interface for the hardware watchdog timers
  * present on Sun Microsystems boardsets

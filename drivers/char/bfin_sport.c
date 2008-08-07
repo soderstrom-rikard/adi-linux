@@ -6,8 +6,6 @@
  * Created:      Thu Aug. 24 2006
  * Description:  Common sport driver exporting an device interface to user space
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.
  *

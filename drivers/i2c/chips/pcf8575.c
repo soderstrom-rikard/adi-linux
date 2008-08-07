@@ -1,60 +1,51 @@
 /*
-    pcf8575.c - Part of lm_sensors, Linux kernel modules for hardware
-             monitoring
-    Copyright (c) 2000  Frodo Looijaard <frodol@dds.nl>,
-                        Philip Edelbrock <phil@netroedge.com>,
-                        Dan Eaton <dan.eaton@rocketlogix.com>
-    Ported to Linux 2.6 by Aurelien Jarno <aurel32@debian.org> with
-    the help of Jean Delvare <khali@linux-fr.org>
+  pcf8575.c
 
-    Copyright (C) 2006 Michael Hennerich, Analog Devices Inc.
-    			<hennerich@blackfin.uclinux.org>
-	based on the pcf8574.c
+  About the PCF8575 chip: the PCF8575 is a 16-bit I/O expander for the I2C bus
+  produced by a.o. Philips Semiconductors.
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+  Copyright (C) 2006 Michael Hennerich, Analog Devices Inc.
+  <hennerich@blackfin.uclinux.org>
+  Based on pcf8574.c.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+  Copyright (c) 2007 Bart Van Assche <bart.vanassche@gmail.com>.
+  Ported this driver from ucLinux to the mainstream Linux kernel.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-*/
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
 
-/* A few notes about the pcf8575:
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-* The pcf8575 is an 16-bit I/O expander for the I2C bus produced by
-  Philips Semiconductors.  It is designed to provide a byte I2C
-  interface to up to 8 separate devices.
-
-  --Dan
-
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
 #include <linux/module.h>
 #include <linux/init.h>
-#include <linux/slab.h>
 #include <linux/i2c.h>
+#include <linux/slab.h>  /* kzalloc() */
+#include <linux/sysfs.h> /* sysfs_create_group() */
 
 /* Addresses to scan */
-static unsigned short normal_i2c[] = { 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
-					I2C_CLIENT_END };
+static const unsigned short normal_i2c[] = {
+	0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+	I2C_CLIENT_END
+};
 
 /* Insmod parameters */
-I2C_CLIENT_INSMOD_1(pcf8575);
+I2C_CLIENT_INSMOD;
 
 
 /* Each client has this additional data */
 struct pcf8575_data {
 	struct i2c_client client;
-
-	u16 write;			/* Remember last written value */
-	u8 buf[3];
+	int write;		/* last written value, or error code */
 };
 
 static int pcf8575_attach_adapter(struct i2c_adapter *adapter);
@@ -64,111 +55,72 @@ static int pcf8575_detach_client(struct i2c_client *client);
 /* This is the driver that will be inserted */
 static struct i2c_driver pcf8575_driver = {
 	.driver = {
+		.owner	= THIS_MODULE,
 		.name	= "pcf8575",
 	},
-	.id		= I2C_DRIVERID_PCF8575,
 	.attach_adapter	= pcf8575_attach_adapter,
 	.detach_client	= pcf8575_detach_client,
 };
 
 /* following are the sysfs callback functions */
-static ssize_t show_read(struct device *dev, struct device_attribute *attr, char *buf)
+static ssize_t show_read(struct device *dev, struct device_attribute *attr,
+			 char *buf)
 {
 	struct i2c_client *client = to_i2c_client(dev);
-	struct pcf8575_data *data = i2c_get_clientdata(client);
-	unsigned short val;
+	u16 val;
+	u8 iopin_state[2];
 
-		i2c_master_recv(client,data->buf,2);
+	i2c_master_recv(client, iopin_state, 2);
 
-		val = data->buf[0];
-		val |= data->buf[1]<<8;
+	val = iopin_state[0];
+	val |= iopin_state[1] << 8;
 
 	return sprintf(buf, "%u\n", val);
 }
 
 static DEVICE_ATTR(read, S_IRUGO, show_read, NULL);
 
-static ssize_t show_write(struct device *dev, struct device_attribute *attr, char *buf)
+static ssize_t show_write(struct device *dev, struct device_attribute *attr,
+			  char *buf)
 {
-	struct pcf8575_data *data = i2c_get_clientdata(to_i2c_client(dev));
-	return sprintf(buf, "%u\n", data->write);
+	struct pcf8575_data *data = dev_get_drvdata(dev);
+	if (data->write < 0)
+		return data->write;
+	return sprintf(buf, "%d\n", data->write);
 }
 
-static ssize_t set_write(struct device *dev, struct device_attribute *attr, const char *buf,
-			 size_t count)
+static ssize_t set_write(struct device *dev, struct device_attribute *attr,
+			 const char *buf, size_t count)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct pcf8575_data *data = i2c_get_clientdata(client);
 	unsigned long val = simple_strtoul(buf, NULL, 10);
+	u8 iopin_state[2];
 
 	if (val > 0xffff)
 		return -EINVAL;
 
 	data->write = val;
 
-	data->buf[0] = val & 0xFF;
-	data->buf[1] = val >> 8;
+	iopin_state[0] = val & 0xFF;
+	iopin_state[1] = val >> 8;
 
-	i2c_master_send(client,data->buf,2);
+	i2c_master_send(client, iopin_state, 2);
 
 	return count;
 }
 
 static DEVICE_ATTR(write, S_IWUSR | S_IRUGO, show_write, set_write);
 
-static ssize_t set_set_bit(struct device *dev, struct device_attribute *attr, const char *buf,
-			 size_t count)
-{
-	struct i2c_client *client = to_i2c_client(dev);
-	struct pcf8575_data *data = i2c_get_clientdata(client);
-	unsigned long val = simple_strtoul(buf, NULL, 10);
-	unsigned short dummy;
-	if (val > 15)
-		return -EINVAL;
+static struct attribute *pcf8575_attributes[] = {
+	&dev_attr_read.attr,
+	&dev_attr_write.attr,
+	NULL
+};
 
-	i2c_master_recv(client,data->buf,2);
-
-	dummy = data->buf[0];
-	dummy |= data->buf[1]<<8;
-
-	dummy |= 1 << val;
-
-	data->buf[0] = dummy & 0xFF;
-	data->buf[1] = dummy >> 8;
-
-	i2c_master_send(client,data->buf,2);
-
-	return count;
-}
-
-static DEVICE_ATTR(set_bit, S_IWUSR, show_write, set_set_bit);
-
-static ssize_t set_clear_bit(struct device *dev, struct device_attribute *attr, const char *buf,
-			 size_t count)
-{
-	struct i2c_client *client = to_i2c_client(dev);
-	struct pcf8575_data *data = i2c_get_clientdata(client);
-	unsigned long val = simple_strtoul(buf, NULL, 10);
-	unsigned short dummy;
-	if (val > 15)
-		return -EINVAL;
-
-	i2c_master_recv(client,data->buf,2);
-
-	dummy = data->buf[0];
-	dummy |= data->buf[1]<<8;
-
-	dummy &= ~(1 << val);
-
-	data->buf[0] = dummy & 0xFF;
-	data->buf[1] = dummy >> 8;
-
-	i2c_master_send(client,data->buf,2);
-
-	return count;
-}
-
-static DEVICE_ATTR(clear_bit, S_IWUSR, show_write, set_clear_bit);
+static const struct attribute_group pcf8575_attr_group = {
+	.attrs = pcf8575_attributes,
+};
 
 /*
  * Real code
@@ -182,61 +134,50 @@ static int pcf8575_attach_adapter(struct i2c_adapter *adapter)
 /* This function is called by i2c_probe */
 static int pcf8575_detect(struct i2c_adapter *adapter, int address, int kind)
 {
-	struct i2c_client *new_client;
+	struct i2c_client *client;
 	struct pcf8575_data *data;
 	int err = 0;
-	const char *client_name = "";
 
-	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE))
+	if (!i2c_check_functionality(adapter, I2C_FUNC_I2C))
 		goto exit;
 
 	/* OK. For now, we presume we have a valid client. We now create the
 	   client structure, even though we cannot fill it completely yet. */
-	if (!(data = kzalloc(sizeof(struct pcf8575_data), GFP_KERNEL))) {
+	data = kzalloc(sizeof(struct pcf8575_data), GFP_KERNEL);
+	if (!data) {
 		err = -ENOMEM;
 		goto exit;
 	}
 
-	new_client = &data->client;
-	i2c_set_clientdata(new_client, data);
-	new_client->addr = address;
-	new_client->adapter = adapter;
-	new_client->driver = &pcf8575_driver;
-	new_client->flags = 0;
+	client = &data->client;
+	i2c_set_clientdata(client, data);
+	client->addr = address;
+	client->adapter = adapter;
+	client->driver = &pcf8575_driver;
+	strlcpy(client->name, "pcf8575", I2C_NAME_SIZE);
+	data->write = -EAGAIN;
 
-	/* Now, we would do the remaining detection. But the pcf8575 is plainly
-	   impossible to detect! Stupid chip. */
-
-
-	client_name = "pcf8575";
-
-	/* Fill in the remaining client fields and put it into the global list */
-	strlcpy(new_client->name, client_name, I2C_NAME_SIZE);
+	/* This is the place to detect whether the chip at the specified
+	   address really is a PCF8575 chip. However, there is no method known
+	   to detect whether an I2C chip is a PCF8575 or any other I2C chip. */
 
 	/* Tell the I2C layer a new client has arrived */
-	if ((err = i2c_attach_client(new_client)))
+	err = i2c_attach_client(client);
+	if (err)
 		goto exit_free;
 
-
 	/* Register sysfs hooks */
-	err = device_create_file(&new_client->dev, &dev_attr_read);
-	err |= device_create_file(&new_client->dev, &dev_attr_write);
-	err |= device_create_file(&new_client->dev, &dev_attr_set_bit);
-	err |= device_create_file(&new_client->dev, &dev_attr_clear_bit);
-
+	err = sysfs_create_group(&client->dev.kobj, &pcf8575_attr_group);
 	if (err)
 		goto exit_detach;
 
 	return 0;
 
-/* OK, this is not exactly good programming practice, usually. But it is
-   very code-efficient in this case. */
-
-      exit_detach:
-	i2c_detach_client(new_client);
-      exit_free:
+exit_detach:
+	i2c_detach_client(client);
+exit_free:
 	kfree(data);
-      exit:
+exit:
 	return err;
 }
 
@@ -244,7 +185,10 @@ static int pcf8575_detach_client(struct i2c_client *client)
 {
 	int err;
 
-	if ((err = i2c_detach_client(client)))
+	sysfs_remove_group(&client->dev.kobj, &pcf8575_attr_group);
+
+	err = i2c_detach_client(client);
+	if (err)
 		return err;
 
 	kfree(i2c_get_clientdata(client));
@@ -261,13 +205,8 @@ static void __exit pcf8575_exit(void)
 	i2c_del_driver(&pcf8575_driver);
 }
 
-
-MODULE_AUTHOR
-    ("Frodo Looijaard <frodol@dds.nl>, "
-     "Philip Edelbrock <phil@netroedge.com>, "
-     "Dan Eaton <dan.eaton@rocketlogix.com> "
-     "and Aurelien Jarno <aurelien@aurel32.net>"
-     "Michael Hennerich <hennerich@blackfin.uclinux.org>");
+MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>, "
+	      "Bart Van Assche <bart.vanassche@gmail.com>");
 MODULE_DESCRIPTION("pcf8575 driver");
 MODULE_LICENSE("GPL");
 

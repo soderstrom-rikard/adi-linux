@@ -8,7 +8,7 @@
  *
  *
  * Modified:
- *               Copyright 2004-2007 Analog Devices Inc.
+ *               Copyright 2007-2008 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
@@ -336,7 +336,7 @@ static int bfin_bf54x_fb_check_var(struct fb_var_screeninfo *var,
 {
 
 	if (var->bits_per_pixel != LCD_BPP) {
-		pr_debug("%s: depth not supported: %u BPP\n", __FUNCTION__,
+		pr_debug("%s: depth not supported: %u BPP\n", __func__,
 			 var->bits_per_pixel);
 		return -EINVAL;
 	}
@@ -345,7 +345,7 @@ static int bfin_bf54x_fb_check_var(struct fb_var_screeninfo *var,
 	    info->var.xres_virtual != var->xres_virtual ||
 	    info->var.yres_virtual != var->yres_virtual) {
 		pr_debug("%s: Resolution not supported: X%u x Y%u \n",
-			 __FUNCTION__, var->xres, var->yres);
+			 __func__, var->xres, var->yres);
 		return -EINVAL;
 	}
 
@@ -355,7 +355,7 @@ static int bfin_bf54x_fb_check_var(struct fb_var_screeninfo *var,
 
 	if ((info->fix.line_length * var->yres_virtual) > info->fix.smem_len) {
 		pr_debug("%s: Memory Limit requested yres_virtual = %u\n",
-			 __FUNCTION__, var->yres_virtual);
+			 __func__, var->yres_virtual);
 		return -ENOMEM;
 	}
 
@@ -498,8 +498,7 @@ static struct lcd_device *lcd_dev;
 
 static irqreturn_t bfin_bf54x_irq_error(int irq, void *dev_id)
 {
-
-	/*struct bfin_bf54xfb_info *info = (struct bfin_bf54xfb_info *)dev_id;*/
+	/*struct bfin_bf54xfb_info *info = dev_id;*/
 
 	u16 status = bfin_read_EPPI0_STATUS();
 

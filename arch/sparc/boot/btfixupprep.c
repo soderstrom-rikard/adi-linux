@@ -1,4 +1,4 @@
-/* $Id$
+/*
    Simple utility to prepare vmlinux image for sparc.
    Resolves all BTFIXUP uses and settings and creates
    a special .s object to link to the image.

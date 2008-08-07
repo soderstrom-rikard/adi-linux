@@ -1,7 +1,7 @@
 /*
- * YAFFS: Yet another FFS. A NAND-flash specific file system. 
+ * YAFFS: Yet Another Flash File System. A NAND-flash specific file system.
  *
- * Copyright (C) 2002 Aleph One Ltd.
+ * Copyright (C) 2002-2007 Aleph One Ltd.
  *   for Toby Churchill Ltd and Brightstar Engineering
  *
  * Created by Charles Manning <charles@aleph1.co.uk>
@@ -9,9 +9,8 @@
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
- *
  */
- 
+
 const char *yaffs_nand_c_version =
     "$Id$";
 
@@ -19,6 +18,7 @@ const char *yaffs_nand_c_version =
 #include "yaffs_tagscompat.h"
 #include "yaffs_tagsvalidity.h"
 
+#include "yaffs_getblockinfo.h"
 
 int yaffs_ReadChunkWithTagsFromNAND(yaffs_Device * dev, int chunkInNAND,
 					   __u8 * buffer,
@@ -26,9 +26,9 @@ int yaffs_ReadChunkWithTagsFromNAND(yaffs_Device * dev, int chunkInNAND,
 {
 	int result;
 	yaffs_ExtendedTags localTags;
-	
+
 	int realignedChunkInNAND = chunkInNAND - dev->chunkOffset;
-	
+
 	/* If there are no tags provided, use local tags to get prioritised gc working */
 	if(!tags)
 		tags = &localTags;
@@ -40,14 +40,14 @@ int yaffs_ReadChunkWithTagsFromNAND(yaffs_Device * dev, int chunkInNAND,
 		result = yaffs_TagsCompatabilityReadChunkWithTagsFromNAND(dev,
 									realignedChunkInNAND,
 									buffer,
-									tags);	
-	if(tags && 
+									tags);
+	if(tags &&
 	   tags->eccResult > YAFFS_ECC_RESULT_NO_ERROR){
-	
+
 		yaffs_BlockInfo *bi = yaffs_GetBlockInfo(dev, chunkInNAND/dev->nChunksPerBlock);
                 yaffs_HandleChunkError(dev,bi);
 	}
-								
+
 	return result;
 }
 
@@ -58,7 +58,7 @@ int yaffs_WriteChunkWithTagsToNAND(yaffs_Device * dev,
 {
 	chunkInNAND -= dev->chunkOffset;
 
-	
+
 	if (tags) {
 		tags->sequenceNumber = dev->sequenceNumber;
 		tags->chunkUsed = 1;
@@ -99,7 +99,7 @@ int yaffs_MarkBlockBad(yaffs_Device * dev, int blockNo)
 int yaffs_QueryInitialBlockState(yaffs_Device * dev,
 						 int blockNo,
 						 yaffs_BlockState * state,
-						 unsigned *sequenceNumber)
+						 __u32 *sequenceNumber)
 {
 	blockNo -= dev->blockOffset;
 
@@ -132,4 +132,4 @@ int yaffs_InitialiseNAND(struct yaffs_DeviceStruct *dev)
 }
 
 
- 
+

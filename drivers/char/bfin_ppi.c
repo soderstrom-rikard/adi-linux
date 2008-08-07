@@ -6,8 +6,6 @@
  * Created:      May 5, 2005
  * Description:  PPI Input Driver for ADSP-BF533
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright (C) 2005, Eastman Kodak Company
  *               Copyright 2005-2006 Analog Devices Inc.

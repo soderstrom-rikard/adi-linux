@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * nosun4c.c: This file is a bunch of dummies for SMP compiles, 
  *         so that it does not need sun4c and avoid ifdefs.
  *

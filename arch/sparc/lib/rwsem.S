@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * Assembly part of rw semaphores.
  *
  * Copyright (C) 1999 Jakub Jelinek (jakub@redhat.com)

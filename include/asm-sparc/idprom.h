@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * idprom.h: Macros and defines for idprom routines
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

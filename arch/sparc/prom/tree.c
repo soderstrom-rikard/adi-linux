@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * tree.c: Basic device tree traversal/scanning for the Linux
  *         prom library.
  *

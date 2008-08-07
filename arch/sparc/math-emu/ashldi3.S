@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * ashldi3.S:	Math-emu code creates all kinds of references to
  *              this little routine on the sparc with gcc.
  *

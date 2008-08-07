@@ -1,4 +1,4 @@
-/* $Id$
+/*
    Simple utility to make a single-image install kernel with initial ramdisk
    for Sparc tftpbooting without need to set up nfs.
 

@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * timer.h:  Definitions for the timer chips on the Sparc.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

@@ -693,8 +693,8 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, iface);
 
-	dev_info(&pdev->dev, "Blackfin BF5xx on-chip I2C TWI Contoller, regs_base@%p\n",
-		iface->regs_base);
+	dev_info(&pdev->dev, "Blackfin BF5xx on-chip I2C TWI Contoller, "
+		"regs_base@%p\n", iface->regs_base);
 
 	return 0;
 
@@ -754,3 +754,4 @@ module_exit(i2c_bfin_twi_exit);
 MODULE_AUTHOR("Bryan Wu, Sonic Zhang");
 MODULE_DESCRIPTION("Blackfin BF5xx on-chip I2C TWI Contoller Driver");
 MODULE_LICENSE("GPL");
+MODULE_ALIAS("platform:i2c-bfin-twi");

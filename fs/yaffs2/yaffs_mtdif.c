@@ -1,8 +1,7 @@
 /*
- * YAFFS: Yet another FFS. A NAND-flash specific file system. 
- * yaffs_mtdif.c  NAND mtd wrapper functions.
+ * YAFFS: Yet Another Flash File System. A NAND-flash specific file system.
  *
- * Copyright (C) 2002 Aleph One Ltd.
+ * Copyright (C) 2002-2007 Aleph One Ltd.
  *   for Toby Churchill Ltd and Brightstar Engineering
  *
  * Created by Charles Manning <charles@aleph1.co.uk>
@@ -10,7 +9,6 @@
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
- *
  */
 
 const char *yaffs_mtdif_c_version =
@@ -26,7 +24,7 @@ const char *yaffs_mtdif_c_version =
 #include "linux/time.h"
 #include "linux/mtd/nand.h"
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18))
+#if (MTD_VERSION_CODE < MTD_VERSION(2,6,18))
 static struct nand_oobinfo yaffs_oobinfo = {
 	.useecc = 1,
 	.eccbytes = 6,
@@ -38,7 +36,7 @@ static struct nand_oobinfo yaffs_noeccinfo = {
 };
 #endif
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,17))
+#if (MTD_VERSION_CODE > MTD_VERSION(2,6,17))
 static inline void translate_spare2oob(const yaffs_Spare *spare, __u8 *oob)
 {
 	oob[0] = spare->tagByte0;
@@ -77,14 +75,14 @@ int nandmtd_WriteChunkToNAND(yaffs_Device * dev, int chunkInNAND,
 			     const __u8 * data, const yaffs_Spare * spare)
 {
 	struct mtd_info *mtd = (struct mtd_info *)(dev->genericDevice);
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,17))
+#if (MTD_VERSION_CODE > MTD_VERSION(2,6,17))
 	struct mtd_oob_ops ops;
 #endif
 	size_t dummy;
 	int retval = 0;
 
 	loff_t addr = ((loff_t) chunkInNAND) * dev->nDataBytesPerChunk;
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,17))
+#if (MTD_VERSION_CODE > MTD_VERSION(2,6,17))
 	__u8 spareAsBytes[8]; /* OOB */
 
 	if (data && !spare)
@@ -141,14 +139,14 @@ int nandmtd_ReadChunkFromNAND(yaffs_Device * dev, int chunkInNAND, __u8 * data,
 			      yaffs_Spare * spare)
 {
 	struct mtd_info *mtd = (struct mtd_info *)(dev->genericDevice);
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,17))
+#if (MTD_VERSION_CODE > MTD_VERSION(2,6,17))
 	struct mtd_oob_ops ops;
 #endif
 	size_t dummy;
 	int retval = 0;
 
 	loff_t addr = ((loff_t) chunkInNAND) * dev->nDataBytesPerChunk;
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,17))
+#if (MTD_VERSION_CODE > MTD_VERSION(2,6,17))
 	__u8 spareAsBytes[8]; /* OOB */
 
 	if (data && !spare)
@@ -174,7 +172,7 @@ int nandmtd_ReadChunkFromNAND(yaffs_Device * dev, int chunkInNAND, __u8 * data,
 	__u8 *spareAsBytes = (__u8 *) spare;
 
 	if (data && spare) {
-		if (dev->useNANDECC) {	
+		if (dev->useNANDECC) {
 			/* Careful, this call adds 2 ints */
 			/* to the end of the spare data.  Calling function */
 			/* should allocate enough memory for spare, */

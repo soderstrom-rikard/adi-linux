@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * segment.c:  Prom routine to map segments in other contexts before
  *             a standalone is completely mapped.  This is for sun4 and
  *             sun4c architectures only.

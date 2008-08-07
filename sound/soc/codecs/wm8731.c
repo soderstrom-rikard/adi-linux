@@ -20,7 +20,6 @@
 #include <linux/i2c.h>
 #include <linux/platform_device.h>
 #include <linux/spi/spi.h>
-#include <sound/driver.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -112,7 +111,7 @@ static int wm8731_write(struct snd_soc_codec *codec, unsigned int reg,
 	data[0] = (reg << 1) | ((value >> 8) & 0x0001);
 	data[1] = value & 0x00ff;
 
-	wm8731_write_reg_cache (codec, reg, value);
+	wm8731_write_reg_cache(codec, reg, value);
 	if (codec->hw_write(codec->control_data, data, 2) == 2)
 		return 0;
 	else
@@ -156,8 +155,10 @@ static int wm8731_add_controls(struct snd_soc_codec *codec)
 	int err, i;
 
 	for (i = 0; i < ARRAY_SIZE(wm8731_snd_controls); i++) {
-		if ((err = snd_ctl_add(codec->card,
-				snd_soc_cnew(&wm8731_snd_controls[i],codec, NULL))) < 0)
+		err = snd_ctl_add(codec->card,
+				  snd_soc_cnew(&wm8731_snd_controls[i],
+						codec, NULL));
+		if (err < 0)
 			return err;
 	}
 
@@ -223,15 +224,13 @@ static int wm8731_add_widgets(struct snd_soc_codec *codec)
 {
 	int i;
 
-	for(i = 0; i < ARRAY_SIZE(wm8731_dapm_widgets); i++) {
+	for (i = 0; i < ARRAY_SIZE(wm8731_dapm_widgets); i++)
 		snd_soc_dapm_new_control(codec, &wm8731_dapm_widgets[i]);
-	}
 
 	/* set up audio path interconnects */
-	for(i = 0; intercon[i][0] != NULL; i++) {
+	for (i = 0; intercon[i][0] != NULL; i++)
 		snd_soc_dapm_connect_input(codec, intercon[i][0],
 			intercon[i][1], intercon[i][2]);
-	}
 
 	snd_soc_dapm_new_widgets(codec);
 	return 0;
@@ -563,13 +562,13 @@ static int wm8731_init(struct snd_soc_device *socdev)
 
 	/* set the update bits */
 	reg = wm8731_read_reg_cache(codec, WM8731_LOUT1V);
-	wm8731_write(codec, WM8731_LOUT1V, reg | 0x0100);
+	wm8731_write(codec, WM8731_LOUT1V, reg & ~0x0100);
 	reg = wm8731_read_reg_cache(codec, WM8731_ROUT1V);
-	wm8731_write(codec, WM8731_ROUT1V, reg | 0x0100);
+	wm8731_write(codec, WM8731_ROUT1V, reg & ~0x0100);
 	reg = wm8731_read_reg_cache(codec, WM8731_LINVOL);
-	wm8731_write(codec, WM8731_LINVOL, reg | 0x0100);
+	wm8731_write(codec, WM8731_LINVOL, reg & ~0x0100);
 	reg = wm8731_read_reg_cache(codec, WM8731_RINVOL);
-	wm8731_write(codec, WM8731_RINVOL, reg | 0x0100);
+	wm8731_write(codec, WM8731_RINVOL, reg & ~0x0100);
 
 	wm8731_add_controls(codec);
 	wm8731_add_widgets(codec);
@@ -653,7 +652,7 @@ err:
 
 static int wm8731_i2c_detach(struct i2c_client *client)
 {
-	struct snd_soc_codec* codec = i2c_get_clientdata(client);
+	struct snd_soc_codec *codec = i2c_get_clientdata(client);
 	i2c_detach_client(client);
 	kfree(codec->reg_cache);
 	kfree(client);
@@ -815,7 +814,6 @@ struct snd_soc_codec_device soc_codec_dev_wm8731 = {
 	.suspend = 	wm8731_suspend,
 	.resume =	wm8731_resume,
 };
-
 EXPORT_SYMBOL_GPL(soc_codec_dev_wm8731);
 
 MODULE_DESCRIPTION("ASoC WM8731 driver");

@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * ashldi3.S:	GCC emits these for certain drivers playing
  *		with long longs.
  *

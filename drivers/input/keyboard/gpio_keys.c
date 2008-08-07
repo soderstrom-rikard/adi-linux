@@ -40,12 +40,14 @@ static irqreturn_t gpio_keys_isr(int irq, void *dev_id)
 		if (irq == gpio_to_irq(gpio)) {
 			unsigned int type = button->type ?: EV_KEY;
 			int state = (gpio_get_value(gpio) ? 1 : 0) ^ button->active_low;
+
 			input_event(input, type, button->code, !!state);
 			input_sync(input);
+			return IRQ_HANDLED;
 		}
 	}
 
-	return IRQ_HANDLED;
+	return IRQ_NONE;
 }
 
 static int __devinit gpio_keys_probe(struct platform_device *pdev)
@@ -212,6 +214,7 @@ struct platform_driver gpio_keys_device_driver = {
 	.resume		= gpio_keys_resume,
 	.driver		= {
 		.name	= "gpio-keys",
+		.owner	= THIS_MODULE,
 	}
 };
 
@@ -231,3 +234,4 @@ module_exit(gpio_keys_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Phil Blundell <pb@handhelds.org>");
 MODULE_DESCRIPTION("Keyboard driver for CPU GPIOs");
+MODULE_ALIAS("platform:gpio-keys");

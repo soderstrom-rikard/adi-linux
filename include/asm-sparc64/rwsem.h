@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * rwsem.h: R/W semaphores implemented using CAS
  *
  * Written by David S. Miller (davem@redhat.com), 2001.

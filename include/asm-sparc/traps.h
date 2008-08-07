@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * traps.h:  Format of entries for the Sparc trap table.
  *
  * Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

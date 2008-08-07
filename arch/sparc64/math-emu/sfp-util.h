@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * arch/sparc64/math-emu/sfp-util.h
  *
  * Copyright (C) 1999 Jakub Jelinek (jj@ultra.linux.cz)

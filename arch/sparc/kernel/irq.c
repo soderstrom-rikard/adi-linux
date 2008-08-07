@@ -1,4 +1,4 @@
-/*  $Id$
+/*
  *  arch/sparc/kernel/irq.c:  Interrupt request handling routines. On the
  *                            Sparc the IRQs are basically 'cast in stone'
  *                            and you are supposed to probe the prom's device

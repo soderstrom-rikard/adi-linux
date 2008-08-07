@@ -139,6 +139,30 @@ config FB_SYS_IMAGEBLIT
 	  blitting. This is used by drivers that don't provide their own
 	  (accelerated) version and the framebuffer is in system RAM.
 
+menuconfig FB_FOREIGN_ENDIAN
+	bool "Framebuffer foreign endianness support"
+	depends on FB
+	---help---
+	  This menu will let you enable support for the framebuffers with
+	  non-native endianness (e.g. Little-Endian framebuffer on a
+	  Big-Endian machine). Most probably you don't have such hardware,
+	  so it's safe to say "n" here.
+
+choice
+	prompt "Choice endianness support"
+	depends on FB_FOREIGN_ENDIAN
+
+config FB_BOTH_ENDIAN
+	bool "Support for Big- and Little-Endian framebuffers"
+
+config FB_BIG_ENDIAN
+	bool "Support for Big-Endian framebuffers only"
+
+config FB_LITTLE_ENDIAN
+	bool "Support for Little-Endian framebuffers only"
+
+endchoice
+
 config FB_SYS_FOPS
        tristate
        depends on FB
@@ -147,7 +171,16 @@ config FB_SYS_FOPS
 config FB_DEFERRED_IO
 	bool
 	depends on FB
-	default y
+
+config FB_METRONOME
+	tristate
+	depends on FB
+	depends on FB_DEFERRED_IO
+
+config FB_HECUBA
+	tristate
+	depends on FB
+	depends on FB_DEFERRED_IO
 
 config FB_SVGALIB
 	tristate
@@ -263,7 +296,7 @@ config FB_ARMCLCD_SHARP_LQ035Q7DB02_HRTFT
 	bool "LogicPD LCD 3.5\" QVGA w/HRTFT IC"
 	help
 	  This is an implementation of the Sharp LQ035Q7DB02, a 3.5"
-	  color QVGA, HRTFT panel.  The LogicPD device includes an
+	  color QVGA, HRTFT panel.  The LogicPD device includes
 	  an integrated HRTFT controller IC.
 	  The native resolution is 240x320.
 
@@ -443,7 +476,7 @@ config FB_ARC
 	  is based on the KS-108 lcd controller and is typically a matrix
 	  of 2*n chips. This driver was tested with a 128x64 panel. This
 	  driver supports it for use with x86 SBCs through a 16 bit GPIO
-	  interface (8 bit data, 8 bit control). If you anticpate using
+	  interface (8 bit data, 8 bit control). If you anticipate using
 	  this driver, say Y or M; otherwise say N. You must specify the
 	  GPIO IO address to be used for setting control and data.
 
@@ -553,42 +586,6 @@ config FB_BF54X_LQ043
 	help
 	 This is the framebuffer device driver for a SHARP LQ043T1DG01 TFT LCD
 
-config FB_HITACHI_TX09
-	tristate "Hitachi TX09D70VM1CDA TFT LCD"
-	depends on FB && (BF537 || BF561)
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
-	help
-	  This is the framebuffer device for a HITACHI TX09D70VM1CDA
-	  TFT LCD attached to a CM-BF537E or CM-BF561 from Bluetechnix.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called hitachi-tx09.
-
-config FB_HITACHI_TX09_LANDSCAPE
-	bool "Use Landscape 320x240 instead of Portrait 240x320"
-	depends on FB_HITACHI_TX09
-	default n
-	help
-	  Use 320x240 instead of native 240x320 Resolution
-
-config FB_HITACHI_TX09_REFRESHRATE
-	int "Refresh rate"
-	depends on FB_HITACHI_TX09
-	range 25 70
-	default 52
-	help
-	  Refresh rate of the LCD in Hz. According to data sheet, must
-	  be in the interval [52...68].
-
-config CONFIG_FB_HITACHI_TX09_CURSOR
-	bool "Enable/Disable cursor"
-	depends on FB_HITACHI_TX09
-	default n
-	help
-	  Enable the cursor
-
 config FB_BFIN_T350MCQB
 	tristate "Varitronix COG-T350MCQB TFT LCD display (BF527 EZKIT)"
 	depends on FB && BLACKFIN
@@ -599,7 +596,42 @@ config FB_BFIN_T350MCQB
 	help
 	 This is the framebuffer device driver for a Varitronix VL-PS-COG-T350MCQB-01 display TFT LCD
 	 This display is a QVGA 320x240 24-bit RGB display interfaced by an 8-bit wide PPI
-	 It uses PPI[0..7] PPI_FS1, PPI_FS2 and PPI_CLK. 
+	 It uses PPI[0..7] PPI_FS1, PPI_FS2 and PPI_CLK.
+
+
+config FB_BF537_LQ035
+	tristate "SHARP LQ035 TFT LCD on uClinux (BF537 STAMP)"
+	depends on FB && ( BF534 || BF536 || BF537) && I2C_BLACKFIN_TWI
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	help
+	 This is the framebuffer device for a SHARP LQ035Q7DB03 TFT LCD
+         attached to a BF537.
+
+config LQ035_SLAVE_ADDR
+	hex "The slave address of the I2C device (0x58, 0x5A, 0x5C and 0x5E)"
+	depends on FB_BF537_LQ035
+	default 0x58
+	help
+	  This is the slave address of the I2C device on the LQ035 LCD
+	  daughter board. It value could be 0x58, 0x5A, 0x5C and 0x5E.
+	  Please setting the switch S1 properly accroding to the address.
+	  The default is 0x58.
+
+config FB_BFIN_LANDSCAPE
+	bool "Use Landscape 320x240 instead of Portrait 240x320"
+	depends on FB_BF537_LQ035
+	default n
+	help
+	 LANDSCAPE: use 320x240 instead of native 240x320 Resolution
+
+config FB_BFIN_BGR
+	bool "Use 16-bit BGR-565 instead of RGB-565"
+	depends on FB_BF537_LQ035
+	default n
+	help
+	 BGR use 16-bit BGR-565 instead of RGB-565
 
 config FB_BFIN_7393
 	tristate "Blackfin ADV7393 Video encoder on uClinux"
@@ -652,39 +684,41 @@ config ADV7393_2XMEM
 	bool 'Double'
 endchoice
 
-config FB_BF537_LQ035
-	tristate "SHARP LQ035 TFT LCD on uClinux (BF537 STAMP)"
-	depends on FB && ( BF534 || BF536 || BF537) && I2C_BLACKFIN_TWI
+config FB_HITACHI_TX09
+	tristate "Hitachi TX09D70VM1CDA TFT LCD"
+	depends on FB && (BF537 || BF561)
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
 	help
-	 This is the framebuffer device for a SHARP LQ035Q7DB03 TFT LCD
-         attached to a BF537.
+	  This is the framebuffer device for a HITACHI TX09D70VM1CDA
+	  TFT LCD attached to a CM-BF537E or CM-BF561 from Bluetechnix.
 
-config LQ035_SLAVE_ADDR
-	hex "The slave address of the I2C device (0x58, 0x5A, 0x5C and 0x5E)"
-	depends on FB_BF537_LQ035
-	default 0x58
-	help
-	  This is the slave address of the I2C device on the LQ035 LCD
-	  daughter board. It value could be 0x58, 0x5A, 0x5C and 0x5E.
-	  Please setting the switch S1 properly accroding to the address.
-	  The default is 0x58.
+	  To compile this driver as a module, choose M here: the
+	  module will be called hitachi-tx09.
 
-config FB_BFIN_LANDSCAPE
+config FB_HITACHI_TX09_LANDSCAPE
 	bool "Use Landscape 320x240 instead of Portrait 240x320"
-	depends on FB_BF537_LQ035
+	depends on FB_HITACHI_TX09
 	default n
 	help
-	 LANDSCAPE: use 320x240 instead of native 240x320 Resolution
+	  Use 320x240 instead of native 240x320 Resolution
 
-config FB_BFIN_BGR
-	bool "Use 16-bit BGR-565 instead of RGB-565"
-	depends on FB_BF537_LQ035
+config FB_HITACHI_TX09_REFRESHRATE
+	int "Refresh rate"
+	depends on FB_HITACHI_TX09
+	range 25 70
+	default 52
+	help
+	  Refresh rate of the LCD in Hz. According to data sheet, must
+	  be in the interval [52...68].
+
+config CONFIG_FB_HITACHI_TX09_CURSOR
+	bool "Enable/Disable cursor"
+	depends on FB_HITACHI_TX09
 	default n
 	help
-	 BGR use 16-bit BGR-565 instead of RGB-565
+	  Enable the cursor
 
 config FB_STI
 	tristate "HP STI frame buffer device support"
@@ -698,7 +732,7 @@ config FB_STI
 	  BIOS routines contained in a ROM chip in HP PA-RISC based machines.
 	  Enabling this option will implement the linux framebuffer device
 	  using calls to the STI BIOS routines for initialisation.
-
+	
 	  If you enable this option, you will get a planar framebuffer device
 	  /dev/fb which will work on the most common HP graphic cards of the
 	  NGLE family, including the artist chips (in the 7xx and Bxxx series),
@@ -714,11 +748,9 @@ config FB_MAC
 	select FB_CFB_IMAGEBLIT
 	select FB_MACMODES
 
-#      bool '  Apple DAFB display support' CONFIG_FB_DAFB
 config FB_HP300
 	bool
-	depends on (FB = y) && HP300
-	select FB_CFB_FILLRECT
+	depends on (FB = y) && DIO
 	select FB_CFB_IMAGEBLIT
 	default y
 
@@ -794,20 +826,18 @@ config FB_IMAC
 	help
 	  This is the frame buffer device driver for the Intel-based Macintosh
 
-config FB_HECUBA
-       tristate "Hecuba board support"
+config FB_N411
+       tristate "N411 Apollo/Hecuba devkit support"
        depends on FB && X86 && MMU
        select FB_SYS_FILLRECT
        select FB_SYS_COPYAREA
        select FB_SYS_IMAGEBLIT
        select FB_SYS_FOPS
        select FB_DEFERRED_IO
+       select FB_HECUBA
        help
-         This enables support for the Hecuba board. This driver was tested
-         with an E-Ink 800x600 display and x86 SBCs through a 16 bit GPIO
-         interface (8 bit data, 4 bit control). If you anticipate using
-         this driver, say Y or M; otherwise say N. You must specify the
-         GPIO IO address to be used for setting control and data.
+         This enables support for the Apollo display controller in its
+         Hecuba form using the n411 devkit.
 
 config FB_HGA
 	tristate "Hercules mono graphics support"
@@ -1022,7 +1052,7 @@ config FB_S1D13XXX
 
 config FB_ATMEL
 	tristate "AT91/AT32 LCD Controller support"
-	depends on FB && (ARCH_AT91SAM9261 || ARCH_AT91SAM9263 || AVR32)
+	depends on FB && (ARCH_AT91SAM9261 || ARCH_AT91SAM9263 || ARCH_AT91SAM9RL || ARCH_AT91CAP9 || AVR32)
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
@@ -1131,7 +1161,7 @@ config FB_RIVA_DEBUG
 	default n
 	help
 	  Say Y here if you want the Riva driver to output all sorts
-	  of debugging informations to provide to the maintainer when
+	  of debugging information to provide to the maintainer when
 	  something goes wrong.
 
 config FB_RIVA_BACKLIGHT
@@ -1152,36 +1182,36 @@ config FB_I810
 	select FB_CFB_IMAGEBLIT
 	select VGASTATE
 	help
-	  This driver supports the on-board graphics built in to the Intel 810
+	  This driver supports the on-board graphics built in to the Intel 810 
           and 815 chipsets.  Say Y if you have and plan to use such a board.
 
           To compile this driver as a module, choose M here: the
 	  module will be called i810fb.
 
-          For more information, please read
+          For more information, please read 
 	  <file:Documentation/fb/intel810.txt>
 
 config FB_I810_GTF
 	bool "use VESA Generalized Timing Formula"
 	depends on FB_I810
 	help
-	  If you say Y, then the VESA standard, Generalized Timing Formula
+	  If you say Y, then the VESA standard, Generalized Timing Formula 
           or GTF, will be used to calculate the required video timing values
-	  per video mode.  Since the GTF allows nondiscrete timings
+	  per video mode.  Since the GTF allows nondiscrete timings 
           (nondiscrete being a range of values as opposed to discrete being a
-          set of values), you'll be able to use any combination of horizontal
+          set of values), you'll be able to use any combination of horizontal 
 	  and vertical resolutions, and vertical refresh rates without having
 	  to specify your own timing parameters.  This is especially useful
-	  to maximize the performance of an aging display, or if you just
-          have a display with nonstandard dimensions. A VESA compliant
+	  to maximize the performance of an aging display, or if you just 
+          have a display with nonstandard dimensions. A VESA compliant 
 	  monitor is recommended, but can still work with non-compliant ones.
-	  If you need or want this, then select this option. The timings may
-	  not be compliant with Intel's recommended values. Use at your own
+	  If you need or want this, then select this option. The timings may 
+	  not be compliant with Intel's recommended values. Use at your own 
 	  risk.
 
-          If you say N, the driver will revert to discrete video timings
+          If you say N, the driver will revert to discrete video timings 
 	  using a set recommended by Intel in their documentation.
-
+  
           If unsure, say N.
 
 config FB_I810_I2C
@@ -1207,7 +1237,7 @@ config FB_CARILLO_RANCH
 	  This driver supports the LE80578 (Carillo Ranch) board
 
 config FB_INTEL
-	tristate "Intel 830M/845G/852GM/855GM/865G/915G/945G support (EXPERIMENTAL)"
+	tristate "Intel 830M/845G/852GM/855GM/865G/915G/945G/945GM/965G/965GM support (EXPERIMENTAL)"
 	depends on FB && EXPERIMENTAL && PCI && X86
 	select AGP
 	select AGP_INTEL
@@ -1217,7 +1247,7 @@ config FB_INTEL
 	select FB_CFB_IMAGEBLIT
 	help
 	  This driver supports the on-board graphics built in to the Intel
-          830M/845G/852GM/855GM/865G/915G/915GM/945G/945GM chipsets.
+          830M/845G/852GM/855GM/865G/915G/915GM/945G/945GM/965G/965GM chipsets.
           Say Y if you have and plan to use such a board.
 
 	  If you say Y here and want DDC/I2C support you must first say Y to
@@ -1305,10 +1335,10 @@ config FB_MATROX_G
 	  framebuffer section. G450/G550 secondary head and digital output
 	  are supported without additional modules.
 
-	  The driver starts in monitor mode. You must use the matroxset tool
-	  (available at <ftp://platan.vc.cvut.cz/pub/linux/matrox-latest/>) to
-	  swap primary and secondary head outputs, or to change output mode.
-	  Secondary head driver always start in 640x480 resolution and you
+	  The driver starts in monitor mode. You must use the matroxset tool 
+	  (available at <ftp://platan.vc.cvut.cz/pub/linux/matrox-latest/>) to 
+	  swap primary and secondary head outputs, or to change output mode.  
+	  Secondary head driver always start in 640x480 resolution and you 
 	  must use fbset to change it.
 
 	  Do not forget that second head supports only 16 and 32 bpp
@@ -1406,7 +1436,7 @@ config FB_RADEON
 	  "I2C support" and "I2C bit-banging support" in the character devices
 	  section.
 
-	  If you say M here then "I2C support" and "I2C bit-banging support"
+	  If you say M here then "I2C support" and "I2C bit-banging support" 
 	  can be build either as modules or built-in.
 
 	  There is a product page at
@@ -1418,7 +1448,7 @@ config FB_RADEON_I2C
 	select FB_DDC
 	default y
 	help
-	  Say Y here if you want DDC/I2C support for your Radeon board.
+	  Say Y here if you want DDC/I2C support for your Radeon board. 
 
 config FB_RADEON_BACKLIGHT
 	bool "Support for backlight control"
@@ -1433,7 +1463,7 @@ config FB_RADEON_DEBUG
 	default n
 	help
 	  Say Y here if you want the Radeon driver to output all sorts
-	  of debugging informations to provide to the maintainer when
+	  of debugging information to provide to the maintainer when
 	  something goes wrong.
 
 config FB_ATY128
@@ -1599,7 +1629,7 @@ config FB_NEOMAGIC
 	select VGASTATE
 	help
 	  This driver supports notebooks with NeoMagic PCI chips.
-	  Say Y if you have such a graphics card.
+	  Say Y if you have such a graphics card. 
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called neofb.
@@ -1645,7 +1675,7 @@ config FB_VOODOO1
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
 	---help---
-	  Say Y here if you have a 3Dfx Voodoo Graphics (Voodoo1/sst1) or
+	  Say Y here if you have a 3Dfx Voodoo Graphics (Voodoo1/sst1) or 
 	  Voodoo2 (cvg) based graphics card.
 
 	  To compile this driver as a module, choose M here: the
@@ -1862,6 +1892,11 @@ config FB_PXA
 
 	  If unsure, say N.
 
+config FB_PXA_SMARTPANEL
+	bool "PXA Smartpanel LCD support"
+	default n
+	depends on FB_PXA
+
 config FB_PXA_PARAMETERS
 	bool "PXA LCD command line parameters"
 	default n
@@ -1899,14 +1934,25 @@ config FB_MBX_DEBUG
 
          If unsure, say N.
 
+config FB_FSL_DIU
+	tristate "Freescale DIU framebuffer support"
+	depends on FB && FSL_SOC
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	select PPC_LIB_RHEAP
+	---help---
+	  Framebuffer driver for the Freescale SoC DIU
+
 config FB_W100
 	tristate "W100 frame buffer support"
-	depends on FB && PXA_SHARPSL
+	depends on FB && ARCH_PXA
  	select FB_CFB_FILLRECT
  	select FB_CFB_COPYAREA
  	select FB_CFB_IMAGEBLIT
 	---help---
 	  Frame buffer driver for the w100 as found on the Sharp SL-Cxx series.
+	  It can also drive the w3220 chip found on iPAQ hx4700.
 
 	  This driver is also available as a module ( = code which can be
 	  inserted and removed from the running kernel whenever you want). The
@@ -2013,6 +2059,19 @@ config FB_XILINX
 	  framebuffer. ML300 carries a 640*480 LCD display on the board,
 	  ML403 uses a standard DB15 VGA connector.
 
+config FB_AM200EPD
+       tristate "AM-200 E-Ink EPD devkit support"
+       depends on FB && ARCH_PXA && MMU
+       select FB_SYS_FILLRECT
+       select FB_SYS_COPYAREA
+       select FB_SYS_IMAGEBLIT
+       select FB_SYS_FOPS
+       select FB_DEFERRED_IO
+       select FB_METRONOME
+       help
+         This enables support for the Metronome display controller used on
+         the E-Ink AM-200 EPD devkit.
+
 config FB_VIRTUAL
 	tristate "Virtual Frame Buffer support (ONLY FOR TESTING!)"
 	depends on FB
@@ -2031,9 +2090,24 @@ config FB_VIRTUAL
 	  kernel option `video=vfb:'.
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called vfb.
+	  module will be called vfb. In order to load it, you must use
+	  the vfb_enable=1 option.
 
 	  If unsure, say N.
+
+config XEN_FBDEV_FRONTEND
+	tristate "Xen virtual frame buffer support"
+	depends on FB && XEN
+	select FB_SYS_FILLRECT
+	select FB_SYS_COPYAREA
+	select FB_SYS_IMAGEBLIT
+	select FB_SYS_FOPS
+	select FB_DEFERRED_IO
+	default y
+	help
+	  This driver implements the front-end of the Xen virtual
+	  frame buffer driver.  It communicates with a back-end
+	  in another domain.
 
 source "drivers/video/omap/Kconfig"
 

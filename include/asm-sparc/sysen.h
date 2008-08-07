@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * sysen.h:  Bit fields within the "System Enable" register accessed via
  *           the ASI_CONTROL address space at address AC_SYSENABLE.
  *

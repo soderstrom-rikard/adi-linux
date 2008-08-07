@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * etrap.S: Sparc trap window preparation for entry into the
  *          Linux kernel.
  *

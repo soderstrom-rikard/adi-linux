@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * bootstr.c:  Boot string/argument acquisition from the PROM.
  *
  * Copyright(C) 1995 David S. Miller (davem@caip.rutgers.edu)

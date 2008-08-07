@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * apb.h: Advanced PCI Bridge Configuration Registers and Bits
  *
  * Copyright (C) 1998  Eddie C. Dost  (ecd@skynet.be)

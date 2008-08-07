@@ -31,6 +31,10 @@ static inline void wrusp(unsigned long usp)
  */
 #define TASK_SIZE	0xFFFFFFFF
 
+#ifdef __KERNEL__
+#define STACK_TOP	TASK_SIZE
+#endif
+
 #define TASK_UNMAPPED_BASE	0
 
 struct thread_struct {

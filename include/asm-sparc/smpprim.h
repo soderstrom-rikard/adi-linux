@@ -1,4 +1,4 @@
-/*  $Id$
+/*
  *  smpprim.h:  SMP locking primitives on the Sparc
  *
  *  God knows we won't be actually using this code for some time

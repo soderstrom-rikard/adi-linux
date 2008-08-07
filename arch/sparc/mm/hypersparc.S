@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * hypersparc.S: High speed Hypersparc mmu/cache operations.
  *
  * Copyright (C) 1997 David S. Miller (davem@caip.rutgers.edu)

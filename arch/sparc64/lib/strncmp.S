@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * Sparc64 optimized strncmp code.
  *
  * Copyright (C) 1997 Jakub Jelinek (jj@sunsite.mff.cuni.cz)

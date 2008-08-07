@@ -674,7 +674,7 @@ static void read_atapi_data(void __iomem *base,
  *	@ap: Port to which output is sent
  *	@tf: ATA taskfile register set
  *
- *	Note: Original code is ata_tf_load().
+ *	Note: Original code is ata_sff_tf_load().
  */
 
 static void bfin_tf_load(struct ata_port *ap, const struct ata_taskfile *tf)
@@ -745,7 +745,7 @@ static u8 bfin_check_status(struct ata_port *ap)
  *	@ap: Port from which input is read
  *	@tf: ATA taskfile register set for storing input
  *
- *	Note: Original code is ata_tf_read().
+ *	Note: Original code is ata_sff_tf_read().
  */
 
 static void bfin_tf_read(struct ata_port *ap, struct ata_taskfile *tf)
@@ -775,7 +775,7 @@ static void bfin_tf_read(struct ata_port *ap, struct ata_taskfile *tf)
  *	@ap: port to which command is being issued
  *	@tf: ATA taskfile register set
  *
- *	Note: Original code is ata_exec_command().
+ *	Note: Original code is ata_sff_exec_command().
  */
 
 static void bfin_exec_command(struct ata_port *ap,
@@ -785,7 +785,7 @@ static void bfin_exec_command(struct ata_port *ap,
 	dev_dbg(ap->dev, "ata%u: cmd 0x%X\n", ap->print_id, tf->command);
 
 	write_atapi_register(base, ATA_REG_CMD, tf->command);
-	ata_pause(ap);
+	ata_sff_pause(ap);
 }
 
 /**
@@ -800,14 +800,14 @@ static u8 bfin_check_altstatus(struct ata_port *ap)
 }
 
 /**
- *	bfin_std_dev_select - Select device 0/1 on ATA bus
+ *	bfin_dev_select - Select device 0/1 on ATA bus
  *	@ap: ATA channel to manipulate
  *	@device: ATA device (numbered from zero) to select
  *
- *	Note: Original code is ata_std_dev_select().
+ *	Note: Original code is ata_sff_dev_select().
  */
 
-static void bfin_std_dev_select(struct ata_port *ap, unsigned int device)
+static void bfin_dev_select(struct ata_port *ap, unsigned int device)
 {
 	void __iomem *base = (void __iomem *)ap->ioaddr.ctl_addr;
 	u8 tmp;
@@ -818,7 +818,7 @@ static void bfin_std_dev_select(struct ata_port *ap, unsigned int device)
 		tmp = ATA_DEVICE_OBS | ATA_DEV1;
 
 	write_atapi_register(base, ATA_REG_DEVICE, tmp);
-	ata_pause(ap);
+	ata_sff_pause(ap);
 }
 
 /**
@@ -832,6 +832,7 @@ static void bfin_bmdma_setup(struct ata_queued_cmd *qc)
 {
 	unsigned short config = WDSIZE_16;
 	struct scatterlist *sg;
+	unsigned int si;
 
 	dev_dbg(qc->ap->dev, "in atapi dma setup\n");
 	/* Program the ATA_CTRL register with dir */
@@ -839,7 +840,7 @@ static void bfin_bmdma_setup(struct ata_queued_cmd *qc)
 		/* fill the ATAPI DMA controller */
 		set_dma_config(CH_ATAPI_TX, config);
 		set_dma_x_modify(CH_ATAPI_TX, 2);
-		ata_for_each_sg(sg, qc) {
+		for_each_sg(qc->sg, sg, qc->n_elem, si) {
 			set_dma_start_addr(CH_ATAPI_TX, sg_dma_address(sg));
 			set_dma_x_count(CH_ATAPI_TX, sg_dma_len(sg) >> 1);
 		}
@@ -848,7 +849,7 @@ static void bfin_bmdma_setup(struct ata_queued_cmd *qc)
 		/* fill the ATAPI DMA controller */
 		set_dma_config(CH_ATAPI_RX, config);
 		set_dma_x_modify(CH_ATAPI_RX, 2);
-		ata_for_each_sg(sg, qc) {
+		for_each_sg(qc->sg, sg, qc->n_elem, si) {
 			set_dma_start_addr(CH_ATAPI_RX, sg_dma_address(sg));
 			set_dma_x_count(CH_ATAPI_RX, sg_dma_len(sg) >> 1);
 		}
@@ -867,6 +868,7 @@ static void bfin_bmdma_start(struct ata_queued_cmd *qc)
 	struct ata_port *ap = qc->ap;
 	void __iomem *base = (void __iomem *)ap->ioaddr.ctl_addr;
 	struct scatterlist *sg;
+	unsigned int si;
 
 	dev_dbg(qc->ap->dev, "in atapi dma start\n");
 	if (!(ap->udma_mask || ap->mwdma_mask))
@@ -881,7 +883,7 @@ static void bfin_bmdma_start(struct ata_queued_cmd *qc)
 		 * data cache is enabled. Otherwise, this loop
 		 * is an empty loop and optimized out.
 		 */
-		ata_for_each_sg(sg, qc) {
+		for_each_sg(qc->sg, sg, qc->n_elem, si) {
 			flush_dcache_range(sg_dma_address(sg),
 				sg_dma_address(sg) + sg_dma_len(sg));
 		}
@@ -913,7 +915,7 @@ static void bfin_bmdma_start(struct ata_queued_cmd *qc)
 	ATAPI_SET_CONTROL(base, ATAPI_GET_CONTROL(base) | END_ON_TERM);
 
 	/* Set transfer length to buffer len */
-	ata_for_each_sg(sg, qc) {
+	for_each_sg(qc->sg, sg, qc->n_elem, si) {
 		ATAPI_SET_XFER_LEN(base, (sg_dma_len(sg) >> 1));
 	}
 
@@ -935,6 +937,7 @@ static void bfin_bmdma_stop(struct ata_queued_cmd *qc)
 {
 	struct ata_port *ap = qc->ap;
 	struct scatterlist *sg;
+	unsigned int si;
 
 	dev_dbg(qc->ap->dev, "in atapi dma stop\n");
 	if (!(ap->udma_mask || ap->mwdma_mask))
@@ -953,7 +956,7 @@ static void bfin_bmdma_stop(struct ata_queued_cmd *qc)
 			 * data cache is enabled. Otherwise, this loop
 			 * is an empty loop and optimized out.
 			 */
-			ata_for_each_sg(sg, qc) {
+			for_each_sg(qc->sg, sg, qc->n_elem, si) {
 				invalidate_dcache_range(
 					sg_dma_address(sg),
 					sg_dma_address(sg)
@@ -977,7 +980,7 @@ static unsigned int bfin_devchk(struct ata_port *ap,
 	void __iomem *base = (void __iomem *)ap->ioaddr.ctl_addr;
 	u8 nsect, lbal;
 
-	bfin_std_dev_select(ap, device);
+	bfin_dev_select(ap, device);
 
 	write_atapi_register(base, ATA_REG_NSECT, 0x55);
 	write_atapi_register(base, ATA_REG_LBAL, 0xaa);
@@ -1014,7 +1017,7 @@ static void bfin_bus_post_reset(struct ata_port *ap, unsigned int devmask)
 	 * BSY bit to clear
 	 */
 	if (dev0)
-		ata_busy_sleep(ap, ATA_TMOUT_BOOT_QUICK, ATA_TMOUT_BOOT);
+		ata_sff_busy_sleep(ap, ATA_TMOUT_BOOT_QUICK, ATA_TMOUT_BOOT);
 
 	/* if device 1 was found in ata_devchk, wait for
 	 * register access, then wait for BSY to clear
@@ -1023,7 +1026,7 @@ static void bfin_bus_post_reset(struct ata_port *ap, unsigned int devmask)
 	while (dev1) {
 		u8 nsect, lbal;
 
-		bfin_std_dev_select(ap, 1);
+		bfin_dev_select(ap, 1);
 		nsect = read_atapi_register(base, ATA_REG_NSECT);
 		lbal = read_atapi_register(base, ATA_REG_LBAL);
 		if ((nsect == 1) && (lbal == 1))
@@ -1035,14 +1038,14 @@ static void bfin_bus_post_reset(struct ata_port *ap, unsigned int devmask)
 		msleep(50);	/* give drive a breather */
 	}
 	if (dev1)
-		ata_busy_sleep(ap, ATA_TMOUT_BOOT_QUICK, ATA_TMOUT_BOOT);
+		ata_sff_busy_sleep(ap, ATA_TMOUT_BOOT_QUICK, ATA_TMOUT_BOOT);
 
 	/* is all this really necessary? */
-	bfin_std_dev_select(ap, 0);
+	bfin_dev_select(ap, 0);
 	if (dev1)
-		bfin_std_dev_select(ap, 1);
+		bfin_dev_select(ap, 1);
 	if (dev0)
-		bfin_std_dev_select(ap, 0);
+		bfin_dev_select(ap, 0);
 }
 
 /**
@@ -1088,25 +1091,20 @@ static unsigned int bfin_bus_softreset(struct ata_port *ap,
 }
 
 /**
- *	bfin_std_softreset - reset host port via ATA SRST
+ *	bfin_softreset - reset host port via ATA SRST
  *	@ap: port to reset
  *	@classes: resulting classes of attached devices
  *
- *	Note: Original code is ata_std_softreset().
+ *	Note: Original code is ata_sff_softreset().
  */
 
-static int bfin_std_softreset(struct ata_link *link, unsigned int *classes,
-		unsigned long deadline)
+static int bfin_softreset(struct ata_link *link, unsigned int *classes,
+			  unsigned long deadline)
 {
 	struct ata_port *ap = link->ap;
 	unsigned int slave_possible = ap->flags & ATA_FLAG_SLAVE_POSS;
 	unsigned int devmask = 0, err_mask;
 	u8 err;
-
-	if (ata_link_offline(link)) {
-		classes[0] = ATA_DEV_NONE;
-		goto out;
-	}
 
 	/* determine if device 0/1 are present */
 	if (bfin_devchk(ap, 0))
@@ -1115,7 +1113,7 @@ static int bfin_std_softreset(struct ata_link *link, unsigned int *classes,
 		devmask |= (1 << 1);
 
 	/* select device 0 again */
-	bfin_std_dev_select(ap, 0);
+	bfin_dev_select(ap, 0);
 
 	/* issue bus reset */
 	err_mask = bfin_bus_softreset(ap, devmask);
@@ -1126,13 +1124,12 @@ static int bfin_std_softreset(struct ata_link *link, unsigned int *classes,
 	}
 
 	/* determine by signature whether we have ATA or ATAPI devices */
-	classes[0] = ata_dev_try_classify(&ap->link.device[0],
+	classes[0] = ata_sff_dev_classify(&ap->link.device[0],
 				devmask & (1 << 0), &err);
 	if (slave_possible && err != 0x81)
-		classes[1] = ata_dev_try_classify(&ap->link.device[1],
+		classes[1] = ata_sff_dev_classify(&ap->link.device[1],
 					devmask & (1 << 1), &err);
 
- out:
 	return 0;
 }
 
@@ -1167,44 +1164,46 @@ static unsigned char bfin_bmdma_status(struct ata_port *ap)
  *	@buflen: buffer length
  *	@write_data: read/write
  *
- *	Note: Original code is ata_data_xfer().
+ *	Note: Original code is ata_sff_data_xfer().
  */
 
-static void bfin_data_xfer(struct ata_device *adev, unsigned char *buf,
-			   unsigned int buflen, int write_data)
+static unsigned int bfin_data_xfer(struct ata_device *dev, unsigned char *buf,
+				   unsigned int buflen, int rw)
 {
-	struct ata_port *ap = adev->link->ap;
-	unsigned int words = buflen >> 1;
-	unsigned short *buf16 = (u16 *) buf;
+	struct ata_port *ap = dev->link->ap;
 	void __iomem *base = (void __iomem *)ap->ioaddr.ctl_addr;
+	unsigned int words = buflen >> 1;
+	unsigned short *buf16 = (u16 *)buf;
 
 	/* Transfer multiple of 2 bytes */
-	if (write_data) {
-		write_atapi_data(base, words, buf16);
-	} else {
+	if (rw == READ)
 		read_atapi_data(base, words, buf16);
-	}
+	else
+		write_atapi_data(base, words, buf16);
 
 	/* Transfer trailing 1 byte, if any. */
 	if (unlikely(buflen & 0x01)) {
 		unsigned short align_buf[1] = { 0 };
 		unsigned char *trailing_buf = buf + buflen - 1;
 
-		if (write_data) {
-			memcpy(align_buf, trailing_buf, 1);
-			write_atapi_data(base, 1, align_buf);
-		} else {
+		if (rw == READ) {
 			read_atapi_data(base, 1, align_buf);
 			memcpy(trailing_buf, align_buf, 1);
+		} else {
+			memcpy(align_buf, trailing_buf, 1);
+			write_atapi_data(base, 1, align_buf);
 		}
+		words++;
 	}
+
+	return words << 1;
 }
 
 /**
  *	bfin_irq_clear - Clear ATAPI interrupt.
  *	@ap: Port associated with this ATA transaction.
  *
- *	Note: Original code is ata_bmdma_irq_clear().
+ *	Note: Original code is ata_sff_irq_clear().
  */
 
 static void bfin_irq_clear(struct ata_port *ap)
@@ -1221,7 +1220,7 @@ static void bfin_irq_clear(struct ata_port *ap)
  *	bfin_irq_on - Enable interrupts on a port.
  *	@ap: Port on which interrupts are enabled.
  *
- *	Note: Original code is ata_irq_on().
+ *	Note: Original code is ata_sff_irq_on().
  */
 
 static unsigned char bfin_irq_on(struct ata_port *ap)
@@ -1242,13 +1241,13 @@ static unsigned char bfin_irq_on(struct ata_port *ap)
 }
 
 /**
- *	bfin_bmdma_freeze - Freeze DMA controller port
+ *	bfin_freeze - Freeze DMA controller port
  *	@ap: port to freeze
  *
- *	Note: Original code is ata_bmdma_freeze().
+ *	Note: Original code is ata_sff_freeze().
  */
 
-static void bfin_bmdma_freeze(struct ata_port *ap)
+static void bfin_freeze(struct ata_port *ap)
 {
 	void __iomem *base = (void __iomem *)ap->ioaddr.ctl_addr;
 
@@ -1262,19 +1261,19 @@ static void bfin_bmdma_freeze(struct ata_port *ap)
 	 * ATA_NIEN manipulation.  Also, many controllers fail to mask
 	 * previously pending IRQ on ATA_NIEN assertion.  Clear it.
 	 */
-	ata_chk_status(ap);
+	ap->ops->sff_check_status(ap);
 
 	bfin_irq_clear(ap);
 }
 
 /**
- *	bfin_bmdma_thaw - Thaw DMA controller port
+ *	bfin_thaw - Thaw DMA controller port
  *	@ap: port to thaw
  *
- *	Note: Original code is ata_bmdma_thaw().
+ *	Note: Original code is ata_sff_thaw().
  */
 
-void bfin_bmdma_thaw(struct ata_port *ap)
+void bfin_thaw(struct ata_port *ap)
 {
 	dev_dbg(ap->dev, "in atapi dma thaw\n");
 	bfin_check_status(ap);
@@ -1282,14 +1281,14 @@ void bfin_bmdma_thaw(struct ata_port *ap)
 }
 
 /**
- *	bfin_std_postreset - standard postreset callback
+ *	bfin_postreset - standard postreset callback
  *	@ap: the target ata_port
  *	@classes: classes of attached devices
  *
- *	Note: Original code is ata_std_postreset().
+ *	Note: Original code is ata_sff_postreset().
  */
 
-static void bfin_std_postreset(struct ata_link *link, unsigned int *classes)
+static void bfin_postreset(struct ata_link *link, unsigned int *classes)
 {
 	struct ata_port *ap = link->ap;
 	void __iomem *base = (void __iomem *)ap->ioaddr.ctl_addr;
@@ -1299,9 +1298,9 @@ static void bfin_std_postreset(struct ata_link *link, unsigned int *classes)
 
 	/* is double-select really necessary? */
 	if (classes[0] != ATA_DEV_NONE)
-		bfin_std_dev_select(ap, 1);
+		bfin_dev_select(ap, 1);
 	if (classes[1] != ATA_DEV_NONE)
-		bfin_std_dev_select(ap, 0);
+		bfin_dev_select(ap, 0);
 
 	/* bail out if no device is present */
 	if (classes[0] == ATA_DEV_NONE && classes[1] == ATA_DEV_NONE) {
@@ -1310,17 +1309,6 @@ static void bfin_std_postreset(struct ata_link *link, unsigned int *classes)
 
 	/* set up device control */
 	write_atapi_register(base, ATA_REG_CTRL, ap->ctl);
-}
-
-/**
- *	bfin_error_handler - Stock error handler for DMA controller
- *	@ap: port to handle error for
- */
-
-static void bfin_error_handler(struct ata_port *ap)
-{
-	ata_bmdma_drive_eh(ap, ata_std_prereset, bfin_std_softreset, NULL,
-			   bfin_std_postreset);
 }
 
 static void bfin_port_stop(struct ata_port *ap)
@@ -1379,7 +1367,7 @@ static unsigned int bfin_ata_host_intr(struct ata_port *ap,
 		break;
 	case HSM_ST_LAST:
 		if (qc->tf.protocol == ATA_PROT_DMA ||
-		    qc->tf.protocol == ATA_PROT_ATAPI_DMA) {
+		    qc->tf.protocol == ATAPI_PROT_DMA) {
 			/* check status of DMA engine */
 			host_stat = ap->ops->bmdma_status(ap);
 			VPRINTK("ata%u: host_stat 0x%X\n",
@@ -1406,22 +1394,22 @@ static unsigned int bfin_ata_host_intr(struct ata_port *ap,
 	}
 
 	/* check altstatus */
-	status = ap->ops->check_altstatus(ap);
+	status = ap->ops->sff_check_altstatus(ap);
 	if (status & ATA_BUSY)
 		goto busy_ata;
 
 	/* check main status, clearing INTRQ */
-	status = ap->ops->check_status(ap);
+	status = ap->ops->sff_check_status(ap);
 	if (unlikely(status & ATA_BUSY))
 		goto busy_ata;
 
 	/* ack bmdma irq events */
-	ap->ops->irq_clear(ap);
+	ap->ops->sff_irq_clear(ap);
 
-	ata_hsm_move(ap, qc, status, 0);
+	ata_sff_hsm_move(ap, qc, status, 0);
 
 	if (unlikely(qc->err_mask) && (qc->tf.protocol == ATA_PROT_DMA ||
-				       qc->tf.protocol == ATA_PROT_ATAPI_DMA))
+				       qc->tf.protocol == ATAPI_PROT_DMA))
 		ata_ehi_push_desc(ehi, "BMDMA stat 0x%x", host_stat);
 
 busy_ata:
@@ -1472,49 +1460,39 @@ static irqreturn_t bfin_ata_interrupt(int irq, void *dev_instance)
 
 
 static struct scsi_host_template bfin_sht = {
-	.module			= THIS_MODULE,
-	.name			= DRV_NAME,
-	.ioctl			= ata_scsi_ioctl,
-	.queuecommand		= ata_scsi_queuecmd,
-	.can_queue		= ATA_DEF_QUEUE,
-	.this_id		= ATA_SHT_THIS_ID,
+	ATA_BASE_SHT(DRV_NAME),
 	.sg_tablesize		= SG_NONE,
-	.cmd_per_lun		= ATA_SHT_CMD_PER_LUN,
-	.emulated		= ATA_SHT_EMULATED,
-	.use_clustering		= ATA_SHT_USE_CLUSTERING,
-	.proc_name		= DRV_NAME,
 	.dma_boundary		= ATA_DMA_BOUNDARY,
-	.slave_configure	= ata_scsi_slave_config,
-	.slave_destroy		= ata_scsi_slave_destroy,
-	.bios_param		= ata_std_bios_param,
 };
 
-static const struct ata_port_operations bfin_pata_ops = {
+static struct ata_port_operations bfin_pata_ops = {
+	.inherits		= &ata_sff_port_ops,
+
 	.set_piomode		= bfin_set_piomode,
 	.set_dmamode		= bfin_set_dmamode,
 
-	.tf_load		= bfin_tf_load,
-	.tf_read		= bfin_tf_read,
-	.exec_command		= bfin_exec_command,
-	.check_status		= bfin_check_status,
-	.check_altstatus	= bfin_check_altstatus,
-	.dev_select		= bfin_std_dev_select,
+	.sff_tf_load		= bfin_tf_load,
+	.sff_tf_read		= bfin_tf_read,
+	.sff_exec_command	= bfin_exec_command,
+	.sff_check_status	= bfin_check_status,
+	.sff_check_altstatus	= bfin_check_altstatus,
+	.sff_dev_select		= bfin_dev_select,
 
 	.bmdma_setup		= bfin_bmdma_setup,
 	.bmdma_start		= bfin_bmdma_start,
 	.bmdma_stop		= bfin_bmdma_stop,
 	.bmdma_status		= bfin_bmdma_status,
-	.data_xfer		= bfin_data_xfer,
+	.sff_data_xfer		= bfin_data_xfer,
 
 	.qc_prep		= ata_noop_qc_prep,
-	.qc_issue		= ata_qc_issue_prot,
 
-	.freeze			= bfin_bmdma_freeze,
-	.thaw			= bfin_bmdma_thaw,
-	.error_handler		= bfin_error_handler,
+	.freeze			= bfin_freeze,
+	.thaw			= bfin_thaw,
+	.softreset		= bfin_softreset,
+	.postreset		= bfin_postreset,
 
-	.irq_clear		= bfin_irq_clear,
-	.irq_on			= bfin_irq_on,
+	.sff_irq_clear		= bfin_irq_clear,
+	.sff_irq_on		= bfin_irq_on,
 
 	.port_start		= bfin_port_start,
 	.port_stop		= bfin_port_stop,
@@ -1522,7 +1500,6 @@ static const struct ata_port_operations bfin_pata_ops = {
 
 static struct ata_port_info bfin_port_info[] = {
 	{
-		.sht		= &bfin_sht,
 		.flags		= ATA_FLAG_SLAVE_POSS
 				| ATA_FLAG_MMIO
 				| ATA_FLAG_NO_LEGACY,
@@ -1743,3 +1720,4 @@ MODULE_AUTHOR("Sonic Zhang <sonic.zhang@analog.com>");
 MODULE_DESCRIPTION("PATA driver for blackfin 54x ATAPI controller");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(DRV_VERSION);
+MODULE_ALIAS("platform:" DRV_NAME);

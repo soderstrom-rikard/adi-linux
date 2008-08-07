@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * starfire.h: Group all starfire specific code together.
  *
  * Copyright (C) 2000 Anton Blanchard (anton@samba.org)

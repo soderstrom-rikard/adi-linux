@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * swift.S: MicroSparc-II mmu/cache operations.
  *
  * Copyright (C) 1999 David S. Miller (davem@redhat.com)
