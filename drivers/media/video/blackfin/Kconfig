@@ -4,11 +4,19 @@ config VIDEO_BLACKFIN_CAM
 	depends on BLACKFIN && VIDEO_DEV && I2C
 	default n
 	help
-	  V4L Support for ST VS6524, VS6624 sensor Micron MT9M001, MT9V022 
-	  attached to the Blackfin PPI.
+	  V4L Support for CMOS camera sensor attached to the Blackfin PPI.
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called blackfin_cam.
+
+config VIDEO_BLACKFIN_CAM_PPI1
+	bool "Camera attached to PPI1 instead of PPI0"
+	depends on BF561 && VIDEO_BLACKFIN_CAM
+	default n
+	help
+	  The BF561 processor has two PPI interfaces, PPI0 and PPI1, instead of
+	  the single PPI on other Blackfin processors.  By default, PP0 is used.
+	  Select this option if you wish to use PPI1 instead.
 
 comment "CMOS Camera Sensor Selection"
 
@@ -46,6 +54,12 @@ config OV9655
 	help
 	  Omnivision OV9655 Sensor Support
 	  This is work in progress. NOT YET COMPLETE.
+
+config ADV7183B
+       bool "ADV7183B"
+       depends on VIDEO_BLACKFIN_CAM
+       help
+         ADV7183B Sensor Support
 
 
 endchoice

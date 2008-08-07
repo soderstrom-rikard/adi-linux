@@ -49,10 +49,37 @@
 # define  bcap_FS3      GPIO_3
 #endif
 
+#undef PPI_BASE
+#ifdef CONFIG_BF561
+# ifdef CONFIG_VIDEO_BLACKFIN_CAM_PPI1
+#  define PPI_BASE PPI1_CONTROL
+# else
+#  define PPI_BASE PPI0_CONTROL
+# endif
+#endif
+#ifdef PPI_BASE
+# define bfin_read_PPI_CONTROL()      bfin_read16(PPI_BASE + 0x00)
+# define bfin_write_PPI_CONTROL(val)  bfin_write16(PPI_BASE + 0x00, val)
+# define bfin_read_PPI_STATUS()       bfin_read16(PPI_BASE + 0x04)
+# define bfin_write_PPI_STATUS(val)   bfin_write16(PPI_BASE + 0x04, val)
+# define bfin_clear_PPI_STATUS()      bfin_read_PPI_STATUS()
+# define bfin_read_PPI_COUNT()        bfin_read16(PPI_BASE + 0x08)
+# define bfin_write_PPI_COUNT(val)    bfin_write16(PPI_BASE + 0x08, val)
+# define bfin_read_PPI_DELAY()        bfin_read16(PPI_BASE + 0x0c)
+# define bfin_write_PPI_DELAY(val)    bfin_write16(PPI_BASE + 0x0c, val)
+# define bfin_read_PPI_FRAME()        bfin_read16(PPI_BASE + 0x10)
+# define bfin_write_PPI_FRAME(val)    bfin_write16(PPI_BASE + 0x10, val)
+#endif
+
 #define DRV_NAME	"blackfin-cam"
 
-#define PPI0_8 {P_PPI0_CLK, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3, \
- P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, P_PPI0_FS1, P_PPI0_FS2, 0}
+#ifdef CONFIG_VIDEO_BLACKFIN_CAM_PPI1
+# define PPI_8 {P_PPI1_CLK, P_PPI1_D0, P_PPI1_D1, P_PPI1_D2, P_PPI1_D3, \
+	P_PPI1_D4, P_PPI1_D5, P_PPI1_D6, P_PPI1_D7, P_PPI1_FS1, P_PPI1_FS2, 0}
+#else
+# define PPI_8 {P_PPI0_CLK, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3, \
+	P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, P_PPI0_FS1, P_PPI0_FS2, 0}
+#endif
 
 #define BCAP_NUM_BUFS 2
 #define I2C_DRIVERID_BCAP  81	/* experimental (next avail. in i2c-id.h) */

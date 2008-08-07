@@ -77,6 +77,9 @@
 #include "ov9655.h"
 #endif
 
+#ifdef CONFIG_ADV7183B
+#include "adv7183b.h"
+#endif
 
 #ifdef USE_GPIO
 #define GPIO_SET_VALUE(x,y) gpio_set_value(x,y)
@@ -166,7 +169,7 @@ static inline int get_depth(int palette)
 static int setup_pin_mux(int action)
 {
 
-	u16 pin_req[] = PPI0_8;
+	u16 pin_req[] = PPI_8;
 
 
 	if (action) {
