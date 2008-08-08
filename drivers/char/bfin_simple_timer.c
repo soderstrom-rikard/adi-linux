@@ -213,12 +213,12 @@ int __init timer_initialize(void){
 		DPRINTK("could not register device %s\n", DRV_NAME);
 		return err;
 	}
-	timer_dir_entry = create_proc_entry(DRV_NAME, 0444, &proc_root);
+	timer_dir_entry = create_proc_entry(DRV_NAME, 0444, NULL);
 	if (timer_dir_entry) timer_dir_entry->read_proc = &timer_read_proc;
 
         timer_class = class_create(THIS_MODULE, "timer");
 	if ((err = class_create_file(timer_class, &class_attr_status)) != 0) {
-		remove_proc_entry(DRV_NAME, &proc_root);
+		remove_proc_entry(DRV_NAME, NULL);
 		unregister_chrdev(TIMER_MAJOR, DRV_NAME);
 		return err;
 	}
@@ -233,7 +233,7 @@ int __init timer_initialize(void){
 }
 
 void __exit timer_cleanup(void){
-	remove_proc_entry(DRV_NAME, &proc_root);
+	remove_proc_entry(DRV_NAME, NULL);
 	unregister_chrdev(TIMER_MAJOR, DRV_NAME);
 	DPRINTK("module unloaded\n");
 }
