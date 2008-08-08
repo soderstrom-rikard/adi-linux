@@ -124,8 +124,6 @@ static void bfin_serial_enable_ms(struct uart_port *port)
 }
 
 #ifdef CONFIG_KGDB_UART
-static int kgdb_entry_state;
-
 void kgdb_put_debug_char(int chr)
 {
 	struct bfin_serial_port *uart;
@@ -178,7 +176,7 @@ int kgdb_get_debug_char(void)
 #ifdef CONFIG_SERIAL_BFIN_PIO
 static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
 {
-	struct tty_struct *tty = uart->port.info->tty;
+	struct tty_struct *tty = NULL;
 	unsigned int status, ch, flg;
 	static struct timeval anomaly_start = { .tv_sec = 0 };
 
@@ -191,24 +189,33 @@ static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
 #ifdef CONFIG_KGDB_UART
 	if (uart->port.line == CONFIG_KGDB_UART_PORT) {
 		struct pt_regs *regs = get_irq_regs();
-		if (uart->port.cons->index == CONFIG_KGDB_UART_PORT && ch == 0x1) { /* Ctrl + A */
+		int kgdb_timeout;
+		if (uart->port.cons->index == CONFIG_KGDB_UART_PORT
+			&& ch == 0x1) { /* Ctrl + A */
 			kgdb_breakkey_pressed(regs);
 			return;
-		} else if (kgdb_entry_state == 0 && ch == '$') {/* connection from KGDB */
-			kgdb_entry_state = 1;
-		} else if (kgdb_entry_state == 1 && ch == 'q') {
-			kgdb_entry_state = 0;
-			kgdb_breakkey_pressed(regs);
-			return;
-		} else if (ch == 0x3) {/* Ctrl + C */
-			kgdb_entry_state = 0;
-			kgdb_breakkey_pressed(regs);
-			return;
-		} else {
-			kgdb_entry_state = 0;
 		}
+		if (ch == '$') {
+			/* connection from KGDB */
+			kgdb_timeout = get_cclk()/10000;
+			while (!(UART_GET_LSR(uart) & DR)
+				&& kgdb_timeout > 0) {
+				kgdb_timeout--;
+				cpu_relax();
+			}
+			if (kgdb_timeout && UART_GET_CHAR(uart) == 'q') {
+				kgdb_breakkey_pressed(regs);
+				return;
+			}
+		} else if (ch == 0x3) {/* Ctrl + C */
+			kgdb_breakkey_pressed(regs);
+			return;
+		}
+		if (!uart->port.info)
+			return;
 	}
 #endif
+	tty = uart->port.info->tty;
 
 	if (ANOMALY_05000363) {
 		/* The BF533 (and BF561) family of processors have a nice anomaly
@@ -1076,10 +1083,7 @@ static int __init bfin_serial_rs_console_init(void)
 {
 	bfin_serial_init_ports();
 	register_console(&bfin_serial_console);
-#ifdef CONFIG_KGDB_UART
-	kgdb_entry_state = 0;
-	init_kgdb_uart();
-#endif
+
 	return 0;
 }
 console_initcall(bfin_serial_rs_console_init);
@@ -1266,6 +1270,7 @@ static int __init bfin_serial_init(void)
 		t.c_line = CONFIG_KGDB_UART_PORT;
 		bfin_serial_set_termios(&uart->port, &t, &t);
 	}
+	init_kgdb_uart();
 #endif
 	return ret;
 }
@@ -1276,7 +1281,11 @@ static void __exit bfin_serial_exit(void)
 	uart_unregister_driver(&bfin_serial_reg);
 }
 
+#ifdef CONFIG_KGDB_UART
+subsys_initcall(bfin_serial_init);
+#else
 module_init(bfin_serial_init);
+#endif
 module_exit(bfin_serial_exit);
 
 MODULE_AUTHOR("Aubrey.Li <aubrey.li@analog.com>");
