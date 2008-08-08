@@ -1,12 +1,11 @@
 #ifdef CONFIG_PPC64
-#include <asm/page.h>
 #define PROVIDE32(x)	PROVIDE(__unused__##x)
 #else
-#define PAGE_SIZE	4096
-#define KERNELBASE	CONFIG_KERNEL_START
 #define PROVIDE32(x)	PROVIDE(x)
 #endif
+#include <asm/page.h>
 #include <asm-generic/vmlinux.lds.h>
+#include <asm/cache.h>
 
 ENTRY(_stext)
 
@@ -22,7 +21,7 @@ SECTIONS
 	/* Sections to be discarded. */
 	/DISCARD/ : {
 	*(.exitcall.exit)
-	*(.exit.data)
+	EXIT_DATA
 	}
 
 	. = KERNELBASE;
@@ -32,13 +31,14 @@ SECTIONS
  */
 
 	/* Text and gots */
-	.text : {
+	.text : AT(ADDR(.text) - LOAD_OFFSET) {
+		ALIGN_FUNCTION();
+		*(.text.head)
 		_text = .;
-		TEXT_TEXT
+		*(.text .fixup .text.init.refok .exit.text.refok)
 		SCHED_TEXT
 		LOCK_TEXT
 		KPROBES_TEXT
-		*(.fixup)
 
 #ifdef CONFIG_PPC32
 		*(.got1)
@@ -56,11 +56,13 @@ SECTIONS
 	RODATA
 
 	/* Exception & bug tables */
-	__ex_table : {
+	__ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {
 		__start___ex_table = .;
 		*(__ex_table)
 		__stop___ex_table = .;
 	}
+
+	NOTES
 
 	BUG_TABLE
 
@@ -70,19 +72,21 @@ SECTIONS
 	. = ALIGN(PAGE_SIZE);
 	__init_begin = .;
 
-	.init.text : {
+	.init.text : AT(ADDR(.init.text) - LOAD_OFFSET) {
 		_sinittext = .;
-		*(.init.text)
+		INIT_TEXT
 		_einittext = .;
 	}
 
 	/* .exit.text is discarded at runtime, not link time,
 	 * to deal with references from __bug_table
 	 */
-	.exit.text : { *(.exit.text) }
+	.exit.text : AT(ADDR(.exit.text) - LOAD_OFFSET) {
+		EXIT_TEXT
+	}
 
-	.init.data : {
-		*(.init.data);
+	.init.data : AT(ADDR(.init.data) - LOAD_OFFSET) {
+		INIT_DATA
 		__vtop_table_begin = .;
 		*(.vtop_fixup);
 		__vtop_table_end = .;
@@ -97,19 +101,19 @@ SECTIONS
 	}
 
 	. = ALIGN(16);
-	.init.setup : {
+	.init.setup : AT(ADDR(.init.setup) - LOAD_OFFSET) {
 		__setup_start = .;
 		*(.init.setup)
 		__setup_end = .;
 	}
 
-	.initcall.init : {
+	.initcall.init : AT(ADDR(.initcall.init) - LOAD_OFFSET) {
 		__initcall_start = .;
 		INITCALLS
 		__initcall_end = .;
 		}
 
-	.con_initcall.init : {
+	.con_initcall.init : AT(ADDR(.con_initcall.init) - LOAD_OFFSET) {
 		__con_initcall_start = .;
 		*(.con_initcall.init)
 		__con_initcall_end = .;
@@ -118,14 +122,14 @@ SECTIONS
 	SECURITY_INIT
 
 	. = ALIGN(8);
-	__ftr_fixup : {
+	__ftr_fixup : AT(ADDR(__ftr_fixup) - LOAD_OFFSET) {
 		__start___ftr_fixup = .;
 		*(__ftr_fixup)
 		__stop___ftr_fixup = .;
 	}
 #ifdef CONFIG_PPC64
 	. = ALIGN(8);
-	__fw_ftr_fixup : {
+	__fw_ftr_fixup : AT(ADDR(__fw_ftr_fixup) - LOAD_OFFSET) {
 		__start___fw_ftr_fixup = .;
 		*(__fw_ftr_fixup)
 		__stop___fw_ftr_fixup = .;
@@ -133,21 +137,22 @@ SECTIONS
 #endif
 #ifdef CONFIG_BLK_DEV_INITRD
 	. = ALIGN(PAGE_SIZE);
-	.init.ramfs : {
+	.init.ramfs : AT(ADDR(.init.ramfs) - LOAD_OFFSET) {
 		__initramfs_start = .;
 		*(.init.ramfs)
 		__initramfs_end = .;
 	}
 #endif
 	. = ALIGN(PAGE_SIZE);
-	.data.percpu : {
+	.data.percpu  : AT(ADDR(.data.percpu) - LOAD_OFFSET) {
 		__per_cpu_start = .;
 		*(.data.percpu)
+		*(.data.percpu.shared_aligned)
 		__per_cpu_end = .;
 	}
 
 	. = ALIGN(8);
-	.machine.desc : {
+	.machine.desc : AT(ADDR(.machine.desc) - LOAD_OFFSET) {
 		__machine_desc_start = . ;
 		*(.machine.desc)
 		__machine_desc_end = . ;
@@ -165,23 +170,24 @@ SECTIONS
 	_sdata = .;
 
 #ifdef CONFIG_PPC32
-	.data    :
-	{
+	.data : AT(ADDR(.data) - LOAD_OFFSET) {
 		DATA_DATA
 		*(.sdata)
 		*(.got.plt) *(.got)
 	}
 #else
-	.data : {
-		*(.data .data.rel* .toc1)
+	.data : AT(ADDR(.data) - LOAD_OFFSET) {
+		DATA_DATA
+		*(.data.rel*)
+		*(.toc1)
 		*(.branch_lt)
 	}
 
-	.opd : {
+	.opd : AT(ADDR(.opd) - LOAD_OFFSET) {
 		*(.opd)
 	}
 
-	.got : {
+	.got : AT(ADDR(.got) - LOAD_OFFSET) {
 		__toc_start = .;
 		*(.got)
 		*(.toc)
@@ -198,21 +204,26 @@ SECTIONS
 #else
 	. = ALIGN(16384);
 #endif
-	.data.init_task : {
+	.data.init_task : AT(ADDR(.data.init_task) - LOAD_OFFSET) {
 		*(.data.init_task)
 	}
 
 	. = ALIGN(PAGE_SIZE);
-	.data.page_aligned : {
+	.data.page_aligned : AT(ADDR(.data.page_aligned) - LOAD_OFFSET) {
 		*(.data.page_aligned)
 	}
 
-	.data.cacheline_aligned : {
+	.data.cacheline_aligned : AT(ADDR(.data.cacheline_aligned) - LOAD_OFFSET) {
 		*(.data.cacheline_aligned)
 	}
 
+	. = ALIGN(L1_CACHE_BYTES);
+	.data.read_mostly : AT(ADDR(.data.read_mostly) - LOAD_OFFSET) {
+		*(.data.read_mostly)
+	}
+
 	. = ALIGN(PAGE_SIZE);
-	__data_nosave : {
+	.data_nosave : AT(ADDR(.data_nosave) - LOAD_OFFSET) {
 		__nosave_begin = .;
 		*(.data.nosave)
 		. = ALIGN(PAGE_SIZE);
@@ -223,7 +234,7 @@ SECTIONS
  * And finally the bss
  */
 
-	.bss : {
+	.bss : AT(ADDR(.bss) - LOAD_OFFSET) {
 		__bss_start = .;
 		*(.sbss) *(.scommon)
 		*(.dynbss)

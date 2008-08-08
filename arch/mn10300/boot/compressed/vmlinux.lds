@@ -1,10 +1,9 @@
 SECTIONS
 {
-  .text.compressed : {
+  .data : {
 	input_len = .;
 	LONG(input_data_end - input_data) input_data = .;
 	*(.data)
-	output_len = . - 4;
 	input_data_end = .;
 	}
 }

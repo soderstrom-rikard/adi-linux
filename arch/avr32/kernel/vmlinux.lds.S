@@ -9,6 +9,8 @@
  */
 #define LOAD_OFFSET 0x00000000
 #include <asm-generic/vmlinux.lds.h>
+#include <asm/cache.h>
+#include <asm/thread_info.h>
 
 OUTPUT_FORMAT("elf32-avr32", "elf32-avr32", "elf32-avr32")
 OUTPUT_ARCH(avr32)
@@ -25,19 +27,19 @@ SECTIONS
 		__init_begin = .;
 			_sinittext = .;
 			*(.text.reset)
-			*(.init.text)
+			INIT_TEXT
 			/*
 			 * .exit.text is discarded at runtime, not
 			 * link time, to deal with references from
 			 * __bug_table
 			 */
-			*(.exit.text)
+			EXIT_TEXT
 			_einittext = .;
 		. = ALIGN(4);
 		__tagtable_begin = .;
 			*(.taglist.init)
 		__tagtable_end = .;
-			*(.init.data)
+			INIT_DATA
 		. = ALIGN(16);
 		__setup_start = .;
 			*(.init.setup)
@@ -58,11 +60,10 @@ SECTIONS
 			*(.init.ramfs)
 		__initramfs_end = .;
 #endif
-		. = ALIGN(4096);
+		. = ALIGN(PAGE_SIZE);
 		__init_end = .;
 	}
 
-	. = ALIGN(8192);
 	.text		: AT(ADDR(.text) - LOAD_OFFSET) {
 		_evba = .;
 		_text = .;
@@ -76,10 +77,10 @@ SECTIONS
 		. = 0x100;
 		*(.scall.text)
 		*(.irq.text)
+		KPROBES_TEXT
 		TEXT_TEXT
 		SCHED_TEXT
 		LOCK_TEXT
-		KPROBES_TEXT
 		*(.fixup)
 		*(.gnu.warning)
 		_etext = .;
@@ -96,7 +97,7 @@ SECTIONS
 
 	RODATA
 
-	. = ALIGN(8192);
+	. = ALIGN(THREAD_SIZE);
 
 	.data		: AT(ADDR(.data) - LOAD_OFFSET) {
 		_data = .;
@@ -107,7 +108,7 @@ SECTIONS
 		*(.data.init_task)
 
 		/* Then, the cacheline aligned data */
-		. = ALIGN(32);
+		. = ALIGN(L1_CACHE_BYTES);
 		*(.data.cacheline_aligned)
 
 		/* And the rest... */
@@ -134,7 +135,7 @@ SECTIONS
 	 * thrown away, as cleanup code is never called unless it's a module.
 	 */
 	/DISCARD/       	: {
-		*(.exit.data)
+		EXIT_DATA
 		*(.exitcall.exit)
 	}
 

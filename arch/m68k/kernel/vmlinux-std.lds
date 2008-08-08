@@ -11,12 +11,15 @@ SECTIONS
   . = 0x1000;
   _text = .;			/* Text and read-only data */
   .text : {
-	*(.text)
+	*(.text.head)
+	TEXT_TEXT
 	SCHED_TEXT
 	LOCK_TEXT
 	*(.fixup)
 	*(.gnu.warning)
 	} :text = 0x4e75
+
+  _etext = .;			/* End of text section */
 
   . = ALIGN(16);		/* Exception table */
   __start___ex_table = .;
@@ -25,10 +28,8 @@ SECTIONS
 
   RODATA
 
-  _etext = .;			/* End of text section */
-
   .data : {			/* Data */
-	*(.data)
+	DATA_DATA
 	CONSTRUCTORS
 	}
 
@@ -44,33 +45,34 @@ SECTIONS
   __init_begin = .;
   .init.text : {
 	_sinittext = .;
-	*(.init.text)
+	INIT_TEXT
 	_einittext = .;
   }
-  .init.data : { *(.init.data) }
+  .init.data : { INIT_DATA }
   . = ALIGN(16);
   __setup_start = .;
   .init.setup : { *(.init.setup) }
   __setup_end = .;
   __initcall_start = .;
   .initcall.init : {
-	*(.initcall1.init)
-	*(.initcall2.init)
-	*(.initcall3.init)
-	*(.initcall4.init)
-	*(.initcall5.init)
-	*(.initcall6.init)
-	*(.initcall7.init)
+	INITCALLS
   }
   __initcall_end = .;
   __con_initcall_start = .;
   .con_initcall.init : { *(.con_initcall.init) }
   __con_initcall_end = .;
+  .m68k_fixup : {
+	__start_fixup = .;
+	*(.m68k_fixup)
+	__stop_fixup = .;
+  }
   SECURITY_INIT
+#ifdef CONFIG_BLK_DEV_INITRD
   . = ALIGN(8192);
   __initramfs_start = .;
   .init.ramfs : { *(.init.ramfs) }
   __initramfs_end = .;
+#endif
   . = ALIGN(8192);
   __init_end = .;
 
@@ -80,8 +82,8 @@ SECTIONS
 
   /* Sections to be discarded */
   /DISCARD/ : {
-	*(.exit.text)
-	*(.exit.data)
+	EXIT_TEXT
+	EXIT_DATA
 	*(.exitcall.exit)
 	}
 

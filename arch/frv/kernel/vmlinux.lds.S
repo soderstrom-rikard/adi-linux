@@ -13,7 +13,7 @@ ENTRY(_start)
 
 jiffies = jiffies_64 + 4;
 
-__page_offset = 0xc0000000;		/* start of area covered by struct pages */
+__page_offset = CONFIG_PAGE_OFFSET;	/* start of area covered by struct pages */
 __kernel_image_start = __page_offset;	/* address at which kernel image resides */
 
 SECTIONS
@@ -28,14 +28,14 @@ SECTIONS
   .init.text : {
 	*(.text.head)
 #ifndef CONFIG_DEBUG_INFO
-	*(.init.text)
-	*(.exit.text)
-	*(.exit.data)
+	INIT_TEXT
+	EXIT_TEXT
+	EXIT_DATA
 	*(.exitcall.exit)
 #endif
   }
   _einittext = .;
-  .init.data : { *(.init.data) }
+  .init.data : { INIT_DATA }
 
   . = ALIGN(8);
   __setup_start = .;
@@ -57,10 +57,7 @@ SECTIONS
   __alt_instructions_end = .;
  .altinstr_replacement : { *(.altinstr_replacement) }
 
-  . = ALIGN(4096);
-  __per_cpu_start = .;
-  .data.percpu  : { *(.data.percpu) }
-  __per_cpu_end = .;
+  PERCPU(4096)
 
 #ifdef CONFIG_BLK_DEV_INITRD
   . = ALIGN(4096);
@@ -79,6 +76,9 @@ SECTIONS
 	  *(.data.init_task)
   }
 
+  . = ALIGN(L1_CACHE_BYTES);
+  .data.cacheline_aligned : { *(.data.cacheline_aligned) }
+
   .trap : {
 	/* trap table management - read entry-table.S before modifying */
 	. = ALIGN(8192);
@@ -89,28 +89,23 @@ SECTIONS
 	*(.trap.break)
   }
 
-  . = ALIGN(4096);
-  .data.page_aligned : { *(.data.idt) }
-
-  . = ALIGN(L1_CACHE_BYTES);
-  .data.cacheline_aligned : { *(.data.cacheline_aligned) }
-
   /* Text and read-only data */
   . = ALIGN(4);
   _text = .;
   _stext = .;
   .text : {
-	*(
-		.text.start .text.*
-#ifdef CONFIG_DEBUG_INFO
-	.init.text
-	.exit.text
-	.exitcall.exit
-#endif
-	)
+	*(.text.start)
+	*(.text.entry)
+	*(.text.break)
+	*(.text.tlbmiss)
 	TEXT_TEXT
 	SCHED_TEXT
 	LOCK_TEXT
+#ifdef CONFIG_DEBUG_INFO
+	INIT_TEXT
+	EXIT_TEXT
+	*(.exitcall.exit)
+#endif
 	*(.fixup)
 	*(.gnu.warning)
 	*(.exitcall.exit)
@@ -138,7 +133,7 @@ SECTIONS
   .data : {			/* Data */
 	DATA_DATA
 	*(.data.*)
-	*(.exit.data)
+	EXIT_DATA
 	CONSTRUCTORS
 	}
 

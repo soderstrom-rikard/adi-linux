@@ -91,18 +91,20 @@ SECTIONS
   . = ALIGN(8192);
   .data.init_task : { *(.data.init_task) }
 
+  NOTES
+
   . = ALIGN(4096);
   __init_begin = .;
   .init.text : {
 	_sinittext = .;
-	*(.init.text)
+	INIT_TEXT
 	_einittext = .;
   }
   /* .exit.text is discarded at runtime, not link time,
      to deal with references from __bug_table */
-  .exit.text : { *(.exit.text) }
+  .exit.text : { EXIT_TEXT }
   .init.data : {
-    *(.init.data);
+    INIT_DATA
     __vtop_table_begin = .;
     *(.vtop_fixup);
     __vtop_table_end = .;
@@ -130,10 +132,7 @@ SECTIONS
   __ftr_fixup : { *(__ftr_fixup) }
   __stop___ftr_fixup = .;
 
-  . = ALIGN(4096);
-  __per_cpu_start = .;
-  .data.percpu  : { *(.data.percpu) }
-  __per_cpu_end = .;
+  PERCPU(4096)
 
 #ifdef CONFIG_BLK_DEV_INITRD
   . = ALIGN(4096);
@@ -160,6 +159,6 @@ SECTIONS
   /* Sections to be discarded. */
   /DISCARD/ : {
     *(.exitcall.exit)
-    *(.exit.data)
+    EXIT_DATA
   }
 }

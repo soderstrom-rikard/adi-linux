@@ -118,7 +118,8 @@ SECTIONS
   _fdata = .;
   .data :
   {
-    *(.data) CONSTRUCTORS
+    DATA_DATA
+    CONSTRUCTORS
     . = ALIGN(XCHAL_ICACHE_LINESIZE);
     *(.data.cacheline_aligned)
   }
@@ -135,13 +136,15 @@ SECTIONS
   __init_begin = .;
   .init.text : {
   	_sinittext = .;
-	*(.init.literal) *(.init.text)
+	*(.init.literal) *(.cpuinit.literal) 
+	*(.devinit.literal) *(.meminit.literal)
+	INIT_TEXT
 	_einittext = .;
   }
 
   .init.data :
   {
-    *(.init.data)
+    INIT_DATA
     . = ALIGN(0x4);
     __tagtable_begin = .;
     *(.taglist)
@@ -160,6 +163,8 @@ SECTIONS
 		   .DoubleExceptionVector.literal);
     RELOCATE_ENTRY(_DoubleExceptionVector_text,
 		   .DoubleExceptionVector.text);
+    RELOCATE_ENTRY(_DebugInterruptVector_text,
+		   .DebugInterruptVector.text);
   
     __boot_reloc_table_end = ABSOLUTE(.) ;
   }
@@ -190,10 +195,7 @@ SECTIONS
   __initramfs_end = .;
 #endif
 
-  . = ALIGN(4096);
-  __per_cpu_start = .;
-  .data.percpu  : { *(.data.percpu) }
-  __per_cpu_end = .;
+  PERCPU(4096)
 
 
   /* We need this dummy segment here */
@@ -280,8 +282,9 @@ SECTIONS
   /* Sections to be discarded */
   /DISCARD/ :
   {
-  	*(.exit.literal .exit.text)
-  	*(.exit.data)
+	*(.exit.literal)
+	EXIT_TEXT
+	EXIT_DATA
         *(.exitcall.exit)
   }
 

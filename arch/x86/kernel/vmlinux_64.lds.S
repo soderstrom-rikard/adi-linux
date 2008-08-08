@@ -28,7 +28,7 @@ SECTIONS
   _text = .;			/* Text and read-only data */
   .text :  AT(ADDR(.text) - LOAD_OFFSET) {
 	/* First the code that has to be first for bootstrapping */
-	*(.bootstrap.text)
+	*(.text.head)
 	_stext = .;
 	/* Then the rest */
 	TEXT_TEXT
@@ -37,22 +37,30 @@ SECTIONS
 	KPROBES_TEXT
 	*(.fixup)
 	*(.gnu.warning)
-	} :text = 0x9090
-  				/* out-of-line lock text */
-  .text.lock : AT(ADDR(.text.lock) - LOAD_OFFSET) { *(.text.lock) }
-
-  _etext = .;			/* End of text section */
+	_etext = .;		/* End of text section */
+  } :text = 0x9090
 
   . = ALIGN(16);		/* Exception table */
-  __start___ex_table = .;
-  __ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) { *(__ex_table) }
-  __stop___ex_table = .;
+  __ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {
+  	__start___ex_table = .;
+	 *(__ex_table)
+  	__stop___ex_table = .;
+  }
 
-  BUG_TABLE
+  NOTES :text :note
+
+  BUG_TABLE :text
 
   RODATA
 
-  . = ALIGN(PAGE_SIZE);        /* Align data segment to page size boundary */
+  . = ALIGN(4);
+  .tracedata : AT(ADDR(.tracedata) - LOAD_OFFSET) {
+  	__tracedata_start = .;
+	*(.tracedata)
+  	__tracedata_end = .;
+  }
+
+  . = ALIGN(PAGE_SIZE);		/* Align data segment to page size boundary */
 				/* Data */
   .data : AT(ADDR(.data) - LOAD_OFFSET) {
 	DATA_DATA
@@ -91,6 +99,9 @@ SECTIONS
   .vsyscall_gtod_data : AT(VLOAD(.vsyscall_gtod_data))
 		{ *(.vsyscall_gtod_data) }
   vsyscall_gtod_data = VVIRT(.vsyscall_gtod_data);
+  .vsyscall_clock : AT(VLOAD(.vsyscall_clock))
+		{ *(.vsyscall_clock) }
+  vsyscall_clock = VVIRT(.vsyscall_clock);
 
 
   .vsyscall_1 ADDR(.vsyscall_0) + 1024: AT(VLOAD(.vsyscall_1))
@@ -108,7 +119,7 @@ SECTIONS
   .vsyscall_3 ADDR(.vsyscall_0) + 3072: AT(VLOAD(.vsyscall_3))
 		{ *(.vsyscall_3) }
 
-  . = VSYSCALL_VIRT_ADDR + 4096;
+  . = VSYSCALL_VIRT_ADDR + PAGE_SIZE;
 
 #undef VSYSCALL_ADDR
 #undef VSYSCALL_PHYS_ADDR
@@ -118,46 +129,40 @@ SECTIONS
 #undef VVIRT_OFFSET
 #undef VVIRT
 
-  . = ALIGN(8192);		/* init_task */
+  . = ALIGN(THREAD_SIZE);	/* init_task */
   .data.init_task : AT(ADDR(.data.init_task) - LOAD_OFFSET) {
 	*(.data.init_task)
   }:data.init
 
-  . = ALIGN(4096);
+  . = ALIGN(PAGE_SIZE);
   .data.page_aligned : AT(ADDR(.data.page_aligned) - LOAD_OFFSET) {
 	*(.data.page_aligned)
   }
 
   /* might get freed after init */
-  . = ALIGN(4096);
+  . = ALIGN(PAGE_SIZE);
   __smp_alt_begin = .;
-  __smp_alt_instructions = .;
-  .smp_altinstructions : AT(ADDR(.smp_altinstructions) - LOAD_OFFSET) {
-	*(.smp_altinstructions)
-  }
-  __smp_alt_instructions_end = .;
-  . = ALIGN(8);
   __smp_locks = .;
   .smp_locks : AT(ADDR(.smp_locks) - LOAD_OFFSET) {
 	*(.smp_locks)
   }
   __smp_locks_end = .;
-  .smp_altinstr_replacement : AT(ADDR(.smp_altinstr_replacement) - LOAD_OFFSET) {
-	*(.smp_altinstr_replacement)
-  }
-  . = ALIGN(4096);
+  . = ALIGN(PAGE_SIZE);
   __smp_alt_end = .;
 
-  . = ALIGN(4096);		/* Init code and data */
+  . = ALIGN(PAGE_SIZE);		/* Init code and data */
   __init_begin = .;
   .init.text : AT(ADDR(.init.text) - LOAD_OFFSET) {
 	_sinittext = .;
-	*(.init.text)
+	INIT_TEXT
 	_einittext = .;
   }
-  __initdata_begin = .;
-  .init.data : AT(ADDR(.init.data) - LOAD_OFFSET) { *(.init.data) }
-  __initdata_end = .;
+  .init.data : AT(ADDR(.init.data) - LOAD_OFFSET) {
+	__initdata_begin = .;
+	INIT_DATA
+	__initdata_end = .;
+   }
+
   . = ALIGN(16);
   __setup_start = .;
   .init.setup : AT(ADDR(.init.setup) - LOAD_OFFSET) { *(.init.setup) }
@@ -172,39 +177,54 @@ SECTIONS
 	*(.con_initcall.init)
   }
   __con_initcall_end = .;
+  __x86cpuvendor_start = .;
+  .x86cpuvendor.init : AT(ADDR(.x86cpuvendor.init) - LOAD_OFFSET) {
+	*(.x86cpuvendor.init)
+  }
+  __x86cpuvendor_end = .;
   SECURITY_INIT
+
+  . = ALIGN(8);
+  .parainstructions : AT(ADDR(.parainstructions) - LOAD_OFFSET) {
+  __parainstructions = .;
+       *(.parainstructions)
+  __parainstructions_end = .;
+  }
+
   . = ALIGN(8);
   __alt_instructions = .;
   .altinstructions : AT(ADDR(.altinstructions) - LOAD_OFFSET) {
 	*(.altinstructions)
   }
-  __alt_instructions_end = .; 
+  __alt_instructions_end = .;
   .altinstr_replacement : AT(ADDR(.altinstr_replacement) - LOAD_OFFSET) {
 	*(.altinstr_replacement)
   }
   /* .exit.text is discard at runtime, not link time, to deal with references
      from .altinstructions and .eh_frame */
-  .exit.text : AT(ADDR(.exit.text) - LOAD_OFFSET) { *(.exit.text) }
-  .exit.data : AT(ADDR(.exit.data) - LOAD_OFFSET) { *(.exit.data) }
+  .exit.text : AT(ADDR(.exit.text) - LOAD_OFFSET) {
+	EXIT_TEXT
+  }
+  .exit.data : AT(ADDR(.exit.data) - LOAD_OFFSET) {
+	EXIT_DATA
+  }
 
 #ifdef CONFIG_BLK_DEV_INITRD
-  . = ALIGN(4096);
+  . = ALIGN(PAGE_SIZE);
   __initramfs_start = .;
   .init.ramfs : AT(ADDR(.init.ramfs) - LOAD_OFFSET) { *(.init.ramfs) }
   __initramfs_end = .;
 #endif
 
-  . = ALIGN(4096);
-  __per_cpu_start = .;
-  .data.percpu  : AT(ADDR(.data.percpu) - LOAD_OFFSET) { *(.data.percpu) }
-  __per_cpu_end = .;
-  . = ALIGN(4096);
+  PERCPU(PAGE_SIZE)
+
+  . = ALIGN(PAGE_SIZE);
   __init_end = .;
 
-  . = ALIGN(4096);
+  . = ALIGN(PAGE_SIZE);
   __nosave_begin = .;
   .data_nosave : AT(ADDR(.data_nosave) - LOAD_OFFSET) { *(.data.nosave) }
-  . = ALIGN(4096);
+  . = ALIGN(PAGE_SIZE);
   __nosave_end = .;
 
   __bss_start = .;		/* BSS */
@@ -226,3 +246,9 @@ SECTIONS
 
   DWARF_DEBUG
 }
+
+/*
+ * Build-time check on the image size:
+ */
+ASSERT((_end - _text <= KERNEL_IMAGE_SIZE),
+	"kernel image bigger than KERNEL_IMAGE_SIZE")

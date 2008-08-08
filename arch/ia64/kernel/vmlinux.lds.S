@@ -20,13 +20,15 @@ PHDRS {
   code   PT_LOAD;
   percpu PT_LOAD;
   data   PT_LOAD;
+  note   PT_NOTE;
+  unwind 0x70000001; /* PT_IA_64_UNWIND, but ld doesn't match the name */
 }
 SECTIONS
 {
   /* Sections to be discarded */
   /DISCARD/ : {
-	*(.exit.text)
-	*(.exit.data)
+	EXIT_TEXT
+	EXIT_DATA
 	*(.exitcall.exit)
 	*(.IA_64.unwind.exit.text)
 	*(.IA_64.unwind_info.exit.text)
@@ -50,6 +52,8 @@ SECTIONS
 	KPROBES_TEXT
 	*(.gnu.linkonce.t*)
     }
+  .text.head : AT(ADDR(.text.head) - LOAD_OFFSET)
+	{ *(.text.head) }
   .text2 : AT(ADDR(.text2) - LOAD_OFFSET)
 	{ *(.text2) }
 #ifdef CONFIG_SMP
@@ -59,6 +63,9 @@ SECTIONS
   _etext = .;
 
   /* Read-only data */
+
+  NOTES :code :note		/* put .notes in text and mark in PT_NOTE  */
+  code_continues : {} :code	/* switch back to regular program...  */
 
   /* Exception table */
   . = ALIGN(16);
@@ -97,7 +104,8 @@ SECTIONS
 	  __start_unwind = .;
 	  *(.IA_64.unwind*)
 	  __end_unwind = .;
-	}
+	} :code :unwind
+  code_continues2 : {} : code
 
   RODATA
 
@@ -111,12 +119,12 @@ SECTIONS
   .init.text : AT(ADDR(.init.text) - LOAD_OFFSET)
 	{
 	  _sinittext = .;
-	  *(.init.text)
+	  INIT_TEXT
 	  _einittext = .;
 	}
 
   .init.data : AT(ADDR(.init.data) - LOAD_OFFSET)
-	{ *(.init.data) }
+	{ INIT_DATA }
 
 #ifdef CONFIG_BLK_DEV_INITRD
   .init.ramfs : AT(ADDR(.init.ramfs) - LOAD_OFFSET)
@@ -146,6 +154,13 @@ SECTIONS
 	  __start___vtop_patchlist = .;
 	  *(.data.patch.vtop)
 	  __end___vtop_patchlist = .;
+	}
+
+  .data.patch.rse : AT(ADDR(.data.patch.rse) - LOAD_OFFSET)
+	{
+	  __start___rse_patchlist = .;
+	  *(.data.patch.rse)
+	  __end___rse_patchlist = .;
 	}
 
   .data.patch.mckinley_e9 : AT(ADDR(.data.patch.mckinley_e9) - LOAD_OFFSET)
@@ -206,6 +221,7 @@ SECTIONS
 	{
 		__per_cpu_start = .;
 		*(.data.percpu)
+		*(.data.percpu.shared_aligned)
 		__per_cpu_end = .;
 	}
   . = __phys_per_cpu_start + PERCPU_PAGE_SIZE;	/* ensure percpu data fits
@@ -231,11 +247,12 @@ SECTIONS
   .sdata : AT(ADDR(.sdata) - LOAD_OFFSET)
 	{ *(.sdata) *(.sdata1) *(.srdata) }
   _edata  =  .;
-  _bss = .;
+  __bss_start = .;
   .sbss : AT(ADDR(.sbss) - LOAD_OFFSET)
 	{ *(.sbss) *(.scommon) }
   .bss : AT(ADDR(.bss) - LOAD_OFFSET)
 	{ *(.bss) *(COMMON) }
+  __bss_stop = .;
 
   _end = .;
 
@@ -273,10 +290,6 @@ SECTIONS
   .debug_typenames 0 : { *(.debug_typenames) }
   .debug_varnames  0 : { *(.debug_varnames) }
   /* These must appear regardless of  .  */
-  /* Discard them for now since Intel SoftSDV cannot handle them.
-  .comment 0 : { *(.comment) }
-  .note 0 : { *(.note) }
-  */
   /DISCARD/ : { *(.comment) }
   /DISCARD/ : { *(.note) }
 }
