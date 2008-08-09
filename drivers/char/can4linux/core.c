@@ -336,7 +336,7 @@ char devname[32];
 	goto out_devfs;
     }
     for (i = 0; i < MAX_CHANNELS; i++) {
-	class_device_create(can_class, NULL, MKDEV(Can_major, i),
+	device_create(can_class, NULL, MKDEV(Can_major, i),
 		NULL, "can%d", i);
     }
 #endif
@@ -537,7 +537,7 @@ extern void disable_pci_interrupt(unsigned int base);
     if( !IS_ERR(can_class)) {
 	int i;
 	for (i = 0; i < MAX_CHANNELS; i++) {
-	    class_device_destroy(can_class, MKDEV(Can_major, i));
+	    device_destroy(can_class, MKDEV(Can_major, i));
 	}
 	class_destroy(can_class);
     }
