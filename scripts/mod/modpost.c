@@ -1992,8 +1992,7 @@ static void read_markers(const char *fname)
 			mod->skip = 1;
 		}
 
-		if (!mod->skip)
-			add_marker(mod, marker, fmt);
+		add_marker(mod, marker, fmt);
 	}
 	return;
 fail:
