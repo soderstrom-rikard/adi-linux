@@ -108,7 +108,7 @@ static irqreturn_t twi_keypad_irq_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int pcf8574_kp_probe(struct i2c_client *client)
+static int pcf8574_kp_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	int i, rc;
 	struct input_dev *idev;
@@ -222,7 +222,7 @@ static int __exit pcf8574_kp_remove(struct i2c_client *client)
 	return 0;
 }
 
-static int pcf8574_kp_resume(struct i2c_client *client, pm_message_t mesg)
+static int pcf8574_kp_resume(struct i2c_client *client)
 {
 	struct twikeypad *lp = i2c_get_clientdata(client);
 	int rc;
@@ -239,7 +239,7 @@ static int pcf8574_kp_resume(struct i2c_client *client, pm_message_t mesg)
 	return 0;
 }
 
-static int pcf8574_kp_suspend(struct i2c_client *client)
+static int pcf8574_kp_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	struct twikeypad *lp = i2c_get_clientdata(client);
 
