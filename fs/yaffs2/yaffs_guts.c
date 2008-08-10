@@ -4446,7 +4446,7 @@ static int yaffs_ReadCheckpointObjects(yaffs_Device *dev)
 	while(ok && !done) {
 		ok = (yaffs_CheckpointRead(dev,&cp,sizeof(cp)) == sizeof(cp));
 		if(cp.structType != sizeof(cp)) {
-			T(YAFFS_TRACE_CHECKPOINT,(TSTR("struct size %d instead of %d ok %d"TENDSTR),
+			T(YAFFS_TRACE_CHECKPOINT,(TSTR("struct size %d instead of %lu ok %d"TENDSTR),
 				cp.structType,sizeof(cp),ok));
 			ok = 0;
 		}
@@ -7486,7 +7486,7 @@ static void yaffs_VerifyFreeChunks(yaffs_Device * dev)
 	do { \
            if(sizeof(structure) != syze) \
 	       { \
-	         T(YAFFS_TRACE_ALWAYS,(TSTR("%s should be %d but is %d\n" TENDSTR),\
+	         T(YAFFS_TRACE_ALWAYS,(TSTR("%s should be %d but is %lu\n" TENDSTR),\
 		 name,syze,sizeof(structure))); \
 	         return YAFFS_FAIL; \
 		} \
