@@ -45,7 +45,7 @@
 
 #include "bfin_twi_lcd.h"
 
-static int __init pcf8574_lcd_probe(struct i2c_client *client)
+static int __init pcf8574_lcd_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	pcf8574_lcd_client = client;
 	drv_HD_I2C_load();
