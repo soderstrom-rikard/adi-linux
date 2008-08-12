@@ -203,6 +203,17 @@ static int adv7183b_power(u32 arg)
 	}
 	gpio_direction_output(ADV7183B_GPIO_RESET, arg);
 #endif
+
+#ifdef CONFIG_BFIN533_EZKIT
+#define FLASHA_PORTA_DIR 	0x20270006
+#define FLASHA_PORTA_OUT 	0x20270004
+#define RST_7183 		0x8		/* decoder reset bit #3 in flashA portA */
+#define PPICLK_ADV7183_SELECT 	0x10		/* decoder clock to PPI bit #4 in flashA portA */
+
+	bfin_write16(FLASHA_PORTA_DIR, 0xFFFF);
+	bfin_write16(FLASHA_PORTA_OUT, bfin_read16(FLASHA_PORTA_OUT) | RST_7183 | PPICLK_ADV7183_SELECT);
+#endif
+
 	return 0;
 }
 

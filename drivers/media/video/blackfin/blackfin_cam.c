@@ -326,10 +326,12 @@ static int bcap_reset_wsize(u32 height, u32 width)
 		bfin_write_PPI_COUNT(bcap_dev->ppidev->pixel_per_line - 1);
 #endif
 
-	if (bcap_dev->ppidev->bpp > 8 ||
-	    bcap_dev->ppidev->dma_config & WDSIZE_16) {
+	if (bcap_dev->ppidev->dma_config & WDSIZE_16) {
 		set_dma_x_modify(CH_PPI, 2);
 		set_dma_y_modify(CH_PPI, 2);
+	} else if (bcap_dev->ppidev->dma_config & WDSIZE_32) {
+		set_dma_x_modify(CH_PPI, 4);
+		set_dma_y_modify(CH_PPI, 4);
 	} else {
 		set_dma_x_modify(CH_PPI, 1);
 		set_dma_y_modify(CH_PPI, 1);

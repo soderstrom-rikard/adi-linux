@@ -43,6 +43,12 @@
 # undef  ADV7183B_28MHZ
 # undef  ADV7183B_STRONG
 #endif
+#ifdef CONFIG_BFIN533_EZKIT
+# undef  ADV7183B_GPIO_RESET
+# define ADV7183B_GPIO_OE        GPIO_PF2
+# undef  ADV7183B_28MHZ
+# undef  ADV7183B_STRONG
+#endif
 #ifdef CONFIG_PRESTO_VIDEO
 # undef  ADV7183B_GPIO_RESET
 # define ADV7183B_GPIO_OE        GPIO_PF8
@@ -51,7 +57,7 @@
 #endif
 
 #define USE_ITU656
-#define DEFAULT_FORMAT		2
+#define DEFAULT_FORMAT		3
 
 # define POL_C              	0x0000
 # define POL_S              	0x0000
@@ -60,9 +66,14 @@
 # define CFG_GP_Input_3Syncs	0x0000
 # define GP_Input_Mode      	0x0000 /*ITU-R 656 Active Field Only*/
 # define PPI_DATA_LEN       	DLEN_8
-# define PPI_PACKING        	PACK_EN
 # define DMA_FLOW_MODE      	0x0000	/* STOPMODE */
+#ifdef CONFIG_BF561
+# define DMA_WDSIZE_16      	WDSIZE_32
+# define PPI_PACKING        	(PACK_EN | DMA32)
+#else
 # define DMA_WDSIZE_16      	WDSIZE_16
+# define PPI_PACKING        	PACK_EN
+#endif
 
 
 #define I2C_SENSOR_ID		0x40
