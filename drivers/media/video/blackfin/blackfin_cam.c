@@ -332,6 +332,7 @@ static int bcap_reset_wsize(u32 height, u32 width)
 	} else if (bcap_dev->ppidev->dma_config & WDSIZE_32) {
 		set_dma_x_modify(CH_PPI, 4);
 		set_dma_y_modify(CH_PPI, 4);
+		set_dma_x_count(CH_PPI, bcap_dev->ppidev->pixel_per_line / 2);
 	} else {
 		set_dma_x_modify(CH_PPI, 1);
 		set_dma_y_modify(CH_PPI, 1);
