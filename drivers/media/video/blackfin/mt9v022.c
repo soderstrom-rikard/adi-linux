@@ -219,7 +219,7 @@ static u8 sysfs_strtou8(const char *buff, size_t len, ssize_t * count)
 	return (u8) val;
 }
 
-static ssize_t sysfs_sysfs_show_val(struct class_device *cd, char *buf, int cmd)
+static ssize_t sysfs_show_val(struct device *cd, struct device_attribute *attr, char *buf, int cmd)
 {
 	struct bcap_device_t *cam;
 	ssize_t count;
@@ -247,7 +247,7 @@ static ssize_t sysfs_sysfs_show_val(struct class_device *cd, char *buf, int cmd)
 }
 
 static ssize_t
-sysfs_sysfs_store_val(struct class_device *cd, const char *buf, size_t len,
+sysfs_store_val(struct device *cd, struct device_attribute *attr, const char *buf, size_t len,
 		      int cmd)
 {
 	struct bcap_device_t *cam;
@@ -284,61 +284,61 @@ sysfs_sysfs_store_val(struct class_device *cd, const char *buf, size_t len,
 	return count;
 }
 
-static ssize_t sysfs_fps_show(struct class_device *cd, char *buf)
+static ssize_t sysfs_fps_show(struct device *cd, struct device_attribute *attr, char *buf)
 {
 
-	return sysfs_sysfs_show_val(cd, buf, CAM_CMD_GET_FRAMERATE);
+	return sysfs_show_val(cd, attr, buf, CAM_CMD_GET_FRAMERATE);
 }
 
 static ssize_t
-sysfs_fps_store(struct class_device *cd, const char *buf, size_t len)
+sysfs_fps_store(struct device *cd, struct device_attribute *attr, const char *buf, size_t len)
 {
-	return sysfs_sysfs_store_val(cd, buf, len, CAM_CMD_SET_FRAMERATE);
+	return sysfs_store_val(cd, attr, buf, len, CAM_CMD_SET_FRAMERATE);
 }
 
-static CLASS_DEVICE_ATTR(fps, S_IRUGO | S_IWUSR,
+static DEVICE_ATTR(fps, S_IRUGO | S_IWUSR,
 			 sysfs_fps_show, sysfs_fps_store);
 
-static ssize_t sysfs_flicker_show(struct class_device *cd, char *buf)
+static ssize_t sysfs_flicker_show(struct device *cd, struct device_attribute *attr, char *buf)
 {
-	return sysfs_sysfs_show_val(cd, buf, CAM_CMD_GET_FLICKER_FREQ);
+	return sysfs_show_val(cd, attr, buf, CAM_CMD_GET_FLICKER_FREQ);
 }
 
 static ssize_t
-sysfs_flicker_store(struct class_device *cd, const char *buf, size_t len)
+sysfs_flicker_store(struct device *cd, struct device_attribute *attr, const char *buf, size_t len)
 {
-	return sysfs_sysfs_store_val(cd, buf, len, CAM_CMD_SET_FLICKER_FREQ);
+	return sysfs_store_val(cd, attr, buf, len, CAM_CMD_SET_FLICKER_FREQ);
 }
 
-static CLASS_DEVICE_ATTR(flicker, S_IRUGO | S_IWUSR,
+static DEVICE_ATTR(flicker, S_IRUGO | S_IWUSR,
 			 sysfs_flicker_show, sysfs_flicker_store);
 
-static ssize_t sysfs_h_mirror_show(struct class_device *cd, char *buf)
+static ssize_t sysfs_h_mirror_show(struct device *cd, struct device_attribute *attr, char *buf)
 {
-	return sysfs_sysfs_show_val(cd, buf, CAM_CMD_GET_HOR_MIRROR);
+	return sysfs_show_val(cd, attr, buf, CAM_CMD_GET_HOR_MIRROR);
 }
 
 static ssize_t
-sysfs_h_mirror_store(struct class_device *cd, const char *buf, size_t len)
+sysfs_h_mirror_store(struct device *cd, struct device_attribute *attr, const char *buf, size_t len)
 {
-	return sysfs_sysfs_store_val(cd, buf, len, CAM_CMD_SET_HOR_MIRROR);
+	return sysfs_store_val(cd, attr, buf, len, CAM_CMD_SET_HOR_MIRROR);
 }
 
-static CLASS_DEVICE_ATTR(h_mirror, S_IRUGO | S_IWUSR,
+static DEVICE_ATTR(h_mirror, S_IRUGO | S_IWUSR,
 			 sysfs_h_mirror_show, sysfs_h_mirror_store);
 
-static ssize_t sysfs_v_mirror_show(struct class_device *cd, char *buf)
+static ssize_t sysfs_v_mirror_show(struct device *cd, struct device_attribute *attr, char *buf)
 {
-	return sysfs_sysfs_show_val(cd, buf, CAM_CMD_GET_VERT_MIRROR);
+	return sysfs_show_val(cd, attr, buf, CAM_CMD_GET_VERT_MIRROR);
 }
 
 static ssize_t
-sysfs_v_mirror_store(struct class_device *cd, const char *buf, size_t len)
+sysfs_v_mirror_store(struct device *cd, struct device_attribute *attr, const char *buf, size_t len)
 {
-	return sysfs_sysfs_store_val(cd, buf, len, CAM_CMD_SET_VERT_MIRROR);
+	return sysfs_store_val(cd, attr, buf, len, CAM_CMD_SET_VERT_MIRROR);
 }
 
-static CLASS_DEVICE_ATTR(v_mirror, S_IRUGO | S_IWUSR,
+static DEVICE_ATTR(v_mirror, S_IRUGO | S_IWUSR,
 			 sysfs_v_mirror_show, sysfs_v_mirror_store);
 
 static int mt9v022_create_sysfs(struct video_device *v4ldev)
@@ -346,27 +346,27 @@ static int mt9v022_create_sysfs(struct video_device *v4ldev)
 
 	int rc;
 
-	rc = video_device_create_file(v4ldev, &class_device_attr_fps);
+	rc = video_device_create_file(v4ldev, &dev_attr_fps);
 	if (rc)
 		goto err;
-	rc = video_device_create_file(v4ldev, &class_device_attr_flicker);
+	rc = video_device_create_file(v4ldev, &dev_attr_flicker);
 	if (rc)
 		goto err_flicker;
-	rc = video_device_create_file(v4ldev, &class_device_attr_v_mirror);
+	rc = video_device_create_file(v4ldev, &dev_attr_v_mirror);
 	if (rc)
 		goto err_v_mirror;
-	rc = video_device_create_file(v4ldev, &class_device_attr_h_mirror);
+	rc = video_device_create_file(v4ldev, &dev_attr_h_mirror);
 	if (rc)
 		goto err_h_mirror;
 
 	return 0;
 
 err_h_mirror:
-	video_device_remove_file(v4ldev, &class_device_attr_v_mirror);
+	video_device_remove_file(v4ldev, &dev_attr_v_mirror);
 err_v_mirror:
-	video_device_remove_file(v4ldev, &class_device_attr_flicker);
+	video_device_remove_file(v4ldev, &dev_attr_flicker);
 err_flicker:
-	video_device_remove_file(v4ldev, &class_device_attr_fps);
+	video_device_remove_file(v4ldev, &dev_attr_fps);
 err:
 	return rc;
 }
