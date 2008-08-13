@@ -43,17 +43,18 @@
 # undef  ADV7183B_28MHZ
 # undef  ADV7183B_STRONG
 #endif
-#ifdef CONFIG_BFIN533_EZKIT
-# undef  ADV7183B_GPIO_RESET
-# define ADV7183B_GPIO_OE        GPIO_PF2
-# undef  ADV7183B_28MHZ
-# undef  ADV7183B_STRONG
-#endif
 #ifdef CONFIG_PRESTO_VIDEO
 # undef  ADV7183B_GPIO_RESET
 # define ADV7183B_GPIO_OE        GPIO_PF8
 # define ADV7183B_28MHZ
 # define ADV7183B_STRONG
+#else
+# ifdef CONFIG_BFIN533_EZKIT
+#  undef  ADV7183B_GPIO_RESET
+#  define ADV7183B_GPIO_OE        GPIO_PF2
+#  undef  ADV7183B_28MHZ
+#  undef  ADV7183B_STRONG
+# endif
 #endif
 
 #define USE_ITU656
