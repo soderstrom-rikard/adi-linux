@@ -1101,7 +1101,8 @@ static __init void early_serial_putc(struct uart_port *port, int ch)
 	unsigned timeout = 0xffff;
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 
-	while ((!(UART_GET_LSR(uart) & THRE)) && --timeout);
+	while ((!(UART_GET_LSR(uart) & THRE)) && --timeout)
+		barrier();
 
 	UART_PUT_CHAR(uart, ch);
 }
