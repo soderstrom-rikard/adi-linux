@@ -9,36 +9,9 @@
 #include <linux/module.h>
 #include <asm/blackfin.h>
 
-/* Some MMRs are stupid and have different read/write addresses.
- * So let's account for that here by interjecting ourselves into
- * the normal debugfs process.
- */
-struct bfin_rw_ptr_pair {
-	void *read, *write;
-};
-static void bfin_rw_x16_set(void *data, u64 val)
-{
-	*(u16 *) ((struct bfin_rw_ptr_pair *)data)->write = val;
-}
-static u64 bfin_rw_x16_get(void *data)
-{
-	return *(u16 *) ((struct bfin_rw_ptr_pair *)data)->read;
-}
-DEFINE_SIMPLE_ATTRIBUTE(bfin_rw_x16_fops, bfin_rw_x16_get, bfin_rw_x16_set, "%llx\n");
-static __init
-struct dentry *debugfs_create_rw_x16(const char *name, mode_t mode, struct dentry *parent, u16 *rvalue, u16 *wvalue)
-{
-	struct dentry *ret;
-	struct bfin_rw_ptr_pair *pair = kmalloc(sizeof(*pair), GFP_KERNEL);
-	pair->read = rvalue;
-	pair->write = wvalue;
-	ret = debugfs_create_file(name, mode, parent, rvalue, &bfin_rw_x16_fops);
-	if (ret)
-		ret->d_inode->i_private = pair;
-	return ret;
-}
+static struct dentry *debug_mmrs_dentry;
 
-static int __init bfin_init_mmr_debugfs(void)
+static int __init bfin_debug_mmrs_init(void)
 {
 	struct dentry *top, *parent;
 
@@ -233,6 +206,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMA_TC_CNT", 0600, parent, (u16 *)0xFFC00B0C);
 		debugfs_create_x16("DMA_TC_PER", 0600, parent, (u16 *)0xFFC00B10);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -262,7 +239,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("GPIO PIN", top);
 		debugfs_create_x16("PORTF_DRIVE", 0600, parent, (u16 *)0xFFC03220);
@@ -944,6 +920,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMA_TC_CNT", 0600, parent, (u16 *)0xFFC00B0C);
 		debugfs_create_x16("DMA_TC_PER", 0600, parent, (u16 *)0xFFC00B10);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -973,7 +953,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("GPIO PIN", top);
 		debugfs_create_x16("PORTF_DRIVE", 0600, parent, (u16 *)0xFFC03220);
@@ -1655,6 +1634,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMA_TC_CNT", 0600, parent, (u16 *)0xFFC00B0C);
 		debugfs_create_x16("DMA_TC_PER", 0600, parent, (u16 *)0xFFC00B10);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -1684,7 +1667,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("GPIO PIN", top);
 		debugfs_create_x16("PORTF_DRIVE", 0600, parent, (u16 *)0xFFC03220);
@@ -2537,6 +2519,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMA_TC_CNT", 0600, parent, (u16 *)0xFFC00B0C);
 		debugfs_create_x16("DMA_TC_PER", 0600, parent, (u16 *)0xFFC00B10);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -2566,7 +2552,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("GPIO PIN", top);
 		debugfs_create_x16("PORTF_DRIVE", 0600, parent, (u16 *)0xFFC03220);
@@ -3419,6 +3404,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMA_TC_CNT", 0600, parent, (u16 *)0xFFC00B0C);
 		debugfs_create_x16("DMA_TC_PER", 0600, parent, (u16 *)0xFFC00B10);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -3529,7 +3518,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("GPIO PIN", top);
 		debugfs_create_x16("PORTF_DRIVE", 0600, parent, (u16 *)0xFFC03220);
@@ -4382,6 +4370,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMA_TC_CNT", 0600, parent, (u16 *)0xFFC00B0C);
 		debugfs_create_x16("DMA_TC_PER", 0600, parent, (u16 *)0xFFC00B10);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -4492,7 +4484,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("GPIO PIN", top);
 		debugfs_create_x16("PORTF_DRIVE", 0600, parent, (u16 *)0xFFC03220);
@@ -5300,6 +5291,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		parent = debugfs_create_dir("Data Cache Programmable Look-Aside Buffer Fault Address", top);
 		debugfs_create_x32("DCPLB_FAULT_STATUS", 0600, parent, (u32 *)0xFFE00008);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -5401,7 +5396,6 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMA7_X_MODIFY", 0600, parent, (u16 *)0xFFC00DD4);
 		debugfs_create_x16("DMA7_Y_COUNT", 0600, parent, (u16 *)0xFFC00DD8);
 		debugfs_create_x16("DMA7_Y_MODIFY", 0600, parent, (u16 *)0xFFC00DDC);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 		debugfs_create_x32("EVT_OVERRIDE", 0600, parent, (u32 *)0xFFE02100);
 		debugfs_create_x16("FIO_BOTH", 0600, parent, (u16 *)0xFFC0073C);
 		debugfs_create_x16("FIO_DIR", 0600, parent, (u16 *)0xFFC00730);
@@ -5932,6 +5926,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		parent = debugfs_create_dir("Data Cache Programmable Look-Aside Buffer Fault Address", top);
 		debugfs_create_x32("DCPLB_FAULT_STATUS", 0600, parent, (u32 *)0xFFE00008);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -6033,7 +6031,6 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMA7_X_MODIFY", 0600, parent, (u16 *)0xFFC00DD4);
 		debugfs_create_x16("DMA7_Y_COUNT", 0600, parent, (u16 *)0xFFC00DD8);
 		debugfs_create_x16("DMA7_Y_MODIFY", 0600, parent, (u16 *)0xFFC00DDC);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 		debugfs_create_x32("EVT_OVERRIDE", 0600, parent, (u32 *)0xFFE02100);
 		debugfs_create_x16("FIO_BOTH", 0600, parent, (u16 *)0xFFC0073C);
 		debugfs_create_x16("FIO_DIR", 0600, parent, (u16 *)0xFFC00730);
@@ -6564,6 +6561,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		parent = debugfs_create_dir("Data Cache Programmable Look-Aside Buffer Fault Address", top);
 		debugfs_create_x32("DCPLB_FAULT_STATUS", 0600, parent, (u32 *)0xFFE00008);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -6665,7 +6666,6 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMA7_X_MODIFY", 0600, parent, (u16 *)0xFFC00DD4);
 		debugfs_create_x16("DMA7_Y_COUNT", 0600, parent, (u16 *)0xFFC00DD8);
 		debugfs_create_x16("DMA7_Y_MODIFY", 0600, parent, (u16 *)0xFFC00DDC);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 		debugfs_create_x32("EVT_OVERRIDE", 0600, parent, (u32 *)0xFFE02100);
 		debugfs_create_x16("FIO_BOTH", 0600, parent, (u16 *)0xFFC0073C);
 		debugfs_create_x16("FIO_DIR", 0600, parent, (u16 *)0xFFC00730);
@@ -7345,6 +7345,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		parent = debugfs_create_dir("Data Cache Programmable Look-Aside Buffer Fault Address", top);
 		debugfs_create_x32("DCPLB_STATUS", 0600, parent, (u32 *)0xFFE00008);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -7374,7 +7378,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("Handshake MDMA", top);
 		debugfs_create_x16("HMDMA0_BCINIT", 0600, parent, (u16 *)0xFFC03308);
@@ -8110,7 +8113,6 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x32("DCPLB_FAULT_ADDR", 0600, parent, (u32 *)0xFFE0000C);
 		debugfs_create_x32("DCPLB_STATUS", 0600, parent, (u32 *)0xFFE00008);
 		debugfs_create_x16("DMA_DBP", 0600, parent, (u16 *)0xFFC04880);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 		debugfs_create_x16("FIO_BOTH", 0600, parent, (u16 *)0xFFC02418);
 		debugfs_create_x16("FIO_DIR", 0600, parent, (u16 *)0xFFC02400);
 		debugfs_create_x16("FIO_EDGE", 0600, parent, (u16 *)0xFFC02414);
@@ -9076,6 +9078,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		parent = debugfs_create_dir("Data Cache Programmable Look-Aside Buffer Fault Address", top);
 		debugfs_create_x32("DCPLB_STATUS", 0600, parent, (u32 *)0xFFE00008);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -9186,7 +9192,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("Handshake MDMA", top);
 		debugfs_create_x16("HMDMA0_BCINIT", 0600, parent, (u16 *)0xFFC03308);
@@ -10164,6 +10169,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		parent = debugfs_create_dir("Data Cache Programmable Look-Aside Buffer Fault Address", top);
 		debugfs_create_x32("DCPLB_STATUS", 0600, parent, (u32 *)0xFFE00008);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -10274,7 +10283,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("Handshake MDMA", top);
 		debugfs_create_x16("HMDMA0_BCINIT", 0600, parent, (u16 *)0xFFC03308);
@@ -11651,6 +11659,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMA9_Y_COUNT", 0600, parent, (u16 *)0xFFC01C58);
 		debugfs_create_x16("DMA9_Y_MODIFY", 0600, parent, (u16 *)0xFFC01C5C);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -11680,7 +11692,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("GPIO Port C", top);
 		debugfs_create_x16("PORTCIO", 0600, parent, (u16 *)0xFFC01510);
@@ -12096,12 +12107,12 @@ static int __init bfin_init_mmr_debugfs(void)
 		parent = debugfs_create_dir("TWI", top);
 		debugfs_create_x16("TWI0_CLKDIV", 0600, parent, (u16 *)0xFFC01400);
 		debugfs_create_x16("TWI0_CONTROL", 0600, parent, (u16 *)0xFFC01404);
-		debugfs_create_x16("TWI0_FIFO_CTRL", 0600, parent, (u16 *)0xFFC01428);
+		debugfs_create_x16("TWI0_FIFO_CTL", 0600, parent, (u16 *)0xFFC01428);
 		debugfs_create_x16("TWI0_FIFO_STAT", 0600, parent, (u16 *)0xFFC0142C);
 		debugfs_create_x16("TWI0_INT_MASK", 0600, parent, (u16 *)0xFFC01424);
 		debugfs_create_x16("TWI0_INT_STAT", 0600, parent, (u16 *)0xFFC01420);
 		debugfs_create_x16("TWI0_MASTER_ADDR", 0600, parent, (u16 *)0xFFC0141C);
-		debugfs_create_x16("TWI0_MASTER_CTRL", 0600, parent, (u16 *)0xFFC01414);
+		debugfs_create_x16("TWI0_MASTER_CTL", 0600, parent, (u16 *)0xFFC01414);
 		debugfs_create_x16("TWI0_MASTER_STAT", 0600, parent, (u16 *)0xFFC01418);
 		debugfs_create_x16("TWI0_RCV_DATA16", 0600, parent, (u16 *)0xFFC0148C);
 		debugfs_create_x16("TWI0_RCV_DATA8", 0600, parent, (u16 *)0xFFC01488);
@@ -12112,12 +12123,12 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("TWI0_XMT_DATA8", 0600, parent, (u16 *)0xFFC01480);
 		debugfs_create_x16("TWI1_CLKDIV", 0600, parent, (u16 *)0xFFC02200);
 		debugfs_create_x16("TWI1_CONTROL", 0600, parent, (u16 *)0xFFC02204);
-		debugfs_create_x16("TWI1_FIFO_CTRL", 0600, parent, (u16 *)0xFFC02228);
+		debugfs_create_x16("TWI1_FIFO_CTL", 0600, parent, (u16 *)0xFFC02228);
 		debugfs_create_x16("TWI1_FIFO_STAT", 0600, parent, (u16 *)0xFFC0222C);
 		debugfs_create_x16("TWI1_INT_MASK", 0600, parent, (u16 *)0xFFC02224);
 		debugfs_create_x16("TWI1_INT_STAT", 0600, parent, (u16 *)0xFFC02220);
 		debugfs_create_x16("TWI1_MASTER_ADDR", 0600, parent, (u16 *)0xFFC0221C);
-		debugfs_create_x16("TWI1_MASTER_CTRL", 0600, parent, (u16 *)0xFFC02214);
+		debugfs_create_x16("TWI1_MASTER_CTL", 0600, parent, (u16 *)0xFFC02214);
 		debugfs_create_x16("TWI1_MASTER_STAT", 0600, parent, (u16 *)0xFFC02218);
 		debugfs_create_x16("TWI1_RCV_DATA16", 0600, parent, (u16 *)0xFFC0228C);
 		debugfs_create_x16("TWI1_RCV_DATA8", 0600, parent, (u16 *)0xFFC02288);
@@ -12900,6 +12911,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMA9_Y_COUNT", 0600, parent, (u16 *)0xFFC01C58);
 		debugfs_create_x16("DMA9_Y_MODIFY", 0600, parent, (u16 *)0xFFC01C5C);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -12929,30 +12944,52 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
-		parent = debugfs_create_dir("General Purpose IO Registers", top);
-		debugfs_create_x16("GPIO_C_C", 0600, parent, (u16 *)0xFFC01520);
-		debugfs_create_x16("GPIO_C_CNFG", 0600, parent, (u16 *)0xFFC01500);
-		debugfs_create_x16("GPIO_C_D", 0600, parent, (u16 *)0xFFC01510);
-		debugfs_create_x16("GPIO_C_DIR", 0600, parent, (u16 *)0xFFC01550);
-		debugfs_create_x16("GPIO_C_INEN", 0600, parent, (u16 *)0xFFC01560);
-		debugfs_create_x16("GPIO_C_S", 0600, parent, (u16 *)0xFFC01530);
-		debugfs_create_x16("GPIO_C_T", 0600, parent, (u16 *)0xFFC01540);
-		debugfs_create_x16("GPIO_D_C", 0600, parent, (u16 *)0xFFC01524);
-		debugfs_create_x16("GPIO_D_CNFG", 0600, parent, (u16 *)0xFFC01504);
-		debugfs_create_x16("GPIO_D_D", 0600, parent, (u16 *)0xFFC01514);
-		debugfs_create_x16("GPIO_D_DIR", 0600, parent, (u16 *)0xFFC01554);
-		debugfs_create_x16("GPIO_D_INEN", 0600, parent, (u16 *)0xFFC01564);
-		debugfs_create_x16("GPIO_D_S", 0600, parent, (u16 *)0xFFC01534);
-		debugfs_create_x16("GPIO_D_T", 0600, parent, (u16 *)0xFFC01544);
-		debugfs_create_x16("GPIO_E_C", 0600, parent, (u16 *)0xFFC01528);
-		debugfs_create_x16("GPIO_E_CNFG", 0600, parent, (u16 *)0xFFC01508);
-		debugfs_create_x16("GPIO_E_D", 0600, parent, (u16 *)0xFFC01518);
-		debugfs_create_x16("GPIO_E_DIR", 0600, parent, (u16 *)0xFFC01558);
-		debugfs_create_x16("GPIO_E_INEN", 0600, parent, (u16 *)0xFFC01568);
-		debugfs_create_x16("GPIO_E_S", 0600, parent, (u16 *)0xFFC01538);
-		debugfs_create_x16("GPIO_E_T", 0600, parent, (u16 *)0xFFC01548);
+		parent = debugfs_create_dir("GPIO Port C", top);
+		debugfs_create_x16("PORTCIO", 0600, parent, (u16 *)0xFFC01510);
+		debugfs_create_x16("PORTCIO_CLEAR", 0600, parent, (u16 *)0xFFC01520);
+		debugfs_create_x16("PORTCIO_DIR", 0600, parent, (u16 *)0xFFC01550);
+		debugfs_create_x16("PORTCIO_FER", 0600, parent, (u16 *)0xFFC01500);
+		debugfs_create_x16("PORTCIO_INEN", 0600, parent, (u16 *)0xFFC01560);
+		debugfs_create_x16("PORTCIO_SET", 0600, parent, (u16 *)0xFFC01530);
+		debugfs_create_x16("PORTCIO_TOGGLE", 0600, parent, (u16 *)0xFFC01540);
+
+		parent = debugfs_create_dir("GPIO Port D", top);
+		debugfs_create_x16("PORTDIO", 0600, parent, (u16 *)0xFFC01514);
+		debugfs_create_x16("PORTDIO_CLEAR", 0600, parent, (u16 *)0xFFC01524);
+		debugfs_create_x16("PORTDIO_DIR", 0600, parent, (u16 *)0xFFC01554);
+		debugfs_create_x16("PORTDIO_FER", 0600, parent, (u16 *)0xFFC01504);
+		debugfs_create_x16("PORTDIO_INEN", 0600, parent, (u16 *)0xFFC01564);
+		debugfs_create_x16("PORTDIO_SET", 0600, parent, (u16 *)0xFFC01534);
+		debugfs_create_x16("PORTDIO_TOGGLE", 0600, parent, (u16 *)0xFFC01544);
+
+		parent = debugfs_create_dir("GPIO Port E", top);
+		debugfs_create_x16("PORTEIO", 0600, parent, (u16 *)0xFFC01518);
+		debugfs_create_x16("PORTEIO_CLEAR", 0600, parent, (u16 *)0xFFC01528);
+		debugfs_create_x16("PORTEIO_DIR", 0600, parent, (u16 *)0xFFC01558);
+		debugfs_create_x16("PORTEIO_FER", 0600, parent, (u16 *)0xFFC01508);
+		debugfs_create_x16("PORTEIO_INEN", 0600, parent, (u16 *)0xFFC01568);
+		debugfs_create_x16("PORTEIO_SET", 0600, parent, (u16 *)0xFFC01538);
+		debugfs_create_x16("PORTEIO_TOGGLE", 0600, parent, (u16 *)0xFFC01548);
+
+		parent = debugfs_create_dir("GPIO Port F", top);
+		debugfs_create_x16("PORTFIO", 0600, parent, (u16 *)0xFFC00700);
+		debugfs_create_x16("PORTFIO_BOTH", 0600, parent, (u16 *)0xFFC0073C);
+		debugfs_create_x16("PORTFIO_CLEAR", 0600, parent, (u16 *)0xFFC00704);
+		debugfs_create_x16("PORTFIO_DIR", 0600, parent, (u16 *)0xFFC00730);
+		debugfs_create_x16("PORTFIO_EDGE", 0600, parent, (u16 *)0xFFC00738);
+		debugfs_create_x16("PORTFIO_INEN", 0600, parent, (u16 *)0xFFC00740);
+		debugfs_create_x16("PORTFIO_MASKA", 0600, parent, (u16 *)0xFFC00710);
+		debugfs_create_x16("PORTFIO_MASKA_CLEAR", 0600, parent, (u16 *)0xFFC00714);
+		debugfs_create_x16("PORTFIO_MASKA_SET", 0600, parent, (u16 *)0xFFC00718);
+		debugfs_create_x16("PORTFIO_MASKA_TOGGLE", 0600, parent, (u16 *)0xFFC0071C);
+		debugfs_create_x16("PORTFIO_MASKB", 0600, parent, (u16 *)0xFFC00720);
+		debugfs_create_x16("PORTFIO_MASKB_CLEAR", 0600, parent, (u16 *)0xFFC00724);
+		debugfs_create_x16("PORTFIO_MASKB_SET", 0600, parent, (u16 *)0xFFC00728);
+		debugfs_create_x16("PORTFIO_MASKB_TOGGLE", 0600, parent, (u16 *)0xFFC0072C);
+		debugfs_create_x16("PORTFIO_POLAR", 0600, parent, (u16 *)0xFFC00734);
+		debugfs_create_x16("PORTFIO_SET", 0600, parent, (u16 *)0xFFC00708);
+		debugfs_create_x16("PORTFIO_TOGGLE", 0600, parent, (u16 *)0xFFC0070C);
 
 		parent = debugfs_create_dir("Interrupt Controller", top);
 		debugfs_create_x32("ILAT", 0600, parent, (u32 *)0xFFE0210C);
@@ -13295,25 +13332,6 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x32("PFCNTR1", 0600, parent, (u32 *)0xFFE08104);
 		debugfs_create_x32("PFCTL", 0600, parent, (u32 *)0xFFE08000);
 
-		parent = debugfs_create_dir("Programmable Flag Registers", top);
-		debugfs_create_x16("FIO_BOTH", 0600, parent, (u16 *)0xFFC0073C);
-		debugfs_create_x16("FIO_DIR", 0600, parent, (u16 *)0xFFC00730);
-		debugfs_create_x16("FIO_EDGE", 0600, parent, (u16 *)0xFFC00738);
-		debugfs_create_x16("FIO_FLAG_C", 0600, parent, (u16 *)0xFFC00704);
-		debugfs_create_x16("FIO_FLAG_D", 0600, parent, (u16 *)0xFFC00700);
-		debugfs_create_x16("FIO_FLAG_S", 0600, parent, (u16 *)0xFFC00708);
-		debugfs_create_x16("FIO_FLAG_T", 0600, parent, (u16 *)0xFFC0070C);
-		debugfs_create_x16("FIO_INEN", 0600, parent, (u16 *)0xFFC00740);
-		debugfs_create_x16("FIO_MASKA_C", 0600, parent, (u16 *)0xFFC00714);
-		debugfs_create_x16("FIO_MASKA_D", 0600, parent, (u16 *)0xFFC00710);
-		debugfs_create_x16("FIO_MASKA_S", 0600, parent, (u16 *)0xFFC00718);
-		debugfs_create_x16("FIO_MASKA_T", 0600, parent, (u16 *)0xFFC0071C);
-		debugfs_create_x16("FIO_MASKB_C", 0600, parent, (u16 *)0xFFC00724);
-		debugfs_create_x16("FIO_MASKB_D", 0600, parent, (u16 *)0xFFC00720);
-		debugfs_create_x16("FIO_MASKB_S", 0600, parent, (u16 *)0xFFC00728);
-		debugfs_create_x16("FIO_MASKB_T", 0600, parent, (u16 *)0xFFC0072C);
-		debugfs_create_x16("FIO_POLAR", 0600, parent, (u16 *)0xFFC00734);
-
 		parent = debugfs_create_dir("RTC", top);
 		debugfs_create_x32("RTC_ALARM", 0600, parent, (u32 *)0xFFC00310);
 		debugfs_create_x16("RTC_ICTL", 0600, parent, (u16 *)0xFFC00304);
@@ -13456,12 +13474,12 @@ static int __init bfin_init_mmr_debugfs(void)
 		parent = debugfs_create_dir("TWI", top);
 		debugfs_create_x16("TWI0_CLKDIV", 0600, parent, (u16 *)0xFFC01400);
 		debugfs_create_x16("TWI0_CONTROL", 0600, parent, (u16 *)0xFFC01404);
-		debugfs_create_x16("TWI0_FIFO_CTRL", 0600, parent, (u16 *)0xFFC01428);
+		debugfs_create_x16("TWI0_FIFO_CTL", 0600, parent, (u16 *)0xFFC01428);
 		debugfs_create_x16("TWI0_FIFO_STAT", 0600, parent, (u16 *)0xFFC0142C);
 		debugfs_create_x16("TWI0_INT_MASK", 0600, parent, (u16 *)0xFFC01424);
 		debugfs_create_x16("TWI0_INT_STAT", 0600, parent, (u16 *)0xFFC01420);
 		debugfs_create_x16("TWI0_MASTER_ADDR", 0600, parent, (u16 *)0xFFC0141C);
-		debugfs_create_x16("TWI0_MASTER_CTRL", 0600, parent, (u16 *)0xFFC01414);
+		debugfs_create_x16("TWI0_MASTER_CTL", 0600, parent, (u16 *)0xFFC01414);
 		debugfs_create_x16("TWI0_MASTER_STAT", 0600, parent, (u16 *)0xFFC01418);
 		debugfs_create_x16("TWI0_RCV_DATA16", 0600, parent, (u16 *)0xFFC0148C);
 		debugfs_create_x16("TWI0_RCV_DATA8", 0600, parent, (u16 *)0xFFC01488);
@@ -13472,12 +13490,12 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("TWI0_XMT_DATA8", 0600, parent, (u16 *)0xFFC01480);
 		debugfs_create_x16("TWI1_CLKDIV", 0600, parent, (u16 *)0xFFC02200);
 		debugfs_create_x16("TWI1_CONTROL", 0600, parent, (u16 *)0xFFC02204);
-		debugfs_create_x16("TWI1_FIFO_CTRL", 0600, parent, (u16 *)0xFFC02228);
+		debugfs_create_x16("TWI1_FIFO_CTL", 0600, parent, (u16 *)0xFFC02228);
 		debugfs_create_x16("TWI1_FIFO_STAT", 0600, parent, (u16 *)0xFFC0222C);
 		debugfs_create_x16("TWI1_INT_MASK", 0600, parent, (u16 *)0xFFC02224);
 		debugfs_create_x16("TWI1_INT_STAT", 0600, parent, (u16 *)0xFFC02220);
 		debugfs_create_x16("TWI1_MASTER_ADDR", 0600, parent, (u16 *)0xFFC0221C);
-		debugfs_create_x16("TWI1_MASTER_CTRL", 0600, parent, (u16 *)0xFFC02214);
+		debugfs_create_x16("TWI1_MASTER_CTL", 0600, parent, (u16 *)0xFFC02214);
 		debugfs_create_x16("TWI1_MASTER_STAT", 0600, parent, (u16 *)0xFFC02218);
 		debugfs_create_x16("TWI1_RCV_DATA16", 0600, parent, (u16 *)0xFFC0228C);
 		debugfs_create_x16("TWI1_RCV_DATA8", 0600, parent, (u16 *)0xFFC02288);
@@ -14309,6 +14327,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMAC1_TCCNT", 0600, parent, (u16 *)0xFFC01B10);
 		debugfs_create_x16("DMAC1_TCPER", 0600, parent, (u16 *)0xFFC01B0C);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -14401,7 +14423,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("HMDMA", top);
 		debugfs_create_x16("HMDMA0_BCINIT", 0600, parent, (u16 *)0xFFC04508);
@@ -15014,6 +15035,11 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("TWI0_SLAVE_STAT", 0600, parent, (u16 *)0xFFC0070C);
 		debugfs_create_x16("TWI0_XMT_DATA16", 0600, parent, (u16 *)0xFFC00784);
 		debugfs_create_x16("TWI0_XMT_DATA8", 0600, parent, (u16 *)0xFFC00780);
+
+		parent = debugfs_create_dir("Trace Unit", top);
+		debugfs_create_x32("TBUF", 0600, parent, (u32 *)0xFFE06100);
+		debugfs_create_x32("TBUFCTL", 0600, parent, (u32 *)0xFFE06000);
+		debugfs_create_x32("TBUFSTAT", 0600, parent, (u32 *)0xFFE06004);
 
 		parent = debugfs_create_dir("UART", top);
 		debugfs_create_x16("UART0_DLH", 0600, parent, (u16 *)0xFFC00404);
@@ -15989,6 +16015,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMAC1_TCCNT", 0600, parent, (u16 *)0xFFC01B10);
 		debugfs_create_x16("DMAC1_TCPER", 0600, parent, (u16 *)0xFFC01B0C);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -16081,7 +16111,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("HMDMA", top);
 		debugfs_create_x16("HMDMA0_BCINIT", 0600, parent, (u16 *)0xFFC04508);
@@ -16694,6 +16723,11 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("TWI0_SLAVE_STAT", 0600, parent, (u16 *)0xFFC0070C);
 		debugfs_create_x16("TWI0_XMT_DATA16", 0600, parent, (u16 *)0xFFC00784);
 		debugfs_create_x16("TWI0_XMT_DATA8", 0600, parent, (u16 *)0xFFC00780);
+
+		parent = debugfs_create_dir("Trace Unit", top);
+		debugfs_create_x32("TBUF", 0600, parent, (u32 *)0xFFE06100);
+		debugfs_create_x32("TBUFCTL", 0600, parent, (u32 *)0xFFE06000);
+		debugfs_create_x32("TBUFSTAT", 0600, parent, (u32 *)0xFFE06004);
 
 		parent = debugfs_create_dir("UART", top);
 		debugfs_create_x16("UART0_DLH", 0600, parent, (u16 *)0xFFC00404);
@@ -18010,6 +18044,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMAC1_TCCNT", 0600, parent, (u16 *)0xFFC01B10);
 		debugfs_create_x16("DMAC1_TCPER", 0600, parent, (u16 *)0xFFC01B0C);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -18116,7 +18154,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("HMDMA", top);
 		debugfs_create_x16("HMDMA0_BCINIT", 0600, parent, (u16 *)0xFFC04508);
@@ -18746,6 +18783,11 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("TWI1_XMT_DATA16", 0600, parent, (u16 *)0xFFC02284);
 		debugfs_create_x16("TWI1_XMT_DATA8", 0600, parent, (u16 *)0xFFC02280);
 
+		parent = debugfs_create_dir("Trace Unit", top);
+		debugfs_create_x32("TBUF", 0600, parent, (u32 *)0xFFE06100);
+		debugfs_create_x32("TBUFCTL", 0600, parent, (u32 *)0xFFE06000);
+		debugfs_create_x32("TBUFSTAT", 0600, parent, (u32 *)0xFFE06004);
+
 		parent = debugfs_create_dir("UART", top);
 		debugfs_create_x16("UART0_DLH", 0600, parent, (u16 *)0xFFC00404);
 		debugfs_create_x16("UART0_DLL", 0600, parent, (u16 *)0xFFC00400);
@@ -19181,6 +19223,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMAC1_TCCNT", 0600, parent, (u16 *)0xFFC01B10);
 		debugfs_create_x16("DMAC1_TCPER", 0600, parent, (u16 *)0xFFC01B0C);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -19287,7 +19333,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("HMDMA", top);
 		debugfs_create_x16("HMDMA0_BCINIT", 0600, parent, (u16 *)0xFFC04508);
@@ -19986,6 +20031,11 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("TWI1_SLAVE_STAT", 0600, parent, (u16 *)0xFFC0220C);
 		debugfs_create_x16("TWI1_XMT_DATA16", 0600, parent, (u16 *)0xFFC02284);
 		debugfs_create_x16("TWI1_XMT_DATA8", 0600, parent, (u16 *)0xFFC02280);
+
+		parent = debugfs_create_dir("Trace Unit", top);
+		debugfs_create_x32("TBUF", 0600, parent, (u32 *)0xFFE06100);
+		debugfs_create_x32("TBUFCTL", 0600, parent, (u32 *)0xFFE06000);
+		debugfs_create_x32("TBUFSTAT", 0600, parent, (u32 *)0xFFE06004);
 
 		parent = debugfs_create_dir("UART0", top);
 		debugfs_create_x16("UART0_DLH", 0600, parent, (u16 *)0xFFC00404);
@@ -21347,6 +21397,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMAC1_TCCNT", 0600, parent, (u16 *)0xFFC01B10);
 		debugfs_create_x16("DMAC1_TCPER", 0600, parent, (u16 *)0xFFC01B0C);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -21453,7 +21507,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("HMDMA", top);
 		debugfs_create_x16("HMDMA0_BCINIT", 0600, parent, (u16 *)0xFFC04508);
@@ -22152,6 +22205,11 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("TWI1_SLAVE_STAT", 0600, parent, (u16 *)0xFFC0220C);
 		debugfs_create_x16("TWI1_XMT_DATA16", 0600, parent, (u16 *)0xFFC02284);
 		debugfs_create_x16("TWI1_XMT_DATA8", 0600, parent, (u16 *)0xFFC02280);
+
+		parent = debugfs_create_dir("Trace Unit", top);
+		debugfs_create_x32("TBUF", 0600, parent, (u32 *)0xFFE06100);
+		debugfs_create_x32("TBUFCTL", 0600, parent, (u32 *)0xFFE06000);
+		debugfs_create_x32("TBUFSTAT", 0600, parent, (u32 *)0xFFE06004);
 
 		parent = debugfs_create_dir("UART", top);
 		debugfs_create_x16("UART0_DLH", 0600, parent, (u16 *)0xFFC00404);
@@ -23507,6 +23565,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMAC1_TCCNT", 0600, parent, (u16 *)0xFFC01B10);
 		debugfs_create_x16("DMAC1_TCPER", 0600, parent, (u16 *)0xFFC01B0C);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -23613,7 +23675,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 
 		parent = debugfs_create_dir("HMDMA", top);
 		debugfs_create_x16("HMDMA0_BCINIT", 0600, parent, (u16 *)0xFFC04508);
@@ -24431,6 +24492,11 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("TWI1_XMT_DATA16", 0600, parent, (u16 *)0xFFC02284);
 		debugfs_create_x16("TWI1_XMT_DATA8", 0600, parent, (u16 *)0xFFC02280);
 
+		parent = debugfs_create_dir("Trace Unit", top);
+		debugfs_create_x32("TBUF", 0600, parent, (u32 *)0xFFE06100);
+		debugfs_create_x32("TBUFCTL", 0600, parent, (u32 *)0xFFE06000);
+		debugfs_create_x32("TBUFSTAT", 0600, parent, (u32 *)0xFFE06004);
+
 		parent = debugfs_create_dir("UART", top);
 		debugfs_create_x16("UART0_DLH", 0600, parent, (u16 *)0xFFC00404);
 		debugfs_create_x16("UART0_DLL", 0600, parent, (u16 *)0xFFC00400);
@@ -25059,6 +25125,10 @@ static int __init bfin_init_mmr_debugfs(void)
 		debugfs_create_x16("DMA2_9_Y_COUNT", 0600, parent, (u16 *)0xFFC00E58);
 		debugfs_create_x16("DMA2_9_Y_MODIFY", 0600, parent, (u16 *)0xFFC00E5C);
 
+		parent = debugfs_create_dir("Debug", top);
+		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
+		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
+
 		parent = debugfs_create_dir("EBIU", top);
 		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
 		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
@@ -25088,8 +25158,6 @@ static int __init bfin_init_mmr_debugfs(void)
 
 		parent = debugfs_create_dir("Extended Registers", top);
 		debugfs_create_x32("CHIPID", 0600, parent, (u32 *)0xFFC00014);
-		debugfs_create_x32("DBGSTAT", 0600, parent, (u32 *)0xFFE05008);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
 		debugfs_create_x32("EVT_OVERRIDE", 0600, parent, (u32 *)0xFFE02100);
 		debugfs_create_x32("SRAM_BASE_ADDR_CORE_A", 0600, parent, (u32 *)0xFFE00000);
 		debugfs_create_x32("SRAM_BASE_ADDR_CORE_B", 0600, parent, (u32 *)0xFFE00000);
@@ -25638,462 +25706,16 @@ static int __init bfin_init_mmr_debugfs(void)
 
 	}	/* BF561 */
 
-#ifdef __ADSPBF6xx__
-# define USE_BF6xx 1
-#else
-# define USE_BF6xx 0
-#endif
-	if (USE_BF6xx) {
-
-		parent = debugfs_create_dir("Core Timer Register File", top);
-		debugfs_create_x32("TCNTL", 0600, parent, (u32 *)0xFFF08600);
-		debugfs_create_x32("TCOUNT", 0600, parent, (u32 *)0xFFF0860C);
-		debugfs_create_x32("TPERIOD", 0600, parent, (u32 *)0xFFF08604);
-		debugfs_create_x32("TSCALE", 0600, parent, (u32 *)0xFFF08608);
-
-		parent = debugfs_create_dir("Data Cache Programmable Look-Aside Buffer Fault Address", top);
-		debugfs_create_x32("DCPLB_FAULT_STATUS", 0600, parent, (u32 *)0xFFE00008);
-
-		parent = debugfs_create_dir("EBIU", top);
-		debugfs_create_x32("EBIU_AMBCTL0", 0600, parent, (u32 *)0xFFC00A04);
-		debugfs_create_x32("EBIU_AMBCTL1", 0600, parent, (u32 *)0xFFC00A08);
-		debugfs_create_x16("EBIU_AMGCTL", 0600, parent, (u16 *)0xFFC00A00);
-		debugfs_create_x16("EBIU_SDBCTL", 0600, parent, (u16 *)0xFFC00A14);
-		debugfs_create_x32("EBIU_SDGCTL", 0600, parent, (u32 *)0xFFC00A10);
-		debugfs_create_x16("EBIU_SDRRC", 0600, parent, (u16 *)0xFFC00A18);
-		debugfs_create_x16("EBIU_SDSTAT", 0600, parent, (u16 *)0xFFC00A1C);
-
-		parent = debugfs_create_dir("Event Vectors", top);
-		debugfs_create_x32("EVT0", 0600, parent, (u32 *)0xFFF08100);
-		debugfs_create_x32("EVT10", 0600, parent, (u32 *)0xFFF08128);
-		debugfs_create_x32("EVT11", 0600, parent, (u32 *)0xFFF0812C);
-		debugfs_create_x32("EVT12", 0600, parent, (u32 *)0xFFF08130);
-		debugfs_create_x32("EVT13", 0600, parent, (u32 *)0xFFF08134);
-		debugfs_create_x32("EVT14", 0600, parent, (u32 *)0xFFF08138);
-		debugfs_create_x32("EVT15", 0600, parent, (u32 *)0xFFF0813C);
-		debugfs_create_x32("EVT1", 0600, parent, (u32 *)0xFFF08104);
-		debugfs_create_x32("EVT2", 0600, parent, (u32 *)0xFFF08108);
-		debugfs_create_x32("EVT3", 0600, parent, (u32 *)0xFFF0810C);
-		debugfs_create_x32("EVT4", 0600, parent, (u32 *)0xFFF08110);
-		debugfs_create_x32("EVT5", 0600, parent, (u32 *)0xFFF08114);
-		debugfs_create_x32("EVT6", 0600, parent, (u32 *)0xFFF08118);
-		debugfs_create_x32("EVT7", 0600, parent, (u32 *)0xFFF0811C);
-		debugfs_create_x32("EVT8", 0600, parent, (u32 *)0xFFF08120);
-		debugfs_create_x32("EVT9", 0600, parent, (u32 *)0xFFF08124);
-		debugfs_create_x32("IVT", 0600, parent, (u32 *)0xFFF08100);
-		debugfs_create_x32("IVbase", 0600, parent, (u32 *)0xFFF08100);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		debugfs_create_x32("DCPLB_FAULT_ADDR", 0600, parent, (u32 *)0xFFE0000C);
-		debugfs_create_x32("DCPLB_STATUS", 0600, parent, (u32 *)0xFFE00008);
-		debugfs_create_x32("DSPID", 0600, parent, (u32 *)0xFFE05000);
-		debugfs_create_x32("EVT_OVERRIDE", 0600, parent, (u32 *)0xFFF08140);
-		debugfs_create_x16("FIO_BOTH", 0600, parent, (u16 *)0xFFC0073C);
-		debugfs_create_x16("FIO_DIR", 0600, parent, (u16 *)0xFFC00730);
-		debugfs_create_x16("FIO_EDGE", 0600, parent, (u16 *)0xFFC00738);
-		debugfs_create_x16("FIO_FLAG_C", 0600, parent, (u16 *)0xFFC00704);
-		debugfs_create_x16("FIO_FLAG_D", 0600, parent, (u16 *)0xFFC00700);
-		debugfs_create_x16("FIO_FLAG_S", 0600, parent, (u16 *)0xFFC00708);
-		debugfs_create_x16("FIO_FLAG_T", 0600, parent, (u16 *)0xFFC0070C);
-		debugfs_create_x16("FIO_INEN", 0600, parent, (u16 *)0xFFC00740);
-		debugfs_create_x16("FIO_MASKA_C", 0600, parent, (u16 *)0xFFC00714);
-		debugfs_create_x16("FIO_MASKA_D", 0600, parent, (u16 *)0xFFC00710);
-		debugfs_create_x16("FIO_MASKA_S", 0600, parent, (u16 *)0xFFC00718);
-		debugfs_create_x16("FIO_MASKA_T", 0600, parent, (u16 *)0xFFC0071C);
-		debugfs_create_x16("FIO_MASKB_C", 0600, parent, (u16 *)0xFFC00724);
-		debugfs_create_x16("FIO_MASKB_D", 0600, parent, (u16 *)0xFFC00720);
-		debugfs_create_x16("FIO_MASKB_S", 0600, parent, (u16 *)0xFFC00728);
-		debugfs_create_x16("FIO_MASKB_T", 0600, parent, (u16 *)0xFFC0072C);
-		debugfs_create_x32("FIO_POLAR", 0600, parent, (u32 *)0xFFC00734);
-		debugfs_create_x32("ICPLB_FAULT_ADDR", 0600, parent, (u32 *)0xFFE0100C);
-		debugfs_create_x32("ICPLB_STATUS", 0600, parent, (u32 *)0xFFE01008);
-
-		parent = debugfs_create_dir("Interrupt Controller", top);
-		debugfs_create_x32("ILAT", 0600, parent, (u32 *)0xFFF08200);
-		debugfs_create_x32("IMASK", 0600, parent, (u32 *)0xFFF08204);
-		debugfs_create_x32("IPEND", 0600, parent, (u32 *)0xFFF08208);
-
-		parent = debugfs_create_dir("L1 Code Memory Registers", top);
-		debugfs_create_x32("ICPLB_ADDR0", 0600, parent, (u32 *)0xFFE01100);
-		debugfs_create_x32("ICPLB_ADDR10", 0600, parent, (u32 *)0xFFE01128);
-		debugfs_create_x32("ICPLB_ADDR11", 0600, parent, (u32 *)0xFFE0112C);
-		debugfs_create_x32("ICPLB_ADDR12", 0600, parent, (u32 *)0xFFE01130);
-		debugfs_create_x32("ICPLB_ADDR13", 0600, parent, (u32 *)0xFFE01134);
-		debugfs_create_x32("ICPLB_ADDR14", 0600, parent, (u32 *)0xFFE01138);
-		debugfs_create_x32("ICPLB_ADDR15", 0600, parent, (u32 *)0xFFE0113C);
-		debugfs_create_x32("ICPLB_ADDR1", 0600, parent, (u32 *)0xFFE01104);
-		debugfs_create_x32("ICPLB_ADDR2", 0600, parent, (u32 *)0xFFE01108);
-		debugfs_create_x32("ICPLB_ADDR3", 0600, parent, (u32 *)0xFFE0110C);
-		debugfs_create_x32("ICPLB_ADDR4", 0600, parent, (u32 *)0xFFE01110);
-		debugfs_create_x32("ICPLB_ADDR5", 0600, parent, (u32 *)0xFFE01114);
-		debugfs_create_x32("ICPLB_ADDR6", 0600, parent, (u32 *)0xFFE01118);
-		debugfs_create_x32("ICPLB_ADDR7", 0600, parent, (u32 *)0xFFE0111C);
-		debugfs_create_x32("ICPLB_ADDR8", 0600, parent, (u32 *)0xFFE01120);
-		debugfs_create_x32("ICPLB_ADDR9", 0600, parent, (u32 *)0xFFE01124);
-		debugfs_create_x32("ICPLB_DATA0", 0600, parent, (u32 *)0xFFE01200);
-		debugfs_create_x32("ICPLB_DATA10", 0600, parent, (u32 *)0xFFE01228);
-		debugfs_create_x32("ICPLB_DATA11", 0600, parent, (u32 *)0xFFE0122C);
-		debugfs_create_x32("ICPLB_DATA12", 0600, parent, (u32 *)0xFFE01230);
-		debugfs_create_x32("ICPLB_DATA13", 0600, parent, (u32 *)0xFFE01234);
-		debugfs_create_x32("ICPLB_DATA14", 0600, parent, (u32 *)0xFFE01238);
-		debugfs_create_x32("ICPLB_DATA15", 0600, parent, (u32 *)0xFFE0123C);
-		debugfs_create_x32("ICPLB_DATA1", 0600, parent, (u32 *)0xFFE01204);
-		debugfs_create_x32("ICPLB_DATA2", 0600, parent, (u32 *)0xFFE01208);
-		debugfs_create_x32("ICPLB_DATA3", 0600, parent, (u32 *)0xFFE0120C);
-		debugfs_create_x32("ICPLB_DATA4", 0600, parent, (u32 *)0xFFE01210);
-		debugfs_create_x32("ICPLB_DATA5", 0600, parent, (u32 *)0xFFE01214);
-		debugfs_create_x32("ICPLB_DATA6", 0600, parent, (u32 *)0xFFE01218);
-		debugfs_create_x32("ICPLB_DATA7", 0600, parent, (u32 *)0xFFE0121C);
-		debugfs_create_x32("ICPLB_DATA8", 0600, parent, (u32 *)0xFFE01220);
-		debugfs_create_x32("ICPLB_DATA9", 0600, parent, (u32 *)0xFFE01224);
-		debugfs_create_x32("ICPLB_FAULT_ADDR", 0600, parent, (u32 *)0xFFE0100C);
-		debugfs_create_x32("ICPLB_FAULT_STATUS", 0600, parent, (u32 *)0xFFE01008);
-		debugfs_create_x32("IMEM_CONTROL", 0600, parent, (u32 *)0xFFE01004);
-		debugfs_create_x32("ITEST_COMMAND", 0600, parent, (u32 *)0xFFE01300);
-		debugfs_create_x32("ITEST_DATA0", 0600, parent, (u32 *)0xFFE01400);
-		debugfs_create_x32("ITEST_DATA1", 0600, parent, (u32 *)0xFFE01404);
-		debugfs_create_x32("ITEST_DBGCTL", 0600, parent, (u32 *)0xFFE01C04);
-
-		parent = debugfs_create_dir("L1 Data Memory Registers", top);
-		debugfs_create_x32("DCPLB_ADDR0", 0600, parent, (u32 *)0xFFE00100);
-		debugfs_create_x32("DCPLB_ADDR10", 0600, parent, (u32 *)0xFFE00128);
-		debugfs_create_x32("DCPLB_ADDR11", 0600, parent, (u32 *)0xFFE0012C);
-		debugfs_create_x32("DCPLB_ADDR12", 0600, parent, (u32 *)0xFFE00130);
-		debugfs_create_x32("DCPLB_ADDR13", 0600, parent, (u32 *)0xFFE00134);
-		debugfs_create_x32("DCPLB_ADDR14", 0600, parent, (u32 *)0xFFE00138);
-		debugfs_create_x32("DCPLB_ADDR15", 0600, parent, (u32 *)0xFFE0013C);
-		debugfs_create_x32("DCPLB_ADDR1", 0600, parent, (u32 *)0xFFE00104);
-		debugfs_create_x32("DCPLB_ADDR2", 0600, parent, (u32 *)0xFFE00108);
-		debugfs_create_x32("DCPLB_ADDR3", 0600, parent, (u32 *)0xFFE0010C);
-		debugfs_create_x32("DCPLB_ADDR4", 0600, parent, (u32 *)0xFFE00110);
-		debugfs_create_x32("DCPLB_ADDR5", 0600, parent, (u32 *)0xFFE00114);
-		debugfs_create_x32("DCPLB_ADDR6", 0600, parent, (u32 *)0xFFE00118);
-		debugfs_create_x32("DCPLB_ADDR7", 0600, parent, (u32 *)0xFFE0011C);
-		debugfs_create_x32("DCPLB_ADDR8", 0600, parent, (u32 *)0xFFE00120);
-		debugfs_create_x32("DCPLB_ADDR9", 0600, parent, (u32 *)0xFFE00124);
-		debugfs_create_x32("DCPLB_DATA0", 0600, parent, (u32 *)0xFFE00200);
-		debugfs_create_x32("DCPLB_DATA10", 0600, parent, (u32 *)0xFFE00228);
-		debugfs_create_x32("DCPLB_DATA11", 0600, parent, (u32 *)0xFFE0022C);
-		debugfs_create_x32("DCPLB_DATA12", 0600, parent, (u32 *)0xFFE00230);
-		debugfs_create_x32("DCPLB_DATA13", 0600, parent, (u32 *)0xFFE00234);
-		debugfs_create_x32("DCPLB_DATA14", 0600, parent, (u32 *)0xFFE00238);
-		debugfs_create_x32("DCPLB_DATA15", 0600, parent, (u32 *)0xFFE0023C);
-		debugfs_create_x32("DCPLB_DATA1", 0600, parent, (u32 *)0xFFE00204);
-		debugfs_create_x32("DCPLB_DATA2", 0600, parent, (u32 *)0xFFE00208);
-		debugfs_create_x32("DCPLB_DATA3", 0600, parent, (u32 *)0xFFE0020C);
-		debugfs_create_x32("DCPLB_DATA4", 0600, parent, (u32 *)0xFFE00210);
-		debugfs_create_x32("DCPLB_DATA5", 0600, parent, (u32 *)0xFFE00214);
-		debugfs_create_x32("DCPLB_DATA6", 0600, parent, (u32 *)0xFFE00218);
-		debugfs_create_x32("DCPLB_DATA7", 0600, parent, (u32 *)0xFFE0021C);
-		debugfs_create_x32("DCPLB_DATA8", 0600, parent, (u32 *)0xFFE00220);
-		debugfs_create_x32("DCPLB_DATA9", 0600, parent, (u32 *)0xFFE00224);
-		debugfs_create_x32("DCPLB_FAULT_ADDR", 0600, parent, (u32 *)0xFFE0000C);
-		debugfs_create_x32("DMEM_CONTROL", 0600, parent, (u32 *)0xFFE00004);
-		debugfs_create_x32("DTEST_COMMAND", 0600, parent, (u32 *)0xFFE00300);
-		debugfs_create_x32("DTEST_DATA0", 0600, parent, (u32 *)0xFFE00400);
-		debugfs_create_x32("DTEST_DATA1", 0600, parent, (u32 *)0xFFE00404);
-		debugfs_create_x32("SRAM_BASE_ADDR", 0600, parent, (u32 *)0xFFE00000);
-
-		parent = debugfs_create_dir("MEMDMA0 Destination Registers", top);
-		debugfs_create_x32("MDMAFLX0_CURXCOUNT_D", 0600, parent, (u32 *)0xFFC00E30);
-		debugfs_create_x32("MDMAFLX0_CURYCOUNT_D", 0600, parent, (u32 *)0xFFC00E38);
-		debugfs_create_x32("MDMAFLX0_DMACNFG_D", 0600, parent, (u32 *)0xFFC00E08);
-		debugfs_create_x32("MDMAFLX0_IRQSTAT_D", 0600, parent, (u32 *)0xFFC00E28);
-		debugfs_create_x32("MDMAFLX0_XCOUNT_D", 0600, parent, (u32 *)0xFFC00E10);
-		debugfs_create_x32("MDMAFLX0_XMODIFY_D", 0600, parent, (u32 *)0xFFC00E14);
-		debugfs_create_x32("MDMAFLX0_YCOUNT_D", 0600, parent, (u32 *)0xFFC00E18);
-		debugfs_create_x32("MDMAFLX0_YMODIFY_D", 0600, parent, (u32 *)0xFFC00E1C);
-		debugfs_create_x32("MDMA_D0_CONFIG", 0600, parent, (u32 *)0xFFC00E08);
-		debugfs_create_x32("MDMA_D0_CURR_ADDR", 0600, parent, (u32 *)0xFFC00E24);
-		debugfs_create_x32("MDMA_D0_CURR_DESC_PTR", 0600, parent, (u32 *)0xFFC00E20);
-		debugfs_create_x32("MDMA_D0_CURR_X_COUNT", 0600, parent, (u32 *)0xFFC00E30);
-		debugfs_create_x32("MDMA_D0_CURR_Y_COUNT", 0600, parent, (u32 *)0xFFC00E38);
-		debugfs_create_x32("MDMA_D0_IRQ_STATUS", 0600, parent, (u32 *)0xFFC00E28);
-		debugfs_create_x32("MDMA_D0_NEXT_DESC_PTR", 0600, parent, (u32 *)0xFFC00E00);
-		debugfs_create_x32("MDMA_D0_PERIPHERAL_MAP", 0600, parent, (u32 *)0xFFC00E2C);
-		debugfs_create_x32("MDMA_D0_START_ADDR", 0600, parent, (u32 *)0xFFC00E04);
-		debugfs_create_x32("MDMA_D0_X_COUNT", 0600, parent, (u32 *)0xFFC00E10);
-		debugfs_create_x32("MDMA_D0_X_MODIFY", 0600, parent, (u32 *)0xFFC00E14);
-		debugfs_create_x32("MDMA_D0_Y_COUNT", 0600, parent, (u32 *)0xFFC00E18);
-		debugfs_create_x32("MDMA_D0_Y_MODIFY", 0600, parent, (u32 *)0xFFC00E1C);
-
-		parent = debugfs_create_dir("MEMDMA0 Source Registers", top);
-		debugfs_create_x32("MDMAFLX0_CURXCOUNT_S", 0600, parent, (u32 *)0xFFC00E70);
-		debugfs_create_x32("MDMAFLX0_CURYCOUNT_S", 0600, parent, (u32 *)0xFFC00E78);
-		debugfs_create_x32("MDMAFLX0_DMACNFG_S", 0600, parent, (u32 *)0xFFC00E48);
-		debugfs_create_x32("MDMAFLX0_IRQSTAT_S", 0600, parent, (u32 *)0xFFC00E68);
-		debugfs_create_x32("MDMAFLX0_XCOUNT_S", 0600, parent, (u32 *)0xFFC00E50);
-		debugfs_create_x32("MDMAFLX0_XMODIFY_S", 0600, parent, (u32 *)0xFFC00E54);
-		debugfs_create_x32("MDMAFLX0_YCOUNT_S", 0600, parent, (u32 *)0xFFC00E58);
-		debugfs_create_x32("MDMAFLX0_YMODIFY_S", 0600, parent, (u32 *)0xFFC00E5C);
-		debugfs_create_x32("MDMA_S0_CONFIG", 0600, parent, (u32 *)0xFFC00E48);
-		debugfs_create_x32("MDMA_S0_CURR_ADDR", 0600, parent, (u32 *)0xFFC00E64);
-		debugfs_create_x32("MDMA_S0_CURR_DESC_PTR", 0600, parent, (u32 *)0xFFC00E60);
-		debugfs_create_x32("MDMA_S0_CURR_X_COUNT", 0600, parent, (u32 *)0xFFC00E70);
-		debugfs_create_x32("MDMA_S0_CURR_Y_COUNT", 0600, parent, (u32 *)0xFFC00E78);
-		debugfs_create_x32("MDMA_S0_IRQ_STATUS", 0600, parent, (u32 *)0xFFC00E68);
-		debugfs_create_x32("MDMA_S0_NEXT_DESC_PTR", 0600, parent, (u32 *)0xFFC00E40);
-		debugfs_create_x32("MDMA_S0_PERIPHERAL_MAP", 0600, parent, (u32 *)0xFFC00E6C);
-		debugfs_create_x32("MDMA_S0_START_ADDR", 0600, parent, (u32 *)0xFFC00E44);
-		debugfs_create_x32("MDMA_S0_X_COUNT", 0600, parent, (u32 *)0xFFC00E50);
-		debugfs_create_x32("MDMA_S0_X_MODIFY", 0600, parent, (u32 *)0xFFC00E54);
-		debugfs_create_x32("MDMA_S0_Y_COUNT", 0600, parent, (u32 *)0xFFC00E58);
-		debugfs_create_x32("MDMA_S0_Y_MODIFY", 0600, parent, (u32 *)0xFFC00E5C);
-
-		parent = debugfs_create_dir("MEMDMA1 Destination Registers", top);
-		debugfs_create_x32("MDMAFLX1_CURXCOUNT_D", 0600, parent, (u32 *)0xFFC00EB0);
-		debugfs_create_x32("MDMAFLX1_CURYCOUNT_D", 0600, parent, (u32 *)0xFFC00EB8);
-		debugfs_create_x32("MDMAFLX1_DMACNFG_D", 0600, parent, (u32 *)0xFFC00E88);
-		debugfs_create_x32("MDMAFLX1_IRQSTAT_D", 0600, parent, (u32 *)0xFFC00EA8);
-		debugfs_create_x32("MDMAFLX1_XCOUNT_D", 0600, parent, (u32 *)0xFFC00E90);
-		debugfs_create_x32("MDMAFLX1_XMODIFY_D", 0600, parent, (u32 *)0xFFC00E94);
-		debugfs_create_x32("MDMAFLX1_YCOUNT_D", 0600, parent, (u32 *)0xFFC00E98);
-		debugfs_create_x32("MDMAFLX1_YMODIFY_D", 0600, parent, (u32 *)0xFFC00E9C);
-		debugfs_create_x32("MDMA_D1_CONFIG", 0600, parent, (u32 *)0xFFC00E88);
-		debugfs_create_x32("MDMA_D1_CURR_ADDR", 0600, parent, (u32 *)0xFFC00EA4);
-		debugfs_create_x32("MDMA_D1_CURR_DESC_PTR", 0600, parent, (u32 *)0xFFC00EA0);
-		debugfs_create_x32("MDMA_D1_CURR_X_COUNT", 0600, parent, (u32 *)0xFFC00EB0);
-		debugfs_create_x32("MDMA_D1_CURR_Y_COUNT", 0600, parent, (u32 *)0xFFC00EB8);
-		debugfs_create_x32("MDMA_D1_IRQ_STATUS", 0600, parent, (u32 *)0xFFC00EA8);
-		debugfs_create_x32("MDMA_D1_NEXT_DESC_PTR", 0600, parent, (u32 *)0xFFC00E80);
-		debugfs_create_x32("MDMA_D1_START_ADDR", 0600, parent, (u32 *)0xFFC00E84);
-		debugfs_create_x32("MDMA_D1_X_COUNT", 0600, parent, (u32 *)0xFFC00E90);
-		debugfs_create_x32("MDMA_D1_X_MODIFY", 0600, parent, (u32 *)0xFFC00E94);
-		debugfs_create_x32("MDMA_D1_Y_COUNT", 0600, parent, (u32 *)0xFFC00E98);
-		debugfs_create_x32("MDMA_D1_Y_MODIFY", 0600, parent, (u32 *)0xFFC00E9C);
-
-		parent = debugfs_create_dir("MEMDMA1 Source Registers", top);
-		debugfs_create_x32("MDMAFLX1_CURXCOUNT_S", 0600, parent, (u32 *)0xFFC00EF0);
-		debugfs_create_x32("MDMAFLX1_CURYCOUNT_S", 0600, parent, (u32 *)0xFFC00EF8);
-		debugfs_create_x32("MDMAFLX1_DMACNFG_S", 0600, parent, (u32 *)0xFFC00EC8);
-		debugfs_create_x32("MDMAFLX1_IRQSTAT_S", 0600, parent, (u32 *)0xFFC00EE8);
-		debugfs_create_x32("MDMAFLX1_XCOUNT_S", 0600, parent, (u32 *)0xFFC00ED0);
-		debugfs_create_x32("MDMAFLX1_XMODIFY_S", 0600, parent, (u32 *)0xFFC00ED4);
-		debugfs_create_x32("MDMAFLX1_YCOUNT_S", 0600, parent, (u32 *)0xFFC00ED8);
-		debugfs_create_x32("MDMAFLX1_YMODIFY_S", 0600, parent, (u32 *)0xFFC00EDC);
-		debugfs_create_x32("MDMA_S1_CONFIG", 0600, parent, (u32 *)0xFFC00EC8);
-		debugfs_create_x32("MDMA_S1_CURR_ADDR", 0600, parent, (u32 *)0xFFC00EE4);
-		debugfs_create_x32("MDMA_S1_CURR_DESC_PTR", 0600, parent, (u32 *)0xFFC00EE0);
-		debugfs_create_x32("MDMA_S1_CURR_X_COUNT", 0600, parent, (u32 *)0xFFC00EF0);
-		debugfs_create_x32("MDMA_S1_CURR_Y_COUNT", 0600, parent, (u32 *)0xFFC00EF8);
-		debugfs_create_x32("MDMA_S1_IRQ_STATUS", 0600, parent, (u32 *)0xFFC00EE8);
-		debugfs_create_x32("MDMA_S1_NEXT_DESC_PTR", 0600, parent, (u32 *)0xFFC00EC0);
-		debugfs_create_x32("MDMA_S1_START_ADDR", 0600, parent, (u32 *)0xFFC00EC4);
-		debugfs_create_x32("MDMA_S1_X_COUNT", 0600, parent, (u32 *)0xFFC00ED0);
-		debugfs_create_x32("MDMA_S1_X_MODIFY", 0600, parent, (u32 *)0xFFC00ED4);
-		debugfs_create_x32("MDMA_S1_Y_COUNT", 0600, parent, (u32 *)0xFFC00ED8);
-		debugfs_create_x32("MDMA_S1_Y_MODIFY", 0600, parent, (u32 *)0xFFC00EDC);
-
-		parent = debugfs_create_dir("PLL", top);
-		debugfs_create_x16("PLL_CTL", 0600, parent, (u16 *)0xFFC00000);
-		debugfs_create_x16("PLL_DIV", 0600, parent, (u16 *)0xFFC00004);
-		debugfs_create_x16("PLL_LOCKCNT", 0600, parent, (u16 *)0xFFC00010);
-		debugfs_create_x16("PLL_STAT", 0600, parent, (u16 *)0xFFC0000C);
-		debugfs_create_x32("SWRST", 0600, parent, (u32 *)0xFFC00100);
-		debugfs_create_x32("SYSCR", 0600, parent, (u32 *)0xFFC00104);
-		debugfs_create_x16("VR_CTL", 0600, parent, (u16 *)0xFFC00008);
-
-		parent = debugfs_create_dir("PPI", top);
-		debugfs_create_x16("PPI_CONTROL", 0600, parent, (u16 *)0xFFC01000);
-		debugfs_create_x16("PPI_COUNT", 0600, parent, (u16 *)0xFFC01008);
-		debugfs_create_x16("PPI_DELAY", 0600, parent, (u16 *)0xFFC0100C);
-		debugfs_create_x16("PPI_FRAME", 0600, parent, (u16 *)0xFFC01010);
-		debugfs_create_x16("PPI_STATUS", 0600, parent, (u16 *)0xFFC01004);
-
-		parent = debugfs_create_dir("Performance Monitor", top);
-		debugfs_create_x32("PFCNTR0", 0600, parent, (u32 *)0xFFF08500);
-		debugfs_create_x32("PFCNTR1", 0600, parent, (u32 *)0xFFF08504);
-		debugfs_create_x32("PFCTL", 0600, parent, (u32 *)0xFFF08508);
-
-		parent = debugfs_create_dir("RTC", top);
-		debugfs_create_x32("RTC_ALARM", 0600, parent, (u32 *)0xFFC00310);
-		debugfs_create_x16("RTC_ICTL", 0600, parent, (u16 *)0xFFC00304);
-		debugfs_create_x16("RTC_ISTAT", 0600, parent, (u16 *)0xFFC00308);
-		debugfs_create_x16("RTC_PREN", 0600, parent, (u16 *)0xFFC00314);
-		debugfs_create_x32("RTC_STAT", 0600, parent, (u32 *)0xFFC00300);
-		debugfs_create_x16("RTC_SWCNT", 0600, parent, (u16 *)0xFFC0030C);
-
-		parent = debugfs_create_dir("SPI", top);
-		debugfs_create_x16("SPI_BAUD", 0600, parent, (u16 *)0xFFC00514);
-		debugfs_create_x16("SPI_CTL", 0600, parent, (u16 *)0xFFC00500);
-		debugfs_create_x16("SPI_FLG", 0600, parent, (u16 *)0xFFC00504);
-		debugfs_create_x16("SPI_RDBR", 0600, parent, (u16 *)0xFFC00510);
-		debugfs_create_x16("SPI_SHADOW", 0600, parent, (u16 *)0xFFC00518);
-		debugfs_create_x16("SPI_STAT", 0600, parent, (u16 *)0xFFC00508);
-		debugfs_create_x16("SPI_TDBR", 0600, parent, (u16 *)0xFFC0050C);
-
-		parent = debugfs_create_dir("SPORT", top);
-		debugfs_create_x16("SPORT0_CHNL", 0600, parent, (u16 *)0xFFC00834);
-		debugfs_create_x16("SPORT0_MCMC1", 0600, parent, (u16 *)0xFFC00838);
-		debugfs_create_x16("SPORT0_MCMC2", 0600, parent, (u16 *)0xFFC0083C);
-		debugfs_create_x32("SPORT0_MRCS0", 0600, parent, (u32 *)0xFFC00850);
-		debugfs_create_x32("SPORT0_MRCS1", 0600, parent, (u32 *)0xFFC00854);
-		debugfs_create_x32("SPORT0_MRCS2", 0600, parent, (u32 *)0xFFC00858);
-		debugfs_create_x32("SPORT0_MRCS3", 0600, parent, (u32 *)0xFFC0085C);
-		debugfs_create_x32("SPORT0_MTCS0", 0600, parent, (u32 *)0xFFC00840);
-		debugfs_create_x32("SPORT0_MTCS1", 0600, parent, (u32 *)0xFFC00844);
-		debugfs_create_x32("SPORT0_MTCS2", 0600, parent, (u32 *)0xFFC00848);
-		debugfs_create_x32("SPORT0_MTCS3", 0600, parent, (u32 *)0xFFC0084C);
-		debugfs_create_x16("SPORT0_RCLKDIV", 0600, parent, (u16 *)0xFFC00828);
-		debugfs_create_x16("SPORT0_RCR1", 0600, parent, (u16 *)0xFFC00820);
-		debugfs_create_x16("SPORT0_RCR2", 0600, parent, (u16 *)0xFFC00824);
-		debugfs_create_x16("SPORT0_RFSDIV", 0600, parent, (u16 *)0xFFC0082C);
-		debugfs_create_x32("SPORT0_RX", 0600, parent, (u32 *)0xFFC00818);
-		debugfs_create_x16("SPORT0_STAT", 0600, parent, (u16 *)0xFFC00830);
-		debugfs_create_x16("SPORT0_TCLKDIV", 0600, parent, (u16 *)0xFFC00808);
-		debugfs_create_x16("SPORT0_TCR1", 0600, parent, (u16 *)0xFFC00800);
-		debugfs_create_x16("SPORT0_TCR2", 0600, parent, (u16 *)0xFFC00804);
-		debugfs_create_x16("SPORT0_TFSDIV", 0600, parent, (u16 *)0xFFC0080C);
-		debugfs_create_x32("SPORT0_TX", 0600, parent, (u32 *)0xFFC00810);
-		debugfs_create_x16("SPORT1_CHNL", 0600, parent, (u16 *)0xFFC00934);
-		debugfs_create_x16("SPORT1_MCMC1", 0600, parent, (u16 *)0xFFC00938);
-		debugfs_create_x16("SPORT1_MCMC2", 0600, parent, (u16 *)0xFFC0093C);
-		debugfs_create_x32("SPORT1_MRCS0", 0600, parent, (u32 *)0xFFC00950);
-		debugfs_create_x32("SPORT1_MRCS1", 0600, parent, (u32 *)0xFFC00954);
-		debugfs_create_x32("SPORT1_MRCS2", 0600, parent, (u32 *)0xFFC00958);
-		debugfs_create_x32("SPORT1_MRCS3", 0600, parent, (u32 *)0xFFC0095C);
-		debugfs_create_x32("SPORT1_MTCS0", 0600, parent, (u32 *)0xFFC00940);
-		debugfs_create_x32("SPORT1_MTCS1", 0600, parent, (u32 *)0xFFC00944);
-		debugfs_create_x32("SPORT1_MTCS2", 0600, parent, (u32 *)0xFFC00948);
-		debugfs_create_x32("SPORT1_MTCS3", 0600, parent, (u32 *)0xFFC0094C);
-		debugfs_create_x16("SPORT1_RCLKDIV", 0600, parent, (u16 *)0xFFC00928);
-		debugfs_create_x16("SPORT1_RCR1", 0600, parent, (u16 *)0xFFC00920);
-		debugfs_create_x16("SPORT1_RCR2", 0600, parent, (u16 *)0xFFC00924);
-		debugfs_create_x16("SPORT1_RFSDIV", 0600, parent, (u16 *)0xFFC0092C);
-		debugfs_create_x32("SPORT1_RX", 0600, parent, (u32 *)0xFFC00918);
-		debugfs_create_x16("SPORT1_STAT", 0600, parent, (u16 *)0xFFC00930);
-		debugfs_create_x16("SPORT1_TCLKDIV", 0600, parent, (u16 *)0xFFC00908);
-		debugfs_create_x16("SPORT1_TCR1", 0600, parent, (u16 *)0xFFC00900);
-		debugfs_create_x16("SPORT1_TCR2", 0600, parent, (u16 *)0xFFC00904);
-		debugfs_create_x16("SPORT1_TFSDIV", 0600, parent, (u16 *)0xFFC0090C);
-		debugfs_create_x32("SPORT1_TX", 0600, parent, (u32 *)0xFFC00910);
-
-		parent = debugfs_create_dir("SPT0", top);
-		debugfs_create_x16("SPT0_CHNL", 0600, parent, (u16 *)0xFFC00834);
-		debugfs_create_x16("SPT0_MCMC1", 0600, parent, (u16 *)0xFFC00838);
-		debugfs_create_x16("SPT0_MCMC2", 0600, parent, (u16 *)0xFFC0083C);
-		debugfs_create_x32("SPT0_MRCS0", 0600, parent, (u32 *)0xFFC00850);
-		debugfs_create_x32("SPT0_MRCS1", 0600, parent, (u32 *)0xFFC00854);
-		debugfs_create_x32("SPT0_MRCS2", 0600, parent, (u32 *)0xFFC00858);
-		debugfs_create_x32("SPT0_MRCS3", 0600, parent, (u32 *)0xFFC0085C);
-		debugfs_create_x32("SPT0_MTCS0", 0600, parent, (u32 *)0xFFC00840);
-		debugfs_create_x32("SPT0_MTCS1", 0600, parent, (u32 *)0xFFC00844);
-		debugfs_create_x32("SPT0_MTCS2", 0600, parent, (u32 *)0xFFC00848);
-		debugfs_create_x32("SPT0_MTCS3", 0600, parent, (u32 *)0xFFC0084C);
-		debugfs_create_x16("SPT0_RFSDIV", 0600, parent, (u16 *)0xFFC0082C);
-		debugfs_create_x16("SPT0_RSCLKDIV", 0600, parent, (u16 *)0xFFC00828);
-		debugfs_create_x32("SPT0_RX", 0600, parent, (u32 *)0xFFC00818);
-		debugfs_create_x16("SPT0_RX_CONFIG0", 0600, parent, (u16 *)0xFFC00820);
-		debugfs_create_x16("SPT0_RX_CONFIG1", 0600, parent, (u16 *)0xFFC00824);
-		debugfs_create_x16("SPT0_STAT", 0600, parent, (u16 *)0xFFC00830);
-		debugfs_create_x16("SPT0_TFSDIV", 0600, parent, (u16 *)0xFFC0080C);
-		debugfs_create_x16("SPT0_TSCLKDIV", 0600, parent, (u16 *)0xFFC00808);
-		debugfs_create_x32("SPT0_TX", 0600, parent, (u32 *)0xFFC00810);
-		debugfs_create_x16("SPT0_TX_CONFIG0", 0600, parent, (u16 *)0xFFC00800);
-		debugfs_create_x16("SPT0_TX_CONFIG1", 0600, parent, (u16 *)0xFFC00804);
-		debugfs_create_x16("SPT1_CHNL", 0600, parent, (u16 *)0xFFC00934);
-
-		parent = debugfs_create_dir("SPT1", top);
-		debugfs_create_x16("SPT1_MCMC1", 0600, parent, (u16 *)0xFFC00938);
-		debugfs_create_x16("SPT1_MCMC2", 0600, parent, (u16 *)0xFFC0093C);
-		debugfs_create_x16("SPT1_MRCS0", 0600, parent, (u16 *)0xFFC00950);
-		debugfs_create_x16("SPT1_MRCS1", 0600, parent, (u16 *)0xFFC00954);
-		debugfs_create_x16("SPT1_MRCS2", 0600, parent, (u16 *)0xFFC00958);
-		debugfs_create_x16("SPT1_MRCS3", 0600, parent, (u16 *)0xFFC0095C);
-		debugfs_create_x16("SPT1_MTCS0", 0600, parent, (u16 *)0xFFC00940);
-		debugfs_create_x16("SPT1_MTCS1", 0600, parent, (u16 *)0xFFC00944);
-		debugfs_create_x16("SPT1_MTCS2", 0600, parent, (u16 *)0xFFC00948);
-		debugfs_create_x16("SPT1_MTCS3", 0600, parent, (u16 *)0xFFC0094C);
-		debugfs_create_x16("SPT1_RFSDIV", 0600, parent, (u16 *)0xFFC0092C);
-		debugfs_create_x16("SPT1_RSCLKDIV", 0600, parent, (u16 *)0xFFC00928);
-		debugfs_create_x16("SPT1_RX", 0600, parent, (u16 *)0xFFC00918);
-		debugfs_create_x16("SPT1_RX_CONFIG0", 0600, parent, (u16 *)0xFFC00920);
-		debugfs_create_x16("SPT1_RX_CONFIG1", 0600, parent, (u16 *)0xFFC00924);
-		debugfs_create_x16("SPT1_STAT", 0600, parent, (u16 *)0xFFC00930);
-		debugfs_create_x16("SPT1_TFSDIV", 0600, parent, (u16 *)0xFFC0090C);
-		debugfs_create_x16("SPT1_TSCLKDIV", 0600, parent, (u16 *)0xFFC00908);
-		debugfs_create_x16("SPT1_TX", 0600, parent, (u16 *)0xFFC00910);
-		debugfs_create_x16("SPT1_TX_CONFIG0", 0600, parent, (u16 *)0xFFC00900);
-		debugfs_create_x16("SPT1_TX_CONFIG1", 0600, parent, (u16 *)0xFFC00904);
-
-		parent = debugfs_create_dir("System Interrupt Controller Register File", top);
-		debugfs_create_x32("SIC_IAR0", 0600, parent, (u32 *)0xFFC00110);
-		debugfs_create_x32("SIC_IAR1", 0600, parent, (u32 *)0xFFC00114);
-		debugfs_create_x32("SIC_IAR2", 0600, parent, (u32 *)0xFFC00118);
-		debugfs_create_x32("SIC_IAR3", 0600, parent, (u32 *)0xFFC0011C);
-		debugfs_create_x32("SIC_IMASK", 0600, parent, (u32 *)0xFFC0010C);
-		debugfs_create_x32("SIC_ISR", 0600, parent, (u32 *)0xFFC00120);
-		debugfs_create_x32("SIC_IWR", 0600, parent, (u32 *)0xFFC00124);
-		debugfs_create_x16("SIC_RVECT", 0600, parent, (u16 *)0xFFC00108);
-
-		parent = debugfs_create_dir("Timer Registers", top);
-		debugfs_create_x16("TIMER0_CONFIG", 0600, parent, (u16 *)0xFFC00600);
-		debugfs_create_x32("TIMER0_COUNTER", 0600, parent, (u32 *)0xFFC00604);
-		debugfs_create_x32("TIMER0_PERIOD", 0600, parent, (u32 *)0xFFC00608);
-		debugfs_create_x32("TIMER0_WIDTH", 0600, parent, (u32 *)0xFFC0060C);
-		debugfs_create_x16("TIMER1_CONFIG", 0600, parent, (u16 *)0xFFC00610);
-		debugfs_create_x32("TIMER1_COUNTER", 0600, parent, (u32 *)0xFFC00614);
-		debugfs_create_x32("TIMER1_PERIOD", 0600, parent, (u32 *)0xFFC00618);
-		debugfs_create_x32("TIMER1_WIDTH", 0600, parent, (u32 *)0xFFC0061C);
-		debugfs_create_x16("TIMER2_CONFIG", 0600, parent, (u16 *)0xFFC00620);
-		debugfs_create_x32("TIMER2_COUNTER", 0600, parent, (u32 *)0xFFC00624);
-		debugfs_create_x32("TIMER2_PERIOD", 0600, parent, (u32 *)0xFFC00628);
-		debugfs_create_x32("TIMER2_WIDTH", 0600, parent, (u32 *)0xFFC0062C);
-		debugfs_create_x16("TIMER_DISABLE", 0600, parent, (u16 *)0xFFC00644);
-		debugfs_create_x16("TIMER_ENABLE", 0600, parent, (u16 *)0xFFC00640);
-		debugfs_create_x16("TIMER_STATUS", 0600, parent, (u16 *)0xFFC00648);
-
-		parent = debugfs_create_dir("Trace Unit", top);
-		debugfs_create_x32("TBUF", 0600, parent, (u32 *)0xFFE06100);
-		debugfs_create_x32("TBUFCTL", 0600, parent, (u32 *)0xFFF08400);
-		debugfs_create_x32("TBUFSTAT", 0600, parent, (u32 *)0xFFE06004);
-
-		parent = debugfs_create_dir("UART", top);
-		debugfs_create_x16("UART_DLH", 0600, parent, (u16 *)0xFFC00404);
-		debugfs_create_x16("UART_DLL", 0600, parent, (u16 *)0xFFC00400);
-		debugfs_create_x16("UART_GCTL", 0600, parent, (u16 *)0xFFC00424);
-		debugfs_create_x16("UART_IER", 0600, parent, (u16 *)0xFFC00404);
-		debugfs_create_x16("UART_IIR", 0600, parent, (u16 *)0xFFC00408);
-		debugfs_create_x16("UART_LCR", 0600, parent, (u16 *)0xFFC0040C);
-		debugfs_create_x16("UART_LSR", 0600, parent, (u16 *)0xFFC00414);
-		debugfs_create_x16("UART_MCR", 0600, parent, (u16 *)0xFFC00410);
-		debugfs_create_x16("UART_RBR", 0600, parent, (u16 *)0xFFC00400);
-		debugfs_create_x16("UART_SCR", 0600, parent, (u16 *)0xFFC0041C);
-		debugfs_create_x16("UART_THR", 0600, parent, (u16 *)0xFFC00400);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		debugfs_create_x32("WDOG_CNT", 0600, parent, (u32 *)0xFFC00204);
-		debugfs_create_x16("WDOG_CTL", 0600, parent, (u16 *)0xFFC00200);
-		debugfs_create_x32("WDOG_STAT", 0600, parent, (u32 *)0xFFC00208);
-
-		parent = debugfs_create_dir("Watchpoint and Patch Unit", top);
-		debugfs_create_x32("OSPID", 0600, parent, (u32 *)0xFFF08720);
-		debugfs_create_x32("WPDA0", 0600, parent, (u32 *)0xFFF08758);
-		debugfs_create_x32("WPDA1", 0600, parent, (u32 *)0xFFF0875C);
-		debugfs_create_x32("WPDACNT0", 0600, parent, (u32 *)0xFFF08798);
-		debugfs_create_x32("WPDACNT1", 0600, parent, (u32 *)0xFFF0879C);
-		debugfs_create_x32("WPDACTL", 0600, parent, (u32 *)0xFFF0870C);
-		debugfs_create_x32("WPIA0", 0600, parent, (u32 *)0xFFF08740);
-		debugfs_create_x32("WPIA1", 0600, parent, (u32 *)0xFFF08744);
-		debugfs_create_x32("WPIA2", 0600, parent, (u32 *)0xFFF08748);
-		debugfs_create_x32("WPIA3", 0600, parent, (u32 *)0xFFF0874C);
-		debugfs_create_x32("WPIA4", 0600, parent, (u32 *)0xFFF08750);
-		debugfs_create_x32("WPIA5", 0600, parent, (u32 *)0xFFF08754);
-		debugfs_create_x32("WPIACNT0", 0600, parent, (u32 *)0xFFF08780);
-		debugfs_create_x32("WPIACNT1", 0600, parent, (u32 *)0xFFF08784);
-		debugfs_create_x32("WPIACNT2", 0600, parent, (u32 *)0xFFF08788);
-		debugfs_create_x32("WPIACNT3", 0600, parent, (u32 *)0xFFF0878C);
-		debugfs_create_x32("WPIACNT4", 0600, parent, (u32 *)0xFFF08790);
-		debugfs_create_x32("WPIACNT5", 0600, parent, (u32 *)0xFFF08794);
-		debugfs_create_x32("WPIACTL01", 0600, parent, (u32 *)0xFFF08700);
-		debugfs_create_x32("WPIACTL23", 0600, parent, (u32 *)0xFFF08704);
-		debugfs_create_x32("WPIACTL45", 0600, parent, (u32 *)0xFFF08708);
-		debugfs_create_x32("WPPID", 0600, parent, (u32 *)0xFFF087A0);
-		debugfs_create_x32("WPSTAT", 0600, parent, (u32 *)0xFFF08760);
-
-	}	/* BF6xx */
+	debug_mmrs_dentry = top;
 
 	return 0;
 }
+module_init(bfin_debug_mmrs_init);
 
-late_initcall(bfin_init_mmr_debugfs);
+static void __exit bfin_debug_mmrs_exit(void)
+{
+	debugfs_remove_recursive(debug_mmrs_dentry);
+}
+module_exit(bfin_debug_mmrs_exit);
+
+MODULE_LICENSE("GPL");
