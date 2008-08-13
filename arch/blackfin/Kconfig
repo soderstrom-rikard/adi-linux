@@ -624,7 +624,7 @@ config CPLB_SWITCH_TAB_L1
 
 comment "Speed Optimizations"
 config BFIN_INS_LOWOVERHEAD
-	bool "ins[bwl] low overhead, higher interupt latency"
+	bool "ins[bwl] low overhead, higher interrupt latency"
 	default y
 	help
 	  Reads on the Blackfin are speculative. In Blackfin terms, this means
@@ -642,9 +642,9 @@ config BFIN_INS_LOWOVERHEAD
 	  I/O space. This option controls which the overhead/latency of
 	  controlling interrupts during this time
 	   "n" turns interrupts off every read 
-		(higher overhead, but lower interupt latency)
+		(higher overhead, but lower interrupt latency)
 	   "y" turns interrupts off every loop 
-		(low overhead, but longer interupt latency)
+		(low overhead, but longer interrupt latency)
 	
 	  default behavior is to leave this set to on (type "Y"). If you are experiencing
 	  interrupt latency issues, it is safe and OK to turn this off.
