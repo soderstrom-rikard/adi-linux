@@ -5,3 +5,5 @@ conmakehash
 kallsyms
 pnmtologo
 bin2c
+unifdef
+binoffset
