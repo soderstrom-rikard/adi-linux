@@ -5,7 +5,6 @@
 #include <asm/gpio.h>
 #include <asm/portmux.h>
 
-#define SPI0_REGBASE       0xffc00500
 #define DRV_NAME "mmc_pio_spi"
 
 #define DEFINE_SPI_REG(reg, off) \
