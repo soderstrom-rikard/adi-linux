@@ -365,11 +365,7 @@ static void spi_mmc_process_request(mmc_info_t *pdev, struct request *req)
 	up(&card_sema);
 
 	spin_lock(&pdev->queue_lock);
-	if(!end_that_request_first(req, uptodate, sectors_xferred)) {
-		add_disk_randomness(req->rq_disk);
-		blkdev_dequeue_request(req);
-		end_that_request_last(req, uptodate);
-	}
+	__blk_end_request(req, !uptodate, sectors_xferred << 9);
 	spin_unlock(&pdev->queue_lock);
 }
 
@@ -425,10 +421,7 @@ void spi_mmc_transfer_worker(struct work_struct *work)
 			// since the device is offline, this will become a nuking loop of the
 			// remaining requests, nicer way to solve this?
 			spin_lock(&pdev->queue_lock);
-			if(!end_that_request_first(req, 0, req->current_nr_sectors)) {
-				blkdev_dequeue_request(req);
-				end_that_request_last(req, 0);
-			}
+			__blk_end_request(req, 1, req->current_nr_sectors << 9);
 			spin_unlock(&pdev->queue_lock);
 		} 
 
