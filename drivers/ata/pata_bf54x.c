@@ -1657,11 +1657,16 @@ static int __devexit bfin_atapi_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 int bfin_atapi_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	return 0;
+	struct ata_host *host = dev_get_drvdata(&pdev->dev);
+
+	return ata_host_suspend(host, state);
 }
 
 int bfin_atapi_resume(struct platform_device *pdev)
 {
+	struct ata_host *host = dev_get_drvdata(&pdev->dev);
+
+	ata_host_resume(host);
 	return 0;
 }
 #endif
