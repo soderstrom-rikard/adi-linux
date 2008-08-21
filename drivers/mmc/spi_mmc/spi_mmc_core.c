@@ -203,10 +203,11 @@ unsigned char* k_buffer;
 extern void bfin_pio_spi_select( void );
 extern void bfin_pio_spi_unselect( void );
 extern unsigned int bfin_pio_spi_transfer(unsigned char* in, unsigned char out);
-extern void bfin_pio_spi_init(int cs_chan);
+extern int bfin_pio_spi_init(int cs_chan);
+extern void bfin_pio_spi_exit(void);
 extern void bfin_pio_spi_set_hz(unsigned int hz);
 
-#ifdef CONFIG_SPI
+#ifndef CONFIG_SPI_MMC_BFIN_PIO_SPI
 static struct spi_device *dummy_spi;
 #endif
 
@@ -1045,8 +1046,8 @@ static void spi_mmc_clean(void)
 {
 	mmc_info_t* pdev;
 	pdev = Devices;
-	
-#if defined(CONFIG_BLACKFIN) && defined(CONFIG_SPI_MMC_CARD_DETECT)
+
+#if defined(CONFIG_SPI_MMC_CARD_DETECT)
 	del_timer(&pdev->revalidate_timer);
 	free_irq(CONFIG_SPI_MMC_CARD_DETECT_INT, pdev);
 #endif
@@ -1061,12 +1062,15 @@ static void spi_mmc_clean(void)
 		// if other kind of request are used, consider how to clean
 	}
 	
+	destroy_workqueue(pdev->dt_wq);
+
+	kfree(k_buffer);
 	kfree(Devices);
 	remove_proc_entry(SPI_MMC_DEVNAME, NULL /* parent dir */);
 	unregister_blkdev(MAJOR_NUMBER, SPI_MMC_DEVNAME);
 }
 
-#ifdef CONFIG_SPI
+#ifndef CONFIG_SPI_MMC_BFIN_PIO_SPI
 static int spi_mmc_remove(struct spi_device *spi) {
 	spi_mmc_clean();
 	return 0;
@@ -1228,7 +1232,7 @@ static int spi_mmc_block_setup(mmc_info_t *pdev)
 }
 
 // probe from SPI layer
-#ifdef CONFIG_SPI
+#ifndef CONFIG_SPI_MMC_BFIN_PIO_SPI
 static int __devinit spi_mmc_probe(struct spi_device *spi)
 {
 	mmc_info_t *pdev;
@@ -1247,14 +1251,17 @@ static int __devinit spi_mmc_probe(struct spi_device *spi)
 #endif
 
 #ifdef CONFIG_SPI_MMC_BFIN_PIO_SPI
-static int spi_mmc_bfin_init(void)
+static int __init spi_mmc_bfin_init(void)
 {
+	int ret;
 	mmc_info_t *pdev;
 
     DPRINTK("\n");
 
 	// configure SPI registers
-	bfin_pio_spi_init(CONFIG_SPI_MMC_CS_CHAN);
+	ret = bfin_pio_spi_init(CONFIG_SPI_MMC_CS_CHAN);
+	if (ret)
+		return ret;
 
 	if((pdev=spi_mmc_dev_setup())==NULL) {
 		return -ENODEV;
@@ -1267,7 +1274,7 @@ static int spi_mmc_bfin_init(void)
 }
 #endif
 
-#ifdef CONFIG_SPI
+#ifndef CONFIG_SPI_MMC_BFIN_PIO_SPI
 static struct spi_driver spi_mmc_driver = {
 	.driver = {
 		.name	= SPI_MMC_DEVNAME,
@@ -1289,7 +1296,7 @@ static struct spi_driver spi_mmc_dummy_driver = {
 };
 #endif
 
-static int spi_mmc_init(void)
+static int __init spi_mmc_init(void)
 {
 #ifdef CONFIG_SPI_MMC_BFIN_PIO_SPI
 	return spi_mmc_bfin_init();
@@ -1308,14 +1315,14 @@ static int spi_mmc_init(void)
 }
 
 
-static void spi_mmc_exit(void)
+static void __exit spi_mmc_exit(void)
 {
-
-#ifdef CONFIG_SPI
+#ifdef CONFIG_SPI_MMC_BFIN_PIO_SPI
+	spi_mmc_clean();
+	bfin_pio_spi_exit();
+#else
 	spi_unregister_driver(&spi_mmc_dummy_driver);
 	spi_unregister_driver(&spi_mmc_driver);
-#else
-	spi_mmc_clean();
 #endif
 }
 

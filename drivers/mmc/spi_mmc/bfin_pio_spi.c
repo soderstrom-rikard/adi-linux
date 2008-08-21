@@ -1,3 +1,4 @@
+#include <linux/init.h>
 #include <linux/kernel.h>	/* printk() */
 #include <linux/delay.h>
 #include <linux/errno.h>
@@ -103,29 +104,38 @@ void print_spi_debug_info(void)
 }
 
 // bdrate=0x100, flag=0xBF40, control_reg=0x1002, PORTF_FER=0x385F, PORT_MUX=0xA0
-void bfin_pio_spi_init(int cs_chan)
+static u16 pin_req[] = { P_SPI0_SCK, P_SPI0_MISO, P_SPI0_MOSI, 0 };
+int __init bfin_pio_spi_init(int cs_chan)
 {
-
-	u16 pin_req[] = { P_SPI0_SCK, P_SPI0_MISO, P_SPI0_MOSI, 0 };
+	int ret;
 	spi_ssel = (u16) cs_chan;
 
 	print_spi_debug_info();
+
+	ret = peripheral_request_list(pin_req, DRV_NAME);
+	if (ret)
+		return ret;
+
+	ret = gpio_request(spi_ssel, DRV_NAME);
+	if (ret)
+		return ret;
 
 	// Set FLAG to 0xFF00 to drive CS manually using GPIOS
 	write_FLAG(0xFF00);
 	write_CTRL(0x5009);
 
-	if (peripheral_request_list(pin_req, DRV_NAME))
-		printk(KERN_ERR DRV_NAME":Requesting Peripherals failed\n");
-
-	if (gpio_request(spi_ssel, DRV_NAME)) {
-		printk(KERN_ERR DRV_NAME":bfin_pio_spi: Failed ro request GPIO_%d\n",
-		       spi_ssel);
-	}
 	gpio_direction_output(spi_ssel, 1);
 
 	write_BAUD(0x0100);
 
 	SSYNC();
 	bfin_pio_spi_unselect();
+
+	return 0;
+}
+
+void __exit bfin_pio_spi_exit(void)
+{
+	peripheral_free_list(pin_req);
+	gpio_free(spi_ssel);
 }
