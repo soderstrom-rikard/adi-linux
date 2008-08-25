@@ -853,15 +853,15 @@ static int romfs_get_sb(struct file_system_type *fs_type,
 
 	err = -EINVAL;
 
-	if (!S_ISBLK(nd.dentry->d_inode->i_mode))
+	if (!S_ISBLK(nd.path.dentry->d_inode->i_mode))
 		goto out;
 
-	if (nd.mnt->mnt_flags & MNT_NODEV) {
+	if (nd.path.mnt->mnt_flags & MNT_NODEV) {
 		err = -EACCES;
 		goto out;
 	}
 
-	if (imajor(nd.dentry->d_inode) != MTD_BLOCK_MAJOR) {
+	if (imajor(nd.path.dentry->d_inode) != MTD_BLOCK_MAJOR) {
 		if (flags & MS_VERBOSE)
 			printk(KERN_NOTICE "ROMFS:"
 			       " Attempt to mount non-MTD device \"%s\"\n",
@@ -869,13 +869,13 @@ static int romfs_get_sb(struct file_system_type *fs_type,
 		goto out;
 	}
 
-	mtdnr = iminor(nd.dentry->d_inode);
-	path_release(&nd);
+	mtdnr = iminor(nd.path.dentry->d_inode);
+	path_put(&nd.path);
 
 	return romfs_get_sb_mtdnr(fs_type, flags, dev_name, data, mtdnr, mnt);
 
 out:
-	path_release(&nd);
+	path_put(&nd.path);
 	return err;
 }
 
