@@ -168,7 +168,7 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 		SIR_UART_PUT_GCTL(port, val);
 
 		ret = 0;
-		printk(KERN_DEBUG "bfin_sir: Set new speed %d\n", speed);
+		/*printk(KERN_DEBUG "bfin_sir: Set new speed %d\n", speed);*/
 		break;
 	default:
 		printk(KERN_WARNING "bfin_sir: Invalid speed %d\n", speed);
@@ -177,14 +177,22 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 
 	val = SIR_UART_GET_GCTL(port);
 	/* If not add the 'RPOLC', we can't catch the receive interrupt.
-	 * It maybe related with HW layout.
+	 * It's related with the HW layout and the IR transiver.
 	 */
 	val |= IREN | RPOLC;
 	SIR_UART_PUT_GCTL(port, val);
 	return ret;
 }
 
-static int tx_cnt;
+static int bfin_sir_is_receiving(struct net_device *dev)
+{
+	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_port *port = self->sir_port;
+
+	if (!(SIR_UART_GET_IER(port) & ERBFI))
+		return 0;
+	return self->rx_buff.state != OUTSIDE_FRAME;
+}
 
 #ifdef CONFIG_SIR_BFIN_PIO
 static void bfin_sir_tx_chars(struct net_device *dev)
@@ -210,7 +218,6 @@ static void bfin_sir_tx_chars(struct net_device *dev)
 		bfin_sir_enable_rx(port);
 		/* I'm hungry! */
 		netif_wake_queue(dev);
-		tx_cnt++;
 	}
 }
 
@@ -220,7 +227,6 @@ static void bfin_sir_rx_chars(struct net_device *dev)
 	struct bfin_sir_port *port = self->sir_port;
 	unsigned char ch;
 
-	tx_cnt = 0;
 	SIR_UART_CLEAR_LSR(port);
 	ch = SIR_UART_GET_CHAR(port);
 	async_unwrap_char(dev, &self->stats, &self->rx_buff, ch);
@@ -270,16 +276,15 @@ static void bfin_sir_dma_tx_chars(struct net_device *dev)
 		bfin_sir_enable_rx(port);
 		port->tx_done = 1;
 		netif_wake_queue(dev);
-		tx_cnt++;
 		return;
 	}
 
 	blackfin_dcache_flush_range((unsigned long)(self->tx_buff.data),
-					(unsigned long)(self->tx_buff.data+self->tx_buff.len));
+		(unsigned long)(self->tx_buff.data+self->tx_buff.len));
 	set_dma_config(port->tx_dma_channel,
-					set_bfin_dma_config(DIR_READ, DMA_FLOW_STOP,
-										INTR_ON_BUF, DIMENSION_LINEAR,
-										DATA_SIZE_8, DMA_SYNC_RESTART));
+		set_bfin_dma_config(DIR_READ, DMA_FLOW_STOP,
+			INTR_ON_BUF, DIMENSION_LINEAR,
+			DATA_SIZE_8, DMA_SYNC_RESTART));
 	set_dma_start_addr(port->tx_dma_channel, (unsigned long)(self->tx_buff.data));
 	set_dma_x_count(port->tx_dma_channel, self->tx_buff.len);
 	set_dma_x_modify(port->tx_dma_channel, 1);
@@ -308,7 +313,6 @@ static irqreturn_t bfin_sir_dma_tx_int(int irq, void *dev_id)
 		bfin_sir_enable_rx(port);
 		/* I'm hungry! */
 		netif_wake_queue(dev);
-		tx_cnt++;
 		port->tx_done = 1;
 	}
 	spin_unlock(&self->lock);
@@ -355,7 +359,6 @@ void bfin_sir_rx_dma_timeout(struct net_device *dev)
 	pos = port->rx_dma_nrows * DMA_SIR_RX_XCNT + x_pos;
 
 	if (pos > port->rx_dma_buf.tail) {
-		tx_cnt = 0;
 		port->rx_dma_buf.tail = pos;
 		bfin_sir_dma_rx_chars(dev);
 		port->rx_dma_buf.head = port->rx_dma_buf.tail;
@@ -370,7 +373,6 @@ static irqreturn_t bfin_sir_dma_rx_int(int irq, void *dev_id)
 	struct bfin_sir_port *port = self->sir_port;
 	unsigned short irqstat;
 
-	tx_cnt = 0;
 	spin_lock(&self->lock);
 
 	port->rx_dma_nrows++;
@@ -536,15 +538,13 @@ static void bfin_sir_send_work(struct work_struct *work)
 	struct bfin_sir_self  *self = container_of(work, struct bfin_sir_self, work);
 	struct net_device *dev = self->sir_port->dev;
 	struct bfin_sir_port *port = self->sir_port;
+	int tx_cnt = 10;
 
-	while (self->rx_buff.state != OUTSIDE_FRAME)
+	while (bfin_sir_is_receiving(dev) && --tx_cnt)
 		turnaround_delay(dev->last_rx, self->mtt);
 
-	if (tx_cnt >= 20) {
-		/*printk(KERN_DEBUG "\nReceiver dead, reset UART!\n");*/
-		bfin_sir_set_speed(port, self->speed);
-	}
-	bfin_sir_stop_rx(port);
+	bfin_sir_set_speed(port, self->speed);
+	/*bfin_sir_stop_rx(port);*/
 
 #ifdef CONFIG_SIR_BFIN_DMA
 	bfin_sir_dma_tx_chars(dev);
@@ -607,8 +607,7 @@ static int bfin_sir_ioctl(struct net_device *dev, struct ifreq *ifreq, int cmd)
 		break;
 
 	case SIOCGRECEIVING:
-		(rq->ifr_receiving) = \
-		(self->rx_buff.state == INSIDE_FRAME) || (self->rx_buff.state == BEGIN_FRAME);
+		rq->ifr_receiving = bfin_sir_is_receiving(dev);
 		break;
 
 	default:
