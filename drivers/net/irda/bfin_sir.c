@@ -215,7 +215,7 @@ static void bfin_sir_tx_chars(struct net_device *dev)
 			self->newspeed = 0;
 		}
 		bfin_sir_stop_tx(port);
-		bfin_sir_enable_rx(port);
+		atomic_set(&port->enable_rx, 1);
 		/* I'm hungry! */
 		netif_wake_queue(dev);
 	}
@@ -229,7 +229,10 @@ static void bfin_sir_rx_chars(struct net_device *dev)
 
 	SIR_UART_CLEAR_LSR(port);
 	ch = SIR_UART_GET_CHAR(port);
-	async_unwrap_char(dev, &self->stats, &self->rx_buff, ch);
+	if (atomic_read(&port->enable_rx))
+		async_unwrap_char(dev, &self->stats, &self->rx_buff, ch);
+	else
+		self->stats.collisions++;
 	dev->last_rx = jiffies;
 }
 
@@ -273,7 +276,7 @@ static void bfin_sir_dma_tx_chars(struct net_device *dev)
 			self->speed = self->newspeed;
 			self->newspeed = 0;
 		}
-		bfin_sir_enable_rx(port);
+		atomic_set(&port->enable_rx, 1);
 		port->tx_done = 1;
 		netif_wake_queue(dev);
 		return;
@@ -310,7 +313,7 @@ static irqreturn_t bfin_sir_dma_tx_int(int irq, void *dev_id)
 			self->speed = self->newspeed;
 			self->newspeed = 0;
 		}
-		bfin_sir_enable_rx(port);
+		atomic_set(&port->enable_rx, 1);
 		/* I'm hungry! */
 		netif_wake_queue(dev);
 		port->tx_done = 1;
@@ -341,7 +344,10 @@ static void bfin_sir_dma_rx_chars(struct net_device *dev)
 		self->stats.rx_errors++;
 
 	for (i = port->rx_dma_buf.head; i < port->rx_dma_buf.tail; i++)
-		async_unwrap_char(dev, &self->stats, &self->rx_buff, port->rx_dma_buf.buf[i]);
+		if (atomic_read(&port->enable_rx))
+			async_unwrap_char(dev, &self->stats, &self->rx_buff, port->rx_dma_buf.buf[i]);
+		else
+			self->stats.collisions++;
 }
 
 void bfin_sir_rx_dma_timeout(struct net_device *dev)
@@ -522,6 +528,7 @@ static int bfin_sir_resume(struct platform_device *pdev)
 			}
 			bfin_sir_startup(port, dev);
 			bfin_sir_set_speed(port, 9600);
+			atomic_set(&port->enable_rx, 1);
 			bfin_sir_enable_rx(port);
 			netif_device_attach(dev);
 		}
@@ -544,7 +551,8 @@ static void bfin_sir_send_work(struct work_struct *work)
 		turnaround_delay(dev->last_rx, self->mtt);
 
 	bfin_sir_set_speed(port, self->speed);
-	/*bfin_sir_stop_rx(port);*/
+
+	atomic_set(&port->enable_rx, 0);
 
 #ifdef CONFIG_SIR_BFIN_DMA
 	bfin_sir_dma_tx_chars(dev);
@@ -651,6 +659,7 @@ static int bfin_sir_open(struct net_device *dev)
 	 * Now enable the interrupt then start the queue
 	 */
 	self->open = 1;
+	atomic_set(&port->enable_rx, 1);
 	bfin_sir_enable_rx(port);
 
 	netif_start_queue(dev);
