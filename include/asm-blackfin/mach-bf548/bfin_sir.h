@@ -53,7 +53,6 @@ struct bfin_sir_port {
 #endif /* CONFIG_SIR_BFIN_DMA */
 	unsigned int            tx_dma_channel;
 	unsigned int            rx_dma_channel;
-	atomic_t		enable_rx;
 };
 
 struct bfin_sir_port sir_ports[BFIN_UART_NR_PORTS];
