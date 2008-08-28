@@ -191,13 +191,12 @@ done:
 
 asmlinkage void double_fault_c(struct pt_regs *fp)
 {
-	char buf[150];
-
 	console_verbose();
 	oops_in_progress = 1;
 	printk(KERN_EMERG "\n" KERN_EMERG "Double Fault\n");
 #ifdef CONFIG_DEBUG_DOUBLEFAULT_PRINT
 	if (((long)fp->seqstat &  SEQSTAT_EXCAUSE) == VEC_UNCOV) {
+		char buf[150];
 		decode_address(buf, saved_retx);
 		printk(KERN_EMERG "While handling exception (EXCAUSE = 0x%x) at %s:\n",
 			(int)saved_seqstat & SEQSTAT_EXCAUSE, buf);
