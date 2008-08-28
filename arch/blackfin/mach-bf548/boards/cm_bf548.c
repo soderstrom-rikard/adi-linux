@@ -40,7 +40,6 @@
 #include <linux/usb/musb.h>
 #endif
 #include <asm/bfin5xx_spi.h>
-#include <asm/cplb.h>
 #include <asm/dma.h>
 #include <asm/gpio.h>
 #include <asm/nand.h>
