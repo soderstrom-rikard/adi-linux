@@ -5,8 +5,6 @@
  * Created:      Tue June 06 2008
  * Description:  Driver for SSM2602 sound chip built in ADSP-BF52xC
  *
- * Rev:          $Id: bf5xx-i2s-pcm.c 4104 2008-06-06 06:51:48Z cliff $
- *
  * Modified:
  *               Copyright 2008 Analog Devices Inc.
  *
@@ -57,7 +55,9 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 				   SNDRV_PCM_INFO_MMAP |
 				   SNDRV_PCM_INFO_MMAP_VALID |
 				   SNDRV_PCM_INFO_BLOCK_TRANSFER,
-	.formats		= SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE,
+	.formats		= SNDRV_PCM_FMTBIT_S16_LE |
+				   SNDRV_PCM_FMTBIT_S24_LE |
+				   SNDRV_PCM_FMTBIT_S32_LE,
 	.period_bytes_min	= 32,
 	.period_bytes_max	= 0x10000,
 	.periods_min		= 1,
@@ -91,10 +91,12 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 	pr_debug("%s enter\n", __func__);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
-		sport_config_tx_dma(sport, runtime->dma_area, runtime->periods, period_bytes);
+		sport_config_tx_dma(sport, runtime->dma_area,
+			runtime->periods, period_bytes);
 	} else {
 		sport_set_rx_callback(sport, bf5xx_dma_irq, substream);
-		sport_config_rx_dma(sport, runtime->dma_area, runtime->periods, period_bytes);
+		sport_config_rx_dma(sport, runtime->dma_area,
+			runtime->periods, period_bytes);
 	}
 
 	return 0;
@@ -163,7 +165,7 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 	if (sport_handle != NULL)
 		runtime->private_data = sport_handle;
 	else {
-		printk(KERN_ERR "sport_handle is NULL\n");
+		pr_err("sport_handle is NULL\n");
 		return -1;
 	}
 	return 0;
@@ -213,14 +215,18 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 	buf->dev.type = SNDRV_DMA_TYPE_DEV;
 	buf->dev.dev = pcm->card->dev;
 	buf->private_data = NULL;
-	buf->area = dma_alloc_coherent(pcm->card->dev, size, &buf->addr, GFP_KERNEL);
+	buf->area = dma_alloc_coherent(pcm->card->dev, size,
+			&buf->addr, GFP_KERNEL);
 	if (!buf->area) {
-		printk(KERN_ERR "Failed to allocate dma memory-Please increase uncached DMA memory region\n");
+		pr_err("Failed to allocate dma memory \
+			Please increase uncached DMA memory region\n");
 		return -ENOMEM;
 	}
 	buf->bytes = size;
 
-	pr_debug("%s, area:%p, size:0x%08lx\n", __func__, buf->area, buf->bytes);
+	pr_debug("%s, area:%p, size:0x%08lx\n", __func__,
+		buf->area, buf->bytes);
+
 	if (stream == SNDRV_PCM_STREAM_PLAYBACK)
 		sport_handle->tx_buf = buf->area;
 	else

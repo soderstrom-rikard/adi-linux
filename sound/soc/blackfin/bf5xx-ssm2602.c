@@ -5,8 +5,6 @@
  * Created:      Tue June 06 2008
  * Description:  Driver for SSM2602 sound chip built in ADSP-BF52xC
  *
- * Rev:          $Id: bf5xx-ssm2602.c 4104 2008-06-06 06:51:48Z cliff $
- *
  * Modified:
  *               Copyright 2008 Analog Devices Inc.
  *
@@ -40,8 +38,8 @@
 #include <sound/pcm_params.h>
 
 #include <asm/dma.h>
-#include <asm/gpio.h>
 #include <asm/portmux.h>
+#include <linux/gpio.h>
 #include "../codecs/ssm2602.h"
 #include "bf5xx-sport.h"
 #include "bf5xx-i2s-pcm.h"
@@ -169,7 +167,8 @@ static int __init bf5xx_ssm2602_init(void)
 	if (!bf52x_ssm2602_snd_device)
 		return -ENOMEM;
 
-	platform_set_drvdata(bf52x_ssm2602_snd_device, &bf5xx_ssm2602_snd_devdata);
+	platform_set_drvdata(bf52x_ssm2602_snd_device,
+				&bf5xx_ssm2602_snd_devdata);
 	bf5xx_ssm2602_snd_devdata.dev = &bf52x_ssm2602_snd_device->dev;
 	ret = platform_device_add(bf52x_ssm2602_snd_device);
 

@@ -5,8 +5,6 @@
  * Created:      Tue June 06 2008
  * Description:  Driver for SSM2602 sound chip built in ADSP-BF52xC
  *
- * Rev:          $Id: bf5xx-ac97-pcm.c 4104 2008-06-06 06:51:48Z cliff $
- *
  * Modified:
  *               Copyright 2008 Analog Devices Inc.
  *
@@ -54,15 +52,15 @@ static void bf5xx_mmap_copy(struct snd_pcm_substream *substream,
 	struct sport_device *sport = runtime->private_data;
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		bf5xx_pcm_to_ac97(
-				(struct ac97_frame *)sport->tx_dma_buf + sport->tx_pos,
-				(__u32 *)runtime->dma_area + sport->tx_pos, count);
+			(struct ac97_frame *)sport->tx_dma_buf + sport->tx_pos,
+			(__u32 *)runtime->dma_area + sport->tx_pos, count);
 		sport->tx_pos += runtime->period_size;
 		if (sport->tx_pos >= runtime->buffer_size)
 			sport->tx_pos %= runtime->buffer_size;
 	} else {
 		bf5xx_ac97_to_pcm(
-				(struct ac97_frame *)sport->rx_dma_buf + sport->rx_pos,
-				(__u32 *)runtime->dma_area + sport->rx_pos, count);
+			(struct ac97_frame *)sport->rx_dma_buf + sport->rx_pos,
+			(__u32 *)runtime->dma_area + sport->rx_pos, count);
 		sport->rx_pos += runtime->period_size;
 		if (sport->rx_pos >= runtime->buffer_size)
 			sport->rx_pos %= runtime->buffer_size;
@@ -107,7 +105,8 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 static int bf5xx_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
 {
-	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct ac97_frame)/4;
+	size_t size = bf5xx_pcm_hardware.buffer_bytes_max
+			* sizeof(struct ac97_frame) / 4;
 
 	snd_pcm_lib_malloc_pages(substream, size);
 
@@ -124,32 +123,34 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct sport_device *sport = runtime->private_data;
+
 	/* An intermediate buffer is introduced for implementing mmap for
 	 * SPORT working in TMD mode(include AC97).
 	 */
 #if defined(CONFIG_SND_MMAP_SUPPORT)
-	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct ac97_frame)/4;
+	size_t size = bf5xx_pcm_hardware.buffer_bytes_max
+			* sizeof(struct ac97_frame) / 4;
 	/*clean up intermediate buffer*/
 	memset(sport->tx_dma_buf, 0, size);
 	memset(sport->rx_dma_buf, 0, size);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_tx_dma(sport, sport->tx_dma_buf, runtime->periods,
-				runtime->period_size * sizeof(struct ac97_frame));
+			runtime->period_size * sizeof(struct ac97_frame));
 	} else {
 		sport_set_rx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_rx_dma(sport, sport->rx_dma_buf, runtime->periods,
-				runtime->period_size * sizeof(struct ac97_frame));
+			runtime->period_size * sizeof(struct ac97_frame));
 	}
 #else
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_tx_dma(sport, runtime->dma_area, runtime->periods,
-				runtime->period_size * sizeof(struct ac97_frame));
+			runtime->period_size * sizeof(struct ac97_frame));
 	} else {
 		sport_set_rx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_rx_dma(sport, runtime->dma_area, runtime->periods,
-				runtime->period_size * sizeof(struct ac97_frame));
+			runtime->period_size * sizeof(struct ac97_frame));
 	}
 #endif
 	return 0;
@@ -208,6 +209,7 @@ static snd_pcm_uframes_t bf5xx_pcm_pointer(struct snd_pcm_substream *substream)
 		curr = sport_curr_offset_tx(sport) / sizeof(struct ac97_frame);
 	else {
 		curr = sport_curr_offset_rx(sport) / sizeof(struct ac97_frame);
+
 	pr_debug("%s pointer curr:0x%0x\n", substream->stream ? \
 			"Capture":"Playback", curr);
 	}
@@ -231,7 +233,7 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 	if (sport_handle != NULL)
 		runtime->private_data = sport_handle;
 	else {
-		printk(KERN_ERR "sport_handle is NULL\n");
+		pr_err("sport_handle is NULL\n");
 		return -1;
 	}
 	return 0;
@@ -243,7 +245,8 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 static int bf5xx_pcm_close(struct snd_pcm_substream *substream)
 {
 	pr_debug("%s enter\n", __func__);
-	/*Nothing need to be cleared here*/
+
+	/* Nothing need to be cleared here */
 	return 0;
 }
 
@@ -264,8 +267,10 @@ static	int bf5xx_pcm_copy(struct snd_pcm_substream *substream, int channel,
 		    void __user *buf, snd_pcm_uframes_t count)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
+
 	pr_debug("%s copy pos:0x%lx count:0x%lx\n",
 			substream->stream?"Capture":"Playback", pos, count);
+
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		bf5xx_pcm_to_ac97(
 				(struct ac97_frame *)runtime->dma_area + pos,
@@ -298,31 +303,42 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 {
 	struct snd_pcm_substream *substream = pcm->streams[stream].substream;
 	struct snd_dma_buffer *buf = &substream->dma_buffer;
-	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct ac97_frame)/4;
+	size_t size = bf5xx_pcm_hardware.buffer_bytes_max
+			* sizeof(struct ac97_frame) / 4;
 
 	buf->dev.type = SNDRV_DMA_TYPE_DEV;
 	buf->dev.dev = pcm->card->dev;
 	buf->private_data = NULL;
-	buf->area = dma_alloc_coherent(pcm->card->dev, size, &buf->addr, GFP_KERNEL);
+	buf->area = dma_alloc_coherent(pcm->card->dev, size,
+			&buf->addr, GFP_KERNEL);
 	if (!buf->area) {
-		printk(KERN_ERR "Failed to allocate dma memory-Please increase uncached DMA memory region\n");
+		pr_err("Failed to allocate dma memory\n");
+		pr_err("Please increase uncached DMA memory region\n");
 		return -ENOMEM;
 	}
 	buf->bytes = size;
 
-	pr_debug("%s, area:%p, size:0x%08lx\n", __func__, buf->area, buf->bytes);
+	pr_debug("%s, area:%p, size:0x%08lx\n", __func__,
+			buf->area, buf->bytes);
+
 	if (stream == SNDRV_PCM_STREAM_PLAYBACK)
 		sport_handle->tx_buf = buf->area;
 	else
 		sport_handle->rx_buf = buf->area;
-/*Need to allocate local buffer when enable MMAP for SPORT working in TMD mode(include AC97).*/
+
+/*
+ * Need to allocate local buffer when enable
+ * MMAP for SPORT working in TMD mode (include AC97).
+ */
 #if defined(CONFIG_SND_MMAP_SUPPORT)
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		if (!sport_handle->tx_dma_buf) {
 			sport_handle->tx_dma_buf = dma_alloc_coherent(NULL, \
 				size, &sport_handle->tx_dma_phy, GFP_KERNEL);
 			if (!sport_handle->tx_dma_buf) {
-				printk(KERN_ERR "Failed to allocate memory for tx dma buf-Please increase uncached DMA memory region\n");
+				pr_err("Failed to allocate memory for tx dma \
+					buf - Please increase uncached DMA \
+					memory region\n");
 				return -ENOMEM;
 			} else
 				memset(sport_handle->tx_dma_buf, 0, size);
@@ -333,7 +349,9 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 			sport_handle->rx_dma_buf = dma_alloc_coherent(NULL, \
 				size, &sport_handle->rx_dma_phy, GFP_KERNEL);
 			if (!sport_handle->rx_dma_buf) {
-				printk(KERN_ERR "Failed to allocate memory for rx dma buf-Please increase uncached DMA memory region\n");
+				pr_err("Failed to allocate memory for rx dma \
+					buf - Please increase uncached DMA \
+					memory region\n");
 				return -ENOMEM;
 			} else
 				memset(sport_handle->rx_dma_buf, 0, size);
@@ -350,7 +368,8 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 	struct snd_dma_buffer *buf;
 	int stream;
 #if defined(CONFIG_SND_MMAP_SUPPORT)
-	size_t size = bf5xx_pcm_hardware.buffer_bytes_max * sizeof(struct ac97_frame)/4;
+	size_t size = bf5xx_pcm_hardware.buffer_bytes_max *
+		sizeof(struct ac97_frame) / 4;
 #endif
 	for (stream = 0; stream < 2; stream++) {
 		substream = pcm->streams[stream].substream;

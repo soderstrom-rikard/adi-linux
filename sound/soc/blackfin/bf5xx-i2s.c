@@ -5,8 +5,6 @@
  * Created:      Tue June 06 2008
  * Description:  Driver for SSM2602 sound chip built in ADSP-BF52xC
  *
- * Rev:          $Id: bf5xx-i2s.c 4104 2008-06-06 06:51:48Z cliff $
- *
  * Modified:
  *               Copyright 2008 Analog Devices Inc.
  *
@@ -40,9 +38,9 @@
 #include <sound/soc.h>
 
 #include <asm/irq.h>
-#include <asm/gpio.h>
 #include <asm/portmux.h>
 #include <linux/mutex.h>
+#include <linux/gpio.h>
 
 #include "bf5xx-sport.h"
 #include "bf5xx-i2s.h"
@@ -67,33 +65,43 @@ static struct sport_param sport_params[2] = {
 static int bf5xx_i2s_probe(struct platform_device *pdev)
 {
 	int ret;
-	u16 sport_req[][7] = { {P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
-		 P_SPORT0_DRPRI, P_SPORT0_RSCLK, 0}, {P_SPORT1_DTPRI,
-		 P_SPORT1_TSCLK, P_SPORT1_RFS, P_SPORT1_DRPRI, P_SPORT1_RSCLK, 0} };
+	u16 sport_req[][7] = {
+		{ P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
+		  P_SPORT0_DRPRI, P_SPORT0_RSCLK, 0},
+		{ P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS,
+		  P_SPORT1_DRPRI, P_SPORT1_RSCLK, 0},
+	};
+
 	if (peripheral_request_list(&sport_req[sport_num][0], "soc-audio")) {
-		printk(KERN_ERR "Requesting Peripherals failed\n");
+		pr_err("Requesting Peripherals failed\n");
 		return -EFAULT;
 	}
+
 	pr_debug("%s enter\n", __func__);
-	/*request DMA for SPORT*/
+
+	/* request DMA for SPORT */
 	sport_handle = sport_init(&sport_params[sport_num], 4, \
 			2 * sizeof(u32), NULL);
 	if (!sport_handle) {
 		peripheral_free_list(&sport_req[sport_num][0]);
 		return -ENODEV;
 	}
-	/*  TX and RX are not independent,they are enabled at the same time,
-	 *  even if only one side is running.So,we need to configure both of them in advance.
-	 *  CPU DAI format:I2S,word length:32 bit,slave mode.
+
+	/*
+	 * TX and RX are not independent,they are enabled at the same time,
+	 * even if only one side is running.So,we need to configure both of
+	 * them in advance.
+	 *
+	 * CPU DAI format:I2S, word length:32 bit, slave mode.
 	 */
 	ret = sport_config_rx(sport_handle, RFSR | RCKFE, RSFSE|0x1f, 0, 0);
 	if (ret) {
-		printk(KERN_ERR "SPORT is busy!\n");
+		pr_err("SPORT is busy!\n");
 		return -EBUSY;
 	}
 	ret = sport_config_tx(sport_handle, TFSR | TCKFE, TSFSE|0x1f, 0, 0);
 	if (ret) {
-		printk(KERN_ERR "SPORT is busy!\n");
+		pr_err("SPORT is busy!\n");
 		return -EBUSY;
 	}
 
@@ -130,12 +138,12 @@ static int bf5xx_i2s_resume(struct platform_device *pdev,
 	ret = sport_config_rx(sport_handle, RFSR | RCKFE, RSFSE|0x1f, 0, 0);
 
 	if (ret) {
-		printk(KERN_ERR "SPORT is busy!\n");
+		pr_err("SPORT is busy!\n");
 		return -EBUSY;
 	}
 	ret = sport_config_tx(sport_handle, TFSR | TCKFE, TSFSE|0x1f, 0, 0);
 	if (ret) {
-		printk(KERN_ERR "SPORT is busy!\n");
+		pr_err("SPORT is busy!\n");
 		return -EBUSY;
 	}
 
