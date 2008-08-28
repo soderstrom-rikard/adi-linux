@@ -168,7 +168,7 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 		SIR_UART_PUT_GCTL(port, val);
 
 		ret = 0;
-		printk(KERN_DEBUG "bfin_sir: Set new speed %d\n", speed);
+		/*printk(KERN_DEBUG "bfin_sir: Set new speed %d\n", speed);*/
 		break;
 	default:
 		printk(KERN_WARNING "bfin_sir: Invalid speed %d\n", speed);
@@ -325,21 +325,9 @@ static void bfin_sir_dma_rx_chars(struct net_device *dev)
 {
 	struct bfin_sir_self *self = dev->priv;
 	struct bfin_sir_port *port = self->sir_port;
-	int i, status;
+	int i;
 
-	status = SIR_UART_GET_LSR(port);
 	SIR_UART_CLEAR_LSR(port);
-
-	if (status & BI) {
-		self->stats.rx_errors++;
-		status &= ~(PE | FE);
-	}
-	if (status & PE)
-		self->stats.rx_errors++;
-	if (status & OE)
-		self->stats.rx_errors++;
-	if (status & FE)
-		self->stats.rx_errors++;
 
 	for (i = port->rx_dma_buf.head; i < port->rx_dma_buf.tail; i++)
 		async_unwrap_char(dev, &self->stats, &self->rx_buff, port->rx_dma_buf.buf[i]);
@@ -545,7 +533,12 @@ static void bfin_sir_send_work(struct work_struct *work)
 	while (bfin_sir_is_receiving(dev) && --tx_cnt)
 		turnaround_delay(dev->last_rx, self->mtt);
 
-	/*bfin_sir_set_speed(port, self->speed);*/
+	bfin_sir_stop_rx(port);
+
+	/* To avoid losting RX interrupt, we reset IR function before
+	 * sending data. We also can set the speed, which will
+	 * reset all the UART.
+	 */
 	val = SIR_UART_GET_GCTL(port);
 	val &= ~(IREN | RPOLC);
 	SIR_UART_PUT_GCTL(port, val);
@@ -553,7 +546,7 @@ static void bfin_sir_send_work(struct work_struct *work)
 	val |= IREN | RPOLC;
 	SIR_UART_PUT_GCTL(port, val);
 	SSYNC();
-	bfin_sir_stop_rx(port);
+	/* bfin_sir_set_speed(port, self->speed); */
 
 #ifdef CONFIG_SIR_BFIN_DMA
 	bfin_sir_dma_tx_chars(dev);
