@@ -17,7 +17,7 @@ struct bf5xx_pcm_dma_params {
 
 struct bf5xx_gpio {
 	u32 sys;
-	u32	rx;
+	u32 rx;
 	u32 tx;
 	u32 clk;
 	u32 frm;
