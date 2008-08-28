@@ -635,20 +635,8 @@
 #define SET_SSEL(x)		((x)&0xF)		/* Set SSEL = 0-15 --> SCLK = VCO/SSEL	*/
 
 /* VR_CTL Masks	*/
-/* FIXME: USE OF ON CHIP VOLTAGE REGULATOR IS DEPRECIATED
- * However some Development boards around still use it
- */
-#define	FREQ			0x0003	/* Switching Oscillator Frequency For Regulator	*/
+#define	FREQ			0x3000	/* Switching Oscillator Frequency For Regulator	*/
 #define	HIBERNATE		0x0000	/* 		Powerdown/Bypass On-Board Regulation	*/
-#define	FREQ_333		0x0001	/* 		Switching Frequency Is 333 kHz			*/
-#define	FREQ_667		0x0002	/* 		Switching Frequency Is 667 kHz			*/
-#define	FREQ_1000		0x0003	/* 		Switching Frequency Is 1 MHz			*/
-
-#define GAIN			0x000C	/* Voltage Level Gain	*/
-#define	GAIN_5			0x0000	/* 		GAIN = 5		*/
-#define	GAIN_10			0x0004	/* 		GAIN = 10		*/
-#define	GAIN_20			0x0008	/* 		GAIN = 20		*/
-#define	GAIN_50			0x000C	/* 		GAIN = 50		*/
 
 #define	VLEV			0x00F0	/* Internal Voltage Level					*/
 #define	VLEV_085 		0x0060	/* 		VLEV = 0.85 V (-5% - +10% Accuracy)	*/
