@@ -1,5 +1,5 @@
 /*
- * File:         arch/blackfin/mach-bf527/boards/ezkit.c
+ * File:         arch/blackfin/mach-bf527/boards/bf526_ezkit.c
  * Based on:     arch/blackfin/mach-bf537/boards/stamp.c
  * Author:       Aidan Williams <aidan@nicta.com.au>
  *
