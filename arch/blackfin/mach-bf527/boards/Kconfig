@@ -14,9 +14,9 @@ config BFIN527_BLUETECHNIX_CM
 	help
 	  CM-BF527 support for EVAL- and DEV-Board.
 
-config BFIN526_EZBRD
-	bool "BF526-EZ-BRD"
+config BFIN526_EZKIT
+	bool "BF526-EZKIT"
 	help
-	  BF526-EZ-BRD board support.
+	  BF526-EZKIT Lite board support.
 
 endchoice

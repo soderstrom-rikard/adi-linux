@@ -54,7 +54,7 @@
 /*
  * Name the Board for the /proc/cpuinfo
  */
-const char bfin_board_name[] = "ADZS-BF526-EZ-BRD";
+const char bfin_board_name[] = "BF526-EZKIT";
 
 /*
  *  Driver needs to know address, irq and flag pin.
