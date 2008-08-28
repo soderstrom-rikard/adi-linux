@@ -5,8 +5,6 @@
  * Created:      Tue June 06 2008
  * Description:  Driver for SSM2602 sound chip built in ADSP-BF52xC
  *
- * Rev:          $Id: ssm2602.c 4104 2008-06-06 06:51:48Z cliff $
- *
  * Modified:
  *               Copyright 2008 Analog Devices Inc.
  *

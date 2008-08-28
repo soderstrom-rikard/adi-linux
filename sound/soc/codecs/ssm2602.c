@@ -5,8 +5,6 @@
  * Created:      Tue June 06 2008
  * Description:  Driver for ssm2602 sound chip built in ADSP-BF52xC
  *
- * Rev:          $Id: ssm2602.c 4104 2008-06-06 06:51:48Z cliff $
- *
  * Modified:
  *               Copyright 2008 Analog Devices Inc.
  *
@@ -49,25 +47,6 @@
 #define AUDIO_NAME "ssm2602"
 #define SSM2602_VERSION "0.1"
 
-/*
- * Debug
- */
-
-#define SSM2602_DEBUG 0
-
-#ifdef SSM2602_DEBUG
-#define dbg(format, arg...) \
-	printk(KERN_DEBUG AUDIO_NAME ": " format "\n" , ## arg)
-#else
-#define dbg(format, arg...) do {} while (0)
-#endif
-#define err(format, arg...) \
-	printk(KERN_ERR AUDIO_NAME ": " format "\n" , ## arg)
-#define info(format, arg...) \
-	printk(KERN_INFO AUDIO_NAME ": " format "\n" , ## arg)
-#define warn(format, arg...) \
-	printk(KERN_WARNING AUDIO_NAME ": " format "\n" , ## arg)
-
 struct snd_soc_codec_device soc_codec_dev_ssm2602;
 
 /* codec private data */
@@ -82,9 +61,9 @@ struct ssm2602_priv {
  * There is no point in caching the reset register
  */
 static const u16 ssm2602_reg[SSM2602_CACHEREGNUM] = {
-    0x0017, 0x0017, 0x0079, 0x0079,
-    0x0000, 0x0000, 0x0000, 0x000a,
-    0x0000, 0x0000
+	0x0017, 0x0017, 0x0079, 0x0079,
+	0x0000, 0x0000, 0x0000, 0x000a,
+	0x0000, 0x0000
 };
 
 /*
@@ -137,8 +116,11 @@ static int ssm2602_write(struct snd_soc_codec *codec, unsigned int reg,
 
 #define ssm2602_reset(c)	ssm2602_write(c, SSM2602_RESET, 0)
 /*Appending several "None"s just for OSS mixer use*/
-static const char *ssm2602_input_select[] = {"Line", "Mic", "None", "None", "None",
-		"None", "None", "None"};
+static const char *ssm2602_input_select[] = {
+	"Line", "Mic", "None", "None", "None",
+	"None", "None", "None",
+};
+
 static const char *ssm2602_deemph[] = {"None", "32Khz", "44.1Khz", "48Khz"};
 
 static const struct soc_enum ssm2602_enum[] = {
@@ -176,7 +158,7 @@ static int ssm2602_add_controls(struct snd_soc_codec *codec)
 
 	for (i = 0; i < ARRAY_SIZE(ssm2602_snd_controls); i++) {
 		err = snd_ctl_add(codec->card,
-				snd_soc_cnew(&ssm2602_snd_controls[i], codec, NULL));
+			snd_soc_cnew(&ssm2602_snd_controls[i], codec, NULL));
 		if (err < 0)
 			return err;
 	}
@@ -372,7 +354,8 @@ static int ssm2602_mute(struct snd_soc_codec_dai *dai, int mute)
 	struct snd_soc_codec *codec = dai->codec;
 	u16 mute_reg = ssm2602_read_reg_cache(codec, SSM2602_APDIGI) & 0xfff7;
 	if (mute)
-		ssm2602_write(codec, SSM2602_APDIGI, mute_reg | ENABLE_DAC_MUTE);
+		ssm2602_write(codec, SSM2602_APDIGI,
+				mute_reg | ENABLE_DAC_MUTE);
 	else
 		ssm2602_write(codec, SSM2602_APDIGI, mute_reg);
 	return 0;
@@ -394,7 +377,6 @@ static int ssm2602_set_dai_sysclk(struct snd_soc_codec_dai *codec_dai,
 	}
 	return -EINVAL;
 }
-
 
 static int ssm2602_set_dai_fmt(struct snd_soc_codec_dai *codec_dai,
 		unsigned int fmt)
@@ -560,7 +542,8 @@ static int ssm2602_init(struct snd_soc_device *socdev)
 	codec->dai = &ssm2602_dai;
 	codec->num_dai = 1;
 	codec->reg_cache_size = sizeof(ssm2602_reg);
-	codec->reg_cache = kmemdup(ssm2602_reg, sizeof(ssm2602_reg), GFP_KERNEL);
+	codec->reg_cache = kmemdup(ssm2602_reg, sizeof(ssm2602_reg),
+					GFP_KERNEL);
 	if (codec->reg_cache == NULL)
 		return -ENOMEM;
 
@@ -569,7 +552,7 @@ static int ssm2602_init(struct snd_soc_device *socdev)
 	/* register pcms */
 	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
 	if (ret < 0) {
-		printk(KERN_ERR "ssm2602: failed to create pcms\n");
+		pr_err("ssm2602: failed to create pcms\n");
 		goto pcm_err;
 	}
 	/*power on device*/
@@ -584,14 +567,15 @@ static int ssm2602_init(struct snd_soc_device *socdev)
 	reg = ssm2602_read_reg_cache(codec, SSM2602_ROUT1V);
 	ssm2602_write(codec, SSM2602_ROUT1V, reg | RLHP_BOTH);
 	/*select Line in as default input*/
-	ssm2602_write(codec, SSM2602_APANA, ENABLE_MIC_BOOST2 | SELECT_DAC | ENABLE_MIC_BOOST);
+	ssm2602_write(codec, SSM2602_APANA,
+			ENABLE_MIC_BOOST2 | SELECT_DAC | ENABLE_MIC_BOOST);
 	ssm2602_write(codec, SSM2602_PWR, 0);
 
 	ssm2602_add_controls(codec);
 	ssm2602_add_widgets(codec);
 	ret = snd_soc_register_card(socdev);
 	if (ret < 0) {
-		printk(KERN_ERR "ssm2602: failed to register card\n");
+		pr_err("ssm2602: failed to register card\n");
 		goto card_err;
 	}
 
@@ -607,7 +591,9 @@ pcm_err:
 
 static struct snd_soc_device *ssm2602_socdev;
 
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE) && !defined(CONFIG_SND_SOC_SSM2602_SPI)
+#if defined(CONFIG_I2C) \
+    || defined(CONFIG_I2C_MODULE) \
+    && !defined(CONFIG_SND_SOC_SSM2602_SPI)
 
 /*
  * ssm2602 2 wire address is determined by GPIO5
@@ -650,13 +636,13 @@ static int ssm2602_codec_probe(struct i2c_adapter *adap, int addr, int kind)
 
 	ret = i2c_attach_client(i2c);
 	if (ret < 0) {
-		err("failed to attach codec at addr %x\n", addr);
+		pr_err("failed to attach codec at addr %x\n", addr);
 		goto err;
 	}
 
 	ret = ssm2602_init(socdev);
 	if (ret < 0) {
-		err("failed to initialise ssm2602\n");
+		pr_err("failed to initialise ssm2602\n");
 		goto err;
 	}
 	return ret;
@@ -710,7 +696,7 @@ static int __devinit ssm2602_spi_probe(struct spi_device *spi)
 
 	ret = ssm2602_init(socdev);
 	if (ret < 0)
-		err("failed to initialise ssm2602\n");
+		pr_err("failed to initialise ssm2602\n");
 
 	return ret;
 }
@@ -762,7 +748,7 @@ static int ssm2602_probe(struct platform_device *pdev)
 	struct ssm2602_priv *ssm2602;
 	int ret = 0;
 
-	printk(KERN_INFO "ssm2602 Audio Codec %s", SSM2602_VERSION);
+	pr_info("ssm2602 Audio Codec %s", SSM2602_VERSION);
 
 	setup = socdev->codec_data;
 	codec = kzalloc(sizeof(struct snd_soc_codec), GFP_KERNEL);
@@ -782,19 +768,21 @@ static int ssm2602_probe(struct platform_device *pdev)
 	INIT_LIST_HEAD(&codec->dapm_paths);
 
 	ssm2602_socdev = socdev;
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE) && !defined(CONFIG_SND_SOC_SSM2602_SPI)
+#if defined(CONFIG_I2C) \
+    || defined(CONFIG_I2C_MODULE) \
+    && !defined(CONFIG_SND_SOC_SSM2602_SPI)
 	if (setup->i2c_address) {
 		normal_i2c[0] = setup->i2c_address;
 		codec->hw_write = (hw_write_t)i2c_master_send;
 		ret = i2c_add_driver(&ssm2602_i2c_driver);
 		if (ret != 0)
-			printk(KERN_ERR "can't add i2c driver");
+			pr_err("can't add i2c driver");
 	}
 #elif defined(CONFIG_SPI_MASTER) && defined(CONFIG_SND_SOC_SSM2602_SPI)
 	codec->hw_write = (hw_write_t)ssm2602_spi_write;
 	ret = spi_register_driver(&ssm2602_spi_driver);
 	if (ret != 0)
-		printk(KERN_ERR "can't add spi driver");
+		pr_err("can't add spi driver");
 #else
 	/* Add other interfaces here */
 
@@ -813,7 +801,9 @@ static int ssm2602_remove(struct platform_device *pdev)
 
 	snd_soc_free_pcms(socdev);
 	snd_soc_dapm_free(socdev);
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE) && !defined(CONFIG_SND_SOC_SSM2602_SPI)
+#if defined(CONFIG_I2C) \
+    || defined(CONFIG_I2C_MODULE) \
+    && !defined(CONFIG_SND_SOC_SSM2602_SPI)
 	i2c_del_driver(&ssm2602_i2c_driver);
 #elif defined(CONFIG_SPI_MASTER) && defined(CONFIG_SND_SOC_SSM2602_SPI)
 	spi_unregister_driver(&ssm2602_spi_driver);
