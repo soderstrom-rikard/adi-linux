@@ -23,7 +23,7 @@
 #include <linux/serial_core.h>
 #include <stdarg.h>
 
-#ifdef CONFIG_KGDB_UART
+#ifdef CONFIG_KGDB_SERIAL_CONSOLE
 #include <linux/kgdb.h>
 #include <asm/irq_regs.h>
 #endif
@@ -120,9 +120,7 @@ static void bfin_serial_start_tx(struct uart_port *port)
 static void bfin_serial_stop_rx(struct uart_port *port)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
-#ifdef CONFIG_KGDB_UART
-	if (uart->port.line != CONFIG_KGDB_UART_PORT)
-#endif
+
 	UART_CLEAR_IER(uart, ERBFI);
 }
 
@@ -133,43 +131,28 @@ static void bfin_serial_enable_ms(struct uart_port *port)
 {
 }
 
-#ifdef CONFIG_KGDB_UART
-void kgdb_put_debug_char(int chr)
+#ifdef CONFIG_KGDB_SERIAL_CONSOLE
+void bfin_serial_poll_put_char(struct uart_port *port, unsigned char chr)
 {
-	struct bfin_serial_port *uart;
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 
-	if (CONFIG_KGDB_UART_PORT < 0
-		|| CONFIG_KGDB_UART_PORT >= BFIN_UART_NR_PORTS)
-		uart = &bfin_serial_ports[0];
-	else
-		uart = &bfin_serial_ports[CONFIG_KGDB_UART_PORT];
-
-	while (!(UART_GET_LSR(uart) & THRE)) {
-		SSYNC();
-	}
+	while (!(UART_GET_LSR(uart) & THRE))
+		cpu_relax();
 
 	UART_CLEAR_DLAB(uart);
 	UART_PUT_CHAR(uart, (unsigned char)chr);
-	SSYNC();
 }
 
-int kgdb_get_debug_char(void)
+int bfin_serial_poll_get_char(struct uart_port *port)
 {
-	struct bfin_serial_port *uart;
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 	unsigned char chr;
 
-	if (CONFIG_KGDB_UART_PORT < 0
-		|| CONFIG_KGDB_UART_PORT >= BFIN_UART_NR_PORTS)
-		uart = &bfin_serial_ports[0];
-	else
-		uart = &bfin_serial_ports[CONFIG_KGDB_UART_PORT];
+	while (!(UART_GET_LSR(uart) & DR))
+		cpu_relax();
 
-	while(!(UART_GET_LSR(uart) & DR)) {
-		SSYNC();
-	}
 	UART_CLEAR_DLAB(uart);
 	chr = UART_GET_CHAR(uart);
-	SSYNC();
 
 	return chr;
 }
@@ -733,9 +716,6 @@ static void bfin_serial_shutdown(struct uart_port *port)
 		break;
 	};
 #endif
-#ifdef	CONFIG_KGDB_UART
-	if (uart->port.line != CONFIG_KGDB_UART_PORT)
-#endif
 	free_irq(uart->port.irq, uart);
 	free_irq(uart->port.irq+1, uart);
 #endif
@@ -936,6 +916,10 @@ static struct uart_ops bfin_serial_pops = {
 	.request_port	= bfin_serial_request_port,
 	.config_port	= bfin_serial_config_port,
 	.verify_port	= bfin_serial_verify_port,
+#ifdef CONFIG_CONSOLE_POLL
+	.poll_put_char	= bfin_serial_poll_put_char,
+	.poll_get_char	= bfin_serial_poll_get_char,
+#endif
 };
 
 static void __init bfin_serial_init_ports(void)

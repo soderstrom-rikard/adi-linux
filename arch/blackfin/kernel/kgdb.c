@@ -39,7 +39,6 @@
 #include <linux/kgdb.h>
 #include <linux/console.h>
 #include <linux/init.h>
-#include <linux/debugger.h>
 #include <linux/errno.h>
 #include <linux/irq.h>
 #include <asm/system.h>
@@ -47,16 +46,16 @@
 #include <asm/blackfin.h>
 
 /* Put the error code here just in case the user cares.  */
-int gdb_bf533errcode;
+int gdb_bfin_errcode;
 /* Likewise, the vector number here (since GDB only gets the signal
    number through the usual means, and that's not very specific).  */
-int gdb_bf533vector = -1;
+int gdb_bfin_vector = -1;
 
 #if KGDB_MAX_NO_CPUS != 8
 #error change the definition of slavecpulocks
 #endif
 
-void regs_to_gdb_regs(unsigned long *gdb_regs, struct pt_regs *regs)
+void pt_regs_to_gdb_regs(unsigned long *gdb_regs, struct pt_regs *regs)
 {
 	gdb_regs[BFIN_R0] = regs->r0;
 	gdb_regs[BFIN_R1] = regs->r1;
@@ -133,7 +132,7 @@ void sleeping_thread_to_gdb_regs(unsigned long *gdb_regs, struct task_struct *p)
 	gdb_regs[BFIN_SEQSTAT] = p->thread.seqstat;
 }
 
-void gdb_regs_to_regs(unsigned long *gdb_regs, struct pt_regs *regs)
+void gdb_regs_to_pt_regs(unsigned long *gdb_regs, struct pt_regs *regs)
 {
 	regs->r0 = gdb_regs[BFIN_R0];
 	regs->r1 = gdb_regs[BFIN_R1];
@@ -201,42 +200,56 @@ struct hw_breakpoint {
 	unsigned int addr;
 } breakinfo[HW_BREAKPOINT_NUM];
 
-int kgdb_arch_init(void)
-{
-	debugger_step = 0;
-
-	kgdb_remove_all_hw_break();
-	return 0;
-}
-
-int kgdb_set_hw_break(unsigned long addr)
+int bfin_set_hw_break(unsigned long addr, int len, enum kgdb_bptype type)
 {
 	int breakno;
-	for (breakno = 0; breakno < HW_BREAKPOINT_NUM; breakno++)
-		if (!breakinfo[breakno].occupied) {
-			breakinfo[breakno].occupied = 1;
-			breakinfo[breakno].enabled = 1;
-			breakinfo[breakno].type = 1;
-			breakinfo[breakno].addr = addr;
-			return 0;
-		}
+
+	switch (type) {
+	case BP_HARDWARE_BREAKPOINT:
+		for (breakno = 0; breakno < HW_BREAKPOINT_NUM; breakno++)
+			if (!breakinfo[breakno].occupied) {
+				breakinfo[breakno].occupied = 1;
+				breakinfo[breakno].enabled = 1;
+				breakinfo[breakno].type = 1;
+				breakinfo[breakno].addr = addr;
+				return 0;
+			}
+		break;
+	case BP_WRITE_WATCHPOINT:
+	case BP_READ_WATCHPOINT:
+	case BP_ACCESS_WATCHPOINT:
+		break;
+	default:
+		break;
+	};
 
 	return -ENOSPC;
 }
 
-int kgdb_remove_hw_break(unsigned long addr)
+int bfin_remove_hw_break(unsigned long addr, int len, enum kgdb_bptype type)
 {
 	int breakno;
-	for (breakno = 0; breakno < HW_BREAKPOINT_NUM; breakno++)
-		if (breakinfo[breakno].addr == addr)
-			memset(&(breakinfo[breakno]), 0, sizeof(struct hw_breakpoint));
+
+	switch (type) {
+	case BP_HARDWARE_BREAKPOINT:
+		for (breakno = 0; breakno < HW_BREAKPOINT_NUM; breakno++)
+			if (breakinfo[breakno].addr == addr)
+				memset(&(breakinfo[breakno]), 0,
+					sizeof(struct hw_breakpoint));
+	case BP_WRITE_WATCHPOINT:
+	case BP_READ_WATCHPOINT:
+	case BP_ACCESS_WATCHPOINT:
+		break;
+	default:
+		break;
+	};
 
 	return 0;
 }
 
-void kgdb_remove_all_hw_break(void)
+void bfin_remove_all_hw_break(void)
 {
-	memset(breakinfo, 0, sizeof(struct hw_breakpoint)*8);
+	memset(breakinfo, 0, sizeof(struct hw_breakpoint)*HW_BREAKPOINT_NUM);
 }
 
 /*
@@ -248,7 +261,7 @@ void kgdb_show_info(void)
 }
 */
 
-void kgdb_correct_hw_break(void)
+void bfin_correct_hw_break(void)
 {
 	int breakno;
 	int correctit;
@@ -353,17 +366,21 @@ void kgdb_disable_hw_debug(struct pt_regs *regs)
 	CSYNC();
 }
 
-void kgdb_post_master_code(struct pt_regs *regs, int eVector, int err_code)
+void kgdb_roundup_cpus(unsigned long flags)
 {
-	/* Master processor is completely in the debugger */
-	gdb_bf533vector = eVector;
-	gdb_bf533errcode = err_code;
 }
 
-int kgdb_arch_handle_exception(int exceptionVector, int signo,
+void kgdb_post_primary_code(struct pt_regs *regs, int eVector, int err_code)
+{
+	/* Master processor is completely in the debugger */
+	gdb_bfin_vector = eVector;
+	gdb_bfin_errcode = err_code;
+}
+
+int kgdb_arch_handle_exception(int vector, int signo,
 			       int err_code, char *remcom_in_buffer,
 			       char *remcom_out_buffer,
-			       struct pt_regs *linux_regs)
+			       struct pt_regs *regs)
 {
 	long addr;
 	long breakno;
@@ -385,34 +402,32 @@ int kgdb_arch_handle_exception(int exceptionVector, int signo,
 		/* try to read optional parameter, pc unchanged if no parm */
 		ptr = &remcom_in_buffer[1];
 		if (kgdb_hex2long(&ptr, &addr)) {
-			linux_regs->retx = addr;
+			regs->retx = addr;
 		}
-		newPC = linux_regs->retx;
+		newPC = regs->retx;
 
 		/* clear the trace bit */
-		linux_regs->syscfg &= 0xfffffffe;
+		regs->syscfg &= 0xfffffffe;
 
 		/* set the trace bit if we're stepping */
 		if (remcom_in_buffer[0] == 's') {
-			linux_regs->syscfg |= 0x1;
-			debugger_step = linux_regs->ipend;
-			debugger_step >>= 6;
-			for (i = 10; i > 0; i--, debugger_step >>= 1)
-				if (debugger_step & 1)
+			regs->syscfg |= 0x1;
+			kgdb_single_step = regs->ipend;
+			kgdb_single_step >>= 6;
+			for (i = 10; i > 0; i--, kgdb_single_step >>= 1)
+				if (kgdb_single_step & 1)
 					break;
 			/* i indicate event priority of current stopped instruction
 			 * user space instruction is 0, IVG15 is 1, IVTMR is 10.
-			 * debugger_step > 0 means in single step mode
+			 * kgdb_single_step > 0 means in single step mode
 			 */
-			debugger_step = i + 1;
-		} else {
-			debugger_step = 0;
+			kgdb_single_step = i + 1;
 		}
 
 		wp_status = bfin_read_WPSTAT();
 		CSYNC();
 
-		if (exceptionVector == VEC_WATCH) {
+		if (vector == VEC_WATCH) {
 			for (breakno = 0; breakno < 6; ++breakno) {
 				if (wp_status & (1 << breakno)) {
 					breakinfo->skip = 1;
@@ -420,7 +435,7 @@ int kgdb_arch_handle_exception(int exceptionVector, int signo,
 				}
 			}
 		}
-		kgdb_correct_hw_break();
+		bfin_correct_hw_break();
 
 		bfin_write_WPSTAT(0);
 
@@ -432,4 +447,20 @@ int kgdb_arch_handle_exception(int exceptionVector, int signo,
 struct kgdb_arch arch_kgdb_ops = {
 	.gdb_bpt_instr = {0xa1},
 	.flags = KGDB_HW_BREAKPOINT,
+	.set_hw_breakpoint = bfin_set_hw_break,
+	.remove_hw_breakpoint = bfin_remove_hw_break,
+	.remove_all_hw_break = bfin_remove_all_hw_break,
+	.correct_hw_break = bfin_correct_hw_break,
 };
+
+int kgdb_arch_init(void)
+{
+	kgdb_single_step = 0;
+
+	bfin_remove_all_hw_break();
+	return 0;
+}
+
+void kgdb_arch_exit(void)
+{
+}

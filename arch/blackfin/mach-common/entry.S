@@ -189,8 +189,8 @@ ENTRY(_ex_single_step)
 	if cc jump .Lfind_priority_done;
 	jump.s .Lfind_priority_start;
 .Lfind_priority_done:
-	p4.l = _debugger_step;
-	p4.h = _debugger_step;
+	p4.l = _kgdb_single_step;
+	p4.h = _kgdb_single_step;
 	r6 = [p4];
 	cc = r6 == 0;
 	if cc jump .Ldo_single_step;

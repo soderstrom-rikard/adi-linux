@@ -124,9 +124,13 @@ enum regnames {
 /* Number of bytes of registers.  */
 #define NUMREGBYTES BFIN_NUM_REGS*4
 
-#define BREAKPOINT() asm("   EXCPT 2;");
-#define BREAK_INSTR_SIZE       2
-#define HW_BREAKPOINT_NUM		6
+static inline void arch_kgdb_breakpoint(void)
+{
+	asm("   EXCPT 2;");
+}
+#define BREAK_INSTR_SIZE	2
+#define CACHE_FLUSH_IS_SAFE	1
+#define HW_BREAKPOINT_NUM	6
 
 /* Instruction watchpoint address control register bits mask */
 #define WPPWR		0x1
