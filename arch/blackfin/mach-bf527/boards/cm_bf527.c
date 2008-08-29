@@ -200,7 +200,7 @@ static struct mtd_partition partition_info[] = {
 	{
 		.name = "linux kernel(nand)",
 		.offset = 0,
-		.size = 4 * SIZE_1M,
+		.size = 4 * 1024 * 1024,
 	},
 	{
 		.name = "file system(nand)",
