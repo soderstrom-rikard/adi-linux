@@ -303,4 +303,13 @@ config JOYSTICK_AD7142
 	  To compile this driver as a module, choose M here: the
 	  module will be called ad7142.
 
+config JOYSTICK_BFIN_ROTARY
+	tristate "Blackfin Rotary support"
+	depends on (BF54x || BF52x)
+	help
+	  Say Y here if you want to use the Blackfin Rotary.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called bfin-rotary.
+
 endif
