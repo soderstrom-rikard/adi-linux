@@ -1072,9 +1072,9 @@ static int elf_fdpic_map_file_by_direct_mmap(struct elf_fdpic_params *params,
 			load_addr += PAGE_ALIGN(phdr->p_memsz + disp);
 
 		/* Hack, hack, hack */
-		/* 0xff700000, 0xff800000, 0xff900000 and 0xffa00000 are also
-		   used in Dynamic linker and GNU ld. They need to be keep
-		   synchronized.  */
+		/* 0xfeb00000, 0xfec00000, 0xff700000, 0xff800000, 0xff900000
+		   and 0xffa00000 are also used in Dynamic linker and GNU ld.
+		   They need to be kept synchronized.  */
 
 		if (((params->hdr.e_flags & EF_BFIN_CODE_IN_L1)
 		     || (phdr->p_vaddr == 0xffa00000))
@@ -1126,10 +1126,7 @@ static int elf_fdpic_map_file_by_direct_mmap(struct elf_fdpic_params *params,
 			       maddr + disp, l1_addr, phdr->p_memsz);
 			maddr = (unsigned long)l1_addr;
 			disp = 0;
-		} else if (((params->hdr.e_flags & EF_BFIN_CODE_IN_L2)
-				|| (phdr->p_vaddr == 0xfeb00000))
-				&& (phdr->p_flags & PF_W) == 0
-				&& (phdr->p_flags & PF_X)) {
+		} else if (phdr->p_vaddr == 0xfeb00000) {
 			void *l2_addr;
 			l2_addr = sram_alloc_with_lsl(phdr->p_memsz, L2_SRAM);
 			if (l2_addr != NULL)
@@ -1145,10 +1142,7 @@ static int elf_fdpic_map_file_by_direct_mmap(struct elf_fdpic_params *params,
 			       maddr + disp, l2_addr, phdr->p_memsz);
 			maddr = (unsigned long)l2_addr;
 			disp = 0;
-		} else if (((params->hdr.e_flags & EF_BFIN_DATA_IN_L2)
-				|| phdr->p_vaddr == 0xfec00000)
-				&& (phdr->p_flags & PF_X) == 0
-				&& (phdr->p_flags & PF_W)) {
+		} else if (phdr->p_vaddr == 0xfec00000) {
 			void *l2_addr;
 			l2_addr = sram_alloc_with_lsl(phdr->p_memsz, L2_SRAM);
 			if (l2_addr != NULL)
