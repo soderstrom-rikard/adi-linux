@@ -36,6 +36,7 @@ int is_kgdb_tty_line(int tty_line)
 {
 	return tty_line == kgdb_tty_line;
 }
+EXPORT_SYMBOL_GPL(is_kgdb_tty_line);
 
 void __weak kgdboc_disable_gdb_break(int line)
 {
