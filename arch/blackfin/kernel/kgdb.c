@@ -41,9 +41,11 @@
 #include <linux/init.h>
 #include <linux/errno.h>
 #include <linux/irq.h>
+#include <linux/uaccess.h>
 #include <asm/system.h>
 #include <asm/traps.h>
 #include <asm/blackfin.h>
+#include <asm/dma.h>
 
 /* Put the error code here just in case the user cares.  */
 int gdb_bfin_errcode;
@@ -452,6 +454,235 @@ struct kgdb_arch arch_kgdb_ops = {
 	.remove_all_hw_break = bfin_remove_all_hw_break,
 	.correct_hw_break = bfin_correct_hw_break,
 };
+
+static int hex(char ch)
+{
+	if ((ch >= 'a') && (ch <= 'f'))
+		return ch - 'a' + 10;
+	if ((ch >= '0') && (ch <= '9'))
+		return ch - '0';
+	if ((ch >= 'A') && (ch <= 'F'))
+		return ch - 'A' + 10;
+	return -1;
+}
+
+/*
+ * Convert the memory pointed to by mem into hex, placing result in buf.
+ * Return a pointer to the last char put in buf (null). May return an error.
+ */
+int kgdb_mem2hex(char *mem, char *buf, int count)
+{
+	char *tmp;
+	int err = 0;
+	unsigned char *pch;
+	unsigned short mmr16;
+	unsigned long mmr32;
+
+	/*
+	 * We use the upper half of buf as an intermediate buffer for the
+	 * raw memory copy.  Hex conversion will work against this one.
+	 */
+	tmp = buf + count;
+
+	if ((unsigned int)mem >= 0xffc00000) { /*access MMR registers*/
+		switch (count) {
+		case 2:
+			if ((unsigned int)mem % 2 == 0) {
+				mmr16 = *(unsigned short *)mem;
+				pch = (unsigned char *)&mmr16;
+				*tmp++ = *pch++;
+				*tmp++ = *pch++;
+			} else
+				err = EFAULT;
+			break;
+		case 4:
+			if ((unsigned int)mem % 4 == 0) {
+				mmr32 = *(unsigned long *)mem;
+				pch = (unsigned char *)&mmr32;
+				*tmp++ = *pch++;
+				*tmp++ = *pch++;
+				*tmp++ = *pch++;
+				*tmp++ = *pch++;
+			} else
+				err = EFAULT;
+			break;
+		default:
+			err = EFAULT;
+		};
+	} else if ((unsigned int)mem >= 0xffA00000  /*access L1 instruction registers*/
+#ifdef CONFIG_BLKFIN_ICACHE
+		&& (unsigned int)mem < 0xffA10000) {
+#else
+		&& (unsigned int)mem < 0xffA14000) {
+#endif
+		if (dma_memcpy(tmp, mem, count) == NULL)
+			err = EFAULT;
+	} else if ((unsigned int)mem < 0x1000) {
+		err = EFAULT;
+	} else
+		err = probe_kernel_read(tmp, mem, count);
+
+	if (!err) {
+		while (count > 0) {
+			buf = pack_hex_byte(buf, *tmp);
+			tmp++;
+			count--;
+		}
+
+		*buf = 0;
+	}
+
+	return err;
+}
+
+/*
+ * Copy the binary array pointed to by buf into mem.  Fix $, #, and
+ * 0x7d escaped with 0x7d.  Return a pointer to the character after
+ * the last byte written.
+ */
+int kgdb_ebin2mem(char *buf, char *mem, int count)
+{
+	int err = 0;
+	char c;
+
+	while (count-- > 0) {
+		c = *buf++;
+		if (c == 0x7d)
+			c = *buf++ ^ 0x20;
+
+		if ((unsigned int)mem >= 0xffc00000) { /*access MMR registers*/
+			err = EFAULT;
+		} else if ((unsigned int)mem >= 0xffA00000  /*access L1 instruction registers*/
+#ifdef CONFIG_BLKFIN_ICACHE
+			&& (unsigned int)mem < 0xffA10000) {
+#else
+			&& (unsigned int)mem < 0xffA14000) {
+#endif
+			if (dma_memcpy(mem, &c, 1) == NULL)
+				err = EFAULT;
+		} else if ((unsigned int)mem < 0x1000) {
+			err = EFAULT;
+		} else
+			err = probe_kernel_write(mem, &c, 1);
+
+		if (err)
+			break;
+
+		mem++;
+	}
+
+	return err;
+}
+
+/*
+ * Convert the hex array pointed to by buf into binary to be placed in mem.
+ * Return a pointer to the character AFTER the last byte written.
+ * May return an error.
+ */
+int kgdb_hex2mem(char *buf, char *mem, int count)
+{
+	char *tmp_raw;
+	char *tmp_hex;
+	unsigned short *mmr16;
+	unsigned long *mmr32;
+
+	/*
+	 * We use the upper half of buf as an intermediate buffer for the
+	 * raw memory that is converted from hex.
+	 */
+	tmp_raw = buf + count * 2;
+
+	tmp_hex = tmp_raw - 1;
+	while (tmp_hex >= buf) {
+		tmp_raw--;
+		*tmp_raw = hex(*tmp_hex--);
+		*tmp_raw |= hex(*tmp_hex--) << 4;
+	}
+
+	if ((unsigned int)mem >= 0xffc00000) { /*access MMR registers*/
+		switch (count) {
+		case 2:
+			if ((unsigned int)mem % 2 == 0) {
+				mmr16 = (unsigned short *)tmp_raw;
+				*(unsigned short *)mem = *mmr16;
+			} else
+				return EFAULT;
+			break;
+		case 4:
+			if ((unsigned int)mem % 4 == 0) {
+				mmr32 = (unsigned long *)tmp_raw;
+				*(unsigned long *)mem = *mmr32;
+			} else
+				return EFAULT;
+			break;
+		default:
+			return EFAULT;
+		}
+	} else if ((unsigned int)mem >= 0xffA00000  /*access L1 instruction registers*/
+#ifdef CONFIG_BLKFIN_ICACHE
+		&& (unsigned int)mem < 0xffA10000) {
+#else
+		&& (unsigned int)mem < 0xffA14000) {
+#endif
+		if (dma_memcpy(mem, tmp_raw, count) == NULL)
+			return EFAULT;
+	} else if ((unsigned int)mem < 0x1000)
+		return EFAULT;
+	else
+		return probe_kernel_write(mem, tmp_raw, count);
+	return 0;
+}
+
+int kgdb_validate_break_address(unsigned long addr)
+{
+	return !access_ok(0, addr, BREAK_INSTR_SIZE);
+}
+
+int kgdb_arch_set_breakpoint(unsigned long addr, char *saved_instr)
+{
+	int err;
+
+	if ((unsigned int)addr >= 0xffA00000  /*access L1 instruction registers*/
+#ifdef CONFIG_BLKFIN_ICACHE
+		&& (unsigned int)addr < 0xffA10000) {
+#else
+		&& (unsigned int)addr < 0xffA14000) {
+#endif
+		if (dma_memcpy(saved_instr, (void *)addr, BREAK_INSTR_SIZE) == NULL)
+			return -EFAULT;
+
+		if (dma_memcpy((void *)addr, arch_kgdb_ops.gdb_bpt_instr,
+			BREAK_INSTR_SIZE) == NULL)
+			return -EFAULT;
+
+		return 0;
+	} else {
+		err = probe_kernel_read(saved_instr, (char *)addr,
+			BREAK_INSTR_SIZE);
+		if (err)
+			return err;
+
+		return probe_kernel_write((char *)addr,
+			arch_kgdb_ops.gdb_bpt_instr, BREAK_INSTR_SIZE);
+	}
+}
+
+int kgdb_arch_remove_breakpoint(unsigned long addr, char *bundle)
+{
+	if ((unsigned int)addr >= 0xffA00000  /*access L1 instruction registers*/
+#ifdef CONFIG_BLKFIN_ICACHE
+		&& (unsigned int)addr < 0xffA10000) {
+#else
+		&& (unsigned int)addr < 0xffA14000) {
+#endif
+		if (dma_memcpy((void *)addr, bundle, BREAK_INSTR_SIZE) == NULL)
+			return -EFAULT;
+
+		return 0;
+	} else
+		return probe_kernel_write((char *)addr,
+				(char *)bundle, BREAK_INSTR_SIZE);
+}
 
 int kgdb_arch_init(void)
 {
