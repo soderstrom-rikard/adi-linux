@@ -37,6 +37,14 @@ int is_kgdb_tty_line(int tty_line)
 	return tty_line == kgdb_tty_line;
 }
 
+void __weak kgdboc_disable_gdb_break(int line)
+{
+}
+
+void __weak kgdboc_enable_gdb_break(int line)
+{
+}
+
 static int kgdboc_option_setup(char *opt)
 {
 	if (strlen(opt) > MAX_CONFIG_LEN) {
@@ -75,6 +83,8 @@ static int configure_kgdboc(void)
 
 	configured = 1;
 
+	kgdboc_enable_gdb_break(kgdb_tty_line);
+
 	return 0;
 
 noconfig:
@@ -95,8 +105,10 @@ static int __init init_kgdboc(void)
 
 static void cleanup_kgdboc(void)
 {
-	if (configured == 1)
+	if (configured == 1) {
+		kgdboc_disable_gdb_break(kgdb_tty_line);
 		kgdb_unregister_io_module(&kgdboc_io_ops);
+	}
 }
 
 static int kgdboc_get_char(void)

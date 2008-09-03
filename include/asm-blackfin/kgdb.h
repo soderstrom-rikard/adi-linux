@@ -183,5 +183,7 @@ static inline void arch_kgdb_breakpoint(void)
 #define STATDA1		0x80
 
 extern int is_kgdb_tty_line(int tty_line);
+extern void kgdboc_disable_gdb_break(int line);
+extern void kgdboc_enable_gdb_break(int line);
 
 #endif

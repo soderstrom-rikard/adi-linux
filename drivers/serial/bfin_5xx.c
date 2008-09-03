@@ -46,6 +46,14 @@
 static struct bfin_serial_port bfin_serial_ports[BFIN_UART_NR_PORTS];
 static int nr_active_ports = ARRAY_SIZE(bfin_serial_resource);
 
+#ifdef CONFIG_KGDB_SERIAL_CONSOLE
+
+# ifndef CONFIG_SERIAL_BFIN_PIO
+#  error KGDB only support UART in PIO mode.
+# endif
+
+static int gdb_break_enabled;
+#endif
 /*
  * Setup for console. Argument comes from the menuconfig
  */
@@ -131,37 +139,6 @@ static void bfin_serial_enable_ms(struct uart_port *port)
 {
 }
 
-#ifdef CONFIG_KGDB_SERIAL_CONSOLE
-
-#ifndef CONFIG_SERIAL_BFIN_PIO
-# error KGDB only support UART in PIO mode.
-#endif
-
-void bfin_serial_poll_put_char(struct uart_port *port, unsigned char chr)
-{
-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
-
-	while (!(UART_GET_LSR(uart) & THRE))
-		cpu_relax();
-
-	UART_CLEAR_DLAB(uart);
-	UART_PUT_CHAR(uart, (unsigned char)chr);
-}
-
-int bfin_serial_poll_get_char(struct uart_port *port)
-{
-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
-	unsigned char chr;
-
-	while (!(UART_GET_LSR(uart) & DR))
-		cpu_relax();
-
-	UART_CLEAR_DLAB(uart);
-	chr = UART_GET_CHAR(uart);
-
-	return chr;
-}
-#endif
 
 #if ANOMALY_05000363 && defined(CONFIG_SERIAL_BFIN_PIO)
 # define UART_GET_ANOMALY_THRESHOLD(uart)    ((uart)->anomaly_threshold)
@@ -186,9 +163,12 @@ static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
 
 #ifdef CONFIG_KGDB_SERIAL_CONSOLE
 	if (kgdb_connected && is_kgdb_tty_line(uart->port.line)) {
-		if (ch == 0x3) /* Ctrl + C */
+		if (ch == 0x3) {/* Ctrl + C */
 			kgdb_breakpoint();
-		return;
+			return;
+		}
+		if (!uart->port.info)
+			return;
 	}
 #endif
 	tty = uart->port.info->tty;
@@ -613,6 +593,11 @@ static int bfin_serial_startup(struct uart_port *port)
 	uart->rx_dma_timer.expires = jiffies + DMA_RX_FLUSH_JIFFIES;
 	add_timer(&(uart->rx_dma_timer));
 #else
+# ifdef CONFIG_KGDB_SERIAL_CONSOLE
+	if (is_kgdb_tty_line(uart->port.line) && gdb_break_enabled == 1)
+		gdb_break_enabled = 0;
+	else {
+# endif
 	if (request_irq(uart->port.irq, bfin_serial_rx_int, IRQF_DISABLED,
 	     "BFIN_UART_RX", uart)) {
 		printk(KERN_NOTICE "Unable to attach BlackFin UART RX interrupt\n");
@@ -660,6 +645,9 @@ static int bfin_serial_startup(struct uart_port *port)
 			free_irq(uart->port.irq + 1, uart);
 			return -EBUSY;
 		}
+	}
+# endif
+# ifdef CONFIG_KGDB_SERIAL_CONSOLE
 	}
 # endif
 #endif
@@ -874,6 +862,51 @@ static void bfin_serial_reset_irda(struct uart_port *port)
 	UART_PUT_GCTL(&bfin_serial_ports[line], val);
 	SSYNC();
 }
+
+#ifdef CONFIG_KGDB_SERIAL_CONSOLE
+void bfin_serial_poll_put_char(struct uart_port *port, unsigned char chr)
+{
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+
+	while (!(UART_GET_LSR(uart) & THRE))
+		cpu_relax();
+
+	UART_CLEAR_DLAB(uart);
+	UART_PUT_CHAR(uart, (unsigned char)chr);
+}
+
+int bfin_serial_poll_get_char(struct uart_port *port)
+{
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+	unsigned char chr;
+
+	while (!(UART_GET_LSR(uart) & DR))
+		cpu_relax();
+
+	UART_CLEAR_DLAB(uart);
+	chr = UART_GET_CHAR(uart);
+
+	return chr;
+}
+
+void kgdboc_disable_gdb_break(int line)
+{
+	struct bfin_serial_port *uart = &bfin_serial_ports[line];
+
+	if (gdb_break_enabled == 1) {
+		bfin_serial_shutdown(&uart->port);
+		gdb_break_enabled = 0;
+	}
+}
+
+void kgdboc_enable_gdb_break(int line)
+{
+	struct bfin_serial_port *uart = &bfin_serial_ports[line];
+
+	bfin_serial_startup(&uart->port);
+	gdb_break_enabled = 1;
+}
+#endif
 
 static struct uart_ops bfin_serial_pops = {
 	.tx_empty	= bfin_serial_tx_empty,
