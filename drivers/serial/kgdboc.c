@@ -32,6 +32,11 @@ static struct kparam_string kps = {
 static struct tty_driver	*kgdb_tty_driver;
 static int			kgdb_tty_line;
 
+int is_kgdb_tty_line(int tty_line)
+{
+	return tty_line == kgdb_tty_line;
+}
+
 static int kgdboc_option_setup(char *opt)
 {
 	if (strlen(opt) > MAX_CONFIG_LEN) {

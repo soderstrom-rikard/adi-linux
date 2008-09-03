@@ -182,7 +182,6 @@ static inline void arch_kgdb_breakpoint(void)
 #define STATDA0		0x40
 #define STATDA1		0x80
 
-extern void kgdb_print(const char *fmt, ...);
-extern void init_kgdb_uart(void);
+extern int is_kgdb_tty_line(int tty_line);
 
 #endif

@@ -132,6 +132,11 @@ static void bfin_serial_enable_ms(struct uart_port *port)
 }
 
 #ifdef CONFIG_KGDB_SERIAL_CONSOLE
+
+#ifndef CONFIG_SERIAL_BFIN_PIO
+# error KGDB only support UART in PIO mode.
+#endif
+
 void bfin_serial_poll_put_char(struct uart_port *port, unsigned char chr)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
@@ -179,33 +184,11 @@ static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
  	ch = UART_GET_CHAR(uart);
  	uart->port.icount.rx++;
 
-#ifdef CONFIG_KGDB_UART
-	if (uart->port.line == CONFIG_KGDB_UART_PORT) {
-		struct pt_regs *regs = get_irq_regs();
-		int kgdb_timeout;
-		if (uart->port.cons->index == CONFIG_KGDB_UART_PORT
-			&& ch == 0x1) { /* Ctrl + A */
-			kgdb_breakkey_pressed(regs);
-			return;
-		}
-		if (ch == '$') {
-			/* connection from KGDB */
-			kgdb_timeout = get_cclk()/10000;
-			while (!(UART_GET_LSR(uart) & DR)
-				&& kgdb_timeout > 0) {
-				kgdb_timeout--;
-				cpu_relax();
-			}
-			if (kgdb_timeout && UART_GET_CHAR(uart) == 'q') {
-				kgdb_breakkey_pressed(regs);
-				return;
-			}
-		} else if (ch == 0x3) {/* Ctrl + C */
-			kgdb_breakkey_pressed(regs);
-			return;
-		}
-		if (!uart->port.info)
-			return;
+#ifdef CONFIG_KGDB_SERIAL_CONSOLE
+	if (kgdb_connected && is_kgdb_tty_line(uart->port.line)) {
+		if (ch == 0x3) /* Ctrl + C */
+			kgdb_breakpoint();
+		return;
 	}
 #endif
 	tty = uart->port.info->tty;
@@ -632,14 +615,8 @@ static int bfin_serial_startup(struct uart_port *port)
 #else
 	if (request_irq(uart->port.irq, bfin_serial_rx_int, IRQF_DISABLED,
 	     "BFIN_UART_RX", uart)) {
-# ifdef	CONFIG_KGDB_UART
-		if (uart->port.line != CONFIG_KGDB_UART_PORT) {
-# endif
 		printk(KERN_NOTICE "Unable to attach BlackFin UART RX interrupt\n");
 		return -EBUSY;
-# ifdef	CONFIG_KGDB_UART
-		}
-# endif
 	}
 
 	if (request_irq
@@ -1297,10 +1274,6 @@ static struct platform_driver bfin_serial_driver = {
 static int __init bfin_serial_init(void)
 {
 	int ret;
-#ifdef CONFIG_KGDB_UART
-	struct bfin_serial_port *uart = &bfin_serial_ports[CONFIG_KGDB_UART_PORT];
-	struct ktermios t;
-#endif
 
 	pr_info("Serial: Blackfin serial driver\n");
 
@@ -1314,22 +1287,6 @@ static int __init bfin_serial_init(void)
 			uart_unregister_driver(&bfin_serial_reg);
 		}
 	}
-#ifdef CONFIG_KGDB_UART
-	if (uart->port.cons->index != CONFIG_KGDB_UART_PORT) {
-		request_irq(uart->port.irq, bfin_serial_rx_int,
-			IRQF_DISABLED, "BFIN_UART_RX", uart);
-		pr_info("Request irq for kgdb uart port\n");
-		UART_SET_IER(uart, ERBFI);
-		SSYNC();
-		t.c_cflag = CS8|B57600;
-		t.c_iflag = 0;
-		t.c_oflag = 0;
-		t.c_lflag = ICANON;
-		t.c_line = CONFIG_KGDB_UART_PORT;
-		bfin_serial_set_termios(&uart->port, &t, &t);
-	}
-	init_kgdb_uart();
-#endif
 	return ret;
 }
 
@@ -1339,11 +1296,8 @@ static void __exit bfin_serial_exit(void)
 	uart_unregister_driver(&bfin_serial_reg);
 }
 
-#ifdef CONFIG_KGDB_UART
-subsys_initcall(bfin_serial_init);
-#else
+
 module_init(bfin_serial_init);
-#endif
 module_exit(bfin_serial_exit);
 
 MODULE_AUTHOR("Aubrey.Li <aubrey.li@analog.com>");
