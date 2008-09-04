@@ -32,17 +32,21 @@ static struct kparam_string kps = {
 static struct tty_driver	*kgdb_tty_driver;
 static int			kgdb_tty_line;
 
+/* Allow UART driver to check if current tty device is used by kgdb.*/
 int is_kgdb_tty_line(int tty_line)
 {
 	return tty_line == kgdb_tty_line;
 }
 EXPORT_SYMBOL_GPL(is_kgdb_tty_line);
 
-void __weak kgdboc_uart_port_shutdown(int line)
+/* UART driver may decide whether to support gdb break signal Ctrl+C
+   by request and handle UART RX interrupt. */
+void __weak kgdboc_uart_port_startup(int line)
 {
 }
 
-void __weak kgdboc_uart_port_startup(int line)
+/* Free UART RX interrupt */
+void __weak kgdboc_uart_port_shutdown(int line)
 {
 }
 
