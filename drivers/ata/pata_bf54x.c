@@ -1658,7 +1658,7 @@ static int __devexit bfin_atapi_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
-int bfin_atapi_suspend(struct platform_device *pdev, pm_message_t state)
+static int bfin_atapi_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct ata_host *host = dev_get_drvdata(&pdev->dev);
 	if (host)
@@ -1667,7 +1667,7 @@ int bfin_atapi_suspend(struct platform_device *pdev, pm_message_t state)
 		return 0;
 }
 
-int bfin_atapi_resume(struct platform_device *pdev)
+static int bfin_atapi_resume(struct platform_device *pdev)
 {
 	struct ata_host *host = dev_get_drvdata(&pdev->dev);
 	int ret;
@@ -1683,15 +1683,16 @@ int bfin_atapi_resume(struct platform_device *pdev)
 
 	return 0;
 }
+#else
+# define bfin_atapi_suspend NULL
+# define bfin_atapi_resume NULL
 #endif
 
 static struct platform_driver bfin_atapi_driver = {
 	.probe			= bfin_atapi_probe,
 	.remove			= __devexit_p(bfin_atapi_remove),
-#ifdef CONFIG_PM
 	.suspend		= bfin_atapi_suspend,
 	.resume			= bfin_atapi_resume,
-#endif
 	.driver = {
 		.name		= DRV_NAME,
 		.owner		= THIS_MODULE,
