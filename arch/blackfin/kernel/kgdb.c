@@ -204,30 +204,44 @@ struct hw_breakpoint {
 	unsigned int dataacc:2;
 	unsigned short count;
 	unsigned int addr;
-} breakinfo[HW_BREAKPOINT_NUM];
+} breakinfo[HW_WATCHPOINT_NUM];
 
 int bfin_set_hw_break(unsigned long addr, int len, enum kgdb_bptype type)
 {
 	int breakno;
+	int bfin_type;
+	int dataacc = 0;
 
 	switch (type) {
 	case BP_HARDWARE_BREAKPOINT:
-		for (breakno = 0; breakno < HW_BREAKPOINT_NUM; breakno++)
-			if (!breakinfo[breakno].occupied) {
-				breakinfo[breakno].occupied = 1;
-				breakinfo[breakno].enabled = 1;
-				breakinfo[breakno].type = 1;
-				breakinfo[breakno].addr = addr;
-				return 0;
-			}
+		bfin_type = TYPE_INST_WATCHPOINT;
 		break;
 	case BP_WRITE_WATCHPOINT:
+		dataacc = 1;
+		bfin_type = TYPE_DATA_WATCHPOINT;
+		break;
 	case BP_READ_WATCHPOINT:
+		dataacc = 2;
+		bfin_type = TYPE_DATA_WATCHPOINT;
+		break;
 	case BP_ACCESS_WATCHPOINT:
+		dataacc = 3;
+		bfin_type = TYPE_DATA_WATCHPOINT;
 		break;
 	default:
-		break;
+		return -ENOSPC;
 	};
+
+	for (breakno = 0; breakno < HW_WATCHPOINT_NUM; breakno++)
+		if (bfin_type == breakinfo[breakno].type
+			&& !breakinfo[breakno].occupied) {
+			breakinfo[breakno].occupied = 1;
+			breakinfo[breakno].enabled = 1;
+			breakinfo[breakno].addr = addr;
+			breakinfo[breakno].dataacc = dataacc;
+			breakinfo[breakno].count = 0;
+			return 0;
+		}
 
 	return -ENOSPC;
 }
@@ -235,27 +249,44 @@ int bfin_set_hw_break(unsigned long addr, int len, enum kgdb_bptype type)
 int bfin_remove_hw_break(unsigned long addr, int len, enum kgdb_bptype type)
 {
 	int breakno;
+	int bfin_type;
 
 	switch (type) {
 	case BP_HARDWARE_BREAKPOINT:
-		for (breakno = 0; breakno < HW_BREAKPOINT_NUM; breakno++)
-			if (breakinfo[breakno].addr == addr)
-				memset(&(breakinfo[breakno]), 0,
-					sizeof(struct hw_breakpoint));
+		bfin_type = TYPE_INST_WATCHPOINT;
+		break;
 	case BP_WRITE_WATCHPOINT:
 	case BP_READ_WATCHPOINT:
 	case BP_ACCESS_WATCHPOINT:
+		bfin_type = TYPE_DATA_WATCHPOINT;
 		break;
 	default:
-		break;
+		return 0;
 	};
+
+	for (breakno = 0; breakno < HW_WATCHPOINT_NUM; breakno++)
+		if (bfin_type == breakinfo[breakno].type
+			&& breakinfo[breakno].occupied
+			&& breakinfo[breakno].addr == addr)
+			breakinfo[breakno].occupied = 0;
 
 	return 0;
 }
 
 void bfin_remove_all_hw_break(void)
 {
-	memset(breakinfo, 0, sizeof(struct hw_breakpoint)*HW_BREAKPOINT_NUM);
+	int breakno;
+
+	bfin_write_WPIACTL(0);
+	bfin_write_WPDACTL(0);
+	CSYNC();
+
+	memset(breakinfo, 0, sizeof(struct hw_breakpoint)*HW_WATCHPOINT_NUM);
+
+	for (breakno = 0; breakno < HW_INST_WATCHPOINT_NUM; breakno++)
+		breakinfo[breakno].type = TYPE_INST_WATCHPOINT;
+	for (; breakno < HW_WATCHPOINT_NUM; breakno++)
+		breakinfo[breakno].type = TYPE_DATA_WATCHPOINT;
 }
 
 /*
@@ -270,105 +301,84 @@ void kgdb_show_info(void)
 void bfin_correct_hw_break(void)
 {
 	int breakno;
-	int correctit;
-	uint32_t wpdactl = bfin_read_WPDACTL();
+	unsigned int wpiactl = 0;
+	unsigned int wpdactl = 0;
 
-	correctit = 0;
-	for (breakno = 0; breakno < HW_BREAKPOINT_NUM; breakno++) {
-		if (breakinfo[breakno].type == 1) {
+	for (breakno = 0; breakno < HW_WATCHPOINT_NUM; breakno++)
+		if (breakinfo[breakno].enabled)
 			switch (breakno) {
 			case 0:
-				if (breakinfo[breakno].enabled && !(wpdactl & WPIAEN0)) {
-					correctit = 1;
-					wpdactl &= ~(WPIREN01|EMUSW0);
-					wpdactl |= WPIAEN0|WPICNTEN0;
-					bfin_write_WPIA0(breakinfo[breakno].addr);
-					bfin_write_WPIACNT0(breakinfo[breakno].skip);
-				} else if (!breakinfo[breakno].enabled && (wpdactl & WPIAEN0)) {
-					correctit = 1;
-					wpdactl &= ~WPIAEN0;
-				}
+				wpiactl |= WPIAEN0|WPICNTEN0;
+				wpiactl |= WPPWR;
+				bfin_write_WPIA0(breakinfo[breakno].addr);
+				bfin_write_WPIACNT0(breakinfo[breakno].count
+					+ breakinfo->skip);
 				break;
-
 			case 1:
-				if (breakinfo[breakno].enabled && !(wpdactl & WPIAEN1)) {
-					correctit = 1;
-					wpdactl &= ~(WPIREN01|EMUSW1);
-					wpdactl |= WPIAEN1|WPICNTEN1;
-					bfin_write_WPIA1(breakinfo[breakno].addr);
-					bfin_write_WPIACNT1(breakinfo[breakno].skip);
-				} else if (!breakinfo[breakno].enabled && (wpdactl & WPIAEN1)) {
-					correctit = 1;
-					wpdactl &= ~WPIAEN1;
-				}
+				wpiactl |= WPIAEN1|WPICNTEN1;
+				wpiactl |= WPPWR;
+				bfin_write_WPIA1(breakinfo[breakno].addr);
+				bfin_write_WPIACNT1(breakinfo[breakno].count
+					+ breakinfo->skip);
 				break;
-
 			case 2:
-				if (breakinfo[breakno].enabled && !(wpdactl & WPIAEN2)) {
-					correctit = 1;
-					wpdactl &= ~(WPIREN23|EMUSW2);
-					wpdactl |= WPIAEN2|WPICNTEN2;
-					bfin_write_WPIA2(breakinfo[breakno].addr);
-					bfin_write_WPIACNT2(breakinfo[breakno].skip);
-				} else if (!breakinfo[breakno].enabled && (wpdactl & WPIAEN2)) {
-					correctit = 1;
-					wpdactl &= ~WPIAEN2;
-				}
+				wpiactl |= WPIAEN2|WPICNTEN2;
+				wpiactl |= WPPWR;
+				bfin_write_WPIA2(breakinfo[breakno].addr);
+				bfin_write_WPIACNT2(breakinfo[breakno].count
+					+ breakinfo->skip);
 				break;
-
 			case 3:
-				if (breakinfo[breakno].enabled && !(wpdactl & WPIAEN3)) {
-					correctit = 1;
-					wpdactl &= ~(WPIREN23|EMUSW3);
-					wpdactl |= WPIAEN3|WPICNTEN3;
-					bfin_write_WPIA3(breakinfo[breakno].addr);
-					bfin_write_WPIACNT3(breakinfo[breakno].skip);
-				} else if (!breakinfo[breakno].enabled && (wpdactl & WPIAEN3)) {
-					correctit = 1;
-					wpdactl &= ~WPIAEN3;
-				}
+				wpiactl |= WPIAEN3|WPICNTEN3;
+				wpiactl |= WPPWR;
+				bfin_write_WPIA3(breakinfo[breakno].addr);
+				bfin_write_WPIACNT3(breakinfo[breakno].count
+					+ breakinfo->skip);
 				break;
 			case 4:
-				if (breakinfo[breakno].enabled && !(wpdactl & WPIAEN4)) {
-					correctit = 1;
-					wpdactl &= ~(WPIREN45|EMUSW4);
-					wpdactl |= WPIAEN4|WPICNTEN4;
-					bfin_write_WPIA4(breakinfo[breakno].addr);
-					bfin_write_WPIACNT4(breakinfo[breakno].skip);
-				} else if (!breakinfo[breakno].enabled && (wpdactl & WPIAEN4)) {
-					correctit = 1;
-					wpdactl &= ~WPIAEN4;
-				}
+				wpiactl |= WPIAEN4|WPICNTEN4;
+				wpiactl |= WPPWR;
+				bfin_write_WPIA4(breakinfo[breakno].addr);
+				bfin_write_WPIACNT4(breakinfo[breakno].count
+					+ breakinfo->skip);
 				break;
 			case 5:
-				if (breakinfo[breakno].enabled && !(wpdactl & WPIAEN5)) {
-					correctit = 1;
-					wpdactl &= ~(WPIREN45|EMUSW5);
-					wpdactl |= WPIAEN5|WPICNTEN5;
-					bfin_write_WPIA5(breakinfo[breakno].addr);
-					bfin_write_WPIACNT5(breakinfo[breakno].skip);
-				} else if (!breakinfo[breakno].enabled && (wpdactl & WPIAEN5)) {
-					correctit = 1;
-					wpdactl &= ~WPIAEN5;
-				}
+				wpiactl |= WPIAEN5|WPICNTEN5;
+				wpiactl |= WPPWR;
+				bfin_write_WPIA5(breakinfo[breakno].addr);
+				bfin_write_WPIACNT5(breakinfo[breakno].count
+					+ breakinfo->skip);
 				break;
-			}
-		}
-	}
-	if (correctit) {
-		wpdactl &= ~WPAND;
-		wpdactl |= WPPWR;
-		/*printk("correct_hw_break: wpdactl=0x%x\n", wpdactl);*/
-		bfin_write_WPDACTL(wpdactl);
-		CSYNC();
-		/*kgdb_show_info();*/
-	}
+			case 6:
+				wpdactl |= WPDAEN0|WPDCNTEN0;
+				wpdactl |= breakinfo[breakno].dataacc
+					<< WPDACC0_OFFSET;
+				bfin_write_WPDA0(breakinfo[breakno].addr);
+				bfin_write_WPDACNT0(breakinfo[breakno].count
+					+ breakinfo->skip);
+				break;
+			case 7:
+				wpdactl |= WPDAEN1|WPDCNTEN1;
+				wpdactl |= breakinfo[breakno].dataacc
+					<< WPDACC1_OFFSET;
+				bfin_write_WPDA1(breakinfo[breakno].addr);
+				bfin_write_WPDACNT1(breakinfo[breakno].count
+					+ breakinfo->skip);
+				break;
+			};
+
+	/*printk("correct_hw_break: wpdactl=0x%x\n", wpdactl);*/
+	bfin_write_WPIACTL(wpiactl);
+	bfin_write_WPDACTL(wpdactl);
+	CSYNC();
+	/*kgdb_show_info();*/
 }
 
 void kgdb_disable_hw_debug(struct pt_regs *regs)
 {
 	/* Disable hardware debugging while we are in kgdb */
-	bfin_write_WPIACTL(bfin_read_WPIACTL() & ~0x1);
+	bfin_write_WPIACTL(0);
+	bfin_write_WPDACTL(0);
 	CSYNC();
 }
 
@@ -430,20 +440,18 @@ int kgdb_arch_handle_exception(int vector, int signo,
 			kgdb_single_step = i + 1;
 		}
 
-		wp_status = bfin_read_WPSTAT();
-		CSYNC();
-
 		if (vector == VEC_WATCH) {
-			for (breakno = 0; breakno < 6; ++breakno) {
+			wp_status = bfin_read_WPSTAT();
+			for (breakno = 0; breakno < HW_WATCHPOINT_NUM; breakno++) {
 				if (wp_status & (1 << breakno)) {
 					breakinfo->skip = 1;
 					break;
 				}
 			}
+			bfin_write_WPSTAT(0);
 		}
-		bfin_correct_hw_break();
 
-		bfin_write_WPSTAT(0);
+		bfin_correct_hw_break();
 
 		return 0;
 	}			/* switch */
