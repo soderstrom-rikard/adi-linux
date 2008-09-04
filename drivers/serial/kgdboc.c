@@ -38,11 +38,11 @@ int is_kgdb_tty_line(int tty_line)
 }
 EXPORT_SYMBOL_GPL(is_kgdb_tty_line);
 
-void __weak kgdboc_disable_gdb_break(int line)
+void __weak kgdboc_uart_port_shutdown(int line)
 {
 }
 
-void __weak kgdboc_enable_gdb_break(int line)
+void __weak kgdboc_uart_port_startup(int line)
 {
 }
 
@@ -84,7 +84,7 @@ static int configure_kgdboc(void)
 
 	configured = 1;
 
-	kgdboc_enable_gdb_break(kgdb_tty_line);
+	kgdboc_uart_port_startup(kgdb_tty_line);
 
 	return 0;
 
@@ -107,7 +107,7 @@ static int __init init_kgdboc(void)
 static void cleanup_kgdboc(void)
 {
 	if (configured == 1) {
-		kgdboc_disable_gdb_break(kgdb_tty_line);
+		kgdboc_uart_port_shutdown(kgdb_tty_line);
 		kgdb_unregister_io_module(&kgdboc_io_ops);
 	}
 }

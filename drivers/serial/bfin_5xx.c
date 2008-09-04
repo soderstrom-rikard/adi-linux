@@ -889,7 +889,7 @@ int bfin_serial_poll_get_char(struct uart_port *port)
 	return chr;
 }
 
-void kgdboc_disable_gdb_break(int line)
+void kgdboc_uart_port_shutdown(int line)
 {
 	struct bfin_serial_port *uart = &bfin_serial_ports[line];
 
@@ -899,7 +899,7 @@ void kgdboc_disable_gdb_break(int line)
 	}
 }
 
-void kgdboc_enable_gdb_break(int line)
+void kgdboc_uart_port_startup(int line)
 {
 	struct bfin_serial_port *uart = &bfin_serial_ports[line];
 
