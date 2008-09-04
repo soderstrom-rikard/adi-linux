@@ -466,6 +466,46 @@ static int hex(char ch)
 	return -1;
 }
 
+static int validate_memory_access_address(unsigned long addr, int size)
+{
+	if (size == 0)
+		return 0;
+	if (addr < (addr + size))
+		return 0;
+	if (addr >= 0x1000 && (addr + size) <= physical_mem_end)
+		return 0;
+	if (addr >= SYSMMR_BASE)
+		return 0;
+	if (addr >= L1_SCRATCH_START
+	   && addr + size <= L1_SCRATCH_START + L1_SCRATCH_LENGTH)
+		return 0;
+	if (addr >= ASYNC_BANK0_BASE
+	   && addr + size <= ASYNC_BANK3_BASE + ASYNC_BANK3_BASE)
+		return 0;
+#if L1_CODE_LENGTH != 0
+	if (addr >= L1_CODE_START
+	   && addr + size <= L1_CODE_START + L1_CODE_LENGTH)
+		return 0;
+#endif
+#if L1_DATA_A_LENGTH != 0
+	if (addr >= L1_DATA_A_START
+	   && addr + size <= L1_DATA_A_START + L1_DATA_A_LENGTH)
+		return 0;
+#endif
+#if L1_DATA_B_LENGTH != 0
+	if (addr >= L1_DATA_B_START
+	   && addr + size <= L1_DATA_B_START + L1_DATA_B_LENGTH)
+		return 0;
+#endif
+#if L2_LENGTH != 0
+	if (addr >= L2_START
+	   && addr + size <= L2_START + L2_LENGTH)
+		return 0;
+#endif
+
+	return EFAULT;
+}
+
 /*
  * Convert the memory pointed to by mem into hex, placing result in buf.
  * Return a pointer to the last char put in buf (null). May return an error.
@@ -478,13 +518,16 @@ int kgdb_mem2hex(char *mem, char *buf, int count)
 	unsigned short mmr16;
 	unsigned long mmr32;
 
+	if (validate_memory_access_address((unsigned long)mem, count))
+		return EFAULT;
+
 	/*
 	 * We use the upper half of buf as an intermediate buffer for the
 	 * raw memory copy.  Hex conversion will work against this one.
 	 */
 	tmp = buf + count;
 
-	if ((unsigned int)mem >= 0xffc00000) { /*access MMR registers*/
+	if ((unsigned int)mem >= SYSMMR_BASE) { /*access MMR registers*/
 		switch (count) {
 		case 2:
 			if ((unsigned int)mem % 2 == 0) {
@@ -492,6 +535,7 @@ int kgdb_mem2hex(char *mem, char *buf, int count)
 				pch = (unsigned char *)&mmr16;
 				*tmp++ = *pch++;
 				*tmp++ = *pch++;
+				tmp -= 2;
 			} else
 				err = EFAULT;
 			break;
@@ -503,22 +547,18 @@ int kgdb_mem2hex(char *mem, char *buf, int count)
 				*tmp++ = *pch++;
 				*tmp++ = *pch++;
 				*tmp++ = *pch++;
+				tmp -= 4;
 			} else
 				err = EFAULT;
 			break;
 		default:
 			err = EFAULT;
 		};
-	} else if ((unsigned int)mem >= 0xffA00000  /*access L1 instruction registers*/
-#ifdef CONFIG_BLKFIN_ICACHE
-		&& (unsigned int)mem < 0xffA10000) {
-#else
-		&& (unsigned int)mem < 0xffA14000) {
-#endif
+	} else if ((unsigned int)mem >= L1_CODE_START &&
+		(unsigned int)(mem + count) <= L1_CODE_START + L1_CODE_LENGTH) {
+		/* access L1 instruction SRAM*/
 		if (dma_memcpy(tmp, mem, count) == NULL)
 			err = EFAULT;
-	} else if ((unsigned int)mem < 0x1000) {
-		err = EFAULT;
 	} else
 		err = probe_kernel_read(tmp, mem, count);
 
@@ -545,23 +585,22 @@ int kgdb_ebin2mem(char *buf, char *mem, int count)
 	int err = 0;
 	char c;
 
+	if (validate_memory_access_address((unsigned long)mem, count))
+		return EFAULT;
+
 	while (count-- > 0) {
 		c = *buf++;
 		if (c == 0x7d)
 			c = *buf++ ^ 0x20;
 
-		if ((unsigned int)mem >= 0xffc00000) { /*access MMR registers*/
+		if ((unsigned int)mem >= SYSMMR_BASE) {
+			/*access MMR registers*/
 			err = EFAULT;
-		} else if ((unsigned int)mem >= 0xffA00000  /*access L1 instruction registers*/
-#ifdef CONFIG_BLKFIN_ICACHE
-			&& (unsigned int)mem < 0xffA10000) {
-#else
-			&& (unsigned int)mem < 0xffA14000) {
-#endif
+		} else if ((unsigned int)mem >= L1_CODE_START &&
+			(unsigned int)mem < L1_CODE_START + L1_CODE_LENGTH) {
+			/* access L1 instruction SRAM */
 			if (dma_memcpy(mem, &c, 1) == NULL)
 				err = EFAULT;
-		} else if ((unsigned int)mem < 0x1000) {
-			err = EFAULT;
 		} else
 			err = probe_kernel_write(mem, &c, 1);
 
@@ -586,6 +625,9 @@ int kgdb_hex2mem(char *buf, char *mem, int count)
 	unsigned short *mmr16;
 	unsigned long *mmr32;
 
+	if (validate_memory_access_address((unsigned long)mem, count))
+		return EFAULT;
+
 	/*
 	 * We use the upper half of buf as an intermediate buffer for the
 	 * raw memory that is converted from hex.
@@ -599,7 +641,7 @@ int kgdb_hex2mem(char *buf, char *mem, int count)
 		*tmp_raw |= hex(*tmp_hex--) << 4;
 	}
 
-	if ((unsigned int)mem >= 0xffc00000) { /*access MMR registers*/
+	if ((unsigned int)mem >= SYSMMR_BASE) { /*access MMR registers*/
 		switch (count) {
 		case 2:
 			if ((unsigned int)mem % 2 == 0) {
@@ -618,37 +660,47 @@ int kgdb_hex2mem(char *buf, char *mem, int count)
 		default:
 			return EFAULT;
 		}
-	} else if ((unsigned int)mem >= 0xffA00000  /*access L1 instruction registers*/
-#ifdef CONFIG_BLKFIN_ICACHE
-		&& (unsigned int)mem < 0xffA10000) {
-#else
-		&& (unsigned int)mem < 0xffA14000) {
-#endif
+	} else if ((unsigned int)mem >= L1_CODE_START &&
+		(unsigned int)(mem + count) <= L1_CODE_START + L1_CODE_LENGTH) {
+		/* access L1 instruction SRAM */
 		if (dma_memcpy(mem, tmp_raw, count) == NULL)
 			return EFAULT;
-	} else if ((unsigned int)mem < 0x1000)
-		return EFAULT;
-	else
+	} else
 		return probe_kernel_write(mem, tmp_raw, count);
 	return 0;
 }
 
 int kgdb_validate_break_address(unsigned long addr)
 {
-	return !access_ok(0, addr, BREAK_INSTR_SIZE);
+	if (addr >= 0x1000 && (addr + BREAK_INSTR_SIZE) <= physical_mem_end)
+		return 0;
+	if (addr >= ASYNC_BANK0_BASE
+	   && addr + BREAK_INSTR_SIZE <= ASYNC_BANK3_BASE + ASYNC_BANK3_BASE)
+		return 0;
+#if L1_CODE_LENGTH != 0
+	if (addr >= L1_CODE_START
+	   && addr + BREAK_INSTR_SIZE <= L1_CODE_START + L1_CODE_LENGTH)
+		return 0;
+#endif
+#if L2_LENGTH != 0
+	if (addr >= L2_START
+	   && addr + BREAK_INSTR_SIZE <= L2_START + L2_LENGTH)
+		return 0;
+#endif
+
+	return EFAULT;
 }
 
 int kgdb_arch_set_breakpoint(unsigned long addr, char *saved_instr)
 {
 	int err;
 
-	if ((unsigned int)addr >= 0xffA00000  /*access L1 instruction registers*/
-#ifdef CONFIG_BLKFIN_ICACHE
-		&& (unsigned int)addr < 0xffA10000) {
-#else
-		&& (unsigned int)addr < 0xffA14000) {
-#endif
-		if (dma_memcpy(saved_instr, (void *)addr, BREAK_INSTR_SIZE) == NULL)
+	if ((unsigned int)addr >= L1_CODE_START &&
+		(unsigned int)(addr + BREAK_INSTR_SIZE) <
+			L1_CODE_START + L1_CODE_LENGTH) {
+		/* access L1 instruction SRAM */
+		if (dma_memcpy(saved_instr, (void *)addr, BREAK_INSTR_SIZE)
+			== NULL)
 			return -EFAULT;
 
 		if (dma_memcpy((void *)addr, arch_kgdb_ops.gdb_bpt_instr,
@@ -669,12 +721,10 @@ int kgdb_arch_set_breakpoint(unsigned long addr, char *saved_instr)
 
 int kgdb_arch_remove_breakpoint(unsigned long addr, char *bundle)
 {
-	if ((unsigned int)addr >= 0xffA00000  /*access L1 instruction registers*/
-#ifdef CONFIG_BLKFIN_ICACHE
-		&& (unsigned int)addr < 0xffA10000) {
-#else
-		&& (unsigned int)addr < 0xffA14000) {
-#endif
+	if ((unsigned int)addr >= L1_CODE_START &&
+		(unsigned int)(addr + BREAK_INSTR_SIZE) <
+			L1_CODE_START + L1_CODE_LENGTH) {
+		/* access L1 instruction SRAM */
 		if (dma_memcpy((void *)addr, bundle, BREAK_INSTR_SIZE) == NULL)
 			return -EFAULT;
 
