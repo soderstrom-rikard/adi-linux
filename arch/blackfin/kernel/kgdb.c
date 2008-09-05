@@ -1,32 +1,9 @@
 /*
- * File:         arch/blackfin/kernel/kgdb.c
- * Based on:
- * Author:       Sonic Zhang
+ * arch/blackfin/kernel/kgdb.c - Blackfin kgdb pieces
  *
- * Created:
- * Description:
+ * Copyright 2005-2008 Analog Devices Inc.
  *
- * Rev:          $Id: kgdb_bfin_linux-2.6.x.patch 4934 2007-02-13 09:32:11Z sonicz $
- *
- * Modified:
- *               Copyright 2005-2006 Analog Devices Inc.
- *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * Licensed under the GPL-2 or later.
  */
 
 #include <linux/string.h>
@@ -230,7 +207,7 @@ int bfin_set_hw_break(unsigned long addr, int len, enum kgdb_bptype type)
 		break;
 	default:
 		return -ENOSPC;
-	};
+	}
 
 	for (breakno = 0; breakno < HW_WATCHPOINT_NUM; breakno++)
 		if (bfin_type == breakinfo[breakno].type
@@ -262,7 +239,7 @@ int bfin_remove_hw_break(unsigned long addr, int len, enum kgdb_bptype type)
 		break;
 	default:
 		return 0;
-	};
+	}
 	for (breakno = 0; breakno < HW_WATCHPOINT_NUM; breakno++)
 		if (bfin_type == breakinfo[breakno].type
 			&& breakinfo[breakno].occupied
@@ -354,7 +331,7 @@ void bfin_correct_hw_break(void)
 				bfin_write_WPDACNT1(breakinfo[breakno].count
 					+ breakinfo->skip);
 				break;
-			};
+			}
 		}
 
 	/* Should enable WPPWR bit first before set any other
@@ -559,7 +536,7 @@ int kgdb_mem2hex(char *mem, char *buf, int count)
 			break;
 		default:
 			err = EFAULT;
-		};
+		}
 	} else if ((unsigned int)mem >= L1_CODE_START &&
 		(unsigned int)(mem + count) <= L1_CODE_START + L1_CODE_LENGTH) {
 		/* access L1 instruction SRAM*/
