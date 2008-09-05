@@ -130,6 +130,7 @@ ENTRY(_ex_icplb_miss)
 	call __cplb_hdr;
 #endif
 
+#ifdef CONFIG_DEBUG_DOUBLEFAULT
 	/* While we were processing this, did we double fault? */
 	r7 = SEQSTAT;           /* reason code is in bit 5:0 */
 	r6.l = lo(SEQSTAT_EXCAUSE);
@@ -138,7 +139,7 @@ ENTRY(_ex_icplb_miss)
 	r6 = 0x25;
 	CC = R7 == R6;
 	if CC JUMP _double_fault;
-
+#endif
 
 	DEBUG_HWTRACE_RESTORE(p5, r7)
 	RESTORE_ALL_SYS
@@ -268,6 +269,15 @@ ENTRY(_bfin_return_from_exception)
 	r6.h = hi(SEQSTAT_EXCAUSE);
 	r7 = r7 & r6;
 	r6 = 0x25;
+	CC = R7 == R6;
+	if CC JUMP _double_fault;
+
+	/* Did we cause a HW error? */
+	p5.l = lo(ILAT);
+	p5.h = hi(ILAT);
+	r6 = [p5];
+	r7 = 0x20;		/* Did I just cause anther HW error? */
+	r7 = r7 & r1;
 	CC = R7 == R6;
 	if CC JUMP _double_fault;
 #endif
@@ -445,6 +455,17 @@ ENTRY(_exception_to_level5)
 	SP += -12;
 	call _trap_c;
 	SP += 12;
+
+#ifdef CONFIG_DEBUG_DOUBLEFAULT
+	/* Grab ILAT */
+	p2.l = lo(ILAT);
+	p2.h = hi(ILAT);
+	r0 = [p2];
+	r1 = 0x20;  /* Did I just cause anther HW error? */
+	r0 = r0 & r1;
+	CC = R0 == R1;
+	if CC JUMP _double_fault;
+#endif
 
 	call _ret_from_exception;
 	RESTORE_ALL_SYS
