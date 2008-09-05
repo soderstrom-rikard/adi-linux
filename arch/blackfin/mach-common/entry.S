@@ -374,48 +374,48 @@ ENDPROC(_ex_trap_c)
  * exception. This is a unrecoverable event, so crash
  */
 ENTRY(_double_fault)
-        /* Turn caches & protection off, to ensure we don't get any more
-         * double exceptions
-         */
+	/* Turn caches & protection off, to ensure we don't get any more
+	 * double exceptions
+	 */
 
-        P4.L = LO(IMEM_CONTROL);
-        P4.H = HI(IMEM_CONTROL);
+	P4.L = LO(IMEM_CONTROL);
+	P4.H = HI(IMEM_CONTROL);
 
-        R5 = [P4];              /* Control Register*/
-        BITCLR(R5,ENICPLB_P);
-        SSYNC;          /* SSYNC required before writing to IMEM_CONTROL. */
-        .align 8;
-        [P4] = R5;
-        SSYNC;
+	R5 = [P4];              /* Control Register*/
+	BITCLR(R5,ENICPLB_P);
+	SSYNC;          /* SSYNC required before writing to IMEM_CONTROL. */
+	.align 8;
+	[P4] = R5;
+	SSYNC;
 
-        P4.L = LO(DMEM_CONTROL);
-        P4.H = HI(DMEM_CONTROL);
-        R5 = [P4];
-        BITCLR(R5,ENDCPLB_P);
-        SSYNC;          /* SSYNC required before writing to DMEM_CONTROL. */
-        .align 8;
-        [P4] = R5;
-        SSYNC;
+	P4.L = LO(DMEM_CONTROL);
+	P4.H = HI(DMEM_CONTROL);
+	R5 = [P4];
+	BITCLR(R5,ENDCPLB_P);
+	SSYNC;          /* SSYNC required before writing to DMEM_CONTROL. */
+	.align 8;
+	[P4] = R5;
+	SSYNC;
 
-        /* Fix up the stack */
-        (R7:6,P5:4) = [sp++];
-        ASTAT = [sp++];
-        SP = EX_SCRATCH_REG;
+	/* Fix up the stack */
+	(R7:6,P5:4) = [sp++];
+	ASTAT = [sp++];
+	SP = EX_SCRATCH_REG;
 
-        /* We should be out of the exception stack, and back down into
-         * kernel or user space stack
-         */
-        SAVE_ALL_SYS
+	/* We should be out of the exception stack, and back down into
+	 * kernel or user space stack
+	 */
+	SAVE_ALL_SYS
 
 	/* The dumping functions expect the return address in the RETI
 	 * slot.  */
 	r6 = retx;
 	[sp + PT_PC] = r6;
 
-        r0 = sp;        /* stack frame pt_regs pointer argument ==> r0 */
-        SP += -12;
-        call _double_fault_c;
-        SP += 12;
+	r0 = sp;        /* stack frame pt_regs pointer argument ==> r0 */
+	SP += -12;
+	call _double_fault_c;
+	SP += 12;
 .L_double_fault_panic:
         JUMP .L_double_fault_panic
 
