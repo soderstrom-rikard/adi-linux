@@ -132,8 +132,8 @@ static inline void arch_kgdb_breakpoint(void)
 #define CACHE_FLUSH_IS_SAFE	1
 #define HW_INST_WATCHPOINT_NUM	6
 #define HW_WATCHPOINT_NUM	8
-#define TYPE_INST_WATCHPOINT	1
-#define TYPE_DATA_WATCHPOINT	2
+#define TYPE_INST_WATCHPOINT	0
+#define TYPE_DATA_WATCHPOINT	1
 
 /* Instruction watchpoint address control register bits mask */
 #define WPPWR		0x1
@@ -171,9 +171,9 @@ static inline void arch_kgdb_breakpoint(void)
 #define WPDCNTEN0	0x10
 #define WPDCNTEN1	0x20
 
-#define WPDSRC0_OFFSET	6
+#define WPDSRC0		0xc0
 #define WPDACC0_OFFSET	8
-#define WPDSRC1_OFFSET	10
+#define WPDSRC1		0xc00
 #define WPDACC1_OFFSET	12
 
 /* Watchpoint status register bits mask */

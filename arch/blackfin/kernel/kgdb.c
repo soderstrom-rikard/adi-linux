@@ -263,12 +263,13 @@ int bfin_remove_hw_break(unsigned long addr, int len, enum kgdb_bptype type)
 	default:
 		return 0;
 	};
-
 	for (breakno = 0; breakno < HW_WATCHPOINT_NUM; breakno++)
 		if (bfin_type == breakinfo[breakno].type
 			&& breakinfo[breakno].occupied
-			&& breakinfo[breakno].addr == addr)
+			&& breakinfo[breakno].addr == addr) {
 			breakinfo[breakno].occupied = 0;
+			breakinfo[breakno].enabled = 0;
+		}
 
 	return 0;
 }
@@ -289,68 +290,56 @@ void bfin_remove_all_hw_break(void)
 		breakinfo[breakno].type = TYPE_DATA_WATCHPOINT;
 }
 
-/*
-void kgdb_show_info(void)
-{
-	printk(KERN_DEBUG "hwd: wpia0=0x%x, wpiacnt0=%d, wpiactl=0x%x, wpstat=0x%x\n",
-		bfin_read_WPIA0(), bfin_read_WPIACNT0(),
-		bfin_read_WPIACTL(), bfin_read_WPSTAT());
-}
-*/
-
 void bfin_correct_hw_break(void)
 {
 	int breakno;
 	unsigned int wpiactl = 0;
 	unsigned int wpdactl = 0;
+	int enable_wp = 0;
 
 	for (breakno = 0; breakno < HW_WATCHPOINT_NUM; breakno++)
-		if (breakinfo[breakno].enabled)
+		if (breakinfo[breakno].enabled) {
+			enable_wp = 1;
+
 			switch (breakno) {
 			case 0:
 				wpiactl |= WPIAEN0|WPICNTEN0;
-				wpiactl |= WPPWR;
 				bfin_write_WPIA0(breakinfo[breakno].addr);
 				bfin_write_WPIACNT0(breakinfo[breakno].count
 					+ breakinfo->skip);
 				break;
 			case 1:
 				wpiactl |= WPIAEN1|WPICNTEN1;
-				wpiactl |= WPPWR;
 				bfin_write_WPIA1(breakinfo[breakno].addr);
 				bfin_write_WPIACNT1(breakinfo[breakno].count
 					+ breakinfo->skip);
 				break;
 			case 2:
 				wpiactl |= WPIAEN2|WPICNTEN2;
-				wpiactl |= WPPWR;
 				bfin_write_WPIA2(breakinfo[breakno].addr);
 				bfin_write_WPIACNT2(breakinfo[breakno].count
 					+ breakinfo->skip);
 				break;
 			case 3:
 				wpiactl |= WPIAEN3|WPICNTEN3;
-				wpiactl |= WPPWR;
 				bfin_write_WPIA3(breakinfo[breakno].addr);
 				bfin_write_WPIACNT3(breakinfo[breakno].count
 					+ breakinfo->skip);
 				break;
 			case 4:
 				wpiactl |= WPIAEN4|WPICNTEN4;
-				wpiactl |= WPPWR;
 				bfin_write_WPIA4(breakinfo[breakno].addr);
 				bfin_write_WPIACNT4(breakinfo[breakno].count
 					+ breakinfo->skip);
 				break;
 			case 5:
 				wpiactl |= WPIAEN5|WPICNTEN5;
-				wpiactl |= WPPWR;
 				bfin_write_WPIA5(breakinfo[breakno].addr);
 				bfin_write_WPIACNT5(breakinfo[breakno].count
 					+ breakinfo->skip);
 				break;
 			case 6:
-				wpdactl |= WPDAEN0|WPDCNTEN0;
+				wpdactl |= WPDAEN0|WPDCNTEN0|WPDSRC0;
 				wpdactl |= breakinfo[breakno].dataacc
 					<< WPDACC0_OFFSET;
 				bfin_write_WPDA0(breakinfo[breakno].addr);
@@ -358,7 +347,7 @@ void bfin_correct_hw_break(void)
 					+ breakinfo->skip);
 				break;
 			case 7:
-				wpdactl |= WPDAEN1|WPDCNTEN1;
+				wpdactl |= WPDAEN1|WPDCNTEN1|WPDSRC1;
 				wpdactl |= breakinfo[breakno].dataacc
 					<< WPDACC1_OFFSET;
 				bfin_write_WPDA1(breakinfo[breakno].addr);
@@ -366,12 +355,17 @@ void bfin_correct_hw_break(void)
 					+ breakinfo->skip);
 				break;
 			};
+		}
 
-	/*printk("correct_hw_break: wpdactl=0x%x\n", wpdactl);*/
-	bfin_write_WPIACTL(wpiactl);
+	/* Should enable WPPWR bit first before set any other
+	 * WPIACTL and WPDACTL bits */
+	if (enable_wp) {
+		bfin_write_WPIACTL(WPPWR);
+		CSYNC();
+	}
+	bfin_write_WPIACTL(wpiactl|WPPWR);
 	bfin_write_WPDACTL(wpdactl);
 	CSYNC();
-	/*kgdb_show_info();*/
 }
 
 void kgdb_disable_hw_debug(struct pt_regs *regs)
@@ -594,33 +588,54 @@ int kgdb_mem2hex(char *mem, char *buf, int count)
  */
 int kgdb_ebin2mem(char *buf, char *mem, int count)
 {
+	char *tmp_old;
+	char *tmp_new;
+	unsigned short *mmr16;
+	unsigned long *mmr32;
 	int err = 0;
-	char c;
+	int size = 0;
 
-	if (validate_memory_access_address((unsigned long)mem, count))
-		return EFAULT;
+	tmp_old = tmp_new = buf;
 
 	while (count-- > 0) {
-		c = *buf++;
-		if (c == 0x7d)
-			c = *buf++ ^ 0x20;
-
-		if ((unsigned int)mem >= SYSMMR_BASE) {
-			/*access MMR registers*/
-			err = EFAULT;
-		} else if ((unsigned int)mem >= L1_CODE_START &&
-			(unsigned int)mem < L1_CODE_START + L1_CODE_LENGTH) {
-			/* access L1 instruction SRAM */
-			if (dma_memcpy(mem, &c, 1) == NULL)
-				err = EFAULT;
-		} else
-			err = probe_kernel_write(mem, &c, 1);
-
-		if (err)
-			break;
-
-		mem++;
+		if (*tmp_old == 0x7d)
+			*tmp_new = *(++tmp_old) ^ 0x20;
+		else
+			*tmp_new = *tmp_old;
+		tmp_new++;
+		tmp_old++;
+		size++;
 	}
+
+	if (validate_memory_access_address((unsigned long)mem, size))
+		return EFAULT;
+
+	if ((unsigned int)mem >= SYSMMR_BASE) { /*access MMR registers*/
+		switch (size) {
+		case 2:
+			if ((unsigned int)mem % 2 == 0) {
+				mmr16 = (unsigned short *)buf;
+				*(unsigned short *)mem = *mmr16;
+			} else
+				return EFAULT;
+			break;
+		case 4:
+			if ((unsigned int)mem % 4 == 0) {
+				mmr32 = (unsigned long *)buf;
+				*(unsigned long *)mem = *mmr32;
+			} else
+				return EFAULT;
+			break;
+		default:
+			return EFAULT;
+		}
+	} else if ((unsigned int)mem >= L1_CODE_START &&
+		(unsigned int)mem < L1_CODE_START + L1_CODE_LENGTH) {
+		/* access L1 instruction SRAM */
+		if (dma_memcpy(mem, buf, size) == NULL)
+			err = EFAULT;
+	} else
+		err = probe_kernel_write(mem, buf, size);
 
 	return err;
 }
