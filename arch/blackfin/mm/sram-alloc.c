@@ -1,13 +1,13 @@
 /*
- * File:         arch/blackfin/mm/blackfin_sram.c
+ * File:         arch/blackfin/mm/sram-alloc.c
  * Based on:
  * Author:
  *
  * Created:
- * Description:  SRAM driver for Blackfin ADSP-BF5xx
+ * Description:  SRAM allocator for Blackfin L1 and L2 memory
  *
  * Modified:
- *               Copyright 2004-2007 Analog Devices Inc.
+ *               Copyright 2004-2008 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
@@ -351,28 +351,31 @@ static int _sram_free(const void *addr,
 
 int sram_free(const void *addr)
 {
-	if (0) {}
+
 #if L1_CODE_LENGTH != 0
-	else if (addr >= (void *)L1_CODE_START
+	if (addr >= (void *)L1_CODE_START
 		 && addr < (void *)(L1_CODE_START + L1_CODE_LENGTH))
 		return l1_inst_sram_free(addr);
+	else
 #endif
 #if L1_DATA_A_LENGTH != 0
-	else if (addr >= (void *)L1_DATA_A_START
+	if (addr >= (void *)L1_DATA_A_START
 		 && addr < (void *)(L1_DATA_A_START + L1_DATA_A_LENGTH))
 		return l1_data_A_sram_free(addr);
+	else
 #endif
 #if L1_DATA_B_LENGTH != 0
-	else if (addr >= (void *)L1_DATA_B_START
+	if (addr >= (void *)L1_DATA_B_START
 		 && addr < (void *)(L1_DATA_B_START + L1_DATA_B_LENGTH))
 		return l1_data_B_sram_free(addr);
+	else
 #endif
 #if L2_LENGTH != 0
-	else if (addr >= (void *)L2_START
+	if (addr >= (void *)L2_START
 		 && addr < (void *)(L2_START + L2_LENGTH))
 		return l2_sram_free(addr);
-#endif
 	else
+#endif
 		return -1;
 }
 EXPORT_SYMBOL(sram_free);
