@@ -864,7 +864,7 @@ static struct snd_pcm_hardware snd_ad1836_playback_hw = {
 	.channels_max =     CHANNELS_MAX,
 #endif
 	.buffer_bytes_max = PCM_BUFFER_MAX,
-	.period_bytes_min = FRAGMENT_SIZE_MIN,
+	.period_bytes_min = 2 * FRAGMENT_SIZE_MIN,
 	.period_bytes_max = PCM_BUFFER_MAX/2,
 	.periods_min =      8,
 	.periods_max =      FRAGMENTS_MAX,
@@ -888,7 +888,7 @@ static struct snd_pcm_hardware snd_ad1836_capture_hw = {
 	.channels_max =     CHANNELS_MAX,
 #endif
 	.buffer_bytes_max = PCM_BUFFER_MAX,
-	.period_bytes_min = FRAGMENT_SIZE_MIN,
+	.period_bytes_min = 2 * FRAGMENT_SIZE_MIN,
 	.period_bytes_max = PCM_BUFFER_MAX/2,
 	.periods_min =      8,
 	.periods_max =      FRAGMENTS_MAX,
