@@ -803,10 +803,8 @@ static int load_flat_file(struct linux_binprm * bprm,
 
 	return 0;
 out_fail:
-#ifdef CONFIG_APP_STACK_L1
 	if (flags & FLAT_FLAG_L1STK)
 		free_l1stack();
-#endif
 	return result;
 }
 
@@ -927,7 +925,6 @@ static int load_flat_binary(struct linux_binprm * bprm, struct pt_regs * regs)
 	/* Stash our initial stack pointer into the mm structure */
 	current->mm->start_stack = (unsigned long )sp;
 
-#ifdef CONFIG_APP_STACK_L1
 	if (l1stack_base) {
 		/* Find L1 stack pointer corresponding to the current bottom
 		   of the stack in normal RAM.  */
@@ -935,7 +932,6 @@ static int load_flat_binary(struct linux_binprm * bprm, struct pt_regs * regs)
 		if (!activate_l1stack(current->mm, ramstack_top - stack_len))
 			l1stack_base = 0;
 	}
-#endif
 
 	DBG_FLT("start_thread(regs=0x%x, entry=0x%x, start_stack=0x%x, l1stk=0x%x, len 0x%x)\n",
 		(int)regs, (int)start_addr, (int)current->mm->start_stack, l1stack_base,
