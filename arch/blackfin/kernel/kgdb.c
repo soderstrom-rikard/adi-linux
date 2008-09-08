@@ -209,7 +209,13 @@ int bfin_set_hw_break(unsigned long addr, int len, enum kgdb_bptype type)
 		return -ENOSPC;
 	}
 
-	for (breakno = 0; breakno < HW_WATCHPOINT_NUM; breakno++)
+	/* Becasue hardware data watchpoint impelemented in current
+	 * Blackfin can not trigger an exception event as the hardware
+	 * instrction watchpoint does, we ignaore all data watch point here.
+	 * They can be turned on easily after future blackfin design
+	 * supports this feature.
+	 */
+	for (breakno = 0; breakno < HW_INST_WATCHPOINT_NUM; breakno++)
 		if (bfin_type == breakinfo[breakno].type
 			&& !breakinfo[breakno].occupied) {
 			breakinfo[breakno].occupied = 1;
@@ -339,10 +345,10 @@ void bfin_correct_hw_break(void)
 	if (enable_wp) {
 		bfin_write_WPIACTL(WPPWR);
 		CSYNC();
+		bfin_write_WPIACTL(wpiactl|WPPWR);
+		bfin_write_WPDACTL(wpdactl);
+		CSYNC();
 	}
-	bfin_write_WPIACTL(wpiactl|WPPWR);
-	bfin_write_WPDACTL(wpdactl);
-	CSYNC();
 }
 
 void kgdb_disable_hw_debug(struct pt_regs *regs)
