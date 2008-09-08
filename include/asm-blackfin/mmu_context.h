@@ -37,6 +37,8 @@
 #include <asm/pgalloc.h>
 #include <asm/cplbinit.h>
 
+#ifdef CONFIG_KERNEL_STACKS_L1
+
 extern void *current_l1_stack_save;
 extern int nr_l1stack_tasks;
 extern void *l1_stack_base;
@@ -45,48 +47,11 @@ extern unsigned long l1_stack_len;
 extern int l1sram_free(const void*);
 extern void *l1sram_alloc_max(void*);
 
-static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
-{
-}
-
-/* Called when creating a new context during fork() or execve().  */
-static inline int
-init_new_context(struct task_struct *tsk, struct mm_struct *mm)
-{
-#ifdef CONFIG_MPU
-	unsigned long p = __get_free_pages(GFP_KERNEL, page_mask_order);
-	mm->context.page_rwx_mask = (unsigned long *)p;
-	memset(mm->context.page_rwx_mask, 0,
-	       page_mask_nelts * 3 * sizeof(long));
-#endif
-	return 0;
-}
-
 static inline void free_l1stack(void)
 {
 	nr_l1stack_tasks--;
 	if (nr_l1stack_tasks == 0)
 		l1sram_free(l1_stack_base);
-}
-static inline void destroy_context(struct mm_struct *mm)
-{
-	struct sram_list_struct *tmp;
-
-	if (current_l1_stack_save == mm->context.l1_stack_save)
-		current_l1_stack_save = NULL;
-	if (mm->context.l1_stack_save)
-		free_l1stack();
-
-	while ((tmp = mm->context.sram_list)) {
-		mm->context.sram_list = tmp->next;
-		sram_free(tmp->addr);
-		kfree(tmp);
-	}
-#ifdef CONFIG_MPU
-	if (current_rwx_mask == mm->context.page_rwx_mask)
-		current_rwx_mask = NULL;
-	free_pages((unsigned long)mm->context.page_rwx_mask, page_mask_order);
-#endif
 }
 
 static inline unsigned long
@@ -117,6 +82,7 @@ activate_l1stack(struct mm_struct *mm, unsigned long sp_base)
 	memcpy(l1_stack_base, current_l1_stack_save, l1_stack_len);
 	return 1;
 }
+#endif /* CONFIG_KERNEL_STACKS_L1 */
 
 #define deactivate_mm(tsk,mm)	do { } while (0)
 
@@ -134,6 +100,7 @@ static inline void switch_mm(struct mm_struct *prev_mm, struct mm_struct *next_m
 	}
 #endif
 
+#ifdef CONFIG_KERNEL_STACKS_L1
 	/* L1 stack switching.  */
 	if (!next_mm->context.l1_stack_save)
 		return;
@@ -144,6 +111,7 @@ static inline void switch_mm(struct mm_struct *prev_mm, struct mm_struct *next_m
 	}
 	current_l1_stack_save = next_mm->context.l1_stack_save;
 	memcpy(l1_stack_base, current_l1_stack_save, l1_stack_len);
+#endif
 }
 
 #ifdef CONFIG_MPU
@@ -179,5 +147,45 @@ static inline void update_protections(struct mm_struct *mm)
 	}
 }
 #endif
+
+static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
+{
+}
+
+/* Called when creating a new context during fork() or execve().  */
+static inline int
+init_new_context(struct task_struct *tsk, struct mm_struct *mm)
+{
+#ifdef CONFIG_MPU
+	unsigned long p = __get_free_pages(GFP_KERNEL, page_mask_order);
+	mm->context.page_rwx_mask = (unsigned long *)p;
+	memset(mm->context.page_rwx_mask, 0,
+	       page_mask_nelts * 3 * sizeof(long));
+#endif
+	return 0;
+}
+
+static inline void destroy_context(struct mm_struct *mm)
+{
+	struct sram_list_struct *tmp;
+
+#ifdef CONFIG_KERNEL_STACKS_L1
+	if (current_l1_stack_save == mm->context.l1_stack_save)
+		current_l1_stack_save = 0;
+	if (mm->context.l1_stack_save)
+		free_l1stack();
+#endif
+
+	while ((tmp = mm->context.sram_list)) {
+		mm->context.sram_list = tmp->next;
+		sram_free(tmp->addr);
+		kfree(tmp);
+	}
+#ifdef CONFIG_MPU
+	if (current_rwx_mask == mm->context.page_rwx_mask)
+		current_rwx_mask = NULL;
+	free_pages((unsigned long)mm->context.page_rwx_mask, page_mask_order);
+#endif
+}
 
 #endif

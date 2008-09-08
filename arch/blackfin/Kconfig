@@ -622,6 +622,14 @@ config CPLB_SWITCH_TAB_L1
 	  If enabled, the CPLB Switch Tables are linked
 	  into L1 data memory. (less latency)
 
+config KERNEL_STACKS_L1
+	bool "Locate kernel stacks in L1 Scratch Memory"
+	default y
+	depends on !BF531
+	help
+	  If enabled the kernel stacks are located
+	  into L1 scratch memory (less latency).
+
 comment "Speed Optimizations"
 config BFIN_INS_LOWOVERHEAD
 	bool "ins[bwl] low overhead, higher interrupt latency"
