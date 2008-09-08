@@ -1057,10 +1057,9 @@ static void spi_mmc_clean(void)
 		put_disk(pdev->gd);
 	}
 
-	if (pdev->gd->queue) {
-		blk_put_queue(pdev->gd->queue);
-		// if other kind of request are used, consider how to clean
-	}
+	/* if other kind of request are used, consider how to clean */
+	if (pdev->gd->queue)
+		blk_cleanup_queue(pdev->gd->queue);
 	
 	destroy_workqueue(pdev->dt_wq);
 
