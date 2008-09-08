@@ -417,9 +417,6 @@ static int load_flat_file(struct linux_binprm * bprm,
 			  unsigned long *extra_stack,
 			  unsigned long *stack_base)
 {
-#ifndef CONFIG_KERNEL_STACKS_L1
-	static int l1stk_disable_warn_once;
-#endif
 	struct flat_hdr * hdr;
 	unsigned long textpos = 0, datapos = 0, result;
 	unsigned long realdatastart = 0;
@@ -505,12 +502,9 @@ static int load_flat_file(struct linux_binprm * bprm,
 		return -ENOMEM;
 
 	if (flags & FLAT_FLAG_L1STK) {
-#ifndef CONFIG_KERNEL_STACKS_L1
+#ifndef CONFIG_APP_STACK_L1
 		flags &= ~FLAT_FLAG_L1STK;
-		if (!l1stk_disable_warn_once) {
-			l1stk_disable_warn_once = 1;
-			printk(KERN_NOTICE "BINFMT_FLAT: L1 stack support disabled - will continue anyway\n");
-		}
+		printk(KERN_NOTICE "BINFMT_FLAT: L1 stack support disabled - will continue anyway\n");
 #else
 		if (stack_base == 0) {
 			printk ("BINFMT_FLAT: requesting L1 stack for shared library\n");
@@ -809,7 +803,7 @@ static int load_flat_file(struct linux_binprm * bprm,
 
 	return 0;
 out_fail:
-#ifdef CONFIG_KERNEL_STACKS_L1
+#ifdef CONFIG_APP_STACK_L1
 	if (flags & FLAT_FLAG_L1STK)
 		free_l1stack();
 #endif
@@ -933,7 +927,7 @@ static int load_flat_binary(struct linux_binprm * bprm, struct pt_regs * regs)
 	/* Stash our initial stack pointer into the mm structure */
 	current->mm->start_stack = (unsigned long )sp;
 
-#ifdef CONFIG_KERNEL_STACKS_L1
+#ifdef CONFIG_APP_STACK_L1
 	if (l1stack_base) {
 		/* Find L1 stack pointer corresponding to the current bottom
 		   of the stack in normal RAM.  */
