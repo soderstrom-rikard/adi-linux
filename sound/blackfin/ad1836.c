@@ -864,7 +864,7 @@ static struct snd_pcm_hardware snd_ad1836_playback_hw = {
 	.channels_max =     CHANNELS_MAX,
 #endif
 	.buffer_bytes_max = PCM_BUFFER_MAX,
-	.period_bytes_min = 2 * FRAGMENT_SIZE_MIN,
+	.period_bytes_min = 32,
 	.period_bytes_max = PCM_BUFFER_MAX/2,
 	.periods_min =      8,
 	.periods_max =      FRAGMENTS_MAX,
@@ -888,7 +888,7 @@ static struct snd_pcm_hardware snd_ad1836_capture_hw = {
 	.channels_max =     CHANNELS_MAX,
 #endif
 	.buffer_bytes_max = PCM_BUFFER_MAX,
-	.period_bytes_min = 2 * FRAGMENT_SIZE_MIN,
+	.period_bytes_min = 32,
 	.period_bytes_max = PCM_BUFFER_MAX/2,
 	.periods_min =      8,
 	.periods_max =      FRAGMENTS_MAX,
@@ -896,6 +896,7 @@ static struct snd_pcm_hardware snd_ad1836_capture_hw = {
 
 static int snd_ad1836_playback_open(struct snd_pcm_substream *substream)
 {
+	int ret;
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
 
 	snd_printk_marker();
@@ -913,16 +914,25 @@ static int snd_ad1836_playback_open(struct snd_pcm_substream *substream)
 	chip->tx_substream = substream;
 #endif
 	substream->runtime->hw = snd_ad1836_playback_hw;
+	ret = snd_pcm_hw_constraint_integer(substream->runtime, \
+			SNDRV_PCM_HW_PARAM_PERIODS);
+	if (ret < 0)
+		return -EINVAL;
 
 	return 0;
 }
 
 static int snd_ad1836_capture_open(struct snd_pcm_substream *substream)
 {
+	int ret;
 	ad1836_t *chip = snd_pcm_substream_chip(substream);
 
 	snd_printk_marker();
 	substream->runtime->hw = snd_ad1836_capture_hw;
+	ret = snd_pcm_hw_constraint_integer(substream->runtime, \
+			SNDRV_PCM_HW_PARAM_PERIODS);
+	if (ret < 0)
+		return -EINVAL;
 	chip->rx_substream = substream;
 
 	return 0;
