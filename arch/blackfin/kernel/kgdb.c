@@ -389,8 +389,20 @@ int kgdb_arch_handle_exception(int vector, int signo,
 	int newPC;
 	int wp_status;
 	int i;
+#ifdef CONFIG_SMP
+	int cpu = raw_smp_processor_id();
+	struct task_struct *thread;
+#endif
 
 	switch (remcom_in_buffer[0]) {
+#ifdef CONFIG_SMP
+	case 'H':
+		thread = getthread(regs, -cpu - 2);
+		if (kgdb_usethread && kgdb_usethread != thread)
+			smp_call_function_single(cpu,
+				kgdb_passive_cpu_callback, NULL, 0, 0);
+		return 0;
+#endif
 	case 'c':
 	case 's':
 		if (kgdb_contthread && kgdb_contthread != current) {
