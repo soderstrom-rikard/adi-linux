@@ -37,8 +37,6 @@
 #include <asm/pgalloc.h>
 #include <asm/cplbinit.h>
 
-#ifdef CONFIG_APP_STACK_L1
-
 extern void *current_l1_stack_save;
 extern int nr_l1stack_tasks;
 extern void *l1_stack_base;
@@ -82,7 +80,6 @@ activate_l1stack(struct mm_struct *mm, unsigned long sp_base)
 	memcpy(l1_stack_base, current_l1_stack_save, l1_stack_len);
 	return 1;
 }
-#endif /* CONFIG_APP_STACK_L1 */
 
 #define deactivate_mm(tsk,mm)	do { } while (0)
 
