@@ -139,7 +139,6 @@
 #include <asm/irq.h>
 #include <asm/delay.h>
 
-#include <sound/driver.h>
 #include <sound/core.h>
 #include <sound/info.h>
 #include <sound/control.h>
@@ -269,7 +268,8 @@ static unsigned int out_chan_masks[] = {
 	SPDIF_OUT_LEFT | SPDIF_OUT_RIGHT};
 #endif
 
-static unsigned int in_chan_masks[] = {CAP_LINE, CAP_MIC|CAP_LINE, CAP_SPDIF};
+static unsigned int in_chan_masks[] = {CAP_LINE, CAP_MIC | CAP_LINE,\
+				       CAP_MIC | CAP_LINE | CAP_SPDIF};
 #endif
 
 #ifdef MULTI_SUBSTREAM
@@ -866,7 +866,7 @@ static struct snd_pcm_hardware snd_ad1836_playback_hw = {
 	.buffer_bytes_max = PCM_BUFFER_MAX,
 	.period_bytes_min = 32,
 	.period_bytes_max = PCM_BUFFER_MAX/2,
-	.periods_min =      8,
+	.periods_min =      2,
 	.periods_max =      FRAGMENTS_MAX,
 };
 
@@ -890,7 +890,7 @@ static struct snd_pcm_hardware snd_ad1836_capture_hw = {
 	.buffer_bytes_max = PCM_BUFFER_MAX,
 	.period_bytes_min = 32,
 	.period_bytes_max = PCM_BUFFER_MAX/2,
-	.periods_min =      8,
+	.periods_min =      2,
 	.periods_max =      FRAGMENTS_MAX,
 };
 
