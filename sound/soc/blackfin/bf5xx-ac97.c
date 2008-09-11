@@ -55,7 +55,6 @@
 static int *cmd_count;
 static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
 
-#if defined(CONFIG_BF54x)
 static struct sport_param sport_params[4] = {
 	{
 		.dma_rx_chan	= CH_SPORT0_RX,
@@ -63,41 +62,31 @@ static struct sport_param sport_params[4] = {
 		.err_irq	= IRQ_SPORT0_ERR,
 		.regs		= (struct sport_register *)SPORT0_TCR1,
 	},
+#ifdef PIN_REQ_SPORT_1
 	{
 		.dma_rx_chan	= CH_SPORT1_RX,
 		.dma_tx_chan	= CH_SPORT1_TX,
 		.err_irq	= IRQ_SPORT1_ERR,
 		.regs		= (struct sport_register *)SPORT1_TCR1,
 	},
+#endif
+#ifdef PIN_REQ_SPORT_2
 	{
 		.dma_rx_chan	= CH_SPORT2_RX,
 		.dma_tx_chan	= CH_SPORT2_TX,
 		.err_irq	= IRQ_SPORT2_ERR,
 		.regs		= (struct sport_register *)SPORT2_TCR1,
 	},
+#endif
+#ifdef PIN_REQ_SPORT_1
 	{
 		.dma_rx_chan	= CH_SPORT3_RX,
 		.dma_tx_chan	= CH_SPORT3_TX,
 		.err_irq	= IRQ_SPORT3_ERR,
 		.regs		= (struct sport_register *)SPORT3_TCR1,
 	}
-};
-#else
-static struct sport_param sport_params[2] = {
-	{
-		.dma_rx_chan	= CH_SPORT0_RX,
-		.dma_tx_chan	= CH_SPORT0_TX,
-		.err_irq	= IRQ_SPORT0_ERROR,
-		.regs		= (struct sport_register *)SPORT0_TCR1,
-	},
-	{
-		.dma_rx_chan	= CH_SPORT1_RX,
-		.dma_tx_chan	= CH_SPORT1_TX,
-		.err_irq	= IRQ_SPORT1_ERROR,
-		.regs		= (struct sport_register *)SPORT1_TCR1,
-	}
-};
 #endif
+};
 
 void bf5xx_pcm_to_ac97(struct ac97_frame *dst, const __u32 *src, \
 		size_t count)
@@ -318,12 +307,18 @@ static int proc_write(struct file *file, const char __user *buffer,
 static int bf5xx_ac97_probe(struct platform_device *pdev)
 {
 	int ret;
-#if defined(CONFIG_BF54x)
-	u16 sport_req[][7] = {PIN_REQ_SPORT_0, PIN_REQ_SPORT_1,
-				 PIN_REQ_SPORT_2, PIN_REQ_SPORT_3};
-#else
-	u16 sport_req[][7] = {PIN_REQ_SPORT_0, PIN_REQ_SPORT_1};
+	u16 sport_req[][7] = {
+		PIN_REQ_SPORT_0,
+#ifdef PIN_REQ_SPORT_1
+		PIN_REQ_SPORT_1,
 #endif
+#ifdef PIN_REQ_SPORT_2
+		PIN_REQ_SPORT_2,
+#endif
+#ifdef PIN_REQ_SPORT_3
+		PIN_REQ_SPORT_3,
+#endif
+	};
 	cmd_count = (int *)get_zeroed_page(GFP_KERNEL);
 	if (cmd_count == NULL)
 		return -ENOMEM;
@@ -331,7 +326,7 @@ static int bf5xx_ac97_probe(struct platform_device *pdev)
 	if (peripheral_request_list(&sport_req[sport_num][0], "soc-audio")) {
 		pr_err("Requesting Peripherals failed\n");
 		return -EFAULT;
-		}
+	}
 
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
 	/* Request PB3 as reset pin */
