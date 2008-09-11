@@ -1210,12 +1210,6 @@ void bfin_serial_debug(const char *fmt, ...)
 	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
 EXPORT_SYMBOL(bfin_serial_debug);
-#else
-void bfin_serial_debug(const char *fmt, ...)
-{
-	return;
-}
-EXPORT_SYMBOL(bfin_serial_debug);
 #endif
 
 static struct uart_driver bfin_serial_reg = {
