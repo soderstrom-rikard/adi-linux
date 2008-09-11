@@ -158,7 +158,7 @@ void *isram_memcpy(void *dest, const void *src, size_t n)
 	for (count = 0; count < n; count++) {
 		if (src_in_l1) {
 			if (need_data) {
-				data_in = isram_read((void *)(src + count));
+				data_in = isram_read(src + count);
 				need_data = false;
 			}
 
@@ -174,11 +174,11 @@ void *isram_memcpy(void *dest, const void *src, size_t n)
 
 		if (dest_in_l1) {
 			if (put_data) {
-				data_out = isram_read((void *)(dest + count));
+				data_out = isram_read(dest + count);
 				put_data = false;
 			}
 
-			data_out &= ~((uint64_t)0xFF << ADDR2OFFSET(dest + count));
+			data_out &= ~((uint64_t)0xff << ADDR2OFFSET(dest + count));
 			data_out |= ((uint64_t)byte << ADDR2OFFSET(dest + count));
 
 			if (ADDR2LAST(dest + count)) {
