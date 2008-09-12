@@ -163,15 +163,15 @@
 #define SP_5DOT1	(SP_FL | SP_FR | SP_FC | SP_LFE | SP_BL | SP_BR)
 
 /* In channels */
-#define ADC0_LEFT	0x0001
-#define ADC0_RIGHT	0x0010
-#define ADC1_LEFT	0x0002
-#define ADC1_RIGHT	0x0020
-#define SPDIF_IN_LEFT	0x0004
-#define SPDIF_IN_RIGHT	0x0040
+#define CAP_FL		0x0001
+#define CAP_FR		0x0010
+#define CAP_BL		0x0002
+#define CAP_BR		0x0020
+#define CAP_FC		0x0004
+#define CAP_LFE		0x0040
 
-#define CAP_LINE	(ADC0_LEFT | ADC0_RIGHT)
-#define CAP_MIC		(ADC1_LEFT | ADC1_RIGHT)
-#define CAP_SPDIF	(SPDIF_IN_LEFT | SPDIF_IN_RIGHT)
+#define CAP_LINE	(CAP_FL | CAP_FR)
+#define CAP_MIC		(CAP_BL | CAP_BR)
+#define CAP_SPDIF	(CAP_FC | CAP_LFE)
 
 #endif

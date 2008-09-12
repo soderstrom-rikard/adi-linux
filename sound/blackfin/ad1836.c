@@ -1397,14 +1397,27 @@ static int snd_ad1836_capture_copy(struct snd_pcm_substream *substream, int chan
 
 	src += pos * 8;
 
+	/* Copy in order of data stream */
 	while (count--) {
-		unsigned int c;
-		for (c = 0; c < 8; c++) {
-			if (mask & (1 << c)) {
-				*idst++ = *src;
-			}
-			src++;
-		}
+		if (mask & CAP_FL)
+			*idst++ = *src;
+
+		if (mask & CAP_FR)
+			*idst++ = *(src+4);
+
+		if (mask & CAP_FC)
+			*idst++ = *(src+2);
+
+		if (mask & CAP_LFE)
+			*idst++ = *(src+6);
+
+		if (mask & CAP_BL)
+			*idst++ = *(src+1);
+
+		if (mask & CAP_BR)
+			*idst++ = *(src+5);
+
+		src += 8;
 	}
 	return 0;
 }
