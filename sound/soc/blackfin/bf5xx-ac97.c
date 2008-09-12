@@ -55,18 +55,31 @@
 static int *cmd_count;
 static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
 
+static u16 sport_req[][7] = {
+		PIN_REQ_SPORT_0,
+#ifdef PIN_REQ_SPORT_1
+		PIN_REQ_SPORT_1,
+#endif
+#ifdef PIN_REQ_SPORT_2
+		PIN_REQ_SPORT_2,
+#endif
+#ifdef PIN_REQ_SPORT_3
+		PIN_REQ_SPORT_3,
+#endif
+	};
+
 static struct sport_param sport_params[4] = {
 	{
 		.dma_rx_chan	= CH_SPORT0_RX,
 		.dma_tx_chan	= CH_SPORT0_TX,
-		.err_irq	= IRQ_SPORT0_ERR,
+		.err_irq	= IRQ_SPORT0_ERROR,
 		.regs		= (struct sport_register *)SPORT0_TCR1,
 	},
 #ifdef PIN_REQ_SPORT_1
 	{
 		.dma_rx_chan	= CH_SPORT1_RX,
 		.dma_tx_chan	= CH_SPORT1_TX,
-		.err_irq	= IRQ_SPORT1_ERR,
+		.err_irq	= IRQ_SPORT1_ERROR,
 		.regs		= (struct sport_register *)SPORT1_TCR1,
 	},
 #endif
@@ -74,15 +87,15 @@ static struct sport_param sport_params[4] = {
 	{
 		.dma_rx_chan	= CH_SPORT2_RX,
 		.dma_tx_chan	= CH_SPORT2_TX,
-		.err_irq	= IRQ_SPORT2_ERR,
+		.err_irq	= IRQ_SPORT2_ERROR,
 		.regs		= (struct sport_register *)SPORT2_TCR1,
 	},
 #endif
-#ifdef PIN_REQ_SPORT_1
+#ifdef PIN_REQ_SPORT_3
 	{
 		.dma_rx_chan	= CH_SPORT3_RX,
 		.dma_tx_chan	= CH_SPORT3_TX,
-		.err_irq	= IRQ_SPORT3_ERR,
+		.err_irq	= IRQ_SPORT3_ERROR,
 		.regs		= (struct sport_register *)SPORT3_TCR1,
 	}
 #endif
@@ -283,48 +296,18 @@ static int bf5xx_ac97_resume(struct platform_device *pdev,
 #define bf5xx_ac97_resume	NULL
 #endif
 
-static struct proc_dir_entry *ac_entry;
-
-/* For test purpose, read a register from codec */
-static int proc_write(struct file *file, const char __user *buffer,
-		unsigned long count, void *data)
-{
-	struct ac97_frame out_frame[2], in_frame[2];
-	unsigned long reg = strict_strtoul(buffer, NULL, 16);
-
-	memset(&out_frame, 0, 2 * sizeof(struct ac97_frame));
-	out_frame[0].ac97_tag = TAG_VALID | TAG_CMD;
-	out_frame[0].ac97_addr = (unsigned short) ((reg << 8) | 0x8000);
-	sport_send_and_recv(sport_handle, (unsigned char *)&out_frame,
-				(unsigned char *)&in_frame,
-				2 * sizeof(struct ac97_frame));
-
-	pr_info("0x%x:%04x\n", out_frame[0].ac97_addr, in_frame[1].ac97_data);
-
-	return count;
-}
-
 static int bf5xx_ac97_probe(struct platform_device *pdev)
 {
 	int ret;
-	u16 sport_req[][7] = {
-		PIN_REQ_SPORT_0,
-#ifdef PIN_REQ_SPORT_1
-		PIN_REQ_SPORT_1,
-#endif
-#ifdef PIN_REQ_SPORT_2
-		PIN_REQ_SPORT_2,
-#endif
-#ifdef PIN_REQ_SPORT_3
-		PIN_REQ_SPORT_3,
-#endif
-	};
+
 	cmd_count = (int *)get_zeroed_page(GFP_KERNEL);
 	if (cmd_count == NULL)
 		return -ENOMEM;
 
 	if (peripheral_request_list(&sport_req[sport_num][0], "soc-audio")) {
 		pr_err("Requesting Peripherals failed\n");
+		free_page((unsigned long)cmd_count);
+		cmd_count = NULL;
 		return -EFAULT;
 	}
 
@@ -334,6 +317,8 @@ static int bf5xx_ac97_probe(struct platform_device *pdev)
 		pr_err("Failed to request GPIO_%d for reset\n",
 				CONFIG_SND_BF5XX_RESET_GPIO_NUM);
 		peripheral_free_list(&sport_req[sport_num][0]);
+		free_page((unsigned long)cmd_count);
+		cmd_count = NULL;
 		return -1;
 	}
 	gpio_direction_output(CONFIG_SND_BF5XX_RESET_GPIO_NUM, 1);
@@ -342,6 +327,8 @@ static int bf5xx_ac97_probe(struct platform_device *pdev)
 			sizeof(struct ac97_frame), NULL);
 	if (!sport_handle) {
 		peripheral_free_list(&sport_req[sport_num][0]);
+		free_page((unsigned long)cmd_count);
+		cmd_count = NULL;
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
 		gpio_free(CONFIG_SND_BF5XX_RESET_GPIO_NUM);
 #endif
@@ -352,32 +339,48 @@ static int bf5xx_ac97_probe(struct platform_device *pdev)
 
 	if (ret) {
 		pr_err("SPORT is busy!\n");
+		peripheral_free_list(&sport_req[sport_num][0]);
+		free_page((unsigned long)cmd_count);
+		cmd_count = NULL;
+#ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
+		gpio_free(CONFIG_SND_BF5XX_RESET_GPIO_NUM);
+#endif
 		return -EBUSY;
 	}
 	ret = sport_config_rx(sport_handle, IRFS, 0xF, 0, (16*16-1));
 
 	if (ret) {
 		pr_err("SPORT is busy!\n");
+		peripheral_free_list(&sport_req[sport_num][0]);
+		free_page((unsigned long)cmd_count);
+		cmd_count = NULL;
+#ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
+		gpio_free(CONFIG_SND_BF5XX_RESET_GPIO_NUM);
+#endif
 		return -EBUSY;
 	}
 	ret = sport_config_tx(sport_handle, ITFS, 0xF, 0, (16*16-1));
 
 	if (ret) {
 		pr_err("SPORT is busy!\n");
+		peripheral_free_list(&sport_req[sport_num][0]);
+		free_page((unsigned long)cmd_count);
+		cmd_count = NULL;
+#ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
+		gpio_free(CONFIG_SND_BF5XX_RESET_GPIO_NUM);
+#endif
 		return -EBUSY;
 	}
-	ac_entry = create_proc_entry("driver/sport_ac97", 0600, NULL);
-	ac_entry->read_proc = NULL;
-	ac_entry->write_proc = proc_write;
-	ac_entry->data = sport_handle;
 	return 0;
 }
 
 static void bf5xx_ac97_remove(struct platform_device *pdev)
 {
-	free_page((unsigned long)cmd_count);
-	cmd_count = NULL;
-	remove_proc_entry("driver/sport_ac97", NULL);
+	if (cmd_count) {
+		free_page((unsigned long)cmd_count);
+		cmd_count = NULL;
+	}
+	peripheral_free_list(&sport_req[sport_num][0]);
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
 	gpio_free(CONFIG_SND_BF5XX_RESET_GPIO_NUM);
 #endif
