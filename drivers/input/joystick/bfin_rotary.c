@@ -71,7 +71,6 @@ static inline void report_marker_event(struct bfin_rot *rotary)
 	input_sync(input);
 	input_report_key(input, keycode, 0);
 	input_sync(input);
-
 }
 
 static void report_rotary_event(struct bfin_rot *rotary, int delta)
@@ -100,7 +99,6 @@ static irqreturn_t bfin_rotary_isr(int irq, void *dev_id)
 {
 	struct platform_device *pdev = dev_id;
 	struct bfin_rot *rotary = platform_get_drvdata(pdev);
-	int cnt;
 	unsigned short status = bfin_read_CNT_STATUS();
 
 	switch (status) {
@@ -108,8 +106,7 @@ static irqreturn_t bfin_rotary_isr(int irq, void *dev_id)
 		break;
 	case UCII:
 	case DCII:
-		cnt = bfin_read_CNT_COUNTER();
-		report_rotary_event(rotary, cnt);
+		report_rotary_event(rotary, bfin_read_CNT_COUNTER());
 		break;
 	case CZMII:
 		report_marker_event(rotary);
@@ -119,7 +116,7 @@ static irqreturn_t bfin_rotary_isr(int irq, void *dev_id)
 	}
 
 	bfin_write_CNT_COMMAND(W1LCNT_ZERO);	/* Clear COUNTER */
-	bfin_write_CNT_STATUS(0xFFFF);	/* Clear STATUS */
+	bfin_write_CNT_STATUS(-1);	/* Clear STATUS */
 
 	return IRQ_HANDLED;
 }
@@ -131,24 +128,22 @@ static int __devinit bfin_rotary_probe(struct platform_device *pdev)
 	struct input_dev *input;
 	int error;
 
-
 	rotary = kzalloc(sizeof(struct bfin_rot), GFP_KERNEL);
 	if (!rotary)
 		return -ENOMEM;
 
 	platform_set_drvdata(pdev, rotary);
 
-	if (peripheral_request_list(per_cnt, DRV_NAME)) {
+	error = peripheral_request_list(per_cnt, DRV_NAME);
+	if (error) {
 		printk(KERN_ERR DRV_NAME
 			": Requesting Peripherals failed\n");
-		error = -EFAULT;
 		goto out1;
 	}
 
-
 	rotary->irq = platform_get_irq(pdev, 0);
 	if (rotary->irq < 0) {
-		error = -ENODEV;
+		error = rotary->irq;
 		goto out2;
 	}
 
@@ -227,7 +222,7 @@ static int __devinit bfin_rotary_probe(struct platform_device *pdev)
 
 	device_init_wakeup(&pdev->dev, 1);
 
-	printk(KERN_ERR DRV_NAME
+	printk(KERN_INFO DRV_NAME
 		": Blackfin Rotary Driver registered IRQ %d\n", rotary->irq);
 
 	return 0;
