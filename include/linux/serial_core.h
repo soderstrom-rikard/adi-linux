@@ -216,6 +216,15 @@ struct uart_ops {
 	void		(*config_port)(struct uart_port *, int);
 	int		(*verify_port)(struct uart_port *, struct serial_struct *);
 	int		(*ioctl)(struct uart_port *, unsigned int, unsigned long);
+#if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
+	/*
+	 * Start up serial port earlier in kgdboc to support gdb break
+	 * signal Ctrl+C.
+	 */
+	int		(*kgdboc_port_startup)(struct uart_port *);
+	void		(*kgdboc_port_shutdown)(struct uart_port *);
+#endif
 #ifdef CONFIG_CONSOLE_POLL
 	void	(*poll_put_char)(struct uart_port *, unsigned char);
 	int		(*poll_get_char)(struct uart_port *);

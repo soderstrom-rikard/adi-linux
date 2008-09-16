@@ -23,7 +23,8 @@
 #include <linux/serial_core.h>
 #include <stdarg.h>
 
-#ifdef CONFIG_KGDB_SERIAL_CONSOLE
+#if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
 #include <linux/kgdb.h>
 #include <asm/irq_regs.h>
 #endif
@@ -46,13 +47,15 @@
 static struct bfin_serial_port bfin_serial_ports[BFIN_UART_NR_PORTS];
 static int nr_active_ports = ARRAY_SIZE(bfin_serial_resource);
 
-#ifdef CONFIG_KGDB_SERIAL_CONSOLE
+#if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
 
 # ifndef CONFIG_SERIAL_BFIN_PIO
 #  error KGDB only support UART in PIO mode.
 # endif
 
-static int gdb_break_enabled;
+static int kgdboc_port_line;
+static int kgdboc_break_enabled;
 #endif
 /*
  * Setup for console. Argument comes from the menuconfig
@@ -161,8 +164,10 @@ static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
  	ch = UART_GET_CHAR(uart);
  	uart->port.icount.rx++;
 
-#ifdef CONFIG_KGDB_SERIAL_CONSOLE
-	if (kgdb_connected && is_kgdb_tty_line(uart->port.line)) {
+#if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
+	if (kgdb_connected && kgdboc_break_enabled &&
+		kgdboc_port_line == uart->port.line) {
 		if (ch == 0x3) {/* Ctrl + C */
 			kgdb_breakpoint();
 			return;
@@ -593,9 +598,10 @@ static int bfin_serial_startup(struct uart_port *port)
 	uart->rx_dma_timer.expires = jiffies + DMA_RX_FLUSH_JIFFIES;
 	add_timer(&(uart->rx_dma_timer));
 #else
-# ifdef CONFIG_KGDB_SERIAL_CONSOLE
-	if (is_kgdb_tty_line(uart->port.line) && gdb_break_enabled == 1)
-		gdb_break_enabled = 0;
+#if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
+	if (kgdboc_port_line == uart->port.line && kgdboc_break_enabled)
+		kgdboc_break_enabled = 0;
 	else {
 # endif
 	if (request_irq(uart->port.irq, bfin_serial_rx_int, IRQF_DISABLED,
@@ -647,7 +653,8 @@ static int bfin_serial_startup(struct uart_port *port)
 		}
 	}
 # endif
-# ifdef CONFIG_KGDB_SERIAL_CONSOLE
+#if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
 	}
 # endif
 #endif
@@ -863,8 +870,8 @@ static void bfin_serial_reset_irda(struct uart_port *port)
 	SSYNC();
 }
 
-#ifdef CONFIG_KGDB_SERIAL_CONSOLE
-void bfin_serial_poll_put_char(struct uart_port *port, unsigned char chr)
+#ifdef CONFIG_CONSOLE_POLL
+static void bfin_serial_poll_put_char(struct uart_port *port, unsigned char chr)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 
@@ -875,7 +882,7 @@ void bfin_serial_poll_put_char(struct uart_port *port, unsigned char chr)
 	UART_PUT_CHAR(uart, (unsigned char)chr);
 }
 
-int bfin_serial_poll_get_char(struct uart_port *port)
+static int bfin_serial_poll_get_char(struct uart_port *port)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 	unsigned char chr;
@@ -888,23 +895,24 @@ int bfin_serial_poll_get_char(struct uart_port *port)
 
 	return chr;
 }
+#endif
 
-void kgdboc_uart_port_shutdown(int line)
+#if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
+static void bfin_kgdboc_port_shutdown(struct uart_port *port)
 {
-	struct bfin_serial_port *uart = &bfin_serial_ports[line];
-
-	if (gdb_break_enabled == 1) {
-		bfin_serial_shutdown(&uart->port);
-		gdb_break_enabled = 0;
+	if (kgdboc_break_enabled) {
+		bfin_serial_shutdown(port);
+		kgdboc_break_enabled = 0;
 	}
 }
 
-void kgdboc_uart_port_startup(int line)
+static int bfin_kgdboc_port_startup(struct uart_port *port)
 {
-	struct bfin_serial_port *uart = &bfin_serial_ports[line];
+	bfin_serial_startup(port);
+	kgdboc_break_enabled = 1;
 
-	bfin_serial_startup(&uart->port);
-	gdb_break_enabled = 1;
+	return 0;
 }
 #endif
 
@@ -926,6 +934,11 @@ static struct uart_ops bfin_serial_pops = {
 	.request_port	= bfin_serial_request_port,
 	.config_port	= bfin_serial_config_port,
 	.verify_port	= bfin_serial_verify_port,
+#if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
+	.kgdboc_port_startup	= bfin_kgdboc_port_startup,
+	.kgdboc_port_shutdown	= bfin_kgdboc_port_shutdown,
+#endif
 #ifdef CONFIG_CONSOLE_POLL
 	.poll_put_char	= bfin_serial_poll_put_char,
 	.poll_get_char	= bfin_serial_poll_get_char,
