@@ -166,8 +166,7 @@ static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
 
 #if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
 	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
-	if (kgdb_connected && kgdboc_break_enabled &&
-		kgdboc_port_line == uart->port.line) {
+	if (kgdb_connected && kgdboc_port_line == uart->port.line) {
 		if (ch == 0x3) {/* Ctrl + C */
 			kgdb_breakpoint();
 			return;
@@ -902,16 +901,15 @@ static int bfin_serial_poll_get_char(struct uart_port *port)
 static void bfin_kgdboc_port_shutdown(struct uart_port *port)
 {
 	if (kgdboc_break_enabled) {
-		bfin_serial_shutdown(port);
 		kgdboc_break_enabled = 0;
+		bfin_serial_shutdown(port);
 	}
 }
 
 static int bfin_kgdboc_port_startup(struct uart_port *port)
 {
-	bfin_serial_startup(port);
-	kgdboc_break_enabled = 1;
-
+	kgdboc_port_line = port->line;
+	kgdboc_break_enabled = !bfin_serial_startup(port);
 	return 0;
 }
 #endif
