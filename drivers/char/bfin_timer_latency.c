@@ -47,34 +47,53 @@
 
 struct timer_latency_data_t {
 	char value;
-	unsigned long  latency;
+	unsigned long last_latency;
+	unsigned long worst_latency;
+	unsigned long average_latency;
+	unsigned long test_number;
+	unsigned int period_sclk;
+	unsigned int period_cclk;
 };
 
 struct proc_dir_entry *timer_latency_file;
 struct timer_latency_data_t timer_latency_data;
 
 static int read_timer_latency(char *page, char **start,
-			      off_t offset, int count, int *eof,
-			      void *data)
+			      off_t offset, int count, int *eof, void *data)
 {
-	return sprintf(page, "%lu", timer_latency_data.latency);
+	return sprintf(page,
+		       "number, worst latency, average latency\n  %lu,      %lu,       %lu\n",
+		       timer_latency_data.test_number,
+		       timer_latency_data.worst_latency,
+		       timer_latency_data.average_latency);
 }
 
-
 static int write_timer_latency(struct file *file, const char *buffer,
-			   unsigned long count, void *data)
+			       unsigned long count, void *data)
 {
-	unsigned long sclk;
-	char user_value;
+	unsigned long sclk, cclk;
+	char user_value[8];
+	unsigned int wd_period_us;
+	unsigned int period_sclk;
+	unsigned int period_cclk;
 
-	copy_from_user(&(user_value), buffer, 1);
+	copy_from_user(user_value, buffer, count);
+	wd_period_us = strict_strtoul(user_value, NULL, 0);
 
-	if ((user_value == '1') && (timer_latency_data.value == 0)) {
+	if ((wd_period_us >= 100) && (timer_latency_data.value == 0)) {
 		DPRINTK("start timer_latency\n");
 		timer_latency_data.value = 1;
-		sclk = get_sclk();
-		bfin_write_WDOG_CNT(5 * sclk); /* set count time to 5 seconds */
-		/* set CYCLES counter to 0 and start it*/
+		sclk = get_sclk() / 1000000;
+		cclk = get_cclk() / 1000000;
+
+		/* convert from us to cycles */
+		timer_latency_data.period_sclk = wd_period_us * sclk;
+		timer_latency_data.period_cclk = wd_period_us * cclk;
+
+		/* set count timer cycles */
+		bfin_write_WDOG_CNT(timer_latency_data.period_sclk);
+
+		/* set CYCLES counter to 0 and start it */
 		__asm__(
 			"R2 = 0;\n\t"
 			"CYCLES = R2;\n\t"
@@ -85,16 +104,15 @@ static int write_timer_latency(struct file *file, const char *buffer,
 			"P2.H = 0xffc0;\n\t"
 			"P2.L = 0x0200;\n\t"
 			"R3 = 0x0004;\n\t"
-			"W[P2] = R3;\n\t"
+			"W[P2] = R3;\n\t"     /* start watchdog timer */
 			"SYSCFG = R2;\n\t"    /* start cycles counter */
 			: : : "R2", "R3", "P2"
 		);
 
 	}
 
-	return 1;  /* always write 1 byte*/
+	return 1;		/* always write 1 byte */
 }
-
 
 static irqreturn_t timer_latency_irq(int irq, void *dev_id)
 {
@@ -105,16 +123,15 @@ static irqreturn_t timer_latency_irq(int irq, void *dev_id)
 
 	/* unsigned long first_latency, second_latency, third_latency; */
 
-
 	/* get current cycle counter */
 	/*
-	asm("%0 = CYCLES; p2 = 0xFFE07040; %1 = [p2]; p2 = 0xFFE07044; %2 = [p2]; p2 = 0xFFE07048; %3 = [p2];"
-	: "=d" (cycles_past), "=d" (first_latency), "=d" (second_latency), "=d" (third_latency):); */
+	   asm("%0 = CYCLES; p2 = 0xFFE07040; %1 = [p2]; p2 = 0xFFE07044; %2 = [p2]; p2 = 0xFFE07048; %3 = [p2];"
+	   : "=d" (cycles_past), "=d" (first_latency), "=d" (second_latency), "=d" (third_latency):); */
 
-	asm("%0 = CYCLES;" : "=d" (cycles_past));
+      asm("%0 = CYCLES;":"=d"(cycles_past));
 
-	bfin_write_WDOG_CTL(0x8AD6);  /* close counter */
-	bfin_write_WDOG_CTL(0x8AD6);  /* have to write it twice to disable the timer */
+	bfin_write_WDOG_CTL(0x8AD6);	/* close counter */
+	bfin_write_WDOG_CTL(0x8AD6);	/* have to write it twice to disable the timer */
 
 	__asm__(                      /* stop CYCLES counter */
 		"R2 = SYSCFG;\n\t"
@@ -123,24 +140,42 @@ static irqreturn_t timer_latency_irq(int irq, void *dev_id)
 		: : : "R2"
 	);
 
-	cclk = get_cclk();
+	latency = cycles_past - data->period_cclk;	/* latency in cycles */
 
-	/* printk("first_latency is %lu, second is %lu, third is %lu, latency is %lu\n", first_latency, second_latency, third_latency, cycles_past); */
-
-	latency = cycles_past - (cclk * 5);    /* latency in us */
-	DPRINTK("latecy is %lu\n",latency);
+	DPRINTK("latecy is %lu\n", latency);
 
 	if (bfin_read_WDOG_STAT() != 0) {
 		DPRINTK("timer_latency error!\n");
 		return IRQ_HANDLED;
 	}
 
-	data->latency = latency;
-	timer_latency_data.value = 0;
+	if (latency > data->worst_latency)
+		data->worst_latency = latency;
+	data->last_latency = latency;
+	data->test_number++;
+	data->average_latency =
+	    ((data->average_latency * (data->test_number - 1)) +
+	     latency) / (data->test_number);
+
+	/* restart watchdog timer again */
+	bfin_write_WDOG_CNT(data->period_sclk);
+
+	__asm__(
+		"R2 = 0;\n\t"
+		"CYCLES = R2;\n\t"
+		"CYCLES2 = R2;\n\t"
+		"R2 = SYSCFG;\n\t"
+		"BITSET(R2,1);\n\t"
+		"P2.H = 0xffc0;\n\t"
+		"P2.L = 0x0200;\n\t"
+		"R3 = 0x0004;\n\t"
+		"W[P2] = R3;\n\t"     /* start watchdog timer */
+		"SYSCFG = R2;\n\t"    /* start cycles counter */
+		: : : "R2", "R3", "P2"
+		);
 
 	return IRQ_HANDLED;
 }
-
 
 static int __init timer_latency_init(void)
 {
@@ -152,20 +187,22 @@ static int __init timer_latency_init(void)
 
 	/* default value is 0 (timer is stopped) */
 	timer_latency_data.value = 0;
-	timer_latency_data.latency = 0;
+	timer_latency_data.worst_latency = 0;
+	timer_latency_data.average_latency = 0;
+	timer_latency_data.last_latency = 0;
 
 	timer_latency_file->data = &timer_latency_data;
 	timer_latency_file->read_proc = &read_timer_latency;
 	timer_latency_file->write_proc = &write_timer_latency;
 	timer_latency_file->owner = THIS_MODULE;
 
-	request_irq(IRQ_WATCH, timer_latency_irq, IRQF_DISABLED, "timer_latency", &timer_latency_data);
+	request_irq(IRQ_WATCH, timer_latency_irq, IRQF_DISABLED,
+		    "timer_latency", &timer_latency_data);
 
 	printk(KERN_INFO "timer_latency module loaded\n");
 
-	return 0; /* everything's OK */
+	return 0;		/* everything's OK */
 }
-
 
 static void __exit timer_latency_exit(void)
 {
