@@ -291,7 +291,14 @@ asmlinkage void trap_c(struct pt_regs *fp)
 		printk(KERN_NOTICE EXC_0x03(KERN_NOTICE));
 		CHK_DEBUGGER_TRAP_MAYBE();
 		break;
-	/* 0x02 - User Defined */
+	/* 0x02 - kernel space breakpoint handled by KGDB */
+	case VEC_EXCPT02:
+#ifdef CONFIG_KGDB
+		info.si_code = TRAP_ILLTRAP;
+		sig = SIGTRAP;
+		CHK_DEBUGGER_TRAP();
+		return;
+#endif
 	/* 0x04 - User Defined */
 	/* 0x05 - User Defined */
 	/* 0x06 - User Defined */
@@ -304,17 +311,9 @@ asmlinkage void trap_c(struct pt_regs *fp)
 	/* 0x0D - User Defined */
 	/* 0x0E - User Defined */
 	/* 0x0F - User Defined */
-	/*
-	 * If we got here, it is most likely that someone was trying to use a
+	/* If we got here, it is most likely that someone was trying to use a
 	 * custom exception handler, and it is not actually installed properly
 	 */
-	case VEC_EXCPT02:
-#ifdef CONFIG_KGDB
-		info.si_code = TRAP_ILLTRAP;
-		sig = SIGTRAP;
-		CHK_DEBUGGER_TRAP();
-		return;
-#endif
 	case VEC_EXCPT04 ... VEC_EXCPT15:
 		info.si_code = ILL_ILLPARAOP;
 		sig = SIGILL;
