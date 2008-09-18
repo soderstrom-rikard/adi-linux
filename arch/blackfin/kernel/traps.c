@@ -291,7 +291,7 @@ asmlinkage void trap_c(struct pt_regs *fp)
 		printk(KERN_NOTICE EXC_0x03(KERN_NOTICE));
 		CHK_DEBUGGER_TRAP_MAYBE();
 		break;
-	/* 0x02 - kernel space breakpoint handled by KGDB */
+	/* 0x02 - KGDB initial connection and break signal trap */
 	case VEC_EXCPT02:
 #ifdef CONFIG_KGDB
 		info.si_code = TRAP_ILLTRAP;
