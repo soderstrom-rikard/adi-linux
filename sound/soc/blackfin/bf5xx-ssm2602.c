@@ -139,7 +139,7 @@ static struct snd_soc_dai_link bf5xx_ssm2602_dai = {
  */
 
 static struct ssm2602_setup_data bf5xx_ssm2602_setup = {
-	.i2c_address = 0x1b,
+	.i2c_address = CONFIG_SND_BF5XX_SOC_SSM2602_ADDR,
 };
 
 static struct snd_soc_machine bf5xx_ssm2602 = {

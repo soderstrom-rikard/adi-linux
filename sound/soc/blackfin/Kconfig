@@ -17,6 +17,17 @@ config SND_BF5XX_SOC_SSM2602
 	help
 	  Say Y if you want to add support for SoC audio on BF527-EZKIT.
 
+config SND_BF5XX_SOC_SSM2602_ADDR
+        hex "I2c address to SSM2602 on a BF527"
+        default 0x1b
+        range 0x1a 0x1b
+        depends on SND_BF5XX_SOC_SSM2602
+        help
+          Set the address of the SSM 2602 to 0x1a or 0x1b based on the power-up condition
+          on CSB where CSB high at startup is 0x1b.
+
+          Defaults to 0x1b matching the BF527_EZKIT hardware.
+
 config SND_BF5XX_AC97
 	tristate "SoC AC97 Audio for the ADI BF5xx chip"
 	depends on BLACKFIN && SND_SOC
