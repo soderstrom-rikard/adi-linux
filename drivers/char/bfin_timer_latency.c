@@ -78,7 +78,7 @@ static int write_timer_latency(struct file *file, const char *buffer,
 	unsigned int period_cclk;
 
 	copy_from_user(user_value, buffer, count);
-	wd_period_us = strict_strtoul(user_value, NULL, 0);
+	wd_period_us = simple_strtoul(user_value, NULL, 0);
 
 	if ((wd_period_us >= 100) && (timer_latency_data.value == 0)) {
 		DPRINTK("start timer_latency\n");
