@@ -704,7 +704,10 @@ ENTRY(_system_call)
 	rts;
 ENDPROC(_system_call)
 
-ENTRY(_sys_trace)
+/* Do not mark as ENTRY() to avoid error in assembler ...
+ * this symbol need not be global anyways, so ...
+ */
+_sys_trace:
 	call _syscall_trace;
 
 	/* Execute the appropriate system call */
