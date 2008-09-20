@@ -704,7 +704,7 @@ ENTRY(_system_call)
 	rts;
 ENDPROC(_system_call)
 
-_sys_trace:
+ENTRY(_sys_trace)
 	call _syscall_trace;
 
 	/* Execute the appropriate system call */
