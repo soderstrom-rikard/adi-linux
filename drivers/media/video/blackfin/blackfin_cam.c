@@ -193,7 +193,7 @@ void bcap_reg_reset(struct ppi_device_t *pdev)
 	bfin_write_PPI_CONTROL(pdev->ppi_control & ~PORT_EN);
 	bfin_write_PPI_DELAY(pdev->ppi_delay);
 #if !defined(USE_ITU656)
-	bfin_write_PPI_COUNT(pdev->pixel_per_line - 1);
+	bfin_write_PPI_COUNT(pdev->pixel_per_line - PPI_COUNT_CORR_OFFSET);
 #endif
 	bfin_write_PPI_FRAME(pdev->lines_per_frame);
 }
@@ -321,9 +321,9 @@ static int bcap_reset_wsize(u32 height, u32 width)
 
 #if !defined(USE_ITU656)
 	if (bcap_dev->ppidev->bpp > 8)
-		bfin_write_PPI_COUNT(bcap_dev->ppidev->pixel_per_line * 2 - 1);
+		bfin_write_PPI_COUNT(bcap_dev->ppidev->pixel_per_line * 2 - PPI_COUNT_CORR_OFFSET);
 	else
-		bfin_write_PPI_COUNT(bcap_dev->ppidev->pixel_per_line - 1);
+		bfin_write_PPI_COUNT(bcap_dev->ppidev->pixel_per_line - PPI_COUNT_CORR_OFFSET);
 #endif
 
 	if (bcap_dev->ppidev->dma_config & WDSIZE_16) {

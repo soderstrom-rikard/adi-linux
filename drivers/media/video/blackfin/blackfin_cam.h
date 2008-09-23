@@ -56,7 +56,19 @@
 # else
 #  define PPI_BASE PPI0_CONTROL
 # endif
+#elif defined(CONFIG_BF54x)
+#undef CH_PPI
+#define CH_PPI 		CH_EPPI1
+#define PORT_EN		EPPI_EN
+#define PACK_EN 	PACKEN
+#define IRQ_PPI		IRQ_EPPI1
+#define IRQ_PPI_ERROR	IRQ_EPP1_ERROR
+#define CONFIG_VIDEO_BLACKFIN_CAM_PPI1
+#define PPI_COUNT_CORR_OFFSET	0
+#else
+#define PPI_COUNT_CORR_OFFSET	1
 #endif
+
 #ifdef PPI_BASE
 # define bfin_read_PPI_CONTROL()      bfin_read16(PPI_BASE + 0x00)
 # define bfin_write_PPI_CONTROL(val)  bfin_write16(PPI_BASE + 0x00, val)
@@ -69,6 +81,19 @@
 # define bfin_write_PPI_DELAY(val)    bfin_write16(PPI_BASE + 0x0c, val)
 # define bfin_read_PPI_FRAME()        bfin_read16(PPI_BASE + 0x10)
 # define bfin_write_PPI_FRAME(val)    bfin_write16(PPI_BASE + 0x10, val)
+#endif
+#ifdef EPPI1_STATUS
+# define bfin_read_PPI_CONTROL()      bfin_read32(EPPI1_CONTROL)
+# define bfin_write_PPI_CONTROL(val)  bfin_write32(EPPI1_CONTROL, val)
+# define bfin_read_PPI_STATUS()       bfin_read16(EPPI1_STATUS)
+# define bfin_write_PPI_STATUS(val)   bfin_write16(EPPI1_STATUS, val)
+# define bfin_clear_PPI_STATUS()      bfin_write_PPI_STATUS(-1)
+# define bfin_read_PPI_COUNT()        bfin_read16(EPPI1_LINE)
+# define bfin_write_PPI_COUNT(val)    bfin_write16(EPPI1_LINE, val)
+# define bfin_read_PPI_DELAY()        bfin_read16(EPPI1_HDELAY)
+# define bfin_write_PPI_DELAY(val)    bfin_write16(EPPI1_HDELAY, val)
+# define bfin_read_PPI_FRAME()        bfin_read16(EPPI1_FRAME)
+# define bfin_write_PPI_FRAME(val)    bfin_write16(EPPI1_FRAME, val)
 #endif
 
 #define DRV_NAME	"blackfin-cam"
@@ -129,7 +154,11 @@ struct ppi_device_t {
 	unsigned short pixel_per_line;
 	unsigned short lines_per_frame;
 	unsigned short bpp;
+#ifdef CONFIG_BF54x
+	unsigned int ppi_control;
+#else
 	unsigned short ppi_control;
+#endif
 	unsigned short ppi_status;
 	unsigned short ppi_delay;
 	unsigned short ppi_trigger_gpio;

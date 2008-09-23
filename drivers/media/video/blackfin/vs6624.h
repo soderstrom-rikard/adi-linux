@@ -40,7 +40,11 @@
 
 #define DEFAULT_FORMAT 	3
 
+#ifdef CONFIG_BFIN548_EZKIT
+#define VS6624_PWDN		GPIO_PG6
+#else
 #define VS6624_PWDN		GPIO_PF10
+#endif
 
 #undef USE_ITU656
 #undef USE_2ND_BUF_IN_CACHED_MEM
@@ -48,6 +52,16 @@
 #undef USE_PROC
 #undef USE_GPIO
 
+#ifdef CONFIG_BF54x
+# define POL_C              	0x1800
+# define POL_S              	0x0000
+# define PIXEL_PER_LINE     	640
+# define LINES_PER_FRAME    	480
+# define PPI_DATA_LEN       	DLEN_8
+# define PPI_PACKING        	PACKEN
+# define DMA_FLOW_MODE      	0x0000	/* STOPMODE */
+# define DMA_WDSIZE_16      	WDSIZE_32
+#else
 # define POL_C              	0x0000
 # define POL_S              	0x0000
 # define PIXEL_PER_LINE     	640
@@ -56,6 +70,7 @@
 # define PPI_PACKING        	PACK_EN
 # define DMA_FLOW_MODE      	0x0000	/* STOPMODE */
 # define DMA_WDSIZE_16      	WDSIZE_16
+#endif
 
 #ifdef USE_ITU656
 # define CFG_GP_Input_3Syncs	0x0000
