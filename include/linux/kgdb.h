@@ -107,6 +107,7 @@ struct kgdb_bkpt {
 #endif
 
 #define KGDB_HW_BREAKPOINT	1
+#define KGDB_THR_PROC_SWAP	2
 
 /*
  * Functions each KGDB-supporting architecture must provide:
