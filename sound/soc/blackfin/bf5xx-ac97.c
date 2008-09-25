@@ -132,7 +132,6 @@ static void enqueue_cmd(struct snd_ac97 *ac97, __u16 addr, __u16 data)
 	struct ac97_frame *nextwrite;
 
 	incfrag(sport, &nextfrag, 1);
-	incfrag(sport, &nextfrag, 1);
 
 	nextwrite = (struct ac97_frame *)(sport->tx_buf + \
 			nextfrag * sport->tx_fragsize);
