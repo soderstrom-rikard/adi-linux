@@ -130,6 +130,7 @@ obj-$(CONFIG_FB_BF54X_LQ043)	  += bf54x-lq043fb.o
 obj-$(CONFIG_FB_BF537_LQ035)	  += bf537-lq035.o
 obj-$(CONFIG_FB_BFIN_T350MCQB)	  += bfin-t350mcqb-fb.o
 obj-$(CONFIG_FB_BFIN_7393)	  += bfin_adv7393fb.o
+obj-$(CONFIG_FB_BFIN_LQ035Q1)	  += bfin-lq035q1-fb.o
 
 # the test framebuffer is last
 obj-$(CONFIG_FB_VIRTUAL)          += vfb.o
