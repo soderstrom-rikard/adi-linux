@@ -295,6 +295,13 @@ static struct bfin5xx_spi_chip spidev_chip_info = {
 };
 #endif
 
+#if defined(CONFIG_FB_BFIN_LQ035Q1) || defined(CONFIG_FB_BFIN_LQ035Q1_MODULE)
+static struct bfin5xx_spi_chip lq035q1_spi_chip_info = {
+	.enable_dma = 0,
+	.bits_per_word = 8,
+};
+#endif
+
 static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #if defined(CONFIG_MTD_M25P80) \
 	|| defined(CONFIG_MTD_M25P80_MODULE)
@@ -389,6 +396,16 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.bus_num = 0,
 		.chip_select = 1,
 		.controller_data = &spidev_chip_info,
+	},
+#endif
+#if defined(CONFIG_FB_BFIN_LQ035Q1) || defined(CONFIG_FB_BFIN_LQ035Q1_MODULE)
+	{
+		.modalias = "bfin-lq035q1-spi",
+		.max_speed_hz = 20000000,     /* max spi clock (SCK) speed in HZ */
+		.bus_num = 0,
+		.chip_select = 1,
+		.controller_data = &lq035q1_spi_chip_info,
+		.mode = SPI_CPHA | SPI_CPOL,
 	},
 #endif
 };
@@ -585,6 +602,34 @@ static struct platform_device bfin_dpmc = {
 	},
 };
 
+#if defined(CONFIG_FB_BFIN_LQ035Q1) || defined(CONFIG_FB_BFIN_LQ035Q1_MODULE)
+#include <asm/bfin-lq035q1.h>
+
+static struct bfin_lq035q1fb_disp_info bfin_lq035q1_data = {
+	.mode = 	LQ035_NORM | LQ035_RGB | LQ035_RL | LQ035_TB,
+	.use_bl = 	1,
+	.gpio_bl =	GPIO_PG12,
+};
+
+static struct resource bfin_lq035q1_resources[] = {
+	{
+		.start = IRQ_PPI_ERROR,
+		.end = IRQ_PPI_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_lq035q1_device = {
+	.name		= "bfin-lq035q1",
+	.id		= -1,
+	.num_resources 	= ARRAY_SIZE(bfin_lq035q1_resources),
+	.resource 	= bfin_lq035q1_resources,
+	.dev		= {
+		.platform_data = &bfin_lq035q1_data,
+	},
+};
+#endif
+
 static struct platform_device *stamp_devices[] __initdata = {
 
 	&bfin_dpmc,
@@ -611,6 +656,10 @@ static struct platform_device *stamp_devices[] __initdata = {
 
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
 	&bfin_uart_device,
+#endif
+
+#if defined(CONFIG_FB_BFIN_LQ035Q1) || defined(CONFIG_FB_BFIN_LQ035Q1_MODULE)
+	&bfin_lq035q1_device,
 #endif
 
 #if defined(CONFIG_BFIN_SIR) || defined(CONFIG_BFIN_SIR_MODULE)
