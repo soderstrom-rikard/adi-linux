@@ -61,19 +61,15 @@ static int bf5xx_ssm2602_hw_params(struct snd_pcm_substream *substream,
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_codec_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
 	unsigned int clk = 0;
 	int ret = 0;
 
 	pr_debug("%s rate %d format %x\n", __func__, params_rate(params),
 		params_format(params));
 	/*
-	 * WARNING - TODO
-	 *
-	 * This code assumes there is a variable clocksource for the SSM2602.
-	 * i.e. it supplies MCLK depending on rate.
-	 *
-	 * If you are using a crystal source then modify the below case
-	 * statement with a static frequency.
+	 * If you are using a crystal source which frequency is not 12MHz
+	 * then modify the below case statement with frequency of the crystal.
 	 *
 	 * If you are using the SPORT to generate clocking then this is
 	 * where to do it.
@@ -97,6 +93,11 @@ static int bf5xx_ssm2602_hw_params(struct snd_pcm_substream *substream,
 
 	/* set codec DAI configuration */
 	ret = codec_dai->dai_ops.set_fmt(codec_dai, SND_SOC_DAIFMT_I2S |
+		SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
+	if (ret < 0)
+		return ret;
+	/* set cpu DAI configuration */
+	ret = cpu_dai->dai_ops.set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
 		SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0)
 		return ret;

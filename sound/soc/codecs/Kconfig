@@ -10,6 +10,10 @@ config SND_SOC_SSM2602
 	tristate
 	depends on SND_SOC
 
+config SND_SOC_AD73311
+	tristate
+	depends on SND_SOC
+
 config SND_SOC_WM8731
 	tristate
 	depends on SND_SOC
