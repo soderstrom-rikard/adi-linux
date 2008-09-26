@@ -218,27 +218,27 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
 
 #if L1_CODE_LENGTH != 0
 			if (addr >= L1_CODE_START
-			    && addr + sizeof(tmp) <= L1_CODE_START + L1_CODE_LENGTH) {
+			    && addr + sizeof(tmp) < L1_CODE_START + L1_CODE_LENGTH) {
 				safe_dma_memcpy (&tmp, (const void *)(addr), sizeof(tmp));
 				copied = sizeof(tmp);
 			} else
 #endif
 #if L1_DATA_A_LENGTH != 0
 			if (addr >= L1_DATA_A_START
-			    && addr + sizeof(tmp) <= L1_DATA_A_START + L1_DATA_A_LENGTH) {
+			    && addr + sizeof(tmp) < L1_DATA_A_START + L1_DATA_A_LENGTH) {
 				memcpy(&tmp, (const void *)(addr), sizeof(tmp));
 				copied = sizeof(tmp);
 			} else
 #endif
 #if L1_DATA_B_LENGTH != 0
 			if (addr >= L1_DATA_B_START
-			    && addr + sizeof(tmp) <= L1_DATA_B_START + L1_DATA_B_LENGTH) {
+			    && addr + sizeof(tmp) < L1_DATA_B_START + L1_DATA_B_LENGTH) {
 				memcpy(&tmp, (const void *)(addr), sizeof(tmp));
 				copied = sizeof(tmp);
 			} else
 #endif
 			if (addr >= FIXED_CODE_START
-			    && addr + sizeof(tmp) <= FIXED_CODE_END) {
+			    && addr + sizeof(tmp) < FIXED_CODE_END) {
 				memcpy(&tmp, (const void *)(addr), sizeof(tmp));
 				copied = sizeof(tmp);
 			} else
@@ -302,27 +302,27 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
 
 #if L1_CODE_LENGTH != 0
 			if (addr >= L1_CODE_START
-			    && addr + sizeof(data) <= L1_CODE_START + L1_CODE_LENGTH) {
+			    && addr + sizeof(data) < L1_CODE_START + L1_CODE_LENGTH) {
 				safe_dma_memcpy ((void *)(addr), &data, sizeof(data));
 				copied = sizeof(data);
 			} else
 #endif
 #if L1_DATA_A_LENGTH != 0
 			if (addr >= L1_DATA_A_START
-			    && addr + sizeof(data) <= L1_DATA_A_START + L1_DATA_A_LENGTH) {
+			    && addr + sizeof(data) < L1_DATA_A_START + L1_DATA_A_LENGTH) {
 				memcpy((void *)(addr), &data, sizeof(data));
 				copied = sizeof(data);
 			} else
 #endif
 #if L1_DATA_B_LENGTH != 0
 			if (addr >= L1_DATA_B_START
-			    && addr + sizeof(data) <= L1_DATA_B_START + L1_DATA_B_LENGTH) {
+			    && addr + sizeof(data) < L1_DATA_B_START + L1_DATA_B_LENGTH) {
 				memcpy((void *)(addr), &data, sizeof(data));
 				copied = sizeof(data);
 			} else
 #endif
 			if (addr >= FIXED_CODE_START
-			    && addr + sizeof(data) <= FIXED_CODE_END) {
+			    && addr + sizeof(data) < FIXED_CODE_END) {
 				memcpy((void *)(addr), &data, sizeof(data));
 				copied = sizeof(data);
 			} else
