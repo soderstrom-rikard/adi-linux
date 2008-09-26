@@ -66,6 +66,7 @@ check_kconfig() {
 }
 
 make="make -s ARCH=blackfin CROSS_COMPILE=bfin-uclinux-"
+export CONFIG_DEBUG_SECTION_MISMATCH=y
 
 if [[ ! -e arch/blackfin/configs ]] ; then
 	echo "Not in a kernel directory!?"
