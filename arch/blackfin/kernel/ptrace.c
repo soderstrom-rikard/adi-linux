@@ -161,15 +161,15 @@ static inline int is_user_addr_valid(struct task_struct *child,
 	struct sram_list_struct *sraml;
 
 	for (vml = child->mm->context.vmlist; vml; vml = vml->next)
-		if (start >= vml->vma->vm_start && start + len <= vml->vma->vm_end)
+		if (start >= vml->vma->vm_start && start + len < vml->vma->vm_end)
 			return 0;
 
 	for (sraml = child->mm->context.sram_list; sraml; sraml = sraml->next)
 		if (start >= (unsigned long)sraml->addr
-		    && start + len <= (unsigned long)sraml->addr + sraml->length)
+		    && start + len < (unsigned long)sraml->addr + sraml->length)
 			return 0;
 
-	if (start >= FIXED_CODE_START && start + len <= FIXED_CODE_END)
+	if (start >= FIXED_CODE_START && start + len < FIXED_CODE_END)
 		return 0;
 
 	return -EIO;
