@@ -110,7 +110,6 @@ static void bfin_serial_stop_tx(struct uart_port *port)
 static void bfin_serial_start_tx(struct uart_port *port)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
-	int flags;
 
 	/*
 	 * To avoid losting RX interrupt, we reset IR function
