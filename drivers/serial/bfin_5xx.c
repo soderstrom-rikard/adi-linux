@@ -119,7 +119,6 @@ static void bfin_serial_start_tx(struct uart_port *port)
 	if (port->info->tty->ldisc.num == N_IRDA)
 		bfin_serial_reset_irda(port);
 
-	spin_lock_irqsave(&uart->port.lock, flags);
 #ifdef CONFIG_SERIAL_BFIN_DMA
 	if (uart->tx_done)
 		bfin_serial_dma_tx_chars(uart);
@@ -127,7 +126,6 @@ static void bfin_serial_start_tx(struct uart_port *port)
 	UART_SET_IER(uart, ETBEI);
 	bfin_serial_tx_chars(uart);
 #endif
-	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
 
 /*
