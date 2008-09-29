@@ -344,7 +344,7 @@ static struct platform_device bfin_sir_device = {
 
 static struct plat_serial8250_port serial8250_platform_data [] = {
 	{
-		.membase = 0x20200000,
+		.membase = (void *)0x20200000,
 		.mapbase = 0x20200000,
 		.irq = IRQ_PF8,
 		.flags = UPF_BOOT_AUTOCONF | UART_CONFIG_TYPE,
@@ -352,7 +352,7 @@ static struct plat_serial8250_port serial8250_platform_data [] = {
 		.regshift = 1,
 		.uartclk = 66666667,
 	}, {
-		.membase = 0x20200010,
+		.membase = (void *)0x20200010,
 		.mapbase = 0x20200010,
 		.irq = IRQ_PF8,
 		.flags = UPF_BOOT_AUTOCONF | UART_CONFIG_TYPE,
