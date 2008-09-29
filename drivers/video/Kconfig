@@ -606,7 +606,6 @@ config FB_BFIN_LQ035Q1
 	select FB_CFB_IMAGEBLIT
 	select BFIN_GPTIMERS
 	select SPI
-	select SPI_BFIN
 	help
 	 This is the framebuffer device driver for a SHARP LQ035Q1DH02 TFT display found on
 	 the Blackfin Landscape LCD EZ-Extender Card.
