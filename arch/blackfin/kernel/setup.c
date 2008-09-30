@@ -815,7 +815,7 @@ void __init setup_arch(char **cmdline_p)
 		printk(KERN_INFO "Compiled for ADSP-%s Rev 0.%d\n", CPU, bfin_compiled_revid());
 
 	if (unlikely(CPUID != bfin_cpuid()))
-		printk(KERN_ERR "ERROR: Not running on ADSP-%s: unknown CPUID 0x%04x Rev 0.%d",
+		printk(KERN_ERR "ERROR: Not running on ADSP-%s: unknown CPUID 0x%04x Rev 0.%d\n",
 			CPU, bfin_cpuid(), bfin_revid());
 	else {
 		if (bfin_revid() != bfin_compiled_revid()) {
@@ -826,11 +826,10 @@ void __init setup_arch(char **cmdline_p)
 				printk(KERN_ERR "Warning: Compiled for Rev %d, but running on Rev %d\n",
 				       bfin_compiled_revid(), bfin_revid());
 		}
+		if (bfin_revid() <= CONFIG_BF_REV_MIN || bfin_revid() > CONFIG_BF_REV_MAX)
+			printk(KERN_ERR "Warning: Unsupported Chip Revision ADSP-%s Rev 0.%d detected\n",
+			       CPU, bfin_revid());
 	}
-
-	if (bfin_revid() <= CONFIG_BF_REV_MIN || bfin_revid() > CONFIG_BF_REV_MAX)
-		printk(KERN_ERR "Warning: Unsupported Chip Revision ADSP-%s Rev 0.%d detected\n",
-		       CPU, bfin_revid());
 
 	printk(KERN_INFO "Blackfin Linux support by http://blackfin.uclinux.org/\n");
 
