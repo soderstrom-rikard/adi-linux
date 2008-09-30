@@ -110,12 +110,15 @@
 
 #ifdef CONFIG_BF527
 #define CPU "BF527"
+#define CPUID 0x27e4
 #endif
 #ifdef CONFIG_BF525
 #define CPU "BF525"
+#define CPUID 0x27e4
 #endif
 #ifdef CONFIG_BF522
 #define CPU "BF522"
+#define CPUID 0x27e4
 #endif
 #ifndef CPU
 #define	CPU "UNKNOWN"

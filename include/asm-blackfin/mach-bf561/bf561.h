@@ -211,7 +211,7 @@
 
 #ifdef CONFIG_BF561
 #define CPU "BF561"
-#define CPUID 0x027bb000
+#define CPUID 0x27bb
 #endif
 #ifndef CPU
 #define CPU "UNKNOWN"

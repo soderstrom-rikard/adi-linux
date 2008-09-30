@@ -106,17 +106,18 @@
 
 #if defined(CONFIG_BF542)
 # define CPU   "BF542"
-# define CPUID 0x027c8000
+# define CPUID 0x27c8
 #elif defined(CONFIG_BF544)
 # define CPU "BF544"
-# define CPUID 0x027c8000
+# define CPUID 0x27c8
 #elif defined(CONFIG_BF547)
 # define CPU "BF547"
 #elif defined(CONFIG_BF548)
 # define CPU "BF548"
-# define CPUID 0x027c6000
+# define CPUID 0x27c6
 #elif defined(CONFIG_BF549)
 # define CPU "BF549"
+# define CPUID 0x27c8
 #else
 # define CPU "UNKNOWN"
 # define CPUID 0x0
