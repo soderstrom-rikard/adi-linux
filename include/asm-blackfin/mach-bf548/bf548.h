@@ -119,9 +119,10 @@
 #elif defined(CONFIG_BF549)
 # define CPU   "BF549"
 # define CPUID 0x27de
-#else
-# define CPU "UNKNOWN"
-# define CPUID 0x0
+#endif
+
+#ifndef CPU
+#error Unknown CPU type - This kernel doesn't seem to be configured properly
 #endif
 
 #endif	/* __MACH_BF48_H__  */

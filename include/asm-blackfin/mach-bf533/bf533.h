@@ -151,9 +151,9 @@
 #define CPU "BF531"
 #define CPUID 0x27a5
 #endif
+
 #ifndef CPU
-#define	CPU "UNKNOWN"
-#define CPUID 0x0
+#error Unknown CPU type - This kernel doesn't seem to be configured properly
 #endif
 
 #endif				/* __MACH_BF533_H__  */
