@@ -199,35 +199,35 @@ iow(board_info_t * db, int reg, int value)
 
 static void dm9000_outblk_8bit(void __iomem *reg, void *data, int count)
 {
-	writesb(reg, data, count);
+	writesb((int)reg, data, count);
 }
 
 static void dm9000_outblk_16bit(void __iomem *reg, void *data, int count)
 {
-	writesw(reg, data, (count+1) >> 1);
+	writesw((int)reg, data, (count+1) >> 1);
 }
 
 static void dm9000_outblk_32bit(void __iomem *reg, void *data, int count)
 {
-	writesl(reg, data, (count+3) >> 2);
+	writesl((int)reg, data, (count+3) >> 2);
 }
 
 /* input block from chip to memory */
 
 static void dm9000_inblk_8bit(void __iomem *reg, void *data, int count)
 {
-	readsb(reg, data, count);
+	readsb((int)reg, data, count);
 }
 
 
 static void dm9000_inblk_16bit(void __iomem *reg, void *data, int count)
 {
-	readsw(reg, data, (count+1) >> 1);
+	readsw((int)reg, data, (count+1) >> 1);
 }
 
 static void dm9000_inblk_32bit(void __iomem *reg, void *data, int count)
 {
-	readsl(reg, data, (count+3) >> 2);
+	readsl((int)reg, data, (count+3) >> 2);
 }
 
 /* dump block from chip to null */
