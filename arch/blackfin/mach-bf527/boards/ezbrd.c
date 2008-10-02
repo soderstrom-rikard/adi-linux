@@ -1,5 +1,5 @@
 /*
- * File:         arch/blackfin/mach-bf527/boards/bf526_ezkit.c
+ * File:         arch/blackfin/mach-bf527/boards/ezbrd.c
  * Based on:     arch/blackfin/mach-bf537/boards/stamp.c
  * Author:       Aidan Williams <aidan@nicta.com.au>
  *
@@ -53,7 +53,7 @@
 /*
  * Name the Board for the /proc/cpuinfo
  */
-const char bfin_board_name[] = "BF526-EZKIT";
+const char bfin_board_name[] = "BF526-EZBRD";
 
 /*
  *  Driver needs to know address, irq and flag pin.
@@ -105,7 +105,7 @@ static struct platform_device musb_device = {
 #endif
 
 #if defined(CONFIG_MTD_PHYSMAP) || defined(CONFIG_MTD_PHYSMAP_MODULE)
-static struct mtd_partition ezkit_partitions[] = {
+static struct mtd_partition ezbrd_partitions[] = {
 	{
 		.name       = "bootloader(nor)",
 		.size       = 0x40000,
@@ -121,26 +121,26 @@ static struct mtd_partition ezkit_partitions[] = {
 	}
 };
 
-static struct physmap_flash_data ezkit_flash_data = {
+static struct physmap_flash_data ezbrd_flash_data = {
 	.width      = 2,
-	.parts      = ezkit_partitions,
-	.nr_parts   = ARRAY_SIZE(ezkit_partitions),
+	.parts      = ezbrd_partitions,
+	.nr_parts   = ARRAY_SIZE(ezbrd_partitions),
 };
 
-static struct resource ezkit_flash_resource = {
+static struct resource ezbrd_flash_resource = {
 	.start = 0x20000000,
 	.end   = 0x203fffff,
 	.flags = IORESOURCE_MEM,
 };
 
-static struct platform_device ezkit_flash_device = {
+static struct platform_device ezbrd_flash_device = {
 	.name          = "physmap-flash",
 	.id            = 0,
 	.dev = {
-		.platform_data = &ezkit_flash_data,
+		.platform_data = &ezbrd_flash_data,
 	},
 	.num_resources = 1,
-	.resource      = &ezkit_flash_resource,
+	.resource      = &ezbrd_flash_resource,
 };
 #endif
 
@@ -680,7 +680,7 @@ static struct platform_device *stamp_devices[] __initdata = {
 #endif
 
 #if defined(CONFIG_MTD_PHYSMAP) || defined(CONFIG_MTD_PHYSMAP_MODULE)
-	&ezkit_flash_device,
+	&ezbrd_flash_device,
 #endif
 
 	&bfin_gpios_device,
