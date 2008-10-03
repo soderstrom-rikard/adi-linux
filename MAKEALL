@@ -83,7 +83,11 @@ for b in "$@" ; do
 		echo -n "###### $p: "
 		rm -f $b.$p.log*
 		${make} $b >& /dev/null
-		sed -i 1iCONFIG_${p}=y .config
+		sed -i \
+			-e 1iCONFIG_${p}=y \
+			-e '/^# CONFIG_BF[[:digit:]]* is not set$/d' \
+			-e '/^CONFIG_BF[[:digit:]]*=y/d' \
+			.config
 		yes "" | ${make} oldconfig >& /dev/null
 		check_kconfig
 		yes "" | ${make} oldconfig >& /dev/null
