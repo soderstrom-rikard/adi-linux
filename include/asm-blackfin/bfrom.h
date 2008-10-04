@@ -54,4 +54,32 @@ static inline void bfrom_SoftReset(void *new_stack)
 		);
 }
 
+/* OTP Functions */
+static uint32_t (* const bfrom_OtpCommand)(uint32_t command, uint32_t value) = (void *)0xEF000018;
+static uint32_t (* const bfrom_OtpRead)(uint32_t page, uint32_t flags, uint64_t *page_content) = (void *)0xEF00001A;
+static uint32_t (* const bfrom_OtpWrite)(uint32_t page, uint32_t flags, uint64_t *page_content) = (void *)0xEF00001C;
+
+/* otp command: defines for "command" */
+#define OTP_INIT                 0x00000001
+#define OTP_CLOSE                0x00000002
+
+/* otp read/write: defines for "flags" */
+#define OTP_LOWER_HALF           0x00000000 /* select upper/lower 64-bit half (bit 0) */
+#define OTP_UPPER_HALF           0x00000001
+#define OTP_NO_ECC               0x00000010 /* do not use ECC */
+#define OTP_LOCK                 0x00000020 /* sets page protection bit for page */
+#define OTP_CHECK_FOR_PREV_WRITE 0x00000080
+
+/* Return values for all functions */
+#define OTP_SUCCESS          0x00000000
+#define OTP_MASTER_ERROR     0x001
+#define OTP_WRITE_ERROR      0x003
+#define OTP_READ_ERROR       0x005
+#define OTP_ACC_VIO_ERROR    0x009
+#define OTP_DATA_MULT_ERROR  0x011
+#define OTP_ECC_MULT_ERROR   0x021
+#define OTP_PREV_WR_ERROR    0x041
+#define OTP_DATA_SB_WARN     0x100
+#define OTP_ECC_SB_WARN      0x200
+
 #endif
