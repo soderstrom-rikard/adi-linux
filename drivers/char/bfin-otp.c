@@ -108,7 +108,7 @@ static void bfin_otp_deinit_timing(u32 timing)
 {
 	/* mask bits [31:15] so that any attempts to write fail */
 	bfrom_OtpCommand(OTP_CLOSE, 0);
-	bfrom_OtpCommand(OTP_INIT, timing & (-1 << 15));
+	bfrom_OtpCommand(OTP_INIT, timing & ~(-1 << 15));
 	bfrom_OtpCommand(OTP_CLOSE, 0);
 }
 
