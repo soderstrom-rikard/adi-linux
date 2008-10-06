@@ -7,6 +7,7 @@
  */
 
 #include <linux/interrupt.h>
+#include <linux/delay.h>
 #include <asm/bfin-global.h>
 #include <asm/reboot.h>
 #include <asm/system.h>
@@ -74,6 +75,7 @@ void native_machine_restart(char *cmd)
 void machine_restart(char *cmd)
 {
 	native_machine_restart(cmd);
+	udelay(500);
 	local_irq_disable();
 	if (ANOMALY_05000353 || ANOMALY_05000386)
 		bfin_reset();
