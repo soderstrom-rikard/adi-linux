@@ -1,17 +1,9 @@
 /*
  * File:        drivers/input/touchscreen/ad7879.c
  *
- * Based on: 	ad7877.c
- *
  *		Copyright (C) 2008 Michael Hennerich, Analog Devices Inc.
  *
- * Author:	Michael Hennerich, Analog Devices Inc.
- *
- * Created:	Sept, 25th 2008
  * Description:	AD7879 based touchscreen, and GPIO driver
- *
- *
- * Modified:
  *
  * Bugs:        Enter bugs at http://blackfin.uclinux.org/
  *
@@ -259,12 +251,15 @@ static ssize_t ad7879_disable_store(struct device *dev,
 				     const char *buf, size_t count)
 {
 	struct ad7879 *ts = dev_get_drvdata(dev);
-	char *endp;
-	int i;
+	unsigned long val;
+	int ret;
 
-	i = simple_strtoul(buf, &endp, 10);
+	ret = strict_strtoul(buf, 10, &val);
 
-	if (i)
+	if (ret)
+		return ret;
+
+	if (val)
 		ad7879_disable(ts);
 	else
 		ad7879_enable(ts);
@@ -287,12 +282,14 @@ static ssize_t ad7879_gpio_store(struct device *dev,
 				     const char *buf, size_t count)
 {
 	struct ad7879 *ts = dev_get_drvdata(dev);
-	char *endp;
-	int i, ret;
+	unsigned long val;
+	int ret;
 
-	i = simple_strtoul(buf, &endp, 10);
+	ret = strict_strtoul(buf, 10, &val);
+	if (ret)
+		return ret;
 
-	ts->gpio = !!i;
+	ts->gpio = !!val;
 
 	ret = ad7879_write(dev, AD7879_REG_CTRL2,
 			ts->gpio ? ts->cmd_crtl2 & ~AD7879_GPIO_DATA
@@ -328,7 +325,7 @@ static void ad7879_rx(struct ad7879 *ts)
 	z2 = ts->conversion_data[AD7879_SEQ_Z2] & MAX_12BIT;
 
 	/*
-	 * The samples processes here are already preprocessed by the AD7879.
+	 * The samples processed here are already preprocessed by the AD7879.
 	 * The preprocessing function consists of a median and an averaging filter.
 	 * The combination of these two techniques provides a robust solution,
 	 * discarding the spurious noise in the signal and keeping only the data of interest.
