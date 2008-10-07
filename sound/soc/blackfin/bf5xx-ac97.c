@@ -101,21 +101,51 @@ static struct sport_param sport_params[4] = {
 #endif
 };
 
-void bf5xx_pcm_to_ac97(struct ac97_frame *dst, const __u32 *src, \
-		size_t count)
+void bf5xx_pcm_to_ac97(struct ac97_frame *dst, const __u16 *src, \
+		size_t count, unsigned int chan_mask)
 {
 	while (count--) {
-		dst->ac97_tag = TAG_VALID | TAG_PCM;
-		(dst++)->ac97_pcm = *src++;
+		dst->ac97_tag = TAG_VALID;
+		if (chan_mask & SP_FL) {
+			dst->ac97_pcm_l = *src++;
+			dst->ac97_tag |= TAG_PCM_LEFT;
+		}
+		if (chan_mask & SP_FR) {
+			dst->ac97_pcm_r = *src++;
+			dst->ac97_tag |= TAG_PCM_RIGHT;
+
+		}
+#if defined(CONFIG_SND_MULTICHAN_SUPPORT)
+		if (chan_mask & SP_FC) {
+			dst->ac97_center = *src++;
+			dst->ac97_tag |= TAG_PCM_CENTER;
+		}
+		if (chan_mask & SP_LFE) {
+			dst->ac97_lfe = *src++;
+			dst->ac97_tag |= TAG_PCM_LFE;
+		}
+		if (chan_mask & SP_SL) {
+			dst->ac97_sl = *src++;
+			dst->ac97_tag |= TAG_PCM_SL;
+		}
+		if (chan_mask & SP_SR) {
+			dst->ac97_sr = *src++;
+			dst->ac97_tag |= TAG_PCM_SR;
+		}
+#endif
+		dst++;
 	}
 }
 EXPORT_SYMBOL(bf5xx_pcm_to_ac97);
 
-void bf5xx_ac97_to_pcm(const struct ac97_frame *src, __u32 *dst, \
+void bf5xx_ac97_to_pcm(const struct ac97_frame *src, __u16 *dst, \
 		size_t count)
 {
-	while (count--)
-		*(dst++) = (src++)->ac97_pcm;
+	while (count--) {
+		*(dst++) = src->ac97_pcm_l;
+		*(dst++) = src->ac97_pcm_r;
+		src++;
+	}
 }
 EXPORT_SYMBOL(bf5xx_ac97_to_pcm);
 
@@ -264,7 +294,11 @@ static int bf5xx_ac97_resume(struct platform_device *pdev,
 	pr_debug("%s : sport %d\n", __func__, dai->id);
 	if (!dai->active)
 		return 0;
+#if defined(CONFIG_SND_MULTICHAN_SUPPORT)
+	ret = sport_set_multichannel(sport_handle, 16, 0x3FF, 1);
+#else
 	ret = sport_set_multichannel(sport_handle, 16, 0x1F, 1);
+#endif
 
 	if (ret) {
 		pr_err("SPORT is busy!\n");
@@ -334,8 +368,11 @@ static int bf5xx_ac97_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 	/*SPORT works in TDM mode to simulate AC97 transfers*/
+#if defined(CONFIG_SND_MULTICHAN_SUPPORT)
+	ret = sport_set_multichannel(sport_handle, 16, 0x3FF, 1);
+#else
 	ret = sport_set_multichannel(sport_handle, 16, 0x1F, 1);
-
+#endif
 	if (ret) {
 		pr_err("SPORT is busy!\n");
 		peripheral_free_list(&sport_req[sport_num][0]);
@@ -396,7 +433,11 @@ struct snd_soc_cpu_dai bfin_ac97_dai = {
 	.playback = {
 		.stream_name = "AC97 Playback",
 		.channels_min = 2,
+#if defined(CONFIG_SND_MULTICHAN_SUPPORT)
+		.channels_max = 6,
+#else
 		.channels_max = 2,
+#endif
 		.rates = SNDRV_PCM_RATE_48000,
 		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
 	.capture = {

@@ -43,24 +43,34 @@
 #include "bf5xx-ac97.h"
 #include "bf5xx-sport.h"
 
+static unsigned int ac97_chan_mask[] = {
+	SP_FL, /* Mono */
+	SP_STEREO, /* Stereo */
+	SP_2DOT1, /* 2.1*/
+	SP_QUAD,/*Quadraquic*/
+	SP_FL | SP_FR | SP_FC | SP_SL | SP_SR,/*5 channels */
+	SP_5DOT1, /* 5.1 */
+};
+
 #if defined(CONFIG_SND_MMAP_SUPPORT)
 static void bf5xx_mmap_copy(struct snd_pcm_substream *substream,
 	 snd_pcm_uframes_t count)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct sport_device *sport = runtime->private_data;
+	unsigned int chan_mask = ac97_chan_mask[substream->runtime->channels - 1];
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		bf5xx_pcm_to_ac97(
-			(struct ac97_frame *)sport->tx_dma_buf + sport->tx_pos,
-			(__u32 *)runtime->dma_area + sport->tx_pos, count);
+		bf5xx_pcm_to_ac97((struct ac97_frame *)sport->tx_dma_buf + sport->tx_pos,
+			(__u16 *)runtime->dma_area + sport->tx_pos * substream->runtime->channels,
+				count, chan_mask);
 		sport->tx_pos += runtime->period_size;
 		if (sport->tx_pos >= runtime->buffer_size)
 			sport->tx_pos %= runtime->buffer_size;
 		sport->tx_delay_pos = sport->tx_pos;
 	} else {
-		bf5xx_ac97_to_pcm(
-			(struct ac97_frame *)sport->rx_dma_buf + sport->rx_pos,
-			(__u32 *)runtime->dma_area + sport->rx_pos, count);
+		bf5xx_ac97_to_pcm((struct ac97_frame *)sport->rx_dma_buf + sport->rx_pos,
+			(__u16 *)runtime->dma_area + sport->rx_pos * substream->runtime->channels,
+				count);
 		sport->rx_pos += runtime->period_size;
 		if (sport->rx_pos >= runtime->buffer_size)
 			sport->rx_pos %= runtime->buffer_size;
@@ -124,9 +134,14 @@ static int bf5xx_pcm_hw_params(struct snd_pcm_substream *substream,
 static int bf5xx_pcm_hw_free(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
+	struct sport_device *sport = runtime->private_data;
 
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-	memset(runtime->dma_area, 0, runtime->buffer_size);
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		sport->once = 0;
+		memset(sport->tx_dma_buf, 0, runtime->buffer_size * sizeof(struct ac97_frame));
+	} else
+		memset(sport->rx_dma_buf, 0, runtime->buffer_size * sizeof(struct ac97_frame));
+
 	snd_pcm_lib_free_pages(substream);
 	return 0;
 }
@@ -176,7 +191,6 @@ static int bf5xx_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_START:
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 			bf5xx_mmap_copy(substream, runtime->period_size);
-			snd_pcm_period_elapsed(substream);
 			sport->tx_delay_pos = 0;
 			sport_tx_start(sport);
 		}
@@ -254,21 +268,6 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 	return ret;
 }
 
-static int bf5xx_pcm_close(struct snd_pcm_substream *substream)
-{
-	struct snd_pcm_runtime *runtime = substream->runtime;
-	struct sport_device *sport = runtime->private_data;
-
-	pr_debug("%s enter\n", __func__);
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		sport->once = 0;
-		memset(sport->tx_dma_buf, 0, runtime->buffer_size * sizeof(struct ac97_frame));
-	} else
-		memset(sport->rx_dma_buf, 0, runtime->buffer_size * sizeof(struct ac97_frame));
-
-	return 0;
-}
-
 #ifdef CONFIG_SND_MMAP_SUPPORT
 static int bf5xx_pcm_mmap(struct snd_pcm_substream *substream,
 	struct vm_area_struct *vma)
@@ -304,7 +303,6 @@ static	int bf5xx_pcm_copy(struct snd_pcm_substream *substream, int channel,
 
 struct snd_pcm_ops bf5xx_pcm_ops = {
 	.open		= bf5xx_pcm_open,
-	.close		= bf5xx_pcm_close,
 	.ioctl		= snd_pcm_lib_ioctl,
 	.hw_params	= bf5xx_pcm_hw_params,
 	.hw_free	= bf5xx_pcm_hw_free,

@@ -66,6 +66,14 @@ config SND_MMAP_SUPPORT
 	  Say y if you want AC97 driver to support mmap mode.
 	  We introduce an intermediate buffer to simulate mmap.
 
+config SND_MULTICHAN_SUPPORT
+	bool "Enable Multichannel Support"
+	depends on SND_BF5XX_AC97
+	default n
+	help
+	  Say y if you want AC97 driver to support up to 5.1 channel audio.
+	  this mode will consume much more memory for DMA. 
+
 config SND_BF5XX_SOC_SPORT
 	tristate
 	

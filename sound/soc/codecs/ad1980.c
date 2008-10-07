@@ -19,7 +19,6 @@
 #include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/device.h>
-#include <sound/driver.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/ac97_codec.h>
@@ -146,7 +145,11 @@ struct snd_soc_codec_dai ad1980_dai = {
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 2,
+#if defined(CONFIG_SND_MULTICHAN_SUPPORT)
+		.channels_max = 6,
+#else
 		.channels_max = 2,
+#endif
 		.rates = SNDRV_PCM_RATE_48000,
 		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
 	.capture = {
@@ -268,7 +271,11 @@ static int ad1980_soc_probe(struct platform_device *pdev)
 	ac97_write(codec, AC97_MASTER, 0x0000); /* unmute line out volume */
 	ac97_write(codec, AC97_PCM, 0x0000);	/* unmute PCM out volume */
 	ac97_write(codec, AC97_REC_GAIN, 0x0000);/* unmute record volume */
-
+#if defined(CONFIG_SND_MULTICHAN_SUPPORT)
+	ac97_write(codec, AC97_CENTER_LFE_MASTER, 0x0000); /* unmute center and lfe volume */
+	ac97_write(codec, AC97_SURROUND_MASTER, 0x0000); /* unmute surround volume */
+	ac97_write(codec, AC97_EXTENDED_STATUS, 0x0000);/*power on LFE FC and Surround DACs*/
+#endif
 	ad1980_add_controls(codec);
 	ret = snd_soc_register_card(socdev);
 	if (ret < 0) {
