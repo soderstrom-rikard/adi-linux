@@ -5,13 +5,7 @@
  *
  *		Copyright (C) 2006-2008 Michael Hennerich, Analog Devices Inc.
  *
- * Author:	Michael Hennerich, Analog Devices Inc.
- *
- * Created:	Nov, 10th 2006
  * Description:	AD7877 based touchscreen, sensor (ADCs), DAC and GPIO driver
- *
- *
- * Modified:
  *
  * Bugs:        Enter bugs at http://blackfin.uclinux.org/
  *
@@ -156,10 +150,8 @@ enum {
 		AD7877_MODE_SCC | AD7877_CHANADD(AD7877_REG_ ## x) | \
 		AD7877_READADD(AD7877_REG_ ## x))
 
-
 #define AD7877_MM_SEQUENCE (AD7877_SEQ_YPLUS_BIT | AD7877_SEQ_XPLUS_BIT | \
 		AD7877_SEQ_Z2_BIT | AD7877_SEQ_Z1_BIT)
-/*--------------------------------------------------------------------------*/
 
 /*
  * Non-touchscreen sensors only use single-ended conversions.
@@ -405,7 +397,6 @@ static irqreturn_t ad7877_irq(int irq, void *handle)
 	if (ts->pending)
 		return IRQ_HANDLED;
 
-
 	spin_lock_irqsave(&ts->lock, flags);
 	ts->pending = 1;
 	spin_unlock_irqrestore(&ts->lock, flags);
@@ -437,8 +428,6 @@ static void ad7877_disable(struct ad7877 *ts)
 
 	if (ts->disabled)
 		return;
-
-	ts->disabled = 1;
 
 	spin_lock_irqsave(&ts->lock, flags);
 	ts->disabled = 1;
@@ -885,5 +874,5 @@ MODULE_PARM_DESC(gpio3,
 	"If gpio3 is set to 1 AUX3 acts as GPIO3");
 
 MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
-MODULE_DESCRIPTION("AD7877 TouchScreen Driver");
+MODULE_DESCRIPTION("AD7877 touchscreen Driver");
 MODULE_LICENSE("GPL");
