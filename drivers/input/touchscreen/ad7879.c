@@ -169,10 +169,10 @@ struct ad7879 {
 	unsigned		gpio:1;
 };
 
-static void ad7879_enable(struct ad7879 *ts);
-static void ad7879_disable(struct ad7879 *ts);
-
-/*--------------------------------------------------------------------------*/
+/*
+ * ad7879_read/write are only used for initial setup and for sysfs controls.
+ * The main traffic is done using spi_async() in the interrupt handler.
+ */
 
 static int ad7879_read(struct device *dev, u16 reg)
 {
@@ -236,6 +236,134 @@ static int ad7879_write(struct device *dev, u16 reg, u16 val)
 	kfree(req);
 
 	return status;
+}
+
+static void ad7879_rx(struct ad7879 *ts)
+{
+	struct input_dev	*input_dev = ts->input;
+	unsigned		Rt;
+	u16			x, y, z1, z2;
+
+	x = ts->conversion_data[AD7879_SEQ_XPOS] & MAX_12BIT;
+	y = ts->conversion_data[AD7879_SEQ_YPOS] & MAX_12BIT;
+	z1 = ts->conversion_data[AD7879_SEQ_Z1] & MAX_12BIT;
+	z2 = ts->conversion_data[AD7879_SEQ_Z2] & MAX_12BIT;
+
+	/*
+	 * The samples processed here are already preprocessed by the AD7879.
+	 * The preprocessing function consists of a median and an averaging filter.
+	 * The combination of these two techniques provides a robust solution,
+	 * discarding the spurious noise in the signal and keeping only the data of interest.
+	 * The size of both filters is programmable. (dev.platform_data, see linux/spi/ad7879.h)
+	 * Other user-programmable conversion controls include variable acquisition time,
+	 * and first conversion delay. Up to 16 averages can be taken per conversion.
+	 */
+
+	if (likely(x && z1)) {
+		/* compute touch pressure resistance using equation #1 */
+		Rt = (z2 - z1) * x * ts->x_plate_ohms;
+		Rt /= z1;
+		Rt = (Rt + 2047) >> 12;
+	} else
+		Rt = 0;
+
+	if (Rt) {
+		input_report_abs(input_dev, ABS_X, x);
+		input_report_abs(input_dev, ABS_Y, y);
+		input_report_abs(input_dev, ABS_PRESSURE, Rt);
+		input_sync(input_dev);
+	}
+}
+
+static void ad7879_ts_event_release(struct ad7879 *ts)
+{
+	struct input_dev *input_dev = ts->input;
+
+	input_report_abs(input_dev, ABS_PRESSURE, 0);
+	input_sync(input_dev);
+}
+
+static void ad7879_timer(unsigned long handle)
+{
+	struct ad7879	*ts = (void *)handle;
+
+	ad7879_ts_event_release(ts);
+}
+
+static irqreturn_t ad7879_irq(int irq, void *handle)
+{
+	struct ad7879 *ts = handle;
+	unsigned long flags;
+	int status;
+
+	/* The repeated conversion sequencer controlled by TMR kicked off too fast.
+	 * We ignore the last and process the sample sequence currently in the queue
+	 * It can't be older than 9.4ms, and we need to avoid that ts->msg
+	 * doesn't get issued twice while in work.
+	 */
+
+	if (ts->pending)
+		return IRQ_HANDLED;
+
+	spin_lock_irqsave(&ts->lock, flags);
+	ts->pending = 1;
+	spin_unlock_irqrestore(&ts->lock, flags);
+
+	status = spi_async(ts->spi, &ts->msg);
+
+	if (status)
+		dev_err(&ts->spi->dev, "spi_sync --> %d\n", status);
+
+	return IRQ_HANDLED;
+}
+
+static void ad7879_callback(void *_ts)
+{
+	struct ad7879 *ts = _ts;
+	unsigned long flags;
+
+	ad7879_rx(ts);
+
+	spin_lock_irqsave(&ts->lock, flags);
+	ts->pending = 0;
+	mod_timer(&ts->timer, jiffies + TS_PEN_UP_TIMEOUT);
+	spin_unlock_irqrestore(&ts->lock, flags);
+}
+
+static void ad7879_disable(struct ad7879 *ts)
+{
+	unsigned long flags;
+
+	if (ts->disabled)
+		return;
+
+	spin_lock_irqsave(&ts->lock, flags);
+	ts->disabled = 1;
+	disable_irq(ts->spi->irq);
+	spin_unlock_irqrestore(&ts->lock, flags);
+
+	while (ts->pending) /* Wait for spi_async callback */
+		msleep(1);
+
+	if (del_timer_sync(&ts->timer))
+		ad7879_ts_event_release(ts);
+
+	/* we know the chip's in lowpower mode since we always
+	 * leave it that way after every request
+	 */
+}
+
+static void ad7879_enable(struct ad7879 *ts)
+{
+	unsigned long flags;
+
+	if (!ts->disabled)
+		return;
+
+	spin_lock_irqsave(&ts->lock, flags);
+	ts->disabled = 0;
+	enable_irq(ts->spi->irq);
+	spin_unlock_irqrestore(&ts->lock, flags);
 }
 
 static ssize_t ad7879_disable_show(struct device *dev,
@@ -313,143 +441,6 @@ static const struct attribute_group ad7879_attr_group = {
 	.attrs = ad7879_attributes,
 };
 
-static void ad7879_rx(struct ad7879 *ts)
-{
-	struct input_dev	*input_dev = ts->input;
-	unsigned		Rt;
-	u16			x, y, z1, z2;
-
-	x = ts->conversion_data[AD7879_SEQ_XPOS] & MAX_12BIT;
-	y = ts->conversion_data[AD7879_SEQ_YPOS] & MAX_12BIT;
-	z1 = ts->conversion_data[AD7879_SEQ_Z1] & MAX_12BIT;
-	z2 = ts->conversion_data[AD7879_SEQ_Z2] & MAX_12BIT;
-
-	/*
-	 * The samples processed here are already preprocessed by the AD7879.
-	 * The preprocessing function consists of a median and an averaging filter.
-	 * The combination of these two techniques provides a robust solution,
-	 * discarding the spurious noise in the signal and keeping only the data of interest.
-	 * The size of both filters is programmable. (dev.platform_data, see linux/spi/ad7879.h)
-	 * Other user-programmable conversion controls include variable acquisition time,
-	 * and first conversion delay. Up to 16 averages can be taken per conversion.
-	 */
-
-	if (likely(x && z1)) {
-		/* compute touch pressure resistance using equation #1 */
-		Rt = (z2 - z1) * x * ts->x_plate_ohms;
-		Rt /= z1;
-		Rt = (Rt + 2047) >> 12;
-	} else
-		Rt = 0;
-
-	if (Rt) {
-		input_report_abs(input_dev, ABS_X, x);
-		input_report_abs(input_dev, ABS_Y, y);
-		input_report_abs(input_dev, ABS_PRESSURE, Rt);
-		input_sync(input_dev);
-	}
-}
-
-static void ad7879_ts_event_release(struct ad7879 *ts)
-{
-	struct input_dev *input_dev = ts->input;
-
-	input_report_abs(input_dev, ABS_PRESSURE, 0);
-	input_sync(input_dev);
-}
-
-static void ad7879_timer(unsigned long handle)
-{
-	struct ad7879	*ts = (void *)handle;
-
-	ad7879_ts_event_release(ts);
-}
-
-static irqreturn_t ad7879_irq(int irq, void *handle)
-{
-	struct ad7879 *ts = handle;
-	unsigned long flags;
-	int status;
-
-	spin_lock_irqsave(&ts->lock, flags);
-		ts->pending = 1;
-	spin_unlock_irqrestore(&ts->lock, flags);
-
-	status = spi_async(ts->spi, &ts->msg);
-
-	if (status)
-		dev_err(&ts->spi->dev, "spi_sync --> %d\n", status);
-
-	return IRQ_HANDLED;
-}
-
-static void ad7879_callback(void *_ts)
-{
-	struct ad7879 *ts = _ts;
-	unsigned long flags;
-
-	ad7879_rx(ts);
-
-	spin_lock_irqsave(&ts->lock, flags);
-		ts->pending = 0;
-		mod_timer(&ts->timer, jiffies + TS_PEN_UP_TIMEOUT);
-	spin_unlock_irqrestore(&ts->lock, flags);
-}
-
-static void ad7879_disable(struct ad7879 *ts)
-{
-	unsigned long flags;
-
-	if (ts->disabled)
-		return;
-
-	spin_lock_irqsave(&ts->lock, flags);
-	ts->disabled = 1;
-	disable_irq(ts->spi->irq);
-	spin_unlock_irqrestore(&ts->lock, flags);
-
-	while (ts->pending) /* Wait for spi_async callback */
-		msleep(1);
-
-	if (del_timer_sync(&ts->timer))
-		ad7879_ts_event_release(ts);
-
-	/* we know the chip's in lowpower mode since we always
-	 * leave it that way after every request
-	 */
-}
-
-static void ad7879_enable(struct ad7879 *ts)
-{
-	unsigned long flags;
-
-	if (!ts->disabled)
-		return;
-
-	spin_lock_irqsave(&ts->lock, flags);
-	ts->disabled = 0;
-	enable_irq(ts->spi->irq);
-	spin_unlock_irqrestore(&ts->lock, flags);
-}
-
-static int ad7879_suspend(struct spi_device *spi, pm_message_t message)
-{
-	struct ad7879 *ts = dev_get_drvdata(&spi->dev);
-
-	ad7879_disable(ts);
-
-	return 0;
-}
-
-static int ad7879_resume(struct spi_device *spi)
-{
-	struct ad7879 *ts = dev_get_drvdata(&spi->dev);
-
-	ad7879_enable(ts);
-
-	return 0;
-}
-
 static void ad7879_setup_ts_def_msg(struct spi_device *spi, struct ad7879 *ts)
 {
 	struct spi_message *m;
@@ -494,8 +485,7 @@ static void ad7879_setup_ts_def_msg(struct spi_device *spi, struct ad7879 *ts)
 	for (i = 0; i < AD7879_NR_SENSE; i++) {
 		ts->xfer[i + 1].rx_buf = &ts->conversion_data[i];
 		ts->xfer[i + 1].len = 2;
-
-		spi_message_add_tail(&ts->xfer[i+1], m);
+		spi_message_add_tail(&ts->xfer[i + 1], m);
 	}
 }
 
@@ -629,7 +619,9 @@ static int __devexit ad7879_remove(struct spi_device *spi)
 {
 	struct ad7879		*ts = dev_get_drvdata(&spi->dev);
 
-	ad7879_suspend(spi, PMSG_SUSPEND);
+	ad7879_disable(ts);
+	ad7879_write((struct device *) spi, AD7879_REG_CTRL2,
+			AD7879_PM(AD7879_PM_SHUTDOWN));
 	sysfs_remove_group(&spi->dev.kobj, &ad7879_attr_group);
 	free_irq(ts->spi->irq, ts);
 	input_unregister_device(ts->input);
@@ -639,6 +631,32 @@ static int __devexit ad7879_remove(struct spi_device *spi)
 
 	return 0;
 }
+
+#ifdef CONFIG_PM
+static int ad7879_suspend(struct spi_device *spi, pm_message_t message)
+{
+	struct ad7879 *ts = dev_get_drvdata(&spi->dev);
+
+	ad7879_disable(ts);
+	ad7879_write((struct device *) spi, AD7879_REG_CTRL2,
+			AD7879_PM(AD7879_PM_SHUTDOWN));
+
+	return 0;
+}
+
+static int ad7879_resume(struct spi_device *spi)
+{
+	struct ad7879 *ts = dev_get_drvdata(&spi->dev);
+
+	ad7879_setup_ts_def_msg(spi, ts);
+	ad7879_enable(ts);
+
+	return 0;
+}
+#else
+#define ad7879_suspend NULL
+#define ad7879_resume  NULL
+#endif
 
 static struct spi_driver ad7879_driver = {
 	.driver = {
