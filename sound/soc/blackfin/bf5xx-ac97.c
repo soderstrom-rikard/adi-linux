@@ -107,30 +107,30 @@ void bf5xx_pcm_to_ac97(struct ac97_frame *dst, const __u16 *src, \
 	while (count--) {
 		dst->ac97_tag = TAG_VALID;
 		if (chan_mask & SP_FL) {
-			dst->ac97_pcm_l = *src++;
-			dst->ac97_tag |= TAG_PCM_LEFT;
-		}
-		if (chan_mask & SP_FR) {
 			dst->ac97_pcm_r = *src++;
 			dst->ac97_tag |= TAG_PCM_RIGHT;
+		}
+		if (chan_mask & SP_FR) {
+			dst->ac97_pcm_l = *src++;
+			dst->ac97_tag |= TAG_PCM_LEFT;
 
 		}
 #if defined(CONFIG_SND_MULTICHAN_SUPPORT)
-		if (chan_mask & SP_FC) {
-			dst->ac97_center = *src++;
-			dst->ac97_tag |= TAG_PCM_CENTER;
+		if (chan_mask & SP_SR) {
+			dst->ac97_sl = *src++;
+			dst->ac97_tag |= TAG_PCM_SL;
+		}
+		if (chan_mask & SP_SL) {
+			dst->ac97_sr = *src++;
+			dst->ac97_tag |= TAG_PCM_SR;
 		}
 		if (chan_mask & SP_LFE) {
 			dst->ac97_lfe = *src++;
 			dst->ac97_tag |= TAG_PCM_LFE;
 		}
-		if (chan_mask & SP_SL) {
-			dst->ac97_sl = *src++;
-			dst->ac97_tag |= TAG_PCM_SL;
-		}
-		if (chan_mask & SP_SR) {
-			dst->ac97_sr = *src++;
-			dst->ac97_tag |= TAG_PCM_SR;
+		if (chan_mask & SP_FC) {
+			dst->ac97_center = *src++;
+			dst->ac97_tag |= TAG_PCM_CENTER;
 		}
 #endif
 		dst++;
