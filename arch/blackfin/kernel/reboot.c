@@ -78,7 +78,11 @@ void machine_restart(char *cmd)
 	if (ANOMALY_05000353 || ANOMALY_05000386)
 		bfin_reset();
 	else
-		bfrom_SoftReset((void *)(L1_SCRATCH_START + L1_SCRATCH_LENGTH - 20));
+		/* the bootrom checks to see how it was reset and will
+		 * automatically perform a software reset for us when
+		 * it starts executing boot
+		 */
+		asm("raise 1;");
 }
 
 __attribute__((weak))
