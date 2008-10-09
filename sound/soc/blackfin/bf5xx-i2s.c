@@ -77,11 +77,11 @@ static struct sport_param sport_params[2] = {
  * the TFS pin when Port G is selected. This allows both ssm2602 using Port G and EMAC concurrently.
  */
 #ifdef CONFIG_BF527_SPORT0_PORTF
-	#define LOCAL_SPORT0_TFS (P_SPORT0_TFS)
+#define LOCAL_SPORT0_TFS (P_SPORT0_TFS)
 #endif
 
 #ifndef CONFIG_BF527_SPORT0_PORTF
-	#define LOCAL_SPORT0_TFS (0)
+#define LOCAL_SPORT0_TFS (0)
 #endif
 
 static u16 sport_req[][7] = { {P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
