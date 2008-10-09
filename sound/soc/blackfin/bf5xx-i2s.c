@@ -70,12 +70,23 @@ static struct sport_param sport_params[2] = {
 	}
 };
 
-static u16 sport_req[][7] = {
-		{ P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
-		  P_SPORT0_DRPRI, P_SPORT0_RSCLK, 0},
-		{ P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS,
-		  P_SPORT1_DRPRI, P_SPORT1_RSCLK, 0},
-	};
+/*
+ * Setting the TFS pin selector for SPORT 0 based on whether the selected port id F or G. If the port
+ * is F then no conflict should exist for the TFS. When Port G is selected and EMAC then there is a
+ * conflict between the PHY interrupt line and TFS.  Current settings prevent the conflict by ignoring
+ * the TFS pin when Port G is selected. This allows both ssm2602 using Port G and EMAC concurrently.
+ */
+#ifdef CONFIG_BF527_SPORT0_PORTF
+	#define LOCAL_SPORT0_TFS (P_SPORT0_TFS)
+#endif
+
+#ifndef CONFIG_BF527_SPORT0_PORTF
+	#define LOCAL_SPORT0_TFS (0)
+#endif
+
+static u16 sport_req[][7] = { {P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
+		P_SPORT0_DRPRI, P_SPORT0_RSCLK, LOCAL_SPORT0_TFS, 0}, {P_SPORT1_DTPRI,
+		P_SPORT1_TSCLK, P_SPORT1_RFS, P_SPORT1_DRPRI, P_SPORT1_RSCLK, P_SPORT1_TFS, 0} };
 
 static int bf5xx_i2s_set_dai_fmt(struct snd_soc_cpu_dai *cpu_dai,
 		unsigned int fmt)
@@ -95,8 +106,6 @@ static int bf5xx_i2s_set_dai_fmt(struct snd_soc_cpu_dai *cpu_dai,
 		bf5xx_i2s.rcr1 |= RFSR;
 		break;
 	case SND_SOC_DAIFMT_LEFT_J:
-		ret = -EINVAL;
-		break;
 	default:
 		ret = -EINVAL;
 		break;
@@ -104,15 +113,11 @@ static int bf5xx_i2s_set_dai_fmt(struct snd_soc_cpu_dai *cpu_dai,
 
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 	case SND_SOC_DAIFMT_CBS_CFS:
-		ret = -EINVAL;
-		break;
 	case SND_SOC_DAIFMT_CBM_CFS:
+	case SND_SOC_DAIFMT_CBS_CFM:
 		ret = -EINVAL;
 		break;
 	case SND_SOC_DAIFMT_CBM_CFM:
-		break;
-	case SND_SOC_DAIFMT_CBS_CFM:
-		ret = -EINVAL;
 		break;
 	default:
 		ret = -EINVAL;
