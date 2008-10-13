@@ -249,6 +249,12 @@ static int pcf8574_kp_suspend(struct i2c_client *client, pm_message_t mesg)
 	return 0;
 }
 
+static const struct i2c_device_id pcf8574_kp_id[] = {
+	{ PCF8574_KP_DRV_NAME, 0 },
+	{ }
+};
+MODULE_DEVICE_TABLE(i2c, pcf8574_kp_id);
+
 static struct i2c_driver pcf8574_kp_driver = {
 	.driver = {
 		.name = PCF8574_KP_DRV_NAME,
@@ -257,6 +263,7 @@ static struct i2c_driver pcf8574_kp_driver = {
 	.remove = __exit_p(pcf8574_kp_remove),
 	.suspend	= pcf8574_kp_suspend,
 	.resume		= pcf8574_kp_resume,
+	.id_table 	= pcf8574_kp_id,
 };
 
 static int __init twi_keypad_init(void)

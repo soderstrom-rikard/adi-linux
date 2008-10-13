@@ -424,12 +424,19 @@ static int __exit ad7142_remove(struct i2c_client *client)
 	return 0;
 }
 
+static const struct i2c_device_id ad7142_id[] = {
+	{ "ad7142_joystick", 0 },
+	{ }
+};
+MODULE_DEVICE_TABLE(i2c, ad7142_id);
+
 static struct i2c_driver ad7142_driver = {
 	.driver = {
 		.name = "ad7142_joystick",
 	},
 	.probe = ad7142_probe,
 	.remove = __exit_p(ad7142_remove),
+	.id_table = ad7142_id,
 };
 
 static int __init ad7142_init(void)

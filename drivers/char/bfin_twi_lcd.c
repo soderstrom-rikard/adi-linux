@@ -59,12 +59,19 @@ static int __exit pcf8574_lcd_remove(struct i2c_client *client)
 	return 0;
 }
 
+static const struct i2c_device_id pcf8574_lcd_id[] = {
+	{ PCF8574_LCD_DRV_NAME, 0 },
+	{ }
+};
+MODULE_DEVICE_TABLE(i2c, pcf8574_lcd_id);
+
 static struct i2c_driver pcf8574_lcd_driver = {
 	.driver = {
 		.name = PCF8574_LCD_DRV_NAME,
 	},
 	.probe = pcf8574_lcd_probe,
 	.remove = __exit_p(pcf8574_lcd_remove),
+	.id_table = pcf8574_lcd_id,
 };
 
 static int lcd_ioctl(struct inode *inode, struct file *file,
