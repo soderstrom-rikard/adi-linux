@@ -3,7 +3,7 @@
  *
  *		Copyright (C) 2008 Michael Hennerich, Analog Devices Inc.
  *
- * Description:	AD7879 based touchscreen, and GPIO driver
+ * Description:	AD7879 based touchscreen, and GPIO driver (SPI Interface)
  *
  * Bugs:        Enter bugs at http://blackfin.uclinux.org/
  *
@@ -45,11 +45,9 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/slab.h>
-
 #include <linux/spi/spi.h>
-#include <linux/spi/ad7879.h>
 
-/*--------------------------------------------------------------------------*/
+#include <linux/spi/ad7879.h>
 
 #define MAX_SPI_FREQ_HZ			5000000
 #define	MAX_12BIT			((1<<12)-1)
@@ -128,8 +126,6 @@ enum {
 
 #define	TS_PEN_UP_TIMEOUT	msecs_to_jiffies(50)
 
-/*--------------------------------------------------------------------------*/
-
 struct ser_req {
 	u16			command;
 	u16			data;
@@ -174,9 +170,8 @@ struct ad7879 {
  * The main traffic is done using spi_async() in the interrupt handler.
  */
 
-static int ad7879_read(struct device *dev, u16 reg)
+static int ad7879_read(struct spi_device *spi, u8 reg)
 {
-	struct spi_device	*spi = to_spi_device(dev);
 	struct ser_req		*req = kzalloc(sizeof *req, GFP_KERNEL);
 	int			status, ret;
 
@@ -206,9 +201,8 @@ static int ad7879_read(struct device *dev, u16 reg)
 	return ret;
 }
 
-static int ad7879_write(struct device *dev, u16 reg, u16 val)
+static int ad7879_write(struct spi_device *spi, u8 reg, u16 val)
 {
-	struct spi_device	*spi = to_spi_device(dev);
 	struct ser_req		*req = kzalloc(sizeof *req, GFP_KERNEL);
 	int			status;
 
@@ -419,7 +413,7 @@ static ssize_t ad7879_gpio_store(struct device *dev,
 
 	ts->gpio = !!val;
 
-	ret = ad7879_write(dev, AD7879_REG_CTRL2,
+	ret = ad7879_write(ts->spi, AD7879_REG_CTRL2,
 			ts->gpio ? ts->cmd_crtl2 & ~AD7879_GPIO_DATA
 			: ts->cmd_crtl2 | AD7879_GPIO_DATA);
 
@@ -464,9 +458,9 @@ static void ad7879_setup_ts_def_msg(struct spi_device *spi, struct ad7879 *ts)
 			AD7879_ACQ(ts->acquisition_time) |
 			AD7879_TMR(ts->pen_down_acc_interval);
 
-	ad7879_write((struct device *) spi, AD7879_REG_CTRL2, ts->cmd_crtl2);
-	ad7879_write((struct device *) spi, AD7879_REG_CTRL3, ts->cmd_crtl3);
-	ad7879_write((struct device *) spi, AD7879_REG_CTRL1, ts->cmd_crtl1);
+	ad7879_write(spi, AD7879_REG_CTRL2, ts->cmd_crtl2);
+	ad7879_write(spi, AD7879_REG_CTRL3, ts->cmd_crtl3);
+	ad7879_write(spi, AD7879_REG_CTRL1, ts->cmd_crtl1);
 
 	ts->cmd = (u16) AD7879_READCMD(AD7879_REG_XPLUS);
 
@@ -495,21 +489,21 @@ static int __devinit ad7879_probe(struct spi_device *spi)
 	struct input_dev		*input_dev;
 	struct ad7879_platform_data	*pdata = spi->dev.platform_data;
 	int				err;
-	u16				verify;
+	u16				revid;
 
 	if (!spi->irq) {
-		dev_dbg(&spi->dev, "no IRQ?\n");
+		dev_err(&spi->dev, "no IRQ?\n");
 		return -ENODEV;
 	}
 
 	if (!pdata) {
-		dev_dbg(&spi->dev, "no platform data?\n");
+		dev_err(&spi->dev, "no platform data?\n");
 		return -ENODEV;
 	}
 
 	/* don't exceed max specified SPI CLK frequency */
 	if (spi->max_speed_hz > MAX_SPI_FREQ_HZ) {
-		dev_dbg(&spi->dev, "SPI CLK %d Hz?\n", spi->max_speed_hz);
+		dev_err(&spi->dev, "SPI CLK %d Hz?\n", spi->max_speed_hz);
 		return -EINVAL;
 	}
 
@@ -542,7 +536,8 @@ static int __devinit ad7879_probe(struct spi_device *spi)
 	ts->median = pdata->median;
 
 	if (pdata->gpio_output)
-		ts->gpio_init = AD7879_GPIO_EN | (pdata->gpio_default ? 0 : AD7879_GPIO_DATA);
+		ts->gpio_init = AD7879_GPIO_EN |
+				(pdata->gpio_default ? 0 : AD7879_GPIO_DATA);
 	else
 		ts->gpio_init = AD7879_GPIO_EN | AD7879_GPIODIR;
 
@@ -568,11 +563,11 @@ static int __devinit ad7879_probe(struct spi_device *spi)
 	input_set_abs_params(input_dev, ABS_PRESSURE,
 			pdata->pressure_min, pdata->pressure_max, 0, 0);
 
-	ad7879_write((struct device *) spi, AD7879_REG_CTRL2, AD7879_RESET);
+	ad7879_write(spi, AD7879_REG_CTRL2, AD7879_RESET);
 
-	verify = ad7879_read((struct device *) spi, AD7879_REG_REVID);
+	revid = ad7879_read(spi, AD7879_REG_REVID);
 
-	if ((verify & 0xFF) != AD7879_DEVID) {
+	if ((revid & 0xFF) != AD7879_DEVID) {
 		dev_err(&spi->dev, "%s: Failed to probe %s\n", spi->dev.bus_id,
 			 input_dev->name);
 		err = -ENODEV;
@@ -581,13 +576,11 @@ static int __devinit ad7879_probe(struct spi_device *spi)
 
 	ad7879_setup_ts_def_msg(spi, ts);
 
-	/* Request AD7879 /DAV GPIO interrupt */
-
 	err = request_irq(spi->irq, ad7879_irq, IRQF_TRIGGER_FALLING |
 		IRQF_SAMPLE_RANDOM, spi->dev.driver->name, ts);
 
 	if (err) {
-		dev_dbg(&spi->dev, "irq %d busy?\n", spi->irq);
+		dev_err(&spi->dev, "irq %d busy?\n", spi->irq);
 		goto err_free_mem;
 	}
 
@@ -599,7 +592,8 @@ static int __devinit ad7879_probe(struct spi_device *spi)
 	if (err)
 		goto err_remove_attr;
 
-	dev_info(&spi->dev, "touchscreen, irq %d\n", spi->irq);
+	dev_info(&spi->dev, "Rev.%d touchscreen, irq %d\n",
+		revid >> 8, spi->irq);
 
 	return 0;
 
@@ -620,7 +614,7 @@ static int __devexit ad7879_remove(struct spi_device *spi)
 	struct ad7879		*ts = dev_get_drvdata(&spi->dev);
 
 	ad7879_disable(ts);
-	ad7879_write((struct device *) spi, AD7879_REG_CTRL2,
+	ad7879_write(spi, AD7879_REG_CTRL2,
 			AD7879_PM(AD7879_PM_SHUTDOWN));
 	sysfs_remove_group(&spi->dev.kobj, &ad7879_attr_group);
 	free_irq(ts->spi->irq, ts);
@@ -638,7 +632,7 @@ static int ad7879_suspend(struct spi_device *spi, pm_message_t message)
 	struct ad7879 *ts = dev_get_drvdata(&spi->dev);
 
 	ad7879_disable(ts);
-	ad7879_write((struct device *) spi, AD7879_REG_CTRL2,
+	ad7879_write(spi, AD7879_REG_CTRL2,
 			AD7879_PM(AD7879_PM_SHUTDOWN));
 
 	return 0;
