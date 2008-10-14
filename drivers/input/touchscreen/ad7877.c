@@ -51,8 +51,6 @@
 
 #define	TS_PEN_UP_TIMEOUT	msecs_to_jiffies(50)
 
-/*--------------------------------------------------------------------------*/
-
 #define MAX_SPI_FREQ_HZ			20000000
 #define	MAX_12BIT			((1<<12)-1)
 
@@ -208,10 +206,8 @@ static int gpio3;
  * The main traffic is done using spi_async() in the interrupt handler.
  */
 
-
-static int ad7877_read(struct device *dev, u16 reg)
+static int ad7877_read(struct spi_device *spi, u16 reg)
 {
-	struct spi_device	*spi = to_spi_device(dev);
 	struct ser_req		*req = kzalloc(sizeof *req, GFP_KERNEL);
 	int			status, ret;
 
@@ -242,9 +238,8 @@ static int ad7877_read(struct device *dev, u16 reg)
 	return ret;
 }
 
-static int ad7877_write(struct device *dev, u16 reg, u16 val)
+static int ad7877_write(struct spi_device *spi, u16 reg, u16 val)
 {
-	struct spi_device	*spi = to_spi_device(dev);
 	struct ser_req		*req = kzalloc(sizeof *req, GFP_KERNEL);
 	int			status;
 
@@ -269,10 +264,9 @@ static int ad7877_write(struct device *dev, u16 reg, u16 val)
 	return status;
 }
 
-static int ad7877_read_adc(struct device *dev, unsigned command)
+static int ad7877_read_adc(struct spi_device *spi, unsigned command)
 {
-	struct spi_device	*spi = to_spi_device(dev);
-	struct ad7877		*ts = dev_get_drvdata(dev);
+	struct ad7877 		*ts = dev_get_drvdata(&spi->dev);
 	struct ser_req		*req = kzalloc(sizeof *req, GFP_KERNEL);
 	int			status;
 	int			sample;
@@ -461,7 +455,8 @@ static void ad7877_enable(struct ad7877 *ts)
 #define SHOW(name) static ssize_t \
 name ## _show(struct device *dev, struct device_attribute *attr, char *buf) \
 { \
-	ssize_t v = ad7877_read_adc(dev, \
+	struct ad7877	*ts = dev_get_drvdata(dev); \
+	ssize_t v = ad7877_read_adc(ts->spi, \
 			AD7877_READ_CHAN(name)); \
 	if (v < 0) \
 		return v; \
@@ -531,7 +526,7 @@ static ssize_t ad7877_dac_store(struct device *dev,
 
 	ts->dac = val & 0xFF;
 
-	ad7877_write(dev, AD7877_REG_DAC, (ts->dac << 4) | AD7877_DAC_CONF);
+	ad7877_write(ts->spi, AD7877_REG_DAC, (ts->dac << 4) | AD7877_DAC_CONF);
 
 	return count;
 }
@@ -560,7 +555,7 @@ static ssize_t ad7877_gpio3_store(struct device *dev,
 
 	ts->gpio3 = !!val;
 
-	ad7877_write(dev, AD7877_REG_EXTWRITE, AD7877_EXTW_GPIO_DATA |
+	ad7877_write(ts->spi, AD7877_REG_EXTWRITE, AD7877_EXTW_GPIO_DATA |
 		 (ts->gpio4 << 4) | (ts->gpio3 << 5));
 
 	return count;
@@ -590,7 +585,7 @@ static ssize_t ad7877_gpio4_store(struct device *dev,
 
 	ts->gpio4 = !!val;
 
-	ad7877_write(dev, AD7877_REG_EXTWRITE, AD7877_EXTW_GPIO_DATA |
+	ad7877_write(ts->spi, AD7877_REG_EXTWRITE, AD7877_EXTW_GPIO_DATA |
 		 (ts->gpio4 << 4) | (ts->gpio3 << 5));
 
 	return count;
@@ -627,13 +622,13 @@ static void ad7877_setup_ts_def_msg(struct spi_device *spi, struct ad7877 *ts)
 			AD7877_ACQ(ts->acquisition_time) |
 			AD7877_FCD(ts->first_conversion_delay);
 
-	ad7877_write((struct device *) spi, AD7877_REG_CTRL2, ts->cmd_crtl2);
+	ad7877_write(spi, AD7877_REG_CTRL2, ts->cmd_crtl2);
 
 	ts->cmd_crtl1 = AD7877_WRITEADD(AD7877_REG_CTRL1) |
 			AD7877_READADD(AD7877_REG_XPLUS-1) |
 			AD7877_MODE_SEQ1 | AD7877_DFR;
 
-	ad7877_write((struct device *) spi, AD7877_REG_CTRL1, ts->cmd_crtl1);
+	ad7877_write(spi, AD7877_REG_CTRL1, ts->cmd_crtl1);
 
 	ts->cmd_dummy = 0;
 
@@ -701,7 +696,6 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 	ts->input = input_dev;
 
 	setup_timer(&ts->timer, ad7877_timer, (unsigned long) ts);
-
 	spin_lock_init(&ts->lock);
 
 	ts->model = pdata->model ? : 7877;
@@ -737,9 +731,9 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 	input_set_abs_params(input_dev, ABS_PRESSURE,
 			pdata->pressure_min, pdata->pressure_max, 0, 0);
 
-	ad7877_write((struct device *) spi, AD7877_REG_SEQ1, AD7877_MM_SEQUENCE);
+	ad7877_write(spi, AD7877_REG_SEQ1, AD7877_MM_SEQUENCE);
 
-	verify = ad7877_read((struct device *) spi, AD7877_REG_SEQ1);
+	verify = ad7877_read(spi, AD7877_REG_SEQ1);
 
 	if (verify != AD7877_MM_SEQUENCE){
 		dev_err(&spi->dev, "%s: Failed to probe %s\n", spi->dev.bus_id,
@@ -749,8 +743,7 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 	}
 
 	if (gpio3)
-		ad7877_write((struct device *) spi, AD7877_REG_EXTWRITE,
-			 AD7877_EXTW_GPIO_3_CONF);
+		ad7877_write(spi, AD7877_REG_EXTWRITE, AD7877_EXTW_GPIO_3_CONF);
 
 	ad7877_setup_ts_def_msg(spi, ts);
 
