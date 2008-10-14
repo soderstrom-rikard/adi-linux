@@ -206,6 +206,21 @@ ENTRY(_real_start)
 	w[p0] = r0;
 	ssync;
 
+#if L2_LENGTH > 0
+	r1.l = __sbss_l2;
+	r1.h = __sbss_l2;
+	r2.l = __ebss_l2;
+	r2.h = __ebss_l2;
+	r0 = 0 (z);
+	r2 = r2 - r1;
+	r2 >>= 2;
+	p1 = r1;
+	p2 = r2;
+	lsetup (.L_clear_l2, .L_clear_l2 ) lc0 = p2;
+.L_clear_l2:
+	[p1++] = r0;
+#endif
+
 	/* Zero out the bss region
 	 * Note: this will fail if bss is 0 bytes ...
 	 */
