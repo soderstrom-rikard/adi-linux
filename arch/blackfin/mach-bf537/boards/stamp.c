@@ -956,7 +956,7 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("ad7879", 0x2F),
 		.irq = IRQ_PG5,
-		.platform_data = &bfin_ad7879_ts_info,
+		.platform_data = (void *)&bfin_ad7879_ts_info,
 	},
 #endif
 };
