@@ -48,18 +48,6 @@
 #define PFX CARDNAME ": "
 #define DRV_VERSION	"1.30"
 
-#ifdef CONFIG_BLACKFIN
-#define readsb	insb
-#define readsw	insw
-#define readsl	insl
-#define writesb	outsb
-#define writesw	outsw
-#define writesl	outsl
-#define DEFAULT_TRIGGER IRQF_TRIGGER_HIGH
-#else
-#define DEFAULT_TRIGGER (0)
-#endif
-
 /*
  * Transmit timeout, default 5 seconds.
  */
@@ -199,35 +187,35 @@ iow(board_info_t * db, int reg, int value)
 
 static void dm9000_outblk_8bit(void __iomem *reg, void *data, int count)
 {
-	writesb((int)reg, data, count);
+	writesb(reg, data, count);
 }
 
 static void dm9000_outblk_16bit(void __iomem *reg, void *data, int count)
 {
-	writesw((int)reg, data, (count+1) >> 1);
+	writesw(reg, data, (count+1) >> 1);
 }
 
 static void dm9000_outblk_32bit(void __iomem *reg, void *data, int count)
 {
-	writesl((int)reg, data, (count+3) >> 2);
+	writesl(reg, data, (count+3) >> 2);
 }
 
 /* input block from chip to memory */
 
 static void dm9000_inblk_8bit(void __iomem *reg, void *data, int count)
 {
-	readsb((int)reg, data, count);
+	readsb(reg, data, count);
 }
 
 
 static void dm9000_inblk_16bit(void __iomem *reg, void *data, int count)
 {
-	readsw((int)reg, data, (count+1) >> 1);
+	readsw(reg, data, (count+1) >> 1);
 }
 
 static void dm9000_inblk_32bit(void __iomem *reg, void *data, int count)
 {
-	readsl((int)reg, data, (count+3) >> 2);
+	readsl(reg, data, (count+3) >> 2);
 }
 
 /* dump block from chip to null */
@@ -764,11 +752,9 @@ dm9000_open(struct net_device *dev)
 	/* If there is no IRQ type specified, default to something that
 	 * may work, and tell the user that this is a problem */
 
-	if (irqflags == IRQF_TRIGGER_NONE) {
+	if (irqflags == IRQF_TRIGGER_NONE)
 		dev_warn(db->dev, "WARNING: no IRQ resource flags set.\n");
-		irqflags = DEFAULT_TRIGGER;
-	}
-	
+
 	irqflags |= IRQF_SHARED;
 
 	if (request_irq(dev->irq, &dm9000_interrupt, irqflags, dev->name, dev))
