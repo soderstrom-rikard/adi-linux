@@ -64,7 +64,6 @@ static int kgdboc_break_enabled;
 #define DMA_RX_YCOUNT		(PAGE_SIZE / DMA_RX_XCOUNT)
 
 #define DMA_RX_FLUSH_JIFFIES	(HZ / 50)
-#define CTS_CHECK_JIFFIES	(HZ / 50)
 
 #ifdef CONFIG_SERIAL_BFIN_DMA
 static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart);
