@@ -46,6 +46,10 @@
 #include <linux/irq.h>
 #include <linux/slab.h>
 #include <linux/workqueue.h>
+#include <linux/spi/spi.h>
+#include <linux/i2c.h>
+
+#include <linux/spi/ad7879.h>
 
 #define AD7879_REG_ZEROS		0
 #define AD7879_REG_CTRL1		1
@@ -116,62 +120,39 @@ enum {
 #define	MAX_12BIT			((1<<12)-1)
 #define	TS_PEN_UP_TIMEOUT		msecs_to_jiffies(50)
 
-#ifdef CONFIG_TOUCHSCREEN_AD7879_SPI
-#include <linux/spi/spi.h>
-typedef struct spi_device	bus_device;
+#if defined(CONFIG_TOUCHSCREEN_AD7879_SPI)
 #define AD7879_DEVID		0x7A
-#define MAX_SPI_FREQ_HZ		5000000
-#define AD7879_CMD_MAGIC	0xE000
-#define AD7879_CMD_READ		(1 << 10)
-#define AD7879_WRITECMD(reg)  	(AD7879_CMD_MAGIC | (reg & 0xF))
-#define AD7879_READCMD(reg)  	(AD7879_CMD_MAGIC | AD7879_CMD_READ | (reg & 0xF))
-
-struct ser_req {
-	u16			command;
-	u16			data;
-	struct spi_message	msg;
-	struct spi_transfer	xfer[2];
-};
-
-#else
-
-#include <linux/i2c.h>
-typedef struct i2c_client	bus_device;
+typedef struct spi_device	bus_device;
+#elif defined(CONFIG_TOUCHSCREEN_AD7879_I2C)
 #define AD7879_DEVID		0x79
+typedef struct i2c_client	bus_device;
 #endif
 
-#include <linux/spi/ad7879.h>
-
 struct ad7879 {
-	char			phys[32];
-	struct input_dev	*input;
 	bus_device 		*bus;
-	u16			model;
-	u16			x_plate_ohms;
-	u16			pressure_max;
+	struct input_dev	*input;
+	struct work_struct	work;
+	struct timer_list	timer;
+	spinlock_t		lock;
 
-	u16			cmd_crtl1;
-	u16			cmd_crtl2;
-	u16			cmd_crtl3;
-
+#ifdef CONFIG_TOUCHSCREEN_AD7879_SPI
+	struct spi_message	msg;
+	struct spi_transfer	xfer[AD7879_NR_SENSE + 1];
+	u16			cmd;
+#endif
+	u16 			conversion_data[AD7879_NR_SENSE];
+	char			phys[32];
 	u8			first_conversion_delay;
 	u8			acquisition_time;
 	u8			averaging;
 	u8			pen_down_acc_interval;
 	u8			median;
+	u16			x_plate_ohms;
+	u16			pressure_max;
 	u16			gpio_init;
-	u16 			conversion_data[AD7879_NR_SENSE];
-
-#ifdef CONFIG_TOUCHSCREEN_AD7879_SPI
-	u16			cmd;
-	struct spi_transfer	xfer[AD7879_NR_SENSE + 1];
-	struct spi_message	msg;
-#endif
-
-	spinlock_t		lock;
-	/* use keventd context to read the result registers */
-	struct work_struct	work;
-	struct timer_list	timer;
+	u16			cmd_crtl1;
+	u16			cmd_crtl2;
+	u16			cmd_crtl3;
 	unsigned		disabled:1;	/* P: lock */
 	unsigned		gpio:1;
 };
@@ -221,6 +202,7 @@ static void ad7879_work(struct work_struct *work)
 {
 	struct ad7879 *ts = container_of(work, struct ad7879, work);
 
+	/* use keventd context to read the result registers */
 	ad7879_collect(ts);
 	ad7879_report(ts);
 	mod_timer(&ts->timer, jiffies + TS_PEN_UP_TIMEOUT);
@@ -294,7 +276,7 @@ static void ad7879_enable(struct ad7879 *ts)
 static ssize_t ad7879_disable_show(struct device *dev,
 				     struct device_attribute *attr, char *buf)
 {
-	struct ad7879	*ts = dev_get_drvdata(dev);
+	struct ad7879 *ts = dev_get_drvdata(dev);
 
 	return sprintf(buf, "%u\n", ts->disabled);
 }
@@ -325,7 +307,7 @@ static DEVICE_ATTR(disable, 0664, ad7879_disable_show, ad7879_disable_store);
 static ssize_t ad7879_gpio_show(struct device *dev,
 				     struct device_attribute *attr, char *buf)
 {
-	struct ad7879	*ts = dev_get_drvdata(dev);
+	struct ad7879 *ts = dev_get_drvdata(dev);
 
 	return sprintf(buf, "%u\n", ts->gpio);
 }
@@ -368,7 +350,6 @@ static const struct attribute_group ad7879_attr_group = {
 
 static void ad7879_setup(bus_device *bus, struct ad7879 *ts)
 {
-
 	ts->cmd_crtl3 = AD7879_YPLUS_BIT |
 			AD7879_XPLUS_BIT |
 			AD7879_Z2_BIT |
@@ -394,10 +375,10 @@ static void ad7879_setup(bus_device *bus, struct ad7879 *ts)
 
 static int __devinit ad7879_construct(bus_device *bus, struct ad7879 *ts)
 {
-	struct input_dev		*input_dev;
-	struct ad7879_platform_data	*pdata = bus->dev.platform_data;
-	int				err;
-	u16				revid;
+	struct input_dev *input_dev;
+	struct ad7879_platform_data *pdata = bus->dev.platform_data;
+	int err;
+	u16 revid;
 
 	if (!bus->irq) {
 		dev_err(&bus->dev, "no IRQ?\n");
@@ -419,7 +400,6 @@ static int __devinit ad7879_construct(bus_device *bus, struct ad7879 *ts)
 	INIT_WORK(&ts->work, ad7879_work);
 	spin_lock_init(&ts->lock);
 
-	ts->model = pdata->model ? : 7879;
 	ts->x_plate_ohms = pdata->x_plate_ohms ? : 400;
 	ts->pressure_max = pdata->pressure_max ? : ~0;
 
@@ -437,7 +417,7 @@ static int __devinit ad7879_construct(bus_device *bus, struct ad7879 *ts)
 
 	snprintf(ts->phys, sizeof(ts->phys), "%s/inputX", bus->dev.bus_id);
 
-	input_dev->name = "AD7879-1 Touchscreen";
+	input_dev->name = "AD7879 Touchscreen";
 	input_dev->phys = ts->phys;
 	input_dev->dev.parent = &bus->dev;
 
@@ -507,7 +487,6 @@ err_free_mem:
 
 static int __devexit ad7879_destruct(bus_device *bus, struct ad7879 *ts)
 {
-
 	ad7879_disable(ts);
 	ad7879_write(ts->bus, AD7879_REG_CTRL2,
 			AD7879_PM(AD7879_PM_SHUTDOWN));
@@ -545,7 +524,19 @@ static int ad7879_resume(bus_device *bus)
 #define ad7879_resume  NULL
 #endif
 
-#ifdef CONFIG_TOUCHSCREEN_AD7879_SPI
+#if defined(CONFIG_TOUCHSCREEN_AD7879_SPI)
+#define MAX_SPI_FREQ_HZ		5000000
+#define AD7879_CMD_MAGIC	0xE000
+#define AD7879_CMD_READ		(1 << 10)
+#define AD7879_WRITECMD(reg)  	(AD7879_CMD_MAGIC | (reg & 0xF))
+#define AD7879_READCMD(reg)  	(AD7879_CMD_MAGIC | AD7879_CMD_READ | (reg & 0xF))
+
+struct ser_req {
+	u16			command;
+	u16			data;
+	struct spi_message	msg;
+	struct spi_transfer	xfer[2];
+};
 
 /*
  * ad7879_read/write are only used for initial setup and for sysfs controls.
@@ -554,8 +545,8 @@ static int ad7879_resume(bus_device *bus)
 
 static int ad7879_read(struct spi_device *spi, u8 reg)
 {
-	struct ser_req		*req = kzalloc(sizeof *req, GFP_KERNEL);
-	int			status, ret;
+	struct ser_req *req = kzalloc(sizeof *req, GFP_KERNEL);
+	int status, ret;
 
 	if (!req)
 		return -ENOMEM;
@@ -585,8 +576,8 @@ static int ad7879_read(struct spi_device *spi, u8 reg)
 
 static int ad7879_write(struct spi_device *spi, u8 reg, u16 val)
 {
-	struct ser_req		*req = kzalloc(sizeof *req, GFP_KERNEL);
-	int			status;
+	struct ser_req *req = kzalloc(sizeof *req, GFP_KERNEL);
+	int status;
 
 	if (!req)
 		return -ENOMEM;
@@ -644,8 +635,8 @@ static void ad7879_setup_ts_def_msg(struct ad7879 *ts)
 
 static int __devinit ad7879_probe(struct spi_device *spi)
 {
-	struct ad7879			*ts;
-	int				err;
+	struct ad7879 *ts;
+	int ret;
 
 	/* don't exceed max specified SPI CLK frequency */
 	if (spi->max_speed_hz > MAX_SPI_FREQ_HZ) {
@@ -662,14 +653,14 @@ static int __devinit ad7879_probe(struct spi_device *spi)
 
 	ad7879_setup_ts_def_msg(ts);
 
-	err = ad7879_construct(spi, ts);
-	if (!err)
-		return err;
+	ret = ad7879_construct(spi, ts);
+	if (!ret)
+		return ret;
 
 	dev_set_drvdata(&spi->dev, NULL);
 	kfree(ts);
 
-	return err;
+	return ret;
 }
 
 static int __devexit ad7879_remove(struct spi_device *spi)
@@ -706,7 +697,8 @@ static void __exit ad7879_exit(void)
 }
 module_exit(ad7879_exit);
 
-#else		/* CONFIG_TOUCHSCREEN_AD7879_I2C */
+#elif defined(CONFIG_TOUCHSCREEN_AD7879_I2C)
+
 /* All registers are word-sized.
  * AD7879 uses a high-byte first convention.
  */
@@ -731,8 +723,8 @@ static void ad7879_collect(struct ad7879 *ts)
 static int __devinit ad7879_probe(struct i2c_client *client,
 					const struct i2c_device_id *id)
 {
-	struct ad7879			*ts;
-	int				err;
+	struct ad7879 *ts;
+	int ret;
 
 	if (!i2c_check_functionality(client->adapter,
 					I2C_FUNC_SMBUS_WORD_DATA)) {
@@ -747,13 +739,14 @@ static int __devinit ad7879_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, ts);
 	ts->bus = client;
 
-	err = ad7879_construct(client, ts);
-	if (!err)
-		return err;
+	ret = ad7879_construct(client, ts);
+	if (!ret)
+		return ret;
 
 	i2c_set_clientdata(client, NULL);
 	kfree(ts);
-	return err;
+
+	return ret;
 }
 
 static int __devexit ad7879_remove(struct i2c_client *client)
@@ -797,5 +790,5 @@ module_exit(ad7879_exit);
 #endif
 
 MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
-MODULE_DESCRIPTION("AD7879(-1) TouchScreen Driver");
+MODULE_DESCRIPTION("AD7879(-1) touchscreen Driver");
 MODULE_LICENSE("GPL");
