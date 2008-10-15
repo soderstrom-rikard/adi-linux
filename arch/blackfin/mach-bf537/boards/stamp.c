@@ -575,8 +575,7 @@ static const struct ad7877_platform_data bfin_ad7877_ts_info = {
 };
 #endif
 
-#if defined(CONFIG_TOUCHSCREEN_AD7879) || defined(CONFIG_TOUCHSCREEN_AD7879_MODULE) || \
-	defined(CONFIG_TOUCHSCREEN_AD7879_1) || defined(CONFIG_TOUCHSCREEN_AD7879_1_MODULE)
+#if defined(CONFIG_TOUCHSCREEN_AD7879) || defined(CONFIG_TOUCHSCREEN_AD7879_MODULE)
 #include <linux/spi/ad7879.h>
 static const struct ad7879_platform_data bfin_ad7879_ts_info = {
 	.model			= 7879,	/* Model = AD7879 */
@@ -593,7 +592,7 @@ static const struct ad7879_platform_data bfin_ad7879_ts_info = {
 };
 #endif
 
-#if defined(CONFIG_TOUCHSCREEN_AD7879) || defined(CONFIG_TOUCHSCREEN_AD7879_MODULE)
+#if defined(CONFIG_TOUCHSCREEN_AD7879_SPI) || defined(CONFIG_TOUCHSCREEN_AD7879_SPI_MODULE)
 static struct bfin5xx_spi_chip spi_ad7879_chip_info = {
 	.enable_dma = 0,
 	.bits_per_word = 16,
@@ -753,7 +752,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.controller_data = &spi_ad7877_chip_info,
 	},
 #endif
-#if defined(CONFIG_TOUCHSCREEN_AD7879) || defined(CONFIG_TOUCHSCREEN_AD7879_MODULE)
+#if defined(CONFIG_TOUCHSCREEN_AD7879_SPI) || defined(CONFIG_TOUCHSCREEN_AD7879_SPI_MODULE)
 	{
 		.modalias = "ad7879",
 		.platform_data = &bfin_ad7879_ts_info,
@@ -952,7 +951,7 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 		.irq = IRQ_PG6,
 	},
 #endif
-#if defined(CONFIG_TOUCHSCREEN_AD7879_1) || defined(CONFIG_TOUCHSCREEN_AD7879_1_MODULE)
+#if defined(CONFIG_TOUCHSCREEN_AD7879_I2C) || defined(CONFIG_TOUCHSCREEN_AD7879_I2C_MODULE)
 	{
 		I2C_BOARD_INFO("ad7879", 0x2F),
 		.irq = IRQ_PG5,
