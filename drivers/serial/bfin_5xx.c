@@ -645,7 +645,7 @@ static int bfin_serial_startup(struct uart_port *port)
 
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
 	if (uart->cts_pin >= 0) {
-		if (request_irq(GPIO_IRQ_BASE + uart->cts_pin,
+		if (request_irq(gpio_to_irq(uart->cts_pin),
 			bfin_serial_mctrl_cts_int,
 			IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING |
 			IRQF_DISABLED, "BFIN_UART_CTS", uart)) {
@@ -695,7 +695,7 @@ static void bfin_serial_shutdown(struct uart_port *port)
 
 # ifdef CONFIG_SERIAL_BFIN_CTSRTS
 	if (uart->cts_pin >= 0)
-		free_irq(GPIO_IRQ_BASE + uart->cts_pin, uart);
+		free_irq(gpio_to_irq(uart->cts_pin), uart);
 	if (uart->rts_pin >= 0)
 		gpio_free(uart->rts_pin);
 # endif
