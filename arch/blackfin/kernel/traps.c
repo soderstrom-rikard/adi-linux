@@ -147,9 +147,12 @@ static void decode_address(char *buf, unsigned long address)
 				char *name = p->comm;
 				struct file *file = vma->vm_file;
 
-				if (file)
+				if (file) {
 					name = d_path(&file->f_path, _tmpbuf,
 						      sizeof(_tmpbuf));
+					if (IS_ERR(name))
+						name = NULL;
+				}
 
 				/* FLAT does not have its text aligned to the start of
 				 * the map while FDPIC ELF does ...
@@ -169,10 +172,13 @@ static void decode_address(char *buf, unsigned long address)
 							 (vma->vm_pgoff << PAGE_SHIFT);
 
 					sprintf(buf, "<0x%p> [ %s + 0x%lx ]",
-						(void *)address, name, offset);
+						(void *)address,
+						(name ? name : "(error)"),
+						offset);
 				} else
 					sprintf(buf, "<0x%p> [ %s vma:0x%lx-0x%lx]",
-						(void *)address, name,
+						(void *)address,
+						(name ? name : "(error)"),
 						vma->vm_start, vma->vm_end);
 
 				if (!in_atomic)
