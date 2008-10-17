@@ -53,6 +53,32 @@
 
 #include <asm/bfin-lq035q1.h>
 
+#if defined(BF533_FAMILY) || defined(BF538_FAMILY)
+#define TIMER_HSYNC_id			TIMER1_id
+#define TIMER_HSYNCbit			TIMER1bit
+#define TIMER_HSYNC_STATUS_TRUN		TIMER_STATUS_TRUN1
+#define TIMER_HSYNC_STATUS_TIMIL	TIMER_STATUS_TIMIL1
+#define TIMER_HSYNC_STATUS_TOVF		TIMER_STATUS_TOVF1
+
+#define TIMER_VSYNC_id			TIMER2_id
+#define TIMER_VSYNCbit			TIMER2bit
+#define TIMER_VSYNC_STATUS_TRUN		TIMER_STATUS_TRUN2
+#define TIMER_VSYNC_STATUS_TIMIL	TIMER_STATUS_TIMIL2
+#define TIMER_VSYNC_STATUS_TOVF		TIMER_STATUS_TOVF2
+#else
+#define TIMER_HSYNC_id			TIMER0_id
+#define TIMER_HSYNCbit			TIMER0bit
+#define TIMER_HSYNC_STATUS_TRUN		TIMER_STATUS_TRUN0
+#define TIMER_HSYNC_STATUS_TIMIL	TIMER_STATUS_TIMIL0
+#define TIMER_HSYNC_STATUS_TOVF		TIMER_STATUS_TOVF0
+
+#define TIMER_VSYNC_id			TIMER1_id
+#define TIMER_VSYNCbit			TIMER1bit
+#define TIMER_VSYNC_STATUS_TRUN		TIMER_STATUS_TRUN1
+#define TIMER_VSYNC_STATUS_TIMIL	TIMER_STATUS_TIMIL1
+#define TIMER_VSYNC_STATUS_TOVF		TIMER_STATUS_TOVF1
+#endif
+
 #define LCD_X_RES		320	/* Horizontal Resolution */
 #define LCD_Y_RES		240	/* Vertical Resolution */
 #define LCD_BPP			16	/* Bit Per Pixel */
@@ -233,16 +259,16 @@ static inline void bfin_lq035q1_enable_ppi(void)
 
 static void bfin_lq035q1_start_timers(void)
 {
-	enable_gptimers(TIMER1bit | TIMER0bit);
+	enable_gptimers(TIMER_VSYNCbit | TIMER_HSYNCbit);
 }
 
 static void bfin_lq035q1_stop_timers(void)
 {
-	disable_gptimers(TIMER0bit | TIMER1bit);
+	disable_gptimers(TIMER_HSYNCbit | TIMER_VSYNCbit);
 
-	set_gptimer_status(0, TIMER_STATUS_TRUN0 | TIMER_STATUS_TRUN1 |
-				TIMER_STATUS_TIMIL0 | TIMER_STATUS_TIMIL1 |
-				 TIMER_STATUS_TOVF0 | TIMER_STATUS_TOVF1);
+	set_gptimer_status(0, TIMER_HSYNC_STATUS_TRUN | TIMER_VSYNC_STATUS_TRUN |
+				TIMER_HSYNC_STATUS_TIMIL | TIMER_VSYNC_STATUS_TIMIL |
+				 TIMER_HSYNC_STATUS_TOVF | TIMER_VSYNC_STATUS_TOVF);
 
 }
 
@@ -251,15 +277,15 @@ static void bfin_lq035q1_init_timers(void)
 
 	bfin_lq035q1_stop_timers();
 
-	set_gptimer_period(TIMER0_id, H_PERIOD);
-	set_gptimer_pwidth(TIMER0_id, H_PULSE);
-	set_gptimer_config(TIMER0_id, TIMER_MODE_PWM | TIMER_PERIOD_CNT |
+	set_gptimer_period(TIMER_HSYNC_id, H_PERIOD);
+	set_gptimer_pwidth(TIMER_HSYNC_id, H_PULSE);
+	set_gptimer_config(TIMER_HSYNC_id, TIMER_MODE_PWM | TIMER_PERIOD_CNT |
 				      TIMER_TIN_SEL | TIMER_CLK_SEL|
 				      TIMER_EMU_RUN);
 
-	set_gptimer_period(TIMER1_id, V_PERIOD);
-	set_gptimer_pwidth(TIMER1_id, V_PULSE);
-	set_gptimer_config(TIMER1_id, TIMER_MODE_PWM | TIMER_PERIOD_CNT |
+	set_gptimer_period(TIMER_VSYNC_id, V_PERIOD);
+	set_gptimer_pwidth(TIMER_VSYNC_id, V_PULSE);
+	set_gptimer_config(TIMER_VSYNC_id, TIMER_MODE_PWM | TIMER_PERIOD_CNT |
 				      TIMER_TIN_SEL | TIMER_CLK_SEL |
 				      TIMER_EMU_RUN);
 
