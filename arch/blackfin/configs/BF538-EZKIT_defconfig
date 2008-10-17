@@ -1,6 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.26.5
+# Fri Oct 17 15:19:20 2008
 #
 # CONFIG_MMU is not set
 # CONFIG_FPU is not set
@@ -905,12 +906,12 @@ CONFIG_SSB_POSSIBLE=y
 #
 # CONFIG_VGASTATE is not set
 # CONFIG_VIDEO_OUTPUT_CONTROL is not set
-CONFIG_FB=y
+CONFIG_FB=m
 # CONFIG_FIRMWARE_EDID is not set
 # CONFIG_FB_DDC is not set
-CONFIG_FB_CFB_FILLRECT=y
-CONFIG_FB_CFB_COPYAREA=y
-CONFIG_FB_CFB_IMAGEBLIT=y
+CONFIG_FB_CFB_FILLRECT=m
+CONFIG_FB_CFB_COPYAREA=m
+CONFIG_FB_CFB_IMAGEBLIT=m
 # CONFIG_FB_CFB_REV_PIXELS_IN_BYTE is not set
 # CONFIG_FB_SYS_FILLRECT is not set
 # CONFIG_FB_SYS_COPYAREA is not set
@@ -927,7 +928,7 @@ CONFIG_FB_CFB_IMAGEBLIT=y
 # Frame buffer hardware drivers
 #
 # CONFIG_FB_BFIN_T350MCQB is not set
-CONFIG_FB_BFIN_LQ035Q1=y
+CONFIG_FB_BFIN_LQ035Q1=m
 # CONFIG_FB_BFIN_7393 is not set
 # CONFIG_FB_S1D13XXX is not set
 # CONFIG_FB_VIRTUAL is not set
@@ -937,12 +938,7 @@ CONFIG_FB_BFIN_LQ035Q1=y
 # Display device support
 #
 # CONFIG_DISPLAY_SUPPORT is not set
-CONFIG_LOGO=y
-# CONFIG_LOGO_LINUX_MONO is not set
-# CONFIG_LOGO_LINUX_VGA16 is not set
-# CONFIG_LOGO_LINUX_CLUT224 is not set
-# CONFIG_LOGO_BLACKFIN_VGA16 is not set
-CONFIG_LOGO_BLACKFIN_CLUT224=y
+# CONFIG_LOGO is not set
 
 #
 # Sound
