@@ -41,6 +41,8 @@
 
 #include <asm/system.h>
 
+#define bfin_writePTR(addr, val) bfin_write32(addr, val)
+
 #define bfin_read_PLL_CTL()            bfin_read16(PLL_CTL)
 /* Writing to PLL_CTL initiates a PLL relock sequence. */
 static __inline__ void bfin_write_PLL_CTL(unsigned int val)
