@@ -94,7 +94,6 @@ EXPORT_SYMBOL(insw_8);
 EXPORT_SYMBOL(outsl);
 EXPORT_SYMBOL(insl);
 EXPORT_SYMBOL(insl_16);
-EXPORT_SYMBOL(irq_flags);
 EXPORT_SYMBOL(iounmap);
 EXPORT_SYMBOL(blackfin_dcache_invalidate_range);
 EXPORT_SYMBOL(blackfin_icache_dcache_flush_range);
