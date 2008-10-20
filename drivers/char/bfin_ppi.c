@@ -654,12 +654,6 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 		set_dma_x_count(CH_PPI, pdev->linelen);
 		set_dma_y_count(CH_PPI, pdev->numlines);
 		set_dma_y_modify(CH_PPI, stepSize);
-
-		/* configure PPI registers to match DMA registers */
-		bfin_write_PPI_COUNT(pdev->linelen - 1);
-		SSYNC();
-		bfin_write_PPI_FRAME(pdev->numlines);
-		SSYNC();
 	} else {
 		if (pdev->datalen > CFG_PPI_DATALEN_8)	/* adjust transfer size */
 			set_dma_x_count(CH_PPI, count / 2);
@@ -671,12 +665,16 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 
 	//pr_debug("dma_config = 0x%04hX\n", pdev->dma_config);
 
+	/* configure PPI registers to match DMA registers */
+	bfin_write_PPI_COUNT(pdev->linelen - 1);
+	SSYNC();
+	bfin_write_PPI_FRAME(pdev->numlines);
+	SSYNC();
 	bfin_write_PPI_DELAY((unsigned short)pdev->delay);
 	SSYNC();
 
 #ifdef CONFIG_BF537
-	port_cfg = (pdev->ppi_control & CFG_PPI_PORT_CFG_NOSYNC) >> 2;
-
+	port_cfg = (pdev->ppi_control & PORT_CFG) >> 4;
 	switch (port_cfg) {
 	case CFG_PPI_PORT_CFG_XSYNC23:
 		// disable timer1 for FS2
@@ -685,7 +683,7 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 		set_gptimer_config(FS2_TIMER_ID, regdata);
 		// fall through to get FS1 timers
 
-	case CFG_PPI_PORT_CFG_SYNC1:
+	case CFG_PPI_PORT_CFG_XSYNC1:
 		// disable timer0 outputs for FS1
 		regdata = get_gptimer_config(TIMER0_id),
 		    regdata &= ~TIMER_OUT_DIS;
@@ -849,11 +847,6 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 		set_dma_y_count(CH_PPI, pdev->numlines);
 		set_dma_y_modify(CH_PPI, stepSize);
 
-		/* configure PPI registers to match DMA registers */
-		bfin_write_PPI_COUNT(pdev->linelen - 1);
-		bfin_write_PPI_FRAME(pdev->numlines);
-		bfin_write_PPI_DELAY(pdev->delay);
-
 		/*
 		 ** configure 2 timers for 2D
 		 ** Timer1 - hsync - line time  PPI_FS1 (Timer0 on BF537)
@@ -901,6 +894,10 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 			get_gptimer_pwidth(FS1_TIMER_ID));
 
 	}
+    /* configure PPI registers to match DMA registers */
+    bfin_write_PPI_COUNT(pdev->linelen - 1);
+	bfin_write_PPI_FRAME(pdev->numlines);
+	bfin_write_PPI_DELAY(pdev->delay);
 	SSYNC();
 	spin_unlock_irqrestore(&ppi_lock, flags);
 
