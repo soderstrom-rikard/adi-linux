@@ -51,10 +51,16 @@ config BF5xx_PPI
 	---help---
 
 config BFIN_SPORT
-	bool "Blackfin BF53x SPORT support"
+	bool "Blackfin SPORT driver for direct raw access"
 	depends on BLACKFIN
 	default n
-	---help---
+	help
+	  This is a generic character interface to the SPORT peripheral that
+	  exists on many Blackfin parts.  It is a standalone driver that is
+	  only used for direct userspace access to the device and is not used
+	  in conjunction with any other driver.
+
+	  If unsure, then say N.
 
 config BFIN_TIMER_LATENCY
 	bool "Blackfin 5xx interrupt latency test"
