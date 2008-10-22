@@ -137,8 +137,8 @@ static int __init __bfin_cpu_init(struct cpufreq_policy *policy)
 	if (policy->cpu != 0)
 		return -EINVAL;
 
-	cclk = get_cclk();
-	sclk = get_sclk();
+	cclk = get_cclk() / 1000;
+	sclk = get_sclk() / 1000;
 
 #if ANOMALY_05000273 || (!defined(CONFIG_BF54x) && defined(CONFIG_BFIN_DCACHE))
 	min_cclk = sclk * 2;
@@ -148,7 +148,7 @@ static int __init __bfin_cpu_init(struct cpufreq_policy *policy)
 	csel = ((bfin_read_PLL_DIV() & CSEL) >> 4);
 
 	for (index = 0;  (cclk >> index) >= min_cclk && csel <= 3; index++, csel++) {
-		bfin_freq_table[index].frequency = (cclk >> index) / 1000;
+		bfin_freq_table[index].frequency = cclk >> index;
 		dpm_state_table[index].csel = csel << 4; /* Shift now into PLL_DIV bitpos */
 		dpm_state_table[index].tscale =  (TIME_SCALE / (1 << csel)) - 1;
 
