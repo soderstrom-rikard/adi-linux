@@ -1189,6 +1189,10 @@ static __init void early_serial_putc(struct uart_port *port, int ch)
 	unsigned timeout = 0xffff;
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 
+	/* We cannot cpu_relax() here as doing so on the BF561 relies
+	 * on the per-cpu region being setup, and since this is early
+	 * serial code, it may not yet be usable ...
+	 */
 	while ((!(UART_GET_LSR(uart) & THRE)) && --timeout)
 		barrier();
 
