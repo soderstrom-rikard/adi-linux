@@ -594,6 +594,7 @@ static irqreturn_t dma_irq_handler(int irq, void *dev_id)
 
 		/* Move to next transfer */
 		msg->state = next_transfer(drv_data);
+	}
 
 	/* Schedule transfer tasklet */
 	tasklet_schedule(&drv_data->pump_transfers);
