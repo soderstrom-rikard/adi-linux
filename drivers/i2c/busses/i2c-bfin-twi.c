@@ -614,6 +614,7 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	struct i2c_adapter *p_adap;
 	struct resource *res;
 	int rc;
+	unsigned int clkhilow;
 
 	iface = kzalloc(sizeof(struct bfin_twi_iface), GFP_KERNEL);
 	if (!iface) {
@@ -676,10 +677,13 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	/* Set TWI internal clock as 10MHz */
 	write_CONTROL(iface, ((get_sclk() / 1024 / 1024 + 5) / 10) & 0x7F);
 
+	clkhilow = 5 * 1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ;
+
+	if (clkhilow > 0xFF)
+		clkhilow = 0xFF;
+
 	/* Set Twi interface clock as specified */
-	write_CLKDIV(iface, ((5*1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ)
-			<< 8) | ((5*1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ)
-			& 0xFF));
+	write_CLKDIV(iface, ((clkhilow & 0xFF) << 8) | (clkhilow & 0xFF));
 
 	/* Enable TWI */
 	write_CONTROL(iface, read_CONTROL(iface) | TWI_ENA);
