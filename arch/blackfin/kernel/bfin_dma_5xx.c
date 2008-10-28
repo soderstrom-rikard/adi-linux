@@ -147,7 +147,7 @@ int set_dma_callback(unsigned int channel, dma_interrupt_t callback, void *data)
 		dma_ch[channel].data = data;
 
 		ret_val =
-		    request_irq(dma_ch[channel].irq, (void *)callback, IRQF_DISABLED,
+		    request_irq(dma_ch[channel].irq, callback, IRQF_DISABLED,
 				dma_ch[channel].device_id, data);
 		if (ret_val) {
 			printk(KERN_NOTICE
