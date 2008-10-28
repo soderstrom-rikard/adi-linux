@@ -114,7 +114,7 @@ static int lcd_ioctl(struct inode *inode, struct file *file,
 		udelay(T_EXEC);
 		BusyCheck();
 		drv_HD_I2C_command(currController, 0x01);
-		udelay(T_CLEAR);
+		msleep(T_CLEAR);
 		break;
 
 	case LCD_Cursor_Left:
@@ -307,7 +307,7 @@ static int drv_HD_I2C_load(void)
 {
 	/* initialize display */
 	drv_HD_I2C_nibble(CONTROLLER_BOTH, 0x03);
-	udelay(T_INIT1);	/* 4 Bit mode, wait 4.1 ms */
+	msleep(T_INIT1);	/* 4 Bit mode, wait 4.1 ms */
 	drv_HD_I2C_nibble(CONTROLLER_BOTH, 0x03);
 	udelay(T_INIT2);	/* 4 Bit mode, wait 100 us */
 	drv_HD_I2C_nibble(CONTROLLER_BOTH, 0x03);

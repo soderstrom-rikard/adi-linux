@@ -36,11 +36,11 @@
  * we use the worst-case values.
  */
 
-#define T_INIT1 4100		/* first init sequence:  4.1 msec */
+#define T_INIT1    5		/* (ms) first init sequence:  4.1 msec */
 #define T_INIT2  150		/* second init sequence: 100 usec */
 #define T_EXEC    80		/* normal execution time */
 #define T_WRCG   120		/* CG RAM Write */
-#define T_CLEAR 2250		/* Clear Display */
+#define T_CLEAR    3		/* (ms) Clear Display */
 
 #define SIGNAL_RW		0x20
 #define SIGNAL_RS		0x10
