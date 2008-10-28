@@ -112,24 +112,12 @@
 #define CPU "BF518"
 #define CPUID 0x27e8
 #endif
-#ifdef CONFIG_BF517
-#define CPU "BF517"
-#define CPUID 0x27e8
-#endif
 #ifdef CONFIG_BF516
 #define CPU "BF516"
 #define CPUID 0x27e8
 #endif
-#ifdef CONFIG_BF515
-#define CPU "BF515"
-#define CPUID 0x27e8
-#endif
 #ifdef CONFIG_BF514
 #define CPU "BF514"
-#define CPUID 0x27e8
-#endif
-#ifdef CONFIG_BF513
-#define CPU "BF513"
 #define CPUID 0x27e8
 #endif
 #ifdef CONFIG_BF512
