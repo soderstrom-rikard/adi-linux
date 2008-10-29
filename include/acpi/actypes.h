@@ -110,10 +110,10 @@
  * usually used for memory allocation, efficient loop counters, and array
  * indexes. The types are similar to the size_t type in the C library and are
  * required because there is no C type that consistently represents the native
- * data width.
+ * data width. ACPI_SIZE is needed because there is no guarantee that a
+ * kernel-level C library is present.
  *
  * ACPI_SIZE        16/32/64-bit unsigned value
- * ACPI_NATIVE_UINT 16/32/64-bit unsigned value
  * ACPI_NATIVE_INT  16/32/64-bit signed value
  *
  */
@@ -147,9 +147,9 @@ typedef int INT32;
 
 /*! [End] no source code translation !*/
 
-typedef u64 acpi_native_uint;
 typedef s64 acpi_native_int;
 
+typedef u64 acpi_size;
 typedef u64 acpi_io_address;
 typedef u64 acpi_physical_address;
 
@@ -186,9 +186,9 @@ typedef int INT32;
 
 /*! [End] no source code translation !*/
 
-typedef u32 acpi_native_uint;
 typedef s32 acpi_native_int;
 
+typedef u32 acpi_size;
 typedef u32 acpi_io_address;
 typedef u32 acpi_physical_address;
 
@@ -201,10 +201,6 @@ typedef u32 acpi_physical_address;
 
 #error unknown ACPI_MACHINE_WIDTH
 #endif
-
-/* Variable-width type, used instead of clib size_t */
-
-typedef acpi_native_uint acpi_size;
 
 /*******************************************************************************
  *
@@ -219,7 +215,7 @@ typedef acpi_native_uint acpi_size;
 /* Value returned by acpi_os_get_thread_id */
 
 #ifndef acpi_thread_id
-#define acpi_thread_id                  acpi_native_uint
+#define acpi_thread_id			acpi_size
 #endif
 
 /* Object returned from acpi_os_create_lock */
@@ -231,7 +227,7 @@ typedef acpi_native_uint acpi_size;
 /* Flags for acpi_os_acquire_lock/acpi_os_release_lock */
 
 #ifndef acpi_cpu_flags
-#define acpi_cpu_flags                  acpi_native_uint
+#define acpi_cpu_flags			acpi_size
 #endif
 
 /* Object returned from acpi_os_create_cache */
@@ -611,8 +607,15 @@ typedef u8 acpi_adr_space_type;
 
 /*
  * bit_register IDs
- * These are bitfields defined within the full ACPI registers
+ *
+ * These values are intended to be used by the hardware interfaces
+ * and are mapped to individual bitfields defined within the ACPI
+ * registers. See the acpi_gbl_bit_register_info global table in utglobal.c
+ * for this mapping.
  */
+
+/* PM1 Status register */
+
 #define ACPI_BITREG_TIMER_STATUS                0x00
 #define ACPI_BITREG_BUS_MASTER_STATUS           0x01
 #define ACPI_BITREG_GLOBAL_LOCK_STATUS          0x02
@@ -622,24 +625,29 @@ typedef u8 acpi_adr_space_type;
 #define ACPI_BITREG_WAKE_STATUS                 0x06
 #define ACPI_BITREG_PCIEXP_WAKE_STATUS          0x07
 
+/* PM1 Enable register */
+
 #define ACPI_BITREG_TIMER_ENABLE                0x08
 #define ACPI_BITREG_GLOBAL_LOCK_ENABLE          0x09
 #define ACPI_BITREG_POWER_BUTTON_ENABLE         0x0A
 #define ACPI_BITREG_SLEEP_BUTTON_ENABLE         0x0B
 #define ACPI_BITREG_RT_CLOCK_ENABLE             0x0C
-#define ACPI_BITREG_WAKE_ENABLE                 0x0D
-#define ACPI_BITREG_PCIEXP_WAKE_DISABLE         0x0E
+#define ACPI_BITREG_PCIEXP_WAKE_DISABLE         0x0D
 
-#define ACPI_BITREG_SCI_ENABLE                  0x0F
-#define ACPI_BITREG_BUS_MASTER_RLD              0x10
-#define ACPI_BITREG_GLOBAL_LOCK_RELEASE         0x11
-#define ACPI_BITREG_SLEEP_TYPE_A                0x12
-#define ACPI_BITREG_SLEEP_TYPE_B                0x13
-#define ACPI_BITREG_SLEEP_ENABLE                0x14
+/* PM1 Control register */
 
-#define ACPI_BITREG_ARB_DISABLE                 0x15
+#define ACPI_BITREG_SCI_ENABLE                  0x0E
+#define ACPI_BITREG_BUS_MASTER_RLD              0x0F
+#define ACPI_BITREG_GLOBAL_LOCK_RELEASE         0x10
+#define ACPI_BITREG_SLEEP_TYPE_A                0x11
+#define ACPI_BITREG_SLEEP_TYPE_B                0x12
+#define ACPI_BITREG_SLEEP_ENABLE                0x13
 
-#define ACPI_BITREG_MAX                         0x15
+/* PM2 Control register */
+
+#define ACPI_BITREG_ARB_DISABLE                 0x14
+
+#define ACPI_BITREG_MAX                         0x14
 #define ACPI_NUM_BITREG                         ACPI_BITREG_MAX + 1
 
 /*
@@ -863,6 +871,7 @@ struct acpi_obj_info_header {
 struct acpi_device_info {
 	ACPI_COMMON_OBJ_INFO;
 
+	u32 param_count;	/* If a method, required parameter count */
 	u32 valid;		/* Indicates which fields below are valid */
 	u32 current_status;	/* _STA value */
 	acpi_integer address;	/* _ADR value if any */
@@ -1229,8 +1238,8 @@ struct acpi_resource {
 
 #pragma pack()
 
-#define ACPI_RS_SIZE_MIN                    12
 #define ACPI_RS_SIZE_NO_DATA                8	/* Id + Length fields */
+#define ACPI_RS_SIZE_MIN                    (u32) ACPI_ROUND_UP_TO_NATIVE_WORD (12)
 #define ACPI_RS_SIZE(type)                  (u32) (ACPI_RS_SIZE_NO_DATA + sizeof (type))
 
 #define ACPI_NEXT_RESOURCE(res)             (struct acpi_resource *)((u8 *) res + res->length)

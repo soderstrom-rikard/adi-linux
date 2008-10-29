@@ -1,7 +1,5 @@
 /* Driver for SCM Microsystems (a.k.a. Shuttle) USB-ATAPI cable
  *
- * $Id$
- *
  * Current development and maintenance by:
  *   (c) 2000, 2001 Robert Baruch (autophile@starband.net)
  *   (c) 2004, 2005 Daniel Drake <dsd@gentoo.org>

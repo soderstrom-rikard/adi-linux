@@ -32,6 +32,7 @@
 #include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/mutex.h>
+#include <linux/smp_lock.h>
 #include "dvbdev.h"
 
 static int dvbdev_debug;
@@ -74,6 +75,7 @@ static int dvb_device_open(struct inode *inode, struct file *file)
 {
 	struct dvb_device *dvbdev;
 
+	lock_kernel();
 	dvbdev = dvbdev_find_device (iminor(inode));
 
 	if (dvbdev && dvbdev->fops) {
@@ -90,8 +92,10 @@ static int dvb_device_open(struct inode *inode, struct file *file)
 			file->f_op = fops_get(old_fops);
 		}
 		fops_put(old_fops);
+		unlock_kernel();
 		return err;
 	}
+	unlock_kernel();
 	return -ENODEV;
 }
 
@@ -231,7 +235,7 @@ int dvb_register_device(struct dvb_adapter *adap, struct dvb_device **pdvbdev,
 
 	clsdev = device_create(dvb_class, adap->device,
 			       MKDEV(DVB_MAJOR, nums2minor(adap->num, type, id)),
-			       "dvb%d.%s%d", adap->num, dnames[type], id);
+			       NULL, "dvb%d.%s%d", adap->num, dnames[type], id);
 	if (IS_ERR(clsdev)) {
 		printk(KERN_ERR "%s: failed to create device dvb%d.%s%d (%ld)\n",
 		       __func__, adap->num, dnames[type], id, PTR_ERR(clsdev));
@@ -322,6 +326,9 @@ int dvb_register_adapter(struct dvb_adapter *adap, const char *name,
 	adap->name = name;
 	adap->module = module;
 	adap->device = device;
+	adap->mfe_shared = 0;
+	adap->mfe_dvbdev = NULL;
+	mutex_init (&adap->mfe_lock);
 
 	list_add_tail (&adap->list_head, &dvb_adapter_list);
 

@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * drivers/mtd/maps/redwood.c
  *
  * FLASH map for the IBM Redwood 4/5/6 boards.

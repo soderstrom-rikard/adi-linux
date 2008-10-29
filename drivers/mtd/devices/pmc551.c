@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * PMC551 PCI Mezzanine Ram Device
  *
  * Author:

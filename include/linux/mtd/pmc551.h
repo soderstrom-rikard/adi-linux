@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * PMC551 PCI Mezzanine Ram Device
  *
  * Author:
@@ -17,7 +15,7 @@
 
 #include <linux/mtd/mtd.h>
 
-#define PMC551_VERSION "$Id$\n"\
+#define PMC551_VERSION \
        "Ramix PMC551 PCI Mezzanine Ram Driver. (C) 1999,2000 Nortel Networks.\n"
 
 /*

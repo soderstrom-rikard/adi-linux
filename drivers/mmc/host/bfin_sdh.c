@@ -455,10 +455,10 @@ static int sdh_probe(struct platform_device *pdev)
 	mmc->max_seg_size = 1 << 16;
 	mmc->max_blk_size = 2 << 11;
 	mmc->max_blk_count = 2 << 16;
-	mmc->ocr_avail = MMC_VDD_32_33|MMC_VDD_33_34;
+	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
 	mmc->f_min = get_sclk() >> 9;
 	mmc->f_max = get_sclk();
-	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MULTIWRITE ;
+	mmc->caps = MMC_CAP_4_BIT_DATA;
 	host = mmc_priv(mmc);
 	host->mmc = mmc;
 

@@ -1,6 +1,4 @@
 /*
- *	$Id$
- *
  *	Procfs interface for the Zorro bus.
  *
  *	Copyright (C) 1998-2003 Geert Uytterhoeven
@@ -160,4 +158,4 @@ static int __init zorro_proc_init(void)
 	return 0;
 }
 
-__initcall(zorro_proc_init);
+device_initcall(zorro_proc_init);

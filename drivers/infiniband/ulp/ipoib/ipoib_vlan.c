@@ -28,8 +28,6 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
- * $Id$
  */
 
 #include <linux/module.h>
@@ -94,6 +92,10 @@ int ipoib_vlan_add(struct net_device *pdev, unsigned short pkey)
 	priv->dev->mtu   = IPOIB_UD_MTU(priv->max_ib_mtu);
 	priv->mcast_mtu  = priv->admin_mtu = priv->dev->mtu;
 	set_bit(IPOIB_FLAG_SUBINTERFACE, &priv->flags);
+
+	result = ipoib_set_dev_features(priv, ppriv->ca);
+	if (result)
+		goto device_init_failed;
 
 	priv->pkey = pkey;
 

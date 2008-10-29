@@ -21,8 +21,6 @@
    This is access code for flashes using ARM's flash partitioning
    standards.
 
-   $Id$
-
 ======================================================================*/
 
 #include <linux/module.h>

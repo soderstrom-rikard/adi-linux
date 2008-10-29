@@ -82,6 +82,7 @@ char * __acpi_map_table (unsigned long phys_addr, unsigned long size);
 int early_acpi_boot_init(void);
 int acpi_boot_init (void);
 int acpi_boot_table_init (void);
+int acpi_mps_check (void);
 int acpi_numa_init (void);
 
 int acpi_table_init (void);
@@ -93,18 +94,10 @@ int acpi_parse_mcfg (struct acpi_table_header *header);
 void acpi_table_print_madt_entry (struct acpi_subtable_header *madt);
 
 /* the following four functions are architecture-dependent */
-#ifdef CONFIG_HAVE_ARCH_PARSE_SRAT
-#define NR_NODE_MEMBLKS MAX_NUMNODES
-#define acpi_numa_slit_init(slit) do {} while (0)
-#define acpi_numa_processor_affinity_init(pa) do {} while (0)
-#define acpi_numa_memory_affinity_init(ma) do {} while (0)
-#define acpi_numa_arch_fixup() do {} while (0)
-#else
 void acpi_numa_slit_init (struct acpi_table_slit *slit);
 void acpi_numa_processor_affinity_init (struct acpi_srat_cpu_affinity *pa);
 void acpi_numa_memory_affinity_init (struct acpi_srat_mem_affinity *ma);
 void acpi_numa_arch_fixup(void);
-#endif
 
 #ifdef CONFIG_ACPI_HOTPLUG_CPU
 /* Arch dependent functions for cpu hotplug support */
@@ -234,6 +227,10 @@ int acpi_check_region(resource_size_t start, resource_size_t n,
 int acpi_check_mem_region(resource_size_t start, resource_size_t n,
 		      const char *name);
 
+#ifdef CONFIG_PM_SLEEP
+void __init acpi_no_s4_hw_signature(void);
+void __init acpi_old_suspend_ordering(void);
+#endif /* CONFIG_PM_SLEEP */
 #else	/* CONFIG_ACPI */
 
 static inline int early_acpi_boot_init(void)
@@ -246,6 +243,11 @@ static inline int acpi_boot_init(void)
 }
 
 static inline int acpi_boot_table_init(void)
+{
+	return 0;
+}
+
+static inline int acpi_mps_check(void)
 {
 	return 0;
 }

@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * JFFS2 definitions for use in user space only
  */
 

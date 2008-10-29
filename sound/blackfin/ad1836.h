@@ -6,8 +6,6 @@
  * Created:      Tue Sep 21 10:52:42 CEST 2004
  * Description:  definitions for AD1836A registers
  *
- * Rev:          $Id$
- *
  * Modified:
  *               Copyright (C) 2004 Luuk van Dijk, Mind over Matter B.V.
  *               Copyright 2004-2006 Analog Devices Inc.

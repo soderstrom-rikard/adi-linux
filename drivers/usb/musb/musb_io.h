@@ -37,7 +37,9 @@
 
 #include <linux/io.h>
 
-#if  !defined(CONFIG_ARM) && !defined(CONFIG_BLACKFIN)
+#if !defined(CONFIG_ARM) && !defined(CONFIG_SUPERH) \
+	&& !defined(CONFIG_AVR32) && !defined(CONFIG_PPC32) \
+	&& !defined(CONFIG_PPC64) && !defined(CONFIG_BLACKFIN)
 static inline void readsl(const void __iomem *addr, void *buf, int len)
 	{ insl((unsigned long)addr, buf, len); }
 static inline void readsw(const void __iomem *addr, void *buf, int len)

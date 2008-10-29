@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Handle mapping of the flash on the RPX Lite and CLLF boards
  */
 

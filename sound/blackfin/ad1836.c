@@ -6,8 +6,6 @@
  * Created:      Tue Sep 21 10:52:42 CEST 2004
  * Description:  driver for AD1836 sound chip connected to bf53x sport/spi
  *
- * Rev:          $Id$
- *
  * Modified:     Roy Huang <roy.huang@analog.com>
  *               Copyright 2004-2006 Analog Devices Inc.
  *

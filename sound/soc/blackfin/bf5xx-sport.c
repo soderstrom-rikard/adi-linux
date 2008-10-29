@@ -1,10 +1,12 @@
 /*
- * File:         bf5xx_ac97_sport.c
+ * File:         bf5xx_sport.c
  * Based on:
  * Author:       Roy Huang <roy.huang@analog.com>
  *
  * Created:      Tue Sep 21 10:52:42 CEST 2004
  * Description:
+ *               Blackfin SPORT Driver
+ *
  *               Copyright 2004-2007 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
@@ -194,9 +196,10 @@ static inline int sport_hook_rx_dummy(struct sport_device *sport)
 	desc->next_desc_addr = (unsigned long)(sport->dummy_rx_desc);
 	local_irq_restore(flags);
 	/* Waiting for dummy buffer descriptor is already hooked*/
-	while ((get_dma_curr_desc_ptr(sport->dma_rx_chan) - \
-			sizeof(struct dmasg)) != \
-			(unsigned long)sport->dummy_rx_desc) {}
+	while ((get_dma_curr_desc_ptr(sport->dma_rx_chan) -
+			sizeof(struct dmasg)) !=
+			(unsigned long)sport->dummy_rx_desc)
+		;
 	sport->curr_rx_desc = sport->dummy_rx_desc;
 	/* Restore the damaged descriptor */
 	*desc = temp_desc;
@@ -257,10 +260,11 @@ int sport_rx_start(struct sport_device *sport)
 		BUG_ON(sport->dma_rx_desc == NULL);
 		BUG_ON(sport->curr_rx_desc != sport->dummy_rx_desc);
 		local_irq_save(flags);
-		while ((get_dma_curr_desc_ptr(sport->dma_rx_chan) - \
-			sizeof(struct dmasg)) != \
-			(unsigned long)sport->dummy_rx_desc) {}
-		sport->dummy_rx_desc->next_desc_addr = \
+		while ((get_dma_curr_desc_ptr(sport->dma_rx_chan) -
+			sizeof(struct dmasg)) !=
+			(unsigned long)sport->dummy_rx_desc)
+			;
+		sport->dummy_rx_desc->next_desc_addr =
 				(unsigned long)(sport->dma_rx_desc);
 		local_irq_restore(flags);
 		sport->curr_rx_desc = sport->dma_rx_desc;
@@ -321,7 +325,8 @@ static inline int sport_hook_tx_dummy(struct sport_device *sport)
 	/* Waiting for dummy buffer descriptor is already hooked*/
 	while ((get_dma_curr_desc_ptr(sport->dma_tx_chan) - \
 			sizeof(struct dmasg)) != \
-			(unsigned long)sport->dummy_tx_desc) {}
+			(unsigned long)sport->dummy_tx_desc)
+		;
 	sport->curr_tx_desc = sport->dummy_tx_desc;
 	/* Restore the damaged descriptor */
 	*desc = temp_desc;
@@ -341,10 +346,11 @@ int sport_tx_start(struct sport_device *sport)
 		BUG_ON(sport->curr_tx_desc != sport->dummy_tx_desc);
 		/* Hook the normal buffer descriptor */
 		local_irq_save(flags);
-		while ((get_dma_curr_desc_ptr(sport->dma_tx_chan) - \
-			sizeof(struct dmasg)) != \
-			(unsigned long)sport->dummy_tx_desc) {}
-		sport->dummy_tx_desc->next_desc_addr = \
+		while ((get_dma_curr_desc_ptr(sport->dma_tx_chan) -
+			sizeof(struct dmasg)) !=
+			(unsigned long)sport->dummy_tx_desc)
+			;
+		sport->dummy_tx_desc->next_desc_addr =
 				(unsigned long)(sport->dma_tx_desc);
 		local_irq_restore(flags);
 		sport->curr_tx_desc = sport->dma_tx_desc;
@@ -610,7 +616,7 @@ unsigned long sport_curr_offset_tx(struct sport_device *sport)
 }
 EXPORT_SYMBOL(sport_curr_offset_tx);
 
-void incfrag(struct sport_device *sport, int *frag, int tx)
+void sport_incfrag(struct sport_device *sport, int *frag, int tx)
 {
 	++(*frag);
 	if (tx == 1 && *frag == sport->tx_frags)
@@ -619,9 +625,9 @@ void incfrag(struct sport_device *sport, int *frag, int tx)
 	if (tx == 0 && *frag == sport->rx_frags)
 		*frag = 0;
 }
-EXPORT_SYMBOL(incfrag);
+EXPORT_SYMBOL(sport_incfrag);
 
-void decfrag(struct sport_device *sport, int *frag, int tx)
+void sport_decfrag(struct sport_device *sport, int *frag, int tx)
 {
 	--(*frag);
 	if (tx == 1 && *frag == 0)
@@ -630,7 +636,7 @@ void decfrag(struct sport_device *sport, int *frag, int tx)
 	if (tx == 0 && *frag == 0)
 		*frag = sport->rx_frags;
 }
-EXPORT_SYMBOL(decfrag);
+EXPORT_SYMBOL(sport_decfrag);
 
 static int sport_check_status(struct sport_device *sport,
 		unsigned int *sport_stat,

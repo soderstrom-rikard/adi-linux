@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * (C) 1999-2003 David Woodhouse <dwmw2@infradead.org>
  */
 

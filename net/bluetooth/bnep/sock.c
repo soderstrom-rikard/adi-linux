@@ -24,10 +24,6 @@
    SOFTWARE IS DISCLAIMED.
 */
 
-/*
- * $Id$
- */
-
 #include <linux/module.h>
 
 #include <linux/types.h>

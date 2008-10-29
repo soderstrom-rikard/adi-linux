@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Portions of MTD ABI definition which are shared by kernel and user space
  */
 

@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * drivers/mtd/maps/ixp4xx.c
  *
  * MTD Map file for IXP4XX based systems. Please do not make per-board

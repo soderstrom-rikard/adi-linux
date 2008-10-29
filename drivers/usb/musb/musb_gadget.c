@@ -466,7 +466,7 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 				csr = musb_readw(epio, MUSB_TXCSR);
 				request->actual += musb_ep->dma->actual_len;
 				DBG(4, "TXCSR%d %04x, dma off, "
-						"len %Zd, req %p\n",
+						"len %zu, req %p\n",
 					epnum, csr,
 					musb_ep->dma->actual_len,
 					request);
@@ -610,7 +610,6 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 	if (csr & MUSB_RXCSR_RXPKTRDY) {
 		len = musb_readw(epio, MUSB_RXCOUNT);
 		if (request->actual < request->length) {
-get_more:
 #ifdef CONFIG_USB_INVENTRA_DMA
 			if (is_dma_capable() && musb_ep->dma) {
 				struct dma_controller	*c;
@@ -711,6 +710,10 @@ get_more:
 					(request->buf + request->actual));
 			request->actual += fifo_count;
 
+			/* REVISIT if we left anything in the fifo, flush
+			 * it and report -EOVERFLOW
+			 */
+
 			/* ack the read! */
 			csr |= MUSB_RXCSR_P_WZC_BITS;
 			csr &= ~MUSB_RXCSR_RXPKTRDY;
@@ -792,7 +795,7 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 
 		request->actual += musb_ep->dma->actual_len;
 
-		DBG(4, "RXCSR%d %04x, dma off, %04x, len %Zd, req %p\n",
+		DBG(4, "RXCSR%d %04x, dma off, %04x, len %zu, req %p\n",
 			epnum, csr,
 			musb_readw(epio, MUSB_RXCSR),
 			musb_ep->dma->actual_len, request);
@@ -1677,6 +1680,7 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 	struct musb *musb = the_gadget;
 
 	if (!driver
+			|| driver->speed != USB_SPEED_HIGH
 			|| !driver->bind
 			|| !driver->setup)
 		return -EINVAL;
@@ -1706,17 +1710,15 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 
 	spin_unlock_irqrestore(&musb->lock, flags);
 
-	if (retval == 0)
-		retval = driver->bind(&musb->g);
-	if (retval != 0) {
-		DBG(3, "bind to driver %s failed --> %d\n",
-			driver->driver.name, retval);
-		musb->gadget_driver = NULL;
-		musb->g.dev.driver = NULL;
-	}
-
-	/* start peripheral and/or OTG engines */
 	if (retval == 0) {
+		retval = driver->bind(&musb->g);
+		if (retval != 0) {
+			DBG(3, "bind to driver %s failed --> %d\n",
+					driver->driver.name, retval);
+			musb->gadget_driver = NULL;
+			musb->g.dev.driver = NULL;
+		}
+
 		spin_lock_irqsave(&musb->lock, flags);
 
 		/* REVISIT always use otg_set_peripheral(), handling
@@ -1882,7 +1884,7 @@ void musb_g_resume(struct musb *musb)
 		}
 		break;
 	default:
-		WARN("unhandled RESUME transition (%s)\n",
+		WARNING("unhandled RESUME transition (%s)\n",
 				otg_state_string(musb));
 	}
 }
@@ -1912,7 +1914,7 @@ void musb_g_suspend(struct musb *musb)
 		/* REVISIT if B_HOST, clear DEVCTL.HOSTREQ;
 		 * A_PERIPHERAL may need care too
 		 */
-		WARN("unhandled SUSPEND transition (%s)\n",
+		WARNING("unhandled SUSPEND transition (%s)\n",
 				otg_state_string(musb));
 	}
 }

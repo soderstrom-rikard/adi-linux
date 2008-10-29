@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  *  Copyright (c) 1999-2001 Vojtech Pavlik
  *  Copyright (c) 1999 Brian Gerst
  */

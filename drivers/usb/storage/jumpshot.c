@@ -1,7 +1,5 @@
 /* Driver for Lexar "Jumpshot" Compact Flash reader
  *
- * $Id$
- *
  * jumpshot driver v0.1:
  *
  * First release

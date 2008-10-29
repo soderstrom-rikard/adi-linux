@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Flash and EPROM on Hitachi Solution Engine and similar boards.
  *
  * (C) 2001 Red Hat, Inc.

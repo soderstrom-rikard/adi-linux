@@ -803,12 +803,8 @@ static struct mtd_blktrans_ops nftl_tr = {
 	.owner		= THIS_MODULE,
 };
 
-extern char nftlmountrev[];
-
 static int __init init_nftl(void)
 {
-	printk(KERN_INFO "NFTL driver: nftlcore.c $Revision$, nftlmount.c %s\n", nftlmountrev);
-
 	return register_mtd_blktrans(&nftl_tr);
 }
 

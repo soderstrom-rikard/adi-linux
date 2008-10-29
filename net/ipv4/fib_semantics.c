@@ -5,8 +5,6 @@
  *
  *		IPv4 Forwarding Information Base: semantics.
  *
- * Version:	$Id$
- *
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
  *		This program is free software; you can redistribute it and/or

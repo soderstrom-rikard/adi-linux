@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Handle mapping of the NOR flash on Cogent EDB7312 boards
  *
  * Copyright 2002 SYSGO Real-Time Solutions GmbH

@@ -7,8 +7,6 @@
  * Description:  low level driver for sportX/dmaY on blackfin 53x
  *               this should be moved to arch/blackfin/
  *
- * Rev:          $Id$
- *
  *               Copyright 2004-2006 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/

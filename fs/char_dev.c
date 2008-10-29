@@ -22,9 +22,6 @@
 #include <linux/mutex.h>
 #include <linux/backing-dev.h>
 
-#ifdef CONFIG_KMOD
-#include <linux/kmod.h>
-#endif
 #include "internal.h"
 
 /*
@@ -373,6 +370,8 @@ static int chrdev_open(struct inode *inode, struct file *filp)
 			return -ENXIO;
 		new = container_of(kobj, struct cdev, kobj);
 		spin_lock(&cdev_lock);
+		/* Check i_cdev again in case somebody beat us to it while
+		   we dropped the lock. */
 		p = inode->i_cdev;
 		if (!p) {
 			inode->i_cdev = p = new;
@@ -387,18 +386,22 @@ static int chrdev_open(struct inode *inode, struct file *filp)
 	cdev_put(new);
 	if (ret)
 		return ret;
+
+	ret = -ENXIO;
 	filp->f_op = fops_get(p->ops);
-	if (!filp->f_op) {
-		cdev_put(p);
-		return -ENXIO;
-	}
+	if (!filp->f_op)
+		goto out_cdev_put;
+
 	if (filp->f_op->open) {
-		lock_kernel();
 		ret = filp->f_op->open(inode,filp);
-		unlock_kernel();
+		if (ret)
+			goto out_cdev_put;
 	}
-	if (ret)
-		cdev_put(p);
+
+	return 0;
+
+ out_cdev_put:
+	cdev_put(p);
 	return ret;
 }
 

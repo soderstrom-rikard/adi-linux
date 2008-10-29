@@ -5,8 +5,6 @@
  *
  *		INET protocol dispatch tables.
  *
- * Version:	$Id$
- *
  * Authors:	Ross Biro
  *		Fred N. van Kempen, <waltje@uWalt.NL.Mugnet.ORG>
  *

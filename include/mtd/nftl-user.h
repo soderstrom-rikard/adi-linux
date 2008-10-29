@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Parts of NFTL headers shared with userspace
  *
  */

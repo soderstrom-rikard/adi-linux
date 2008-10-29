@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * MTD ABI header for use by user space only.
  */
 

@@ -144,7 +144,7 @@ void acpi_os_release_mutex(acpi_mutex handle);
 void *acpi_os_allocate(acpi_size size);
 
 void __iomem *acpi_os_map_memory(acpi_physical_address where,
-				 acpi_native_uint length);
+				acpi_size length);
 
 void acpi_os_unmap_memory(void __iomem * logical_address, acpi_size size);
 
@@ -192,6 +192,9 @@ acpi_thread_id acpi_os_get_thread_id(void);
 acpi_status
 acpi_os_execute(acpi_execute_type type,
 		acpi_osd_exec_callback function, void *context);
+
+acpi_status
+acpi_os_hotplug_execute(acpi_osd_exec_callback function, void *context);
 
 void acpi_os_wait_events_complete(void *context);
 

@@ -4,8 +4,6 @@
  *	uclinux.c -- generic memory mapped MTD driver for uclinux
  *
  *	(C) Copyright 2002, Greg Ungerer (gerg@snapgear.com)
- *
- * 	$Id$
  */
 
 /****************************************************************************/
@@ -16,6 +14,7 @@
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/romfs_fs.h>
+#include <linux/mm.h>
 #include <linux/major.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/map.h>

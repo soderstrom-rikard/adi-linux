@@ -30,16 +30,14 @@
 #include <asm/addrspace.h>
 #include <asm/bootinfo.h>
 #include <asm/emma2rh/emma2rh.h>
-#include <asm/debug.h>
 
 const char *get_system_type(void)
 {
-	switch (mips_machtype) {
-	case MACH_NEC_MARKEINS:
-		return "NEC EMMA2RH Mark-eins";
-	default:
-		return "Unknown NEC board";
-	}
+#if defined(CONFIG_MARKEINS)
+	return "NEC EMMA2RH Mark-eins";
+#else
+#error  Unknown NEC board
+#endif
 }
 
 /* [jsun@junsun.net] PMON passes arguments in C main() style */
@@ -63,10 +61,10 @@ void __init prom_init(void)
 	}
 
 #if defined(CONFIG_MARKEINS)
-	mips_machtype = MACH_NEC_MARKEINS;
 	add_memory_region(0, EMMA2RH_RAM_SIZE, BOOT_MEM_RAM);
+#else
+#error  Unknown NEC board
 #endif
-
 }
 
 void __init prom_free_prom_memory(void)

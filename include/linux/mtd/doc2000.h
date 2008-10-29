@@ -6,8 +6,6 @@
  * Copyright (C) 2002-2003 Greg Ungerer <gerg@snapgear.com>
  * Copyright (C) 2002-2003 SnapGear Inc
  *
- * $Id$
- *
  * Released under GPL
  */
 

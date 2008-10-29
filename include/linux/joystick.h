@@ -2,8 +2,6 @@
 #define _LINUX_JOYSTICK_H
 
 /*
- * $Id$
- *
  *  Copyright (C) 1996-2000 Vojtech Pavlik
  *
  *  Sponsored by SuSE

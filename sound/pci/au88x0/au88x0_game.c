@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  *  Manuel Jander.
  *
  *  Based on the work of:

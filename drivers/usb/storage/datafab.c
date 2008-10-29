@@ -1,7 +1,5 @@
 /* Driver for Datafab USB Compact Flash reader
  *
- * $Id$
- *
  * datafab driver v0.1:
  *
  * First release

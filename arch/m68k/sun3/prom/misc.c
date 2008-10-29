@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * misc.c:  Miscellaneous prom functions that don't belong
  *          anywhere else.
  *

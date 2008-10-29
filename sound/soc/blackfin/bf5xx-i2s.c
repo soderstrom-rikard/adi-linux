@@ -3,7 +3,7 @@
  * Author:       Cliff Cai <Cliff.Cai@analog.com>
  *
  * Created:      Tue June 06 2008
- * Description:  Driver for SSM2602 sound chip built in ADSP-BF52xC
+ * Description:  Blackfin I2S CPU DAI driver
  *
  * Modified:
  *               Copyright 2008 Analog Devices Inc.
@@ -71,24 +71,25 @@ static struct sport_param sport_params[2] = {
 };
 
 /*
- * Setting the TFS pin selector for SPORT 0 based on whether the selected port id F or G. If the port
- * is F then no conflict should exist for the TFS. When Port G is selected and EMAC then there is a
- * conflict between the PHY interrupt line and TFS.  Current settings prevent the conflict by ignoring
- * the TFS pin when Port G is selected. This allows both ssm2602 using Port G and EMAC concurrently.
+ * Setting the TFS pin selector for SPORT 0 based on whether the selected
+ * port id F or G. If the port is F then no conflict should exist for the
+ * TFS. When Port G is selected and EMAC then there is a conflict between
+ * the PHY interrupt line and TFS.  Current settings prevent the conflict
+ * by ignoring the TFS pin when Port G is selected. This allows both
+ * ssm2602 using Port G and EMAC concurrently.
  */
 #ifdef CONFIG_BF527_SPORT0_PORTF
 #define LOCAL_SPORT0_TFS (P_SPORT0_TFS)
-#endif
-
-#ifndef CONFIG_BF527_SPORT0_PORTF
+#else
 #define LOCAL_SPORT0_TFS (0)
 #endif
 
 static u16 sport_req[][7] = { {P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
-		P_SPORT0_DRPRI, P_SPORT0_RSCLK, LOCAL_SPORT0_TFS, 0}, {P_SPORT1_DTPRI,
-		P_SPORT1_TSCLK, P_SPORT1_RFS, P_SPORT1_DRPRI, P_SPORT1_RSCLK, P_SPORT1_TFS, 0} };
+		P_SPORT0_DRPRI, P_SPORT0_RSCLK, LOCAL_SPORT0_TFS, 0},
+		{P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, P_SPORT1_DRPRI,
+		P_SPORT1_RSCLK, P_SPORT1_TFS, 0} };
 
-static int bf5xx_i2s_set_dai_fmt(struct snd_soc_cpu_dai *cpu_dai,
+static int bf5xx_i2s_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 		unsigned int fmt)
 {
 	int ret = 0;
@@ -106,20 +107,24 @@ static int bf5xx_i2s_set_dai_fmt(struct snd_soc_cpu_dai *cpu_dai,
 		bf5xx_i2s.rcr1 |= RFSR;
 		break;
 	case SND_SOC_DAIFMT_LEFT_J:
+		ret = -EINVAL;
+		break;
 	default:
+		printk(KERN_ERR "%s: Unknown DAI format type\n", __func__);
 		ret = -EINVAL;
 		break;
 	}
 
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
+	case SND_SOC_DAIFMT_CBM_CFM:
+		break;
 	case SND_SOC_DAIFMT_CBS_CFS:
 	case SND_SOC_DAIFMT_CBM_CFS:
 	case SND_SOC_DAIFMT_CBS_CFM:
 		ret = -EINVAL;
 		break;
-	case SND_SOC_DAIFMT_CBM_CFM:
-		break;
 	default:
+		printk(KERN_ERR "%s: Unknown DAI master type\n", __func__);
 		ret = -EINVAL;
 		break;
 	}
@@ -168,7 +173,7 @@ static int bf5xx_i2s_hw_params(struct snd_pcm_substream *substream,
 		 * need to configure both of them at the time when the first
 		 * stream is opened.
 		 *
-		 * CPU DAI format:I2S, slave mode.
+		 * CPU DAI:slave mode.
 		 */
 		ret = sport_config_rx(sport_handle, bf5xx_i2s.rcr1,
 				      bf5xx_i2s.rcr2, 0, 0);
@@ -194,7 +199,8 @@ static void bf5xx_i2s_shutdown(struct snd_pcm_substream *substream)
 	bf5xx_i2s.counter--;
 }
 
-static int bf5xx_i2s_probe(struct platform_device *pdev)
+static int bf5xx_i2s_probe(struct platform_device *pdev,
+			   struct snd_soc_dai *dai)
 {
 	pr_debug("%s enter\n", __func__);
 	if (peripheral_request_list(&sport_req[sport_num][0], "soc-audio")) {
@@ -213,7 +219,8 @@ static int bf5xx_i2s_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static void bf5xx_i2s_remove(struct platform_device *pdev)
+static void bf5xx_i2s_remove(struct platform_device *pdev,
+			   struct snd_soc_dai *dai)
 {
 	pr_debug("%s enter\n", __func__);
 	peripheral_free_list(&sport_req[sport_num][0]);
@@ -221,7 +228,7 @@ static void bf5xx_i2s_remove(struct platform_device *pdev)
 
 #ifdef CONFIG_PM
 static int bf5xx_i2s_suspend(struct platform_device *dev,
-	struct snd_soc_cpu_dai *dai)
+			     struct snd_soc_dai *dai)
 {
 	struct sport_device *sport =
 		(struct sport_device *)dai->private_data;
@@ -237,7 +244,7 @@ static int bf5xx_i2s_suspend(struct platform_device *dev,
 }
 
 static int bf5xx_i2s_resume(struct platform_device *pdev,
-	struct snd_soc_cpu_dai *dai)
+			    struct snd_soc_dai *dai)
 {
 	int ret;
 	struct sport_device *sport =
@@ -246,12 +253,13 @@ static int bf5xx_i2s_resume(struct platform_device *pdev,
 	pr_debug("%s : sport %d\n", __func__, dai->id);
 	if (!dai->active)
 		return 0;
-	ret = sport_config_rx(sport_handle, RFSR | RCKFE, RSFSE|0x1f, 0, 0);
 
+	ret = sport_config_rx(sport_handle, RFSR | RCKFE, RSFSE|0x1f, 0, 0);
 	if (ret) {
 		pr_err("SPORT is busy!\n");
 		return -EBUSY;
 	}
+
 	ret = sport_config_tx(sport_handle, TFSR | TCKFE, TSFSE|0x1f, 0, 0);
 	if (ret) {
 		pr_err("SPORT is busy!\n");
@@ -278,7 +286,7 @@ static int bf5xx_i2s_resume(struct platform_device *pdev,
 #define BF5XX_I2S_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE |\
 	SNDRV_PCM_FMTBIT_S32_LE)
 
-struct snd_soc_cpu_dai bf5xx_i2s_dai = {
+struct snd_soc_dai bf5xx_i2s_dai = {
 	.name = "bf5xx-i2s",
 	.id = 0,
 	.type = SND_SOC_DAI_I2S,

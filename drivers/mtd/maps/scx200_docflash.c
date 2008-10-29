@@ -2,8 +2,6 @@
 
    Copyright (c) 2001,2002 Christer Weinigel <wingel@nano-system.com>
 
-   $Id$
-
    National Semiconductor SCx200 flash mapped with DOCCS
 */
 

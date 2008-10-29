@@ -32,11 +32,9 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
- * $Id$
  */
 
-#if !defined( IB_SMI_H )
+#if !defined(IB_SMI_H)
 #define IB_SMI_H
 
 #include <rdma/ib_mad.h>

@@ -1,6 +1,4 @@
 /*
- *  $Id$
- *
  *  Copyright (C) 1997 Martin Mares
  *
  *  Automatic IP Layer Configuration

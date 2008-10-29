@@ -4,8 +4,6 @@
  * (C) 2000  Nicolas Pitre <nico@cam.org>
  *
  * This code is GPL
- *
- * $Id$
  */
 #include <linux/module.h>
 #include <linux/types.h>

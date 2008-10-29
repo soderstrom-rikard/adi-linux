@@ -4,8 +4,6 @@
  *
  * (C) 2000 Red Hat. GPL'd
  *
- * $Id$
- *
  * 10/10/2000	Nicolas Pitre <nico@cam.org>
  * 	- completely revamped method functions so they are aware and
  * 	  independent of the flash geometry (buswidth, interleave, etc.)

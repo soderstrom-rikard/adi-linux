@@ -1,8 +1,6 @@
 /*
  *		INETPEER - A storage for permanent information about peers
  *
- *  Version:	$Id$
- *
  *  Authors:	Andrey V. Savochkin <saw@msu.ru>
  */
 

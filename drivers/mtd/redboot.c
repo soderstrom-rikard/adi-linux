@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Parse RedBoot-style Flash Image System (FIS) tables and
  * produce a Linux partition array to match.
  */

@@ -8,8 +8,6 @@
  * Author: Fabrice Bellard (fabrice.bellard@netgem.com)
  * Copyright (C) 2000 Netgem S.A.
  *
- * $Id$
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -38,8 +36,6 @@
 #include <linux/mtd/nftl.h>
 #include <linux/mtd/inftl.h>
 #include <linux/mtd/compatmac.h>
-
-char inftlmountrev[]="$Revision$";
 
 /*
  * find_boot_record: Find the INFTL Media Header and its Spare copy which

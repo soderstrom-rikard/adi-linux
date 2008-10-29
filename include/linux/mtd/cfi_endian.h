@@ -1,8 +1,3 @@
-/*
- * $Id$
- *
- */
-
 #include <asm/byteorder.h>
 
 #ifndef CONFIG_MTD_CFI_ADV_OPTIONS

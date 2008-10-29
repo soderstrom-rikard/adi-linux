@@ -3,8 +3,6 @@
 
 #include <linux/interrupt.h>
 
-/* $Id$ */
-
 /* Debuging defines */
 #ifdef NOTRACE
 #define enter(x)   printk("Enter: %s, %s line %i\n",x,__FILE__,__LINE__)

@@ -28,78 +28,35 @@
  */
 int of_get_gpio(struct device_node *np, int index)
 {
-	int ret = -EINVAL;
+	int ret;
 	struct device_node *gc;
 	struct of_gpio_chip *of_gc = NULL;
 	int size;
-	const u32 *gpios;
-	u32 nr_cells;
-	int i;
 	const void *gpio_spec;
 	const u32 *gpio_cells;
-	int gpio_index = 0;
 
-	gpios = of_get_property(np, "gpios", &size);
-	if (!gpios) {
-		ret = -ENOENT;
+	ret = of_parse_phandles_with_args(np, "gpios", "#gpio-cells", index,
+					  &gc, &gpio_spec);
+	if (ret) {
+		pr_debug("%s: can't parse gpios property\n", __func__);
 		goto err0;
 	}
-	nr_cells = size / sizeof(u32);
 
-	for (i = 0; i < nr_cells; gpio_index++) {
-		const phandle *gpio_phandle;
-
-		gpio_phandle = gpios + i;
-		gpio_spec = gpio_phandle + 1;
-
-		/* one cell hole in the gpios = <>; */
-		if (!*gpio_phandle) {
-			if (gpio_index == index)
-				return -ENOENT;
-			i++;
-			continue;
-		}
-
-		gc = of_find_node_by_phandle(*gpio_phandle);
-		if (!gc) {
-			pr_debug("%s: could not find phandle for gpios\n",
-				 np->full_name);
-			goto err0;
-		}
-
-		of_gc = gc->data;
-		if (!of_gc) {
-			pr_debug("%s: gpio controller %s isn't registered\n",
-				 np->full_name, gc->full_name);
-			goto err1;
-		}
-
-		gpio_cells = of_get_property(gc, "#gpio-cells", &size);
-		if (!gpio_cells || size != sizeof(*gpio_cells) ||
-				*gpio_cells != of_gc->gpio_cells) {
-			pr_debug("%s: wrong #gpio-cells for %s\n",
-				 np->full_name, gc->full_name);
-			goto err1;
-		}
-
-		/* Next phandle is at phandle cells + #gpio-cells */
-		i += sizeof(*gpio_phandle) / sizeof(u32) + *gpio_cells;
-		if (i >= nr_cells + 1) {
-			pr_debug("%s: insufficient gpio-spec length\n",
-				 np->full_name);
-			goto err1;
-		}
-
-		if (gpio_index == index)
-			break;
-
-		of_gc = NULL;
-		of_node_put(gc);
-	}
-
+	of_gc = gc->data;
 	if (!of_gc) {
-		ret = -ENOENT;
-		goto err0;
+		pr_debug("%s: gpio controller %s isn't registered\n",
+			 np->full_name, gc->full_name);
+		ret = -ENODEV;
+		goto err1;
+	}
+
+	gpio_cells = of_get_property(gc, "#gpio-cells", &size);
+	if (!gpio_cells || size != sizeof(*gpio_cells) ||
+			*gpio_cells != of_gc->gpio_cells) {
+		pr_debug("%s: wrong #gpio-cells for %s\n",
+			 np->full_name, gc->full_name);
+		ret = -EINVAL;
+		goto err1;
 	}
 
 	ret = of_gc->xlate(of_gc, np, gpio_spec);
@@ -137,38 +94,6 @@ int of_gpio_simple_xlate(struct of_gpio_chip *of_gc, struct device_node *np,
 }
 EXPORT_SYMBOL(of_gpio_simple_xlate);
 
-/* Should be sufficient for now, later we'll use dynamic bases. */
-#if defined(CONFIG_PPC32) || defined(CONFIG_SPARC32)
-#define GPIOS_PER_CHIP 32
-#else
-#define GPIOS_PER_CHIP 64
-#endif
-
-static int of_get_gpiochip_base(struct device_node *np)
-{
-	struct device_node *gc = NULL;
-	int gpiochip_base = 0;
-
-	while ((gc = of_find_all_nodes(gc))) {
-		if (!of_get_property(gc, "gpio-controller", NULL))
-			continue;
-
-		if (gc != np) {
-			gpiochip_base += GPIOS_PER_CHIP;
-			continue;
-		}
-
-		of_node_put(gc);
-
-		if (gpiochip_base >= ARCH_NR_GPIOS)
-			return -ENOSPC;
-
-		return gpiochip_base;
-	}
-
-	return -ENOENT;
-}
-
 /**
  * of_mm_gpiochip_add - Add memory mapped GPIO chip (bank)
  * @np:		device node of the GPIO chip
@@ -205,11 +130,7 @@ int of_mm_gpiochip_add(struct device_node *np,
 	if (!mm_gc->regs)
 		goto err1;
 
-	gc->base = of_get_gpiochip_base(np);
-	if (gc->base < 0) {
-		ret = gc->base;
-		goto err1;
-	}
+	gc->base = -1;
 
 	if (!of_gc->xlate)
 		of_gc->xlate = of_gpio_simple_xlate;

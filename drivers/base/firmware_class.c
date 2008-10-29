@@ -49,6 +49,14 @@ struct firmware_priv {
 	struct timer_list timeout;
 };
 
+#ifdef CONFIG_FW_LOADER
+extern struct builtin_fw __start_builtin_fw[];
+extern struct builtin_fw __end_builtin_fw[];
+#else /* Module case. Avoid ifdefs later; it'll all optimise out */
+static struct builtin_fw *__start_builtin_fw;
+static struct builtin_fw *__end_builtin_fw;
+#endif
+
 static void
 fw_load_abort(struct firmware_priv *fw_priv)
 {
@@ -156,8 +164,7 @@ static ssize_t firmware_loading_store(struct device *dev,
 		}
 		/* fallthrough */
 	default:
-		printk(KERN_ERR "%s: unexpected value (%d)\n", __func__,
-		       loading);
+		dev_err(dev, "%s: unexpected value (%d)\n", __func__, loading);
 		/* fallthrough */
 	case -1:
 		fw_load_abort(fw_priv);
@@ -176,7 +183,7 @@ firmware_data_read(struct kobject *kobj, struct bin_attribute *bin_attr,
 	struct device *dev = to_dev(kobj);
 	struct firmware_priv *fw_priv = dev_get_drvdata(dev);
 	struct firmware *fw;
-	ssize_t ret_count = count;
+	ssize_t ret_count;
 
 	mutex_lock(&fw_lock);
 	fw = fw_priv->fw;
@@ -184,14 +191,8 @@ firmware_data_read(struct kobject *kobj, struct bin_attribute *bin_attr,
 		ret_count = -ENODEV;
 		goto out;
 	}
-	if (offset > fw->size) {
-		ret_count = 0;
-		goto out;
-	}
-	if (offset + ret_count > fw->size)
-		ret_count = fw->size - offset;
-
-	memcpy(buffer, fw->data + offset, ret_count);
+	ret_count = memory_read_from_buffer(buffer, count, &offset,
+						fw->data, fw->size);
 out:
 	mutex_unlock(&fw_lock);
 	return ret_count;
@@ -257,7 +258,7 @@ firmware_data_write(struct kobject *kobj, struct bin_attribute *bin_attr,
 	if (retval)
 		goto out;
 
-	memcpy(fw->data + offset, buffer, count);
+	memcpy((u8 *)fw->data + offset, buffer, count);
 
 	fw->size = max_t(size_t, offset + count, fw->size);
 	retval = count;
@@ -307,7 +308,7 @@ static int fw_register_device(struct device **dev_p, const char *fw_name,
 	*dev_p = NULL;
 
 	if (!fw_priv || !f_dev) {
-		printk(KERN_ERR "%s: kmalloc failed\n", __func__);
+		dev_err(device, "%s: kmalloc failed\n", __func__);
 		retval = -ENOMEM;
 		goto error_kfree;
 	}
@@ -327,8 +328,7 @@ static int fw_register_device(struct device **dev_p, const char *fw_name,
 	f_dev->uevent_suppress = 1;
 	retval = device_register(f_dev);
 	if (retval) {
-		printk(KERN_ERR "%s: device_register failed\n",
-		       __func__);
+		dev_err(device, "%s: device_register failed\n", __func__);
 		goto error_kfree;
 	}
 	*dev_p = f_dev;
@@ -361,15 +361,13 @@ static int fw_setup_device(struct firmware *fw, struct device **dev_p,
 	fw_priv->fw = fw;
 	retval = sysfs_create_bin_file(&f_dev->kobj, &fw_priv->attr_data);
 	if (retval) {
-		printk(KERN_ERR "%s: sysfs_create_bin_file failed\n",
-		       __func__);
+		dev_err(device, "%s: sysfs_create_bin_file failed\n", __func__);
 		goto error_unreg;
 	}
 
 	retval = device_create_file(f_dev, &dev_attr_loading);
 	if (retval) {
-		printk(KERN_ERR "%s: device_create_file failed\n",
-		       __func__);
+		dev_err(device, "%s: device_create_file failed\n", __func__);
 		goto error_unreg;
 	}
 
@@ -391,20 +389,33 @@ _request_firmware(const struct firmware **firmware_p, const char *name,
 	struct device *f_dev;
 	struct firmware_priv *fw_priv;
 	struct firmware *firmware;
+	struct builtin_fw *builtin;
 	int retval;
 
 	if (!firmware_p)
 		return -EINVAL;
 
-	printk(KERN_INFO "firmware: requesting %s\n", name);
-
 	*firmware_p = firmware = kzalloc(sizeof(*firmware), GFP_KERNEL);
 	if (!firmware) {
-		printk(KERN_ERR "%s: kmalloc(struct firmware) failed\n",
-		       __func__);
+		dev_err(device, "%s: kmalloc(struct firmware) failed\n",
+			__func__);
 		retval = -ENOMEM;
 		goto out;
 	}
+
+	for (builtin = __start_builtin_fw; builtin != __end_builtin_fw;
+	     builtin++) {
+		if (strcmp(name, builtin->name))
+			continue;
+		dev_info(device, "firmware: using built-in firmware %s\n",
+			 name);
+		firmware->size = builtin->size;
+		firmware->data = builtin->data;
+		return 0;
+	}
+
+	if (uevent)
+		dev_info(device, "firmware: requesting %s\n", name);
 
 	retval = fw_setup_device(firmware, &f_dev, name, device, uevent);
 	if (retval)
@@ -473,8 +484,16 @@ request_firmware(const struct firmware **firmware_p, const char *name,
 void
 release_firmware(const struct firmware *fw)
 {
+	struct builtin_fw *builtin;
+
 	if (fw) {
+		for (builtin = __start_builtin_fw; builtin != __end_builtin_fw;
+		     builtin++) {
+			if (fw->data == builtin->data)
+				goto free_fw;
+		}
 		vfree(fw->data);
+	free_fw:
 		kfree(fw);
 	}
 }

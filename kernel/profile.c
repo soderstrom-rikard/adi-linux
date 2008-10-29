@@ -22,6 +22,8 @@
 #include <linux/cpu.h>
 #include <linux/highmem.h>
 #include <linux/mutex.h>
+#include <linux/slab.h>
+#include <linux/vmalloc.h>
 #include <asm/sections.h>
 #include <asm/irq_regs.h>
 #include <asm/ptrace.h>
@@ -50,11 +52,11 @@ static DEFINE_PER_CPU(int, cpu_profile_flip);
 static DEFINE_MUTEX(profile_flip_mutex);
 #endif /* CONFIG_SMP */
 
-static int __init profile_setup(char *str)
+int profile_setup(char *str)
 {
-	static char __initdata schedstr[] = "schedule";
-	static char __initdata sleepstr[] = "sleep";
-	static char __initdata kvmstr[] = "kvm";
+	static char schedstr[] = "schedule";
+	static char sleepstr[] = "sleep";
+	static char kvmstr[] = "kvm";
 	int par;
 
 	if (!strncmp(str, sleepstr, strlen(sleepstr))) {
@@ -100,19 +102,36 @@ static int __init profile_setup(char *str)
 __setup("profile=", profile_setup);
 
 
-void __init profile_init(void)
+int profile_init(void)
 {
+	int buffer_bytes;
 	if (!prof_on)
-		return;
+		return 0;
 
 	/* only text is profiled */
 	prof_len = (_etext - _stext) >> prof_shift;
-	prof_buffer = alloc_bootmem(prof_len*sizeof(atomic_t));
+	buffer_bytes = prof_len*sizeof(atomic_t);
+	if (!slab_is_available()) {
+		prof_buffer = alloc_bootmem(buffer_bytes);
+		return 0;
+	}
+
+	prof_buffer = kzalloc(buffer_bytes, GFP_KERNEL);
+	if (prof_buffer)
+		return 0;
+
+	prof_buffer = alloc_pages_exact(buffer_bytes, GFP_KERNEL|__GFP_ZERO);
+	if (prof_buffer)
+		return 0;
+
+	prof_buffer = vmalloc(buffer_bytes);
+	if (prof_buffer)
+		return 0;
+
+	return -ENOMEM;
 }
 
 /* Profile event notifications */
-
-#ifdef CONFIG_PROFILING
 
 static BLOCKING_NOTIFIER_HEAD(task_exit_notifier);
 static ATOMIC_NOTIFIER_HEAD(task_free_notifier);
@@ -203,8 +222,6 @@ void unregister_timer_hook(int (*hook)(struct pt_regs *))
 }
 EXPORT_SYMBOL_GPL(unregister_timer_hook);
 
-#endif /* CONFIG_PROFILING */
-
 
 #ifdef CONFIG_SMP
 /*
@@ -252,7 +269,7 @@ static void profile_flip_buffers(void)
 	mutex_lock(&profile_flip_mutex);
 	j = per_cpu(cpu_profile_flip, get_cpu());
 	put_cpu();
-	on_each_cpu(__profile_flip_buffers, NULL, 0, 1);
+	on_each_cpu(__profile_flip_buffers, NULL, 1);
 	for_each_online_cpu(cpu) {
 		struct profile_hit *hits = per_cpu(cpu_profile_hits, cpu)[j];
 		for (i = 0; i < NR_PROFILE_HIT; ++i) {
@@ -275,7 +292,7 @@ static void profile_discard_flip_buffers(void)
 	mutex_lock(&profile_flip_mutex);
 	i = per_cpu(cpu_profile_flip, get_cpu());
 	put_cpu();
-	on_each_cpu(__profile_flip_buffers, NULL, 0, 1);
+	on_each_cpu(__profile_flip_buffers, NULL, 1);
 	for_each_online_cpu(cpu) {
 		struct profile_hit *hits = per_cpu(cpu_profile_hits, cpu)[i];
 		memset(hits, 0, NR_PROFILE_HIT*sizeof(struct profile_hit));
@@ -531,7 +548,7 @@ static void __init profile_nop(void *unused)
 {
 }
 
-static int __init create_hash_tables(void)
+static int create_hash_tables(void)
 {
 	int cpu;
 
@@ -558,7 +575,7 @@ static int __init create_hash_tables(void)
 out_cleanup:
 	prof_on = 0;
 	smp_mb();
-	on_each_cpu(profile_nop, NULL, 0, 1);
+	on_each_cpu(profile_nop, NULL, 1);
 	for_each_online_cpu(cpu) {
 		struct page *page;
 
@@ -579,14 +596,14 @@ out_cleanup:
 #define create_hash_tables()			({ 0; })
 #endif
 
-static int __init create_proc_profile(void)
+int create_proc_profile(void)
 {
 	struct proc_dir_entry *entry;
 
 	if (!prof_on)
 		return 0;
 	if (create_hash_tables())
-		return -1;
+		return -ENOMEM;
 	entry = proc_create("profile", S_IWUSR | S_IRUGO,
 			    NULL, &proc_profile_operations);
 	if (!entry)

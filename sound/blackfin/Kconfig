@@ -1,6 +1,4 @@
 #
-# $Id$
-#
 menu "ALSA Blackfin devices"
 	depends on SND && BLACKFIN
 

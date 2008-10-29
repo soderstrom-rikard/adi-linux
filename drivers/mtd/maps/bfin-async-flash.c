@@ -25,8 +25,8 @@
 #include <linux/types.h>
 
 #include <asm/blackfin.h>
-#include <asm/gpio.h>
-#include <asm/io.h>
+#include <linux/gpio.h>
+#include <linux/io.h>
 #include <asm/unaligned.h>
 
 #define pr_devinit(fmt, args...) ({ static const __devinitconst char __fmt[] = fmt; printk(__fmt, ## args); })
@@ -37,8 +37,8 @@ struct async_state {
 	struct mtd_info *mtd;
 	struct map_info map;
 	int enet_flash_pin;
-	u32 flash_ambctl0, flash_ambctl1;
-	u32 save_ambctl0, save_ambctl1;
+	uint32_t flash_ambctl0, flash_ambctl1;
+	uint32_t save_ambctl0, save_ambctl1;
 	unsigned long irq_flags;
 };
 
@@ -69,7 +69,7 @@ static void switch_back(struct async_state *state)
 static map_word bfin_read(struct map_info *map, unsigned long ofs)
 {
 	struct async_state *state = (struct async_state *)map->map_priv_1;
-	u16 word;
+	uint16_t word;
 	map_word test;
 
 	switch_to_flash(state);
@@ -96,7 +96,7 @@ static void bfin_copy_from(struct map_info *map, void *to, unsigned long from, s
 static void bfin_write(struct map_info *map, map_word d1, unsigned long ofs)
 {
 	struct async_state *state = (struct async_state *)map->map_priv_1;
-	u16 d;
+	uint16_t d;
 
 	d = d1.x[0];
 

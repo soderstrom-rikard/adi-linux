@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * (C) 2003 David Woodhouse <dwmw2@infradead.org>
  *
  * Simple read-only (writable only for RAM) mtdblock driver

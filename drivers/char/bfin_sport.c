@@ -795,7 +795,7 @@ static int __init sport_init_module(void)
 	for (minor = 0; minor < sport_nr_devs; minor++) {
 		sprintf(minor_name, "sport%d", minor);
 		device_create(sport_class, NULL,
-			      MKDEV(sport_major, minor), minor_name);
+			      MKDEV(sport_major, minor), NULL, minor_name);
 	}
 
         /* Initialize each device. */

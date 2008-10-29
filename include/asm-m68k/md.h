@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * md.h: High speed xor_block operation for RAID4/5
  *
  */

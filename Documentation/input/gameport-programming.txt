@@ -1,5 +1,3 @@
-$Id$
-
 Programming gameport drivers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

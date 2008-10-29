@@ -2,8 +2,6 @@
  * For boards with physically mapped flash and using
  * drivers/mtd/maps/physmap.c mapping driver.
  *
- * $Id$
- *
  * Copyright (C) 2003 MontaVista Software Inc.
  * Author: Jun Sun, jsun@mvista.com or jsun@junsun.net
  *

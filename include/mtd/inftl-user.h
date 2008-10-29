@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Parts of INFTL headers shared with userspace
  *
  */

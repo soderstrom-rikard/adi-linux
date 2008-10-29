@@ -26,7 +26,7 @@
 
 #include "ad73311.h"
 
-struct snd_soc_codec_dai ad73311_dai = {
+struct snd_soc_dai ad73311_dai = {
 	.name = "AD73311",
 	.playback = {
 		.stream_name = "Playback",

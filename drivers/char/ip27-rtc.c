@@ -27,6 +27,7 @@
 #include <linux/bcd.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/smp_lock.h>
 #include <linux/types.h>
 #include <linux/miscdevice.h>
 #include <linux/ioport.h>
@@ -129,12 +130,12 @@ static long rtc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (yrs >= 100)
 			yrs -= 100;
 
-		sec = BIN2BCD(sec);
-		min = BIN2BCD(min);
-		hrs = BIN2BCD(hrs);
-		day = BIN2BCD(day);
-		mon = BIN2BCD(mon);
-		yrs = BIN2BCD(yrs);
+		sec = bin2bcd(sec);
+		min = bin2bcd(min);
+		hrs = bin2bcd(hrs);
+		day = bin2bcd(day);
+		mon = bin2bcd(mon);
+		yrs = bin2bcd(yrs);
 
 		spin_lock_irq(&rtc_lock);
 		rtc->control |= M48T35_RTC_SET;
@@ -163,15 +164,18 @@ static long rtc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 static int rtc_open(struct inode *inode, struct file *file)
 {
+	lock_kernel();
 	spin_lock_irq(&rtc_lock);
 
 	if (rtc_status & RTC_IS_OPEN) {
 		spin_unlock_irq(&rtc_lock);
+		unlock_kernel();
 		return -EBUSY;
 	}
 
 	rtc_status |= RTC_IS_OPEN;
 	spin_unlock_irq(&rtc_lock);
+	unlock_kernel();
 
 	return 0;
 }
@@ -307,12 +311,12 @@ static void get_rtc_time(struct rtc_time *rtc_tm)
 	rtc->control &= ~M48T35_RTC_READ;
 	spin_unlock_irq(&rtc_lock);
 
-	rtc_tm->tm_sec = BCD2BIN(rtc_tm->tm_sec);
-	rtc_tm->tm_min = BCD2BIN(rtc_tm->tm_min);
-	rtc_tm->tm_hour = BCD2BIN(rtc_tm->tm_hour);
-	rtc_tm->tm_mday = BCD2BIN(rtc_tm->tm_mday);
-	rtc_tm->tm_mon = BCD2BIN(rtc_tm->tm_mon);
-	rtc_tm->tm_year = BCD2BIN(rtc_tm->tm_year);
+	rtc_tm->tm_sec = bcd2bin(rtc_tm->tm_sec);
+	rtc_tm->tm_min = bcd2bin(rtc_tm->tm_min);
+	rtc_tm->tm_hour = bcd2bin(rtc_tm->tm_hour);
+	rtc_tm->tm_mday = bcd2bin(rtc_tm->tm_mday);
+	rtc_tm->tm_mon = bcd2bin(rtc_tm->tm_mon);
+	rtc_tm->tm_year = bcd2bin(rtc_tm->tm_year);
 
 	/*
 	 * Account for differences between how the RTC uses the values

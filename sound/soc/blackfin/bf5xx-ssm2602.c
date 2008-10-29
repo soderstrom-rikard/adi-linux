@@ -3,7 +3,7 @@
  * Author:       Cliff Cai <Cliff.Cai@analog.com>
  *
  * Created:      Tue June 06 2008
- * Description:  Driver for SSM2602 sound chip built in ADSP-BF52xC
+ * Description:  board driver for SSM2602 sound chip
  *
  * Modified:
  *               Copyright 2008 Analog Devices Inc.
@@ -49,7 +49,7 @@ static struct snd_soc_machine bf5xx_ssm2602;
 static int bf5xx_ssm2602_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 
 	pr_debug("%s enter\n", __func__);
 	cpu_dai->private_data = sport_handle;
@@ -60,8 +60,8 @@ static int bf5xx_ssm2602_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec_dai *codec_dai = rtd->dai->codec_dai;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	unsigned int clk = 0;
 	int ret = 0;
 
@@ -115,20 +115,11 @@ static struct snd_soc_ops bf5xx_ssm2602_ops = {
 	.hw_params = bf5xx_ssm2602_hw_params,
 };
 
-static int bf5xx_ssm2602_init_dev(struct snd_soc_codec *codec)
-{
-	pr_debug("%s enter\n", __func__);
-
-	snd_soc_dapm_sync_endpoints(codec);
-	return 0;
-}
-
 static struct snd_soc_dai_link bf5xx_ssm2602_dai = {
 	.name = "ssm2602",
 	.stream_name = "SSM2602",
 	.cpu_dai = &bf5xx_i2s_dai,
 	.codec_dai = &ssm2602_dai,
-	.init = bf5xx_ssm2602_init_dev,
 	.ops = &bf5xx_ssm2602_ops,
 };
 
@@ -140,7 +131,8 @@ static struct snd_soc_dai_link bf5xx_ssm2602_dai = {
  */
 
 static struct ssm2602_setup_data bf5xx_ssm2602_setup = {
-	.i2c_address = CONFIG_SND_BF5XX_SOC_SSM2602_ADDR,
+	.i2c_bus = 0,
+	.i2c_address = 0x1b,
 };
 
 static struct snd_soc_machine bf5xx_ssm2602 = {

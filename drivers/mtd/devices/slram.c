@@ -1,7 +1,5 @@
 /*======================================================================
 
-  $Id$
-
   This driver provides a method to access memory not used by the kernel
   itself (i.e. if the kernel commandline mem=xxx is used). To actually
   use slram at least mtdblock or mtdchar is required (for block or

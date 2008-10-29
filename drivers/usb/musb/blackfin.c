@@ -1,25 +1,13 @@
 /*
- * Copyright (C) 2005-2006 by Texas Instruments
+ * MUSB OTG controller driver for Blackfin Processors
  *
- * This file is part of the Inventra Controller Driver for Linux.
+ * Copyright 2006-2008 Analog Devices Inc.
  *
- * The Inventra Controller Driver for Linux is free software; you
- * can redistribute it and/or modify it under the terms of the GNU
- * General Public License version 2 as published by the Free Software
- * Foundation.
+ * Enter bugs at http://blackfin.uclinux.org/
  *
- * The Inventra Controller Driver for Linux is distributed in
- * the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
- * License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with The Inventra Controller Driver for Linux ; if not,
- * write to the Free Software Foundation, Inc., 59 Temple Place,
- * Suite 330, Boston, MA  02111-1307  USA
- *
+ * Licensed under the GPL-2 or later.
  */
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
@@ -27,83 +15,13 @@
 #include <linux/init.h>
 #include <linux/list.h>
 #include <linux/clk.h>
+#include <linux/gpio.h>
+#include <linux/io.h>
 
-#include <asm/io.h>
 #include <asm/cacheflush.h>
-#include <asm/gpio.h>
 
 #include "musb_core.h"
 #include "blackfin.h"
-
-/* FIXME: Add this option to the platfrom device file */
-
-#ifdef CONFIG_BFIN548_EZKIT
-#define GPIO_USB_VRSEL	GPIO_PE7
-#elif defined(CONFIG_BFIN527_EZKIT) || defined(CONFIG_BFIN526_EZBRD)
-#define GPIO_USB_VRSEL	GPIO_PG13
-#elif defined(CONFIG_BFIN548_BLUETECHNIX_CM)
-#define GPIO_USB_VRSEL	GPIO_PH6
-#elif defined(CONFIG_BFIN527_BLUETECHNIX_CM)
-#define GPIO_USB_VRSEL	GPIO_PF11
-#else
-#error You need to specify a GPIO controlling VRSEL
-#endif
-
-static struct otg_transceiver *xceiv;
-
-/**
- * otg_get_transceiver - find the (single) OTG transceiver driver
- *
- * Returns the transceiver driver, after getting a refcount to it; or
- * null if there is no such transceiver.  The caller is responsible for
- * releasing that count.
- */
-struct otg_transceiver *otg_get_transceiver(void)
-{
-	if (xceiv)
-		get_device(xceiv->dev);
-	return xceiv;
-}
-EXPORT_SYMBOL(otg_get_transceiver);
-
-int otg_set_transceiver(struct otg_transceiver *x)
-{
-	if (xceiv && x)
-		return -EBUSY;
-	xceiv = x;
-	return 0;
-}
-EXPORT_SYMBOL(otg_set_transceiver);
-
-#undef DUMP_FIFO_DATA
-#ifdef DUMP_FIFO_DATA
-static void dump_fifo_data(u8 *buf, u16 len)
-{
-	u8 *tmp = buf;
-	int i;
-
-	for (i = 0; i < len; i++) {
-		if (!(i % 16) && i)
-			printk("\n");
-		printk("%02x ", *tmp++);
-	}
-	printk("\n");
-}
-#else
-#define dump_fifo_data(buf, len)	do{} while (0)
-#endif
-
-#ifdef CONFIG_BF52x
-
-#define USB_DMA_BASE		USB_DMA_INTERRUPT
-#define USB_DMAx_CTRL		0x04
-#define USB_DMAx_ADDR_LOW	0x08
-#define USB_DMAx_ADDR_HIGH	0x0C
-#define USB_DMAx_COUNT_LOW	0x10
-#define USB_DMAx_COUNT_HIGH	0x14
-
-#define USB_DMA_REG(ep, reg)	(USB_DMA_BASE + 0x20*ep + reg)
-#endif
 
 /*
  * Load an endpoint's FIFO
@@ -115,7 +33,7 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 
 	prefetch((u8 *)src);
 
-	musb_writew(epio, MUSB_FIFOSIZE, len);
+	musb_writew(epio, MUSB_TXCOUNT, len);
 
 	DBG(4, "TX ep%d fifo %p count %d buf %p, epio %p\n",
 			hw_ep->epnum, fifo, len, src, epio);
@@ -142,7 +60,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 	DBG(4, "%cX ep%d fifo %p count %d buf %p\n",
 			'R', hw_ep->epnum, fifo, len, dst);
 
-#if defined(CONFIG_BF52x)
+#ifdef CONFIG_BF52x
 	invalidate_dcache_range((unsigned int)dst,
 		(unsigned int)(dst + len));
 
@@ -166,7 +84,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 	SSYNC();
 
 	/* Wait for compelete */
-	while(!(bfin_read_USB_DMA_INTERRUPT() & (1 << epnum)))
+	while (!(bfin_read_USB_DMA_INTERRUPT() & (1 << epnum)))
 		cpu_relax();
 
 	/* acknowledge dma interrupt */
@@ -218,12 +136,7 @@ static irqreturn_t blackfin_interrupt(int irq, void *__hci)
 	return IRQ_HANDLED;
 }
 
-/* Almost 1 second */
-#define TIMER_DELAY	(1 * HZ)
-
-static struct timer_list conn_timer;
-
-static void conn_timer_handler(unsigned long _musb)
+static void musb_conn_timer_handler(unsigned long _musb)
 {
 	struct musb *musb = (void *)_musb;
 	unsigned long flags;
@@ -240,10 +153,10 @@ static void conn_timer_handler(unsigned long _musb)
 
 		val = musb_readw(musb->mregs, MUSB_DEVCTL);
 		if (!(val & MUSB_DEVCTL_BDEVICE)) {
-			gpio_set_value(GPIO_USB_VRSEL, 1);
+			gpio_set_value(musb->config->gpio_vrsel, 1);
 			musb->xceiv.state = OTG_STATE_A_WAIT_BCON;
 		} else {
-			gpio_set_value(GPIO_USB_VRSEL, 0);
+			gpio_set_value(musb->config->gpio_vrsel, 0);
 
 			/* Ignore VBUSERROR and SUSPEND IRQ */
 			val = musb_readb(musb->mregs, MUSB_INTRUSBE);
@@ -256,7 +169,7 @@ static void conn_timer_handler(unsigned long _musb)
 			val = MUSB_POWER_HSENAB;
 			musb_writeb(musb->mregs, MUSB_POWER, val);
 		}
-		mod_timer(&conn_timer, jiffies + TIMER_DELAY);
+		mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
 		break;
 
 	default:
@@ -266,14 +179,12 @@ static void conn_timer_handler(unsigned long _musb)
 	spin_unlock_irqrestore(&musb->lock, flags);
 
 	DBG(4, "state is %s\n", otg_state_string(musb));
-
-	return;
 }
 
 void musb_platform_enable(struct musb *musb)
 {
 	if (is_host_enabled(musb)) {
-		mod_timer(&conn_timer, jiffies + TIMER_DELAY);
+		mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
 		musb->a_wait_bcon = TIMER_DELAY;
 	}
 }
@@ -289,9 +200,9 @@ static void bfin_vbus_power(struct musb *musb, int is_on, int sleeping)
 static void bfin_set_vbus(struct musb *musb, int is_on)
 {
 	if (is_on)
-		gpio_set_value(GPIO_USB_VRSEL, 1);
+		gpio_set_value(musb->config->gpio_vrsel, 1);
 	else
-		gpio_set_value(GPIO_USB_VRSEL, 0);
+		gpio_set_value(musb->config->gpio_vrsel, 0);
 
 	DBG(1, "VBUS %s, devctl %02x "
 		/* otg %3x conf %08x prcm %08x */ "\n",
@@ -307,7 +218,7 @@ static int bfin_set_power(struct otg_transceiver *x, unsigned mA)
 void musb_platform_try_idle(struct musb *musb, unsigned long timeout)
 {
 	if (is_host_enabled(musb))
-		mod_timer(&conn_timer, jiffies + TIMER_DELAY);
+		mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
 }
 
 int musb_platform_get_vbus_status(struct musb *musb)
@@ -319,8 +230,6 @@ void musb_platform_set_mode(struct musb *musb, u8 musb_mode)
 {
 }
 
-int musb_platform_resume(struct musb *musb);
-
 int __init musb_platform_init(struct musb *musb)
 {
 
@@ -331,12 +240,12 @@ int __init musb_platform_init(struct musb *musb)
 	 * here because we are in host mode
 	 */
 
-	if (gpio_request(GPIO_USB_VRSEL, "USB_VRSEL")) {
+	if (gpio_request(musb->config->gpio_vrsel, "USB_VRSEL")) {
 		printk(KERN_ERR "Failed ro request USB_VRSEL GPIO_%d \n",
-			GPIO_USB_VRSEL);
+			musb->config->gpio_vrsel);
 		return -ENODEV;
 	}
-	gpio_direction_output(GPIO_USB_VRSEL, 0);
+	gpio_direction_output(musb->config->gpio_vrsel, 0);
 
 	if (ANOMALY_05000346) {
 		bfin_write_USB_APHY_CALIB(ANOMALY_05000346_value);
@@ -378,8 +287,8 @@ int __init musb_platform_init(struct musb *musb)
 
 	if (is_host_enabled(musb)) {
 		musb->board_set_vbus = bfin_set_vbus;
-		setup_timer(&conn_timer,
-			conn_timer_handler, (unsigned long) musb);
+		setup_timer(&musb_conn_timer,
+			musb_conn_timer_handler, (unsigned long) musb);
 	}
 	if (is_peripheral_enabled(musb))
 		musb->xceiv.set_power = bfin_set_power;
@@ -404,7 +313,7 @@ int musb_platform_exit(struct musb *musb)
 {
 
 	bfin_vbus_power(musb, 0 /*off*/, 1);
-	gpio_free(GPIO_USB_VRSEL);
+	gpio_free(musb->config->gpio_vrsel);
 	musb_platform_suspend(musb);
 
 	return 0;

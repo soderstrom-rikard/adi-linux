@@ -1,8 +1,6 @@
 /* Driver for SCM Microsystems USB-ATAPI cable
  * Header File
  *
- * $Id$
- *
  * Current development and maintenance by:
  *   (c) 2000 Robert Baruch (autophile@dol.net)
  *   (c) 2004, 2005 Daniel Drake <dsd@gentoo.org>

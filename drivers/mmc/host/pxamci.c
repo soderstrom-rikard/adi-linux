@@ -31,8 +31,8 @@
 #include <asm/io.h>
 #include <asm/sizes.h>
 
-#include <asm/arch/pxa-regs.h>
-#include <asm/arch/mmc.h>
+#include <mach/pxa-regs.h>
+#include <mach/mmc.h>
 
 #include "pxamci.h"
 
@@ -374,9 +374,12 @@ static int pxamci_get_ro(struct mmc_host *mmc)
 	struct pxamci_host *host = mmc_priv(mmc);
 
 	if (host->pdata && host->pdata->get_ro)
-		return host->pdata->get_ro(mmc_dev(mmc));
-	/* Host doesn't support read only detection so assume writeable */
-	return 0;
+		return !!host->pdata->get_ro(mmc_dev(mmc));
+	/*
+	 * Board doesn't support read only detection; let the mmc core
+	 * decide what to do.
+	 */
+	return -ENOSYS;
 }
 
 static void pxamci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
@@ -517,7 +520,7 @@ static int pxamci_probe(struct platform_device *pdev)
 	/*
 	 * Block length register is only 10 bits before PXA27x.
 	 */
-	mmc->max_blk_size = (cpu_is_pxa21x() || cpu_is_pxa25x()) ? 1023 : 2048;
+	mmc->max_blk_size = cpu_is_pxa25x() ? 1023 : 2048;
 
 	/*
 	 * Block count register is 16 bits.
@@ -551,7 +554,7 @@ static int pxamci_probe(struct platform_device *pdev)
 			 MMC_VDD_32_33|MMC_VDD_33_34;
 	mmc->caps = 0;
 	host->cmdat = 0;
-	if (!cpu_is_pxa21x() && !cpu_is_pxa25x()) {
+	if (!cpu_is_pxa25x()) {
 		mmc->caps |= MMC_CAP_4_BIT_DATA | MMC_CAP_SDIO_IRQ;
 		host->cmdat |= CMDAT_SDIO_INT_EN;
 		if (cpu_is_pxa300() || cpu_is_pxa310())

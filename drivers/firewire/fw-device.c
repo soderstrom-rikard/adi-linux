@@ -168,7 +168,7 @@ static void fw_device_release(struct device *dev)
 	fw_node_put(device->node);
 	kfree(device->config_rom);
 	kfree(device);
-	atomic_dec(&card->device_count);
+	fw_card_put(card);
 }
 
 int fw_device_enable_phys_dma(struct fw_device *device)
@@ -381,46 +381,21 @@ static struct device_attribute fw_device_attributes[] = {
 	__ATTR_NULL,
 };
 
-struct read_quadlet_callback_data {
-	struct completion done;
-	int rcode;
-	u32 data;
-};
-
-static void
-complete_transaction(struct fw_card *card, int rcode,
-		     void *payload, size_t length, void *data)
-{
-	struct read_quadlet_callback_data *callback_data = data;
-
-	if (rcode == RCODE_COMPLETE)
-		callback_data->data = be32_to_cpu(*(__be32 *)payload);
-	callback_data->rcode = rcode;
-	complete(&callback_data->done);
-}
-
 static int
 read_rom(struct fw_device *device, int generation, int index, u32 *data)
 {
-	struct read_quadlet_callback_data callback_data;
-	struct fw_transaction t;
-	u64 offset;
+	int rcode;
 
 	/* device->node_id, accessed below, must not be older than generation */
 	smp_rmb();
 
-	init_completion(&callback_data.done);
-
-	offset = (CSR_REGISTER_BASE | CSR_CONFIG_ROM) + index * 4;
-	fw_send_request(device->card, &t, TCODE_READ_QUADLET_REQUEST,
+	rcode = fw_run_transaction(device->card, TCODE_READ_QUADLET_REQUEST,
 			device->node_id, generation, device->max_speed,
-			offset, NULL, 4, complete_transaction, &callback_data);
+			(CSR_REGISTER_BASE | CSR_CONFIG_ROM) + index * 4,
+			data, 4);
+	be32_to_cpus(data);
 
-	wait_for_completion(&callback_data.done);
-
-	*data = callback_data.data;
-
-	return callback_data.rcode;
+	return rcode;
 }
 
 #define READ_BIB_ROM_SIZE	256
@@ -946,8 +921,7 @@ void fw_node_event(struct fw_card *card, struct fw_node *node, int event)
 		 */
 		device_initialize(&device->device);
 		atomic_set(&device->state, FW_DEVICE_INITIALIZING);
-		atomic_inc(&card->device_count);
-		device->card = card;
+		device->card = fw_card_get(card);
 		device->node = fw_node_get(node);
 		device->node_id = node->node_id;
 		device->generation = card->generation;

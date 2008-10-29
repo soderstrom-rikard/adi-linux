@@ -30,8 +30,6 @@
 #define TIMER_SLOP	100000
 #define NS_PER_TICK	(1000000000LL / HZ)
 
-static cycle_t xen_clocksource_read(void);
-
 /* runstate info updated by Xen */
 static DEFINE_PER_CPU(struct vcpu_runstate_info, runstate);
 
@@ -197,23 +195,16 @@ unsigned long long xen_sched_clock(void)
 }
 
 
-/* Get the CPU speed from Xen */
-unsigned long xen_cpu_khz(void)
+/* Get the TSC speed from Xen */
+unsigned long xen_tsc_khz(void)
 {
-	u64 xen_khz = 1000000ULL << 32;
-	const struct pvclock_vcpu_time_info *info =
+	struct pvclock_vcpu_time_info *info =
 		&HYPERVISOR_shared_info->vcpu_info[0].time;
 
-	do_div(xen_khz, info->tsc_to_system_mul);
-	if (info->tsc_shift < 0)
-		xen_khz <<= -info->tsc_shift;
-	else
-		xen_khz >>= info->tsc_shift;
-
-	return xen_khz;
+	return pvclock_tsc_khz(info);
 }
 
-static cycle_t xen_clocksource_read(void)
+cycle_t xen_clocksource_read(void)
 {
         struct pvclock_vcpu_time_info *src;
 	cycle_t ret;
@@ -452,11 +443,32 @@ void xen_setup_timer(int cpu)
 	setup_runstate_info(cpu);
 }
 
+void xen_teardown_timer(int cpu)
+{
+	struct clock_event_device *evt;
+	BUG_ON(cpu == 0);
+	evt = &per_cpu(xen_clock_events, cpu);
+	unbind_from_irqhandler(evt->irq, NULL);
+}
+
 void xen_setup_cpu_clockevents(void)
 {
 	BUG_ON(preemptible());
 
 	clockevents_register_device(&__get_cpu_var(xen_clock_events));
+}
+
+void xen_timer_resume(void)
+{
+	int cpu;
+
+	if (xen_clockevent != &xen_vcpuop_clockevent)
+		return;
+
+	for_each_online_cpu(cpu) {
+		if (HYPERVISOR_vcpu_op(VCPUOP_stop_periodic_timer, cpu, NULL))
+			BUG();
+	}
 }
 
 __init void xen_time_init(void)

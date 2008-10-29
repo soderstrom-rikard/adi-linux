@@ -30,24 +30,19 @@
 #include <asm/machdep.h>
 #include <asm/dcr.h>
 #include <asm/dcr-regs.h>
+#include <mm/mmu_decl.h>
 
 #include "ppc4xx_pci.h"
 
 static int dma_offset_set;
 
-/* Move that to a useable header */
-extern unsigned long total_memory;
-
 #define U64_TO_U32_LOW(val)	((u32)((val) & 0x00000000ffffffffULL))
 #define U64_TO_U32_HIGH(val)	((u32)((val) >> 32))
 
-#ifdef CONFIG_RESOURCES_64BIT
-#define RES_TO_U32_LOW(val)	U64_TO_U32_LOW(val)
-#define RES_TO_U32_HIGH(val)	U64_TO_U32_HIGH(val)
-#else
-#define RES_TO_U32_LOW(val)	(val)
-#define RES_TO_U32_HIGH(val)	(0)
-#endif
+#define RES_TO_U32_LOW(val)	\
+	((sizeof(resource_size_t) > sizeof(u32)) ? U64_TO_U32_LOW(val) : (val))
+#define RES_TO_U32_HIGH(val)	\
+	((sizeof(resource_size_t) > sizeof(u32)) ? U64_TO_U32_HIGH(val) : (0))
 
 static inline int ppc440spe_revA(void)
 {
@@ -75,6 +70,11 @@ static void fixup_ppc4xx_pci_bridge(struct pci_dev *dev)
 	    !of_device_is_compatible(hose->dn, "ibm,plb-pci"))
 		return;
 
+	if (of_device_is_compatible(hose->dn, "ibm,plb440epx-pci") ||
+		of_device_is_compatible(hose->dn, "ibm,plb440grx-pci")) {
+		hose->indirect_type |= PPC_INDIRECT_TYPE_BROKEN_MRM;
+	}
+
 	/* Hide the PCI host BARs from the kernel as their content doesn't
 	 * fit well in the resource management
 	 */
@@ -100,7 +100,8 @@ static int __init ppc4xx_parse_dma_ranges(struct pci_controller *hose,
 
 	/* Default */
 	res->start = 0;
-	res->end = size = 0x80000000;
+	size = 0x80000000;
+	res->end = size - 1;
 	res->flags = IORESOURCE_MEM | IORESOURCE_PREFETCH;
 
 	/* Get dma-ranges property */
@@ -140,12 +141,11 @@ static int __init ppc4xx_parse_dma_ranges(struct pci_controller *hose,
 
 		/* Use that */
 		res->start = pci_addr;
-#ifndef CONFIG_RESOURCES_64BIT
 		/* Beware of 32 bits resources */
-		if ((pci_addr + size) > 0x100000000ull)
+		if (sizeof(resource_size_t) == sizeof(u32) &&
+		    (pci_addr + size) > 0x100000000ull)
 			res->end = 0xffffffff;
 		else
-#endif
 			res->end = res->start + size - 1;
 		break;
 	}
@@ -162,13 +162,13 @@ static int __init ppc4xx_parse_dma_ranges(struct pci_controller *hose,
 	 */
 	if (size < total_memory) {
 		printk(KERN_ERR "%s: dma-ranges too small "
-		       "(size=%llx total_memory=%lx)\n",
-		       hose->dn->full_name, size, total_memory);
+		       "(size=%llx total_memory=%llx)\n",
+		       hose->dn->full_name, size, (u64)total_memory);
 		return -ENXIO;
 	}
 
 	/* Check we are a power of 2 size and that base is a multiple of size*/
-	if (!is_power_of_2(size) ||
+	if ((size & (size - 1)) != 0  ||
 	    (res->start & (size - 1)) != 0) {
 		printk(KERN_ERR "%s: dma-ranges unaligned\n",
 		       hose->dn->full_name);
@@ -272,9 +272,16 @@ static void __init ppc4xx_probe_pci_bridge(struct device_node *np)
 	const int *bus_range;
 	int primary = 0;
 
+	/* Check if device is enabled */
+	if (!of_device_is_available(np)) {
+		printk(KERN_INFO "%s: Port disabled via device-tree\n",
+		       np->full_name);
+		return;
+	}
+
 	/* Fetch config space registers address */
 	if (of_address_to_resource(np, 0, &rsrc_cfg)) {
-		printk(KERN_ERR "%s:Can't get PCI config register base !",
+		printk(KERN_ERR "%s: Can't get PCI config register base !",
 		       np->full_name);
 		return;
 	}
@@ -805,7 +812,7 @@ static int ppc460ex_pciex_init_port_hw(struct ppc4xx_pciex_port *port)
 	switch (port->index) {
 	case 0:
 		mtdcri(SDR0, PESDR0_460EX_L0CDRCTL, 0x00003230);
-		mtdcri(SDR0, PESDR0_460EX_L0DRV, 0x00000136);
+		mtdcri(SDR0, PESDR0_460EX_L0DRV, 0x00000130);
 		mtdcri(SDR0, PESDR0_460EX_L0CLK, 0x00000006);
 
 		mtdcri(SDR0, PESDR0_460EX_PHY_CTL_RST,0x10000000);
@@ -816,10 +823,10 @@ static int ppc460ex_pciex_init_port_hw(struct ppc4xx_pciex_port *port)
 		mtdcri(SDR0, PESDR1_460EX_L1CDRCTL, 0x00003230);
 		mtdcri(SDR0, PESDR1_460EX_L2CDRCTL, 0x00003230);
 		mtdcri(SDR0, PESDR1_460EX_L3CDRCTL, 0x00003230);
-		mtdcri(SDR0, PESDR1_460EX_L0DRV, 0x00000136);
-		mtdcri(SDR0, PESDR1_460EX_L1DRV, 0x00000136);
-		mtdcri(SDR0, PESDR1_460EX_L2DRV, 0x00000136);
-		mtdcri(SDR0, PESDR1_460EX_L3DRV, 0x00000136);
+		mtdcri(SDR0, PESDR1_460EX_L0DRV, 0x00000130);
+		mtdcri(SDR0, PESDR1_460EX_L1DRV, 0x00000130);
+		mtdcri(SDR0, PESDR1_460EX_L2DRV, 0x00000130);
+		mtdcri(SDR0, PESDR1_460EX_L3DRV, 0x00000130);
 		mtdcri(SDR0, PESDR1_460EX_L0CLK, 0x00000006);
 		mtdcri(SDR0, PESDR1_460EX_L1CLK, 0x00000006);
 		mtdcri(SDR0, PESDR1_460EX_L2CLK, 0x00000006);
@@ -1634,6 +1641,15 @@ static void __init ppc4xx_probe_pciex_bridge(struct device_node *np)
 	}
 	port = &ppc4xx_pciex_ports[portno];
 	port->index = portno;
+
+	/*
+	 * Check if device is enabled
+	 */
+	if (!of_device_is_available(np)) {
+		printk(KERN_INFO "PCIE%d: Port disabled via device-tree\n", port->index);
+		return;
+	}
+
 	port->node = of_node_get(np);
 	pval = of_get_property(np, "sdr-base", NULL);
 	if (pval == NULL) {

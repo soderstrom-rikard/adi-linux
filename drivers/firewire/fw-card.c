@@ -16,12 +16,15 @@
  * Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include <linux/module.h>
-#include <linux/errno.h>
+#include <linux/completion.h>
+#include <linux/crc-itu-t.h>
 #include <linux/delay.h>
 #include <linux/device.h>
+#include <linux/errno.h>
+#include <linux/kref.h>
+#include <linux/module.h>
 #include <linux/mutex.h>
-#include <linux/crc-itu-t.h>
+
 #include "fw-transaction.h"
 #include "fw-topology.h"
 #include "fw-device.h"
@@ -186,39 +189,16 @@ static const char gap_count_table[] = {
 	63, 5, 7, 8, 10, 13, 16, 18, 21, 24, 26, 29, 32, 35, 37, 40
 };
 
-struct bm_data {
-	struct fw_transaction t;
-	struct {
-		__be32 arg;
-		__be32 data;
-	} lock;
-	u32 old;
-	int rcode;
-	struct completion done;
-};
-
-static void
-complete_bm_lock(struct fw_card *card, int rcode,
-		 void *payload, size_t length, void *data)
-{
-	struct bm_data *bmd = data;
-
-	if (rcode == RCODE_COMPLETE)
-		bmd->old = be32_to_cpu(*(__be32 *) payload);
-	bmd->rcode = rcode;
-	complete(&bmd->done);
-}
-
 static void
 fw_card_bm_work(struct work_struct *work)
 {
 	struct fw_card *card = container_of(work, struct fw_card, work.work);
 	struct fw_device *root_device;
 	struct fw_node *root_node, *local_node;
-	struct bm_data bmd;
 	unsigned long flags;
-	int root_id, new_root_id, irm_id, gap_count, generation, grace;
+	int root_id, new_root_id, irm_id, gap_count, generation, grace, rcode;
 	bool do_reset = false;
+	__be32 lock_data[2];
 
 	spin_lock_irqsave(&card->lock, flags);
 	local_node = card->local_node;
@@ -260,33 +240,28 @@ fw_card_bm_work(struct work_struct *work)
 			goto pick_me;
 		}
 
-		bmd.lock.arg = cpu_to_be32(0x3f);
-		bmd.lock.data = cpu_to_be32(local_node->node_id);
+		lock_data[0] = cpu_to_be32(0x3f);
+		lock_data[1] = cpu_to_be32(local_node->node_id);
 
 		spin_unlock_irqrestore(&card->lock, flags);
 
-		init_completion(&bmd.done);
-		fw_send_request(card, &bmd.t, TCODE_LOCK_COMPARE_SWAP,
-				irm_id, generation,
-				SCODE_100, CSR_REGISTER_BASE + CSR_BUS_MANAGER_ID,
-				&bmd.lock, sizeof(bmd.lock),
-				complete_bm_lock, &bmd);
-		wait_for_completion(&bmd.done);
+		rcode = fw_run_transaction(card, TCODE_LOCK_COMPARE_SWAP,
+				irm_id, generation, SCODE_100,
+				CSR_REGISTER_BASE + CSR_BUS_MANAGER_ID,
+				lock_data, sizeof(lock_data));
 
-		if (bmd.rcode == RCODE_GENERATION) {
-			/*
-			 * Another bus reset happened. Just return,
-			 * the BM work has been rescheduled.
-			 */
+		if (rcode == RCODE_GENERATION)
+			/* Another bus reset, BM work has been rescheduled. */
 			goto out;
-		}
 
-		if (bmd.rcode == RCODE_COMPLETE && bmd.old != 0x3f)
+		if (rcode == RCODE_COMPLETE &&
+		    lock_data[0] != cpu_to_be32(0x3f))
 			/* Somebody else is BM, let them do the work. */
 			goto out;
 
 		spin_lock_irqsave(&card->lock, flags);
-		if (bmd.rcode != RCODE_COMPLETE) {
+
+		if (rcode != RCODE_COMPLETE) {
 			/*
 			 * The lock request failed, maybe the IRM
 			 * isn't really IRM capable after all. Let's
@@ -396,14 +371,16 @@ fw_card_initialize(struct fw_card *card, const struct fw_card_driver *driver,
 {
 	static atomic_t index = ATOMIC_INIT(-1);
 
-	atomic_set(&card->device_count, 0);
 	card->index = atomic_inc_return(&index);
 	card->driver = driver;
 	card->device = device;
 	card->current_tlabel = 0;
 	card->tlabel_mask = 0;
 	card->color = 0;
+	card->broadcast_channel = BROADCAST_CHANNEL_INITIAL;
 
+	kref_init(&card->kref);
+	init_completion(&card->done);
 	INIT_LIST_HEAD(&card->transaction_list);
 	spin_lock_init(&card->lock);
 	setup_timer(&card->flush_timer,
@@ -496,7 +473,6 @@ dummy_enable_phys_dma(struct fw_card *card,
 }
 
 static struct fw_card_driver dummy_driver = {
-	.name            = "dummy",
 	.enable          = dummy_enable,
 	.update_phy_reg  = dummy_update_phy_reg,
 	.set_config_rom  = dummy_set_config_rom,
@@ -505,6 +481,14 @@ static struct fw_card_driver dummy_driver = {
 	.send_response   = dummy_send_response,
 	.enable_phys_dma = dummy_enable_phys_dma,
 };
+
+void
+fw_card_release(struct kref *kref)
+{
+	struct fw_card *card = container_of(kref, struct fw_card, kref);
+
+	complete(&card->done);
+}
 
 void
 fw_core_remove_card(struct fw_card *card)
@@ -521,15 +505,13 @@ fw_core_remove_card(struct fw_card *card)
 	card->driver = &dummy_driver;
 
 	fw_destroy_nodes(card);
-	/*
-	 * Wait for all device workqueue jobs to finish.  Otherwise the
-	 * firewire-core module could be unloaded before the jobs ran.
-	 */
-	while (atomic_read(&card->device_count) > 0)
-		msleep(100);
+
+	/* Wait for all users, especially device workqueue jobs, to finish. */
+	fw_card_put(card);
+	wait_for_completion(&card->done);
 
 	cancel_delayed_work_sync(&card->work);
-	fw_flush_transactions(card);
+	WARN_ON(!list_empty(&card->transaction_list));
 	del_timer_sync(&card->flush_timer);
 }
 EXPORT_SYMBOL(fw_core_remove_card);

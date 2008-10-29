@@ -38,7 +38,7 @@
 #define yprintk(facility, format, args...) \
 	do { printk(facility "%s %d: " format , \
 	__func__, __LINE__ , ## args); } while (0)
-#define WARN(fmt, args...) yprintk(KERN_WARNING, fmt, ## args)
+#define WARNING(fmt, args...) yprintk(KERN_WARNING, fmt, ## args)
 #define INFO(fmt, args...) yprintk(KERN_INFO, fmt, ## args)
 #define ERR(fmt, args...) yprintk(KERN_ERR, fmt, ## args)
 
@@ -48,11 +48,7 @@
 				__func__, __LINE__ , ## args); \
 	} } while (0)
 
-#if MUSB_DEBUG > 0
 extern unsigned debug;
-#else
-#define debug	0
-#endif
 
 static inline int _dbg_level(unsigned l)
 {

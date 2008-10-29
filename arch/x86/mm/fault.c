@@ -10,6 +10,7 @@
 #include <linux/string.h>
 #include <linux/types.h>
 #include <linux/ptrace.h>
+#include <linux/mmiotrace.h>
 #include <linux/mman.h>
 #include <linux/mm.h>
 #include <linux/smp.h>
@@ -34,6 +35,7 @@
 #include <asm/tlbflush.h>
 #include <asm/proto.h>
 #include <asm-generic/sections.h>
+#include <asm/traps.h>
 
 /*
  * Page fault error code bits
@@ -49,17 +51,23 @@
 #define PF_RSVD		(1<<3)
 #define PF_INSTR	(1<<4)
 
+static inline int kmmio_fault(struct pt_regs *regs, unsigned long addr)
+{
+#ifdef CONFIG_MMIOTRACE_HOOKS
+	if (unlikely(is_kmmio_active()))
+		if (kmmio_handler(regs, addr) == 1)
+			return -1;
+#endif
+	return 0;
+}
+
 static inline int notify_page_fault(struct pt_regs *regs)
 {
 #ifdef CONFIG_KPROBES
 	int ret = 0;
 
 	/* kprobe_running() needs smp_processor_id() */
-#ifdef CONFIG_X86_32
 	if (!user_mode_vm(regs)) {
-#else
-	if (!user_mode(regs)) {
-#endif
 		preempt_disable();
 		if (kprobe_running() && kprobe_fault_handler(regs, 14))
 			ret = 1;
@@ -350,8 +358,6 @@ static int is_errata100(struct pt_regs *regs, unsigned long address)
 	return 0;
 }
 
-void do_invalid_op(struct pt_regs *, unsigned long);
-
 static int is_f00f_bug(struct pt_regs *regs, unsigned long address)
 {
 #ifdef CONFIG_X86_F00F_BUG
@@ -396,11 +402,7 @@ static void show_fault_oops(struct pt_regs *regs, unsigned long error_code,
 		printk(KERN_CONT "NULL pointer dereference");
 	else
 		printk(KERN_CONT "paging request");
-#ifdef CONFIG_X86_32
-	printk(KERN_CONT " at %08lx\n", address);
-#else
-	printk(KERN_CONT " at %016lx\n", address);
-#endif
+	printk(KERN_CONT " at %p\n", (void *) address);
 	printk(KERN_ALERT "IP:");
 	printk_address(regs->ip, 1);
 	dump_pagetable(address);
@@ -590,11 +592,6 @@ void __kprobes do_page_fault(struct pt_regs *regs, unsigned long error_code)
 	unsigned long flags;
 #endif
 
-	/*
-	 * We can fault from pretty much anywhere, with unknown IRQ state.
-	 */
-	trace_hardirqs_fixup();
-
 	tsk = current;
 	mm = tsk->mm;
 	prefetchw(&mm->mmap_sem);
@@ -605,6 +602,8 @@ void __kprobes do_page_fault(struct pt_regs *regs, unsigned long error_code)
 	si_code = SEGV_MAPERR;
 
 	if (notify_page_fault(regs))
+		return;
+	if (unlikely(kmmio_fault(regs, address)))
 		return;
 
 	/*
@@ -641,24 +640,23 @@ void __kprobes do_page_fault(struct pt_regs *regs, unsigned long error_code)
 	}
 
 
-#ifdef CONFIG_X86_32
-	/* It's safe to allow irq's after cr2 has been saved and the vmalloc
-	   fault has been handled. */
-	if (regs->flags & (X86_EFLAGS_IF | X86_VM_MASK))
-		local_irq_enable();
-
 	/*
-	 * If we're in an interrupt, have no user context or are running in an
-	 * atomic region then we must not take the fault.
+	 * It's safe to allow irq's after cr2 has been saved and the
+	 * vmalloc fault has been handled.
+	 *
+	 * User-mode registers count as a user access even for any
+	 * potential system fault or CPU buglet.
 	 */
-	if (in_atomic() || !mm)
-		goto bad_area_nosemaphore;
-#else /* CONFIG_X86_64 */
-	if (likely(regs->flags & X86_EFLAGS_IF))
+	if (user_mode_vm(regs)) {
+		local_irq_enable();
+		error_code |= PF_USER;
+	} else if (regs->flags & X86_EFLAGS_IF)
 		local_irq_enable();
 
+#ifdef CONFIG_X86_64
 	if (unlikely(error_code & PF_RSVD))
 		pgtable_bad(address, regs, error_code);
+#endif
 
 	/*
 	 * If we're in an interrupt, have no user context or are running in an
@@ -667,15 +665,9 @@ void __kprobes do_page_fault(struct pt_regs *regs, unsigned long error_code)
 	if (unlikely(in_atomic() || !mm))
 		goto bad_area_nosemaphore;
 
-	/*
-	 * User-mode registers count as a user access even for any
-	 * potential system fault or CPU buglet.
-	 */
-	if (user_mode_vm(regs))
-		error_code |= PF_USER;
 again:
-#endif
-	/* When running in the kernel we expect faults to occur only to
+	/*
+	 * When running in the kernel we expect faults to occur only to
 	 * addresses in user space.  All other faults represent errors in the
 	 * kernel and should generate an OOPS.  Unfortunately, in the case of an
 	 * erroneous fault occurring in a code path which already holds mmap_sem
@@ -738,9 +730,6 @@ good_area:
 			goto bad_area;
 	}
 
-#ifdef CONFIG_X86_32
-survive:
-#endif
 	/*
 	 * If for any reason at all we couldn't handle the fault,
 	 * make sure we exit gracefully rather than endlessly redo
@@ -800,14 +789,10 @@ bad_area_nosemaphore:
 		if (show_unhandled_signals && unhandled_signal(tsk, SIGSEGV) &&
 		    printk_ratelimit()) {
 			printk(
-#ifdef CONFIG_X86_32
-			"%s%s[%d]: segfault at %lx ip %08lx sp %08lx error %lx",
-#else
-			"%s%s[%d]: segfault at %lx ip %lx sp %lx error %lx",
-#endif
+			"%s%s[%d]: segfault at %lx ip %p sp %p error %lx",
 			task_pid_nr(tsk) > 1 ? KERN_INFO : KERN_EMERG,
-			tsk->comm, task_pid_nr(tsk), address, regs->ip,
-			regs->sp, error_code);
+			tsk->comm, task_pid_nr(tsk), address,
+			(void *) regs->ip, (void *) regs->sp, error_code);
 			print_vma_addr(" in ", regs->ip);
 			printk("\n");
 		}
@@ -879,12 +864,11 @@ out_of_memory:
 	up_read(&mm->mmap_sem);
 	if (is_global_init(tsk)) {
 		yield();
-#ifdef CONFIG_X86_32
-		down_read(&mm->mmap_sem);
-		goto survive;
-#else
+		/*
+		 * Re-lookup the vma - in theory the vma tree might
+		 * have changed:
+		 */
 		goto again;
-#endif
 	}
 
 	printk("VM: killing process %s\n", tsk->comm);
@@ -914,72 +898,45 @@ LIST_HEAD(pgd_list);
 
 void vmalloc_sync_all(void)
 {
-#ifdef CONFIG_X86_32
-	/*
-	 * Note that races in the updates of insync and start aren't
-	 * problematic: insync can only get set bits added, and updates to
-	 * start are only improving performance (without affecting correctness
-	 * if undone).
-	 */
-	static DECLARE_BITMAP(insync, PTRS_PER_PGD);
-	static unsigned long start = TASK_SIZE;
 	unsigned long address;
 
+#ifdef CONFIG_X86_32
 	if (SHARED_KERNEL_PMD)
 		return;
 
-	BUILD_BUG_ON(TASK_SIZE & ~PGDIR_MASK);
-	for (address = start; address >= TASK_SIZE; address += PGDIR_SIZE) {
-		if (!test_bit(pgd_index(address), insync)) {
-			unsigned long flags;
-			struct page *page;
+	for (address = VMALLOC_START & PMD_MASK;
+	     address >= TASK_SIZE && address < FIXADDR_TOP;
+	     address += PMD_SIZE) {
+		unsigned long flags;
+		struct page *page;
 
-			spin_lock_irqsave(&pgd_lock, flags);
-			list_for_each_entry(page, &pgd_list, lru) {
-				if (!vmalloc_sync_one(page_address(page),
-						      address))
-					break;
-			}
-			spin_unlock_irqrestore(&pgd_lock, flags);
-			if (!page)
-				set_bit(pgd_index(address), insync);
+		spin_lock_irqsave(&pgd_lock, flags);
+		list_for_each_entry(page, &pgd_list, lru) {
+			if (!vmalloc_sync_one(page_address(page),
+					      address))
+				break;
 		}
-		if (address == start && test_bit(pgd_index(address), insync))
-			start = address + PGDIR_SIZE;
+		spin_unlock_irqrestore(&pgd_lock, flags);
 	}
 #else /* CONFIG_X86_64 */
-	/*
-	 * Note that races in the updates of insync and start aren't
-	 * problematic: insync can only get set bits added, and updates to
-	 * start are only improving performance (without affecting correctness
-	 * if undone).
-	 */
-	static DECLARE_BITMAP(insync, PTRS_PER_PGD);
-	static unsigned long start = VMALLOC_START & PGDIR_MASK;
-	unsigned long address;
+	for (address = VMALLOC_START & PGDIR_MASK; address <= VMALLOC_END;
+	     address += PGDIR_SIZE) {
+		const pgd_t *pgd_ref = pgd_offset_k(address);
+		unsigned long flags;
+		struct page *page;
 
-	for (address = start; address <= VMALLOC_END; address += PGDIR_SIZE) {
-		if (!test_bit(pgd_index(address), insync)) {
-			const pgd_t *pgd_ref = pgd_offset_k(address);
-			unsigned long flags;
-			struct page *page;
-
-			if (pgd_none(*pgd_ref))
-				continue;
-			spin_lock_irqsave(&pgd_lock, flags);
-			list_for_each_entry(page, &pgd_list, lru) {
-				pgd_t *pgd;
-				pgd = (pgd_t *)page_address(page) + pgd_index(address);
-				if (pgd_none(*pgd))
-					set_pgd(pgd, *pgd_ref);
-				else
-					BUG_ON(pgd_page_vaddr(*pgd) != pgd_page_vaddr(*pgd_ref));
-			}
-			spin_unlock_irqrestore(&pgd_lock, flags);
-			set_bit(pgd_index(address), insync);
+		if (pgd_none(*pgd_ref))
+			continue;
+		spin_lock_irqsave(&pgd_lock, flags);
+		list_for_each_entry(page, &pgd_list, lru) {
+			pgd_t *pgd;
+			pgd = (pgd_t *)page_address(page) + pgd_index(address);
+			if (pgd_none(*pgd))
+				set_pgd(pgd, *pgd_ref);
+			else
+				BUG_ON(pgd_page_vaddr(*pgd) != pgd_page_vaddr(*pgd_ref));
 		}
-		if (address == start)
-			start = address + PGDIR_SIZE;
+		spin_unlock_irqrestore(&pgd_lock, flags);
 	}
 #endif
 }

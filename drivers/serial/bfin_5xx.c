@@ -30,7 +30,7 @@
 #endif
 
 #include <asm/gpio.h>
-#include <asm/mach/bfin_serial_5xx.h>
+#include <mach/bfin_serial_5xx.h>
 
 #ifdef CONFIG_SERIAL_BFIN_DMA
 #include <linux/dma-mapping.h>
@@ -107,12 +107,13 @@ static void bfin_serial_stop_tx(struct uart_port *port)
 static void bfin_serial_start_tx(struct uart_port *port)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+	struct tty_struct *tty = uart->port.info->port.tty;
 
 	/*
 	 * To avoid losting RX interrupt, we reset IR function
 	 * before sending data.
 	 */
-	if (port->info->tty->ldisc.num == N_IRDA)
+	if (tty->termios->c_line == N_IRDA)
 		bfin_serial_reset_irda(port);
 
 #ifdef CONFIG_SERIAL_BFIN_DMA
@@ -352,7 +353,7 @@ static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart)
 
 static void bfin_serial_dma_rx_chars(struct bfin_serial_port *uart)
 {
-	struct tty_struct *tty = uart->port.info->tty;
+	struct tty_struct *tty = uart->port.info->port.tty;
 	int i, flg, status;
 
 	status = UART_GET_LSR(uart);
@@ -875,10 +876,10 @@ static void bfin_serial_set_ldisc(struct uart_port *port)
 	int line = port->line;
 	unsigned short val;
 
-	if (line >= port->info->tty->driver->num)
+	if (line >= port->info->port.tty->driver->num)
 		return;
 
-	switch (port->info->tty->ldisc.num) {
+	switch (port->info->port.tty->termios->c_line) {
 	case N_IRDA:
 		val = UART_GET_GCTL(&bfin_serial_ports[line]);
 		val |= (IREN | RPOLC);

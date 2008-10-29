@@ -1,5 +1,3 @@
-/*	$Id$	*/
-
 /*
  * if_ppp.h - Point-to-Point Protocol definitions.
  *

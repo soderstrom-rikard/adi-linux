@@ -15,8 +15,6 @@
  *                           features support
  */
 
-/* $Id$ */
-
 #define UDA1341_ALSA_NAME "snd-uda1341"
 
 /*

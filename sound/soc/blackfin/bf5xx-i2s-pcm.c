@@ -3,7 +3,7 @@
  * Author:       Cliff Cai <Cliff.Cai@analog.com>
  *
  * Created:      Tue June 06 2008
- * Description:  Driver for SSM2602 sound chip built in ADSP-BF52xC
+ * Description:  DMA driver for i2s codec
  *
  * Modified:
  *               Copyright 2008 Analog Devices Inc.
@@ -107,8 +107,7 @@ static int bf5xx_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	struct sport_device *sport = runtime->private_data;
 	int ret = 0;
 
-	pr_debug("%s %s\n", substream->stream?"Capture":"Playback", \
-			cmd?" start":" stop");
+	pr_debug("%s enter\n", __func__);
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
@@ -173,14 +172,6 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 	return ret;
 }
 
-static int bf5xx_pcm_close(struct snd_pcm_substream *substream)
-{
-	pr_debug("%s enter\n", __func__);
-	/*Nothing need to be cleared here*/
-
-	return 0;
-}
-
 static int bf5xx_pcm_mmap(struct snd_pcm_substream *substream,
 	struct vm_area_struct *vma)
 {
@@ -193,9 +184,8 @@ static int bf5xx_pcm_mmap(struct snd_pcm_substream *substream,
 	return 0 ;
 }
 
-struct snd_pcm_ops bf5xx_pcm_ops = {
+struct snd_pcm_ops bf5xx_pcm_i2s_ops = {
 	.open		= bf5xx_pcm_open,
-	.close		= bf5xx_pcm_close,
 	.ioctl		= snd_pcm_lib_ioctl,
 	.hw_params	= bf5xx_pcm_hw_params,
 	.hw_free	= bf5xx_pcm_hw_free,
@@ -257,7 +247,7 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 
 static u64 bf5xx_pcm_dmamask = DMA_32BIT_MASK;
 
-int bf5xx_pcm_new(struct snd_card *card, struct snd_soc_codec_dai *dai,
+int bf5xx_pcm_i2s_new(struct snd_card *card, struct snd_soc_dai *dai,
 	struct snd_pcm *pcm)
 {
 	int ret = 0;
@@ -287,8 +277,8 @@ int bf5xx_pcm_new(struct snd_card *card, struct snd_soc_codec_dai *dai,
 
 struct snd_soc_platform bf5xx_i2s_soc_platform = {
 	.name		= "bf5xx-audio",
-	.pcm_ops 	= &bf5xx_pcm_ops,
-	.pcm_new	= bf5xx_pcm_new,
+	.pcm_ops 	= &bf5xx_pcm_i2s_ops,
+	.pcm_new	= bf5xx_pcm_i2s_new,
 	.pcm_free	= bf5xx_pcm_free_dma_buffers,
 };
 EXPORT_SYMBOL_GPL(bf5xx_i2s_soc_platform);

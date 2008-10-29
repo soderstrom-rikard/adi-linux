@@ -5,8 +5,6 @@
  *
  *		The options processing module for ip.c
  *
- * Version:	$Id$
- *
  * Authors:	A.N.Kuznetsov
  *
  */
@@ -440,7 +438,7 @@ int ip_options_compile(struct net *net,
 				goto error;
 			}
 			opt->cipso = optptr - iph;
-			if (cipso_v4_validate(&optptr)) {
+			if (cipso_v4_validate(skb, &optptr)) {
 				pp_ptr = optptr;
 				goto error;
 			}

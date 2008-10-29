@@ -43,7 +43,7 @@
 #include <asm/asm-offsets.h>
 #include <asm/trace.h>
 
-#include <asm/mach-common/context.S>
+#include <asm/context.S>
 
 #if defined(CONFIG_BFIN_SCRATCH_REG_RETN)
 # define EX_SCRATCH_REG RETN
@@ -1527,6 +1527,12 @@ ENTRY(_sys_call_table)
 	.long _sys_semtimedop
 	.long _sys_timerfd_settime
 	.long _sys_timerfd_gettime
+	.long _sys_signalfd4		/* 360 */
+	.long _sys_eventfd2
+	.long _sys_epoll_create1
+	.long _sys_dup3
+	.long _sys_pipe2
+	.long _sys_inotify_init1	/* 365 */
 
 	.rept NR_syscalls-(.-_sys_call_table)/4
 	.long _sys_ni_syscall

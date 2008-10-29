@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Registration for chip drivers
  *
  */

@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Handle mapping of the NOR flash on implementa A7 boards
  *
  * Copyright 2002 SYSGO Real-Time Solutions GmbH

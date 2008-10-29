@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * D-Box 2 flash driver
  */
 

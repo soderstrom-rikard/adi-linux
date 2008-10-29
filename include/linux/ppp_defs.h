@@ -1,5 +1,3 @@
-/*	$Id$	*/
-
 /*
  * ppp_defs.h - PPP definitions.
  *

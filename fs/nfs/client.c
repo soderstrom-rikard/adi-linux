@@ -431,14 +431,14 @@ static void nfs_init_timeout_values(struct rpc_timeout *to, int proto,
 {
 	to->to_initval = timeo * HZ / 10;
 	to->to_retries = retrans;
-	if (!to->to_retries)
-		to->to_retries = 2;
 
 	switch (proto) {
 	case XPRT_TRANSPORT_TCP:
 	case XPRT_TRANSPORT_RDMA:
+		if (to->to_retries == 0)
+			to->to_retries = NFS_DEF_TCP_RETRANS;
 		if (to->to_initval == 0)
-			to->to_initval = 60 * HZ;
+			to->to_initval = NFS_DEF_TCP_TIMEO * HZ / 10;
 		if (to->to_initval > NFS_MAX_TCP_TIMEOUT)
 			to->to_initval = NFS_MAX_TCP_TIMEOUT;
 		to->to_increment = to->to_initval;
@@ -450,14 +450,17 @@ static void nfs_init_timeout_values(struct rpc_timeout *to, int proto,
 		to->to_exponential = 0;
 		break;
 	case XPRT_TRANSPORT_UDP:
-	default:
+		if (to->to_retries == 0)
+			to->to_retries = NFS_DEF_UDP_RETRANS;
 		if (!to->to_initval)
-			to->to_initval = 11 * HZ / 10;
+			to->to_initval = NFS_DEF_UDP_TIMEO * HZ / 10;
 		if (to->to_initval > NFS_MAX_UDP_TIMEOUT)
 			to->to_initval = NFS_MAX_UDP_TIMEOUT;
 		to->to_maxval = NFS_MAX_UDP_TIMEOUT;
 		to->to_exponential = 1;
 		break;
+	default:
+		BUG();
 	}
 }
 
@@ -672,7 +675,7 @@ static int nfs_init_server(struct nfs_server *server,
 	server->nfs_client = clp;
 
 	/* Initialise the client representation from the mount data */
-	server->flags = data->flags & NFS_MOUNT_FLAGMASK;
+	server->flags = data->flags;
 
 	if (data->rsize)
 		server->rsize = nfs_block_size(data->rsize, NULL);
@@ -847,7 +850,6 @@ static struct nfs_server *nfs_alloc_server(void)
 	INIT_LIST_HEAD(&server->client_link);
 	INIT_LIST_HEAD(&server->master_link);
 
-	init_waitqueue_head(&server->active_wq);
 	atomic_set(&server->active, 0);
 
 	server->io_stats = nfs_alloc_iostats();
@@ -1070,7 +1072,7 @@ static int nfs4_init_server(struct nfs_server *server,
 		goto error;
 
 	/* Initialise the client representation from the mount data */
-	server->flags = data->flags & NFS_MOUNT_FLAGMASK;
+	server->flags = data->flags;
 	server->caps |= NFS_CAP_ATOMIC_OPEN;
 
 	if (data->rsize)

@@ -108,7 +108,7 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 /*
  * Clear TX fifo. Needed to avoid BABBLE errors.
  */
-static inline void musb_h_tx_flush_fifo(struct musb_hw_ep *ep)
+static void musb_h_tx_flush_fifo(struct musb_hw_ep *ep)
 {
 	void __iomem	*epio = ep->regs;
 	u16		csr;
@@ -292,7 +292,6 @@ __acquires(musb->lock)
 			);
 
 	usb_hcd_unlink_urb_from_ep(musb_to_hcd(musb), urb);
-
 	spin_unlock(&musb->lock);
 	usb_hcd_giveback_urb(musb_to_hcd(musb), urb, status);
 	spin_lock(&musb->lock);
@@ -436,7 +435,7 @@ musb_advance_schedule(struct musb *musb, struct urb *urb,
 	}
 }
 
-static inline u16 musb_h_flush_rxfifo(struct musb_hw_ep *hw_ep, u16 csr)
+static u16 musb_h_flush_rxfifo(struct musb_hw_ep *hw_ep, u16 csr)
 {
 	/* we don't want fifo to fill itself again;
 	 * ignore dma (various models),
@@ -584,7 +583,7 @@ musb_rx_reinit(struct musb *musb, struct musb_qh *qh, struct musb_hw_ep *ep)
 	} else {
 		csr = musb_readw(ep->regs, MUSB_RXCSR);
 		if (csr & MUSB_RXCSR_RXPKTRDY)
-			WARN("rx%d, packet/%d ready?\n", ep->epnum,
+			WARNING("rx%d, packet/%d ready?\n", ep->epnum,
 				musb_readw(ep->regs, MUSB_RXCOUNT));
 
 		csr = musb_readw(ep->regs, MUSB_TXCSR);
@@ -596,14 +595,10 @@ musb_rx_reinit(struct musb *musb, struct musb_qh *qh, struct musb_hw_ep *ep)
 
 	/* target addr and (for multipoint) hub addr/port */
 	if (musb->is_multipoint) {
-#ifndef CONFIG_BLACKFIN
-		musb_writeb(ep->target_regs, MUSB_RXFUNCADDR,
-			qh->addr_reg);
-		musb_writeb(ep->target_regs, MUSB_RXHUBADDR,
-			qh->h_addr_reg);
-		musb_writeb(ep->target_regs, MUSB_RXHUBPORT,
-			qh->h_port_reg);
-#endif
+		musb_write_rxfunaddr(ep->target_regs, qh->addr_reg);
+		musb_write_rxhubaddr(ep->target_regs, qh->h_addr_reg);
+		musb_write_rxhubport(ep->target_regs, qh->h_port_reg);
+
 	} else
 		musb_writeb(musb->mregs, MUSB_FADDR, qh->addr_reg);
 
@@ -720,17 +715,9 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 
 		/* target addr and (for multipoint) hub addr/port */
 		if (musb->is_multipoint) {
-#ifndef CONFIG_BLACKFIN
-			musb_writeb(mbase,
-				MUSB_BUSCTL_OFFSET(epnum, MUSB_TXFUNCADDR),
-				qh->addr_reg);
-			musb_writeb(mbase,
-				MUSB_BUSCTL_OFFSET(epnum, MUSB_TXHUBADDR),
-				qh->h_addr_reg);
-			musb_writeb(mbase,
-				MUSB_BUSCTL_OFFSET(epnum, MUSB_TXHUBPORT),
-				qh->h_port_reg);
-#endif
+			musb_write_txfunaddr(mbase, epnum, qh->addr_reg);
+			musb_write_txhubaddr(mbase, epnum, qh->h_addr_reg);
+			musb_write_txhubport(mbase, epnum, qh->h_port_reg);
 /* FIXME if !epnum, do the same for RX ... */
 		} else
 			musb_writeb(mbase, MUSB_FADDR, qh->addr_reg);
@@ -842,7 +829,8 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 				load_count = 0;
 			} else {
 				dma_controller->channel_release(dma_channel);
-				dma_channel = hw_ep->tx_channel = NULL;
+				hw_ep->tx_channel = NULL;
+				dma_channel = NULL;
 
 				/* REVISIT there's an error path here that
 				 * needs handling:  can't do dma, but
@@ -925,7 +913,8 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 				if (!dma_ok) {
 					dma_controller->channel_release(
 							dma_channel);
-					dma_channel = hw_ep->rx_channel = NULL;
+					hw_ep->rx_channel = NULL;
+					dma_channel = NULL;
 				} else
 					csr |= MUSB_RXCSR_DMAENAB;
 			}
@@ -1014,7 +1003,7 @@ static bool musb_h_ep0_continue(struct musb *musb, u16 len, struct urb *urb)
 
 /*
  * Handle default endpoint interrupt as host. Only called in IRQ time
- * from the LinuxIsr() interrupt service routine.
+ * from musb_interrupt().
  *
  * called with controller irqlocked
  */
@@ -1106,7 +1095,7 @@ irqreturn_t musb_h_ep0_irq(struct musb *musb)
 	if (unlikely(!urb)) {
 		/* stop endpoint since we have no place for its data, this
 		 * SHOULD NEVER HAPPEN! */
-		DBG(1, "no URB for end 0\n");
+		ERR("no URB for end 0\n");
 
 		musb_writew(epio, MUSB_CSR0, MUSB_CSR0_FLUSHFIFO);
 		musb_writew(epio, MUSB_CSR0, MUSB_CSR0_FLUSHFIFO);
@@ -1130,7 +1119,6 @@ irqreturn_t musb_h_ep0_irq(struct musb *musb)
 			else
 				csr = MUSB_CSR0_H_STATUSPKT
 					| MUSB_CSR0_TXPKTRDY;
-
 			if (musb->disable_ping)
 				csr |= MUSB_CSR0_H_DIS_PING;
 
@@ -1407,7 +1395,8 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 	status = 0;
 	xfer_len = 0;
 
-	val = rx_csr = musb_readw(epio, MUSB_RXCSR);
+	rx_csr = musb_readw(epio, MUSB_RXCSR);
+	val = rx_csr;
 
 	if (unlikely(!urb)) {
 		/* REVISIT -- THIS SHOULD NEVER HAPPEN ... but, at least
@@ -1422,7 +1411,7 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 
 	pipe = urb->pipe;
 
-	DBG(5, "<== hw %d rxcsr %04x, urb actual %d (+dma %zd)\n",
+	DBG(5, "<== hw %d rxcsr %04x, urb actual %d (+dma %zu)\n",
 		epnum, rx_csr, urb->actual_length,
 		dma ? dma->actual_len : 0);
 
@@ -1505,7 +1494,7 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 			done = true;
 		}
 
-		DBG(2, "RXCSR%d %04x, reqpkt, len %zd%s\n", epnum, rx_csr,
+		DBG(2, "RXCSR%d %04x, reqpkt, len %zu%s\n", epnum, rx_csr,
 				xfer_len, dma ? ", dma" : "");
 		rx_csr &= ~MUSB_RXCSR_H_REQPKT;
 
@@ -1634,7 +1623,8 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 
 			if (!ret) {
 				c->channel_release(dma);
-				dma = hw_ep->rx_channel = NULL;
+				hw_ep->rx_channel = NULL;
+				dma = NULL;
 				/* REVISIT reset CSR */
 			}
 		}
@@ -1806,7 +1796,9 @@ static int musb_urb_enqueue(
 	 */
 	qh = kzalloc(sizeof *qh, mem_flags);
 	if (!qh) {
+		spin_lock_irqsave(&musb->lock, flags);
 		usb_hcd_unlink_urb_from_ep(hcd, urb);
+		spin_unlock_irqrestore(&musb->lock, flags);
 		return -ENOMEM;
 	}
 
@@ -1893,7 +1885,11 @@ static int musb_urb_enqueue(
 			/* set up tt info if needed */
 			if (urb->dev->tt) {
 				qh->h_port_reg = (u8) urb->dev->ttport;
-				qh->h_addr_reg |= 0x80;
+				if (urb->dev->tt->hub)
+					qh->h_addr_reg =
+						(u8) urb->dev->tt->hub->devnum;
+				if (urb->dev->tt->multi)
+					qh->h_addr_reg |= 0x80;
 			}
 		}
 	}
@@ -1923,7 +1919,9 @@ static int musb_urb_enqueue(
 
 done:
 	if (ret != 0) {
+		spin_lock_irqsave(&musb->lock, flags);
 		usb_hcd_unlink_urb_from_ep(hcd, urb);
+		spin_unlock_irqrestore(&musb->lock, flags);
 		kfree(qh);
 	}
 	return ret;
@@ -2149,7 +2147,7 @@ static int musb_bus_suspend(struct usb_hcd *hcd)
 		return 0;
 
 	if (is_host_active(musb) && musb->is_active) {
-		WARN("trying to suspend as %s is_active=%i\n",
+		WARNING("trying to suspend as %s is_active=%i\n",
 			otg_state_string(musb), musb->is_active);
 		return -EBUSY;
 	} else

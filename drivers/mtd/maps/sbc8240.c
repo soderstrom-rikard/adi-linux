@@ -4,9 +4,6 @@
  * Carolyn Smith, Tektronix, Inc.
  *
  * This code is GPLed
- *
- * $Id$
- *
  */
 
 /*

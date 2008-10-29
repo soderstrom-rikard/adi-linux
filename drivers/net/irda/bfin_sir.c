@@ -24,7 +24,7 @@
 #include <asm/dma.h>
 #include <asm/cacheflush.h>
 
-#include <asm/mach/bfin_sir.h>
+#include <mach/bfin_sir.h>
 
 #ifdef CONFIG_SIR_BFIN_DMA
 #define DMA_SIR_RX_XCNT        10

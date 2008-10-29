@@ -1,7 +1,5 @@
 /* Driver for Freecom USB/IDE adaptor
  *
- * $Id$
- *
  * Freecom v0.1:
  *
  * First release

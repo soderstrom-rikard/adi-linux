@@ -5,8 +5,6 @@
  *
  *      (C) Copyright 2000-2001, Greg Ungerer (gerg@snapgear.com)
  *      (C) Copyright 2001-2002, SnapGear (www.snapgear.com)
- *
- *	$Id$
  */
 
 /****************************************************************************/

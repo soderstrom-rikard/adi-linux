@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Map for flash chips on Wind River PowerQUICC II SBC82xx board.
  *
  * Copyright (C) 2004 Red Hat, Inc.

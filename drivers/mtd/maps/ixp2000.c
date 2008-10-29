@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * drivers/mtd/maps/ixp2000.c
  *
  * Mapping for the Intel XScale IXP2000 based systems
@@ -32,7 +30,7 @@
 #include <linux/mtd/partitions.h>
 
 #include <asm/io.h>
-#include <asm/hardware.h>
+#include <mach/hardware.h>
 #include <asm/mach/flash.h>
 
 #include <linux/reboot.h>

@@ -211,7 +211,7 @@ static int __devinit bfin_cf_probe(struct platform_device *pdev)
 	cd_pfx = platform_get_irq(pdev, 1);	/*Card Detect GPIO PIN */
 
 	if (gpio_request(cd_pfx, "pcmcia: CD")) {
-		dev_err(&pdev->dev, 
+		dev_err(&pdev->dev,
 		       "Failed ro request Card Detect GPIO_%d\n",
 		       cd_pfx);
 		return -EBUSY;

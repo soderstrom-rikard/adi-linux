@@ -1,6 +1,4 @@
 /*
- *    $Id$
- *
  *    Zorro Bus Services
  *
  *    Copyright (C) 1995-2003 Geert Uytterhoeven

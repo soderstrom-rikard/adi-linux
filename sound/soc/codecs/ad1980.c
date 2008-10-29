@@ -9,14 +9,10 @@
  *  under  the terms of  the GNU General  Public License as published by the
  *  Free Software Foundation;  either version 2 of the  License, or (at your
  *  option) any later version.
- *
- *  Revision history
- *    1st July 2007   Initial version.
  */
 
 #include <linux/init.h>
 #include <linux/module.h>
-#include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/device.h>
 #include <sound/core.h>
@@ -89,6 +85,9 @@ SOC_DOUBLE("Line HP Swap Switch", AC97_AD_MISC, 10, 5, 1, 0),
 SOC_DOUBLE("Surround Playback Volume", AC97_SURROUND_MASTER, 8, 0, 31, 1),
 SOC_DOUBLE("Surround Playback Switch", AC97_SURROUND_MASTER, 15, 7, 1, 1),
 
+SOC_DOUBLE("Center/LFE Playback Volume", AC97_CENTER_LFE_MASTER, 8, 0, 31, 1),
+SOC_DOUBLE("Center/LFE Playback Switch", AC97_CENTER_LFE_MASTER, 15, 7, 1, 1),
+
 SOC_ENUM("Capture Source", ad1980_cap_src),
 
 SOC_SINGLE("Mic Boost Switch", AC97_MIC, 6, 1, 0),
@@ -100,7 +99,7 @@ static int ad1980_add_controls(struct snd_soc_codec *codec)
 	int err, i;
 
 	for (i = 0; i < ARRAY_SIZE(ad1980_snd_ac97_controls); i++) {
-		err = snd_ctl_add(codec->card, snd_soc_cnew( \
+		err = snd_ctl_add(codec->card, snd_soc_cnew(
 				&ad1980_snd_ac97_controls[i], codec, NULL));
 		if (err < 0)
 			return err;
@@ -113,14 +112,18 @@ static unsigned int ac97_read(struct snd_soc_codec *codec,
 {
 	u16 *cache = codec->reg_cache;
 
-	if (reg == AC97_RESET || reg == AC97_INT_PAGING || \
-			reg == AC97_POWERDOWN || reg == AC97_EXTENDED_STATUS  \
-			|| reg == AC97_VENDOR_ID1 || reg == AC97_VENDOR_ID2)
+	switch (reg) {
+	case AC97_RESET:
+	case AC97_INT_PAGING:
+	case AC97_POWERDOWN:
+	case AC97_EXTENDED_STATUS:
+	case AC97_VENDOR_ID1:
+	case AC97_VENDOR_ID2:
 		return soc_ac97_ops.read(codec->ac97, reg);
-	else {
+	default:
 		reg = reg >> 1;
 
-		if (reg > (ARRAY_SIZE(ad1980_reg)))
+		if (reg >= (ARRAY_SIZE(ad1980_reg)))
 			return -EINVAL;
 
 		return cache[reg];
@@ -134,22 +137,18 @@ static int ac97_write(struct snd_soc_codec *codec, unsigned int reg,
 
 	soc_ac97_ops.write(codec->ac97, reg, val);
 	reg = reg >> 1;
-	if (reg <= (ARRAY_SIZE(ad1980_reg)))
+	if (reg < (ARRAY_SIZE(ad1980_reg)))
 		cache[reg] = val;
 
 	return 0;
 }
 
-struct snd_soc_codec_dai ad1980_dai = {
+struct snd_soc_dai ad1980_dai = {
 	.name = "AC97",
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 2,
-#if defined(CONFIG_SND_MULTICHAN_SUPPORT)
 		.channels_max = 6,
-#else
-		.channels_max = 2,
-#endif
 		.rates = SNDRV_PCM_RATE_48000,
 		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
 	.capture = {
@@ -190,23 +189,13 @@ err:
 	return -EIO;
 }
 
-static int ad1980_soc_suspend(struct platform_device *pdev,
-	pm_message_t state)
-{
-	return 0;
-}
-
-static int ad1980_soc_resume(struct platform_device *pdev)
-{
-	return 0;
-}
-
 static int ad1980_soc_probe(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec;
 	int ret = 0;
 	u16 vendor_id2;
+	u16 ext_status;
 
 	printk(KERN_INFO "AD1980 SoC Audio Codec\n");
 
@@ -268,14 +257,17 @@ static int ad1980_soc_probe(struct platform_device *pdev)
 				"supported\n");
 	}
 
-	ac97_write(codec, AC97_MASTER, 0x0000); /* unmute line out volume */
-	ac97_write(codec, AC97_PCM, 0x0000);	/* unmute PCM out volume */
-	ac97_write(codec, AC97_REC_GAIN, 0x0000);/* unmute record volume */
-#if defined(CONFIG_SND_MULTICHAN_SUPPORT)
-	ac97_write(codec, AC97_CENTER_LFE_MASTER, 0x0000); /* unmute center and lfe volume */
-	ac97_write(codec, AC97_SURROUND_MASTER, 0x0000); /* unmute surround volume */
-	ac97_write(codec, AC97_EXTENDED_STATUS, 0x0000);/*power on LFE FC and Surround DACs*/
-#endif
+	/* unmute captures and playbacks volume */
+	ac97_write(codec, AC97_MASTER, 0x0000);
+	ac97_write(codec, AC97_PCM, 0x0000);
+	ac97_write(codec, AC97_REC_GAIN, 0x0000);
+	ac97_write(codec, AC97_CENTER_LFE_MASTER, 0x0000);
+	ac97_write(codec, AC97_SURROUND_MASTER, 0x0000);
+
+	/*power on LFE/CENTER/Surround DACs*/
+	ext_status = ac97_read(codec, AC97_EXTENDED_STATUS);
+	ac97_write(codec, AC97_EXTENDED_STATUS, ext_status&~0x3800);
+
 	ad1980_add_controls(codec);
 	ret = snd_soc_register_card(socdev);
 	if (ret < 0) {
@@ -319,8 +311,6 @@ static int ad1980_soc_remove(struct platform_device *pdev)
 struct snd_soc_codec_device soc_codec_dev_ad1980 = {
 	.probe = 	ad1980_soc_probe,
 	.remove = 	ad1980_soc_remove,
-	.suspend =	ad1980_soc_suspend,
-	.resume =	ad1980_soc_resume,
 };
 EXPORT_SYMBOL_GPL(soc_codec_dev_ad1980);
 

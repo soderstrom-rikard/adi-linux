@@ -3,8 +3,6 @@
  *
  *  This source is covered by the GNU GPL, the same as all kernel sources.
  *
- *  Version:	$Id$
- *
  *  Authors:	Andrey V. Savochkin <saw@msu.ru>
  */
 

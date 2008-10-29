@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  *  Copyright (c) 2000-2001 Vojtech Pavlik
  *  Copyright (c) 2002 Russell King
  */
@@ -37,7 +35,7 @@
 #include <linux/platform_device.h>
 
 #include <asm/irq.h>
-#include <asm/hardware.h>
+#include <mach/hardware.h>
 #include <asm/io.h>
 #include <asm/hardware/iomd.h>
 #include <asm/system.h>

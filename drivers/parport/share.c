@@ -1,4 +1,4 @@
-/* $Id$
+/*
  * Parallel-port resource manager code.
  * 
  * Authors: David Campbell <campbell@tirian.che.curtin.edu.au>

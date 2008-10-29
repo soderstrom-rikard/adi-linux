@@ -862,10 +862,10 @@ cppi_next_rx_segment(struct musb *musb, struct cppi_channel *rx, int onepacket)
 
 	/* we always expect at least one reusable BD! */
 	if (!tail) {
-		WARN("rx dma%d -- no BDs? need %d\n", rx->index, n_bds);
+		WARNING("rx dma%d -- no BDs? need %d\n", rx->index, n_bds);
 		return;
 	} else if (i < n_bds)
-		WARN("rx dma%d -- only %d of %d BDs\n", rx->index, i, n_bds);
+		WARNING("rx dma%d -- only %d of %d BDs\n", rx->index, i, n_bds);
 
 	tail->next = NULL;
 	tail->hw_next = 0;
@@ -963,13 +963,13 @@ static int cppi_channel_program(struct dma_channel *ch,
 	case MUSB_DMA_STATUS_BUS_ABORT:
 	case MUSB_DMA_STATUS_CORE_ABORT:
 		/* fault irq handler should have handled cleanup */
-		WARN("%cX DMA%d not cleaned up after abort!\n",
+		WARNING("%cX DMA%d not cleaned up after abort!\n",
 				cppi_ch->transmit ? 'T' : 'R',
 				cppi_ch->index);
 		/* WARN_ON(1); */
 		break;
 	case MUSB_DMA_STATUS_BUSY:
-		WARN("program active channel?  %cX DMA%d\n",
+		WARNING("program active channel?  %cX DMA%d\n",
 				cppi_ch->transmit ? 'T' : 'R',
 				cppi_ch->index);
 		/* WARN_ON(1); */
@@ -1024,6 +1024,7 @@ static bool cppi_rx_scan(struct cppi *cppi, unsigned ch)
 			i++, bd = bd->next) {
 		u16	len;
 
+		/* catch latest BD writes from CPPI */
 		rmb();
 		if (!completed && (bd->hw_options & CPPI_OWN_SET))
 			break;
@@ -1179,6 +1180,7 @@ void cppi_completion(struct musb *musb, u32 rx, u32 tx)
 				i++, bd = bd->next) {
 			u16	len;
 
+			/* catch latest BD writes from CPPI */
 			rmb();
 			if (bd->hw_options & CPPI_OWN_SET)
 				break;

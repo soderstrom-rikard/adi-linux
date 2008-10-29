@@ -4,8 +4,6 @@
  * (C) 2002 Robert Kaiser <rkaiser@sysgo.de>
  *
  * This code is GPL
- *
- * $Id$
  */
 
 #ifndef MTD_CONCAT_H

@@ -18,7 +18,7 @@ struct ac97_frame {
 	u16 ac97_data;		/* slot 2 */
 	u16 ac97_pcm_l;		/*slot 3:front left*/
 	u16 ac97_pcm_r;		/*slot 4:front left*/
-#if defined(CONFIG_SND_MULTICHAN_SUPPORT)
+#if defined(CONFIG_SND_BF5XX_MULTICHAN_SUPPORT)
 	u16 ac97_mdm_l1;
 	u16 ac97_center;	/*slot 6:center*/
 	u16 ac97_sl;		/*slot 7:surround left*/
@@ -44,15 +44,13 @@ struct ac97_frame {
 #define TAG_CMD			0x6000
 #define TAG_PCM_LEFT		0x1000
 #define TAG_PCM_RIGHT		0x0800
-#define TAG_PCM			(TAG_PCM_LEFT | TAG_PCM_RIGHT)
-#if defined(CONFIG_SND_MULTICHAN_SUPPORT)
 #define TAG_PCM_MDM_L1		0x0400
 #define TAG_PCM_CENTER		0x0200
 #define TAG_PCM_SL		0x0100
 #define TAG_PCM_SR		0x0080
 #define TAG_PCM_LFE		0x0040
-#endif
-extern struct snd_soc_cpu_dai bfin_ac97_dai;
+
+extern struct snd_soc_dai bfin_ac97_dai;
 
 void bf5xx_pcm_to_ac97(struct ac97_frame *dst, const __u16 *src, \
 		size_t count, unsigned int chan_mask);

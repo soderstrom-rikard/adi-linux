@@ -5,8 +5,6 @@
  *
  *		PF_INET6 protocol dispatch tables.
  *
- * Version:	$Id$
- *
  * Authors:	Pedro Roque	<roque@di.fc.ul.pt>
  *
  *		This program is free software; you can redistribute it and/or

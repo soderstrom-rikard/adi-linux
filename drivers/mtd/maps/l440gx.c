@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * BIOS Flash chip on Intel 440GX board.
  *
  * Bugs this currently does not work under linuxBIOS.

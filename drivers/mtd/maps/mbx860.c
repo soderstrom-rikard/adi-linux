@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Handle mapping of the flash on MBX860 boards
  *
  * Author:	Anton Todorov

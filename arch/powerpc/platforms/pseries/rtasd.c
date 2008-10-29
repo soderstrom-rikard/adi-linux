@@ -32,7 +32,7 @@
 
 static DEFINE_SPINLOCK(rtasd_log_lock);
 
-DECLARE_WAIT_QUEUE_HEAD(rtas_log_wait);
+static DECLARE_WAIT_QUEUE_HEAD(rtas_log_wait);
 
 static char *rtas_log_buf;
 static unsigned long rtas_log_start;
@@ -295,19 +295,29 @@ static ssize_t rtas_log_read(struct file * file, char __user * buf,
 	if (!tmp)
 		return -ENOMEM;
 
-
 	spin_lock_irqsave(&rtasd_log_lock, s);
 	/* if it's 0, then we know we got the last one (the one in NVRAM) */
-	if (rtas_log_size == 0 && logging_enabled)
+	while (rtas_log_size == 0) {
+		if (file->f_flags & O_NONBLOCK) {
+			spin_unlock_irqrestore(&rtasd_log_lock, s);
+			error = -EAGAIN;
+			goto out;
+		}
+
+		if (!logging_enabled) {
+			spin_unlock_irqrestore(&rtasd_log_lock, s);
+			error = -ENODATA;
+			goto out;
+		}
 		nvram_clear_error_log();
-	spin_unlock_irqrestore(&rtasd_log_lock, s);
 
+		spin_unlock_irqrestore(&rtasd_log_lock, s);
+		error = wait_event_interruptible(rtas_log_wait, rtas_log_size);
+		if (error)
+			goto out;
+		spin_lock_irqsave(&rtasd_log_lock, s);
+	}
 
-	error = wait_event_interruptible(rtas_log_wait, rtas_log_size);
-	if (error)
-		goto out;
-
-	spin_lock_irqsave(&rtasd_log_lock, s);
 	offset = rtas_error_log_buffer_max * (rtas_log_start & LOG_NUMBER_MASK);
 	memcpy(tmp, &rtas_log_buf[offset], count);
 
@@ -329,7 +339,7 @@ static unsigned int rtas_log_poll(struct file *file, poll_table * wait)
 	return 0;
 }
 
-const struct file_operations proc_rtas_log_operations = {
+static const struct file_operations proc_rtas_log_operations = {
 	.read =		rtas_log_read,
 	.poll =		rtas_log_poll,
 	.open =		rtas_log_open,

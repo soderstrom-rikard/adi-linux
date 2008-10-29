@@ -194,24 +194,9 @@ service_in_request(struct musb *musb, const struct usb_ctrlrequest *ctrlrequest)
 /*
  * Context:  caller holds controller lock
  */
-static void musb_g_ep0_flushfifo(struct musb *musb)
-{
-	void __iomem *regs = musb->control_ep->regs;
-	u8 csr = musb_readw(regs, MUSB_CSR0);
-
-	csr |= MUSB_CSR0_FLUSHFIFO;
-	musb_writew(regs, MUSB_CSR0, csr);
-}
-
-/*
- * Context:  caller holds controller lock
- */
 static void musb_g_ep0_giveback(struct musb *musb, struct usb_request *req)
 {
 	musb_g_giveback(&musb->endpoints[0].ep_in, req, 0);
-	if (req->status == 0)
-		musb_g_ep0_flushfifo(musb);
-
 	musb->ep0_state = MUSB_EP0_STAGE_SETUP;
 }
 
@@ -271,19 +256,19 @@ __acquires(musb->lock)
 			case USB_RECIP_INTERFACE:
 				break;
 			case USB_RECIP_ENDPOINT:{
-				const u8 epnum = ctrlrequest->wIndex & 0x0f;
+				const u8 num = ctrlrequest->wIndex & 0x0f;
 				struct musb_ep *musb_ep;
 
-				if (epnum == 0
-						|| epnum >= MUSB_C_NUM_EPS
+				if (num == 0
+						|| num >= MUSB_C_NUM_EPS
 						|| ctrlrequest->wValue
 							!= USB_ENDPOINT_HALT)
 					break;
 
 				if (ctrlrequest->wIndex & USB_DIR_IN)
-					musb_ep = &musb->endpoints[epnum].ep_in;
+					musb_ep = &musb->endpoints[num].ep_in;
 				else
-					musb_ep = &musb->endpoints[epnum].ep_out;
+					musb_ep = &musb->endpoints[num].ep_out;
 				if (!musb_ep->desc)
 					break;
 
@@ -491,6 +476,7 @@ static void ep0_rxstate(struct musb *musb)
 			return;
 		musb->ackpend = 0;
 	}
+	musb_ep_select(musb->mregs, 0);
 	musb_writew(regs, MUSB_CSR0, csr);
 }
 
@@ -543,6 +529,7 @@ static void ep0_txstate(struct musb *musb)
 	}
 
 	/* send it out, triggering a "txpktrdy cleared" irq */
+	musb_ep_select(musb->mregs, 0);
 	musb_writew(regs, MUSB_CSR0, csr);
 }
 

@@ -4,8 +4,6 @@
  *
  * Flash map driver for the Dy4 SVME182 board
  *
- * $Id$
- *
  * Copyright 2003-2004, TimeSys Corporation
  *
  * Based on the SVME181 flash map, by Tom Nelson, Dot4, Inc. for TimeSys Corp.
