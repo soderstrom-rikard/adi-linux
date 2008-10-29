@@ -458,9 +458,9 @@ static void add_vma_to_mm(struct mm_struct *mm, struct vm_list_struct *vml)
 {
 	struct vm_list_struct **ppv;
 	struct vm_area_struct *vma = vml->vma;
-	long len = vma->vm_end - vma->vm_start;
 
 #ifdef CONFIG_MPU
+	long len = vma->vm_end - vma->vm_start;
 	while (len > 0) {
 		len -= PAGE_SIZE;
 		protect_page(mm, vma->vm_start + len, vma->vm_flags);
