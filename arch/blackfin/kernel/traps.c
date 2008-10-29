@@ -148,10 +148,10 @@ static void decode_address(char *buf, unsigned long address)
 				struct file *file = vma->vm_file;
 
 				if (file) {
-					name = d_path(&file->f_path, _tmpbuf,
+					char *d_name = d_path(&file->f_path, _tmpbuf,
 						      sizeof(_tmpbuf));
-					if (IS_ERR(name))
-						name = NULL;
+					if (!IS_ERR(d_name))
+						name = d_name;
 				}
 
 				/* FLAT does not have its text aligned to the start of
@@ -172,13 +172,10 @@ static void decode_address(char *buf, unsigned long address)
 							 (vma->vm_pgoff << PAGE_SHIFT);
 
 					sprintf(buf, "<0x%p> [ %s + 0x%lx ]",
-						(void *)address,
-						(name ? name : "(error)"),
-						offset);
+						(void *)address, name, offset);
 				} else
 					sprintf(buf, "<0x%p> [ %s vma:0x%lx-0x%lx]",
-						(void *)address,
-						(name ? name : "(error)"),
+						(void *)address, name,
 						vma->vm_start, vma->vm_end);
 
 				if (!in_atomic)
