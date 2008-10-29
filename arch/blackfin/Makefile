@@ -48,9 +48,9 @@ machine-$(CONFIG_BF561) := bf561
 MACHINE := $(machine-y)
 export MACHINE
 
-cpu-$(CONFIG_BF512) := bf518
-cpu-$(CONFIG_BF514) := bf518
-cpu-$(CONFIG_BF516) := bf518
+cpu-$(CONFIG_BF512) := bf512
+cpu-$(CONFIG_BF514) := bf514
+cpu-$(CONFIG_BF516) := bf516
 cpu-$(CONFIG_BF518) := bf518
 cpu-$(CONFIG_BF522) := bf522
 cpu-$(CONFIG_BF523) := bf523
