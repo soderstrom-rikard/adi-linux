@@ -425,21 +425,6 @@ int kvmppc_handle_exit(struct kvm_run *run, struct kvm_vcpu *vcpu,
 		break;
 	}
 
-	case BOOKE_INTERRUPT_DEBUG: {
-		u32 dbsr;
-
-		vcpu->arch.pc = mfspr(SPRN_CSRR0);
-
-		/* clear IAC events in DBSR register */
-		dbsr = mfspr(SPRN_DBSR);
-		dbsr &= DBSR_IAC1 | DBSR_IAC2 | DBSR_IAC3 | DBSR_IAC4;
-		mtspr(SPRN_DBSR, dbsr);
-
-		run->exit_reason = KVM_EXIT_DEBUG;
-		r = RESUME_HOST;
-		break;
-	}
-
 	default:
 		printk(KERN_EMERG "exit_nr %d\n", exit_nr);
 		BUG();
@@ -500,8 +485,6 @@ int kvm_arch_vcpu_setup(struct kvm_vcpu *vcpu)
 	vcpu->arch.pc = 0;
 	vcpu->arch.msr = 0;
 	vcpu->arch.gpr[1] = (16<<20) - 8; /* -8 for the callee-save LR slot */
-
-	vcpu->arch.shadow_pid = 1;
 
 	vcpu->arch.shadow_pid = 1;
 

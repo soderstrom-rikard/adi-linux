@@ -35,11 +35,6 @@ config ARCH_AT91SAM9G20
 	select GENERIC_TIME
 	select GENERIC_CLOCKEVENTS
 
-config ARCH_AT91SAM9G20
-	bool "AT91SAM9G20"
-	select GENERIC_TIME
-	select GENERIC_CLOCKEVENTS
-
 config ARCH_AT91CAP9
 	bool "AT91CAP9"
 	select GENERIC_TIME
@@ -142,12 +137,6 @@ config MACH_YL9200
 	help
 	  Select this if you are using the ucDragon YL-9200 board.
 
-config MACH_YL9200
-	bool "ucDragon YL-9200"
-	depends on ARCH_AT91RM9200
-	help
-	  Select this if you are using the ucDragon YL-9200 board.
-
 endif
 
 # ----------------------------------------------------------
@@ -209,29 +198,6 @@ config MACH_QIL_A9260
 	  Select this if you are using a Calao Systems QIL-A9260 Board.
 	  <http://www.calao-systems.com>
 
-config MACH_AFEB9260
-	bool "Custom afeb9260 board v1"
-	depends on ARCH_AT91SAM9260
-	help
-	  Select this if you are using custom afeb9260 board based on
-	  open hardware design. Select this for revision 1 of the board.
-	  <svn://194.85.238.22/home/users/george/svn/arm9eb>
-	  <http://groups.google.com/group/arm9fpga-evolution-board>
-
-config MACH_USB_A9260
-	bool "CALAO USB-A9260"
-	depends on ARCH_AT91SAM9260
-	help
-	  Select this if you are using a Calao Systems USB-A9260.
-	  <http://www.calao-systems.com>
-
-config MACH_QIL_A9260
-	bool "CALAO QIL-A9260 board"
-	depends on ARCH_AT91SAM9260
-	help
-	  Select this if you are using a Calao Systems QIL-A9260 Board.
-	  <http://www.calao-systems.com>
-
 endif
 
 # ----------------------------------------------------------
@@ -269,13 +235,6 @@ config MACH_USB_A9263
 	  Select this if you are using a Calao Systems USB-A9263.
 	  <http://www.calao-systems.com>
 
-config MACH_USB_A9263
-	bool "CALAO USB-A9263"
-	depends on ARCH_AT91SAM9263
-	help
-	  Select this if you are using a Calao Systems USB-A9263.
-	  <http://www.calao-systems.com>
-
 endif
 
 # ----------------------------------------------------------
@@ -289,20 +248,6 @@ config MACH_AT91SAM9RLEK
 	depends on ARCH_AT91SAM9RL
 	help
 	  Select this if you are using Atmel's AT91SAM9RL-EK Evaluation Kit.
-
-endif
-
-# ----------------------------------------------------------
-
-if ARCH_AT91SAM9G20
-
-comment "AT91SAM9G20 Board Type"
-
-config MACH_AT91SAM9G20EK
-	bool "Atmel AT91SAM9G20-EK Evaluation Kit"
-	depends on ARCH_AT91SAM9G20
-	help
-	  Select this if you are using Atmel's AT91SAM9G20-EK Evaluation Kit.
 
 endif
 
@@ -377,19 +322,6 @@ config AT91_PROGRAMMABLE_CLOCKS
 	help
 	  Select this if you need to program one or more of the PCK0..PCK3
 	  programmable clock outputs.
-
-config AT91_SLOW_CLOCK
-	bool "Suspend-to-RAM disables main oscillator"
-	depends on SUSPEND
-	help
-	  Select this if you want Suspend-to-RAM to save the most power
-	  possible (without powering off the CPU) by disabling the PLLs
-	  and main oscillator so that only the 32 KiHz clock is available.
-
-	  When only that slow-clock is available, some peripherals lose
-	  functionality.  Many can't issue wakeup events unless faster
-	  clocks are available.  Some lose their operating state and
-	  need to be completely re-initialized.
 
 config AT91_SLOW_CLOCK
 	bool "Suspend-to-RAM disables main oscillator"
