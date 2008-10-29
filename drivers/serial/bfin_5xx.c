@@ -403,7 +403,8 @@ static void bfin_serial_dma_rx_chars(struct bfin_serial_port *uart)
 
 void bfin_serial_rx_dma_timeout(struct bfin_serial_port *uart)
 {
-	int x_pos, pos, flags;
+	int x_pos, pos;
+	unsigned long flags;
 
 	spin_lock_irqsave(&uart->port.lock, flags);
 
@@ -1151,7 +1152,7 @@ static void
 bfin_serial_console_write(struct console *co, const char *s, unsigned int count)
 {
 	struct bfin_serial_port *uart = &bfin_serial_ports[co->index];
-	int flags = 0;
+	unsigned long flags;
 
 	spin_lock_irqsave(&uart->port.lock, flags);
 	uart_console_write(&uart->port, s, count, bfin_serial_console_putchar);
