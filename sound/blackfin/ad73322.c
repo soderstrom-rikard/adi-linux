@@ -207,7 +207,8 @@ static int snd_ad73322_play_open(struct snd_pcm_substream *substream)
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
 	int index = substream->pcm->device;
 	/*device index from 0 to 7*/
-	snd_assert((index >= 0 && index <= 7), return -EINVAL);
+	if (snd_BUG_ON(index < 0 || index > 7))
+		return -EINVAL;
 	snd_printk_marker();
 	substream->runtime->hw = snd_ad73322_play_hw;
 	chip->tx_substreams[index].substream = substream;
@@ -220,7 +221,8 @@ static int snd_ad73322_cap_open(struct snd_pcm_substream *substream)
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
 	int index = substream->pcm->device;
 
-	snd_assert((index >= 0 && index <= 7), return -EINVAL);
+	if (snd_BUG_ON(index < 0 || index > 7))
+		return -EINVAL;
 	snd_printk_marker();
 	substream->runtime->hw = snd_ad73322_cap_hw;
 	chip->rx_substreams[index].substream = substream;
@@ -293,7 +295,8 @@ static int snd_ad73322_play_pre(struct snd_pcm_substream *substream)
 	substream_info_t *sub_info = (substream_info_t *)&(chip->tx_substreams[substream->pcm->device]);
 	int index = substream->pcm->device;
 
-	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
+	if (snd_BUG_ON(index < 0 || index > 7 || !sub_info))
+		return -EINVAL;
 	sub_info->period_frames = runtime->period_size;
 	sub_info->periods = runtime->periods;
 	sub_info->buffer_frames = runtime->buffer_size;
@@ -323,7 +326,8 @@ static int snd_ad73322_cap_pre(struct snd_pcm_substream *substream)
 	substream_info_t *sub_info = (substream_info_t *)&(chip->rx_substreams[substream->pcm->device]);
 	int index = substream->pcm->device;
 
-	snd_assert((index >= 0 && index <=7 && sub_info), return -EINVAL);
+	if (snd_BUG_ON(index < 0 || index > 7 || !sub_info))
+		return -EINVAL;
 	sub_info->period_frames = runtime->period_size;
 	sub_info->periods = runtime->periods;
 	sub_info->buffer_frames = runtime->buffer_size;
@@ -351,7 +355,10 @@ static int snd_ad73322_play_trigger(struct snd_pcm_substream *substream, int cmd
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
 	substream_info_t *sub_info = (substream_info_t *)&(chip->tx_substreams[substream->pcm->device]);
 	int index = substream->pcm->device;
-	snd_assert((index >= 0 && index <= 7 && sub_info), return -EINVAL);
+
+	if (snd_BUG_ON(index < 0 || index > 7 || !sub_info))
+		return -EINVAL;
+
 	spin_lock(&chip->ad73322_lock);
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
@@ -392,7 +399,10 @@ static int snd_ad73322_cap_trigger(struct snd_pcm_substream *substream, int cmd)
 	ad73322_t *chip = snd_pcm_substream_chip(substream);
 	substream_info_t *sub_info = (substream_info_t *)&(chip->rx_substreams[substream->pcm->device]);
 	int index = substream->pcm->device;
-	snd_assert((index >= 0 && index <= 7 && sub_info), return -EINVAL);
+
+	if (snd_BUG_ON(index < 0 || index > 7 || !sub_info))
+		return -EINVAL;
+
 	spin_lock(&chip->ad73322_lock);
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:

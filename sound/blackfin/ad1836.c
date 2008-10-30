@@ -1057,7 +1057,8 @@ static int snd_ad1836_playback_prepare(struct snd_pcm_substream *substream)
 	substream_info_t *sub_info = NULL;
 	int index = find_substream(chip, substream, &sub_info);
 
-	snd_assert((index >= 0 && index <=2 && sub_info), return -EINVAL);
+	if (snd_BUG_ON(index < 0 || index > 2 || !sub_info))
+		return -EINVAL;
 
 	sub_info->period_frames = runtime->period_size;
 	sub_info->periods = runtime->periods;
@@ -1078,7 +1079,8 @@ static int snd_ad1836_playback_prepare(struct snd_pcm_substream *substream)
 	}
 	sub_info->dma_offset = 0;
 #else
-	snd_assert((substream == chip->tx_substream), return -EINVAL);
+	if (snd_BUG_ON(substream != chip->tx_substream))
+		return -EINVAL;
 #endif
 
 	snd_printd(KERN_INFO "%s channels:%d, period_bytes:0x%lx, periods:%d\n",
@@ -1112,7 +1114,8 @@ static int snd_ad1836_capture_prepare(struct snd_pcm_substream *substream)
 	int word_len, err=0;
 
 	snd_printk_marker();
-	snd_assert((substream == chip->rx_substream), return -EINVAL);
+	if (snd_BUG_ON(substream != chip->rx_substream))
+		return -EINVAL;
 
 	snd_printd(KERN_INFO "%s channels:%d, fragsize_bytes:0x%x, frag_count:%d\n",
 			__FUNCTION__, runtime->channels, fragsize_bytes, fragcount);
@@ -1139,7 +1142,8 @@ static int snd_ad1836_playback_trigger(struct snd_pcm_substream *substream, int 
 #ifdef MULTI_SUBSTREAM
 	substream_info_t *sub_info = NULL;
 	int index = find_substream(chip, substream, &sub_info);
-	snd_assert((index >= 0 && index <= 2 && sub_info), return -EINVAL);
+	if (snd_BUG_ON(index < 0 || index > 2 || !sub_info))
+		return -EINVAL;
 #endif
 
 	snd_printk_marker();
@@ -1190,7 +1194,8 @@ static int snd_ad1836_capture_trigger(struct snd_pcm_substream *substream, int c
 	snd_printk_marker();
 
 	spin_lock(&chip->ad1836_lock);
-	snd_assert(substream == chip->rx_substream, return -EINVAL);
+	if (snd_BUG_ON(substream != chip->rx_substream))
+		return -EINVAL;
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
@@ -1298,7 +1303,8 @@ static int snd_ad1836_playback_copy(struct snd_pcm_substream *substream, int cha
 	int index = find_substream(chip, substream, &sub_info);
 	snd_pcm_uframes_t start, temp_count, temp2_count;
 
-	snd_assert((index >= 0 && index <=2 && sub_info), return -EINVAL);
+	if (snd_BUG_ON(index < 0 || index > 2 || !sub_info))
+		return -EINVAL;
 
 	if (index > 0 && index <=2 && !(chip->tx_status & (1<<index))) {
 		sub_info->data_count += count;
