@@ -206,7 +206,6 @@ static CLASS_ATTR(status, S_IRUGO, &timer_status_show, NULL);
 
 int __init timer_initialize(void){
 	int minor;
-	char minor_name[8];
 	int err;
 	err = register_chrdev(TIMER_MAJOR, DRV_NAME, &fops);
 	if (err < 0){
@@ -222,11 +221,9 @@ int __init timer_initialize(void){
 		unregister_chrdev(TIMER_MAJOR, DRV_NAME);
 		return err;
 	}
-	for (minor = 0; minor < MAX_BLACKFIN_GPTIMERS; minor++) {
-		sprintf(minor_name, "timer%d", minor);
+	for (minor = 0; minor < MAX_BLACKFIN_GPTIMERS; minor++)
 		device_create(timer_class, NULL,
-			      MKDEV(TIMER_MAJOR, minor), minor_name);
-	}
+			      MKDEV(TIMER_MAJOR, minor), NULL, "timer%d", minor);
 	
 	DPRINTK("module loaded\n");
 	return 0;

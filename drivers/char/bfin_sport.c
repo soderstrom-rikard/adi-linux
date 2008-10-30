@@ -768,7 +768,6 @@ static void sport_setup_cdev(struct sport_dev *dev, int index)
 static int __init sport_init_module(void)
 {
 	int minor;
-	char minor_name[8];
 	int result, i;
 	dev_t dev = 0;
 
@@ -792,11 +791,8 @@ static int __init sport_init_module(void)
 		sport_cleanup_module();
 		return result;
 	}
-	for (minor = 0; minor < sport_nr_devs; minor++) {
-		sprintf(minor_name, "sport%d", minor);
-		device_create(sport_class, NULL,
-			      MKDEV(sport_major, minor), NULL, minor_name);
-	}
+	for (minor = 0; minor < sport_nr_devs; minor++)
+		device_create(sport_class, NULL, dev, NULL, "sport%d", minor);
 
         /* Initialize each device. */
 	for (i = 0; i < sport_nr_devs; i++) {
