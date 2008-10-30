@@ -37,7 +37,7 @@
 #include "defBF51x_base.h"
 
 /* Include core specific register pointer definitions 								*/
-#include <asm/mach-common/cdef_LPBlackfin.h>
+#include <asm/cdef_LPBlackfin.h>
 
 /* ==== begin from cdefBF534.h ==== */
 

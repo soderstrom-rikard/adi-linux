@@ -36,7 +36,7 @@
 #include "defBF516.h"
 
 /* include core specific register pointer definitions */
-#include <asm/mach-common/cdef_LPBlackfin.h>
+#include <asm/cdef_LPBlackfin.h>
 
 /* SYSTEM & MMR ADDRESS DEFINITIONS FOR ADSP-BF516 */
 

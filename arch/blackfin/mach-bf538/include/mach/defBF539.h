@@ -48,7 +48,7 @@
 #define _DEF_BF539_H
 
 /* include all Core registers and bit definitions */
-#include <asm/mach-common/def_LPBlackfin.h>
+#include <asm/def_LPBlackfin.h>
 
 
 /*********************************************************************************** */

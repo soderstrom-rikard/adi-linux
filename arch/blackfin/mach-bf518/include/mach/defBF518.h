@@ -32,7 +32,7 @@
 #define _DEF_BF518_H
 
 /* Include all Core registers and bit definitions */
-#include <asm/mach-common/def_LPBlackfin.h>
+#include <asm/def_LPBlackfin.h>
 
 /* SYSTEM & MMR ADDRESS DEFINITIONS FOR ADSP-BF518 */
 

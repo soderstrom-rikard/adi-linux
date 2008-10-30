@@ -37,7 +37,7 @@
 #include "defBF539.h"
 
 /*include core specific register pointer definitions*/
-#include <asm/mach-common/cdef_LPBlackfin.h>
+#include <asm/cdef_LPBlackfin.h>
 
 #include <asm/system.h>
 
