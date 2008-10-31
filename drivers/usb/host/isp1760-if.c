@@ -3,7 +3,7 @@
  * Currently there is support for
  * - OpenFirmware
  * - PCI
- * - PDEV (generic platfrom device centralized driver model)
+ * - PDEV (generic platform device centralized driver model)
  *
  * (c) 2007 Sebastian Siewior <bigeasy@linutronix.de>
  *
