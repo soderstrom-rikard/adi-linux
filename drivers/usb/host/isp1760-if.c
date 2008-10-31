@@ -3,6 +3,7 @@
  * Currently there is support for
  * - OpenFirmware
  * - PCI
+ * - PDEV (generic platfrom device centralized driver model)
  *
  * (c) 2007 Sebastian Siewior <bigeasy@linutronix.de>
  *
@@ -21,6 +22,12 @@
 
 #ifdef CONFIG_USB_ISP1760_PCI
 #include <linux/pci.h>
+#endif
+
+#if !defined(CONFIG_USB_ISP1760_OF) && !defined(CONFIG_USB_ISP1760_PCI)
+#define USB_ISP1760_PDEV
+#include <linux/platform_device.h>
+#include <linux/usb/isp1760.h>
 #endif
 
 #ifdef CONFIG_USB_ISP1760_OF
@@ -286,11 +293,99 @@ static struct pci_driver isp1761_pci_driver = {
 };
 #endif
 
+#ifdef USB_ISP1760_PDEV
+static int __devinit
+isp1760_pdev_probe(struct platform_device *pdev)
+{
+	struct usb_hcd *hcd;
+	struct resource	*addr;
+	int irq;
+	unsigned int devflags = 0;
+	struct isp1760_platform_data *priv = pdev->dev.platform_data;
+
+	/* basic sanity checks first.  board-specific init logic should
+	 * have initialized these two resources and probably board
+	 * specific platform_data.  we don't probe for IRQs, and do only
+	 * minimal sanity checking.
+	 */
+
+	if (usb_disabled())
+		return -ENODEV;
+
+	if (pdev->num_resources < 2)
+		return -ENODEV;
+
+	addr = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	irq = platform_get_irq(pdev, 0);
+
+	if (!addr || irq < 0)
+		return -ENODEV;
+
+	if (priv) {
+		if (priv->is_isp1761)
+			devflags |= ISP1760_FLAG_ISP1761;
+		if (priv->port1_disable)
+			devflags |= ISP1760_FLAG_PORT1_DIS;
+		if (priv->bus_width_16)
+			devflags |= ISP1760_FLAG_BUS_WIDTH_16;
+		if (priv->port1_otg)
+			devflags |= ISP1760_FLAG_OTG_EN;
+		if (priv->analog_oc)
+			devflags |= ISP1760_FLAG_ANALOG_OC;
+		if (priv->dack_polarity_high)
+			devflags |= ISP1760_FLAG_DACK_POL_HIGH;
+		if (priv->dreq_polarity_high)
+			devflags |= ISP1760_FLAG_DREQ_POL_HIGH;
+	}
+
+	hcd = isp1760_register(addr->start, resource_size(addr), irq,
+		IRQF_DISABLED | IRQF_SHARED | IRQF_TRIGGER_FALLING,
+		&pdev->dev, dev_name(&pdev->dev),
+		devflags);
+
+	if (IS_ERR(hcd))
+		return PTR_ERR(hcd);
+
+	return 0;
+}
+
+static int __devexit
+isp1760_pdev_remove(struct platform_device *pdev)
+{
+	struct usb_hcd *hcd = platform_get_drvdata(pdev);
+
+	platform_set_drvdata(pdev, NULL);
+
+	usb_remove_hcd(hcd);
+	iounmap(hcd->regs);
+	usb_put_hcd(hcd);
+	return 0;
+}
+
+/* this driver is exported so sl811_cs can depend on it */
+struct platform_driver isp1760_pdev_driver = {
+	.probe =	isp1760_pdev_probe,
+	.remove =	__devexit_p(isp1760_pdev_remove),
+	.driver = {
+		.name =	"isp1760-hcd",
+		.owner = THIS_MODULE,
+	},
+};
+#endif /* USB_ISP1760_PDEV */
+
 static int __init isp1760_init(void)
 {
 	int ret = -ENODEV;
 
 	init_kmem_once();
+
+#ifdef USB_ISP1760_PDEV
+	ret = platform_driver_register(&isp1760_pdev_driver);
+	if (ret) {
+		deinit_kmem_cache();
+		return ret;
+	}
+#endif
 
 #ifdef CONFIG_USB_ISP1760_OF
 	ret = of_register_platform_driver(&isp1760_of_driver);
@@ -324,6 +419,9 @@ static void __exit isp1760_exit(void)
 #endif
 #ifdef CONFIG_USB_ISP1760_PCI
 	pci_unregister_driver(&isp1761_pci_driver);
+#endif
+#ifdef USB_ISP1760_PDEV
+	platform_driver_unregister(&isp1760_pdev_driver);
 #endif
 	deinit_kmem_cache();
 }
