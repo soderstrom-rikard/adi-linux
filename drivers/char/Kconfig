@@ -4,7 +4,7 @@
 
 menu "Character devices"
 config AD9960
-	bool "AD9960 chip driver"
+	tristate "AD9960 chip driver"
 	depends on BLACKFIN
 	select SPI
 	select SPI_BFIN
@@ -19,7 +19,7 @@ config AD9960_TX_RX_PIN
 	  This is the tx/rx enable signal pin bit number in the GPIO port.
 
 config SPI_ADC_BF533
-	bool "Blackfin BF53x ADSP SPI ADC support"
+	tristate "Blackfin BF53x ADSP SPI ADC support"
 	depends on BLACKFIN
 	select SPI
 	select SPI_BFIN
@@ -27,7 +27,7 @@ config SPI_ADC_BF533
 	---help---
 
 config BF5xx_PPIFCD
-	bool "Blackfin BF5xx PPI Camera frame capture driver"
+	tristate "Blackfin BF5xx PPI Camera frame capture driver"
 	depends on BLACKFIN
 	default n
 	---help---
@@ -35,7 +35,7 @@ config BF5xx_PPIFCD
 	  connected to Balckfin's PPI port. (Tested with Micron Modules)
 
 config BFIN_SIMPLE_TIMER
-	bool "Blackfin General Purpose Timers char device interface"
+	tristate "Blackfin General Purpose Timers char device interface"
 	select BFIN_GPTIMERS
 	default n
 	help
@@ -44,14 +44,14 @@ config BFIN_SIMPLE_TIMER
 	  drivers/char/bfin_simple_timer.c for details.
 
 config BF5xx_PPI
-	bool "Blackfin BF5xx PPI Driver"
+	tristate "Blackfin BF5xx PPI Driver"
 	depends on BLACKFIN
 	select BFIN_GPTIMERS
 	default n
 	---help---
 
 config BFIN_SPORT
-	bool "Blackfin SPORT driver for direct raw access"
+	tristate "Blackfin SPORT driver for direct raw access"
 	depends on BLACKFIN
 	default n
 	help
@@ -63,7 +63,7 @@ config BFIN_SPORT
 	  If unsure, then say N.
 
 config BFIN_TIMER_LATENCY
-	bool "Blackfin 5xx interrupt latency test"
+	tristate "Blackfin 5xx interrupt latency test"
 	depends on BLACKFIN
 	default n
 	---help---
