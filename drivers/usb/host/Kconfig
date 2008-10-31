@@ -146,7 +146,6 @@ config USB_ISP1362_HCD
 	  To compile this driver as a module, choose M here: the
 	  module will be called isp1362-hcd.
 
-
 config USB_ISP1362_BFIN_GPIO_IRQ
 	int "GPIO for Interrupt"
 	depends on (BF537 && USB_ISP1362_HCD)
@@ -156,15 +155,6 @@ config USB_ISP1362_BFIN_GPIO_IRQ
           Choose an PF pin as ISP1362's interrupt. This must corresponds to
 	  the JP3 on usb daughter card. The available value is from 50 to 97.
 	  For more information look at include/asm-blackfin/mach-bfxxx/irq.h.
-
-config USB_ISP1760_HCD
-       tristate "ISP1760 HCD support"
-       depends on USB
-       default N
-       ---help---
-         Supports the Philips ISP1760 chip as a host controller
-         To compile this driver as a module, choose M here: the
-         module will be called isp1760-hcd.
 
 config USB_OHCI_HCD
 	tristate "OHCI HCD support"
