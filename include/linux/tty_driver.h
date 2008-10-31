@@ -261,6 +261,11 @@ struct tty_operations {
 	int (*resize)(struct tty_struct *tty, struct tty_struct *real_tty,
 				struct winsize *ws);
 	int (*set_termiox)(struct tty_struct *tty, struct termiox *tnew);
+#if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
+	int (*kgdboc_port_startup)(struct tty_driver *driver, int line);
+	int (*kgdboc_port_shutdown)(struct tty_driver *driver, int line);
+#endif
 #ifdef CONFIG_CONSOLE_POLL
 	int (*poll_init)(struct tty_driver *driver, int line, char *options);
 	int (*poll_get_char)(struct tty_driver *driver, int line);
