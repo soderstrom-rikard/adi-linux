@@ -47,6 +47,7 @@
 #include <linux/time.h>
 #include <linux/timex.h>
 #include <linux/wait.h>
+#include <linux/videodev.h>
 #include <media/v4l2-dev.h>
 
 #include "vs6524.h"
@@ -497,27 +498,27 @@ static int vs6524_create_sysfs(struct video_device *v4ldev)
 {
 	int rc;
 
-	rc = video_device_create_file(v4ldev, &dev_attr_fps);
+	rc = device_create_file(&v4ldev->dev, &dev_attr_fps);
 	if (rc)
 		goto err;
-	rc = video_device_create_file(v4ldev, &dev_attr_flicker);
+	rc = device_create_file(&v4ldev->dev, &dev_attr_flicker);
 	if (rc)
 		goto err_flicker;
-	rc = video_device_create_file(v4ldev, &dev_attr_v_mirror);
+	rc = device_create_file(&v4ldev->dev, &dev_attr_v_mirror);
 	if (rc)
 		goto err_v_mirror;
-	rc = video_device_create_file(v4ldev, &dev_attr_h_mirror);
+	rc = device_create_file(&v4ldev->dev, &dev_attr_h_mirror);
 	if (rc)
 		goto err_h_mirror;
 
 	return 0;
 
 err_h_mirror:
-	video_device_remove_file(v4ldev, &dev_attr_v_mirror);
+	device_remove_file(&v4ldev->dev, &dev_attr_v_mirror);
 err_v_mirror:
-	video_device_remove_file(v4ldev, &dev_attr_flicker);
+	device_remove_file(&v4ldev->dev, &dev_attr_flicker);
 err_flicker:
-	video_device_remove_file(v4ldev, &dev_attr_fps);
+	device_remove_file(&v4ldev->dev, &dev_attr_fps);
 err:
 	return rc;
 }

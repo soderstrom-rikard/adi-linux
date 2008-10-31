@@ -47,8 +47,11 @@
 #include <linux/timex.h>
 #include <linux/wait.h>
 #include <linux/dma-mapping.h>
+#include <linux/videodev.h>
 
 #include <media/v4l2-dev.h>
+#include <media/v4l2-common.h>
+#include <media/v4l2-ioctl.h>
 
 #include <asm/blackfin.h>
 #include <asm/io.h>
@@ -1378,10 +1381,7 @@ static struct file_operations bcap_fops = {
 };
 
 static struct video_device bcap_template = {
-	.owner = THIS_MODULE,
 	.name = "Blackfin CMOS Camera",
-	.type = VID_TYPE_CAPTURE | VID_TYPE_MONOCHROME,
-	.type2 = V4L2_CAP_VIDEO_CAPTURE,
 	.fops = &bcap_fops,
 	.release = &v4l_release,
 	.minor = 0,

@@ -45,6 +45,7 @@
 #include <linux/time.h>
 #include <linux/timex.h>
 #include <linux/wait.h>
+#include <linux/videodev.h>
 #include <media/v4l2-dev.h>
 #include <asm/gpio.h>
 
