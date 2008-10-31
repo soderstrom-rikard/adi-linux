@@ -753,7 +753,8 @@ static int __init sport_init_module(void)
 		return result;
 	}
 	for (minor = 0; minor < sport_nr_devs; minor++)
-		device_create(sport_class, NULL, dev, NULL, "sport%d", minor);
+		device_create(sport_class, NULL, MKDEV(sport_major, minor),
+		              NULL, "sport%d", minor);
 
 	/* Initialize each device. */
 	for (i = 0; i < sport_nr_devs; ++i) {
