@@ -1251,7 +1251,8 @@ void bfin_serial_debug(const char *fmt, ...)
 {
 	struct bfin_serial_port *uart = &bfin_serial_ports[0];
 	unsigned short status, tmp;
-	int flags, i, count;
+	unsigned long flags;
+	int i, count;
 	char buf[128];
 	va_list ap;
 
