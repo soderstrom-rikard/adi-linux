@@ -121,21 +121,11 @@ static int my_set_pixfmt(struct i2c_client *client, u32 arg)
 
 static int my_set_framerate(struct i2c_client *client, u32 arg)
 {
-
 	return -EPERM;
-
-}
-
-static int my_get_framerate(struct i2c_client *client, u32 arg)
-{
-
-	return -EPERM;
-
 }
 
 static int my_set_window(struct i2c_client *client, u32 res)
 {
-
 	return 0;
 }
 
