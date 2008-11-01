@@ -233,7 +233,8 @@ static int __devinit simple_gpio_probe(struct platform_device *pdev)
 	}
 
 	for (gpio = gpio_range->start; gpio <= gpio_range->end; ++gpio)
-		device_create(simple_gpio_class, &pdev->dev, group_data->dev_node + gpio, "gpio%i", gpio);
+		device_create(simple_gpio_class, &pdev->dev, group_data->dev_node + gpio,
+		              NULL, "gpio%i", gpio);
 
 	device_init_wakeup(&pdev->dev, 1);
 
