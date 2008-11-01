@@ -587,7 +587,6 @@ static ssize_t ppi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 {
 	unsigned short regdata;
 	unsigned short stepSize;
-	unsigned short port_cfg;
 	unsigned long flags;
 	int ierr;
 	ppi_device_t *pdev = filp->private_data;
