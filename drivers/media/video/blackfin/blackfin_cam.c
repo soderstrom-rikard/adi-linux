@@ -96,7 +96,9 @@ struct bcap_device_t;
 
 static unsigned char *top_buffer;	/* TOP Video Buffer */
 static unsigned char *bottom_buffer;	/* Bottom Video Buffer */
+#if !defined(USE_2ND_BUF_IN_CACHED_MEM)
 static dma_addr_t dma_handle;
+#endif
 
 static unsigned int global_gain = 127;
 static unsigned int debug = 0;
