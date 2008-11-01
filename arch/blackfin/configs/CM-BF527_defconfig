@@ -650,6 +650,7 @@ CONFIG_BFIN_OTP=y
 # CONFIG_TWI_LCD is not set
 CONFIG_SIMPLE_GPIO=m
 # CONFIG_VT is not set
+# CONFIG_DEVKMEM is not set
 # CONFIG_SERIAL_NONSTANDARD is not set
 
 #
