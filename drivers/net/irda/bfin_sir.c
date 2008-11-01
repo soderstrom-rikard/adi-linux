@@ -338,7 +338,7 @@ void bfin_sir_rx_dma_timeout(struct net_device *dev)
 	struct bfin_sir_self *self = dev->priv;
 	struct bfin_sir_port *port = self->sir_port;
 	int x_pos, pos;
-	int flags = 0;
+	unsigned long flags;
 
 	spin_lock_irqsave(&self->lock, flags);
 	x_pos = DMA_SIR_RX_XCNT - get_dma_curr_xcount(port->rx_dma_channel);
