@@ -74,8 +74,6 @@ static int write_timer_latency(struct file *file, const char *buffer,
 	unsigned long sclk, cclk;
 	char user_value[8];
 	unsigned int wd_period_us;
-	unsigned int period_sclk;
-	unsigned int period_cclk;
 
 	copy_from_user(user_value, buffer, count);
 	wd_period_us = simple_strtoul(user_value, NULL, 0);
@@ -118,7 +116,7 @@ static irqreturn_t timer_latency_irq(int irq, void *dev_id)
 {
 	struct timer_latency_data_t *data = dev_id;
 
-	unsigned long cycles_past, cclk;
+	unsigned long cycles_past;
 	unsigned long latency;
 
 	/* unsigned long first_latency, second_latency, third_latency; */
@@ -196,8 +194,11 @@ static int __init timer_latency_init(void)
 	timer_latency_file->write_proc = &write_timer_latency;
 	timer_latency_file->owner = THIS_MODULE;
 
-	request_irq(IRQ_WATCH, timer_latency_irq, IRQF_DISABLED,
-		    "timer_latency", &timer_latency_data);
+	if (request_irq(IRQ_WATCH, timer_latency_irq, IRQF_DISABLED,
+	                "timer_latency", &timer_latency_data)) {
+		remove_proc_entry("timer_latency", NULL);
+		return -EBUSY;
+	}
 
 	printk(KERN_INFO "timer_latency module loaded\n");
 
