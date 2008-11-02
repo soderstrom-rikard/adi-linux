@@ -84,7 +84,7 @@
 #ifndef __ARCH_BLACKFIN_GPIO_H__
 #define __ARCH_BLACKFIN_GPIO_H__
 
-#define gpio_bank(x) ((x) >> 4)
+#define gpio_bank(x) ((x) & 0xF ? ((x) >> 4) + 1 : (x) >> 4)
 #define gpio_bit(x)  (1<<((x) & 0xF))
 #define gpio_sub_n(x) ((x) & 0xF)
 
