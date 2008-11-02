@@ -64,11 +64,7 @@ const struct file_operations nfs_file_operations = {
 	.write		= do_sync_write,
 	.aio_read	= nfs_file_read,
 	.aio_write	= nfs_file_write,
-#ifdef CONFIG_MMU
 	.mmap		= nfs_file_mmap,
-#else
-	.mmap		= generic_file_mmap,
-#endif
 	.open		= nfs_file_open,
 	.flush		= nfs_file_flush,
 	.release	= nfs_file_release,
@@ -294,6 +290,7 @@ nfs_file_splice_read(struct file *filp, loff_t *ppos,
 	return res;
 }
 
+#ifdef CONFIG_MMU
 static int
 nfs_file_mmap(struct file * file, struct vm_area_struct * vma)
 {
@@ -312,6 +309,17 @@ nfs_file_mmap(struct file * file, struct vm_area_struct * vma)
 	}
 	return status;
 }
+#else
+static int
+nfs_file_mmap(struct file *file, struct vm_area_struct *vma)
+{
+	/* Kill warning: 'nfs_file_vm_ops' defined but not used */
+	struct vm_operations_struct *vm_ops;
+	vm_ops = &nfs_file_vm_ops;
+
+	return generic_file_mmap(file, vma);
+}
+#endif
 
 /*
  * Flush any dirty pages for this process, and check for write errors.
