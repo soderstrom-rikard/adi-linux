@@ -960,8 +960,6 @@ static void bfin_demux_gpio_irq(unsigned int inta_irq,
 
 void __init init_exception_vectors(void)
 {
-	SSYNC();
-
 	/* cannot program in software:
 	 * evt0 - emulation (jtag)
 	 * evt1 - reset
