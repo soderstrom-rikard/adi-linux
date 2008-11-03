@@ -167,7 +167,6 @@ static void bfin_internal_mask_irq(unsigned int irq)
 	bfin_write_SIC_IMASK(mask_bank, bfin_read_SIC_IMASK(mask_bank) &
 			     ~(1 << mask_bit));
 #endif
-	SSYNC();
 }
 
 static void bfin_internal_unmask_irq(unsigned int irq)
@@ -182,7 +181,6 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 	bfin_write_SIC_IMASK(mask_bank, bfin_read_SIC_IMASK(mask_bank) |
 			     (1 << mask_bit));
 #endif
-	SSYNC();
 }
 
 #ifdef CONFIG_PM
