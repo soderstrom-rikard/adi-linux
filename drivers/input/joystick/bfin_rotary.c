@@ -1,13 +1,9 @@
 /*
  * File:         drivers/input/keyboard/bfin_rotary.c
- * Based on:
  * Author:       Michael Hennerich <hennerich@blackfin.uclinux.org>
  *
- * Created:
  * Description:  Rotary counter driver for Analog Devices Blackfin Processors
  *
- *
- * Modified:
  *               Copyright 2008 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
@@ -34,14 +30,11 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/pm.h>
-#include <linux/sysctl.h>
 #include <linux/platform_device.h>
 #include <linux/input.h>
 
 #include <asm/portmux.h>
 #include <asm/bfin_rotary.h>
-
-#define DRV_NAME	"bfin-rotary"
 
 static const u16 per_cnt[] = {
 	P_CNT_CUD,
@@ -126,7 +119,7 @@ static int __devinit bfin_rotary_probe(struct platform_device *pdev)
 	struct bfin_rot *rotary;
 	struct bfin_rotary_platform_data *pdata = pdev->dev.platform_data;
 	struct input_dev *input;
-	int error;
+	int ret;
 
 	rotary = kzalloc(sizeof(struct bfin_rot), GFP_KERNEL);
 	if (!rotary)
@@ -134,38 +127,35 @@ static int __devinit bfin_rotary_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, rotary);
 
-	error = peripheral_request_list(per_cnt, DRV_NAME);
-	if (error) {
-		printk(KERN_ERR DRV_NAME
-			": Requesting Peripherals failed\n");
+	ret = peripheral_request_list(per_cnt, dev_name(&pdev->dev));
+	if (ret) {
+		dev_err(&pdev->dev, "requesting peripherals failed\n");
 		goto out1;
 	}
 
-	rotary->irq = platform_get_irq(pdev, 0);
-	if (rotary->irq < 0) {
-		error = rotary->irq;
+	ret = rotary->irq = platform_get_irq(pdev, 0);
+	if (ret < 0)
 		goto out2;
-	}
 
-	error = request_irq(rotary->irq, bfin_rotary_isr,
-				 IRQF_SAMPLE_RANDOM, DRV_NAME, pdev);
-	if (error) {
-		printk(KERN_ERR DRV_NAME
-			": unable to claim irq %d; error %d\n",
-			rotary->irq, error);
+	ret = request_irq(rotary->irq, bfin_rotary_isr,
+				 IRQF_SAMPLE_RANDOM, dev_name(&pdev->dev), pdev);
+	if (ret) {
+		dev_err(&pdev->dev,
+			"unable to claim irq %d; error %d\n",
+			rotary->irq, ret);
 		goto out2;
 	}
 
 	input = input_allocate_device();
 	if (!input) {
-		error = -ENOMEM;
+		ret = -ENOMEM;
 		goto out3;
 	}
 
 	rotary->input = input;
 
 	input->name = pdev->name;
-	input->phys = "bfin-rotary/input0";
+	input->phys = "bfin-rotary/inputX";
 	input->dev.parent = &pdev->dev;
 
 	input_set_drvdata(input, rotary);
@@ -190,7 +180,7 @@ static int __devinit bfin_rotary_probe(struct platform_device *pdev)
 		__set_bit(EV_REL, input->evbit);
 		__set_bit(pdata->rotary_rel_code, input->relbit);
 	} else {
-		error = -EINVAL;
+		ret = -EINVAL;
 		goto out4;
 	}
 
@@ -203,28 +193,23 @@ static int __devinit bfin_rotary_probe(struct platform_device *pdev)
 	if (pdata->mode & ROT_DEBE)
 		bfin_write_CNT_DEBOUNCE(pdata->debounce & DPRESCALE);
 
-
 	if (pdata->mode)
 		bfin_write_CNT_CONFIG(bfin_read_CNT_CONFIG() |
 					(pdata->mode & ~CNTE));
 
-
-	error = input_register_device(input);
-	if (error) {
-		printk(KERN_ERR DRV_NAME
-			": Unable to register input device (%d)\n", error);
+	ret = input_register_device(input);
+	if (ret) {
+		dev_err(&pdev->dev,
+			"unable to register input device (%d)\n", ret);
 		goto out4;
 	}
 
 	bfin_write_CNT_IMASK(bfin_read_CNT_IMASK() | UCIE | DCIE);
-
 	bfin_write_CNT_CONFIG(bfin_read_CNT_CONFIG() | CNTE);
-
 	device_init_wakeup(&pdev->dev, 1);
 
-	printk(KERN_INFO DRV_NAME
-		": Blackfin Rotary Driver registered IRQ %d\n", rotary->irq);
-
+	dev_info(&pdev->dev,
+		"Blackfin Rotary Driver registered IRQ %d\n", rotary->irq);
 	return 0;
 
 out4:
@@ -237,7 +222,7 @@ out1:
 	kfree(rotary);
 	platform_set_drvdata(pdev, NULL);
 
-	return error;
+	return ret;
 }
 
 static int __devexit bfin_rotary_remove(struct platform_device *pdev)
@@ -248,9 +233,7 @@ static int __devexit bfin_rotary_remove(struct platform_device *pdev)
 	bfin_write_CNT_IMASK(0);
 
 	free_irq(rotary->irq, pdev);
-
 	input_unregister_device(rotary->input);
-
 	peripheral_free_list(per_cnt);
 
 	kfree(rotary);
@@ -291,19 +274,19 @@ static int bfin_rotary_resume(struct platform_device *pdev)
 	return 0;
 }
 #else
-# define bfin_rotary_suspend NULL
-# define bfin_rotary_resume  NULL
+#define bfin_rotary_suspend NULL
+#define bfin_rotary_resume  NULL
 #endif
 
 struct platform_driver bfin_rotary_device_driver = {
-	.driver		= {
-		.name	= DRV_NAME,
-		.owner	= THIS_MODULE,
-	},
 	.probe		= bfin_rotary_probe,
 	.remove		= __devexit_p(bfin_rotary_remove),
 	.suspend	= bfin_rotary_suspend,
 	.resume		= bfin_rotary_resume,
+	.driver		= {
+		.name	= "bfin-rotary",
+		.owner	= THIS_MODULE,
+	},
 };
 
 static int __init bfin_rotary_init(void)
