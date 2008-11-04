@@ -42,7 +42,7 @@ static void turnaround_delay(unsigned long last_jif, int mtt)
 	ticks = 1 + mtt / (USEC_PER_SEC / HZ);
 	schedule_timeout_interruptible(ticks);
 }
-static void __init bfin_sir_init_ports(int i)
+static void __devinit bfin_sir_init_ports(int i)
 {
 	sir_ports[i].membase   = (void __iomem *)bfin_sir_port_resource[i].base_addr;
 	sir_ports[i].irq = bfin_sir_port_resource[i].irq;
