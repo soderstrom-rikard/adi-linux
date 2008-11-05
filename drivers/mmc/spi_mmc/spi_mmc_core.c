@@ -868,10 +868,9 @@ static int spi_mmc_media_changed(struct gendisk *gd)
 	return 0;
 }
 
-static int spi_mmc_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
+static int spi_mmc_ioctl(struct block_device *bdev, fmode_t mode, unsigned cmd,
 	      unsigned long arg)
 {
-	struct block_device *bdev = inode->i_bdev;
 	struct hd_geometry geo;
 
 	DPRINTK("\n");
@@ -907,12 +906,12 @@ static int spi_mmc_getgeo(struct block_device *bdev, struct hd_geometry *geo)
 }
 
 
-static int spi_mmc_open(struct inode *inode, struct file *filp)
+static int spi_mmc_open(struct block_device *bdev, fmode_t mode)
 {
 	mmc_info_t* pdev;
 	int rval = 0;
 
-	pdev  = (mmc_info_t*)(inode->i_bdev->bd_disk->private_data);
+	pdev  = (mmc_info_t *)(bdev->bd_disk->private_data);
 	
 	//down(&open_lock);
 
@@ -933,10 +932,10 @@ static int spi_mmc_open(struct inode *inode, struct file *filp)
 	return rval;
 }
 
-static int spi_mmc_release(struct inode *inode, struct file *filp)
+static int spi_mmc_release(struct gendisk *disk, fmode_t mode)
 {	
 	mmc_info_t* pdev;
-	pdev  = (mmc_info_t*)(inode->i_bdev->bd_disk->private_data);
+	pdev  = (mmc_info_t *)(disk->private_data);
 	
 	// NOTE: Not sure whether this open_lock is needed anymore
 	//down(&open_lock);
