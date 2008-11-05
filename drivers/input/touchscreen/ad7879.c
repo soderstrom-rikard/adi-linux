@@ -120,10 +120,10 @@ enum {
 #define	MAX_12BIT			((1<<12)-1)
 #define	TS_PEN_UP_TIMEOUT		msecs_to_jiffies(50)
 
-#if defined(CONFIG_TOUCHSCREEN_AD7879_SPI)
+#if defined(CONFIG_TOUCHSCREEN_AD7879_SPI) || defined(CONFIG_TOUCHSCREEN_AD7879_SPI_MODULE)
 #define AD7879_DEVID		0x7A
 typedef struct spi_device	bus_device;
-#elif defined(CONFIG_TOUCHSCREEN_AD7879_I2C)
+#elif defined(CONFIG_TOUCHSCREEN_AD7879_I2C) || defined(CONFIG_TOUCHSCREEN_AD7879_I2C_MODULE)
 #define AD7879_DEVID		0x79
 typedef struct i2c_client	bus_device;
 #endif
@@ -135,7 +135,7 @@ struct ad7879 {
 	struct timer_list	timer;
 	spinlock_t		lock;
 
-#ifdef CONFIG_TOUCHSCREEN_AD7879_SPI
+#if defined(CONFIG_TOUCHSCREEN_AD7879_SPI) || defined(CONFIG_TOUCHSCREEN_AD7879_SPI_MODULE)
 	struct spi_message	msg;
 	struct spi_transfer	xfer[AD7879_NR_SENSE + 1];
 	u16			cmd;
@@ -527,7 +527,7 @@ static int ad7879_resume(bus_device *bus)
 #define ad7879_resume  NULL
 #endif
 
-#if defined(CONFIG_TOUCHSCREEN_AD7879_SPI)
+#if defined(CONFIG_TOUCHSCREEN_AD7879_SPI) || defined(CONFIG_TOUCHSCREEN_AD7879_SPI_MODULE)
 #define MAX_SPI_FREQ_HZ		5000000
 #define AD7879_CMD_MAGIC	0xE000
 #define AD7879_CMD_READ		(1 << 10)
@@ -700,7 +700,7 @@ static void __exit ad7879_exit(void)
 }
 module_exit(ad7879_exit);
 
-#elif defined(CONFIG_TOUCHSCREEN_AD7879_I2C)
+#elif defined(CONFIG_TOUCHSCREEN_AD7879_I2C) || defined(CONFIG_TOUCHSCREEN_AD7879_I2C_MODULE)
 
 /* All registers are word-sized.
  * AD7879 uses a high-byte first convention.
