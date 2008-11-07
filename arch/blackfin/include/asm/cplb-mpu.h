@@ -28,6 +28,7 @@
  */
 #ifndef __ASM_BFIN_CPLB_MPU_H
 #define __ASM_BFIN_CPLB_MPU_H
+#include <linux/threads.h>
 
 struct cplb_entry {
 	unsigned long data, addr;
@@ -39,8 +40,8 @@ struct mem_region {
 	unsigned long icplb_data;
 };
 
-extern struct cplb_entry dcplb_tbl[MAX_CPLBS];
-extern struct cplb_entry icplb_tbl[MAX_CPLBS];
+extern struct cplb_entry dcplb_tbl[NR_CPUS][MAX_CPLBS];
+extern struct cplb_entry icplb_tbl[NR_CPUS][MAX_CPLBS];
 extern int first_switched_icplb;
 extern int first_mask_dcplb;
 extern int first_switched_dcplb;
@@ -51,10 +52,10 @@ extern int nr_cplb_flush;
 extern int page_mask_order;
 extern int page_mask_nelts;
 
-extern unsigned long *current_rwx_mask;
+extern unsigned long *current_rwx_mask[NR_CPUS];
 
-extern void flush_switched_cplbs(void);
-extern void set_mask_dcplbs(unsigned long *);
+extern void flush_switched_cplbs(unsigned int);
+extern void set_mask_dcplbs(unsigned long *, unsigned int);
 
 extern void __noreturn panic_cplb_error(int seqstat, struct pt_regs *);
 

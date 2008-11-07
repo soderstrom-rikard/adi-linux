@@ -68,22 +68,22 @@ static int cplb_find_entry(unsigned long *cplb_addr,
 	return -1;
 }
 
-static char *cplb_print_entry(char *buf, int type)
+static char *cplb_print_entry(char *buf, int type, unsigned int cpu)
 {
-	unsigned long *p_addr = dpdt_table;
-	unsigned long *p_data = dpdt_table + 1;
-	unsigned long *p_icount = dpdt_swapcount_table;
-	unsigned long *p_ocount = dpdt_swapcount_table + 1;
+	unsigned long *p_addr = dpdt_tables[cpu];
+	unsigned long *p_data = dpdt_tables[cpu] + 1;
+	unsigned long *p_icount = dpdt_swapcount_tables[cpu];
+	unsigned long *p_ocount = dpdt_swapcount_tables[cpu] + 1;
 	unsigned long *cplb_addr = (unsigned long *)DCPLB_ADDR0;
 	unsigned long *cplb_data = (unsigned long *)DCPLB_DATA0;
 	int entry = 0, used_cplb = 0;
 
 	if (type == CPLB_I) {
 		buf += sprintf(buf, "Instruction CPLB entry:\n");
-		p_addr = ipdt_table;
-		p_data = ipdt_table + 1;
-		p_icount = ipdt_swapcount_table;
-		p_ocount = ipdt_swapcount_table + 1;
+		p_addr = ipdt_tables[cpu];
+		p_data = ipdt_tables[cpu] + 1;
+		p_icount = ipdt_swapcount_tables[cpu];
+		p_ocount = ipdt_swapcount_tables[cpu] + 1;
 		cplb_addr = (unsigned long *)ICPLB_ADDR0;
 		cplb_data = (unsigned long *)ICPLB_DATA0;
 	} else
@@ -136,21 +136,29 @@ static char *cplb_print_entry(char *buf, int type)
 
 static int cplbinfo_proc_output(char *buf)
 {
+	unsigned int cpu = get_cpu();
 	char *p;
 
 	p = buf;
 
 	p += sprintf(p, "------------------ CPLB Information ------------------\n\n");
+#ifdef CONFIG_SMP
+	p += sprintf(p, "------------- CPLB Information on CPU%u--------------\n\n", cpu);
+#else
+	p += sprintf(p, "------------------ CPLB Information ------------------\n\n");
+#endif
 
 	if (bfin_read_IMEM_CONTROL() & ENICPLB)
-		p = cplb_print_entry(p, CPLB_I);
+		p = cplb_print_entry(p, CPLB_I, cpu);
 	else
 		p += sprintf(p, "Instruction CPLB is disabled.\n\n");
 
 	if (bfin_read_DMEM_CONTROL() & ENDCPLB)
-		p = cplb_print_entry(p, CPLB_D);
+		p = cplb_print_entry(p, CPLB_D, cpu);
 	else
 		p += sprintf(p, "Data CPLB is disabled.\n");
+
+	put_cpu();
 
 	return p - buf;
 }
