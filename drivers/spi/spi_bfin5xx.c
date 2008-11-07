@@ -966,16 +966,18 @@ static void pump_messages(struct work_struct *work)
 	if (drv_data->locked)
 		locked_cs = drv_data->locked;
 
-	/* Someone has locked the bus */
-	if (drv_data->locked && next_msg->spi->chip_select != locked_cs) {
+	/* Someone has locked the bus. Treat CS=0 specially (for spi_mmc driver). */
+	if (drv_data->locked && next_msg->spi->chip_select != locked_cs
+		&& next_msg->spi->chip_select != 0) {
 		list_for_each_entry(msg, &drv_data->queue, queue) {
-			if (msg->spi->chip_select == locked_cs) {
+			if (msg->spi->chip_select == locked_cs || msg->spi->chip_select == 0) {
 				next_msg = msg;
 				break;
 			}
 		}
 		/* Do nothing even if there are messages for other devices */
-		if (next_msg->spi->chip_select != locked_cs) {
+		if (next_msg->spi->chip_select != locked_cs
+			&& next_msg->spi->chip_select != 0) {
 			drv_data->busy = 0;
 			spin_unlock_irqrestore(&drv_data->lock, flags);
 			return;

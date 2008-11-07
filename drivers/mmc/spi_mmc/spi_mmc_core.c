@@ -251,6 +251,7 @@ static short spi_mmc_transfer(mmc_info_t *pdev, unsigned long sector, unsigned l
 	unsigned int nsect_xf=0;
 	short rval=0;
 	short retry_flag=0;
+	short ret = 0;
 	
 	pdev->pi.last_block = offset;
 	
@@ -258,8 +259,11 @@ static short spi_mmc_transfer(mmc_info_t *pdev, unsigned long sector, unsigned l
 	if((nsect >= MULTIPLE_BLOCK_WRITE_TRESH) && MBW_ALLOWED && write && pdev->pi.mbw_works) {
 		retry_flag=0;
 		retry_mbw:
-		if(mmc_spi_write_mult_mmc_block(&(pdev->msd), buffer, offset, nsect)) {
-			printk("MBW FAILED!!!!!!!!!!!!!!!!!!!\n\n\n");
+		spi_lock_bus(pdev->spi_dev);
+		ret = mmc_spi_write_mult_mmc_block(&(pdev->msd), buffer, offset, nsect);
+		spi_unlock_bus(pdev->spi_dev);
+		if (ret) {
+			printk(KERN_ERR "MBW FAILED!!!!!!!!!!!!!!!!!!!\n\n\n");
 			if(retry_flag < XFER_RETRY_LIMIT) {
 				retry_flag++;
 				goto retry_mbw;
@@ -276,9 +280,13 @@ static short spi_mmc_transfer(mmc_info_t *pdev, unsigned long sector, unsigned l
 		retry_flag=0;
 		retry:
 		if(write) {
+			spi_lock_bus(pdev->spi_dev);
 			rval=mmc_spi_write_mmc_block(&(pdev->msd), buffer+(nsect_xf * KERNEL_SECTOR_SIZE), offset+(nsect_xf * KERNEL_SECTOR_SIZE) );
+			spi_unlock_bus(pdev->spi_dev);
 		} else {
+			spi_lock_bus(pdev->spi_dev);
 			rval=mmc_spi_read_mmc_block(&(pdev->msd), buffer+(nsect_xf * KERNEL_SECTOR_SIZE), offset+(nsect_xf * KERNEL_SECTOR_SIZE) );
+			spi_unlock_bus(pdev->spi_dev);
 		}
 		if(rval) {
 			if(retry_flag < XFER_RETRY_LIMIT) {
@@ -723,9 +731,12 @@ static int spi_mmc_dev_init(mmc_info_t* pdev)
 	struct block_device *bdev;
 	static unsigned int last_read_serial=0;
 	unsigned int cap, read_blk;
+	int ret = 0;
 	
 	// Low level init of card
-	if(spi_mmc_card_init(pdev)) {
+	ret = spi_mmc_card_init(pdev);
+	if (ret) {
+		printk(KERN_ERR "spi_mmc_card_init(): %d.\n", ret);
 		return -ENODEV;
 	}
 
@@ -839,8 +850,7 @@ static int spi_mmc_revalidate(struct gendisk *gd)
 	mmc_info_t* pdev = gd->private_data;
 
 	down(&card_sema);
-
-	
+	spi_lock_bus(pdev->spi_dev);
 	if(spi_mmc_dev_init(pdev)) {
 		// No card
 		pdev->card_in_bay = 0;
@@ -850,8 +860,8 @@ static int spi_mmc_revalidate(struct gendisk *gd)
 		blk_queue_hardsect_size(pdev->gd->queue, pdev->hardsect_size);
 		pdev->card_in_bay = 1;
 	}
+	spi_unlock_bus(pdev->spi_dev);
 	set_capacity(pdev->gd, pdev->nsectors * (pdev->hardsect_size / KERNEL_SECTOR_SIZE));
-	
 	up(&card_sema);
 
 	return 0;
