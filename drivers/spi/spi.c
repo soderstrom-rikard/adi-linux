@@ -591,6 +591,54 @@ static void spi_complete(void *arg)
 }
 
 /**
+ * spi_lock_bus - lock SPI bus for exclusive access
+ * @@spi: device which want to lock the bus
+ * Context: any
+ *
+ * Once the caller owns exclusive access to the SPI bus,
+ * only messages for this device will be transferred.
+ * Messages for other devices are queued but not transferred until
+ * the bus owner unlock the bus.
+ *
+ * The caller may call spi_lock_bus() before spi_sync() or spi_async().
+ * So this call may be used in irq and other contexts which can't sleep,
+ * as well as from task contexts which can sleep.
+ *
+ * It returns zero on success, else a negative error code.
+ */
+int spi_lock_bus(struct spi_device *spi)
+{
+	if (spi->master->lock_bus)
+		return spi->master->lock_bus(spi);
+	else
+		return 0;
+}
+EXPORT_SYMBOL_GPL(spi_lock_bus);
+
+/**
+ * spi_unlock_bus - unlock SPI bus
+ * @@spi: device which want to unlock the bus
+ * Context: any
+ *
+ * The caller has called spi_lock_bus() to lock the bus. It calls
+ * spi_unlock_bus() to release the bus so messages for other devices
+ * can be transferred.
+ *
+ * If the caller did not call spi_lock_bus() before, spi_unlock_bus()
+ * should have no effect.
+ *
+ * It returns zero on success, else a negative error code.
+ */
+int spi_unlock_bus(struct spi_device *spi)
+{
+	if (spi->master->unlock_bus)
+		return spi->master->unlock_bus(spi);
+	else
+		return 0;
+}
+EXPORT_SYMBOL_GPL(spi_unlock_bus);
+
+/**
  * spi_sync - blocking/synchronous SPI data transfers
  * @spi: device with which data will be exchanged
  * @message: describes the data transfers
