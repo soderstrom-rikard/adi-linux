@@ -447,22 +447,66 @@ static inline void  musb_write_txhubport(void __iomem *mbase, u8 epnum,
 #define clk_enable(clock)	do {} while (0)
 #define clk_disable(clock)	do {} while (0)
 
-#define musb_write_txfifosz(mbase, c_size)	do {} while (0)
-#define musb_write_txfifoadd(mbase, c_off)	do {} while (0)
-#define musb_write_rxfifosz(mbase, c_size)	do {} while (0)
-#define musb_write_rxfifoadd(mbase, c_off)	do {} while (0)
+static inline void musb_write_txfifosz(void __iomem *mbase, u8 c_size)
+{
+}
 
-#define musb_read_configdata(mbase)	0
-#define musb_read_hwvers(mbase)		0
-#define musb_read_target_reg_base(i, mbase)	0
+static inline void musb_write_txfifoadd(void __iomem *mbase, u16 c_off)
+{
+}
 
-#define musb_write_rxfunaddr(ep_target_regs, qh_addr_reg)	do {} while (0)
-#define musb_write_rxhubaddr(ep_target_regs, qh_h_addr_reg)	do {} while (0)
-#define musb_write_rxhubport(ep_target_regs, qh_h_port_reg)	do {} while (0)
+static inline void musb_write_rxfifosz(void __iomem *mbase, u8 c_size)
+{
+}
 
-#define musb_write_txfunaddr(mbase, epnum, qh_addr_reg)		do {} while (0)
-#define musb_write_txhubaddr(mbase, epnum, qh_h_addr_reg)	do {} while (0)
-#define musb_write_txhubport(mbase, epnum, qh_h_port_reg)	do {} while (0)
+static inline void  musb_write_rxfifoadd(void __iomem *mbase, u16 c_off)
+{
+}
+
+static inline u8 musb_read_configdata(void __iomem *mbase)
+{
+	return 0;
+}
+
+static inline u16 musb_read_hwvers(void __iomem *mbase)
+{
+	return 0;
+}
+
+static inline u16 musb_read_target_reg_base(u8 i, void __iomem *mbase)
+{
+	return 0;
+}
+
+static inline void musb_write_rxfunaddr(void __iomem *ep_target_regs,
+		u8 qh_addr_req)
+{
+}
+
+static inline void musb_write_rxhubaddr(void __iomem *ep_target_regs,
+		u8 qh_h_addr_reg)
+{
+}
+
+static inline void musb_write_rxhubport(void __iomem *ep_target_regs,
+		u8 qh_h_port_reg)
+{
+}
+
+static inline void  musb_write_txfunaddr(void __iomem *mbase, u8 epnum,
+		u8 qh_addr_reg)
+{
+}
+
+static inline void  musb_write_txhubaddr(void __iomem *mbase, u8 epnum,
+		u8 qh_addr_reg)
+{
+}
+
+static inline void  musb_write_txhubport(void __iomem *mbase, u8 epnum,
+		u8 qh_h_port_reg)
+{
+}
 
 #endif /* CONFIG_BLACKFIN */
 
