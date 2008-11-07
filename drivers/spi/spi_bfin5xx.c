@@ -179,7 +179,7 @@ static void cs_active(struct driver_data *drv_data, struct chip_data *chip)
 {
 	u16 flag = read_FLAG(drv_data);
 
-	flag |= chip->flag;
+	flag |= (chip->flag & 0xFF);
 	flag &= ~(chip->flag << 8);
 
 	write_FLAG(drv_data, flag);
@@ -189,6 +189,7 @@ static void cs_deactive(struct driver_data *drv_data, struct chip_data *chip)
 {
 	u16 flag = read_FLAG(drv_data);
 
+	flag &= ~(chip->flag & 0xFF);
 	flag |= (chip->flag << 8);
 
 	write_FLAG(drv_data, flag);
