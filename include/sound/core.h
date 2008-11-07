@@ -387,7 +387,7 @@ void snd_verbose_printd(const char *file, int line, const char *format, ...)
 
 #define snd_printd(fmt, args...)	/* nothing */
 #define snd_BUG()			/* nothing */
-#define snd_BUG_ON(cond)	({/*(void)(cond);*/ 0;})  /* always false */
+#define snd_BUG_ON(cond)	((cond) && 0)  /* always false */
 
 #endif /* CONFIG_SND_DEBUG */
 
