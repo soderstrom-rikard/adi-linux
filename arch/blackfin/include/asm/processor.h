@@ -106,7 +106,8 @@ unsigned long get_wchan(struct task_struct *p);
 	eip; })
 #define	KSTK_ESP(tsk)	((tsk) == current ? rdusp() : (tsk)->thread.usp)
 
-#define cpu_relax()    	barrier()
+#define cpu_relax()    	smp_mb()
+
 
 /* Get the Silicon Revision of the chip */
 static inline uint32_t __pure bfin_revid(void)

@@ -35,6 +35,7 @@
 #include <asm/ptrace.h>
 #include <asm/user.h>
 #include <linux/linkage.h>
+#include <linux/threads.h>
 #include <linux/types.h>
 
 #if defined(CONFIG_DMA_UNCACHED_4M)
@@ -47,6 +48,9 @@
 # define DMA_UNCACHED_REGION (0)
 #endif
 
+extern void bfin_setup_caches(unsigned int cpu);
+extern void bfin_setup_cpudata(unsigned int cpu);
+
 extern unsigned long get_cclk(void);
 extern unsigned long get_sclk(void);
 extern unsigned long sclk_to_usecs(unsigned long sclk);
@@ -58,8 +62,6 @@ extern void dump_bfin_trace_buffer(void);
 
 /* init functions only */
 extern int init_arch_irq(void);
-extern void bfin_icache_init(void);
-extern void bfin_dcache_init(void);
 extern void init_exception_vectors(void);
 extern void program_IAR(void);
 
