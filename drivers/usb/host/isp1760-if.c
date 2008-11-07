@@ -24,8 +24,8 @@
 #include <linux/pci.h>
 #endif
 
-#if !defined(CONFIG_USB_ISP1760_OF) && !defined(CONFIG_USB_ISP1760_PCI)
-#define USB_ISP1760_PDEV
+
+#ifdef CONFIG_USB_ISP1760_PDEV
 #include <linux/platform_device.h>
 #include <linux/usb/isp1760.h>
 #endif
@@ -293,9 +293,8 @@ static struct pci_driver isp1761_pci_driver = {
 };
 #endif
 
-#ifdef USB_ISP1760_PDEV
-static int __devinit
-isp1760_pdev_probe(struct platform_device *pdev)
+#ifdef CONFIG_USB_ISP1760_PDEV
+static int __devinit isp1760_pdev_probe(struct platform_device *pdev)
 {
 	struct usb_hcd *hcd;
 	struct resource	*addr;
@@ -339,7 +338,7 @@ isp1760_pdev_probe(struct platform_device *pdev)
 	}
 
 	hcd = isp1760_register(addr->start, resource_size(addr), irq,
-		IRQF_DISABLED | IRQF_SHARED | IRQF_TRIGGER_FALLING,
+		IRQF_DISABLED | IRQF_SHARED | IRQF_TRIGGER_LOW,
 		&pdev->dev, dev_name(&pdev->dev),
 		devflags);
 
@@ -362,7 +361,6 @@ isp1760_pdev_remove(struct platform_device *pdev)
 	return 0;
 }
 
-/* this driver is exported so sl811_cs can depend on it */
 struct platform_driver isp1760_pdev_driver = {
 	.probe =	isp1760_pdev_probe,
 	.remove =	__devexit_p(isp1760_pdev_remove),
@@ -371,7 +369,7 @@ struct platform_driver isp1760_pdev_driver = {
 		.owner = THIS_MODULE,
 	},
 };
-#endif /* USB_ISP1760_PDEV */
+#endif /* CONFIG_USB_ISP1760_PDEV */
 
 static int __init isp1760_init(void)
 {
@@ -379,7 +377,7 @@ static int __init isp1760_init(void)
 
 	init_kmem_once();
 
-#ifdef USB_ISP1760_PDEV
+#ifdef CONFIG_USB_ISP1760_PDEV
 	ret = platform_driver_register(&isp1760_pdev_driver);
 	if (ret) {
 		deinit_kmem_cache();
@@ -420,7 +418,7 @@ static void __exit isp1760_exit(void)
 #ifdef CONFIG_USB_ISP1760_PCI
 	pci_unregister_driver(&isp1761_pci_driver);
 #endif
-#ifdef USB_ISP1760_PDEV
+#ifdef CONFIG_USB_ISP1760_PDEV
 	platform_driver_unregister(&isp1760_pdev_driver);
 #endif
 	deinit_kmem_cache();

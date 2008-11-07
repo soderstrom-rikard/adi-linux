@@ -134,6 +134,12 @@ config USB_ISP1760_OF
 	  Enables support for the device present on the PowerPC
 	  OpenFirmware platform bus.
 
+config USB_ISP1760_PDEV
+	bool "Support for the generic platfrom device driver model"
+	depends on USB_ISP1760_HCD
+	---help---
+	  Enables support for the generic platfrom device centralized driver model
+
 config USB_ISP1362_HCD
 	tristate "ISP1362 HCD support"
 	depends on USB
