@@ -221,7 +221,12 @@ int __init timer_initialize(void){
 		unregister_chrdev(TIMER_MAJOR, DRV_NAME);
 		return err;
 	}
+#ifdef CONFIG_TICK_SOURCE_SYSTMR0
+	/* gptimer0 is used to generate the tick interrupt */
+	for (minor = 1; minor < MAX_BLACKFIN_GPTIMERS; minor++)
+#else
 	for (minor = 0; minor < MAX_BLACKFIN_GPTIMERS; minor++)
+#endif
 		device_create(timer_class, NULL,
 			      MKDEV(TIMER_MAJOR, minor), NULL, "timer%d", minor);
 	
