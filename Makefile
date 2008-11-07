@@ -512,7 +512,7 @@ all: vmlinux
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= -Os
 else
-KBUILD_CFLAGS	+= -O2
+KBUILD_CFLAGS	+= -O
 endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
@@ -532,7 +532,7 @@ KBUILD_CFLAGS	+= -fomit-frame-pointer
 endif
 
 ifdef CONFIG_DEBUG_INFO
-KBUILD_CFLAGS	+= -g
+KBUILD_CFLAGS	+= -g -fno-inline
 KBUILD_AFLAGS	+= -gdwarf-2
 endif
 

@@ -7,6 +7,7 @@ menu "BF561 Specific Configuration"
 comment "Core B Support"
 
 menu "Core B Support"
+	depends on !SMP
 
 config BF561_COREB
 	bool "Enable Core B support"
