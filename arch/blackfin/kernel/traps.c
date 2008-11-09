@@ -230,10 +230,12 @@ asmlinkage void trap_c(struct pt_regs *fp)
 #ifdef CONFIG_DEBUG_BFIN_HWTRACE_ON
 	int j;
 #endif
+#ifdef CONFIG_DEBUG_HUNT_FOR_ZERO
+	unsigned int cpu = smp_processor_id();
+#endif
 	int sig = 0;
 	siginfo_t info;
 	unsigned long trapnr = fp->seqstat & SEQSTAT_EXCAUSE;
-	unsigned int cpu = smp_processor_id();
 
 	trace_buffer_save(j);
 
@@ -951,9 +953,7 @@ void dump_bfin_process(struct pt_regs *fp)
 		else
 			verbose_printk(KERN_NOTICE "COMM= invalid\n");
 
-#ifdef CONFIG_SMP
-			printk(KERN_NOTICE "CPU = %d\n", current_thread_info()->cpu);
-#endif
+		printk(KERN_NOTICE "CPU = %d\n", current_thread_info()->cpu);
 		if (!((unsigned long)current->mm & 0x3) && (unsigned long)current->mm >= FIXED_CODE_START)
 			verbose_printk(KERN_NOTICE  "TEXT = 0x%p-0x%p        DATA = 0x%p-0x%p\n"
 				KERN_NOTICE " BSS = 0x%p-0x%p  USER-STACK = 0x%p\n"
