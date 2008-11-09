@@ -82,23 +82,18 @@ int show_interrupts(struct seq_file *p, void *v)
 		if (!action)
 			goto skip;
 		seq_printf(p, "%3d: ", i);
-#ifndef CONFIG_SMP
-		seq_printf(p, "%10u ", kstat_irqs(i));
-#else
 		for_each_online_cpu(j)
 			seq_printf(p, "%10u ", kstat_cpu(j).irqs[i]);
-#endif
 		seq_printf(p, " %8s", irq_desc[i].chip->name);
 		seq_printf(p, "  %s", action->name);
 		for (action = action->next; action; action = action->next)
 			seq_printf(p, "  %s", action->name);
 
 		seq_putc(p, '\n');
-skip:
+ skip:
 		spin_unlock_irqrestore(&irq_desc[i].lock, flags);
-	} else if (i == NR_IRQS) {
+	} else if (i == NR_IRQS)
 		seq_printf(p, "Err: %10u\n",  atomic_read(&irq_err_count));
-	}
 	return 0;
 }
 
