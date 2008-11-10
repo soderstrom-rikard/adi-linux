@@ -218,7 +218,9 @@ int smp_call_function(void (*func)(void *info), void *info, int wait)
 	}
 	if (wait) {
 		while (!cpus_empty(msg->call_struct.waitmask))
-			cpu_relax();
+			blackfin_dcache_invalidate_range(
+				(unsigned long)(&msg->call_struct.waitmask),
+				(unsigned long)(&msg->call_struct.waitmask));
 		kfree(msg);
 	}
 	return 0;
@@ -256,7 +258,9 @@ int smp_call_function_single(int cpuid, void (*func) (void *info), void *info,
 
 	if (wait) {
 		while (!cpus_empty(msg->call_struct.waitmask))
-			cpu_relax();
+			blackfin_dcache_invalidate_range(
+				(unsigned long)(&msg->call_struct.waitmask),
+				(unsigned long)(&msg->call_struct.waitmask));
 		kfree(msg);
 	}
 	return 0;
