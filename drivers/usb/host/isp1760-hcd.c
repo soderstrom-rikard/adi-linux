@@ -136,12 +136,21 @@ static void priv_read_copy(struct isp1760_hcd *priv, u32 *src,
 		return;
 	}
 
-	while (len >= 4) {
-		*src = __raw_readl(dst);
-		len -= 4;
-		src++;
-		dst++;
-	}
+	if (unlikely((u32)src & 0x3)) {
+		while (len >= 4) {
+			put_unaligned(__raw_readl(dst), src);
+			len -= 4;
+			src++;
+			dst++;
+		}
+	} else {
+		while (len >= 4) {
+			*src = __raw_readl(dst);
+			len -= 4;
+			src++;
+			dst++;
+		}
+	} 
 
 	if (!len)
 		return;
@@ -159,25 +168,45 @@ static void priv_read_copy(struct isp1760_hcd *priv, u32 *src,
 		len--;
 		buff8++;
 	}
+
 }
 
 static void priv_write_copy(const struct isp1760_hcd *priv, const u32 *src,
 		__u32 __iomem *dst, u32 len)
 {
-	while (len >= 4) {
-		__raw_writel(*src, dst);
-		len -= 4;
-		src++;
-		dst++;
+
+	if (unlikely((u32)src & 0x3)) {
+		while (len >= 4) {
+			__raw_writel(get_unaligned(src), dst);
+			len -= 4;
+			src++;
+			dst++;
+		}
+	
+		if (!len)
+			return;
+		/* in case we have 3, 2 or 1 by left. The buffer is allocated and the
+		 * extra bytes should not be read by the HW
+		 */
+	
+		__raw_writel(get_unaligned(src), dst);
+	
+	} else{
+		while (len >= 4) {
+			__raw_writel(*src, dst);
+			len -= 4;
+			src++;
+			dst++;
+		}
+	
+		if (!len)
+			return;
+		/* in case we have 3, 2 or 1 by left. The buffer is allocated and the
+		 * extra bytes should not be read by the HW
+		 */
+	
+		__raw_writel(*src, dst);	
 	}
-
-	if (!len)
-		return;
-	/* in case we have 3, 2 or 1 by left. The buffer is allocated and the
-	 * extra bytes should not be read by the HW
-	 */
-
-	__raw_writel(*src, dst);
 }
 
 /* memory management of the 60kb on the chip from 0x1000 to 0xffff */
