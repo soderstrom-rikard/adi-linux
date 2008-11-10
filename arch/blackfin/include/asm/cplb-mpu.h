@@ -46,8 +46,8 @@ extern int first_switched_icplb;
 extern int first_mask_dcplb;
 extern int first_switched_dcplb;
 
-extern int nr_dcplb_miss, nr_icplb_miss, nr_icplb_supv_miss, nr_dcplb_prot;
-extern int nr_cplb_flush;
+extern int nr_dcplb_miss[], nr_icplb_miss[], nr_icplb_supv_miss[];
+extern int nr_dcplb_prot[], nr_cplb_flush[];
 
 extern int page_mask_order;
 extern int page_mask_nelts;

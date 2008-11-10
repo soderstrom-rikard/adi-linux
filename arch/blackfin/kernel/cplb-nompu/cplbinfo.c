@@ -136,30 +136,30 @@ static char *cplb_print_entry(char *buf, int type, unsigned int cpu)
 
 static int cplbinfo_proc_output(char *buf)
 {
-	unsigned int cpu = get_cpu();
+	unsigned int cpu;
 	char *p;
 
 	p = buf;
 
-	p += sprintf(p, "------------------ CPLB Information ------------------\n\n");
+	for_each_online_cpu(cpu) {
 #ifdef CONFIG_SMP
-	p += sprintf(p, "------------- CPLB Information on CPU%u--------------\n\n", cpu);
+		p += sprintf(p, "------------- CPLB Information on CPU%u--------------\n\n", cpu);
 #else
-	p += sprintf(p, "------------------ CPLB Information ------------------\n\n");
+		p += sprintf(p, "------------------ CPLB Information ------------------\n\n");
 #endif
 
-	if (bfin_read_IMEM_CONTROL() & ENICPLB)
-		p = cplb_print_entry(p, CPLB_I, cpu);
-	else
-		p += sprintf(p, "Instruction CPLB is disabled.\n\n");
+		if (bfin_read_IMEM_CONTROL() & ENICPLB)
+			p = cplb_print_entry(p, CPLB_I, cpu);
+		else
+			p += sprintf(p, "Instruction CPLB is disabled.\n\n");
 
-	if (bfin_read_DMEM_CONTROL() & ENDCPLB)
-		p = cplb_print_entry(p, CPLB_D, cpu);
-	else
-		p += sprintf(p, "Data CPLB is disabled.\n");
+		if (bfin_read_DMEM_CONTROL() & ENDCPLB)
+			p = cplb_print_entry(p, CPLB_D, cpu);
+		else
+			p += sprintf(p, "Data CPLB is disabled.\n");
 
-	put_cpu();
-
+		p += sprintf(p, "\n");
+	}
 	return p - buf;
 }
 

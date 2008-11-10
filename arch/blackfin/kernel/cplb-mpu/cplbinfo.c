@@ -69,30 +69,37 @@ static char *cplb_print_entry(char *buf, struct cplb_entry *tbl, int switched)
 int cplbinfo_proc_output(char *buf)
 {
 	char *p;
+	unsigned int cpu;
 
 	p = buf;
 
-	p += sprintf(p, "------------------ CPLB Information ------------------\n\n");
+	for_each_online_cpu(cpu) {
+#ifdef CONFIG_SMP
+		p += sprintf(p, "------------- CPLB Information on CPU%u--------------\n\n", cpu);
+#else
+		p += sprintf(p, "------------------ CPLB Information ------------------\n\n");
+#endif
+		if (bfin_read_IMEM_CONTROL() & ENICPLB) {
+			p += sprintf(p, "Instruction CPLB entry:\n");
+			p = cplb_print_entry(p, icplb_tbl[cpu], first_switched_icplb);
+		} else
+			p += sprintf(p, "Instruction CPLB is disabled.\n\n");
 
-	if (bfin_read_IMEM_CONTROL() & ENICPLB) {
-		p += sprintf(p, "Instruction CPLB entry:\n");
-		p = cplb_print_entry(p, icplb_tbl, first_switched_icplb);
-	} else
-		p += sprintf(p, "Instruction CPLB is disabled.\n\n");
+		if (1 || bfin_read_DMEM_CONTROL() & ENDCPLB) {
+			p += sprintf(p, "Data CPLB entry:\n");
+			p = cplb_print_entry(p, dcplb_tbl[cpu], first_switched_dcplb);
+		} else
+			p += sprintf(p, "Data CPLB is disabled.\n");
 
-	if (1 || bfin_read_DMEM_CONTROL() & ENDCPLB) {
-		p += sprintf(p, "Data CPLB entry:\n");
-		p = cplb_print_entry(p, dcplb_tbl, first_switched_dcplb);
-	} else
-		p += sprintf(p, "Data CPLB is disabled.\n");
+		p += sprintf(p, "ICPLB miss: %d\nICPLB supervisor miss: %d\n",
+			     nr_icplb_miss[cpu], nr_icplb_supv_miss[cpu]);
+		p += sprintf(p, "DCPLB miss: %d\nDCPLB protection fault:%d\n",
+			     nr_dcplb_miss[cpu], nr_dcplb_prot[cpu]);
+		p += sprintf(p, "CPLB flushes: %d\n",
+			     nr_cplb_flush[cpu]);
 
-	p += sprintf(p, "ICPLB miss: %d\nICPLB supervisor miss: %d\n",
-		     nr_icplb_miss, nr_icplb_supv_miss);
-	p += sprintf(p, "DCPLB miss: %d\nDCPLB protection fault:%d\n",
-		     nr_dcplb_miss, nr_dcplb_prot);
-	p += sprintf(p, "CPLB flushes: %d\n",
-		     nr_cplb_flush);
-
+		p += sprintf(p, "\n");
+	}
 	return p - buf;
 }
 

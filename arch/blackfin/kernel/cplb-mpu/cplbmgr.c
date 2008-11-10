@@ -32,8 +32,9 @@ int page_mask_nelts;
 int page_mask_order;
 unsigned long *current_rwx_mask[NR_CPUS];
 
-int nr_dcplb_miss, nr_icplb_miss, nr_icplb_supv_miss, nr_dcplb_prot;
-int nr_cplb_flush;
+int nr_dcplb_miss[NR_CPUS], nr_icplb_miss[NR_CPUS];
+int nr_icplb_supv_miss[NR_CPUS], nr_dcplb_prot[NR_CPUS];
+int nr_cplb_flush[NR_CPUS];
 
 static inline void disable_dcplb(void)
 {
@@ -141,7 +142,7 @@ static noinline int dcplb_miss(unsigned int cpu)
 	int idx;
 	unsigned long d_data;
 
-	nr_dcplb_miss++;
+	nr_dcplb_miss[cpu]++;
 
 	d_data = CPLB_SUPV_WR | CPLB_VALID | CPLB_DIRTY | PAGE_SIZE_4KB;
 #ifdef CONFIG_BFIN_DCACHE
@@ -203,14 +204,14 @@ static noinline int icplb_miss(unsigned int cpu)
 	int idx;
 	unsigned long i_data;
 
-	nr_icplb_miss++;
+	nr_icplb_miss[cpu]++;
 
 	/* If inside the uncached DMA region, fault.  */
 	if (addr >= _ramend - DMA_UNCACHED_REGION && addr < _ramend)
 		return CPLB_PROT_VIOL;
 
 	if (status & FAULT_USERSUPV)
-		nr_icplb_supv_miss++;
+		nr_icplb_supv_miss[cpu]++;
 
 	/*
 	 * First, try to find a CPLB that matches this address.  If we
@@ -287,7 +288,7 @@ static noinline int dcplb_protection_fault(unsigned int cpu)
 {
 	int status = bfin_read_DCPLB_STATUS();
 
-	nr_dcplb_prot++;
+	nr_dcplb_prot[cpu]++;
 
 	if (status & FAULT_RW) {
 		int idx = faulting_cplb_index(status);
@@ -324,7 +325,7 @@ void flush_switched_cplbs(unsigned int cpu)
 	int i;
 	unsigned long flags;
 
-	nr_cplb_flush++;
+	nr_cplb_flush[cpu]++;
 
 	local_irq_save(flags);
 	disable_icplb();
