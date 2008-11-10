@@ -547,7 +547,8 @@ static void giveback(struct driver_data *drv_data)
 
 	/* disable chip select signal. And not stop spi in autobuffer mode */
 	if (drv_data->tx_dma != 0xFFFF) {
-		cs_deactive(drv_data, chip);
+		if (!drv_data->cs_change)
+			cs_deactive(drv_data, chip);
 		bfin_spi_disable(drv_data);
 	}
 
@@ -762,7 +763,8 @@ static void pump_transfers(unsigned long data)
 
 	write_STAT(drv_data, BIT_STAT_CLR);
 	cr = (read_CTRL(drv_data) & (~BIT_CTL_TIMOD));
-	cs_active(drv_data, chip);
+	if (drv_data->cs_change)
+		cs_active(drv_data, chip);
 
 	dev_dbg(&drv_data->pdev->dev,
 		"now pumping a transfer: width is %d, len is %d\n",
@@ -925,6 +927,8 @@ static void pump_transfers(unsigned long data)
 			message->state = next_transfer(drv_data);
 		}
 
+		if (drv_data->cs_change)
+			cs_active(drv_data, chip);
 		/* Schedule next transfer tasklet */
 		tasklet_schedule(&drv_data->pump_transfers);
 
