@@ -74,11 +74,7 @@ int cplbinfo_proc_output(char *buf)
 	p = buf;
 
 	for_each_online_cpu(cpu) {
-#ifdef CONFIG_SMP
-		p += sprintf(p, "------------- CPLB Information on CPU%u--------------\n\n", cpu);
-#else
-		p += sprintf(p, "------------------ CPLB Information ------------------\n\n");
-#endif
+		p += sprintf(p, "------------- CPLB Information on CPU%u --------------\n\n", cpu);
 		if (bfin_read_IMEM_CONTROL() & ENICPLB) {
 			p += sprintf(p, "Instruction CPLB entry:\n");
 			p = cplb_print_entry(p, icplb_tbl[cpu], first_switched_icplb);
