@@ -80,6 +80,7 @@ static struct bfin_memmap_entry new_map[BFIN_MEMMAP_MAX] __initdata;
 
 DEFINE_PER_CPU(struct blackfin_cpudata, cpu_data);
 
+#if defined(CONFIG_BFIN_DCACHE) || defined(CONFIG_BFIN_ICACHE)
 void __init generate_cplb_tables(void)
 {
 	unsigned int cpu;
@@ -88,6 +89,7 @@ void __init generate_cplb_tables(void)
 	for (cpu = 0; cpu < num_possible_cpus(); ++cpu)
 		generate_cplb_tables_cpu(cpu);
 }
+#endif
 
 void __cpuinit bfin_setup_caches(unsigned int cpu)
 {

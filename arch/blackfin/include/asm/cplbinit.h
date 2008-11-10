@@ -123,6 +123,7 @@ extern void bfin_dcache_init(u_long dcplbs[]);
 
 #endif /* CONFIG_MPU */
 
+#if defined(CONFIG_BFIN_DCACHE) || defined(CONFIG_BFIN_ICACHE)
 extern void generate_cplb_tables_cpu(unsigned int cpu);
-
+#endif
 #endif
