@@ -116,6 +116,4 @@
 #define CPLB_INOCACHE   	CPLB_USER_RD | CPLB_VALID
 #define CPLB_IDOCACHE   	CPLB_INOCACHE | CPLB_L1_CHBL
 
-#define blackfin_core_id()	(bfin_read_DSPID() & 0xff)
-
 #endif				/* _CPLB_H */

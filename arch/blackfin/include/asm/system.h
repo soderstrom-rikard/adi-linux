@@ -37,9 +37,9 @@
 #include <linux/linkage.h>
 #include <linux/compiler.h>
 #include <mach/anomaly.h>
-#include <asm/cplb.h>
 #include <asm/pda.h>
-#include <asm/cache.h>
+
+#define blackfin_core_id() (bfin_read_DSPID() & 0xff)
 
 /*
  * Interrupt configuring macros.
