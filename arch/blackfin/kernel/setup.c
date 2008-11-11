@@ -276,7 +276,7 @@ static int __init sanitize_memmap(struct bfin_memmap_entry *map, int *pnr_map)
 	/* record all known change-points (starting and ending addresses),
 	   omitting those that are for empty memory regions */
 	chgidx = 0;
-	for (i = 0; i < old_nr; i++)	{
+	for (i = 0; i < old_nr; i++) {
 		if (map[i].size != 0) {
 			change_point[chgidx]->addr = map[i].addr;
 			change_point[chgidx++]->pentry = &map[i];
@@ -284,13 +284,13 @@ static int __init sanitize_memmap(struct bfin_memmap_entry *map, int *pnr_map)
 			change_point[chgidx++]->pentry = &map[i];
 		}
 	}
-	chg_nr = chgidx;    	/* true number of change-points */
+	chg_nr = chgidx;	/* true number of change-points */
 
 	/* sort change-point list by memory addresses (low -> high) */
 	still_changing = 1;
-	while (still_changing)	{
+	while (still_changing) {
 		still_changing = 0;
-		for (i = 1; i < chg_nr; i++)  {
+		for (i = 1; i < chg_nr; i++) {
 			/* if <current_addr> > <last_addr>, swap */
 			/* or, if current=<start_addr> & last=<end_addr>, swap */
 			if ((change_point[i]->addr < change_point[i-1]->addr) ||
@@ -307,10 +307,10 @@ static int __init sanitize_memmap(struct bfin_memmap_entry *map, int *pnr_map)
 	}
 
 	/* create a new memmap, removing overlaps */
-	overlap_entries = 0;	 /* number of entries in the overlap table */
-	new_entry = 0;	 /* index for creating new memmap entries */
-	last_type = 0;		 /* start with undefined memory type */
-	last_addr = 0;		 /* start with 0 as last starting address */
+	overlap_entries = 0;	/* number of entries in the overlap table */
+	new_entry = 0;		/* index for creating new memmap entries */
+	last_type = 0;		/* start with undefined memory type */
+	last_addr = 0;		/* start with 0 as last starting address */
 	/* loop through change-points, determining affect on the new memmap */
 	for (chgidx = 0; chgidx < chg_nr; chgidx++) {
 		/* keep track of all overlapping memmap entries */
@@ -332,14 +332,14 @@ static int __init sanitize_memmap(struct bfin_memmap_entry *map, int *pnr_map)
 			if (overlap_list[i]->type > current_type)
 				current_type = overlap_list[i]->type;
 		/* continue building up new memmap based on this information */
-		if (current_type != last_type)	{
+		if (current_type != last_type) {
 			if (last_type != 0) {
 				new_map[new_entry].size =
 					change_point[chgidx]->addr - last_addr;
 				/* move forward only if the new size was non-zero */
 				if (new_map[new_entry].size != 0)
 					if (++new_entry >= BFIN_MEMMAP_MAX)
-						break; 	/* no more space left for new entries */
+						break;	/* no more space left for new entries */
 			}
 			if (current_type != 0) {
 				new_map[new_entry].addr = change_point[chgidx]->addr;
@@ -349,9 +349,9 @@ static int __init sanitize_memmap(struct bfin_memmap_entry *map, int *pnr_map)
 			last_type = current_type;
 		}
 	}
-	new_nr = new_entry;   /* retain count for new entries */
+	new_nr = new_entry;	/* retain count for new entries */
 
-	/* copy new  mapping into original location */
+	/* copy new mapping into original location */
 	memcpy(map, new_map, new_nr*sizeof(struct bfin_memmap_entry));
 	*pnr_map = new_nr;
 
@@ -407,7 +407,6 @@ static __init int parse_memmap(char *arg)
  *  - "memmap=XXX[KkmM][@][$]XXX[KkmM]" defines a memory region
  *       @ from <start> to <start>+<mem>, type RAM
  *       $ from <start> to <start>+<mem>, type RESERVED
- *
  */
 static __init void parse_cmdline_early(char *cmdline_p)
 {
@@ -429,12 +428,10 @@ static __init void parse_cmdline_early(char *cmdline_p)
 					if (*to != ' ') {
 						if (*to == '$'
 						    || *(to + 1) == '$')
-							reserved_mem_dcache_on =
-							    1;
+							reserved_mem_dcache_on = 1;
 						if (*to == '#'
 						    || *(to + 1) == '#')
-							reserved_mem_icache_on =
-							    1;
+							reserved_mem_icache_on = 1;
 					}
 				}
 			} else if (!memcmp(to, "earlyprintk=", 12)) {
@@ -463,9 +460,8 @@ static __init void parse_cmdline_early(char *cmdline_p)
  *	[_ramend - DMA_UNCACHED_REGION,
  *		_ramend]:			uncached DMA region
  *  [_ramend, physical_mem_end]:	memory not managed by kernel
- *
  */
-static __init void  memory_setup(void)
+static __init void memory_setup(void)
 {
 #ifdef CONFIG_MTD_UCLINUX
 	unsigned long mtd_phys = 0;
@@ -482,7 +478,7 @@ static __init void  memory_setup(void)
 	memory_end = _ramend - DMA_UNCACHED_REGION;
 
 #ifdef CONFIG_MPU
-	/* Round up to multiple of 4MB.  */
+	/* Round up to multiple of 4MB */
 	memory_start = (_ramstart + 0x3fffff) & ~0x3fffff;
 #else
 	memory_start = PAGE_ALIGN(_ramstart);
@@ -662,7 +658,7 @@ static __init void setup_bootmem_allocator(void)
 	end_pfn = memory_end >> PAGE_SHIFT;
 
 	/*
-	 * give all the memory to the bootmap allocator,  tell it to put the
+	 * give all the memory to the bootmap allocator, tell it to put the
 	 * boot mem_map at the start of memory.
 	 */
 	bootmap_size = init_bootmem_node(NODE_DATA(0),
@@ -885,7 +881,7 @@ void __init setup_arch(char **cmdline_p)
 	printk(KERN_INFO "Blackfin Linux support by http://blackfin.uclinux.org/\n");
 
 	printk(KERN_INFO "Processor Speed: %lu MHz core clock and %lu MHz System Clock\n",
-	       cclk / 1000000,  sclk / 1000000);
+	       cclk / 1000000, sclk / 1000000);
 
 	if (ANOMALY_05000273 && (cclk >> 1) <= sclk)
 		printk("\n\n\nANOMALY_05000273: CCLK must be >= 2*SCLK !!!\n\n\n");
@@ -1067,7 +1063,7 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 
 	seq_printf(m, "model name\t: ADSP-%s %lu(MHz CCLK) %lu(MHz SCLK) (%s)\n"
 		"stepping\t: %d\n",
-		cpu,  cpudata->cclk/1000000, sclk/1000000,
+		cpu, cpudata->cclk/1000000, sclk/1000000,
 #ifdef CONFIG_MPU
 		"mpu on",
 #else
@@ -1076,7 +1072,7 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 		revid);
 
 	seq_printf(m, "cpu MHz\t\t: %lu.%03lu/%lu.%03lu\n",
-		 cpudata->cclk/1000000,  cpudata->cclk%1000000,
+		cpudata->cclk/1000000, cpudata->cclk%1000000,
 		sclk/1000000, sclk%1000000);
 	seq_printf(m, "bogomips\t: %lu.%02lu\n"
 		"Calibration\t: %lu loops\n",
