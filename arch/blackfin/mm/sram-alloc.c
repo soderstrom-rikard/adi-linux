@@ -86,7 +86,7 @@ static void __init l1sram_init(void)
 		per_cpu(free_l1_ssram_head, cpu).next =
 			kmem_cache_alloc(sram_piece_cache, GFP_KERNEL);
 		if (!per_cpu(free_l1_ssram_head, cpu).next) {
-			printk(KERN_INFO"Fail to initialize Scratchpad data SRAM.\n");
+			printk(KERN_INFO "Fail to initialize Scratchpad data SRAM.\n");
 			return;
 		}
 
@@ -114,7 +114,7 @@ static void __init l1_data_sram_init(void)
 		per_cpu(free_l1_data_A_sram_head, cpu).next =
 			kmem_cache_alloc(sram_piece_cache, GFP_KERNEL);
 		if (!per_cpu(free_l1_data_A_sram_head, cpu).next) {
-			printk(KERN_INFO"Fail to initialize L1 Data A SRAM.\n");
+			printk(KERN_INFO "Fail to initialize L1 Data A SRAM.\n");
 			return;
 		}
 
@@ -137,7 +137,7 @@ static void __init l1_data_sram_init(void)
 		per_cpu(free_l1_data_B_sram_head, cpu).next =
 			kmem_cache_alloc(sram_piece_cache, GFP_KERNEL);
 		if (!per_cpu(free_l1_data_B_sram_head, cpu).next) {
-			printk(KERN_INFO"Fail to initialize L1 Data B SRAM.\n");
+			printk(KERN_INFO "Fail to initialize L1 Data B SRAM.\n");
 			return;
 		}
 
@@ -200,7 +200,7 @@ static void __init l2_sram_init(void)
 	free_l2_sram_head.next =
 		kmem_cache_alloc(sram_piece_cache, GFP_KERNEL);
 	if (!free_l2_sram_head.next) {
-		printk(KERN_INFO"Fail to initialize L2 SRAM.\n");
+		printk(KERN_INFO "Fail to initialize L2 SRAM.\n");
 		return;
 	}
 
