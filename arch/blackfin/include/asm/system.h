@@ -38,6 +38,7 @@
 #include <linux/compiler.h>
 #include <mach/anomaly.h>
 #include <asm/pda.h>
+#include <asm/processor.h>
 
 #define blackfin_core_id() (bfin_dspid() & 0xff)
 
@@ -60,7 +61,7 @@
 #endif
 
 #ifdef CONFIG_SMP
-# define irq_flags cpu_pda[smp_processor_id()].imask
+# define irq_flags cpu_pda[blackfin_core_id()].imask
 #else
 extern unsigned long irq_flags;
 #endif
