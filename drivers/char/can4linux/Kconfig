@@ -65,13 +65,13 @@ comment "linux embedded drivers"
 
 config CAN_MCF5282
 	tristate "Motorola ColdFire MFC5282 FlexCAN driver"
-	depends on CAN4LINUX && EMBEDDED
+	depends on CAN4LINUX && EMBEDDED && !BLACKFIN
 	---help---
 	  help text
 
 config CAN_UNCTWINCAN
 	tristate "Infineon TwinCAN SAK82c900 on Flesch UNC20"
-	depends on CAN4LINUX && EMBEDDED
+	depends on CAN4LINUX && EMBEDDED && !BLACKFIN
 	---help---
 	  help text
 
