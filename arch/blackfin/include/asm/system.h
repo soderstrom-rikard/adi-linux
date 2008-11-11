@@ -39,7 +39,7 @@
 #include <mach/anomaly.h>
 #include <asm/pda.h>
 
-#define blackfin_core_id() (bfin_read_DSPID() & 0xff)
+#define blackfin_core_id() (bfin_dspid() & 0xff)
 
 /*
  * Interrupt configuring macros.

@@ -138,7 +138,11 @@ static inline uint32_t __pure bfin_revid(void)
 static inline uint16_t __pure bfin_cpuid(void)
 {
 	return (bfin_read_CHIPID() & CHIPID_FAMILY) >> 12;
+}
 
+static inline uint32_t __pure bfin_dspid(void)
+{
+	return bfin_read_DSPID();
 }
 
 static inline uint32_t __pure bfin_compiled_revid(void)
