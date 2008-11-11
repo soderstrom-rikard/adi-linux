@@ -40,6 +40,8 @@
 #include <asm/pda.h>
 #include <asm/processor.h>
 
+/* Forward decl needed due to cdef inter dependencies */
+static inline uint32_t __pure bfin_dspid(void);
 #define blackfin_core_id() (bfin_dspid() & 0xff)
 
 /*
