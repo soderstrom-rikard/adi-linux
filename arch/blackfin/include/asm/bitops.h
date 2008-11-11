@@ -7,7 +7,6 @@
 
 #include <linux/compiler.h>
 #include <asm/byteorder.h>	/* swab32 */
-#include <asm/system.h>		/* save_flags */
 
 #ifdef __KERNEL__
 
@@ -79,6 +78,8 @@ static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
 }
 
 #else /* !CONFIG_SMP */
+
+#include <asm/system.h>		/* save_flags */
 
 static inline void set_bit(int nr, volatile unsigned long *addr)
 {
