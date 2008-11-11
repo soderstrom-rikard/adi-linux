@@ -35,7 +35,6 @@
 #include <asm/ptrace.h>
 #include <asm/user.h>
 #include <linux/linkage.h>
-#include <linux/threads.h>
 #include <linux/types.h>
 
 #if defined(CONFIG_DMA_UNCACHED_4M)
