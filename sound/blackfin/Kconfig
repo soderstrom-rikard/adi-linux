@@ -4,7 +4,7 @@ menu "ALSA Blackfin devices"
 
 config SND_BLACKFIN_AD1836
 	tristate "AD1836 Audio support for BF53x"
-	depends on SND && BLACKFIN
+	depends on SND && BLACKFIN && BFIN_DMA_5XX
 	select SND_PCM
 	select SPI
 	select SPI_BFIN
@@ -103,7 +103,7 @@ config SND_BFIN_SPORT
 
 config SND_BFIN_AD73322
 	tristate "Cascaded AD73322 Audio support for BF53x"
-	depends on SND && BLACKFIN
+	depends on SND && BLACKFIN && BFIN_DMA_5XX
 	select SND_PCM
 	help
 	  Select this if you have AD73322 connected in cascade mode connected to SPORT0 ports
