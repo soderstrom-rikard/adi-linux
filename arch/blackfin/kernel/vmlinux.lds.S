@@ -161,14 +161,7 @@ SECTIONS
 		*(.con_initcall.init)
 		___con_initcall_end = .;
 	}
-	.data.percpu :
-        {
-		. = ALIGN(4);
-		___per_cpu_start = .;
-		*(.data.percpu)
-		*(.data.percpu.shared_aligned)
-		___per_cpu_end = .;
-	}
+	PERCPU(4)
 	SECURITY_INIT
 	.init.ramfs :
 	{
