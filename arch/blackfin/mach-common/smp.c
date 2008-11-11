@@ -365,12 +365,7 @@ static void __cpuinit setup_secondary(unsigned int cpu)
 
 	/* Enable interrupt levels IVG7-15. IARs have been already
 	 * programmed by the boot CPU.  */
-#ifdef CONFIG_SMP
-	cpu_pda[smp_processor_id()].imask =
-			cpu_pda[smp_processor_id()].imask | IMASK_IVG15 |
-#else
-	irq_flags = irq_flags | IMASK_IVG15 |
-#endif
+	irq_flags |= IMASK_IVG15 |
 	    IMASK_IVG14 | IMASK_IVG13 | IMASK_IVG12 | IMASK_IVG11 |
 	    IMASK_IVG10 | IMASK_IVG9 | IMASK_IVG8 | IMASK_IVG7 | IMASK_IVGHW;
 

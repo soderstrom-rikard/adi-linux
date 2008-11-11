@@ -60,26 +60,11 @@
 #endif
 
 #ifdef CONFIG_SMP
-#define local_irq_enable() \
-	__asm__ __volatile__( \
-		"sti %0;" \
-		: \
-		: "d" (cpu_pda[blackfin_core_id()].imask) \
-	)
-
-#define idle_with_irq_disabled() \
-	__asm__ __volatile__( \
-		NOP_PAD_ANOMALY_05000244 \
-		".align 8;" \
-		"sti %0;" \
-		"idle;" \
-		: \
-		: "d" (cpu_pda[blackfin_core_id()].imask) \
-	)
-
+# define irq_flags cpu_pda[smp_processor_id()].imask
 #else
-
 extern unsigned long irq_flags;
+#endif
+
 #define local_irq_enable() \
 	__asm__ __volatile__( \
 		"sti %0;" \
@@ -95,8 +80,6 @@ extern unsigned long irq_flags;
 		: \
 		: "d" (irq_flags) \
 	)
-
-#endif
 
 #ifdef CONFIG_DEBUG_HWERR
 # define __save_and_cli(x) \

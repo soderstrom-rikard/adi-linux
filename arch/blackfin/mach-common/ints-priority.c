@@ -132,22 +132,14 @@ static void bfin_ack_noop(unsigned int irq)
 
 static void bfin_core_mask_irq(unsigned int irq)
 {
-#ifdef CONFIG_SMP
-	cpu_pda[smp_processor_id()].imask &= ~(1 << irq);
-#else
 	irq_flags &= ~(1 << irq);
-#endif
 	if (!irqs_disabled())
 		local_irq_enable();
 }
 
 static void bfin_core_unmask_irq(unsigned int irq)
 {
-#ifdef CONFIG_SMP
-	cpu_pda[smp_processor_id()].imask |= 1 << irq;
-#else
 	irq_flags |= 1 << irq;
-#endif
 	/*
 	 * If interrupts are enabled, IMASK must contain the same value
 	 * as irq_flags.  Make sure that invariant holds.  If interrupts
@@ -1062,12 +1054,7 @@ int __init init_arch_irq(void)
 	search_IAR();
 
 	/* Enable interrupts IVG7-15 */
-#ifdef CONFIG_SMP
-	cpu_pda[smp_processor_id()].imask =
-			cpu_pda[smp_processor_id()].imask | IMASK_IVG15 |
-#else
-	irq_flags = irq_flags | IMASK_IVG15 |
-#endif
+	irq_flags |= IMASK_IVG15 |
 	    IMASK_IVG14 | IMASK_IVG13 | IMASK_IVG12 | IMASK_IVG11 |
 	    IMASK_IVG10 | IMASK_IVG9 | IMASK_IVG8 | IMASK_IVG7 | IMASK_IVGHW;
 
