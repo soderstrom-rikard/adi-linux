@@ -21,6 +21,8 @@
 
 #ifdef CONFIG_SMP
 
+#include <linux/linkage.h>
+
 asmlinkage int __raw_bit_set_asm(volatile unsigned long *addr, int nr);
 
 asmlinkage int __raw_bit_clear_asm(volatile unsigned long *addr, int nr);
