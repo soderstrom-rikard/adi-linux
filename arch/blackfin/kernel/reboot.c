@@ -66,7 +66,7 @@ static void _bfin_reset(void)
 	}
 }
 
-void bfin_reset(void)
+static void bfin_reset(void)
 {
 	if (ANOMALY_05000353 || ANOMALY_05000386)
 		_bfin_reset();
