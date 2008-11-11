@@ -1256,8 +1256,10 @@ void bfin_serial_debug(const char *fmt, ...)
 	char buf[128];
 	va_list ap;
 
+#ifdef CONFIG_SERIAL_BFIN_CONSOLE
 	if (bfin_serial_console.index < 0)
 		return;		/* Too early. */
+#endif
 
 	va_start(ap, fmt);
 	vsprintf(buf, fmt, ap);
