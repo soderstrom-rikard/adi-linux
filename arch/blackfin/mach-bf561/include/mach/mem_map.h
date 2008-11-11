@@ -6,8 +6,6 @@
 #ifndef _MEM_MAP_561_H_
 #define _MEM_MAP_561_H_
 
-#include <mach/anomaly.h>
-
 #define COREMMR_BASE           0xFFE00000	 /* Core MMRs */
 #define SYSMMR_BASE            0xFFC00000	 /* System MMRs */
 
