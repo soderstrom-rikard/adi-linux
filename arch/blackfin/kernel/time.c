@@ -185,7 +185,7 @@ irqreturn_t timer_interrupt(int irq, void *dummy)
 				last_rtc_update = xtime.tv_sec - 600;
 		}
 #ifdef CONFIG_TICK_SOURCE_SYSTMR0
-	set_gptimer_status(0, TIMER_STATUS_TIMIL0);
+		set_gptimer_status(0, TIMER_STATUS_TIMIL0);
 	}
 #endif
 	write_sequnlock(&xtime_lock);
