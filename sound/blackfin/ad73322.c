@@ -57,10 +57,6 @@
 #include "ad73322.h"
 #include "bf53x_sport.h"
 
-#ifndef CONFIG_BFIN_DMA_5XX
-#error "The sound driver requires the Blackfin Simple DMA"
-#endif
-
 #ifdef CONFIG_SND_DEBUG
 #define snd_printk_marker() snd_printk(KERN_INFO "%s\n", __FUNCTION__)
 #else

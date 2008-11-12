@@ -162,10 +162,6 @@
 #define SPORT_IRQ_ERR IRQ_SPORT1_ERROR
 #endif
 
-#ifndef CONFIG_BFIN_DMA_5XX
-#error "The sound driver requires the Blackfin DMA"
-#endif
-
 #ifdef CONFIG_SND_DEBUG
 #define snd_printk_marker() snd_printk(KERN_INFO "%s\n", __FUNCTION__)
 #else
