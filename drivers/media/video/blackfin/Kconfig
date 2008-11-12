@@ -2,6 +2,7 @@
 config VIDEO_BLACKFIN_CAM
 	tristate "Blackfin Camera driver"
 	depends on BLACKFIN && VIDEO_DEV && I2C
+	select VIDEO_V4L1_COMPAT
 	default n
 	help
 	  V4L Support for CMOS camera sensor attached to the Blackfin PPI.
