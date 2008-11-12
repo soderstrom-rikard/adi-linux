@@ -398,7 +398,8 @@ static int bcap_init_v4l(struct sensor_data *data)
 	video_set_drvdata(bcap_dev->videodev, bcap_dev);
 
 	bcap_dev->client = &data->client;
-	bcap_dev->lock = SPIN_LOCK_UNLOCKED;
+
+	spin_lock_init(&bcap_dev->lock);
 	data->bcap_dev = bcap_dev;
 
 	bcap_dev->cam_ops = data->cam_ops;
@@ -410,13 +411,13 @@ static int bcap_init_v4l(struct sensor_data *data)
 
 	return 0;
 
-      error_out_video:
+error_out_video:
 	kfree(bcap_dev->videodev);
-      error_out_ppi:
+error_out_ppi:
 	kfree(bcap_dev->ppidev);
-      error_out_dev:
+error_out_dev:
 	kfree(bcap_dev);
-      error_out:
+error_out:
 	return err;
 }
 
@@ -1028,7 +1029,7 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 			bcap_dev->buffer[i].state = FRAME_READY;
 
-			spin_lock(bcap_dev->lock);
+			spin_lock(&bcap_dev->lock);
 			/* if DMA not busy, initiate DMA
 			 *  ow DMA handled by interrupt
 			 */
@@ -1054,7 +1055,7 @@ static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 				     bcap_dev->dma_buf->data,
 				     bcap_dev->buffer[i].data);
 			}
-			spin_unlock(bcap_dev->lock);
+			spin_unlock(&bcap_dev->lock);
 
 			return 0;
 		}
