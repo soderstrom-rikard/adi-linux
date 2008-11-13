@@ -59,7 +59,11 @@ static char *cplb_print_entry(char *buf, cplb_type type, unsigned int cpu)
 
 #else
 
-static int page_size_table[4] = {
+/* cplbmgr code uses this as well */
+#ifdef CONFIG_CPLB_SWITCH_TAB_L1
+__attribute__((l1_data))
+#endif
+int page_size_table[] = {
 	0x00000400,		/* 1K */
 	0x00001000,		/* 4K */
 	0x00100000,		/* 1M */

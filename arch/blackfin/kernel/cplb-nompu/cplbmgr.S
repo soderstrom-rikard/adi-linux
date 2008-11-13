@@ -631,13 +631,6 @@ ENDPROC(_cplb_mgr)
 
 .data
 .align 4;
-_page_size_table:
-.byte4	0x00000400;	/* 1K */
-.byte4	0x00001000;	/* 4K */
-.byte4	0x00100000;	/* 1M */
-.byte4	0x00400000;	/* 4M */
-
-.align 4;
 _dcplb_preference:
 .byte4	0x00000001;	/* valid bit */
 .byte4	0x00000002;	/* lock bit */
