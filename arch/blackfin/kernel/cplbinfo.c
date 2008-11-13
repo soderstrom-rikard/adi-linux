@@ -59,16 +59,7 @@ static char *cplb_print_entry(char *buf, cplb_type type, unsigned int cpu)
 
 #else
 
-/* cplbmgr code uses this as well */
-#ifdef CONFIG_CPLB_SWITCH_TAB_L1
-__attribute__((l1_data))
-#endif
-int page_size_table[] = {
-	0x00000400,		/* 1K */
-	0x00001000,		/* 4K */
-	0x00100000,		/* 1M */
-	0x00400000		/* 4M */
-};
+extern int page_size_table[];
 
 static int cplb_find_entry(unsigned long *cplb_addr,
 			   unsigned long *cplb_data, unsigned long addr,
