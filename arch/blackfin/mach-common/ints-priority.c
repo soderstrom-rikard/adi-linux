@@ -434,7 +434,14 @@ static void bfin_gpio_irq_shutdown(unsigned int irq)
 
 static int bfin_gpio_irq_type(unsigned int irq, unsigned int type)
 {
+	int ret;
+	char buf[16];
 	u32 gpionr = irq_to_gpio(irq);
+
+	snprintf(buf, 16, "gpio-irq%d", irq);
+	ret = bfin_gpio_request(gpionr, buf);
+	if (ret)
+		return ret;
 
 	if (type == IRQ_TYPE_PROBE) {
 		/* only probe unenabled GPIO interrupt lines */
@@ -734,7 +741,8 @@ static void bfin_gpio_irq_shutdown(unsigned int irq)
 
 static int bfin_gpio_irq_type(unsigned int irq, unsigned int type)
 {
-
+	int ret;
+	char buf[16];
 	u32 gpionr = irq_to_gpio(irq);
 	u32 pint_val = irq2pint_lut[irq - SYS_IRQS];
 	u32 pintbit = PINT_BIT(pint_val);
@@ -742,6 +750,11 @@ static int bfin_gpio_irq_type(unsigned int irq, unsigned int type)
 
 	if (pint_val == IRQ_NOT_AVAIL)
 		return -ENODEV;
+
+	snprintf(buf, 16, "gpio-irq%d", irq);
+	ret = bfin_gpio_request(gpionr, buf);
+	if (ret)
+		return ret;
 
 	if (type == IRQ_TYPE_PROBE) {
 		/* only probe unenabled GPIO interrupt lines */
