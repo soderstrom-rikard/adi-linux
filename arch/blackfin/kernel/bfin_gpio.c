@@ -1148,7 +1148,10 @@ EXPORT_SYMBOL(bfin_gpio_get_value);
 void bfin_gpio_irq_prepare(unsigned gpio)
 {
 	unsigned long flags;
+	char buf[16];
+	snprintf(buf, 16, "gpio-irq%d", gpio_to_irq(gpio));
 
+	bfin_gpio_request(gpio, buf);
 	port_setup(gpio, GPIO_USAGE);
 
 	local_irq_save(flags);
@@ -1244,6 +1247,10 @@ void bfin_gpio_reset_spi0_ssel1(void)
 
 void bfin_gpio_irq_prepare(unsigned gpio)
 {
+	char buf[16];
+	snprintf(buf, 16, "gpio-irq%d", gpio_to_irq(gpio));
+
+	bfin_gpio_request(gpio, buf);
 	port_setup(gpio, GPIO_USAGE);
 }
 
@@ -1257,10 +1264,10 @@ static int gpio_proc_read(char *buf, char **start, off_t offset,
 
 	for (c = 0; c < MAX_RESOURCES; c++) {
 		if (!check_gpio(c) && (reserved_gpio_map[gpio_bank(c)] & gpio_bit(c)))
-			len = sprintf(buf, "GPIO_%d: %s \t\tGPIO %s\n", c,
+			len = sprintf(buf, "GPIO_%d: \t%s \t\tGPIO %s\n", c,
 				 get_label(c), get_gpio_dir(c) ? "OUTPUT" : "INPUT");
 		else if (reserved_peri_map[gpio_bank(c)] & gpio_bit(c))
-			len = sprintf(buf, "GPIO_%d: %s \t\tPeripheral\n", c, get_label(c));
+			len = sprintf(buf, "GPIO_%d: \t%s \t\tPeripheral\n", c, get_label(c));
 		else
 			continue;
 		buf += len;
