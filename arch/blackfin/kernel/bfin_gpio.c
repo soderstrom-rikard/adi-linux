@@ -1148,10 +1148,7 @@ EXPORT_SYMBOL(bfin_gpio_get_value);
 void bfin_gpio_irq_prepare(unsigned gpio)
 {
 	unsigned long flags;
-	char buf[16];
-	snprintf(buf, 16, "gpio-irq%d", gpio_to_irq(gpio));
 
-	bfin_gpio_request(gpio, buf);
 	port_setup(gpio, GPIO_USAGE);
 
 	local_irq_save(flags);
@@ -1247,10 +1244,6 @@ void bfin_gpio_reset_spi0_ssel1(void)
 
 void bfin_gpio_irq_prepare(unsigned gpio)
 {
-	char buf[16];
-	snprintf(buf, 16, "gpio-irq%d", gpio_to_irq(gpio));
-
-	bfin_gpio_request(gpio, buf);
 	port_setup(gpio, GPIO_USAGE);
 }
 
