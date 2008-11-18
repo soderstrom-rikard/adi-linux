@@ -4,6 +4,7 @@
 
 config SPI_MMC
 	tristate "MMC/SD for SPI support (EXPERIMENTAL)"
+	depends on BLOCK
 	depends on EXPERIMENTAL
 	default n
 	help
