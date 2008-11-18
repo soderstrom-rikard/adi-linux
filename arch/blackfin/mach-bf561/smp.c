@@ -133,7 +133,7 @@ int __cpuinit platform_boot_secondary(unsigned int cpu, struct task_struct *idle
 	return cpu_isset(cpu, cpu_callin_map) ? 0 : -ENOSYS;
 }
 
-void platform_request_ipi(irq_handler_t handler)
+void __init platform_request_ipi(irq_handler_t handler)
 {
 	int ret;
 
