@@ -44,8 +44,7 @@
  *
  * Clobbers: r2:0, p0
  */
-_get_core_lock:
-
+ENTRY(_get_core_lock)
 	r1 = -L1_CACHE_BYTES;
 	r1 = r0 & r1;
 	cli r0;
@@ -61,6 +60,7 @@ _get_core_lock:
 	flushinv[p0];
 	SSYNC(r2);
 	rts;
+ENDPROC(_get_core_lock)
 
 /*
  * r0 = address of atomic data in uncacheable memory region (32bit).
@@ -69,8 +69,7 @@ _get_core_lock:
  *
  * Clobbers: r0, p0
  */
-_get_core_lock_noflush:
-
+ENTRY(_get_core_lock_noflush)
 	cli r0;
 	coreslot_loadaddr;
 .Lretry_corelock_noflush:
@@ -80,6 +79,7 @@ _get_core_lock_noflush:
 	jump .Lretry_corelock_noflush
 .Ldone_corelock_noflush:
 	rts;
+ENDPROC(_get_core_lock_noflush)
 
 /*
  * r0 = interrupt mask to restore.
@@ -88,8 +88,7 @@ _get_core_lock_noflush:
  * Interrupts are masked on entry (see _get_core_lock).
  * Clobbers: r2:0, p0
  */
-_put_core_lock:
-
+ENTRY(_put_core_lock)
 	/* Write-through cache assumed, so no flush needed here. */
 	coreslot_loadaddr;
 	r1 = 0;
@@ -97,6 +96,7 @@ _put_core_lock:
 	SSYNC(r2);
 	sti r0;
 	rts;
+ENDPROC(_put_core_lock)
 
 #ifdef __ARCH_SYNC_CORE_DCACHE
 
