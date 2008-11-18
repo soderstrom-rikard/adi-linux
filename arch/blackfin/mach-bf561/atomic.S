@@ -29,12 +29,10 @@
 
 .text
 
-.macro coreslot_loadaddr
-	p0.l = _corelock;
-	p0.h = _corelock;
+.macro coreslot_loadaddr reg:req
+	\reg\().l = _corelock;
+	\reg\().h = _corelock;
 .endm
-
-.align 2
 
 /*
  * r0 = address of atomic data to flush and invalidate (32bit).
@@ -48,7 +46,7 @@ ENTRY(_get_core_lock)
 	r1 = -L1_CACHE_BYTES;
 	r1 = r0 & r1;
 	cli r0;
-	coreslot_loadaddr;
+	coreslot_loadaddr p0;
 .Lretry_corelock:
 	testset (p0);
 	if cc jump .Ldone_corelock;
@@ -71,7 +69,7 @@ ENDPROC(_get_core_lock)
  */
 ENTRY(_get_core_lock_noflush)
 	cli r0;
-	coreslot_loadaddr;
+	coreslot_loadaddr p0;
 .Lretry_corelock_noflush:
 	testset (p0);
 	if cc jump .Ldone_corelock_noflush;
@@ -90,7 +88,7 @@ ENDPROC(_get_core_lock_noflush)
  */
 ENTRY(_put_core_lock)
 	/* Write-through cache assumed, so no flush needed here. */
-	coreslot_loadaddr;
+	coreslot_loadaddr p0;
 	r1 = 0;
 	[p0] = r1;
 	SSYNC(r2);
@@ -222,7 +220,7 @@ _start_lock_coherent:
 	 * Release the core lock now, but keep IRQs disabled while we are
 	 * performing the remaining housekeeping chores for the current CPU.
 	 */
-	coreslot_loadaddr;
+	coreslot_loadaddr p0;
 	r1 = 0;
 	[p0] = r1;
 
