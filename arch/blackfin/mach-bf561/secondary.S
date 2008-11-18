@@ -184,8 +184,7 @@ ENTRY(_coreb_trampoline_start)
 
 .LWAIT_HERE:
 	jump .LWAIT_HERE;
-
-.align 4
+ENDPROC(_coreb_trampoline_start)
 ENTRY(_coreb_trampoline_end)
 
 ENTRY(_coreb_start)
@@ -211,5 +210,6 @@ ENTRY(_coreb_start)
 	call _secondary_start_kernel;
 .L_exit:
 	jump.s	.L_exit;
+ENDPROC(_coreb_start)
 
 __FINIT

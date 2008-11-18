@@ -133,7 +133,6 @@ _put_core_lock:
 #ifdef __ARCH_SYNC_CORE_DCACHE
 
 ENTRY(___raw_smp_mark_barrier_asm)
-
 	[--sp] = rets;
 	[--sp] = ( r7:5 );
 	[--sp] = r0;
@@ -170,9 +169,9 @@ ENTRY(___raw_smp_mark_barrier_asm)
 	( r7:5 ) = [sp++];
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_smp_mark_barrier_asm)
 
 ENTRY(___raw_smp_check_barrier_asm)
-
 	[--sp] = rets;
 	[--sp] = ( r7:5 );
 	[--sp] = r0;
@@ -219,6 +218,7 @@ ENTRY(___raw_smp_check_barrier_asm)
 	( r7:5 ) = [sp++];
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_smp_check_barrier_asm)
 
 /*
  * r0 = irqflags
@@ -307,7 +307,6 @@ _end_lock_coherent:
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_spin_is_locked_asm)
-
 	p1 = r0;
 	[--sp] = rets;
 	call _get_core_lock;
@@ -319,6 +318,7 @@ ENTRY(___raw_spin_is_locked_asm)
 	rets = [sp++];
 	r0 = r3;
 	rts;
+ENDPROC(___raw_spin_is_locked_asm)
 
 /*
  * r0 = &spinlock->lock
@@ -326,7 +326,6 @@ ENTRY(___raw_spin_is_locked_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_spin_lock_asm)
-
 	p1 = r0;
 	[--sp] = rets;
 .Lretry_spinlock:
@@ -355,6 +354,7 @@ ENTRY(___raw_spin_lock_asm)
 	idlelize;
 	r0 = p1;
 	jump .Lretry_spinlock
+ENDPROC(___raw_spin_lock_asm)
 
 /*
  * r0 = &spinlock->lock
@@ -362,7 +362,6 @@ ENTRY(___raw_spin_lock_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_spin_trylock_asm)
-
 	p1 = r0;
 	[--sp] = rets;
 	call _get_core_lock;
@@ -387,15 +386,14 @@ ENTRY(___raw_spin_trylock_asm)
 	r0 = 0;
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_spin_trylock_asm)
 
 /*
  * r0 = &spinlock->lock
  *
  * Clobbers: r2:0, p1:0
  */
-
 ENTRY(___raw_spin_unlock_asm)
-
 	p1 = r0;
 	[--sp] = rets;
 	call _get_core_lock;
@@ -410,6 +408,7 @@ ENTRY(___raw_spin_unlock_asm)
 #endif
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_spin_unlock_asm)
 
 /*
  * r0 = &rwlock->lock
@@ -417,7 +416,6 @@ ENTRY(___raw_spin_unlock_asm)
  * Clobbers: r2:0, p1:0
  */
 ENTRY(___raw_read_lock_asm)
-
 	p1 = r0;
 	[--sp] = rets;
 	call _get_core_lock;
@@ -449,6 +447,7 @@ ENTRY(___raw_read_lock_asm)
 	cc = r1 < 2;
 	if cc jump .Lrdlock_wait;
 	jump .Lrdlock_try
+ENDPROC(___raw_read_lock_asm)
 
 /*
  * r0 = &rwlock->lock
@@ -456,7 +455,6 @@ ENTRY(___raw_read_lock_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_read_trylock_asm)
-
 	p1 = r0;
 	[--sp] = rets;
 	call _get_core_lock;
@@ -480,6 +478,7 @@ ENTRY(___raw_read_trylock_asm)
 	rets = [sp++];
 	r0 = 0;
 	rts;
+ENDPROC(___raw_read_trylock_asm)
 
 /*
  * r0 = &rwlock->lock
@@ -491,7 +490,6 @@ ENTRY(___raw_read_trylock_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_read_unlock_asm)
-
 	p1 = r0;
 	[--sp] = rets;
 	call _get_core_lock;
@@ -502,6 +500,7 @@ ENTRY(___raw_read_unlock_asm)
 	call _put_core_lock;
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_read_unlock_asm)
 
 /*
  * r0 = &rwlock->lock
@@ -509,7 +508,6 @@ ENTRY(___raw_read_unlock_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_write_lock_asm)
-
 	p1 = r0;
 	r3.l = lo(RW_LOCK_BIAS);
 	r3.h = hi(RW_LOCK_BIAS);
@@ -551,6 +549,7 @@ ENTRY(___raw_write_lock_asm)
 	cc = r1 == r3;
 	if !cc jump .Lwrlock_wait;
 	jump .Lwrlock_try
+ENDPROC(___raw_write_lock_asm)
 
 /*
  * r0 = &rwlock->lock
@@ -558,7 +557,6 @@ ENTRY(___raw_write_lock_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_write_trylock_asm)
-
 	p1 = r0;
 	[--sp] = rets;
 	call _get_core_lock;
@@ -590,6 +588,7 @@ ENTRY(___raw_write_trylock_asm)
 	rets = [sp++];
 	r0 = 0;
 	rts;
+ENDPROC(___raw_write_trylock_asm)
 
 /*
  * r0 = &rwlock->lock
@@ -597,7 +596,6 @@ ENTRY(___raw_write_trylock_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_write_unlock_asm)
-
 	p1 = r0;
 	r3.l = lo(RW_LOCK_BIAS);
 	r3.h = hi(RW_LOCK_BIAS);
@@ -614,6 +612,7 @@ ENTRY(___raw_write_unlock_asm)
 #endif
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_write_unlock_asm)
 
 /*
  * r0 = ptr
@@ -623,7 +622,6 @@ ENTRY(___raw_write_unlock_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_atomic_update_asm)
-
 	p1 = r0;
 	r3 = r1;
 	[--sp] = rets;
@@ -636,6 +634,7 @@ ENTRY(___raw_atomic_update_asm)
 	r0 = r3;
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_atomic_update_asm)
 
 /*
  * r0 = ptr
@@ -646,7 +645,6 @@ ENTRY(___raw_atomic_update_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_atomic_clear_asm)
-
 	p1 = r0;
 	r3 = ~r1;
 	[--sp] = rets;
@@ -660,6 +658,7 @@ ENTRY(___raw_atomic_clear_asm)
 	r0 = r3;
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_atomic_clear_asm)
 
 /*
  * r0 = ptr
@@ -670,7 +669,6 @@ ENTRY(___raw_atomic_clear_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_atomic_set_asm)
-
 	p1 = r0;
 	r3 = r1;
 	[--sp] = rets;
@@ -684,6 +682,7 @@ ENTRY(___raw_atomic_set_asm)
 	r0 = r3;
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_atomic_set_asm)
 
 /*
  * r0 = ptr
@@ -694,7 +693,6 @@ ENTRY(___raw_atomic_set_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_atomic_xor_asm)
-
 	p1 = r0;
 	r3 = r1;
 	[--sp] = rets;
@@ -708,6 +706,7 @@ ENTRY(___raw_atomic_xor_asm)
 	r0 = r3;
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_atomic_xor_asm)
 
 /*
  * r0 = ptr
@@ -720,7 +719,6 @@ ENTRY(___raw_atomic_xor_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_atomic_test_asm)
-
 	p1 = r0;
 	r3 = r1;
 	r1 = -L1_CACHE_BYTES;
@@ -731,6 +729,7 @@ ENTRY(___raw_atomic_test_asm)
 	r0 = [p1];
 	r0 = r0 & r3;
 	rts;
+ENDPROC(___raw_atomic_test_asm)
 
 /*
  * r0 = ptr
@@ -754,16 +753,16 @@ ENTRY(___raw_atomic_test_asm)
 	rts;
 
 ENTRY(___raw_xchg_1_asm)
-
 	__do_xchg(b[p1] (z), b[p1])
+ENDPROC(___raw_xchg_1_asm)
 
 ENTRY(___raw_xchg_2_asm)
-
 	__do_xchg(w[p1] (z), w[p1])
+ENDPROC(___raw_xchg_2_asm)
 
 ENTRY(___raw_xchg_4_asm)
-
 	__do_xchg([p1], [p1])
+ENDPROC(___raw_xchg_4_asm)
 
 /*
  * r0 = ptr
@@ -795,16 +794,16 @@ ENTRY(___raw_xchg_4_asm)
 	rts;
 
 ENTRY(___raw_cmpxchg_1_asm)
-
 	__do_cmpxchg(b[p1] (z), b[p1])
+ENDPROC(___raw_cmpxchg_1_asm)
 
 ENTRY(___raw_cmpxchg_2_asm)
-
 	__do_cmpxchg(w[p1] (z), w[p1])
+ENDPROC(___raw_cmpxchg_2_asm)
 
 ENTRY(___raw_cmpxchg_4_asm)
-
 	__do_cmpxchg([p1], [p1])
+ENDPROC(___raw_cmpxchg_4_asm)
 
 /*
  * r0 = ptr
@@ -814,11 +813,11 @@ ENTRY(___raw_cmpxchg_4_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_bit_set_asm)
-
 	r2 = r1;
 	r1 = 1;
 	r1 <<= r2;
 	jump ___raw_atomic_set_asm
+ENDPROC(___raw_bit_set_asm)
 
 /*
  * r0 = ptr
@@ -828,11 +827,11 @@ ENTRY(___raw_bit_set_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_bit_clear_asm)
-
 	r2 = r1;
 	r1 = 1;
 	r1 <<= r2;
 	jump ___raw_atomic_clear_asm
+ENDPROC(___raw_bit_clear_asm)
 
 /*
  * r0 = ptr
@@ -842,11 +841,11 @@ ENTRY(___raw_bit_clear_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_bit_toggle_asm)
-
 	r2 = r1;
 	r1 = 1;
 	r1 <<= r2;
 	jump ___raw_atomic_xor_asm
+ENDPROC(___raw_bit_toggle_asm)
 
 /*
  * r0 = ptr
@@ -856,7 +855,6 @@ ENTRY(___raw_bit_toggle_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_bit_test_set_asm)
-
 	[--sp] = rets;
 	[--sp] = r1;
 	call ___raw_bit_set_asm
@@ -870,6 +868,7 @@ ENTRY(___raw_bit_test_set_asm)
 1:
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_bit_test_set_asm)
 
 /*
  * r0 = ptr
@@ -879,7 +878,6 @@ ENTRY(___raw_bit_test_set_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_bit_test_clear_asm)
-
 	[--sp] = rets;
 	[--sp] = r1;
 	call ___raw_bit_clear_asm
@@ -893,6 +891,7 @@ ENTRY(___raw_bit_test_clear_asm)
 1:
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_bit_test_clear_asm)
 
 /*
  * r0 = ptr
@@ -903,7 +902,6 @@ ENTRY(___raw_bit_test_clear_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_bit_test_toggle_asm)
-
 	[--sp] = rets;
 	[--sp] = r1;
 	call ___raw_bit_toggle_asm
@@ -917,6 +915,7 @@ ENTRY(___raw_bit_test_toggle_asm)
 1:
 	rets = [sp++];
 	rts;
+ENDPROC(___raw_bit_test_toggle_asm)
 
 /*
  * r0 = ptr
@@ -929,11 +928,11 @@ ENTRY(___raw_bit_test_toggle_asm)
  * Clobbers: r3:0, p1:0
  */
 ENTRY(___raw_bit_test_asm)
-
 	r2 = r1;
 	r1 = 1;
 	r1 <<= r2;
 	jump ___raw_atomic_test_asm
+ENDPROC(___raw_bit_test_asm)
 
 /*
  * r0 = ptr
@@ -943,7 +942,6 @@ ENTRY(___raw_bit_test_asm)
  * Clobbers: r2:0, p1:0
  */
 ENTRY(___raw_uncached_fetch_asm)
-
 	p1 = r0;
 	r1 = -L1_CACHE_BYTES;
 	r1 = r0 & r1;
@@ -952,3 +950,4 @@ ENTRY(___raw_uncached_fetch_asm)
 	do_ssync;
 	r0 = [p1];
 	rts;
+ENDPROC(___raw_uncached_fetch_asm)
