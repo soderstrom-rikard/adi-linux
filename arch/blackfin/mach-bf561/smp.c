@@ -54,13 +54,7 @@ void __init platform_prepare_cpus(unsigned int max_cpus)
 	int len;
 
 	len = &coreb_trampoline_end - &coreb_trampoline_start + 1;
-
-	if (len > COREB_SRAM_SIZE) {
-		/* Paranoid. */
-		printk(KERN_ERR "Bootstrap code size (%d) > CoreB SRAM (%d).\n",
-		       len, COREB_SRAM_SIZE);
-		return;
-	}
+	BUG_ON(len > COREB_SRAM_SIZE);
 
 	dma_memcpy((void *)COREB_SRAM_BASE, &coreb_trampoline_start, len);
 
@@ -114,8 +108,8 @@ int __cpuinit platform_boot_secondary(unsigned int cpu, struct task_struct *idle
 {
 	unsigned long timeout;
 
-	if ((bfin_read_SICA_SYSCR() & COREB_SRAM_INIT) == 0)
-		return -EBUSY;	/* CoreB already running?! */
+	/* CoreB already running?! */
+	BUG_ON((bfin_read_SICA_SYSCR() & COREB_SRAM_INIT) == 0);
 
 	printk(KERN_INFO "Booting Core B.\n");
 
@@ -154,29 +148,25 @@ void platform_send_ipi(cpumask_t callmap)
 	unsigned int cpu;
 
 	for_each_cpu_mask(cpu, callmap) {
-		if (likely(cpu < 2)) {
-			SSYNC();
-			bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (6 + cpu)));
-			SSYNC();
-		}
-	}
-}
-
-void platform_send_ipi_cpu(unsigned int cpu)
-{
-
-	if (likely(cpu < 2)) {
+		BUG_ON(cpu >= 2);
 		SSYNC();
 		bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (6 + cpu)));
 		SSYNC();
 	}
 }
 
+void platform_send_ipi_cpu(unsigned int cpu)
+{
+	BUG_ON(cpu >= 2);
+	SSYNC();
+	bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (6 + cpu)));
+	SSYNC();
+}
+
 void platform_clear_ipi(unsigned int cpu)
 {
-	if (likely(cpu < 2)) {
-		SSYNC();
-		bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (10 + cpu)));
-		SSYNC();
-	}
+	BUG_ON(cpu >= 2);
+	SSYNC();
+	bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (10 + cpu)));
+	SSYNC();
 }
