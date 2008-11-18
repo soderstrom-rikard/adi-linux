@@ -31,7 +31,7 @@
 __INIT
 
 /* Lay the initial stack into the L1 scratch area of Core B */
-#define INITIAL_STACK	0xFF701000
+#define INITIAL_STACK	(COREB_L1_SCRATCH_START + L1_SCRATCH_LENGTH - 12)
 
 ENTRY(_coreb_trampoline_start)
 	/* Set the SYSCFG register */
