@@ -34,38 +34,6 @@
 	p0.h = _corelock;
 .endm
 
-.macro do_ssync
-#if defined(ANOMALY_05000312) || defined(ANOMALY_05000244)
-	cli r2;
-#ifdef ANOMALY_05000244
-	nop;
-	nop;
-#endif
-	ssync;
-	sti r2;
-#else
-	ssync;
-#endif
-.endm
-
-.macro do_csync
-#if defined(ANOMALY_05000312) || defined(ANOMALY_05000244)
-	cli r2;
-#ifdef ANOMALY_05000244
-	nop;
-	nop;
-#endif
-	csync;
-	sti r2;
-#else
-	csync;
-#endif
-.endm
-
-.macro idlelize
-	do_ssync;
-.endm
-
 .align 2
 
 /*
@@ -85,13 +53,13 @@ _get_core_lock:
 .Lretry_corelock:
 	testset (p0);
 	if cc jump .Ldone_corelock;
-	idlelize;
+	SSYNC(r2);
 	jump .Lretry_corelock
 .Ldone_corelock:
 	p0 = r1;
-	do_csync;
+	CSYNC(r2);
 	flushinv[p0];
-	do_ssync;
+	SSYNC(r2);
 	rts;
 
 /*
@@ -108,7 +76,7 @@ _get_core_lock_noflush:
 .Lretry_corelock_noflush:
 	testset (p0);
 	if cc jump .Ldone_corelock_noflush;
-	idlelize;
+	SSYNC(r2);
 	jump .Lretry_corelock_noflush
 .Ldone_corelock_noflush:
 	rts;
@@ -126,7 +94,7 @@ _put_core_lock:
 	coreslot_loadaddr;
 	r1 = 0;
 	[p0] = r1;
-	do_ssync;
+	SSYNC(r2);
 	sti r0;
 	rts;
 
@@ -160,7 +128,7 @@ ENTRY(___raw_smp_mark_barrier_asm)
 	r7 = r7 | r6;
 1:
 	[p1] = r7;
-	do_ssync;
+	SSYNC(r2);
 
 	call _put_core_lock;
 	p0 = [sp++];
@@ -198,7 +166,7 @@ ENTRY(___raw_smp_check_barrier_asm)
 	r6 = ~r6;
 	r7 = r7 & r6;
 	[p1] = r7;
-	do_ssync;
+	SSYNC(r2);
 
 	call _put_core_lock;
 
@@ -274,7 +242,7 @@ _start_lock_coherent:
 	sp += 12;
 
 .Lcache_synced:
-	do_ssync;
+	SSYNC(r2);
 	sti r7;
 	( r7:6 ) = [sp++];
 	rets = [sp++];
@@ -351,7 +319,7 @@ ENTRY(___raw_spin_lock_asm)
 	/* We don't touch the atomic area if busy, so that flush
 	   will behave like nop in _put_core_lock. */
 	call _put_core_lock;
-	idlelize;
+	SSYNC(r2);
 	r0 = p1;
 	jump .Lretry_spinlock
 ENDPROC(___raw_spin_lock_asm)
@@ -440,7 +408,7 @@ ENTRY(___raw_read_lock_asm)
 .Lrdlock_wait:
 	r1 = p1;
 	call _put_core_lock;
-	idlelize;
+	SSYNC(r2);
 	r0 = p1;
 	call _get_core_lock;
 	r1 = [p1];
@@ -538,7 +506,7 @@ ENTRY(___raw_write_lock_asm)
 .Lwrlock_wait:
 	r1 = p1;
 	call _put_core_lock;
-	idlelize;
+	SSYNC(r2);
 	r0 = p1;
 	call _get_core_lock;
 	r1 = [p1];
@@ -725,7 +693,7 @@ ENTRY(___raw_atomic_test_asm)
 	r1 = r0 & r1;
 	p0 = r1;
 	flushinv[p0];
-	do_ssync;
+	SSYNC(r2);
 	r0 = [p1];
 	r0 = r0 & r3;
 	rts;
@@ -947,7 +915,7 @@ ENTRY(___raw_uncached_fetch_asm)
 	r1 = r0 & r1;
 	p0 = r1;
 	flushinv[p0];
-	do_ssync;
+	SSYNC(r2);
 	r0 = [p1];
 	rts;
 ENDPROC(___raw_uncached_fetch_asm)
