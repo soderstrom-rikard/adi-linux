@@ -1057,7 +1057,7 @@ int bfin_gpio_request(unsigned gpio, const char *label)
 		return -EBUSY;
 	}
 	if (unlikely(reserved_gpio_irq_map[gpio_bank(gpio)] & gpio_bit(gpio)))
-		printk(KERN_ERR "bfin-gpio: GPIO %d is already reserved as gpio-irq!\n",
+		printk(KERN_NOTICE "bfin-gpio: GPIO %d is already reserved as gpio-irq!\n",
 		       gpio);
 
 	reserved_gpio_map[gpio_bank(gpio)] |= gpio_bit(gpio);
@@ -1120,10 +1120,9 @@ int bfin_gpio_irq_request(unsigned gpio, const char *label)
 		local_irq_restore(flags);
 		return -EBUSY;
 	}
-	if (unlikely(reserved_gpio_map[gpio_bank(gpio)] & gpio_bit(gpio))) {
-		printk(KERN_ERR "bfin-gpio: GPIO %d is already reserved by %s !\n",
+	if (unlikely(reserved_gpio_map[gpio_bank(gpio)] & gpio_bit(gpio)))
+		printk(KERN_NOTICE "bfin-gpio: GPIO %d is already reserved by %s!\n",
 		       gpio, get_label(gpio));
-	}
 
 	reserved_gpio_irq_map[gpio_bank(gpio)] |= gpio_bit(gpio);
 	set_label(gpio, label);
