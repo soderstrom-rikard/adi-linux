@@ -278,6 +278,16 @@ static int bfin_t350mcqb_fb_check_var(struct fb_var_screeninfo *var,
 		return -ENOMEM;
 	}
 
+	/* Some application would clear RGB length and offset, restore them. */
+	if (memcmp(&info->var.red, &var->red, 3*sizeof(struct fb_bitfield))) {
+		var->red.offset = 0;
+		var->green.offset = 8;
+		var->blue.offset = 16;
+		var->red.length = var->green.length = var->blue.length = 8;
+		var->transp.offset = 0;
+		var->transp.length = 0;
+	}
+
 	return 0;
 }
 
