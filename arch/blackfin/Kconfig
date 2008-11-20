@@ -394,13 +394,15 @@ config CLKIN_HZ
 	  peripherals won't work properly.
 
 config BFIN_KERNEL_CLOCK
-	bool "Re-program Clocks while Kernel boots?"
+	bool "Re-program Clocks while Kernel boots? (EXPERIMENTAL)"
+	depends on EXPERIMENTAL
 	default n
 	help
 	  This option decides if kernel clocks are re-programed from the
 	  bootloader settings. If the clocks are not set, the SDRAM settings
 	  are also not changed, and the Bootloader does 100% of the hardware
-	  configuration.
+	  configuration. The calculated SDRAM timing parameters may not be 100%
+	  accurate - This option is therefore marked experimental.
 
 config PLL_BYPASS
 	bool "Bypass PLL"
@@ -1103,13 +1105,13 @@ config BFIN_CPU_FREQ
 
 config CPU_VOLTAGE
 	bool "CPU Voltage scaling"
-	depends on EXPERIMENTAL	
+	depends on EXPERIMENTAL
 	depends on CPU_FREQ
 	default n
 	help
 	  Say Y here if you want CPU voltage scaling according to the CPU frequency.
 	  This option violates the PLL BYPASS recommendation in the Blackfin Processor
-	  manuals. There is a theoretical risk that during VDDINT transitions 
+	  manuals. There is a theoretical risk that during VDDINT transitions
 	  the PLL may unlock.
 
 endmenu
