@@ -1,30 +1,9 @@
 /*
- * File:         arch/blackfin/mach-bf537/head.S
- * Based on:     arch/blackfin/mach-bf533/head.S
- * Author:       Jeff Dionne <jeff@uclinux.org> COPYRIGHT 1998 D. Jeff Dionne
+ * arch/blackfin/mach-common/clocks-init.c - reprogram clocks / memory
  *
- * Created:      1998
- * Description:  Startup code for Blackfin BF537
+ * Copyright 2004-2008 Analog Devices Inc.
  *
- * Modified:
- *               Copyright 2004-2006 Analog Devices Inc.
- *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * Licensed under the GPL-2 or later.
  */
 
 #include <linux/linkage.h>
@@ -35,14 +14,12 @@
 #include <asm/clocks.h>
 #include <asm/mem_init.h>
 
-#ifdef ANOMALY_05000265 /* Add 250 mV of hysteresis to SPORT input pins */
-#define PLL_CTL_VAL (((CONFIG_VCO_MULT & 63) << 9) | CLKIN_HALF | (PLL_BYPASS << 8) | 0x8000)
-#else
-#define PLL_CTL_VAL (((CONFIG_VCO_MULT & 63) << 9) | CLKIN_HALF | (PLL_BYPASS << 8))
-#endif
+#define PLL_CTL_VAL \
+	(((CONFIG_VCO_MULT & 63) << 9) | CLKIN_HALF | \
+	 (PLL_BYPASS << 8) | (ANOMALY_05000265 ? 0x8000 : 0))
 
 __attribute__((l1_text))
-void do_sync(void)
+static void do_sync(void)
 {
 	__builtin_bfin_ssync();
 }
@@ -50,20 +27,21 @@ void do_sync(void)
 __attribute__((l1_text))
 void init_clocks(void)
 {
-	int i;
-	struct dma_register *dma;
-
-	for (i = 0; i < MAX_BLACKFIN_DMA_CHANNEL; i++) {
-		dma = dma_io_base_addr[i];
+	/* Kill any active DMAs as they may trigger external memory accesses
+	 * in the middle of reprogramming things, and that'll screw us up.
+	 * For example, any automatic DMAs left by U-Boot for splash screens.
+	 */
+	size_t i;
+	for (i = 0; i < MAX_BLACKFIN_DMA_CHANNEL; ++i) {
+		struct dma_register *dma = dma_io_base_addr[i];
 		dma->cfg = 0;
 	}
 
 	do_sync();
 
-#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x)  || defined(CONFIG_BF561) || \
-	defined(CONFIG_BF538) || defined(CONFIG_BF539) || defined(CONFIG_BF51x)
+#ifdef SIC_IWR0
 	bfin_write_SIC_IWR0(IWR_ENABLE(0));
-#if defined(CONFIG_BF52x) || defined(CONFIG_BF51x)
+# ifdef SIC_IWR1
 	/* BF52x system reset does not properly reset SIC_IWR1 which
 	 * will screw up the bootrom as it relies on MDMA0/1 waking it
 	 * up from IDLE instructions.  See this report for more info:
@@ -73,10 +51,8 @@ void init_clocks(void)
 		bfin_write_SIC_IWR1(IWR_ENABLE(10) | IWR_ENABLE(11));
 	else
 		bfin_write_SIC_IWR1(IWR_DISABLE_ALL);
-#else
-	bfin_write_SIC_IWR1(IWR_DISABLE_ALL);
-#endif
-# ifdef CONFIG_BF54x
+# endif
+# ifdef SIC_IWR2
 	bfin_write_SIC_IWR2(IWR_DISABLE_ALL);
 # endif
 #else
