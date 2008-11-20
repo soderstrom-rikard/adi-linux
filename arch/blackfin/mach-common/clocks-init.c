@@ -44,7 +44,7 @@
 __attribute__((l1_text))
 void do_sync(void)
 {
-	__asm__ __volatile__("NOP;NOP;NOP;SSYNC;");
+	__builtin_bfin_ssync();
 }
 
 __attribute__((l1_text))
