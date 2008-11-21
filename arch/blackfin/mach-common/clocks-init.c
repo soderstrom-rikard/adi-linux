@@ -84,6 +84,9 @@ void init_clocks(void)
 	bfin_write_EBIU_DDRCTL0(mem_DDRCTL0);
 	bfin_write_EBIU_DDRCTL1(mem_DDRCTL1);
 	bfin_write_EBIU_DDRCTL2(mem_DDRCTL2);
+#ifdef CONFIG_MEM_EBIU_DDRQUE
+	bfin_write_EBIU_DDRQUE(CONFIG_MEM_EBIU_DDRQUE);
+#endif
 #endif
 	do_sync();
 	bfin_read16(0);

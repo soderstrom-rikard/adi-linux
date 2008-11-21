@@ -500,22 +500,32 @@ menu "Memory Init Control"
 config MEM_DDRCTL0
 	depends on BF54x
 	hex "DDRCTL0"
+	default 0x0
 
 config MEM_DDRCTL1
 	depends on BF54x
 	hex "DDRCTL1"
+	default 0x0
 
 config MEM_DDRCTL2
 	depends on BF54x
 	hex "DDRCTL2"
+	default 0x0
+
+config MEM_EBIU_DDRQUE
+	depends on BF54x
+	hex "DDRQUE"
+	default 0x0
 
 config MEM_SDRRC
 	depends on !BF54x
 	hex "SDRRC"
+	default 0x0
 
 config MEM_SDGCTL
 	depends on !BF54x
 	hex "SDGCTL"
+	default 0x0
 endmenu
 
 config MAX_MEM_SIZE
