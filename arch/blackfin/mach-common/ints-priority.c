@@ -755,11 +755,6 @@ static int bfin_gpio_irq_type(unsigned int irq, unsigned int type)
 	if (pint_val == IRQ_NOT_AVAIL)
 		return -ENODEV;
 
-	snprintf(buf, 16, "gpio-irq%d", irq);
-	ret = bfin_gpio_request(gpionr, buf);
-	if (ret)
-		return ret;
-
 	if (type == IRQ_TYPE_PROBE) {
 		/* only probe unenabled GPIO interrupt lines */
 		if (__test_bit(gpionr, gpio_enabled))
@@ -769,6 +764,12 @@ static int bfin_gpio_irq_type(unsigned int irq, unsigned int type)
 
 	if (type & (IRQ_TYPE_EDGE_RISING | IRQ_TYPE_EDGE_FALLING |
 		    IRQ_TYPE_LEVEL_HIGH | IRQ_TYPE_LEVEL_LOW)) {
+
+		snprintf(buf, 16, "gpio-irq%d", irq);
+		ret = bfin_gpio_irq_request(gpionr, buf);
+		if (ret)
+			return ret;
+
 		if (__test_and_set_bit(gpionr, gpio_enabled))
 			bfin_gpio_irq_prepare(gpionr);
 

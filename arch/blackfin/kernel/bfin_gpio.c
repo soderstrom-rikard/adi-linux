@@ -1319,14 +1319,14 @@ void bfin_gpio_irq_prepare(unsigned gpio)
 static int gpio_proc_read(char *buf, char **start, off_t offset,
 			  int len, int *unused_i, void *unused_v)
 {
-	int c, irq, outlen = 0;
+	int c, irq, gpio, outlen = 0;
 
 	for (c = 0; c < MAX_RESOURCES; c++) {
 		irq = reserved_gpio_irq_map[gpio_bank(c)] & gpio_bit(c);
-		if (!check_gpio(c) &&
-		    ((reserved_gpio_map[gpio_bank(c)] & gpio_bit(c)) || irq))
+		gpio = reserved_gpio_map[gpio_bank(c)] & gpio_bit(c);
+		if (!check_gpio(c) && (gpio || irq))
 			len = sprintf(buf, "GPIO_%d: \t%s%s \t\tGPIO %s\n", c,
-				 get_label(c), irq ? " *" : "",
+				 get_label(c), (gpio && irq) ? " *" : "",
 				 get_gpio_dir(c) ? "OUTPUT" : "INPUT");
 		else if (reserved_peri_map[gpio_bank(c)] & gpio_bit(c))
 			len = sprintf(buf, "GPIO_%d: \t%s \t\tPeripheral\n", c, get_label(c));
