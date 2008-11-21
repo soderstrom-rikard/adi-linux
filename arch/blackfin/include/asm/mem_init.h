@@ -1,32 +1,9 @@
 /*
- * File:         arch/blackfin/include/asm/mem_init.h
- * Based on:
- * Author:
+ * arch/blackfin/include/asm/mem_init.h - reprogram clocks / memory
  *
- * Created:
- * Description:
+ * Copyright 2004-2008 Analog Devices Inc.
  *
- * Rev:
- *
- * Modified:
- *               Copyright 2004-2008 Analog Devices Inc.
- *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; see the file COPYING.
- * If not, write to the Free Software Foundation,
- * 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * Licensed under the GPL-2 or later.
  */
 
 #if defined(EBIU_SDGCTL)
@@ -130,11 +107,17 @@
 #define SDRAM_CL    CL_3
 #endif
 
+
+#ifdef CONFIG_BFIN_KERNEL_CLOCK_MEMINIT_CALC
 /* Equation from section 17 (p17-46) of BF533 HRM */
 #define mem_SDRRC       (((CONFIG_SCLK_HZ / 1000) * SDRAM_Tref) / SDRAM_NRA) - (SDRAM_tRAS_num + SDRAM_tRP_num)
 
 /* Enable SCLK Out */
 #define mem_SDGCTL        (0x80000000 | SCTLE | SDRAM_CL | SDRAM_tRAS | SDRAM_tRP | SDRAM_tRCD | SDRAM_tWR | PSS)
+#else
+#define mem_SDRRC 	CONFIG_MEM_SDRRC
+#define mem_SDGCTL	CONFIG_MEM_SDGCTL
+#endif
 #endif
 
 
@@ -201,11 +184,16 @@
 # error "CONFIG_SCLK_HZ is too large (>133333333 Hz)."
 #endif
 
-
+#ifdef CONFIG_BFIN_KERNEL_CLOCK_MEMINIT_CALC
 #define mem_DDRCTL0	(DDR_tRP | DDR_tRAS | DDR_tRC | DDR_tRFC | DDR_tREFI)
 #define mem_DDRCTL1	(DDR_DATWIDTH | EXTBANK_1 | DDR_SIZE | DDR_WIDTH | DDR_tWTR \
 			| DDR_tMRD | DDR_tWR | DDR_tRCD)
 #define mem_DDRCTL2	DDR_CL
+#else
+#define mem_DDRCTL0	CONFIG_MEM_DDRCTL0
+#define mem_DDRCTL1	CONFIG_MEM_DDRCTL1
+#define mem_DDRCTL2	CONFIG_MEM_DDRCTL2
+#endif
 #endif
 
 #if defined CONFIG_CLKIN_HALF
