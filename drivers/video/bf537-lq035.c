@@ -565,8 +565,23 @@ static int bfin_lq035_fb_release(struct fb_info* info, int user)
 static int bfin_lq035_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 {
 
-	if (var->bits_per_pixel != 16) {
-		pr_debug("%s: depth not supported: %u BPP\n", __FUNCTION__,
+	switch (var->bits_per_pixel) {
+	case 16:/* DIRECTCOLOUR, 64k */
+		var->red.offset = info->var.red.offset;
+		var->green.offset = info->var.green.offset;
+		var->blue.offset = info->var.blue.offset;
+		var->red.length = info->var.red.length;
+		var->green.length = info->var.green.length;
+		var->blue.length = info->var.blue.length;
+		var->transp.offset = 0;
+		var->transp.length = 0;
+		var->transp.msb_right = 0;
+		var->red.msb_right = 0;
+		var->green.msb_right = 0;
+		var->blue.msb_right = 0;
+		break;
+	default:
+		pr_debug("%s: depth not supported: %u BPP\n", __func__,
 			 var->bits_per_pixel);
 		return -EINVAL;
 	}
@@ -816,18 +831,21 @@ static int __init bfin_lq035_probe(struct platform_device *pdev)
 		bfin_lq035_fb_fix.smem_start = (int)fb_buffer + ACTIVE_VIDEO_MEM_OFFSET;
 	}
 
-	if(bgr) {
-		bfin_lq035_fb_defined.red.offset 		= 0;
-		bfin_lq035_fb_defined.red.length 		= 5;
-		bfin_lq035_fb_defined.red.msb_right 		= 0;
 
-		bfin_lq035_fb_defined.green.offset 		= 5;
-		bfin_lq035_fb_defined.green.length 		= 6;
-		bfin_lq035_fb_defined.green.msb_right 		= 0;
+	bfin_lq035_fb_defined.green.msb_right 		= 0;
+	bfin_lq035_fb_defined.red.msb_right 		= 0;
+	bfin_lq035_fb_defined.blue.msb_right 		= 0;
+	bfin_lq035_fb_defined.green.offset 		= 5;
+	bfin_lq035_fb_defined.green.length 		= 6;
+	bfin_lq035_fb_defined.red.length 		= 5;
+	bfin_lq035_fb_defined.blue.length 		= 5;
 
-		bfin_lq035_fb_defined.blue.offset 		= 11;
-		bfin_lq035_fb_defined.blue.length 		= 5;
-		bfin_lq035_fb_defined.blue.msb_right 		= 0;
+	if (bgr) {
+		bfin_lq035_fb_defined.red.offset 	= 0;
+		bfin_lq035_fb_defined.blue.offset 	= 11;
+	} else {
+		bfin_lq035_fb_defined.red.offset 	= 11;
+		bfin_lq035_fb_defined.blue.offset 	= 0;
 	}
 
 	bfin_lq035_fb.fbops = &bfin_lq035_fb_ops;

@@ -477,8 +477,23 @@ static int tx09_fb_check_var(struct fb_var_screeninfo *var,
 {
 	pr_debug("%s\n", __FUNCTION__);
 
-	if (var->bits_per_pixel != 16) {
-		pr_debug("%s: depth not supported: %u BPP\n", __FUNCTION__,
+	switch (var->bits_per_pixel) {
+	case 16:/* DIRECTCOLOUR, 64k */
+		var->red.offset = info->var.red.offset;
+		var->green.offset = info->var.green.offset;
+		var->blue.offset = info->var.blue.offset;
+		var->red.length = info->var.red.length;
+		var->green.length = info->var.green.length;
+		var->blue.length = info->var.blue.length;
+		var->transp.offset = 0;
+		var->transp.length = 0;
+		var->transp.msb_right = 0;
+		var->red.msb_right = 0;
+		var->green.msb_right = 0;
+		var->blue.msb_right = 0;
+		break;
+	default:
+		pr_debug("%s: depth not supported: %u BPP\n", __func__,
 			 var->bits_per_pixel);
 		return -EINVAL;
 	}
