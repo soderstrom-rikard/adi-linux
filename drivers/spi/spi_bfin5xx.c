@@ -926,7 +926,7 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		}
 
 		if (drv_data->cs_change)
-			bfin_spi_cs_active(drv_data, chip);
+			bfin_spi_cs_deactive(drv_data, chip);
 		/* Schedule next transfer tasklet */
 		tasklet_schedule(&drv_data->pump_transfers);
 
