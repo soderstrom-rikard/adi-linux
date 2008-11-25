@@ -470,9 +470,6 @@ static int sdh_probe(struct platform_device *pdev)
 		goto out1;
 	}
 
-	/* Secure Digital Host has control of DMAC1 channel 10 resources */
-	bfin_write_DMAC1_PERIMUX(bfin_read_DMAC1_PERIMUX() | 0x1);
-	SSYNC();
 	host->dma_ch = CH_SDH;
 	if (request_dma(host->dma_ch, DRIVER_NAME "DMA") == -EBUSY) {
 		printk(KERN_ERR "Failed to request DMA channel for SDH\n");
@@ -484,6 +481,9 @@ static int sdh_probe(struct platform_device *pdev)
 		ret = -EBUSY;
 		goto out3;
 	}
+	/* Secure Digital Host has control of DMAC1 channel 10 resources */
+	bfin_write_DMAC1_PERIMUX(bfin_read_DMAC1_PERIMUX() | 0x1);
+	SSYNC();
 
 	host->sg_cpu = dma_alloc_coherent(&pdev->dev, PAGE_SIZE, &host->sg_dma, GFP_KERNEL);
 	if (host->sg_cpu == NULL) {
