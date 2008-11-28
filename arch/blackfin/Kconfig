@@ -880,6 +880,7 @@ choice
 	default BFIN_WT if SMP
 config BFIN_WB
 	bool "Write back"
+	depends on !SMP
 	help
 	  Write Back Policy:
 	    Cached data will be written back to SDRAM only when needed.
