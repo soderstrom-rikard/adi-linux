@@ -1057,7 +1057,8 @@ int bfin_gpio_request(unsigned gpio, const char *label)
 		return -EBUSY;
 	}
 	if (unlikely(reserved_gpio_irq_map[gpio_bank(gpio)] & gpio_bit(gpio)))
-		printk(KERN_NOTICE "bfin-gpio: GPIO %d is already reserved as gpio-irq!\nSee Documentation/blackfin/bfin-gpio-notes.txt.\n", gpio);
+		printk(KERN_NOTICE "bfin-gpio: GPIO %d is already reserved as gpio-irq!"
+		       " (Documentation/blackfin/bfin-gpio-notes.txt)\n", gpio);
 
 	reserved_gpio_map[gpio_bank(gpio)] |= gpio_bit(gpio);
 	set_label(gpio, label);
@@ -1120,7 +1121,9 @@ int bfin_gpio_irq_request(unsigned gpio, const char *label)
 		return -EBUSY;
 	}
 	if (unlikely(reserved_gpio_map[gpio_bank(gpio)] & gpio_bit(gpio)))
-		printk(KERN_NOTICE "bfin-gpio: GPIO %d is already reserved by %s!\nSee Documentation/blackfin/bfin-gpio-notes.txt.\n", gpio, get_label(gpio));
+		printk(KERN_NOTICE "bfin-gpio: GPIO %d is already reserved by %s! "
+		       "(Documentation/blackfin/bfin-gpio-notes.txt)\n",
+		       gpio, get_label(gpio));
 
 	reserved_gpio_irq_map[gpio_bank(gpio)] |= gpio_bit(gpio);
 	set_label(gpio, label);
