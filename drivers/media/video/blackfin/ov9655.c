@@ -1,7 +1,7 @@
 /*
  * File:         drivers/media/video/blackfin/ov9655.c
  * Based on:
- * Author:       Michael Hennerich <hennerich@blackfin.uclinux.org>
+ * Author:       Martin Strubel <hackfin@section5.ch>
  *
  * Created:
  * Description:  Command driver for Omnivision OV9655 sensor

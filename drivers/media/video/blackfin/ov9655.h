@@ -1,7 +1,7 @@
 /*
- * File:         drivers/media/video/blackfin/mt9v022.h
+ * File:         drivers/media/video/blackfin/ov9655.h
  * Based on:
- * Author:       Michael Hennerich <hennerich@blackfin.uclinux.org>
+ * Author:       Martin Strubel <hackfin@section5.ch>
  *
  * Created:
  * Description:  Command driver for Micron MT9V022 sensor
