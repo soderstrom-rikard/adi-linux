@@ -135,7 +135,7 @@ typedef irqreturn_t(*dma_interrupt_t) (int irq, void *dev_id);
 
 struct dma_channel {
 	struct mutex dmalock;
-	char *device_id;
+	const char *device_id;
 	enum dma_chan_status chan_status;
 	struct dma_register *regs;
 	struct dmasg *sg;		/* large mode descriptor */
