@@ -120,6 +120,7 @@ struct chip_data {
 	u8 cs_change_per_word;
 	u16 cs_chg_udelay;	/* Some devices require > 255usec delay */
 	u32 cs_gpio;
+	u16 idle_tx_val;
 	void (*write) (struct driver_data *);
 	void (*read) (struct driver_data *);
 	void (*duplex) (struct driver_data *);
@@ -243,12 +244,13 @@ static inline void bfin_spi_dummy_read(struct driver_data *drv_data)
 static void bfin_spi_null_writer(struct driver_data *drv_data)
 {
 	u8 n_bytes = drv_data->n_bytes;
+	u16 tx_val = drv_data->cur_chip->idle_tx_val;
 
 	/* clear RXS (we check for RXS inside the loop) */
 	bfin_spi_dummy_read(drv_data);
 
 	while (drv_data->tx < drv_data->tx_end) {
-		write_TDBR(drv_data, SPI_IDLE_TXVAL);
+		write_TDBR(drv_data, tx_val);
 		drv_data->tx += n_bytes;
 		/* wait until transfer finished.
 		   checking SPIF or TXS may not guarantee transfer completion */
@@ -262,12 +264,13 @@ static void bfin_spi_null_writer(struct driver_data *drv_data)
 static void bfin_spi_null_reader(struct driver_data *drv_data)
 {
 	u8 n_bytes = drv_data->n_bytes;
+	u16 tx_val = drv_data->cur_chip->idle_tx_val;
 
 	/* discard old RX data and clear RXS */
 	bfin_spi_dummy_read(drv_data);
 
 	while (drv_data->rx < drv_data->rx_end) {
-		write_TDBR(drv_data, SPI_IDLE_TXVAL);
+		write_TDBR(drv_data, tx_val);
 		drv_data->rx += n_bytes;
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
@@ -311,11 +314,13 @@ static void bfin_spi_u8_cs_chg_writer(struct driver_data *drv_data)
 
 static void bfin_spi_u8_reader(struct driver_data *drv_data)
 {
+	u16 tx_val = drv_data->cur_chip->idle_tx_val;
+
 	/* discard old RX data and clear RXS */
 	bfin_spi_dummy_read(drv_data);
 
 	while (drv_data->rx < drv_data->rx_end) {
-		write_TDBR(drv_data, SPI_IDLE_TXVAL);
+		write_TDBR(drv_data, tx_val);
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
 		*(u8 *) (drv_data->rx++) = read_RDBR(drv_data);
@@ -325,13 +330,14 @@ static void bfin_spi_u8_reader(struct driver_data *drv_data)
 static void bfin_spi_u8_cs_chg_reader(struct driver_data *drv_data)
 {
 	struct chip_data *chip = drv_data->cur_chip;
+	u16 tx_val = chip->idle_tx_val;
 
 	/* discard old RX data and clear RXS */
 	bfin_spi_dummy_read(drv_data);
 
 	while (drv_data->rx < drv_data->rx_end) {
 		bfin_spi_cs_active(drv_data, chip);
-		write_TDBR(drv_data, SPI_IDLE_TXVAL);
+		write_TDBR(drv_data, tx_val);
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
 		*(u8 *) (drv_data->rx++) = read_RDBR(drv_data);
@@ -407,11 +413,13 @@ static void bfin_spi_u16_cs_chg_writer(struct driver_data *drv_data)
 
 static void bfin_spi_u16_reader(struct driver_data *drv_data)
 {
+	u16 tx_val = drv_data->cur_chip->idle_tx_val;
+
 	/* discard old RX data and clear RXS */
 	bfin_spi_dummy_read(drv_data);
 
 	while (drv_data->rx < drv_data->rx_end) {
-		write_TDBR(drv_data, SPI_IDLE_TXVAL);
+		write_TDBR(drv_data, tx_val);
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
 		*(u16 *) (drv_data->rx) = read_RDBR(drv_data);
@@ -422,13 +430,14 @@ static void bfin_spi_u16_reader(struct driver_data *drv_data)
 static void bfin_spi_u16_cs_chg_reader(struct driver_data *drv_data)
 {
 	struct chip_data *chip = drv_data->cur_chip;
+	u16 tx_val = chip->idle_tx_val;
 
 	/* discard old RX data and clear RXS */
 	bfin_spi_dummy_read(drv_data);
 
 	while (drv_data->rx < drv_data->rx_end) {
 		bfin_spi_cs_active(drv_data, chip);
-		write_TDBR(drv_data, SPI_IDLE_TXVAL);
+		write_TDBR(drv_data, tx_val);
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
 		*(u16 *) (drv_data->rx) = read_RDBR(drv_data);
@@ -642,6 +651,13 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		message->status = -EIO;
 		bfin_spi_giveback(drv_data);
 		return;
+	}
+
+	if (transfer->len == 0) {
+		/* Move to next transfer of this msg */
+		message->state = bfin_spi_next_transfer(drv_data);
+		/* Schedule next transfer tasklet */
+		tasklet_schedule(&drv_data->pump_transfers);
 	}
 
 	if (transfer->tx_buf != NULL) {
@@ -1112,6 +1128,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 		chip->cs_change_per_word = chip_info->cs_change_per_word;
 		chip->cs_chg_udelay = chip_info->cs_chg_udelay;
 		chip->cs_gpio = chip_info->cs_gpio;
+		chip->idle_tx_val = chip_info->idle_tx_val;
 	}
 
 	/* translate common spi framework into our register */
