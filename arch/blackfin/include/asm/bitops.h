@@ -166,15 +166,6 @@ static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
 	return retval;
 }
 
-/*
- * This routine doesn't need to go through raw atomic ops in UP
- * context.
- */
-#define test_bit(nr,addr) \
-(__builtin_constant_p(nr) ? \
- __constant_test_bit((nr), (addr)) : \
- __test_bit((nr), (addr)))
-
 #endif /* CONFIG_SMP */
 
 /*
@@ -250,12 +241,6 @@ static inline int __test_and_change_bit(int nr,
 	return retval;
 }
 
-static inline int __constant_test_bit(int nr, const void *addr)
-{
-	return ((1UL << (nr & 31)) &
-		(((const volatile unsigned int *)addr)[nr >> 5])) != 0;
-}
-
 static inline int __test_bit(int nr, const void *addr)
 {
 	int *a = (int *)addr;
@@ -265,6 +250,17 @@ static inline int __test_bit(int nr, const void *addr)
 	mask = 1 << (nr & 0x1f);
 	return ((mask & *a) != 0);
 }
+
+#ifndef CONFIG_SMP
+/*
+ * This routine doesn't need irq save and restore ops in UP
+ * context.
+ */
+static inline int test_bit(int nr, const void *addr)
+{
+	return __test_bit(nr, addr);
+}
+#endif
 
 #include <asm-generic/bitops/find.h>
 #include <asm-generic/bitops/hweight.h>
