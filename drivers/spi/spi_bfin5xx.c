@@ -47,6 +47,9 @@ MODULE_LICENSE("GPL");
 
 #define BFIN_SPI_LOCK 1
 
+/* Value to send if no TX value is supplied */
+#define SPI_IDLE_TXVAL 0x0000
+
 struct driver_data {
 	/* Driver model hookup */
 	struct platform_device *pdev;
@@ -231,134 +234,121 @@ static void bfin_spi_restore_state(struct driver_data *drv_data)
 	bfin_spi_cs_active(drv_data, chip);
 }
 
-/* used to kick off transfer in rx mode */
-static unsigned short bfin_spi_dummy_read(struct driver_data *drv_data)
+/* used to kick off transfer in rx mode and read unwanted RX data */
+static inline void bfin_spi_dummy_read(struct driver_data *drv_data)
 {
-	unsigned short tmp;
-	tmp = read_RDBR(drv_data);
-	return tmp;
+	(void) read_RDBR(drv_data);
 }
 
 static void bfin_spi_null_writer(struct driver_data *drv_data)
 {
 	u8 n_bytes = drv_data->n_bytes;
 
+	/* clear RXS (we check for RXS inside the loop) */
+	bfin_spi_dummy_read(drv_data);
+
 	while (drv_data->tx < drv_data->tx_end) {
-		write_TDBR(drv_data, 0);
-		while ((read_STAT(drv_data) & BIT_STAT_TXS))
-			cpu_relax();
+		write_TDBR(drv_data, SPI_IDLE_TXVAL);
 		drv_data->tx += n_bytes;
+		/* wait until transfer finished.
+		   checking SPIF or TXS may not guarantee transfer completion */
+		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
+			cpu_relax();
+		/* discard RX data and clear RXS */
+		bfin_spi_dummy_read(drv_data);
 	}
 }
 
 static void bfin_spi_null_reader(struct driver_data *drv_data)
 {
 	u8 n_bytes = drv_data->n_bytes;
+
+	/* discard old RX data and clear RXS */
 	bfin_spi_dummy_read(drv_data);
 
 	while (drv_data->rx < drv_data->rx_end) {
+		write_TDBR(drv_data, SPI_IDLE_TXVAL);
+		drv_data->rx += n_bytes;
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
 		bfin_spi_dummy_read(drv_data);
-		drv_data->rx += n_bytes;
 	}
 }
 
 static void bfin_spi_u8_writer(struct driver_data *drv_data)
 {
-	dev_dbg(&drv_data->pdev->dev,
-		"cr8-s is 0x%x\n", read_STAT(drv_data));
+	/* clear RXS (we check for RXS inside the loop) */
+	bfin_spi_dummy_read(drv_data);
 
 	while (drv_data->tx < drv_data->tx_end) {
-		write_TDBR(drv_data, (*(u8 *) (drv_data->tx)));
-		while (read_STAT(drv_data) & BIT_STAT_TXS)
+		write_TDBR(drv_data, (*(u8 *) (drv_data->tx++)));
+		/* wait until transfer finished.
+		   checking SPIF or TXS may not guarantee transfer completion */
+		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
-		++drv_data->tx;
+		/* discard RX data and clear RXS */
+		bfin_spi_dummy_read(drv_data);
 	}
-
-	/* poll for SPI completion before return */
-	while (!(read_STAT(drv_data) & BIT_STAT_SPIF))
-		cpu_relax();
 }
 
 static void bfin_spi_u8_cs_chg_writer(struct driver_data *drv_data)
 {
 	struct chip_data *chip = drv_data->cur_chip;
 
+	/* clear RXS (we check for RXS inside the loop) */
+	bfin_spi_dummy_read(drv_data);
+
 	while (drv_data->tx < drv_data->tx_end) {
 		bfin_spi_cs_active(drv_data, chip);
-
-		write_TDBR(drv_data, (*(u8 *) (drv_data->tx)));
-		while (read_STAT(drv_data) & BIT_STAT_TXS)
+		write_TDBR(drv_data, (*(u8 *) (drv_data->tx++)));
+		/* make sure transfer finished before deactiving CS */
+		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
-		while (!(read_STAT(drv_data) & BIT_STAT_SPIF))
-			cpu_relax();
-
+		bfin_spi_dummy_read(drv_data);
 		bfin_spi_cs_deactive(drv_data, chip);
-
-		++drv_data->tx;
 	}
 }
 
 static void bfin_spi_u8_reader(struct driver_data *drv_data)
 {
-	dev_dbg(&drv_data->pdev->dev,
-		"cr-8 is 0x%x\n", read_STAT(drv_data));
-
-	/* poll for SPI completion before start */
-	while (!(read_STAT(drv_data) & BIT_STAT_SPIF))
-		cpu_relax();
-
-	/* clear TDBR buffer before read(else it will be shifted out) */
-	write_TDBR(drv_data, 0xFFFF);
-
+	/* discard old RX data and clear RXS */
 	bfin_spi_dummy_read(drv_data);
 
-	while (drv_data->rx < drv_data->rx_end - 1) {
+	while (drv_data->rx < drv_data->rx_end) {
+		write_TDBR(drv_data, SPI_IDLE_TXVAL);
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
-		*(u8 *) (drv_data->rx) = read_RDBR(drv_data);
-		++drv_data->rx;
+		*(u8 *) (drv_data->rx++) = read_RDBR(drv_data);
 	}
-
-	while (!(read_STAT(drv_data) & BIT_STAT_RXS))
-		cpu_relax();
-	*(u8 *) (drv_data->rx) = read_SHAW(drv_data);
-	++drv_data->rx;
 }
 
 static void bfin_spi_u8_cs_chg_reader(struct driver_data *drv_data)
 {
 	struct chip_data *chip = drv_data->cur_chip;
 
+	/* discard old RX data and clear RXS */
+	bfin_spi_dummy_read(drv_data);
+
 	while (drv_data->rx < drv_data->rx_end) {
 		bfin_spi_cs_active(drv_data, chip);
-		read_RDBR(drv_data);	/* kick off */
-
+		write_TDBR(drv_data, SPI_IDLE_TXVAL);
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
-		while (!(read_STAT(drv_data) & BIT_STAT_SPIF))
-			cpu_relax();
-
-		*(u8 *) (drv_data->rx) = read_SHAW(drv_data);
+		*(u8 *) (drv_data->rx++) = read_RDBR(drv_data);
 		bfin_spi_cs_deactive(drv_data, chip);
-
-		++drv_data->rx;
 	}
 }
 
 static void bfin_spi_u8_duplex(struct driver_data *drv_data)
 {
-	/* in duplex mode, clk is triggered by writing of TDBR */
+	/* discard old RX data and clear RXS */
+	bfin_spi_dummy_read(drv_data);
+
 	while (drv_data->rx < drv_data->rx_end) {
-		write_TDBR(drv_data, (*(u8 *) (drv_data->tx)));
-		while (!(read_STAT(drv_data) & BIT_STAT_SPIF))
-			cpu_relax();
+		write_TDBR(drv_data, (*(u8 *) (drv_data->tx++)));
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
-		*(u8 *) (drv_data->rx) = read_RDBR(drv_data);
-		++drv_data->rx;
-		++drv_data->tx;
+		*(u8 *) (drv_data->rx++) = read_RDBR(drv_data);
 	}
 }
 
@@ -366,130 +356,99 @@ static void bfin_spi_u8_cs_chg_duplex(struct driver_data *drv_data)
 {
 	struct chip_data *chip = drv_data->cur_chip;
 
+	/* discard old RX data and clear RXS */
+	bfin_spi_dummy_read(drv_data);
+
 	while (drv_data->rx < drv_data->rx_end) {
 		bfin_spi_cs_active(drv_data, chip);
-
-		write_TDBR(drv_data, (*(u8 *) (drv_data->tx)));
-
-		while (!(read_STAT(drv_data) & BIT_STAT_SPIF))
-			cpu_relax();
+		write_TDBR(drv_data, (*(u8 *) (drv_data->tx++)));
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
-		*(u8 *) (drv_data->rx) = read_RDBR(drv_data);
-
+		*(u8 *) (drv_data->rx++) = read_RDBR(drv_data);
 		bfin_spi_cs_deactive(drv_data, chip);
-
-		++drv_data->rx;
-		++drv_data->tx;
 	}
 }
 
 static void bfin_spi_u16_writer(struct driver_data *drv_data)
 {
-	dev_dbg(&drv_data->pdev->dev,
-		"cr16 is 0x%x\n", read_STAT(drv_data));
+	/* clear RXS (we check for RXS inside the loop) */
+	bfin_spi_dummy_read(drv_data);
 
 	while (drv_data->tx < drv_data->tx_end) {
 		write_TDBR(drv_data, (*(u16 *) (drv_data->tx)));
-		while ((read_STAT(drv_data) & BIT_STAT_TXS))
-			cpu_relax();
 		drv_data->tx += 2;
+		/* wait until transfer finished.
+		   checking SPIF or TXS may not guarantee transfer completion */
+		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
+			cpu_relax();
+		/* discard RX data and clear RXS */
+		bfin_spi_dummy_read(drv_data);
 	}
-
-	/* poll for SPI completion before return */
-	while (!(read_STAT(drv_data) & BIT_STAT_SPIF))
-		cpu_relax();
 }
 
 static void bfin_spi_u16_cs_chg_writer(struct driver_data *drv_data)
 {
 	struct chip_data *chip = drv_data->cur_chip;
 
+	/* clear RXS (we check for RXS inside the loop) */
+	bfin_spi_dummy_read(drv_data);
+
 	while (drv_data->tx < drv_data->tx_end) {
 		bfin_spi_cs_active(drv_data, chip);
-
 		write_TDBR(drv_data, (*(u16 *) (drv_data->tx)));
-		while ((read_STAT(drv_data) & BIT_STAT_TXS))
-			cpu_relax();
-		while (!(read_STAT(drv_data) & BIT_STAT_SPIF))
-			cpu_relax();
-
-		bfin_spi_cs_deactive(drv_data, chip);
-
 		drv_data->tx += 2;
+		/* make sure transfer finished before deactiving CS */
+		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
+			cpu_relax();
+		bfin_spi_dummy_read(drv_data);
+		bfin_spi_cs_deactive(drv_data, chip);
 	}
 }
 
 static void bfin_spi_u16_reader(struct driver_data *drv_data)
 {
-	dev_dbg(&drv_data->pdev->dev,
-		"cr-16 is 0x%x\n", read_STAT(drv_data));
-
-	/* poll for SPI completion before start */
-	while (!(read_STAT(drv_data) & BIT_STAT_SPIF))
-		cpu_relax();
-
-	/* clear TDBR buffer before read(else it will be shifted out) */
-	write_TDBR(drv_data, 0xFFFF);
-
+	/* discard old RX data and clear RXS */
 	bfin_spi_dummy_read(drv_data);
 
-	while (drv_data->rx < (drv_data->rx_end - 2)) {
+	while (drv_data->rx < drv_data->rx_end) {
+		write_TDBR(drv_data, SPI_IDLE_TXVAL);
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
 		*(u16 *) (drv_data->rx) = read_RDBR(drv_data);
 		drv_data->rx += 2;
 	}
-
-	while (!(read_STAT(drv_data) & BIT_STAT_RXS))
-		cpu_relax();
-	*(u16 *) (drv_data->rx) = read_SHAW(drv_data);
-	drv_data->rx += 2;
 }
 
 static void bfin_spi_u16_cs_chg_reader(struct driver_data *drv_data)
 {
 	struct chip_data *chip = drv_data->cur_chip;
 
-	/* poll for SPI completion before start */
-	while (!(read_STAT(drv_data) & BIT_STAT_SPIF))
-		cpu_relax();
-
-	/* clear TDBR buffer before read(else it will be shifted out) */
-	write_TDBR(drv_data, 0xFFFF);
-
-	bfin_spi_cs_active(drv_data, chip);
+	/* discard old RX data and clear RXS */
 	bfin_spi_dummy_read(drv_data);
 
-	while (drv_data->rx < drv_data->rx_end - 2) {
-		bfin_spi_cs_deactive(drv_data, chip);
-
+	while (drv_data->rx < drv_data->rx_end) {
+		bfin_spi_cs_active(drv_data, chip);
+		write_TDBR(drv_data, SPI_IDLE_TXVAL);
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
-		bfin_spi_cs_active(drv_data, chip);
 		*(u16 *) (drv_data->rx) = read_RDBR(drv_data);
 		drv_data->rx += 2;
+		bfin_spi_cs_deactive(drv_data, chip);
 	}
-	bfin_spi_cs_deactive(drv_data, chip);
-
-	while (!(read_STAT(drv_data) & BIT_STAT_RXS))
-		cpu_relax();
-	*(u16 *) (drv_data->rx) = read_SHAW(drv_data);
-	drv_data->rx += 2;
 }
 
 static void bfin_spi_u16_duplex(struct driver_data *drv_data)
 {
-	/* in duplex mode, clk is triggered by writing of TDBR */
-	while (drv_data->tx < drv_data->tx_end) {
+	/* discard old RX data and clear RXS */
+	bfin_spi_dummy_read(drv_data);
+
+	while (drv_data->rx < drv_data->rx_end) {
 		write_TDBR(drv_data, (*(u16 *) (drv_data->tx)));
-		while (!(read_STAT(drv_data) & BIT_STAT_SPIF))
-			cpu_relax();
+		drv_data->tx += 2;
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
 		*(u16 *) (drv_data->rx) = read_RDBR(drv_data);
 		drv_data->rx += 2;
-		drv_data->tx += 2;
 	}
 }
 
@@ -497,20 +456,18 @@ static void bfin_spi_u16_cs_chg_duplex(struct driver_data *drv_data)
 {
 	struct chip_data *chip = drv_data->cur_chip;
 
-	while (drv_data->tx < drv_data->tx_end) {
-		bfin_spi_cs_active(drv_data, chip);
+	/* discard old RX data and clear RXS */
+	bfin_spi_dummy_read(drv_data);
 
+	while (drv_data->rx < drv_data->rx_end) {
+		bfin_spi_cs_active(drv_data, chip);
 		write_TDBR(drv_data, (*(u16 *) (drv_data->tx)));
-		while (!(read_STAT(drv_data) & BIT_STAT_SPIF))
-			cpu_relax();
+		drv_data->tx += 2;
 		while (!(read_STAT(drv_data) & BIT_STAT_RXS))
 			cpu_relax();
 		*(u16 *) (drv_data->rx) = read_RDBR(drv_data);
-
-		bfin_spi_cs_deactive(drv_data, chip);
-
 		drv_data->rx += 2;
-		drv_data->tx += 2;
+		bfin_spi_cs_deactive(drv_data, chip);
 	}
 }
 
@@ -883,15 +840,17 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		/* IO mode write then read */
 		dev_dbg(&drv_data->pdev->dev, "doing IO transfer\n");
 
+		/* we always use SPI_WRITE mode. SPI_READ mode
+		   seems to have problems with setting up the
+		   output value in TDBR prior to the transfer. */
+		write_CTRL(drv_data, (cr | CFG_SPI_WRITE));
+
 		if (full_duplex) {
 			/* full duplex mode */
 			BUG_ON((drv_data->tx_end - drv_data->tx) !=
 			       (drv_data->rx_end - drv_data->rx));
 			dev_dbg(&drv_data->pdev->dev,
 				"IO duplex: cr is 0x%x\n", cr);
-
-			/* set SPI transfer mode */
-			write_CTRL(drv_data, (cr | CFG_SPI_WRITE));
 
 			drv_data->duplex(drv_data);
 
@@ -902,9 +861,6 @@ static void bfin_spi_pump_transfers(unsigned long data)
 			dev_dbg(&drv_data->pdev->dev,
 				"IO write: cr is 0x%x\n", cr);
 
-			/* set SPI transfer mode */
-			write_CTRL(drv_data, (cr | CFG_SPI_WRITE));
-
 			drv_data->write(drv_data);
 
 			if (drv_data->tx != drv_data->tx_end)
@@ -913,9 +869,6 @@ static void bfin_spi_pump_transfers(unsigned long data)
 			/* read only half duplex */
 			dev_dbg(&drv_data->pdev->dev,
 				"IO read: cr is 0x%x\n", cr);
-
-			/* set SPI transfer mode */
-			write_CTRL(drv_data, (cr | CFG_SPI_READ));
 
 			drv_data->read(drv_data);
 			if (drv_data->rx != drv_data->rx_end)
@@ -938,7 +891,6 @@ static void bfin_spi_pump_transfers(unsigned long data)
 			bfin_spi_cs_deactive(drv_data, chip);
 		/* Schedule next transfer tasklet */
 		tasklet_schedule(&drv_data->pump_transfers);
-
 	}
 }
 
