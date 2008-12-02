@@ -625,7 +625,7 @@ static struct bfin5xx_spi_chip lq035q1_spi_chip_info = {
 
 #if defined(CONFIG_ENC28J60) || defined(CONFIG_ENC28J60_MODULE)
 static struct bfin5xx_spi_chip enc28j60_spi_chip_info = {
-	.enable_dma	= 0,
+	.enable_dma	= 1,
 	.bits_per_word	= 8,
 	.cs_gpio = GPIO_PF10,
 };
