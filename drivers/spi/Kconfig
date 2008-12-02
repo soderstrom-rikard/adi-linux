@@ -66,6 +66,14 @@ config SPI_BFIN
 	help
 	  This is the SPI controller master driver for Blackfin 5xx processor.
 
+config SPI_BFIN_LOCK
+	bool "SPI bus lock"
+	depends on SPI_BFIN
+	default n
+	help
+	  Enable support for spi_lock_bus()/spi_unlock_bus(). Useful when multiple
+	  SPI devices share a bus, especially for devices like MMC_SPI.
+
 config SPI_AU1550
 	tristate "Au1550/Au12x0 SPI Controller"
 	depends on (SOC_AU1550 || SOC_AU1200) && EXPERIMENTAL

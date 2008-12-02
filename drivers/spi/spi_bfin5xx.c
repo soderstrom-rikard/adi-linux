@@ -45,8 +45,6 @@ MODULE_LICENSE("GPL");
 #define QUEUE_RUNNING	0
 #define QUEUE_STOPPED	1
 
-#define BFIN_SPI_LOCK 1
-
 /* Value to send if no TX value is supplied */
 #define SPI_IDLE_TXVAL 0x0000
 
@@ -73,7 +71,7 @@ struct driver_data {
 	struct list_head queue;
 	int busy;
 	int run;
-#ifdef BFIN_SPI_LOCK
+#ifdef CONFIG_SPI_BFIN_LOCK
 	/* SPI bus is lock by a slave for exclusive access */
 	int locked;
 #endif
@@ -913,7 +911,7 @@ static void bfin_spi_pump_messages(struct work_struct *work)
 {
 	struct driver_data *drv_data;
 	unsigned long flags;
-#ifdef BFIN_SPI_LOCK
+#ifdef CONFIG_SPI_BFIN_LOCK
 	int locked_cs = -1;
 	struct spi_message *next_msg = NULL, *msg = NULL;
 #endif
@@ -935,7 +933,7 @@ static void bfin_spi_pump_messages(struct work_struct *work)
 		return;
 	}
 
-#ifdef BFIN_SPI_LOCK
+#ifdef CONFIG_SPI_BFIN_LOCK
 	/* Extract head of queue */
 	next_msg = list_entry(drv_data->queue.next,
 		struct spi_message, queue);
@@ -998,7 +996,7 @@ static void bfin_spi_pump_messages(struct work_struct *work)
  */
 static int bfin_spi_lock_bus(struct spi_device *spi)
 {
-#ifdef BFIN_SPI_LOCK
+#ifdef CONFIG_SPI_BFIN_LOCK
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
 	unsigned long flags;
 
@@ -1015,7 +1013,7 @@ static int bfin_spi_lock_bus(struct spi_device *spi)
 
 static int bfin_spi_unlock_bus(struct spi_device *spi)
 {
-#ifdef BFIN_SPI_LOCK
+#ifdef CONFIG_SPI_BFIN_LOCK
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
 	unsigned long flags;
 
@@ -1253,7 +1251,7 @@ static inline int bfin_spi_init_queue(struct driver_data *drv_data)
 	INIT_LIST_HEAD(&drv_data->queue);
 	spin_lock_init(&drv_data->lock);
 
-#ifdef BFIN_SPI_LOCK
+#ifdef CONFIG_SPI_BFIN_LOCK
 	drv_data->locked = 0;
 #endif
 	drv_data->run = QUEUE_STOPPED;
@@ -1303,7 +1301,7 @@ static inline int bfin_spi_stop_queue(struct driver_data *drv_data)
 
 	spin_lock_irqsave(&drv_data->lock, flags);
 
-#ifdef BFIN_SPI_LOCK
+#ifdef CONFIG_SPI_BFIN_LOCK
 	drv_data->locked = 0;
 #endif
 	/*
