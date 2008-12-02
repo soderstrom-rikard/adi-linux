@@ -1250,7 +1250,7 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 void bfin_serial_debug(const char *fmt, ...)
 {
 	struct bfin_serial_port *uart = &bfin_serial_ports[0];
-	unsigned short status, tmp;
+	unsigned short status;
 	unsigned long flags;
 	int i, count;
 	char buf[128];
@@ -1273,11 +1273,7 @@ void bfin_serial_debug(const char *fmt, ...)
 			status = UART_GET_LSR(uart);
 		} while (!(status & THRE));
 
-#ifndef CONFIG_BF54x
-		tmp = UART_GET_LCR(uart);
-		tmp &= ~DLAB;
-		UART_PUT_LCR(uart, tmp);
-#endif
+		UART_CLEAR_DLAB(uart);
 		UART_PUT_CHAR(uart, buf[i]);
 		if (buf[i] == '\n') {
 			do {
