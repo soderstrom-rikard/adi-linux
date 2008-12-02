@@ -332,4 +332,13 @@ config KEYBOARD_SH_KEYSC
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called sh_keysc.
+
+config KEYBOARD_ADP5588
+	tristate "I2C QWERTY Keypad and IO Expander"
+	depends on I2C
+	help
+	  Say Y here if you want to use a ADP5588 attached to your system I2C bus
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called adp5588_keys.
 endif
