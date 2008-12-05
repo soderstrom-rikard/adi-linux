@@ -74,6 +74,17 @@ config TWI_LCD
 	default n
 	---help---
 
+config BFIN_DMA_INTERFACE
+	tristate "Blackfin Userspace DMA Interface"
+	depends on BLACKFIN
+	default m
+	help
+	  This is a simple interface for userspace to allocate and perform
+	  MDMA transfers.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called bfin-dma.
+
 config SIMPLE_GPIO
 	tristate "Simple GPIO char interface"
 	depends on GENERIC_GPIO
