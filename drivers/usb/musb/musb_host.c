@@ -783,7 +783,11 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 					dma_channel, packet_sz,
 					dma_channel->desired_mode,
 					urb->transfer_dma,
-					qh->segsize);
+					(dma_channel->desired_mode == 0)
+					? qh->segsize
+					: (qh->segsize -
+					  (qh->segsize %
+					   qh->maxpacket)));
 			if (dma_ok) {
 				load_count = 0;
 			} else {
@@ -1619,7 +1623,9 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 					+ urb->actual_length,
 				(dma->desired_mode == 0)
 					? rx_count
-					: urb->transfer_buffer_length);
+					: (urb->transfer_buffer_length -
+					  (urb->transfer_buffer_length %
+					   qh->maxpacket)));
 
 			if (!ret) {
 				c->channel_release(dma);
