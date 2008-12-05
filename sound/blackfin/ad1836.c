@@ -2147,7 +2147,7 @@ static struct platform_driver snd_ad1836_driver = {
 	},
 };
 
-int  __init_or_module snd_ad1836_spi_probed(struct ad1836_spi *spi)
+int snd_ad1836_spi_probed(struct ad1836_spi *spi)
 {
 	int err;
 
