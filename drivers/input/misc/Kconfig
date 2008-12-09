@@ -220,14 +220,14 @@ config HP_SDC_RTC
 	  Say Y here if you want to support the built-in real time clock
 	  of the HP SDC controller.
 
-config TWI_KEYPAD
-	tristate "TWI/I2C Keypad input device"
+config CONFIG_INPUT_PCF8574
+	tristate "PCF8574 Keypad input device"
 	depends on I2C && EXPERIMENTAL
 	help
-	  Say Y here if you want to support a 4x4 keypad matrix for input
-	  subsystem. The keypad is connetced via I2C with a PCF8574.
+	  Say Y here if you want to support a keypad connetced via I2C
+	  with a PCF8574.
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called twi_keypad.
+	  module will be called pcf8574_keypad.
 
 endif
