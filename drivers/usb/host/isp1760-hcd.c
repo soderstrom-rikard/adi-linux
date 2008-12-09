@@ -150,7 +150,7 @@ static void priv_read_copy(struct isp1760_hcd *priv, u32 *src,
 			src++;
 			dst++;
 		}
-	} 
+	}
 
 	if (!len)
 		return;
@@ -182,15 +182,15 @@ static void priv_write_copy(const struct isp1760_hcd *priv, const u32 *src,
 			src++;
 			dst++;
 		}
-	
+
 		if (!len)
 			return;
 		/* in case we have 3, 2 or 1 by left. The buffer is allocated and the
 		 * extra bytes should not be read by the HW
 		 */
-	
+
 		__raw_writel(get_unaligned(src), dst);
-	
+
 	} else{
 		while (len >= 4) {
 			__raw_writel(*src, dst);
@@ -198,14 +198,14 @@ static void priv_write_copy(const struct isp1760_hcd *priv, const u32 *src,
 			src++;
 			dst++;
 		}
-	
+
 		if (!len)
 			return;
 		/* in case we have 3, 2 or 1 by left. The buffer is allocated and the
 		 * extra bytes should not be read by the HW
 		 */
-	
-		__raw_writel(*src, dst);	
+
+		__raw_writel(*src, dst);
 	}
 }
 
@@ -415,6 +415,10 @@ static int isp1760_hc_setup(struct usb_hcd *hcd)
 		hwmode |= HW_DACK_POL_HIGH;
 	if (priv->devflags & ISP1760_FLAG_DREQ_POL_HIGH)
 		hwmode |= HW_DREQ_POL_HIGH;
+	if (priv->devflags & ISP1760_FLAG_INTR_POL_HIGH)
+		hwmode |= HW_INTR_HIGH_ACT;
+	if (priv->devflags & ISP1760_FLAG_INTR_EDGE_TRIG)
+		hwmode |= HW_INTR_EDGE_TRIG;
 
 	/*
 	 * We have to set this first in case we're in 16-bit mode.
