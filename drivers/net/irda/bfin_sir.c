@@ -8,23 +8,7 @@
  * Licensed under the GPL-2 or later.
  *
  */
-
-#include <linux/module.h>
-#include <linux/netdevice.h>
-#include <linux/interrupt.h>
-#include <linux/delay.h>
-#include <linux/platform_device.h>
-#include <linux/dma-mapping.h>
-
-#include <net/irda/irda.h>
-#include <net/irda/wrapper.h>
-#include <net/irda/irda_device.h>
-
-#include <asm/irq.h>
-#include <asm/dma.h>
-#include <asm/cacheflush.h>
-
-#include <mach/bfin_sir.h>
+#include "bfin_sir.h"
 
 #ifdef CONFIG_SIR_BFIN_DMA
 #define DMA_SIR_RX_XCNT        10
@@ -42,74 +26,61 @@ static void turnaround_delay(unsigned long last_jif, int mtt)
 	ticks = 1 + mtt / (USEC_PER_SEC / HZ);
 	schedule_timeout_interruptible(ticks);
 }
-static void __devinit bfin_sir_init_ports(int i)
+
+static void __devinit bfin_sir_init_ports(struct bfin_sir_port *sp, struct platform_device *pdev)
 {
-	sir_ports[i].membase   = (void __iomem *)bfin_sir_port_resource[i].base_addr;
-	sir_ports[i].irq = bfin_sir_port_resource[i].irq;
-	sir_ports[i].clk = get_sclk();
+	int i;
+	struct resource *res;
+
+	for (i = 0; i < pdev->num_resources; i++) {
+		res = &pdev->resource[i];
+		switch (res->flags) {
+		case IORESOURCE_MEM:
+			sp->membase   = (void __iomem *)res->start;
+			break;
+		case IORESOURCE_IRQ:
+			sp->irq = res->start;
+			break;
+		case IORESOURCE_DMA:
+			sp->rx_dma_channel = res->start;
+			sp->tx_dma_channel = res->end;
+			break;
+		default:
+			break;
+		}
+	}
+
+	sp->clk = get_sclk();
 #ifdef CONFIG_SIR_BFIN_DMA
-	sir_ports[i].tx_done        = 1;
-	init_timer(&(sir_ports[i].rx_dma_timer));
+	sp->tx_done        = 1;
+	init_timer(&(sp->rx_dma_timer));
 #endif
-	sir_ports[i].rx_dma_channel = bfin_sir_port_resource[i].rx_dma_channel;
-	sir_ports[i].tx_dma_channel = bfin_sir_port_resource[i].tx_dma_channel;
 }
 
 static void bfin_sir_stop_tx(struct bfin_sir_port *port)
 {
-#ifndef CONFIG_BF54x
-	unsigned short ier;
-#endif
 #ifdef CONFIG_SIR_BFIN_DMA
 	disable_dma(port->tx_dma_channel);
 #endif
 
 	while (!(SIR_UART_GET_LSR(port) & THRE))
 		continue;
-#ifdef CONFIG_BF54x
-	SIR_UART_PUT_LSR(port, TFI);
-	SIR_UART_CLEAR_IER(port, ETBEI);
-#else
-	ier = SIR_UART_GET_IER(port);
-	ier &= ~ETBEI;
-	SIR_UART_PUT_IER(port, ier);
-#endif
+	SIR_UART_STOP_TX(port);
 }
 
 static void bfin_sir_enable_tx(struct bfin_sir_port *port)
 {
-#ifndef CONFIG_BF54x
-	unsigned short ier;
-#endif
-#ifdef CONFIG_BF54x
-	SIR_UART_SET_IER(port, ETBEI);
-#else
-	ier = SIR_UART_GET_IER(port);
-	ier |= ETBEI;
-	SIR_UART_PUT_IER(port, ier);
-#endif
+	SIR_UART_ENABLE_TX(port);
 }
 
 static void bfin_sir_stop_rx(struct bfin_sir_port *port)
 {
-#ifdef CONFIG_BF54x
-	SIR_UART_CLEAR_IER(port, ERBFI);
-#else
-	unsigned short ier;
-
-	ier = SIR_UART_GET_IER(port);
-	ier &= ~ERBFI;
-	SIR_UART_PUT_IER(port, ier);
-#endif
+	SIR_UART_STOP_RX(port);
 }
 
 static void bfin_sir_enable_rx(struct bfin_sir_port *port)
 {
-#ifdef CONFIG_BF54x
-	SIR_UART_SET_IER(port, ERBFI);
-#else
-	SIR_UART_PUT_IER(port, SIR_UART_GET_IER(port) | ERBFI);
-#endif
+	SIR_UART_ENABLE_RX(port);
 }
 
 static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
@@ -140,26 +111,18 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 		val &= ~UCEN;
 		SIR_UART_PUT_GCTL(port, val);
 
-#ifndef CONFIG_BF54x
-		/* Set DLAB in LCR to Access DLL and DLH */
-		val = SIR_UART_GET_LCR(port);
-		val |= DLAB;
-		SIR_UART_PUT_LCR(port, val);
+		/* Set DLAB in LCR to Access THR RBR IER */
+		SIR_UART_SET_DLAB(port);
 		SSYNC();
-#endif
 
 		SIR_UART_PUT_DLL(port, quot & 0xFF);
 		SSYNC();
 		SIR_UART_PUT_DLH(port, (quot >> 8) & 0xFF);
 		SSYNC();
 
-#ifndef CONFIG_BF54x
-		/* Clear DLAB in LCR to Access THR RBR IER */
-		val = SIR_UART_GET_LCR(port);
-		val &= ~DLAB;
-		SIR_UART_PUT_LCR(port, val);
+		/* Clear DLAB in LCR */
+		SIR_UART_CLEAR_DLAB(port);
 		SSYNC();
-#endif
 
 		SIR_UART_PUT_LCR(port, lcr);
 
@@ -290,7 +253,6 @@ static void bfin_sir_dma_tx_chars(struct net_device *dev)
 	set_dma_x_count(port->tx_dma_channel, self->tx_buff.len);
 	set_dma_x_modify(port->tx_dma_channel, 1);
 	enable_dma(port->tx_dma_channel);
-	bfin_sir_enable_tx(port);
 }
 
 static irqreturn_t bfin_sir_dma_tx_int(int irq, void *dev_id)
@@ -445,11 +407,8 @@ static void bfin_sir_shutdown(struct bfin_sir_port *port, struct net_device *dev
 	unsigned short val;
 
 	bfin_sir_stop_rx(port);
-#ifdef CONFIG_BF54x
-	SIR_UART_CLEAR_IER(port, 0xF);
-#else
-	SIR_UART_PUT_IER(port, 0);
-#endif
+	SIR_UART_DISABLE_INTS(port);
+
 	val = SIR_UART_GET_GCTL(port);
 	val &= ~(UCEN | IREN | RPOLC);
 	SIR_UART_PUT_GCTL(port, val);
@@ -470,50 +429,47 @@ static void bfin_sir_shutdown(struct bfin_sir_port *port, struct net_device *dev
 #ifdef CONFIG_PM
 static int bfin_sir_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	struct bfin_sir_port *psir_ports;
+	struct bfin_sir_port *sir_port;
 	struct net_device *dev;
 	struct bfin_sir_self *self;
-	int i;
 
-	psir_ports = platform_get_drvdata(pdev);
-	if (!psir_ports)
+	sir_port = platform_get_drvdata(pdev);
+	if (!sir_port)
 		return 0;
-	for (i = nr_sirs-1; i >= 0; i--) {
-		dev = (psir_ports+i)->dev;
-		self = dev->priv;
-		if (self->open) {
-			flush_scheduled_work();
-			bfin_sir_shutdown(self->sir_port, dev);
-			netif_device_detach(dev);
-		}
+
+	dev = sir_port->dev;
+	self = dev->priv;
+	if (self->open) {
+		flush_scheduled_work();
+		bfin_sir_shutdown(self->sir_port, dev);
+		netif_device_detach(dev);
 	}
 
 	return 0;
 }
 static int bfin_sir_resume(struct platform_device *pdev)
 {
-	struct bfin_sir_port *psir_ports;
+	struct bfin_sir_port *sir_port;
 	struct net_device *dev;
 	struct bfin_sir_self *self;
 	struct bfin_sir_port *port;
-	int i;
 
-	psir_ports = platform_get_drvdata(pdev);
-	if (!psir_ports) return 0;
-	for (i = nr_sirs-1; i >= 0; i--) {
-		dev = (psir_ports+i)->dev;
-		self = dev->priv;
-		port = self->sir_port;
-		if (self->open) {
-			if (self->newspeed) {
-				self->speed = self->newspeed;
-				self->newspeed = 0;
-			}
-			bfin_sir_startup(port, dev);
-			bfin_sir_set_speed(port, 9600);
-			bfin_sir_enable_rx(port);
-			netif_device_attach(dev);
+	sir_port = platform_get_drvdata(pdev);
+	if (!sir_port)
+		return 0;
+
+	dev = sir_port->dev;
+	self = dev->priv;
+	port = self->sir_port;
+	if (self->open) {
+		if (self->newspeed) {
+			self->speed = self->newspeed;
+			self->newspeed = 0;
 		}
+		bfin_sir_startup(port, dev);
+		bfin_sir_set_speed(port, 9600);
+		bfin_sir_enable_rx(port);
+		netif_device_attach(dev);
 	}
 	return 0;
 }
@@ -550,9 +506,8 @@ static void bfin_sir_send_work(struct work_struct *work)
 
 #ifdef CONFIG_SIR_BFIN_DMA
 	bfin_sir_dma_tx_chars(dev);
-#else
-	bfin_sir_enable_tx(port);
 #endif
+	bfin_sir_enable_tx(port);
 	dev->trans_start = jiffies;
 }
 
@@ -693,13 +648,13 @@ static int bfin_sir_stop(struct net_device *dev)
 static int bfin_sir_init_iobuf(iobuff_t *io, int size)
 {
 	io->head = kmalloc(size, GFP_KERNEL | GFP_DMA);
-	if (io->head != NULL) {
-		io->truesize = size;
-		io->in_frame = FALSE;
-		io->state    = OUTSIDE_FRAME;
-		io->data     = io->head;
-	}
-	return io->head ? 0 : -ENOMEM;
+	if (!io->head)
+		return -ENOMEM;
+	io->truesize = size;
+	io->in_frame = FALSE;
+	io->state    = OUTSIDE_FRAME;
+	io->data     = io->head;
+	return 0;
 }
 
 static int __devinit bfin_sir_probe(struct platform_device *pdev)
@@ -707,87 +662,100 @@ static int __devinit bfin_sir_probe(struct platform_device *pdev)
 	struct net_device *dev;
 	struct bfin_sir_self *self;
 	unsigned int baudrate_mask;
-	int i, err = 0;
+	struct bfin_sir_port *sir_port;
+	int err = 0;
 
-	err = bfin_sir_hw_init();
+	err = peripheral_request(per[pdev->id][0], DRIVER_NAME);
+	if (err)
+		return err;
+	err = peripheral_request(per[pdev->id][1], DRIVER_NAME);
+	if (err)
+		return err;
 
-	for (i = 0; i < nr_sirs; i++) {
-		bfin_sir_init_ports(i);
-		dev = alloc_irdadev(sizeof(struct bfin_sir_self));
-		if (!dev)
-			goto err_mem_1;
+	sir_port = kmalloc(sizeof(struct bfin_sir_port), GFP_KERNEL);
+	if (!sir_port)
+		goto err_mem_0;
 
-		self = dev->priv;
-		self->dev = &pdev->dev;
-		self->sir_port = &sir_ports[i];
-		sir_ports[i].dev = dev;
+	bfin_sir_init_ports(sir_port, pdev);
 
-		err = bfin_sir_init_iobuf(&self->rx_buff, IRDA_SKB_MAX_MTU);
-		if (err)
-			goto err_mem_2;
-		err = bfin_sir_init_iobuf(&self->tx_buff, IRDA_SIR_MAX_FRAME);
-		if (err)
-			goto err_mem_3;
+	dev = alloc_irdadev(sizeof(struct bfin_sir_self));
+	if (!dev)
+		goto err_mem_1;
 
-		dev->hard_start_xmit = bfin_sir_hard_xmit;
-		dev->open            = bfin_sir_open;
-		dev->stop            = bfin_sir_stop;
-		dev->do_ioctl        = bfin_sir_ioctl;
-		dev->get_stats       = bfin_sir_stats;
-		dev->irq             = sir_ports[i].irq;
+	self = dev->priv;
+	self->dev = &pdev->dev;
+	self->sir_port = sir_port;
+	sir_port->dev = dev;
 
-		irda_init_max_qos_capabilies(&self->qos);
+	err = bfin_sir_init_iobuf(&self->rx_buff, IRDA_SKB_MAX_MTU);
+	if (err)
+		goto err_mem_2;
+	err = bfin_sir_init_iobuf(&self->tx_buff, IRDA_SIR_MAX_FRAME);
+	if (err)
+		goto err_mem_3;
 
-		baudrate_mask = IR_9600;
+	dev->hard_start_xmit = bfin_sir_hard_xmit;
+	dev->open            = bfin_sir_open;
+	dev->stop            = bfin_sir_stop;
+	dev->do_ioctl        = bfin_sir_ioctl;
+	dev->get_stats       = bfin_sir_stats;
+	dev->irq             = sir_port->irq;
 
-		switch (max_rate) {
-		case 115200:		baudrate_mask |= IR_115200;
-		case 57600:		baudrate_mask |= IR_57600;
-		case 38400:		baudrate_mask |= IR_38400;
-		case 19200:		baudrate_mask |= IR_19200;
-		}
+	irda_init_max_qos_capabilies(&self->qos);
 
-		self->qos.baud_rate.bits &= baudrate_mask;
+	baudrate_mask = IR_9600;
 
-		self->qos.min_turn_time.bits = 1; /* 10 ms or more */
+	switch (max_rate) {
+	case 115200:
+		baudrate_mask |= IR_115200;
+	case 57600:
+		baudrate_mask |= IR_57600;
+	case 38400:
+		baudrate_mask |= IR_38400;
+	case 19200:
+		baudrate_mask |= IR_19200;
+	}
 
-		irda_qos_bits_to_value(&self->qos);
+	self->qos.baud_rate.bits &= baudrate_mask;
 
-		err = register_netdev(dev);
+	self->qos.min_turn_time.bits = 1; /* 10 ms or more */
 
-		if (err) {
+	irda_qos_bits_to_value(&self->qos);
+
+	err = register_netdev(dev);
+
+	if (err) {
 err_mem_3:
-			kfree(self->tx_buff.head);
+		kfree(self->tx_buff.head);
 err_mem_2:
-			kfree(self->rx_buff.head);
+		kfree(self->rx_buff.head);
 err_mem_1:
-			free_netdev(dev);
-		}
+		free_netdev(dev);
+err_mem_0:
+		kfree(sir_port);
 	}
 	if (err == 0)
-		platform_set_drvdata(pdev, sir_ports);
+		platform_set_drvdata(pdev, sir_port);
 	return err;
 }
 
 static int __devexit bfin_sir_remove(struct platform_device *pdev)
 {
-	int i;
-	struct bfin_sir_port *psir_ports;
+	struct bfin_sir_port *sir_port;
 	struct net_device *dev = NULL;
 	struct bfin_sir_self *self;
 
 
-	psir_ports = platform_get_drvdata(pdev);
-	if (!psir_ports)
+	sir_port = platform_get_drvdata(pdev);
+	if (!sir_port)
 		return 0;
-	for (i = nr_sirs-1; i >= 0; i--) {
-		dev = (psir_ports+i)->dev;
-		self = dev->priv;
-		unregister_netdev(dev);
-		kfree(self->tx_buff.head);
-		kfree(self->rx_buff.head);
-		free_netdev(dev);
-	}
+	dev = sir_port->dev;
+	self = dev->priv;
+	unregister_netdev(dev);
+	kfree(self->tx_buff.head);
+	kfree(self->rx_buff.head);
+	free_netdev(dev);
+	kfree(sir_port);
 	platform_set_drvdata(pdev, NULL);
 
 	return 0;
