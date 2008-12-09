@@ -176,7 +176,16 @@ int bdi_register(struct backing_dev_info *bdi, struct device *parent,
 	int ret = 0;
 	struct device *dev;
 
-	if (WARN_ON(bdi->dev))
+	/* Register sysfs bdi device only once per queue
+	 *
+	 * This prevents the creation of multiple bdi interfaces per queue,
+	 * and the bdi device will carry the dev_t name of the block device
+	 * which is the first one registered, of the pool of devices using
+	 * the same queue.
+	 *
+	 * add WARN_ON to misbehaving drivers
+	 */
+	if (bdi->dev)
 		goto exit;
 
 	va_start(args, fmt);
