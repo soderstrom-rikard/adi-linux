@@ -72,7 +72,7 @@ extern unsigned long bfin_irq_flags;
 	)
 
 #ifdef CONFIG_DEBUG_HWERR
-#define __save_and_cli(x) \
+# define __save_and_cli(x) \
 	__asm__ __volatile__( \
 		"cli %0;" \
 		"sti %1;" \
@@ -80,7 +80,7 @@ extern unsigned long bfin_irq_flags;
 		: "d" (0x3F) \
 	)
 #else
-#define __save_and_cli(x) \
+# define __save_and_cli(x) \
 	__asm__ __volatile__( \
 		"cli %0;" \
 		: "=&d" (x) \
