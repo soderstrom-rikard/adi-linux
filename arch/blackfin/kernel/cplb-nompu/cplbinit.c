@@ -68,10 +68,10 @@ void __init generate_cplb_tables_cpu(unsigned int cpu)
 	}
 
 	/* Cover L1 memory.  One 4M area for code and data each is enough.  */
-#if L1_DATA_A_LENGTH > 0 || L1_DATA_B_LENGTH > 0
-	d_tbl[i_d].addr = L1_DATA_A_START;
-	d_tbl[i_d++].data = L1_DMEMORY | PAGE_SIZE_4MB;
-#endif
+	if (L1_DATA_A_LENGTH || L1_DATA_B_LENGTH) {
+		d_tbl[i_d].addr = L1_DATA_A_START;
+		d_tbl[i_d++].data = L1_DMEMORY | PAGE_SIZE_4MB;
+	}
 	i_tbl[i_i].addr = L1_CODE_START;
 	i_tbl[i_i++].data = L1_IMEMORY | PAGE_SIZE_4MB;
 
@@ -97,10 +97,10 @@ void __init generate_cplb_tables_all(void)
 #endif
 	dcplb_bounds[i_d++].data = SDRAM_DGENERIC;
 	/* DMA uncached region.  */
-#if DMA_UNCACHED_REGION > 0
-	dcplb_bounds[i_d].eaddr = _ramend;
-	dcplb_bounds[i_d++].data = SDRAM_DNON_CHBL;
-#endif
+	if (DMA_UNCACHED_REGION) {
+		dcplb_bounds[i_d].eaddr = _ramend;
+		dcplb_bounds[i_d++].data = SDRAM_DNON_CHBL;
+	}
 	if (_ramend != physical_mem_end) {
 		/* Reserved memory.  */
 		dcplb_bounds[i_d].eaddr = physical_mem_end;
@@ -114,14 +114,14 @@ void __init generate_cplb_tables_all(void)
 	dcplb_bounds[i_d].eaddr = ASYNC_BANK3_BASE + ASYNC_BANK3_SIZE;
 	dcplb_bounds[i_d++].data = SDRAM_EBIU;
 
-#ifdef L2_START
-	/* Addressing hole up to L2 SRAM.  */
-	dcplb_bounds[i_d].eaddr = L2_START;
-	dcplb_bounds[i_d++].data = 0;
-	/* L2 SRAM.  */
-	dcplb_bounds[i_d].eaddr = L2_START + L2_LENGTH;
-	dcplb_bounds[i_d++].data = L2_DMEMORY;
-#endif
+	if (L2_LENGTH) {
+		/* Addressing hole up to L2 SRAM.  */
+		dcplb_bounds[i_d].eaddr = L2_START;
+		dcplb_bounds[i_d++].data = 0;
+		/* L2 SRAM.  */
+		dcplb_bounds[i_d].eaddr = L2_START + L2_LENGTH;
+		dcplb_bounds[i_d++].data = L2_DMEMORY;
+	}
 
 	dcplb_bounds[i_d].eaddr = 0;
 	dcplb_nr_bounds = i_d;
@@ -135,24 +135,24 @@ void __init generate_cplb_tables_all(void)
 #endif
 	icplb_bounds[i_i++].data = SDRAM_IGENERIC;
 	/* DMA uncached region.  */
-#if DMA_UNCACHED_REGION > 0
-	icplb_bounds[i_i].eaddr = _ramend;
-	icplb_bounds[i_i++].data = 0;
-#endif
+	if (DMA_UNCACHED_REGION) {
+		icplb_bounds[i_i].eaddr = _ramend;
+		icplb_bounds[i_i++].data = 0;
+	}
 	if (_ramend != physical_mem_end) {
 		/* Reserved memory.  */
 		icplb_bounds[i_i].eaddr = physical_mem_end;
 		icplb_bounds[i_i++].data = (reserved_mem_icache_on ?
 					    SDRAM_IGENERIC : SDRAM_INON_CHBL);
 	}
-#ifdef L2_START
-	/* Addressing hole up to L2 SRAM, including the async bank.  */
-	icplb_bounds[i_i].eaddr = L2_START;
-	icplb_bounds[i_i++].data = 0;
-	/* L2 SRAM.  */
-	icplb_bounds[i_i].eaddr = L2_START + L2_LENGTH;
-	icplb_bounds[i_i++].data = L2_IMEMORY;
-#endif
+	if (L2_LENGTH) {
+		/* Addressing hole up to L2 SRAM, including the async bank.  */
+		icplb_bounds[i_i].eaddr = L2_START;
+		icplb_bounds[i_i++].data = 0;
+		/* L2 SRAM.  */
+		icplb_bounds[i_i].eaddr = L2_START + L2_LENGTH;
+		icplb_bounds[i_i++].data = L2_IMEMORY;
+	}
 	icplb_bounds[i_i].eaddr = 0;
 	icplb_nr_bounds = i_i;
 }
