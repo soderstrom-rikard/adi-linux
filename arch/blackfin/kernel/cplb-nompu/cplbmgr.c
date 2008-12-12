@@ -98,7 +98,6 @@ static inline void write_icplb_data(int cpu, int idx, unsigned long data,
 	icplb_tbl[cpu][idx].addr = addr;
 	icplb_tbl[cpu][idx].data = data;
 #endif
-
 }
 
 /*
@@ -132,8 +131,7 @@ static int dcplb_rr_index[NR_CPUS] PDT_ATTR;
  */
 static int evict_one_icplb(int cpu)
 {
-	int i;
-	i = first_switched_icplb + icplb_rr_index[cpu];
+	int i = first_switched_icplb + icplb_rr_index[cpu];
 	if (i >= MAX_CPLBS) {
 		i -= MAX_CPLBS - first_switched_icplb;
 		icplb_rr_index[cpu] -= MAX_CPLBS - first_switched_icplb;
@@ -144,8 +142,7 @@ static int evict_one_icplb(int cpu)
 
 static int evict_one_dcplb(int cpu)
 {
-	int i;
-	i = first_switched_dcplb + dcplb_rr_index[cpu];
+	int i = first_switched_dcplb + dcplb_rr_index[cpu];
 	if (i >= MAX_CPLBS) {
 		i -= MAX_CPLBS - first_switched_dcplb;
 		dcplb_rr_index[cpu] -= MAX_CPLBS - first_switched_dcplb;
@@ -166,7 +163,6 @@ MGR_ATTR static int icplb_miss(int cpu)
 		nr_icplb_supv_miss[cpu]++;
 
 	base = 0;
-	idx = 0;
 	for (idx = 0; idx < icplb_nr_bounds; idx++) {
 		eaddr = icplb_bounds[idx].eaddr;
 		if (addr < eaddr)
@@ -212,7 +208,6 @@ MGR_ATTR static int dcplb_miss(int cpu)
 		nr_dcplb_supv_miss[cpu]++;
 
 	base = 0;
-	idx = 0;
 	for (idx = 0; idx < dcplb_nr_bounds; idx++) {
 		eaddr = dcplb_bounds[idx].eaddr;
 		if (addr < eaddr)
@@ -286,4 +281,3 @@ MGR_ATTR int cplb_hdr(int seqstat, struct pt_regs *regs)
 		return CPLB_UNKNOWN_ERR;
 	}
 }
-
