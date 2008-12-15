@@ -592,7 +592,7 @@ static void spi_complete(void *arg)
 
 /**
  * spi_lock_bus - lock SPI bus for exclusive access
- * @@spi: device which want to lock the bus
+ * @spi: device which want to lock the bus
  * Context: any
  *
  * Once the caller owns exclusive access to the SPI bus,
@@ -617,7 +617,7 @@ EXPORT_SYMBOL_GPL(spi_lock_bus);
 
 /**
  * spi_unlock_bus - unlock SPI bus
- * @@spi: device which want to unlock the bus
+ * @spi: device which want to unlock the bus
  * Context: any
  *
  * The caller has called spi_lock_bus() to lock the bus. It calls
