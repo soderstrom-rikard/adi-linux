@@ -42,7 +42,7 @@
 #include <asm/fixed_code.h>
 
 #ifdef CONFIG_KGDB
-# include <linux/kgdb.h>
+#include <linux/kgdb.h>
 
 # define CHK_DEBUGGER_TRAP() \
 	do { \
