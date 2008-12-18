@@ -113,7 +113,6 @@ void __init generate_cplb_tables_all(void)
 	/* ASYNC banks.  */
 	dcplb_bounds[i_d].eaddr = ASYNC_BANK3_BASE + ASYNC_BANK3_SIZE;
 	dcplb_bounds[i_d++].data = SDRAM_EBIU;
-
 	if (L2_LENGTH) {
 		/* Addressing hole up to L2 SRAM.  */
 		dcplb_bounds[i_d].eaddr = L2_START;
@@ -122,9 +121,9 @@ void __init generate_cplb_tables_all(void)
 		dcplb_bounds[i_d].eaddr = L2_START + L2_LENGTH;
 		dcplb_bounds[i_d++].data = L2_DMEMORY;
 	}
-
 	dcplb_bounds[i_d].eaddr = 0;
 	dcplb_nr_bounds = i_d;
+	BUG_ON(dcplb_nr_bounds >= ARRAY_SIZE(dcplb_bounds));
 
 	i_i = 0;
 	/* Normal RAM, including MTD FS.  */
@@ -155,4 +154,5 @@ void __init generate_cplb_tables_all(void)
 	}
 	icplb_bounds[i_i].eaddr = 0;
 	icplb_nr_bounds = i_i;
+	BUG_ON(icplb_nr_bounds >= ARRAY_SIZE(icplb_bounds));
 }
