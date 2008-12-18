@@ -35,8 +35,8 @@ struct cplb_entry dcplb_tbl[NR_CPUS][MAX_CPLBS] PDT_ATTR;
 int first_switched_icplb PDT_ATTR;
 int first_switched_dcplb PDT_ATTR;
 
-struct cplb_boundary dcplb_bounds[8] PDT_ATTR;
-struct cplb_boundary icplb_bounds[8] PDT_ATTR;
+struct cplb_boundary dcplb_bounds[10] PDT_ATTR;
+struct cplb_boundary icplb_bounds[10] PDT_ATTR;
 
 int icplb_nr_bounds PDT_ATTR;
 int dcplb_nr_bounds PDT_ATTR;
@@ -78,6 +78,9 @@ void __init generate_cplb_tables_cpu(unsigned int cpu)
 	first_switched_dcplb = i_d;
 	first_switched_icplb = i_i;
 
+	BUG_ON(first_switched_dcplb > MAX_CPLBS);
+	BUG_ON(first_switched_icplb > MAX_CPLBS);
+
 	while (i_d < MAX_CPLBS)
 		d_tbl[i_d++].data = 0;
 	while (i_i < MAX_CPLBS)
@@ -113,6 +116,12 @@ void __init generate_cplb_tables_all(void)
 	/* ASYNC banks.  */
 	dcplb_bounds[i_d].eaddr = ASYNC_BANK3_BASE + ASYNC_BANK3_SIZE;
 	dcplb_bounds[i_d++].data = SDRAM_EBIU;
+	/* Addressing hole up to BootROM.  */
+	dcplb_bounds[i_d].eaddr = BOOT_ROM_START;
+	dcplb_bounds[i_d++].data = 0;
+	/* BootROM -- largest one should be less than 1 meg.  */
+	dcplb_bounds[i_d].eaddr = BOOT_ROM_START + (1 * 1024 * 1024);
+	dcplb_bounds[i_d++].data = SDRAM_IGENERIC;
 	if (L2_LENGTH) {
 		/* Addressing hole up to L2 SRAM.  */
 		dcplb_bounds[i_d].eaddr = L2_START;
@@ -144,6 +153,12 @@ void __init generate_cplb_tables_all(void)
 		icplb_bounds[i_i++].data = (reserved_mem_icache_on ?
 					    SDRAM_IGENERIC : SDRAM_INON_CHBL);
 	}
+	/* Addressing hole up to BootROM.  */
+	icplb_bounds[i_i].eaddr = BOOT_ROM_START;
+	icplb_bounds[i_i++].data = 0;
+	/* BootROM -- largest one should be less than 1 meg.  */
+	icplb_bounds[i_i].eaddr = BOOT_ROM_START + (1 * 1024 * 1024);
+	icplb_bounds[i_i++].data = SDRAM_IGENERIC;
 	if (L2_LENGTH) {
 		/* Addressing hole up to L2 SRAM, including the async bank.  */
 		icplb_bounds[i_i].eaddr = L2_START;
