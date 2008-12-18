@@ -121,7 +121,7 @@ void __init generate_cplb_tables_all(void)
 	dcplb_bounds[i_d++].data = 0;
 	/* BootROM -- largest one should be less than 1 meg.  */
 	dcplb_bounds[i_d].eaddr = BOOT_ROM_START + (1 * 1024 * 1024);
-	dcplb_bounds[i_d++].data = SDRAM_IGENERIC;
+	dcplb_bounds[i_d++].data = SDRAM_DGENERIC;
 	if (L2_LENGTH) {
 		/* Addressing hole up to L2 SRAM.  */
 		dcplb_bounds[i_d].eaddr = L2_START;
