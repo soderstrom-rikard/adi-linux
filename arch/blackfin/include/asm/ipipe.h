@@ -227,9 +227,9 @@ int ipipe_start_irq_thread(unsigned irq, struct irq_desc *desc);
 #define IRQ_SYSTMR		IRQ_TIMER0
 #define IRQ_PRIOTMR		CONFIG_IRQ_TIMER0
 
-#if defined(CONFIG_BF533)
+#if defined(CONFIG_BF531) || defined(CONFIG_BF532) || defined(CONFIG_BF533)
 #define PRIO_GPIODEMUX(irq)	CONFIG_PFA
-#elif defined(CONFIG_BF537)
+#elif defined(CONFIG_BF534) || defined(CONFIG_BF536) || defined(CONFIG_BF537)
 #define PRIO_GPIODEMUX(irq)	CONFIG_IRQ_PROG_INTA
 #elif defined(CONFIG_BF52x)
 #define PRIO_GPIODEMUX(irq)	((irq) == IRQ_PORTF_INTA ? CONFIG_IRQ_PORTF_INTA : \
@@ -255,6 +255,8 @@ int ipipe_start_irq_thread(unsigned irq, struct irq_desc *desc);
 #define bfin_write_TIMER_ENABLE(val)	bfin_write_TIMER_ENABLE0(val)
 #define bfin_write_TIMER_STATUS(val)	bfin_write_TIMER_STATUS0(val)
 #define bfin_read_TIMER_STATUS(val)	bfin_read_TIMER_STATUS0(val)
+#else
+# error "no PRIO_GPIODEMUX() for this part"
 #endif
 
 #define __ipipe_root_tick_p(regs)	((regs->ipend & 0x10) != 0)
