@@ -277,7 +277,8 @@ struct usb_ep * __init usb_ep_autoconfig (
 			return ep;
 #ifdef CONFIG_BLACKFIN
 	} else if (gadget_is_musbhsfc(gadget) || gadget_is_musbhdrc(gadget)) {
-		if (USB_ENDPOINT_XFER_BULK == type) {
+		if ((USB_ENDPOINT_XFER_BULK == type)
+			|| (USB_ENDPOINT_XFER_ISOC == type)) {
 			if (USB_DIR_IN & desc->bEndpointAddress)
 				ep = find_ep (gadget, "ep5in");
 			else
