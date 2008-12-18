@@ -121,9 +121,6 @@
 #define IRQ_USB_INT2		BFIN_IRQ(54)	/* USB_INT2 Interrupt */
 #define IRQ_USB_DMA		BFIN_IRQ(55)	/* USB_DMAINT Interrupt */
 
-#define IRQ_SW_INT1		BFIN_IRQ(56)
-#define IRQ_SW_INT2		BFIN_IRQ(57)
-
 #define SYS_IRQS        	BFIN_IRQ(63)	/* 70 */
 
 #define IRQ_PF0         71

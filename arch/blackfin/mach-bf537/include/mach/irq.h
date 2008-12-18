@@ -96,8 +96,6 @@
 #define IRQ_MEM_DMA1        37	/*(Memory DMA Stream 1) */
 #define IRQ_PROG_INTB	      38	/* PF Ports F (PF15:0) Interrupt B */
 #define IRQ_WATCH           38	/*Watch Dog Timer */
-#define IRQ_SW_INT1         40  /* Software Int 1 */
-#define IRQ_SW_INT2         41  /* Software Int 2 */
 
 #define IRQ_PPI_ERROR       42	/*PPI Error Interrupt */
 #define IRQ_CAN_ERROR       43	/*CAN Error Interrupt */

@@ -109,9 +109,6 @@ Core        Emulation               **
 #define	IRQ_MEM_DMA1		29	/*DMA10/11 Interrupt (Memory DMA Stream 1) */
 #define	IRQ_WATCH	   	30	/*Watch Dog Timer */
 
-#define IRQ_SW_INT1		31      /*Software Int 1 */
-#define IRQ_SW_INT2		32      /*Software Int 2 */
-
 #define IRQ_PF0			33
 #define IRQ_PF1			34
 #define IRQ_PF2			35

@@ -77,15 +77,13 @@ void __ipipe_enable_pipeline(void)
 	__ipipe_core_clock = get_cclk(); /* Fetch this once. */
 	__ipipe_freq_scale = 1000000000UL / __ipipe_core_clock;
 
-	for (irq = 0; irq < NR_IRQS; irq++) {
-		if (irq != IRQ_SW_INT1 && irq != IRQ_SW_INT2)
-			ipipe_virtualize_irq(ipipe_root_domain,
-					     irq,
-					     (ipipe_irq_handler_t)&asm_do_IRQ,
-					     NULL,
-					     &__ipipe_ack_irq,
-					     IPIPE_HANDLE_MASK | IPIPE_PASS_MASK);
-	}
+	for (irq = 0; irq < NR_IRQS; ++irq)
+		ipipe_virtualize_irq(ipipe_root_domain,
+				     irq,
+				     (ipipe_irq_handler_t)&asm_do_IRQ,
+				     NULL,
+				     &__ipipe_ack_irq,
+				     IPIPE_HANDLE_MASK | IPIPE_PASS_MASK);
 }
 
 /*
