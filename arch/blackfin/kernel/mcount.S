@@ -36,7 +36,7 @@ ENTRY(__mcount)
 	p1.L = _ipipe_trace_enable;
 	p1.H = _ipipe_trace_enable;
 	r7 = [p1];
-	CC = r7==0;
+	CC = r7 == 0;
 	if CC jump out;
 	link 0x10;
 	r0 = 0x0;
@@ -67,3 +67,4 @@ out:
 	i1 = [sp++];
 	i0 = [sp++];
 	rts;
+ENDPROC(__mcount)

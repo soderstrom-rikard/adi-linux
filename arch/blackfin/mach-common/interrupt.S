@@ -254,22 +254,21 @@ ENTRY(_evt_system_call)
 	call _system_call;
 	jump .Lcommon_restore_context;
 ENDPROC(_evt_system_call)
+
 #ifdef CONFIG_IPIPE
-
 ENTRY(___ipipe_call_irqtail)
-
 	r0.l = 1f;
 	r0.h = 1f;
 	reti = r0;
-	rti
+	rti;
 1:
 	[--sp] = rets;
 	[--sp] = ( r7:4, p5:3 );
 	p0.l = ___ipipe_irq_tail_hook;
 	p0.h = ___ipipe_irq_tail_hook;
-	p0 = [p0] ;
-	sp += -12 ;
-	call (p0) ;
+	p0 = [p0];
+	sp += -12;
+	call (p0);
 	sp += 12;
 	( r7:4, p5:3 ) = [sp++];
 	rets = [sp++];
@@ -287,7 +286,7 @@ ENTRY(___ipipe_call_irqtail)
 	raise 14;
 	[--sp] = reti;          /* IRQs on. */
 2:
-	jump 2b                 /* Likely paranoid. */
+	jump 2b;                /* Likely paranoid. */
 3:
 	sp += 4;                /* Discard saved RETI */
 	r0.h = _evt14_softirq;
@@ -295,16 +294,16 @@ ENTRY(___ipipe_call_irqtail)
 	p0.l = lo(EVT14);
 	p0.h = hi(EVT14);
 	[p0] = r0;
-	csync
+	csync;
 	p0.l = _bfin_irq_flags;
 	p0.h = _bfin_irq_flags;
 	r0 = [p0];
-	sti r0
+	sti r0;
 #if 0 /* FIXME: this actually raises scheduling latencies */
-        /* Reenable interrupts */
-        [--sp] = reti;
-        r0 = [sp++];
+	/* Reenable interrupts */
+	[--sp] = reti;
+	r0 = [sp++];
 #endif
 	rts;
-
+ENDPROC(___ipipe_call_irqtail)
 #endif /* CONFIG_IPIPE */
