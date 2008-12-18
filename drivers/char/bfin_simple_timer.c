@@ -58,19 +58,6 @@ MODULE_AUTHOR     (AUTHOR);
 MODULE_DESCRIPTION(DESCRIPTION);
 MODULE_LICENSE    (LICENSE);
 
-#if defined(BF533_FAMILY) || defined(BF537_FAMILY)
-#define IRQ_TIMER0    IRQ_TMR0 	/*Timer 0 */
-#define IRQ_TIMER1    IRQ_TMR1 	/*Timer 1 */
-#define IRQ_TIMER2    IRQ_TMR2 	/*Timer 2 */
-#if (MAX_BLACKFIN_GPTIMERS > 3)
-#define IRQ_TIMER3    IRQ_TMR3 	/*Timer 3 */
-#define IRQ_TIMER4    IRQ_TMR4 	/*Timer 4 */
-#define IRQ_TIMER5    IRQ_TMR5 	/*Timer 5 */
-#define IRQ_TIMER6    IRQ_TMR6 	/*Timer 6 */
-#define IRQ_TIMER7    IRQ_TMR7 	/*Timer 7 */
-#endif
-#endif
-
 static unsigned long sysclk = 0;
 module_param(sysclk, long, 0);
 MODULE_PARM_DESC(sysclk, "actual SYSCLK frequency in Hz. Default: 120000000 = 120 MHz.");
