@@ -389,10 +389,14 @@ static void bfin_demux_error_irq(unsigned int int_err_irq,
 
 static inline void bfin_set_irq_handler(unsigned irq, irq_flow_handler_t handle)
 {
+#ifdef CONFIG_IPIPE
+	_set_irq_handler(irq, handle_edge_irq);
+#else
 	struct irq_desc *desc = irq_desc + irq;
 	/* May not call generic set_irq_handler() due to spinlock
 	   recursion. */
 	desc->handle_irq = handle;
+#endif
 }
 
 static DECLARE_BITMAP(gpio_enabled, MAX_BLACKFIN_GPIOS);
@@ -504,17 +508,9 @@ static int bfin_gpio_irq_type(unsigned int irq, unsigned int type)
 	}
 
 	if (type & (IRQ_TYPE_EDGE_RISING | IRQ_TYPE_EDGE_FALLING))
-#ifdef CONFIG_IPIPE
-		_set_irq_handler(irq, handle_edge_irq);
-#else
 		bfin_set_irq_handler(irq, handle_edge_irq);
-#endif
 	else
-#ifdef CONFIG_IPIPE
-		_set_irq_handler(irq, handle_level_irq);
-#else
 		bfin_set_irq_handler(irq, handle_level_irq);
-#endif
 
 	return 0;
 }
@@ -812,18 +808,10 @@ static int bfin_gpio_irq_type(unsigned int irq, unsigned int type)
 
 	if (type & (IRQ_TYPE_EDGE_RISING | IRQ_TYPE_EDGE_FALLING)) {
 		pint[bank]->edge_set = pintbit;
-#ifdef CONFIG_IPIPE
-		_set_irq_handler(irq, handle_edge_irq);
-#else
 		bfin_set_irq_handler(irq, handle_edge_irq);
-#endif
 	} else {
 		pint[bank]->edge_clear = pintbit;
-#ifdef CONFIG_IPIPE
-		_set_irq_handler(irq, handle_level_irq);
-#else
 		bfin_set_irq_handler(irq, handle_level_irq);
-#endif
 	}
 
 	return 0;
