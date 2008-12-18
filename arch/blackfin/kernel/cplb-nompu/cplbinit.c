@@ -35,8 +35,8 @@ struct cplb_entry dcplb_tbl[NR_CPUS][MAX_CPLBS] PDT_ATTR;
 int first_switched_icplb PDT_ATTR;
 int first_switched_dcplb PDT_ATTR;
 
-struct cplb_boundary dcplb_bounds[10] PDT_ATTR;
-struct cplb_boundary icplb_bounds[10] PDT_ATTR;
+struct cplb_boundary dcplb_bounds[9] PDT_ATTR;
+struct cplb_boundary icplb_bounds[7] PDT_ATTR;
 
 int icplb_nr_bounds PDT_ATTR;
 int dcplb_nr_bounds PDT_ATTR;
@@ -130,9 +130,8 @@ void __init generate_cplb_tables_all(void)
 		dcplb_bounds[i_d].eaddr = L2_START + L2_LENGTH;
 		dcplb_bounds[i_d++].data = L2_DMEMORY;
 	}
-	dcplb_bounds[i_d].eaddr = 0;
 	dcplb_nr_bounds = i_d;
-	BUG_ON(dcplb_nr_bounds >= ARRAY_SIZE(dcplb_bounds));
+	BUG_ON(dcplb_nr_bounds > ARRAY_SIZE(dcplb_bounds));
 
 	i_i = 0;
 	/* Normal RAM, including MTD FS.  */
@@ -167,7 +166,6 @@ void __init generate_cplb_tables_all(void)
 		icplb_bounds[i_i].eaddr = L2_START + L2_LENGTH;
 		icplb_bounds[i_i++].data = L2_IMEMORY;
 	}
-	icplb_bounds[i_i].eaddr = 0;
 	icplb_nr_bounds = i_i;
-	BUG_ON(icplb_nr_bounds >= ARRAY_SIZE(icplb_bounds));
+	BUG_ON(icplb_nr_bounds > ARRAY_SIZE(icplb_bounds));
 }
