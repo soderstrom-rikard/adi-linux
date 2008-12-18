@@ -1269,11 +1269,9 @@ int __ipipe_get_irqthread_priority(unsigned irq)
 }
 
 /* Hw interrupts are disabled on entry (check SAVE_CONTEXT). */
-
 #ifdef CONFIG_DO_IRQ_L1
-asmlinkage int __ipipe_grab_irq(int vec, struct pt_regs *regs) __attribute__((l1_text));
+__attribute__((l1_text))
 #endif
-
 asmlinkage int __ipipe_grab_irq(int vec, struct pt_regs *regs)
 {
 	struct ivgx *ivg_stop = ivg7_13[vec-IVG7].istop;
