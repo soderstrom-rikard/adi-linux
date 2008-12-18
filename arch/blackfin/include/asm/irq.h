@@ -40,19 +40,21 @@ void __ipipe_unstall_root(void);
 void __ipipe_restore_root(unsigned long flags);
 
 #ifdef CONFIG_DEBUG_HWERR
-#define __all_masked_irq_flags  0x3f
-#define __save_and_cli_hw(x) do {		\
-	__asm__ __volatile__ (			\
-		"cli %0;\n\tsti %1;"		\
-		: "=&d"(x) : "d" (0x3F));		\
-} while (0)
+# define __all_masked_irq_flags 0x3f
+# define __save_and_cli_hw(x) \
+	__asm__ __volatile__( \
+		"cli %0;" \
+		"sti %1;" \
+		: "=&d"(x) \
+		: "d" (0x3F) \
+	)
 #else
-#define __all_masked_irq_flags  0x1f
-#define __save_and_cli_hw(x) do {	\
-	__asm__ __volatile__ (          \
-		"cli %0;"		\
-		: "=&d"(x) : );		\
-} while (0)
+# define __all_masked_irq_flags 0x1f
+# define __save_and_cli_hw(x) \
+	__asm__ __volatile__( \
+		"cli %0;" \
+		: "=&d"(x) \
+	)
 #endif
 
 #define irqs_enabled_from_flags_hw(x)	((x) != __all_masked_irq_flags)
@@ -75,9 +77,12 @@ void __ipipe_restore_root(unsigned long flags);
 #define local_irq_enable()	__ipipe_unstall_root()
 #define irqs_disabled()		__ipipe_test_root()
 
-#define local_save_flags_hw(x) asm volatile ("cli %0;"  \
-					     "sti %0;"	\
-					     : "=d"(x) : )
+#define local_save_flags_hw(x) \
+	__asm__ __volatile__( \
+		"cli %0;" \
+		"sti %0;" \
+		: "=d"(x) \
+	)
 
 #define	irqs_disabled_hw()				\
 	({						\
@@ -138,8 +143,12 @@ static inline int raw_demangle_irq_bits(unsigned long *x)
 		__asm__ __volatile__ ("cli %0;" : "=d" (_tmp_dummy) : );	\
 	} while (0)
 
-#define local_irq_enable_hw_notrace()				\
-	__asm__ __volatile__ ("sti %0;" : : "d"(bfin_irq_flags))
+#define local_irq_enable_hw_notrace() \
+	__asm__ __volatile__( \
+		"sti %0;" \
+		: \
+		: "d"(bfin_irq_flags) \
+	)
 
 #define local_irq_save_hw_notrace(x) __save_and_cli_hw(x)
 
@@ -151,24 +160,25 @@ static inline int raw_demangle_irq_bits(unsigned long *x)
 
 #else /* CONFIG_IPIPE_TRACE_IRQSOFF */
 
-#define local_irq_enable_hw()			\
-	do {					\
-		__asm__ __volatile__ (		\
-			"sti %0;"		\
-			: : "d"(bfin_irq_flags));	\
-	} while (0)
+#define local_irq_enable_hw() \
+	__asm__ __volatile__( \
+		"sti %0;" \
+		: \
+		: "d"(bfin_irq_flags) \
+	)
 
 #define local_irq_disable_hw()			\
 	do {					\
 		int _tmp_dummy;			\
 		__asm__ __volatile__ (		\
 			"cli %0;"		\
-			: "=d" (_tmp_dummy) : );	\
+			: "=d" (_tmp_dummy));	\
 	} while (0)
 
-#define local_irq_restore_hw(x) do {			\
-		if (irqs_enabled_from_flags_hw(x))	\
-			local_irq_enable_hw();		\
+#define local_irq_restore_hw(x) \
+	do { \
+		if (irqs_enabled_from_flags_hw(x)) \
+			local_irq_enable_hw(); \
 	} while (0)
 
 #define local_irq_save_hw(x)		__save_and_cli_hw(x)
@@ -193,8 +203,6 @@ static inline int raw_demangle_irq_bits(unsigned long *x)
 			: "=d" (__tmp_dummy) \
 		); \
 	} while (0)
-
-
 
 #define local_irq_enable() \
 	__asm__ __volatile__( \
@@ -256,22 +264,21 @@ static inline int raw_demangle_irq_bits(unsigned long *x)
 
 #endif /* !CONFIG_IPIPE */
 
-#if defined(ANOMALY_05000244) && defined(CONFIG_BLKFIN_CACHE)
-#define idle_with_irq_disabled() do {   \
-	__asm__ __volatile__ (          \
-		"nop; nop;\n"           \
-		".align 8;\n"           \
-		"sti %0; idle;\n"       \
-		: : "d" (bfin_irq_flags));     \
-} while (0)
+#if ANOMALY_05000244 && defined(CONFIG_BFIN_ICACHE)
+# define NOP_PAD_ANOMALY_05000244 "nop; nop;"
 #else
-#define idle_with_irq_disabled() do {   \
-	__asm__ __volatile__ (          \
-		".align 8;\n"           \
-		"sti %0; idle;\n"       \
-		: : "d" (bfin_irq_flags));     \
-} while (0)
+# define NOP_PAD_ANOMALY_05000244
 #endif
+
+#define idle_with_irq_disabled() \
+	__asm__ __volatile__( \
+		NOP_PAD_ANOMALY_05000244 \
+		".align 8;" \
+		"sti %0;" \
+		"idle;" \
+		: \
+		: "d" (bfin_irq_flags) \
+	)
 
 static inline int irq_canonicalize(int irq)
 {
