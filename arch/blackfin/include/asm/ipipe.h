@@ -155,10 +155,6 @@ extern unsigned long __ipipe_freq_scale;
 
 extern unsigned long __ipipe_irq_tail_hook;
 
-unsigned long get_cclk(void);	/* Core clock freq (HZ) */
-
-unsigned long get_sclk(void);	/* System clock freq (HZ) */
-
 static inline unsigned long __ipipe_ffnz(unsigned long ul)
 {
 	return ffs(ul) - 1;
