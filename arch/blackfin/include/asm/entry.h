@@ -27,6 +27,19 @@
 #define SAVE_ALL_SYS		save_context_no_interrupts
 /* This is used for all normal interrupts.  It saves a minimum of registers
    to the stack, loads the IRQ number, and jumps to common code.  */
+#ifdef CONFIG_IPIPE
+#define INTERRUPT_ENTRY(N)						\
+    [--sp] = SYSCFG;							\
+									\
+    [--sp] = P0;	/*orig_p0*/					\
+    [--sp] = R0;	/*orig_r0*/					\
+    [--sp] = (R7:0,P5:0);						\
+    R0 = (N);								\
+    P0.l = lo(IPEND);							\
+    P0.h = hi(IPEND);							\
+    R1 = [P0];								\
+    jump __common_int_entry;
+#else /* !CONFIG_IPIPE */
 #define INTERRUPT_ENTRY(N)						\
     [--sp] = SYSCFG;							\
 									\
@@ -35,6 +48,7 @@
     [--sp] = (R7:0,P5:0);						\
     R0 = (N);								\
     jump __common_int_entry;
+#endif /* CONFIG_IPIPE */
 
 /* For timer interrupts, we need to save IPEND, since the user_mode
 	   macro accesses it to determine where to account time.  */

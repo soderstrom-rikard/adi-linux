@@ -239,6 +239,9 @@
 #define IRQ_SUPPLE_0		(IVG_BASE + 62)	/* Supplemental interrupt 0 */
 #define IRQ_SUPPLE_1		(IVG_BASE + 63)	/* supplemental interrupt 1 */
 
+#define IRQ_SW_INT1		71	/* Software Interrupt 1 */
+#define IRQ_SW_INT2		72	/* Software Interrupt 2 */
+
 #define IRQ_PF0			73
 #define IRQ_PF1			74
 #define IRQ_PF2			75

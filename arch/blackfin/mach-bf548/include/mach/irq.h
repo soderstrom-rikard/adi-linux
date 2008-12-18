@@ -158,7 +158,10 @@ Events         (highest priority)  EMU         0
 #define IRQ_PINT2		BFIN_IRQ(94)	/* PINT2 Interrupt */
 #define IRQ_PINT3		BFIN_IRQ(95)	/* PINT3 Interrupt */
 
-#define SYS_IRQS        	IRQ_PINT3
+#define	IRQ_SW_INT1		BFIN_IRQ(96)	/*Software Int 1 */
+#define	IRQ_SW_INT2		BFIN_IRQ(97)	/*Software Int 2 */
+
+#define SYS_IRQS        	IRQ_SW_INT2
 
 #define BFIN_PA_IRQ(x)		((x) + SYS_IRQS + 1)
 #define IRQ_PA0			BFIN_PA_IRQ(0)
