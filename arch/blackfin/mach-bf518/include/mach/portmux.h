@@ -24,7 +24,7 @@
 #define P_MII0_ERxER	(P_DEFINED | P_IDENT(GPIO_PG1) | P_FUNCT(0))
 #define P_MII0_ETxCLK	(P_DEFINED | P_IDENT(GPIO_PG2) | P_FUNCT(0))
 
-#define P_MII {\
+#define P_MII0 {\
 	P_MII0_ETxD0, \
 	P_MII0_ETxD1, \
 	P_MII0_ETxD2, \
@@ -44,7 +44,7 @@
 	P_MII0_MDC, \
 	P_MII0_MDIO, 0}
 
-#define P_RMII {\
+#define P_RMII0 {\
 	P_MII0_ETxD0, \
 	P_MII0_ETxD1, \
 	P_MII0_ETxEN, \
