@@ -1009,7 +1009,6 @@ config EBIU_FCTLVAL
 	default 6
 
 config HARDWARE_PM
-	bool "OProfile use hardware porformance monitor"
 	depends on OPROFILE=y
 	default n
 
