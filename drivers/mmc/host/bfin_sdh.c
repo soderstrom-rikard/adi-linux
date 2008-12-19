@@ -345,7 +345,7 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		cfg &= ~0x80;
 		cfg |= 0x40;
 		/* Enable 4 bit SDIO */
-		cfgi |= 0x04;
+		cfg |= 0x04;
 		bfin_write_SDH_CFG(cfg);
 		clk_ctl |= WIDE_BUS;
 	}
