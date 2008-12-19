@@ -20,6 +20,36 @@
 static char cmdline[256];
 static unsigned long len;
 
+static int num1 __attribute__((l1_data));
+
+void kgdb_l1_test(void) __attribute__((l1_text));
+
+void kgdb_l1_test(void)
+{
+	printk(KERN_ALERT "L1(before change) : data variable addr = 0x%p, data value is %d\n", &num1, num1);
+	printk(KERN_ALERT "L1 : code function addr = 0x%p\n", kgdb_l1_test);
+	num1 = num1 + 10 ;
+	printk(KERN_ALERT "L1(after change) : data variable addr = 0x%p, data value is %d\n", &num1, num1);
+	return ;
+}
+#if defined(CONFIG_BF548) || defined(CONFIG_BF561)
+
+static int num2 __attribute__((l2));
+/* Should be enabled after bug 4562 is fixed.
+void kgdb_l2_test(void) __attribute__((l2));
+*/
+void kgdb_l2_test(void)
+{
+	printk(KERN_ALERT "L2(before change) : data variable addr = 0x%p, data value is %d\n", &num2, num2);
+	printk(KERN_ALERT "L2 : code function addr = 0x%p\n", kgdb_l2_test);
+	num2 = num2 + 20 ;
+	printk(KERN_ALERT "L2(after change) : data variable addr = 0x%p, data value is %d\n", &num2, num2);
+	return ;
+}
+
+#endif
+
+
 int kgdb_test(char *name, int len, int count, int z)
 {
 	printk(KERN_DEBUG "kgdb name(%d): %s, %d, %d\n", len, name, count, z);
@@ -30,11 +60,16 @@ int kgdb_test(char *name, int len, int count, int z)
 static int test_proc_output(char *buf)
 {
 	kgdb_test("hello world!", 12, 0x55, 0x10);
+	kgdb_l1_test();
+	#if defined(CONFIG_BF548) || defined(CONFIG_BF561)
+	kgdb_l2_test();
+	#endif
+
 	return 0;
 }
 
 static int test_read_proc(char *page, char **start, off_t off,
-                          int count, int *eof, void *data)
+				 int count, int *eof, void *data)
 {
 	int len;
 
@@ -51,7 +86,7 @@ static int test_read_proc(char *page, char **start, off_t off,
 }
 
 static int test_write_proc(struct file *file, const char *buffer,
-                           unsigned long count, void *data)
+				 unsigned long count, void *data)
 {
 	if (count >= 256)
 		len = 255;
