@@ -32,12 +32,11 @@ void kgdb_l1_test(void)
 	printk(KERN_ALERT "L1(after change) : data variable addr = 0x%p, data value is %d\n", &num1, num1);
 	return ;
 }
-#if defined(CONFIG_BF548) || defined(CONFIG_BF561)
+#if L2_LENGTH
 
 static int num2 __attribute__((l2));
-/* Should be enabled after bug 4562 is fixed.
 void kgdb_l2_test(void) __attribute__((l2));
-*/
+
 void kgdb_l2_test(void)
 {
 	printk(KERN_ALERT "L2(before change) : data variable addr = 0x%p, data value is %d\n", &num2, num2);
@@ -61,7 +60,7 @@ static int test_proc_output(char *buf)
 {
 	kgdb_test("hello world!", 12, 0x55, 0x10);
 	kgdb_l1_test();
-	#if defined(CONFIG_BF548) || defined(CONFIG_BF561)
+	#if L2_LENGTH
 	kgdb_l2_test();
 	#endif
 
