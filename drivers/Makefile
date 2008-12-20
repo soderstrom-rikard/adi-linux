@@ -102,4 +102,3 @@ obj-$(CONFIG_VIRTIO)		+= virtio/
 obj-$(CONFIG_REGULATOR)		+= regulator/
 obj-$(CONFIG_STAGING)		+= staging/
 obj-$(CONFIG_UWB)		+= uwb/
-obj-$(CONFIG_OPROFILE)		+= oprofile/
