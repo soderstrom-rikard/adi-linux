@@ -28,7 +28,7 @@ config KGDB_SERIAL_CONSOLE
 	  to break in initially.
 
 config KGDB_TESTS
-	bool "KGDB: internal test suite"
+	tristate "KGDB: internal test suite"
 	default n
 	help
 	  This is a kgdb I/O module specifically designed to test

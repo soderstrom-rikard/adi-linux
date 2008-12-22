@@ -98,7 +98,7 @@ static int test_write_proc(struct file *file, const char *buffer,
 	return len;
 }
 
-static int __init cplbtest_init(void)
+static int __init kgdbtest_init(void)
 {
 	struct proc_dir_entry *entry;
 
@@ -113,11 +113,11 @@ static int __init cplbtest_init(void)
 	return 0;
 }
 
-static void __exit cplbtest_exit(void)
+static void __exit kgdbtest_exit(void)
 {
 	remove_proc_entry("kgdbtest", NULL);
 }
 
-module_init(cplbtest_init);
-module_exit(cplbtest_exit);
+module_init(kgdbtest_init);
+module_exit(kgdbtest_exit);
 MODULE_LICENSE("GPL");
