@@ -40,6 +40,30 @@
 
 #define NR_SG	32
 
+#if defined(CONFIG_BF51x)
+#define bfin_write_SDH_PWR_CTL		bfin_write_RSI_PWR_CTL
+#define bfin_read_SDH_CLK_CTL		bfin_read_RSI_CLK_CTL
+#define bfin_write_SDH_CLK_CTL		bfin_write_RSI_CLK_CTL
+#define bfin_write_SDH_ARGUMENT		bfin_write_RSI_ARGUMENT
+#define bfin_write_SDH_COMMAND		bfin_write_RSI_COMMAND
+#define bfin_write_SDH_DATA_TIMER	bfin_write_RSI_DATA_TIMER
+#define bfin_read_SDH_RESPONSE0		bfin_read_RSI_RESPONSE0
+#define bfin_read_SDH_RESPONSE1		bfin_read_RSI_RESPONSE1
+#define bfin_read_SDH_RESPONSE2		bfin_read_RSI_RESPONSE2
+#define bfin_read_SDH_RESPONSE3		bfin_read_RSI_RESPONSE3
+#define bfin_write_SDH_DATA_LGTH	bfin_write_RSI_DATA_LGTH
+#define bfin_read_SDH_DATA_CTL		bfin_read_RSI_DATA_CTL
+#define bfin_write_SDH_DATA_CTL		bfin_write_RSI_DATA_CTL
+#define bfin_read_SDH_DATA_CNT		bfin_read_RSI_DATA_CNT
+#define bfin_write_SDH_STATUS_CLR	bfin_write_RSI_STATUS_CLR
+#define bfin_read_SDH_E_STATUS		bfin_read_RSI_E_STATUS
+#define bfin_write_SDH_E_STATUS		bfin_write_RSI_E_STATUS
+#define bfin_read_SDH_STATUS		bfin_read_RSI_STATUS
+#define bfin_write_SDH_MASK0		bfin_write_RSI_MASK0
+#define bfin_read_SDH_CFG		bfin_read_RSI_CFG
+#define bfin_write_SDH_CFG		bfin_write_RSI_CFG
+#endif
+
 struct dma_desc_array {
 	unsigned long	start_addr;
 	unsigned short	cfg;
@@ -134,9 +158,9 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 		host->dma_dir = DMA_TO_DEVICE;
 
 	sdh_enable_stat_irq(host, (DAT_CRC_FAIL | DAT_TIME_OUT | DAT_END));
-
-	dma_cfg |= DMAFLOW_ARRAY | NDSIZE_5 | RESTART | WDSIZE_32 | DMAEN;
 	host->dma_len = dma_map_sg(mmc_dev(host->mmc), data->sg, data->sg_len, host->dma_dir);
+#if defined(CONFIG_BF54x)
+	dma_cfg |= DMAFLOW_ARRAY | NDSIZE_5 | RESTART | WDSIZE_32 | DMAEN;
 
 	for (i = 0; i < host->dma_len; i++) {
 		host->sg_cpu[i].start_addr = sg_dma_address(&data->sg[i]);
@@ -158,7 +182,13 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	set_dma_x_count(host->dma_ch, 0);
 	set_dma_x_modify(host->dma_ch, 0);
 	set_dma_config(host->dma_ch, dma_cfg);
-
+#elif defined(CONFIG_BF51x)
+	dma_cfg |= WDSIZE_32 | DMAEN;
+	set_dma_start_addr(host->dma_ch, sg_dma_address(&data->sg[0]));
+	set_dma_x_count(host->dma_ch, length / 4);
+	set_dma_x_modify(host->dma_ch, 4);
+	set_dma_config(host->dma_ch, dma_cfg);
+#endif
 	bfin_write_SDH_DATA_CTL(bfin_read_SDH_DATA_CTL() | DTX_DMA_E | DTX_E);
 
 	SSYNC();
@@ -408,14 +438,7 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 	status = bfin_read_SDH_STATUS();
 	if (status & (DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL | RX_OVERRUN | TX_UNDERRUN))
 		handled |= sdh_data_done(host, status);
-	/*
-	if (status & (RX_OVERRUN | TX_UNDERRUN)) {
-		bfin_write_SDH_DATA_CTL(0);
-		printk(KERN_ERR "FIFO ERROR: %s\n", (status & RX_OVERRUN) ? \
-				"RX OVERRUN": "TX UNDERRUN");
-		bfin_write_SDH_STATUS_CLR(RX_OVERRUN_STAT | TX_UNDERRUN);
-	}
-	*/
+
 	pr_debug("%s exit\n\n", __FUNCTION__);
 
 	return IRQ_RETVAL(handled);
@@ -465,27 +488,30 @@ static int sdh_probe(struct platform_device *pdev)
 	host->mmc = mmc;
 
 	spin_lock_init(&host->lock);
+#if defined(CONFIG_BF54x)
 	host->irq = IRQ_SDH_MASK0;
+	host->dma_ch = CH_SDH;
+#elif defined(CONFIG_BF51x)
+	host->irq = IRQ_RSI_INT0;
+	host->dma_ch = CH_RSI;
+#endif
 	ret = request_irq(host->irq, sdh_stat_irq, 0, "SDH Status IRQ", host);
 	if (ret) {
 		printk(KERN_ERR "Failed to request sdh status irq\n");
 		goto out1;
 	}
 
-	host->dma_ch = CH_SDH;
 	if (request_dma(host->dma_ch, DRIVER_NAME "DMA") == -EBUSY) {
 		printk(KERN_ERR "Failed to request DMA channel for SDH\n");
 		ret = -EBUSY;
 		goto out2;
 	}
+
 	if (set_dma_callback(host->dma_ch, sdh_dma_irq, host) < 0) {
 		printk(KERN_ERR "Failed to request DMA irq for SDH\n");
 		ret = -EBUSY;
 		goto out3;
 	}
-	/* Secure Digital Host has control of DMAC1 channel 10 resources */
-	bfin_write_DMAC1_PERIMUX(bfin_read_DMAC1_PERIMUX() | 0x1);
-	SSYNC();
 
 	host->sg_cpu = dma_alloc_coherent(&pdev->dev, PAGE_SIZE, &host->sg_dma, GFP_KERNEL);
 	if (host->sg_cpu == NULL) {
@@ -495,11 +521,16 @@ static int sdh_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, mmc);
 	mmc_add_host(mmc);
-
+#if defined(CONFIG_BF54x)
+	/* Secure Digital Host has control of DMAC1 channel 10 resources */
+	bfin_write_DMAC1_PERIMUX(bfin_read_DMAC1_PERIMUX() | 0x1);
 	/* Enable peripheral function of SD pins */
 	bfin_write_PORTC_FER(bfin_read_PORTC_FER() | 0x3F00);
 	bfin_write_PORTC_MUX(bfin_read_PORTC_MUX() & ~0xFFF0000);
-	SSYNC();
+#elif defined(CONFIG_BF51x)
+	bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0x01F8);
+	bfin_write_PORTG_MUX((bfin_read_PORTG_MUX() & ~0x3FC) | 0x154);
+#endif
 
 	bfin_write_SDH_CFG(bfin_read_SDH_CFG() | CLKS_EN);
 	SSYNC();
