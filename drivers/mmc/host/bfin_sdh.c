@@ -35,6 +35,8 @@
 
 #include <asm/cacheflush.h>
 #include <asm/dma.h>
+#include <asm/portmux.h>
+#include <asm/bfin_sdh.h>
 
 #define DRIVER_NAME	"bfin-sdh"
 
@@ -93,6 +95,11 @@ struct sdh_host {
 	struct mmc_data		*data;
 };
 
+static struct bfin_sd_host *get_sdh_data(struct platform_device *pdev)
+{
+	return pdev->dev.platform_data;
+}
+
 static void sdh_stop_clock(struct sdh_host *host)
 {
 	bfin_write_SDH_CLK_CTL(bfin_read_SDH_CLK_CTL() & ~CLK_E);
@@ -126,7 +133,6 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	unsigned int length;
 	unsigned int data_ctl;
 	unsigned int dma_cfg;
-	int i;
 
 	pr_debug("%s enter flags:0x%x\n", __FUNCTION__, data->flags);
 	host->data = data;
@@ -161,7 +167,7 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	host->dma_len = dma_map_sg(mmc_dev(host->mmc), data->sg, data->sg_len, host->dma_dir);
 #if defined(CONFIG_BF54x)
 	dma_cfg |= DMAFLOW_ARRAY | NDSIZE_5 | RESTART | WDSIZE_32 | DMAEN;
-
+	int i;
 	for (i = 0; i < host->dma_len; i++) {
 		host->sg_cpu[i].start_addr = sg_dma_address(&data->sg[i]);
 		host->sg_cpu[i].cfg = dma_cfg;
@@ -467,6 +473,7 @@ static int sdh_probe(struct platform_device *pdev)
 	struct mmc_host *mmc;
 	struct sdh_host *host = NULL;
 	struct proc_dir_entry *sd_entry;
+	struct bfin_sd_host *drv_data = get_sdh_data(pdev);
 	int ret;
 
 	mmc = mmc_alloc_host(sizeof(struct sdh_host), &pdev->dev);
@@ -488,13 +495,8 @@ static int sdh_probe(struct platform_device *pdev)
 	host->mmc = mmc;
 
 	spin_lock_init(&host->lock);
-#if defined(CONFIG_BF54x)
-	host->irq = IRQ_SDH_MASK0;
-	host->dma_ch = CH_SDH;
-#elif defined(CONFIG_BF51x)
-	host->irq = IRQ_RSI_INT0;
-	host->dma_ch = CH_RSI;
-#endif
+	host->irq = drv_data->irq_int0;
+	host->dma_ch = drv_data->dma_chan;
 	ret = request_irq(host->irq, sdh_stat_irq, 0, "SDH Status IRQ", host);
 	if (ret) {
 		printk(KERN_ERR "Failed to request sdh status irq\n");
@@ -522,15 +524,15 @@ static int sdh_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, mmc);
 	mmc_add_host(mmc);
 #if defined(CONFIG_BF54x)
-	/* Secure Digital Host has control of DMAC1 channel 10 resources */
+	/* Secure Digital Host shares DMA with Nand controller */
 	bfin_write_DMAC1_PERIMUX(bfin_read_DMAC1_PERIMUX() | 0x1);
-	/* Enable peripheral function of SD pins */
-	bfin_write_PORTC_FER(bfin_read_PORTC_FER() | 0x3F00);
-	bfin_write_PORTC_MUX(bfin_read_PORTC_MUX() & ~0xFFF0000);
-#elif defined(CONFIG_BF51x)
-	bfin_write_PORTG_FER(bfin_read_PORTG_FER() | 0x01F8);
-	bfin_write_PORTG_MUX((bfin_read_PORTG_MUX() & ~0x3FC) | 0x154);
+
 #endif
+	ret = peripheral_request_list(drv_data->pin_req, DRIVER_NAME);
+	if (ret) {
+		printk(KERN_ERR "Requesting Peripherals failed\n");
+		goto out3;
+	}
 
 	bfin_write_SDH_CFG(bfin_read_SDH_CFG() | CLKS_EN);
 	SSYNC();
