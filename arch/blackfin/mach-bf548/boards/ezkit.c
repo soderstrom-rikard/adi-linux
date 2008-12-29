@@ -509,7 +509,7 @@ static struct platform_device bf5xx_nand_device = {
 static struct bfin_sd_host bfin_sdh_data = {
 	.dma_chan = CH_SDH,
 	.irq_int0 = IRQ_SDH_MASK0,
-	.pin_req = {P_SD_D0, P_SD_D1, P_SD_D2, P_SD_D3, P_SD_CMD, P_SD_CLK},
+	.pin_req = {P_SD_D0, P_SD_D1, P_SD_D2, P_SD_D3, P_SD_CLK, P_SD_CMD, 0},
 };
 
 static struct platform_device bf54x_sdh_device = {

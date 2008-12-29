@@ -528,7 +528,7 @@ static struct platform_device bfin_device_gpiokeys = {
 static struct bfin_sd_host bfin_sdh_data = {
 	.dma_chan = CH_RSI,
 	.irq_int0 = IRQ_RSI_INT0,
-	.pin_req = {P_RSI_DATA0, P_RSI_DATA1, P_RSI_DATA2, P_RSI_DATA3, P_RSI_CMD, P_RSI_CLK},
+	.pin_req = {P_RSI_DATA0, P_RSI_DATA1, P_RSI_DATA2, P_RSI_DATA3, P_RSI_CMD, P_RSI_CLK, 0},
 };
 
 static struct platform_device bf51x_sdh_device = {

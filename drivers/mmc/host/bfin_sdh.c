@@ -133,7 +133,9 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	unsigned int length;
 	unsigned int data_ctl;
 	unsigned int dma_cfg;
-
+#if defined(CONFIG_BF54x)
+	int i;
+#endif
 	pr_debug("%s enter flags:0x%x\n", __FUNCTION__, data->flags);
 	host->data = data;
 	data_ctl = 0;
@@ -167,7 +169,6 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	host->dma_len = dma_map_sg(mmc_dev(host->mmc), data->sg, data->sg_len, host->dma_dir);
 #if defined(CONFIG_BF54x)
 	dma_cfg |= DMAFLOW_ARRAY | NDSIZE_5 | RESTART | WDSIZE_32 | DMAEN;
-	int i;
 	for (i = 0; i < host->dma_len; i++) {
 		host->sg_cpu[i].start_addr = sg_dma_address(&data->sg[i]);
 		host->sg_cpu[i].cfg = dma_cfg;
@@ -184,7 +185,7 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	host->sg_cpu[host->dma_len - 1].cfg &= ~(DMAFLOW | NDSIZE);
 	host->sg_cpu[host->dma_len - 1].cfg |= DI_EN;
 
-	set_dma_curr_desc_addr(host->dma_ch, host->sg_dma);
+	set_dma_curr_desc_addr(host->dma_ch, (unsigned long *)host->sg_dma);
 	set_dma_x_count(host->dma_ch, 0);
 	set_dma_x_modify(host->dma_ch, 0);
 	set_dma_config(host->dma_ch, dma_cfg);
@@ -530,7 +531,7 @@ static int sdh_probe(struct platform_device *pdev)
 #endif
 	ret = peripheral_request_list(drv_data->pin_req, DRIVER_NAME);
 	if (ret) {
-		printk(KERN_ERR "Requesting Peripherals failed\n");
+		printk(KERN_ERR "bfin-sdh:Requesting Peripherals failed\n");
 		goto out3;
 	}
 
