@@ -153,7 +153,7 @@ config MMC_TIFM_SD
 
 config SDH_BFIN
 	tristate "Blackfin Secure Digital Host support"
-	depends on MMC && ((BF54x && !BF544) || BF51x)
+	depends on MMC && ((BF54x && !BF544) || (BF51x && !BF512))
 	help
 	  If you say yes here you will get support for the Blackfin on-chip
 	  Secure Digital Host interface.  This includes support for MMC and
