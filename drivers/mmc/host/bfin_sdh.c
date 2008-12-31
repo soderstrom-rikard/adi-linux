@@ -538,11 +538,9 @@ static int sdh_probe(struct platform_device *pdev)
 	bfin_write_SDH_CFG(bfin_read_SDH_CFG() | CLKS_EN);
 	SSYNC();
 
-	/* Disable card detect pin */
-#if 1
-	bfin_write_SDH_CFG((bfin_read_SDH_CFG() & 0x1F) | 0x60);
+	/* Enable card detect pin */
+	bfin_write_SDH_CFG((bfin_read_SDH_CFG() & 0x1F) | 0xa0);
 	SSYNC();
-#endif
 	sd_entry = create_proc_entry("driver/sdh", 0600, NULL);
 	sd_entry->read_proc = NULL;
 	sd_entry->write_proc = proc_write;
