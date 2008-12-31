@@ -462,7 +462,7 @@ static int proc_write(struct file *file, const char __user *buffer,
 		mmc_detect_change(host->mmc, 0);
 		break;
 	default:
-		printk(KERN_ERR "%ld not support\n", cmd);
+		printk(KERN_ERR "bfin_sdh: cmd %lu not support\n", cmd);
 		break;
 	}
 
@@ -476,6 +476,12 @@ static int sdh_probe(struct platform_device *pdev)
 	struct proc_dir_entry *sd_entry;
 	struct bfin_sd_host *drv_data = get_sdh_data(pdev);
 	int ret;
+
+	if (!drv_data) {
+		dev_err(&pdev->dev, "missing platform driver data\n");
+		ret = -EINVAL;
+		goto out;
+	}
 
 	mmc = mmc_alloc_host(sizeof(struct sdh_host), &pdev->dev);
 	if (!mmc) {
@@ -500,19 +506,19 @@ static int sdh_probe(struct platform_device *pdev)
 	host->dma_ch = drv_data->dma_chan;
 	ret = request_irq(host->irq, sdh_stat_irq, 0, "SDH Status IRQ", host);
 	if (ret) {
-		printk(KERN_ERR "Failed to request sdh status irq\n");
+		dev_err(&pdev->dev, "unable to request status irq\n");
 		goto out1;
 	}
 
-	if (request_dma(host->dma_ch, DRIVER_NAME "DMA") == -EBUSY) {
-		printk(KERN_ERR "Failed to request DMA channel for SDH\n");
-		ret = -EBUSY;
+	ret = request_dma(host->dma_ch, DRIVER_NAME "DMA");
+	if (ret) {
+		dev_err(&pdev->dev, "unable to request DMA channel\n");
 		goto out2;
 	}
 
-	if (set_dma_callback(host->dma_ch, sdh_dma_irq, host) < 0) {
-		printk(KERN_ERR "Failed to request DMA irq for SDH\n");
-		ret = -EBUSY;
+	ret = set_dma_callback(host->dma_ch, sdh_dma_irq, host);
+	if (ret) {
+		dev_err(&pdev->dev, "unable to request DMA irq\n");
 		goto out3;
 	}
 
@@ -524,16 +530,16 @@ static int sdh_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, mmc);
 	mmc_add_host(mmc);
+	ret = peripheral_request_list(drv_data->pin_req, DRIVER_NAME);
+	if (ret) {
+		dev_err(&pdev->dev, "unable to request peripheral pins\n");
+		goto out3;
+	}
+
 #if defined(CONFIG_BF54x)
 	/* Secure Digital Host shares DMA with Nand controller */
 	bfin_write_DMAC1_PERIMUX(bfin_read_DMAC1_PERIMUX() | 0x1);
-
 #endif
-	ret = peripheral_request_list(drv_data->pin_req, DRIVER_NAME);
-	if (ret) {
-		printk(KERN_ERR "bfin-sdh:Requesting Peripherals failed\n");
-		goto out3;
-	}
 
 	bfin_write_SDH_CFG(bfin_read_SDH_CFG() | CLKS_EN);
 	SSYNC();
