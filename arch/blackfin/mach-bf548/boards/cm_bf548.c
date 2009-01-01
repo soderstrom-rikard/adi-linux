@@ -43,6 +43,7 @@
 #include <asm/gpio.h>
 #include <asm/nand.h>
 #include <asm/portmux.h>
+#include <asm/bfin_sdh.h>
 #include <mach/bf54x_keys.h>
 #include <asm/dpmc.h>
 #include <linux/input.h>
