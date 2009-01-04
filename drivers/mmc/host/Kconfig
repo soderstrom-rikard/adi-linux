@@ -170,6 +170,13 @@ config SDH_BFIN_MISSING_CMD_PULLUP_WORKAROUND
 	help
 	  If you say yes here SD-Cards may work on the EZkit.
 
+config SDH_BFIN_ENABLE_SDIO_IRQ
+        bool "Enable sdio irq for sdio device"
+        depends on SDH_BFIN
+        help
+          If you say yes,the driver will work in 1 bit mode and use DATA1 line
+	  as dedicated interrupt pin for sdio device.
+
 config MMC_SPI
 	tristate "MMC/SD/SDIO over SPI"
 	depends on SPI_MASTER && !HIGHMEM && HAS_DMA

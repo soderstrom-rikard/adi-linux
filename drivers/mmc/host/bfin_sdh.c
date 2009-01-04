@@ -350,7 +350,7 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	unsigned long flags;
 	u16 clk_ctl = 0;
 	u16 pwr_ctl = 0;
-
+	u16 cfg;
 	host = mmc_priv(mmc);
 
 	spin_lock_irqsave(&host->lock, flags);
@@ -378,13 +378,17 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 #endif
 
 	if (ios->bus_width == MMC_BUS_WIDTH_4) {
-		u16 cfg = bfin_read_SDH_CFG();
+		cfg = bfin_read_SDH_CFG();
 		cfg &= ~0x80;
 		cfg |= 0x40;
 		/* Enable 4 bit SDIO */
 		cfg |= 0x0c;
 		bfin_write_SDH_CFG(cfg);
 		clk_ctl |= WIDE_BUS;
+	} else {
+		cfg = bfin_read_SDH_CFG();
+		cfg |= 0x08;
+		bfin_write_SDH_CFG(cfg);
 	}
 
 	bfin_write_SDH_CLK_CTL(clk_ctl);
@@ -403,10 +407,23 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 			ios->clock);
 }
 
+#ifdef CONFIG_SDH_BFIN_ENABLE_SDIO_IRQ
+static void sdh_enable_sdio_irq(struct mmc_host *mmc, int enable)
+{
+	if (enable)
+		pr_debug("Enable sdio irq\n");
+	else
+		pr_debug("Disable sdio irq\n");
+}
+#endif
+
 static const struct mmc_host_ops sdh_ops = {
 	.request	= sdh_request,
 	.get_ro		= sdh_get_ro,
 	.set_ios	= sdh_set_ios,
+#ifdef CONFIG_SDH_BFIN_ENABLE_SDIO_IRQ
+	.enable_sdio_irq = sdh_enable_sdio_irq,
+#endif
 };
 
 static irqreturn_t sdh_dma_irq(int irq, void *devid)
@@ -428,12 +445,20 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 	int handled = 0;
 
 	pr_debug("%s enter\n", __FUNCTION__);
-	if (bfin_read_SDH_E_STATUS() & SD_CARD_DET) {
+	status = bfin_read_SDH_E_STATUS();
+	if (status & SD_CARD_DET) {
 		mmc_detect_change(host->mmc, 0);
 		bfin_write_SDH_E_STATUS(SD_CARD_DET);
 		SSYNC();
 	}
-
+#ifdef CONFIG_SDH_BFIN_ENABLE_SDIO_IRQ
+	if (status & SDIO_INT_DET) {
+		mmc_signal_sdio_irq(host->mmc);
+		bfin_write_SDH_E_STATUS(SDIO_INT_DET);
+		SSYNC();
+		handled = 1;
+	}
+#endif
 	status = bfin_read_SDH_STATUS();
 	if (status & (CMD_SENT | CMD_RESP_END | CMD_TIME_OUT | CMD_CRC_FAIL)) {
 		handled |= sdh_cmd_done(host, status);
@@ -497,7 +522,9 @@ static int sdh_probe(struct platform_device *pdev)
 	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
 	mmc->f_min = get_sclk() >> 9;
 	mmc->f_max = get_sclk();
+#ifndef CONFIG_SDH_BFIN_ENABLE_SDIO_IRQ
 	mmc->caps = MMC_CAP_4_BIT_DATA;
+#endif
 	host = mmc_priv(mmc);
 	host->mmc = mmc;
 
