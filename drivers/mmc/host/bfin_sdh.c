@@ -449,13 +449,11 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 	if (status & SD_CARD_DET) {
 		mmc_detect_change(host->mmc, 0);
 		bfin_write_SDH_E_STATUS(SD_CARD_DET);
-		SSYNC();
 	}
 #ifdef CONFIG_SDH_BFIN_ENABLE_SDIO_IRQ
 	if (status & SDIO_INT_DET) {
 		mmc_signal_sdio_irq(host->mmc);
 		bfin_write_SDH_E_STATUS(SDIO_INT_DET);
-		SSYNC();
 		handled = 1;
 	}
 #endif
@@ -494,7 +492,7 @@ static int proc_write(struct file *file, const char __user *buffer,
 	return count;
 }
 
-static int sdh_probe(struct platform_device *pdev)
+static int __devinit sdh_probe(struct platform_device *pdev)
 {
 	struct mmc_host *mmc;
 	struct sdh_host *host = NULL;
@@ -591,7 +589,7 @@ out1:
 	return ret;
 }
 
-static int sdh_remove(struct platform_device *pdev)
+static int __devexit sdh_remove(struct platform_device *pdev)
 {
 	struct mmc_host *mmc = platform_get_drvdata(pdev);
 
