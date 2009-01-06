@@ -125,7 +125,7 @@ static int __devinit gpio_flash_probe(struct platform_device *pdev)
 	state->map.bankwidth  = pdata->width;
 	state->map.size       = state->win_size * (1 << state->gpio_count);
 	state->map.virt       = (void __iomem *)memory->start;
-	state->map.phys       = memory->start;
+	state->map.phys       = NO_XIP;
 	state->map.map_priv_1 = (unsigned long)state;
 
 	platform_set_drvdata(pdev, state);
