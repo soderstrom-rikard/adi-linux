@@ -35,25 +35,25 @@ static int *cmd_count;
 static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
 
 #define SPORT_REQ(x) \
-	{P_SPORT##x##_TFS, P_SPORT##x##_DTPRI, P_SPORT##x##_TSCLK, \
-	P_SPORT##x##_RFS, P_SPORT##x##_DRPRI, P_SPORT##x##_RSCLK, 0}
+	[x] = {P_SPORT##x##_TFS, P_SPORT##x##_DTPRI, P_SPORT##x##_TSCLK, \
+	       P_SPORT##x##_RFS, P_SPORT##x##_DRPRI, P_SPORT##x##_RSCLK, 0}
 static u16 sport_req[][7] = {
 #ifdef SPORT0_TCR1
-	[0] = SPORT_REQ(0),
+	SPORT_REQ(0),
 #endif
 #ifdef SPORT1_TCR1
-	[1] = SPORT_REQ(1),
+	SPORT_REQ(1),
 #endif
 #ifdef SPORT2_TCR1
-	[2] = SPORT_REQ(2),
+	SPORT_REQ(2),
 #endif
 #ifdef SPORT3_TCR1
-	[3] = SPORT_REQ(3),
+	SPORT_REQ(3),
 #endif
 };
 
 #define SPORT_PARAMS(x) \
-	{ \
+	[x] = { \
 		.dma_rx_chan = CH_SPORT##x##_RX, \
 		.dma_tx_chan = CH_SPORT##x##_TX, \
 		.err_irq     = IRQ_SPORT##x##_ERROR, \
@@ -61,16 +61,16 @@ static u16 sport_req[][7] = {
 	}
 static struct sport_param sport_params[4] = {
 #ifdef SPORT0_TCR1
-	[0] = SPORT_PARAMS(0),
+	SPORT_PARAMS(0),
 #endif
 #ifdef SPORT1_TCR1
-	[1] = SPORT_PARAMS(1),
+	SPORT_PARAMS(1),
 #endif
 #ifdef SPORT2_TCR1
-	[2] = SPORT_PARAMS(2),
+	SPORT_PARAMS(2),
 #endif
 #ifdef SPORT3_TCR1
-	[3] = SPORT_PARAMS(3),
+	SPORT_PARAMS(3),
 #endif
 };
 
