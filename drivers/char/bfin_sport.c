@@ -647,17 +647,6 @@ static int sport_ioctl(struct inode *inode, struct file *filp,
 			return -EFAULT;
 		break;
 
-		/* Test purpose */
-	case ENABLE_AD73311:
-#define GPIO_SE 4
-		gpio_request(GPIO_SE, "AD73311 SE");
-		gpio_direction_output(GPIO_SE, arg);
-
-		/* arg = 0 Disable ad73311 Pull down SE pin on AD73311
-		 * arg = 1 Enable ad73311
-		 */
-		break;
-
 	default:
 		return -EINVAL;
 	}
