@@ -35,14 +35,21 @@ struct async_state {
 	struct map_info map;
 	size_t gpio_count;
 	unsigned *gpio_addrs;
+	int *gpio_values;
 	unsigned long win_size;
 };
 
 static void gf_set_gpios(struct async_state *state, unsigned long ofs)
 {
 	size_t i;
-	for (i = 0; i < state->gpio_count; ++i)
-		gpio_set_value(state->gpio_addrs[i], !!((ofs / state->win_size) & (1 << i)));
+	int value;
+	for (i = 0; i < state->gpio_count; ++i) {
+		value = !!((ofs / state->win_size) & (1 << i));
+		if (state->gpio_values[i] != value) {
+			gpio_set_value(state->gpio_addrs[i], value);
+			state->gpio_values[i] = value;
+		}
+	}
 }
 
 static map_word gf_read(struct map_info *map, unsigned long ofs)
@@ -108,14 +115,17 @@ static int __devinit gpio_flash_probe(struct platform_device *pdev)
 	struct resource *gpios = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 	struct async_state *state;
 
-	state = kzalloc(sizeof(*state) + sizeof(unsigned) * gpios->end, GFP_KERNEL);
+	state = kzalloc(sizeof(*state) + (sizeof(int) * gpios->end * 2), GFP_KERNEL);
 	if (!state)
 		return -ENOMEM;
 
 	state->gpio_count     = gpios->end;
 	state->gpio_addrs     = (void *)(state + 1);
+	state->gpio_values    = state->gpio_addrs + state->gpio_count;
 	state->win_size       = memory->end - memory->start + 1;
 	memcpy(state->gpio_addrs, (void *)gpios->start, sizeof(unsigned) * state->gpio_count);
+	for (i = 0; i < state->gpio_count; ++i)
+		state->gpio_values[i] = -1;
 
 	state->map.name       = DRIVER_NAME;
 	state->map.read       = gf_read;
