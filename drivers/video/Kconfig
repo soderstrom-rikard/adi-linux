@@ -610,7 +610,7 @@ config FB_BFIN_T350MCQB
 	 It uses PPI[0..7] PPI_FS1, PPI_FS2 and PPI_CLK.
 
 config FB_BFIN_LQ035Q1
-	tristate "SHARP LQ035Q1DH02 TFT LCD on uClinux"
+	tristate "SHARP LQ035Q1DH02 TFT LCD"
 	depends on FB && BLACKFIN
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
@@ -624,15 +624,15 @@ config FB_BFIN_LQ035Q1
 	 It uses PPI[0..15] PPI_FS1, PPI_FS2 and PPI_CLK.
 
 config FB_BF537_LQ035
-	tristate "SHARP LQ035 TFT LCD on uClinux (BF537 STAMP)"
-	depends on FB && ( BF534 || BF536 || BF537) && I2C_BLACKFIN_TWI
+	tristate "SHARP LQ035 TFT LCD (BF537 STAMP)"
+	depends on FB && (BF534 || BF536 || BF537) && I2C_BLACKFIN_TWI
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
 	select BFIN_GPTIMERS
 	help
-	 This is the framebuffer device for a SHARP LQ035Q7DB03 TFT LCD
-         attached to a BF537.
+	  This is the framebuffer device for a SHARP LQ035Q7DB03 TFT LCD
+	  attached to a BF537.
 
 config LQ035_SLAVE_ADDR
 	hex "The slave address of the I2C device (0x58, 0x5A, 0x5C and 0x5E)"
@@ -659,7 +659,7 @@ config FB_BFIN_BGR
 	 BGR use 16-bit BGR-565 instead of RGB-565
 
 config FB_BFIN_7393
-	tristate "Blackfin ADV7393 Video encoder on uClinux"
+	tristate "Blackfin ADV7393 Video encoder"
 	depends on FB && BLACKFIN
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
