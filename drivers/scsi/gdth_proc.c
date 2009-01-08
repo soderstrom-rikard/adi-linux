@@ -1,5 +1,5 @@
 /* gdth_proc.c 
- * $Id$
+ * $Id: gdth_proc.c 5502 2008-10-29 06:43:00Z cooloney $
  */
 
 #include <linux/completion.h>

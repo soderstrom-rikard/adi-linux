@@ -29,7 +29,7 @@
  */
 
 const char *yaffs_ecc_c_version =
-    "$Id$";
+    "$Id: yaffs_ecc.c 5114 2008-08-07 06:24:53Z cooloney $";
 
 #include "yportenv.h"
 

@@ -1,6 +1,6 @@
 #ifndef _LMC_IOCTL_H_
 #define _LMC_IOCTL_H_
-/*	$Id$	*/
+/*	$Id: lmc_ioctl.h 5502 2008-10-29 06:43:00Z cooloney $	*/
 
  /*
   * Copyright (c) 1997-2000 LAN Media Corporation (LMC)

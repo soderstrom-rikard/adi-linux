@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: diva_pci.h 2396 2006-11-02 10:18:43Z magicyang $ */
 
 #ifndef __DIVA_PCI_INTERFACE_H__
 #define __DIVA_PCI_INTERFACE_H__

@@ -1,5 +1,5 @@
 # drivers/mtd/chips/Kconfig
-# $Id$
+# $Id: Kconfig 5502 2008-10-29 06:43:00Z cooloney $
 
 menu "RAM/ROM/Flash chip drivers"
 	depends on MTD!=n

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: avm_a1.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * low level stuff for AVM A1 (Fritz) isdn cards
  *
@@ -16,7 +16,7 @@
 #include "hscx.h"
 #include "isdnl1.h"
 
-static const char *avm_revision = "$Revision$";
+static const char *avm_revision = "$Revision: 5114 $";
 
 #define	 AVM_A1_STAT_ISAC	0x01
 #define	 AVM_A1_STAT_HSCX	0x02

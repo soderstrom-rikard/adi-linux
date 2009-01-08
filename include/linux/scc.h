@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: scc.h 2397 2006-11-02 10:51:58Z magicyang $ */
 
 #ifndef	_SCC_H
 #define	_SCC_H

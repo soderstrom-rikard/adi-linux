@@ -1,4 +1,4 @@
-/* $Id$ 
+/* $Id: dmacopy.c 2386 2006-11-01 04:57:26Z magicyang $ 
  *
  * memcpy for large blocks, using memory-memory DMA channels 6 and 7 in Etrax
  */

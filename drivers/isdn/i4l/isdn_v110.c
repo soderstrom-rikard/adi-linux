@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: isdn_v110.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * Linux ISDN subsystem, V.110 related functions (linklevel).
  *
@@ -20,7 +20,7 @@
 
 #undef ISDN_V110_DEBUG
 
-char *isdn_v110_revision = "$Revision$";
+char *isdn_v110_revision = "$Revision: 5114 $";
 
 #define V110_38400 255
 #define V110_19200  15

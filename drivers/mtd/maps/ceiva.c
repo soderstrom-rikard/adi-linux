@@ -11,7 +11,7 @@
  *
  * (C) 2000 Nicolas Pitre <nico@cam.org>
  *
- * $Id$
+ * $Id: ceiva.c 5502 2008-10-29 06:43:00Z cooloney $
  */
 
 #include <linux/module.h>

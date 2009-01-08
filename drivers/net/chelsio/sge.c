@@ -1,8 +1,8 @@
 /*****************************************************************************
  *                                                                           *
  * File: sge.c                                                               *
- * $Revision$                                                         *
- * $Date$                                              *
+ * $Revision: 5956 $                                                         *
+ * $Date: 2009-01-08 03:04:22 -0500 (Thu, 08 Jan 2009) $                                              *
  * Description:                                                              *
  *  DMA engine.                                                              *
  *  part of the Chelsio 10Gb Ethernet Driver.                                *

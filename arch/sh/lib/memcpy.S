@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: memcpy.S 2395 2006-11-02 09:34:16Z magicyang $
  *
  * "memcpy" implementation of SuperH
  *

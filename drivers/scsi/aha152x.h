@@ -2,14 +2,14 @@
 #define _AHA152X_H
 
 /*
- * $Id$
+ * $Id: aha152x.h 4233 2008-02-07 05:52:27Z cooloney $
  */
 
 /* number of queueable commands
    (unless we support more than 1 cmd_per_lun this should do) */
 #define AHA152X_MAXQUEUE 7
 
-#define AHA152X_REVID "Adaptec 152x SCSI driver; $Revision$"
+#define AHA152X_REVID "Adaptec 152x SCSI driver; $Revision: 4233 $"
 
 /* port addresses */
 #define SCSISEQ      (HOSTIOPORT0+0x00)    /* SCSI sequence control */

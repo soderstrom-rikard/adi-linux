@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: hfc_2bds0.c 4233 2008-02-07 05:52:27Z cooloney $
  *
  * specific routines for CCD's HFC 2BDS0
  *

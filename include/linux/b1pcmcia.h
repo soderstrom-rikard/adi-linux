@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: b1pcmcia.h 2397 2006-11-02 10:51:58Z magicyang $
  *
  * Exported functions of module b1pcmcia to be called by
  * avm_cs card services module.

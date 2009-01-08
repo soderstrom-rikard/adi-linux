@@ -36,7 +36,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGES.
  *
- * $Id$
+ * $Id: aic7xxx_pci.h 1322 2006-03-23 03:12:41Z magicyang $
  *
  */
 #ifndef _AIC7XXX_PCI_H_

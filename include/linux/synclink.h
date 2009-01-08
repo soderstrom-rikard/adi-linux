@@ -1,7 +1,7 @@
 /*
  * SyncLink Multiprotocol Serial Adapter Driver
  *
- * $Id$
+ * $Id: synclink.h 5502 2008-10-29 06:43:00Z cooloney $
  *
  * Copyright (C) 1998-2000 by Microgate Corporation
  *

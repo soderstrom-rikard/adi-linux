@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: telespci.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * low level stuff for Teles PCI isdn cards
  *
@@ -19,7 +19,7 @@
 #include "isdnl1.h"
 #include <linux/pci.h>
 
-static const char *telespci_revision = "$Revision$";
+static const char *telespci_revision = "$Revision: 5114 $";
 
 #define ZORAN_PO_RQ_PEN	0x02000000
 #define ZORAN_PO_WR	0x00800000

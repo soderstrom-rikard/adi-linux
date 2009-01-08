@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: elsa.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * low level stuff for Elsa isdn cards
  *
@@ -30,7 +30,7 @@
 #include <linux/serial.h>
 #include <linux/serial_reg.h>
 
-static const char *Elsa_revision = "$Revision$";
+static const char *Elsa_revision = "$Revision: 5114 $";
 static const char *Elsa_Types[] =
 {"None", "PC", "PCC-8", "PCC-16", "PCF", "PCF-Pro",
  "PCMCIA", "QS 1000", "QS 3000", "Microlink PCI", "QS 3000 PCI", 

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: callc.c 2396 2006-11-02 10:18:43Z magicyang $
  *
  * Author       Karsten Keil
  * Copyright    by Karsten Keil      <keil@isdn4linux.de>
@@ -21,7 +21,7 @@
 #include "hisax.h"
 #include <linux/isdn/capicmd.h>
 
-const char *lli_revision = "$Revision$";
+const char *lli_revision = "$Revision: 2396 $";
 
 extern struct IsdnCard cards[];
 extern int nrcards;

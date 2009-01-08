@@ -1,6 +1,6 @@
 #ifndef GVP11_H
 
-/* $Id$
+/* $Id: gvp11.h 2620 2007-01-10 08:32:17Z cooloney $
  *
  * Header file for the GVP Series II SCSI controller for Linux
  *

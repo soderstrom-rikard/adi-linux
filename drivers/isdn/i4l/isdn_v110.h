@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: isdn_v110.h 2401 2006-11-03 06:02:10Z magicyang $
  *
  * Linux ISDN subsystem, V.110 related functions (linklevel).
  *

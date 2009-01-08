@@ -1,7 +1,7 @@
 /*
  * Adaptec AIC7xxx device driver for Linux.
  *
- * $Id$
+ * $Id: aic7xxx_osm.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * Copyright (c) 1994 John Aycock
  *   The University of Calgary Department of Computer Science.

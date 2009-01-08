@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: platform.h 3544 2007-08-11 17:42:26Z cooloney $
  *
  * platform.h
  * 

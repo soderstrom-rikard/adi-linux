@@ -29,7 +29,7 @@
 
 static const char * const version =
 "eepro100.c:v1.09j-t 9/29/99 Donald Becker\n"
-"eepro100.c: $Revision$ 2000/11/17 Modified by Andrey V. Savochkin <saw@saw.sw.com.sg> and others\n";
+"eepro100.c: $Revision: 5114 $ 2000/11/17 Modified by Andrey V. Savochkin <saw@saw.sw.com.sg> and others\n";
 
 /* A few user-configurable values that apply to all boards.
    First set is undocumented and spelled per Intel recommendations. */

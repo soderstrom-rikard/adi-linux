@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: message.c 3544 2007-08-11 17:42:26Z cooloney $
  *
  * functions for sending and receiving control messages
  *

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: sunqe.h 5502 2008-10-29 06:43:00Z cooloney $
  * sunqe.h: Definitions for the Sun QuadEthernet driver.
  *
  * Copyright (C) 1996 David S. Miller (davem@caip.rutgers.edu)

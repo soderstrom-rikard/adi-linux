@@ -13,7 +13,7 @@
  * 	Wang Zhenyu at intel.com
  * 	Dave Jiang at mvista.com
  *
- * $Id$
+ * $Id: e752x_edac.c 5502 2008-10-29 06:43:00Z cooloney $
  *
  */
 

@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: diva.c 5114 2008-08-07 06:24:53Z cooloney $ */
 
 #define CARDTYPE_H_WANT_DATA            1
 #define CARDTYPE_H_WANT_IDI_DATA        0

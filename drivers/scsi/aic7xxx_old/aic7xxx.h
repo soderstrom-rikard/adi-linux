@@ -18,7 +18,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- * $Id$
+ * $Id: aic7xxx.h 796 2005-08-12 06:43:05Z magicyang $
  *-M*************************************************************************/
 #ifndef _aic7xxx_h
 #define _aic7xxx_h

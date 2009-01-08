@@ -1,4 +1,4 @@
-static const char version[] = "de600.c: $Revision$,  Bjorn Ekwall (bj0rn@blox.se)\n";
+static const char version[] = "de600.c: $Revision: 4233 $,  Bjorn Ekwall (bj0rn@blox.se)\n";
 /*
  *	de600.c
  *

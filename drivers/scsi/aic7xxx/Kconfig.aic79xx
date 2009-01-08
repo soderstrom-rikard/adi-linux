@@ -1,6 +1,6 @@
 #
 # AIC79XX 2.5.X Kernel configuration File.
-# $Id$
+# $Id: Kconfig.aic79xx 3544 2007-08-11 17:42:26Z cooloney $
 #
 config SCSI_AIC79XX
 	tristate "Adaptec AIC79xx U320 support"

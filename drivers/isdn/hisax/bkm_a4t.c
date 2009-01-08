@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: bkm_a4t.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * low level stuff for T-Berkom A4T
  *
@@ -20,7 +20,7 @@
 #include <linux/pci.h>
 #include "bkm_ax.h"
 
-static const char *bkm_a4t_revision = "$Revision$";
+static const char *bkm_a4t_revision = "$Revision: 5114 $";
 
 
 static inline u_char

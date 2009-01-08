@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: isar.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * isar.c   ISAR (Siemens PSB 7110) specific routines
  *

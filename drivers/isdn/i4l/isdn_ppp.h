@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: isdn_ppp.h 2396 2006-11-02 10:18:43Z magicyang $
  *
  * header for Linux ISDN subsystem, functions for synchronous PPP (linklevel).
  *

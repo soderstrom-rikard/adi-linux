@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: hisax.h 5114 2008-08-07 06:24:53Z cooloney $
  *
  * Basic declarations, defines and prototypes
  *

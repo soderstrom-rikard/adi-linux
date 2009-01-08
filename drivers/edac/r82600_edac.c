@@ -7,7 +7,7 @@
  * Written by Tim Small <tim@buttersideup.com>, based on work by Thayne
  * Harbaugh, Dan Hollis <goemon at anime dot net> and others.
  *
- * $Id$
+ * $Id: r82600_edac.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * Written with reference to 82600 High Integration Dual PCI System
  * Controller Data Book:

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: diddfunc.c 2396 2006-11-02 10:18:43Z magicyang $
  *
  * DIDD Interface module for Eicon active cards.
  * 

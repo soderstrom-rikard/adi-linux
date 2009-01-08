@@ -32,7 +32,7 @@
  */
 
 const char *yaffs_fs_c_version =
-    "$Id$";
+    "$Id: yaffs_fs.c 5139 2008-08-10 21:56:01Z vapier $";
 extern const char *yaffs_guts_c_version;
 
 #include <linux/version.h>

@@ -1,6 +1,6 @@
 /*
  *
- *  $Id$
+ *  $Id: pvrusb2-i2c-core.h 3195 2007-05-25 05:56:06Z cooloney $
  *
  *  Copyright (C) 2005 Mike Isely <isely@pobox.com>
  *

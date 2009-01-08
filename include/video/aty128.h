@@ -1,4 +1,4 @@
-/*  $Id$
+/*  $Id: aty128.h 2397 2006-11-02 10:51:58Z magicyang $
  *  linux/drivers/video/aty128.h
  *  Register definitions for ATI Rage128 boards
  *

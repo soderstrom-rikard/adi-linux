@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: kcapi.c 5502 2008-10-29 06:43:00Z cooloney $
  * 
  * Kernel CAPI 2.0 Module
  * 
@@ -34,7 +34,7 @@
 #endif
 #include <linux/mutex.h>
 
-static char *revision = "$Revision$";
+static char *revision = "$Revision: 5502 $";
 
 /* ------------------------------------------------------------- */
 

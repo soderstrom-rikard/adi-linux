@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: tei.c 2396 2006-11-02 10:18:43Z magicyang $
  *
  * Author       Karsten Keil
  *              based on the teles driver from Jan den Ouden
@@ -20,7 +20,7 @@
 #include <linux/init.h>
 #include <linux/random.h>
 
-const char *tei_revision = "$Revision$";
+const char *tei_revision = "$Revision: 2396 $";
 
 #define ID_REQUEST	1
 #define ID_ASSIGNED	2

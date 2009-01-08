@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: module.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * ISDN lowlevel-module for the IBM ISDN-S0 Active 2000.
  *

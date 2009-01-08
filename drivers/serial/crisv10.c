@@ -7,7 +7,7 @@
  *
  */
 
-static char *serial_version = "$Revision$";
+static char *serial_version = "$Revision: 5956 $";
 
 #include <linux/types.h>
 #include <linux/errno.h>

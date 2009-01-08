@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: card.h 4233 2008-02-07 05:52:27Z cooloney $
  *
  * Driver parameters for SpellCaster ISA ISDN adapters
  *

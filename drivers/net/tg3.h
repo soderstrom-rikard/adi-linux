@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: tg3.h 5502 2008-10-29 06:43:00Z cooloney $
  * tg3.h: Definitions for Broadcom Tigon3 ethernet driver.
  *
  * Copyright (C) 2001, 2002, 2003, 2004 David S. Miller (davem@redhat.com)

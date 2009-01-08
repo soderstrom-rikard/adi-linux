@@ -1,5 +1,5 @@
 /*
- * $Id$
+ * $Id: synclink_gt.c 5502 2008-10-29 06:43:00Z cooloney $
  *
  * Device driver for Microgate SyncLink GT serial adapters.
  *
@@ -91,7 +91,7 @@
  * module identification
  */
 static char *driver_name     = "SyncLink GT";
-static char *driver_version  = "$Revision$";
+static char *driver_version  = "$Revision: 5502 $";
 static char *tty_driver_name = "synclink_gt";
 static char *tty_dev_prefix  = "ttySLG";
 MODULE_LICENSE("GPL");

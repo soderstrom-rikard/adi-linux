@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: l3_1tr6.c 2396 2006-11-02 10:18:43Z magicyang $
  *
  * German 1TR6 D-channel protocol
  *
@@ -19,7 +19,7 @@
 #include <linux/ctype.h>
 
 extern char *HiSax_getrev(const char *revision);
-static const char *l3_1tr6_revision = "$Revision$";
+static const char *l3_1tr6_revision = "$Revision: 2396 $";
 
 #define MsgHead(ptr, cref, mty, dis) \
 	*ptr++ = dis; \

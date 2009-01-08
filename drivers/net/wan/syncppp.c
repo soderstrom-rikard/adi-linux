@@ -33,7 +33,7 @@
  *
  * Version 1.9, Wed Oct  4 18:58:15 MSK 1995
  *
- * $Id$
+ * $Id: syncppp.c 5956 2009-01-08 08:04:22Z cooloney $
  */
 #undef DEBUG
 

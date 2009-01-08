@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: dqueue.h 2396 2006-11-02 10:18:43Z magicyang $ */
 
 #ifndef _DIVA_USER_MODE_IDI_DATA_QUEUE_H__
 #define _DIVA_USER_MODE_IDI_DATA_QUEUE_H__

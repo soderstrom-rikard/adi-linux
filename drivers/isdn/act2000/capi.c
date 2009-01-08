@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: capi.c 2959 2007-03-30 04:02:22Z cooloney $
  *
  * ISDN lowlevel-module for the IBM ISDN-S0 Active 2000.
  * CAPI encoder/decoder

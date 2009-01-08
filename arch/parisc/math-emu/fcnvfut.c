@@ -22,7 +22,7 @@
  * BEGIN_DESC
  *
  *  File:
- *	@(#)	pa/spmath/fcnvfut.c		$Revision$
+ *	@(#)	pa/spmath/fcnvfut.c		$Revision: 2395 $
  *
  *  Purpose:
  *	Floating-point to Unsigned Fixed-point Converts with Truncation

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: sungem.c 5956 2009-01-08 08:04:22Z cooloney $
  * sungem.c: Sun GEM ethernet driver.
  *
  * Copyright (C) 2000, 2001, 2002, 2003 David S. Miller (davem@redhat.com)

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: l3dss1.c 2396 2006-11-02 10:18:43Z magicyang $
  *
  * EURO/DSS1 D-channel protocol
  *
@@ -25,7 +25,7 @@
 #include <linux/ctype.h>
 
 extern char *HiSax_getrev(const char *revision);
-static const char *dss1_revision = "$Revision$";
+static const char *dss1_revision = "$Revision: 2396 $";
 
 #define EXT_BEARER_CAPS 1
 

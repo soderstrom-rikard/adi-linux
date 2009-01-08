@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: isdnl1.h 3195 2007-05-25 05:56:06Z cooloney $
  *
  * Layer 1 defines
  *

@@ -1,4 +1,4 @@
-#define RCS_ID "$Id$"
+#define RCS_ID "$Id: scc.c 5502 2008-10-29 06:43:00Z cooloney $"
 
 #define VERSION "3.0"
 

@@ -2,7 +2,7 @@
 #define _GDTH_IOCTL_H
 
 /* gdth_ioctl.h
- * $Id$
+ * $Id: gdth_ioctl.h 2405 2006-11-06 01:25:46Z magicyang $
  */
 
 /* IOCTLs */

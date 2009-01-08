@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: event.c 3195 2007-05-25 05:56:06Z cooloney $
  *
  * Copyright (C) 1996  SpellCaster Telecommunications Inc.
  *

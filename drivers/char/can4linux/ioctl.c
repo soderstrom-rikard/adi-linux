@@ -25,8 +25,8 @@
 /**
 * \file ioctl.c
 * \author Heinz-Jürgen Oertel, port GmbH
-* $Revision$
-* $Date$
+* $Revision: 3628 $
+* $Date: 2007-08-29 09:08:48 -0400 (Wed, 29 Aug 2007) $
 *
 *
 */

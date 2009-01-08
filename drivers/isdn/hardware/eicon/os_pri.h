@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: os_pri.h 2396 2006-11-02 10:18:43Z magicyang $ */
 
 #ifndef __DIVA_OS_PRI_REV_1_H__
 #define __DIVA_OS_PRI_REV_1_H__

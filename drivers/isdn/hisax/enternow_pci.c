@@ -72,7 +72,7 @@
 
 
 
-static const char *enternow_pci_rev = "$Revision$";
+static const char *enternow_pci_rev = "$Revision: 4233 $";
 
 
 /* for PowerISDN PCI */

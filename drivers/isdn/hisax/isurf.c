@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: isurf.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * low level stuff for Siemens I-Surf/I-Talk cards
  *
@@ -17,7 +17,7 @@
 #include "isdnl1.h"
 #include <linux/isapnp.h>
 
-static const char *ISurf_revision = "$Revision$";
+static const char *ISurf_revision = "$Revision: 5114 $";
 
 #define byteout(addr,val) outb(val,addr)
 #define bytein(addr) inb(addr)

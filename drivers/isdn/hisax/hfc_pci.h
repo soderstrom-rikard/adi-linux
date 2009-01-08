@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: hfc_pci.h 2396 2006-11-02 10:18:43Z magicyang $
  *
  * specific defines for CCD's HFC 2BDS0 PCI chips
  *

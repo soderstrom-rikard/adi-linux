@@ -26,8 +26,8 @@
 /**
 * \file open.c
 * \author Heinz-Jürgen Oertel, port GmbH
-* $Revision$
-* $Date$
+* $Revision: 3628 $
+* $Date: 2007-08-29 09:08:48 -0400 (Wed, 29 Aug 2007) $
 *
 *
 */
@@ -70,7 +70,7 @@ int Can_isopen[MAX_CHANNELS] = { 0 };   /* device minor already opened */
 
 /* local defined variables
 ---------------------------------------------------------------------------*/
-/* static char _rcsid[] = "$Id$"; */
+/* static char _rcsid[] = "$Id: open.c 3628 2007-08-29 13:08:48Z hennerich $"; */
 
 
 /***************************************************************************/

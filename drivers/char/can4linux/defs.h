@@ -20,8 +20,8 @@
 /**
 * \file defs.h
 * \author Name, port GmbH
-* $Revision$
-* $Date$
+* $Revision: 3628 $
+* $Date: 2007-08-29 09:08:48 -0400 (Wed, 29 Aug 2007) $
 *
 * Module Description 
 * see Doxygen Doc for all possibilites

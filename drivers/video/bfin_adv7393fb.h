@@ -6,7 +6,7 @@
  * Created:      May. 24th 2006
  * Description:  Frame buffer driver for ADV7393/2 video encoder
  *
- * Rev:          $Id$
+ * Rev:          $Id: bfin_adv7393fb.h 4112 2008-01-17 12:27:21Z hennerich $
  *
  * Modified:
  *               Copyright 2004-2006 Analog Devices Inc.

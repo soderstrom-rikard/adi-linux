@@ -1,5 +1,5 @@
 # drivers/mtd/maps/Kconfig
-# $Id$
+# $Id: Kconfig 5678 2008-11-11 21:08:23Z vapier $
 
 menu "Mapping drivers for chip access"
 	depends on MTD!=n

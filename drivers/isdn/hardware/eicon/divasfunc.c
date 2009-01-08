@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: divasfunc.c 3544 2007-08-11 17:42:26Z cooloney $
  *
  * Low level driver for Eicon DIVA Server ISDN cards.
  *

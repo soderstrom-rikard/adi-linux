@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: jade_irq.c 2396 2006-11-02 10:18:43Z magicyang $
  *
  * Low level JADE IRQ stuff (derived from original hscx_irq.c)
  *

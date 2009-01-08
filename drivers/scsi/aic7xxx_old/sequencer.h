@@ -33,7 +33,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *      $Id$
+ *      $Id: sequencer.h 796 2005-08-12 06:43:05Z magicyang $
  */
 
 #ifdef __LITTLE_ENDIAN_BITFIELD

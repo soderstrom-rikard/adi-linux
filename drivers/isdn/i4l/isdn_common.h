@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: isdn_common.h 2396 2006-11-02 10:18:43Z magicyang $
  *
  * header for Linux ISDN subsystem
  * common used functions and debugging-switches (linklevel).

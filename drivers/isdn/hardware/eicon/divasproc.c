@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: divasproc.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * Low level driver for Eicon DIVA Server ISDN cards.
  * /proc functions

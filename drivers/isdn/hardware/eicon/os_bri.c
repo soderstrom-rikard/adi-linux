@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: os_bri.c 2396 2006-11-02 10:18:43Z magicyang $ */
 
 #include "platform.h"
 #include "debuglib.h"

@@ -9,7 +9,7 @@
  * ==============================================================
  *
  * static char rcsid[] =
- * "$Revision$$Date$";
+ * "$Revision: 5956 $$Date: 2009-01-08 03:04:22 -0500 (Thu, 08 Jan 2009) $";
  *
  *  linux/kernel/cyclades.c
  *

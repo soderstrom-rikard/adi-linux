@@ -2,7 +2,7 @@
  * Xtensa Special Register symbolic names
  */
 
-/* $Id$ */
+/* $Id: specreg.h 2400 2006-11-03 05:43:27Z magicyang $ */
 
 /*
  * Copyright (c) 2003 Tensilica, Inc.  All Rights Reserved.

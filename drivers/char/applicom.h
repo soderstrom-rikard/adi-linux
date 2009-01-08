@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: applicom.h 2395 2006-11-02 09:34:16Z magicyang $ */
 
 
 #ifndef __LINUX_APPLICOM_H__

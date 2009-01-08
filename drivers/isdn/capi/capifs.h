@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: capifs.h 2396 2006-11-02 10:18:43Z magicyang $
  * 
  * Copyright 2000 by Carsten Paeth <calle@calle.de>
  *

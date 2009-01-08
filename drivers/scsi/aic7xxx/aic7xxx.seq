@@ -40,7 +40,7 @@
  * $FreeBSD$
  */
 
-VERSION = "$Id$"
+VERSION = "$Id: aic7xxx.seq 1322 2006-03-23 03:12:41Z magicyang $"
 PATCH_ARG_LIST = "struct ahc_softc *ahc"
 PREFIX = "ahc_"
 

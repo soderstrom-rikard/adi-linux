@@ -1,7 +1,7 @@
 			  Linux Input drivers v1.0
 	       (c) 1999-2001 Vojtech Pavlik <vojtech@ucw.cz>
 			     Sponsored by SuSE
-	    $Id$
+	    $Id: input.txt 2620 2007-01-10 08:32:17Z cooloney $
 ----------------------------------------------------------------------------
 
 0. Disclaimer

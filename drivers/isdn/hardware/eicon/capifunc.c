@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: capifunc.c 4233 2008-02-07 05:52:27Z cooloney $
  *
  * ISDN interface module for Eicon active cards DIVA.
  * CAPI Interface common functions

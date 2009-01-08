@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: elsa_ser.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * stuff for the serial modem on ELSA cards
  *

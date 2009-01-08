@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: idifunc.c 4233 2008-02-07 05:52:27Z cooloney $
  *
  * Driver for Eicon DIVA Server ISDN cards.
  * User Mode IDI Interface 

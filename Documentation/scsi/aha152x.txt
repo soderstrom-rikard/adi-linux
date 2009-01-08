@@ -1,4 +1,4 @@
-$Id$
+$Id: aha152x.txt 3544 2007-08-11 17:42:26Z cooloney $
 Adaptec AHA-1520/1522 SCSI driver for Linux (aha152x)
 
 Copyright 1993-1999 Jürgen Fischer <fischer@norbit.de>

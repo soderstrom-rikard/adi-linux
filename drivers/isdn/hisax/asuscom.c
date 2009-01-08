@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: asuscom.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * low level stuff for ASUSCOM NETWORK INC. ISDNLink cards
  *
@@ -20,7 +20,7 @@
 #include "hscx.h"
 #include "isdnl1.h"
 
-static const char *Asuscom_revision = "$Revision$";
+static const char *Asuscom_revision = "$Revision: 5114 $";
 
 #define byteout(addr,val) outb(val,addr)
 #define bytein(addr) inb(addr)

@@ -199,7 +199,7 @@ static int __init r3964_init(void)
 {
 	int status;
 
-	printk("r3964: Philips r3964 Driver $Revision$\n");
+	printk("r3964: Philips r3964 Driver $Revision: 5502 $\n");
 
 	/*
 	 * Register the tty line discipline

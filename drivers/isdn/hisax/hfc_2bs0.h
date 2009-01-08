@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: hfc_2bs0.h 2396 2006-11-02 10:18:43Z magicyang $
  *
  * specific defines for CCD's HFC 2BS0
  *

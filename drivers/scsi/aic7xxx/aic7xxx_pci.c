@@ -39,7 +39,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGES.
  *
- * $Id$
+ * $Id: aic7xxx_pci.c 5114 2008-08-07 06:24:53Z cooloney $
  */
 
 #ifdef __linux__

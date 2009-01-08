@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: max1617.h 1317 2006-03-22 08:11:06Z magicyang $ */
 #ifndef _MAX1617_H
 #define _MAX1617_H
 

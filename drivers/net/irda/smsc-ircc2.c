@@ -1,5 +1,5 @@
 /*********************************************************************
- * $Id$
+ * $Id: smsc-ircc2.c 5502 2008-10-29 06:43:00Z cooloney $
  *
  * Description:   Driver for the SMC Infrared Communications Controller
  * Status:        Experimental.

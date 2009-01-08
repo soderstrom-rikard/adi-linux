@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: cosa.h 2399 2006-11-03 05:32:46Z magicyang $ */
 
 /*
  *  Copyright (C) 1995-1997  Jan "Yenya" Kasprzak <kas@fi.muni.cz>

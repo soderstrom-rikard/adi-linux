@@ -22,7 +22,7 @@
  * BEGIN_DESC
  *
  *  File:
- *	@(#)	pa/spmath/sfsub.c		$Revision$
+ *	@(#)	pa/spmath/sfsub.c		$Revision: 2395 $
  *
  *  Purpose:
  *	Single_subtract: subtract two single precision values.

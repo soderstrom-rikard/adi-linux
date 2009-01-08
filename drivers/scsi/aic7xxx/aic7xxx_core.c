@@ -37,7 +37,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGES.
  *
- * $Id$
+ * $Id: aic7xxx_core.c 5502 2008-10-29 06:43:00Z cooloney $
  */
 
 #ifdef __linux__

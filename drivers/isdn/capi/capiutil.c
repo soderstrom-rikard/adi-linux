@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: capiutil.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * CAPI 2.0 convert capi message to capi message struct
  *

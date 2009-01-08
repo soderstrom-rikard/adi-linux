@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: avm_cs.c 5502 2008-10-29 06:43:00Z cooloney $
  *
  * A PCMCIA client driver for AVM B1/M1/M2
  *

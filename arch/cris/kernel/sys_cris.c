@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: sys_cris.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * linux/arch/cris/kernel/sys_cris.c
  *

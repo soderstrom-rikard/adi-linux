@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: teles0.c 2620 2007-01-10 08:32:17Z cooloney $
  *
  * low level stuff for Teles Memory IO isdn cards
  *
@@ -23,7 +23,7 @@
 
 extern const char *CardType[];
 
-static const char *teles0_revision = "$Revision$";
+static const char *teles0_revision = "$Revision: 2620 $";
 
 #define TELES_IOMEM_SIZE	0x400
 #define byteout(addr,val) outb(val,addr)

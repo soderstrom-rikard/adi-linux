@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: t1pci.c 5114 2008-08-07 06:24:53Z cooloney $
  * 
  * Module for AVM T1 PCI-card.
  * 
@@ -29,7 +29,7 @@
 #undef CONFIG_T1PCI_POLLDEBUG
 
 /* ------------------------------------------------------------- */
-static char *revision = "$Revision$";
+static char *revision = "$Revision: 5114 $";
 /* ------------------------------------------------------------- */
 
 static struct pci_device_id t1pci_pci_tbl[] = {

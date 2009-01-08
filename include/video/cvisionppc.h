@@ -4,7 +4,7 @@
  *
  * Copyright (c) 1998-1999 Ilario Nardinocchi (nardinoc@CS.UniBO.IT)
  * --------------------------------------------------------------------------
- * $Id$
+ * $Id: cvisionppc.h 2397 2006-11-02 10:51:58Z magicyang $
  * --------------------------------------------------------------------------
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file COPYING in the main directory of this archive

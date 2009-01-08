@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: nj_s.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * This software may be used and distributed according to the terms
  * of the GNU General Public License, incorporated herein by reference.
@@ -14,7 +14,7 @@
 #include <linux/ppp_defs.h>
 #include "netjet.h"
 
-static const char *NETjet_S_revision = "$Revision$";
+static const char *NETjet_S_revision = "$Revision: 5114 $";
 
 static u_char dummyrr(struct IsdnCardState *cs, int chan, u_char off)
 {

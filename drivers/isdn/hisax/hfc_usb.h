@@ -1,7 +1,7 @@
 /*
  * hfc_usb.h
  *
- * $Id$
+ * $Id: hfc_usb.h 4233 2008-02-07 05:52:27Z cooloney $
  */
 
 #ifndef __HFC_USB_H__

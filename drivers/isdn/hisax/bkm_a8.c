@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: bkm_a8.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * low level stuff for Scitel Quadro (4*S0, passive)
  *
@@ -22,7 +22,7 @@
 
 #define	ATTEMPT_PCI_REMAPPING	/* Required for PLX rev 1 */
 
-static const char sct_quadro_revision[] = "$Revision$";
+static const char sct_quadro_revision[] = "$Revision: 5114 $";
 
 static const char *sct_quadro_subtypes[] =
 {

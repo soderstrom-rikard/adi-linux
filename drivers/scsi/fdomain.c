@@ -297,7 +297,7 @@ MODULE_LICENSE("GPL");
 #endif
 
   
-#define VERSION          "$Revision$"
+#define VERSION          "$Revision: 5956 $"
 
 /* START OF USER DEFINABLE OPTIONS */
 

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: hysdn_sched.c 3544 2007-08-11 17:42:26Z cooloney $
  *
  * Linux driver for HYSDN cards
  * scheduler routines for handling exchange card <-> pc.

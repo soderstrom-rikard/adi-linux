@@ -1,4 +1,4 @@
-# $Id$
+# $Id: Makefile 2386 2006-11-01 04:57:26Z magicyang $
 #
 # Makefile for the linux kernel.
 #

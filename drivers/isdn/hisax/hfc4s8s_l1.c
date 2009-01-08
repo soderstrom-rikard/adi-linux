@@ -1,5 +1,5 @@
 /*************************************************************************/
-/* $Id$           */
+/* $Id: hfc4s8s_l1.c 3195 2007-05-25 05:56:06Z cooloney $           */
 /* HFC-4S/8S low layer interface for Cologne Chip HFC-4S/8S isdn chips   */
 /* The low layer (L1) is implemented as a loadable module for usage with */
 /* the HiSax isdn driver for passive cards.                              */

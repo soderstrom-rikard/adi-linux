@@ -1,7 +1,7 @@
 /*
  * (C) 2001, 2001 Red Hat, Inc.
  * GPL'd
- * $Id$
+ * $Id: gen_probe.h 2397 2006-11-02 10:51:58Z magicyang $
  */
 
 #ifndef __LINUX_MTD_GEN_PROBE_H__

@@ -22,7 +22,7 @@
  * BEGIN_DESC
  *
  *  File:
- *	@(#)	pa/spmath/fcnvfx.c		$Revision$
+ *	@(#)	pa/spmath/fcnvfx.c		$Revision: 2395 $
  *
  *  Purpose:
  *	Single Floating-point to Single Fixed-point

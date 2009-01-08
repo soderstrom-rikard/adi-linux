@@ -1,7 +1,7 @@
 #
 # Makefile for the Linux aic7xxx SCSI driver.
 #
-# $Id$
+# $Id: Makefile 5114 2008-08-07 06:24:53Z cooloney $
 #
 
 # Let kbuild descend into aicasm when cleaning

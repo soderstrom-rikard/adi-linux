@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: hfc_sx.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * level driver for Cologne Chip Designs hfc-s+/sp based cards
  *
@@ -18,7 +18,7 @@
 #include <linux/interrupt.h>
 #include <linux/isapnp.h>
 
-static const char *hfcsx_revision = "$Revision$";
+static const char *hfcsx_revision = "$Revision: 5114 $";
 
 /***************************************/
 /* IRQ-table for CCDs demo board       */

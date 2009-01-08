@@ -1,6 +1,6 @@
 /* drivers/char/ser_a2232.c */
 
-/* $Id$ */
+/* $Id: ser_a2232.c 5502 2008-10-29 06:43:00Z cooloney $ */
 
 /* Linux serial driver for the Amiga A2232 board */
 

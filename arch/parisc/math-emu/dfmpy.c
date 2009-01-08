@@ -22,7 +22,7 @@
  * BEGIN_DESC
  *
  *  File:
- *	@(#)	pa/spmath/dfmpy.c		$Revision$
+ *	@(#)	pa/spmath/dfmpy.c		$Revision: 2395 $
  *
  *  Purpose:
  *	Double Precision Floating-point Multiply

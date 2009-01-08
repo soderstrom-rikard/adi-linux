@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: capi.h 2959 2007-03-30 04:02:22Z cooloney $
  *
  * ISDN lowlevel-module for the IBM ISDN-S0 Active 2000.
  *

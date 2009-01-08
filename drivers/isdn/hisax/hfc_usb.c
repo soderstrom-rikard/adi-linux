@@ -1,7 +1,7 @@
 /*
  * hfc_usb.c
  *
- * $Id$
+ * $Id: hfc_usb.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * modular HiSax ISDN driver for Colognechip HFC-S USB chip
  *
@@ -45,7 +45,7 @@
 #include "hfc_usb.h"
 
 static const char *hfcusb_revision =
-    "$Revision$ $Date$ ";
+    "$Revision: 5114 $ $Date: 2008-08-07 02:24:53 -0400 (Thu, 07 Aug 2008) $ ";
 
 /* Hisax debug support
 *  debug flags defined in hfc_usb.h as HFCUSB_DBG_[*]

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: isdnif.h 2397 2006-11-02 10:51:58Z magicyang $
  *
  * Linux ISDN subsystem
  * Definition of the interface between the subsystem and its low-level drivers.

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: cassini.h 5502 2008-10-29 06:43:00Z cooloney $
  * cassini.h: Definitions for Sun Microsystems Cassini(+) ethernet driver.
  *
  * Copyright (C) 2004 Sun Microsystems Inc.

@@ -6,7 +6,7 @@
  * Created:      2006-04-17
  * Description:  ad1836 spi driver.
  *
- * Rev:          $Id$
+ * Rev:          $Id: ad1836_spi.h 1949 2006-08-05 03:06:05Z vapier $
  *
  * Modified:
  *               Copyright 2006 Analog Devices Inc.

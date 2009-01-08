@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: aha1542.c 5114 2008-08-07 06:24:53Z cooloney $
  *  linux/kernel/aha1542.c
  *
  *  Copyright (C) 1992  Tommy Thorn

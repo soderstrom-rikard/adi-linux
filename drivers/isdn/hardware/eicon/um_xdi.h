@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: um_xdi.h 2396 2006-11-02 10:18:43Z magicyang $ */
 
 #ifndef __DIVA_USER_MODE_XDI_H__
 #define __DIVA_USER_MODE_XDI_H__

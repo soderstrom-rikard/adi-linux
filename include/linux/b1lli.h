@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: b1lli.h 2397 2006-11-02 10:51:58Z magicyang $
  *
  * ISDN lowlevel-module for AVM B1-card.
  *

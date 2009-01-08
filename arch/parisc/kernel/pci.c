@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: pci.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file "COPYING" in the main directory of this archive

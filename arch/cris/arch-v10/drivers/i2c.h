@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: i2c.h 2386 2006-11-01 04:57:26Z magicyang $ */
 
 int i2c_init(void);
 

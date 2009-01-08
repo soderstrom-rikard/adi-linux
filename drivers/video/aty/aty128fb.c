@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: aty128fb.c 5502 2008-10-29 06:43:00Z cooloney $
  *  linux/drivers/video/aty128fb.c -- Frame buffer device for ATI Rage128
  *
  *  Copyright (C) 1999-2003, Brad Douglas <brad@neruo.com>

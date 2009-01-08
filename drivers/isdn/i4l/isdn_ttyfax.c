@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: isdn_ttyfax.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * Linux ISDN subsystem, tty_fax AT-command emulator (linklevel).
  *
@@ -20,7 +20,7 @@
 #include "isdn_ttyfax.h"
 
 
-static char *isdn_tty_fax_revision = "$Revision$";
+static char *isdn_tty_fax_revision = "$Revision: 5114 $";
 
 #define PARSE_ERROR1 { isdn_tty_fax_modem_result(1, info); return 1; }
 

@@ -1,7 +1,7 @@
 /* Linux driver for NAND Flash Translation Layer      */
 /* (c) 1999 Machine Vision Holdings, Inc.             */
 /* Author: David Woodhouse <dwmw2@infradead.org>      */
-/* $Id$ */
+/* $Id: nftlcore.c 5502 2008-10-29 06:43:00Z cooloney $ */
 
 /*
   The contents of this file are distributed under the GNU General

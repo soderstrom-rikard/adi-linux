@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: s0box.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * low level stuff for Creatix S0BOX
  *
@@ -16,7 +16,7 @@
 #include "hscx.h"
 #include "isdnl1.h"
 
-static const char *s0box_revision = "$Revision$";
+static const char *s0box_revision = "$Revision: 5114 $";
 
 static inline void
 writereg(unsigned int padr, signed int addr, u_char off, u_char val) {

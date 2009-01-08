@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: sungem.h 5114 2008-08-07 06:24:53Z cooloney $
  * sungem.h: Definitions for Sun GEM ethernet driver.
  *
  * Copyright (C) 2000 David S. Miller (davem@redhat.com)

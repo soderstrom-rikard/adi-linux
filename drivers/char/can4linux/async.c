@@ -37,8 +37,8 @@
 /**
 * \file can_async.c
 * \author Phil Wilshire SDCS (philwil@sysdcs.com)
-* $Revision$
-* $Date$
+* $Revision: 3628 $
+* $Date: 2007-08-29 09:08:48 -0400 (Wed, 29 Aug 2007) $
 *
 *
 */
@@ -81,7 +81,7 @@
 
 /* local defined variables
 ---------------------------------------------------------------------------*/
-/* static char _rcsid[] = "$Id$"; */
+/* static char _rcsid[] = "$Id: async.c 3628 2007-08-29 13:08:48Z hennerich $"; */
 
 
 /***************************************************************************/

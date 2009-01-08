@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: isdnl3.h 3195 2007-05-25 05:56:06Z cooloney $
  *
  * This software may be used and distributed according to the terms
  * of the GNU General Public License, incorporated herein by reference.

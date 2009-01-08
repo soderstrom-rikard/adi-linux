@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: capidrv.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * ISDN4Linux Driver, using capi20 interface (kernelcapi)
  *
@@ -34,7 +34,7 @@
 #include <linux/isdn/capicmd.h>
 #include "capidrv.h"
 
-static char *revision = "$Revision$";
+static char *revision = "$Revision: 5114 $";
 static int debugmode = 0;
 
 MODULE_DESCRIPTION("CAPI4Linux: Interface to ISDN4Linux");

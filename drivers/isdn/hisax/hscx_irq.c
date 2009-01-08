@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: hscx_irq.c 2396 2006-11-02 10:18:43Z magicyang $
  *
  * low level b-channel stuff for Siemens HSCX
  *

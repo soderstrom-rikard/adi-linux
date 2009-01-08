@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: b1dma.c 5114 2008-08-07 06:24:53Z cooloney $
  * 
  * Common module for AVM B1 cards that support dma with AMCC
  * 
@@ -27,7 +27,7 @@
 #include <linux/isdn/capicmd.h>
 #include <linux/isdn/capiutil.h>
 
-static char *revision = "$Revision$";
+static char *revision = "$Revision: 5114 $";
 
 #undef AVM_B1DMA_DEBUG
 

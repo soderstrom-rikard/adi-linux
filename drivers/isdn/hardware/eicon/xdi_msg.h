@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: xdi_msg.h 2396 2006-11-02 10:18:43Z magicyang $ */
 
 #ifndef __DIVA_XDI_UM_CFG_MESSSGE_H__
 #define __DIVA_XDI_UM_CFG_MESSAGE_H__

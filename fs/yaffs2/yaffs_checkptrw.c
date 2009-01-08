@@ -12,7 +12,7 @@
  */
 
 const char *yaffs_checkptrw_c_version =
-    "$Id$";
+    "$Id: yaffs_checkptrw.c 5114 2008-08-07 06:24:53Z cooloney $";
 
 
 #include "yaffs_checkptrw.h"

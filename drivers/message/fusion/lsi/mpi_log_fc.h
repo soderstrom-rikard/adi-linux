@@ -7,7 +7,7 @@
  *                  in the IOCLogInfo field of a MPI Default Reply Message.
  *
  *  CREATION DATE:  6/02/2000
- *  ID:             $Id$
+ *  ID:             $Id: mpi_log_fc.h 4233 2008-02-07 05:52:27Z cooloney $
  */
 
 

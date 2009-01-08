@@ -9,7 +9,7 @@
  *
  * Adaption to the kernel by Thomas Gleixner (tglx@linutronix.de)
  *
- * $Id$
+ * $Id: encode_rs.c 2388 2006-11-01 05:52:25Z magicyang $
  *
  */
 

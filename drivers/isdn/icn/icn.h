@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: icn.h 2401 2006-11-03 06:02:10Z magicyang $
  *
  * ISDN lowlevel-module for the ICN active ISDN-Card.
  *

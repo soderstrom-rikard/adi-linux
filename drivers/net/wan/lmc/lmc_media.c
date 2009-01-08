@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: lmc_media.c 5502 2008-10-29 06:43:00Z cooloney $ */
 
 #include <linux/kernel.h>
 #include <linux/string.h>

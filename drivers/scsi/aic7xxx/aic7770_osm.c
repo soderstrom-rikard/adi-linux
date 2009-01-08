@@ -36,7 +36,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGES.
  *
- * $Id$
+ * $Id: aic7770_osm.c 5114 2008-08-07 06:24:53Z cooloney $
  */
 
 #include "aic7xxx_osm.h"

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: hysdn_pof.h 5502 2008-10-29 06:43:00Z cooloney $
  *
  * Linux driver for HYSDN cards, definitions used for handling pof-files.
  *

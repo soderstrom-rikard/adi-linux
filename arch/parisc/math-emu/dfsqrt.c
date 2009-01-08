@@ -22,7 +22,7 @@
  * BEGIN_DESC
  *
  *  File:
- *	@(#)	pa/spmath/dfsqrt.c		$Revision$
+ *	@(#)	pa/spmath/dfsqrt.c		$Revision: 3544 $
  *
  *  Purpose:
  *	Double Floating-point Square Root

@@ -73,7 +73,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *      $Id$
+ *      $Id: aic7xxx_old.c 5114 2008-08-07 06:24:53Z cooloney $
  *---------------------------------------------------------------------------
  *
  *  Thanks also go to (in alphabetical order) the following:
@@ -93,7 +93,7 @@
  *
  *  Daniel M. Eischen, deischen@iworks.InterWorks.org, 1/23/97
  *
- *  $Id$
+ *  $Id: aic7xxx_old.c 5114 2008-08-07 06:24:53Z cooloney $
  *-M*************************************************************************/
 
 /*+M**************************************************************************

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: capilli.h 2397 2006-11-02 10:51:58Z magicyang $
  * 
  * Kernel CAPI 2.0 Driver Interface for Linux
  * 

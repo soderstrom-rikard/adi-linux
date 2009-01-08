@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: teleint.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * low level stuff for TeleInt isdn cards
  *
@@ -16,7 +16,7 @@
 #include "hfc_2bs0.h"
 #include "isdnl1.h"
 
-static const char *TeleInt_revision = "$Revision$";
+static const char *TeleInt_revision = "$Revision: 5114 $";
 
 #define byteout(addr,val) outb(val,addr)
 #define bytein(addr) inb(addr)

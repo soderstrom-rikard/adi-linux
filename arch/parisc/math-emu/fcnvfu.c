@@ -22,7 +22,7 @@
  * BEGIN_DESC
  *
  *  File:
- *	@(#)	pa/spmath/fcnvfu.c		$Revision$
+ *	@(#)	pa/spmath/fcnvfu.c		$Revision: 2395 $
  *
  *  Purpose:
  *	Floating-point to Unsigned Fixed-point Converts

@@ -1,4 +1,3 @@
-# $Id$
 # Makefile for the Sparc64 boot stuff.
 #
 # Copyright (C) 1995 David S. Miller (davem@caip.rutgers.edu)

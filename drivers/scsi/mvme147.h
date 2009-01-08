@@ -1,6 +1,6 @@
 #ifndef MVME147_H
 
-/* $Id$
+/* $Id: mvme147.h 2620 2007-01-10 08:32:17Z cooloney $
  *
  * Header file for the MVME147 built-in SCSI controller for Linux
  *

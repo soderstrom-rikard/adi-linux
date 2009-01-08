@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: hysdn_defs.h 2620 2007-01-10 08:32:17Z cooloney $
  *
  * Linux driver for HYSDN cards
  * global definitions and exported vars and functions.

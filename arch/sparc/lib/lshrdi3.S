@@ -1,4 +1,3 @@
-/* $Id$ */
 
 	.globl	__lshrdi3
 __lshrdi3:

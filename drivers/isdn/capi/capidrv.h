@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: capidrv.h 2396 2006-11-02 10:18:43Z magicyang $
  *
  * ISDN4Linux Driver, using capi20 interface (kernelcapi)
  *

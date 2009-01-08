@@ -5,7 +5,6 @@
  * Copyright (C) 2004 by FS Forth-Systeme GmbH
  * All rights reserved.
  *
- * $Id$
  * @Author: Jonas Dietsche
  *
  * This program is free software; you can redistribute it and/or

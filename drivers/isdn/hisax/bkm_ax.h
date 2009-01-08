@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: bkm_ax.h 2396 2006-11-02 10:18:43Z magicyang $
  *
  * low level decls for T-Berkom cards A4T and Scitel Quadro (4*S0, passive)
  *

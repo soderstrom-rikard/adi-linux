@@ -1,5 +1,5 @@
 /*
- * $Id$
+ * $Id: hw_settings.S 2386 2006-11-01 04:57:26Z magicyang $
  * 
  * This table is used by some tools to extract hardware parameters.
  * The table should be included in the kernel and the decompressor.

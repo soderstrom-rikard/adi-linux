@@ -24,8 +24,8 @@
 /**
 * \file read.c
 * \author Heinz-Jürgen Oertel, port GmbH
-* $Revision$
-* $Date$
+* $Revision: 3628 $
+* $Date: 2007-08-29 09:08:48 -0400 (Wed, 29 Aug 2007) $
 *
 * Module Description 
 * see Doxygen Doc for all possibilities
@@ -71,7 +71,7 @@
 
 /* local defined variables
 ---------------------------------------------------------------------------*/
-/* static char _rcsid[] = "$Id$"; */
+/* static char _rcsid[] = "$Id: read.c 3628 2007-08-29 13:08:48Z hennerich $"; */
 
 
 

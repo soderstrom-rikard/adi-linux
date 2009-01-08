@@ -1,4 +1,4 @@
-/*    $Id$
+/*    $Id: processor.c 4233 2008-02-07 05:52:27Z cooloney $
  *
  *    Initial setup-routines for HP 9000 based hardware.
  *

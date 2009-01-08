@@ -14,7 +14,7 @@
 /* mtd interface for YAFFS2 */
 
 const char *yaffs_mtdif2_c_version =
-    "$Id$";
+    "$Id: yaffs_mtdif2.c 5117 2008-08-07 08:29:50Z cooloney $";
 
 #include "yportenv.h"
 

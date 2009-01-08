@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: bbc_i2c.h 5502 2008-10-29 06:43:00Z cooloney $ */
 #ifndef _BBC_I2C_H
 #define _BBC_I2C_H
 

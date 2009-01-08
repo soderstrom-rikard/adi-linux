@@ -28,7 +28,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id$
+ * $Id: aic7xxx_93cx6.c 5114 2008-08-07 06:24:53Z cooloney $
  */
 
 /*

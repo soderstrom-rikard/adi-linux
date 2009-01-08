@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: promcon.c 3544 2007-08-11 17:42:26Z cooloney $
  * Console driver utilizing PROM sun terminal emulation
  *
  * Copyright (C) 1998  Eddie C. Dost  (ecd@skynet.be)

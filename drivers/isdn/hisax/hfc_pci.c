@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: hfc_pci.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * low level driver for CCD's hfc-pci based cards
  *
@@ -22,7 +22,7 @@
 #include <linux/pci.h>
 #include <linux/interrupt.h>
 
-static const char *hfcpci_revision = "$Revision$";
+static const char *hfcpci_revision = "$Revision: 5114 $";
 
 /* table entry in the PCI devices list */
 typedef struct {

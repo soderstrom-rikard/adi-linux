@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: concap.h 5114 2008-08-07 06:24:53Z cooloney $
  *
  * Copyright 1997 by Henner Eisen <eis@baty.hanse.de>
  *

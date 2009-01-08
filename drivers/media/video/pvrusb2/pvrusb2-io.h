@@ -1,6 +1,6 @@
 /*
  *
- *  $Id$
+ *  $Id: pvrusb2-io.h 5114 2008-08-07 06:24:53Z cooloney $
  *
  *  Copyright (C) 2005 Mike Isely <isely@pobox.com>
  *

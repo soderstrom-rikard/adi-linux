@@ -8,31 +8,31 @@
  *		This work was derived from Ross Biro's inspirational work
  *		for the LINUX operating system.  His version numbers were:
  *
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- * 		$Id$
- * 		$Id$
- * 		$Id$
- * 		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
- *		$Id$
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ * 		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ * 		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ * 		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ * 		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
+ *		$Id: inet.h 5502 2008-10-29 06:43:00Z cooloney $
  *
  *		This program is free software; you can redistribute it and/or
  *		modify it under the terms of the GNU General Public License

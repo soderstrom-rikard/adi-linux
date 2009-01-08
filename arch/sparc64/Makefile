@@ -1,4 +1,3 @@
-# $Id$
 # sparc64/Makefile
 #
 # Makefile for the architecture dependent flags and dependencies on the

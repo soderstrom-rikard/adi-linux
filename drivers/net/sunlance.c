@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: sunlance.c 5502 2008-10-29 06:43:00Z cooloney $
  * lance.c: Linux/Sparc/Lance driver
  *
  *	Written 1995, 1996 by Miguel de Icaza

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: l3dss1.h 2396 2006-11-02 10:18:43Z magicyang $
  *
  * DSS1 (Euro) D-channel protocol defines
  *

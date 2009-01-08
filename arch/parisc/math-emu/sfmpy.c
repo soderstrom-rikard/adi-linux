@@ -22,7 +22,7 @@
  * BEGIN_DESC
  *
  *  File:
- *	@(#)	pa/spmath/sfmpy.c		$Revision$
+ *	@(#)	pa/spmath/sfmpy.c		$Revision: 2395 $
  *
  *  Purpose:
  *	Single Precision Floating-point Multiply

@@ -1,6 +1,6 @@
 /* drivers/char/ser_a2232fw.h */
 
-/* $Id$ */
+/* $Id: ser_a2232fw.h 2395 2006-11-02 09:34:16Z magicyang $ */
 
 /*
  * Copyright (c) 1995 Jukka Marin <jmarin@jmp.fi>.

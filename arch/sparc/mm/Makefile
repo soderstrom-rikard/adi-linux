@@ -1,4 +1,3 @@
-# $Id$
 # Makefile for the linux Sparc-specific parts of the memory manager.
 #
 

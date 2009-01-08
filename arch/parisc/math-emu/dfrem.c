@@ -22,7 +22,7 @@
  * BEGIN_DESC
  *
  *  File:
- *	@(#)	pa/spmath/dfrem.c		$Revision$
+ *	@(#)	pa/spmath/dfrem.c		$Revision: 2395 $
  *
  *  Purpose:
  *	Double Precision Floating-point Remainder

@@ -15,7 +15,6 @@
  *
  * Author: Tobias Anderberg <tobiasa@axis.com>.
  *
- * $Id$
  */
 
 #include <linux/module.h>
@@ -39,7 +38,7 @@
 #define PCF8563_MAJOR 121	/* Local major number. */
 #define DEVICE_NAME "rtc"	/* Name which is registered in /proc/devices. */
 #define PCF8563_NAME "PCF8563"
-#define DRIVER_VERSION "$Revision$"
+#define DRIVER_VERSION "$Revision: 5502 $"
 
 /* I2C bus slave registers. */
 #define RTC_I2C_READ		0xa3

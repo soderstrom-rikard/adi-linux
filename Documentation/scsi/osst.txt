@@ -188,7 +188,7 @@ Makedevs.sh
 #!/bin/sh
 # Script to create OnStream SC-x0 device nodes (major 206)
 # Usage: Makedevs.sh [nos [path to dev]]
-# $Id$
+# $Id: osst.txt 2620 2007-01-10 08:32:17Z cooloney $
 major=206
 nrs=4
 dir=/dev

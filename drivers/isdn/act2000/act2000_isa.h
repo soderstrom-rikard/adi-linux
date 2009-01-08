@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: act2000_isa.h 2396 2006-11-02 10:18:43Z magicyang $
  *
  * ISDN lowlevel-module for the IBM ISDN-S0 Active 2000 (ISA-Version).
  *

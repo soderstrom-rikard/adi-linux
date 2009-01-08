@@ -6,7 +6,7 @@
  * Created:
  * Description:  AD1836 SPI driver
  *
- * Rev:          $Id$
+ * Rev:          $Id: ad1836_spi.c 2920 2007-03-23 03:15:28Z royhuang $
  *
  * Modified:
  *               Copyright 2006 Analog Devices Inc.

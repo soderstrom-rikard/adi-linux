@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: hysdn_procconf.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * Linux driver for HYSDN cards, /proc/net filesystem dir and conf functions.
  *
@@ -20,7 +20,7 @@
 
 #include "hysdn_defs.h"
 
-static char *hysdn_procconf_revision = "$Revision$";
+static char *hysdn_procconf_revision = "$Revision: 5114 $";
 
 #define INFO_OUT_LEN 80		/* length of info line including lf */
 

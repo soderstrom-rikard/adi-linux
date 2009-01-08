@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: hisax_cfg.h 5114 2008-08-07 06:24:53Z cooloney $
  * define of the basic HiSax configuration structures
  * and pcmcia interface
  *

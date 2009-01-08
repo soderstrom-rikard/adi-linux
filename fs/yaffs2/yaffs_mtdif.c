@@ -12,7 +12,7 @@
  */
 
 const char *yaffs_mtdif_c_version =
-    "$Id$";
+    "$Id: yaffs_mtdif.c 5114 2008-08-07 06:24:53Z cooloney $";
 
 #include "yportenv.h"
 

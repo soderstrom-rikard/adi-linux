@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: isdn_net.h 5114 2008-08-07 06:24:53Z cooloney $
  *
  * header for Linux ISDN subsystem, network related functions (linklevel).
  *

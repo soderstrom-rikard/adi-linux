@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: gazel.c 5114 2008-08-07 06:24:53Z cooloney $
  *
  * low level stuff for Gazel isdn cards
  *
@@ -19,7 +19,7 @@
 #include "ipac.h"
 #include <linux/pci.h>
 
-static const char *gazel_revision = "$Revision$";
+static const char *gazel_revision = "$Revision: 5114 $";
 
 #define R647      1
 #define R685      2

@@ -1,5 +1,5 @@
 /*
- * $Id$
+ * $Id: kernelcapi.h 5114 2008-08-07 06:24:53Z cooloney $
  * 
  * Kernel CAPI 2.0 Interface for Linux
  * 

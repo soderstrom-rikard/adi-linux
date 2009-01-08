@@ -1,5 +1,5 @@
 /*
- *  acpi_button.c - ACPI Button Driver ($Revision$)
+ *  acpi_button.c - ACPI Button Driver ($Revision: 5956 $)
  *
  *  Copyright (C) 2001, 2002 Andy Grover <andrew.grover@intel.com>
  *  Copyright (C) 2001, 2002 Paul Diefenbaugh <paul.s.diefenbaugh@intel.com>

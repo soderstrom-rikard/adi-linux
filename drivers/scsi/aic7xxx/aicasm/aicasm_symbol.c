@@ -37,7 +37,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGES.
  *
- * $Id$
+ * $Id: aicasm_symbol.c 796 2005-08-12 06:43:05Z magicyang $
  *
  * $FreeBSD$
  */

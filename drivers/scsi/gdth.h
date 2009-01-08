@@ -10,7 +10,7 @@
  *
  * <achim_leubner@adaptec.com>
  *
- * $Id$
+ * $Id: gdth.h 5502 2008-10-29 06:43:00Z cooloney $
  */
 
 #include <linux/types.h>

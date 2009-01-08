@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: message.h 2401 2006-11-03 06:02:10Z magicyang $
  *
  * Copyright (C) 1996  SpellCaster Telecommunications Inc.
  *

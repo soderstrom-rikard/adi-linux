@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: divamnt.c 5502 2008-10-29 06:43:00Z cooloney $
  *
  * Driver for Eicon DIVA Server ISDN cards.
  * Maint module
@@ -22,7 +22,7 @@
 #include "divasync.h"
 #include "debug_if.h"
 
-static char *main_revision = "$Revision$";
+static char *main_revision = "$Revision: 5502 $";
 
 static int major;
 

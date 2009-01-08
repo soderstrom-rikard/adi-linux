@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: isdn_x25iface.c 2401 2006-11-03 06:02:10Z magicyang $
  *
  * Linux ISDN subsystem, X.25 related functions
  *
