@@ -231,8 +231,10 @@ static int yaffs_follow_link(struct dentry *dentry, struct nameidata *nd);
 static struct address_space_operations yaffs_file_address_operations = {
 	.readpage = yaffs_readpage,
 	.writepage = yaffs_writepage,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28))
 	.prepare_write = yaffs_prepare_write,
 	.commit_write = yaffs_commit_write,
+#endif
 };
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,22))
