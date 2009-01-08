@@ -1,7 +1,7 @@
 /* Derived from Applicom driver ac.c for SCO Unix                            */
 /* Ported by David Woodhouse, Axiom (Cambridge) Ltd.                         */
 /* dwmw2@infradead.org 30/8/98                                               */
-/* $Id: applicom.c 5502 2008-10-29 06:43:00Z cooloney $			     */
+/* $Id: ac.c,v 1.30 2000/03/22 16:03:57 dwmw2 Exp $			     */
 /* This module is for Linux 2.1 and 2.2 series kernels.                      */
 /*****************************************************************************/
 /* J PAGET 18/02/94 passage V2.4.2 ioctl avec code 2 reset to les interrupt  */
@@ -187,7 +187,7 @@ static int __init applicom_init(void)
 	void __iomem *RamIO;
 	int boardno, ret;
 
-	printk(KERN_INFO "Applicom driver: $Id: applicom.c 5502 2008-10-29 06:43:00Z cooloney $\n");
+	printk(KERN_INFO "Applicom driver: $Id: ac.c,v 1.30 2000/03/22 16:03:57 dwmw2 Exp $\n");
 
 	/* No mem and irq given - check for a PCI card */
 
@@ -786,7 +786,7 @@ static int ac_ioctl(struct inode *inode, struct file *file, unsigned int cmd, un
 		writeb(1, apbs[IndexCard].RamIO + RAM_IT_FROM_PC);
 		break;
 	case 6:
-		printk(KERN_INFO "APPLICOM driver release .... V2.8.0 ($Revision: 5502 $)\n");
+		printk(KERN_INFO "APPLICOM driver release .... V2.8.0 ($Revision: 1.30 $)\n");
 		printk(KERN_INFO "Number of installed boards . %d\n", (int) numboards);
 		printk(KERN_INFO "Segment of board ........... %X\n", (int) mem);
 		printk(KERN_INFO "Interrupt IRQ number ....... %d\n", (int) irq);

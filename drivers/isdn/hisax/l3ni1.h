@@ -1,4 +1,4 @@
-/* $Id: l3ni1.h 2396 2006-11-02 10:18:43Z magicyang $
+/* $Id: l3ni1.h,v 2.3.6.2 2001/09/23 22:24:50 kai Exp $
  *
  * NI1 D-channel protocol
  *

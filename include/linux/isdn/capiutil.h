@@ -1,4 +1,4 @@
-/* $Id: capiutil.h 3544 2007-08-11 17:42:26Z cooloney $
+/* $Id: capiutil.h,v 1.5.6.2 2001/09/23 22:24:33 kai Exp $
  *
  * CAPI 2.0 defines & types
  *

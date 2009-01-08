@@ -1,4 +1,4 @@
-/* $Id: q931.c 2396 2006-11-02 10:18:43Z magicyang $
+/* $Id: q931.c,v 1.12.2.3 2004/01/13 14:31:26 keil Exp $
  *
  * code to decode ITU Q.931 call control messages
  *

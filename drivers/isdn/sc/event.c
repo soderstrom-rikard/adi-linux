@@ -1,4 +1,4 @@
-/* $Id: event.c 3195 2007-05-25 05:56:06Z cooloney $
+/* $Id: event.c,v 1.4.8.1 2001/09/23 22:24:59 kai Exp $
  *
  * Copyright (C) 1996  SpellCaster Telecommunications Inc.
  *

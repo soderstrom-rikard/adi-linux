@@ -1,5 +1,4 @@
 # drivers/mtd/nand/Kconfig
-# $Id: Kconfig 5502 2008-10-29 06:43:00Z cooloney $
 
 menuconfig MTD_NAND
 	tristate "NAND Device Support"

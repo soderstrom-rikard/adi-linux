@@ -1,4 +1,4 @@
-/* $Id: cosa.c 5502 2008-10-29 06:43:00Z cooloney $ */
+/* $Id: cosa.c,v 1.31 2000/03/08 17:47:16 kas Exp $ */
 
 /*
  *  Copyright (C) 1995-1997  Jan "Yenya" Kasprzak <kas@fi.muni.cz>

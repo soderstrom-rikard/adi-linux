@@ -1,4 +1,4 @@
-/* $Id: icc.c 2959 2007-03-30 04:02:22Z cooloney $
+/* $Id: icc.c,v 1.8.2.3 2004/01/13 14:31:25 keil Exp $
  *
  * ICC specific routines
  *

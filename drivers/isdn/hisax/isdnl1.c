@@ -1,4 +1,4 @@
-/* $Id: isdnl1.c 2959 2007-03-30 04:02:22Z cooloney $
+/* $Id: isdnl1.c,v 2.46.2.5 2004/02/11 13:21:34 keil Exp $
  *
  * common low level stuff for Siemens Chipsetbased isdn cards
  *
@@ -18,7 +18,7 @@
  *
  */
 
-const char *l1_revision = "$Revision: 2959 $";
+const char *l1_revision = "$Revision: 2.46.2.5 $";
 
 #include <linux/init.h>
 #include "hisax.h"

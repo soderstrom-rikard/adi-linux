@@ -1,4 +1,4 @@
-/* $Id: avmcard.h 2620 2007-01-10 08:32:17Z cooloney $
+/* $Id: avmcard.h,v 1.1.4.1.2.1 2001/12/21 15:00:17 kai Exp $
  *
  * Copyright 1999 by Carsten Paeth <calle@calle.de>
  *

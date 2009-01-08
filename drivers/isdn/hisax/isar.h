@@ -1,4 +1,4 @@
-/* $Id: isar.h 2396 2006-11-02 10:18:43Z magicyang $
+/* $Id: isar.h,v 1.11.2.2 2004/01/12 22:52:27 keil Exp $
  *
  * ISAR (Siemens PSB 7110) specific defines
  *

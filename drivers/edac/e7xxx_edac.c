@@ -18,7 +18,7 @@
  *	That One Guy (Some other place)
  *	Wang Zhenyu (intel.com)
  *
- * $Id: e7xxx_edac.c 5114 2008-08-07 06:24:53Z cooloney $
+ * $Id: edac_e7xxx.c,v 1.5.2.9 2005/10/05 00:43:44 dsp_llnl Exp $
  *
  */
 

@@ -1,4 +1,4 @@
-/* $Id: hycapi.c 5114 2008-08-07 06:24:53Z cooloney $
+/* $Id: hycapi.c,v 1.8.6.4 2001/09/23 22:24:54 kai Exp $
  *
  * Linux driver for HYSDN cards, CAPI2.0-Interface.
  *
@@ -28,7 +28,7 @@
 #include "hysdn_defs.h"
 #include <linux/kernelcapi.h>
 
-static char hycapi_revision[]="$Revision: 5114 $";
+static char hycapi_revision[]="$Revision: 1.8.6.4 $";
 
 unsigned int hycapi_enable = 0xffffffff; 
 module_param(hycapi_enable, uint, 0);

@@ -1,4 +1,4 @@
-/* $Id: avm_cs.c 5502 2008-10-29 06:43:00Z cooloney $
+/* $Id: avm_cs.c,v 1.4.6.3 2001/09/23 22:24:33 kai Exp $
  *
  * A PCMCIA client driver for AVM B1/M1/M2
  *

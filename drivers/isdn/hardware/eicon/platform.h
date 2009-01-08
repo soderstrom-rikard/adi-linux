@@ -1,4 +1,4 @@
-/* $Id: platform.h 3544 2007-08-11 17:42:26Z cooloney $
+/* $Id: platform.h,v 1.37.4.6 2005/01/31 12:22:20 armin Exp $
  *
  * platform.h
  * 

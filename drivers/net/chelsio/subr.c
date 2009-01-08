@@ -1,8 +1,8 @@
 /*****************************************************************************
  *                                                                           *
  * File: subr.c                                                              *
- * $Revision: 5114 $                                                         *
- * $Date: 2008-08-07 02:24:53 -0400 (Thu, 07 Aug 2008) $                                              *
+ * $Revision: 1.27 $                                                         *
+ * $Date: 2005/06/22 01:08:36 $                                              *
  * Description:                                                              *
  *  Various subroutines (intr,pio,etc.) used by Chelsio 10G Ethernet driver. *
  *  part of the Chelsio 10Gb Ethernet Driver.                                *

@@ -31,7 +31,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- * $Id: mad.c 5502 2008-10-29 06:43:00Z cooloney $
  */
 #include <linux/dma-mapping.h>
 #include <rdma/ib_cache.h>

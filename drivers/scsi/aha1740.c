@@ -1,4 +1,4 @@
-/*  $Id: aha1740.c 5114 2008-08-07 06:24:53Z cooloney $
+/*  $Id$
  *  1993/03/31
  *  linux/kernel/aha1740.c
  *

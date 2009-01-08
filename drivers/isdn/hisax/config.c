@@ -1,4 +1,4 @@
-/* $Id: config.c 5956 2009-01-08 08:04:22Z cooloney $
+/* $Id: config.c,v 2.84.2.5 2004/02/11 13:21:33 keil Exp $
  *
  * Author       Karsten Keil
  * Copyright    by Karsten Keil      <keil@isdn4linux.de>

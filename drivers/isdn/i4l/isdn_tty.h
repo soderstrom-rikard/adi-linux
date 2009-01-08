@@ -1,4 +1,4 @@
-/* $Id: isdn_tty.h 2396 2006-11-02 10:18:43Z magicyang $
+/* $Id: isdn_tty.h,v 1.1.2.2 2004/01/12 22:37:19 keil Exp $
  *
  * header for Linux ISDN subsystem, tty related functions (linklevel).
  *

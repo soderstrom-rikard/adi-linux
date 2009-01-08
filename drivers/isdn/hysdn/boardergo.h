@@ -1,4 +1,4 @@
-/* $Id: boardergo.h 2396 2006-11-02 10:18:43Z magicyang $
+/* $Id: boardergo.h,v 1.2.6.1 2001/09/23 22:24:54 kai Exp $
  *
  * Linux driver for HYSDN cards, definitions for ergo type boards (buffers..).
  *

@@ -1,6 +1,5 @@
 /*
  * mtdram - a test mtd device
- * $Id: mtdram.c 5114 2008-08-07 06:24:53Z cooloney $
  * Author: Alexander Larsson <alex@cendio.se>
  *
  * Copyright (c) 1999 Alexander Larsson <alex@cendio.se>

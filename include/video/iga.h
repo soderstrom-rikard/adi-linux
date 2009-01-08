@@ -1,4 +1,4 @@
-/* $Id: iga.h 2397 2006-11-02 10:51:58Z magicyang $
+/* $Id: iga.h,v 1.2 1999/09/11 22:56:31 zaitcev Exp $
  * iga1682.h: Sparc/PCI iga1682 driver constants etc.
  *
  * Copyleft 1998 V. Roganov and G. Raiko

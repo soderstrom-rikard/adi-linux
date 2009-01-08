@@ -1,4 +1,4 @@
-/* $Id: dqueue.c 2396 2006-11-02 10:18:43Z magicyang $
+/* $Id: dqueue.c,v 1.5 2003/04/12 21:40:49 schindler Exp $
  *
  * Driver for Eicon DIVA Server ISDN cards.
  * User Mode IDI Interface

@@ -1,7 +1,6 @@
 /*
  * Common code to handle absent "placeholder" devices
  * Copyright 2001 Resilience Corporation <ebrower@resilience.com>
- * $Id: map_absent.c 2959 2007-03-30 04:02:22Z cooloney $
  *
  * This map driver is used to allocate "placeholder" MTD
  * devices on systems that have socketed/removable media.

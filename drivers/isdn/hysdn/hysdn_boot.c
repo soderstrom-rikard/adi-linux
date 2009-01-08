@@ -1,4 +1,4 @@
-/* $Id: hysdn_boot.c 2959 2007-03-30 04:02:22Z cooloney $
+/* $Id: hysdn_boot.c,v 1.4.6.4 2001/09/23 22:24:54 kai Exp $
  *
  * Linux driver for HYSDN cards
  * specific routines for booting and pof handling

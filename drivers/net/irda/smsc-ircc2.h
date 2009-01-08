@@ -1,5 +1,4 @@
 /*********************************************************************
- * $Id: smsc-ircc2.h 2399 2006-11-03 05:32:46Z magicyang $
  *
  * Description:   Definitions for the SMC IrCC chipset
  * Status:        Experimental.

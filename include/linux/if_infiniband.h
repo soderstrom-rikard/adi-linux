@@ -18,7 +18,7 @@
  *
  * Copyright (c) 2004 Topspin Communications.  All rights reserved.
  *
- * $Id: if_infiniband.h 2397 2006-11-02 10:51:58Z magicyang $
+ * $Id$
  */
 
 #ifndef _LINUX_IF_INFINIBAND_H

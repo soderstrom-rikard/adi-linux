@@ -3,7 +3,7 @@
  *
  * Questions/comments/discussion to linux-ns83820@kvack.org.
  *
- * $Revision: 5502 $
+ * $Revision: 1.34.2.23 $
  *
  * Copyright 2001 Benjamin LaHaise.
  * Copyright 2001, 2002 Red Hat.

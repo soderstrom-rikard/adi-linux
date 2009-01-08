@@ -1,4 +1,4 @@
-/* $Id: fsm.h 2396 2006-11-02 10:18:43Z magicyang $
+/* $Id: fsm.h,v 1.3.2.2 2001/09/23 22:24:47 kai Exp $
  *
  * Finite state machine
  *

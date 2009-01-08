@@ -1,4 +1,3 @@
-# $Id: Makefile 2394 2006-11-02 07:11:55Z magicyang $
 # Makefile for the Sun Boot PROM interface library under
 # Linux.
 #

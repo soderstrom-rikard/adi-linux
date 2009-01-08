@@ -1,4 +1,4 @@
-/* $Id: netjet.h 5114 2008-08-07 06:24:53Z cooloney $
+/* $Id: netjet.h,v 2.8.2.2 2004/01/12 22:52:28 keil Exp $
  *
  * NETjet common header file
  *

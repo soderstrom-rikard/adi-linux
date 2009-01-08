@@ -1,8 +1,8 @@
 /*****************************************************************************
  *                                                                           *
  * File: espi.h                                                              *
- * $Revision: 5114 $                                                          *
- * $Date: 2008-08-07 02:24:53 -0400 (Thu, 07 Aug 2008) $                                              *
+ * $Revision: 1.7 $                                                          *
+ * $Date: 2005/06/21 18:29:47 $                                              *
  * Description:                                                              *
  *  part of the Chelsio 10Gb Ethernet Driver.                                *
  *                                                                           *

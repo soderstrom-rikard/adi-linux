@@ -1,4 +1,4 @@
-/* $Id: um_idi.c 2396 2006-11-02 10:18:43Z magicyang $ */
+/* $Id: um_idi.c,v 1.14 2004/03/21 17:54:37 armin Exp $ */
 
 #include "platform.h"
 #include "di_defs.h"

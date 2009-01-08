@@ -1,4 +1,3 @@
-/* $Id: fore200e.h 5502 2008-10-29 06:43:00Z cooloney $ */
 #ifndef _FORE200E_H
 #define _FORE200E_H
 

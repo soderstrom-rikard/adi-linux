@@ -1,4 +1,3 @@
-/* $Id: addrspace.h 2400 2006-11-03 05:43:27Z magicyang $ */
 /*
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file "COPYING" in the main directory of this archive

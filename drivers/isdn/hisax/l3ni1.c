@@ -1,4 +1,4 @@
-/* $Id: l3ni1.c 2396 2006-11-02 10:18:43Z magicyang $
+/* $Id: l3ni1.c,v 2.8.2.3 2004/01/13 14:31:25 keil Exp $
  *
  * NI1 D-channel protocol
  *
@@ -24,7 +24,7 @@
 #include <linux/ctype.h>
 
 extern char *HiSax_getrev(const char *revision);
-static const char *ni1_revision = "$Revision: 2396 $";
+static const char *ni1_revision = "$Revision: 2.8.2.3 $";
 
 #define EXT_BEARER_CAPS 1
 

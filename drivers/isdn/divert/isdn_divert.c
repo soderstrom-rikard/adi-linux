@@ -1,4 +1,4 @@
-/* $Id: isdn_divert.c 2959 2007-03-30 04:02:22Z cooloney $
+/* $Id: isdn_divert.c,v 1.6.6.3 2001/09/23 22:24:36 kai Exp $
  *
  * DSS1 main diversion supplementary handling for i4l.
  *

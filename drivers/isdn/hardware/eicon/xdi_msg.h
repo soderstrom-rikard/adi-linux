@@ -1,4 +1,4 @@
-/* $Id: xdi_msg.h 2396 2006-11-02 10:18:43Z magicyang $ */
+/* $Id: xdi_msg.h,v 1.1.2.2 2001/02/16 08:40:36 armin Exp $ */
 
 #ifndef __DIVA_XDI_UM_CFG_MESSSGE_H__
 #define __DIVA_XDI_UM_CFG_MESSAGE_H__

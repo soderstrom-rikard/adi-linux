@@ -70,7 +70,7 @@ static int pc_debug = PCMCIA_DEBUG;
 module_param(pc_debug, int, 0);
 #define DEBUG(n, args...) if (pc_debug>(n)) printk(KERN_DEBUG args);
 static char *version =
-"elsa_cs.c $Revision: 5502 $ $Date: 2008-10-29 02:43:00 -0400 (Wed, 29 Oct 2008) $ (K.Lichtenwalder)";
+"elsa_cs.c $Revision: 1.2.2.4 $ $Date: 2004/01/25 15:07:06 $ (K.Lichtenwalder)";
 #else
 #define DEBUG(n, args...)
 #endif

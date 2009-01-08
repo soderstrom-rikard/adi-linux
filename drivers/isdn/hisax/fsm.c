@@ -1,4 +1,4 @@
-/* $Id: fsm.c 2959 2007-03-30 04:02:22Z cooloney $
+/* $Id: fsm.c,v 1.14.6.4 2001/09/23 22:24:47 kai Exp $
  *
  * Finite state machine
  *

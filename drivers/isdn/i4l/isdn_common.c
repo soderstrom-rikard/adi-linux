@@ -1,4 +1,4 @@
-/* $Id: isdn_common.c 5502 2008-10-29 06:43:00Z cooloney $
+/* $Id: isdn_common.c,v 1.1.2.3 2004/02/10 01:07:13 keil Exp $
  *
  * Linux ISDN subsystem, common used functions (linklevel).
  *
@@ -41,7 +41,7 @@ MODULE_LICENSE("GPL");
 
 isdn_dev *dev;
 
-static char *isdn_revision = "$Revision: 5502 $";
+static char *isdn_revision = "$Revision: 1.1.2.3 $";
 
 extern char *isdn_net_revision;
 extern char *isdn_tty_revision;

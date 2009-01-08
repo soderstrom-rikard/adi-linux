@@ -1,4 +1,4 @@
-/* $Id: niccy.c 5114 2008-08-07 06:24:53Z cooloney $
+/* $Id: niccy.c,v 1.21.2.4 2004/01/13 23:48:39 keil Exp $
  *
  * low level stuff for Dr. Neuhaus NICCY PnP and NICCY PCI and
  * compatible (SAGEM cybermodem)
@@ -21,7 +21,7 @@
 #include <linux/pci.h>
 #include <linux/isapnp.h>
 
-static const char *niccy_revision = "$Revision: 5114 $";
+static const char *niccy_revision = "$Revision: 1.21.2.4 $";
 
 #define byteout(addr,val) outb(val,addr)
 #define bytein(addr) inb(addr)

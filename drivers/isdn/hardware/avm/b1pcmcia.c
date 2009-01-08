@@ -1,4 +1,4 @@
-/* $Id: b1pcmcia.c 5114 2008-08-07 06:24:53Z cooloney $
+/* $Id: b1pcmcia.c,v 1.1.2.2 2004/01/16 21:09:27 keil Exp $
  * 
  * Module for AVM B1/M1/M2 PCMCIA-card.
  * 
@@ -27,7 +27,7 @@
 
 /* ------------------------------------------------------------- */
 
-static char *revision = "$Revision: 5114 $";
+static char *revision = "$Revision: 1.1.2.2 $";
 
 /* ------------------------------------------------------------- */
 

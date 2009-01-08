@@ -8,7 +8,7 @@
  * Contributors:
  *	Wang Zhenyu at intel.com
  *
- * $Id: i82875p_edac.c 5956 2009-01-08 08:04:22Z cooloney $
+ * $Id: edac_i82875p.c,v 1.5.2.11 2005/10/05 00:43:44 dsp_llnl Exp $
  *
  * Note: E7210 appears same as D82875P - zhenyu.z.wang at intel.com
  */

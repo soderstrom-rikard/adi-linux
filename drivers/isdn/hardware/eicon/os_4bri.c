@@ -1,4 +1,4 @@
-/* $Id: os_4bri.c 2959 2007-03-30 04:02:22Z cooloney $ */
+/* $Id: os_4bri.c,v 1.28.4.4 2005/02/11 19:40:25 armin Exp $ */
 
 #include "platform.h"
 #include "debuglib.h"

@@ -1,4 +1,4 @@
-/* $Id: hscx.h 2396 2006-11-02 10:18:43Z magicyang $
+/* $Id: hscx.h,v 1.8.2.2 2004/01/12 22:52:26 keil Exp $
  *
  * HSCX specific defines
  *

@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
  *
- *	$Id: sysrq.c 5502 2008-10-29 06:43:00Z cooloney $
+ *	$Id: sysrq.c,v 1.15 1998/08/23 14:56:41 mj Exp $
  *
  *	Linux Magic System Request Key Hacks
  *

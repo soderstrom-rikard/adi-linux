@@ -1,4 +1,4 @@
-/* $Id: mic.c 5114 2008-08-07 06:24:53Z cooloney $
+/* $Id: mic.c,v 1.12.2.4 2004/01/13 23:48:39 keil Exp $
  *
  * low level stuff for mic cards
  *
@@ -16,7 +16,7 @@
 #include "hscx.h"
 #include "isdnl1.h"
 
-static const char *mic_revision = "$Revision: 5114 $";
+static const char *mic_revision = "$Revision: 1.12.2.4 $";
 
 #define byteout(addr,val) outb(val,addr)
 #define bytein(addr) inb(addr)

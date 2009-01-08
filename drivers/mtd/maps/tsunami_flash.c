@@ -2,7 +2,6 @@
  * tsunami_flash.c
  *
  * flash chip on alpha ds10...
- * $Id$
  */
 #include <asm/io.h>
 #include <asm/core_tsunami.h>

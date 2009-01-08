@@ -1,4 +1,4 @@
-/* $Id: max1617.h 1317 2006-03-22 08:11:06Z magicyang $ */
+/* $Id: max1617.h,v 1.1 2001/04/02 09:59:08 davem Exp $ */
 #ifndef _MAX1617_H
 #define _MAX1617_H
 

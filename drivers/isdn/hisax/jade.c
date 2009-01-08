@@ -1,4 +1,4 @@
-/* $Id: jade.c 4233 2008-02-07 05:52:27Z cooloney $
+/* $Id: jade.c,v 1.9.2.4 2004/01/14 16:04:48 keil Exp $
  *
  * JADE stuff (derived from original hscx.c)
  *

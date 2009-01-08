@@ -1,4 +1,4 @@
-/* $Id: concap.h 5114 2008-08-07 06:24:53Z cooloney $
+/* $Id: concap.h,v 1.3.2.2 2004/01/12 23:08:35 keil Exp $
  *
  * Copyright 1997 by Henner Eisen <eis@baty.hanse.de>
  *

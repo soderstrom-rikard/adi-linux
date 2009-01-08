@@ -1,4 +1,4 @@
-$Id: tgafb.txt 2384 2006-11-01 04:12:43Z magicyang $
+$Id: tgafb.txt,v 1.1.2.2 2000/04/04 06:50:18 mato Exp $
 
 What is tgafb?
 ===============

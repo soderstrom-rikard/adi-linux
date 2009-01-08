@@ -1,4 +1,4 @@
-/* $Id: newport.h 2397 2006-11-02 10:51:58Z magicyang $
+/* $Id: newport.h,v 1.5 1999/08/04 06:01:51 ulfc Exp $
  *
  * newport.h: Defines and register layout for NEWPORT graphics
  *            hardware.

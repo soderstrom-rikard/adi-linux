@@ -1,4 +1,4 @@
-/* $Id: w6692.c 5114 2008-08-07 06:24:53Z cooloney $
+/* $Id: w6692.c,v 1.18.2.4 2004/02/11 13:21:34 keil Exp $
  *
  * Winbond W6692 specific routines
  *
@@ -38,7 +38,7 @@ static const PCI_ENTRY id_list[] =
 #define W6692_DYNALINK 1
 #define W6692_USR      2
 
-static const char *w6692_revision = "$Revision: 5114 $";
+static const char *w6692_revision = "$Revision: 1.18.2.4 $";
 
 #define DBUSY_TIMER_VALUE 80
 

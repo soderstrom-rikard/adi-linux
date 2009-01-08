@@ -1,6 +1,6 @@
 #ifndef _AHA1542_H
 
-/* $Id: aha1542.h 2620 2007-01-10 08:32:17Z cooloney $
+/* $Id: aha1542.h,v 1.1 1992/07/24 06:27:38 root Exp root $
  *
  * Header file for the adaptec 1542 driver for Linux
  *

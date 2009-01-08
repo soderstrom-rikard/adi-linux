@@ -1,7 +1,6 @@
 #
 # linux/drivers/nand/Makefile
 #
-# $Id: Makefile 5502 2008-10-29 06:43:00Z cooloney $
 
 obj-$(CONFIG_MTD_NAND)			+= nand.o nand_ecc.o
 obj-$(CONFIG_MTD_NAND_IDS)		+= nand_ids.o

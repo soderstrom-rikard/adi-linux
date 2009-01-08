@@ -6,7 +6,7 @@
     the GNU General Public License.
 =========================================================================*/
 
-/* $Id: nsp_debug.c 5502 2008-10-29 06:43:00Z cooloney $ */
+/* $Id: nsp_debug.c,v 1.3 2003/07/26 14:21:09 elca Exp $ */
 
 /*
  * Show the command data of a command

@@ -1,4 +1,4 @@
-/* $Id: divasi.c 5502 2008-10-29 06:43:00Z cooloney $
+/* $Id: divasi.c,v 1.25.6.2 2005/01/31 12:22:20 armin Exp $
  *
  * Driver for Eicon DIVA Server ISDN cards.
  * User Mode IDI Interface 
@@ -26,7 +26,7 @@
 #include "um_xdi.h"
 #include "um_idi.h"
 
-static char *main_revision = "$Revision: 5502 $";
+static char *main_revision = "$Revision: 1.25.6.2 $";
 
 static int major;
 

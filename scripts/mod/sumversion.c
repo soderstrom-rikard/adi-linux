@@ -477,7 +477,7 @@ static int strip_rcs_crap(char *version)
 	full_len = strlen(version) + strlen(version + strlen(version) + 1) + 2;
 
 	/* Move string to start with version number: prefix will be
-	 * $Revision: 3155 $ or $Revision: */
+	 * $Revision$ or $Revision: */
 	len = strlen("$Revision");
 	if (version[len] == ':' || version[len] == '$')
 		len++;

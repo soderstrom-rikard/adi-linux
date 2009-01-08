@@ -8,7 +8,7 @@
  * (C) Copyright: put under GNU GPL in 10/96				*
  *				(see Documentation/scsi/tmscsim.txt)	*
  ************************************************************************
- * $Id: tmscsim.c 5502 2008-10-29 06:43:00Z cooloney $		*
+ * $Id: tmscsim.c,v 2.60.2.30 2000/12/20 01:07:12 garloff Exp $		*
  *	Enhancements and bugfixes by					*
  *	Kurt Garloff <kurt@garloff.de>	<garloff@suse.de>		*
  ************************************************************************

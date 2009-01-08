@@ -1,5 +1,4 @@
 /*
- *  $Id: pvrusb2-context.h 5502 2008-10-29 06:43:00Z cooloney $
  *
  *  Copyright (C) 2005 Mike Isely <isely@pobox.com>
  *

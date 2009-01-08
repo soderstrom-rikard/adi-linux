@@ -1,4 +1,4 @@
-/*    $Id: setup.c 5502 2008-10-29 06:43:00Z cooloney $
+/*    $Id: setup.c,v 1.8 2000/02/02 04:42:38 prumpf Exp $
  *
  *    Initial setup-routines for HP 9000 based hardware.
  *

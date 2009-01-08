@@ -1,4 +1,4 @@
-/* $Id: hysdn_proclog.c 5114 2008-08-07 06:24:53Z cooloney $
+/* $Id: hysdn_proclog.c,v 1.9.6.3 2001/09/23 22:24:54 kai Exp $
  *
  * Linux driver for HYSDN cards, /proc/net filesystem log functions.
  *

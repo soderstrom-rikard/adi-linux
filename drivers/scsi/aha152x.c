@@ -13,7 +13,7 @@
  * General Public License for more details.
  *
  *
- * $Id: aha152x.c 5502 2008-10-29 06:43:00Z cooloney $
+ * $Id: aha152x.c,v 2.7 2004/01/24 11:42:59 fischer Exp $
  *
  * $Log: aha152x.c,v $
  * Revision 2.7  2004/01/24 11:42:59  fischer
