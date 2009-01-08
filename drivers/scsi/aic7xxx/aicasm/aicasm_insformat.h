@@ -37,7 +37,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGES.
  *
- * $Id: aicasm_insformat.h 1322 2006-03-23 03:12:41Z magicyang $
+ * $Id: //depot/aic7xxx/aic7xxx/aicasm/aicasm_insformat.h#12 $
  *
  * $FreeBSD$
  */

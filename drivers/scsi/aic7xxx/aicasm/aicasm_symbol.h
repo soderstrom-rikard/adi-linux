@@ -37,7 +37,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGES.
  *
- * $Id: aicasm_symbol.h 796 2005-08-12 06:43:05Z magicyang $
+ * $Id: //depot/aic7xxx/aic7xxx/aicasm/aicasm_symbol.h#17 $
  *
  * $FreeBSD$
  */
@@ -128,6 +128,7 @@ typedef struct expression_info {
 typedef struct symbol {
 	char	*name;
 	symtype	type;
+	int	count;
 	union	{
 		struct reg_info	  *rinfo;
 		struct field_info *finfo;
@@ -136,7 +137,8 @@ typedef struct symbol {
 		struct label_info *linfo;
 		struct cond_info  *condinfo;
 		struct macro_info *macroinfo;
-	}info;
+	} info;
+	int	dont_generate_debug_code;
 } symbol_t;
 
 typedef struct symbol_ref {

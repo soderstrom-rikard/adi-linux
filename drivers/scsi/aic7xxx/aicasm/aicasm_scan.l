@@ -38,7 +38,7 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGES.
  *
- * $Id: aicasm_scan.l 1322 2006-03-23 03:12:41Z magicyang $
+ * $Id: //depot/aic7xxx/aic7xxx/aicasm/aicasm_scan.l#20 $
  *
  * $FreeBSD$
  */
@@ -162,7 +162,9 @@ register		{ return T_REGISTER; }
 const			{ yylval.value = FALSE; return T_CONST; }
 download		{ return T_DOWNLOAD; }
 address			{ return T_ADDRESS; }
+count			{ return T_COUNT; }
 access_mode		{ return T_ACCESS_MODE; }
+dont_generate_debug_code { return T_DONT_GENERATE_DEBUG_CODE; }
 modes			{ return T_MODES; }
 RW|RO|WO		{
 				 if (strcmp(yytext, "RW") == 0)
@@ -228,15 +230,15 @@ ret			{ return T_RET; }
 nop			{ return T_NOP; }
 
 	/* ARP2 16bit extensions */
-or16			{ return T_OR16; }
-and16			{ return T_AND16; }
-xor16			{ return T_XOR16; }
-add16			{ return T_ADD16; }
-adc16			{ return T_ADC16; }
-mvi16			{ return T_MVI16; }
-test16			{ return T_TEST16; }
-cmp16			{ return T_CMP16; }
-cmpxchg			{ return T_CMPXCHG; }
+	/* or16			{ return T_OR16; } */
+	/* and16			{ return T_AND16; }*/
+	/* xor16			{ return T_XOR16; }*/
+	/* add16			{ return T_ADD16; }*/
+	/* adc16			{ return T_ADC16; }*/
+	/* mvi16			{ return T_MVI16; }*/
+	/* test16			{ return T_TEST16; }*/
+	/* cmp16			{ return T_CMP16; }*/
+	/* cmpxchg			{ return T_CMPXCHG; }*/
 
 	/* Allowed Symbols */
 \<\<			{ return T_EXPR_LSHIFT; }
