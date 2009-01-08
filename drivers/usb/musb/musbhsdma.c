@@ -226,7 +226,6 @@ static int dma_channel_abort(struct dma_channel *channel)
 			0);
 		musb_write_hsdma_addr(mbase, bchannel, 0);
 		musb_write_hsdma_count(mbase, bchannel, 0);
-
 		channel->status = MUSB_DMA_STATUS_FREE;
 	}
 
@@ -274,7 +273,8 @@ static irqreturn_t dma_controller_irq(int irq, void *private_data)
 			} else {
 				u8 devctl;
 
-				addr = musb_read_hsdma_addr(mbase, bchannel);
+				addr = musb_read_hsdma_addr(mbase,
+						bchannel);
 				channel->actual_len = addr
 					- musb_channel->start_addr;
 

@@ -222,7 +222,7 @@ char *func_table[MAX_NR_FUNC] = {
 	NULL,
 };
 
-struct kbdiacr accent_table[MAX_DIACR] = {
+struct kbdiacruc accent_table[MAX_DIACR] = {
 	{'`', 'A', 0300},	{'`', 'a', 0340},
 	{'\'', 'A', 0301},	{'\'', 'a', 0341},
 	{'^', 'A', 0302},	{'^', 'a', 0342},
@@ -256,7 +256,7 @@ struct kbdiacr accent_table[MAX_DIACR] = {
 	{'\'', 'Y', 0335},	{'\'', 'y', 0375},
 	{'T', 'H', 0336},	{'t', 'h', 0376},
 	{'s', 's', 0337},	{'"', 'y', 0377},
-	{'s', 'z', 0337},	{'i', 'j', 0377}, 
+	{'s', 'z', 0337},	{'i', 'j', 0377},
 };
 
 unsigned int accent_table_size = 68;

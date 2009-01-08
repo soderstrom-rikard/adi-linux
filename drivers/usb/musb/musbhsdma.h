@@ -30,8 +30,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#ifndef __MUSB_HSDMA_H__
-#define __MUSB_HSDMA_H__
 
 #if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3430)
 #include "omap2430.h"
@@ -54,12 +52,12 @@
 
 #define musb_write_hsdma_addr(mbase, bchannel, addr) \
 	musb_writel(mbase, \
-		    MUSB_HSDMA_CHANNEL_OFFSET(bchannel, MUSB_HSDMA_ADDRESS) \
+		    MUSB_HSDMA_CHANNEL_OFFSET(bchannel, MUSB_HSDMA_ADDRESS), \
 		    addr)
 
 #define musb_write_hsdma_count(mbase, bchannel, len) \
 	musb_writel(mbase, \
-		    MUSB_HSDMA_CHANNEL_OFFSET(bchannel, MUSB_HSDMA_CONTROL) \
+		    MUSB_HSDMA_CHANNEL_OFFSET(bchannel, MUSB_HSDMA_COUNT), \
 		    len)
 #else
 
@@ -149,5 +147,3 @@ struct musb_dma_controller {
 	u8				used_channels;
 	u8				irq;
 };
-
-#endif

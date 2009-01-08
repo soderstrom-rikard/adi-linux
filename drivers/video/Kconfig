@@ -618,10 +618,10 @@ config FB_BFIN_LQ035Q1
 	select BFIN_GPTIMERS
 	select SPI
 	help
-	 This is the framebuffer device driver for a SHARP LQ035Q1DH02 TFT display found on
-	 the Blackfin Landscape LCD EZ-Extender Card.
-	 This display is a QVGA 320x240 18-bit RGB display interfaced by an 16-bit wide PPI
-	 It uses PPI[0..15] PPI_FS1, PPI_FS2 and PPI_CLK.
+	  This is the framebuffer device driver for a SHARP LQ035Q1DH02 TFT display found on
+	  the Blackfin Landscape LCD EZ-Extender Card.
+	  This display is a QVGA 320x240 18-bit RGB display interfaced by an 16-bit wide PPI
+	  It uses PPI[0..15] PPI_FS1, PPI_FS2 and PPI_CLK.
 
 config FB_BF537_LQ035
 	tristate "SHARP LQ035 TFT LCD (BF537 STAMP)"
@@ -649,17 +649,17 @@ config FB_BFIN_LANDSCAPE
 	depends on FB_BF537_LQ035
 	default n
 	help
-	 LANDSCAPE: use 320x240 instead of native 240x320 Resolution
+	  LANDSCAPE: use 320x240 instead of native 240x320 Resolution
 
 config FB_BFIN_BGR
 	bool "Use 16-bit BGR-565 instead of RGB-565"
 	depends on FB_BF537_LQ035
 	default n
 	help
-	 BGR use 16-bit BGR-565 instead of RGB-565
+	  BGR use 16-bit BGR-565 instead of RGB-565
 
 config FB_BFIN_7393
-	tristate "Blackfin ADV7393 Video encoder"
+	tristate "Blackfin ADV7393 Video encoder on uClinux"
 	depends on FB && BLACKFIN
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
@@ -2217,6 +2217,38 @@ config FB_METRONOME
 	  This driver implements support for the E-Ink Metronome
 	  controller. The pre-release name for this device was 8track
 	  and could also have been called by some vendors as PVI-nnnn.
+
+config FB_MB862XX
+	tristate "Fujitsu MB862xx GDC support"
+	depends on FB
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	---help---
+	  Frame buffer driver for Fujitsu Carmine/Coral-P(A)/Lime controllers.
+
+config FB_MB862XX_PCI_GDC
+	bool "Carmine/Coral-P(A) GDC"
+	depends on PCI && FB_MB862XX
+	---help---
+	  This enables framebuffer support for Fujitsu Carmine/Coral-P(A)
+	  PCI graphics controller devices.
+
+config FB_MB862XX_LIME
+	bool "Lime GDC"
+	depends on FB_MB862XX
+	depends on OF && !FB_MB862XX_PCI_GDC
+	select FB_FOREIGN_ENDIAN
+	select FB_LITTLE_ENDIAN
+	---help---
+	  Framebuffer support for Fujitsu Lime GDC on host CPU bus.
+
+config FB_PRE_INIT_FB
+	bool "Don't reinitialize, use bootloader's GDC/Display configuration"
+	depends on FB_MB862XX_LIME
+	---help---
+	  Select this option if display contents should be inherited as set by
+	  the bootloader.
 
 source "drivers/video/omap/Kconfig"
 
