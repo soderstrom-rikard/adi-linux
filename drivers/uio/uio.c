@@ -526,9 +526,7 @@ static int uio_mmap_physical(struct vm_area_struct *vma)
 
 	vma->vm_flags |= VM_IO | VM_RESERVED;
 
-#ifdef pgprot_noncached
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-#endif
 
 	return remap_pfn_range(vma,
 			       vma->vm_start,
