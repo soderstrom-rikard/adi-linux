@@ -382,7 +382,7 @@ static int config_dma(void)
 		set_dma_x_modify(CH_PPI, LCD_Y_RES*(LCD_BBP/8));
 		set_dma_y_count(CH_PPI, 0);
 		set_dma_y_modify(CH_PPI, 0);
-		set_dma_next_desc_addr(CH_PPI, (unsigned long)dma_desc_table[0]);
+		set_dma_next_desc_addr(CH_PPI, (void *)dma_desc_table[0]);
 		set_dma_config(CH_PPI, DMAFLOW_LARGE | NDSIZE_4 | WDSIZE_16);
 
 	} else {
