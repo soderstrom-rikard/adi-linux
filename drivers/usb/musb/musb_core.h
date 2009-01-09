@@ -331,8 +331,7 @@ struct musb {
 	struct list_head	control;	/* of musb_qh */
 	struct list_head	in_bulk;	/* of musb_qh */
 	struct list_head	out_bulk;	/* of musb_qh */
-	struct musb_qh	*in[16];
-	struct musb_qh	*out[16];
+	struct musb_qh		*periodic[32];	/* tree of interrupt+iso */
 #endif
 
 	/* called with IRQs blocked; ON/nonzero implies starting a session,
@@ -357,7 +356,7 @@ struct musb {
 	u16			int_rx;
 	u16			int_tx;
 
-	struct otg_transceiver	*xceiv;
+	struct otg_transceiver	xceiv;
 
 	int nIrq;
 
@@ -535,7 +534,7 @@ extern void musb_platform_disable(struct musb *musb);
 
 extern void musb_hnp_stop(struct musb *musb);
 
-extern int musb_platform_set_mode(struct musb *musb, u8 musb_mode);
+extern void musb_platform_set_mode(struct musb *musb, u8 musb_mode);
 
 #if defined(CONFIG_USB_TUSB6010) || defined(CONFIG_BLACKFIN) || \
 	defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP34XX)

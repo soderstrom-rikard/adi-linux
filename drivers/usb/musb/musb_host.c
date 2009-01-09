@@ -397,10 +397,7 @@ musb_giveback(struct musb_qh *qh, struct urb *urb, int status)
 			 * de-allocated if it's tracked and allocated;
 			 * and where we'd update the schedule tree...
 			 */
-			if (is_in)
-				musb->in[ep->epnum] = NULL;
-			else
-				musb->out[ep->epnum] = NULL;
+			musb->periodic[ep->epnum] = NULL;
 			kfree(qh);
 			qh = NULL;
 			break;
@@ -431,18 +428,8 @@ musb_advance_schedule(struct musb *musb, struct urb *urb,
 		qh = musb_giveback(qh, urb, 0);
 	else
 		qh = musb_giveback(qh, urb, urb->status);
-	while (qh && qh->is_ready && qh->hep &&
-			 list_empty(&qh->hep->urb_list)) {
-		struct list_head *head;
-		head = qh->ring.prev;
-		list_del(&qh->ring);
-		qh->hep->hcpriv = NULL;
-		kfree(qh);
-		qh = first_qh(head);
-	}
 
-
-	if (qh && qh->is_ready) {
+	if (qh && qh->is_ready && !list_empty(&qh->hep->urb_list)) {
 		DBG(4, "... next ep%d %cX urb %p\n",
 				hw_ep->epnum, is_in ? 'R' : 'T',
 				next_urb(qh));
@@ -1470,10 +1457,6 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 			/* packet error reported later */
 			iso_err = true;
 		}
-	} else if (rx_csr & MUSB_RXCSR_INCOMPRX) {
-		DBG(3, "end %d Highbandwidth  incomplete ISO packet received\n",
-				epnum);
-		status = -EPROTO;
 	}
 
 	/* faults abort the transfer */
@@ -1681,13 +1664,7 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 				val &= ~MUSB_RXCSR_H_AUTOREQ;
 			else
 				val |= MUSB_RXCSR_H_AUTOREQ;
-
-			if (qh->maxpacket & ~0x7ff)
-				/* Autoclear doesn't work in high bandwidth iso */
-				val |= MUSB_RXCSR_DMAENAB;
-			else
-				val |= MUSB_RXCSR_AUTOCLEAR
-					| MUSB_RXCSR_DMAENAB;
+			val |= MUSB_RXCSR_AUTOCLEAR | MUSB_RXCSR_DMAENAB;
 
 			musb_writew(epio, MUSB_RXCSR,
 				MUSB_RXCSR_H_WZC_BITS | val);
@@ -1744,7 +1721,6 @@ static int musb_schedule(
 	int			best_end, epnum;
 	struct musb_hw_ep	*hw_ep = NULL;
 	struct list_head	*head = NULL;
-	u16			maxpacket;
 
 	/* use fixed hardware for control and bulk */
 	if (qh->type == USB_ENDPOINT_XFER_CONTROL) {
@@ -1774,27 +1750,19 @@ static int musb_schedule(
 	best_diff = 4096;
 	best_end = -1;
 
-	if (qh->maxpacket & (1 << 11))
-		maxpacket = 2 * (qh->maxpacket & 0x7ff);
-	else if (qh->maxpacket & (1 << 12))
-		maxpacket = 3 * (qh->maxpacket & 0x7ff);
-	else
-		maxpacket = (qh->maxpacket & 0x7ff);
-
 	for (epnum = 1; epnum < musb->nr_endpoints; epnum++) {
 		int	diff;
 
-		if ((is_in && musb->in[epnum]) ||
-			(!is_in && musb->out[epnum]))
+		if (musb->periodic[epnum])
 			continue;
 		hw_ep = &musb->endpoints[epnum];
 		if (hw_ep == musb->bulk_ep)
 			continue;
 
 		if (is_in)
-			diff = hw_ep->max_packet_sz_rx - maxpacket;
+			diff = hw_ep->max_packet_sz_rx - qh->maxpacket;
 		else
-			diff = hw_ep->max_packet_sz_tx - maxpacket;
+			diff = hw_ep->max_packet_sz_tx - qh->maxpacket;
 
 		if (diff >= 0 && best_diff > diff) {
 			best_diff = diff;
@@ -1816,10 +1784,7 @@ static int musb_schedule(
 	idle = 1;
 	qh->mux = 0;
 	hw_ep = musb->endpoints + best_end;
-	if (is_in)
-		musb->in[best_end] = qh;
-	else
-		musb->out[best_end] = qh;
+	musb->periodic[best_end] = qh;
 	DBG(4, "qh %p periodic slot %d\n", qh, best_end);
 success:
 	if (head) {
@@ -1891,6 +1856,13 @@ static int musb_urb_enqueue(
 	qh->is_ready = 1;
 
 	qh->maxpacket = le16_to_cpu(epd->wMaxPacketSize);
+
+	/* no high bandwidth support yet */
+	if (qh->maxpacket & ~0x7ff) {
+		ret = -EMSGSIZE;
+		goto done;
+	}
+
 	qh->epnum = epd->bEndpointAddress & USB_ENDPOINT_NUMBER_MASK;
 	qh->type = epd->bmAttributes & USB_ENDPOINT_XFERTYPE_MASK;
 
@@ -1993,6 +1965,7 @@ static int musb_urb_enqueue(
 	}
 	spin_unlock_irqrestore(&musb->lock, flags);
 
+done:
 	if (ret != 0) {
 		spin_lock_irqsave(&musb->lock, flags);
 		usb_hcd_unlink_urb_from_ep(hcd, urb);
@@ -2057,6 +2030,8 @@ static int musb_cleanup_urb(struct urb *urb, struct musb_qh *qh, int is_in)
 		/* flush cpu writebuffer */
 		csr = musb_readw(epio, MUSB_TXCSR);
 	}
+	if (status == 0)
+		musb_advance_schedule(ep->musb, urb, ep, is_in);
 	return status;
 }
 
@@ -2119,27 +2094,13 @@ static int musb_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 	/* NOTE:  qh is invalid unless !list_empty(&hep->urb_list) */
 	if (ret < 0 || (sched && qh != first_qh(sched))) {
 		int	ready = qh->is_ready;
-		int 	type = urb->pipe;
+
 		ret = 0;
 		qh->is_ready = 0;
 		__musb_giveback(musb, urb, 0);
-
-		if (qh->hep && list_empty(&qh->hep->urb_list) &&
-			 list_empty(&qh->ring))
-			list_del(&qh->ring);
-		else
-			qh->is_ready = ready;
-		if (usb_pipeisoc(type) && usb_pipein(type))
-			musb->in[qh->hw_ep->epnum] = NULL;
-		else if (usb_pipeisoc(type) && usb_pipeout(type))
-			musb->out[qh->hw_ep->epnum] = NULL;
-	} else {
+		qh->is_ready = ready;
+	} else
 		ret = musb_cleanup_urb(urb, qh, urb->pipe & USB_DIR_IN);
-		if (!ret) {
-			musb_advance_schedule(qh->hw_ep->musb, urb, qh->hw_ep,
-					urb->pipe & USB_DIR_IN);
-		}
-	}
 done:
 	spin_unlock_irqrestore(&musb->lock, flags);
 	return ret;
@@ -2153,17 +2114,14 @@ musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 	unsigned long		flags;
 	struct musb		*musb = hcd_to_musb(hcd);
 	u8			is_in = epnum & USB_DIR_IN;
-	struct musb_qh		*qh, *qh_for_curr_urb;
+	struct musb_qh		*qh = hep->hcpriv;
 	struct urb		*urb, *tmp;
 	struct list_head	*sched;
-	int			i;
+
+	if (!qh)
+		return;
 
 	spin_lock_irqsave(&musb->lock, flags);
-	qh = hep->hcpriv;
-	if (!qh) {
-		spin_unlock_irqrestore(&musb->lock, flags);
-		return;
-	}
 
 	switch (qh->type) {
 	case USB_ENDPOINT_XFER_CONTROL:
@@ -2177,13 +2135,6 @@ musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 				sched = &musb->out_bulk;
 			break;
 		}
-	case USB_ENDPOINT_XFER_ISOC:
-	case USB_ENDPOINT_XFER_INT:
-		for (i = 1; i < musb->nr_endpoints; i++) {
-			if ((musb->in[i] == qh) || (musb->out[i] == qh))
-				sched = &qh->ring;
-			break;
-		}
 	default:
 		/* REVISIT when we get a schedule tree, periodic transfers
 		 * won't always be at the head of a singleton queue...
@@ -2192,48 +2143,26 @@ musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 		break;
 	}
 
+	/* NOTE:  qh is invalid unless !list_empty(&hep->urb_list) */
+
 	/* kick first urb off the hardware, if needed */
-	if (sched) {
-		qh_for_curr_urb = qh;
+	qh->is_ready = 0;
+	if (!sched || qh == first_qh(sched)) {
 		urb = next_urb(qh);
-		if (urb) {
-			/* make software (then hardware) stop ASAP */
-			if (!urb->unlinked)
-				urb->status = -ESHUTDOWN;
-			/* cleanup first urb of first qh; */
-			if (qh == first_qh(sched)) {
-				musb_cleanup_urb(urb, qh,
-					urb->pipe & USB_DIR_IN);
-			}
-			qh = musb_giveback(qh, urb, -ESHUTDOWN);
-			if (qh == qh_for_curr_urb) {
-				list_for_each_entry_safe_from(urb, tmp,
-					&hep->urb_list, urb_list) {
-					qh = musb_giveback(qh, tmp, -ESHUTDOWN);
-					if (qh != qh_for_curr_urb)
-						break;
-				}
-			}
-		}
-		/* pick the next candidate and go */
-		if (qh && qh->is_ready) {
-			while (qh && qh->is_ready && qh->hep &&
-				list_empty(&qh->hep->urb_list)) {
-					struct list_head *head;
-					head = qh->ring.prev;
-					list_del(&qh->ring);
-					qh->hep->hcpriv = NULL;
-					kfree(qh);
-					qh = first_qh(head);
-			}
-			if (qh && qh->is_ready && qh->hep &&
-				qh_for_curr_urb == first_qh(sched)) {
-				epnum = qh->hep->desc.bEndpointAddress;
-				is_in = epnum & USB_DIR_IN;
-				musb_start_urb(musb, is_in, qh);
-			}
-		}
-	}
+
+		/* make software (then hardware) stop ASAP */
+		if (!urb->unlinked)
+			urb->status = -ESHUTDOWN;
+
+		/* cleanup */
+		musb_cleanup_urb(urb, qh, urb->pipe & USB_DIR_IN);
+	} else
+		urb = NULL;
+
+	/* then just nuke all the others */
+	list_for_each_entry_safe_from(urb, tmp, &hep->urb_list, urb_list)
+		musb_giveback(qh, urb, -ESHUTDOWN);
+
 	spin_unlock_irqrestore(&musb->lock, flags);
 }
 
@@ -2266,7 +2195,7 @@ static int musb_bus_suspend(struct usb_hcd *hcd)
 {
 	struct musb	*musb = hcd_to_musb(hcd);
 
-	if (musb->xceiv->state == OTG_STATE_A_SUSPEND)
+	if (musb->xceiv.state == OTG_STATE_A_SUSPEND)
 		return 0;
 
 	if (is_host_active(musb) && musb->is_active) {
