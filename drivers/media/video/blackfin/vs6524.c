@@ -494,9 +494,12 @@ sysfs_v_mirror_store(struct device *cd, struct device_attribute *attr, const cha
 static DEVICE_ATTR(v_mirror, S_IRUGO | S_IWUSR,
 			 sysfs_v_mirror_show, sysfs_v_mirror_store);
 
-static int vs6524_create_sysfs(struct video_device *v4ldev)
+static int vs6524_create_sysfs(struct video_device *v4ldev, int action)
 {
-	int rc;
+	int rc = 0;
+
+	if (!action)
+		goto remove;
 
 	rc = device_create_file(&v4ldev->dev, &dev_attr_fps);
 	if (rc)
@@ -513,6 +516,8 @@ static int vs6524_create_sysfs(struct video_device *v4ldev)
 
 	return 0;
 
+remove:
+	device_remove_file(&v4ldev->dev, &dev_attr_h_mirror);
 err_h_mirror:
 	device_remove_file(&v4ldev->dev, &dev_attr_v_mirror);
 err_v_mirror:

@@ -356,7 +356,7 @@ static int bcap_create_sysfs(struct bcap_device_t *cam)
 {
 	struct video_device *v4ldev = cam->videodev;
 
-	return cam->cam_ops->create_sysfs(v4ldev);
+	return cam->cam_ops->create_sysfs(v4ldev, 1);
 }
 
 static int bcap_init_v4l(struct sensor_data *data)
@@ -444,7 +444,7 @@ static int sensor_detect_client(struct i2c_adapter *adapter, int address,
 	if (!data->cam_ops) {
 		err = -ENODEV;
 		goto error_out;
-	};
+	}
 
 	i2c_global_client = new_client = &data->client;
 	i2c_set_clientdata(new_client, data);
@@ -495,31 +495,21 @@ static int sensor_attach_adapter(struct i2c_adapter *adapter)
 
 static int sensor_detach_client(struct i2c_client *client)
 {
-	struct sensor_data *data;
+	struct sensor_data *data = i2c_get_clientdata(client);
 	int err;
 
-	data = i2c_get_clientdata(client);
-
 	data->cam_ops->cam_control(i2c_global_client, CAM_CMD_EXIT, 1);
+	data->cam_ops->create_sysfs(data->bcap_dev->videodev, 0);
 
 	if ((err = i2c_detach_client(client)))
 		return err;
 
 	video_unregister_device(data->bcap_dev->videodev);
-	kfree(data->bcap_dev->videodev);
 	kfree(data->bcap_dev->ppidev);
 	kfree(data->bcap_dev);
-
 	kfree(data);
 
 	return 0;
-}
-
-static int sensor_command(struct i2c_client *client, unsigned int cmd,
-			  void *arg)
-{
-	/* as yet unimplemented */
-	return -EINVAL;
 }
 
 static struct i2c_driver sensor_driver = {
@@ -529,7 +519,6 @@ static struct i2c_driver sensor_driver = {
 	.id = I2C_DRIVERID_BCAP,
 	.attach_adapter = sensor_attach_adapter,
 	.detach_client = sensor_detach_client,
-	.command = sensor_command,
 };
 
 #if 0

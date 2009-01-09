@@ -342,7 +342,7 @@ sysfs_v_mirror_store(struct device *cd, struct device_attribute *attr, const cha
 static DEVICE_ATTR(v_mirror, S_IRUGO | S_IWUSR,
 			 sysfs_v_mirror_show, sysfs_v_mirror_store);
 
-static int mt9v022_create_sysfs(struct video_device *v4ldev)
+static int mt9v022_create_sysfs(struct video_device *v4ldev, int action)
 {
 
 	int rc;

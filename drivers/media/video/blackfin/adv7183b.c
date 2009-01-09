@@ -190,7 +190,7 @@ int adv7183b_cam_control(struct i2c_client *client, u32 cmd, u32 arg)
 	return 0;
 }
 
-static int adv7183b_create_sysfs(struct video_device *v4ldev)
+static int adv7183b_create_sysfs(struct video_device *v4ldev, int action)
 {
 	return 0;
 }
