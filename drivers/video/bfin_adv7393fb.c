@@ -535,7 +535,7 @@ adv7393_write_proc(struct file *file, const char __user * buffer,
 
 	ret = copy_from_user(line, buffer, count);
 	if (ret)
-		return ret;
+		return -EFAULT;
 
 	val = simple_strtoul(line, NULL, 0);
 	adv7393_write(drv->i2c_adv7393_client, val >> 8, val & 0xff);
