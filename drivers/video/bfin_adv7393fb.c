@@ -162,10 +162,10 @@ static int dma_desc_list(struct adv7393fb_device *fbdev, u16 arg)
 			memset(fbdev->av2, 0, sizeof(struct dmasg));
 
 		/* Build linked DMA descriptor list */
-		fbdev->vb1->next_desc_addr = (unsigned long)fbdev->av1;
-		fbdev->av1->next_desc_addr = (unsigned long)fbdev->vb2;
-		fbdev->vb2->next_desc_addr = (unsigned long)fbdev->av2;
-		fbdev->av2->next_desc_addr = (unsigned long)fbdev->vb1;
+		fbdev->vb1->next_desc_addr = fbdev->av1;
+		fbdev->av1->next_desc_addr = fbdev->vb2;
+		fbdev->vb2->next_desc_addr = fbdev->av2;
+		fbdev->av2->next_desc_addr = fbdev->vb1;
 
 		/* Save list head */
 		fbdev->descriptor_list_head = fbdev->av2;
@@ -531,8 +531,12 @@ adv7393_write_proc(struct file *file, const char __user * buffer,
 {
 	char line[8];
 	unsigned int val;
+	int ret;
 
-	copy_from_user(line, buffer, count);
+	ret = copy_from_user(line, buffer, count);
+	if (ret)
+		return ret;
+
 	val = simple_strtoul(line, NULL, 0);
 	adv7393_write(drv->i2c_adv7393_client, val >> 8, val & 0xff);
 
