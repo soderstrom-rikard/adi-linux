@@ -824,6 +824,9 @@ void __init setup_arch(char **cmdline_p)
 	flash_probe();
 #endif
 
+	printk(KERN_INFO "Boot Mode: %i, Reset Vector: 0x%04x0000\n",
+		bfin_read_SYSCR() & 0xF, bfin_read_SIC_RVECT());
+
 	_bfin_swrst = bfin_read_SWRST();
 
 #ifdef CONFIG_DEBUG_DOUBLEFAULT_PRINT
