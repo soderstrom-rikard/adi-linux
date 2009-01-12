@@ -672,6 +672,10 @@ static void decode_instruction(unsigned short *address)
 			verbose_printk("RTI");
 		else if (opcode == 0x0012)
 			verbose_printk("RTX");
+		else if (opcode == 0x0013)
+			verbose_printk("RTN");
+		else if (opcode == 0x0014)
+			verbose_printk("RTE");
 		else if (opcode == 0x0025)
 			verbose_printk("EMUEXCPT");
 		else if (opcode == 0x0040 && opcode <= 0x0047)
