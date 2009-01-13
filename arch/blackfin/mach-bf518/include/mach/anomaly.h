@@ -53,6 +53,8 @@
 #define ANOMALY_05000443 (1)
 /* Incorrect L1 Instruction Bank B Memory Map Location */
 #define ANOMALY_05000444 (1)
+/* bfrom_SysControl() Firmware Function Performs Improper System Reset */
+#define ANOMALY_05000353 (1)
 
 /* Anomalies that don't exist on this proc */
 #define ANOMALY_05000125 (0)
@@ -70,7 +72,6 @@
 #define ANOMALY_05000311 (0)
 #define ANOMALY_05000312 (0)
 #define ANOMALY_05000323 (0)
-#define ANOMALY_05000353 (0)
 #define ANOMALY_05000363 (0)
 #define ANOMALY_05000386 (0)
 #define ANOMALY_05000412 (0)
