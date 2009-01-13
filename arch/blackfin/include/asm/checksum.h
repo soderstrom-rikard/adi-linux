@@ -78,7 +78,8 @@ csum_tcpudp_nofold(__be32 saddr, __be32 daddr, unsigned short len,
 		"%1 = CC;\n\t"
 		"%0 = %0 + %1;\n\t"
 		: "=d" (sum), "=&d" (carry)
-		: "d" (daddr), "d" (saddr), "d" ((len + proto) << 8), "0"(sum));
+		: "d" (daddr), "d" (saddr), "d" ((len + proto) << 8), "0"(sum)
+		: "CC");
 
 	return (sum);
 }
