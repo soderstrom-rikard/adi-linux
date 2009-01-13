@@ -901,7 +901,7 @@ static struct file_system_type romfs_fs_type = {
 /*
  * inode storage initialiser
  */
-static void romfs_i_init_once(struct kmem_cache *cachep, void *_inode)
+static void romfs_i_init_once(void *_inode)
 {
 	struct romfs_inode_info *inode = (struct romfs_inode_info *)_inode;
 
