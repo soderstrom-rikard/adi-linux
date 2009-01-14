@@ -2043,7 +2043,7 @@ static int __devinit snd_ad1836_probe(struct platform_device *pdev)
 	}
 	strcpy(card->driver, DRIVER_NAME);
 	strcpy(card->shortname, CHIP_NAME);
-	sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
+	sprintf(card->longname, "%s at PF%d SPORT%d,rx/tx dma ch:%d/%d,err irq:%d",
 		  card->shortname,
 		  CONFIG_SND_BLACKFIN_SPI_PFBIT,
 		  CONFIG_SND_BLACKFIN_SPORT,

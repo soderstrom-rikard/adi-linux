@@ -919,20 +919,20 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 	strcpy(card->shortname, CHIP_NAME);
 #ifdef HAVE_TWO_CARDS
 	if (pdev->id == 0) {
-		sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
+		sprintf(card->longname, "%s at PF%d SPORT%d,rx/tx dma ch:%d/%d,err irq:%d",
 			card->shortname,
 			GPIO_SPORT0_SE,
 			0,
 			CH_SPORT0_RX, CH_SPORT0_TX, IRQ_SPORT0_ERROR);
 	} else if (pdev->id == 1) {
-		sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
+		sprintf(card->longname, "%s at PF%d SPORT%d,rx/tx dma ch:%d/%d,err irq:%d",
 			card->shortname,
 			GPIO_SPORT1_SE,
 			1,
 			CH_SPORT1_RX, CH_SPORT1_TX, IRQ_SPORT1_ERROR);
 	}
 #else
-	sprintf(card->longname, "%s at PF%d SPORT%d rx/tx dma %d/%d err irq %d",
+	sprintf(card->longname, "%s at PF%d SPORT%d,rx/tx dma ch:%d/%d,err irq:%d",
 	        card->shortname,
 	        CONFIG_SND_BFIN_AD73322_SE,
 	        CONFIG_SND_BFIN_SPORT,
