@@ -32,7 +32,7 @@ static void dump_fifo_data(u8 *buf, u16 len)
 #define dump_fifo_data(buf, len)	do {} while (0)
 #endif
 
-#ifdef CONFIG_BF52x
+#if defined(CONFIG_MUSB_DMA_POLL)
 
 #define USB_DMA_BASE		USB_DMA_INTERRUPT
 #define USB_DMAx_CTRL		0x04
