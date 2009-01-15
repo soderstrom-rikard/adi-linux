@@ -517,13 +517,10 @@ void setup_system_regs(struct net_device *dev)
 
 	bfin_write_EMAC_MMC_CTL(RSTC | CROLL);
 
-#if defined(CONFIG_VLAN_8021Q) || defined(CONFIG_VLAN_8021Q_MODULE)
-#define VLAN_ETHER_TYPE 0x8100
 	/* The legal length of the frame is increased to 1522 bytes */
-	bfin_write_EMAC_VLAN1(VLAN_ETHER_TYPE);
-	/* The legal length of the frame is increased to 1538 bytes */
-	/*bfin_write_EMAC_VLAN2(VLAN_ETHER_TYPE);*/
-#endif
+	bfin_write_EMAC_VLAN1(ETH_P_8021Q);
+	/* Frame length is increased to 1538 bytes, for future use? */
+	/* bfin_write_EMAC_VLAN2( ?? ); */
 
 	/* Initialize the TX DMA channel registers */
 	bfin_write_DMA2_X_COUNT(0);
