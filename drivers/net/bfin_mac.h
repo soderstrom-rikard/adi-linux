@@ -70,3 +70,7 @@ struct bfin_mac_local {
 };
 
 extern void bfin_get_ether_addr(char *addr);
+
+#if defined(CONFIG_NET_DSA_KSZ8893M)
+	extern struct dsa_platform_data ksz8893m_switch_data;
+#endif

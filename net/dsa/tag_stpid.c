@@ -74,7 +74,7 @@ static int stpid_rcv(struct sk_buff *skb, struct net_device *dev,
 			(vid != DEFAULT_PORT_VID)) {
 		u8 new_header[STPID_HLEN];
 
-	 	/* Convert STPID tag to 802.1q tag */
+		/* Convert STPID tag to 802.1q tag */
 		new_header[0] = ETH_P_8021QH;
 		new_header[1] = ETH_P_8021QL;
 

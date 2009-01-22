@@ -59,10 +59,6 @@ MODULE_ALIAS("platform:bfin_mac");
 	dma_free_coherent(NULL, sizeof(*ptr), ptr, dma_handle)
 #endif
 
-#if defined(CONFIG_NET_DSA_KSZ8893M)
-	extern struct dsa_platform_data ksz8893m_switch_data;
-#endif
-
 #define PKT_BUF_SZ 1580
 
 #define MAX_TIMEOUT_CNT	500

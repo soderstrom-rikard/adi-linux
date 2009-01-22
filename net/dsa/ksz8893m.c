@@ -69,9 +69,8 @@ static char *ksz8893m_probe(struct mii_bus *bus, int sw_addr)
 
 	phyid_high = mdiobus_read(bus, KSZ8893M_CPU_PORT, MII_PHYSID1);
 	phyid_low = mdiobus_read(bus, KSZ8893M_CPU_PORT, MII_PHYSID2);
-	if (phyid_high != PHYID_HIGH || phyid_low != PHYID_LOW) {
+	if (phyid_high != PHYID_HIGH || phyid_low != PHYID_LOW)
 		return NULL;
-	}
 
 	switch_read_spi(din, ChipID0, 3);
 
@@ -94,21 +93,21 @@ static int ksz8893m_setup_global(struct dsa_switch *ds)
 	/* Set VLAN VID of port1 */
 	switch_read_spi(din, Port1Control3, 3);
 	din[2] &= 0xf0;
-	dout[2] = (DEFAULT_PORT_VID & 0xfff) >>8 | din[2];
+	dout[2] = (DEFAULT_PORT_VID & 0xfff) >> 8 | din[2];
 	dout[3] = DEFAULT_PORT_VID & 0xff;
 	switch_write_spi(dout, Port1Control3, 4);
 			
 	/* Set VLAN VID of port2 */
 	switch_read_spi(din, Port2Control3, 3);
 	din[2] &= 0xf0;
-	dout[2] = (DEFAULT_PORT_VID & 0xfff) >>8 | din[2];
+	dout[2] = (DEFAULT_PORT_VID & 0xfff) >> 8 | din[2];
 	dout[3] = DEFAULT_PORT_VID & 0xff;
 	switch_write_spi(dout, Port2Control3, 4);
 			
 	/* Set VLAN VID of port3 */
 	switch_read_spi(din, Port3Control3, 3);
 	din[2] &= 0xf0;
-	dout[2] = (DEFAULT_PORT_VID & 0xfff) >>8 | din[2];
+	dout[2] = (DEFAULT_PORT_VID & 0xfff) >> 8 | din[2];
 	dout[3] = DEFAULT_PORT_VID & 0xff;
 	switch_write_spi(dout, Port3Control3, 4);
 
@@ -246,12 +245,10 @@ void ksz8893m_poll_link(struct dsa_switch *ds)
 		if (val & 0x4000) {
 			speed = 100;
 			duplex = 1;
-		}
-		else if (val & 0x2000) {
+		} else if (val & 0x2000) {
 			speed = 100;
 			duplex = 0;
-		}
-		else if (val & 0x1000 ) {
+		} else if (val & 0x1000) {
 			speed = 10;
 			duplex = 1;
 		}
