@@ -263,7 +263,6 @@ static int if_sdio_card_to_host(struct if_sdio_card *card)
 		}
 		mdelay(1);
 	}
-
 	/*
 	 * The transfer must be in one transaction or the firmware
 	 * goes suicidal. There's no way to guarantee that for all
@@ -271,6 +270,11 @@ static int if_sdio_card_to_host(struct if_sdio_card *card)
 	 */
 	chunk = sdio_align_size(card->func, size);
 
+/* For SD/SDIO host which only supports transferring block with size of power-of-2 */
+#if defined(CONFIG_POWEROF2_BLOCKSIZE_ONLY)
+	chunk = (chunk + card->func->cur_blksize - 1) /
+			card->func->cur_blksize * card->func->cur_blksize;
+#endif
 	ret = sdio_readsb(card->func, card->buffer, card->ioport, chunk);
 	if (ret)
 		goto out;
@@ -337,7 +341,6 @@ static void if_sdio_host_to_card_worker(struct work_struct *work)
 	lbs_deb_enter(LBS_DEB_SDIO);
 
 	card = container_of(work, struct if_sdio_card, packet_worker);
-
 	while (1) {
 		spin_lock_irqsave(&card->lock, flags);
 		packet = card->packets;
@@ -363,7 +366,6 @@ static void if_sdio_host_to_card_worker(struct work_struct *work)
 			}
 			mdelay(1);
 		}
-
 		ret = sdio_writesb(card->func, card->ioport,
 				packet->buffer, packet->nb);
 		if (ret)
@@ -580,8 +582,15 @@ static int if_sdio_prog_real(struct if_sdio_card *card)
 			lbs_deb_sdio("sending %d bytes (%d bytes) chunk\n",
 				chunk_size, (chunk_size + 31) / 32 * 32);
 */
+
+/* For SD/SDIO host which only supports transferring block with size of power-of-2 */
+#if defined(CONFIG_POWEROF2_BLOCKSIZE_ONLY)
+			ret = sdio_writesb(card->func, card->ioport,
+				chunk_buffer, (chunk_size + 255) / 256 * 256);
+#else
 			ret = sdio_writesb(card->func, card->ioport,
 				chunk_buffer, (chunk_size + 31) / 32 * 32);
+#endif
 			if (ret)
 				goto release;
 
@@ -690,7 +699,6 @@ static int if_sdio_host_to_card(struct lbs_private *priv,
 		ret = -EINVAL;
 		goto out;
 	}
-
 	/*
 	 * The transfer must be in one transaction or the firmware
 	 * goes suicidal. There's no way to guarantee that for all
@@ -698,6 +706,11 @@ static int if_sdio_host_to_card(struct lbs_private *priv,
 	 */
 	size = sdio_align_size(card->func, nb + 4);
 
+/* For SD/SDIO host which only supports transferring block with size of power-of-2 */
+#if defined(CONFIG_POWEROF2_BLOCKSIZE_ONLY)
+	size = (size + card->func->cur_blksize - 1) /
+			card->func->cur_blksize * card->func->cur_blksize;
+#endif
 	packet = kzalloc(sizeof(struct if_sdio_packet) + size,
 			GFP_ATOMIC);
 	if (!packet) {

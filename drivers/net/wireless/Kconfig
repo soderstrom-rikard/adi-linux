@@ -294,6 +294,12 @@ config LIBERTAS_SDIO
 	---help---
 	  A driver for Marvell Libertas 8385 and 8686 SDIO devices.
 
+config POWEROF2_BLOCKSIZE_ONLY
+	bool "Support transferring block with size of power-of-2 only"
+	depends on LIBERTAS_SDIO
+	---help---
+	  For SD/SDIO host which only supports transferring block with size of power-of-2.
+
 config LIBERTAS_DEBUG
 	bool "Enable full debugging output in the Libertas module."
 	depends on LIBERTAS
