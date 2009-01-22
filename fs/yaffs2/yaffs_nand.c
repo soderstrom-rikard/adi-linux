@@ -12,7 +12,7 @@
  */
 
 const char *yaffs_nand_c_version =
-    "$Id: yaffs_nand.c 5114 2008-08-07 06:24:53Z cooloney $";
+    "$Id: yaffs_nand.c,v 1.9 2008/05/05 07:58:58 charles Exp $";
 
 #include "yaffs_nand.h"
 #include "yaffs_tagscompat.h"

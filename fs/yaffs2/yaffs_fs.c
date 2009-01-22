@@ -32,7 +32,7 @@
  */
 
 const char *yaffs_fs_c_version =
-    "$Id: yaffs_fs.c 5139 2008-08-10 21:56:01Z vapier $";
+    "$Id: yaffs_fs.c,v 1.71 2009/01/22 00:45:54 charles Exp $";
 extern const char *yaffs_guts_c_version;
 
 #include <linux/version.h>
@@ -91,6 +91,13 @@ extern const char *yaffs_guts_c_version;
 #define WRITE_SIZE(mtd) (mtd)->oobblock
 #endif
 
+#if(LINUX_VERSION_CODE > KERNEL_VERSION(2,6,27))
+#define YAFFS_USE_WRITE_BEGIN_END 1
+#else
+#define YAFFS_USE_WRITE_BEGIN_END 0
+#endif
+
+
 #include <asm/uaccess.h>
 
 #include "yportenv.h"
@@ -103,14 +110,17 @@ extern const char *yaffs_guts_c_version;
 
 unsigned int yaffs_traceMask = YAFFS_TRACE_BAD_BLOCKS;
 unsigned int yaffs_wr_attempts = YAFFS_WR_ATTEMPTS;
+unsigned int yaffs_auto_checkpoint = 1;
 
 /* Module Parameters */
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0))
 module_param(yaffs_traceMask,uint,0644);
 module_param(yaffs_wr_attempts,uint,0644);
+module_param(yaffs_auto_checkpoint,uint,0644);
 #else
 MODULE_PARM(yaffs_traceMask,"i");
 MODULE_PARM(yaffs_wr_attempts,"i");
+MODULE_PARM(yaffs_auto_checkpoint,"i");
 #endif
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,25))
@@ -147,6 +157,8 @@ static void yaffs_put_super(struct super_block *sb);
 
 static ssize_t yaffs_file_write(struct file *f, const char *buf, size_t n,
 				loff_t * pos);
+static ssize_t yaffs_hold_space(struct file *f);
+static void yaffs_release_space(struct file *f);
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,17))
 static int yaffs_file_flush(struct file *file, fl_owner_t id);
@@ -215,10 +227,22 @@ static int yaffs_writepage(struct page *page, struct writeback_control *wbc);
 #else
 static int yaffs_writepage(struct page *page);
 #endif
+
+
+#if (YAFFS_USE_WRITE_BEGIN_END != 0)
+static int yaffs_write_begin(struct file *filp, struct address_space *mapping,
+                             loff_t pos, unsigned len, unsigned flags,
+                          struct page **pagep, void **fsdata);
+static int yaffs_write_end(struct file *filp, struct address_space *mapping,
+			   loff_t pos, unsigned len, unsigned copied,
+			   struct page *pg, void *fsdadata);
+#else
 static int yaffs_prepare_write(struct file *f, struct page *pg,
 			       unsigned offset, unsigned to);
 static int yaffs_commit_write(struct file *f, struct page *pg, unsigned offset,
 			      unsigned to);
+                                                                                                
+#endif
 
 static int yaffs_readlink(struct dentry *dentry, char __user * buffer,
 			  int buflen);
@@ -231,7 +255,10 @@ static int yaffs_follow_link(struct dentry *dentry, struct nameidata *nd);
 static struct address_space_operations yaffs_file_address_operations = {
 	.readpage = yaffs_readpage,
 	.writepage = yaffs_writepage,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28))
+#if (YAFFS_USE_WRITE_BEGIN_END > 0)
+	.write_begin = yaffs_write_begin,
+	.write_end = yaffs_write_end,
+#else
 	.prepare_write = yaffs_prepare_write,
 	.commit_write = yaffs_commit_write,
 #endif
@@ -248,6 +275,7 @@ static struct file_operations yaffs_file_operations = {
 	.fsync = yaffs_sync_object,
 	.splice_read = generic_file_splice_read,
 	.splice_write = generic_file_splice_write,
+	.llseek = generic_file_llseek,
 };
 
 #elif (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,18))
@@ -700,6 +728,64 @@ static int yaffs_writepage(struct page *page)
 	return (nWritten == nBytes) ? 0 : -ENOSPC;
 }
 
+
+#if (YAFFS_USE_WRITE_BEGIN_END > 0)
+static int yaffs_write_begin(struct file *filp, struct address_space *mapping,
+                             loff_t pos, unsigned len, unsigned flags,
+                          struct page **pagep, void **fsdata)
+
+{
+	struct page *pg = NULL;
+        pgoff_t index = pos >> PAGE_CACHE_SHIFT;
+        uint32_t offset = pos & (PAGE_CACHE_SIZE - 1);
+        uint32_t to = offset + len;
+        
+        int ret = 0;
+        int space_held = 0;
+        
+	T(YAFFS_TRACE_OS, (KERN_DEBUG "start yaffs_write_begin\n"));
+	/* Get a page */
+	pg = __grab_cache_page(mapping,index);
+	*pagep = pg;	
+	if(!pg){
+		ret =  -ENOMEM;
+		goto out;
+	}
+	/* Get fs space */
+	space_held = yaffs_hold_space(filp);
+	
+	if(!space_held){
+		ret = -ENOSPC;
+		goto out;
+	}
+		
+	/* Update page if required */
+	
+	if (!Page_Uptodate(pg) && (offset || to < PAGE_CACHE_SIZE))
+		ret = yaffs_readpage_nolock(filp, pg);
+	
+	if(ret)
+		goto out;
+
+	/* Happy path return */
+	T(YAFFS_TRACE_OS, (KERN_DEBUG "end yaffs_write_begin - ok\n"));
+		
+	return 0;
+		
+out:
+	T(YAFFS_TRACE_OS, (KERN_DEBUG "end yaffs_write_begin fail returning %d\n",ret));
+	if(space_held){
+		yaffs_release_space(filp);
+	}
+	if(pg) {
+		unlock_page(pg);
+		page_cache_release(pg);
+	}
+	return ret;
+}
+
+#else
+
 static int yaffs_prepare_write(struct file *f, struct page *pg,
 			       unsigned offset, unsigned to)
 {
@@ -707,22 +793,69 @@ static int yaffs_prepare_write(struct file *f, struct page *pg,
 	T(YAFFS_TRACE_OS, (KERN_DEBUG "yaffs_prepair_write\n"));
 	if (!Page_Uptodate(pg) && (offset || to < PAGE_CACHE_SIZE))
 		return yaffs_readpage_nolock(f, pg);
-
 	return 0;
 
 }
+#endif
+
+#if (YAFFS_USE_WRITE_BEGIN_END > 0)
+static int yaffs_write_end(struct file *filp, struct address_space *mapping,
+			   loff_t pos, unsigned len, unsigned copied,
+			   struct page *pg, void *fsdadata)
+{
+	int ret = 0;
+	void *addr, *kva;
+        pgoff_t index = pos >> PAGE_CACHE_SHIFT;
+        uint32_t offset_into_page = pos & (PAGE_CACHE_SIZE -1); 
+
+
+	
+	kva=kmap(pg);
+	addr = kva + offset_into_page;
+
+	T(YAFFS_TRACE_OS,
+	  (KERN_DEBUG "yaffs_write_end addr %x pos %x nBytes %d\n", (unsigned) addr,
+	   (int)pos, copied));
+
+	ret = yaffs_file_write(filp, addr, copied, &pos);
+
+	if (ret != copied) {
+		T(YAFFS_TRACE_OS,
+		  (KERN_DEBUG
+		   "yaffs_write_end not same size ret %d  copied %d\n",
+		   ret, copied ));
+		SetPageError(pg);
+		ClearPageUptodate(pg);
+	} else {
+		SetPageUptodate(pg);
+	}
+
+	kunmap(pg);
+
+	yaffs_release_space(filp);
+	unlock_page(pg);
+	page_cache_release(pg);
+	return ret;
+}
+#else
 
 static int yaffs_commit_write(struct file *f, struct page *pg, unsigned offset,
 			      unsigned to)
 {
 
-	void *addr = page_address(pg) + offset;
+	void *addr, *kva;
+	
 	loff_t pos = (((loff_t) pg->index) << PAGE_CACHE_SHIFT) + offset;
 	int nBytes = to - offset;
 	int nWritten;
 
 	unsigned spos = pos;
-	unsigned saddr = (unsigned)addr;
+	unsigned saddr;
+	
+	kva=kmap(pg);
+	addr = kva + offset;
+
+	saddr = (unsigned) addr;
 
 	T(YAFFS_TRACE_OS,
 	  (KERN_DEBUG "yaffs_commit_write addr %x pos %x nBytes %d\n", saddr,
@@ -741,6 +874,8 @@ static int yaffs_commit_write(struct file *f, struct page *pg, unsigned offset,
 		SetPageUptodate(pg);
 	}
 
+	kunmap(pg);
+
 	T(YAFFS_TRACE_OS,
 	  (KERN_DEBUG "yaffs_commit_write returning %d\n",
 	   nWritten == nBytes ? 0 : nWritten));
@@ -748,6 +883,8 @@ static int yaffs_commit_write(struct file *f, struct page *pg, unsigned offset,
 	return nWritten == nBytes ? 0 : nWritten;
 
 }
+#endif
+
 
 static void yaffs_FillInodeFromObject(struct inode *inode, yaffs_Object * obj)
 {
@@ -918,7 +1055,7 @@ static ssize_t yaffs_file_write(struct file *f, const char *buf, size_t n,
 	} else {
 		T(YAFFS_TRACE_OS,
 		  (KERN_DEBUG
-		   "yaffs_file_write about to write writing %zu bytes"
+		   "yaffs_file_write about to write writing %d bytes"
 		   "to object %d at %d\n",
 		   n, obj->objectId, ipos));
 	}
@@ -926,7 +1063,7 @@ static ssize_t yaffs_file_write(struct file *f, const char *buf, size_t n,
 	nWritten = yaffs_WriteDataToFile(obj, buf, ipos, n, 0);
 
 	T(YAFFS_TRACE_OS,
-	  (KERN_DEBUG "yaffs_file_write writing %zu bytes, %d written at %d\n",
+	  (KERN_DEBUG "yaffs_file_write writing %d bytes, %d written at %d\n",
 	   n, nWritten, ipos));
 	if (nWritten > 0) {
 		ipos += nWritten;
@@ -945,6 +1082,48 @@ static ssize_t yaffs_file_write(struct file *f, const char *buf, size_t n,
 	}
 	yaffs_GrossUnlock(dev);
 	return nWritten == 0 ? -ENOSPC : nWritten;
+}
+
+/* Space holding and freeing is done to ensure we have space available for write_begin/end */
+/* For now we just assume few parallel writes and check against a small number. */
+/* Todo: need to do this with a counter to handle parallel reads better */
+
+static ssize_t yaffs_hold_space(struct file *f)
+{
+	yaffs_Object *obj;
+	yaffs_Device *dev;
+	
+	int nFreeChunks;
+
+	
+	obj = yaffs_DentryToObject(f->f_dentry);
+
+	dev = obj->myDev;
+
+	yaffs_GrossLock(dev);
+
+	nFreeChunks = yaffs_GetNumberOfFreeChunks(dev);
+	
+	yaffs_GrossUnlock(dev);
+
+	return (nFreeChunks > 20) ? 1 : 0;
+}
+
+static void yaffs_release_space(struct file *f)
+{
+	yaffs_Object *obj;
+	yaffs_Device *dev;
+	
+	
+	obj = yaffs_DentryToObject(f->f_dentry);
+
+	dev = obj->myDev;
+
+	yaffs_GrossLock(dev);
+
+	
+	yaffs_GrossUnlock(dev);
+
 }
 
 static int yaffs_readdir(struct file *f, void *dirent, filldir_t filldir)
@@ -1467,7 +1646,8 @@ static int yaffs_write_super(struct super_block *sb)
 {
 
 	T(YAFFS_TRACE_OS, (KERN_DEBUG "yaffs_write_super\n"));
-	yaffs_do_sync_fs(sb);
+	if (yaffs_auto_checkpoint >= 2)
+		yaffs_do_sync_fs(sb);
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18))
 	return 0; 
 #endif
@@ -1483,7 +1663,8 @@ static int yaffs_sync_fs(struct super_block *sb)
 
 	T(YAFFS_TRACE_OS, (KERN_DEBUG "yaffs_sync_fs\n"));
 
-	yaffs_do_sync_fs(sb);
+	if (yaffs_auto_checkpoint >= 1)
+		yaffs_do_sync_fs(sb);
 	
 	return 0; 
 
@@ -1632,8 +1813,8 @@ static void yaffs_MarkSuperBlockDirty(void *vsb)
 	struct super_block *sb = (struct super_block *)vsb;
 
 	T(YAFFS_TRACE_OS, (KERN_DEBUG "yaffs_MarkSuperBlockDirty() sb = %p\n",sb));
-//	if(sb)
-//		sb->s_dirt = 1;
+	if(sb)
+		sb->s_dirt = 1;
 }
 
 typedef struct {
@@ -1975,6 +2156,9 @@ static struct super_block *yaffs_internal_read_super(int yaffsVersion,
 		return NULL;
 	}
 	sb->s_root = root;
+	sb->s_dirt = !dev->isCheckpointed;
+	T(YAFFS_TRACE_ALWAYS,
+	  ("yaffs_read_super: isCheckpointed %d\n", dev->isCheckpointed));
 
 	T(YAFFS_TRACE_OS, ("yaffs_read_super: done\n"));
 	return sb;
