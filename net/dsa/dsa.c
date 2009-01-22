@@ -224,6 +224,12 @@ bool dsa_uses_trailer_tags(void *dsa_ptr)
 	return !!(ds->tag_protocol == htons(ETH_P_TRAILER));
 }
 
+bool dsa_uses_stpid_tags(void *dsa_ptr)
+{
+	struct dsa_switch *ds = dsa_ptr;
+
+	return !!(ds->tag_protocol == htons(ETH_P_STPID));
+}
 
 /* link polling *************************************************************/
 static void dsa_link_poll_work(struct work_struct *ugly)

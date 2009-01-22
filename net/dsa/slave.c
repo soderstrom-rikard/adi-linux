@@ -322,6 +322,11 @@ dsa_slave_create(struct dsa_switch *ds, struct device *parent,
 		slave_dev->hard_start_xmit = trailer_xmit;
 		break;
 #endif
+#ifdef CONFIG_NET_DSA_TAG_STPID
+	case htons(ETH_P_STPID):
+		slave_dev->hard_start_xmit = stpid_xmit;
+		break;
+#endif
 	default:
 		BUG();
 	}

@@ -46,6 +46,7 @@
 #include <asm/dpmc.h>
 #include <asm/bfin_sdh.h>
 #include <linux/spi/ad7877.h>
+#include <net/dsa.h>
 
 /*
  * Name the Board for the /proc/cpuinfo
@@ -109,6 +110,24 @@ static struct platform_device bfin_mac_device = {
 };
 #endif
 
+#if defined(CONFIG_NET_DSA_KSZ8893M) || defined(CONFIG_NET_DSA_KSZ8893M_MODULE)
+struct dsa_platform_data ksz8893m_switch_data = {
+	.mii_bus = NULL,
+	.netdev = &bfin_mac_device.dev,
+	.port_names[0]	= NULL,
+	.port_names[1]	= "eth%d",
+	.port_names[2]	= "eth%d",
+	.port_names[3]	= "cpu",
+};
+
+static struct platform_device ksz8893m_switch_device = {
+	.name		= "dsa",
+	.id		= 0,
+	.num_resources	= 0,
+	.dev.platform_data = &ksz8893m_switch_data,
+};
+#endif
+
 #if defined(CONFIG_MTD_M25P80) \
 	|| defined(CONFIG_MTD_M25P80_MODULE)
 static struct mtd_partition bfin_spi_flash_partitions[] = {
@@ -144,6 +163,15 @@ static struct bfin5xx_spi_chip spi_flash_chip_info = {
 static struct bfin5xx_spi_chip spi_adc_chip_info = {
 	.enable_dma = 1,         /* use dma transfer with this chip*/
 	.bits_per_word = 16,
+};
+#endif
+
+#if defined(CONFIG_NET_DSA_KSZ8893M) \
+	|| defined(CONFIG_NET_DSA_KSZ8893M_MODULE)
+/* SPI SWITCH CHIP */
+static struct bfin5xx_spi_chip spi_switch_info = {
+	.enable_dma = 0,
+	.bits_per_word = 8,
 };
 #endif
 
@@ -223,6 +251,19 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.chip_select = 1, /* Framework chip select. */
 		.platform_data = NULL, /* No spi_driver specific config */
 		.controller_data = &spi_adc_chip_info,
+	},
+#endif
+
+#if defined(CONFIG_NET_DSA_KSZ8893M) \
+	|| defined(CONFIG_NET_DSA_KSZ8893M_MODULE)
+	{
+		.modalias = "spi_switch",
+		.max_speed_hz = 5000000,
+		.bus_num = 0,
+		.chip_select = 1,
+		.platform_data = NULL,
+		.controller_data = &spi_switch_info,
+		.mode = SPI_MODE_3,
 	},
 #endif
 
@@ -583,6 +624,10 @@ static struct platform_device *stamp_devices[] __initdata = {
 
 #if defined(CONFIG_BFIN_MAC) || defined(CONFIG_BFIN_MAC_MODULE)
 	&bfin_mac_device,
+#endif
+
+#if defined(CONFIG_NET_DSA_KSZ8893M) || defined(CONFIG_NET_DSA_KSZ8893M_MODULE)
+	&ksz8893m_switch_device,
 #endif
 
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)

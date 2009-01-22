@@ -59,6 +59,10 @@ MODULE_ALIAS("platform:bfin_mac");
 	dma_free_coherent(NULL, sizeof(*ptr), ptr, dma_handle)
 #endif
 
+#if defined(CONFIG_NET_DSA_KSZ8893M)
+	extern struct dsa_platform_data ksz8893m_switch_data;
+#endif
+
 #define PKT_BUF_SZ 1580
 
 #define MAX_TIMEOUT_CNT	500
@@ -397,7 +401,7 @@ static int mii_probe(struct net_device *dev)
 	bfin_write_EMAC_SYSCTL(sysctl);
 
 	/* search for connect PHY device */
-	for (i = 0; i < PHY_MAX_ADDR; i++) {
+	for (i = PHY_MAX_ADDR - 1; i >= 0; i--) {
 		struct phy_device *const tmp_phydev = lp->mii_bus->phy_map[i];
 
 		if (!tmp_phydev)
@@ -521,6 +525,13 @@ void setup_system_regs(struct net_device *dev)
 	bfin_write_EMAC_VLAN1(ETH_P_8021Q);
 	/* Frame length is increased to 1538 bytes, for future use? */
 	/* bfin_write_EMAC_VLAN2( ?? ); */
+
+#if defined(CONFIG_NET_DSA)
+#if defined(CONFIG_NET_DSA_KSZ8893M)
+	bfin_write_EMAC_VLAN1(0x8101);
+	bfin_write_EMAC_VLAN2(0x8102);
+#endif
+#endif
 
 	/* Initialize the TX DMA channel registers */
 	bfin_write_DMA2_X_COUNT(0);
@@ -1083,6 +1094,9 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 		goto out_err_mdiobus_register;
 	}
 
+#if defined(CONFIG_NET_DSA_KSZ8893M)
+	ksz8893m_switch_data.mii_bus = &(lp->mii_bus->dev);
+#endif
 	rc = mii_probe(ndev);
 	if (rc) {
 		dev_err(&pdev->dev, "MII Probe failed!\n");

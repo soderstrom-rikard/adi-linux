@@ -23,6 +23,9 @@ config NET_DSA_TAG_TRAILER
 	bool
 	default n
 
+config NET_DSA_TAG_STPID
+	bool
+	default n
 
 # switch drivers
 config NET_DSA_MV88E6XXX
@@ -55,6 +58,13 @@ config NET_DSA_MV88E6123_61_65
 	select NET_DSA_TAG_EDSA
 	---help---
 	  This enables support for the Marvell 88E6123/6161/6165
+	  ethernet switch chips.
+
+config NET_DSA_KSZ8893M
+	bool "MICREL KSZ8893MQL/BL ethernet switch chip support"
+	select NET_DSA_TAG_STPID
+	---help---
+	  This enables support for the Micrel KSZ8893MQL/BL
 	  ethernet switch chips.
 
 endif

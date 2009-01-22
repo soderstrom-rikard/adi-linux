@@ -104,6 +104,7 @@
 #define ETH_P_ARCNET	0x001A		/* 1A for ArcNet :-)            */
 #define ETH_P_DSA	0x001B		/* Distributed Switch Arch.	*/
 #define ETH_P_TRAILER	0x001C		/* Trailer switch tagging	*/
+#define ETH_P_STPID	0x001D		/* STPID switch tagging		*/
 #define ETH_P_PHONET	0x00F5		/* Nokia Phonet frames          */
 
 /*
