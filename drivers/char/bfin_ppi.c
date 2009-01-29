@@ -12,20 +12,20 @@
  *
  * Bugs:	 Enter bugs at http://blackfin.uclinux.org/
  *
- * This	program	is free	software; you can redistribute it and/or modify
- * it under the	terms of the GNU General Public	License	as published by
- * the Free Software Foundation; either	version	2 of the License, or
- * (at your option) any	later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
- * This	program	is distributed in the hope that	it will	be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, see	the file COPYING, or write
- * to the Free Software	Foundation, Inc.,
- * 51 Franklin St, Fifth Floor,	Boston,	MA  02110-1301	USA
+ * along with this program; if not, see the file COPYING, or write
+ * to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include <linux/kernel.h>
@@ -57,19 +57,19 @@
 #define	PPI_DEVNAME	  "PPIdev"
 #define	PPI_MAJOR	252
 
-const unsigned short per_req_ppi0_7[] =	{P_PPI0_CLK, P_PPI0_FS1, P_PPI0_D0, P_PPI0_D1,\
-	 P_PPI0_D2, P_PPI0_D3, P_PPI0_D4, P_PPI0_D5, P_PPI0_D6,	P_PPI0_D7, 0};
+const unsigned short per_req_ppi0_7[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_D0, P_PPI0_D1,\
+	 P_PPI0_D2, P_PPI0_D3, P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, 0};
 
 const unsigned short per_req_ppi8_15[] = {P_PPI0_D15, P_PPI0_D14, P_PPI0_D13, P_PPI0_D12,\
 			 P_PPI0_D11, P_PPI0_D10, P_PPI0_D9, P_PPI0_D8, 0};
 
-const unsigned short per_req_ppi_fs[] =	{P_PPI0_FS2, /*P_PPI0_FS3,*/ 0};
+const unsigned short per_req_ppi_fs[] = {P_PPI0_FS2, /*P_PPI0_FS3,*/ 0};
 
 #ifdef PPI1_CONTROL
-const unsigned short per_req_ppi1_0_7[]	= {P_PPI1_CLK, P_PPI1_FS1, P_PPI1_D0, P_PPI1_D1,\
-	 P_PPI1_D2, P_PPI1_D3, P_PPI1_D4, P_PPI1_D5, P_PPI1_D6,	P_PPI1_D7, 0};
+const unsigned short per_req_ppi1_0_7[] = {P_PPI1_CLK, P_PPI1_FS1, P_PPI1_D0, P_PPI1_D1,\
+	 P_PPI1_D2, P_PPI1_D3, P_PPI1_D4, P_PPI1_D5, P_PPI1_D6, P_PPI1_D7, 0};
 
-const unsigned short per_req_ppi1_8_15[] = {P_PPI1_D15,	P_PPI1_D14, P_PPI1_D13,	P_PPI1_D12,\
+const unsigned short per_req_ppi1_8_15[] = {P_PPI1_D15, P_PPI1_D14, P_PPI1_D13, P_PPI1_D12,\
 			 P_PPI1_D11, P_PPI1_D10, P_PPI1_D9, P_PPI1_D8, 0};
 
 const unsigned short per_req_ppi1_fs[] = {P_PPI1_FS2, /*P_PPI1_FS3,*/ 0};
@@ -219,7 +219,7 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 
 		/*
 		 ** set	timer for frame	vsync
-		 **		use fs2_timer_cfg,  'cuz it is the non-recurring config
+		 ** use fs2_timer_cfg,  'cuz it is the non-recurring config
 		 */
 		set_gptimer_config(dev->fs1_timer_id, fs2_timer_cfg);
 		set_gptimer_period(dev->fs1_timer_id, frameSize	+ 1);
@@ -253,20 +253,23 @@ static void disable_timer_output(struct	ppi_dev	*dev)
 }
 
 /*
- * FUNCTION NAME: ppi_reg_reset
+ * FUNCTION NAME: ppi_irq
  *
  * INPUTS/OUTPUTS:
- * in_idev - device number , other unavailable.
+ * in_irq - Interrupt vector number.
+ * in_dev_id  - point to device information structure base address.
+ * in_regs - unuse here.
+ *
  * VALUE RETURNED:
  * void
  *
  * FUNCTION(S) CALLED:
  *
- * GLOBAL VARIABLES REFERENCED:
+ * GLOBAL VARIABLES REFERENCED: ppiinfo
  *
  * GLOBAL VARIABLES MODIFIED: NIL
  *
- * DESCRIPTION:	Reset PPI to initialization state.
+ * DESCRIPTION: ISR of PPI
  *
  * CAUTION:
  */
@@ -335,7 +338,7 @@ static irqreturn_t ppi_irq(int irq, void *dev_id)
  *
  * INPUTS/OUTPUTS:
  * in_irq - Interrupt vector number.
- * in_dev_id  -	point to device	information structure base address.
+ * in_dev_id  - point to device information structure base address.
  * in_regs - unuse here.
  *
  * VALUE RETURNED:
@@ -343,11 +346,11 @@ static irqreturn_t ppi_irq(int irq, void *dev_id)
  *
  * FUNCTION(S) CALLED:
  *
- * GLOBAL VARIABLES REFERENCED:	ppiinfo
+ * GLOBAL VARIABLES REFERENCED: ppiinfo
  *
  * GLOBAL VARIABLES MODIFIED: NIL
  *
- * DESCRIPTION:	Error ISR of PPI
+ * DESCRIPTION: Error ISR of PPI
  *
  * CAUTION:
  */
@@ -383,8 +386,8 @@ static irqreturn_t ppi_irq_error(int irq, void *dev_id)
  * INPUTS/OUTPUTS:
  * in_inode - Description of openned file.
  * in_filp - Description of openned file.
- * in_cmd - Command passed into	ioctl system call.
- * in/out_arg -	It is parameters which is specified by last command
+ * in_cmd - Command passed into ioctl system call.
+ * in/out_arg - It is parameters which is specified by last command
  *
  * RETURN:
  * 0 OK
@@ -392,7 +395,7 @@ static irqreturn_t ppi_irq_error(int irq, void *dev_id)
  *
  * FUNCTION(S) CALLED:
  *
- * GLOBAL VARIABLES REFERENCED:	ppiinfo
+ * GLOBAL VARIABLES REFERENCED: ppiinfo
  *
  * GLOBAL VARIABLES MODIFIED: NIL
  *
@@ -400,8 +403,7 @@ static irqreturn_t ppi_irq_error(int irq, void *dev_id)
  *
  * CAUTION:
  */
-static int
-ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
+static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 {
 	unsigned short regdata;
 	unsigned long flags;
@@ -639,20 +641,20 @@ err_inval:
  * FUNCTION NAME: ppi_fasync
  *
  * INPUTS/OUTPUTS:
- * in_fd - File	descriptor of openned file.
+ * in_fd - File descriptor of openned file.
  * in_filp - Description of openned file.
  *
  * RETURN:
  *
  * FUNCTION(S) CALLED:
  *
- * GLOBAL VARIABLES REFERENCED:	ppiinfo
+ * GLOBAL VARIABLES REFERENCED: ppiinfo
  *
  * GLOBAL VARIABLES MODIFIED: NIL
  *
- * DESCRIPTION:	It is invoked when user	changes	status of sync
- *		it resister a hook in system. When there is
- *		data coming, user program would	get a signal.
+ * DESCRIPTION: It is invoked when user changes status of sync
+ *              it resister a hook in system. When there is
+ *              data coming, user program would get a signal.
  *
  * CAUTION:
  */
@@ -810,29 +812,29 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
  *
  * INPUTS/OUTPUTS:
  * in_filp - Description of openned file.
- * in_count - how many bytes user wants	to send.
- * out_buf - where we get those	sending	data.
+ * in_count - how many bytes user wants to send.
+ * out_buf - where we get those sending data.
  *
  * RETURN
  * positive number: bytes sending out.
- * 0: There is no data send out	or parameter error.
+ * 0: There is no data send out or parameter error.
  * RETURN:
  * >0 The actual count sending out.
- * -EINVIL When	word size is set to 16,	writing	odd bytes.
- * -EAGAIN When	sending	mode is	set to non block and there is no tx buffer.
+ * -EINVIL When word size is set to 16, writing odd bytes.
+ * -EAGAIN When sending mode is set to non block and there is no tx buffer.
  *
  * FUNCTION(S) CALLED:
  *
- * GLOBAL VARIABLES REFERENCED:	ppiinfo
+ * GLOBAL VARIABLES REFERENCED: ppiinfo
  *
  * GLOBAL VARIABLES MODIFIED: NIL
  *
- * DESCRIPTION:	It is invoked when user	call 'read' system call
- *		to read	from system.
+ * DESCRIPTION: It is invoked when user call 'read' system call
+ *              to read from system.
  *
  * CAUTION:
  */
-static ssize_t ppi_write(struct	file *filp, const char *buf, size_t count, loff_t *f_pos)
+static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos)
 {
 	struct ppi_dev *dev = filp->private_data;
 	struct ppi_config *conf	= &dev->conf;
@@ -1134,9 +1136,9 @@ static void ppi_setup_cdev(struct ppi_dev *dev,	int index)
  *
  * GLOBAL VARIABLES MODIFIED: NIL
  *
- * DESCRIPTION:	It will	be invoked when	using 'rmmod' command.
- *		or, you	invoke it directly when	it needs remove
- *		ppi module.
+ * DESCRIPTION: It will be invoked when using 'rmmod' command.
+ *              or, you invoke it directly when it needs remove
+ *              ppi module.
  *
  * CAUTION:
  */
@@ -1161,7 +1163,7 @@ module_exit(ppi_cleanup_module);
  * INPUTS/OUTPUTS:
  *
  * RETURN:
- * 0 if	module init ok.
+ * 0 if module init ok.
  * -1 init fail.
  *
  * FUNCTION(S) CALLED:
@@ -1170,8 +1172,8 @@ module_exit(ppi_cleanup_module);
  *
  * GLOBAL VARIABLES MODIFIED: NIL
  *
- * DESCRIPTION:	It will	be invoked when	using 'insmod' command.
- *		or invoke it directly if ppi module is needed.
+ * DESCRIPTION: It will be invoked when using 'insmod' command.
+ *              or invoke it directly if ppi module is needed.
  *
  * CAUTION:
  */
@@ -1214,16 +1216,18 @@ static int __init ppi_init_module(void)
 	}
 
 	/* PPI0	*/
-	ppi_devices[0].regs = (struct ppi_register *)PPI_CONTROL;
+
 	ppi_devices[0].dma_chan	= CH_PPI;
 	ppi_devices[0].irq = IRQ_PPI;
 	ppi_devices[0].irq_error = IRQ_PPI_ERROR;
 #ifdef FS0_1_TIMER_ID /* BF561 */
+	ppi_devices[0].regs = (struct ppi_register *)PPI0_CONTROL;
 	ppi_devices[0].fs1_timer_id = FS0_1_TIMER_ID;
 	ppi_devices[0].fs2_timer_id = FS0_2_TIMER_ID;
 	ppi_devices[0].fs1_timer_bit = FS0_1_TIMER_BIT;
 	ppi_devices[0].fs2_timer_bit = FS0_2_TIMER_BIT;
 #else
+	ppi_devices[0].regs = (struct ppi_register *)PPI_CONTROL;
 	ppi_devices[0].fs1_timer_id = FS1_TIMER_ID;
 	ppi_devices[0].fs2_timer_id = FS2_TIMER_ID;
 	ppi_devices[0].fs1_timer_bit = FS1_TIMER_BIT;
