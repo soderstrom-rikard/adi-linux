@@ -8,7 +8,7 @@
  *
  * Modified:
  *               Copyright (C) 2005 Eastman Kodak Company
- *               Copyright 2005-2006 Analog Devices Inc.
+ *               Copyright 2005-2009 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
@@ -32,15 +32,8 @@
 #define __BFIN_PPI_H__
 
 /*
-** FYI:  Blackfin PPI register masks and offsets are defined in
-** mach-bfin533/defBF532.h
-*/
-
-/*
 ** ioctl commands
 */
-#define CMD_PPI_PORT_ENABLE    1
-#define CMD_PPI_PORT_DIRECTION 2
 #define CMD_PPI_XFR_TYPE       3
 #define CMD_PPI_PORT_CFG       4
 #define CMD_PPI_FIELD_SELECT   5
@@ -60,18 +53,8 @@
 
 #define CMD_PPI_GET_ALLCONFIG 32 /* For debug */
 
-#define PPI_IRQ_NUM        23
 #define PPI_DMA_MAXSIZE	(64*1024)
-#define PPI_READ 0
-#define PPI_WRITE 1
-
 #define PPI_READ_DELAY 1
-
-#define CFG_PPI_PORT_ENABLE  1
-#define CFG_PPI_PORT_DISABLE 0
-
-#define CFG_PPI_PORT_DIR_RX  0
-#define CFG_PPI_PORT_DIR_TX  1
 
 #define CFG_PPI_XFR_TYPE_646_AF  0
 #define CFG_PPI_XFR_TYPE_646_EF  1
@@ -127,8 +110,5 @@
 #define CFG_PPI_DIMS_UNDEF			0
 #define	CFG_PPI_DIMS_1D				1
 #define CFG_PPI_DIMS_2D				2
-
-#define POLFS	0x8000
-#define POLC	0x4000
 
 #endif /* __BFIN_PPI_H__ */

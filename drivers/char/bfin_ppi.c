@@ -57,6 +57,9 @@
 #define	PPI_DEVNAME	  "PPIdev"
 #define	PPI_MAJOR	252
 
+#define PPI_READ 0
+#define PPI_WRITE 1
+
 const unsigned short per_req_ppi0_7[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_D0, P_PPI0_D1,\
 	 P_PPI0_D2, P_PPI0_D3, P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, 0};
 
@@ -412,30 +415,6 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 
 	spin_lock_irqsave(&dev->lock, flags);
 	switch (cmd) {
-	case CMD_PPI_PORT_ENABLE:
-		{
-			pr_debug("ppi_ioctl: CMD_PPI_PORT_ENABLE\n");
-			regdata	= dev->regs->ppi_control;
-			if (arg)
-				regdata	|= PORT_EN;
-			else
-				regdata	&= ~PORT_EN;
-			conf->ppi_control = regdata;
-			dev->regs->ppi_control = regdata;
-			break;
-		}
-	case CMD_PPI_PORT_DIRECTION:
-		{
-			pr_debug("ppi_ioctl: CMD_PPI_PORT_DIRECTION\n");
-			regdata	= dev->regs->ppi_control;
-			if (arg)
-				regdata	|= PORT_DIR;
-			else
-				regdata	&= ~PORT_DIR;
-			conf->ppi_control = regdata;
-			dev->regs->ppi_control = regdata;
-			break;
-		}
 	case CMD_PPI_XFR_TYPE:
 		{
 			pr_debug("ppi_ioctl: CMD_PPI_XFR_TYPE\n");
@@ -497,6 +476,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 #else
 			printk(KERN_ERR	PPI_DEVNAME "ppi_ioctl:	CMD_PPI_PACKING\
 				 Not supported\n");
+			goto err_inval;
 #endif
 			break;
 		}
@@ -563,9 +543,9 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 			conf->triggeredge = (unsigned short)arg;
 			regdata	= dev->regs->ppi_control;
 			if (arg)
-				regdata	|= POLFS;
+				regdata	|= POLS;
 			else
-				regdata	&= ~POLFS;
+				regdata	&= ~POLS;
 			conf->ppi_control = regdata;
 			dev->regs->ppi_control = regdata;
 			break;
@@ -590,6 +570,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 	case CMD_PPI_SET_WRITECONTINUOUS:
 		{
 			printk(KERN_ERR	PPI_DEVNAME "ppi_ioctl:	 CMD_PPI_SET_WRITECONTINUOUS Not supported\n");
+			goto err_inval;
 			break;
 
 		}
@@ -718,14 +699,6 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
 					 ((unsigned long)buf) +	count);
 
 	/*
-	 ** configure ppi port for DMA TIMOD RX	(receive)
-	 ** Note:  the rest of PPI control register bits should	already	be set
-	 ** with ioctls	before read operation
-	 */
-
-	dev->regs->ppi_control &= ~PORT_DIR;
-
-	/*
 	 ** Configure DMA Controller
 	 ** WNR:  memory write
 	 ** RESTART: flush DMA FIFO before beginning work unit
@@ -770,6 +743,7 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
 	set_dma_x_modify(dma, stepSize);
 
 	/* configure PPI registers to match DMA	registers */
+	dev->regs->ppi_control &= ~PORT_DIR;
 	dev->regs->ppi_count = conf->linelen - 1;
 	dev->regs->ppi_frame = conf->numlines;
 	dev->regs->ppi_delay = conf->delay;
@@ -901,10 +875,11 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	set_dma_config(dma, conf->dma_config);
 
 	/* configure PPI registers to match DMA	registers */
+
+	dev->regs->ppi_control |= PORT_DIR;
 	dev->regs->ppi_count = conf->linelen - 1;
 	dev->regs->ppi_frame = conf->numlines;
 	dev->regs->ppi_delay = conf->delay;
-	SSYNC();
 
 	enable_dma(dma);
 
@@ -986,8 +961,6 @@ static int ppi_open(struct inode *inode, struct	file *filp)
 	dev->conf.done = 1;
 	spin_unlock_irqrestore(&dev->lock, flags);
 
-	ppi_reg_reset(dev);
-
 	/* Request DMA0	channel, and pass the interrupt	handler	*/
 
 	if (peripheral_request_list(dev->per_ppi0_7, PPI_DEVNAME)) {
@@ -1008,6 +981,7 @@ static int ppi_open(struct inode *inode, struct	file *filp)
 		return -EFAULT;
 	}
 
+	ppi_reg_reset(dev);
 	pr_debug("ppi_open: return\n");
 
 	return 0;
