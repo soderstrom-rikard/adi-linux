@@ -25,28 +25,34 @@ static struct _spi_switch {
 	struct spi_device *dev;
 } sw;
 
-static int switch_read_spi(unsigned char *din, unsigned char reg, int len)
+static int ksz8893m_read(unsigned char *din, unsigned char reg, int len)
 {
+	int i, ret;
 	struct spi_message message;
 	unsigned char dout[BUF_LEN];
 	struct spi_transfer *t = &sw.xfer;
-	int i;
 
 	t->len = len;
 	t->tx_buf = dout;
 	t->rx_buf = din;
-	((unsigned char *)(t->tx_buf))[0] = SPI_READ;
-	((unsigned char *)(t->tx_buf))[1] = reg;
+	dout[0] = SPI_READ;
+	dout[1] = reg;
 	for (i = 2; i < len; i++)
-		((unsigned char *)(t->tx_buf))[i] = 0;
+		dout[i] = 0;
 
 	spi_message_init(&message);
 	spi_message_add_tail(t, &message);
-	return spi_sync(sw.dev, &message);
+	ret = spi_sync(sw.dev, &message);
+	if (!ret)
+		return message.status;
+
+	printk(KERN_ERR "ksz8893m: read reg%d failed, ret=%d.\n", reg, ret);
+	return ret;
 }
 
-static int switch_write_spi(unsigned char *dout, unsigned char reg, int len)
+static int ksz8893m_write(unsigned char *dout, unsigned char reg, int len)
 {
+	int ret;
 	struct spi_message message;
 	unsigned char din[BUF_LEN];
 	struct spi_transfer *t = &sw.xfer;
@@ -54,17 +60,22 @@ static int switch_write_spi(unsigned char *dout, unsigned char reg, int len)
 	t->len = len;
 	t->tx_buf = dout;
 	t->rx_buf = din;
-	((unsigned char *)(t->tx_buf))[0] = SPI_WRITE;
-	((unsigned char *)(t->tx_buf))[1] = reg;
+	dout[0] = SPI_WRITE;
+	dout[1] = reg;
 
 	spi_message_init(&message);
 	spi_message_add_tail(t, &message);
-	return spi_sync(sw.dev, &message);
+	ret = spi_sync(sw.dev, &message);
+	if (!ret)
+		return message.status;
+
+	printk(KERN_ERR "ksz8893m: write reg%d failed, ret=%d.\n", reg, ret);
+	return ret;
 }
 
 static char *ksz8893m_probe(struct mii_bus *bus, int sw_addr)
 {
-	int phyid_low, phyid_high;
+	int ret, phyid_low, phyid_high;
 	unsigned char din[BUF_LEN];
 
 	phyid_high = mdiobus_read(bus, KSZ8893M_CPU_PORT, MII_PHYSID1);
@@ -72,9 +83,9 @@ static char *ksz8893m_probe(struct mii_bus *bus, int sw_addr)
 	if (phyid_high != PHYID_HIGH || phyid_low != PHYID_LOW)
 		return NULL;
 
-	switch_read_spi(din, ChipID0, 3);
+	ret = ksz8893m_read(din, ChipID0, 3);
 
-	if (FamilyID == din[2])
+	if (!ret && FAMILY_ID == din[2])
 		return "KSZ8893M";
 
 	return NULL;
@@ -87,63 +98,90 @@ static int ksz8893m_switch_reset(struct dsa_switch *ds)
 
 static int ksz8893m_setup_global(struct dsa_switch *ds)
 {
+	int ret;
 	unsigned char dout[BUF_LEN];
 	unsigned char din[BUF_LEN];
 
 	/* Set VLAN VID of port1 */
-	switch_read_spi(din, Port1Control3, 3);
+	ret = ksz8893m_read(din, Port1Control3, 3);
+	if (ret)
+		return ret;
 	din[2] &= 0xf0;
 	dout[2] = (DEFAULT_PORT_VID & 0xfff) >> 8 | din[2];
 	dout[3] = DEFAULT_PORT_VID & 0xff;
-	switch_write_spi(dout, Port1Control3, 4);
+	ret = ksz8893m_write(dout, Port1Control3, 4);
+	if (ret)
+		return ret;
 			
 	/* Set VLAN VID of port2 */
-	switch_read_spi(din, Port2Control3, 3);
+	ret = ksz8893m_read(din, Port2Control3, 3);
+	if (ret)
+		return ret;
 	din[2] &= 0xf0;
 	dout[2] = (DEFAULT_PORT_VID & 0xfff) >> 8 | din[2];
 	dout[3] = DEFAULT_PORT_VID & 0xff;
-	switch_write_spi(dout, Port2Control3, 4);
+	ret = ksz8893m_write(dout, Port2Control3, 4);
+	if (ret)
+		return ret;
 			
 	/* Set VLAN VID of port3 */
-	switch_read_spi(din, Port3Control3, 3);
+	ret = ksz8893m_read(din, Port3Control3, 3);
+	if (ret)
+		return ret;
 	din[2] &= 0xf0;
 	dout[2] = (DEFAULT_PORT_VID & 0xfff) >> 8 | din[2];
 	dout[3] = DEFAULT_PORT_VID & 0xff;
-	switch_write_spi(dout, Port3Control3, 4);
+	ret = ksz8893m_write(dout, Port3Control3, 4);
+	if (ret)
+		return ret;
 
 	/* Insert VLAN tag that egress Port3 */
-	switch_read_spi(din, Port3Control0, 3);
-	dout[2] = 0x4 | din[2];
-	switch_write_spi(dout, Port3Control0, 3);
+	ret = ksz8893m_read(din, Port3Control0, 3);
+	if (ret)
+		return ret;
+	dout[2] = TAG_INSERTION | din[2];
+	ret = ksz8893m_write(dout, Port3Control0, 3);
+	if (ret)
+		return ret;
 
 	/* Enable STPID Mode */
-	switch_read_spi(din, GlobalControl9, 3);
-	dout[2] = 0x01 | din[2];
-	switch_write_spi(dout, GlobalControl9, 3);
+	ret = ksz8893m_read(din, GlobalControl9, 3);
+	if (ret)
+		return ret;
+	dout[2] = SPECIAL_TPID_MODE | din[2];
+	ret = ksz8893m_write(dout, GlobalControl9, 3);
+	if (ret)
+		return ret;
 
 	/* Start switch */
-	dout[2] = StartSwitch;
-	switch_write_spi(dout, ChipID1_StartSwitch, 3);
+	dout[2] = START_SWITCH;
+	ret = ksz8893m_write(dout, ChipID1_StartSwitch, 3);
+	if (ret)
+		return ret;
 
 	return 0;
 }
 
 static int ksz8893m_setup_port(struct dsa_switch *ds, int p)
 {
-	int val;
+	int val, ret;
 	val = mdiobus_read(ds->master_mii_bus, p, MII_BMCR);
-	/* bit 12 auto-negotiation enabled */
-	val |= 0x1000;
-	/* bit 13 force 100, bit 8 force full duplex */
-	val |= 0x2100;
-	/* bit 11 power on, bit 3 enable auto MDI-X, bit 2 enble far-end fault detection */
-	val &= ~0x80c;
-	mdiobus_write(ds->master_mii_bus, p, MII_BMCR, val);
+	if (val < 0)
+		return val;
+	val |= AN_ENABLE | FORCE_100 | FORCE_FULL_DUPLEX;
+	val &= ~(POWER_DOWN | DISABLE_MDIX | DIS_FAR_END_FAULT |\
+			DISABLE_TRANSMIT | DISABLE_LED);
+	ret = mdiobus_write(ds->master_mii_bus, p, MII_BMCR, val);
+	if (ret < 0)
+		return ret;
 
 	val = mdiobus_read(ds->master_mii_bus, p, MII_ADVERTISE);
-	/* bit 8/7/6/5 advertise 100full/100half/10full/10half ability */
-	val |= 0x1e0;
-	mdiobus_write(ds->master_mii_bus, p, MII_ADVERTISE, val);
+	if (val < 0)
+		return val;
+	val |= ADV_10_HALF | ADV_10_FULL | ADV_100_HALF | ADV_100_FULL;
+	ret = mdiobus_write(ds->master_mii_bus, p, MII_ADVERTISE, val);
+	if (ret < 0)
+		return ret;
 	return 0;
 }
 
@@ -179,7 +217,7 @@ static int ksz8893m_port_to_phy_addr(int port)
 	if (port >= 1 && port <= KSZ8893M_PORT_NUM)
 		return port;
 
-	printk(KERN_INFO "ksz8893m: use default phy addr 3\n");
+	printk(KERN_WARNING "ksz8893m: use default phy addr 3\n");
 	return 3;
 }
 
@@ -209,7 +247,6 @@ void ksz8893m_poll_link(struct dsa_switch *ds)
 		int speed;
 		int duplex;
 		int anc;
-		int fefd;
 
 		dev = ds->ports[i];
 		if (dev == NULL)
@@ -221,12 +258,8 @@ void ksz8893m_poll_link(struct dsa_switch *ds)
 			if (val < 0)
 				continue;
 
-			/* bit 2 link is up */
-			link = !!(val & 0x04);
-			/* bit 4 far-end fault detected */
-			fefd = !!(val & 0x10);
-			/* bit 5 auto-negotiation complete */
-			anc = !!(val & 0x20);
+			link = !!(val & LINK_STATUS);
+			anc = !!(val & AN_COMPLETE);
 		}
 
 		if (!link) {
@@ -240,15 +273,17 @@ void ksz8893m_poll_link(struct dsa_switch *ds)
 		speed = 10;
 		duplex = 0;
 		val = mdiobus_read(ds->master_mii_bus, i, MII_BMSR);
-		/* bit 14/13/12/11 capable of 100full/100half/10full/10half */
-		val &= 0x7800;
-		if (val & 0x4000) {
+		if (val < 0)
+			continue;
+		val &= HALF_10_CAPABLE | FULL_10_CAPABLE |\
+		       HALF_100_CAPABLE | FULL_100_CAPABLE;
+		if (val & FULL_100_CAPABLE) {
 			speed = 100;
 			duplex = 1;
-		} else if (val & 0x2000) {
+		} else if (val & HALF_100_CAPABLE) {
 			speed = 100;
 			duplex = 0;
-		} else if (val & 0x1000) {
+		} else if (val & FULL_10_CAPABLE) {
 			speed = 10;
 			duplex = 1;
 		}
@@ -263,7 +298,11 @@ void ksz8893m_poll_link(struct dsa_switch *ds)
 
 static int __devinit spi_switch_probe(struct spi_device *spi)
 {
-	memset(&(sw.xfer), 0, sizeof(sw.xfer));
+	if (sw.dev) {
+		printk(KERN_ERR "ksz8893m: only one instance supported at a time\n");
+		return 1;
+	}
+	memset(&sw.xfer, 0, sizeof(sw.xfer));
 	sw.dev = spi;
 	return 0;
 }
@@ -271,13 +310,12 @@ static int __devinit spi_switch_probe(struct spi_device *spi)
 static int __devexit spi_switch_remove(struct spi_device *spi)
 {
 	sw.dev = NULL;
-	printk(KERN_INFO "spi switch exit\n");
 	return 0;
 }
 
 static struct spi_driver spi_switch_driver = {
 	.driver = {
-		.name	= "spi_switch",
+		.name	= "ksz8893m",
 		.bus	= &spi_bus_type,
 		.owner	= THIS_MODULE,
 	},
@@ -300,7 +338,7 @@ int __init ksz8893m_init(void)
 	int ret;
 	ret = spi_register_driver(&spi_switch_driver);
 	if (ret) {
-		printk(KERN_ERR "Can't register spi_switch_driver!\n");
+		printk(KERN_ERR "ksz8893m: Can't register driver!\n");
 		return ret;
 	}
 

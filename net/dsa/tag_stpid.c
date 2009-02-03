@@ -12,7 +12,14 @@
 #include <linux/list.h>
 #include <linux/netdevice.h>
 #include "dsa_priv.h"
-#include "ksz8893m.h"
+
+#define ETH_P_8021QH      (ETH_P_8021Q >> 8)
+#define ETH_P_8021QL      (ETH_P_8021Q & 0xFF)
+#define STPID_HLEN        4
+
+#define ZERO_VID          0
+#define RESERVED_VID      0xFFF
+#define STPID_VID         ZERO_VID
 
 int stpid_xmit(struct sk_buff *skb, struct net_device *dev)
 {
@@ -71,7 +78,7 @@ static int stpid_rcv(struct sk_buff *skb, struct net_device *dev,
 		goto out_drop;
 
 	if (((dsa_header[0] & ETH_P_8021QH) == ETH_P_8021QH) &&
-			(vid != DEFAULT_PORT_VID)) {
+			(vid != STPID_VID)) {
 		u8 new_header[STPID_HLEN];
 
 		/* Convert STPID tag to 802.1q tag */
@@ -87,7 +94,7 @@ static int stpid_rcv(struct sk_buff *skb, struct net_device *dev,
 		memcpy(dsa_header, new_header, STPID_HLEN / 2);
 
 	} else if ((dsa_header[0] & ETH_P_8021QH) &&
-			(vid == DEFAULT_PORT_VID)) {
+			(vid == STPID_VID)) {
 
 		if (unlikely(!pskb_may_pull(skb, STPID_HLEN)))
 			goto out_drop;

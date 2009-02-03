@@ -262,7 +262,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #if defined(CONFIG_NET_DSA_KSZ8893M) \
 	|| defined(CONFIG_NET_DSA_KSZ8893M_MODULE)
 	{
-		.modalias = "spi_switch",
+		.modalias = "ksz8893m",
 		.max_speed_hz = 5000000,
 		.bus_num = 0,
 		.chip_select = 1,
