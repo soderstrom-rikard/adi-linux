@@ -2,6 +2,8 @@
 # YAFFS file system configurations
 #
 
+if BLOCK
+
 config YAFFS_FS
 	tristate "YAFFS2 file system support"
 	default n
@@ -154,3 +156,5 @@ config YAFFS_SHORT_NAMES_IN_RAM
 	  but makes look-ups faster.
 
 	  If unsure, say Y.
+
+endif
