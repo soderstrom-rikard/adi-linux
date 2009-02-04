@@ -713,7 +713,7 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 	ts->averaging = pdata->averaging;
 	ts->pen_down_acc_interval = pdata->pen_down_acc_interval;
 
-	snprintf(ts->phys, sizeof(ts->phys), "%s/inputX", spi->dev.bus_id);
+	snprintf(ts->phys, sizeof(ts->phys), "%s/inputX", dev_name(&spi->dev));
 
 	input_dev->name = "AD7877 Touchscreen";
 	input_dev->phys = ts->phys;
@@ -740,8 +740,8 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 	verify = ad7877_read(spi, AD7877_REG_SEQ1);
 
 	if (verify != AD7877_MM_SEQUENCE){
-		dev_err(&spi->dev, "%s: Failed to probe %s\n", spi->dev.bus_id,
-			 input_dev->name);
+		dev_err(&spi->dev, "%s: Failed to probe %s\n",
+			dev_name(&spi->dev), input_dev->name);
 		err = -ENODEV;
 		goto err_free_mem;
 	}

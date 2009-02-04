@@ -418,7 +418,7 @@ static int __devinit ad7879_construct(bus_device *bus, struct ad7879 *ts)
 	else
 		ts->gpio_init = AD7879_GPIO_EN | AD7879_GPIODIR;
 
-	snprintf(ts->phys, sizeof(ts->phys), "%s/inputX", bus->dev.bus_id);
+	snprintf(ts->phys, sizeof(ts->phys), "%s/inputX", dev_name(&bus->dev));
 
 	input_dev->name = "AD7879 Touchscreen";
 	input_dev->phys = ts->phys;
