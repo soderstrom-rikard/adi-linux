@@ -1022,8 +1022,8 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 {
 	struct net_device *ndev;
 	struct bfin_mac_local *lp;
+	struct platform_device *pd;
 	int rc;
-	struct platform_device *pd = pdev->dev.platform_data;
 
 	ndev = alloc_etherdev(sizeof(struct bfin_mac_local));
 	if (!ndev) {
@@ -1063,8 +1063,13 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 
 	setup_mac_addr(ndev->dev_addr);
 
-	/* MDIO bus initial */
-	lp->mii_bus = platform_get_drvdata(pd);;
+	if (!pdev->dev.platform_data) {
+		dev_err(&pdev->dev, "Cannot get platform device bfin_mii_bus!\n");
+		rc = -ENODEV;
+		goto out_err_probe_mac;
+	}
+	pd = pdev->dev.platform_data;
+	lp->mii_bus = platform_get_drvdata(pd);
 	lp->mii_bus->priv = ndev;
 
 	rc = mii_probe(ndev);
