@@ -745,7 +745,7 @@ static int yaffs_write_begin(struct file *filp, struct address_space *mapping,
         
 	T(YAFFS_TRACE_OS, (KERN_DEBUG "start yaffs_write_begin\n"));
 	/* Get a page */
-	pg = __grab_cache_page(mapping,index);
+	pg = grab_cache_page(mapping, index);
 	*pagep = pg;	
 	if(!pg){
 		ret =  -ENOMEM;
