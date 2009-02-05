@@ -517,16 +517,15 @@ void setup_system_regs(struct net_device *dev)
 
 	bfin_write_EMAC_MMC_CTL(RSTC | CROLL);
 
+#if defined(CONFIG_NET_DSA_KSZ8893M)
+#define PORT1_MASK 1
+#define PORT2_MASK 2
+	/* Set vlan regs to let 1522 bytes long packets pass through */
+	bfin_write_EMAC_VLAN1(ETH_P_8021Q | PORT1_MASK);
+	bfin_write_EMAC_VLAN2(ETH_P_8021Q | PORT2_MASK);
+#else
 	/* The legal length of the frame is increased to 1522 bytes */
 	bfin_write_EMAC_VLAN1(ETH_P_8021Q);
-	/* Frame length is increased to 1538 bytes, for future use? */
-	/* bfin_write_EMAC_VLAN2( ?? ); */
-
-#if defined(CONFIG_NET_DSA)
-#if defined(CONFIG_NET_DSA_KSZ8893M)
-	bfin_write_EMAC_VLAN1(0x8101);
-	bfin_write_EMAC_VLAN2(0x8102);
-#endif
 #endif
 
 	/* Initialize the TX DMA channel registers */
