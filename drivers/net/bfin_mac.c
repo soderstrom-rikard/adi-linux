@@ -699,6 +699,9 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 		}
 	}
 
+	/* Make sure data are really written into registers  before enabling DMA. */
+	SSYNC();
+
 	/* enable this packet's dma */
 	current_tx_ptr->desc_a.config |= DMAEN;
 
