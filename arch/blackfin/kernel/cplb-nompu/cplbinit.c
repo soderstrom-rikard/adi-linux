@@ -57,8 +57,8 @@ void __init generate_cplb_tables_cpu(unsigned int cpu)
 	/* Set up the zero page.  */
 	d_tbl[i_d].addr = 0;
 	d_tbl[i_d++].data = SDRAM_OOPS | PAGE_SIZE_1KB;
-	d_tbl[i_i].addr = 0;
-	d_tbl[i_i++].data = SDRAM_OOPS | PAGE_SIZE_1KB;
+	i_tbl[i_i].addr = 0;
+	i_tbl[i_i++].data = SDRAM_OOPS | PAGE_SIZE_1KB;
 #endif
 
 	/* Cover kernel memory with 4M pages.  */
