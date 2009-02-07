@@ -569,7 +569,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -591,7 +591,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC03624);
@@ -1302,7 +1302,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -1324,7 +1324,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC03624);
@@ -2116,7 +2116,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -2138,7 +2138,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC03624);
@@ -2953,7 +2953,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -2975,7 +2975,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC03624);
@@ -3663,7 +3663,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -3685,7 +3685,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC03624);
@@ -4377,7 +4377,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -4399,7 +4399,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC03624);
@@ -5091,7 +5091,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -5113,7 +5113,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC03624);
@@ -5976,7 +5976,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -5998,7 +5998,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC03624);
@@ -6942,7 +6942,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -6964,7 +6964,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC03624);
@@ -7908,7 +7908,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -7930,7 +7930,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC03624);
@@ -8741,7 +8741,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -8755,7 +8755,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("SPT0", top);
 		D("SPT0_CHNL", 16, 0xFFC00834);
@@ -9376,7 +9376,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -9390,7 +9390,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("SPT0", top);
 		D("SPT0_CHNL", 16, 0xFFC00834);
@@ -10011,7 +10011,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -10025,7 +10025,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("SPT0", top);
 		D("SPT0_CHNL", 16, 0xFFC00834);
@@ -11008,7 +11008,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -11030,7 +11030,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("System Interrupt Controller Register File", top);
 		D("SIC_IAR0", 32, 0xFFC00110);
@@ -12099,7 +12099,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -12121,7 +12121,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("System Interrupt Controller Register File", top);
 		D("SIC_IAR0", 32, 0xFFC00110);
@@ -13190,7 +13190,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -13212,7 +13212,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("System Interrupt Controller Register File", top);
 		D("SIC_IAR0", 32, 0xFFC00110);
@@ -14387,7 +14387,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -14409,7 +14409,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 		D("SPORT2_CHNL", 16, 0xFFC02534);
 		D("SPORT2_MCMC1", 16, 0xFFC02538);
 		D("SPORT2_MCMC2", 16, 0xFFC0253C);
@@ -14431,7 +14431,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT2_TCR1", 16, 0xFFC02500);
 		D("SPORT2_TCR2", 16, 0xFFC02504);
 		D("SPORT2_TFSDIV", 16, 0xFFC0250C);
-		D_WO("SPORT2_TX", 32, );
+		D_WO("SPORT2_TX", 32, 0xFFC02510);
 		D("SPORT3_CHNL", 16, 0xFFC02634);
 		D("SPORT3_MCMC1", 16, 0xFFC02638);
 		D("SPORT3_MCMC2", 16, 0xFFC0263C);
@@ -14453,7 +14453,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT3_TCR1", 16, 0xFFC02600);
 		D("SPORT3_TCR2", 16, 0xFFC02604);
 		D("SPORT3_TFSDIV", 16, 0xFFC0260C);
-		D_WO("SPORT3_TX", 32, );
+		D_WO("SPORT3_TX", 32, 0xFFC02610);
 
 		parent = debugfs_create_dir("System Reset and Interrupt Control Registers", top);
 		D("SIC_IAR0", 32, 0xFFC00110);
@@ -15754,7 +15754,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -15776,7 +15776,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 		D("SPORT2_CHNL", 16, 0xFFC02534);
 		D("SPORT2_MCMC1", 16, 0xFFC02538);
 		D("SPORT2_MCMC2", 16, 0xFFC0253C);
@@ -15798,7 +15798,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT2_TCR1", 16, 0xFFC02500);
 		D("SPORT2_TCR2", 16, 0xFFC02504);
 		D("SPORT2_TFSDIV", 16, 0xFFC0250C);
-		D_WO("SPORT2_TX", 32, );
+		D_WO("SPORT2_TX", 32, 0xFFC02510);
 		D("SPORT3_CHNL", 16, 0xFFC02634);
 		D("SPORT3_MCMC1", 16, 0xFFC02638);
 		D("SPORT3_MCMC2", 16, 0xFFC0263C);
@@ -15820,7 +15820,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT3_TCR1", 16, 0xFFC02600);
 		D("SPORT3_TCR2", 16, 0xFFC02604);
 		D("SPORT3_TFSDIV", 16, 0xFFC0260C);
-		D_WO("SPORT3_TX", 32, );
+		D_WO("SPORT3_TX", 32, 0xFFC02610);
 
 		parent = debugfs_create_dir("System Reset and Interrupt Control Registers", top);
 		D("SIC_IAR0", 32, 0xFFC00110);
@@ -17332,7 +17332,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 		D("SPORT2_CHNL", 16, 0xFFC02534);
 		D("SPORT2_MCMC1", 16, 0xFFC02538);
 		D("SPORT2_MCMC2", 16, 0xFFC0253C);
@@ -17354,7 +17354,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT2_TCR1", 16, 0xFFC02500);
 		D("SPORT2_TCR2", 16, 0xFFC02504);
 		D("SPORT2_TFSDIV", 16, 0xFFC0250C);
-		D_WO("SPORT2_TX", 32, );
+		D_WO("SPORT2_TX", 32, 0xFFC02510);
 		D("SPORT3_CHNL", 16, 0xFFC02634);
 		D("SPORT3_MCMC1", 16, 0xFFC02638);
 		D("SPORT3_MCMC2", 16, 0xFFC0263C);
@@ -17376,7 +17376,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT3_TCR1", 16, 0xFFC02600);
 		D("SPORT3_TCR2", 16, 0xFFC02604);
 		D("SPORT3_TFSDIV", 16, 0xFFC0260C);
-		D_WO("SPORT3_TX", 32, );
+		D_WO("SPORT3_TX", 32, 0xFFC02610);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC04324);
@@ -19020,7 +19020,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 		D("SPORT2_CHNL", 16, 0xFFC02534);
 		D("SPORT2_MCMC1", 16, 0xFFC02538);
 		D("SPORT2_MCMC2", 16, 0xFFC0253C);
@@ -19042,7 +19042,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT2_TCR1", 16, 0xFFC02500);
 		D("SPORT2_TCR2", 16, 0xFFC02504);
 		D("SPORT2_TFSDIV", 16, 0xFFC0250C);
-		D_WO("SPORT2_TX", 32, );
+		D_WO("SPORT2_TX", 32, 0xFFC02510);
 		D("SPORT3_CHNL", 16, 0xFFC02634);
 		D("SPORT3_MCMC1", 16, 0xFFC02638);
 		D("SPORT3_MCMC2", 16, 0xFFC0263C);
@@ -19064,7 +19064,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT3_TCR1", 16, 0xFFC02600);
 		D("SPORT3_TCR2", 16, 0xFFC02604);
 		D("SPORT3_TFSDIV", 16, 0xFFC0260C);
-		D_WO("SPORT3_TX", 32, );
+		D_WO("SPORT3_TX", 32, 0xFFC02610);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC04324);
@@ -21063,7 +21063,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 		D("SPORT2_CHNL", 16, 0xFFC02534);
 		D("SPORT2_MCMC1", 16, 0xFFC02538);
 		D("SPORT2_MCMC2", 16, 0xFFC0253C);
@@ -21085,7 +21085,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT2_TCR1", 16, 0xFFC02500);
 		D("SPORT2_TCR2", 16, 0xFFC02504);
 		D("SPORT2_TFSDIV", 16, 0xFFC0250C);
-		D_WO("SPORT2_TX", 32, );
+		D_WO("SPORT2_TX", 32, 0xFFC02510);
 		D("SPORT3_CHNL", 16, 0xFFC02634);
 		D("SPORT3_MCMC1", 16, 0xFFC02638);
 		D("SPORT3_MCMC2", 16, 0xFFC0263C);
@@ -21107,7 +21107,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT3_TCR1", 16, 0xFFC02600);
 		D("SPORT3_TCR2", 16, 0xFFC02604);
 		D("SPORT3_TFSDIV", 16, 0xFFC0260C);
-		D_WO("SPORT3_TX", 32, );
+		D_WO("SPORT3_TX", 32, 0xFFC02610);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC04324);
@@ -22290,7 +22290,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -22312,7 +22312,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 		D("SPORT2_CHNL", 16, 0xFFC02534);
 		D("SPORT2_MCMC1", 16, 0xFFC02538);
 		D("SPORT2_MCMC2", 16, 0xFFC0253C);
@@ -22334,7 +22334,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT2_TCR1", 16, 0xFFC02500);
 		D("SPORT2_TCR2", 16, 0xFFC02504);
 		D("SPORT2_TFSDIV", 16, 0xFFC0250C);
-		D_WO("SPORT2_TX", 32, );
+		D_WO("SPORT2_TX", 32, 0xFFC02510);
 		D("SPORT3_CHNL", 16, 0xFFC02634);
 		D("SPORT3_MCMC1", 16, 0xFFC02638);
 		D("SPORT3_MCMC2", 16, 0xFFC0263C);
@@ -22356,7 +22356,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT3_TCR1", 16, 0xFFC02600);
 		D("SPORT3_TCR2", 16, 0xFFC02604);
 		D("SPORT3_TFSDIV", 16, 0xFFC0260C);
-		D_WO("SPORT3_TX", 32, );
+		D_WO("SPORT3_TX", 32, 0xFFC02610);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC04324);
@@ -24464,7 +24464,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -24486,7 +24486,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 		D("SPORT2_CHNL", 16, 0xFFC02534);
 		D("SPORT2_MCMC1", 16, 0xFFC02538);
 		D("SPORT2_MCMC2", 16, 0xFFC0253C);
@@ -24508,7 +24508,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT2_TCR1", 16, 0xFFC02500);
 		D("SPORT2_TCR2", 16, 0xFFC02504);
 		D("SPORT2_TFSDIV", 16, 0xFFC0250C);
-		D_WO("SPORT2_TX", 32, );
+		D_WO("SPORT2_TX", 32, 0xFFC02510);
 		D("SPORT3_CHNL", 16, 0xFFC02634);
 		D("SPORT3_MCMC1", 16, 0xFFC02638);
 		D("SPORT3_MCMC2", 16, 0xFFC0263C);
@@ -24530,7 +24530,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT3_TCR1", 16, 0xFFC02600);
 		D("SPORT3_TCR2", 16, 0xFFC02604);
 		D("SPORT3_TFSDIV", 16, 0xFFC0260C);
-		D_WO("SPORT3_TX", 32, );
+		D_WO("SPORT3_TX", 32, 0xFFC02610);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC04324);
@@ -26750,7 +26750,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_TCR1", 16, 0xFFC00800);
 		D("SPORT0_TCR2", 16, 0xFFC00804);
 		D("SPORT0_TFSDIV", 16, 0xFFC0080C);
-		D_WO("SPORT0_TX", 32, );
+		D_WO("SPORT0_TX", 32, 0xFFC00810);
 		D("SPORT1_CHNL", 16, 0xFFC00934);
 		D("SPORT1_MCMC1", 16, 0xFFC00938);
 		D("SPORT1_MCMC2", 16, 0xFFC0093C);
@@ -26772,7 +26772,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 		D("SPORT2_CHNL", 16, 0xFFC02534);
 		D("SPORT2_MCMC1", 16, 0xFFC02538);
 		D("SPORT2_MCMC2", 16, 0xFFC0253C);
@@ -26794,7 +26794,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT2_TCR1", 16, 0xFFC02500);
 		D("SPORT2_TCR2", 16, 0xFFC02504);
 		D("SPORT2_TFSDIV", 16, 0xFFC0250C);
-		D_WO("SPORT2_TX", 32, );
+		D_WO("SPORT2_TX", 32, 0xFFC02510);
 		D("SPORT3_CHNL", 16, 0xFFC02634);
 		D("SPORT3_MCMC1", 16, 0xFFC02638);
 		D("SPORT3_MCMC2", 16, 0xFFC0263C);
@@ -26816,7 +26816,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT3_TCR1", 16, 0xFFC02600);
 		D("SPORT3_TCR2", 16, 0xFFC02604);
 		D("SPORT3_TFSDIV", 16, 0xFFC0260C);
-		D_WO("SPORT3_TX", 32, );
+		D_WO("SPORT3_TX", 32, 0xFFC02610);
 
 		parent = debugfs_create_dir("Security", top);
 		D("SECURE_CONTROL", 16, 0xFFC04324);
@@ -27938,7 +27938,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT0_RCR1", 16, 0xFFC00820);
 		D("SPORT0_RCR2", 16, 0xFFC00824);
 		D("SPORT0_RFSDIV", 16, 0xFFC0082C);
-		D_WO("SPORT0_RX", 32, );
+		D_WO("SPORT0_RX", 32, 0xFFC00818);
 		D("SPORT0_STAT", 16, 0xFFC00830);
 		D("SPORT0_TCLKDIV", 16, 0xFFC00808);
 		D("SPORT0_TCR1", 16, 0xFFC00800);
@@ -27966,7 +27966,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SPORT1_TCR1", 16, 0xFFC00900);
 		D("SPORT1_TCR2", 16, 0xFFC00904);
 		D("SPORT1_TFSDIV", 16, 0xFFC0090C);
-		D_WO("SPORT1_TX", 32, );
+		D_WO("SPORT1_TX", 32, 0xFFC00910);
 
 		parent = debugfs_create_dir("System Timers", top);
 		D("TIMER0_CONFIG", 16, 0xFFC00600);
