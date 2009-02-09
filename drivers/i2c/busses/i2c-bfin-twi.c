@@ -683,7 +683,7 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 		clkhilow = 0xFF;
 
 	/* Set Twi interface clock as specified */
-	write_CLKDIV(iface, ((clkhilow & 0xFF) << 8) | (clkhilow & 0xFF));
+	write_CLKDIV(iface, (clkhilow << 8) | clkhilow);
 
 	/* Enable TWI */
 	write_CONTROL(iface, read_CONTROL(iface) | TWI_ENA);
