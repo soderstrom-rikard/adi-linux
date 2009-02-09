@@ -677,10 +677,11 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	/* Set TWI internal clock as 10MHz */
 	write_CONTROL(iface, ((get_sclk() / 1024 / 1024 + 5) / 10) & 0x7F);
 
+	/*
+	 * We will not end up with a CLKDIV=0 cause no one will specifies
+	 * 20kHz SCL or less in Kconfig now. (5 * 1024 / 20 = 0x100)
+	 */
 	clkhilow = 5 * 1024 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ;
-
-	if (clkhilow > 0xFF)
-		clkhilow = 0xFF;
 
 	/* Set Twi interface clock as specified */
 	write_CLKDIV(iface, (clkhilow << 8) | clkhilow);
