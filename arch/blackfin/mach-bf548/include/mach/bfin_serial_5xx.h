@@ -63,7 +63,7 @@
 #define UART_ENABLE_INTS(x, v) UART_SET_IER(x, v)
 #define UART_DISABLE_INTS(x) UART_CLEAR_IER(x, 0xF)
 
-#if defined(CONFIG_BFIN_UART0_CTSRTS) || defined(CONFIG_BFIN_UART1_CTSRTS)
+#if defined(CONFIG_BFIN_UART0_CTSRTS) || defined(CONFIG_BFIN_UART2_CTSRTS)
 # define CONFIG_SERIAL_BFIN_CTSRTS
 
 # ifndef CONFIG_UART0_CTS_PIN
@@ -74,12 +74,12 @@
 #  define CONFIG_UART0_RTS_PIN -1
 # endif
 
-# ifndef CONFIG_UART1_CTS_PIN
-#  define CONFIG_UART1_CTS_PIN -1
+# ifndef CONFIG_UART2_CTS_PIN
+#  define CONFIG_UART2_CTS_PIN -1
 # endif
 
-# ifndef CONFIG_UART1_RTS_PIN
-#  define CONFIG_UART1_RTS_PIN -1
+# ifndef CONFIG_UART2_RTS_PIN
+#  define CONFIG_UART2_RTS_PIN -1
 # endif
 #endif
 
@@ -130,7 +130,7 @@ struct bfin_serial_res bfin_serial_resource[] = {
 	CH_UART0_TX,
 	CH_UART0_RX,
 #endif
-#ifdef CONFIG_BFIN_UART0_CTSRTS
+#ifdef CONFIG_SERIAL_BFIN_CTSRTS
 	CONFIG_UART0_CTS_PIN,
 	CONFIG_UART0_RTS_PIN,
 #endif
@@ -154,7 +154,7 @@ struct bfin_serial_res bfin_serial_resource[] = {
 	CH_UART2_TX,
 	CH_UART2_RX,
 #endif
-#ifdef CONFIG_BFIN_UART2_CTSRTS
+#ifdef CONFIG_SERIAL_BFIN_CTSRTS
 	CONFIG_UART2_CTS_PIN,
 	CONFIG_UART2_RTS_PIN,
 #endif
