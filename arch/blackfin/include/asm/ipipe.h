@@ -83,9 +83,9 @@ struct ipipe_sysinfo {
 				"%2 = CYCLES2\n"		\
 				"CC = %2 == %0\n"		\
 				"if ! CC jump 1b\n"		\
-				: "=r" (((unsigned long *)&t)[1]),	\
-				  "=r" (((unsigned long *)&t)[0]),	\
-				  "=r" (__cy2)				\
+				: "=d,a" (((unsigned long *)&t)[1]),	\
+				  "=d,a" (((unsigned long *)&t)[0]),	\
+				  "=d,a" (__cy2)				\
 				: /*no input*/ : "CC");			\
 	t;								\
 	})
