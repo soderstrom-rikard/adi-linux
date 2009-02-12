@@ -569,8 +569,10 @@ static int __devinit sdh_probe(struct platform_device *pdev)
 	bfin_write_SDH_CFG(bfin_read_SDH_CFG() | CLKS_EN);
 	SSYNC();
 
-	/* Enable card detect pin */
-	bfin_write_SDH_CFG((bfin_read_SDH_CFG() & 0x1F) | 0xa0);
+	/* Disable card inserting detection pin.It's not that useful,since
+	 * we can't detect removal,and it will affect card detection on BF51x.
+	 */
+	bfin_write_SDH_CFG((bfin_read_SDH_CFG() & 0x1F) | 0x60);
 	SSYNC();
 	sd_entry = create_proc_entry("driver/sdh", 0600, NULL);
 	sd_entry->read_proc = NULL;
