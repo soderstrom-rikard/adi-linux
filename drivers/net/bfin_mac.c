@@ -1138,8 +1138,7 @@ static int __devexit bfin_mac_remove(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, NULL);
 
-	mdiobus_unregister(lp->mii_bus);
-	mdiobus_free(lp->mii_bus);
+	lp->mii_bus->priv = NULL;
 
 	unregister_netdev(ndev);
 
