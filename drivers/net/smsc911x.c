@@ -203,10 +203,7 @@ static inline void
 smsc911x_tx_writefifo(struct smsc911x_data *pdata, unsigned int *buf,
 		      unsigned int wordcount)
 {
-	if (wordcount > 24)
-		dma_outsl((u_long)pdata->ioaddr + TX_DATA_FIFO, buf, wordcount);
-	else
-		outsl((u_long)pdata->ioaddr + TX_DATA_FIFO, buf, wordcount);
+	outsl((u_long)pdata->ioaddr + TX_DATA_FIFO, buf, wordcount);
 }
 
 /* Reads a packet out of the RX_DATA_FIFO */
@@ -214,10 +211,7 @@ static inline void
 smsc911x_rx_readfifo(struct smsc911x_data *pdata, unsigned int *buf,
 		     unsigned int wordcount)
 {
-	if (wordcount > 24)
-		dma_insl((u_long)pdata->ioaddr + RX_DATA_FIFO, buf, wordcount);
-	else
-		insl((u_long)pdata->ioaddr + RX_DATA_FIFO, buf, wordcount);
+	insl((u_long)pdata->ioaddr + RX_DATA_FIFO, buf, wordcount);
 }
 #endif
 
