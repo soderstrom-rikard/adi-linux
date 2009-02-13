@@ -158,10 +158,14 @@ static irqreturn_t ipi_handler(int irq, void *dev_instance)
 			kfree(msg);
 			break;
 		case BFIN_IPI_CALL_FUNC:
+			spin_unlock(&msg_queue->lock);
 			ipi_call_function(cpu, msg);
+			spin_lock(&msg_queue->lock);
 			break;
 		case BFIN_IPI_CPU_STOP:
+			spin_unlock(&msg_queue->lock);
 			ipi_cpu_stop(cpu);
+			spin_lock(&msg_queue->lock);
 			kfree(msg);
 			break;
 		default:
