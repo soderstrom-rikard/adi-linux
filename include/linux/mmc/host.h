@@ -160,6 +160,7 @@ struct mmc_host {
 	struct dentry		*debugfs_root;
 
 	unsigned long		private[0] ____cacheline_aligned;
+	unsigned int		powerof2_block;	/* host only supports power-of-2 block */
 };
 
 extern struct mmc_host *mmc_alloc_host(int extra, struct device *);
