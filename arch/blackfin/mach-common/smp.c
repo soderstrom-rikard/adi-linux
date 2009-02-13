@@ -194,9 +194,6 @@ int smp_call_function(void (*func)(void *info), void *info, int wait)
 	unsigned long flags;
 	struct ipi_message_queue *msg_queue;
 	struct ipi_message *msg;
-#ifdef CONFIG_KGDB
-	unsigned int ipend = bfin_read_IPEND();
-#endif
 
 	callmap = cpu_online_map;
 	cpu_clear(smp_processor_id(), callmap);
@@ -214,14 +211,8 @@ int smp_call_function(void (*func)(void *info), void *info, int wait)
 
 	for_each_cpu_mask(cpu, callmap) {
 		msg_queue = &per_cpu(ipi_msg_queue, cpu);
-#ifdef CONFIG_KGDB
-		if (!(ipend & 0x3f))
-#endif
 		spin_lock_irqsave(&msg_queue->lock, flags);
 		list_add(&msg->list, &msg_queue->head);
-#ifdef CONFIG_KGDB
-		if (!(ipend & 0x3f))
-#endif
 		spin_unlock_irqrestore(&msg_queue->lock, flags);
 		platform_send_ipi_cpu(cpu);
 	}
@@ -244,9 +235,6 @@ int smp_call_function_single(int cpuid, void (*func) (void *info), void *info,
 	unsigned long flags;
 	struct ipi_message_queue *msg_queue;
 	struct ipi_message *msg;
-#ifdef CONFIG_KGDB
-	unsigned int ipend = bfin_read_IPEND();
-#endif
 
 	if (cpu_is_offline(cpu))
 		return 0;
@@ -263,14 +251,8 @@ int smp_call_function_single(int cpuid, void (*func) (void *info), void *info,
 	msg->type = BFIN_IPI_CALL_FUNC;
 
 	msg_queue = &per_cpu(ipi_msg_queue, cpu);
-#ifdef CONFIG_KGDB
-	if (!(ipend & 0x3f))
-#endif
 	spin_lock_irqsave(&msg_queue->lock, flags);
 	list_add(&msg->list, &msg_queue->head);
-#ifdef CONFIG_KGDB
-	if (!(ipend & 0x3f))
-#endif
 	spin_unlock_irqrestore(&msg_queue->lock, flags);
 	platform_send_ipi_cpu(cpu);
 
