@@ -641,8 +641,8 @@ static int sport_ioctl(struct inode *inode, struct file *filp,
 	pr_debug("%s: enter, arg:0x%lx\n", __func__, arg);
 	switch (cmd) {
 	case SPORT_IOC_CONFIG:
-		copy_from_user(&config, (void *)arg,
-			       sizeof(struct sport_config));
+		if (copy_from_user(&config, (void *)arg, sizeof(config)))
+			return -EFAULT;
 		if (sport_configure(dev, &config) < 0)
 			return -EFAULT;
 		break;
