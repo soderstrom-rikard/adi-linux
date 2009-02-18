@@ -8695,7 +8695,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("PLL_LOCKCNT", 16, 0xFFC00010);
 		D("PLL_STAT", 16, 0xFFC0000C);
 		D("SWRST", 16, 0xFFC00100);
-		D("SYSCR", 32, 0xFFC00104);
+		D("SYSCR", 16, 0xFFC00104);
 		D("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PPI", top);
@@ -9330,7 +9330,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("PLL_LOCKCNT", 16, 0xFFC00010);
 		D("PLL_STAT", 16, 0xFFC0000C);
 		D("SWRST", 16, 0xFFC00100);
-		D("SYSCR", 32, 0xFFC00104);
+		D("SYSCR", 16, 0xFFC00104);
 		D("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PPI", top);
@@ -9965,7 +9965,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("PLL_LOCKCNT", 16, 0xFFC00010);
 		D("PLL_STAT", 16, 0xFFC0000C);
 		D("SWRST", 16, 0xFFC00100);
-		D("SYSCR", 32, 0xFFC00104);
+		D("SYSCR", 16, 0xFFC00104);
 		D("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PPI", top);
@@ -27892,7 +27892,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SICA_IWR1", 32, 0xFFC00120);
 		D("SICA_RVECT", 16, 0xFFC00108);
 		D("SICA_SWRST", 16, 0xFFC00100);
-		D("SICA_SYSCR", 32, 0xFFC00104);
+		D("SICA_SYSCR", 16, 0xFFC00104);
 
 		parent = debugfs_create_dir("SICB Register File", top);
 		D("SICB_IAR0", 32, 0xFFC01124);
@@ -27911,7 +27911,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("SICB_IWR1", 32, 0xFFC01120);
 		D("SICB_RVECT", 16, 0xFFC01108);
 		D("SICB_SWRST", 16, 0xFFC01100);
-		D("SICB_SYSCR", 32, 0xFFC01104);
+		D("SICB_SYSCR", 16, 0xFFC01104);
 
 		parent = debugfs_create_dir("SPI", top);
 		D("SPI_BAUD", 16, 0xFFC00514);
