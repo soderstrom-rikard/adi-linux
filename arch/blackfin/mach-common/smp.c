@@ -461,7 +461,7 @@ void smp_icache_flush_range_others(unsigned long start, unsigned long end)
 	smp_flush_data.start = start;
 	smp_flush_data.end = end;
 
-	if (smp_call_function(&ipi_flush_icache, &smp_flush_data, 1))
+	if (smp_call_function(&ipi_flush_icache, &smp_flush_data, 0))
 		printk(KERN_WARNING "SMP: failed to run I-cache flush request on other CPUs\n");
 }
 EXPORT_SYMBOL_GPL(smp_icache_flush_range_others);
