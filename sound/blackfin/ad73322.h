@@ -79,7 +79,7 @@
 #define IGS(x)		(x & 0x7)
 #define RMOD		( 1 << 3 )
 #define OGS(x)		((x & 0x7) << 4)
-#define MUTE		(x << 7)
+#define MUTE		(1 << 7)
 
 /* Control register E */
 #define CTRL_REG_E	(4 << 8)
