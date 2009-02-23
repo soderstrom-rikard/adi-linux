@@ -66,6 +66,17 @@
 
 /* Invalidate all instruction cache lines assocoiated with this memory area */
 ENTRY(_blackfin_icache_flush_range)
+/*
+ * Walkaround to avoid loading wrong instruction after invalidating icache
+ * and following sequence is met.
+ *
+ * 1) The one instruction address is cached in the icache.
+ * 2) This instruction in SDRAM is changed.
+ * 3) IFLASH[P0] is executed only once in blackfin_icache_flush_range().
+ * 4) This instruction is executed again, but not the changed new one.
+ */
+	P0 = R0;
+	IFLUSH[P0];
 	do_flush IFLUSH, , nop
 ENDPROC(_blackfin_icache_flush_range)
 
