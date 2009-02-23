@@ -70,10 +70,10 @@ ENTRY(_blackfin_icache_flush_range)
  * Walkaround to avoid loading wrong instruction after invalidating icache
  * and following sequence is met.
  *
- * 1) The one instruction address is cached in the icache.
+ * 1) One instruction address is cached in the instruction cache.
  * 2) This instruction in SDRAM is changed.
  * 3) IFLASH[P0] is executed only once in blackfin_icache_flush_range().
- * 4) This instruction is executed again, but not the changed new one.
+ * 4) This instruction is executed again, but the old one is loaded.
  */
 	P0 = R0;
 	IFLUSH[P0];
