@@ -68,7 +68,8 @@ const unsigned short per_req_ppi8_15[] = {P_PPI0_D15, P_PPI0_D14, P_PPI0_D13, P_
 
 const unsigned short per_req_ppi_fs[] = {P_PPI0_FS2, /*P_PPI0_FS3,*/ 0};
 
-#ifdef PPI1_CONTROL
+
+#if defined(PPI1_CONTROL) || defined(EPPI1_CONTROL)
 const unsigned short per_req_ppi1_0_7[] = {P_PPI1_CLK, P_PPI1_FS1, P_PPI1_D0, P_PPI1_D1,\
 	 P_PPI1_D2, P_PPI1_D3, P_PPI1_D4, P_PPI1_D5, P_PPI1_D6, P_PPI1_D7, 0};
 
@@ -76,7 +77,6 @@ const unsigned short per_req_ppi1_8_15[] = {P_PPI1_D15, P_PPI1_D14, P_PPI1_D13, 
 			 P_PPI1_D11, P_PPI1_D10, P_PPI1_D9, P_PPI1_D8, 0};
 
 const unsigned short per_req_ppi1_fs[] = {P_PPI1_FS2, /*P_PPI1_FS3,*/ 0};
-
 static int ppi_nr_devs = 2;
 #else
 static int ppi_nr_devs = 1;
@@ -89,6 +89,11 @@ MODULE_PARM_DESC(ppi_major, "Major device number");
 static int ppi_minor;
 
 struct ppi_register {
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)	/* PPI */
+#define PPI_COUNT_CORR_OFFSET	1
+#define XFR_TYPE_SHIFT	2
+#define PORT_CFG_SHIFT	4
+#define PORT_DLEN_SHIFT	11
 	unsigned short ppi_control;
 	unsigned short dummy0;
 	unsigned short ppi_status;
@@ -98,6 +103,37 @@ struct ppi_register {
 	unsigned short ppi_delay;
 	unsigned short dummy3;
 	unsigned short ppi_frame;
+#elif defined(EPPI0_CONTROL) 				/* EPPI */
+#define PORT_EN		EPPI_EN
+#define PORT_DIR	EPPI_DIR
+#define PORT_CFG	FS_CFG
+#define PPI_COUNT_CORR_OFFSET	0
+#define XFR_TYPE_SHIFT	2
+#define PORT_CFG_SHIFT	4  /* FS_CFG */
+#define PORT_DLEN_SHIFT	15
+	unsigned short ppi_status;
+	unsigned short dummy0;
+	unsigned short ppi_hcount;
+	unsigned short dummy1;
+	unsigned short ppi_delay;	/* EPPI_HDELAY */
+	unsigned short dummy2;
+	unsigned short ppi_vcount;
+	unsigned short dummy3;
+	unsigned short ppi_vdelay;
+	unsigned short dummy4;
+	unsigned short ppi_frame;
+	unsigned short dummy5;
+	unsigned short ppi_count;	/* EPPI_LINE */
+	unsigned short dummy6;
+	unsigned short ppi_clkdiv;
+	unsigned short dummy7;
+	unsigned int ppi_control;
+	unsigned int ppi_fs1w_hbl;
+	unsigned int ppi_fs1p_avpl;
+	unsigned int ppi_fs2w_lvb;
+	unsigned int ppi_fs2p_lavf;
+	unsigned int ppi_clip;
+#endif
 };
 
 struct ppi_config {
@@ -114,6 +150,10 @@ struct ppi_config {
 	unsigned short linelen;
 	unsigned short numlines;
 	unsigned short ppi_control;
+#if defined(EPPI0_CONTROL)
+	unsigned short v_delay;
+	unsigned short v_count;
+#endif
 };
 
 struct ppi_dev {
@@ -236,8 +276,8 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 	}
 	pr_debug("enable_gptimers(mask=%d)\n", t_mask);
 	enable_gptimers(t_mask);
-
 }
+
 static void disable_timer_output(struct	ppi_dev	*dev)
 {
 	unsigned short regdata;
@@ -406,9 +446,10 @@ static irqreturn_t ppi_irq_error(int irq, void *dev_id)
  *
  * CAUTION:
  */
+
 static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 {
-	unsigned short regdata;
+	unsigned long regdata;
 	unsigned long flags;
 	struct ppi_dev *dev = filp->private_data;
 	struct ppi_config *conf	= &dev->conf;
@@ -422,7 +463,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 				goto err_inval;
 			regdata	= dev->regs->ppi_control;
 			regdata	&= ~XFR_TYPE;
-			regdata	|= ((unsigned short)arg	<< 2);
+			regdata	|= ((unsigned short)arg	<< XFR_TYPE_SHIFT);
 			conf->ppi_control = regdata;
 			dev->regs->ppi_control = regdata;
 			break;
@@ -434,7 +475,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 				goto err_inval;
 			regdata	= dev->regs->ppi_control;
 			regdata	&= ~PORT_CFG;
-			regdata	|= ((unsigned short)arg	<< 4);
+			regdata	|= ((unsigned short)arg	<< PORT_CFG_SHIFT);
 			conf->ppi_control = regdata;
 			dev->regs->ppi_control = regdata;
 
@@ -512,7 +553,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 			conf->datalen =	(unsigned short)arg;
 			regdata	= dev->regs->ppi_control;
 			regdata	&= ~DLENGTH;
-			regdata	|= (arg	<< 11);
+			regdata	|= (arg	<< PORT_DLEN_SHIFT);
 			conf->ppi_control = regdata;
 			dev->regs->ppi_control = regdata;
 
@@ -523,31 +564,6 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 				": Requesting Peripherals failed\n");
 				return -EBUSY;
 			}
-			break;
-		}
-	case CMD_PPI_CLK_EDGE:
-		{
-			pr_debug("ppi_ioctl: CMD_PPI_CLK_EDGE\n");
-			regdata	= dev->regs->ppi_control;
-			if (arg)
-				regdata	|= POLC;
-			else
-				regdata	&= ~POLC;
-			conf->ppi_control = regdata;
-			dev->regs->ppi_control = regdata;
-			break;
-		}
-	case CMD_PPI_TRIG_EDGE:
-		{
-			pr_debug("ppi_ioctl: CMD_PPI_TRIG_EDGE\n");
-			conf->triggeredge = (unsigned short)arg;
-			regdata	= dev->regs->ppi_control;
-			if (arg)
-				regdata	|= POLS;
-			else
-				regdata	&= ~POLS;
-			conf->ppi_control = regdata;
-			dev->regs->ppi_control = regdata;
 			break;
 		}
 	case CMD_PPI_LINELEN:
@@ -588,7 +604,6 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 			SSYNC();
 			break;
 		}
-
 #ifdef DEBUG
 	case CMD_PPI_GET_ALLCONFIG:
 		{
@@ -600,12 +615,247 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 			pr_debug("ppi_ioctl: CMD_PPI_SETGPIO\n");
 			break;
 		}
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)
 	case CMD_PPI_GEN_FS12_TIMING_ON_WRITE:
 		{
 			pr_debug("ppi_ioctl: CMD_PPI_GEN_FS12_TIMING_ON_WRITE\n");
 			conf->timers = (unsigned short)arg;
 			break;
 		}
+	case CMD_PPI_CLK_EDGE:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_CLK_EDGE\n");
+			regdata	= dev->regs->ppi_control;
+			if (arg)
+				regdata	|= POLC;
+			else
+				regdata	&= ~POLC;
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_TRIG_EDGE:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_TRIG_EDGE\n");
+			conf->triggeredge = (unsigned short)arg;
+			regdata	= dev->regs->ppi_control;
+			if (arg)
+				regdata	|= POLS;
+			else
+				regdata	&= ~POLS;
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+#else	/* EPPI */
+	case CMD_PPI_CLK_EDGE:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_CLK_EDGE\n");
+			if (arg < 0 || arg > 3)
+				goto err_inval;
+			regdata	= dev->regs->ppi_control;
+			regdata &= ~POLC;
+			regdata |= (arg << 11);
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_FSACTIVE_SELECT:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_FSACTIVE_SELECT\n");
+			if (arg < 0 || arg > 3)
+				goto err_inval;
+			conf->triggeredge = (unsigned short)arg;
+			regdata	= dev->regs->ppi_control;
+			regdata &= ~POLS;
+			regdata |= (arg << 13);
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_BLANKGEN_SELECT:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_BLANKGEN_SELECT\n");
+			regdata	= dev->regs->ppi_control;
+			if (arg)
+				regdata |= BLANKGEN;
+			else
+				regdata &= ~BLANKGEN;
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_CLKGEN_SELECT:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_CLKGEN_SELECT\n");
+			regdata	= dev->regs->ppi_control;
+			if (arg)
+				regdata |= ICLKGEN;
+			else
+				regdata &= ~ICLKGEN;
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_FSGEN_SELECT:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_FSGEN_SELECT\n");
+			regdata	= dev->regs->ppi_control;
+			if (arg)
+				regdata |= IFSGEN;
+			else
+				regdata &= ~IFSGEN;
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_SWAP:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_SWAP\n");
+			regdata	= dev->regs->ppi_control;
+			if (arg)
+				regdata |= SWAPEN;
+			else
+				regdata &= ~SWAPEN;
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_SIGNEXT:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_SIGNEXT\n");
+			regdata	= dev->regs->ppi_control;
+			if (arg)
+				regdata |= SIGN_EXT;
+			else
+				regdata &= ~SIGN_EXT;
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_SPLIT_EVENODD:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_SPLIT_EVENODD\n");
+			regdata	= dev->regs->ppi_control;
+			if (arg)
+				regdata |= SPLT_EVEN_ODD;
+			else
+				regdata &= ~SPLT_EVEN_ODD;
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_SUBSPLIT_ODD:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_SUBSPLIT_ODD\n");
+			regdata	= dev->regs->ppi_control;
+			if (arg)
+				regdata |= SUBSPLT_ODD;
+			else
+				regdata &= ~SUBSPLT_ODD;
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_RGBFORMAT:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_RGBFORMAT\n");
+			regdata	= dev->regs->ppi_control;
+			if (arg)
+				regdata |= RGB_FMT_EN;
+			else
+				regdata &= ~RGB_FMT_EN;
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_FIFORWM:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_FIFORWM\n");
+			if (arg < 0 || arg > 3)
+				goto err_inval;
+			regdata	= dev->regs->ppi_control;
+			regdata &= ~FIFO_RWM;
+			regdata |= (arg << 27);
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_FIFOUWM:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_FIFOUWM\n");
+			if (arg < 0 || arg > 3)
+				goto err_inval;
+			regdata	= dev->regs->ppi_control;
+			regdata &= ~FIFO_UWM;
+			regdata |= (arg << 29);
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_ITUTYPE:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_ITUTYPE\n");
+			regdata	= dev->regs->ppi_control;
+			if (arg)
+				regdata |= ITU_TYPE;
+			else
+				regdata &= ~ITU_TYPE;
+			conf->ppi_control = regdata;
+			dev->regs->ppi_control = regdata;
+			break;
+		}
+	case CMD_PPI_CLKDIV:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_CLKDIV\n");
+
+			dev->regs->ppi_clkdiv = (unsigned short)arg;
+			break;
+		}
+	case CMD_PPI_EPPI1_FS1W_HBL:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_EPPI1_FS1W_HBL\n");
+			dev->regs->ppi_fs1w_hbl = arg;
+			break;
+		}
+	case CMD_PPI_EPPI1_FS1P_AVPL:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_EPPI1_FS1P_AVPL\n");
+			dev->regs->ppi_fs1p_avpl = arg;
+			break;
+		}
+	case CMD_PPI_EPPI1_FS2W_LVB:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_EPPI1_FS2W_LVB\n");
+			dev->regs->ppi_fs2w_lvb = arg;
+			break;
+		}
+	case CMD_PPI_EPPI1_FS2P_LAVF:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_EPPI1_FS2P_LAVF\n");
+			dev->regs->ppi_fs2p_lavf = arg;
+			break;
+		}
+	case CMD_PPI_EPPI1_CLIP:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_EPPI1_CLIP\n");
+			dev->regs->ppi_clip = arg;
+			break;
+		}
+	case CMD_PPI_EPPI1_VDELAY:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_EPPI1_VDELAY\n");
+			conf->v_delay = (unsigned short)arg;
+			dev->regs->ppi_vdelay = (unsigned short) arg;
+			break;
+		}
+	case CMD_PPI_EPPI1_VCOUNT:
+		{
+			pr_debug("ppi_ioctl:  CMD_PPI_EPPI1_VCOUNT\n");
+			conf->v_count = (unsigned short)arg;
+			break;
+		}
+#endif
 	default:
 		goto err_inval;
 	}
@@ -697,7 +947,6 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
 
 	blackfin_dcache_invalidate_range((unsigned long)buf,
 					 ((unsigned long)buf) +	count);
-
 	/*
 	 ** Configure DMA Controller
 	 ** WNR:  memory write
@@ -744,7 +993,7 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
 
 	/* configure PPI registers to match DMA	registers */
 	dev->regs->ppi_control &= ~PORT_DIR;
-	dev->regs->ppi_count = conf->linelen - 1;
+	dev->regs->ppi_count = conf->linelen - PPI_COUNT_CORR_OFFSET;
 	dev->regs->ppi_frame = conf->numlines;
 	dev->regs->ppi_delay = conf->delay;
 
@@ -877,7 +1126,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	/* configure PPI registers to match DMA	registers */
 
 	dev->regs->ppi_control |= PORT_DIR;
-	dev->regs->ppi_count = conf->linelen - 1;
+	dev->regs->ppi_count = conf->linelen - PPI_COUNT_CORR_OFFSET;
 	dev->regs->ppi_frame = conf->numlines;
 	dev->regs->ppi_delay = conf->delay;
 
@@ -961,7 +1210,7 @@ static int ppi_open(struct inode *inode, struct	file *filp)
 	dev->conf.done = 1;
 	spin_unlock_irqrestore(&dev->lock, flags);
 
-	/* Request DMA0	channel, and pass the interrupt	handler	*/
+	/* Request PPI DMA channel, and pass the interrupt handler */
 
 	if (peripheral_request_list(dev->per_ppi0_7, PPI_DEVNAME)) {
 		printk(KERN_ERR	PPI_DEVNAME
@@ -1126,7 +1375,6 @@ static void ppi_cleanup_module(void)
 			cdev_del(&ppi_devices[i].cdev);
 		kfree(ppi_devices);
 	}
-
 	unregister_chrdev_region(devno,	ppi_nr_devs);
 }
 module_exit(ppi_cleanup_module);
@@ -1189,8 +1437,8 @@ static int __init ppi_init_module(void)
 		init_waitqueue_head(&ppi_devices[i].waitq);
 	}
 
-	/* PPI0	*/
 
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL) 	/* PPI0	*/
 	ppi_devices[0].dma_chan	= CH_PPI;
 	ppi_devices[0].irq = IRQ_PPI;
 	ppi_devices[0].irq_error = IRQ_PPI_ERROR;
@@ -1221,10 +1469,34 @@ static int __init ppi_init_module(void)
 	ppi_devices[1].fs2_timer_id = FS1_2_TIMER_ID;
 	ppi_devices[1].fs1_timer_bit = FS1_1_TIMER_BIT;
 	ppi_devices[1].fs2_timer_bit = FS1_2_TIMER_BIT;
-	ppi_devices[0].per_ppi0_7 = per_req_ppi1_0_7;
-	ppi_devices[0].per_ppi8_15 = per_req_ppi1_8_15;
-	ppi_devices[0].per_ppifs = per_req_ppi1_fs;
+	ppi_devices[1].per_ppi0_7 = per_req_ppi1_0_7;
+	ppi_devices[1].per_ppi8_15 = per_req_ppi1_8_15;
+	ppi_devices[1].per_ppifs = per_req_ppi1_fs;
 #endif
+
+#elif defined(EPPI0_CONTROL)	/* BF54x */
+	ppi_devices[0].dma_chan	= CH_EPPI0;
+	ppi_devices[0].irq = IRQ_EPPI0;
+	ppi_devices[0].irq_error = IRQ_EPPI0_ERROR;
+	ppi_devices[0].regs = (struct ppi_register *)EPPI0_STATUS;
+	ppi_devices[0].per_ppi0_7 = per_req_ppi0_7;
+	ppi_devices[0].per_ppi8_15 = per_req_ppi8_15;
+	ppi_devices[0].per_ppifs = per_req_ppi_fs;
+
+	/* EPPI1 */
+#ifdef EPPI1_CONTROL
+	ppi_devices[1].regs = (struct ppi_register *)EPPI1_STATUS;
+	ppi_devices[1].dma_chan	= CH_EPPI1;
+	ppi_devices[1].irq = IRQ_EPPI1;
+	ppi_devices[1].irq_error = IRQ_EPPI1_ERROR;
+	ppi_devices[1].per_ppi0_7 = per_req_ppi1_0_7;
+	ppi_devices[1].per_ppi8_15 = per_req_ppi1_8_15;
+	ppi_devices[1].per_ppifs = per_req_ppi1_fs;
+#endif
+
+#endif
+
+
 	return 0;
 }
 module_init(ppi_init_module);
