@@ -128,7 +128,7 @@ static inline unsigned char rx_one_byte(struct sport_uart_port *up)
 
 	/* Extract 8 bits data */
 	__asm__ __volatile__ (
-		"%0 = 0;"
+		"%[extr] = 0;"
 		"%[mask1] = 0x1801(Z);"
 		"%[mask2] = 0x0300(Z);"
 		"%[shift] = 0;"
@@ -136,13 +136,13 @@ static inline unsigned char rx_one_byte(struct sport_uart_port *up)
 		".Lloop_s:"
 		"%[tmp] = extract(%[val], %[mask1].L)(Z);"
 		"%[tmp] <<= %[shift];"
-		"%0 = %0 | %[tmp];"
+		"%[extr] = %[extr] | %[tmp];"
 		"%[mask1] = %[mask1] - %[mask2];"
 		".Lloop_e:"
 		"%[shift] += 1;"
-		: "=d"(extract), [shift]"=d"(tmp_shift), [tmp]"=d"(tmp),
+		: [val]"=d"(value), [extr]"=d"(extract), [shift]"=d"(tmp_shift), [tmp]"=d"(tmp),
 		  [mask1]"=d"(tmp_mask1), [mask2]"=d"(tmp_mask2)
-		: "d"(extract), [val]"d"(value), [lc]"a"(8)
+		: "d"(value), [lc]"a"(8)
 		: "ASTAT", "LB0", "LC0", "LT0"
 	);
 
