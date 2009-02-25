@@ -109,7 +109,7 @@ static inline void tx_one_byte(struct sport_uart_port *up, unsigned int value)
 		"%0 = %0 & R2;"
 		"%0 = %0 | R3;"
 		: "=d"(value)
-		:
+		: "d"(value)
 		: "ASTAT", "R2", "R3"
 	);
 	pr_debug("%s value:%x\n", __func__, value);
@@ -142,7 +142,7 @@ static inline unsigned char rx_one_byte(struct sport_uart_port *up)
 		"%[shift] += 1;"
 		: "=d"(extract), [shift]"=d"(tmp_shift), [tmp]"=d"(tmp),
 		  [mask1]"=d"(tmp_mask1), [mask2]"=d"(tmp_mask2)
-		: [val]"d"(value), [lc]"a"(8)
+		: "d"(extract), [val]"d"(value), [lc]"a"(8)
 		: "ASTAT", "LB0", "LC0", "LT0"
 	);
 
