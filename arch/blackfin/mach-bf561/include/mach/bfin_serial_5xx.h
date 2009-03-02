@@ -74,6 +74,7 @@
 struct bfin_serial_port {
         struct uart_port        port;
         unsigned int            old_status;
+	int			status_irq;
 	unsigned int lsr;
 #ifdef CONFIG_SERIAL_BFIN_DMA
 	int			tx_done;
@@ -116,6 +117,7 @@ static inline void UART_CLEAR_LSR(struct bfin_serial_port *uart)
 struct bfin_serial_res {
 	unsigned long	uart_base_addr;
 	int		uart_irq;
+	int		uart_status_irq;
 #ifdef CONFIG_SERIAL_BFIN_DMA
 	unsigned int	uart_tx_dma_channel;
 	unsigned int	uart_rx_dma_channel;
@@ -130,6 +132,7 @@ struct bfin_serial_res bfin_serial_resource[] = {
 	{
 	0xFFC00400,
 	IRQ_UART_RX,
+	IRQ_UART_ERROR,
 #ifdef CONFIG_SERIAL_BFIN_DMA
 	CH_UART_TX,
 	CH_UART_RX,
