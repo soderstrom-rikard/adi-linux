@@ -789,12 +789,7 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	}
 
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
-	/*
-	 * Do not use uart_get_divisor()! We have our own equation.
-	 * BF537 HRM Page 13-13: BIT RATE = SCLK/(16 x Divisor),
-	 * so Divisor = SCLK/(16 x BIT RATE)
-	 */
-	quot = port->uartclk / (16 * baud);
+	quot = uart_get_divisor(port, baud) - ANOMALY_05000230;
 	spin_lock_irqsave(&uart->port.lock, flags);
 
 	UART_SET_ANOMALY_THRESHOLD(uart, USEC_PER_SEC / baud * 15);
