@@ -58,9 +58,9 @@
 #define UART_SET_DLAB(uart)     /* MMRs not muxed on BF54x */
 #define UART_CLEAR_DLAB(uart)   /* MMRs not muxed on BF54x */
 
-#define UART_GET_CTS(x) (!(UART_GET_MSR(x) & CTS))
-#define UART_CLEAR_RTS(x) UART_PUT_MCR(x, UART_GET_MCR(x) | MRTS | ARTS)
-#define UART_SET_RTS(x) UART_PUT_MCR(x, UART_GET_MCR(x) & ~(ARTS|MRTS))
+#define UART_GET_CTS(x) (UART_GET_MSR(x) & CTS)
+#define UART_DISABLE_RTS(x) UART_PUT_MCR(x, UART_GET_MCR(x) & ~(ARTS|MRTS))
+#define UART_ENABLE_RTS(x) UART_PUT_MCR(x, UART_GET_MCR(x) | MRTS | ARTS)
 #define UART_ENABLE_INTS(x, v) UART_SET_IER(x, v)
 #define UART_DISABLE_INTS(x) UART_CLEAR_IER(x, 0xF)
 

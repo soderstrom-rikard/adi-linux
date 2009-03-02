@@ -519,9 +519,9 @@ static unsigned int bfin_serial_get_mctrl(struct uart_port *port)
 
 	/* CTS PIN is negative assertive. */
 	if (UART_GET_CTS(uart))
-		return TIOCM_DSR | TIOCM_CAR;
-	else
 		return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
+	else
+		return TIOCM_DSR | TIOCM_CAR;
 }
 
 static void bfin_serial_set_mctrl(struct uart_port *port, unsigned int mctrl)
@@ -532,9 +532,9 @@ static void bfin_serial_set_mctrl(struct uart_port *port, unsigned int mctrl)
 
 	/* RTS PIN is negative assertive. */
 	if (mctrl & TIOCM_RTS)
-		UART_CLEAR_RTS(uart);
+		UART_ENABLE_RTS(uart);
 	else
-		UART_SET_RTS(uart);
+		UART_DISABLE_RTS(uart);
 }
 
 /*
