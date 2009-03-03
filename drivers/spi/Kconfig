@@ -66,6 +66,20 @@ config SPI_BFIN
 	help
 	  This is the SPI controller master driver for Blackfin 5xx processor.
 
+config SPI_BFIN_SPORT
+	tristate "SPORT emulated SPI driver for ADI Blackfin5xx"
+	depends on BLACKFIN
+	help
+	  This is SPORT emulated SPI master driver for Blackfin 5xx processor.
+
+config BLACKFIN_SPORT
+	int "Blackfin SPORT port num"
+	depends on SPI_BFIN_SPORT
+	default 0
+	help
+	  Enter the number of Blackfin SPORT port which SPI is occupied.
+	  acceptable values are 0 or 1
+
 config SPI_BFIN_LOCK
 	bool "SPI bus lock"
 	depends on SPI_BFIN
