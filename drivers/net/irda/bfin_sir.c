@@ -149,7 +149,7 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 
 static int bfin_sir_is_receiving(struct net_device *dev)
 {
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 
 	if (!(SIR_UART_GET_IER(port) & ERBFI))
@@ -161,7 +161,7 @@ static int bfin_sir_is_receiving(struct net_device *dev)
 static void bfin_sir_tx_chars(struct net_device *dev)
 {
 	unsigned int chr;
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 
 	if (self->tx_buff.len != 0) {
@@ -186,7 +186,7 @@ static void bfin_sir_tx_chars(struct net_device *dev)
 
 static void bfin_sir_rx_chars(struct net_device *dev)
 {
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 	unsigned char ch;
 
@@ -199,7 +199,7 @@ static void bfin_sir_rx_chars(struct net_device *dev)
 static irqreturn_t bfin_sir_rx_int(int irq, void *dev_id)
 {
 	struct net_device *dev = dev_id;
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 	while ((SIR_UART_GET_LSR(port) & DR))
 		bfin_sir_rx_chars(dev);
@@ -210,7 +210,7 @@ static irqreturn_t bfin_sir_rx_int(int irq, void *dev_id)
 static irqreturn_t bfin_sir_tx_int(int irq, void *dev_id)
 {
 	struct net_device *dev = dev_id;
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 
 	if (SIR_UART_GET_LSR(port) & THRE)
@@ -222,7 +222,7 @@ static irqreturn_t bfin_sir_tx_int(int irq, void *dev_id)
 #ifdef CONFIG_SIR_BFIN_DMA
 static void bfin_sir_dma_tx_chars(struct net_device *dev)
 {
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 
 	if (!port->tx_done)
@@ -258,7 +258,7 @@ static void bfin_sir_dma_tx_chars(struct net_device *dev)
 static irqreturn_t bfin_sir_dma_tx_int(int irq, void *dev_id)
 {
 	struct net_device *dev = dev_id;
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 	spin_lock(&self->lock);
 	if (!(get_dma_curr_irqstat(port->tx_dma_channel)&DMA_RUN)) {
@@ -285,7 +285,7 @@ static irqreturn_t bfin_sir_dma_tx_int(int irq, void *dev_id)
 
 static void bfin_sir_dma_rx_chars(struct net_device *dev)
 {
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 	int i;
 
@@ -297,7 +297,7 @@ static void bfin_sir_dma_rx_chars(struct net_device *dev)
 
 void bfin_sir_rx_dma_timeout(struct net_device *dev)
 {
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 	int x_pos, pos;
 	unsigned long flags;
@@ -320,7 +320,7 @@ void bfin_sir_rx_dma_timeout(struct net_device *dev)
 static irqreturn_t bfin_sir_dma_rx_int(int irq, void *dev_id)
 {
 	struct net_device *dev = dev_id;
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 	unsigned short irqstat;
 
@@ -438,7 +438,7 @@ static int bfin_sir_suspend(struct platform_device *pdev, pm_message_t state)
 		return 0;
 
 	dev = sir_port->dev;
-	self = dev->priv;
+	self = netdev_priv(dev);
 	if (self->open) {
 		flush_scheduled_work();
 		bfin_sir_shutdown(self->sir_port, dev);
@@ -459,7 +459,7 @@ static int bfin_sir_resume(struct platform_device *pdev)
 		return 0;
 
 	dev = sir_port->dev;
-	self = dev->priv;
+	self = netdev_priv(dev);
 	port = self->sir_port;
 	if (self->open) {
 		if (self->newspeed) {
@@ -513,7 +513,7 @@ static void bfin_sir_send_work(struct work_struct *work)
 
 static int bfin_sir_hard_xmit(struct sk_buff *skb, struct net_device *dev)
 {
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	int speed = irda_get_next_speed(skb);
 
 	netif_stop_queue(dev);
@@ -538,7 +538,7 @@ static int bfin_sir_hard_xmit(struct sk_buff *skb, struct net_device *dev)
 static int bfin_sir_ioctl(struct net_device *dev, struct ifreq *ifreq, int cmd)
 {
 	struct if_irda_req *rq = (struct if_irda_req *)ifreq;
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 	int ret = 0;
 
@@ -577,13 +577,13 @@ static int bfin_sir_ioctl(struct net_device *dev, struct ifreq *ifreq, int cmd)
 
 static struct net_device_stats *bfin_sir_stats(struct net_device *dev)
 {
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	return &self->stats;
 }
 
 static int bfin_sir_open(struct net_device *dev)
 {
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 	int err = -ENOMEM;
 
@@ -623,7 +623,7 @@ err_startup:
 
 static int bfin_sir_stop(struct net_device *dev)
 {
-	struct bfin_sir_self *self = dev->priv;
+	struct bfin_sir_self *self = netdev_priv(dev);
 
 	flush_scheduled_work();
 	bfin_sir_shutdown(self->sir_port, dev);
@@ -682,7 +682,7 @@ static int __devinit bfin_sir_probe(struct platform_device *pdev)
 	if (!dev)
 		goto err_mem_1;
 
-	self = dev->priv;
+	self = netdev_priv(dev);
 	self->dev = &pdev->dev;
 	self->sir_port = sir_port;
 	sir_port->dev = dev;
@@ -750,7 +750,7 @@ static int __devexit bfin_sir_remove(struct platform_device *pdev)
 	if (!sir_port)
 		return 0;
 	dev = sir_port->dev;
-	self = dev->priv;
+	self = netdev_priv(dev);
 	unregister_netdev(dev);
 	kfree(self->tx_buff.head);
 	kfree(self->rx_buff.head);
