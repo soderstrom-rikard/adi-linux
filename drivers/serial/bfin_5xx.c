@@ -73,6 +73,63 @@ static void bfin_serial_tx_chars(struct bfin_serial_port *uart);
 
 static void bfin_serial_reset_irda(struct uart_port *port);
 
+#if defined(CONFIG_SERIAL_BFIN_CTSRTS) || \
+	defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
+static unsigned int bfin_serial_get_mctrl(struct uart_port *port)
+{
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+	if (uart->cts_pin < 0)
+		return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
+
+	/* CTS PIN is negative assertive. */
+	if (UART_GET_CTS(uart))
+		return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
+	else
+		return TIOCM_DSR | TIOCM_CAR;
+}
+
+static void bfin_serial_set_mctrl(struct uart_port *port, unsigned int mctrl)
+{
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+	if (uart->rts_pin < 0)
+		return;
+
+	/* RTS PIN is negative assertive. */
+	if (mctrl & TIOCM_RTS)
+		UART_ENABLE_RTS(uart);
+	else
+		UART_DISABLE_RTS(uart);
+}
+
+/*
+ * Handle any change of modem status signal.
+ */
+static irqreturn_t bfin_serial_mctrl_cts_int(int irq, void *dev_id)
+{
+	struct bfin_serial_port *uart = dev_id;
+	unsigned int status;
+
+	status = bfin_serial_get_mctrl(&uart->port);
+	uart_handle_cts_change(&uart->port, status & TIOCM_CTS);
+#ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
+	uart->scts = 1;
+	UART_CLEAR_SCTS(uart);
+	UART_CLEAR_IER(uart, EDSSI);
+#endif
+
+	return IRQ_HANDLED;
+}
+#else
+static unsigned int bfin_serial_get_mctrl(struct uart_port *port)
+{
+	return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
+}
+
+static void bfin_serial_set_mctrl(struct uart_port *port, unsigned int mctrl)
+{
+}
+#endif
+
 /*
  * interrupts are disabled on entry
  */
@@ -108,6 +165,13 @@ static void bfin_serial_start_tx(struct uart_port *port)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 	struct tty_struct *tty = uart->port.info->port.tty;
+
+#ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
+	if (uart->scts && (!bfin_serial_get_mctrl(&uart->port)&TIOCM_CTS)) {
+		uart->scts = 0;
+		uart_handle_cts_change(&uart->port, uart->scts);
+	}
+#endif
 
 	/*
 	 * To avoid losting RX interrupt, we reset IR function
@@ -304,6 +368,12 @@ static irqreturn_t bfin_serial_tx_int(int irq, void *dev_id)
 {
 	struct bfin_serial_port *uart = dev_id;
 
+#ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
+	if (uart->scts && (!bfin_serial_get_mctrl(&uart->port)&TIOCM_CTS)) {
+		uart->scts = 0;
+		uart_handle_cts_change(&uart->port, uart->scts);
+	}
+#endif
 	spin_lock(&uart->port.lock);
 	if (UART_GET_LSR(uart) & THRE)
 		bfin_serial_tx_chars(uart);
@@ -447,6 +517,13 @@ static irqreturn_t bfin_serial_dma_tx_int(int irq, void *dev_id)
 	struct bfin_serial_port *uart = dev_id;
 	struct circ_buf *xmit = &uart->port.info->xmit;
 
+#ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
+	if (uart->scts && (!bfin_serial_get_mctrl(&uart->port)&TIOCM_CTS)) {
+		uart->scts = 0;
+		uart_handle_cts_change(&uart->port, uart->scts);
+	}
+#endif
+
 	spin_lock(&uart->port.lock);
 	if (!(get_dma_curr_irqstat(uart->tx_dma_channel)&DMA_RUN)) {
 		disable_dma(uart->tx_dma_channel);
@@ -509,64 +586,6 @@ static unsigned int bfin_serial_tx_empty(struct uart_port *port)
 		return 0;
 }
 
-#if defined(CONFIG_SERIAL_BFIN_CTSRTS) || \
-	defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
-static unsigned int bfin_serial_get_mctrl(struct uart_port *port)
-{
-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
-	if (uart->cts_pin < 0)
-		return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
-
-	/* CTS PIN is negative assertive. */
-	if (UART_GET_CTS(uart))
-		return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
-	else
-		return TIOCM_DSR | TIOCM_CAR;
-}
-
-static void bfin_serial_set_mctrl(struct uart_port *port, unsigned int mctrl)
-{
-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
-	if (uart->rts_pin < 0)
-		return;
-
-	/* RTS PIN is negative assertive. */
-	if (mctrl & TIOCM_RTS)
-		UART_ENABLE_RTS(uart);
-	else
-		UART_DISABLE_RTS(uart);
-}
-
-/*
- * Handle any change of modem status signal.
- */
-static irqreturn_t bfin_serial_mctrl_cts_int(int irq, void *dev_id)
-{
-	struct bfin_serial_port *uart = dev_id;
-	unsigned int status;
-
-	status = bfin_serial_get_mctrl(&uart->port);
-	uart_handle_cts_change(&uart->port, status & TIOCM_CTS);
-#ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
-	UART_CLEAR_SCTS(uart);
-#endif
-
-	return IRQ_HANDLED;
-}
-#else
-static unsigned int bfin_serial_get_mctrl(struct uart_port *port)
-{
-	return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
-}
-
-static void bfin_serial_set_mctrl(struct uart_port *port, unsigned int mctrl)
-{
-}
-#endif
-
-/*
- * Interrupts are always disabled.
- */
 static void bfin_serial_break_ctl(struct uart_port *port, int break_state)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
@@ -768,7 +787,6 @@ static void bfin_serial_shutdown(struct uart_port *port)
 		gpio_free(uart->rts_pin);
 	if (UART_GET_IER(uart) && EDSSI)
 		free_irq(uart->status_irq, uart);
-	UART_CLEAR_IER(uart, EDSSI);
 #endif
 }
 
