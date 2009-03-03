@@ -66,11 +66,23 @@ config SPI_BFIN
 	help
 	  This is the SPI controller master driver for Blackfin 5xx processor.
 
+config SPI_BFIN_LOCK
+	bool "SPI bus lock"
+	depends on SPI_BFIN
+	default n
+	help
+	  Enable support for spi_lock_bus()/spi_unlock_bus(). Useful when multiple
+	  SPI devices share a bus, especially for devices like MMC_SPI.
+
 config SPI_BFIN_SPORT
-	tristate "SPORT emulated SPI driver for ADI Blackfin5xx"
+	tristate "emulate SPI bus with Blackfin SPORT"
 	depends on BLACKFIN
 	help
-	  This is SPORT emulated SPI master driver for Blackfin 5xx processor.
+	  Enable support for emulating a SPI bus over the Blackfin SPORT
+	  peripheral.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called bfin_sport_spi.
 
 config BLACKFIN_SPORT
 	int "Blackfin SPORT port num"
@@ -79,14 +91,6 @@ config BLACKFIN_SPORT
 	help
 	  Enter the number of Blackfin SPORT port which SPI is occupied.
 	  acceptable values are 0 or 1
-
-config SPI_BFIN_LOCK
-	bool "SPI bus lock"
-	depends on SPI_BFIN
-	default n
-	help
-	  Enable support for spi_lock_bus()/spi_unlock_bus(). Useful when multiple
-	  SPI devices share a bus, especially for devices like MMC_SPI.
 
 config SPI_AU1550
 	tristate "Au1550/Au12x0 SPI Controller"

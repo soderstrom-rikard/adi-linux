@@ -1,9 +1,9 @@
 /*
- * Blackfin SPORT emulated SPI Driver
- * Based on:	drivers/spi/spi_bf5xx.c.c
- * Copyright 2009-2012 Analog Devices Inc.
+ * Emulate a SPI bus using the Blackfin SPORT peripheral
  *
  * Enter bugs at http://blackfin.uclinux.org/
+ *
+ * Copyright 2009 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
