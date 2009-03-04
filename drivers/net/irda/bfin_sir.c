@@ -16,9 +16,9 @@
 #define DMA_SIR_RX_FLUSH_JIFS  (HZ * 4 / 250)
 #endif
 
-# if defined ANOMALY_05000447
+#if ANOMALY_05000447
 static int max_rate = 57600;
-# else
+#else
 static int max_rate = 115200;
 #endif
 
