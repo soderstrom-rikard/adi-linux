@@ -761,11 +761,11 @@ static int __devexit ad7879_remove(struct i2c_client *client)
 	kfree(ts);
 	return 0;
 }
-static const struct i2c_device_id ad7979_id[] = {
+static const struct i2c_device_id ad7879_id[] = {
 	{ "ad7879", 0 },
 	{ }
 };
-MODULE_DEVICE_TABLE(i2c, ad7979_id);
+MODULE_DEVICE_TABLE(i2c, ad7879_id);
 
 static struct i2c_driver ad7879_driver = {
 	.driver = {
@@ -776,7 +776,7 @@ static struct i2c_driver ad7879_driver = {
 	.remove		= __devexit_p(ad7879_remove),
 	.suspend	= ad7879_suspend,
 	.resume		= ad7879_resume,
-	.id_table 	= ad7979_id,
+	.id_table 	= ad7879_id,
 };
 
 static int __init ad7879_init(void)
