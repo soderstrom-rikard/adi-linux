@@ -559,7 +559,9 @@ static int load_flat_file(struct linux_binprm * bprm,
 			goto out_fail;
 		}
 
-		len = data_len + extra + MAX_SHARED_LIBS * sizeof(unsigned long);
+		len = MAX_SHARED_LIBS * sizeof(unsigned long);
+		len = ALIGN(len, 0x20);
+		len = data_len + extra;
 		len = PAGE_ALIGN(len);
 		down_write(&current->mm->mmap_sem);
 		realdatastart = do_mmap(0, 0, len,
@@ -577,6 +579,7 @@ static int load_flat_file(struct linux_binprm * bprm,
 			goto out_fail;
 		}
 		datapos = realdatastart + MAX_SHARED_LIBS * sizeof(unsigned long);
+		datapos = ALIGN(datapos, 0x20);
 
 		DBG_FLT("BINFMT_FLAT: Allocated data+bss+stack (%d bytes): %x\n",
 				(int)(data_len + bss_len + stack_len), (int)datapos);
@@ -595,7 +598,7 @@ static int load_flat_file(struct linux_binprm * bprm,
 		if (result >= (unsigned long)-4096) {
 			printk("Unable to read data+bss, errno %d\n", (int)-result);
 			do_munmap(current->mm, textpos, text_len);
-			do_munmap(current->mm, realdatastart, data_len + extra);
+			do_munmap(current->mm, realdatastart, len);
 			goto out_fail;
 		}
 
@@ -605,7 +608,8 @@ static int load_flat_file(struct linux_binprm * bprm,
 		memp_size = len;
 	} else {
 
-		len = text_len + data_len + extra + MAX_SHARED_LIBS * sizeof(unsigned long);
+		len = text_len + MAX_SHARED_LIBS * sizeof(unsigned long);
+		len = ALIGN(len, 0x20) + data_len + extra;
 		len = PAGE_ALIGN(len);
 		down_write(&current->mm->mmap_sem);
 #ifdef CONFIG_OPROFILE
@@ -628,8 +632,8 @@ static int load_flat_file(struct linux_binprm * bprm,
 
 		realdatastart = textpos + ntohl(hdr->data_start);
 		datapos = realdatastart + MAX_SHARED_LIBS * sizeof(unsigned long);
-		reloc = (unsigned long *) (textpos + ntohl(hdr->reloc_start) +
-				MAX_SHARED_LIBS * sizeof(unsigned long));
+		datapos = ALIGN(datapos, 0x20);
+		reloc = (unsigned long *) (datapos + ntohl(hdr->reloc_start) - text_len);
 		memp = textpos;
 		memp_size = len;
 #ifdef CONFIG_BINFMT_ZFLAT
@@ -666,8 +670,7 @@ static int load_flat_file(struct linux_binprm * bprm,
 		}
 		if (result >= (unsigned long)-4096) {
 			printk("Unable to read code+data+bss, errno %d\n",(int)-result);
-			do_munmap(current->mm, textpos, text_len + data_len + extra +
-				MAX_SHARED_LIBS * sizeof(unsigned long));
+			do_munmap(current->mm, textpos, len);
 			goto out_fail;
 		}
 	}
@@ -919,7 +922,7 @@ static int load_flat_binary(struct linux_binprm * bprm, struct pt_regs * regs)
 #ifdef CONFIG_BINFMT_SHARED_FLAT
 	for (i = MAX_SHARED_LIBS-1; i>0; i--) {
 		if (libinfo.lib_list[i].loaded) {
-			/* Push previos first to call address */
+			/* Push previous first to call address */
 			--sp;	put_user(start_addr, sp);
 			start_addr = libinfo.lib_list[i].entry;
 		}
