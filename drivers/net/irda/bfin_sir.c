@@ -28,7 +28,7 @@ static void turnaround_delay(unsigned long last_jif, int mtt)
 
 	mtt = mtt < 10000 ? 10000 : mtt;
 	ticks = 1 + mtt / (USEC_PER_SEC / HZ);
-	schedule_timeout_interruptible(ticks);
+	schedule_timeout_uninterruptible(ticks);
 }
 
 static void __devinit bfin_sir_init_ports(struct bfin_sir_port *sp, struct platform_device *pdev)
@@ -67,8 +67,11 @@ static void bfin_sir_stop_tx(struct bfin_sir_port *port)
 	disable_dma(port->tx_dma_channel);
 #endif
 
-	while (!(SIR_UART_GET_LSR(port) & THRE))
+	while (!(SIR_UART_GET_LSR(port) & THRE)) {
+		cpu_relax();
 		continue;
+	}
+
 	SIR_UART_STOP_TX(port);
 }
 
@@ -205,8 +208,11 @@ static irqreturn_t bfin_sir_rx_int(int irq, void *dev_id)
 	struct net_device *dev = dev_id;
 	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
+
+	spin_lock(&self->lock);
 	while ((SIR_UART_GET_LSR(port) & DR))
 		bfin_sir_rx_chars(dev);
+	spin_unlock(&self->lock);
 
 	return IRQ_HANDLED;
 }
@@ -217,8 +223,11 @@ static irqreturn_t bfin_sir_tx_int(int irq, void *dev_id)
 	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
 
+	spin_lock(&self->lock);
 	if (SIR_UART_GET_LSR(port) & THRE)
 		bfin_sir_tx_chars(dev);
+	spin_unlock(&self->lock);
+
 	return IRQ_HANDLED;
 }
 #endif /* CONFIG_SIR_BFIN_PIO */
@@ -264,6 +273,7 @@ static irqreturn_t bfin_sir_dma_tx_int(int irq, void *dev_id)
 	struct net_device *dev = dev_id;
 	struct bfin_sir_self *self = netdev_priv(dev);
 	struct bfin_sir_port *port = self->sir_port;
+
 	spin_lock(&self->lock);
 	if (!(get_dma_curr_irqstat(port->tx_dma_channel)&DMA_RUN)) {
 		clear_dma_irqstat(port->tx_dma_channel);
@@ -444,7 +454,7 @@ static int bfin_sir_suspend(struct platform_device *pdev, pm_message_t state)
 	dev = sir_port->dev;
 	self = netdev_priv(dev);
 	if (self->open) {
-		flush_scheduled_work();
+		flush_work(&self->work);
 		bfin_sir_shutdown(self->sir_port, dev);
 		netif_device_detach(dev);
 	}
@@ -582,6 +592,7 @@ static int bfin_sir_ioctl(struct net_device *dev, struct ifreq *ifreq, int cmd)
 static struct net_device_stats *bfin_sir_stats(struct net_device *dev)
 {
 	struct bfin_sir_self *self = netdev_priv(dev);
+
 	return &self->stats;
 }
 
@@ -629,7 +640,7 @@ static int bfin_sir_stop(struct net_device *dev)
 {
 	struct bfin_sir_self *self = netdev_priv(dev);
 
-	flush_scheduled_work();
+	flush_work(&self->work);
 	bfin_sir_shutdown(self->sir_port, dev);
 
 	if (self->rxskb) {
@@ -651,7 +662,7 @@ static int bfin_sir_stop(struct net_device *dev)
 
 static int bfin_sir_init_iobuf(iobuff_t *io, int size)
 {
-	io->head = kmalloc(size, GFP_KERNEL | GFP_DMA);
+	io->head = kmalloc(size, GFP_KERNEL);
 	if (!io->head)
 		return -ENOMEM;
 	io->truesize = size;
@@ -748,7 +759,6 @@ static int __devexit bfin_sir_remove(struct platform_device *pdev)
 	struct bfin_sir_port *sir_port;
 	struct net_device *dev = NULL;
 	struct bfin_sir_self *self;
-
 
 	sir_port = platform_get_drvdata(pdev);
 	if (!sir_port)
