@@ -1,7 +1,7 @@
 /*
  * Blackfin Infra-red Driver
  *
- * Copyright 2006-2008 Analog Devices Inc.
+ * Copyright 2006-2009 Analog Devices Inc.
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
@@ -31,7 +31,7 @@ struct dma_rx_buf {
 	char *buf;
 	int head;
 	int tail;
-	};
+};
 #endif
 
 struct bfin_sir_port {
@@ -139,9 +139,10 @@ static inline void SIR_UART_CLEAR_LSR(struct bfin_sir_port *port)
 }
 #endif
 
-static unsigned short per[][2] = {
-	{P_UART0_RX, P_UART0_TX},
-	{P_UART1_RX, P_UART1_TX},
-	{P_UART2_RX, P_UART2_TX},
-	{P_UART3_RX, P_UART3_TX},
-	};
+static const unsigned short per[][4] = {
+	/* rx pin      tx pin     NULL  uart_number */
+	{P_UART0_RX, P_UART0_TX,    0,    0},
+	{P_UART1_RX, P_UART1_TX,    0,    1},
+	{P_UART2_RX, P_UART2_TX,    0,    2},
+	{P_UART3_RX, P_UART3_TX,    0,    3},
+};

@@ -1,7 +1,7 @@
 /*
  * Blackfin Infra-red Driver
  *
- * Copyright 2006-2008 Analog Devices Inc.
+ * Copyright 2006-2009 Analog Devices Inc.
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
@@ -94,7 +94,9 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 {
 	int ret = -EINVAL;
 	unsigned int quot;
-	unsigned short val, lsr, lcr = 0;
+	unsigned short val, lsr, lcr;
+	static int utime;
+	int count = 10;
 
 	lcr = WLS(8);
 
@@ -105,11 +107,16 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 	case 57600:
 	case 115200:
 
-		quot = (port->clk + (8 * speed)) / (16 * speed);
+		quot = (port->clk + (8 * speed)) / (16 * speed)\
+						- ANOMALY_05000230;
 
 		do {
+			udelay(utime);
 			lsr = SIR_UART_GET_LSR(port);
-		} while (!(lsr & TEMT));
+		} while (!(lsr & TEMT) && count--);
+
+		/* The useconds for 1 bits to transmit */
+		utime = 1000000 / speed + 1;
 
 		/* Clear UCEN bit to reset the UART state machine
 		 * and control registers
@@ -123,7 +130,6 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 		SSYNC();
 
 		SIR_UART_PUT_DLL(port, quot & 0xFF);
-		SSYNC();
 		SIR_UART_PUT_DLH(port, (quot >> 8) & 0xFF);
 		SSYNC();
 
@@ -138,7 +144,6 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 		SIR_UART_PUT_GCTL(port, val);
 
 		ret = 0;
-		/*printk(KERN_DEBUG "bfin_sir: Set new speed %d\n", speed);*/
 		break;
 	default:
 		printk(KERN_WARNING "bfin_sir: Invalid speed %d\n", speed);
@@ -275,7 +280,7 @@ static irqreturn_t bfin_sir_dma_tx_int(int irq, void *dev_id)
 	struct bfin_sir_port *port = self->sir_port;
 
 	spin_lock(&self->lock);
-	if (!(get_dma_curr_irqstat(port->tx_dma_channel)&DMA_RUN)) {
+	if (!(get_dma_curr_irqstat(port->tx_dma_channel) & DMA_RUN)) {
 		clear_dma_irqstat(port->tx_dma_channel);
 		bfin_sir_stop_tx(port);
 
@@ -353,7 +358,7 @@ static irqreturn_t bfin_sir_dma_rx_int(int irq, void *dev_id)
 	clear_dma_irqstat(port->rx_dma_channel);
 	spin_unlock(&self->lock);
 
-	mod_timer(&(port->rx_dma_timer), jiffies + DMA_SIR_RX_FLUSH_JIFS);
+	mod_timer(&port->rx_dma_timer, jiffies + DMA_SIR_RX_FLUSH_JIFS);
 	return IRQ_HANDLED;
 }
 #endif /* CONFIG_SIR_BFIN_DMA */
@@ -365,12 +370,12 @@ static int bfin_sir_startup(struct bfin_sir_port *port, struct net_device *dev)
 #endif /* CONFIG_SIR_BFIN_DMA */
 
 	if (request_dma(port->rx_dma_channel, "BFIN_UART_RX") < 0) {
-		printk(KERN_WARNING "bfin_sir: Unable to attach SIR RX DMA channel\n");
+		dev_warn(&dev->dev, "Unable to attach SIR RX DMA channel\n");
 		return -EBUSY;
 	}
 
 	if (request_dma(port->tx_dma_channel, "BFIN_UART_TX") < 0) {
-		printk(KERN_WARNING "bfin_sir: Unable to attach SIR TX DMA channel\n");
+		dev_warn(&dev->dev, "Unable to attach SIR TX DMA channel\n");
 		free_dma(port->rx_dma_channel);
 		return -EBUSY;
 	}
@@ -402,12 +407,12 @@ static int bfin_sir_startup(struct bfin_sir_port *port, struct net_device *dev)
 #else
 
 	if (request_irq(port->irq, bfin_sir_rx_int, IRQF_DISABLED, "BFIN_SIR_RX", dev)) {
-		printk(KERN_WARNING "bfin_sir: Unable to attach SIR RX interrupt\n");
+		dev_warn(&dev->dev, "Unable to attach SIR RX interrupt\n");
 		return -EBUSY;
 	}
 
 	if (request_irq(port->irq+1, bfin_sir_tx_int, IRQF_DISABLED, "BFIN_SIR_TX", dev)) {
-		printk(KERN_WARNING "bfin_sir: Unable to attach SIR TX interrupt\n");
+		dev_warn(&dev->dev, "Unable to attach SIR TX interrupt\n");
 		free_irq(port->irq, dev);
 		return -EBUSY;
 	}
@@ -563,7 +568,7 @@ static int bfin_sir_ioctl(struct net_device *dev, struct ifreq *ifreq, int cmd)
 				ret = bfin_sir_set_speed(port, rq->ifr_baudrate);
 				bfin_sir_enable_rx(port);
 			} else {
-				printk(KERN_WARNING "bfin_sir: SIOCSBANDWIDTH: !netif_running\n");
+				dev_warn(&dev->dev, "SIOCSBANDWIDTH: !netif_running\n");
 				ret = 0;
 			}
 		}
@@ -678,22 +683,26 @@ static int __devinit bfin_sir_probe(struct platform_device *pdev)
 	struct bfin_sir_self *self;
 	unsigned int baudrate_mask;
 	struct bfin_sir_port *sir_port;
-	int err = 0;
+	int err;
 
-	err = peripheral_request(per[pdev->id][0], DRIVER_NAME);
-	if (err)
-		return err;
-	err = peripheral_request(per[pdev->id][1], DRIVER_NAME);
-	if (err)
-		return err;
+	if (pdev->id >= 0 && pdev->id < ARRAY_SIZE(per) && \
+				per[pdev->id][3] == pdev->id) {
+		err = peripheral_request_list(per[pdev->id], DRIVER_NAME);
+		if (err)
+			return err;
+	} else {
+		dev_err(&pdev->dev, "Invalid pdev id, please check board file\n");
+		return -ENODEV;
+	}
 
-	sir_port = kmalloc(sizeof(struct bfin_sir_port), GFP_KERNEL);
+	err = -ENOMEM;
+	sir_port = kmalloc(sizeof(*sir_port), GFP_KERNEL);
 	if (!sir_port)
 		goto err_mem_0;
 
 	bfin_sir_init_ports(sir_port, pdev);
 
-	dev = alloc_irdadev(sizeof(struct bfin_sir_self));
+	dev = alloc_irdadev(sizeof(*self));
 	if (!dev)
 		goto err_mem_1;
 
@@ -729,6 +738,10 @@ static int __devinit bfin_sir_probe(struct platform_device *pdev)
 		baudrate_mask |= IR_38400;
 	case 19200:
 		baudrate_mask |= IR_19200;
+	case 9600:
+		break;
+	default:
+		dev_warn(&pdev->dev, "Invalid maximum baud rate, using 9600\n");
 	}
 
 	self->qos.baud_rate.bits &= baudrate_mask;
@@ -740,17 +753,18 @@ static int __devinit bfin_sir_probe(struct platform_device *pdev)
 	err = register_netdev(dev);
 
 	if (err) {
-err_mem_3:
 		kfree(self->tx_buff.head);
-err_mem_2:
+err_mem_3:
 		kfree(self->rx_buff.head);
-err_mem_1:
+err_mem_2:
 		free_netdev(dev);
-err_mem_0:
+err_mem_1:
 		kfree(sir_port);
-	}
-	if (err == 0)
+err_mem_0:
+		peripheral_free_list(per[pdev->id]);
+	} else
 		platform_set_drvdata(pdev, sir_port);
+
 	return err;
 }
 
@@ -801,6 +815,6 @@ module_exit(bfin_sir_exit);
 module_param(max_rate, int, 0);
 MODULE_PARM_DESC(max_rate, "Maximum baud rate (115200, 57600, 38400, 19200, 9600)");
 
-MODULE_AUTHOR("Graf.Yang <graf.yang@analog.com>");
+MODULE_AUTHOR("Graf Yang <graf.yang@analog.com>");
 MODULE_DESCRIPTION("Blackfin IrDA driver");
 MODULE_LICENSE("GPL");
