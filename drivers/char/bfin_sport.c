@@ -34,19 +34,50 @@ static int sport_major = SPORT_MAJOR;
 static int sport_minor;
 static int sport_nr_devs = SPORT_NR_DEVS;	/* number of bare sport devices */
 
-struct sport_dev *sport_devices;	/* allocated in sport_init_module */
-
-unsigned short bfin_char_pin_req_sport0[] = {
-	P_SPORT0_TFS, P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
-	P_SPORT0_DRPRI, P_SPORT0_RSCLK, P_SPORT0_DRSEC, P_SPORT0_DTSEC, 0
+/* XXX: this should get pushed to platform device */
+#define SPORT_REQ(x) \
+	[x] = {P_SPORT##x##_TFS, P_SPORT##x##_DTPRI, P_SPORT##x##_TSCLK, P_SPORT##x##_DTSEC, \
+	       P_SPORT##x##_RFS, P_SPORT##x##_DRPRI, P_SPORT##x##_RSCLK, P_SPORT##x##_DRSEC, 0}
+static u16 sport_req[][9] = {
+#ifdef SPORT0_TCR1
+	SPORT_REQ(0),
+#endif
+#ifdef SPORT1_TCR1
+	SPORT_REQ(1),
+#endif
+#ifdef SPORT2_TCR1
+	SPORT_REQ(2),
+#endif
+#ifdef SPORT3_TCR1
+	SPORT_REQ(3),
+#endif
 };
 
-unsigned short bfin_char_pin_req_sport1[] = {
-	P_SPORT1_TFS, P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS,
-	P_SPORT1_DRPRI, P_SPORT1_RSCLK, P_SPORT1_DRSEC, P_SPORT1_DTSEC, 0
+#define SPORT_PARAMS(x) \
+	[x] = { \
+		.dma_rx_chan = CH_SPORT##x##_RX, \
+		.dma_tx_chan = CH_SPORT##x##_TX, \
+		.rx_irq      = IRQ_SPORT##x##_RX, \
+		.tx_irq      = IRQ_SPORT##x##_TX, \
+		.err_irq     = IRQ_SPORT##x##_ERROR, \
+		.regs        = (struct sport_register *)SPORT##x##_TCR1, \
+	}
+static struct sport_dev sport_devices[] = {
+#ifdef SPORT0_TCR1
+	SPORT_PARAMS(0),
+#endif
+#ifdef SPORT1_TCR1
+	SPORT_PARAMS(1),
+#endif
+#ifdef SPORT2_TCR1
+	SPORT_PARAMS(2),
+#endif
+#ifdef SPORT3_TCR1
+	SPORT_PARAMS(3),
+#endif
 };
 
-#define DRV_NAME "bfin-sportdev"
+#define DRV_NAME "bfin_sport"
 
 static irqreturn_t dma_rx_irq_handler(int irq, void *dev_id);
 static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id);
@@ -406,44 +437,36 @@ static int sport_open(struct inode *inode, struct file *filp)
 	dev->tx_sent = 0;
 	dev->wait_con = 0;
 
-	ret = request_irq(dev->tx_irq, sport_tx_handler, IRQF_SHARED, "sport_tx", dev);
+	ret = request_irq(dev->tx_irq, sport_tx_handler, IRQF_SHARED, DRV_NAME "-tx", dev);
 	if (ret) {
 		printk(KERN_ERR "Unable to request sport tx irq\n");
 		goto fail;
 	}
 
-	ret = request_irq(dev->rx_irq, sport_rx_handler, IRQF_SHARED, "sport_rx", dev);
+	ret = request_irq(dev->rx_irq, sport_rx_handler, IRQF_SHARED, DRV_NAME "-rx", dev);
 	if (ret) {
 		printk(KERN_ERR "Unable to request sport rx irq\n");
 		goto fail1;
 	}
 
-	ret = request_irq(dev->sport_err_irq, sport_err_handler, 0, "sport_err", dev);
+	ret = request_irq(dev->err_irq, sport_err_handler, 0, DRV_NAME "-err", dev);
 	if (ret) {
 		printk(KERN_ERR "Unable to request sport err irq\n");
 		goto fail2;
 	}
 
-	switch (dev->sport_num) {
-	case 0:
-		ret = peripheral_request_list(bfin_char_pin_req_sport0, DRV_NAME);
-		break;
-	case 1:
-		ret = peripheral_request_list(bfin_char_pin_req_sport1, DRV_NAME);
-		break;
-	default:
-		ret = -EINVAL;
-	}
-	if (ret)
+	ret = peripheral_request_list(sport_req[dev->sport_num], DRV_NAME);
+	if (ret) {
+		printk(KERN_ERR DRV_NAME ": Requesting Peripherals failed\n");
 		goto fail3;
+	}
 
 	dev->task = current;
 
 	return 0;
 
  fail3:
-	printk(KERN_ERR DRV_NAME ": Requesting Peripherals failed\n");
-	free_irq(dev->sport_err_irq, dev);
+	free_irq(dev->err_irq, dev);
  fail2:
 	free_irq(dev->rx_irq, dev);
  fail1:
@@ -472,13 +495,9 @@ static int sport_release(struct inode *inode, struct file *filp)
 		free_irq(dev->tx_irq, dev);
 		free_irq(dev->rx_irq, dev);
 	}
-	free_irq(dev->sport_err_irq, dev);
+	free_irq(dev->err_irq, dev);
 
-	if (dev->sport_num == 0)
-		peripheral_free_list(bfin_char_pin_req_sport0);
-
-	if (dev->sport_num == 1)
-		peripheral_free_list(bfin_char_pin_req_sport1);
+	peripheral_free_list(sport_req[dev->sport_num]);
 
 	return 0;
 }
@@ -660,20 +679,19 @@ static ssize_t sport_status_show(struct class *sport_class, char *buf)
 	unsigned short i;
 	p = buf;
 
-	if (sport_devices) {
-		for (i = 0; i < sport_nr_devs; ++i)
-			p += sprintf(p,
-				     "sport%d:\nrx_irq=%d, rx_received=%d, tx_irq=%d, tx_sent=%d,\n"
-				     "mode=%d, channels=%d, data_format=%d, word_len=%d.\n",
-				     i, sport_devices[i].rx_irq,
-				     sport_devices[i].rx_received,
-				     sport_devices[i].tx_irq,
-				     sport_devices[i].tx_sent,
-				     sport_devices[i].config.mode,
-				     sport_devices[i].config.channels,
-				     sport_devices[i].config.data_format,
-				     sport_devices[i].config.word_len);
-	}
+	for (i = 0; i < sport_nr_devs; ++i)
+		p += sprintf(p,
+			"sport%d:\nrx_irq=%d, rx_received=%d, tx_irq=%d, tx_sent=%d,\n"
+			"mode=%d, channels=%d, data_format=%d, word_len=%d.\n",
+			i, sport_devices[i].rx_irq,
+			sport_devices[i].rx_received,
+			sport_devices[i].tx_irq,
+			sport_devices[i].tx_sent,
+			sport_devices[i].config.mode,
+			sport_devices[i].config.channels,
+			sport_devices[i].config.data_format,
+			sport_devices[i].config.word_len);
+
 	return p - buf;
 }
 
@@ -690,16 +708,13 @@ static struct class *sport_class;
 
 static CLASS_ATTR(status, S_IRUGO, &sport_status_show, NULL);
 
-static void sport_cleanup_module(void)
+static void __exit sport_cleanup_module(void)
 {
 	int i;
 	dev_t devno = MKDEV(sport_major, sport_minor);
 
-	if (sport_devices) {
-		for (i = 0; i < sport_nr_devs; ++i)
-			cdev_del(&sport_devices[i].cdev);
-		kfree(sport_devices);
-	}
+	for (i = 0; i < sport_nr_devs; ++i)
+		cdev_del(&sport_devices[i].cdev);
 
 	unregister_chrdev_region(devno, sport_nr_devs);
 }
@@ -729,16 +744,10 @@ static int __init sport_init_module(void)
 		return result;
 	}
 
-	sport_devices = kcalloc(sport_nr_devs, sizeof(*sport_devices), GFP_KERNEL);
-	if (!sport_devices) {
-		sport_cleanup_module();
-		return -ENOMEM;
-	}
-
 	sport_class = class_create(THIS_MODULE, "sport");
 	result = class_create_file(sport_class, &class_attr_status);
 	if (result) {
-		sport_cleanup_module();
+		unregister_chrdev_region(dev, sport_nr_devs);
 		return result;
 	}
 	for (minor = 0; minor < sport_nr_devs; minor++)
@@ -752,18 +761,6 @@ static int __init sport_init_module(void)
 		mutex_init(&sport_devices[i].mutex);
 		init_waitqueue_head(&sport_devices[i].waitq);
 	}
-	sport_devices[0].regs = (struct sport_register *)SPORT0_TCR1;
-	sport_devices[0].dma_rx_chan = CH_SPORT0_RX;
-	sport_devices[0].dma_tx_chan = CH_SPORT0_TX;
-	sport_devices[0].rx_irq = IRQ_SPORT0_RX;
-	sport_devices[0].tx_irq = IRQ_SPORT0_TX;
-	sport_devices[0].sport_err_irq = IRQ_SPORT0_ERROR;
-	sport_devices[1].regs = (struct sport_register *)SPORT1_TCR1;
-	sport_devices[1].dma_rx_chan = CH_SPORT1_RX;
-	sport_devices[1].dma_tx_chan = CH_SPORT1_TX;
-	sport_devices[1].rx_irq = IRQ_SPORT1_RX;
-	sport_devices[1].tx_irq = IRQ_SPORT1_TX;
-	sport_devices[1].sport_err_irq = IRQ_SPORT1_ERROR;
 
 	return 0;
 }
