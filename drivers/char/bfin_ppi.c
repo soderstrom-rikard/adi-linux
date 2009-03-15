@@ -103,7 +103,7 @@ struct ppi_register {
 	unsigned short ppi_delay;
 	unsigned short dummy3;
 	unsigned short ppi_frame;
-#elif defined(EPPI0_CONTROL) 				/* EPPI */
+#elif defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)	/* EPPI */
 #define PORT_EN		EPPI_EN
 #define PORT_DIR	EPPI_DIR
 #define PORT_CFG	FS_CFG
@@ -150,7 +150,7 @@ struct ppi_config {
 	unsigned short linelen;
 	unsigned short numlines;
 	unsigned short ppi_control;
-#if defined(EPPI0_CONTROL)
+#elif defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)	/* EPPI */
 	unsigned short v_delay;
 	unsigned short v_count;
 #endif
