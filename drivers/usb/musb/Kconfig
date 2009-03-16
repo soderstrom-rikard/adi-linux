@@ -86,7 +86,6 @@ config USB_MUSB_HOST
 config USB_MUSB_PERIPHERAL
 	depends on USB_GADGET
 	bool "USB Peripheral (gadget stack)"
-	select USB_GADGET_MUSB_HDRC
 	select MUSB_PIO_ONLY if BLACKFIN
 	help
 	  Say Y here if your system supports the USB peripheral role.
@@ -97,7 +96,6 @@ config USB_MUSB_PERIPHERAL
 config USB_MUSB_OTG
 	depends on USB && USB_GADGET && PM && EXPERIMENTAL
 	bool "Both host and peripheral:  USB OTG (On The Go) Device"
-	select USB_GADGET_MUSB_HDRC
 	select USB_OTG
 	select MUSB_PIO_ONLY if BLACKFIN
 	help
@@ -125,7 +123,7 @@ endchoice
 config USB_GADGET_MUSB_HDRC
 	bool
 	depends on USB_MUSB_HDRC && (USB_MUSB_PERIPHERAL || USB_MUSB_OTG)
-#	default y
+	default y
 #	select USB_GADGET_DUALSPEED
 #	select USB_GADGET_SELECTED
 
