@@ -3,7 +3,7 @@
  * Description:  keypad driver for ADP5588 I2C QWERTY Keypad and IO Expander
  * Bugs: Enter bugs at http://blackfin.uclinux.org/
  *
- * Copyright (C) 2008 Analog Devices Inc.
+ * Copyright (C) 2008-2009 Analog Devices Inc.
  * Licensed under the GPL-2 or later.
  */
 
@@ -74,7 +74,7 @@
 #define CMP1_LVL2_TRIP 0x33	/* L2 Light Sensor Hysteresis (Active when Output Rising) for Sensor 1 */
 #define CMP1_LVL2_HYS 0x34	/* L3 Light Sensor Reference Level, Output Falling For Sensor 1 */
 #define CMP1_LVL3_TRIP 0x35	/* L3 Light Sensor Hysteresis (Active when Output Rising) For Sensor 1 */
-#define CMP1 _LVL3_HYS 0x36	/* Sensor 2 Comparator Configuration Register */
+#define CMP1_LVL3_HYS 0x36	/* Sensor 2 Comparator Configuration Register */
 #define CMP2_LVL2_TRIP 0x37	/* L2 Light Sensor Reference Level, Output Falling for Sensor 2 */
 #define CMP2_LVL2_HYS 0x38	/* L2 Light Sensor Hysteresis (Active when Output Rising) for Sensor 2 */
 #define CMP2_LVL3_TRIP 0x39	/* L3 Light Sensor Reference Level, Output Falling For Sensor 2 */
