@@ -1005,7 +1005,7 @@ static int __init bfin_sport_spi_probe(struct platform_device *pdev)
 	}
 
 	sport_device->regs = sport_params[sport_num].regs;
-	sport_device->sport_err_irq = sport_params[sport_num].err_irq;
+	sport_device->err_irq = sport_params[sport_num].err_irq;
 	/* Allocate master with space for drv_data */
 	master = spi_alloc_master(dev, sizeof(struct driver_data) + 16);
 	if (!master) {
@@ -1040,7 +1040,7 @@ static int __init bfin_sport_spi_probe(struct platform_device *pdev)
 		goto out_error_queue_alloc;
 	}
 
-	status = request_irq(sport_device->sport_err_irq, sport_err_handler,
+	status = request_irq(sport_device->err_irq, sport_err_handler,
 		0, "sport_err", drv_data);
 	if (status) {
 		dev_err(dev, "Unable to request sport err irq\n");
@@ -1066,7 +1066,7 @@ static int __init bfin_sport_spi_probe(struct platform_device *pdev)
 out_error_master:
 	peripheral_free_list(&sport_pin_req[sport_num][0]);
 out_error_peripheral:
-	free_irq(sport_device->sport_err_irq, drv_data);
+	free_irq(sport_device->err_irq, drv_data);
 out_error_queue_alloc:
 	bfin_sport_spi_destroy_queue(drv_data);
 	spi_master_put(master);
