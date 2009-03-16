@@ -150,7 +150,7 @@ struct ppi_config {
 	unsigned short linelen;
 	unsigned short numlines;
 	unsigned short ppi_control;
-#elif defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)	/* EPPI */
+#if defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)	/* EPPI */
 	unsigned short v_delay;
 	unsigned short v_count;
 #endif
