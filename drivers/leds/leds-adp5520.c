@@ -99,16 +99,18 @@ static int __devinit adp5520_led_probe(struct platform_device *pdev)
 	struct led_info *cur_led;
 	int ret, i;
 
-	if (pdata == NULL)
-		return 0;
+	if (pdata == NULL) {
+		dev_err(&pdev->dev, "missing platform data\n");
+		return -ENODEV;
+	}
 
 	if (pdata->num_leds > ADP5520_01_MAXLEDS) {
 		dev_err(&pdev->dev, "can't handle more than %d LEDS\n",
 				 ADP5520_01_MAXLEDS);
-		pdata->num_leds = ADP5520_01_MAXLEDS;
+		return -EFAULT;
 	}
 
-	led = kzalloc(sizeof(struct adp5520_led) * pdata->num_leds, GFP_KERNEL);
+	led = kzalloc(sizeof(*led) * pdata->num_leds, GFP_KERNEL);
 	if (led == NULL) {
 		dev_err(&pdev->dev, "failed to alloc memory\n");
 		return -ENOMEM;
@@ -152,6 +154,7 @@ static int __devinit adp5520_led_probe(struct platform_device *pdev)
 		ret = adp5520_led_setup(led_dat);
 		if (ret) {
 			dev_err(&pdev->dev, "failed to write\n");
+			i++;
 			goto err;
 		}
 	}

@@ -171,6 +171,8 @@ config LEDS_ADP5520
 	help
 	  This option enables support for on-chip LED drivers found
 	  on Analog Devices ADP5520/ADP5501 PMICs.
+	  To compile this driver as a module, choose M here: the module will be
+	  called leds-adp5520.
 
 comment "LED Triggers"
 
