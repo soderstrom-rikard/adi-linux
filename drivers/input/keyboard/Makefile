@@ -30,3 +30,4 @@ obj-$(CONFIG_KEYBOARD_OPENCORES)	+= opencores-kbd.o
 
 obj-$(CONFIG_KEYBOARD_SH_KEYSC)		+= sh_keysc.o
 obj-$(CONFIG_KEYBOARD_ADP5588)		+= adp5588_keys.o
+obj-$(CONFIG_KEYBOARD_ADP5520)		+= adp5520-keys.o
