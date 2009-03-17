@@ -76,16 +76,20 @@ static int __devinit adp5520_keys_probe(struct platform_device *pdev)
 	int ret, i;
 	unsigned char en_mask, ctl_mask = 0;
 
-	if (pdev->id != ID_ADP5520)
+	if (pdev->id != ID_ADP5520) {
+		dev_err(&pdev->dev, "only ADP5520 supports Keypad\n");
 		return -EFAULT;
+	}
 
-	if (pdata == NULL)
+	if (pdata == NULL) {
+		dev_err(&pdev->dev, "missing platform data\n");
 		return -ENODEV;
+	}
 
 	if (!(pdata->rows_en_mask && pdata->cols_en_mask))
 		return -ENODEV;
 
-	dev = kzalloc(sizeof(struct adp5520_keys), GFP_KERNEL);
+	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
 	if (dev == NULL) {
 		dev_err(&pdev->dev, "failed to alloc memory\n");
 		return -ENOMEM;
@@ -93,8 +97,8 @@ static int __devinit adp5520_keys_probe(struct platform_device *pdev)
 
 	input = input_allocate_device();
 	if (!input) {
-		kfree(dev);
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto err;
 	}
 
 	dev->master = pdev->dev.parent;
