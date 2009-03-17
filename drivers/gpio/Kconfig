@@ -148,6 +148,8 @@ config GPIO_ADP5520
 	help
 	  This option enables support for on-chip GPIO found
 	  on Analog Devices ADP5520 PMICs.
+	  To compile this driver as a module, choose M here: the module will be
+	  called adp5520-gpio.
 
 comment "PCI GPIO expanders:"
 

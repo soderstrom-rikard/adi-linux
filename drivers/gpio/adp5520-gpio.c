@@ -90,13 +90,17 @@ static int __devinit adp5520_gpio_probe(struct platform_device *pdev)
 	int ret, i, gpios;
 	unsigned char ctl_mask = 0;
 
-	if (pdata == NULL)
-		return 0;
+	if (pdata  == NULL) {
+		dev_err(&pdev->dev, "missing platform data\n");
+		return -ENODEV;
+	}
 
-	if (pdev->id != ID_ADP5520)
-		return 0;
+	if (pdev->id != ID_ADP5520) {
+		dev_err(&pdev->dev, "only ADP5520 supports GPIO\n");
+		return -ENODEV;
+	}
 
-	dev = kzalloc(sizeof(struct adp5520_gpio), GFP_KERNEL);
+	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
 	if (dev == NULL) {
 		dev_err(&pdev->dev, "failed to alloc memory\n");
 		return -ENOMEM;
