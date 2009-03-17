@@ -165,6 +165,13 @@ config LEDS_DA903X
 	  This option enables support for on-chip LED drivers found
 	  on Dialog Semiconductor DA9030/DA9034 PMICs.
 
+config LEDS_ADP5520
+	tristate "LED Support for ADP5520/ADP5501 PMIC"
+	depends on LEDS_CLASS && PMIC_ADP5520
+	help
+	  This option enables support for on-chip LED drivers found
+	  on Analog Devices ADP5520/ADP5501 PMICs.
+
 comment "LED Triggers"
 
 config LEDS_TRIGGERS
