@@ -51,8 +51,7 @@ static int adp5520_bl_set(struct backlight_device *bl, int brightness)
 	if (data->current_brightness && brightness == 0)
 		ret |= adp5520_set_bits(master,
 				MODE_STATUS, DIM_EN);
-
-	if (data->current_brightness == 0 && brightness)
+	else if (data->current_brightness == 0 && brightness)
 		ret |= adp5520_clr_bits(master,
 				MODE_STATUS, DIM_EN);
 
