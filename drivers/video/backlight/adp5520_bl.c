@@ -295,7 +295,14 @@ static int __devinit adp5520_bl_probe(struct platform_device *pdev)
 		bl->props.brightness = ADP5020_MAX_BRIGHTNESS;
 
 	if (data->pdata->en_ambl_sens)
-		sysfs_create_group(&bl->dev.kobj, &adp5520_bl_attr_group);
+		ret = sysfs_create_group(&bl->dev.kobj,
+			&adp5520_bl_attr_group);
+
+	if (ret) {
+		dev_err(&pdev->dev, "failed to register sysfs\n");
+		backlight_device_unregister(bl);
+		kfree(data);
+	}
 
 	platform_set_drvdata(pdev, bl);
 	ret |= adp5520_bl_setup(bl);
