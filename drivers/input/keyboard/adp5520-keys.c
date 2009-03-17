@@ -140,7 +140,7 @@ static int __devinit adp5520_keys_probe(struct platform_device *pdev)
 		goto err;
 	}
 
-	en_mask = pdata->rows_en_mask & pdata->cols_en_mask;
+	en_mask = pdata->rows_en_mask | pdata->cols_en_mask;
 
 	ret = adp5520_set_bits(dev->master, GPIO_CFG_1, en_mask);
 
