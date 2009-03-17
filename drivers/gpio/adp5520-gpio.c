@@ -90,7 +90,7 @@ static int __devinit adp5520_gpio_probe(struct platform_device *pdev)
 	int ret, i, gpios;
 	unsigned char ctl_mask = 0;
 
-	if (pdata  == NULL) {
+	if (pdata == NULL) {
 		dev_err(&pdev->dev, "missing platform data\n");
 		return -ENODEV;
 	}
