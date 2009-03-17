@@ -273,7 +273,7 @@ static int __devinit adp5520_bl_probe(struct platform_device *pdev)
 	data->pdata = pdev->dev.platform_data;
 
 	if (data->pdata  == NULL) {
-		dev_err(&pdev->dev, "missing platfrom data\n");
+		dev_err(&pdev->dev, "missing platform data\n");
 		kfree(data);
 		return -ENODEV;
 	}
