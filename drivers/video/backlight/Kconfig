@@ -214,3 +214,10 @@ config BACKLIGHT_SAHARA
 	help
 	  If you have a Tabletkiosk Sahara Touch-iT, say y to enable the
 	  backlight driver.
+
+config BACKLIGHT_ADP5520
+	tristate "Backlight Driver for ADP5520/ADP5501 using WLED"
+	depends on BACKLIGHT_CLASS_DEVICE && PMIC_ADP5520
+	help
+	  If you have a LCD backlight connected to the BST/BL_SNK output of
+	  ADP5520 or ADP5501, say Y here to enable this driver.
