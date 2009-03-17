@@ -446,6 +446,10 @@ SYSCALL_DEFINE3(shmget, key_t, key, size_t, size, int, shmflg)
 	struct ipc_ops shm_ops;
 	struct ipc_params shm_params;
 
+#if defined __ARCH_SYNC_CORE_DCACHE
+	return -EINVAL;
+#endif
+
 	ns = current->nsproxy->ipc_ns;
 
 	shm_ops.getnew = newseg;
