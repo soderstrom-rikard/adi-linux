@@ -75,12 +75,12 @@ int __adp5520_ack_bits(struct i2c_client *client, int reg, uint8_t bit_mask)
 	mutex_lock(&chip->lock);
 
 	ret = __adp5520_read(client, reg, &reg_val);
-	if (ret)
-		goto out;
 
-	reg_val |= bit_mask;
-	ret = __adp5520_write(client, reg, reg_val);
-out:
+	if (!ret) {
+		reg_val |= bit_mask;
+		ret = __adp5520_write(client, reg, reg_val);
+	}
+
 	mutex_unlock(&chip->lock);
 	return ret;
 }
@@ -106,14 +106,12 @@ int adp5520_set_bits(struct device *dev, int reg, uint8_t bit_mask)
 	mutex_lock(&chip->lock);
 
 	ret = __adp5520_read(chip->client, reg, &reg_val);
-	if (ret)
-		goto out;
 
-	if ((reg_val & bit_mask) == 0) {
+	if (!ret && ((reg_val & bit_mask) == 0)) {
 		reg_val |= bit_mask;
 		ret = __adp5520_write(chip->client, reg, reg_val);
 	}
-out:
+
 	mutex_unlock(&chip->lock);
 	return ret;
 }
@@ -128,14 +126,12 @@ int adp5520_clr_bits(struct device *dev, int reg, uint8_t bit_mask)
 	mutex_lock(&chip->lock);
 
 	ret = __adp5520_read(chip->client, reg, &reg_val);
-	if (ret)
-		goto out;
 
-	if (reg_val & bit_mask) {
+	if (!ret && (reg_val & bit_mask)) {
 		reg_val &= ~bit_mask;
 		ret = __adp5520_write(chip->client, reg, reg_val);
 	}
-out:
+
 	mutex_unlock(&chip->lock);
 	return ret;
 }
@@ -150,7 +146,8 @@ int adp5520_register_notifier(struct device *dev, struct notifier_block *nb,
 		adp5520_set_bits(chip->dev, INTERRUPT_ENABLE,
 			events & (KP_IEN | KR_IEN | OVP_IEN | CMPR_IEN));
 
-	return blocking_notifier_chain_register(&chip->notifier_list, nb);
+		return blocking_notifier_chain_register(&chip->notifier_list,
+			 nb);
 	}
 
 	return -ENODEV;
@@ -251,7 +248,12 @@ static int __devinit adp5520_probe(struct i2c_client *client,
 		return -EIO;
 	}
 
-	chip = kzalloc(sizeof(struct adp5520_chip), GFP_KERNEL);
+	if (pdata == NULL) {
+		dev_err(&client->dev, "missing platform data\n");
+		return -ENODEV;
+	}
+
+	chip = kzalloc(sizeof(*chip), GFP_KERNEL);
 	if (!chip)
 		return -ENOMEM;
 
