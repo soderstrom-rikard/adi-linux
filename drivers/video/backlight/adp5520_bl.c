@@ -3,7 +3,6 @@
  *
  * Copyright 2009 Analog Devices Inc.
  *
- *
  * Licensed under the GPL-2 or later.
  */
 
@@ -57,11 +56,10 @@ static int adp5520_bl_set(struct backlight_device *bl, int brightness)
 		ret |= adp5520_clr_bits(master,
 				MODE_STATUS, DIM_EN);
 
-	if (ret)
-		return ret;
+	if (!ret)
+		data->current_brightness = brightness;
 
-	data->current_brightness = brightness;
-	return 0;
+	return ret;
 }
 
 static int adp5520_bl_update_status(struct backlight_device *bl)
@@ -262,18 +260,25 @@ static const struct attribute_group adp5520_bl_attr_group = {
 	.attrs = adp5520_bl_attributes,
 };
 
-static int adp5520_bl_probe(struct platform_device *pdev)
+static int __devinit adp5520_bl_probe(struct platform_device *pdev)
 {
 	struct backlight_device *bl;
 	struct adp5520_bl *data;
 	int ret = 0;
 
-	data = kzalloc(sizeof(struct adp5520_bl), GFP_KERNEL);
+	data = kzalloc(sizeof(*data), GFP_KERNEL);
 	if (data == NULL)
 		return -ENOMEM;
 
 	data->master = pdev->dev.parent;
 	data->pdata = pdev->dev.platform_data;
+
+	if (data->pdata  == NULL) {
+		dev_err(&pdev->dev, "missing platfrom data\n");
+		kfree(data);
+		return -ENODEV;
+	}
+
 	data->id = pdev->id;
 	data->current_brightness = 0;
 
@@ -291,8 +296,7 @@ static int adp5520_bl_probe(struct platform_device *pdev)
 		bl->props.brightness = ADP5020_MAX_BRIGHTNESS;
 
 	if (data->pdata->en_ambl_sens)
-		ret = sysfs_create_group(&bl->dev.kobj,
-				&adp5520_bl_attr_group);
+		sysfs_create_group(&bl->dev.kobj, &adp5520_bl_attr_group);
 
 	platform_set_drvdata(pdev, bl);
 	ret |= adp5520_bl_setup(bl);
@@ -301,13 +305,12 @@ static int adp5520_bl_probe(struct platform_device *pdev)
 	return ret;
 }
 
-static int adp5520_bl_remove(struct platform_device *pdev)
+static int __devexit adp5520_bl_remove(struct platform_device *pdev)
 {
 	struct backlight_device *bl = platform_get_drvdata(pdev);
 	struct adp5520_bl *data = bl_get_data(bl);
-	int ret;
 
-	ret = adp5520_clr_bits(data->master, MODE_STATUS, BL_EN);
+	adp5520_clr_bits(data->master, MODE_STATUS, BL_EN);
 
 	if (data->pdata->en_ambl_sens)
 		sysfs_remove_group(&bl->dev.kobj,
@@ -316,7 +319,7 @@ static int adp5520_bl_remove(struct platform_device *pdev)
 	backlight_device_unregister(bl);
 	kfree(data);
 
-	return ret;
+	return 0;
 }
 
 #ifdef CONFIG_PM
@@ -345,7 +348,7 @@ static struct platform_driver adp5520_bl_driver = {
 		.owner	= THIS_MODULE,
 	},
 	.probe		= adp5520_bl_probe,
-	.remove		= adp5520_bl_remove,
+	.remove		= __devexit_p(adp5520_bl_remove),
 	.suspend	= adp5520_bl_suspend,
 	.resume		= adp5520_bl_resume,
 };
