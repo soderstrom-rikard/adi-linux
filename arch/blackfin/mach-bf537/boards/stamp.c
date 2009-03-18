@@ -1120,8 +1120,11 @@ static struct platform_device bfin_sport1_uart_device = {
 #endif
 
 #if defined(CONFIG_PATA_PLATFORM) || defined(CONFIG_PATA_PLATFORM_MODULE)
-#define PATA_INT	IRQ_PF5
+#define CF_IDE_NAND_CARD_USE_HDD_INTERFACE
+/* #define CF_IDE_NAND_CARD_USE_CF_IN_COMMON_MEMORY_MODE */
 
+#ifdef CF_IDE_NAND_CARD_USE_HDD_INTERFACE
+#define PATA_INT	IRQ_PF5
 static struct pata_platform_info bfin_pata_platform_data = {
 	.ioport_shift = 1,
 	.irq_flags = IRQF_TRIGGER_HIGH | IRQF_DISABLED,
@@ -1144,6 +1147,34 @@ static struct resource bfin_pata_resources[] = {
 		.flags = IORESOURCE_IRQ,
 	},
 };
+#elif defined(CF_IDE_NAND_CARD_USE_CF_IN_COMMON_MEMORY_MODE)
+static struct pata_platform_info bfin_pata_platform_data = {
+	.ioport_shift = 0,
+};
+
+static struct resource bfin_pata_resources[] = {
+	{
+		.start = 0x20211820,
+		.end = 0x2021183F,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = 0x2021181C,
+		.end = 0x2021181F,
+		.flags = IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device bfin_pata_device = {
+	.name = "pata_platform",
+	.id = -1,
+	.num_resources = ARRAY_SIZE(bfin_pata_resources),
+	.resource = bfin_pata_resources,
+	.dev = {
+		.platform_data = &bfin_pata_platform_data,
+	}
+};
+#endif
 
 static struct platform_device bfin_pata_device = {
 	.name = "pata_platform",
