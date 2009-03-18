@@ -1438,13 +1438,13 @@ int usb_gadget_register_driver (struct usb_gadget_driver *driver)
 	if (!driver
 			|| driver->speed != USB_SPEED_HIGH
 			|| !driver->bind
-			|| !driver->unbind
 			|| !driver->setup)
 		return -EINVAL;
 	if (!dev)
 		return -ENODEV;
 	if (dev->driver)
 		return -EBUSY;
+
 	for (i = 0; i < 4; i++)
 		dev->ep [i].irqs = 0;
 	/* hook up the driver ... */
@@ -2171,7 +2171,7 @@ static void net2272_rdk_remove (struct pci_dev *pdev)
 	/* start with the driver above us */
 	if (dev->driver) {
 		/* should have been done already by driver model core */
-		WARN (dev, "pci remove, driver '%s' is still registered\n",
+		WARNING(dev, "pci remove, driver '%s' is still registered\n",
 		      dev->driver->driver.name);
 		usb_gadget_unregister_driver (dev->driver);
 	}
@@ -2324,7 +2324,7 @@ net2272_rdk_probe (struct pci_dev *pdev, const struct pci_device_id *id)
 	// See if there...
 	if (net2272_present(dev))
 	{
-		WARN(dev, "2272 not found!\n");
+		WARNING(dev, "2272 not found!\n");
 		retval = -ENODEV;
 		goto done;
 	}
@@ -2415,7 +2415,7 @@ static int net2272_remove (struct device *_dev)
 	/* start with the driver above us */
 	if (dev->driver) {
 		/* should have been done already by driver model core */
-		WARN (dev, "remove, driver '%s' is still registered\n",
+		WARNING(dev, "remove, driver '%s' is still registered\n",
 				dev->driver->driver.name);
 		usb_gadget_unregister_driver (dev->driver);
 	}
@@ -2434,7 +2434,7 @@ static int net2272_remove (struct device *_dev)
 	dev_set_drvdata (_dev, 0);
 	the_controller = NULL;
 
-#ifdef CONFIG_BF533
+#ifdef CONFIG_BFIN533_STAMP
 	gpio_free(GPIO_0);
 	gpio_free(GPIO_1);
 #endif
@@ -2466,7 +2466,7 @@ static int net2272_probe (struct device *_dev)
 		iomem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 		if (iomem)
 			base = iomem->start;
-#ifdef CONFIG_BF533
+#ifdef CONFIG_BFIN533_STAMP
 		/* Set PF0 to 0, PF1 to 1 make /AMS3 work properly */
 
 	if (gpio_request(GPIO_0, driver_name)) {
@@ -2482,7 +2482,7 @@ static int net2272_probe (struct device *_dev)
 	gpio_direction_output(GPIO_1, 1);
 #endif
 
-#if defined(CONFIG_BF533) || defined(CONFIG_BF561)
+#if defined(CONFIG_BFIN533_STAMP) || defined(CONFIG_BFIN561_EZKIT)
 	if (gpio_request(GPIO_11, driver_name)) {
 		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_11);
 		gpio_free(GPIO_0);
@@ -2496,7 +2496,7 @@ static int net2272_probe (struct device *_dev)
 	gpio_set_value(GPIO_11, 1);
 #endif
 
-#ifdef CONFIG_BF537
+#ifdef CONFIG_BFIN537_STAMP
 	if (gpio_request(GPIO_6, driver_name)) {
 		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_6);
 		return -EBUSY;
@@ -2539,7 +2539,8 @@ static int net2272_probe (struct device *_dev)
 	dev->gadget.is_dualspeed = 1;
 
 	/* the "gadget" abstracts/virtualizes the controller */
-	strcpy (dev->gadget.dev.bus_id, "gadget");
+
+	dev_set_name(&dev->gadget.dev, "gadget");
 	dev->gadget.dev.parent = &pdev->dev;
 	dev->gadget.dev.dma_mask = pdev->dev.dma_mask;
 	dev->gadget.dev.release = gadget_release;
@@ -2594,7 +2595,7 @@ static int net2272_probe (struct device *_dev)
 	// See if there..., can remove this test for production code
 	if (net2272_present(dev))
 	{
-		WARN(dev, "2272 not found!\n");
+		WARNING(dev, "2272 not found!\n");
 		retval = -ENODEV;
 		goto done;
 	}

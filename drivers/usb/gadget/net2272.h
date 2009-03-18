@@ -514,7 +514,7 @@ struct net2272_request {
 
 #define ERROR(dev,fmt,args...) \
 	xprintk(dev, KERN_ERR , fmt , ## args)
-#define WARN(dev,fmt,args...) \
+#define WARNING(dev, fmt, args...) \
 	xprintk(dev, KERN_WARNING , fmt , ## args)
 #define INFO(dev,fmt,args...) \
 	xprintk(dev, KERN_INFO , fmt , ## args)
