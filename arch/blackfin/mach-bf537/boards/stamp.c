@@ -1164,16 +1164,6 @@ static struct resource bfin_pata_resources[] = {
 		.flags = IORESOURCE_MEM,
 	},
 };
-
-static struct platform_device bfin_pata_device = {
-	.name = "pata_platform",
-	.id = -1,
-	.num_resources = ARRAY_SIZE(bfin_pata_resources),
-	.resource = bfin_pata_resources,
-	.dev = {
-		.platform_data = &bfin_pata_platform_data,
-	}
-};
 #endif
 
 static struct platform_device bfin_pata_device = {
