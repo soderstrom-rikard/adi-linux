@@ -287,8 +287,7 @@ unsigned long ramfs_nommu_get_unmapped_area(struct file *file,
 	if (pages) {
 		ptr = pages;
 		for (loop = lpages; loop > 0; loop--)
-			if (*ptr)
-				put_page(*ptr++);
+			put_page(*ptr++);
 		kfree(pages);
 	}
 
