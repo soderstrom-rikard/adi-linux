@@ -123,7 +123,7 @@ endchoice
 config USB_GADGET_MUSB_HDRC
 	bool
 	depends on USB_MUSB_HDRC && (USB_MUSB_PERIPHERAL || USB_MUSB_OTG)
-	default y
+#	default y
 #	select USB_GADGET_DUALSPEED
 #	select USB_GADGET_SELECTED
 
