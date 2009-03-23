@@ -142,12 +142,14 @@ static void bfin_sport_spi_enable(struct driver_data *drv_data)
 {
 	drv_data->sport->regs->tcr1 |= TSPEN;
 	drv_data->sport->regs->rcr1 |= RSPEN;
+	SSYNC();
 }
 
 static void bfin_sport_spi_disable(struct driver_data *drv_data)
 {
 	drv_data->sport->regs->tcr1 &= ~TSPEN;
 	drv_data->sport->regs->rcr1 &= ~RSPEN;
+	SSYNC();
 }
 
 /* Caculate the SPI_BAUD register value based on input HZ */
@@ -197,189 +199,249 @@ static void bfin_sport_spi_restore_state(struct driver_data *drv_data)
 	sport->regs->tcr2 = chip->bits_per_word - 1;
 	sport->regs->rcr2 = chip->bits_per_word - 1;
 	sport->regs->tcr1 = chip->ctl_reg;
-	sport->regs->rcr1 = chip->ctl_reg;
+	sport->regs->rcr1 = chip->ctl_reg & ~(ITCLK | ITFS);
+	sport->regs->tfsdiv = chip->bits_per_word - 1;
+	SSYNC();
+}
 
-	bfin_sport_spi_enable(drv_data);
-	bfin_sport_spi_cs_active(drv_data, chip);
+static void bfin_spi_null_writer(struct driver_data *drv_data)
+{
+	u8 n_bytes = drv_data->n_bytes;
+
+	while (drv_data->tx < drv_data->tx_end) {
+		drv_data->tx += n_bytes;
+	}
+}
+
+static void bfin_spi_null_reader(struct driver_data *drv_data)
+{
+	u8 n_bytes = drv_data->n_bytes;
+
+	while (drv_data->rx < drv_data->rx_end) {
+		drv_data->rx += n_bytes;
+	}
 }
 
 static void bfin_sport_spi_u8_writer(struct driver_data *drv_data)
 {
 	struct sport_dev *sport = drv_data->sport;
+	u16 stat, dummy;
+
 	while (drv_data->tx < drv_data->tx_end) {
-		while (sport->regs->stat & TXF)
+		*(volatile unsigned short *)(&sport->regs->tx) = *(u8 *) (drv_data->tx++);
+		bfin_sport_spi_enable(drv_data);
+		stat = *(volatile unsigned short *)(&sport->regs->stat);
+		while (!(stat & RXNE)) {
 			cpu_relax();
-		*(volatile unsigned char *)(&sport->regs->tx) = *(u8 *) (drv_data->tx);
-		drv_data->tx++;
+			stat = *(volatile unsigned short *)(&sport->regs->stat);
+		}
+		dummy = *(volatile unsigned short *)(&sport->regs->rx);
+		bfin_sport_spi_disable(drv_data);
 	}
 }
 
 static void bfin_sport_spi_u8_cs_chg_writer(struct driver_data *drv_data)
 {
-	struct chip_data *chip = drv_data->cur_chip;
 	struct sport_dev *sport = drv_data->sport;
+	u16 stat, dummy;
 
 	while (drv_data->tx < drv_data->tx_end) {
-		bfin_sport_spi_cs_active(drv_data, chip);
-		while (sport->regs->stat & TXF)
+		*(volatile unsigned short *)(&sport->regs->tx) = *(u8 *) (drv_data->tx++);
+		bfin_sport_spi_enable(drv_data);
+		stat = *(volatile unsigned short *)(&sport->regs->stat);
+		while (!(stat & RXNE)) {
 			cpu_relax();
-		*(volatile unsigned char *)(&sport->regs->tx) = *(u8 *) (drv_data->tx);
-		drv_data->tx++;
-		bfin_sport_spi_cs_deactive(drv_data, chip);
+			stat = *(volatile unsigned short *)(&sport->regs->stat);
+		}
+		dummy = *(volatile unsigned short *)(&sport->regs->rx);
+		bfin_sport_spi_disable(drv_data);
 	}
 }
 
 static void bfin_sport_spi_u8_reader(struct driver_data *drv_data)
 {
 	struct sport_dev *sport = drv_data->sport;
-
+	u16 stat;
 	while (drv_data->rx < drv_data->rx_end) {
-		while (!(sport->regs->stat & RXNE))
+		*(volatile unsigned short *)(&sport->regs->tx) = 0x55;
+		bfin_sport_spi_enable(drv_data);
+		stat = *(volatile unsigned short *)(&sport->regs->stat);
+		while (!(stat & RXNE)) {
 			cpu_relax();
-		*(u8 *) (drv_data->rx) = *(volatile unsigned char *)(&sport->regs->rx);
-		drv_data->rx++;
+			stat = *(volatile unsigned short *)(&sport->regs->stat);
+		}
+		*(u8 *) (drv_data->rx++) = *(volatile unsigned short *)(&sport->regs->rx);
+		bfin_sport_spi_disable(drv_data);
 	}
 }
 
 static void bfin_sport_spi_u8_cs_chg_reader(struct driver_data *drv_data)
 {
-	struct chip_data *chip = drv_data->cur_chip;
 	struct sport_dev *sport = drv_data->sport;
-
+	u16 stat;
 	while (drv_data->rx < drv_data->rx_end) {
-		bfin_sport_spi_cs_active(drv_data, chip);
-		while (!(sport->regs->stat & RXNE))
+		*(volatile unsigned short *)(&sport->regs->tx) = 0x55;
+		bfin_sport_spi_enable(drv_data);
+		stat = *(volatile unsigned short *)(&sport->regs->stat);
+		while (!(stat & RXNE)) {
 			cpu_relax();
-		*(u8 *) (drv_data->rx) = *(volatile unsigned char *)(&sport->regs->rx);
-		drv_data->rx++;
-		bfin_sport_spi_cs_deactive(drv_data, chip);
+			stat = *(volatile unsigned short *)(&sport->regs->stat);
+		}
+		*(u8 *) (drv_data->rx++) = *(volatile unsigned short *)(&sport->regs->rx);
+		bfin_sport_spi_disable(drv_data);
 	}
 }
 
 static void bfin_sport_spi_u8_duplex(struct driver_data *drv_data)
 {
 	struct sport_dev *sport = drv_data->sport;
-	while (drv_data->rx < drv_data->rx_end) {
-		while (sport->regs->stat & TXF)
-			cpu_relax();
-		*(volatile unsigned char *)(&sport->regs->tx) = *(u8 *) (drv_data->tx);
-		drv_data->tx++;
+	u16 stat;
 
-		while (!(sport->regs->stat & RXNE))
+	bfin_sport_spi_enable(drv_data);
+	while (drv_data->rx < drv_data->rx_end) {
+		*(volatile unsigned short *)(&sport->regs->tx) = *(u8 *) (drv_data->tx++);
+		stat = *(volatile unsigned short *)(&sport->regs->stat);
+		while (!(stat & RXNE)) {
 			cpu_relax();
-		*(u8 *) (drv_data->rx) = *(volatile unsigned char *)(&sport->regs->rx);
-		drv_data->rx++;
+			stat = *(volatile unsigned short *)(&sport->regs->stat);
+		}
+		*(u8 *) (drv_data->rx++) = *(volatile unsigned short *)(&sport->regs->rx);
 	}
+	bfin_sport_spi_disable(drv_data);
 }
 
 static void bfin_sport_spi_u8_cs_chg_duplex(struct driver_data *drv_data)
 {
-	struct chip_data *chip = drv_data->cur_chip;
 	struct sport_dev *sport = drv_data->sport;
+	u16 stat;
 
+	bfin_sport_spi_enable(drv_data);
 	while (drv_data->rx < drv_data->rx_end) {
-		bfin_sport_spi_cs_active(drv_data, chip);
-		while (sport->regs->stat & TXF)
+		*(volatile unsigned short *)(&sport->regs->tx) = *(u8 *) (drv_data->tx++);
+		stat = *(volatile unsigned short *)(&sport->regs->stat);
+		while (!(stat & RXNE)) {
 			cpu_relax();
-		*(volatile unsigned char *)(&sport->regs->tx) = *(u8 *) (drv_data->tx);
-		drv_data->tx++;
-
-		while (!(sport->regs->stat & RXNE))
-			cpu_relax();
-		*(u8 *) (drv_data->rx) = *(volatile unsigned char *)(&sport->regs->rx);
-		drv_data->rx++;
-		bfin_sport_spi_cs_deactive(drv_data, chip);
+			stat = *(volatile unsigned short *)(&sport->regs->stat);
+		}
+		*(u8 *) (drv_data->rx++) = *(volatile unsigned short *)(&sport->regs->rx);
 	}
+	bfin_sport_spi_disable(drv_data);
 }
 
 
 static void bfin_sport_spi_u16_writer(struct driver_data *drv_data)
 {
 	struct sport_dev *sport = drv_data->sport;
+	u16 stat, dummy;
+
 	while (drv_data->tx < drv_data->tx_end) {
-		while (sport->regs->stat & TXF)
+		*(volatile unsigned short *)(&sport->regs->tx) = *(u16 *) (drv_data->tx++);
+		bfin_sport_spi_enable(drv_data);
+		stat = *(volatile unsigned short *)(&sport->regs->stat);
+		while (!(stat & RXNE)) {
 			cpu_relax();
-		*(volatile unsigned short *)(&sport->regs->tx) = *(u16 *) (drv_data->tx);
-		drv_data->tx += 2;
+			stat = *(volatile unsigned short *)(&sport->regs->stat);
+		}
+		dummy = *(volatile unsigned short *)(&sport->regs->rx);
+		bfin_sport_spi_disable(drv_data);
 	}
 }
 
 static void bfin_sport_spi_u16_cs_chg_writer(struct driver_data *drv_data)
 {
-	struct chip_data *chip = drv_data->cur_chip;
 	struct sport_dev *sport = drv_data->sport;
+	u16 stat, dummy;
 
 	while (drv_data->tx < drv_data->tx_end) {
-		bfin_sport_spi_cs_active(drv_data, chip);
-		while (sport->regs->stat & TXF)
-			cpu_relax();
 		*(volatile unsigned short *)(&sport->regs->tx) = *(u16 *) (drv_data->tx);
 		drv_data->tx += 2;
-		bfin_sport_spi_cs_deactive(drv_data, chip);
+		bfin_sport_spi_enable(drv_data);
+		stat = *(volatile unsigned short *)(&sport->regs->stat);
+		while (!(stat & RXNE)) {
+			cpu_relax();
+			stat = *(volatile unsigned short *)(&sport->regs->stat);
+		}
+		dummy = *(volatile unsigned short *)(&sport->regs->rx);
+		bfin_sport_spi_disable(drv_data);
 	}
 }
 
 static void bfin_sport_spi_u16_reader(struct driver_data *drv_data)
 {
 	struct sport_dev *sport = drv_data->sport;
+	u16 stat;
 
 	while (drv_data->rx < drv_data->rx_end) {
-		while (!(sport->regs->stat & RXNE))
+		*(volatile unsigned short *)(&sport->regs->tx) = 0x55;
+		bfin_sport_spi_enable(drv_data);
+		stat = *(volatile unsigned short *)(&sport->regs->stat);
+		while (!(stat & RXNE)) {
 			cpu_relax();
+			stat = *(volatile unsigned short *)(&sport->regs->stat);
+		}
 		*(u16 *) (drv_data->rx) = *(volatile unsigned short *)(&sport->regs->rx);
 		drv_data->rx += 2;
+		bfin_sport_spi_disable(drv_data);
 	}
 }
 
 static void bfin_sport_spi_u16_cs_chg_reader(struct driver_data *drv_data)
 {
-	struct chip_data *chip = drv_data->cur_chip;
 	struct sport_dev *sport = drv_data->sport;
+	u16 stat;
 
 	while (drv_data->rx < drv_data->rx_end) {
-		bfin_sport_spi_cs_active(drv_data, chip);
-		while (!(sport->regs->stat & RXNE))
+		*(volatile unsigned short *)(&sport->regs->tx) = 0x55;
+		bfin_sport_spi_enable(drv_data);
+		stat = *(volatile unsigned short *)(&sport->regs->stat);
+		while (!(stat & RXNE)) {
 			cpu_relax();
+			stat = *(volatile unsigned short *)(&sport->regs->stat);
+		}
 		*(u16 *) (drv_data->rx) = *(volatile unsigned short *)(&sport->regs->rx);
 		drv_data->rx += 2;
-		bfin_sport_spi_cs_deactive(drv_data, chip);
+		bfin_sport_spi_disable(drv_data);
 	}
 }
 
 static void bfin_sport_spi_u16_duplex(struct driver_data *drv_data)
 {
 	struct sport_dev *sport = drv_data->sport;
+	u16 stat;
+
+	bfin_sport_spi_enable(drv_data);
 	while (drv_data->rx < drv_data->rx_end) {
-		while (sport->regs->stat & TXF)
-			cpu_relax();
 		*(volatile unsigned short *)(&sport->regs->tx) = *(u16 *) (drv_data->tx);
 		drv_data->tx += 2;
-
-		while (!(sport->regs->stat & RXNE))
+		stat = *(volatile unsigned short *)(&sport->regs->stat);
+		while (!(stat & RXNE)) {
 			cpu_relax();
+			stat = *(volatile unsigned short *)(&sport->regs->stat);
+		}
 		*(u16 *) (drv_data->rx) = *(volatile unsigned short *)(&sport->regs->rx);
 		drv_data->rx += 2;
 	}
+	bfin_sport_spi_disable(drv_data);
 }
 
 static void bfin_sport_spi_u16_cs_chg_duplex(struct driver_data *drv_data)
 {
-	struct chip_data *chip = drv_data->cur_chip;
 	struct sport_dev *sport = drv_data->sport;
+	u16 stat;
 
+	bfin_sport_spi_enable(drv_data);
 	while (drv_data->rx < drv_data->rx_end) {
-		bfin_sport_spi_cs_active(drv_data, chip);
-		while (sport->regs->stat & TXF)
-			cpu_relax();
 		*(volatile unsigned short *)(&sport->regs->tx) = *(u16 *) (drv_data->tx);
 		drv_data->tx += 2;
-
-		while (!(sport->regs->stat & RXNE))
+		stat = *(volatile unsigned short *)(&sport->regs->stat);
+		while (!(stat & RXNE)) {
 			cpu_relax();
+			stat = *(volatile unsigned short *)(&sport->regs->stat);
+		}
 		*(u16 *) (drv_data->rx) = *(volatile unsigned short *)(&sport->regs->rx);
 		drv_data->rx += 2;
-		bfin_sport_spi_cs_deactive(drv_data, chip);
 	}
+	bfin_sport_spi_disable(drv_data);
 }
 
 /* test if ther is more transfer to be done */
@@ -553,6 +615,11 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 		break;
 
 	default:
+		drv_data->n_bytes = chip->n_bytes;
+		width = chip->width;
+		drv_data->write = drv_data->tx ? chip->write : bfin_spi_null_writer;
+		drv_data->read = drv_data->rx ? chip->read : bfin_spi_null_reader;
+		drv_data->duplex = chip->duplex ? chip->duplex : bfin_spi_null_writer;
 		break;
 	}
 
@@ -819,7 +886,7 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 		chip->ctl_reg |= TLSBIT;
 
 	/* Sport in master mode */
-	chip->ctl_reg |= ITCLK;
+	chip->ctl_reg |= ITCLK | ITFS | TFSR | LATFS | LTFS | TCKFE;
 	/*
 	 * Notice: for blackfin, the speed_hz is the value of register
 	 * SPI_BAUD, not the real baudrate
@@ -827,6 +894,14 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 	chip->baud = hz_to_spi_baud(spi->max_speed_hz);
 	chip->flag = 1 << (spi->chip_select);
 	chip->chip_select_num = spi->chip_select;
+
+	if (chip->chip_select_num == 0) {
+		ret = gpio_request(chip->cs_gpio, spi->modalias);
+		if (ret)
+			dev_err(&spi->dev, "Request GPIO for CS failed\n");
+		else
+			gpio_direction_output(chip->cs_gpio, 1);
+	}
 
 	switch (chip->bits_per_word) {
 	case 8:
@@ -1005,7 +1080,7 @@ static int __init bfin_sport_spi_probe(struct platform_device *pdev)
 	}
 
 	sport_device->regs = sport_params[sport_num].regs;
-	sport_device->err_irq = sport_params[sport_num].err_irq;
+	sport_device->sport_err_irq = sport_params[sport_num].err_irq;
 	/* Allocate master with space for drv_data */
 	master = spi_alloc_master(dev, sizeof(struct driver_data) + 16);
 	if (!master) {
@@ -1040,7 +1115,7 @@ static int __init bfin_sport_spi_probe(struct platform_device *pdev)
 		goto out_error_queue_alloc;
 	}
 
-	status = request_irq(sport_device->err_irq, sport_err_handler,
+	status = request_irq(sport_device->sport_err_irq, sport_err_handler,
 		0, "sport_err", drv_data);
 	if (status) {
 		dev_err(dev, "Unable to request sport err irq\n");
@@ -1066,7 +1141,7 @@ static int __init bfin_sport_spi_probe(struct platform_device *pdev)
 out_error_master:
 	peripheral_free_list(&sport_pin_req[sport_num][0]);
 out_error_peripheral:
-	free_irq(sport_device->err_irq, drv_data);
+	free_irq(sport_device->sport_err_irq, drv_data);
 out_error_queue_alloc:
 	bfin_sport_spi_destroy_queue(drv_data);
 	spi_master_put(master);
