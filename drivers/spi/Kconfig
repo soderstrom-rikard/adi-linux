@@ -84,14 +84,6 @@ config SPI_BFIN_SPORT
 	  This driver can also be built as a module.  If so, the module
 	  will be called bfin_sport_spi.
 
-config BLACKFIN_SPORT
-	int "Blackfin SPORT port num"
-	depends on SPI_BFIN_SPORT
-	default 0
-	help
-	  Enter the number of Blackfin SPORT port which SPI is occupied.
-	  acceptable values are 0 or 1
-
 config SPI_AU1550
 	tristate "Au1550/Au12x0 SPI Controller"
 	depends on (SOC_AU1550 || SOC_AU1200) && EXPERIMENTAL
