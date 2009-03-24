@@ -19,7 +19,8 @@ MODULE_AUTHOR("Bryan Wu <cooloney@kernel.org>");
 MODULE_DESCRIPTION("Driver for AD7142 Joysticks");
 MODULE_LICENSE("GPL");
 
-#define AD7142_I2C_ID		0xE622
+#define AD7142_I2C_ID		0xE620
+#define AD7147_I2C_ID		0x1470
 
 /*
  * Ram map - these registers are defined as we go along
@@ -249,7 +250,16 @@ static int ad7142_open(struct input_dev *dev)
 	unsigned short id, value;
 
 	ad7142_i2c_read(client, DEVID, &id, 1);
-	if (id != AD7142_I2C_ID) {
+
+	switch (id & 0xFFF0) {
+	case AD7147_I2C_ID:
+		dev_info(&client->dev, "Open AD7147 Rev 0.%d\n", id & 0xF);
+		dev_warn(&client->dev, "AD7147 only partially supported");
+		break;
+	case AD7142_I2C_ID:
+		dev_info(&client->dev, "Open AD7142 Rev 0.%d\n", id & 0xF);
+		break;
+	default:
 		dev_err(&client->dev, "Open AD7142 error\n");
 		return -ENODEV;
 	}
@@ -351,6 +361,7 @@ static int ad7142_probe(struct i2c_client *client)
 				client->irq);
 			goto fail_irq;
 		}
+			disable_irq_nosync(client->irq);
 	} else
 		dev_warn(&client->dev, "IRQ not configured!\n");
 
