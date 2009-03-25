@@ -1185,6 +1185,8 @@ static int bfin_spi_setup(struct spi_device *spi)
 				"Unable to request BlackFin SPI DMA channel\n");
 			goto error;
 		}
+		drv_data->dma_requested = 1;
+
 		ret = set_dma_callback(drv_data->dma_channel,
 			bfin_spi_dma_irq_handler, drv_data);
 		if (ret) {
@@ -1192,7 +1194,6 @@ static int bfin_spi_setup(struct spi_device *spi)
 			goto error;
 		}
 		dma_disable_irq(drv_data->dma_channel);
-		drv_data->dma_requested = 1;
 	}
 
 	if (chip->chip_select_num == 0) {
@@ -1223,6 +1224,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 		kfree(chip);
 		if (drv_data->dma_requested)
 			free_dma(drv_data->dma_channel);
+		drv_data->dma_requested = 0;
 	}
 
 	return ret;
