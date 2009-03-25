@@ -1072,15 +1072,15 @@ static u16 ssel[][MAX_SPI_SSEL] = {
 /* first setup for new devices */
 static int bfin_spi_setup(struct spi_device *spi)
 {
-	struct bfin5xx_spi_chip *chip_info = NULL;
-	struct chip_data *chip;
+	struct bfin5xx_spi_chip *chip_info;
+	struct chip_data *chip = NULL;
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
-	int ret;
+	int ret = -EINVAL;
 
 	/* Abort device setup if requested features are not supported */
 	if (spi->mode & ~(SPI_CPOL | SPI_CPHA | SPI_LSB_FIRST)) {
 		dev_err(&spi->dev, "requested mode not fully supported\n");
-		return -EINVAL;
+		goto error;
 	}
 
 	/* Zero (the default) here means 8 bits */
@@ -1088,12 +1088,13 @@ static int bfin_spi_setup(struct spi_device *spi)
 		spi->bits_per_word = 8;
 
 	if (spi->bits_per_word != 8 && spi->bits_per_word != 16)
-		return -EINVAL;
+		goto error;
 
 	/* Only alloc (or use chip_info) on first setup */
+	chip_info = NULL;
 	chip = spi_get_ctldata(spi);
 	if (chip == NULL) {
-		chip = kzalloc(sizeof(struct chip_data), GFP_KERNEL);
+		chip = kzalloc(sizeof(*chip), GFP_KERNEL);
 		if (!chip)
 			return -ENOMEM;
 
@@ -1112,7 +1113,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 		if (chip_info->ctl_reg & (SPE|MSTR|CPOL|CPHA|LSBF|SIZE)) {
 			dev_err(&spi->dev, "do not set bits in ctl_reg "
 				"that the SPI framework manages\n");
-			return -EINVAL;
+			goto error;
 		}
 
 		chip->enable_dma = chip_info->enable_dma != 0
@@ -1136,42 +1137,12 @@ static int bfin_spi_setup(struct spi_device *spi)
 	chip->ctl_reg |= MSTR;
 
 	/*
-	 * if any one SPI chip is registered and wants DMA, request the
-	 * DMA channel for it
-	 */
-	if (chip->enable_dma && !drv_data->dma_requested) {
-		/* register dma irq handler */
-		if (request_dma(drv_data->dma_channel, "BFIN_SPI_DMA") < 0) {
-			dev_dbg(&spi->dev,
-				"Unable to request BlackFin SPI DMA channel\n");
-			return -ENODEV;
-		}
-		if (set_dma_callback(drv_data->dma_channel,
-		    bfin_spi_dma_irq_handler, drv_data) < 0) {
-			dev_dbg(&spi->dev, "Unable to set dma callback\n");
-			return -EPERM;
-		}
-		dma_disable_irq(drv_data->dma_channel);
-		drv_data->dma_requested = 1;
-	}
-
-	/*
 	 * Notice: for blackfin, the speed_hz is the value of register
 	 * SPI_BAUD, not the real baudrate
 	 */
 	chip->baud = hz_to_spi_baud(spi->max_speed_hz);
 	chip->flag = 1 << (spi->chip_select);
 	chip->chip_select_num = spi->chip_select;
-
-	if (chip->chip_select_num == 0) {
-		ret = gpio_request(chip->cs_gpio, spi->modalias);
-		if (ret) {
-			if (drv_data->dma_requested)
-				free_dma(drv_data->dma_channel);
-			return ret;
-		}
-		gpio_direction_output(chip->cs_gpio, 1);
-	}
 
 	switch (chip->bits_per_word) {
 	case 8:
@@ -1199,9 +1170,36 @@ static int bfin_spi_setup(struct spi_device *spi)
 	default:
 		dev_err(&spi->dev, "%d bits_per_word is not supported\n",
 				chip->bits_per_word);
-		if (chip_info)
-			kfree(chip);
-		return -ENODEV;
+		goto error;
+	}
+
+	/*
+	 * if any one SPI chip is registered and wants DMA, request the
+	 * DMA channel for it
+	 */
+	if (chip->enable_dma && !drv_data->dma_requested) {
+		/* register dma irq handler */
+		ret = request_dma(drv_data->dma_channel, "BFIN_SPI_DMA");
+		if (ret) {
+			dev_dbg(&spi->dev,
+				"Unable to request BlackFin SPI DMA channel\n");
+			goto error;
+		}
+		ret = set_dma_callback(drv_data->dma_channel,
+			bfin_spi_dma_irq_handler, drv_data);
+		if (ret) {
+			dev_dbg(&spi->dev, "Unable to set dma callback\n");
+			goto error;
+		}
+		dma_disable_irq(drv_data->dma_channel);
+		drv_data->dma_requested = 1;
+	}
+
+	if (chip->chip_select_num == 0) {
+		ret = gpio_request(chip->cs_gpio, spi->modalias);
+		if (ret)
+			goto error;
+		gpio_direction_output(chip->cs_gpio, 1);
 	}
 
 	dev_dbg(&spi->dev, "setup spi chip %s, width is %d, dma is %d\n",
@@ -1218,8 +1216,16 @@ static int bfin_spi_setup(struct spi_device *spi)
 			[chip->chip_select_num-1], spi->modalias);
 
 	bfin_spi_cs_deactive(drv_data, chip);
+	ret = 0;
 
-	return 0;
+ error:
+	if (ret) {
+		kfree(chip);
+		if (drv_data->dma_requested)
+			free_dma(drv_data->dma_channel);
+	}
+
+	return ret;
 }
 
 /*
