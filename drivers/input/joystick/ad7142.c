@@ -361,7 +361,7 @@ static int ad7142_probe(struct i2c_client *client)
 				client->irq);
 			goto fail_irq;
 		}
-			disable_irq_nosync(client->irq);
+		disable_irq_nosync(client->irq);
 	} else
 		dev_warn(&client->dev, "IRQ not configured!\n");
 
