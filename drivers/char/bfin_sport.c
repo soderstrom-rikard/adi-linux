@@ -472,8 +472,6 @@ static int sport_open(struct inode *inode, struct file *filp)
  fail1:
 	free_irq(dev->tx_irq, dev);
  fail:
-	free_dma(dev->dma_rx_chan);
-	free_dma(dev->dma_tx_chan);
 
 	return ret;
 }
