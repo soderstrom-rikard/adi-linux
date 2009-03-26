@@ -1572,7 +1572,6 @@ static int isp1362_get_frame(struct usb_hcd *hcd)
 
 /*-------------------------------------------------------------------------*/
 
-static int isp1362_bus_suspend(struct usb_hcd *hcd);
 // Adapted from ohci-hub.c
 static int isp1362_hub_status_data(struct usb_hcd *hcd, char *buf)
 {
