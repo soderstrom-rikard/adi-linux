@@ -1211,10 +1211,13 @@ static int bfin_spi_setup(struct spi_device *spi)
 	spi_set_ctldata(spi, chip);
 
 	dev_dbg(&spi->dev, "chip select number is %d\n", chip->chip_select_num);
-	if ((chip->chip_select_num > 0)
-		&& (chip->chip_select_num <= spi->master->num_chipselect))
-		peripheral_request(ssel[spi->master->bus_num]
-			[chip->chip_select_num-1], spi->modalias);
+	if (chip->chip_select_num > 0 &&
+	    chip->chip_select_num <= spi->master->num_chipselect) {
+		ret = peripheral_request(ssel[spi->master->bus_num]
+		                         [chip->chip_select_num-1], spi->modalias);
+		if (ret)
+			goto error;
+	}
 
 	bfin_spi_cs_deactive(drv_data, chip);
 	ret = 0;
