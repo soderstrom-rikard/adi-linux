@@ -155,7 +155,7 @@ static inline struct isp1362_ep_queue *get_ptd_queue(struct isp1362_hcd *isp1362
 	if (epq) {
 		DBG(1, "%s: PTD $%04x is on %s queue\n", __FUNCTION__, offset, epq->name);
 	} else {
-		WARN("%s: invalid PTD $%04x\n", __FUNCTION__, offset);
+		UWARN("%s: invalid PTD $%04x\n", __FUNCTION__, offset);
 	}
 
 	return epq;
@@ -166,7 +166,7 @@ static inline int get_ptd_offset(struct isp1362_ep_queue *epq, u8 index)
 	int offset;
 
 	if (index * epq->blk_size > epq->buf_size) {
-		WARN("%s: Bad %s index %d(%d)\n", __FUNCTION__, epq->name, index,
+		UWARN("%s: Bad %s index %d(%d)\n", __FUNCTION__, epq->name, index,
 		     epq->buf_size / epq->blk_size);
 		return -EINVAL;
 	}
@@ -965,7 +965,7 @@ static void start_iso_transfers(struct isp1362_hcd *isp1362_hcd)
 
 			ptd_offset = next_ptd(epq, ep);
 			if (ptd_offset < 0) {
-				WARN("%s: req %d No more %s PTD buffers available\n", __func__,
+				UWARN("%s: req %d No more %s PTD buffers available\n", __func__,
 				     ep->num_req, epq->name);
 				break;
 			}
@@ -1040,7 +1040,7 @@ static void finish_transfers(struct isp1362_hcd *isp1362_hcd, unsigned long done
 		}
 	}
 	if (done_map) {
-		WARN("%s: done_map not clear: %08lx:%08lx\n", __FUNCTION__, done_map,
+		UWARN("%s: done_map not clear: %08lx:%08lx\n", __FUNCTION__, done_map,
 		     epq->skip_map);
 	}
 	atomic_dec(&epq->finishing);
@@ -1514,7 +1514,7 @@ static int isp1362_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 			DBG(1, "%s: urb %p active; wait4irq\n", __func__, urb);
 		}
 	} else {
-		WARN("%s: No EP in URB %p\n", __FUNCTION__, urb);
+		UWARN("%s: No EP in URB %p\n", __FUNCTION__, urb);
 		retval = -EINVAL;
 	}
 done:
@@ -1843,10 +1843,10 @@ static int isp1362_bus_suspend(struct usb_hcd *hcd)
 		/* FALL THROUGH */
 	case OHCI_USB_RESET:
 		status = -EBUSY;
-		WARN("%s: needs reinit!\n", __FUNCTION__);
+		UWARN("%s: needs reinit!\n", __FUNCTION__);
 		goto done;
 	case OHCI_USB_SUSPEND:
-		WARN("%s: already suspended?\n", __FUNCTION__);
+		UWARN("%s: already suspended?\n", __FUNCTION__);
 		goto done;
 	}
 	DBG(0, "%s: suspend root hub\n", __FUNCTION__);
@@ -1939,7 +1939,7 @@ static int isp1362_bus_resume(struct usb_hcd *hcd)
 	isp1362_hcd->hc_control = isp1362_read_reg32(isp1362_hcd, HCCONTROL);
 	INFO("%s: HCCONTROL: %08x\n", __FUNCTION__, isp1362_hcd->hc_control);
 	if (hcd->state == HC_STATE_RESUMING) {
-		WARN("%s: duplicate resume\n", __FUNCTION__);
+		UWARN("%s: duplicate resume\n", __FUNCTION__);
 		status = 0;
 	} else switch (isp1362_hcd->hc_control & OHCI_CTRL_HCFS) {
 	case OHCI_USB_SUSPEND:
@@ -2295,7 +2295,7 @@ static void create_debug_file(struct isp1362_hcd *isp1362_hcd)
 
 	pde = create_proc_entry(proc_filename, 0, NULL);
 	if (pde == NULL) {
-		WARN("%s: Failed to create debug file '%s'\n", __FUNCTION__, proc_filename);
+		UWARN("%s: Failed to create debug file '%s'\n", __FUNCTION__, proc_filename);
 		return;
 	}
 
@@ -2606,7 +2606,7 @@ static int isp1362_chip_test(struct isp1362_hcd *isp1362_hcd)
 					    __FUNCTION__, offset);
 					break;
 				}
-				WARN("%s: memory check with offset %02x ok after second read\n",
+				UWARN("%s: memory check with offset %02x ok after second read\n",
 				     __FUNCTION__, offset);
 			}
 		}

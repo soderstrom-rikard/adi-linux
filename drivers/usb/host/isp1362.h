@@ -670,7 +670,7 @@ static inline struct usb_hcd *isp1362_hcd_to_hcd(struct isp1362_hcd *isp1362_hcd
 #endif
 
 #define ERR(fmt...)		printk(KERN_ERR fmt)
-#define WARN(fmt...)		printk(KERN_WARNING fmt)
+#define UWARN(fmt...)		printk(KERN_WARNING fmt)
 #define INFO(fmt...)		printk(KERN_INFO fmt)
 
 
