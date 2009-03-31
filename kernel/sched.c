@@ -4437,12 +4437,7 @@ pick_next_task(struct rq *rq, struct task_struct *prev)
 /*
  * schedule() is the main scheduler function.
  */
-#ifdef CONFIG_SCHEDULE_L1
-__attribute__((l1_text))
-#else
-__sched
-#endif
-asmlinkage void schedule(void)
+asmlinkage void __sched schedule(void)
 {
 	struct task_struct *prev, *next;
 	unsigned long *switch_count;
