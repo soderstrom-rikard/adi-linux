@@ -34,7 +34,10 @@ static void bfin_reset(void)
 	 * automatically perform a software reset for us when
 	 * it starts executing after the core reset.
 	 */
-	if (ANOMALY_05000353 || ANOMALY_05000386) {
+/*	Temperary work around for Vivi to run testing before branch.
+	Should rollback on SVN trunk after 2009R1 branch.
+
+	if (ANOMALY_05000353 || ANOMALY_05000386) {*/
 		/* Initiate System software reset. */
 		bfin_write_SWRST(0x7);
 
@@ -69,7 +72,7 @@ static void bfin_reset(void)
 			: "a" (15 * 1)
 			: "LC1", "LB1", "LT1"
 		);
-	}
+/*	}*/
 
 	while (1)
 		/* Issue core reset */
