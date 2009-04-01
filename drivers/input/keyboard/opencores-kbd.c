@@ -62,7 +62,7 @@ static irqreturn_t opencores_kbd_isr(int irq, void *dev_id)
 	struct opencores_kbd *opencores_kbd = platform_get_drvdata(pdev);
 	struct input_dev *input = opencores_kbd->input;
 
-	c = readb(opencores_kbd->addr_res->start);
+	c = readb((void *)opencores_kbd->addr_res->start);
 	input_report_key(input, c & 0x7f, c & 0x80 ? 0 : 1);
 	input_sync(input);
 
