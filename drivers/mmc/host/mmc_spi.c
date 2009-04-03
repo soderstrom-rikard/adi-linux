@@ -756,11 +756,12 @@ mmc_spi_writeblock(struct mmc_spi_host *host, struct spi_transfer *t,
 	if (status != 0) {
 		dev_dbg(&spi->dev, "write error %02x (%d)\n",
 			scratch->status[0], status);
-	} else {
-		t->tx_buf += t->len;
-		if (host->dma_dev)
-			t->tx_dma += t->len;
+		return status;
 	}
+
+	t->tx_buf += t->len;
+	if (host->dma_dev)
+		t->tx_dma += t->len;
 
 	/* Return when not busy.  If we didn't collect that status yet,
 	 * we'll need some more I/O.
@@ -768,12 +769,9 @@ mmc_spi_writeblock(struct mmc_spi_host *host, struct spi_transfer *t,
 	for (i = 4; i < sizeof(scratch->status); i++) {
 		/* card is non-busy if the most recent bit is 1 */
 		if (scratch->status[i] & 0x01)
-			return status;
+			return 0;
 	}
-	i = mmc_spi_wait_unbusy(host, timeout);
-	if (!status)
-		status = i;
-	return status;
+	return mmc_spi_wait_unbusy(host, timeout);
 }
 
 /*
@@ -1111,15 +1109,7 @@ static void mmc_spi_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	status = mmc_spi_command_send(host, mrq, mrq->cmd, mrq->data != NULL);
 	if (status == 0 && mrq->data) {
 		mmc_spi_data_do(host, mrq->cmd, mrq->data, mrq->data->blksz);
-		/* filter-out the stop command for multiblock writes,
-		 * only if the data stage has no transmission error.
-		 * If the data stage has a transmission error, send the
-		 * STOP command because there is a great chance that the
-		 * SPI stop token was not accepted by the card.
-		 */
-		if (mrq->stop &&
-			((mrq->data->flags & MMC_DATA_READ)
-		       || mrq->data->error))
+		if (mrq->stop)
 			status = mmc_spi_command_send(host, mrq, mrq->stop, 0);
 		else
 			mmc_cs_off(host);
