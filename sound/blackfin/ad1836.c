@@ -208,7 +208,7 @@ static struct ad1836_spi *ad1836_spi = NULL;
 /* Chip level */
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
 
-#define AD1836_BUF_SZ 0x40000 /* 256kb */
+#define AD1836_BUF_SZ 0x80000 /* 512kb */
 /*In 2 channels mode, the buffer is quadrupled */
 #define PCM_BUFFER_MAX	(AD1836_BUF_SZ / 4)
 #define CHANNELS_MAX	8
@@ -1999,14 +1999,16 @@ static int __devinit snd_ad1836_probe(struct platform_device *pdev)
 #ifdef MULTI_SUBSTREAM
 	ad1836->rx_dma_buf = dma_alloc_coherent(NULL, AD1836_BUF_SZ, &addr, 0);
 	if (!ad1836->rx_dma_buf) {
-		printk(KERN_ERR DRIVER_NAME ": Failed to allocate DMA buffer\n");
+		printk(KERN_ERR DRIVER_NAME ": Failed to allocate DMA buffer --\
+			Please enlarge Uncached DMA region\n");
 		err = -ENOMEM;
 		goto __free_card;
 	}
 	ad1836->tx_dma_buf = dma_alloc_coherent(NULL, AD1836_BUF_SZ, &addr, 0);
 	if (!ad1836->tx_dma_buf) {
 		dma_free_coherent(NULL, AD1836_BUF_SZ, ad1836->rx_dma_buf, 0);
-		printk(KERN_ERR DRIVER_NAME ": Failed to allocate DMA buffer\n");
+		printk(KERN_ERR DRIVER_NAME ": Failed to allocate DMA buffer --\
+			Please enlarge Uncached DMA region\n");
 		err = -ENOMEM;
 		goto __free_card;
 	}
