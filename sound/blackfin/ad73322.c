@@ -385,8 +385,7 @@ static int snd_ad73322_play_trigger(struct snd_pcm_substream *substream, int cmd
 	}
 	spin_unlock(&chip->ad73322_lock);
 
-	snd_printd(KERN_INFO"cmd:%s,runmode:0x%x\n", cmd?"start":"stop",
-								chip->runmode);
+	snd_printd(KERN_INFO "cmd:%s\n", cmd ? "start" : "stop");
 	return 0;
 }
 
@@ -429,8 +428,7 @@ static int snd_ad73322_cap_trigger(struct snd_pcm_substream *substream, int cmd)
 	}
 	spin_unlock(&chip->ad73322_lock);
 
-	snd_printd(KERN_INFO"cmd:%s,runmode:0x%x\n", cmd?"start":"stop",
-							chip->runmode);
+	snd_printd(KERN_INFO "cmd:%s\n", cmd ? "start" : "stop");
 	return 0;
 }
 
