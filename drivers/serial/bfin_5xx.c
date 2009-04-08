@@ -1209,51 +1209,6 @@ static void bfin_serial_console_putchar(struct uart_port *port, int ch)
 	SSYNC();
 }
 
-#ifdef CONFIG_IPIPE
-
-#include <stdarg.h>
-
-void __ipipe_serial_debug(const char *fmt, ...)
-{
-	struct bfin_serial_port *uart = &bfin_serial_ports[0];
-	unsigned short status, tmp;
-	int flags, i, count;
-	char buf[128];
-	va_list ap;
-
-	va_start(ap, fmt);
-	vsprintf(buf, fmt, ap);
-	va_end(ap);
-	count = strlen(buf);
-
-	local_irq_save_hw(flags);
-
-	for (i = 0; i < count; i++) {
-		do {
-			status = UART_GET_LSR(uart);
-		} while (!(status & THRE));
-
-#ifndef CONFIG_BF54x
-		tmp = UART_GET_LCR(uart);
-		tmp &= ~DLAB;
-		UART_PUT_LCR(uart, tmp);
-#endif
-
-		UART_PUT_CHAR(uart, buf[i]);
-		if (buf[i] == '\n') {
-			do {
-				status = UART_GET_LSR(uart);
-			} while (!(status & THRE));
-			UART_PUT_CHAR(uart, '\r');
-		}
-	}
-
-	local_irq_restore_hw(flags);
-}
-EXPORT_SYMBOL(__ipipe_serial_debug);
-
-#endif /* CONFIG_IPIPE */
-
 /*
  * Interrupts are disabled on entering
  */
@@ -1365,7 +1320,7 @@ void bfin_serial_debug(const char *fmt, ...)
 {
 	struct bfin_serial_port *uart = &bfin_serial_ports[0];
 	unsigned short status;
-	unsigned long flags;
+	unsigned long flags, _flags;
 	int i, count;
 	char buf[128];
 	va_list ap;
@@ -1381,6 +1336,9 @@ void bfin_serial_debug(const char *fmt, ...)
 	count = strlen(buf);
 
 	spin_lock_irqsave(&uart->port.lock, flags);
+#ifdef CONFIG_IPIPE
+	local_irq_save_hw(_flags);
+#endif
 
 	for (i = 0; i < count; i++) {
 		do {
@@ -1397,6 +1355,9 @@ void bfin_serial_debug(const char *fmt, ...)
 		}
 	}
 
+#ifdef CONFIG_IPIPE
+	local_irq_restore_hw(_flags);
+#endif
 	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
 EXPORT_SYMBOL(bfin_serial_debug);
