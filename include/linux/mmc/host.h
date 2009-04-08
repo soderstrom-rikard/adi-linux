@@ -158,9 +158,9 @@ struct mmc_host {
 #endif
 
 	struct dentry		*debugfs_root;
+	unsigned int		powerof2_block;	/* host only supports power-of-2 block */
 
 	unsigned long		private[0] ____cacheline_aligned;
-	unsigned int		powerof2_block;	/* host only supports power-of-2 block */
 };
 
 extern struct mmc_host *mmc_alloc_host(int extra, struct device *);
