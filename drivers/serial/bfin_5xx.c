@@ -1321,7 +1321,7 @@ void bfin_serial_debug(const char *fmt, ...)
 	struct bfin_serial_port *uart = &bfin_serial_ports[0];
 	unsigned short status;
 	unsigned long flags, _flags;
-	int i, count;
+	size_t i, count;
 	char buf[128];
 	va_list ap;
 
@@ -1336,9 +1336,7 @@ void bfin_serial_debug(const char *fmt, ...)
 	count = strlen(buf);
 
 	spin_lock_irqsave(&uart->port.lock, flags);
-#ifdef CONFIG_IPIPE
 	local_irq_save_hw(_flags);
-#endif
 
 	for (i = 0; i < count; i++) {
 		do {
@@ -1355,9 +1353,7 @@ void bfin_serial_debug(const char *fmt, ...)
 		}
 	}
 
-#ifdef CONFIG_IPIPE
 	local_irq_restore_hw(_flags);
-#endif
 	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
 EXPORT_SYMBOL(bfin_serial_debug);
