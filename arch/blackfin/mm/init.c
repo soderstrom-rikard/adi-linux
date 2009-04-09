@@ -54,11 +54,10 @@ static unsigned long empty_bad_page;
 
 static unsigned long empty_zero_page;
 
-#if defined CONFIG_EXCEPTION_L1_SCRATCH
-/* not need to define exception_stack */
-#elif defined CONFIG_SYSCALL_TAB_L1
-static unsigned long exception_stack[NR_CPUS][1024] __attribute__ ((__section__(".l1.data")));;
-#else
+#ifndef CONFIG_EXCEPTION_L1_SCRATCH
+#if defined CONFIG_SYSCALL_TAB_L1
+__attribute__((l1_data))
+#endif
 static unsigned long exception_stack[NR_CPUS][1024];
 #endif
 
