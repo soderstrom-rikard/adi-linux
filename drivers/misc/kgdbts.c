@@ -295,6 +295,9 @@ static int check_and_rewind_pc(char *put_str, char *arg)
 	/* On x86 a breakpoint stop requires it to be decremented */
 	if (addr + 1 == kgdbts_regs.ip)
 		offset = -1;
+#elif defined(CONFIG_BLACKFIN)
+	if (addr + BREAK_INSTR_SIZE == instruction_pointer(&kgdbts_regs))
+		offset = -BREAK_INSTR_SIZE;
 #endif
 	if (strcmp(arg, "silent") &&
 		instruction_pointer(&kgdbts_regs) + offset != addr) {
@@ -302,10 +305,8 @@ static int check_and_rewind_pc(char *put_str, char *arg)
 			   instruction_pointer(&kgdbts_regs) + offset, addr);
 		return 1;
 	}
-#ifdef CONFIG_X86
 	/* On x86 adjust the instruction pointer if needed */
-	kgdbts_regs.ip += offset;
-#endif
+	instruction_pointer(&kgdbts_regs) += offset;
 	return 0;
 }
 
