@@ -107,6 +107,7 @@ static inline void arch_kgdb_breakpoint(void)
 }
 #define BREAK_INSTR_SIZE	2
 #define CACHE_FLUSH_IS_SAFE	1
+#define GDB_ADJUSTS_BREAK_OFFSET
 #define HW_INST_WATCHPOINT_NUM	6
 #define HW_WATCHPOINT_NUM	8
 #define TYPE_INST_WATCHPOINT	0
