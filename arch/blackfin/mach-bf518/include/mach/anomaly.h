@@ -6,14 +6,19 @@
  * Licensed under the GPL-2 or later.
  */
 
-/* This file shoule be up to date with:
+/* This file should be up to date with:
  *  - Revision B, 02/03/2009; ADSP-BF512/BF514/BF516/BF518 Blackfin Processor Anomaly List
  */
+
+/* We plan on not supporting 0.0 silicon, but 0.1 isn't out yet - sorry */
+#if __SILICON_REVISION__ < 0
+# error will not work on BF518 silicon version
+#endif
 
 #ifndef _MACH_ANOMALY_H_
 #define _MACH_ANOMALY_H_
 
-/* Multi-Issue Instruction with dsp32shiftimm in slot1 and P-reg Store in slot2 Not Supported */
+/* Multi-issue instruction with dsp32shiftimm in slot1 and P-reg store in slot 2 not supported */
 #define ANOMALY_05000074 (1)
 /* Rx.H Cannot Be Used to Access 16-bit System MMR Registers */
 #define ANOMALY_05000122 (1)
@@ -47,7 +52,7 @@
 #define ANOMALY_05000435 (1)
 /* PORTx_DRIVE and PORTx_HYSTERESIS Registers Read Back Incorrect Values */
 #define ANOMALY_05000438 (1)
-/* Preboot Cannot be Used to Program the PLL_DIV Register */
+/* Preboot Cannot be Used to Alter the PLL_DIV Register */
 #define ANOMALY_05000439 (1)
 /* bfrom_SysControl() Cannot be Used to Write the PLL_DIV Register */
 #define ANOMALY_05000440 (1)
@@ -65,9 +70,12 @@
 /* Anomalies that don't exist on this proc */
 #define ANOMALY_05000125 (0)
 #define ANOMALY_05000158 (0)
+#define ANOMALY_05000171 (0)
 #define ANOMALY_05000183 (0)
 #define ANOMALY_05000198 (0)
+#define ANOMALY_05000227 (0)
 #define ANOMALY_05000230 (0)
+#define ANOMALY_05000242 (0)
 #define ANOMALY_05000244 (0)
 #define ANOMALY_05000261 (0)
 #define ANOMALY_05000263 (0)
@@ -81,6 +89,7 @@
 #define ANOMALY_05000312 (0)
 #define ANOMALY_05000323 (0)
 #define ANOMALY_05000353 (0)
+#define ANOMALY_05000362 (1)
 #define ANOMALY_05000363 (0)
 #define ANOMALY_05000380 (0)
 #define ANOMALY_05000386 (0)
