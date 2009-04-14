@@ -269,8 +269,7 @@ static int __devinit adp5520_probe(struct i2c_client *client,
 		BLOCKING_INIT_NOTIFIER_HEAD(&chip->notifier_list);
 
 		ret = request_irq(chip->irq, adp5520_irq_handler,
-				IRQF_SAMPLE_RANDOM | IRQF_DISABLED |
-				IRQF_TRIGGER_LOW,
+				IRQF_DISABLED | IRQF_TRIGGER_LOW,
 				"adp5520", chip);
 		if (ret) {
 			dev_err(&client->dev, "failed to request irq %d\n",
