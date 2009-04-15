@@ -326,7 +326,8 @@ static void ad7142_close(struct input_dev *dev)
 	ad7142_i2c_write(client, PWRCONVCTL, &value, 1);
 }
 
-static int ad7142_probe(struct i2c_client *client)
+static int ad7142_probe(struct i2c_client *client,
+					const struct i2c_device_id *id)
 {
 	struct ad7142_data *data;
 	struct input_dev *input;
