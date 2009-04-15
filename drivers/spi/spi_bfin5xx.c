@@ -913,6 +913,8 @@ static void bfin_spi_pump_messages(struct work_struct *work)
 	unsigned long flags;
 #ifdef CONFIG_SPI_BFIN_LOCK
 	int locked_cs = -1;
+	int next_cs = -1;
+	struct chip_data *chip = NULL;
 	struct spi_message *next_msg = NULL, *msg = NULL;
 #endif
 
@@ -938,19 +940,26 @@ static void bfin_spi_pump_messages(struct work_struct *work)
 	next_msg = list_entry(drv_data->queue.next,
 		struct spi_message, queue);
 
-	if (drv_data->locked)
+	if (drv_data->locked) {
 		locked_cs = drv_data->locked;
+		chip = spi_get_ctldata(next_msg->spi);
+		next_cs = next_msg->spi->chip_select ? next_msg->spi->chip_select :
+			chip->cs_gpio;
+	}
 
 	/* Someone has locked the bus */
-	if (drv_data->locked && next_msg->spi->chip_select != locked_cs) {
+	if (drv_data->locked && next_cs != locked_cs) {
 		list_for_each_entry(msg, &drv_data->queue, queue) {
-			if (msg->spi->chip_select == locked_cs) {
+			chip = spi_get_ctldata(next_msg->spi);
+			next_cs = next_msg->spi->chip_select ?
+				next_msg->spi->chip_select : chip->cs_gpio;
+			if (next_cs == locked_cs) {
 				next_msg = msg;
 				break;
 			}
 		}
 		/* Do nothing even if there are messages for other devices */
-		if (next_msg->spi->chip_select != locked_cs) {
+		if (next_cs != locked_cs) {
 			drv_data->busy = 0;
 			spin_unlock_irqrestore(&drv_data->lock, flags);
 			return;
@@ -996,6 +1005,7 @@ static int bfin_spi_lock_bus(struct spi_device *spi)
 {
 #ifdef CONFIG_SPI_BFIN_LOCK
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
+	struct chip_data *chip = spi_get_ctldata(spi);
 	unsigned long flags;
 
 	spin_lock_irqsave(&drv_data->lock, flags);
@@ -1003,7 +1013,7 @@ static int bfin_spi_lock_bus(struct spi_device *spi)
 		spin_unlock_irqrestore(&drv_data->lock, flags);
 		return -ENOLCK;
 	}
-	drv_data->locked = spi->chip_select;
+	drv_data->locked = spi->chip_select ? spi->chip_select : chip->cs_gpio;
 	spin_unlock_irqrestore(&drv_data->lock, flags);
 #endif
 	return 0;
