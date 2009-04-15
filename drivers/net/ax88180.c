@@ -506,7 +506,7 @@ static int ax88180_open(struct net_device *ndev)
 static int ax88180_stop(struct net_device *ndev)
 {
 	struct ax88180_local *lp = netdev_priv(ndev);
-	unsigned int flags;
+	unsigned long flags;
 
 	PRINTK(INIT_MSG, "ax88180: ax88180_stop beginning ..........\n");
 
@@ -693,7 +693,7 @@ static struct net_device_stats *ax88180_get_stats(struct net_device *ndev)
 {
 	struct ax88180_local *lp = netdev_priv(ndev);
 	unsigned int tmp_regval;
-	unsigned int flags;
+	unsigned long flags;
 
 	PRINTK(OTHERS_MSG, "ax88180: ax88180_get_stats beginning..........\n");
 
@@ -1023,7 +1023,7 @@ static void ax88180_PHY_initial(struct net_device *ndev)
 		}
 	}
 
-	PRINTK(INIT_MSG, "ax88180: PHY_Addr=0x%08lx, PHY_ID=0x%04x, media=%d\n",
+	PRINTK(INIT_MSG, "ax88180: PHY_Addr=0x%08x, PHY_ID=0x%04x, media=%d\n",
 		lp->PhyAddr, (unsigned int)lp->PhyID0, media);
 
 	switch (lp->MediaMode) {
@@ -1637,9 +1637,7 @@ static void mdio_write(struct net_device *ndev, int phy_id
  *
  *****************************************************************************
  */
-
-
-static int ax88180_drv_probe(struct platform_device *pdev)
+static int __devinit ax88180_drv_probe(struct platform_device *pdev)
 {
 	struct resource *res;
 	struct net_device *ndev;
@@ -1651,7 +1649,6 @@ static int ax88180_drv_probe(struct platform_device *pdev)
 		printk(KERN_ERR"%s: could not allocate device.\n", DRV_NAME);
 		return -ENOMEM;
 	}
-	SET_MODULE_OWNER(ndev);
 	SET_NETDEV_DEV(ndev, &pdev->dev);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -1670,8 +1667,7 @@ static int ax88180_drv_probe(struct platform_device *pdev)
 	return -ENXIO;
 }
 
-
-static int ax88180_drv_remove(struct platform_device *pdev)
+static int __devexit ax88180_drv_remove(struct platform_device *pdev)
 {
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct ax88180_local *lp = netdev_priv(ndev);
@@ -1698,9 +1694,10 @@ static int ax88180_drv_remove(struct platform_device *pdev)
 
 static struct platform_driver ax88180_driver = {
 	.probe	 = ax88180_drv_probe,
-	.remove	 = ax88180_drv_remove,
+	.remove	 = __devexit_p(ax88180_drv_remove),
 	.driver	 = {
 		.name	 = DRV_NAME,
+		.owner	 = THIS_MODULE,
 	},
 };
 
