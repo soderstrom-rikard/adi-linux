@@ -159,13 +159,18 @@ static void bfin_sport_spi_disable(struct driver_data *drv_data)
 /* Caculate the SPI_BAUD register value based on input HZ */
 static u16 hz_to_spi_baud(u32 speed_hz)
 {
-	u_long sclk = get_sclk();
-	u16 spi_baud = (sclk / (2 * speed_hz)) - 1;
+	u_long clk, sclk = get_sclk();
+	int div = (sclk / (2 * speed_hz)) - 1;
 
-	if (spi_baud < MIN_SPI_BAUD_VAL)
-		spi_baud = MIN_SPI_BAUD_VAL;
+	if (div < 0)
+		div = 0;
 
-	return spi_baud;
+	clk = sclk / (2 * (div + 1));
+
+	if (clk > speed_hz)
+		div++;
+
+	return div;
 }
 
 /* Chip select operation functions for cs_change flag */
