@@ -375,7 +375,7 @@ static int __devinit bfin_rtc_probe(struct platform_device *pdev)
 	device_init_wakeup(dev, 1);
 
 	/* Grab the IRQ and init the hardware */
-	ret = request_irq(IRQ_RTC, bfin_rtc_interrupt, IRQF_SHARED, pdev->name, dev);
+	ret = request_irq(IRQ_RTC, bfin_rtc_interrupt, 0, pdev->name, dev);
 	if (unlikely(ret))
 		goto err;
 	/* sometimes the bootloader touched things, but the write complete was not
