@@ -823,12 +823,14 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
 	int ret = 0;
 
-	/* Abort device setup if requested features are not supported */
-	if (spi->mode & ~(SPI_CPHA | SPI_LSB_FIRST)) {
+	/* Abort device setup if requested features are not supported,
+	 * need extra hardware circuit to implement active low clock
+	 * (SPI_MODE_2/3).
+	 */
+	if (spi->mode & ~(SPI_CPOL | SPI_CPHA | SPI_LSB_FIRST)) {
 		dev_err(&spi->dev, "requested mode not fully supported\n");
 		return -EINVAL;
 	}
-
 	/* Zero (the default) here means 8 bits */
 	if (!spi->bits_per_word)
 		spi->bits_per_word = 8;
@@ -873,7 +875,7 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 		chip->ctl_reg |= TLSBIT;
 
 	/* Sport in master mode */
-	chip->ctl_reg |= ITCLK | ITFS | TFSR | LATFS | LTFS | TCKFE;
+	chip->ctl_reg |= ITCLK | ITFS | TFSR | LATFS | LTFS;
 	/*
 	 * Notice: for blackfin, the speed_hz is the value of register
 	 * SPI_BAUD, not the real baudrate
