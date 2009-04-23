@@ -529,38 +529,39 @@ static int __devinit sdh_probe(struct platform_device *pdev)
 	spin_lock_init(&host->lock);
 	host->irq = drv_data->irq_int0;
 	host->dma_ch = drv_data->dma_chan;
-	ret = request_irq(host->irq, sdh_stat_irq, 0, "SDH Status IRQ", host);
-	if (ret) {
-		dev_err(&pdev->dev, "unable to request status irq\n");
-		goto out1;
-	}
 
 	ret = request_dma(host->dma_ch, DRIVER_NAME "DMA");
 	if (ret) {
 		dev_err(&pdev->dev, "unable to request DMA channel\n");
-		goto out2;
+		goto out1;
 	}
 
 	ret = set_dma_callback(host->dma_ch, sdh_dma_irq, host);
 	if (ret) {
 		dev_err(&pdev->dev, "unable to request DMA irq\n");
-		goto out3;
+		goto out2;
 	}
 
 	host->sg_cpu = dma_alloc_coherent(&pdev->dev, PAGE_SIZE, &host->sg_dma, GFP_KERNEL);
 	if (host->sg_cpu == NULL) {
 		ret = -ENOMEM;
-		goto out3;
+		goto out2;
 	}
 
 	platform_set_drvdata(pdev, mmc);
 	mmc_add_host(mmc);
-	ret = peripheral_request_list(drv_data->pin_req, DRIVER_NAME);
+
+	ret = request_irq(host->irq, sdh_stat_irq, 0, "SDH Status IRQ", host);
 	if (ret) {
-		dev_err(&pdev->dev, "unable to request peripheral pins\n");
+		dev_err(&pdev->dev, "unable to request status irq\n");
 		goto out3;
 	}
 
+	ret = peripheral_request_list(drv_data->pin_req, DRIVER_NAME);
+	if (ret) {
+		dev_err(&pdev->dev, "unable to request peripheral pins\n");
+		goto out4;
+	}
 #if defined(CONFIG_BF54x)
 	/* Secure Digital Host shares DMA with Nand controller */
 	bfin_write_DMAC1_PERIMUX(bfin_read_DMAC1_PERIMUX() | 0x1);
@@ -581,10 +582,12 @@ static int __devinit sdh_probe(struct platform_device *pdev)
 
 	return 0;
 
-out3:
-	free_dma(host->dma_ch);
-out2:
+out4:
 	free_irq(host->irq, host);
+out3:
+	dma_free_coherent(&pdev->dev, PAGE_SIZE, host->sg_cpu, host->sg_dma);
+out2:
+	free_dma(host->dma_ch);
 out1:
 	mmc_free_host(mmc);
  out:
