@@ -176,6 +176,13 @@ cmd_ld = $(LD) $(LDFLAGS) $(ldflags-y) $(LDFLAGS_$(@F)) \
 quiet_cmd_objcopy = OBJCOPY $@
 cmd_objcopy = $(OBJCOPY) $(OBJCOPYFLAGS) $(OBJCOPYFLAGS_$(@F)) $< $@
 
+# Bzip2
+# ---------------------------------------------------------------------------
+
+quiet_cmd_bzip2 = BZIP2   $@
+cmd_bzip2 = bzip2 -f -9 < $< > $@
+
+
 # Gzip
 # ---------------------------------------------------------------------------
 
@@ -183,3 +190,8 @@ quiet_cmd_gzip = GZIP    $@
 cmd_gzip = gzip -f -9 < $< > $@
 
 
+# Lzma
+# ---------------------------------------------------------------------------
+
+quiet_cmd_lzma = LZMA    $@
+cmd_lzma = lzma -f -9 < $< > $@
