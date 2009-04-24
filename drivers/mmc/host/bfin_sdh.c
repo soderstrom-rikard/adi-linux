@@ -1,14 +1,11 @@
 /*
- *  linux/drivers/mmc/bfin_sdh.c - Analog Blackfin SDH Controller
+ * bfin_sdh.c - Analog Blackfin SDH Controller
  *
- *  Author	Roy Huang <roy.huang@analog.com>
- *  Copyright (C) 2007 Analog Device Inc.
+ * Copyright (C) 2007-2009 Analog Device Inc.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
+ * Licensed under the GPL-2 or later.
  */
+
 /* In term of ADSP_BF54x_Blackfin_Processor_Peripheral_Hardware_Reference,
  * the SDH allows software to detect a card when it is inserted into its slot.
  * The SD_DATA3 pin powers up low due to a special pull-down resistor. When an
@@ -21,7 +18,8 @@
  * MMC card, if CS pin is low, MMC card will enter SPI mode. Of course Secure
  * Digital Host controller is not a SPI controller. So the Card detect function
  * has to be disabled. After card is inserted run "echo 0 > /proc/driver/sdh"
- * to trigger card scanning */
+ * to trigger card scanning.
+ */
 
 #include <linux/module.h>
 #include <linux/init.h>
