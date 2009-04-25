@@ -301,8 +301,8 @@ void __init early_dma_memcpy(void *pdst, const void *psrc, size_t size)
 
 void __init early_dma_memcpy_done(void)
 {
-	while (!bfin_read_MDMA_S0_CONFIG() || !(bfin_read_MDMA_D0_IRQ_STATUS() & DMA_DONE) ||
-		(!bfin_read_MDMA_S1_CONFIG() || !(bfin_read_MDMA_D1_IRQ_STATUS() & DMA_DONE)))
+	while ((bfin_read_MDMA_S0_CONFIG() && !(bfin_read_MDMA_D0_IRQ_STATUS() & DMA_DONE)) ||
+	       (bfin_read_MDMA_S1_CONFIG() && !(bfin_read_MDMA_D1_IRQ_STATUS() & DMA_DONE)))
 		continue;
 
 	bfin_write_MDMA_D0_IRQ_STATUS(DMA_DONE | DMA_ERR);
