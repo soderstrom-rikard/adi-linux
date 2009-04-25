@@ -39,6 +39,7 @@ $(obj)/vmImage.lzma: $(obj)/vmlinux.lzma
 	$(call if_changed,uimage,lzma)
 
 $(obj)/vmImage: $(obj)/vmImage.gz
+	@ln -sf $(notdir $<) $@
 
 install:
 	sh $(srctree)/$(src)/install.sh $(KERNELRELEASE) $(BOOTIMAGE) System.map "$(INSTALL_PATH)"
