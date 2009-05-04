@@ -260,6 +260,19 @@ void disable_gptimers(uint16_t mask)
 }
 EXPORT_SYMBOL(disable_gptimers);
 
+void disable_gptimers_grace(uint16_t mask)
+{
+	int i;
+	uint16_t m = mask;
+	tassert((mask & ~BLACKFIN_GPTIMER_IDMASK) == 0);
+	for (i = 0; i < BFIN_TIMER_NUM_GROUP; ++i) {
+		group_regs[i]->disable = m & 0xFF;
+		m >>= 8;
+	}
+	SSYNC();
+}
+EXPORT_SYMBOL(disable_gptimers_grace);
+
 void set_gptimer_pulse_hi(int timer_id)
 {
 	tassert(timer_id < MAX_BLACKFIN_GPTIMERS);
