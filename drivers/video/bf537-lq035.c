@@ -799,7 +799,7 @@ static int __init bfin_lq035_probe(struct platform_device *pdev)
 	}
 
 #if L1_DATA_A_LENGTH != 0
-	dma_desc_table = (unsigned long*)l1_data_sram_alloc(sizeof(unsigned long) * 2 * (LCD_Y_RES + U_LINES));
+	dma_desc_table = l1_data_sram_zalloc(sizeof(unsigned long) * 2 * (LCD_Y_RES + U_LINES));
 #else
 	dma_desc_table = dma_alloc_coherent(NULL,sizeof(unsigned long) * 2 * (LCD_Y_RES + U_LINES), &dma_handle, 0);
 #endif
@@ -811,8 +811,6 @@ static int __init bfin_lq035_probe(struct platform_device *pdev)
 		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
 		return -ENOMEM;
 	}
-
-	memset(fb_buffer, 0xff, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8));
 
 	if(landscape) {
 		bfin_lq035_fb_defined.xres			= LCD_Y_RES;
