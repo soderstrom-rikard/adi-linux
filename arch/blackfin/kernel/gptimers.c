@@ -244,7 +244,7 @@ void enable_gptimers(uint16_t mask)
 }
 EXPORT_SYMBOL(enable_gptimers);
 
-void disable_gptimers(uint16_t mask)
+static void _disable_gptimers(uint16_t mask)
 {
 	int i;
 	uint16_t m = mask;
@@ -253,6 +253,12 @@ void disable_gptimers(uint16_t mask)
 		group_regs[i]->disable = m & 0xFF;
 		m >>= 8;
 	}
+}
+
+void disable_gptimers(uint16_t mask)
+{
+	int i;
+	_disable_gptimers(mask);
 	for (i = 0; i < MAX_BLACKFIN_GPTIMERS; ++i)
 		if (mask & (1 << i))
 			group_regs[BFIN_TIMER_OCTET(i)]->status |= trun_mask[i];
@@ -260,18 +266,12 @@ void disable_gptimers(uint16_t mask)
 }
 EXPORT_SYMBOL(disable_gptimers);
 
-void disable_gptimers_grace(uint16_t mask)
+void disable_gptimers_sync(uint16_t mask)
 {
-	int i;
-	uint16_t m = mask;
-	tassert((mask & ~BLACKFIN_GPTIMER_IDMASK) == 0);
-	for (i = 0; i < BFIN_TIMER_NUM_GROUP; ++i) {
-		group_regs[i]->disable = m & 0xFF;
-		m >>= 8;
-	}
+	_disable_gptimers(mask);
 	SSYNC();
 }
-EXPORT_SYMBOL(disable_gptimers_grace);
+EXPORT_SYMBOL(disable_gptimers_sync);
 
 void set_gptimer_pulse_hi(int timer_id)
 {
