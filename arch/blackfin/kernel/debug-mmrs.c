@@ -21,7 +21,7 @@ static inline int sport_width(void *mmr)
 		/* SPORT#_TX has 0x10 offset -> SPORT#_TCR2 has 0x04 offset */
 		lmmr -= 0xc;
 	else
-	 	/* SPORT#_RX has 0x18 offset -> SPORT#_RCR2 has 0x24 offset */
+		/* SPORT#_RX has 0x18 offset -> SPORT#_RCR2 has 0x24 offset */
 		lmmr += 0xc;
 	/* extract SLEN field from control register 2 and add 1 */
 	return (bfin_read16(lmmr) & 0x1f) + 1;
@@ -31,22 +31,22 @@ static int sport_set(void *mmr, u64 val)
 	unsigned long flags;
 	local_irq_save(flags);
 	if (sport_width(mmr) <= 16)
-	    bfin_write16(mmr, val);
+		bfin_write16(mmr, val);
 	else
-	    bfin_write32(mmr, val);
+		bfin_write32(mmr, val);
 	local_irq_restore(flags);
-    return 0;
+	return 0;
 }
 static int sport_get(void *mmr, u64 *val)
 {
 	unsigned long flags;
 	local_irq_save(flags);
 	if (sport_width(mmr) <= 16)
-	    *val = bfin_read16(mmr);
+		*val = bfin_read16(mmr);
 	else
-	    *val = bfin_read32(mmr);
+		*val = bfin_read32(mmr);
 	local_irq_restore(flags);
-    return 0;
+	return 0;
 }
 DEFINE_SIMPLE_ATTRIBUTE(fops_sport, sport_get, sport_set, "0x%08llx\n");
 /*DEFINE_SIMPLE_ATTRIBUTE(fops_sport_ro, sport_get, NULL, "0x%08llx\n");*/
@@ -17617,10 +17617,10 @@ static int __init bfin_debug_mmrs_init(void)
 		D("USB_EP_NI6_TXTYPE", 16, 0xFFC03F94);
 		D("USB_EP_NI7_RXCOUNT", 16, 0xFFC03FD0);
 		D("USB_EP_NI7_RXCSR", 16, 0xFFC03FCC);
-		D("USB_EP_NI7_RXINTERVAL", 16, 0xFFC03FF0);
+		D("USB_EP_NI7_RXINTERVAL", 16, 0xFFC03FE0);
 		D("USB_EP_NI7_RXMAXP", 16, 0xFFC03FC8);
 		D("USB_EP_NI7_RXTYPE", 16, 0xFFC03FDC);
-		D("USB_EP_NI7_TXCOUNT", 16, 0xFFC03FF8);
+		D("USB_EP_NI7_TXCOUNT", 16, 0xFFC03FE8);
 		D("USB_EP_NI7_TXCSR", 16, 0xFFC03FC4);
 		D("USB_EP_NI7_TXINTERVAL", 16, 0xFFC03FD8);
 		D("USB_EP_NI7_TXMAXP", 16, 0xFFC03FC0);
@@ -19305,10 +19305,10 @@ static int __init bfin_debug_mmrs_init(void)
 		D("USB_EP_NI6_TXTYPE", 16, 0xFFC03F94);
 		D("USB_EP_NI7_RXCOUNT", 16, 0xFFC03FD0);
 		D("USB_EP_NI7_RXCSR", 16, 0xFFC03FCC);
-		D("USB_EP_NI7_RXINTERVAL", 16, 0xFFC03FF0);
+		D("USB_EP_NI7_RXINTERVAL", 16, 0xFFC03FE0);
 		D("USB_EP_NI7_RXMAXP", 16, 0xFFC03FC8);
 		D("USB_EP_NI7_RXTYPE", 16, 0xFFC03FDC);
-		D("USB_EP_NI7_TXCOUNT", 16, 0xFFC03FF8);
+		D("USB_EP_NI7_TXCOUNT", 16, 0xFFC03FE8);
 		D("USB_EP_NI7_TXCSR", 16, 0xFFC03FC4);
 		D("USB_EP_NI7_TXINTERVAL", 16, 0xFFC03FD8);
 		D("USB_EP_NI7_TXMAXP", 16, 0xFFC03FC0);
@@ -22631,10 +22631,10 @@ static int __init bfin_debug_mmrs_init(void)
 		D("USB_EP_NI6_TXTYPE", 16, 0xFFC03F94);
 		D("USB_EP_NI7_RXCOUNT", 16, 0xFFC03FD0);
 		D("USB_EP_NI7_RXCSR", 16, 0xFFC03FCC);
-		D("USB_EP_NI7_RXINTERVAL", 16, 0xFFC03FF0);
+		D("USB_EP_NI7_RXINTERVAL", 16, 0xFFC03FE0);
 		D("USB_EP_NI7_RXMAXP", 16, 0xFFC03FC8);
 		D("USB_EP_NI7_RXTYPE", 16, 0xFFC03FDC);
-		D("USB_EP_NI7_TXCOUNT", 16, 0xFFC03FF8);
+		D("USB_EP_NI7_TXCOUNT", 16, 0xFFC03FE8);
 		D("USB_EP_NI7_TXCSR", 16, 0xFFC03FC4);
 		D("USB_EP_NI7_TXINTERVAL", 16, 0xFFC03FD8);
 		D("USB_EP_NI7_TXMAXP", 16, 0xFFC03FC0);
@@ -24799,10 +24799,10 @@ static int __init bfin_debug_mmrs_init(void)
 		D("USB_EP_NI6_TXTYPE", 16, 0xFFC03F94);
 		D("USB_EP_NI7_RXCOUNT", 16, 0xFFC03FD0);
 		D("USB_EP_NI7_RXCSR", 16, 0xFFC03FCC);
-		D("USB_EP_NI7_RXINTERVAL", 16, 0xFFC03FF0);
+		D("USB_EP_NI7_RXINTERVAL", 16, 0xFFC03FE0);
 		D("USB_EP_NI7_RXMAXP", 16, 0xFFC03FC8);
 		D("USB_EP_NI7_RXTYPE", 16, 0xFFC03FDC);
-		D("USB_EP_NI7_TXCOUNT", 16, 0xFFC03FF8);
+		D("USB_EP_NI7_TXCOUNT", 16, 0xFFC03FE8);
 		D("USB_EP_NI7_TXCSR", 16, 0xFFC03FC4);
 		D("USB_EP_NI7_TXINTERVAL", 16, 0xFFC03FD8);
 		D("USB_EP_NI7_TXMAXP", 16, 0xFFC03FC0);
@@ -27085,10 +27085,10 @@ static int __init bfin_debug_mmrs_init(void)
 		D("USB_EP_NI6_TXTYPE", 16, 0xFFC03F94);
 		D("USB_EP_NI7_RXCOUNT", 16, 0xFFC03FD0);
 		D("USB_EP_NI7_RXCSR", 16, 0xFFC03FCC);
-		D("USB_EP_NI7_RXINTERVAL", 16, 0xFFC03FF0);
+		D("USB_EP_NI7_RXINTERVAL", 16, 0xFFC03FE0);
 		D("USB_EP_NI7_RXMAXP", 16, 0xFFC03FC8);
 		D("USB_EP_NI7_RXTYPE", 16, 0xFFC03FDC);
-		D("USB_EP_NI7_TXCOUNT", 16, 0xFFC03FF8);
+		D("USB_EP_NI7_TXCOUNT", 16, 0xFFC03FE8);
 		D("USB_EP_NI7_TXCSR", 16, 0xFFC03FC4);
 		D("USB_EP_NI7_TXINTERVAL", 16, 0xFFC03FD8);
 		D("USB_EP_NI7_TXMAXP", 16, 0xFFC03FC0);
