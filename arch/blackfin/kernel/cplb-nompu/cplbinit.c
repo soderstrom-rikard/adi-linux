@@ -126,14 +126,14 @@ void __init generate_cplb_tables_all(void)
 	/* BootROM -- largest one should be less than 1 meg.  */
 	dcplb_bounds[i_d].eaddr = BOOT_ROM_START + (1 * 1024 * 1024);
 	dcplb_bounds[i_d++].data = SDRAM_DGENERIC;
-	if (L2_LENGTH) {
-		/* Addressing hole up to L2 SRAM.  */
-		dcplb_bounds[i_d].eaddr = L2_START;
-		dcplb_bounds[i_d++].data = 0;
-		/* L2 SRAM.  */
-		dcplb_bounds[i_d].eaddr = L2_START + L2_LENGTH;
-		dcplb_bounds[i_d++].data = L2_DMEMORY;
-	}
+#if L2_LENGTH > 0
+	/* Addressing hole up to L2 SRAM.  */
+	dcplb_bounds[i_d].eaddr = L2_START;
+	dcplb_bounds[i_d++].data = 0;
+	/* L2 SRAM.  */
+	dcplb_bounds[i_d].eaddr = L2_START + L2_LENGTH;
+	dcplb_bounds[i_d++].data = L2_DMEMORY;
+#endif
 	dcplb_nr_bounds = i_d;
 	BUG_ON(dcplb_nr_bounds > ARRAY_SIZE(dcplb_bounds));
 
@@ -162,14 +162,14 @@ void __init generate_cplb_tables_all(void)
 	/* BootROM -- largest one should be less than 1 meg.  */
 	icplb_bounds[i_i].eaddr = BOOT_ROM_START + (1 * 1024 * 1024);
 	icplb_bounds[i_i++].data = SDRAM_IGENERIC;
-	if (L2_LENGTH) {
-		/* Addressing hole up to L2 SRAM, including the async bank.  */
-		icplb_bounds[i_i].eaddr = L2_START;
-		icplb_bounds[i_i++].data = 0;
-		/* L2 SRAM.  */
-		icplb_bounds[i_i].eaddr = L2_START + L2_LENGTH;
-		icplb_bounds[i_i++].data = L2_IMEMORY;
-	}
+#if L2_LENGTH > 0
+	/* Addressing hole up to L2 SRAM, including the async bank.  */
+	icplb_bounds[i_i].eaddr = L2_START;
+	icplb_bounds[i_i++].data = 0;
+	/* L2 SRAM.  */
+	icplb_bounds[i_i].eaddr = L2_START + L2_LENGTH;
+	icplb_bounds[i_i++].data = L2_IMEMORY;
+#endif
 	icplb_nr_bounds = i_i;
 	BUG_ON(icplb_nr_bounds > ARRAY_SIZE(icplb_bounds));
 }
