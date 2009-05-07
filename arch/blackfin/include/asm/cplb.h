@@ -74,6 +74,8 @@
 # define L2_DMEMORY      (CPLB_L1_CHBL | CPLB_WT | CPLB_L1_AOW  | CPLB_COMMON)
 # elif defined(CONFIG_BFIN_L2_NOT_CACHED)
 # define L2_DMEMORY      (CPLB_COMMON)
+# else
+# define L2_DMEMORY      (0)
 # endif
 #endif /* CONFIG_SMP */
 
