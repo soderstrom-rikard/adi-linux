@@ -980,6 +980,10 @@ static void bfin_serial_reset_irda(struct uart_port *port)
 }
 
 #ifdef CONFIG_CONSOLE_POLL
+/* Anomaly notes:
+ *  05000099 -  Because we only use THRE in poll_put and DR in poll_get,
+ *		losing other bits of UART_LSR is not a problem here.
+ */
 static void bfin_serial_poll_put_char(struct uart_port *port, unsigned char chr)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
