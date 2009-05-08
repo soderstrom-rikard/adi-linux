@@ -1,7 +1,7 @@
 /*
  * Blackfin DMA Interface
  *
- * Copyright 2008 Analog Devices Inc.
+ * Copyright 2008-2009 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -173,6 +173,15 @@ static int bdi_do_dma(struct dma_state *state, int async)
 
 	if (!state->ours)
 		return -EINVAL;
+
+	/* Anomaly 05000301 notes:
+	 * This driver (and no other) exposes DMA traffic control settings.
+	 * As such, they're always disabled.  If some one does enable it
+	 * though, they need to make sure all of their DMA descriptors are
+	 * in external memory.  This is because we copy the first set from
+	 * user space to our kernel state (all_states) and that array is in
+	 * external memory.
+	 */
 
 	sg = &state->dsc_src;
 	while (sg && sg->cfg & DMAEN) {
