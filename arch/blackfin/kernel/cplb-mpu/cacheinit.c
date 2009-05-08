@@ -56,6 +56,15 @@ void __cpuinit bfin_dcache_init(struct cplb_entry *dcplb_tbl)
 
 	ctrl = bfin_read_DMEM_CONTROL();
 	ctrl |= DMEM_CNTR;
+#if ANOMALY_05000287
+	/*
+	 *  Anomaly notes:
+	 *  05000287 - We implement workaround #2 - Change the DMEM_CONTROL
+	 *  register, so that the port preferences for DAG0 and DAG1 are set
+	 *  to port B
+	 */
+	ctrl |= (PORT_PREF0 | PORT_PREF1);
+#endif
 	bfin_write_DMEM_CONTROL(ctrl);
 	SSYNC();
 }
