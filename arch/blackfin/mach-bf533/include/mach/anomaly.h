@@ -321,7 +321,10 @@
 #define ANOMALY_05000206 (__SILICON_REVISION__ < 3)
 
 /* Anomalies that don't exist on this proc */
+#define ANOMALY_05000120 (0)
 #define ANOMALY_05000171 (0)
+#define ANOMALY_05000220 (0)
+#define ANOMALY_05000248 (0)
 #define ANOMALY_05000266 (0)
 #define ANOMALY_05000274 (0)
 #define ANOMALY_05000323 (0)
@@ -329,11 +332,14 @@
 #define ANOMALY_05000362 (1)
 #define ANOMALY_05000380 (0)
 #define ANOMALY_05000386 (1)
+#define ANOMALY_05000389 (0)
 #define ANOMALY_05000412 (0)
 #define ANOMALY_05000430 (0)
 #define ANOMALY_05000432 (0)
 #define ANOMALY_05000435 (0)
 #define ANOMALY_05000447 (0)
 #define ANOMALY_05000448 (0)
+#define ANOMALY_05000456 (0)
+#define ANOMALY_05000450 (0)
 
 #endif

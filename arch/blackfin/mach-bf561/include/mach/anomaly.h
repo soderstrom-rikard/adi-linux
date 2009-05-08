@@ -278,17 +278,23 @@
 #define ANOMALY_05000443 (1)
 
 /* Anomalies that don't exist on this proc */
+#define ANOMALY_05000119 (0)
 #define ANOMALY_05000158 (0)
 #define ANOMALY_05000183 (0)
+#define ANOMALY_05000233 (0)
 #define ANOMALY_05000273 (0)
 #define ANOMALY_05000311 (0)
 #define ANOMALY_05000353 (1)
 #define ANOMALY_05000380 (0)
 #define ANOMALY_05000386 (1)
+#define ANOMALY_05000389 (0)
+#define ANOMALY_05000400 (0)
 #define ANOMALY_05000430 (0)
 #define ANOMALY_05000432 (0)
 #define ANOMALY_05000435 (0)
 #define ANOMALY_05000447 (0)
 #define ANOMALY_05000448 (0)
+#define ANOMALY_05000456 (0)
+#define ANOMALY_05000450 (0)
 
 #endif
