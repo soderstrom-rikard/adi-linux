@@ -802,7 +802,7 @@ void __init setup_arch(char **cmdline_p)
 	sclk = get_sclk();
 
 	if ((ANOMALY_05000273 || ANOMALY_05000274) && (cclk >> 1) <= sclk)
-		panic("ANOMALY 05000273 and 05000274: CCLK must be >= 2*SCLK");
+		panic("ANOMALY 05000273 or 05000274: CCLK must be >= 2*SCLK");
 
 #ifdef BF561_FAMILY
 	if (ANOMALY_05000266) {
