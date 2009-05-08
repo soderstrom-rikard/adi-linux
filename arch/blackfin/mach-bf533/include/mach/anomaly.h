@@ -322,6 +322,7 @@
 
 /* Anomalies that don't exist on this proc */
 #define ANOMALY_05000120 (0)
+#define ANOMALY_05000149 (0)
 #define ANOMALY_05000171 (0)
 #define ANOMALY_05000220 (0)
 #define ANOMALY_05000248 (0)
