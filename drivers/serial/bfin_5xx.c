@@ -834,8 +834,8 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	 */
 	if (termios->c_cflag & CSTOPB)
 		if (ANOMALY_05000231)
-			printk(KERN_WARNING "STOP bits other than 1 is not
-				supported in case of anomaly 05000231.\n");
+			printk(KERN_WARNING "STOP bits other than 1 is not "
+				"supported in case of anomaly 05000231.\n");
 		else
 			lcr |= STB;
 	if (termios->c_cflag & PARENB)
