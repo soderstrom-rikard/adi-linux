@@ -319,12 +319,25 @@ static	u16 ppi0_req_16[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2,
 static int bfin_lq035q1_request_ports(int action)
 {
 	if (action) {
+		/* ANOMALY_05000400 - PPI Does Not Start Properly In Specific Mode:
+		 * Drive PPI_FS3 Low
+		 */
+		if (ANOMALY_05000400) {
+			int ret = gpio_request(P_IDENT(P_PPI0_FS3), "PPI_FS3");
+			if (ret)
+				return ret;
+			gpio_direction_output(P_IDENT(P_PPI0_FS3), 0);
+		}
+
 		if (peripheral_request_list(ppi0_req_16, DRIVER_NAME)) {
 			printk(KERN_ERR "Requesting Peripherals faild\n");
 			return -EFAULT;
 		}
-	} else
+	} else {
 		peripheral_free_list(ppi0_req_16);
+		if (ANOMALY_05000400)
+			gpio_free(P_IDENT(P_PPI0_FS3));
+	}
 
 	return 0;
 }

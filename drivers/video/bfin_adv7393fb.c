@@ -577,12 +577,15 @@ static int __init bfin_adv7393_fb_probe(struct platform_device *pdev)
 	    fbdev->modes[mode].xres * (fbdev->modes[mode].bpp / 8);
 
 #if defined(BF533_FAMILY)
-	if (gpio_request(GPIO_3, "PPI0_FS3")) {
-		printk(KERN_ERR "BF5xx bfin_adv7393_fb: Failed ro request GPIO_%d (FS3)\n", GPIO_3);
+	/* This implicitly covers ANOMALY_05000400
+	 * PPI Does Not Start Properly In Specific Mode
+	 */
+	if (gpio_request(P_IDENT(P_PPI0_FS3), "PPI0_FS3")) {
+		printk(KERN_ERR "BF5xx bfin_adv7393_fb: Failed ro request GPIO_%d (FS3)\n", P_IDENT(P_PPI0_FS3));
 		return -EBUSY;
 	}
 
-	gpio_direction_output(GPIO_3, 0);
+	gpio_direction_output(P_IDENT(P_PPI0_FS3), 0);
 #endif
 
 
@@ -910,7 +913,7 @@ static int bfin_adv7393_fb_remove(struct platform_device *pdev)
 	kfree(drv->info.pseudo_palette);
 
 #if defined(BF533_FAMILY)
-	gpio_free(GPIO_3);	/* FS3 */
+	gpio_free(P_IDENT(P_PPI0_FS3));	/* FS3 */
 #endif
 	peripheral_free_list(ppi_req);
 	kfree(drv);
