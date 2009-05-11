@@ -262,15 +262,6 @@ ENTRY(_bfin_return_from_exception)
 	r6 = 0x25;
 	CC = R7 == R6;
 	if CC JUMP _double_fault;
-
-	/* Did we cause a HW error? */
-	p5.l = lo(ILAT);
-	p5.h = hi(ILAT);
-	r6 = [p5];
-	r7 = 0x20;		/* Did I just cause anther HW error? */
-	r6 = r7 & r6;
-	CC = R7 == R6;
-	if CC JUMP _double_fault;
 #endif
 
 	(R7:6,P5:4) = [sp++];
