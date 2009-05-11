@@ -175,7 +175,9 @@
 /* Reduced Timing Margins on DDR Output Setup and Hold (tDS and tDH) */
 #define ANOMALY_05000449 (__SILICON_REVISION__ == 1)
 /* USB DMA Mode 1 Short Packet Data Corruption */
-#define ANOMALY_05000450 (1
+#define ANOMALY_05000450 (1)
+/* False Hardware Error when RETI points to invalid memory */
+#define ANOMALY_05000461 (1)
 
 /* Anomalies that don't exist on this proc */
 #define ANOMALY_05000099 (0)

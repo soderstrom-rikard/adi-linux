@@ -66,6 +66,8 @@
 #define ANOMALY_05000453 (1)
 /* PPI_FS3 is Driven One Half Cycle Later Than PPI Data */
 #define ANOMALY_05000455 (1)
+/* False Hardware Error when RETI points to invalid memory */
+#define ANOMALY_05000461 (1)
 
 /* Anomalies that don't exist on this proc */
 #define ANOMALY_05000099 (0)
