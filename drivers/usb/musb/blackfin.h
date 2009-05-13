@@ -14,6 +14,11 @@
  * Blackfin specific definitions
  */
 
+/* Anomaly notes:
+ *  05000456 -  USE_MODE1 is used to enable DMA mode 1 for rx transfer.
+ *		It is not defined for MUSB controller on blackfin.
+*/
+
 #undef DUMP_FIFO_DATA
 #ifdef DUMP_FIFO_DATA
 static void dump_fifo_data(u8 *buf, u16 len)
