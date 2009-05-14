@@ -7,7 +7,7 @@
  */
 
 /* This file should be up to date with:
- *  - Revision B, 08/12/2008; ADSP-BF526 Blackfin Processor Anomaly List
+ *  - Revision C, 03/13/2009; ADSP-BF526 Blackfin Processor Anomaly List
  *  - Revision F, 03/03/2009; ADSP-BF527 Blackfin Processor Anomaly List
  */
 
@@ -30,6 +30,10 @@
 # define ANOMALY_BF527 0
 #endif
 
+#define _ANOMALY_BF526(rev526) (ANOMALY_BF526 && __SILICON_REVISION__ rev526)
+#define _ANOMALY_BF527(rev527) (ANOMALY_BF527 && __SILICON_REVISION__ rev527)
+#define _ANOMALY_BF526_BF527(rev526, rev527) (_ANOMALY_BF526(rev526) || _ANOMALY_BF527(rev527))
+
 /* Multi-issue instruction with dsp32shiftimm in slot1 and P-reg store in slot 2 not supported */
 #define ANOMALY_05000074 (1)
 /* DMA_RUN Bit Is Not Valid after a Peripheral Receive Channel DMA Stops */
@@ -45,129 +49,129 @@
 /* False Hardware Errors Caused by Fetches at the Boundary of Reserved Memory */
 #define ANOMALY_05000310 (1)
 /* PPI Is Level-Sensitive on First Transfer In Single Frame Sync Modes */
-#define ANOMALY_05000313 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000313 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* Incorrect Access of OTP_STATUS During otp_write() Function */
-#define ANOMALY_05000328 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000328 (_ANOMALY_BF527(< 2))
 /* Host DMA Boot Modes Are Not Functional */
 #define ANOMALY_05000330 (__SILICON_REVISION__ < 2)
 /* Disallowed Configuration Prevents Subsequent Allowed Configuration on Host DMA Port */
-#define ANOMALY_05000337 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000337 (_ANOMALY_BF527(< 2))
 /* Ethernet MAC MDIO Reads Do Not Meet IEEE Specification */
-#define ANOMALY_05000341 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000341 (_ANOMALY_BF527(< 2))
 /* TWI May Not Operate Correctly Under Certain Signal Termination Conditions */
-#define ANOMALY_05000342 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000342 (_ANOMALY_BF527(< 2))
 /* USB Calibration Value Is Not Initialized */
-#define ANOMALY_05000346 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000346 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* USB Calibration Value to use */
 #define ANOMALY_05000346_value 0xE510
 /* Preboot Routine Incorrectly Alters Reset Value of USB Register */
-#define ANOMALY_05000347 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000347 (_ANOMALY_BF527(< 2))
 /* Security Features Are Not Functional */
-#define ANOMALY_05000348 (ANOMALY_BF527 && __SILICON_REVISION__ < 1)
+#define ANOMALY_05000348 (_ANOMALY_BF527(< 1))
 /* bfrom_SysControl() Firmware Function Performs Improper System Reset */
-#define ANOMALY_05000353 (ANOMALY_BF526)
+#define ANOMALY_05000353 (_ANOMALY_BF526(< 1))
 /* Regulator Programming Blocked when Hibernate Wakeup Source Remains Active */
-#define ANOMALY_05000355 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000355 (_ANOMALY_BF527(< 2))
 /* Serial Port (SPORT) Multichannel Transmit Failure when Channel 0 Is Disabled */
-#define ANOMALY_05000357 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000357 (_ANOMALY_BF527(< 2))
 /* Incorrect Revision Number in DSPID Register */
-#define ANOMALY_05000364 (ANOMALY_BF527 && __SILICON_REVISION__ == 1)
+#define ANOMALY_05000364 (_ANOMALY_BF527(== 1))
 /* PPI Underflow Error Goes Undetected in ITU-R 656 Mode */
 #define ANOMALY_05000366 (1)
 /* Incorrect Default CSEL Value in PLL_DIV */
-#define ANOMALY_05000368 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000368 (_ANOMALY_BF527(< 2))
 /* Possible RETS Register Corruption when Subroutine Is under 5 Cycles in Duration */
-#define ANOMALY_05000371 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000371 (_ANOMALY_BF527(< 2))
 /* Authentication Fails To Initiate */
-#define ANOMALY_05000376 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000376 (_ANOMALY_BF527(< 2))
 /* Data Read From L3 Memory by USB DMA May be Corrupted */
-#define ANOMALY_05000380 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000380 (_ANOMALY_BF527(< 2))
 /* 8-Bit NAND Flash Boot Mode Not Functional */
-#define ANOMALY_05000382 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000382 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* Boot from OTP Memory Not Functional */
-#define ANOMALY_05000385 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000385 (_ANOMALY_BF527(< 2))
 /* bfrom_SysControl() Firmware Routine Not Functional */
-#define ANOMALY_05000386 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000386 (_ANOMALY_BF527(< 2))
 /* Programmable Preboot Settings Not Functional */
-#define ANOMALY_05000387 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000387 (_ANOMALY_BF527(< 2))
 /* CRC32 Checksum Support Not Functional */
-#define ANOMALY_05000388 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000388 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* Reset Vector Must Not Be in SDRAM Memory Space */
-#define ANOMALY_05000389 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000389 (_ANOMALY_BF527(< 2))
 /* pTempCurrent Not Present in ADI_BOOT_DATA Structure */
-#define ANOMALY_05000392 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000392 (_ANOMALY_BF527(< 2))
 /* Deprecated Value of dTempByteCount in ADI_BOOT_DATA Structure */
-#define ANOMALY_05000393 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000393 (_ANOMALY_BF527(< 2))
 /* Log Buffer Not Functional */
-#define ANOMALY_05000394 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000394 (_ANOMALY_BF527(< 2))
 /* Hook Routine Not Functional */
-#define ANOMALY_05000395 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000395 (_ANOMALY_BF527(< 2))
 /* Header Indirect Bit Not Functional */
-#define ANOMALY_05000396 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000396 (_ANOMALY_BF527(< 2))
 /* BK_ONES, BK_ZEROS, and BK_DATECODE Constants Not Functional */
-#define ANOMALY_05000397 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000397 (_ANOMALY_BF527(< 2))
 /* SWRESET, DFRESET and WDRESET Bits in the SYSCR Register Not Functional */
-#define ANOMALY_05000398 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000398 (_ANOMALY_BF527(< 2))
 /* BCODE_NOBOOT in BCODE Field of SYSCR Register Not Functional */
-#define ANOMALY_05000399 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000399 (_ANOMALY_BF527(< 2))
 /* PPI Data Signals D0 and D8 do not Tristate After Disabling PPI */
-#define ANOMALY_05000401 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000401 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* Level-Sensitive External GPIO Wakeups May Cause Indefinite Stall */
-#define ANOMALY_05000403 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000403 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* Lockbox SESR Disallows Certain User Interrupts */
-#define ANOMALY_05000404 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000404 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* Lockbox SESR Firmware Does Not Save/Restore Full Context */
 #define ANOMALY_05000405 (1)
 /* Lockbox SESR Firmware Arguments Are Not Retained After First Initialization */
-#define ANOMALY_05000407 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000407 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* Lockbox Firmware Memory Cleanup Routine Does not Clear Registers */
 #define ANOMALY_05000408 (1)
 /* Lockbox firmware leaves MDMA0 channel enabled */
-#define ANOMALY_05000409 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000409 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* Incorrect Default Internal Voltage Regulator Setting */
-#define ANOMALY_05000410 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000410 (_ANOMALY_BF527(< 2))
 /* bfrom_SysControl() Firmware Function Cannot be Used to Enter Power Saving Modes */
-#define ANOMALY_05000411 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000411 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* OTP_CHECK_FOR_PREV_WRITE Bit is Not Functional in bfrom_OtpWrite() API */
-#define ANOMALY_05000414 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000414 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* DEB2_URGENT Bit Not Functional */
-#define ANOMALY_05000415 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000415 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* Speculative Fetches Can Cause Undesired External FIFO Operations */
 #define ANOMALY_05000416 (1)
 /* SPORT0 Ignores External TSCLK0 on PG14 When TMR6 is an Output */
-#define ANOMALY_05000417 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000417 (_ANOMALY_BF527(< 2))
 /* PPI Timing Requirements tSFSPE and tHFSPE Do Not Meet Data Sheet Specifications */
-#define ANOMALY_05000418 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000418 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* USB PLL_STABLE Bit May Not Accurately Reflect the USB PLL's Status */
-#define ANOMALY_05000420 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000420 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* TWI Fall Time (Tof) May Violate the Minimum I2C Specification */
 #define ANOMALY_05000421 (1)
 /* TWI Input Capacitance (Ci) May Violate the Maximum I2C Specification */
-#define ANOMALY_05000422 (ANOMALY_BF527 && __SILICON_REVISION__ > 1)
+#define ANOMALY_05000422 (_ANOMALY_BF526_BF527(> 0, > 1))
 /* Certain Ethernet Frames With Errors are Misclassified in RMII Mode */
-#define ANOMALY_05000423 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000423 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* Internal Voltage Regulator Not Trimmed */
-#define ANOMALY_05000424 (ANOMALY_BF527 && __SILICON_REVISION__ < 2)
+#define ANOMALY_05000424 (_ANOMALY_BF527(< 2))
 /* Multichannel SPORT Channel Misalignment Under Specific Configuration */
-#define ANOMALY_05000425 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000425 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* Speculative Fetches of Indirect-Pointer Instructions Can Cause False Hardware Errors */
 #define ANOMALY_05000426 (1)
 /* WB_EDGE Bit in NFC_IRQSTAT Incorrectly Reflects Buffer Status Instead of IRQ Status */
-#define ANOMALY_05000429 (__SILICON_REVISION__ < 2)
+#define ANOMALY_05000429 (_ANOMALY_BF526_BF527(< 1, < 2))
 /* Software System Reset Corrupts PLL_LOCKCNT Register */
-#define ANOMALY_05000430 (ANOMALY_BF527 && __SILICON_REVISION__ > 1)
+#define ANOMALY_05000430 (_ANOMALY_BF527(> 1))
 /* Incorrect Use of Stack in Lockbox Firmware During Authentication */
 #define ANOMALY_05000431 (1)
 /* bfrom_SysControl() Does Not Clear SIC_IWR1 Before Executing PLL Programming Sequence */
-#define ANOMALY_05000432 (ANOMALY_BF526)
+#define ANOMALY_05000432 (_ANOMALY_BF526(< 1))
 /* Certain SIC Registers are not Reset After Soft or Core Double Fault Reset */
-#define ANOMALY_05000435 ((ANOMALY_BF526 && __SILICON_REVISION__ < 1) || ANOMALY_BF527)
+#define ANOMALY_05000435 (_ANOMALY_BF526_BF527(< 1, || 1))
 /* Preboot Cannot be Used to Alter the PLL_DIV Register */
-#define ANOMALY_05000439 (1)
+#define ANOMALY_05000439 (_ANOMALY_BF526_BF527(< 1, || 1))
 /* bfrom_SysControl() Cannot be Used to Write the PLL_DIV Register */
-#define ANOMALY_05000440 (1)
+#define ANOMALY_05000440 (_ANOMALY_BF526_BF527(< 1, || 1))
 /* OTP Write Accesses Not Supported */
-#define ANOMALY_05000442 (__SILICON_REVISION__ < 1)
+#define ANOMALY_05000442 (_ANOMALY_BF527(< 1))
 /* IFLUSH Instruction at End of Hardware Loop Causes Infinite Stall */
 #define ANOMALY_05000443 (1)
 /* The WURESET Bit in the SYSCR Register is not Functional */
@@ -175,7 +179,7 @@
 /* BCODE_QUICKBOOT, BCODE_ALLBOOT, and BCODE_FULLBOOT Settings in SYSCR Register Not Functional */
 #define ANOMALY_05000451 (1)
 /* Incorrect Default Hysteresis Setting for RESET, NMI, and BMODE Signals */
-#define ANOMALY_05000452 (1)
+#define ANOMALY_05000452 (_ANOMALY_BF526_BF527(< 1, || 1))
 /* USB Receive Interrupt Is Not Generated in DMA Mode 1 */
 #define ANOMALY_05000456 (1)
 /* Host DMA Port Responds to Certain Bus Activity Without HOST_CE Assertion */
