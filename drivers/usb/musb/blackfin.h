@@ -15,8 +15,6 @@
  */
 
 /* Anomaly notes:
- *  05000456 -  USE_MODE1 is used to enable DMA mode 1 for rx transfer.
- *		It is not defined for MUSB controller on blackfin.
  *  05000450 -  MUSB driver is degined to transfer buffer of N*maxpacket size
  *		in DMA mode 1 and leave rest data to the next transfer in DMA
  *		mode 0.
