@@ -189,7 +189,6 @@ ENTRY(_evt_ivhw)
 
 .Lcommon_restore_all_sys:
 	RESTORE_ALL_SYS
-	csync;
 	rti;
 ENDPROC(_evt_ivhw)
 
