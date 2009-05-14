@@ -80,6 +80,16 @@ struct musb_hw_ep;
 #define tusb_dma_omap()			0
 #endif
 
+/* Anomaly 05000456 - USE_MODE1 is used to enable DMA mode 1 for rx
+ * transfer. It should not be defined on blackfin if this anmoly exists.
+ */
+#ifdef CONFIG_BLACKFIN
+# undef USE_MODE1
+# if !ANOMALY_05000456
+#  define USE_MODE1
+# endif
+#endif
+
 /*
  * DMA channel status ... updated by the dma controller driver whenever that
  * status changes, and protected by the overall controller spinlock.
