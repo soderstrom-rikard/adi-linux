@@ -165,11 +165,11 @@
 /* bfrom_SysControl() Does Not Clear SIC_IWR1 Before Executing PLL Programming Sequence */
 #define ANOMALY_05000432 (_ANOMALY_BF526(< 1))
 /* Certain SIC Registers are not Reset After Soft or Core Double Fault Reset */
-#define ANOMALY_05000435 (_ANOMALY_BF526_BF527(< 1, || 1))
+#define ANOMALY_05000435 (_ANOMALY_BF526_BF527(< 1, >= 0))
 /* Preboot Cannot be Used to Alter the PLL_DIV Register */
-#define ANOMALY_05000439 (_ANOMALY_BF526_BF527(< 1, || 1))
+#define ANOMALY_05000439 (_ANOMALY_BF526_BF527(< 1, >= 0))
 /* bfrom_SysControl() Cannot be Used to Write the PLL_DIV Register */
-#define ANOMALY_05000440 (_ANOMALY_BF526_BF527(< 1, || 1))
+#define ANOMALY_05000440 (_ANOMALY_BF526_BF527(< 1, >= 0))
 /* OTP Write Accesses Not Supported */
 #define ANOMALY_05000442 (_ANOMALY_BF527(< 1))
 /* IFLUSH Instruction at End of Hardware Loop Causes Infinite Stall */
@@ -179,7 +179,7 @@
 /* BCODE_QUICKBOOT, BCODE_ALLBOOT, and BCODE_FULLBOOT Settings in SYSCR Register Not Functional */
 #define ANOMALY_05000451 (1)
 /* Incorrect Default Hysteresis Setting for RESET, NMI, and BMODE Signals */
-#define ANOMALY_05000452 (_ANOMALY_BF526_BF527(< 1, || 1))
+#define ANOMALY_05000452 (_ANOMALY_BF526_BF527(< 1, >= 0))
 /* USB Receive Interrupt Is Not Generated in DMA Mode 1 */
 #define ANOMALY_05000456 (1)
 /* Host DMA Port Responds to Certain Bus Activity Without HOST_CE Assertion */
