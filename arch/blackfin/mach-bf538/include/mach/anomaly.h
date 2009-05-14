@@ -14,8 +14,20 @@
 #ifndef _MACH_ANOMALY_H_
 #define _MACH_ANOMALY_H_
 
+/* We do not support old silicon - sorry */
 #if __SILICON_REVISION__ < 4
-# error will not work on BF538 silicon version 0.0, 0.1, 0.2, or 0.3
+# error will not work on BF538/BF539 silicon version 0.0, 0.1, 0.2, or 0.3
+#endif
+
+#if defined(__ADSPBF538__)
+# define ANOMALY_BF538 1
+#else
+# define ANOMALY_BF538 0
+#endif
+#if defined(__ADSPBF539__)
+# define ANOMALY_BF539 1
+#else
+# define ANOMALY_BF539 0
 #endif
 
 /* Multi-issue instruction with dsp32shiftimm in slot1 and P-reg store in slot 2 not supported */
@@ -87,7 +99,7 @@
 /* Killed System MMR Write Completes Erroneously On Next System MMR Access */
 #define ANOMALY_05000315 (__SILICON_REVISION__ < 4)
 /* PFx Glitch on Write to FIO_FLAG_D or FIO_FLAG_T */
-#define ANOMALY_05000318 (__SILICON_REVISION__ < 4)
+#define ANOMALY_05000318 (ANOMALY_BF539 && __SILICON_REVISION__ < 4)
 /* Regulator Programming Blocked when Hibernate Wakeup Source Remains Active */
 #define ANOMALY_05000355 (__SILICON_REVISION__ < 5)
 /* Serial Port (SPORT) Multichannel Transmit Failure when Channel 0 Is Disabled */
