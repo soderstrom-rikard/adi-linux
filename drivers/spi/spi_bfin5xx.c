@@ -752,8 +752,11 @@ static void bfin_spi_pump_transfers(unsigned long data)
 	 * different way to r/w according to the enable_dma settings and if
 	 * we are not doing a full duplex transfer (since the hardware does
 	 * not support full duplex DMA transfers).
+	 *
+	 * Do not use dma for rx, since the SPI_SCK keeps running when dma
+	 * stops. Not allowing dma for rx also works around anomaly 05000119.
 	 */
-	if (!full_duplex && drv_data->cur_chip->enable_dma
+	if (!drv_data->rx && drv_data->tx && drv_data->cur_chip->enable_dma
 				&& drv_data->len > 6) {
 
 		unsigned long dma_start_addr, flags;
