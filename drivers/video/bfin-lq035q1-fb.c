@@ -167,7 +167,7 @@ static int lq035q1_control(unsigned char reg, unsigned short value)
 	return ret;
 }
 
-static int lq035q1_spidev_probe(struct spi_device *spi)
+static int __devinit lq035q1_spidev_probe(struct spi_device *spi)
 {
 	int ret;
 	spi_control.spidev = spi;
@@ -183,7 +183,7 @@ static int lq035q1_spidev_probe(struct spi_device *spi)
 	return 0;
 }
 
-static int lq035q1_spidev_remove(struct spi_device *spi)
+static int __devexit lq035q1_spidev_remove(struct spi_device *spi)
 {
 	return lq035q1_control(LQ035_SHUT_CTL, LQ035_SHUT);
 }
@@ -810,7 +810,7 @@ static struct platform_driver bfin_lq035q1_driver = {
 		   },
 };
 
-static int __devinit bfin_lq035q1_driver_init(void)
+static int __init bfin_lq035q1_driver_init(void)
 {
 	return platform_driver_register(&bfin_lq035q1_driver);
 }
