@@ -24,11 +24,8 @@
 #include <linux/pci.h>
 #endif
 
-#if !defined(CONFIG_PPC_OF) || !defined(CONFIG_PCI)
 #include <linux/platform_device.h>
 #include <linux/usb/isp1760.h>
-#define USB_ISP1760_PDEV
-#endif
 
 #ifdef CONFIG_PPC_OF
 static int of_isp1760_probe(struct of_device *dev,
@@ -310,7 +307,6 @@ static struct pci_driver isp1761_pci_driver = {
 };
 #endif
 
-#ifdef USB_ISP1760_PDEV
 static int __devinit isp1760_pdev_probe(struct platform_device *pdev)
 {
 	struct usb_hcd *hcd;
@@ -320,7 +316,6 @@ static int __devinit isp1760_pdev_probe(struct platform_device *pdev)
 	struct isp1760_platform_data *priv = pdev->dev.platform_data;
 	struct resource	*irq_res;
 	unsigned long flags;
-
 
 	/* basic sanity checks first.  board-specific init logic should
 	 * have initialized these two resources and probably board
@@ -338,14 +333,13 @@ static int __devinit isp1760_pdev_probe(struct platform_device *pdev)
 
 	irq_res  = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 
-	flags = ((irq_res->flags & IRQF_TRIGGER_MASK) |
-		((irq_res->flags & IORESOURCE_IRQ_SHAREABLE) ?
-		IRQF_SHARED : 0));
+	flags = (irq_res->flags & (IRQF_TRIGGER_MASK | IORESOURCE_IRQ_SHAREABLE)
+		? IRQF_SHARED : 0);
 
-	if ((irq_res->flags & (IORESOURCE_IRQ_HIGHEDGE | IORESOURCE_IRQ_LOWEDGE)))
+	if (irq_res->flags & (IORESOURCE_IRQ_HIGHEDGE | IORESOURCE_IRQ_LOWEDGE))
 		devflags |= ISP1760_FLAG_INTR_EDGE_TRIG;
 
-	if ((irq_res->flags & (IORESOURCE_IRQ_HIGHEDGE | IORESOURCE_IRQ_HIGHLEVEL)))
+	if (irq_res->flags & (IORESOURCE_IRQ_HIGHEDGE | IORESOURCE_IRQ_HIGHLEVEL))
 		devflags |= ISP1760_FLAG_INTR_POL_HIGH;
 
 	irq = irq_res->start;
@@ -393,7 +387,7 @@ isp1760_pdev_remove(struct platform_device *pdev)
 	return 0;
 }
 
-struct platform_driver isp1760_pdev_driver = {
+static struct platform_driver isp1760_pdev_driver = {
 	.probe =	isp1760_pdev_probe,
 	.remove =	__devexit_p(isp1760_pdev_remove),
 	.driver = {
@@ -401,7 +395,6 @@ struct platform_driver isp1760_pdev_driver = {
 		.owner = THIS_MODULE,
 	},
 };
-#endif /* USB_ISP1760_PDEV */
 
 static int __init isp1760_init(void)
 {
@@ -409,13 +402,11 @@ static int __init isp1760_init(void)
 
 	init_kmem_once();
 
-#ifdef USB_ISP1760_PDEV
 	ret = platform_driver_register(&isp1760_pdev_driver);
 	if (ret) {
 		deinit_kmem_cache();
 		return ret;
 	}
-#endif
 
 #ifdef CONFIG_PPC_OF
 	ret = of_register_platform_driver(&isp1760_of_driver);
@@ -450,9 +441,7 @@ static void __exit isp1760_exit(void)
 #ifdef CONFIG_PCI
 	pci_unregister_driver(&isp1761_pci_driver);
 #endif
-#ifdef USB_ISP1760_PDEV
 	platform_driver_unregister(&isp1760_pdev_driver);
-#endif
 	deinit_kmem_cache();
 }
 module_exit(isp1760_exit);
