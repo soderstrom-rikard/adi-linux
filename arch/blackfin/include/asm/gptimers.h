@@ -28,11 +28,9 @@
 #if defined(CONFIG_BF54x)
 # ifdef CONFIG_BF542
 #  define MAX_BLACKFIN_GPTIMERS 8
-#  define TIMER_GROUP1          0
 # else
 #  define MAX_BLACKFIN_GPTIMERS 11
 #  define TIMER8_GROUP_REG      TIMER_ENABLE1
-#  define TIMER_GROUP1          0
 #  define TIMER_GROUP2          1
 # endif
 # define TIMER0_GROUP_REG       TIMER_ENABLE0
