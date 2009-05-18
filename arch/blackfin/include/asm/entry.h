@@ -35,9 +35,10 @@
 #else
 # define LOAD_IPIPE_IPEND
 #endif
+
+#ifndef CONFIG_EXACT_HWERR
 #define INTERRUPT_ENTRY(N)						\
     [--sp] = SYSCFG;							\
-									\
     [--sp] = P0;	/*orig_p0*/					\
     [--sp] = R0;	/*orig_r0*/					\
     [--sp] = (R7:0,P5:0);						\
@@ -46,10 +47,10 @@
     jump __common_int_entry;
 
 /* For timer interrupts, we need to save IPEND, since the user_mode
-	   macro accesses it to determine where to account time.  */
+ *macro accesses it to determine where to account time.
+ */
 #define TIMER_INTERRUPT_ENTRY(N)					\
     [--sp] = SYSCFG;							\
-									\
     [--sp] = P0;	/*orig_p0*/					\
     [--sp] = R0;	/*orig_r0*/					\
     [--sp] = (R7:0,P5:0);						\
@@ -58,6 +59,64 @@
     r1 = [p0];								\
     R0 = (N);								\
     jump __common_int_entry;
+#else /* CONFIG_EXACT_HWERR is defined */
+
+/* if we want hardware error to be exact, we need to do a SSYNC (which forces
+ * read/writes to complete to the memory controllers), and check to see that
+ * caused a pending HW error condition. If so, we assume it was caused by user
+ * space, by setting the same interrupt that we are in (so it goes off again)
+ * and context restore, and a RTI (without servicing anything). This should
+ * cause the pending HWERR to fire, and when that is done, this interrupt will
+ * be re-serviced properly.
+ */
+#define INTERRUPT_ENTRY(N)						\
+    [--sp] = SYSCFG;							\
+    [--sp] = P0;	/*orig_p0*/					\
+    [--sp] = R0;	/*orig_r0*/					\
+    [--sp] = (R7:0,P5:0);						\
+    R1 = ASTAT;								\
+    P0.L = LO(ILAT);							\
+    P0.H = HI(ILAT);							\
+    SSYNC;								\
+    R0 = [P0];								\
+    CC = BITTST(R0, EVT_IVHW_P);					\
+    IF CC JUMP 1f;							\
+    ASTAT = R1;								\
+    R0 = (N);								\
+    LOAD_IPIPE_IPEND							\
+    jump __common_int_entry;						\
+1:  ASTAT = R1;								\
+    RAISE N;								\
+    (R7:0, P5:0) = [SP++];						\
+    SP += 0x8;								\
+    SYSCFG = [SP++];							\
+    RTI;
+
+#define TIMER_INTERRUPT_ENTRY(N)					\
+    [--sp] = SYSCFG;							\
+    [--sp] = P0;	/*orig_p0*/					\
+    [--sp] = R0;	/*orig_r0*/					\
+    [--sp] = (R7:0,P5:0);						\
+    R1 = ASTAT;								\
+    P0.L = LO(ILAT);							\
+    P0.H = HI(ILAT);							\
+    SSYNC;								\
+    R0 = [P0];								\
+    CC = BITTST(R0, EVT_IVHW_P);					\
+    IF CC JUMP 1f;							\
+    ASTAT = R1;								\
+    p0.l = lo(IPEND);							\
+    p0.h = hi(IPEND);							\
+    r1 = [p0];								\
+    R0 = (N);								\
+    jump __common_int_entry;						\
+1:  ASTAT = R1;								\
+    RAISE N;								\
+    (R7:0, P5:0) = [SP++];						\
+    SP += 0x8;								\
+    SYSCFG = [SP++];							\
+    RTI;
+#endif	/* CONFIG_EXACT_HWERR */
 
 /* This one pushes RETI without using CLI.  Interrupts are enabled.  */
 #define SAVE_CONTEXT_SYSCALL	save_context_syscall
