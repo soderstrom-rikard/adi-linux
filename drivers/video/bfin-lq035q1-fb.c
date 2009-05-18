@@ -8,7 +8,7 @@
  *
  *
  * Modified:
- *               Copyright 2008 Analog Devices Inc.
+ *               Copyright 2008-2009 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
@@ -81,9 +81,31 @@
 
 #define LCD_X_RES		320	/* Horizontal Resolution */
 #define LCD_Y_RES		240	/* Vertical Resolution */
-#define LCD_BPP			16	/* Bit Per Pixel */
 #define	DMA_BUS_SIZE		16
-#define CLOCKS_PER_PIX		1
+
+#define USE_RGB565_16_BIT_PPI
+
+#ifdef USE_RGB565_16_BIT_PPI
+#define LCD_BPP		16	/* Bit Per Pixel */
+#define CLOCKS_PER_PIX	1
+#define CPLD_PIPELINE_DELAY_COR 0	/* NO CPLB */
+#endif
+
+/* Interface 16/18-bit TFT over an 8-bit wide PPI using a small Programmable Logic Device (CPLD)
+ * http://blackfin.uclinux.org/gf/project/stamp/frs/?action=FrsReleaseBrowse&frs_package_id=165
+ */
+
+#ifdef USE_RGB565_8_BIT_PPI
+#define LCD_BPP		16	/* Bit Per Pixel */
+#define CLOCKS_PER_PIX	2
+#define CPLD_PIPELINE_DELAY_COR 3	/* RGB565 */
+#endif
+
+#ifdef USE_RGB888_8_BIT_PPI
+#define LCD_BPP		24	/* Bit Per Pixel */
+#define CLOCKS_PER_PIX	3
+#define CPLD_PIPELINE_DELAY_COR 5	/* RGB888 */
+#endif
 
 	/*
 	 * HS and VS timing parameters (all in number of PPI clk ticks)
@@ -93,11 +115,11 @@
 
 #define H_ACTPIX	(LCD_X_RES * CLOCKS_PER_PIX)	/* active horizontal pixel */
 #define H_PERIOD	(336 * CLOCKS_PER_PIX)		/* HS period */
-#define H_PULSE		2				/* HS pulse width */
-#define H_START		7				/* first valid pixel */
+#define H_PULSE		(2 * CLOCKS_PER_PIX)				/* HS pulse width */
+#define H_START		(7 * CLOCKS_PER_PIX + CPLD_PIPELINE_DELAY_COR)	/* first valid pixel */
 
 #define	V_LINES		(LCD_Y_RES + U_LINE)		/* total vertical lines */
-#define V_PULSE		2				/* VS pulse width (1-5 H_PERIODs) */
+#define V_PULSE		(2 * CLOCKS_PER_PIX)		/* VS pulse width (1-5 H_PERIODs) */
 #define V_PERIOD	(H_PERIOD * V_LINES)		/* VS period */
 
 #define ACTIVE_VIDEO_MEM_OFFSET		((U_LINE / 2) * LCD_X_RES * (LCD_BPP / 8))
@@ -108,6 +130,12 @@
 #define PPI_XFER_TYPE_11		0xC
 #define PPI_PORT_CFG_01			0x10
 #define PPI_POLS_1			0x8000
+
+#if (CLOCKS_PER_PIX > 1)
+#define PPI_PMODE (DLEN_8 | PACK_EN)
+#else
+#define PPI_PMODE (DLEN_16)
+#endif
 
 #define LQ035_INDEX			0x74
 #define LQ035_DATA			0x76
@@ -243,7 +271,7 @@ static void bfin_lq035q1_config_ppi(struct bfin_lq035q1fb_info *fbi)
 	bfin_write_PPI_CONTROL(PPI_TX_MODE |	   /* output mode , PORT_DIR */
 				PPI_XFER_TYPE_11 | /* sync mode XFR_TYPE */
 				PPI_PORT_CFG_01 |  /* two frame sync PORT_CFG */
-				DLEN_16	|	   /* 16 bit data length */
+				PPI_PMODE |	   /* 8/16 bit data length / PACK_EN? */
 				PPI_POLS_1);	   /* faling edge syncs POLS */
 }
 
@@ -308,13 +336,20 @@ static void bfin_lq035q1_config_dma(struct bfin_lq035q1fb_info *fbi)
 
 }
 
-static	u16 ppi0_req_16[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2,
+#if (CLOCKS_PER_PIX == 1)
+static const u16 ppi0_req_16[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2,
 			    P_PPI0_D0, P_PPI0_D1, P_PPI0_D2,
 			    P_PPI0_D3, P_PPI0_D4, P_PPI0_D5,
 			    P_PPI0_D6, P_PPI0_D7, P_PPI0_D8,
 			    P_PPI0_D9, P_PPI0_D10, P_PPI0_D11,
 			    P_PPI0_D12, P_PPI0_D13, P_PPI0_D14,
 			    P_PPI0_D15, 0};
+#else
+static const u16 ppi0_req_16[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2,
+			    P_PPI0_D0, P_PPI0_D1, P_PPI0_D2,
+			    P_PPI0_D3, P_PPI0_D4, P_PPI0_D5,
+			    P_PPI0_D6, P_PPI0_D7, 0};
+#endif
 
 static int bfin_lq035q1_request_ports(int action)
 {
@@ -397,7 +432,11 @@ static int bfin_lq035q1_fb_check_var(struct fb_var_screeninfo *var,
 {
 
 	switch (var->bits_per_pixel) {
+#if (LCD_BPP == 24)
+	case 24:/* TRUECOLOUR, 16m */
+#else
 	case 16:/* DIRECTCOLOUR, 64k */
+#endif
 		var->red.offset = info->var.red.offset;
 		var->green.offset = info->var.green.offset;
 		var->blue.offset = info->var.blue.offset;
@@ -599,20 +638,39 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 	fbinfo->var.bits_per_pixel = LCD_BPP;
 
 	if (info->disp_info->mode & LQ035_BGR) {
+#if (LCD_BPP == 24)
+		fbinfo->var.red.offset = 0;
+		fbinfo->var.green.offset = 8;
+		fbinfo->var.blue.offset = 16;
+#else
 		fbinfo->var.red.offset = 0;
 		fbinfo->var.green.offset = 5;
 		fbinfo->var.blue.offset = 11;
+#endif
 	} else {
+#if (LCD_BPP == 24)
+		fbinfo->var.red.offset = 16;
+		fbinfo->var.green.offset = 8;
+		fbinfo->var.blue.offset = 0;
+#else
 		fbinfo->var.red.offset = 11;
 		fbinfo->var.green.offset = 5;
 		fbinfo->var.blue.offset = 0;
+#endif
 	}
 
 	fbinfo->var.transp.offset = 0;
 
+#if (LCD_BPP == 24)
+	fbinfo->var.red.length = 8;
+	fbinfo->var.green.length = 8;
+	fbinfo->var.blue.length = 8;
+#else
 	fbinfo->var.red.length = 5;
 	fbinfo->var.green.length = 6;
 	fbinfo->var.blue.length = 5;
+#endif
+
 	fbinfo->var.transp.length = 0;
 
 	fbinfo->fix.smem_len = LCD_X_RES * LCD_Y_RES * LCD_BPP / 8
