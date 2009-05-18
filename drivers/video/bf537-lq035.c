@@ -774,7 +774,7 @@ static struct lcd_ops bfin_lcd_ops = {
 
 static struct lcd_device *lcd_dev;
 
-static int __init bfin_lq035_probe(struct platform_device *pdev)
+static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 {
 	printk(KERN_INFO DRIVER_NAME ": FrameBuffer initializing...");
 
@@ -895,7 +895,7 @@ static int __init bfin_lq035_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int bfin_lq035_remove(struct platform_device *pdev)
+static int __devexit bfin_lq035_remove(struct platform_device *pdev)
 {
 	if (fb_buffer != NULL)
 		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
@@ -965,7 +965,7 @@ static int bfin_lq035_resume(struct platform_device *pdev)
 
 static struct platform_driver bfin_lq035_driver = {
 	.probe = bfin_lq035_probe,
-	.remove = bfin_lq035_remove,
+	.remove = __devexit_p(bfin_lq035_remove),
 	.suspend = bfin_lq035_suspend,
 	.resume = bfin_lq035_resume,
 	.driver = {
@@ -974,7 +974,7 @@ static struct platform_driver bfin_lq035_driver = {
 		   },
 };
 
-static int __devinit bfin_lq035_driver_init(void)
+static int __init bfin_lq035_driver_init(void)
 {
 	request_module("i2c-bfin-twi");
 

@@ -541,7 +541,7 @@ static irqreturn_t bfin_lq035q1_irq_error(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int __init bfin_lq035q1_probe(struct platform_device *pdev)
+static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 {
 	struct bfin_lq035q1fb_info *info;
 	struct fb_info *fbinfo;
@@ -722,7 +722,7 @@ out1:
 	return ret;
 }
 
-static int bfin_lq035q1_remove(struct platform_device *pdev)
+static int __devexit bfin_lq035q1_remove(struct platform_device *pdev)
 {
 
 	struct fb_info *fbinfo = platform_get_drvdata(pdev);
@@ -801,7 +801,7 @@ static int bfin_lq035q1_resume(struct platform_device *pdev)
 
 static struct platform_driver bfin_lq035q1_driver = {
 	.probe = bfin_lq035q1_probe,
-	.remove = bfin_lq035q1_remove,
+	.remove = __devexit_p(bfin_lq035q1_remove),
 	.suspend = bfin_lq035q1_suspend,
 	.resume = bfin_lq035q1_resume,
 	.driver = {

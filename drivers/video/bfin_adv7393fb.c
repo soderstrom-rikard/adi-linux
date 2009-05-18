@@ -535,7 +535,7 @@ adv7393_write_proc(struct file *file, const char __user * buffer,
 	return count;
 }
 
-static int __init bfin_adv7393_fb_probe(struct platform_device *pdev)
+static int __devinit bfin_adv7393_fb_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct proc_dir_entry *entry;
@@ -896,7 +896,7 @@ static int bfin_adv7393_fb_setcolreg(u_int regno, u_int red, u_int green, u_int 
 	return 0;
 }
 
-static int bfin_adv7393_fb_remove(struct platform_device *pdev)
+static int __devexit bfin_adv7393_fb_remove(struct platform_device *pdev)
 {
 	u16 ppi_req[] = PPI0_16;
 
@@ -958,7 +958,7 @@ static int bfin_adv7393_fb_resume(struct platform_device *pdev)
 
 static struct platform_driver bfin_adv7393_fb_driver = {
 	.probe = bfin_adv7393_fb_probe,
-	.remove = bfin_adv7393_fb_remove,
+	.remove = __devexit_p(bfin_adv7393_fb_remove),
 	.suspend = bfin_adv7393_fb_suspend,
 	.resume = bfin_adv7393_fb_resume,
 	.driver = {
@@ -967,7 +967,7 @@ static struct platform_driver bfin_adv7393_fb_driver = {
 		   },
 };
 
-static int __devinit bfin_adv7393_fb_driver_init(void)
+static int __init bfin_adv7393_fb_driver_init(void)
 {
 
 #if  defined(CONFIG_I2C_BLACKFIN_TWI) || defined(CONFIG_I2C_BLACKFIN_TWI_MODULE)
