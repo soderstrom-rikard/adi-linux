@@ -168,7 +168,6 @@ static void priv_read_copy(struct isp1760_hcd *priv, u32 *src,
 		len--;
 		buff8++;
 	}
-
 }
 
 static void priv_write_copy(const struct isp1760_hcd *priv, const u32 *src,
@@ -191,7 +190,7 @@ static void priv_write_copy(const struct isp1760_hcd *priv, const u32 *src,
 
 		__raw_writel(get_unaligned(src), dst);
 
-	} else{
+	} else {
 		while (len >= 4) {
 			__raw_writel(*src, dst);
 			len -= 4;
