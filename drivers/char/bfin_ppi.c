@@ -149,6 +149,7 @@ struct ppi_config {
 	unsigned short dma_config;
 	unsigned short linelen;
 	unsigned short numlines;
+	unsigned short fs1_blanking;
 	unsigned short ppi_control;
 #if defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)	/* EPPI */
 	unsigned short v_delay;
@@ -169,6 +170,7 @@ struct ppi_dev {
 	int irq_error;
 	int fs1_timer_id;
 	int fs2_timer_id;
+	int fs_int_timer_id;
 	unsigned short fs1_timer_bit;
 	unsigned short fs2_timer_bit;
 	const unsigned short *per_ppi0_7;
@@ -213,11 +215,9 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 	 ** see	note on	page 11-29 of BF533 HW Reference Manual
 	 ** for	setting	PULSE_HI according to PPI trigger edge configuration
 	 ** of PPI_FS1 and PPI_FS2
-	 **
-	 ** set	TOGGLE_HI so line and frame are	not asserted simultaneously
 	 */
-	fs1_timer_cfg =	(TIMER_CLK_SEL | TIMER_TIN_SEL |
-			 TIMER_MODE_PWM	| TIMER_TOGGLE_HI);
+
+	fs1_timer_cfg =	(TIMER_CLK_SEL | TIMER_TIN_SEL | TIMER_MODE_PWM);
 
 	if (conf->triggeredge)
 		fs1_timer_cfg &= ~TIMER_PULSE_HI;
@@ -226,21 +226,30 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 
 	fs2_timer_cfg =	fs1_timer_cfg;
 	fs1_timer_cfg |= TIMER_PERIOD_CNT;	/* set up line sync to be recurring */
+	fs2_timer_cfg |= TIMER_IRQ_ENA;		/* Enable IRQ on FS2 Timer */
+
+	/*
+	 * ANOMALY_05000254 - Incorrect Timer Pulse Width in Single-Shot PWM_OUT Mode with External Clock
+	 */
+	if (ANOMALY_05000254) {
+		fs2_timer_cfg |= TIMER_PERIOD_CNT;	/* set up frame sync to be recurring */
+	}
+
 
 	if (conf->dimensions ==	CFG_PPI_DIMS_2D) {	/* configure for 2D transfers */
 
-		linePeriod = conf->linelen + conf->delay;
-		frameSize = linePeriod * conf->numlines	* 2;	/* TOGGLE_HI effects */
+		linePeriod = conf->linelen + conf->delay + conf->fs1_blanking;
+		frameSize = linePeriod * conf->numlines - conf->fs1_blanking;
 
 		/*
 		 ** configure 2	timers for 2D
 		 ** Timer1 - hsync - line time	PPI_FS1	(Timer0	on BF537)
 		 ** Timer2 - vsync - frame time	PPI_FS2	(Timer1	on BF537)
 		 */
-		t_mask = (dev->fs1_timer_bit | dev->fs2_timer_bit);	/* use both timers */
+		t_mask = dev->fs1_timer_bit | dev->fs2_timer_bit;	/* use both timers */
 
 		set_gptimer_config(dev->fs2_timer_id, fs2_timer_cfg);
-		set_gptimer_period(dev->fs2_timer_id, frameSize);
+		set_gptimer_period(dev->fs2_timer_id, frameSize + 2);
 		set_gptimer_pwidth(dev->fs2_timer_id, frameSize);
 		pr_debug
 		    ("Timer %d:	(frame/vsync) config = %04hX, period = %d, width = %d\n",
@@ -250,13 +259,21 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 
 		set_gptimer_config(dev->fs1_timer_id, fs1_timer_cfg);
 		set_gptimer_period(dev->fs1_timer_id, linePeriod);
-		/* divide linelen by 4 due to TOGGLE_HI	behavior */
+
 		set_gptimer_pwidth(dev->fs1_timer_id, (conf->linelen >>	2));
 		pr_debug
 		    ("Timer %d:	(line/hsync) config = %04hX, period = %d, width	= %d\n",
 		     dev->fs1_timer_id,	get_gptimer_config(dev->fs1_timer_id),
 		     get_gptimer_period(dev->fs1_timer_id),
 		     get_gptimer_pwidth(dev->fs1_timer_id));
+
+		dev->fs_int_timer_id = dev->fs2_timer_id;
+
+		enable_gptimers(t_mask);
+		if (ANOMALY_05000254) {
+			disable_gptimers_sync(dev->fs2_timer_bit);
+		}
+
 	} else {
 		t_mask = dev->fs1_timer_bit;
 
@@ -265,7 +282,7 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 		 ** use fs2_timer_cfg,  'cuz it is the non-recurring config
 		 */
 		set_gptimer_config(dev->fs1_timer_id, fs2_timer_cfg);
-		set_gptimer_period(dev->fs1_timer_id, frameSize	+ 1);
+		set_gptimer_period(dev->fs1_timer_id, frameSize	+ 2);
 		set_gptimer_pwidth(dev->fs1_timer_id, frameSize);
 
 		pr_debug("Timer	%d: config = %04hX, period = %d, width = %d\n",
@@ -273,12 +290,16 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 			get_gptimer_period(dev->fs1_timer_id),
 			get_gptimer_pwidth(dev->fs1_timer_id));
 
+		dev->fs_int_timer_id = dev->fs1_timer_id;
+		enable_gptimers(t_mask);
+		if (ANOMALY_05000254) {
+			disable_gptimers_sync(t_mask);
+		}
 	}
 	pr_debug("enable_gptimers(mask=%d)\n", t_mask);
-	enable_gptimers(t_mask);
 }
 
-static void disable_timer_output(struct	ppi_dev	*dev)
+static void disable_timer_output(struct ppi_dev *dev)
 {
 	unsigned short regdata;
 
@@ -351,10 +372,14 @@ static irqreturn_t ppi_irq(int irq, void *dev_id)
 	struct ppi_dev *dev = (struct ppi_dev *) dev_id;
 	unsigned long flags;
 
-	if (dev->conf.timers &&	dev->conf.access_mode == PPI_WRITE)
-		disable_gptimers((dev->fs1_timer_bit | dev->fs2_timer_bit));
+	if (dev->conf.timers &&	dev->conf.access_mode == PPI_WRITE) {
+		while (!get_gptimer_intr(dev->fs_int_timer_id) &&
+			get_gptimer_run(dev->fs_int_timer_id))
+			cpu_relax();
 
-
+		disable_gptimers(dev->fs1_timer_bit | dev->fs2_timer_bit);
+		clear_gptimer_intr(dev->fs_int_timer_id);
+	}
 	/* Give	a signal to user program. */
 	if (dev->fasyc)
 		kill_fasync(&(dev->fasyc), SIGIO, POLLIN);
@@ -370,7 +395,6 @@ static irqreturn_t ppi_irq(int irq, void *dev_id)
 
 	/* wake	up read/write block. */
 	wake_up_interruptible(&dev->waitq);
-
 	pr_debug("ppi_irq: return\n");
 
 	return IRQ_HANDLED;
@@ -402,18 +426,27 @@ static irqreturn_t ppi_irq_error(int irq, void *dev_id)
 	struct ppi_dev *dev = (struct ppi_dev *) dev_id;
 	unsigned long flags;
 
-	printk(KERN_ERR	"PPI Error: PPI	Status = 0x%X \n",
+	printk(KERN_WARNING "PPI Error: PPI Status = 0x%X \n",
 	       clear_ppi_status(dev));
 
-	clear_dma_irqstat(dev->dma_chan);
+	if (dev->conf.timers &&	dev->conf.access_mode == PPI_WRITE) {
+		while (!get_gptimer_intr(dev->fs_int_timer_id) &&
+			get_gptimer_run(dev->fs_int_timer_id))
+			cpu_relax();
 
-	if (dev->conf.timers &&	dev->conf.access_mode == PPI_WRITE)
-		disable_gptimers((dev->fs1_timer_bit | dev->fs2_timer_bit));
+		disable_gptimers(dev->fs1_timer_bit | dev->fs2_timer_bit);
+		clear_gptimer_intr(dev->fs_int_timer_id);
+	}
+	/* Give	a signal to user program. */
+	if (dev->fasyc)
+		kill_fasync(&(dev->fasyc), SIGIO, POLLIN);
 
 	disable_ppi_dma(dev);
 
+	clear_ppi_status(dev);
+	clear_dma_irqstat(dev->dma_chan);
+
 	spin_lock_irqsave(&dev->lock, flags);
-	/* Add some more Error Handling	Code Here */
 	dev->conf.done = 1;
 	spin_unlock_irqrestore(&dev->lock, flags);
 
@@ -620,6 +653,12 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 		{
 			pr_debug("ppi_ioctl: CMD_PPI_GEN_FS12_TIMING_ON_WRITE\n");
 			conf->timers = (unsigned short)arg;
+			break;
+		}
+	case CMD_PPI_FS1_EOL_BLANKING:
+		{
+			pr_debug("ppi_ioctl: CMD_PPI_FS1_EOL_BLANKING\n");
+			conf->fs1_blanking = (unsigned short)arg;
 			break;
 		}
 	case CMD_PPI_CLK_EDGE:
@@ -935,6 +974,18 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
 	if (count <= 0)
 		return 0;
 
+	if (conf->linelen == 0) {
+		if (conf->datalen > CFG_PPI_DATALEN_8)
+			conf->linelen = count / 2;
+		else
+			conf->linelen = count;
+	}
+
+	if (ANOMALY_05000179) {
+		if (conf->linelen < 3)
+			return -EFAULT;
+	}
+
 	spin_lock_irqsave(&dev->lock, flags);
 	if (!conf->done) {
 		spin_unlock_irqrestore(&dev->lock, flags);
@@ -954,7 +1005,7 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
 	 ** DI_EN: generate interrupt on completion of work unit
 	 ** DMA2D: 2 dimensional buffer
 	 */
-	conf->dma_config |= (WNR | RESTART | DI_EN);
+	conf->dma_config = WNR | RESTART | DI_EN;
 
 	if (conf->datalen > CFG_PPI_DATALEN_8) {	/* adjust transfer size	*/
 		conf->dma_config |= WDSIZE_16;
@@ -982,7 +1033,6 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
 		else
 			set_dma_x_count(dma, count);
 
-			conf->dma_config &= ~DMA2D;
 		pr_debug("PPI read -- 1D data count = %d\n",
 			(int)(conf->datalen ? count / 2	: count));
 	}
@@ -1072,6 +1122,17 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	if (count <= 0)
 		return 0;
 
+	if (conf->linelen == 0) {
+		if (conf->datalen > CFG_PPI_DATALEN_8)
+			conf->linelen = count / 2;
+		else
+			conf->linelen = count;
+	}
+	if (ANOMALY_05000179) {
+		if (conf->linelen < 3)
+			return -EFAULT;
+	}
+
 	spin_lock_irqsave(&dev->lock, flags);
 	if (!conf->done) {
 		spin_unlock_irqrestore(&dev->lock, flags);
@@ -1092,7 +1153,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	 ** DI_EN: generate interrupt on completion of work unit
 	 ** DMA2D: 2 dimensional buffer
 	 */
-	conf->dma_config |= (RESTART | DI_EN);
+	conf->dma_config = RESTART | DI_EN;
 
 	if (conf->datalen > CFG_PPI_DATALEN_8) {	/* adjust transfer size	*/
 		conf->dma_config |= WDSIZE_16;
@@ -1116,7 +1177,6 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 		pr_debug("PPI write -- 1D data count = %d\n", (int)count);
 		set_dma_x_count(dma, frameSize);
 		set_dma_x_modify(dma, stepSize);
-		conf->dma_config &= ~DMA2D;
 	}
 
 	set_dma_start_addr(dma,	(unsigned long)buf);
@@ -1131,7 +1191,6 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	dev->regs->ppi_delay = conf->delay;
 
 	enable_dma(dma);
-
 	/* enable ppi */
 	dev->regs->ppi_control |= PORT_EN;
 	SSYNC();
@@ -1224,7 +1283,7 @@ static int ppi_open(struct inode *inode, struct	file *filp)
 	} else
 		set_dma_callback(dev->dma_chan,	(void *)ppi_irq, dev);
 
-	if (request_irq(dev->irq_error,	ppi_irq_error, IRQF_DISABLED,
+	if (request_irq(dev->irq_error,	ppi_irq_error, 0,
 			"PPI_ERROR", dev) < 0) {
 		printk(KERN_ERR	PPI_DEVNAME": Unable to	attach BlackFin	PPI Error Interrupt\n");
 		return -EFAULT;

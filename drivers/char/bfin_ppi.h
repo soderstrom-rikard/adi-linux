@@ -72,6 +72,8 @@
 #define CMD_PPI_EPPI1_VDELAY 37
 #define CMD_PPI_EPPI1_VCOUNT 38
 
+#define CMD_PPI_FS1_EOL_BLANKING 39	/* FS1 End of Line Blanking */
+
 #define CMD_PPI_GET_ALLCONFIG 40 /* For debug */
 
 #define PPI_DMA_MAXSIZE	(64*1024)
