@@ -10,7 +10,6 @@
 # * I/O expander drivers go to drivers/gpio
 #
 
-obj-$(CONFIG_SENSORS_AD5252)	+= ad5252.o
 obj-$(CONFIG_DS1682)		+= ds1682.o
 obj-$(CONFIG_AT24)		+= at24.o
 obj-$(CONFIG_SENSORS_EEPROM)	+= eeprom.o
