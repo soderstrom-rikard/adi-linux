@@ -138,7 +138,7 @@ static int __devinit bfin_rotary_probe(struct platform_device *pdev)
 		goto out2;
 
 	ret = request_irq(rotary->irq, bfin_rotary_isr,
-				 0 , dev_name(&pdev->dev), pdev);
+				 0, dev_name(&pdev->dev), pdev);
 	if (ret) {
 		dev_err(&pdev->dev,
 			"unable to claim irq %d; error %d\n",
