@@ -9,6 +9,7 @@ obj-$(CONFIG_JOYSTICK_AD7142)		+= ad7142.o
 obj-$(CONFIG_JOYSTICK_ADI)		+= adi.o
 obj-$(CONFIG_JOYSTICK_AMIGA)		+= amijoy.o
 obj-$(CONFIG_JOYSTICK_ANALOG)		+= analog.o
+obj-$(CONFIG_JOYSTICK_BFIN_ROTARY)	+= bfin_rotary.o
 obj-$(CONFIG_JOYSTICK_COBRA)		+= cobra.o
 obj-$(CONFIG_JOYSTICK_DB9)		+= db9.o
 obj-$(CONFIG_JOYSTICK_GAMECON)		+= gamecon.o
@@ -30,5 +31,4 @@ obj-$(CONFIG_JOYSTICK_TWIDJOY)		+= twidjoy.o
 obj-$(CONFIG_JOYSTICK_WARRIOR)		+= warrior.o
 obj-$(CONFIG_JOYSTICK_XPAD)		+= xpad.o
 obj-$(CONFIG_JOYSTICK_ZHENHUA)		+= zhenhua.o
-obj-$(CONFIG_JOYSTICK_BFIN_ROTARY)	+= bfin_rotary.o
 
