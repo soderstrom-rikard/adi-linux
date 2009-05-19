@@ -186,6 +186,7 @@ uint16_t get_gptimer_over(int timer_id);
 void     clear_gptimer_over(int timer_id);
 void     set_gptimer_config(int timer_id, uint16_t config);
 uint16_t get_gptimer_config(int timer_id);
+uint16_t get_gptimer_run(int timer_id);
 void     set_gptimer_pulse_hi(int timer_id);
 void     clear_gptimer_pulse_hi(int timer_id);
 void     enable_gptimers(uint16_t mask);

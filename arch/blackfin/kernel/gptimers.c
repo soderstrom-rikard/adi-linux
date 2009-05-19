@@ -217,6 +217,13 @@ void clear_gptimer_over(int timer_id)
 }
 EXPORT_SYMBOL(clear_gptimer_over);
 
+uint16_t get_gptimer_run(int timer_id)
+{
+	tassert(timer_id < MAX_BLACKFIN_GPTIMERS);
+	return (group_regs[BFIN_TIMER_OCTET(timer_id)]->status & trun_mask[timer_id]) ? 1 : 0;
+}
+EXPORT_SYMBOL(get_gptimer_run);
+
 void set_gptimer_config(int timer_id, uint16_t config)
 {
 	tassert(timer_id < MAX_BLACKFIN_GPTIMERS);
