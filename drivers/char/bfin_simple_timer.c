@@ -1,39 +1,30 @@
-/***************************************************************************
-	Simple timer driver
-
-	Author: (C) 2006 by Axel Weiss (awe@aglaia-gmbh.de)
-
-	This is a simple char-device interface driver for the bf5xx_timers driver.
-	It primarily serves as an example for how to use the hardware drivers
-	on blackfin, but may also be used as a starting point of development
-	for more sophisticated driver frontends.
-
-	Behaviour
-	With this driver, a device node /dev/bf5xx_timer[0...] with major number
-	238 and minor number 0... can be used to access one of blackfin's internal
-	hardware timer. After open(), the timer may be accessed via ioctl:
-		BFIN_SIMPLE_TIMER_SET_PERIOD: set timer period (in microseconds)
-		BFIN_SIMPLE_TIMER_START: start timer
-		BFIN_SIMPLE_TIMER_STOP: stop timer
-		BFIN_SIMPLE_TIMER_READ: read the numbers of periods (irq-count)
-	This driver enables
-		sysclk input
-		no physical timer output (OUT_DIS is set)
-		free running from start
-		timer interrupt, counting
-	The driver opens a (ro) file at /proc/bfin_simple_timer that shows the
-	irq count values for all timers.
-
- ***************************************************************************/
-
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
+/*
+ * Simple timer driver
+ *
+ * Author: (C) 2006 by Axel Weiss (awe@aglaia-gmbh.de)
+ *
+ * This is a simple char-device interface driver for the bf5xx_timers driver.
+ * It primarily serves as an example for how to use the hardware drivers
+ * on blackfin, but may also be used as a starting point of development
+ * for more sophisticated driver frontends.
+ *
+ * Behaviour
+ * With this driver, a device node /dev/bf5xx_timer[0...] with major number
+ * 238 and minor number 0... can be used to access one of blackfin's internal
+ * hardware timer. After open(), the timer may be accessed via ioctl:
+ *	BFIN_SIMPLE_TIMER_SET_PERIOD: set timer period (in microseconds)
+ *	BFIN_SIMPLE_TIMER_START: start timer
+ *	BFIN_SIMPLE_TIMER_STOP: stop timer
+ *	BFIN_SIMPLE_TIMER_READ: read the numbers of periods (irq-count)
+ * This driver enables:
+ *	no physical timer output (OUT_DIS is set)
+ *	free running from start
+ *	timer interrupt, counting
+ * The driver opens a (ro) file at /proc/bfin_simple_timer that shows the
+ * irq count values for all timers.
+ *
+ * Licensed under the GPL-2 or later.
+ */
 
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -46,23 +37,14 @@
 #include <asm/bfin_simple_timer.h>
 #include <asm/bfin-global.h>
 
-#define AUTHOR "Axel Weiss (awe@aglaia-gmbh.de)"
-#define DESCRIPTION "simple timer char-device interface for the bf5xx_timers driver"
-#define LICENSE "GPL"
 #define TIMER_MAJOR 238
+#define DRV_NAME    "bfin_simple_timer"
 
-#define DPRINTK(fmt, args...) printk(KERN_NOTICE "%s: " fmt, __FUNCTION__ , ## args)
-#define DRV_NAME            "bfin_simple_timer"
+MODULE_AUTHOR("Axel Weiss <awe@aglaia-gmbh.de>");
+MODULE_DESCRIPTION("simple timer char-device interface for Blackfin gptimers");
+MODULE_LICENSE("GPL");
 
-MODULE_AUTHOR     (AUTHOR);
-MODULE_DESCRIPTION(DESCRIPTION);
-MODULE_LICENSE    (LICENSE);
-
-static unsigned long sysclk = 0;
-module_param(sysclk, long, 0);
-MODULE_PARM_DESC(sysclk, "actual SYSCLK frequency in Hz. Default: 120000000 = 120 MHz.");
-
-static volatile unsigned long isr_count[MAX_BLACKFIN_GPTIMERS];
+static unsigned long isr_count[MAX_BLACKFIN_GPTIMERS];
 static const struct {
 	unsigned short id, bit;
 	unsigned long irqbit;
@@ -88,18 +70,21 @@ static const struct {
 #endif
 };
 
-static int timer_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg){
+static int timer_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
+{
 	int minor = MINOR(inode->i_rdev);
 	unsigned long n;
-	switch (cmd){
+	switch (cmd) {
 	case BFIN_SIMPLE_TIMER_SET_PERIOD:
-		if (arg < 2) return -EFAULT;
-		n = ((sysclk / 1000) * arg) / 1000;
-		if (n > 0xFFFF) n = 0xFFFF;
+		if (arg < 2)
+			return -EFAULT;
+		n = ((get_sclk() / 1000) * arg) / 1000;
+		if (n > 0xFFFF)
+			n = 0xFFFF;
 		set_gptimer_period(timer_code[minor].id, n);
 		set_gptimer_pwidth(timer_code[minor].id, n >> 1);
-		printk("timer_ioctl TIMER_SET_PERIOD: arg=%lu, period=%lu, width=%lu\n",
-			arg, n, n>>1);
+		pr_debug(DRV_NAME ": TIMER_SET_PERIOD: arg=%lu, period=%lu, width=%lu\n",
+			arg, n, n >> 1);
 		break;
 	case BFIN_SIMPLE_TIMER_START:
 		enable_gptimers(timer_code[minor].bit);
@@ -108,7 +93,8 @@ static int timer_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigne
 		disable_gptimers(timer_code[minor].bit);
 		break;
 	case BFIN_SIMPLE_TIMER_READ:
-		*((unsigned long*)arg) = isr_count[minor];
+		/* XXX: this should be put_user() */
+		*((unsigned long *)arg) = isr_count[minor];
 		break;
 	default:
 		return -EINVAL;
@@ -121,50 +107,49 @@ static irqreturn_t timer_isr(int irq, void *dev_id)
 	int minor = (int)dev_id;
 #if (MAX_BLACKFIN_GPTIMERS > 8)
 	int octet = BFIN_TIMER_OCTET(minor);
+#else
+	int octet = 0;
+#endif
 	unsigned long state = get_gptimer_status(octet);
-	if (state & timer_code[minor].irqbit){
+	if (state & timer_code[minor].irqbit) {
 		set_gptimer_status(octet, timer_code[minor].irqbit);
 		++isr_count[minor];
 	}
-#else
-	unsigned long state = get_gptimer_status(0);
-	if (state & timer_code[minor].irqbit){
-		set_gptimer_status(0,timer_code[minor].irqbit);
-		++isr_count[minor];
-	}
-#endif
 	return IRQ_HANDLED;
 }
 
-static int timer_open(struct inode *inode, struct file *filp){
+static int timer_open(struct inode *inode, struct file *filp)
+{
 	int minor = MINOR(inode->i_rdev);
 	int err = 0;
-	if(!sysclk)
-	  sysclk = get_sclk();
-	if (minor >= MAX_BLACKFIN_GPTIMERS) return -ENODEV;
+	if (minor >= MAX_BLACKFIN_GPTIMERS)
+		return -ENODEV;
 	err = request_irq(timer_code[minor].irq, timer_isr, IRQF_DISABLED, DRV_NAME, (void *)minor);
-	if (err < 0){
+	if (err < 0) {
 		printk(KERN_ERR "request_irq(%d) failed\n", timer_code[minor].irq);
 		return err;
 	}
 	set_gptimer_config(timer_code[minor].id, OUT_DIS | PWM_OUT | PERIOD_CNT | IRQ_ENA);
-	DPRINTK("device(%d) opened\n", minor);
+	pr_debug(DRV_NAME ": device(%d) opened\n", minor);
 	return 0;
 }
 
-static int timer_close(struct inode *inode, struct file *filp){
+static int timer_close(struct inode *inode, struct file *filp)
+{
 	int minor = MINOR(inode->i_rdev);
 	disable_gptimers(timer_code[minor].bit);
-	free_irq(timer_code[minor].irq, (void*)minor);
-	DPRINTK("device(%d) closed\n", minor);
+	free_irq(timer_code[minor].irq, (void *)minor);
+	pr_debug(DRV_NAME ": device(%d) closed\n", minor);
 	return 0;
 }
 
-int timer_read_proc(char *buf, char **start, off_t offset, int cnt, int *eof, void *data){
-	int ret = 0, i;
-	for (i=0; i<MAX_BLACKFIN_GPTIMERS; ++i){
+static int timer_read_proc(char *buf, char **start, off_t offset, int cnt, int *eof, void *data)
+{
+	int i, ret = 0;
+
+	for (i = 0; i < MAX_BLACKFIN_GPTIMERS; ++i)
 		ret += sprintf(buf + ret, "timer %2d isr count: %lu\n", i, isr_count[i]);
-	}
+
 	return ret;
 }
 
@@ -174,60 +159,64 @@ static ssize_t timer_status_show(struct class *timer_class, char *buf)
 	unsigned short i;
 	p = buf;
 
-	for (i=0; i<MAX_BLACKFIN_GPTIMERS; ++i){
+	for (i = 0; i < MAX_BLACKFIN_GPTIMERS; ++i)
 		p += sprintf(p, "timer %2d isr count: %lu\n", i, isr_count[i]);
-	}
 
 	return p - buf;
 }
 
-static struct proc_dir_entry *timer_dir_entry;
 static struct file_operations fops = {
-   .owner   = THIS_MODULE,
-   .ioctl   = timer_ioctl,
-   .open    = timer_open,
-   .release = timer_close,
+	.owner   = THIS_MODULE,
+	.ioctl   = timer_ioctl,
+	.open    = timer_open,
+	.release = timer_close,
 };
 
+static struct proc_dir_entry *timer_dir_entry;
 static struct class *timer_class;
-
 static CLASS_ATTR(status, S_IRUGO, &timer_status_show, NULL);
 
-int __init timer_initialize(void){
+static int __init timer_initialize(void)
+{
 	int minor;
 	int err;
+
 	err = register_chrdev(TIMER_MAJOR, DRV_NAME, &fops);
-	if (err < 0){
-		DPRINTK("could not register device %s\n", DRV_NAME);
+	if (err < 0) {
+		pr_debug(DRV_NAME ": could not register device %s\n", DRV_NAME);
 		return err;
 	}
-	timer_dir_entry = create_proc_entry(DRV_NAME, 0444, NULL);
-	if (timer_dir_entry) timer_dir_entry->read_proc = &timer_read_proc;
 
-        timer_class = class_create(THIS_MODULE, "timer");
-	if ((err = class_create_file(timer_class, &class_attr_status)) != 0) {
+	timer_dir_entry = create_proc_entry(DRV_NAME, 0444, NULL);
+	if (timer_dir_entry)
+		timer_dir_entry->read_proc = &timer_read_proc;
+
+	timer_class = class_create(THIS_MODULE, "timer");
+	err = class_create_file(timer_class, &class_attr_status);
+	if (err) {
 		remove_proc_entry(DRV_NAME, NULL);
 		unregister_chrdev(TIMER_MAJOR, DRV_NAME);
 		return err;
 	}
+
+	minor = 0;
 #ifdef CONFIG_TICK_SOURCE_SYSTMR0
 	/* gptimer0 is used to generate the tick interrupt */
-	for (minor = 1; minor < MAX_BLACKFIN_GPTIMERS; minor++)
-#else
-	for (minor = 0; minor < MAX_BLACKFIN_GPTIMERS; minor++)
+	++minor;
 #endif
-		device_create(timer_class, NULL,
-			      MKDEV(TIMER_MAJOR, minor), NULL, "timer%d", minor);
-	
-	DPRINTK("module loaded\n");
+	for (minor = 0; minor < MAX_BLACKFIN_GPTIMERS; minor++)
+		device_create(timer_class, NULL, MKDEV(TIMER_MAJOR, minor),
+			NULL, "timer%d", minor);
+
+	pr_debug(DRV_NAME ": module loaded\n");
 	return 0;
 }
+module_init(timer_initialize);
 
-void __exit timer_cleanup(void){
+static void __exit timer_cleanup(void)
+{
 	remove_proc_entry(DRV_NAME, NULL);
 	unregister_chrdev(TIMER_MAJOR, DRV_NAME);
-	DPRINTK("module unloaded\n");
+	pr_debug(DRV_NAME ": module unloaded\n");
 }
-
-module_init(timer_initialize);
 module_exit(timer_cleanup);
