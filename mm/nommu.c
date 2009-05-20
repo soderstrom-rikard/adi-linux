@@ -430,9 +430,9 @@ static void free_vma_pages(struct mm_struct *mm, struct vm_area_struct *vma)
 	long len = vma->vm_end - vma->vm_start;
 
 #ifdef CONFIG_MPU
-	long start = vma->vm_start;
+	long start = vma->vm_start & (PAGE_SIZE - 1);
 	while (start < vma->vm_end) {
-		protect_page(mm, start, vma->vm_flags);
+		protect_page(mm, start, 0);
 		start += PAGE_SIZE;
 	}
 	update_protections(mm);
@@ -460,7 +460,7 @@ static void add_vma_to_mm(struct mm_struct *mm, struct vm_list_struct *vml)
 	struct vm_area_struct *vma = vml->vma;
 
 #ifdef CONFIG_MPU
-	long start = vma->vm_start;
+	long start = vma->vm_start & (PAGE_SIZE - 1);
 	while (start < vma->vm_end) {
 		protect_page(mm, start, vma->vm_flags);
 		start += PAGE_SIZE;
