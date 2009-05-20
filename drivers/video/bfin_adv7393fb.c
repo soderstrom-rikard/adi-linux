@@ -632,12 +632,11 @@ static int __devinit bfin_adv7393_fb_probe(struct platform_device *pdev)
 	fbdev->info.par = &bfin_par;
 	fbdev->info.flags = FBINFO_DEFAULT;
 
-	if (!(fbdev->info.pseudo_palette = kmalloc(sizeof(u32) * 16, GFP_KERNEL))) {
+	if (!(fbdev->info.pseudo_palette = kzalloc(sizeof(u32) * 16, GFP_KERNEL))) {
 		printk(KERN_ERR "Fail to allocate pseudo_palette\n");
 		ret = -ENOMEM;
 		goto out_6;
 	}
-	memset(fbdev->info.pseudo_palette, 0, sizeof(u32) * 16);
 
 	if (fb_alloc_cmap(&fbdev->info.cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0) < 0) {
 		printk(KERN_ERR "Fail to allocate colormap (%d entries)\n",

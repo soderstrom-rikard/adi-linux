@@ -129,11 +129,9 @@ static int ad5280_probe(struct i2c_adapter *adap, int addr, int kind)
 	struct i2c_client *client;
 	int rc;
 
-	client = kmalloc(sizeof(struct i2c_client), GFP_KERNEL);
+	client = kzalloc(sizeof(struct i2c_client), GFP_KERNEL);
 	if (!client)
 		return -ENOMEM;
-
-	memset(client, 0, sizeof(struct i2c_client));
 	strncpy(client->name, ad5280_drv_name, I2C_NAME_SIZE);
 	client->addr = addr;
 	client->adapter = adap;
@@ -853,14 +851,13 @@ static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 	bfin_lq035_fb.flags = FBINFO_DEFAULT;
 
 
-	if (!(bfin_lq035_fb.pseudo_palette = kmalloc(sizeof(u32) * 16, GFP_KERNEL))) {
+	if (!(bfin_lq035_fb.pseudo_palette = kzalloc(sizeof(u32) * 16, GFP_KERNEL))) {
 		printk(KERN_ERR DRIVER_NAME "Fail to allocate pseudo_palette\n");
 		free_dma(CH_PPI);
 		free_ports();
 		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
 		return -ENOMEM;
 	}
-	memset(bfin_lq035_fb.pseudo_palette, 0, sizeof(u32) * 16);
 
 	if (fb_alloc_cmap(&bfin_lq035_fb.cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0) < 0) {
 		printk(KERN_ERR DRIVER_NAME "Fail to allocate colormap (%d entries)\n",
