@@ -71,6 +71,7 @@ obj-$(CONFIG_BFIN_SIMPLE_TIMER)	+= bfin_simple_timer.o
 obj-$(CONFIG_BFIN_SPI_ADC)	+= bfin_spi_adc.o
 obj-$(CONFIG_BFIN_SPORT)	+= bfin_sport.o
 obj-$(CONFIG_BFIN_TIMER_LATENCY) += bfin_timer_latency.o
+obj-$(CONFIG_BFIN_TWI_LCD)	+= bfin_twi_lcd.o
 
 obj-$(CONFIG_PRINTER)		+= lp.o
 

@@ -82,6 +82,11 @@ config BFIN_TIMER_LATENCY
 	depends on BLACKFIN
 	default n
 
+config BFIN_TWI_LCD
+	tristate "TWI/I2C LCD support for HD44780 based LCD modules"
+	depends on I2C && EXPERIMENTAL && BLACKFIN
+	default n
+
 config SIMPLE_GPIO
 	tristate "Simple GPIO char interface"
 	depends on GENERIC_GPIO
