@@ -105,7 +105,7 @@ static void set_backlight(int val)
 {
 	unsigned long timer_period;
 
-	pr_debug("%s to %d\n", __FUNCTION__, val);
+	pr_debug("%s to %d\n", __func__, val);
 
 	if (val < 0)
 		val = 0;
@@ -205,7 +205,7 @@ static void config_timers(void)
 {
 	unsigned long timer_period = 0;
 
-	pr_debug("%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 
 	/* stop timers */
 #ifdef CONFIG_BFIN561_BLUETECHNIX_CM
@@ -268,7 +268,7 @@ static int config_dma(void)
 {
 	u32 i = 0;
 
-	pr_debug("%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 
 	/* fill descriptor table */
 	for (i = 0; i < 326; i++) {
@@ -415,7 +415,7 @@ static int tx09_fb_open(struct fb_info *info, int user)
 {
 	unsigned long flags;
 
-	pr_debug("%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 
 	spin_lock_irqsave(&tx09_lock, flags);
 	tx09_open_cnt++;	/* increase counter */
@@ -453,7 +453,7 @@ static int tx09_fb_release(struct fb_info *info, int user)
 {
 	unsigned long flags;
 
-	pr_debug("%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 
 	spin_lock_irqsave(&tx09_lock, flags);
 	tx09_open_cnt--;
@@ -475,7 +475,7 @@ static int tx09_fb_release(struct fb_info *info, int user)
 static int tx09_fb_check_var(struct fb_var_screeninfo *var,
 			     struct fb_info *info)
 {
-	pr_debug("%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 
 	switch (var->bits_per_pixel) {
 	case 16:/* DIRECTCOLOUR, 64k */
@@ -502,13 +502,13 @@ static int tx09_fb_check_var(struct fb_var_screeninfo *var,
 	    info->var.xres_virtual != var->xres_virtual
 	    || info->var.yres_virtual != var->yres_virtual) {
 		pr_debug("%s: Resolution not supported: X%u x Y%u\n",
-			 __FUNCTION__, var->xres, var->yres);
+			 __func__, var->xres, var->yres);
 		return -EINVAL;
 	}
 
 	if ((info->fix.line_length * var->yres_virtual) > info->fix.smem_len) {
 		pr_debug("%s: Memory limit requested yres_virtual = %u\n",
-			 __FUNCTION__, var->yres_virtual);
+			 __func__, var->yres_virtual);
 		return -ENOMEM;
 	}
 
@@ -519,7 +519,7 @@ static int tx09_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 {
 	unsigned long flags;
 
-	pr_debug("%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 
 	if (tx09_mmap)
 		return -1;	/* already mmap'ed */
@@ -591,14 +591,14 @@ static struct fb_ops tx09_fb_ops = {
 
 static int bl_update_properties(struct backlight_device *bd)
 {
-	pr_debug("%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 	set_backlight(bd->props.brightness);
 	return 0;
 }
 
 static int bl_get_brightness(struct backlight_device *bd)
 {
-	pr_debug("%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 	return current_brightness;
 }
 
@@ -609,7 +609,7 @@ static struct backlight_ops tx09fb_bl_ops = {
 
 static int __devinit tx09_probe(struct platform_device *pdev)
 {
-	pr_debug("%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 
 	printk(KERN_INFO DRIVER_NAME ": FrameBuffer initializing...\n");
 
@@ -716,7 +716,7 @@ static int __devinit tx09_probe(struct platform_device *pdev)
 
 static int __devexit tx09_remove(struct platform_device *pdev)
 {
-	pr_debug("%s\n", __FUNCTION__);
+	pr_debug("%s\n", __func__);
 
 	if (fb_buffer != NULL)
 		dma_free_coherent(NULL, 240 * 320 * 2, fb_buffer, dma_handle);

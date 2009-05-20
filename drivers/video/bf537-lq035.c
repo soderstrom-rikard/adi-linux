@@ -590,7 +590,7 @@ static int bfin_lq035_fb_check_var(struct fb_var_screeninfo *var, struct fb_info
 	    info->var.xres_virtual != var->xres_virtual ||
 	    info->var.yres_virtual != var->yres_virtual) {
 		pr_debug("%s: Resolution not supported: X%u x Y%u \n",
-			 __FUNCTION__, var->xres, var->yres);
+			 __func__, var->xres, var->yres);
 		return -EINVAL;
 	}
 
@@ -600,7 +600,7 @@ static int bfin_lq035_fb_check_var(struct fb_var_screeninfo *var, struct fb_info
 
 	if ((info->fix.line_length * var->yres_virtual) > info->fix.smem_len) {
 		pr_debug("%s: Memory Limit requested yres_virtual = %u\n",
-			 __FUNCTION__, var->yres_virtual);
+			 __func__, var->yres_virtual);
 		return -ENOMEM;
 	}
 
@@ -614,7 +614,7 @@ static int bfin_lq035_fb_check_var(struct fb_var_screeninfo *var, struct fb_info
 void bfin_lq035_fb_rotate(struct fb_info *fbi, int angle)
 {
 
-	pr_debug("%s: %p %d",__FUNCTION__, fbi, angle);
+	pr_debug("%s: %p %d", __func__, fbi, angle);
 #if (defined(UD) &&  defined(LBR))
 	switch (angle) {
 

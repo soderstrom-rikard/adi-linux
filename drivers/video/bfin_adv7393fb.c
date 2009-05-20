@@ -472,7 +472,7 @@ static irqreturn_t ppi_irq_error(int irq, void *dev_id)
 
 	u16 status = bfin_read_PPI_STATUS();
 
-	pr_debug("%s: PPI Status = 0x%X \n", __FUNCTION__, status);
+	pr_debug("%s: PPI Status = 0x%X \n", __func__, status);
 
 	if (status) {
 		bfin_disable_dma();	/* TODO: Check Sequence */
@@ -779,7 +779,7 @@ bfin_adv7393_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 	    info->var.xres_virtual != var->xres_virtual ||
 	    info->var.yres_virtual != var->yres_virtual) {
 		pr_debug("%s: Resolution not supported: X%u x Y%u \n",
-			 __FUNCTION__, var->xres, var->yres);
+			 __func__, var->xres, var->yres);
 		return -EINVAL;
 	}
 
@@ -789,7 +789,7 @@ bfin_adv7393_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 
 	if ((info->fix.line_length * var->yres_virtual) > info->fix.smem_len) {
 		pr_debug("%s: Memory Limit requested yres_virtual = %u\n",
-			 __FUNCTION__, var->yres_virtual);
+			 __func__, var->yres_virtual);
 		return -ENOMEM;
 	}
 
@@ -813,7 +813,7 @@ bfin_adv7393_fb_pan_display(struct fb_var_screeninfo *var, struct fb_info *info)
 	dy = var->yoffset - info->var.yoffset;
 
 	if (dy) {
-		pr_debug("%s: Panning screen of %d lines\n", __FUNCTION__, dy);
+		pr_debug("%s: Panning screen of %d lines\n", __func__, dy);
 
 		dmaaddr = fbdev->av1->start_addr;
 		dmaaddr += (info->fix.line_length * dy);
