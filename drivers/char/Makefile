@@ -64,7 +64,7 @@ obj-$(CONFIG_BRIQ_PANEL)	+= briq_panel.o
 obj-$(CONFIG_BFIN_OTP)		+= bfin-otp.o
 
 obj-$(CONFIG_AD9960)		+= ad9960.o
-obj-$(CONFIG_SPI_ADC_BF533) += bfin_spi_adc.o
+obj-$(CONFIG_BFIN_SPI_ADC)	+= bfin_spi_adc.o
 obj-$(CONFIG_BFIN_TIMER_LATENCY) += bfin_timer_latency.o
 obj-$(CONFIG_BF5xx_PPIFCD) += bfin_ppifcd.o
 obj-$(CONFIG_BFIN_SIMPLE_TIMER)  += bfin_simple_timer.o

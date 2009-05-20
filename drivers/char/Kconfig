@@ -9,7 +9,6 @@ config AD9960
 	select SPI
 	select SPI_BFIN
 	default n
-	---help---
 
 config AD9960_TX_RX_PIN
 	int "The pin in GPIO port for selecting tx/rx enable signal"
@@ -18,13 +17,12 @@ config AD9960_TX_RX_PIN
 	help
 	  This is the tx/rx enable signal pin bit number in the GPIO port.
 
-config SPI_ADC_BF533
+config BFIN_SPI_ADC
 	tristate "Blackfin BF53x ADSP SPI ADC support"
 	depends on BLACKFIN
 	select SPI
 	select SPI_BFIN
 	default n
-	---help---
 
 config BF5xx_PPIFCD
 	tristate "Blackfin BF5xx PPI Camera frame capture driver"
@@ -48,7 +46,6 @@ config BF5xx_PPI
 	depends on BLACKFIN
 	select BFIN_GPTIMERS
 	default n
-	---help---
 
 config BFIN_SPORT
 	tristate "Blackfin SPORT driver for direct raw access"
@@ -66,13 +63,11 @@ config BFIN_TIMER_LATENCY
 	tristate "Blackfin 5xx interrupt latency test"
 	depends on BLACKFIN
 	default n
-	---help---
 
 config TWI_LCD
 	tristate "TWI/I2C LCD support for HD44780 based LCD modules"
 	depends on I2C && EXPERIMENTAL && BLACKFIN
 	default n
-	---help---
 
 config BFIN_DMA_INTERFACE
 	tristate "Blackfin Userspace DMA Interface"
