@@ -463,6 +463,16 @@ ENTRY(_trap) /* Exception: 4th entry into system event table(supervisor mode)*/
 	[--sp] = ASTAT;
 	[--sp] = (R7:6,P5:4);
 
+#ifdef CONFIG_EXACT_HWERR
+	/* Make sure all pending read/writes complete. This will ensure any
+	 * accesses which could cause hardware errors completes, and signal
+	 * the the hardware before we do something silly, like crash the
+	 * kernel. We don't need to work around anomaly 05000312, since
+	 * we are already atomic
+	 */
+	ssync;
+#endif
+
 #if ANOMALY_05000283 || ANOMALY_05000315
 	cc = r7 == r7;
 	p5.h = HI(CHIPID);
