@@ -189,10 +189,10 @@ void set_gptimer_status(int group, uint32_t value)
 }
 EXPORT_SYMBOL(set_gptimer_status);
 
-uint16_t get_gptimer_intr(int timer_id)
+int get_gptimer_intr(int timer_id)
 {
 	tassert(timer_id < MAX_BLACKFIN_GPTIMERS);
-	return (group_regs[BFIN_TIMER_OCTET(timer_id)]->status & timil_mask[timer_id]) ? 1 : 0;
+	return !!(group_regs[BFIN_TIMER_OCTET(timer_id)]->status & timil_mask[timer_id]);
 }
 EXPORT_SYMBOL(get_gptimer_intr);
 
@@ -203,10 +203,10 @@ void clear_gptimer_intr(int timer_id)
 }
 EXPORT_SYMBOL(clear_gptimer_intr);
 
-uint16_t get_gptimer_over(int timer_id)
+int get_gptimer_over(int timer_id)
 {
 	tassert(timer_id < MAX_BLACKFIN_GPTIMERS);
-	return (group_regs[BFIN_TIMER_OCTET(timer_id)]->status & tovf_mask[timer_id]) ? 1 : 0;
+	return !!(group_regs[BFIN_TIMER_OCTET(timer_id)]->status & tovf_mask[timer_id]);
 }
 EXPORT_SYMBOL(get_gptimer_over);
 
@@ -217,10 +217,10 @@ void clear_gptimer_over(int timer_id)
 }
 EXPORT_SYMBOL(clear_gptimer_over);
 
-uint16_t get_gptimer_run(int timer_id)
+int get_gptimer_run(int timer_id)
 {
 	tassert(timer_id < MAX_BLACKFIN_GPTIMERS);
-	return (group_regs[BFIN_TIMER_OCTET(timer_id)]->status & trun_mask[timer_id]) ? 1 : 0;
+	return !!(group_regs[BFIN_TIMER_OCTET(timer_id)]->status & trun_mask[timer_id]);
 }
 EXPORT_SYMBOL(get_gptimer_run);
 
