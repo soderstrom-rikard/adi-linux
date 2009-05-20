@@ -24,7 +24,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include <linux/hrtimer.h>
 #include <linux/sched.h>
 #include <linux/delay.h>
 #include <linux/bio.h>
@@ -207,9 +206,9 @@ mmc_spi_readbytes(struct mmc_spi_host *host, unsigned len)
 }
 
 static int mmc_spi_skip(struct mmc_spi_host *host, unsigned long timeout,
-				unsigned n, u8 byte)
+			unsigned n, u8 byte)
 {
-	u8 *cp = host->data->status;
+	u8		*cp = host->data->status;
 	unsigned long start = jiffies;
 
 	while (1) {
@@ -232,7 +231,7 @@ static int mmc_spi_skip(struct mmc_spi_host *host, unsigned long timeout,
 		 * We use jiffies here because we want to have a relation
 		 * between elapsed time and the blocking of the scheduler.
 		 */
-		if (time_is_before_jiffies(start + 1))
+		if (time_is_before_jiffies(start+1))
 			schedule();
 	}
 	return -ETIMEDOUT;
@@ -299,7 +298,7 @@ static int mmc_spi_response_get(struct mmc_spi_host *host,
 	/* Data block reads (R1 response types) may need more data... */
 	if (cp == end) {
 		cp = host->data->status;
-		end = cp + 1;
+		end = cp+1;
 
 		/* Card sends N(CR) (== 1..8) bytes of all-ones then one
 		 * status byte ... and we already scanned 2 bytes.
@@ -717,9 +716,10 @@ mmc_spi_writeblock(struct mmc_spi_host *host, struct spi_transfer *t,
 	 * it just says if the transmission was ok and whether *earlier*
 	 * writes succeeded; see the standard.
 	 *
-	 * In practice, there are (even modern SDHC-)cards which need
-	 * some clock bits to send the response, so we have to cope with
-	 * this situation and check the response bit-by-bit. Arggh!!!
+	 * In practice, there are (even modern SDHC-)cards which are late
+	 * in sending the response, and miss the time frame by a few bits,
+	 * so we have to cope with this situation and check the response
+	 * bit-by-bit. Arggh!!!
 	 */
 	pattern  = scratch->status[0] << 24;
 	pattern |= scratch->status[1] << 16;
@@ -923,10 +923,8 @@ mmc_spi_data_do(struct mmc_spi_host *host, struct mmc_command *cmd,
 		clock_rate = spi->max_speed_hz;
 
 	timeout = data->timeout_ns +
-			data->timeout_clks * 1000000 / clock_rate;
-	timeout = usecs_to_jiffies((unsigned int)(timeout / 1000));
-	if (!timeout)
-		timeout = 1;
+		  data->timeout_clks * 1000000 / clock_rate;
+	timeout = usecs_to_jiffies((unsigned int)(timeout / 1000)) + 1;
 
 	/* Handle scatterlist segments one at a time, with synch for
 	 * each 512-byte block
@@ -1343,7 +1341,6 @@ static int mmc_spi_probe(struct spi_device *spi)
 	 */
 	if (spi->mode != SPI_MODE_3)
 		spi->mode = SPI_MODE_0;
-
 	spi->bits_per_word = 8;
 
 	status = spi_setup(spi);
