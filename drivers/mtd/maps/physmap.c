@@ -250,14 +250,7 @@ static struct platform_driver physmap_flash_driver = {
 };
 
 
-#ifdef CONFIG_MTD_PHYSMAP_LEN
-#if CONFIG_MTD_PHYSMAP_LEN != 0
-#warning using PHYSMAP compat code
-#define PHYSMAP_COMPAT
-#endif
-#endif
-
-#ifdef PHYSMAP_COMPAT
+#ifdef CONFIG_MTD_PHYSMAP_COMPAT
 static struct physmap_flash_data physmap_flash_data = {
 	.width		= CONFIG_MTD_PHYSMAP_BANKWIDTH,
 };
@@ -301,7 +294,7 @@ static int __init physmap_init(void)
 	int err;
 
 	err = platform_driver_register(&physmap_flash_driver);
-#ifdef PHYSMAP_COMPAT
+#ifdef CONFIG_MTD_PHYSMAP_COMPAT
 	if (err == 0)
 		platform_device_register(&physmap_flash);
 #endif
@@ -311,7 +304,7 @@ static int __init physmap_init(void)
 
 static void __exit physmap_exit(void)
 {
-#ifdef PHYSMAP_COMPAT
+#ifdef CONFIG_MTD_PHYSMAP_COMPAT
 	platform_device_unregister(&physmap_flash);
 #endif
 	platform_driver_unregister(&physmap_flash_driver);
@@ -325,8 +318,7 @@ MODULE_AUTHOR("David Woodhouse <dwmw2@infradead.org>");
 MODULE_DESCRIPTION("Generic configurable MTD map driver");
 
 /* legacy platform drivers can't hotplug or coldplg */
-#ifndef PHYSMAP_COMPAT
+#ifndef CONFIG_MTD_PHYSMAP_COMPAT
 /* work with hotplug and coldplug */
 MODULE_ALIAS("platform:physmap-flash");
 #endif
-
