@@ -32,12 +32,10 @@ struct mtd_info *uclinux_ram_mtdinfo;
 /****************************************************************************/
 
 struct mtd_partition uclinux_romfs[] = {
-	{
-	.name = "ROMfs",
-	}
+	{ .name = "ROMfs" }
 };
 
-#define	NUM_PARTITIONS	(sizeof(uclinux_romfs) / sizeof(uclinux_romfs[0]))
+#define	NUM_PARTITIONS	ARRAY_SIZE(uclinux_romfs)
 
 /****************************************************************************/
 
@@ -92,7 +90,6 @@ static int __init uclinux_mtd_init(void)
 		mapp->size = be32_to_cpu(((unsigned long *)addr)[2]);
 	}
 #endif
-
 
 	mapp->bankwidth = 4;
 
