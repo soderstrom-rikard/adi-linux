@@ -81,4 +81,3 @@ struct serial8250_config {
 #ifndef SERIAL_EXTRA_IRQ_FLAGS
 #define SERIAL_EXTRA_IRQ_FLAGS 0
 #endif
-
