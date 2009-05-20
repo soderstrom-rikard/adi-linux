@@ -1647,7 +1647,7 @@ nofail_alloc:
 	do_retry = 0;
 	if (!(gfp_mask & __GFP_NORETRY)) {
 #ifndef CONFIG_MMU
-	drop_pagecache();
+		drop_pagecache();
 #endif
 		if (order <= PAGE_ALLOC_COSTLY_ORDER) {
 			do_retry = 1;
