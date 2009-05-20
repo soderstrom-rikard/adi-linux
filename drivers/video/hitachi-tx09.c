@@ -607,7 +607,7 @@ static struct backlight_ops tx09fb_bl_ops = {
 	.update_status = bl_update_properties,
 };
 
-static int __init tx09_probe(struct platform_device *pdev)
+static int __devinit tx09_probe(struct platform_device *pdev)
 {
 	pr_debug("%s\n", __FUNCTION__);
 
@@ -714,7 +714,7 @@ static int __init tx09_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int tx09_remove(struct platform_device *pdev)
+static int __devexit tx09_remove(struct platform_device *pdev)
 {
 	pr_debug("%s\n", __FUNCTION__);
 
@@ -782,7 +782,7 @@ static int tx09_resume(struct platform_device *pdev)
 
 static struct platform_driver tx09_driver = {
 	.probe = tx09_probe,
-	.remove = tx09_remove,
+	.remove = __devexit_p(tx09_remove),
 	.suspend = tx09_suspend,
 	.resume = tx09_resume,
 	.driver = {
@@ -791,7 +791,7 @@ static struct platform_driver tx09_driver = {
 		   },
 };
 
-static int __devinit tx09_driver_init(void)
+static int __init tx09_driver_init(void)
 {
 	return platform_driver_register(&tx09_driver);
 }
