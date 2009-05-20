@@ -333,8 +333,8 @@ static int __devinit isp1760_pdev_probe(struct platform_device *pdev)
 
 	irq_res  = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 
-	flags = (irq_res->flags & (IRQF_TRIGGER_MASK | IORESOURCE_IRQ_SHAREABLE)
-		? IRQF_SHARED : 0);
+	flags = (irq_res->flags & IRQF_TRIGGER_MASK) |
+		((irq_res->flags & IORESOURCE_IRQ_SHAREABLE) ? IRQF_SHARED : 0);
 
 	if (irq_res->flags & (IORESOURCE_IRQ_HIGHEDGE | IORESOURCE_IRQ_LOWEDGE))
 		devflags |= ISP1760_FLAG_INTR_EDGE_TRIG;
