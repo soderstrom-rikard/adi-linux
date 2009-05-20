@@ -637,15 +637,11 @@ static int __devinit tx09_probe(struct platform_device *pdev)
 	}
 
 	/* dma descriptor list */
-#if L1_DATA_A_LENGTH != 0
-	dma_desc_table =
-	    (unsigned long *)l1_data_sram_alloc(sizeof(unsigned long) * 2 *
-						(320 + 7));
-#else
-	dma_desc_table =
-	    dma_alloc_coherent(NULL, sizeof(unsigned long) * 2 * (320 + 7),
-			       &dma_handle, 0);
-#endif
+	if (L1_DATA_A_LENGTH)
+		dma_desc_table = l1_data_sram_zalloc(sizeof(unsigned long) * 2 * (320 + 7));
+	else
+		dma_desc_table = dma_alloc_coherent(NULL, sizeof(unsigned long) * 2 * (320 + 7),
+			&dma_handle, 0);
 
 	if (dma_desc_table == NULL) {
 		printk(KERN_ERR DRIVER_NAME
@@ -655,8 +651,6 @@ static int __devinit tx09_probe(struct platform_device *pdev)
 		dma_free_coherent(NULL, 240 * 320 * 2, fb_buffer, dma_handle);
 		return -ENOMEM;
 	}
-
-	memset(fb_buffer, 0, 240 * 320 * 2);
 
 	tx09_fb.screen_base = (void *)fb_buffer;
 	tx09_fb_fix.smem_start = (int)fb_buffer;
@@ -668,9 +662,7 @@ static int __devinit tx09_probe(struct platform_device *pdev)
 	tx09_fb.flags = FBINFO_DEFAULT;
 
 	/* pseudo palette */
-
-	tx09_fb.pseudo_palette = kmalloc(sizeof(u32) * 16, GFP_KERNEL);
-
+	tx09_fb.pseudo_palette = kzalloc(sizeof(u32) * 16, GFP_KERNEL);
 	if (!tx09_fb.pseudo_palette) {
 		printk(KERN_ERR DRIVER_NAME
 		       "Failed to allocate pseudo palette\n");
@@ -679,7 +671,6 @@ static int __devinit tx09_probe(struct platform_device *pdev)
 		dma_free_coherent(NULL, 240 * 320 * 2, fb_buffer, dma_handle);
 		return -ENOMEM;
 	}
-	memset(tx09_fb.pseudo_palette, 0, sizeof(u32) * 16);
 
 	/* color map */
 	if (fb_alloc_cmap(&tx09_fb.cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0) < 0) {
@@ -721,14 +712,13 @@ static int __devexit tx09_remove(struct platform_device *pdev)
 	if (fb_buffer != NULL)
 		dma_free_coherent(NULL, 240 * 320 * 2, fb_buffer, dma_handle);
 
-#if L1_DATA_A_LENGTH != 0
-	if (dma_desc_table)
-		l1_data_sram_free(dma_desc_table);
-#else
-	if (dma_desc_table)
-		dma_free_coherent(NULL, sizeof(unsigned long) * 2 * (320 + 7),
-				  &dma_handle, 0);
-#endif
+	if (dma_desc_table) {
+		if (L1_DATA_A_LENGTH)
+			l1_data_sram_free(dma_desc_table);
+		else
+			dma_free_coherent(NULL, sizeof(unsigned long) * 2 * (320 + 7),
+					  &dma_handle, 0);
+	}
 
 	stop_timers();
 
