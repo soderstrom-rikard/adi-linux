@@ -838,11 +838,11 @@ static struct backing_dev_info zero_bdi = {
 	.capabilities	= BDI_CAP_MAP_COPY,
 };
 
- static struct backing_dev_info mem_bdi = {
- 	.capabilities	= (/*BDI_CAP_MAP_COPY |*/ BDI_CAP_MAP_DIRECT |
- 			   BDI_CAP_READ_MAP | BDI_CAP_WRITE_MAP |
- 			   BDI_CAP_EXEC_MAP),
- };
+static struct backing_dev_info mem_bdi = {
+	.capabilities	= (/*BDI_CAP_MAP_COPY |*/ BDI_CAP_MAP_DIRECT |
+			   BDI_CAP_READ_MAP | BDI_CAP_WRITE_MAP |
+			   BDI_CAP_EXEC_MAP),
+};
 
 static struct file_operations full_fops = {
 	.llseek		= full_lseek,
