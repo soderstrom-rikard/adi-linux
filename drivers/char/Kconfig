@@ -3,6 +3,7 @@
 #
 
 menu "Character devices"
+
 config AD9960
 	tristate "AD9960 chip driver"
 	depends on BLACKFIN
@@ -17,20 +18,36 @@ config AD9960_TX_RX_PIN
 	help
 	  This is the tx/rx enable signal pin bit number in the GPIO port.
 
-config BFIN_SPI_ADC
-	tristate "Blackfin BF53x ADSP SPI ADC support"
+config BFIN_DMA_INTERFACE
+	tristate "Blackfin Userspace DMA Interface"
 	depends on BLACKFIN
-	select SPI
-	select SPI_BFIN
-	default n
+	default m
+	help
+	  This is a simple interface for userspace to allocate and perform
+	  MDMA transfers.
 
-config BF5xx_PPIFCD
-	tristate "Blackfin BF5xx PPI Camera frame capture driver"
+	  To compile this driver as a module, choose M here: the module
+	  will be called bfin-dma.
+
+config BFIN_PPI
+	tristate "Blackfin Generic PPI Driver"
+	depends on BLACKFIN
+	select BFIN_GPTIMERS
+	default n
+	help
+	  This provides a simple generic interface to the Blackfin PPI
+	  peripherals.  It is really only useful for working with raw
+	  data streams.
+
+config BFIN_PPIFCD
+	tristate "Blackfin PPI Camera frame capture driver"
 	depends on BLACKFIN
 	default n
 	---help---
 	  If you say Y here, you will get support for various CMOS Camera Modules
-	  connected to Balckfin's PPI port. (Tested with Micron Modules)
+	  connected to Blackfin's PPI port.  This is a very simple driver and
+	  only supports "snapshots".  If you want a video source, look at the
+	  V4L device drivers.
 
 config BFIN_SIMPLE_TIMER
 	tristate "Blackfin General Purpose Timers char device interface"
@@ -38,13 +55,14 @@ config BFIN_SIMPLE_TIMER
 	default n
 	help
 	  If you say Y here, you will get an example char-device driver that
-	  provides an interface to the above BF5xx HW-Timers Driver. See
-	  drivers/char/bfin_simple_timer.c for details.
+	  provides an interface to the above Blackfin General Purpose timers
+	  hardware.  See drivers/char/bfin_simple_timer.c for details.
 
-config BF5xx_PPI
-	tristate "Blackfin BF5xx PPI Driver"
+config BFIN_SPI_ADC
+	tristate "Blackfin ADSP SPI ADC support"
 	depends on BLACKFIN
-	select BFIN_GPTIMERS
+	select SPI
+	select SPI_BFIN
 	default n
 
 config BFIN_SPORT
@@ -60,25 +78,9 @@ config BFIN_SPORT
 	  If unsure, then say N.
 
 config BFIN_TIMER_LATENCY
-	tristate "Blackfin 5xx interrupt latency test"
+	tristate "Blackfin interrupt latency test"
 	depends on BLACKFIN
 	default n
-
-config TWI_LCD
-	tristate "TWI/I2C LCD support for HD44780 based LCD modules"
-	depends on I2C && EXPERIMENTAL && BLACKFIN
-	default n
-
-config BFIN_DMA_INTERFACE
-	tristate "Blackfin Userspace DMA Interface"
-	depends on BLACKFIN
-	default m
-	help
-	  This is a simple interface for userspace to allocate and perform
-	  MDMA transfers.
-
-	  To compile this driver as a module, choose M here: the module
-	  will be called bfin-dma.
 
 config SIMPLE_GPIO
 	tristate "Simple GPIO char interface"
