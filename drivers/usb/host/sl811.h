@@ -242,6 +242,7 @@ sl811_write_buf(struct sl811 *sl811, int addr, const void *buf, size_t count)
 		return;
 	DUMMY_DELAY_ACCESS;
 	writeb(addr, sl811->addr_reg);
+
 	data = buf;
 	data_reg = sl811->data_reg;
 	do {
@@ -260,6 +261,7 @@ sl811_read_buf(struct sl811 *sl811, int addr, void *buf, size_t count)
 		return;
 	DUMMY_DELAY_ACCESS;
 	writeb(addr, sl811->addr_reg);
+
 	data = buf;
 	data_reg = sl811->data_reg;
 	do {
