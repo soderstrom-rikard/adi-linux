@@ -83,7 +83,7 @@
 #define I2C_DRIVERID_CS5345	96	/* cs5345 audio processor	*/
 
 #define I2C_DRIVERID_OV7670 1048	/* Omnivision 7670 camera */
-#define I2C_DRIVERID_AD5252 1049
+#define I2C_DRIVERID_AD5252	1049
 
 /*
  * ---- Adapter types ----------------------------------------------------
