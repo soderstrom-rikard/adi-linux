@@ -47,7 +47,6 @@ int add_mtd_device(struct mtd_info *mtd)
 {
 	int i;
 
-	BUG_ON(mtd->writesize == 0);
 	if (!mtd->backing_dev_info) {
 		switch (mtd->type) {
 		case MTD_RAM:
@@ -61,6 +60,8 @@ int add_mtd_device(struct mtd_info *mtd)
 			break;
 		}
 	}
+
+	BUG_ON(mtd->writesize == 0);
 	mutex_lock(&mtd_table_mutex);
 
 	for (i=0; i < MAX_MTD_DEVICES; i++)
