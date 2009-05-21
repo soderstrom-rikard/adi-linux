@@ -53,13 +53,12 @@ int uclinux_point(struct mtd_info *mtd, loff_t from, size_t len,
 
 /****************************************************************************/
 
-extern unsigned long memory_mtd_start;
-
 static int __init uclinux_mtd_init(void)
 {
 	struct mtd_info *mtd;
 	struct map_info *mapp;
 #ifdef CONFIG_BLACKFIN
+	extern unsigned long memory_mtd_start;
 	unsigned long addr = (unsigned long) memory_mtd_start;
 #else
 	extern char _ebss;
