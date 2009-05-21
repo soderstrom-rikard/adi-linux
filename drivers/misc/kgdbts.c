@@ -918,10 +918,12 @@ static void kgdbts_run_tests(void)
 		hwbreaks_ok = 1;
 		v1printk("kgdbts:RUN hw breakpoint test\n");
 		run_breakpoint_test(1);
+#ifndef GDB_SKIP_HW_WATCH_TEST
 		v1printk("kgdbts:RUN hw write breakpoint test\n");
 		run_hw_break_test(1);
 		v1printk("kgdbts:RUN access write breakpoint test\n");
 		run_hw_break_test(0);
+#endif
 	}
 
 	if (nmi_sleep) {
