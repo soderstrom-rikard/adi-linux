@@ -82,7 +82,11 @@ static struct physmap_flash_data ezbrd_flash_data = {
 
 static struct resource ezbrd_flash_resource = {
 	.start = 0x20000000,
+#if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
+	.end   = 0x202fffff,
+#else
 	.end   = 0x203fffff,
+#endif
 	.flags = IORESOURCE_MEM,
 };
 
@@ -678,13 +682,10 @@ static int __init ezbrd_init(void)
 				ARRAY_SIZE(bfin_i2c_board_info));
 	platform_add_devices(stamp_devices, ARRAY_SIZE(stamp_devices));
 	spi_register_board_info(bfin_spi_board_info, ARRAY_SIZE(bfin_spi_board_info));
-#if defined(CONFIG_MTD_PHYSMAP) || defined(CONFIG_MTD_PHYSMAP_MODULE)
 	/* setup BF518-EZBRD GPIO pin PG11 to AMS2, PG15 to AMS3. */
 	peripheral_request(P_AMS2, "ParaFlash");
+#if !defined(CONFIG_SPI_BFIN) && !defined(CONFIG_SPI_BFIN_MODULE)
 	peripheral_request(P_AMS3, "ParaFlash");
-# if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
-	printk(KERN_WARNING "%s(): to access all the Parallel Flash, please disable CONFIG_SPI_BFIN\n", __func__);
-# endif
 #endif
 	return 0;
 }
