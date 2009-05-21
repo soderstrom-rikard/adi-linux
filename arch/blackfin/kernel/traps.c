@@ -32,6 +32,8 @@
 #include <linux/module.h>
 #include <linux/kallsyms.h>
 #include <linux/fs.h>
+#include <linux/compile.h>
+#include <linux/utsname.h>
 #include <asm/traps.h>
 #include <asm/cacheflush.h>
 #include <asm/cplb.h>
@@ -1080,13 +1082,19 @@ void show_regs(struct pt_regs *fp)
 	unsigned char in_atomic = (bfin_read_IPEND() & 0x10) || in_atomic();
 
 	verbose_printk(KERN_NOTICE "\n");
-	if (CPUID != bfin_cpuid() ||  bfin_revid() != bfin_compiled_revid())
+	if (CPUID != bfin_cpuid())
 		verbose_printk(KERN_NOTICE "Compiled for cpu family 0x%04x (Rev %d), "
 			"but running on:0x%04x (Rev %d)\n",
 			CPUID, bfin_compiled_revid(), bfin_cpuid(), bfin_revid());
 
-	verbose_printk(KERN_NOTICE "ADSP-%s Rev:%d %lu(MHz CCLK) %lu(MHz SCLK) (%s)\n",
-		CPU, bfin_revid(), get_cclk()/1000000, get_sclk()/1000000,
+	verbose_printk(KERN_NOTICE "ADSP-%s-0.%d",
+		CPU, bfin_compiled_revid());
+
+	if (bfin_compiled_revid() !=  bfin_revid())
+		verbose_printk("(Detected 0.%d)", bfin_revid());
+
+	verbose_printk(" %lu(MHz CCLK) %lu(MHz SCLK) (%s)\n",
+		get_cclk()/1000000, get_sclk()/1000000,
 #ifdef CONFIG_MPU
 		"mpu on"
 #else
@@ -1094,6 +1102,8 @@ void show_regs(struct pt_regs *fp)
 #endif
 		);
 
+	verbose_printk(KERN_NOTICE "%s version %s\n" KERN_NOTICE "Built with %s\n",
+		utsname()->sysname, utsname()->release, LINUX_COMPILER);
 
 	verbose_printk(KERN_NOTICE "\n" KERN_NOTICE "SEQUENCER STATUS:\t\t%s\n", print_tainted());
 	verbose_printk(KERN_NOTICE " SEQSTAT: %08lx  IPEND: %04lx  SYSCFG: %04lx\n",
