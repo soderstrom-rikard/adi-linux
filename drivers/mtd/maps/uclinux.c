@@ -13,6 +13,7 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
+#include <linux/magic.h>
 #include <linux/romfs_fs.h>
 #include <linux/mm.h>
 #include <linux/major.h>
@@ -58,7 +59,6 @@ static int __init uclinux_mtd_init(void)
 {
 	struct mtd_info *mtd;
 	struct map_info *mapp;
-	char name[20];
 #ifdef CONFIG_BLACKFIN
 	unsigned long addr = (unsigned long) memory_mtd_start;
 #else
@@ -70,25 +70,18 @@ static int __init uclinux_mtd_init(void)
 	mapp->phys = addr;
 	mapp->size = PAGE_ALIGN(ntohl(*((unsigned long *)(addr + 8))));
 
-#if defined(CONFIG_EXT2_FS) || defined(CONFIG_EXT3_FS)
-	if (*((unsigned short *)(addr + 0x438)) == 0xEF53 ) {
-		sprintf(name, "EXT2 ");
+#if defined(CONFIG_EXT2_FS) || defined(CONFIG_EXT3_FS) || defined(CONFIG_EXT4_FS)
+	if (*((unsigned short *)(addr + 0x438)) == EXT2_SUPER_MAGIC)
 		mapp->size = *((unsigned long *)(addr + 0x404)) * 1024;
-	}
 #endif
-
 #if defined(CONFIG_CRAMFS)
-	if (*((unsigned long *)(addr)) ==  0x28cd3d45 ) {
-		sprintf(name, "cramfs ");
-		mapp->size = *((unsigned long *)(addr + 0x4)) ;
-	}
+	if (*((unsigned long *)(addr)) == CRAMFS_MAGIC)
+		mapp->size = *((unsigned long *)(addr + 0x4));
 #endif
 #if defined(CONFIG_ROMFS_FS)
-	if (((unsigned long *)addr)[0] == ROMSB_WORD0
-	    && ((unsigned long *)addr)[1] == ROMSB_WORD1) {
-		sprintf (name, "romfs ");
+	if (((unsigned long *)addr)[0] == ROMSB_WORD0 &&
+	    ((unsigned long *)addr)[1] == ROMSB_WORD1)
 		mapp->size = be32_to_cpu(((unsigned long *)addr)[2]);
-	}
 #endif
 
 	mapp->bankwidth = 4;
