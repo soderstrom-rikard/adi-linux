@@ -127,7 +127,7 @@ static void __exit uclinux_mtd_cleanup(void)
 #ifdef CONFIG_MTD_PARTITIONS
 		del_mtd_partitions(uclinux_ram_mtdinfo);
 #else
-	        del_mtd_device(uclinux_ram_mtdinfo);
+		del_mtd_device(uclinux_ram_mtdinfo);
 #endif
 		map_destroy(uclinux_ram_mtdinfo);
 		uclinux_ram_mtdinfo = NULL;
