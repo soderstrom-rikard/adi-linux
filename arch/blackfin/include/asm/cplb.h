@@ -61,7 +61,7 @@
 
 #ifdef CONFIG_SMP
 #define L2_ATTR          (INITIAL_T | I_CPLB | D_CPLB)
-#define L2_IMEMORY       (CPLB_LOCK | CPLB_COMMON)
+#define L2_IMEMORY       (CPLB_COMMON)
 #define L2_DMEMORY       (CPLB_LOCK | CPLB_COMMON)
 
 #else
