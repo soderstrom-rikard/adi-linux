@@ -494,7 +494,7 @@ static struct fb_var_screeninfo bfin_lq035_fb_defined = {
 	.transp 		= {0, 0, 0},
 };
 
-static struct fb_fix_screeninfo bfin_lq035_fb_fix __initdata = {
+static struct fb_fix_screeninfo bfin_lq035_fb_fix __devinitdata = {
 	.id 		= DRIVER_NAME,
 	.smem_len 	= ACTIVE_VIDEO_MEM_SIZE,
 	.type		= FB_TYPE_PACKED_PIXELS,
