@@ -1237,12 +1237,12 @@ static int inval_cache_and_wait_for_operation(
 			spin_lock(chip->mutex);
 		}
 		if (chip->erase_suspended && chip_state == FL_ERASING)  {
-			/* Erase suspend has occured while sleep: reset timeout */
+			/* Erase suspend occured while sleep: reset timeout */
 			timeo = reset_timeo;
 			chip->erase_suspended = 0;
 		}
 		if (chip->write_suspended && chip_state == FL_WRITING)  {
-			/* Write suspend has occured while sleep: reset timeout */
+			/* Write suspend occured while sleep: reset timeout */
 			timeo = reset_timeo;
 			chip->write_suspended = 0;
 		}
