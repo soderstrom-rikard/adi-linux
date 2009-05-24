@@ -20,7 +20,6 @@
 #if defined(CONFIG_BF51x) || defined(CONFIG_BF52x) || defined(BF537_FAMILY)
 # define MAX_BLACKFIN_GPTIMERS 8
 # define TIMER0_GROUP_REG      TIMER_ENABLE
-# define TIMER_GROUP1          0
 #endif
 /*
  * BF54x: 11 timers (BF542: 8 timers):
@@ -34,7 +33,6 @@
 #  define TIMER_GROUP2          1
 # endif
 # define TIMER0_GROUP_REG       TIMER_ENABLE0
-# define TIMER_GROUP1           0
 #endif
 /*
  * BF561: 12 timers:
@@ -43,16 +41,15 @@
 # define MAX_BLACKFIN_GPTIMERS 12
 # define TIMER0_GROUP_REG      TMRS8_ENABLE
 # define TIMER8_GROUP_REG      TMRS4_ENABLE
-# define TIMER_GROUP1           0
-# define TIMER_GROUP2           1
+# define TIMER_GROUP2          1
 #endif
 /*
  * All others: 3 timers:
  */
+#define TIMER_GROUP1           0
 #if !defined(MAX_BLACKFIN_GPTIMERS)
 # define MAX_BLACKFIN_GPTIMERS 3
 # define TIMER0_GROUP_REG      TIMER_ENABLE
-# define TIMER_GROUP1          0
 #endif
 
 #define BLACKFIN_GPTIMER_IDMASK ((1UL << MAX_BLACKFIN_GPTIMERS) - 1)
