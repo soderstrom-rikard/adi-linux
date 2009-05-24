@@ -380,7 +380,8 @@ static int load_elf_fdpic_binary(struct linux_binprm *bprm,
 	down_write(&current->mm->mmap_sem);
 	current->mm->start_brk = do_mmap(NULL, 0, stack_size,
 					 PROT_READ | PROT_WRITE | PROT_EXEC,
-					 MAP_PRIVATE | MAP_ANONYMOUS | MAP_GROWSDOWN, 0);
+					 MAP_PRIVATE | MAP_ANONYMOUS | MAP_GROWSDOWN,
+					 0);
 
 	if (IS_ERR_VALUE(current->mm->start_brk)) {
 		up_write(&current->mm->mmap_sem);
@@ -945,8 +946,7 @@ static int elf_fdpic_map_file_constdisp_on_uclinux(
 
 	down_write(&mm->mmap_sem);
 	maddr = do_mmap(NULL, load_addr, top - base,
-			PROT_READ | PROT_WRITE | PROT_EXEC,
-			mflags, 0);
+			PROT_READ | PROT_WRITE | PROT_EXEC, mflags, 0);
 	up_write(&mm->mmap_sem);
 	if (IS_ERR_VALUE(maddr))
 		return (int) maddr;
