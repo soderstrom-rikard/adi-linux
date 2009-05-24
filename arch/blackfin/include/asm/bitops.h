@@ -274,6 +274,7 @@ static inline int test_bit(int nr, const void *addr)
 #endif				/* __KERNEL__ */
 
 #include <asm-generic/bitops/fls.h>
+#include <asm-generic/bitops/__fls.h>
 #include <asm-generic/bitops/fls64.h>
 
 #endif				/* _BLACKFIN_BITOPS_H */
