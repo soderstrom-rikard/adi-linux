@@ -13,8 +13,9 @@
  * Tony Kou (tonyko@lineo.ca)   Lineo Inc.   2001
  */
 
-typedef struct { volatile int counter; } atomic_t;
-
+typedef struct {
+	volatile int counter;
+} atomic_t;
 #define ATOMIC_INIT(i)	{ (i) }
 #define atomic_set(v, i)	(((v)->counter) = i)
 
