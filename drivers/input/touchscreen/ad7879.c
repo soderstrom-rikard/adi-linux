@@ -23,7 +23,7 @@
  * History:
  * Copyright (c) 2005 David Brownell
  * Copyright (c) 2006 Nokia Corporation
- * Various changes: Imre Deak <imre.deak <at> nokia.com>
+ * Various changes: Imre Deak <imre.deak@nokia.com>
  *
  * Using code from:
  *  - corgi_ts.c
@@ -776,6 +776,6 @@ static void __exit ad7879_exit(void)
 module_exit(ad7879_exit);
 #endif
 
-MODULE_AUTHOR("Michael Hennerich <hennerich <at> blackfin.uclinux.org>");
+MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
 MODULE_DESCRIPTION("AD7879(-1) touchscreen Driver");
 MODULE_LICENSE("GPL");
