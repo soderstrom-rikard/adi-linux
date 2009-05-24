@@ -1,11 +1,8 @@
 /*
- * File:        drivers/input/touchscreen/ad7877.c
- *
- * Based on:	ads7846.c
- *
- *		Copyright (C) 2006-2008 Michael Hennerich, Analog Devices Inc.
+ * Copyright (C) 2006-2008 Michael Hennerich, Analog Devices Inc.
  *
  * Description:	AD7877 based touchscreen, sensor (ADCs), DAC and GPIO driver
+ * Based on:	ads7846.c
  *
  * Bugs:        Enter bugs at http://blackfin.uclinux.org/
  *
@@ -699,7 +696,7 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 	ts->averaging = pdata->averaging;
 	ts->pen_down_acc_interval = pdata->pen_down_acc_interval;
 
-	snprintf(ts->phys, sizeof(ts->phys), "%s/inputX", dev_name(&spi->dev));
+	snprintf(ts->phys, sizeof(ts->phys), "%s/input0", dev_name(&spi->dev));
 
 	input_dev->name = "AD7877 Touchscreen";
 	input_dev->phys = ts->phys;
