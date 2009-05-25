@@ -94,8 +94,10 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 {
 	void __iomem *fifo = hw_ep->fifo;
-
-#if defined(CONFIG_MUSB_DMA_POLL)
+/* Sometimes,the DMA complete interrupt never happens,
+ * this will cause the polling to dead loop.
+ */
+#if 0
 	u8 epnum = hw_ep->epnum;
 	u16 dma_reg = 0;
 
