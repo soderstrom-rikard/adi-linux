@@ -108,12 +108,6 @@ asmlinkage void __init init_pda(void)
 #endif
 }
 
-void __cpuinit reserve_pda(void)
-{
-	printk(KERN_INFO "PDA for CPU%u reserved at %p\n", smp_processor_id(),
-					&cpu_pda[smp_processor_id()]);
-}
-
 void __init mem_init(void)
 {
 	unsigned int codek = 0, datak = 0, initk = 0;
@@ -154,19 +148,6 @@ void __init mem_init(void)
 		(unsigned long) freepages << (PAGE_SHIFT-10), _ramend >> 10,
 		initk, codek, datak, DMA_UNCACHED_REGION >> 10, (reservedpages << (PAGE_SHIFT-10)));
 }
-
-static int __init sram_init(void)
-{
-	/* Initialize the blackfin L1 Memory. */
-	bfin_sram_init();
-
-	/* Reserve the PDA space for the boot CPU right after we
-	 * initialized the scratch memory allocator.
-	 */
-	reserve_pda();
-	return 0;
-}
-pure_initcall(sram_init);
 
 static void __init free_init_pages(const char *what, unsigned long begin, unsigned long end)
 {

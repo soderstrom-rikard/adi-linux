@@ -1052,7 +1052,7 @@ int __init init_arch_irq(void)
 			set_irq_chained_handler(irq, bfin_demux_error_irq);
 			break;
 #endif
-#if defined(CONFIG_TICK_SOURCE_SYSTMR0) || defined(CONFIG_IPIPE)
+#if defined(CONFIG_TICKSOURCE_GPTMR0) || defined(CONFIG_IPIPE)
 		case IRQ_TIMER0:
 			set_irq_handler(irq, handle_percpu_irq);
 			break;

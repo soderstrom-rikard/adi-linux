@@ -241,12 +241,6 @@ config IRQ_PER_CPU
 	depends on SMP
 	default y
 
-config TICK_SOURCE_SYSTMR0
-	bool
-	select BFIN_GPTIMERS
-	depends on SMP
-	default y
-
 config BF_REV_MIN
 	int
 	default 0 if (BF51x || BF52x || (BF54x && !BF54xM))
