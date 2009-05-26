@@ -182,6 +182,8 @@ static struct irqaction bfin_timer_irq = {
 static int bfin_timer_set_next_event(unsigned long cycles,
                                      struct clock_event_device *evt)
 {
+	disable_gptimers(TIMER0bit);
+
 	/* it starts counting three SCLK cycles after the TIMENx bit is set */
 	set_gptimer_pwidth(TIMER0_id, cycles - 3);
 	enable_gptimers(TIMER0bit);
@@ -198,17 +200,14 @@ static void bfin_timer_set_mode(enum clock_event_mode mode,
 			TIMER_PERIOD_CNT | TIMER_MODE_PWM);
 		set_gptimer_period(TIMER0_id, get_sclk() / HZ);
 		set_gptimer_pwidth(TIMER0_id, get_sclk() / HZ - 1);
-		SSYNC();
 		enable_gptimers(TIMER0bit);
 		break;
 	}
 	case CLOCK_EVT_MODE_ONESHOT:
+		disable_gptimers(TIMER0bit);
 		set_gptimer_config(TIMER0_id, \
 			TIMER_OUT_DIS | TIMER_IRQ_ENA | TIMER_MODE_PWM);
 		set_gptimer_period(TIMER0_id, 0);
-		set_gptimer_pwidth(TIMER0_id, get_sclk() / HZ);
-		SSYNC();
-		enable_gptimers(TIMER0bit);
 		break;
 	case CLOCK_EVT_MODE_UNUSED:
 	case CLOCK_EVT_MODE_SHUTDOWN:
@@ -240,31 +239,35 @@ static unsigned long  __init bfin_clockevent_check(void)
 static int bfin_timer_set_next_event(unsigned long cycles,
 				struct clock_event_device *evt)
 {
+	bfin_write_TCNTL(TMPWR);
+	CSYNC();
 	bfin_write_TCOUNT(cycles);
 	CSYNC();
+	bfin_write_TCNTL(TMPWR | TMREN);
 	return 0;
 }
 
 static void bfin_timer_set_mode(enum clock_event_mode mode,
-                                struct clock_event_device *evt)
+				struct clock_event_device *evt)
 {
 	switch (mode) {
 	case CLOCK_EVT_MODE_PERIODIC: {
 		unsigned long tcount = ((get_cclk() / (HZ * TIME_SCALE)) - 1);
 		bfin_write_TCNTL(TMPWR);
-		bfin_write_TSCALE(TIME_SCALE - 1);
 		CSYNC();
+		bfin_write_TSCALE(TIME_SCALE - 1);
 		bfin_write_TPERIOD(tcount);
 		bfin_write_TCOUNT(tcount);
-		bfin_write_TCNTL(TMPWR | TMREN | TAUTORLD);
 		CSYNC();
+		bfin_write_TCNTL(TMPWR | TMREN | TAUTORLD);
 		break;
 	}
 	case CLOCK_EVT_MODE_ONESHOT:
-		bfin_write_TSCALE(TIME_SCALE - 1);
-		bfin_write_TCOUNT(0);
-		bfin_write_TCNTL(TMPWR | TMREN);
+		bfin_write_TCNTL(TMPWR);
 		CSYNC();
+		bfin_write_TSCALE(TIME_SCALE - 1);
+		bfin_write_TPERIOD(0);
+		bfin_write_TCOUNT(0);
 		break;
 	case CLOCK_EVT_MODE_UNUSED:
 	case CLOCK_EVT_MODE_SHUTDOWN:
