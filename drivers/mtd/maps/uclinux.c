@@ -13,8 +13,6 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
-#include <linux/magic.h>
-#include <linux/romfs_fs.h>
 #include <linux/mm.h>
 #include <linux/major.h>
 #include <linux/mtd/mtd.h>
@@ -24,15 +22,19 @@
 
 /****************************************************************************/
 
+extern char _ebss;
+
 struct map_info uclinux_ram_map = {
 	.name = "RAM",
+	.phys = (unsigned long)&_ebss,
+	.size = 0,
 };
 
-struct mtd_info *uclinux_ram_mtdinfo;
+static struct mtd_info *uclinux_ram_mtdinfo;
 
 /****************************************************************************/
 
-struct mtd_partition uclinux_romfs[] = {
+static struct mtd_partition uclinux_romfs[] = {
 	{ .name = "ROMfs" }
 };
 
@@ -40,7 +42,7 @@ struct mtd_partition uclinux_romfs[] = {
 
 /****************************************************************************/
 
-int uclinux_point(struct mtd_info *mtd, loff_t from, size_t len,
+static int uclinux_point(struct mtd_info *mtd, loff_t from, size_t len,
 	size_t *retlen, void **virt, resource_size_t *phys)
 {
 	struct map_info *map = mtd->priv;
@@ -57,32 +59,10 @@ static int __init uclinux_mtd_init(void)
 {
 	struct mtd_info *mtd;
 	struct map_info *mapp;
-#ifdef CONFIG_BLACKFIN
-	extern unsigned long memory_mtd_start;
-	unsigned long addr = (unsigned long) memory_mtd_start;
-#else
-	extern char _ebss;
-	unsigned long addr = (unsigned long) &_ebss;
-#endif
 
 	mapp = &uclinux_ram_map;
-	mapp->phys = addr;
-	mapp->size = PAGE_ALIGN(ntohl(*((unsigned long *)(addr + 8))));
-
-#if defined(CONFIG_EXT2_FS) || defined(CONFIG_EXT3_FS) || defined(CONFIG_EXT4_FS)
-	if (*((unsigned short *)(addr + 0x438)) == EXT2_SUPER_MAGIC)
-		mapp->size = *((unsigned long *)(addr + 0x404)) * 1024;
-#endif
-#if defined(CONFIG_CRAMFS)
-	if (*((unsigned long *)(addr)) == CRAMFS_MAGIC)
-		mapp->size = *((unsigned long *)(addr + 0x4));
-#endif
-#if defined(CONFIG_ROMFS_FS)
-	if (((unsigned long *)addr)[0] == ROMSB_WORD0 &&
-	    ((unsigned long *)addr)[1] == ROMSB_WORD1)
-		mapp->size = be32_to_cpu(((unsigned long *)addr)[2]);
-#endif
-
+	if (!mapp->size)
+		mapp->size = PAGE_ALIGN(ntohl(*((unsigned long *)(mapp->phys + 8))));
 	mapp->bankwidth = 4;
 
 	printk("uclinux[mtd]: RAM probe address=0x%x size=0x%x\n",
