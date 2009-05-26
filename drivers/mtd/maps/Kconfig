@@ -511,7 +511,7 @@ config MTD_GPIO_ADDR
 	  If compiled as a module, it will be called gpio-addr-flash.
 
 config MTD_UCLINUX
-	tristate "Generic uClinux RAM/ROM filesystem support"
+	bool "Generic uClinux RAM/ROM filesystem support"
 	depends on MTD_PARTITIONS && MTD_RAM && !MMU
 	help
 	  Map driver to support image based filesystems for uClinux.
