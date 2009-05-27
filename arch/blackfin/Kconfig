@@ -601,6 +601,7 @@ source kernel/Kconfig.hz
 
 config GENERIC_TIME
 	bool "Generic time"
+	depends on !IPIPE
 	default y
 
 config GENERIC_CLOCKEVENTS

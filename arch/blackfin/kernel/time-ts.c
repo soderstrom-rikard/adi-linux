@@ -150,7 +150,7 @@ static void bfin_timer_set_mode(enum clock_event_mode, \
 		struct clock_event_device *);
 
 static struct clock_event_device clockevent_bfin = {
-#if defined(CONFIG_TICKSOURCE_GPTMR0) || defined(CONFIG_IPIPE)
+#if defined(CONFIG_TICKSOURCE_GPTMR0)
 	.name		= "bfin_gptimer0",
 	.rating		= 300,
 	.irq		= IRQ_TIMER0,
@@ -167,7 +167,7 @@ static struct clock_event_device clockevent_bfin = {
 };
 
 static struct irqaction bfin_timer_irq = {
-#if defined(CONFIG_TICKSOURCE_GPTMR0) || defined(CONFIG_IPIPE)
+#if defined(CONFIG_TICKSOURCE_GPTMR0)
 	.name		= "Blackfin GPTimer0",
 #else
 	.name		= "Blackfin CoreTimer",
@@ -178,7 +178,7 @@ static struct irqaction bfin_timer_irq = {
 	.dev_id		= &clockevent_bfin,
 };
 
-#if defined(CONFIG_TICKSOURCE_GPTMR0) || defined(CONFIG_IPIPE)
+#if defined(CONFIG_TICKSOURCE_GPTMR0)
 static int bfin_timer_set_next_event(unsigned long cycles,
                                      struct clock_event_device *evt)
 {
@@ -310,7 +310,7 @@ void __init setup_core_timer(void)
 	bfin_timer_init();
 	bfin_timer_set_mode(CLOCK_EVT_MODE_PERIODIC, NULL);
 }
-#endif /* CONFIG_TICKSOURCE_GPTMR0 || CONFIG_IPIPE */
+#endif /* CONFIG_TICKSOURCE_GPTMR0 */
 
 /*
  * timer_interrupt() needs to keep up the real-time clock,
