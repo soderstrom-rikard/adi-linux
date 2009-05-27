@@ -49,8 +49,8 @@ struct snd_soc_codec_device soc_codec_dev_ssm2602;
 /* codec private data */
 struct ssm2602_priv {
 	unsigned int sysclk;
-	unsigned int master_rate;
-	unsigned int master_sample_bits;
+	struct snd_pcm_substream *master_substream;
+	struct snd_pcm_substream *slave_substream;
 };
 
 /*
@@ -330,25 +330,26 @@ static int ssm2602_startup(struct snd_pcm_substream *substream)
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->codec;
 	struct ssm2602_priv *ssm2602 = codec->private_data;
+	struct snd_pcm_runtime *master_runtime;
 
 	/* The DAI has shared clocks so if we already have a playback or
 	 * capture going then constrain this substream to match it.
 	 */
-	if (ssm2602->master_rate) {
+	if (ssm2602->master_substream) {
+		master_runtime = ssm2602->master_substream->runtime;
 		snd_pcm_hw_constraint_minmax(substream->runtime,
 					     SNDRV_PCM_HW_PARAM_RATE,
-					     ssm2602->master_rate,
-					     ssm2602->master_rate);
-	} else
-		ssm2602->master_rate = substream->runtime->rate;
+					     master_runtime->rate,
+					     master_runtime->rate);
 
-	if (ssm2602->master_sample_bits) {
 		snd_pcm_hw_constraint_minmax(substream->runtime,
 					     SNDRV_PCM_HW_PARAM_SAMPLE_BITS,
-					     ssm2602->master_sample_bits,
-					     ssm2602->master_sample_bits);
+					     master_runtime->sample_bits,
+					     master_runtime->sample_bits);
+
+		ssm2602->slave_substream = substream;
 	} else
-		ssm2602->master_sample_bits = substream->runtime->sample_bits;
+		ssm2602->master_substream = substream;
 
 	return 0;
 }
@@ -489,9 +490,11 @@ static int ssm2602_set_bias_level(struct snd_soc_codec *codec,
 	return 0;
 }
 
-#define SSM2602_RATES (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_32000 |\
-		SNDRV_PCM_RATE_44100 | SNDRV_PCM_RATE_48000 |\
-		SNDRV_PCM_RATE_88200 | SNDRV_PCM_RATE_96000)
+#define SSM2602_RATES (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_11025 |\
+		SNDRV_PCM_RATE_16000 | SNDRV_PCM_RATE_22050 |\
+		SNDRV_PCM_RATE_32000 | SNDRV_PCM_RATE_44100 |\
+		SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_88200 |\
+		SNDRV_PCM_RATE_96000)
 
 struct snd_soc_dai ssm2602_dai = {
 	.name = "SSM2602",
