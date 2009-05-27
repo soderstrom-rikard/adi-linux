@@ -457,7 +457,7 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 			iface->writeNum = data->block[0];
 			iface->cur_mode = TWI_I2C_MODE_STANDARDSUB;
 		}
-		iface->transPtr = data->block;
+		iface->transPtr = (u8 *)&data->block[1];
 		break;
 	default:
 		return -1;
