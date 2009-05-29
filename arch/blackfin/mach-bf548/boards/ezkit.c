@@ -208,7 +208,7 @@ static struct platform_device bfin_rotary_device = {
 };
 #endif
 
-#if defined(CONFIG_INPUT_ADXL34X) || defined(CONFIG_INPUT_ADXL34X)
+#if defined(CONFIG_INPUT_ADXL34X) || defined(CONFIG_INPUT_ADXL34X_MODULE)
 #include <linux/input.h>
 #include <linux/spi/adxl34x.h>
 static const struct adxl34x_platform_data adxl34x_info = {
@@ -837,13 +837,6 @@ static struct platform_device i2c_bfin_twi1_device = {
 #endif
 
 static struct i2c_board_info __initdata bfin_i2c_board_info0[] = {
-#if defined(CONFIG_INPUT_ADXL34X_I2C) || defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
-	{
-		I2C_BOARD_INFO("adxl34x", 0x53),
-		.irq = IRQ_PC5,
-		.platform_data = (void *)&adxl34x_info,
-	},
-#endif
 };
 
 #if !defined(CONFIG_BF542)	/* The BF542 only has 1 TWI */
@@ -857,6 +850,13 @@ static struct i2c_board_info __initdata bfin_i2c_board_info1[] = {
 	{
 		I2C_BOARD_INFO("pcf8574_keypad", 0x27),
 		.irq = 212,
+	},
+#endif
+#if defined(CONFIG_INPUT_ADXL34X_I2C) || defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
+	{
+		I2C_BOARD_INFO("adxl34x", 0x53),
+		.irq = IRQ_PC5,
+		.platform_data = (void *)&adxl34x_info,
 	},
 #endif
 };
