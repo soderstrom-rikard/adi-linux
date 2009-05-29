@@ -357,7 +357,7 @@ int __cpuinit __cpu_up(unsigned int cpu)
 
 static void __cpuinit setup_secondary(unsigned int cpu)
 {
-#if !(defined(CONFIG_TICKSOURCE_GPTMR0))
+#if !defined(CONFIG_TICKSOURCE_GPTMR0)
 	struct irq_desc *timer_desc;
 #endif
 	unsigned long ilat;
