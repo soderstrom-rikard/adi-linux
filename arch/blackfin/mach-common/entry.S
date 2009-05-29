@@ -200,7 +200,18 @@ ENTRY(_ex_single_step)
 	cc = r7 == 0;
 	if !cc jump 1f;
 #endif
-
+#ifdef CONFIG_EXACT_HWERR
+	/* Read the ILAT, and to check to see if the process we are
+	 * single stepping caused a previous hardware error
+	 * If so, do not single step, (which lowers to IRQ5, and makes
+	 * us miss the error).
+	 */
+	p5.l = lo(ILAT);
+	p5.h = hi(ILAT);
+	r7 = [p5];
+	cc = bittst(r7, EVT_IVHW_P);
+	if cc jump 1f;
+#endif
 	/* Single stepping only a single instruction, so clear the trace
 	 * bit here.  */
 	r7 = syscfg;
