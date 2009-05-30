@@ -866,7 +866,7 @@ ENTRY(_ret_from_exception)
 	p1.h = _schedule_and_signal;
 	[p0] = p1;
 	csync;
-	raise 15;		/* raise evt14 to do signal or reschedule */
+	raise 15;		/* raise evt15 to do signal or reschedule */
 4:
 	r0 = syscfg;
 	bitclr(r0, 0);
@@ -946,10 +946,19 @@ ENTRY(_lower_to_irq14)
 	r0.h = hi(SAFE_USER_INSTRUCTION);
 	reti = r0;
 #endif
-	r0 = 0x401f;
+
+#ifdef CONFIG_DEBUG_HWERR
+	/* enable irq14 & hwerr interrupt, until we transition to _evt14_softirq */
+	r0 = (EVT_IVG14 | EVT_IVHW | EVT_IRPTEN | EVT_EVX | EVT_NMI | EVT_RST | EVT_EMU);
+#else
+	/* Only enable irq14 interrupt, until we transition to _evt14_softirq */
+	r0 = (EVT_IVG14 | EVT_IRPTEN | EVT_EVX | EVT_NMI | EVT_RST | EVT_EMU);
+#endif
 	sti r0;
 	raise 14;
 	rti;
+ENDPROC(_lower_to_irq14)
+
 ENTRY(_evt14_softirq)
 #ifdef CONFIG_DEBUG_HWERR
 	r0 = 0x3f;
@@ -960,8 +969,9 @@ ENTRY(_evt14_softirq)
 	[--sp] = RETI;
 	SP += 4;
 	rts;
+ENDPROC(_evt14_softirq)
 
-_schedule_and_signal_from_int:
+ENTRY(_schedule_and_signal_from_int)
 	/* To end up here, vector 15 was changed - so we have to change it
 	 * back.
 	 */
@@ -994,8 +1004,9 @@ _schedule_and_signal_from_int:
 	call _finish_atomic_sections;
 	sp += 12;
 	jump.s .Lresume_userspace;
+ENDPROC(_schedule_and_signal_from_int)
 
-_schedule_and_signal:
+ENTRY(_schedule_and_signal)
 	SAVE_CONTEXT_SYSCALL
 	/* To end up here, vector 15 was changed - so we have to change it
 	 * back.
@@ -1013,7 +1024,7 @@ _schedule_and_signal:
 1:
 	RESTORE_CONTEXT
 	rti;
-ENDPROC(_lower_to_irq14)
+ENDPROC(_schedule_and_signal)
 
 /* We handle this 100% in exception space - to reduce overhead
  * Only potiential problem is if the software buffer gets swapped out of the
