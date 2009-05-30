@@ -181,7 +181,7 @@
 #define ADXL346_3D_TOP			1	/* +Z */
 #define ADXL346_3D_BOTTOM		6	/* -Z */
 
-#define ADXL_DEBUG
+#undef ADXL_DEBUG
 
 #if defined(CONFIG_INPUT_ADXL34X_SPI) || defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
 typedef struct spi_device bus_device;
@@ -441,7 +441,6 @@ static ssize_t adxl34x_disable_show(struct device *dev,
 
 	return sprintf(buf, "%u\n", ac->disabled);
 }
-
 static ssize_t adxl34x_disable_store(struct device *dev,
 				     struct device_attribute *attr,
 				     const char *buf, size_t count)
@@ -869,7 +868,7 @@ static int adxl34x_i2c_smbus_read(struct i2c_client *client, unsigned char reg)
 }
 
 static int adxl34x_i2c_smbus_write(struct i2c_client *client,
-				   unsigned char reg, int val)
+				   unsigned char reg, unsigned char val)
 {
 	return i2c_smbus_write_byte_data(client, reg, val);
 }
