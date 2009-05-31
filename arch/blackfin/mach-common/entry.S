@@ -927,7 +927,7 @@ ENTRY(_return_from_int)
 	p1.h = _schedule_and_signal_from_int;
 	[p0] = p1;
 	csync;
-#if ANOMALY_05000281
+#if ANOMALY_05000281 || ANOMALY_05000461
 	r0.l = lo(SAFE_USER_INSTRUCTION);
 	r0.h = hi(SAFE_USER_INSTRUCTION);
 	reti = r0;
@@ -941,7 +941,7 @@ ENTRY(_return_from_int)
 ENDPROC(_return_from_int)
 
 ENTRY(_lower_to_irq14)
-#if ANOMALY_05000281
+#if ANOMALY_05000281 || ANOMALY_05000461
 	r0.l = lo(SAFE_USER_INSTRUCTION);
 	r0.h = hi(SAFE_USER_INSTRUCTION);
 	reti = r0;
@@ -961,7 +961,7 @@ ENDPROC(_lower_to_irq14)
 
 ENTRY(_evt14_softirq)
 #ifdef CONFIG_DEBUG_HWERR
-	r0 = 0x3f;
+	r0 = (EVT_IVHW | EVT_IRPTEN | EVT_EVX | EVT_NMI | EVT_RST | EVT_EMU);
 	sti r0;
 #else
 	cli r0;
