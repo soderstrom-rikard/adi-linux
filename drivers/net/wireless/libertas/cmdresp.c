@@ -154,11 +154,11 @@ static int lbs_ret_802_11_rssi(struct lbs_private *priv,
 	lbs_deb_enter(LBS_DEB_CMD);
 
 	/* store the non average value */
-	priv->SNR[TYPE_BEACON][TYPE_NOAVG] = get_unaligned_le16(&(rssirsp->SNR));
-	priv->NF[TYPE_BEACON][TYPE_NOAVG] = get_unaligned_le16(&(rssirsp->noisefloor));
+	priv->SNR[TYPE_BEACON][TYPE_NOAVG] = get_unaligned_le16(&rssirsp->SNR);
+	priv->NF[TYPE_BEACON][TYPE_NOAVG] = get_unaligned_le16(&rssirsp->noisefloor);
 
-	priv->SNR[TYPE_BEACON][TYPE_AVG] = get_unaligned_le16(&(rssirsp->avgSNR));
-	priv->NF[TYPE_BEACON][TYPE_AVG] = get_unaligned_le16(&(rssirsp->avgnoisefloor));
+	priv->SNR[TYPE_BEACON][TYPE_AVG] = get_unaligned_le16(&rssirsp->avgSNR);
+	priv->NF[TYPE_BEACON][TYPE_AVG] = get_unaligned_le16(&rssirsp->avgnoisefloor);
 
 	priv->RSSI[TYPE_BEACON][TYPE_NOAVG] =
 	    CAL_RSSI(priv->SNR[TYPE_BEACON][TYPE_NOAVG],
