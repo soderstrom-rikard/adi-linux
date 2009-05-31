@@ -641,6 +641,12 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 			(u32)(current_tx_ptr->packet + skb->len + 2));
 	}
 
+	/* Make sure the internal data buffer in the core are drained
+	 * so that the DMA descriptors are completely written when the
+	 * the DMA engins goes to fetch them bellow.
+	 */
+	SSYNC();
+
 	/* enable this packet's dma */
 	current_tx_ptr->desc_a.config |= DMAEN;
 
@@ -650,10 +656,6 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 
 	/* tx dma is not running */
 	bfin_write_DMA2_NEXT_DESC_PTR(&(current_tx_ptr->desc_a));
-	/* Make sure data is really written into DMA NEXT_DESC_PTR register
-	 * before enableing the DMA controller.
-	 */
-	SSYNC();
 	/* dma enabled, read from memory, size is 6 */
 	bfin_write_DMA2_CONFIG(current_tx_ptr->desc_a.config);
 	/* Turn on the EMAC tx */
