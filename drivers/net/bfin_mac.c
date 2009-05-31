@@ -641,9 +641,9 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 			(u32)(current_tx_ptr->packet + skb->len + 2));
 	}
 
-	/* Make sure the internal data buffer in the core are drained
+	/* make sure the internal data buffers in the core are drained
 	 * so that the DMA descriptors are completely written when the
-	 * the DMA engins goes to fetch them bellow.
+	 * DMA engine goes to fetch them below
 	 */
 	SSYNC();
 
@@ -723,9 +723,6 @@ static irqreturn_t bfin_mac_interrupt(int irq, void *dev_id)
 	struct net_device *dev = dev_id;
 	int number = 0;
 
-	if (!(bfin_read_DMA1_IRQ_STATUS() & (DMA_DONE | DMA_ERR)))
-		return IRQ_NONE;
-
 get_one_packet:
 	if (current_rx_ptr->status.status_word == 0) {
 		/* no more new packet received */
@@ -735,7 +732,8 @@ get_one_packet:
 				goto real_rx;
 			}
 		}
-		bfin_write_DMA1_IRQ_STATUS(DMA_DONE | DMA_ERR);
+		bfin_write_DMA1_IRQ_STATUS(bfin_read_DMA1_IRQ_STATUS() |
+					   DMA_DONE | DMA_ERR);
 		return IRQ_HANDLED;
 	}
 
@@ -1046,7 +1044,7 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 	/* now, enable interrupts */
 	/* register irq handler */
 	rc = request_irq(IRQ_MAC_RX, bfin_mac_interrupt,
-			IRQF_DISABLED | IRQF_SHARED, "EMAC_RX", ndev);
+			IRQF_DISABLED, "EMAC_RX", ndev);
 	if (rc) {
 		dev_err(&pdev->dev, "Cannot request Blackfin MAC RX IRQ!\n");
 		rc = -EBUSY;
