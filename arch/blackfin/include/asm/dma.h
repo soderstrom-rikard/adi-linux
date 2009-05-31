@@ -207,7 +207,7 @@ static inline unsigned long get_dma_curr_addr(unsigned int channel)
 static inline void set_dma_sg(unsigned int channel, struct dmasg *sg, int ndsize)
 {
 	/* The descriptor buffers may be located in core internal SRAM.
-	 * Make sure the descriptor buffer in the core are drained
+	 * Make sure the descriptor buffers in the core are drained
 	 * so that the DMA descriptors are completely written before
 	 * the DMA engine goes to fetch them.
 	 */
