@@ -1237,7 +1237,8 @@ asmlinkage int __ipipe_grab_irq(int vec, struct pt_regs *regs)
 
 	SSYNC();
 
-#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x) || defined(CONFIG_BF561)
+#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x) || defined(CONFIG_BF561) \
+	|| defined(BF538_FAMILY) || defined(CONFIG_BF51x)
 	{
 		unsigned long sic_status[3];
 
