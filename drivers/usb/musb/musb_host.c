@@ -684,7 +684,6 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 			/* flush all old state, set default */
 			if (csr & MUSB_TXCSR_MODE)
 				musb_h_tx_flush_fifo(hw_ep);
-
 			csr &= ~(MUSB_TXCSR_H_NAKTIMEOUT
 					| MUSB_TXCSR_DMAMODE
 					| MUSB_TXCSR_FRCDATATOG

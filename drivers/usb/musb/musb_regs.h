@@ -333,11 +333,11 @@ static inline u16 musb_read_hwvers(void __iomem *mbase)
 
 static inline void __iomem *musb_read_target_reg_base(u8 i, void __iomem *mbase)
 {
-	return (void __iomem *)(MUSB_BUSCTL_OFFSET(i, 0) + mbase);
+	return (MUSB_BUSCTL_OFFSET(i, 0) + mbase);
 }
 
 static inline void musb_write_rxfunaddr(void __iomem *ep_target_regs,
-		u8 qh_addr_req)
+		u8 qh_addr_reg)
 {
 	musb_writeb(ep_target_regs, MUSB_RXFUNCADDR, qh_addr_reg);
 }
@@ -365,7 +365,7 @@ static inline void  musb_write_txhubaddr(void __iomem *mbase, u8 epnum,
 		u8 qh_addr_reg)
 {
 	musb_writeb(mbase, MUSB_BUSCTL_OFFSET(epnum, MUSB_TXHUBADDR),
-			qh_h_addr_reg);
+			qh_addr_reg);
 }
 
 static inline void  musb_write_txhubport(void __iomem *mbase, u8 epnum,
@@ -473,9 +473,9 @@ static inline u16 musb_read_hwvers(void __iomem *mbase)
 	return 0;
 }
 
-static inline void __iomem *musb_read_target_reg_base(u8 i, void __iomem *mbase)
+static inline u16 musb_read_target_reg_base(u8 i, void __iomem *mbase)
 {
-	return NULL;
+	return 0;
 }
 
 static inline void musb_write_rxfunaddr(void __iomem *ep_target_regs,
