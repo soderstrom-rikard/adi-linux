@@ -30,6 +30,8 @@
 #ifndef _BLACKFIN_CACHEFLUSH_H
 #define _BLACKFIN_CACHEFLUSH_H
 
+#include <asm/blackfin.h>	/* for SSYNC() */
+
 extern void blackfin_icache_flush_range(unsigned long start_address, unsigned long end_address);
 extern void blackfin_dcache_flush_range(unsigned long start_address, unsigned long end_address);
 extern void blackfin_dcache_invalidate_range(unsigned long start_address, unsigned long end_address);
