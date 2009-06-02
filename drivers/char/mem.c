@@ -25,6 +25,7 @@
 #include <linux/backing-dev.h>
 #include <linux/bootmem.h>
 #include <linux/splice.h>
+#include <linux/pfn.h>
 #include <linux/smp_lock.h>
 
 #include <asm/uaccess.h>
@@ -180,7 +181,7 @@ static ssize_t read_mem(struct file * file, char __user * buf,
 	return read;
 }
 
-static ssize_t write_mem(struct file * file, const char __user * buf,
+static ssize_t write_mem(struct file * file, const char __user * buf, 
 			 size_t count, loff_t *ppos)
 {
 	unsigned long p = *ppos;
@@ -285,6 +286,19 @@ static unsigned long get_unmapped_area_mem(struct file *file,
 		return (unsigned long) -EINVAL;
 	return pgoff << PAGE_SHIFT;
 }
+
+/* can't do an in-place private mapping if there's no MMU */
+static inline int private_mapping_ok(struct vm_area_struct *vma)
+{
+	return vma->vm_flags & VM_MAYSHARE;
+}
+#else
+#define get_unmapped_area_mem	NULL
+
+static inline int private_mapping_ok(struct vm_area_struct *vma)
+{
+	return 1;
+}
 #endif
 
 void __attribute__((weak))
@@ -326,11 +340,8 @@ static int mmap_mem(struct file * file, struct vm_area_struct * vma)
 	if (!valid_mmap_phys_addr_range(vma->vm_pgoff, size))
 		return -EINVAL;
 
-#ifndef CONFIG_MMU
-	/* can't do an in-place private mapping if there's no MMU */
-	if (!(vma->vm_flags & VM_MAYSHARE))
+	if (!private_mapping_ok(vma))
 		return -ENOSYS;
-#endif
 
 	if (!range_is_allowed(vma->vm_pgoff, size))
 		return -EPERM;
@@ -421,7 +432,7 @@ extern long vwrite(char *buf, char *addr, unsigned long count);
 /*
  * This function reads the *virtual* memory as seen by the kernel.
  */
-static ssize_t read_kmem(struct file *file, char __user *buf,
+static ssize_t read_kmem(struct file *file, char __user *buf, 
 			 size_t count, loff_t *ppos)
 {
 	unsigned long p = *ppos;
@@ -568,7 +579,7 @@ do_write_kmem(void *p, unsigned long realp, const char __user * buf,
 /*
  * This function writes to the *virtual* memory as seen by the kernel.
  */
-static ssize_t write_kmem(struct file * file, const char __user * buf,
+static ssize_t write_kmem(struct file * file, const char __user * buf, 
 			  size_t count, loff_t *ppos)
 {
 	unsigned long p = *ppos;
@@ -632,10 +643,10 @@ static ssize_t read_port(struct file * file, char __user * buf,
 	char __user *tmp = buf;
 
 	if (!access_ok(VERIFY_WRITE, buf, count))
-		return -EFAULT;
+		return -EFAULT; 
 	while (count-- > 0 && i < 65536) {
-		if (__put_user(inb(i),tmp) < 0)
-			return -EFAULT;
+		if (__put_user(inb(i),tmp) < 0) 
+			return -EFAULT;  
 		i++;
 		tmp++;
 	}
@@ -691,7 +702,7 @@ static ssize_t splice_write_null(struct pipe_inode_info *pipe,struct file *out,
 	return splice_from_pipe(pipe, out, ppos, len, flags, pipe_to_null);
 }
 
-static ssize_t read_zero(struct file * file, char __user * buf,
+static ssize_t read_zero(struct file * file, char __user * buf, 
 			 size_t count, loff_t *ppos)
 {
 	size_t written;
@@ -834,17 +845,15 @@ static const struct file_operations zero_fops = {
 	.mmap		= mmap_zero,
 };
 
+/*
+ * capabilities for /dev/zero
+ * - permits private mappings, "copies" are taken of the source of zeros
+ */
 static struct backing_dev_info zero_bdi = {
 	.capabilities	= BDI_CAP_MAP_COPY,
 };
 
-static struct backing_dev_info mem_bdi = {
-	.capabilities	= (/*BDI_CAP_MAP_COPY |*/ BDI_CAP_MAP_DIRECT |
-			   BDI_CAP_READ_MAP | BDI_CAP_WRITE_MAP |
-			   BDI_CAP_EXEC_MAP),
-};
-
-static struct file_operations full_fops = {
+static const struct file_operations full_fops = {
 	.llseek		= full_lseek,
 	.read		= read_full,
 	.write		= write_full,
@@ -890,12 +899,14 @@ static int memory_open(struct inode * inode, struct file * filp)
 	switch (iminor(inode)) {
 		case 1:
 			filp->f_op = &mem_fops;
-			filp->f_mapping->backing_dev_info = &mem_bdi;
+			filp->f_mapping->backing_dev_info =
+				&directly_mappable_cdev_bdi;
 			break;
 #ifdef CONFIG_DEVKMEM
 		case 2:
 			filp->f_op = &kmem_fops;
-			filp->f_mapping->backing_dev_info = &mem_bdi;
+			filp->f_mapping->backing_dev_info =
+				&directly_mappable_cdev_bdi;
 			break;
 #endif
 		case 3:
