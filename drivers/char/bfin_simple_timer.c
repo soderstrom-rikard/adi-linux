@@ -79,8 +79,6 @@ static int timer_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigne
 		if (arg < 2)
 			return -EFAULT;
 		n = ((get_sclk() / 1000) * arg) / 1000;
-		if (n > 0xFFFF)
-			n = 0xFFFF;
 		set_gptimer_period(timer_code[minor].id, n);
 		set_gptimer_pwidth(timer_code[minor].id, n >> 1);
 		pr_debug(DRV_NAME ": TIMER_SET_PERIOD: arg=%lu, period=%lu, width=%lu\n",
