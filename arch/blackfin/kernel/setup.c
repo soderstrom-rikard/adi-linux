@@ -18,10 +18,12 @@
 #include <linux/tty.h>
 #include <linux/pfn.h>
 
+#ifdef CONFIG_MTD_UCLINUX
 #include <linux/mtd/map.h>
 #include <linux/ext2_fs.h>
 #include <linux/cramfs_fs.h>
 #include <linux/romfs_fs.h>
+#endif
 
 #include <asm/cplb.h>
 #include <asm/cacheflush.h>
