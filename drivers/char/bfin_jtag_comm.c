@@ -31,7 +31,7 @@
 #define DRV_NAME "bfin-jtag-comm"
 #define DEV_NAME "ttyBFJC"
 
-#define pr_init(fmt, args...) ({ static const __initdata char __fmt[] = fmt; printk(__fmt, ## args); })
+#define pr_init(fmt, args...) ({ static const __initconst char __fmt[] = fmt; printk(__fmt, ## args); })
 #define debug(fmt, args...) pr_debug(DRV_NAME ": " fmt, ## args)
 
 static inline uint32_t bfin_write_emudat(uint32_t emudat)
