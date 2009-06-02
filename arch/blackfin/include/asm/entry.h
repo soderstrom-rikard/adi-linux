@@ -37,6 +37,10 @@
 #endif
 
 #ifndef CONFIG_EXACT_HWERR
+/* As a debugging aid - we save IPEND when DEBUG_KERNEL is on,
+ * otherwise it is a waste of cycles.
+ */
+# ifndef CONFIG_DEBUG_KERNEL
 #define INTERRUPT_ENTRY(N)						\
     [--sp] = SYSCFG;							\
     [--sp] = P0;	/*orig_p0*/					\
@@ -45,6 +49,19 @@
     R0 = (N);								\
     LOAD_IPIPE_IPEND							\
     jump __common_int_entry;
+# else /* CONFIG_DEBUG_KERNEL */
+#define INTERRUPT_ENTRY(N)						\
+    [--sp] = SYSCFG;							\
+    [--sp] = P0;	/*orig_p0*/					\
+    [--sp] = R0;	/*orig_r0*/					\
+    [--sp] = (R7:0,P5:0);						\
+    p0.l = lo(IPEND);							\
+    p0.h = hi(IPEND);							\
+    r1 = [p0];								\
+    R0 = (N);								\
+    LOAD_IPIPE_IPEND							\
+    jump __common_int_entry;
+# endif /* CONFIG_DEBUG_KERNEL */
 
 /* For timer interrupts, we need to save IPEND, since the user_mode
  *macro accesses it to determine where to account time.
@@ -67,9 +84,14 @@
  * space, by setting the same interrupt that we are in (so it goes off again)
  * and context restore, and a RTI (without servicing anything). This should
  * cause the pending HWERR to fire, and when that is done, this interrupt will
- * be re-serviced properly.
+ * be re-serviced properly. 
+ * As you can see by the code - we actually need to do two SSYNCS - one to
+ * make sure the read/writes complete, and another to make sure the hardware
+ * error is recognized by the core.
  */
 #define INTERRUPT_ENTRY(N)						\
+    SSYNC;								\
+    SSYNC;								\
     [--sp] = SYSCFG;							\
     [--sp] = P0;	/*orig_p0*/					\
     [--sp] = R0;	/*orig_r0*/					\
@@ -77,11 +99,13 @@
     R1 = ASTAT;								\
     P0.L = LO(ILAT);							\
     P0.H = HI(ILAT);							\
-    SSYNC;								\
     R0 = [P0];								\
     CC = BITTST(R0, EVT_IVHW_P);					\
     IF CC JUMP 1f;							\
     ASTAT = R1;								\
+    p0.l = lo(IPEND);							\
+    p0.h = hi(IPEND);							\
+    r1 = [p0];								\
     R0 = (N);								\
     LOAD_IPIPE_IPEND							\
     jump __common_int_entry;						\
@@ -90,9 +114,12 @@
     (R7:0, P5:0) = [SP++];						\
     SP += 0x8;								\
     SYSCFG = [SP++];							\
+    CSYNC;								\
     RTI;
 
 #define TIMER_INTERRUPT_ENTRY(N)					\
+    SSYNC;								\
+    SSYNC;								\
     [--sp] = SYSCFG;							\
     [--sp] = P0;	/*orig_p0*/					\
     [--sp] = R0;	/*orig_r0*/					\
@@ -100,7 +127,6 @@
     R1 = ASTAT;								\
     P0.L = LO(ILAT);							\
     P0.H = HI(ILAT);							\
-    SSYNC;								\
     R0 = [P0];								\
     CC = BITTST(R0, EVT_IVHW_P);					\
     IF CC JUMP 1f;							\
@@ -115,6 +141,7 @@
     (R7:0, P5:0) = [SP++];						\
     SP += 0x8;								\
     SYSCFG = [SP++];							\
+    CSYNC;								\
     RTI;
 #endif	/* CONFIG_EXACT_HWERR */
 
