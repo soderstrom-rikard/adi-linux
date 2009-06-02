@@ -15,6 +15,7 @@ else
     obj-y += time.o
 endif
 
+obj-$(CONFIG_BINFMT_ELF_FDPIC)       += binfmt_elf_fdpic.o
 obj-$(CONFIG_IPIPE)                  += ipipe.o
 obj-$(CONFIG_IPIPE_TRACE_MCOUNT)     += mcount.o
 obj-$(CONFIG_BFIN_GPTIMERS)          += gptimers.o

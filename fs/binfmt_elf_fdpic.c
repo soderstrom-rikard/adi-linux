@@ -1111,94 +1111,12 @@ static int elf_fdpic_map_file_by_direct_mmap(struct elf_fdpic_params *params,
 		    ELF_FDPIC_FLAG_CONTIGUOUS)
 			load_addr += PAGE_ALIGN(phdr->p_memsz + disp);
 
-		/* Hack, hack, hack */
-		/* 0xfeb00000, 0xfec00000, 0xff700000, 0xff800000, 0xff900000
-		   and 0xffa00000 are also used in Dynamic linker and GNU ld.
-		   They need to be kept synchronized.  */
-
-		if (((params->hdr.e_flags & EF_BFIN_CODE_IN_L1)
-		     || (phdr->p_vaddr == 0xffa00000))
-		    && (phdr->p_flags & PF_W) == 0
-		    && (phdr->p_flags & PF_X)) {
-			void *l1_addr;
-			l1_addr = sram_alloc_with_lsl(phdr->p_memsz, L1_INST_SRAM);
-			if (l1_addr != NULL)
-				safe_dma_memcpy(l1_addr, (const void *)(maddr + disp), phdr->p_memsz);
-			down_write(&mm->mmap_sem);
-			do_munmap(mm, maddr, phdr->p_memsz + disp);
-			up_write(&mm->mmap_sem);
-			if (l1_addr == NULL) {
-				printk(KERN_ERR "Not enough L1 instruction sram\n");
-				return -ENOMEM;
-			}
-			kdebug("[%x] -> l1_addr = %x of len = %x\n",
-			       maddr + disp, l1_addr, phdr->p_memsz);
-			maddr = (unsigned long)l1_addr;
-			disp = 0;
-		} else if (((params->hdr.e_flags & EF_BFIN_DATA_IN_L1)
-			    || phdr->p_vaddr == 0xff700000
-			    || phdr->p_vaddr == 0xff800000
-			    || phdr->p_vaddr == 0xff900000)
-			   && (phdr->p_flags & PF_X) == 0
-			   && (phdr->p_flags & PF_W)) {
-			void *l1_addr;
-			if (phdr->p_vaddr == 0xff800000)
-				l1_addr = sram_alloc_with_lsl(phdr->p_memsz, L1_DATA_A_SRAM);
-			else if (phdr->p_vaddr == 0xff900000)
-				l1_addr = sram_alloc_with_lsl(phdr->p_memsz, L1_DATA_B_SRAM);
-			else
-				l1_addr = sram_alloc_with_lsl(phdr->p_memsz, L1_DATA_SRAM);
-			if (l1_addr != NULL)
-				memcpy(l1_addr, (const void *)(maddr + disp), phdr->p_memsz);
-			down_write(&mm->mmap_sem);
-			do_munmap(mm, maddr, phdr->p_memsz + disp);
-			up_write(&mm->mmap_sem);
-			if (l1_addr == NULL) {
-				if (phdr->p_vaddr == 0xff800000)
-					printk(KERN_ERR "Not enough L1 data bank A sram\n");
-				else if (phdr->p_vaddr == 0xff900000)
-					printk(KERN_ERR "Not enough L1 data bank B sram\n");
-				else
-					printk(KERN_ERR "Not enough L1 data sram\n");
-				return -ENOMEM;
-			}
-			kdebug("[%x] -> l1_addr = %x of len = %x\n",
-			       maddr + disp, l1_addr, phdr->p_memsz);
-			maddr = (unsigned long)l1_addr;
-			disp = 0;
-		} else if (phdr->p_vaddr == 0xfeb00000) {
-			void *l2_addr;
-			l2_addr = sram_alloc_with_lsl(phdr->p_memsz, L2_SRAM);
-			if (l2_addr != NULL)
-				memcpy(l2_addr, (const void *)(maddr + disp), phdr->p_memsz);
-			down_write(&mm->mmap_sem);
-			do_munmap(mm, maddr, phdr->p_memsz + disp);
-			up_write(&mm->mmap_sem);
-			if (l2_addr == NULL) {
-				printk(KERN_ERR "Not enough L2 sram\n");
-				return -ENOMEM;
-			}
-			kdebug("[%x] -> l2_addr = %x of len = %x\n",
-			       maddr + disp, l2_addr, phdr->p_memsz);
-			maddr = (unsigned long)l2_addr;
-			disp = 0;
-		} else if (phdr->p_vaddr == 0xfec00000) {
-			void *l2_addr;
-			l2_addr = sram_alloc_with_lsl(phdr->p_memsz, L2_SRAM);
-			if (l2_addr != NULL)
-				memcpy(l2_addr, (const void *)(maddr + disp), phdr->p_memsz);
-			down_write(&mm->mmap_sem);
-			do_munmap(mm, maddr, phdr->p_memsz + disp);
-			up_write(&mm->mmap_sem);
-			if (l2_addr == NULL) {
-				printk(KERN_ERR "Not enough L2 sram\n");
-				return -ENOMEM;
-			}
-			kdebug("[%x] -> l2_addr = %x of len = %x\n",
-			       maddr + disp, l2_addr, phdr->p_memsz);
-			maddr = (unsigned long)l2_addr;
-			disp = 0;
-		}
+#ifndef ELF_FDPIC_PLAT_PROCESS_PHDR
+# define ELF_FDPIC_PLAT_PROCESS_PHDR(mm, params, phdr, maddr, disp) 0
+#endif
+		ret = ELF_FDPIC_PLAT_PROCESS_PHDR(mm, params, phdr, &maddr, &disp);
+		if (ret)
+			return ret;
 
 		seg->addr = maddr + disp;
 		seg->p_vaddr = phdr->p_vaddr;
