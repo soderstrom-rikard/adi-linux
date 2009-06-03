@@ -88,6 +88,7 @@ unsigned short bfin_uart_pin_req_sport1[] =
 struct sport_uart_port {
 	struct uart_port	port;
 	char			*name;
+
 	int			tx_irq;
 	int			rx_irq;
 	int			err_irq;
@@ -115,10 +116,9 @@ static inline void tx_one_byte(struct sport_uart_port *up, unsigned int value)
 	SPORT_PUT_TX(up, value);
 }
 
-static inline unsigned char rx_one_byte(struct sport_uart_port *up)
+static inline unsigned int rx_one_byte(struct sport_uart_port *up)
 {
-	unsigned int value;
-	unsigned char extract;
+	unsigned int value, extract;
 	u32 tmp_mask1, tmp_mask2, tmp_shift, tmp;
 
 	value = SPORT_GET_RX32(up);
@@ -179,7 +179,7 @@ static irqreturn_t sport_uart_rx_irq(int irq, void *dev_id)
 {
 	struct sport_uart_port *up = dev_id;
 	struct tty_struct *tty = up->port.info->port.tty;
-	unsigned char ch;
+	unsigned int ch;
 
 	do {
 		ch = rx_one_byte(up);
