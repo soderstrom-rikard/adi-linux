@@ -88,8 +88,6 @@ unsigned short bfin_uart_pin_req_sport1[] =
 struct sport_uart_port {
 	struct uart_port	port;
 	char			*name;
-	struct timer_list	rx_timer;
-	int			once;
 	int			tx_irq;
 	int			rx_irq;
 	int			err_irq;
@@ -177,14 +175,6 @@ static int sport_uart_setup(struct sport_uart_port *up, int sclk, int baud_rate)
 	return 0;
 }
 
-static void rx_push(unsigned long data)
-{
-	struct sport_uart_port *up = (struct sport_uart_port *)data;
-	struct tty_struct *tty = up->port.info->port.tty;
-	tty_flip_buffer_push(tty);
-	add_timer(&up->rx_timer);
-}
-
 static irqreturn_t sport_uart_rx_irq(int irq, void *dev_id)
 {
 	struct sport_uart_port *up = dev_id;
@@ -200,10 +190,8 @@ static irqreturn_t sport_uart_rx_irq(int irq, void *dev_id)
 		else
 			tty_insert_flip_char(tty, ch, TTY_NORMAL);
 	} while (SPORT_GET_STAT(up) & RXNE);
-	if (up->once == 0) {
-		add_timer(&up->rx_timer);
-		up->once = 1;
-	}
+	tty_flip_buffer_push(tty);
+
 	return IRQ_HANDLED;
 }
 
@@ -269,10 +257,7 @@ static int sport_startup(struct uart_port *port)
 		printk(KERN_ERR "Unable to request interrupt %s\n", buffer);
 		goto fail2;
 	}
-	init_timer(&up->rx_timer);
-	up->rx_timer.data = (unsigned long)up;
-	up->rx_timer.expires = jiffies + 5;
-	up->rx_timer.function = (void *)rx_push;
+
 	if (port->line) {
 		if (peripheral_request_list(bfin_uart_pin_req_sport1, DRV_NAME))
 			goto fail3;
@@ -399,8 +384,6 @@ static void sport_stop_rx(struct uart_port *port)
 {
 	struct sport_uart_port *up = (struct sport_uart_port *)port;
 
-	del_timer(&up->rx_timer);
-	up->once = 0;
 	pr_debug("%s enter\n", __func__);
 	/* Disable sport to stop rx */
 	SPORT_PUT_RCR1(up, (SPORT_GET_RCR1(up) & ~RSPEN));
