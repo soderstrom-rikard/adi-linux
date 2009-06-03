@@ -155,7 +155,7 @@ static struct clock_event_device clockevent_bfin = {
 	.rating		= 300,
 	.irq		= IRQ_TIMER0,
 #else
-	.name		= "bfin_coretimer",
+	.name		= "bfin_core_timer",
 	.rating		= 350,
 	.irq		= IRQ_CORETMR,
 #endif
