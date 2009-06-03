@@ -80,8 +80,9 @@ struct musb_hw_ep;
 #define tusb_dma_omap()			0
 #endif
 
-/* Anomaly 05000456 - USE_MODE1 is used to enable DMA mode 1 for rx
- * transfer. It should not be defined on blackfin if this anmoly exists.
+/* Anomaly 05000456 - USB Receive Interrupt Is Not Generated in DMA Mode 1
+ *	Only allow DMA mode 1 to be used when the USB will actually generate the
+ *	interrupts we expect.
  */
 #ifdef CONFIG_BLACKFIN
 # undef USE_MODE1
