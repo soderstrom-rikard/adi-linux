@@ -8,7 +8,8 @@
 
 struct adxl34x_platform_data {
 
-	/* X,Y,Z Axis Offset:
+	/*
+	 * X,Y,Z Axis Offset:
 	 * offer user offset adjustments in twoscompliment
 	 * form with a scale factor of 15.6 mg/LSB (i.e. 0x7F = +2 g)
 	 */
@@ -33,7 +34,8 @@ struct adxl34x_platform_data {
 
 	unsigned char tap_axis_control;
 
-	/* tap_threshold
+	/*
+	 * tap_threshold:
 	 * holds the threshold value for tap detection/interrupts.
 	 * The data format is unsigned. The scale factor is 62.5 mg/LSB
 	 * (i.e. 0xFF = +16 g). A zero value may result in undesirable
@@ -42,7 +44,8 @@ struct adxl34x_platform_data {
 
 	unsigned char tap_threshold;
 
-	/* tap_duration
+	/*
+	 * tap_duration:
 	 * is an unsigned time value representing the maximum
 	 * time that an event must be above the tap_threshold threshold
 	 * to qualify as a tap event. The scale factor is 625 us/LSB. A zero
@@ -51,7 +54,8 @@ struct adxl34x_platform_data {
 
 	unsigned char tap_duration;
 
-	/* tap_latency
+	/*
+	 * tap_latency:
 	 * is an unsigned time value representing the wait time
 	 * from the detection of a tap event to the opening of the time
 	 * window tap_window for a possible second tap event. The scale
@@ -61,7 +65,8 @@ struct adxl34x_platform_data {
 
 	unsigned char tap_latency;
 
-	/* tap_window
+	/*
+	 * tap_window:
 	 * is an unsigned time value representing the amount
 	 * of time after the expiration of tap_latency during which a second
 	 * tap can begin. The scale factor is 1.25 ms/LSB. A zero value will
@@ -70,7 +75,8 @@ struct adxl34x_platform_data {
 
 	unsigned char tap_window;
 
-	/* act_axis_control
+	/*
+	 * act_axis_control:
 	 * X/Y/Z Enable: A '1' enables X, Y, or Z participation in activity
 	 * or inactivity detection. A '0' excludes the selected axis from
 	 * participation. If all of the axes are excluded, the function is
@@ -105,7 +111,8 @@ struct adxl34x_platform_data {
 
 	unsigned char act_axis_control;
 
-	/* activity_threshold
+	/*
+	 * activity_threshold:
 	 * holds the threshold value for activity detection.
 	 * The data format is unsigned. The scale factor is
 	 * 62.5 mg/LSB. A zero value may result in undesirable behavior if
@@ -114,7 +121,8 @@ struct adxl34x_platform_data {
 
 	unsigned char activity_threshold;
 
-	/* inactivity_threshold
+	/*
+	 * inactivity_threshold:
 	 * holds the threshold value for inactivity
 	 * detection. The data format is unsigned. The scale
 	 * factor is 62.5 mg/LSB. A zero value may result in undesirable
@@ -123,7 +131,8 @@ struct adxl34x_platform_data {
 
 	unsigned char inactivity_threshold;
 
-	/* inactivity_time
+	/*
+	 * inactivity_time:
 	 * is an unsigned time value representing the
 	 * amount of time that acceleration must be below the value in
 	 * inactivity_threshold for inactivity to be declared. The scale factor
@@ -139,7 +148,8 @@ struct adxl34x_platform_data {
 
 	unsigned char inactivity_time;
 
-	/* free_fall_threshold
+	/*
+	 * free_fall_threshold:
 	 * holds the threshold value for Free-Fall detection.
 	 * The data format is unsigned. The root-sum-square(RSS) value
 	 * of all axes is calculated and compared to the value in
@@ -151,7 +161,8 @@ struct adxl34x_platform_data {
 
 	unsigned char free_fall_threshold;
 
-	/* free_fall_time
+	/*
+	 * free_fall_time:
 	 * is an unsigned time value representing the minimum
 	 * time that the RSS value of all axes must be less than
 	 * free_fall_threshold to generate a Free-Fall interrupt. The scale factor
@@ -162,7 +173,8 @@ struct adxl34x_platform_data {
 
 	unsigned char free_fall_time;
 
-	/* data_rate
+	/*
+	 * data_rate:
 	 * Selects device bandwidth and output data rate.
 	 * RATE = 3200 Hz / (2^(15 - x)). Default value is 0x0A, or 100 Hz
 	 * Output Data Rate. An Output Data Rate should be selected that
@@ -173,7 +185,8 @@ struct adxl34x_platform_data {
 
 	unsigned char data_rate;
 
-	/* data_range
+	/*
+	 * data_range:
 	 * FULL_RES: When this bit is set with the device is
 	 * in Full-Resolution Mode, where the output resolution increases
 	 * with RANGE to maintain a 4 mg/LSB scale factor. When this
@@ -189,14 +202,16 @@ struct adxl34x_platform_data {
 
 	unsigned char data_range;
 
-	/* low_power_mode
+	/*
+	 * low_power_mode:
 	 * A '0' = Normal operation and a '1' = Reduced
 	 * power operation with somewhat higher noise.
 	 */
 
 	unsigned char low_power_mode;
 
-	/* power_mode
+	/*
+	 * power_mode:
 	 * LINK: A '1' with both the activity and inactivity functions
 	 * enabled will delay the start of the activity function until
 	 * inactivity is detected. Once activity is detected, inactivity
@@ -216,6 +231,32 @@ struct adxl34x_platform_data {
 #define ADXL_AUTO_SLEEP (1 << 4)
 
 	unsigned char power_mode;
+
+	/*
+	 * fifo_mode:
+	 * BYPASS The FIFO is bypassed
+	 * FIFO   FIFO collects up to 32 values then stops collecting data
+	 * STREAM FIFO holds the last 32 data values. Once full, the FIFO's
+	 * 	  oldest data is lost as it is replaced with newer data
+	 *
+	 * DEFAULT should be ADXL_FIFO_STREAM
+	 */
+
+#define ADXL_FIFO_BYPASS	0
+#define ADXL_FIFO_FIFO		1
+#define ADXL_FIFO_STREAM	2
+
+	unsigned char fifo_mode;
+
+	/*
+	 * watermark:
+	 * The Watermark feature can be used to reduce the interrupt load
+	 * of the system. The FIFO fills up to the value stored in watermark
+	 * [1..32] and then generates an interrupt.
+	 * A '0' disables the watermark feature.
+	 */
+
+	unsigned char watermark;
 
 	unsigned int ev_type;	/* EV_ABS or EV_REL */
 

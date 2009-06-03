@@ -19,7 +19,6 @@
  * along with this program; if not, see the file COPYING, or write
  * to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- *
  */
 
 #include <linux/device.h>
@@ -183,6 +182,9 @@
 
 #undef ADXL_DEBUG
 
+#define AC_READ(ac, reg) (ac->read(ac->bus, reg))
+#define AC_WRITE(ac, reg, val) (ac->write(ac->bus, reg, val))
+
 #if defined(CONFIG_INPUT_ADXL34X_SPI) || defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
 typedef struct spi_device bus_device;
 #elif defined(CONFIG_INPUT_ADXL34X_I2C) || defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
@@ -199,19 +201,16 @@ struct adxl34x {
 	bus_device *bus;
 	struct input_dev *input;
 	struct work_struct work;
-	struct adxl34x_platform_data *pdata;
-
 	struct mutex mutex;
-	char phys[32];
-	unsigned disabled:1;	/* P: mutex */
+	struct adxl34x_platform_data pdata;
 	struct axis_triple swcal;
 	struct axis_triple hwcal;
-
-	int model;
-	int rate;
+	struct axis_triple saved;
+	char phys[32];
+	unsigned disabled:1;	/* P: mutex */
+	unsigned opened:1;	/* P: mutex */
+	unsigned model;
 	unsigned int_mask;
-	unsigned pwr_mode;
-	int ev_type;
 
 	int (*read) (bus_device *, unsigned char);
 	int (*read_block) (bus_device *, unsigned char, int, unsigned char *);
@@ -219,11 +218,8 @@ struct adxl34x {
 };
 
 static const struct adxl34x_platform_data adxl34x_default_init = {
-	.x_axis_offset = 0,
-	.y_axis_offset = 0,
-	.z_axis_offset = 0,
 	.tap_threshold = 35,
-	.tap_duration = 2,
+	.tap_duration = 3,
 	.tap_latency = 20,
 	.tap_window = 20,
 	.tap_axis_control = ADXL_TAP_X_EN | ADXL_TAP_Y_EN | ADXL_TAP_Z_EN,
@@ -231,9 +227,9 @@ static const struct adxl34x_platform_data adxl34x_default_init = {
 	.activity_threshold = 6,
 	.inactivity_threshold = 4,
 	.inactivity_time = 3,
-	.free_fall_threshold = 0x7,
+	.free_fall_threshold = 8,
 	.free_fall_time = 0x20,
-	.data_rate = 0x8,
+	.data_rate = 8,
 	.data_range = ADXL_FULL_RES,
 
 	.ev_type = EV_ABS,
@@ -244,35 +240,37 @@ static const struct adxl34x_platform_data adxl34x_default_init = {
 	.ev_code_tap_x = BTN_TOUCH,	/* EV_KEY */
 	.ev_code_tap_y = BTN_TOUCH,	/* EV_KEY */
 	.ev_code_tap_z = BTN_TOUCH,	/* EV_KEY */
-
-	/*	.ev_code_ff = KEY_F,*//* EV_KEY */
-	/*	.ev_code_act_inactivity = KEY_A,*//* EV_KEY */
 	.power_mode = ADXL_AUTO_SLEEP | ADXL_LINK,
+	.fifo_mode = FIFO_STREAM,
+	.watermark = 0,
 };
 
 static void adxl34x_get_triple(struct adxl34x *ac, struct axis_triple *axis)
 {
 	short buf[3];
 
-	ac->read_block(ac->bus, DATAX0, DATAZ1 - DATAX0 + 1, (u8 *) buf);
+	ac->read_block(ac->bus, DATAX0, DATAZ1 - DATAX0 + 1,
+		       (unsigned char *)buf);
 
-	axis->x = (s16) le16_to_cpu(buf[0]);
-	axis->y = (s16) le16_to_cpu(buf[1]);
-	axis->z = (s16) le16_to_cpu(buf[2]);
+	mutex_lock(&ac->mutex);
+	axis->x = ac->saved.x = (s16) le16_to_cpu(buf[0]);
+	axis->y = ac->saved.y = (s16) le16_to_cpu(buf[1]);
+	axis->z = ac->saved.z = (s16) le16_to_cpu(buf[2]);
+	mutex_unlock(&ac->mutex);
 }
 
 static void adxl34x_service_ev_fifo(struct adxl34x *ac)
 {
-	struct adxl34x_platform_data *pdata = ac->pdata;
+	struct adxl34x_platform_data *pdata = &ac->pdata;
 	struct axis_triple axis;
 
 	adxl34x_get_triple(ac, &axis);
 
-	input_event(ac->input, ac->ev_type, pdata->ev_code_x,
+	input_event(ac->input, ac->pdata.ev_type, pdata->ev_code_x,
 		    axis.x - ac->swcal.x);
-	input_event(ac->input, ac->ev_type, pdata->ev_code_y,
+	input_event(ac->input, ac->pdata.ev_type, pdata->ev_code_y,
 		    axis.y - ac->swcal.y);
-	input_event(ac->input, ac->ev_type, pdata->ev_code_z,
+	input_event(ac->input, ac->pdata.ev_type, pdata->ev_code_z,
 		    axis.z - ac->swcal.z);
 }
 
@@ -297,59 +295,73 @@ static void adxl34x_report_key_double(struct input_dev *input, int key)
 static void adxl34x_work(struct work_struct *work)
 {
 	struct adxl34x *ac = container_of(work, struct adxl34x, work);
-	struct adxl34x_platform_data *pdata = ac->pdata;
-	int status, tap_status;
+	struct adxl34x_platform_data *pdata = &ac->pdata;
+	int int_stat, tap_stat, samples;
 
-	/* ACT_TAP_STATUS should be read before clearing the interrupt */
+	/*
+	 * ACT_TAP_STATUS should be read before clearing the interrupt
+	 * Avoid reading ACT_TAP_STATUS in case TAP detection is disabled
+	 */
 
-	tap_status = ac->read(ac->bus, ACT_TAP_STATUS);
-	status = ac->read(ac->bus, INT_SOURCE);
+	if (pdata->tap_axis_control & (TAP_X_EN | TAP_Y_EN | TAP_Z_EN))
+		tap_stat = AC_READ(ac, ACT_TAP_STATUS);
+	else
+		tap_stat = 0;
 
-	if (status & FREE_FALL)
+	int_stat = AC_READ(ac, INT_SOURCE);
+
+	if (int_stat & FREE_FALL)
 		adxl34x_report_key_single(ac->input, pdata->ev_code_ff);
 
-	if (status & OVERRUN)
+	if (int_stat & OVERRUN)
 		dev_dbg(&ac->bus->dev, "OVERRUN\n");
 
-	if (status & SINGLE_TAP) {
-		if (tap_status & TAP_X_SRC)
+	if (int_stat & SINGLE_TAP) {
+		if (tap_stat & TAP_X_SRC)
 			adxl34x_report_key_single(ac->input,
 						  pdata->ev_code_tap_x);
-		if (tap_status & TAP_Y_SRC)
+		if (tap_stat & TAP_Y_SRC)
 			adxl34x_report_key_single(ac->input,
 						  pdata->ev_code_tap_y);
-		if (tap_status & TAP_Z_SRC)
+		if (tap_stat & TAP_Z_SRC)
 			adxl34x_report_key_single(ac->input,
 						  pdata->ev_code_tap_z);
 	}
 
-	if (status & DOUBLE_TAP) {
-		if (tap_status & TAP_X_SRC)
+	if (int_stat & DOUBLE_TAP) {
+		if (tap_stat & TAP_X_SRC)
 			adxl34x_report_key_double(ac->input,
 						  pdata->ev_code_tap_x);
-		if (tap_status & TAP_Y_SRC)
+		if (tap_stat & TAP_Y_SRC)
 			adxl34x_report_key_double(ac->input,
 						  pdata->ev_code_tap_y);
-		if (tap_status & TAP_Z_SRC)
+		if (tap_stat & TAP_Z_SRC)
 			adxl34x_report_key_double(ac->input,
 						  pdata->ev_code_tap_z);
 	}
 
 	if (pdata->ev_code_act_inactivity) {
-		if (status & ACTIVITY) {
+		if (int_stat & ACTIVITY) {
 			input_report_key(ac->input,
 					 pdata->ev_code_act_inactivity, 1);
 		}
 
-		if (status & INACTIVITY) {
+		if (int_stat & INACTIVITY) {
 			input_report_key(ac->input,
 					 pdata->ev_code_act_inactivity, 0);
 		}
 	}
 
-	if (status & DATA_READY)
-		adxl34x_service_ev_fifo(ac);
+	if (int_stat & (DATA_READY | WATERMARK)) {
 
+		if (pdata->fifo_mode)
+			samples = ENTRIES(AC_READ(ac, FIFO_STATUS)) + 1;
+		else
+			samples = 1;
+
+		for (; samples > 0; samples--)
+			adxl34x_service_ev_fifo(ac);
+	}
 
 	input_sync(ac->input);
 	enable_irq(ac->bus->irq);
@@ -365,72 +377,28 @@ static irqreturn_t adxl34x_irq(int irq, void *handle)
 	return IRQ_HANDLED;
 }
 
-static void adxl34x_setup(struct adxl34x *ac)
-{
-	struct adxl34x_platform_data *pdata = ac->pdata;
-
-	ac->write(ac->bus, THRESH_TAP, pdata->tap_threshold);
-
-	ac->write(ac->bus, OFSX, pdata->x_axis_offset);
-	ac->hwcal.x = pdata->x_axis_offset;
-	ac->write(ac->bus, OFSY, pdata->y_axis_offset);
-	ac->hwcal.y = pdata->y_axis_offset;
-	ac->write(ac->bus, OFSZ, pdata->z_axis_offset);
-	ac->hwcal.z = pdata->z_axis_offset;
-
-	ac->write(ac->bus, THRESH_TAP, pdata->tap_threshold);
-	ac->write(ac->bus, DUR, pdata->tap_duration);
-	ac->write(ac->bus, LATENT, pdata->tap_latency);
-	ac->write(ac->bus, WINDOW, pdata->tap_window);
-	ac->write(ac->bus, THRESH_ACT, pdata->activity_threshold);
-	ac->write(ac->bus, THRESH_INACT, pdata->inactivity_threshold);
-	ac->write(ac->bus, TIME_INACT, pdata->inactivity_time);
-
-	ac->write(ac->bus, THRESH_FF, pdata->free_fall_threshold);
-	ac->write(ac->bus, TIME_FF, pdata->free_fall_time);
-
-	ac->write(ac->bus, TAP_AXES, pdata->tap_axis_control);
-	ac->write(ac->bus, ACT_INACT_CTL, pdata->act_axis_control);
-
-	ac->rate = pdata->data_rate;
-	ac->write(ac->bus, BW_RATE, RATE(ac->rate) |
-		  (pdata->low_power_mode ? LOW_POWER : 0));
-
-	ac->write(ac->bus, DATA_FORMAT, pdata->data_range);
-
-	ac->write(ac->bus, INT_MAP, 0);	/* Map all INTs to INT1 */
-
-	ac->write(ac->bus, INT_ENABLE, DATA_READY | SINGLE_TAP | DOUBLE_TAP |
-		  ac->int_mask /*| WATERMARK | OVERRUN */);
-
-	ac->pwr_mode = pdata->power_mode & (PCTL_AUTO_SLEEP | PCTL_LINK);
-
-}
-
 static void adxl34x_disable(struct adxl34x *ac)
 {
 	mutex_lock(&ac->mutex);
-
-	if (!ac->disabled) {
+	if (!ac->disabled && ac->opened) {
 		ac->disabled = 1;
-		disable_irq(ac->bus->irq);
 		cancel_work_sync(&ac->work);
-		ac->write(ac->bus, POWER_CTL, 0);
+		/*
+		 * A '0' places the ADXL34x into standby mode
+		 * with minimum power consumption.
+		 */
+		AC_WRITE(ac, POWER_CTL, 0);
 	}
-
 	mutex_unlock(&ac->mutex);
 }
 
 static void adxl34x_enable(struct adxl34x *ac)
 {
 	mutex_lock(&ac->mutex);
-
-	if (ac->disabled) {
-		ac->write(ac->bus, POWER_CTL, ac->pwr_mode | PCTL_MEASURE);
+	if (ac->disabled && ac->opened) {
+		AC_WRITE(ac, POWER_CTL, ac->pdata.power_mode | PCTL_MEASURE);
 		ac->disabled = 0;
-		enable_irq(ac->bus->irq);
 	}
-
 	mutex_unlock(&ac->mutex);
 }
 
@@ -441,6 +409,7 @@ static ssize_t adxl34x_disable_show(struct device *dev,
 
 	return sprintf(buf, "%u\n", ac->disabled);
 }
+
 static ssize_t adxl34x_disable_store(struct device *dev,
 				     struct device_attribute *attr,
 				     const char *buf, size_t count)
@@ -467,10 +436,15 @@ static ssize_t adxl34x_calibrate_show(struct device *dev,
 				      struct device_attribute *attr, char *buf)
 {
 	struct adxl34x *ac = dev_get_drvdata(dev);
+	ssize_t count;
 
-	return sprintf(buf, "%d,%d,%d\n", ac->hwcal.x * 4 + ac->swcal.x,
-		       ac->hwcal.y * 4 + ac->swcal.y,
-		       ac->hwcal.z * 4 + ac->swcal.z);
+	mutex_lock(&ac->mutex);
+	count = sprintf(buf, "%d,%d,%d\n", ac->hwcal.x * 4 + ac->swcal.x,
+			ac->hwcal.y * 4 + ac->swcal.y,
+			ac->hwcal.z * 4 + ac->swcal.z);
+	mutex_unlock(&ac->mutex);
+
+	return count;
 }
 
 static ssize_t adxl34x_calibrate_store(struct device *dev,
@@ -479,24 +453,25 @@ static ssize_t adxl34x_calibrate_store(struct device *dev,
 {
 	struct adxl34x *ac = dev_get_drvdata(dev);
 
-	adxl34x_get_triple(ac, &ac->swcal);
-
 	/*
 	 * Hardware offset calibration has a resolution of 15.6 mg/LSB.
 	 * We use HW calibration and handle the remaining bits in SW. (4mg/LSB)
 	 */
 
-	ac->hwcal.x -= (ac->swcal.x / 4);
-	ac->hwcal.y -= (ac->swcal.y / 4);
-	ac->hwcal.z -= (ac->swcal.z / 4);
+	mutex_lock(&ac->mutex);
+	ac->hwcal.x -= (ac->saved.x / 4);
+	ac->swcal.x = ac->saved.x % 4;
 
-	ac->write(ac->bus, OFSX, (s8) ac->hwcal.x);
-	ac->write(ac->bus, OFSY, (s8) ac->hwcal.y);
-	ac->write(ac->bus, OFSZ, (s8) ac->hwcal.z);
+	ac->hwcal.y -= (ac->saved.y / 4);
+	ac->swcal.y = ac->saved.y % 4;
 
-	ac->swcal.x %= 4;
-	ac->swcal.y %= 4;
-	ac->swcal.z %= 4;
+	ac->hwcal.z -= (ac->saved.z / 4);
+	ac->swcal.z = ac->saved.z % 4;
+
+	AC_WRITE(ac, OFSX, (s8) ac->hwcal.x);
+	AC_WRITE(ac, OFSY, (s8) ac->hwcal.y);
+	AC_WRITE(ac, OFSZ, (s8) ac->hwcal.z);
+	mutex_unlock(&ac->mutex);
 
 	return count;
 }
@@ -508,8 +483,13 @@ static ssize_t adxl34x_rate_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
 	struct adxl34x *ac = dev_get_drvdata(dev);
+	ssize_t count;
 
-	return sprintf(buf, "%u\n", ac->rate);
+	mutex_lock(&ac->mutex);
+	count = sprintf(buf, "%u\n", RATE(ac->pdata.data_rate));
+	mutex_unlock(&ac->mutex);
+
+	return count;
 }
 
 static ssize_t adxl34x_rate_store(struct device *dev,
@@ -520,19 +500,64 @@ static ssize_t adxl34x_rate_store(struct device *dev,
 	unsigned long val;
 	int error;
 
+	mutex_lock(&ac->mutex);
 	error = strict_strtoul(buf, 10, &val);
 	if (error)
 		return error;
 
-	ac->rate = RATE(val);
+	ac->pdata.data_rate = RATE(val);
 
-	ac->write(ac->bus, BW_RATE, ac->rate |
-		  (ac->pdata->low_power_mode ? LOW_POWER : 0));
+	AC_WRITE(ac, BW_RATE, ac->pdata.data_rate |
+		 (ac->pdata.low_power_mode ? LOW_POWER : 0));
+	mutex_unlock(&ac->mutex);
 
 	return count;
 }
 
 static DEVICE_ATTR(rate, 0664, adxl34x_rate_show, adxl34x_rate_store);
+
+static ssize_t adxl34x_autosleep_show(struct device *dev,
+				 struct device_attribute *attr, char *buf)
+{
+	struct adxl34x *ac = dev_get_drvdata(dev);
+	ssize_t count;
+
+	mutex_lock(&ac->mutex);
+	count = sprintf(buf, "%u\n", ac->pdata.power_mode &
+		(PCTL_AUTO_SLEEP | PCTL_LINK) ? 1 : 0);
+	mutex_unlock(&ac->mutex);
+
+	return count;
+}
+
+static ssize_t adxl34x_autosleep_store(struct device *dev,
+				  struct device_attribute *attr,
+				  const char *buf, size_t count)
+{
+	struct adxl34x *ac = dev_get_drvdata(dev);
+	unsigned long val;
+	int error;
+
+	mutex_lock(&ac->mutex);
+	error = strict_strtoul(buf, 10, &val);
+	if (error)
+		return error;
+
+	if (val)
+		ac->pdata.power_mode |= (PCTL_AUTO_SLEEP | PCTL_LINK);
+	else
+		ac->pdata.power_mode &= ~(PCTL_AUTO_SLEEP | PCTL_LINK);
+
+	if (!ac->disabled && ac->opened)
+		AC_WRITE(ac, POWER_CTL, ac->pdata.power_mode | PCTL_MEASURE);
+
+	mutex_unlock(&ac->mutex);
+
+	return count;
+}
+
+static DEVICE_ATTR(autosleep, 0664, adxl34x_autosleep_show,
+		   adxl34x_autosleep_store);
 
 #ifdef ADXL_DEBUG
 static ssize_t adxl34x_write_store(struct device *dev,
@@ -543,11 +568,16 @@ static ssize_t adxl34x_write_store(struct device *dev,
 	unsigned long val;
 	int error;
 
+	/*
+	 * This allows basic ADXL register write access for debug purposes.
+	 */
+	mutex_lock(&ac->mutex);
 	error = strict_strtoul(buf, 16, &val);
 	if (error)
 		return error;
 
-	ac->write(ac->bus, val >> 8, val & 0xFF);
+	AC_WRITE(ac, val >> 8, val & 0xFF);
+	mutex_unlock(&ac->mutex);
 
 	return count;
 }
@@ -559,6 +589,7 @@ static struct attribute *adxl34x_attributes[] = {
 	&dev_attr_disable.attr,
 	&dev_attr_calibrate.attr,
 	&dev_attr_rate.attr,
+	&dev_attr_autosleep.attr,
 #ifdef ADXL_DEBUG
 	&dev_attr_write.attr,
 #endif
@@ -572,61 +603,89 @@ static const struct attribute_group adxl34x_attr_group = {
 static int adxl34x_input_open(struct input_dev *input)
 {
 	struct adxl34x *ac = input_get_drvdata(input);
-	/*FIXME*/ ac->write(ac->bus, POWER_CTL, PCTL_MEASURE | ac->pwr_mode);
+
+	mutex_lock(&ac->mutex);
+	ac->opened = 1;
+	mutex_unlock(&ac->mutex);
+
+	adxl34x_enable(ac);
+
 	return 0;
 }
 
 static void adxl34x_input_close(struct input_dev *input)
 {
 	struct adxl34x *ac = input_get_drvdata(input);
-	/*FIXME*/ ac->write(ac->bus, POWER_CTL, 0);
+
+	mutex_lock(&ac->mutex);
+	ac->opened = 0;
+	mutex_unlock(&ac->mutex);
+
+	adxl34x_disable(ac);
 }
 
 static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
 {
 	struct input_dev *input_dev;
-	struct adxl34x_platform_data *pdata = bus->dev.platform_data;
+	struct adxl34x_platform_data *devpd = bus->dev.platform_data;
+	struct adxl34x_platform_data *pdata;
 	int err, range;
-	u16 revid;
+	unsigned char revid;
 
 	if (!bus->irq) {
 		dev_err(&bus->dev, "no IRQ?\n");
 		return -ENODEV;
 	}
 
-	if (!pdata) {
+	if (!devpd) {
 		dev_dbg(&bus->dev,
 			"No platfrom data: Using default initialization\n");
-		pdata = (struct adxl34x_platform_data *)&adxl34x_default_init;
+		devpd = (struct adxl34x_platform_data *)&adxl34x_default_init;
 	}
 
-	ac->pdata = pdata;
+	memcpy(&ac->pdata, devpd, sizeof(ac->pdata));
+	pdata = &ac->pdata;
 
 	input_dev = input_allocate_device();
 	if (!input_dev)
 		return -ENOMEM;
 
 	ac->input = input_dev;
+	ac->disabled = 1;
 
 	INIT_WORK(&ac->work, adxl34x_work);
 	mutex_init(&ac->mutex);
+
+	revid = ac->read(bus, DEVID);
+
+	switch (revid) {
+	case ID_ADXL345:
+		ac->model = 345;
+		break;
+	case ID_ADXL346:
+		ac->model = 346;
+		break;
+	default:
+		dev_err(&bus->dev, "Failed to probe %s\n", input_dev->name);
+		err = -ENODEV;
+		goto err_free_mem;
+	}
 
 	snprintf(ac->phys, sizeof(ac->phys), "%s/input0", dev_name(&bus->dev));
 
 	input_dev->name = "ADXL34x accelerometer";
 	input_dev->phys = ac->phys;
 	input_dev->dev.parent = &bus->dev;
-
+	input_dev->id.product = ac->model;
 	input_dev->id.bustype = BUS_I2C;
-
 	input_dev->open = adxl34x_input_open;
 	input_dev->close = adxl34x_input_close;
 
-	ac->ev_type = pdata->ev_type;
+	input_set_drvdata(input_dev, ac);
 
-	__set_bit(ac->ev_type, input_dev->evbit);
+	__set_bit(ac->pdata.ev_type, input_dev->evbit);
 
-	if (ac->ev_type == EV_REL) {
+	if (ac->pdata.ev_type == EV_REL) {
 		__set_bit(REL_X, input_dev->relbit);
 		__set_bit(REL_Y, input_dev->relbit);
 		__set_bit(REL_Z, input_dev->relbit);
@@ -647,7 +706,6 @@ static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
 	}
 
 	__set_bit(EV_KEY, input_dev->evbit);
-
 	__set_bit(pdata->ev_code_tap_x, input_dev->keybit);
 	__set_bit(pdata->ev_code_tap_y, input_dev->keybit);
 	__set_bit(pdata->ev_code_tap_z, input_dev->keybit);
@@ -662,24 +720,16 @@ static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
 
 	ac->int_mask |= ACTIVITY | INACTIVITY;
 
-	revid = ac->read(bus, DEVID);
-
-	switch (revid) {
-	case ID_ADXL345:
-		ac->model = 345;
-		break;
-	case ID_ADXL346:
-		ac->model = 346;
-		break;
-	default:
-		dev_err(&bus->dev, "Failed to probe %s\n", input_dev->name);
-		err = -ENODEV;
-		goto err_free_mem;
+	if (pdata->watermark) {
+		ac->int_mask |= WATERMARK;
+		if (!FIFO_MODE(pdata->fifo_mode))
+			 pdata->fifo_mode |= FIFO_STREAM;
+	} else {
+		ac->int_mask |= DATA_READY;
 	}
 
-	input_dev->id.product = ac->model;
-
-	input_set_drvdata(input_dev, ac);
+	if (pdata->tap_axis_control & (TAP_X_EN | TAP_Y_EN | TAP_Z_EN))
+		ac->int_mask |= SINGLE_TAP | DOUBLE_TAP;
 
 	ac->write(bus, POWER_CTL, 0);
 
@@ -699,7 +749,33 @@ static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
 	if (err)
 		goto err_remove_attr;
 
-	adxl34x_setup(ac);
+	AC_WRITE(ac, THRESH_TAP, pdata->tap_threshold);
+	AC_WRITE(ac, OFSX, pdata->x_axis_offset);
+	ac->hwcal.x = pdata->x_axis_offset;
+	AC_WRITE(ac, OFSY, pdata->y_axis_offset);
+	ac->hwcal.y = pdata->y_axis_offset;
+	AC_WRITE(ac, OFSZ, pdata->z_axis_offset);
+	ac->hwcal.z = pdata->z_axis_offset;
+	AC_WRITE(ac, THRESH_TAP, pdata->tap_threshold);
+	AC_WRITE(ac, DUR, pdata->tap_duration);
+	AC_WRITE(ac, LATENT, pdata->tap_latency);
+	AC_WRITE(ac, WINDOW, pdata->tap_window);
+	AC_WRITE(ac, THRESH_ACT, pdata->activity_threshold);
+	AC_WRITE(ac, THRESH_INACT, pdata->inactivity_threshold);
+	AC_WRITE(ac, TIME_INACT, pdata->inactivity_time);
+	AC_WRITE(ac, THRESH_FF, pdata->free_fall_threshold);
+	AC_WRITE(ac, TIME_FF, pdata->free_fall_time);
+	AC_WRITE(ac, TAP_AXES, pdata->tap_axis_control);
+	AC_WRITE(ac, ACT_INACT_CTL, pdata->act_axis_control);
+	AC_WRITE(ac, BW_RATE, RATE(ac->pdata.data_rate) |
+		 (pdata->low_power_mode ? LOW_POWER : 0));
+	AC_WRITE(ac, DATA_FORMAT, pdata->data_range);
+	AC_WRITE(ac, FIFO_CTL, FIFO_MODE(pdata->fifo_mode) |
+		 SAMPLES(pdata->watermark));
+	AC_WRITE(ac, INT_MAP, 0);	/* Map all INTs to INT1 */
+	AC_WRITE(ac, INT_ENABLE, ac->int_mask | OVERRUN);
+
+	pdata->power_mode &= (PCTL_AUTO_SLEEP | PCTL_LINK);
 
 	dev_info(&bus->dev, "ADXL%d accelerometer, irq %d\n",
 		 ac->model, bus->irq);
@@ -758,21 +834,19 @@ static int adxl34x_resume(bus_device *bus)
 #define ADXL34X_READCMD(reg)	(ADXL34X_CMD_READ | (reg & 0x3F))
 #define ADXL34X_READMB_CMD(reg) (ADXL34X_CMD_READ | ADXL34X_CMD_MULTB | (reg & 0x3F))
 
-static int adxl34x_spi_read(struct spi_device *spi, u8 reg)
+static int adxl34x_spi_read(struct spi_device *spi, unsigned char reg)
 {
-	int status;
-	u8 cmd;
+	unsigned char cmd;
 
 	cmd = ADXL34X_READCMD(reg);
 
-	status = spi_w8r8(spi, cmd);
-
-	return status;
+	return spi_w8r8(spi, cmd);
 }
 
-static int adxl34x_spi_write(struct spi_device *spi, u8 reg, u8 val)
+static int adxl34x_spi_write(struct spi_device *spi,
+			     unsigned char reg, unsigned char val)
 {
-	u8 buf[2];
+	unsigned char buf[2];
 
 	buf[0] = ADXL34X_WRITECMD(reg);
 	buf[1] = val;
@@ -894,6 +968,7 @@ static int adxl34x_i2c_master_read_block_data(struct i2c_client *client,
 		return ret;
 	if (ret != count)
 		return -EIO;
+
 	return 0;
 }
 
