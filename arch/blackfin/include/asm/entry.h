@@ -84,7 +84,7 @@
  * space, by setting the same interrupt that we are in (so it goes off again)
  * and context restore, and a RTI (without servicing anything). This should
  * cause the pending HWERR to fire, and when that is done, this interrupt will
- * be re-serviced properly. 
+ * be re-serviced properly.
  * As you can see by the code - we actually need to do two SSYNCS - one to
  * make sure the read/writes complete, and another to make sure the hardware
  * error is recognized by the core.
