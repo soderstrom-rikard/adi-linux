@@ -14,10 +14,12 @@
  * Blackfin specific definitions
  */
 
-/* Anomaly notes:
- *  05000450 -  MUSB driver is designed to transfer buffer of N*maxpacket size
+/*
+ * Anomaly notes:
+ *  05000450 - USB DMA Mode 1 Short Packet Data Corruption:
+ *		MUSB driver is designed to transfer buffer of N * maxpacket size
  *		in DMA mode 1 and leave rest data to the next transfer in DMA
- *		mode 0.
+ *		mode 0, so we never transmit a short package in DMA mode 1.
  */
 
 #undef DUMP_FIFO_DATA
