@@ -1231,6 +1231,7 @@ asmlinkage int __ipipe_grab_irq(int vec, struct pt_regs *regs)
 
 	if (likely(vec == EVT_IVTMR_P)) {
 		irq = IRQ_CORETMR;
+
 	} else {
 #if defined(SIC_ISR0) || defined(SICA_ISR0)
 		unsigned long sic_status[3];
@@ -1262,8 +1263,7 @@ asmlinkage int __ipipe_grab_irq(int vec, struct pt_regs *regs)
 		}
 #endif
 
-	irq = ivg->irqno;
-
+		irq = ivg->irqno;
 	}
 
 	if (irq == IRQ_SYSTMR) {
@@ -1296,7 +1296,7 @@ asmlinkage int __ipipe_grab_irq(int vec, struct pt_regs *regs)
 		}
 	}
 
-       return 0;
+	return 0;
 }
 
 #endif /* CONFIG_IPIPE */
