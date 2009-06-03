@@ -15,10 +15,10 @@
  */
 
 /* Anomaly notes:
- *  05000450 -  MUSB driver is degined to transfer buffer of N*maxpacket size
+ *  05000450 -  MUSB driver is designed to transfer buffer of N*maxpacket size
  *		in DMA mode 1 and leave rest data to the next transfer in DMA
  *		mode 0.
-*/
+ */
 
 #undef DUMP_FIFO_DATA
 #ifdef DUMP_FIFO_DATA
