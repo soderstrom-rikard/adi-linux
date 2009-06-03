@@ -86,6 +86,7 @@ config USB_MUSB_HOST
 config USB_MUSB_PERIPHERAL
 	depends on USB_GADGET
 	bool "USB Peripheral (gadget stack)"
+	select USB_GADGET_MUSB_HDRC
 	help
 	  Say Y here if your system supports the USB peripheral role.
 	  If it has a USB "B" (squarish), "Mini-B", or "Mini-AB"
@@ -95,6 +96,7 @@ config USB_MUSB_PERIPHERAL
 config USB_MUSB_OTG
 	depends on USB && USB_GADGET && PM && EXPERIMENTAL
 	bool "Both host and peripheral:  USB OTG (On The Go) Device"
+	select USB_GADGET_MUSB_HDRC
 	select USB_OTG
 	help
 	   The most notable feature of USB OTG is support for a
