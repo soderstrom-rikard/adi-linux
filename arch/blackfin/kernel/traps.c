@@ -69,6 +69,10 @@
 	({ if (0) printk(fmt, ##arg); 0; })
 #endif
 
+#ifdef CONFIG_DEBUG_MMRS
+int last_seqstat;
+#endif
+
 /* Initiate the event table handler */
 void __init trap_init(void)
 {
@@ -246,6 +250,9 @@ asmlinkage void trap_c(struct pt_regs *fp)
 	unsigned long trapnr = fp->seqstat & SEQSTAT_EXCAUSE;
 
 	trace_buffer_save(j);
+#ifdef CONFIG_DEBUG_MMRS
+	last_seqstat = fp->seqstat;
+#endif
 
 	/* Important - be very careful dereferncing pointers - will lead to
 	 * double faults if the stack has become corrupt
