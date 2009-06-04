@@ -225,12 +225,10 @@ strncpy_from_user(char *dst, const char *src, long count)
  */
 static inline long __must_check strnlen_user(const char *src, long n)
 {
-	if (!access_ok(VERIFY_READ, src, n))
+	if (!access_ok(VERIFY_READ, src, 1))
 		return 0;
 	return strnlen(src, n) + 1;
 }
-
-/* We don't know the length, so only check the start of the string */
 
 static inline long __must_check strlen_user(const char *src)
 {
