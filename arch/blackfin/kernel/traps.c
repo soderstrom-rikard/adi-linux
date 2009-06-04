@@ -70,7 +70,7 @@
 #endif
 
 #ifdef CONFIG_DEBUG_MMRS
-int last_seqstat;
+u32 last_seqstat;
 #endif
 
 /* Initiate the event table handler */
@@ -251,7 +251,7 @@ asmlinkage void trap_c(struct pt_regs *fp)
 
 	trace_buffer_save(j);
 #ifdef CONFIG_DEBUG_MMRS
-	last_seqstat = fp->seqstat;
+	last_seqstat = (u32)fp->seqstat;
 #endif
 
 	/* Important - be very careful dereferncing pointers - will lead to
