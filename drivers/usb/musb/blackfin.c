@@ -23,30 +23,6 @@
 #include "musb_core.h"
 #include "blackfin.h"
 
-/* Anomalies notes
- *
- *  05000463 - This anomaly doesn't affect this driver,Since it
- *             never uses L1 or L2 memory as data destination.
- *
- *  05000464 - This anomaly doesn't affect this driver,Since it
- *             never uses L1 or L2 memory as data source.
- *
- *  05000465 - Actually,the anomaly still can be seen when SCLK
- *             is over 100 MHz,and there is no way to workaround
- *             for bulk endpoints,because the wMaxPackSize of bulk
- *             is less than or equal to 512,while the fifo size of
- *             endpoint 5,6,7 is 1024,the double buffer mode is
- *             enabled automatically when these endpoints are used
- *             for bulk OUT.
- *
- *  05000466 - This anomaly doesn't affect this driver,Since it
- *             never mixs concurrent DMA and core accesses to the
- *             TX endpoint FIFOs.
- *
- *  05000467 - The workaround for this anomaly will introduce another
- *             anomaly - 05000465.
- */
-
 /*
  * Load an endpoint's FIFO
  */
