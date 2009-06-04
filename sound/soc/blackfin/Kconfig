@@ -7,6 +7,15 @@ config SND_BF5XX_I2S
 	  mode (supports single stereo In/Out).
 	  You will also need to select the audio interfaces to support below.
 
+config SND_BF5XX_TDM
+	tristate "SoC TDM Audio for the ADI BF5xx chip"
+	depends on BLACKFIN && SND_SOC
+	help
+	  Say Y or M if you want to add support for codecs attached to
+	  the Blackfin SPORT (synchronous serial ports) interface in TDM
+	  mode.
+	  You will also need to select the audio interfaces to support below.
+
 config SND_BF5XX_SOC_SSM2602
 	tristate "SoC SSM2602 Audio support for BF52x ezkit"
 	depends on SND_BF5XX_I2S
@@ -23,6 +32,14 @@ config SND_BF5XX_SOC_AD73311
 	select SND_SOC_AD73311
 	help
 	  Say Y if you want to add support for AD73311 codec on Blackfin.
+
+config SND_BF5XX_SOC_AD1938
+	tristate "SoC AD1938 Audio support for Blackfin"
+	depends on SND_BF5XX_TDM
+	select SND_BF5XX_SOC_TDM
+	select SND_SOC_AD1938
+	help
+	  Say Y if you want to add support for AD1938 codec on Blackfin.
 
 config SND_BFIN_AD73311_SE
 	int "PF pin for AD73311L Chip Select"
@@ -69,6 +86,10 @@ config SND_BF5XX_SOC_I2S
 	tristate
 	select SND_BF5XX_SOC_SPORT
 
+config SND_BF5XX_SOC_TDM
+	tristate
+	select SND_BF5XX_SOC_SPORT
+
 config SND_BF5XX_SOC_AC97
 	tristate
 	select AC97_BUS
@@ -85,7 +106,7 @@ config SND_BF5XX_SOC_AD1980
 
 config SND_BF5XX_SPORT_NUM
 	int "Set a SPORT for Sound chip"
-	depends on (SND_BF5XX_I2S || SND_BF5XX_AC97)
+	depends on (SND_BF5XX_I2S || SND_BF5XX_AC97 || SND_BF5XX_TDM)
 	range 0 3 if BF54x
 	range 0 1 if !BF54x
 	default 0
@@ -94,7 +115,7 @@ config SND_BF5XX_SPORT_NUM
 
 config SND_BF5XX_HAVE_COLD_RESET
 	bool "BOARD has COLD Reset GPIO"
-	depends on SND_BF5XX_AC97
+	depends on (SND_BF5XX_AC97 || SND_BF5XX_TDM)
 	default y if BFIN548_EZKIT
 	default n if !BFIN548_EZKIT
 
