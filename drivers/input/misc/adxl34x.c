@@ -195,6 +195,7 @@ struct adxl34x {
 	char phys[32];
 	unsigned disabled:1;	/* P: mutex */
 	unsigned opened:1;	/* P: mutex */
+	unsigned fifo_delay:1;
 	unsigned model;
 	unsigned int_mask;
 
@@ -342,8 +343,24 @@ static void adxl34x_work(struct work_struct *work)
 		else
 			samples = 1;
 
-		for (; samples > 0; samples--)
+		for (; samples > 0; samples--) {
 			adxl34x_service_ev_fifo(ac);
+		/*
+		 * To ensure that the FIFO has
+		 * completely popped, there must be at least 5 us between the end
+		 * of reading the data registers, signified by the transition to
+		 * register 0x38 from 0x37 or the CS pin going high, and the start
+		 * of new reads of the FIFO or reading the FIFO_STATUS
+		 * register. For SPI operation at 1.5 MHz or lower, the register
+		 * addressing portion of the transmission is sufficient delay to
+		 * ensure the FIFO has completely popped. It is necessary for SPI
+		 * operation greater than 1.5 MHz to de-assert the CS pin to
+		 * ensure a total of 5 us, which is at most 3.4 us at 5 MHz
+		 * operation.
+		 */
+			if (ac->fifo_delay && (samples > 1))
+				udelay(3);
+		}
 	}
 
 	input_sync(ac->input);
@@ -600,11 +617,11 @@ static void adxl34x_input_close(struct input_dev *input)
 {
 	struct adxl34x *ac = input_get_drvdata(input);
 
+	adxl34x_disable(ac);
+
 	mutex_lock(&ac->mutex);
 	ac->opened = 0;
 	mutex_unlock(&ac->mutex);
-
-	adxl34x_disable(ac);
 }
 
 static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
@@ -714,6 +731,9 @@ static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
 	if (pdata->tap_axis_control & (TAP_X_EN | TAP_Y_EN | TAP_Z_EN))
 		ac->int_mask |= SINGLE_TAP | DOUBLE_TAP;
 
+	if (FIFO_MODE(pdata->fifo_mode) == FIFO_BYPASS)
+		ac->fifo_delay = 0;
+
 	ac->write(bus, POWER_CTL, 0);
 
 	err = request_irq(bus->irq, adxl34x_irq,
@@ -812,6 +832,7 @@ static int adxl34x_resume(bus_device *bus)
 #if defined(CONFIG_INPUT_ADXL34X_SPI) || defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
 
 #define MAX_SPI_FREQ_HZ		5000000
+#define MAX_FREQ_NO_FIFODELAY	1500000
 #define ADXL34X_CMD_MULTB	(1 << 6)
 #define ADXL34X_CMD_READ	(1 << 7)
 #define ADXL34X_WRITECMD(reg)	(reg & 0x3F)
@@ -871,6 +892,9 @@ static int __devinit adxl34x_spi_probe(struct spi_device *spi)
 	ac->read = adxl34x_spi_read;
 	ac->read_block = adxl34x_spi_read_block;
 	ac->write = adxl34x_spi_write;
+
+	if (spi->max_speed_hz > MAX_FREQ_NO_FIFODELAY)
+		ac->fifo_delay = 1;
 
 	error = adxl34x_initialize(spi, ac);
 	if (error) {
