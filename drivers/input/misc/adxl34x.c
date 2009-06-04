@@ -1,24 +1,10 @@
 /*
+ * ADXL345/346 Three-Axis Digital Accelerometers (I2C/SPI Interface)
+ *
+ * Enter bugs at http://blackfin.uclinux.org/
+ *
  * Copyright (C) 2009 Michael Hennerich, Analog Devices Inc.
- *
- * Description:	ADXL345/346 Three-Axis Digital Accelerometers (I2C/SPI Interface)
- *
- * Bugs:        Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * Licensed under the GPL-2 or later.
  */
 
 #include <linux/device.h>
@@ -36,39 +22,39 @@
 
 /* ADXL345/6 Register Map */
 #define DEVID		0x00	/* R   Device ID */
-#define THRESH_TAP 	0x1D	/* R/W Tap threshold */
-#define OFSX 		0x1E	/* R/W X-axis offset */
-#define OFSY 		0x1F	/* R/W Y-axis offset */
-#define OFSZ 		0x20	/* R/W Z-axis offset */
-#define DUR 		0x21	/* R/W Tap duration */
-#define LATENT 		0x22	/* R/W Tap latency */
-#define WINDOW 		0x23	/* R/W Tap window */
-#define THRESH_ACT 	0x24	/* R/W Activity threshold */
-#define THRESH_INACT 	0x25	/* R/W Inactivity threshold */
-#define TIME_INACT 	0x26	/* R/W Inactivity time */
-#define ACT_INACT_CTL 	0x27	/* R/W Axis enable control for activity and inactivity detection */
-#define THRESH_FF 	0x28	/* R/W Free-fall threshold */
-#define TIME_FF 	0x29	/* R/W Free-fall time */
-#define TAP_AXES 	0x2A	/* R/W Axis control for tap/double tap */
-#define ACT_TAP_STATUS 	0x2B	/* R   Source of tap/double tap */
-#define BW_RATE 	0x2C	/* R/W Data rate and power mode control */
-#define POWER_CTL 	0x2D	/* R/W Power saving features control */
-#define INT_ENABLE 	0x2E	/* R/W Interrupt enable control */
-#define INT_MAP 	0x2F	/* R/W Interrupt mapping control */
-#define INT_SOURCE 	0x30	/* R   Source of interrupts */
-#define DATA_FORMAT 	0x31	/* R/W Data format control */
-#define DATAX0 		0x32	/* R   X-Axis Data 0 */
-#define DATAX1 		0x33	/* R   X-Axis Data 1 */
-#define DATAY0 		0x34	/* R   Y-Axis Data 0 */
-#define DATAY1 		0x35	/* R   Y-Axis Data 1 */
-#define DATAZ0 		0x36	/* R   Z-Axis Data 0 */
-#define DATAZ1 		0x37	/* R   Z-Axis Data 1 */
-#define FIFO_CTL 	0x38	/* R/W FIFO control */
-#define FIFO_STATUS 	0x39	/* R   FIFO status */
-#define TAP_SIGN 	0x3A	/* R   Sign and source for tap/double tap */
+#define THRESH_TAP	0x1D	/* R/W Tap threshold */
+#define OFSX		0x1E	/* R/W X-axis offset */
+#define OFSY		0x1F	/* R/W Y-axis offset */
+#define OFSZ		0x20	/* R/W Z-axis offset */
+#define DUR		0x21	/* R/W Tap duration */
+#define LATENT		0x22	/* R/W Tap latency */
+#define WINDOW		0x23	/* R/W Tap window */
+#define THRESH_ACT	0x24	/* R/W Activity threshold */
+#define THRESH_INACT	0x25	/* R/W Inactivity threshold */
+#define TIME_INACT	0x26	/* R/W Inactivity time */
+#define ACT_INACT_CTL	0x27	/* R/W Axis enable control for activity and inactivity detection */
+#define THRESH_FF	0x28	/* R/W Free-fall threshold */
+#define TIME_FF		0x29	/* R/W Free-fall time */
+#define TAP_AXES	0x2A	/* R/W Axis control for tap/double tap */
+#define ACT_TAP_STATUS	0x2B	/* R   Source of tap/double tap */
+#define BW_RATE		0x2C	/* R/W Data rate and power mode control */
+#define POWER_CTL	0x2D	/* R/W Power saving features control */
+#define INT_ENABLE	0x2E	/* R/W Interrupt enable control */
+#define INT_MAP		0x2F	/* R/W Interrupt mapping control */
+#define INT_SOURCE	0x30	/* R   Source of interrupts */
+#define DATA_FORMAT	0x31	/* R/W Data format control */
+#define DATAX0		0x32	/* R   X-Axis Data 0 */
+#define DATAX1		0x33	/* R   X-Axis Data 1 */
+#define DATAY0		0x34	/* R   Y-Axis Data 0 */
+#define DATAY1		0x35	/* R   Y-Axis Data 1 */
+#define DATAZ0		0x36	/* R   Z-Axis Data 0 */
+#define DATAZ1		0x37	/* R   Z-Axis Data 1 */
+#define FIFO_CTL	0x38	/* R/W FIFO control */
+#define FIFO_STATUS	0x39	/* R   FIFO status */
+#define TAP_SIGN	0x3A	/* R   Sign and source for tap/double tap */
 /* Orientation ADXL346 only */
-#define ORIENT_CONF 	0x3B	/* R/W Orientation configuration */
-#define ORIENT 		0x3C	/* R   Orientation status */
+#define ORIENT_CONF	0x3B	/* R/W Orientation configuration */
+#define ORIENT		0x3C	/* R   Orientation status */
 
 /* DEVIDs */
 #define ID_ADXL345	0xE5
@@ -85,48 +71,48 @@
 #define OVERRUN		(1 << 0)
 
 /* ACT_INACT_CONTROL Bits */
-#define ACT_ACDC   	(1 << 7)
-#define ACT_X_EN   	(1 << 6)
-#define ACT_Y_EN   	(1 << 5)
-#define ACT_Z_EN   	(1 << 4)
-#define INACT_ACDC 	(1 << 3)
-#define INACT_X_EN 	(1 << 2)
-#define INACT_Y_EN 	(1 << 1)
-#define INACT_Z_EN 	(1 << 0)
+#define ACT_ACDC	(1 << 7)
+#define ACT_X_EN	(1 << 6)
+#define ACT_Y_EN	(1 << 5)
+#define ACT_Z_EN	(1 << 4)
+#define INACT_ACDC	(1 << 3)
+#define INACT_X_EN	(1 << 2)
+#define INACT_Y_EN	(1 << 1)
+#define INACT_Z_EN	(1 << 0)
 
 /* TAP_AXES Bits */
-#define SUPPRESS 	(1 << 3)
-#define TAP_X_EN 	(1 << 2)
-#define TAP_Y_EN 	(1 << 1)
-#define TAP_Z_EN 	(1 << 0)
+#define SUPPRESS	(1 << 3)
+#define TAP_X_EN	(1 << 2)
+#define TAP_Y_EN	(1 << 1)
+#define TAP_Z_EN	(1 << 0)
 
 /* ACT_TAP_STATUS Bits */
-#define ACT_X_SRC 	(1 << 6)
-#define ACT_Y_SRC 	(1 << 5)
-#define ACT_Z_SRC 	(1 << 4)
+#define ACT_X_SRC	(1 << 6)
+#define ACT_Y_SRC	(1 << 5)
+#define ACT_Z_SRC	(1 << 4)
 #define ASLEEP		(1 << 3)
-#define TAP_X_SRC 	(1 << 2)
-#define TAP_Y_SRC 	(1 << 1)
-#define TAP_Z_SRC 	(1 << 0)
+#define TAP_X_SRC	(1 << 2)
+#define TAP_Y_SRC	(1 << 1)
+#define TAP_Z_SRC	(1 << 0)
 
 /* BW_RATE Bits */
-#define LOW_POWER      	(1 << 4)
-#define RATE(x)		(x & 0xF)
+#define LOW_POWER	(1 << 4)
+#define RATE(x)		((x) & 0xF)
 
 /* POWER_CTL Bits */
-#define PCTL_LINK    	(1 << 5)
+#define PCTL_LINK	(1 << 5)
 #define PCTL_AUTO_SLEEP (1 << 4)
-#define PCTL_MEASURE 	(1 << 3)
-#define PCTL_SLEEP   	(1 << 2)
-#define PCTL_WAKEUP(x)  (x & 0x3)
+#define PCTL_MEASURE	(1 << 3)
+#define PCTL_SLEEP	(1 << 2)
+#define PCTL_WAKEUP(x)	((x) & 0x3)
 
 /* DATA_FORMAT Bits */
-#define SELF_TEST   	(1 << 7)
-#define SPI         	(1 << 6)
-#define INT_INVERT  	(1 << 5)
-#define FULL_RES    	(1 << 3)
-#define JUSTIFY     	(1 << 2)
-#define RANGE(x)	(x & 0x3)
+#define SELF_TEST	(1 << 7)
+#define SPI		(1 << 6)
+#define INT_INVERT	(1 << 5)
+#define FULL_RES	(1 << 3)
+#define JUSTIFY		(1 << 2)
+#define RANGE(x)	((x) & 0x3)
 #define RANGE_PM_2g	0
 #define RANGE_PM_4g	1
 #define RANGE_PM_8g	2
@@ -139,37 +125,37 @@
 #define ADXL_FIXEDRES_MAX_VAL 512
 
 /* FIFO_CTL Bits */
-#define FIFO_MODE(x)	((x & 0x3) << 6)
+#define FIFO_MODE(x)	(((x) & 0x3) << 6)
 #define FIFO_BYPASS	0
 #define FIFO_FIFO	1
 #define FIFO_STREAM	2
 #define FIFO_TRIGGER	3
-#define TRIGGER  	(1 << 5)
-#define SAMPLES(x)	(x & 0x1F)
+#define TRIGGER		(1 << 5)
+#define SAMPLES(x)	((x) & 0x1F)
 
 /* FIFO_STATUS Bits */
-#define FIFO_TRIG   	(1 << 7)
-#define ENTRIES(x)	(x & 0x3F)
+#define FIFO_TRIG	(1 << 7)
+#define ENTRIES(x)	((x) & 0x3F)
 
 /* TAP_SIGN Bits ADXL346 only */
-#define XSIGN 		(1 << 6)
-#define YSIGN 		(1 << 5)
-#define ZSIGN 		(1 << 4)
-#define XTAP  		(1 << 3)
-#define YTAP  		(1 << 2)
-#define ZTAP  		(1 << 1)
+#define XSIGN		(1 << 6)
+#define YSIGN		(1 << 5)
+#define ZSIGN		(1 << 4)
+#define XTAP		(1 << 3)
+#define YTAP		(1 << 2)
+#define ZTAP		(1 << 1)
 
 /* ORIENT_CONF ADXL346 only */
-#define ORIENT_DEADZONE(x)	((x & 0x7) << 4)
-#define ORIENT_DIVISOR(x)	(x & 0x7)
+#define ORIENT_DEADZONE(x)	(((x) & 0x7) << 4)
+#define ORIENT_DIVISOR(x)	((x) & 0x7)
 
 /* ORIENT ADXL346 only */
-#define ADXL346_2D_VALID         	(1 << 6)
-#define ADXL346_2D_ORIENT(x)		((x & 0x3) >> 4)
-#define ADXL346_3D_VALID         	(1 << 3)
-#define ADXL346_3D_ORIENT(x)          	(x & 0x7)
-#define ADXL346_2D_PORTRAIT_POS 	0	/* +X */
-#define ADXL346_2D_PORTRAIT_NEG 	1	/* -X */
+#define ADXL346_2D_VALID		(1 << 6)
+#define ADXL346_2D_ORIENT(x)		(((x) & 0x3) >> 4)
+#define ADXL346_3D_VALID		(1 << 3)
+#define ADXL346_3D_ORIENT(x)		((x) & 0x7)
+#define ADXL346_2D_PORTRAIT_POS		0	/* +X */
+#define ADXL346_2D_PORTRAIT_NEG		1	/* -X */
 #define ADXL346_2D_LANDSCAPE_POS	2	/* +Y */
 #define ADXL346_2D_LANDSCAPE_NEG	3	/* -Y */
 
@@ -182,8 +168,8 @@
 
 #undef ADXL_DEBUG
 
-#define AC_READ(ac, reg) (ac->read(ac->bus, reg))
-#define AC_WRITE(ac, reg, val) (ac->write(ac->bus, reg, val))
+#define AC_READ(ac, reg)	((ac)->read((ac)->bus, reg))
+#define AC_WRITE(ac, reg, val)	((ac)->write((ac)->bus, reg, val))
 
 #if defined(CONFIG_INPUT_ADXL34X_SPI) || defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
 typedef struct spi_device bus_device;
@@ -341,15 +327,12 @@ static void adxl34x_work(struct work_struct *work)
 	}
 
 	if (pdata->ev_code_act_inactivity) {
-		if (int_stat & ACTIVITY) {
+		if (int_stat & ACTIVITY)
 			input_report_key(ac->input,
 					 pdata->ev_code_act_inactivity, 1);
-		}
-
-		if (int_stat & INACTIVITY) {
+		if (int_stat & INACTIVITY)
 			input_report_key(ac->input,
 					 pdata->ev_code_act_inactivity, 0);
-		}
 	}
 
 	if (int_stat & (DATA_READY | WATERMARK)) {
@@ -782,11 +765,11 @@ static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
 
 	return 0;
 
-err_remove_attr:
+ err_remove_attr:
 	sysfs_remove_group(&bus->dev.kobj, &adxl34x_attr_group);
-err_free_irq:
+ err_free_irq:
 	free_irq(bus->irq, ac);
-err_free_mem:
+ err_free_mem:
 	input_free_device(input_dev);
 
 	return err;
@@ -827,6 +810,7 @@ static int adxl34x_resume(bus_device *bus)
 #endif
 
 #if defined(CONFIG_INPUT_ADXL34X_SPI) || defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
+
 #define MAX_SPI_FREQ_HZ		5000000
 #define ADXL34X_CMD_MULTB	(1 << 6)
 #define ADXL34X_CMD_READ	(1 << 7)
@@ -910,14 +894,14 @@ static int __devexit adxl34x_spi_remove(struct spi_device *spi)
 
 static struct spi_driver adxl34x_driver = {
 	.driver = {
-		   .name = "adxl34x",
-		   .bus = &spi_bus_type,
-		   .owner = THIS_MODULE,
-		   },
-	.probe = adxl34x_spi_probe,
-	.remove = __devexit_p(adxl34x_spi_remove),
+		.name = "adxl34x",
+		.bus = &spi_bus_type,
+		.owner = THIS_MODULE,
+	},
+	.probe   = adxl34x_spi_probe,
+	.remove  = __devexit_p(adxl34x_spi_remove),
 	.suspend = adxl34x_suspend,
-	.resume = adxl34x_resume,
+	.resume  = adxl34x_resume,
 };
 
 static int __init adxl34x_spi_init(void)
@@ -1020,21 +1004,21 @@ static int __devexit adxl34x_i2c_remove(struct i2c_client *client)
 }
 
 static const struct i2c_device_id adxl34x_id[] = {
-	{"adxl34x", 0},
-	{}
+	{ "adxl34x", 0 },
+	{ }
 };
 
 MODULE_DEVICE_TABLE(i2c, adxl34x_id);
 
 static struct i2c_driver adxl34x_driver = {
 	.driver = {
-		   .name = "adxl34x",
-		   .owner = THIS_MODULE,
-		   },
-	.probe = adxl34x_i2c_probe,
-	.remove = __devexit_p(adxl34x_i2c_remove),
-	.suspend = adxl34x_suspend,
-	.resume = adxl34x_resume,
+		.name = "adxl34x",
+		.owner = THIS_MODULE,
+	},
+	.probe    = adxl34x_i2c_probe,
+	.remove   = __devexit_p(adxl34x_i2c_remove),
+	.suspend  = adxl34x_suspend,
+	.resume   = adxl34x_resume,
 	.id_table = adxl34x_id,
 };
 
@@ -1051,6 +1035,7 @@ static void __exit adxl34x_i2c_exit(void)
 }
 
 module_exit(adxl34x_i2c_exit);
+
 #endif
 
 MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
