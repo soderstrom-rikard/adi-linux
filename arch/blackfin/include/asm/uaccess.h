@@ -233,16 +233,31 @@ strncpy_from_user(char *dst, const char *src, long count)
 }
 
 /*
- * Return the size of a string (including the ending 0)
+ * Get the size of a string in user space.
+ *   src: The string to measure
+ *     n: The maximum valid length
  *
- * Return 0 on exception, a value greater than N if too long
+ * Get the size of a NUL-terminated string in user space.
+ *
+ * Returns the size of the string INCLUDING the terminating NUL.
+ * On exception, returns 0.
+ * If the string is too long, returns a value greater than n.
  */
-static inline long strnlen_user(const char *src, long n)
+static inline long __must_check strnlen_user(const char *src, long n)
 {
-	return (strlen(src) + 1);
+	if (!access_ok(VERIFY_READ, src, n))
+		return 0;
+	return strnlen(src, n) + 1;
 }
 
-#define strlen_user(str) strnlen_user(str, 32767)
+/* We don't know the length, so only check the start of the string */
+
+static inline long __must_check strlen_user(const char *src)
+{
+	if (!access_ok(VERIFY_READ, src, 1))
+		return 0;
+	return strlen(src) + 1;
+}
 
 /*
  * Zero Userspace
