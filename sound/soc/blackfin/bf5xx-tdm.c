@@ -96,7 +96,7 @@ static int bf5xx_tdm_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 
 	/* interface format:support TDM,slave mode */
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-	case SND_SOC_DAIFMT_TDM:
+	case SND_SOC_DAIFMT_SPORT_TDM:
 		break;
 	default:
 		printk(KERN_ERR "%s: Unknown DAI format type\n", __func__);
