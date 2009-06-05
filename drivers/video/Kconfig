@@ -659,8 +659,9 @@ config FB_BFIN_BGR
 	  BGR use 16-bit BGR-565 instead of RGB-565
 
 config FB_BFIN_7393
-	tristate "Blackfin ADV7393 Video encoder on uClinux"
+	tristate "Blackfin ADV7393 Video encoder"
 	depends on FB && BLACKFIN
+	select I2C
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
