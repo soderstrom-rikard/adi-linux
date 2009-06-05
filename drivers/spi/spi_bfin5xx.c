@@ -97,6 +97,7 @@ struct driver_data {
 	dma_addr_t tx_dma;
 
 	int irq_requested;
+	int spi_irq;
 
 	size_t rx_map_len;
 	size_t tx_map_len;
@@ -562,7 +563,7 @@ static irqreturn_t bfin_spi_pio_irq_handler(int irq, void *dev_id)
 		/* Move to next transfer */
 		msg->state = bfin_spi_next_transfer(drv_data);
 
-		disable_irq(IRQ_SPI);
+		disable_irq(drv_data->spi_irq);
 
 		/* Schedule transfer tasklet */
 		tasklet_schedule(&drv_data->pump_transfers);
@@ -946,7 +947,7 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		}
 
 		/* once TDBR is empty, interrupt is triggered */
-		enable_irq(IRQ_SPI);
+		enable_irq(drv_data->spi_irq);
 		return;
 	}
 
@@ -1312,7 +1313,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 	}
 
 	if (chip->pio_interrupt && !drv_data->irq_requested) {
-		ret = request_irq(IRQ_SPI, bfin_spi_pio_irq_handler,
+		ret = request_irq(drv_data->spi_irq, bfin_spi_pio_irq_handler,
 			IRQF_DISABLED, "BFIN_SPI", drv_data);
 		if (ret) {
 			printk(KERN_NOTICE "Unable to register spi IRQ\n");
@@ -1320,7 +1321,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 		}
 		drv_data->irq_requested = 1;
 		/* we use write mode, spi irq has to be disabled here */
-		disable_irq(IRQ_SPI);
+		disable_irq(drv_data->spi_irq);
 	}
 
 	if (chip->chip_select_num == 0) {
@@ -1521,11 +1522,19 @@ static int __init bfin_spi_probe(struct platform_device *pdev)
 		goto out_error_ioremap;
 	}
 
-	drv_data->dma_channel = platform_get_irq(pdev, 0);
-	if (drv_data->dma_channel < 0) {
+	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
+	if (res == NULL) {
 		dev_err(dev, "No DMA channel specified\n");
 		status = -ENOENT;
-		goto out_error_no_dma_ch;
+		goto out_error_free_io;
+	}
+	drv_data->dma_channel = res->start;
+
+	drv_data->spi_irq = platform_get_irq(pdev, 0);
+	if (drv_data->spi_irq < 0) {
+		dev_err(dev, "No spi pio irq specified\n");
+		status = -ENOENT;
+		goto out_error_free_io;
 	}
 
 	/* Initial and start queue */
@@ -1568,7 +1577,7 @@ static int __init bfin_spi_probe(struct platform_device *pdev)
 
 out_error_queue_alloc:
 	bfin_spi_destroy_queue(drv_data);
-out_error_no_dma_ch:
+out_error_free_io:
 	iounmap((void *) drv_data->regs_base);
 out_error_ioremap:
 out_error_get_res:
@@ -1601,7 +1610,7 @@ static int __devexit bfin_spi_remove(struct platform_device *pdev)
 	}
 
 	if (drv_data->irq_requested) {
-		free_irq(IRQ_SPI, drv_data);
+		free_irq(drv_data->spi_irq, drv_data);
 		drv_data->irq_requested = 0;
 	}
 
