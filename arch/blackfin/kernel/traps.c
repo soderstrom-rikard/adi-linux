@@ -32,8 +32,6 @@
 #include <linux/module.h>
 #include <linux/kallsyms.h>
 #include <linux/fs.h>
-#include <linux/compile.h>
-#include <linux/utsname.h>
 #include <asm/traps.h>
 #include <asm/cacheflush.h>
 #include <asm/cplb.h>
@@ -1109,8 +1107,7 @@ void show_regs(struct pt_regs *fp)
 #endif
 		);
 
-	verbose_printk(KERN_NOTICE "%s version %s\n" KERN_NOTICE "Built with %s\n",
-		utsname()->sysname, utsname()->release, LINUX_COMPILER);
+	verbose_printk(KERN_NOTICE "%s", linux_banner);
 
 	verbose_printk(KERN_NOTICE "\n" KERN_NOTICE "SEQUENCER STATUS:\t\t%s\n", print_tainted());
 	verbose_printk(KERN_NOTICE " SEQSTAT: %08lx  IPEND: %04lx  SYSCFG: %04lx\n",
