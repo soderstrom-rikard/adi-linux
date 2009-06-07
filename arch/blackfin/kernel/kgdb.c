@@ -463,42 +463,9 @@ static int hex(char ch)
 
 static int validate_memory_access_address(unsigned long addr, int size)
 {
-	int cpu = raw_smp_processor_id();
-
 	if (size < 0)
 		return -EFAULT;
-	if (addr >= 0x1000 && (addr + size) <= physical_mem_end)
-		return 0;
-	if (addr >= SYSMMR_BASE)
-		return 0;
-	if (IN_MEM(addr, size, ASYNC_BANK0_BASE, ASYNC_BANK_SIZE))
-		return 0;
-	if (cpu == 0) {
-		if (IN_MEM(addr, size, L1_SCRATCH_START, L1_SCRATCH_LENGTH))
-			return 0;
-		if (IN_MEM(addr, size, L1_CODE_START, L1_CODE_LENGTH))
-			return 0;
-		if (IN_MEM(addr, size, L1_DATA_A_START, L1_DATA_A_LENGTH))
-			return 0;
-		if (IN_MEM(addr, size, L1_DATA_B_START, L1_DATA_B_LENGTH))
-			return 0;
-#ifdef CONFIG_SMP
-	} else if (cpu == 1) {
-		if (IN_MEM(addr, size, COREB_L1_SCRATCH_START, L1_SCRATCH_LENGTH))
-			return 0;
-		if (IN_MEM(addr, size, COREB_L1_CODE_START, L1_CODE_LENGTH))
-			return 0;
-		if (IN_MEM(addr, size, COREB_L1_DATA_A_START, L1_DATA_A_LENGTH))
-			return 0;
-		if (IN_MEM(addr, size, COREB_L1_DATA_B_START, L1_DATA_B_LENGTH))
-			return 0;
-#endif
-	}
-
-	if (IN_MEM(addr, size, L2_START, L2_LENGTH))
-		return 0;
-
-	return -EFAULT;
+	return bfin_mem_access_type(addr, size) < 0 ? -EFAULT : 0;
 }
 
 /*

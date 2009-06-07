@@ -321,6 +321,57 @@ void finish_atomic_sections (struct pt_regs *regs)
 	}
 }
 
+#define IN_MEM(addr, size, const_addr, const_size) \
+({ \
+	unsigned long __addr = (unsigned long)(addr); \
+	(const_size && \
+	 __addr >= const_addr && \
+	 __addr + (size) <= const_addr + const_size); \
+})
+#define IN_ASYNC(bnum, bctlnum) \
+({ \
+	(bfin_read_EBIU_AMGCTL() & 0xe) < ((bnum + 1) << 1) ? -EFAULT : \
+	bfin_read_EBIU_AMBCTL##bctlnum() & B##bnum##RDYEN ? -EFAULT : 0; \
+})
+int bfin_mem_access_type(unsigned long addr, unsigned long size)
+{
+	/* Check that things do not wrap around */
+	if (addr > ULONG_MAX - size)
+		return -EFAULT;
+
+	if (addr >= FIXED_CODE_START && (addr + size) <= physical_mem_end)
+		return 0;
+
+	if (IN_MEM(addr, size, get_l1_code_start(), L1_CODE_LENGTH))
+		return 1;
+
+	if (IN_MEM(addr, size, get_l1_scratch_start(), L1_SCRATCH_LENGTH))
+		return 0;
+	if (IN_MEM(addr, size, get_l1_data_a_start(), L1_DATA_A_LENGTH))
+		return 0;
+	if (IN_MEM(addr, size, get_l1_data_b_start(), L1_DATA_B_LENGTH))
+		return 0;
+	if (IN_MEM(addr, size, L2_START, L2_LENGTH))
+		return 0;
+
+	if (addr >= SYSMMR_BASE)
+		return 0;
+
+	/* We can't read EBIU banks that aren't enabled or we end up hanging
+	 * on the access to the async space.
+	 */
+	if (IN_MEM(addr, size, ASYNC_BANK0_BASE, ASYNC_BANK0_SIZE))
+		return IN_ASYNC(0, 0);
+	if (IN_MEM(addr, size, ASYNC_BANK1_BASE, ASYNC_BANK1_SIZE))
+		return IN_ASYNC(1, 0);
+	if (IN_MEM(addr, size, ASYNC_BANK2_BASE, ASYNC_BANK2_SIZE))
+		return IN_ASYNC(2, 1);
+	if (IN_MEM(addr, size, ASYNC_BANK3_BASE, ASYNC_BANK3_SIZE))
+		return IN_ASYNC(3, 1);
+
+	return -EFAULT;
+}
+
 #if defined(CONFIG_ACCESS_CHECK)
 #ifdef CONFIG_ACCESS_OK_L1
 __attribute__((l1_text))

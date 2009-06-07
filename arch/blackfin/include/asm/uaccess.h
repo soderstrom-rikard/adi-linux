@@ -265,4 +265,12 @@ __clear_user(void *to, unsigned long n)
 
 #define clear_user(to, n) __clear_user(to, n)
 
+/**
+ *	bfin_mem_access_type() - what kind of memory access is required
+ *	@addr:   the address to check
+ *	@size:   number of bytes needed
+ *	@return: <0 is error, 0 is core read, 1 is dma read
+ */
+int bfin_mem_access_type(unsigned long addr, unsigned long size);
+
 #endif				/* _BLACKFIN_UACCESS_H */
