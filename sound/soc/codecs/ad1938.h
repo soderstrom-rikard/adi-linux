@@ -35,15 +35,19 @@
 #define AD1938_DAC_CTRL1        3
 #define AD1938_DAC_CTRL2        4
 #define AD1938_DAC_CHNL_MUTE    5
-#define AD1938_DAC_L1_MUTE      6
-#define AD1938_DAC_R1_MUTE      7
-#define AD1938_DAC_L2_MUTE      8
-#define AD1938_DAC_R2_MUTE      9
-#define AD1938_DAC_L3_MUTE      10
-#define AD1938_DAC_R3_MUTE      11
-#define AD1938_DAC_L4_MUTE      12
-#define AD1938_DAC_R4_MUTE      13
+#define AD1938_DAC_L1_VOL       6
+#define AD1938_DAC_R1_VOL       7
+#define AD1938_DAC_L2_VOL       8
+#define AD1938_DAC_R2_VOL       9
+#define AD1938_DAC_L3_VOL       10
+#define AD1938_DAC_R3_VOL       11
+#define AD1938_DAC_L4_VOL       12
+#define AD1938_DAC_R4_VOL       13
 #define AD1938_ADC_CTRL0        14
+#define ADC0_MUTE 		2
+#define ADC1_MUTE 		3
+#define ADC2_MUTE 		4
+#define ADC3_MUTE 		5
 #define AD1938_ADC_CTRL1        15
 #define AD1938_ADC_CTRL2        16
 

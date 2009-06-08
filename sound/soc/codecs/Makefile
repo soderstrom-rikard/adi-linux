@@ -1,7 +1,7 @@
 snd-soc-ac97-objs := ac97.o
 snd-soc-ad1980-objs := ad1980.o
 snd-soc-ad73311-objs := ad73311.o
-snd-soc-ad1938-objs := ad1938.o ad1938_spi.o
+snd-soc-ad1938-objs := ad1938.o
 snd-soc-ak4535-objs := ak4535.o
 snd-soc-cs4270-objs := cs4270.o
 snd-soc-ssm2602-objs := ssm2602.o
