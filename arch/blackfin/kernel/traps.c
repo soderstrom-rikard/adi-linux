@@ -258,7 +258,7 @@ asmlinkage void trap_c(struct pt_regs *fp)
 	unsigned long trapnr = fp->seqstat & SEQSTAT_EXCAUSE;
 
 	trace_buffer_save(j);
-#ifdef CONFIG_DEBUG_MMRS
+#if defined(CONFIG_DEBUG_MMRS) || defined(CONFIG_DEBUG_MMRS_MODULE)
 	last_seqstat = (u32)fp->seqstat;
 #endif
 
