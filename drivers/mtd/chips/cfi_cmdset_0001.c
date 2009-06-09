@@ -2056,6 +2056,11 @@ static int __xipram do_xxlock_oneblock(struct map_info *map, struct flchip *chip
 		goto out;
 	}
 
+	if (chip->state == FL_STATUS) {
+		/* it goes ok, put chip into array mode */
+		map_write(map, CMD(0xff), adr);
+		chip->state = FL_READY;
+	}
 	xip_enable(map, chip, adr);
 out:	put_chip(map, chip, adr);
 	spin_unlock(chip->mutex);
