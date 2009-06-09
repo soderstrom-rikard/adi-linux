@@ -60,26 +60,41 @@ static int bf5xx_ad1938_startup(struct snd_pcm_substream *substream)
 	return 0;
 }
 
+static int bf5xx_ad1938_hw_free(struct snd_pcm_substream *substream)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+
+	/* disable the PLL */
+	return snd_soc_dai_set_pll(codec_dai, 0, 0, 0);
+}
+
 static int bf5xx_ad1938_hw_params(struct snd_pcm_substream *substream,
-	struct snd_pcm_hw_params *params)
+		struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	int ret = 0;
 
 	/* set cpu DAI configuration */
 	ret = cpu_dai->dai_ops.set_fmt(cpu_dai, SND_SOC_DAIFMT_SPORT_TDM |
-		SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
+			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
+	if (ret < 0)
+		return ret;
+
+	/* set codec DAI pll */
+	ret = snd_soc_dai_set_pll(codec_dai, 0, 12288000, 48000*512);
 	if (ret < 0)
 		return ret;
 
 	return 0;
 }
 
-
 static struct snd_soc_ops bf5xx_ad1938_ops = {
 	.startup = bf5xx_ad1938_startup,
 	.hw_params = bf5xx_ad1938_hw_params,
+	.hw_free = bf5xx_ad1938_hw_free,
 };
 
 static struct snd_soc_dai_link bf5xx_ad1938_dai = {

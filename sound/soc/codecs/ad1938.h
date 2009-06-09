@@ -30,8 +30,10 @@
 #define __AD1938_H__
 
 #define AD1938_PLL_CLK_CTRL0    0
+#define PLL_POWERDOWN           0x01
 #define AD1938_PLL_CLK_CTRL1    1
 #define AD1938_DAC_CTRL0        2
+#define DAC_POWERDOWN           0x01
 #define AD1938_DAC_CTRL1        3
 #define AD1938_DAC_CTRL2        4
 #define AD1938_DAC_CHNL_MUTE    5
@@ -44,6 +46,8 @@
 #define AD1938_DAC_L4_VOL       12
 #define AD1938_DAC_R4_VOL       13
 #define AD1938_ADC_CTRL0        14
+#define ADC_POWERDOWN           0x01
+#define ADC_HIGHPASS_FILTER	1
 #define ADC0_MUTE 		2
 #define ADC1_MUTE 		3
 #define ADC2_MUTE 		4
