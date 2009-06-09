@@ -68,8 +68,11 @@
 	({ if (0) printk(fmt, ##arg); 0; })
 #endif
 
-#ifdef CONFIG_DEBUG_MMRS
+#if defined(CONFIG_DEBUG_MMRS) || defined(CONFIG_DEBUG_MMRS_MODULE)
 u32 last_seqstat;
+#ifdef CONFIG_DEBUG_MMRS_MODULE
+EXPORT_SYMBOL(last_seqstat);
+#endif
 #endif
 
 /* Initiate the event table handler */
