@@ -23,7 +23,7 @@
 #include <asm/portmux.h>
 #include <asm/irq.h>
 
-#define POLL_TIMEOUT       (2 * HZ)
+#define POLL_TIMEOUT       (20 * HZ)
 
 /* SMBus mode*/
 #define TWI_I2C_MODE_STANDARD		1
@@ -42,8 +42,6 @@ struct bfin_twi_iface {
 	int			cur_mode;
 	int			manual_stop;
 	int			result;
-	int			timeout_count;
-	struct timer_list	timeout_timer;
 	struct i2c_adapter	adap;
 	struct completion	complete;
 	struct i2c_msg 		*pmsg;
@@ -260,30 +258,9 @@ static irqreturn_t bfin_twi_interrupt_entry(int irq, void *dev_id)
 	unsigned long flags;
 
 	spin_lock_irqsave(&iface->lock, flags);
-	del_timer(&iface->timeout_timer);
 	bfin_twi_handle_interrupt(iface);
 	spin_unlock_irqrestore(&iface->lock, flags);
 	return IRQ_HANDLED;
-}
-
-static void bfin_twi_timeout(unsigned long data)
-{
-	struct bfin_twi_iface *iface = (struct bfin_twi_iface *)data;
-	unsigned long flags;
-
-	spin_lock_irqsave(&iface->lock, flags);
-	bfin_twi_handle_interrupt(iface);
-	if (iface->result == 0) {
-		iface->timeout_count--;
-		if (iface->timeout_count > 0) {
-			iface->timeout_timer.expires = jiffies + POLL_TIMEOUT;
-			add_timer(&iface->timeout_timer);
-		} else {
-			iface->result = -1;
-			complete(&iface->complete);
-		}
-	}
-	spin_unlock_irqrestore(&iface->lock, flags);
 }
 
 /*
@@ -317,7 +294,6 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 	iface->transPtr = pmsg->buf;
 	iface->writeNum = iface->readNum = pmsg->len;
 	iface->result = 0;
-	iface->timeout_count = 10;
 	init_completion(&(iface->complete));
 	/* Set Transmit device address */
 	write_MASTER_ADDR(iface, pmsg->addr);
@@ -356,16 +332,15 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 		iface->manual_stop = 1;
 	}
 
-	iface->timeout_timer.expires = jiffies + POLL_TIMEOUT;
-	add_timer(&iface->timeout_timer);
-
 	/* Master enable */
 	write_MASTER_CTL(iface, read_MASTER_CTL(iface) | MEN |
 		((iface->read_write == I2C_SMBUS_READ) ? MDIR : 0) |
 		((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ > 100) ? FAST : 0));
 	SSYNC();
 
-	wait_for_completion(&iface->complete);
+	if (!wait_for_completion_timeout(&iface->complete,
+		jiffies + POLL_TIMEOUT))
+		iface->result = -1;
 
 	rc = iface->result;
 
@@ -467,7 +442,6 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 	iface->manual_stop = 0;
 	iface->read_write = read_write;
 	iface->command = command;
-	iface->timeout_count = 10;
 	init_completion(&(iface->complete));
 
 	/* FIFO Initiation. Data in FIFO should be discarded before
@@ -483,9 +457,6 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 	/* Set Transmit device address */
 	write_MASTER_ADDR(iface, addr);
 	SSYNC();
-
-	iface->timeout_timer.expires = jiffies + POLL_TIMEOUT;
-	add_timer(&iface->timeout_timer);
 
 	switch (iface->cur_mode) {
 	case TWI_I2C_MODE_STANDARDSUB:
@@ -549,7 +520,6 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 					write_MASTER_CTL(iface, 0xff << 6);
 					iface->manual_stop = 1;
 				} else {
-					del_timer(&iface->timeout_timer);
 					break;
 				}
 			}
@@ -664,10 +634,6 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 		rc = -ENOENT;
 		goto out_error_no_irq;
 	}
-
-	init_timer(&(iface->timeout_timer));
-	iface->timeout_timer.function = bfin_twi_timeout;
-	iface->timeout_timer.data = (unsigned long)iface;
 
 	p_adap = &iface->adap;
 	p_adap->id = I2C_HW_BLACKFIN;
