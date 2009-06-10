@@ -27,12 +27,6 @@
 
 struct snd_soc_device *ad1938_socdev;
 
-/* struct to flag whether adc and dac need power to work */
-struct ad1938_pwr_sta {
-	int adc_pwr;
-	int dac_pwr;
-};
-
 /* dac de-emphasis enum control */
 static const char *ad1938_deemp[] = {"flat", "48kHz", "44.1kHz", "32kHz"};
 
@@ -103,25 +97,66 @@ static int ad1938_mute(struct snd_soc_dai *dai, int mute)
 	return 0;
 }
 
+/* dac/adc/pll poweron/off functions */
+static int ad1938_dac_powerctrl(struct snd_soc_codec *codec, int cmd)
+{
+	int reg;
+
+	reg = codec->read(codec, AD1938_DAC_CTRL0);
+	if (cmd)
+		reg &= ~DAC_POWERDOWN;
+	else
+		reg |= DAC_POWERDOWN;
+
+	codec->write(codec, AD1938_DAC_CTRL0, reg);
+
+	return 0;
+
+}
+
+static int ad1938_adc_powerctrl(struct snd_soc_codec *codec, int cmd)
+{
+	int reg;
+
+	reg = codec->read(codec, AD1938_ADC_CTRL0);
+	if (cmd)
+		reg &= ~ADC_POWERDOWN;
+	else
+		reg |= ADC_POWERDOWN;
+
+	codec->write(codec, AD1938_ADC_CTRL0, reg);
+
+	return 0;
+}
+
+static int ad1938_pll_powerctrl(struct snd_soc_codec *codec, int cmd)
+{
+	int reg;
+
+	reg = codec->read(codec, AD1938_PLL_CLK_CTRL0);
+	if (cmd)
+		reg &= ~PLL_POWERDOWN;
+	else
+		reg |= PLL_POWERDOWN;
+
+	codec->write(codec, AD1938_PLL_CLK_CTRL0, reg);
+
+	return 0;
+
+}
+
 /* dai_ops.set_pll entry */
 static int ad1938_set_pll(struct snd_soc_dai *codec_dai,
 		int pll_id, unsigned int freq_in, unsigned int freq_out)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	struct ad1938_pwr_sta *pwr_sta = codec->private_data;
-	int pll_reg;
 
-	if (freq_out) {
-		pll_reg = codec->read(codec, AD1938_PLL_CLK_CTRL0);
-		pll_reg &= ~PLL_POWERDOWN;
-		codec->write(codec, AD1938_PLL_CLK_CTRL0, pll_reg);
-	} else {
+	if (freq_out)
+		ad1938_pll_powerctrl(codec, 1);
+	else {
 		/* playing while recording, framework will poweroff-poweron pll redundantly */
-		if ((pwr_sta->dac_pwr == 0) && (pwr_sta->adc_pwr == 0)) {
-			pll_reg = codec->read(codec, AD1938_PLL_CLK_CTRL0);
-			pll_reg |= PLL_POWERDOWN;
-			codec->write(codec, AD1938_PLL_CLK_CTRL0, pll_reg);
-		}
+		if ((!codec_dai->capture.active) && (!codec_dai->playback.active))
+			ad1938_pll_powerctrl(codec, 0);
 	}
 
 	return 0;
@@ -133,34 +168,21 @@ static int ad1938_pcm_prepare(struct snd_pcm_substream *substream)
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->codec;
-	struct ad1938_pwr_sta *pwr_sta = codec->private_data;
-	int pwr_reg;
+	struct snd_soc_dai *codec_dai = codec->dai;
 
 	/* set active */
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		/* If not poweron adc, dac can't work */
-		pwr_reg = codec->read(codec, AD1938_ADC_CTRL0);
-		if (pwr_reg & ADC_POWERDOWN)
-			codec->write(codec, AD1938_ADC_CTRL0, pwr_reg & ~ADC_POWERDOWN);
-
-		/* poweron dac */
-		pwr_reg = codec->read(codec, AD1938_DAC_CTRL0);
-		pwr_reg &= ~DAC_POWERDOWN;
-		codec->write(codec, AD1938_DAC_CTRL0, pwr_reg);
-
-		pwr_sta->dac_pwr = 1;
+		if (!codec_dai->capture.active)
+			ad1938_adc_powerctrl(codec, 1);
+		ad1938_dac_powerctrl(codec, 1);
 	} else {
 		/* poweron adc */
-		pwr_reg = codec->read(codec, AD1938_ADC_CTRL0);
-		pwr_reg &= ~ADC_POWERDOWN;
-		codec->write(codec, AD1938_ADC_CTRL0, pwr_reg);
-
-		pwr_sta->adc_pwr = 1;
+		ad1938_adc_powerctrl(codec, 1);
 	}
 
 	return 0;
 }
-
 
 /* ops.shutdown entry */
 static void ad1938_pcm_shutdown(struct snd_pcm_substream *substream)
@@ -168,33 +190,20 @@ static void ad1938_pcm_shutdown(struct snd_pcm_substream *substream)
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->codec;
-	struct ad1938_pwr_sta *pwr_sta = codec->private_data;
-	int pwr_reg;
+	struct snd_soc_dai *codec_dai = codec->dai;
 
 	/* deactivate */
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		/* poweroff dac */
-		pwr_reg = codec->read(codec, AD1938_DAC_CTRL0);
-		pwr_reg |= DAC_POWERDOWN;
-		codec->write(codec, AD1938_DAC_CTRL0, pwr_reg);
-
-		pwr_sta->dac_pwr = 0;
+		ad1938_dac_powerctrl(codec, 0);
 
 		/* after poweroff dac, if adc is not opened, poweroff it too */
-		if (pwr_sta->adc_pwr == 0) {
-			pwr_reg = codec->read(codec, AD1938_ADC_CTRL0);
-			pwr_reg |= ADC_POWERDOWN;
-			codec->write(codec, AD1938_ADC_CTRL0, pwr_reg);
-		}
+		if (!codec_dai->capture.active)
+			ad1938_adc_powerctrl(codec, 0);
 	} else {
 		/* if dac is still working, can't shutdown adc */
-		if (pwr_sta->dac_pwr == 0) {
-			pwr_reg = codec->read(codec, AD1938_ADC_CTRL0);
-			pwr_reg |= ADC_POWERDOWN;
-			codec->write(codec, AD1938_ADC_CTRL0, pwr_reg);
-		}
-
-		pwr_sta->adc_pwr = 0;
+		if (!codec_dai->playback.active)
+			ad1938_adc_powerctrl(codec, 0);
 	}
 }
 
@@ -325,7 +334,7 @@ static int ad1938_soc_probe(struct platform_device *pdev)
 	int ret = 0;
 
 	/* codec alloc and init */
-	codec = kzalloc(sizeof(struct snd_soc_codec) + sizeof(struct ad1938_pwr_sta), GFP_KERNEL);
+	codec = kzalloc(sizeof(struct snd_soc_codec), GFP_KERNEL);
 	if (codec == NULL)
 		return -ENOMEM;
 	mutex_init(&codec->mutex);
@@ -335,7 +344,6 @@ static int ad1938_soc_probe(struct platform_device *pdev)
 	codec->num_dai = 1;
 	codec->write = ad1938_reg_write;
 	codec->read = ad1938_reg_read;
-	codec->private_data = codec + 1;
 	socdev->codec = codec;
 	INIT_LIST_HEAD(&codec->dapm_widgets);
 	INIT_LIST_HEAD(&codec->dapm_paths);
@@ -403,9 +411,47 @@ static int ad1938_soc_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM
+static int ad1938_soc_suspend(struct platform_device *pdev,
+		pm_message_t state)
+{
+	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
+	struct snd_soc_codec *codec = socdev->codec;
+
+	/* poweroff dac/adc/pll */
+	ad1938_dac_powerctrl(codec, 0);
+	ad1938_adc_powerctrl(codec, 0);
+	ad1938_pll_powerctrl(codec, 0);
+
+	return 0;
+}
+
+static int ad1938_soc_resume(struct platform_device *pdev)
+{
+	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
+	struct snd_soc_codec *codec = socdev->codec;
+	struct snd_soc_dai *codec_dai = codec->dai;
+
+	/* playing while recording, framework will poweroff-poweron pll redundantly */
+	if (codec_dai->capture.active || codec_dai->playback.active) {
+		ad1938_pll_powerctrl(codec, 1);
+		ad1938_adc_powerctrl(codec, 1);
+	}
+	if (codec_dai->playback.active)
+		ad1938_adc_powerctrl(codec, 1);
+
+	return 0;
+}
+#else
+#define ad1938_soc_suspend NULL
+#define ad1938_soc_resume NULL
+#endif
+
 struct snd_soc_codec_device soc_codec_dev_ad1938 = {
 	.probe = 	ad1938_soc_probe,
 	.remove = 	ad1938_soc_remove,
+	.suspend =      ad1938_soc_suspend,
+	.resume =       ad1938_soc_resume,
 };
 EXPORT_SYMBOL_GPL(soc_codec_dev_ad1938);
 
