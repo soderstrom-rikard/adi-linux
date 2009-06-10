@@ -30,6 +30,7 @@ config BLACKFIN
 
 config GENERIC_BUG
 	def_bool y
+	depends on BUG
 
 config ZONE_DMA
 	bool
