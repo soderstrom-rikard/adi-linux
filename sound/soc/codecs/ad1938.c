@@ -108,16 +108,21 @@ static int ad1938_set_pll(struct snd_soc_dai *codec_dai,
 		int pll_id, unsigned int freq_in, unsigned int freq_out)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
+	struct ad1938_pwr_sta *pwr_sta = codec->private_data;
 	int pll_reg;
 
 	if (freq_out) {
 		pll_reg = codec->read(codec, AD1938_PLL_CLK_CTRL0);
 		pll_reg &= ~PLL_POWERDOWN;
+		codec->write(codec, AD1938_PLL_CLK_CTRL0, pll_reg);
 	} else {
-		pll_reg = codec->read(codec, AD1938_PLL_CLK_CTRL0);
-		pll_reg |= PLL_POWERDOWN;
+		/* playing while recording, framework will poweroff-poweron pll redundantly */
+		if ((pwr_sta->dac_pwr == 0) && (pwr_sta->adc_pwr == 0)) {
+			pll_reg = codec->read(codec, AD1938_PLL_CLK_CTRL0);
+			pll_reg |= PLL_POWERDOWN;
+			codec->write(codec, AD1938_PLL_CLK_CTRL0, pll_reg);
+		}
 	}
-	codec->write(codec, AD1938_PLL_CLK_CTRL0, pll_reg);
 
 	return 0;
 }
@@ -357,7 +362,7 @@ static int ad1938_soc_probe(struct platform_device *pdev)
 		goto register_err;
 	}
 
-	/* default setting for ad1938: 8 channel AUX ADC mode, 16bit, 48000Hz */
+	/* default setting for ad1938, poweroff dac/adc/pll */
 	codec->write(codec, AD1938_DAC_CTRL0, 0x41); /* sample rate:32/44.1/48kHz, sata delay=1, tdm mode */
 	codec->write(codec, AD1938_DAC_CTRL1, 0x84); /* invert bclk, 256bclk/frame, latch in mid */
 	codec->write(codec, AD1938_DAC_CTRL2, 0x1A); /* de-emphasis: 48kHz */
@@ -365,7 +370,7 @@ static int ad1938_soc_probe(struct platform_device *pdev)
 	codec->write(codec, AD1938_ADC_CTRL1, 0x43); /* sata delay=1, adc aux mode */
 	codec->write(codec, AD1938_ADC_CTRL2, 0x6F); /* left high, driver on rising edge */
 	codec->write(codec, AD1938_DAC_CHNL_MUTE, 0xFF); /* mute all dac channels */
-	codec->write(codec, AD1938_PLL_CLK_CTRL0, 0x9C); /* pll input:mclki/xi, master clock rate:512*fs */
+	codec->write(codec, AD1938_PLL_CLK_CTRL0, 0x9D); /* pll input:mclki/xi, master clock rate:512*fs */
 	codec->write(codec, AD1938_PLL_CLK_CTRL1, 0x04);
 
 	/* register controls for ad1938 */

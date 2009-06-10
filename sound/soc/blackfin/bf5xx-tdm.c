@@ -176,7 +176,7 @@ static int bf5xx_tdm_probe(struct platform_device *pdev,
 
 	/* request DMA for SPORT */
 	sport_handle = sport_init(&sport_params[sport_num], 4, \
-			2 * sizeof(u32), NULL);
+			8 * sizeof(u32), NULL);
 	if (!sport_handle) {
 		peripheral_free_list(&sport_req[sport_num][0]);
 		return -ENODEV;
