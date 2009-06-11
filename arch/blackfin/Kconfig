@@ -420,6 +420,7 @@ config CLKIN_HZ
 	default "30000000" if BFIN561_EZKIT
 	default "24576000" if PNAV10
 	default "10000000" if BFIN532_IP0X
+	default "0" # u-boot should pass it down
 	help
 	  The frequency of CLKIN crystal oscillator on the board in Hz.
 	  Warning: This value should match the crystal on the board. Otherwise,
