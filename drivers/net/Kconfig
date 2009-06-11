@@ -932,6 +932,7 @@ config DM9000
 	depends on ARM || BLACKFIN || MIPS
 	select CRC32
 	select MII
+	select COMPAT_NET_DEV_OPS
 	---help---
 	  Support for DM9000 chipset.
 
