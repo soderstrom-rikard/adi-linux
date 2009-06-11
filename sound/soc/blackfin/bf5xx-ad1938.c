@@ -118,29 +118,29 @@ static struct snd_soc_device bf5xx_ad1938_snd_devdata = {
 	.codec_dev = &soc_codec_dev_ad1938,
 };
 
-static struct platform_device *bf52x_ad1938_snd_device;
+static struct platform_device *bfxx_ad1938_snd_device;
 
 static int __init bf5xx_ad1938_init(void)
 {
 	int ret;
 
-	bf52x_ad1938_snd_device = platform_device_alloc("soc-audio", -1);
-	if (!bf52x_ad1938_snd_device)
+	bfxx_ad1938_snd_device = platform_device_alloc("soc-audio", -1);
+	if (!bfxx_ad1938_snd_device)
 		return -ENOMEM;
 
-	platform_set_drvdata(bf52x_ad1938_snd_device, &bf5xx_ad1938_snd_devdata);
-	bf5xx_ad1938_snd_devdata.dev = &bf52x_ad1938_snd_device->dev;
-	ret = platform_device_add(bf52x_ad1938_snd_device);
+	platform_set_drvdata(bfxx_ad1938_snd_device, &bf5xx_ad1938_snd_devdata);
+	bf5xx_ad1938_snd_devdata.dev = &bfxx_ad1938_snd_device->dev;
+	ret = platform_device_add(bfxx_ad1938_snd_device);
 
 	if (ret)
-		platform_device_put(bf52x_ad1938_snd_device);
+		platform_device_put(bfxx_ad1938_snd_device);
 
 	return ret;
 }
 
 static void __exit bf5xx_ad1938_exit(void)
 {
-	platform_device_unregister(bf52x_ad1938_snd_device);
+	platform_device_unregister(bfxx_ad1938_snd_device);
 }
 
 module_init(bf5xx_ad1938_init);
