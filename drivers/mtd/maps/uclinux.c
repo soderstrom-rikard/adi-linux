@@ -87,7 +87,6 @@ static int __init uclinux_mtd_init(void)
 	mtd->owner = THIS_MODULE;
 	mtd->point = uclinux_point;
 	mtd->priv = mapp;
-	++mtd->usecount;
 
 	uclinux_ram_mtdinfo = mtd;
 #ifdef CONFIG_MTD_PARTITIONS
