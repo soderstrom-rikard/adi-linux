@@ -519,9 +519,8 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 				else if (iface->readNum > 255) {
 					write_MASTER_CTL(iface, 0xff << 6);
 					iface->manual_stop = 1;
-				} else {
+				} else
 					break;
-				}
 			}
 		}
 		write_INT_MASK(iface, MCOMP | MERR |
