@@ -970,7 +970,7 @@ static inline int bfin_sport_spi_init_queue(struct driver_data *drv_data)
 	/* init messages workqueue */
 	INIT_WORK(&drv_data->pump_messages, bfin_sport_spi_pump_messages);
 	drv_data->workqueue =
-	    create_singlethread_workqueue(drv_data->master->dev.parent->bus_id);
+	    create_singlethread_workqueue(dev_name(drv_data->master->dev.parent));
 	if (drv_data->workqueue == NULL)
 		return -EBUSY;
 
