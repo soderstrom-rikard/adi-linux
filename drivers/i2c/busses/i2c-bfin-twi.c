@@ -23,8 +23,6 @@
 #include <asm/portmux.h>
 #include <asm/irq.h>
 
-#define POLL_TIMEOUT       (20 * HZ)
-
 /* SMBus mode*/
 #define TWI_I2C_MODE_STANDARD		1
 #define TWI_I2C_MODE_STANDARDSUB	2
@@ -165,16 +163,13 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 			write_INT_MASK(iface, 0);
 			write_MASTER_CTL(iface, 0);
 			SSYNC();
-			/* If it is a quick transfer, only address bug no data,
+			/* If it is a quick transfer, only address without data,
 			 * not an err, return 1.
+			 * If address is acknowledged return 1.
 			 */
-			if (iface->writeNum == 0 && (mast_stat & BUFRDERR))
+			if ((iface->writeNum == 0 && (mast_stat & BUFRDERR))
+				|| !(mast_stat & ANAK))
 				iface->result = 1;
-			/* If address not acknowledged return -1,
-			 * else return 0.
-			 */
-			else if (!(mast_stat & ANAK))
-				iface->result = 0;
 		}
 		complete(&iface->complete);
 		return;
@@ -246,9 +241,9 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 			write_INT_MASK(iface, 0);
 			write_MASTER_CTL(iface, 0);
 			SSYNC();
-			complete(&iface->complete);
 		}
 	}
+	complete(&iface->complete);
 }
 
 /* Interrupt handler */
@@ -264,9 +259,9 @@ static irqreturn_t bfin_twi_interrupt_entry(int irq, void *dev_id)
 }
 
 /*
- * Generic i2c master transfer entrypoint
+ * One i2c master transfer
  */
-static int bfin_twi_master_xfer(struct i2c_adapter *adap,
+static int bfin_twi_do_master_xfer(struct i2c_adapter *adap,
 				struct i2c_msg *msgs, int num)
 {
 	struct bfin_twi_iface *iface = adap->algo_data;
@@ -338,23 +333,41 @@ static int bfin_twi_master_xfer(struct i2c_adapter *adap,
 		((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ > 100) ? FAST : 0));
 	SSYNC();
 
-	if (!wait_for_completion_timeout(&iface->complete,
-		jiffies + POLL_TIMEOUT))
-		iface->result = -1;
+	while (!iface->result) {
+		if (!wait_for_completion_timeout(&iface->complete,
+			jiffies + adap->timeout*HZ))
+			iface->result = -1;
+	}
 
-	rc = iface->result;
-
-	if (rc == 1)
-		return num;
+	if (iface->result == 1)
+		rc = iface->cur_msg + 1;
 	else
-		return rc;
+		rc = iface->result;
+
+	return rc;
 }
 
 /*
- * SMBus type transfer entrypoint
+ * Generic i2c master transfer entrypoint
  */
+static int bfin_twi_master_xfer(struct i2c_adapter *adap,
+				struct i2c_msg *msgs, int num)
+{
+	int i, ret = 0;
 
-int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
+	for (i = 0; i < adap->retries; i++) {
+		ret = bfin_twi_do_master_xfer(adap, msgs, num);
+		if (ret > 0)
+			break;
+	}
+
+	return ret;
+}
+
+/*
+ * One I2C SMBus transfer
+ */
+int bfin_twi_do_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 			unsigned short flags, char read_write,
 			u8 command, int size, union i2c_smbus_data *data)
 {
@@ -536,13 +549,34 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 	}
 	SSYNC();
 
-	if (!wait_for_completion_timeout(&iface->complete,
-		jiffies + POLL_TIMEOUT))
-		iface->result = -1;
+	while (!iface->result) {
+		if (!wait_for_completion_timeout(&iface->complete,
+			jiffies + adap->timeout*HZ))
+			iface->result = -1;
+	}
 
 	rc = (iface->result >= 0) ? 0 : -1;
 
 	return rc;
+}
+
+/*
+ * Generic I2C SMBus transfer entrypoint
+ */
+int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
+			unsigned short flags, char read_write,
+			u8 command, int size, union i2c_smbus_data *data)
+{
+	int i, ret = 0;
+
+	for (i = 0; i < adap->retries; i++) {
+		ret = bfin_twi_do_smbus_xfer(adap, addr, flags,
+			read_write, command, size, data);
+		if (ret == 0)
+			break;
+	}
+
+	return ret;
 }
 
 /*
@@ -643,6 +677,8 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	p_adap->algo_data = iface;
 	p_adap->class = I2C_CLASS_HWMON | I2C_CLASS_SPD;
 	p_adap->dev.parent = &pdev->dev;
+	p_adap->timeout = 1;
+	p_adap->retries = 3;
 
 	rc = peripheral_request_list(pin_req[pdev->id], "i2c-bfin-twi");
 	if (rc) {
