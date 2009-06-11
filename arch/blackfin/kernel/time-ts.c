@@ -59,7 +59,7 @@ static inline unsigned long long cycles_2_ns(cycle_t cyc)
 	return (cyc * cyc2ns_scale) >> CYC2NS_SCALE_FACTOR;
 }
 
-static cycle_t read_cycles(struct clocksource *cs)
+static cycle_t bfin_read_cycles(struct clocksource *cs)
 {
 	return __bfin_cycles_off + (get_cycles() << __bfin_cycles_mod);
 }
@@ -75,7 +75,7 @@ static struct clocksource bfin_cs_cycles = {
 
 unsigned long long sched_clock(void)
 {
-	return cycles_2_ns(read_cycles(&bfin_cs_cycles));
+	return cycles_2_ns(bfin_read_cycles(&bfin_cs_cycles));
 }
 
 static int __init bfin_cs_cycles_init(void)
