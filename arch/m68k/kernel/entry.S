@@ -424,7 +424,7 @@ resume:
 .data
 ALIGN
 sys_call_table:
-	.long sys_ni_syscall	/* 0  -  old "setup()" system call*/
+	.long sys_restart_syscall	/* 0 - old "setup()" system call, used for restarting */
 	.long sys_exit
 	.long sys_fork
 	.long sys_read
@@ -753,4 +753,6 @@ sys_call_table:
 	.long sys_dup3
 	.long sys_pipe2
 	.long sys_inotify_init1
+	.long sys_preadv
+	.long sys_pwritev		/* 330 */
 

@@ -61,7 +61,7 @@ static int svc_rdma_has_wspace(struct svc_xprt *xprt);
 static void rq_cq_reap(struct svcxprt_rdma *xprt);
 static void sq_cq_reap(struct svcxprt_rdma *xprt);
 
-DECLARE_TASKLET(dto_tasklet, dto_tasklet_func, 0UL);
+static DECLARE_TASKLET(dto_tasklet, dto_tasklet_func, 0UL);
 static DEFINE_SPINLOCK(dto_lock);
 static LIST_HEAD(dto_xprt_q);
 
@@ -500,8 +500,8 @@ int svc_rdma_post_recv(struct svcxprt_rdma *xprt)
 		BUG_ON(sge_no >= xprt->sc_max_sge);
 		page = svc_rdma_get_page();
 		ctxt->pages[sge_no] = page;
-		pa = ib_dma_map_page(xprt->sc_cm_id->device,
-				     page, 0, PAGE_SIZE,
+		pa = ib_dma_map_single(xprt->sc_cm_id->device,
+				     page_address(page), PAGE_SIZE,
 				     DMA_FROM_DEVICE);
 		if (ib_dma_mapping_error(xprt->sc_cm_id->device, pa))
 			goto err_put_ctxt;
@@ -520,8 +520,9 @@ int svc_rdma_post_recv(struct svcxprt_rdma *xprt)
 	svc_xprt_get(&xprt->sc_xprt);
 	ret = ib_post_recv(xprt->sc_qp, &recv_wr, &bad_recv_wr);
 	if (ret) {
-		svc_xprt_put(&xprt->sc_xprt);
+		svc_rdma_unmap_dma(ctxt);
 		svc_rdma_put_context(ctxt, 1);
+		svc_xprt_put(&xprt->sc_xprt);
 	}
 	return ret;
 
@@ -827,7 +828,7 @@ static struct svc_xprt *svc_rdma_accept(struct svc_xprt *xprt)
 	struct rdma_conn_param conn_param;
 	struct ib_qp_init_attr qp_attr;
 	struct ib_device_attr devattr;
-	int dma_mr_acc;
+	int uninitialized_var(dma_mr_acc);
 	int need_dma_mr;
 	int ret;
 	int i;
@@ -1048,21 +1049,21 @@ static struct svc_xprt *svc_rdma_accept(struct svc_xprt *xprt)
 
 	dprintk("svcrdma: new connection %p accepted with the following "
 		"attributes:\n"
-		"    local_ip        : %d.%d.%d.%d\n"
+		"    local_ip        : %pI4\n"
 		"    local_port	     : %d\n"
-		"    remote_ip       : %d.%d.%d.%d\n"
+		"    remote_ip       : %pI4\n"
 		"    remote_port     : %d\n"
 		"    max_sge         : %d\n"
 		"    sq_depth        : %d\n"
 		"    max_requests    : %d\n"
 		"    ord             : %d\n",
 		newxprt,
-		NIPQUAD(((struct sockaddr_in *)&newxprt->sc_cm_id->
-			 route.addr.src_addr)->sin_addr.s_addr),
+		&((struct sockaddr_in *)&newxprt->sc_cm_id->
+			 route.addr.src_addr)->sin_addr.s_addr,
 		ntohs(((struct sockaddr_in *)&newxprt->sc_cm_id->
 		       route.addr.src_addr)->sin_port),
-		NIPQUAD(((struct sockaddr_in *)&newxprt->sc_cm_id->
-			 route.addr.dst_addr)->sin_addr.s_addr),
+		&((struct sockaddr_in *)&newxprt->sc_cm_id->
+			 route.addr.dst_addr)->sin_addr.s_addr,
 		ntohs(((struct sockaddr_in *)&newxprt->sc_cm_id->
 		       route.addr.dst_addr)->sin_port),
 		newxprt->sc_max_sge,
@@ -1314,8 +1315,8 @@ void svc_rdma_send_error(struct svcxprt_rdma *xprt, struct rpcrdma_msg *rmsgp,
 	length = svc_rdma_xdr_encode_error(xprt, rmsgp, err, va);
 
 	/* Prepare SGE for local address */
-	sge.addr = ib_dma_map_page(xprt->sc_cm_id->device,
-				   p, 0, PAGE_SIZE, DMA_FROM_DEVICE);
+	sge.addr = ib_dma_map_single(xprt->sc_cm_id->device,
+				   page_address(p), PAGE_SIZE, DMA_FROM_DEVICE);
 	if (ib_dma_mapping_error(xprt->sc_cm_id->device, sge.addr)) {
 		put_page(p);
 		return;
@@ -1342,7 +1343,7 @@ void svc_rdma_send_error(struct svcxprt_rdma *xprt, struct rpcrdma_msg *rmsgp,
 	if (ret) {
 		dprintk("svcrdma: Error %d posting send for protocol error\n",
 			ret);
-		ib_dma_unmap_page(xprt->sc_cm_id->device,
+		ib_dma_unmap_single(xprt->sc_cm_id->device,
 				  sge.addr, PAGE_SIZE,
 				  DMA_FROM_DEVICE);
 		svc_rdma_put_context(ctxt, 1);

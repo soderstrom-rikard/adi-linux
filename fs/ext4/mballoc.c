@@ -46,22 +46,23 @@
  * The allocation request involve request for multiple number of blocks
  * near to the goal(block) value specified.
  *
- * During initialization phase of the allocator we decide to use the group
- * preallocation or inode preallocation depending on the size file. The
- * size of the file could be the resulting file size we would have after
- * allocation or the current file size which ever is larger. If the size is
- * less that sbi->s_mb_stream_request we select the group
- * preallocation. The default value of s_mb_stream_request is 16
- * blocks. This can also be tuned via
- * /proc/fs/ext4/<partition>/stream_req. The value is represented in terms
- * of number of blocks.
+ * During initialization phase of the allocator we decide to use the
+ * group preallocation or inode preallocation depending on the size of
+ * the file. The size of the file could be the resulting file size we
+ * would have after allocation, or the current file size, which ever
+ * is larger. If the size is less than sbi->s_mb_stream_request we
+ * select to use the group preallocation. The default value of
+ * s_mb_stream_request is 16 blocks. This can also be tuned via
+ * /sys/fs/ext4/<partition>/mb_stream_req. The value is represented in
+ * terms of number of blocks.
  *
  * The main motivation for having small file use group preallocation is to
- * ensure that we have small file closer in the disk.
+ * ensure that we have small files closer together on the disk.
  *
- * First stage the allocator looks at the inode prealloc list
- * ext4_inode_info->i_prealloc_list contain list of prealloc spaces for
- * this particular inode. The inode prealloc space is represented as:
+ * First stage the allocator looks at the inode prealloc list,
+ * ext4_inode_info->i_prealloc_list, which contains list of prealloc
+ * spaces for this particular inode. The inode prealloc space is
+ * represented as:
  *
  * pa_lstart -> the logical start block for this prealloc space
  * pa_pstart -> the physical start block for this prealloc space
@@ -121,29 +122,29 @@
  * list. In case of inode preallocation we follow a list of heuristics
  * based on file size. This can be found in ext4_mb_normalize_request. If
  * we are doing a group prealloc we try to normalize the request to
- * sbi->s_mb_group_prealloc. Default value of s_mb_group_prealloc is set to
+ * sbi->s_mb_group_prealloc. Default value of s_mb_group_prealloc is
  * 512 blocks. This can be tuned via
- * /proc/fs/ext4/<partition/group_prealloc. The value is represented in
+ * /sys/fs/ext4/<partition/mb_group_prealloc. The value is represented in
  * terms of number of blocks. If we have mounted the file system with -O
  * stripe=<value> option the group prealloc request is normalized to the
  * stripe value (sbi->s_stripe)
  *
- * The regular allocator(using the buddy cache) support few tunables.
+ * The regular allocator(using the buddy cache) supports few tunables.
  *
- * /proc/fs/ext4/<partition>/min_to_scan
- * /proc/fs/ext4/<partition>/max_to_scan
- * /proc/fs/ext4/<partition>/order2_req
+ * /sys/fs/ext4/<partition>/mb_min_to_scan
+ * /sys/fs/ext4/<partition>/mb_max_to_scan
+ * /sys/fs/ext4/<partition>/mb_order2_req
  *
- * The regular allocator use buddy scan only if the request len is power of
+ * The regular allocator uses buddy scan only if the request len is power of
  * 2 blocks and the order of allocation is >= sbi->s_mb_order2_reqs. The
  * value of s_mb_order2_reqs can be tuned via
- * /proc/fs/ext4/<partition>/order2_req.  If the request len is equal to
+ * /sys/fs/ext4/<partition>/mb_order2_req.  If the request len is equal to
  * stripe size (sbi->s_stripe), we try to search for contigous block in
- * stripe size. This should result in better allocation on RAID setup. If
- * not we search in the specific group using bitmap for best extents. The
- * tunable min_to_scan and max_to_scan controll the behaviour here.
+ * stripe size. This should result in better allocation on RAID setups. If
+ * not, we search in the specific group using bitmap for best extents. The
+ * tunable min_to_scan and max_to_scan control the behaviour here.
  * min_to_scan indicate how long the mballoc __must__ look for a best
- * extent and max_to_scanindicate how long the mballoc __can__ look for a
+ * extent and max_to_scan indicates how long the mballoc __can__ look for a
  * best extent in the found extents. Searching for the blocks starts with
  * the group specified as the goal value in allocation context via
  * ac_g_ex. Each group is first checked based on the criteria whether it
@@ -337,8 +338,6 @@ static void ext4_mb_generate_from_pa(struct super_block *sb, void *bitmap,
 					ext4_group_t group);
 static void ext4_mb_generate_from_freelist(struct super_block *sb, void *bitmap,
 						ext4_group_t group);
-static int ext4_mb_init_per_dev_proc(struct super_block *sb);
-static int ext4_mb_destroy_per_dev_proc(struct super_block *sb);
 static void release_blocks_on_commit(journal_t *journal, transaction_t *txn);
 
 
@@ -457,9 +456,9 @@ static void mb_free_blocks_double(struct inode *inode, struct ext4_buddy *e4b,
 			blocknr += first + i;
 			blocknr +=
 			    le32_to_cpu(EXT4_SB(sb)->s_es->s_first_data_block);
-
-			ext4_error(sb, __func__, "double-free of inode"
-				   " %lu's block %llu(bit %u in group %lu)\n",
+			ext4_grp_locked_error(sb, e4b->bd_group,
+				   __func__, "double-free of inode"
+				   " %lu's block %llu(bit %u in group %u)",
 				   inode ? inode->i_ino : 0, blocknr,
 				   first + i, e4b->bd_group);
 		}
@@ -489,7 +488,7 @@ static void mb_cmp_bitmaps(struct ext4_buddy *e4b, void *bitmap)
 		b2 = (unsigned char *) bitmap;
 		for (i = 0; i < e4b->bd_sb->s_blocksize; i++) {
 			if (b1[i] != b2[i]) {
-				printk(KERN_ERR "corruption in group %lu "
+				printk(KERN_ERR "corruption in group %u "
 				       "at byte %u(%u): %x in copy != %x "
 				       "on disk/prealloc\n",
 				       e4b->bd_group, i, i * 8, b1[i], b2[i]);
@@ -702,8 +701,8 @@ static void ext4_mb_generate_buddy(struct super_block *sb,
 	grp->bb_fragments = fragments;
 
 	if (free != grp->bb_free) {
-		ext4_error(sb, __func__,
-			"EXT4-fs: group %lu: %u blocks in bitmap, %u in gd\n",
+		ext4_grp_locked_error(sb, group,  __func__,
+			"EXT4-fs: group %u: %u blocks in bitmap, %u in gd",
 			group, free, grp->bb_free);
 		/*
 		 * If we intent to continue, we consider group descritor
@@ -808,8 +807,8 @@ static int ext4_mb_init_cache(struct page *page, char *incore)
 						first_group + i, desc);
 			set_bitmap_uptodate(bh[i]);
 			set_buffer_uptodate(bh[i]);
-			unlock_buffer(bh[i]);
 			spin_unlock(sb_bgl_lock(EXT4_SB(sb), first_group + i));
+			unlock_buffer(bh[i]);
 			continue;
 		}
 		spin_unlock(sb_bgl_lock(EXT4_SB(sb), first_group + i));
@@ -832,7 +831,7 @@ static int ext4_mb_init_cache(struct page *page, char *incore)
 		set_bitmap_uptodate(bh[i]);
 		bh[i]->b_end_io = end_buffer_read_sync;
 		submit_bh(READ, bh[i]);
-		mb_debug("read bitmap for group %lu\n", first_group + i);
+		mb_debug("read bitmap for group %u\n", first_group + i);
 	}
 
 	/* wait for I/O completion */
@@ -932,7 +931,7 @@ ext4_mb_load_buddy(struct super_block *sb, ext4_group_t group,
 	struct ext4_sb_info *sbi = EXT4_SB(sb);
 	struct inode *inode = sbi->s_buddy_cache;
 
-	mb_debug("load group %lu\n", group);
+	mb_debug("load group %u\n", group);
 
 	blocks_per_page = PAGE_CACHE_SIZE / sb->s_blocksize;
 	grp = ext4_get_group_info(sb, group);
@@ -1161,12 +1160,11 @@ static void mb_free_blocks(struct inode *inode, struct ext4_buddy *e4b,
 			blocknr += block;
 			blocknr +=
 			    le32_to_cpu(EXT4_SB(sb)->s_es->s_first_data_block);
-			ext4_unlock_group(sb, e4b->bd_group);
-			ext4_error(sb, __func__, "double-free of inode"
-				   " %lu's block %llu(bit %u in group %lu)\n",
+			ext4_grp_locked_error(sb, e4b->bd_group,
+				   __func__, "double-free of inode"
+				   " %lu's block %llu(bit %u in group %u)",
 				   inode ? inode->i_ino : 0, blocknr, block,
 				   e4b->bd_group);
-			ext4_lock_group(sb, e4b->bd_group);
 		}
 		mb_clear_bit(block, EXT4_MB_BITMAP(e4b));
 		e4b->bd_info->bb_counters[order]++;
@@ -1448,7 +1446,7 @@ static void ext4_mb_measure_extent(struct ext4_allocation_context *ac,
 	struct ext4_free_extent *gex = &ac->ac_g_ex;
 
 	BUG_ON(ex->fe_len <= 0);
-	BUG_ON(ex->fe_len >= EXT4_BLOCKS_PER_GROUP(ac->ac_sb));
+	BUG_ON(ex->fe_len > EXT4_BLOCKS_PER_GROUP(ac->ac_sb));
 	BUG_ON(ex->fe_start >= EXT4_BLOCKS_PER_GROUP(ac->ac_sb));
 	BUG_ON(ac->ac_status != AC_STATUS_CONTINUE);
 
@@ -1651,8 +1649,9 @@ static void ext4_mb_complex_scan_group(struct ext4_allocation_context *ac,
 			 * free blocks even though group info says we
 			 * we have free blocks
 			 */
-			ext4_error(sb, __func__, "%d free blocks as per "
-					"group info. But bitmap says 0\n",
+			ext4_grp_locked_error(sb, e4b->bd_group,
+					__func__, "%d free blocks as per "
+					"group info. But bitmap says 0",
 					free);
 			break;
 		}
@@ -1660,8 +1659,9 @@ static void ext4_mb_complex_scan_group(struct ext4_allocation_context *ac,
 		mb_find_extent(e4b, 0, i, ac->ac_g_ex.fe_len, &ex);
 		BUG_ON(ex.fe_len <= 0);
 		if (free < ex.fe_len) {
-			ext4_error(sb, __func__, "%d free blocks as per "
-					"group info. But got %d blocks\n",
+			ext4_grp_locked_error(sb, e4b->bd_group,
+					__func__, "%d free blocks as per "
+					"group info. But got %d blocks",
 					free, ex.fe_len);
 			/*
 			 * The number of free blocks differs. This mostly
@@ -1725,6 +1725,7 @@ static int ext4_mb_good_group(struct ext4_allocation_context *ac,
 {
 	unsigned free, fragments;
 	unsigned i, bits;
+	int flex_size = ext4_flex_bg_size(EXT4_SB(ac->ac_sb));
 	struct ext4_group_desc *desc;
 	struct ext4_group_info *grp = ext4_get_group_info(ac->ac_sb, group);
 
@@ -1744,6 +1745,12 @@ static int ext4_mb_good_group(struct ext4_allocation_context *ac,
 		/* If this group is uninitialized, skip it initially */
 		desc = ext4_get_group_desc(ac->ac_sb, group, NULL);
 		if (desc->bg_flags & cpu_to_le16(EXT4_BG_BLOCK_UNINIT))
+			return 0;
+
+		/* Avoid using the first bg of a flexgroup for data files */
+		if ((ac->ac_flags & EXT4_MB_HINT_DATA) &&
+		    (flex_size >= EXT4_FLEX_SIZE_DIR_ALLOC_SCHEME) &&
+		    ((group % flex_size) == 0))
 			return 0;
 
 		bits = ac->ac_sb->s_blocksize_bits + 1;
@@ -1808,7 +1815,7 @@ int ext4_mb_get_buddy_cache_lock(struct super_block *sb, ext4_group_t group)
 		 * no block allocation going on in any
 		 * of that groups
 		 */
-		down_write(&grp->alloc_sem);
+		down_write_nested(&grp->alloc_sem, i);
 	}
 	return i;
 }
@@ -1970,7 +1977,7 @@ ext4_mb_regular_allocator(struct ext4_allocation_context *ac)
 	/*
 	 * We search using buddy data only if the order of the request
 	 * is greater than equal to the sbi_s_mb_order2_reqs
-	 * You can tune it via /proc/fs/ext4/<partition>/order2_req
+	 * You can tune it via /sys/fs/ext4/<partition>/mb_order2_req
 	 */
 	if (i >= sbi->s_mb_order2_reqs) {
 		/*
@@ -2174,13 +2181,13 @@ static int ext4_mb_seq_history_show(struct seq_file *seq, void *v)
 	if (hs->op == EXT4_MB_HISTORY_ALLOC) {
 		fmt = "%-5u %-8u %-23s %-23s %-23s %-5u %-5u %-2u "
 			"%-5u %-5s %-5u %-6u\n";
-		sprintf(buf2, "%lu/%d/%u@%u", hs->result.fe_group,
+		sprintf(buf2, "%u/%d/%u@%u", hs->result.fe_group,
 			hs->result.fe_start, hs->result.fe_len,
 			hs->result.fe_logical);
-		sprintf(buf, "%lu/%d/%u@%u", hs->orig.fe_group,
+		sprintf(buf, "%u/%d/%u@%u", hs->orig.fe_group,
 			hs->orig.fe_start, hs->orig.fe_len,
 			hs->orig.fe_logical);
-		sprintf(buf3, "%lu/%d/%u@%u", hs->goal.fe_group,
+		sprintf(buf3, "%u/%d/%u@%u", hs->goal.fe_group,
 			hs->goal.fe_start, hs->goal.fe_len,
 			hs->goal.fe_logical);
 		seq_printf(seq, fmt, hs->pid, hs->ino, buf, buf3, buf2,
@@ -2189,20 +2196,20 @@ static int ext4_mb_seq_history_show(struct seq_file *seq, void *v)
 				hs->buddy ? 1 << hs->buddy : 0);
 	} else if (hs->op == EXT4_MB_HISTORY_PREALLOC) {
 		fmt = "%-5u %-8u %-23s %-23s %-23s\n";
-		sprintf(buf2, "%lu/%d/%u@%u", hs->result.fe_group,
+		sprintf(buf2, "%u/%d/%u@%u", hs->result.fe_group,
 			hs->result.fe_start, hs->result.fe_len,
 			hs->result.fe_logical);
-		sprintf(buf, "%lu/%d/%u@%u", hs->orig.fe_group,
+		sprintf(buf, "%u/%d/%u@%u", hs->orig.fe_group,
 			hs->orig.fe_start, hs->orig.fe_len,
 			hs->orig.fe_logical);
 		seq_printf(seq, fmt, hs->pid, hs->ino, buf, "", buf2);
 	} else if (hs->op == EXT4_MB_HISTORY_DISCARD) {
-		sprintf(buf2, "%lu/%d/%u", hs->result.fe_group,
+		sprintf(buf2, "%u/%d/%u", hs->result.fe_group,
 			hs->result.fe_start, hs->result.fe_len);
 		seq_printf(seq, "%-5u %-8u %-23s discard\n",
 				hs->pid, hs->ino, buf2);
 	} else if (hs->op == EXT4_MB_HISTORY_FREE) {
-		sprintf(buf2, "%lu/%d/%u", hs->result.fe_group,
+		sprintf(buf2, "%u/%d/%u", hs->result.fe_group,
 			hs->result.fe_start, hs->result.fe_len);
 		seq_printf(seq, "%-5u %-8u %-23s free\n",
 				hs->pid, hs->ino, buf2);
@@ -2315,7 +2322,7 @@ static void *ext4_mb_seq_groups_start(struct seq_file *seq, loff_t *pos)
 		return NULL;
 
 	group = *pos + 1;
-	return (void *) group;
+	return (void *) ((unsigned long) group);
 }
 
 static void *ext4_mb_seq_groups_next(struct seq_file *seq, void *v, loff_t *pos)
@@ -2328,13 +2335,13 @@ static void *ext4_mb_seq_groups_next(struct seq_file *seq, void *v, loff_t *pos)
 	if (*pos < 0 || *pos >= sbi->s_groups_count)
 		return NULL;
 	group = *pos + 1;
-	return (void *) group;;
+	return (void *) ((unsigned long) group);
 }
 
 static int ext4_mb_seq_groups_show(struct seq_file *seq, void *v)
 {
 	struct super_block *sb = seq->private;
-	long group = (long) v;
+	ext4_group_t group = (ext4_group_t) ((unsigned long) v);
 	int i;
 	int err;
 	struct ext4_buddy e4b;
@@ -2356,7 +2363,7 @@ static int ext4_mb_seq_groups_show(struct seq_file *seq, void *v)
 		sizeof(struct ext4_group_info);
 	err = ext4_mb_load_buddy(sb, group, &e4b);
 	if (err) {
-		seq_printf(seq, "#%-5lu: I/O error\n", group);
+		seq_printf(seq, "#%-5u: I/O error\n", group);
 		return 0;
 	}
 	ext4_lock_group(sb, group);
@@ -2364,7 +2371,7 @@ static int ext4_mb_seq_groups_show(struct seq_file *seq, void *v)
 	ext4_unlock_group(sb, group);
 	ext4_mb_release_desc(&e4b);
 
-	seq_printf(seq, "#%-5lu: %-5u %-5u %-5u [", group, sg.info.bb_free,
+	seq_printf(seq, "#%-5u: %-5u %-5u %-5u [", group, sg.info.bb_free,
 			sg.info.bb_fragments, sg.info.bb_first_free);
 	for (i = 0; i <= 13; i++)
 		seq_printf(seq, " %-5u", i <= sb->s_blocksize_bits + 1 ?
@@ -2538,7 +2545,7 @@ int ext4_mb_add_groupinfo(struct super_block *sb, ext4_group_t group,
 			ext4_free_blocks_after_init(sb, group, desc);
 	} else {
 		meta_group_info[i]->bb_free =
-			le16_to_cpu(desc->bg_free_blocks_count);
+			ext4_free_blks_count(sb, desc);
 	}
 
 	INIT_LIST_HEAD(&meta_group_info[i]->bb_prealloc_list);
@@ -2652,7 +2659,7 @@ static int ext4_mb_init_backend(struct super_block *sb)
 		desc = ext4_get_group_desc(sb, i, NULL);
 		if (desc == NULL) {
 			printk(KERN_ERR
-				"EXT4-fs: can't read descriptor %lu\n", i);
+				"EXT4-fs: can't read descriptor %u\n", i);
 			goto err_freebuddy;
 		}
 		if (ext4_mb_add_groupinfo(sb, i, desc) != 0)
@@ -2692,7 +2699,7 @@ int ext4_mb_init(struct super_block *sb, int needs_recovery)
 	i = (sb->s_blocksize_bits + 2) * sizeof(unsigned int);
 	sbi->s_mb_maxs = kmalloc(i, GFP_KERNEL);
 	if (sbi->s_mb_maxs == NULL) {
-		kfree(sbi->s_mb_maxs);
+		kfree(sbi->s_mb_offsets);
 		return -ENOMEM;
 	}
 
@@ -2745,10 +2752,10 @@ int ext4_mb_init(struct super_block *sb, int needs_recovery)
 		spin_lock_init(&lg->lg_prealloc_lock);
 	}
 
-	ext4_mb_init_per_dev_proc(sb);
 	ext4_mb_history_init(sb);
 
-	sbi->s_journal->j_commit_callback = release_blocks_on_commit;
+	if (sbi->s_journal)
+		sbi->s_journal->j_commit_callback = release_blocks_on_commit;
 
 	printk(KERN_INFO "EXT4-fs: mballoc enabled\n");
 	return 0;
@@ -2827,7 +2834,6 @@ int ext4_mb_release(struct super_block *sb)
 
 	free_percpu(sbi->s_locality_groups);
 	ext4_mb_history_release(sb);
-	ext4_mb_destroy_per_dev_proc(sb);
 
 	return 0;
 }
@@ -2849,7 +2855,7 @@ static void release_blocks_on_commit(journal_t *journal, transaction_t *txn)
 	list_for_each_safe(l, ltmp, &txn->t_private_list) {
 		entry = list_entry(l, struct ext4_free_data, list);
 
-		mb_debug("gonna free %u blocks in group %lu (0x%p):",
+		mb_debug("gonna free %u blocks in group %u (0x%p):",
 			 entry->count, entry->group, entry);
 
 		err = ext4_mb_load_buddy(sb, entry->group, &e4b);
@@ -2876,8 +2882,9 @@ static void release_blocks_on_commit(journal_t *journal, transaction_t *txn)
 		discard_block = (ext4_fsblk_t) entry->group * EXT4_BLOCKS_PER_GROUP(sb)
 			+ entry->start_blk
 			+ le32_to_cpu(EXT4_SB(sb)->s_es->s_first_data_block);
-		trace_mark(ext4_discard_blocks, "dev %s blk %llu count %u", sb->s_id,
-			   (unsigned long long) discard_block, entry->count);
+		trace_mark(ext4_discard_blocks, "dev %s blk %llu count %u",
+			   sb->s_id, (unsigned long long) discard_block,
+			   entry->count);
 		sb_issue_discard(sb, discard_block, entry->count);
 
 		kmem_cache_free(ext4_free_ext_cachep, entry);
@@ -2885,62 +2892,6 @@ static void release_blocks_on_commit(journal_t *journal, transaction_t *txn)
 	}
 
 	mb_debug("freed %u blocks in %u structures\n", count, count2);
-}
-
-#define EXT4_MB_STATS_NAME		"stats"
-#define EXT4_MB_MAX_TO_SCAN_NAME	"max_to_scan"
-#define EXT4_MB_MIN_TO_SCAN_NAME	"min_to_scan"
-#define EXT4_MB_ORDER2_REQ		"order2_req"
-#define EXT4_MB_STREAM_REQ		"stream_req"
-#define EXT4_MB_GROUP_PREALLOC		"group_prealloc"
-
-static int ext4_mb_init_per_dev_proc(struct super_block *sb)
-{
-#ifdef CONFIG_PROC_FS
-	mode_t mode = S_IFREG | S_IRUGO | S_IWUSR;
-	struct ext4_sb_info *sbi = EXT4_SB(sb);
-	struct proc_dir_entry *proc;
-
-	if (sbi->s_proc == NULL)
-		return -EINVAL;
-
-	EXT4_PROC_HANDLER(EXT4_MB_STATS_NAME, mb_stats);
-	EXT4_PROC_HANDLER(EXT4_MB_MAX_TO_SCAN_NAME, mb_max_to_scan);
-	EXT4_PROC_HANDLER(EXT4_MB_MIN_TO_SCAN_NAME, mb_min_to_scan);
-	EXT4_PROC_HANDLER(EXT4_MB_ORDER2_REQ, mb_order2_reqs);
-	EXT4_PROC_HANDLER(EXT4_MB_STREAM_REQ, mb_stream_request);
-	EXT4_PROC_HANDLER(EXT4_MB_GROUP_PREALLOC, mb_group_prealloc);
-	return 0;
-
-err_out:
-	remove_proc_entry(EXT4_MB_GROUP_PREALLOC, sbi->s_proc);
-	remove_proc_entry(EXT4_MB_STREAM_REQ, sbi->s_proc);
-	remove_proc_entry(EXT4_MB_ORDER2_REQ, sbi->s_proc);
-	remove_proc_entry(EXT4_MB_MIN_TO_SCAN_NAME, sbi->s_proc);
-	remove_proc_entry(EXT4_MB_MAX_TO_SCAN_NAME, sbi->s_proc);
-	remove_proc_entry(EXT4_MB_STATS_NAME, sbi->s_proc);
-	return -ENOMEM;
-#else
-	return 0;
-#endif
-}
-
-static int ext4_mb_destroy_per_dev_proc(struct super_block *sb)
-{
-#ifdef CONFIG_PROC_FS
-	struct ext4_sb_info *sbi = EXT4_SB(sb);
-
-	if (sbi->s_proc == NULL)
-		return -EINVAL;
-
-	remove_proc_entry(EXT4_MB_GROUP_PREALLOC, sbi->s_proc);
-	remove_proc_entry(EXT4_MB_STREAM_REQ, sbi->s_proc);
-	remove_proc_entry(EXT4_MB_ORDER2_REQ, sbi->s_proc);
-	remove_proc_entry(EXT4_MB_MIN_TO_SCAN_NAME, sbi->s_proc);
-	remove_proc_entry(EXT4_MB_MAX_TO_SCAN_NAME, sbi->s_proc);
-	remove_proc_entry(EXT4_MB_STATS_NAME, sbi->s_proc);
-#endif
-	return 0;
 }
 
 int __init init_ext4_mballoc(void)
@@ -2988,7 +2939,7 @@ void exit_ext4_mballoc(void)
  */
 static noinline_for_stack int
 ext4_mb_mark_diskspace_used(struct ext4_allocation_context *ac,
-				handle_t *handle, unsigned long reserv_blks)
+				handle_t *handle, unsigned int reserv_blks)
 {
 	struct buffer_head *bitmap_bh = NULL;
 	struct ext4_super_block *es;
@@ -3021,8 +2972,8 @@ ext4_mb_mark_diskspace_used(struct ext4_allocation_context *ac,
 	if (!gdp)
 		goto out_err;
 
-	ext4_debug("using block group %lu(%d)\n", ac->ac_b_ex.fe_group,
-			gdp->bg_free_blocks_count);
+	ext4_debug("using block group %u(%d)\n", ac->ac_b_ex.fe_group,
+			ext4_free_blks_count(sb, gdp));
 
 	err = ext4_journal_get_write_access(handle, gdp_bh);
 	if (err)
@@ -3049,7 +3000,7 @@ ext4_mb_mark_diskspace_used(struct ext4_allocation_context *ac,
 		mb_set_bits(sb_bgl_lock(sbi, ac->ac_b_ex.fe_group),
 				bitmap_bh->b_data, ac->ac_b_ex.fe_start,
 				ac->ac_b_ex.fe_len);
-		err = ext4_journal_dirty_metadata(handle, bitmap_bh);
+		err = ext4_handle_dirty_metadata(handle, NULL, bitmap_bh);
 		if (!err)
 			err = -EAGAIN;
 		goto out_err;
@@ -3068,12 +3019,12 @@ ext4_mb_mark_diskspace_used(struct ext4_allocation_context *ac,
 				ac->ac_b_ex.fe_start, ac->ac_b_ex.fe_len);
 	if (gdp->bg_flags & cpu_to_le16(EXT4_BG_BLOCK_UNINIT)) {
 		gdp->bg_flags &= cpu_to_le16(~EXT4_BG_BLOCK_UNINIT);
-		gdp->bg_free_blocks_count =
-			cpu_to_le16(ext4_free_blocks_after_init(sb,
-						ac->ac_b_ex.fe_group,
-						gdp));
+		ext4_free_blks_set(sb, gdp,
+					ext4_free_blocks_after_init(sb,
+					ac->ac_b_ex.fe_group, gdp));
 	}
-	le16_add_cpu(&gdp->bg_free_blocks_count, -ac->ac_b_ex.fe_len);
+	len = ext4_free_blks_count(sb, gdp) - ac->ac_b_ex.fe_len;
+	ext4_free_blks_set(sb, gdp, len);
 	gdp->bg_checksum = ext4_group_desc_csum(sbi, ac->ac_b_ex.fe_group, gdp);
 	spin_unlock(sb_bgl_lock(sbi, ac->ac_b_ex.fe_group));
 	percpu_counter_sub(&sbi->s_freeblocks_counter, ac->ac_b_ex.fe_len);
@@ -3083,22 +3034,24 @@ ext4_mb_mark_diskspace_used(struct ext4_allocation_context *ac,
 	if (!(ac->ac_flags & EXT4_MB_DELALLOC_RESERVED))
 		/* release all the reserved blocks if non delalloc */
 		percpu_counter_sub(&sbi->s_dirtyblocks_counter, reserv_blks);
-	else
+	else {
 		percpu_counter_sub(&sbi->s_dirtyblocks_counter,
 						ac->ac_b_ex.fe_len);
+		/* convert reserved quota blocks to real quota blocks */
+		vfs_dq_claim_block(ac->ac_inode, ac->ac_b_ex.fe_len);
+	}
 
 	if (sbi->s_log_groups_per_flex) {
 		ext4_group_t flex_group = ext4_flex_group(sbi,
 							  ac->ac_b_ex.fe_group);
-		spin_lock(sb_bgl_lock(sbi, flex_group));
-		sbi->s_flex_groups[flex_group].free_blocks -= ac->ac_b_ex.fe_len;
-		spin_unlock(sb_bgl_lock(sbi, flex_group));
+		atomic_sub(ac->ac_b_ex.fe_len,
+			   &sbi->s_flex_groups[flex_group].free_blocks);
 	}
 
-	err = ext4_journal_dirty_metadata(handle, bitmap_bh);
+	err = ext4_handle_dirty_metadata(handle, NULL, bitmap_bh);
 	if (err)
 		goto out_err;
-	err = ext4_journal_dirty_metadata(handle, gdp_bh);
+	err = ext4_handle_dirty_metadata(handle, NULL, gdp_bh);
 
 out_err:
 	sb->s_dirt = 1;
@@ -3110,7 +3063,7 @@ out_err:
  * here we normalize request for locality group
  * Group request are normalized to s_strip size if we set the same via mount
  * option. If not we set it to s_mb_group_prealloc which can be configured via
- * /proc/fs/ext4/<partition>/group_prealloc
+ * /sys/fs/ext4/<partition>/mb_group_prealloc
  *
  * XXX: should we try to preallocate more than the group has now?
  */
@@ -3227,7 +3180,7 @@ ext4_mb_normalize_request(struct ext4_allocation_context *ac,
 	/* check we don't cross already preallocated blocks */
 	rcu_read_lock();
 	list_for_each_entry_rcu(pa, &ei->i_prealloc_list, pa_inode_list) {
-		unsigned long pa_end;
+		ext4_lblk_t pa_end;
 
 		if (pa->pa_deleted)
 			continue;
@@ -3271,7 +3224,7 @@ ext4_mb_normalize_request(struct ext4_allocation_context *ac,
 	/* XXX: extra loop to check we really don't overlap preallocations */
 	rcu_read_lock();
 	list_for_each_entry_rcu(pa, &ei->i_prealloc_list, pa_inode_list) {
-		unsigned long pa_end;
+		ext4_lblk_t pa_end;
 		spin_lock(&pa->pa_lock);
 		if (pa->pa_deleted == 0) {
 			pa_end = pa->pa_lstart + pa->pa_len;
@@ -3289,7 +3242,7 @@ ext4_mb_normalize_request(struct ext4_allocation_context *ac,
 	}
 	BUG_ON(start + size <= ac->ac_o_ex.fe_logical &&
 			start > ac->ac_o_ex.fe_logical);
-	BUG_ON(size <= 0 || size >= EXT4_BLOCKS_PER_GROUP(ac->ac_sb));
+	BUG_ON(size <= 0 || size > EXT4_BLOCKS_PER_GROUP(ac->ac_sb));
 
 	/* now prepare goal request */
 
@@ -3568,7 +3521,7 @@ static void ext4_mb_generate_from_pa(struct super_block *sb, void *bitmap,
 		preallocated += len;
 		count++;
 	}
-	mb_debug("prellocated %u for group %lu\n", preallocated, group);
+	mb_debug("prellocated %u for group %u\n", preallocated, group);
 }
 
 static void ext4_mb_pa_callback(struct rcu_head *head)
@@ -3585,7 +3538,8 @@ static void ext4_mb_pa_callback(struct rcu_head *head)
 static void ext4_mb_put_pa(struct ext4_allocation_context *ac,
 			struct super_block *sb, struct ext4_prealloc_space *pa)
 {
-	unsigned long grp;
+	ext4_group_t grp;
+	ext4_fsblk_t grp_blk;
 
 	if (!atomic_dec_and_test(&pa->pa_count) || pa->pa_free != 0)
 		return;
@@ -3600,8 +3554,15 @@ static void ext4_mb_put_pa(struct ext4_allocation_context *ac,
 	pa->pa_deleted = 1;
 	spin_unlock(&pa->pa_lock);
 
-	/* -1 is to protect from crossing allocation group */
-	ext4_get_group_no_and_offset(sb, pa->pa_pstart - 1, &grp, NULL);
+	grp_blk = pa->pa_pstart;
+	/* 
+	 * If doing group-based preallocation, pa_pstart may be in the
+	 * next group when pa is used up
+	 */
+	if (pa->pa_type == MB_GROUP_PA)
+		grp_blk--;
+
+	ext4_get_group_no_and_offset(sb, grp_blk, &grp, NULL);
 
 	/*
 	 * possible race:
@@ -3693,10 +3654,14 @@ ext4_mb_new_inode_pa(struct ext4_allocation_context *ac)
 	INIT_LIST_HEAD(&pa->pa_inode_list);
 	INIT_LIST_HEAD(&pa->pa_group_list);
 	pa->pa_deleted = 0;
-	pa->pa_linear = 0;
+	pa->pa_type = MB_INODE_PA;
 
 	mb_debug("new inode pa %p: %llu/%u for %u\n", pa,
 			pa->pa_pstart, pa->pa_len, pa->pa_lstart);
+	trace_mark(ext4_mb_new_inode_pa,
+		   "dev %s ino %lu pstart %llu len %u lstart %u",
+		   sb->s_id, ac->ac_inode->i_ino,
+		   pa->pa_pstart, pa->pa_len, pa->pa_lstart);
 
 	ext4_mb_use_inode_pa(ac, pa);
 	atomic_add(pa->pa_free, &EXT4_SB(sb)->s_mb_preallocated);
@@ -3752,10 +3717,12 @@ ext4_mb_new_group_pa(struct ext4_allocation_context *ac)
 	INIT_LIST_HEAD(&pa->pa_inode_list);
 	INIT_LIST_HEAD(&pa->pa_group_list);
 	pa->pa_deleted = 0;
-	pa->pa_linear = 1;
+	pa->pa_type = MB_GROUP_PA;
 
 	mb_debug("new group pa %p: %llu/%u for %u\n", pa,
-			pa->pa_pstart, pa->pa_len, pa->pa_lstart);
+		 pa->pa_pstart, pa->pa_len, pa->pa_lstart);
+	trace_mark(ext4_mb_new_group_pa, "dev %s pstart %llu len %u lstart %u",
+		   sb->s_id, pa->pa_pstart, pa->pa_len, pa->pa_lstart);
 
 	ext4_mb_use_group_pa(ac, pa);
 	atomic_add(pa->pa_free, &EXT4_SB(sb)->s_mb_preallocated);
@@ -3804,16 +3771,18 @@ ext4_mb_release_inode_pa(struct ext4_buddy *e4b, struct buffer_head *bitmap_bh,
 {
 	struct super_block *sb = e4b->bd_sb;
 	struct ext4_sb_info *sbi = EXT4_SB(sb);
-	unsigned long end;
-	unsigned long next;
+	unsigned int end;
+	unsigned int next;
 	ext4_group_t group;
 	ext4_grpblk_t bit;
+	unsigned long long grp_blk_start;
 	sector_t start;
 	int err = 0;
 	int free = 0;
 
 	BUG_ON(pa->pa_deleted == 0);
 	ext4_get_group_no_and_offset(sb, pa->pa_pstart, &group, &bit);
+	grp_blk_start = pa->pa_pstart - bit;
 	BUG_ON(group != e4b->bd_group && pa->pa_len != 0);
 	end = bit + pa->pa_len;
 
@@ -3843,6 +3812,10 @@ ext4_mb_release_inode_pa(struct ext4_buddy *e4b, struct buffer_head *bitmap_bh,
 			ext4_mb_store_history(ac);
 		}
 
+		trace_mark(ext4_mb_release_inode_pa,
+			   "dev %s ino %lu block %llu count %u",
+			   sb->s_id, pa->pa_inode->i_ino, grp_blk_start + bit,
+			   next - bit);
 		mb_free_blocks(pa->pa_inode, e4b, bit, next - bit);
 		bit = next + 1;
 	}
@@ -3851,8 +3824,9 @@ ext4_mb_release_inode_pa(struct ext4_buddy *e4b, struct buffer_head *bitmap_bh,
 			pa, (unsigned long) pa->pa_lstart,
 			(unsigned long) pa->pa_pstart,
 			(unsigned long) pa->pa_len);
-		ext4_error(sb, __func__, "free %u, pa_free %u\n",
-						free, pa->pa_free);
+		ext4_grp_locked_error(sb, group,
+					__func__, "free %u, pa_free %u",
+					free, pa->pa_free);
 		/*
 		 * pa is already deleted so we use the value obtained
 		 * from the bitmap and continue.
@@ -3875,6 +3849,8 @@ ext4_mb_release_group_pa(struct ext4_buddy *e4b,
 	if (ac)
 		ac->ac_op = EXT4_MB_HISTORY_DISCARD;
 
+	trace_mark(ext4_mb_release_group_pa, "dev %s pstart %llu len %d",
+		   sb->s_id, pa->pa_pstart, pa->pa_len);
 	BUG_ON(pa->pa_deleted == 0);
 	ext4_get_group_no_and_offset(sb, pa->pa_pstart, &group, &bit);
 	BUG_ON(group != e4b->bd_group && pa->pa_len != 0);
@@ -3917,7 +3893,7 @@ ext4_mb_discard_group_preallocations(struct super_block *sb,
 	int busy = 0;
 	int free = 0;
 
-	mb_debug("discard preallocation for group %lu\n", group);
+	mb_debug("discard preallocation for group %u\n", group);
 
 	if (list_empty(&grp->bb_prealloc_list))
 		return 0;
@@ -3925,14 +3901,14 @@ ext4_mb_discard_group_preallocations(struct super_block *sb,
 	bitmap_bh = ext4_read_block_bitmap(sb, group);
 	if (bitmap_bh == NULL) {
 		ext4_error(sb, __func__, "Error in reading block "
-				"bitmap for %lu\n", group);
+				"bitmap for %u", group);
 		return 0;
 	}
 
 	err = ext4_mb_load_buddy(sb, group, &e4b);
 	if (err) {
 		ext4_error(sb, __func__, "Error in loading buddy "
-				"information for %lu\n", group);
+				"information for %u", group);
 		put_bh(bitmap_bh);
 		return 0;
 	}
@@ -3995,7 +3971,7 @@ repeat:
 		list_del_rcu(&pa->pa_inode_list);
 		spin_unlock(pa->pa_obj_lock);
 
-		if (pa->pa_linear)
+		if (pa->pa_type == MB_GROUP_PA)
 			ext4_mb_release_group_pa(&e4b, pa, ac);
 		else
 			ext4_mb_release_inode_pa(&e4b, bitmap_bh, pa, ac);
@@ -4040,6 +4016,8 @@ void ext4_discard_preallocations(struct inode *inode)
 	}
 
 	mb_debug("discard preallocation for inode %lu\n", inode->i_ino);
+	trace_mark(ext4_discard_preallocations, "dev %s ino %lu", sb->s_id,
+		   inode->i_ino);
 
 	INIT_LIST_HEAD(&list);
 
@@ -4093,20 +4071,20 @@ repeat:
 	spin_unlock(&ei->i_prealloc_lock);
 
 	list_for_each_entry_safe(pa, tmp, &list, u.pa_tmp_list) {
-		BUG_ON(pa->pa_linear != 0);
+		BUG_ON(pa->pa_type != MB_INODE_PA);
 		ext4_get_group_no_and_offset(sb, pa->pa_pstart, &group, NULL);
 
 		err = ext4_mb_load_buddy(sb, group, &e4b);
 		if (err) {
 			ext4_error(sb, __func__, "Error in loading buddy "
-					"information for %lu\n", group);
+					"information for %u", group);
 			continue;
 		}
 
 		bitmap_bh = ext4_read_block_bitmap(sb, group);
 		if (bitmap_bh == NULL) {
 			ext4_error(sb, __func__, "Error in reading block "
-					"bitmap for %lu\n", group);
+					"bitmap for %u", group);
 			ext4_mb_release_desc(&e4b);
 			continue;
 		}
@@ -4204,7 +4182,7 @@ static inline void ext4_mb_show_ac(struct ext4_allocation_context *ac)
  * file is determined by the current size or the resulting size after
  * allocation which ever is larger
  *
- * One can tune this size via /proc/fs/ext4/<partition>/stream_req
+ * One can tune this size via /sys/fs/ext4/<partition>/mb_stream_req
  */
 static void ext4_mb_group_or_file(struct ext4_allocation_context *ac)
 {
@@ -4249,8 +4227,8 @@ ext4_mb_initialize_context(struct ext4_allocation_context *ac,
 	struct ext4_sb_info *sbi = EXT4_SB(sb);
 	struct ext4_super_block *es = sbi->s_es;
 	ext4_group_t group;
-	unsigned long len;
-	unsigned long goal;
+	unsigned int len;
+	ext4_fsblk_t goal;
 	ext4_grpblk_t block;
 
 	/* we can't allocate > group size */
@@ -4345,7 +4323,7 @@ ext4_mb_discard_lg_preallocations(struct super_block *sb,
 			continue;
 		}
 		/* only lg prealloc space */
-		BUG_ON(!pa->pa_linear);
+		BUG_ON(pa->pa_type != MB_GROUP_PA);
 
 		/* seems this one can be freed ... */
 		pa->pa_deleted = 1;
@@ -4372,7 +4350,7 @@ ext4_mb_discard_lg_preallocations(struct super_block *sb,
 		ext4_get_group_no_and_offset(sb, pa->pa_pstart, &group, NULL);
 		if (ext4_mb_load_buddy(sb, group, &e4b)) {
 			ext4_error(sb, __func__, "Error in loading buddy "
-					"information for %lu\n", group);
+					"information for %u", group);
 			continue;
 		}
 		ext4_lock_group(sb, group);
@@ -4414,7 +4392,7 @@ static void ext4_mb_add_n_trim(struct ext4_allocation_context *ac)
 						pa_inode_list) {
 		spin_lock(&tmp_pa->pa_lock);
 		if (tmp_pa->pa_deleted) {
-			spin_unlock(&pa->pa_lock);
+			spin_unlock(&tmp_pa->pa_lock);
 			continue;
 		}
 		if (!added && pa->pa_free < tmp_pa->pa_free) {
@@ -4451,7 +4429,7 @@ static int ext4_mb_release_context(struct ext4_allocation_context *ac)
 {
 	struct ext4_prealloc_space *pa = ac->ac_pa;
 	if (pa) {
-		if (pa->pa_linear) {
+		if (pa->pa_type == MB_GROUP_PA) {
 			/* see comment in ext4_mb_use_group_pa() */
 			spin_lock(&pa->pa_lock);
 			pa->pa_pstart += ac->ac_b_ex.fe_len;
@@ -4471,7 +4449,7 @@ static int ext4_mb_release_context(struct ext4_allocation_context *ac)
 		 * doesn't grow big.  We need to release
 		 * alloc_semp before calling ext4_mb_add_n_trim()
 		 */
-		if (pa->pa_linear && likely(pa->pa_free)) {
+		if ((pa->pa_type == MB_GROUP_PA) && likely(pa->pa_free)) {
 			spin_lock(pa->pa_obj_lock);
 			list_del_rcu(&pa->pa_inode_list);
 			spin_unlock(pa->pa_obj_lock);
@@ -4495,6 +4473,8 @@ static int ext4_mb_discard_preallocations(struct super_block *sb, int needed)
 	int ret;
 	int freed = 0;
 
+	trace_mark(ext4_mb_discard_preallocations, "dev %s needed %d",
+		   sb->s_id, needed);
 	for (i = 0; i < EXT4_SB(sb)->s_groups_count && needed > 0; i++) {
 		ret = ext4_mb_discard_group_preallocations(sb, i, needed);
 		freed += ret;
@@ -4517,15 +4497,35 @@ ext4_fsblk_t ext4_mb_new_blocks(handle_t *handle,
 	struct ext4_sb_info *sbi;
 	struct super_block *sb;
 	ext4_fsblk_t block = 0;
-	unsigned long inquota;
-	unsigned long reserv_blks = 0;
+	unsigned int inquota = 0;
+	unsigned int reserv_blks = 0;
 
 	sb = ar->inode->i_sb;
 	sbi = EXT4_SB(sb);
 
-	if (!EXT4_I(ar->inode)->i_delalloc_reserved_flag) {
-		/*
-		 * With delalloc we already reserved the blocks
+	trace_mark(ext4_request_blocks, "dev %s flags %u len %u ino %lu "
+		   "lblk %llu goal %llu lleft %llu lright %llu "
+		   "pleft %llu pright %llu ",
+		   sb->s_id, ar->flags, ar->len,
+		   ar->inode ? ar->inode->i_ino : 0,
+		   (unsigned long long) ar->logical,
+		   (unsigned long long) ar->goal,
+		   (unsigned long long) ar->lleft,
+		   (unsigned long long) ar->lright,
+		   (unsigned long long) ar->pleft,
+		   (unsigned long long) ar->pright);
+
+	/*
+	 * For delayed allocation, we could skip the ENOSPC and
+	 * EDQUOT check, as blocks and quotas have been already
+	 * reserved when data being copied into pagecache.
+	 */
+	if (EXT4_I(ar->inode)->i_delalloc_reserved_flag)
+		ar->flags |= EXT4_MB_DELALLOC_RESERVED;
+	else {
+		/* Without delayed allocation we need to verify
+		 * there is enough free blocks to do block allocation
+		 * and verify allocation doesn't exceed the quota limits.
 		 */
 		while (ar->len && ext4_claim_free_blocks(sbi, ar->len)) {
 			/* let others to free the space */
@@ -4537,19 +4537,16 @@ ext4_fsblk_t ext4_mb_new_blocks(handle_t *handle,
 			return 0;
 		}
 		reserv_blks = ar->len;
+		while (ar->len && vfs_dq_alloc_block(ar->inode, ar->len)) {
+			ar->flags |= EXT4_MB_HINT_NOPREALLOC;
+			ar->len--;
+		}
+		inquota = ar->len;
+		if (ar->len == 0) {
+			*errp = -EDQUOT;
+			goto out3;
+		}
 	}
-	while (ar->len && DQUOT_ALLOC_BLOCK(ar->inode, ar->len)) {
-		ar->flags |= EXT4_MB_HINT_NOPREALLOC;
-		ar->len--;
-	}
-	if (ar->len == 0) {
-		*errp = -EDQUOT;
-		goto out3;
-	}
-	inquota = ar->len;
-
-	if (EXT4_I(ar->inode)->i_delalloc_reserved_flag)
-		ar->flags |= EXT4_MB_DELALLOC_RESERVED;
 
 	ac = kmem_cache_alloc(ext4_ac_cachep, GFP_NOFS);
 	if (!ac) {
@@ -4615,8 +4612,8 @@ repeat:
 out2:
 	kmem_cache_free(ext4_ac_cachep, ac);
 out1:
-	if (ar->len < inquota)
-		DQUOT_FREE_BLOCK(ar->inode, inquota - ar->len);
+	if (inquota && ar->len < inquota)
+		vfs_dq_free_block(ar->inode, inquota - ar->len);
 out3:
 	if (!ar->len) {
 		if (!EXT4_I(ar->inode)->i_delalloc_reserved_flag)
@@ -4624,6 +4621,19 @@ out3:
 			percpu_counter_sub(&sbi->s_dirtyblocks_counter,
 						reserv_blks);
 	}
+
+	trace_mark(ext4_allocate_blocks,
+		   "dev %s block %llu flags %u len %u ino %lu "
+		   "logical %llu goal %llu lleft %llu lright %llu "
+		   "pleft %llu pright %llu ",
+		   sb->s_id, (unsigned long long) block,
+		   ar->flags, ar->len, ar->inode ? ar->inode->i_ino : 0,
+		   (unsigned long long) ar->logical,
+		   (unsigned long long) ar->goal,
+		   (unsigned long long) ar->lleft,
+		   (unsigned long long) ar->lright,
+		   (unsigned long long) ar->pleft,
+		   (unsigned long long) ar->pright);
 
 	return block;
 }
@@ -4655,7 +4665,7 @@ ext4_mb_free_metadata(handle_t *handle, struct ext4_buddy *e4b,
 	struct rb_node **n = &db->bb_free_root.rb_node, *node;
 	struct rb_node *parent = NULL, *new_node;
 
-
+	BUG_ON(!ext4_handle_valid(handle));
 	BUG_ON(e4b->bd_bitmap_page == NULL);
 	BUG_ON(e4b->bd_buddy_page == NULL);
 
@@ -4679,9 +4689,9 @@ ext4_mb_free_metadata(handle_t *handle, struct ext4_buddy *e4b,
 		else if (block >= (entry->start_blk + entry->count))
 			n = &(*n)->rb_right;
 		else {
-			ext4_error(sb, __func__,
-			    "Double free of blocks %d (%d %d)\n",
-			    block, entry->start_blk, entry->count);
+			ext4_grp_locked_error(sb, e4b->bd_group, __func__,
+					"Double free of blocks %d (%d %d)",
+					block, entry->start_blk, entry->count);
 			return 0;
 		}
 	}
@@ -4735,7 +4745,7 @@ void ext4_mb_free_blocks(handle_t *handle, struct inode *inode,
 	struct ext4_allocation_context *ac = NULL;
 	struct ext4_group_desc *gdp;
 	struct ext4_super_block *es;
-	unsigned long overflow;
+	unsigned int overflow;
 	ext4_grpblk_t bit;
 	struct buffer_head *gd_bh;
 	ext4_group_t block_group;
@@ -4758,6 +4768,10 @@ void ext4_mb_free_blocks(handle_t *handle, struct inode *inode,
 	}
 
 	ext4_debug("freeing block %lu\n", block);
+	trace_mark(ext4_free_blocks,
+		   "dev %s block %llu count %lu metadata %d ino %lu",
+		   sb->s_id, (unsigned long long) block, count, metadata,
+		   inode ? inode->i_ino : 0);
 
 	ac = kmem_cache_alloc(ext4_ac_cachep, GFP_NOFS);
 	if (ac) {
@@ -4834,7 +4848,7 @@ do_more:
 	err = ext4_mb_load_buddy(sb, block_group, &e4b);
 	if (err)
 		goto error_return;
-	if (metadata) {
+	if (metadata && ext4_handle_valid(handle)) {
 		struct ext4_free_data *new_entry;
 		/*
 		 * blocks being freed are metadata. these blocks shouldn't
@@ -4864,16 +4878,15 @@ do_more:
 	}
 
 	spin_lock(sb_bgl_lock(sbi, block_group));
-	le16_add_cpu(&gdp->bg_free_blocks_count, count);
+	ret = ext4_free_blks_count(sb, gdp) + count;
+	ext4_free_blks_set(sb, gdp, ret);
 	gdp->bg_checksum = ext4_group_desc_csum(sbi, block_group, gdp);
 	spin_unlock(sb_bgl_lock(sbi, block_group));
 	percpu_counter_add(&sbi->s_freeblocks_counter, count);
 
 	if (sbi->s_log_groups_per_flex) {
 		ext4_group_t flex_group = ext4_flex_group(sbi, block_group);
-		spin_lock(sb_bgl_lock(sbi, flex_group));
-		sbi->s_flex_groups[flex_group].free_blocks += count;
-		spin_unlock(sb_bgl_lock(sbi, flex_group));
+		atomic_add(count, &sbi->s_flex_groups[flex_group].free_blocks);
 	}
 
 	ext4_mb_release_desc(&e4b);
@@ -4882,11 +4895,11 @@ do_more:
 
 	/* We dirtied the bitmap block */
 	BUFFER_TRACE(bitmap_bh, "dirtied bitmap block");
-	err = ext4_journal_dirty_metadata(handle, bitmap_bh);
+	err = ext4_handle_dirty_metadata(handle, NULL, bitmap_bh);
 
 	/* And the group descriptor block */
 	BUFFER_TRACE(gd_bh, "dirtied group descriptor block");
-	ret = ext4_journal_dirty_metadata(handle, gd_bh);
+	ret = ext4_handle_dirty_metadata(handle, NULL, gd_bh);
 	if (!err)
 		err = ret;
 

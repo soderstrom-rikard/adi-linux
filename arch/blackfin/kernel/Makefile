@@ -16,6 +16,10 @@ else
 endif
 
 obj-$(CONFIG_BINFMT_ELF_FDPIC)       += binfmt_elf_fdpic.o
+obj-$(CONFIG_FUNCTION_TRACER)        += ftrace-entry.o
+obj-$(CONFIG_FUNCTION_GRAPH_TRACER)  += ftrace.o
+CFLAGS_REMOVE_ftrace.o = -pg
+
 obj-$(CONFIG_IPIPE)                  += ipipe.o
 obj-$(CONFIG_IPIPE_TRACE_MCOUNT)     += mcount.o
 obj-$(CONFIG_BFIN_GPTIMERS)          += gptimers.o
@@ -24,6 +28,7 @@ obj-$(CONFIG_MODULES)                += module.o
 obj-$(CONFIG_KGDB)                   += kgdb.o
 obj-$(CONFIG_KGDB_TESTS)             += kgdb_test.o
 obj-$(CONFIG_EARLY_PRINTK)           += early_printk.o
+obj-$(CONFIG_STACKTRACE)             += stacktrace.o
 obj-$(CONFIG_DEBUG_MMRS)             += debug-mmrs.o
 
 # the kgdb test puts code into L2 and without linker

@@ -18,11 +18,15 @@
 #define _EFER_LME		8  /* Long mode enable */
 #define _EFER_LMA		10 /* Long mode active (read-only) */
 #define _EFER_NX		11 /* No execute enable */
+#define _EFER_SVME		12 /* Enable virtualization */
+#define _EFER_FFXSR		14 /* Enable Fast FXSAVE/FXRSTOR */
 
 #define EFER_SCE		(1<<_EFER_SCE)
 #define EFER_LME		(1<<_EFER_LME)
 #define EFER_LMA		(1<<_EFER_LMA)
 #define EFER_NX			(1<<_EFER_NX)
+#define EFER_SVME		(1<<_EFER_SVME)
+#define EFER_FFXSR		(1<<_EFER_FFXSR)
 
 /* Intel MSRs. Some also available on other CPUs */
 #define MSR_IA32_PERFCTR0		0x000000c1
@@ -77,6 +81,11 @@
 #define MSR_IA32_MC0_ADDR		0x00000402
 #define MSR_IA32_MC0_MISC		0x00000403
 
+/* These are consecutive and not in the normal 4er MCE bank block */
+#define MSR_IA32_MC0_CTL2		0x00000280
+#define CMCI_EN			(1ULL << 30)
+#define CMCI_THRESHOLD_MASK		0xffffULL
+
 #define MSR_P6_PERFCTR0			0x000000c1
 #define MSR_P6_PERFCTR1			0x000000c2
 #define MSR_P6_EVNTSEL0			0x00000186
@@ -85,7 +94,9 @@
 /* AMD64 MSRs. Not complete. See the architecture manual for a more
    complete list. */
 
+#define MSR_AMD64_PATCH_LEVEL		0x0000008b
 #define MSR_AMD64_NB_CFG		0xc001001f
+#define MSR_AMD64_PATCH_LOADER		0xc0010020
 #define MSR_AMD64_IBSFETCHCTL		0xc0011030
 #define MSR_AMD64_IBSFETCHLINAD		0xc0011031
 #define MSR_AMD64_IBSFETCHPHYSAD	0xc0011032
@@ -357,5 +368,10 @@
 #define MSR_IA32_VMX_VMCS_ENUM          0x0000048a
 #define MSR_IA32_VMX_PROCBASED_CTLS2    0x0000048b
 #define MSR_IA32_VMX_EPT_VPID_CAP       0x0000048c
+
+/* AMD-V MSRs */
+
+#define MSR_VM_CR                       0xc0010114
+#define MSR_VM_HSAVE_PA                 0xc0010117
 
 #endif /* _ASM_X86_MSR_INDEX_H */

@@ -56,7 +56,7 @@ struct dm_io_client *dm_io_client_create(unsigned num_pages)
 	if (!client->pool)
 		goto bad;
 
-	client->bios = bioset_create(16, 16);
+	client->bios = bioset_create(16, 0);
 	if (!client->bios)
 		goto bad;
 
@@ -330,7 +330,7 @@ static void dispatch_io(int rw, unsigned int num_regions,
 	struct dpages old_pages = *dp;
 
 	if (sync)
-		rw |= (1 << BIO_RW_SYNC);
+		rw |= (1 << BIO_RW_SYNCIO) | (1 << BIO_RW_UNPLUG);
 
 	/*
 	 * For multiple regions we need to be careful to rewind
@@ -370,15 +370,12 @@ static int sync_io(struct dm_io_client *client, unsigned int num_regions,
 	while (1) {
 		set_current_state(TASK_UNINTERRUPTIBLE);
 
-		if (!atomic_read(&io.count) || signal_pending(current))
+		if (!atomic_read(&io.count))
 			break;
 
 		io_schedule();
 	}
 	set_current_state(TASK_RUNNING);
-
-	if (atomic_read(&io.count))
-		return -EINTR;
 
 	if (error_bits)
 		*error_bits = io.error_bits;

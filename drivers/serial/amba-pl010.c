@@ -665,7 +665,7 @@ static struct uart_driver amba_reg = {
 	.cons			= AMBA_CONSOLE,
 };
 
-static int pl010_probe(struct amba_device *dev, void *id)
+static int pl010_probe(struct amba_device *dev, struct amba_id *id)
 {
 	struct uart_amba_port *uap;
 	void __iomem *base;
@@ -692,7 +692,7 @@ static int pl010_probe(struct amba_device *dev, void *id)
 		goto free;
 	}
 
-	uap->clk = clk_get(&dev->dev, "UARTCLK");
+	uap->clk = clk_get(&dev->dev, NULL);
 	if (IS_ERR(uap->clk)) {
 		ret = PTR_ERR(uap->clk);
 		goto unmap;

@@ -83,17 +83,6 @@ set_aoe_iflist(const char __user *user_str, size_t size)
 	return 0;
 }
 
-unsigned long long
-mac_addr(char addr[6])
-{
-	__be64 n = 0;
-	char *p = (char *) &n;
-
-	memcpy(p + 2, addr, 6);	/* (sizeof addr != 6) */
-
-	return (unsigned long long) __be64_to_cpu(n);
-}
-
 void
 aoenet_xmit(struct sk_buff_head *queue)
 {
@@ -162,7 +151,7 @@ exit:
 	return 0;
 }
 
-static struct packet_type aoe_pt = {
+static struct packet_type aoe_pt __read_mostly = {
 	.type = __constant_htons(ETH_P_AOE),
 	.func = aoenet_rcv,
 };

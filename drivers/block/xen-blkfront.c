@@ -336,18 +336,12 @@ wait:
 static int xlvbd_init_blk_queue(struct gendisk *gd, u16 sector_size)
 {
 	struct request_queue *rq;
-	elevator_t *old_e;
 
 	rq = blk_init_queue(do_blkif_request, &blkif_io_lock);
 	if (rq == NULL)
 		return -1;
 
-	old_e = rq->elevator;
-	if (IS_ERR_VALUE(elevator_init(rq, "noop")))
-		printk(KERN_WARNING
-			"blkfront: Switch elevator failed, use default\n");
-	else
-		elevator_exit(old_e);
+	queue_flag_set_unlocked(QUEUE_FLAG_VIRT, rq);
 
 	/* Hard sector size and max sectors impersonate the equiv. hardware. */
 	blk_queue_hardsect_size(rq, sector_size);
@@ -940,8 +934,6 @@ static void blkfront_closing(struct xenbus_device *dev)
 
 	spin_lock_irqsave(&blkif_io_lock, flags);
 
-	del_gendisk(info->gd);
-
 	/* No more blkif_request(). */
 	blk_stop_queue(info->rq);
 
@@ -954,6 +946,8 @@ static void blkfront_closing(struct xenbus_device *dev)
 
 	blk_cleanup_queue(info->rq);
 	info->rq = NULL;
+
+	del_gendisk(info->gd);
 
  out:
 	xenbus_frontend_closed(dev);
@@ -983,6 +977,10 @@ static void backend_changed(struct xenbus_device *dev,
 		break;
 
 	case XenbusStateClosing:
+		if (info->gd == NULL) {
+			xenbus_frontend_closed(dev);
+			break;
+		}
 		bd = bdget_disk(info->gd, 0);
 		if (bd == NULL)
 			xenbus_dev_fatal(dev, -ENODEV, "bdget failed");

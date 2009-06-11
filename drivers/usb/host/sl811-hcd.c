@@ -231,7 +231,7 @@ static void in_packet(
 	sl811_writeb(usb_pipedevice(urb->pipe), data_reg);
 
 	sl811_write(sl811, bank + SL11H_HOSTCTLREG, control);
-	ep->length = min((int)len,
+	ep->length = min_t(u32, len,
 			urb->transfer_buffer_length - urb->actual_length);
 	PACKET("IN%s/%d qh%p len%d\n", ep->nak_count ? "/retry" : "",
 			!!usb_gettoggle(urb->dev, ep->epnum, 0), ep, len);
@@ -256,7 +256,7 @@ static void out_packet(
 	buf = urb->transfer_buffer + urb->actual_length;
 	prefetch(buf);
 
-	len = min((int)ep->maxpacket,
+	len = min_t(u32, ep->maxpacket,
 			urb->transfer_buffer_length - urb->actual_length);
 
 	if (!(control & SL11H_HCTLMASK_ISOCH)

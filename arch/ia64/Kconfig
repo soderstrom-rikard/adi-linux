@@ -22,6 +22,9 @@ config IA64
 	select HAVE_OPROFILE
 	select HAVE_KPROBES
 	select HAVE_KRETPROBES
+	select HAVE_FTRACE_MCOUNT_RECORD
+	select HAVE_DYNAMIC_FTRACE if (!ITANIUM)
+	select HAVE_FUNCTION_TRACER
 	select HAVE_DMA_ATTRS
 	select HAVE_KVM
 	select HAVE_ARCH_TRACEHOOK
@@ -100,7 +103,7 @@ config GENERIC_IOMAP
 	bool
 	default y
 
-config SCHED_NO_NO_OMIT_FRAME_POINTER
+config SCHED_OMIT_FRAME_POINTER
 	bool
 	default y
 
@@ -221,7 +224,11 @@ config IA64_HP_SIM
 
 config IA64_XEN_GUEST
 	bool "Xen guest"
+	select SWIOTLB
 	depends on XEN
+	help
+	  Build a kernel that runs on Xen guest domain. At this moment only
+	  16KB page size in supported.
 
 endchoice
 
@@ -634,6 +641,17 @@ config DMAR
 	  and include PCI device scope covered by these DMA
 	  remapping devices.
 
+config DMAR_DEFAULT_ON
+	def_bool y
+	prompt "Enable DMA Remapping Devices by default"
+	depends on DMAR
+	help
+	  Selecting this option will enable a DMAR device at boot time if
+	  one is found. If this option is not selected, DMAR support can
+	  be enabled by passing intel_iommu=on to the kernel. It is
+	  recommended you say N here while the DMAR code remains
+	  experimental.
+
 endmenu
 
 endif
@@ -687,3 +705,6 @@ config IRQ_PER_CPU
 
 config IOMMU_HELPER
 	def_bool (IA64_HP_ZX1 || IA64_HP_ZX1_SWIOTLB || IA64_GENERIC || SWIOTLB)
+
+config IOMMU_API
+	def_bool (DMAR)

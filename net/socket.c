@@ -69,7 +69,6 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/mutex.h>
-#include <linux/thread_info.h>
 #include <linux/wanrouter.h>
 #include <linux/if_bridge.h>
 #include <linux/if_frad.h>
@@ -329,7 +328,7 @@ static char *sockfs_dname(struct dentry *dentry, char *buffer, int buflen)
 				dentry->d_inode->i_ino);
 }
 
-static struct dentry_operations sockfs_dentry_operations = {
+static const struct dentry_operations sockfs_dentry_operations = {
 	.d_delete = sockfs_delete_dentry,
 	.d_dname  = sockfs_dname,
 };
@@ -491,11 +490,10 @@ static struct socket *sock_alloc(void)
 	sock = SOCKET_I(inode);
 
 	inode->i_mode = S_IFSOCK | S_IRWXUGO;
-	inode->i_uid = current->fsuid;
-	inode->i_gid = current->fsgid;
+	inode->i_uid = current_fsuid();
+	inode->i_gid = current_fsgid();
 
-	get_cpu_var(sockets_in_use)++;
-	put_cpu_var(sockets_in_use);
+	percpu_add(sockets_in_use, 1);
 	return sock;
 }
 
@@ -537,14 +535,25 @@ void sock_release(struct socket *sock)
 	if (sock->fasync_list)
 		printk(KERN_ERR "sock_release: fasync list not empty!\n");
 
-	get_cpu_var(sockets_in_use)--;
-	put_cpu_var(sockets_in_use);
+	percpu_sub(sockets_in_use, 1);
 	if (!sock->file) {
 		iput(SOCK_INODE(sock));
 		return;
 	}
 	sock->file = NULL;
 }
+
+int sock_tx_timestamp(struct msghdr *msg, struct sock *sk,
+		      union skb_shared_tx *shtx)
+{
+	shtx->flags = 0;
+	if (sock_flag(sk, SOCK_TIMESTAMPING_TX_HARDWARE))
+		shtx->hardware = 1;
+	if (sock_flag(sk, SOCK_TIMESTAMPING_TX_SOFTWARE))
+		shtx->software = 1;
+	return 0;
+}
+EXPORT_SYMBOL(sock_tx_timestamp);
 
 static inline int __sock_sendmsg(struct kiocb *iocb, struct socket *sock,
 				 struct msghdr *msg, size_t size)
@@ -596,33 +605,65 @@ int kernel_sendmsg(struct socket *sock, struct msghdr *msg,
 	return result;
 }
 
+static int ktime2ts(ktime_t kt, struct timespec *ts)
+{
+	if (kt.tv64) {
+		*ts = ktime_to_timespec(kt);
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 /*
  * called from sock_recv_timestamp() if sock_flag(sk, SOCK_RCVTSTAMP)
  */
 void __sock_recv_timestamp(struct msghdr *msg, struct sock *sk,
 	struct sk_buff *skb)
 {
-	ktime_t kt = skb->tstamp;
+	int need_software_tstamp = sock_flag(sk, SOCK_RCVTSTAMP);
+	struct timespec ts[3];
+	int empty = 1;
+	struct skb_shared_hwtstamps *shhwtstamps =
+		skb_hwtstamps(skb);
 
-	if (!sock_flag(sk, SOCK_RCVTSTAMPNS)) {
-		struct timeval tv;
-		/* Race occurred between timestamp enabling and packet
-		   receiving.  Fill in the current time for now. */
-		if (kt.tv64 == 0)
-			kt = ktime_get_real();
-		skb->tstamp = kt;
-		tv = ktime_to_timeval(kt);
-		put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMP, sizeof(tv), &tv);
-	} else {
-		struct timespec ts;
-		/* Race occurred between timestamp enabling and packet
-		   receiving.  Fill in the current time for now. */
-		if (kt.tv64 == 0)
-			kt = ktime_get_real();
-		skb->tstamp = kt;
-		ts = ktime_to_timespec(kt);
-		put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMPNS, sizeof(ts), &ts);
+	/* Race occurred between timestamp enabling and packet
+	   receiving.  Fill in the current time for now. */
+	if (need_software_tstamp && skb->tstamp.tv64 == 0)
+		__net_timestamp(skb);
+
+	if (need_software_tstamp) {
+		if (!sock_flag(sk, SOCK_RCVTSTAMPNS)) {
+			struct timeval tv;
+			skb_get_timestamp(skb, &tv);
+			put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMP,
+				 sizeof(tv), &tv);
+		} else {
+			struct timespec ts;
+			skb_get_timestampns(skb, &ts);
+			put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMPNS,
+				 sizeof(ts), &ts);
+		}
 	}
+
+
+	memset(ts, 0, sizeof(ts));
+	if (skb->tstamp.tv64 &&
+	    sock_flag(sk, SOCK_TIMESTAMPING_SOFTWARE)) {
+		skb_get_timestampns(skb, ts + 0);
+		empty = 0;
+	}
+	if (shhwtstamps) {
+		if (sock_flag(sk, SOCK_TIMESTAMPING_SYS_HARDWARE) &&
+		    ktime2ts(shhwtstamps->syststamp, ts + 1))
+			empty = 0;
+		if (sock_flag(sk, SOCK_TIMESTAMPING_RAW_HARDWARE) &&
+		    ktime2ts(shhwtstamps->hwtstamp, ts + 2))
+			empty = 0;
+	}
+	if (!empty)
+		put_cmsg(msg, SOL_SOCKET,
+			 SCM_TIMESTAMPING, sizeof(ts), &ts);
 }
 
 EXPORT_SYMBOL_GPL(__sock_recv_timestamp);
@@ -1031,6 +1072,13 @@ static int sock_fasync(int fd, struct file *filp, int on)
 
 	lock_sock(sk);
 
+	spin_lock(&filp->f_lock);
+	if (on)
+		filp->f_flags |= FASYNC;
+	else
+		filp->f_flags &= ~FASYNC;
+	spin_unlock(&filp->f_lock);
+
 	prev = &(sock->fasync_list);
 
 	for (fa = *prev; fa != NULL; prev = &fa->fa_next, fa = *prev)
@@ -1314,13 +1362,7 @@ SYSCALL_DEFINE4(socketpair, int, family, int, type, int, protocol,
 		goto out_fd1;
 	}
 
-	err = audit_fd_pair(fd1, fd2);
-	if (err < 0) {
-		fput(newfile1);
-		fput(newfile2);
-		goto out_fd;
-	}
-
+	audit_fd_pair(fd1, fd2);
 	fd_install(fd1, newfile1);
 	fd_install(fd2, newfile2);
 	/* fd1 and fd2 may be already another descriptors.
@@ -1350,7 +1392,6 @@ out_fd2:
 out_fd1:
 	put_filp(newfile2);
 	sock_release(sock2);
-out_fd:
 	put_unused_fd(fd1);
 	put_unused_fd(fd2);
 	goto out;
@@ -1492,8 +1533,6 @@ SYSCALL_DEFINE4(accept4, int, fd, struct sockaddr __user *, upeer_sockaddr,
 
 	fd_install(newfd, newfile);
 	err = newfd;
-
-	security_socket_post_accept(sock, newsock);
 
 out_put:
 	fput_light(sock->file, fput_needed);
@@ -2067,9 +2106,7 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
 	if (copy_from_user(a, args, nargs[call]))
 		return -EFAULT;
 
-	err = audit_socketcall(nargs[call] / sizeof(unsigned long), a);
-	if (err)
-		return err;
+	audit_socketcall(nargs[call] / sizeof(unsigned long), a);
 
 	a0 = a[0];
 	a1 = a[1];

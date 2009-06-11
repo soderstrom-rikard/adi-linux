@@ -690,7 +690,7 @@ static int rose_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 
 	source = &addr->srose_call;
 
-	user = ax25_findbyuid(current->euid);
+	user = ax25_findbyuid(current_euid());
 	if (user) {
 		rose->source_call = user->call;
 		ax25_uid_put(user);
@@ -791,7 +791,7 @@ static int rose_connect(struct socket *sock, struct sockaddr *uaddr, int addr_le
 			goto out_release;
 		}
 
-		user = ax25_findbyuid(current->euid);
+		user = ax25_findbyuid(current_euid());
 		if (!user) {
 			err = -EINVAL;
 			goto out_release;
@@ -1072,10 +1072,6 @@ static int rose_sendmsg(struct kiocb *iocb, struct socket *sock,
 	unsigned char *asmptr;
 	int n, size, qbit = 0;
 
-	/* ROSE empty frame has no meaning : don't send */
-	if (len == 0)
-		return 0;
-
 	if (msg->msg_flags & ~(MSG_DONTWAIT|MSG_EOR|MSG_CMSG_COMPAT))
 		return -EINVAL;
 
@@ -1272,12 +1268,6 @@ static int rose_recvmsg(struct kiocb *iocb, struct socket *sock,
 
 	skb_reset_transport_header(skb);
 	copied     = skb->len;
-
-	/* ROSE empty frame has no meaning : ignore it */
-	if (copied == 0) {
-		skb_free_datagram(sk, skb);
-		return copied;
-	}
 
 	if (copied > size) {
 		copied = size;
@@ -1591,8 +1581,7 @@ static int __init rose_proto_init(void)
 		char name[IFNAMSIZ];
 
 		sprintf(name, "rose%d", i);
-		dev = alloc_netdev(sizeof(struct net_device_stats),
-				   name, rose_setup);
+		dev = alloc_netdev(0, name, rose_setup);
 		if (!dev) {
 			printk(KERN_ERR "ROSE: rose_proto_init - unable to allocate memory\n");
 			rc = -ENOMEM;

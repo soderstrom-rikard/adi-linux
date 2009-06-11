@@ -958,10 +958,13 @@ static int patch_sigmatel_stac9708_3d(struct snd_ac97 * ac97)
 }
 
 static const struct snd_kcontrol_new snd_ac97_sigmatel_4speaker =
-AC97_SINGLE("Sigmatel 4-Speaker Stereo Playback Switch", AC97_SIGMATEL_DAC2INVERT, 2, 1, 0);
+AC97_SINGLE("Sigmatel 4-Speaker Stereo Playback Switch",
+		AC97_SIGMATEL_DAC2INVERT, 2, 1, 0);
 
+/* "Sigmatel " removed due to excessive name length: */
 static const struct snd_kcontrol_new snd_ac97_sigmatel_phaseinvert =
-AC97_SINGLE("Sigmatel Surround Phase Inversion Playback Switch", AC97_SIGMATEL_DAC2INVERT, 3, 1, 0);
+AC97_SINGLE("Surround Phase Inversion Playback Switch",
+		AC97_SIGMATEL_DAC2INVERT, 3, 1, 0);
 
 static const struct snd_kcontrol_new snd_ac97_sigmatel_controls[] = {
 AC97_SINGLE("Sigmatel DAC 6dB Attenuate", AC97_SIGMATEL_ANALOG, 1, 1, 0),
@@ -2054,8 +2057,9 @@ static const struct snd_kcontrol_new snd_ac97_ad1888_controls[] = {
 		.get = snd_ac97_ad1888_lohpsel_get,
 		.put = snd_ac97_ad1888_lohpsel_put
 	},
-	AC97_SINGLE("V_REFOUT Enable", AC97_AD_MISC, 2, 1, 1),
-	AC97_SINGLE("High Pass Filter Enable", AC97_AD_TEST2, 12, 1, 1),
+	AC97_SINGLE("V_REFOUT Enable", AC97_AD_MISC, AC97_AD_VREFD_SHIFT, 1, 1),
+	AC97_SINGLE("High Pass Filter Enable", AC97_AD_TEST2,
+			AC97_AD_HPFD_SHIFT, 1, 1),
 	AC97_SINGLE("Spread Front to Surround and Center/LFE", AC97_AD_MISC, 7, 1, 0),
 	{
 		.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
@@ -2832,6 +2836,8 @@ static int patch_alc655(struct snd_ac97 * ac97)
 			val &= ~(1 << 1); /* Pin 47 is EAPD (for internal speaker) */
 		else
 			val |= (1 << 1); /* Pin 47 is spdif input pin */
+		/* this seems missing on some hardwares */
+		ac97->ext_id |= AC97_EI_SPDIF;
 	}
 	val &= ~(1 << 12); /* vref enable */
 	snd_ac97_write_cache(ac97, 0x7a, val);

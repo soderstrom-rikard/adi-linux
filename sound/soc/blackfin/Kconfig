@@ -1,6 +1,6 @@
 config SND_BF5XX_I2S
 	tristate "SoC I2S Audio for the ADI BF5xx chip"
-	depends on BLACKFIN && SND_SOC
+	depends on BLACKFIN
 	help
 	  Say Y or M if you want to add support for codecs attached to
 	  the Blackfin SPORT (synchronous serial ports) interface in I2S
@@ -51,7 +51,7 @@ config SND_BFIN_AD73311_SE
 
 config SND_BF5XX_AC97
 	tristate "SoC AC97 Audio for the ADI BF5xx chip"
-	depends on BLACKFIN && SND_SOC
+	depends on BLACKFIN
 	help
 	  Say Y or M if you want to add support for codecs attached to
 	  the Blackfin SPORT (synchronous serial ports) interface in slot 16
@@ -59,7 +59,7 @@ config SND_BF5XX_AC97
 	  You will also need to select the audio interfaces to support below.
 
 	  Note:
-	  AC97 codecs which do not implment the slot-16 mode will not function
+	  AC97 codecs which do not implement the slot-16 mode will not function
 	  properly with this driver. This driver is known to work with the
 	  Analog Devices line of AC97 codecs.
 

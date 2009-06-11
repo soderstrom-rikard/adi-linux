@@ -73,7 +73,12 @@ static int physmap_flash_remove(struct platform_device *dev)
 	return 0;
 }
 
-static const char *rom_probe_types[] = { "cfi_probe", "jedec_probe", "map_rom", NULL };
+static const char *rom_probe_types[] = {
+					"cfi_probe",
+					"jedec_probe",
+					"qinfo_probe",
+					"map_rom",
+					NULL };
 #ifdef CONFIG_MTD_PARTITIONS
 static const char *part_probe_types[] = { "cmdlinepart", "RedBoot", NULL };
 #endif
@@ -108,17 +113,18 @@ static int physmap_flash_probe(struct platform_device *dev)
 		if (!devm_request_mem_region(&dev->dev,
 			dev->resource[i].start,
 			dev->resource[i].end - dev->resource[i].start + 1,
-			dev->dev.bus_id)) {
+			dev_name(&dev->dev))) {
 			dev_err(&dev->dev, "Could not reserve memory region\n");
 			err = -ENOMEM;
 			goto err_out;
 		}
 
-		info->map[i].name = dev->dev.bus_id;
+		info->map[i].name = dev_name(&dev->dev);
 		info->map[i].phys = dev->resource[i].start;
 		info->map[i].size = dev->resource[i].end - dev->resource[i].start + 1;
 		info->map[i].bankwidth = physmap_data->width;
 		info->map[i].set_vpp = physmap_data->set_vpp;
+		info->map[i].pfow_base = physmap_data->pfow_base;
 
 		info->map[i].virt = devm_ioremap(&dev->dev, info->map[i].phys,
 						 info->map[i].size);
@@ -141,6 +147,7 @@ static int physmap_flash_probe(struct platform_device *dev)
 			devices_found++;
 		}
 		info->mtd[i]->owner = THIS_MODULE;
+		info->mtd[i]->dev.parent = &dev->dev;
 	}
 
 	if (devices_found == 1) {
@@ -150,7 +157,7 @@ static int physmap_flash_probe(struct platform_device *dev)
 		 * We detected multiple devices. Concatenate them together.
 		 */
 #ifdef CONFIG_MTD_CONCAT
-		info->cmtd = mtd_concat_create(info->mtd, devices_found, dev->dev.bus_id);
+		info->cmtd = mtd_concat_create(info->mtd, devices_found, dev_name(&dev->dev));
 		if (info->cmtd == NULL)
 			err = -ENXIO;
 #else

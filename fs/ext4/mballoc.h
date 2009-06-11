@@ -118,27 +118,6 @@ struct ext4_free_data {
 	tid_t	t_tid;
 };
 
-struct ext4_group_info {
-	unsigned long	bb_state;
-	struct rb_root  bb_free_root;
-	unsigned short	bb_first_free;
-	unsigned short	bb_free;
-	unsigned short	bb_fragments;
-	struct		list_head bb_prealloc_list;
-#ifdef DOUBLE_CHECK
-	void		*bb_bitmap;
-#endif
-	struct rw_semaphore alloc_sem;
-	unsigned short	bb_counters[];
-};
-
-#define EXT4_GROUP_INFO_NEED_INIT_BIT	0
-#define EXT4_GROUP_INFO_LOCKED_BIT	1
-
-#define EXT4_MB_GRP_NEED_INIT(grp)	\
-	(test_bit(EXT4_GROUP_INFO_NEED_INIT_BIT, &((grp)->bb_state)))
-
-
 struct ext4_prealloc_space {
 	struct list_head	pa_inode_list;
 	struct list_head	pa_group_list;
@@ -153,12 +132,15 @@ struct ext4_prealloc_space {
 	ext4_lblk_t		pa_lstart;	/* log. block */
 	unsigned short		pa_len;		/* len of preallocated chunk */
 	unsigned short		pa_free;	/* how many blocks are free */
-	unsigned short		pa_linear;	/* consumed in one direction
-						 * strictly, for grp prealloc */
+	unsigned short		pa_type;	/* pa type. inode or group */
 	spinlock_t		*pa_obj_lock;
 	struct inode		*pa_inode;	/* hack, for history only */
 };
 
+enum {
+	MB_INODE_PA = 0,
+	MB_GROUP_PA = 1
+};
 
 struct ext4_free_extent {
 	ext4_lblk_t fe_logical;
@@ -267,33 +249,6 @@ static inline void ext4_mb_store_history(struct ext4_allocation_context *ac)
 #endif
 
 #define in_range(b, first, len)	((b) >= (first) && (b) <= (first) + (len) - 1)
-
-struct buffer_head *read_block_bitmap(struct super_block *, ext4_group_t);
-
-
-static inline void ext4_lock_group(struct super_block *sb, ext4_group_t group)
-{
-	struct ext4_group_info *grinfo = ext4_get_group_info(sb, group);
-
-	bit_spin_lock(EXT4_GROUP_INFO_LOCKED_BIT, &(grinfo->bb_state));
-}
-
-static inline void ext4_unlock_group(struct super_block *sb,
-					ext4_group_t group)
-{
-	struct ext4_group_info *grinfo = ext4_get_group_info(sb, group);
-
-	bit_spin_unlock(EXT4_GROUP_INFO_LOCKED_BIT, &(grinfo->bb_state));
-}
-
-static inline int ext4_is_group_locked(struct super_block *sb,
-					ext4_group_t group)
-{
-	struct ext4_group_info *grinfo = ext4_get_group_info(sb, group);
-
-	return bit_spin_is_locked(EXT4_GROUP_INFO_LOCKED_BIT,
-						&(grinfo->bb_state));
-}
 
 static inline ext4_fsblk_t ext4_grp_offs_to_block(struct super_block *sb,
 					struct ext4_free_extent *fex)

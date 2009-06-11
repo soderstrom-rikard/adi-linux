@@ -26,6 +26,7 @@
  * if_sdio_card_to_host() to pad the data.
  */
 
+#include <linux/kernel.h>
 #include <linux/moduleparam.h>
 #include <linux/firmware.h>
 #include <linux/netdevice.h>
@@ -94,6 +95,8 @@ struct if_sdio_card {
 
 	spinlock_t		lock;
 	struct if_sdio_packet	*packets;
+
+	struct workqueue_struct	*workqueue;
 	struct work_struct	packet_worker;
 };
 
@@ -208,6 +211,9 @@ static int if_sdio_handle_event(struct if_sdio_card *card,
 		event = sdio_readb(card->func, IF_SDIO_EVENT, &ret);
 		if (ret)
 			goto out;
+
+		/* right shift 3 bits to get the event id */
+		event >>= 3;
 	} else {
 		if (size < 4) {
 			lbs_deb_sdio("event packet too small (%d bytes)\n",
@@ -592,7 +598,7 @@ static int if_sdio_prog_real(struct if_sdio_card *card)
 				chunk_buffer, (chunk_size + 255) / 256 * 256);
 #else
 			ret = sdio_writesb(card->func, card->ioport,
-				chunk_buffer, (chunk_size + 31) / 32 * 32);
+				chunk_buffer, roundup(chunk_size, 32));
 #endif
 			if (ret)
 				goto release;
@@ -759,7 +765,7 @@ static int if_sdio_host_to_card(struct lbs_private *priv,
 
 	spin_unlock_irqrestore(&card->lock, flags);
 
-	schedule_work(&card->packet_worker);
+	queue_work(card->workqueue, &card->packet_worker);
 
 	ret = 0;
 
@@ -849,6 +855,7 @@ static int if_sdio_probe(struct sdio_func *func,
 	card->func = func;
 	card->model = model;
 	spin_lock_init(&card->lock);
+	card->workqueue = create_workqueue("libertas_sdio");
 	INIT_WORK(&card->packet_worker, if_sdio_host_to_card_worker);
 
 	for (i = 0;i < ARRAY_SIZE(if_sdio_models);i++) {
@@ -937,15 +944,17 @@ static int if_sdio_probe(struct sdio_func *func,
 	if (ret)
 		goto err_activate_card;
 
+	if (priv->fwcapinfo & FW_CAPINFO_PS)
+		priv->ps_supported = 1;
+
 out:
 	lbs_deb_leave_args(LBS_DEB_SDIO, "ret %d", ret);
 
 	return ret;
 
 err_activate_card:
-	flush_scheduled_work();
-	free_netdev(priv->dev);
-	kfree(priv);
+	flush_workqueue(card->workqueue);
+	lbs_remove_card(priv);
 reclaim:
 	sdio_claim_host(func);
 release_int:
@@ -955,6 +964,7 @@ disable:
 release:
 	sdio_release_host(func);
 free:
+	destroy_workqueue(card->workqueue);
 	while (card->packets) {
 		packet = card->packets;
 		card->packets = card->packets->next;
@@ -981,7 +991,8 @@ static void if_sdio_remove(struct sdio_func *func)
 	lbs_stop_card(card->priv);
 	lbs_remove_card(card->priv);
 
-	flush_scheduled_work();
+	flush_workqueue(card->workqueue);
+	destroy_workqueue(card->workqueue);
 
 	sdio_claim_host(func);
 	sdio_release_irq(func);

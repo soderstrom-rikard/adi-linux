@@ -59,14 +59,9 @@ static inline unsigned long long cycles_2_ns(cycle_t cyc)
 	return (cyc * cyc2ns_scale) >> CYC2NS_SCALE_FACTOR;
 }
 
-static cycle_t bfin_read_cycles(void)
+static cycle_t read_cycles(struct clocksource *cs)
 {
 	return __bfin_cycles_off + (get_cycles() << __bfin_cycles_mod);
-}
-
-unsigned long long sched_clock(void)
-{
-	return cycles_2_ns(bfin_read_cycles());
 }
 
 static struct clocksource bfin_cs_cycles = {
@@ -77,6 +72,11 @@ static struct clocksource bfin_cs_cycles = {
 	.shift		= 22,
 	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
 };
+
+unsigned long long sched_clock(void)
+{
+	return cycles_2_ns(read_cycles(&bfin_cs_cycles));
+}
 
 static int __init bfin_cs_cycles_init(void)
 {
@@ -161,7 +161,6 @@ static struct clock_event_device clockevent_bfin = {
 #endif
 	.shift		= 32,
 	.features	= CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
-	.cpumask	= CPU_MASK_CPU0,
 	.set_next_event = bfin_timer_set_next_event,
 	.set_mode	= bfin_timer_set_mode,
 };
@@ -336,6 +335,7 @@ static int __init bfin_clockevent_init(void)
 	clockevent_bfin.mult = div_sc(timer_clk, NSEC_PER_SEC, clockevent_bfin.shift);
 	clockevent_bfin.max_delta_ns = clockevent_delta2ns(-1, &clockevent_bfin);
 	clockevent_bfin.min_delta_ns = clockevent_delta2ns(100, &clockevent_bfin);
+	clockevent_bfin.cpumask = cpumask_of(0);
 	clockevents_register_device(&clockevent_bfin);
 
 	return 0;

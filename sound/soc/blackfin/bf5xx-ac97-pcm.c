@@ -297,7 +297,7 @@ static	int bf5xx_pcm_copy(struct snd_pcm_substream *substream, int channel,
 }
 #endif
 
-struct snd_pcm_ops bf5xx_pcm_ac97_ops = {
+static struct snd_pcm_ops bf5xx_pcm_ac97_ops = {
 	.open		= bf5xx_pcm_open,
 	.ioctl		= snd_pcm_lib_ioctl,
 	.hw_params	= bf5xx_pcm_hw_params,
@@ -413,7 +413,7 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 		sport_done(sport_handle);
 }
 
-static u64 bf5xx_pcm_dmamask = DMA_32BIT_MASK;
+static u64 bf5xx_pcm_dmamask = DMA_BIT_MASK(32);
 
 int bf5xx_pcm_ac97_new(struct snd_card *card, struct snd_soc_dai *dai,
 	struct snd_pcm *pcm)
@@ -424,7 +424,7 @@ int bf5xx_pcm_ac97_new(struct snd_card *card, struct snd_soc_dai *dai,
 	if (!card->dev->dma_mask)
 		card->dev->dma_mask = &bf5xx_pcm_dmamask;
 	if (!card->dev->coherent_dma_mask)
-		card->dev->coherent_dma_mask = DMA_32BIT_MASK;
+		card->dev->coherent_dma_mask = DMA_BIT_MASK(32);
 
 	if (dai->playback.channels_min) {
 		ret = bf5xx_pcm_preallocate_dma_buffer(pcm,
@@ -450,6 +450,18 @@ struct snd_soc_platform bf5xx_ac97_soc_platform = {
 	.pcm_free	= bf5xx_pcm_free_dma_buffers,
 };
 EXPORT_SYMBOL_GPL(bf5xx_ac97_soc_platform);
+
+static int __init bfin_ac97_init(void)
+{
+	return snd_soc_register_platform(&bf5xx_ac97_soc_platform);
+}
+module_init(bfin_ac97_init);
+
+static void __exit bfin_ac97_exit(void)
+{
+	snd_soc_unregister_platform(&bf5xx_ac97_soc_platform);
+}
+module_exit(bfin_ac97_exit);
 
 MODULE_AUTHOR("Cliff Cai");
 MODULE_DESCRIPTION("ADI Blackfin AC97 PCM DMA module");

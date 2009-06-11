@@ -18,7 +18,7 @@
 .text
 ALIGN
 ENTRY(sys_call_table)
-	.long sys_ni_syscall	/* 0  -  old "setup()" system call*/
+	.long sys_restart_syscall	/* 0  -  old "setup()" system call */
 	.long sys_exit
 	.long sys_fork
 	.long sys_read
@@ -347,6 +347,8 @@ ENTRY(sys_call_table)
 	.long sys_dup3
 	.long sys_pipe2
 	.long sys_inotify_init1
+	.long sys_preadv
+	.long sys_pwritev		/* 330 */
 
 	.rept NR_syscalls-(.-sys_call_table)/4
 		.long sys_ni_syscall

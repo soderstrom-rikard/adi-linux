@@ -11,6 +11,8 @@
 
 #include <linux/usb.h>
 #include <linux/io.h>
+#include <linux/platform_device.h>
+#include <linux/usb/isp1760.h>
 
 #include "../core/hcd.h"
 #include "isp1760-hcd.h"
@@ -23,9 +25,6 @@
 #ifdef CONFIG_PCI
 #include <linux/pci.h>
 #endif
-
-#include <linux/platform_device.h>
-#include <linux/usb/isp1760.h>
 
 #ifdef CONFIG_PPC_OF
 static int of_isp1760_probe(struct of_device *dev,
@@ -63,9 +62,6 @@ static int of_isp1760_probe(struct of_device *dev,
 
 	if (of_device_is_compatible(dp, "nxp,usb-isp1761"))
 		devflags |= ISP1760_FLAG_ISP1761;
-
-	if (of_get_property(dp, "port1-disable", NULL) != NULL)
-		devflags |= ISP1760_FLAG_PORT1_DIS;
 
 	/* Some systems wire up only 16 of the 32 data lines */
 	prop = of_get_property(dp, "bus-width", NULL);
@@ -307,45 +303,36 @@ static struct pci_driver isp1761_pci_driver = {
 };
 #endif
 
-static int __devinit isp1760_pdev_probe(struct platform_device *pdev)
+static int __devinit isp1760_plat_probe(struct platform_device *pdev)
 {
+	int ret = 0;
 	struct usb_hcd *hcd;
-	struct resource	*addr;
-	int irq;
-	unsigned int devflags = 0;
+	struct resource *mem_res;
+	struct resource *irq_res;
+	resource_size_t mem_size;
 	struct isp1760_platform_data *priv = pdev->dev.platform_data;
-	struct resource	*irq_res;
-	unsigned long flags;
+	unsigned int devflags = 0;
+	unsigned long irqflags = IRQF_SHARED | IRQF_DISABLED;
 
-	/* basic sanity checks first.  board-specific init logic should
-	 * have initialized these two resources and probably board
-	 * specific platform_data.  we don't probe for IRQs, and do only
-	 * minimal sanity checking.
-	 */
+	mem_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!mem_res) {
+		pr_warning("isp1760: Memory resource not available\n");
+		ret = -ENODEV;
+		goto out;
+	}
+	mem_size = resource_size(mem_res);
+	if (!request_mem_region(mem_res->start, mem_size, "isp1760")) {
+		pr_warning("isp1760: Cannot reserve the memory resource\n");
+		ret = -EBUSY;
+		goto out;
+	}
 
-	if (usb_disabled())
+	irq_res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+	if (!irq_res) {
+		pr_warning("isp1760: IRQ resource not available\n");
 		return -ENODEV;
-
-	if (pdev->num_resources < 2)
-		return -ENODEV;
-
-	addr = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-
-	irq_res  = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-
-	flags = (irq_res->flags & IRQF_TRIGGER_MASK) |
-		((irq_res->flags & IORESOURCE_IRQ_SHAREABLE) ? IRQF_SHARED : 0);
-
-	if (irq_res->flags & (IORESOURCE_IRQ_HIGHEDGE | IORESOURCE_IRQ_LOWEDGE))
-		devflags |= ISP1760_FLAG_INTR_EDGE_TRIG;
-
-	if (irq_res->flags & (IORESOURCE_IRQ_HIGHEDGE | IORESOURCE_IRQ_HIGHLEVEL))
-		devflags |= ISP1760_FLAG_INTR_POL_HIGH;
-
-	irq = irq_res->start;
-
-	if (!addr || irq < 0)
-		return -ENODEV;
+	}
+	irqflags |= irq_res->flags & IRQF_TRIGGER_MASK;
 
 	if (priv) {
 		if (priv->is_isp1761)
@@ -364,84 +351,78 @@ static int __devinit isp1760_pdev_probe(struct platform_device *pdev)
 			devflags |= ISP1760_FLAG_DREQ_POL_HIGH;
 	}
 
-	hcd = isp1760_register(addr->start, resource_size(addr), irq,
-		IRQF_DISABLED | flags,
-		&pdev->dev, dev_name(&pdev->dev), devflags);
+	hcd = isp1760_register(mem_res->start, mem_size, irq_res->start,
+			       irqflags, &pdev->dev, dev_name(&pdev->dev), devflags);
+	if (IS_ERR(hcd)) {
+		pr_warning("isp1760: Failed to register the HCD device\n");
+		ret = -ENODEV;
+		goto cleanup;
+	}
 
-	if (IS_ERR(hcd))
-		return PTR_ERR(hcd);
+	pr_info("ISP1760 USB device initialised\n");
+	return ret;
 
-	return 0;
+cleanup:
+	release_mem_region(mem_res->start, mem_size);
+out:
+	return ret;
 }
 
-static int __devexit
-isp1760_pdev_remove(struct platform_device *pdev)
+static int __devexit isp1760_plat_remove(struct platform_device *pdev)
 {
-	struct usb_hcd *hcd = platform_get_drvdata(pdev);
+	struct resource *mem_res;
+	resource_size_t mem_size;
 
-	platform_set_drvdata(pdev, NULL);
+	mem_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	mem_size = resource_size(mem_res);
+	release_mem_region(mem_res->start, mem_size);
 
-	usb_remove_hcd(hcd);
-	iounmap(hcd->regs);
-	usb_put_hcd(hcd);
 	return 0;
 }
 
-static struct platform_driver isp1760_pdev_driver = {
-	.probe =	isp1760_pdev_probe,
-	.remove =	__devexit_p(isp1760_pdev_remove),
-	.driver = {
-		.name =	"isp1760-hcd",
-		.owner = THIS_MODULE,
+static struct platform_driver isp1760_plat_driver = {
+	.probe	= isp1760_plat_probe,
+	.remove	= __devexit_p(isp1760_plat_remove),
+	.driver	= {
+		.name	= "isp1760",
 	},
 };
 
 static int __init isp1760_init(void)
 {
-	int ret;
+	int ret, any_ret = -ENODEV;
 
 	init_kmem_once();
 
-	ret = platform_driver_register(&isp1760_pdev_driver);
-	if (ret) {
-		deinit_kmem_cache();
-		return ret;
-	}
-
+	ret = platform_driver_register(&isp1760_plat_driver);
+	if (!ret)
+		any_ret = 0;
 #ifdef CONFIG_PPC_OF
 	ret = of_register_platform_driver(&isp1760_of_driver);
-	if (ret) {
-		deinit_kmem_cache();
-		return ret;
-	}
+	if (!ret)
+		any_ret = 0;
 #endif
 #ifdef CONFIG_PCI
 	ret = pci_register_driver(&isp1761_pci_driver);
-	if (ret)
-		goto unreg_of;
+	if (!ret)
+		any_ret = 0;
 #endif
-	return ret;
 
-#ifdef CONFIG_PCI
-unreg_of:
-#endif
-#ifdef CONFIG_PPC_OF
-	of_unregister_platform_driver(&isp1760_of_driver);
-#endif
-	deinit_kmem_cache();
-	return ret;
+	if (any_ret)
+		deinit_kmem_cache();
+	return any_ret;
 }
 module_init(isp1760_init);
 
 static void __exit isp1760_exit(void)
 {
+	platform_driver_unregister(&isp1760_plat_driver);
 #ifdef CONFIG_PPC_OF
 	of_unregister_platform_driver(&isp1760_of_driver);
 #endif
 #ifdef CONFIG_PCI
 	pci_unregister_driver(&isp1761_pci_driver);
 #endif
-	platform_driver_unregister(&isp1760_pdev_driver);
 	deinit_kmem_cache();
 }
 module_exit(isp1760_exit);

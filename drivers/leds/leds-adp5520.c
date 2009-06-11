@@ -76,7 +76,7 @@ static int adp5520_led_setup(struct adp5520_led *led)
 	return ret;
 }
 
-static int adp5520_led_prepare(struct platform_device *pdev)
+static int __devinit adp5520_led_prepare(struct platform_device *pdev)
 {
 	struct adp5520_leds_platfrom_data *pdata = pdev->dev.platform_data;
 	struct device *dev = pdev->dev.parent;
@@ -123,7 +123,7 @@ static int __devinit adp5520_led_probe(struct platform_device *pdev)
 		goto err_free;
 	}
 
-	for (i = 0; i < pdata->num_leds; i++) {
+	for (i = 0; i < pdata->num_leds; ++i) {
 		cur_led = &pdata->leds[i];
 		led_dat = &led[i];
 

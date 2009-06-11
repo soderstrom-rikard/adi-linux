@@ -44,13 +44,15 @@
 #include <linux/list.h>
 #include <linux/sysdev.h>
 
-#include <asm/xen/hypervisor.h>
 #include <asm/page.h>
 #include <asm/pgalloc.h>
 #include <asm/pgtable.h>
 #include <asm/uaccess.h>
 #include <asm/tlb.h>
 
+#include <asm/xen/hypervisor.h>
+#include <asm/xen/hypercall.h>
+#include <xen/interface/xen.h>
 #include <xen/interface/memory.h>
 #include <xen/xenbus.h>
 #include <xen/features.h>
@@ -296,6 +298,14 @@ static int decrease_reservation(unsigned long nr_pages)
 		frame_list[i] = pfn_to_mfn(pfn);
 
 		scrub_page(page);
+
+		if (!PageHighMem(page)) {
+			ret = HYPERVISOR_update_va_mapping(
+				(unsigned long)__va(pfn << PAGE_SHIFT),
+				__pte_ma(0), 0);
+			BUG_ON(ret);
+                }
+
 	}
 
 	/* Ensure that ballooned highmem pages don't have kmaps. */
@@ -503,7 +513,8 @@ static ssize_t show_target(struct sys_device *dev, struct sysdev_attribute *attr
 			      char *buf)
 {
 	return sprintf(buf, "%llu\n",
-		       (u64)balloon_stats.target_pages << PAGE_SHIFT);
+		       (unsigned long long)balloon_stats.target_pages
+		       << PAGE_SHIFT);
 }
 
 static ssize_t store_target(struct sys_device *dev,

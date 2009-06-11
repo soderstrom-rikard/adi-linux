@@ -62,6 +62,8 @@ static int  option_tiocmget(struct tty_struct *tty, struct file *file);
 static int  option_tiocmset(struct tty_struct *tty, struct file *file,
 				unsigned int set, unsigned int clear);
 static int  option_send_setup(struct tty_struct *tty, struct usb_serial_port *port);
+static int  option_suspend(struct usb_serial *serial, pm_message_t message);
+static int  option_resume(struct usb_serial *serial);
 
 /* Vendor and product IDs */
 #define OPTION_VENDOR_ID			0x0AF0
@@ -159,6 +161,13 @@ static int  option_send_setup(struct tty_struct *tty, struct usb_serial_port *po
 #define HUAWEI_PRODUCT_E143E			0x143E
 #define HUAWEI_PRODUCT_E143F			0x143F
 
+#define QUANTA_VENDOR_ID			0x0408
+#define QUANTA_PRODUCT_Q101			0xEA02
+#define QUANTA_PRODUCT_Q111			0xEA03
+#define QUANTA_PRODUCT_GLX			0xEA04
+#define QUANTA_PRODUCT_GKE			0xEA05
+#define QUANTA_PRODUCT_GLE			0xEA06
+
 #define NOVATELWIRELESS_VENDOR_ID		0x1410
 
 /* YISO PRODUCTS */
@@ -248,7 +257,7 @@ static int  option_send_setup(struct tty_struct *tty, struct usb_serial_port *po
 #define ONDA_VENDOR_ID				0x19d2
 #define ONDA_PRODUCT_MSA501HS			0x0001
 #define ONDA_PRODUCT_ET502HS			0x0002
-#define ONDA_PRODUCT_MT503HS			0x0200
+#define ONDA_PRODUCT_MT503HS			0x2000
 
 #define BANDRICH_VENDOR_ID			0x1A8D
 #define BANDRICH_PRODUCT_C100_1			0x1002
@@ -291,6 +300,10 @@ static int  option_send_setup(struct tty_struct *tty, struct usb_serial_port *po
 #define BENQ_VENDOR_ID				0x04a5
 #define BENQ_PRODUCT_H10			0x4068
 
+#define DLINK_VENDOR_ID				0x1186
+#define DLINK_PRODUCT_DWM_652			0x3e04
+
+
 static struct usb_device_id option_ids[] = {
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_COLT) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA) },
@@ -317,6 +330,11 @@ static struct usb_device_id option_ids[] = {
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_ETNA_MODEM_EX) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_ETNA_KOI_MODEM) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_GTM380_MODEM) },
+	{ USB_DEVICE(QUANTA_VENDOR_ID, QUANTA_PRODUCT_Q101) },
+	{ USB_DEVICE(QUANTA_VENDOR_ID, QUANTA_PRODUCT_Q111) },
+	{ USB_DEVICE(QUANTA_VENDOR_ID, QUANTA_PRODUCT_GLX) },
+	{ USB_DEVICE(QUANTA_VENDOR_ID, QUANTA_PRODUCT_GKE) },
+	{ USB_DEVICE(QUANTA_VENDOR_ID, QUANTA_PRODUCT_GLE) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E600, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E220, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E220BIS, 0xff, 0xff, 0xff) },
@@ -502,6 +520,7 @@ static struct usb_device_id option_ids[] = {
 	{ USB_DEVICE(ZTE_VENDOR_ID, ZTE_PRODUCT_MF628) },
 	{ USB_DEVICE(ZTE_VENDOR_ID, ZTE_PRODUCT_CDMA_TECH) },
 	{ USB_DEVICE(BENQ_VENDOR_ID, BENQ_PRODUCT_H10) },
+	{ USB_DEVICE(DLINK_VENDOR_ID, DLINK_PRODUCT_DWM_652) },
 	{ USB_DEVICE(0x1da5, 0x4515) }, /* BenQ H20 */
 	{ } /* Terminating entry */
 };
@@ -511,6 +530,8 @@ static struct usb_driver option_driver = {
 	.name       = "option",
 	.probe      = usb_serial_probe,
 	.disconnect = usb_serial_disconnect,
+	.suspend    = usb_serial_suspend,
+	.resume     = usb_serial_resume,
 	.id_table   = option_ids,
 	.no_dynamic_id = 	1,
 };
@@ -539,6 +560,8 @@ static struct usb_serial_driver option_1port_device = {
 	.attach            = option_startup,
 	.shutdown          = option_shutdown,
 	.read_int_callback = option_instat_callback,
+	.suspend           = option_suspend,
+	.resume            = option_resume,
 };
 
 static int debug;
@@ -546,9 +569,9 @@ static int debug;
 /* per port private data */
 
 #define N_IN_URB 4
-#define N_OUT_URB 1
+#define N_OUT_URB 4
 #define IN_BUFLEN 4096
-#define OUT_BUFLEN 128
+#define OUT_BUFLEN 4096
 
 struct option_port_private {
 	/* Input endpoints and buffer for this port */
@@ -678,10 +701,6 @@ static int option_write(struct tty_struct *tty, struct usb_serial_port *port,
 			usb_unlink_urb(this_urb);
 			continue;
 		}
-		if (this_urb->status != 0)
-			dbg("usb_write %p failed (err=%d)",
-				this_urb, this_urb->status);
-
 		dbg("%s: endpoint %d buf %d", __func__,
 			usb_pipeendpoint(this_urb->pipe), i);
 
@@ -693,8 +712,7 @@ static int option_write(struct tty_struct *tty, struct usb_serial_port *port,
 		err = usb_submit_urb(this_urb, GFP_ATOMIC);
 		if (err) {
 			dbg("usb_submit_urb %p (write bulk) failed "
-				"(%d, has %d)", this_urb,
-				err, this_urb->status);
+				"(%d)", this_urb, err);
 			clear_bit(i, &portdata->out_busy);
 			continue;
 		}
@@ -814,10 +832,10 @@ static void option_instat_callback(struct urb *urb)
 				req_pkt->bRequestType, req_pkt->bRequest);
 		}
 	} else
-		dbg("%s: error %d", __func__, status);
+		err("%s: error %d", __func__, status);
 
 	/* Resubmit urb so we continue receiving IRQ data */
-	if (status != -ESHUTDOWN) {
+	if (status != -ESHUTDOWN && status != -ENOENT) {
 		urb->dev = serial->dev;
 		err = usb_submit_urb(urb, GFP_ATOMIC);
 		if (err)
@@ -835,7 +853,6 @@ static int option_write_room(struct tty_struct *tty)
 	struct urb *this_urb;
 
 	portdata = usb_get_serial_port_data(port);
-
 
 	for (i = 0; i < N_OUT_URB; i++) {
 		this_urb = portdata->out_urbs[i];
@@ -918,9 +935,6 @@ static int option_open(struct tty_struct *tty,
 		/* usb_settoggle(urb->dev, usb_pipeendpoint(urb->pipe),
 				usb_pipeout(urb->pipe), 0); */
 	}
-
-	if (tty)
-		tty->low_latency = 1;
 
 	option_send_setup(tty, port);
 
@@ -1098,13 +1112,11 @@ bail_out_error:
 	return 1;
 }
 
-static void option_shutdown(struct usb_serial *serial)
+static void stop_read_write_urbs(struct usb_serial *serial)
 {
 	int i, j;
 	struct usb_serial_port *port;
 	struct option_port_private *portdata;
-
-	dbg("%s", __func__);
 
 	/* Stop reading/writing urbs */
 	for (i = 0; i < serial->num_ports; ++i) {
@@ -1115,6 +1127,17 @@ static void option_shutdown(struct usb_serial *serial)
 		for (j = 0; j < N_OUT_URB; j++)
 			usb_kill_urb(portdata->out_urbs[j]);
 	}
+}
+
+static void option_shutdown(struct usb_serial *serial)
+{
+	int i, j;
+	struct usb_serial_port *port;
+	struct option_port_private *portdata;
+
+	dbg("%s", __func__);
+
+	stop_read_write_urbs(serial);
 
 	/* Now free them */
 	for (i = 0; i < serial->num_ports; ++i) {
@@ -1143,6 +1166,66 @@ static void option_shutdown(struct usb_serial *serial)
 		port = serial->port[i];
 		kfree(usb_get_serial_port_data(port));
 	}
+}
+
+static int option_suspend(struct usb_serial *serial, pm_message_t message)
+{
+	dbg("%s entered", __func__);
+	stop_read_write_urbs(serial);
+
+	return 0;
+}
+
+static int option_resume(struct usb_serial *serial)
+{
+	int err, i, j;
+	struct usb_serial_port *port;
+	struct urb *urb;
+	struct option_port_private *portdata;
+
+	dbg("%s entered", __func__);
+	/* get the interrupt URBs resubmitted unconditionally */
+	for (i = 0; i < serial->num_ports; i++) {
+		port = serial->port[i];
+		if (!port->interrupt_in_urb) {
+			dbg("%s: No interrupt URB for port %d\n", __func__, i);
+			continue;
+		}
+		port->interrupt_in_urb->dev = serial->dev;
+		err = usb_submit_urb(port->interrupt_in_urb, GFP_NOIO);
+		dbg("Submitted interrupt URB for port %d (result %d)", i, err);
+		if (err < 0) {
+			err("%s: Error %d for interrupt URB of port%d",
+				 __func__, err, i);
+			return err;
+		}
+	}
+
+	for (i = 0; i < serial->num_ports; i++) {
+		/* walk all ports */
+		port = serial->port[i];
+		portdata = usb_get_serial_port_data(port);
+		mutex_lock(&port->mutex);
+
+		/* skip closed ports */
+		if (!port->port.count) {
+			mutex_unlock(&port->mutex);
+			continue;
+		}
+
+		for (j = 0; j < N_IN_URB; j++) {
+			urb = portdata->in_urbs[j];
+			err = usb_submit_urb(urb, GFP_NOIO);
+			if (err < 0) {
+				mutex_unlock(&port->mutex);
+				err("%s: Error %d for bulk URB %d",
+					 __func__, err, i);
+				return err;
+			}
+		}
+		mutex_unlock(&port->mutex);
+	}
+	return 0;
 }
 
 MODULE_AUTHOR(DRIVER_AUTHOR);

@@ -36,8 +36,6 @@ MODULE_AUTHOR(DRV_AUTHOR);
 MODULE_DESCRIPTION(DRV_DESC);
 MODULE_LICENSE("GPL");
 
-#define IS_DMA_ALIGNED(x) (((u32)(x)&0x07) == 0)
-
 #define START_STATE	((void *)0)
 #define RUNNING_STATE	((void *)1)
 #define DONE_STATE	((void *)2)
@@ -1400,8 +1398,8 @@ static inline int bfin_spi_init_queue(struct driver_data *drv_data)
 
 	/* init messages workqueue */
 	INIT_WORK(&drv_data->pump_messages, bfin_spi_pump_messages);
-	drv_data->workqueue =
-	    create_singlethread_workqueue(drv_data->master->dev.parent->bus_id);
+	drv_data->workqueue = create_singlethread_workqueue(
+				dev_name(drv_data->master->dev.parent));
 	if (drv_data->workqueue == NULL)
 		return -EBUSY;
 

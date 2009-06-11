@@ -1,7 +1,7 @@
 /***************************************************************************
  *
- * Copyright (C) 2004-2007  SMSC
- * Copyright (C) 2005 ARM
+ * Copyright (C) 2004-2008 SMSC
+ * Copyright (C) 2005-2008 ARM
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,40 +21,45 @@
 #ifndef __SMSC911X_H__
 #define __SMSC911X_H__
 
-#define SMSC_CAN_USE_32BIT	1
-#define TX_FIFO_LOW_THRESHOLD	(u32)1600
-#define SMSC911X_EEPROM_SIZE	(u32)7
-#define USE_DEBUG 		0
+#define TX_FIFO_LOW_THRESHOLD	((u32)1600)
+#define SMSC911X_EEPROM_SIZE	((u32)7)
+#define USE_DEBUG		0
+
+/* This is the maximum number of packets to be received every
+ * NAPI poll */
+#define SMSC_NAPI_WEIGHT	16
 
 /* implements a PHY loopback test at initialisation time, to ensure a packet
  * can be succesfully looped back */
 #define USE_PHY_WORK_AROUND
 
-/* 10/100 LED link-state inversion when media is disconnected */
-#define USE_LED1_WORK_AROUND
-
-/* platform_device configuration data, should be assigned to
- * the platform_device's dev.platform_data */
-struct smsc911x_platform_config {
-	unsigned int irq_polarity;
-	unsigned int irq_type;
-};
+#define DPRINTK(nlevel, klevel, fmt, args...) \
+	((void)((NETIF_MSG_##nlevel & pdata->msg_enable) && \
+	printk(KERN_##klevel "%s: %s: " fmt "\n", \
+	pdata->dev->name, __func__, ## args)))
 
 #if USE_DEBUG >= 1
-#define SMSC_WARNING(fmt, args...) \
-		printk(KERN_EMERG "SMSC_WARNING: %s: " fmt "\n", \
-			__FUNCTION__ , ## args)
+#define SMSC_WARNING(nlevel, fmt, args...) \
+	DPRINTK(nlevel, WARNING, fmt, ## args)
 #else
-#define SMSC_WARNING(msg, args...)
-#endif				/* USE_DEBUG >= 1 */
+#define SMSC_WARNING(nlevel, fmt, args...) \
+	({ do {} while (0); 0; })
+#endif
 
 #if USE_DEBUG >= 2
-#define SMSC_TRACE(fmt,args...) \
-		printk(KERN_EMERG "SMSC_TRACE: %s: " fmt "\n", \
-			__FUNCTION__ , ## args)
+#define SMSC_TRACE(nlevel, fmt, args...) \
+	DPRINTK(nlevel, INFO, fmt, ## args)
 #else
-#define SMSC_TRACE(msg, args...)
-#endif				/* USE_DEBUG >= 2 */
+#define SMSC_TRACE(nlevel, fmt, args...) \
+	({ do {} while (0); 0; })
+#endif
+
+#ifdef CONFIG_DEBUG_SPINLOCK
+#define SMSC_ASSERT_MAC_LOCK(pdata) \
+		WARN_ON(!spin_is_locked(&pdata->mac_lock))
+#else
+#define SMSC_ASSERT_MAC_LOCK(pdata) do {} while (0)
+#endif				/* CONFIG_DEBUG_SPINLOCK */
 
 /* SMSC911x registers and bitfields */
 #define RX_DATA_FIFO			0x00
@@ -76,12 +81,19 @@ struct smsc911x_platform_config {
 
 #define RX_STATUS_FIFO			0x40
 #define RX_STS_ES_			0x00008000
+#define RX_STS_LENGTH_ERR_		0x00001000
 #define RX_STS_MCAST_			0x00000400
+#define RX_STS_FRAME_TYPE_		0x00000020
+#define RX_STS_CRC_ERR_			0x00000002
 
 #define RX_STATUS_FIFO_PEEK		0x44
 
 #define TX_STATUS_FIFO			0x48
 #define TX_STS_ES_			0x00008000
+#define TX_STS_LOST_CARRIER_		0x00000800
+#define TX_STS_NO_CARRIER_		0x00000400
+#define TX_STS_LATE_COL_		0x00000200
+#define TX_STS_EXCESS_COL_		0x00000100
 
 #define TX_STATUS_FIFO_PEEK		0x4C
 
@@ -255,7 +267,7 @@ struct smsc911x_platform_config {
 #define GPT_CNT				0x90
 #define GPT_CNT_GPT_CNT_		0x0000FFFF
 
-#define ENDIAN				0x98
+#define WORD_SWAP			0x98
 
 #define FREE_RUN			0x9C
 

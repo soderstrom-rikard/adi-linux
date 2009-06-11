@@ -59,16 +59,23 @@ static struct irq_chip bad_chip = {
 	.unmask = dummy_mask_unmask_irq,
 };
 
+static int bad_stats;
 static struct irq_desc bad_irq_desc = {
 	.status = IRQ_DISABLED,
 	.chip = &bad_chip,
 	.handle_irq = handle_bad_irq,
 	.depth = 1,
 	.lock = __SPIN_LOCK_UNLOCKED(irq_desc->lock),
+	.kstat_irqs = &bad_stats,
 #ifdef CONFIG_SMP
 	.affinity = CPU_MASK_ALL
 #endif
 };
+
+#ifdef CONFIG_CPUMASK_OFFSTACK
+/* We are not allocating a variable-sized bad_irq_desc.affinity */
+#error "Blackfin architecture does not support CONFIG_CPUMASK_OFFSTACK."
+#endif
 
 int show_interrupts(struct seq_file *p, void *v)
 {
@@ -83,7 +90,7 @@ int show_interrupts(struct seq_file *p, void *v)
 			goto skip;
 		seq_printf(p, "%3d: ", i);
 		for_each_online_cpu(j)
-			seq_printf(p, "%10u ", kstat_cpu(j).irqs[i]);
+			seq_printf(p, "%10u ", kstat_irqs_cpu(i, j));
 		seq_printf(p, " %8s", irq_desc[i].chip->name);
 		seq_printf(p, "  %s", action->name);
 		for (action = action->next; action; action = action->next)

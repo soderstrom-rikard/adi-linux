@@ -25,7 +25,7 @@ static void do_sync(unsigned long wait)
 {
 	wakeup_pdflush(0);
 	sync_inodes(0);		/* All mappings, inodes and their blockdevs */
-	DQUOT_SYNC(NULL);
+	vfs_dq_sync(NULL);
 	sync_supers();		/* Write the superblocks */
 	sync_filesystems(0);	/* Start syncing the filesystems */
 	sync_filesystems(wait);	/* Waitingly sync the filesystems */
@@ -42,9 +42,21 @@ SYSCALL_DEFINE0(sync)
 	return 0;
 }
 
+static void do_sync_work(struct work_struct *work)
+{
+	do_sync(0);
+	kfree(work);
+}
+
 void emergency_sync(void)
 {
-	pdflush_operation(do_sync, 0);
+	struct work_struct *work;
+
+	work = kmalloc(sizeof(*work), GFP_ATOMIC);
+	if (work) {
+		INIT_WORK(work, do_sync_work);
+		schedule_work(work);
+	}
 }
 
 /*
@@ -75,14 +87,39 @@ int file_fsync(struct file *filp, struct dentry *dentry, int datasync)
 	return ret;
 }
 
-long do_fsync(struct file *file, int datasync)
+/**
+ * vfs_fsync - perform a fsync or fdatasync on a file
+ * @file:		file to sync
+ * @dentry:		dentry of @file
+ * @data:		only perform a fdatasync operation
+ *
+ * Write back data and metadata for @file to disk.  If @datasync is
+ * set only metadata needed to access modified file data is written.
+ *
+ * In case this function is called from nfsd @file may be %NULL and
+ * only @dentry is set.  This can only happen when the filesystem
+ * implements the export_operations API.
+ */
+int vfs_fsync(struct file *file, struct dentry *dentry, int datasync)
 {
-	int ret;
-	int err;
-	struct address_space *mapping = file->f_mapping;
+	const struct file_operations *fop;
+	struct address_space *mapping;
+	int err, ret;
 
-	if (!file->f_op || !file->f_op->fsync) {
-		/* Why?  We can still call filemap_fdatawrite */
+	/*
+	 * Get mapping and operations from the file in case we have
+	 * as file, or get the default values for them in case we
+	 * don't have a struct file available.  Damn nfsd..
+	 */
+	if (file) {
+		mapping = file->f_mapping;
+		fop = file->f_op;
+	} else {
+		mapping = dentry->d_inode->i_mapping;
+		fop = dentry->d_inode->i_fop;
+	}
+
+	if (!fop || !fop->fsync) {
 		ret = -EINVAL;
 		goto out;
 	}
@@ -94,7 +131,7 @@ long do_fsync(struct file *file, int datasync)
 	 * livelocks in fsync_buffers_list().
 	 */
 	mutex_lock(&mapping->host->i_mutex);
-	err = file->f_op->fsync(file, file->f_path.dentry, datasync);
+	err = fop->fsync(file, dentry, datasync);
 	if (!ret)
 		ret = err;
 	mutex_unlock(&mapping->host->i_mutex);
@@ -104,15 +141,16 @@ long do_fsync(struct file *file, int datasync)
 out:
 	return ret;
 }
+EXPORT_SYMBOL(vfs_fsync);
 
-static long __do_fsync(unsigned int fd, int datasync)
+static int do_fsync(unsigned int fd, int datasync)
 {
 	struct file *file;
 	int ret = -EBADF;
 
 	file = fget(fd);
 	if (file) {
-		ret = do_fsync(file, datasync);
+		ret = vfs_fsync(file, file->f_path.dentry, datasync);
 		fput(file);
 	}
 	return ret;
@@ -120,12 +158,12 @@ static long __do_fsync(unsigned int fd, int datasync)
 
 SYSCALL_DEFINE1(fsync, unsigned int, fd)
 {
-	return __do_fsync(fd, 0);
+	return do_fsync(fd, 0);
 }
 
 SYSCALL_DEFINE1(fdatasync, unsigned int, fd)
 {
-	return __do_fsync(fd, 1);
+	return do_fsync(fd, 1);
 }
 
 /*

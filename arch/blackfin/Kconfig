@@ -6,25 +6,25 @@
 mainmenu "Blackfin Kernel Configuration"
 
 config MMU
-	bool
-	default n
+	def_bool n
 
 config FPU
-	bool
-	default n
+	def_bool n
 
 config RWSEM_GENERIC_SPINLOCK
-	bool
-	default y
+	def_bool y
 
 config RWSEM_XCHGADD_ALGORITHM
-	bool
-	default n
+	def_bool n
 
 config BLACKFIN
-	bool
-	default y
+	def_bool y
+	select HAVE_FUNCTION_GRAPH_TRACER
+	select HAVE_FUNCTION_TRACER
 	select HAVE_IDE
+	select HAVE_KERNEL_GZIP
+	select HAVE_KERNEL_BZIP2
+	select HAVE_KERNEL_LZMA
 	select HAVE_OPROFILE
 	select ARCH_WANT_OPTIONAL_GPIOLIB
 
@@ -33,36 +33,38 @@ config GENERIC_BUG
 	depends on BUG
 
 config ZONE_DMA
-	bool
-	default y
+	def_bool y
 
 config GENERIC_FIND_NEXT_BIT
-	bool
-	default y
+	def_bool y
 
 config GENERIC_HWEIGHT
-	bool
-	default y
+	def_bool y
 
 config GENERIC_HARDIRQS
-	bool
-	default y
+	def_bool y
 
 config GENERIC_IRQ_PROBE
-	bool
-	default y
+	def_bool y
 
 config GENERIC_GPIO
-	bool
-	default y
+	def_bool y
 
 config FORCE_MAX_ZONEORDER
 	int
 	default "14"
 
 config GENERIC_CALIBRATE_DELAY
-	bool
-	default y
+	def_bool y
+
+config LOCKDEP_SUPPORT
+	def_bool y
+
+config STACKTRACE_SUPPORT
+	def_bool y
+
+config TRACE_IRQFLAGS_SUPPORT
+	def_bool y
 
 source "init/Kconfig"
 
@@ -794,7 +796,7 @@ config CACHELINE_ALIGNED_L1
 	default n if BF54x
 	depends on !BF531
 	help
-	  If enabled, cacheline_anligned data is linked
+	  If enabled, cacheline_aligned data is linked
 	  into L1 data memory. (less latency)
 
 config SYSCALL_TAB_L1
@@ -984,7 +986,7 @@ config MPU
 	  memory they do not own.  This comes at a performance penalty
 	  and is recommended only for debugging.
 
-comment "Asynchonous Memory Configuration"
+comment "Asynchronous Memory Configuration"
 
 menu "EBIU_AMGCTL Global Control"
 config C_AMCKEN
@@ -1016,7 +1018,7 @@ config C_B3PEN
 	default n
 
 choice
-	prompt"Enable Asynchonous Memory Banks"
+	prompt "Enable Asynchronous Memory Banks"
 	default C_AMBEN_ALL
 
 config C_AMBEN
