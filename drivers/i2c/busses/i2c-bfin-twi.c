@@ -536,7 +536,9 @@ int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 	}
 	SSYNC();
 
-	wait_for_completion(&iface->complete);
+	if (!wait_for_completion_timeout(&iface->complete,
+		jiffies + POLL_TIMEOUT))
+		iface->result = -1;
 
 	rc = (iface->result >= 0) ? 0 : -1;
 
