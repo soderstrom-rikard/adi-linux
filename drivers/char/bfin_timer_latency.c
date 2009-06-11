@@ -192,7 +192,6 @@ static int __init timer_latency_init(void)
 	timer_latency_file->data = &timer_latency_data;
 	timer_latency_file->read_proc = &read_timer_latency;
 	timer_latency_file->write_proc = &write_timer_latency;
-	timer_latency_file->owner = THIS_MODULE;
 
 	if (request_irq(IRQ_WATCH, timer_latency_irq, IRQF_DISABLED,
 	                "timer_latency", &timer_latency_data)) {
