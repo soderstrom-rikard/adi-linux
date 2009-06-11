@@ -37,6 +37,7 @@
 #define I2C_DRIVERID_TVAUDIO    29      /* Generic TV sound driver      */
 #define I2C_DRIVERID_SAA711X	73	/* saa711x video encoders	*/
 #define I2C_DRIVERID_INFRARED	75	/* I2C InfraRed on Video boards */
+#define I2C_DRIVERID_ADV7170	54	/* video encoder        */
 #define I2C_DRIVERID_AD5252	1049
 
 /*
