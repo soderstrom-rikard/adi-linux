@@ -682,7 +682,7 @@ static bool musb_tx_dma_program(struct dma_controller *dma,
 
 	if (!dma->channel_program(channel, pkt_size, mode,
 			urb->transfer_dma + offset,
-			(dma_channel->desired_mode == 0) ? length :
+			(channel->desired_mode == 0) ? length :
 				length - (length % qh->maxpacket)))
 	{
 		dma->channel_release(channel);
