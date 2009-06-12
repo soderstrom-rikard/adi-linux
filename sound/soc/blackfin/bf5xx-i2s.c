@@ -49,7 +49,7 @@ struct bf5xx_i2s_port {
 	u16 rcr1;
 	u16 tcr2;
 	u16 rcr2;
-	int configured;
+	int counter;
 };
 
 static struct bf5xx_i2s_port bf5xx_i2s;
@@ -132,6 +132,16 @@ static int bf5xx_i2s_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 	return ret;
 }
 
+static int bf5xx_i2s_startup(struct snd_pcm_substream *substream,
+			     struct snd_soc_dai *dai)
+{
+	pr_debug("%s enter\n", __func__);
+
+	/*this counter is used for counting how many pcm streams are opened*/
+	bf5xx_i2s.counter++;
+	return 0;
+}
+
 static int bf5xx_i2s_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params,
 				struct snd_soc_dai *dai)
@@ -158,7 +168,7 @@ static int bf5xx_i2s_hw_params(struct snd_pcm_substream *substream,
 		break;
 	}
 
-	if (!bf5xx_i2s.configured) {
+	if (bf5xx_i2s.counter == 1) {
 		/*
 		 * TX and RX are not independent,they are enabled at the
 		 * same time, even if only one side is running. So, we
@@ -180,7 +190,6 @@ static int bf5xx_i2s_hw_params(struct snd_pcm_substream *substream,
 			pr_err("SPORT is busy!\n");
 			return -EBUSY;
 		}
-		bf5xx_i2s.configured = 1;
 	}
 
 	return 0;
@@ -190,7 +199,7 @@ static void bf5xx_i2s_shutdown(struct snd_pcm_substream *substream,
 			       struct snd_soc_dai *dai)
 {
 	pr_debug("%s enter\n", __func__);
-	bf5xx_i2s.configured = 0;
+	bf5xx_i2s.counter--;
 }
 
 static int bf5xx_i2s_probe(struct platform_device *pdev,
@@ -279,6 +288,7 @@ static int bf5xx_i2s_resume(struct platform_device *pdev,
 	SNDRV_PCM_FMTBIT_S32_LE)
 
 static struct snd_soc_dai_ops bf5xx_i2s_dai_ops = {
+	.startup	= bf5xx_i2s_startup,
 	.shutdown	= bf5xx_i2s_shutdown,
 	.hw_params	= bf5xx_i2s_hw_params,
 	.set_fmt	= bf5xx_i2s_set_dai_fmt,
