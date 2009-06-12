@@ -317,8 +317,7 @@ extern void tty_driver_kref_put(struct tty_driver *driver);
 
 static inline struct tty_driver *tty_driver_kref_get(struct tty_driver *d)
 {
-	if (d)
-		kref_get(&d->kref);
+	kref_get(&d->kref);
 	return d;
 }
 
