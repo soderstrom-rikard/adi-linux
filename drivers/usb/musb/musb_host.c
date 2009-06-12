@@ -633,7 +633,14 @@ musb_rx_reinit(struct musb *musb, struct musb_qh *qh, struct musb_hw_ep *ep)
 	musb_writeb(ep->regs, MUSB_RXTYPE, qh->type_reg);
 	musb_writeb(ep->regs, MUSB_RXINTERVAL, qh->intv_reg);
 	/* NOTE: bulk combining rewrites high bits of maxpacket */
-	musb_writew(ep->regs, MUSB_RXMAXP, qh->maxpacket);
+#if defined(CONFIG_BLACKFIN) && ANOMALY_05000465
+        /* Set RXMAXP with the FIFO size of the endpoint
+         * to diable double buffer mode.
+         */
+        musb_writew(ep->regs, MUSB_RXMAXP, ep->max_packet_sz_rx);
+#elif
+        musb_writew(ep->regs, MUSB_RXMAXP, qh->maxpacket);
+#endif
 
 	ep->rx_reinit = 0;
 }
