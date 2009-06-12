@@ -337,8 +337,6 @@ static int __devinit isp1760_plat_probe(struct platform_device *pdev)
 	if (priv) {
 		if (priv->is_isp1761)
 			devflags |= ISP1760_FLAG_ISP1761;
-		if (priv->port1_disable)
-			devflags |= ISP1760_FLAG_PORT1_DIS;
 		if (priv->bus_width_16)
 			devflags |= ISP1760_FLAG_BUS_WIDTH_16;
 		if (priv->port1_otg)

@@ -8,7 +8,6 @@
 
 struct isp1760_platform_data {
 	unsigned is_isp1761:1;			/* Chip is ISP1761 */
-	unsigned port1_disable:1;		/* Port 1 disabled */
 	unsigned bus_width_16:1;		/* 16/32-bit data bus width */
 	unsigned port1_otg:1;			/* Port 1 supports OTG */
 	unsigned analog_oc:1;			/* Analog overcurrent */
