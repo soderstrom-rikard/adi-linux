@@ -2422,6 +2422,7 @@ config AX88180
 	depends on (ARM || BLACKFIN || MIPS)
 	select CRC32
 	select MII
+	select COMPAT_NET_DEV_OPS
 	---help---
 	  Support for AX88180 chipset.
 	  To compile this driver as a module, choose M here
