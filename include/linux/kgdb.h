@@ -204,6 +204,19 @@ kgdb_arch_handle_exception(int vector, int signo, int err_code,
  */
 extern void kgdb_roundup_cpus(unsigned long flags);
 
+/**
+ *	kgdb_roundup_cpu - Get spcific CPU into a holding pattern
+ *	@cpu: Specific cpu id
+ *	@flags: Current IRQ state
+ *
+ *	On SMP systems, we need to switch cpu from current active one to
+ *	the other passive one. This get current active CPU into a known state
+ *	in kgdb_wait().
+ *
+ *	On non-SMP systems, this is not called.
+ */
+extern void kgdb_roundup_cpu(int cpu, unsigned long flags);
+
 /* Optional functions. */
 extern int kgdb_validate_break_address(unsigned long addr);
 extern int kgdb_arch_set_breakpoint(unsigned long addr, char *saved_instr);
