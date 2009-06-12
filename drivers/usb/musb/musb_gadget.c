@@ -957,8 +957,14 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		/* REVISIT if can_bulk_combine() use by updating "tmp"
 		 * likewise high bandwidth periodic rx
 		 */
-		musb_writew(regs, MUSB_RXMAXP, tmp);
-
+#if defined(CONFIG_BLACKFIN) && ANOMALY_05000465
+                /* Set RXMAXP with the FIFO size of the endpoint
+                 * to diable double buffer mode.
+                 */
+                musb_writew(regs, MUSB_RXMAXP, hw_ep->max_packet_sz_rx);
+#elif
+                musb_writew(regs, MUSB_RXMAXP, tmp);
+#endif
 		/* force shared fifo to OUT-only mode */
 		if (hw_ep->is_shared_fifo) {
 			csr = musb_readw(regs, MUSB_TXCSR);
