@@ -21,7 +21,6 @@
 #include <linux/tty.h>
 #include <linux/tty_flip.h>
 #include <linux/serial_core.h>
-#include <stdarg.h>
 
 #if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
 	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
@@ -1344,50 +1343,6 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 }
 
 #endif /* CONFIG_EARLY_PRINTK */
-
-#ifdef CONFIG_DEBUG_KERNEL
-void bfin_serial_debug(const char *fmt, ...)
-{
-	struct bfin_serial_port *uart = &bfin_serial_ports[0];
-	unsigned short status;
-	unsigned long flags, _flags;
-	size_t i, count;
-	char buf[128];
-	va_list ap;
-
-#ifdef CONFIG_SERIAL_BFIN_CONSOLE
-	if (bfin_serial_console.index < 0)
-		return;		/* Too early. */
-#endif
-
-	va_start(ap, fmt);
-	vsprintf(buf, fmt, ap);
-	va_end(ap);
-	count = strlen(buf);
-
-	spin_lock_irqsave(&uart->port.lock, flags);
-	local_irq_save_hw(_flags);
-
-	for (i = 0; i < count; i++) {
-		do {
-			status = UART_GET_LSR(uart);
-		} while (!(status & THRE));
-
-		UART_CLEAR_DLAB(uart);
-		UART_PUT_CHAR(uart, buf[i]);
-		if (buf[i] == '\n') {
-			do {
-				status = UART_GET_LSR(uart);
-			} while (!(status & THRE));
-			UART_PUT_CHAR(uart, '\r');
-		}
-	}
-
-	local_irq_restore_hw(_flags);
-	spin_unlock_irqrestore(&uart->port.lock, flags);
-}
-EXPORT_SYMBOL(bfin_serial_debug);
-#endif
 
 static struct uart_driver bfin_serial_reg = {
 	.owner			= THIS_MODULE,
