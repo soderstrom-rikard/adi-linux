@@ -89,6 +89,10 @@ do_trace:
 	/* restore all state needed by the ABI */
 }
 
+Don't forget to export mcount for modules !
+extern void _mcount(void);
+EXPORT_SYMBOL(_mcount);
+
 
 HAVE_FUNCTION_TRACE_MCOUNT_TEST
 -------------------------------
