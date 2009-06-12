@@ -31,6 +31,8 @@ The exact mcount symbol name will depend on your toolchain.  Some call it
 running something like:
 	$ echo 'main(){}' | gcc -x c -S -o - - -pg | grep mcount
 	        call    mcount
+We'll make the assumption below that the symbol is "mcount" just to keep things
+nice and simple in the examples.
 
 Keep in mind that the ABI that is in effect inside of the mcount function is
 *highly* architecture/toolchain specific.  We cannot help you in this regard,
@@ -90,8 +92,8 @@ do_trace:
 }
 
 Don't forget to export mcount for modules !
-extern void _mcount(void);
-EXPORT_SYMBOL(_mcount);
+extern void mcount(void);
+EXPORT_SYMBOL(mcount);
 
 
 HAVE_FUNCTION_TRACE_MCOUNT_TEST
