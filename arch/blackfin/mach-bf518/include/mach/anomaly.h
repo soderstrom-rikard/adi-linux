@@ -7,7 +7,7 @@
  */
 
 /* This file should be up to date with:
- *  - Revision B, 02/03/2009; ADSP-BF512/BF514/BF516/BF518 Blackfin Processor Anomaly List
+ *  - Revision C, 06/12/2009; ADSP-BF512/BF514/BF516/BF518 Blackfin Processor Anomaly List
  */
 
 /* We plan on not supporting 0.0 silicon, but 0.1 isn't out yet - sorry */
@@ -45,29 +45,31 @@
 /* Speculative Fetches of Indirect-Pointer Instructions Can Cause False Hardware Errors */
 #define ANOMALY_05000426 (1)
 /* Software System Reset Corrupts PLL_LOCKCNT Register */
-#define ANOMALY_05000430 (1)
+#define ANOMALY_05000430 (__SILICON_REVISION__ < 1)
 /* Incorrect Use of Stack in Lockbox Firmware During Authentication */
 #define ANOMALY_05000431 (1)
 /* Certain SIC Registers are not Reset After Soft or Core Double Fault Reset */
-#define ANOMALY_05000435 (1)
+#define ANOMALY_05000435 (__SILICON_REVISION__ < 1)
 /* PORTx_DRIVE and PORTx_HYSTERESIS Registers Read Back Incorrect Values */
-#define ANOMALY_05000438 (1)
+#define ANOMALY_05000438 (__SILICON_REVISION__ < 1)
 /* Preboot Cannot be Used to Alter the PLL_DIV Register */
-#define ANOMALY_05000439 (1)
+#define ANOMALY_05000439 (__SILICON_REVISION__ < 1)
 /* bfrom_SysControl() Cannot be Used to Write the PLL_DIV Register */
-#define ANOMALY_05000440 (1)
+#define ANOMALY_05000440 (__SILICON_REVISION__ < 1)
 /* IFLUSH Instruction at End of Hardware Loop Causes Infinite Stall */
 #define ANOMALY_05000443 (1)
 /* Incorrect L1 Instruction Bank B Memory Map Location */
-#define ANOMALY_05000444 (1)
+#define ANOMALY_05000444 (__SILICON_REVISION__ < 1)
 /* Incorrect Default Hysteresis Setting for RESET, NMI, and BMODE Signals */
-#define ANOMALY_05000452 (1)
+#define ANOMALY_05000452 (__SILICON_REVISION__ < 1)
 /* PWM_TRIPB Signal Not Available on PG10 */
-#define ANOMALY_05000453 (1)
+#define ANOMALY_05000453 (__SILICON_REVISION__ < 1)
 /* PPI_FS3 is Driven One Half Cycle Later Than PPI Data */
-#define ANOMALY_05000455 (1)
+#define ANOMALY_05000455 (__SILICON_REVISION__ < 1)
 /* False Hardware Error when RETI points to invalid memory */
 #define ANOMALY_05000461 (1)
+/* Synchronization Problem at Startup May Cause SPORT Transmit Channels to Misalign */
+#define ANOMALY_05000462 (1)
 
 /* Anomalies that don't exist on this proc */
 #define ANOMALY_05000099 (0)
