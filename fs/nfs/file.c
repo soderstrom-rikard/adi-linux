@@ -284,7 +284,6 @@ nfs_file_splice_read(struct file *filp, loff_t *ppos,
 	return res;
 }
 
-#ifdef CONFIG_MMU
 static int
 nfs_file_mmap(struct file * file, struct vm_area_struct * vma)
 {
@@ -305,17 +304,6 @@ nfs_file_mmap(struct file * file, struct vm_area_struct * vma)
 	}
 	return status;
 }
-#else
-static int
-nfs_file_mmap(struct file *file, struct vm_area_struct *vma)
-{
-	/* Kill warning: 'nfs_file_vm_ops' defined but not used */
-	struct vm_operations_struct *vm_ops;
-	vm_ops = &nfs_file_vm_ops;
-
-	return generic_file_mmap(file, vma);
-}
-#endif
 
 /*
  * Flush any dirty pages for this process, and check for write errors.
