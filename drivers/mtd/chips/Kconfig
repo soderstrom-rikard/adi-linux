@@ -208,8 +208,12 @@ config MTD_CFI_STAA
 	  provides support for one of those command sets.
 
 config MTD_PSD4256G
- 	tristate "ST PSD4256G compatible flash chip support"
- 	depends on EZKIT && MTD_GEN_PROBE
+	tristate "ST PSD4256G compatible flash chip support"
+	help
+	  Driver for flashes compatible with ST PSD4256G.  This is a non-CFI
+	  and non-JEDEC compliant flash and you really shouldn't buy this.
+
+	  If unsure, say N here.
 
 config MTD_CFI_UTIL
 	tristate
