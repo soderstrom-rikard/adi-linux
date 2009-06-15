@@ -335,13 +335,13 @@ static int ssm2602_startup(struct snd_pcm_substream *substream,
 		dev_dbg(&i2c->dev, "Constraining to %d bits at %dHz\n",
 			master_runtime->sample_bits,
 			master_runtime->rate);
-
-		snd_pcm_hw_constraint_minmax(substream->runtime,
+		if (master_runtime->rate != 0)
+			snd_pcm_hw_constraint_minmax(substream->runtime,
 					     SNDRV_PCM_HW_PARAM_RATE,
 					     master_runtime->rate,
 					     master_runtime->rate);
-
-		snd_pcm_hw_constraint_minmax(substream->runtime,
+		if (master_runtime->sample_bits != 0)
+			snd_pcm_hw_constraint_minmax(substream->runtime,
 					     SNDRV_PCM_HW_PARAM_SAMPLE_BITS,
 					     master_runtime->sample_bits,
 					     master_runtime->sample_bits);
