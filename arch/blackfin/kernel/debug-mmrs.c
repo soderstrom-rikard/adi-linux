@@ -10309,7 +10309,6 @@ static int __init bfin_debug_mmrs_init(void)
 		D("CAN_UCCNF", 16, 0xFFC02ACC);
 		D("CAN_UCCNT", 16, 0xFFC02AC4);
 		D("CAN_UCRC", 16, 0xFFC02AC8);
-		D("CAN_UCREG", 16, 0xFFC02AC0);
 		D("CAN_VERSION2", 16, 0xFFC02AD4);
 		D("CAN_VERSION", 16, 0xFFC02AA8);
 
@@ -11319,7 +11318,6 @@ static int __init bfin_debug_mmrs_init(void)
 		D("CAN_UCCNF", 16, 0xFFC02ACC);
 		D("CAN_UCCNT", 16, 0xFFC02AC4);
 		D("CAN_UCRC", 16, 0xFFC02AC8);
-		D("CAN_UCREG", 16, 0xFFC02AC0);
 		D("CAN_VERSION2", 16, 0xFFC02AD4);
 		D("CAN_VERSION", 16, 0xFFC02AA8);
 
@@ -12410,7 +12408,6 @@ static int __init bfin_debug_mmrs_init(void)
 		D("CAN_UCCNF", 16, 0xFFC02ACC);
 		D("CAN_UCCNT", 16, 0xFFC02AC4);
 		D("CAN_UCRC", 16, 0xFFC02AC8);
-		D("CAN_UCREG", 16, 0xFFC02AC0);
 		D("CAN_VERSION2", 16, 0xFFC02AD4);
 		D("CAN_VERSION", 16, 0xFFC02AA8);
 
@@ -13501,7 +13498,6 @@ static int __init bfin_debug_mmrs_init(void)
 		D("CAN_UCCNF", 16, 0xFFC02ACC);
 		D("CAN_UCCNT", 16, 0xFFC02AC4);
 		D("CAN_UCRC", 16, 0xFFC02AC8);
-		D("CAN_UCREG", 16, 0xFFC02AC0);
 		D("CAN_VERSION2", 16, 0xFFC02AD4);
 		D("CAN_VERSION", 16, 0xFFC02AA8);
 
@@ -14753,7 +14749,6 @@ static int __init bfin_debug_mmrs_init(void)
 		D("CAN_UCCNF", 16, 0xFFC02ACC);
 		D("CAN_UCCNT", 16, 0xFFC02AC4);
 		D("CAN_UCRC", 16, 0xFFC02AC8);
-		D("CAN_UCREG", 16, 0xFFC02AC0);
 		D("CAN_VERSION2", 16, 0xFFC02AD4);
 		D("CAN_VERSION", 16, 0xFFC02AA8);
 
