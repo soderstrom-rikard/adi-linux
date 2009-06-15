@@ -927,7 +927,14 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		/* REVISIT if can_bulk_split(), use by updating "tmp";
 		 * likewise high bandwidth periodic tx
 		 */
+#if defined(CONFIG_BLACKFIN) && ANOMALY_05000465
+                /* Set TXMAXP with the FIFO size of the endpoint
+                 * to diable double buffer mode.
+                 */
+                musb_writew(regs, MUSB_TXMAXP, hw_ep->max_packet_sz_tx);
+#elif
 		musb_writew(regs, MUSB_TXMAXP, tmp);
+#endif
 
 		csr = MUSB_TXCSR_MODE | MUSB_TXCSR_CLRDATATOG;
 		if (musb_readw(regs, MUSB_TXCSR)
