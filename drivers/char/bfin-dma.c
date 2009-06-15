@@ -217,9 +217,9 @@ static int bdi_do_dma(struct dma_state *state, int async)
 	enable_dma(state->chan_dst);
 
 	if (!async)
-		wait_for_completion(&state->c);
-
-	return 0;
+		return wait_for_completion_interruptible(&state->c);
+	else
+		return 0;
 }
 
 /**
@@ -255,11 +255,25 @@ static int bfin_dma_ioctl(struct inode *inode, struct file *filp,
 			return -EFAULT;
 	}
 
+	/* The get/put module business is to make sure we don't let the
+	 * module be unloaded while holding a dma channel.
+	 */
 	switch (cmd) {
 	case BF_DMA_RUN:
-	case BF_DMA_ARUN:    return bdi_do_dma(state, cmd == BF_DMA_ARUN);
-	case BF_DMA_REQUEST: return bdi_request_dma(state, ustate);
-	case BF_DMA_FREE:    return bdi_free_dma(state);
+	case BF_DMA_ARUN:
+		return bdi_do_dma(state, cmd == BF_DMA_ARUN);
+
+	case BF_DMA_REQUEST:
+		if (!try_module_get(filp->f_op->owner))
+			return -EAGAIN;
+		ret = bdi_request_dma(state, ustate);
+		if (ret)
+			module_put(filp->f_op->owner);
+		return ret;
+
+	case BF_DMA_FREE:
+		module_put(filp->f_op->owner);
+		return bdi_free_dma(state);
 	}
 
 	return -EINVAL;
