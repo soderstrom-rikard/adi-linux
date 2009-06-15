@@ -188,6 +188,8 @@
 #define ANOMALY_05000461 (1)
 /* USB Receive Interrupt Is Not Generated in DMA Mode 1 */
 #define ANOMALY_05000465 (1)
+/* Possible RX data corruption when control & data EP FIFOs are accessed via the core */
+#define ANOMALY_05000467 (1)
 
 /* Anomalies that don't exist on this proc */
 #define ANOMALY_05000099 (0)
