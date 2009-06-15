@@ -823,7 +823,7 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 						packet_sz) - 1) << 11);
 			else
 #if defined(CONFIG_BLACKFIN) && ANOMALY_05000465
-        /* Set RXMAXP with the FIFO size of the endpoint
+        /* Set TXMAXP with the FIFO size of the endpoint
          * to diable double buffer mode.
          */
         			musb_writew(epio, MUSB_TXMAXP,
