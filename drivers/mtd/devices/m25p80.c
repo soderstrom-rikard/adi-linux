@@ -44,7 +44,7 @@
 #define	OPCODE_SE		0xd8	/* Sector erase (usually 64KiB) */
 #define	OPCODE_RDID		0x9f	/* Read JEDEC ID */
 
-/* Used for sst chips */
+/* Used for SST flashes only. */
 #define	OPCODE_BP		0x02	/* Byte program */
 #define	OPCODE_WRDI		0x04	/* Write disable */
 #define	OPCODE_AAI_WP		0xad	/* Auto address increment word program */
@@ -526,6 +526,7 @@ static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
 	flash->command[2] = to >> 8;
 	flash->command[3] = to;
 
+	/* Write out most of the data here. */
 	cmd_sz = CMD_SIZE;
 	for (; actual < len - 1; actual += 2) {
 		t[0].len = cmd_sz;
@@ -542,6 +543,7 @@ static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
 		to += 2;
 	}
 
+	/* Write out trailing byte if it exists. */
 	if (actual != len) {
 		flash->command[0] = OPCODE_BP;
 		flash->command[1] = to >> 16;
@@ -559,7 +561,7 @@ static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
 	}
 
 	ret = wait_till_ready(flash);
-time_out:
+ time_out:
 	write_disable(flash);
 	mutex_unlock(&flash->lock);
 	return ret;
@@ -626,6 +628,9 @@ static struct flash_info __devinitdata m25p_data [] = {
 	{ "sst25vf080b", 0xbf258e, 0, 64 * 1024, 16, SECT_4K, },
 	{ "sst25vf016b", 0xbf2541, 0, 64 * 1024, 32, SECT_4K, },
 	{ "sst25vf032b", 0xbf254a, 0, 64 * 1024, 64, SECT_4K, },
+	{ "sst25wf512",  0xbf2501, 0, 64 * 1024, 1, SECT_4K, },
+	{ "sst25wf010",  0xbf2502, 0, 64 * 1024, 2, SECT_4K, },
+	{ "sst25wf020",  0xbf2503, 0, 64 * 1024, 4, SECT_4K, },
 	{ "sst25wf040",  0xbf2504, 0, 64 * 1024, 8, SECT_4K, },
 
 	/* ST Microelectronics -- newer production may have feature updates */
