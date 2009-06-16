@@ -21,8 +21,8 @@ Ftrace relies on these features being implemented:
  TRACE_IRQFLAGS_SUPPORT - implement include/asm/irqflags.h
 
 
-HAVE_FUNCTION_GRAPH_TRACER
---------------------------
+HAVE_FUNCTION_TRACER
+--------------------
 
 You will need to implement the mcount and the ftrace_stub functions.
 
@@ -37,9 +37,11 @@ nice and simple in the examples.
 Keep in mind that the ABI that is in effect inside of the mcount function is
 *highly* architecture/toolchain specific.  We cannot help you in this regard,
 sorry.  Dig up some old documentation and/or find someone more familiar than
-you to bang ideas off of.  Typically, register usage/clobbering is a major
-problem here.  You might also want to look at how glibc has implemented the
-mcount function for your architecture.  It might be (semi-)relevant.
+you to bang ideas off of.  Typically, register usage (argument/scratch/etc...)
+is a major issue at this point, especially in relation to the location of the
+mcount call (before/after function prologue).  You might also want to look at
+how glibc has implemented the mcount function for your architecture.  It might
+be (semi-)relevant.
 
 The mcount function should check the function pointer ftrace_trace_function
 to see if it is set to ftrace_stub.  If it is, there is nothing for you to do,
@@ -82,7 +84,7 @@ void mcount(void)
 
 do_trace:
 
-	/* save all state needed by the ABI */
+	/* save all state needed by the ABI (see paragraph above) */
 
 	unsigned long frompc = ...;
 	unsigned long selfpc = <return address> - MCOUNT_INSN_SIZE;
@@ -184,12 +186,14 @@ across architectures.
 
 Here is the pseudo code for the new return_to_handler assembly function.  Note
 that the ABI that applies here is different from what applies to the mcount
-code.  Here you are returning from a function, so you might be able to skimp
-on things saved/restored.
+code.  Since you are returning from a function (after the epilogue), you might
+be able to skimp on things saved/restored (usually just registers used to pass
+return values).
+
 #ifdef CONFIG_FUNCTION_GRAPH_TRACER
 void return_to_handler(void)
 {
-	/* save all state needed by the ABI */
+	/* save all state needed by the ABI (see paragraph above) */
 
 	void (*original_return_point)(void) = ftrace_return_to_handler();
 
