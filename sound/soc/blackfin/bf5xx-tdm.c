@@ -29,7 +29,6 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/device.h>
-#include <linux/delay.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -85,9 +84,9 @@ static struct sport_param sport_params[2] = {
 #endif
 
 static u16 sport_req[][7] = { {P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
-		P_SPORT0_DRPRI, P_SPORT0_RSCLK, LOCAL_SPORT0_TFS, 0},
-		{P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, P_SPORT1_DRPRI,
-		P_SPORT1_RSCLK, P_SPORT1_TFS, 0} };
+	P_SPORT0_DRPRI, P_SPORT0_RSCLK, LOCAL_SPORT0_TFS, 0},
+	   {P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, P_SPORT1_DRPRI,
+		   P_SPORT1_RSCLK, P_SPORT1_TFS, 0} };
 
 static int bf5xx_tdm_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 		unsigned int fmt)
@@ -122,7 +121,8 @@ static int bf5xx_tdm_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 }
 
 static int bf5xx_tdm_hw_params(struct snd_pcm_substream *substream,
-				struct snd_pcm_hw_params *params)
+		struct snd_pcm_hw_params *params,
+		struct snd_soc_dai *dai)
 {
 	int ret = 0;
 
@@ -146,14 +146,14 @@ static int bf5xx_tdm_hw_params(struct snd_pcm_substream *substream,
 		 * CPU DAI:slave mode.
 		 */
 		ret = sport_config_rx(sport_handle, bf5xx_tdm.rcr1,
-				      bf5xx_tdm.rcr2, 0, 0);
+				bf5xx_tdm.rcr2, 0, 0);
 		if (ret) {
 			pr_err("SPORT is busy!\n");
 			return -EBUSY;
 		}
 
 		ret = sport_config_tx(sport_handle, bf5xx_tdm.tcr1,
-				      bf5xx_tdm.tcr2, 0, 0);
+				bf5xx_tdm.tcr2, 0, 0);
 		if (ret) {
 			pr_err("SPORT is busy!\n");
 			return -EBUSY;
@@ -216,8 +216,7 @@ static void bf5xx_tdm_remove(struct platform_device *pdev,
 }
 
 #ifdef CONFIG_PM
-static int bf5xx_tdm_suspend(struct platform_device *dev,
-		struct snd_soc_dai *dai)
+static int bf5xx_tdm_suspend(struct snd_soc_dai *dai)
 {
 	struct sport_device *sport =
 		(struct sport_device *)dai->private_data;
@@ -231,8 +230,7 @@ static int bf5xx_tdm_suspend(struct platform_device *dev,
 	return 0;
 }
 
-static int bf5xx_tdm_resume(struct platform_device *pdev,
-		struct snd_soc_dai *dai)
+static int bf5xx_tdm_resume(struct snd_soc_dai *dai)
 {
 	struct sport_device *sport =
 		(struct sport_device *)dai->private_data;
@@ -252,10 +250,14 @@ static int bf5xx_tdm_resume(struct platform_device *pdev,
 #define bf5xx_tdm_resume	NULL
 #endif
 
+static struct snd_soc_dai_ops bf5xx_tdm_dai_ops = {
+	.hw_params	= bf5xx_tdm_hw_params,
+	.set_fmt	= bf5xx_tdm_set_dai_fmt,
+};
+
 struct snd_soc_dai bf5xx_tdm_dai = {
 	.name = "bf5xx-tdm",
 	.id = 0,
-	.type = SND_SOC_DAI_PCM,
 	.probe = bf5xx_tdm_probe,
 	.remove = bf5xx_tdm_remove,
 	.suspend = bf5xx_tdm_suspend,
@@ -270,11 +272,7 @@ struct snd_soc_dai bf5xx_tdm_dai = {
 		.channels_max = 8,
 		.rates = SNDRV_PCM_RATE_48000,
 		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
-	.ops = {
-		.hw_params = bf5xx_tdm_hw_params,},
-	.dai_ops = {
-		.set_fmt = bf5xx_tdm_set_dai_fmt,
-	},
+	.ops = &bf5xx_tdm_dai_ops,
 };
 EXPORT_SYMBOL_GPL(bf5xx_tdm_dai);
 

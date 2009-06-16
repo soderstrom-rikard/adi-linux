@@ -84,18 +84,6 @@ static int ad1938_add_controls(struct snd_soc_codec *codec)
 	return 0;
 }
 
-/* dai_ops.digital_mute entry */
-static int ad1938_mute(struct snd_soc_dai *dai, int mute)
-{
-	struct snd_soc_codec *codec = dai->codec;
-
-	if (!mute)
-		codec->write(codec, AD1938_DAC_CHNL_MUTE, 0);
-	else
-		codec->write(codec, AD1938_DAC_CHNL_MUTE, 0xff);
-
-	return 0;
-}
 
 /* dac/adc/pll poweron/off functions */
 static int ad1938_dac_powerctrl(struct snd_soc_codec *codec, int cmd)
@@ -107,7 +95,6 @@ static int ad1938_dac_powerctrl(struct snd_soc_codec *codec, int cmd)
 		reg &= ~DAC_POWERDOWN;
 	else
 		reg |= DAC_POWERDOWN;
-
 	codec->write(codec, AD1938_DAC_CTRL0, reg);
 
 	return 0;
@@ -123,7 +110,6 @@ static int ad1938_adc_powerctrl(struct snd_soc_codec *codec, int cmd)
 		reg &= ~ADC_POWERDOWN;
 	else
 		reg |= ADC_POWERDOWN;
-
 	codec->write(codec, AD1938_ADC_CTRL0, reg);
 
 	return 0;
@@ -138,14 +124,15 @@ static int ad1938_pll_powerctrl(struct snd_soc_codec *codec, int cmd)
 		reg &= ~PLL_POWERDOWN;
 	else
 		reg |= PLL_POWERDOWN;
-
 	codec->write(codec, AD1938_PLL_CLK_CTRL0, reg);
 
 	return 0;
-
 }
 
-/* dai_ops.set_pll entry */
+/* 
+ * DAI ops entries 
+ */
+
 static int ad1938_set_pll(struct snd_soc_dai *codec_dai,
 		int pll_id, unsigned int freq_in, unsigned int freq_out)
 {
@@ -162,12 +149,57 @@ static int ad1938_set_pll(struct snd_soc_dai *codec_dai,
 	return 0;
 }
 
-/* ops.prepare entry */
-static int ad1938_pcm_prepare(struct snd_pcm_substream *substream)
+static int ad1938_mute(struct snd_soc_dai *dai, int mute)
+{
+	struct snd_soc_codec *codec = dai->codec;
+
+	if (!mute)
+		codec->write(codec, AD1938_DAC_CHNL_MUTE, 0);
+	else
+		codec->write(codec, AD1938_DAC_CHNL_MUTE, 0xff);
+
+	return 0;
+}
+
+static int ad1938_set_dai_fmt(struct snd_soc_dai *codec_dai,
+		unsigned int fmt)
+{
+	struct snd_soc_codec *codec = codec_dai->codec;
+	int adc_reg, dac_reg;
+
+	/* read back adc and dac control registers */
+	adc_reg = codec->read(codec, AD1938_ADC_CTRL1);
+	dac_reg = codec->read(codec, AD1938_DAC_CTRL0);
+	adc_reg &= ~ADC_SERFMT_MASK;
+	dac_reg &= ~DAC_SERFMT_MASK;
+
+	/* interface format */
+	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
+	case SND_SOC_DAIFMT_SPORT_TDM:
+		adc_reg |= ADC_SERFMT_AUX;
+		dac_reg |= DAC_SERFMT_TDM; 
+		break;
+	case SND_SOC_DAIFMT_I2S:
+		adc_reg |= ADC_SERFMT_STEREO;
+		dac_reg |= DAC_SERFMT_STEREO; 
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	/* set new format */
+	codec->write(codec, AD1938_ADC_CTRL1, adc_reg);
+	codec->write(codec, AD1938_DAC_CTRL0, dac_reg);
+
+	return 0;
+}
+
+static int ad1938_pcm_prepare(struct snd_pcm_substream *substream, 
+		struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
-	struct snd_soc_codec *codec = socdev->codec;
+	struct snd_soc_codec *codec = socdev->card->codec;
 	struct snd_soc_dai *codec_dai = codec->dai;
 
 	/* set active */
@@ -184,12 +216,12 @@ static int ad1938_pcm_prepare(struct snd_pcm_substream *substream)
 	return 0;
 }
 
-/* ops.shutdown entry */
-static void ad1938_pcm_shutdown(struct snd_pcm_substream *substream)
+static void ad1938_pcm_shutdown(struct snd_pcm_substream *substream,
+		struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
-	struct snd_soc_codec *codec = socdev->codec;
+	struct snd_soc_codec *codec = socdev->card->codec;
 	struct snd_soc_dai *codec_dai = codec->dai;
 
 	/* deactivate */
@@ -271,7 +303,7 @@ static unsigned int ad1938_reg_read(struct snd_soc_codec *codec, unsigned int re
 static int __devinit ad1938_spi_probe(struct spi_device *spi)
 {
 	spi->dev.power.power_state = PMSG_ON;
-	ad1938_socdev->codec->control_data = spi;
+	ad1938_socdev->card->codec->control_data = spi;
 
 	return 0;
 }
@@ -301,6 +333,14 @@ static void ad1938_spi_done(void)
 	spi_unregister_driver(&ad1938_spi_driver);
 }
 
+static struct snd_soc_dai_ops ad1938_dai_ops = { 
+	.prepare = ad1938_pcm_prepare,
+	.shutdown = ad1938_pcm_shutdown,	
+	.digital_mute = ad1938_mute,
+	.set_pll = ad1938_set_pll,
+	.set_fmt = ad1938_set_dai_fmt,
+};
+
 /* codec DAI instance */
 struct snd_soc_dai ad1938_dai = {
 	.name = "AD1938",
@@ -316,14 +356,7 @@ struct snd_soc_dai ad1938_dai = {
 		.channels_max = 4,
 		.rates = SNDRV_PCM_RATE_48000,
 		.formats = SNDRV_PCM_FMTBIT_S32_LE, },
-	.ops = {
-		.prepare = ad1938_pcm_prepare,
-		.shutdown = ad1938_pcm_shutdown,
-	},
-	.dai_ops = {
-		.digital_mute = ad1938_mute,
-		.set_pll = ad1938_set_pll,
-	},
+	.ops = &ad1938_dai_ops,
 };
 EXPORT_SYMBOL_GPL(ad1938_dai);
 
@@ -344,7 +377,7 @@ static int ad1938_soc_probe(struct platform_device *pdev)
 	codec->num_dai = 1;
 	codec->write = ad1938_reg_write;
 	codec->read = ad1938_reg_read;
-	socdev->codec = codec;
+	socdev->card->codec = codec;
 	INIT_LIST_HEAD(&codec->dapm_widgets);
 	INIT_LIST_HEAD(&codec->dapm_paths);
 
@@ -364,7 +397,7 @@ static int ad1938_soc_probe(struct platform_device *pdev)
 		goto pcm_err;
 	}
 
-	ret = snd_soc_register_card(socdev);
+	ret = snd_soc_init_card(socdev);
 	if (ret < 0) {
 		printk(KERN_ERR "ad1938: failed to register card\n");
 		goto register_err;
@@ -392,15 +425,15 @@ register_err:
 pcm_err:
 	ad1938_spi_done();
 spi_err:
-	kfree(socdev->codec);
-	socdev->codec = NULL;
+	kfree(socdev->card->codec);
+	socdev->card->codec = NULL;
 	return ret;
 }
 
 static int ad1938_soc_remove(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->codec;
+	struct snd_soc_codec *codec = socdev->card->codec;
 
 	if (codec == NULL)
 		return 0;
@@ -416,7 +449,7 @@ static int ad1938_soc_suspend(struct platform_device *pdev,
 		pm_message_t state)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->codec;
+	struct snd_soc_codec *codec = socdev->card->codec;
 
 	/* poweroff dac/adc/pll */
 	ad1938_dac_powerctrl(codec, 0);
@@ -429,7 +462,7 @@ static int ad1938_soc_suspend(struct platform_device *pdev,
 static int ad1938_soc_resume(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->codec;
+	struct snd_soc_codec *codec = socdev->card->codec;
 	struct snd_soc_dai *codec_dai = codec->dai;
 
 	/* playing while recording, framework will poweroff-poweron pll redundantly */
@@ -454,6 +487,18 @@ struct snd_soc_codec_device soc_codec_dev_ad1938 = {
 	.resume =       ad1938_soc_resume,
 };
 EXPORT_SYMBOL_GPL(soc_codec_dev_ad1938);
+
+static int __init ad1938_init(void)
+{
+	return snd_soc_register_dai(&ad1938_dai);
+}
+module_init(ad1938_init);
+
+static void __exit ad1938_exit(void)
+{
+	snd_soc_unregister_dai(&ad1938_dai);
+}
+module_exit(ad1938_exit);
 
 MODULE_DESCRIPTION("ASoC ad1938 driver");
 MODULE_AUTHOR("Barry Song ");

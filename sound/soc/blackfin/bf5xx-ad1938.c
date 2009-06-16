@@ -26,7 +26,6 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/device.h>
-#include <linux/delay.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/soc.h>
@@ -44,12 +43,7 @@
 #include "bf5xx-tdm-pcm.h"
 #include "bf5xx-tdm.h"
 
-static struct snd_soc_machine bf5xx_ad1938;
-
-static int bf5xx_probe(struct platform_device *pdev)
-{
-	return 0;
-}
+static struct snd_soc_card bf5xx_ad1938;
 
 static int bf5xx_ad1938_startup(struct snd_pcm_substream *substream)
 {
@@ -78,7 +72,7 @@ static int bf5xx_ad1938_hw_params(struct snd_pcm_substream *substream,
 	int ret = 0;
 
 	/* set cpu DAI configuration */
-	ret = cpu_dai->dai_ops.set_fmt(cpu_dai, SND_SOC_DAIFMT_SPORT_TDM |
+	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_SPORT_TDM |
 			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0)
 		return ret;
@@ -105,16 +99,15 @@ static struct snd_soc_dai_link bf5xx_ad1938_dai = {
 	.ops = &bf5xx_ad1938_ops,
 };
 
-static struct snd_soc_machine bf5xx_ad1938 = {
+static struct snd_soc_card bf5xx_ad1938 = {
 	.name = "bf5xx_ad1938",
-	.probe = bf5xx_probe,
+	.platform = &bf5xx_tdm_soc_platform,
 	.dai_link = &bf5xx_ad1938_dai,
 	.num_links = 1,
 };
 
 static struct snd_soc_device bf5xx_ad1938_snd_devdata = {
-	.machine = &bf5xx_ad1938,
-	.platform = &bf5xx_tdm_soc_platform,
+	.card = &bf5xx_ad1938,
 	.codec_dev = &soc_codec_dev_ad1938,
 };
 

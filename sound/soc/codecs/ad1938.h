@@ -34,6 +34,9 @@
 #define AD1938_PLL_CLK_CTRL1    1
 #define AD1938_DAC_CTRL0        2
 #define DAC_POWERDOWN           0x01
+#define DAC_SERFMT_MASK		0xC0
+#define DAC_SERFMT_STEREO	(0 << 6)
+#define DAC_SERFMT_TDM		(1 << 6)
 #define AD1938_DAC_CTRL1        3
 #define AD1938_DAC_CTRL2        4
 #define AD1938_DAC_CHNL_MUTE    5
@@ -53,6 +56,9 @@
 #define ADC2_MUTE 		4
 #define ADC3_MUTE 		5
 #define AD1938_ADC_CTRL1        15
+#define ADC_SERFMT_MASK		0x60
+#define ADC_SERFMT_STEREO	(0 << 5)
+#define ADC_SERFMT_AUX		(2 << 5)
 #define AD1938_ADC_CTRL2        16
 
 extern struct snd_soc_dai ad1938_dai;
