@@ -254,7 +254,7 @@ static int bfin_dma_ioctl(struct inode *inode, struct file *filp,
 	if (cmd != BF_DMA_REQUEST) {
 		if (!atomic_read(&state->status))
 			return -EINVAL;
-		if (copy_from_user(&state->dsc_src, &ustate->dsc_src, sizeof(state->dsc_dst)))
+		if (copy_from_user(&state->dsc_src, &ustate->dsc_src, sizeof(state->dsc_src)))
 			return -EFAULT;
 		if (copy_from_user(&state->dsc_dst, &ustate->dsc_dst, sizeof(state->dsc_dst)))
 			return -EFAULT;
