@@ -202,19 +202,12 @@ static int ramfs_parse_options(char *data, struct ramfs_mount_opts *opts)
 				return -EINVAL;
 			opts->mode = option & S_IALLUGO;
 			break;
-		default:
-#ifndef CONFIG_SHMEM
-			/* If tmpfs is using us to emulate it, ignore its options */
-			if (!strncmp(p, "gid=", 4) ||
-			    !strncmp(p, "mpol=", 5) ||
-			    !strncmp(p, "nr_blocks=", 10) ||
-			    !strncmp(p, "nr_inodes=", 10) ||
-			    !strncmp(p, "size=", 5) ||
-			    !strncmp(p, "uid=", 4))
-				continue;
-#endif
-			printk(KERN_ERR "ramfs: bad mount option: %s\n", p);
-			return -EINVAL;
+		/*
+		 * We might like to report bad mount options here;
+		 * but traditionally ramfs has ignored all mount options,
+		 * and as it is used as a !CONFIG_SHMEM simple substitute
+		 * for tmpfs, better continue to ignore other mount options.
+		 */
 		}
 	}
 
