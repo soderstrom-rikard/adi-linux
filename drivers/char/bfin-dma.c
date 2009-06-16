@@ -135,6 +135,7 @@ static int bdi_request_dma(struct dma_state *state, struct user_dma_state __user
 	if (ret)
 		goto err_free_2;
 
+	clear_dma_irqstat(state->chan_dst);
 	state->user_done = &ustate->done;
 	init_completion(&state->c);
 	atomic_set(&state->status, 1);
