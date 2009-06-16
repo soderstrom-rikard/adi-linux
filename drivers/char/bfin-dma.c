@@ -18,6 +18,7 @@
 #include <linux/types.h>
 #include <linux/uaccess.h>
 
+#include <asm/atomic.h>
 #include <asm/blackfin.h>
 #include <asm/cacheflush.h>
 #include <asm/dma.h>
@@ -45,7 +46,7 @@ struct user_dma_state {
 /*** User space interface: END ***/
 
 struct dma_state {
-	bool ours;
+	atomic_t status;
 	unsigned int chan_src, chan_dst;
 	struct dmasg dsc_src, dsc_dst;
 	volatile int *user_done;
@@ -121,7 +122,7 @@ static int bdi_request_dma(struct dma_state *state, struct user_dma_state __user
 
 	stampit();
 
-	if (state->ours)
+	if (atomic_read(&state->status))
 		return -EBUSY;
 
 	ret = request_dma(state->chan_src, DRIVER_NAME);
@@ -134,9 +135,9 @@ static int bdi_request_dma(struct dma_state *state, struct user_dma_state __user
 	if (ret)
 		goto err_free_2;
 
-	state->ours = true;
 	state->user_done = &ustate->done;
 	init_completion(&state->c);
+	atomic_set(&state->status, 1);
 
 	return 0;
 
@@ -154,9 +155,13 @@ static int bdi_request_dma(struct dma_state *state, struct user_dma_state __user
 static int bdi_free_dma(struct dma_state *state)
 {
 	stampit();
+	if (atomic_inc_return(&state->status) != 2) {
+		atomic_dec(&state->status);
+		return -EBUSY;
+	}
 	free_dma(state->chan_src);
 	free_dma(state->chan_dst);
-	state->ours = false;
+	atomic_sub(2, &state->status);
 	return 0;
 }
 
@@ -171,7 +176,7 @@ static int bdi_do_dma(struct dma_state *state, int async)
 
 	stampit();
 
-	if (!state->ours)
+	if (!atomic_read(&state->status))
 		return -EINVAL;
 
 	/* Anomaly 05000301 notes:
@@ -247,7 +252,7 @@ static int bfin_dma_ioctl(struct inode *inode, struct file *filp,
 
 	/* Make sure we've allocated the channel before doing anything */
 	if (cmd != BF_DMA_REQUEST) {
-		if (!state->ours)
+		if (!atomic_read(&state->status))
 			return -EINVAL;
 		if (copy_from_user(&state->dsc_src, &ustate->dsc_src, sizeof(state->dsc_dst)))
 			return -EFAULT;
