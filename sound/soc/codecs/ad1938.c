@@ -129,8 +129,8 @@ static int ad1938_pll_powerctrl(struct snd_soc_codec *codec, int cmd)
 	return 0;
 }
 
-/* 
- * DAI ops entries 
+/*
+ * DAI ops entries
  */
 
 static int ad1938_set_pll(struct snd_soc_dai *codec_dai,
@@ -177,11 +177,11 @@ static int ad1938_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_SPORT_TDM:
 		adc_reg |= ADC_SERFMT_AUX;
-		dac_reg |= DAC_SERFMT_TDM; 
+		dac_reg |= DAC_SERFMT_TDM;
 		break;
 	case SND_SOC_DAIFMT_I2S:
 		adc_reg |= ADC_SERFMT_STEREO;
-		dac_reg |= DAC_SERFMT_STEREO; 
+		dac_reg |= DAC_SERFMT_STEREO;
 		break;
 	default:
 		return -EINVAL;
@@ -194,7 +194,7 @@ static int ad1938_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	return 0;
 }
 
-static int ad1938_pcm_prepare(struct snd_pcm_substream *substream, 
+static int ad1938_pcm_prepare(struct snd_pcm_substream *substream,
 		struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
@@ -333,9 +333,9 @@ static void ad1938_spi_done(void)
 	spi_unregister_driver(&ad1938_spi_driver);
 }
 
-static struct snd_soc_dai_ops ad1938_dai_ops = { 
+static struct snd_soc_dai_ops ad1938_dai_ops = {
 	.prepare = ad1938_pcm_prepare,
-	.shutdown = ad1938_pcm_shutdown,	
+	.shutdown = ad1938_pcm_shutdown,
 	.digital_mute = ad1938_mute,
 	.set_pll = ad1938_set_pll,
 	.set_fmt = ad1938_set_dai_fmt,
