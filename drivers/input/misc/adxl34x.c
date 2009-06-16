@@ -371,7 +371,7 @@ static irqreturn_t adxl34x_irq(int irq, void *handle)
 {
 	struct adxl34x *ac = handle;
 
-	disable_irq(irq);
+	disable_irq_nosync(irq);
 	schedule_work(&ac->work);
 
 	return IRQ_HANDLED;
