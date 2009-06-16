@@ -61,7 +61,7 @@ static void dump_fifo_data(u8 *buf, u16 len)
 #define dump_fifo_data(buf, len)	do {} while (0)
 #endif
 
-#if defined(CONFIG_MUSB_DMA_POLL)
+#if defined(CONFIG_MUSB_DMA_POLL) || ANOMALY_05000467
 
 #define USB_DMA_BASE		USB_DMA_INTERRUPT
 #define USB_DMAx_CTRL		0x04
