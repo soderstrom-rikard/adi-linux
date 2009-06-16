@@ -43,7 +43,7 @@ int stpid_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	skb->protocol = htons(ETH_P_STPID);
 
-	skb->dev = p->parent->master_netdev;
+	skb->dev = p->parent->dst->master_netdev;
 	dev_queue_xmit(skb);
 
 	return NETDEV_TX_OK;
@@ -56,7 +56,8 @@ out_free:
 static int stpid_rcv(struct sk_buff *skb, struct net_device *dev,
 		   struct packet_type *pt, struct net_device *orig_dev)
 {
-	struct dsa_switch *ds = dev->dsa_ptr;
+	struct dsa_switch_tree *dst = dev->dsa_ptr;
+	struct dsa_switch *ds = dst->ds[0];
 	u8 *dsa_header;
 	int source_port;
 	int vid;

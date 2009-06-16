@@ -221,9 +221,9 @@ bool dsa_uses_trailer_tags(void *dsa_ptr)
 
 bool dsa_uses_stpid_tags(void *dsa_ptr)
 {
-	struct dsa_switch *ds = dsa_ptr;
+	struct dsa_switch_tree *dst = dsa_ptr;
 
-	return !!(ds->tag_protocol == htons(ETH_P_STPID));
+	return !!(dst->tag_protocol == htons(ETH_P_STPID));
 }
 
 /* link polling *************************************************************/

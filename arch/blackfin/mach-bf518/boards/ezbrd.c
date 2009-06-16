@@ -129,6 +129,7 @@ static struct dsa_chip_data ksz8893m_switch_chip_data = {
 	},
 };
 static struct dsa_platform_data ksz8893m_switch_data = {
+	.nr_chips = 1,
 	.netdev = &bfin_mac_device.dev,
 	.chip = &ksz8893m_switch_chip_data,
 };
