@@ -40,8 +40,14 @@
 
 #include "../codecs/ad1938.h"
 #include "bf5xx-sport.h"
+
+#ifdef CONFIG_SND_BF5XX_AD1938_TDM
 #include "bf5xx-tdm-pcm.h"
 #include "bf5xx-tdm.h"
+#else
+#include "bf5xx-i2s-pcm.h"
+#include "bf5xx-i2s.h"
+#endif
 
 static struct snd_soc_card bf5xx_ad1938;
 
@@ -70,13 +76,31 @@ static int bf5xx_ad1938_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	int ret = 0;
-
+#ifdef CONFIG_SND_BF5XX_AD1938_TDM
 	/* set cpu DAI configuration */
 	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_SPORT_TDM |
 			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0)
 		return ret;
 
+	/* set codec DAI configuration */
+	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_SPORT_TDM |
+			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
+	if (ret < 0)
+		return ret;
+#else
+	/* set cpu DAI configuration */
+	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
+			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
+	if (ret < 0)
+		return ret;
+
+	/* set codec DAI configuration */
+	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S |
+			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
+	if (ret < 0)
+		return ret;
+#endif
 	/* set codec DAI pll */
 	ret = snd_soc_dai_set_pll(codec_dai, 0, 12288000, 48000*512);
 	if (ret < 0)
@@ -94,14 +118,22 @@ static struct snd_soc_ops bf5xx_ad1938_ops = {
 static struct snd_soc_dai_link bf5xx_ad1938_dai = {
 	.name = "ad1938",
 	.stream_name = "AD1938",
+#ifdef CONFIG_SND_BF5XX_AD1938_TDM
 	.cpu_dai = &bf5xx_tdm_dai,
+#else
+	.cpu_dai = &bf5xx_i2s_dai,
+#endif
 	.codec_dai = &ad1938_dai,
 	.ops = &bf5xx_ad1938_ops,
 };
 
 static struct snd_soc_card bf5xx_ad1938 = {
 	.name = "bf5xx_ad1938",
+#ifdef CONFIG_SND_BF5XX_AD1938_TDM
 	.platform = &bf5xx_tdm_soc_platform,
+#else
+	.platform = &bf5xx_i2s_soc_platform,
+#endif
 	.dai_link = &bf5xx_ad1938_dai,
 	.num_links = 1,
 };

@@ -313,6 +313,18 @@ struct snd_soc_platform bf5xx_tdm_soc_platform = {
 };
 EXPORT_SYMBOL_GPL(bf5xx_tdm_soc_platform);
 
+static int __init bfin_tdm_init(void)
+{
+	return snd_soc_register_platform(&bf5xx_tdm_soc_platform);
+}
+module_init(bfin_tdm_init);
+
+static void __exit bfin_tdm_exit(void)
+{
+	snd_soc_unregister_platform(&bf5xx_tdm_soc_platform);
+}
+module_exit(bfin_tdm_exit);
+
 MODULE_AUTHOR("Barry Song");
 MODULE_DESCRIPTION("ADI Blackfin TDM PCM DMA module");
 MODULE_LICENSE("GPL");

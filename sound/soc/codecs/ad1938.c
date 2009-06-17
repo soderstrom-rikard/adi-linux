@@ -20,6 +20,7 @@
 #include <linux/device.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
+#include <sound/pcm_params.h>
 #include <sound/initval.h>
 #include <sound/soc.h>
 #include <linux/spi/spi.h>
@@ -161,35 +162,44 @@ static int ad1938_mute(struct snd_soc_dai *dai, int mute)
 	return 0;
 }
 
+static int ad1938_tdm_set(struct snd_soc_codec *codec)
+{
+	codec->write(codec, AD1938_DAC_CTRL0, (codec->read(codec, AD1938_DAC_CTRL0) &
+				(~DAC_SERFMT_MASK)) | DAC_SERFMT_TDM);
+	codec->write(codec, AD1938_DAC_CTRL1, 0x84); /* invert bclk, 256bclk/frame, latch in mid */
+	codec->write(codec, AD1938_ADC_CTRL1, 0x43); /* sata delay=1, adc aux mode */
+	codec->write(codec, AD1938_ADC_CTRL2, 0x6F); /* left high, driver on rising edge */
+
+	return 0;
+}
+
+static int ad1938_i2s_set(struct snd_soc_codec *codec)
+{
+	codec->write(codec, AD1938_DAC_CTRL0, (codec->read(codec, AD1938_DAC_CTRL0) &
+				(~DAC_SERFMT_MASK)) | DAC_SERFMT_STEREO);
+	codec->write(codec, AD1938_DAC_CTRL1, 0x30); /* 64bclk/frame, latch in mid, left low */
+	codec->write(codec, AD1938_ADC_CTRL1, 0x3); /* sata delay=1, stereo mode */
+	codec->write(codec, AD1938_ADC_CTRL2, 0x48); /* left low, driver on falling edge */
+
+	return 0;
+}
+
 static int ad1938_set_dai_fmt(struct snd_soc_dai *codec_dai,
 		unsigned int fmt)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	int adc_reg, dac_reg;
-
-	/* read back adc and dac control registers */
-	adc_reg = codec->read(codec, AD1938_ADC_CTRL1);
-	dac_reg = codec->read(codec, AD1938_DAC_CTRL0);
-	adc_reg &= ~ADC_SERFMT_MASK;
-	dac_reg &= ~DAC_SERFMT_MASK;
 
 	/* interface format */
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_SPORT_TDM:
-		adc_reg |= ADC_SERFMT_AUX;
-		dac_reg |= DAC_SERFMT_TDM;
+		ad1938_tdm_set(codec);
 		break;
 	case SND_SOC_DAIFMT_I2S:
-		adc_reg |= ADC_SERFMT_STEREO;
-		dac_reg |= DAC_SERFMT_STEREO;
+		ad1938_i2s_set(codec);
 		break;
 	default:
 		return -EINVAL;
 	}
-
-	/* set new format */
-	codec->write(codec, AD1938_ADC_CTRL1, adc_reg);
-	codec->write(codec, AD1938_DAC_CTRL0, dac_reg);
 
 	return 0;
 }
@@ -212,6 +222,41 @@ static int ad1938_pcm_prepare(struct snd_pcm_substream *substream,
 		/* poweron adc */
 		ad1938_adc_powerctrl(codec, 1);
 	}
+
+	return 0;
+}
+
+static int ad1938_hw_params(struct snd_pcm_substream *substream,
+		struct snd_pcm_hw_params *params,
+		struct snd_soc_dai *dai)
+{
+	int word_len = 0, reg = 0;
+
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_device *socdev = rtd->socdev;
+	struct snd_soc_codec *codec = socdev->card->codec;
+
+	/* bit size */
+	switch (params_format(params)) {
+	case SNDRV_PCM_FORMAT_S16_LE:
+		word_len = 3;
+		break;
+	case SNDRV_PCM_FORMAT_S20_3LE:
+		word_len = 1;
+		break;
+	case SNDRV_PCM_FORMAT_S24_LE:
+	case SNDRV_PCM_FORMAT_S32_LE:
+		word_len = 0;
+		break;
+	}
+
+	reg = codec->read(codec, AD1938_DAC_CTRL2);
+	reg = (reg & (~DAC_WORD_LEN_MASK)) | word_len;
+	codec->write(codec, AD1938_DAC_CTRL2, reg);
+
+	reg = codec->read(codec, AD1938_ADC_CTRL1);
+	reg = (reg & (~ADC_WORD_LEN_MASK)) | word_len;
+	codec->write(codec, AD1938_DAC_CTRL1, reg);
 
 	return 0;
 }
@@ -335,6 +380,7 @@ static void ad1938_spi_done(void)
 
 static struct snd_soc_dai_ops ad1938_dai_ops = {
 	.prepare = ad1938_pcm_prepare,
+	.hw_params = ad1938_hw_params,
 	.shutdown = ad1938_pcm_shutdown,
 	.digital_mute = ad1938_mute,
 	.set_pll = ad1938_set_pll,
@@ -349,13 +395,13 @@ struct snd_soc_dai ad1938_dai = {
 		.channels_min = 2,
 		.channels_max = 8,
 		.rates = SNDRV_PCM_RATE_48000,
-		.formats = SNDRV_PCM_FMTBIT_S32_LE, },
+		.formats = SNDRV_PCM_FMTBIT_S32_LE | SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE | SNDRV_PCM_FMTBIT_S24_LE, },
 	.capture = {
 		.stream_name = "Capture",
 		.channels_min = 2,
 		.channels_max = 4,
 		.rates = SNDRV_PCM_RATE_48000,
-		.formats = SNDRV_PCM_FMTBIT_S32_LE, },
+		.formats = SNDRV_PCM_FMTBIT_S32_LE | SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE | SNDRV_PCM_FMTBIT_S24_LE, },
 	.ops = &ad1938_dai_ops,
 };
 EXPORT_SYMBOL_GPL(ad1938_dai);
@@ -403,19 +449,16 @@ static int ad1938_soc_probe(struct platform_device *pdev)
 		goto register_err;
 	}
 
-	/* default setting for ad1938, poweroff dac/adc/pll */
-	codec->write(codec, AD1938_DAC_CTRL0, 0x41); /* sample rate:32/44.1/48kHz, sata delay=1, tdm mode */
-	codec->write(codec, AD1938_DAC_CTRL1, 0x84); /* invert bclk, 256bclk/frame, latch in mid */
-	codec->write(codec, AD1938_DAC_CTRL2, 0x1A); /* de-emphasis: 48kHz */
-	codec->write(codec, AD1938_ADC_CTRL0, 0x33); /* high-pass filter enable */
-	codec->write(codec, AD1938_ADC_CTRL1, 0x43); /* sata delay=1, adc aux mode */
-	codec->write(codec, AD1938_ADC_CTRL2, 0x6F); /* left high, driver on rising edge */
-	codec->write(codec, AD1938_DAC_CHNL_MUTE, 0xFF); /* mute all dac channels */
-	codec->write(codec, AD1938_PLL_CLK_CTRL0, 0x9D); /* pll input:mclki/xi, master clock rate:512*fs */
-	codec->write(codec, AD1938_PLL_CLK_CTRL1, 0x04);
-
 	/* register controls for ad1938 */
 	ad1938_add_controls(codec);
+
+	/* default setting for ad1938 */
+	codec->write(codec, AD1938_DAC_CHNL_MUTE, 0xFF); /* mute all dac channels */
+	codec->write(codec, AD1938_DAC_CTRL2, 0x1A); /* de-emphasis: 48kHz, powedown dac */
+	codec->write(codec, AD1938_DAC_CTRL0, 0x1); /* powerdown dac */
+	codec->write(codec, AD1938_ADC_CTRL0, 0x3); /* high-pass filter enable */
+	codec->write(codec, AD1938_PLL_CLK_CTRL0, 0x9D); /* pll input:mclki/xi */
+	codec->write(codec, AD1938_PLL_CLK_CTRL1, 0x04);
 
 	printk(KERN_INFO "Analog Devices AD1938 codec registered\n");
 	return ret;

@@ -276,6 +276,18 @@ struct snd_soc_dai bf5xx_tdm_dai = {
 };
 EXPORT_SYMBOL_GPL(bf5xx_tdm_dai);
 
+static int __init bfin_tdm_init(void)
+{
+	return snd_soc_register_dai(&bf5xx_tdm_dai);
+}
+module_init(bfin_tdm_init);
+
+static void __exit bfin_tdm_exit(void)
+{
+	snd_soc_unregister_dai(&bf5xx_tdm_dai);
+}
+MODULE_EXIT(bfin_tdm_exit);
+
 /* Module information */
 MODULE_AUTHOR("Barry Song");
 MODULE_DESCRIPTION("TDM driver for ADI Blackfin");
