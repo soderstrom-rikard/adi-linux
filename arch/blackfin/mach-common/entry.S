@@ -342,9 +342,11 @@ ENTRY(_ex_trap_c)
 	r6 = retx;
 	[p5 + PDA_RETX] = r6;
 #endif
+	/* Save the state of single stepping */
 	r6 = SYSCFG;
 	[p5 + PDA_SYSCFG] = r6;
-	BITCLR(r6, 0);
+	/* Clear it while we handle the exception in IRQ5 mode */
+	BITCLR(r6, SYSCFG_SSSTEP_P);
 	SYSCFG = r6;
 
 	/* Disable all interrupts, but make sure level 5 is enabled so
@@ -367,7 +369,7 @@ ENDPROC(_ex_trap_c)
  * exception. This is a unrecoverable event, so crash.
  * Note: this cannot be ENTRY() as we jump here with "if cc jump" ...
  */
-_double_fault:
+ENTRY(_double_fault)
 	/* Turn caches & protection off, to ensure we don't get any more
 	 * double exceptions
 	 */
