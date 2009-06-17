@@ -55,12 +55,8 @@ static inline int is_kernel_inittext(unsigned long addr)
 
 static inline int is_kernel_text(unsigned long addr)
 {
-	if ((addr >= (unsigned long)_stext && addr <= (unsigned long)_etext)
-#if defined(CONFIG_BLACKFIN)
-	    || (addr >= (unsigned long)_stext_l1 && addr <= (unsigned long)_etext_l1)
-	    || (L2_LENGTH && addr >= (unsigned long)_stext_l2 && addr <= (unsigned long)_etext_l2)
-#endif
-	)
+	if ((addr >= (unsigned long)_stext && addr <= (unsigned long)_etext) ||
+	    arch_is_kernel_text(addr))
 		return 1;
 	return in_gate_area_no_task(addr);
 }
