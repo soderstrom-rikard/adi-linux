@@ -634,26 +634,8 @@ static int static_obj(void *obj)
 	if ((addr >= start) && (addr < end))
 		return 1;
 
-#ifdef CONFIG_BLACKFIN
-	if (L1_DATA_A_LENGTH) {
-		start = (unsigned long) &_sdata_l1;
-		end   = (unsigned long) &_ebss_l1;
-		if ((addr >= start) && (addr < end))
-			return 1;
-	}
-	if (L1_DATA_B_LENGTH) {
-		start = (unsigned long) &_sdata_b_l1;
-		end   = (unsigned long) &_ebss_b_l1;
-		if ((addr >= start) && (addr < end))
-			return 1;
-	}
-	if (L2_LENGTH) {
-		start = (unsigned long) &_sdata_l2;
-		end   = (unsigned long) &_ebss_l2;
-		if ((addr >= start) && (addr < end))
-			return 1;
-	}
-#endif
+	if (arch_is_kernel_data(addr))
+		return 1;
 
 #ifdef CONFIG_SMP
 	/*
