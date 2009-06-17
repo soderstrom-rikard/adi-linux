@@ -1199,7 +1199,7 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 #if defined(CONFIG_BFIN_EXTMEM_ICACHEABLE)
 		   "cacheable"
 #else
-		   "non-cacheable"
+		   "uncacheable"
 #endif
 		   " in instruction cache\n");
 	seq_printf(m, "external memory\t: "
@@ -1208,7 +1208,7 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 #elif defined(CONFIG_BFIN_EXTMEM_WRITETHROUGH)
 		      "cacheable (write-through)"
 #else
-		      "non-cacheable"
+		      "uncacheable"
 #endif
 		      " in data cache\n");
 
@@ -1289,7 +1289,7 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 #if defined(CONFIG_BFIN_L2_ICACHEABLE)
 			      "cacheable"
 #else
-			      "non-cacheable"
+			      "uncacheable"
 #endif
 			      " in instruction cache\n");
 		seq_printf(m, "L2 SRAM\t\t: "
