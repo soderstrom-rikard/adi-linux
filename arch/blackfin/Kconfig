@@ -907,24 +907,35 @@ endchoice
 
 
 comment "Cache Support"
+
 config BFIN_ICACHE
 	bool "Enable ICACHE"
+	default y
 config BFIN_ICACHE_LOCK
 	bool "Enable Instruction Cache Locking"
 	depends on BFIN_ICACHE
-config BFIN_DCACHE
-	bool "Enable DCACHE"
-config BFIN_DCACHE_BANKA
-	bool "Enable only 16k BankA DCACHE - BankB is SRAM"
-	depends on BFIN_DCACHE && !BF531
 	default n
 config BFIN_EXTMEM_ICACHEABLE
 	bool "Enable ICACHE for external memory"
 	depends on BFIN_ICACHE
+	default y
+config BFIN_L2_ICACHEABLE
+	bool "Enable ICACHE for L2 SRAM"
+	depends on BFIN_ICACHE
+	depends on BF54x || BF561
+	default n
+
+config BFIN_DCACHE
+	bool "Enable DCACHE"
+	default y
+config BFIN_DCACHE_BANKA
+	bool "Enable only 16k BankA DCACHE - BankB is SRAM"
+	depends on BFIN_DCACHE && !BF531
+	default n
 config BFIN_EXTMEM_DCACHEABLE
 	bool "Enable DCACHE for external memory"
 	depends on BFIN_DCACHE
-
+	default y
 choice
 	prompt "External memory DCACHE policy"
 	depends on BFIN_EXTMEM_DCACHEABLE
@@ -967,13 +978,11 @@ config BFIN_EXTMEM_WRITETHROUGH
 
 endchoice
 
-if BF54x || BF561
-config BFIN_L2_ICACHEABLE
-	bool "Enable ICACHE for L2 SRAM"
-	depends on BFIN_ICACHE
 config BFIN_L2_DCACHEABLE
 	bool "Enable DCACHE for L2 SRAM"
 	depends on BFIN_DCACHE
+	depends on BF54x || BF561
+	default n
 choice
 	prompt "L2 SRAM DCACHE policy"
 	depends on BFIN_L2_DCACHEABLE
@@ -987,7 +996,6 @@ config BFIN_L2_WRITETHROUGH
 	depends on !SMP
 endchoice
 
-endif
 
 comment "Memory Protection Unit"
 config MPU
