@@ -204,7 +204,7 @@ static void bfin_spi_cs_deactive(struct driver_data *drv_data, struct chip_data 
 	if (likely(chip->chip_select_num)) {
 		u16 flag = read_FLAG(drv_data);
 
-		flag &= ~chip->flag;
+		flag |= chip->flag;
 		flag |= (chip->flag << 8);
 
 		write_FLAG(drv_data, flag);
