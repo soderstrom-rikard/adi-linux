@@ -218,7 +218,7 @@ ENTRY(_ex_single_step)
 	/* Single stepping only a single instruction, so clear the trace
 	 * bit here.  */
 	r7 = syscfg;
-	bitclr (r7, 0);
+	bitclr (r7, SYSCFG_SSSTEP_P);
 	syscfg = R7;
 	jump _ex_trap_c;
 
@@ -251,7 +251,7 @@ ENTRY(_ex_single_step)
 	if !cc jump _bfin_return_from_exception;
 
 	r7 = syscfg;
-	bitclr (r7, 0);
+	bitclr (r7, SYSCFG_SSSTEP_P);	/* Turn off single step */
 	syscfg = R7;
 
 	/* Fall through to _bfin_return_from_exception.  */
@@ -874,7 +874,7 @@ ENTRY(_ret_from_exception)
 	raise 15;		/* raise evt15 to do signal or reschedule */
 4:
 	r0 = syscfg;
-	bitclr(r0, 0);
+	bitclr(r0, SYSCFG_SSSTEP_P);		/* Turn off single step */
 	syscfg = r0;
 5:
 	rts;
