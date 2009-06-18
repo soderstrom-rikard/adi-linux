@@ -204,9 +204,13 @@ static void bfin_spi_cs_deactive(struct driver_data *drv_data, struct chip_data 
 	if (likely(chip->chip_select_num)) {
 		u16 flag = read_FLAG(drv_data);
 
-		flag |= chip->flag;
+		/* Only with CS enabled, we can set the level of CS */
+		flag |= chip->flag;  
 		flag |= (chip->flag << 8);
+		write_FLAG(drv_data, flag);
 
+		/* Disable CS after deactive it */
+		flag &= ~chip->flag;  
 		write_FLAG(drv_data, flag);
 	} else {
 		gpio_set_value(chip->cs_gpio, 1);
