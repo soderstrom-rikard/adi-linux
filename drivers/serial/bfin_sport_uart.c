@@ -1,7 +1,7 @@
 /*
  * Blackfin On-Chip Sport Emulated UART Driver
  *
- * Copyright 2006-2008 Analog Devices Inc.
+ * Copyright 2006-2009 Analog Devices Inc.
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
@@ -17,6 +17,10 @@
  */
 
 /* #define DEBUG */
+
+#define DRV_NAME "bfin-sport-uart"
+#define DEVICE_NAME	"ttySS"
+#define pr_fmt(fmt) DRV_NAME ": " fmt
 
 #include <linux/module.h>
 #include <linux/ioport.h>
@@ -40,9 +44,6 @@ unsigned short bfin_uart_pin_req_sport0[] =
 unsigned short bfin_uart_pin_req_sport1[] =
 	{P_SPORT1_TFS, P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, \
 	P_SPORT1_DRPRI, P_SPORT1_RSCLK, P_SPORT1_DRSEC, P_SPORT1_DTSEC, 0};
-
-#define DRV_NAME "bfin-sport-uart"
-#define DEVICE_NAME	"ttySS"
 
 struct sport_uart_port {
 	struct uart_port	port;
@@ -157,11 +158,9 @@ static irqreturn_t sport_uart_rx_irq(int irq, void *dev_id)
 		ch = rx_one_byte(up);
 		up->port.icount.rx++;
 
-		if (uart_handle_sysrq_char(&up->port, ch))
-			;
-		else
+		if (!uart_handle_sysrq_char(&up->port, ch))
 			tty_insert_flip_char(tty, ch, TTY_NORMAL);
-	};
+	}
 	tty_flip_buffer_push(tty);
 
 	spin_unlock(&up->port.lock);
@@ -196,10 +195,10 @@ static irqreturn_t sport_uart_err_irq(int irq, void *dev_id)
 	}
 	/* These should not happen */
 	if (stat & (TOVF | TUVF | RUVF)) {
-		printk(KERN_ERR "SPORT Error:%s %s %s\n",
-				(stat & TOVF)?"TX overflow":"",
-				(stat & TUVF)?"TX underflow":"",
-				(stat & RUVF)?"RX underflow":"");
+		pr_err("SPORT Error:%s %s %s\n",
+		       (stat & TOVF) ? "TX overflow" : "",
+		       (stat & TUVF) ? "TX underflow" : "",
+		       (stat & RUVF) ? "RX underflow" : "");
 		SPORT_PUT_TCR1(up, SPORT_GET_TCR1(up) & ~TSPEN);
 		SPORT_PUT_RCR1(up, SPORT_GET_RCR1(up) & ~RSPEN);
 	}
@@ -214,38 +213,40 @@ static int sport_startup(struct uart_port *port)
 {
 	struct sport_uart_port *up = (struct sport_uart_port *)port;
 	char buffer[20];
-	int retval;
+	int ret;
 
 	pr_debug("%s enter\n", __func__);
-	memset(buffer, 20, '\0');
 	snprintf(buffer, 20, "%s rx", up->name);
-	retval = request_irq(up->rx_irq, sport_uart_rx_irq, IRQF_SAMPLE_RANDOM, buffer, up);
-	if (retval) {
-		printk(KERN_ERR "Unable to request interrupt %s\n", buffer);
-		return retval;
+	buffer[sizeof(buffer) - 1] = '\0';
+	ret = request_irq(up->rx_irq, sport_uart_rx_irq, 0, buffer, up);
+	if (ret) {
+		pr_err("unable to request interrupt %s\n", buffer);
+		return ret;
 	}
 
 	snprintf(buffer, 20, "%s tx", up->name);
-	retval = request_irq(up->tx_irq, sport_uart_tx_irq, IRQF_SAMPLE_RANDOM, buffer, up);
-	if (retval) {
-		printk(KERN_ERR "Unable to request interrupt %s\n", buffer);
+	buffer[sizeof(buffer) - 1] = '\0';
+	ret = request_irq(up->tx_irq, sport_uart_tx_irq, 0, buffer, up);
+	if (ret) {
+		pr_err("unable to request interrupt %s\n", buffer);
 		goto fail1;
 	}
 
 	snprintf(buffer, 20, "%s err", up->name);
-	retval = request_irq(up->err_irq, sport_uart_err_irq, IRQF_SAMPLE_RANDOM, buffer, up);
-	if (retval) {
-		printk(KERN_ERR "Unable to request interrupt %s\n", buffer);
+	buffer[sizeof(buffer) - 1] = '\0';
+	ret = request_irq(up->err_irq, sport_uart_err_irq, 0, buffer, up);
+	if (ret) {
+		pr_err("unable to request interrupt %s\n", buffer);
 		goto fail2;
 	}
 
 	return 0;
-fail2:
+ fail2:
 	free_irq(up->tx_irq, up);
-fail1:
+ fail1:
 	free_irq(up->rx_irq, up);
 
-	return retval;
+	return ret;
 
 }
 
@@ -418,8 +419,7 @@ static void sport_set_termios(struct uart_port *port,
 
 	switch (termios->c_cflag & CSIZE) {
 	case CS8:
-		printk(KERN_WARNING "Warning: If you don't want to get rx underflow when"
-			"receive rx\ndata on sport, don't use 8 bit uart mode.\n");
+		pr_warning("use of 8bit mode often results in RX overflows\n");
 		up->csize = 8;
 		break;
 	case CS7:
@@ -432,19 +432,17 @@ static void sport_set_termios(struct uart_port *port,
 		up->csize = 5;
 		break;
 	default:
-		printk(KERN_ERR "%s: word lengh not supported\n",
-			__func__);
+		pr_warning("requested word length not supported\n");
 	}
 
 	if (termios->c_cflag & CSTOPB) {
 		up->stopb = 1;
 		if (up->csize == 8)
-			printk(KERN_WARNING "If you don't want to get rx underflow when"
-				"receive rx data on sport, don't use 2 stop bits mode.\n");
+			pr_warning("2 stop bits and 8bit mode often results in RX overflows\n");
 	}
 	if (termios->c_cflag & PARENB) {
-		printk(KERN_WARNING "PAREN bits is not supported yet.\n");
-/*		up->parib = 1; */
+		pr_warning("PAREN bits is not supported yet\n");
+		/* up->parib = 1; */
 	}
 
 	port->read_status_mask = OE;
@@ -472,8 +470,8 @@ static void sport_set_termios(struct uart_port *port,
 	/* RX extract mask */
 	up->rxmask = 0x01 | (((up->csize + up->stopb) * 2 - 1) << 0x8);
 	/* TX masks, 8 bit data and 1 bit stop for example:
-	   mask1 = b#0111111110
-	   mask2 = b#1000000000
+	 * mask1 = b#0111111110
+	 * mask2 = b#1000000000
 	 */
 	for (i = 0, up->txmask1 = 0; i < up->csize; i++)
 		up->txmask1 |= (1<<i);
@@ -565,22 +563,23 @@ static int nr_active_ports = ARRAY_SIZE(sport_uart_ports);
 static int __init sport_uart_init_ports(void)
 {
 	static int first = 1;
-	int i;
+	int i, ret;
 
 	if (!first)
 		return 0;
 	first = 0;
 
-	if (peripheral_request_list(bfin_uart_pin_req_sport0, DRV_NAME)) {
-		printk(KERN_ERR DRV_NAME
-			": Requesting Peripherals on sport0 failed\n");
-		return -EBUSY;
+	ret = peripheral_request_list(bfin_uart_pin_req_sport0, DRV_NAME);
+	if (ret) {
+		pr_err("requesting SPORT0 peripherals failed\n");
+		return ret;
 	}
-	if (peripheral_request_list(bfin_uart_pin_req_sport1, DRV_NAME)) {
+
+	ret = peripheral_request_list(bfin_uart_pin_req_sport1, DRV_NAME);
+	if (ret) {
 		peripheral_free_list(bfin_uart_pin_req_sport0);
-		printk(KERN_ERR DRV_NAME
-			": Requesting Peripherals on sport 1 failed\n");
-		return -EBUSY;
+		pr_err("requesting SPORT1 peripherals failed\n");
+		return ret;
 	}
 
 	for (i = 0; i < nr_active_ports; i++) {
@@ -671,7 +670,6 @@ sport_uart_console_write(struct console *co, const char *s, unsigned int count)
 	}
 
 	spin_unlock_irqrestore(&up->port.lock, flags);
-
 }
 
 static struct uart_driver sport_uart_reg;
@@ -688,8 +686,9 @@ static struct console sport_uart_console = {
 
 static int __init sport_uart_rs_console_init(void)
 {
-	if (sport_uart_init_ports())
-		return -EBUSY;
+	int ret = sport_uart_init_ports();
+	if (ret)
+		return ret;
 
 	register_console(&sport_uart_console);
 
@@ -703,7 +702,6 @@ console_initcall(sport_uart_rs_console_init);
 #endif /* CONFIG_SERIAL_BFIN_CONSOLE */
 
 
-
 static struct uart_driver sport_uart_reg = {
 	.owner		= THIS_MODULE,
 	.driver_name	= DRV_NAME,
@@ -714,6 +712,7 @@ static struct uart_driver sport_uart_reg = {
 	.cons		= SPORT_UART_CONSOLE,
 };
 
+#ifdef CONFIG_PM
 static int sport_uart_suspend(struct platform_device *dev, pm_message_t state)
 {
 	struct sport_uart_port *sport = platform_get_drvdata(dev);
@@ -735,8 +734,12 @@ static int sport_uart_resume(struct platform_device *dev)
 
 	return 0;
 }
+#else
+# define sport_uart_suspend NULL
+# define sport_uart_resume  NULL
+#endif
 
-static int sport_uart_probe(struct platform_device *dev)
+static int __devinit sport_uart_probe(struct platform_device *dev)
 {
 	pr_debug("%s enter\n", __func__);
 	sport_uart_ports[dev->id].port.dev = &dev->dev;
@@ -746,7 +749,7 @@ static int sport_uart_probe(struct platform_device *dev)
 	return 0;
 }
 
-static int sport_uart_remove(struct platform_device *dev)
+static int __devexit sport_uart_remove(struct platform_device *dev)
 {
 	struct sport_uart_port *sport = platform_get_drvdata(dev);
 
@@ -763,7 +766,7 @@ static struct platform_driver sport_uart_driver = {
 	.probe		= sport_uart_probe,
 	.remove		= sport_uart_remove,
 	.suspend	= sport_uart_suspend,
-	.resume		= sport_uart_resume,
+	.resume		= __devexit_p(sport_uart_resume),
 	.driver		= {
 		.name	= DRV_NAME,
 	},
@@ -775,26 +778,27 @@ static int __init sport_uart_init(void)
 
 	pr_debug("%s enter\n", __func__);
 
-	if (sport_uart_init_ports())
-		return -EBUSY;
+	ret = sport_uart_init_ports();
+	if (ret)
+		return ret;
 
 	ret = uart_register_driver(&sport_uart_reg);
-	if (ret != 0) {
-		printk(KERN_ERR "Failed to register %s:%d\n",
+	if (ret) {
+		pr_err("failed to register %s:%d\n",
 				sport_uart_reg.driver_name, ret);
 		return ret;
 	}
 
 	ret = platform_driver_register(&sport_uart_driver);
-	if (ret != 0) {
-		printk(KERN_ERR "Failed to register sport uart driver:%d\n", ret);
+	if (ret) {
+		pr_err("failed to register sport uart driver:%d\n", ret);
 		uart_unregister_driver(&sport_uart_reg);
 	}
-
 
 	pr_debug("%s exit\n", __func__);
 	return ret;
 }
+module_init(sport_uart_init);
 
 static void __exit sport_uart_exit(void)
 {
@@ -805,8 +809,6 @@ static void __exit sport_uart_exit(void)
 	peripheral_free_list(bfin_uart_pin_req_sport1);
 	peripheral_free_list(bfin_uart_pin_req_sport0);
 }
-
-module_init(sport_uart_init);
 module_exit(sport_uart_exit);
 
 MODULE_LICENSE("GPL");
