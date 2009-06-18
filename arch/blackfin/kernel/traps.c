@@ -37,6 +37,7 @@
 #include <asm/traps.h>
 #include <asm/cacheflush.h>
 #include <asm/cplb.h>
+#include <asm/dma.h>
 #include <asm/blackfin.h>
 #include <asm/irq_handler.h>
 #include <linux/irq.h>
@@ -647,10 +648,14 @@ static bool get_instruction(unsigned short *val, unsigned short *address)
 		return false;
 
 	switch (bfin_mem_access_type(addr, 2)) {
-		case 0:  /* core access */
+		case BFIN_MEM_ACCESS_CORE:
+		case BFIN_MEM_ACCESS_CORE_ONLY:
 			*val = *address;
 			return true;
-		case 1:  /* L1 inst (dma access) */
+		case BFIN_MEM_ACCESS_DMA:
+			dma_memcpy(val, address, 2);
+			return true;
+		case BFIN_MEM_ACCESS_ITEST:
 			isram_memcpy(val, address, 2);
 			return true;
 		default: /* invalid access */
