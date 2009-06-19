@@ -927,7 +927,7 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		/* REVISIT if can_bulk_split(), use by updating "tmp";
 		 * likewise high bandwidth periodic tx
 		 */
-#if defined(CONFIG_BLACKFIN) && ANOMALY_05000465
+#if defined(CONFIG_BLACKFIN) && ANOMALY_05000450
                 /* Set TXMAXP with the FIFO size of the endpoint
                  * to diable double buffer mode.
                  */
