@@ -932,7 +932,7 @@ static int musb_gadget_enable(struct usb_ep *ep,
                  * to diable double buffer mode.
                  */
                 musb_writew(regs, MUSB_TXMAXP, hw_ep->max_packet_sz_tx);
-#elif
+#else
 		musb_writew(regs, MUSB_TXMAXP, tmp);
 #endif
 
@@ -969,7 +969,8 @@ static int musb_gadget_enable(struct usb_ep *ep,
                  * to diable double buffer mode.
                  */
                 musb_writew(regs, MUSB_RXMAXP, hw_ep->max_packet_sz_rx);
-#elif
+#else
+
                 musb_writew(regs, MUSB_RXMAXP, tmp);
 #endif
 		/* force shared fifo to OUT-only mode */

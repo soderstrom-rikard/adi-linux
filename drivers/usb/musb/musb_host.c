@@ -638,7 +638,7 @@ musb_rx_reinit(struct musb *musb, struct musb_qh *qh, struct musb_hw_ep *ep)
          * to diable double buffer mode.
          */
         musb_writew(ep->regs, MUSB_RXMAXP, ep->max_packet_sz_rx);
-#elif
+#else
         musb_writew(ep->regs, MUSB_RXMAXP, qh->maxpacket);
 #endif
 
@@ -828,7 +828,7 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
          */
         			musb_writew(epio, MUSB_TXMAXP,
 				hw_ep->max_packet_sz_tx);
-#elif
+#else
         			musb_writew(epio, MUSB_TXMAXP,
 					packet_sz);
 #endif
