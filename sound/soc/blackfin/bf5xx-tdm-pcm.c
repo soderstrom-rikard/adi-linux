@@ -2,11 +2,11 @@
  * File:         sound/soc/blackfin/bf5xx-tdm-pcm.c
  * Author:       Barry Song <Barry.Song@analog.com>
  *
- * Created:      Tue June 06 2008
+ * Created:      Tue June 06 2009
  * Description:  DMA driver for tdm codec
  *
  * Modified:
- *               Copyright 2008 Analog Devices Inc.
+ *               Copyright 2009 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *

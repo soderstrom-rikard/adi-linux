@@ -182,7 +182,7 @@ static int bf5xx_tdm_probe(struct platform_device *pdev,
 		return -ENODEV;
 	}
 
-	/*SPORT works in TDM mode to simulate AC97 transfers*/
+	/* SPORT works in TDM mode */
 	ret = sport_set_multichannel(sport_handle, 8, 0xFF, 1);
 	if (ret) {
 		pr_err("SPORT is busy!\n");
