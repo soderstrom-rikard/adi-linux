@@ -174,7 +174,7 @@
 #define ANOMALY_05000448 (__SILICON_REVISION__ == 1)
 /* Reduced Timing Margins on DDR Output Setup and Hold (tDS and tDH) */
 #define ANOMALY_05000449 (__SILICON_REVISION__ == 1)
-/* USB DMA Mode 1 Short Packet Data Corruption */
+/* USB DMA Short Packet Data Corruption */
 #define ANOMALY_05000450 (1)
 /* USB Receive Interrupt Is Not Generated in DMA Mode 1 */
 #define ANOMALY_05000456 (__SILICON_REVISION__ < 3)
