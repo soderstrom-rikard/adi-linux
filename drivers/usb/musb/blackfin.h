@@ -61,7 +61,6 @@ static void dump_fifo_data(u8 *buf, u16 len)
 #define dump_fifo_data(buf, len)	do {} while (0)
 #endif
 
-#if defined(CONFIG_MUSB_DMA_POLL) || ANOMALY_05000467
 
 #define USB_DMA_BASE		USB_DMA_INTERRUPT
 #define USB_DMAx_CTRL		0x04
@@ -71,7 +70,6 @@ static void dump_fifo_data(u8 *buf, u16 len)
 #define USB_DMAx_COUNT_HIGH	0x14
 
 #define USB_DMA_REG(ep, reg)	(USB_DMA_BASE + 0x20 * ep + reg)
-#endif
 
 /* Almost 1 second */
 #define TIMER_DELAY	(1 * HZ)
