@@ -18,7 +18,7 @@
 # error will not work on BF548 silicon version 0.0, or 0.1
 #endif
 
-/* Multi-issue instruction with dsp32shiftimm in slot1 and P-reg store in slot 2 not supported */
+/* Multi-Issue Instruction with dsp32shiftimm in slot1 and P-reg Store in slot2 Not Supported */
 #define ANOMALY_05000074 (1)
 /* DMA_RUN Bit Is Not Valid after a Peripheral Receive Channel DMA Stops */
 #define ANOMALY_05000119 (1)
@@ -30,17 +30,17 @@
 #define ANOMALY_05000265 (1)
 /* Certain Data Cache Writethrough Modes Fail for Vddint <= 0.9V */
 #define ANOMALY_05000272 (1)
-/* False Hardware Error Exception When ISR Context Is Not Restored */
+/* False Hardware Error Exception when ISR Context Is Not Restored */
 #define ANOMALY_05000281 (__SILICON_REVISION__ < 1)
 /* SSYNCs After Writes To CAN/DMA MMR Registers Are Not Always Handled Correctly */
 #define ANOMALY_05000304 (__SILICON_REVISION__ < 1)
 /* False Hardware Errors Caused by Fetches at the Boundary of Reserved Memory */
 #define ANOMALY_05000310 (1)
-/* Errors When SSYNC, CSYNC, or Loads to LT, LB and LC Registers Are Interrupted */
+/* Errors when SSYNC, CSYNC, or Loads to LT, LB and LC Registers Are Interrupted */
 #define ANOMALY_05000312 (__SILICON_REVISION__ < 1)
 /* TWI Slave Boot Mode Is Not Functional */
 #define ANOMALY_05000324 (__SILICON_REVISION__ < 1)
-/* External FIFO Boot Mode Is Not Functional */
+/* FIFO Boot Mode Not Functional */
 #define ANOMALY_05000325 (__SILICON_REVISION__ < 2)
 /* Data Lost When Core and DMA Accesses Are Made to the USB FIFO Simultaneously */
 #define ANOMALY_05000327 (__SILICON_REVISION__ < 1)
@@ -174,13 +174,13 @@
 #define ANOMALY_05000448 (__SILICON_REVISION__ == 1)
 /* Reduced Timing Margins on DDR Output Setup and Hold (tDS and tDH) */
 #define ANOMALY_05000449 (__SILICON_REVISION__ == 1)
-/* USB DMA Short Packet Data Corruption */
+/* USB DMA Mode 1 Short Packet Data Corruption */
 #define ANOMALY_05000450 (1)
 /* USB Receive Interrupt Is Not Generated in DMA Mode 1 */
 #define ANOMALY_05000456 (__SILICON_REVISION__ < 3)
-/* False Hardware Error when RETI points to invalid memory */
+/* False Hardware Error when RETI Points to Invalid Memory */
 #define ANOMALY_05000461 (1)
-/* USB Receive Interrupt Is Not Generated in DMA Mode 1 */
+/* USB Rx DMA hang */
 #define ANOMALY_05000465 (1)
 /* Possible RX data corruption when control & data EP FIFOs are accessed via the core */
 #define ANOMALY_05000467 (1)

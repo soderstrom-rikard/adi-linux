@@ -34,7 +34,7 @@
 #define _ANOMALY_BF527(rev527) (ANOMALY_BF527 && __SILICON_REVISION__ rev527)
 #define _ANOMALY_BF526_BF527(rev526, rev527) (_ANOMALY_BF526(rev526) || _ANOMALY_BF527(rev527))
 
-/* Multi-issue instruction with dsp32shiftimm in slot1 and P-reg store in slot 2 not supported */
+/* Multi-Issue Instruction with dsp32shiftimm in slot1 and P-reg Store in slot2 Not Supported */
 #define ANOMALY_05000074 (1)
 /* DMA_RUN Bit Is Not Valid after a Peripheral Receive Channel DMA Stops */
 #define ANOMALY_05000119 (1)	/* note: brokenness is noted in documentation, not anomaly sheet */
@@ -184,9 +184,9 @@
 #define ANOMALY_05000456 (1)
 /* Host DMA Port Responds to Certain Bus Activity Without HOST_CE Assertion */
 #define ANOMALY_05000457 (1)
-/* False Hardware Error when RETI points to invalid memory */
+/* False Hardware Error when RETI Points to Invalid Memory */
 #define ANOMALY_05000461 (1)
-/* USB Receive Interrupt Is Not Generated in DMA Mode 1 */
+/* USB Rx DMA hang */
 #define ANOMALY_05000465 (1)
 /* Possible RX data corruption when control & data EP FIFOs are accessed via the core */
 #define ANOMALY_05000467 (1)

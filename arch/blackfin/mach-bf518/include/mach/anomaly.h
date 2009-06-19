@@ -18,7 +18,7 @@
 #ifndef _MACH_ANOMALY_H_
 #define _MACH_ANOMALY_H_
 
-/* Multi-issue instruction with dsp32shiftimm in slot1 and P-reg store in slot 2 not supported */
+/* Multi-Issue Instruction with dsp32shiftimm in slot1 and P-reg Store in slot2 Not Supported */
 #define ANOMALY_05000074 (1)
 /* Rx.H Cannot Be Used to Access 16-bit System MMR Registers */
 #define ANOMALY_05000122 (1)
@@ -66,7 +66,7 @@
 #define ANOMALY_05000453 (__SILICON_REVISION__ < 1)
 /* PPI_FS3 is Driven One Half Cycle Later Than PPI Data */
 #define ANOMALY_05000455 (__SILICON_REVISION__ < 1)
-/* False Hardware Error when RETI points to invalid memory */
+/* False Hardware Error when RETI Points to Invalid Memory */
 #define ANOMALY_05000461 (1)
 /* Synchronization Problem at Startup May Cause SPORT Transmit Channels to Misalign */
 #define ANOMALY_05000462 (1)
