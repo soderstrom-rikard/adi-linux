@@ -139,7 +139,7 @@ config SND_BF5XX_SPORT_NUM
 
 config SND_BF5XX_HAVE_COLD_RESET
 	bool "BOARD has COLD Reset GPIO"
-	depends on (SND_BF5XX_AC97 || SND_BF5XX_TDM)
+	depends on SND_BF5XX_AC97
 	default y if BFIN548_EZKIT
 	default n if !BFIN548_EZKIT
 
