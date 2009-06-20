@@ -153,9 +153,9 @@ static noinline int dcplb_miss(unsigned int cpu)
 #ifdef CONFIG_BFIN_EXTMEM_DCACHEABLE
 	if (bfin_addr_dcacheable(addr)) {
 		d_data |= CPLB_L1_CHBL | ANOMALY_05000158_WORKAROUND;
-#ifdef CONFIG_BFIN_EXTMEM_WRITETHROUGH
+# ifdef CONFIG_BFIN_EXTMEM_WRITETHROUGH
 		d_data |= CPLB_L1_AOW | CPLB_WT;
-#endif
+# endif
 	}
 #endif
 
@@ -372,19 +372,16 @@ void set_mask_dcplbs(unsigned long *masks, unsigned int cpu)
 	local_irq_save_hw(flags);
 	current_rwx_mask[cpu] = masks;
 
-#if L2_LENGTH != 0
-	if (addr >= L2_START && addr < L2_START + L2_LENGTH) {
+	if (L2_LENGTH && addr >= L2_START && addr < L2_START + L2_LENGTH) {
 		addr = L2_START;
 		d_data = L2_DMEMORY;
-	} else
-#endif
-	{
-	d_data = CPLB_SUPV_WR | CPLB_VALID | CPLB_DIRTY | PAGE_SIZE_4KB;
+	} else {
+		d_data = CPLB_SUPV_WR | CPLB_VALID | CPLB_DIRTY | PAGE_SIZE_4KB;
 #ifdef CONFIG_BFIN_EXTMEM_DCACHEABLE
-	d_data |= CPLB_L1_CHBL;
-#ifdef CONFIG_BFIN_EXTMEM_WRITETHROUGH
-	d_data |= CPLB_L1_AOW | CPLB_WT;
-#endif
+		d_data |= CPLB_L1_CHBL;
+# ifdef CONFIG_BFIN_EXTMEM_WRITETHROUGH
+		d_data |= CPLB_L1_AOW | CPLB_WT;
+# endif
 #endif
 	}
 
