@@ -4,20 +4,6 @@
 
 menu "Character devices"
 
-config AD9960
-	tristate "AD9960 chip driver"
-	depends on BLACKFIN
-	select SPI
-	select SPI_BFIN
-	default n
-
-config AD9960_TX_RX_PIN
-	int "The pin in GPIO port for selecting tx/rx enable signal"
-	depends on AD9960
-	default 8
-	help
-	  This is the tx/rx enable signal pin bit number in the GPIO port.
-
 config BFIN_DMA_INTERFACE
 	tristate "Blackfin Userspace DMA Interface"
 	depends on BLACKFIN

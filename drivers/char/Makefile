@@ -64,8 +64,6 @@ obj-$(CONFIG_IBM_BSR)		+= bsr.o
 obj-$(CONFIG_SGI_MBCS)		+= mbcs.o
 obj-$(CONFIG_BRIQ_PANEL)	+= briq_panel.o
 obj-$(CONFIG_BFIN_OTP)		+= bfin-otp.o
-
-obj-$(CONFIG_AD9960)		+= ad9960.o
 obj-$(CONFIG_BFIN_DMA_INTERFACE) += bfin-dma.o
 obj-$(CONFIG_BFIN_PPI)		+= bfin_ppi.o
 obj-$(CONFIG_BFIN_PPIFCD)	+= bfin_ppifcd.o
