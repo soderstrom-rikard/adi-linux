@@ -416,7 +416,9 @@ int _access_ok(unsigned long addr, unsigned long size)
 		return 0;
 	if (segment_eq(get_fs(), KERNEL_DS))
 		return 1;
-#ifndef CONFIG_MTD_UCLINUX
+#ifdef CONFIG_MTD_UCLINUX
+	if (1)
+#else
 	if (0)
 #endif
 	{
