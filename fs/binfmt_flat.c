@@ -853,14 +853,23 @@ static int load_flat_shared_library(int id, struct lib_info *libs)
 	/* Open the file up */
 	bprm.filename = buf;
 	bprm.file = open_exec(bprm.filename);
+	bprm.cred = NULL;
 	res = PTR_ERR(bprm.file);
 	if (IS_ERR(bprm.file))
 		return res;
+
+	bprm.cred = prepare_exec_creds();
+	if (!bprm.cred)
+		goto out;
 
 	res = prepare_binprm(&bprm);
 
 	if (res <= (unsigned long)-4096)
 		res = load_flat_file(&bprm, libs, id, NULL, NULL);
+out:
+	if (bprm.cred)
+		abort_creds(bprm.cred);
+
 	if (bprm.file) {
 		allow_write_access(bprm.file);
 		fput(bprm.file);
