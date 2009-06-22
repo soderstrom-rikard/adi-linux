@@ -267,11 +267,6 @@ asmlinkage void trap_c(struct pt_regs *fp)
 	 * double faults if the stack has become corrupt
 	 */
 
-#ifndef CONFIG_KGDB
-	/* IPEND is skipped if KGDB isn't enabled (see entry code) */
-	fp->ipend = bfin_read_IPEND();
-#endif
-
 	/* trap_c() will be called for exceptions. During exceptions
 	 * processing, the pc value should be set with retx value.
 	 * With this change we can cleanup some code in signal.c- TODO
@@ -1117,7 +1112,7 @@ void show_regs(struct pt_regs *fp)
 	verbose_printk(KERN_NOTICE "\n" KERN_NOTICE "SEQUENCER STATUS:\t\t%s\n", print_tainted());
 	verbose_printk(KERN_NOTICE " SEQSTAT: %08lx  IPEND: %04lx  IMASK: %04lx  SYSCFG: %04lx\n",
 		(long)fp->seqstat, fp->ipend, cpu_pda[smp_processor_id()].ex_imask, fp->syscfg);
-	if (fp->ipend & EVT_IRPTEN_P)
+	if (fp->ipend & EVT_IRPTEN)
 		verbose_printk(KERN_NOTICE "  Global Interrupts Disabled (IPEND[4])\n");
 	if (!(cpu_pda[smp_processor_id()].ex_imask & (EVT_IVG13 | EVT_IVG12 | EVT_IVG11 |
 			EVT_IVG10 | EVT_IVG9 | EVT_IVG8 | EVT_IVG7 | EVT_IVTMR)))
