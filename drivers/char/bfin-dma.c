@@ -193,6 +193,8 @@ static int bdi_do_dma(struct dma_state *state, int async)
 	while (sg && sg->cfg & DMAEN) {
 		stamp("src cfg:%x start:%lx end:%lx", sg->cfg, dsc_start(sg), dsc_end(sg));
 		flush_dcache_range(dsc_start(sg), dsc_end(sg));
+		flush_dcache_range((unsigned)sg, (unsigned)(sg + sizeof(*sg)));
+
 		if (!(sg->cfg & 0x7000))
 			break;
 		sg = sg->next_desc_addr;
@@ -202,6 +204,8 @@ static int bdi_do_dma(struct dma_state *state, int async)
 	while (sg && sg->cfg & DMAEN) {
 		stamp("dst cfg:%x start:%lx end:%lx", sg->cfg, dsc_start(sg), dsc_end(sg));
 		invalidate_dcache_range(dsc_start(sg), dsc_end(sg));
+		flush_dcache_range((unsigned)sg, (unsigned)(sg + sizeof(*sg)));
+
 		if (!(sg->cfg & 0x7000))
 			break;
 		sg = sg->next_desc_addr;
