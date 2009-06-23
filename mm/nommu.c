@@ -743,12 +743,7 @@ static void delete_vma_from_mm(struct vm_area_struct *vma)
  */
 static void delete_vma(struct mm_struct *mm, struct vm_area_struct *vma)
 {
-#ifdef CONFIG_MPU
-	long len = vma->vm_end - vma->vm_start;
-#endif
-
 	kenter("%p", vma);
-
 	if (vma->vm_ops && vma->vm_ops->close)
 		vma->vm_ops->close(vma);
 	if (vma->vm_file) {
