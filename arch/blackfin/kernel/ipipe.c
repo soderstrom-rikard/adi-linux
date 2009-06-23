@@ -326,12 +326,12 @@ void __ipipe_disable_root_irqs_hw(void)
 	 * rates for Linux without inducing pathological jitter for
 	 * the real-time domain.
 	 */
-	__asm__ __volatile__ ("sti %0;" : : "d"(__ipipe_irq_lvmask));
+	bfin_sti(__ipipe_irq_lvmask);
 	__set_bit(IPIPE_STALL_FLAG, &ipipe_root_cpudom_var(status));
 }
 
 void __ipipe_enable_root_irqs_hw(void)
 {
 	__clear_bit(IPIPE_STALL_FLAG, &ipipe_root_cpudom_var(status));
-	__asm__ __volatile__ ("sti %0;" : : "d"(bfin_irq_flags));
+	bfin_sti(bfin_irq_flags);
 }
