@@ -707,7 +707,7 @@ static void delete_vma_from_mm(struct vm_area_struct *vma)
 #ifdef CONFIG_MPU
 	long start = vma->vm_start & PAGE_MASK;
 	while (start < vma->vm_end) {
-		protect_page(mm, start, vma->vm_flags);
+		protect_page(mm, start, 0);
 		start += PAGE_SIZE;
 	}
 	update_protections(mm);
@@ -748,15 +748,6 @@ static void delete_vma(struct mm_struct *mm, struct vm_area_struct *vma)
 #endif
 
 	kenter("%p", vma);
-
-#ifdef CONFIG_MPU
-	long start = vma->vm_start & PAGE_MASK;
-	while (start < vma->vm_end) {
-		protect_page(mm, start, 0);
-		start += PAGE_SIZE;
-	}
-	update_protections(mm);
-#endif
 
 	if (vma->vm_ops && vma->vm_ops->close)
 		vma->vm_ops->close(vma);
