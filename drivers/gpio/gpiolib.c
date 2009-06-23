@@ -274,12 +274,7 @@ static ssize_t gpio_value_store(struct device *dev,
 	else {
 		long		value;
 
-		if (sysfs_streq(buf, "toggle")) {
-			value = !gpio_get_value_cansleep(gpio);
-			status = 0;
-		} else
-			status = strict_strtol(buf, 0, &value);
-
+		status = strict_strtol(buf, 0, &value);
 		if (status == 0) {
 			gpio_set_value_cansleep(gpio, value != 0);
 			status = size;
