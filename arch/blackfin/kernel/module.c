@@ -233,7 +233,7 @@ apply_relocate_add(Elf_Shdr * sechdrs, const char *strtab,
 		}
 #endif
 
-		pr_debug("location is %lx, value is %lx type is %d\n",
+		pr_debug("location is %lx, value is %x type is %d\n",
 			mod->name, (unsigned long)location32, value,
 			ELF32_R_TYPE(rel[i].r_info));
 
@@ -264,7 +264,7 @@ apply_relocate_add(Elf_Shdr * sechdrs, const char *strtab,
 		case R_BFIN_PCREL12_JUMP:
 		case R_BFIN_PCREL12_JUMP_S:
 		case R_BFIN_PCREL10:
-			pr_err("unsupported relocation: %u (no -mlong-calls?)\n"
+			pr_err("unsupported relocation: %u (no -mlong-calls?)\n",
 				mod->name, ELF32_R_TYPE(rel[i].r_info));
 			return -ENOEXEC;
 		default:
