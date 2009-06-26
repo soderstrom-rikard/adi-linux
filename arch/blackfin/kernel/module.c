@@ -249,14 +249,6 @@ apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
 
 		case R_BFIN_PCREL24:
 		case R_BFIN_PCREL24_JUMP_L:
-			/* annoyingly, the layout is RB OP RB RB so we can't
-			 * straight memcpy() the reloc into memory.  overlay
-			 * the first byte manually.  (RB = reloc byte)
-			 */
-			/*
-			uint8_t *rb = (void *)(location - 2);
-			*rb = value >> 16;
-			*/
 		case R_BFIN_PCREL12_JUMP:
 		case R_BFIN_PCREL12_JUMP_S:
 		case R_BFIN_PCREL10:
