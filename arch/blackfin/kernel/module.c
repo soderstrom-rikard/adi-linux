@@ -273,8 +273,8 @@ apply_relocate_add(Elf_Shdr * sechdrs, const char *strtab,
 		case R_BFIN_PCREL12_JUMP:
 		case R_BFIN_PCREL12_JUMP_S:
 		case R_BFIN_PCREL10:
-			printk(KERN_ERR "module %s: Unsupported relocation: %u not built properly,"
-				" includes relocation: %u", mod->name, ELF32_R_TYPE(rel[i].r_info));
+			printk(KERN_ERR "module %s: Unsupported relocation: %u (no -mlong-calls?)\n"
+				mod->name, ELF32_R_TYPE(rel[i].r_info));
 			return -ENOEXEC;
 		default:
 			printk(KERN_ERR "module %s: Unknown relocation: %u\n",
