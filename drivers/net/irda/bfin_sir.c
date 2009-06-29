@@ -727,14 +727,7 @@ static int __devinit bfin_sir_probe(struct platform_device *pdev)
 		goto err_mem_3;
 
 	dev->netdev_ops = &bfin_sir_ndo;
-#ifdef CONFIG_COMPAT_NET_DEV_OPS
-	dev->hard_start_xmit = bfin_sir_hard_xmit;
-	dev->open            = bfin_sir_open;
-	dev->stop            = bfin_sir_stop;
-	dev->do_ioctl        = bfin_sir_ioctl;
-	dev->get_stats       = bfin_sir_stats;
-#endif
-	dev->irq             = sir_port->irq;
+	dev->irq = sir_port->irq;
 
 	irda_init_max_qos_capabilies(&self->qos);
 
