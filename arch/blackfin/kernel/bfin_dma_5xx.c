@@ -270,11 +270,11 @@ void __init early_dma_memcpy(void *pdst, const void *psrc, size_t size)
 			src_ch = (struct dma_register *)MDMA_S1_NEXT_DESC_PTR;
 		}
 
-		if (!bfin_read16(&src_ch->cfg)) {
+		if (!bfin_read16(&dst_ch->cfg)) {
 			break;
 		} else {
-			if (bfin_read16(&src_ch->irq_status) & DMA_DONE)
-				bfin_write16(&src_ch->cfg, 0);
+			if (bfin_read16(&dst_ch->irq_status) & DMA_DONE)
+				bfin_write16(&dst_ch->cfg, 0);
 		}
 
 	}
