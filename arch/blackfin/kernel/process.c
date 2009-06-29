@@ -367,13 +367,13 @@ int bfin_mem_access_type(unsigned long addr, unsigned long size)
 	if (in_mem_const(addr, size, L1_DATA_B_START, L1_DATA_B_LENGTH))
 		return cpu == 0 ? BFIN_MEM_ACCESS_CORE : BFIN_MEM_ACCESS_IDMA;
 #ifdef COREB_L1_CODE_START
-	if (in_mem_const(addr, size, COREB_L1_CODE_START, L1_CODE_LENGTH))
+	if (in_mem_const(addr, size, COREB_L1_CODE_START, COREB_L1_CODE_LENGTH))
 		return cpu == 1 ? BFIN_MEM_ACCESS_ITEST : BFIN_MEM_ACCESS_IDMA;
 	if (in_mem_const(addr, size, COREB_L1_SCRATCH_START, L1_SCRATCH_LENGTH))
 		return cpu == 1 ? BFIN_MEM_ACCESS_CORE_ONLY : -EFAULT;
-	if (in_mem_const(addr, size, COREB_L1_DATA_A_START, L1_DATA_A_LENGTH))
+	if (in_mem_const(addr, size, COREB_L1_DATA_A_START, COREB_L1_DATA_A_LENGTH))
 		return cpu == 1 ? BFIN_MEM_ACCESS_CORE : BFIN_MEM_ACCESS_IDMA;
-	if (in_mem_const(addr, size, COREB_L1_DATA_B_START, L1_DATA_B_LENGTH))
+	if (in_mem_const(addr, size, COREB_L1_DATA_B_START, COREB_L1_DATA_B_LENGTH))
 		return cpu == 1 ? BFIN_MEM_ACCESS_CORE : BFIN_MEM_ACCESS_IDMA;
 #endif
 	if (in_mem_const(addr, size, L2_START, L2_LENGTH))
@@ -449,13 +449,13 @@ int _access_ok(unsigned long addr, unsigned long size)
 	if (in_mem_const_off(addr, size, _ebss_b_l1 - _sdata_b_l1, L1_DATA_B_START, L1_DATA_B_LENGTH))
 		return 1;
 #ifdef COREB_L1_CODE_START
-	if (in_mem_const(addr, size, COREB_L1_CODE_START, L1_CODE_LENGTH))
+	if (in_mem_const(addr, size, COREB_L1_CODE_START, COREB_L1_CODE_LENGTH))
 		return 1;
 	if (in_mem_const(addr, size, COREB_L1_SCRATCH_START, L1_SCRATCH_LENGTH))
 		return 1;
-	if (in_mem_const(addr, size, COREB_L1_DATA_A_START, L1_DATA_A_LENGTH))
+	if (in_mem_const(addr, size, COREB_L1_DATA_A_START, COREB_L1_DATA_A_LENGTH))
 		return 1;
-	if (in_mem_const(addr, size, COREB_L1_DATA_B_START, L1_DATA_B_LENGTH))
+	if (in_mem_const(addr, size, COREB_L1_DATA_B_START, COREB_L1_DATA_B_LENGTH))
 		return 1;
 #endif
 	if (in_mem_const_off(addr, size, _ebss_l2 - _stext_l2, L2_START, L2_LENGTH))
