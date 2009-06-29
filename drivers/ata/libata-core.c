@@ -6051,6 +6051,11 @@ static void async_port_probe(void *data, async_cookie_t cookie)
 
 	ata_scsi_scan_host(ap, 1);
 
+	/* enable irq after probe if it is asked to be disabled when request */
+	if (((ap - ap->host->ports[0]) / sizeof(*ap)) == (ap->host->n_ports - 1)) {
+		if (ap->host->irq_flags & IRQF_DISABLED)
+			enable_irq(ap->host->irq);
+	}
 }
 /**
  *	ata_host_register - register initialized ATA host
@@ -6126,10 +6131,6 @@ int ata_host_register(struct ata_host *host, struct scsi_host_template *sht)
 		} else
 			ata_port_printk(ap, KERN_INFO, "DUMMY\n");
 	}
-
-	/* enable irq after probe if it is asked to be disabled when request */
-	if (host->irq_flags & IRQF_DISABLED)
-		enable_irq(host->irq);
 
 	/* perform each probe asynchronously */
 	for (i = 0; i < host->n_ports; i++) {
