@@ -5993,6 +5993,15 @@ void ata_host_init(struct ata_host *host, struct device *dev,
 	host->ops = ops;
 }
 
+void async_irq_enable(void *data, async_cookie_t cookie)
+{
+	struct ata_host *host = data;
+
+	/* in order to make irq enabled after probing, we need to synchronize at this point */
+	async_synchronize_cookie(cookie);
+
+	enable_irq(host->irq);
+}
 
 static void async_port_probe(void *data, async_cookie_t cookie)
 {
@@ -6050,12 +6059,6 @@ static void async_port_probe(void *data, async_cookie_t cookie)
 	async_synchronize_cookie(cookie);
 
 	ata_scsi_scan_host(ap, 1);
-
-	/* enable irq after probe if it is asked to be disabled when request */
-	if (((ap - ap->host->ports[0]) / sizeof(*ap)) == (ap->host->n_ports - 1)) {
-		if (ap->host->irq_flags & IRQF_DISABLED)
-			enable_irq(ap->host->irq);
-	}
 }
 /**
  *	ata_host_register - register initialized ATA host
@@ -6137,6 +6140,10 @@ int ata_host_register(struct ata_host *host, struct scsi_host_template *sht)
 		struct ata_port *ap = host->ports[i];
 		async_schedule(async_port_probe, ap);
 	}
+
+	/* enable irq after probe if it is asked to be disabled when request */
+	if (host->irq_flags & IRQF_DISABLED)
+		async_schedule(async_irq_enable, host);
 
 	return 0;
 }
