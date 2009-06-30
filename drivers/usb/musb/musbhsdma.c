@@ -258,7 +258,10 @@ static irqreturn_t dma_controller_irq(int irq, void *private_data)
 	int_hsdma = musb_readb(mbase, MUSB_HSDMA_INTR);
 	if (!int_hsdma)
 		goto done;
-
+#ifdef CONFIG_BLACKFIN
+	/* Clear DMA interrup flags */
+	musb_writeb(mbase, MUSB_HSDMA_INTR, int_hsdma);
+#endif
 	for (bchannel = 0; bchannel < MUSB_HSDMA_CHANNELS; bchannel++) {
 		if (int_hsdma & (1 << bchannel)) {
 			musb_channel = (struct musb_dma_channel *)
@@ -324,10 +327,6 @@ static irqreturn_t dma_controller_irq(int irq, void *private_data)
 		}
 	}
 
-#ifdef CONFIG_BLACKFIN
-	/* Clear DMA interrup flags */
-	musb_writeb(mbase, MUSB_HSDMA_INTR, int_hsdma);
-#endif
 
 	retval = IRQ_HANDLED;
 done:
