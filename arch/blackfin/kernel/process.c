@@ -338,7 +338,7 @@ static inline
 int in_mem_const(unsigned long addr, unsigned long size,
                  unsigned long const_addr, unsigned long const_size)
 {
-	return in_mem_const_off(addr, 0, size, const_addr, const_size);
+	return in_mem_const_off(addr, size, 0, const_addr, const_size);
 }
 #define IN_ASYNC(bnum, bctlnum) \
 ({ \
