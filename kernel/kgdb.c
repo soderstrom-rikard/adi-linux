@@ -1118,8 +1118,7 @@ static int gdb_cmd_task(struct kgdb_state *ks)
 		strcpy(remcom_out_buffer, "OK");
 #ifdef CONFIG_SMP
 		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
-			!ks->thr_query && ks->kgdb_usethreadid < -1 &&
-			- ks->kgdb_usethreadid - 2 != raw_smp_processor_id()) {
+			!ks->thr_query && ks->kgdb_usethreadid < -1) {
 			kgdb_roundup_cpu(raw_smp_processor_id(), 0);
 			kgdb_contthread = kgdb_usethread;
 			return 1;
@@ -1138,21 +1137,6 @@ static int gdb_cmd_task(struct kgdb_state *ks)
 				break;
 			}
 			kgdb_contthread = thread;
-#ifdef CONFIG_SMP
-			if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
-				thread != current) {
-				int cpu;
-				for_each_online_cpu(cpu) {
-					if (thread == kgdb_info[cpu].task) {
-						kgdb_roundup_cpu(
-							raw_smp_processor_id(),
-							0);
-						ks->kgdb_usethreadid = -cpu-2;
-						return 1;
-					}
-				}
-			}
-#endif
 		}
 		strcpy(remcom_out_buffer, "OK");
 		break;
@@ -1579,7 +1563,7 @@ acquirelock:
 #ifdef CONFIG_SMP
 	i = -(ks->kgdb_usethreadid + 2);
 	if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
-		kgdb_contthread && i != cpu) {
+		kgdb_contthread) {
 		atomic_set(&passive_cpu_wait[i], 0);
 	}
 #endif
