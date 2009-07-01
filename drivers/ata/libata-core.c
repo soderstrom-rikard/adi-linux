@@ -6059,6 +6059,7 @@ static void async_port_probe(void *data, async_cookie_t cookie)
 	async_synchronize_cookie(cookie);
 
 	ata_scsi_scan_host(ap, 1);
+
 }
 /**
  *	ata_host_register - register initialized ATA host
