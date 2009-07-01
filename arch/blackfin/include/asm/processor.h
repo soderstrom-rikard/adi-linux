@@ -134,6 +134,7 @@ static inline uint32_t __pure bfin_revid(void)
 	/* Always use CHIPID, to work around ANOMALY_05000234 */
 	uint32_t revid = (bfin_read_CHIPID() & CHIPID_VERSION) >> 28;
 
+#ifdef _BOOTROM_GET_DXE_ADDRESS_TWI
 	/*
 	 * ANOMALY_05000364
 	 * Incorrect Revision Number in DSPID Register
@@ -141,6 +142,7 @@ static inline uint32_t __pure bfin_revid(void)
 	if (ANOMALY_05000364 &&
 	    bfin_read16(_BOOTROM_GET_DXE_ADDRESS_TWI) == 0x2796)
 		revid = 1;
+#endif
 
 	return revid;
 }
