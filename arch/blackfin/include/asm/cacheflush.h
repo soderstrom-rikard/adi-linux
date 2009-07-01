@@ -56,8 +56,10 @@ extern void blackfin_invalidate_entire_icache(void);
 
 static inline void flush_icache_range(unsigned start, unsigned end)
 {
+	if (start >= end)
+		return;
 #if defined(CONFIG_BFIN_EXTMEM_WRITEBACK)
-	if (start >= 0x1000 && end <= physical_mem_end)
+	if (end <= physical_mem_end)
 		blackfin_dcache_flush_range(start, end);
 #endif
 #if defined(CONFIG_BFIN_L2_WRITEBACK)
@@ -75,7 +77,7 @@ static inline void flush_icache_range(unsigned start, unsigned end)
 	 */
 	SSYNC();
 #if defined(CONFIG_BFIN_EXTMEM_ICACHEABLE)
-	if (start >= 0x1000 && end <= physical_mem_end) {
+	if (end <= physical_mem_end) {
 		blackfin_icache_flush_range(start, end);
 		flush_icache_range_others(start, end);
 	}
