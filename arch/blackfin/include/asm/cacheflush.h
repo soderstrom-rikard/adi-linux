@@ -56,8 +56,6 @@ extern void blackfin_invalidate_entire_icache(void);
 
 static inline void flush_icache_range(unsigned start, unsigned end)
 {
-	if (start >= end)
-		return;
 #if defined(CONFIG_BFIN_EXTMEM_WRITEBACK)
 	if (end <= physical_mem_end)
 		blackfin_dcache_flush_range(start, end);
