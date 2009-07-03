@@ -238,8 +238,8 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 
 	if (conf->dimensions ==	CFG_PPI_DIMS_2D) {	/* configure for 2D transfers */
 
-		linePeriod = conf->linelen + conf->delay + conf->fs1_blanking;
-		frameSize = linePeriod * conf->numlines - conf->fs1_blanking;
+		linePeriod = conf->linelen + conf->delay + conf->fs1_blanking + 1;
+		frameSize = linePeriod * conf->numlines - conf->fs1_blanking - 1;
 
 		/*
 		 ** configure 2	timers for 2D
