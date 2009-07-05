@@ -464,7 +464,9 @@ char devname[32];
     return 0;
 
 
+#if CAN4LINUX_PCI || defined(VCMA9)
 out_class:
+#endif
     class_destroy(can_class);
 out_devfs:
     unregister_chrdev(Can_major, CANREGDEVNAME);
