@@ -176,6 +176,8 @@
 #define ANOMALY_05000443 (1)
 /* The WURESET Bit in the SYSCR Register is not Functional */
 #define ANOMALY_05000445 (1)
+/* USB DMA Short Packet Data Corruption */
+#define ANOMALY_05000450 (1)
 /* BCODE_QUICKBOOT, BCODE_ALLBOOT, and BCODE_FULLBOOT Settings in SYSCR Register Not Functional */
 #define ANOMALY_05000451 (1)
 /* Incorrect Default Hysteresis Setting for RESET, NMI, and BMODE Signals */
@@ -238,6 +240,5 @@
 #define ANOMALY_05000412 (0)
 #define ANOMALY_05000447 (0)
 #define ANOMALY_05000448 (0)
-#define ANOMALY_05000450 (0)
 
 #endif
