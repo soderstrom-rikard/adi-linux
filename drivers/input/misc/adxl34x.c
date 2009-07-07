@@ -32,7 +32,8 @@
 #define THRESH_ACT	0x24	/* R/W Activity threshold */
 #define THRESH_INACT	0x25	/* R/W Inactivity threshold */
 #define TIME_INACT	0x26	/* R/W Inactivity time */
-#define ACT_INACT_CTL	0x27	/* R/W Axis enable control for activity and inactivity detection */
+#define ACT_INACT_CTL	0x27	/* R/W Axis enable control for activity and */
+				/* inactivity detection */
 #define THRESH_FF	0x28	/* R/W Free-fall threshold */
 #define TIME_FF		0x29	/* R/W Free-fall time */
 #define TAP_AXES	0x2A	/* R/W Axis control for tap/double tap */
@@ -118,10 +119,16 @@
 #define RANGE_PM_8g	2
 #define RANGE_PM_16g	3
 
-/* Maximum value our axis may get in full res mode for the input device (signed 13 bits) */
+/*
+ * Maximum value our axis may get in full res mode for the input device
+ * (signed 13 bits)
+ */
 #define ADXL_FULLRES_MAX_VAL 4096
 
-/* Maximum value our axis may get in fixed res mode for the input device (signed 10 bits) */
+/*
+ * Maximum value our axis may get in fixed res mode for the input device
+ * (signed 10 bits)
+ */
 #define ADXL_FIXEDRES_MAX_VAL 512
 
 /* FIFO_CTL Bits */
@@ -171,10 +178,14 @@
 #define AC_READ(ac, reg)	((ac)->read((ac)->bus, reg))
 #define AC_WRITE(ac, reg, val)	((ac)->write((ac)->bus, reg, val))
 
-#if defined(CONFIG_INPUT_ADXL34X_SPI) || defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
-typedef struct spi_device bus_device;
-#elif defined(CONFIG_INPUT_ADXL34X_I2C) || defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
-typedef struct i2c_client bus_device;
+#if defined(CONFIG_INPUT_ADXL34X_SPI) || \
+	defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
+#define bus_device		struct spi_device
+#elif defined(CONFIG_INPUT_ADXL34X_I2C) || \
+	defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
+#define bus_device		struct i2c_client
+#else
+	#error Communication method needs to be selected (I2C or SPI)
 #endif
 
 struct axis_triple {
@@ -187,7 +198,7 @@ struct adxl34x {
 	bus_device *bus;
 	struct input_dev *input;
 	struct work_struct work;
-	struct mutex mutex;
+	struct mutex mutex;	/* reentrant protection for struct */
 	struct adxl34x_platform_data pdata;
 	struct axis_triple swcal;
 	struct axis_triple hwcal;
@@ -240,9 +251,14 @@ static void adxl34x_get_triple(struct adxl34x *ac, struct axis_triple *axis)
 		       (unsigned char *)buf);
 
 	mutex_lock(&ac->mutex);
-	axis->x = ac->saved.x = (s16) le16_to_cpu(buf[0]);
-	axis->y = ac->saved.y = (s16) le16_to_cpu(buf[1]);
-	axis->z = ac->saved.z = (s16) le16_to_cpu(buf[2]);
+	ac->saved.x = (s16) le16_to_cpu(buf[0]);
+	axis->x = ac->saved.x;
+
+	ac->saved.y = (s16) le16_to_cpu(buf[1]);
+	axis->y = ac->saved.y;
+
+	ac->saved.z = (s16) le16_to_cpu(buf[2]);
+	axis->z = ac->saved.z;
 	mutex_unlock(&ac->mutex);
 }
 
@@ -347,15 +363,16 @@ static void adxl34x_work(struct work_struct *work)
 			adxl34x_service_ev_fifo(ac);
 		/*
 		 * To ensure that the FIFO has
-		 * completely popped, there must be at least 5 us between the end
-		 * of reading the data registers, signified by the transition to
-		 * register 0x38 from 0x37 or the CS pin going high, and the start
-		 * of new reads of the FIFO or reading the FIFO_STATUS
-		 * register. For SPI operation at 1.5 MHz or lower, the register
-		 * addressing portion of the transmission is sufficient delay to
-		 * ensure the FIFO has completely popped. It is necessary for SPI
-		 * operation greater than 1.5 MHz to de-assert the CS pin to
-		 * ensure a total of 5 us, which is at most 3.4 us at 5 MHz
+		 * completely popped, there must be at least 5 us between
+		 * the end of reading the data registers, signified by the
+		 * transition to register 0x38 from 0x37 or the CS pin
+		 * going high, and the start of new reads of the FIFO or
+		 * reading the FIFO_STATUS register. For SPI operation at
+		 * 1.5 MHz or lower, the register addressing portion of the
+		 * transmission is sufficient delay to ensure the FIFO has
+		 * completely popped. It is necessary for SPI operation
+		 * greater than 1.5 MHz to de-assert the CS pin to ensure a
+		 * total of 5 us, which is at most 3.4 us at 5 MHz
 		 * operation.
 		 */
 			if (ac->fifo_delay && (samples > 1))
@@ -723,7 +740,7 @@ static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
 	if (pdata->watermark) {
 		ac->int_mask |= WATERMARK;
 		if (!FIFO_MODE(pdata->fifo_mode))
-			 pdata->fifo_mode |= FIFO_STREAM;
+			pdata->fifo_mode |= FIFO_STREAM;
 	} else {
 		ac->int_mask |= DATA_READY;
 	}
@@ -829,7 +846,8 @@ static int adxl34x_resume(bus_device *bus)
 #define adxl34x_resume  NULL
 #endif
 
-#if defined(CONFIG_INPUT_ADXL34X_SPI) || defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
+#if defined(CONFIG_INPUT_ADXL34X_SPI) || \
+	defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
 
 #define MAX_SPI_FREQ_HZ		5000000
 #define MAX_FREQ_NO_FIFODELAY	1500000
@@ -837,7 +855,8 @@ static int adxl34x_resume(bus_device *bus)
 #define ADXL34X_CMD_READ	(1 << 7)
 #define ADXL34X_WRITECMD(reg)	(reg & 0x3F)
 #define ADXL34X_READCMD(reg)	(ADXL34X_CMD_READ | (reg & 0x3F))
-#define ADXL34X_READMB_CMD(reg) (ADXL34X_CMD_READ | ADXL34X_CMD_MULTB | (reg & 0x3F))
+#define ADXL34X_READMB_CMD(reg) (ADXL34X_CMD_READ | ADXL34X_CMD_MULTB \
+					| (reg & 0x3F))
 
 static int adxl34x_spi_read(struct spi_device *spi, unsigned char reg)
 {
@@ -942,7 +961,8 @@ static void __exit adxl34x_spi_exit(void)
 
 module_exit(adxl34x_spi_exit);
 
-#elif defined(CONFIG_INPUT_ADXL34X_I2C) || defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
+#elif defined(CONFIG_INPUT_ADXL34X_I2C) || \
+	defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
 
 static int adxl34x_i2c_smbus_read(struct i2c_client *client, unsigned char reg)
 {
@@ -986,7 +1006,9 @@ static int __devinit adxl34x_i2c_probe(struct i2c_client *client,
 	struct adxl34x *ac;
 	int error;
 
-	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
+	error = i2c_check_functionality(client->adapter,
+			I2C_FUNC_SMBUS_BYTE_DATA);
+	if (!error) {
 		dev_err(&client->dev, "SMBUS Byte Data not Supported\n");
 		return -EIO;
 	}

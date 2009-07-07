@@ -153,10 +153,11 @@ struct adxl34x_platform_data {
 	 * holds the threshold value for Free-Fall detection.
 	 * The data format is unsigned. The root-sum-square(RSS) value
 	 * of all axes is calculated and compared to the value in
-	 * free_fall_threshold to determine if a free fall event may be occurring.
-	 * The scale factor is 62.5 mg/LSB. A zero value may result in
-	 * undesirable behavior if Free-Fall interrupt is enabled. Values
-	 * between 300 and 600 mg (0x05 to 0x09) are recommended.
+	 * free_fall_threshold to determine if a free fall event may be
+	 * occurring.  The scale factor is 62.5 mg/LSB. A zero value may
+	 * result in undesirable behavior if Free-Fall interrupt is
+	 * enabled. Values between 300 and 600 mg (0x05 to 0x09) are
+	 * recommended.
 	 */
 
 	unsigned char free_fall_threshold;
@@ -165,10 +166,10 @@ struct adxl34x_platform_data {
 	 * free_fall_time:
 	 * is an unsigned time value representing the minimum
 	 * time that the RSS value of all axes must be less than
-	 * free_fall_threshold to generate a Free-Fall interrupt. The scale factor
-	 * is 5 ms/LSB. A zero value may result in undesirable behavior if
-	 * Free-Fall interrupt is enabled. Values between 100 to 350 ms
-	 * (0x14 to 0x46) are recommended.
+	 * free_fall_threshold to generate a Free-Fall interrupt. The
+	 * scale factor is 5 ms/LSB. A zero value may result in
+	 * undesirable behavior if Free-Fall interrupt is enabled.
+	 * Values between 100 to 350 ms (0x14 to 0x46) are recommended.
 	 */
 
 	unsigned char free_fall_time;
@@ -265,7 +266,8 @@ struct adxl34x_platform_data {
 	unsigned int ev_code_z;	/* ABS_X,Y,Z or REL_X,Y,Z */
 
 	/*
-	 * A valid BTN or KEY Code; use tap_axis_control to disable event reporting
+	 * A valid BTN or KEY Code; use tap_axis_control to disable
+	 * event reporting
 	 */
 
 	unsigned int ev_code_tap_x;	/* EV_KEY */
@@ -274,7 +276,8 @@ struct adxl34x_platform_data {
 
 	/*
 	 * A valid BTN or KEY Code for Free-Fall or Activity enables
-	 * input event reporting. A '0' disables the Free-Fall or Activity reporting.
+	 * input event reporting. A '0' disables the Free-Fall or
+	 * Activity reporting.
 	 */
 
 	unsigned int ev_code_ff;	/* EV_KEY */
