@@ -6,6 +6,9 @@
  * device's "struct device" holds this information.
  */
 
+#ifndef _ADXL34X_H_
+#define _ADXL34X_H_
+
 struct adxl34x_platform_data {
 
 	/*
@@ -283,3 +286,4 @@ struct adxl34x_platform_data {
 	unsigned int ev_code_ff;	/* EV_KEY */
 	unsigned int ev_code_act_inactivity;	/* EV_KEY */
 };
+#endif
