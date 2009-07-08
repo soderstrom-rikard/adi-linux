@@ -952,6 +952,9 @@ static int bfin_lq035_resume(struct platform_device *pdev)
 		enable_dma(CH_PPI);
 		bfin_write_PPI_CONTROL(bfin_read_PPI_CONTROL() | PORT_EN);
 		SSYNC();
+
+		config_timers();
+		start_timers();
 	}
 	return 0;
 }
