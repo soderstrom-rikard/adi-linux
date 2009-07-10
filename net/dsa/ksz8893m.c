@@ -112,7 +112,7 @@ static int ksz8893m_setup_global(struct dsa_switch *ds)
 	ret = ksz8893m_write(dout, Port1Control3, 4);
 	if (ret)
 		return ret;
-			
+
 	/* Set VLAN VID of port2 */
 	ret = ksz8893m_read(din, Port2Control3, 3);
 	if (ret)
@@ -123,7 +123,7 @@ static int ksz8893m_setup_global(struct dsa_switch *ds)
 	ret = ksz8893m_write(dout, Port2Control3, 4);
 	if (ret)
 		return ret;
-			
+
 	/* Set VLAN VID of port3 */
 	ret = ksz8893m_read(din, Port3Control3, 3);
 	if (ret)
