@@ -1,24 +1,12 @@
 /*
- * File:         arch/blackfin/kernel/shadow_console.c
- * Author:       Robin Getz <rgetz@blackfin.uclinux.org
+ * manage a small early shadow of the log buffer which we can pass between the
+ * bootloader so early crash messages are communicated properly and easily
  *
- * Created:      03Jul2009
- * Description:  creates a shadow of the __log_buf, which is printed by the
- *		 bootloader if things panic during init
+ * Copyright 2009 Analog Devices Inc.
  *
- *               Copyright 2009 Analog Devices Inc.
+ * Enter bugs at http://blackfin.uclinux.org/
  *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Licensed under the GPL-2 or later.
  */
 
 #include <linux/kernel.h>
