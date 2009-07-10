@@ -64,6 +64,7 @@
 #include <linux/libata.h>
 #include <asm/byteorder.h>
 #include <linux/cdrom.h>
+#include <linux/irq.h>
 
 #include "libata.h"
 
@@ -5993,20 +5994,33 @@ void ata_host_init(struct ata_host *host, struct device *dev,
 	host->ops = ops;
 }
 
-void async_irq_enable(void *data, async_cookie_t cookie)
+void async_scsi_scan_with_irq(void *data, async_cookie_t cookie)
 {
 	struct ata_host *host = data;
+	int i;
 
 	/* in order to make irq enabled after probing, we need to synchronize at this point */
 	async_synchronize_cookie(cookie);
 
 	enable_irq(host->irq);
+
+	/* perform scsi scan orderly to keep device order */
+	for (i = 0; i < host->n_ports; i++) {
+		struct ata_port *ap = host->ports[i];
+		ata_scsi_scan_host(ap, 1);
+	}
 }
 
 static void async_port_probe(void *data, async_cookie_t cookie)
 {
 	int rc;
 	struct ata_port *ap = data;
+	struct irq_desc *desc;
+
+	/* to workaround the hardware interrupt issue, use polling for probe */
+	desc = (ap->host->irq > 0) ? irq_to_desc(ap->host->irq) : NULL;
+	if (ap->host->irq && (desc->status & IRQ_NOAUTOEN))
+		ap->flags |= ATA_FLAG_PIO_POLLING;
 
 	/*
 	 * If we're not allowed to scan this host in parallel,
@@ -6055,12 +6069,19 @@ static void async_port_probe(void *data, async_cookie_t cookie)
 		}
 	}
 
+	/* restore to irq mode for data transfer */
+	if (ap->host->irq && (desc->status & IRQ_NOAUTOEN)) {
+		ap->flags &= ~ATA_FLAG_PIO_POLLING;
+		/* ata_scsi_scan_host can happen after irq is enabled */
+		return;
+	}
+
 	/* in order to keep device order, we need to synchronize at this point */
 	async_synchronize_cookie(cookie);
 
 	ata_scsi_scan_host(ap, 1);
-
 }
+
 /**
  *	ata_host_register - register initialized ATA host
  *	@host: ATA host to register
@@ -6080,6 +6101,9 @@ static void async_port_probe(void *data, async_cookie_t cookie)
 int ata_host_register(struct ata_host *host, struct scsi_host_template *sht)
 {
 	int i, rc;
+	struct irq_desc *desc;
+
+	desc = (host->irq > 0) ? irq_to_desc(host->irq) : NULL;
 
 	/* host must have been started */
 	if (!(host->flags & ATA_HOST_STARTED)) {
@@ -6143,8 +6167,8 @@ int ata_host_register(struct ata_host *host, struct scsi_host_template *sht)
 	}
 
 	/* enable irq after probe if it is asked to be disabled when request */
-	if (host->irq_flags & IRQF_DISABLED)
-		async_schedule(async_irq_enable, host);
+	if (host->irq && (desc->status & IRQ_NOAUTOEN))
+		async_schedule(async_scsi_scan_with_irq, host);
 
 	return 0;
 }
