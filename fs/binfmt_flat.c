@@ -774,9 +774,7 @@ static int load_flat_file(struct linux_binprm * bprm,
 			/* Get the pointer's value.  */
 			addr = flat_get_addr_from_rp(rp, relval, flags,
 							&persistent);
-			if (addr == 0)
-				continue;
-			if (! flat_addr_absolute (relval)) {
+			if (addr != 0) {
 				/*
 				 * Do the relocation.  PIC relocs in the data section are
 				 * already in target order
@@ -788,9 +786,10 @@ static int load_flat_file(struct linux_binprm * bprm,
 					ret = -ENOEXEC;
 					goto err;
 				}
+
+				/* Write back the relocated pointer.  */
+				flat_put_addr_at_rp(rp, addr, relval);
 			}
-			/* Write back the relocated pointer.  */
-			flat_put_addr_at_rp(rp, addr, relval);
 		}
 	} else {
 		for (i=0; i < relocs; i++)
