@@ -1128,7 +1128,7 @@ EXPORT_SYMBOL(console_start);
  *
  * This can happen pretty early during the boot process (because of
  * early_printk) - sometimes before setup_arch() completes - be careful
- * of what kernel features are used - they may not be initialized yet.
+ * of what kernel features are used - they may not be initialised yet.
  *
  * There are two types of consoles - bootconsoles (early_printk) and
  * "real" consoles (everything which is not a bootconsole) which are
