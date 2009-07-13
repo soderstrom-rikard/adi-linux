@@ -955,7 +955,10 @@ static int bfin_lq035_resume(struct platform_device *pdev)
 
 		config_timers();
 		start_timers();
+	} else {
+		t_conf_done = 0;
 	}
+
 	return 0;
 }
 #else
