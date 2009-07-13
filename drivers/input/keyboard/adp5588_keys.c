@@ -173,7 +173,8 @@ static irqreturn_t adp5588_irq(int irq, void *handle)
 	 * use keventd context to read the event fifo registers
 	 * Schedule readout at least 25ms after notification
 	 */
-	schedule_delayed_work(&kpad->work, (unsigned long) msecs_to_jiffies(30));
+	schedule_delayed_work(&kpad->work,
+				(unsigned long) msecs_to_jiffies(30));
 
 	return IRQ_HANDLED;
 }
@@ -260,7 +261,6 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	kpad->client = client;
 
 	ret = adp5588_read(client, DEV_ID);
-
 	if (ret < 0) {
 		input_free_device(input);
 		goto out1;
@@ -272,7 +272,7 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	kpad->input = input;
 
 	input->name = client->name;
-	input->phys = "adp5588-keys/inputX";
+	input->phys = "adp5588-keys/input0";
 	input->dev.parent = &client->dev;
 
 	input_set_drvdata(input, kpad);
