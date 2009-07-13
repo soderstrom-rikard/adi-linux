@@ -4,7 +4,7 @@
  *
  * Description:  Rotary counter driver for Analog Devices Blackfin Processors
  *
- *               Copyright 2008 Analog Devices Inc.
+ *               Copyright 2008-2009 Analog Devices Inc.
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
@@ -74,7 +74,7 @@ static void report_rotary_event(struct bfin_rot *rotary, int delta)
 		return;
 
 	if (rotary->rotary_up_key && rotary->rotary_down_key) {
-		int keycode = (delta > 0) ? rotary->rotary_up_key:
+		int keycode = (delta > 0) ? rotary->rotary_up_key :
 					    rotary->rotary_down_key;
 
 		/* simulate a press-n-release */
