@@ -182,6 +182,23 @@ asmlinkage void __init init_early_exception_vectors(void)
 	u32 evt;
 	SSYNC();
 
+	/*
+	 * This starts up the shadow buffer, incase anything crashes before
+	 * setup arch
+	 */
+	mark_shadow_error();
+	early_shadow_puts(linux_banner);
+	early_shadow_stamp();
+
+	if (CPUID != bfin_cpuid()) {
+		early_shadow_puts("Running on wrong machine type, "
+			"expected");
+		early_shadow_reg(CPUID, 16);
+		early_shadow_puts(", but running on");
+		early_shadow_reg(bfin_cpuid(), 16);
+		early_shadow_puts("\n");
+	}
+
 	/* cannot program in software:
 	 * evt0 - emulation (jtag)
 	 * evt1 - reset
@@ -214,17 +231,7 @@ asmlinkage void __init early_trap_c(struct pt_regs *fp, void *retaddr)
 
 	if (!shadow_console_enabled()) {
 		/* crap - we crashed before setup_arch() */
-		mark_shadow_error();
-		early_shadow_puts(linux_banner);
 		early_shadow_puts("panic before setup_arch\n");
-		if (CPUID != bfin_cpuid()) {
-			early_shadow_puts("Running on wrong machine type, "
-				"expected");
-			early_shadow_reg(CPUID, 16);
-			early_shadow_puts(", but running on");
-			early_shadow_reg(bfin_cpuid(), 16);
-			early_shadow_puts("\n");
-		}
 		early_shadow_puts("IPEND:");
 		early_shadow_reg(fp->ipend, 16);
 		if (fp->seqstat & SEQSTAT_EXCAUSE) {
