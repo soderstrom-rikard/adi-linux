@@ -2418,21 +2418,6 @@ config JME
 	  To compile this driver as a module, choose M here. The module
 	  will be called jme.
 
-config AX88180
-	tristate "AX88180 Gigabit Ethernet support"
-	depends on (ARM || BLACKFIN || MIPS)
-	select CRC32
-	select MII
-	select COMPAT_NET_DEV_OPS
-	---help---
-	  Support for AX88180 chipset.
-	  To compile this driver as a module, choose M here
-	  
-config AX88180_16BIT
-	bool "Select AX88180 16-bit IO Mode"
-	depends on AX88180
-	default y
-
 endif # NETDEV_1000
 
 #
