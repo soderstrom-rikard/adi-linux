@@ -1179,7 +1179,7 @@ static void v4l_release(struct video_device *vdev)
 	kfree(vdev);
 }
 
-static int bcap_open(struct inode *inode, struct file *filp)
+static int bcap_open(struct file *filp)
 {
 	pr_debug("bcap_open called\n");
 
@@ -1318,10 +1318,9 @@ static ssize_t bcap_read(struct file *filp, char *buf, size_t count,
 	return res;
 }
 
-static int bcap_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
-		      unsigned long arg)
+static long bcap_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-	return video_usercopy(inode, filp, cmd, arg, (void *)v4l_ioctl);
+	return video_usercopy(filp, cmd, arg, (void *)v4l_ioctl);
 }
 
 static int bcap_mmap(struct file *filp, struct vm_area_struct *vma)
@@ -1336,7 +1335,7 @@ static int bcap_mmap(struct file *filp, struct vm_area_struct *vma)
 	return 0;
 }
 
-static int bcap_close(struct inode *inode, struct file *filp)
+static int bcap_close(struct file *filp)
 {
 	struct ppi_device_t *pdev = bcap_dev->ppidev;
 	pr_debug("bcap_close called\n");
@@ -1361,13 +1360,11 @@ static int bcap_close(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-static struct file_operations bcap_fops = {
+static struct v4l2_file_operations bcap_fops = {
 	.owner = THIS_MODULE,
 	.open = bcap_open,
 	.release = bcap_close,
 	.ioctl = bcap_ioctl,
-	.compat_ioctl = (void *)v4l_ioctl,
-	.llseek = no_llseek,
 	.read = bcap_read,
 	.mmap = bcap_mmap,
 };
