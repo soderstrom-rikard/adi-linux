@@ -387,22 +387,24 @@ static int _sram_free(const void *addr,
 
 int sram_free(const void *addr)
 {
+	unsigned int cpu;
 
+	cpu = get_cpu();
 #if L1_CODE_LENGTH != 0
-	if (addr >= (void *)get_l1_code_start()
+	if (addr >= (void *)get_l1_code_start_cpu(cpu)
 		 && addr < (void *)(get_l1_code_start() + L1_CODE_LENGTH))
 		return l1_inst_sram_free(addr);
 	else
 #endif
 #if L1_DATA_A_LENGTH != 0
-	if (addr >= (void *)get_l1_data_a_start()
-		 && addr < (void *)(get_l1_data_a_start() + L1_DATA_A_LENGTH))
+	if (addr >= (void *)get_l1_data_a_start_cpu(cpu)
+		 && addr < (void *)(get_l1_data_a_start_cpu(cpu) + L1_DATA_A_LENGTH))
 		return l1_data_A_sram_free(addr);
 	else
 #endif
 #if L1_DATA_B_LENGTH != 0
-	if (addr >= (void *)get_l1_data_b_start()
-		 && addr < (void *)(get_l1_data_b_start() + L1_DATA_B_LENGTH))
+	if (addr >= (void *)get_l1_data_b_start_cpu(cpu)
+		 && addr < (void *)(get_l1_data_b_start_cpu(cpu) + L1_DATA_B_LENGTH))
 		return l1_data_B_sram_free(addr);
 	else
 #endif
