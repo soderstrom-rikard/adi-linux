@@ -1,27 +1,8 @@
 /*
- * File:         drivers/input/keyboard/bfin_rotary.c
- * Author:       Michael Hennerich <hennerich@blackfin.uclinux.org>
+ * Rotary counter driver for Analog Devices Blackfin Processors
  *
- * Description:  Rotary counter driver for Analog Devices Blackfin Processors
- *
- *               Copyright 2008-2009 Analog Devices Inc.
- *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * Copyright 2008-2009 Analog Devices Inc.
+ * Licensed under the GPL-2 or later.
  */
 
 #include <linux/module.h>
@@ -293,13 +274,12 @@ static int __init bfin_rotary_init(void)
 {
 	return platform_driver_register(&bfin_rotary_device_driver);
 }
+module_init(bfin_rotary_init);
 
 static void __exit bfin_rotary_exit(void)
 {
 	platform_driver_unregister(&bfin_rotary_device_driver);
 }
-
-module_init(bfin_rotary_init);
 module_exit(bfin_rotary_exit);
 
 MODULE_LICENSE("GPL");
