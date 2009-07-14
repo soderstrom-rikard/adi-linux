@@ -68,20 +68,6 @@
  *   during that time ... at least on unshared bus segments.
  */
 
- /* PITFALLS:
-  *
-  * - SD card benchmarking is done in 4 bit SD mode. Nobody care about
-  *   speed in SPI mode. So expect less throughput and longer timeouts
-  *   as in SD mode. (See core.c:mmc_set_data_timeout()).
-  * - SPI imposes a byte-aligned protocol. Expect that SD cards violate
-  *   this requirement for ALL responses:
-  *   - response after command
-  *   - data token up to CRC for read blocks
-  *   - token response after a write block
-  * - Expect that the delay (in bits) will vary according to the
-  *   buffer fill grade in the SD card controller.
-  * - Expect that CRC16 is only working for full 512 byte data blocks.
-  */
 
 /*
  * Local protocol constants, internal to data block protocols.
@@ -111,14 +97,6 @@
  */
 #define r1b_timeout		(HZ * 3)
 
-/* One of the critical speed parameters is the amount of data which may
- * be transfered in one command. If this value is too low, the SD card
- * controller has to do multiple partial block writes (argggh!). With
- * today (2008) SD cards there is little speed gain if we transfer more
- * than 64 KBytes at a time. So use this value until there is any indication
- * that we should do more here.
- */
-#define MMC_SPI_BLOCKSATONCE	128
 
 /****************************************************************************/
 
@@ -866,13 +844,7 @@ mmc_spi_readblock(struct mmc_spi_host *host, struct spi_transfer *t,
 		*cp = leftover | (temp >> bitshift);
 	}
 
-	/* Omit the CRC check for CID and CSD reads. There are some SDHC
-	 * cards which don't supply a valid CRC after CID reads.
-	 * All data reads have len == MMC_SPI_BLOCKSIZE, so use this
-	 * check to distinguish between data reads and CID/CSD reads.
-	 * Note that the CID has it's own CRC7 value inside the structure.
-	 */
-	if (host->mmc->use_spi_crc && (t->len == MMC_SPI_BLOCKSIZE)) {
+	if (host->mmc->use_spi_crc) {
 		u16 crc = crc_itu_t(0, t->rx_buf, t->len);
 
 		be16_to_cpus(&scratch->crc_val);
@@ -1369,10 +1341,6 @@ static int mmc_spi_probe(struct spi_device *spi)
 
 	mmc->ops = &mmc_spi_ops;
 	mmc->max_blk_size = MMC_SPI_BLOCKSIZE;
-	mmc->max_hw_segs = MMC_SPI_BLOCKSATONCE;
-	mmc->max_phys_segs = MMC_SPI_BLOCKSATONCE;
-	mmc->max_req_size = MMC_SPI_BLOCKSATONCE * MMC_SPI_BLOCKSIZE;
-	mmc->max_blk_count = MMC_SPI_BLOCKSATONCE;
 
 	mmc->caps = MMC_CAP_SPI;
 
