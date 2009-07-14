@@ -37,9 +37,12 @@ extern void early_shadow_reg(unsigned long reg, unsigned int n);
 extern void early_shadow_write(struct console *con, const char *s,
 	unsigned int n) __attribute__((nonnull(2)));
 #define early_shadow_puts(str) early_shadow_write(NULL, str, strlen(str))
-#define early_shadow_stamp() early_shadow_puts(__FILE__ " : " __stringify(__LINE__) " ["); \
-	early_shadow_puts(__func__); \
-	early_shadow_puts("]\n");
+#define early_shadow_stamp() \
+	do { \
+		early_shadow_puts(__FILE__ " : " __stringify(__LINE__) " ["); \
+		early_shadow_puts(__func__); \
+		early_shadow_puts("]\n"); \
+	} while (0)
 #else
 #define setup_early_printk(fmt) do { } while (0)
 #define enable_shadow_console(fmt)  do { } while (0)
