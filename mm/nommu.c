@@ -620,7 +620,7 @@ static void add_vma_to_mm(struct mm_struct *mm, struct vm_area_struct *vma)
 	struct address_space *mapping;
 	struct rb_node **p, *parent;
 #ifdef CONFIG_MPU
-	long len = vma->vm_end - vma->vm_start;
+	long start;
 #endif
 
 	kenter(",%p", vma);
@@ -628,7 +628,7 @@ static void add_vma_to_mm(struct mm_struct *mm, struct vm_area_struct *vma)
 	BUG_ON(!vma->vm_region);
 
 #ifdef CONFIG_MPU
-	long start = vma->vm_start & PAGE_MASK;
+	start = vma->vm_start & PAGE_MASK;
 	while (start < vma->vm_end) {
 		protect_page(mm, start, vma->vm_flags);
 		start += PAGE_SIZE;
@@ -699,13 +699,13 @@ static void delete_vma_from_mm(struct vm_area_struct *vma)
 	struct address_space *mapping;
 	struct mm_struct *mm = vma->vm_mm;
 #ifdef CONFIG_MPU
-	long len = vma->vm_end - vma->vm_start;
+	long start;
 #endif
 
 	kenter("%p", vma);
 
 #ifdef CONFIG_MPU
-	long start = vma->vm_start & PAGE_MASK;
+	start = vma->vm_start & PAGE_MASK;
 	while (start < vma->vm_end) {
 		protect_page(mm, start, 0);
 		start += PAGE_SIZE;
