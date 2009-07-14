@@ -191,8 +191,7 @@ asmlinkage void __init init_early_exception_vectors(void)
 	early_shadow_stamp();
 
 	if (CPUID != bfin_cpuid()) {
-		early_shadow_puts("Running on wrong machine type, "
-			"expected");
+		early_shadow_puts("Running on wrong machine type, expected");
 		early_shadow_reg(CPUID, 16);
 		early_shadow_puts(", but running on");
 		early_shadow_reg(bfin_cpuid(), 16);
