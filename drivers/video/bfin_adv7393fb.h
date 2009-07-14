@@ -1,32 +1,8 @@
 /*
- * File:         drivers/video/bfin_adv7393fb.h
- * Based on:
- * Author:       Michael Hennerich
+ * Frame buffer driver for ADV7393/2 video encoder
  *
- * Created:      May. 24th 2006
- * Description:  Frame buffer driver for ADV7393/2 video encoder
- *
- * Rev:          $Id: bfin_adv7393fb.h 4112 2008-01-17 12:27:21Z hennerich $
- *
- * Modified:
- *               Copyright 2004-2006 Analog Devices Inc.
- *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * Copyright 2006-2009 Analog Devices Inc.
+ * Licensed under the GPL-2 or late.
  */
 
 #ifndef __BFIN_ADV7393FB_H__
@@ -60,7 +36,7 @@
 #endif
 
 #if defined(CONFIG_BF537) || defined(CONFIG_BF536) || defined(CONFIG_BF534)
-# define DMA_CFG_VAL 	0x7935	//Set Sync Bit
+# define DMA_CFG_VAL 	0x7935	/* Set Sync Bit */
 # define VB_DUMMY_MEMORY_SOURCE	L1_DATA_B_START
 #elif defined(CONFIG_BF533) || defined(CONFIG_BF532) || defined(CONFIG_BF531)
 # define DMA_CFG_VAL 	0x7915

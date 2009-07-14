@@ -1,36 +1,16 @@
 /*
- * File:         drivers/video/bfin_adv7393fb.c
- * Based on:     drivers/video/vga16fb.c
- * Author:       Michael Hennerich
+ * Frame buffer driver for ADV7393/2 video encoder
  *
- * Created:      May. 24th 2006
- * Description:  Frame buffer driver for ADV7393/2 video encoder
- *
- * Modified:
- *               Copyright 2006 Analog Devices Inc.
- *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * Copyright 2006-2009 Analog Devices Inc.
+ * Licensed under the GPL-2 or late.
  */
 
 /*
  * TODO: Remove Globals
  * TODO: Code Cleanup
  */
+
+#define pr_fmt(fmt) DRIVER_NAME ": " fmt
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -49,8 +29,8 @@
 #include <asm/blackfin.h>
 #include <asm/irq.h>
 #include <asm/dma.h>
-#include <asm/uaccess.h>
-#include <asm/gpio.h>
+#include <linux/uaccess.h>
+#include <linux/gpio.h>
 #include <asm/portmux.h>
 
 #include <linux/dma-mapping.h>
@@ -71,7 +51,7 @@ static int nocursor = 1;
  * I2C driver
  */
 
-static char adv7393_name[] = "adv7393";
+static char adv7393_name[] = DRIVER_NAME;
 
 /*
  * card parameters
@@ -225,7 +205,7 @@ error:
 	return 0;
 }
 
-static int adv7393_mmap = 0;
+static int adv7393_mmap;
 static int bfin_adv7393_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 {
 	/* we really dont need any map ... not sure how the smem_start will
@@ -273,7 +253,6 @@ static void bfin_disable_dma(void)
 
 static void bfin_config_ppi(struct adv7393fb_device *fbdev)
 {
-
 	if (ANOMALY_05000183) {
 		bfin_write_TIMER2_CONFIG(WDTH_CAP);
 		bfin_write_TIMER_ENABLE(TIMEN2);
@@ -299,28 +278,25 @@ static void bfin_disable_ppi(void)
 
 static inline int adv7393_write(struct i2c_client *client, u8 reg, u8 value)
 {
-   if (client) {
-       return i2c_smbus_write_byte_data(client, reg, value);
-    } else {
-      printk(KERN_ERR "adv7393_write failed - check I2C Support\n");
-      return(-1);
-    }
+	if (client)
+		return i2c_smbus_write_byte_data(client, reg, value);
 
+	pr_err("i2c write failed\n");
+	return -1;
 }
 
 static inline int adv7393_read(struct i2c_client *client, u8 reg)
 {
-   if (client) {
-	return i2c_smbus_read_byte_data(client, reg);
-    } else {
-      printk(KERN_ERR "adv7393_read failed - check I2C Support\n");
-      return(-1);
-    }
+	if (client)
+		return i2c_smbus_read_byte_data(client, reg);
+
+	pr_err("i2c read failed\n");
+	return -1;
 }
 
 static int
 adv7393_write_block(struct i2c_client *client,
-		    const u8 * data, unsigned int len)
+		    const u8 *data, unsigned int len)
 {
 	int ret = -1;
 	u8 reg;
@@ -382,9 +358,7 @@ adv7393_detect_client(struct i2c_adapter *adapter, int address, int kind)
 	struct i2c_client *client;
 	char *dname;
 
-	printk(KERN_INFO
-	       "adv7393.c: detecting adv7393 client on address 0x%x\n",
-	       address << 1);
+	pr_info("detecting client on address %#x\n", address << 1);
 
 	/* Check if the adapter supports the needed features */
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
@@ -418,8 +392,7 @@ adv7393_detect_client(struct i2c_adapter *adapter, int address, int kind)
 	if (adv7393_write_block
 	    (drv->i2c_adv7393_client, drv->modes[mode].adv7393_i2c_initd,
 	     drv->modes[mode].adv7393_i2c_initd_len) < 0) {
-		printk(KERN_ERR "%s_attach: init error\n",
-		       I2C_NAME(drv->i2c_adv7393_client));
+		pr_err("i2c attach: init error\n");
 	}
 
 	if (drv->open)
@@ -430,21 +403,18 @@ adv7393_detect_client(struct i2c_adapter *adapter, int address, int kind)
 
 static int adv7393_attach_adapter(struct i2c_adapter *adapter)
 {
-	printk(KERN_INFO
-	       "adv7393.c: starting probe for adapter %s(0x%x)\n",
-	       I2C_NAME(adapter), adapter->id);
+	pr_info("starting probe for adapter %s(0x%x)\n",
+		I2C_NAME(adapter), adapter->id);
 	return i2c_probe(adapter, &addr_data, &adv7393_detect_client);
 }
 
 static int adv7393_detach_client(struct i2c_client *client)
 {
-
 	int err;
 
 	err = i2c_detach_client(client);
-	if (err) {
+	if (err)
 		return err;
-	}
 
 	kfree(client);
 
@@ -455,8 +425,8 @@ static int adv7393_detach_client(struct i2c_client *client)
 
 static struct i2c_driver i2c_driver_adv7393 = {
 	.driver = {
-		   .name = "adv7393",	/* name */
-		   },
+		.name = "adv7393",
+	},
 
 	.id = I2C_DRIVERID_ADV7170,
 
@@ -545,18 +515,17 @@ static int __devinit bfin_adv7393_fb_probe(struct platform_device *pdev)
 	struct adv7393fb_device *fbdev = NULL;
 
 	if (mem > 2) {
-		printk(KERN_ERR
-		       "\n bfin_adv7393_fb: mem out of allowed range [1;2]\n");
+		pr_err("mem out of allowed range [1;2]\n");
 		return -EINVAL;
 	}
 
 	if (mode > num_modes) {
-		printk(KERN_ERR "Mode %d: not supported", mode);
+		pr_err("mode %d: not supported", mode);
 		return -EFAULT;
 	}
 
-	if (!(fbdev = kzalloc(sizeof(struct adv7393fb_device), GFP_KERNEL))) {
-		printk(KERN_ERR "fail to allocate device private record");
+	if (!(fbdev = kzalloc(sizeof(*fbdev), GFP_KERNEL))) {
+		pr_err("failed to allocate device private record");
 		return -ENOMEM;
 	}
 
@@ -566,8 +535,7 @@ static int __devinit bfin_adv7393_fb_probe(struct platform_device *pdev)
 
 	fbdev->modes = known_modes;
 
-	printk(KERN_NOTICE "\nbfin_adv7393_fb: initializing: %s \n",
-	       fbdev->modes[mode].name);
+	pr_notice("initializing: %s\n", fbdev->modes[mode].name);
 
 	fbdev->fb_len =
 	    mem * fbdev->modes[mode].xres * fbdev->modes[mode].xres *
@@ -581,7 +549,7 @@ static int __devinit bfin_adv7393_fb_probe(struct platform_device *pdev)
 	 * PPI Does Not Start Properly In Specific Mode
 	 */
 	if (gpio_request(P_IDENT(P_PPI0_FS3), "PPI0_FS3")) {
-		printk(KERN_ERR "BF5xx bfin_adv7393_fb: Failed ro request GPIO_%d (FS3)\n", P_IDENT(P_PPI0_FS3));
+		pr_err("PPI0_FS3 GPIO request failed\n");
 		return -EBUSY;
 	}
 
@@ -590,7 +558,7 @@ static int __devinit bfin_adv7393_fb_probe(struct platform_device *pdev)
 
 
 	if (peripheral_request_list(ppi_req, DRIVER_NAME)) {
-		printk(KERN_ERR "Requesting Peripherals PPI faild\n");
+		pr_err("requesting PPI peripheral failed\n");
 		ret = -EFAULT;
 		goto out_8;
 	}
@@ -600,8 +568,7 @@ static int __devinit bfin_adv7393_fb_probe(struct platform_device *pdev)
 			       GFP_KERNEL);
 
 	if (NULL == fbdev->fb_mem) {
-		printk(KERN_ERR
-		       "FB: couldn't allocate dma buffer (%d bytes) \n",
+		pr_err("couldn't allocate dma buffer (%d bytes)\n",
 		       (u32) fbdev->fb_len);
 		ret = -ENOMEM;
 		goto out_7;
@@ -633,35 +600,33 @@ static int __devinit bfin_adv7393_fb_probe(struct platform_device *pdev)
 	fbdev->info.flags = FBINFO_DEFAULT;
 
 	if (!(fbdev->info.pseudo_palette = kzalloc(sizeof(u32) * 16, GFP_KERNEL))) {
-		printk(KERN_ERR "Fail to allocate pseudo_palette\n");
+		pr_err("failed to allocate pseudo_palette\n");
 		ret = -ENOMEM;
 		goto out_6;
 	}
 
 	if (fb_alloc_cmap(&fbdev->info.cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0) < 0) {
-		printk(KERN_ERR "Fail to allocate colormap (%d entries)\n",
+		pr_err("failed to allocate colormap (%d entries)\n",
 			   BFIN_LCD_NBR_PALETTE_ENTRIES);
 		ret = -EFAULT;
 		goto out_5;
 	}
 
 	if (request_dma(CH_PPI, "BF5xx_PPI_DMA") < 0) {
-		printk(KERN_ERR
-		       "\n bfin_adv7393_fb: unable to request PPI DMA\n");
+		pr_err("unable to request PPI DMA\n");
 		ret = -EFAULT;
 		goto out_4;
 	}
 
 	if (request_irq(IRQ_PPI_ERROR, ppi_irq_error, IRQF_DISABLED,
 			"PPI ERROR", fbdev) < 0) {
-		printk(KERN_ERR
-		       "\n bfin_adv7393_fb: unable to request PPI ERROR IRQ\n");
+		pr_err("unable to request PPI ERROR IRQ\n");
 		ret = -EFAULT;
 		goto out_3;
 	}
 
 	if (i2c_add_driver(&i2c_driver_adv7393)) {
-		printk(KERN_ERR "I2C Driver Initialisation failed\n");
+		pr_err("I2C driver initialisation failed\n");
 		ret = -EFAULT;
 		goto out_2;
 	}
@@ -669,19 +634,17 @@ static int __devinit bfin_adv7393_fb_probe(struct platform_device *pdev)
 	fbdev->open = 0;
 
 	if (register_framebuffer(&fbdev->info) < 0) {
-		printk(KERN_ERR
-		       "bfin_adv7393_fb: unable to register framebuffer\n");
+		pr_err("unable to register framebuffer\n");
 		ret = -EFAULT;
 		goto out_1;
 	}
 
-	printk(KERN_INFO "fb%d: %s frame buffer device\n",
+	pr_info("fb%d: %s frame buffer device\n",
 	       fbdev->info.node, fbdev->info.fix.id);
-	printk(KERN_INFO "fb memory address : 0x%p\n", fbdev->fb_mem);
+	pr_info("fb memory address : 0x%p\n", fbdev->fb_mem);
 
 	if ((entry = create_proc_entry("driver/adv7393", 0, NULL)) == NULL) {
-		printk(KERN_ERR
-		       "bfin_adv7393_fb: unable to create /proc entry\n");
+		pr_err("unable to create /proc entry\n");
 		ret = -EFAULT;
 		goto out_0;
 	}
@@ -721,7 +684,7 @@ static int bfin_adv7393_fb_open(struct fb_info *info, int user)
 
 	fbdev->info.screen_base = (void *)fbdev->fb_mem;
 	if (!fbdev->info.screen_base) {
-		printk(KERN_ERR "bfin_adv7393_fb: unable to map device\n");
+		pr_err("unable to map device\n");
 		return -ENOMEM;
 	}
 
@@ -961,9 +924,9 @@ static struct platform_driver bfin_adv7393_fb_driver = {
 	.suspend = bfin_adv7393_fb_suspend,
 	.resume = bfin_adv7393_fb_resume,
 	.driver = {
-		   .name = DRIVER_NAME,
-		   .owner = THIS_MODULE,
-		   },
+		 .name = DRIVER_NAME,
+		 .owner = THIS_MODULE,
+	},
 };
 
 static int __init bfin_adv7393_fb_driver_init(void)
