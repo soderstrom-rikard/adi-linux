@@ -1,32 +1,11 @@
 /*
- * File:         drivers/video/bfin-lq035q1-fb.c
- * Based on:
- * Author:       Michael Hennerich <hennerich@blackfin.uclinux.org>
+ * Blackfin LCD Framebufer driver SHARP LQ035Q1DH02
  *
- * Created:
- * Description:  Blackfin LCD Framebufer driver SHARP LQ035Q1DH02
- *
- *
- * Modified:
- *               Copyright 2008-2009 Analog Devices Inc.
- *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * Copyright 2008-2009 Analog Devices Inc.
+ * Licensed under the GPL-2 or later.
  */
+
+#define pr_fmt(fmt) DRIVER_NAME ": " fmt
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -43,7 +22,6 @@
 #include <linux/platform_device.h>
 #include <linux/spi/spi.h>
 #include <linux/dma-mapping.h>
-
 
 #include <asm/blackfin.h>
 #include <asm/irq.h>
@@ -144,7 +122,7 @@
 #define LQ035_SHUT_CTL			0x11
 
 #define LQ035_DRIVER_OUTPUT_MASK	(LQ035_LR | LQ035_TB | LQ035_BGR | LQ035_REV)
-#define LQ035_DRIVER_OUTPUT_DEFAULT 	(0x2AEF & ~LQ035_DRIVER_OUTPUT_MASK)
+#define LQ035_DRIVER_OUTPUT_DEFAULT	(0x2AEF & ~LQ035_DRIVER_OUTPUT_MASK)
 
 #define LQ035_SHUT			(1 << 0)	/* Shutdown */
 #define LQ035_ON			(0 << 0)	/* Shutdown */
@@ -365,7 +343,7 @@ static int bfin_lq035q1_request_ports(int action)
 		}
 
 		if (peripheral_request_list(ppi0_req_16, DRIVER_NAME)) {
-			printk(KERN_ERR "Requesting Peripherals faild\n");
+			pr_err("requesting peripherals failed\n");
 			return -EFAULT;
 		}
 	} else {
@@ -586,13 +564,9 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 	struct fb_info *fbinfo;
 	int ret;
 
-	printk(KERN_INFO DRIVER_NAME ": %dx%d %d-bit RGB FrameBuffer initializing...\n",
-					 LCD_X_RES, LCD_Y_RES, LCD_BPP);
-
 	ret = request_dma(CH_PPI, "CH_PPI");
 	if (ret < 0) {
-		printk(KERN_ERR DRIVER_NAME
-		       ": couldn't request CH_PPI DMA\n");
+		pr_err("couldn't request CH_PPI DMA\n");
 		goto out1;
 	}
 
@@ -688,8 +662,7 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 			       GFP_KERNEL);
 
 	if (NULL == info->fb_buffer) {
-		printk(KERN_ERR DRIVER_NAME
-		       ": couldn't allocate dma buffer.\n");
+		pr_err("couldn't allocate dma buffer\n");
 		ret = -ENOMEM;
 		goto out3;
 	}
@@ -703,15 +676,14 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 
 	ret = fb_alloc_cmap(&fbinfo->cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0);
 	if (ret < 0) {
-		printk(KERN_ERR DRIVER_NAME
-		       "Fail to allocate colormap (%d entries)\n",
+		pr_err("failed to allocate colormap (%d entries)\n",
 		       BFIN_LCD_NBR_PALETTE_ENTRIES);
 		goto out4;
 	}
 
 	ret = bfin_lq035q1_request_ports(1);
 	if (ret) {
-		printk(KERN_ERR DRIVER_NAME ": couldn't request gpio port.\n");
+		pr_err("couldn't request gpio port\n");
 		goto out6;
 	}
 
@@ -724,15 +696,13 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 	ret = request_irq(info->irq, bfin_lq035q1_irq_error, IRQF_DISABLED,
 			"PPI ERROR", info);
 	if (ret < 0) {
-		printk(KERN_ERR DRIVER_NAME
-		       ": unable to request PPI ERROR IRQ\n");
+		pr_err("unable to request PPI ERROR IRQ\n");
 		goto out7;
 	}
 
 	ret = spi_register_driver(&spidev_spi);
 	if (ret < 0) {
-		printk(KERN_ERR DRIVER_NAME
-		       ": couldn't register SPI Interface\n");
+		pr_err("couldn't register SPI Interface\n");
 		goto out8;
 	}
 
@@ -740,8 +710,8 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 		ret = gpio_request(info->disp_info->gpio_bl, "LQ035 Backlight");
 
 		if (ret) {
-			printk(KERN_ERR "%s: Failed to request GPIO %d\n",
-			DRIVER_NAME, info->disp_info->gpio_bl);
+			pr_err("failed to request GPIO %d\n",
+				info->disp_info->gpio_bl);
 			goto out9;
 		}
 		gpio_direction_output(info->disp_info->gpio_bl, 0);
@@ -749,10 +719,12 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 
 	ret = register_framebuffer(fbinfo);
 	if (ret < 0) {
-		printk(KERN_ERR DRIVER_NAME
-		       ": unable to register framebuffer.\n");
+		pr_err("unable to register framebuffer\n");
 		goto out10;
 	}
+
+	pr_info("%dx%d %d-bit RGB FrameBuffer initialized\n",
+		LCD_X_RES, LCD_Y_RES, LCD_BPP);
 
 	return 0;
 
@@ -782,7 +754,6 @@ out1:
 
 static int __devexit bfin_lq035q1_remove(struct platform_device *pdev)
 {
-
 	struct fb_info *fbinfo = platform_get_drvdata(pdev);
 	struct bfin_lq035q1fb_info *info = fbinfo->par;
 
@@ -807,7 +778,7 @@ static int __devexit bfin_lq035q1_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	framebuffer_release(fbinfo);
 
-	printk(KERN_INFO DRIVER_NAME ": Unregister LCD driver.\n");
+	pr_info("unregistered LCD driver\n");
 
 	return 0;
 }
@@ -863,23 +834,22 @@ static struct platform_driver bfin_lq035q1_driver = {
 	.suspend = bfin_lq035q1_suspend,
 	.resume = bfin_lq035q1_resume,
 	.driver = {
-		   .name = DRIVER_NAME,
-		   .owner = THIS_MODULE,
-		   },
+		.name = DRIVER_NAME,
+		.owner = THIS_MODULE,
+	},
 };
 
 static int __init bfin_lq035q1_driver_init(void)
 {
 	return platform_driver_register(&bfin_lq035q1_driver);
 }
+module_init(bfin_lq035q1_driver_init);
 
 static void __exit bfin_lq035q1_driver_cleanup(void)
 {
 	platform_driver_unregister(&bfin_lq035q1_driver);
 }
+module_exit(bfin_lq035q1_driver_cleanup);
 
 MODULE_DESCRIPTION("Blackfin TFT LCD Driver");
 MODULE_LICENSE("GPL");
-
-module_init(bfin_lq035q1_driver_init);
-module_exit(bfin_lq035q1_driver_cleanup);
