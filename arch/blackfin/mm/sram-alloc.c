@@ -392,7 +392,7 @@ int sram_free(const void *addr)
 	cpu = get_cpu();
 #if L1_CODE_LENGTH != 0
 	if (addr >= (void *)get_l1_code_start_cpu(cpu)
-		 && addr < (void *)(get_l1_code_start() + L1_CODE_LENGTH))
+		 && addr < (void *)(get_l1_code_start_cpu(cpu) + L1_CODE_LENGTH))
 		return l1_inst_sram_free(addr);
 	else
 #endif
