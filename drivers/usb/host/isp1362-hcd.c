@@ -1869,7 +1869,7 @@ static int isp1362_bus_suspend(struct usb_hcd *hcd)
 		limit = 2000;
 		while (limit > 0) {
 			udelay(250);
-			limit =- 250;
+			limit -= 250;
 			if (isp1362_read_reg32(isp1362_hcd, HCINTSTAT) & OHCI_INTR_SF) {
 				break;
 			}
