@@ -1,35 +1,23 @@
 /*
-    ad5252.c - Part of lm_sensors, Linux kernel modules for hardware
-             monitoring
+ *  ad5252.c - Part of lm_sensors, Linux kernel modules for hardware
+ *           monitoring
+ *
+ *  Driver for dual digitally controlled potentiometers
+ *
+ *  Copyright (c) 2006 Michael Hennerich <hennerich@blackfin.uclinux.org>
+ *
+ *  derived from pcf8547.c
+ *
+ *  Copyright (c) 2000  Frodo Looijaard <frodol@dds.nl>,
+ *                      Philip Edelbrock <phil@netroedge.com>,
+ *                      Dan Eaton <dan.eaton@rocketlogix.com>
+ *  Ported to Linux 2.6 by Aurelien Jarno <aurel32@debian.org> with
+ *  the help of Jean Delvare <khali@linux-fr.org>
+ *
+ * Licensed under the GPL-2.
+ */
 
-    Driver for dual digitally controlled potentiometers
-
-    Copyright (c) 2006 Michael Hennerich <hennerich@blackfin.uclinux.org>
-
-    derived from pcf8547.c
-
-    Copyright (c) 2000  Frodo Looijaard <frodol@dds.nl>,
-                        Philip Edelbrock <phil@netroedge.com>,
-                        Dan Eaton <dan.eaton@rocketlogix.com>
-    Ported to Linux 2.6 by Aurelien Jarno <aurel32@debian.org> with
-    the help of Jean Delvare <khali@linux-fr.org>
-
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-*/
-
+#define pr_fmt(fmt) "AD5252: " fmt
 
 #include <linux/module.h>
 #include <linux/init.h>
@@ -60,7 +48,7 @@ static void ad5252_init_client(struct i2c_client *client);
 /* This is the driver that will be inserted */
 static struct i2c_driver ad5252_driver = {
 	.driver = {
-	.name		= "ad5252",
+		.name		= "ad5252",
 	},
 	.id		= I2C_DRIVERID_AD5252,
 	.attach_adapter	= ad5252_attach_adapter,
@@ -71,7 +59,7 @@ static struct i2c_driver ad5252_driver = {
 static ssize_t show_read_w1(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	struct i2c_client *client = to_i2c_client(dev);
-	return sprintf(buf, "%u\n", i2c_smbus_read_byte_data(client,0x1));
+	return sprintf(buf, "%u\n", i2c_smbus_read_byte_data(client, 0x1));
 }
 
 static DEVICE_ATTR(read_w1, S_IRUGO, show_read_w1, NULL);
@@ -79,7 +67,7 @@ static DEVICE_ATTR(read_w1, S_IRUGO, show_read_w1, NULL);
 static ssize_t show_read_w3(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	struct i2c_client *client = to_i2c_client(dev);
-	return sprintf(buf, "%u\n", i2c_smbus_read_byte_data(client,0x3));
+	return sprintf(buf, "%u\n", i2c_smbus_read_byte_data(client, 0x3));
 }
 
 static DEVICE_ATTR(read_w3, S_IRUGO, show_read_w3, NULL);
@@ -102,7 +90,7 @@ static ssize_t set_write_w1(struct device *dev, struct device_attribute *attr, c
 
 	data->write = val;
 
-	i2c_smbus_write_byte_data(client,0x1, data->write);
+	i2c_smbus_write_byte_data(client, 0x1, data->write);
 	return count;
 }
 
@@ -120,7 +108,7 @@ static ssize_t set_write_w3(struct device *dev, struct device_attribute *attr, c
 
 	data->write = val;
 
-	i2c_smbus_write_byte_data(client,0x3, data->write);
+	i2c_smbus_write_byte_data(client, 0x3, data->write);
 	return count;
 }
 
@@ -148,7 +136,8 @@ int ad5252_detect(struct i2c_adapter *adapter, int address, int kind)
 
 	/* OK. For now, we presume we have a valid client. We now create the
 	   client structure, even though we cannot fill it completely yet. */
-	if (!(data = kzalloc(sizeof(struct ad5252_data), GFP_KERNEL))) {
+	data = kzalloc(sizeof(*data), GFP_KERNEL);
+	if (data == NULL) {
 		err = -ENOMEM;
 		goto exit;
 	}
@@ -174,7 +163,7 @@ int ad5252_detect(struct i2c_adapter *adapter, int address, int kind)
 
 	/* Tell the I2C layer a new client has arrived */
 
-	/*FIXME: Don't know why there needs to be a delay !!!*/
+	/* FIXME: Don't know why there needs to be a delay !!! */
 	udelay(100);
 
 	if ((err = i2c_attach_client(new_client)))
@@ -190,18 +179,16 @@ int ad5252_detect(struct i2c_adapter *adapter, int address, int kind)
 	err |= device_create_file(&new_client->dev, &dev_attr_write_w3);
 
 	if (err)
-		printk(KERN_WARNING "AD5252: failed to register sysfs hooks\n");
+		pr_warning("failed to register sysfs hooks\n");
 
-	printk(KERN_INFO "AD5252 Attached\n");
+	pr_info("attached\n");
+
 	return 0;
 
-/* OK, this is not exactly good programming practice, usually. But it is
-   very code-efficient in this case. */
-
-      exit_free:
+ exit_free:
 	kfree(data);
-      exit:
-	printk(KERN_INFO "AD5252 attaching failed\n");
+ exit:
+	pr_err("attaching failed\n");
 	return err;
 }
 
@@ -219,25 +206,28 @@ static int ad5252_detach_client(struct i2c_client *client)
 	return 0;
 }
 
-/* Called when we have found a new AD5252. */
+/* Called when we have found a new AD5252 */
 static void ad5252_init_client(struct i2c_client *client)
 {
-	//struct ad5252_data *data = i2c_get_clientdata(client);
-	//data->write = AD5252_INIT;
-	//i2c_smbus_write_byte_data(client,0x1, data->write);
-	//i2c_smbus_write_byte_data(client,0x3, data->write);
+#if 0 /* probe isn't reliable */
+	struct ad5252_data *data = i2c_get_clientdata(client);
+	data->write = AD5252_INIT;
+	i2c_smbus_write_byte_data(client, 0x1, data->write);
+	i2c_smbus_write_byte_data(client, 0x3, data->write);
+#endif
 }
 
 static int __init ad5252_init(void)
 {
 	return i2c_add_driver(&ad5252_driver);
 }
+module_init(ad5252_init);
 
 static void __exit ad5252_exit(void)
 {
 	i2c_del_driver(&ad5252_driver);
 }
-
+module_exit(ad5252_exit);
 
 MODULE_AUTHOR
     ("Michael Hennerich <hennerich@blackfin.uclinux.org>, "
@@ -247,6 +237,3 @@ MODULE_AUTHOR
      "and Aurelien Jarno <aurelien@aurel32.net>");
 MODULE_DESCRIPTION("AD5252 digital potentiometer driver");
 MODULE_LICENSE("GPL");
-
-module_init(ad5252_init);
-module_exit(ad5252_exit);
