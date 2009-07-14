@@ -337,13 +337,7 @@ unsigned int mmc_align_data_size(struct mmc_card *card, unsigned int sz)
 	 * the core about its problems yet, so for now we just 32-bit
 	 * align the size.
 	 */
-
-	/* Align size for host which only supports power-of-2 block */
-	if (card->host->powerof2_block) {
-		if (sz & (sz - 1))
-			sz = 1 << fls(sz);
-	} else
-		sz = ((sz + 3) / 4) * 4;
+	sz = ((sz + 3) / 4) * 4;
 
 	return sz;
 }
