@@ -609,6 +609,22 @@ static void put_nommu_region(struct vm_region *region)
 }
 
 /*
+ * update protection on a vma
+ */
+static void protect_vma(struct vm_area_struct *vma, unsigned long flags)
+{
+#ifdef CONFIG_MPU
+	struct mm_struct *mm = vma->vm_mm;
+	long start = vma->vm_start & PAGE_MASK;
+	while (start < vma->vm_end) {
+		protect_page(mm, start, flags);
+		start += PAGE_SIZE;
+	}
+	update_protections(mm);
+#endif
+}
+
+/*
  * add a VMA into a process's mm_struct in the appropriate place in the list
  * and tree and add to the address space's page tree also if not an anonymous
  * page
@@ -619,25 +635,15 @@ static void add_vma_to_mm(struct mm_struct *mm, struct vm_area_struct *vma)
 	struct vm_area_struct *pvma, **pp;
 	struct address_space *mapping;
 	struct rb_node **p, *parent;
-#ifdef CONFIG_MPU
-	long start;
-#endif
 
 	kenter(",%p", vma);
 
 	BUG_ON(!vma->vm_region);
 
-#ifdef CONFIG_MPU
-	start = vma->vm_start & PAGE_MASK;
-	while (start < vma->vm_end) {
-		protect_page(mm, start, vma->vm_flags);
-		start += PAGE_SIZE;
-	}
-	update_protections(mm);
-#endif
-
 	mm->map_count++;
 	vma->vm_mm = mm;
+
+	protect_vma(vma, vma->vm_flags);
 
 	/* add the VMA to the mapping */
 	if (vma->vm_file) {
@@ -698,20 +704,10 @@ static void delete_vma_from_mm(struct vm_area_struct *vma)
 	struct vm_area_struct **pp;
 	struct address_space *mapping;
 	struct mm_struct *mm = vma->vm_mm;
-#ifdef CONFIG_MPU
-	long start;
-#endif
 
 	kenter("%p", vma);
 
-#ifdef CONFIG_MPU
-	start = vma->vm_start & PAGE_MASK;
-	while (start < vma->vm_end) {
-		protect_page(mm, start, 0);
-		start += PAGE_SIZE;
-	}
-	update_protections(mm);
-#endif
+	protect_vma(vma, 0);
 
 	mm->map_count--;
 	if (mm->mmap_cache == vma)
