@@ -1,7 +1,7 @@
 /*
  * I2C Based AD7142 Joystick Input Device Driver
  *
- * Copyright 2005-2008 Analog Devices Inc.
+ * Copyright 2005-2009 Analog Devices Inc.
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
@@ -119,7 +119,7 @@ static irqreturn_t ad7142_interrupt(int irq, void *_data)
 }
 
 static int ad7142_i2c_write(struct i2c_client *client, unsigned short offset,
-			const unsigned short *data, unsigned int len)
+			    const unsigned short *data, unsigned int len)
 {
 	int ret = -1;
 	int i;
@@ -149,7 +149,7 @@ static int ad7142_i2c_write(struct i2c_client *client, unsigned short offset,
 }
 
 static int ad7142_i2c_read(struct i2c_client *client, unsigned short offset,
-		unsigned short *data, unsigned int len)
+			   unsigned short *data, unsigned int len)
 {
 	int ret = -1;
 	int i;
@@ -200,19 +200,16 @@ static void ad7142_work(struct work_struct *work)
 	temp = irqno_low ^ data->old_status_low;
 	switch (temp) {
 	case 0x0001:
-		input_report_key(input, BTN_BASE, (irqno_low & 0x0001));
+		input_report_key(input, BTN_BASE, irqno_low & 0x1);
 		break;
 	case 0x0002:
-		input_report_key(input, BTN_BASE4,
-					((irqno_low & 0x0002) >> 1));
+		input_report_key(input, BTN_BASE4, (irqno_low & 0x2) >> 1);
 		break;
 	case 0x0004:
-		input_report_key(input, KEY_UP,
-					((irqno_low & 0x0004) >> 2));
+		input_report_key(input, KEY_UP, (irqno_low & 0x4) >> 2);
 		break;
 	case 0x0008:
-		input_report_key(input, KEY_RIGHT,
-					((irqno_low & 0x0008) >> 3));
+		input_report_key(input, KEY_RIGHT, (irqno_low & 0x8) >> 3);
 		break;
 	}
 	data->old_status_low = irqno_low;
@@ -221,19 +218,16 @@ static void ad7142_work(struct work_struct *work)
 	temp = irqno_high ^ data->old_status_high;
 	switch (temp) {
 	case 0x0001:
-		input_report_key(input, BTN_BASE2, irqno_high & 0x0001);
+		input_report_key(input, BTN_BASE2, irqno_high & 0x1);
 		break;
 	case 0x0002:
-		input_report_key(input, BTN_BASE3,
-					((irqno_high & 0x0002) >> 1));
+		input_report_key(input, BTN_BASE3, (irqno_high & 0x2) >> 1);
 		break;
 	case 0x0004:
-		input_report_key(input, KEY_DOWN,
-					((irqno_high & 0x0004) >> 2));
+		input_report_key(input, KEY_DOWN, (irqno_high & 0x4) >> 2);
 		break;
 	case 0x0008:
-		input_report_key(input, KEY_LEFT,
-					((irqno_high & 0x0008) >> 3));
+		input_report_key(input, KEY_LEFT, (irqno_high & 0x8) >> 3);
 		break;
 	}
 	data->old_status_high = irqno_high;
@@ -326,8 +320,8 @@ static void ad7142_close(struct input_dev *dev)
 	ad7142_i2c_write(client, PWRCONVCTL, &value, 1);
 }
 
-static int ad7142_probe(struct i2c_client *client,
-					const struct i2c_device_id *id)
+static int __devinit ad7142_probe(struct i2c_client *client,
+				  const struct i2c_device_id *id)
 {
 	struct ad7142_data *data;
 	struct input_dev *input;
@@ -344,7 +338,7 @@ static int ad7142_probe(struct i2c_client *client,
 		return -EINVAL;
 	}
 
-	data = kzalloc(sizeof(struct ad7142_data), GFP_KERNEL);
+	data = kzalloc(sizeof(*data), GFP_KERNEL);
 	if (!data)
 		return -ENOMEM;
 	data->client = client;
@@ -353,18 +347,6 @@ static int ad7142_probe(struct i2c_client *client,
 
 	/* Start workqueue for defer message transfer */
 	INIT_WORK(&data->work, ad7142_work);
-
-	if (client->irq > 0) {
-		rc = request_irq(client->irq, ad7142_interrupt,
-				IRQF_TRIGGER_LOW, "ad7142_joystick", data);
-		if (rc) {
-			dev_err(&client->dev, "Can't allocate irq %d\n",
-				client->irq);
-			goto fail_irq;
-		}
-		disable_irq_nosync(client->irq);
-	} else
-		dev_warn(&client->dev, "IRQ not configured!\n");
 
 	dev_info(&client->dev, "is attached at 0x%02x\n", client->addr);
 
@@ -405,20 +387,32 @@ static int ad7142_probe(struct i2c_client *client,
 		goto fail_register;
 	}
 
+	if (client->irq > 0) {
+		rc = request_irq(client->irq, ad7142_interrupt,
+				IRQF_TRIGGER_LOW, "ad7142_joystick", data);
+		if (rc) {
+			dev_err(&client->dev, "Can't allocate irq %d\n",
+				client->irq);
+			goto fail_irq;
+		}
+		disable_irq(client->irq);
+	} else
+		dev_warn(&client->dev, "IRQ not configured!\n");
+
 	return 0;
 
-fail_register:
+ fail_irq:
+	input_unregister_device(input);
+ fail_register:
 	input_set_drvdata(input, NULL);
 	input_free_device(input);
-fail_allocate:
-	free_irq(client->irq, data);
-fail_irq:
+ fail_allocate:
 	i2c_set_clientdata(client, NULL);
 	kfree(data);
 	return rc;
 }
 
-static int __exit ad7142_remove(struct i2c_client *client)
+static int __devexit ad7142_remove(struct i2c_client *client)
 {
 	struct ad7142_data *data = i2c_get_clientdata(client);
 
@@ -447,7 +441,7 @@ static struct i2c_driver ad7142_driver = {
 		.name = "ad7142_joystick",
 	},
 	.probe = ad7142_probe,
-	.remove = __exit_p(ad7142_remove),
+	.remove = __devexit_p(ad7142_remove),
 	.id_table = ad7142_id,
 };
 
@@ -455,12 +449,10 @@ static int __init ad7142_init(void)
 {
 	return i2c_add_driver(&ad7142_driver);
 }
+module_init(ad7142_init);
 
 static void __exit ad7142_exit(void)
 {
 	i2c_del_driver(&ad7142_driver);
 }
-
-module_init(ad7142_init);
 module_exit(ad7142_exit);
-
