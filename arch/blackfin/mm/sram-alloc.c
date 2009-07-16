@@ -387,6 +387,7 @@ static int _sram_free(const void *addr,
 
 int sram_free(const void *addr)
 {
+
 #if L1_CODE_LENGTH != 0
 	if (addr >= (void *)get_l1_code_start()
 		 && addr < (void *)(get_l1_code_start() + L1_CODE_LENGTH))
