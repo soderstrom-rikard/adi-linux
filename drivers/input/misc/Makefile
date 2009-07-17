@@ -26,3 +26,4 @@ obj-$(CONFIG_INPUT_UINPUT)		+= uinput.o
 obj-$(CONFIG_INPUT_WISTRON_BTNS)	+= wistron_btns.o
 obj-$(CONFIG_INPUT_YEALINK)		+= yealink.o
 obj-$(CONFIG_INPUT_ADXL34X)		+= adxl34x.o
+obj-$(CONFIG_INPUT_AD7142)              += ad7142.o

@@ -13,10 +13,10 @@
 #include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
-#include <linux/workqueue.h>
+#include <linux/irq.h>
 
-MODULE_AUTHOR("Bryan Wu <cooloney@kernel.org>");
-MODULE_DESCRIPTION("Driver for AD7142 Joysticks");
+MODULE_AUTHOR("Bryan Wu <cooloney@kernel.org>, Barry Song <Barry.Song@analog.com>");
+MODULE_DESCRIPTION("Driver for AD7142 Cap Touch Sensor");
 MODULE_LICENSE("GPL");
 
 #define AD7142_I2C_ID		0xE620
@@ -100,7 +100,6 @@ struct ad7142_data {
 	struct input_dev *input;
 	struct i2c_client *client;
 
-	struct work_struct work;
 	int is_open;
 
 	unsigned short old_status_low;
@@ -112,8 +111,9 @@ static irqreturn_t ad7142_interrupt(int irq, void *_data)
 	struct ad7142_data *data = _data;
 
 	disable_irq_nosync(irq);
+
 	if (data->is_open)
-		schedule_work(&data->work);
+		return IRQ_WAKE_THREAD;
 
 	return IRQ_HANDLED;
 }
@@ -186,15 +186,14 @@ static int ad7142_i2c_read(struct i2c_client *client, unsigned short offset,
 	return ret;
 }
 
-static void ad7142_work(struct work_struct *work)
+static irqreturn_t ad7142_interrupt_thread(int irq, void *_data)
 {
-	struct ad7142_data *data = container_of(work,
-						struct ad7142_data,
-						work);
+	struct ad7142_data *data = _data;
 	struct i2c_client *client = data->client;
 	struct input_dev *input = data->input;
 	unsigned short irqno_low, irqno_high;
 	unsigned short temp;
+	struct irq_desc *desc = irq_to_desc(irq);
 
 	ad7142_i2c_read(client, INTSTAT_REG0, &irqno_low, 1);
 	temp = irqno_low ^ data->old_status_low;
@@ -234,7 +233,9 @@ static void ad7142_work(struct work_struct *work)
 
 	input_sync(input);
 
-	enable_irq(client->irq);
+	enable_irq(irq);
+
+	return IRQ_HANDLED;
 }
 
 static int ad7142_open(struct input_dev *dev)
@@ -345,9 +346,6 @@ static int __devinit ad7142_probe(struct i2c_client *client,
 
 	i2c_set_clientdata(client, data);
 
-	/* Start workqueue for defer message transfer */
-	INIT_WORK(&data->work, ad7142_work);
-
 	dev_info(&client->dev, "is attached at 0x%02x\n", client->addr);
 
 	/* Allocate and register AD7142 input device */
@@ -371,7 +369,7 @@ static int __devinit ad7142_probe(struct i2c_client *client,
 						BIT_MASK(KEY_LEFT) |
 						BIT_MASK(KEY_RIGHT);
 
-	input->name = "ad7142 joystick";
+	input->name = "ad7142 captouch";
 	input->phys = "ad7142/input0";
 	input->id.bustype = BUS_I2C;
 	input->id.vendor = 0x0001;
@@ -388,11 +386,11 @@ static int __devinit ad7142_probe(struct i2c_client *client,
 	}
 
 	if (client->irq > 0) {
-		rc = request_irq(client->irq, ad7142_interrupt,
-				IRQF_TRIGGER_LOW, "ad7142_joystick", data);
+		rc = request_threaded_irq(client->irq, ad7142_interrupt, ad7142_interrupt_thread,
+				IRQF_TRIGGER_LOW, "ad7142_captouch", data);
 		if (rc) {
 			dev_err(&client->dev, "Can't allocate irq %d\n",
-				client->irq);
+					client->irq);
 			goto fail_irq;
 		}
 		disable_irq(client->irq);
@@ -412,14 +410,12 @@ static int __devinit ad7142_probe(struct i2c_client *client,
 	return rc;
 }
 
-static int __devexit ad7142_remove(struct i2c_client *client)
+static int __exit ad7142_remove(struct i2c_client *client)
 {
 	struct ad7142_data *data = i2c_get_clientdata(client);
 
 	if (client->irq > 0)
 		free_irq(client->irq, data);
-
-	flush_scheduled_work();
 
 	input_set_drvdata(data->input, NULL);
 	input_unregister_device(data->input);
@@ -431,17 +427,45 @@ static int __devexit ad7142_remove(struct i2c_client *client)
 }
 
 static const struct i2c_device_id ad7142_id[] = {
-	{ "ad7142_joystick", 0 },
+	{ "ad7142_captouch", 0 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, ad7142_id);
 
+#ifdef CONFIG_PM
+static int ad7142_suspend(struct i2c_client *client, pm_message_t mesg)
+{
+	/*
+	 * Turn AD7142 to full shutdown mode
+	 * No CDC conversions
+	 */
+	unsigned short value = 0x0001;
+	ad7142_i2c_write(client, PWRCONVCTL, &value, 1);
+
+	return 0;
+}
+
+static int ad7142_resume(struct i2c_client *client)
+{
+	/* In full power mode */
+	unsigned short value = 0x00B0;
+	ad7142_i2c_write(client, PWRCONVCTL, &value, 1);
+
+	return 0;
+}
+#else
+#define ad7142_suspend NULL
+#define ad7142_resume  NULL
+#endif
+
 static struct i2c_driver ad7142_driver = {
 	.driver = {
-		.name = "ad7142_joystick",
+		.name = "ad7142_captouch",
 	},
 	.probe = ad7142_probe,
-	.remove = __devexit_p(ad7142_remove),
+	.remove = __exit_p(ad7142_remove),
+	.suspend  = ad7142_suspend,
+	.resume   = ad7142_resume,
 	.id_table = ad7142_id,
 };
 
@@ -456,3 +480,4 @@ static void __exit ad7142_exit(void)
 	i2c_del_driver(&ad7142_driver);
 }
 module_exit(ad7142_exit);
+
