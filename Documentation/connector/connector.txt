@@ -5,7 +5,7 @@ Kernel Connector.
 Kernel connector - new netlink based userspace <-> kernel space easy
 to use communication module.
 
-The Connector driver adds makes it easy to connect various agents using a
+The Connector driver makes it easy to connect various agents using a
 netlink based network.  One must register a callback and an identifier.
 When the driver receives a special netlink message with the appropriate
 identifier, the appropriate callback will be called.
