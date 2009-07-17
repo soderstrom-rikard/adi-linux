@@ -43,7 +43,20 @@
 #define SPORT_GET_TFSDIV(sport)		bfin_read16(((sport)->port.membase + OFFSET_TFSDIV))
 #define SPORT_GET_TX(sport)		bfin_read16(((sport)->port.membase + OFFSET_TX))
 #define SPORT_GET_RX(sport)		bfin_read16(((sport)->port.membase + OFFSET_RX))
-#define SPORT_GET_RX32(sport)		bfin_read32(((sport)->port.membase + OFFSET_RX))
+/*
+ * Disable local interrupt to walk around the fake RX underflow error
+ * when do 32-bit reading from RX fifois interrupted by other interrupt.
+ * This is a possible hardware anomaly. After it is logged officially,
+ * the official anomaly id should be listed bellow.
+ */
+#define SPORT_GET_RX32(sport)	\
+({				\
+	unsigned int __ret;		\
+	local_irq_disable();	\
+	__ret = bfin_read32(((sport)->port.membase + OFFSET_RX));	\
+	local_irq_enable();	\
+	__ret;			\
+})
 #define SPORT_GET_RCR1(sport)		bfin_read16(((sport)->port.membase + OFFSET_RCR1))
 #define SPORT_GET_RCR2(sport)		bfin_read16(((sport)->port.membase + OFFSET_RCR2))
 #define SPORT_GET_RCLKDIV(sport)	bfin_read16(((sport)->port.membase + OFFSET_RCLKDIV))

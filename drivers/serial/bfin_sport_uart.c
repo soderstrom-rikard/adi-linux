@@ -419,7 +419,6 @@ static void sport_set_termios(struct uart_port *port,
 
 	switch (termios->c_cflag & CSIZE) {
 	case CS8:
-		pr_warning("use of 8bit mode often results in sport RX underflows\n");
 		up->csize = 8;
 		break;
 	case CS7:
@@ -437,8 +436,6 @@ static void sport_set_termios(struct uart_port *port,
 
 	if (termios->c_cflag & CSTOPB) {
 		up->stopb = 1;
-		if (up->csize == 8)
-			pr_warning("2 stop bits and 7/8bit mode often results in sport RX underflows\n");
 	}
 	if (termios->c_cflag & PARENB) {
 		pr_warning("PAREN bits is not supported yet\n");
