@@ -71,8 +71,6 @@ static inline void delayed_insw(unsigned int addr, void *buf, int len)
 
 #else
 
-#warning No platform specific options defined, using defaults
-
 #define MAX_ROOT_PORTS		2
 
 #define USE_32BIT		0

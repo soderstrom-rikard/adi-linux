@@ -206,11 +206,11 @@ static int claim_ptd_buffers(struct isp1362_ep_queue *epq,
 	BUG_ON(ep->num_ptds != 0);
 
 	for (index = 0; index <= epq->buf_count - num_ptds; index++) {
-		if (__test_bit(index, &epq->buf_map))
+		if (test_bit(index, &epq->buf_map))
 			continue;
 		found = index;
 		for (last = index + 1; last < index + num_ptds; last++) {
-			if (__test_bit(last, &epq->buf_map)) {
+			if (test_bit(last, &epq->buf_map)) {
 				found = -1;
 				break;
 			}
@@ -2280,10 +2280,10 @@ static int isp1362_mem_config(struct usb_hcd *hcd)
 	dev_info(hcd->self.controller, "ISP1362 Memory usage:\n");
 	dev_info(hcd->self.controller, "  ISTL:    2 * %4d:     %4d @ $%04x:$%04x\n",
 		 istl_size / 2, istl_size, 0, istl_size / 2);
-	dev_info(hcd->self.controller, "  INTL: %4d * (%3ld+8):  %4d @ $%04x\n",
+	dev_info(hcd->self.controller, "  INTL: %4d * (%3u+8):  %4d @ $%04x\n",
 		 ISP1362_INTL_BUFFERS, intl_blksize - PTD_HEADER_SIZE,
 		 intl_size, istl_size);
-	dev_info(hcd->self.controller, "  ATL : %4d * (%3ld+8):  %4d @ $%04x\n",
+	dev_info(hcd->self.controller, "  ATL : %4d * (%3u+8):  %4d @ $%04x\n",
 		 atl_buffers, atl_blksize - PTD_HEADER_SIZE,
 		 atl_size, istl_size + intl_size);
 	dev_info(hcd->self.controller, "  USED/FREE:   %4d      %4d\n", total,
