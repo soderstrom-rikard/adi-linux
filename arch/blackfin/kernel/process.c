@@ -409,6 +409,8 @@ __attribute__((l1_text))
 /* Return 1 if access to memory range is OK, 0 otherwise */
 int _access_ok(unsigned long addr, unsigned long size)
 {
+	if (size == 0)
+		return 1;
 	/* Check that things do not wrap around */
 	if (addr > ULONG_MAX - size)
 		return 0;
