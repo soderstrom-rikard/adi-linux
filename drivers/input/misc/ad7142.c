@@ -20,7 +20,6 @@ MODULE_DESCRIPTION("Driver for AD7142 Cap Touch Sensor");
 MODULE_LICENSE("GPL");
 
 #define AD7142_I2C_ID		0xE620
-#define AD7147_I2C_ID		0x1470
 
 /*
  * Ram map - these registers are defined as we go along
@@ -110,8 +109,6 @@ static irqreturn_t ad7142_interrupt(int irq, void *_data)
 {
 	struct ad7142_data *data = _data;
 
-	disable_irq_nosync(irq);
-
 	if (data->is_open)
 		return IRQ_WAKE_THREAD;
 
@@ -193,7 +190,6 @@ static irqreturn_t ad7142_interrupt_thread(int irq, void *_data)
 	struct input_dev *input = data->input;
 	unsigned short irqno_low, irqno_high;
 	unsigned short temp;
-	struct irq_desc *desc = irq_to_desc(irq);
 
 	ad7142_i2c_read(client, INTSTAT_REG0, &irqno_low, 1);
 	temp = irqno_low ^ data->old_status_low;
@@ -233,8 +229,6 @@ static irqreturn_t ad7142_interrupt_thread(int irq, void *_data)
 
 	input_sync(input);
 
-	enable_irq(irq);
-
 	return IRQ_HANDLED;
 }
 
@@ -246,15 +240,9 @@ static int ad7142_open(struct input_dev *dev)
 
 	ad7142_i2c_read(client, DEVID, &id, 1);
 
-	switch (id & 0xFFF0) {
-	case AD7147_I2C_ID:
-		dev_info(&client->dev, "Open AD7147 Rev 0.%d\n", id & 0xF);
-		dev_warn(&client->dev, "AD7147 only partially supported");
-		break;
-	case AD7142_I2C_ID:
+	if ((id & 0xFFF0) == AD7142_I2C_ID)
 		dev_info(&client->dev, "Open AD7142 Rev 0.%d\n", id & 0xF);
-		break;
-	default:
+	else {
 		dev_err(&client->dev, "Open AD7142 error\n");
 		return -ENODEV;
 	}
@@ -310,8 +298,6 @@ static void ad7142_close(struct input_dev *dev)
 
 	disable_irq(client->irq);
 	data->is_open = 0;
-
-	flush_scheduled_work();
 
 	/*
 	 * Turn AD7142 to full shutdown mode
@@ -387,7 +373,7 @@ static int __devinit ad7142_probe(struct i2c_client *client,
 
 	if (client->irq > 0) {
 		rc = request_threaded_irq(client->irq, ad7142_interrupt, ad7142_interrupt_thread,
-				IRQF_TRIGGER_LOW, "ad7142_captouch", data);
+				IRQF_TRIGGER_FALLING, "ad7142_captouch", data);
 		if (rc) {
 			dev_err(&client->dev, "Can't allocate irq %d\n",
 					client->irq);
