@@ -410,7 +410,7 @@ static int __devinit ad7142_probe(struct i2c_client *client,
 	return rc;
 }
 
-static int __exit ad7142_remove(struct i2c_client *client)
+static int __devexit ad7142_remove(struct i2c_client *client)
 {
 	struct ad7142_data *data = i2c_get_clientdata(client);
 
@@ -463,7 +463,7 @@ static struct i2c_driver ad7142_driver = {
 		.name = "ad7142_captouch",
 	},
 	.probe = ad7142_probe,
-	.remove = __exit_p(ad7142_remove),
+	.remove = __devexit_p(ad7142_remove),
 	.suspend  = ad7142_suspend,
 	.resume   = ad7142_resume,
 	.id_table = ad7142_id,
@@ -480,4 +480,3 @@ static void __exit ad7142_exit(void)
 	i2c_del_driver(&ad7142_driver);
 }
 module_exit(ad7142_exit);
-
