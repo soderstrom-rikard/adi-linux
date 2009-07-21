@@ -259,13 +259,15 @@ static int bf5xx_i2s_resume(struct snd_soc_dai *dai)
 	if (!dai->active)
 		return 0;
 
-	ret = sport_config_rx(sport, RFSR | RCKFE, RSFSE|0x1f, 0, 0);
+	ret = sport_config_rx(sport, bf5xx_i2s.rcr1,
+				      bf5xx_i2s.rcr2, 0, 0);
 	if (ret) {
 		pr_err("SPORT is busy!\n");
 		return -EBUSY;
 	}
 
-	ret = sport_config_tx(sport, TFSR | TCKFE, TSFSE|0x1f, 0, 0);
+	ret = sport_config_tx(sport, bf5xx_i2s.tcr1,
+				      bf5xx_i2s.tcr2, 0, 0);
 	if (ret) {
 		pr_err("SPORT is busy!\n");
 		return -EBUSY;
