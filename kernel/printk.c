@@ -1309,18 +1309,15 @@ EXPORT_SYMBOL(unregister_console);
 static int __init disable_boot_consoles(void)
 {
 	struct console *con;
-	int ret = 0;
 
 	for_each_console(con) {
 		if (con->flags & CON_BOOT) {
 			printk(KERN_INFO "turn off boot console %s%d\n",
 				con->name, con->index);
-			ret = unregister_console(con);
-			if (ret)
-				break;
+			unregister_console(con);
 		}
 	}
-	return ret;
+	return 0;
 }
 late_initcall(disable_boot_consoles);
 
