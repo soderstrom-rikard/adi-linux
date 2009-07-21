@@ -503,7 +503,8 @@ static irqreturn_t bluecard_interrupt(int irq, void *dev_inst)
 	unsigned int iobase;
 	unsigned char reg;
 
-	BUG_ON(!info->hdev);
+	if (!info->hdev)
+		return IRQ_NONE;
 
 	if (!test_bit(CARD_READY, &(info->hw_state)))
 		return IRQ_HANDLED;
