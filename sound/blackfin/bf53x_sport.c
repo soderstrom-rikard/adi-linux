@@ -767,13 +767,13 @@ static irqreturn_t err_handler(int irq, void *dev_id)
 		}
 	}
 	status = sport->regs->stat;
-	if (status & (TOVF|TUVF|ROVF|RUVF))
+	if (status & (TOVF|TUVF|ROVF|RUVF)) {
 		sport->regs->stat = (status & (TOVF|TUVF|ROVF|RUVF));
-	SSYNC();
+		SSYNC();
 
-	if (sport->err_callback)
-		sport->err_callback(sport->data);
-
+		if (sport->err_callback)
+			sport->err_callback(sport->data);
+	}
 	return IRQ_HANDLED;
 }
 
