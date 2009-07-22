@@ -153,6 +153,7 @@ int main(void)
 	DEFINE(PDA_ICPLB, offsetof(struct blackfin_pda, icplb_fault_addr));
 	DEFINE(PDA_RETX, offsetof(struct blackfin_pda, retx));
 	DEFINE(PDA_SEQSTAT, offsetof(struct blackfin_pda, seqstat));
+	DEFINE(PDA_SEQSTAT_L5, offsetof(struct blackfin_pda, seqstat_l5));
 #ifdef CONFIG_SMP
 	/* Inter-core lock (in L2 SRAM) */
 	DEFINE(SIZEOF_CORELOCK, sizeof(struct corelock_slot));
