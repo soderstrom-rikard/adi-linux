@@ -41,7 +41,7 @@
 #define DRIVER_NAME			"ad5258"
 #define DRIVER_VERSION			"0.1"
 
-#define AD5258_RDAC_MASK		(0x3f)		/* 6-bit */
+#define AD5258_RDAC_MASK		(0x3F)		/* 6-bit */
 
 /* RDAC-to-EEPROM Interface Commands */
 #define AD5258_I2C_RDAC			(0x00 << 5)
@@ -58,6 +58,15 @@
 static s32 ad5258_read(struct i2c_client *client, u8 reg);
 static s32 ad5258_write(struct i2c_client *client, u8 reg, u8 value);
 
+/*
+ * Client data (each client gets its own)
+ */
+
+struct dpot_data {
+	struct mutex update_lock;
+};
+
+
 /* ------------------------------------------------------------------------- */
 
 /* sysfs functions */
@@ -67,9 +76,13 @@ static ssize_t show_rdac(struct device *dev,
 				char *buf)
 {
 	struct i2c_client *client = to_i2c_client(dev);
+	struct dpot_data *data = i2c_get_clientdata(client);
 	s32 value;
 
+	mutex_lock(&data->update_lock);
 	value = ad5258_read(client, AD5258_I2C_RDAC | AD5258_REG_RDAC);
+	mutex_unlock(&data->update_lock);
+
 	if (value < 0)
 		return -EINVAL;
 
@@ -82,6 +95,7 @@ static ssize_t set_rdac(struct device *dev,
 				size_t count)
 {
 	struct i2c_client *client = to_i2c_client(dev);
+	struct dpot_data *data = i2c_get_clientdata(client);
 	unsigned long value;
 	int err;
 
@@ -89,9 +103,13 @@ static ssize_t set_rdac(struct device *dev,
 	if (err)
 		return err;
 
-	value &= AD5258_RDAC_MASK;
+	if (value > AD5258_RDAC_MASK)
+		value = AD5258_RDAC_MASK;
 
+	mutex_lock(&data->update_lock);
 	ad5258_write(client, AD5258_I2C_RDAC | AD5258_REG_RDAC, value);
+	mutex_unlock(&data->update_lock);
+
 	return count;
 }
 
@@ -102,9 +120,13 @@ static ssize_t show_eeprom(struct device *dev,
 				char *buf)
 {
 	struct i2c_client *client = to_i2c_client(dev);
+	struct dpot_data *data = i2c_get_clientdata(client);
 	s32 value;
 
+	mutex_lock(&data->update_lock);
 	value = ad5258_read(client, AD5258_I2C_EEPROM | AD5258_REG_RDAC);
+	mutex_unlock(&data->update_lock);
+
 	if (value < 0)
 		return -EINVAL;
 
@@ -117,6 +139,7 @@ static ssize_t set_eeprom(struct device *dev,
 				size_t count)
 {
 	struct i2c_client *client = to_i2c_client(dev);
+	struct dpot_data *data = i2c_get_clientdata(client);
 	unsigned long value;
 	int err;
 
@@ -124,10 +147,13 @@ static ssize_t set_eeprom(struct device *dev,
 	if (err)
 		return err;
 
-	value &= AD5258_RDAC_MASK;
+	if (value > AD5258_RDAC_MASK)
+		value = AD5258_RDAC_MASK;
 
+	mutex_lock(&data->update_lock);
 	ad5258_write(client, AD5258_I2C_EEPROM | AD5258_REG_RDAC, value);
 	msleep(26); /* Sleep while the EEPROM updates */
+	mutex_unlock(&data->update_lock);
 
 	return count;
 }
@@ -139,9 +165,13 @@ static ssize_t show_tolerance(struct device *dev,
 				char *buf)
 {
 	struct i2c_client *client = to_i2c_client(dev);
+	struct dpot_data *data = i2c_get_clientdata(client);
 	s32 value;
 
+	mutex_lock(&data->update_lock);
 	value = ad5258_read(client, AD5258_I2C_EEPROM | AD5258_REG_TOLERANCE);
+	mutex_unlock(&data->update_lock);
+
 	if (value < 0)
 		return 0;
 
@@ -215,6 +245,7 @@ static int ad5258_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
 	struct device *dev = &client->dev;
+	struct dpot_data *data;
 	int err = 0;
 
 	dev_dbg(dev, "%s\n", __func__);
@@ -224,8 +255,16 @@ static int ad5258_probe(struct i2c_client *client,
 		goto exit;
 	}
 
+	data = kzalloc(sizeof(struct dpot_data), GFP_KERNEL);
+	if (!data) {
+		err = -ENOMEM;
+		goto exit;
+	}
+
+	i2c_set_clientdata(client, data);
+	mutex_init(&data->update_lock);
+
 	/* Register sysfs hooks */
-	err = 0;
 	err |= device_create_file(dev, &dev_attr_rdac);
 	err |= device_create_file(dev, &dev_attr_eeprom);
 	err |= device_create_file(dev, &dev_attr_tolerance);
@@ -243,6 +282,16 @@ exit:
 
 static int __devexit ad5258_remove(struct i2c_client *client)
 {
+	struct dpot_data *data = i2c_get_clientdata(client);
+	struct device *dev = &client->dev;
+
+	device_remove_file(dev, &dev_attr_rdac);
+	device_remove_file(dev, &dev_attr_eeprom);
+	device_remove_file(dev, &dev_attr_tolerance);
+
+	i2c_set_clientdata(client, NULL);
+	kfree(data);
+
 	return 0;
 }
 
@@ -268,10 +317,14 @@ static int __init ad5258_init(void)
 	return i2c_add_driver(&ad5258_driver);
 }
 
+module_init(ad5258_init);
+
 static void __exit ad5258_exit(void)
 {
 	i2c_del_driver(&ad5258_driver);
 }
+
+module_exit(ad5258_exit);
 
 MODULE_AUTHOR(
 	"Chris Verges <chrisv@cyberswitching.com>, "
@@ -283,6 +336,3 @@ MODULE_AUTHOR(
 MODULE_DESCRIPTION("AD5258 digital potentiometer driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(DRIVER_VERSION);
-
-module_init(ad5258_init);
-module_exit(ad5258_exit);
