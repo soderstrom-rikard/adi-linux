@@ -64,6 +64,16 @@ config SENSORS_AD5252
 	  If you say yes here you get support for Analog Devices and AD5252
 	  AD5251 chips.
 
+config SENSORS_AD5258
+	tristate "Analog Devices AD5258 Digital Potentiometer"
+	depends on I2C && EXPERIMENTAL
+	help
+	  If you say yes here, you get support for the Analog Devices
+	  AD5258 digital potentiometer chip.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called ad5258.
+
 config SENSORS_AD7414
 	tristate "Analog Devices AD7414"
 	depends on I2C && EXPERIMENTAL
