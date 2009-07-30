@@ -1,5 +1,5 @@
 /*
- * Driver for the Analog Devices AD5258 single-channel digital
+ * Driver for the Analog Devices AD5258/9 single-channel digital
  * potentiometer.
  *
  * Copyright (c) 2009 Cyber Switching, Inc.
@@ -41,7 +41,13 @@
 #define DRIVER_NAME			"ad5258"
 #define DRIVER_VERSION			"0.1"
 
-#define AD5258_RDAC_MASK		(0x3F)		/* 6-bit */
+enum dpot_devid {
+	AD5258_ID,
+	AD5259_ID,
+};
+
+#define AD5258_MAX_POSITION		64
+#define AD5259_MAX_POSITION		256
 
 /* RDAC-to-EEPROM Interface Commands */
 #define AD5258_I2C_RDAC			(0x00 << 5)
@@ -64,6 +70,7 @@ static s32 ad5258_write(struct i2c_client *client, u8 reg, u8 value);
 
 struct dpot_data {
 	struct mutex update_lock;
+	unsigned rdac_mask;
 };
 
 
@@ -86,7 +93,7 @@ static ssize_t show_rdac(struct device *dev,
 	if (value < 0)
 		return -EINVAL;
 
-	return sprintf(buf, "%u\n", value & AD5258_RDAC_MASK);
+	return sprintf(buf, "%u\n", value & data->rdac_mask);
 }
 
 static ssize_t set_rdac(struct device *dev,
@@ -103,8 +110,8 @@ static ssize_t set_rdac(struct device *dev,
 	if (err)
 		return err;
 
-	if (value > AD5258_RDAC_MASK)
-		value = AD5258_RDAC_MASK;
+	if (value > data->rdac_mask)
+		value = data->rdac_mask;
 
 	mutex_lock(&data->update_lock);
 	ad5258_write(client, AD5258_I2C_RDAC | AD5258_REG_RDAC, value);
@@ -130,7 +137,7 @@ static ssize_t show_eeprom(struct device *dev,
 	if (value < 0)
 		return -EINVAL;
 
-	return sprintf(buf, "%u\n", value & AD5258_RDAC_MASK);
+	return sprintf(buf, "%u\n", value & data->rdac_mask);
 }
 
 static ssize_t set_eeprom(struct device *dev,
@@ -147,8 +154,8 @@ static ssize_t set_eeprom(struct device *dev,
 	if (err)
 		return err;
 
-	if (value > AD5258_RDAC_MASK)
-		value = AD5258_RDAC_MASK;
+	if (value > data->rdac_mask)
+		value = data->rdac_mask;
 
 	mutex_lock(&data->update_lock);
 	ad5258_write(client, AD5258_I2C_EEPROM | AD5258_REG_RDAC, value);
@@ -264,19 +271,38 @@ static int ad5258_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, data);
 	mutex_init(&data->update_lock);
 
+	switch (id->driver_data) {
+	case AD5258_ID:
+		data->rdac_mask = AD5258_MAX_POSITION - 1;
+		break;
+	case AD5259_ID:
+		data->rdac_mask = AD5259_MAX_POSITION - 1;
+		break;
+	default:
+		err = -ENODEV;
+		goto exit_free;
+	}
+
 	/* Register sysfs hooks */
 	err |= device_create_file(dev, &dev_attr_rdac);
 	err |= device_create_file(dev, &dev_attr_eeprom);
 	err |= device_create_file(dev, &dev_attr_tolerance);
 
-	if (err)
-		dev_err(dev, "ad5258 failed to register sysfs hooks\n");
+	if (err) {
+		dev_err(dev, "failed to register sysfs hooks\n");
+		goto exit_free;
+	}
 
-	dev_info(dev, "ad5258 client created\n");
+	dev_info(dev, "%s %d-Position Digital Potentiometer registered\n",
+		id->name, data->rdac_mask + 1);
+
 	return 0;
 
+exit_free:
+	kfree(data);
+	i2c_set_clientdata(client, NULL);
 exit:
-	dev_err(dev, "failed to create ad5258 client\n");
+	dev_err(dev, "failed to create client\n");
 	return err;
 }
 
@@ -295,8 +321,9 @@ static int __devexit ad5258_remove(struct i2c_client *client)
 	return 0;
 }
 
-struct i2c_device_id ad5258_idtable[] = {
-	{ DRIVER_NAME, 0 },
+static const struct i2c_device_id ad5258_idtable[] = {
+	{ "ad5258", AD5258_ID },
+	{ "ad5259", AD5259_ID },
 	{ }
 };
 
@@ -333,6 +360,6 @@ MODULE_AUTHOR(
 	"Philip Edelbrock <phil@netroedge.com>, "
 	"Dan Eaton <dan.eaton@rocketlogix.com> "
 	"and Aurelien Jarno <aurelien@aurel32.net>");
-MODULE_DESCRIPTION("AD5258 digital potentiometer driver");
+MODULE_DESCRIPTION("AD5258/9 digital potentiometer driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(DRIVER_VERSION);
