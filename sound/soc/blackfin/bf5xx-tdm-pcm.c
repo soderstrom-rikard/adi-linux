@@ -55,7 +55,8 @@ static void bf5xx_dma_irq(void *data)
 }
 
 static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
-	.info = (SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER | SNDRV_PCM_INFO_RESUME),
+	.info = (SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_BLOCK_TRANSFER |
+		SNDRV_PCM_INFO_RESUME),
 	.formats =          SNDRV_PCM_FMTBIT_S32_LE,
 	.rates =            SNDRV_PCM_RATE_48000,
 	.channels_min =     2,
@@ -68,7 +69,7 @@ static const struct snd_pcm_hardware bf5xx_pcm_hardware = {
 };
 
 static int bf5xx_pcm_hw_params(struct snd_pcm_substream *substream,
-		struct snd_pcm_hw_params *params)
+	struct snd_pcm_hw_params *params)
 {
 	size_t size = bf5xx_pcm_hardware.buffer_bytes_max;
 	snd_pcm_lib_malloc_pages(substream, size * 4);
@@ -90,16 +91,17 @@ static int bf5xx_pcm_prepare(struct snd_pcm_substream *substream)
 	int fragsize_bytes = frames_to_bytes(runtime, runtime->period_size);
 
 	fragsize_bytes /= runtime->channels;
-	fragsize_bytes *= 8;/* inflate the fragsize to match */
+	/* inflate the fragsize to match the dma width of SPORT */
+	fragsize_bytes *= 8;
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sport_set_tx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_tx_dma(sport, runtime->dma_area,
-				runtime->periods, fragsize_bytes);
+			runtime->periods, fragsize_bytes);
 	} else {
 		sport_set_rx_callback(sport, bf5xx_dma_irq, substream);
 		sport_config_rx_dma(sport, runtime->dma_area,
-				runtime->periods, fragsize_bytes);
+			runtime->periods, fragsize_bytes);
 	}
 
 	return 0;
@@ -153,12 +155,12 @@ static snd_pcm_uframes_t bf5xx_pcm_pointer(struct snd_pcm_substream *substream)
 static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	int ret;
+	int ret = 0;
 
 	snd_soc_set_runtime_hwparams(substream, &bf5xx_pcm_hardware);
 
-	ret = snd_pcm_hw_constraint_integer(runtime, \
-			SNDRV_PCM_HW_PARAM_PERIODS);
+	ret = snd_pcm_hw_constraint_integer(runtime,
+		SNDRV_PCM_HW_PARAM_PERIODS);
 	if (ret < 0)
 		goto out;
 
@@ -166,23 +168,21 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 		runtime->private_data = sport_handle;
 	else {
 		pr_err("sport_handle is NULL\n");
-		return -1;
+		ret = -ENODEV;
 	}
-	return 0;
-
- out:
+out:
 	return ret;
 }
 
 static int bf5xx_pcm_copy(struct snd_pcm_substream *substream, int channel,
-		snd_pcm_uframes_t pos, void *buf, snd_pcm_uframes_t count)
+	snd_pcm_uframes_t pos, void *buf, snd_pcm_uframes_t count)
 {
 	unsigned int *src;
 	unsigned int *dst;
 	int i;
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		src = (unsigned int *)buf;
+		src = buf;
 		dst = (unsigned int *)substream->runtime->dma_area;
 
 		dst += pos * 8;
@@ -193,7 +193,7 @@ static int bf5xx_pcm_copy(struct snd_pcm_substream *substream, int channel,
 		}
 	} else {
 		src = (unsigned int *)substream->runtime->dma_area;
-		dst = (unsigned int *)buf;
+		dst = buf;
 
 		src += pos * 8;
 		while (count--) {
@@ -207,7 +207,7 @@ static int bf5xx_pcm_copy(struct snd_pcm_substream *substream, int channel,
 }
 
 static int bf5xx_pcm_silence(struct snd_pcm_substream *substream,
-		int channel, snd_pcm_uframes_t pos, snd_pcm_uframes_t count)
+	int channel, snd_pcm_uframes_t pos, snd_pcm_uframes_t count)
 {
 	unsigned char *buf = substream->runtime->dma_area;
 	buf += pos * 8 * 4;
@@ -218,13 +218,13 @@ static int bf5xx_pcm_silence(struct snd_pcm_substream *substream,
 
 
 struct snd_pcm_ops bf5xx_pcm_tdm_ops = {
-	.open		= bf5xx_pcm_open,
-	.ioctl		= snd_pcm_lib_ioctl,
-	.hw_params	= bf5xx_pcm_hw_params,
-	.hw_free	= bf5xx_pcm_hw_free,
-	.prepare	= bf5xx_pcm_prepare,
-	.trigger	= bf5xx_pcm_trigger,
-	.pointer	= bf5xx_pcm_pointer,
+	.open           = bf5xx_pcm_open,
+	.ioctl          = snd_pcm_lib_ioctl,
+	.hw_params      = bf5xx_pcm_hw_params,
+	.hw_free        = bf5xx_pcm_hw_free,
+	.prepare        = bf5xx_pcm_prepare,
+	.trigger        = bf5xx_pcm_trigger,
+	.pointer        = bf5xx_pcm_pointer,
 	.copy           = bf5xx_pcm_copy,
 	.silence        = bf5xx_pcm_silence,
 };
@@ -239,10 +239,10 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 	buf->dev.dev = pcm->card->dev;
 	buf->private_data = NULL;
 	buf->area = dma_alloc_coherent(pcm->card->dev, size * 4,
-			&buf->addr, GFP_KERNEL);
+		&buf->addr, GFP_KERNEL);
 	if (!buf->area) {
 		pr_err("Failed to allocate dma memory \
-				Please increase uncached DMA memory region\n");
+			Please increase uncached DMA memory region\n");
 		return -ENOMEM;
 	}
 	buf->bytes = size;
@@ -276,9 +276,9 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 		sport_done(sport_handle);
 }
 
-static u64 bf5xx_pcm_dmamask = DMA_32BIT_MASK;
+static u64 bf5xx_pcm_dmamask = DMA_BIT_MASK(32);
 
-int bf5xx_pcm_tdm_new(struct snd_card *card, struct snd_soc_dai *dai,
+static int bf5xx_pcm_tdm_new(struct snd_card *card, struct snd_soc_dai *dai,
 	struct snd_pcm *pcm)
 {
 	int ret = 0;
@@ -286,7 +286,7 @@ int bf5xx_pcm_tdm_new(struct snd_card *card, struct snd_soc_dai *dai,
 	if (!card->dev->dma_mask)
 		card->dev->dma_mask = &bf5xx_pcm_dmamask;
 	if (!card->dev->coherent_dma_mask)
-		card->dev->coherent_dma_mask = DMA_32BIT_MASK;
+		card->dev->coherent_dma_mask = DMA_BIT_MASK(32);
 
 	if (dai->playback.channels_min) {
 		ret = bf5xx_pcm_preallocate_dma_buffer(pcm,
@@ -301,29 +301,29 @@ int bf5xx_pcm_tdm_new(struct snd_card *card, struct snd_soc_dai *dai,
 		if (ret)
 			goto out;
 	}
- out:
+out:
 	return ret;
 }
 
 struct snd_soc_platform bf5xx_tdm_soc_platform = {
-	.name		= "bf5xx-audio",
-	.pcm_ops 	= &bf5xx_pcm_tdm_ops,
-	.pcm_new	= bf5xx_pcm_tdm_new,
-	.pcm_free	= bf5xx_pcm_free_dma_buffers,
+	.name           = "bf5xx-audio",
+	.pcm_ops        = &bf5xx_pcm_tdm_ops,
+	.pcm_new        = bf5xx_pcm_tdm_new,
+	.pcm_free       = bf5xx_pcm_free_dma_buffers,
 };
 EXPORT_SYMBOL_GPL(bf5xx_tdm_soc_platform);
 
-static int __init bfin_tdm_init(void)
+static int __init bfin_pcm_tdm_init(void)
 {
 	return snd_soc_register_platform(&bf5xx_tdm_soc_platform);
 }
-module_init(bfin_tdm_init);
+module_init(bfin_pcm_tdm_init);
 
-static void __exit bfin_tdm_exit(void)
+static void __exit bfin_pcm_tdm_exit(void)
 {
 	snd_soc_unregister_platform(&bf5xx_tdm_soc_platform);
 }
-module_exit(bfin_tdm_exit);
+module_exit(bfin_pcm_tdm_exit);
 
 MODULE_AUTHOR("Barry Song");
 MODULE_DESCRIPTION("ADI Blackfin TDM PCM DMA module");

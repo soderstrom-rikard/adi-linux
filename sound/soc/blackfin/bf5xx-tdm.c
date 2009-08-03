@@ -3,7 +3,10 @@
  * Author:       Barry Song <Barry.Song@analog.com>
  *
  * Created:      Thurs June 04 2009
- * Description:  Blackfin TDM CPU DAI driver
+ * Description:  Blackfin I2S(TDM) CPU DAI driver
+ *              Even though TDM mode can be as part of I2S DAI, but there
+ *              are so much difference in configuration and data flow,
+ *              it's very ugly to integrate I2S and TDM into a module
  *
  * Modified:
  *               Copyright 2009 Analog Devices Inc.
@@ -56,16 +59,16 @@ static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
 
 static struct sport_param sport_params[2] = {
 	{
-		.dma_rx_chan	= CH_SPORT0_RX,
-		.dma_tx_chan	= CH_SPORT0_TX,
-		.err_irq	= IRQ_SPORT0_ERROR,
-		.regs		= (struct sport_register *)SPORT0_TCR1,
+		.dma_rx_chan    = CH_SPORT0_RX,
+		.dma_tx_chan    = CH_SPORT0_TX,
+		.err_irq        = IRQ_SPORT0_ERROR,
+		.regs           = (struct sport_register *)SPORT0_TCR1,
 	},
 	{
-		.dma_rx_chan	= CH_SPORT1_RX,
-		.dma_tx_chan	= CH_SPORT1_TX,
-		.err_irq	= IRQ_SPORT1_ERROR,
-		.regs		= (struct sport_register *)SPORT1_TCR1,
+		.dma_rx_chan    = CH_SPORT1_RX,
+		.dma_tx_chan    = CH_SPORT1_TX,
+		.err_irq        = IRQ_SPORT1_ERROR,
+		.regs           = (struct sport_register *)SPORT1_TCR1,
 	}
 };
 
@@ -89,13 +92,13 @@ static u16 sport_req[][7] = { {P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
 		   P_SPORT1_RSCLK, P_SPORT1_TFS, 0} };
 
 static int bf5xx_tdm_set_dai_fmt(struct snd_soc_dai *cpu_dai,
-		unsigned int fmt)
+	unsigned int fmt)
 {
 	int ret = 0;
 
 	/* interface format:support TDM,slave mode */
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-	case SND_SOC_DAIFMT_SPORT_TDM:
+	case SND_SOC_DAIFMT_DSP_A:
 		break;
 	default:
 		printk(KERN_ERR "%s: Unknown DAI format type\n", __func__);
@@ -121,8 +124,8 @@ static int bf5xx_tdm_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 }
 
 static int bf5xx_tdm_hw_params(struct snd_pcm_substream *substream,
-		struct snd_pcm_hw_params *params,
-		struct snd_soc_dai *dai)
+	struct snd_pcm_hw_params *params,
+	struct snd_soc_dai *dai)
 {
 	int ret = 0;
 
@@ -133,6 +136,11 @@ static int bf5xx_tdm_hw_params(struct snd_pcm_substream *substream,
 		bf5xx_tdm.tcr2 |= 31;
 		bf5xx_tdm.rcr2 |= 31;
 		sport_handle->wdsize = 4;
+		break;
+		/* at present, we only support 32bit transfer */
+	default:
+		pr_err("not supported PCM format yet\n");
+		return -EINVAL;
 		break;
 	}
 
@@ -146,26 +154,109 @@ static int bf5xx_tdm_hw_params(struct snd_pcm_substream *substream,
 		 * CPU DAI:slave mode.
 		 */
 		ret = sport_config_rx(sport_handle, bf5xx_tdm.rcr1,
-				bf5xx_tdm.rcr2, 0, 0);
+			bf5xx_tdm.rcr2, 0, 0);
 		if (ret) {
 			pr_err("SPORT is busy!\n");
 			return -EBUSY;
 		}
 
 		ret = sport_config_tx(sport_handle, bf5xx_tdm.tcr1,
-				bf5xx_tdm.tcr2, 0, 0);
+			bf5xx_tdm.tcr2, 0, 0);
 		if (ret) {
 			pr_err("SPORT is busy!\n");
 			return -EBUSY;
 		}
+
 		bf5xx_tdm.configured = 1;
 	}
 
 	return 0;
 }
 
-static int bf5xx_tdm_probe(struct platform_device *pdev,
-		struct snd_soc_dai *dai)
+static void bf5xx_tdm_shutdown(struct snd_pcm_substream *substream,
+	struct snd_soc_dai *dai)
+{
+	/* No active stream, SPORT is allowed to be configured again. */
+	if (!dai->active)
+		bf5xx_tdm.configured = 0;
+}
+
+#ifdef CONFIG_PM
+static int bf5xx_tdm_suspend(struct snd_soc_dai *dai)
+{
+	struct sport_device *sport =
+		(struct sport_device *)dai->private_data;
+
+	if (!dai->active)
+		return 0;
+	if (dai->capture.active)
+		sport_rx_stop(sport);
+	if (dai->playback.active)
+		sport_tx_stop(sport);
+	return 0;
+}
+
+static int bf5xx_tdm_resume(struct snd_soc_dai *dai)
+{
+	int ret;
+	struct sport_device *sport =
+		(struct sport_device *)dai->private_data;
+
+	if (!dai->active)
+		return 0;
+
+	ret = sport_set_multichannel(sport, 8, 0xFF, 1);
+	if (ret) {
+		pr_err("SPORT is busy!\n");
+		ret = -EBUSY;
+	}
+
+	ret = sport_config_rx(sport, IRFS, 0x1F, 0, 0);
+	if (ret) {
+		pr_err("SPORT is busy!\n");
+		ret = -EBUSY;
+	}
+
+	ret = sport_config_tx(sport, ITFS, 0x1F, 0, 0);
+	if (ret) {
+		pr_err("SPORT is busy!\n");
+		ret = -EBUSY;
+	}
+
+	return 0;
+}
+
+#else
+#define bf5xx_tdm_suspend      NULL
+#define bf5xx_tdm_resume       NULL
+#endif
+
+static struct snd_soc_dai_ops bf5xx_tdm_dai_ops = {
+	.hw_params      = bf5xx_tdm_hw_params,
+	.set_fmt        = bf5xx_tdm_set_dai_fmt,
+	.shutdown       = bf5xx_tdm_shutdown,
+};
+
+struct snd_soc_dai bf5xx_tdm_dai = {
+	.name = "bf5xx-tdm",
+	.id = 0,
+	.suspend = bf5xx_tdm_suspend,
+	.resume = bf5xx_tdm_resume,
+	.playback = {
+		.channels_min = 2,
+		.channels_max = 8,
+		.rates = SNDRV_PCM_RATE_48000,
+		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
+	.capture = {
+		.channels_min = 2,
+		.channels_max = 8,
+		.rates = SNDRV_PCM_RATE_48000,
+		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
+	.ops = &bf5xx_tdm_dai_ops,
+};
+EXPORT_SYMBOL_GPL(bf5xx_tdm_dai);
+
+static int __devinit bfin_tdm_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 
@@ -176,7 +267,7 @@ static int bf5xx_tdm_probe(struct platform_device *pdev,
 
 	/* request DMA for SPORT */
 	sport_handle = sport_init(&sport_params[sport_num], 4, \
-			8 * sizeof(u32), NULL);
+		8 * sizeof(u32), NULL);
 	if (!sport_handle) {
 		peripheral_free_list(&sport_req[sport_num][0]);
 		return -ENODEV;
@@ -204,89 +295,46 @@ static int bf5xx_tdm_probe(struct platform_device *pdev,
 		goto sport_config_err;
 	}
 
+	ret = snd_soc_register_dai(&bf5xx_tdm_dai);
+	if (ret) {
+		pr_err("Failed to register DAI: %d\n", ret);
+		goto sport_config_err;
+	}
+	return 0;
+
 sport_config_err:
 	peripheral_free_list(&sport_req[sport_num][0]);
 	return ret;
 }
 
-static void bf5xx_tdm_remove(struct platform_device *pdev,
-		struct snd_soc_dai *dai)
+static int __devexit bfin_tdm_remove(struct platform_device *pdev)
 {
 	peripheral_free_list(&sport_req[sport_num][0]);
-}
+	snd_soc_unregister_dai(&bf5xx_tdm_dai);
 
-#ifdef CONFIG_PM
-static int bf5xx_tdm_suspend(struct snd_soc_dai *dai)
-{
-	struct sport_device *sport =
-		(struct sport_device *)dai->private_data;
-
-	if (!dai->active)
-		return 0;
-	if (dai->capture.active)
-		sport_rx_stop(sport);
-	if (dai->playback.active)
-		sport_tx_stop(sport);
 	return 0;
 }
 
-static int bf5xx_tdm_resume(struct snd_soc_dai *dai)
-{
-	struct sport_device *sport =
-		(struct sport_device *)dai->private_data;
-
-	if (!dai->active)
-		return 0;
-
-	if (dai->capture.active)
-		sport_rx_start(sport);
-	if (dai->playback.active)
-		sport_tx_start(sport);
-	return 0;
-}
-
-#else
-#define bf5xx_tdm_suspend	NULL
-#define bf5xx_tdm_resume	NULL
-#endif
-
-static struct snd_soc_dai_ops bf5xx_tdm_dai_ops = {
-	.hw_params	= bf5xx_tdm_hw_params,
-	.set_fmt	= bf5xx_tdm_set_dai_fmt,
+static struct platform_driver bfin_tdm_driver = {
+	.probe  = bfin_tdm_probe,
+	.remove = __devexit_p(bfin_tdm_remove),
+	.driver = {
+		.name   = "bfin-tdm",
+		.owner  = THIS_MODULE,
+	},
 };
-
-struct snd_soc_dai bf5xx_tdm_dai = {
-	.name = "bf5xx-tdm",
-	.id = 0,
-	.probe = bf5xx_tdm_probe,
-	.remove = bf5xx_tdm_remove,
-	.suspend = bf5xx_tdm_suspend,
-	.resume = bf5xx_tdm_resume,
-	.playback = {
-		.channels_min = 2,
-		.channels_max = 8,
-		.rates = SNDRV_PCM_RATE_48000,
-		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
-	.capture = {
-		.channels_min = 2,
-		.channels_max = 8,
-		.rates = SNDRV_PCM_RATE_48000,
-		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
-	.ops = &bf5xx_tdm_dai_ops,
-};
-EXPORT_SYMBOL_GPL(bf5xx_tdm_dai);
 
 static int __init bfin_tdm_init(void)
 {
-	return snd_soc_register_dai(&bf5xx_tdm_dai);
+	return platform_driver_register(&bfin_tdm_driver);
 }
 module_init(bfin_tdm_init);
 
 static void __exit bfin_tdm_exit(void)
 {
-	snd_soc_unregister_dai(&bf5xx_tdm_dai);
+	platform_driver_unregister(&bfin_tdm_driver);
 }
-MODULE_EXIT(bfin_tdm_exit);
+module_exit(bfin_tdm_exit);
 
 /* Module information */
 MODULE_AUTHOR("Barry Song");

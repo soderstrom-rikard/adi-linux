@@ -1,5 +1,5 @@
 /*
- * linux/sound/arm/bf5xx-tdm-pcm.h -- ALSA PCM interface for the Blackfin
+ * sound/soc/blackfin/bf5xx-tdm-pcm.h -- ALSA PCM interface for the Blackfin
  *
  * Copyright 2009 Analog Device Inc.
  *
@@ -12,7 +12,7 @@
 #define _BF5XX_TDM_PCM_H
 
 struct bf5xx_pcm_dma_params {
-	char *name;			/* stream identifier */
+	char *name;                     /* stream identifier */
 };
 
 /* platform data */
