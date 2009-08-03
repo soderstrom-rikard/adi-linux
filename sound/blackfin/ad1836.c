@@ -208,7 +208,7 @@ static struct ad1836_spi *ad1836_spi = NULL;
 /* Chip level */
 #ifdef CONFIG_SND_BLACKFIN_AD1836_TDM
 
-#define AD1836_BUF_SZ 0x80000 /* 512kb */
+#define AD1836_BUF_SZ 0x20000 /* 128kb */
 /*In 2 channels mode, the buffer is quadrupled */
 #define PCM_BUFFER_MAX	(AD1836_BUF_SZ / 4)
 #define CHANNELS_MAX	8
