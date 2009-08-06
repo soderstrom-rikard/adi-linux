@@ -1,9 +1,9 @@
 /*
- * File:         sound/soc/blackfin/bf5xx-ad1938.c
+ * File:         sound/soc/blackfin/bf5xx-ad1836.c
  * Author:       Barry Song <Barry.Song@analog.com>
  *
- * Created:      Thur June 4 2009
- * Description:  Board driver for ad1938 sound chip
+ * Created:      Aug 4 2009
+ * Description:  Board driver for ad1836 sound chip
  *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
@@ -12,15 +12,6 @@
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include <linux/module.h>
@@ -38,15 +29,15 @@
 #include <asm/dma.h>
 #include <asm/portmux.h>
 
-#include "../codecs/ad1938.h"
+#include "../codecs/ad1836.h"
 #include "bf5xx-sport.h"
 
 #include "bf5xx-tdm-pcm.h"
 #include "bf5xx-tdm.h"
 
-static struct snd_soc_card bf5xx_ad1938;
+static struct snd_soc_card bf5xx_ad1836;
 
-static int bf5xx_ad1938_startup(struct snd_pcm_substream *substream)
+static int bf5xx_ad1836_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
@@ -55,7 +46,7 @@ static int bf5xx_ad1938_startup(struct snd_pcm_substream *substream)
 	return 0;
 }
 
-static int bf5xx_ad1938_hw_params(struct snd_pcm_substream *substream,
+static int bf5xx_ad1836_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
@@ -75,7 +66,7 @@ static int bf5xx_ad1938_hw_params(struct snd_pcm_substream *substream,
 		return ret;
 
 	/* set cpu DAI slots, 8 channels, mask is defined as slot seq */
-	ret = snd_soc_dai_set_tdm_slot(cpu_dai, 0x76543210, 8);
+	ret = snd_soc_dai_set_tdm_slot(cpu_dai, 0x73625140, 8);
 	if (ret < 0)
 		return ret;
 
@@ -87,61 +78,61 @@ static int bf5xx_ad1938_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-static struct snd_soc_ops bf5xx_ad1938_ops = {
-	.startup = bf5xx_ad1938_startup,
-	.hw_params = bf5xx_ad1938_hw_params,
+static struct snd_soc_ops bf5xx_ad1836_ops = {
+	.startup = bf5xx_ad1836_startup,
+	.hw_params = bf5xx_ad1836_hw_params,
 };
 
-static struct snd_soc_dai_link bf5xx_ad1938_dai = {
-	.name = "ad1938",
-	.stream_name = "AD1938",
+static struct snd_soc_dai_link bf5xx_ad1836_dai = {
+	.name = "ad1836",
+	.stream_name = "AD1836",
 	.cpu_dai = &bf5xx_tdm_dai,
-	.codec_dai = &ad1938_dai,
-	.ops = &bf5xx_ad1938_ops,
+	.codec_dai = &ad1836_dai,
+	.ops = &bf5xx_ad1836_ops,
 };
 
-static struct snd_soc_card bf5xx_ad1938 = {
-	.name = "bf5xx_ad1938",
+static struct snd_soc_card bf5xx_ad1836 = {
+	.name = "bf5xx_ad1836",
 	.platform = &bf5xx_tdm_soc_platform,
-	.dai_link = &bf5xx_ad1938_dai,
+	.dai_link = &bf5xx_ad1836_dai,
 	.num_links = 1,
 };
 
-static struct snd_soc_device bf5xx_ad1938_snd_devdata = {
-	.card = &bf5xx_ad1938,
-	.codec_dev = &soc_codec_dev_ad1938,
+static struct snd_soc_device bf5xx_ad1836_snd_devdata = {
+	.card = &bf5xx_ad1836,
+	.codec_dev = &soc_codec_dev_ad1836,
 };
 
-static struct platform_device *bfxx_ad1938_snd_device;
+static struct platform_device *bfxx_ad1836_snd_device;
 
-static int __init bf5xx_ad1938_init(void)
+static int __init bf5xx_ad1836_init(void)
 {
 	int ret;
 
-	bfxx_ad1938_snd_device = platform_device_alloc("soc-audio", -1);
-	if (!bfxx_ad1938_snd_device)
+	bfxx_ad1836_snd_device = platform_device_alloc("soc-audio", -1);
+	if (!bfxx_ad1836_snd_device)
 		return -ENOMEM;
 
-	platform_set_drvdata(bfxx_ad1938_snd_device, &bf5xx_ad1938_snd_devdata);
-	bf5xx_ad1938_snd_devdata.dev = &bfxx_ad1938_snd_device->dev;
-	ret = platform_device_add(bfxx_ad1938_snd_device);
+	platform_set_drvdata(bfxx_ad1836_snd_device, &bf5xx_ad1836_snd_devdata);
+	bf5xx_ad1836_snd_devdata.dev = &bfxx_ad1836_snd_device->dev;
+	ret = platform_device_add(bfxx_ad1836_snd_device);
 
 	if (ret)
-		platform_device_put(bfxx_ad1938_snd_device);
+		platform_device_put(bfxx_ad1836_snd_device);
 
 	return ret;
 }
 
-static void __exit bf5xx_ad1938_exit(void)
+static void __exit bf5xx_ad1836_exit(void)
 {
-	platform_device_unregister(bfxx_ad1938_snd_device);
+	platform_device_unregister(bfxx_ad1836_snd_device);
 }
 
-module_init(bf5xx_ad1938_init);
-module_exit(bf5xx_ad1938_exit);
+module_init(bf5xx_ad1836_init);
+module_exit(bf5xx_ad1836_exit);
 
 /* Module information */
 MODULE_AUTHOR("Barry Song");
-MODULE_DESCRIPTION("ALSA SoC AD1938 board driver");
+MODULE_DESCRIPTION("ALSA SoC AD1836 board driver");
 MODULE_LICENSE("GPL");
 

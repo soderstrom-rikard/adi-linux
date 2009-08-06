@@ -46,14 +46,6 @@
 #include "bf5xx-sport.h"
 #include "bf5xx-tdm.h"
 
-struct bf5xx_tdm_port {
-	u16 tcr1;
-	u16 rcr1;
-	u16 tcr2;
-	u16 rcr2;
-	int configured;
-};
-
 static struct bf5xx_tdm_port bf5xx_tdm;
 static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
 
@@ -181,6 +173,13 @@ static void bf5xx_tdm_shutdown(struct snd_pcm_substream *substream,
 		bf5xx_tdm.configured = 0;
 }
 
+static int bf5xx_tdm_set_tdm_slot(struct snd_soc_dai *dai,
+		unsigned int mask, int slots)
+{
+	bf5xx_tdm.slot_seq = mask;
+	return 0;
+}
+
 #ifdef CONFIG_PM
 static int bf5xx_tdm_suspend(struct snd_soc_dai *dai)
 {
@@ -235,6 +234,7 @@ static struct snd_soc_dai_ops bf5xx_tdm_dai_ops = {
 	.hw_params      = bf5xx_tdm_hw_params,
 	.set_fmt        = bf5xx_tdm_set_dai_fmt,
 	.shutdown       = bf5xx_tdm_shutdown,
+	.set_tdm_slot   = bf5xx_tdm_set_tdm_slot,
 };
 
 struct snd_soc_dai bf5xx_tdm_dai = {
@@ -300,6 +300,8 @@ static int __devinit bfin_tdm_probe(struct platform_device *pdev)
 		pr_err("Failed to register DAI: %d\n", ret);
 		goto sport_config_err;
 	}
+
+	sport_handle->private_data = &bf5xx_tdm;
 	return 0;
 
 sport_config_err:

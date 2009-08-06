@@ -3,7 +3,7 @@ menu "ALSA Blackfin devices"
 	depends on SND && BLACKFIN
 
 config SND_BLACKFIN_AD1836
-	tristate "AD1836 Audio support for BF53x"
+	tristate "AD1836 Audio support for BF53x(obsolete)"
 	depends on SND && BLACKFIN
 	select SND_PCM
 	select SPI
