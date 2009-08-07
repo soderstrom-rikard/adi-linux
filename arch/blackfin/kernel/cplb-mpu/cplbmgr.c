@@ -22,6 +22,7 @@
 
 #include <asm/blackfin.h>
 #include <asm/cacheflush.h>
+#include <asm/cplb.h>
 #include <asm/cplbinit.h>
 #include <asm/mmu_context.h>
 
@@ -40,46 +41,6 @@ unsigned long *current_rwx_mask[NR_CPUS];
 int nr_dcplb_miss[NR_CPUS], nr_icplb_miss[NR_CPUS];
 int nr_icplb_supv_miss[NR_CPUS], nr_dcplb_prot[NR_CPUS];
 int nr_cplb_flush[NR_CPUS];
-
-static inline void disable_dcplb(void)
-{
-	unsigned long ctrl;
-	SSYNC();
-	ctrl = bfin_read_DMEM_CONTROL();
-	ctrl &= ~ENDCPLB;
-	bfin_write_DMEM_CONTROL(ctrl);
-	SSYNC();
-}
-
-static inline void enable_dcplb(void)
-{
-	unsigned long ctrl;
-	SSYNC();
-	ctrl = bfin_read_DMEM_CONTROL();
-	ctrl |= ENDCPLB;
-	bfin_write_DMEM_CONTROL(ctrl);
-	SSYNC();
-}
-
-static inline void disable_icplb(void)
-{
-	unsigned long ctrl;
-	SSYNC();
-	ctrl = bfin_read_IMEM_CONTROL();
-	ctrl &= ~ENICPLB;
-	bfin_write_IMEM_CONTROL(ctrl);
-	SSYNC();
-}
-
-static inline void enable_icplb(void)
-{
-	unsigned long ctrl;
-	SSYNC();
-	ctrl = bfin_read_IMEM_CONTROL();
-	ctrl |= ENICPLB;
-	bfin_write_IMEM_CONTROL(ctrl);
-	SSYNC();
-}
 
 /*
  * Given the contents of the status register, return the index of the

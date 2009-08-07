@@ -89,8 +89,7 @@ ENTRY(_cache_grab_lock)
 .LDONE1:	R4 = R7 << 3;
 	R7 = [P1];
 	R7 = R7 | R4;
-	SSYNC;		/* SSYNC required writing to IMEM_CONTROL. */
-	.align 8;
+	CSYNC;		/* CSSYNC before writing to IMEM_CONTROL to ensure load store ordering */
 	[P1] = R7;
 	SSYNC;
 
@@ -107,8 +106,7 @@ ENTRY(_cache_grab_lock)
 .LDONE2:	R4 = R7 << 3;
 	R7 = [P1];
 	R7 = R7 | R4;
-	SSYNC;		/* SSYNC required writing to IMEM_CONTROL. */
-	.align 8;
+	CSYNC;		/* CSSYNC before writing to IMEM_CONTROL to ensure load store ordering */
 	[P1] = R7;
 	SSYNC;
 
@@ -124,8 +122,7 @@ ENTRY(_cache_grab_lock)
 .LDONE3:	R4 = R7 << 3;
 	R7 = [P1];
 	R7 = R7 | R4;
-	SSYNC;		/* SSYNC required writing to IMEM_CONTROL. */
-	.align 8;
+	CSYNC;		/* CSSYNC before writing to IMEM_CONTROL to ensure load store ordering */
 	[P1] = R7;
 	SSYNC;
 
@@ -142,8 +139,7 @@ ENTRY(_cache_grab_lock)
 .LDONE4:	R4 = R7 << 3;
 	R7 = [P1];
 	R7 = R7 | R4;
-	SSYNC;		/* SSYNC required writing to IMEM_CONTROL. */
-	.align 8;
+	CSYNC;		/* CSSYNC before writing to IMEM_CONTROL to ensure load store ordering */
 	[P1] = R7;
 	SSYNC;
 
@@ -175,8 +171,7 @@ ENTRY(_bfin_cache_lock)
 	R7 = R7 & R2;
 	R0 = R0 << 3;
 	R7 = R0 | R7;
-	SSYNC;		/* SSYNC required writing to IMEM_CONTROL. */
-	.align 8;
+	CSYNC;		/* CSSYNC before writing to IMEM_CONTROL to ensure load store ordering */
 	[P1] = R7;
 	SSYNC;
 	/* Renable the Interrupts */
@@ -201,8 +196,7 @@ ENTRY(_invalidate_entire_icache)
 	 */
 	BITCLR(R7,IMC_P);
 	CLI R6;
-	SSYNC;		/* SSYNC required before invalidating cache. */
-	.align 8;
+	CSYNC;		/* CSSYNC before writing to IMEM_CONTROL to ensure load store ordering */
 	[P0] = R7;
 	SSYNC;
 	STI R6;
@@ -212,8 +206,7 @@ ENTRY(_invalidate_entire_icache)
 	R7 = R7 | R6;
 
 	CLI R6;
-	SSYNC;		/* SSYNC required before writing to IMEM_CONTROL. */
-	.align 8;
+	CSYNC;		/* CSSYNC before writing to IMEM_CONTROL to ensure load store ordering */
 	[P0] = R7;
 	SSYNC;
 	STI R6;

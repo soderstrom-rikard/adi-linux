@@ -125,4 +125,55 @@
 #define FAULT_USERSUPV  (1 << 17)
 #define FAULT_CPLBBITS  0x0000ffff
 
+static inline void disable_dcplb(void)
+{
+#ifdef CONFIG_BFIN_DCACHE
+	unsigned long ctrl;
+	ctrl = bfin_read_DMEM_CONTROL();
+	ctrl &= ~ENDCPLB;
+	/* CSYNC to ensure load store ordering */
+	CSYNC();
+	bfin_write_DMEM_CONTROL(ctrl);
+	SSYNC();
+#endif
+}
+
+static inline void enable_dcplb(void)
+{
+#ifdef CONFIG_BFIN_DCACHE
+	unsigned long ctrl;
+	ctrl = bfin_read_DMEM_CONTROL();
+	ctrl |= ENDCPLB;
+	/* CSYNC to ensure load store ordering */
+	CSYNC();
+	bfin_write_DMEM_CONTROL(ctrl);
+	SSYNC();
+#endif
+}
+
+static inline void disable_icplb(void)
+{
+#ifdef CONFIG_BFIN_ICACHE
+	unsigned long ctrl;
+	ctrl = bfin_read_IMEM_CONTROL();
+	ctrl &= ~ENICPLB;
+	/* CSYNC to ensure load store ordering */
+	CSYNC();
+	bfin_write_IMEM_CONTROL(ctrl);
+	SSYNC();
+#endif
+}
+
+static inline void enable_icplb(void)
+{
+#ifdef CONFIG_BFIN_ICACHE
+	unsigned long ctrl;
+	ctrl = bfin_read_IMEM_CONTROL();
+	ctrl |= ENICPLB;
+	/* CSYNC to ensure load store ordering */
+	CSYNC();
+	bfin_write_IMEM_CONTROL(ctrl);
+	SSYNC();
+#endif
+}
 #endif				/* _CPLB_H */
