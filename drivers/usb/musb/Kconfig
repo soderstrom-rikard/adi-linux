@@ -149,14 +149,6 @@ config MUSB_PIO_ONLY
 	  you can still disable it at run time using the "use_dma=n" module
 	  parameter.
 
-config MUSB_DMA_POLL
-	bool 'Using DMA polling in MUSB PIO mode'
-	depends on MUSB_PIO_ONLY && BLACKFIN
-	default y if BLACKFIN
-	help
-	  Using DMA busy loop polling to copy to/from FIFO. Because pure
-	  PIO mode sometimes is also unstable in our testing.
-
 config USB_INVENTRA_DMA
 	bool
 	depends on USB_MUSB_HDRC && !MUSB_PIO_ONLY
