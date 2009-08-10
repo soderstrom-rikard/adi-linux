@@ -1144,7 +1144,6 @@ ENTRY(_early_trap)
 
 	R5 = [P4];              /* Control Register*/
 	BITCLR(R5,ENICPLB_P);
-	CLI R1;
 	CSYNC;          /* Disabling of CPLBs should be proceeded by a CSYNC */
 	[P4] = R5;
 	SSYNC;
@@ -1156,7 +1155,6 @@ ENTRY(_early_trap)
 	CSYNC;          /* Disabling of CPLBs should be proceeded by a CSYNC */
 	[P4] = R5;
 	SSYNC;
-	STI R1;
 
 	r0 = sp;        /* stack frame pt_regs pointer argument ==> r0 */
 	r1 = RETX;
