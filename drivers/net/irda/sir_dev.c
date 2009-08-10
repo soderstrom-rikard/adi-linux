@@ -899,6 +899,15 @@ struct sir_dev * sirdev_get_instance(const struct sir_driver *drv, const char *n
 
 	irda_init_max_qos_capabilies(&dev->qos);
 	dev->qos.baud_rate.bits = IR_9600|IR_19200|IR_38400|IR_57600|IR_115200;
+#ifdef ANOMALY_05000447
+	/*
+	 * This anomaly causes the IRDA function failed on BF548
+	 * when through sir_dev/irtty/bfin_5xx driver. So we limit
+	 * the baud rate to slower than 115200.
+	 * This is an internl patch, not send it out.
+	 */
+	dev->qos.baud_rate.bits &= ~IR_115200;
+#endif
 	dev->qos.min_turn_time.bits = drv->qos_mtt_bits;
 	irda_qos_bits_to_value(&dev->qos);
 
