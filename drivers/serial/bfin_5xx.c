@@ -863,7 +863,7 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	quot = uart_get_divisor(port, baud);
 
 	/* If discipline is not IRDA, apply ANOMALY_05000230 */
-	if (port->info && (port->info->port.tty->termios->c_line != N_IRDA))
+	if (!port->info || (port->info->port.tty->termios->c_line != N_IRDA))
 		quot -= ANOMALY_05000230;
 
 	spin_lock_irqsave(&uart->port.lock, flags);
