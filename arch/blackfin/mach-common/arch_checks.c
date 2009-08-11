@@ -84,7 +84,7 @@
  * After digging out the root cause anomaly, change its number  accordingly.
  * So,either using silicon v0.2 or heighter or disabling DMA mode in musb.
  */
-#if ANOMALY_05000380 && defined(CONFIG_BF52x) && !defined(CONFIG_MUSB_PIO_ONLY)
+#if ANOMALY_05000380 && defined(CONFIG_BF52x) && defined(CONFIG_USB_MUSB_HDRC) && !defined(CONFIG_MUSB_PIO_ONLY)
 #error Please use PIO mode in MUSB driver on bf52x chip v0.0 and v0.1.
 #endif
 
