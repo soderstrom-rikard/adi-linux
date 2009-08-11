@@ -573,25 +573,9 @@ static struct mtd_partition ezkit_partitions[] = {
 		.size       = 0x180000,
 		.offset     = MTDPART_OFS_APPEND,
 	}, {
-#if defined(CONFIG_SMC91X) || defined(CONFIG_SMC91X_MODULE)
 		.name       = "file system(nor)",
-		.size       = 0x300000 - 0x40000 - 0x180000 - 0x10000,
-		.offset     = MTDPART_OFS_APPEND,
-	}, {
-		.name       = "MAC Address(nor)",
 		.size       = MTDPART_SIZ_FULL,
-		.offset     = 0x2F0000,
-		.mask_flags = MTD_WRITEABLE,
-#else
-		.name       = "file system(nor)",
-		.size       = 0x400000 - 0x40000 - 0x180000 - 0x10000,
 		.offset     = MTDPART_OFS_APPEND,
-	}, {
-		.name       = "MAC Address(nor)",
-		.size       = MTDPART_SIZ_FULL,
-		.offset     = 0x3F0000,
-		.mask_flags = MTD_WRITEABLE,
-#endif
 	}
 };
 
