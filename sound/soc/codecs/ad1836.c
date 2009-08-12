@@ -52,11 +52,11 @@ static const struct soc_enum ad1836_deemp_enum =
 
 static const struct snd_kcontrol_new ad1836_snd_controls[] = {
 	/* DAC volume control */
-	SOC_DOUBLE_R("DAC1  Volume", AD1836_DAC_L1_VOL,
+	SOC_DOUBLE_R("DAC1 Volume", AD1836_DAC_L1_VOL,
 			AD1836_DAC_R1_VOL, 0, 0x3FF, 0),
-	SOC_DOUBLE_R("DAC2  Volume", AD1836_DAC_L2_VOL,
+	SOC_DOUBLE_R("DAC2 Volume", AD1836_DAC_L2_VOL,
 			AD1836_DAC_R2_VOL, 0, 0x3FF, 0),
-	SOC_DOUBLE_R("DAC3  Volume", AD1836_DAC_L3_VOL,
+	SOC_DOUBLE_R("DAC3 Volume", AD1836_DAC_L3_VOL,
 			AD1836_DAC_R3_VOL, 0, 0x3FF, 0),
 
 	/* ADC switch control */
@@ -108,19 +108,6 @@ static const struct snd_soc_dapm_route audio_paths[] = {
  * DAI ops entries
  */
 
-static int ad1836_set_tdm_slot(struct snd_soc_dai *dai,
-		unsigned int mask, int slots)
-{
-	switch (slots) {
-	case 8:
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 static int ad1836_set_dai_fmt(struct snd_soc_dai *codec_dai,
 		unsigned int fmt)
 {
@@ -156,7 +143,7 @@ static int ad1836_hw_params(struct snd_pcm_substream *substream,
 		struct snd_pcm_hw_params *params,
 		struct snd_soc_dai *dai)
 {
-	int word_len = 0, reg = 0;
+	int word_len = 0;
 
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
@@ -176,13 +163,11 @@ static int ad1836_hw_params(struct snd_pcm_substream *substream,
 		break;
 	}
 
-	reg = codec->read(codec, AD1836_DAC_CTRL1);
-	reg = (reg & (~AD1836_DAC_WORD_LEN_MASK)) | word_len;
-	codec->write(codec, AD1836_DAC_CTRL1, reg);
+	snd_soc_update_bits(codec, AD1836_DAC_CTRL1,
+		AD1836_DAC_WORD_LEN_MASK, word_len);
 
-	reg = codec->read(codec, AD1836_ADC_CTRL2);
-	reg = (reg & (~AD1836_ADC_WORD_LEN_MASK)) | word_len;
-	codec->write(codec, AD1836_ADC_CTRL2, reg);
+	snd_soc_update_bits(codec, AD1836_ADC_CTRL2,
+		AD1836_ADC_WORD_LEN_MASK, word_len);
 
 	return 0;
 }
@@ -277,7 +262,6 @@ static struct spi_driver ad1836_spi_driver = {
 
 static struct snd_soc_dai_ops ad1836_dai_ops = {
 	.hw_params = ad1836_hw_params,
-	.set_tdm_slot = ad1836_set_tdm_slot,
 	.set_fmt = ad1836_set_dai_fmt,
 };
 
@@ -354,6 +338,7 @@ static int ad1836_register(struct ad1836_priv *ad1836)
 	ret = snd_soc_register_codec(codec);
 	if (ret != 0) {
 		dev_err(codec->dev, "Failed to register codec: %d\n", ret);
+		kfree(ad1836);
 		return ret;
 	}
 
@@ -361,6 +346,7 @@ static int ad1836_register(struct ad1836_priv *ad1836)
 	if (ret != 0) {
 		dev_err(codec->dev, "Failed to register DAI: %d\n", ret);
 		snd_soc_unregister_codec(codec);
+		kfree(ad1836);
 		return ret;
 	}
 
@@ -461,5 +447,5 @@ static void __exit ad1836_exit(void)
 module_exit(ad1836_exit);
 
 MODULE_DESCRIPTION("ASoC ad1836 driver");
-MODULE_AUTHOR("Barry Song ");
+MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
 MODULE_LICENSE("GPL");
