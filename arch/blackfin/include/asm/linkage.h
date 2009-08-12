@@ -4,6 +4,4 @@
 #define __ALIGN .align 4
 #define __ALIGN_STR ".align 4"
 
-#define notrace __attribute__((no_instrument_function))
-
 #endif
