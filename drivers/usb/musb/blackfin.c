@@ -95,7 +95,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 {
 	void __iomem *fifo = hw_ep->fifo;
 
-	if (ANOMALY_05000467 && hw_ep->epnum != 0) {
+#if ANOMALY_05000467
 		u8 epnum = hw_ep->epnum;
 		u16 dma_reg = 0;
 
@@ -132,15 +132,14 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 		/* Reset DMA */
 		bfin_write16(USB_DMA_REG(epnum, USB_DMAx_CTRL), 0);
 		SSYNC();
-	} else {
-
+#else
 		if (unlikely((unsigned long)dst & 0x01))
 			insw_8((unsigned long)fifo, dst,
 				len & 0x01 ? (len >> 1) + 1 : len >> 1);
 		else
 			insw((unsigned long)fifo, dst,
 				len & 0x01 ? (len >> 1) + 1 : len >> 1);
-	}
+#endif
 
 	DBG(4, "%cX ep%d fifo %p count %d buf %p\n",
 			'R', hw_ep->epnum, fifo, len, dst);
