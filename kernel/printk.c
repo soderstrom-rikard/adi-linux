@@ -1225,6 +1225,23 @@ void register_console(struct console *newcon)
 	if (!(newcon->flags & CON_ENABLED))
 		return;
 
+	if (bcon && ((newcon->flags & (CON_CONSDEV | CON_BOOT)) == CON_CONSDEV)) {
+		/* we need to iterate through twice, to make sure we print
+		 * everything out, before we unregister the console(s)
+		 */
+		printk(KERN_INFO "console handover:");
+		for_each_console(bcon)
+			printk("boot [%s%d] ", bcon->name, bcon->index);
+		printk(" -> real [%s%d]\n", newcon->name, newcon->index);
+		for_each_console(bcon)
+			unregister_console(bcon);
+		newcon->flags &= ~CON_PRINTBUFFER;
+	} else {
+		printk(KERN_INFO "%sconsole [%s%d] enabled\n",
+			(newcon->flags & CON_BOOT) ? "boot" : "" ,
+			newcon->name, newcon->index);
+	}
+
 	/*
 	 *	Put this console in the list - keep the
 	 *	preferred driver at the head of the list.
@@ -1249,30 +1266,6 @@ void register_console(struct console *newcon)
 		spin_unlock_irqrestore(&logbuf_lock, flags);
 	}
 	release_console_sem();
-
-	/*
-	 * By unregistering the bootconsoles after we enable the real console
-	 * we get the "console xxx enabled" message on all the consoles -
-	 * boot consoles, real consoles, etc - this is to ensure that end
-	 * users know there might be something in the kernel's log buffer that
-	 * went to the bootconsole (that they do not see on the real console)
-	 */
-	if (bcon && ((newcon->flags & (CON_CONSDEV | CON_BOOT)) == CON_CONSDEV)) {
-		/* we need to iterate through twice, to make sure we print
-		 * everything out, before we unregister the console(s)
-		 */
-		printk(KERN_INFO "console [%s%d] enabled, bootconsole disabled\n",
-			newcon->name, newcon->index);
-		for_each_console(bcon)
-			if (bcon->flags & CON_BOOT)
-				unregister_console(bcon);
-		newcon->flags &= ~CON_PRINTBUFFER;
-	} else {
-		printk(KERN_INFO "%sconsole [%s%d] enabled\n",
-			(newcon->flags & CON_BOOT) ? "boot" : "" ,
-			newcon->name, newcon->index);
-	}
-
 }
 EXPORT_SYMBOL(register_console);
 
