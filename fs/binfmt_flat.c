@@ -850,12 +850,12 @@ static int load_flat_shared_library(int id, struct lib_info *libs)
 	/* Open the file up */
 	bprm.filename = buf;
 	bprm.file = open_exec(bprm.filename);
-	bprm.cred = NULL;
 	res = PTR_ERR(bprm.file);
 	if (IS_ERR(bprm.file))
 		return res;
 
 	bprm.cred = prepare_exec_creds();
+	res = -ENOMEM;
 	if (!bprm.cred)
 		goto out;
 
@@ -863,15 +863,13 @@ static int load_flat_shared_library(int id, struct lib_info *libs)
 
 	if (!IS_ERR_VALUE(res))
 		res = load_flat_file(&bprm, libs, id, NULL, NULL);
-out:
-	if (bprm.cred)
-		abort_creds(bprm.cred);
 
-	if (bprm.file) {
-		allow_write_access(bprm.file);
-		fput(bprm.file);
-		bprm.file = NULL;
-	}
+	abort_creds(bprm.cred);
+
+out:
+	allow_write_access(bprm.file);
+	fput(bprm.file);
+
 	return(res);
 }
 
