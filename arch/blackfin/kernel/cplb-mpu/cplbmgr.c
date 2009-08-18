@@ -159,10 +159,10 @@ static noinline int dcplb_miss(unsigned int cpu)
 	dcplb_tbl[cpu][idx].addr = addr;
 	dcplb_tbl[cpu][idx].data = d_data;
 
-	disable_dcplb();
+	_disable_dcplb();
 	bfin_write32(DCPLB_DATA0 + idx * 4, d_data);
 	bfin_write32(DCPLB_ADDR0 + idx * 4, addr);
-	enable_dcplb();
+	_enable_dcplb();
 
 	return 0;
 }
@@ -249,10 +249,10 @@ static noinline int icplb_miss(unsigned int cpu)
 	icplb_tbl[cpu][idx].addr = addr;
 	icplb_tbl[cpu][idx].data = i_data;
 
-	disable_icplb();
+	_disable_icplb();
 	bfin_write32(ICPLB_DATA0 + idx * 4, i_data);
 	bfin_write32(ICPLB_ADDR0 + idx * 4, addr);
-	enable_icplb();
+	_enable_icplb();
 
 	return 0;
 }
@@ -301,19 +301,19 @@ void flush_switched_cplbs(unsigned int cpu)
 	nr_cplb_flush[cpu]++;
 
 	local_irq_save_hw(flags);
-	disable_icplb();
+	_disable_icplb();
 	for (i = first_switched_icplb; i < MAX_CPLBS; i++) {
 		icplb_tbl[cpu][i].data = 0;
 		bfin_write32(ICPLB_DATA0 + i * 4, 0);
 	}
-	enable_icplb();
+	_enable_icplb();
 
-	disable_dcplb();
+	_disable_dcplb();
 	for (i = first_switched_dcplb; i < MAX_CPLBS; i++) {
 		dcplb_tbl[cpu][i].data = 0;
 		bfin_write32(DCPLB_DATA0 + i * 4, 0);
 	}
-	enable_dcplb();
+	_enable_dcplb();
 	local_irq_restore_hw(flags);
 
 }
@@ -346,7 +346,7 @@ void set_mask_dcplbs(unsigned long *masks, unsigned int cpu)
 #endif
 	}
 
-	disable_dcplb();
+	_disable_dcplb();
 	for (i = first_mask_dcplb; i < first_switched_dcplb; i++) {
 		dcplb_tbl[cpu][i].addr = addr;
 		dcplb_tbl[cpu][i].data = d_data;
@@ -354,6 +354,6 @@ void set_mask_dcplbs(unsigned long *masks, unsigned int cpu)
 		bfin_write32(DCPLB_ADDR0 + i * 4, addr);
 		addr += PAGE_SIZE;
 	}
-	enable_dcplb();
+	_enable_dcplb();
 	local_irq_restore_hw(flags);
 }

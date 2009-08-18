@@ -210,16 +210,16 @@ int bfin_pm_suspend_mem_enter(void)
 #if defined(CONFIG_BFIN_EXTMEM_WRITEBACK) || defined(CONFIG_BFIN_L2_WRITEBACK)
 	flushinv_all_dcache();
 #endif
-	disable_dcplb();
-	disable_icplb();
+	_disable_dcplb();
+	_disable_icplb();
 	bf53x_suspend_l1_mem(memptr);
 
 	do_hibernate(wakeup | vr_wakeup);	/* Goodbye */
 
 	bf53x_resume_l1_mem(memptr);
 
-	enable_icplb();
-	enable_dcplb();
+	_enable_icplb();
+	_enable_dcplb();
 
 	bfin_gpio_pm_hibernate_restore();
 	blackfin_dma_resume();

@@ -51,10 +51,10 @@ int nr_cplb_flush[NR_CPUS], nr_dcplb_prot[NR_CPUS];
 static inline void write_dcplb_data(int cpu, int idx, unsigned long data,
 				    unsigned long addr)
 {
-	disable_dcplb();
+	_disable_dcplb();
 	bfin_write32(DCPLB_DATA0 + idx * 4, data);
 	bfin_write32(DCPLB_ADDR0 + idx * 4, addr);
-	enable_dcplb();
+	_enable_dcplb();
 
 #ifdef CONFIG_CPLB_INFO
 	dcplb_tbl[cpu][idx].addr = addr;
@@ -65,10 +65,10 @@ static inline void write_dcplb_data(int cpu, int idx, unsigned long data,
 static inline void write_icplb_data(int cpu, int idx, unsigned long data,
 				    unsigned long addr)
 {
-	disable_icplb();
+	_disable_icplb();
 	bfin_write32(ICPLB_DATA0 + idx * 4, data);
 	bfin_write32(ICPLB_ADDR0 + idx * 4, addr);
-	enable_icplb();
+	_enable_icplb();
 
 #ifdef CONFIG_CPLB_INFO
 	icplb_tbl[cpu][idx].addr = addr;
