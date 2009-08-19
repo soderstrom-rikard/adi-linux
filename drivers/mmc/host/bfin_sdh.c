@@ -623,10 +623,10 @@ static int sdh_suspend(struct platform_device *dev, pm_message_t state)
 	struct bfin_sd_host *drv_data = get_sdh_data(dev);
 	int ret = 0;
 
-	bfin_write_SDH_PWR_CTL(bfin_read_SDH_PWR_CTL() & ~PWR_ON);
 	if (mmc)
 		ret = mmc_suspend_host(mmc, state);
 
+	bfin_write_SDH_PWR_CTL(bfin_read_SDH_PWR_CTL() & ~PWR_ON);
 	peripheral_free_list(drv_data->pin_req);
 
 	return ret;
