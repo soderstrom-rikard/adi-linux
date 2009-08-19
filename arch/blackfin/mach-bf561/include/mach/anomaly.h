@@ -213,7 +213,7 @@
 /* Disabling Peripherals with DMA Running May Cause DMA System Instability */
 #define ANOMALY_05000278 (__SILICON_REVISION__ < 5)
 /* False Hardware Error Exception when ISR Context Is Not Restored */
-/* Temporarily walk around for bug 5421 till this issue is confirmed by
+/* Temporarily walk around for bug 5423 till this issue is confirmed by
  * official anomaly document. It looks 05000281 still exists on bf561
  * v0.5.
  */
