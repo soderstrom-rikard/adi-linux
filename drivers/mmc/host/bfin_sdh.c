@@ -568,8 +568,8 @@ static int __devinit sdh_probe(struct platform_device *pdev)
 	bfin_write_SDH_CFG(bfin_read_SDH_CFG() | CLKS_EN);
 	SSYNC();
 
-	/* Disable card inserting detection pin.It's not that useful,since
-	 * we can't detect removal,and it will affect card detection on BF51x.
+	/* Disable card inserting detection pin. It's not that useful, since
+	 * we can't detect removal, and it will affect card detection on BF51x.
 	 */
 	bfin_write_SDH_CFG((bfin_read_SDH_CFG() & 0x1F) | 0x60);
 	SSYNC();
@@ -647,8 +647,8 @@ static int sdh_resume(struct platform_device *dev)
 #endif
 	bfin_write_SDH_CFG(bfin_read_SDH_CFG() | CLKS_EN);
 	SSYNC();
-	/* Disable card inserting detection pin.It's not that useful,since
-	 * we can't detect removal,and it will affect card detection on BF51x.
+	/* Disable card inserting detection pin. It's not that useful, since
+	 * we can't detect removal, and it will affect card detection on BF51x.
 	 */
 	bfin_write_SDH_CFG((bfin_read_SDH_CFG() & 0x1F) | 0x60);
 	SSYNC();
