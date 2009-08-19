@@ -619,10 +619,13 @@ static int __devexit sdh_remove(struct platform_device *pdev)
 static int sdh_suspend(struct platform_device *dev, pm_message_t state)
 {
 	struct mmc_host *mmc = platform_get_drvdata(dev);
+	struct bfin_sd_host *drv_data = get_sdh_data(dev);
 	int ret = 0;
 
 	if (mmc)
 		ret = mmc_suspend_host(mmc, state);
+
+	peripheral_free_list(drv_data->pin_req);
 
 	return ret;
 }
@@ -630,7 +633,25 @@ static int sdh_suspend(struct platform_device *dev, pm_message_t state)
 static int sdh_resume(struct platform_device *dev)
 {
 	struct mmc_host *mmc = platform_get_drvdata(dev);
+	struct bfin_sd_host *drv_data = get_sdh_data(dev);
 	int ret = 0;
+
+	ret = peripheral_request_list(drv_data->pin_req, DRIVER_NAME);
+	if (ret) {
+		dev_err(&dev->dev, "unable to request peripheral pins\n");
+		return ret;
+	}
+#if defined(CONFIG_BF54x)
+	/* Secure Digital Host shares DMA with Nand controller */
+	bfin_write_DMAC1_PERIMUX(bfin_read_DMAC1_PERIMUX() | 0x1);
+#endif
+	bfin_write_SDH_CFG(bfin_read_SDH_CFG() | CLKS_EN);
+	SSYNC();
+	/* Disable card inserting detection pin.It's not that useful,since
+	 * we can't detect removal,and it will affect card detection on BF51x.
+	 */
+	bfin_write_SDH_CFG((bfin_read_SDH_CFG() & 0x1F) | 0x60);
+	SSYNC();
 
 	if (mmc)
 		ret = mmc_resume_host(mmc);
