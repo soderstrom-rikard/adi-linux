@@ -41,6 +41,7 @@
 #define NR_SG	32
 
 #if defined(CONFIG_BF51x)
+#define bfin_read_SDH_PWR_CTL		bfin_read_RSI_PWR_CTL
 #define bfin_write_SDH_PWR_CTL		bfin_write_RSI_PWR_CTL
 #define bfin_read_SDH_CLK_CTL		bfin_read_RSI_CLK_CTL
 #define bfin_write_SDH_CLK_CTL		bfin_write_RSI_CLK_CTL
@@ -622,6 +623,7 @@ static int sdh_suspend(struct platform_device *dev, pm_message_t state)
 	struct bfin_sd_host *drv_data = get_sdh_data(dev);
 	int ret = 0;
 
+	bfin_write_SDH_PWR_CTL(bfin_read_SDH_PWR_CTL() & ~PWR_ON);
 	if (mmc)
 		ret = mmc_suspend_host(mmc, state);
 
@@ -641,6 +643,8 @@ static int sdh_resume(struct platform_device *dev)
 		dev_err(&dev->dev, "unable to request peripheral pins\n");
 		return ret;
 	}
+
+	bfin_write_SDH_PWR_CTL(bfin_read_SDH_PWR_CTL() | PWR_ON);
 #if defined(CONFIG_BF54x)
 	/* Secure Digital Host shares DMA with Nand controller */
 	bfin_write_DMAC1_PERIMUX(bfin_read_DMAC1_PERIMUX() | 0x1);
