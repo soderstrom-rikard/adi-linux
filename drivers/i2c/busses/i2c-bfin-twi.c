@@ -157,7 +157,6 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 		SSYNC();
 		iface->result = -EIO;
 
-#ifdef DEBUG
 		if (mast_stat & LOSTARB)
 			dev_dbg(&iface->adap.dev, "Lost Arbitration\n");
 		if (mast_stat & ANAK)
@@ -168,7 +167,7 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 			dev_dbg(&iface->adap.dev, "Buffer Read Error\n");
 		if (mast_stat & BUFWRERR)
 			dev_dbg(&iface->adap.dev, "Buffer Write Error\n");
-#endif
+
 		/* if both err and complete int stats are set, return proper
 		 * results.
 		 */
