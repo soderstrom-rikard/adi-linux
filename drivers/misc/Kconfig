@@ -233,6 +233,17 @@ config ISL29003
 	  This driver can also be built as a module.  If so, the module
 	  will be called isl29003.
 
+config AD525X_DPOT
+	tristate "Analog Devices AD525x Digital Potentiometers"
+	depends on I2C && SYSFS
+	help
+	  If you say yes here, you get support for the Analog Devices
+	  AD5258, AD5259, AD5251, AD5252, AD5253, AD5254 and AD5255
+	  digital potentiometer chips.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called ad525x_dpot.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 
