@@ -30,11 +30,9 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 {
 	void __iomem *fifo = hw_ep->fifo;
 	void __iomem *epio = hw_ep->regs;
-
-#if !ANOMALY_05000380
 	u8 epnum = hw_ep->epnum;
 	u16 dma_reg = 0;
-#endif
+
 	prefetch((u8 *)src);
 
 	musb_writew(epio, MUSB_TXCOUNT, len);
@@ -44,60 +42,62 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 
 	dump_fifo_data(src, len);
 
-#if !ANOMALY_05000380
-	flush_dcache_range((unsigned int)src,
-		(unsigned int)(src + len));
+	if (!ANOMALY_05000380 && epnum != 0) {
+		flush_dcache_range((unsigned int)src,
+			(unsigned int)(src + len));
 
-	/* Setup DMA address register */
-	dma_reg = (u16) ((u32) src & 0xFFFF);
-	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_ADDR_LOW), dma_reg);
-	SSYNC();
+		/* Setup DMA address register */
+		dma_reg = (u16) ((u32) src & 0xFFFF);
+		bfin_write16(USB_DMA_REG(epnum, USB_DMAx_ADDR_LOW), dma_reg);
+		SSYNC();
 
-	dma_reg = (u16) (((u32) src >> 16) & 0xFFFF);
-	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_ADDR_HIGH), dma_reg);
-	SSYNC();
+		dma_reg = (u16) (((u32) src >> 16) & 0xFFFF);
+		bfin_write16(USB_DMA_REG(epnum, USB_DMAx_ADDR_HIGH), dma_reg);
+		SSYNC();
 
-	/* Setup DMA count register */
-	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_COUNT_LOW), len);
-	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_COUNT_HIGH), 0);
-	SSYNC();
+		/* Setup DMA count register */
+		bfin_write16(USB_DMA_REG(epnum, USB_DMAx_COUNT_LOW), len);
+		bfin_write16(USB_DMA_REG(epnum, USB_DMAx_COUNT_HIGH), 0);
+		SSYNC();
 
-	/* Enable the DMA */
-	dma_reg = (epnum << 4) | DMA_ENA | INT_ENA | DIRECTION;
-	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_CTRL), dma_reg);
-	SSYNC();
+		/* Enable the DMA */
+		dma_reg = (epnum << 4) | DMA_ENA | INT_ENA | DIRECTION;
+		bfin_write16(USB_DMA_REG(epnum, USB_DMAx_CTRL), dma_reg);
+		SSYNC();
 
-	/* Wait for compelete */
-	while (!(bfin_read_USB_DMA_INTERRUPT() & (1 << epnum)))
-		cpu_relax();
+		/* Wait for compelete */
+		while (!(bfin_read_USB_DMA_INTERRUPT() & (1 << epnum)))
+			cpu_relax();
 
-	/* acknowledge dma interrupt */
-	bfin_write_USB_DMA_INTERRUPT(1 << epnum);
-	SSYNC();
+		/* acknowledge dma interrupt */
+		bfin_write_USB_DMA_INTERRUPT(1 << epnum);
+		SSYNC();
 
-	/* Reset DMA */
-	bfin_write16(USB_DMA_REG(epnum, USB_DMAx_CTRL), 0);
-	SSYNC();
-#else
-	if (unlikely((unsigned long)src & 0x01))
-		outsw_8((unsigned long)fifo, src,
-			len & 0x01 ? (len >> 1) + 1 : len >> 1);
-	else
-		outsw((unsigned long)fifo, src,
-			len & 0x01 ? (len >> 1) + 1 : len >> 1);
-#endif
+		/* Reset DMA */
+		bfin_write16(USB_DMA_REG(epnum, USB_DMAx_CTRL), 0);
+		SSYNC();
+	} else {
+		SSYNC();
+
+		if (unlikely((unsigned long)src & 0x01))
+			outsw_8((unsigned long)fifo, src,
+				len & 0x01 ? (len >> 1) + 1 : len >> 1);
+		else
+			outsw((unsigned long)fifo, src,
+				len & 0x01 ? (len >> 1) + 1 : len >> 1);
+
+	}
 }
-
 /*
  * Unload an endpoint's FIFO
  */
 void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 {
 	void __iomem *fifo = hw_ep->fifo;
+	u8 epnum = hw_ep->epnum;
+	u16 dma_reg = 0;
 
-#if ANOMALY_05000467
-		u8 epnum = hw_ep->epnum;
-		u16 dma_reg = 0;
+	if (ANOMALY_05000467 && epnum != 0) {
 
 		invalidate_dcache_range((unsigned int)dst,
 			(unsigned int)(dst + len));
@@ -132,15 +132,23 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 		/* Reset DMA */
 		bfin_write16(USB_DMA_REG(epnum, USB_DMAx_CTRL), 0);
 		SSYNC();
-#else
-		if (unlikely((unsigned long)dst & 0x01))
-			insw_8((unsigned long)fifo, dst,
-				len & 0x01 ? (len >> 1) + 1 : len >> 1);
-		else
-			insw((unsigned long)fifo, dst,
-				len & 0x01 ? (len >> 1) + 1 : len >> 1);
-#endif
+	} else {
+		SSYNC();
+		/* Read the last byte of packet with odd size from address fifo + 4
+		 * to trigger 1 byte access to EP0 FIFO.
+		 */
+		if (len == 1)
+			*dst = (u8)inw((unsigned long)fifo + 4);
+		else {
+			if (unlikely((unsigned long)dst & 0x01))
+				insw_8((unsigned long)fifo, dst, len >> 1);
+			else
+				insw((unsigned long)fifo, dst, len >> 1);
 
+			if (len & 0x01)
+				*(dst + len - 1) = (u8)inw((unsigned long)fifo + 4);
+		}
+	}
 	DBG(4, "%cX ep%d fifo %p count %d buf %p\n",
 			'R', hw_ep->epnum, fifo, len, dst);
 
