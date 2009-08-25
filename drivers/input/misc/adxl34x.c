@@ -178,11 +178,9 @@
 #define AC_READ(ac, reg)	((ac)->read((ac)->bus, reg))
 #define AC_WRITE(ac, reg, val)	((ac)->write((ac)->bus, reg, val))
 
-#if defined(CONFIG_INPUT_ADXL34X_SPI) || \
-	defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
+#if defined(CONFIG_INPUT_ADXL34X_SPI)
 #define bus_device		struct spi_device
-#elif defined(CONFIG_INPUT_ADXL34X_I2C) || \
-	defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
+#elif defined(CONFIG_INPUT_ADXL34X_I2C)
 #define bus_device		struct i2c_client
 #else
 	#error Communication method needs to be selected (I2C or SPI)
@@ -846,8 +844,7 @@ static int adxl34x_resume(bus_device *bus)
 #define adxl34x_resume  NULL
 #endif
 
-#if defined(CONFIG_INPUT_ADXL34X_SPI) || \
-	defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
+#if defined(CONFIG_INPUT_ADXL34X_SPI)
 
 #define MAX_SPI_FREQ_HZ		5000000
 #define MAX_FREQ_NO_FIFODELAY	1500000
@@ -961,8 +958,7 @@ static void __exit adxl34x_spi_exit(void)
 
 module_exit(adxl34x_spi_exit);
 
-#elif defined(CONFIG_INPUT_ADXL34X_I2C) || \
-	defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
+#elif defined(CONFIG_INPUT_ADXL34X_I2C)
 
 static int adxl34x_i2c_smbus_read(struct i2c_client *client, unsigned char reg)
 {
