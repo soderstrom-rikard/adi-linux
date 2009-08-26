@@ -116,10 +116,19 @@
 #define KEYP_MAX_EVENT 		10
 #define DRV_NAME		"adp5588-keys"
 
+/*
+ * Early pre 4.0 Silicon required to delay readout by at least 25ms,
+ * since the Event Counter Register updated 25ms after the interrupt
+ * asserted.
+ */
+
+#define WA_DELAYED_READOUT_REVID	4
+
 struct adp5588_kpad {
 	struct i2c_client *client;
 	struct input_dev *input;
 	struct delayed_work work;
+	unsigned revid;
 	unsigned short keycode[ADP5588_KEYMAPSIZE];
 };
 
@@ -171,10 +180,13 @@ static irqreturn_t adp5588_irq(int irq, void *handle)
 
 	/*
 	 * use keventd context to read the event fifo registers
-	 * Schedule readout at least 25ms after notification
+	 * Schedule readout at least 25ms after notification for
+	 * REVID < 4
 	 */
+
 	schedule_delayed_work(&kpad->work,
-				(unsigned long) msecs_to_jiffies(30));
+			kpad->revid < WA_DELAYED_READOUT_REVID ?
+			(unsigned long) msecs_to_jiffies(30) : 0);
 
 	return IRQ_HANDLED;
 }
@@ -218,7 +230,6 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	struct adp5588_kpad_platform_data *pdata = client->dev.platform_data;
 	struct input_dev *input;
 	int ret, i;
-	u8 revid;
 
 	if (!i2c_check_functionality(client->adapter,
 					I2C_FUNC_SMBUS_BYTE_DATA)) {
@@ -266,9 +277,9 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 		goto out1;
 	}
 
-	revid = (u8) ret;
-
+	kpad->revid = (u8) ret & ADP5588_DEVICE_ID_MASK;
 	INIT_DELAYED_WORK(&kpad->work, adp5588_work);
+
 	kpad->input = input;
 
 	input->name = client->name;
@@ -280,7 +291,7 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	input->id.bustype = BUS_I2C;
 	input->id.vendor = 0x0001;
 	input->id.product = 0x0001;
-	input->id.version = revid;
+	input->id.version = kpad->revid;
 
 	input->keycodesize = sizeof(unsigned short);
 	input->keycodemax = pdata->keymapsize;
@@ -319,8 +330,10 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	if (ret)
 		goto out3;
 
+	device_init_wakeup(&client->dev, 1);
+
 	dev_info(&client->dev, "Rev.%d keypad, irq %d\n",
-		revid, client->irq);
+		kpad->revid, client->irq);
 
 	return ret;
 
@@ -351,15 +364,20 @@ static int __devexit adp5588_remove(struct i2c_client *client)
 static int adp5588_suspend(struct i2c_client *client, pm_message_t state)
 {
 	disable_irq(client->irq);
-	adp5588_write(client, CFG, 0);
+
+	if (device_may_wakeup(&client->dev))
+		enable_irq_wake(client->irq);
 
 	return 0;
 }
 
 static int adp5588_resume(struct i2c_client *client)
 {
+	if (device_may_wakeup(&client->dev))
+		disable_irq_wake(client->irq);
+
 	enable_irq(client->irq);
-	return 	adp5588_setup(client);
+	return 0;
 }
 #else
 # define adp5588_suspend NULL
