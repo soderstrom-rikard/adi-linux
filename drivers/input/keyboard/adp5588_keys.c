@@ -121,8 +121,7 @@
  * since the Event Counter Register updated 25ms after the interrupt
  * asserted.
  */
-
-#define WA_DELAYED_READOUT_REVID	4
+#define WA_DELAYED_READOUT_REVID(rev)		((rev) < 4)
 
 struct adp5588_kpad {
 	struct i2c_client *client;
@@ -185,7 +184,7 @@ static irqreturn_t adp5588_irq(int irq, void *handle)
 	 */
 
 	schedule_delayed_work(&kpad->work,
-			kpad->revid < WA_DELAYED_READOUT_REVID ?
+			WA_DELAYED_READOUT_REVID(kpad->revid) ?
 			(unsigned long) msecs_to_jiffies(30) : 0);
 
 	return IRQ_HANDLED;
