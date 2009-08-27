@@ -551,10 +551,115 @@ static struct bfin5xx_spi_chip ad1938_spi_chip_info = {
 };
 #endif
 
-#if defined(CONFIG_INPUT_AD7147) || defined(CONFIG_INPUT_AD7147_MODULE)
+#if defined(CONFIG_INPUT_EVAL_AD7147EBZ)
+#include <linux/input.h>
+#include <linux/spi/ad714x.h>
 static struct bfin5xx_spi_chip ad7147_spi_chip_info = {
 	.enable_dma = 0,
 	.bits_per_word = 16,
+};
+
+static struct ad714x_slider_plat slider_plat[] = {
+	{
+		.start_stage = 0,
+		.end_stage = 7,
+		.max_coord = 128,
+	},
+};
+
+static struct ad714x_button_plat button_plat[] = {
+	{
+		.event = BTN_FORWARD,
+		.l_mask = 0,
+		.h_mask = 0x600,
+	},
+	{
+		.event = BTN_LEFT,
+		.l_mask = 0,
+		.h_mask = 0x500,
+	},
+	{
+		.event = BTN_MIDDLE,
+		.l_mask = 0,
+		.h_mask = 0x800,
+	},
+	{
+		.event = BTN_RIGHT,
+		.l_mask = 0x100,
+		.h_mask = 0x400,
+	},
+	{
+		.event = BTN_BACK,
+		.l_mask = 0x200,
+		.h_mask = 0x400,
+	},
+};
+static struct ad714x_platform_data ad7147_platfrom_data = {
+	.slider_num = 1,
+	.button_num = 5,
+	.slider = slider_plat,
+	.button = button_plat,
+	.stage_cfg_reg =  {
+		{0xFBFF, 0x1FFF, 0, 0x2626, 1600, 1600, 1600, 1600},
+		{0xEFFF, 0x1FFF, 0, 0x2626, 1650, 1650, 1650, 1650},
+		{0xFFFF, 0x1FFE, 0, 0x2626, 1650, 1650, 1650, 1650},
+		{0xFFFF, 0x1FFB, 0, 0x2626, 1650, 1650, 1650, 1650},
+		{0xFFFF, 0x1FEF, 0, 0x2626, 1650, 1650, 1650, 1650},
+		{0xFFFF, 0x1FBF, 0, 0x2626, 1650, 1650, 1650, 1650},
+		{0xFFFF, 0x1EFF, 0, 0x2626, 1650, 1650, 1650, 1650},
+		{0xFFFF, 0x1BFF, 0, 0x2626, 1600, 1600, 1600, 1600},
+		{0xFF7B, 0x3FFF, 0x506,  0x2626, 1100, 1100, 1150, 1150},
+		{0xFDFE, 0x3FFF, 0x606,  0x2626, 1100, 1100, 1150, 1150},
+		{0xFEBA, 0x1FFF, 0x1400, 0x2626, 1200, 1200, 1300, 1300},
+		{0xFFEF, 0x1FFF, 0x0,    0x2626, 1100, 1100, 1150, 1150},
+	},
+	.sys_cfg_reg = {0x2B2, 0x0, 0x3233, 0x819, 0x832, 0xCFF, 0xCFF, 0x0},
+};
+#elif defined(CONFIG_INPUT_EVAL_AD7142EB)
+#include <linux/input.h>
+#include <linux/spi/ad714x.h>
+static struct ad714x_button_plat button_plat[] = {
+	{
+		.event = BTN_1,
+		.l_mask = 0,
+		.h_mask = 0x1,
+	},
+	{
+		.event = BTN_2,
+		.l_mask = 0,
+		.h_mask = 0x2,
+	},
+	{
+		.event = BTN_3,
+		.l_mask = 0,
+		.h_mask = 0x4,
+	},
+	{
+		.event = BTN_4,
+		.l_mask = 0x0,
+		.h_mask = 0x8,
+	},
+};
+static struct ad714x_platform_data ad7142_platfrom_data = {
+	.button_num = 4,
+	.button = button_plat,
+	.stage_cfg_reg =  {
+		/* fixme: figure out right setting for all comoponent according
+		 * to hardware feature of EVAL-AD7142EB board */
+		{0xE7FF, 0x3FFF, 0x0005, 0x2626, 0x01F4, 0x01F4, 0x028A, 0x028A},
+		{0xFDBF, 0x3FFF, 0x0001, 0x2626, 0x01F4, 0x01F4, 0x028A, 0x028A},
+		{0xFFFF, 0x2DFF, 0x0001, 0x2626, 0x01F4, 0x01F4, 0x028A, 0x028A},
+		{0xFFFF, 0x37BF, 0x0001, 0x2626, 0x01F4, 0x01F4, 0x028A, 0x028A},
+		{0xFFFF, 0x3FFF, 0x0000, 0x0606, 0x01F4, 0x01F4, 0x0320, 0x0320},
+		{0xFFFF, 0x3FFF, 0x0000, 0x0606, 0x01F4, 0x01F4, 0x0320, 0x0320},
+		{0xFFFF, 0x3FFF, 0x0000, 0x0606, 0x01F4, 0x01F4, 0x0320, 0x0320},
+		{0xFFFF, 0x3FFF, 0x0000, 0x0606, 0x01F4, 0x01F4, 0x0320, 0x0320},
+		{0xFFFF, 0x3FFF, 0x0000, 0x0606, 0x01F4, 0x01F4, 0x0320, 0x0320},
+		{0xFFFF, 0x3FFF, 0x0000, 0x0606, 0x01F4, 0x01F4, 0x0320, 0x0320},
+		{0xFFFF, 0x3FFF, 0x0000, 0x0606, 0x01F4, 0x01F4, 0x0320, 0x0320},
+		{0xFFFF, 0x3FFF, 0x0000, 0x0606, 0x01F4, 0x01F4, 0x0320, 0x0320},
+	},
+	.sys_cfg_reg = {0x0B2, 0x0, 0x690, 0x664, 0x290F, 0xF, 0xF, 0x0},
 };
 #endif
 
@@ -787,14 +892,15 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 	},
 #endif
 
-#if defined(CONFIG_INPUT_AD7147) || defined(CONFIG_INPUT_AD7147_MODULE)
+#if defined(CONFIG_INPUT_EVAL_AD7147EBZ)
 	{
-		.modalias = "ad7147-spi",
+		.modalias = "ad714x_captouch",
 		.max_speed_hz = 1000000,     /* max spi clock (SCK) speed in HZ */
 		.irq = IRQ_PF4,
 		.bus_num = 0,
 		.chip_select = 5,
 		.mode = SPI_MODE_3,
+		.platform_data = &ad7147_platfrom_data,
 		.controller_data = &ad7147_spi_chip_info,
 	},
 #endif
@@ -1334,10 +1440,11 @@ static struct adp5520_platform_data adp5520_pdev_data = {
 #endif
 
 static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
-#if defined(CONFIG_INPUT_AD7142) || defined(CONFIG_INPUT_AD7142_MODULE)
+#if defined(CONFIG_INPUT_EVAL_AD7142EB)
 	{
-		I2C_BOARD_INFO("ad7142_captouch", 0x2C),
+		I2C_BOARD_INFO("ad714x_captouch", 0x2C),
 		.irq = IRQ_PG5,
+		.platform_data = (void *)&ad7142_platfrom_data,
 	},
 #endif
 #if defined(CONFIG_BFIN_TWI_LCD) || defined(CONFIG_BFIN_TWI_LCD_MODULE)

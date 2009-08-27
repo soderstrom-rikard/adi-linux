@@ -4,8 +4,7 @@
 
 # Each configuration option enables a list of files.
 
-obj-$(CONFIG_INPUT_AD7147)		+= ad7147.o
-obj-$(CONFIG_INPUT_AD7142)		+= ad7142.o
+obj-$(CONFIG_INPUT_AD714X)		+= ad714x.o
 obj-$(CONFIG_INPUT_APANEL)		+= apanel.o
 obj-$(CONFIG_INPUT_PCF8574)		+= pcf8574_keypad.o
 obj-$(CONFIG_INPUT_ATI_REMOTE)		+= ati_remote.o

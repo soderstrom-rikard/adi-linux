@@ -250,23 +250,56 @@ config INPUT_RB532_BUTTON
 	  To compile this driver as a module, choose M here: the
 	  module will be called rb532_button.
 
-config INPUT_AD7142
-	tristate "Analog Devices AD7142 Capacitance Touch Sensor"
+config INPUT_AD714X
+	tristate "Analog Devices AD714X Capacitance Touch Sensor"
+	depends on SPI || I2C
+	help
+	  Say Y here if you want to support an AD714X touch sensor.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ad714X.
+
+choice
+	prompt "AD714X Communication Method"
+	depends on INPUT_AD714X
+	default INPUT_AD714X_I2C if I2C
+	default INPUT_AD714X_SPI if (!I2C) && SPI_MASTER
+
+config INPUT_AD714X_I2C
+	bool "I2C Interface"
 	depends on I2C
 	help
-	  Say Y here if you want to support the AD7142 touch sensor.
+	  Select this if you have a Capacitance Touch Sensor using the
+	  AD714X controller, and your board-specific initialization
+	  code includes that in its table of I2C devices.
 
-	  To compile this driver as a module, choose M here: the
-	  module will be called ad7142.
-
-config INPUT_AD7147
-	tristate "Analog Devices AD7147 Capacitance Touch Sensor"
-	depends on SPI
+config INPUT_AD714X_SPI
+	bool "SPI Interface"
+	depends on SPI_MASTER
 	help
-	  Say Y here if you want to support an AD7147 touch sensor.
+	  Select this if you have a Capacitance Touch Sensor using the
+	  AD714X controller, and your board-specific initialization
+	  code includes that in its table of SPI devices.
+endchoice
 
-	  To compile this driver as a module, choose M here: the
-	  module will be called ad7147.
+choice
+	prompt "Select a AD7142/AD7147 board you are connecting"
+	depends on INPUT_AD714X
+
+config INPUT_EVAL_AD7147EBZ
+	bool "ADI EVAL-AD7147EBZ board"
+	depends on INPUT_AD714X_SPI
+	help
+	  Select this if you are using ADI EVAL-AD7147EBZ board, there are
+	  five buttons and one slider on this board.
+
+config INPUT_EVAL_AD7142EB
+	bool "ADI EVAL-AD7142EB board"
+	depends on INPUT_AD714X_I2C
+	help
+	  Select this if you are using ADI EVAL-AD7142EB board, there are
+	  four buttons and two sliders on this board.
+endchoice
 
 config INPUT_ADXL34X
 	tristate "ADXL345/346 Three-Axis Digital Accelerometer"
