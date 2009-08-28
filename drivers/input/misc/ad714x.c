@@ -93,7 +93,7 @@
 #endif
 
 /*
- * driver information which will be uesed to maintain the software flow
+ * driver information which will be used to maintain the software flow
  */
 typedef enum {IDLE, JITTER, ACTIVE, SPACE} ad714x_device_state;
 
@@ -106,9 +106,16 @@ struct ad714x_slider_drv {
 };
 
 struct ad714x_wheel_drv {
-	int highest_stage;
 	int abs_pos;
-	int rev_pos;
+	int flt_pos;
+	int pre_mean_value;
+	int pre_highest_stage;
+	int pre_mean_value_no_offset;
+	int mean_value;
+	int mean_value_no_offset;
+	int pos_offset;
+	int pos_ratio;
+	int highest_stage;
 	ad714x_device_state state;
 	struct input_dev *input;
 };
@@ -121,9 +128,13 @@ struct ad714x_touchpad_drv {
 	int y_flt_pos;
 	int y_abs_pos;
 	int left_ep;
+	int left_ep_val;
 	int right_ep;
+	int right_ep_val;
 	int top_ep;
+	int top_ep_val;
 	int bottom_ep;
+	int bottom_ep_val;
 	ad714x_device_state state;
 	struct input_dev *input;
 };
@@ -162,10 +173,93 @@ struct ad714x_chip {
 	struct mutex mutex;
 };
 
+static void stage_use_com_int(struct ad714x_chip *ad714x, int start_stage,
+		int end_stage)
+{
+	unsigned short data;
+	unsigned short mask;
+
+	mask = ((1 << (end_stage + 1)) - 1) - (1 << start_stage);
+
+	ad714x->read(ad714x->bus, STG_COM_INT_EN_REG, &data);
+	data |= 1 << start_stage;
+	ad714x->write(ad714x->bus, STG_COM_INT_EN_REG, data);
+
+	ad714x->read(ad714x->bus, STG_HIGH_INT_EN_REG, &data);
+	data &= ~mask;
+	ad714x->write(ad714x->bus, STG_HIGH_INT_EN_REG, data);
+}
+
+static void stage_use_thr_int(struct ad714x_chip *ad714x, int start_stage,
+		int end_stage)
+{
+	unsigned short data;
+	unsigned short mask;
+
+	mask = ((1 << (end_stage + 1)) - 1) - (1 << start_stage);
+
+	ad714x->read(ad714x->bus, STG_COM_INT_EN_REG, &data);
+	data &= ~(1 << start_stage);
+	ad714x->write(ad714x->bus, STG_COM_INT_EN_REG, data);
+
+	ad714x->read(ad714x->bus, STG_HIGH_INT_EN_REG, &data);
+	data |= mask;
+	ad714x->write(ad714x->bus, STG_HIGH_INT_EN_REG, data);
+}
+
+static int stage_cal_highest_stage(struct ad714x_chip *ad714x, int start_stage,
+		int end_stage)
+{
+	int max_res = 0;
+	int max_idx = 0;
+	int i;
+
+	for (i = start_stage; i <= end_stage; i++) {
+		if (ad714x->sensor_val[i] > max_res) {
+			max_res = ad714x->sensor_val[i];
+			max_idx = i;
+		}
+	}
+
+	return max_idx;
+}
+
+static int stage_cal_abs_pos(struct ad714x_chip *ad714x, int start_stage,
+		int end_stage, int highest_stage, int max_coord)
+{
+	int a_param, b_param;
+
+	if (highest_stage == start_stage) {
+		a_param = ad714x->sensor_val[start_stage + 1];
+		b_param = ad714x->sensor_val[start_stage] +
+			ad714x->sensor_val[start_stage + 1];
+	} else if (highest_stage == end_stage) {
+		a_param = ad714x->sensor_val[end_stage] *
+			(end_stage - start_stage) +
+			ad714x->sensor_val[end_stage - 1] *
+			(end_stage - start_stage - 1);
+		b_param = ad714x->sensor_val[end_stage] +
+			ad714x->sensor_val[end_stage - 1];
+	} else {
+		a_param = ad714x->sensor_val[highest_stage] *
+			(highest_stage - start_stage) +
+			ad714x->sensor_val[highest_stage - 1] *
+			(highest_stage - start_stage - 1) +
+			ad714x->sensor_val[highest_stage + 1] *
+			(highest_stage - start_stage + 1);
+		b_param = ad714x->sensor_val[highest_stage] +
+			ad714x->sensor_val[highest_stage - 1] +
+			ad714x->sensor_val[highest_stage + 1];
+	}
+
+	return (max_coord / (end_stage - start_stage)) * a_param / b_param;
+}
+
+
 /* One button can connect to multi postive and negative of CDCs
  * Multi-buttons can connect to same postive/negative of one CDC
  */
-void button_state_machine(struct ad714x_chip *ad714x, int idx)
+static void button_state_machine(struct ad714x_chip *ad714x, int idx)
 {
 	struct ad714x_button_plat *hw = &ad714x->hw->button[idx];
 	struct ad714x_button_drv *sw = &ad714x->sw->button[idx];
@@ -218,17 +312,9 @@ void slider_cal_highest_stage(struct ad714x_chip *ad714x, int idx)
 {
 	struct ad714x_slider_plat *hw = &ad714x->hw->slider[idx];
 	struct ad714x_slider_drv *sw = &ad714x->sw->slider[idx];
-	int max_res = 0;
-	int max_idx = 0;
-	int i;
 
-	for (i = hw->start_stage; i <= hw->end_stage; i++) {
-		if (ad714x->sensor_val[i] > max_res) {
-			max_res = ad714x->sensor_val[i];
-			max_idx = i;
-		}
-	}
-	sw->highest_stage = max_idx;
+	sw->highest_stage = stage_cal_highest_stage(ad714x, hw->start_stage,
+			hw->end_stage);
 
 	ad714x_debug("slider %d highest_stage:%d\n", idx, sw->highest_stage);
 }
@@ -249,32 +335,9 @@ void slider_cal_abs_pos(struct ad714x_chip *ad714x, int idx)
 {
 	struct ad714x_slider_plat *hw = &ad714x->hw->slider[idx];
 	struct ad714x_slider_drv *sw = &ad714x->sw->slider[idx];
-	int a_param, b_param;
 
-	if (sw->highest_stage == hw->start_stage) {
-		a_param = ad714x->sensor_val[hw->start_stage + 1];
-		b_param = ad714x->sensor_val[hw->start_stage] +
-			ad714x->sensor_val[hw->start_stage + 1];
-	} else if (sw->highest_stage == hw->end_stage) {
-		a_param = ad714x->sensor_val[hw->end_stage] *
-			(hw->end_stage - hw->start_stage) +
-			ad714x->sensor_val[hw->end_stage - 1] *
-			(hw->end_stage - hw->start_stage - 1);
-		b_param = ad714x->sensor_val[hw->end_stage] +
-			ad714x->sensor_val[hw->end_stage - 1];
-	} else {
-		a_param = ad714x->sensor_val[sw->highest_stage] *
-			(sw->highest_stage - hw->start_stage) +
-			ad714x->sensor_val[sw->highest_stage - 1] *
-			(sw->highest_stage - hw->start_stage - 1) +
-			ad714x->sensor_val[sw->highest_stage + 1] *
-			(sw->highest_stage - hw->start_stage + 1);
-		b_param = ad714x->sensor_val[sw->highest_stage] +
-			ad714x->sensor_val[sw->highest_stage - 1] +
-			ad714x->sensor_val[sw->highest_stage + 1];
-	}
-	sw->abs_pos = (hw->max_coord / (hw->end_stage - hw->start_stage))
-		* a_param / b_param;
+	sw->abs_pos = stage_cal_abs_pos(ad714x, hw->start_stage, hw->end_stage,
+		sw->highest_stage, hw->max_coord);
 
 	ad714x_debug("slider %d absolute position:%d\n", idx, sw->abs_pos);
 }
@@ -302,38 +365,16 @@ void slider_cal_flt_pos(struct ad714x_chip *ad714x, int idx)
 static void slider_use_com_int(struct ad714x_chip *ad714x, int idx)
 {
 	struct ad714x_slider_plat *hw = &ad714x->hw->slider[idx];
-	unsigned short data;
-	unsigned short mask;
-
-	mask = ((1 << (hw->end_stage + 1)) - 1) - (1 << hw->start_stage);
-
-	ad714x->read(ad714x->bus, STG_COM_INT_EN_REG, &data);
-	data |= 1 << hw->start_stage;
-	ad714x->write(ad714x->bus, STG_COM_INT_EN_REG, data);
-
-	ad714x->read(ad714x->bus, STG_HIGH_INT_EN_REG, &data);
-	data &= ~mask;
-	ad714x->write(ad714x->bus, STG_HIGH_INT_EN_REG, data);
+	stage_use_com_int(ad714x, hw->start_stage, hw->end_stage);
 }
 
 static void slider_use_thr_int(struct ad714x_chip *ad714x, int idx)
 {
 	struct ad714x_slider_plat *hw = &ad714x->hw->slider[idx];
-	unsigned short data;
-	unsigned short mask;
-
-	mask = ((1 << (hw->end_stage + 1)) - 1) - (1 << hw->start_stage);
-
-	ad714x->read(ad714x->bus, STG_COM_INT_EN_REG, &data);
-	data &= ~(1 << hw->start_stage);
-	ad714x->write(ad714x->bus, STG_COM_INT_EN_REG, data);
-
-	ad714x->read(ad714x->bus, STG_HIGH_INT_EN_REG, &data);
-	data |= mask;
-	ad714x->write(ad714x->bus, STG_HIGH_INT_EN_REG, data);
+	stage_use_thr_int(ad714x, hw->start_stage, hw->end_stage);
 }
 
-void slider_state_machine(struct ad714x_chip *ad714x, int idx)
+static void slider_state_machine(struct ad714x_chip *ad714x, int idx)
 {
 	struct ad714x_slider_plat *hw = &ad714x->hw->slider[idx];
 	struct ad714x_slider_drv *sw = &ad714x->sw->slider[idx];
@@ -400,44 +441,329 @@ void slider_state_machine(struct ad714x_chip *ad714x, int idx)
  */
 void wheel_cal_highest_stage(struct ad714x_chip *ad714x, int idx)
 {
+	struct ad714x_wheel_plat *hw = &ad714x->hw->wheel[idx];
+	struct ad714x_wheel_drv *sw = &ad714x->sw->wheel[idx];
+
+	sw->pre_highest_stage = sw->highest_stage;
+	sw->highest_stage = stage_cal_highest_stage(ad714x, hw->start_stage,
+			hw->end_stage);
+
+	ad714x_debug("wheel %d highest_stage:%d\n", idx, sw->highest_stage);
 }
 
 void wheel_cal_sensor_val(struct ad714x_chip *ad714x, int idx)
 {
+	struct ad714x_wheel_plat *hw = &ad714x->hw->wheel[idx];
+	int i;
+
+	for (i = hw->start_stage; i <= hw->end_stage; i++) {
+		ad714x->read(ad714x->bus, CDC_RESULT_S0 + i,
+			&ad714x->adc_reg[i]);
+		ad714x->read(ad714x->bus,
+				STAGE0_AMBIENT + i * PER_STAGE_REG_NUM,
+				&ad714x->amb_reg[i]);
+		if (ad714x->adc_reg[i] > ad714x->amb_reg[i])
+			ad714x->sensor_val[i] = ad714x->adc_reg[i] -
+				ad714x->amb_reg[i];
+		else
+			ad714x->sensor_val[i] = 0;
+	}
 }
 
+/* When the scroll wheel is activated, we compute the absolute position based
+ * on the sensor values. To calculate the position, we first determine the
+ * sensor that has the greatest response among the 8 sensors that constitutes
+ * the scrollwheel. Then we determined the 2 sensors on either sides of the
+ * sensor with the highest response and we apply weights to these sensors. The
+ * result of this computation gives us the mean value which defined by the
+ * following formula:
+ * For i= second_before_highest_stage to i= second_after_highest_stage
+ *         v += Sensor response(i)*WEIGHT*(i+3)
+ *         w += Sensor response(i)
+ * Mean_Value=v/w
+ * pos_on_scrollwheel = (Mean_Value - position_offset) / position_ratio
+ *
+ */
+
+#define WEIGHT_FACTOR 30
+/* This constant prevents the "PositionOffset" from reaching a big value */
+#define OFFSET_POSITION_CLAMP	120
 void wheel_cal_abs_pos(struct ad714x_chip *ad714x, int idx)
 {
+	struct ad714x_wheel_plat *hw = &ad714x->hw->wheel[idx];
+	struct ad714x_wheel_drv *sw = &ad714x->sw->wheel[idx];
+	int stage_num = hw->end_stage - hw->start_stage + 1;
+	int second_before, first_before, highest, first_after, second_after;
+	int a_param, b_param;
+
+	/* Calculate Mean value */
+
+	second_before = (sw->highest_stage + stage_num - 2) % stage_num;
+	first_before = (sw->highest_stage + stage_num - 1) % stage_num;
+	highest = sw->highest_stage;
+	first_after = (sw->highest_stage + stage_num + 1) % stage_num;
+	second_after = (sw->highest_stage + stage_num + 2) % stage_num;
+
+	if (((sw->highest_stage - hw->start_stage) > 1) &&
+			((hw->end_stage - sw->highest_stage) > 1)) {
+		a_param = ad714x->sensor_val[second_before] *
+			(second_before - hw->start_stage + 3) +
+			ad714x->sensor_val[first_before] *
+			(second_before - hw->start_stage + 3) +
+			ad714x->sensor_val[highest] *
+			(second_before - hw->start_stage + 3) +
+			ad714x->sensor_val[first_after] *
+			(first_after - hw->start_stage + 3) +
+			ad714x->sensor_val[second_after] *
+			(second_after - hw->start_stage + 3);
+	} else {
+		a_param = ad714x->sensor_val[second_before] *
+			(second_before - hw->start_stage + 1) +
+			ad714x->sensor_val[first_before] *
+			(second_before - hw->start_stage + 2) +
+			ad714x->sensor_val[highest] *
+			(second_before - hw->start_stage + 3) +
+			ad714x->sensor_val[first_after] *
+			(first_after - hw->start_stage + 4) +
+			ad714x->sensor_val[second_after] *
+			(second_after - hw->start_stage + 5);
+	}
+	a_param *= WEIGHT_FACTOR;
+
+	b_param = ad714x->sensor_val[second_before] +
+		ad714x->sensor_val[first_before] +
+		ad714x->sensor_val[highest] +
+		ad714x->sensor_val[first_after] +
+		ad714x->sensor_val[second_after];
+
+	sw->pre_mean_value = sw->mean_value;
+	sw->mean_value = a_param / b_param;
+
+	/* Calculate the offset */
+
+	if ((sw->pre_highest_stage == hw->end_stage) &&
+			(sw->highest_stage == hw->start_stage))
+		sw->pos_offset = sw->mean_value;
+	else if ((sw->pre_highest_stage == hw->start_stage) &&
+			(sw->highest_stage == hw->end_stage))
+		sw->pos_offset = sw->pre_mean_value;
+	if (sw->pos_offset > OFFSET_POSITION_CLAMP)
+		sw->pos_offset = OFFSET_POSITION_CLAMP;
+
+	/* Calculate the mean value without the offset */
+
+	sw->pre_mean_value_no_offset = sw->mean_value_no_offset;
+	sw->mean_value_no_offset = sw->mean_value - sw->pos_offset;
+	if (sw->mean_value_no_offset < 0)
+		sw->mean_value_no_offset = 0;
+
+	/* Calculate ratio to scale down to NUMBER_OF_WANTED_POSITIONS */
+
+	if ((sw->pre_highest_stage == hw->end_stage) &&
+			(sw->highest_stage == hw->start_stage))
+		sw->pos_ratio = (sw->pre_mean_value_no_offset * 100) /
+			hw->max_coord;
+	else if ((sw->pre_highest_stage == hw->start_stage) &&
+			(sw->highest_stage == hw->end_stage))
+		sw->pos_ratio = (sw->mean_value_no_offset * 100) /
+			hw->max_coord;
+	sw->abs_pos = (sw->mean_value_no_offset * 100) / sw->pos_ratio;
+	if (sw->abs_pos > hw->max_coord)
+		sw->abs_pos = hw->max_coord;
 }
 
-void wheel_state_machine(struct ad714x_chip *ad714x, int idx)
+void wheel_cal_flt_pos(struct ad714x_chip *ad714x, int idx)
 {
+	struct ad714x_wheel_plat *hw = &ad714x->hw->wheel[idx];
+	struct ad714x_wheel_drv *sw = &ad714x->sw->wheel[idx];
+	if (((sw->pre_highest_stage == hw->end_stage) &&
+				(sw->highest_stage == hw->start_stage)) ||
+			((sw->pre_highest_stage == hw->start_stage) &&
+			 (sw->highest_stage == hw->end_stage)))
+		sw->flt_pos = sw->abs_pos;
+	else
+		sw->flt_pos = ((sw->flt_pos * 30) + (sw->abs_pos * 71)) / 100;
+
+	if (sw->flt_pos > hw->max_coord)
+		sw->flt_pos = hw->max_coord;
 }
 
-void touchpad_cal_highest_stage(struct ad714x_chip *ad714x, int idx)
+static void wheel_use_com_int(struct ad714x_chip *ad714x, int idx)
 {
+	struct ad714x_wheel_plat *hw = &ad714x->hw->wheel[idx];
+	stage_use_com_int(ad714x, hw->start_stage, hw->end_stage);
 }
 
-void touchpad_cal_second_peak(struct ad714x_chip *ad714x, int idx)
+static void wheel_use_thr_int(struct ad714x_chip *ad714x, int idx)
 {
+	struct ad714x_wheel_plat *hw = &ad714x->hw->wheel[idx];
+	stage_use_thr_int(ad714x, hw->start_stage, hw->end_stage);
 }
 
-/* The calculation of the background noise level is computed both for the X-Axis
- * and the Y-Axis distributions. When the sensor with the highest response
- * changes from one interrupt to another then the firmware defines the sensors
- * that are allowed to have their noise level updated.
+static void wheel_state_machine(struct ad714x_chip *ad714x, int idx)
+{
+	struct ad714x_wheel_plat *hw = &ad714x->hw->wheel[idx];
+	struct ad714x_wheel_drv *sw = &ad714x->sw->wheel[idx];
+	unsigned short h_state, c_state;
+	unsigned short mask;
+
+	mask = ((1 << (hw->end_stage + 1)) - 1) - ((1 << hw->start_stage) - 1);
+
+	h_state = ad714x->h_state & mask;
+	c_state = ad714x->c_state & mask;
+
+	switch (sw->state) {
+	case IDLE:
+		if (h_state) {
+			sw->state = JITTER;
+			/* In End of Conversion interrupt mode, the AD714x
+			 * continuously generates hardware interrupts.
+			 */
+			wheel_use_com_int(ad714x, idx);
+			ad714x_debug("wheel %d touched\n", idx);
+		}
+		break;
+	case JITTER:
+		if (c_state == mask)	{
+			wheel_cal_sensor_val(ad714x, idx);
+			wheel_cal_highest_stage(ad714x, idx);
+			wheel_cal_abs_pos(ad714x, idx);
+			sw->flt_pos = sw->abs_pos;
+			sw->state = ACTIVE;
+		}
+		break;
+	case ACTIVE:
+		if (c_state == mask) {
+			if (h_state) {
+				wheel_cal_sensor_val(ad714x, idx);
+				wheel_cal_highest_stage(ad714x, idx);
+				wheel_cal_abs_pos(ad714x, idx);
+
+				input_report_abs(sw->input, ABS_WHEEL,
+					sw->abs_pos);
+				input_report_abs(sw->input, ABS_PRESSURE, 1);
+			} else {
+				/* When the user lifts off the sensor, configure
+				 * the AD714X back to threshold interrupt mode.
+				 */
+				wheel_use_thr_int(ad714x, idx);
+				sw->state = IDLE;
+				input_report_abs(sw->input, ABS_PRESSURE, 0);
+
+				ad714x_debug("wheel %d released\n", idx);
+			}
+			input_sync(sw->input);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+void touchpad_cal_sensor_val(struct ad714x_chip *ad714x, int idx)
+{
+	struct ad714x_touchpad_plat *hw = &ad714x->hw->touchpad[idx];
+	int i;
+
+	for (i = hw->x_start_stage; i <= hw->x_end_stage; i++) {
+		ad714x->read(ad714x->bus, CDC_RESULT_S0 + i,
+				&ad714x->adc_reg[i]);
+		ad714x->read(ad714x->bus,
+				STAGE0_AMBIENT + i * PER_STAGE_REG_NUM,
+				&ad714x->amb_reg[i]);
+		if (ad714x->adc_reg[i] > ad714x->amb_reg[i])
+			ad714x->sensor_val[i] = ad714x->adc_reg[i] -
+				ad714x->amb_reg[i];
+		else
+			ad714x->sensor_val[i] = 0;
+	}
+}
+
+static void touchpad_cal_highest_stage(struct ad714x_chip *ad714x, int idx)
+{
+	struct ad714x_touchpad_plat *hw = &ad714x->hw->touchpad[idx];
+	struct ad714x_touchpad_drv *sw = &ad714x->sw->touchpad[idx];
+
+	sw->x_highest_stage = stage_cal_highest_stage(ad714x, hw->x_start_stage,
+			hw->x_end_stage);
+	sw->y_highest_stage = stage_cal_highest_stage(ad714x, hw->y_start_stage,
+			hw->y_end_stage);
+
+	ad714x_debug("touchpad %d x_highest_stage:%d, y_highest_stage:%d\n",
+			idx, sw->x_highest_stage, sw->y_highest_stage);
+}
+
+/* If 2 fingers are touching the sensor then 2 peaks can be observed in the
+ * distribution.
+ * The arithmetic doesn't support to get absolute coordinates for multi-touch
+ * yet.
  */
-void touchpad_cal_backgroud_noise(struct ad714x_chip *ad714x, int idx)
+static int touchpad_check_second_peak(struct ad714x_chip *ad714x, int idx)
 {
+	struct ad714x_touchpad_plat *hw = &ad714x->hw->touchpad[idx];
+	struct ad714x_touchpad_drv *sw = &ad714x->sw->touchpad[idx];
+	int i;
+
+	for (i = hw->x_start_stage; i < sw->x_highest_stage; i++) {
+		if ((ad714x->sensor_val[i] - ad714x->sensor_val[i + 1])
+			> (ad714x->sensor_val[i + 1] / 10))
+			return 1;
+	}
+
+	for (i = sw->x_highest_stage; i < hw->x_end_stage; i++) {
+		if ((ad714x->sensor_val[i + 1] - ad714x->sensor_val[i])
+			> (ad714x->sensor_val[i] / 10))
+			return 1;
+	}
+
+	for (i = hw->y_start_stage; i < sw->y_highest_stage; i++) {
+		if ((ad714x->sensor_val[i] - ad714x->sensor_val[i + 1])
+			> (ad714x->sensor_val[i + 1] / 10))
+			return 1;
+	}
+
+	for (i = sw->y_highest_stage; i < hw->y_end_stage; i++) {
+		if ((ad714x->sensor_val[i + 1] - ad714x->sensor_val[i])
+			> (ad714x->sensor_val[i] / 10))
+			return 1;
+	}
+
+	return 0;
 }
 
-void touchpad_cal_abs_pos(struct ad714x_chip *ad714x, int idx)
+/* If only one finger is used to activate the touch pad then only 1 peak will be
+ * registered in the distribution. This peak and the 2 adjacent sensors will be
+ * used in the calculation of the absolute position. This will prevent hand
+ * shadows to affect the absolute position calculation.
+ */
+static void touchpad_cal_abs_pos(struct ad714x_chip *ad714x, int idx)
 {
+	struct ad714x_touchpad_plat *hw = &ad714x->hw->touchpad[idx];
+	struct ad714x_touchpad_drv *sw = &ad714x->sw->touchpad[idx];
+
+	sw->x_abs_pos = stage_cal_abs_pos(ad714x, hw->x_start_stage,
+			hw->x_end_stage, sw->x_highest_stage, hw->x_max_coord);
+	sw->y_abs_pos = stage_cal_abs_pos(ad714x, hw->y_start_stage,
+			hw->y_end_stage, sw->y_highest_stage, hw->y_max_coord);
+
+	ad714x_debug("touchpad %d absolute position:(%d, %d)\n", idx,
+			sw->x_abs_pos, sw->y_abs_pos);
+}
+
+static void touchpad_cal_flt_pos(struct ad714x_chip *ad714x, int idx)
+{
+	struct ad714x_touchpad_drv *sw = &ad714x->sw->touchpad[idx];
+
+	sw->x_flt_pos = (sw->x_flt_pos * (10 - 4) +
+			sw->x_abs_pos * 4)/10;
+
+	ad714x_debug("touchpad %d filter position:(%d, %d)\n",
+			idx, sw->x_flt_pos, sw->y_flt_pos);
 }
 
 /* To prevent distortion from showing in the absolute position, it is
  * necessary to detect the end points. When endpoints are detected, the
- * firmware stops updating the status variables with absolute positions.
+ * driver stops updating the status variables with absolute positions.
  * End points are detected on the 4 edges of the touchpad sensor. The
  * method to detect them is the same for all 4.
  * To detect the end points, the firmware computes the difference in
@@ -446,12 +772,174 @@ void touchpad_cal_abs_pos(struct ad714x_chip *ad714x, int idx)
  * detection independent of the pressure.
  */
 
-void touchpad_cal_endpoint(struct ad714x_chip *ad714x, int idx)
+#define LEFT_END_POINT_DETECTION_LEVEL			550
+#define RIGHT_END_POINT_DETECTION_LEVEL			750
+#define LEFT_RIGHT_END_POINT_DEAVTIVALION_LEVEL		850
+#define TOP_END_POINT_DETECTION_LEVEL			550
+#define BOTTOM_END_POINT_DETECTION_LEVEL		950
+#define TOP_BOTTOM_END_POINT_DEAVTIVALION_LEVEL		700
+static int touchpad_check_endpoint(struct ad714x_chip *ad714x, int idx)
 {
+	struct ad714x_touchpad_plat *hw = &ad714x->hw->touchpad[idx];
+	struct ad714x_touchpad_drv *sw  = &ad714x->sw->touchpad[idx];
+	int percent_sensor_diff;
+
+	/* left endpoint detect */
+	percent_sensor_diff = (ad714x->sensor_val[hw->x_start_stage] -
+			ad714x->sensor_val[hw->x_start_stage + 1]) * 100 /
+			ad714x->sensor_val[hw->x_start_stage + 1];
+	if (!sw->left_ep) {
+		if (percent_sensor_diff >= LEFT_END_POINT_DETECTION_LEVEL)  {
+			sw->left_ep = 1;
+			sw->left_ep_val =
+				ad714x->sensor_val[hw->x_start_stage + 1];
+		}
+	} else {
+		if ((percent_sensor_diff < LEFT_END_POINT_DETECTION_LEVEL) &&
+		(ad714x->sensor_val[hw->x_start_stage + 1] >
+		LEFT_RIGHT_END_POINT_DEAVTIVALION_LEVEL + sw->left_ep_val))
+			sw->left_ep = 0;
+	}
+
+	/* right endpoint detect */
+	percent_sensor_diff = (ad714x->sensor_val[hw->x_end_stage] -
+			ad714x->sensor_val[hw->x_end_stage - 1]) * 100 /
+			ad714x->sensor_val[hw->x_end_stage - 1];
+	if (!sw->right_ep) {
+		if (percent_sensor_diff >= RIGHT_END_POINT_DETECTION_LEVEL)  {
+			sw->right_ep = 1;
+			sw->right_ep_val =
+				ad714x->sensor_val[hw->x_end_stage - 1];
+		}
+	} else {
+		if ((percent_sensor_diff < RIGHT_END_POINT_DETECTION_LEVEL) &&
+		(ad714x->sensor_val[hw->x_end_stage - 1] >
+		LEFT_RIGHT_END_POINT_DEAVTIVALION_LEVEL + sw->right_ep_val))
+			sw->right_ep = 0;
+	}
+
+	/* top endpoint detect */
+	percent_sensor_diff = (ad714x->sensor_val[hw->y_start_stage] -
+			ad714x->sensor_val[hw->y_start_stage + 1]) * 100 /
+			ad714x->sensor_val[hw->y_start_stage + 1];
+	if (!sw->top_ep) {
+		if (percent_sensor_diff >= TOP_END_POINT_DETECTION_LEVEL)  {
+			sw->top_ep = 1;
+			sw->top_ep_val =
+				ad714x->sensor_val[hw->y_start_stage + 1];
+		}
+	} else {
+		if ((percent_sensor_diff < TOP_END_POINT_DETECTION_LEVEL) &&
+		(ad714x->sensor_val[hw->y_start_stage + 1] >
+		TOP_BOTTOM_END_POINT_DEAVTIVALION_LEVEL + sw->top_ep_val))
+			sw->top_ep = 0;
+	}
+
+	/* bottom endpoint detect */
+	percent_sensor_diff = (ad714x->sensor_val[hw->y_end_stage] -
+		ad714x->sensor_val[hw->y_end_stage - 1]) * 100 /
+		ad714x->sensor_val[hw->y_end_stage - 1];
+	if (!sw->bottom_ep) {
+		if (percent_sensor_diff >= BOTTOM_END_POINT_DETECTION_LEVEL)  {
+			sw->bottom_ep = 1;
+			sw->bottom_ep_val =
+				ad714x->sensor_val[hw->y_end_stage - 1];
+		}
+	} else {
+		if ((percent_sensor_diff < BOTTOM_END_POINT_DETECTION_LEVEL) &&
+		(ad714x->sensor_val[hw->y_end_stage - 1] >
+		 TOP_BOTTOM_END_POINT_DEAVTIVALION_LEVEL + sw->bottom_ep_val))
+			sw->bottom_ep = 0;
+	}
+
+	return sw->left_ep || sw->right_ep || sw->top_ep || sw->bottom_ep;
 }
 
-void touchpad_state_machine(struct ad714x_chip *ad714x, int idx)
+static void touchpad_use_com_int(struct ad714x_chip *ad714x, int idx)
 {
+	struct ad714x_touchpad_plat *hw = &ad714x->hw->touchpad[idx];
+	stage_use_com_int(ad714x, hw->x_start_stage, hw->x_end_stage);
+}
+
+static void touchpad_use_thr_int(struct ad714x_chip *ad714x, int idx)
+{
+	struct ad714x_touchpad_plat *hw = &ad714x->hw->touchpad[idx];
+	stage_use_thr_int(ad714x, hw->x_start_stage, hw->x_end_stage);
+	stage_use_thr_int(ad714x, hw->y_start_stage, hw->y_end_stage);
+}
+
+static void touchpad_state_machine(struct ad714x_chip *ad714x, int idx)
+{
+	struct ad714x_touchpad_plat *hw = &ad714x->hw->touchpad[idx];
+	struct ad714x_touchpad_drv *sw = &ad714x->sw->touchpad[idx];
+	unsigned short h_state, c_state;
+	unsigned short mask;
+
+	mask = (((1 << (hw->x_end_stage + 1)) - 1) -
+		((1 << hw->x_start_stage) - 1)) +
+		(((1 << (hw->y_end_stage + 1)) - 1) -
+		((1 << hw->y_start_stage) - 1));
+
+	h_state = ad714x->h_state & mask;
+	c_state = ad714x->c_state & mask;
+
+	switch (sw->state) {
+	case IDLE:
+		if (h_state) {
+			sw->state = JITTER;
+			/* In End of Conversion interrupt mode, the AD714x
+			 * continuously generates hardware interrupts.
+			 */
+			touchpad_use_com_int(ad714x, idx);
+			ad714x_debug("touchpad %d touched\n", idx);
+		}
+		break;
+	case JITTER:
+		if (c_state == mask) {
+			touchpad_cal_sensor_val(ad714x, idx);
+			touchpad_cal_highest_stage(ad714x, idx);
+			if ((!touchpad_check_second_peak(ad714x, idx)) &&
+				(!touchpad_check_endpoint(ad714x, idx))) {
+				pr_debug("touchpad%d, 2 fingers or endpoint\n",
+						idx);
+				touchpad_cal_abs_pos(ad714x, idx);
+				sw->x_flt_pos = sw->x_abs_pos;
+				sw->y_flt_pos = sw->y_abs_pos;
+				sw->state = ACTIVE;
+			}
+		}
+		break;
+	case ACTIVE:
+		if (c_state == mask) {
+			if (h_state) {
+				touchpad_cal_sensor_val(ad714x, idx);
+				touchpad_cal_highest_stage(ad714x, idx);
+				if ((!touchpad_check_second_peak(ad714x, idx))
+				  && (!touchpad_check_endpoint(ad714x, idx))) {
+					touchpad_cal_abs_pos(ad714x, idx);
+					touchpad_cal_flt_pos(ad714x, idx);
+					input_report_abs(sw->input, ABS_X,
+						sw->x_flt_pos);
+					input_report_abs(sw->input, ABS_Y,
+						sw->y_flt_pos);
+					input_report_abs(sw->input,
+						ABS_PRESSURE, 1);
+				}
+			} else {
+				/* When the user lifts off the sensor, configure
+				 * the AD714X back to threshold interrupt mode.
+				 */
+				touchpad_use_thr_int(ad714x, idx);
+				sw->state = IDLE;
+				input_report_abs(sw->input, ABS_PRESSURE, 0);
+				ad714x_debug("touchpad %d released\n", idx);
+			}
+			input_sync(sw->input);
+		}
+		break;
+	default:
+		break;
+	}
 }
 
 static int ad714x_hw_detect(struct ad714x_chip *ad714x)
