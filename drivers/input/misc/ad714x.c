@@ -756,6 +756,8 @@ static void touchpad_cal_flt_pos(struct ad714x_chip *ad714x, int idx)
 
 	sw->x_flt_pos = (sw->x_flt_pos * (10 - 4) +
 			sw->x_abs_pos * 4)/10;
+	sw->y_flt_pos = (sw->y_flt_pos * (10 - 4) +
+			sw->y_abs_pos * 4)/10;
 
 	ad714x_debug("touchpad %d filter position:(%d, %d)\n",
 			idx, sw->x_flt_pos, sw->y_flt_pos);
