@@ -1207,8 +1207,10 @@ static int bfin_spi_setup(struct spi_device *spi)
 	chip = spi_get_ctldata(spi);
 	if (chip == NULL) {
 		chip = kzalloc(sizeof(*chip), GFP_KERNEL);
-		if (!chip)
+		if (!chip) {
+			dev_err(&spi->dev, "cannot allocate chip data\n");
 			return -ENOMEM;
+		}
 
 		chip->enable_dma = 0;
 		chip_info = spi->controller_data;
@@ -1299,7 +1301,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 		/* register dma irq handler */
 		ret = request_dma(drv_data->dma_channel, "BFIN_SPI_DMA");
 		if (ret) {
-			dev_dbg(&spi->dev,
+			dev_err(&spi->dev,
 				"Unable to request BlackFin SPI DMA channel\n");
 			goto error;
 		}
@@ -1308,7 +1310,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 		ret = set_dma_callback(drv_data->dma_channel,
 			bfin_spi_dma_irq_handler, drv_data);
 		if (ret) {
-			dev_dbg(&spi->dev, "Unable to set dma callback\n");
+			dev_err(&spi->dev, "Unable to set dma callback\n");
 			goto error;
 		}
 		dma_disable_irq(drv_data->dma_channel);
@@ -1318,7 +1320,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 		ret = request_irq(drv_data->spi_irq, bfin_spi_pio_irq_handler,
 			IRQF_DISABLED, "BFIN_SPI", drv_data);
 		if (ret) {
-			printk(KERN_NOTICE "Unable to register spi IRQ\n");
+			dev_err(&spi->dev, "Unable to register spi IRQ\n");
 			goto error;
 		}
 		drv_data->irq_requested = 1;
@@ -1328,8 +1330,10 @@ static int bfin_spi_setup(struct spi_device *spi)
 
 	if (chip->chip_select_num == 0) {
 		ret = gpio_request(chip->cs_gpio, spi->modalias);
-		if (ret)
+		if (ret) {
+			dev_err(&spi->dev, "gpio_request() error\n");
 			goto error;
+		}
 		gpio_direction_output(chip->cs_gpio, 1);
 	}
 
@@ -1345,8 +1349,10 @@ static int bfin_spi_setup(struct spi_device *spi)
 	    chip->chip_select_num <= spi->master->num_chipselect) {
 		ret = peripheral_request(ssel[spi->master->bus_num]
 		                         [chip->chip_select_num-1], spi->modalias);
-		if (ret)
+		if (ret) {
+			dev_err(&spi->dev, "peripheral_request() error\n");
 			goto error;
+		}
 	}
 
 	bfin_spi_cs_deactive(drv_data, chip);
@@ -1354,10 +1360,21 @@ static int bfin_spi_setup(struct spi_device *spi)
 
  error:
 	if (ret) {
-		kfree(chip);
 		if (drv_data->dma_requested)
 			free_dma(drv_data->dma_channel);
 		drv_data->dma_requested = 0;
+
+		if ((chip->chip_select_num > 0)
+			&& (chip->chip_select_num <= spi->master->num_chipselect))
+			peripheral_free(ssel[spi->master->bus_num]
+						[chip->chip_select_num-1]);
+
+		if (chip->chip_select_num == 0)
+			gpio_free(chip->cs_gpio);
+
+		kfree(chip);
+		/* prevent free 'chip' twice */
+		spi_set_ctldata(spi, NULL);
 	}
 
 	return ret;
@@ -1374,15 +1391,9 @@ static void bfin_spi_cleanup(struct spi_device *spi)
 	if (!chip)
 		return;
 
-	if ((chip->chip_select_num > 0)
-		&& (chip->chip_select_num <= spi->master->num_chipselect))
-		peripheral_free(ssel[spi->master->bus_num]
-					[chip->chip_select_num-1]);
-
-	if (chip->chip_select_num == 0)
-		gpio_free(chip->cs_gpio);
-
 	kfree(chip);
+	/* prevent free 'chip' twice */
+	spi_set_ctldata(spi, NULL);
 }
 
 static inline int bfin_spi_init_queue(struct driver_data *drv_data)
