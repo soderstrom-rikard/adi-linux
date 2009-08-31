@@ -569,27 +569,27 @@ static struct ad714x_slider_plat slider_plat[] = {
 
 static struct ad714x_button_plat button_plat[] = {
 	{
-		.event = BTN_FORWARD,
+		.keycode = BTN_FORWARD,
 		.l_mask = 0,
 		.h_mask = 0x600,
 	},
 	{
-		.event = BTN_LEFT,
+		.keycode = BTN_LEFT,
 		.l_mask = 0,
 		.h_mask = 0x500,
 	},
 	{
-		.event = BTN_MIDDLE,
+		.keycode = BTN_MIDDLE,
 		.l_mask = 0,
 		.h_mask = 0x800,
 	},
 	{
-		.event = BTN_RIGHT,
+		.keycode = BTN_RIGHT,
 		.l_mask = 0x100,
 		.h_mask = 0x400,
 	},
 	{
-		.event = BTN_BACK,
+		.keycode = BTN_BACK,
 		.l_mask = 0x200,
 		.h_mask = 0x400,
 	},
@@ -620,22 +620,22 @@ static struct ad714x_platform_data ad7147_platfrom_data = {
 #include <linux/spi/ad714x.h>
 static struct ad714x_button_plat button_plat[] = {
 	{
-		.event = BTN_1,
+		.keycode = BTN_1,
 		.l_mask = 0,
 		.h_mask = 0x1,
 	},
 	{
-		.event = BTN_2,
+		.keycode = BTN_2,
 		.l_mask = 0,
 		.h_mask = 0x2,
 	},
 	{
-		.event = BTN_3,
+		.keycode = BTN_3,
 		.l_mask = 0,
 		.h_mask = 0x4,
 	},
 	{
-		.event = BTN_4,
+		.keycode = BTN_4,
 		.l_mask = 0x0,
 		.h_mask = 0x8,
 	},

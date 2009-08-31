@@ -30,6 +30,7 @@
 #define AD714x_SPI_READ        1
 #define AD714x_SPI_READ_SHFT   10
 
+#define AD714X_PWR_CTRL           0x0
 #define AD714x_STG_CAL_EN_REG     0x1
 #define AD714X_AMB_COMP_CTRL0_REG 0x2
 #define AD714x_PARTID_REG         0x17
@@ -82,14 +83,6 @@
 #define bus_device		struct i2c_client
 #else
 #error Communication method needs to be selected (I2C or SPI)
-#endif
-
-#define AD714X_DEBUG
-#ifdef AD714X_DEBUG
-#define ad714x_debug(fmt, ...) \
-	 printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__)
-#else
-#define ad714x_debug(fmt, ...)
 #endif
 
 /*
@@ -268,8 +261,8 @@ static void button_state_machine(struct ad714x_chip *ad714x, int idx)
 	case IDLE:
 		if (((ad714x->h_state & hw->h_mask) == hw->h_mask) &&
 			((ad714x->l_state & hw->l_mask) == hw->l_mask)) {
-			ad714x_debug("button %d touched\n", idx);
-			input_report_key(sw->input, hw->event, 1);
+			pr_debug("button %d touched\n", idx);
+			input_report_key(sw->input, hw->keycode, 1);
 			input_sync(sw->input);
 			sw->state = ACTIVE;
 		}
@@ -277,8 +270,8 @@ static void button_state_machine(struct ad714x_chip *ad714x, int idx)
 	case ACTIVE:
 		if (((ad714x->h_state & hw->h_mask) != hw->h_mask) ||
 			((ad714x->l_state & hw->l_mask) != hw->l_mask)) {
-			ad714x_debug("button %d released\n", idx);
-			input_report_key(sw->input, hw->event, 0);
+			pr_debug("button %d released\n", idx);
+			input_report_key(sw->input, hw->keycode, 0);
 			input_sync(sw->input);
 			sw->state = IDLE;
 		}
@@ -316,7 +309,7 @@ void slider_cal_highest_stage(struct ad714x_chip *ad714x, int idx)
 	sw->highest_stage = stage_cal_highest_stage(ad714x, hw->start_stage,
 			hw->end_stage);
 
-	ad714x_debug("slider %d highest_stage:%d\n", idx, sw->highest_stage);
+	pr_debug("slider %d highest_stage:%d\n", idx, sw->highest_stage);
 }
 
 /* The formulae are very straight forward. It uses the sensor with the
@@ -339,7 +332,7 @@ void slider_cal_abs_pos(struct ad714x_chip *ad714x, int idx)
 	sw->abs_pos = stage_cal_abs_pos(ad714x, hw->start_stage, hw->end_stage,
 		sw->highest_stage, hw->max_coord);
 
-	ad714x_debug("slider %d absolute position:%d\n", idx, sw->abs_pos);
+	pr_debug("slider %d absolute position:%d\n", idx, sw->abs_pos);
 }
 
 /*
@@ -359,7 +352,7 @@ void slider_cal_flt_pos(struct ad714x_chip *ad714x, int idx)
 	sw->flt_pos = (sw->flt_pos * (10 - 4) +
 			sw->abs_pos * 4)/10;
 
-	ad714x_debug("slider %d filter position:%d\n", idx, sw->flt_pos);
+	pr_debug("slider %d filter position:%d\n", idx, sw->flt_pos);
 }
 
 static void slider_use_com_int(struct ad714x_chip *ad714x, int idx)
@@ -394,7 +387,7 @@ static void slider_state_machine(struct ad714x_chip *ad714x, int idx)
 			 * continuously generates hardware interrupts.
 			 */
 			slider_use_com_int(ad714x, idx);
-			ad714x_debug("slider %d touched\n", idx);
+			pr_debug("slider %d touched\n", idx);
 		}
 		break;
 	case JITTER:
@@ -423,7 +416,7 @@ static void slider_state_machine(struct ad714x_chip *ad714x, int idx)
 				slider_use_thr_int(ad714x, idx);
 				sw->state = IDLE;
 				input_report_abs(sw->input, ABS_PRESSURE, 0);
-				ad714x_debug("slider %d released\n", idx);
+				pr_debug("slider %d released\n", idx);
 			}
 			input_sync(sw->input);
 		}
@@ -448,7 +441,7 @@ void wheel_cal_highest_stage(struct ad714x_chip *ad714x, int idx)
 	sw->highest_stage = stage_cal_highest_stage(ad714x, hw->start_stage,
 			hw->end_stage);
 
-	ad714x_debug("wheel %d highest_stage:%d\n", idx, sw->highest_stage);
+	pr_debug("wheel %d highest_stage:%d\n", idx, sw->highest_stage);
 }
 
 void wheel_cal_sensor_val(struct ad714x_chip *ad714x, int idx)
@@ -620,7 +613,7 @@ static void wheel_state_machine(struct ad714x_chip *ad714x, int idx)
 			 * continuously generates hardware interrupts.
 			 */
 			wheel_use_com_int(ad714x, idx);
-			ad714x_debug("wheel %d touched\n", idx);
+			pr_debug("wheel %d touched\n", idx);
 		}
 		break;
 	case JITTER:
@@ -650,7 +643,7 @@ static void wheel_state_machine(struct ad714x_chip *ad714x, int idx)
 				sw->state = IDLE;
 				input_report_abs(sw->input, ABS_PRESSURE, 0);
 
-				ad714x_debug("wheel %d released\n", idx);
+				pr_debug("wheel %d released\n", idx);
 			}
 			input_sync(sw->input);
 		}
@@ -689,7 +682,7 @@ static void touchpad_cal_highest_stage(struct ad714x_chip *ad714x, int idx)
 	sw->y_highest_stage = stage_cal_highest_stage(ad714x, hw->y_start_stage,
 			hw->y_end_stage);
 
-	ad714x_debug("touchpad %d x_highest_stage:%d, y_highest_stage:%d\n",
+	pr_debug("touchpad %d x_highest_stage:%d, y_highest_stage:%d\n",
 			idx, sw->x_highest_stage, sw->y_highest_stage);
 }
 
@@ -746,7 +739,7 @@ static void touchpad_cal_abs_pos(struct ad714x_chip *ad714x, int idx)
 	sw->y_abs_pos = stage_cal_abs_pos(ad714x, hw->y_start_stage,
 			hw->y_end_stage, sw->y_highest_stage, hw->y_max_coord);
 
-	ad714x_debug("touchpad %d absolute position:(%d, %d)\n", idx,
+	pr_debug("touchpad %d absolute position:(%d, %d)\n", idx,
 			sw->x_abs_pos, sw->y_abs_pos);
 }
 
@@ -759,7 +752,7 @@ static void touchpad_cal_flt_pos(struct ad714x_chip *ad714x, int idx)
 	sw->y_flt_pos = (sw->y_flt_pos * (10 - 4) +
 			sw->y_abs_pos * 4)/10;
 
-	ad714x_debug("touchpad %d filter position:(%d, %d)\n",
+	pr_debug("touchpad %d filter position:(%d, %d)\n",
 			idx, sw->x_flt_pos, sw->y_flt_pos);
 }
 
@@ -893,7 +886,7 @@ static void touchpad_state_machine(struct ad714x_chip *ad714x, int idx)
 			 * continuously generates hardware interrupts.
 			 */
 			touchpad_use_com_int(ad714x, idx);
-			ad714x_debug("touchpad %d touched\n", idx);
+			pr_debug("touchpad %d touched\n", idx);
 		}
 		break;
 	case JITTER:
@@ -934,7 +927,7 @@ static void touchpad_state_machine(struct ad714x_chip *ad714x, int idx)
 				touchpad_use_thr_int(ad714x, idx);
 				sw->state = IDLE;
 				input_report_abs(sw->input, ABS_PRESSURE, 0);
-				ad714x_debug("touchpad %d released\n", idx);
+				pr_debug("touchpad %d released\n", idx);
 			}
 			input_sync(sw->input);
 		}
@@ -1005,7 +998,7 @@ static irqreturn_t ad714x_interrupt_thread(int irq, void *data)
 	ad714x->read(ad714x->bus, STG_HIGH_INT_STA_REG, &ad714x->h_state);
 	ad714x->read(ad714x->bus, STG_COM_INT_STA_REG, &ad714x->c_state);
 
-	ad714x_debug("%s l_state:%04x h_state:%04x c_stage:%04x\n", __func__,
+	pr_debug("%s l_state:%04x h_state:%04x c_stage:%04x\n", __func__,
 			ad714x->l_state, ad714x->h_state, ad714x->c_state);
 
 	for (i = 0; i < ad714x->hw->button_num; i++)
@@ -1066,119 +1059,167 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x)
 	ad714x->sw = drv_data;
 
 	/* a slider uses one input_dev instance */
-	sd_drv = kzalloc(sizeof(struct ad714x_slider_drv) *
-			ad714x->hw->slider_num, GFP_KERNEL);
-	if (!sd_drv) {
-		dev_err(&ad714x->bus->dev,
-			"Can't allocate memory for slider info\n");
-		ret = -ENOMEM;
-		goto fail_alloc_reg;
-	}
-
-	for (i = 0; i < ad714x->hw->slider_num; i++) {
-		input[alloc_idx] = input_allocate_device();
-		if (!input[alloc_idx]) {
+	if (ad714x->hw->slider_num > 0) {
+		sd_drv = kzalloc(sizeof(struct ad714x_slider_drv) *
+				ad714x->hw->slider_num, GFP_KERNEL);
+		if (!sd_drv) {
 			dev_err(&ad714x->bus->dev,
-				"Can't allocate input device %d\n", alloc_idx);
+				"Can't allocate memory for slider info\n");
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
 		}
-		alloc_idx++;
 
-		__set_bit(EV_ABS, input[alloc_idx-1]->evbit);
-		__set_bit(ABS_X, input[alloc_idx-1]->absbit);
-		__set_bit(ABS_PRESSURE, input[alloc_idx-1]->absbit);
-		input_set_abs_params(input[alloc_idx-1], ABS_X, 0,
-			sd_plat->max_coord, 0, 0);
-		input_set_abs_params(input[alloc_idx-1], ABS_PRESSURE, 0, 1,
-			0, 0);
+		for (i = 0; i < ad714x->hw->slider_num; i++) {
+			input[alloc_idx] = input_allocate_device();
+			if (!input[alloc_idx]) {
+				dev_err(&ad714x->bus->dev,
+				"Can't allocate input device %d\n", alloc_idx);
+				ret = -ENOMEM;
+				goto fail_alloc_reg;
+			}
+			alloc_idx++;
 
-		input[alloc_idx-1]->id.bustype = BUS_I2C;
+			__set_bit(EV_ABS, input[alloc_idx-1]->evbit);
+			__set_bit(ABS_X, input[alloc_idx-1]->absbit);
+			__set_bit(ABS_PRESSURE, input[alloc_idx-1]->absbit);
+			input_set_abs_params(input[alloc_idx-1], ABS_X, 0,
+					sd_plat->max_coord, 0, 0);
+			input_set_abs_params(input[alloc_idx-1], ABS_PRESSURE,
+				0, 1, 0, 0);
 
-		ret = input_register_device(input[reg_idx]);
-		if (ret) {
-			dev_err(&ad714x->bus->dev,
+			input[alloc_idx-1]->id.bustype = BUS_I2C;
+
+			ret = input_register_device(input[reg_idx]);
+			if (ret) {
+				dev_err(&ad714x->bus->dev,
 				"Failed to register AD714x input device!\n");
-			goto fail_alloc_reg;
-		}
-		reg_idx++;
+				goto fail_alloc_reg;
+			}
+			reg_idx++;
 
-		sd_drv[i].input = input[alloc_idx-1];
-		ad714x->sw->slider = sd_drv;
+			sd_drv[i].input = input[alloc_idx-1];
+			ad714x->sw->slider = sd_drv;
+		}
 	}
 
 	/* a wheel uses one input_dev instance */
-	wl_drv = kzalloc(sizeof(struct ad714x_wheel_drv) *
-			ad714x->hw->wheel_num, GFP_KERNEL);
-	if (!sd_drv) {
-		dev_err(&ad714x->bus->dev,
-			"Can't allocate memory for wheel info\n");
-		ret = -ENOMEM;
-		goto fail_alloc_reg;
-	}
-
-	for (i = 0; i < ad714x->hw->wheel_num; i++) {
-		input[alloc_idx] = input_allocate_device();
-		if (!input[alloc_idx]) {
+	if (ad714x->hw->wheel_num > 0) {
+		wl_drv = kzalloc(sizeof(struct ad714x_wheel_drv) *
+				ad714x->hw->wheel_num, GFP_KERNEL);
+		if (!wl_drv) {
 			dev_err(&ad714x->bus->dev,
-				"Can't allocate input device %d\n", alloc_idx);
+				"Can't allocate memory for wheel info\n");
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
 		}
-		alloc_idx++;
 
-		__set_bit(EV_ABS, input[alloc_idx-1]->evbit);
-		__set_bit(ABS_WHEEL, input[alloc_idx-1]->absbit);
-		__set_bit(ABS_PRESSURE, input[alloc_idx-1]->absbit);
-		input_set_abs_params(input[alloc_idx-1], ABS_WHEEL, 0,
+		for (i = 0; i < ad714x->hw->wheel_num; i++) {
+			input[alloc_idx] = input_allocate_device();
+			if (!input[alloc_idx]) {
+				dev_err(&ad714x->bus->dev,
+				"Can't allocate input device %d\n", alloc_idx);
+				ret = -ENOMEM;
+				goto fail_alloc_reg;
+			}
+			alloc_idx++;
+
+			__set_bit(EV_ABS, input[alloc_idx-1]->evbit);
+			__set_bit(ABS_WHEEL, input[alloc_idx-1]->absbit);
+			__set_bit(ABS_PRESSURE, input[alloc_idx-1]->absbit);
+			input_set_abs_params(input[alloc_idx-1], ABS_WHEEL, 0,
 					wl_plat->max_coord, 0, 0);
-		input_set_abs_params(input[alloc_idx-1], ABS_PRESSURE, 0, 1,
-					0, 0);
+			input_set_abs_params(input[alloc_idx-1], ABS_PRESSURE,
+				0, 1, 0, 0);
 
-		input[alloc_idx-1]->id.bustype = BUS_I2C;
+			input[alloc_idx-1]->id.bustype = BUS_I2C;
 
-		ret = input_register_device(input[reg_idx]);
-		if (ret) {
-			dev_err(&ad714x->bus->dev,
+			ret = input_register_device(input[reg_idx]);
+			if (ret) {
+				dev_err(&ad714x->bus->dev,
 				"Failed to register AD714x input device!\n");
-			goto fail_alloc_reg;
-		}
-		reg_idx++;
+				goto fail_alloc_reg;
+			}
+			reg_idx++;
 
-		wl_drv[i].input = input[alloc_idx-1];
-		ad714x->sw->wheel = wl_drv;
+			wl_drv[i].input = input[alloc_idx-1];
+			ad714x->sw->wheel = wl_drv;
+		}
 	}
 
 	/* a touchpad uses one input_dev instance */
-	tp_drv = kzalloc(sizeof(struct ad714x_touchpad_drv) *
-			ad714x->hw->touchpad_num, GFP_KERNEL);
-	if (!tp_drv) {
-		dev_err(&ad714x->bus->dev,
-			"Can't allocate memory for touchpad info\n");
-		ret = -ENOMEM;
-		goto fail_alloc_reg;
+	if (ad714x->hw->touchpad_num > 0) {
+		tp_drv = kzalloc(sizeof(struct ad714x_touchpad_drv) *
+				ad714x->hw->touchpad_num, GFP_KERNEL);
+		if (!tp_drv) {
+			dev_err(&ad714x->bus->dev,
+				"Can't allocate memory for touchpad info\n");
+			ret = -ENOMEM;
+			goto fail_alloc_reg;
+		}
+
+		for (i = 0; i < ad714x->hw->touchpad_num; i++) {
+			input[alloc_idx] = input_allocate_device();
+			if (!input[alloc_idx]) {
+				dev_err(&ad714x->bus->dev,
+					"Can't allocate input device %d\n",
+					alloc_idx);
+				ret = -ENOMEM;
+				goto fail_alloc_reg;
+			}
+			alloc_idx++;
+
+			__set_bit(EV_ABS, input[alloc_idx-1]->evbit);
+			__set_bit(ABS_X, input[alloc_idx-1]->absbit);
+			__set_bit(ABS_Y, input[alloc_idx-1]->absbit);
+			__set_bit(ABS_PRESSURE, input[alloc_idx-1]->absbit);
+			input_set_abs_params(input[alloc_idx-1], ABS_X, 0,
+					tp_plat->x_max_coord, 0, 0);
+			input_set_abs_params(input[alloc_idx-1], ABS_Y, 0,
+					tp_plat->y_max_coord, 0, 0);
+			input_set_abs_params(input[alloc_idx-1], ABS_PRESSURE,
+				0, 1, 0, 0);
+
+			input[alloc_idx-1]->id.bustype = BUS_I2C;
+
+			ret = input_register_device(input[reg_idx]);
+			if (ret) {
+				dev_err(&ad714x->bus->dev,
+				"Failed to register AD714x input device!\n");
+				goto fail_alloc_reg;
+			}
+			reg_idx++;
+
+			tp_drv[i].input = input[alloc_idx-1];
+			ad714x->sw->touchpad = tp_drv;
+		}
 	}
 
-	for (i = 0; i < ad714x->hw->touchpad_num; i++) {
+	/* all buttons use one input node */
+	if (ad714x->hw->button_num > 0) {
+		bt_drv = kzalloc(sizeof(struct ad714x_button_drv) *
+				ad714x->hw->button_num, GFP_KERNEL);
+		if (!bt_drv) {
+			dev_err(&ad714x->bus->dev,
+				"Can't allocate memory for button info\n");
+			ret = -ENOMEM;
+			goto fail_alloc_reg;
+		}
+
 		input[alloc_idx] = input_allocate_device();
 		if (!input[alloc_idx]) {
 			dev_err(&ad714x->bus->dev,
-				"Can't allocate input device %d\n", alloc_idx);
+					"Can't allocate input device %d\n",
+					alloc_idx);
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
 		}
 		alloc_idx++;
 
-		__set_bit(EV_ABS, input[alloc_idx-1]->evbit);
-		__set_bit(ABS_X, input[alloc_idx-1]->absbit);
-		__set_bit(ABS_Y, input[alloc_idx-1]->absbit);
-		__set_bit(ABS_PRESSURE, input[alloc_idx-1]->absbit);
-		input_set_abs_params(input[alloc_idx-1], ABS_X, 0,
-			tp_plat->x_max_coord, 0, 0);
-		input_set_abs_params(input[alloc_idx-1], ABS_Y, 0,
-			tp_plat->y_max_coord, 0, 0);
-		input_set_abs_params(input[alloc_idx-1], ABS_PRESSURE, 0, 1,
-					0, 0);
+		__set_bit(EV_KEY, input[alloc_idx-1]->evbit);
+		for (i = 0; i < ad714x->hw->button_num; i++) {
+			__set_bit(bt_plat[i].keycode,
+				input[alloc_idx-1]->keybit);
+		}
 
 		input[alloc_idx-1]->id.bustype = BUS_I2C;
 
@@ -1190,50 +1231,10 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x)
 		}
 		reg_idx++;
 
-		tp_drv[i].input = input[alloc_idx-1];
-		ad714x->sw->touchpad = tp_drv;
+		for (i = 0; i < ad714x->hw->button_num; i++)
+			bt_drv[i].input = input[alloc_idx-1];
+		ad714x->sw->button = bt_drv;
 	}
-
-	/* all buttons use one input node */
-	input[alloc_idx] = input_allocate_device();
-	if (!input[alloc_idx]) {
-		dev_err(&ad714x->bus->dev, "Can't allocate input device %d\n",
-			alloc_idx);
-		ret = -ENOMEM;
-		goto fail_alloc_reg;
-	}
-	alloc_idx++;
-
-	bt_drv = kzalloc(sizeof(struct ad714x_button_drv) *
-			ad714x->hw->button_num, GFP_KERNEL);
-	if (!bt_drv) {
-		dev_err(&ad714x->bus->dev,
-			"Can't allocate memory for button info\n");
-		ret = -ENOMEM;
-		goto fail_alloc_reg;
-	}
-
-	__set_bit(EV_KEY, input[alloc_idx-1]->evbit);
-	for (i = 0; i < ad714x->hw->button_num; i++)
-		input[alloc_idx-1]->keybit[bt_plat[0].event] |=
-			BIT_MASK(bt_plat[i].event);
-
-	input[alloc_idx-1]->id.bustype = BUS_I2C;
-
-	ret = input_register_device(input[reg_idx]);
-	if (ret) {
-		dev_err(&ad714x->bus->dev,
-			"Failed to register AD714x input device!\n");
-		goto fail_alloc_reg;
-	}
-	reg_idx++;
-
-	for (i = 0; i < ad714x->hw->button_num; i++) {
-		input[alloc_idx-1]->keybit[bt_plat[i].event] |=
-			BIT_MASK(bt_plat[i].event);
-		bt_drv[i].input = input[alloc_idx-1];
-	}
-	ad714x->sw->button = bt_drv;
 
 	/* initilize and request sw/hw resources */
 
@@ -1314,6 +1315,55 @@ static int __devexit ad714x_remove(struct ad714x_chip *ad714x)
 
 	return 0;
 }
+
+#ifdef CONFIG_PM
+static int ad714x_suspend(bus_device *bus, pm_message_t message)
+{
+	struct ad714x_chip *ad714x = dev_get_drvdata(&bus->dev);
+	unsigned short data;
+
+	pr_debug("%s enter\n", __func__);
+
+	mutex_lock(&ad714x->mutex);
+
+	data = ad714x->hw->sys_cfg_reg[AD714X_PWR_CTRL] | 0x3;
+	ad714x->write(bus, AD714X_PWR_CTRL, data);
+
+	mutex_unlock(&ad714x->mutex);
+
+	return 0;
+}
+
+static int ad714x_resume(bus_device *bus)
+{
+	struct ad714x_chip *ad714x = dev_get_drvdata(&bus->dev);
+	unsigned short data;
+
+	pr_debug("%s enter\n", __func__);
+
+	mutex_lock(&ad714x->mutex);
+
+	/* resume to non-shutdown mode */
+
+	ad714x->write(bus, AD714X_PWR_CTRL,
+			ad714x->hw->sys_cfg_reg[AD714X_PWR_CTRL]);
+
+	/* make sure the interrupt output line is not low level after resume,
+	 * otherwise we will get no chance to enter falling-edge irq again
+	 */
+
+	ad714x->read(bus, STG_LOW_INT_STA_REG, &data);
+	ad714x->read(bus, STG_HIGH_INT_STA_REG, &data);
+	ad714x->read(bus, STG_COM_INT_STA_REG, &data);
+
+	mutex_unlock(&ad714x->mutex);
+
+	return 0;
+}
+#else
+#define ad714x_suspend NULL
+#define ad714x_resume  NULL
+#endif
 
 #if defined(CONFIG_INPUT_AD714X_SPI)
 int ad714x_spi_read(struct spi_device *spi, unsigned short reg,
@@ -1413,6 +1463,8 @@ static struct spi_driver ad714x_spi_driver = {
 	},
 	.probe		= ad714x_spi_probe,
 	.remove		= __devexit_p(ad714x_spi_remove),
+	.suspend	= ad714x_suspend,
+	.resume		= ad714x_resume,
 };
 
 static int __init ad714x_init(void)
@@ -1531,6 +1583,8 @@ static struct i2c_driver ad714x_i2c_driver = {
 	},
 	.probe = ad714x_i2c_probe,
 	.remove = __devexit_p(ad714x_i2c_remove),
+	.suspend	= ad714x_suspend,
+	.resume		= ad714x_resume,
 	.id_table = ad714x_id,
 };
 

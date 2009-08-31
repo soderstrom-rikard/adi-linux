@@ -39,7 +39,7 @@ struct ad714x_touchpad_plat {
 };
 
 struct ad714x_button_plat {
-	int event;
+	int keycode;
 	unsigned short l_mask;
 	unsigned short h_mask;
 };
