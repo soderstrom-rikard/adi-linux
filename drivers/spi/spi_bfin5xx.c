@@ -1391,6 +1391,14 @@ static void bfin_spi_cleanup(struct spi_device *spi)
 	if (!chip)
 		return;
 
+	if ((chip->chip_select_num > 0)
+		&& (chip->chip_select_num <= spi->master->num_chipselect))
+		peripheral_free(ssel[spi->master->bus_num]
+					[chip->chip_select_num-1]);
+
+	if (chip->chip_select_num == 0)
+		gpio_free(chip->cs_gpio);
+
 	kfree(chip);
 	/* prevent free 'chip' twice */
 	spi_set_ctldata(spi, NULL);
