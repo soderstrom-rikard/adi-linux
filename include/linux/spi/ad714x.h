@@ -5,11 +5,13 @@
  * slider, touchpad at the same time. That depends on the boards.
  * The platform_data for the device's "struct device" holds this
  * information.
+ * Copyright 2009 Analog Devices Inc.
+ *
+ * Licensed under the GPL-2 or later.
  */
 
-
-#ifndef AD714X_HW_H
-#define AD714X_HW_H
+#ifndef __LINUX_SPI_AD714X_H__
+#define __LINUX_SPI_AD714X_H__
 
 #define STAGE_NUM              12
 #define STAGE_CFGREG_NUM       8
