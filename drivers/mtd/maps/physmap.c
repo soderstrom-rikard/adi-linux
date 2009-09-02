@@ -73,6 +73,20 @@ static int physmap_flash_remove(struct platform_device *dev)
 	return 0;
 }
 
+/*
+ * Allow NOMMU mmap() to directly map the device (if not NULL)
+ * - return the address to which the offset maps
+ * - return -ENOSYS to indicate refusal to do the mapping
+ */
+static unsigned long physmap_unmapped_area(struct mtd_info *mtd,
+					   unsigned long len,
+					   unsigned long offset,
+					   unsigned long flags)
+{
+	struct map_info *map = mtd->priv;
+	return (unsigned long) map->virt + offset;
+}
+
 static const char *rom_probe_types[] = {
 					"cfi_probe",
 					"jedec_probe",
@@ -146,6 +160,8 @@ static int physmap_flash_probe(struct platform_device *dev)
 		} else {
 			devices_found++;
 		}
+		if (info->mtd[i]->get_unmapped_area == NULL)
+			info->mtd[i]->get_unmapped_area = physmap_unmapped_area;
 		info->mtd[i]->owner = THIS_MODULE;
 		info->mtd[i]->dev.parent = &dev->dev;
 	}
