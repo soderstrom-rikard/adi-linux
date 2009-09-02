@@ -1,5 +1,5 @@
 /*
- * include/linux/ad714x.h
+ * include/linux/input/ad714x.h
  *
  * AD714x is very flexible, it can be used as buttons, scrollwheel,
  * slider, touchpad at the same time. That depends on the boards.
@@ -10,8 +10,8 @@
  * Licensed under the GPL-2 or later.
  */
 
-#ifndef __LINUX_SPI_AD714X_H__
-#define __LINUX_SPI_AD714X_H__
+#ifndef __LINUX_INPUT_AD714X_H__
+#define __LINUX_INPUT_AD714X_H__
 
 #define STAGE_NUM              12
 #define STAGE_CFGREG_NUM       8

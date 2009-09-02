@@ -553,7 +553,7 @@ static struct bfin5xx_spi_chip ad1938_spi_chip_info = {
 
 #if defined(CONFIG_INPUT_EVAL_AD7147EBZ)
 #include <linux/input.h>
-#include <linux/spi/ad714x.h>
+#include <linux/input/ad714x.h>
 static struct bfin5xx_spi_chip ad7147_spi_chip_info = {
 	.enable_dma = 0,
 	.bits_per_word = 16,
@@ -615,9 +615,11 @@ static struct ad714x_platform_data ad7147_platfrom_data = {
 	},
 	.sys_cfg_reg = {0x2B2, 0x0, 0x3233, 0x819, 0x832, 0xCFF, 0xCFF, 0x0},
 };
-#elif defined(CONFIG_INPUT_EVAL_AD7142EB)
+#endif
+
+#if defined(CONFIG_INPUT_EVAL_AD7142EB)
 #include <linux/input.h>
-#include <linux/spi/ad714x.h>
+#include <linux/input/ad714x.h>
 static struct ad714x_button_plat button_plat[] = {
 	{
 		.keycode = BTN_1,
@@ -1450,7 +1452,7 @@ static struct adp5588_gpio_platfrom_data adp5588_gpio_data = {
 static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 #if defined(CONFIG_INPUT_EVAL_AD7142EB)
 	{
-		I2C_BOARD_INFO("ad714x_captouch", 0x2C),
+		I2C_BOARD_INFO("ad7142_captouch", 0x2C),
 		.irq = IRQ_PG5,
 		.platform_data = (void *)&ad7142_platfrom_data,
 	},
