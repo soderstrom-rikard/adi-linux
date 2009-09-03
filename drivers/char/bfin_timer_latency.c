@@ -59,7 +59,7 @@ struct timer_latency_data_t {
 struct proc_dir_entry *timer_latency_file;
 struct timer_latency_data_t timer_latency_data;
 
-static unsigned long long ns_new, ns_last;
+static unsigned long long ns_start, ns_end;
 static unsigned long warmup;
 
 static int read_timer_latency(char *page, char **start,
@@ -111,8 +111,8 @@ static int write_timer_latency(struct file *file, const char *buffer,
 		bfin_write_WDOG_CNT(timer_latency_data.period_sclk);
 		/* start WDOT timer */
 		bfin_write_WDOG_CTL(0x4);
-		ns_last = sched_clock();
-		ns_new = ns_last;
+		ns_start = sched_clock();
+		ns_end = 0;
 	} else if ((wd_period_us == 0) && timer_latency_data.value == 1) {
 		DPRINTK("stop timer_latency\n");
 		timer_latency_data.value = 0;
@@ -130,13 +130,12 @@ static irqreturn_t timer_latency_irq(int irq, void *dev_id)
 	struct timer_latency_data_t *data = dev_id;
 	unsigned long latency = 0;
 
-	ns_new = sched_clock();
+	ns_end = sched_clock();
 
 	bfin_write_WDOG_CTL(0x8AD6);	/* close counter */
 	bfin_write_WDOG_CTL(0x8AD6);	/* have to write it twice to disable the timer */
 
-	latency = (ns_new - ns_last) - data->period_ns;	/* latency in ns */
-	ns_last = ns_new;
+	latency = (ns_end - ns_start) - data->period_ns;	/* latency in ns */
 
 	DPRINTK("latecy is %lu\n", latency);
 
@@ -156,7 +155,7 @@ static irqreturn_t timer_latency_irq(int irq, void *dev_id)
 	/* restart watchdog timer again */
 	bfin_write_WDOG_CNT(data->period_sclk);
 	bfin_write_WDOG_CTL(0x4);
-
+	ns_start = sched_clock();
 	return IRQ_HANDLED;
 }
 
@@ -173,7 +172,7 @@ static int __init timer_latency_init(void)
 	timer_latency_data.worst_latency = 0;
 	timer_latency_data.total_latency = 0;
 	warmup = WARM_CNT;
-	ns_new = ns_last = 0;
+	ns_start = ns_end = 0;
 
 	timer_latency_file->data = &timer_latency_data;
 	timer_latency_file->read_proc = &read_timer_latency;
