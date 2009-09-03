@@ -2404,13 +2404,10 @@ static struct pci_driver net2272_driver = {
 #if !defined(PLX_PCI_RDK)
 
 // Platform remove
-static int net2272_remove (struct device *_dev)
+static int __devexit net2272_remove(struct platform_device *pdev)
 {
 	struct net2272		*dev;
-	struct platform_device	*pdev;
-
-	pdev = to_platform_device (_dev);
-	dev = dev_get_drvdata (&pdev->dev);
+	dev = platform_get_drvdata(pdev);
 
 	/* start with the driver above us */
 	if (dev->driver) {
@@ -2431,7 +2428,7 @@ static int net2272_remove (struct device *_dev)
 
 	INFO (dev, "unbind\n");
 
-	dev_set_drvdata (_dev, 0);
+	platform_set_drvdata(pdev, NULL);
 	the_controller = NULL;
 
 #ifdef CONFIG_BFIN533_STAMP
@@ -2442,17 +2439,15 @@ static int net2272_remove (struct device *_dev)
 #ifdef CONFIG_BFIN537_BLUETECHNIX_CM
 	gpio_free(GPIO_47);
 #endif
+	kfree(dev);
 
 	return 0;
 }
 
-static int net2272_probe (struct device *_dev)
+static int __devinit net2272_probe(struct platform_device *pdev)
 {
 	struct net2272		*dev;
-	struct platform_device	*pdev;
 	int			retval;
-
-	pdev = to_platform_device (_dev);
 
 	if (the_controller) {
 		dev_warn (&pdev->dev, "ignoring\n");
@@ -2525,14 +2520,13 @@ static int net2272_probe (struct device *_dev)
 	}
 
 	/* alloc, and start init */
-	dev = kmalloc (sizeof *dev, GFP_KERNEL);
+	dev = kzalloc(sizeof *dev, GFP_KERNEL);
 	if (dev == NULL) {
 		printk ("can't allocate memory!\n");
 		retval = -ENOMEM;
 		goto done;
 	}
 
-	memset (dev, 0, sizeof *dev);
 	spin_lock_init (&dev->lock);
 	dev->pdev = pdev;
 	dev->gadget.ops = &net2272_ops;
@@ -2552,7 +2546,7 @@ static int net2272_probe (struct device *_dev)
 	if (!dev->base_addr) {
 		DEBUG (dev, "can't map memory\n");
 		retval = -EFAULT;
-		goto done;
+		goto done1;
 	}
 
 	dev->indexed_threshold = 1 << 5;
@@ -2561,22 +2555,29 @@ static int net2272_probe (struct device *_dev)
 	dev->dma_dreq_polarity = 0;
 	dev->dma_busy = 0;
 
-	usb_reset (dev);
-	usb_reinit (dev);
+	usb_reset(dev);
+	usb_reinit(dev);
+
+	/* See if there..., can remove this test for production code */
+	if (net2272_present(dev)) {
+		WARNING(dev, "2272 not found!\n");
+		retval = -ENODEV;
+		goto done;
+	}
 
 	if (request_irq (irq, net2272_irq, IRQF_TRIGGER_LOW , driver_name, dev) != 0) {
 		ERROR(dev, "request interrupt %d failed\n", irq);
 		retval = -EBUSY;
-		goto done;
+		goto done1;
 	}
 
 	dev->got_irq = 1;
 	dev->irq = irq;
 
-	dev->chiprev = net2272_read (dev, CHIPREV_2272);
+	dev->chiprev = net2272_read(dev, CHIPREV_2272);
 
 	/* done */
-	dev_set_drvdata (&pdev->dev, dev);
+	platform_set_drvdata(pdev, dev);
 	INFO (dev, "%s\n", driver_desc);
 	INFO (dev, "irq %d, mapped mem %p, chip rev %04x\n",
 			dev->irq, dev->base_addr, dev->chiprev);
@@ -2587,55 +2588,62 @@ static int net2272_probe (struct device *_dev)
 
 	the_controller = dev;
 
-	retval = device_register (&dev->gadget.dev);
-	if (retval) goto done;
-	retval = device_create_file (&pdev->dev, &dev_attr_registers);
-	if (retval) goto done;
-
-	// See if there..., can remove this test for production code
-	if (net2272_present(dev))
-	{
-		WARNING(dev, "2272 not found!\n");
-		retval = -ENODEV;
-		goto done;
-	}
+	retval = device_register(&dev->gadget.dev);
+	if (retval)
+		goto done2;
+	retval = device_create_file(&pdev->dev, &dev_attr_registers);
+	if (retval)
+		goto done3;
 
 	return 0;
 
+done3:
+	device_remove_file(&pdev->dev, &dev_attr_registers);
+done2:
+	device_unregister(&dev->gadget.dev);
+	free_irq(irq, dev);
+done1:
+	iounmap(dev->base_addr);
 done:
-	if (dev)
-		net2272_remove (_dev);
+#ifdef CONFIG_BFIN533_STAMP
+	gpio_free(GPIO_0);
+	gpio_free(GPIO_1);
+#endif
+
+#ifdef CONFIG_BFIN537_BLUETECHNIX_CM
+	gpio_free(GPIO_47);
+#endif
 
 	return retval;
 }
 
-static struct device_driver net2272_driver = {
-	.name			= (char *)driver_name,
-	.bus			= &platform_bus_type,
-
-	.probe			= net2272_probe,
-	.remove			= net2272_remove,
-
-	/* FIXME .suspend, .resume */
+static struct platform_driver net2272_driver = {
+	.probe   = net2272_probe,
+	.remove	 = __devexit_p(net2272_remove),
+	.driver	 = {
+		.name	 = (char *)driver_name,
+		.owner	= THIS_MODULE,
+	},
 };
+
 /*---------------------------------------------------------------------------*/
 #endif
 
 static int __init init (void)
 {
 #if defined(PLX_PCI_RDK)
-	return pci_register_driver (&net2272_driver);
+	return pci_register_driver(&net2272_driver);
 #else
-	return driver_register (&net2272_driver);
+	return platform_driver_register(&net2272_driver);
 #endif
 }
 
 static void __exit cleanup (void)
 {
 #if defined(PLX_PCI_RDK)
-	pci_unregister_driver (&net2272_driver);
+	pci_unregister_driver(&net2272_driver);
 #else
-	driver_unregister (&net2272_driver);
+	platform_driver_unregister(&net2272_driver);
 #endif
 }
 module_init (init);
