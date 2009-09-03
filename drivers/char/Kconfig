@@ -63,11 +63,6 @@ config BFIN_SPORT
 
 	  If unsure, then say N.
 
-config BFIN_TIMER_LATENCY
-	tristate "Blackfin interrupt latency test"
-	depends on BLACKFIN
-	default n
-
 config BFIN_TWI_LCD
 	tristate "TWI/I2C LCD support for HD44780 based LCD modules"
 	depends on I2C && EXPERIMENTAL && BLACKFIN
