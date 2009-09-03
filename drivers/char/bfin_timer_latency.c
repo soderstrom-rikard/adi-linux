@@ -45,132 +45,117 @@
 # define DPRINTK(x...)	do { } while (0)
 #endif
 
+#define WARM_CNT 0
+
 struct timer_latency_data_t {
 	char value;
-	unsigned long last_latency;
 	unsigned long worst_latency;
-	unsigned long average_latency;
+	unsigned long long total_latency;
 	unsigned long test_number;
 	unsigned int period_sclk;
-	unsigned int period_cclk;
+	unsigned int period_ns;
 };
 
 struct proc_dir_entry *timer_latency_file;
 struct timer_latency_data_t timer_latency_data;
 
+static unsigned long long ns_new, ns_last;
+static unsigned long warmup;
+
 static int read_timer_latency(char *page, char **start,
 			      off_t offset, int count, int *eof, void *data)
 {
+	unsigned long long average_latency = timer_latency_data.total_latency;
+
+	if (likely(timer_latency_data.test_number > 0))
+		do_div(average_latency, timer_latency_data.test_number);
+
 	return sprintf(page,
-		       "number, worst latency, average latency\n  %lu,      %lu,       %lu\n",
-		       timer_latency_data.test_number,
-		       timer_latency_data.worst_latency,
-		       timer_latency_data.average_latency);
+		       "number,   worst latency(ns), average latency(ns)\n"
+			"%lu,      %lu,          %llu\n",
+			timer_latency_data.test_number,
+			timer_latency_data.worst_latency, average_latency);
 }
 
 static int write_timer_latency(struct file *file, const char *buffer,
 			       unsigned long count, void *data)
 {
-	unsigned long sclk, cclk;
-	char user_value[8];
+	unsigned long sclk;
+	char user_value[8] = {'\0'};
 	unsigned int wd_period_us;
 
-	copy_from_user(user_value, buffer, count);
+	if (count > sizeof(user_value) - 1)
+		return -EINVAL;
+
+	if (copy_from_user(user_value, buffer, count) != 0)
+		return -EFAULT;
+
+	user_value[count] = '\0';
+
 	wd_period_us = simple_strtoul(user_value, NULL, 0);
 
 	if ((wd_period_us >= 100) && (timer_latency_data.value == 0)) {
-		DPRINTK("start timer_latency\n");
+		DPRINTK("start timer_latency: period: %d us\n", wd_period_us);
 		timer_latency_data.value = 1;
 		sclk = get_sclk() / 1000000;
-		cclk = get_cclk() / 1000000;
 
-		/* convert from us to cycles */
 		timer_latency_data.period_sclk = wd_period_us * sclk;
-		timer_latency_data.period_cclk = wd_period_us * cclk;
+		timer_latency_data.period_ns = wd_period_us * 1000;
+
+		timer_latency_data.worst_latency = 0;
+		timer_latency_data.total_latency = 0;
+		timer_latency_data.test_number = 0;
+		warmup = WARM_CNT;
 
 		/* set count timer cycles */
 		bfin_write_WDOG_CNT(timer_latency_data.period_sclk);
+		/* start WDOT timer */
+		bfin_write_WDOG_CTL(0x4);
+		ns_last = sched_clock();
+		ns_new = ns_last;
+	} else if ((wd_period_us == 0) && timer_latency_data.value == 1) {
+		DPRINTK("stop timer_latency\n");
+		timer_latency_data.value = 0;
 
-		/* set CYCLES counter to 0 and start it */
-		__asm__(
-			"R2 = 0;\n\t"
-			"CYCLES = R2;\n\t"
-			"CYCLES2 = R2;\n\t"
-			"R2 = SYSCFG;\n\t"
-			"BITSET(R2,1);\n\t"
-
-			"P2.H = 0xffc0;\n\t"
-			"P2.L = 0x0200;\n\t"
-			"R3 = 0x0004;\n\t"
-			"W[P2] = R3;\n\t"     /* start watchdog timer */
-			"SYSCFG = R2;\n\t"    /* start cycles counter */
-			: : : "R2", "R3", "P2"
-		);
-
+		bfin_write_WDOG_CTL(0x8AD6);	/* close counter */
+		bfin_write_WDOG_CTL(0x8AD6);	/* have to write it twice to disable the timer */
 	}
 
-	return 1;		/* always write 1 byte */
+	return count;		/* always write 1 byte */
 }
+
 
 static irqreturn_t timer_latency_irq(int irq, void *dev_id)
 {
 	struct timer_latency_data_t *data = dev_id;
+	unsigned long latency = 0;
 
-	unsigned long cycles_past;
-	unsigned long latency;
-
-	/* unsigned long first_latency, second_latency, third_latency; */
-
-	/* get current cycle counter */
-	/*
-	   asm("%0 = CYCLES; p2 = 0xFFE07040; %1 = [p2]; p2 = 0xFFE07044; %2 = [p2]; p2 = 0xFFE07048; %3 = [p2];"
-	   : "=d" (cycles_past), "=d" (first_latency), "=d" (second_latency), "=d" (third_latency):); */
-
-      asm("%0 = CYCLES;":"=d"(cycles_past));
+	ns_new = sched_clock();
 
 	bfin_write_WDOG_CTL(0x8AD6);	/* close counter */
 	bfin_write_WDOG_CTL(0x8AD6);	/* have to write it twice to disable the timer */
 
-	__asm__(                      /* stop CYCLES counter */
-		"R2 = SYSCFG;\n\t"
-		"BITCLR(R2,1);\n\t"
-		"SYSCFG = R2;\n\t"
-		: : : "R2"
-	);
-
-	latency = cycles_past - data->period_cclk;	/* latency in cycles */
+	latency = (ns_new - ns_last) - data->period_ns;	/* latency in ns */
+	ns_last = ns_new;
 
 	DPRINTK("latecy is %lu\n", latency);
 
 	if (bfin_read_WDOG_STAT() != 0) {
-		DPRINTK("timer_latency error!\n");
+		printk(KERN_ERR "timer_latency error!\n");
 		return IRQ_HANDLED;
 	}
 
-	if (latency > data->worst_latency)
-		data->worst_latency = latency;
-	data->last_latency = latency;
-	data->test_number++;
-	data->average_latency =
-	    ((data->average_latency * (data->test_number - 1)) +
-	     latency) / (data->test_number);
+	if (likely(warmup <= 0)) {
+		if (latency > data->worst_latency)
+			data->worst_latency = latency;
+		data->test_number++;
+		data->total_latency += latency;
+	} else
+		warmup--;
 
 	/* restart watchdog timer again */
 	bfin_write_WDOG_CNT(data->period_sclk);
-
-	__asm__(
-		"R2 = 0;\n\t"
-		"CYCLES = R2;\n\t"
-		"CYCLES2 = R2;\n\t"
-		"R2 = SYSCFG;\n\t"
-		"BITSET(R2,1);\n\t"
-		"P2.H = 0xffc0;\n\t"
-		"P2.L = 0x0200;\n\t"
-		"R3 = 0x0004;\n\t"
-		"W[P2] = R3;\n\t"     /* start watchdog timer */
-		"SYSCFG = R2;\n\t"    /* start cycles counter */
-		: : : "R2", "R3", "P2"
-		);
+	bfin_write_WDOG_CTL(0x4);
 
 	return IRQ_HANDLED;
 }
@@ -186,8 +171,9 @@ static int __init timer_latency_init(void)
 	/* default value is 0 (timer is stopped) */
 	timer_latency_data.value = 0;
 	timer_latency_data.worst_latency = 0;
-	timer_latency_data.average_latency = 0;
-	timer_latency_data.last_latency = 0;
+	timer_latency_data.total_latency = 0;
+	warmup = WARM_CNT;
+	ns_new = ns_last = 0;
 
 	timer_latency_file->data = &timer_latency_data;
 	timer_latency_file->read_proc = &read_timer_latency;
@@ -198,7 +184,6 @@ static int __init timer_latency_init(void)
 		remove_proc_entry("timer_latency", NULL);
 		return -EBUSY;
 	}
-
 	printk(KERN_INFO "timer_latency module loaded\n");
 
 	return 0;		/* everything's OK */
