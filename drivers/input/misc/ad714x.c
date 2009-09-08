@@ -396,14 +396,14 @@ static void ad714x_slider_state_machine(struct ad714x_chip *ad714x, int idx)
 				ad714x_slider_cal_flt_pos(ad714x, idx);
 
 				input_report_abs(sw->input, ABS_X, sw->flt_pos);
-				input_report_abs(sw->input, ABS_PRESSURE, 1);
+				input_report_key(sw->input, BTN_TOUCH, 1);
 			} else {
 				/* When the user lifts off the sensor, configure
 				 * the AD714X back to threshold interrupt mode.
 				 */
 				ad714x_slider_use_thr_int(ad714x, idx);
 				sw->state = IDLE;
-				input_report_abs(sw->input, ABS_PRESSURE, 0);
+				input_report_key(sw->input, BTN_TOUCH, 0);
 				dev_dbg(ad714x->dev, "slider %d released\n",
 					idx);
 			}
@@ -625,14 +625,14 @@ static void ad714x_wheel_state_machine(struct ad714x_chip *ad714x, int idx)
 
 				input_report_abs(sw->input, ABS_WHEEL,
 					sw->abs_pos);
-				input_report_abs(sw->input, ABS_PRESSURE, 1);
+				input_report_key(sw->input, BTN_TOUCH, 1);
 			} else {
 				/* When the user lifts off the sensor, configure
 				 * the AD714X back to threshold interrupt mode.
 				 */
 				ad714x_wheel_use_thr_int(ad714x, idx);
 				sw->state = IDLE;
-				input_report_abs(sw->input, ABS_PRESSURE, 0);
+				input_report_key(sw->input, BTN_TOUCH, 0);
 
 				dev_dbg(ad714x->dev, "wheel %d released\n",
 					idx);
@@ -911,8 +911,8 @@ static void ad714x_touchpad_state_machine(struct ad714x_chip *ad714x, int idx)
 						sw->x_flt_pos);
 					input_report_abs(sw->input, ABS_Y,
 						sw->y_flt_pos);
-					input_report_abs(sw->input,
-						ABS_PRESSURE, 1);
+					input_report_key(sw->input, BTN_TOUCH,
+						1);
 				}
 			} else {
 				/* When the user lifts off the sensor, configure
@@ -920,7 +920,7 @@ static void ad714x_touchpad_state_machine(struct ad714x_chip *ad714x, int idx)
 				 */
 				touchpad_use_thr_int(ad714x, idx);
 				sw->state = IDLE;
-				input_report_abs(sw->input, ABS_PRESSURE, 0);
+				input_report_key(sw->input, BTN_TOUCH, 0);
 				dev_dbg(ad714x->dev, "touchpad %d released\n",
 					idx);
 			}
@@ -1095,12 +1095,11 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 			alloc_idx++;
 
 			__set_bit(EV_ABS, input[alloc_idx-1]->evbit);
+			__set_bit(EV_KEY, input[alloc_idx-1]->evbit);
 			__set_bit(ABS_X, input[alloc_idx-1]->absbit);
-			__set_bit(ABS_PRESSURE, input[alloc_idx-1]->absbit);
+			__set_bit(BTN_TOUCH, input[alloc_idx-1]->keybit);
 			input_set_abs_params(input[alloc_idx-1], ABS_X, 0,
 					sd_plat->max_coord, 0, 0);
-			input_set_abs_params(input[alloc_idx-1], ABS_PRESSURE,
-				0, 1, 0, 0);
 
 			input[alloc_idx-1]->id.bustype = bus_type;
 			input[alloc_idx-1]->id.product = ad714x->product;
@@ -1140,13 +1139,12 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 			}
 			alloc_idx++;
 
+			__set_bit(EV_KEY, input[alloc_idx-1]->evbit);
 			__set_bit(EV_ABS, input[alloc_idx-1]->evbit);
 			__set_bit(ABS_WHEEL, input[alloc_idx-1]->absbit);
-			__set_bit(ABS_PRESSURE, input[alloc_idx-1]->absbit);
+			__set_bit(BTN_TOUCH, input[alloc_idx-1]->keybit);
 			input_set_abs_params(input[alloc_idx-1], ABS_WHEEL, 0,
 					wl_plat->max_coord, 0, 0);
-			input_set_abs_params(input[alloc_idx-1], ABS_PRESSURE,
-				0, 1, 0, 0);
 
 			input[alloc_idx-1]->id.bustype = bus_type;
 			input[alloc_idx-1]->id.product = ad714x->product;
@@ -1188,15 +1186,14 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 			alloc_idx++;
 
 			__set_bit(EV_ABS, input[alloc_idx-1]->evbit);
+			__set_bit(EV_KEY, input[alloc_idx-1]->evbit);
 			__set_bit(ABS_X, input[alloc_idx-1]->absbit);
 			__set_bit(ABS_Y, input[alloc_idx-1]->absbit);
-			__set_bit(ABS_PRESSURE, input[alloc_idx-1]->absbit);
+			__set_bit(BTN_TOUCH, input[alloc_idx-1]->keybit);
 			input_set_abs_params(input[alloc_idx-1], ABS_X, 0,
 					tp_plat->x_max_coord, 0, 0);
 			input_set_abs_params(input[alloc_idx-1], ABS_Y, 0,
 					tp_plat->y_max_coord, 0, 0);
-			input_set_abs_params(input[alloc_idx-1], ABS_PRESSURE,
-				0, 1, 0, 0);
 
 			input[alloc_idx-1]->id.bustype = bus_type;
 			input[alloc_idx-1]->id.product = ad714x->product;
@@ -1265,7 +1262,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 fail_alloc_reg:
 	for (i = 0; i < reg_idx; i++)
 		input_unregister_device(input[i]);
-	for (i = 0; i < alloc_idx; i++)
+	for (i = reg_idx; i < alloc_idx; i++)
 		input_free_device(input[i]);
 
 	kfree(bt_drv);
@@ -1293,23 +1290,16 @@ static int __devexit ad714x_remove(struct ad714x_chip *ad714x)
 
 	/* unregister and free all input devices */
 
-	for (i = 0; i < ad714x->hw->slider_num; i++) {
+	for (i = 0; i < ad714x->hw->slider_num; i++)
 		input_unregister_device(ad714x->sw->slider[i].input);
-		input_free_device(ad714x->sw->slider[i].input);
-	}
 
-	for (i = 0; i < ad714x->hw->wheel_num; i++) {
+	for (i = 0; i < ad714x->hw->wheel_num; i++)
 		input_unregister_device(ad714x->sw->wheel[i].input);
-		input_free_device(ad714x->sw->wheel[i].input);
-	}
 
-	for (i = 0; i < ad714x->hw->touchpad_num; i++) {
+	for (i = 0; i < ad714x->hw->touchpad_num; i++)
 		input_unregister_device(ad714x->sw->touchpad[i].input);
-		input_free_device(ad714x->sw->touchpad[i].input);
-	}
 
 	input_unregister_device(ad714x->sw->button[0].input);
-	input_free_device(ad714x->sw->button[0].input);
 
 	/* free all memories for software flow */
 
