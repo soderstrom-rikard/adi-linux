@@ -209,11 +209,50 @@ static struct resource bfin_uart_resources[] = {
 		.end = 0xFFC004FF,
 		.flags = IORESOURCE_MEM,
 	},
+	{
+		.start = IRQ_UART_RX,
+		.end = IRQ_UART_RX+1,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_UART_ERROR,
+		.end = IRQ_UART_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = CH_UART_TX,
+		.end = CH_UART_TX,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = CH_UART_RX,
+		.end = CH_UART_RX,
+		.flags = IORESOURCE_DMA,
+	},
+#ifdef CONFIG_BFIN_UART0_CTSRTS
+	{
+		/*
+		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
+		 */
+		.start = -1,
+		.end = -1,
+		.flags = IORESOURCE_IO,
+	},
+	{
+		/*
+		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
+		 */
+		.start = -1,
+		.end = -1,
+		.flags = IORESOURCE_IO,
+	},
+#endif
+
 };
 
 static struct platform_device bfin_uart_device = {
 	.name = "bfin-uart",
-	.id = 1,
+	.id = 0,
 	.num_resources = ARRAY_SIZE(bfin_uart_resources),
 	.resource = bfin_uart_resources,
 };

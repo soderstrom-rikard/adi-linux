@@ -61,22 +61,6 @@
 
 #if defined(CONFIG_BFIN_UART0_CTSRTS) || defined(CONFIG_BFIN_UART1_CTSRTS)
 # define CONFIG_SERIAL_BFIN_CTSRTS
-
-# ifndef CONFIG_UART0_CTS_PIN
-#  define CONFIG_UART0_CTS_PIN -1
-# endif
-
-# ifndef CONFIG_UART0_RTS_PIN
-#  define CONFIG_UART0_RTS_PIN -1
-# endif
-
-# ifndef CONFIG_UART1_CTS_PIN
-#  define CONFIG_UART1_CTS_PIN -1
-# endif
-
-# ifndef CONFIG_UART1_RTS_PIN
-#  define CONFIG_UART1_RTS_PIN -1
-# endif
 #endif
 
 #define BFIN_UART_TX_FIFO_SIZE	2
@@ -123,65 +107,15 @@ static inline void UART_CLEAR_LSR(struct bfin_serial_port *uart)
 	bfin_write16(uart->port.membase + OFFSET_LSR, -1);
 }
 
-struct bfin_serial_res {
-	unsigned long	uart_base_addr;
-	int		uart_irq;
-	int		uart_status_irq;
-#ifdef CONFIG_SERIAL_BFIN_DMA
-	unsigned int	uart_tx_dma_channel;
-	unsigned int	uart_rx_dma_channel;
-#endif
-#ifdef CONFIG_SERIAL_BFIN_CTSRTS
-	int	uart_cts_pin;
-	int	uart_rts_pin;
-#endif
-};
-
-struct bfin_serial_res bfin_serial_resource[] = {
+unsigned long bfin_serial_console_base_addr[] = {
 #ifdef CONFIG_SERIAL_BFIN_UART0
-	{
 	0xFFC00400,
-	IRQ_UART0_RX,
-	IRQ_UART0_ERROR,
-#ifdef CONFIG_SERIAL_BFIN_DMA
-	CH_UART0_TX,
-	CH_UART0_RX,
-#endif
-#ifdef CONFIG_SERIAL_BFIN_CTSRTS
-	CONFIG_UART0_CTS_PIN,
-	CONFIG_UART0_RTS_PIN,
-#endif
-	},
 #endif
 #ifdef CONFIG_SERIAL_BFIN_UART1
-	{
 	0xFFC02000,
-	IRQ_UART1_RX,
-	IRQ_UART1_ERROR,
-#ifdef CONFIG_SERIAL_BFIN_DMA
-	CH_UART1_TX,
-	CH_UART1_RX,
-#endif
-#ifdef CONFIG_SERIAL_BFIN_CTSRTS
-	CONFIG_UART1_CTS_PIN,
-	CONFIG_UART1_RTS_PIN,
-#endif
-	},
 #endif
 #ifdef CONFIG_SERIAL_BFIN_UART2
-	{
 	0xFFC02100,
-	IRQ_UART2_RX,
-#ifdef CONFIG_SERIAL_BFIN_DMA
-	CH_UART2_TX,
-	CH_UART2_RX,
-#endif
-#ifdef CONFIG_BFIN_UART2_CTSRTS
-	CONFIG_UART2_CTS_PIN,
-	CONFIG_UART2_RTS_PIN,
-#endif
-	},
 #endif
 };
 
-#define DRIVER_NAME "bfin-uart"

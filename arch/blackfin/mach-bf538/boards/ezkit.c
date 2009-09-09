@@ -63,36 +63,170 @@ static struct platform_device rtc_device = {
 #endif
 
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
-static struct resource bfin_uart_resources[] = {
 #ifdef CONFIG_SERIAL_BFIN_UART0
+static struct resource bfin_uart0_resources[] = {
 	{
 		.start = 0xFFC00400,
 		.end = 0xFFC004FF,
 		.flags = IORESOURCE_MEM,
 	},
+	{
+		.start = IRQ_UART0_RX,
+		.end = IRQ_UART0_RX+1,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_UART0_ERROR,
+		.end = IRQ_UART0_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = CH_UART0_TX,
+		.end = CH_UART0_TX,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = CH_UART0_RX,
+		.end = CH_UART0_RX,
+		.flags = IORESOURCE_DMA,
+	},
+#ifdef CONFIG_BFIN_UART0_CTSRTS
+	{
+		/*
+		 * The default CTS PIN is GPIO23 (GPIO_PG7).
+		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
+		 */
+		.start = 23,
+		.end = 23,
+		.flags = IORESOURCE_IO,
+	},
+	{
+		/*
+		 * The default RTS PIN is GPIO22 (GPIO_PG6).
+		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
+		 */
+		.start = 22,
+		.end = 22,
+		.flags = IORESOURCE_IO,
+	},
+#endif
+};
+
+static struct platform_device bfin_uart0_device = {
+	.name = "bfin-uart",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(bfin_uart0_resources),
+	.resource = bfin_uart_resources,
+};
 #endif
 #ifdef CONFIG_SERIAL_BFIN_UART1
+static struct resource bfin_uart1_resources[] = {
 	{
 		.start = 0xFFC02000,
 		.end = 0xFFC020FF,
 		.flags = IORESOURCE_MEM,
 	},
+	{
+		.start = IRQ_UART1_RX,
+		.end = IRQ_UART1_RX+1,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_UART1_ERROR,
+		.end = IRQ_UART1_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = CH_UART1_TX,
+		.end = CH_UART1_TX,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = CH_UART1_RX,
+		.end = CH_UART1_RX,
+		.flags = IORESOURCE_DMA,
+	},
+#ifdef CONFIG_BFIN_UART1_CTSRTS
+	{
+		/*
+		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
+		 */
+		.start = -1,
+		.end = -1,
+		.flags = IORESOURCE_IO,
+	},
+	{
+		/*
+		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
+		 */
+		.start = -1,
+		.end = -1,
+		.flags = IORESOURCE_IO,
+	},
+#endif
+};
+
+static struct platform_device bfin_uart1_device = {
+	.name = "bfin-uart",
+	.id = 1,
+	.num_resources = ARRAY_SIZE(bfin_uart1_resources),
+	.resource = bfin_uart1_resources,
+};
 #endif
 #ifdef CONFIG_SERIAL_BFIN_UART2
+static struct resource bfin_uart2_resources[] = {
 	{
 		.start = 0xFFC02100,
 		.end = 0xFFC021FF,
 		.flags = IORESOURCE_MEM,
 	},
+	{
+		.start = IRQ_UART2_RX,
+		.end = IRQ_UART2_RX+1,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_UART2_ERROR,
+		.end = IRQ_UART2_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = CH_UART2_TX,
+		.end = CH_UART2_TX,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = CH_UART2_RX,
+		.end = CH_UART2_RX,
+		.flags = IORESOURCE_DMA,
+	},
+#ifdef CONFIG_BFIN_UART2_CTSRTS
+	{
+		/*
+		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
+		 */
+		.start = -1,
+		.end = -1,
+		.flags = IORESOURCE_IO,
+	},
+	{
+		/*
+		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
+		 */
+		.start = -1,
+		.end = -1,
+		.flags = IORESOURCE_IO,
+	},
 #endif
 };
 
-static struct platform_device bfin_uart_device = {
+static struct platform_device bfin_uart2_device = {
 	.name = "bfin-uart",
-	.id = 1,
-	.num_resources = ARRAY_SIZE(bfin_uart_resources),
-	.resource = bfin_uart_resources,
+	.id = 2,
+	.num_resources = ARRAY_SIZE(bfin_uart2_resources),
+	.resource = bfin_uart2_resources,
 };
+#endif
 #endif
 
 #if defined(CONFIG_BFIN_SIR) || defined(CONFIG_BFIN_SIR_MODULE)
@@ -615,7 +749,15 @@ static struct platform_device *cm_bf538_devices[] __initdata = {
 #endif
 
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
-	&bfin_uart_device,
+#ifdef CONFIG_SERIAL_BFIN_UART0
+	&bfin_uart0_device,
+#endif
+#ifdef CONFIG_SERIAL_BFIN_UART1
+	&bfin_uart1_device,
+#endif
+#ifdef CONFIG_SERIAL_BFIN_UART2
+	&bfin_uart2_device,
+#endif
 #endif
 
 #if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
