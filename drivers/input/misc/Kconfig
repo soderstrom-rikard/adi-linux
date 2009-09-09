@@ -251,13 +251,13 @@ config INPUT_RB532_BUTTON
 	  module will be called rb532_button.
 
 config INPUT_AD714X
-	tristate "Analog Devices AD714X Capacitance Touch Sensor"
+	tristate "Analog Devices AD7142/7147 Capacitance Touch Sensor"
 	depends on SPI || I2C
 	help
-	  Say Y here if you want to support an AD714X touch sensor.
+	  Say Y here if you want to support an AD7142/7147 touch sensor.
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called ad714X.
+	  module will be called ad714x.
 
 config INPUT_EVAL_AD7147EBZ
 	bool "ADI EVAL-AD7147EBZ board"
