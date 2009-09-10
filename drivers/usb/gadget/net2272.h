@@ -376,7 +376,7 @@ struct net2272 {
 #else
         struct platform_device          *pdev;
 #endif
-#if defined(CONFIG_BLACKFIN) && !defined(CONFIG_BFIN537_BLUETECHNIX_CM)
+#if defined(CONFIG_BLACKFIN) && !defined(CONFIG_BFIN537_BLUETECHNIX_CM_U) && !defined(CONFIG_BFIN537_BLUETECHNIX_TCM) && !defined(CONFIG_BFIN561_BLUETECHNIX_CM) && !defined(CONFIG_BFIN537_BLUETECHNIX_CM_E)
 	u32				__iomem *base_addr;
 #else
         u16                             __iomem *base_addr;

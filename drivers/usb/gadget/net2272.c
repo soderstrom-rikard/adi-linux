@@ -2436,9 +2436,26 @@ static int __devexit net2272_remove(struct platform_device *pdev)
 	gpio_free(GPIO_1);
 #endif
 
-#ifdef CONFIG_BFIN537_BLUETECHNIX_CM
+#ifdef CONFIG_BFIN537_BLUETECHNIX_CM_U
+	/* Set PH15 high */
+	gpio_direction_output(GPIO_47, 1);
 	gpio_free(GPIO_47);
+	/* Free reset line */
+	gpio_free(GPIO_45);
+	/* Disable CLKBUF out */
+	bfin_write_VR_CTL(bfin_read_VR_CTL() & ~CLKBUFOE);
 #endif
+
+#if defined(CONFIG_BFIN537_BLUETECHNIX_TCM) || defined(CONFIG_BFIN537_BLUETECHNIX_CM_E)
+	/* Free reset line */
+	gpio_free(GPIO_30);
+#endif
+
+#ifdef CONFIG_BFIN561_BLUETECHNIX_CM
+	/* Free reset line */
+	gpio_free(GPIO_PF46);
+#endif
+
 	kfree(dev);
 
 	return 0;
@@ -2504,12 +2521,48 @@ static int __devinit net2272_probe(struct platform_device *pdev)
 	gpio_set_value(GPIO_6, 1);
 #endif
 
-#ifdef CONFIG_BFIN537_BLUETECHNIX_CM /* Set PH15 Low make /AMS2 work properly */
+#ifdef CONFIG_BFIN537_BLUETECHNIX_CM_U
+	/* Set PH15 Low make /AMS2 work properly */
 	if (gpio_request(GPIO_47, driver_name)) {
 		printk(KERN_ERR "net2272: Failed ro request GPIO_%d\n", GPIO_47);
 		return -EBUSY;
 	}
 	gpio_direction_output(GPIO_47, 0);
+	/* enable CLKBUF output */
+	bfin_write_VR_CTL(bfin_read_VR_CTL() | CLKBUFOE);
+	/* Reset USB Chip */
+	if (gpio_request(GPIO_45, driver_name)) {
+		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_45);
+		return -EBUSY;
+	}
+	gpio_direction_output(GPIO_45, 0);
+	/* Hold it for 2ms */
+	mdelay(2);
+	gpio_set_value(GPIO_45, 1);
+#endif
+
+#if defined(CONFIG_BFIN537_BLUETECHNIX_TCM) || defined(CONFIG_BFIN537_BLUETECHNIX_CM_E)
+	/* Reset USB Chip, PG14 */
+	if (gpio_request(GPIO_30, driver_name)) {
+		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_30);
+		return -EBUSY;
+	}
+	gpio_direction_output(GPIO_30, 0);
+	/* Hold it for 2ms */
+	mdelay(2);
+	gpio_set_value(GPIO_30, 1);
+#endif
+
+#ifdef CONFIG_BFIN561_BLUETECHNIX_CM
+	/* Reset USB Chip, PF46 */
+	if (gpio_request(GPIO_PF46, driver_name)) {
+		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_PF46);
+		return -EBUSY;
+	}
+	gpio_direction_output(GPIO_PF46, 0);
+	/* Hold it for 2ms */
+	mdelay(2);
+	gpio_set_value(GPIO_PF46, 1);
 #endif
 	}
 #endif
