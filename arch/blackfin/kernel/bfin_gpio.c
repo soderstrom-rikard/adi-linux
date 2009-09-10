@@ -773,6 +773,13 @@ int peripheral_request(unsigned short per, const char *label)
 	unsigned long flags;
 	unsigned short ident = P_IDENT(per);
 
+	if (ident >= MAX_BLACKFIN_GPIOS) {
+		printk(KERN_ERR
+				"%s: the GPIO number %d is bigger available GPIOs, %s !\n",
+				__func__, ident, get_label(ident));
+		return -ENODEV;
+	}
+
 	/*
 	 * Don't cares are pins with only one dedicated function
 	 */
