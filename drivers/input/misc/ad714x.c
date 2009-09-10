@@ -1478,8 +1478,21 @@ static struct spi_driver ad714x_spi_driver = {
 	.suspend	= ad714x_spi_suspend,
 	.resume		= ad714x_spi_resume,
 };
-#endif
 
+static inline int ad714x_spi_register_driver(struct spi_driver *spi_drv)
+{
+	return spi_register_driver(spi_drv);
+}
+
+static inline void ad714x_spi_unregister_driver(struct spi_driver *spi_drv)
+{
+	spi_unregister_driver(spi_drv);
+}
+
+#else
+#define ad714x_spi_register_driver(p) 0
+#define ad714x_spi_unregister_driver(p)
+#endif
 
 #if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 static int ad714x_i2c_write(struct device *dev, unsigned short reg,
@@ -1595,43 +1608,40 @@ static struct i2c_driver ad714x_i2c_driver = {
 	.resume	  = ad714x_i2c_resume,
 	.id_table = ad714x_id,
 };
+
+static inline int ad714x_i2c_add_driver(struct i2c_driver *i2c_drv)
+{
+	return i2c_add_driver(i2c_drv);
+}
+
+static inline void ad714x_i2c_del_driver(struct i2c_driver *i2c_drv)
+{
+	i2c_del_driver(i2c_drv);
+}
+
+#else
+#define ad714x_i2c_add_driver(p) 0
+#define ad714x_i2c_del_driver(p)
 #endif
 
 static int __init ad714x_init(void)
 {
-#if (defined(CONFIG_SPI) || defined(CONFIG_SPI_MODULE)) && \
-	!(defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE))
-	return spi_register_driver(&ad714x_spi_driver);
-#endif
 
-#if (defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE))  && \
-	!(defined(CONFIG_SPI) || defined(CONFIG_SPI_MODULE))
-	return i2c_add_driver(&ad714x_i2c_driver);
-#endif
-
-#if (defined(CONFIG_SPI) || defined(CONFIG_SPI_MODULE)) && \
-	(defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE))
 	int ret = 0;
-	ret = spi_register_driver(&ad714x_spi_driver);
+	ret = ad714x_spi_register_driver(&ad714x_spi_driver);
 	if (ret)
 		goto err;
-	ret = i2c_add_driver(&ad714x_i2c_driver);
+	ret = ad714x_i2c_add_driver(&ad714x_i2c_driver);
 	if (ret)
-		spi_unregister_driver(&ad714x_spi_driver);
+		ad714x_spi_unregister_driver(&ad714x_spi_driver);
 err:
 	return ret;
-#endif
 }
 
 static void __exit ad714x_exit(void)
 {
-#if defined(CONFIG_SPI) || defined(CONFIG_SPI_MODULE)
-	spi_unregister_driver(&ad714x_spi_driver);
-#endif
-
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
-	i2c_del_driver(&ad714x_i2c_driver);
-#endif
+	ad714x_spi_unregister_driver(&ad714x_spi_driver);
+	ad714x_i2c_del_driver(&ad714x_i2c_driver);
 }
 
 module_init(ad714x_init);
