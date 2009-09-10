@@ -1340,7 +1340,6 @@ static int bfin_serial_probe(struct platform_device *pdev)
 
 	if (res->start != bfin_serial_console_base_addr[index]) {
 		dev_err(&pdev->dev, "Wrong uart platform device\n");
-		index++;
 		return -ENOENT;
 	}
 	index++;
