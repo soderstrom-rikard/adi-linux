@@ -775,8 +775,8 @@ int peripheral_request(unsigned short per, const char *label)
 
 	if (ident >= MAX_BLACKFIN_GPIOS) {
 		printk(KERN_ERR
-				"%s: the GPIO number %d is bigger available GPIOs, %s !\n",
-				__func__, ident, get_label(ident));
+				"%s: the GPIO number %d is bigger available GPIOs %d !\n",
+				__func__, ident, MAX_BLACKFIN_GPIOS);
 		return -ENODEV;
 	}
 
