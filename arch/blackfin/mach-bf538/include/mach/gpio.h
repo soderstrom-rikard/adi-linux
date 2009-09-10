@@ -10,11 +10,7 @@
 #ifndef _MACH_GPIO_H_
 #define _MACH_GPIO_H_
 
-	/* FIXME:
-	 * For now only support PORTF GPIOs.
-	 * PORT C,D and E are for peripheral usage only
-	 */
-#define MAX_BLACKFIN_GPIOS 16
+#define MAX_BLACKFIN_GPIOS 64
 
 #define	GPIO_PF0	0	/* PF */
 #define	GPIO_PF1	1
