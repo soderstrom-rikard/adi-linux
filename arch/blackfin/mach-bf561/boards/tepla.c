@@ -44,6 +44,63 @@ static struct platform_device smc91x_device = {
 	.resource      = smc91x_resources,
 };
 
+#if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
+#ifdef CONFIG_SERIAL_BFIN_UART0
+static struct resource bfin_uart0_resources[] = {
+	{
+		.start = 0xFFC00400,
+		.end = 0xFFC004FF,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_UART_RX,
+		.end = IRQ_UART_RX+1,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_UART_ERROR,
+		.end = IRQ_UART_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = CH_UART_TX,
+		.end = CH_UART_TX,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = CH_UART_RX,
+		.end = CH_UART_RX,
+		.flags = IORESOURCE_DMA,
+	},
+#ifdef CONFIG_BFIN_UART0_CTSRTS
+	{
+		/*
+		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
+		 */
+		.start = -1,
+		.end = -1,
+		.flags = IORESOURCE_IO,
+	},
+	{
+		/*
+		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
+		 */
+		.start = -1,
+		.end = -1,
+		.flags = IORESOURCE_IO,
+	},
+#endif
+};
+
+static struct platform_device bfin_uart0_device = {
+	.name = "bfin-uart",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(bfin_uart0_resources),
+	.resource = bfin_uart0_resources,
+};
+#endif
+#endif
+
 #if defined(CONFIG_BFIN_SIR) || defined(CONFIG_BFIN_SIR_MODULE)
 #ifdef CONFIG_BFIN_SIR0
 static struct resource bfin_sir0_resources[] = {
@@ -75,6 +132,13 @@ static struct platform_device bfin_sir0_device = {
 
 static struct platform_device *tepla_devices[] __initdata = {
 	&smc91x_device,
+
+#if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
+#ifdef CONFIG_SERIAL_BFIN_UART0
+	&bfin_uart0_device,
+#endif
+#endif
+
 #if defined(CONFIG_BFIN_SIR) || defined(CONFIG_BFIN_SIR_MODULE)
 #ifdef CONFIG_BFIN_SIR0
 	&bfin_sir0_device,

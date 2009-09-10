@@ -297,7 +297,6 @@ static struct resource bfin_uart0_resources[] = {
 		.flags = IORESOURCE_IO,
 	},
 #endif
-
 };
 
 static struct platform_device bfin_uart0_device = {
@@ -352,7 +351,6 @@ static struct resource bfin_uart1_resources[] = {
 		.flags = IORESOURCE_IO,
 	},
 #endif
-
 };
 
 static struct platform_device bfin_uart1_device = {
@@ -461,7 +459,6 @@ static struct resource bfin_uart3_resources[] = {
 		.flags = IORESOURCE_IO,
 	},
 #endif
-
 };
 
 static struct platform_device bfin_uart3_device = {

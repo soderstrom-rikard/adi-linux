@@ -203,7 +203,8 @@ static struct platform_device ax88180_device = {
 #endif
 
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
-static struct resource bfin_uart_resources[] = {
+#ifdef CONFIG_SERIAL_BFIN_UART0
+static struct resource bfin_uart0_resources[] = {
 	{
 		.start = 0xFFC00400,
 		.end = 0xFFC004FF,
@@ -247,15 +248,15 @@ static struct resource bfin_uart_resources[] = {
 		.flags = IORESOURCE_IO,
 	},
 #endif
-
 };
 
-static struct platform_device bfin_uart_device = {
+static struct platform_device bfin_uart0_device = {
 	.name = "bfin-uart",
 	.id = 0,
-	.num_resources = ARRAY_SIZE(bfin_uart_resources),
-	.resource = bfin_uart_resources,
+	.num_resources = ARRAY_SIZE(bfin_uart0_resources),
+	.resource = bfin_uart0_resources,
 };
+#endif
 #endif
 
 #if defined(CONFIG_BFIN_SIR) || defined(CONFIG_BFIN_SIR_MODULE)
@@ -511,7 +512,9 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #endif
 
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
-	&bfin_uart_device,
+#ifdef CONFIG_SERIAL_BFIN_UART0
+	&bfin_uart0_device,
+#endif
 #endif
 
 #if defined(CONFIG_BFIN_SIR) || defined(CONFIG_BFIN_SIR_MODULE)

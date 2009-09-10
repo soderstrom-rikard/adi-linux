@@ -281,20 +281,60 @@ static struct platform_device isp1362_hcd_device = {
 #endif
 
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
-static struct resource bfin_uart_resources[] = {
+#ifdef CONFIG_SERIAL_BFIN_UART0
+static struct resource bfin_uart0_resources[] = {
 	{
 		.start = 0xFFC00400,
 		.end = 0xFFC004FF,
 		.flags = IORESOURCE_MEM,
 	},
+	{
+		.start = IRQ_UART_RX,
+		.end = IRQ_UART_RX+1,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_UART_ERROR,
+		.end = IRQ_UART_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = CH_UART_TX,
+		.end = CH_UART_TX,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = CH_UART_RX,
+		.end = CH_UART_RX,
+		.flags = IORESOURCE_DMA,
+	},
+#ifdef CONFIG_BFIN_UART0_CTSRTS
+	{
+		/*
+		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
+		 */
+		.start = -1,
+		.end = -1,
+		.flags = IORESOURCE_IO,
+	},
+	{
+		/*
+		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
+		 */
+		.start = -1,
+		.end = -1,
+		.flags = IORESOURCE_IO,
+	},
+#endif
 };
 
-static struct platform_device bfin_uart_device = {
+static struct platform_device bfin_uart0_device = {
 	.name = "bfin-uart",
-	.id = 1,
-	.num_resources = ARRAY_SIZE(bfin_uart_resources),
-	.resource = bfin_uart_resources,
+	.id = 0,
+	.num_resources = ARRAY_SIZE(bfin_uart0_resources),
+	.resource = bfin_uart0_resources,
 };
+#endif
 #endif
 
 #if defined(CONFIG_BFIN_SIR) || defined(CONFIG_BFIN_SIR_MODULE)
@@ -399,7 +439,9 @@ static struct platform_device *cm_bf561_devices[] __initdata = {
 #endif
 
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
-	&bfin_uart_device,
+#ifdef CONFIG_SERIAL_BFIN_UART0
+	&bfin_uart0_device,
+#endif
 #endif
 
 #if defined(CONFIG_BFIN_SIR) || defined(CONFIG_BFIN_SIR_MODULE)
