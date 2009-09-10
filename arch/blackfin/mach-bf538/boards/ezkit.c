@@ -116,7 +116,7 @@ static struct platform_device bfin_uart0_device = {
 	.name = "bfin-uart",
 	.id = 0,
 	.num_resources = ARRAY_SIZE(bfin_uart0_resources),
-	.resource = bfin_uart_resources,
+	.resource = bfin_uart0_resources,
 };
 #endif
 #ifdef CONFIG_SERIAL_BFIN_UART1
