@@ -5,6 +5,7 @@
  * slider, touchpad at the same time. That depends on the boards.
  * The platform_data for the device's "struct device" holds this
  * information.
+ *
  * Copyright 2009 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
