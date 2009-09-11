@@ -285,5 +285,7 @@ struct adxl34x_platform_data {
 
 	unsigned int ev_code_ff;	/* EV_KEY */
 	unsigned int ev_code_act_inactivity;	/* EV_KEY */
+
+	unsigned char use_int2;
 };
 #endif

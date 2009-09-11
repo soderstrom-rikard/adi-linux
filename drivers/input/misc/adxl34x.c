@@ -789,8 +789,15 @@ static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
 		 (pdata->low_power_mode ? LOW_POWER : 0));
 	AC_WRITE(ac, DATA_FORMAT, pdata->data_range);
 	AC_WRITE(ac, FIFO_CTL, FIFO_MODE(pdata->fifo_mode) |
-		 SAMPLES(pdata->watermark));
-	AC_WRITE(ac, INT_MAP, 0);	/* Map all INTs to INT1 */
+			SAMPLES(pdata->watermark));
+
+	if (pdata->use_int2)
+		/* Map all INTs to INT2 */
+		AC_WRITE(ac, INT_MAP, ac->int_mask | OVERRUN);
+	else
+		/* Map all INTs to INT1 */
+		AC_WRITE(ac, INT_MAP, 0);
+
 	AC_WRITE(ac, INT_ENABLE, ac->int_mask | OVERRUN);
 
 	pdata->power_mode &= (PCTL_AUTO_SLEEP | PCTL_LINK);
