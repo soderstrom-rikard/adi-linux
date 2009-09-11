@@ -44,6 +44,7 @@
 #include <linux/platform_device.h>
 #include <linux/input.h>
 #include <linux/irq.h>
+#include <linux/io.h>
 
 #define DRV_NAME "opencores-kbd"
 #define NUM_KEYS 128
