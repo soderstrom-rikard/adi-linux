@@ -411,8 +411,10 @@ static int newseg(struct ipc_namespace *ns, struct ipc_params *params)
 	return error;
 
 no_id:
+#ifdef CONFIG_HUGETLB_PAGE
 	if (shp->mlock_user)	/* shmflg & SHM_HUGETLB case */
 		user_shm_unlock(size, shp->mlock_user);
+#endif
 	fput(file);
 no_file:
 	security_shm_free(shp);
