@@ -2,8 +2,6 @@
 #define _LINUX_INIT_H
 
 #include <linux/compiler.h>
-#include <linux/section-names.h>
-#include <linux/stringify.h>
 
 /* These macros are used to mark some functions or 
  * initialized data (doesn't apply to uninitialized data)
@@ -31,7 +29,7 @@
  * sign followed by value, e.g.:
  *
  * static int init_variable __initdata = 0;
- * static char linux_logo[] __initdata = { 0x32, 0x36, ... };
+ * static const char linux_logo[] __initconst = { 0x32, 0x36, ... };
  *
  * Don't forget to initialize data not at file scope, i.e. within a function,
  * as gcc otherwise puts the data into the bss section and not into the init
@@ -101,7 +99,7 @@
 #define __memexitconst   __section(.memexit.rodata)
 
 /* For assembly routines */
-#define __HEAD		.section	__stringify(HEAD_TEXT_SECTION),"ax"
+#define __HEAD		.section	".head.text","ax"
 #define __INIT		.section	".init.text","ax"
 #define __FINIT		.previous
 
@@ -135,6 +133,9 @@ typedef void (*exitcall_t)(void);
 
 extern initcall_t __con_initcall_start[], __con_initcall_end[];
 extern initcall_t __security_initcall_start[], __security_initcall_end[];
+
+/* Used for contructor calls. */
+typedef void (*ctor_fn_t)(void);
 
 /* Defined in init/main.c */
 extern int do_one_initcall(initcall_t fn);

@@ -375,7 +375,8 @@ static int __devinit bfin_rtc_probe(struct platform_device *pdev)
 	device_init_wakeup(dev, 1);
 
 	/* Register our RTC with the RTC framework */
-	rtc->rtc_dev = rtc_device_register(pdev->name, dev, &bfin_rtc_ops, THIS_MODULE);
+	rtc->rtc_dev = rtc_device_register(pdev->name, dev, &bfin_rtc_ops,
+						THIS_MODULE);
 	if (unlikely(IS_ERR(rtc->rtc_dev))) {
 		ret = PTR_ERR(rtc->rtc_dev);
 		goto err;
@@ -396,9 +397,9 @@ static int __devinit bfin_rtc_probe(struct platform_device *pdev)
 
 	return 0;
 
- err_reg:
+err_reg:
 	rtc_device_unregister(rtc->rtc_dev);
- err:
+err:
 	kfree(rtc);
 	return ret;
 }

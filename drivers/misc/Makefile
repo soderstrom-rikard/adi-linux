@@ -22,3 +22,4 @@ obj-$(CONFIG_ISL29003)		+= isl29003.o
 obj-$(CONFIG_AD525X_DPOT)	+= ad525x_dpot.o
 obj-$(CONFIG_C2PORT)		+= c2port/
 obj-y				+= eeprom/
+obj-y				+= cb710/
