@@ -574,6 +574,24 @@ static ssize_t adxl34x_autosleep_store(struct device *dev,
 static DEVICE_ATTR(autosleep, 0664, adxl34x_autosleep_show,
 		   adxl34x_autosleep_store);
 
+static ssize_t adxl34x_position_show(struct device *dev,
+				 struct device_attribute *attr, char *buf)
+{
+	struct adxl34x *ac = dev_get_drvdata(dev);
+	ssize_t count;
+
+	mutex_lock(&ac->mutex);
+
+	count = sprintf(buf, "(%d, %d, %d)\n",
+			ac->saved.x, ac->saved.y, ac->saved.z);
+
+	mutex_unlock(&ac->mutex);
+
+	return count;
+}
+
+static DEVICE_ATTR(position, 0444, adxl34x_position_show, NULL);
+
 #ifdef ADXL_DEBUG
 static ssize_t adxl34x_write_store(struct device *dev,
 				   struct device_attribute *attr,
@@ -605,6 +623,7 @@ static struct attribute *adxl34x_attributes[] = {
 	&dev_attr_calibrate.attr,
 	&dev_attr_rate.attr,
 	&dev_attr_autosleep.attr,
+	&dev_attr_position.attr,
 #ifdef ADXL_DEBUG
 	&dev_attr_write.attr,
 #endif
