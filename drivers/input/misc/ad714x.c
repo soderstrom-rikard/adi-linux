@@ -1479,19 +1479,18 @@ static struct spi_driver ad714x_spi_driver = {
 	.resume		= ad714x_spi_resume,
 };
 
-static inline int ad714x_spi_register_driver(struct spi_driver *spi_drv)
+static __init int ad714x_spi_init(void)
 {
-	return spi_register_driver(spi_drv);
+	return spi_register_driver(&ad714x_spi_driver);
 }
 
-static inline void ad714x_spi_unregister_driver(struct spi_driver *spi_drv)
+static __init void ad714x_spi_exit(void)
 {
-	spi_unregister_driver(spi_drv);
+	spi_unregister_driver(&ad714x_spi_driver);
 }
 
-#else
-#define ad714x_spi_register_driver(p) 0
-#define ad714x_spi_unregister_driver(p)
+module_init(ad714x_spi_init);
+module_exit(ad714x_spi_exit);
 #endif
 
 #if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
@@ -1609,43 +1608,19 @@ static struct i2c_driver ad714x_i2c_driver = {
 	.id_table = ad714x_id,
 };
 
-static inline int ad714x_i2c_add_driver(struct i2c_driver *i2c_drv)
+static __init int ad714x_i2c_init(void)
 {
-	return i2c_add_driver(i2c_drv);
+	return i2c_add_driver(&ad714x_i2c_driver);
 }
 
-static inline void ad714x_i2c_del_driver(struct i2c_driver *i2c_drv)
+static __init void ad714x_i2c_exit(void)
 {
-	i2c_del_driver(i2c_drv);
+	i2c_del_driver(&ad714x_i2c_driver);
 }
 
-#else
-#define ad714x_i2c_add_driver(p) 0
-#define ad714x_i2c_del_driver(p)
+module_init(ad714x_i2c_init);
+module_exit(ad714x_i2c_exit);
 #endif
-
-static int __init ad714x_init(void)
-{
-
-	int ret = 0;
-	ret = ad714x_spi_register_driver(&ad714x_spi_driver);
-	if (ret)
-		goto err;
-	ret = ad714x_i2c_add_driver(&ad714x_i2c_driver);
-	if (ret)
-		ad714x_spi_unregister_driver(&ad714x_spi_driver);
-err:
-	return ret;
-}
-
-static void __exit ad714x_exit(void)
-{
-	ad714x_spi_unregister_driver(&ad714x_spi_driver);
-	ad714x_i2c_del_driver(&ad714x_i2c_driver);
-}
-
-module_init(ad714x_init);
-module_exit(ad714x_exit);
 
 MODULE_DESCRIPTION("Analog Devices AD714X Capacitance Touch Sensor Driver");
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
