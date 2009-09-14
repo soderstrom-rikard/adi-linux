@@ -314,9 +314,9 @@ config KEYBOARD_OPENCORES
 	tristate "OpenCores Keyboard Controller"
 	help
 	  Say Y here if you want to use the OpenCores Keyboard Controller
-	  http://www.opencores.org/projects.cgi/web/keyboardcontroller/overview
+	  http://www.opencores.org/project,keyboardcontroller
 
-	  To compile this driver as a module, choose M here. the
+	  To compile this driver as a module, choose M here; the
 	  module will be called opencores-kbd.
 
 config KEYBOARD_SH_KEYSC
