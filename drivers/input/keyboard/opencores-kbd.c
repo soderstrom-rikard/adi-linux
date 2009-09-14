@@ -7,8 +7,7 @@
  * Licensed under the GPL-2 or later.
  */
 
-#define DRV_NAME "opencores-kbd"
-#define pr_fmt(fmt) DRV_NAME ": " fmt
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/input.h>
 #include <linux/interrupt.h>
@@ -145,7 +144,7 @@ static struct platform_driver opencores_kbd_device_driver = {
 	.probe    = opencores_kbd_probe,
 	.remove   = __devexit_p(opencores_kbd_remove),
 	.driver   = {
-		.name = DRV_NAME,
+		.name = KBUILD_MODNAME,
 	},
 };
 
