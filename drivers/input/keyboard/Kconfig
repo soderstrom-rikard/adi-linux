@@ -377,7 +377,7 @@ config KEYBOARD_ADP5588
 	  Say Y here if you want to use a ADP5588 attached to your system I2C bus
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called adp5588_keys.
+	  module will be called adp5588-keys.
 
 config KEYBOARD_ADP5520
 	tristate "Keypad Support for ADP5520 PMIC"
