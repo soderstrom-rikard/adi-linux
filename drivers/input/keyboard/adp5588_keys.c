@@ -127,29 +127,29 @@ static irqreturn_t adp5588_irq(int irq, void *handle)
 	return IRQ_HANDLED;
 }
 
-static int adp5588_setup(struct i2c_client *client)
+static int __devinit adp5588_setup(struct i2c_client *client)
 {
 	struct adp5588_kpad_platform_data *pdata = client->dev.platform_data;
 	int i, ret;
 
 	ret = adp5588_write(client, KP_GPIO1, KP_SEL(pdata->rows));
-	ret |= 	adp5588_write(client, KP_GPIO2, KP_SEL(pdata->cols) & 0xFF);
-	ret |= 	adp5588_write(client, KP_GPIO3, KP_SEL(pdata->cols) >> 8);
+	ret |= adp5588_write(client, KP_GPIO2, KP_SEL(pdata->cols) & 0xFF);
+	ret |= adp5588_write(client, KP_GPIO3, KP_SEL(pdata->cols) >> 8);
 
 	if (pdata->en_keylock) {
-		ret |= 	adp5588_write(client, UNLOCK1, pdata->unlock_key1);
-		ret |= 	adp5588_write(client, UNLOCK2, pdata->unlock_key2);
-		ret |= 	adp5588_write(client, KEY_LCK_EC_STAT, K_LCK_EN);
+		ret |= adp5588_write(client, UNLOCK1, pdata->unlock_key1);
+		ret |= adp5588_write(client, UNLOCK2, pdata->unlock_key2);
+		ret |= adp5588_write(client, KEY_LCK_EC_STAT, K_LCK_EN);
 	}
 
 	for (i = 0; i < KEYP_MAX_EVENT; i++)
 		ret |= adp5588_read(client, Key_EVENTA);
 
-	ret |= 	adp5588_write(client, INT_STAT, CMP2_INT | CMP1_INT |
+	ret |= adp5588_write(client, INT_STAT, CMP2_INT | CMP1_INT |
 					OVR_FLOW_INT | K_LCK_INT |
 					GPI_INT | KE_INT); /* Status is W1C */
 
-	ret |= 	adp5588_write(client, CFG, INT_CFG | OVR_FLOW_IEN | KE_IEN);
+	ret |= adp5588_write(client, CFG, INT_CFG | OVR_FLOW_IEN | KE_IEN);
 
 	if (ret < 0) {
 		dev_err(&client->dev, "Write Error\n");
@@ -179,13 +179,12 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	}
 
 	if (!pdata->rows || !pdata->cols || !pdata->keymap) {
-		dev_err(&client->dev,
-			": No rows, cols or keymap from pdata\n");
+		dev_err(&client->dev, "no rows, cols or keymap from pdata\n");
 		return -EINVAL;
 	}
 
 	if (pdata->keymapsize != ADP5588_KEYMAPSIZE) {
-		dev_err(&client->dev, ": Invalid keymapsize\n");
+		dev_err(&client->dev, "invalid keymapsize\n");
 		return -EINVAL;
 	}
 
@@ -194,7 +193,7 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 		return -ENODEV;
 	}
 
-	kpad = kzalloc(sizeof(struct adp5588_kpad), GFP_KERNEL);
+	kpad = kzalloc(sizeof(*kpad), GFP_KERNEL);
 	if (!kpad)
 		return -ENOMEM;
 
@@ -248,8 +247,7 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 
 	ret = input_register_device(input);
 	if (ret) {
-		dev_err(&client->dev,
-			": Unable to register input device (%d)\n", ret);
+		dev_err(&client->dev, "unable to register input device\n");
 		input_free_device(input);
 		goto out1;
 	}
@@ -271,13 +269,13 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	dev_info(&client->dev, "Rev.%d keypad, irq %d\n",
 		kpad->revid, client->irq);
 
-	return ret;
+	return 0;
 
-out3:
+ out3:
 	free_irq(client->irq, kpad);
-out2:
+ out2:
 	input_unregister_device(input);
-out1:
+ out1:
 	i2c_set_clientdata(client, NULL);
 	kfree(kpad);
 
@@ -297,8 +295,11 @@ static int __devexit adp5588_remove(struct i2c_client *client)
 }
 
 #ifdef CONFIG_PM
-static int adp5588_suspend(struct i2c_client *client, pm_message_t state)
+static int adp5588_suspend(struct device *dev)
 {
+	struct adp5588_kpad *kpad = dev_get_drvdata(dev);
+	struct i2c_client *client = kpad->client;
+
 	disable_irq(client->irq);
 
 	if (device_may_wakeup(&client->dev))
@@ -307,17 +308,23 @@ static int adp5588_suspend(struct i2c_client *client, pm_message_t state)
 	return 0;
 }
 
-static int adp5588_resume(struct i2c_client *client)
+static int adp5588_resume(struct device *dev)
 {
+	struct adp5588_kpad *kpad = dev_get_drvdata(dev);
+	struct i2c_client *client = kpad->client;
+
 	if (device_may_wakeup(&client->dev))
 		disable_irq_wake(client->irq);
 
 	enable_irq(client->irq);
+
 	return 0;
 }
-#else
-# define adp5588_suspend NULL
-# define adp5588_resume  NULL
+
+static struct dev_pm_ops adp5588_dev_pm_ops = {
+	.suspend = adp5588_suspend,
+	.resume  = adp5588_resume,
+};
 #endif
 
 static const struct i2c_device_id adp5588_id[] = {
@@ -328,14 +335,14 @@ MODULE_DEVICE_TABLE(i2c, adp5588_id);
 
 static struct i2c_driver adp5588_driver = {
 	.driver = {
-		.name	= DRV_NAME,
-		.owner	= THIS_MODULE,
+		.name = DRV_NAME,
+#ifdef CONFIG_PM
+		.pm   = &adp5588_dev_pm_ops,
+#endif
 	},
-	.probe		= adp5588_probe,
-	.remove		= __devexit_p(adp5588_remove),
-	.suspend	= adp5588_suspend,
-	.resume		= adp5588_resume,
-	.id_table 	= adp5588_id,
+	.probe    = adp5588_probe,
+	.remove   = __devexit_p(adp5588_remove),
+	.id_table = adp5588_id,
 };
 
 static int __init adp5588_init(void)
