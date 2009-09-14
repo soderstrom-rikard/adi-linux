@@ -41,6 +41,7 @@
 #include <linux/usb/isp1362.h>
 #endif
 #include <asm/irq.h>
+#include <asm/dma.h>
 #include <asm/bfin5xx_spi.h>
 
 /*
