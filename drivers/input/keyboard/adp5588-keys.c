@@ -51,7 +51,6 @@
 #define KP_SEL(x)		(0xFFFF >> (16 - x))	/* 2^x-1 */
 
 #define KEYP_MAX_EVENT 		10
-#define DRV_NAME		"adp5588-keys"
 
 /*
  * Early pre 4.0 Silicon required to delay readout by at least 25ms,
@@ -328,14 +327,14 @@ static struct dev_pm_ops adp5588_dev_pm_ops = {
 #endif
 
 static const struct i2c_device_id adp5588_id[] = {
-	{ DRV_NAME, 0 },
+	{ KBUILD_MODNAME, 0 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, adp5588_id);
 
 static struct i2c_driver adp5588_driver = {
 	.driver = {
-		.name = DRV_NAME,
+		.name = KBUILD_MODNAME,
 #ifdef CONFIG_PM
 		.pm   = &adp5588_dev_pm_ops,
 #endif
