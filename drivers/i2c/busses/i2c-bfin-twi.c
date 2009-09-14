@@ -690,7 +690,7 @@ static int i2c_bfin_twi_probe(struct platform_device *pdev)
 	p_adap->algo_data = iface;
 	p_adap->class = I2C_CLASS_HWMON | I2C_CLASS_SPD;
 	p_adap->dev.parent = &pdev->dev;
-	p_adap->timeout = 1;
+	p_adap->timeout = 5;
 	p_adap->retries = 3;
 
 	rc = peripheral_request_list(pin_req[pdev->id], "i2c-bfin-twi");
