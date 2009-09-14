@@ -8,7 +8,9 @@
  * Licensed under the GPL-2 or later.
  */
 
+#include <linux/init.h>
 #include <asm/blackfin.h>
+#include <asm/cplbinit.h>
 
 /* Invalidate the Entire Data cache by
  * clearing DMC[1:0] bits
@@ -69,7 +71,7 @@ void __cpuinit bfin_dcache_init(struct cplb_entry *dcplb_tbl)
 	 *  to port B
 	 */
 	bfin_cache_init(dcplb_tbl, DCPLB_ADDR0, DCPLB_DATA0, DMEM_CONTROL,
-		(DMEM_CNTR | PORT_PREF0 | (ANOMALY_05000287 ? PORT_PREF1 : 0));
+		(DMEM_CNTR | PORT_PREF0 | (ANOMALY_05000287 ? PORT_PREF1 : 0)));
 }
 #endif
 
