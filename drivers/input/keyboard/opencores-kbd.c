@@ -1,57 +1,28 @@
 /*
- * File:         drivers/input/keyboard/opencores-kbd.c
- * Based on:	 bf54x-keys.c
- * Author:       Javier Herrero <jherrero@hvsistemas.es>
+ * OpenCores Keyboard Controller Driver
+ * http://www.opencores.org/project,keyboardcontroller
  *
- * Created:
- * Description:  OpenCores Keyboard Controller Driver
- *		 http://www.opencores.org/projects.cgi/web/keyboardcontroller/overview
+ * Copyright 2007-2009 HV Sistemas S.L.
  *
- * Modified:
- *               Copyright 2007 HV Sistemas S.L.
- *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * Licensed under the GPL-2 or later.
  */
 
-
-#include <linux/module.h>
-#include <linux/version.h>
-
-#include <linux/init.h>
-#include <linux/fs.h>
-#include <linux/interrupt.h>
-#include <linux/irq.h>
-#include <linux/sched.h>
-#include <linux/pm.h>
-#include <linux/sysctl.h>
-#include <linux/proc_fs.h>
-#include <linux/delay.h>
-#include <linux/platform_device.h>
-#include <linux/input.h>
-#include <linux/irq.h>
-#include <linux/io.h>
-
 #define DRV_NAME "opencores-kbd"
+#define pr_fmt(fmt) DRV_NAME ": " fmt
+
+#include <linux/input.h>
+#include <linux/interrupt.h>
+#include <linux/io.h>
+#include <linux/ioport.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/platform_device.h>
+
 #define NUM_KEYS 128
 
 struct opencores_kbd {
 	struct input_dev *input;
-	struct resource	*addr_res;
+	struct resource *addr_res;
 	struct resource *irq_res;
 	unsigned short *keycode;
 };
@@ -74,7 +45,15 @@ static int __devinit opencores_kbd_probe(struct platform_device *pdev)
 {
 	struct input_dev *input;
 	struct opencores_kbd *opencores_kbd;
+	struct resource *addr_res, *irq_res;
 	int i, error;
+
+	addr_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	irq_res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+	if (addr_res == NULL || irq_res == NULL) {
+		pr_err("missing board resources\n");
+		return -ENOENT;
+	}
 
 	opencores_kbd = kzalloc(sizeof(*opencores_kbd), GFP_KERNEL);
 	if (!opencores_kbd)
@@ -83,30 +62,16 @@ static int __devinit opencores_kbd_probe(struct platform_device *pdev)
 	opencores_kbd->keycode = kmalloc(NUM_KEYS * sizeof(unsigned short), GFP_KERNEL);
 	if (!opencores_kbd->keycode) {
 		error = -ENOMEM;
-		goto out;
+		goto err_mem;
 	}
-
+	opencores_kbd->addr_res = addr_res;
+	opencores_kbd->irq_res = irq_res;
 	platform_set_drvdata(pdev, opencores_kbd);
-
-	opencores_kbd->addr_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	opencores_kbd->irq_res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-
-	if (opencores_kbd->addr_res == NULL || opencores_kbd->irq_res == NULL) {
-		printk(KERN_ERR "insufficient resources\n");
-		error = -ENOENT;
-		goto out1;
-	}
-
-	error = request_irq(opencores_kbd->irq_res->start, &opencores_kbd_isr, IRQF_TRIGGER_RISING, pdev->name, pdev);
-	if (error) {
-		printk(KERN_ERR DRV_NAME ": Unable to claim irq %d; error %d\n", opencores_kbd->irq_res->start, error);
-		goto out2;
-	}
 
 	input = input_allocate_device();
 	if (!input) {
 		error = -ENOMEM;
-		goto out3;
+		goto err_in_alloc;
 	}
 
 	opencores_kbd->input = input;
@@ -134,21 +99,27 @@ static int __devinit opencores_kbd_probe(struct platform_device *pdev)
 	}
 	__clear_bit(KEY_RESERVED, input->keybit);
 
-	error = input_register_device(opencores_kbd->input);
+	error = input_register_device(input);
 	if (error) {
-		printk(KERN_ERR DRV_NAME ": Unable to register input device (%d)\n", error);
-		goto out2;
+		pr_err("unable to register input device\n");
+		goto err_in_reg;
+	}
+
+	error = request_irq(irq_res->start, &opencores_kbd_isr, IRQF_TRIGGER_RISING, pdev->name, pdev);
+	if (error) {
+		pr_err("unable to claim irq %d\n", irq_res->start);
+		goto err_irq;
 	}
 
 	return 0;
 
-out3:
+ err_irq:
+	input_unregister_device(input);
+ err_in_reg:
 	input_free_device(input);
-out2:
-	free_irq(opencores_kbd->irq_res->start, pdev);
-out1:
+ err_in_alloc:
 	kfree(opencores_kbd->keycode);
-out:
+ err_mem:
 	kfree(opencores_kbd);
 	platform_set_drvdata(pdev, NULL);
 
@@ -170,27 +141,26 @@ static int __devexit opencores_kbd_remove(struct platform_device *pdev)
 	return 0;
 }
 
-struct platform_driver opencores_kbd_device_driver = {
-	.probe		= opencores_kbd_probe,
-	.remove		= __devexit_p(opencores_kbd_remove),
-	.driver		= {
-		.name	= DRV_NAME,
-	}
+static struct platform_driver opencores_kbd_device_driver = {
+	.probe    = opencores_kbd_probe,
+	.remove   = __devexit_p(opencores_kbd_remove),
+	.driver   = {
+		.name = DRV_NAME,
+	},
 };
 
 static int __init opencores_kbd_init(void)
 {
 	return platform_driver_register(&opencores_kbd_device_driver);
 }
+module_init(opencores_kbd_init);
 
 static void __exit opencores_kbd_exit(void)
 {
 	platform_driver_unregister(&opencores_kbd_device_driver);
 }
-
-module_init(opencores_kbd_init);
 module_exit(opencores_kbd_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Javier Herrero <jherrero@hvsistemas.es");
+MODULE_AUTHOR("Javier Herrero <jherrero@hvsistemas.es>");
 MODULE_DESCRIPTION("Keyboard driver for OpenCores Keyboard Controller");
