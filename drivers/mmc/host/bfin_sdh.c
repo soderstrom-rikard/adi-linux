@@ -1,12 +1,12 @@
 /*
- * bfin_sdh.c - Analog Blackfin SDH Controller
+ * bfin_sdh.c - Analog Devices Blackfin SDH Controller
  *
  * Copyright (C) 2007-2009 Analog Device Inc.
  *
  * Licensed under the GPL-2 or later.
  */
 
-/* In term of ADSP_BF54x_Blackfin_Processor_Peripheral_Hardware_Reference,
+/* In term of ADSP_BF5xx_Blackfin_Processor_Peripheral_Hardware_Reference,
  * the SDH allows software to detect a card when it is inserted into its slot.
  * The SD_DATA3 pin powers up low due to a special pull-down resistor. When an
  * SD Card is inserted in its slot, the resistance increases and a rising edge
@@ -20,6 +20,9 @@
  * has to be disabled. After card is inserted run "echo 0 > /proc/driver/sdh"
  * to trigger card scanning.
  */
+
+#define DRIVER_NAME	"bfin-sdh"
+#define pr_fmt(fmt) DRIVER_NAME ": " fmt
 
 #include <linux/module.h>
 #include <linux/init.h>
@@ -35,10 +38,6 @@
 #include <asm/dma.h>
 #include <asm/portmux.h>
 #include <asm/bfin_sdh.h>
-
-#define DRIVER_NAME	"bfin-sdh"
-
-#define NR_SG	32
 
 #if defined(CONFIG_BF51x)
 #define bfin_read_SDH_PWR_CTL		bfin_read_RSI_PWR_CTL
@@ -135,7 +134,7 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 #if defined(CONFIG_BF54x)
 	int i;
 #endif
-	pr_debug("%s enter flags:0x%x\n", __FUNCTION__, data->flags);
+	pr_debug("%s enter flags: 0x%x\n", __func__, data->flags);
 	host->data = data;
 	data_ctl = 0;
 	dma_cfg = 0;
@@ -154,8 +153,7 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 
 	bfin_write_SDH_DATA_CTL(data_ctl);
 
-	/* FIXME later */
-	bfin_write_SDH_DATA_TIMER(0xFFFFFFFF);
+	bfin_write_SDH_DATA_TIMER(0xFFFF);
 	SSYNC();
 
 	if (data->flags & MMC_DATA_READ) {
@@ -177,8 +175,8 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 				i, host->sg_cpu[i].start_addr, host->sg_cpu[i].cfg,
 				host->sg_cpu[i].x_count, host->sg_cpu[i].x_modify);
 	}
-	flush_dcache_range((unsigned int)host->sg_cpu, \
-			(unsigned int)host->sg_cpu + \
+	flush_dcache_range((unsigned int)host->sg_cpu,
+		(unsigned int)host->sg_cpu +
 			host->dma_len * sizeof(struct dma_desc_array));
 	/* Set the last descriptor to stop mode */
 	host->sg_cpu[host->dma_len - 1].cfg &= ~(DMAFLOW | NDSIZE);
@@ -189,6 +187,7 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	set_dma_x_modify(host->dma_ch, 0);
 	set_dma_config(host->dma_ch, dma_cfg);
 #elif defined(CONFIG_BF51x)
+	/* RSI DMA doesn't work in array mode */
 	dma_cfg |= WDSIZE_32 | DMAEN;
 	set_dma_start_addr(host->dma_ch, sg_dma_address(&data->sg[0]));
 	set_dma_x_count(host->dma_ch, length / 4);
@@ -199,7 +198,7 @@ static void sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 
 	SSYNC();
 
-	pr_debug("%s exit\n", __FUNCTION__);
+	pr_debug("%s exit\n", __func__);
 }
 
 static void sdh_start_cmd(struct sdh_host *host, struct mmc_command *cmd)
@@ -207,7 +206,7 @@ static void sdh_start_cmd(struct sdh_host *host, struct mmc_command *cmd)
 	unsigned int sdh_cmd;
 	unsigned int stat_mask;
 
-	pr_debug("%s enter cmd:0x%p\n", __FUNCTION__, cmd);
+	pr_debug("%s enter cmd: 0x%p\n", __func__, cmd);
 	WARN_ON(host->cmd != NULL);
 	host->cmd = cmd;
 
@@ -237,7 +236,7 @@ static void sdh_start_cmd(struct sdh_host *host, struct mmc_command *cmd)
 
 static void sdh_finish_request(struct sdh_host *host, struct mmc_request *mrq)
 {
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	host->mrq = NULL;
 	host->cmd = NULL;
 	host->data = NULL;
@@ -248,7 +247,7 @@ static int sdh_cmd_done(struct sdh_host *host, unsigned int stat)
 {
 	struct mmc_command *cmd = host->cmd;
 
-	pr_debug("%s enter cmd:%p\n", __FUNCTION__, cmd);
+	pr_debug("%s enter cmd: %p\n", __func__, cmd);
 	if (!cmd)
 		return 0;
 
@@ -284,7 +283,7 @@ static int sdh_data_done(struct sdh_host *host, unsigned int stat)
 {
 	struct mmc_data *data = host->data;
 
-	pr_debug("%s enter stat:0x%x\n", __FUNCTION__, stat);
+	pr_debug("%s enter stat: 0x%x\n", __func__, stat);
 	if (!data)
 		return 0;
 
@@ -325,7 +324,7 @@ static void sdh_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
 	struct sdh_host *host = mmc_priv(mmc);
 
-	pr_debug("%s enter, mrp:%p, cmd:%p\n", __FUNCTION__, mrq, mrq->cmd);
+	pr_debug("%s enter, mrp:%p, cmd:%p\n", __func__, mrq, mrq->cmd);
 	WARN_ON(host->mrq != NULL);
 
 	host->mrq = mrq;
@@ -335,12 +334,6 @@ static void sdh_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		sdh_setup_data(host, mrq->data);
 
 	sdh_start_cmd(host, mrq->cmd);
-}
-
-static int sdh_get_ro(struct mmc_host *mmc)
-{
-	/* Host doesn't support read only detection so assume writeable */
-	return 0;
 }
 
 static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
@@ -354,16 +347,14 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	spin_lock_irqsave(&host->lock, flags);
 	if (ios->clock) {
-		unsigned long clk_div;
-		unsigned long sys_clk;
+		unsigned long clk_div, sys_clk, ios_clk;
+		ios_clk = 2 * ios->clock;
 		sys_clk = get_sclk();
-		if (sys_clk % (2*ios->clock) == 0)
-			clk_div = sys_clk / (2*ios->clock) - 1;
-		else
-			clk_div = sys_clk / (2*ios->clock);
-		if (clk_div > 0xff)
-			clk_div = 0xFF;
-		clk_ctl |= clk_div & 0xFF;
+		clk_div = sys_clk / ios_clk;
+		if (sys_clk % ios_clk == 0)
+			clk_div -= 1;
+		clk_div = max_t(unsigned long, clk_div, 0xFF);
+		clk_ctl |= clk_div;
 		clk_ctl |= CLK_E;
 		host->clk_div = clk_div;
 	} else
@@ -402,8 +393,9 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	spin_unlock_irqrestore(&host->lock, flags);
 
 	pr_debug("SDH: clk_div = 0x%x actual clock:%ld expected clock:%d\n",
-			host->clk_div, host->clk_div?get_sclk()/(2 * (host->clk_div + 1)):0,
-			ios->clock);
+		host->clk_div,
+		host->clk_div ? get_sclk() / (2 * (host->clk_div + 1)) : 0,
+		ios->clock);
 }
 
 #ifdef CONFIG_SDH_BFIN_ENABLE_SDIO_IRQ
@@ -418,7 +410,6 @@ static void sdh_enable_sdio_irq(struct mmc_host *mmc, int enable)
 
 static const struct mmc_host_ops sdh_ops = {
 	.request	= sdh_request,
-	.get_ro		= sdh_get_ro,
 	.set_ios	= sdh_set_ios,
 #ifdef CONFIG_SDH_BFIN_ENABLE_SDIO_IRQ
 	.enable_sdio_irq = sdh_enable_sdio_irq,
@@ -429,8 +420,8 @@ static irqreturn_t sdh_dma_irq(int irq, void *devid)
 {
 	struct sdh_host *host = devid;
 
-	pr_debug("%s enter, irq_stat:0x%04x\n", __FUNCTION__,\
-			get_dma_curr_irqstat(host->dma_ch));
+	pr_debug("%s enter, irq_stat: 0x%04x\n", __func__,
+		get_dma_curr_irqstat(host->dma_ch));
 	clear_dma_irqstat(host->dma_ch);
 	SSYNC();
 
@@ -443,7 +434,7 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 	unsigned int status;
 	int handled = 0;
 
-	pr_debug("%s enter\n", __FUNCTION__);
+	pr_debug("%s enter\n", __func__);
 	status = bfin_read_SDH_E_STATUS();
 	if (status & SD_CARD_DET) {
 		mmc_detect_change(host->mmc, 0);
@@ -468,7 +459,7 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 	if (status & (DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL | RX_OVERRUN | TX_UNDERRUN))
 		handled |= sdh_data_done(host, status);
 
-	pr_debug("%s exit\n\n", __FUNCTION__);
+	pr_debug("%s exit\n\n", __func__);
 
 	return IRQ_RETVAL(handled);
 }
@@ -484,7 +475,7 @@ static int proc_write(struct file *file, const char __user *buffer,
 		mmc_detect_change(host->mmc, 0);
 		break;
 	default:
-		printk(KERN_ERR "bfin_sdh: cmd %lu not support\n", cmd);
+		pr_err("cmd %lu not support\n", cmd);
 		break;
 	}
 
@@ -494,7 +485,7 @@ static int proc_write(struct file *file, const char __user *buffer,
 static int __devinit sdh_probe(struct platform_device *pdev)
 {
 	struct mmc_host *mmc;
-	struct sdh_host *host = NULL;
+	struct sdh_host *host;
 	struct proc_dir_entry *sd_entry;
 	struct bfin_sd_host *drv_data = get_sdh_data(pdev);
 	int ret;
@@ -505,20 +496,20 @@ static int __devinit sdh_probe(struct platform_device *pdev)
 		goto out;
 	}
 
-	mmc = mmc_alloc_host(sizeof(struct sdh_host), &pdev->dev);
+	mmc = mmc_alloc_host(sizeof(*mmc), &pdev->dev);
 	if (!mmc) {
 		ret = -ENOMEM;
 		goto out;
 	}
 
 	mmc->ops = &sdh_ops;
-	mmc->max_phys_segs = NR_SG;
+	mmc->max_phys_segs = 32;
 	mmc->max_seg_size = 1 << 16;
 	mmc->max_blk_size = 2 << 11;
 	mmc->max_blk_count = 2 << 16;
 	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
-	mmc->f_min = get_sclk() >> 9;
 	mmc->f_max = get_sclk();
+	mmc->f_min = mmc->f_max >> 9;
 #ifndef CONFIG_SDH_BFIN_ENABLE_SDIO_IRQ
 	mmc->caps = MMC_CAP_4_BIT_DATA;
 #endif
@@ -574,10 +565,13 @@ static int __devinit sdh_probe(struct platform_device *pdev)
 	 */
 	bfin_write_SDH_CFG((bfin_read_SDH_CFG() & 0x1F) | 0x60);
 	SSYNC();
+
 	sd_entry = create_proc_entry("driver/sdh", 0600, NULL);
-	sd_entry->read_proc = NULL;
-	sd_entry->write_proc = proc_write;
-	sd_entry->data = host;
+	if (sd_entry) {
+		sd_entry->read_proc = NULL;
+		sd_entry->write_proc = proc_write;
+		sd_entry->data = host;
+	}
 
 	return 0;
 
@@ -663,17 +657,17 @@ static int sdh_resume(struct platform_device *dev)
 	return ret;
 }
 #else
-#define sdh_suspend	NULL
-#define sdh_resume	NULL
+# define sdh_suspend NULL
+# define sdh_resume  NULL
 #endif
 
 static struct platform_driver sdh_driver = {
-	.probe		= sdh_probe,
-	.remove		= __devexit_p(sdh_remove),
-	.suspend	= sdh_suspend,
-	.resume		= sdh_resume,
-	.driver		= {
-		.name	= DRIVER_NAME,
+	.probe   = sdh_probe,
+	.remove  = __devexit_p(sdh_remove),
+	.suspend = sdh_suspend,
+	.resume  = sdh_resume,
+	.driver  = {
+		.name = DRIVER_NAME,
 	},
 };
 
@@ -681,14 +675,14 @@ static int __init sdh_init(void)
 {
 	return platform_driver_register(&sdh_driver);
 }
+module_init(sdh_init);
 
 static void __exit sdh_exit(void)
 {
 	platform_driver_unregister(&sdh_driver);
 }
-
-module_init(sdh_init);
 module_exit(sdh_exit);
 
 MODULE_DESCRIPTION("Blackfin Secure Digital Host Driver");
+MODULE_AUTHOR("Cliff Cai, Roy Huang");
 MODULE_LICENSE("GPL");
