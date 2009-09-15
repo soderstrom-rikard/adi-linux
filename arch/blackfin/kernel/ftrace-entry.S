@@ -21,6 +21,12 @@
  * will be waiting there.  mmmm pie.
  */
 ENTRY(__mcount)
+	/* __mcount is called this way:
+	 * parent_ip: [--sp] = rets; call __mcount; rets = [sp++]
+	 */
+	[--sp] = r1;
+	r1 = [sp + 4];
+
 	/* save third function arg early so we can do testing below */
 	[--sp] = r2;
 
@@ -58,26 +64,24 @@ ENTRY(__mcount)
 #endif
 
 	r2 = [sp++];
+	r1 = [sp++]
 	rts;
 
 .Ldo_trace:
 
-	/* save first/second function arg and the return register */
 	[--sp] = r0;
-	[--sp] = r1;
 	[--sp] = rets;
 
 	/* setup the tracer function */
 	p0 = r3;
 
-	/* tracer(ulong frompc, ulong selfpc):
-	 *  frompc: the pc that did the call to ...
-	 *  selfpc: ... this location
-	 * the selfpc itself will need adjusting for the mcount call
+	/* function_trace_call(unsigned long ip, unsigned long parent_ip):
+	 *  ip: ... this location
+	 *  parent_ip: the pc that did the call to ...
+	 * the ip itself will need adjusting for the mcount call
 	 */
-	r1 = rets;
-	r0 = [fp + 4];
-	r1 += -MCOUNT_INSN_SIZE;
+	r0 = rets;
+	r0 += -MCOUNT_INSN_SIZE;
 
 	/* call the tracer */
 	call (p0);
@@ -85,9 +89,9 @@ ENTRY(__mcount)
 	/* restore state and get out of dodge */
 .Lfinish_trace:
 	rets = [sp++];
-	r1 = [sp++];
 	r0 = [sp++];
 	r2 = [sp++];
+	r1 = [sp++];
 
 .globl _ftrace_stub
 _ftrace_stub:
@@ -103,12 +107,13 @@ ENDPROC(__mcount)
 ENTRY(_ftrace_graph_caller)
 	/* save first/second function arg and the return register */
 	[--sp] = r0;
-	[--sp] = r1;
 	[--sp] = rets;
 
-	r0 = fp;
+	/* prepare_ftrace_return(unsigned long *parent, unsigned long self_addr) */
+	r0 = sp;
 	r1 = rets;
-	r0 += 4;
+	/* currently on the stack: r1, r2, r0, rets */
+	r0 += 16;
 	r1 += -MCOUNT_INSN_SIZE;
 	call _prepare_ftrace_return;
 
