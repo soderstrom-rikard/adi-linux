@@ -246,7 +246,7 @@ EXPORT_SYMBOL(do_settimeofday);
 /*
  * Scheduler clock - returns current time in nanosec units.
  */
-unsigned long long sched_clock(void)
+notrace unsigned long long sched_clock(void)
 {
 	return (unsigned long long)jiffies *(NSEC_PER_SEC / HZ);
 }
