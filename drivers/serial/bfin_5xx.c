@@ -1321,7 +1321,6 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 {
 	struct bfin_serial_port *uart;
 	struct ktermios t;
-	int ret;
 
 #ifdef CONFIG_SERIAL_BFIN_CONSOLE
 	/*
@@ -1333,9 +1332,8 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 
 	if (port == -1 || port >= nr_active_ports)
 		port = 0;
-	ret = bfin_serial_init_ports();
-	if (ret)
-		return ret;
+	if (bfin_serial_init_ports())
+		return NULL;
 
 	bfin_early_serial_console.index = port;
 	uart = &bfin_serial_ports[port];
