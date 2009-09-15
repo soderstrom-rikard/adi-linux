@@ -29,7 +29,7 @@ means that the list of tracers can always grow).
 Implementation Details
 ----------------------
 
-See ftrace-implementation.txt for details for arch porters and such.
+See ftrace-design.txt for details for arch porters and such.
 
 
 The File System
