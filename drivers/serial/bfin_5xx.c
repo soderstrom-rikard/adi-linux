@@ -1082,39 +1082,57 @@ static struct uart_ops bfin_serial_pops = {
 #endif
 };
 
-static void __init bfin_serial_hw_init(void)
-{
 #ifdef CONFIG_SERIAL_BFIN_UART0
-	peripheral_request(P_UART0_TX, DRIVER_NAME);
-	peripheral_request(P_UART0_RX, DRIVER_NAME);
+unsigned short bfin_uart0_pin_req[] = {P_UART0_TX, P_UART0_RX, 0};
 #endif
-
 #ifdef CONFIG_SERIAL_BFIN_UART1
-	peripheral_request(P_UART1_TX, DRIVER_NAME);
-	peripheral_request(P_UART1_RX, DRIVER_NAME);
+unsigned short bfin_uart1_pin_req[] = {P_UART1_TX, P_UART1_RX, 0};
 #endif
-
 #ifdef CONFIG_SERIAL_BFIN_UART2
-	peripheral_request(P_UART2_TX, DRIVER_NAME);
-	peripheral_request(P_UART2_RX, DRIVER_NAME);
+unsigned short bfin_uart2_pin_req[] = {P_UART2_TX, P_UART2_RX, 0};
 #endif
-
 #ifdef CONFIG_SERIAL_BFIN_UART3
-	peripheral_request(P_UART3_TX, DRIVER_NAME);
-	peripheral_request(P_UART3_RX, DRIVER_NAME);
+unsigned short bfin_uart3_pin_req[] = {P_UART3_TX, P_UART3_RX, 0};
 #endif
-}
 
-static void __init bfin_serial_init_ports(void)
+static int __init bfin_serial_init_ports(void)
 {
 	static int first = 1;
 	int i;
+	int ret;
 
 	if (!first)
-		return;
+		return 0;
 	first = 0;
 
-	bfin_serial_hw_init();
+#ifdef CONFIG_SERIAL_BFIN_UART0
+	ret = peripheral_request_list(bfin_uart0_pin_req, DRIVER_NAME);
+	if (ret) {
+		pr_err("requesting UART0 peripherals failed\n");
+		goto err_out0;
+	}
+#endif
+#ifdef CONFIG_SERIAL_BFIN_UART1
+	ret = peripheral_request_list(bfin_uart1_pin_req, DRIVER_NAME);
+	if (ret) {
+		pr_err("requesting UART1 peripherals failed\n");
+		goto err_out1;
+	}
+#endif
+#ifdef CONFIG_SERIAL_BFIN_UART2
+	ret = peripheral_request_list(bfin_uart2_pin_req, DRIVER_NAME);
+	if (ret) {
+		pr_err("requesting UART2 peripherals failed\n");
+		goto err_out2;
+	}
+#endif
+#ifdef CONFIG_SERIAL_BFIN_UART3
+	ret = peripheral_request_list(bfin_uart3_pin_req, DRIVER_NAME);
+	if (ret) {
+		pr_err("requesting UART3 peripherals failed\n");
+		goto err_out3;
+	}
+#endif
 
 	for (i = 0; i < nr_active_ports; i++) {
 		spin_lock_init(&bfin_serial_ports[i].port.lock);
@@ -1127,6 +1145,25 @@ static void __init bfin_serial_init_ports(void)
 		bfin_serial_ports[i].port.membase   =
 			(void __iomem *)bfin_serial_console_base_addr[i];
 	}
+
+	return 0;
+#ifdef CONFIG_SERIAL_BFIN_UART3
+err_out3:
+#endif
+#ifdef CONFIG_SERIAL_BFIN_UART2
+	peripheral_free_list(bfin_uart2_pin_req);
+err_out2:
+#endif
+#ifdef CONFIG_SERIAL_BFIN_UART1
+err_out1:
+	peripheral_free_list(bfin_uart1_pin_req);
+#endif
+#ifdef CONFIG_SERIAL_BFIN_UART0
+err_out0:
+	peripheral_free_list(bfin_uart0_pin_req);
+#endif
+
+	return ret;
 }
 
 #if defined(CONFIG_SERIAL_BFIN_CONSOLE) || defined(CONFIG_EARLY_PRINTK)
@@ -1246,7 +1283,11 @@ static struct console bfin_serial_console = {
 
 static int __init bfin_serial_rs_console_init(void)
 {
-	bfin_serial_init_ports();
+	int ret;
+
+	ret = bfin_serial_init_ports();
+	if (ret)
+		return ret;
 	register_console(&bfin_serial_console);
 
 	return 0;
@@ -1280,6 +1321,7 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 {
 	struct bfin_serial_port *uart;
 	struct ktermios t;
+	int ret;
 
 #ifdef CONFIG_SERIAL_BFIN_CONSOLE
 	/*
@@ -1291,7 +1333,10 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 
 	if (port == -1 || port >= nr_active_ports)
 		port = 0;
-	bfin_serial_init_ports();
+	ret = bfin_serial_init_ports();
+	if (ret)
+		return ret;
+
 	bfin_early_serial_console.index = port;
 	uart = &bfin_serial_ports[port];
 	t.c_cflag = cflag;
@@ -1451,7 +1496,9 @@ static int __init bfin_serial_init(void)
 
 	pr_info("Serial: Blackfin serial driver\n");
 
-	bfin_serial_init_ports();
+	ret = bfin_serial_init_ports();
+	if (ret)
+		return ret;
 
 	ret = uart_register_driver(&bfin_serial_reg);
 	if (ret == 0) {
@@ -1468,6 +1515,20 @@ static void __exit bfin_serial_exit(void)
 {
 	platform_driver_unregister(&bfin_serial_driver);
 	uart_unregister_driver(&bfin_serial_reg);
+
+#ifdef CONFIG_SERIAL_BFIN_UART0
+	peripheral_free_list(bfin_uart0_pin_req);
+#endif
+#ifdef CONFIG_SERIAL_BFIN_UART1
+	peripheral_free_list(bfin_uart1_pin_req);
+#endif
+#ifdef CONFIG_SERIAL_BFIN_UART2
+	peripheral_free_list(bfin_uart2_pin_req);
+#endif
+#ifdef CONFIG_SERIAL_BFIN_UART3
+	peripheral_free_list(bfin_uart3_pin_req);
+#endif
+
 }
 
 
