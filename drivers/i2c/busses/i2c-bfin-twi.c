@@ -348,8 +348,10 @@ static int bfin_twi_do_master_xfer(struct i2c_adapter *adap,
 
 	while (!iface->result) {
 		if (!wait_for_completion_timeout(&iface->complete,
-			adap->timeout*HZ))
+			adap->timeout*HZ)) {
 			iface->result = -1;
+			dev_err(&adap->dev, "master transfer timeout\n");
+		}
 	}
 
 	if (iface->result == 1)
@@ -564,8 +566,10 @@ int bfin_twi_do_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 
 	while (!iface->result) {
 		if (!wait_for_completion_timeout(&iface->complete,
-			adap->timeout*HZ))
+			adap->timeout*HZ)) {
 			iface->result = -1;
+			dev_err(&adap->dev, "smbus transfer timeout\n");
+		}
 	}
 
 	rc = (iface->result >= 0) ? 0 : -1;
