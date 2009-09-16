@@ -520,8 +520,9 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 							| MUSB_TXCSR_TXPKTRDY);
 					request->zero = 0;
 				}
-                                if (request->actual < request->length)
-                                    break;
+				if (request->actual < request->length)
+					break;
+
 				/* ... or if not, then complete it */
 				musb_g_giveback(musb_ep, request, 0);
 
@@ -930,10 +931,10 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		 * likewise high bandwidth periodic tx
 		 */
 #if defined(CONFIG_BLACKFIN) && ANOMALY_05000450
-                /* Set TXMAXP with the FIFO size of the endpoint
-                 * to diable double buffer mode.
-                 */
-                musb_writew(regs, MUSB_TXMAXP, hw_ep->max_packet_sz_tx);
+		/* Set TXMAXP with the FIFO size of the endpoint
+		 * to diable double buffer mode.
+		 */
+		musb_writew(regs, MUSB_TXMAXP, hw_ep->max_packet_sz_tx);
 #else
 		musb_writew(regs, MUSB_TXMAXP, tmp);
 #endif
@@ -967,14 +968,14 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		 * likewise high bandwidth periodic rx
 		 */
 #if defined(CONFIG_BLACKFIN) && ANOMALY_05000465
-                /* Set RXMAXP with the FIFO size of the endpoint
-                 * to diable double buffer mode.
-                 */
-                musb_writew(regs, MUSB_RXMAXP, hw_ep->max_packet_sz_rx);
+		/* Set RXMAXP with the FIFO size of the endpoint
+		 * to diable double buffer mode.
+		 */
+		musb_writew(regs, MUSB_RXMAXP, hw_ep->max_packet_sz_rx);
 #else
-
-                musb_writew(regs, MUSB_RXMAXP, tmp);
+		musb_writew(regs, MUSB_RXMAXP, tmp);
 #endif
+
 		/* force shared fifo to OUT-only mode */
 		if (hw_ep->is_shared_fifo) {
 			csr = musb_readw(regs, MUSB_TXCSR);

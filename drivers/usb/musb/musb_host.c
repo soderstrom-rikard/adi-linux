@@ -793,9 +793,8 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 					| ((hw_ep->max_packet_sz_tx /
 						packet_sz) - 1) << 11);
 			else
-        			musb_writew(epio, MUSB_TXMAXP,
+				musb_writew(epio, MUSB_TXMAXP,
 					packet_sz);
-
 			musb_writeb(epio, MUSB_TXINTERVAL, qh->intv_reg);
 		} else {
 			musb_writeb(epio, MUSB_NAKLIMIT0, qh->intv_reg);
