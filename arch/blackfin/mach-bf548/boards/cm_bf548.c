@@ -572,6 +572,113 @@ static struct platform_device bfin_gpios_device = {
 	.resource = &bfin_gpios_resources,
 };
 
+#if defined(CONFIG_SERIAL_BFIN_SPORT) || defined(CONFIG_SERIAL_BFIN_SPORT_MODULE)
+#ifdef CONFIG_SERIAL_BFIN_SPORT0_UART
+static struct resource bfin_sport0_uart_resources[] = {
+	{
+		.start = SPORT0_TCR1,
+		.end = SPORT0_MRCS3+4,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_SPORT0_RX,
+		.end = IRQ_SPORT0_RX+1,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_SPORT0_ERROR,
+		.end = IRQ_SPORT0_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_sport0_uart_device = {
+	.name = "bfin-sport-uart",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(bfin_sport0_uart_resources),
+	.resource = bfin_sport0_uart_resources,
+};
+#endif
+#ifdef CONFIG_SERIAL_BFIN_SPORT1_UART
+static struct resource bfin_sport1_uart_resources[] = {
+	{
+		.start = SPORT1_TCR1,
+		.end = SPORT1_MRCS3+4,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_SPORT1_RX,
+		.end = IRQ_SPORT1_RX+1,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_SPORT1_ERROR,
+		.end = IRQ_SPORT1_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_sport1_uart_device = {
+	.name = "bfin-sport-uart",
+	.id = 1,
+	.num_resources = ARRAY_SIZE(bfin_sport1_uart_resources),
+	.resource = bfin_sport1_uart_resources,
+};
+#endif
+#ifdef CONFIG_SERIAL_BFIN_SPORT2_UART
+static struct resource bfin_sport2_uart_resources[] = {
+	{
+		.start = SPORT2_TCR1,
+		.end = SPORT2_MRCS3+4,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_SPORT2_RX,
+		.end = IRQ_SPORT2_RX+1,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_SPORT2_ERROR,
+		.end = IRQ_SPORT2_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_sport2_uart_device = {
+	.name = "bfin-sport-uart",
+	.id = 2,
+	.num_resources = ARRAY_SIZE(bfin_sport2_uart_resources),
+	.resource = bfin_sport2_uart_resources,
+};
+#endif
+#ifdef CONFIG_SERIAL_BFIN_SPORT3_UART
+static struct resource bfin_sport3_uart_resources[] = {
+	{
+		.start = SPORT3_TCR1,
+		.end = SPORT3_MRCS3+4,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_SPORT3_RX,
+		.end = IRQ_SPORT3_RX+1,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_SPORT3_ERROR,
+		.end = IRQ_SPORT3_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_sport3_uart_device = {
+	.name = "bfin-sport-uart",
+	.id = 3,
+	.num_resources = ARRAY_SIZE(bfin_sport3_uart_resources),
+	.resource = bfin_sport3_uart_resources,
+};
+#endif
+#endif
+
 #if defined(CONFIG_PATA_BF54X) || defined(CONFIG_PATA_BF54X_MODULE)
 static struct resource bfin_atapi_resources[] = {
 	{
@@ -1006,6 +1113,21 @@ static struct platform_device *cm_bf548_devices[] __initdata = {
 
 #if defined(CONFIG_USB_MUSB_HDRC) || defined(CONFIG_USB_MUSB_HDRC_MODULE)
 	&musb_device,
+#endif
+
+#if defined(CONFIG_SERIAL_BFIN_SPORT) || defined(CONFIG_SERIAL_BFIN_SPORT_MODULE)
+#ifdef CONFIG_SERIAL_BFIN_SPORT0_UART
+	&bfin_sport0_uart_device,
+#endif
+#ifdef CONFIG_SERIAL_BFIN_SPORT1_UART
+	&bfin_sport1_uart_device,
+#endif
+#ifdef CONFIG_SERIAL_BFIN_SPORT2_UART
+	&bfin_sport2_uart_device,
+#endif
+#ifdef CONFIG_SERIAL_BFIN_SPORT3_UART
+	&bfin_sport3_uart_device,
+#endif
 #endif
 
 #if defined(CONFIG_PATA_BF54X) || defined(CONFIG_PATA_BF54X_MODULE)

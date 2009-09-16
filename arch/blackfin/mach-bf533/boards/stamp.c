@@ -442,15 +442,58 @@ static struct platform_device bfin_sir0_device = {
 #endif
 
 #if defined(CONFIG_SERIAL_BFIN_SPORT) || defined(CONFIG_SERIAL_BFIN_SPORT_MODULE)
+#ifdef CONFIG_SERIAL_BFIN_SPORT0_UART
+static struct resource bfin_sport0_uart_resources[] = {
+	{
+		.start = SPORT0_TCR1,
+		.end = SPORT0_MRCS3+4,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_SPORT0_RX,
+		.end = IRQ_SPORT0_RX+1,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_SPORT0_ERROR,
+		.end = IRQ_SPORT0_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
 static struct platform_device bfin_sport0_uart_device = {
 	.name = "bfin-sport-uart",
 	.id = 0,
+	.num_resources = ARRAY_SIZE(bfin_sport0_uart_resources),
+	.resource = bfin_sport0_uart_resources,
+};
+#endif
+#ifdef CONFIG_SERIAL_BFIN_SPORT1_UART
+static struct resource bfin_sport1_uart_resources[] = {
+	{
+		.start = SPORT1_TCR1,
+		.end = SPORT1_MRCS3+4,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_SPORT1_RX,
+		.end = IRQ_SPORT1_RX+1,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_SPORT1_ERROR,
+		.end = IRQ_SPORT1_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
 };
 
 static struct platform_device bfin_sport1_uart_device = {
 	.name = "bfin-sport-uart",
 	.id = 1,
+	.num_resources = ARRAY_SIZE(bfin_sport1_uart_resources),
+	.resource = bfin_sport1_uart_resources,
 };
+#endif
 #endif
 
 #if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)
@@ -593,8 +636,12 @@ static struct platform_device *stamp_devices[] __initdata = {
 #endif
 
 #if defined(CONFIG_SERIAL_BFIN_SPORT) || defined(CONFIG_SERIAL_BFIN_SPORT_MODULE)
+#ifdef CONFIG_SERIAL_BFIN_SPORT0_UART
 	&bfin_sport0_uart_device,
+#endif
+#ifdef CONFIG_SERIAL_BFIN_SPORT1_UART
 	&bfin_sport1_uart_device,
+#endif
 #endif
 
 #if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)
