@@ -50,7 +50,7 @@
 
 #define KP_SEL(x)		(0xFFFF >> (16 - x))	/* 2^x-1 */
 
-#define KEYP_MAX_EVENT 		10
+#define KEYP_MAX_EVENT		10
 
 /*
  * Early pre 4.0 Silicon required to delay readout by at least 25ms,
@@ -165,6 +165,7 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	struct adp5588_kpad_platform_data *pdata = client->dev.platform_data;
 	struct input_dev *input;
 	int ret, i;
+	int error;
 
 	if (!i2c_check_functionality(client->adapter,
 					I2C_FUNC_SMBUS_BYTE_DATA)) {
@@ -174,7 +175,7 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 
 	if (!pdata) {
 		dev_err(&client->dev, "no platform data?\n");
-		return -ENODEV;
+		return -EINVAL;
 	}
 
 	if (!pdata->rows || !pdata->cols || !pdata->keymap) {
@@ -189,32 +190,27 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 
 	if (!client->irq) {
 		dev_err(&client->dev, "no IRQ?\n");
-		return -ENODEV;
+		return -EINVAL;
 	}
 
 	kpad = kzalloc(sizeof(*kpad), GFP_KERNEL);
-	if (!kpad)
-		return -ENOMEM;
-
 	input = input_allocate_device();
-	if (!input) {
-		kfree(kpad);
-		return -ENOMEM;
+	if (!kpad || !input) {
+		error = -ENOMEM;
+		goto err_free_mem;
 	}
 
-	i2c_set_clientdata(client, kpad);
 	kpad->client = client;
+	kpad->input = input;
+	INIT_DELAYED_WORK(&kpad->work, adp5588_work);
 
 	ret = adp5588_read(client, DEV_ID);
 	if (ret < 0) {
-		input_free_device(input);
-		goto out1;
+		error = ret;
+		goto err_free_mem;
 	}
 
 	kpad->revid = (u8) ret & ADP5588_DEVICE_ID_MASK;
-	INIT_DELAYED_WORK(&kpad->work, adp5588_work);
-
-	kpad->input = input;
 
 	input->name = client->name;
 	input->phys = "adp5588-keys/input0";
@@ -227,7 +223,7 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	input->id.product = 0x0001;
 	input->id.version = kpad->revid;
 
-	input->keycodesize = sizeof(unsigned short);
+	input->keycodesize = sizeof(kpad->keycode[0]);
 	input->keycodemax = pdata->keymapsize;
 	input->keycode = kpad->keycode;
 
@@ -244,52 +240,55 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 		__set_bit(kpad->keycode[i] & KEY_MAX, input->keybit);
 	__clear_bit(KEY_RESERVED, input->keybit);
 
-	ret = input_register_device(input);
-	if (ret) {
+	error = input_register_device(input);
+	if (error) {
 		dev_err(&client->dev, "unable to register input device\n");
-		input_free_device(input);
-		goto out1;
+		goto err_free_mem;
 	}
 
-	ret = request_irq(client->irq, adp5588_irq, IRQF_TRIGGER_FALLING |
-		IRQF_DISABLED,
+	error = request_irq(client->irq, adp5588_irq,
+		IRQF_TRIGGER_FALLING | IRQF_DISABLED,
 		client->dev.driver->name, kpad);
-	if (ret) {
+	if (error) {
 		dev_err(&client->dev, "irq %d busy?\n", client->irq);
-		goto out2;
+		goto err_unreg_dev;
 	}
 
-	ret = adp5588_setup(client);
-	if (ret)
-		goto out3;
+	error = adp5588_setup(client);
+	if (error)
+		goto err_free_irq;
 
 	device_init_wakeup(&client->dev, 1);
+	i2c_set_clientdata(client, kpad);
 
 	dev_info(&client->dev, "Rev.%d keypad, irq %d\n",
 		kpad->revid, client->irq);
 
 	return 0;
 
- out3:
+ err_free_irq:
 	free_irq(client->irq, kpad);
- out2:
+ err_unreg_dev:
 	input_unregister_device(input);
- out1:
-	i2c_set_clientdata(client, NULL);
+	input = NULL;
+ err_free_mem:
+	input_free_device(input);
 	kfree(kpad);
 
-	return ret;
+	return error;
 }
 
 static int __devexit adp5588_remove(struct i2c_client *client)
 {
-	struct adp5588_kpad *kpad = dev_get_drvdata(&client->dev);
+	struct adp5588_kpad *kpad = i2c_get_clientdata(client);
 
 	adp5588_write(client, CFG, 0);
 	free_irq(client->irq, kpad);
+	cancel_delayed_work_sync(&kpad->work);
 	input_unregister_device(kpad->input);
 	i2c_set_clientdata(client, NULL);
 	kfree(kpad);
+
 	return 0;
 }
 
@@ -300,6 +299,7 @@ static int adp5588_suspend(struct device *dev)
 	struct i2c_client *client = kpad->client;
 
 	disable_irq(client->irq);
+	cancel_delayed_work_sync(&kpad->work);
 
 	if (device_may_wakeup(&client->dev))
 		enable_irq_wake(client->irq);
