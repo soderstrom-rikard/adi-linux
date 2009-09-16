@@ -63,7 +63,7 @@ struct adp5588_kpad {
 	struct i2c_client *client;
 	struct input_dev *input;
 	struct delayed_work work;
-	unsigned revid;
+	unsigned long delay;
 	unsigned short keycode[ADP5588_KEYMAPSIZE];
 };
 
@@ -119,9 +119,7 @@ static irqreturn_t adp5588_irq(int irq, void *handle)
 	 * REVID < 4
 	 */
 
-	schedule_delayed_work(&kpad->work,
-			WA_DELAYED_READOUT_REVID(kpad->revid) ?
-			(unsigned long) msecs_to_jiffies(30) : 0);
+	schedule_delayed_work(&kpad->work, kpad->delay);
 
 	return IRQ_HANDLED;
 }
@@ -164,6 +162,7 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	struct adp5588_kpad *kpad;
 	struct adp5588_kpad_platform_data *pdata = client->dev.platform_data;
 	struct input_dev *input;
+	unsigned int revid;
 	int ret, i;
 	int error;
 
@@ -210,7 +209,9 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 		goto err_free_mem;
 	}
 
-	kpad->revid = (u8) ret & ADP5588_DEVICE_ID_MASK;
+	revid = (u8) ret & ADP5588_DEVICE_ID_MASK;
+	if (WA_DELAYED_READOUT_REVID(revid))
+		kpad->delay = msecs_to_jiffies(30);
 
 	input->name = client->name;
 	input->phys = "adp5588-keys/input0";
@@ -221,7 +222,7 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	input->id.bustype = BUS_I2C;
 	input->id.vendor = 0x0001;
 	input->id.product = 0x0001;
-	input->id.version = kpad->revid;
+	input->id.version = revid;
 
 	input->keycodesize = sizeof(kpad->keycode[0]);
 	input->keycodemax = pdata->keymapsize;
@@ -247,8 +248,8 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	}
 
 	error = request_irq(client->irq, adp5588_irq,
-		IRQF_TRIGGER_FALLING | IRQF_DISABLED,
-		client->dev.driver->name, kpad);
+			    IRQF_TRIGGER_FALLING | IRQF_DISABLED,
+			    client->dev.driver->name, kpad);
 	if (error) {
 		dev_err(&client->dev, "irq %d busy?\n", client->irq);
 		goto err_unreg_dev;
@@ -261,9 +262,7 @@ static int __devinit adp5588_probe(struct i2c_client *client,
 	device_init_wakeup(&client->dev, 1);
 	i2c_set_clientdata(client, kpad);
 
-	dev_info(&client->dev, "Rev.%d keypad, irq %d\n",
-		kpad->revid, client->irq);
-
+	dev_info(&client->dev, "Rev.%d keypad, irq %d\n", revid, client->irq);
 	return 0;
 
  err_free_irq:
