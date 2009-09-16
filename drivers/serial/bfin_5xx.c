@@ -1103,7 +1103,6 @@ static int __init bfin_serial_init_ports(void)
 
 	if (!first)
 		return 0;
-	first = 0;
 
 #ifdef CONFIG_SERIAL_BFIN_UART0
 	ret = peripheral_request_list(bfin_uart0_pin_req, DRIVER_NAME);
@@ -1145,6 +1144,8 @@ static int __init bfin_serial_init_ports(void)
 		bfin_serial_ports[i].port.membase   =
 			(void __iomem *)bfin_serial_console_base_addr[i];
 	}
+
+	first = 0;
 
 	return 0;
 #ifdef CONFIG_SERIAL_BFIN_UART3
