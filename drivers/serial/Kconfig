@@ -1358,6 +1358,30 @@ config SERIAL_BFIN_SPORT_CONSOLE
 	depends on SERIAL_BFIN_SPORT=y
 	select SERIAL_CORE_CONSOLE
 
+config SERIAL_BFIN_SPORT0_UART
+	bool "Enable UART over SPORT0"
+	depends on SERIAL_BFIN_SPORT
+	help
+	  Enable UART over SPORT0
+
+config SERIAL_BFIN_SPORT1_UART
+	bool "Enable UART over SPORT1"
+	depends on SERIAL_BFIN_SPORT
+	help
+	  Enable UART over SPORT1
+
+config SERIAL_BFIN_SPORT2_UART
+	bool "Enable UART over SPORT2"
+	depends on SERIAL_BFIN_SPORT && (BF54x || BF538 || BF539)
+	help
+	  Enable UART over SPORT2
+
+config SERIAL_BFIN_SPORT3_UART
+	bool "Enable UART over SPORT3"
+	depends on SERIAL_BFIN_SPORT && (BF54x || BF538 || BF539)
+	help
+	  Enable UART over SPORT3
+
 config SERIAL_TIMBERDALE
 	tristate "Support for timberdale UART"
 	depends on MFD_TIMBERDALE
