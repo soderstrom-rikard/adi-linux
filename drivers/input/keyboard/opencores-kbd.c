@@ -17,6 +17,7 @@
 
 struct opencores_kbd {
 	struct input_dev *input;
+	struct resource *addr_res;
 	void __iomem *addr;
 	int irq;
 	unsigned short keycodes[128];
@@ -62,6 +63,7 @@ static int __devinit opencores_kbd_probe(struct platform_device *pdev)
 		goto err_free_mem;
 	}
 
+	opencores_kbd->addr_res = res;
 	res = request_mem_region(res->start, resource_size(res), pdev->name);
 	if (!res) {
 		dev_err(&pdev->dev, "failed to request I/O memory\n");
@@ -142,6 +144,9 @@ static int __devexit opencores_kbd_remove(struct platform_device *pdev)
 
 	free_irq(opencores_kbd->irq, opencores_kbd);
 
+	iounmap(opencores_kbd->addr);
+	release_mem_region(opencores_kbd->addr_res->start,
+		resource_size(opencores_kbd->addr_res));
 	input_unregister_device(opencores_kbd->input);
 	kfree(opencores_kbd);
 
