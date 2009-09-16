@@ -1456,7 +1456,8 @@ static int bfin_serial_probe(struct platform_device *pdev)
 #endif
 
 	uart->port.dev = &pdev->dev;
-	if (!uart_add_one_port(&bfin_serial_reg, &uart->port))
+	ret = uart_add_one_port(&bfin_serial_reg, &uart->port);
+	if (!ret)
 		return 0;
 
 out_error:
