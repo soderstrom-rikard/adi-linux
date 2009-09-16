@@ -783,7 +783,7 @@ int peripheral_request(unsigned short per, const char *label)
 	if (!(per & P_DEFINED))
 		return -ENODEV;
 
-	BUG_ON(ident >= MAX_BLACKFIN_GPIOS);
+	BUG_ON(ident >= MAX_RESOURCES);
 
 	local_irq_save_hw(flags);
 
