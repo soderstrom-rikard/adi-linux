@@ -932,7 +932,7 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		 */
 #if defined(CONFIG_BLACKFIN) && ANOMALY_05000450
 		/* Set TXMAXP with the FIFO size of the endpoint
-		 * to diable double buffer mode.
+		 * to disable double buffer mode.
 		 */
 		musb_writew(regs, MUSB_TXMAXP, hw_ep->max_packet_sz_tx);
 #else
@@ -969,7 +969,7 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		 */
 #if defined(CONFIG_BLACKFIN) && ANOMALY_05000465
 		/* Set RXMAXP with the FIFO size of the endpoint
-		 * to diable double buffer mode.
+		 * to disable double buffer mode.
 		 */
 		musb_writew(regs, MUSB_RXMAXP, hw_ep->max_packet_sz_rx);
 #else
