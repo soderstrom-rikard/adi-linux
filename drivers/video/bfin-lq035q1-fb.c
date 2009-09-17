@@ -220,7 +220,7 @@ static void lq035q1_spidev_shutdown(struct spi_device *spi)
 	lq035q1_control(LQ035_SHUT_CTL, LQ035_SHUT);
 }
 
-static struct spi_driver spidev_spi = {
+static struct spi_driver spidev_spi_driver = {
 	.driver = {
 		.name =		DRIVER_NAME"-spi",
 		.owner =	THIS_MODULE,
@@ -700,7 +700,7 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 		goto out7;
 	}
 
-	ret = spi_register_driver(&spidev_spi);
+	ret = spi_register_driver(&spidev_spi_driver);
 	if (ret < 0) {
 		pr_err("couldn't register SPI Interface\n");
 		goto out8;
@@ -732,7 +732,7 @@ out10:
 	if (info->disp_info->use_bl)
 		gpio_free(info->disp_info->gpio_bl);
 out9:
-	spi_unregister_driver(&spidev_spi);
+	spi_unregister_driver(&spidev_spi_driver);
 out8:
 	free_irq(info->irq, info);
 out7:
@@ -760,7 +760,7 @@ static int __devexit bfin_lq035q1_remove(struct platform_device *pdev)
 	if (info->disp_info->use_bl)
 		gpio_free(info->disp_info->gpio_bl);
 
-	spi_unregister_driver(&spidev_spi);
+	spi_unregister_driver(&spidev_spi_driver);
 
 	unregister_framebuffer(fbinfo);
 
