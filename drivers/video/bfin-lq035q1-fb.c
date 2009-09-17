@@ -1,5 +1,5 @@
 /*
- * Blackfin LCD Framebufer driver SHARP LQ035Q1DH02
+ * Blackfin LCD Framebuffer driver SHARP LQ035Q1DH02
  *
  * Copyright 2008-2009 Analog Devices Inc.
  * Licensed under the GPL-2 or later.
