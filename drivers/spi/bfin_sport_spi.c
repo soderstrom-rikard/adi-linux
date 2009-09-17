@@ -29,20 +29,17 @@
 #include <asm/cacheflush.h>
 
 #define DRV_NAME	"bfin-sport-spi"
-#define DRV_AUTHOR	"Cliff Cai"
 #define DRV_DESC	"Blackfin SPORT emulated SPI Driver"
-#define DRV_VERSION	"1.0"
 
-MODULE_AUTHOR(DRV_AUTHOR);
+MODULE_AUTHOR("Cliff Cai");
 MODULE_DESCRIPTION(DRV_DESC);
 MODULE_LICENSE("GPL");
+MODULE_ALIAS("platform:bfin-sport-spi");
 
 #define START_STATE	((void *)0)
 #define RUNNING_STATE	((void *)1)
 #define DONE_STATE	((void *)2)
 #define ERROR_STATE	((void *)-1)
-#define QUEUE_RUNNING	0
-#define QUEUE_STOPPED	1
 
 struct driver_data {
 	/* Driver model hookup */
@@ -68,7 +65,7 @@ struct driver_data {
 	spinlock_t lock;
 	struct list_head queue;
 	int busy;
-	int run;
+	bool run;
 #ifdef CONFIG_SPI_BFIN_LOCK
 	/* SPI bus is lock by a slave for exclusive access */
 	int locked;
@@ -150,9 +147,9 @@ static void bfin_sport_spi_disable(struct driver_data *drv_data)
 	u16 cr;
 
 	cr = read_TCR1(drv_data);
-	write_TCR1(drv_data, (cr & (~TSPEN)));
+	write_TCR1(drv_data, (cr & ~TSPEN));
 	cr = read_RCR1(drv_data);
-	write_RCR1(drv_data, (cr & (~TSPEN)));
+	write_RCR1(drv_data, (cr & ~TSPEN));
 	SSYNC();
 }
 
@@ -485,18 +482,19 @@ static irqreturn_t sport_err_handler(int irq, void *dev_id)
 	struct driver_data *drv_data = dev_id;
 	u16 status;
 
-	pr_debug("%s enter\n", __func__);
+	dev_dbg(&drv_data->pdev->dev, "%s enter\n", __func__);
 	status = read_STAT(drv_data);
 
 	if (status & (TOVF | TUVF | ROVF | RUVF)) {
 		write_STAT(drv_data, status & (TOVF | TUVF | ROVF | RUVF));
 		SSYNC();
-	bfin_sport_spi_disable(drv_data);
-	printk(KERN_ERR "status error:%s%s%s%s\n",
-			       status & TOVF ? " TOVF" : "",
-			       status & TUVF ? " TUVF" : "",
-			       status & ROVF ? " ROVF" : "",
-			       status & RUVF ? " RUVF" : "");
+
+		bfin_sport_spi_disable(drv_data);
+		dev_err(&drv_data->pdev->dev, "status error:%s%s%s%s\n",
+			status & TOVF ? " TOVF" : "",
+			status & TUVF ? " TUVF" : "",
+			status & ROVF ? " ROVF" : "",
+			status & RUVF ? " RUVF" : "");
 	}
 
 	return IRQ_HANDLED;
@@ -560,9 +558,8 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 		drv_data->tx_end = drv_data->tx + transfer->len;
 		dev_dbg(&drv_data->pdev->dev, "tx_buf is %p, tx_end is %p\n",
 			transfer->tx_buf, drv_data->tx_end);
-	} else {
+	} else
 		drv_data->tx = NULL;
-	}
 
 	if (transfer->rx_buf != NULL) {
 		full_duplex = transfer->tx_buf != NULL;
@@ -570,9 +567,8 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 		drv_data->rx_end = drv_data->rx + transfer->len;
 		dev_dbg(&drv_data->pdev->dev, "rx_buf is %p, rx_end is %p\n",
 			transfer->rx_buf, drv_data->rx_end);
-	} else {
+	} else
 		drv_data->rx = NULL;
-	}
 
 	drv_data->len_in_bytes = transfer->len;
 	drv_data->cs_change = transfer->cs_change;
@@ -611,7 +607,7 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 	}
 
 	if (width == CFG_SPI_WORDSIZE16)
-		drv_data->len = (transfer->len) >> 1;
+		drv_data->len = transfer->len >> 1;
 	else
 		drv_data->len = transfer->len;
 
@@ -674,16 +670,17 @@ static void bfin_sport_spi_pump_messages(struct work_struct *work)
 {
 	struct driver_data *drv_data;
 	unsigned long flags;
+	struct spi_message *next_msg;
 #ifdef CONFIG_SPI_BFIN_LOCK
 	int locked_cs = -1;
-	struct spi_message *next_msg = NULL, *msg = NULL;
+	struct spi_message *msg = NULL;
 #endif
 
 	drv_data = container_of(work, struct driver_data, pump_messages);
 
 	/* Lock queue and check for queue work */
 	spin_lock_irqsave(&drv_data->lock, flags);
-	if (list_empty(&drv_data->queue) || drv_data->run == QUEUE_STOPPED) {
+	if (list_empty(&drv_data->queue) || !drv_data->run) {
 		/* pumper kicked off but no work to do */
 		drv_data->busy = 0;
 		spin_unlock_irqrestore(&drv_data->lock, flags);
@@ -696,11 +693,11 @@ static void bfin_sport_spi_pump_messages(struct work_struct *work)
 		return;
 	}
 
-#ifdef CONFIG_SPI_BFIN_LOCK
 	/* Extract head of queue */
 	next_msg = list_entry(drv_data->queue.next,
 		struct spi_message, queue);
 
+#ifdef CONFIG_SPI_BFIN_LOCK
 	if (drv_data->locked)
 		locked_cs = drv_data->locked;
 
@@ -719,12 +716,10 @@ static void bfin_sport_spi_pump_messages(struct work_struct *work)
 			return;
 		}
 	}
-	drv_data->cur_msg = next_msg;
-#else
-	/* Extract head of queue */
-	drv_data->cur_msg = list_entry(drv_data->queue.next,
-		struct spi_message, queue);
 #endif
+
+	drv_data->cur_msg = next_msg;
+
 	/* Setup the SSP using the per chip configuration */
 	drv_data->cur_chip = spi_get_ctldata(drv_data->cur_msg->spi);
 
@@ -754,9 +749,9 @@ static void bfin_sport_spi_pump_messages(struct work_struct *work)
 /*
  * lock the spi bus for exclusive access
  */
+#ifdef CONFIG_SPI_BFIN_LOCK
 static int bfin_sport_spi_lock_bus(struct spi_device *spi)
 {
-#ifdef CONFIG_SPI_BFIN_LOCK
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
 	unsigned long flags;
 
@@ -767,22 +762,25 @@ static int bfin_sport_spi_lock_bus(struct spi_device *spi)
 	}
 	drv_data->locked = spi->chip_select;
 	spin_unlock_irqrestore(&drv_data->lock, flags);
-#endif
+
 	return 0;
 }
 
 static int bfin_sport_spi_unlock_bus(struct spi_device *spi)
 {
-#ifdef CONFIG_SPI_BFIN_LOCK
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
 	unsigned long flags;
 
 	spin_lock_irqsave(&drv_data->lock, flags);
 	drv_data->locked = 0;
 	spin_unlock_irqrestore(&drv_data->lock, flags);
-#endif
+
 	return 0;
 }
+#else
+# define bfin_sport_spi_lock_bus   NULL
+# define bfin_sport_spi_unlock_bus NULL
+#endif
 
 /*
  * got a msg to transfer, queue it in drv_data->queue.
@@ -795,7 +793,7 @@ static int bfin_sport_spi_transfer(struct spi_device *spi, struct spi_message *m
 
 	spin_lock_irqsave(&drv_data->lock, flags);
 
-	if (drv_data->run == QUEUE_STOPPED) {
+	if (!drv_data->run) {
 		spin_unlock_irqrestore(&drv_data->lock, flags);
 		return -ESHUTDOWN;
 	}
@@ -807,7 +805,7 @@ static int bfin_sport_spi_transfer(struct spi_device *spi, struct spi_message *m
 	dev_dbg(&spi->dev, "adding an msg in transfer() \n");
 	list_add_tail(&msg->queue, &drv_data->queue);
 
-	if (drv_data->run == QUEUE_RUNNING && !drv_data->busy)
+	if (drv_data->run && !drv_data->busy)
 		queue_work(drv_data->workqueue, &drv_data->pump_messages);
 
 	spin_unlock_irqrestore(&drv_data->lock, flags);
@@ -823,25 +821,13 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
 	int ret = 0;
 
-	/* Abort device setup if requested features are not supported,
-	 * need extra hardware circuit to implement active low clock
-	 * (SPI_MODE_2/3).
-	 */
-	if (spi->mode & ~(SPI_CPOL | SPI_CPHA | SPI_LSB_FIRST)) {
-		dev_err(&spi->dev, "requested mode not fully supported\n");
-		return -EINVAL;
-	}
-	/* Zero (the default) here means 8 bits */
-	if (!spi->bits_per_word)
-		spi->bits_per_word = 8;
-
 	if (spi->bits_per_word != 8 && spi->bits_per_word != 16)
 		return -EINVAL;
 
 	/* Only alloc (or use chip_info) on first setup */
 	chip = spi_get_ctldata(spi);
 	if (chip == NULL) {
-		chip = kzalloc(sizeof(struct chip_data), GFP_KERNEL);
+		chip = kzalloc(sizeof(*chip), GFP_KERNEL);
 		if (!chip)
 			return -ENOMEM;
 
@@ -851,7 +837,6 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 
 	/* chip_info isn't always needed */
 	if (chip_info) {
-
 		chip->ctl_reg = chip_info->ctl_reg;
 		chip->enable_dma = chip_info->enable_dma;
 		chip->bits_per_word = chip_info->bits_per_word;
@@ -860,7 +845,6 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 		chip->cs_gpio = chip_info->cs_gpio;
 		chip->idle_tx_val = chip_info->idle_tx_val;
 	}
-
 
 	/* translate common spi framework into our register
 	 * following configure contents are same for tx and rx.
@@ -876,12 +860,13 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 
 	/* Sport in master mode */
 	chip->ctl_reg |= ITCLK | ITFS | TFSR | LATFS | LTFS;
+
 	/*
 	 * Notice: for blackfin, the speed_hz is the value of register
 	 * SPI_BAUD, not the real baudrate
 	 */
 	chip->baud = hz_to_spi_baud(spi->max_speed_hz);
-	chip->flag = 1 << (spi->chip_select);
+	chip->flag = 1 << spi->chip_select;
 	chip->chip_select_num = spi->chip_select;
 
 	switch (chip->bits_per_word) {
@@ -925,7 +910,7 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 	if (chip->chip_select_num == 0) {
 		ret = gpio_request(chip->cs_gpio, spi->modalias);
 		if (ret)
-			dev_err(&spi->dev, "Request GPIO for CS failed\n");
+			dev_err(&spi->dev, "request GPIO CS failed\n");
 		else
 			gpio_direction_output(chip->cs_gpio, 1);
 	}
@@ -960,7 +945,7 @@ static inline int bfin_sport_spi_init_queue(struct driver_data *drv_data)
 #ifdef CONFIG_SPI_BFIN_LOCK
 	drv_data->locked = 0;
 #endif
-	drv_data->run = QUEUE_STOPPED;
+	drv_data->run = false;
 	drv_data->busy = 0;
 
 	/* init transfer tasklet */
@@ -983,12 +968,12 @@ static inline int bfin_sport_spi_start_queue(struct driver_data *drv_data)
 
 	spin_lock_irqsave(&drv_data->lock, flags);
 
-	if (drv_data->run == QUEUE_RUNNING || drv_data->busy) {
+	if (drv_data->run || drv_data->busy) {
 		spin_unlock_irqrestore(&drv_data->lock, flags);
 		return -EBUSY;
 	}
 
-	drv_data->run = QUEUE_RUNNING;
+	drv_data->run = true;
 	drv_data->cur_msg = NULL;
 	drv_data->cur_transfer = NULL;
 	drv_data->cur_chip = NULL;
@@ -1016,7 +1001,7 @@ static inline int bfin_sport_spi_stop_queue(struct driver_data *drv_data)
 	 * execution path (pump_messages) would be required to call wake_up or
 	 * friends on every SPI message. Do this instead
 	 */
-	drv_data->run = QUEUE_STOPPED;
+	drv_data->run = false;
 	while (!list_empty(&drv_data->queue) && drv_data->busy && limit--) {
 		spin_unlock_irqrestore(&drv_data->lock, flags);
 		msleep(10);
@@ -1036,7 +1021,7 @@ static inline int bfin_sport_spi_destroy_queue(struct driver_data *drv_data)
 	int status;
 
 	status = bfin_sport_spi_stop_queue(drv_data);
-	if (status != 0)
+	if (status)
 		return status;
 
 	destroy_workqueue(drv_data->workqueue);
@@ -1044,21 +1029,21 @@ static inline int bfin_sport_spi_destroy_queue(struct driver_data *drv_data)
 	return 0;
 }
 
-static int __init bfin_sport_spi_probe(struct platform_device *pdev)
+static int __devinit bfin_sport_spi_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct bfin5xx_spi_master *platform_info;
 	struct spi_master *master;
 	struct resource *res, *ires;
-	struct driver_data *drv_data = 0;
-	int status = 0;
+	struct driver_data *drv_data;
+	int status;
 
 	platform_info = dev->platform_data;
 
 	/* Allocate master with space for drv_data */
-	master = spi_alloc_master(dev, sizeof(struct driver_data) + 16);
+	master = spi_alloc_master(dev, sizeof(*master) + 16);
 	if (!master) {
-		dev_err(&pdev->dev, "can not alloc spi_master\n");
+		dev_err(&pdev->dev, "cannot alloc spi_master\n");
 		return -ENOMEM;
 	}
 
@@ -1068,6 +1053,7 @@ static int __init bfin_sport_spi_probe(struct platform_device *pdev)
 	drv_data->pdev = pdev;
 	drv_data->pin_req = platform_info->pin_req;
 
+	master->mode_bits = SPI_CPOL | SPI_CPHA | SPI_LSB_FIRST;
 	master->bus_num = pdev->id;
 	master->num_chipselect = platform_info->num_chipselect;
 	master->cleanup = bfin_sport_spi_cleanup;
@@ -1079,74 +1065,74 @@ static int __init bfin_sport_spi_probe(struct platform_device *pdev)
 	/* Find and map our resources */
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
-		dev_err(dev, "Cannot get IORESOURCE_MEM\n");
+		dev_err(&pdev->dev, "cannot get IORESOURCE_MEM\n");
 		status = -ENOENT;
 		goto out_error_get_res;
 	}
 
-	drv_data->regs_base = ioremap(res->start, (res->end - res->start + 1));
+	drv_data->regs_base = ioremap(res->start, resource_size(res));
 	if (drv_data->regs_base == NULL) {
-		dev_err(dev, "Cannot map IO\n");
+		dev_err(&pdev->dev, "cannot map registers\n");
 		status = -ENXIO;
 		goto out_error_ioremap;
 	}
 
 	ires = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 	if (!ires) {
-		dev_err(dev, "Cannot get IORESOURCE_IRQ\n");
+		dev_err(&pdev->dev, "cannot get IORESOURCE_IRQ\n");
 		status = -ENODEV;
 		goto out_error_get_ires;
 	}
-
 	drv_data->err_irq = ires->start;
+
 	/* Initial and start queue */
 	status = bfin_sport_spi_init_queue(drv_data);
-	if (status != 0) {
-		dev_err(dev, "problem initializing queue\n");
+	if (status) {
+		dev_err(&pdev->dev, "problem initializing queue\n");
 		goto out_error_queue_alloc;
 	}
 
 	status = bfin_sport_spi_start_queue(drv_data);
-	if (status != 0) {
-		dev_err(dev, "problem starting queue\n");
+	if (status) {
+		dev_err(&pdev->dev, "problem starting queue\n");
 		goto out_error_queue_alloc;
 	}
 
 	status = request_irq(drv_data->err_irq, sport_err_handler,
-		0, "sport_err", drv_data);
+		0, "sport_spi_err", drv_data);
 	if (status) {
-		dev_err(dev, "Unable to request sport err irq\n");
+		dev_err(&pdev->dev, "unable to request sport err irq\n");
 		goto out_error_irq;
 	}
 
 	status = peripheral_request_list(drv_data->pin_req, DRV_NAME);
-	if (status != 0) {
-		dev_err(&pdev->dev, ": Requesting Peripherals failed\n");
+	if (status) {
+		dev_err(&pdev->dev, "requesting peripherals failed\n");
 		goto out_error_peripheral;
 	}
 
 	/* Register with the SPI framework */
 	platform_set_drvdata(pdev, drv_data);
 	status = spi_register_master(master);
-	if (status != 0) {
-		dev_err(dev, "problem registering spi master\n");
+	if (status) {
+		dev_err(&pdev->dev, "problem registering spi master\n");
 		goto out_error_master;
 	}
-	dev_info(dev, "%s, Version %s, regs_base@%p\n",
-		DRV_DESC, DRV_VERSION, drv_data->regs_base);
-	return status;
 
-out_error_master:
+	dev_info(dev, "%s, regs_base@%p\n", DRV_DESC, drv_data->regs_base);
+	return 0;
+
+ out_error_master:
 	peripheral_free_list(drv_data->pin_req);
-out_error_peripheral:
+ out_error_peripheral:
 	free_irq(drv_data->err_irq, drv_data);
-out_error_irq:
-out_error_queue_alloc:
+ out_error_irq:
+ out_error_queue_alloc:
 	bfin_sport_spi_destroy_queue(drv_data);
-out_error_get_ires:
-	iounmap((void *) drv_data->regs_base);
-out_error_ioremap:
-out_error_get_res:
+ out_error_get_ires:
+	iounmap(drv_data->regs_base);
+ out_error_ioremap:
+ out_error_get_res:
 	spi_master_put(master);
 
 	return status;
@@ -1163,7 +1149,7 @@ static int __devexit bfin_sport_spi_remove(struct platform_device *pdev)
 
 	/* Remove the queue */
 	status = bfin_sport_spi_destroy_queue(drv_data);
-	if (status != 0)
+	if (status)
 		return status;
 
 	/* Disable the SSP at the peripheral and SOC level */
@@ -1187,7 +1173,7 @@ static int bfin_sport_spi_suspend(struct platform_device *pdev, pm_message_t sta
 	int status = 0;
 
 	status = bfin_sport_spi_stop_queue(drv_data);
-	if (status != 0)
+	if (status)
 		return status;
 
 	/* stop hardware */
@@ -1206,32 +1192,31 @@ static int bfin_sport_spi_resume(struct platform_device *pdev)
 
 	/* Start the queue running */
 	status = bfin_sport_spi_start_queue(drv_data);
-	if (status != 0) {
-		dev_err(&pdev->dev, "problem starting queue (%d)\n", status);
+	if (status) {
+		dev_err(&pdev->dev, "problem resuming queue\n");
 		return status;
 	}
 
 	return 0;
 }
 #else
-#define bfin_sport_spi_suspend NULL
-#define bfin_sport_spi_resume NULL
-#endif				/* CONFIG_PM */
+# define bfin_sport_spi_suspend NULL
+# define bfin_sport_spi_resume  NULL
+#endif
 
-MODULE_ALIAS("platform:bfin-sport-spi");
 static struct platform_driver bfin_sport_spi_driver = {
 	.driver	= {
-		.name	= DRV_NAME,
-		.owner	= THIS_MODULE,
+		.name = DRV_NAME,
 	},
-	.suspend	= bfin_sport_spi_suspend,
-	.resume		= bfin_sport_spi_resume,
-	.remove		= __devexit_p(bfin_sport_spi_remove),
+	.probe   = bfin_sport_spi_probe,
+	.remove  = __devexit_p(bfin_sport_spi_remove),
+	.suspend = bfin_sport_spi_suspend,
+	.resume  = bfin_sport_spi_resume,
 };
 
 static int __init bfin_sport_spi_init(void)
 {
-	return platform_driver_probe(&bfin_sport_spi_driver, bfin_sport_spi_probe);
+	return platform_driver_register(&bfin_sport_spi_driver);
 }
 module_init(bfin_sport_spi_init);
 
