@@ -14,8 +14,8 @@
 #include <linux/mfd/adp5520.h>
 
 struct adp5520_keys {
-	struct input_dev	*input;
-	struct notifier_block	notifier;
+	struct input_dev *input;
+	struct notifier_block notifier;
 	struct device *master;
 	unsigned short keycode[ADP5520_KEYMAPSIZE];
 };
@@ -134,8 +134,7 @@ static int __devinit adp5520_keys_probe(struct platform_device *pdev)
 
 	ret = input_register_device(input);
 	if (ret) {
-		dev_err(&pdev->dev,
-			": Unable to register input device (%d)\n", ret);
+		dev_err(&pdev->dev, "unable to register input device\n");
 		input_free_device(input);
 		goto err;
 	}
