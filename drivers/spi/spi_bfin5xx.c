@@ -190,7 +190,6 @@ static void bfin_spi_cs_active(struct driver_data *drv_data, struct chip_data *c
 	if (likely(chip->chip_select_num)) {
 		u16 flag = read_FLAG(drv_data);
 
-		flag |= chip->flag;
 		flag &= ~(chip->flag << 8);
 
 		write_FLAG(drv_data, flag);
@@ -204,13 +203,8 @@ static void bfin_spi_cs_deactive(struct driver_data *drv_data, struct chip_data 
 	if (likely(chip->chip_select_num)) {
 		u16 flag = read_FLAG(drv_data);
 
-		/* Only with CS enabled, we can set the level of CS */
-		flag |= chip->flag;
 		flag |= (chip->flag << 8);
-		write_FLAG(drv_data, flag);
 
-		/* Disable CS after deactive it */
-		flag &= ~chip->flag;
 		write_FLAG(drv_data, flag);
 	} else {
 		gpio_set_value(chip->cs_gpio, 1);
@@ -219,6 +213,25 @@ static void bfin_spi_cs_deactive(struct driver_data *drv_data, struct chip_data 
 	/* Move delay here for consistency */
 	if (chip->cs_chg_udelay)
 		udelay(chip->cs_chg_udelay);
+}
+
+/* enable or disable the pin muxed by GPIO and SPI CS to work as SPI CS */
+static inline void bfin_spi_cs_enable(struct driver_data *drv_data, struct chip_data *chip)
+{
+	u16 flag = read_FLAG(drv_data);
+
+	flag |= chip->flag;
+
+	write_FLAG(drv_data, flag);
+}
+
+static inline void bfin_spi_cs_disable(struct driver_data *drv_data, struct chip_data *chip)
+{
+	u16 flag = read_FLAG(drv_data);
+
+	flag &= ~chip->flag;
+
+	write_FLAG(drv_data, flag);
 }
 
 /* stop controller and re-config current chip*/
@@ -1345,6 +1358,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 		}
 	}
 
+	bfin_spi_cs_enable(drv_data, chip);
 	bfin_spi_cs_deactive(drv_data, chip);
 	ret = 0;
 
@@ -1377,14 +1391,17 @@ static int bfin_spi_setup(struct spi_device *spi)
 static void bfin_spi_cleanup(struct spi_device *spi)
 {
 	struct chip_data *chip = spi_get_ctldata(spi);
+	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
 
 	if (!chip)
 		return;
 
 	if ((chip->chip_select_num > 0)
-		&& (chip->chip_select_num <= spi->master->num_chipselect))
+		&& (chip->chip_select_num <= spi->master->num_chipselect)) {
 		peripheral_free(ssel[spi->master->bus_num]
 					[chip->chip_select_num-1]);
+		bfin_spi_cs_disable(drv_data, chip);
+	}
 
 	if (chip->chip_select_num == 0)
 		gpio_free(chip->cs_gpio);
