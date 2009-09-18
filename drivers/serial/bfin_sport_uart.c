@@ -20,6 +20,7 @@
 
 #define DRV_NAME "bfin-sport-uart"
 #define DEVICE_NAME	"ttySS"
+#define pr_fmt(fmt) DRV_NAME ": " fmt
 
 #include <linux/module.h>
 #include <linux/ioport.h>
@@ -144,8 +145,8 @@ static int sport_uart_setup(struct sport_uart_port *up, int size, int baud_rate)
 	SPORT_PUT_RCR2(up, (size + 1) * 2 - 1);
 	pr_debug("%s RCR1:%x, RCR2:%x\n", __func__, SPORT_GET_RCR1(up), SPORT_GET_RCR2(up));
 
-	tclkdiv = sclk/(2 * baud_rate) - 1;
-	rclkdiv = sclk/(2 * baud_rate * 2) - 1;
+	tclkdiv = sclk / (2 * baud_rate) - 1;
+	rclkdiv = sclk / (2 * baud_rate * 2) - 1;
 	SPORT_PUT_TCLKDIV(up, tclkdiv);
 	SPORT_PUT_RCLKDIV(up, rclkdiv);
 	SSYNC();
@@ -536,32 +537,32 @@ struct uart_ops sport_uart_ops = {
 	.verify_port	= sport_verify_port,
 };
 
-#if defined(CONFIG_SERIAL_BFIN_SPORT3_UART)
 #define BFIN_SPORT_UART_MAX_PORTS 4
-#elif defined(CONFIG_SERIAL_BFIN_SPORT2_UART)
-#define BFIN_SPORT_UART_MAX_PORTS 3
-#else
-#define BFIN_SPORT_UART_MAX_PORTS 2
-#endif
 
 static struct sport_uart_port bfin_sport_uart_ports[BFIN_SPORT_UART_MAX_PORTS];
 
 static unsigned long bfin_sport_uart_console_base_addr[] = {
 #ifdef CONFIG_SERIAL_BFIN_SPORT0_UART
 		SPORT0_TCR1,
+#else
+		0,
 #endif
 #ifdef CONFIG_SERIAL_BFIN_SPORT1_UART
 		SPORT1_TCR1,
+#else
+		0,
 #endif
 #ifdef CONFIG_SERIAL_BFIN_SPORT2_UART
 		SPORT2_TCR1,
+#else
+		0,
 #endif
 #ifdef CONFIG_SERIAL_BFIN_SPORT3_UART
 		SPORT3_TCR1,
+#else
+		0,
 #endif
 };
-
-static int nr_active_ports = ARRAY_SIZE(bfin_sport_uart_console_base_addr);
 
 static int __init sport_uart_init_ports(void)
 {
@@ -599,7 +600,7 @@ static int __init sport_uart_init_ports(void)
 		goto err_out3;
 	}
 #endif
-	for (i = 0; i < nr_active_ports; i++) {
+	for (i = 0; i < BFIN_SPORT_UART_MAX_PORTS; i++) {
 		spin_lock_init(&bfin_sport_uart_ports[i].port.lock);
 		bfin_sport_uart_ports[i].port.fifosize  = SPORT_TX_FIFO_SIZE,
 		bfin_sport_uart_ports[i].port.ops       = &sport_uart_ops;
@@ -642,13 +643,10 @@ sport_uart_console_setup(struct console *co, char *options)
 	int parity = 'n';
 	int flow = 'n';
 
-	/*
-	 * Check whether an invalid uart number has been specified, and
-	 * if so, search for the first available port that does have
-	 * console support.
-	 */
-	if (co->index == -1 || co->index >= nr_active_ports)
-		co->index = 0;
+	/* Check whether an invalid uart number has been specified */
+	if (co->index == -1 || co->index >= BFIN_SPORT_UART_MAX_PORTS)
+		return -ENODEV;
+
 	up = &bfin_sport_uart_ports[co->index];
 
 	if (options)
@@ -751,30 +749,32 @@ static struct uart_driver sport_uart_reg = {
 };
 
 #ifdef CONFIG_PM
-static int sport_uart_suspend(struct platform_device *pdev, pm_message_t state)
+static int sport_uart_suspend(struct device *dev)
 {
-	struct sport_uart_port *sport = platform_get_drvdata(pdev);
+	struct sport_uart_port *sport = dev_get_drvdata(dev);
 
-	dev_dbg(&pdev->dev, "%s enter\n", __func__);
+	dev_dbg(dev, "%s enter\n", __func__);
 	if (sport)
 		uart_suspend_port(&sport_uart_reg, &sport->port);
 
 	return 0;
 }
 
-static int sport_uart_resume(struct platform_device *pdev)
+static int sport_uart_resume(struct device *dev)
 {
-	struct sport_uart_port *sport = platform_get_drvdata(pdev);
+	struct sport_uart_port *sport = dev_get_drvdata(dev);
 
-	dev_dbg(&pdev->dev, "%s enter\n", __func__);
+	dev_dbg(dev, "%s enter\n", __func__);
 	if (sport)
 		uart_resume_port(&sport_uart_reg, &sport->port);
 
 	return 0;
 }
-#else
-# define sport_uart_suspend NULL
-# define sport_uart_resume  NULL
+
+static struct dev_pm_ops bfin_sport_uart_dev_pm_ops = {
+	.suspend	= sport_uart_suspend,
+	.resume		= sport_uart_resume,
+};
 #endif
 
 static int __devinit sport_uart_probe(struct platform_device *pdev)
@@ -782,11 +782,9 @@ static int __devinit sport_uart_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct sport_uart_port *sport;
 	int ret = 0;
-	static int index;
+	int index;
 
 	dev_dbg(&pdev->dev, "%s enter\n", __func__);
-
-	sport = &bfin_sport_uart_ports[index];
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
@@ -794,11 +792,16 @@ static int __devinit sport_uart_probe(struct platform_device *pdev)
 		return -ENOENT;
 	}
 
-	if (res->start != bfin_sport_uart_console_base_addr[index]) {
+	for (index = 0; index < BFIN_SPORT_UART_MAX_PORTS; index++)
+		if (res->start == bfin_sport_uart_console_base_addr[index])
+			break;
+
+	if (index == BFIN_SPORT_UART_MAX_PORTS) {
 		dev_err(&pdev->dev, "Wrong sport uart platform device\n");
 		return -ENOENT;
 	}
-	index++;
+
+	sport = &bfin_sport_uart_ports[index];
 
 	sport->port.membase = ioremap(res->start, res->end - res->start);
 	if (!sport->port.membase) {
@@ -821,7 +824,7 @@ static int __devinit sport_uart_probe(struct platform_device *pdev)
 	}
 
 	sport->port.dev = &pdev->dev;
-	platform_set_drvdata(pdev, sport);
+	dev_set_drvdata(&pdev->dev, sport);
 	ret = uart_add_one_port(&sport_uart_reg, &sport->port);
 	if (!ret)
 		return 0;
@@ -837,7 +840,7 @@ static int __devexit sport_uart_remove(struct platform_device *pdev)
 	struct sport_uart_port *sport = platform_get_drvdata(pdev);
 
 	dev_dbg(&pdev->dev, "%s enter\n", __func__);
-	platform_set_drvdata(pdev, NULL);
+	dev_set_drvdata(&pdev->dev, NULL);
 
 	if (sport)
 		uart_remove_one_port(&sport_uart_reg, &sport->port);
@@ -849,11 +852,12 @@ static int __devexit sport_uart_remove(struct platform_device *pdev)
 
 static struct platform_driver sport_uart_driver = {
 	.probe		= sport_uart_probe,
-	.remove		= sport_uart_remove,
-	.suspend	= sport_uart_suspend,
-	.resume		= __devexit_p(sport_uart_resume),
+	.remove		= __devexit_p(sport_uart_remove),
 	.driver		= {
 		.name	= DRV_NAME,
+#ifdef CONFIG_PM
+		.pm	= &bfin_sport_uart_dev_pm_ops,
+#endif
 	},
 };
 

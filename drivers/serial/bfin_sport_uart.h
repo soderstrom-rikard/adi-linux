@@ -16,6 +16,9 @@
  * Transmit Frame Sync is not used by this driver to transfer data out.
  */
 
+#ifndef _BFIN_SPORT_UART_H
+#define _BFIN_SPORT_UART_H
+
 #define OFFSET_TCR1		0x00	/* Transmit Configuration 1 Register */
 #define OFFSET_TCR2		0x04	/* Transmit Configuration 2 Register */
 #define OFFSET_TCLKDIV		0x08	/* Transmit Serial Clock Divider Register */
@@ -68,3 +71,4 @@
 
 #define SPORT_TX_FIFO_SIZE	8
 
+#endif /* _BFIN_SPORT_UART_H */
