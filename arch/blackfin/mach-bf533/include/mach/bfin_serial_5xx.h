@@ -109,6 +109,10 @@ static inline void UART_CLEAR_LSR(struct bfin_serial_port *uart)
 }
 
 unsigned long bfin_serial_console_base_addr[] = {
+#ifdef CONFIG_SERIAL_BFIN_UART0
 	0xFFC00400,
+#else
+	0,
+#endif
 };
 

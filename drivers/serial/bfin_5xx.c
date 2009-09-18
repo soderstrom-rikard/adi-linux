@@ -50,7 +50,7 @@
 #define DRIVER_NAME		"bfin-uart"
 
 static struct bfin_serial_port bfin_serial_ports[BFIN_UART_NR_PORTS];
-static int nr_active_ports = ARRAY_SIZE(bfin_serial_console_base_addr);
+static int nr_ports = ARRAY_SIZE(bfin_serial_console_base_addr);
 
 #if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
 	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
@@ -1133,7 +1133,7 @@ static int __init bfin_serial_init_ports(void)
 	}
 #endif
 
-	for (i = 0; i < nr_active_ports; i++) {
+	for (i = 0; i < nr_ports; i++) {
 		spin_lock_init(&bfin_serial_ports[i].port.lock);
 		bfin_serial_ports[i].port.uartclk   = get_sclk();
 		bfin_serial_ports[i].port.fifosize  = BFIN_UART_TX_FIFO_SIZE;
@@ -1233,8 +1233,8 @@ bfin_serial_console_setup(struct console *co, char *options)
 	 * if so, search for the first available port that does have
 	 * console support.
 	 */
-	if (co->index == -1 || co->index >= nr_active_ports)
-		co->index = 0;
+	if (co->index == -1 || co->index >= nr_ports)
+		return -ENODEV;
 	uart = &bfin_serial_ports[co->index];
 
 	if (options)
@@ -1331,8 +1331,8 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 	bfin_serial_console.flags &= ~CON_PRINTBUFFER;
 #endif
 
-	if (port == -1 || port >= nr_active_ports)
-		port = 0;
+	if (port == -1 || port >= nr_ports)
+		return -ENODEV;
 	if (bfin_serial_init_ports())
 		return NULL;
 
@@ -1373,9 +1373,7 @@ static int bfin_serial_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct bfin_serial_port *uart;
 	int ret;
-	static int index;
-
-	uart = &bfin_serial_ports[index];
+	int index;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
@@ -1383,11 +1381,16 @@ static int bfin_serial_probe(struct platform_device *pdev)
 		return -ENOENT;
 	}
 
-	if (res->start != bfin_serial_console_base_addr[index]) {
+	for (index = 0; index < nr_ports; index++)
+		if (res->start == bfin_serial_console_base_addr[index])
+			break;
+
+	if (index == nr_ports) {
 		dev_err(&pdev->dev, "Wrong uart platform device\n");
 		return -ENOENT;
 	}
-	index++;
+
+	uart = &bfin_serial_ports[index];
 
 	uart->port.membase = ioremap(res->start,
 		res->end - res->start + 1);
