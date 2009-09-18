@@ -173,10 +173,37 @@ static void bf5xx_tdm_shutdown(struct snd_pcm_substream *substream,
 		bf5xx_tdm.configured = 0;
 }
 
-static int bf5xx_tdm_set_tdm_slot(struct snd_soc_dai *dai,
-		unsigned int mask, int slots)
+static int bf5xx_tdm_set_channel_map(struct snd_soc_dai *dai,
+		unsigned int tx_num, unsigned int *tx_slot,
+		unsigned int rx_num, unsigned int *rx_slot)
 {
-	bf5xx_tdm.slot_seq = mask;
+	int i;
+	unsigned int slot;
+	unsigned int tx_mapped = 0, rx_mapped = 0;
+
+	if ((tx_num > BFIN_TDM_DAI_MAX_SLOTS) ||
+			(rx_num > BFIN_TDM_DAI_MAX_SLOTS))
+		return -EINVAL;
+
+	for (i = 0; i < tx_num; i++) {
+		slot = tx_slot[i];
+		if ((slot < BFIN_TDM_DAI_MAX_SLOTS) &&
+				(!(tx_mapped & (1 << slot)))) {
+			bf5xx_tdm.tx_map[i] = slot;
+			tx_mapped |= 1 << slot;
+		} else
+			return -EINVAL;
+	}
+	for (i = 0; i < rx_num; i++) {
+		slot = rx_slot[i];
+		if ((slot < BFIN_TDM_DAI_MAX_SLOTS) &&
+				(!(rx_mapped & (1 << slot)))) {
+			bf5xx_tdm.rx_map[i] = slot;
+			rx_mapped |= 1 << slot;
+		} else
+			return -EINVAL;
+	}
+
 	return 0;
 }
 
@@ -234,7 +261,7 @@ static struct snd_soc_dai_ops bf5xx_tdm_dai_ops = {
 	.hw_params      = bf5xx_tdm_hw_params,
 	.set_fmt        = bf5xx_tdm_set_dai_fmt,
 	.shutdown       = bf5xx_tdm_shutdown,
-	.set_tdm_slot   = bf5xx_tdm_set_tdm_slot,
+	.set_channel_map   = bf5xx_tdm_set_channel_map,
 };
 
 struct snd_soc_dai bf5xx_tdm_dai = {

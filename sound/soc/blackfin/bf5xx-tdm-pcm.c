@@ -189,11 +189,9 @@ static int bf5xx_pcm_copy(struct snd_pcm_substream *substream, int channel,
 		dst = (unsigned int *)substream->runtime->dma_area;
 
 		dst += pos * 8;
-
 		while (count--) {
 			for (i = 0; i < substream->runtime->channels; i++)
-				*(dst + (((tdm_port->slot_seq >>
-					(4 * i)) & 0xF))) = *src++;
+				*(dst + tdm_port->tx_map[i]) = *src++;
 			dst += 8;
 		}
 	} else {
@@ -203,8 +201,7 @@ static int bf5xx_pcm_copy(struct snd_pcm_substream *substream, int channel,
 		src += pos * 8;
 		while (count--) {
 			for (i = 0; i < substream->runtime->channels; i++)
-				*dst++ = *(src + (((tdm_port->slot_seq >>
-					(4 * i)) & 0xF)));
+				*dst++ = *(src + tdm_port->rx_map[i]);
 			src += 8;
 		}
 	}
