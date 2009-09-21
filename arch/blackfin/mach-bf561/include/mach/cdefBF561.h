@@ -31,8 +31,6 @@
 #ifndef _CDEF_BF561_H
 #define _CDEF_BF561_H
 
-#include <asm/blackfin.h>
-
 /* include all Core registers and bit definitions */
 #include "defBF561.h"
 
@@ -1554,58 +1552,5 @@
 #define bfin_write_MDMA_D1_Y_COUNT(val) bfin_write_MDMA1_D1_Y_COUNT(val)
 #define bfin_read_MDMA_D1_START_ADDR()  bfin_read_MDMA1_D1_START_ADDR()
 #define bfin_write_MDMA_D1_START_ADDR(val) bfin_write_MDMA1_D1_START_ADDR(val)
-
-/* These need to be last due to the cdef/linux inter-dependencies */
-#include <asm/irq.h>
-
-/* Writing to PLL_CTL initiates a PLL relock sequence. */
-static __inline__ void bfin_write_PLL_CTL(unsigned int val)
-{
-	unsigned long flags, iwr0, iwr1;
-
-	if (val == bfin_read_PLL_CTL())
-		return;
-
-	local_irq_save_hw(flags);
-	/* Enable the PLL Wakeup bit in SIC IWR */
-	iwr0 = bfin_read32(SICA_IWR0);
-	iwr1 = bfin_read32(SICA_IWR1);
-	/* Only allow PPL Wakeup) */
-	bfin_write32(SICA_IWR0, IWR_ENABLE(0));
-	bfin_write32(SICA_IWR1, 0);
-
-	bfin_write16(PLL_CTL, val);
-	SSYNC();
-	asm("IDLE;");
-
-	bfin_write32(SICA_IWR0, iwr0);
-	bfin_write32(SICA_IWR1, iwr1);
-	local_irq_restore_hw(flags);
-}
-
-/* Writing to VR_CTL initiates a PLL relock sequence. */
-static __inline__ void bfin_write_VR_CTL(unsigned int val)
-{
-	unsigned long flags, iwr0, iwr1;
-
-	if (val == bfin_read_VR_CTL())
-		return;
-
-	local_irq_save_hw(flags);
-	/* Enable the PLL Wakeup bit in SIC IWR */
-	iwr0 = bfin_read32(SICA_IWR0);
-	iwr1 = bfin_read32(SICA_IWR1);
-	/* Only allow PPL Wakeup) */
-	bfin_write32(SICA_IWR0, IWR_ENABLE(0));
-	bfin_write32(SICA_IWR1, 0);
-
-	bfin_write16(VR_CTL, val);
-	SSYNC();
-	asm("IDLE;");
-
-	bfin_write32(SICA_IWR0, iwr0);
-	bfin_write32(SICA_IWR1, iwr1);
-	local_irq_restore_hw(flags);
-}
 
 #endif				/* _CDEF_BF561_H */

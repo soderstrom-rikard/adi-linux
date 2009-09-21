@@ -33,6 +33,7 @@
 #include <linux/mm.h>
 #include <linux/cpu.h>
 #include <linux/smp.h>
+#include <linux/cpumask.h>
 #include <linux/seq_file.h>
 #include <linux/irq.h>
 #include <asm/atomic.h>
@@ -56,11 +57,7 @@ void __cpuinitdata *init_retx_coreb, *init_saved_retx_coreb,
 	*init_saved_seqstat_coreb, *init_saved_icplb_fault_addr_coreb,
 	*init_saved_dcplb_fault_addr_coreb;
 
-cpumask_t cpu_possible_map;
-EXPORT_SYMBOL(cpu_possible_map);
-
-cpumask_t cpu_online_map;
-EXPORT_SYMBOL(cpu_online_map);
+void __init platform_request_ipi(irq_handler_t handler);
 
 #define BFIN_IPI_RESCHEDULE   0
 #define BFIN_IPI_CALL_FUNC    1
@@ -449,7 +446,7 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
 {
 	platform_prepare_cpus(max_cpus);
 	ipi_queue_init();
-	platform_request_ipi(&ipi_handler);
+	platform_request_ipi(ipi_handler);
 }
 
 void __init smp_cpus_done(unsigned int max_cpus)

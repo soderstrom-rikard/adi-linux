@@ -175,43 +175,7 @@
 	dreg = [preg];			\
 	dreg = ROT dreg BY -1;		\
 	dreg = CC;
-
-static inline unsigned long get_l1_scratch_start_cpu(int cpu)
-{
-	return cpu ? COREB_L1_SCRATCH_START : COREA_L1_SCRATCH_START;
-}
-static inline unsigned long get_l1_code_start_cpu(int cpu)
-{
-	return cpu ? COREB_L1_CODE_START : COREA_L1_CODE_START;
-}
-static inline unsigned long get_l1_data_a_start_cpu(int cpu)
-{
-	return cpu ? COREB_L1_DATA_A_START : COREA_L1_DATA_A_START;
-}
-static inline unsigned long get_l1_data_b_start_cpu(int cpu)
-{
-	return cpu ? COREB_L1_DATA_B_START : COREA_L1_DATA_B_START;
-}
-
-static inline unsigned long get_l1_scratch_start(void)
-{
-	return get_l1_scratch_start_cpu(blackfin_core_id());
-}
-static inline unsigned long get_l1_code_start(void)
-{
-	return get_l1_code_start_cpu(blackfin_core_id());
-}
-static inline unsigned long get_l1_data_a_start(void)
-{
-	return get_l1_data_a_start_cpu(blackfin_core_id());
-}
-static inline unsigned long get_l1_data_b_start(void)
-{
-	return get_l1_data_b_start_cpu(blackfin_core_id());
-}
-
 #endif /* CONFIG_SMP */
-
 #endif /* __ASSEMBLY__ */
 
 #endif

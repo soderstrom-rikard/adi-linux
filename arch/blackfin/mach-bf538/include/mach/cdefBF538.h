@@ -31,8 +31,6 @@
 #ifndef _CDEF_BF538_H
 #define _CDEF_BF538_H
 
-#include <asm/blackfin.h>
-
 /*include all Core registers and bit definitions*/
 #include "defBF539.h"
 
@@ -2111,58 +2109,5 @@
 #define bfin_write_CAN_MB31_ID0(val)   bfin_write16(CAN_MB31_ID0, val)
 #define bfin_read_CAN_MB31_ID1()       bfin_read16(CAN_MB31_ID1)
 #define bfin_write_CAN_MB31_ID1(val)   bfin_write16(CAN_MB31_ID1, val)
-
-/* These need to be last due to the cdef/linux inter-dependencies */
-#include <asm/irq.h>
-
-/* Writing to PLL_CTL initiates a PLL relock sequence. */
-static __inline__ void bfin_write_PLL_CTL(unsigned int val)
-{
-	unsigned long flags, iwr0, iwr1;
-
-	if (val == bfin_read_PLL_CTL())
-		return;
-
-	local_irq_save_hw(flags);
-	/* Enable the PLL Wakeup bit in SIC IWR */
-	iwr0 = bfin_read32(SIC_IWR0);
-	iwr1 = bfin_read32(SIC_IWR1);
-	/* Only allow PPL Wakeup) */
-	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
-	bfin_write32(SIC_IWR1, 0);
-
-	bfin_write16(PLL_CTL, val);
-	SSYNC();
-	asm("IDLE;");
-
-	bfin_write32(SIC_IWR0, iwr0);
-	bfin_write32(SIC_IWR1, iwr1);
-	local_irq_restore_hw(flags);
-}
-
-/* Writing to VR_CTL initiates a PLL relock sequence. */
-static __inline__ void bfin_write_VR_CTL(unsigned int val)
-{
-	unsigned long flags, iwr0, iwr1;
-
-	if (val == bfin_read_VR_CTL())
-		return;
-
-	local_irq_save_hw(flags);
-	/* Enable the PLL Wakeup bit in SIC IWR */
-	iwr0 = bfin_read32(SIC_IWR0);
-	iwr1 = bfin_read32(SIC_IWR1);
-	/* Only allow PPL Wakeup) */
-	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
-	bfin_write32(SIC_IWR1, 0);
-
-	bfin_write16(VR_CTL, val);
-	SSYNC();
-	asm("IDLE;");
-
-	bfin_write32(SIC_IWR0, iwr0);
-	bfin_write32(SIC_IWR1, iwr1);
-	local_irq_restore_hw(flags);
-}
 
 #endif

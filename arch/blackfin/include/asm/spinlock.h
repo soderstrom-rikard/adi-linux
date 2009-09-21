@@ -61,6 +61,8 @@ static inline void __raw_read_lock(raw_rwlock_t *rw)
 	__raw_read_lock_asm(&rw->lock);
 }
 
+#define __raw_read_lock_flags(lock, flags) __raw_read_lock(lock)
+
 static inline int __raw_read_trylock(raw_rwlock_t *rw)
 {
 	return __raw_read_trylock_asm(&rw->lock);
@@ -75,6 +77,8 @@ static inline void __raw_write_lock(raw_rwlock_t *rw)
 {
 	__raw_write_lock_asm(&rw->lock);
 }
+
+#define __raw_write_lock_flags(lock, flags) __raw_write_lock(lock)
 
 static inline int __raw_write_trylock(raw_rwlock_t *rw)
 {

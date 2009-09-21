@@ -16,6 +16,7 @@
 
 #include <asm/delay.h>
 #include <asm/dpmc.h>
+#include <asm/cdef_misc.h>
 
 #define DRIVER_NAME "bfin dpmc"
 
