@@ -1451,9 +1451,9 @@ static int bfin_serial_probe(struct platform_device *pdev)
 	res = platform_get_resource(pdev, IORESOURCE_IO, 1);
 	if (res == NULL) {
 # if defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
-		uart->cts_pin = 0;
+		uart->rts_pin = 0;
 # else
-		uart->cts_pin = -1;
+		uart->rts_pin = -1;
 # endif
 	} else
 		uart->rts_pin = res->start;
