@@ -190,7 +190,7 @@ static void bfin_spi_cs_active(struct driver_data *drv_data, struct chip_data *c
 	if (likely(chip->chip_select_num)) {
 		u16 flag = read_FLAG(drv_data);
 
-		flag &= ~(chip->flag << 8);
+		flag &= ~chip->flag;
 
 		write_FLAG(drv_data, flag);
 	} else {
@@ -203,7 +203,7 @@ static void bfin_spi_cs_deactive(struct driver_data *drv_data, struct chip_data 
 	if (likely(chip->chip_select_num)) {
 		u16 flag = read_FLAG(drv_data);
 
-		flag |= (chip->flag << 8);
+		flag |= chip->flag;
 
 		write_FLAG(drv_data, flag);
 	} else {
@@ -220,7 +220,7 @@ static inline void bfin_spi_cs_enable(struct driver_data *drv_data, struct chip_
 {
 	u16 flag = read_FLAG(drv_data);
 
-	flag |= chip->flag;
+	flag |= (chip->flag >> 8);
 
 	write_FLAG(drv_data, flag);
 }
@@ -229,7 +229,7 @@ static inline void bfin_spi_cs_disable(struct driver_data *drv_data, struct chip
 {
 	u16 flag = read_FLAG(drv_data);
 
-	flag &= ~chip->flag;
+	flag &= ~(chip->flag >> 8);
 
 	write_FLAG(drv_data, flag);
 }
@@ -1259,7 +1259,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 	 * SPI_BAUD, not the real baudrate
 	 */
 	chip->baud = hz_to_spi_baud(spi->max_speed_hz);
-	chip->flag = 1 << (spi->chip_select);
+	chip->flag = (1 << (spi->chip_select)) << 8;
 	chip->chip_select_num = spi->chip_select;
 
 	switch (chip->bits_per_word) {
