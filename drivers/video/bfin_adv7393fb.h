@@ -55,9 +55,6 @@ enum {
 	BLANK_OFF,
 };
 
-#define   I2C_ADV7393        0x54
-#define I2C_NAME(x) (x)->name
-
 #define DRIVER_NAME "bfin-adv7393"
 
 #define PPI0_16 {P_PPI0_CLK, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3, \
@@ -270,7 +267,7 @@ struct adv7393fb_regs {
 struct adv7393fb_device {
 	struct fb_info info;	/* FB driver info record */
 
-	struct i2c_client *i2c_adv7393_client;
+	struct i2c_client *client;
 
 	struct dmasg *descriptor_list_head;
 	struct dmasg *vb1;
