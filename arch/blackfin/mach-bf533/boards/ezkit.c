@@ -39,6 +39,7 @@
 #include <linux/usb/isp1362.h>
 #endif
 #include <linux/irq.h>
+#include <linux/i2c.h>
 #include <asm/dma.h>
 #include <asm/bfin5xx_spi.h>
 #include <asm/portmux.h>
