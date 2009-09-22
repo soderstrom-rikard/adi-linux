@@ -72,19 +72,7 @@ static unsigned long current_brightness;  /* backlight */
 
 /* AD5280 vcomm */
 static unsigned char vcomm_value = 150;
-
-static char ad5280_drv_name[] = "ad5280";
-static struct i2c_driver ad5280_driver;
 static struct i2c_client *ad5280_client;
-
-static unsigned short ignore[]		= { I2C_CLIENT_END };
-static unsigned short normal_addr[] = { CONFIG_LQ035_SLAVE_ADDR>>1, I2C_CLIENT_END };
-
-static struct i2c_client_address_data addr_data = {
-	.normal_i2c			= normal_addr,
-	.probe				= ignore,
-	.ignore				= ignore,
-};
 
 static void set_vcomm(void)
 {
@@ -97,55 +85,47 @@ static void set_vcomm(void)
 	}
 }
 
-static int ad5280_probe(struct i2c_adapter *adap, int addr, int kind)
+static int __devinit ad5280_probe(struct i2c_client *client,
+					const struct i2c_device_id *id)
 {
-	struct i2c_client *client;
-	int rc;
+	int ret;
+	if (!i2c_check_functionality(client->adapter,
+					I2C_FUNC_SMBUS_BYTE_DATA)) {
+		dev_err(&client->dev, "SMBUS Byte Data not Supported\n");
+		return -EIO;
+	}
 
-	client = kzalloc(sizeof(struct i2c_client), GFP_KERNEL);
-	if (!client)
-		return -ENOMEM;
-	strncpy(client->name, ad5280_drv_name, I2C_NAME_SIZE);
-	client->addr = addr;
-	client->adapter = adap;
-	client->driver = &ad5280_driver;
-
-	if ((rc = i2c_attach_client(client)) != 0) {
-		kfree(client);
-		pr_err("i2c_attach_client fail: %d\n", rc);
-		return rc;
+	ret = i2c_smbus_write_byte_data(client, 0x00, vcomm_value);
+	if (ret) {
+		dev_err(&client->dev, "write fail: %d\n", ret);
+		return ret;
 	}
 
 	ad5280_client = client;
-	set_vcomm();
+
 	return 0;
 }
 
-static int ad5280_attach(struct i2c_adapter *adap)
+static int __devexit ad5280_remove(struct i2c_client *client)
 {
-	if (adap->algo->functionality)
-		return i2c_probe(adap, &addr_data, ad5280_probe);
-	else
-		return ad5280_probe(adap, CONFIG_LQ035_SLAVE_ADDR>>1, 0);
+	ad5280_client = NULL;
+	return 0;
 }
 
-static int ad5280_detach_client(struct i2c_client *client)
-{
-	int rc;
-	if ((rc = i2c_detach_client(client)) == 0)
-		kfree(i2c_get_clientdata(client));
-	return rc;
-}
+static const struct i2c_device_id ad5280_id[] = {
+	{"bf537-lq035-ad5280", 0},
+	{}
+};
 
+MODULE_DEVICE_TABLE(i2c, ad5280_id);
 
 static struct i2c_driver ad5280_driver = {
-	.id              = 0x65,
-	.attach_adapter  = ad5280_attach,
-	.detach_client   = ad5280_detach_client,
-	.driver		= {
-		.name	= ad5280_drv_name,
-		.owner	= THIS_MODULE,
-	},
+	.driver = {
+		   .name = "bf537-lq035-ad5280",
+		   },
+	.probe = ad5280_probe,
+	.remove = __devexit_p(ad5280_remove),
+	.id_table = ad5280_id,
 };
 
 #ifdef CONFIG_PNAV10
@@ -944,7 +924,6 @@ static struct platform_driver bfin_lq035_driver = {
 static int __init bfin_lq035_driver_init(void)
 {
 	request_module("i2c-bfin-twi");
-
 	return platform_driver_register(&bfin_lq035_driver);
 }
 module_init(bfin_lq035_driver_init);
