@@ -78,16 +78,16 @@ static int __devinit adp5520_keys_probe(struct platform_device *pdev)
 
 	if (pdev->id != ID_ADP5520) {
 		dev_err(&pdev->dev, "only ADP5520 supports Keypad\n");
-		return -EFAULT;
+		return -EINVAL;
 	}
 
 	if (pdata == NULL) {
 		dev_err(&pdev->dev, "missing platform data\n");
-		return -ENODEV;
+		return -EINVAL;
 	}
 
 	if (!(pdata->rows_en_mask && pdata->cols_en_mask))
-		return -ENODEV;
+		return -EINVAL;
 
 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
 	if (dev == NULL) {
@@ -115,7 +115,7 @@ static int __devinit adp5520_keys_probe(struct platform_device *pdev)
 	input->id.product = 0x5520;
 	input->id.version = 0x0001;
 
-	input->keycodesize = sizeof(unsigned short);
+	input->keycodesize = sizeof(dev->keycode[0]);
 	input->keycodemax = pdata->keymapsize;
 	input->keycode = dev->keycode;
 
@@ -129,13 +129,12 @@ static int __devinit adp5520_keys_probe(struct platform_device *pdev)
 		__set_bit(EV_REP, input->evbit);
 
 	for (i = 0; i < input->keycodemax; i++)
-		__set_bit(dev->keycode[i] & KEY_MAX, input->keybit);
+		__set_bit(dev->keycode[i], input->keybit);
 	__clear_bit(KEY_RESERVED, input->keybit);
 
 	ret = input_register_device(input);
 	if (ret) {
 		dev_err(&pdev->dev, "unable to register input device\n");
-		input_free_device(input);
 		goto err;
 	}
 
@@ -158,6 +157,7 @@ static int __devinit adp5520_keys_probe(struct platform_device *pdev)
 
 	if (ret) {
 		dev_err(&pdev->dev, "failed to write\n");
+		ret = -EIO;
 		goto err1;
 	}
 
@@ -174,15 +174,16 @@ static int __devinit adp5520_keys_probe(struct platform_device *pdev)
 
 err1:
 	input_unregister_device(input);
+	input = NULL;
 err:
+	input_free_device(input);
 	kfree(dev);
 	return ret;
 }
 
 static int __devexit adp5520_keys_remove(struct platform_device *pdev)
 {
-	struct adp5520_keys *dev;
-	dev = platform_get_drvdata(pdev);
+	struct adp5520_keys *dev = platform_get_drvdata(pdev);
 
 	adp5520_unregister_notifier(dev->master, &dev->notifier,
 				KP_IEN | KR_IEN);
