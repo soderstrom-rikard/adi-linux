@@ -1118,33 +1118,42 @@ static void bfin_spi_pump_messages(struct work_struct *work)
  */
 static int bfin_spi_lock_bus(struct spi_device *spi)
 {
+	int ret = -ENOSYS;
 #ifdef CONFIG_SPI_BFIN_LOCK
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
 	struct chip_data *chip = spi_get_ctldata(spi);
 	unsigned long flags;
 
 	spin_lock_irqsave(&drv_data->lock, flags);
-	if (drv_data->locked) {
-		spin_unlock_irqrestore(&drv_data->lock, flags);
-		return -ENOLCK;
-	}
-	drv_data->locked = spi->chip_select ? spi->chip_select : chip->cs_gpio;
+	if (!drv_data->locked) {
+		drv_data->locked = spi->chip_select ?
+			spi->chip_select : chip->cs_gpio;
+		ret = 0;
+	} else
+		ret = -ENOLCK;
 	spin_unlock_irqrestore(&drv_data->lock, flags);
 #endif
-	return 0;
+	return ret;
 }
 
 static int bfin_spi_unlock_bus(struct spi_device *spi)
 {
+	int ret = -ENOSYS;
 #ifdef CONFIG_SPI_BFIN_LOCK
 	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
+	struct chip_data *chip = spi_get_ctldata(spi);
 	unsigned long flags;
+	int cs = spi->chip_select ? spi->chip_select : chip->cs_gpio;
 
 	spin_lock_irqsave(&drv_data->lock, flags);
-	drv_data->locked = 0;
+	if (cs == drv_data->locked) {
+		drv_data->locked = 0;
+		ret = 0;
+	} else
+		ret = -ENOLCK;
 	spin_unlock_irqrestore(&drv_data->lock, flags);
 #endif
-	return 0;
+	return ret;
 }
 
 /*

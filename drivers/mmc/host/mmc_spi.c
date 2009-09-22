@@ -1084,7 +1084,11 @@ static void mmc_spi_request(struct mmc_host *mmc, struct mmc_request *mrq)
 #endif
 
 	/* issue command; then optionally data and stop */
-	spi_lock_bus(host->spi);
+	status = spi_lock_bus(host->spi);
+	if (status == -ENOLCK) {
+		dev_err(&host->spi->dev, "failed to lock spi bus\n");
+		return;
+	}
 	status = mmc_spi_command_send(host, mrq, mrq->cmd, mrq->data != NULL);
 	if (status == 0 && mrq->data) {
 		mmc_spi_data_do(host, mrq->cmd, mrq->data, mrq->data->blksz);
@@ -1093,7 +1097,11 @@ static void mmc_spi_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		else
 			mmc_cs_off(host);
 	}
-	spi_unlock_bus(host->spi);
+	status = spi_unlock_bus(host->spi);
+	if (status == -ENOLCK) {
+		dev_err(&host->spi->dev, "failed to unlock spi bus\n");
+		return;
+	}
 	mmc_request_done(host->mmc, mrq);
 }
 
@@ -1336,6 +1344,41 @@ static int mmc_spi_probe(struct spi_device *spi)
 				spi->mode, spi->max_speed_hz / 1000,
 				status);
 		return status;
+	}
+
+	/* We can use the bus safely if nobody else will interfere with us.
+	 * Most commands consist of one SPI message to issue a command, then
+	 * several more to collect its response, then possibly more for data
+	 * transfer.  Clocking access to other devices during that period will
+	 * corrupt the command execution.
+	 *
+	 * spi_lock_bus() is used to guarantee exclusive access to spi bus. For
+	 * system without spi_lock_bus(), if mmc_spi is the only registered spi
+	 * device, we use spi bus based on the unsafe assumption that no other
+	 * spi devices will be added later.
+	 */
+
+	if (spi->master->num_chipselect > 1) {
+		struct count_children cc;
+
+		/* Test if spi master implementes spi_lock_bus() */
+		status = spi_lock_bus(spi);
+		spi_unlock_bus(spi);
+		if (status == -ENOSYS) {
+			/* No. Am I the only spi device registered? */
+			cc.n = 0;
+			cc.bus = spi->dev.bus;
+			status = device_for_each_child(spi->dev.parent, &cc,
+					maybe_count_child);
+			if (status < 0) {
+				dev_err(&spi->dev, "can't share SPI bus\n");
+				return status;
+			}
+			/* REVISIT we can't guarantee another device
+			 * won't be added later... */
+			dev_warn(&spi->dev,
+				"ASSUMING SPI bus stays unshared!\n");
+		}
 	}
 
 	/* We need a supply of ones to transmit.  This is the only time

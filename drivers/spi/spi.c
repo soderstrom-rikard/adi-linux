@@ -666,14 +666,16 @@ static void spi_complete(void *arg)
  * So this call may be used in irq and other contexts which can't sleep,
  * as well as from task contexts which can sleep.
  *
- * It returns zero on success, else a negative error code.
+ * It returns zero on success, else a negative error code:
+ * 	-ENOSYS: spi master driver does not implement this function
+ * 	-ENOLCK: cannot lock the bus
  */
 int spi_lock_bus(struct spi_device *spi)
 {
 	if (spi->master->lock_bus)
 		return spi->master->lock_bus(spi);
 	else
-		return 0;
+		return -ENOSYS;
 }
 EXPORT_SYMBOL_GPL(spi_lock_bus);
 
@@ -687,16 +689,18 @@ EXPORT_SYMBOL_GPL(spi_lock_bus);
  * can be transferred.
  *
  * If the caller did not call spi_lock_bus() before, spi_unlock_bus()
- * should have no effect.
+ * will return -ENOLCK.
  *
- * It returns zero on success, else a negative error code.
+ * It returns zero on success, else a negative error code:
+ * 	-ENOSYS: spi master driver does not implement this function
+ *	-ENOLCK: cannot unlock the bus
  */
 int spi_unlock_bus(struct spi_device *spi)
 {
 	if (spi->master->unlock_bus)
 		return spi->master->unlock_bus(spi);
 	else
-		return 0;
+		return -ENOSYS;
 }
 EXPORT_SYMBOL_GPL(spi_unlock_bus);
 
