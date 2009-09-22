@@ -1332,7 +1332,7 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 #endif
 
 	if (port == -1 || port >= nr_ports)
-		return -ENODEV;
+		return NULL;
 	if (bfin_serial_init_ports())
 		return NULL;
 
