@@ -188,7 +188,7 @@ out:
 	enable_irq(chip->client->irq);
 }
 
-static int adp5520_irq_handler(int irq, void *data)
+static irqreturn_t adp5520_irq_handler(int irq, void *data)
 {
 	struct adp5520_chip *chip = data;
 
