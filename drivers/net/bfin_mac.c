@@ -36,6 +36,7 @@
 #include <asm/blackfin.h>
 #include <asm/cacheflush.h>
 #include <asm/portmux.h>
+#include <asm/cdef_misc.h>
 
 #include "bfin_mac.h"
 
