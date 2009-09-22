@@ -770,25 +770,25 @@ static int __devexit bfin_adv7393_fb_remove(struct i2c_client *client)
 }
 
 #ifdef CONFIG_PM
-static int bfin_adv7393_fb_suspend(struct i2c_client *client, pm_message_t state)
+static int bfin_adv7393_fb_suspend(struct device *dev)
 {
-	struct adv7393fb_device *fbdev = i2c_get_clientdata(client);
+	struct adv7393fb_device *fbdev = dev_get_drvdata(dev);
 
 	if (fbdev->open) {
 		bfin_disable_dma();
 		bfin_disable_ppi();
 		dma_desc_list(fbdev, DESTRUCT);
 	}
-	adv7393_mode(client, POWER_DOWN);
+	adv7393_mode(fbdev->client, POWER_DOWN);
 
 	return 0;
 }
 
-static int bfin_adv7393_fb_resume(struct i2c_client *client)
+static int bfin_adv7393_fb_resume(struct device *dev)
 {
-	struct adv7393fb_device *fbdev = i2c_get_clientdata(client);
+	struct adv7393fb_device *fbdev = dev_get_drvdata(dev);
 
-	adv7393_mode(client, POWER_ON);
+	adv7393_mode(fbdev->client, POWER_ON);
 
 	if (fbdev->open) {
 		dma_desc_list(fbdev, BUILD);
