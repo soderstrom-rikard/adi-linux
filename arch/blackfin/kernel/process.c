@@ -367,6 +367,7 @@ int in_mem_const(unsigned long addr, unsigned long size,
 int bfin_mem_access_type(unsigned long addr, unsigned long size)
 {
 	int cpu = raw_smp_processor_id();
+	int async_type;
 
 	/* Check that things do not wrap around */
 	if (addr > ULONG_MAX - size)
@@ -401,7 +402,45 @@ int bfin_mem_access_type(unsigned long addr, unsigned long size)
 
 	/* We can't read EBIU banks that aren't enabled or we end up hanging
 	 * on the access to the async space.
+	 * For accesses that cross async banks, keep track of the type and
+	 * return -EFAULT if we have different ones.
 	 */
+	async_type = -1;
+	if (addr >= ASYNC_BANK0_BASE && addr < ASYNC_BANK0_BASE + ASYNC_BANK0_SIZE) {
+		async_type = IN_ASYNC(0, 0);
+		if (addr + size <= ASYNC_BANK0_BASE + ASYNC_BANK0_SIZE)
+			return async_type;
+		size -= ASYNC_BANK0_BASE + ASYNC_BANK0_SIZE - addr;
+		addr = ASYNC_BANK0_BASE + ASYNC_BANK0_SIZE;
+	}
+	if (addr >= ASYNC_BANK1_BASE && addr < ASYNC_BANK1_BASE + ASYNC_BANK1_SIZE) {
+		int t = IN_ASYNC(1, 0);
+		if (t != async_type && async_type != -1)
+			return -EFAULT;
+		async_type = t;
+		if (addr + size <= ASYNC_BANK1_BASE + ASYNC_BANK1_SIZE)
+			return t;
+		size -= ASYNC_BANK1_BASE + ASYNC_BANK1_SIZE - addr;
+		addr = ASYNC_BANK1_BASE + ASYNC_BANK1_SIZE;
+	}
+	if (addr >= ASYNC_BANK2_BASE && addr < ASYNC_BANK2_BASE + ASYNC_BANK2_SIZE) {
+		int t = IN_ASYNC(2, 1);
+		if (t != async_type && async_type != -1)
+			return -EFAULT;
+		async_type = t;
+		if (addr + size <= ASYNC_BANK2_BASE + ASYNC_BANK2_SIZE)
+			return t;
+		size -= ASYNC_BANK2_BASE + ASYNC_BANK2_SIZE - addr;
+		addr = ASYNC_BANK2_BASE + ASYNC_BANK2_SIZE;
+	}
+	if (addr >= ASYNC_BANK3_BASE && addr < ASYNC_BANK3_BASE + ASYNC_BANK3_SIZE) {
+		int t = IN_ASYNC(2, 1);
+		if (t != async_type && async_type != -1)
+			return -EFAULT;
+		if (addr + size <= ASYNC_BANK3_BASE + ASYNC_BANK3_SIZE)
+			return t;
+		return -EFAULT;
+	}
 	if (in_mem_const(addr, size, ASYNC_BANK0_BASE, ASYNC_BANK0_SIZE))
 		return IN_ASYNC(0, 0);
 	if (in_mem_const(addr, size, ASYNC_BANK1_BASE, ASYNC_BANK1_SIZE))
@@ -479,14 +518,41 @@ int _access_ok(unsigned long addr, unsigned long size)
 	/* We can't read EBIU banks that aren't enabled or we end up hanging
 	 * on the access to the async space.
 	 */
-	if (in_mem_const(addr, size, ASYNC_BANK0_BASE, ASYNC_BANK0_SIZE))
-		return IN_ASYNC(0, 0) != -EFAULT;
-	if (in_mem_const(addr, size, ASYNC_BANK1_BASE, ASYNC_BANK1_SIZE))
-		return IN_ASYNC(1, 0) != -EFAULT;
-	if (in_mem_const(addr, size, ASYNC_BANK2_BASE, ASYNC_BANK2_SIZE))
-		return IN_ASYNC(2, 1) != -EFAULT;
-	if (in_mem_const(addr, size, ASYNC_BANK3_BASE, ASYNC_BANK3_SIZE))
-		return IN_ASYNC(3, 1) != -EFAULT;
+	if (addr >= ASYNC_BANK0_BASE && addr < ASYNC_BANK0_BASE + ASYNC_BANK0_SIZE) {
+		int t = IN_ASYNC(0, 0);
+		if (t != BFIN_MEM_ACCESS_CORE && t != BFIN_MEM_ACCESS_CORE_ONLY)
+			return 0;
+		if (addr + size <= ASYNC_BANK0_BASE + ASYNC_BANK0_SIZE)
+			return 1;
+		size -= ASYNC_BANK0_BASE + ASYNC_BANK0_SIZE - addr;
+		addr = ASYNC_BANK0_BASE + ASYNC_BANK0_SIZE;
+	}
+	if (addr >= ASYNC_BANK1_BASE && addr < ASYNC_BANK1_BASE + ASYNC_BANK1_SIZE) {
+		int t = IN_ASYNC(1, 0);
+		if (t != BFIN_MEM_ACCESS_CORE && t != BFIN_MEM_ACCESS_CORE_ONLY)
+			return 0;
+		if (addr + size <= ASYNC_BANK1_BASE + ASYNC_BANK1_SIZE)
+			return 1;
+		size -= ASYNC_BANK1_BASE + ASYNC_BANK1_SIZE - addr;
+		addr = ASYNC_BANK1_BASE + ASYNC_BANK1_SIZE;
+	}
+	if (addr >= ASYNC_BANK2_BASE && addr < ASYNC_BANK2_BASE + ASYNC_BANK2_SIZE) {
+		int t = IN_ASYNC(2, 1);
+		if (t != BFIN_MEM_ACCESS_CORE && t != BFIN_MEM_ACCESS_CORE_ONLY)
+			return 0;
+		if (addr + size <= ASYNC_BANK2_BASE + ASYNC_BANK2_SIZE)
+			return 1;
+		size -= ASYNC_BANK2_BASE + ASYNC_BANK2_SIZE - addr;
+		addr = ASYNC_BANK2_BASE + ASYNC_BANK2_SIZE;
+	}
+	if (addr >= ASYNC_BANK3_BASE && addr < ASYNC_BANK3_BASE + ASYNC_BANK3_SIZE) {
+		int t = IN_ASYNC(3, 1);
+		if (t != BFIN_MEM_ACCESS_CORE && t != BFIN_MEM_ACCESS_CORE_ONLY)
+			return 0;
+		if (addr + size <= ASYNC_BANK3_BASE + ASYNC_BANK3_SIZE)
+			return 1;
+		return 0;
+	}
 
 	if (in_mem_const_off(addr, size, _ebss_l2 - _stext_l2, L2_START, L2_LENGTH))
 		return 1;
