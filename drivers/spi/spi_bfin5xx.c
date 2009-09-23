@@ -43,9 +43,6 @@ MODULE_LICENSE("GPL");
 #define QUEUE_RUNNING	0
 #define QUEUE_STOPPED	1
 
-/* Value to send if no TX value is supplied */
-#define SPI_IDLE_TXVAL 0x0000
-
 struct driver_data {
 	/* Driver model hookup */
 	struct platform_device *pdev;
