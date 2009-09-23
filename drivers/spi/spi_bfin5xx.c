@@ -660,7 +660,6 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		"transfer: drv_data->write is %p, chip->write is %p\n",
 		drv_data->write, chip->write);
 
-	/* speed and width has been set on per message */
 	message->state = RUNNING_STATE;
 	dma_config = 0;
 
