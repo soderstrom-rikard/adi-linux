@@ -634,6 +634,9 @@ config FB_BF537_LQ035
 	  This is the framebuffer device for a SHARP LQ035Q7DB03 TFT LCD
 	  attached to a BF537.
 
+	  To compile this driver as a module, choose M here: the
+	  module will be called bf537-lq035.
+
 config FB_BFIN_7393
 	tristate "Blackfin ADV7393 Video encoder"
 	depends on FB && BLACKFIN
