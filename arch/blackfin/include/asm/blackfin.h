@@ -89,5 +89,6 @@ static inline void CSYNC(void)
 #include <asm/mem_map.h>
 #include <mach/blackfin.h>
 #include <asm/bfin-global.h>
+#include <asm/cdef_misc.h>
 
 #endif				/* _BLACKFIN_H_ */

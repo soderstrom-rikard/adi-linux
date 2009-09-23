@@ -46,7 +46,6 @@
 #include <asm/reboot.h>
 #include <asm/portmux.h>
 #include <asm/dpmc.h>
-#include <asm/cdef_misc.h>
 
 /*
  * Name the Board for the /proc/cpuinfo

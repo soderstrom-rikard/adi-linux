@@ -31,6 +31,7 @@
 #ifndef _CDEF_MISC_H
 #define _CDEF_MISC_H
 
+#ifndef __ASSEMBLY__
 #include <asm/irq.h>
 /* Writing to PLL_CTL initiates a PLL relock sequence. */
 static __inline__ void bfin_write_PLL_CTL(unsigned int val)
@@ -106,6 +107,7 @@ static __inline__ void bfin_write_VR_CTL(unsigned int val)
 	if (val == bfin_read_VR_CTL())
 		return;
 
+	local_irq_save_hw(flags);
 	/* Enable the PLL Wakeup bit in SIC IWR */
 #ifdef SIC_IWR0
 	iwr0 = bfin_read32(SIC_IWR0);
@@ -189,4 +191,5 @@ BFIN_READ_FIO_FLAG(T)
 
 #endif
 
+#endif
 #endif
