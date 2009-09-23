@@ -545,99 +545,7 @@ struct uart_ops sport_uart_ops = {
 
 #define BFIN_SPORT_UART_MAX_PORTS 4
 
-static struct sport_uart_port bfin_sport_uart_ports[BFIN_SPORT_UART_MAX_PORTS];
-
-static unsigned long bfin_sport_uart_console_base_addr[] = {
-#ifdef CONFIG_SERIAL_BFIN_SPORT0_UART
-		SPORT0_TCR1,
-#else
-		0,
-#endif
-#ifdef CONFIG_SERIAL_BFIN_SPORT1_UART
-		SPORT1_TCR1,
-#else
-		0,
-#endif
-#ifdef CONFIG_SERIAL_BFIN_SPORT2_UART
-		SPORT2_TCR1,
-#else
-		0,
-#endif
-#ifdef CONFIG_SERIAL_BFIN_SPORT3_UART
-		SPORT3_TCR1,
-#else
-		0,
-#endif
-};
-
-static int __init sport_uart_init_ports(void)
-{
-	static int first = 1;
-	int i, ret;
-
-	if (!first)
-		return 0;
-
-#ifdef CONFIG_SERIAL_BFIN_SPORT0_UART
-	ret = peripheral_request_list(bfin_uart_pin_req_sport0, DRV_NAME);
-	if (ret) {
-		pr_err("requesting SPORT0 peripherals failed\n");
-		goto err_out0;
-	}
-#endif
-#ifdef CONFIG_SERIAL_BFIN_SPORT1_UART
-	ret = peripheral_request_list(bfin_uart_pin_req_sport1, DRV_NAME);
-	if (ret) {
-		pr_err("requesting SPORT1 peripherals failed\n");
-		goto err_out1;
-	}
-#endif
-#ifdef CONFIG_SERIAL_BFIN_SPORT2_UART
-	ret = peripheral_request_list(bfin_uart_pin_req_sport2, DRV_NAME);
-	if (ret) {
-		pr_err("requesting SPORT2 peripherals failed\n");
-		goto err_out2;
-	}
-#endif
-#ifdef CONFIG_SERIAL_BFIN_SPORT3_UART
-	ret = peripheral_request_list(bfin_uart_pin_req_sport3, DRV_NAME);
-	if (ret) {
-		pr_err("requesting SPORT3 peripherals failed\n");
-		goto err_out3;
-	}
-#endif
-	for (i = 0; i < BFIN_SPORT_UART_MAX_PORTS; i++) {
-		spin_lock_init(&bfin_sport_uart_ports[i].port.lock);
-		bfin_sport_uart_ports[i].port.fifosize  = SPORT_TX_FIFO_SIZE,
-		bfin_sport_uart_ports[i].port.ops       = &sport_uart_ops;
-		bfin_sport_uart_ports[i].port.line      = i;
-		bfin_sport_uart_ports[i].port.iotype    = UPIO_MEM;
-		bfin_sport_uart_ports[i].port.flags     = UPF_BOOT_AUTOCONF;
-		bfin_sport_uart_ports[i].port.membase   =
-			(void __iomem *)bfin_sport_uart_console_base_addr[i];
-	}
-
-	first = 0;
-
-	return 0;
-#ifdef CONFIG_SERIAL_BFIN_SPORT3_UART
-err_out3:
-#endif
-#ifdef CONFIG_SERIAL_BFIN_SPORT2_UART
-	peripheral_free_list(bfin_uart_pin_req_sport2);
-err_out2:
-#endif
-#ifdef CONFIG_SERIAL_BFIN_SPORT1_UART
-	peripheral_free_list(bfin_uart_pin_req_sport1);
-err_out1:
-#endif
-#ifdef CONFIG_SERIAL_BFIN_SPORT0_UART
-	peripheral_free_list(bfin_uart_pin_req_sport0);
-err_out0:
-#endif
-
-	return ret;
-}
+static struct sport_uart_port *bfin_sport_uart_ports[BFIN_SPORT_UART_MAX_PORTS];
 
 #ifdef CONFIG_SERIAL_BFIN_SPORT_CONSOLE
 static int __init
@@ -650,10 +558,12 @@ sport_uart_console_setup(struct console *co, char *options)
 	int flow = 'n';
 
 	/* Check whether an invalid uart number has been specified */
-	if (co->index == -1 || co->index >= BFIN_SPORT_UART_MAX_PORTS)
+	if (co->index < 0 || co->index >= BFIN_SPORT_UART_MAX_PORTS)
 		return -ENODEV;
 
-	up = &bfin_sport_uart_ports[co->index];
+	up = bfin_sport_uart_ports[co->index];
+	if (!up)
+		return -ENODEV;
 
 	if (options)
 		uart_parse_options(options, &baud, &parity, &bits, &flow);
@@ -677,7 +587,7 @@ static void sport_uart_console_putchar(struct uart_port *port, int ch)
 static void
 sport_uart_console_write(struct console *co, const char *s, unsigned int count)
 {
-	struct sport_uart_port *up = &bfin_sport_uart_ports[co->index];
+	struct sport_uart_port *up = bfin_sport_uart_ports[co->index];
 	unsigned long flags;
 
 	spin_lock_irqsave(&up->port.lock, flags);
@@ -726,22 +636,10 @@ static struct console sport_uart_console = {
 	.data		= &sport_uart_reg,
 };
 
-static int __init sport_uart_rs_console_init(void)
-{
-	int ret = sport_uart_init_ports();
-	if (ret)
-		return ret;
-
-	register_console(&sport_uart_console);
-
-	return 0;
-}
-console_initcall(sport_uart_rs_console_init);
-
 #define SPORT_UART_CONSOLE	(&sport_uart_console)
 #else
 #define SPORT_UART_CONSOLE	NULL
-#endif /* CONFIG_SERIAL_BFIN_CONSOLE */
+#endif /* CONFIG_SERIAL_BFIN_SPORT_CONSOLE */
 
 
 static struct uart_driver sport_uart_reg = {
@@ -788,55 +686,92 @@ static int __devinit sport_uart_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct sport_uart_port *sport;
 	int ret = 0;
-	int index;
 
 	dev_dbg(&pdev->dev, "%s enter\n", __func__);
 
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (res == NULL) {
-		dev_err(&pdev->dev, "Cannot get IORESOURCE_MEM\n");
+	if (pdev->id < 0 || pdev->id >= BFIN_SPORT_UART_MAX_PORTS) {
+		dev_err(&pdev->dev, "Wrong sport uart platform device id.\n");
 		return -ENOENT;
 	}
 
-	for (index = 0; index < BFIN_SPORT_UART_MAX_PORTS; index++)
-		if (res->start == bfin_sport_uart_console_base_addr[index])
-			break;
+	if (bfin_sport_uart_ports[pdev->id] == NULL) {
+		bfin_sport_uart_ports[pdev->id] =
+			kmalloc(sizeof(struct sport_uart_port), GFP_KERNEL);
+		sport = bfin_sport_uart_ports[pdev->id];
+		if (!sport) {
+			dev_err(&pdev->dev,
+				"Fail to kmalloc sport_uart_port\n");
+			return -ENOMEM;
+		}
 
-	if (index == BFIN_SPORT_UART_MAX_PORTS) {
-		dev_err(&pdev->dev, "Wrong sport uart platform device\n");
-		return -ENOENT;
+		ret = peripheral_request_list(
+			(unsigned short *)pdev->dev.platform_data, DRV_NAME);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"Fail to request SPORT peripherals\n");
+			goto out_error_free_mem;
+		}
+
+		spin_lock_init(&sport->port.lock);
+		sport->port.fifosize  = SPORT_TX_FIFO_SIZE,
+		sport->port.ops       = &sport_uart_ops;
+		sport->port.line      = pdev->id;
+		sport->port.iotype    = UPIO_MEM;
+		sport->port.flags     = UPF_BOOT_AUTOCONF;
+
+		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+		if (res == NULL) {
+			dev_err(&pdev->dev, "Cannot get IORESOURCE_MEM\n");
+			ret = -ENOENT;
+			goto out_error_free_peripherals;
+		}
+
+		sport->port.membase = ioremap(res->start,
+			res->end - res->start);
+		if (!sport->port.membase) {
+			dev_err(&pdev->dev, "Cannot map sport IO\n");
+			ret = -ENXIO;
+			goto out_error_free_peripherals;
+		}
+
+		sport->port.irq = platform_get_irq(pdev, 0);
+		if (sport->port.irq < 0) {
+			dev_err(&pdev->dev, "No sport RX/TX IRQ specified\n");
+			ret = -ENOENT;
+			goto out_error_unmap;
+		}
+
+		sport->err_irq = platform_get_irq(pdev, 1);
+		if (sport->err_irq < 0) {
+			dev_err(&pdev->dev, "No sport status IRQ specified\n");
+			ret = -ENOENT;
+			goto out_error_unmap;
+		}
 	}
 
-	sport = &bfin_sport_uart_ports[index];
-
-	sport->port.membase = ioremap(res->start, res->end - res->start);
-	if (!sport->port.membase) {
-		dev_err(&pdev->dev, "Cannot map sport IO\n");
-		return -ENXIO;
+#ifdef CONFIG_SERIAL_BFIN_SPORT_CONSOLE
+	if (!is_early_platform_device(pdev)) {
+#endif
+		sport = bfin_sport_uart_ports[pdev->id];
+		sport->port.dev = &pdev->dev;
+		dev_set_drvdata(&pdev->dev, sport);
+		ret = uart_add_one_port(&sport_uart_reg, &sport->port);
+#ifdef CONFIG_SERIAL_BFIN_SPORT_CONSOLE
 	}
-
-	sport->port.irq = platform_get_irq(pdev, 0);
-	if (sport->port.irq < 0) {
-		dev_err(&pdev->dev, "No sport RX/TX IRQ specified\n");
-		ret = -ENOENT;
-		goto out_error;
-	}
-
-	sport->err_irq = platform_get_irq(pdev, 1);
-	if (sport->err_irq < 0) {
-		dev_err(&pdev->dev, "No sport status IRQ specified\n");
-		ret = -ENOENT;
-		goto out_error;
-	}
-
-	sport->port.dev = &pdev->dev;
-	dev_set_drvdata(&pdev->dev, sport);
-	ret = uart_add_one_port(&sport_uart_reg, &sport->port);
+#endif
 	if (!ret)
 		return 0;
 
-out_error:
-	iounmap(sport->port.membase);
+	if (sport) {
+out_error_unmap:
+		iounmap(sport->port.membase);
+out_error_free_peripherals:
+		peripheral_free_list(
+			(unsigned short *)pdev->dev.platform_data);
+out_error_free_mem:
+		kfree(sport);
+		bfin_sport_uart_ports[pdev->id] = NULL;
+	}
 
 	return ret;
 }
@@ -848,10 +783,14 @@ static int __devexit sport_uart_remove(struct platform_device *pdev)
 	dev_dbg(&pdev->dev, "%s enter\n", __func__);
 	dev_set_drvdata(&pdev->dev, NULL);
 
-	if (sport)
+	if (sport) {
 		uart_remove_one_port(&sport_uart_reg, &sport->port);
-
-	iounmap(sport->port.membase);
+		iounmap(sport->port.membase);
+		peripheral_free_list(
+			(unsigned short *)pdev->dev.platform_data);
+		kfree(sport);
+		bfin_sport_uart_ports[pdev->id] = NULL;
+	}
 
 	return 0;
 }
@@ -867,15 +806,31 @@ static struct platform_driver sport_uart_driver = {
 	},
 };
 
+#ifdef CONFIG_SERIAL_BFIN_SPORT_CONSOLE
+static __initdata struct early_platform_driver early_sport_uart_driver = {
+	.class_str = DRV_NAME,
+	.pdrv = &sport_uart_driver,
+	.requested_id = EARLY_PLATFORM_ID_UNSET,
+};
+
+static int __init sport_uart_rs_console_init(void)
+{
+	early_platform_driver_register(&early_sport_uart_driver, DRV_NAME);
+
+	early_platform_driver_probe(DRV_NAME, BFIN_SPORT_UART_MAX_PORTS, 0);
+
+	register_console(&sport_uart_console);
+
+	return 0;
+}
+console_initcall(sport_uart_rs_console_init);
+#endif
+
 static int __init sport_uart_init(void)
 {
 	int ret;
 
 	pr_info("Serial: Blackfin uart over sport driver\n");
-
-	ret = sport_uart_init_ports();
-	if (ret)
-		return ret;
 
 	ret = uart_register_driver(&sport_uart_reg);
 	if (ret) {
@@ -898,19 +853,6 @@ static void __exit sport_uart_exit(void)
 {
 	platform_driver_unregister(&sport_uart_driver);
 	uart_unregister_driver(&sport_uart_reg);
-
-#ifdef CONFIG_SERIAL_BFIN_SPORT0_UART
-	peripheral_free_list(bfin_uart_pin_req_sport0);
-#endif
-#ifdef CONFIG_SERIAL_BFIN_SPORT1_UART
-	peripheral_free_list(bfin_uart_pin_req_sport1);
-#endif
-#ifdef CONFIG_SERIAL_BFIN_SPORT2_UART
-	peripheral_free_list(bfin_uart_pin_req_sport2);
-#endif
-#ifdef CONFIG_SERIAL_BFIN_SPORT3_UART
-	peripheral_free_list(bfin_uart_pin_req_sport3);
-#endif
 }
 module_exit(sport_uart_exit);
 
