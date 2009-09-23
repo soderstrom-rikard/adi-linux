@@ -1,7 +1,7 @@
 /*
  * Blackfin On-Chip OTP Memory Interface
  *
- * Copyright 2007-2008 Analog Devices Inc.
+ * Copyright 2007-2009 Analog Devices Inc.
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
@@ -171,8 +171,7 @@ static ssize_t bfin_otp_write(struct file *filp, const char __user *buff, size_t
 	return bytes_done;
 }
 
-static int bfin_otp_ioctl(struct inode *inode, struct file *filp,
-                          unsigned cmd, unsigned long arg)
+static long bfin_otp_ioctl(struct file *filp, unsigned cmd, unsigned long arg)
 {
 	stampit();
 
@@ -190,7 +189,7 @@ static int bfin_otp_ioctl(struct inode *inode, struct file *filp,
 		timing = bfin_otp_init_timing();
 		if (timing) {
 			u32 otp_result = bfrom_OtpWrite(arg, OTP_LOCK, NULL);
-			stamp("locking page %i resulted in 0x%x", arg, otp_result);
+			stamp("locking page %lu resulted in 0x%x", arg, otp_result);
 			if (!(otp_result & OTP_MASTER_ERROR))
 				ret = 0;
 
@@ -219,10 +218,10 @@ static int bfin_otp_ioctl(struct inode *inode, struct file *filp,
 #endif
 
 static struct file_operations bfin_otp_fops = {
-	.owner    = THIS_MODULE,
-	.ioctl    = bfin_otp_ioctl,
-	.read     = bfin_otp_read,
-	.write    = bfin_otp_write,
+	.owner          = THIS_MODULE,
+	.unlocked_ioctl = bfin_otp_ioctl,
+	.read           = bfin_otp_read,
+	.write          = bfin_otp_write,
 };
 
 static struct miscdevice bfin_otp_misc_device = {
