@@ -107,7 +107,7 @@
 #define ADP5020_MAX_BRIGHTNESS	0x7F
 
 #define FADE_VAL(in, out)	((0xF & (in)) | ((0xF & (out)) << 4))
-#define BL_CTRL_VAL(law, auto)	(((1 & (auto)) << 3)) | ((0x3 & (law)) << 4))
+#define BL_CTRL_VAL(law, auto)	(((1 & (auto)) << 3) | ((0x3 & (law)) << 4))
 #define ALS_CMPR_CFG_VAL(filt, l3_en)	(((0x7 & filt) << 5) | l3_en)
 
 /*
