@@ -47,11 +47,11 @@
 #include <asm/irq.h>
 #include <asm/gpio.h>
 
-#include <sound/driver.h>
 #include <sound/core.h>
-#include <sound/info.h>
-#include <sound/control.h>
 #include <sound/pcm.h>
+#include <sound/pcm_params.h>
+#include <sound/soc.h>
+#include <sound/soc-dapm.h>
 #include <sound/initval.h>
 
 #include "ad73322.h"
@@ -841,7 +841,7 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 #endif
 	}
 
-	card = snd_card_new(-1, NULL, THIS_MODULE, sizeof(struct snd_ad73322));
+	snd_card_create(-1, NULL, THIS_MODULE, sizeof(struct snd_ad73322), &card);
 	if (card == NULL)
 		return -ENOMEM;
 	ad73322 = card->private_data;
