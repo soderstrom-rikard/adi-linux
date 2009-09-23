@@ -475,6 +475,19 @@ int _access_ok(unsigned long addr, unsigned long size)
 	if (in_mem_const(addr, size, COREB_L1_DATA_B_START, COREB_L1_DATA_B_LENGTH))
 		return 1;
 #endif
+
+	/* We can't read EBIU banks that aren't enabled or we end up hanging
+	 * on the access to the async space.
+	 */
+	if (in_mem_const(addr, size, ASYNC_BANK0_BASE, ASYNC_BANK0_SIZE))
+		return IN_ASYNC(0, 0) != -EFAULT;
+	if (in_mem_const(addr, size, ASYNC_BANK1_BASE, ASYNC_BANK1_SIZE))
+		return IN_ASYNC(1, 0) != -EFAULT;
+	if (in_mem_const(addr, size, ASYNC_BANK2_BASE, ASYNC_BANK2_SIZE))
+		return IN_ASYNC(2, 1) != -EFAULT;
+	if (in_mem_const(addr, size, ASYNC_BANK3_BASE, ASYNC_BANK3_SIZE))
+		return IN_ASYNC(3, 1) != -EFAULT;
+
 	if (in_mem_const_off(addr, size, _ebss_l2 - _stext_l2, L2_START, L2_LENGTH))
 		return 1;
 
