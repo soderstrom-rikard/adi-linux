@@ -580,7 +580,7 @@ static void bfin_spi_pump_transfers(unsigned long data)
 			udelay(previous->delay_usecs);
 	}
 
-	/* Setup the transfer state based on the type of transfer */
+	/* Flush any existing transfers that may be sitting in the hardware */
 	if (bfin_spi_flush(drv_data) == 0) {
 		dev_err(&drv_data->pdev->dev, "pump_transfers: flush failed\n");
 		message->status = -EIO;
