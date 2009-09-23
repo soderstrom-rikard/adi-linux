@@ -114,7 +114,7 @@ static int adp5520_bl_setup(struct backlight_device *bl)
 	}
 
 	ret |= adp5520_write(master, BL_CONTROL,
-			BL_CTRL_VAL(pdata->fade_led_law, pdata->en_ambl_sens);
+			BL_CTRL_VAL(pdata->fade_led_law, pdata->en_ambl_sens));
 
 	ret |= adp5520_write(master, BL_FADE, FADE_VAL(pdata->fade_in,
 			pdata->fade_out));
