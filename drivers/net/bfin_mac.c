@@ -561,6 +561,259 @@ static int bfin_mac_set_mac_address(struct net_device *dev, void *p)
 	return 0;
 }
 
+#ifdef CONFIG_BFIN_MAC_USE_HWSTAMP
+static int bfin_mac_hwtstamp_ioctl(struct net_device *netdev,
+		struct ifreq *ifr, int cmd)
+{
+	struct hwtstamp_config config;
+	struct bfin_mac_local *lp = netdev_priv(netdev);
+	u16 ptpctl;
+	u32 ptpfv1, ptpfv2, ptpfv3, ptpfoff;
+
+	if (copy_from_user(&config, ifr->ifr_data, sizeof(config)))
+		return -EFAULT;
+
+	pr_debug("%s config flag:0x%x, tx_type:0x%x, rx_filter:0x%x\n",
+			__func__, config.flags, config.tx_type, config.rx_filter);
+
+	/* reserved for future extensions */
+	if (config.flags)
+		return -EINVAL;
+
+	if ((config.tx_type != HWTSTAMP_TX_OFF) &&
+			(config.tx_type != HWTSTAMP_TX_ON))
+		return -ERANGE;
+
+	ptpctl = bfin_read_EMAC_PTP_CTL();
+
+	switch (config.rx_filter) {
+	case HWTSTAMP_FILTER_NONE:
+		/*
+		 * Dont allow any timestamping
+		 */
+		ptpfv3 = 0xFFFFFFFF;
+		bfin_write_EMAC_PTP_FV3(ptpfv3);
+		break;
+	case HWTSTAMP_FILTER_PTP_V1_L4_EVENT:
+	case HWTSTAMP_FILTER_PTP_V1_L4_SYNC:
+	case HWTSTAMP_FILTER_PTP_V1_L4_DELAY_REQ:
+		/*
+		 * Clear the five comparison mask bits (bits[12:8]) in EMAC_PTP_CTL)
+		 * to enable all the field matches.
+		 */
+		ptpctl &= ~0x1F00;
+		bfin_write_EMAC_PTP_CTL(ptpctl);
+		/*
+		 * Keep the default values of the EMAC_PTP_FOFF register.
+		 */
+		ptpfoff = 0x4A24170C;
+		bfin_write_EMAC_PTP_FOFF(ptpfoff);
+		/*
+		 * Keep the default values of the EMAC_PTP_FV1 and EMAC_PTP_FV2
+		 * registers.
+		 */
+		ptpfv1 = 0x11040800;
+		bfin_write_EMAC_PTP_FV1(ptpfv1);
+		ptpfv2 = 0x0140013F;
+		bfin_write_EMAC_PTP_FV2(ptpfv2);
+		/*
+		 * The default value (0xFFFC) allows the timestamping of both
+		 * received Sync messages and Delay_Req messages.
+		 */
+		ptpfv3 = 0xFFFFFFFC;
+		bfin_write_EMAC_PTP_FV3(ptpfv3);
+
+		config.rx_filter = HWTSTAMP_FILTER_PTP_V1_L4_EVENT;
+		break;
+	case HWTSTAMP_FILTER_PTP_V2_L4_EVENT:
+	case HWTSTAMP_FILTER_PTP_V2_L4_SYNC:
+	case HWTSTAMP_FILTER_PTP_V2_DELAY_REQ:
+		/* Clear all five comparison mask bits (bits[12:8]) in the
+		 * EMAC_PTP_CTL register to enable all the field matches.
+		 */
+		ptpctl &= ~0x1F00;
+		bfin_write_EMAC_PTP_CTL(ptpctl);
+		/*
+		 * Keep the default values of the EMAC_PTP_FOFF register, except set
+		 * the PTPCOF field to 0x2A.
+		 */
+		ptpfoff = 0x2A24170C;
+		bfin_write_EMAC_PTP_FOFF(ptpfoff);
+		/*
+		 * Keep the default values of the EMAC_PTP_FV1 and EMAC_PTP_FV2
+		 * registers.
+		 */
+		ptpfv1 = 0x11040800;
+		bfin_write_EMAC_PTP_FV1(ptpfv1);
+		ptpfv2 = 0x0140013F;
+		bfin_write_EMAC_PTP_FV2(ptpfv2);
+		/*
+		 * To allow the timestamping of Pdelay_Req and Pdelay_Resp, set
+		 * the value to 0xFFF0.
+		 */
+		ptpfv3 = 0xFFFFFFF0;
+		bfin_write_EMAC_PTP_FV3(ptpfv3);
+
+		config.rx_filter = HWTSTAMP_FILTER_PTP_V2_L4_EVENT;
+		break;
+	case HWTSTAMP_FILTER_PTP_V2_L2_EVENT:
+	case HWTSTAMP_FILTER_PTP_V2_L2_SYNC:
+	case HWTSTAMP_FILTER_PTP_V2_L2_DELAY_REQ:
+		/*
+		 * Clear bits 8 and 12 of the EMAC_PTP_CTL register to enable only the
+		 * EFTM and PTPCM field comparison.
+		 */
+		ptpctl &= ~0x1100;
+		bfin_write_EMAC_PTP_CTL(ptpctl);
+		/*
+		 * Keep the default values of all the fields of the EMAC_PTP_FOFF
+		 * register, except set the PTPCOF field to 0x0E.
+		 */
+		ptpfoff = 0x0E24170C;
+		bfin_write_EMAC_PTP_FOFF(ptpfoff);
+		/*
+		 * Program bits [15:0] of the EMAC_PTP_FV1 register to 0x88F7, which
+		 * corresponds to PTP messages on the MAC layer.
+		 */
+		ptpfv1 = 0x110488F7;
+		bfin_write_EMAC_PTP_FV1(ptpfv1);
+		ptpfv2 = 0x0140013F;
+		bfin_write_EMAC_PTP_FV2(ptpfv2);
+		/*
+		 * To allow the timestamping of Pdelay_Req and Pdelay_Resp
+		 * messages, set the value to 0xFFF0.
+		 */
+		ptpfv3 = 0xFFFFFFF0;
+		bfin_write_EMAC_PTP_FV3(ptpfv3);
+
+		config.rx_filter = HWTSTAMP_FILTER_PTP_V2_L2_EVENT;
+		break;
+	default:
+		return -ERANGE;
+	}
+
+	if ((config.tx_type == HWTSTAMP_TX_OFF) &&
+			(config.rx_filter == HWTSTAMP_FILTER_NONE))
+		ptpctl &= ~PTP_EN;
+	else
+		ptpctl |= PTP_EN;
+	bfin_write_EMAC_PTP_CTL(ptpctl);
+
+	SSYNC();
+
+	pr_debug("%s PTP setting ptpctl:%x ptpfv1:%x ptpfv2:%x ptpfv3:%x ptpfoff:%x\n",
+			__func__, ptpctl, ptpfv1, ptpfv2, ptpfv3, ptpfoff);
+
+	lp->stamp_cfg = config;
+	return copy_to_user(ifr->ifr_data, &config, sizeof(config)) ?
+		-EFAULT : 0;
+}
+
+#ifdef DEBUG
+static void pr_dump_ptp_skb(char *str, struct sk_buff *skb)
+{
+	if ((skb->data[23] == 0x11) && (*(u16 *)(skb->data + 36) == 0x3F01)) {
+		pr_debug("%s dump\n", str);
+		pr_debug("MAC frame type:%02x%02x\n", skb->data[12], skb->data[13]);
+		pr_debug("IP version:%02x\n", skb->data[14]);
+		pr_debug("Layer 4 protocol:%02x\n", skb->data[23]);
+		pr_debug("UDP source port:%02x%02x\n", skb->data[34], skb->data[35]);
+		pr_debug("UDP destination port:%02x%02x\n", skb->data[36], skb->data[37]);
+		pr_debug("PTP control:%02x\n\n", skb->data[74]);
+	}
+}
+#else
+#define pr_dump_ptp_skb(p1, p2)
+#endif
+
+static void bfin_tx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
+{
+	struct bfin_mac_local *lp = netdev_priv(netdev);
+	union skb_shared_tx *shtx = skb_tx(skb);
+
+	if (shtx->hardware) {
+		int timeout_cnt = MAX_TIMEOUT_CNT;
+
+		pr_dump_ptp_skb("tx packet", skb);
+
+		/* When doing time stamping, keep the connection to the socket
+		 * a while longer
+		 */
+		shtx->in_progress = 1;
+
+		/*
+		 * The timestamping is done at the EMAC module's MII/RMII interface
+		 * when the module sees the Start of Frame of an event message packet. This
+		 * interface is the closest possible place to the physical Ethernet transmission
+		 * medium, providing the best timing accuracy.
+		 */
+		while ((!(bfin_read_EMAC_PTP_ISTAT() & TXTL)) && (--timeout_cnt))
+			udelay(1);
+		if (timeout_cnt == 0)
+			printk(KERN_ERR DRV_NAME
+					": fails to timestamp the TX packet\n");
+		else {
+			struct skb_shared_hwtstamps shhwtstamps;
+			u64 ns;
+			u64 regval;
+
+			regval = bfin_read_EMAC_PTP_TXSNAPLO();
+			regval |= (u64)bfin_read_EMAC_PTP_TXSNAPHI() << 32;
+			memset(&shhwtstamps, 0, sizeof(shhwtstamps));
+			ns = timecounter_cyc2time(&lp->clock,
+					regval);
+			timecompare_update(&lp->compare, ns);
+			shhwtstamps.hwtstamp = ns_to_ktime(ns);
+			shhwtstamps.syststamp =
+				timecompare_transform(&lp->compare, ns);
+			skb_tstamp_tx(skb, &shhwtstamps);
+
+			pr_debug("%s tx time counter:%016llx\n", __func__, regval);
+		}
+	}
+}
+
+static void bfin_rx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
+{
+	struct bfin_mac_local *lp = netdev_priv(netdev);
+
+	if (lp->stamp_cfg.rx_filter != HWTSTAMP_FILTER_NONE) {
+		u32 valid = bfin_read_EMAC_PTP_ISTAT() & RXEL;
+		if (valid) {
+			u64 regval;
+			u64 ns;
+			struct skb_shared_hwtstamps *shhwtstamps =
+				skb_hwtstamps(skb);
+
+			regval = bfin_read_EMAC_PTP_RXSNAPLO();
+			regval |= (u64)bfin_read_EMAC_PTP_RXSNAPHI() << 32;
+			ns = timecounter_cyc2time(&lp->clock, regval);
+			timecompare_update(&lp->compare, ns);
+			memset(shhwtstamps, 0, sizeof(*shhwtstamps));
+			shhwtstamps->hwtstamp = ns_to_ktime(ns);
+			shhwtstamps->syststamp =
+				timecompare_transform(&lp->compare, ns);
+
+			pr_debug("%s rx time counter:%016llx\n", __func__, regval);
+		}
+	}
+}
+
+/*
+ * bfin_read_clock - read raw cycle counter (to be used by time counter)
+ */
+static cycle_t bfin_read_clock(const struct cyclecounter *tc)
+{
+	u64 stamp;
+
+	stamp =  bfin_read_EMAC_PTP_TIMELO();
+	stamp |= (u64)bfin_read_EMAC_PTP_TIMEHI() << 32ULL;
+
+	return stamp;
+}
+
+#endif
+
 static void adjust_tx_list(void)
 {
 	int timeout_cnt = MAX_TIMEOUT_CNT;
@@ -618,18 +871,32 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 {
 	u16 *data;
 	u32 data_align = (unsigned long)(skb->data) & 0x3;
+	union skb_shared_tx *shtx = skb_tx(skb);
+
 	current_tx_ptr->skb = skb;
 
 	if (data_align == 0x2) {
 		/* move skb->data to current_tx_ptr payload */
 		data = (u16 *)(skb->data) - 1;
-				*data = (u16)(skb->len);
+		*data = (u16)(skb->len);
+		/*
+		 * When transmitting an Ethernet packet, the PTP_TSYNC module requires
+		 * a DMA_Length_Word field associated with the packet. The lower 12 bits
+		 * of this field are the length of the packet payload in bytes and the higher
+		 * 4 bits are the timestamping enable field.
+		 */
+		if (shtx->hardware)
+			*data |= 0x1000;
+
 		current_tx_ptr->desc_a.start_addr = (u32)data;
 		/* this is important! */
 		blackfin_dcache_flush_range((u32)data,
 				(u32)((u8 *)data + skb->len + 4));
 	} else {
 		*((u16 *)(current_tx_ptr->packet)) = (u16)(skb->len);
+		/* enable timestamping for the sent packet */
+		if (shtx->hardware)
+			*((u16 *)(current_tx_ptr->packet)) |= 0x1000;
 		memcpy((u8 *)(current_tx_ptr->packet + 2), skb->data,
 			skb->len);
 		current_tx_ptr->desc_a.start_addr =
@@ -663,20 +930,32 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 
 out:
 	adjust_tx_list();
+
+#ifdef CONFIG_BFIN_MAC_USE_HWSTAMP
+	bfin_tx_hwtstamp(dev, skb);
+#endif
+
 	current_tx_ptr = current_tx_ptr->next;
 	dev->trans_start = jiffies;
 	dev->stats.tx_packets++;
 	dev->stats.tx_bytes += (skb->len);
-	return 0;
+	return NETDEV_TX_OK;
 }
 
 static void bfin_mac_rx(struct net_device *dev)
 {
 	struct sk_buff *skb, *new_skb;
 	unsigned short len;
+	struct bfin_mac_local *lp = netdev_priv(dev);
 
 	/* allocate a new skb for next time receive */
 	skb = current_rx_ptr->skb;
+
+#if defined(CONFIG_BFIN_MAC_USE_HWSTAMP)
+	if (lp->stamp_cfg.rx_filter != HWTSTAMP_FILTER_NONE)
+		pr_dump_ptp_skb("rx packet", skb);
+#endif
+
 	new_skb = dev_alloc_skb(PKT_BUF_SZ + NET_IP_ALIGN);
 	if (!new_skb) {
 		printk(KERN_NOTICE DRV_NAME
@@ -701,6 +980,11 @@ static void bfin_mac_rx(struct net_device *dev)
 					 (unsigned long)skb->tail);
 
 	skb->protocol = eth_type_trans(skb, dev);
+
+#if defined(CONFIG_BFIN_MAC_USE_HWSTAMP)
+	bfin_rx_hwtstamp(dev, skb);
+#endif
+
 #if defined(BFIN_MAC_CSUM_OFFLOAD)
 	skb->csum = current_rx_ptr->status.ip_payload_csum;
 	skb->ip_summed = CHECKSUM_COMPLETE;
@@ -886,6 +1170,18 @@ static void bfin_mac_set_multicast_list(struct net_device *dev)
 	}
 }
 
+static int bfin_mac_ioctl(struct net_device *netdev, struct ifreq *ifr, int cmd)
+{
+	switch (cmd) {
+#ifdef CONFIG_BFIN_MAC_USE_HWSTAMP
+	case SIOCSHWTSTAMP:
+		return bfin_mac_hwtstamp_ioctl(netdev, ifr, cmd);
+#endif
+	default:
+		return -EOPNOTSUPP;
+	}
+}
+
 /*
  * this puts the device in an inactive state
  */
@@ -970,6 +1266,7 @@ static const struct net_device_ops bfin_mac_netdev_ops = {
 	.ndo_set_mac_address	= bfin_mac_set_mac_address,
 	.ndo_tx_timeout		= bfin_mac_timeout,
 	.ndo_set_multicast_list	= bfin_mac_set_multicast_list,
+	.ndo_do_ioctl           = bfin_mac_ioctl,
 	.ndo_validate_addr	= eth_validate_addr,
 	.ndo_change_mtu		= eth_change_mtu,
 #ifdef CONFIG_NET_POLL_CONTROLLER
@@ -1060,6 +1357,36 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Cannot register net device!\n");
 		goto out_err_reg_ndev;
 	}
+
+#if defined(CONFIG_BFIN_MAC_USE_HWSTAMP)
+	/*
+	 * Initialize hardware timer
+	 */
+	memset(&lp->cycles, 0, sizeof(lp->cycles));
+	lp->cycles.read = bfin_read_clock;
+	lp->cycles.mask = CLOCKSOURCE_MASK(64);
+	bfin_write_EMAC_PTP_ADDEND(0xA0000000); /* PTP freq = 50Mhz */
+	lp->cycles.mult = 20;
+	lp->cycles.shift = 0;
+	timecounter_init(&lp->clock,
+			&lp->cycles,
+			ktime_to_ns(ktime_get_real()));
+
+	/*
+	 * Synchronize our NIC clock against system wall clock
+	 */
+	memset(&lp->compare, 0, sizeof(lp->compare));
+	lp->compare.source = &lp->clock;
+	lp->compare.target = ktime_get_real;
+	lp->compare.num_samples = 10;
+	timecompare_update(&lp->compare, 0);
+
+	/*
+	 * Initialize hwstamp config
+	 */
+	lp->stamp_cfg.rx_filter = HWTSTAMP_FILTER_NONE;
+	lp->stamp_cfg.tx_type = HWTSTAMP_TX_OFF;
+#endif
 
 	/* now, print out the card info, in a short format.. */
 	dev_info(&pdev->dev, "%s, Version %s\n", DRV_DESC, DRV_VERSION);
