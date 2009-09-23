@@ -1610,7 +1610,7 @@ static struct resource bfin_sport0_uart_resources[] = {
 	},
 };
 
-unsigned short bfin_sport0_uart_info[] = {
+unsigned short bfin_sport0_peripherals[] = {
 	P_SPORT0_TFS, P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
 	P_SPORT0_DRPRI, P_SPORT0_RSCLK, P_SPORT0_DRSEC, P_SPORT0_DTSEC, 0
 };
@@ -1621,7 +1621,7 @@ static struct platform_device bfin_sport0_uart_device = {
 	.num_resources = ARRAY_SIZE(bfin_sport0_uart_resources),
 	.resource = bfin_sport0_uart_resources,
 	.dev = {
-		.platform_data = &bfin_sport0_uart_info, /* Passed to driver */
+		.platform_data = &bfin_sport0_peripherals, /* Passed to driver */
 	},
 };
 #endif
@@ -1644,7 +1644,7 @@ static struct resource bfin_sport1_uart_resources[] = {
 	},
 };
 
-unsigned short bfin_sport1_uart_info[] = {
+unsigned short bfin_sport1_peripherals[] = {
 	P_SPORT1_TFS, P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS,
 	P_SPORT1_DRPRI, P_SPORT1_RSCLK, P_SPORT1_DRSEC, P_SPORT1_DTSEC, 0
 };
@@ -1655,7 +1655,7 @@ static struct platform_device bfin_sport1_uart_device = {
 	.num_resources = ARRAY_SIZE(bfin_sport1_uart_resources),
 	.resource = bfin_sport1_uart_resources,
 	.dev = {
-		.platform_data = &bfin_sport1_uart_info, /* Passed to driver */
+		.platform_data = &bfin_sport1_peripherals, /* Passed to driver */
 	},
 };
 #endif
