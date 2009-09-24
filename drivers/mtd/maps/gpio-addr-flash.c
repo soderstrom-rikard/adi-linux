@@ -2,11 +2,11 @@
  * drivers/mtd/maps/gpio-addr-flash.c
  *
  * Handle the case where a flash device is mostly addressed using physical
- * line and supplemented by GPIOs.  This way you can hook up say a 8meg flash
- * to a 2meg memory range and use the GPIOs to select a particular range.
+ * line and supplemented by GPIOs.  This way you can hook up say a 8MiB flash
+ * to a 2MiB memory range and use the GPIOs to select a particular range.
  *
- * Copyright 2000 Nicolas Pitre <nico@cam.org>
- * Copyright 2005-2009 Analog Devices Inc.
+ * Copyright © 2000 Nicolas Pitre <nico@cam.org>
+ * Copyright © 2005-2009 Analog Devices Inc.
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
@@ -81,7 +81,7 @@ static void gf_set_gpios(struct async_state *state, unsigned long ofs)
 static map_word gf_read(struct map_info *map, unsigned long ofs)
 {
 	struct async_state *state = gf_map_info_to_state(map);
-	u16 word;
+	uint16_t word;
 	map_word test;
 
 	gf_set_gpios(state, ofs);
@@ -124,7 +124,7 @@ static void gf_copy_from(struct map_info *map, void *to, unsigned long from, ssi
 static void gf_write(struct map_info *map, map_word d1, unsigned long ofs)
 {
 	struct async_state *state = gf_map_info_to_state(map);
-	u16 d;
+	uint16_t d;
 
 	gf_set_gpios(state, ofs);
 
