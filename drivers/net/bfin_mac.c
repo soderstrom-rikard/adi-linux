@@ -562,6 +562,8 @@ static int bfin_mac_set_mac_address(struct net_device *dev, void *p)
 }
 
 #ifdef CONFIG_BFIN_MAC_USE_HWSTAMP
+#define bfin_mac_hwtstamp_is_none(cfg) ((cfg) == HWTSTAMP_FILTER_NONE)
+
 static int bfin_mac_hwtstamp_ioctl(struct net_device *netdev,
 		struct ifreq *ifr, int cmd)
 {
@@ -692,8 +694,8 @@ static int bfin_mac_hwtstamp_ioctl(struct net_device *netdev,
 		return -ERANGE;
 	}
 
-	if ((config.tx_type == HWTSTAMP_TX_OFF) &&
-			(config.rx_filter == HWTSTAMP_FILTER_NONE))
+	if (config.tx_type == HWTSTAMP_TX_OFF &&
+	    bfin_mac_hwtstamp_is_none(config.rx_filter))
 		ptpctl &= ~PTP_EN;
 	else
 		ptpctl |= PTP_EN;
@@ -708,23 +710,6 @@ static int bfin_mac_hwtstamp_ioctl(struct net_device *netdev,
 	return copy_to_user(ifr->ifr_data, &config, sizeof(config)) ?
 		-EFAULT : 0;
 }
-
-#ifdef DEBUG
-static void pr_dump_ptp_skb(char *str, struct sk_buff *skb)
-{
-	if ((skb->data[23] == 0x11) && (*(u16 *)(skb->data + 36) == 0x3F01)) {
-		pr_debug("%s dump\n", str);
-		pr_debug("MAC frame type:%02x%02x\n", skb->data[12], skb->data[13]);
-		pr_debug("IP version:%02x\n", skb->data[14]);
-		pr_debug("Layer 4 protocol:%02x\n", skb->data[23]);
-		pr_debug("UDP source port:%02x%02x\n", skb->data[34], skb->data[35]);
-		pr_debug("UDP destination port:%02x%02x\n", skb->data[36], skb->data[37]);
-		pr_debug("PTP control:%02x\n\n", skb->data[74]);
-	}
-}
-#else
-#define pr_dump_ptp_skb(p1, p2)
-#endif
 
 static void bfin_tx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
 {
@@ -776,27 +761,28 @@ static void bfin_tx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
 static void bfin_rx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
 {
 	struct bfin_mac_local *lp = netdev_priv(netdev);
+	u32 valid;
+	u64 regval, ns;
+	struct skb_shared_hwtstamps *shhwtstamps;
 
-	if (lp->stamp_cfg.rx_filter != HWTSTAMP_FILTER_NONE) {
-		u32 valid = bfin_read_EMAC_PTP_ISTAT() & RXEL;
-		if (valid) {
-			u64 regval;
-			u64 ns;
-			struct skb_shared_hwtstamps *shhwtstamps =
-				skb_hwtstamps(skb);
+	if (bfin_mac_hwtstamp_is_none(lp->stamp_cfg.rx_filter))
+		return;
 
-			regval = bfin_read_EMAC_PTP_RXSNAPLO();
-			regval |= (u64)bfin_read_EMAC_PTP_RXSNAPHI() << 32;
-			ns = timecounter_cyc2time(&lp->clock, regval);
-			timecompare_update(&lp->compare, ns);
-			memset(shhwtstamps, 0, sizeof(*shhwtstamps));
-			shhwtstamps->hwtstamp = ns_to_ktime(ns);
-			shhwtstamps->syststamp =
-				timecompare_transform(&lp->compare, ns);
+	valid = bfin_read_EMAC_PTP_ISTAT() & RXEL;
+	if (!valid)
+		return;
 
-			pr_debug("%s rx time counter:%016llx\n", __func__, regval);
-		}
-	}
+	shhwtstamps = skb_hwtstamps(skb);
+
+	regval = bfin_read_EMAC_PTP_RXSNAPLO();
+	regval |= (u64)bfin_read_EMAC_PTP_RXSNAPHI() << 32;
+	ns = timecounter_cyc2time(&lp->clock, regval);
+	timecompare_update(&lp->compare, ns);
+	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
+	shhwtstamps->hwtstamp = ns_to_ktime(ns);
+	shhwtstamps->syststamp = timecompare_transform(&lp->compare, ns);
+
+	pr_debug("%s rx time counter: %016llx\n", __func__, regval);
 }
 
 /*
@@ -811,8 +797,25 @@ static cycle_t bfin_read_clock(const struct cyclecounter *tc)
 
 	return stamp;
 }
-
+#else
+# define bfin_mac_hwtstamp_is_none(cfg) 0
+# define bfin_mac_hwtstamp_ioctl(netdev, ifr, cmd) (-EOPNOTSUPP)
+# define bfin_rx_hwtstamp(dev, skb)
+# define bfin_tx_hwtstamp(dev, skb)
 #endif
+
+static void pr_dump_ptp_skb(char *str, struct sk_buff *skb)
+{
+	if ((skb->data[23] == 0x11) && (*(u16 *)(skb->data + 36) == 0x3F01)) {
+		pr_debug("%s dump\n", str);
+		pr_debug("MAC frame type:%02x%02x\n", skb->data[12], skb->data[13]);
+		pr_debug("IP version:%02x\n", skb->data[14]);
+		pr_debug("Layer 4 protocol:%02x\n", skb->data[23]);
+		pr_debug("UDP source port:%02x%02x\n", skb->data[34], skb->data[35]);
+		pr_debug("UDP destination port:%02x%02x\n", skb->data[36], skb->data[37]);
+		pr_debug("PTP control:%02x\n\n", skb->data[74]);
+	}
+}
 
 static void adjust_tx_list(void)
 {
@@ -931,9 +934,7 @@ static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
 out:
 	adjust_tx_list();
 
-#ifdef CONFIG_BFIN_MAC_USE_HWSTAMP
 	bfin_tx_hwtstamp(dev, skb);
-#endif
 
 	current_tx_ptr = current_tx_ptr->next;
 	dev->trans_start = jiffies;
@@ -946,15 +947,13 @@ static void bfin_mac_rx(struct net_device *dev)
 {
 	struct sk_buff *skb, *new_skb;
 	unsigned short len;
-	struct bfin_mac_local *lp = netdev_priv(dev);
+	struct bfin_mac_local *lp __maybe_unused = netdev_priv(dev);
 
 	/* allocate a new skb for next time receive */
 	skb = current_rx_ptr->skb;
 
-#if defined(CONFIG_BFIN_MAC_USE_HWSTAMP)
-	if (lp->stamp_cfg.rx_filter != HWTSTAMP_FILTER_NONE)
+	if (!bfin_mac_hwtstamp_is_none(lp->stamp_cfg.rx_filter))
 		pr_dump_ptp_skb("rx packet", skb);
-#endif
 
 	new_skb = dev_alloc_skb(PKT_BUF_SZ + NET_IP_ALIGN);
 	if (!new_skb) {
@@ -981,9 +980,7 @@ static void bfin_mac_rx(struct net_device *dev)
 
 	skb->protocol = eth_type_trans(skb, dev);
 
-#if defined(CONFIG_BFIN_MAC_USE_HWSTAMP)
 	bfin_rx_hwtstamp(dev, skb);
-#endif
 
 #if defined(BFIN_MAC_CSUM_OFFLOAD)
 	skb->csum = current_rx_ptr->status.ip_payload_csum;
@@ -1173,10 +1170,8 @@ static void bfin_mac_set_multicast_list(struct net_device *dev)
 static int bfin_mac_ioctl(struct net_device *netdev, struct ifreq *ifr, int cmd)
 {
 	switch (cmd) {
-#ifdef CONFIG_BFIN_MAC_USE_HWSTAMP
 	case SIOCSHWTSTAMP:
 		return bfin_mac_hwtstamp_ioctl(netdev, ifr, cmd);
-#endif
 	default:
 		return -EOPNOTSUPP;
 	}
