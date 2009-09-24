@@ -4,8 +4,6 @@
  * Licensed under the GPL-2 or later
  */
 
- */
-
 #define pr_fmt(fmt) "module %s: " fmt
 
 #include <linux/moduleloader.h>
