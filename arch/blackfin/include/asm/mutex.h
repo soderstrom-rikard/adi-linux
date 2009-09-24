@@ -1,6 +1,10 @@
 /*
  * Pull in the generic implementation for the mutex fastpath.
  *
+ * Copyright 2006-2009 Analog Devices Inc.
+ *
+ * Licensed under the GPL-2 or later.
+ *
  * TODO: implement optimized primitives instead, or leave the generic
  * implementation in place, or pick the atomic_xchg() based generic
  * implementation. (see asm-generic/mutex-xchg.h for details)

@@ -1,4 +1,9 @@
-#ifndef _MACH_BF561_SMP
+/*
+ * Copyright 2007-2008 Analog Devices Inc.
+ *
+ * Licensed under the GPL-2 or later.
+ */
+
 #define _MACH_BF561_SMP
 
 struct task_struct;

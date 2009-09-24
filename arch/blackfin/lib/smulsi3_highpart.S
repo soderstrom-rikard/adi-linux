@@ -1,3 +1,9 @@
+/*
+ * Copyright 2007 Analog Devices Inc.
+ *
+ * Licensed under the ADI BSD license
+ */
+
 .align 2
 .global ___smulsi3_highpart;
 .type ___smulsi3_highpart, STT_FUNC;

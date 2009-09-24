@@ -1,24 +1,9 @@
 /*
- * File:         include/asm-blackfin/early_printk.h
- * Author:       Robin Getz <rgetz@blackfin.uclinux.org
+ * Copyright 2007-2009 Analog Devices Inc.
  *
- * Created:      14Aug2007
- * Description:  function prototpyes for early printk
+ * Licensed under the GPL-2 or later.
  *
- * Modified:
- *               Copyright 2004-2007 Analog Devices Inc.
- *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * function prototpyes for early printk
  */
 
 

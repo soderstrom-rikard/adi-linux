@@ -1,3 +1,9 @@
+/*
+ * Copyright 2008 Analog Devices Inc.
+ *
+ * Licensed under the ADI BSD license
+ */
+
 .align 2
 .global ___muldi3;
 .type ___muldi3, STT_FUNC;
