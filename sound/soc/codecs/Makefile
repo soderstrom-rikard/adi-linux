@@ -36,6 +36,7 @@ snd-soc-wm9081-objs := wm9081.o
 snd-soc-wm9705-objs := wm9705.o
 snd-soc-wm9712-objs := wm9712.o
 snd-soc-wm9713-objs := wm9713.o
+snd-soc-adau1371-objs := adau1371.o
 
 obj-$(CONFIG_SND_SOC_AC97_CODEC)	+= snd-soc-ac97.o
 obj-$(CONFIG_SND_SOC_AD1836)	+= snd-soc-ad1836.o
@@ -75,3 +76,4 @@ obj-$(CONFIG_SND_SOC_WM9081)	+= snd-soc-wm9081.o
 obj-$(CONFIG_SND_SOC_WM9705)	+= snd-soc-wm9705.o
 obj-$(CONFIG_SND_SOC_WM9712)	+= snd-soc-wm9712.o
 obj-$(CONFIG_SND_SOC_WM9713)	+= snd-soc-wm9713.o
+obj-$(CONFIG_SND_SOC_ADAU1371)	+= snd-soc-adau1371.o
