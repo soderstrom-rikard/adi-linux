@@ -29,7 +29,7 @@
 #include <asm/cacheflush.h>
 
 #define DRV_NAME	"bfin-sport-spi"
-#define DRV_DESC	"Blackfin SPORT emulated SPI Driver"
+#define DRV_DESC	"Emulate a SPI bus with via Blackfin SPORT"
 
 MODULE_AUTHOR("Cliff Cai");
 MODULE_DESCRIPTION(DRV_DESC);
@@ -41,7 +41,15 @@ MODULE_ALIAS("platform:bfin-sport-spi");
 #define DONE_STATE	((void *)2)
 #define ERROR_STATE	((void *)-1)
 
-struct driver_data {
+struct master_data;
+
+struct transfer_ops {
+	void (*write) (struct master_data *);
+	void (*read) (struct master_data *);
+	void (*duplex) (struct master_data *);
+};
+
+struct master_data {
 	/* Driver model hookup */
 	struct platform_device *pdev;
 
@@ -76,7 +84,7 @@ struct driver_data {
 	/* Current message transfer state info */
 	struct spi_message *cur_msg;
 	struct spi_transfer *cur_transfer;
-	struct chip_data *cur_chip;
+	struct slave_data *cur_chip;
 	size_t len_in_bytes;
 	size_t len;
 	void *tx;
@@ -88,18 +96,15 @@ struct driver_data {
 	size_t tx_map_len;
 	u8 n_bytes;
 	int cs_change;
-	void (*write) (struct driver_data *);
-	void (*read) (struct driver_data *);
-	void (*duplex) (struct driver_data *);
+	struct transfer_ops *ops;
 };
 
-struct chip_data {
+struct slave_data {
 	u8 chip_select_num;
 	u8 n_bytes;
 	u8 width;		/* 0 or 1 */
 	u8 enable_dma;
 	u8 bits_per_word;	/* 8 or 16 */
-	u8 cs_change_per_word;
 	u16 cs_chg_udelay;	/* Some devices require > 255usec delay */
 	u16 ctl_reg;
 	u16 baud;
@@ -107,16 +112,13 @@ struct chip_data {
 	u16 idle_tx_val;
 	u32 cs_gpio;
 	u32 speed;
-
-	void (*write) (struct driver_data *);
-	void (*read) (struct driver_data *);
-	void (*duplex) (struct driver_data *);
+	struct transfer_ops *ops;
 };
 
 #define DEFINE_SPI_REG(reg, off) \
-static inline u16 read_##reg(struct driver_data *drv_data) \
+static inline u16 read_##reg(struct master_data *drv_data) \
 	{ return bfin_read16(drv_data->regs_base + off); } \
-static inline void write_##reg(struct driver_data *drv_data, u16 v) \
+static inline void write_##reg(struct master_data *drv_data, u16 v) \
 	{ bfin_write16(drv_data->regs_base + off, v); }
 
 DEFINE_SPI_REG(TCR1, 0x00)
@@ -131,7 +133,7 @@ DEFINE_SPI_REG(RCLKDIV, 0x28)
 DEFINE_SPI_REG(RFSDIV, 0x2C)
 DEFINE_SPI_REG(STAT, 0x30)
 
-static void bfin_sport_spi_enable(struct driver_data *drv_data)
+static void bfin_sport_spi_enable(struct master_data *drv_data)
 {
 	u16 cr;
 
@@ -142,7 +144,7 @@ static void bfin_sport_spi_enable(struct driver_data *drv_data)
 	SSYNC();
 }
 
-static void bfin_sport_spi_disable(struct driver_data *drv_data)
+static void bfin_sport_spi_disable(struct master_data *drv_data)
 {
 	u16 cr;
 
@@ -171,12 +173,12 @@ static u16 hz_to_spi_baud(u32 speed_hz)
 }
 
 /* Chip select operation functions for cs_change flag */
-static void bfin_sport_spi_cs_active(struct driver_data *drv_data, struct chip_data *chip)
+static void bfin_sport_spi_cs_active(struct master_data *drv_data, struct slave_data *chip)
 {
 	gpio_direction_output(chip->cs_gpio, 0);
 }
 
-static void bfin_sport_spi_cs_deactive(struct driver_data *drv_data, struct chip_data *chip)
+static void bfin_sport_spi_cs_deactive(struct master_data *drv_data, struct slave_data *chip)
 {
 	gpio_direction_output(chip->cs_gpio, 1);
 	/* Move delay here for consistency */
@@ -185,9 +187,9 @@ static void bfin_sport_spi_cs_deactive(struct driver_data *drv_data, struct chip
 }
 
 /* stop controller and re-config current chip*/
-static void bfin_sport_spi_restore_state(struct driver_data *drv_data)
+static void bfin_sport_spi_restore_state(struct master_data *drv_data)
 {
-	struct chip_data *chip = drv_data->cur_chip;
+	struct slave_data *chip = drv_data->cur_chip;
 
 	bfin_sport_spi_disable(drv_data);
 	dev_dbg(&drv_data->pdev->dev, "restoring spi ctl state\n");
@@ -205,41 +207,7 @@ static void bfin_sport_spi_restore_state(struct driver_data *drv_data)
 	bfin_sport_spi_cs_active(drv_data, chip);
 }
 
-static void bfin_spi_null_writer(struct driver_data *drv_data)
-{
-	u16 dummy;
-	u8 n_bytes = drv_data->n_bytes;
-	u16 tx_val = drv_data->cur_chip->idle_tx_val;
-
-	bfin_sport_spi_enable(drv_data);
-	while (drv_data->tx < drv_data->tx_end) {
-		write_TX(drv_data, tx_val);
-		drv_data->tx += n_bytes;
-		while (!(read_STAT(drv_data) & RXNE))
-			cpu_relax();
-		dummy = read_RX(drv_data);
-	}
-	bfin_sport_spi_disable(drv_data);
-}
-
-static void bfin_spi_null_reader(struct driver_data *drv_data)
-{
-	u16 dummy;
-	u8 n_bytes = drv_data->n_bytes;
-	u16 tx_val = drv_data->cur_chip->idle_tx_val;
-
-	bfin_sport_spi_enable(drv_data);
-	while (drv_data->rx < drv_data->rx_end) {
-		write_TX(drv_data, tx_val);
-		while (!(read_STAT(drv_data) & RXNE))
-			cpu_relax();
-		dummy = read_RX(drv_data);
-		drv_data->rx += n_bytes;
-	}
-	bfin_sport_spi_disable(drv_data);
-}
-
-static void bfin_sport_spi_u8_writer(struct driver_data *drv_data)
+static void bfin_sport_spi_u8_writer(struct master_data *drv_data)
 {
 	u16 dummy;
 
@@ -253,24 +221,7 @@ static void bfin_sport_spi_u8_writer(struct driver_data *drv_data)
 	bfin_sport_spi_disable(drv_data);
 }
 
-static void bfin_sport_spi_u8_cs_chg_writer(struct driver_data *drv_data)
-{
-	struct chip_data *chip = drv_data->cur_chip;
-	u16 dummy;
-
-	bfin_sport_spi_enable(drv_data);
-	while (drv_data->tx < drv_data->tx_end) {
-		bfin_sport_spi_cs_active(drv_data, chip);
-		write_TX(drv_data, (*(u8 *) (drv_data->tx++)));
-		while (!(read_STAT(drv_data) & RXNE))
-			cpu_relax();
-		dummy = read_RX(drv_data);
-		bfin_sport_spi_cs_deactive(drv_data, chip);
-	}
-	bfin_sport_spi_disable(drv_data);
-}
-
-static void bfin_sport_spi_u8_reader(struct driver_data *drv_data)
+static void bfin_sport_spi_u8_reader(struct master_data *drv_data)
 {
 	u16 tx_val = drv_data->cur_chip->idle_tx_val;
 
@@ -284,26 +235,8 @@ static void bfin_sport_spi_u8_reader(struct driver_data *drv_data)
 	bfin_sport_spi_disable(drv_data);
 }
 
-static void bfin_sport_spi_u8_cs_chg_reader(struct driver_data *drv_data)
+static void bfin_sport_spi_u8_duplex(struct master_data *drv_data)
 {
-	struct chip_data *chip = drv_data->cur_chip;
-	u16 tx_val = drv_data->cur_chip->idle_tx_val;
-
-	bfin_sport_spi_enable(drv_data);
-	while (drv_data->rx < drv_data->rx_end) {
-		bfin_sport_spi_cs_active(drv_data, chip);
-		write_TX(drv_data, tx_val);
-		while (!(read_STAT(drv_data) & RXNE))
-			cpu_relax();
-		*(u8 *) (drv_data->rx++) = read_RX(drv_data);
-		bfin_sport_spi_cs_deactive(drv_data, chip);
-	}
-	bfin_sport_spi_disable(drv_data);
-}
-
-static void bfin_sport_spi_u8_duplex(struct driver_data *drv_data)
-{
-
 	bfin_sport_spi_enable(drv_data);
 	while (drv_data->rx < drv_data->rx_end) {
 		write_TX(drv_data, (*(u8 *) (drv_data->tx++)));
@@ -314,24 +247,13 @@ static void bfin_sport_spi_u8_duplex(struct driver_data *drv_data)
 	bfin_sport_spi_disable(drv_data);
 }
 
-static void bfin_sport_spi_u8_cs_chg_duplex(struct driver_data *drv_data)
-{
-	struct chip_data *chip = drv_data->cur_chip;
+static struct transfer_ops bfin_transfer_ops_u8 = {
+	.write  = bfin_sport_spi_u8_writer,
+	.read   = bfin_sport_spi_u8_reader,
+	.duplex = bfin_sport_spi_u8_duplex,
+};
 
-	bfin_sport_spi_enable(drv_data);
-	while (drv_data->rx < drv_data->rx_end) {
-		bfin_sport_spi_cs_active(drv_data, chip);
-		write_TX(drv_data, (*(u8 *) (drv_data->tx++)));
-		while (!(read_STAT(drv_data) & RXNE))
-			cpu_relax();
-		*(u8 *) (drv_data->rx++) = read_RX(drv_data);
-		bfin_sport_spi_cs_deactive(drv_data, chip);
-	}
-	bfin_sport_spi_disable(drv_data);
-}
-
-
-static void bfin_sport_spi_u16_writer(struct driver_data *drv_data)
+static void bfin_sport_spi_u16_writer(struct master_data *drv_data)
 {
 	u16 dummy;
 
@@ -346,25 +268,7 @@ static void bfin_sport_spi_u16_writer(struct driver_data *drv_data)
 	bfin_sport_spi_disable(drv_data);
 }
 
-static void bfin_sport_spi_u16_cs_chg_writer(struct driver_data *drv_data)
-{
-	struct chip_data *chip = drv_data->cur_chip;
-	u16 dummy;
-
-	bfin_sport_spi_enable(drv_data);
-	while (drv_data->tx < drv_data->tx_end) {
-		bfin_sport_spi_cs_active(drv_data, chip);
-		write_TX(drv_data, (*(u16 *) (drv_data->tx)));
-		drv_data->tx += 2;
-		while (!(read_STAT(drv_data) & RXNE))
-			cpu_relax();
-		dummy = read_RX(drv_data);
-		bfin_sport_spi_cs_deactive(drv_data, chip);
-	}
-	bfin_sport_spi_disable(drv_data);
-}
-
-static void bfin_sport_spi_u16_reader(struct driver_data *drv_data)
+static void bfin_sport_spi_u16_reader(struct master_data *drv_data)
 {
 	u16 tx_val = drv_data->cur_chip->idle_tx_val;
 
@@ -379,27 +283,8 @@ static void bfin_sport_spi_u16_reader(struct driver_data *drv_data)
 	bfin_sport_spi_disable(drv_data);
 }
 
-static void bfin_sport_spi_u16_cs_chg_reader(struct driver_data *drv_data)
+static void bfin_sport_spi_u16_duplex(struct master_data *drv_data)
 {
-	struct chip_data *chip = drv_data->cur_chip;
-	u16 tx_val = drv_data->cur_chip->idle_tx_val;
-
-	bfin_sport_spi_enable(drv_data);
-	while (drv_data->rx < drv_data->rx_end) {
-		bfin_sport_spi_cs_active(drv_data, chip);
-		write_TX(drv_data, tx_val);
-		while (!(read_STAT(drv_data) & RXNE))
-			cpu_relax();
-		*(u16 *) (drv_data->rx) = read_RX(drv_data);
-		drv_data->rx += 2;
-		bfin_sport_spi_cs_deactive(drv_data, chip);
-	}
-	bfin_sport_spi_disable(drv_data);
-}
-
-static void bfin_sport_spi_u16_duplex(struct driver_data *drv_data)
-{
-
 	bfin_sport_spi_enable(drv_data);
 	while (drv_data->rx < drv_data->rx_end) {
 		write_TX(drv_data, (*(u16 *) (drv_data->tx)));
@@ -412,26 +297,14 @@ static void bfin_sport_spi_u16_duplex(struct driver_data *drv_data)
 	bfin_sport_spi_disable(drv_data);
 }
 
-static void bfin_sport_spi_u16_cs_chg_duplex(struct driver_data *drv_data)
-{
-	struct chip_data *chip = drv_data->cur_chip;
-
-	bfin_sport_spi_enable(drv_data);
-	while (drv_data->rx < drv_data->rx_end) {
-		bfin_sport_spi_cs_active(drv_data, chip);
-		write_TX(drv_data, (*(u16 *) (drv_data->tx)));
-		drv_data->tx += 2;
-		while (!(read_STAT(drv_data) & RXNE))
-			cpu_relax();
-		*(u16 *) (drv_data->rx) = read_RX(drv_data);
-		drv_data->rx += 2;
-		bfin_sport_spi_cs_deactive(drv_data, chip);
-	}
-	bfin_sport_spi_disable(drv_data);
-}
+static struct transfer_ops bfin_transfer_ops_u16 = {
+	.write  = bfin_sport_spi_u16_writer,
+	.read   = bfin_sport_spi_u16_reader,
+	.duplex = bfin_sport_spi_u16_duplex,
+};
 
 /* test if ther is more transfer to be done */
-static void *bfin_sport_spi_next_transfer(struct driver_data *drv_data)
+static void *bfin_sport_spi_next_transfer(struct master_data *drv_data)
 {
 	struct spi_message *msg = drv_data->cur_msg;
 	struct spi_transfer *trans = drv_data->cur_transfer;
@@ -450,9 +323,9 @@ static void *bfin_sport_spi_next_transfer(struct driver_data *drv_data)
  * caller already set message->status;
  * dma and pio irqs are blocked give finished message back
  */
-static void bfin_sport_spi_giveback(struct driver_data *drv_data)
+static void bfin_sport_spi_giveback(struct master_data *drv_data)
 {
-	struct chip_data *chip = drv_data->cur_chip;
+	struct slave_data *chip = drv_data->cur_chip;
 	struct spi_transfer *last_transfer;
 	unsigned long flags;
 	struct spi_message *msg;
@@ -479,7 +352,7 @@ static void bfin_sport_spi_giveback(struct driver_data *drv_data)
 
 static irqreturn_t sport_err_handler(int irq, void *dev_id)
 {
-	struct driver_data *drv_data = dev_id;
+	struct master_data *drv_data = dev_id;
 	u16 status;
 
 	dev_dbg(&drv_data->pdev->dev, "%s enter\n", __func__);
@@ -502,11 +375,11 @@ static irqreturn_t sport_err_handler(int irq, void *dev_id)
 
 static void bfin_sport_spi_pump_transfers(unsigned long data)
 {
-	struct driver_data *drv_data = (struct driver_data *)data;
+	struct master_data *drv_data = (struct master_data *)data;
 	struct spi_message *message = NULL;
 	struct spi_transfer *transfer = NULL;
 	struct spi_transfer *previous = NULL;
-	struct chip_data *chip = NULL;
+	struct slave_data *chip = NULL;
 	u8 width = 0;
 	u32 tranf_success = 1;
 	u8 full_duplex = 0;
@@ -545,7 +418,6 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 			udelay(previous->delay_usecs);
 	}
 
-
 	if (transfer->len == 0) {
 		/* Move to next transfer of this msg */
 		message->state = bfin_sport_spi_next_transfer(drv_data);
@@ -578,31 +450,19 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 	case 8:
 		drv_data->n_bytes = 1;
 		width = CFG_SPI_WORDSIZE8;
-		drv_data->read = chip->cs_change_per_word ?
-			bfin_sport_spi_u8_cs_chg_reader : bfin_sport_spi_u8_reader;
-		drv_data->write = chip->cs_change_per_word ?
-			bfin_sport_spi_u8_cs_chg_writer : bfin_sport_spi_u8_writer;
-		drv_data->duplex = chip->cs_change_per_word ?
-			bfin_sport_spi_u8_cs_chg_duplex : bfin_sport_spi_u8_duplex;
+		drv_data->ops = &bfin_transfer_ops_u8;
 		break;
 
 	case 16:
 		drv_data->n_bytes = 2;
 		width = CFG_SPI_WORDSIZE16;
-		drv_data->read = chip->cs_change_per_word ?
-			bfin_sport_spi_u16_cs_chg_reader : bfin_sport_spi_u16_reader;
-		drv_data->write = chip->cs_change_per_word ?
-			bfin_sport_spi_u16_cs_chg_writer : bfin_sport_spi_u16_writer;
-		drv_data->duplex = chip->cs_change_per_word ?
-			bfin_sport_spi_u16_cs_chg_duplex : bfin_sport_spi_u16_duplex;
+		drv_data->ops = &bfin_transfer_ops_u16;
 		break;
 
 	default:
 		drv_data->n_bytes = chip->n_bytes;
 		width = chip->width;
-		drv_data->write = drv_data->tx ? chip->write : bfin_spi_null_writer;
-		drv_data->read = drv_data->rx ? chip->read : bfin_spi_null_reader;
-		drv_data->duplex = chip->duplex ? chip->duplex : bfin_spi_null_writer;
+		drv_data->ops = chip->ops;
 		break;
 	}
 
@@ -611,7 +471,6 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 	else
 		drv_data->len = transfer->len;
 
-	/* speed and width has been set on per message */
 	message->state = RUNNING_STATE;
 
 	if (drv_data->cs_change)
@@ -621,28 +480,28 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 		"now pumping a transfer: width is %d, len is %d\n",
 		width, transfer->len);
 
-		/* PIO mode write then read */
+	/* PIO mode write then read */
 	dev_dbg(&drv_data->pdev->dev, "doing IO transfer\n");
 
 	if (full_duplex) {
 		/* full duplex mode */
 		BUG_ON((drv_data->tx_end - drv_data->tx) !=
 		       (drv_data->rx_end - drv_data->rx));
-		drv_data->duplex(drv_data);
+		drv_data->ops->duplex(drv_data);
 
 		if (drv_data->tx != drv_data->tx_end)
 			tranf_success = 0;
 	} else if (drv_data->tx != NULL) {
 		/* write only half duplex */
 
-		drv_data->write(drv_data);
+		drv_data->ops->write(drv_data);
 
 		if (drv_data->tx != drv_data->tx_end)
 			tranf_success = 0;
 	} else if (drv_data->rx != NULL) {
 		/* read only half duplex */
 
-		drv_data->read(drv_data);
+		drv_data->ops->read(drv_data);
 		if (drv_data->rx != drv_data->rx_end)
 			tranf_success = 0;
 	}
@@ -659,16 +518,15 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 		if (drv_data->cs_change)
 			bfin_sport_spi_cs_deactive(drv_data, chip);
 	}
+
 	/* Schedule next transfer tasklet */
 	tasklet_schedule(&drv_data->pump_transfers);
-
-
 }
 
 /* pop a msg from queue and kick off real transfer */
 static void bfin_sport_spi_pump_messages(struct work_struct *work)
 {
-	struct driver_data *drv_data;
+	struct master_data *drv_data;
 	unsigned long flags;
 	struct spi_message *next_msg;
 #ifdef CONFIG_SPI_BFIN_LOCK
@@ -676,7 +534,7 @@ static void bfin_sport_spi_pump_messages(struct work_struct *work)
 	struct spi_message *msg = NULL;
 #endif
 
-	drv_data = container_of(work, struct driver_data, pump_messages);
+	drv_data = container_of(work, struct master_data, pump_messages);
 
 	/* Lock queue and check for queue work */
 	spin_lock_irqsave(&drv_data->lock, flags);
@@ -752,7 +610,7 @@ static void bfin_sport_spi_pump_messages(struct work_struct *work)
 #ifdef CONFIG_SPI_BFIN_LOCK
 static int bfin_sport_spi_lock_bus(struct spi_device *spi)
 {
-	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
+	struct master_data *drv_data = spi_master_get_devdata(spi->master);
 	unsigned long flags;
 
 	spin_lock_irqsave(&drv_data->lock, flags);
@@ -768,7 +626,7 @@ static int bfin_sport_spi_lock_bus(struct spi_device *spi)
 
 static int bfin_sport_spi_unlock_bus(struct spi_device *spi)
 {
-	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
+	struct master_data *drv_data = spi_master_get_devdata(spi->master);
 	unsigned long flags;
 
 	spin_lock_irqsave(&drv_data->lock, flags);
@@ -788,7 +646,7 @@ static int bfin_sport_spi_unlock_bus(struct spi_device *spi)
  */
 static int bfin_sport_spi_transfer(struct spi_device *spi, struct spi_message *msg)
 {
-	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
+	struct master_data *drv_data = spi_master_get_devdata(spi->master);
 	unsigned long flags;
 
 	spin_lock_irqsave(&drv_data->lock, flags);
@@ -817,8 +675,8 @@ static int bfin_sport_spi_transfer(struct spi_device *spi, struct spi_message *m
 static int bfin_sport_spi_setup(struct spi_device *spi)
 {
 	struct bfin5xx_spi_chip *chip_info = NULL;
-	struct chip_data *chip;
-	struct driver_data *drv_data = spi_master_get_devdata(spi->master);
+	struct slave_data *chip;
+	struct master_data *drv_data = spi_master_get_devdata(spi->master);
 	int ret = 0;
 
 	if (spi->bits_per_word != 8 && spi->bits_per_word != 16)
@@ -840,7 +698,6 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 		chip->ctl_reg = chip_info->ctl_reg;
 		chip->enable_dma = chip_info->enable_dma;
 		chip->bits_per_word = chip_info->bits_per_word;
-		chip->cs_change_per_word = chip_info->cs_change_per_word;
 		chip->cs_chg_udelay = chip_info->cs_chg_udelay;
 		chip->cs_gpio = chip_info->cs_gpio;
 		chip->idle_tx_val = chip_info->idle_tx_val;
@@ -873,23 +730,13 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 	case 8:
 		chip->n_bytes = 1;
 		chip->width = CFG_SPI_WORDSIZE8;
-		chip->read = chip->cs_change_per_word ?
-			bfin_sport_spi_u8_cs_chg_reader : bfin_sport_spi_u8_reader;
-		chip->write = chip->cs_change_per_word ?
-			bfin_sport_spi_u8_cs_chg_writer : bfin_sport_spi_u8_writer;
-		chip->duplex = chip->cs_change_per_word ?
-			bfin_sport_spi_u8_cs_chg_duplex : bfin_sport_spi_u8_duplex;
+		chip->ops = &bfin_transfer_ops_u8;
 		break;
 
 	case 16:
 		chip->n_bytes = 2;
 		chip->width = CFG_SPI_WORDSIZE16;
-		chip->read = chip->cs_change_per_word ?
-			bfin_sport_spi_u16_cs_chg_reader : bfin_sport_spi_u16_reader;
-		chip->write = chip->cs_change_per_word ?
-			bfin_sport_spi_u16_cs_chg_writer : bfin_sport_spi_u16_writer;
-		chip->duplex = chip->cs_change_per_word ?
-			bfin_sport_spi_u16_cs_chg_duplex : bfin_sport_spi_u16_duplex;
+		chip->ops = &bfin_transfer_ops_u16;
 		break;
 
 	default:
@@ -926,7 +773,7 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
  */
 static void bfin_sport_spi_cleanup(struct spi_device *spi)
 {
-	struct chip_data *chip = spi_get_ctldata(spi);
+	struct slave_data *chip = spi_get_ctldata(spi);
 
 	if (!chip)
 		return;
@@ -937,7 +784,7 @@ static void bfin_sport_spi_cleanup(struct spi_device *spi)
 	kfree(chip);
 }
 
-static inline int bfin_sport_spi_init_queue(struct driver_data *drv_data)
+static inline int bfin_sport_spi_init_queue(struct master_data *drv_data)
 {
 	INIT_LIST_HEAD(&drv_data->queue);
 	spin_lock_init(&drv_data->lock);
@@ -962,7 +809,7 @@ static inline int bfin_sport_spi_init_queue(struct driver_data *drv_data)
 	return 0;
 }
 
-static inline int bfin_sport_spi_start_queue(struct driver_data *drv_data)
+static inline int bfin_sport_spi_start_queue(struct master_data *drv_data)
 {
 	unsigned long flags;
 
@@ -984,7 +831,7 @@ static inline int bfin_sport_spi_start_queue(struct driver_data *drv_data)
 	return 0;
 }
 
-static inline int bfin_sport_spi_stop_queue(struct driver_data *drv_data)
+static inline int bfin_sport_spi_stop_queue(struct master_data *drv_data)
 {
 	unsigned long flags;
 	unsigned limit = 500;
@@ -1016,7 +863,7 @@ static inline int bfin_sport_spi_stop_queue(struct driver_data *drv_data)
 	return status;
 }
 
-static inline int bfin_sport_spi_destroy_queue(struct driver_data *drv_data)
+static inline int bfin_sport_spi_destroy_queue(struct master_data *drv_data)
 {
 	int status;
 
@@ -1035,7 +882,7 @@ static int __devinit bfin_sport_spi_probe(struct platform_device *pdev)
 	struct bfin5xx_spi_master *platform_info;
 	struct spi_master *master;
 	struct resource *res, *ires;
-	struct driver_data *drv_data;
+	struct master_data *drv_data;
 	int status;
 
 	platform_info = dev->platform_data;
@@ -1141,7 +988,7 @@ static int __devinit bfin_sport_spi_probe(struct platform_device *pdev)
 /* stop hardware and remove the driver */
 static int __devexit bfin_sport_spi_remove(struct platform_device *pdev)
 {
-	struct driver_data *drv_data = platform_get_drvdata(pdev);
+	struct master_data *drv_data = platform_get_drvdata(pdev);
 	int status = 0;
 
 	if (!drv_data)
@@ -1169,7 +1016,7 @@ static int __devexit bfin_sport_spi_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int bfin_sport_spi_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	struct driver_data *drv_data = platform_get_drvdata(pdev);
+	struct master_data *drv_data = platform_get_drvdata(pdev);
 	int status = 0;
 
 	status = bfin_sport_spi_stop_queue(drv_data);
@@ -1184,7 +1031,7 @@ static int bfin_sport_spi_suspend(struct platform_device *pdev, pm_message_t sta
 
 static int bfin_sport_spi_resume(struct platform_device *pdev)
 {
-	struct driver_data *drv_data = platform_get_drvdata(pdev);
+	struct master_data *drv_data = platform_get_drvdata(pdev);
 	int status = 0;
 
 	/* Enable the SPI interface */
