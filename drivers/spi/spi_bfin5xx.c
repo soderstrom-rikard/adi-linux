@@ -40,8 +40,6 @@ MODULE_LICENSE("GPL");
 #define RUNNING_STATE	((void *)1)
 #define DONE_STATE	((void *)2)
 #define ERROR_STATE	((void *)-1)
-#define QUEUE_RUNNING	0
-#define QUEUE_STOPPED	1
 
 struct driver_data {
 	/* Driver model hookup */
@@ -65,7 +63,7 @@ struct driver_data {
 	spinlock_t lock;
 	struct list_head queue;
 	int busy;
-	int run;
+	bool running;
 #ifdef CONFIG_SPI_BFIN_LOCK
 	/* SPI bus is lock by a slave for exclusive access */
 	int locked;
@@ -879,7 +877,7 @@ static void bfin_spi_pump_messages(struct work_struct *work)
 
 	/* Lock queue and check for queue work */
 	spin_lock_irqsave(&drv_data->lock, flags);
-	if (list_empty(&drv_data->queue) || drv_data->run == QUEUE_STOPPED) {
+	if (list_empty(&drv_data->queue) || !drv_data->running) {
 		/* pumper kicked off but no work to do */
 		drv_data->busy = 0;
 		spin_unlock_irqrestore(&drv_data->lock, flags);
@@ -1009,7 +1007,7 @@ static int bfin_spi_transfer(struct spi_device *spi, struct spi_message *msg)
 
 	spin_lock_irqsave(&drv_data->lock, flags);
 
-	if (drv_data->run == QUEUE_STOPPED) {
+	if (!drv_data->running) {
 		spin_unlock_irqrestore(&drv_data->lock, flags);
 		return -ESHUTDOWN;
 	}
@@ -1021,7 +1019,7 @@ static int bfin_spi_transfer(struct spi_device *spi, struct spi_message *msg)
 	dev_dbg(&spi->dev, "adding an msg in transfer() \n");
 	list_add_tail(&msg->queue, &drv_data->queue);
 
-	if (drv_data->run == QUEUE_RUNNING && !drv_data->busy)
+	if (drv_data->running && !drv_data->busy)
 		queue_work(drv_data->workqueue, &drv_data->pump_messages);
 
 	spin_unlock_irqrestore(&drv_data->lock, flags);
@@ -1263,7 +1261,7 @@ static inline int bfin_spi_init_queue(struct driver_data *drv_data)
 #ifdef CONFIG_SPI_BFIN_LOCK
 	drv_data->locked = 0;
 #endif
-	drv_data->run = QUEUE_STOPPED;
+	drv_data->running = false;
 	drv_data->busy = 0;
 
 	/* init transfer tasklet */
@@ -1286,12 +1284,12 @@ static inline int bfin_spi_start_queue(struct driver_data *drv_data)
 
 	spin_lock_irqsave(&drv_data->lock, flags);
 
-	if (drv_data->run == QUEUE_RUNNING || drv_data->busy) {
+	if (drv_data->running || drv_data->busy) {
 		spin_unlock_irqrestore(&drv_data->lock, flags);
 		return -EBUSY;
 	}
 
-	drv_data->run = QUEUE_RUNNING;
+	drv_data->running = true;
 	drv_data->cur_msg = NULL;
 	drv_data->cur_transfer = NULL;
 	drv_data->cur_chip = NULL;
@@ -1319,7 +1317,7 @@ static inline int bfin_spi_stop_queue(struct driver_data *drv_data)
 	 * execution path (pump_messages) would be required to call wake_up or
 	 * friends on every SPI message. Do this instead
 	 */
-	drv_data->run = QUEUE_STOPPED;
+	drv_data->running = false;
 	while (!list_empty(&drv_data->queue) && drv_data->busy && limit--) {
 		spin_unlock_irqrestore(&drv_data->lock, flags);
 		msleep(10);
