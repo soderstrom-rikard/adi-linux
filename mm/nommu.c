@@ -1073,13 +1073,22 @@ static unsigned long determine_vm_flags(struct file *file,
  * set up a shared mapping on a file (the driver or filesystem provides and
  * pins the storage)
  */
-static int do_mmap_shared_file(struct vm_area_struct *vma)
+static int do_mmap_shared_file(struct vm_area_struct *vma,
+			   struct vm_region *region,
+			   unsigned long len)
 {
 	int ret;
 
 	ret = vma->vm_file->f_op->mmap(vma->vm_file, vma);
 	if (ret == 0) {
-		vma->vm_region->vm_top = vma->vm_region->vm_end;
+		vma->vm_region->vm_top = vma->vm_end;
+		if (region) {
+			if (!region->vm_start)
+				region->vm_start = vma->vm_start;
+			if (!region->vm_end)
+				region->vm_end = vma->vm_end;
+			add_nommu_region(region);
+		}
 		return ret;
 	}
 	if (ret != -ENOSYS)
@@ -1113,7 +1122,12 @@ static int do_mmap_private(struct vm_area_struct *vma,
 		if (ret == 0) {
 			/* shouldn't return success if we're not sharing */
 			BUG_ON(!(vma->vm_flags & VM_MAYSHARE));
-			vma->vm_region->vm_top = vma->vm_region->vm_end;
+			vma->vm_region->vm_top = vma->vm_end;
+			if (!region->vm_start)
+				region->vm_start = vma->vm_start;
+			if (!region->vm_end)
+				region->vm_end = vma->vm_end;
+			add_nommu_region(region);
 			return ret;
 		}
 		if (ret != -ENOSYS)
@@ -1194,6 +1208,7 @@ static int do_mmap_private(struct vm_area_struct *vma,
 			memset(base, 0, rlen);
 	}
 
+	add_nommu_region(region);
 	return 0;
 
 error_free:
@@ -1332,7 +1347,7 @@ unsigned long do_mmap_pgoff(struct file *file,
 				vma->vm_flags |= VM_MAPPED_COPY;
 			} else {
 				kdebug("share mmap");
-				ret = do_mmap_shared_file(vma);
+				ret = do_mmap_shared_file(vma, NULL, 0);
 				if (ret < 0) {
 					vma->vm_region = NULL;
 					vma->vm_start = 0;
@@ -1377,11 +1392,10 @@ unsigned long do_mmap_pgoff(struct file *file,
 	}
 
 	vma->vm_region = region;
-	add_nommu_region(region);
 
 	/* set up the mapping */
 	if (file && vma->vm_flags & VM_SHARED)
-		ret = do_mmap_shared_file(vma);
+		ret = do_mmap_shared_file(vma, region, len);
 	else
 		ret = do_mmap_private(vma, region, len);
 	if (ret < 0)
@@ -1404,7 +1418,9 @@ share:
 	return result;
 
 error_put_region:
-	__put_nommu_region(region);
+	up_write(&nommu_region_sem);
+	fput(region->vm_file);
+	kmem_cache_free(vm_region_jar, region);
 	if (vma) {
 		if (vma->vm_file) {
 			fput(vma->vm_file);
