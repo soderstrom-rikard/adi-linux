@@ -683,7 +683,7 @@ static int adau1371_mute(struct snd_soc_dai *dai, int mute)
 {
 	struct snd_soc_codec *codec = dai->codec;
 	u8 reg;
-	
+
 	reg = adau1371_read_reg_cache(codec, ADAU1371_PWRCTLB);
 	if (mute)
 		adau1371_write(codec, ADAU1371_PWRCTLB, reg & ~DAC_MUTE_MASK);
@@ -887,7 +887,8 @@ static int adau1371_init(struct snd_soc_device *socdev)
 		dev_err(socdev->dev, "failed to create pcms\n");
 		goto pcm_err;
 	}
-	/* Playback mix settings, line out switched to DACs*/
+
+	/* Playback mix settings, line out switched to DACs */
 	adau1371_write(codec, ADAU1371_LLINEMIX, LDAC_SIGNAL_ENA);
 	adau1371_write(codec, ADAU1371_RLINEMIX, RDAC_SIGNAL_ENA);
 	/* Line out volume gain:0 db by default */

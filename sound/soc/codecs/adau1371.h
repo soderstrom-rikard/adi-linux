@@ -190,18 +190,18 @@
 #define ADC_MUTE_MASK		0xc0
 #define DAC_MUTE_MASK		0x30
 
-/*  DRC */
-#define DRCMODE_NGEN	0x01
+/* DRC */
+#define DRCMODE_NGEN		0x01
 #define DRCMODE_RIGHT_ENA	0x04
 #define DRCMODE_LEFT_ENA	0x08
 
 /* DSP MODE */
-#define DSPMODE_PLAYBACK_ENA 	0x01
-#define DSPMODE_CAPTURE_ENA 	0x02
+#define DSPMODE_PLAYBACK_ENA	0x01
+#define DSPMODE_CAPTURE_ENA	0x02
 
-#define BE_SHIFT  2
-#define EQ_SHIFT  4
-#define HPF_SHIFT 6
+#define BE_SHIFT		2
+#define EQ_SHIFT		4
+#define HPF_SHIFT		6
 
 #define ADAU1371_CACHEREGNUM	0x100
 
