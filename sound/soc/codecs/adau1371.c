@@ -421,6 +421,9 @@ static int adau1371_mux_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RADCMIX, AIN1_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_INALVOL, cache[ADAU1371_INALVOL]);
 		adau1371_write(codec, ADAU1371_INARVOL, cache[ADAU1371_INARVOL]);
+		/* Disable other ports*/
+		adau1371_write(codec, ADAU1371_PWRCTLA, reg & ~(PWRCTLA_INBPD |\
+			PWRCTLA_INCPD | PWRCTLA_INDPD));
 		adau1371_write(codec, ADAU1371_PWRCTLA, reg | PWRCTLA_INAPD);
 		break;
 	case 1:
@@ -429,6 +432,8 @@ static int adau1371_mux_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RADCMIX, AIN2_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_INBLVOL, cache[ADAU1371_INBLVOL]);
 		adau1371_write(codec, ADAU1371_INBRVOL, cache[ADAU1371_INBRVOL]);
+		adau1371_write(codec, ADAU1371_PWRCTLA, reg & ~(PWRCTLA_INAPD |\
+			PWRCTLA_INCPD | PWRCTLA_INDPD));
 		adau1371_write(codec, ADAU1371_PWRCTLA, reg | PWRCTLA_INBPD);
 		break;
 	case 2:
@@ -437,6 +442,8 @@ static int adau1371_mux_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RADCMIX, AIN3_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_INCLVOL, cache[ADAU1371_INCLVOL]);
 		adau1371_write(codec, ADAU1371_INCRVOL, cache[ADAU1371_INCRVOL]);
+		adau1371_write(codec, ADAU1371_PWRCTLA, reg & ~(PWRCTLA_INAPD |\
+			PWRCTLA_INBPD | PWRCTLA_INDPD));
 		adau1371_write(codec, ADAU1371_PWRCTLA, reg | PWRCTLA_INCPD);
 		break;
 	case 3:
@@ -445,6 +452,8 @@ static int adau1371_mux_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RADCMIX, AIN4_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_INDLVOL, cache[ADAU1371_INDLVOL]);
 		adau1371_write(codec, ADAU1371_INDRVOL, cache[ADAU1371_INDRVOL]);
+		adau1371_write(codec, ADAU1371_PWRCTLA, reg & ~(PWRCTLA_INAPD |\
+			PWRCTLA_INBPD | PWRCTLA_INCPD));
 		adau1371_write(codec, ADAU1371_PWRCTLA, reg | PWRCTLA_INDPD);
 		break;
 	}
@@ -504,6 +513,9 @@ static int adau1371_play_sel_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RLINEMIX, RDAC_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_LLINEVOL, cache[ADAU1371_LLINEVOL]);
 		adau1371_write(codec, ADAU1371_RLINEVOL, cache[ADAU1371_RLINEVOL]);
+		/* Disable other ports */
+		adau1371_write(codec, ADAU1371_PWRCTLB, reg & ~(PWRCTLB_LCDPD |\
+			PWRCTLB_RCDPD | PWRCTLB_HPPD));
 		adau1371_write(codec, ADAU1371_PWRCTLB, reg | PWRCTLB_LLNPD | PWRCTLB_RLNPD);
 		break;
 	case 1:
@@ -512,6 +524,8 @@ static int adau1371_play_sel_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RCDMIX, RDAC_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_LCDVOL, cache[ADAU1371_LCDVOL]);
 		adau1371_write(codec, ADAU1371_RCDVOL, cache[ADAU1371_RCDVOL]);
+		adau1371_write(codec, ADAU1371_PWRCTLB, reg & ~(PWRCTLB_LLNPD |\
+			PWRCTLB_RLNPD | PWRCTLB_HPPD));
 		adau1371_write(codec, ADAU1371_PWRCTLB, reg | PWRCTLB_LCDPD | PWRCTLB_RCDPD);
 		break;
 	case 2:
@@ -520,6 +534,8 @@ static int adau1371_play_sel_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RHPMIX, RDAC_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_LHPVOL, cache[ADAU1371_LHPVOL]);
 		adau1371_write(codec, ADAU1371_RHPVOL, cache[ADAU1371_RHPVOL]);
+		adau1371_write(codec, ADAU1371_PWRCTLB, reg & ~(PWRCTLB_LLNPD |\
+			PWRCTLB_RLNPD | PWRCTLB_LCDPD | PWRCTLB_RCDPD));
 		adau1371_write(codec, ADAU1371_PWRCTLB, reg | PWRCTLB_HPPD);
 		break;
 	}
