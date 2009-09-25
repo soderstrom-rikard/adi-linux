@@ -1024,7 +1024,7 @@ static int adau1371_add_i2c_device(struct platform_device *pdev,
 }
 #endif
 
-static int adau1371_probe(struct platform_device *pdev)
+static int __devinit adau1371_probe(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct adau1371_setup_data *setup;
@@ -1065,7 +1065,7 @@ static int adau1371_probe(struct platform_device *pdev)
 }
 
 /* remove everything here */
-static int adau1371_remove(struct platform_device *pdev)
+static int __devexit adau1371_remove(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
