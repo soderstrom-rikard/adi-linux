@@ -22,8 +22,6 @@
 
 #include "adau1371.h"
 
-#define adau1371_VERSION "0.1"
-
 struct snd_soc_codec_device soc_codec_dev_adau1371;
 
 struct adau1371_priv {
@@ -885,7 +883,7 @@ static int adau1371_init(struct snd_soc_device *socdev)
 	/* register pcms */
 	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
 	if (ret < 0) {
-		pr_err("adau1371: failed to create pcms\n");
+		dev_err(socdev->dev, "failed to create pcms\n");
 		goto pcm_err;
 	}
 	/* Playback mix settings, line out switched to DACs*/
@@ -927,7 +925,7 @@ static int adau1371_init(struct snd_soc_device *socdev)
 				ARRAY_SIZE(adau1371_snd_controls));
 	ret = snd_soc_init_card(socdev);
 	if (ret < 0) {
-		pr_err("adau1371: failed to register card\n");
+		dev_err(socdev->dev, "failed to register card\n");
 		goto card_err;
 	}
 
@@ -957,7 +955,7 @@ static int adau1371_i2c_probe(struct i2c_client *i2c,
 
 	ret = adau1371_init(socdev);
 	if (ret < 0)
-		pr_err("failed to initialise adau1371\n");
+		dev_err(&i2c->dev, "failed to initialize\n");
 
 	return ret;
 }
@@ -1034,8 +1032,6 @@ static int adau1371_probe(struct platform_device *pdev)
 	struct adau1371_priv *adau1371;
 	int ret = 0;
 
-	pr_info("adau1371 Audio Codec %s", adau1371_VERSION);
-
 	setup = socdev->codec_data;
 	codec = kzalloc(sizeof(*codec), GFP_KERNEL);
 	if (codec == NULL)
@@ -1062,6 +1058,8 @@ static int adau1371_probe(struct platform_device *pdev)
 #else
 	/* other interfaces */
 #endif
+
+	dev_info(&pdev->dev, "codec initialized\n");
 
 	return ret;
 }
