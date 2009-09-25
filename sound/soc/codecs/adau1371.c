@@ -583,6 +583,40 @@ static const struct snd_kcontrol_new adau1371_snd_controls[] = {
 	}
 };
 
+static const struct snd_soc_dapm_widget adau1371_dapm_widgets[] = {
+	SND_SOC_DAPM_DAC("DAC", "Playback", SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_ADC("ADC", "Capture", SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_OUTPUT("LINE OUT"),
+	SND_SOC_DAPM_OUTPUT("CLASS D"),
+	SND_SOC_DAPM_OUTPUT("HEADPHONE"),
+	SND_SOC_DAPM_INPUT("INPA"),
+	SND_SOC_DAPM_INPUT("INPB"),
+	SND_SOC_DAPM_INPUT("INPC"),
+	SND_SOC_DAPM_INPUT("INPD"),
+};
+
+static const struct snd_soc_dapm_route audio_conn[] = {
+	{"Output Mixer", "Playback Switch", "DAC"},
+	{ "LINE OUT", NULL, "Output Mixer"},
+	{ "CLASS D", NULL, "Output Mixer"},
+	{ "HEADPHONE", NULL, "Output Mixer"},
+	{ "ADC", "Input Source", "INPA" },
+	{ "ADC", "Input Source", "INPB" },
+	{ "ADC", "Input Source", "INPC" },
+	{ "ADC", "Input Source", "INPD" },
+};
+
+static int adau1371_add_widgets(struct snd_soc_codec *codec)
+{
+	snd_soc_dapm_new_controls(codec, adau1371_dapm_widgets,
+				  ARRAY_SIZE(adau1371_dapm_widgets));
+
+	snd_soc_dapm_add_routes(codec, audio_conn, ARRAY_SIZE(audio_conn));
+
+	snd_soc_dapm_new_widgets(codec);
+	return 0;
+}
+
 #define adau1371_reset(c) adau1371_write(c, ADAU1371_RESET, 0)
 
 static inline int get_coeff(int mclk, int rate)
@@ -955,6 +989,7 @@ static int adau1371_init(struct snd_soc_device *socdev)
 
 	snd_soc_add_controls(codec, adau1371_snd_controls,
 				ARRAY_SIZE(adau1371_snd_controls));
+	adau1371_add_widgets(codec);
 	ret = snd_soc_init_card(socdev);
 	if (ret < 0) {
 		dev_err(socdev->dev, "failed to register card\n");
