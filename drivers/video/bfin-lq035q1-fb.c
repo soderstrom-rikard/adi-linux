@@ -5,6 +5,7 @@
  * Licensed under the GPL-2 or later.
  */
 
+#define DRIVER_NAME "bfin-lq035q1"
 #define pr_fmt(fmt) DRIVER_NAME ": " fmt
 
 #include <linux/module.h>
@@ -127,9 +128,6 @@
 #define LQ035_SHUT			(1 << 0)	/* Shutdown */
 #define LQ035_ON			(0 << 0)	/* Shutdown */
 
-#define DRIVER_NAME "bfin-lq035q1"
-static char driver_name[] = DRIVER_NAME;
-
 struct bfin_lq035q1fb_info {
 	struct fb_info *fb;
 	struct device *dev;
@@ -147,89 +145,94 @@ static int nocursor;
 module_param(nocursor, int, 0644);
 MODULE_PARM_DESC(nocursor, "cursor enable/disable");
 
-
-static struct {
-	struct spi_device *spidev;
+struct spi_control {
 	unsigned short mode;
-	unsigned short init;
-} spi_control;
+};
+static struct spi_control spi_control;
 
-static int lq035q1_control(unsigned char reg, unsigned short value)
+static int lq035q1_control(struct spi_device *spi, unsigned char reg, unsigned short value)
 {
 	int ret;
-	u8 regs[3] = {LQ035_INDEX, 0, 0};
-	u8 dat[3] = {LQ035_DATA, 0, 0};
+	u8 regs[3] = { LQ035_INDEX, 0, 0 };
+	u8 dat[3] = { LQ035_DATA, 0, 0 };
 
-	if (spi_control.spidev) {
-		regs[2] = reg;
-		dat[1] = value >> 8;
-		dat[2] = value & 0xFF;
-
-		ret = spi_write(spi_control.spidev, regs, ARRAY_SIZE(regs));
-		ret |= spi_write(spi_control.spidev, dat, ARRAY_SIZE(dat));
-	} else
+	if (!spi)
 		return -ENODEV;
 
+	regs[2] = reg;
+	dat[1] = value >> 8;
+	dat[2] = value & 0xFF;
+
+	ret = spi_write(spi, regs, ARRAY_SIZE(regs));
+	ret |= spi_write(spi, dat, ARRAY_SIZE(dat));
 	return ret;
 }
 
 static int __devinit lq035q1_spidev_probe(struct spi_device *spi)
 {
 	int ret;
-	spi_control.spidev = spi;
+	struct spi_control *ctl;
 
-	ret = lq035q1_control(LQ035_SHUT_CTL, LQ035_ON);
-	ret |= lq035q1_control(LQ035_DRIVER_OUTPUT_CTL, spi_control.mode);
+#if 0
+	ctl = kzalloc(sizeof(*ctl), GFP_KERNEL);
+	if (!ctl)
+		return -ENOMEM;
+#else
+	ctl = &spi_control;
+#endif
 
+	ret = lq035q1_control(spi, LQ035_SHUT_CTL, LQ035_ON);
+	ret |= lq035q1_control(spi, LQ035_DRIVER_OUTPUT_CTL, ctl->mode);
 	if (ret)
 		return ret;
 
-	spi_control.init = 1;
+	spi_set_drvdata(spi, ctl);
 
 	return 0;
 }
 
 static int __devexit lq035q1_spidev_remove(struct spi_device *spi)
 {
-	return lq035q1_control(LQ035_SHUT_CTL, LQ035_SHUT);
+	return lq035q1_control(spi, LQ035_SHUT_CTL, LQ035_SHUT);
 }
 
 #ifdef CONFIG_PM
 static int lq035q1_spidev_suspend(struct spi_device *spi, pm_message_t state)
 {
-	return lq035q1_control(LQ035_SHUT_CTL, LQ035_SHUT);
+	return lq035q1_control(spi, LQ035_SHUT_CTL, LQ035_SHUT);
 }
 
 static int lq035q1_spidev_resume(struct spi_device *spi)
 {
-	int ret = lq035q1_control(LQ035_DRIVER_OUTPUT_CTL, spi_control.mode);
+	int ret;
+	struct spi_control *ctl = spi_get_drvdata(spi);
 
+	ret = lq035q1_control(spi, LQ035_DRIVER_OUTPUT_CTL, ctl->mode);
 	if (ret)
 		return ret;
 
-	return lq035q1_control(LQ035_SHUT_CTL, LQ035_ON);
+	return lq035q1_control(spi, LQ035_SHUT_CTL, LQ035_ON);
 }
 #else
-#define lq035q1_spidev_suspend		NULL
-#define lq035q1_spidev_resume		NULL
+# define lq035q1_spidev_suspend NULL
+# define lq035q1_spidev_resume  NULL
 #endif
 
 /* Power down all displays on reboot, poweroff or halt */
 static void lq035q1_spidev_shutdown(struct spi_device *spi)
 {
-	lq035q1_control(LQ035_SHUT_CTL, LQ035_SHUT);
+	lq035q1_control(spi, LQ035_SHUT_CTL, LQ035_SHUT);
 }
 
 static struct spi_driver spidev_spi_driver = {
 	.driver = {
-		.name =		DRIVER_NAME"-spi",
-		.owner =	THIS_MODULE,
+		.name = DRIVER_NAME"-spi",
 	},
-	.probe =	lq035q1_spidev_probe,
-	.remove =	__devexit_p(lq035q1_spidev_remove),
-	.shutdown	= lq035q1_spidev_shutdown,
-	.suspend	= lq035q1_spidev_suspend,
-	.resume		= lq035q1_spidev_resume,
+	.probe    = lq035q1_spidev_probe,
+	.remove   = __devexit_p(lq035q1_spidev_remove),
+	.shutdown = lq035q1_spidev_shutdown,
+	.suspend  = lq035q1_spidev_suspend,
+	.resume   = lq035q1_spidev_resume,
 };
 
 static int lq035q1_backlight(struct bfin_lq035q1fb_info *info, unsigned arg)
@@ -329,27 +332,28 @@ static const u16 ppi0_req_16[] = {P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2,
 			    P_PPI0_D6, P_PPI0_D7, 0};
 #endif
 
-static int bfin_lq035q1_request_ports(int action)
+static inline void bfin_lq035q1_free_ports(void)
 {
-	if (action) {
-		/* ANOMALY_05000400 - PPI Does Not Start Properly In Specific Mode:
-		 * Drive PPI_FS3 Low
-		 */
-		if (ANOMALY_05000400) {
-			int ret = gpio_request(P_IDENT(P_PPI0_FS3), "PPI_FS3");
-			if (ret)
-				return ret;
-			gpio_direction_output(P_IDENT(P_PPI0_FS3), 0);
-		}
+	peripheral_free_list(ppi0_req_16);
+	if (ANOMALY_05000400)
+		gpio_free(P_IDENT(P_PPI0_FS3));
+}
 
-		if (peripheral_request_list(ppi0_req_16, DRIVER_NAME)) {
-			pr_err("requesting peripherals failed\n");
-			return -EFAULT;
-		}
-	} else {
-		peripheral_free_list(ppi0_req_16);
-		if (ANOMALY_05000400)
-			gpio_free(P_IDENT(P_PPI0_FS3));
+static int __devinit bfin_lq035q1_request_ports(struct platform_device *pdev)
+{
+	/* ANOMALY_05000400 - PPI Does Not Start Properly In Specific Mode:
+	 * Drive PPI_FS3 Low
+	 */
+	if (ANOMALY_05000400) {
+		int ret = gpio_request(P_IDENT(P_PPI0_FS3), "PPI_FS3");
+		if (ret)
+			return ret;
+		gpio_direction_output(P_IDENT(P_PPI0_FS3), 0);
+	}
+
+	if (peripheral_request_list(ppi0_req_16, DRIVER_NAME)) {
+		dev_err(&pdev->dev, "requesting peripherals failed\n");
+		return -EFAULT;
 	}
 
 	return 0;
@@ -406,9 +410,8 @@ static int bfin_lq035q1_fb_release(struct fb_info *info, int user)
 }
 
 static int bfin_lq035q1_fb_check_var(struct fb_var_screeninfo *var,
-				   struct fb_info *info)
+				     struct fb_info *info)
 {
-
 	switch (var->bits_per_pixel) {
 #if (LCD_BPP == 24)
 	case 24:/* TRUECOLOUR, 16m */
@@ -564,14 +567,13 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 	struct fb_info *fbinfo;
 	int ret;
 
-	ret = request_dma(CH_PPI, "CH_PPI");
+	ret = request_dma(CH_PPI, DRIVER_NAME"_CH_PPI");
 	if (ret < 0) {
-		pr_err("couldn't request CH_PPI DMA\n");
+		dev_err(&pdev->dev, "PPI DMA unavailable\n");
 		goto out1;
 	}
 
-	fbinfo =
-	    framebuffer_alloc(sizeof(struct bfin_lq035q1fb_info), &pdev->dev);
+	fbinfo = framebuffer_alloc(sizeof(*info), &pdev->dev);
 	if (!fbinfo) {
 		ret = -ENOMEM;
 		goto out2;
@@ -588,7 +590,7 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, fbinfo);
 
-	strcpy(fbinfo->fix.id, driver_name);
+	strcpy(fbinfo->fix.id, DRIVER_NAME);
 
 	fbinfo->fix.type = FB_TYPE_PACKED_PIXELS;
 	fbinfo->fix.type_aux = 0;
@@ -662,7 +664,7 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 			       GFP_KERNEL);
 
 	if (NULL == info->fb_buffer) {
-		pr_err("couldn't allocate dma buffer\n");
+		dev_err(&pdev->dev, "couldn't allocate dma buffer\n");
 		ret = -ENOMEM;
 		goto out3;
 	}
@@ -676,14 +678,14 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 
 	ret = fb_alloc_cmap(&fbinfo->cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0);
 	if (ret < 0) {
-		pr_err("failed to allocate colormap (%d entries)\n",
+		dev_err(&pdev->dev, "failed to allocate colormap (%d entries)\n",
 		       BFIN_LCD_NBR_PALETTE_ENTRIES);
 		goto out4;
 	}
 
-	ret = bfin_lq035q1_request_ports(1);
+	ret = bfin_lq035q1_request_ports(pdev);
 	if (ret) {
-		pr_err("couldn't request gpio port\n");
+		dev_err(&pdev->dev, "couldn't request gpio port\n");
 		goto out6;
 	}
 
@@ -694,15 +696,15 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 	}
 
 	ret = request_irq(info->irq, bfin_lq035q1_irq_error, IRQF_DISABLED,
-			"PPI ERROR", info);
+			DRIVER_NAME" PPI ERROR", info);
 	if (ret < 0) {
-		pr_err("unable to request PPI ERROR IRQ\n");
+		dev_err(&pdev->dev, "unable to request PPI ERROR IRQ\n");
 		goto out7;
 	}
 
 	ret = spi_register_driver(&spidev_spi_driver);
 	if (ret < 0) {
-		pr_err("couldn't register SPI Interface\n");
+		dev_err(&pdev->dev, "couldn't register SPI Interface\n");
 		goto out8;
 	}
 
@@ -710,7 +712,7 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 		ret = gpio_request(info->disp_info->gpio_bl, "LQ035 Backlight");
 
 		if (ret) {
-			pr_err("failed to request GPIO %d\n",
+			dev_err(&pdev->dev, "failed to request GPIO %d\n",
 				info->disp_info->gpio_bl);
 			goto out9;
 		}
@@ -719,34 +721,34 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 
 	ret = register_framebuffer(fbinfo);
 	if (ret < 0) {
-		pr_err("unable to register framebuffer\n");
+		dev_err(&pdev->dev, "unable to register framebuffer\n");
 		goto out10;
 	}
 
-	pr_info("%dx%d %d-bit RGB FrameBuffer initialized\n",
+	dev_info(&pdev->dev, "%dx%d %d-bit RGB FrameBuffer initialized\n",
 		LCD_X_RES, LCD_Y_RES, LCD_BPP);
 
 	return 0;
 
-out10:
+ out10:
 	if (info->disp_info->use_bl)
 		gpio_free(info->disp_info->gpio_bl);
-out9:
+ out9:
 	spi_unregister_driver(&spidev_spi_driver);
-out8:
+ out8:
 	free_irq(info->irq, info);
-out7:
-	bfin_lq035q1_request_ports(0);
-out6:
+ out7:
+	bfin_lq035q1_free_ports();
+ out6:
 	fb_dealloc_cmap(&fbinfo->cmap);
-out4:
+ out4:
 	dma_free_coherent(NULL, fbinfo->fix.smem_len, info->fb_buffer,
 			  info->dma_handle);
-out3:
+ out3:
 	framebuffer_release(fbinfo);
-out2:
+ out2:
 	free_dma(CH_PPI);
-out1:
+ out1:
 	platform_set_drvdata(pdev, NULL);
 
 	return ret;
@@ -773,20 +775,20 @@ static int __devexit bfin_lq035q1_remove(struct platform_device *pdev)
 
 	fb_dealloc_cmap(&fbinfo->cmap);
 
-	bfin_lq035q1_request_ports(0);
+	bfin_lq035q1_free_ports();
 
 	platform_set_drvdata(pdev, NULL);
 	framebuffer_release(fbinfo);
 
-	pr_info("unregistered LCD driver\n");
+	dev_info(&pdev->dev, "unregistered LCD driver\n");
 
 	return 0;
 }
 
 #ifdef CONFIG_PM
-static int bfin_lq035q1_suspend(struct platform_device *pdev, pm_message_t state)
+static int bfin_lq035q1_suspend(struct device *dev)
 {
-	struct fb_info *fbinfo = platform_get_drvdata(pdev);
+	struct fb_info *fbinfo = dev_get_drvdata(dev);
 	struct bfin_lq035q1fb_info *info = fbinfo->par;
 
 	if (info->lq035_open_cnt) {
@@ -801,9 +803,9 @@ static int bfin_lq035q1_suspend(struct platform_device *pdev, pm_message_t state
 	return 0;
 }
 
-static int bfin_lq035q1_resume(struct platform_device *pdev)
+static int bfin_lq035q1_resume(struct device *dev)
 {
-	struct fb_info *fbinfo = platform_get_drvdata(pdev);
+	struct fb_info *fbinfo = dev_get_drvdata(dev);
 	struct bfin_lq035q1fb_info *info = fbinfo->par;
 
 	if (info->lq035_open_cnt) {
@@ -823,19 +825,21 @@ static int bfin_lq035q1_resume(struct platform_device *pdev)
 
 	return 0;
 }
-#else
-#define bfin_lq035q1_suspend	NULL
-#define bfin_lq035q1_resume	NULL
+
+static struct dev_pm_ops bfin_lq035q1_dev_pm_ops = {
+	.suspend = bfin_lq035q1_suspend,
+	.resume  = bfin_lq035q1_resume,
+};
 #endif
 
 static struct platform_driver bfin_lq035q1_driver = {
-	.probe = bfin_lq035q1_probe,
-	.remove = __devexit_p(bfin_lq035q1_remove),
-	.suspend = bfin_lq035q1_suspend,
-	.resume = bfin_lq035q1_resume,
+	.probe   = bfin_lq035q1_probe,
+	.remove  = __devexit_p(bfin_lq035q1_remove),
 	.driver = {
 		.name = DRIVER_NAME,
-		.owner = THIS_MODULE,
+#ifdef CONFIG_PM
+		.pm   = &bfin_lq035q1_dev_pm_ops,
+#endif
 	},
 };
 
