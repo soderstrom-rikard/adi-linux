@@ -1,29 +1,9 @@
 /*
- * File:         sound/soc/blackfin/bf5xx-adau1371.c
- * Author:       Cliff Cai <Cliff.Cai@analog.com>
+ * board driver for adau1371 sound chip
  *
- * Created:      Tue June 06 2008
- * Description:  board driver for adau1371 sound chip
+ * Copyright 2009 Analog Devices Inc.
  *
- * Modified:
- *               Copyright 2008 Analog Devices Inc.
- *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * Licensed under the GPL-2 or later.
  */
 
 #include <linux/module.h>
@@ -145,18 +125,16 @@ static int __init bf5xx_adau1371_init(void)
 
 	return ret;
 }
+module_init(bf5xx_adau1371_init);
 
 static void __exit bf5xx_adau1371_exit(void)
 {
 	pr_debug("%s enter\n", __func__);
 	platform_device_unregister(bf5xx_adau1371_snd_device);
 }
-
-module_init(bf5xx_adau1371_init);
 module_exit(bf5xx_adau1371_exit);
 
 /* Module information */
 MODULE_AUTHOR("Cliff Cai");
 MODULE_DESCRIPTION("ALSA SoC adau1371");
 MODULE_LICENSE("GPL");
-
