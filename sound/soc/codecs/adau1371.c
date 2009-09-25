@@ -74,7 +74,7 @@ static const u8 adau1371_reg[ADAU1371_CACHEREGNUM] = {
 struct _pll_settings {
 	u32 mclk;
 	u32 rate;
-	u16 n;	/* N and M registers are inverted on REVB*/
+	u16 n;	/* N and M registers are inverted on REVB */
 	u16 m;
 	u8 input_div:2;
 	u8 integer:4;
@@ -421,9 +421,9 @@ static int adau1371_mux_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RADCMIX, AIN1_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_INALVOL, cache[ADAU1371_INALVOL]);
 		adau1371_write(codec, ADAU1371_INARVOL, cache[ADAU1371_INARVOL]);
-		/* Disable other ports*/
-		adau1371_write(codec, ADAU1371_PWRCTLA, reg & ~(PWRCTLA_INBPD |\
-			PWRCTLA_INCPD | PWRCTLA_INDPD));
+		/* Disable other ports */
+		adau1371_write(codec, ADAU1371_PWRCTLA,
+			reg & ~(PWRCTLA_INBPD | PWRCTLA_INCPD | PWRCTLA_INDPD));
 		adau1371_write(codec, ADAU1371_PWRCTLA, reg | PWRCTLA_INAPD);
 		break;
 	case 1:
@@ -432,8 +432,8 @@ static int adau1371_mux_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RADCMIX, AIN2_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_INBLVOL, cache[ADAU1371_INBLVOL]);
 		adau1371_write(codec, ADAU1371_INBRVOL, cache[ADAU1371_INBRVOL]);
-		adau1371_write(codec, ADAU1371_PWRCTLA, reg & ~(PWRCTLA_INAPD |\
-			PWRCTLA_INCPD | PWRCTLA_INDPD));
+		adau1371_write(codec, ADAU1371_PWRCTLA,
+			reg & ~(PWRCTLA_INAPD | PWRCTLA_INCPD | PWRCTLA_INDPD));
 		adau1371_write(codec, ADAU1371_PWRCTLA, reg | PWRCTLA_INBPD);
 		break;
 	case 2:
@@ -442,8 +442,8 @@ static int adau1371_mux_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RADCMIX, AIN3_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_INCLVOL, cache[ADAU1371_INCLVOL]);
 		adau1371_write(codec, ADAU1371_INCRVOL, cache[ADAU1371_INCRVOL]);
-		adau1371_write(codec, ADAU1371_PWRCTLA, reg & ~(PWRCTLA_INAPD |\
-			PWRCTLA_INBPD | PWRCTLA_INDPD));
+		adau1371_write(codec, ADAU1371_PWRCTLA,
+			reg & ~(PWRCTLA_INAPD | PWRCTLA_INBPD | PWRCTLA_INDPD));
 		adau1371_write(codec, ADAU1371_PWRCTLA, reg | PWRCTLA_INCPD);
 		break;
 	case 3:
@@ -452,8 +452,8 @@ static int adau1371_mux_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RADCMIX, AIN4_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_INDLVOL, cache[ADAU1371_INDLVOL]);
 		adau1371_write(codec, ADAU1371_INDRVOL, cache[ADAU1371_INDRVOL]);
-		adau1371_write(codec, ADAU1371_PWRCTLA, reg & ~(PWRCTLA_INAPD |\
-			PWRCTLA_INBPD | PWRCTLA_INCPD));
+		adau1371_write(codec, ADAU1371_PWRCTLA,
+			reg & ~(PWRCTLA_INAPD | PWRCTLA_INBPD | PWRCTLA_INCPD));
 		adau1371_write(codec, ADAU1371_PWRCTLA, reg | PWRCTLA_INDPD);
 		break;
 	}
@@ -514,8 +514,8 @@ static int adau1371_play_sel_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_LLINEVOL, cache[ADAU1371_LLINEVOL]);
 		adau1371_write(codec, ADAU1371_RLINEVOL, cache[ADAU1371_RLINEVOL]);
 		/* Disable other ports */
-		adau1371_write(codec, ADAU1371_PWRCTLB, reg & ~(PWRCTLB_LCDPD |\
-			PWRCTLB_RCDPD | PWRCTLB_HPPD));
+		adau1371_write(codec, ADAU1371_PWRCTLB,
+			reg & ~(PWRCTLB_LCDPD | PWRCTLB_RCDPD | PWRCTLB_HPPD));
 		adau1371_write(codec, ADAU1371_PWRCTLB, reg | PWRCTLB_LLNPD | PWRCTLB_RLNPD);
 		break;
 	case 1:
@@ -524,8 +524,8 @@ static int adau1371_play_sel_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RCDMIX, RDAC_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_LCDVOL, cache[ADAU1371_LCDVOL]);
 		adau1371_write(codec, ADAU1371_RCDVOL, cache[ADAU1371_RCDVOL]);
-		adau1371_write(codec, ADAU1371_PWRCTLB, reg & ~(PWRCTLB_LLNPD |\
-			PWRCTLB_RLNPD | PWRCTLB_HPPD));
+		adau1371_write(codec, ADAU1371_PWRCTLB,
+			reg & ~(PWRCTLB_LLNPD | PWRCTLB_RLNPD | PWRCTLB_HPPD));
 		adau1371_write(codec, ADAU1371_PWRCTLB, reg | PWRCTLB_LCDPD | PWRCTLB_RCDPD);
 		break;
 	case 2:
@@ -534,8 +534,8 @@ static int adau1371_play_sel_put(struct snd_kcontrol *kcontrol,
 		adau1371_write(codec, ADAU1371_RHPMIX, RDAC_SIGNAL_ENA);
 		adau1371_write(codec, ADAU1371_LHPVOL, cache[ADAU1371_LHPVOL]);
 		adau1371_write(codec, ADAU1371_RHPVOL, cache[ADAU1371_RHPVOL]);
-		adau1371_write(codec, ADAU1371_PWRCTLB, reg & ~(PWRCTLB_LLNPD |\
-			PWRCTLB_RLNPD | PWRCTLB_LCDPD | PWRCTLB_RCDPD));
+		adau1371_write(codec, ADAU1371_PWRCTLB,
+			reg & ~(PWRCTLB_LLNPD | PWRCTLB_RLNPD | PWRCTLB_LCDPD | PWRCTLB_RCDPD));
 		adau1371_write(codec, ADAU1371_PWRCTLB, reg | PWRCTLB_HPPD);
 		break;
 	}
@@ -596,10 +596,10 @@ static const struct snd_soc_dapm_widget adau1371_dapm_widgets[] = {
 };
 
 static const struct snd_soc_dapm_route audio_conn[] = {
-	{"Output Mixer", "Playback Switch", "DAC"},
-	{ "LINE OUT", NULL, "Output Mixer"},
-	{ "CLASS D", NULL, "Output Mixer"},
-	{ "HEADPHONE", NULL, "Output Mixer"},
+	{ "Output Mixer", "Playback Switch", "DAC" },
+	{ "LINE OUT", NULL, "Output Mixer" },
+	{ "CLASS D", NULL, "Output Mixer" },
+	{ "HEADPHONE", NULL, "Output Mixer" },
 	{ "ADC", "Input Source", "INPA" },
 	{ "ADC", "Input Source", "INPB" },
 	{ "ADC", "Input Source", "INPC" },
@@ -928,7 +928,7 @@ static int adau1371_init(struct snd_soc_device *socdev)
 		return -ENOMEM;
 
 	adau1371_reset(codec);
-	/* By default line out and input A are enabled*/
+	/* By default line out and input A are enabled */
 	adau1371->out_chan_mask = PB_LINE;
 	adau1371->in_chan_mask = CAP_INPA;
 	/* register pcms */
@@ -956,16 +956,16 @@ static int adau1371_init(struct snd_soc_device *socdev)
 	adau1371_write(codec, ADAU1371_INARVOL, 0x1f);
 	adau1371_write(codec, ADAU1371_DAIRECLVOL, 0x80);
 	adau1371_write(codec, ADAU1371_DAIRECRVOL, 0x80);
-	/* Should be set on REVB to enable ADCs*/
+	/* Should be set on REVB to enable ADCs */
 	adau1371_write(codec, ADAU1371_CODECCTL, 0x10);
-	/* 64 bits per frame*/
+	/* 64 bits per frame */
 	adau1371_write(codec, ADAU1371_BCLKDIV, BCLKDIV_BPFA64);
 	/* Use PLL, the clock divisor is 4 */
 	adau1371_write(codec, ADAU1371_CLKSDIV, (3 << CLKSDIV_CLKDIV_SHIFT));
-	/* PWR on input port A,right and left ADCs.*/
+	/* PWR on input port A,right and left ADCs */
 	reg = PWRCTLA_INAPD | PWRCTLA_MICBPD | PWRCTLA_LADCPD | PWRCTLA_RADCPD;
 	adau1371_write(codec, ADAU1371_PWRCTLA, reg);
-	/* PWR on line out,right and left DACs and whole chip.*/
+	/* PWR on line out,right and left DACs and whole chip */
 	reg = PWRCTLB_RLNPD | PWRCTLB_LLNPD | PWRCTLB_RDACPD |
 		PWRCTLB_LDACPD | PWRCTLB_PWDB;
 	adau1371_write(codec, ADAU1371_PWRCTLB, reg);
@@ -979,8 +979,8 @@ static int adau1371_init(struct snd_soc_device *socdev)
 	adau1371_write(codec, ADAU1371_DRCGS1, 0x77);
 	adau1371_write(codec, ADAU1371_DRCGS2, 0x77);
 	adau1371_write(codec, ADAU1371_DRCGS3, 0x13);
-	adau1371_write(codec, ADAU1371_DRCMODE, DRCMODE_RIGHT_ENA |\
-		DRCMODE_LEFT_ENA | DRCMODE_NGEN);
+	adau1371_write(codec, ADAU1371_DRCMODE,
+		DRCMODE_RIGHT_ENA | DRCMODE_LEFT_ENA | DRCMODE_NGEN);
 	/* Playback signal input */
 	adau1371_write(codec, ADAU1371_DSPMODE, DSPMODE_PLAYBACK_ENA);
 
