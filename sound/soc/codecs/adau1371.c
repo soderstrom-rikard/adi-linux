@@ -857,7 +857,7 @@ static struct snd_soc_dai_ops adau1371_dai_ops = {
 };
 
 struct snd_soc_dai adau1371_dai = {
-	.name = "adau1371",
+	.name = "ADAU1371",
 	.playback = {
 		.stream_name  = "Playback",
 		.channels_min = 2,
