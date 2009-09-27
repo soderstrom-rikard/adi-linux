@@ -570,7 +570,7 @@ static const struct snd_kcontrol_new adau1371_snd_controls[] = {
 		.put   = adau1371_cap_mute_put,
 	}, {
 		.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
-		.name  = "Input Source",
+		.name  = "Input Mux",
 		.info  = adau1371_mux_info,
 		.get   = adau1371_mux_get,
 		.put   = adau1371_mux_put,
@@ -600,10 +600,10 @@ static const struct snd_soc_dapm_route audio_conn[] = {
 	{ "LINE OUT", NULL, "Output Mixer" },
 	{ "CLASS D", NULL, "Output Mixer" },
 	{ "HEADPHONE", NULL, "Output Mixer" },
-	{ "ADC", "Input Source", "INPA" },
-	{ "ADC", "Input Source", "INPB" },
-	{ "ADC", "Input Source", "INPC" },
-	{ "ADC", "Input Source", "INPD" },
+	{ "ADC", "Input Mux", "INPA" },
+	{ "ADC", "Input Mux", "INPB" },
+	{ "ADC", "Input Mux", "INPC" },
+	{ "ADC", "Input Mux", "INPD" },
 };
 
 static int adau1371_add_widgets(struct snd_soc_codec *codec)
