@@ -1008,8 +1008,6 @@ static int adau1371_init(struct snd_soc_device *socdev)
 
 static struct snd_soc_device *adau1371_socdev;
 
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
-
 static int adau1371_i2c_probe(struct i2c_client *i2c,
 			      const struct i2c_device_id *id)
 {
@@ -1043,7 +1041,7 @@ MODULE_DEVICE_TABLE(i2c, adau1371_i2c_id);
 /* corgi i2c codec control layer */
 static struct i2c_driver adau1371_i2c_driver = {
 	.driver = {
-		.name = "adau1371 I2C Codec",
+		.name = "adau1371",
 		.owner = THIS_MODULE,
 	},
 	.probe    = adau1371_i2c_probe,
@@ -1089,7 +1087,6 @@ static int adau1371_add_i2c_device(struct platform_device *pdev,
 	i2c_del_driver(&adau1371_i2c_driver);
 	return -ENODEV;
 }
-#endif
 
 static int __devinit adau1371_probe(struct platform_device *pdev)
 {
@@ -1117,14 +1114,10 @@ static int __devinit adau1371_probe(struct platform_device *pdev)
 	INIT_LIST_HEAD(&codec->dapm_paths);
 
 	adau1371_socdev = socdev;
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 	if (setup->i2c_address) {
 		codec->hw_write = (hw_write_t)i2c_master_send;
 		ret = adau1371_add_i2c_device(pdev, setup);
 	}
-#else
-	/* other interfaces */
-#endif
 
 	dev_info(&pdev->dev, "codec initialized\n");
 
@@ -1142,10 +1135,8 @@ static int __devexit adau1371_remove(struct platform_device *pdev)
 
 	snd_soc_free_pcms(socdev);
 	snd_soc_dapm_free(socdev);
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 	i2c_unregister_device(codec->control_data);
 	i2c_del_driver(&adau1371_i2c_driver);
-#endif
 	kfree(codec->private_data);
 	kfree(codec);
 
