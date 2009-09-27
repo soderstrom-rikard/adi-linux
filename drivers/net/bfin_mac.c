@@ -33,6 +33,8 @@
 #include <asm/dma.h>
 #include <linux/dma-mapping.h>
 
+#include <asm/div64.h>
+
 #include <asm/blackfin.h>
 #include <asm/cacheflush.h>
 #include <asm/portmux.h>
@@ -695,16 +697,29 @@ static int bfin_mac_hwtstamp_ioctl(struct net_device *netdev,
 	}
 
 	if (config.tx_type == HWTSTAMP_TX_OFF &&
-	    bfin_mac_hwtstamp_is_none(config.rx_filter))
+	    bfin_mac_hwtstamp_is_none(config.rx_filter)) {
 		ptpctl &= ~PTP_EN;
-	else
+		bfin_write_EMAC_PTP_CTL(ptpctl);
+
+		SSYNC();
+	} else {
 		ptpctl |= PTP_EN;
-	bfin_write_EMAC_PTP_CTL(ptpctl);
+		bfin_write_EMAC_PTP_CTL(ptpctl);
 
-	SSYNC();
+		/*
+		 * Set registers so that rollover occurs soon to test this.
+		 */
+		bfin_write_EMAC_PTP_TIMELO(0x00000000);
+		bfin_write_EMAC_PTP_TIMEHI(0xFF800000);
 
-	pr_debug("%s PTP setting ptpctl:%x ptpfv1:%x ptpfv2:%x ptpfv3:%x ptpfoff:%x\n",
-			__func__, ptpctl, ptpfv1, ptpfv2, ptpfv3, ptpfoff);
+		SSYNC();
+
+		lp->compare.last_update = 0;
+		timecounter_init(&lp->clock,
+				&lp->cycles,
+				ktime_to_ns(ktime_get_real()));
+		timecompare_update(&lp->compare, 0);
+	}
 
 	lp->stamp_cfg = config;
 	return copy_to_user(ifr->ifr_data, &config, sizeof(config)) ?
@@ -718,8 +733,6 @@ static void bfin_tx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
 
 	if (shtx->hardware) {
 		int timeout_cnt = MAX_TIMEOUT_CNT;
-
-		pr_dump_ptp_skb("tx packet", skb);
 
 		/* When doing time stamping, keep the connection to the socket
 		 * a while longer
@@ -803,19 +816,6 @@ static cycle_t bfin_read_clock(const struct cyclecounter *tc)
 # define bfin_rx_hwtstamp(dev, skb)
 # define bfin_tx_hwtstamp(dev, skb)
 #endif
-
-static void pr_dump_ptp_skb(char *str, struct sk_buff *skb)
-{
-	if ((skb->data[23] == 0x11) && (*(u16 *)(skb->data + 36) == 0x3F01)) {
-		pr_debug("%s dump\n", str);
-		pr_debug("MAC frame type:%02x%02x\n", skb->data[12], skb->data[13]);
-		pr_debug("IP version:%02x\n", skb->data[14]);
-		pr_debug("Layer 4 protocol:%02x\n", skb->data[23]);
-		pr_debug("UDP source port:%02x%02x\n", skb->data[34], skb->data[35]);
-		pr_debug("UDP destination port:%02x%02x\n", skb->data[36], skb->data[37]);
-		pr_debug("PTP control:%02x\n\n", skb->data[74]);
-	}
-}
 
 static void adjust_tx_list(void)
 {
@@ -951,9 +951,6 @@ static void bfin_mac_rx(struct net_device *dev)
 
 	/* allocate a new skb for next time receive */
 	skb = current_rx_ptr->skb;
-
-	if (!bfin_mac_hwtstamp_is_none(lp->stamp_cfg.rx_filter))
-		pr_dump_ptp_skb("rx packet", skb);
 
 	new_skb = dev_alloc_skb(PKT_BUF_SZ + NET_IP_ALIGN);
 	if (!new_skb) {
@@ -1275,6 +1272,8 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 	struct bfin_mac_local *lp;
 	struct platform_device *pd;
 	int rc;
+	u32 sclk;
+	u64 append;
 
 	ndev = alloc_etherdev(sizeof(struct bfin_mac_local));
 	if (!ndev) {
@@ -1357,15 +1356,17 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 	/*
 	 * Initialize hardware timer
 	 */
+#define PTP_CLK 25000000
+	sclk = get_sclk();
+	append = PTP_CLK * (1ULL << 32);
+	do_div(append, sclk);
+	bfin_write_EMAC_PTP_ADDEND((u32)append);
+
 	memset(&lp->cycles, 0, sizeof(lp->cycles));
 	lp->cycles.read = bfin_read_clock;
 	lp->cycles.mask = CLOCKSOURCE_MASK(64);
-	bfin_write_EMAC_PTP_ADDEND(0xA0000000); /* PTP freq = 50Mhz */
-	lp->cycles.mult = 20;
+	lp->cycles.mult = 1000000000 / PTP_CLK;
 	lp->cycles.shift = 0;
-	timecounter_init(&lp->clock,
-			&lp->cycles,
-			ktime_to_ns(ktime_get_real()));
 
 	/*
 	 * Synchronize our NIC clock against system wall clock
@@ -1374,7 +1375,6 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 	lp->compare.source = &lp->clock;
 	lp->compare.target = ktime_get_real;
 	lp->compare.num_samples = 10;
-	timecompare_update(&lp->compare, 0);
 
 	/*
 	 * Initialize hwstamp config
