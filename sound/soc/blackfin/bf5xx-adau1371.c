@@ -24,8 +24,6 @@
 #include "bf5xx-i2s-pcm.h"
 #include "bf5xx-i2s.h"
 
-static struct snd_soc_card bf5xx_adau1371;
-
 static int bf5xx_adau1371_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
