@@ -869,7 +869,7 @@ static int validate_mmap_request(struct file *file,
 	int ret;
 
 	/* do the simple checks first */
-	if (flags & MAP_FIXED || addr) {
+	if (flags & MAP_FIXED) {
 		printk(KERN_DEBUG
 		       "%d: Can't do fixed-address/overlay mmap of RAM\n",
 		       current->pid);
@@ -1073,23 +1073,14 @@ static unsigned long determine_vm_flags(struct file *file,
  * set up a shared mapping on a file (the driver or filesystem provides and
  * pins the storage)
  */
-static int do_mmap_shared_file(struct vm_area_struct *vma,
-			   struct vm_region *region,
-			   unsigned long len)
+static int do_mmap_shared_file(struct vm_area_struct *vma)
 {
 	int ret;
 
 	ret = vma->vm_file->f_op->mmap(vma->vm_file, vma);
 	if (ret == 0) {
-		vma->vm_region->vm_top = vma->vm_end;
-		if (region) {
-			if (!region->vm_start)
-				region->vm_start = vma->vm_start;
-			if (!region->vm_end)
-				region->vm_end = vma->vm_end;
-			add_nommu_region(region);
-		}
-		return ret;
+		vma->vm_region->vm_top = vma->vm_region->vm_end;
+		return 0;
 	}
 	if (ret != -ENOSYS)
 		return ret;
@@ -1106,7 +1097,8 @@ static int do_mmap_shared_file(struct vm_area_struct *vma,
  */
 static int do_mmap_private(struct vm_area_struct *vma,
 			   struct vm_region *region,
-			   unsigned long len)
+			   unsigned long len,
+			   unsigned long capabilities)
 {
 	struct page *pages;
 	unsigned long total, point, n, rlen;
@@ -1117,18 +1109,13 @@ static int do_mmap_private(struct vm_area_struct *vma,
 	 * shared mappings on devices or memory
 	 * - VM_MAYSHARE will be set if it may attempt to share
 	 */
-	if (vma->vm_file) {
+	if (capabilities & BDI_CAP_MAP_DIRECT) {
 		ret = vma->vm_file->f_op->mmap(vma->vm_file, vma);
 		if (ret == 0) {
 			/* shouldn't return success if we're not sharing */
 			BUG_ON(!(vma->vm_flags & VM_MAYSHARE));
-			vma->vm_region->vm_top = vma->vm_end;
-			if (!region->vm_start)
-				region->vm_start = vma->vm_start;
-			if (!region->vm_end)
-				region->vm_end = vma->vm_end;
-			add_nommu_region(region);
-			return ret;
+			vma->vm_region->vm_top = vma->vm_region->vm_end;
+			return 0;
 		}
 		if (ret != -ENOSYS)
 			return ret;
@@ -1208,7 +1195,6 @@ static int do_mmap_private(struct vm_area_struct *vma,
 			memset(base, 0, rlen);
 	}
 
-	add_nommu_region(region);
 	return 0;
 
 error_free:
@@ -1243,9 +1229,6 @@ unsigned long do_mmap_pgoff(struct file *file,
 
 	kenter(",%lx,%lx,%lx,%lx,%lx", addr, len, prot, flags, pgoff);
 
-	if (!(flags & MAP_FIXED))
-		addr = round_hint_to_min(addr);
-
 	/* decide whether we should attempt the mapping, and if so what sort of
 	 * mapping */
 	ret = validate_mmap_request(file, addr, len, prot, flags, pgoff,
@@ -1254,6 +1237,9 @@ unsigned long do_mmap_pgoff(struct file *file,
 		kleave(" = %d [val]", ret);
 		return ret;
 	}
+
+	/* we ignore the address hint */
+	addr = 0;
 
 	/* we've determined that we can make the mapping, now translate what we
 	 * now know into VMA flags */
@@ -1347,7 +1333,7 @@ unsigned long do_mmap_pgoff(struct file *file,
 				vma->vm_flags |= VM_MAPPED_COPY;
 			} else {
 				kdebug("share mmap");
-				ret = do_mmap_shared_file(vma, NULL, 0);
+				ret = do_mmap_shared_file(vma);
 				if (ret < 0) {
 					vma->vm_region = NULL;
 					vma->vm_start = 0;
@@ -1368,7 +1354,7 @@ unsigned long do_mmap_pgoff(struct file *file,
 		 * - this is the hook for quasi-memory character devices to
 		 *   tell us the location of a shared mapping
 		 */
-		if (file && file->f_op->get_unmapped_area) {
+		if (capabilities & BDI_CAP_MAP_DIRECT) {
 			addr = file->f_op->get_unmapped_area(file, addr, len,
 							     pgoff, flags);
 			if (IS_ERR((void *) addr)) {
@@ -1393,13 +1379,16 @@ unsigned long do_mmap_pgoff(struct file *file,
 
 	vma->vm_region = region;
 
-	/* set up the mapping */
+	/* set up the mapping
+	 * - the region is filled in if BDI_CAP_MAP_DIRECT is still set
+	 */
 	if (file && vma->vm_flags & VM_SHARED)
-		ret = do_mmap_shared_file(vma, region, len);
+		ret = do_mmap_shared_file(vma);
 	else
-		ret = do_mmap_private(vma, region, len);
+		ret = do_mmap_private(vma, region, len, capabilities);
 	if (ret < 0)
-		goto error_put_region;
+		goto error_just_free;
+	add_nommu_region(region);
 
 	/* okay... we have a mapping; now we have to register it */
 	result = vma->vm_start;
@@ -1416,21 +1405,6 @@ share:
 
 	kleave(" = %lx", result);
 	return result;
-
-error_put_region:
-	up_write(&nommu_region_sem);
-	fput(region->vm_file);
-	kmem_cache_free(vm_region_jar, region);
-	if (vma) {
-		if (vma->vm_file) {
-			fput(vma->vm_file);
-			if (vma->vm_flags & VM_EXECUTABLE)
-				removed_exe_file_vma(vma->vm_mm);
-		}
-		kmem_cache_free(vm_area_cachep, vma);
-	}
-	kleave(" = %d [pr]", ret);
-	return ret;
 
 error_just_free:
 	up_write(&nommu_region_sem);
