@@ -28,18 +28,12 @@
 #include <linux/io.h>
 #include <linux/irq.h>
 #include <linux/kgdb.h>
+#include <linux/dma-mapping.h>
 
 #include <asm/portmux.h>
 #include <asm/cacheflush.h>
 #include <asm/bfin_serial.h>
-
-/* DMA head is used by bf54x in PIO mode as well. See bellow.*/
-#if defined(CONFIG_SERIAL_BFIN_DMA) || defined(CONFIG_BF54x)
 #include <asm/dma.h>
-#endif
-#ifdef CONFIG_SERIAL_BFIN_DMA
-#include <linux/dma-mapping.h>
-#endif
 
 #ifdef CONFIG_SERIAL_BFIN_MODULE
 # undef CONFIG_EARLY_PRINTK
