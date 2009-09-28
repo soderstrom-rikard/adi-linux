@@ -828,9 +828,40 @@ static cycle_t bfin_read_clock(const struct cyclecounter *tc)
 
 	return stamp;
 }
+
+#define PTP_CLK 25000000
+
+static void bfin_mac_hwtstamp_init(struct net_device *netdev)
+{
+	struct bfin_mac_local *lp = netdev_priv(netdev);
+	u64 append;
+
+	/* Initialize hardware timer */
+	append = PTP_CLK * (1ULL << 32);
+	do_div(append, get_sclk());
+	bfin_write_EMAC_PTP_ADDEND((u32)append);
+
+	memset(&lp->cycles, 0, sizeof(lp->cycles));
+	lp->cycles.read = bfin_read_clock;
+	lp->cycles.mask = CLOCKSOURCE_MASK(64);
+	lp->cycles.mult = 1000000000 / PTP_CLK;
+	lp->cycles.shift = 0;
+
+	/* Synchronize our NIC clock against system wall clock */
+	memset(&lp->compare, 0, sizeof(lp->compare));
+	lp->compare.source = &lp->clock;
+	lp->compare.target = ktime_get_real;
+	lp->compare.num_samples = 10;
+
+	/* Initialize hwstamp config */
+	lp->stamp_cfg.rx_filter = HWTSTAMP_FILTER_NONE;
+	lp->stamp_cfg.tx_type = HWTSTAMP_TX_OFF;
+}
+
 #else
 # define bfin_mac_hwtstamp_is_none(cfg) 0
-# define bfin_mac_hwtstamp_ioctl(netdev, ifr, cmd) (-EOPNOTSUPP)
+# define bfin_mac_hwtstamp_init(dev)
+# define bfin_mac_hwtstamp_ioctl(dev, ifr, cmd) (-EOPNOTSUPP)
 # define bfin_rx_hwtstamp(dev, skb)
 # define bfin_tx_hwtstamp(dev, skb)
 #endif
@@ -1290,8 +1321,6 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 	struct bfin_mac_local *lp;
 	struct platform_device *pd;
 	int rc;
-	u32 sclk;
-	u64 append;
 
 	ndev = alloc_etherdev(sizeof(struct bfin_mac_local));
 	if (!ndev) {
@@ -1370,36 +1399,7 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 		goto out_err_reg_ndev;
 	}
 
-#if defined(CONFIG_BFIN_MAC_USE_HWSTAMP)
-	/*
-	 * Initialize hardware timer
-	 */
-#define PTP_CLK 25000000
-	sclk = get_sclk();
-	append = PTP_CLK * (1ULL << 32);
-	do_div(append, sclk);
-	bfin_write_EMAC_PTP_ADDEND((u32)append);
-
-	memset(&lp->cycles, 0, sizeof(lp->cycles));
-	lp->cycles.read = bfin_read_clock;
-	lp->cycles.mask = CLOCKSOURCE_MASK(64);
-	lp->cycles.mult = 1000000000 / PTP_CLK;
-	lp->cycles.shift = 0;
-
-	/*
-	 * Synchronize our NIC clock against system wall clock
-	 */
-	memset(&lp->compare, 0, sizeof(lp->compare));
-	lp->compare.source = &lp->clock;
-	lp->compare.target = ktime_get_real;
-	lp->compare.num_samples = 10;
-
-	/*
-	 * Initialize hwstamp config
-	 */
-	lp->stamp_cfg.rx_filter = HWTSTAMP_FILTER_NONE;
-	lp->stamp_cfg.tx_type = HWTSTAMP_TX_OFF;
-#endif
+	bfin_mac_hwtstamp_init(ndev);
 
 	/* now, print out the card info, in a short format.. */
 	dev_info(&pdev->dev, "%s, Version %s\n", DRV_DESC, DRV_VERSION);
