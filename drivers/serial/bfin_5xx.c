@@ -24,21 +24,18 @@
 #include <linux/tty.h>
 #include <linux/tty_flip.h>
 #include <linux/serial_core.h>
-
-#if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
-	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
+#include <linux/gpio.h>
+#include <linux/io.h>
+#include <linux/irq.h>
 #include <linux/kgdb.h>
-#include <asm/irq_regs.h>
-#endif
 
-#include <asm/gpio.h>
-#include <mach/bfin_serial_5xx.h>
+#include <asm/portmux.h>
+#include <asm/cacheflush.h>
+#include <asm/bfin_serial.h>
 
 #ifdef CONFIG_SERIAL_BFIN_DMA
+#include <asm/dma.h>
 #include <linux/dma-mapping.h>
-#include <asm/io.h>
-#include <asm/irq.h>
-#include <asm/cacheflush.h>
 #endif
 
 #ifdef CONFIG_SERIAL_BFIN_MODULE
