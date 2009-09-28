@@ -1062,7 +1062,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 	int ret = -EINVAL;
 
 	if (spi->bits_per_word != 8 && spi->bits_per_word != 16)
-		goto error;
+		return -EINVAL;
 
 	/* Only alloc (or use chip_info) on first setup */
 	chip_info = NULL;
@@ -1212,6 +1212,9 @@ static int bfin_spi_setup(struct spi_device *spi)
 
  error:
 	if (ret) {
+		if (!chip)
+			return ret;
+
 		if (drv_data->dma_requested)
 			free_dma(drv_data->dma_channel);
 		drv_data->dma_requested = 0;
