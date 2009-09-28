@@ -707,6 +707,15 @@ static int bfin_mac_hwtstamp_ioctl(struct net_device *netdev,
 		bfin_write_EMAC_PTP_CTL(ptpctl);
 
 		/*
+		 * clear any existing timestamp
+		 */
+		bfin_read_EMAC_PTP_RXSNAPLO();
+		bfin_read_EMAC_PTP_RXSNAPHI();
+
+		bfin_read_EMAC_PTP_TXSNAPLO();
+		bfin_read_EMAC_PTP_TXSNAPHI();
+
+		/*
 		 * Set registers so that rollover occurs soon to test this.
 		 */
 		bfin_write_EMAC_PTP_TIMELO(0x00000000);
@@ -724,6 +733,15 @@ static int bfin_mac_hwtstamp_ioctl(struct net_device *netdev,
 	lp->stamp_cfg = config;
 	return copy_to_user(ifr->ifr_data, &config, sizeof(config)) ?
 		-EFAULT : 0;
+}
+
+static void bfin_dump_hwtamp(char *s, ktime_t *hw, ktime_t *ts, struct timecompare *cmp)
+{
+	ktime_t sys = ktime_get_real();
+
+	pr_debug("%s %s hardware:%d,%d transform system:%d,%d system:%d,%d, cmp:%lld, %lld\n",
+			__func__, s, hw->tv.sec, hw->tv.nsec, ts->tv.sec, ts->tv.nsec, sys.tv.sec,
+			sys.tv.nsec, cmp->offset, cmp->skew);
 }
 
 static void bfin_tx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
@@ -766,7 +784,7 @@ static void bfin_tx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
 				timecompare_transform(&lp->compare, ns);
 			skb_tstamp_tx(skb, &shhwtstamps);
 
-			pr_debug("%s tx time counter:%016llx\n", __func__, regval);
+			bfin_dump_hwtamp("TX", &shhwtstamps.hwtstamp, &shhwtstamps.syststamp, &lp->compare);
 		}
 	}
 }
@@ -795,7 +813,7 @@ static void bfin_rx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
 	shhwtstamps->hwtstamp = ns_to_ktime(ns);
 	shhwtstamps->syststamp = timecompare_transform(&lp->compare, ns);
 
-	pr_debug("%s rx time counter: %016llx\n", __func__, regval);
+	bfin_dump_hwtamp("RX", &shhwtstamps->hwtstamp, &shhwtstamps->syststamp, &lp->compare);
 }
 
 /*
