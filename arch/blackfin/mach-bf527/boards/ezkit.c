@@ -650,8 +650,8 @@ static struct platform_device bfin_spi0_device = {
 #ifdef CONFIG_SERIAL_BFIN_UART0
 static struct resource bfin_uart0_resources[] = {
 	{
-		.start = 0xFFC00400,
-		.end = 0xFFC004FF,
+		.start = UART0_THR,
+		.end = UART0_GCTL+2,
 		.flags = IORESOURCE_MEM,
 	},
 	{
@@ -694,18 +694,25 @@ static struct resource bfin_uart0_resources[] = {
 #endif
 };
 
+unsigned short bfin_uart0_peripherals[] = {
+	P_UART0_TX, P_UART0_RX, 0
+};
+
 static struct platform_device bfin_uart0_device = {
 	.name = "bfin-uart",
 	.id = 0,
 	.num_resources = ARRAY_SIZE(bfin_uart0_resources),
 	.resource = bfin_uart0_resources,
+	.dev = {
+		.platform_data = &bfin_uart0_peripherals, /* Passed to driver */
+	},
 };
 #endif
 #ifdef CONFIG_SERIAL_BFIN_UART1
 static struct resource bfin_uart1_resources[] = {
 	{
-		.start = 0xFFC02000,
-		.end = 0xFFC020FF,
+		.start = UART1_THR,
+		.end = UART1_GCTL+2,
 		.flags = IORESOURCE_MEM,
 	},
 	{
@@ -750,11 +757,18 @@ static struct resource bfin_uart1_resources[] = {
 #endif
 };
 
+unsigned short bfin_uart1_peripherals[] = {
+	P_UART1_TX, P_UART1_RX, 0
+};
+
 static struct platform_device bfin_uart1_device = {
 	.name = "bfin-uart",
 	.id = 1,
 	.num_resources = ARRAY_SIZE(bfin_uart1_resources),
 	.resource = bfin_uart1_resources,
+	.dev = {
+		.platform_data = &bfin_uart1_peripherals, /* Passed to driver */
+	},
 };
 #endif
 #endif
@@ -1127,7 +1141,7 @@ static int __init ezkit_init(void)
 arch_initcall(ezkit_init);
 
 static struct platform_device *ezkit_early_devices[] __initdata = {
-#if defined(CONFIG_SERIAL_BFIN_CONSOLE)
+#if defined(CONFIG_SERIAL_BFIN_CONSOLE) || defined(CONFIG_EARLY_PRINTK)
 #ifdef CONFIG_SERIAL_BFIN_UART0
 	&bfin_uart0_device,
 #endif

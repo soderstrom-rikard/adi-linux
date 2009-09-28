@@ -1087,8 +1087,8 @@ static struct platform_device bfin_lq035q1_device = {
 #ifdef CONFIG_SERIAL_BFIN_UART0
 static struct resource bfin_uart0_resources[] = {
 	{
-		.start = 0xFFC00400,
-		.end = 0xFFC004FF,
+		.start = UART0_THR,
+		.end = UART0_GCTL+2,
 		.flags = IORESOURCE_MEM,
 	},
 	{
@@ -1150,8 +1150,8 @@ static struct platform_device bfin_uart0_device = {
 #ifdef CONFIG_SERIAL_BFIN_UART1
 static struct resource bfin_uart1_resources[] = {
 	{
-		.start = 0xFFC02000,
-		.end = 0xFFC020FF,
+		.start = UART1_THR,
+		.end = UART1_GCTL+2,
 		.flags = IORESOURCE_MEM,
 	},
 	{

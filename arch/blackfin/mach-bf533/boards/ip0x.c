@@ -160,8 +160,8 @@ static struct platform_device spi_bfin_master_device = {
 #ifdef CONFIG_SERIAL_BFIN_UART0
 static struct resource bfin_uart0_resources[] = {
 	{
-		.start = 0xFFC00400,
-		.end = 0xFFC004FF,
+		.start = UART_THR,
+		.end = UART_GCTL+2,
 		.flags = IORESOURCE_MEM,
 	},
 	{
@@ -204,11 +204,18 @@ static struct resource bfin_uart0_resources[] = {
 #endif
 };
 
+unsigned short bfin_uart0_peripherals[] = {
+	P_UART0_TX, P_UART0_RX, 0
+};
+
 static struct platform_device bfin_uart0_device = {
 	.name = "bfin-uart",
 	.id = 0,
 	.num_resources = ARRAY_SIZE(bfin_uart0_resources),
 	.resource = bfin_uart0_resources,
+	.dev = {
+		.platform_data = &bfin_uart0_peripherals, /* Passed to driver */
+	},
 };
 #endif
 #endif
@@ -334,7 +341,7 @@ static int __init ip0x_init(void)
 arch_initcall(ip0x_init);
 
 static struct platform_device *ip0x_early_devices[] __initdata = {
-#if defined(CONFIG_SERIAL_BFIN_CONSOLE)
+#if defined(CONFIG_SERIAL_BFIN_CONSOLE) || defined(CONFIG_EARLY_PRINTK)
 #ifdef CONFIG_SERIAL_BFIN_UART0
 	&bfin_uart0_device,
 #endif

@@ -543,7 +543,7 @@ static int __init ezkit_init(void)
 arch_initcall(ezkit_init);
 
 static struct platform_device *ezkit_early_devices[] __initdata = {
-#if defined(CONFIG_SERIAL_BFIN_CONSOLE)
+#if defined(CONFIG_SERIAL_BFIN_CONSOLE) || defined(CONFIG_EARLY_PRINTK)
 #ifdef CONFIG_SERIAL_BFIN_UART0
 	&bfin_uart0_device,
 #endif
