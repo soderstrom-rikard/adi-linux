@@ -33,8 +33,11 @@
 #include <asm/cacheflush.h>
 #include <asm/bfin_serial.h>
 
-#ifdef CONFIG_SERIAL_BFIN_DMA
+/* DMA head is used by bf54x in PIO mode as well. See bellow.*/
+#if defined(CONFIG_SERIAL_BFIN_DMA) || defined(CONFIG_BF54x)
 #include <asm/dma.h>
+#endif
+#ifdef CONFIG_SERIAL_BFIN_DMA
 #include <linux/dma-mapping.h>
 #endif
 
@@ -682,6 +685,13 @@ static int bfin_serial_startup(struct uart_port *port)
 
 # ifdef CONFIG_BF54x
 	{
+		/*
+		 * UART2 and UART3 on BF548 share interrupt PINs and DMA
+		 * controllers with SPORT2 and SPORT3. UART rx and tx
+		 * interrupts are generated in PIO mode only when  configure
+		 * their peripheral mapping registers properly, which means
+		 * request corresponding DMA channels in PIO mode as well.
+		 */
 		unsigned uart_dma_ch_rx, uart_dma_ch_tx;
 
 		switch (uart->port.irq) {
