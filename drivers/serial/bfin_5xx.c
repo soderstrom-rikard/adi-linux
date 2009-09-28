@@ -1367,7 +1367,7 @@ static int bfin_serial_probe(struct platform_device *pdev)
 		} else
 			uart->rts_pin = res->start;
 # if defined(CONFIG_SERIAL_BFIN_CTSRTS)
-		if (uart->rts_pin >= 0) {
+		if (uart->rts_pin >= 0)
 			gpio_request(uart->rts_pin, DRIVER_NAME);
 # endif
 #endif
