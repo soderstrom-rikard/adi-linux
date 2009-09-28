@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Analog Devices Inc.
+ * Copyright (C) 2008-2009 Analog Devices Inc.
  * Licensed under the GPL-2 or later.
  */
 
@@ -7,7 +7,8 @@
 #ifndef _MACH_GPIO_H_
 #define _MACH_GPIO_H_
 
-#define MAX_BLACKFIN_GPIOS 64
+#define MAX_BLACKFIN_GPIOS 16
+#define BFIN_SPECIAL_GPIO_BANKS 3
 
 #define	GPIO_PF0	0	/* PF */
 #define	GPIO_PF1	1
@@ -68,5 +69,8 @@
 #define PORT_C GPIO_PC0
 #define PORT_D GPIO_PD0
 #define PORT_E GPIO_PE0
+
+void bfin_special_gpio_free(unsigned gpio);
+int bfin_special_gpio_request(unsigned gpio, const char *label);
 
 #endif /* _MACH_GPIO_H_ */
