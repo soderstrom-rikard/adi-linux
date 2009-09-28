@@ -146,7 +146,7 @@
 
 /* DAI Control */
 
-#define DAICTL_FMRJUST		0x00	/* Audio interface mode*/
+#define DAICTL_FMRJUST		0x00	/* Audio interface mode */
 #define DAICTL_FMLJUST		0x01
 #define DAICTL_FMI2S		0x02
 #define DAICTL_FMDSP		0x03
@@ -158,7 +158,7 @@
 
 #define DAICTL_LRPA		0x10
 #define DAICTL_SWAPA		0x20
-#define DAICTL_MSA		0x40	/*Codec in master mode*/
+#define DAICTL_MSA		0x40	/* Codec in master mode */
 #define DAICTL_BLKINVA		0x80
 
 /* Number of bit clock per frame */
@@ -201,11 +201,11 @@
 #define DSPMODE_CAPTURE_ENA	0x02
 
 /* PAD_CTL */
-#define PADCTL_DAIA	0x01
-#define PADCTL_DAIB	0x02
-#define PADCTL_GPIO	0x04
-#define PADCTL_I2C	0x08
-#define PADCTL_I2CFLT	0x10
+#define PADCTL_DAIA		0x01
+#define PADCTL_DAIB		0x02
+#define PADCTL_GPIO		0x04
+#define PADCTL_I2C		0x08
+#define PADCTL_I2CFLT		0x10
 
 #define BE_SHIFT		2
 #define EQ_SHIFT		4
