@@ -915,9 +915,9 @@ static void bfin_spi_pump_messages(struct work_struct *work)
 	/* Someone has locked the bus */
 	if (drv_data->locked && next_cs != locked_cs) {
 		list_for_each_entry(msg, &drv_data->queue, queue) {
-			chip = spi_get_ctldata(next_msg->spi);
-			next_cs = next_msg->spi->chip_select ?
-				next_msg->spi->chip_select : chip->cs_gpio;
+			chip = spi_get_ctldata(msg->spi);
+			next_cs = msg->spi->chip_select ?
+					msg->spi->chip_select : chip->cs_gpio;
 			if (next_cs == locked_cs) {
 				next_msg = msg;
 				break;
