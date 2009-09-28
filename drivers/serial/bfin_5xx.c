@@ -12,6 +12,8 @@
 #define SUPPORT_SYSRQ
 #endif
 
+#define pr_fmt(fmt) DRIVER_NAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/ioport.h>
 #include <linux/io.h>
@@ -44,13 +46,12 @@
 #endif
 
 /* UART name and device definitions */
-#define BFIN_SERIAL_NAME	"ttyBF"
+#define BFIN_SERIAL_DEV_NAME	"ttyBF"
 #define BFIN_SERIAL_MAJOR	204
 #define BFIN_SERIAL_MINOR	64
 #define DRIVER_NAME		"bfin-uart"
 
-static struct bfin_serial_port bfin_serial_ports[BFIN_UART_NR_PORTS];
-static int nr_ports = ARRAY_SIZE(bfin_serial_console_base_addr);
+static struct bfin_serial_port *bfin_serial_ports[BFIN_UART_NR_PORTS];
 
 #if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
 	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
@@ -735,19 +736,10 @@ static int bfin_serial_startup(struct uart_port *port)
 		}
 	}
 	if (uart->rts_pin >= 0) {
-		gpio_request(uart->rts_pin, DRIVER_NAME);
 		gpio_direction_output(uart->rts_pin, 0);
 	}
 #endif
 #ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
-# if defined(CONFIG_BFIN_UART1_CTSRTS)
-	peripheral_request(P_UART1_RTS, DRIVER_NAME);
-	peripheral_request(P_UART1_CTS, DRIVER_NAME);
-# endif
-# if defined(CONFIG_BFIN_UART3_CTSRTS)
-	peripheral_request(P_UART3_RTS, DRIVER_NAME);
-	peripheral_request(P_UART3_CTS, DRIVER_NAME);
-# endif
 	if (request_irq(uart->status_irq,
 		bfin_serial_mctrl_cts_int,
 		IRQF_DISABLED, "BFIN_UART_MODEM_STATUS", uart)) {
@@ -797,20 +789,10 @@ static void bfin_serial_shutdown(struct uart_port *port)
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
 	if (uart->cts_pin >= 0)
 		free_irq(gpio_to_irq(uart->cts_pin), uart);
-	if (uart->rts_pin >= 0)
-		gpio_free(uart->rts_pin);
 #endif
 #ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
 	if (UART_GET_IER(uart) && EDSSI)
 		free_irq(uart->status_irq, uart);
-# if defined(CONFIG_BFIN_UART1_CTSRTS)
-	peripheral_free(P_UART1_RTS);
-	peripheral_free(P_UART1_CTS);
-# endif
-# if defined(CONFIG_BFIN_UART3_CTSRTS)
-	peripheral_free(P_UART3_RTS);
-	peripheral_free(P_UART3_CTS);
-# endif
 #endif
 }
 
@@ -971,6 +953,7 @@ bfin_serial_verify_port(struct uart_port *port, struct serial_struct *ser)
  */
 static void bfin_serial_set_ldisc(struct uart_port *port)
 {
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 	int line = port->line;
 	unsigned short val;
 
@@ -979,28 +962,28 @@ static void bfin_serial_set_ldisc(struct uart_port *port)
 
 	switch (port->info->port.tty->termios->c_line) {
 	case N_IRDA:
-		val = UART_GET_GCTL(&bfin_serial_ports[line]);
+		val = UART_GET_GCTL(uart);
 		val |= (IREN | RPOLC);
-		UART_PUT_GCTL(&bfin_serial_ports[line], val);
+		UART_PUT_GCTL(uart, val);
 		break;
 	default:
-		val = UART_GET_GCTL(&bfin_serial_ports[line]);
+		val = UART_GET_GCTL(uart);
 		val &= ~(IREN | RPOLC);
-		UART_PUT_GCTL(&bfin_serial_ports[line], val);
+		UART_PUT_GCTL(uart, val);
 	}
 }
 
 static void bfin_serial_reset_irda(struct uart_port *port)
 {
-	int line = port->line;
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 	unsigned short val;
 
-	val = UART_GET_GCTL(&bfin_serial_ports[line]);
+	val = UART_GET_GCTL(uart);
 	val &= ~(IREN | RPOLC);
-	UART_PUT_GCTL(&bfin_serial_ports[line], val);
+	UART_PUT_GCTL(uart, val);
 	SSYNC();
 	val |= (IREN | RPOLC);
-	UART_PUT_GCTL(&bfin_serial_ports[line], val);
+	UART_PUT_GCTL(uart, val);
 	SSYNC();
 }
 
@@ -1082,91 +1065,6 @@ static struct uart_ops bfin_serial_pops = {
 #endif
 };
 
-#ifdef CONFIG_SERIAL_BFIN_UART0
-unsigned short bfin_uart0_pin_req[] = {P_UART0_TX, P_UART0_RX, 0};
-#endif
-#ifdef CONFIG_SERIAL_BFIN_UART1
-unsigned short bfin_uart1_pin_req[] = {P_UART1_TX, P_UART1_RX, 0};
-#endif
-#ifdef CONFIG_SERIAL_BFIN_UART2
-unsigned short bfin_uart2_pin_req[] = {P_UART2_TX, P_UART2_RX, 0};
-#endif
-#ifdef CONFIG_SERIAL_BFIN_UART3
-unsigned short bfin_uart3_pin_req[] = {P_UART3_TX, P_UART3_RX, 0};
-#endif
-
-static int __init bfin_serial_init_ports(void)
-{
-	static int first = 1;
-	int i;
-	int ret;
-
-	if (!first)
-		return 0;
-
-#ifdef CONFIG_SERIAL_BFIN_UART0
-	ret = peripheral_request_list(bfin_uart0_pin_req, DRIVER_NAME);
-	if (ret) {
-		pr_err("requesting UART0 peripherals failed\n");
-		goto err_out0;
-	}
-#endif
-#ifdef CONFIG_SERIAL_BFIN_UART1
-	ret = peripheral_request_list(bfin_uart1_pin_req, DRIVER_NAME);
-	if (ret) {
-		pr_err("requesting UART1 peripherals failed\n");
-		goto err_out1;
-	}
-#endif
-#ifdef CONFIG_SERIAL_BFIN_UART2
-	ret = peripheral_request_list(bfin_uart2_pin_req, DRIVER_NAME);
-	if (ret) {
-		pr_err("requesting UART2 peripherals failed\n");
-		goto err_out2;
-	}
-#endif
-#ifdef CONFIG_SERIAL_BFIN_UART3
-	ret = peripheral_request_list(bfin_uart3_pin_req, DRIVER_NAME);
-	if (ret) {
-		pr_err("requesting UART3 peripherals failed\n");
-		goto err_out3;
-	}
-#endif
-
-	for (i = 0; i < nr_ports; i++) {
-		spin_lock_init(&bfin_serial_ports[i].port.lock);
-		bfin_serial_ports[i].port.uartclk   = get_sclk();
-		bfin_serial_ports[i].port.fifosize  = BFIN_UART_TX_FIFO_SIZE;
-		bfin_serial_ports[i].port.ops       = &bfin_serial_pops;
-		bfin_serial_ports[i].port.line      = i;
-		bfin_serial_ports[i].port.iotype    = UPIO_MEM;
-		bfin_serial_ports[i].port.flags     = UPF_BOOT_AUTOCONF;
-		bfin_serial_ports[i].port.membase   =
-			(void __iomem *)bfin_serial_console_base_addr[i];
-	}
-
-	first = 0;
-
-	return 0;
-#ifdef CONFIG_SERIAL_BFIN_UART3
-err_out3:
-#endif
-#ifdef CONFIG_SERIAL_BFIN_UART2
-	peripheral_free_list(bfin_uart2_pin_req);
-err_out2:
-#endif
-#ifdef CONFIG_SERIAL_BFIN_UART1
-err_out1:
-	peripheral_free_list(bfin_uart1_pin_req);
-#endif
-#ifdef CONFIG_SERIAL_BFIN_UART0
-err_out0:
-	peripheral_free_list(bfin_uart0_pin_req);
-#endif
-
-	return ret;
-}
-
 #if defined(CONFIG_SERIAL_BFIN_CONSOLE) || defined(CONFIG_EARLY_PRINTK)
 /*
  * If the port was already initialised (eg, by a boot loader),
@@ -1214,6 +1112,35 @@ bfin_serial_console_get_options(struct bfin_serial_port *uart, int *baud,
 
 static struct uart_driver bfin_serial_reg;
 
+static void bfin_serial_console_putchar(struct uart_port *port, int ch)
+{
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+	while (!(UART_GET_LSR(uart) & THRE))
+		barrier();
+	UART_PUT_CHAR(uart, ch);
+	SSYNC();
+}
+
+#endif /* defined (CONFIG_SERIAL_BFIN_CONSOLE) ||
+		 defined (CONFIG_EARLY_PRINTK) */
+
+#ifdef CONFIG_SERIAL_BFIN_CONSOLE
+#define CLASS_BFIN_CONSOLE	"bfin-console"
+/*
+ * Interrupts are disabled on entering
+ */
+static void
+bfin_serial_console_write(struct console *co, const char *s, unsigned int count)
+{
+	struct bfin_serial_port *uart = bfin_serial_ports[co->index];
+	unsigned long flags;
+
+	spin_lock_irqsave(&uart->port.lock, flags);
+	uart_console_write(&uart->port, s, count, bfin_serial_console_putchar);
+	spin_unlock_irqrestore(&uart->port.lock, flags);
+
+}
+
 static int __init
 bfin_serial_console_setup(struct console *co, char *options)
 {
@@ -1233,9 +1160,12 @@ bfin_serial_console_setup(struct console *co, char *options)
 	 * if so, search for the first available port that does have
 	 * console support.
 	 */
-	if (co->index == -1 || co->index >= nr_ports)
+	if (co->index < 0 || co->index >= BFIN_UART_NR_PORTS)
 		return -ENODEV;
-	uart = &bfin_serial_ports[co->index];
+
+	uart = bfin_serial_ports[co->index];
+	if (!uart)
+		return -ENODEV;
 
 	if (options)
 		uart_parse_options(options, &baud, &parity, &bits, &flow);
@@ -1245,35 +1175,8 @@ bfin_serial_console_setup(struct console *co, char *options)
 	return uart_set_options(&uart->port, co, baud, parity, bits, flow);
 }
 
-static void bfin_serial_console_putchar(struct uart_port *port, int ch)
-{
-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
-	while (!(UART_GET_LSR(uart) & THRE))
-		barrier();
-	UART_PUT_CHAR(uart, ch);
-	SSYNC();
-}
-
-/*
- * Interrupts are disabled on entering
- */
-static void
-bfin_serial_console_write(struct console *co, const char *s, unsigned int count)
-{
-	struct bfin_serial_port *uart = &bfin_serial_ports[co->index];
-	unsigned long flags;
-
-	spin_lock_irqsave(&uart->port.lock, flags);
-	uart_console_write(&uart->port, s, count, bfin_serial_console_putchar);
-	spin_unlock_irqrestore(&uart->port.lock, flags);
-
-}
-#endif /* defined (CONFIG_SERIAL_BFIN_CONSOLE) ||
-				 defined (CONFIG_EARLY_PRINTK) */
-
-#ifdef CONFIG_SERIAL_BFIN_CONSOLE
 static struct console bfin_serial_console = {
-	.name		= BFIN_SERIAL_NAME,
+	.name		= BFIN_SERIAL_DEV_NAME,
 	.write		= bfin_serial_console_write,
 	.device		= uart_console_device,
 	.setup		= bfin_serial_console_setup,
@@ -1281,27 +1184,28 @@ static struct console bfin_serial_console = {
 	.index		= -1,
 	.data		= &bfin_serial_reg,
 };
-
-static int __init bfin_serial_rs_console_init(void)
-{
-	int ret;
-
-	ret = bfin_serial_init_ports();
-	if (ret)
-		return ret;
-	register_console(&bfin_serial_console);
-
-	return 0;
-}
-console_initcall(bfin_serial_rs_console_init);
-
 #define BFIN_SERIAL_CONSOLE	&bfin_serial_console
 #else
 #define BFIN_SERIAL_CONSOLE	NULL
 #endif /* CONFIG_SERIAL_BFIN_CONSOLE */
 
+#ifdef	CONFIG_EARLY_PRINTK
+static struct bfin_serial_port bfin_earlyprintk_port;
+#define CLASS_BFIN_EARLYPRINTK	"bfin-earlyprintk"
 
-#ifdef CONFIG_EARLY_PRINTK
+/*
+ * Interrupts are disabled on entering
+ */
+static void
+bfin_earlyprintk_console_write(struct console *co, const char *s, unsigned int count)
+{
+	if (bfin_earlyprintk_port.port.line != co->index)
+		return;
+
+	uart_console_write(&bfin_earlyprintk_port.port, s, count,
+		bfin_serial_console_putchar);
+}
+
 /*
  * This should have a .setup or .early_setup in it, but then things get called
  * without the command line options, and the baud rate gets messed up - so
@@ -1310,18 +1214,333 @@ console_initcall(bfin_serial_rs_console_init);
  */
 static struct __initdata console bfin_early_serial_console = {
 	.name = "early_BFuart",
-	.write = bfin_serial_console_write,
+	.write = bfin_earlyprintk_console_write,
 	.device = uart_console_device,
 	.flags = CON_PRINTBUFFER,
 	.index = -1,
 	.data  = &bfin_serial_reg,
 };
+#endif
+
+static struct uart_driver bfin_serial_reg = {
+	.owner			= THIS_MODULE,
+	.driver_name		= DRIVER_NAME,
+	.dev_name		= BFIN_SERIAL_DEV_NAME,
+	.major			= BFIN_SERIAL_MAJOR,
+	.minor			= BFIN_SERIAL_MINOR,
+	.nr			= BFIN_UART_NR_PORTS,
+	.cons			= BFIN_SERIAL_CONSOLE,
+};
+
+static int bfin_serial_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	struct bfin_serial_port *uart = platform_get_drvdata(pdev);
+
+	return uart_suspend_port(&bfin_serial_reg, &uart->port);
+}
+
+static int bfin_serial_resume(struct platform_device *pdev)
+{
+	struct bfin_serial_port *uart = platform_get_drvdata(pdev);
+
+	return uart_resume_port(&bfin_serial_reg, &uart->port);
+}
+
+static int bfin_serial_probe(struct platform_device *pdev)
+{
+	struct resource *res;
+	struct bfin_serial_port *uart;
+	int ret;
+
+	if (pdev->id < 0 || pdev->id >= BFIN_UART_NR_PORTS) {
+		dev_err(&pdev->dev, "Wrong bfin uart platform device id.\n");
+		return -ENOENT;
+	}
+
+	if (bfin_serial_ports[pdev->id] == NULL) {
+		bfin_serial_ports[pdev->id] =
+			kmalloc(sizeof(struct bfin_serial_port), GFP_KERNEL);
+
+		uart = bfin_serial_ports[pdev->id];
+		if (!uart) {
+			dev_err(&pdev->dev,
+				"fail to kmalloc bfin_serial_port\n");
+			return -ENOMEM;
+		}
+
+#ifdef CONFIG_EARLY_PRINTK
+		if (!(bfin_earlyprintk_port.port.membase
+			&& bfin_earlyprintk_port.port.line == pdev->id)) {
+			/*
+			 * If the peripheral PINs of current port is allocated
+			 * in earlyprintk probe stage, don't do it again.
+			 */
+#endif
+		ret = peripheral_request_list(
+			(unsigned short *)pdev->dev.platform_data, DRIVER_NAME);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"fail to request bfin serial peripherals\n");
+			goto out_error_free_mem;
+		}
+#ifdef CONFIG_EARLY_PRINTK
+		}
+#endif
+
+		spin_lock_init(&uart->port.lock);
+		uart->port.uartclk   = get_sclk();
+		uart->port.fifosize  = BFIN_UART_TX_FIFO_SIZE;
+		uart->port.ops       = &bfin_serial_pops;
+		uart->port.line      = pdev->id;
+		uart->port.iotype    = UPIO_MEM;
+		uart->port.flags     = UPF_BOOT_AUTOCONF;
+
+		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+		if (res == NULL) {
+			dev_err(&pdev->dev, "Cannot get IORESOURCE_MEM\n");
+			ret = -ENOENT;
+			goto out_error_free_peripherals;
+		}
+
+		uart->port.membase = ioremap(res->start,
+			res->end - res->start + 1);
+		if (!uart->port.membase) {
+			dev_err(&pdev->dev, "Cannot map uart IO\n");
+			ret = -ENXIO;
+			goto out_error_free_peripherals;
+		}
+		uart->port.mapbase = res->start;
+
+		uart->port.irq = platform_get_irq(pdev, 0);
+		if (uart->port.irq < 0) {
+			dev_err(&pdev->dev, "No uart RX/TX IRQ specified\n");
+			ret = -ENOENT;
+			goto out_error_unmap;
+		}
+
+		uart->status_irq = platform_get_irq(pdev, 1);
+		if (uart->status_irq < 0) {
+			dev_err(&pdev->dev, "No uart status IRQ specified\n");
+			ret = -ENOENT;
+			goto out_error_unmap;
+		}
+
+#ifdef CONFIG_SERIAL_BFIN_DMA
+		uart->tx_done	    = 1;
+		uart->tx_count	    = 0;
+
+		res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
+		if (res == NULL) {
+			dev_err(&pdev->dev, "No uart TX DMA channel specified\n");
+			ret = -ENOENT;
+			goto out_error_unmap;
+		}
+		uart->tx_dma_channel = res->start;
+
+		res = platform_get_resource(pdev, IORESOURCE_DMA, 1);
+		if (res == NULL) {
+			dev_err(&pdev->dev, "No uart RX DMA channel specified\n");
+			ret = -ENOENT;
+			goto out_error_unmap;
+		}
+		uart->rx_dma_channel = res->start;
+
+		init_timer(&(uart->rx_dma_timer));
+#endif
+
+#if defined(CONFIG_SERIAL_BFIN_CTSRTS) || \
+	defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
+		res = platform_get_resource(pdev, IORESOURCE_IO, 0);
+		if (res == NULL) {
+# if defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
+			uart->cts_pin = 0;
+# else
+			uart->cts_pin = -1;
+# endif
+		} else
+			uart->cts_pin = res->start;
+
+		res = platform_get_resource(pdev, IORESOURCE_IO, 1);
+		if (res == NULL) {
+# if defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
+			uart->rts_pin = 0;
+# else
+			uart->rts_pin = -1;
+# endif
+		} else
+			uart->rts_pin = res->start;
+# if defined(CONFIG_SERIAL_BFIN_CTSRTS)
+		if (uart->rts_pin >= 0) {
+			gpio_request(uart->rts_pin, DRIVER_NAME);
+# endif
+#endif
+	}
+
+#ifdef CONFIG_SERIAL_BFIN_CONSOLE
+	if (!is_early_platform_device(pdev)) {
+#endif
+		uart = bfin_serial_ports[pdev->id];
+		uart->port.dev = &pdev->dev;
+		dev_set_drvdata(&pdev->dev, uart);
+		ret = uart_add_one_port(&bfin_serial_reg, &uart->port);
+#ifdef CONFIG_SERIAL_BFIN_CONSOLE
+	}
+#endif
+
+	if (!ret)
+		return 0;
+
+	if (uart) {
+out_error_unmap:
+		iounmap(uart->port.membase);
+out_error_free_peripherals:
+		peripheral_free_list(
+			(unsigned short *)pdev->dev.platform_data);
+out_error_free_mem:
+		kfree(uart);
+		bfin_serial_ports[pdev->id] = NULL;
+	}
+
+	return ret;
+}
+
+static int __devexit bfin_serial_remove(struct platform_device *pdev)
+{
+	struct bfin_serial_port *uart = platform_get_drvdata(pdev);
+
+	dev_set_drvdata(&pdev->dev, NULL);
+
+	if (uart) {
+		uart_remove_one_port(&bfin_serial_reg, &uart->port);
+#ifdef CONFIG_SERIAL_BFIN_CTSRTS
+		if (uart->rts_pin >= 0)
+			gpio_free(uart->rts_pin);
+#endif
+		iounmap(uart->port.membase);
+		peripheral_free_list(
+			(unsigned short *)pdev->dev.platform_data);
+		kfree(uart);
+		bfin_serial_ports[pdev->id] = NULL;
+	}
+
+	return 0;
+}
+
+static struct platform_driver bfin_serial_driver = {
+	.probe		= bfin_serial_probe,
+	.remove		= __devexit_p(bfin_serial_remove),
+	.suspend	= bfin_serial_suspend,
+	.resume		= bfin_serial_resume,
+	.driver		= {
+		.name	= DRIVER_NAME,
+		.owner	= THIS_MODULE,
+	},
+};
+
+#if defined(CONFIG_SERIAL_BFIN_CONSOLE)
+static __initdata struct early_platform_driver early_bfin_serial_driver = {
+	.class_str = CLASS_BFIN_CONSOLE,
+	.pdrv = &bfin_serial_driver,
+	.requested_id = EARLY_PLATFORM_ID_UNSET,
+};
+
+static int __init bfin_serial_rs_console_init(void)
+{
+	early_platform_driver_register(&early_bfin_serial_driver, DRIVER_NAME);
+
+	early_platform_driver_probe(CLASS_BFIN_CONSOLE, BFIN_UART_NR_PORTS, 0);
+
+	register_console(&bfin_serial_console);
+
+	return 0;
+}
+console_initcall(bfin_serial_rs_console_init);
+#endif
+
+#ifdef CONFIG_EARLY_PRINTK
+/*
+ * Memory can't be allocated dynamically during earlyprink init stage.
+ * So, do individual probe for earlyprink with a static uart port variable.
+ */
+static int bfin_earlyprintk_probe(struct platform_device *pdev)
+{
+	struct resource *res;
+	int ret;
+
+	if (pdev->id < 0 || pdev->id >= BFIN_UART_NR_PORTS) {
+		dev_err(&pdev->dev, "Wrong earlyprintk platform device id.\n");
+		return -ENOENT;
+	}
+
+	ret = peripheral_request_list(
+		(unsigned short *)pdev->dev.platform_data, DRIVER_NAME);
+	if (ret) {
+		dev_err(&pdev->dev,
+				"fail to request bfin serial peripherals\n");
+			return ret;
+	}
+
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (res == NULL) {
+		dev_err(&pdev->dev, "Cannot get IORESOURCE_MEM\n");
+		ret = -ENOENT;
+		goto out_error_free_peripherals;
+	}
+
+	bfin_earlyprintk_port.port.membase = ioremap(res->start,
+			res->end - res->start + 1);
+	if (!bfin_earlyprintk_port.port.membase) {
+		dev_err(&pdev->dev, "Cannot map uart IO\n");
+		ret = -ENXIO;
+		goto out_error_free_peripherals;
+	}
+	bfin_earlyprintk_port.port.mapbase = res->start;
+	bfin_earlyprintk_port.port.line = pdev->id;
+	bfin_earlyprintk_port.port.uartclk = get_sclk();
+	bfin_earlyprintk_port.port.fifosize  = BFIN_UART_TX_FIFO_SIZE;
+	spin_lock_init(&bfin_earlyprintk_port.port.lock);
+
+	return 0;
+
+out_error_free_peripherals:
+	peripheral_free_list(
+		(unsigned short *)pdev->dev.platform_data);
+
+	return ret;
+}
+
+static struct platform_driver bfin_earlyprintk_driver = {
+	.probe		= bfin_earlyprintk_probe,
+	.driver		= {
+		.name	= DRIVER_NAME,
+		.owner	= THIS_MODULE,
+	},
+};
+
+static __initdata struct early_platform_driver early_bfin_earlyprintk_driver = {
+	.class_str = CLASS_BFIN_EARLYPRINTK,
+	.pdrv = &bfin_earlyprintk_driver,
+	.requested_id = EARLY_PLATFORM_ID_UNSET,
+};
 
 struct console __init *bfin_earlyserial_init(unsigned int port,
 						unsigned int cflag)
 {
-	struct bfin_serial_port *uart;
 	struct ktermios t;
+
+	if (port < 0 || port >= BFIN_UART_NR_PORTS)
+		return NULL;
+
+	early_bfin_earlyprintk_driver.requested_id = port;
+
+	early_platform_driver_register(&early_bfin_earlyprintk_driver,
+		DRIVER_NAME);
+
+	early_platform_driver_probe(CLASS_BFIN_EARLYPRINTK,
+		BFIN_UART_NR_PORTS, 0);
+
+	if (!bfin_earlyprintk_port.port.membase)
+		return NULL;
 
 #ifdef CONFIG_SERIAL_BFIN_CONSOLE
 	/*
@@ -1331,186 +1550,36 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 	bfin_serial_console.flags &= ~CON_PRINTBUFFER;
 #endif
 
-	if (port == -1 || port >= nr_ports)
-		return NULL;
-	if (bfin_serial_init_ports())
-		return NULL;
-
 	bfin_early_serial_console.index = port;
-	uart = &bfin_serial_ports[port];
 	t.c_cflag = cflag;
 	t.c_iflag = 0;
 	t.c_oflag = 0;
 	t.c_lflag = ICANON;
 	t.c_line = port;
-	bfin_serial_set_termios(&uart->port, &t, &t);
+	bfin_serial_set_termios(&bfin_earlyprintk_port.port, &t, &t);
+
 	return &bfin_early_serial_console;
 }
 #endif /* CONFIG_EARLY_PRINTK */
-
-static struct uart_driver bfin_serial_reg = {
-	.owner			= THIS_MODULE,
-	.driver_name		= DRIVER_NAME,
-	.dev_name		= BFIN_SERIAL_NAME,
-	.major			= BFIN_SERIAL_MAJOR,
-	.minor			= BFIN_SERIAL_MINOR,
-	.nr			= BFIN_UART_NR_PORTS,
-	.cons			= BFIN_SERIAL_CONSOLE,
-};
-
-static int bfin_serial_suspend(struct platform_device *pdev, pm_message_t state)
-{
-	return uart_suspend_port(&bfin_serial_reg, &bfin_serial_ports[pdev->id].port);
-}
-
-static int bfin_serial_resume(struct platform_device *pdev)
-{
-	return uart_resume_port(&bfin_serial_reg, &bfin_serial_ports[pdev->id].port);
-}
-
-static int bfin_serial_probe(struct platform_device *pdev)
-{
-	struct resource *res;
-	struct bfin_serial_port *uart;
-	int ret;
-	int index;
-
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (res == NULL) {
-		dev_err(&pdev->dev, "Cannot get IORESOURCE_MEM\n");
-		return -ENOENT;
-	}
-
-	for (index = 0; index < nr_ports; index++)
-		if (res->start == bfin_serial_console_base_addr[index])
-			break;
-
-	if (index == nr_ports) {
-		dev_err(&pdev->dev, "Wrong uart platform device\n");
-		return -ENOENT;
-	}
-
-	uart = &bfin_serial_ports[index];
-
-	uart->port.membase = ioremap(res->start,
-		res->end - res->start + 1);
-	if (!uart->port.membase) {
-		dev_err(&pdev->dev, "Cannot map uart IO\n");
-		return -ENXIO;
-	}
-
-	uart->port.irq = platform_get_irq(pdev, 0);
-	if (uart->port.irq < 0) {
-		dev_err(&pdev->dev, "No uart RX/TX IRQ specified\n");
-		ret = -ENOENT;
-		goto out_error;
-	}
-
-	uart->status_irq = platform_get_irq(pdev, 1);
-	if (uart->status_irq < 0) {
-		dev_err(&pdev->dev, "No uart status IRQ specified\n");
-		ret = -ENOENT;
-		goto out_error;
-	}
-
-#ifdef CONFIG_SERIAL_BFIN_DMA
-	uart->tx_done	    = 1;
-	uart->tx_count	    = 0;
-
-	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
-	if (res == NULL) {
-		dev_err(&pdev->dev, "No uart TX DMA channel specified\n");
-		ret = -ENOENT;
-		goto out_error;
-	}
-	uart->tx_dma_channel = res->start;
-
-	res = platform_get_resource(pdev, IORESOURCE_DMA, 1);
-	if (res == NULL) {
-		dev_err(&pdev->dev, "No uart RX DMA channel specified\n");
-		ret = -ENOENT;
-		goto out_error;
-	}
-	uart->rx_dma_channel = res->start;
-
-	init_timer(&(uart->rx_dma_timer));
-#endif
-
-#if defined(CONFIG_SERIAL_BFIN_CTSRTS) || \
-	defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
-	res = platform_get_resource(pdev, IORESOURCE_IO, 0);
-	if (res == NULL) {
-# if defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
-		uart->cts_pin = 0;
-# else
-		uart->cts_pin = -1;
-# endif
-	} else
-		uart->cts_pin = res->start;
-
-	res = platform_get_resource(pdev, IORESOURCE_IO, 1);
-	if (res == NULL) {
-# if defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
-		uart->rts_pin = 0;
-# else
-		uart->rts_pin = -1;
-# endif
-	} else
-		uart->rts_pin = res->start;
-#endif
-
-	uart->port.dev = &pdev->dev;
-	ret = uart_add_one_port(&bfin_serial_reg, &uart->port);
-	if (!ret)
-		return 0;
-
-out_error:
-	iounmap(uart->port.membase);
-
-	return ret;
-}
-
-static int bfin_serial_remove(struct platform_device *pdev)
-{
-	struct bfin_serial_port *uart;
-
-	uart = &bfin_serial_ports[pdev->id];
-	uart_remove_one_port(&bfin_serial_reg, &uart->port);
-	uart->port.dev = NULL;
-	iounmap(uart->port.membase);
-
-	return 0;
-}
-
-static struct platform_driver bfin_serial_driver = {
-	.probe		= bfin_serial_probe,
-	.remove		= bfin_serial_remove,
-	.suspend	= bfin_serial_suspend,
-	.resume		= bfin_serial_resume,
-	.driver		= {
-		.name	= DRIVER_NAME,
-		.owner	= THIS_MODULE,
-	},
-};
 
 static int __init bfin_serial_init(void)
 {
 	int ret;
 
-	pr_info("Serial: Blackfin serial driver\n");
-
-	ret = bfin_serial_init_ports();
-	if (ret)
-		return ret;
+	pr_info("Blackfin serial driver\n");
 
 	ret = uart_register_driver(&bfin_serial_reg);
-	if (ret == 0) {
-		ret = platform_driver_register(&bfin_serial_driver);
-		if (ret) {
-			pr_debug("uart register failed\n");
-			uart_unregister_driver(&bfin_serial_reg);
-		}
+	if (ret) {
+		pr_err("failed to register %s:%d\n",
+			bfin_serial_reg.driver_name, ret);
 	}
+
+	ret = platform_driver_register(&bfin_serial_driver);
+	if (ret) {
+		pr_err("fail to register bfin uart\n");
+		uart_unregister_driver(&bfin_serial_reg);
+	}
+
 	return ret;
 }
 
@@ -1518,20 +1587,6 @@ static void __exit bfin_serial_exit(void)
 {
 	platform_driver_unregister(&bfin_serial_driver);
 	uart_unregister_driver(&bfin_serial_reg);
-
-#ifdef CONFIG_SERIAL_BFIN_UART0
-	peripheral_free_list(bfin_uart0_pin_req);
-#endif
-#ifdef CONFIG_SERIAL_BFIN_UART1
-	peripheral_free_list(bfin_uart1_pin_req);
-#endif
-#ifdef CONFIG_SERIAL_BFIN_UART2
-	peripheral_free_list(bfin_uart2_pin_req);
-#endif
-#ifdef CONFIG_SERIAL_BFIN_UART3
-	peripheral_free_list(bfin_uart3_pin_req);
-#endif
-
 }
 
 
