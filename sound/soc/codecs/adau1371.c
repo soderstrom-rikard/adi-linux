@@ -596,10 +596,9 @@ static const struct snd_soc_dapm_widget adau1371_dapm_widgets[] = {
 };
 
 static const struct snd_soc_dapm_route audio_conn[] = {
-	{ "Output Mixer", "Playback Switch", "DAC" },
-	{ "LINE OUT", NULL, "Output Mixer" },
-	{ "CLASS D", NULL, "Output Mixer" },
-	{ "HEADPHONE", NULL, "Output Mixer" },
+	{ "LINE OUT", "Output Mixer", "DAC" },
+	{ "CLASS D", "Output Mixer", "DAC" },
+	{ "HEADPHONE", "Output Mixer", "DAC" },
 	{ "ADC", "Input Mux", "INPA" },
 	{ "ADC", "Input Mux", "INPB" },
 	{ "ADC", "Input Mux", "INPC" },
