@@ -968,6 +968,8 @@ static int adau1371_init(struct snd_soc_device *socdev)
 	reg = PWRCTLB_RLNPD | PWRCTLB_LLNPD | PWRCTLB_RDACPD |
 		PWRCTLB_LDACPD | PWRCTLB_PWDB;
 	adau1371_write(codec, ADAU1371_PWRCTLB, reg);
+	/* Increase the driven ability of DAIA, maybe not necessary in real use */
+	adau1371_write(codec, ADAU1371_PAD_CTL, PADCTL_DAIA);
 
 	/* Enable Dynamic range control */
 	adau1371_write(codec, ADAU1371_DRCCTL1, 0x07);

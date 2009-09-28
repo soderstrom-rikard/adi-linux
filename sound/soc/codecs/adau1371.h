@@ -94,6 +94,7 @@
 #define ADAU1371_DSPMODE	0xA2
 
 #define ADAU1371_DIGMIC		0xB1
+#define ADAU1371_PAD_CTL	0xB7
 #define ADAU1371_DIGEN		0xC0
 #define ADAU1371_RESET		0xFF
 
@@ -198,6 +199,13 @@
 /* DSP MODE */
 #define DSPMODE_PLAYBACK_ENA	0x01
 #define DSPMODE_CAPTURE_ENA	0x02
+
+/* PAD_CTL */
+#define PADCTL_DAIA	0x01
+#define PADCTL_DAIB	0x02
+#define PADCTL_GPIO	0x04
+#define PADCTL_I2C	0x08
+#define PADCTL_I2CFLT	0x10
 
 #define BE_SHIFT		2
 #define EQ_SHIFT		4
