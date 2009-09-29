@@ -131,6 +131,7 @@
 struct bfin_lq035q1fb_info {
 	struct fb_info *fb;
 	struct device *dev;
+	struct spi_driver spidrv;
 	struct bfin_lq035q1fb_disp_info *disp_info;
 	unsigned char *fb_buffer;	/* RGB Buffer */
 	dma_addr_t dma_handle;
@@ -148,7 +149,6 @@ MODULE_PARM_DESC(nocursor, "cursor enable/disable");
 struct spi_control {
 	unsigned short mode;
 };
-static struct spi_control spi_control;
 
 static int lq035q1_control(struct spi_device *spi, unsigned char reg, unsigned short value)
 {
@@ -172,14 +172,17 @@ static int __devinit lq035q1_spidev_probe(struct spi_device *spi)
 {
 	int ret;
 	struct spi_control *ctl;
+	struct bfin_lq035q1fb_info *info = container_of(spi->dev.driver,
+						struct bfin_lq035q1fb_info,
+						spidrv.driver);
 
-#if 0
 	ctl = kzalloc(sizeof(*ctl), GFP_KERNEL);
+
 	if (!ctl)
 		return -ENOMEM;
-#else
-	ctl = &spi_control;
-#endif
+
+	ctl->mode = (info->disp_info->mode &
+		LQ035_DRIVER_OUTPUT_MASK) | LQ035_DRIVER_OUTPUT_DEFAULT;
 
 	ret = lq035q1_control(spi, LQ035_SHUT_CTL, LQ035_ON);
 	ret |= lq035q1_control(spi, LQ035_DRIVER_OUTPUT_CTL, ctl->mode);
@@ -191,7 +194,7 @@ static int __devinit lq035q1_spidev_probe(struct spi_device *spi)
 	return 0;
 }
 
-static int __devexit lq035q1_spidev_remove(struct spi_device *spi)
+static int lq035q1_spidev_remove(struct spi_device *spi)
 {
 	return lq035q1_control(spi, LQ035_SHUT_CTL, LQ035_SHUT);
 }
@@ -223,17 +226,6 @@ static void lq035q1_spidev_shutdown(struct spi_device *spi)
 {
 	lq035q1_control(spi, LQ035_SHUT_CTL, LQ035_SHUT);
 }
-
-static struct spi_driver spidev_spi_driver = {
-	.driver = {
-		.name = DRIVER_NAME"-spi",
-	},
-	.probe    = lq035q1_spidev_probe,
-	.remove   = __devexit_p(lq035q1_spidev_remove),
-	.shutdown = lq035q1_spidev_shutdown,
-	.suspend  = lq035q1_spidev_suspend,
-	.resume   = lq035q1_spidev_resume,
-};
 
 static int lq035q1_backlight(struct bfin_lq035q1fb_info *info, unsigned arg)
 {
@@ -585,9 +577,6 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 
 	info->disp_info = pdev->dev.platform_data;
 
-	spi_control.mode = (info->disp_info->mode &
-		LQ035_DRIVER_OUTPUT_MASK) | LQ035_DRIVER_OUTPUT_DEFAULT;
-
 	platform_set_drvdata(pdev, fbinfo);
 
 	strcpy(fbinfo->fix.id, DRIVER_NAME);
@@ -702,7 +691,14 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 		goto out7;
 	}
 
-	ret = spi_register_driver(&spidev_spi_driver);
+	info->spidrv.driver.name = DRIVER_NAME"-spi";
+	info->spidrv.probe    = lq035q1_spidev_probe;
+	info->spidrv.remove   = __devexit_p(lq035q1_spidev_remove);
+	info->spidrv.shutdown = lq035q1_spidev_shutdown;
+	info->spidrv.suspend  = lq035q1_spidev_suspend;
+	info->spidrv.resume   = lq035q1_spidev_resume;
+
+	ret = spi_register_driver(&info->spidrv);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "couldn't register SPI Interface\n");
 		goto out8;
@@ -734,7 +730,7 @@ static int __devinit bfin_lq035q1_probe(struct platform_device *pdev)
 	if (info->disp_info->use_bl)
 		gpio_free(info->disp_info->gpio_bl);
  out9:
-	spi_unregister_driver(&spidev_spi_driver);
+	spi_unregister_driver(&info->spidrv);
  out8:
 	free_irq(info->irq, info);
  out7:
@@ -762,7 +758,7 @@ static int __devexit bfin_lq035q1_remove(struct platform_device *pdev)
 	if (info->disp_info->use_bl)
 		gpio_free(info->disp_info->gpio_bl);
 
-	spi_unregister_driver(&spidev_spi_driver);
+	spi_unregister_driver(&info->spidrv);
 
 	unregister_framebuffer(fbinfo);
 
