@@ -130,8 +130,8 @@ static struct platform_device rtc_device = {
 #ifdef CONFIG_SERIAL_BFIN_UART0
 static struct resource bfin_uart0_resources[] = {
 	{
-		.start = UART0_THR,
-		.end = UART0_GCTL+2,
+		.start = UART0_DLL,
+		.end = UART0_RBR+2,
 		.flags = IORESOURCE_MEM,
 	},
 	{
@@ -191,8 +191,8 @@ static struct platform_device bfin_uart0_device = {
 #ifdef CONFIG_SERIAL_BFIN_UART1
 static struct resource bfin_uart1_resources[] = {
 	{
-		.start = UART1_THR,
-		.end = UART1_GCTL+2,
+		.start = UART1_DLL,
+		.end = UART1_RBR+2,
 		.flags = IORESOURCE_MEM,
 	},
 	{
@@ -256,8 +256,8 @@ static struct platform_device bfin_uart1_device = {
 #ifdef CONFIG_SERIAL_BFIN_UART2
 static struct resource bfin_uart2_resources[] = {
 	{
-		.start = UART2_THR,
-		.end = UART2_GCTL+2,
+		.start = UART2_DLL,
+		.end = UART2_RBR+2,
 		.flags = IORESOURCE_MEM,
 	},
 	{
@@ -317,8 +317,8 @@ static struct platform_device bfin_uart2_device = {
 #ifdef CONFIG_SERIAL_BFIN_UART3
 static struct resource bfin_uart3_resources[] = {
 	{
-		.start = UART3_THR,
-		.end = UART3_GCTL+2,
+		.start = UART3_DLL,
+		.end = UART3_RBR+2,
 		.flags = IORESOURCE_MEM,
 	},
 	{
