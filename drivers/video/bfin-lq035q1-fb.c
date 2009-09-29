@@ -135,7 +135,6 @@ struct bfin_lq035q1fb_info {
 	struct bfin_lq035q1fb_disp_info *disp_info;
 	unsigned char *fb_buffer;	/* RGB Buffer */
 	dma_addr_t dma_handle;
-	int lq035_mmap;
 	int lq035_open_cnt;
 	int irq;
 	spinlock_t lock;	/* lock */
@@ -386,7 +385,6 @@ static int bfin_lq035q1_fb_release(struct fb_info *info, int user)
 	spin_lock(&fbi->lock);
 
 	fbi->lq035_open_cnt--;
-	fbi->lq035_mmap = 0;
 
 	if (fbi->lq035_open_cnt <= 0) {
 		lq035q1_backlight(fbi, 0);
@@ -451,32 +449,6 @@ static int bfin_lq035q1_fb_check_var(struct fb_var_screeninfo *var,
 	return 0;
 }
 
-static int bfin_lq035q1_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
-{
-	struct bfin_lq035q1fb_info *fbi = info->par;
-
-	if (fbi->lq035_mmap)
-		return -1;
-
-	spin_lock(&fbi->lock);
-	fbi->lq035_mmap = 1;
-	spin_unlock(&fbi->lock);
-
-	vma->vm_start = (unsigned long)(fbi->fb_buffer + ACTIVE_VIDEO_MEM_OFFSET);
-
-	vma->vm_end = vma->vm_start + info->fix.smem_len;
-	/* For those who don't understand how mmap works, go read
-	 *   Documentation/nommu-mmap.txt.
-	 * For those that do, you will know that the VM_MAYSHARE flag
-	 * must be set in the vma->vm_flags structure on noMMU
-	 *   Other flags can be set, and are documented in
-	 *   include/linux/mm.h
-	 */
-	vma->vm_flags |= VM_MAYSHARE | VM_SHARED;
-
-	return 0;
-}
-
 int bfin_lq035q1_fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
 {
 	if (nocursor)
@@ -528,7 +500,6 @@ static struct fb_ops bfin_lq035q1_fb_ops = {
 	.fb_fillrect = cfb_fillrect,
 	.fb_copyarea = cfb_copyarea,
 	.fb_imageblit = cfb_imageblit,
-	.fb_mmap = bfin_lq035q1_fb_mmap,
 	.fb_cursor = bfin_lq035q1_fb_cursor,
 	.fb_setcolreg = bfin_lq035q1_fb_setcolreg,
 };
