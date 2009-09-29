@@ -102,7 +102,6 @@ static struct fb_ops bfin_adv7393_fb_ops = {
 	.fb_fillrect		= cfb_fillrect,
 	.fb_copyarea		= cfb_copyarea,
 	.fb_imageblit		= cfb_imageblit,
-	.fb_mmap = bfin_adv7393_fb_mmap,
 	.fb_cursor = bfin_adv7393_fb_cursor,
 	.fb_setcolreg = bfin_adv7393_fb_setcolreg,
 };
@@ -196,31 +195,6 @@ error:
 	l1_data_sram_free(fbdev->av2);
 
 	return 0;
-}
-
-static int adv7393_mmap;
-static int bfin_adv7393_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
-{
-	/* we really dont need any map ... not sure how the smem_start will
-	 * end up in the kernel
-	 */
-
-	struct adv7393fb_device *fbdev = to_adv7393fb_device(info);
-
-	if (adv7393_mmap)
-		return -1;
-
-	vma->vm_start = (int)fbdev->fb_mem;
-
-	/*   VM_MAYSHARE limits for mprotect(), and must be set on nommu.
-	 *   Other flags can be set, and are documented in
-	 *   include/linux/mm.h
-	 */
-
-	vma->vm_flags |= VM_MAYSHARE | VM_SHARED;
-
-	return 0;
-
 }
 
 static int bfin_config_dma(struct adv7393fb_device *fbdev)
@@ -510,6 +484,15 @@ static int __devinit bfin_adv7393_fb_probe(struct i2c_client *client,
 
 	fbdev->open = 0;
 
+	ret = adv7393_write_block(client, fbdev->modes[mode].adv7393_i2c_initd,
+				fbdev->modes[mode].adv7393_i2c_initd_len);
+
+	if (ret) {
+		dev_err(&client->dev, "i2c attach: init error\n");
+		goto out_1;
+	}
+
+
 	if (register_framebuffer(&fbdev->info) < 0) {
 		dev_err(&client->dev, "unable to register framebuffer\n");
 		ret = -EFAULT;
@@ -529,14 +512,6 @@ static int __devinit bfin_adv7393_fb_probe(struct i2c_client *client,
 	entry->read_proc = adv7393_read_proc;
 	entry->write_proc = adv7393_write_proc;
 	entry->data = fbdev;
-
-	ret = adv7393_write_block(client, fbdev->modes[mode].adv7393_i2c_initd,
-				fbdev->modes[mode].adv7393_i2c_initd_len);
-
-	if (ret) {
-		dev_err(&client->dev, "i2c attach: init error\n");
-		goto out_0;
-	}
 
 
 	return 0;
@@ -591,7 +566,6 @@ static int bfin_adv7393_fb_release(struct fb_info *info, int user)
 	bfin_disable_dma();
 	bfin_disable_ppi();
 	dma_desc_list(fbdev, DESTRUCT);
-	adv7393_mmap = 0;
 	fbdev->open = 0;
 	return 0;
 }
