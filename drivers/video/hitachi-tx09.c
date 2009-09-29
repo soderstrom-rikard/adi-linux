@@ -96,7 +96,6 @@ static dma_addr_t dma_handle;
 static unsigned long *dma_desc_table;
 static unsigned long current_brightness;	/* backlight */
 static int tx09_open_cnt;
-static int tx09_mmap;
 static struct backlight_device *bl_dev;
 static int t_conf_done;
 static DEFINE_SPINLOCK(tx09_lock);
@@ -457,7 +456,7 @@ static int tx09_fb_release(struct fb_info *info, int user)
 
 	spin_lock_irqsave(&tx09_lock, flags);
 	tx09_open_cnt--;
-	tx09_mmap = 0;
+
 	spin_unlock_irqrestore(&tx09_lock, flags);
 
 	if (tx09_open_cnt <= 0) {
@@ -515,26 +514,6 @@ static int tx09_fb_check_var(struct fb_var_screeninfo *var,
 	return 0;
 }
 
-static int tx09_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
-{
-	unsigned long flags;
-
-	pr_debug("%s\n", __func__);
-
-	if (tx09_mmap)
-		return -1;	/* already mmap'ed */
-
-	spin_lock_irqsave(&tx09_lock, flags);
-	tx09_mmap = 1;
-	spin_unlock_irqrestore(&tx09_lock, flags);
-
-	vma->vm_start = (unsigned long)fb_buffer;
-	vma->vm_end = vma->vm_start + 320 * 240 * 2;
-	vma->vm_flags |= VM_MAYSHARE | VM_SHARED;
-
-	return 0;
-}
-
 int tx09_fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
 {
 
@@ -584,7 +563,6 @@ static struct fb_ops tx09_fb_ops = {
 	.fb_fillrect = cfb_fillrect,
 	.fb_copyarea = cfb_copyarea,
 	.fb_imageblit = cfb_imageblit,
-	.fb_mmap = tx09_fb_mmap,
 	.fb_cursor = tx09_fb_cursor,
 	.fb_setcolreg = tx09_fb_setcolreg,
 };
