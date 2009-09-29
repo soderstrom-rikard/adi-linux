@@ -51,7 +51,7 @@
 static unsigned char *fb_buffer;          /* RGB Buffer */
 static dma_addr_t dma_handle;             /* ? */
 static unsigned long *dma_desc_table;
-static int lq035_mmap, t_conf_done, lq035_open_cnt;
+static int t_conf_done, lq035_open_cnt;
 static DEFINE_SPINLOCK(bfin_lq035_lock);
 
 static int landscape;
@@ -495,7 +495,6 @@ static int bfin_lq035_fb_release(struct fb_info *info, int user)
 
 	spin_lock_irqsave(&bfin_lq035_lock, flags);
 	lq035_open_cnt--;
-	lq035_mmap = 0;
 	spin_unlock_irqrestore(&bfin_lq035_lock, flags);
 
 
@@ -577,35 +576,6 @@ void bfin_lq035_fb_rotate(struct fb_info *fbi, int angle)
 #endif
 }
 
-static int bfin_lq035_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
-{
-	unsigned long flags;
-
-	if (lq035_mmap)
-		return -1;
-
-	spin_lock_irqsave(&bfin_lq035_lock, flags);
-	lq035_mmap = 1;
-	spin_unlock_irqrestore(&bfin_lq035_lock, flags);
-
-	if (landscape)
-		vma->vm_start = (unsigned long)fb_buffer;
-	else
-		vma->vm_start = (unsigned long)(fb_buffer + ACTIVE_VIDEO_MEM_OFFSET);
-
-	vma->vm_end = vma->vm_start + ACTIVE_VIDEO_MEM_SIZE;
-	/* For those who don't understand how mmap works, go read
-	 *   Documentation/nommu-mmap.txt.
-	 * For those that do, you will know that the VM_MAYSHARE flag
-	 * must be set in the vma->vm_flags structure on noMMU
-	 *   Other flags can be set, and are documented in
-	 *   include/linux/mm.h
-	 */
-	vma->vm_flags |= VM_MAYSHARE | VM_SHARED;
-
-	return 0;
-}
-
 int bfin_lq035_fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
 {
 	if (nocursor)
@@ -658,7 +628,6 @@ static struct fb_ops bfin_lq035_fb_ops = {
 	.fb_fillrect		= cfb_fillrect,
 	.fb_copyarea		= cfb_copyarea,
 	.fb_imageblit		= cfb_imageblit,
-	.fb_mmap		= bfin_lq035_fb_mmap,
 	.fb_cursor		= bfin_lq035_fb_cursor,
 	.fb_setcolreg		= bfin_lq035_fb_setcolreg,
 };
