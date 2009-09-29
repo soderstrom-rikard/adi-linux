@@ -185,8 +185,8 @@ static struct platform_device ax88180_device = {
 #ifdef CONFIG_SERIAL_BFIN_UART0
 static struct resource bfin_uart0_resources[] = {
 	{
-		.start = 0xFFC00400,
-		.end = 0xFFC004FF,
+		.start = BFIN_UART_THR,
+		.end = BFIN_UART_GCTL+2,
 		.flags = IORESOURCE_MEM,
 	},
 	{

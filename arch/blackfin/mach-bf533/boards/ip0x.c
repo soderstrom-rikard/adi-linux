@@ -160,8 +160,8 @@ static struct platform_device spi_bfin_master_device = {
 #ifdef CONFIG_SERIAL_BFIN_UART0
 static struct resource bfin_uart0_resources[] = {
 	{
-		.start = UART_THR,
-		.end = UART_GCTL+2,
+		.start = BFIN_UART_THR,
+		.end = BFIN_UART_GCTL+2,
 		.flags = IORESOURCE_MEM,
 	},
 	{
