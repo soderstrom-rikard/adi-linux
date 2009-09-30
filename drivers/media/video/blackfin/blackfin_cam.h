@@ -207,7 +207,7 @@ struct bcap_device_t {
 };
 
 struct sensor_data {
-	struct i2c_client client;
+	struct i2c_client *client;
 	struct bcap_device_t *bcap_dev;
 	struct bcap_camera_ops *cam_ops;
 };

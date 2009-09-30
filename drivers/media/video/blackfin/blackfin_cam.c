@@ -397,7 +397,7 @@ static int bcap_init_v4l(struct sensor_data *data)
 
 	video_set_drvdata(bcap_dev->videodev, bcap_dev);
 
-	bcap_dev->client = &data->client;
+	bcap_dev->client = data->client;
 
 	spin_lock_init(&bcap_dev->lock);
 	data->bcap_dev = bcap_dev;
@@ -421,18 +421,13 @@ error_out:
 	return err;
 }
 
-static int sensor_detect_client(struct i2c_adapter *adapter, int address,
-				int kind)
+static int sensor_i2c_probe(struct i2c_client *i2c,
+			      const struct i2c_device_id *id)
 {
 	int err;
-	struct i2c_client *new_client;
 	struct sensor_data *data;
-	u16 tmp = 0;
 
-	if (address != normal_i2c[0] && address != normal_i2c[1])
-		return -ENODEV;
-
-	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
+	if (!i2c_check_functionality(i2c->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 		return 0;
 
 	data = kzalloc(sizeof(struct sensor_data), GFP_KERNEL);
@@ -445,30 +440,20 @@ static int sensor_detect_client(struct i2c_adapter *adapter, int address,
 		err = -ENODEV;
 		goto error_out;
 	}
+	i2c_global_client = i2c;
+	data->client = i2c;
+	i2c_set_clientdata(i2c, data);
 
-	i2c_global_client = new_client = &data->client;
-	i2c_set_clientdata(new_client, data);
-	new_client->addr = address;
-	new_client->adapter = adapter;
-	new_client->driver = &sensor_driver;
-	strcpy(new_client->name, sensor_name);
-
-	printk(KERN_INFO "%s: detecting client on address 0x%x\n", sensor_name,
-	       address << 1);
-
-	err = i2c_attach_client(new_client);
-	if (err)
-		goto error_out;
-
-	pr_debug("%s: detected I2C client (id = %04x)\n", sensor_name, tmp);
-
-	err = data->cam_ops->cam_control(new_client, CAM_CMD_INIT, 1);
+	err = data->cam_ops->cam_control(i2c, CAM_CMD_INIT, 1);
 
 	if (err)
 		goto error_out;
 
-	data->cam_ops->cam_control(new_client, CAM_CMD_SET_PIXFMT,
+	data->cam_ops->cam_control(i2c, CAM_CMD_SET_PIXFMT,
 				   default_palette(force_palette));
+
+	printk(KERN_INFO"%s: detected client on address 0x%x\n", sensor_name,
+	       I2C_SENSOR_ID >> 1);
 
 	err = bcap_init_v4l(data);
 
@@ -483,26 +468,12 @@ error_out:
 	return err;
 }
 
-static int sensor_attach_adapter(struct i2c_adapter *adapter)
-{
-	int i;
-	BUG_ON(adapter == NULL);
-	pr_debug("%s: starting probe for adapter %s (0x%x)\n", sensor_name,
-		 adapter->name, adapter->id);
-	i = i2c_probe(adapter, &addr_data, &sensor_detect_client);
-	return i;
-}
-
-static int sensor_detach_client(struct i2c_client *client)
+static int sensor_i2c_remove(struct i2c_client *client)
 {
 	struct sensor_data *data = i2c_get_clientdata(client);
-	int err;
 
 	data->cam_ops->cam_control(i2c_global_client, CAM_CMD_EXIT, 1);
 	data->cam_ops->create_sysfs(data->bcap_dev->videodev, 0);
-
-	if ((err = i2c_detach_client(client)))
-		return err;
 
 	video_unregister_device(data->bcap_dev->videodev);
 	kfree(data->bcap_dev->ppidev);
@@ -512,14 +483,59 @@ static int sensor_detach_client(struct i2c_client *client)
 	return 0;
 }
 
-static struct i2c_driver sensor_driver = {
-	.driver = {
-		   .name = SENSOR_NAME,
-		   },
-	.id = I2C_DRIVERID_BCAP,
-	.attach_adapter = sensor_attach_adapter,
-	.detach_client = sensor_detach_client,
+static const struct i2c_device_id sensor_i2c_id[] = {
+	{ "sensor", 0 },
+	{ }
 };
+MODULE_DEVICE_TABLE(i2c, sensor_i2c_id);
+
+/* i2c sensor control layer */
+static struct i2c_driver sensor_i2c_driver = {
+	.driver = {
+		.name = "sensor",
+		.owner = THIS_MODULE,
+	},
+	.probe    = sensor_i2c_probe,
+	.remove   = sensor_i2c_remove,
+	.id_table = sensor_i2c_id,
+};
+
+static int sensor_add_i2c_device(void)
+{
+	struct i2c_board_info info;
+	struct i2c_adapter *adapter;
+	struct i2c_client *client;
+	int ret;
+
+	ret = i2c_add_driver(&sensor_i2c_driver);
+	if (ret != 0) {
+		printk(KERN_ERR"can't add i2c driver\n");
+		return ret;
+	}
+
+	memset(&info, 0, sizeof(info));
+	info.addr = I2C_SENSOR_ID >> 1;
+	strlcpy(info.type, "sensor", I2C_NAME_SIZE);
+	adapter = i2c_get_adapter(0);
+	if (!adapter) {
+		printk(KERN_ERR"can't get i2c adapter %d\n", 0);
+		goto err_driver;
+	}
+
+	client = i2c_new_device(adapter, &info);
+	i2c_put_adapter(adapter);
+	if (!client) {
+		printk(KERN_ERR"can't add i2c device at %x\n",
+			info.addr);
+		goto err_driver;
+	}
+
+	return 0;
+
+ err_driver:
+	i2c_del_driver(&sensor_i2c_driver);
+	return -ENODEV;
+}
 
 #if 0
 static int v4l2_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
@@ -1325,7 +1341,6 @@ static long bcap_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 static int bcap_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	BUG_ON(bcap_dev == NULL);
-	vma->vm_flags |= VM_MAYSHARE;
 	vma->vm_start = (u32) bcap_dev->buffer[0].data;
 	vma->vm_end = vma->vm_start + bcap_dev->size;
 
@@ -1468,7 +1483,8 @@ static __init int bcap_init(void)
 		global_gain = 127;
 	}
 
-	err = i2c_add_driver(&sensor_driver);
+
+	err = sensor_add_i2c_device();
 	if (err) {
 		printk(KERN_WARNING "%s: could not add i2c driver: %i\n",
 		       sensor_name, err);
@@ -1501,7 +1517,6 @@ static __init int bcap_init(void)
 	bcap_init_v4l(data);
 #endif
 
-	printk(KERN_INFO "%s: i2c driver ready\n", sensor_name);
 	return 0;
 }
 
