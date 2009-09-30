@@ -224,6 +224,22 @@ struct adau1371_setup_data {
 	unsigned short i2c_address;
 };
 
+struct _pll_settings {
+	u32 mclk;
+	u32 rate;
+	u16 n;
+	u16 m;
+	u8 input_div:2;
+	u8 integer:4;
+	u8 type:1;
+};
+
+struct adau1371_platform_data {
+	u8 pll_settings_num;
+	struct _pll_settings *pll_settings;
+	u8 drc_settings[8];
+};
+
 extern struct snd_soc_dai adau1371_dai;
 extern struct snd_soc_codec_device soc_codec_dev_adau1371;
 

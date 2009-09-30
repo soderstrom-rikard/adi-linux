@@ -28,6 +28,7 @@ struct adau1371_priv {
 	unsigned int sysclk;
 	unsigned int out_chan_mask;
 	unsigned int in_chan_mask;
+	struct adau1371_platform_data *data;
 };
 
 /*
@@ -69,34 +70,6 @@ static const u8 adau1371_reg[ADAU1371_CACHEREGNUM] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* 0xe8-0xef */
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* 0xf0-0xf7 */
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* 0xf8-0xff */
-};
-
-struct _pll_settings {
-	u32 mclk;
-	u32 rate;
-	u16 n;	/* N and M registers are inverted on REVB */
-	u16 m;
-	u8 input_div:2;
-	u8 integer:4;
-	u8 type:1;
-};
-
-/* PLL settings coefficients, add more here... */
-static const struct _pll_settings pll_settings[] = {
-	/* 96k */
-	/* {12288000, 96000, 0, 0, 0x0, 0x8, 0x0}, */
-	/* 88.2k */
-	/* {12288000, 88200, 20, 7, 0x0, 0x7, 0x1}, */
-	/* 48k */
-	{12288000, 48000, 0, 0, 0x0, 0x4, 0x0},
-	/* 44.1k */
-	{12288000, 44100, 40, 27, 0x0, 0x3, 0x1},
-	{11289600, 44100, 0, 0, 0x0, 0x4, 0x0},
-	/* 22.050k */
-	{12288000, 22050, 40, 27, 0x1, 0x3, 0x1},
-	{11289600, 22050, 0, 0, 0x0, 0x2, 0x0},
-	/* 8k */
-	/* {12288000, 8000, 3, 2, 0x3, 0x2, 0x1}, */
 };
 
 /*
@@ -618,15 +591,30 @@ static int adau1371_add_widgets(struct snd_soc_codec *codec)
 
 #define adau1371_reset(c) adau1371_write(c, ADAU1371_RESET, 0)
 
-static inline int get_coeff(int mclk, int rate)
+static inline int get_coeff(struct adau1371_priv *adau1371, int rate)
 {
+	struct _pll_settings *pll_settings = adau1371->data->pll_settings;
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(pll_settings); ++i)
-		if (pll_settings[i].rate == rate && pll_settings[i].mclk == mclk)
+	for (i = 0; i < adau1371->data->pll_settings_num; ++i)
+		if ((pll_settings + i)->rate == rate && (pll_settings + i)->mclk ==
+			adau1371->sysclk)
 			return i;
 
 	return i;
+}
+
+static void adau1371_set_drc(struct snd_soc_codec *codec, u8 *dsettings)
+{
+	adau1371_write(codec, ADAU1371_DRCCTL1, dsettings[0]);
+	adau1371_write(codec, ADAU1371_DRCCTL2, dsettings[1]);
+	adau1371_write(codec, ADAU1371_DRCSC1, dsettings[2]);
+	adau1371_write(codec, ADAU1371_DRCSC2, dsettings[3]);
+	adau1371_write(codec, ADAU1371_DRCSC3, dsettings[4]);
+	adau1371_write(codec, ADAU1371_DRCGS1, dsettings[5]);
+	adau1371_write(codec, ADAU1371_DRCGS2, dsettings[6]);
+	adau1371_write(codec, ADAU1371_DRCGS3, dsettings[7]);
+
 }
 
 /* Set rate and format */
@@ -639,6 +627,7 @@ static int adau1371_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
 	struct adau1371_priv *adau1371 = codec->private_data;
+	struct _pll_settings *pll_settings = adau1371->data->pll_settings;
 	int i = 0;
 	u8 dai_ctl;
 	/* 8000Hz can't be got through PLL on REVB,so use external clock directly */
@@ -646,8 +635,8 @@ static int adau1371_hw_params(struct snd_pcm_substream *substream,
 		adau1371_write(codec, ADAU1371_CLKSDIV, CLKSDIV_PLL_BYPASS
 			| (5 << CLKSDIV_CLKDIV_SHIFT));
 	} else {
-		i = get_coeff(adau1371->sysclk, params_rate(params));
-		if (i == ARRAY_SIZE(pll_settings))
+		i = get_coeff(adau1371, params_rate(params));
+		if (i == adau1371->data->pll_settings_num)
 			return -EINVAL;
 		adau1371_write(codec, ADAU1371_CLKSDIV, (3 << CLKSDIV_CLKDIV_SHIFT));
 		reg = adau1371_read_reg_cache(codec, ADAU1371_CLKSDIV);
@@ -655,15 +644,15 @@ static int adau1371_hw_params(struct snd_pcm_substream *substream,
 		/* Set PLL */
 		adau1371_write(codec, ADAU1371_PLLCTLB, 0x00);
 		adau1371_write(codec, ADAU1371_PLLMHI,
-			(pll_settings[i].m & 0xff00) >> 8);
-		adau1371_write(codec, ADAU1371_PLLMLOW, pll_settings[i].m
+			((pll_settings + i)->m & 0xff00) >> 8);
+		adau1371_write(codec, ADAU1371_PLLMLOW, (pll_settings + i)->m
 			& 0xff);
 		adau1371_write(codec, ADAU1371_PLLNHI,
-			(pll_settings[i].n & 0xff00) >> 8);
-		adau1371_write(codec, ADAU1371_PLLNLOW, pll_settings[i].n
+			((pll_settings + i)->n & 0xff00) >> 8);
+		adau1371_write(codec, ADAU1371_PLLNLOW, (pll_settings + i)->n
 			& 0xff);
-		adau1371_write(codec, ADAU1371_PLLCTLA, pll_settings[i].integer << 3 |
-			 pll_settings[i].input_div << 1 | pll_settings[i].type);
+		adau1371_write(codec, ADAU1371_PLLCTLA, (pll_settings + i)->integer << 3 |
+			 (pll_settings + i)->input_div << 1 | (pll_settings + i)->type);
 	}
 
 	/* bit size */
@@ -698,7 +687,7 @@ static int adau1371_pcm_prepare(struct snd_pcm_substream *substream,
 	struct snd_soc_codec *codec = socdev->card->codec;
 	u8 reg;
 
-	/* Enable PLL and wait 4 ms for PLL lock */
+	/* Enable PLL and wait 5 ms for PLL lock */
 	adau1371_write(codec, ADAU1371_PLLCTLB, PLLCTLB_PLLEN);
 	msleep(5);
 
@@ -940,19 +929,19 @@ static int adau1371_init(struct snd_soc_device *socdev)
 	/* Playback mix settings, line out switched to DACs */
 	adau1371_write(codec, ADAU1371_LLINEMIX, LDAC_SIGNAL_ENA);
 	adau1371_write(codec, ADAU1371_RLINEMIX, RDAC_SIGNAL_ENA);
-	/* Line out volume gain:0 db by default */
-	adau1371_write(codec, ADAU1371_LLINEVOL, 0x1f);
-	adau1371_write(codec, ADAU1371_RLINEVOL, 0x1f);
+	/* Line out volume gain:10 db by default */
+	adau1371_write(codec, ADAU1371_LLINEVOL, 0x17);
+	adau1371_write(codec, ADAU1371_RLINEVOL, 0x17);
 	adau1371_write(codec, ADAU1371_DAIAPBLVOL, 0x80);
 	adau1371_write(codec, ADAU1371_DAIAPBRVOL, 0x80);
 
 	/* Capture mix settings, AIN1 switched to ADCs */
 	adau1371_write(codec, ADAU1371_LADCMIX, AIN1_SIGNAL_ENA);
 	adau1371_write(codec, ADAU1371_RADCMIX, AIN1_SIGNAL_ENA);
-	/* Input volume gain:0 db by default */
+	/* Input volume gain:10 db by default */
 	adau1371_write(codec, ADAU1371_INPUTMODE, 0x00);
-	adau1371_write(codec, ADAU1371_INALVOL, 0x1f);
-	adau1371_write(codec, ADAU1371_INARVOL, 0x1f);
+	adau1371_write(codec, ADAU1371_INALVOL, 0x17);
+	adau1371_write(codec, ADAU1371_INARVOL, 0x17);
 	adau1371_write(codec, ADAU1371_DAIRECLVOL, 0x80);
 	adau1371_write(codec, ADAU1371_DAIRECRVOL, 0x80);
 	/* Should be set on REVB to enable ADCs */
@@ -972,14 +961,7 @@ static int adau1371_init(struct snd_soc_device *socdev)
 	adau1371_write(codec, ADAU1371_PAD_CTL, PADCTL_DAIA);
 
 	/* Enable Dynamic range control */
-	adau1371_write(codec, ADAU1371_DRCCTL1, 0x07);
-	adau1371_write(codec, ADAU1371_DRCCTL2, 0x77);
-	adau1371_write(codec, ADAU1371_DRCSC1, 0x33);
-	adau1371_write(codec, ADAU1371_DRCSC2, 0x88);
-	adau1371_write(codec, ADAU1371_DRCSC3, 0x5d);
-	adau1371_write(codec, ADAU1371_DRCGS1, 0x77);
-	adau1371_write(codec, ADAU1371_DRCGS2, 0x77);
-	adau1371_write(codec, ADAU1371_DRCGS3, 0x13);
+	adau1371_set_drc(codec, adau1371->data->drc_settings);
 	adau1371_write(codec, ADAU1371_DRCMODE,
 		DRCMODE_RIGHT_ENA | DRCMODE_LEFT_ENA | DRCMODE_NGEN);
 	/* Playback signal input */
@@ -1089,7 +1071,7 @@ static int adau1371_add_i2c_device(struct platform_device *pdev,
 	return -ENODEV;
 }
 
-static int __devinit adau1371_probe(struct platform_device *pdev)
+static int adau1371_probe(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct adau1371_setup_data *setup;
@@ -1107,7 +1089,7 @@ static int __devinit adau1371_probe(struct platform_device *pdev)
 		kfree(codec);
 		return -ENOMEM;
 	}
-
+	adau1371->data = pdev->dev.platform_data;;
 	codec->private_data = adau1371;
 	socdev->card->codec = codec;
 	mutex_init(&codec->mutex);
@@ -1126,7 +1108,7 @@ static int __devinit adau1371_probe(struct platform_device *pdev)
 }
 
 /* remove everything here */
-static int __devexit adau1371_remove(struct platform_device *pdev)
+static int adau1371_remove(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;

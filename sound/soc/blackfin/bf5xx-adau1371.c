@@ -24,6 +24,30 @@
 #include "bf5xx-i2s-pcm.h"
 #include "bf5xx-i2s.h"
 
+/* PLL settings coefficients, add more here... */
+static const struct _pll_settings adau1371_pll_settings[] = {
+	/* 96k */
+	/* {12288000, 96000, 0, 0, 0x0, 0x8, 0x0}, */
+	/* 88.2k */
+	/* {12288000, 88200, 20, 7, 0x0, 0x7, 0x1}, */
+	/* 48k */
+	{ 12288000, 48000, 0, 0, 0x0, 0x4, 0x0 },
+	/* 44.1k */
+	{ 12288000, 44100, 40, 27, 0x0, 0x3, 0x1 },
+	{ 11289600, 44100, 0, 0, 0x0, 0x4, 0x0 },
+	/* 22.050k */
+	{ 12288000, 22050, 40, 27, 0x1, 0x3, 0x1 },
+	{ 11289600, 22050, 0, 0, 0x0, 0x2, 0x0 },
+	/* 8k */
+	/* {12288000, 8000, 3, 2, 0x3, 0x2, 0x1}, */
+};
+
+static struct adau1371_platform_data adau1371_pdata = {
+	.pll_settings_num       = ARRAY_SIZE(adau1371_pll_settings),
+	.pll_settings   = &adau1371_pll_settings,
+	.drc_settings	= { 0x07, 0x77, 0x33, 0x88, 0x5d, 0x77, 0x77, 0x13 },
+};
+
 static int bf5xx_adau1371_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
@@ -115,6 +139,7 @@ static int __init bf5xx_adau1371_init(void)
 
 	platform_set_drvdata(bf5xx_adau1371_snd_device,
 				&bf5xx_adau1371_snd_devdata);
+	bf5xx_adau1371_snd_device->dev.platform_data = &adau1371_pdata;
 	bf5xx_adau1371_snd_devdata.dev = &bf5xx_adau1371_snd_device->dev;
 	ret = platform_device_add(bf5xx_adau1371_snd_device);
 
