@@ -784,8 +784,7 @@ static int v4l2_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 }
 #endif
 
-static int v4l_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
-		     unsigned long arg)
+static int v4l_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case VIDIOCGCAP:{
