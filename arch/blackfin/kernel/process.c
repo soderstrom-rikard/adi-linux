@@ -366,8 +366,6 @@ int bfin_mem_access_type(unsigned long addr, unsigned long size)
 #ifdef COREB_L1_CODE_START
 	if (in_mem_const(addr, size, COREB_L1_CODE_START, COREB_L1_CODE_LENGTH))
 		return cpu == 1 ? BFIN_MEM_ACCESS_ITEST : BFIN_MEM_ACCESS_IDMA;
-	if (in_mem_const(addr, size, COREB_L1_CODECACHE_START, COREB_L1_CODECACHE_LENGTH))
-		return cpu == 1 ? BFIN_MEM_ACCESS_ITEST : BFIN_MEM_ACCESS_IDMA;
 	if (in_mem_const(addr, size, COREB_L1_SCRATCH_START, L1_SCRATCH_LENGTH))
 		return cpu == 1 ? BFIN_MEM_ACCESS_CORE_ONLY : -EFAULT;
 	if (in_mem_const(addr, size, COREB_L1_DATA_A_START, COREB_L1_DATA_A_LENGTH))
@@ -487,8 +485,6 @@ int _access_ok(unsigned long addr, unsigned long size)
 		return 1;
 #ifdef COREB_L1_CODE_START
 	if (in_mem_const(addr, size, COREB_L1_CODE_START, COREB_L1_CODE_LENGTH))
-		return 1;
-	if (in_mem_const(addr, size, COREB_L1_CODECACHE_START, COREB_L1_CODECACHE_LENGTH))
 		return 1;
 	if (in_mem_const(addr, size, COREB_L1_SCRATCH_START, L1_SCRATCH_LENGTH))
 		return 1;
