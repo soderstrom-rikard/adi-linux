@@ -1,8 +1,8 @@
 /*
+ * IPI management based on arch/arm/kernel/smp.c (Copyright 2002 ARM Limited)
+ *
  * Copyright 2007-2009 Analog Devices Inc.
  *                         Philippe Gerum <rpm@xenomai.org>
- *
- * IPI management based on arch/arm/kernel/smp.c (Copyright 2002 ARM Limited)
  *
  * Licensed under the GPL-2.
  */

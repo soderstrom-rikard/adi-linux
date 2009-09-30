@@ -1,4 +1,6 @@
 /*
+ * Common CPLB definitions for CPLB init
+ *
  * Copyright 2006-2008 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.

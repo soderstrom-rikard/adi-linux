@@ -1,4 +1,6 @@
 /*
+ * Copyright 2004-2006 Analog Devices Inc.
+ *
  * Licensed under the GPL-2.
  */
 

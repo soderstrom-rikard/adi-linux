@@ -2,7 +2,6 @@
  * Copyright 2007 Analog Devices Inc.
  *
  * Licensed under the GPL-2.
- *
  */
 
 #include <linux/module.h>

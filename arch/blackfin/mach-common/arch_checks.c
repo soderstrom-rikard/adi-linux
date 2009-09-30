@@ -1,9 +1,9 @@
 /*
+ * Do some checking to make sure things are OK
+ *
  * Copyright 2007-2009 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
- *
- * Do some checking to make sure things are OK
  */
 
 #include <asm/fixed_code.h>

@@ -1,5 +1,5 @@
 /*
- * Blackfin CORE REGISTER BIT & ADDRESS DEFINITIONS FOR ADSP-BF532/33
+ * Blackfin core register bit & address definitions
  *
  * Copyright 2005-2008 Analog Devices Inc.
  *

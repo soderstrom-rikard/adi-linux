@@ -4,7 +4,6 @@
  * Licensed under the GPL-2 or later.
  */
 
-
 #ifndef _BLACKFIN_PGTABLE_H
 #define _BLACKFIN_PGTABLE_H
 

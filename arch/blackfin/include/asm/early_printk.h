@@ -1,11 +1,10 @@
 /*
+ * function prototpyes for early printk
+ *
  * Copyright 2007-2009 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
- *
- * function prototpyes for early printk
  */
-
 
 #ifndef __ASM_EARLY_PRINTK_H__
 #define __ASM_EARLY_PRINTK_H__

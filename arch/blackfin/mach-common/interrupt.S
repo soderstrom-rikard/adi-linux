@@ -1,4 +1,6 @@
 /*
+ * Interrupt Entries
+ *
  * Copyright 2005-2009 Analog Devices Inc.
  *               D. Jeff Dionne <jeff@ryeham.ee.ryerson.ca>
  *               Kenneth Albanowski <kjahds@kjahds.com>

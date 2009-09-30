@@ -1,10 +1,10 @@
 /*
+ * BF561 coreB bootstrap file
+ *
  * Copyright 2007-2009 Analog Devices Inc.
  *               Philippe Gerum <rpm@xenomai.org>
  *
  * Licensed under the GPL-2 or later.
- *
- * BF561 coreB bootstrap file
  */
 
 #include <linux/linkage.h>
