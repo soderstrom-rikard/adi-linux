@@ -2,7 +2,6 @@
  * FDPIC ELF hooks
  *
  * Copyright (c) 2006-2009 Analog Devices Inc.
- *
  * Licensed under the GPL-2 or later.
  */
 
