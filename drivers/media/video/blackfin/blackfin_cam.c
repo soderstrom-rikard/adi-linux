@@ -1349,6 +1349,14 @@ static int bcap_mmap(struct file *filp, struct vm_area_struct *vma)
 	return 0;
 }
 
+unsigned long bcap_get_unmapped_area(struct file *filp, unsigned long orig_addr,
+	unsigned long len, unsigned long pgoff, unsigned long flags) {
+
+	pr_debug("bcap_get_unmapped_area\n");
+	return (unsigned long) bcap_dev->buffer[0].data;
+}
+
+
 static int bcap_close(struct file *filp)
 {
 	struct ppi_device_t *pdev = bcap_dev->ppidev;
@@ -1381,6 +1389,7 @@ static struct v4l2_file_operations bcap_fops = {
 	.ioctl = bcap_ioctl,
 	.read = bcap_read,
 	.mmap = bcap_mmap,
+	.get_unmapped_area = bcap_get_unmapped_area,
 };
 
 static struct video_device bcap_template = {
