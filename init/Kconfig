@@ -1057,6 +1057,22 @@ config SLOB
 
 endchoice
 
+config MMAP_ALLOW_UNINITIALIZE
+	bool "Allow mmaped anonymous memory to be un-initialized"
+	depends on EMBEDDED && ! MMU
+	default n
+	help
+	   Normally (and according to the Linux spec) mmap'ed MAP_ANONYMOUS
+	   memory has it's contents initialized to zero. This kernel option
+	   gives you the option of not doing that by adding a MAP_UNINITIALIZE
+	   mmap flag (which uClibc's malloc() takes takes advantage of)
+	   which provides a huge performance boost.
+
+	   Because of the obvious security issues, this option should only be
+	   enabled on embedded devices which you control what is run in
+	   userspace. Since that isn't a problem on no-MMU systems, it is
+	   normally safe to say Y here.
+
 config PROFILING
 	bool "Profiling support (EXPERIMENTAL)"
 	help

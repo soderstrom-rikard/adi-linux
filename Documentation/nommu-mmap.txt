@@ -16,6 +16,27 @@ the CLONE_VM flag.
 The behaviour is similar between the MMU and no-MMU cases, but not identical;
 and it's also much more restricted in the latter case:
 
+ (*) Anonymous mappings - general case
+
+	Anonymous mappings are  not  backed  by any file, and according to the
+	Linux man pages (ver 2.22 or later) contents are initialized to zero.
+
+	In the MMU case, regions are backed by arbitrary virtual pages, and the
+	contents are only mapped with physical pages and initialized to zero
+	when a read or write happens in that specific page. This spreads out
+	the time it takes to initialize the contents depending on the
+	read/write usage of the map.
+
+	In the no-MMU case, anonymous mappings are backed by physical pages,
+	and the entire map is initialized to zero at allocation time. This
+	can cause significant delays in userspace during malloc() as the C
+	library does an anonymous mapping, and the kernel is doing a memset
+	for the entire map. Since malloc's memory is not required to be
+	cleared, an (optional) flag MAP_UNINITIALIZE can be passed to the
+	kernel's do_mmap, which will not initialize the contents to zero.
+
+	uClibc supports this to provide a pretty significant speedup for malloc().
+
  (*) Anonymous mapping, MAP_PRIVATE
 
 	In the MMU case: VM regions backed by arbitrary pages; copy-on-write

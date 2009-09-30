@@ -1063,9 +1063,6 @@ static unsigned long determine_vm_flags(struct file *file,
 	if ((flags & MAP_PRIVATE) && tracehook_expect_breakpoints(current))
 		vm_flags &= ~VM_MAYSHARE;
 
-	if (flags & MAP_UNINITIALIZE)
-		vm_flags |= VM_UNINITIALIZE;
-
 	return vm_flags;
 }
 
@@ -1189,10 +1186,6 @@ static int do_mmap_private(struct vm_area_struct *vma,
 		if (ret < rlen)
 			memset(base + ret, 0, rlen - ret);
 
-	} else {
-		/* if it's an anonymous mapping, then just clear it */
-		if (!(vma->vm_flags & VM_UNINITIALIZE))
-			memset(base, 0, rlen);
 	}
 
 	return 0;
@@ -1389,6 +1382,10 @@ unsigned long do_mmap_pgoff(struct file *file,
 	if (ret < 0)
 		goto error_just_free;
 	add_nommu_region(region);
+
+	/* clear anonymous mappings that don't ask for un-initialized data */
+	if (!(vma->vm_file) && !(flags & MAP_UNINITIALIZE))
+		memset((void *)region->vm_start, 0, region->vm_end - region->vm_start);
 
 	/* okay... we have a mapping; now we have to register it */
 	result = vma->vm_start;
