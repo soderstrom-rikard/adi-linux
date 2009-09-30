@@ -1,7 +1,7 @@
 /*
  * Copyright 2005-2009 Analog Devices Inc.
  *
- * Licensed under the ADI BSD license
+ * Licensed under the ADI BSD license or the GPL-2 (or later)
  */
 
 #ifndef _DEF_BF561_H

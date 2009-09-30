@@ -1,7 +1,7 @@
 /*
  * Copyright 2008-2009 Analog Devices Inc.
  *
- * Licensed under the ADI BSD license
+ * Licensed under the ADI BSD license or the GPL-2 (or later)
  */
 
 /* SYSTEM & MM REGISTER BIT & ADDRESS DEFINITIONS FOR ADSP-BF538/9 */
