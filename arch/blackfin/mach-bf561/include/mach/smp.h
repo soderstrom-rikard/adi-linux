@@ -4,6 +4,7 @@
  * Licensed under the GPL-2 or later.
  */
 
+#ifndef _MACH_BF561_SMP
 #define _MACH_BF561_SMP
 
 struct task_struct;
