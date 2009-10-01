@@ -1062,7 +1062,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 	int ret = -EINVAL;
 
 	if (spi->bits_per_word != 8 && spi->bits_per_word != 16)
-		return -EINVAL;
+		goto error;
 
 	/* Only alloc (or use chip_info) on first setup */
 	chip_info = NULL;
@@ -1071,7 +1071,8 @@ static int bfin_spi_setup(struct spi_device *spi)
 		chip = kzalloc(sizeof(*chip), GFP_KERNEL);
 		if (!chip) {
 			dev_err(&spi->dev, "cannot allocate chip data\n");
-			return -ENOMEM;
+			ret = -ENOMEM;
+			goto error;
 		}
 
 		chip->enable_dma = 0;
@@ -1183,7 +1184,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 		ret = gpio_request(chip->cs_gpio, spi->modalias);
 		if (ret) {
 			dev_err(&spi->dev, "gpio_request() error\n");
-			goto error;
+			goto pin_error;
 		}
 		gpio_direction_output(chip->cs_gpio, 1);
 	}
@@ -1202,30 +1203,26 @@ static int bfin_spi_setup(struct spi_device *spi)
 		                         [chip->chip_select_num-1], spi->modalias);
 		if (ret) {
 			dev_err(&spi->dev, "peripheral_request() error\n");
-			goto error;
+			goto pin_error;
 		}
 	}
 
 	bfin_spi_cs_enable(drv_data, chip);
 	bfin_spi_cs_deactive(drv_data, chip);
-	ret = 0;
 
+	return 0;
+
+ pin_error:
+	if (chip->chip_select_num == 0)
+		gpio_free(chip->cs_gpio);
+	else
+		peripheral_free(ssel[spi->master->bus_num]
+			[chip->chip_select_num - 1]);
  error:
-	if (ret) {
-		if (!chip)
-			return ret;
-
+	if (chip) {
 		if (drv_data->dma_requested)
 			free_dma(drv_data->dma_channel);
 		drv_data->dma_requested = 0;
-
-		if ((chip->chip_select_num > 0)
-			&& (chip->chip_select_num <= spi->master->num_chipselect))
-			peripheral_free(ssel[spi->master->bus_num]
-						[chip->chip_select_num-1]);
-
-		if (chip->chip_select_num == 0)
-			gpio_free(chip->cs_gpio);
 
 		kfree(chip);
 		/* prevent free 'chip' twice */
