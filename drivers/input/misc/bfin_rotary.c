@@ -27,20 +27,18 @@ static const u16 per_cnt[] = {
 struct bfin_rot {
 	struct input_dev *input;
 	int irq;
-	unsigned int rotary_up_key;
-	unsigned int rotary_down_key;
-	unsigned int rotary_button_key;
-	unsigned int rotary_rel_code;
+	unsigned int up_key;
+	unsigned int down_key;
+	unsigned int button_key;
+	unsigned int rel_code;
 	unsigned short cnt_config;
 	unsigned short cnt_imask;
 	unsigned short cnt_debounce;
 };
 
-static inline void report_marker_event(struct bfin_rot *rotary)
+static void report_key_event(struct input_dev *input, int keycode)
 {
-	struct input_dev *input = rotary->input;
-	int keycode = rotary->rotary_button_key;
-
+	/* simulate a press-n-release */
 	input_report_key(input, keycode, 1);
 	input_sync(input);
 	input_report_key(input, keycode, 0);
@@ -51,20 +49,11 @@ static void report_rotary_event(struct bfin_rot *rotary, int delta)
 {
 	struct input_dev *input = rotary->input;
 
-	if (delta == 0)
-		return;
-
-	if (rotary->rotary_up_key && rotary->rotary_down_key) {
-		int keycode = (delta > 0) ? rotary->rotary_up_key :
-					    rotary->rotary_down_key;
-
-		/* simulate a press-n-release */
-		input_report_key(input, keycode, 1);
-		input_sync(input);
-		input_report_key(input, keycode, 0);
-		input_sync(input);
+	if (rotary->up_key) {
+		report_key_event(input,
+				 delta > 0 ? rotary->up_key : rotary->down_key);
 	} else {
-		input_report_rel(input, rotary->rotary_rel_code, delta);
+		input_report_rel(input, rotary->rel_code, delta);
 		input_sync(input);
 	}
 }
@@ -73,18 +62,24 @@ static irqreturn_t bfin_rotary_isr(int irq, void *dev_id)
 {
 	struct platform_device *pdev = dev_id;
 	struct bfin_rot *rotary = platform_get_drvdata(pdev);
-	unsigned short status = bfin_read_CNT_STATUS();
+	int delta;
 
-	switch (status) {
+	switch (bfin_read_CNT_STATUS()) {
+
 	case ICII:
 		break;
+
 	case UCII:
 	case DCII:
-		report_rotary_event(rotary, bfin_read_CNT_COUNTER());
+		delta = bfin_read_CNT_COUNTER();
+		if (delta)
+			report_rotary_event(rotary, delta);
 		break;
+
 	case CZMII:
-		report_marker_event(rotary);
+		report_key_event(rotary->input, rotary->button_key);
 		break;
+
 	default:
 		break;
 	}
@@ -97,46 +92,43 @@ static irqreturn_t bfin_rotary_isr(int irq, void *dev_id)
 
 static int __devinit bfin_rotary_probe(struct platform_device *pdev)
 {
-	struct bfin_rot *rotary;
 	struct bfin_rotary_platform_data *pdata = pdev->dev.platform_data;
+	struct bfin_rot *rotary;
 	struct input_dev *input;
-	int ret;
+	int error;
+
+	/* Basic validation */
+	if ((pdata->rotary_up_key && !pdata->rotary_down_key) ||
+	    (!pdata->rotary_up_key && pdata->rotary_down_key)) {
+		return -EINVAL;
+	}
+
+	error = peripheral_request_list(per_cnt, dev_name(&pdev->dev));
+	if (error) {
+		dev_err(&pdev->dev, "requesting peripherals failed\n");
+		return error;
+	}
 
 	rotary = kzalloc(sizeof(struct bfin_rot), GFP_KERNEL);
-	if (!rotary)
-		return -ENOMEM;
-
-	platform_set_drvdata(pdev, rotary);
-
-	ret = peripheral_request_list(per_cnt, dev_name(&pdev->dev));
-	if (ret) {
-		dev_err(&pdev->dev, "requesting peripherals failed\n");
-		goto out1;
-	}
-
-	ret = rotary->irq = platform_get_irq(pdev, 0);
-	if (ret < 0)
-		goto out2;
-
-	ret = request_irq(rotary->irq, bfin_rotary_isr,
-				 0, dev_name(&pdev->dev), pdev);
-	if (ret) {
-		dev_err(&pdev->dev,
-			"unable to claim irq %d; error %d\n",
-			rotary->irq, ret);
-		goto out2;
-	}
-
 	input = input_allocate_device();
-	if (!input) {
-		ret = -ENOMEM;
-		goto out3;
+	if (!rotary || !input) {
+		error = -ENOMEM;
+		goto out1;
 	}
 
 	rotary->input = input;
 
+	rotary->up_key = pdata->rotary_up_key;
+	rotary->down_key = pdata->rotary_down_key;
+	rotary->button_key = pdata->rotary_button_key;
+	rotary->rel_code = pdata->rotary_rel_code;
+
+	error = rotary->irq = platform_get_irq(pdev, 0);
+	if (error < 0)
+		goto out1;
+
 	input->name = pdev->name;
-	input->phys = "bfin-rotary/inputX";
+	input->phys = "bfin-rotary/input0";
 	input->dev.parent = &pdev->dev;
 
 	input_set_drvdata(input, rotary);
@@ -146,30 +138,38 @@ static int __devinit bfin_rotary_probe(struct platform_device *pdev)
 	input->id.product = 0x0001;
 	input->id.version = 0x0100;
 
-	/* setup input device */
-
-	rotary->rotary_up_key = pdata->rotary_up_key;
-	rotary->rotary_down_key = pdata->rotary_down_key;
-	rotary->rotary_button_key = pdata->rotary_button_key;
-	rotary->rotary_rel_code = pdata->rotary_rel_code;
-
-	if (pdata->rotary_up_key && pdata->rotary_down_key) {
+	if (rotary->up_key) {
 		__set_bit(EV_KEY, input->evbit);
-		__set_bit(pdata->rotary_up_key, input->keybit);
-		__set_bit(pdata->rotary_down_key, input->keybit);
-	} else if (pdata->rotary_rel_code) {
-		__set_bit(EV_REL, input->evbit);
-		__set_bit(pdata->rotary_rel_code, input->relbit);
+		__set_bit(rotary->up_key, input->keybit);
+		__set_bit(rotary->down_key, input->keybit);
 	} else {
-		ret = -EINVAL;
-		goto out4;
+		__set_bit(EV_REL, input->evbit);
+		__set_bit(rotary->rel_code, input->relbit);
 	}
 
-	if (pdata->rotary_button_key) {
+	if (rotary->button_key) {
 		__set_bit(EV_KEY, input->evbit);
-		__set_bit(pdata->rotary_button_key, input->keybit);
-		bfin_write_CNT_IMASK(CZMIE);
+		__set_bit(rotary->button_key, input->keybit);
 	}
+
+	error = request_irq(rotary->irq, bfin_rotary_isr,
+			    0, dev_name(&pdev->dev), pdev);
+	if (error) {
+		dev_err(&pdev->dev,
+			"unable to claim irq %d; error %d\n",
+			rotary->irq, error);
+		goto out1;
+	}
+
+	error = input_register_device(input);
+	if (error) {
+		dev_err(&pdev->dev,
+			"unable to register input device (%d)\n", error);
+		goto out2;
+	}
+
+	if (pdata->rotary_button_key)
+		bfin_write_CNT_IMASK(CZMIE);
 
 	if (pdata->mode & ROT_DEBE)
 		bfin_write_CNT_DEBOUNCE(pdata->debounce & DPRESCALE);
@@ -178,32 +178,22 @@ static int __devinit bfin_rotary_probe(struct platform_device *pdev)
 		bfin_write_CNT_CONFIG(bfin_read_CNT_CONFIG() |
 					(pdata->mode & ~CNTE));
 
-	ret = input_register_device(input);
-	if (ret) {
-		dev_err(&pdev->dev,
-			"unable to register input device (%d)\n", ret);
-		goto out4;
-	}
-
 	bfin_write_CNT_IMASK(bfin_read_CNT_IMASK() | UCIE | DCIE);
 	bfin_write_CNT_CONFIG(bfin_read_CNT_CONFIG() | CNTE);
+
+	platform_set_drvdata(pdev, rotary);
 	device_init_wakeup(&pdev->dev, 1);
 
-	dev_info(&pdev->dev,
-		"Blackfin Rotary Driver registered IRQ %d\n", rotary->irq);
 	return 0;
 
-out4:
-	input_free_device(input);
-out3:
-	free_irq(rotary->irq, pdev);
 out2:
-	peripheral_free_list(per_cnt);
+	free_irq(rotary->irq, pdev);
 out1:
+	input_free_device(input);
 	kfree(rotary);
-	platform_set_drvdata(pdev, NULL);
+	peripheral_free_list(per_cnt);
 
-	return ret;
+	return error;
 }
 
 static int __devexit bfin_rotary_remove(struct platform_device *pdev)
@@ -224,8 +214,9 @@ static int __devexit bfin_rotary_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
-static int bfin_rotary_suspend(struct platform_device *pdev, pm_message_t state)
+static int bfin_rotary_suspend(struct device *dev)
 {
+	struct platform_device *pdev = to_platform_device(dev);
 	struct bfin_rot *rotary = platform_get_drvdata(pdev);
 
 	rotary->cnt_config = bfin_read_CNT_CONFIG();
@@ -238,8 +229,9 @@ static int bfin_rotary_suspend(struct platform_device *pdev, pm_message_t state)
 	return 0;
 }
 
-static int bfin_rotary_resume(struct platform_device *pdev)
+static int bfin_rotary_resume(struct device *dev)
 {
+	struct platform_device *pdev = to_platform_device(dev);
 	struct bfin_rot *rotary = platform_get_drvdata(pdev);
 
 	bfin_write_CNT_DEBOUNCE(rotary->cnt_debounce);
@@ -254,19 +246,22 @@ static int bfin_rotary_resume(struct platform_device *pdev)
 
 	return 0;
 }
-#else
-#define bfin_rotary_suspend NULL
-#define bfin_rotary_resume  NULL
-#endif
 
-struct platform_driver bfin_rotary_device_driver = {
-	.probe		= bfin_rotary_probe,
-	.remove		= __devexit_p(bfin_rotary_remove),
+static struct dev_pm_ops bfin_rotary_pm_ops = {
 	.suspend	= bfin_rotary_suspend,
 	.resume		= bfin_rotary_resume,
+};
+#endif
+
+static struct platform_driver bfin_rotary_device_driver = {
+	.probe		= bfin_rotary_probe,
+	.remove		= __devexit_p(bfin_rotary_remove),
 	.driver		= {
 		.name	= "bfin-rotary",
 		.owner	= THIS_MODULE,
+#ifdef CONFIG_PM
+		.pm	= &bfin_rotary_pm_ops,
+#endif
 	},
 };
 
