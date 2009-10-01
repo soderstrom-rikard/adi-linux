@@ -12,7 +12,7 @@
  * AD5253		4		64		1, 10, 50, 100
  * AD5254		4		256		1, 10, 50, 100
  *
- * History:
+ * See Documentation/misc-devices/ad525x_dpot.txt for more info.
  *
  * derived from ad5258.c
  * Copyright (c) 2009 Cyber Switching, Inc.

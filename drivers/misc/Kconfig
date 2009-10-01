@@ -241,6 +241,9 @@ config AD525X_DPOT
 	  AD5258, AD5259, AD5251, AD5252, AD5253, AD5254 and AD5255
 	  digital potentiometer chips.
 
+	  See Documentation/misc-devices/ad525x_dpot.txt for the
+	  userspace interface.
+
 	  This driver can also be built as a module.  If so, the module
 	  will be called ad525x_dpot.
 
