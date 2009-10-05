@@ -23,7 +23,7 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
-#include <linux/workqueue.h>
+#include <linux/err.h>
 #include <linux/i2c.h>
 
 #include <linux/mfd/adp5520.h>
@@ -32,9 +32,9 @@ struct adp5520_chip {
 	struct i2c_client *client;
 	struct device *dev;
 	struct mutex lock;
-	struct work_struct irq_work;
 	struct blocking_notifier_head notifier_list;
 	int irq;
+	unsigned long id;
 };
 
 static int __adp5520_read(struct i2c_client *client,
@@ -166,10 +166,9 @@ int adp5520_unregister_notifier(struct device *dev, struct notifier_block *nb,
 }
 EXPORT_SYMBOL_GPL(adp5520_unregister_notifier);
 
-static void adp5520_irq_work(struct work_struct *work)
+static irqreturn_t adp5520_irq_thread(int irq, void *data)
 {
-	struct adp5520_chip *chip =
-		container_of(work, struct adp5520_chip, irq_work);
+	struct adp5520_chip *chip = data;
 	unsigned int events;
 	uint8_t reg_val;
 	int ret;
@@ -185,16 +184,6 @@ static void adp5520_irq_work(struct work_struct *work)
 	__adp5520_ack_bits(chip->client, MODE_STATUS, events);
 
 out:
-	enable_irq(chip->client->irq);
-}
-
-static irqreturn_t adp5520_irq_handler(int irq, void *data)
-{
-	struct adp5520_chip *chip = data;
-
-	disable_irq_nosync(irq);
-	schedule_work(&chip->irq_work);
-
 	return IRQ_HANDLED;
 }
 
@@ -209,36 +198,11 @@ static int adp5520_remove_subdevs(struct adp5520_chip *chip)
 	return device_for_each_child(chip->dev, NULL, __remove_subdev);
 }
 
-static int __devinit adp5520_add_subdevs(struct adp5520_chip *chip,
-					struct adp5520_platform_data *pdata)
-{
-	struct adp5520_subdev_info *subdev;
-	struct platform_device *pdev;
-	int i, ret = 0;
-
-	for (i = 0; i < pdata->num_subdevs; i++) {
-		subdev = &pdata->subdevs[i];
-
-		pdev = platform_device_alloc(subdev->name, subdev->id);
-
-		pdev->dev.parent = chip->dev;
-		pdev->dev.platform_data = subdev->platform_data;
-
-		ret = platform_device_add(pdev);
-		if (ret)
-			goto failed;
-	}
-	return 0;
-
-failed:
-	adp5520_remove_subdevs(chip);
-	return ret;
-}
-
 static int __devinit adp5520_probe(struct i2c_client *client,
 					const struct i2c_device_id *id)
 {
 	struct adp5520_platform_data *pdata = client->dev.platform_data;
+	struct platform_device *pdev;
 	struct adp5520_chip *chip;
 	int ret;
 
@@ -262,14 +226,14 @@ static int __devinit adp5520_probe(struct i2c_client *client,
 
 	chip->dev = &client->dev;
 	chip->irq = client->irq;
+	chip->id = id->driver_data;
 	mutex_init(&chip->lock);
 
 	if (chip->irq) {
-		INIT_WORK(&chip->irq_work, adp5520_irq_work);
 		BLOCKING_INIT_NOTIFIER_HEAD(&chip->notifier_list);
 
-		ret = request_irq(chip->irq, adp5520_irq_handler,
-				IRQF_DISABLED | IRQF_TRIGGER_LOW,
+		ret = request_threaded_irq(chip->irq, NULL, adp5520_irq_thread,
+				IRQF_TRIGGER_LOW | IRQF_ONESHOT,
 				"adp5520", chip);
 		if (ret) {
 			dev_err(&client->dev, "failed to request irq %d\n",
@@ -284,10 +248,49 @@ static int __devinit adp5520_probe(struct i2c_client *client,
 		goto out_free_irq;
 	}
 
-	ret = adp5520_add_subdevs(chip, pdata);
+	if (pdata->keys) {
+		pdev = platform_device_register_data(chip->dev, "adp5520-keys",
+				chip->id, pdata->keys, sizeof(*pdata->keys));
+		if (IS_ERR(pdev)) {
+			ret = PTR_ERR(pdev);
+			goto out_remove_subdevs;
+		}
+	}
 
-	if (!ret)
-		return ret;
+	if (pdata->gpio) {
+		pdev = platform_device_register_data(chip->dev, "adp5520-gpio",
+				chip->id, pdata->gpio, sizeof(*pdata->gpio));
+		if (IS_ERR(pdev)) {
+			ret = PTR_ERR(pdev);
+			goto out_remove_subdevs;
+		}
+	}
+
+	if (pdata->leds) {
+		pdev = platform_device_register_data(chip->dev, "adp5520-led",
+				chip->id, pdata->leds, sizeof(*pdata->leds));
+		if (IS_ERR(pdev)) {
+			ret = PTR_ERR(pdev);
+			goto out_remove_subdevs;
+		}
+	}
+
+	if (pdata->backlight) {
+		pdev = platform_device_register_data(chip->dev,
+						"adp5520-backlight",
+						chip->id,
+						pdata->backlight,
+						sizeof(*pdata->backlight));
+		if (IS_ERR(pdev)) {
+			ret = PTR_ERR(pdev);
+			goto out_remove_subdevs;
+		}
+	}
+
+	return 0;
+
+out_remove_subdevs:
+	adp5520_remove_subdevs(chip);
 
 out_free_irq:
 	if (chip->irq)
@@ -337,7 +340,8 @@ static int adp5520_resume(struct i2c_client *client)
 #endif
 
 static const struct i2c_device_id adp5520_id[] = {
-	{ "pmic-adp5520", 0 },
+	{ "pmic-adp5520", ID_ADP5520 },
+	{ "pmic-adp5501", ID_ADP5501 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, adp5520_id);

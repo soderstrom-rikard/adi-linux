@@ -274,15 +274,11 @@ struct adp5520_backlight_platfrom_data {
  * MFD chip platfrom data
  */
 
-struct adp5520_subdev_info {
-	int		id;
-	const char	*name;
-	void		*platform_data;
-};
-
 struct adp5520_platform_data {
-	int num_subdevs;
-	struct adp5520_subdev_info *subdevs;
+	struct adp5520_keys_platfrom_data *keys;
+	struct adp5520_gpio_platfrom_data *gpio;
+	struct adp5520_leds_platfrom_data *leds;
+	struct adp5520_backlight_platfrom_data *backlight;
 };
 
 /*
