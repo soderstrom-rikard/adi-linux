@@ -1467,32 +1467,11 @@ static struct adp5520_keys_platfrom_data adp5520_keys_data = {
 	 *  ADP5520/5501 Multifuction Device Init Data
 	 */
 
-static struct adp5520_subdev_info adp5520_subdevs[] = {
-	{
-		.name = "adp5520-backlight",
-		.id = ID_ADP5520,
-		.platform_data = &adp5520_backlight_data,
-	},
-	{
-		.name = "adp5520-led",
-		.id = ID_ADP5520,
-		.platform_data = &adp5520_leds_data,
-	},
-	{
-		.name = "adp5520-gpio",
-		.id = ID_ADP5520,
-		.platform_data = &adp5520_gpio_data,
-	},
-	{
-		.name = "adp5520-keys",
-		.id = ID_ADP5520,
-		.platform_data = &adp5520_keys_data,
-	},
-};
-
 static struct adp5520_platform_data adp5520_pdev_data = {
-	.num_subdevs = ARRAY_SIZE(adp5520_subdevs),
-	.subdevs = adp5520_subdevs,
+	.backlight = &adp5520_backlight_data,
+	.leds = &adp5520_leds_data,
+	.gpio = &adp5520_gpio_data,
+	.keys = &adp5520_keys_data,
 };
 
 #endif
