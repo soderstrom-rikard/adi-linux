@@ -44,7 +44,7 @@ static const struct _pll_settings adau1371_pll_settings[] = {
 
 static struct adau1371_platform_data adau1371_pdata = {
 	.pll_settings_num       = ARRAY_SIZE(adau1371_pll_settings),
-	.pll_settings   = &adau1371_pll_settings,
+	.pll_settings   = adau1371_pll_settings,
 	.drc_settings	= { 0x07, 0x77, 0x33, 0x88, 0x5d, 0x77, 0x77, 0x13 },
 };
 
