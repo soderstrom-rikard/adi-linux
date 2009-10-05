@@ -236,7 +236,7 @@ struct _pll_settings {
 
 struct adau1371_platform_data {
 	u8 pll_settings_num;
-	struct _pll_settings *pll_settings;
+	const struct _pll_settings *pll_settings;
 	u8 drc_settings[8];
 };
 

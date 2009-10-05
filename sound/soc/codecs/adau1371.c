@@ -593,7 +593,7 @@ static int adau1371_add_widgets(struct snd_soc_codec *codec)
 
 static inline int get_coeff(struct adau1371_priv *adau1371, int rate)
 {
-	struct _pll_settings *pll_settings = adau1371->data->pll_settings;
+	const struct _pll_settings *pll_settings = adau1371->data->pll_settings;
 	int i;
 
 	for (i = 0; i < adau1371->data->pll_settings_num; ++i)
@@ -627,7 +627,7 @@ static int adau1371_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
 	struct adau1371_priv *adau1371 = codec->private_data;
-	struct _pll_settings *pll_settings = adau1371->data->pll_settings;
+	const struct _pll_settings *pll_settings = adau1371->data->pll_settings;
 	int i = 0;
 	u8 dai_ctl;
 	/* 8000Hz can't be got through PLL on REVB,so use external clock directly */
