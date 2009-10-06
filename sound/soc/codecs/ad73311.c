@@ -50,6 +50,7 @@ static int ad73311_soc_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	mutex_init(&codec->mutex);
 	codec->name = "AD73311";
+	codec->dev = &pdev->dev;
 	codec->owner = THIS_MODULE;
 	codec->dai = &ad73311_dai;
 	codec->num_dai = 1;

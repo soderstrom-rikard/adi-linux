@@ -903,6 +903,7 @@ static int adau1371_init(struct snd_soc_device *socdev)
 	struct adau1371_priv *adau1371 = codec->private_data;
 
 	codec->name = "adau1371";
+	codec->dev = socdev->dev;
 	codec->owner = THIS_MODULE;
 	codec->read = adau1371_read_reg_cache;
 	codec->write = adau1371_write;

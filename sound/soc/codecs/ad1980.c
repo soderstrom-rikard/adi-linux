@@ -203,6 +203,7 @@ static int ad1980_soc_probe(struct platform_device *pdev)
 	codec->reg_cache_size = sizeof(u16) * ARRAY_SIZE(ad1980_reg);
 	codec->reg_cache_step = 2;
 	codec->name = "AD1980";
+	codec->dev = &pdev->dev;
 	codec->owner = THIS_MODULE;
 	codec->dai = &ad1980_dai;
 	codec->num_dai = 1;
