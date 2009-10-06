@@ -111,7 +111,7 @@ static int adau1371_write(struct snd_soc_codec *codec, unsigned int reg,
 	if (codec->hw_write(codec->control_data, data, 2) == 2)
 		return 0;
 	else {
-		printk(KERN_ERR "adau1371: I2C bus error\n");
+		dev_err(codec->dev, "%s: writing to %#x failed\n", codec->name, reg);
 		return -EIO;
 	}
 }
