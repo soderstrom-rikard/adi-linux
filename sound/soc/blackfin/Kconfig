@@ -52,7 +52,7 @@ config SND_BF5XX_TDM
 
 config SND_BF5XX_SOC_AD1836
 	tristate "SoC AD1836 Audio support for BF5xx"
-	depends on SND_BF5XX_TDM
+	depends on SND_BF5XX_TDM && SPI_MASTER
 	select SND_BF5XX_SOC_TDM
 	select SND_SOC_AD1836
 	help
@@ -60,7 +60,7 @@ config SND_BF5XX_SOC_AD1836
 
 config SND_BF5XX_SOC_AD1938
         tristate "SoC AD1938 Audio support for Blackfin"
-        depends on SND_BF5XX_TDM
+        depends on SND_BF5XX_TDM && SPI_MASTER
         select SND_BF5XX_SOC_TDM
         select SND_SOC_AD1938
         help
