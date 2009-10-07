@@ -33,7 +33,7 @@ struct adp5520_led {
 static void adp5520_led_work(struct work_struct *work)
 {
 	struct adp5520_led *led = container_of(work, struct adp5520_led, work);
-	adp5520_write(led->master, LED1_CURRENT + led->id - 1,
+	adp5520_write(led->master, ADP5520_LED1_CURRENT + led->id - 1,
 			 led->new_brightness >> 2);
 }
 
@@ -55,21 +55,29 @@ static int adp5520_led_setup(struct adp5520_led *led)
 
 	switch (led->id) {
 	case FLAG_ID_ADP5520_LED1_ADP5501_LED0:
-		ret |= adp5520_set_bits(dev, LED_TIME,
-			(flags >> FLAG_OFFT_SHIFT) & FLAG_OFFT_MASK);
-		ret |= adp5520_set_bits(dev, LED_CONTROL, LED1_EN);
+		ret |= adp5520_set_bits(dev, ADP5520_LED_TIME,
+					(flags >> ADP5520_FLAG_OFFT_SHIFT) &
+					ADP5520_FLAG_OFFT_MASK);
+		ret |= adp5520_set_bits(dev, ADP5520_LED_CONTROL,
+					ADP5520_LED1_EN);
 		break;
 	case FLAG_ID_ADP5520_LED2_ADP5501_LED1:
-		ret |= adp5520_set_bits(dev, LED_TIME,
-			((flags >> FLAG_OFFT_SHIFT) & FLAG_OFFT_MASK) << 2);
-		ret |= adp5520_clr_bits(dev, LED_CONTROL, R3_MODE);
-		ret |= adp5520_set_bits(dev, LED_CONTROL, LED2_EN);
+		ret |= adp5520_set_bits(dev,  ADP5520_LED_TIME,
+					((flags >> ADP5520_FLAG_OFFT_SHIFT) &
+					ADP5520_FLAG_OFFT_MASK) << 2);
+		ret |= adp5520_clr_bits(dev, ADP5520_LED_CONTROL,
+					 ADP5520_R3_MODE);
+		ret |= adp5520_set_bits(dev, ADP5520_LED_CONTROL,
+					ADP5520_LED2_EN);
 		break;
 	case FLAG_ID_ADP5520_LED3_ADP5501_LED2:
-		ret |= adp5520_set_bits(dev, LED_TIME,
-			((flags >> FLAG_OFFT_SHIFT) & FLAG_OFFT_MASK) << 4);
-		ret |= adp5520_clr_bits(dev, LED_CONTROL, C3_MODE);
-		ret |= adp5520_set_bits(dev, LED_CONTROL, LED3_EN);
+		ret |= adp5520_set_bits(dev,  ADP5520_LED_TIME,
+					((flags >> ADP5520_FLAG_OFFT_SHIFT) &
+					ADP5520_FLAG_OFFT_MASK) << 4);
+		ret |= adp5520_clr_bits(dev, ADP5520_LED_CONTROL,
+					ADP5520_C3_MODE);
+		ret |= adp5520_set_bits(dev, ADP5520_LED_CONTROL,
+					ADP5520_LED3_EN);
 		break;
 	}
 
@@ -78,15 +86,15 @@ static int adp5520_led_setup(struct adp5520_led *led)
 
 static int __devinit adp5520_led_prepare(struct platform_device *pdev)
 {
-	struct adp5520_leds_platfrom_data *pdata = pdev->dev.platform_data;
+	struct adp5520_leds_platform_data *pdata = pdev->dev.platform_data;
 	struct device *dev = pdev->dev.parent;
 	int ret = 0;
 
-	ret |= adp5520_write(dev, LED1_CURRENT, 0);
-	ret |= adp5520_write(dev, LED2_CURRENT, 0);
-	ret |= adp5520_write(dev, LED3_CURRENT, 0);
-	ret |= adp5520_write(dev, LED_TIME, pdata->led_on_time << 6);
-	ret |= adp5520_write(dev, LED_FADE, FADE_VAL(pdata->fade_in,
+	ret |= adp5520_write(dev, ADP5520_LED1_CURRENT, 0);
+	ret |= adp5520_write(dev, ADP5520_LED2_CURRENT, 0);
+	ret |= adp5520_write(dev, ADP5520_LED3_CURRENT, 0);
+	ret |= adp5520_write(dev, ADP5520_LED_TIME, pdata->led_on_time << 6);
+	ret |= adp5520_write(dev, ADP5520_LED_FADE, FADE_VAL(pdata->fade_in,
 		 pdata->fade_out));
 
 	return ret;
@@ -94,7 +102,7 @@ static int __devinit adp5520_led_prepare(struct platform_device *pdev)
 
 static int __devinit adp5520_led_probe(struct platform_device *pdev)
 {
-	struct adp5520_leds_platfrom_data *pdata = pdev->dev.platform_data;
+	struct adp5520_leds_platform_data *pdata = pdev->dev.platform_data;
 	struct adp5520_led *led, *led_dat;
 	struct led_info *cur_led;
 	int ret, i;
@@ -132,12 +140,12 @@ static int __devinit adp5520_led_probe(struct platform_device *pdev)
 		led_dat->cdev.brightness_set = adp5520_led_set;
 		led_dat->cdev.brightness = LED_OFF;
 
-		if (cur_led->flags & FLAG_LED_MASK)
+		if (cur_led->flags & ADP5520_FLAG_LED_MASK)
 			led_dat->flags = cur_led->flags;
 		else
 			led_dat->flags = i + 1;
 
-		led_dat->id = led_dat->flags & FLAG_LED_MASK;
+		led_dat->id = led_dat->flags & ADP5520_FLAG_LED_MASK;
 
 		led_dat->master = pdev->dev.parent;
 		led_dat->new_brightness = LED_OFF;
@@ -177,14 +185,14 @@ err_free:
 
 static int __devexit adp5520_led_remove(struct platform_device *pdev)
 {
-	struct adp5520_leds_platfrom_data *pdata = pdev->dev.platform_data;
+	struct adp5520_leds_platform_data *pdata = pdev->dev.platform_data;
 	struct adp5520_led *led;
 	int i;
 
 	led = platform_get_drvdata(pdev);
 
-	adp5520_clr_bits(led->master, LED_CONTROL,
-		 LED1_EN | LED2_EN | LED3_EN);
+	adp5520_clr_bits(led->master, ADP5520_LED_CONTROL,
+		 ADP5520_LED1_EN | ADP5520_LED2_EN | ADP5520_LED3_EN);
 
 	for (i = 0; i < pdata->num_leds; i++) {
 		led_classdev_unregister(&led[i].cdev);

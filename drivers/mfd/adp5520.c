@@ -143,8 +143,9 @@ int adp5520_register_notifier(struct device *dev, struct notifier_block *nb,
 	struct adp5520_chip *chip = dev_get_drvdata(dev);
 
 	if (chip->irq) {
-		adp5520_set_bits(chip->dev, INTERRUPT_ENABLE,
-			events & (KP_IEN | KR_IEN | OVP_IEN | CMPR_IEN));
+		adp5520_set_bits(chip->dev, ADP5520_INTERRUPT_ENABLE,
+			events & (ADP5520_KP_IEN | ADP5520_KR_IEN |
+			ADP5520_OVP_IEN | ADP5520_CMPR_IEN));
 
 		return blocking_notifier_chain_register(&chip->notifier_list,
 			 nb);
@@ -159,8 +160,9 @@ int adp5520_unregister_notifier(struct device *dev, struct notifier_block *nb,
 {
 	struct adp5520_chip *chip = dev_get_drvdata(dev);
 
-	adp5520_clr_bits(chip->dev, INTERRUPT_ENABLE,
-		events & (KP_IEN | KR_IEN | OVP_IEN | CMPR_IEN));
+	adp5520_clr_bits(chip->dev, ADP5520_INTERRUPT_ENABLE,
+		events & (ADP5520_KP_IEN | ADP5520_KR_IEN |
+		ADP5520_OVP_IEN | ADP5520_CMPR_IEN));
 
 	return blocking_notifier_chain_unregister(&chip->notifier_list, nb);
 }
@@ -173,15 +175,16 @@ static irqreturn_t adp5520_irq_thread(int irq, void *data)
 	uint8_t reg_val;
 	int ret;
 
-	ret = __adp5520_read(chip->client, MODE_STATUS, &reg_val);
+	ret = __adp5520_read(chip->client, ADP5520_MODE_STATUS, &reg_val);
 	if (ret)
 		goto out;
 
-	events =  reg_val & (OVP_INT | CMPR_INT | GPI_INT | KR_INT | KP_INT);
+	events =  reg_val & (ADP5520_OVP_INT | ADP5520_CMPR_INT |
+		ADP5520_GPI_INT | ADP5520_KR_INT | ADP5520_KP_INT);
 
 	blocking_notifier_call_chain(&chip->notifier_list, events, NULL);
 	/* ACK, Sticky bits are W1C */
-	__adp5520_ack_bits(chip->client, MODE_STATUS, events);
+	__adp5520_ack_bits(chip->client, ADP5520_MODE_STATUS, events);
 
 out:
 	return IRQ_HANDLED;
@@ -242,7 +245,7 @@ static int __devinit adp5520_probe(struct i2c_client *client,
 		}
 	}
 
-	ret = adp5520_write(chip->dev, MODE_STATUS, nSTNBY);
+	ret = adp5520_write(chip->dev, ADP5520_MODE_STATUS, ADP5520_nSTNBY);
 	if (ret) {
 		dev_err(&client->dev, "failed to write\n");
 		goto out_free_irq;
@@ -311,7 +314,7 @@ static int __devexit adp5520_remove(struct i2c_client *client)
 		free_irq(chip->irq, chip);
 
 	adp5520_remove_subdevs(chip);
-	adp5520_write(chip->dev, MODE_STATUS, 0);
+	adp5520_write(chip->dev, ADP5520_MODE_STATUS, 0);
 	i2c_set_clientdata(client, NULL);
 	kfree(chip);
 	return 0;
@@ -323,7 +326,7 @@ static int adp5520_suspend(struct i2c_client *client,
 {
 	struct adp5520_chip *chip = dev_get_drvdata(&client->dev);
 
-	adp5520_clr_bits(chip->dev, MODE_STATUS, nSTNBY);
+	adp5520_clr_bits(chip->dev, ADP5520_MODE_STATUS, ADP5520_nSTNBY);
 	return 0;
 }
 
@@ -331,7 +334,7 @@ static int adp5520_resume(struct i2c_client *client)
 {
 	struct adp5520_chip *chip = dev_get_drvdata(&client->dev);
 
-	adp5520_set_bits(chip->dev, MODE_STATUS, nSTNBY);
+	adp5520_set_bits(chip->dev, ADP5520_MODE_STATUS, ADP5520_nSTNBY);
 	return 0;
 }
 #else

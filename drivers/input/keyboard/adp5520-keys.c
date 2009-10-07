@@ -36,32 +36,32 @@ static int adp5520_keys_notifier(struct notifier_block *nb,
 				 unsigned long event, void *data)
 {
 	struct adp5520_keys *dev;
-	uint8_t reg_val_low, reg_val_high;
+	uint8_t reg_val_lo, reg_val_hi;
 	unsigned short keymask;
 
 	dev = container_of(nb, struct adp5520_keys, notifier);
 
-	if (event & KP_INT) {
-		adp5520_read(dev->master, KP_INT_STAT_1, &reg_val_low);
-		adp5520_read(dev->master, KP_INT_STAT_2, &reg_val_high);
+	if (event & ADP5520_KP_INT) {
+		adp5520_read(dev->master, ADP5520_KP_INT_STAT_1, &reg_val_lo);
+		adp5520_read(dev->master, ADP5520_KP_INT_STAT_2, &reg_val_hi);
 
-		keymask = (reg_val_high << 8) | reg_val_low;
+		keymask = (reg_val_hi << 8) | reg_val_lo;
 		/* Read twice to clear */
-		adp5520_read(dev->master, KP_INT_STAT_1, &reg_val_low);
-		adp5520_read(dev->master, KP_INT_STAT_2, &reg_val_high);
-		keymask |= (reg_val_high << 8) | reg_val_low;
+		adp5520_read(dev->master, ADP5520_KP_INT_STAT_1, &reg_val_lo);
+		adp5520_read(dev->master, ADP5520_KP_INT_STAT_2, &reg_val_hi);
+		keymask |= (reg_val_hi << 8) | reg_val_lo;
 		adp5520_keys_report_event(dev, keymask, 1);
 	}
 
-	if (event & KR_INT) {
-		adp5520_read(dev->master, KR_INT_STAT_1, &reg_val_low);
-		adp5520_read(dev->master, KR_INT_STAT_2, &reg_val_high);
+	if (event & ADP5520_KR_INT) {
+		adp5520_read(dev->master, ADP5520_KR_INT_STAT_1, &reg_val_lo);
+		adp5520_read(dev->master, ADP5520_KR_INT_STAT_2, &reg_val_hi);
 
-		keymask = (reg_val_high << 8) | reg_val_low;
+		keymask = (reg_val_hi << 8) | reg_val_lo;
 		/* Read twice to clear */
-		adp5520_read(dev->master, KR_INT_STAT_1, &reg_val_low);
-		adp5520_read(dev->master, KR_INT_STAT_2, &reg_val_high);
-		keymask |= (reg_val_high << 8) | reg_val_low;
+		adp5520_read(dev->master, ADP5520_KR_INT_STAT_1, &reg_val_lo);
+		adp5520_read(dev->master, ADP5520_KR_INT_STAT_2, &reg_val_hi);
+		keymask |= (reg_val_hi << 8) | reg_val_lo;
 		adp5520_keys_report_event(dev, keymask, 0);
 	}
 
@@ -70,7 +70,7 @@ static int adp5520_keys_notifier(struct notifier_block *nb,
 
 static int __devinit adp5520_keys_probe(struct platform_device *pdev)
 {
-	struct adp5520_keys_platfrom_data *pdata = pdev->dev.platform_data;
+	struct adp5520_keys_platform_data *pdata = pdev->dev.platform_data;
 	struct input_dev *input;
 	struct adp5520_keys *dev;
 	int ret, i;
@@ -140,19 +140,19 @@ static int __devinit adp5520_keys_probe(struct platform_device *pdev)
 
 	en_mask = pdata->rows_en_mask | pdata->cols_en_mask;
 
-	ret = adp5520_set_bits(dev->master, GPIO_CFG_1, en_mask);
+	ret = adp5520_set_bits(dev->master, ADP5520_GPIO_CFG_1, en_mask);
 
-	if (en_mask & COL_C3)
-		ctl_mask |= C3_MODE;
+	if (en_mask & ADP5520_COL_C3)
+		ctl_mask |= ADP5520_C3_MODE;
 
-	if (en_mask & ROW_R3)
-		ctl_mask |= R3_MODE;
+	if (en_mask & ADP5520_ROW_R3)
+		ctl_mask |= ADP5520_R3_MODE;
 
 	if (ctl_mask)
-		ret |= adp5520_set_bits(dev->master, LED_CONTROL,
+		ret |= adp5520_set_bits(dev->master, ADP5520_LED_CONTROL,
 			ctl_mask);
 
-	ret |= adp5520_set_bits(dev->master, GPIO_PULLUP,
+	ret |= adp5520_set_bits(dev->master, ADP5520_GPIO_PULLUP,
 		pdata->rows_en_mask);
 
 	if (ret) {
@@ -163,7 +163,7 @@ static int __devinit adp5520_keys_probe(struct platform_device *pdev)
 
 	dev->notifier.notifier_call = adp5520_keys_notifier;
 	ret = adp5520_register_notifier(dev->master, &dev->notifier,
-			KP_IEN | KR_IEN);
+			ADP5520_KP_IEN | ADP5520_KR_IEN);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to register notifier\n");
 		goto err1;
@@ -186,7 +186,7 @@ static int __devexit adp5520_keys_remove(struct platform_device *pdev)
 	struct adp5520_keys *dev = platform_get_drvdata(pdev);
 
 	adp5520_unregister_notifier(dev->master, &dev->notifier,
-				KP_IEN | KR_IEN);
+				ADP5520_KP_IEN | ADP5520_KR_IEN);
 
 	input_unregister_device(dev->input);
 	kfree(dev);
