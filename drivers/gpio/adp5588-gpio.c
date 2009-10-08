@@ -127,7 +127,7 @@ static int adp5588_gpio_direction_output(struct gpio_chip *chip,
 static int __devinit adp5588_gpio_probe(struct i2c_client *client,
 					const struct i2c_device_id *id)
 {
-	struct adp5588_gpio_platfrom_data *pdata = client->dev.platform_data;
+	struct adp5588_gpio_platform_data *pdata = client->dev.platform_data;
 	struct adp5588_gpio *dev;
 	struct gpio_chip *gc;
 	int ret, i, revid;
@@ -207,7 +207,7 @@ err:
 
 static int __devexit adp5588_gpio_remove(struct i2c_client *client)
 {
-	struct adp5588_gpio_platfrom_data *pdata = client->dev.platform_data;
+	struct adp5588_gpio_platform_data *pdata = client->dev.platform_data;
 	struct adp5588_gpio *dev = i2c_get_clientdata(client);
 	int ret;
 
