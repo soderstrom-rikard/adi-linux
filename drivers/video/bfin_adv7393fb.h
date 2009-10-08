@@ -302,7 +302,6 @@ static int bfin_adv7393_fb_pan_display(struct fb_var_screeninfo *var,
 				       struct fb_info *info);
 
 static int bfin_adv7393_fb_blank(int blank, struct fb_info *info);
-static int bfin_adv7393_fb_mmap(struct fb_info *info, struct vm_area_struct *vma);
 
 static void bfin_config_ppi(struct adv7393fb_device *fbdev);
 static int bfin_config_dma(struct adv7393fb_device *fbdev);
