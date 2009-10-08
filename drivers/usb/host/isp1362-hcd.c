@@ -1075,8 +1075,10 @@ static irqreturn_t isp1362_irq(struct usb_hcd *hcd)
 		isp1362_clr_mask16(isp1362_hcd, HCBUFSTAT, HCBUFSTAT_ISTL0_FULL);
 		DBG(1, "%s: ISTL0\n", __func__);
 		WARN_ON((int)!!isp1362_hcd->istl_flip);
-		WARN_ON(isp1362_read_reg16(isp1362_hcd, HCBUFSTAT) & HCBUFSTAT_ISTL0_ACTIVE);
-		WARN_ON(!(isp1362_read_reg16(isp1362_hcd, HCBUFSTAT) & HCBUFSTAT_ISTL0_DONE));
+		WARN_ON(isp1362_read_reg16(isp1362_hcd, HCBUFSTAT) &
+			HCBUFSTAT_ISTL0_ACTIVE);
+		WARN_ON(!(isp1362_read_reg16(isp1362_hcd, HCBUFSTAT) &
+			HCBUFSTAT_ISTL0_DONE));
 		isp1362_hcd->irqenb &= ~HCuPINT_ISTL0;
 	}
 
@@ -1087,8 +1089,10 @@ static irqreturn_t isp1362_irq(struct usb_hcd *hcd)
 		isp1362_clr_mask16(isp1362_hcd, HCBUFSTAT, HCBUFSTAT_ISTL1_FULL);
 		DBG(1, "%s: ISTL1\n", __func__);
 		WARN_ON(!(int)isp1362_hcd->istl_flip);
-		WARN_ON(isp1362_read_reg16(isp1362_hcd, HCBUFSTAT) & HCBUFSTAT_ISTL1_ACTIVE);
-		WARN_ON(!(isp1362_read_reg16(isp1362_hcd, HCBUFSTAT) & HCBUFSTAT_ISTL1_DONE));
+		WARN_ON(isp1362_read_reg16(isp1362_hcd, HCBUFSTAT) &
+			HCBUFSTAT_ISTL1_ACTIVE);
+		WARN_ON(!(isp1362_read_reg16(isp1362_hcd, HCBUFSTAT) &
+			HCBUFSTAT_ISTL1_DONE));
 		isp1362_hcd->irqenb &= ~HCuPINT_ISTL1;
 	}
 
@@ -2563,7 +2567,7 @@ static int isp1362_hc_start(struct usb_hcd *hcd)
 	hwcfg = HCHWCFG_INT_ENABLE | HCHWCFG_DBWIDTH(1);
 	if (board->sel15Kres)
 		hwcfg |= HCHWCFG_PULLDOWN_DS2 |
-			(MAX_ROOT_PORTS > 1) ? HCHWCFG_PULLDOWN_DS1 : 0;
+			((MAX_ROOT_PORTS > 1) ? HCHWCFG_PULLDOWN_DS1 : 0);
 	if (board->clknotstop)
 		hwcfg |= HCHWCFG_CLKNOTSTOP;
 	if (board->oc_enable)
