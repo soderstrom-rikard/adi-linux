@@ -1,33 +1,31 @@
-/* bfin_sport.c - simple interface to Blackfin SPORT peripheral
+/*
+ * simple char interface to Blackfin SPORT peripheral
  *
- * Copyright 2004-2008 Analog Devices Inc.
+ * Copyright 2004-2009 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
 
-#include <linux/kernel.h>
-#include <linux/interrupt.h>
-#include <linux/module.h>
-#include <linux/moduleparam.h>
-#include <linux/init.h>
-
-#include <linux/slab.h>
-#include <linux/fs.h>
-#include <linux/types.h>
-#include <linux/proc_fs.h>
-#include <linux/fcntl.h>
 #include <linux/cdev.h>
 #include <linux/delay.h>
 #include <linux/device.h>
+#include <linux/fcntl.h>
+#include <linux/fs.h>
+#include <linux/gpio.h>
+#include <linux/init.h>
+#include <linux/interrupt.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/moduleparam.h>
+#include <linux/signal.h>
+#include <linux/types.h>
+#include <linux/uaccess.h>
+
 #include <asm/blackfin.h>
 #include <asm/bfin_sport.h>
 #include <asm/dma.h>
 #include <asm/cacheflush.h>
-
 #include <asm/system.h>
-#include <asm/uaccess.h>
-#include <asm/signal.h>
-#include <asm/gpio.h>
 #include <asm/portmux.h>
 
 static int sport_major = SPORT_MAJOR;
@@ -277,38 +275,31 @@ static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static inline void sport_rx_read(struct sport_dev *dev)
+{
+	struct sport_config *cfg = &dev->config;
+
+	if (cfg->word_len <= 16)
+		while (dev->rx_received < dev->rx_len &&
+		       (dev->regs->stat & RXNE)) {
+			u16 *buf = (void *)dev->rx_buf + dev->rx_received;
+			*buf = bfin_read16(&dev->regs->rx);
+			dev->rx_received += 2;
+		}
+	else
+		while (dev->rx_received < dev->rx_len &&
+		       (dev->regs->stat & RXNE)) {
+			u32 *buf = (void *)dev->rx_buf + dev->rx_received;
+			*buf = bfin_read32(&dev->regs->rx);
+			dev->rx_received += 4;
+		}
+}
+
 static irqreturn_t sport_rx_handler(int irq, void *dev_id)
 {
 	struct sport_dev *dev = dev_id;
-	struct sport_config *cfg = &dev->config;
 
-	int word_bytes = (cfg->word_len + 7) / 8;
-
-	if (word_bytes == 3)
-		word_bytes = 4;
-
-	if (word_bytes == 1) {
-		while ((dev->rx_received < dev->rx_len) &&
-		       (dev->regs->stat & RXNE)) {
-			*(dev->rx_buf + dev->rx_received) =
-			    *(volatile unsigned char *)(&dev->regs->rx);
-			dev->rx_received++;
-		}
-	} else if (word_bytes == 2) {
-		while ((dev->rx_received < dev->rx_len) &&
-		       (dev->regs->stat & RXNE)) {
-			*(unsigned short *)(dev->rx_buf + dev->rx_received) =
-			    *(volatile unsigned short *)(&dev->regs->rx);
-			dev->rx_received += 2;
-		}
-	} else if (word_bytes == 4) {
-		while ((dev->rx_received < dev->rx_len) &&
-		       (dev->regs->stat & RXNE)) {
-			*(unsigned long *)(dev->rx_buf + dev->rx_received) =
-			    *(volatile unsigned long *)(&dev->regs->rx);
-			dev->rx_received += 4;
-		}
-	}
+	sport_rx_read(dev);
 
 	if (dev->rx_received >= dev->rx_len) {
 		dev->regs->rcr1 &= ~RSPEN;
@@ -322,30 +313,21 @@ static irqreturn_t sport_rx_handler(int irq, void *dev_id)
 static inline void sport_tx_write(struct sport_dev *dev)
 {
 	struct sport_config *cfg = &dev->config;
-	int word_bytes = (cfg->word_len + 7) / 8;
 
-	if (word_bytes == 3)
-		word_bytes = 4;
-
-	if (word_bytes == 1) {
-		while ((dev->tx_sent < dev->tx_len) && !(dev->regs->stat & TXF)) {
-			*(volatile unsigned char *)(&dev->regs->tx) =
-			    *(dev->tx_buf + dev->tx_sent);
-			dev->tx_sent++;
-		}
-	} else if (word_bytes == 2) {
-		while ((dev->tx_sent < dev->tx_len) && !(dev->regs->stat & TXF)) {
-			*(volatile unsigned short *)(&dev->regs->tx) =
-			    *(unsigned short *)(dev->tx_buf + dev->tx_sent);
+	if (cfg->word_len <= 16)
+		while (dev->tx_sent < dev->tx_len &&
+		       !(dev->regs->stat & TXF)) {
+			u16 *buf = (void *)dev->tx_buf + dev->tx_sent;
+			bfin_write16(&dev->regs->tx, *buf);
 			dev->tx_sent += 2;
 		}
-	} else if (word_bytes == 4) {
-		while ((dev->tx_sent < dev->tx_len) && !(dev->regs->stat & TXF)) {
-			*(volatile unsigned long *)dev->regs->tx =
-			    *(unsigned long *)(dev->tx_buf + dev->tx_sent);
+	else
+		while (dev->tx_sent < dev->tx_len &&
+		       !(dev->regs->stat & TXF)) {
+			u32 *buf = (void *)dev->tx_buf + dev->tx_sent;
+			bfin_write32(&dev->regs->tx, *buf);
 			dev->tx_sent += 4;
 		}
-	}
 }
 
 static irqreturn_t sport_tx_handler(int irq, void *dev_id)
@@ -427,7 +409,7 @@ static int sport_open(struct inode *inode, struct file *filp)
 	dev = container_of(inode->i_cdev, struct sport_dev, cdev);
 	filp->private_data = dev;	/* for other methods */
 
-	memset(&dev->config, 0, sizeof(struct sport_config));
+	memset(&dev->config, 0, sizeof(dev->config));
 
 	dev->rx_buf = NULL;
 	dev->rx_len = 0;
@@ -569,13 +551,11 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 
 static void dump_dma_regs(void)
 {
-#ifdef DEBUG
 	struct dma_register *dma = (struct dma_register *)DMA4_NEXT_DESC_PTR;
 
 	pr_debug("%s config:0x%04x, x_count:0x%04x,"
 		 " x_modify:0x%04x\n", __func__, dma->cfg,
 		 dma->x_count, dma->x_modify);
-#endif
 }
 
 static ssize_t sport_write(struct file *filp, const char __user *buf,
@@ -718,7 +698,7 @@ static void __exit sport_cleanup_module(void)
 }
 module_exit(sport_cleanup_module);
 
-static void sport_setup_cdev(struct sport_dev *dev, int index)
+static void __init sport_setup_cdev(struct sport_dev *dev, int index)
 {
 	int err, devno = MKDEV(sport_major, sport_minor + index);
 
