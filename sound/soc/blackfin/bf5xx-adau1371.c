@@ -139,7 +139,8 @@ static int __init bf5xx_adau1371_init(void)
 
 	platform_set_drvdata(bf5xx_adau1371_snd_device,
 				&bf5xx_adau1371_snd_devdata);
-	bf5xx_adau1371_snd_device->dev.platform_data = &adau1371_pdata;
+	platform_device_add_data(bf5xx_adau1371_snd_device, &adau1371_pdata,
+				 sizeof(adau1371_pdata));
 	bf5xx_adau1371_snd_devdata.dev = &bf5xx_adau1371_snd_device->dev;
 	ret = platform_device_add(bf5xx_adau1371_snd_device);
 
