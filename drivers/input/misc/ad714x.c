@@ -1359,7 +1359,7 @@ static int ad714x_enable(struct ad714x_chip *ad714x)
 	return 0;
 }
 
-#if defined(CONFIG_SPI) || defined(CONFIG_SPI_MODULE)
+#if defined(CONFIG_AD714X_SCAN_SPI)
 static int ad714x_spi_suspend(struct spi_device *spi, pm_message_t message)
 {
 	struct ad714x_chip *ad714x = spi_get_drvdata(spi);
@@ -1379,7 +1379,7 @@ static int ad714x_spi_resume(struct spi_device *spi)
 }
 #endif
 
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
+#if defined(CONFIG_AD714X_SCAN_I2C)
 static int ad714x_i2c_suspend(struct i2c_client *client, pm_message_t message)
 {
 	struct ad714x_chip *ad714x = i2c_get_clientdata(client);
@@ -1406,7 +1406,7 @@ static int ad714x_i2c_resume(struct i2c_client *client)
 #define ad714x_i2c_resume  NULL
 #endif
 
-#if defined(CONFIG_SPI) || defined(CONFIG_SPI_MODULE)
+#if defined(CONFIG_AD714X_SCAN_SPI)
 static int ad714x_spi_read(struct device *dev, unsigned short reg,
 		unsigned short *data)
 {
@@ -1478,22 +1478,9 @@ static struct spi_driver ad714x_spi_driver = {
 	.suspend	= ad714x_spi_suspend,
 	.resume		= ad714x_spi_resume,
 };
-
-static __init int ad714x_spi_init(void)
-{
-	return spi_register_driver(&ad714x_spi_driver);
-}
-
-static __init void ad714x_spi_exit(void)
-{
-	spi_unregister_driver(&ad714x_spi_driver);
-}
-
-module_init(ad714x_spi_init);
-module_exit(ad714x_spi_exit);
 #endif
 
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
+#if defined(CONFIG_AD714X_SCAN_I2C)
 static int ad714x_i2c_write(struct device *dev, unsigned short reg,
 		unsigned short data)
 {
@@ -1607,20 +1594,41 @@ static struct i2c_driver ad714x_i2c_driver = {
 	.resume	  = ad714x_i2c_resume,
 	.id_table = ad714x_id,
 };
-
-static __init int ad714x_i2c_init(void)
-{
-	return i2c_add_driver(&ad714x_i2c_driver);
-}
-
-static __init void ad714x_i2c_exit(void)
-{
-	i2c_del_driver(&ad714x_i2c_driver);
-}
-
-module_init(ad714x_i2c_init);
-module_exit(ad714x_i2c_exit);
 #endif
+
+static int spi_sta = -1, i2c_sta = -1;
+
+static __init int ad714x_init(void)
+{
+#if defined(CONFIG_AD714X_SCAN_SPI)
+	spi_sta = spi_register_driver(&ad714x_spi_driver);
+#endif
+
+#if defined(CONFIG_AD714X_SCAN_I2C)
+	i2c_sta = i2c_add_driver(&ad714x_i2c_driver);
+#endif
+
+	/* If anyone of spi and i2c init successfully, we permit it to work */
+	if ((spi_sta && i2c_sta) == 0)
+		return 0;
+	else
+		return -ENODEV;
+}
+
+static __init void ad714x_exit(void)
+{
+#if defined(CONFIG_AD714X_SCAN_SPI)
+	if (!spi_sta)
+		spi_unregister_driver(&ad714x_spi_driver);
+#endif
+
+#if defined(CONFIG_AD714X_SCAN_I2C)
+	if (!i2c_sta)
+		i2c_del_driver(&ad714x_i2c_driver);
+#endif
+}
+module_init(ad714x_init);
+module_exit(ad714x_exit);
 
 MODULE_DESCRIPTION("Analog Devices AD714X Capacitance Touch Sensor Driver");
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
