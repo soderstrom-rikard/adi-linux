@@ -1064,7 +1064,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 	 * Allocate and register AD714X input device
 	 */
 
-	drv_data = kzalloc(sizeof(struct ad714x_driver_data), GFP_KERNEL);
+	drv_data = kzalloc(sizeof(*drv_data), GFP_KERNEL);
 	if (!drv_data) {
 		dev_err(ad714x->dev,
 			"Can't allocate memory for ad714x driver info\n");
@@ -1075,8 +1075,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 
 	/* a slider uses one input_dev instance */
 	if (ad714x->hw->slider_num > 0) {
-		sd_drv = kzalloc(sizeof(struct ad714x_slider_drv) *
-				ad714x->hw->slider_num, GFP_KERNEL);
+		sd_drv = kzalloc(sizeof(*sd_drv) * ad714x->hw->slider_num, GFP_KERNEL);
 		if (!sd_drv) {
 			dev_err(ad714x->dev,
 				"Can't allocate memory for slider info\n");
@@ -1120,8 +1119,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 
 	/* a wheel uses one input_dev instance */
 	if (ad714x->hw->wheel_num > 0) {
-		wl_drv = kzalloc(sizeof(struct ad714x_wheel_drv) *
-				ad714x->hw->wheel_num, GFP_KERNEL);
+		wl_drv = kzalloc(sizeof(*wl_drv) * ad714x->hw->wheel_num, GFP_KERNEL);
 		if (!wl_drv) {
 			dev_err(ad714x->dev,
 				"Can't allocate memory for wheel info\n");
@@ -1165,8 +1163,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 
 	/* a touchpad uses one input_dev instance */
 	if (ad714x->hw->touchpad_num > 0) {
-		tp_drv = kzalloc(sizeof(struct ad714x_touchpad_drv) *
-				ad714x->hw->touchpad_num, GFP_KERNEL);
+		tp_drv = kzalloc(sizeof(*tp_drv) * ad714x->hw->touchpad_num, GFP_KERNEL);
 		if (!tp_drv) {
 			dev_err(ad714x->dev,
 				"Can't allocate memory for touchpad info\n");
@@ -1214,8 +1211,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 
 	/* all buttons use one input node */
 	if (ad714x->hw->button_num > 0) {
-		bt_drv = kzalloc(sizeof(struct ad714x_button_drv) *
-				ad714x->hw->button_num, GFP_KERNEL);
+		bt_drv = kzalloc(sizeof(*bt_drv) * ad714x->hw->button_num, GFP_KERNEL);
 		if (!bt_drv) {
 			dev_err(ad714x->dev,
 				"Can't allocate memory for button info\n");
@@ -1438,7 +1434,7 @@ static int __devinit ad714x_spi_probe(struct spi_device *spi)
 		return -ENODEV;
 	}
 
-	chip = kzalloc(sizeof(struct ad714x_chip), GFP_KERNEL);
+	chip = kzalloc(sizeof(*chip), GFP_KERNEL);
 	if (!chip)
 		return -ENOMEM;
 
@@ -1547,7 +1543,7 @@ static int __devinit ad714x_i2c_probe(struct i2c_client *client,
 		return -ENODEV;
 	}
 
-	chip = kzalloc(sizeof(struct ad714x_chip), GFP_KERNEL);
+	chip = kzalloc(sizeof(*chip), GFP_KERNEL);
 	if (!chip)
 		return -ENOMEM;
 
