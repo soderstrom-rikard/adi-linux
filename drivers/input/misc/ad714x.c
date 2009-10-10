@@ -5,6 +5,7 @@
  *
  * Licensed under the GPL-2 or later.
  */
+
 #define pr_fmt(fmt) "ad714x: " fmt
 #include <linux/device.h>
 #include <linux/init.h>
@@ -13,9 +14,6 @@
 #include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/input/ad714x.h>
-
-#define CONFIG_AD714X_SCAN_SPI 1
-#define CONFIG_AD714X_SCAN_I2C 1
 
 #define AD714x_SPI_CMD_PREFIX      0xE000   /* bits 15:11 */
 #define AD714x_SPI_READ            BIT(10)
@@ -1387,40 +1385,24 @@ static int ad714x_enable(struct ad714x_chip *ad714x)
 #if defined(CONFIG_AD714X_SCAN_SPI)
 static int ad714x_spi_suspend(struct spi_device *spi, pm_message_t message)
 {
-	struct ad714x_chip *ad714x = spi_get_drvdata(spi);
-
-	ad714x_disable(ad714x);
-
-	return 0;
+	return ad714x_disable(spi_get_drvdata(spi));
 }
 
 static int ad714x_spi_resume(struct spi_device *spi)
 {
-	struct ad714x_chip *ad714x = spi_get_drvdata(spi);
-
-	ad714x_enable(ad714x);
-
-	return 0;
+	return ad714x_enable(spi_get_drvdata(spi));
 }
 #endif
 
 #if defined(CONFIG_AD714X_SCAN_I2C)
 static int ad714x_i2c_suspend(struct i2c_client *client, pm_message_t message)
 {
-	struct ad714x_chip *ad714x = i2c_get_clientdata(client);
-
-	ad714x_disable(ad714x);
-
-	return 0;
+	return ad714x_disable(i2c_get_clientdata(client));
 }
 
 static int ad714x_i2c_resume(struct i2c_client *client)
 {
-	struct ad714x_chip *ad714x = i2c_get_clientdata(client);
-
-	ad714x_enable(ad714x);
-
-	return 0;
+	return ad714x_enable(i2c_get_clientdata(client));
 }
 #endif
 
