@@ -229,11 +229,18 @@ static struct resource bfin_uart0_resources[] = {
 #endif
 };
 
+unsigned short bfin_uart0_peripherals[] = {
+	P_UART0_TX, P_UART0_RX, 0
+};
+
 static struct platform_device bfin_uart0_device = {
 	.name = "bfin-uart",
 	.id = 0,
 	.num_resources = ARRAY_SIZE(bfin_uart0_resources),
 	.resource = bfin_uart0_resources,
+	.dev = {
+		.platform_data = &bfin_uart0_peripherals, /* Passed to driver */
+	},
 };
 #endif
 #endif
