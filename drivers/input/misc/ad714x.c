@@ -14,6 +14,9 @@
 #include <linux/interrupt.h>
 #include <linux/input/ad714x.h>
 
+#define CONFIG_AD714X_SCAN_SPI 1
+#define CONFIG_AD714X_SCAN_I2C 1
+
 #define AD714x_SPI_CMD_PREFIX      0xE000   /* bits 15:11 */
 #define AD714x_SPI_READ            BIT(10)
 
@@ -129,6 +132,8 @@ struct ad714x_driver_data {
 /* information to integrate all things which will be private data
  * of spi/i2c device
  */
+typedef int (ad714x_read_t) (struct device *, unsigned short, unsigned short *);
+typedef int (ad714x_write_t) (struct device *, unsigned short, unsigned short);
 struct ad714x_chip {
 	unsigned short h_state;
 	unsigned short l_state;
@@ -142,8 +147,8 @@ struct ad714x_chip {
 
 	int irq;
 	struct device *dev;
-	int (*read) (struct device *, unsigned short, unsigned short *);
-	int (*write) (struct device *, unsigned short, unsigned short);
+	ad714x_read_t *read;
+	ad714x_write_t *write;
 
 	struct mutex mutex;
 
@@ -1019,17 +1024,19 @@ static irqreturn_t ad714x_interrupt(int irq, void *data)
 }
 
 #define MAX_DEVICE_NUM 8
-static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
+static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *dev,
+	u16 bus_type, int irq, ad714x_read_t read, ad714x_write_t write)
 {
-	int ret = 0;
+	int ret;
 	struct input_dev *input[MAX_DEVICE_NUM];
 
-	struct ad714x_driver_data *drv_data = NULL;
+	struct ad714x_chip *ad714x;
+	struct ad714x_driver_data *drv_data;
 
-	struct ad714x_button_plat *bt_plat   = ad714x->hw->button;
-	struct ad714x_slider_plat *sd_plat   = ad714x->hw->slider;
-	struct ad714x_wheel_plat *wl_plat    = ad714x->hw->wheel;
-	struct ad714x_touchpad_plat *tp_plat = ad714x->hw->touchpad;
+	struct ad714x_button_plat *bt_plat;
+	struct ad714x_slider_plat *sd_plat;
+	struct ad714x_wheel_plat *wl_plat;
+	struct ad714x_touchpad_plat *tp_plat;
 
 	struct ad714x_button_drv *bt_drv   = NULL;
 	struct ad714x_slider_drv *sd_drv   = NULL;
@@ -1038,6 +1045,26 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 
 	int alloc_idx = 0, reg_idx = 0;
 	int i;
+
+	if (dev->platform_data == NULL) {
+		dev_err(dev, "platform data for ad714x doesn't exist\n");
+		return -ENODEV;
+	}
+
+	*pad714x = ad714x = kzalloc(sizeof(*ad714x), GFP_KERNEL);
+	if (!ad714x)
+		return -ENOMEM;
+
+	ad714x->read = read;
+	ad714x->write = write;
+	ad714x->hw = dev->platform_data;
+	ad714x->irq = irq;
+	ad714x->dev = dev;
+
+	bt_plat = ad714x->hw->button;
+	sd_plat = ad714x->hw->slider;
+	wl_plat = ad714x->hw->wheel;
+	tp_plat = ad714x->hw->touchpad;
 
 	ret = ad714x_hw_detect(ad714x);
 	if (ret)
@@ -1053,12 +1080,12 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 				ad714x_interrupt_thread, IRQF_TRIGGER_FALLING,
 				"ad714x_captouch", ad714x);
 		if (ret) {
-			dev_err(ad714x->dev, "Can't allocate irq %d\n",
+			dev_err(dev, "Can't allocate irq %d\n",
 					ad714x->irq);
 			goto fail_irq;
 		}
 	} else
-		dev_err(ad714x->dev, "IRQ not configured!\n");
+		dev_err(dev, "IRQ not configured!\n");
 
 	/*
 	 * Allocate and register AD714X input device
@@ -1066,7 +1093,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 
 	drv_data = kzalloc(sizeof(*drv_data), GFP_KERNEL);
 	if (!drv_data) {
-		dev_err(ad714x->dev,
+		dev_err(dev,
 			"Can't allocate memory for ad714x driver info\n");
 		ret = -ENOMEM;
 		goto fail_alloc_reg;
@@ -1077,7 +1104,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 	if (ad714x->hw->slider_num > 0) {
 		sd_drv = kzalloc(sizeof(*sd_drv) * ad714x->hw->slider_num, GFP_KERNEL);
 		if (!sd_drv) {
-			dev_err(ad714x->dev,
+			dev_err(dev,
 				"Can't allocate memory for slider info\n");
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
@@ -1086,7 +1113,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 		for (i = 0; i < ad714x->hw->slider_num; i++) {
 			input[alloc_idx] = input_allocate_device();
 			if (!input[alloc_idx]) {
-				dev_err(ad714x->dev,
+				dev_err(dev,
 				"Can't allocate input device %d\n", alloc_idx);
 				ret = -ENOMEM;
 				goto fail_alloc_reg;
@@ -1106,7 +1133,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 
 			ret = input_register_device(input[reg_idx]);
 			if (ret) {
-				dev_err(ad714x->dev,
+				dev_err(dev,
 				"Failed to register AD714X input device!\n");
 				goto fail_alloc_reg;
 			}
@@ -1121,7 +1148,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 	if (ad714x->hw->wheel_num > 0) {
 		wl_drv = kzalloc(sizeof(*wl_drv) * ad714x->hw->wheel_num, GFP_KERNEL);
 		if (!wl_drv) {
-			dev_err(ad714x->dev,
+			dev_err(dev,
 				"Can't allocate memory for wheel info\n");
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
@@ -1130,7 +1157,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 		for (i = 0; i < ad714x->hw->wheel_num; i++) {
 			input[alloc_idx] = input_allocate_device();
 			if (!input[alloc_idx]) {
-				dev_err(ad714x->dev,
+				dev_err(dev,
 				"Can't allocate input device %d\n", alloc_idx);
 				ret = -ENOMEM;
 				goto fail_alloc_reg;
@@ -1150,7 +1177,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 
 			ret = input_register_device(input[reg_idx]);
 			if (ret) {
-				dev_err(ad714x->dev,
+				dev_err(dev,
 				"Failed to register AD714X input device!\n");
 				goto fail_alloc_reg;
 			}
@@ -1165,7 +1192,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 	if (ad714x->hw->touchpad_num > 0) {
 		tp_drv = kzalloc(sizeof(*tp_drv) * ad714x->hw->touchpad_num, GFP_KERNEL);
 		if (!tp_drv) {
-			dev_err(ad714x->dev,
+			dev_err(dev,
 				"Can't allocate memory for touchpad info\n");
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
@@ -1174,7 +1201,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 		for (i = 0; i < ad714x->hw->touchpad_num; i++) {
 			input[alloc_idx] = input_allocate_device();
 			if (!input[alloc_idx]) {
-				dev_err(ad714x->dev,
+				dev_err(dev,
 					"Can't allocate input device %d\n",
 					alloc_idx);
 				ret = -ENOMEM;
@@ -1198,7 +1225,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 
 			ret = input_register_device(input[reg_idx]);
 			if (ret) {
-				dev_err(ad714x->dev,
+				dev_err(dev,
 				"Failed to register AD714X input device!\n");
 				goto fail_alloc_reg;
 			}
@@ -1213,7 +1240,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 	if (ad714x->hw->button_num > 0) {
 		bt_drv = kzalloc(sizeof(*bt_drv) * ad714x->hw->button_num, GFP_KERNEL);
 		if (!bt_drv) {
-			dev_err(ad714x->dev,
+			dev_err(dev,
 				"Can't allocate memory for button info\n");
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
@@ -1221,7 +1248,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 
 		input[alloc_idx] = input_allocate_device();
 		if (!input[alloc_idx]) {
-			dev_err(ad714x->dev,
+			dev_err(dev,
 					"Can't allocate input device %d\n",
 					alloc_idx);
 			ret = -ENOMEM;
@@ -1241,7 +1268,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 
 		ret = input_register_device(input[reg_idx]);
 		if (ret) {
-			dev_err(ad714x->dev,
+			dev_err(dev,
 				"Failed to register AD714X input device!\n");
 			goto fail_alloc_reg;
 		}
@@ -1255,7 +1282,7 @@ static int __devinit ad714x_probe(struct ad714x_chip *ad714x, u16 bus_type)
 
 	return 0;
 
-fail_alloc_reg:
+ fail_alloc_reg:
 	for (i = 0; i < reg_idx; i++)
 		input_unregister_device(input[i]);
 	for (i = reg_idx; i < alloc_idx; i++)
@@ -1268,8 +1295,9 @@ fail_alloc_reg:
 	kfree(drv_data);
 
 	free_irq(ad714x->irq, ad714x);
-fail_irq:
-det_err:
+ fail_irq:
+ det_err:
+	kfree(ad714x);
 	return ret;
 }
 
@@ -1282,7 +1310,6 @@ static int __devexit ad714x_remove(struct ad714x_chip *ad714x)
 	struct ad714x_slider_drv *sd_drv   = ad714x->sw->slider;
 	struct ad714x_wheel_drv *wl_drv    = ad714x->sw->wheel;
 	struct ad714x_touchpad_drv *tp_drv = ad714x->sw->touchpad;
-
 
 	/* unregister and free all input devices */
 
@@ -1308,6 +1335,8 @@ static int __devexit ad714x_remove(struct ad714x_chip *ad714x)
 	/* free irq hardware resource */
 
 	free_irq(ad714x->irq, ad714x);
+
+	kfree(ad714x);
 
 	return 0;
 }
@@ -1426,42 +1455,19 @@ static int ad714x_spi_write(struct device *dev, unsigned short reg,
 
 static int __devinit ad714x_spi_probe(struct spi_device *spi)
 {
-	int ret = 0;
-	struct ad714x_chip *chip;
+	int ret;
+	struct ad714x_chip *chip = NULL;
 
-	if (spi->dev.platform_data == NULL) {
-		dev_err(&spi->dev, "platform data for ad714x doesn't exist\n");
-		return -ENODEV;
-	}
-
-	chip = kzalloc(sizeof(*chip), GFP_KERNEL);
-	if (!chip)
-		return -ENOMEM;
-
-	chip->read = ad714x_spi_read;
-	chip->write = ad714x_spi_write;
-	chip->hw = spi->dev.platform_data;
-	chip->irq = spi->irq;
-	chip->dev = &spi->dev;
+	ret = ad714x_probe(&chip, &spi->dev, BUS_SPI, spi->irq,
+		ad714x_spi_read, ad714x_spi_write);
 	spi_set_drvdata(spi, chip);
-
-	/* common probe not related with spi/i2c */
-	ret = ad714x_probe(chip, BUS_SPI);
-	if (ret)
-		kfree(chip);
 
 	return ret;
 }
 
 static int __devexit ad714x_spi_remove(struct spi_device *spi)
 {
-	struct ad714x_chip *chip = spi_get_drvdata(spi);
-
-	ad714x_remove(chip);
-
-	kfree(chip);
-
-	return 0;
+	return ad714x_remove(spi_get_drvdata(spi));
 }
 
 static struct spi_driver ad714x_spi_driver = {
@@ -1535,42 +1541,18 @@ static int __devinit ad714x_i2c_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
 	int ret = 0;
-	struct ad714x_chip *chip;
+	struct ad714x_chip *chip = NULL;
 
-	if (client->dev.platform_data == NULL) {
-		dev_err(&client->dev,
-			"platform data for ad714x doesn't exist\n");
-		return -ENODEV;
-	}
-
-	chip = kzalloc(sizeof(*chip), GFP_KERNEL);
-	if (!chip)
-		return -ENOMEM;
-
-	chip->read = ad714x_i2c_read;
-	chip->write = ad714x_i2c_write;
-	chip->hw = client->dev.platform_data;
-	chip->irq = client->irq;
-	chip->dev = &client->dev;
+	ret = ad714x_probe(&chip, &client->dev, BUS_I2C, client->irq,
+		ad714x_i2c_read, ad714x_i2c_write);
 	i2c_set_clientdata(client, chip);
-
-	/* common probe not related with spi/i2c */
-	ret = ad714x_probe(chip, BUS_I2C);
-	if (ret)
-		kfree(chip);
 
 	return ret;
 }
 
 static int __devexit ad714x_i2c_remove(struct i2c_client *client)
 {
-	struct ad714x_chip *chip = i2c_get_clientdata(client);
-
-	ad714x_remove(chip);
-
-	kfree(chip);
-
-	return 0;
+	return ad714x_remove(i2c_get_clientdata(client));
 }
 
 static const struct i2c_device_id ad714x_id[] = {
