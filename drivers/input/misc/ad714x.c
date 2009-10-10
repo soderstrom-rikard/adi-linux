@@ -1614,8 +1614,9 @@ static __init int ad714x_init(void)
 	else
 		return -ENODEV;
 }
+module_init(ad714x_init);
 
-static __init void ad714x_exit(void)
+static __exit void ad714x_exit(void)
 {
 #if defined(CONFIG_AD714X_SCAN_SPI)
 	if (!spi_sta)
@@ -1627,7 +1628,6 @@ static __init void ad714x_exit(void)
 		i2c_del_driver(&ad714x_i2c_driver);
 #endif
 }
-module_init(ad714x_init);
 module_exit(ad714x_exit);
 
 MODULE_DESCRIPTION("Analog Devices AD714X Capacitance Touch Sensor Driver");
