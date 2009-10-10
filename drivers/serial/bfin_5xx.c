@@ -1200,11 +1200,16 @@ static struct bfin_serial_port bfin_earlyprintk_port;
 static void
 bfin_earlyprintk_console_write(struct console *co, const char *s, unsigned int count)
 {
+	struct bfin_serial_port *uart = bfin_serial_ports[co->index];
+	unsigned long flags;
+
 	if (bfin_earlyprintk_port.port.line != co->index)
 		return;
 
+	spin_lock_irqsave(&uart->port.lock, flags);
 	uart_console_write(&bfin_earlyprintk_port.port, s, count,
 		bfin_serial_console_putchar);
+	spin_unlock_irqrestore(&uart->port.lock, flags);
 }
 
 /*
