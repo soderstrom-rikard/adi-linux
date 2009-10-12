@@ -280,44 +280,34 @@ config INPUT_BFIN_ROTARY
 	  module will be called bfin-rotary.
 
 config INPUT_AD714X
-	tristate "Analog Devices AD7142/7147 Capacitance Touch Sensor"
+	tristate "Analog Devices AD714x Capacitance Touch Sensor"
 	help
-	  Say Y here if you want to support an AD7142/7147 touch sensor.
+	  Say Y here if you want to support an AD7142/AD7147 touch sensor.
+
+	  You should select a bus connection too.
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called ad714x.
 
-config AD714X_SCAN_SPI
-	bool "scan AD7142/7147 devices on SPI bus"
-	depends on INPUT_AD714X
-	select SPI
+config INPUT_AD714X_I2C
+	tristate "support I2C bus connection"
+	depends on INPUT_AD714X && I2C
 	default y
 	help
-	  Say Y here if you have AD7142/AD7147 hooked on SPI bus.
-	  If unsure, say N.
+	  Say Y here if you have AD7142/AD7147 hooked to an I2C bus.
 
-config INPUT_EVAL_AD7147EBZ
-	bool "ADI EVAL-AD7147EBZ board"
-	depends on AD714X_SCAN_SPI
-	help
-	  Select this if you are using ADI EVAL-AD7147EBZ board, there are
-	  five buttons and one slider on this board.
+	  To compile this driver as a module, choose M here: the
+	  module will be called ad714x-i2c.
 
-config AD714X_SCAN_I2C
-	bool "scan AD7142/7147 devices on I2C bus"
-	depends on INPUT_AD714X
-	select I2C
+config INPUT_AD714X_SPI
+	tristate "support SPI bus connection"
+	depends on INPUT_AD714X && SPI
 	default y
 	help
-	  Say Y here if you have AD7142/AD7147 hooked on I2C bus.
-	  If unsure, say N.
+	  Say Y here if you have AD7142/AD7147 hooked to a SPI bus.
 
-config INPUT_EVAL_AD7142EB
-	bool "ADI EVAL-AD7142EB board"
-	depends on AD714X_SCAN_I2C
-	help
-	  Select this if you are using ADI EVAL-AD7142EB board, there are
-	  four buttons and two sliders on this board.
+	  To compile this driver as a module, choose M here: the
+	  module will be called ad714x-spi.
 
 config INPUT_ADXL34X
 	tristate "ADXL345/346 Three-Axis Digital Accelerometer"

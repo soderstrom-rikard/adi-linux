@@ -6,17 +6,12 @@
  * Licensed under the GPL-2 or later.
  */
 
-#define pr_fmt(fmt) "ad714x: " fmt
 #include <linux/device.h>
 #include <linux/init.h>
-#include <linux/spi/spi.h>
-#include <linux/i2c.h>
 #include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/input/ad714x.h>
-
-#define AD714x_SPI_CMD_PREFIX      0xE000   /* bits 15:11 */
-#define AD714x_SPI_READ            BIT(10)
+#include "ad714x.h"
 
 #define AD714X_PWR_CTRL           0x0
 #define AD714X_STG_CAL_EN_REG     0x1
@@ -130,8 +125,6 @@ struct ad714x_driver_data {
 /* information to integrate all things which will be private data
  * of spi/i2c device
  */
-typedef int (ad714x_read_t) (struct device *, unsigned short, unsigned short *);
-typedef int (ad714x_write_t) (struct device *, unsigned short, unsigned short);
 struct ad714x_chip {
 	unsigned short h_state;
 	unsigned short l_state;
@@ -944,24 +937,24 @@ static int ad714x_hw_detect(struct ad714x_chip *ad714x)
 	case AD7147_PARTID:
 		ad714x->product = 0x7147;
 		ad714x->version = data & 0xF;
-		dev_info(ad714x->dev, "Found AD7147 captouch, rev:%d\n",
+		dev_info(ad714x->dev, "found AD7147 captouch, rev:%d\n",
 				ad714x->version);
 		return 0;
 	case AD7142_PARTID:
 		ad714x->product = 0x7142;
 		ad714x->version = data & 0xF;
-		dev_info(ad714x->dev, "Found AD7142 captouch, rev:%d\n",
+		dev_info(ad714x->dev, "found AD7142 captouch, rev:%d\n",
 				ad714x->version);
 		return 0;
 	default:
 		dev_err(ad714x->dev,
-			"Fail to detect AD714X captouch, read ID is %04x\n",
+			"fail to detect AD714X captouch, read ID is %04x\n",
 			data);
 		return -ENODEV;
 	}
 }
 
-static void __devinit ad714x_hw_init(struct ad714x_chip *ad714x)
+static void ad714x_hw_init(struct ad714x_chip *ad714x)
 {
 	int i, j;
 	unsigned short reg_base;
@@ -1022,7 +1015,7 @@ static irqreturn_t ad714x_interrupt(int irq, void *data)
 }
 
 #define MAX_DEVICE_NUM 8
-static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *dev,
+int ad714x_probe(struct ad714x_chip **pad714x, struct device *dev,
 	u16 bus_type, int irq, ad714x_read_t read, ad714x_write_t write)
 {
 	int ret;
@@ -1078,7 +1071,7 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 				ad714x_interrupt_thread, IRQF_TRIGGER_FALLING,
 				"ad714x_captouch", ad714x);
 		if (ret) {
-			dev_err(dev, "Can't allocate irq %d\n",
+			dev_err(dev, "can't allocate irq %d\n",
 					ad714x->irq);
 			goto fail_irq;
 		}
@@ -1091,8 +1084,7 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 
 	drv_data = kzalloc(sizeof(*drv_data), GFP_KERNEL);
 	if (!drv_data) {
-		dev_err(dev,
-			"Can't allocate memory for ad714x driver info\n");
+		dev_err(dev, "can't allocate memory for ad714x driver info\n");
 		ret = -ENOMEM;
 		goto fail_alloc_reg;
 	}
@@ -1102,8 +1094,7 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 	if (ad714x->hw->slider_num > 0) {
 		sd_drv = kzalloc(sizeof(*sd_drv) * ad714x->hw->slider_num, GFP_KERNEL);
 		if (!sd_drv) {
-			dev_err(dev,
-				"Can't allocate memory for slider info\n");
+			dev_err(dev, "can't allocate memory for slider info\n");
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
 		}
@@ -1111,8 +1102,7 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 		for (i = 0; i < ad714x->hw->slider_num; i++) {
 			input[alloc_idx] = input_allocate_device();
 			if (!input[alloc_idx]) {
-				dev_err(dev,
-				"Can't allocate input device %d\n", alloc_idx);
+				dev_err(dev, "can't allocate input device %d\n", alloc_idx);
 				ret = -ENOMEM;
 				goto fail_alloc_reg;
 			}
@@ -1131,8 +1121,7 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 
 			ret = input_register_device(input[reg_idx]);
 			if (ret) {
-				dev_err(dev,
-				"Failed to register AD714X input device!\n");
+				dev_err(dev, "failed to register AD714X input device!\n");
 				goto fail_alloc_reg;
 			}
 			reg_idx++;
@@ -1146,8 +1135,7 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 	if (ad714x->hw->wheel_num > 0) {
 		wl_drv = kzalloc(sizeof(*wl_drv) * ad714x->hw->wheel_num, GFP_KERNEL);
 		if (!wl_drv) {
-			dev_err(dev,
-				"Can't allocate memory for wheel info\n");
+			dev_err(dev, "can't allocate memory for wheel info\n");
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
 		}
@@ -1155,8 +1143,7 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 		for (i = 0; i < ad714x->hw->wheel_num; i++) {
 			input[alloc_idx] = input_allocate_device();
 			if (!input[alloc_idx]) {
-				dev_err(dev,
-				"Can't allocate input device %d\n", alloc_idx);
+				dev_err(dev, "can't allocate input device %d\n", alloc_idx);
 				ret = -ENOMEM;
 				goto fail_alloc_reg;
 			}
@@ -1175,8 +1162,7 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 
 			ret = input_register_device(input[reg_idx]);
 			if (ret) {
-				dev_err(dev,
-				"Failed to register AD714X input device!\n");
+				dev_err(dev, "failed to register AD714X input device!\n");
 				goto fail_alloc_reg;
 			}
 			reg_idx++;
@@ -1190,8 +1176,7 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 	if (ad714x->hw->touchpad_num > 0) {
 		tp_drv = kzalloc(sizeof(*tp_drv) * ad714x->hw->touchpad_num, GFP_KERNEL);
 		if (!tp_drv) {
-			dev_err(dev,
-				"Can't allocate memory for touchpad info\n");
+			dev_err(dev, "can't allocate memory for touchpad info\n");
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
 		}
@@ -1199,9 +1184,7 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 		for (i = 0; i < ad714x->hw->touchpad_num; i++) {
 			input[alloc_idx] = input_allocate_device();
 			if (!input[alloc_idx]) {
-				dev_err(dev,
-					"Can't allocate input device %d\n",
-					alloc_idx);
+				dev_err(dev, "can't allocate input device %d\n", alloc_idx);
 				ret = -ENOMEM;
 				goto fail_alloc_reg;
 			}
@@ -1223,8 +1206,7 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 
 			ret = input_register_device(input[reg_idx]);
 			if (ret) {
-				dev_err(dev,
-				"Failed to register AD714X input device!\n");
+				dev_err(dev, "failed to register AD714X input device!\n");
 				goto fail_alloc_reg;
 			}
 			reg_idx++;
@@ -1238,17 +1220,14 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 	if (ad714x->hw->button_num > 0) {
 		bt_drv = kzalloc(sizeof(*bt_drv) * ad714x->hw->button_num, GFP_KERNEL);
 		if (!bt_drv) {
-			dev_err(dev,
-				"Can't allocate memory for button info\n");
+			dev_err(dev, "can't allocate memory for button info\n");
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
 		}
 
 		input[alloc_idx] = input_allocate_device();
 		if (!input[alloc_idx]) {
-			dev_err(dev,
-					"Can't allocate input device %d\n",
-					alloc_idx);
+			dev_err(dev, "can't allocate input device %d\n", alloc_idx);
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
 		}
@@ -1266,8 +1245,7 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 
 		ret = input_register_device(input[reg_idx]);
 		if (ret) {
-			dev_err(dev,
-				"Failed to register AD714X input device!\n");
+			dev_err(dev, "failed to register AD714X input device!\n");
 			goto fail_alloc_reg;
 		}
 		reg_idx++;
@@ -1298,8 +1276,9 @@ static int __devinit ad714x_probe(struct ad714x_chip **pad714x, struct device *d
 	kfree(ad714x);
 	return ret;
 }
+EXPORT_SYMBOL(ad714x_probe);
 
-static int __devexit ad714x_remove(struct ad714x_chip *ad714x)
+int ad714x_remove(struct ad714x_chip *ad714x)
 {
 	int i;
 
@@ -1338,9 +1317,10 @@ static int __devexit ad714x_remove(struct ad714x_chip *ad714x)
 
 	return 0;
 }
+EXPORT_SYMBOL(ad714x_remove);
 
 #ifdef CONFIG_PM
-static int ad714x_disable(struct ad714x_chip *ad714x)
+int ad714x_disable(struct ad714x_chip *ad714x)
 {
 	unsigned short data;
 
@@ -1355,8 +1335,9 @@ static int ad714x_disable(struct ad714x_chip *ad714x)
 
 	return 0;
 }
+EXPORT_SYMBOL(ad714x_disable);
 
-static int ad714x_enable(struct ad714x_chip *ad714x)
+int ad714x_enable(struct ad714x_chip *ad714x)
 {
 	unsigned short data;
 
@@ -1381,212 +1362,18 @@ static int ad714x_enable(struct ad714x_chip *ad714x)
 
 	return 0;
 }
-
-#if defined(CONFIG_AD714X_SCAN_SPI)
-static int ad714x_spi_suspend(struct spi_device *spi, pm_message_t message)
-{
-	return ad714x_disable(spi_get_drvdata(spi));
-}
-
-static int ad714x_spi_resume(struct spi_device *spi)
-{
-	return ad714x_enable(spi_get_drvdata(spi));
-}
+EXPORT_SYMBOL(ad714x_enable);
 #endif
 
-#if defined(CONFIG_AD714X_SCAN_I2C)
-static int ad714x_i2c_suspend(struct i2c_client *client, pm_message_t message)
-{
-	return ad714x_disable(i2c_get_clientdata(client));
-}
-
-static int ad714x_i2c_resume(struct i2c_client *client)
-{
-	return ad714x_enable(i2c_get_clientdata(client));
-}
-#endif
-
-#else
-#define ad714x_spi_suspend NULL
-#define ad714x_spi_resume  NULL
-#define ad714x_i2c_suspend NULL
-#define ad714x_i2c_resume  NULL
-#endif
-
-#if defined(CONFIG_AD714X_SCAN_SPI)
-static int ad714x_spi_read(struct device *dev, unsigned short reg,
-		unsigned short *data)
-{
-	struct spi_device *spi = to_spi_device(dev);
-	unsigned short tx = AD714x_SPI_CMD_PREFIX | AD714x_SPI_READ | reg;
-
-	return spi_write_then_read(spi, (u8 *)&tx, 2, (u8 *)data, 2);
-}
-
-static int ad714x_spi_write(struct device *dev, unsigned short reg,
-		unsigned short data)
-{
-	struct spi_device *spi = to_spi_device(dev);
-	unsigned short tx[2] = {
-		AD714x_SPI_CMD_PREFIX | reg,
-		data
-	};
-
-	return spi_write(spi, (u8 *)tx, 4);
-}
-
-static int __devinit ad714x_spi_probe(struct spi_device *spi)
-{
-	int ret;
-	struct ad714x_chip *chip = NULL;
-
-	ret = ad714x_probe(&chip, &spi->dev, BUS_SPI, spi->irq,
-		ad714x_spi_read, ad714x_spi_write);
-	spi_set_drvdata(spi, chip);
-
-	return ret;
-}
-
-static int __devexit ad714x_spi_remove(struct spi_device *spi)
-{
-	return ad714x_remove(spi_get_drvdata(spi));
-}
-
-static struct spi_driver ad714x_spi_driver = {
-	.driver = {
-		.name	= "ad714x_captouch",
-		.owner	= THIS_MODULE,
-	},
-	.probe		= ad714x_spi_probe,
-	.remove		= __devexit_p(ad714x_spi_remove),
-	.suspend	= ad714x_spi_suspend,
-	.resume		= ad714x_spi_resume,
-};
-#endif
-
-#if defined(CONFIG_AD714X_SCAN_I2C)
-static int ad714x_i2c_write(struct device *dev, unsigned short reg,
-		unsigned short data)
-{
-	struct i2c_client *client = to_i2c_client(dev);
-	int ret = 0;
-	u8 *_reg = (u8 *)&reg;
-	u8 *_data = (u8 *)&data;
-
-	u8 tx[4] = {
-		_reg[1],
-		_reg[0],
-		_data[1],
-		_data[0]
-	};
-
-	ret = i2c_master_send(client, tx, 4);
-	if (ret < 0)
-		dev_err(&client->dev, "I2C write error\n");
-
-	return ret;
-}
-
-static int ad714x_i2c_read(struct device *dev, unsigned short reg,
-		unsigned short *data)
-{
-	struct i2c_client *client = to_i2c_client(dev);
-	int ret = 0;
-	u8 *_reg = (u8 *)&reg;
-	u8 *_data = (u8 *)data;
-
-	u8 tx[2] = {
-		_reg[1],
-		_reg[0]
-	};
-	u8 rx[2];
-
-	ret = i2c_master_send(client, tx, 2);
-	if (ret < 0) {
-		dev_err(&client->dev, "I2C read error\n");
-		return ret;
-	}
-
-	ret = i2c_master_recv(client, rx, 2);
-	if (ret < 0) {
-		dev_err(&client->dev, "I2C read error\n");
-		return ret;
-	}
-
-	_data[0] = rx[1];
-	_data[1] = rx[0];
-
-	return ret;
-}
-
-static int __devinit ad714x_i2c_probe(struct i2c_client *client,
-		const struct i2c_device_id *id)
-{
-	int ret = 0;
-	struct ad714x_chip *chip = NULL;
-
-	ret = ad714x_probe(&chip, &client->dev, BUS_I2C, client->irq,
-		ad714x_i2c_read, ad714x_i2c_write);
-	i2c_set_clientdata(client, chip);
-
-	return ret;
-}
-
-static int __devexit ad714x_i2c_remove(struct i2c_client *client)
-{
-	return ad714x_remove(i2c_get_clientdata(client));
-}
-
-static const struct i2c_device_id ad714x_id[] = {
-	{ "ad7142_captouch", 0 },
-	{ "ad7147_captouch", 0 },
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, ad714x_id);
-
-static struct i2c_driver ad714x_i2c_driver = {
-	.driver = {
-		.name = "ad714x_captouch",
-	},
-	.probe    = ad714x_i2c_probe,
-	.remove   = __devexit_p(ad714x_i2c_remove),
-	.suspend  = ad714x_i2c_suspend,
-	.resume	  = ad714x_i2c_resume,
-	.id_table = ad714x_id,
-};
-#endif
-
-static int spi_sta = -1, i2c_sta = -1;
-
+/* Stub functions so we can load/unload the module */
 static __init int ad714x_init(void)
 {
-#if defined(CONFIG_AD714X_SCAN_SPI)
-	spi_sta = spi_register_driver(&ad714x_spi_driver);
-#endif
-
-#if defined(CONFIG_AD714X_SCAN_I2C)
-	i2c_sta = i2c_add_driver(&ad714x_i2c_driver);
-#endif
-
-	/* If anyone of spi and i2c init successfully, we permit it to work */
-	if ((spi_sta && i2c_sta) == 0)
-		return 0;
-	else
-		return -ENODEV;
+	return 0;
 }
 module_init(ad714x_init);
 
 static __exit void ad714x_exit(void)
 {
-#if defined(CONFIG_AD714X_SCAN_SPI)
-	if (!spi_sta)
-		spi_unregister_driver(&ad714x_spi_driver);
-#endif
-
-#if defined(CONFIG_AD714X_SCAN_I2C)
-	if (!i2c_sta)
-		i2c_del_driver(&ad714x_i2c_driver);
-#endif
 }
 module_exit(ad714x_exit);
 
