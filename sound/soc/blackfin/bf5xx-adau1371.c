@@ -24,22 +24,25 @@
 #include "bf5xx-i2s-pcm.h"
 #include "bf5xx-i2s.h"
 
-/* PLL settings coefficients, add more here... */
+/* PLL settings coefficients, add more here...
+ * Currently the most convenient way is to make PLL
+ * generate 48k * 1024 or 44.1k * 1024 clock,then
+ * use source clock divider and MCLK divider
+ * to get the required rate.
+ */
 static const struct _pll_settings adau1371_pll_settings[] = {
 	/* 96k */
-	/* {12288000, 96000, 0, 0, 0x0, 0x8, 0x0}, */
-	/* 88.2k */
-	/* {12288000, 88200, 20, 7, 0x0, 0x7, 0x1}, */
+	{ 12288000, 96000, 0, 0, 0x0, 0x4, 0x0 },
 	/* 48k */
 	{ 12288000, 48000, 0, 0, 0x0, 0x4, 0x0 },
 	/* 44.1k */
 	{ 12288000, 44100, 40, 27, 0x0, 0x3, 0x1 },
-	{ 11289600, 44100, 0, 0, 0x0, 0x4, 0x0 },
-	/* 22.050k */
-	{ 12288000, 22050, 40, 27, 0x1, 0x3, 0x1 },
-	{ 11289600, 22050, 0, 0, 0x0, 0x2, 0x0 },
+	/* 22.05k */
+	{ 12288000, 22050, 40, 27, 0x0, 0x3, 0x1 },
+	/* 16k */
+	{ 12288000, 16000, 0, 0, 0x0, 0x4, 0x0 },
 	/* 8k */
-	/* {12288000, 8000, 3, 2, 0x3, 0x2, 0x1}, */
+	{ 12288000, 8000, 0, 0, 0x0, 0x4, 0x0 },
 };
 
 static struct adau1371_platform_data adau1371_pdata = {
