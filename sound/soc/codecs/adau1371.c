@@ -630,30 +630,48 @@ static int adau1371_hw_params(struct snd_pcm_substream *substream,
 	const struct _pll_settings *pll_settings = adau1371->data->pll_settings;
 	int i = 0;
 	u8 dai_ctl;
-	/* 8000Hz can't be got through PLL on REVB,so use external clock directly */
-	if (adau1371->sysclk == 12288000 && params_rate(params) == 8000) {
-		adau1371_write(codec, ADAU1371_CLKSDIV, CLKSDIV_PLL_BYPASS
-			| (5 << CLKSDIV_CLKDIV_SHIFT));
-	} else {
-		i = get_coeff(adau1371, params_rate(params));
-		if (i == adau1371->data->pll_settings_num)
-			return -EINVAL;
+
+	i = get_coeff(adau1371, params_rate(params));
+	if (i == adau1371->data->pll_settings_num)
+		return -EINVAL;
+	/* Divide PLL output(48k * 1024 or 44.1k * 1024) to get wanted rate */
+	switch (params_rate(params)) {
+	case 96000:
+		adau1371_write(codec, ADAU1371_CLKSDIV, (1 << CLKSDIV_CLKDIV_SHIFT));
+		break;
+	case 48000:
 		adau1371_write(codec, ADAU1371_CLKSDIV, (3 << CLKSDIV_CLKDIV_SHIFT));
-		reg = adau1371_read_reg_cache(codec, ADAU1371_CLKSDIV);
-		adau1371_write(codec, ADAU1371_CLKSDIV, reg & ~CLKSDIV_COREN);
-		/* Set PLL */
-		adau1371_write(codec, ADAU1371_PLLCTLB, 0x00);
-		adau1371_write(codec, ADAU1371_PLLMHI,
-			((pll_settings + i)->m & 0xff00) >> 8);
-		adau1371_write(codec, ADAU1371_PLLMLOW, (pll_settings + i)->m
-			& 0xff);
-		adau1371_write(codec, ADAU1371_PLLNHI,
-			((pll_settings + i)->n & 0xff00) >> 8);
-		adau1371_write(codec, ADAU1371_PLLNLOW, (pll_settings + i)->n
-			& 0xff);
-		adau1371_write(codec, ADAU1371_PLLCTLA, (pll_settings + i)->integer << 3 |
-			 (pll_settings + i)->input_div << 1 | (pll_settings + i)->type);
+		break;
+	case 44100:
+		adau1371_write(codec, ADAU1371_CLKSDIV, (3 << CLKSDIV_CLKDIV_SHIFT));
+		break;
+	case 22050:
+		adau1371_write(codec, ADAU1371_CLKSDIV, (7 << CLKSDIV_CLKDIV_SHIFT));
+		break;
+	case 16000:
+		adau1371_write(codec, ADAU1371_CLKSDIV, (5 << CLKSDIV_CLKDIV_SHIFT | 1));
+		break;
+	case 8000:
+		adau1371_write(codec, ADAU1371_CLKSDIV, (5 << CLKSDIV_CLKDIV_SHIFT | 3));
+		break;
+	default:
+		dev_err(codec->dev, "rate : %d isn't supported\n", params_rate(params));
+		break;
 	}
+	reg = adau1371_read_reg_cache(codec, ADAU1371_CLKSDIV);
+	adau1371_write(codec, ADAU1371_CLKSDIV, reg & ~CLKSDIV_COREN);
+	/* Set PLL */
+	adau1371_write(codec, ADAU1371_PLLCTLB, 0x00);
+	adau1371_write(codec, ADAU1371_PLLMHI,
+		((pll_settings + i)->m & 0xff00) >> 8);
+	adau1371_write(codec, ADAU1371_PLLMLOW, (pll_settings + i)->m
+		& 0xff);
+	adau1371_write(codec, ADAU1371_PLLNHI,
+		((pll_settings + i)->n & 0xff00) >> 8);
+	adau1371_write(codec, ADAU1371_PLLNLOW, (pll_settings + i)->n
+		& 0xff);
+	adau1371_write(codec, ADAU1371_PLLCTLA, (pll_settings + i)->integer << 3 |
+		 (pll_settings + i)->input_div << 1 | (pll_settings + i)->type);
 
 	/* bit size */
 	switch (params_format(params)) {
@@ -829,8 +847,9 @@ static int adau1371_set_bias_level(struct snd_soc_codec *codec,
 	return 0;
 }
 
-#define adau1371_RATES (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_22050 | \
-		SNDRV_PCM_RATE_44100 | SNDRV_PCM_RATE_48000)
+#define adau1371_RATES (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000 | \
+			SNDRV_PCM_RATE_22050 | SNDRV_PCM_RATE_44100 | \
+			SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_96000)
 
 #define adau1371_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE | \
 		SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE)
@@ -949,8 +968,6 @@ static int adau1371_init(struct snd_soc_device *socdev)
 	adau1371_write(codec, ADAU1371_CODECCTL, 0x10);
 	/* 64 bits per frame */
 	adau1371_write(codec, ADAU1371_BCLKDIV, BCLKDIV_BPFA64);
-	/* Use PLL, the clock divisor is 4 */
-	adau1371_write(codec, ADAU1371_CLKSDIV, (3 << CLKSDIV_CLKDIV_SHIFT));
 	/* PWR on input port A,right and left ADCs */
 	reg = PWRCTLA_INAPD | PWRCTLA_MICBPD | PWRCTLA_LADCPD | PWRCTLA_RADCPD;
 	adau1371_write(codec, ADAU1371_PWRCTLA, reg);
