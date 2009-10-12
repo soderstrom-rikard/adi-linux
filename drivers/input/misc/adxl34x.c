@@ -673,6 +673,7 @@ int adxl34x_probe(struct adxl34x **pac, struct device *dev, u16 bus_type,
 	*pac = ac = kmalloc(sizeof(*ac), GFP_KERNEL);
 	if (!ac)
 		return -ENOMEM;
+	ac->fifo_delay = fifo_delay_default;
 
 	pdata = dev->platform_data;
 	if (!pdata) {
