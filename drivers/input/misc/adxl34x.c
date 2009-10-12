@@ -1,5 +1,5 @@
 /*
- * ADXL345/346 Three-Axis Digital Accelerometers (I2C/SPI Interface)
+ * ADXL345/346 Three-Axis Digital Accelerometers
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
@@ -18,7 +18,9 @@
 #include <linux/spi/spi.h>
 #include <linux/i2c.h>
 
-#include <linux/spi/adxl34x.h>
+#include <linux/input/adxl34x.h>
+
+#include "adxl34x.h"
 
 /* ADXL345/6 Register Map */
 #define DEVID		0x00	/* R   Device ID */
@@ -175,14 +177,8 @@
 
 #undef ADXL_DEBUG
 
-#define AC_READ(ac, reg)	((ac)->read((ac)->bus, reg))
-#define AC_WRITE(ac, reg, val)	((ac)->write((ac)->bus, reg, val))
-
-#if defined(CONFIG_INPUT_ADXL34X_SPI)
-#define bus_device		struct spi_device
-#elif defined(CONFIG_INPUT_ADXL34X_I2C)
-#define bus_device		struct i2c_client
-#endif
+#define AC_READ(ac, reg)	((ac)->read((ac)->dev, reg))
+#define AC_WRITE(ac, reg, val)	((ac)->write((ac)->dev, reg, val))
 
 struct axis_triple {
 	int x;
@@ -191,7 +187,8 @@ struct axis_triple {
 };
 
 struct adxl34x {
-	bus_device *bus;
+	struct device *dev;
+	int irq;
 	struct input_dev *input;
 	struct work_struct work;
 	struct mutex mutex;	/* reentrant protection for struct */
@@ -206,9 +203,9 @@ struct adxl34x {
 	unsigned model;
 	unsigned int_mask;
 
-	int (*read) (bus_device *, unsigned char);
-	int (*read_block) (bus_device *, unsigned char, int, unsigned char *);
-	int (*write) (bus_device *, unsigned char, unsigned char);
+	adxl34x_read_t *read;
+	adxl34x_read_block_t *read_block;
+	adxl34x_write_t *write;
 };
 
 static const struct adxl34x_platform_data adxl34x_default_init = {
@@ -243,7 +240,7 @@ static void adxl34x_get_triple(struct adxl34x *ac, struct axis_triple *axis)
 {
 	short buf[3];
 
-	ac->read_block(ac->bus, DATAX0, DATAZ1 - DATAX0 + 1,
+	ac->read_block(ac->dev, DATAX0, DATAZ1 - DATAX0 + 1,
 		       (unsigned char *)buf);
 
 	mutex_lock(&ac->mutex);
@@ -265,11 +262,11 @@ static void adxl34x_service_ev_fifo(struct adxl34x *ac)
 
 	adxl34x_get_triple(ac, &axis);
 
-	input_event(ac->input, ac->pdata.ev_type, pdata->ev_code_x,
+	input_event(ac->input, pdata->ev_type, pdata->ev_code_x,
 		    axis.x - ac->swcal.x);
-	input_event(ac->input, ac->pdata.ev_type, pdata->ev_code_y,
+	input_event(ac->input, pdata->ev_type, pdata->ev_code_y,
 		    axis.y - ac->swcal.y);
-	input_event(ac->input, ac->pdata.ev_type, pdata->ev_code_z,
+	input_event(ac->input, pdata->ev_type, pdata->ev_code_z,
 		    axis.z - ac->swcal.z);
 }
 
@@ -313,7 +310,7 @@ static void adxl34x_work(struct work_struct *work)
 		adxl34x_report_key_single(ac->input, pdata->ev_code_ff);
 
 	if (int_stat & OVERRUN)
-		dev_dbg(&ac->bus->dev, "OVERRUN\n");
+		dev_dbg(ac->dev, "OVERRUN\n");
 
 	if (int_stat & SINGLE_TAP) {
 		if (tap_stat & TAP_X_SRC)
@@ -357,27 +354,27 @@ static void adxl34x_work(struct work_struct *work)
 
 		for (; samples > 0; samples--) {
 			adxl34x_service_ev_fifo(ac);
-		/*
-		 * To ensure that the FIFO has
-		 * completely popped, there must be at least 5 us between
-		 * the end of reading the data registers, signified by the
-		 * transition to register 0x38 from 0x37 or the CS pin
-		 * going high, and the start of new reads of the FIFO or
-		 * reading the FIFO_STATUS register. For SPI operation at
-		 * 1.5 MHz or lower, the register addressing portion of the
-		 * transmission is sufficient delay to ensure the FIFO has
-		 * completely popped. It is necessary for SPI operation
-		 * greater than 1.5 MHz to de-assert the CS pin to ensure a
-		 * total of 5 us, which is at most 3.4 us at 5 MHz
-		 * operation.
-		 */
+			/*
+			 * To ensure that the FIFO has
+			 * completely popped, there must be at least 5 us between
+			 * the end of reading the data registers, signified by the
+			 * transition to register 0x38 from 0x37 or the CS pin
+			 * going high, and the start of new reads of the FIFO or
+			 * reading the FIFO_STATUS register. For SPI operation at
+			 * 1.5 MHz or lower, the register addressing portion of the
+			 * transmission is sufficient delay to ensure the FIFO has
+			 * completely popped. It is necessary for SPI operation
+			 * greater than 1.5 MHz to de-assert the CS pin to ensure a
+			 * total of 5 us, which is at most 3.4 us at 5 MHz
+			 * operation.
+			 */
 			if (ac->fifo_delay && (samples > 1))
 				udelay(3);
 		}
 	}
 
 	input_sync(ac->input);
-	enable_irq(ac->bus->irq);
+	enable_irq(ac->irq);
 }
 
 static irqreturn_t adxl34x_irq(int irq, void *handle)
@@ -390,7 +387,7 @@ static irqreturn_t adxl34x_irq(int irq, void *handle)
 	return IRQ_HANDLED;
 }
 
-static void adxl34x_disable(struct adxl34x *ac)
+void adxl34x_disable(struct adxl34x *ac)
 {
 	mutex_lock(&ac->mutex);
 	if (!ac->disabled && ac->opened) {
@@ -404,8 +401,9 @@ static void adxl34x_disable(struct adxl34x *ac)
 	}
 	mutex_unlock(&ac->mutex);
 }
+EXPORT_SYMBOL_GPL(adxl34x_disable);
 
-static void adxl34x_enable(struct adxl34x *ac)
+void adxl34x_enable(struct adxl34x *ac)
 {
 	mutex_lock(&ac->mutex);
 	if (ac->disabled && ac->opened) {
@@ -414,6 +412,7 @@ static void adxl34x_enable(struct adxl34x *ac)
 	}
 	mutex_unlock(&ac->mutex);
 }
+EXPORT_SYMBOL_GPL(adxl34x_enable);
 
 static ssize_t adxl34x_disable_show(struct device *dev,
 				    struct device_attribute *attr, char *buf)
@@ -656,26 +655,32 @@ static void adxl34x_input_close(struct input_dev *input)
 	mutex_unlock(&ac->mutex);
 }
 
-static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
+int adxl34x_probe(struct adxl34x **pac, struct device *dev, u16 bus_type,
+	int irq, int fifo_delay_default, adxl34x_read_t read,
+	adxl34x_read_block_t read_block, adxl34x_write_t write)
 {
+	struct adxl34x *ac;
 	struct input_dev *input_dev;
-	struct adxl34x_platform_data *devpd = bus->dev.platform_data;
 	struct adxl34x_platform_data *pdata;
 	int err, range;
 	unsigned char revid;
 
-	if (!bus->irq) {
-		dev_err(&bus->dev, "no IRQ?\n");
+	if (!irq) {
+		dev_err(dev, "no IRQ?\n");
 		return -ENODEV;
 	}
 
-	if (!devpd) {
-		dev_dbg(&bus->dev,
-			"No platfrom data: Using default initialization\n");
-		devpd = (struct adxl34x_platform_data *)&adxl34x_default_init;
-	}
+	*pac = ac = kmalloc(sizeof(*ac), GFP_KERNEL);
+	if (!ac)
+		return -ENOMEM;
 
-	memcpy(&ac->pdata, devpd, sizeof(ac->pdata));
+	pdata = dev->platform_data;
+	if (!pdata) {
+		dev_dbg(dev,
+			"No platfrom data: Using default initialization\n");
+		pdata = (struct adxl34x_platform_data *)&adxl34x_default_init;
+	}
+	memcpy(&ac->pdata, pdata, sizeof(*pdata));
 	pdata = &ac->pdata;
 
 	input_dev = input_allocate_device();
@@ -688,7 +693,7 @@ static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
 	INIT_WORK(&ac->work, adxl34x_work);
 	mutex_init(&ac->mutex);
 
-	revid = ac->read(bus, DEVID);
+	revid = ac->read(dev, DEVID);
 
 	switch (revid) {
 	case ID_ADXL345:
@@ -698,18 +703,18 @@ static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
 		ac->model = 346;
 		break;
 	default:
-		dev_err(&bus->dev, "Failed to probe %s\n", input_dev->name);
+		dev_err(dev, "Failed to probe %s\n", input_dev->name);
 		err = -ENODEV;
 		goto err_free_mem;
 	}
 
-	snprintf(ac->phys, sizeof(ac->phys), "%s/input0", dev_name(&bus->dev));
+	snprintf(ac->phys, sizeof(ac->phys), "%s/input0", dev_name(dev));
 
 	input_dev->name = "ADXL34x accelerometer";
 	input_dev->phys = ac->phys;
-	input_dev->dev.parent = &bus->dev;
+	input_dev->dev.parent = dev;
 	input_dev->id.product = ac->model;
-	input_dev->id.bustype = BUS_I2C;
+	input_dev->id.bustype = bus_type;
 	input_dev->open = adxl34x_input_open;
 	input_dev->close = adxl34x_input_close;
 
@@ -766,17 +771,16 @@ static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
 	if (FIFO_MODE(pdata->fifo_mode) == FIFO_BYPASS)
 		ac->fifo_delay = 0;
 
-	ac->write(bus, POWER_CTL, 0);
+	ac->write(dev, POWER_CTL, 0);
 
-	err = request_irq(bus->irq, adxl34x_irq,
-			  IRQF_TRIGGER_HIGH, bus->dev.driver->name, ac);
-
+	err = request_irq(ac->irq, adxl34x_irq,
+			  IRQF_TRIGGER_HIGH, dev_name(dev), ac);
 	if (err) {
-		dev_err(&bus->dev, "irq %d busy?\n", bus->irq);
+		dev_err(dev, "irq %d busy?\n", ac->irq);
 		goto err_free_mem;
 	}
 
-	err = sysfs_create_group(&bus->dev.kobj, &adxl34x_attr_group);
+	err = sysfs_create_group(&dev->kobj, &adxl34x_attr_group);
 	if (err)
 		goto err_free_irq;
 
@@ -819,284 +823,46 @@ static int __devinit adxl34x_initialize(bus_device *bus, struct adxl34x *ac)
 
 	pdata->power_mode &= (PCTL_AUTO_SLEEP | PCTL_LINK);
 
-	dev_info(&bus->dev, "ADXL%d accelerometer, irq %d\n",
-		 ac->model, bus->irq);
+	dev_info(dev, "ADXL%d accelerometer, irq %d\n",
+		 ac->model, ac->irq);
 
 	return 0;
 
  err_remove_attr:
-	sysfs_remove_group(&bus->dev.kobj, &adxl34x_attr_group);
+	sysfs_remove_group(&dev->kobj, &adxl34x_attr_group);
  err_free_irq:
-	free_irq(bus->irq, ac);
+	free_irq(ac->irq, ac);
  err_free_mem:
 	input_free_device(input_dev);
 
 	return err;
 }
+EXPORT_SYMBOL_GPL(adxl34x_probe);
 
-static int __devexit adxl34x_cleanup(bus_device *bus, struct adxl34x *ac)
+int adxl34x_remove(struct adxl34x *ac)
 {
 	adxl34x_disable(ac);
-	sysfs_remove_group(&ac->bus->dev.kobj, &adxl34x_attr_group);
-	free_irq(ac->bus->irq, ac);
+	sysfs_remove_group(&ac->dev->kobj, &adxl34x_attr_group);
+	free_irq(ac->irq, ac);
 	input_unregister_device(ac->input);
-	dev_dbg(&bus->dev, "unregistered accelerometer\n");
-
-	return 0;
-}
-
-#ifdef CONFIG_PM
-static int adxl34x_suspend(bus_device *bus, pm_message_t message)
-{
-	adxl34x_disable(dev_get_drvdata(&bus->dev));
-	return 0;
-}
-
-static int adxl34x_resume(bus_device *bus)
-{
-	adxl34x_enable(dev_get_drvdata(&bus->dev));
-	return 0;
-}
-#else
-#define adxl34x_suspend NULL
-#define adxl34x_resume  NULL
-#endif
-
-#if defined(CONFIG_INPUT_ADXL34X_SPI)
-
-#define MAX_SPI_FREQ_HZ		5000000
-#define MAX_FREQ_NO_FIFODELAY	1500000
-#define ADXL34X_CMD_MULTB	(1 << 6)
-#define ADXL34X_CMD_READ	(1 << 7)
-#define ADXL34X_WRITECMD(reg)	(reg & 0x3F)
-#define ADXL34X_READCMD(reg)	(ADXL34X_CMD_READ | (reg & 0x3F))
-#define ADXL34X_READMB_CMD(reg) (ADXL34X_CMD_READ | ADXL34X_CMD_MULTB \
-					| (reg & 0x3F))
-
-static int adxl34x_spi_read(struct spi_device *spi, unsigned char reg)
-{
-	unsigned char cmd;
-
-	cmd = ADXL34X_READCMD(reg);
-
-	return spi_w8r8(spi, cmd);
-}
-
-static int adxl34x_spi_write(struct spi_device *spi,
-			     unsigned char reg, unsigned char val)
-{
-	unsigned char buf[2];
-
-	buf[0] = ADXL34X_WRITECMD(reg);
-	buf[1] = val;
-
-	return spi_write(spi, buf, sizeof(buf));
-}
-
-static int adxl34x_spi_read_block(struct spi_device *spi,
-				  unsigned char reg, int count,
-				  unsigned char *buf)
-{
-	ssize_t status;
-
-	reg = ADXL34X_READMB_CMD(reg);
-	status = spi_write_then_read(spi, &reg, 1, buf, count);
-
-	return (status < 0) ? status : 0;
-}
-
-static int __devinit adxl34x_spi_probe(struct spi_device *spi)
-{
-	struct adxl34x *ac;
-	int error;
-
-	/* don't exceed max specified SPI CLK frequency */
-	if (spi->max_speed_hz > MAX_SPI_FREQ_HZ) {
-		dev_err(&spi->dev, "SPI CLK %d Hz?\n", spi->max_speed_hz);
-		return -EINVAL;
-	}
-
-	ac = kzalloc(sizeof(struct adxl34x), GFP_KERNEL);
-	if (!ac)
-		return -ENOMEM;
-
-	dev_set_drvdata(&spi->dev, ac);
-	ac->bus = spi;
-
-	ac->read = adxl34x_spi_read;
-	ac->read_block = adxl34x_spi_read_block;
-	ac->write = adxl34x_spi_write;
-
-	if (spi->max_speed_hz > MAX_FREQ_NO_FIFODELAY)
-		ac->fifo_delay = 1;
-
-	error = adxl34x_initialize(spi, ac);
-	if (error) {
-		dev_set_drvdata(&spi->dev, NULL);
-		kfree(ac);
-	}
-
-	return error;
-}
-
-static int __devexit adxl34x_spi_remove(struct spi_device *spi)
-{
-	struct adxl34x *ac = dev_get_drvdata(&spi->dev);
-
-	adxl34x_cleanup(spi, ac);
-	dev_set_drvdata(&spi->dev, NULL);
+	dev_dbg(ac->dev, "unregistered accelerometer\n");
 	kfree(ac);
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(adxl34x_remove);
 
-static struct spi_driver adxl34x_driver = {
-	.driver = {
-		.name = "adxl34x",
-		.bus = &spi_bus_type,
-		.owner = THIS_MODULE,
-	},
-	.probe   = adxl34x_spi_probe,
-	.remove  = __devexit_p(adxl34x_spi_remove),
-	.suspend = adxl34x_suspend,
-	.resume  = adxl34x_resume,
-};
-
-static int __init adxl34x_spi_init(void)
+/* Stub functions so we can load/unload the module */
+static __init int ad714x_init(void)
 {
-	return spi_register_driver(&adxl34x_driver);
-}
-
-module_init(adxl34x_spi_init);
-
-static void __exit adxl34x_spi_exit(void)
-{
-	spi_unregister_driver(&adxl34x_driver);
-}
-
-module_exit(adxl34x_spi_exit);
-
-#elif defined(CONFIG_INPUT_ADXL34X_I2C)
-
-static int adxl34x_i2c_smbus_read(struct i2c_client *client, unsigned char reg)
-{
-	return i2c_smbus_read_byte_data(client, reg);
-}
-
-static int adxl34x_i2c_smbus_write(struct i2c_client *client,
-				   unsigned char reg, unsigned char val)
-{
-	return i2c_smbus_write_byte_data(client, reg, val);
-}
-
-static int adxl34x_i2c_smbus_read_block_data(struct i2c_client *client,
-					     unsigned char reg, int count,
-					     unsigned char *buf)
-{
-	return i2c_smbus_read_i2c_block_data(client, reg, count, buf);
-}
-
-static int adxl34x_i2c_master_read_block_data(struct i2c_client *client,
-					      unsigned char reg, int count,
-					      unsigned char *buf)
-{
-	int ret;
-
-	ret = i2c_master_send(client, &reg, 1);
-	if (ret < 0)
-		return ret;
-	ret = i2c_master_recv(client, buf, count);
-	if (ret < 0)
-		return ret;
-	if (ret != count)
-		return -EIO;
-
 	return 0;
 }
+module_init(ad714x_init);
 
-static int __devinit adxl34x_i2c_probe(struct i2c_client *client,
-				       const struct i2c_device_id *id)
+static __exit void ad714x_exit(void)
 {
-	struct adxl34x *ac;
-	int error;
-
-	error = i2c_check_functionality(client->adapter,
-			I2C_FUNC_SMBUS_BYTE_DATA);
-	if (!error) {
-		dev_err(&client->dev, "SMBUS Byte Data not Supported\n");
-		return -EIO;
-	}
-
-	ac = kzalloc(sizeof(struct adxl34x), GFP_KERNEL);
-	if (!ac)
-		return -ENOMEM;
-
-	i2c_set_clientdata(client, ac);
-	ac->bus = client;
-
-	if (i2c_check_functionality(client->adapter,
-				    I2C_FUNC_SMBUS_READ_I2C_BLOCK))
-		ac->read_block = adxl34x_i2c_smbus_read_block_data;
-	else
-		ac->read_block = adxl34x_i2c_master_read_block_data;
-
-	ac->read = adxl34x_i2c_smbus_read;
-	ac->write = adxl34x_i2c_smbus_write;
-
-	error = adxl34x_initialize(client, ac);
-	if (error) {
-		i2c_set_clientdata(client, NULL);
-		kfree(ac);
-	}
-
-	return error;
 }
-
-static int __devexit adxl34x_i2c_remove(struct i2c_client *client)
-{
-	struct adxl34x *ac = dev_get_drvdata(&client->dev);
-
-	adxl34x_cleanup(client, ac);
-	i2c_set_clientdata(client, NULL);
-	kfree(ac);
-
-	return 0;
-}
-
-static const struct i2c_device_id adxl34x_id[] = {
-	{ "adxl34x", 0 },
-	{ }
-};
-
-MODULE_DEVICE_TABLE(i2c, adxl34x_id);
-
-static struct i2c_driver adxl34x_driver = {
-	.driver = {
-		.name = "adxl34x",
-		.owner = THIS_MODULE,
-	},
-	.probe    = adxl34x_i2c_probe,
-	.remove   = __devexit_p(adxl34x_i2c_remove),
-	.suspend  = adxl34x_suspend,
-	.resume   = adxl34x_resume,
-	.id_table = adxl34x_id,
-};
-
-static int __init adxl34x_i2c_init(void)
-{
-	return i2c_add_driver(&adxl34x_driver);
-}
-
-module_init(adxl34x_i2c_init);
-
-static void __exit adxl34x_i2c_exit(void)
-{
-	i2c_del_driver(&adxl34x_driver);
-}
-
-module_exit(adxl34x_i2c_exit);
-
-#endif
+module_exit(ad714x_exit);
 
 MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
 MODULE_DESCRIPTION("ADXL345/346 Three-Axis Digital Accelerometer Driver");

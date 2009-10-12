@@ -310,8 +310,7 @@ config INPUT_AD714X_SPI
 	  module will be called ad714x-spi.
 
 config INPUT_ADXL34X
-	tristate "ADXL345/346 Three-Axis Digital Accelerometer"
-	depends on I2C || SPI_MASTER
+	tristate "Analog Devices ADXL34x Three-Axis Digital Accelerometer"
 	default n
 	help
 	  Say Y here if you have a Accelerometer interface using the
@@ -327,29 +326,25 @@ config INPUT_ADXL34X
 	  To compile this driver as a module, choose M here: the
 	  module will be called adxl34x.
 
-choice
-	prompt "ADXL345/346 Communication Method"
-	depends on INPUT_ADXL34X
-	default INPUT_ADXL34X_I2C if I2C
-	default INPUT_ADXL34X_SPI if (!I2C) && SPI_MASTER
-
 config INPUT_ADXL34X_I2C
-	bool "I2C Interface"
-	depends on I2C
+	tristate "support I2C bus connection"
+	depends on INPUT_ADXL34X && I2C
+	default y
 	help
-	  Select this if you have a Accelerometer interface using the
-	  ADXL345/6 controller, and your board-specific initialization
-	  code includes that in its table of I2C devices.
+	  Say Y here if you have ADXL345/6 hooked to an I2C bus.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called adxl34x-i2c.
 
 config INPUT_ADXL34X_SPI
-	bool "SPI Interface"
-	depends on SPI_MASTER
+	tristate "support SPI bus connection"
+	depends on INPUT_ADXL34X && SPI
+	default y
 	help
-	  Select this if you have a Accelerometer interface using the
-	  ADXL345/6 controller, and your board-specific initialization
-	  code includes that in its table of SPI devices.
+	  Say Y here if you have ADXL345/6 hooked to a SPI bus.
 
-endchoice
+	  To compile this driver as a module, choose M here: the
+	  module will be called adxl34x-spi.
 
 config INPUT_PCF8574
 	tristate "PCF8574 Keypad input device"

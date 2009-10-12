@@ -1,13 +1,17 @@
 /*
- * include/linux/spi/adxl34x.h
+ * include/linux/input/adxl34x.h
  *
  * Digital Accelerometer characteristics are highly application specific
  * and may vary between boards and models. The platform_data for the
  * device's "struct device" holds this information.
+ *
+ * Copyright 2009 Analog Devices Inc.
+ *
+ * Licensed under the GPL-2 or later.
  */
 
-#ifndef _ADXL34X_H_
-#define _ADXL34X_H_
+#ifndef __LINUX_INPUT_ADXL34X_H__
+#define __LINUX_INPUT_ADXL34X_H__
 
 struct adxl34x_platform_data {
 
