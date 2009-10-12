@@ -39,6 +39,63 @@
 #include <asm/cacheflush.h>
 
 #include "bf5xx-sport.h"
+
+/*
+ * Setting the TFS pin selector for SPORT 0 based on whether the selected
+ * port id F or G. If the port is F then no conflict should exist for the
+ * TFS. When Port G is selected and EMAC then there is a conflict between
+ * the PHY interrupt line and TFS.  Current settings prevent the conflict
+ * by ignoring the TFS pin when Port G is selected. This allows both
+ * codecs and EMAC using Port G concurrently.
+ */
+#ifdef CONFIG_BF527_SPORT0_PORTG
+#define LOCAL_SPORT0_TFS (0)
+#else
+#define LOCAL_SPORT0_TFS (P_SPORT0_TFS)
+#endif
+
+#define SPORT_REQ(x) \
+	[x] = {P_SPORT##x##_TFS, P_SPORT##x##_DTPRI, P_SPORT##x##_TSCLK, \
+		P_SPORT##x##_RFS, P_SPORT##x##_DRPRI, P_SPORT##x##_RSCLK, 0}
+
+static u16 sport_req[][7] = {
+#ifdef SPORT0_TCR1
+	{P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
+		P_SPORT0_DRPRI, P_SPORT0_RSCLK, LOCAL_SPORT0_TFS, 0},
+#endif
+#ifdef SPORT1_TCR1
+	SPORT_REQ(1),
+#endif
+#ifdef SPORT2_TCR1
+	SPORT_REQ(2),
+#endif
+#ifdef SPORT3_TCR1
+	SPORT_REQ(3),
+#endif
+};
+
+#define SPORT_PARAMS(x) \
+	[x] = { \
+		.dma_rx_chan = CH_SPORT##x##_RX, \
+		.dma_tx_chan = CH_SPORT##x##_TX, \
+		.err_irq     = IRQ_SPORT##x##_ERROR, \
+		.regs        = (struct sport_register *)SPORT##x##_TCR1, \
+	}
+static struct sport_param sport_params[4] = {
+#ifdef SPORT0_TCR1
+	SPORT_PARAMS(0),
+#endif
+#ifdef SPORT1_TCR1
+	SPORT_PARAMS(1),
+#endif
+#ifdef SPORT2_TCR1
+	SPORT_PARAMS(2),
+#endif
+#ifdef SPORT3_TCR1
+	SPORT_PARAMS(3),
+#endif
+};
+
 /* delay between frame sync pulse and first data bit in multichannel mode */
 #define FRAME_DELAY (1<<12)
 
@@ -798,25 +855,32 @@ int sport_set_err_callback(struct sport_device *sport,
 }
 EXPORT_SYMBOL(sport_set_err_callback);
 
-struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
+struct sport_device *sport_init(int num, unsigned wdsize,
 		unsigned dummy_count, void *private_data)
 {
 	int ret;
 	struct sport_device *sport;
 	pr_debug("%s enter\n", __func__);
-	BUG_ON(param == NULL);
+	BUG_ON(num >= ARRAY_SIZE(sport_params));
 	BUG_ON(wdsize == 0 || dummy_count == 0);
-	sport = kmalloc(sizeof(struct sport_device), GFP_KERNEL);
-	if (!sport) {
-		pr_err("Failed to allocate for sport device\n");
+
+	if (peripheral_request_list(&sport_req[num][0], "soc-audio")) {
+		pr_err("Requesting Peripherals failed\n");
 		return NULL;
 	}
 
+	sport = kmalloc(sizeof(struct sport_device), GFP_KERNEL);
+	if (!sport) {
+		pr_err("Failed to allocate for sport device\n");
+		goto __init_err0;
+	}
+
 	memset(sport, 0, sizeof(struct sport_device));
-	sport->dma_rx_chan = param->dma_rx_chan;
-	sport->dma_tx_chan = param->dma_tx_chan;
-	sport->err_irq = param->err_irq;
-	sport->regs = param->regs;
+	sport->num = num;
+	sport->dma_rx_chan = sport_params[num].dma_rx_chan;
+	sport->dma_tx_chan = sport_params[num].dma_tx_chan;
+	sport->err_irq = sport_params[num].err_irq;
+	sport->regs = sport_params[num].regs;
 	sport->private_data = private_data;
 
 	if (request_dma(sport->dma_rx_chan, "SPORT RX Data") == -EBUSY) {
@@ -885,6 +949,8 @@ __init_err2:
 	free_dma(sport->dma_rx_chan);
 __init_err1:
 	kfree(sport);
+__init_err0:
+	peripheral_free_list(&sport_req[num][0]);
 	return NULL;
 }
 EXPORT_SYMBOL(sport_init);
@@ -917,8 +983,8 @@ void sport_done(struct sport_device *sport)
 	free_dma(sport->dma_tx_chan);
 	free_irq(sport->err_irq, sport);
 
+	peripheral_free_list(&sport_req[sport->num][0]);
 	kfree(sport);
-		sport = NULL;
 }
 EXPORT_SYMBOL(sport_done);
 

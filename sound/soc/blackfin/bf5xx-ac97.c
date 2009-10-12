@@ -43,46 +43,6 @@
 static int *cmd_count;
 static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
 
-#define SPORT_REQ(x) \
-	[x] = {P_SPORT##x##_TFS, P_SPORT##x##_DTPRI, P_SPORT##x##_TSCLK, \
-	       P_SPORT##x##_RFS, P_SPORT##x##_DRPRI, P_SPORT##x##_RSCLK, 0}
-static u16 sport_req[][7] = {
-#ifdef SPORT0_TCR1
-	SPORT_REQ(0),
-#endif
-#ifdef SPORT1_TCR1
-	SPORT_REQ(1),
-#endif
-#ifdef SPORT2_TCR1
-	SPORT_REQ(2),
-#endif
-#ifdef SPORT3_TCR1
-	SPORT_REQ(3),
-#endif
-};
-
-#define SPORT_PARAMS(x) \
-	[x] = { \
-		.dma_rx_chan = CH_SPORT##x##_RX, \
-		.dma_tx_chan = CH_SPORT##x##_TX, \
-		.err_irq     = IRQ_SPORT##x##_ERROR, \
-		.regs        = (struct sport_register *)SPORT##x##_TCR1, \
-	}
-static struct sport_param sport_params[4] = {
-#ifdef SPORT0_TCR1
-	SPORT_PARAMS(0),
-#endif
-#ifdef SPORT1_TCR1
-	SPORT_PARAMS(1),
-#endif
-#ifdef SPORT2_TCR1
-	SPORT_PARAMS(2),
-#endif
-#ifdef SPORT3_TCR1
-	SPORT_PARAMS(3),
-#endif
-};
-
 void bf5xx_pcm_to_ac97(struct ac97_frame *dst, const __u16 *src,
 		size_t count, unsigned int chan_mask)
 {
@@ -315,12 +275,6 @@ static int bf5xx_ac97_probe(struct platform_device *pdev,
 	if (cmd_count == NULL)
 		return -ENOMEM;
 
-	if (peripheral_request_list(sport_req[sport_num], "soc-audio")) {
-		pr_err("Requesting Peripherals failed\n");
-		ret =  -EFAULT;
-		goto peripheral_err;
-	}
-
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
 	/* Request PB3 as reset pin */
 	if (gpio_request(CONFIG_SND_BF5XX_RESET_GPIO_NUM, "SND_AD198x RESET")) {
@@ -331,7 +285,7 @@ static int bf5xx_ac97_probe(struct platform_device *pdev,
 	}
 	gpio_direction_output(CONFIG_SND_BF5XX_RESET_GPIO_NUM, 1);
 #endif
-	sport_handle = sport_init(&sport_params[sport_num], 2, \
+	sport_handle = sport_init(sport_num, 2, \
 			sizeof(struct ac97_frame), NULL);
 	if (!sport_handle) {
 		ret = -ENODEV;
@@ -366,14 +320,12 @@ static int bf5xx_ac97_probe(struct platform_device *pdev,
 	return 0;
 
 sport_config_err:
-	kfree(sport_handle);
+	sport_done(sport_handle);
 sport_err:
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
 	gpio_free(CONFIG_SND_BF5XX_RESET_GPIO_NUM);
 gpio_err:
 #endif
-	peripheral_free_list(sport_req[sport_num]);
-peripheral_err:
 	free_page((unsigned long)cmd_count);
 	cmd_count = NULL;
 
@@ -385,7 +337,7 @@ static void bf5xx_ac97_remove(struct platform_device *pdev,
 {
 	free_page((unsigned long)cmd_count);
 	cmd_count = NULL;
-	peripheral_free_list(sport_req[sport_num]);
+	sport_done(sport_handle);
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
 	gpio_free(CONFIG_SND_BF5XX_RESET_GPIO_NUM);
 #endif

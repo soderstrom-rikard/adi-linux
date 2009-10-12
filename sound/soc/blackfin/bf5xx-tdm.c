@@ -49,40 +49,6 @@
 static struct bf5xx_tdm_port bf5xx_tdm;
 static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
 
-static struct sport_param sport_params[2] = {
-	{
-		.dma_rx_chan    = CH_SPORT0_RX,
-		.dma_tx_chan    = CH_SPORT0_TX,
-		.err_irq        = IRQ_SPORT0_ERROR,
-		.regs           = (struct sport_register *)SPORT0_TCR1,
-	},
-	{
-		.dma_rx_chan    = CH_SPORT1_RX,
-		.dma_tx_chan    = CH_SPORT1_TX,
-		.err_irq        = IRQ_SPORT1_ERROR,
-		.regs           = (struct sport_register *)SPORT1_TCR1,
-	}
-};
-
-/*
- * Setting the TFS pin selector for SPORT 0 based on whether the selected
- * port id F or G. If the port is F then no conflict should exist for the
- * TFS. When Port G is selected and EMAC then there is a conflict between
- * the PHY interrupt line and TFS.  Current settings prevent the conflict
- * by ignoring the TFS pin when Port G is selected. This allows both
- * codecs and EMAC using Port G concurrently.
- */
-#ifdef CONFIG_BF527_SPORT0_PORTG
-#define LOCAL_SPORT0_TFS (0)
-#else
-#define LOCAL_SPORT0_TFS (P_SPORT0_TFS)
-#endif
-
-static u16 sport_req[][7] = { {P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
-	P_SPORT0_DRPRI, P_SPORT0_RSCLK, LOCAL_SPORT0_TFS, 0},
-	   {P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS, P_SPORT1_DRPRI,
-		   P_SPORT1_RSCLK, P_SPORT1_TFS, 0} };
-
 static int bf5xx_tdm_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 	unsigned int fmt)
 {
@@ -287,18 +253,11 @@ static int __devinit bfin_tdm_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 
-	if (peripheral_request_list(&sport_req[sport_num][0], "soc-audio")) {
-		pr_err("Requesting Peripherals failed\n");
-		return -EFAULT;
-	}
-
 	/* request DMA for SPORT */
-	sport_handle = sport_init(&sport_params[sport_num], 4, \
-		8 * sizeof(u32), NULL);
-	if (!sport_handle) {
-		peripheral_free_list(&sport_req[sport_num][0]);
+	sport_handle = sport_init(sport_num, 4, \
+			8 * sizeof(u32), NULL);
+	if (!sport_handle)
 		return -ENODEV;
-	}
 
 	/* SPORT works in TDM mode */
 	ret = sport_set_multichannel(sport_handle, 8, 0xFF, 1);
@@ -332,14 +291,14 @@ static int __devinit bfin_tdm_probe(struct platform_device *pdev)
 	return 0;
 
 sport_config_err:
-	peripheral_free_list(&sport_req[sport_num][0]);
+	sport_done(sport_handle);
 	return ret;
 }
 
 static int __devexit bfin_tdm_remove(struct platform_device *pdev)
 {
-	peripheral_free_list(&sport_req[sport_num][0]);
 	snd_soc_unregister_dai(&bf5xx_tdm_dai);
+	sport_done(sport_handle);
 
 	return 0;
 }

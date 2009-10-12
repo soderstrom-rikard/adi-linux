@@ -65,6 +65,7 @@ struct sport_register {
 #define DESC_ELEMENT_COUNT 9
 
 struct sport_device {
+	int num;
 	int dma_rx_chan;
 	int dma_tx_chan;
 	int err_irq;
@@ -138,7 +139,7 @@ struct sport_param {
 	struct sport_register *regs;
 };
 
-struct sport_device *sport_init(struct sport_param *param, unsigned wdsize,
+struct sport_device *sport_init(int num, unsigned wdsize,
 		unsigned dummy_count, void *private_data);
 
 void sport_done(struct sport_device *sport);

@@ -409,8 +409,6 @@ static void bf5xx_pcm_free_dma_buffers(struct snd_pcm *pcm)
 	}
 #endif
 	}
-	if (sport_handle)
-		sport_done(sport_handle);
 }
 
 static u64 bf5xx_pcm_dmamask = DMA_BIT_MASK(32);
