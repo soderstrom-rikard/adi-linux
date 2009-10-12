@@ -1018,44 +1018,49 @@ static irqreturn_t ad714x_interrupt(int irq, void *data)
 int ad714x_probe(struct ad714x_chip **pad714x, struct device *dev,
 	u16 bus_type, int irq, ad714x_read_t read, ad714x_write_t write)
 {
-	int ret;
+	int ret, i, alloc_idx;
 	struct input_dev *input[MAX_DEVICE_NUM];
 
+	struct ad714x_platform_data *plat_data;
 	struct ad714x_chip *ad714x;
-	struct ad714x_driver_data *drv_data;
+	void *drv_mem;
 
-	struct ad714x_button_plat *bt_plat;
-	struct ad714x_slider_plat *sd_plat;
-	struct ad714x_wheel_plat *wl_plat;
-	struct ad714x_touchpad_plat *tp_plat;
+	struct ad714x_button_drv *bt_drv;
+	struct ad714x_slider_drv *sd_drv;
+	struct ad714x_wheel_drv *wl_drv;
+	struct ad714x_touchpad_drv *tp_drv;
 
-	struct ad714x_button_drv *bt_drv   = NULL;
-	struct ad714x_slider_drv *sd_drv   = NULL;
-	struct ad714x_wheel_drv *wl_drv    = NULL;
-	struct ad714x_touchpad_drv *tp_drv = NULL;
-
-	int alloc_idx;
-	int i;
-
+	plat_data = dev->platform_data;
 	if (dev->platform_data == NULL) {
 		dev_err(dev, "platform data for ad714x doesn't exist\n");
 		return -ENODEV;
 	}
 
-	*pad714x = ad714x = kzalloc(sizeof(*ad714x), GFP_KERNEL);
+	*pad714x = ad714x = kzalloc(sizeof(*ad714x) + sizeof(*ad714x->sw) +
+			sizeof(*sd_drv) * plat_data->slider_num +
+			sizeof(*wl_drv) * plat_data->wheel_num +
+			sizeof(*tp_drv) * plat_data->touchpad_num +
+			sizeof(*bt_drv) * plat_data->button_num, GFP_KERNEL);
 	if (!ad714x)
 		return -ENOMEM;
+	ad714x->hw = plat_data;
+
+	drv_mem = ad714x + sizeof(*ad714x);;
+	ad714x->sw = drv_mem;
+	drv_mem += sizeof(*ad714x->sw);
+	ad714x->sw->slider = sd_drv = drv_mem;
+	drv_mem += sizeof(*sd_drv) * ad714x->hw->slider_num;
+	ad714x->sw->wheel = wl_drv = drv_mem;
+	drv_mem += sizeof(*wl_drv) * ad714x->hw->wheel_num;
+	ad714x->sw->touchpad = tp_drv = drv_mem;
+	drv_mem += sizeof(*tp_drv) * ad714x->hw->touchpad_num;
+	ad714x->sw->button = bt_drv = drv_mem;
+	drv_mem += sizeof(*bt_drv) * ad714x->hw->button_num;
 
 	ad714x->read = read;
 	ad714x->write = write;
-	ad714x->hw = dev->platform_data;
 	ad714x->irq = irq;
 	ad714x->dev = dev;
-
-	bt_plat = ad714x->hw->button;
-	sd_plat = ad714x->hw->slider;
-	wl_plat = ad714x->hw->wheel;
-	tp_plat = ad714x->hw->touchpad;
 
 	ret = ad714x_hw_detect(ad714x);
 	if (ret)
@@ -1086,27 +1091,13 @@ int ad714x_probe(struct ad714x_chip **pad714x, struct device *dev,
 	 */
 	alloc_idx = 0;
 
-	drv_data = kzalloc(sizeof(*drv_data), GFP_KERNEL);
-	if (!drv_data) {
-		dev_err(dev, "can't allocate memory for ad714x driver info\n");
-		ret = -ENOMEM;
-		goto fail_alloc_reg;
-	}
-	ad714x->sw = drv_data;
-
 	/* a slider uses one input_dev instance */
 	if (ad714x->hw->slider_num > 0) {
-		sd_drv = kzalloc(sizeof(*sd_drv) * ad714x->hw->slider_num, GFP_KERNEL);
-		if (!sd_drv) {
-			dev_err(dev, "can't allocate memory for slider info\n");
-			ret = -ENOMEM;
-			goto fail_alloc_reg;
-		}
+		struct ad714x_slider_plat *sd_plat = ad714x->hw->slider;
 
 		for (i = 0; i < ad714x->hw->slider_num; i++) {
 			sd_drv[i].input = input[alloc_idx] = input_allocate_device();
 			if (!input[alloc_idx]) {
-				dev_err(dev, "can't allocate input device %d\n", alloc_idx);
 				ret = -ENOMEM;
 				goto fail_alloc_reg;
 			}
@@ -1123,29 +1114,20 @@ int ad714x_probe(struct ad714x_chip **pad714x, struct device *dev,
 			input[alloc_idx]->id.version = ad714x->version;
 
 			ret = input_register_device(input[alloc_idx]);
-			if (ret) {
-				dev_err(dev, "failed to register AD714X input device!\n");
+			if (ret)
 				goto fail_alloc_reg;
-			}
-			alloc_idx++;
 
-			ad714x->sw->slider = sd_drv;
+			alloc_idx++;
 		}
 	}
 
 	/* a wheel uses one input_dev instance */
 	if (ad714x->hw->wheel_num > 0) {
-		wl_drv = kzalloc(sizeof(*wl_drv) * ad714x->hw->wheel_num, GFP_KERNEL);
-		if (!wl_drv) {
-			dev_err(dev, "can't allocate memory for wheel info\n");
-			ret = -ENOMEM;
-			goto fail_alloc_reg;
-		}
+		struct ad714x_wheel_plat *wl_plat = ad714x->hw->wheel;
 
 		for (i = 0; i < ad714x->hw->wheel_num; i++) {
 			wl_drv[i].input = input[alloc_idx] = input_allocate_device();
 			if (!input[alloc_idx]) {
-				dev_err(dev, "can't allocate input device %d\n", alloc_idx);
 				ret = -ENOMEM;
 				goto fail_alloc_reg;
 			}
@@ -1162,29 +1144,20 @@ int ad714x_probe(struct ad714x_chip **pad714x, struct device *dev,
 			input[alloc_idx]->id.version = ad714x->version;
 
 			ret = input_register_device(input[alloc_idx]);
-			if (ret) {
-				dev_err(dev, "failed to register AD714X input device!\n");
+			if (ret)
 				goto fail_alloc_reg;
-			}
-			alloc_idx++;
 
-			ad714x->sw->wheel = wl_drv;
+			alloc_idx++;
 		}
 	}
 
 	/* a touchpad uses one input_dev instance */
 	if (ad714x->hw->touchpad_num > 0) {
-		tp_drv = kzalloc(sizeof(*tp_drv) * ad714x->hw->touchpad_num, GFP_KERNEL);
-		if (!tp_drv) {
-			dev_err(dev, "can't allocate memory for touchpad info\n");
-			ret = -ENOMEM;
-			goto fail_alloc_reg;
-		}
+		struct ad714x_touchpad_plat *tp_plat = ad714x->hw->touchpad;
 
 		for (i = 0; i < ad714x->hw->touchpad_num; i++) {
 			tp_drv[i].input = input[alloc_idx] = input_allocate_device();
 			if (!input[alloc_idx]) {
-				dev_err(dev, "can't allocate input device %d\n", alloc_idx);
 				ret = -ENOMEM;
 				goto fail_alloc_reg;
 			}
@@ -1204,65 +1177,48 @@ int ad714x_probe(struct ad714x_chip **pad714x, struct device *dev,
 			input[alloc_idx]->id.version = ad714x->version;
 
 			ret = input_register_device(input[alloc_idx]);
-			if (ret) {
-				dev_err(dev, "failed to register AD714X input device!\n");
+			if (ret)
 				goto fail_alloc_reg;
-			}
-			alloc_idx++;
 
-			ad714x->sw->touchpad = tp_drv;
+			alloc_idx++;
 		}
 	}
 
 	/* all buttons use one input node */
 	if (ad714x->hw->button_num > 0) {
-		bt_drv = kzalloc(sizeof(*bt_drv) * ad714x->hw->button_num, GFP_KERNEL);
-		if (!bt_drv) {
-			dev_err(dev, "can't allocate memory for button info\n");
-			ret = -ENOMEM;
-			goto fail_alloc_reg;
-		}
+		struct ad714x_button_plat *bt_plat = ad714x->hw->button;
 
 		input[alloc_idx] = input_allocate_device();
 		if (!input[alloc_idx]) {
-			dev_err(dev, "can't allocate input device %d\n", alloc_idx);
 			ret = -ENOMEM;
 			goto fail_alloc_reg;
 		}
 
 		__set_bit(EV_KEY, input[alloc_idx]->evbit);
-		for (i = 0; i < ad714x->hw->button_num; i++)
+		for (i = 0; i < ad714x->hw->button_num; i++) {
+			bt_drv[i].input = input[alloc_idx];
 			__set_bit(bt_plat[i].keycode, input[alloc_idx]->keybit);
+		}
 
 		input[alloc_idx]->id.bustype = bus_type;
 		input[alloc_idx]->id.product = ad714x->product;
 		input[alloc_idx]->id.version = ad714x->version;
 
 		ret = input_register_device(input[alloc_idx]);
-		if (ret) {
-			dev_err(dev, "failed to register AD714X input device!\n");
+		if (ret)
 			goto fail_alloc_reg;
-		}
-		alloc_idx++;
 
-		for (i = 0; i < ad714x->hw->button_num; i++)
-			bt_drv[i].input = input[alloc_idx - 1];
-		ad714x->sw->button = bt_drv;
+		alloc_idx++;
 	}
 
 
 	return 0;
 
  fail_alloc_reg:
+	dev_err(dev, "failed to setup AD714x input device %i\n", alloc_idx);
 	for (i = 0; i < alloc_idx - 1; i++)
 		input_unregister_device(input[i]);
 	input_free_device(input[alloc_idx]);
-
-	kfree(bt_drv);
-	kfree(sd_drv);
-	kfree(wl_drv);
-	kfree(tp_drv);
-	kfree(drv_data);
 
 	free_irq(ad714x->irq, ad714x);
  fail_irq:
@@ -1275,12 +1231,6 @@ EXPORT_SYMBOL(ad714x_probe);
 int ad714x_remove(struct ad714x_chip *ad714x)
 {
 	int i;
-
-	struct ad714x_driver_data *drv_data = ad714x->sw;
-	struct ad714x_button_drv *bt_drv   = ad714x->sw->button;
-	struct ad714x_slider_drv *sd_drv   = ad714x->sw->slider;
-	struct ad714x_wheel_drv *wl_drv    = ad714x->sw->wheel;
-	struct ad714x_touchpad_drv *tp_drv = ad714x->sw->touchpad;
 
 	/* unregister and free all input devices */
 
@@ -1295,16 +1245,6 @@ int ad714x_remove(struct ad714x_chip *ad714x)
 
 	if (ad714x->hw->button_num)
 		input_unregister_device(ad714x->sw->button[0].input);
-
-	/* free all memories for software flow */
-
-	kfree(bt_drv);
-	kfree(sd_drv);
-	kfree(wl_drv);
-	kfree(tp_drv);
-	kfree(drv_data);
-
-	/* free irq hardware resource */
 
 	free_irq(ad714x->irq, ad714x);
 
