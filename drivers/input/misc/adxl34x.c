@@ -182,8 +182,6 @@
 #define bus_device		struct spi_device
 #elif defined(CONFIG_INPUT_ADXL34X_I2C)
 #define bus_device		struct i2c_client
-#else
-	#error Communication method needs to be selected (I2C or SPI)
 #endif
 
 struct axis_triple {
@@ -850,19 +848,13 @@ static int __devexit adxl34x_cleanup(bus_device *bus, struct adxl34x *ac)
 #ifdef CONFIG_PM
 static int adxl34x_suspend(bus_device *bus, pm_message_t message)
 {
-	struct adxl34x *ac = dev_get_drvdata(&bus->dev);
-
-	adxl34x_disable(ac);
-
+	adxl34x_disable(dev_get_drvdata(&bus->dev));
 	return 0;
 }
 
 static int adxl34x_resume(bus_device *bus)
 {
-	struct adxl34x *ac = dev_get_drvdata(&bus->dev);
-
-	adxl34x_enable(ac);
-
+	adxl34x_enable(dev_get_drvdata(&bus->dev));
 	return 0;
 }
 #else
@@ -944,7 +936,7 @@ static int __devinit adxl34x_spi_probe(struct spi_device *spi)
 		kfree(ac);
 	}
 
-	return 0;
+	return error;
 }
 
 static int __devexit adxl34x_spi_remove(struct spi_device *spi)
@@ -1057,7 +1049,7 @@ static int __devinit adxl34x_i2c_probe(struct i2c_client *client,
 		kfree(ac);
 	}
 
-	return 0;
+	return error;
 }
 
 static int __devexit adxl34x_i2c_remove(struct i2c_client *client)
