@@ -498,6 +498,8 @@ static void sport_set_termios(struct uart_port *port,
 		/* up->parib = 1; */
 	}
 
+	spin_lock_irqsave(&up->port.lock, flags);
+
 	port->read_status_mask = OE;
 	if (termios->c_iflag & INPCK)
 		port->read_status_mask |= (FE | PE);
@@ -537,8 +539,6 @@ static void sport_set_termios(struct uart_port *port,
 	up->txmask2 <<= 1;
 	/* uart baud rate */
 	port->uartclk = uart_get_baud_rate(port, termios, old, 0, get_sclk()/16);
-
-	spin_lock_irqsave(&up->port.lock, flags);
 
 	/* Disable UART */
 	SPORT_PUT_TCR1(up, SPORT_GET_TCR1(up) & ~TSPEN);
@@ -746,11 +746,11 @@ static int __devinit sport_uart_probe(struct platform_device *pdev)
 
 	if (bfin_sport_uart_ports[pdev->id] == NULL) {
 		bfin_sport_uart_ports[pdev->id] =
-			kmalloc(sizeof(struct sport_uart_port), GFP_KERNEL);
+			kzalloc(sizeof(struct sport_uart_port), GFP_KERNEL);
 		sport = bfin_sport_uart_ports[pdev->id];
 		if (!sport) {
 			dev_err(&pdev->dev,
-				"Fail to kmalloc sport_uart_port\n");
+				"Fail to malloc sport_uart_port\n");
 			return -ENOMEM;
 		}
 
