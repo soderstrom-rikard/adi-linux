@@ -16,27 +16,6 @@ the CLONE_VM flag.
 The behaviour is similar between the MMU and no-MMU cases, but not identical;
 and it's also much more restricted in the latter case:
 
- (*) Anonymous mappings - general case
-
-	Anonymous mappings are  not  backed  by any file, and according to the
-	Linux man pages (ver 2.22 or later) contents are initialized to zero.
-
-	In the MMU case, regions are backed by arbitrary virtual pages, and the
-	contents are only mapped with physical pages and initialized to zero
-	when a read or write happens in that specific page. This spreads out
-	the time it takes to initialize the contents depending on the
-	read/write usage of the map.
-
-	In the no-MMU case, anonymous mappings are backed by physical pages,
-	and the entire map is initialized to zero at allocation time. This
-	can cause significant delays in userspace during malloc() as the C
-	library does an anonymous mapping, and the kernel is doing a memset
-	for the entire map. Since malloc's memory is not required to be
-	cleared, an (optional) flag MAP_UNINITIALIZE can be passed to the
-	kernel's do_mmap, which will not initialize the contents to zero.
-
-	uClibc supports this to provide a pretty significant speedup for malloc().
-
  (*) Anonymous mapping, MAP_PRIVATE
 
 	In the MMU case: VM regions backed by arbitrary pages; copy-on-write
@@ -139,6 +118,32 @@ FURTHER NOTES ON NO-MMU MMAP
      of the space may be wasted as the kernel must allocate a power-of-2
      granule but will only discard the excess if appropriately configured as
      this has an effect on fragmentation.
+
+ (*) The memory allocated by a request for an anonymous mapping will normally
+     be cleared by the kernel before being returned in accordance with the
+     Linux man pages (ver 2.22 or later).
+
+     In the MMU case this can be achieved with reasonable performance as
+     regions are backed by virtual pages, with the contents only being mapped
+     to cleared physical pages when a write happens on that specific page
+     (prior to which, the pages are effectively mapped to the global zero page
+     from which reads can take place).  This spreads out the time it takes to
+     initialize the contents of a page - depending on the write-usage of the
+     mapping.
+
+     In the no-MMU case, however, anonymous mappings are backed by physical
+     pages, and the entire map is cleared at allocation time.  This can cause
+     significant delays during a userspace malloc() as the C library does an
+     anonymous mapping and the kernel then does a memset for the entire map.
+
+     However, for memory that isn't required to be precleared - such as that
+     returned by malloc() - mmap() can take a MAP_UNINITIALIZED flag to
+     indicate to the kernel that it shouldn't bother clearing the memory before
+     returning it.  Note that CONFIG_MMAP_ALLOW_UNINITIALIZED must be enabled
+     to permit this, otherwise the flag will be ignored.
+
+     uClibc uses this to speed up malloc(), and the ELF-FDPIC binfmt uses this
+     to allocate the brk and stack region.
 
  (*) A list of all the private copy and anonymous mappings on the system is
      visible through /proc/maps in no-MMU mode.

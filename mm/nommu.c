@@ -1383,9 +1383,10 @@ unsigned long do_mmap_pgoff(struct file *file,
 		goto error_just_free;
 	add_nommu_region(region);
 
-	/* clear anonymous mappings that don't ask for un-initialized data */
-	if (!(vma->vm_file) && !(flags & MAP_UNINITIALIZE))
-		memset((void *)region->vm_start, 0, region->vm_end - region->vm_start);
+	/* clear anonymous mappings that don't ask for uninitialized data */
+	if (!vma->vm_file && !(flags & MAP_UNINITIALIZED))
+		memset((void *)region->vm_start, 0,
+		       region->vm_end - region->vm_start);
 
 	/* okay... we have a mapping; now we have to register it */
 	result = vma->vm_start;
