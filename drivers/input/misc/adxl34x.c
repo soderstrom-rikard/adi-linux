@@ -670,7 +670,7 @@ int adxl34x_probe(struct adxl34x **pac, struct device *dev, u16 bus_type,
 		return -ENODEV;
 	}
 
-	*pac = ac = kmalloc(sizeof(*ac), GFP_KERNEL);
+	*pac = ac = kzalloc(sizeof(*ac), GFP_KERNEL);
 	if (!ac)
 		return -ENOMEM;
 	ac->fifo_delay = fifo_delay_default;
@@ -690,10 +690,16 @@ int adxl34x_probe(struct adxl34x **pac, struct device *dev, u16 bus_type,
 
 	ac->input = input_dev;
 	ac->disabled = 1;
+	ac->dev = dev;
+	ac->irq = irq;
+	ac->write = write;
+	ac->read = read;
+	ac->read_block = read_block;
 
 	INIT_WORK(&ac->work, adxl34x_work);
 	mutex_init(&ac->mutex);
 
+	input_dev->name = "ADXL34x accelerometer";
 	revid = ac->read(dev, DEVID);
 
 	switch (revid) {
@@ -711,7 +717,6 @@ int adxl34x_probe(struct adxl34x **pac, struct device *dev, u16 bus_type,
 
 	snprintf(ac->phys, sizeof(ac->phys), "%s/input0", dev_name(dev));
 
-	input_dev->name = "ADXL34x accelerometer";
 	input_dev->phys = ac->phys;
 	input_dev->dev.parent = dev;
 	input_dev->id.product = ac->model;
