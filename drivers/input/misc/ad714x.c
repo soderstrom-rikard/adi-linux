@@ -1045,7 +1045,7 @@ int ad714x_probe(struct ad714x_chip **pad714x, struct device *dev,
 		return -ENOMEM;
 	ad714x->hw = plat_data;
 
-	drv_mem = ad714x + sizeof(*ad714x);;
+	drv_mem = ad714x + 1;
 	ad714x->sw = drv_mem;
 	drv_mem += sizeof(*ad714x->sw);
 	ad714x->sw->slider = sd_drv = drv_mem;
