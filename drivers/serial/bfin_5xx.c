@@ -841,6 +841,8 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	if (termios->c_cflag & CMSPAR)
 		lcr |= STP;
 
+	spin_lock_irqsave(&uart->port.lock, flags);
+
 	port->read_status_mask = OE;
 	if (termios->c_iflag & INPCK)
 		port->read_status_mask |= (FE | PE);
@@ -869,8 +871,6 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	/* If discipline is not IRDA, apply ANOMALY_05000230 */
 	if (termios->c_line != N_IRDA)
 		quot -= ANOMALY_05000230;
-
-	spin_lock_irqsave(&uart->port.lock, flags);
 
 	UART_SET_ANOMALY_THRESHOLD(uart, USEC_PER_SEC / baud * 15);
 
@@ -1200,16 +1200,15 @@ static struct bfin_serial_port bfin_earlyprintk_port;
 static void
 bfin_earlyprintk_console_write(struct console *co, const char *s, unsigned int count)
 {
-	struct bfin_serial_port *uart = bfin_serial_ports[co->index];
 	unsigned long flags;
 
 	if (bfin_earlyprintk_port.port.line != co->index)
 		return;
 
-	spin_lock_irqsave(&uart->port.lock, flags);
+	spin_lock_irqsave(&bfin_earlyprintk_port.port.lock, flags);
 	uart_console_write(&bfin_earlyprintk_port.port, s, count,
 		bfin_serial_console_putchar);
-	spin_unlock_irqrestore(&uart->port.lock, flags);
+	spin_unlock_irqrestore(&bfin_earlyprintk_port.port.lock, flags);
 }
 
 /*
@@ -1265,12 +1264,12 @@ static int bfin_serial_probe(struct platform_device *pdev)
 
 	if (bfin_serial_ports[pdev->id] == NULL) {
 		bfin_serial_ports[pdev->id] =
-			kmalloc(sizeof(struct bfin_serial_port), GFP_KERNEL);
+			kzalloc(sizeof(struct bfin_serial_port), GFP_KERNEL);
 
 		uart = bfin_serial_ports[pdev->id];
 		if (!uart) {
 			dev_err(&pdev->dev,
-				"fail to kmalloc bfin_serial_port\n");
+				"fail to malloc bfin_serial_port\n");
 			return -ENOMEM;
 		}
 
