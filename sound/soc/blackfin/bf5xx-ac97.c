@@ -42,6 +42,8 @@
 
 static int *cmd_count;
 static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
+struct sport_device *sport_handle;
+EXPORT_SYMBOL(sport_handle);
 
 void bf5xx_pcm_to_ac97(struct ac97_frame *dst, const __u16 *src,
 		size_t count, unsigned int chan_mask)

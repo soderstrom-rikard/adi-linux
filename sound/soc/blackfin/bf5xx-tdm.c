@@ -46,9 +46,6 @@
 #include "bf5xx-sport.h"
 #include "bf5xx-tdm.h"
 
-static struct bf5xx_tdm_port bf5xx_tdm;
-static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
-
 static int bf5xx_tdm_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 	unsigned int fmt)
 {
@@ -85,14 +82,17 @@ static int bf5xx_tdm_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params,
 	struct snd_soc_dai *dai)
 {
+	struct sport_device *sport_handle = dai->private_data;
+	struct bf5xx_tdm_port *bf5xx_tdm = sport_handle->private_data;
+
 	int ret = 0;
 
-	bf5xx_tdm.tcr2 &= ~0x1f;
-	bf5xx_tdm.rcr2 &= ~0x1f;
+	bf5xx_tdm->tcr2 &= ~0x1f;
+	bf5xx_tdm->rcr2 &= ~0x1f;
 	switch (params_format(params)) {
 	case SNDRV_PCM_FORMAT_S32_LE:
-		bf5xx_tdm.tcr2 |= 31;
-		bf5xx_tdm.rcr2 |= 31;
+		bf5xx_tdm->tcr2 |= 31;
+		bf5xx_tdm->rcr2 |= 31;
 		sport_handle->wdsize = 4;
 		break;
 		/* at present, we only support 32bit transfer */
@@ -102,7 +102,7 @@ static int bf5xx_tdm_hw_params(struct snd_pcm_substream *substream,
 		break;
 	}
 
-	if (!bf5xx_tdm.configured) {
+	if (!bf5xx_tdm->configured) {
 		/*
 		 * TX and RX are not independent,they are enabled at the
 		 * same time, even if only one side is running. So, we
@@ -111,21 +111,21 @@ static int bf5xx_tdm_hw_params(struct snd_pcm_substream *substream,
 		 *
 		 * CPU DAI:slave mode.
 		 */
-		ret = sport_config_rx(sport_handle, bf5xx_tdm.rcr1,
-			bf5xx_tdm.rcr2, 0, 0);
+		ret = sport_config_rx(sport_handle, bf5xx_tdm->rcr1,
+			bf5xx_tdm->rcr2, 0, 0);
 		if (ret) {
 			pr_err("SPORT is busy!\n");
 			return -EBUSY;
 		}
 
-		ret = sport_config_tx(sport_handle, bf5xx_tdm.tcr1,
-			bf5xx_tdm.tcr2, 0, 0);
+		ret = sport_config_tx(sport_handle, bf5xx_tdm->tcr1,
+			bf5xx_tdm->tcr2, 0, 0);
 		if (ret) {
 			pr_err("SPORT is busy!\n");
 			return -EBUSY;
 		}
 
-		bf5xx_tdm.configured = 1;
+		bf5xx_tdm->configured = 1;
 	}
 
 	return 0;
@@ -134,15 +134,20 @@ static int bf5xx_tdm_hw_params(struct snd_pcm_substream *substream,
 static void bf5xx_tdm_shutdown(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *dai)
 {
+	struct sport_device *sport_handle = dai->private_data;
+	struct bf5xx_tdm_port *bf5xx_tdm = sport_handle->private_data;
+
 	/* No active stream, SPORT is allowed to be configured again. */
 	if (!dai->active)
-		bf5xx_tdm.configured = 0;
+		bf5xx_tdm->configured = 0;
 }
 
 static int bf5xx_tdm_set_channel_map(struct snd_soc_dai *dai,
 		unsigned int tx_num, unsigned int *tx_slot,
 		unsigned int rx_num, unsigned int *rx_slot)
 {
+	struct sport_device *sport_handle = dai->private_data;
+	struct bf5xx_tdm_port *bf5xx_tdm = sport_handle->private_data;
 	int i;
 	unsigned int slot;
 	unsigned int tx_mapped = 0, rx_mapped = 0;
@@ -155,7 +160,7 @@ static int bf5xx_tdm_set_channel_map(struct snd_soc_dai *dai,
 		slot = tx_slot[i];
 		if ((slot < BFIN_TDM_DAI_MAX_SLOTS) &&
 				(!(tx_mapped & (1 << slot)))) {
-			bf5xx_tdm.tx_map[i] = slot;
+			bf5xx_tdm->tx_map[i] = slot;
 			tx_mapped |= 1 << slot;
 		} else
 			return -EINVAL;
@@ -164,7 +169,7 @@ static int bf5xx_tdm_set_channel_map(struct snd_soc_dai *dai,
 		slot = rx_slot[i];
 		if ((slot < BFIN_TDM_DAI_MAX_SLOTS) &&
 				(!(rx_mapped & (1 << slot)))) {
-			bf5xx_tdm.rx_map[i] = slot;
+			bf5xx_tdm->rx_map[i] = slot;
 			rx_mapped |= 1 << slot;
 		} else
 			return -EINVAL;
@@ -251,13 +256,27 @@ EXPORT_SYMBOL_GPL(bf5xx_tdm_dai);
 
 static int __devinit bfin_tdm_probe(struct platform_device *pdev)
 {
+	struct sport_device *sport_handle;
+	struct bf5xx_tdm_port *bf5xx_tdm;
+	int sport_num = pdev->id;
 	int ret = 0;
+
+	/* request sport private data */
+	bf5xx_tdm = kzalloc(sizeof(*bf5xx_tdm), GFP_KERNEL);
+	if (!bf5xx_tdm)
+		return -ENOMEM;
 
 	/* request DMA for SPORT */
 	sport_handle = sport_init(sport_num, 4, \
-			8 * sizeof(u32), NULL);
-	if (!sport_handle)
-		return -ENODEV;
+			8 * sizeof(u32), bf5xx_tdm);
+	if (!sport_handle) {
+		ret = -ENODEV;
+		goto sport_err;
+	}
+
+	bf5xx_tdm_dai.private_data = sport_handle;
+	platform_set_drvdata(pdev, sport_handle);
+	sport_handle->private_data = bf5xx_tdm;
 
 	/* SPORT works in TDM mode */
 	ret = sport_set_multichannel(sport_handle, 8, 0xFF, 1);
@@ -287,18 +306,23 @@ static int __devinit bfin_tdm_probe(struct platform_device *pdev)
 		goto sport_config_err;
 	}
 
-	sport_handle->private_data = &bf5xx_tdm;
 	return 0;
 
 sport_config_err:
 	sport_done(sport_handle);
+sport_err:
+	kfree(bf5xx_tdm);
 	return ret;
 }
 
 static int __devexit bfin_tdm_remove(struct platform_device *pdev)
 {
+	struct sport_device *sport_handle = platform_get_drvdata(pdev);
+	struct bf5xx_tdm_port *bf5xx_tdm = sport_handle->private_data;
+
 	snd_soc_unregister_dai(&bf5xx_tdm_dai);
 	sport_done(sport_handle);
+	kfree(bf5xx_tdm);
 
 	return 0;
 }

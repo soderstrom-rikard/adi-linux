@@ -37,15 +37,6 @@
 
 static struct snd_soc_card bf5xx_ad1836;
 
-static int bf5xx_ad1836_startup(struct snd_pcm_substream *substream)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
-
-	cpu_dai->private_data = sport_handle;
-	return 0;
-}
-
 static int bf5xx_ad1836_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
 {
@@ -76,7 +67,6 @@ static int bf5xx_ad1836_hw_params(struct snd_pcm_substream *substream,
 }
 
 static struct snd_soc_ops bf5xx_ad1836_ops = {
-	.startup = bf5xx_ad1836_startup,
 	.hw_params = bf5xx_ad1836_hw_params,
 };
 

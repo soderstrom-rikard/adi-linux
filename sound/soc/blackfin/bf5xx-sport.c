@@ -99,8 +99,6 @@ static struct sport_param sport_params[4] = {
 /* delay between frame sync pulse and first data bit in multichannel mode */
 #define FRAME_DELAY (1<<12)
 
-struct sport_device *sport_handle;
-EXPORT_SYMBOL(sport_handle);
 /* note: multichannel is in units of 8 channels,
  * tdm_count is # channels NOT / 8 ! */
 int sport_set_multichannel(struct sport_device *sport,

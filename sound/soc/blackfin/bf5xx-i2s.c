@@ -52,25 +52,24 @@ struct bf5xx_i2s_port {
 	int configured;
 };
 
-static struct bf5xx_i2s_port bf5xx_i2s;
-static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
-
 static int bf5xx_i2s_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 		unsigned int fmt)
 {
+	struct sport_device *sport_handle = cpu_dai->private_data;
+	struct bf5xx_i2s_port *bf5xx_i2s = sport_handle->private_data;
 	int ret = 0;
 
 	/* interface format:support I2S,slave mode */
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_I2S:
-		bf5xx_i2s.tcr1 |= TFSR | TCKFE;
-		bf5xx_i2s.rcr1 |= RFSR | RCKFE;
-		bf5xx_i2s.tcr2 |= TSFSE;
-		bf5xx_i2s.rcr2 |= RSFSE;
+		bf5xx_i2s->tcr1 |= TFSR | TCKFE;
+		bf5xx_i2s->rcr1 |= RFSR | RCKFE;
+		bf5xx_i2s->tcr2 |= TSFSE;
+		bf5xx_i2s->rcr2 |= RSFSE;
 		break;
 	case SND_SOC_DAIFMT_DSP_A:
-		bf5xx_i2s.tcr1 |= TFSR;
-		bf5xx_i2s.rcr1 |= RFSR;
+		bf5xx_i2s->tcr1 |= TFSR;
+		bf5xx_i2s->rcr1 |= RFSR;
 		break;
 	case SND_SOC_DAIFMT_LEFT_J:
 		ret = -EINVAL;
@@ -102,29 +101,31 @@ static int bf5xx_i2s_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params,
 				struct snd_soc_dai *dai)
 {
+	struct sport_device *sport_handle = dai->private_data;
+	struct bf5xx_i2s_port *bf5xx_i2s = sport_handle->private_data;
 	int ret = 0;
 
-	bf5xx_i2s.tcr2 &= ~0x1f;
-	bf5xx_i2s.rcr2 &= ~0x1f;
+	bf5xx_i2s->tcr2 &= ~0x1f;
+	bf5xx_i2s->rcr2 &= ~0x1f;
 	switch (params_format(params)) {
 	case SNDRV_PCM_FORMAT_S16_LE:
-		bf5xx_i2s.tcr2 |= 15;
-		bf5xx_i2s.rcr2 |= 15;
+		bf5xx_i2s->tcr2 |= 15;
+		bf5xx_i2s->rcr2 |= 15;
 		sport_handle->wdsize = 2;
 		break;
 	case SNDRV_PCM_FORMAT_S24_LE:
-		bf5xx_i2s.tcr2 |= 23;
-		bf5xx_i2s.rcr2 |= 23;
+		bf5xx_i2s->tcr2 |= 23;
+		bf5xx_i2s->rcr2 |= 23;
 		sport_handle->wdsize = 3;
 		break;
 	case SNDRV_PCM_FORMAT_S32_LE:
-		bf5xx_i2s.tcr2 |= 31;
-		bf5xx_i2s.rcr2 |= 31;
+		bf5xx_i2s->tcr2 |= 31;
+		bf5xx_i2s->rcr2 |= 31;
 		sport_handle->wdsize = 4;
 		break;
 	}
 
-	if (!bf5xx_i2s.configured) {
+	if (!bf5xx_i2s->configured) {
 		/*
 		 * TX and RX are not independent,they are enabled at the
 		 * same time, even if only one side is running. So, we
@@ -133,16 +134,16 @@ static int bf5xx_i2s_hw_params(struct snd_pcm_substream *substream,
 		 *
 		 * CPU DAI:slave mode.
 		 */
-		bf5xx_i2s.configured = 1;
-		ret = sport_config_rx(sport_handle, bf5xx_i2s.rcr1,
-				      bf5xx_i2s.rcr2, 0, 0);
+		bf5xx_i2s->configured = 1;
+		ret = sport_config_rx(sport_handle, bf5xx_i2s->rcr1,
+				      bf5xx_i2s->rcr2, 0, 0);
 		if (ret) {
 			pr_err("SPORT is busy!\n");
 			return -EBUSY;
 		}
 
-		ret = sport_config_tx(sport_handle, bf5xx_i2s.tcr1,
-				      bf5xx_i2s.tcr2, 0, 0);
+		ret = sport_config_tx(sport_handle, bf5xx_i2s->tcr1,
+				      bf5xx_i2s->tcr2, 0, 0);
 		if (ret) {
 			pr_err("SPORT is busy!\n");
 			return -EBUSY;
@@ -155,37 +156,19 @@ static int bf5xx_i2s_hw_params(struct snd_pcm_substream *substream,
 static void bf5xx_i2s_shutdown(struct snd_pcm_substream *substream,
 			       struct snd_soc_dai *dai)
 {
+	struct sport_device *sport_handle = dai->private_data;
+	struct bf5xx_i2s_port *bf5xx_i2s = sport_handle->private_data;
+
 	pr_debug("%s enter\n", __func__);
 	/* No active stream, SPORT is allowed to be configured again. */
 	if (!dai->active)
-		bf5xx_i2s.configured = 0;
-}
-
-static int bf5xx_i2s_probe(struct platform_device *pdev,
-			   struct snd_soc_dai *dai)
-{
-	pr_debug("%s enter\n", __func__);
-
-	/* request DMA for SPORT */
-	sport_handle = sport_init(sport_num, 4, \
-			2 * sizeof(u32), NULL);
-	if (!sport_handle)
-		return -ENODEV;
-
-	return 0;
-}
-
-static void bf5xx_i2s_remove(struct platform_device *pdev,
-			struct snd_soc_dai *dai)
-{
-	pr_debug("%s enter\n", __func__);
-	sport_done(sport_handle);
+		bf5xx_i2s->configured = 0;
 }
 
 #ifdef CONFIG_PM
 static int bf5xx_i2s_suspend(struct snd_soc_dai *dai)
 {
-
+	struct sport_device *sport_handle = dai->private_data;
 	pr_debug("%s : sport %d\n", __func__, dai->id);
 
 	if (dai->capture.active)
@@ -197,19 +180,20 @@ static int bf5xx_i2s_suspend(struct snd_soc_dai *dai)
 
 static int bf5xx_i2s_resume(struct snd_soc_dai *dai)
 {
+	struct sport_device *sport_handle = dai->private_data;
 	int ret;
 
 	pr_debug("%s : sport %d\n", __func__, dai->id);
 
-	ret = sport_config_rx(sport_handle, bf5xx_i2s.rcr1,
-				      bf5xx_i2s.rcr2, 0, 0);
+	ret = sport_config_rx(sport_handle, bf5xx_i2s->rcr1,
+				      bf5xx_i2s->rcr2, 0, 0);
 	if (ret) {
 		pr_err("SPORT is busy!\n");
 		return -EBUSY;
 	}
 
-	ret = sport_config_tx(sport_handle, bf5xx_i2s.tcr1,
-				      bf5xx_i2s.tcr2, 0, 0);
+	ret = sport_config_tx(sport_handle, bf5xx_i2s->tcr1,
+				      bf5xx_i2s->tcr2, 0, 0);
 	if (ret) {
 		pr_err("SPORT is busy!\n");
 		return -EBUSY;
@@ -240,8 +224,6 @@ static struct snd_soc_dai_ops bf5xx_i2s_dai_ops = {
 struct snd_soc_dai bf5xx_i2s_dai = {
 	.name = "bf5xx-i2s",
 	.id = 0,
-	.probe = bf5xx_i2s_probe,
-	.remove = bf5xx_i2s_remove,
 	.suspend = bf5xx_i2s_suspend,
 	.resume = bf5xx_i2s_resume,
 	.playback = {
@@ -258,15 +240,78 @@ struct snd_soc_dai bf5xx_i2s_dai = {
 };
 EXPORT_SYMBOL_GPL(bf5xx_i2s_dai);
 
+static int __devinit bf5xx_i2s_probe(struct platform_device *pdev)
+{
+	struct sport_device *sport_handle;
+	struct bf5xx_i2s_port *bf5xx_i2s;
+	int sport_num = pdev->id;
+	int ret;
+
+	pr_debug("%s enter\n", __func__);
+
+	/* request sport private data */
+	bf5xx_i2s = kzalloc(sizeof(*bf5xx_i2s), GFP_KERNEL);
+	if (!bf5xx_i2s)
+		return -ENOMEM;
+
+	/* request DMA for SPORT */
+	sport_handle = sport_init(sport_num, 4, \
+			2 * sizeof(u32), NULL);
+	if (!sport_handle) {
+		ret = -ENODEV;
+		goto sport_err;
+	}
+
+	bf5xx_i2s_dai.private_data = sport_handle;
+	platform_set_drvdata(pdev, sport_handle);
+	sport_handle->private_data = bf5xx_i2s;
+
+	ret = snd_soc_register_dai(&bf5xx_i2s_dai);
+	if (ret) {
+		pr_err("Failed to register DAI: %d\n", ret);
+		goto dai_err;
+	}
+
+	return 0;
+dai_err:
+	sport_done(sport_handle);
+sport_err:
+	kfree(bf5xx_i2s);
+	return ret;
+}
+
+static int __devexit bf5xx_i2s_remove(struct platform_device *pdev)
+{
+	struct sport_device *sport_handle = platform_get_drvdata(pdev);
+	struct bf5xx_i2s_port *bf5xx_i2s = sport_handle->private_data;
+
+	pr_debug("%s enter\n", __func__);
+
+	snd_soc_unregister_dai(&bf5xx_i2s_dai);
+	sport_done(sport_handle);
+	kfree(bf5xx_i2s);
+
+	return 0;
+}
+
+static struct platform_driver bfin_i2s_driver = {
+	.probe  = bf5xx_i2s_probe,
+	.remove = __devexit_p(bf5xx_i2s_remove),
+	.driver = {
+		.name   = "bfin-i2s",
+		.owner  = THIS_MODULE,
+	},
+};
+
 static int __init bfin_i2s_init(void)
 {
-	return snd_soc_register_dai(&bf5xx_i2s_dai);
+	return platform_driver_register(&bfin_i2s_driver);
 }
 module_init(bfin_i2s_init);
 
 static void __exit bfin_i2s_exit(void)
 {
-	snd_soc_unregister_dai(&bf5xx_i2s_dai);
+	platform_driver_unregister(&bfin_i2s_driver);
 }
 module_exit(bfin_i2s_exit);
 

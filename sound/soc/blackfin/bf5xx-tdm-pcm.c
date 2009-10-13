@@ -154,8 +154,18 @@ static snd_pcm_uframes_t bf5xx_pcm_pointer(struct snd_pcm_substream *substream)
 
 static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 {
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct sport_device *sport_handle = cpu_dai->private_data;
 	struct snd_pcm_runtime *runtime = substream->runtime;
+	struct snd_dma_buffer *buf = &substream->dma_buffer;
+
 	int ret = 0;
+
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+		sport_handle->tx_buf = buf->area;
+	else
+		sport_handle->rx_buf = buf->area;
 
 	snd_soc_set_runtime_hwparams(substream, &bf5xx_pcm_hardware);
 
@@ -249,11 +259,6 @@ static int bf5xx_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 		return -ENOMEM;
 	}
 	buf->bytes = size;
-
-	if (stream == SNDRV_PCM_STREAM_PLAYBACK)
-		sport_handle->tx_buf = buf->area;
-	else
-		sport_handle->rx_buf = buf->area;
 
 	return 0;
 }

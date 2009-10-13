@@ -46,16 +46,6 @@
 
 static struct snd_soc_card bf5xx_ssm2602;
 
-static int bf5xx_ssm2602_startup(struct snd_pcm_substream *substream)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
-
-	pr_debug("%s enter\n", __func__);
-	cpu_dai->private_data = sport_handle;
-	return 0;
-}
-
 static int bf5xx_ssm2602_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
 {
@@ -111,7 +101,6 @@ static int bf5xx_ssm2602_hw_params(struct snd_pcm_substream *substream,
 }
 
 static struct snd_soc_ops bf5xx_ssm2602_ops = {
-	.startup = bf5xx_ssm2602_startup,
 	.hw_params = bf5xx_ssm2602_hw_params,
 };
 
