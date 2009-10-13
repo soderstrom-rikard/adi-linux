@@ -117,7 +117,6 @@ static u16 normal_i2c[] = {
 
 I2C_CLIENT_INSMOD;
 
-static struct i2c_driver sensor_driver;
 static struct video_device bcap_template;
 struct bcap_device_t *bcap_dev;
 static DECLARE_WAIT_QUEUE_HEAD(bcap_waitqueue);
@@ -1408,10 +1407,10 @@ static __exit void bcap_exit(void)
 	if (ops->power != NULL)
 		ops->power(0);
 
-	i2c_del_driver(&sensor_driver);
+	i2c_unregister_device(i2c_global_client);
+	i2c_del_driver(&sensor_i2c_driver);
 
 	/*  Turn FS3 frame synch off  */
-
 	setup_pin_mux(0);
 
 #if defined(BF533_FAMILY)

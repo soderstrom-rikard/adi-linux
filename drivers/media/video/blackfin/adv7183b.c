@@ -172,6 +172,9 @@ static int adv7183b_init(struct i2c_client *client, u32 arg)
 
 static int adv7183b_exit(struct i2c_client *client, u32 arg)
 {
+#ifdef ADV7183B_GPIO_OE
+	gpio_free(ADV7183B_GPIO_OE);
+#endif
 	return 0;
 }
 
@@ -198,11 +201,16 @@ static int adv7183b_create_sysfs(struct video_device *v4ldev, int action)
 static int adv7183b_power(u32 arg)
 {
 #ifdef ADV7183B_GPIO_RESET
-	if (gpio_request(ADV7183B_GPIO_RESET, DRV_NAME)) {
-		printk(KERN_ERR "bcap_open: Failed to request GPIO %d\n", ADV7183B_GPIO_RESET);
-		return -EBUSY;
+	if (arg) {
+		if (gpio_request(ADV7183B_GPIO_RESET, DRV_NAME)) {
+			printk(KERN_ERR "adv7183b_power: Failed to request GPIO %d\n", ADV7183B_GPIO_RESET);
+			return -EBUSY;
+		}
+		gpio_direction_output(ADV7183B_GPIO_RESET, arg);
+	} else {
+		gpio_set_value(ADV7183B_GPIO_RESET, arg);
+		gpio_free(ADV7183B_GPIO_RESET);
 	}
-	gpio_direction_output(ADV7183B_GPIO_RESET, arg);
 #endif
 
 #ifdef CONFIG_BFIN533_EZKIT
@@ -226,9 +234,7 @@ static struct bcap_camera_ops adv7183b_ops = {
 
 struct bcap_camera_ops *get_camops(void)
 {
-	printk(KERN_INFO "driver for ADV7183B get_camops\n");
 	return (&adv7183b_ops);
-
 }
 EXPORT_SYMBOL(get_camops);
 
