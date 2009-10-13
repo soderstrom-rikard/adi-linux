@@ -49,8 +49,8 @@ coreb_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned l
 }
 
 static struct file_operations coreb_fops = {
-	.owner   = THIS_MODULE,
-	.ioctl   = coreb_ioctl,
+	.owner          = THIS_MODULE,
+	.unlocked_ioctl = coreb_ioctl,
 };
 
 static struct miscdevice coreb_dev = {
