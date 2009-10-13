@@ -1532,17 +1532,19 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 						unsigned int cflag)
 {
 	struct ktermios t;
+	char port_name[20];
 
 	if (port < 0 || port >= BFIN_UART_NR_PORTS)
 		return NULL;
 
-	early_bfin_earlyprintk_driver.requested_id = port;
-
+	/*
+	 * Only probe resource of the given port in earlyprintk boot arg.
+	 * The expected port id should be indicated in port name string.
+	 */
+	snprintf(port_name, 20, DRIVER_NAME ".%d", port);
 	early_platform_driver_register(&early_bfin_earlyprintk_driver,
-		DRIVER_NAME);
-
-	early_platform_driver_probe(CLASS_BFIN_EARLYPRINTK,
-		BFIN_UART_NR_PORTS, 0);
+		port_name);
+	early_platform_driver_probe(CLASS_BFIN_EARLYPRINTK, 1, 0);
 
 	if (!bfin_earlyprintk_port.port.membase)
 		return NULL;
