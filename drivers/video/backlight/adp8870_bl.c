@@ -792,8 +792,8 @@ static int __devinit adp8870_probe(struct i2c_client *client,
 
 	mutex_init(&data->lock);
 
-	bl = backlight_device_register(dev_name(&client->dev), &client->dev,
-			data, &adp8870_bl_ops);
+	bl = backlight_device_register(dev_driver_string(&client->dev),
+			&client->dev, data, &adp8870_bl_ops);
 	if (IS_ERR(bl)) {
 		dev_err(&client->dev, "failed to register backlight\n");
 		ret = PTR_ERR(bl);
@@ -822,8 +822,7 @@ static int __devinit adp8870_probe(struct i2c_client *client,
 
 	backlight_update_status(bl);
 
-	dev_info(&client->dev, "Rev.%d Backlight, irq %d\n",
-		revid, client->irq);
+	dev_info(&client->dev, "Rev.%d Backlight\n", revid);
 
 	if (pdata->num_leds)
 		adp8870_led_probe(client);
