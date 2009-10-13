@@ -583,7 +583,7 @@ static struct ad714x_platform_data ad7147_spi_platform_data = {
 #if defined(CONFIG_INPUT_AD714X_I2C) || defined(CONFIG_INPUT_AD714X_I2C_MODULE)
 #include <linux/input.h>
 #include <linux/input/ad714x.h>
-static struct ad714x_button_plat ad7142_spi_button_plat[] = {
+static struct ad714x_button_plat ad7142_i2c_button_plat[] = {
 	{
 		.keycode = BTN_1,
 		.l_mask = 0,
@@ -605,9 +605,9 @@ static struct ad714x_button_plat ad7142_spi_button_plat[] = {
 		.h_mask = 0x8,
 	},
 };
-static struct ad714x_platform_data ad7142_spi_platform_data = {
+static struct ad714x_platform_data ad7142_i2c_platform_data = {
 	.button_num = 4,
-	.button = ad7142_spi_button_plat,
+	.button = ad7142_i2c_button_plat,
 	.stage_cfg_reg =  {
 		/* fixme: figure out right setting for all comoponent according
 		 * to hardware feature of EVAL-AD7142EB board */
@@ -1489,7 +1489,7 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("ad7142_captouch", 0x2C),
 		.irq = IRQ_PG5,
-		.platform_data = (void *)&ad7142_spi_platform_data,
+		.platform_data = (void *)&ad7142_i2c_platform_data,
 	},
 #endif
 #if defined(CONFIG_BFIN_TWI_LCD) || defined(CONFIG_BFIN_TWI_LCD_MODULE)
