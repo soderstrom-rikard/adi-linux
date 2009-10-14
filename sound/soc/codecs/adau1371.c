@@ -1107,7 +1107,7 @@ static int adau1371_probe(struct platform_device *pdev)
 		kfree(codec);
 		return -ENOMEM;
 	}
-	adau1371->data = pdev->dev.platform_data;;
+	adau1371->data = pdev->dev.platform_data;
 	codec->private_data = adau1371;
 	socdev->card->codec = codec;
 	mutex_init(&codec->mutex);
