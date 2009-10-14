@@ -859,16 +859,16 @@ int adxl34x_remove(struct adxl34x *ac)
 EXPORT_SYMBOL_GPL(adxl34x_remove);
 
 /* Stub functions so we can load/unload the module */
-static __init int ad714x_init(void)
+static __init int adxl34x_init(void)
 {
 	return 0;
 }
-module_init(ad714x_init);
+module_init(adxl34x_init);
 
-static __exit void ad714x_exit(void)
+static __exit void adxl34x_exit(void)
 {
 }
-module_exit(ad714x_exit);
+module_exit(adxl34x_exit);
 
 MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
 MODULE_DESCRIPTION("ADXL345/346 Three-Axis Digital Accelerometer Driver");
