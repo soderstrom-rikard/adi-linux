@@ -181,6 +181,7 @@ static int bf5xx_i2s_suspend(struct snd_soc_dai *dai)
 static int bf5xx_i2s_resume(struct snd_soc_dai *dai)
 {
 	struct sport_device *sport_handle = dai->private_data;
+	struct bf5xx_i2s_port *bf5xx_i2s = sport_handle->private_data;
 	int ret;
 
 	pr_debug("%s : sport %d\n", __func__, dai->id);
