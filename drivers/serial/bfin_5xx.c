@@ -351,7 +351,6 @@ static void bfin_serial_tx_chars(struct bfin_serial_port *uart)
 		UART_PUT_CHAR(uart, xmit->buf[xmit->tail]);
 		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
 		uart->port.icount.tx++;
-		SSYNC();
 	}
 
 	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
@@ -1119,7 +1118,6 @@ static void bfin_serial_console_putchar(struct uart_port *port, int ch)
 	while (!(UART_GET_LSR(uart) & THRE))
 		barrier();
 	UART_PUT_CHAR(uart, ch);
-	SSYNC();
 }
 
 #endif /* defined (CONFIG_SERIAL_BFIN_CONSOLE) ||
