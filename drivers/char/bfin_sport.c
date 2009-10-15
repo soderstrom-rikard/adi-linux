@@ -279,7 +279,14 @@ static inline void sport_rx_read(struct sport_dev *dev)
 {
 	struct sport_config *cfg = &dev->config;
 
-	if (cfg->word_len <= 16)
+	if (cfg->word_len <= 8)
+		while (dev->rx_received < dev->rx_len &&
+		       (dev->regs->stat & RXNE)) {
+			u8 *buf = (void *)dev->rx_buf + dev->rx_received;
+			*buf = bfin_read16(&dev->regs->rx);
+			dev->rx_received += 1;
+		}
+	else if (cfg->word_len <= 16)
 		while (dev->rx_received < dev->rx_len &&
 		       (dev->regs->stat & RXNE)) {
 			u16 *buf = (void *)dev->rx_buf + dev->rx_received;
@@ -314,7 +321,14 @@ static inline void sport_tx_write(struct sport_dev *dev)
 {
 	struct sport_config *cfg = &dev->config;
 
-	if (cfg->word_len <= 16)
+	if (cfg->word_len <= 8)
+		while (dev->tx_sent < dev->tx_len &&
+		       !(dev->regs->stat & TXF)) {
+			u8 *buf = (void *)dev->tx_buf + dev->tx_sent;
+			bfin_write16(&dev->regs->tx, *buf);
+			dev->tx_sent += 1;
+		}
+	else if (cfg->word_len <= 16)
 		while (dev->tx_sent < dev->tx_len &&
 		       !(dev->regs->stat & TXF)) {
 			u16 *buf = (void *)dev->tx_buf + dev->tx_sent;
