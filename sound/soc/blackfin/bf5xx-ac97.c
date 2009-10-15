@@ -167,19 +167,42 @@ void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
 
 static void bf5xx_ac97_warm_reset(struct snd_ac97 *ac97)
 {
-#if defined(CONFIG_BF54x) || defined(CONFIG_BF561) || \
- (defined(BF537_FAMILY) && (CONFIG_SND_BF5XX_SPORT_NUM == 1))
-
-#define CONCAT(a, b, c) a ## b ## c
-#define BFIN_SPORT_RFS(x) CONCAT(P_SPORT, x, _RFS)
 	struct snd_soc_dai *cpu_dai = ac97->private_data;
 	struct sport_device *sport_handle = cpu_dai->private_data;
-
-	u16 per = BFIN_SPORT_RFS(sport_handle->num);
-	u16 gpio = P_IDENT(BFIN_SPORT_RFS(sport_handle->num));
+	u16 per;
+	u16 gpio;
 
 	pr_debug("%s enter\n", __func__);
 
+	/* TODO:move pins information to arch */
+	switch (sport_handle->num) {
+#if defined(CONFIG_BF54x) || defined(CONFIG_BF561)
+	case 0:
+		per = P_SPORT0_RFS;
+		break;
+#endif
+
+#if defined(CONFIG_BF54x) || defined(CONFIG_BF561) || \
+		(defined(BF537_FAMILY) && (CONFIG_SND_BF5XX_SPORT_NUM == 1))
+	case 1:
+		per = P_SPORT1_RFS;
+		break;
+#endif
+
+#if defined(CONFIG_BF54x)
+	case 2:
+		per = P_SPORT2_RFS;
+		break;
+	case 3:
+		per = P_SPORT3_RFS;
+		break;
+#endif
+	default:
+		pr_info("%s: Not implemented\n", __func__);
+		return;
+	}
+
+	gpio = P_IDENT(per);
 	peripheral_free(per);
 	gpio_request(gpio, "bf5xx-ac97");
 	gpio_direction_output(gpio, 1);
@@ -188,9 +211,6 @@ static void bf5xx_ac97_warm_reset(struct snd_ac97 *ac97)
 	udelay(1);
 	gpio_free(gpio);
 	peripheral_request(per, "soc-audio");
-#else
-	pr_info("%s: Not implemented\n", __func__);
-#endif
 }
 
 static void bf5xx_ac97_cold_reset(struct snd_ac97 *ac97)
