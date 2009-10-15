@@ -348,6 +348,7 @@ static int __devinit bf5xx_ac97_probe(struct platform_device *pdev)
 	}
 
 	bfin_ac97_dai.private_data = sport_handle;
+	bfin_ac97_dai.dev = &pdev->dev;
 	platform_set_drvdata(pdev, sport_handle);
 	sport_handle->private_data = cmd_count;
 

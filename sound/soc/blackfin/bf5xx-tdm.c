@@ -275,6 +275,7 @@ static int __devinit bfin_tdm_probe(struct platform_device *pdev)
 	}
 
 	bf5xx_tdm_dai.private_data = sport_handle;
+	bf5xx_tdm_dai.dev = &pdev->dev;
 	platform_set_drvdata(pdev, sport_handle);
 	sport_handle->private_data = bf5xx_tdm;
 
