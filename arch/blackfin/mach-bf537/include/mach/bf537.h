@@ -11,7 +11,7 @@
 
 /* Masks for generic ERROR IRQ demultiplexing used in int-priority-sc.c */
 
-#define SPI_ERR_MASK (TXCOL | RBSY | MODF | TXE)	/* SPI_STAT */
+#define SPI_ERR_MASK (0x56)	/* SPI_STAT: TXCOL/RBSY/MODF/TXE */
 #define SPORT_ERR_MASK (ROVF | RUVF | TOVF | TUVF)	/* SPORTx_STAT */
 #define PPI_ERR_MASK (0xFFFF & ~FLD)	/* PPI_STATUS */
 #define EMAC_ERR_MASK (PHYINT | MMCINT | RXFSINT | TXFSINT | WAKEDET | RXDMAERR | TXDMAERR | STMDONE)	/* EMAC_SYSTAT */
