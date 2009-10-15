@@ -52,6 +52,38 @@ struct bfin_serial_port {
 #endif
 };
 
+/* UART_LCR Masks */
+#define WLS(x)                   (((x)-5) & 0x03)  /* Word Length Select */
+#define STB                      0x04  /* Stop Bits */
+#define PEN                      0x08  /* Parity Enable */
+#define EPS                      0x10  /* Even Parity Select */
+#define STP                      0x20  /* Stick Parity */
+#define SB                       0x40  /* Set Break */
+#define DLAB                     0x80  /* Divisor Latch Access */
+
+/* UART_LSR Masks */
+#define DR                       0x01  /* Data Ready */
+#define OE                       0x02  /* Overrun Error */
+#define PE                       0x04  /* Parity Error */
+#define FE                       0x08  /* Framing Error */
+#define BI                       0x10  /* Break Interrupt */
+#define THRE                     0x20  /* THR Empty */
+#define TEMT                     0x40  /* TSR and UART_THR Empty */
+#define TFI                      0x80  /* Transmission Finished Indicator */
+
+/* UART_IER Masks */
+#define ERBFI                    0x01  /* Enable Receive Buffer Full Interrupt */
+#define ETBEI                    0x02  /* Enable Transmit Buffer Empty Interrupt */
+#define ELSI                     0x04  /* Enable RX Status Interrupt */
+
+/* UART_GCTL Masks */
+#define UCEN                     0x01  /* Enable UARTx Clocks */
+#define IREN                     0x02  /* Enable IrDA Mode */
+#define TPOLC                    0x04  /* IrDA TX Polarity Change */
+#define RPOLC                    0x08  /* IrDA RX Polarity Change */
+#define FPE                      0x10  /* Force Parity Error On Transmit */
+#define FFE                      0x20  /* Force Framing Error On Transmit */
+
 #ifdef BFIN_UART_BF54X_STYLE
 # define OFFSET_DLL              0x00  /* Divisor Latch (Low-Byte)        */
 # define OFFSET_DLH              0x04  /* Divisor Latch (High-Byte)       */
@@ -82,37 +114,37 @@ struct bfin_serial_port {
 # undef OFFSET_IIR
 #endif
 
-#define UART_GET_CHAR(uart)      bfin_read16((uart)->port.membase + OFFSET_RBR)
-#define UART_GET_DLL(uart)       bfin_read16((uart)->port.membase + OFFSET_DLL)
-#define UART_GET_DLH(uart)       bfin_read16((uart)->port.membase + OFFSET_DLH)
-#define UART_GET_GCTL(uart)      bfin_read16((uart)->port.membase + OFFSET_GCTL)
-#define UART_GET_LCR(uart)       bfin_read16((uart)->port.membase + OFFSET_LCR)
-#define UART_GET_MCR(uart)       bfin_read16((uart)->port.membase + OFFSET_MCR)
-#define UART_GET_MSR(uart)       bfin_read16((uart)->port.membase + OFFSET_MSR)
+#define UART_GET_CHAR(p)      bfin_read16(port_membase(p) + OFFSET_RBR)
+#define UART_GET_DLL(p)       bfin_read16(port_membase(p) + OFFSET_DLL)
+#define UART_GET_DLH(p)       bfin_read16(port_membase(p) + OFFSET_DLH)
+#define UART_GET_GCTL(p)      bfin_read16(port_membase(p) + OFFSET_GCTL)
+#define UART_GET_LCR(p)       bfin_read16(port_membase(p) + OFFSET_LCR)
+#define UART_GET_MCR(p)       bfin_read16(port_membase(p) + OFFSET_MCR)
+#define UART_GET_MSR(p)       bfin_read16(port_membase(p) + OFFSET_MSR)
 
-#define UART_PUT_CHAR(uart, v)   bfin_write16((uart)->port.membase + OFFSET_THR, v)
-#define UART_PUT_DLL(uart, v)    bfin_write16((uart)->port.membase + OFFSET_DLL, v)
-#define UART_PUT_DLH(uart, v)    bfin_write16((uart)->port.membase + OFFSET_DLH, v)
-#define UART_PUT_GCTL(uart, v)   bfin_write16((uart)->port.membase + OFFSET_GCTL, v)
-#define UART_PUT_LCR(uart, v)    bfin_write16((uart)->port.membase + OFFSET_LCR, v)
-#define UART_PUT_MCR(uart, v)    bfin_write16((uart)->port.membase + OFFSET_MCR, v)
+#define UART_PUT_CHAR(p, v)   bfin_write16(port_membase(p) + OFFSET_THR, v)
+#define UART_PUT_DLL(p, v)    bfin_write16(port_membase(p) + OFFSET_DLL, v)
+#define UART_PUT_DLH(p, v)    bfin_write16(port_membase(p) + OFFSET_DLH, v)
+#define UART_PUT_GCTL(p, v)   bfin_write16(port_membase(p) + OFFSET_GCTL, v)
+#define UART_PUT_LCR(p, v)    bfin_write16(port_membase(p) + OFFSET_LCR, v)
+#define UART_PUT_MCR(p, v)    bfin_write16(port_membase(p) + OFFSET_MCR, v)
 
 #ifdef BFIN_UART_BF54X_STYLE
 
-#define UART_CLEAR_IER(uart, v)  bfin_write16((uart)->port.membase + OFFSET_IER_CLEAR, v)
-#define UART_GET_IER(uart)       bfin_read16((uart)->port.membase + OFFSET_IER_SET)
-#define UART_SET_IER(uart, v)    bfin_write16((uart)->port.membase + OFFSET_IER_SET, v)
+#define UART_CLEAR_IER(p, v)  bfin_write16(port_membase(p) + OFFSET_IER_CLEAR, v)
+#define UART_GET_IER(p)       bfin_read16(port_membase(p) + OFFSET_IER_SET)
+#define UART_SET_IER(p, v)    bfin_write16(port_membase(p) + OFFSET_IER_SET, v)
 
-#define UART_CLEAR_DLAB(uart)    /* MMRs not muxed on BF54x */
-#define UART_SET_DLAB(uart)      /* MMRs not muxed on BF54x */
+#define UART_CLEAR_DLAB(p)    /* MMRs not muxed on BF54x */
+#define UART_SET_DLAB(p)      /* MMRs not muxed on BF54x */
 
-#define UART_CLEAR_LSR(uart)     bfin_write16((uart)->port.membase + OFFSET_LSR, -1)
-#define UART_GET_LSR(uart)       bfin_read16((uart)->port.membase + OFFSET_LSR)
-#define UART_PUT_LSR(uart, v)    bfin_write16((uart)->port.membase + OFFSET_LSR, v)
+#define UART_CLEAR_LSR(p)     bfin_write16(port_membase(p) + OFFSET_LSR, -1)
+#define UART_GET_LSR(p)       bfin_read16(port_membase(p) + OFFSET_LSR)
+#define UART_PUT_LSR(p, v)    bfin_write16(port_membase(p) + OFFSET_LSR, v)
 
 /* This handles hard CTS/RTS */
 #define BFIN_UART_CTSRTS_HARD
-#define UART_CLEAR_SCTS(uart)   bfin_write16(((uart)->port.membase + OFFSET_MSR), SCTS)
+#define UART_CLEAR_SCTS(p)      bfin_write16((port_membase(p) + OFFSET_MSR), SCTS)
 #define UART_GET_CTS(x)         (UART_GET_MSR(x) & CTS)
 #define UART_DISABLE_RTS(x)     UART_PUT_MCR(x, UART_GET_MCR(x) & ~(ARTS | MRTS))
 #define UART_ENABLE_RTS(x)      UART_PUT_MCR(x, UART_GET_MCR(x) | MRTS | ARTS)
@@ -121,38 +153,38 @@ struct bfin_serial_port {
 
 #else /* BF533 style */
 
-#define UART_CLEAR_IER(uart, v)  UART_PUT_IER(uart, UART_GET_IER(uart) & ~(v))
-#define UART_GET_IER(uart)       bfin_read16((uart)->port.membase + OFFSET_IER)
-#define UART_PUT_IER(uart, v)    bfin_write16((uart)->port.membase + OFFSET_IER, v)
-#define UART_SET_IER(uart, v)    UART_PUT_IER(uart, UART_GET_IER(uart) | (v))
+#define UART_CLEAR_IER(p, v)  UART_PUT_IER(p, UART_GET_IER(p) & ~(v))
+#define UART_GET_IER(p)       bfin_read16(port_membase(p) + OFFSET_IER)
+#define UART_PUT_IER(p, v)    bfin_write16(port_membase(p) + OFFSET_IER, v)
+#define UART_SET_IER(p, v)    UART_PUT_IER(p, UART_GET_IER(p) | (v))
 
-#define UART_CLEAR_DLAB(uart)   do { UART_PUT_LCR(uart, UART_GET_LCR(uart) & ~DLAB); SSYNC(); } while (0)
-#define UART_SET_DLAB(uart)     do { UART_PUT_LCR(uart, UART_GET_LCR(uart) | DLAB); SSYNC(); } while (0)
+#define UART_CLEAR_DLAB(p)    do { UART_PUT_LCR(p, UART_GET_LCR(p) & ~DLAB); SSYNC(); } while (0)
+#define UART_SET_DLAB(p)      do { UART_PUT_LCR(p, UART_GET_LCR(p) | DLAB); SSYNC(); } while (0)
 
 /* The hardware clears the LSR bits upon read, so we need to cache
  * some of the more fun bits in software so they don't get lost
  * when checking the LSR in other code paths (TX).
  */
-static inline void UART_CLEAR_LSR(struct bfin_serial_port *uart)
+static inline void UART_CLEAR_LSR(void *p)
 {
-	uart->lsr = 0;
-	bfin_write16(uart->port.membase + OFFSET_LSR, -1);
+	put_lsr_cache(p, 0);
+	bfin_write16(port_membase(p) + OFFSET_LSR, -1);
 }
-static inline unsigned int UART_GET_LSR(struct bfin_serial_port *uart)
+static inline unsigned int UART_GET_LSR(void *p)
 {
-	unsigned int lsr = bfin_read16(uart->port.membase + OFFSET_LSR);
-	uart->lsr |= (lsr & (BI|FE|PE|OE));
-	return lsr | uart->lsr;
+	unsigned int lsr = bfin_read16(port_membase(p) + OFFSET_LSR);
+	put_lsr_cache(p, get_lsr_cache(p) | (lsr & (BI|FE|PE|OE)));
+	return lsr | get_lsr_cache(p);
 }
-static inline void UART_PUT_LSR(struct bfin_serial_port *uart, uint16_t val)
+static inline void UART_PUT_LSR(void *p, uint16_t val)
 {
-	uart->lsr &= ~val;
+	put_lsr_cache(p, get_lsr_cache(p) & ~val);
 }
 
 /* This handles soft CTS/RTS */
-#define UART_GET_CTS(x)        gpio_get_value(x->cts_pin)
-#define UART_DISABLE_RTS(x)    gpio_set_value(x->rts_pin, 1)
-#define UART_ENABLE_RTS(x)     gpio_set_value(x->rts_pin, 0)
+#define UART_GET_CTS(x)        gpio_get_value((x)->cts_pin)
+#define UART_DISABLE_RTS(x)    gpio_set_value((x)->rts_pin, 1)
+#define UART_ENABLE_RTS(x)     gpio_set_value((x)->rts_pin, 0)
 #define UART_ENABLE_INTS(x, v) UART_PUT_IER(x, v)
 #define UART_DISABLE_INTS(x)   UART_PUT_IER(x, 0)
 

@@ -3359,68 +3359,6 @@
 
 #define                  CUR_CHNL  0x3ff      /* Current Channel Indicator */
 
-/* Bit masks for UARTx_LCR */
-
-#if 0
-/* conflicts with legacy one in last section */
-#define                       WLS  0x3        /* Word Length Select */
-#endif
-#define                       STB  0x4        /* Stop Bits */
-#define                       PEN  0x8        /* Parity Enable */
-#define                       EPS  0x10       /* Even Parity Select */
-#define                       STP  0x20       /* Sticky Parity */
-#define                        SB  0x40       /* Set Break */
-
-/* Bit masks for UARTx_MCR */
-
-#define                      XOFF  0x1        /* Transmitter Off */
-#define                      MRTS  0x2        /* Manual Request To Send */
-#define                      RFIT  0x4        /* Receive FIFO IRQ Threshold */
-#define                      RFRT  0x8        /* Receive FIFO RTS Threshold */
-#define                  LOOP_ENA  0x10       /* Loopback Mode Enable */
-#define                     FCPOL  0x20       /* Flow Control Pin Polarity */
-#define                      ARTS  0x40       /* Automatic Request To Send */
-#define                      ACTS  0x80       /* Automatic Clear To Send */
-
-/* Bit masks for UARTx_LSR */
-
-#define                        DR  0x1        /* Data Ready */
-#define                        OE  0x2        /* Overrun Error */
-#define                        PE  0x4        /* Parity Error */
-#define                        FE  0x8        /* Framing Error */
-#define                        BI  0x10       /* Break Interrupt */
-#define                      THRE  0x20       /* THR Empty */
-#define                      TEMT  0x40       /* Transmitter Empty */
-#define                       TFI  0x80       /* Transmission Finished Indicator */
-
-/* Bit masks for UARTx_MSR */
-
-#define                      SCTS  0x1        /* Sticky CTS */
-#define                       CTS  0x10       /* Clear To Send */
-#define                      RFCS  0x20       /* Receive FIFO Count Status */
-
-/* Bit masks for UARTx_IER_SET & UARTx_IER_CLEAR */
-
-#define                   ERBFI  0x1        /* Enable Receive Buffer Full Interrupt */
-#define                   ETBEI  0x2        /* Enable Transmit Buffer Empty Interrupt */
-#define                    ELSI  0x4        /* Enable Receive Status Interrupt */
-#define                   EDSSI  0x8        /* Enable Modem Status Interrupt */
-#define                  EDTPTI  0x10       /* Enable DMA Transmit PIRQ Interrupt */
-#define                    ETFI  0x20       /* Enable Transmission Finished Interrupt */
-#define                   ERFCI  0x40       /* Enable Receive FIFO Count Interrupt */
-
-/* Bit masks for UARTx_GCTL */
-
-#define                      UCEN  0x1        /* UART Enable */
-#define                      IREN  0x2        /* IrDA Mode Enable */
-#define                     TPOLC  0x4        /* IrDA TX Polarity Change */
-#define                     RPOLC  0x8        /* IrDA RX Polarity Change */
-#define                       FPE  0x10       /* Force Parity Error */
-#define                       FFE  0x20       /* Force Framing Error */
-#define                      EDBO  0x40       /* Enable Divide-by-One */
-#define                     EGLSI  0x80       /* Enable Global LS Interrupt */
-
-
 /* ******************************************* */
 /*     MULTI BIT MACRO ENUMERATIONS            */
 /* ******************************************* */

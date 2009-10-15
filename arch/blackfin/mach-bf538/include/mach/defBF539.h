@@ -1722,15 +1722,6 @@
 #define	LOOP_ENA_P	0x04
 /* Deprecated UARTx_MCR	Mask			 */
 
-/* UARTx_LSR Register */
-#define	DR			0x01	/* Data	Ready */
-#define	OE			0x02	/* Overrun Error */
-#define	PE			0x04	/* Parity Error */
-#define	FE			0x08	/* Framing Error */
-#define	BI			0x10	/* Break Interrupt */
-#define	THRE		0x20	/* THR Empty */
-#define	TEMT		0x40	/* TSR and UART_THR Empty */
-
 #define	TEMP_P		0x06
 #define	THRE_P		0x05
 #define	BI_P		0x04
