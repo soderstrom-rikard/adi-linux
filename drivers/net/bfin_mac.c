@@ -34,7 +34,7 @@
 #include <linux/dma-mapping.h>
 
 #include <asm/div64.h>
-
+#include <asm/dpmc.h>
 #include <asm/blackfin.h>
 #include <asm/cacheflush.h>
 #include <asm/portmux.h>
