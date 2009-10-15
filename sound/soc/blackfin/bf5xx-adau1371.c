@@ -24,11 +24,11 @@
 #include "bf5xx-i2s-pcm.h"
 #include "bf5xx-i2s.h"
 
-/* PLL settings coefficients, add more here...
- * Currently the most convenient way is to make PLL
- * generate 48k * 1024 or 44.1k * 1024 clock,then
- * use source clock divider and MCLK divider
- * to get the required rate.
+/* PLL settings coefficients, Crystal here is 12.288MHz one.
+ * Change things here, if you want to support more rates or change
+ * the crystal. Currently the most convenient way is to make PLL
+ * generate 48k * 1024 or 44.1k * 1024 clock, then use source
+ * clock divider and MCLK divider to get the required rate.
  */
 static const struct _pll_settings adau1371_pll_settings[] = {
 	/* 96k */
