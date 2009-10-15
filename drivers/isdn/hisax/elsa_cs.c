@@ -138,7 +138,7 @@ typedef struct local_info_t {
 
 ======================================================================*/
 
-static int elsa_cs_probe(struct pcmcia_device *link)
+static int __devinit elsa_cs_probe(struct pcmcia_device *link)
 {
     local_info_t *local;
 
@@ -228,7 +228,7 @@ static int elsa_cs_configcheck(struct pcmcia_device *p_dev,
 	return -ENODEV;
 }
 
-static int elsa_cs_config(struct pcmcia_device *link)
+static int __devinit elsa_cs_config(struct pcmcia_device *link)
 {
     local_info_t *dev;
     int i, last_fn;

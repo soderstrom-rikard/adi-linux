@@ -129,7 +129,7 @@ typedef struct local_info_t {
 
 ======================================================================*/
 
-static int teles_probe(struct pcmcia_device *link)
+static int __devinit teles_probe(struct pcmcia_device *link)
 {
     local_info_t *local;
 
@@ -218,7 +218,7 @@ static int teles_cs_configcheck(struct pcmcia_device *p_dev,
 	return -ENODEV;
 }
 
-static int teles_cs_config(struct pcmcia_device *link)
+static int __devinit teles_cs_config(struct pcmcia_device *link)
 {
     local_info_t *dev;
     int i, last_fn;

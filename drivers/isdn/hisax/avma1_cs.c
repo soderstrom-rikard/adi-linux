@@ -115,7 +115,7 @@ typedef struct local_info_t {
     
 ======================================================================*/
 
-static int avma1cs_probe(struct pcmcia_device *p_dev)
+static int __devinit avma1cs_probe(struct pcmcia_device *p_dev)
 {
     local_info_t *local;
 
@@ -193,7 +193,7 @@ static int avma1cs_configcheck(struct pcmcia_device *p_dev,
 }
 
 
-static int avma1cs_config(struct pcmcia_device *link)
+static int __devinit avma1cs_config(struct pcmcia_device *link)
 {
     local_info_t *dev;
     int i;

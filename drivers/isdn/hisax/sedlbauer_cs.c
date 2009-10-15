@@ -147,7 +147,7 @@ typedef struct local_info_t {
     
 ======================================================================*/
 
-static int sedlbauer_probe(struct pcmcia_device *link)
+static int __devinit sedlbauer_probe(struct pcmcia_device *link)
 {
     local_info_t *local;
 
@@ -305,7 +305,7 @@ static int sedlbauer_config_check(struct pcmcia_device *p_dev,
 
 
 
-static int sedlbauer_config(struct pcmcia_device *link)
+static int __devinit sedlbauer_config(struct pcmcia_device *link)
 {
     local_info_t *dev = link->priv;
     win_req_t *req;
