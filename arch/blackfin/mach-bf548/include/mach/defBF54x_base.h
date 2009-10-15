@@ -3262,13 +3262,6 @@
 #define WDTH_CAP 0x0002
 #define EXT_CLK  0x0003
 
-/* UARTx_LCR bit field options */
-
-#define WLS_5   0x0000    /* 5 data bits */
-#define WLS_6   0x0001    /* 6 data bits */
-#define WLS_7   0x0002    /* 7 data bits */
-#define WLS_8   0x0003    /* 8 data bits */
-
 /* PINTx Register Bit Definitions */
 
 #define PIQ0 0x00000001
@@ -3717,8 +3710,6 @@ PORTJ_FER registers
 
 /* for legacy compatibility */
 
-#define WLS(x)  (((x)-5) & 0x03) /* Word Length Select */
-#define W1LMAX_MAX W1LMAX_MIN
 #define EBIU_AMCBCTL0 EBIU_AMBCTL0
 #define EBIU_AMCBCTL1 EBIU_AMBCTL1
 #define PINT0_IRQ PINT0_REQUEST
