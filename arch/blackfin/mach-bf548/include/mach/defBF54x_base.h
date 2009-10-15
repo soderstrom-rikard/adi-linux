@@ -2252,17 +2252,8 @@
 #define                      UCCT  0x40       /* Universal Counter CAN Trigger */
 #define                       UCE  0x80       /* Universal Counter Enable */
 
-/* Bit masks for CAN0_UCCNT */
-
-#define                     UCCNT  0xffff     /* Universal Counter Count Value */
-
-/* Bit masks for CAN0_UCRC */
-
-#define                     UCVAL  0xffff     /* Universal Counter Reload/Capture Value */
-
 /* Bit masks for CAN0_CEC */
 
-#define                    RXECNT  0xff       /* Receive Error Counter */
 #define                    TXECNT  0xff00     /* Transmit Error Counter */
 
 /* Bit masks for CAN0_ESR */
