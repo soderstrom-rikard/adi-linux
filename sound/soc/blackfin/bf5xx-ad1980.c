@@ -45,26 +45,11 @@
 
 static struct snd_soc_card bf5xx_board;
 
-static int bf5xx_board_startup(struct snd_pcm_substream *substream)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
-
-	pr_debug("%s enter\n", __func__);
-	cpu_dai->private_data = sport_handle;
-	return 0;
-}
-
-static struct snd_soc_ops bf5xx_board_ops = {
-	.startup = bf5xx_board_startup,
-};
-
 static struct snd_soc_dai_link bf5xx_board_dai = {
 	.name = "AC97",
 	.stream_name = "AC97 HiFi",
 	.cpu_dai = &bfin_ac97_dai,
 	.codec_dai = &ad1980_dai,
-	.ops = &bf5xx_board_ops,
 };
 
 static struct snd_soc_card bf5xx_board = {

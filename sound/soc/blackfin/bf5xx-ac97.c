@@ -40,11 +40,6 @@
  *		anomaly does not affect blackfin sound drivers.
 */
 
-static int *cmd_count;
-static int sport_num = CONFIG_SND_BF5XX_SPORT_NUM;
-struct sport_device *sport_handle;
-EXPORT_SYMBOL(sport_handle);
-
 void bf5xx_pcm_to_ac97(struct ac97_frame *dst, const __u16 *src,
 		size_t count, unsigned int chan_mask)
 {
@@ -101,7 +96,10 @@ static unsigned int sport_tx_curr_frag(struct sport_device *sport)
 
 static void enqueue_cmd(struct snd_ac97 *ac97, __u16 addr, __u16 data)
 {
-	struct sport_device *sport = sport_handle;
+	struct snd_soc_dai *cpu_dai = ac97->private_data;
+	struct sport_device *sport = cpu_dai->private_data;
+	int *cmd_count = sport->private_data;
+
 	int nextfrag = sport_tx_curr_frag(sport);
 	struct ac97_frame *nextwrite;
 
@@ -122,6 +120,8 @@ static void enqueue_cmd(struct snd_ac97 *ac97, __u16 addr, __u16 data)
 static unsigned short bf5xx_ac97_read(struct snd_ac97 *ac97,
 	unsigned short reg)
 {
+	struct snd_soc_dai *cpu_dai = ac97->private_data;
+	struct sport_device *sport_handle = cpu_dai->private_data;
 	struct ac97_frame out_frame[2], in_frame[2];
 
 	pr_debug("%s enter 0x%x\n", __func__, reg);
@@ -146,6 +146,9 @@ static unsigned short bf5xx_ac97_read(struct snd_ac97 *ac97,
 void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
 	unsigned short val)
 {
+	struct snd_soc_dai *cpu_dai = ac97->private_data;
+	struct sport_device *sport_handle = cpu_dai->private_data;
+
 	pr_debug("%s enter 0x%x:0x%04x\n", __func__, reg, val);
 
 	if (sport_handle->tx_run) {
@@ -169,9 +172,11 @@ static void bf5xx_ac97_warm_reset(struct snd_ac97 *ac97)
 
 #define CONCAT(a, b, c) a ## b ## c
 #define BFIN_SPORT_RFS(x) CONCAT(P_SPORT, x, _RFS)
+	struct snd_soc_dai *cpu_dai = ac97->private_data;
+	struct sport_device *sport_handle = cpu_dai->private_data;
 
-	u16 per = BFIN_SPORT_RFS(CONFIG_SND_BF5XX_SPORT_NUM);
-	u16 gpio = P_IDENT(BFIN_SPORT_RFS(CONFIG_SND_BF5XX_SPORT_NUM));
+	u16 per = BFIN_SPORT_RFS(sport_handle->num);
+	u16 gpio = P_IDENT(BFIN_SPORT_RFS(sport_handle->num));
 
 	pr_debug("%s enter\n", __func__);
 
@@ -269,10 +274,38 @@ static int bf5xx_ac97_resume(struct snd_soc_dai *dai)
 #define bf5xx_ac97_resume	NULL
 #endif
 
-static int bf5xx_ac97_probe(struct platform_device *pdev,
-			    struct snd_soc_dai *dai)
+struct snd_soc_dai bfin_ac97_dai = {
+	.name = "bf5xx-ac97",
+	.id = 0,
+	.ac97_control = 1,
+	.suspend = bf5xx_ac97_suspend,
+	.resume = bf5xx_ac97_resume,
+	.playback = {
+		.stream_name = "AC97 Playback",
+		.channels_min = 2,
+#if defined(CONFIG_SND_BF5XX_MULTICHAN_SUPPORT)
+		.channels_max = 6,
+#else
+		.channels_max = 2,
+#endif
+		.rates = SNDRV_PCM_RATE_48000,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
+	.capture = {
+		.stream_name = "AC97 Capture",
+		.channels_min = 2,
+		.channels_max = 2,
+		.rates = SNDRV_PCM_RATE_48000,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
+};
+EXPORT_SYMBOL_GPL(bfin_ac97_dai);
+
+static int __devinit bf5xx_ac97_probe(struct platform_device *pdev)
 {
+	int *cmd_count;
+	struct sport_device *sport_handle;
+	int sport_num = pdev->id;
 	int ret = 0;
+
 	cmd_count = (int *)get_zeroed_page(GFP_KERNEL);
 	if (cmd_count == NULL)
 		return -ENOMEM;
@@ -293,6 +326,11 @@ static int bf5xx_ac97_probe(struct platform_device *pdev,
 		ret = -ENODEV;
 		goto sport_err;
 	}
+
+	bfin_ac97_dai.private_data = sport_handle;
+	platform_set_drvdata(pdev, sport_handle);
+	sport_handle->private_data = cmd_count;
+
 	/*SPORT works in TDM mode to simulate AC97 transfers*/
 #if defined(CONFIG_SND_BF5XX_MULTICHAN_SUPPORT)
 	ret = sport_set_multichannel(sport_handle, 16, 0x3FF, 1);
@@ -319,6 +357,12 @@ static int bf5xx_ac97_probe(struct platform_device *pdev,
 		goto sport_config_err;
 	}
 
+	ret = snd_soc_register_dai(&bfin_ac97_dai);
+	if (ret) {
+		pr_err("Failed to register DAI: %d\n", ret);
+		goto sport_config_err;
+	}
+
 	return 0;
 
 sport_config_err:
@@ -329,60 +373,43 @@ sport_err:
 gpio_err:
 #endif
 	free_page((unsigned long)cmd_count);
-	cmd_count = NULL;
 
 	return ret;
 }
 
-static void bf5xx_ac97_remove(struct platform_device *pdev,
-			      struct snd_soc_dai *dai)
+static int __devexit bf5xx_ac97_remove(struct platform_device *pdev)
 {
-	free_page((unsigned long)cmd_count);
-	cmd_count = NULL;
+	struct sport_device *sport_handle = platform_get_drvdata(pdev);
+	int *cmd_count = sport_handle->private_data;
+
+	snd_soc_unregister_dai(&bfin_ac97_dai);
 	sport_done(sport_handle);
+	free_page((unsigned long)cmd_count);
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
 	gpio_free(CONFIG_SND_BF5XX_RESET_GPIO_NUM);
 #endif
+	return 0;
 }
 
-struct snd_soc_dai bfin_ac97_dai = {
-	.name = "bf5xx-ac97",
-	.id = 0,
-	.ac97_control = 1,
-	.probe = bf5xx_ac97_probe,
-	.remove = bf5xx_ac97_remove,
-	.suspend = bf5xx_ac97_suspend,
-	.resume = bf5xx_ac97_resume,
-	.playback = {
-		.stream_name = "AC97 Playback",
-		.channels_min = 2,
-#if defined(CONFIG_SND_BF5XX_MULTICHAN_SUPPORT)
-		.channels_max = 6,
-#else
-		.channels_max = 2,
-#endif
-		.rates = SNDRV_PCM_RATE_48000,
-		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
-	.capture = {
-		.stream_name = "AC97 Capture",
-		.channels_min = 2,
-		.channels_max = 2,
-		.rates = SNDRV_PCM_RATE_48000,
-		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
+static struct platform_driver bf5xx_ac97_driver = {
+	.probe  = bf5xx_ac97_probe,
+	.remove = __devexit_p(bf5xx_ac97_remove),
+	.driver = {
+		.name   = "bfin-ac97",
+		.owner  = THIS_MODULE,
+	},
 };
-EXPORT_SYMBOL_GPL(bfin_ac97_dai);
-
-static int __init bfin_ac97_init(void)
+static int __init bf5xx_ac97_init(void)
 {
-	return snd_soc_register_dai(&bfin_ac97_dai);
+	return platform_driver_register(&bf5xx_ac97_driver);
 }
-module_init(bfin_ac97_init);
+module_init(bf5xx_ac97_init);
 
-static void __exit bfin_ac97_exit(void)
+static void __exit bf5xx_ac97_exit(void)
 {
-	snd_soc_unregister_dai(&bfin_ac97_dai);
+	platform_driver_unregister(&bf5xx_ac97_driver);
 }
-module_exit(bfin_ac97_exit);
+module_exit(bf5xx_ac97_exit);
 
 MODULE_AUTHOR("Roy Huang");
 MODULE_DESCRIPTION("AC97 driver for ADI Blackfin");
