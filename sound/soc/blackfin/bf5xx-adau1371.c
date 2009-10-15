@@ -100,11 +100,6 @@ static struct snd_soc_dai_link bf5xx_adau1371_dai = {
 	.ops = &bf5xx_adau1371_ops,
 };
 
-static struct adau1371_setup_data bf5xx_adau1371_setup = {
-	.i2c_bus = 0,
-	.i2c_address = 0x1a,
-};
-
 static struct snd_soc_card bf5xx_adau1371 = {
 	.name = "bf5xx_adau1371",
 	.platform = &bf5xx_i2s_soc_platform,
@@ -115,7 +110,6 @@ static struct snd_soc_card bf5xx_adau1371 = {
 static struct snd_soc_device bf5xx_adau1371_snd_devdata = {
 	.card = &bf5xx_adau1371,
 	.codec_dev = &soc_codec_dev_adau1371,
-	.codec_data = &bf5xx_adau1371_setup,
 };
 
 static struct platform_device *bf5xx_adau1371_snd_device;
