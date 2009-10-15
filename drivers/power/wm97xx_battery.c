@@ -258,7 +258,7 @@ static void __exit wm97xx_bat_exit(void)
 	platform_driver_unregister(&wm97xx_bat_driver);
 }
 
-void __init wm97xx_bat_set_pdata(struct wm97xx_batt_info *data)
+void wm97xx_bat_set_pdata(struct wm97xx_batt_info *data)
 {
 	pdata = data;
 }
