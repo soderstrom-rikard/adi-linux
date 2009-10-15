@@ -1350,6 +1350,11 @@ int snd_soc_new_pcms(struct snd_soc_device *socdev, int idx, const char *xid)
 			mutex_unlock(&codec->mutex);
 			return ret;
 		}
+
+		/* let AC97 cpu DAI be the private_data of snd_ac97 instance */
+		if (codec->ac97 && (!codec->ac97->private_data) &&
+				(card->dai_link[i].cpu_dai->ac97_control == 1))
+			codec->ac97->private_data = card->dai_link[i].cpu_dai;
 	}
 
 	mutex_unlock(&codec->mutex);
