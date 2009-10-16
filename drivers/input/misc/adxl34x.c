@@ -177,6 +177,10 @@
 
 #undef ADXL_DEBUG
 
+#define ADXL_X_AXIS			0
+#define ADXL_Y_AXIS			1
+#define ADXL_Z_AXIS			2
+
 #define AC_READ(ac, reg)	((ac)->read((ac)->dev, reg))
 #define AC_WRITE(ac, reg, val)	((ac)->write((ac)->dev, reg, val))
 
@@ -228,9 +232,7 @@ static const struct adxl34x_platform_data adxl34x_default_init = {
 	.ev_code_y = ABS_Y,	/* EV_REL */
 	.ev_code_z = ABS_Z,	/* EV_REL */
 
-	.ev_code_tap_x = BTN_TOUCH,	/* EV_KEY */
-	.ev_code_tap_y = BTN_TOUCH,	/* EV_KEY */
-	.ev_code_tap_z = BTN_TOUCH,	/* EV_KEY */
+	.ev_code_tap = {BTN_TOUCH, BTN_TOUCH, BTN_TOUCH}, /* EV_KEY {x,y,z} */
 	.power_mode = ADXL_AUTO_SLEEP | ADXL_LINK,
 	.fifo_mode = FIFO_STREAM,
 	.watermark = 0,
@@ -272,20 +274,29 @@ static void adxl34x_service_ev_fifo(struct adxl34x *ac)
 
 static void adxl34x_report_key_single(struct input_dev *input, int key)
 {
-	input_report_key(input, key, 1);
+	input_report_key(input, key, true);
 	input_sync(input);
-	input_report_key(input, key, 0);
+	input_report_key(input, key, false);
 }
 
-static void adxl34x_report_key_double(struct input_dev *input, int key)
+static void adxl34x_send_key_events(struct adxl34x *ac,
+		struct adxl34x_platform_data *pdata, int status, int press)
 {
-	input_report_key(input, key, 1);
-	input_sync(input);
-	input_report_key(input, key, 0);
-	input_sync(input);
-	input_report_key(input, key, 1);
-	input_sync(input);
-	input_report_key(input, key, 0);
+	int i;
+
+	for (i = ADXL_X_AXIS; i <= ADXL_Z_AXIS; i++) {
+		if (status & (1 << (ADXL_Z_AXIS - i)))
+			input_report_key(ac->input,
+					 pdata->ev_code_tap[i], press);
+	}
+}
+
+static void adxl34x_do_tap(struct adxl34x *ac,
+		struct adxl34x_platform_data *pdata, int status)
+{
+	adxl34x_send_key_events(ac, pdata, status, true);
+	input_sync(ac->input);
+	adxl34x_send_key_events(ac, pdata, status, false);
 }
 
 static void adxl34x_work(struct work_struct *work)
@@ -312,28 +323,11 @@ static void adxl34x_work(struct work_struct *work)
 	if (int_stat & OVERRUN)
 		dev_dbg(ac->dev, "OVERRUN\n");
 
-	if (int_stat & SINGLE_TAP) {
-		if (tap_stat & TAP_X_SRC)
-			adxl34x_report_key_single(ac->input,
-						  pdata->ev_code_tap_x);
-		if (tap_stat & TAP_Y_SRC)
-			adxl34x_report_key_single(ac->input,
-						  pdata->ev_code_tap_y);
-		if (tap_stat & TAP_Z_SRC)
-			adxl34x_report_key_single(ac->input,
-						  pdata->ev_code_tap_z);
-	}
+	if (int_stat & (SINGLE_TAP | DOUBLE_TAP)) {
+		adxl34x_do_tap(ac, pdata, tap_stat);
 
-	if (int_stat & DOUBLE_TAP) {
-		if (tap_stat & TAP_X_SRC)
-			adxl34x_report_key_double(ac->input,
-						  pdata->ev_code_tap_x);
-		if (tap_stat & TAP_Y_SRC)
-			adxl34x_report_key_double(ac->input,
-						  pdata->ev_code_tap_y);
-		if (tap_stat & TAP_Z_SRC)
-			adxl34x_report_key_double(ac->input,
-						  pdata->ev_code_tap_z);
+		if (int_stat & DOUBLE_TAP)
+			adxl34x_do_tap(ac, pdata, tap_stat);
 	}
 
 	if (pdata->ev_code_act_inactivity) {
@@ -392,7 +386,9 @@ void adxl34x_disable(struct adxl34x *ac)
 	mutex_lock(&ac->mutex);
 	if (!ac->disabled && ac->opened) {
 		ac->disabled = 1;
-		cancel_work_sync(&ac->work);
+		/* Balance interrupts disables/enables */
+		if (cancel_work_sync(&ac->work))
+			enable_irq(ac->irq);
 		/*
 		 * A '0' places the ADXL34x into standby mode
 		 * with minimum power consumption.
@@ -748,9 +744,9 @@ int adxl34x_probe(struct adxl34x **pac, struct device *dev, int irq,
 	}
 
 	__set_bit(EV_KEY, input_dev->evbit);
-	__set_bit(pdata->ev_code_tap_x, input_dev->keybit);
-	__set_bit(pdata->ev_code_tap_y, input_dev->keybit);
-	__set_bit(pdata->ev_code_tap_z, input_dev->keybit);
+	__set_bit(pdata->ev_code_tap[ADXL_X_AXIS], input_dev->keybit);
+	__set_bit(pdata->ev_code_tap[ADXL_Y_AXIS], input_dev->keybit);
+	__set_bit(pdata->ev_code_tap[ADXL_Z_AXIS], input_dev->keybit);
 
 	if (pdata->ev_code_ff) {
 		ac->int_mask = FREE_FALL;

@@ -21,9 +21,9 @@ struct adxl34x_platform_data {
 	 * form with a scale factor of 15.6 mg/LSB (i.e. 0x7F = +2 g)
 	 */
 
-	char x_axis_offset;
-	char y_axis_offset;
-	char z_axis_offset;
+	s8 x_axis_offset;
+	s8 y_axis_offset;
+	s8 z_axis_offset;
 
 	/*
 	 * TAP_X/Y/Z Enable: Setting TAP_X, Y, or Z Enable enables X,
@@ -39,7 +39,7 @@ struct adxl34x_platform_data {
 #define ADXL_TAP_Y_EN	(1 << 1)
 #define ADXL_TAP_Z_EN	(1 << 0)
 
-	unsigned char tap_axis_control;
+	u8 tap_axis_control;
 
 	/*
 	 * tap_threshold:
@@ -49,7 +49,7 @@ struct adxl34x_platform_data {
 	 * behavior if Tap/Double Tap is enabled.
 	 */
 
-	unsigned char tap_threshold;
+	u8 tap_threshold;
 
 	/*
 	 * tap_duration:
@@ -59,7 +59,7 @@ struct adxl34x_platform_data {
 	 * value will prevent Tap/Double Tap functions from working.
 	 */
 
-	unsigned char tap_duration;
+	u8 tap_duration;
 
 	/*
 	 * tap_latency:
@@ -70,7 +70,7 @@ struct adxl34x_platform_data {
 	 * function.
 	 */
 
-	unsigned char tap_latency;
+	u8 tap_latency;
 
 	/*
 	 * tap_window:
@@ -80,7 +80,7 @@ struct adxl34x_platform_data {
 	 * disable the Double Tap function.
 	 */
 
-	unsigned char tap_window;
+	u8 tap_window;
 
 	/*
 	 * act_axis_control:
@@ -116,7 +116,7 @@ struct adxl34x_platform_data {
 #define ADXL_INACT_Y_EN		(1 << 1)
 #define ADXL_INACT_Z_EN		(1 << 0)
 
-	unsigned char act_axis_control;
+	u8 act_axis_control;
 
 	/*
 	 * activity_threshold:
@@ -126,7 +126,7 @@ struct adxl34x_platform_data {
 	 * Activity interrupt is enabled.
 	 */
 
-	unsigned char activity_threshold;
+	u8 activity_threshold;
 
 	/*
 	 * inactivity_threshold:
@@ -136,7 +136,7 @@ struct adxl34x_platform_data {
 	 * behavior if Inactivity interrupt is enabled.
 	 */
 
-	unsigned char inactivity_threshold;
+	u8 inactivity_threshold;
 
 	/*
 	 * inactivity_time:
@@ -153,7 +153,7 @@ struct adxl34x_platform_data {
 	 * interrupt when the output data is below inactivity_threshold.
 	 */
 
-	unsigned char inactivity_time;
+	u8 inactivity_time;
 
 	/*
 	 * free_fall_threshold:
@@ -167,7 +167,7 @@ struct adxl34x_platform_data {
 	 * recommended.
 	 */
 
-	unsigned char free_fall_threshold;
+	u8 free_fall_threshold;
 
 	/*
 	 * free_fall_time:
@@ -179,7 +179,7 @@ struct adxl34x_platform_data {
 	 * Values between 100 to 350 ms (0x14 to 0x46) are recommended.
 	 */
 
-	unsigned char free_fall_time;
+	u8 free_fall_time;
 
 	/*
 	 * data_rate:
@@ -191,7 +191,7 @@ struct adxl34x_platform_data {
 	 * communication speed will result in samples being discarded.
 	 */
 
-	unsigned char data_rate;
+	u8 data_rate;
 
 	/*
 	 * data_range:
@@ -208,7 +208,7 @@ struct adxl34x_platform_data {
 #define ADXL_RANGE_PM_8g	2
 #define ADXL_RANGE_PM_16g	3
 
-	unsigned char data_range;
+	u8 data_range;
 
 	/*
 	 * low_power_mode:
@@ -216,7 +216,7 @@ struct adxl34x_platform_data {
 	 * power operation with somewhat higher noise.
 	 */
 
-	unsigned char low_power_mode;
+	u8 low_power_mode;
 
 	/*
 	 * power_mode:
@@ -238,7 +238,7 @@ struct adxl34x_platform_data {
 #define ADXL_LINK	(1 << 5)
 #define ADXL_AUTO_SLEEP	(1 << 4)
 
-	unsigned char power_mode;
+	u8 power_mode;
 
 	/*
 	 * fifo_mode:
@@ -254,7 +254,7 @@ struct adxl34x_platform_data {
 #define ADXL_FIFO_FIFO		1
 #define ADXL_FIFO_STREAM	2
 
-	unsigned char fifo_mode;
+	u8 fifo_mode;
 
 	/*
 	 * watermark:
@@ -264,22 +264,20 @@ struct adxl34x_platform_data {
 	 * A '0' disables the watermark feature.
 	 */
 
-	unsigned char watermark;
+	u8 watermark;
 
-	unsigned int ev_type;	/* EV_ABS or EV_REL */
+	u32 ev_type;	/* EV_ABS or EV_REL */
 
-	unsigned int ev_code_x;	/* ABS_X,Y,Z or REL_X,Y,Z */
-	unsigned int ev_code_y;	/* ABS_X,Y,Z or REL_X,Y,Z */
-	unsigned int ev_code_z;	/* ABS_X,Y,Z or REL_X,Y,Z */
+	u32 ev_code_x;	/* ABS_X,Y,Z or REL_X,Y,Z */
+	u32 ev_code_y;	/* ABS_X,Y,Z or REL_X,Y,Z */
+	u32 ev_code_z;	/* ABS_X,Y,Z or REL_X,Y,Z */
 
 	/*
 	 * A valid BTN or KEY Code; use tap_axis_control to disable
 	 * event reporting
 	 */
 
-	unsigned int ev_code_tap_x;	/* EV_KEY */
-	unsigned int ev_code_tap_y;	/* EV_KEY */
-	unsigned int ev_code_tap_z;	/* EV_KEY */
+	u32 ev_code_tap[3];	/* EV_KEY {X-Axis, Y-Axis, Z-Axis} */
 
 	/*
 	 * A valid BTN or KEY Code for Free-Fall or Activity enables
@@ -287,9 +285,9 @@ struct adxl34x_platform_data {
 	 * Activity reporting.
 	 */
 
-	unsigned int ev_code_ff;	/* EV_KEY */
-	unsigned int ev_code_act_inactivity;	/* EV_KEY */
+	u32 ev_code_ff;	/* EV_KEY */
+	u32 ev_code_act_inactivity;	/* EV_KEY */
 
-	unsigned char use_int2;
+	u8 use_int2;
 };
 #endif
