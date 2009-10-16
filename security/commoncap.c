@@ -1005,6 +1005,7 @@ int cap_file_mmap(struct file *file, unsigned long reqprot,
 {
 	int ret = 0;
 
+#ifdef CONFIG_MMU
 	if (addr < dac_mmap_min_addr) {
 		ret = cap_capable(current, current_cred(), CAP_SYS_RAWIO,
 				  SECURITY_CAP_AUDIT);
@@ -1012,5 +1013,6 @@ int cap_file_mmap(struct file *file, unsigned long reqprot,
 		if (ret == 0)
 			current->flags |= PF_SUPERPRIV;
 	}
+#endif
 	return ret;
 }

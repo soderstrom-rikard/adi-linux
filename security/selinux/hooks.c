@@ -3028,6 +3028,7 @@ static int selinux_file_mmap(struct file *file, unsigned long reqprot,
 			     unsigned long addr, unsigned long addr_only)
 {
 	int rc = 0;
+#ifdef CONFIG_MMU
 	u32 sid = current_sid();
 
 	/*
@@ -3042,6 +3043,7 @@ static int selinux_file_mmap(struct file *file, unsigned long reqprot,
 		if (rc)
 			return rc;
 	}
+#endif
 
 	/* do DAC check on address space usage */
 	rc = cap_file_mmap(file, reqprot, prot, flags, addr, addr_only);
