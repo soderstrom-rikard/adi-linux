@@ -1300,18 +1300,6 @@ int ad714x_enable(struct ad714x_chip *ad714x)
 EXPORT_SYMBOL(ad714x_enable);
 #endif
 
-/* Stub functions so we can load/unload the module */
-static __init int ad714x_init(void)
-{
-	return 0;
-}
-module_init(ad714x_init);
-
-static __exit void ad714x_exit(void)
-{
-}
-module_exit(ad714x_exit);
-
 MODULE_DESCRIPTION("Analog Devices AD714X Capacitance Touch Sensor Driver");
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
 MODULE_LICENSE("GPL");
