@@ -80,9 +80,9 @@ static const u16 pin_req[2][3] = {
 	{P_TWI1_SCL, P_TWI1_SDA, 0},
 };
 
-static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
+static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface,
+					unsigned short twi_int_status)
 {
-	unsigned short twi_int_status = read_INT_STAT(iface);
 	unsigned short mast_stat = read_MASTER_STAT(iface);
 
 	if (twi_int_status & XMTSERV) {
@@ -109,9 +109,6 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 				write_MASTER_CTL(iface,
 					(read_MASTER_CTL(iface) | RSTART) & ~MDIR);
 		}
-		SSYNC();
-		/* Clear status */
-		write_INT_STAT(iface, XMTSERV);
 		SSYNC();
 	}
 	if (twi_int_status & RCVSERV) {
@@ -145,12 +142,8 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 					(read_MASTER_CTL(iface) | RSTART) & ~MDIR);
 			SSYNC();
 		}
-		/* Clear interrupt source */
-		write_INT_STAT(iface, RCVSERV);
-		SSYNC();
 	}
 	if (twi_int_status & MERR) {
-		write_INT_STAT(iface, MERR);
 		write_INT_MASK(iface, 0);
 		write_MASTER_STAT(iface, 0x3e);
 		write_MASTER_CTL(iface, 0);
@@ -172,10 +165,6 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 		 * results.
 		 */
 		if (twi_int_status & MCOMP) {
-			write_INT_STAT(iface, MCOMP);
-			write_INT_MASK(iface, 0);
-			write_MASTER_CTL(iface, 0);
-			SSYNC();
 			/* If it is a quick transfer, only address without data,
 			 * not an err, return 1.
 			 * If address is acknowledged return 1.
@@ -188,8 +177,6 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface)
 		return;
 	}
 	if (twi_int_status & MCOMP) {
-		write_INT_STAT(iface, MCOMP);
-		SSYNC();
 		if (iface->cur_mode == TWI_I2C_MODE_COMBINED) {
 			if (iface->readNum == 0) {
 				/* set the read number to 1 and ask for manual
@@ -264,9 +251,18 @@ static irqreturn_t bfin_twi_interrupt_entry(int irq, void *dev_id)
 {
 	struct bfin_twi_iface *iface = dev_id;
 	unsigned long flags;
+	unsigned short twi_int_status;
 
 	spin_lock_irqsave(&iface->lock, flags);
-	bfin_twi_handle_interrupt(iface);
+	while (1) {
+		twi_int_status = read_INT_STAT(iface);
+		if (!twi_int_status)
+			break;
+		/* Clear interrupt status */
+		write_INT_STAT(iface, twi_int_status);
+		SSYNC();
+		bfin_twi_handle_interrupt(iface, twi_int_status);
+	}
 	spin_unlock_irqrestore(&iface->lock, flags);
 	return IRQ_HANDLED;
 }
