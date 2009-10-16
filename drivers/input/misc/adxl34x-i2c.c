@@ -56,6 +56,7 @@ static int adxl34x_i2c_read_block(struct device *dev,
 static int __devinit adxl34x_i2c_probe(struct i2c_client *client,
 				       const struct i2c_device_id *id)
 {
+	struct adxl34x_bus_ops bops;
 	struct adxl34x *ac;
 	int error;
 
@@ -66,13 +67,16 @@ static int __devinit adxl34x_i2c_probe(struct i2c_client *client,
 		return -EIO;
 	}
 
-	error = adxl34x_probe(&ac, &client->dev, BUS_I2C, client->irq, 0,
-		adxl34x_smbus_read,
-		i2c_check_functionality(client->adapter,
-				I2C_FUNC_SMBUS_READ_I2C_BLOCK) ?
-			adxl34x_smbus_read_block :
-			adxl34x_i2c_read_block,
-		adxl34x_smbus_write);
+	bops.bustype = BUS_I2C;
+	bops.write = adxl34x_smbus_write;
+	bops.read = adxl34x_smbus_read;
+	if (i2c_check_functionality(client->adapter,
+	    I2C_FUNC_SMBUS_READ_I2C_BLOCK))
+		bops.read_block = adxl34x_smbus_read_block;
+	else
+		bops.read_block = adxl34x_i2c_read_block;
+
+	error = adxl34x_probe(&ac, &client->dev, client->irq, 0, &bops);
 	i2c_set_clientdata(client, ac);
 
 	return error;

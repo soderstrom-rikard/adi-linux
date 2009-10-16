@@ -16,11 +16,17 @@ typedef int (adxl34x_read_t) (struct device *, unsigned char);
 typedef int (adxl34x_read_block_t) (struct device *, unsigned char, int, unsigned char *);
 typedef int (adxl34x_write_t) (struct device *, unsigned char, unsigned char);
 
+struct adxl34x_bus_ops {
+	u16 bustype;
+	adxl34x_read_t *read;
+	adxl34x_read_block_t *read_block;
+	adxl34x_write_t *write;
+};
+
 void adxl34x_disable(struct adxl34x *ac);
 void adxl34x_enable(struct adxl34x *ac);
-int adxl34x_probe(struct adxl34x **pac, struct device *dev, u16 bus_type,
-	int irq, int fifo_delay_default, adxl34x_read_t read,
-	adxl34x_read_block_t read_block, adxl34x_write_t write);
+int adxl34x_probe(struct adxl34x **pac, struct device *dev, int irq,
+	int fifo_delay_default, const struct adxl34x_bus_ops *bops);
 int adxl34x_remove(struct adxl34x *ac);
 
 #endif

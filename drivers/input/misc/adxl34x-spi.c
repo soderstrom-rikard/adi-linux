@@ -59,6 +59,7 @@ static int adxl34x_spi_read_block(struct device *dev,
 
 static int __devinit adxl34x_spi_probe(struct spi_device *spi)
 {
+	struct adxl34x_bus_ops bops;
 	struct adxl34x *ac;
 	int error;
 
@@ -68,9 +69,12 @@ static int __devinit adxl34x_spi_probe(struct spi_device *spi)
 		return -EINVAL;
 	}
 
-	error = adxl34x_probe(&ac, &spi->dev, BUS_SPI, spi->irq,
-		spi->max_speed_hz > MAX_FREQ_NO_FIFODELAY,
-		adxl34x_spi_read, adxl34x_spi_read_block, adxl34x_spi_write);
+	bops.bustype = BUS_SPI;
+	bops.write = adxl34x_spi_write;
+	bops.read = adxl34x_spi_read;
+	bops.read_block = adxl34x_spi_read_block;
+	error = adxl34x_probe(&ac, &spi->dev, spi->irq,
+		spi->max_speed_hz > MAX_FREQ_NO_FIFODELAY, &bops);
 	spi_set_drvdata(spi, ac);
 
 	return error;
