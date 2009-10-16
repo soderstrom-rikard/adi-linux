@@ -34,10 +34,10 @@ struct adxl34x_platform_data {
 	 * taps.
 	 */
 
-#define ADXL_SUPPRESS 	(1 << 3)
-#define ADXL_TAP_X_EN 	(1 << 2)
-#define ADXL_TAP_Y_EN 	(1 << 1)
-#define ADXL_TAP_Z_EN 	(1 << 0)
+#define ADXL_SUPPRESS	(1 << 3)
+#define ADXL_TAP_X_EN	(1 << 2)
+#define ADXL_TAP_Y_EN	(1 << 1)
+#define ADXL_TAP_Z_EN	(1 << 0)
 
 	unsigned char tap_axis_control;
 
@@ -107,14 +107,14 @@ struct adxl34x_platform_data {
 	 * considered inactive and the inactivity interrupt is triggered.
 	 */
 
-#define ADXL_ACT_ACDC   	(1 << 7)
-#define ADXL_ACT_X_EN   	(1 << 6)
-#define ADXL_ACT_Y_EN   	(1 << 5)
-#define ADXL_ACT_Z_EN   	(1 << 4)
-#define ADXL_INACT_ACDC 	(1 << 3)
-#define ADXL_INACT_X_EN 	(1 << 2)
-#define ADXL_INACT_Y_EN 	(1 << 1)
-#define ADXL_INACT_Z_EN 	(1 << 0)
+#define ADXL_ACT_ACDC		(1 << 7)
+#define ADXL_ACT_X_EN		(1 << 6)
+#define ADXL_ACT_Y_EN		(1 << 5)
+#define ADXL_ACT_Z_EN		(1 << 4)
+#define ADXL_INACT_ACDC		(1 << 3)
+#define ADXL_INACT_X_EN		(1 << 2)
+#define ADXL_INACT_Y_EN		(1 << 1)
+#define ADXL_INACT_Z_EN		(1 << 0)
 
 	unsigned char act_axis_control;
 
@@ -202,7 +202,7 @@ struct adxl34x_platform_data {
 	 * maximum g-Range and scale factor.
 	 */
 
-#define ADXL_FULL_RES    	(1 << 3)
+#define ADXL_FULL_RES		(1 << 3)
 #define ADXL_RANGE_PM_2g	0
 #define ADXL_RANGE_PM_4g	1
 #define ADXL_RANGE_PM_8g	2
@@ -235,8 +235,8 @@ struct adxl34x_platform_data {
 	 * for further description.
 	 */
 
-#define ADXL_LINK    	(1 << 5)
-#define ADXL_AUTO_SLEEP (1 << 4)
+#define ADXL_LINK	(1 << 5)
+#define ADXL_AUTO_SLEEP	(1 << 4)
 
 	unsigned char power_mode;
 
@@ -245,7 +245,7 @@ struct adxl34x_platform_data {
 	 * BYPASS The FIFO is bypassed
 	 * FIFO   FIFO collects up to 32 values then stops collecting data
 	 * STREAM FIFO holds the last 32 data values. Once full, the FIFO's
-	 * 	  oldest data is lost as it is replaced with newer data
+	 *        oldest data is lost as it is replaced with newer data
 	 *
 	 * DEFAULT should be ADXL_FIFO_STREAM
 	 */
