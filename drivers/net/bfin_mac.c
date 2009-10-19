@@ -1044,7 +1044,7 @@ static void bfin_mac_rx(struct net_device *dev)
 	/*
 	 * Deduce Ethernet FCS from hardware generated IP payload checksum.
 	 * IP checksum is based on 16-bit one's complement algorithm.
-	 * To deduce a value from checksum is equal to add its complement.
+	 * To deduce a value from checksum is equal to add its inversion.
 	 */
 	for (i = 0; i < ETH_FCS_LENGTH; i++)
 		fcs[i] = ~skb->data[skb->len + i];
