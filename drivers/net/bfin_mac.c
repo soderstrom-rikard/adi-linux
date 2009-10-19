@@ -1006,7 +1006,7 @@ static void bfin_mac_rx(struct net_device *dev)
 	struct bfin_mac_local *lp __maybe_unused = netdev_priv(dev);
 #if defined(BFIN_MAC_CSUM_OFFLOAD)
 	unsigned int i;
-	unsigned char fcs[ETH_FCS_LENGTH];
+	unsigned char fcs[ETH_FCS_LENGTH + 1];
 #endif
 
 	/* allocate a new skb for next time receive */
@@ -1045,10 +1045,19 @@ static void bfin_mac_rx(struct net_device *dev)
 	 * Deduce Ethernet FCS from hardware generated IP payload checksum.
 	 * IP checksum is based on 16-bit one's complement algorithm.
 	 * To deduce a value from checksum is equal to add its inversion.
+	 * If the IP payload len is odd, the inversed FCS should also
+	 * begin from odd address and leave first byte zero.
 	 */
-	for (i = 0; i < ETH_FCS_LENGTH; i++)
-		fcs[i] = ~skb->data[skb->len + i];
-	skb->csum = csum_partial(fcs, ETH_FCS_LENGTH, skb->csum);
+	if (skb->len % 2) {
+		fcs[0] = 0;
+		for (i = 0; i < ETH_FCS_LENGTH; i++)
+			fcs[i + 1] = ~skb->data[skb->len + i];
+		skb->csum = csum_partial(fcs, ETH_FCS_LENGTH + 1, skb->csum);
+	} else {
+		for (i = 0; i < ETH_FCS_LENGTH; i++)
+			fcs[i] = ~skb->data[skb->len + i];
+		skb->csum = csum_partial(fcs, ETH_FCS_LENGTH, skb->csum);
+	}
 	skb->ip_summed = CHECKSUM_COMPLETE;
 #endif
 
