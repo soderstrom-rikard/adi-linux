@@ -96,8 +96,7 @@ static unsigned int sport_tx_curr_frag(struct sport_device *sport)
 
 static void enqueue_cmd(struct snd_ac97 *ac97, __u16 addr, __u16 data)
 {
-	struct snd_soc_dai *cpu_dai = ac97->private_data;
-	struct sport_device *sport = cpu_dai->private_data;
+	struct sport_device *sport = ac97->dev.platform_data;
 	int *cmd_count = sport->private_data;
 
 	int nextfrag = sport_tx_curr_frag(sport);
@@ -120,8 +119,7 @@ static void enqueue_cmd(struct snd_ac97 *ac97, __u16 addr, __u16 data)
 static unsigned short bf5xx_ac97_read(struct snd_ac97 *ac97,
 	unsigned short reg)
 {
-	struct snd_soc_dai *cpu_dai = ac97->private_data;
-	struct sport_device *sport_handle = cpu_dai->private_data;
+	struct sport_device *sport_handle = ac97->dev.platform_data;
 	struct ac97_frame out_frame[2], in_frame[2];
 
 	pr_debug("%s enter 0x%x\n", __func__, reg);
@@ -146,8 +144,7 @@ static unsigned short bf5xx_ac97_read(struct snd_ac97 *ac97,
 void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
 	unsigned short val)
 {
-	struct snd_soc_dai *cpu_dai = ac97->private_data;
-	struct sport_device *sport_handle = cpu_dai->private_data;
+	struct sport_device *sport_handle = ac97->dev.platform_data;
 
 	pr_debug("%s enter 0x%x:0x%04x\n", __func__, reg, val);
 
@@ -167,8 +164,7 @@ void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
 
 static void bf5xx_ac97_warm_reset(struct snd_ac97 *ac97)
 {
-	struct snd_soc_dai *cpu_dai = ac97->private_data;
-	struct sport_device *sport_handle = cpu_dai->private_data;
+	struct sport_device *sport_handle = ac97->dev.platform_data;
 	u16 per;
 	u16 gpio;
 
@@ -349,6 +345,7 @@ static int __devinit bf5xx_ac97_probe(struct platform_device *pdev)
 
 	bfin_ac97_dai.private_data = sport_handle;
 	bfin_ac97_dai.dev = &pdev->dev;
+	bfin_ac97_dai.ac97_pdata = sport_handle;
 	platform_set_drvdata(pdev, sport_handle);
 	sport_handle->private_data = cmd_count;
 
