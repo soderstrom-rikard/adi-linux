@@ -28,6 +28,7 @@
 #include <linux/bitops.h>
 #include <linux/debugfs.h>
 #include <linux/platform_device.h>
+#include <sound/ac97_codec.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -1358,11 +1359,6 @@ int snd_soc_new_pcms(struct snd_soc_device *socdev, int idx, const char *xid)
 			mutex_unlock(&codec->mutex);
 			return ret;
 		}
-
-		/* let AC97 cpu DAI be the private_data of snd_ac97 instance */
-		if (codec->ac97 && (!codec->ac97->private_data) &&
-				(card->dai_link[i].cpu_dai->ac97_control == 1))
-			codec->ac97->private_data = card->dai_link[i].cpu_dai;
 	}
 
 	mutex_unlock(&codec->mutex);
@@ -1394,8 +1390,11 @@ int snd_soc_init_card(struct snd_soc_device *socdev)
 				continue;
 			}
 		}
-		if (card->dai_link[i].codec_dai->ac97_control)
+		if (card->dai_link[i].codec_dai->ac97_control) {
 			ac97 = 1;
+			snd_ac97_dev_add_pdata(codec->ac97,
+				card->dai_link[i].cpu_dai->ac97_pdata);
+		}
 	}
 	snprintf(codec->card->shortname, sizeof(codec->card->shortname),
 		 "%s",  card->name);
