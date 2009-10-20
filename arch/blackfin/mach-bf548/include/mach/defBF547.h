@@ -10,12 +10,12 @@
 /* Include all Core registers and bit definitions */
 #include <asm/def_LPBlackfin.h>
 
-/* SYSTEM & MMR ADDRESS DEFINITIONS FOR ADSP-BF548 */
+/* SYSTEM & MMR ADDRESS DEFINITIONS FOR ADSP-BF547 */
 
 /* Include defBF54x_base.h for the set of #defines that are common to all ADSP-BF54x processors */
 #include "defBF54x_base.h"
 
-/* The following are the #defines needed by ADSP-BF548 that are not in the common header */
+/* The following are the #defines needed by ADSP-BF547 that are not in the common header */
 
 /* Timer Registers */
 
@@ -1217,4 +1217,4 @@
 /* ******************************************* */
 
 
-#endif /* _DEF_BF548_H */
+#endif /* _DEF_BF547_H */
