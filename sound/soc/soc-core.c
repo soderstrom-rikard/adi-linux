@@ -840,8 +840,7 @@ static void snd_soc_instantiate_card(struct snd_soc_card *card)
 	}
 
 	for (i = 0; i < card->num_links; i++) {
-		if (card->dai_link[i].codec_dai->ac97_control &&
-				(!card->dai_link[i].codec_dai->ops))
+		if (!card->dai_link[i].codec_dai->ops)
 			card->dai_link[i].codec_dai->ops = &null_dai_ops;
 	}
 
