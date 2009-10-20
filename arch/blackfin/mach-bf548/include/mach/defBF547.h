@@ -4,8 +4,8 @@
  * Licensed under the ADI BSD license or the GPL-2 (or later)
  */
 
-#ifndef _DEF_BF548_H
-#define _DEF_BF548_H
+#ifndef _DEF_BF547_H
+#define _DEF_BF547_H
 
 /* Include all Core registers and bit definitions */
 #include <asm/def_LPBlackfin.h>

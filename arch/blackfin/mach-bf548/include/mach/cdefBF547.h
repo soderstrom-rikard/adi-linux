@@ -4,8 +4,8 @@
  * Licensed under the GPL-2 or later.
  */
 
-#ifndef _CDEF_BF548_H
-#define _CDEF_BF548_H
+#ifndef _CDEF_BF547_H
+#define _CDEF_BF547_H
 
 /* include all Core registers and bit definitions */
 #include "defBF548.h"
