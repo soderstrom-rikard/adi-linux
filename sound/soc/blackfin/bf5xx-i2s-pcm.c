@@ -157,10 +157,6 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 	int ret;
 
 	pr_debug("%s enter\n", __func__);
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		sport_handle->tx_buf = buf->area;
-	else
-		sport_handle->rx_buf = buf->area;
 
 	snd_soc_set_runtime_hwparams(substream, &bf5xx_pcm_hardware);
 
@@ -169,9 +165,14 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 	if (ret < 0)
 		goto out;
 
-	if (sport_handle != NULL)
+	if (sport_handle != NULL) {
+		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+			sport_handle->tx_buf = buf->area;
+		else
+			sport_handle->rx_buf = buf->area;
+
 		runtime->private_data = sport_handle;
-	else {
+	} else {
 		pr_err("sport_handle is NULL\n");
 		return -1;
 	}
