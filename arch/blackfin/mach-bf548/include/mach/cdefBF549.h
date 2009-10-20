@@ -19,7 +19,7 @@
 #include "cdefBF54x_base.h"
 
 /* The BF549 is like the BF544, but has MXVR */
-#include "defBF547.h"
+#include "cdefBF547.h"
 
 /* MXVR Registers */
 

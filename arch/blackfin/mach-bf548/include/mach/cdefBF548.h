@@ -19,7 +19,7 @@
 #include "cdefBF54x_base.h"
 
 /* The BF548 is like the BF547, but has additional CANs */
-#include "defBF547.h"
+#include "cdefBF547.h"
 
 /* CAN Controller 1 Config 1 Registers */
 
