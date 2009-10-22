@@ -79,3 +79,5 @@ static void __exit gptimer_example_exit(void)
 	peripheral_free(P_TMR5);
 }
 module_exit(gptimer_example_exit);
+
+MODULE_LICENSE("BSD");
