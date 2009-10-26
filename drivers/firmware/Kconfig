@@ -134,7 +134,13 @@ config ISCSI_IBFT
 
 config SIGMA
 	bool "SigmaStudio firmware loader"
+	depends on I2C
 	default n
 	help
+	  Enable helper functions for working with Analog Devices SigmaDSP
+	  parts and binary firmwares produced by Analog Devices SigmaStudio.
+
+	  If unsure, say N here.  Drivers that need these helpers will select
+	  this option automatically.
 
 endmenu
