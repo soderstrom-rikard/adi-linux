@@ -1513,30 +1513,30 @@ static struct adp8870_backlight_platform_data adp8870_pdata = {
 
 	.bl_fade_in = ADP8870_FADE_T_1200ms,		/* Backlight Fade-In Timer */
 	.bl_fade_out = ADP8870_FADE_T_1200ms,		/* Backlight Fade-Out Timer */
-	.bl_fade_law = ADP8870_FADE_LAW_SQUARE,		/* fade-on/fade-off transfer characteristic */
+	.bl_fade_law = ADP8870_FADE_LAW_CUBIC1,		/* fade-on/fade-off transfer characteristic */
 
 	.en_ambl_sens = 1,				/* 1 = enable ambient light sensor */
 	.abml_filt = ADP8870_BL_AMBL_FILT_320ms,	/* Light sensor filter time */
 
-	.l1_daylight_max = ADP8870_BL_CUR_mA(15),	/* use BL_CUR_mA(I) 0 <= I <= 30 mA */
+	.l1_daylight_max = ADP8870_BL_CUR_mA(20),	/* use BL_CUR_mA(I) 0 <= I <= 30 mA */
 	.l1_daylight_dim = ADP8870_BL_CUR_mA(0),	/* typ = 0, use BL_CUR_mA(I) 0 <= I <= 30 mA */
-	.l2_bright_max = ADP8870_BL_CUR_mA(12),		/* use BL_CUR_mA(I) 0 <= I <= 30 mA */
+	.l2_bright_max = ADP8870_BL_CUR_mA(14),		/* use BL_CUR_mA(I) 0 <= I <= 30 mA */
 	.l2_bright_dim = ADP8870_BL_CUR_mA(0),		/* typ = 0, use BL_CUR_mA(I) 0 <= I <= 30 mA */
-	.l3_office_max = ADP8870_BL_CUR_mA(7),		/* use BL_CUR_mA(I) 0 <= I <= 30 mA */
+	.l3_office_max = ADP8870_BL_CUR_mA(6),		/* use BL_CUR_mA(I) 0 <= I <= 30 mA */
 	.l3_office_dim = ADP8870_BL_CUR_mA(0),		/* typ = 0, use BL_CUR_mA(I) 0 <= I <= 30 mA */
-	.l4_indoor_max = ADP8870_BL_CUR_mA(5),		/* use BL_CUR_mA(I) 0 <= I <= 30 mA */
+	.l4_indoor_max = ADP8870_BL_CUR_mA(3),		/* use BL_CUR_mA(I) 0 <= I <= 30 mA */
 	.l4_indor_dim = ADP8870_BL_CUR_mA(0),		/* typ = 0, use BL_CUR_mA(I) 0 <= I <= 30 mA */
 	.l5_dark_max = ADP8870_BL_CUR_mA(2),		/* use BL_CUR_mA(I) 0 <= I <= 30 mA */
 	.l5_dark_dim = ADP8870_BL_CUR_mA(0),		/* typ = 0, use BL_CUR_mA(I) 0 <= I <= 30 mA */
 
-	.l2_trip = ADP8870_L2_COMP_CURR_uA(800),	/* use L2_COMP_CURR_uA(I) 0 <= I <= 1106 uA */
-	.l2_hyst = ADP8870_L2_COMP_CURR_uA(100),	/* use L2_COMP_CURR_uA(I) 0 <= I <= 1106 uA */
-	.l3_trip = ADP8870_L3_COMP_CURR_uA(400),	/* use L3_COMP_CURR_uA(I) 0 <= I <= 551 uA */
-	.l3_hyst = ADP8870_L3_COMP_CURR_uA(60),		/* use L3_COMP_CURR_uA(I) 0 <= I <= 551 uA */
-	.l4_trip = ADP8870_L4_COMP_CURR_uA(200),	/* use L4_COMP_CURR_uA(I) 0 <= I <= 275 uA */
-	.l4_hyst = ADP8870_L4_COMP_CURR_uA(40),		/* use L4_COMP_CURR_uA(I) 0 <= I <= 275 uA */
-	.l5_trip = ADP8870_L5_COMP_CURR_uA(80),		/* use L5_COMP_CURR_uA(I) 0 <= I <= 138 uA */
-	.l5_hyst = ADP8870_L5_COMP_CURR_uA(20),		/* use L6_COMP_CURR_uA(I) 0 <= I <= 138 uA */
+	.l2_trip = ADP8870_L2_COMP_CURR_uA(710),	/* use L2_COMP_CURR_uA(I) 0 <= I <= 1106 uA */
+	.l2_hyst = ADP8870_L2_COMP_CURR_uA(73),		/* use L2_COMP_CURR_uA(I) 0 <= I <= 1106 uA */
+	.l3_trip = ADP8870_L3_COMP_CURR_uA(389),	/* use L3_COMP_CURR_uA(I) 0 <= I <= 551 uA */
+	.l3_hyst = ADP8870_L3_COMP_CURR_uA(54),		/* use L3_COMP_CURR_uA(I) 0 <= I <= 551 uA */
+	.l4_trip = ADP8870_L4_COMP_CURR_uA(167),	/* use L4_COMP_CURR_uA(I) 0 <= I <= 275 uA */
+	.l4_hyst = ADP8870_L4_COMP_CURR_uA(16),		/* use L4_COMP_CURR_uA(I) 0 <= I <= 275 uA */
+	.l5_trip = ADP8870_L5_COMP_CURR_uA(43),		/* use L5_COMP_CURR_uA(I) 0 <= I <= 138 uA */
+	.l5_hyst = ADP8870_L5_COMP_CURR_uA(11),		/* use L6_COMP_CURR_uA(I) 0 <= I <= 138 uA */
 
 	.leds = adp8870_leds,
 	.num_leds = ARRAY_SIZE(adp8870_leds),
