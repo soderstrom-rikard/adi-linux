@@ -12,6 +12,7 @@
 #include <linux/serial_core.h>
 #include <mach/anomaly.h>
 #include <mach/bfin_serial.h>
+#include <linux/spinlock.h>
 
 #if defined(CONFIG_BFIN_UART0_CTSRTS) || \
     defined(CONFIG_BFIN_UART1_CTSRTS) || \
@@ -37,6 +38,7 @@ struct bfin_serial_port {
 	struct circ_buf rx_dma_buf;
 	struct timer_list rx_dma_timer;
 	int rx_dma_nrows;
+	spinlock_t rx_lock;
 	unsigned int tx_dma_channel;
 	unsigned int rx_dma_channel;
 	struct work_struct tx_dma_workqueue;

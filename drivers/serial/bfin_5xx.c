@@ -365,10 +365,8 @@ static irqreturn_t bfin_serial_rx_int(int irq, void *dev_id)
 {
 	struct bfin_serial_port *uart = dev_id;
 
-	spin_lock(&uart->port.lock);
 	while (UART_GET_LSR(uart) & DR)
 		bfin_serial_rx_chars(uart);
-	spin_unlock(&uart->port.lock);
 
 	return IRQ_HANDLED;
 }
@@ -487,7 +485,7 @@ void bfin_serial_rx_dma_timeout(struct bfin_serial_port *uart)
 
 	dma_disable_irq(uart->tx_dma_channel);
 	dma_disable_irq(uart->rx_dma_channel);
-	spin_lock_bh(&uart->port.lock);
+	spin_lock_bh(&uart->rx_lock);
 
 	/* 2D DMA RX buffer ring is used. Because curr_y_count and
 	 * curr_x_count can't be read as an atomic operation,
@@ -518,7 +516,7 @@ void bfin_serial_rx_dma_timeout(struct bfin_serial_port *uart)
 		uart->rx_dma_buf.tail = uart->rx_dma_buf.head;
 	}
 
-	spin_unlock_bh(&uart->port.lock);
+	spin_unlock_bh(&uart->rx_lock);
 	dma_enable_irq(uart->tx_dma_channel);
 	dma_enable_irq(uart->rx_dma_channel);
 
@@ -566,7 +564,7 @@ static irqreturn_t bfin_serial_dma_rx_int(int irq, void *dev_id)
 	unsigned short irqstat;
 	int x_pos, pos;
 
-	spin_lock(&uart->port.lock);
+	spin_lock(&uart->rx_lock);
 	irqstat = get_dma_curr_irqstat(uart->rx_dma_channel);
 	clear_dma_irqstat(uart->rx_dma_channel);
 
@@ -584,7 +582,7 @@ static irqreturn_t bfin_serial_dma_rx_int(int irq, void *dev_id)
 		uart->rx_dma_buf.tail = uart->rx_dma_buf.head;
 	}
 
-	spin_unlock(&uart->port.lock);
+	spin_unlock(&uart->rx_lock);
 
 	return IRQ_HANDLED;
 }
@@ -1333,6 +1331,7 @@ static int bfin_serial_probe(struct platform_device *pdev)
 		}
 
 #ifdef CONFIG_SERIAL_BFIN_DMA
+		spin_lock_init(&uart->rx_lock);
 		uart->tx_done	    = 1;
 		uart->tx_count	    = 0;
 
