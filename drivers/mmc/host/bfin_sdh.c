@@ -347,13 +347,14 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	spin_lock_irqsave(&host->lock, flags);
 	if (ios->clock) {
-		unsigned long clk_div, sys_clk, ios_clk;
+		unsigned long  sys_clk, ios_clk;
+		unsigned char clk_div;
 		ios_clk = 2 * ios->clock;
 		sys_clk = get_sclk();
 		clk_div = sys_clk / ios_clk;
 		if (sys_clk % ios_clk == 0)
 			clk_div -= 1;
-		clk_div = max_t(unsigned long, clk_div, 0xFF);
+		clk_div = min_t(unsigned char, clk_div, 0xFF);
 		clk_ctl |= clk_div;
 		clk_ctl |= CLK_E;
 		host->clk_div = clk_div;
