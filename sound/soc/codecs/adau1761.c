@@ -14,6 +14,8 @@
 #include <linux/i2c.h>
 #include <linux/workqueue.h>
 #include <linux/platform_device.h>
+#include <linux/sigma.h>
+#include <linux/sysfs.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -22,10 +24,10 @@
 #include <sound/initval.h>
 
 #include "adau1761.h"
-#include "adau1761_fw.h"
 
 #define AUDIO_NAME "adau1761"
 #define ADAU1761_VERSION "0.20"
+#define ADAU1761_FIRMWARE "adau1761.bin"
 
 #define CAP_MIC  1
 #define CAP_LINE 2
@@ -569,44 +571,18 @@ static int adau1761_pll_enable(struct snd_soc_codec *codec, int enable)
 
 }
 
-static void adau1761_setprogram(struct snd_soc_codec *codec, int mode)
+static int adau1761_setprogram(struct snd_soc_codec *codec)
 {
-	int i = 0;
-	unsigned int address = 0;
+	int ret = 0;
 
-	/* Set dsp enable bit before programming */
-	if (0 < adau1761_mode_programs[mode].size) {
-		adau1761_write_reg_byte(codec, ADAU_DSP_ENA, 0x01);
-		adau1761_read_reg_byte(codec, ADAU_DSP_ENA);
+	adau1761_write_reg_byte(codec, ADAU_DSP_ENA, 0x01);
+	adau1761_read_reg_byte(codec, ADAU_DSP_ENA);
+	/* don't waste time writing program for adau1361 */
+	if (adau1761_read_reg_cache(codec, ADAU_DSP_ENA) != 0x01)
+		return -ENODEV;
+	ret = process_sigma_firmware(codec->control_data, ADAU1761_FIRMWARE);
 
-		/* don't waste time writing program for adau1361 */
-		if (0x01 != adau1761_read_reg_cache(codec, ADAU_DSP_ENA))
-			return;
-	}
-
-	/* Load Program - program memory is 5Bytes wide*/
-	if (0 < adau1761_mode_programs[mode].size) {
-		/* Write one address at a time */
-		address = ADAU_PROGRAM;
-		for (i = 0; i < adau1761_mode_programs[mode].size; i += 5) {
-			adau1761_write_reg_block(codec, address++, 5,
-				adau1761_mode_programs[mode].data+i);
-		}
-	}
-
-	/* Load Parameters */
-	if (0 < adau1761_mode_params[mode].size) {
-
-		/* Write one address at a time */
-		address = ADAU_PARAMS;
-		for (i = 0; i < adau1761_mode_params[mode].size; i += 4) {
-			adau1761_write_reg_block(codec, address++, 4,
-				adau1761_mode_params[mode].data+i);
-		}
-	}
-	/* Set dsp Run bit */
-	if (0 < adau1761_mode_programs[mode].size)
-		adau1761_write_reg_byte(codec, ADAU_DSP_RUN, 0x01);
+	return ret;
 }
 
 static int adau1761_reg_init(struct snd_soc_codec *codec)
@@ -631,9 +607,8 @@ static int adau1761_reg_init(struct snd_soc_codec *codec)
 		regdata = registers[i];
 		adau1761_write_reg_byte(codec, regdata.regaddress, regdata.regvalue);
 	}
-
 	/* Load default program */
-	adau1761_setprogram(codec, mode);
+	adau1761_setprogram(codec);
 	adau1761_write_reg_byte(codec, ADAU_SPRTCT1, 0x00);
 	/* unmute outputs */
 	adau1761_write_reg_byte(codec, ADAU_PLBHPVL, DAPM_HP_DEF);
@@ -906,11 +881,7 @@ static void adau1761_resume_wq_handler(struct work_struct *work)
 	adau1761_pll_init(codec);
 	adau1761_pll_enable(codec, 1);
 	/* Load program */
-#ifdef ADAU1761_DIG_MIC
-	adau1761_setprogram(codec, 1);
-#else
-	adau1761_setprogram(codec, 0);
-#endif
+	adau1761_setprogram(codec);
 
 	/* sync reg_cache with the hardware */
 	for (i = ADAU_FIRSTREG; i <= ADAU_LASTREG; ++i) {
@@ -999,6 +970,22 @@ static void adau1761_unregister(struct adau1761_priv *adau1761)
 	adau1761_codec = NULL;
 }
 
+static ssize_t adau1371_dsp_load(struct device *dev,
+				  struct device_attribute *attr,
+				  const char *buf, size_t count)
+{
+	struct snd_soc_device *socdev = dev_get_drvdata(dev);
+	struct snd_soc_codec *codec = socdev->card->codec;
+	int ret = 0;
+
+	ret = adau1761_setprogram(codec);
+	if (ret)
+		return ret;
+	else
+		return count;
+}
+static DEVICE_ATTR(dsp, 0644, NULL, adau1371_dsp_load);
+
 static int adau1761_probe(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
@@ -1021,6 +1008,10 @@ static int adau1761_probe(struct platform_device *pdev)
 	ret = adau1761_reg_init(codec);
 	if (ret < 0)
 		dev_err(codec->dev, "failed to initialize\n");
+
+	ret = device_create_file(codec->dev, &dev_attr_dsp);
+	if (ret)
+		dev_err(socdev->dev, "device_create_file() failed\n");
 	/* register pcms */
 	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
 	if (ret < 0) {
@@ -1043,7 +1034,7 @@ card_err:
 	snd_soc_free_pcms(socdev);
 	snd_soc_dapm_free(socdev);
 pcm_err:
-
+	device_remove_file(codec->dev, &dev_attr_dsp);
 	return ret;
 }
 
