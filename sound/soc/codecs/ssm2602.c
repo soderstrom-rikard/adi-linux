@@ -98,7 +98,6 @@ static int ssm2602_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
 {
 	u8 data[2];
-	u8 count = 0;
 
 	/* data is
 	 *   D15..D9 ssm2602 register offset
@@ -108,14 +107,10 @@ static int ssm2602_write(struct snd_soc_codec *codec, unsigned int reg,
 	data[1] = value & 0x00ff;
 
 	ssm2602_write_reg_cache(codec, reg, value);
-	/* If failed, retry it up to 100 times */
-	for (count = 0; count < 100; count++)
-		if (codec->hw_write(codec->control_data, data, 2) == 2)
-			break;
-	if (count == 100)
-		return -EIO;
-	else
+	if (codec->hw_write(codec->control_data, data, 2) == 2)
 		return 0;
+	else
+		return -EIO;
 }
 
 #define ssm2602_reset(c)	ssm2602_write(c, SSM2602_RESET, 0)
