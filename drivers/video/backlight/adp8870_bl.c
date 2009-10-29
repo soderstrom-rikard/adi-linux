@@ -113,6 +113,7 @@ struct adp8870_bl {
 	struct mutex lock;
 	unsigned long cached_daylight_max;
 	int id;
+	int revid;
 	int current_brightness;
 };
 
@@ -448,7 +449,12 @@ static int adp8870_bl_setup(struct backlight_device *bl)
 	ret |= adp8870_write(client, ADP8870_BLFR, FADE_VAL(pdata->bl_fade_in,
 			pdata->bl_fade_out));
 
-	ret |= adp8870_set_bits(client, ADP8870_MDCR, BLEN | DIM_EN | NSTBY);
+	/*
+	 * ADP8870 Rev0 requires GDWN_DIS bit set
+	 */
+
+	ret |= adp8870_set_bits(client, ADP8870_MDCR, BLEN | DIM_EN | NSTBY |
+			(data->revid == 0 ? GDWN_DIS : 0));
 
 	return ret;
 }
@@ -748,7 +754,6 @@ static int __devinit adp8870_probe(struct i2c_client *client,
 	struct adp8870_bl *data;
 	struct adp8870_backlight_platform_data *pdata =
 		client->dev.platform_data;
-	unsigned int revid;
 	uint8_t reg_val;
 	int ret;
 
@@ -772,12 +777,11 @@ static int __devinit adp8870_probe(struct i2c_client *client,
 		return -ENODEV;
 	}
 
-	revid = ADP8870_DEVID(reg_val);
-
 	data = kzalloc(sizeof(*data), GFP_KERNEL);
 	if (data == NULL)
 		return -ENOMEM;
 
+	data->revid = ADP8870_DEVID(reg_val);
 	data->client = client;
 	data->pdata = pdata;
 	data->id = id->driver_data;
@@ -816,7 +820,7 @@ static int __devinit adp8870_probe(struct i2c_client *client,
 
 	backlight_update_status(bl);
 
-	dev_info(&client->dev, "Rev.%d Backlight\n", revid);
+	dev_info(&client->dev, "Rev.%d Backlight\n", data->revid);
 
 	if (pdata->num_leds)
 		adp8870_led_probe(client);
