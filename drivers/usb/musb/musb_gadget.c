@@ -307,10 +307,16 @@ static void txstate(struct musb *musb, struct musb_request *req)
 		{
 			size_t request_size;
 
-			/* setup DMA, then program endpoint CSR */
+			/* setup DMA, then program endpoint CSR,
+			 * currently, don't use mode1 on Blackfin.
+			 */
+#if !defined(CONFIG_BLACKFIN) || defined(USE_MODE1)
 			request_size = min((size_t)request->length,
-						musb_ep->dma->max_len);
-			if (request_size < musb_ep->packet_sz)
+					musb_ep->dma->max_len);
+#else
+			request_size = fifo_count;
+#endif
+			if (request_size <= musb_ep->packet_sz)
 				musb_ep->dma->desired_mode = 0;
 			else
 				musb_ep->dma->desired_mode = 1;
