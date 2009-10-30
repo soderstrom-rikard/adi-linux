@@ -234,7 +234,7 @@ struct usb_ep * __init usb_ep_autoconfig (
 	struct usb_endpoint_descriptor	*desc
 )
 {
-	struct usb_ep	*ep;
+	struct usb_ep	*ep = NULL;
 	u8		type;
 
 	type = desc->bmAttributes & USB_ENDPOINT_XFERTYPE_MASK;
@@ -284,6 +284,11 @@ struct usb_ep * __init usb_ep_autoconfig (
 				ep = find_ep (gadget, "ep5in");
 			else
 				ep = find_ep (gadget, "ep6out");
+		} else if (USB_ENDPOINT_XFER_INT == type) {
+			if (USB_DIR_IN & desc->bEndpointAddress)
+				ep = find_ep(gadget, "ep1in");
+			else
+				ep = find_ep(gadget, "ep2out");
 		}
 		if (ep && ep_matches (gadget, ep, desc))
 			return ep;
@@ -297,7 +302,7 @@ struct usb_ep * __init usb_ep_autoconfig (
 	}
 
 	/* Fail */
-	return NULL;
+	return ep;
 }
 
 /**
