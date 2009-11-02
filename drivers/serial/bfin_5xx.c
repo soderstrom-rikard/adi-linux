@@ -483,7 +483,6 @@ void bfin_serial_rx_dma_timeout(struct bfin_serial_port *uart)
 {
 	int x_pos, pos;
 
-	dma_disable_irq(uart->tx_dma_channel);
 	dma_disable_irq(uart->rx_dma_channel);
 	spin_lock_bh(&uart->rx_lock);
 
@@ -517,7 +516,6 @@ void bfin_serial_rx_dma_timeout(struct bfin_serial_port *uart)
 	}
 
 	spin_unlock_bh(&uart->rx_lock);
-	dma_enable_irq(uart->tx_dma_channel);
 	dma_enable_irq(uart->rx_dma_channel);
 
 	mod_timer(&(uart->rx_dma_timer), jiffies + DMA_RX_FLUSH_JIFFIES);
