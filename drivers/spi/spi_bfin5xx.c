@@ -999,6 +999,11 @@ static int bfin_spi_unlock_bus(struct spi_device *spi)
 	if (cs == drv_data->locked) {
 		drv_data->locked = 0;
 		ret = 0;
+
+		/* kick off transfer of all pending messeages */
+		if (drv_data->running && !drv_data->busy &&
+			!list_empty(&drv_data->queue))
+			queue_work(drv_data->workqueue, &drv_data->pump_messages);
 	} else
 		ret = -ENOLCK;
 	spin_unlock_irqrestore(&drv_data->lock, flags);
