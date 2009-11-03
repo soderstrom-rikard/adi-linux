@@ -321,7 +321,7 @@ static void bfin_demux_error_irq(unsigned int int_err_irq,
 		irq = IRQ_SPORT1_ERROR;
 	else if (bfin_read_PPI_STATUS() & PPI_ERR_MASK)
 		irq = IRQ_PPI_ERROR;
-	else if (bfin_read_CAN_GIF() & CAN_ERR_MASK)
+	else if (bfin_read_CAN_GIF() & BFIN_CAN_ERR_MASK)
 		irq = IRQ_CAN_ERROR;
 	else if (bfin_read_SPI_STAT() & SPI_ERR_MASK)
 		irq = IRQ_SPI_ERROR;
@@ -355,7 +355,7 @@ static void bfin_demux_error_irq(unsigned int int_err_irq,
 				break;
 
 			case IRQ_CAN_ERROR:
-				bfin_write_CAN_GIS(CAN_ERR_MASK);
+				bfin_write_CAN_GIS(BFIN_CAN_ERR_MASK);
 				break;
 
 			case IRQ_SPI_ERROR:
