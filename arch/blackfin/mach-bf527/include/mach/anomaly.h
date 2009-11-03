@@ -204,6 +204,10 @@
 #define ANOMALY_05000467 (1)
 /* PLL Latches Incorrect Settings During Reset */
 #define ANOMALY_05000469 (1)
+/* Interrupted 32-Bit SPORT Data Register Access Results In Underflow */
+#define ANOMALY_05000473 (1)
+/* TESTSET Instruction Cannot Be Interrupted */
+#define ANOMALY_05000477 (1)
 
 /* Anomalies that don't exist on this proc */
 #define ANOMALY_05000099 (0)
@@ -255,5 +259,6 @@
 #define ANOMALY_05000447 (0)
 #define ANOMALY_05000448 (0)
 #define ANOMALY_05000474 (0)
+#define ANOMALY_05000475 (0)
 
 #endif

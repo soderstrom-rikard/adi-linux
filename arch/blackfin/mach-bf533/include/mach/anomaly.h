@@ -206,6 +206,10 @@
 #define ANOMALY_05000443 (1)
 /* False Hardware Error when RETI Points to Invalid Memory */
 #define ANOMALY_05000461 (1)
+/* Interrupted 32-Bit SPORT Data Register Access Results In Underflow */
+#define ANOMALY_05000473 (1)
+/* TESTSET Instruction Cannot Be Interrupted */
+#define ANOMALY_05000477 (1)
 
 /* These anomalies have been "phased" out of analog.com anomaly sheets and are
  * here to show running on older silicon just isn't feasible.
@@ -354,5 +358,6 @@
 #define ANOMALY_05000465 (0)
 #define ANOMALY_05000467 (0)
 #define ANOMALY_05000474 (0)
+#define ANOMALY_05000475 (0)
 
 #endif

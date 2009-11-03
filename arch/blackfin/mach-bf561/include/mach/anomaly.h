@@ -288,6 +288,12 @@
 #define ANOMALY_05000443 (1)
 /* False Hardware Error when RETI Points to Invalid Memory */
 #define ANOMALY_05000461 (1)
+/* Interrupted 32-Bit SPORT Data Register Access Results In Underflow */
+#define ANOMALY_05000473 (1)
+/* Core Hang With L2/L3 Configured in Writeback Cache Mode */
+#define ANOMALY_05000475 (__SILICON_REVISION__ < 4)
+/* TESTSET Instruction Cannot Be Interrupted */
+#define ANOMALY_05000477 (1)
 
 /* Anomalies that don't exist on this proc */
 #define ANOMALY_05000119 (0)
