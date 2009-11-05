@@ -51,83 +51,64 @@ struct can_obj {
 	u16 dummy4;
 };
 
-#define CAN_ID_RTR_BIT	0x4000
-#define CAN_ID_EXT_BIT	0x2000
-#define	CAN_AME		0x8000	/* Acceptance Mask Enable		*/
-
 /* CAN object definition */
 #define CAN_OBJ  \
 	((struct can_obj *)CAN_MB00_DATA0)
 
 /*
+ * macros to read/write can registers
+ */
+#define CAN_WRITE_REG(val, addr) \
+	writew((val), (u16 *)(addr))
+
+#define CAN_READ_REG(addr) \
+	readw((u16 *)(addr))
+/*
+ * macros to read/write data length code
+ */
+#define CAN_WRITE_DLC(channel, length) \
+	(CAN_OBJ[channel].dlc = (length))
+
+#define CAN_READ_DLC(channel) \
+	(CAN_READ_REG(&CAN_OBJ[channel].dlc))
+
+/*
  * CAN_READ_OID(obj) is a macro to read the CAN-ID of the specified object.
  * It delivers the value as 16 bit from the standard ID registers.
  */
-#define CAN_READ_OID(bChannel) \
-	((CAN_OBJ[bChannel].id1 & 0x1ffc) >> 2)
+#define CAN_READ_OID(channel) \
+	((CAN_READ_REG(&CAN_OBJ[channel].id1) & 0x1ffc) >> 2)
 
-#define CAN_READ_XOID(bChannel) \
-	(((CAN_OBJ[bChannel].id1 & 0x1fff) << 16) \
-	 + ((CAN_OBJ[bChannel].id0)))
+#define CAN_READ_XOID(channel) \
+	(((CAN_READ_REG(&CAN_OBJ[channel].id1) & 0x1fff) << 16) \
+	 + ((CAN_READ_REG(&CAN_OBJ[channel].id0))))
 
 /*
  * CAN_WRITE_OID(obj, id) is a macro to write the CAN-ID
  * of the specified object with identifier id.
  * CAN_WRITE_XOID(obj, id) is a macro to write the extended CAN-ID
  */
-#define CAN_WRITE_OID(bChannel, Id) \
-	(CAN_OBJ[bChannel].id1 = ((Id) << 2) | CAN_AME)
+#define CAN_WRITE_OID(channel, id) \
+	CAN_WRITE_REG(((id) << 2) | AME, &CAN_OBJ[channel].id1)
 
-#define CAN_WRITE_XOID(bChannel, Id)  \
+#define CAN_WRITE_XOID(channel, id)  \
 	do { \
-		CAN_OBJ[bChannel].id0 = (Id); \
-		CAN_OBJ[bChannel].id1 = (((Id) & 0x1FFF0000) >> 16) \
-		+ CAN_ID_EXT_BIT + CAN_AME; \
+		CAN_WRITE_REG((id), &CAN_OBJ[channel].id0); \
+		CAN_WRITE_REG((((id) & 0x1FFF0000) >> 16) + IDE + AME, &CAN_OBJ[channel].id1); \
 	} while (0)
 
 /*
  * CAN_WRITE_OID_RTR(obj, id) is a macro to write the CAN-ID
  * of the specified object with identifier id and set the RTR Bit.
  */
-#define CAN_WRITE_OID_RTR(bChannel, Id) \
-	(CAN_OBJ[bChannel].id1 = ((Id) << 2) | CAN_ID_RTR_BIT | CAN_AME)
+#define CAN_WRITE_OID_RTR(channel, id) \
+	CAN_WRITE_REG(((id) << 2) | RTR | AME, &CAN_OBJ[channel].id1)
 
-#define CAN_WRITE_XOID_RTR(bChannel, Id)  \
+#define CAN_WRITE_XOID_RTR(channel, id)  \
 	do { \
-		CAN_OBJ[bChannel].id0 = (Id); \
-		CAN_OBJ[bChannel].id1 = (((Id) & 0x1FFF0000) >> 16) \
-		+ CAN_ID_EXT_BIT + CAN_ID_RTR_BIT; \
+		CAN_WRITE_REG((id), &CAN_OBJ[channel].id0); \
+		CAN_WRITE_REG((((id) & 0x1FFF0000) >> 16) + IDE + RTR + AME, &CAN_OBJ[channel].id1); \
 	} while (0)
-
-/*
- * CAN_WRITE_CTRL(obj, code, length) is a macro to write to the
- * specified objects control register
- *
- * Writes 2 byte, TIME STAMP is overwritten with 0.
- */
-#define CAN_WRITE_CTRL(bChannel, length) \
-	(CAN_OBJ[bChannel].dlc = (length))
-
-#define CAN_WRITE_REG(val, addr) \
-	writew((val), (u16 *)(addr))
-
-#define CAN_READ_REG(addr) \
-	readw((u16 *)(addr))
-
-/*
- * CAN Bit Timing definitions
- */
-
-#define CAN_BRP_100K		49
-#define CAN_TSEG_100K		0x007f
-#define CAN_BRP_125K		49
-#define CAN_TSEG_125K		0x002f
-#define CAN_BRP_250K		24
-#define CAN_TSEG_250K		0x002f
-#define CAN_BRP_500K		24
-#define CAN_TSEG_500K		0x0007
-#define CAN_BRP_1000K		4
-#define CAN_TSEG_1000K		0x007f
 
 /*
  * bfin can private data

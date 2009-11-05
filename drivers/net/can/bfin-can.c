@@ -43,15 +43,6 @@ static struct can_bittiming_const bfin_can_bittiming_const = {
 	.brp_inc = 1,
 };
 
-static struct can_bittiming default_bittiming = {
-	.brp = 50,
-	.sjw = 1,
-	.prop_seg = 0,
-	.phase_seg1 = 16,
-	.phase_seg2 = 3,
-	.bitrate = 125000,
-};
-
 static int bfin_can_set_bittiming(struct net_device *dev)
 {
 	struct bfin_can_priv *priv = netdev_priv(dev);
@@ -59,7 +50,8 @@ static int bfin_can_set_bittiming(struct net_device *dev)
 	u16 clk, timing;
 
 	clk = bt->brp - 1;
-	timing = ((bt->sjw - 1) << 8) | (bt->prop_seg + bt->phase_seg1 - 1) | ((bt->phase_seg2 - 1) << 4);
+	timing = ((bt->sjw - 1) << 8) | (bt->prop_seg + bt->phase_seg1 - 1) |
+		((bt->phase_seg2 - 1) << 4);
 
 	/*
 	 * If the SAM bit is set, the input signal is oversampled three times at the SCLK rate.
@@ -68,12 +60,16 @@ static int bfin_can_set_bittiming(struct net_device *dev)
 	if (priv->can.ctrlmode & CAN_CTRLMODE_3_SAMPLES)
 		timing |= SAM;
 
-	dev_info(dev->dev.parent,
-			"setting CAN_CLOCK=0x%02x CAN_TIMING=0x%02x\n", clk, timing);
-
 	CAN_WRITE_REG(clk, CAN_CLOCK);
 	CAN_WRITE_REG(timing, CAN_TIMING);
 
+	dev_info(dev->dev.parent,
+			"setting can bitrate:%d brp:%d prop_seg:%d phase_seg1:%d phase_seg2:%d\n",
+			bt->bitrate, bt->brp, bt->prop_seg, bt->phase_seg1, bt->phase_seg2);
+
+	dev_dbg(dev->dev.parent,
+			"CAN_CLOCK:0x%02x CAN_TMING: 0x%02x\n",
+			CAN_READ_REG(CAN_CLOCK), CAN_READ_REG(CAN_TIMING));
 	return 0;
 }
 
@@ -116,7 +112,7 @@ static void set_reset_mode(struct net_device *dev)
 		CAN_WRITE_OID(RECEIVE_STD_OBJ + i, 0);
 		/* .id0 is unused with standard frames, but anyway set to 0 */
 		CAN_OBJ[RECEIVE_STD_OBJ + i].id0 = 0;
-		CAN_WRITE_CTRL(RECEIVE_STD_OBJ + i, 0);
+		CAN_WRITE_DLC(RECEIVE_STD_OBJ + i, 0);
 		CAN_MASK[RECEIVE_STD_OBJ + i].amh = 0x1FFF;
 		CAN_MASK[RECEIVE_STD_OBJ + i].aml = 0xFFFF;
 	}
@@ -124,7 +120,7 @@ static void set_reset_mode(struct net_device *dev)
 	/* RECEIVE_EXT_OBJ */
 	for (i = 0; i < 2; i++) {
 		CAN_WRITE_XOID(RECEIVE_EXT_OBJ + i, 0);
-		CAN_WRITE_CTRL(RECEIVE_EXT_OBJ + i, 0);
+		CAN_WRITE_DLC(RECEIVE_EXT_OBJ + i, 0);
 		CAN_MASK[RECEIVE_EXT_OBJ + i].amh = 0x1FFF;
 		CAN_MASK[RECEIVE_EXT_OBJ + i].aml = 0xFFFF;
 	}
@@ -163,6 +159,33 @@ static void set_normal_mode(struct net_device *dev)
 
 	CAN_WRITE_REG(EPIM | BOIM | RMLIM, CAN_GIM);
 	SSYNC();
+}
+
+/*
+ * read/write message
+ */
+inline void bfin_can_write_msg(int channel, u8 *data, int dlc)
+{
+	int i;
+	u16 val;
+
+	for (i = 0; i < 8; i += 2) {
+		val = ((7 - i) < dlc ? (data[7 - i]) : 0) +
+			((6 - i) < dlc ? (data[6 - i] << 8) : 0);
+		CAN_WRITE_REG(val, &CAN_OBJ[channel].msg[i]);
+	}
+}
+
+inline void bfin_can_read_msg(int channel, u8 *data, int dlc)
+{
+	int i;
+	u16 val;
+
+	for (i = 0; i < 8; i += 2) {
+		val = CAN_READ_REG(&CAN_OBJ[channel].msg[i]);
+		data[7 - i] = (7 - i) < dlc ? val : 0;
+		data[6 - i] = (6 - i) < dlc ? (val >> 8) : 0;
+	}
 }
 
 static void bfin_can_start(struct net_device *dev)
@@ -209,7 +232,6 @@ static int bfin_can_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	struct can_frame *cf = (struct can_frame *)skb->data;
 	uint8_t dlc;
 	canid_t id;
-	int i;
 
 	dev_dbg(dev->dev.parent, "%s enter\n", __func__);
 
@@ -231,13 +253,9 @@ static int bfin_can_start_xmit(struct sk_buff *skb, struct net_device *dev)
 			CAN_WRITE_OID(TRANSMIT_OBJ, id);
 	}
 
-	for (i = 0; i < 8; i += 2) {
-		CAN_OBJ[TRANSMIT_OBJ].msg[i] =
-			((7 - i) < dlc ? (cf->data[7 - i]) : 0) +
-			((6 - i) < dlc ? (cf->data[6 - i]) : 0);
-	}
+	bfin_can_write_msg(TRANSMIT_OBJ, cf->data, dlc);
 
-	CAN_WRITE_CTRL(TRANSMIT_OBJ, dlc);
+	CAN_WRITE_DLC(TRANSMIT_OBJ, dlc);
 
 	stats->tx_bytes += dlc;
 	dev->trans_start = jiffies;
@@ -266,7 +284,6 @@ static void bfin_can_rx(struct net_device *dev, uint16_t isrc)
 	struct sk_buff *skb;
 	canid_t id;
 	uint8_t dlc;
-	int i;
 	int obj;
 
 	dev_dbg(dev->dev.parent, "%s enter\n", __func__);
@@ -288,19 +305,16 @@ static void bfin_can_rx(struct net_device *dev, uint16_t isrc)
 		id = CAN_READ_OID(RECEIVE_STD_OBJ);
 		obj = RECEIVE_STD_OBJ;
 	}
-	if (CAN_OBJ[obj].id1 & CAN_ID_RTR_BIT)
+	if (CAN_OBJ[obj].id1 & RTR)
 		id |= CAN_RTR_FLAG;
-	dlc = CAN_OBJ[obj].dlc;
+	dlc = CAN_READ_DLC(obj);
 
 	cf = (struct can_frame *)skb_put(skb, sizeof(struct can_frame));
 	memset(cf, 0, sizeof(struct can_frame));
 	cf->can_id = id;
 	cf->can_dlc = dlc;
 
-	for (i = 0; i < 8; i += 2) {
-		cf->data[7 - i] = (7 - i) < dlc ? CAN_OBJ[obj].msg[i] : 0;
-		cf->data[6 - i] = (6 - i) < dlc ? (CAN_OBJ[obj].msg[i] >> 8) : 0;
-	}
+	bfin_can_read_msg(obj, cf->data, dlc);
 
 	netif_rx(skb);
 
@@ -478,7 +492,6 @@ struct net_device *alloc_bfin_candev(int sizeof_priv)
 	priv->can.bittiming_const = &bfin_can_bittiming_const;
 	priv->can.do_set_bittiming = bfin_can_set_bittiming;
 	priv->can.do_set_mode = bfin_can_set_mode;
-	priv->can.bittiming = default_bittiming;
 
 	return dev;
 }
@@ -585,8 +598,9 @@ static int bfin_can_probe(struct platform_device *pdev)
 		goto exit_err_irq_free;
 	}
 
-	dev_info(&pdev->dev, "%s device registered (reg_base=%p, rx_irq=%d, tx_irq=%d, err_irq=%d)\n",
-			DRV_NAME, (void *)res_mem->start, priv->rx_irq, priv->tx_irq, priv->err_irq);
+	dev_info(&pdev->dev, "%s device registered (reg_base=%p, rx_irq=%d, tx_irq=%d, err_irq=%d, sclk=%d)\n",
+			DRV_NAME, (void *)res_mem->start, priv->rx_irq, priv->tx_irq, priv->err_irq,
+			priv->can.clock.freq);
 	return 0;
 
 exit_err_irq_free:
