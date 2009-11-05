@@ -650,6 +650,6 @@ static void __exit bfin_can_exit(void)
 module_exit(bfin_can_exit);
 
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
-MODULE_LICENSE("Dual BSD/GPL");
+MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION(DRV_NAME "CAN netdevice driver");
 
