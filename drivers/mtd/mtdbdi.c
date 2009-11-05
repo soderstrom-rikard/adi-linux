@@ -11,7 +11,7 @@
 
 #include <linux/backing-dev.h>
 #include <linux/mtd/mtd.h>
-#include "internal.h"
+#include <linux/mtd/mtdbdi.h>
 
 /*
  * backing device capabilities for non-mappable devices (such as NAND flash)

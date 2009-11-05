@@ -19,6 +19,7 @@
 #include <linux/mtd/partitions.h>
 #include <linux/mtd/physmap.h>
 #include <linux/mtd/concat.h>
+#include <linux/mtd/mtdbdi.h>
 #include <linux/io.h>
 
 #define MAX_RESOURCES		4
@@ -162,6 +163,7 @@ static int physmap_flash_probe(struct platform_device *dev)
 		}
 		if (info->mtd[i]->get_unmapped_area == NULL)
 			info->mtd[i]->get_unmapped_area = physmap_unmapped_area;
+		info->mtd[i]->backing_dev_info = &mtd_bdi_ro_mappable;
 		info->mtd[i]->owner = THIS_MODULE;
 		info->mtd[i]->dev.parent = &dev->dev;
 	}

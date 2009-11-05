@@ -19,7 +19,7 @@
 #include <linux/proc_fs.h>
 
 #include <linux/mtd/mtd.h>
-#include "internal.h"
+#include <linux/mtd/mtdbdi.h>
 
 #include "mtdcore.h"
 
