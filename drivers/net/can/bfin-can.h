@@ -67,7 +67,7 @@ struct can_obj {
  * macros to read/write data length code
  */
 #define CAN_WRITE_DLC(channel, length) \
-	(CAN_OBJ[channel].dlc = (length))
+	(CAN_WRITE_REG((length), &CAN_OBJ[channel].dlc))
 
 #define CAN_READ_DLC(channel) \
 	(CAN_READ_REG(&CAN_OBJ[channel].dlc))

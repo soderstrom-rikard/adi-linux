@@ -93,8 +93,6 @@ static void set_reset_mode(struct net_device *dev)
 	while (!(CAN_READ_REG(CAN_STATUS) & CCA))
 		;
 
-	bfin_can_set_bittiming(dev);
-
 	/*
 	 * All mailbox configurations are marked as inactive
 	 * by writing to CAN Mailbox Configuration Registers 1 and 2
