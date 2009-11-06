@@ -525,8 +525,8 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 		    (WNR | RESTART | sport_wordsize(cfg->word_len) | DI_EN);
 		xcount = count / word_bytes;
 		ycount = 0;
-		if (xcount > 0x8000) {
-			ycount = xcount >> 15;
+		if ((count / word_bytes) > 0x8000) {
+			ycount = (count / word_bytes) >> 15;
 			xcount = 0x8000;
 			dma_config |= DMA2D;
 		}
@@ -601,8 +601,8 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 		dma_config = (RESTART | sport_wordsize(cfg->word_len) | DI_EN);
 		xcount = count / word_bytes;
 		ycount = 0;
-		if (xcount > 0x8000) {
-			ycount = xcount >> 15;
+		if ((count / word_bytes) > 0x8000) {
+			ycount = (count / word_bytes) >> 15;
 			xcount = 0x8000;
 			dma_config |= DMA2D;
 		}
