@@ -6,8 +6,6 @@
  * Licensed under the GPL-2 or later.
  */
 
-#define DEBUG
-
 #include <linux/crc32.h>
 #include <linux/delay.h>
 #include <linux/firmware.h>
@@ -110,3 +108,4 @@ int process_sigma_firmware(struct i2c_client *client, const char *name)
 
 	return ret;
 }
+EXPORT_SYMBOL(process_sigma_firmware);
