@@ -818,6 +818,44 @@ static struct platform_device bfin_sport3_uart_device = {
 #endif
 #endif
 
+#if defined(CONFIG_CAN_BFIN) || defined(CONFIG_CAN_BFIN_MODULE)
+unsigned short bfin_can_peripherals[] = {
+	P_CAN0_RX, P_CAN0_TX, 0
+};
+
+static struct resource bfin_can_resources[] = {
+	{
+		.start = 0xFFC02A00,
+		.end = 0xFFC02FFF,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_CAN0_RX,
+		.end = IRQ_CAN0_RX,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_CAN0_TX,
+		.end = IRQ_CAN0_TX,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_CAN0_ERROR,
+		.end = IRQ_CAN0_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_can_device = {
+	.name = "bfin_can",
+	.num_resources = ARRAY_SIZE(bfin_can_resources),
+	.resource = bfin_can_resources,
+	.dev = {
+		.platform_data = &bfin_can_peripherals, /* Passed to driver */
+	},
+};
+#endif
+
 #if defined(CONFIG_PATA_BF54X) || defined(CONFIG_PATA_BF54X_MODULE)
 static struct resource bfin_atapi_resources[] = {
 	{
@@ -1334,6 +1372,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #ifdef CONFIG_SERIAL_BFIN_SPORT3_UART
 	&bfin_sport3_uart_device,
 #endif
+#endif
+
+#if defined(CONFIG_CAN_BFIN) || defined(CONFIG_CAN_BFIN_MODULE)
+	&bfin_can_device,
 #endif
 
 #if defined(CONFIG_PATA_BF54X) || defined(CONFIG_PATA_BF54X_MODULE)
