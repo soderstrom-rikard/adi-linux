@@ -34,6 +34,10 @@ static void bfin_reset(void)
 	 * automatically perform a software reset for us when
 	 * it starts executing after the core reset.
 	 */
+	/* force to execute this workaround since some chips can't
+	 * reset normally even though their anomaly lists don't
+	 * include ANOMALY_05000353 and ANOMALY_05000386.
+	 */
 	if (1/* ANOMALY_05000353 || ANOMALY_05000386 */) {
 		/* Initiate System software reset. */
 		bfin_write_SWRST(0x7);
