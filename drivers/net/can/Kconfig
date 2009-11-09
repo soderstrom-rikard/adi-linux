@@ -41,6 +41,9 @@ config CAN_BFIN
 	---help---
 	  Driver for the Analog Devices Blackfin on-chip CAN controllers
 
+	  To compile this driver as a module, choose M here: the
+	  module will be called bfin-can.
+
 config CAN_SJA1000
 	depends on CAN_DEV && HAS_IOMEM
 	tristate "Philips SJA1000"
