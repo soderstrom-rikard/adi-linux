@@ -188,7 +188,9 @@ config SND_SOC_WM9713
 	tristate
 
 config SND_SOC_ADAU1371
-        tristate
+	tristate
+	select SIGMA
 
 config SND_SOC_ADAU1761
-        tristate
+	tristate
+	select SIGMA
