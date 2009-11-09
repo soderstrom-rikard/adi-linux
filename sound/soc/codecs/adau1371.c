@@ -76,6 +76,28 @@ static int adau1371_write(struct snd_soc_codec *codec, unsigned int reg,
 	}
 }
 
+/*
+ * read from the adau1371 register space
+ */
+static int adau1371_read(struct snd_soc_codec *codec, unsigned int reg)
+{
+	u8 addr[1] = {(u8)reg};
+	u8 buf[1] = {0};
+
+	/* write the 1 byte read address */
+	if (codec->hw_write(codec->control_data, addr, 1) != 1) {
+		dev_err(codec->dev, "writing to 0x%x failed.\n", reg);
+		return -EIO;
+	}
+	/* perform the read */
+	if (codec->hw_read(codec->control_data, buf, 1) != 1) {
+		dev_err(codec->dev, "hw_read failed.\n");
+		return -EIO;
+	}
+	adau1371_write_reg_cache(codec, reg, (unsigned int)buf[0]);
+	return 0;
+}
+
 static int adau1371_volume_info(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_info *uinfo)
 {
@@ -632,6 +654,7 @@ static int adau1371_hw_params(struct snd_pcm_substream *substream,
 		& 0xff);
 	adau1371_write(codec, ADAU1371_PLLCTLA, (pll_settings + i)->integer << 3 |
 		 (pll_settings + i)->input_div << 1 | (pll_settings + i)->type);
+	adau1371_write(codec, ADAU1371_PLLCTLB, PLLCTLB_PLLEN);
 
 	/* bit size */
 	switch (params_format(params)) {
@@ -663,12 +686,21 @@ static int adau1371_pcm_prepare(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
+	int counter = 0;
 	u8 reg;
 
-	/* Enable PLL and wait 5 ms for PLL lock */
-	adau1371_write(codec, ADAU1371_PLLCTLB, PLLCTLB_PLLEN);
-	msleep(5);
+	/* Chcek if PLL is locked by polling the lock bit */
+	do {
+		++counter;
+		schedule_timeout_interruptible(msecs_to_jiffies(1));
+		adau1371_read(codec, ADAU1371_PLLCTLB);
+	} while (((adau1371_read_reg_cache(codec, ADAU1371_PLLCTLB)) & 0x02) == 0
+			&& counter < 20);
+	if (counter >= 20) {
+		dev_err(codec->dev, "failed to initialize PLL\n");
+		return -1;
 
+	}
 	/* Use DAI A */
 	adau1371_write(codec, ADAU1371_SRCDAICTL, SRCDAICTL_DAIA_ENA);
 	udelay(10);
@@ -1054,6 +1086,7 @@ static __devinit int adau1371_i2c_probe(struct i2c_client *i2c,
 	codec = &adau1371->codec;
 	codec->private_data = adau1371;
 	codec->hw_write = (hw_write_t)i2c_master_send;
+	codec->hw_read = (hw_read_t)i2c_master_recv;
 
 	i2c_set_clientdata(i2c, adau1371);
 	codec->control_data = i2c;
