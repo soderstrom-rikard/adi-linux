@@ -410,7 +410,8 @@ irqreturn_t bfin_can_interrupt(int irq, void *dev_id)
 		status = CAN_READ_CTRL(priv, OFFSET_ESR);
 		CAN_WRITE_CTRL(priv, OFFSET_GIS, 0x7FF);
 		bfin_can_err(dev, isrc, status);
-	}
+	} else
+		return IRQ_NONE;
 
 	return IRQ_HANDLED;
 }
