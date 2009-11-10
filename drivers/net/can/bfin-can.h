@@ -45,6 +45,7 @@ struct bfin_can_priv {
 #define OFFSET_GIS                  0x94
 #define OFFSET_GIM                  0x98
 #define OFFSET_CONTROL              0xA0
+#define OFFSET_INTR                 0xA4
 #define OFFSET_ESR                  0xB4
 #define OFFSET_MBIM1                0x28
 #define OFFSET_MBIM2                0x68

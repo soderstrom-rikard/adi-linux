@@ -607,9 +607,47 @@ static int __devexit bfin_can_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM
+static int bfin_can_suspend(struct platform_device *pdev, pm_message_t mesg)
+{
+	struct net_device *dev = dev_get_drvdata(&pdev->dev);
+	struct bfin_can_priv *priv = netdev_priv(dev);
+
+	if (netif_running(dev)) {
+		/* enter sleep mode */
+		CAN_WRITE_CTRL(priv, OFFSET_CONTROL,
+			CAN_READ_CTRL(priv, OFFSET_CONTROL) | SMR);
+		SSYNC();
+		while (!(CAN_READ_CTRL(priv, OFFSET_INTR) & SMACK))
+			continue;
+	}
+
+	return 0;
+}
+
+static int bfin_can_resume(struct platform_device *pdev)
+{
+	struct net_device *dev = dev_get_drvdata(&pdev->dev);
+	struct bfin_can_priv *priv = netdev_priv(dev);
+
+	if (netif_running(dev)) {
+		/* leave sleep mode */
+		CAN_WRITE_CTRL(priv, OFFSET_INTR, 0);
+		SSYNC();
+	}
+
+	return 0;
+}
+#else
+#define bfin_can_suspend NULL
+#define bfin_can_resume NULL
+#endif	/* CONFIG_PM */
+
 static struct platform_driver bfin_can_driver = {
 	.probe = bfin_can_probe,
 	.remove = __devexit_p(bfin_can_remove),
+	.suspend = bfin_can_suspend,
+	.resume = bfin_can_resume,
 	.driver = {
 		.name = DRV_NAME,
 		.owner = THIS_MODULE,
