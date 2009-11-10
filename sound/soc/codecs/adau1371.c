@@ -654,7 +654,6 @@ static int adau1371_hw_params(struct snd_pcm_substream *substream,
 		& 0xff);
 	adau1371_write(codec, ADAU1371_PLLCTLA, (pll_settings + i)->integer << 3 |
 		 (pll_settings + i)->input_div << 1 | (pll_settings + i)->type);
-	adau1371_write(codec, ADAU1371_PLLCTLB, PLLCTLB_PLLEN);
 
 	/* bit size */
 	switch (params_format(params)) {
@@ -676,6 +675,7 @@ static int adau1371_hw_params(struct snd_pcm_substream *substream,
 	}
 	reg = adau1371_read_reg_cache(codec, ADAU1371_DAIACTL);
 	adau1371_write(codec, ADAU1371_DAIACTL, reg | dai_ctl);
+	adau1371_write(codec, ADAU1371_PLLCTLB, PLLCTLB_PLLEN);
 
 	return 0;
 }
