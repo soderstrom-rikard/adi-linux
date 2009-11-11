@@ -53,8 +53,8 @@ struct sport_uart_port {
 #endif
 };
 
-static int sport_uart_tx_chars(struct sport_uart_port *up);
-static void bfin_sport_stop_tx(struct sport_uart_port *up);
+static void sport_uart_tx_chars(struct sport_uart_port *up);
+static void sport_stop_tx(struct uart_port *port);
 
 static inline void tx_one_byte(struct sport_uart_port *up, unsigned int value)
 {
@@ -307,24 +307,18 @@ static int sport_startup(struct uart_port *port)
 
 }
 
-/*
- * sport_uart_tx_chars
- *
- * ret 1 means need to enable sport.
- * ret 0 means do nothing.
- */
-static int sport_uart_tx_chars(struct sport_uart_port *up)
+static void sport_uart_tx_chars(struct sport_uart_port *up)
 {
 	struct circ_buf *xmit = &up->port.info->xmit;
 
 	if (SPORT_GET_STAT(up) & TXF)
-		return 0;
+		return;
 
 	if (up->port.x_char) {
 		tx_one_byte(up, up->port.x_char);
 		up->port.icount.tx++;
 		up->port.x_char = 0;
-		return 1;
+		return;
 	}
 
 	if (uart_circ_empty(xmit) || uart_tx_stopped(&up->port)) {
@@ -334,8 +328,8 @@ static int sport_uart_tx_chars(struct sport_uart_port *up)
 		 * char in TX FIFO is moved into the shift register.
 		 */
 		if (SPORT_GET_STAT(up) & TXHRE)
-			bfin_sport_stop_tx(up);
-		return 0;
+			sport_stop_tx(&up->port);
+		return;
 	}
 
 	while(!(SPORT_GET_STAT(up) & TXF) && !uart_circ_empty(xmit)) {
@@ -346,8 +340,6 @@ static int sport_uart_tx_chars(struct sport_uart_port *up)
 
 	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
 		uart_write_wakeup(&up->port);
-
-	return 1;
 }
 
 static unsigned int sport_tx_empty(struct uart_port *port)
@@ -363,8 +355,12 @@ static unsigned int sport_tx_empty(struct uart_port *port)
 		return 0;
 }
 
-static void bfin_sport_stop_tx(struct sport_uart_port *up)
+static void sport_stop_tx(struct uart_port *port)
 {
+	struct sport_uart_port *up = (struct sport_uart_port *)port;
+
+	pr_debug("%s enter\n", __func__);
+
 	if (!(SPORT_GET_TCR1(up) & TSPEN))
 		return;
 
@@ -383,34 +379,18 @@ static void bfin_sport_stop_tx(struct sport_uart_port *up)
 	return;
 }
 
-static void sport_stop_tx(struct uart_port *port)
-{
-	struct sport_uart_port *up = (struct sport_uart_port *)port;
-	unsigned long flags;
-
-	pr_debug("%s enter\n", __func__);
-
-	spin_lock_irqsave(&up->port.lock, flags);
-	bfin_sport_stop_tx(up);
-	spin_unlock_irqrestore(&up->port.lock, flags);
-}
-
 static void sport_start_tx(struct uart_port *port)
 {
 	struct sport_uart_port *up = (struct sport_uart_port *)port;
-	unsigned long flags;
 
 	pr_debug("%s enter\n", __func__);
 
-	spin_lock_irqsave(&up->port.lock, flags);
 	/* Write data into SPORT FIFO before enable SPROT to transmit */
-	if (sport_uart_tx_chars(up)) {
-		/* Enable transmit, then an interrupt will generated */
-		SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) | TSPEN));
-		SSYNC();
-	}
-	spin_unlock_irqrestore(&up->port.lock, flags);
+	sport_uart_tx_chars(up);
 
+	/* Enable transmit, then an interrupt will generated */
+	SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) | TSPEN));
+	SSYNC();
 	pr_debug("%s exit\n", __func__);
 }
 
