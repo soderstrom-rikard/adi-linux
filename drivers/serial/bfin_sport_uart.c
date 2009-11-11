@@ -369,6 +369,9 @@ static void sport_stop_tx(struct uart_port *port)
 
 	pr_debug("%s enter\n", __func__);
 
+	if (!(SPORT_GET_TCR1(up) & TSPEN))
+		return;
+
 	/* Although the hold register is empty, last byte is still in shift
 	 * register and not sent out yet. So, put a dummy data into TX FIFO.
 	 * Then, sport tx stops when last byte is shift out and the dummy
