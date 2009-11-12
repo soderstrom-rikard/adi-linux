@@ -69,6 +69,7 @@ struct sport_device {
 	int dma_rx_chan;
 	int dma_tx_chan;
 	int err_irq;
+	unsigned short *pin_req;
 	struct sport_register *regs;
 
 	unsigned char *rx_buf;
@@ -192,4 +193,5 @@ int sport_set_err_callback(struct sport_device *sport,
 
 int sport_send_and_recv(struct sport_device *sport, u8 *out_data, \
 		u8 *in_data, int len);
+
 #endif /* BF53X_SPORT_H */

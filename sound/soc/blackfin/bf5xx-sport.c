@@ -879,6 +879,7 @@ struct sport_device *sport_init(int num, unsigned wdsize,
 	sport->dma_tx_chan = sport_params[num].dma_tx_chan;
 	sport->err_irq = sport_params[num].err_irq;
 	sport->regs = sport_params[num].regs;
+	sport->pin_req = sport_req[num];
 	sport->private_data = private_data;
 
 	if (request_dma(sport->dma_rx_chan, "SPORT RX Data") == -EBUSY) {

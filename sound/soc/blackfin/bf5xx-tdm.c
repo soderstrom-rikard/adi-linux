@@ -42,6 +42,7 @@
 #include <asm/portmux.h>
 #include <linux/mutex.h>
 #include <linux/gpio.h>
+#include <asm/portmux.h>
 
 #include "bf5xx-sport.h"
 #include "bf5xx-tdm.h"
@@ -184,12 +185,16 @@ static int bf5xx_tdm_suspend(struct snd_soc_dai *dai)
 	struct sport_device *sport =
 		(struct sport_device *)dai->private_data;
 
-	if (!dai->active)
-		return 0;
-	if (dai->capture.active)
-		sport_rx_stop(sport);
 	if (dai->playback.active)
 		sport_tx_stop(sport);
+	if (dai->capture.active)
+		sport_rx_stop(sport);
+
+	/*
+	 * isolate sync/clock pins from codec while sports resume
+	 */
+	peripheral_free_list(sport->pin_req);
+
 	return 0;
 }
 
@@ -198,9 +203,6 @@ static int bf5xx_tdm_resume(struct snd_soc_dai *dai)
 	int ret;
 	struct sport_device *sport =
 		(struct sport_device *)dai->private_data;
-
-	if (!dai->active)
-		return 0;
 
 	ret = sport_set_multichannel(sport, 8, 0xFF, 1);
 	if (ret) {
@@ -219,6 +221,8 @@ static int bf5xx_tdm_resume(struct snd_soc_dai *dai)
 		pr_err("SPORT is busy!\n");
 		ret = -EBUSY;
 	}
+
+	peripheral_request_list(sport->pin_req, "soc-audio");
 
 	return 0;
 }
