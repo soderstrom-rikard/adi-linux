@@ -259,11 +259,9 @@ static void bfin_can_rx(struct net_device *dev, uint16_t isrc)
 
 	dev_dbg(dev->dev.parent, "%s enter\n", __func__);
 
-	skb = dev_alloc_skb(sizeof(struct can_frame));
+	skb = alloc_can_skb(dev, &cf);
 	if (skb == NULL)
 		return;
-	skb->dev = dev;
-	skb->protocol = htons(ETH_P_CAN);
 
 	/* get id and data length code */
 	if (isrc & (1 << RECEIVE_EXT_CHL)) {
@@ -280,8 +278,6 @@ static void bfin_can_rx(struct net_device *dev, uint16_t isrc)
 		id |= CAN_RTR_FLAG;
 	dlc = CAN_READ_DLC(priv, obj);
 
-	cf = (struct can_frame *)skb_put(skb, sizeof(*cf));
-	memset(cf, 0, sizeof(struct can_frame));
 	cf->can_id = id;
 	cf->can_dlc = dlc;
 
@@ -289,7 +285,6 @@ static void bfin_can_rx(struct net_device *dev, uint16_t isrc)
 
 	netif_rx(skb);
 
-	dev->last_rx = jiffies;
 	stats->rx_packets++;
 	stats->rx_bytes += dlc;
 }
@@ -304,15 +299,9 @@ static int bfin_can_err(struct net_device *dev, uint16_t isrc, uint16_t status)
 
 	dev_dbg(dev->dev.parent, "%s enter\n", __func__);
 
-	skb = dev_alloc_skb(sizeof(struct can_frame));
+	skb = alloc_can_err_skb(dev, &cf);
 	if (skb == NULL)
 		return -ENOMEM;
-	skb->dev = dev;
-	skb->protocol = htons(ETH_P_CAN);
-	cf = (struct can_frame *)skb_put(skb, sizeof(*cf));
-	memset(cf, 0, sizeof(struct can_frame));
-	cf->can_id = CAN_ERR_FLAG;
-	cf->can_dlc = CAN_ERR_DLC;
 
 	if (isrc & RMLIS) {
 		/* data overrun interrupt */
@@ -322,6 +311,7 @@ static int bfin_can_err(struct net_device *dev, uint16_t isrc, uint16_t status)
 		stats->rx_over_errors++;
 		stats->rx_errors++;
 	}
+
 	if (isrc & BOIS) {
 		dev_dbg(dev->dev.parent, "bus-off mode interrupt\n");
 
@@ -329,11 +319,13 @@ static int bfin_can_err(struct net_device *dev, uint16_t isrc, uint16_t status)
 		cf->can_id |= CAN_ERR_BUSOFF;
 		can_bus_off(dev);
 	}
+
 	if (isrc & EPIS) {
 		/* error passive interrupt */
 		dev_dbg(dev->dev.parent, "error passive interrupt\n");
 		state = CAN_STATE_ERROR_PASSIVE;
 	}
+
 	if ((isrc & EWTIS) || (isrc & EWRIS)) {
 		dev_dbg(dev->dev.parent, "Error Warning Transmit/Receive Interrupt\n");
 		state = CAN_STATE_ERROR_WARNING;
@@ -377,7 +369,6 @@ static int bfin_can_err(struct net_device *dev, uint16_t isrc, uint16_t status)
 
 	netif_rx(skb);
 
-	dev->last_rx = jiffies;
 	stats->rx_packets++;
 	stats->rx_bytes += cf->can_dlc;
 
@@ -465,33 +456,12 @@ struct net_device *alloc_bfin_candev(void)
 	return dev;
 }
 
-void free_bfin_candev(struct net_device *dev)
-{
-	free_candev(dev);
-}
-
 static const struct net_device_ops bfin_can_netdev_ops = {
 	.ndo_open               = bfin_can_open,
 	.ndo_stop               = bfin_can_close,
 	.ndo_start_xmit         = bfin_can_start_xmit,
 	.ndo_tx_timeout         = bfin_can_timeout,
 };
-
-int register_bfin_candev(struct net_device *dev)
-{
-	dev->flags |= IFF_ECHO;	/* we support local echo */
-	dev->netdev_ops = &bfin_can_netdev_ops;
-
-	bfin_can_set_reset_mode(dev);
-
-	return register_candev(dev);
-}
-
-void unregister_bfin_candev(struct net_device *dev)
-{
-	bfin_can_set_reset_mode(dev);
-	unregister_candev(dev);
-}
 
 static int __devinit bfin_can_probe(struct platform_device *pdev)
 {
@@ -559,7 +529,12 @@ static int __devinit bfin_can_probe(struct platform_device *pdev)
 	dev_set_drvdata(&pdev->dev, dev);
 	SET_NETDEV_DEV(dev, &pdev->dev);
 
-	err = register_bfin_candev(dev);
+	dev->flags |= IFF_ECHO;	/* we support local echo */
+	dev->netdev_ops = &bfin_can_netdev_ops;
+
+	bfin_can_set_reset_mode(dev);
+
+	err = register_candev(dev);
 	if (err) {
 		dev_err(&pdev->dev, "registering failed (err=%d)\n", err);
 		goto exit_err_irq_free;
@@ -577,7 +552,7 @@ exit_tx_irq_free:
 exit_rx_irq_free:
 	free_irq(rx_irq->start, dev);
 exit_candev_free:
-	free_bfin_candev(dev);
+	free_candev(dev);
 exit_peri_pin_free:
 	peripheral_free_list(pdata);
 exit_mem_release:
@@ -592,7 +567,10 @@ static int __devexit bfin_can_remove(struct platform_device *pdev)
 	struct bfin_can_priv *priv = netdev_priv(dev);
 	struct resource *res;
 
-	unregister_bfin_candev(dev);
+	bfin_can_set_reset_mode(dev);
+
+	unregister_candev(dev);
+
 	dev_set_drvdata(&pdev->dev, NULL);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -603,7 +581,7 @@ static int __devexit bfin_can_remove(struct platform_device *pdev)
 	free_irq(priv->err_irq, dev);
 	peripheral_free_list(priv->pin_list);
 
-	free_bfin_candev(dev);
+	free_candev(dev);
 	return 0;
 }
 
