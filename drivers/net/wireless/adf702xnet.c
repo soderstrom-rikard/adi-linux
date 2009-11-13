@@ -26,6 +26,26 @@
 #define ADF702XNET_VERSION "2009-10-05"
 #define DRV_NAME "ADF702XNet"
 
+/*
+ * DEBUG LEVEL
+ * 	0 	OFF
+ *	1	ERRORS
+ *	2	ERRORS + TRACE
+ *	3	ERRORS + TRACE + PACKET DUMP
+ */
+
+#define ADF_DEBUG 0
+
+#if ADF_DEBUG > 0
+#define DBG(n, args...)				 \
+	do {					 \
+		if (ADF_DEBUG >= (n))		 \
+			printk(args);		 \
+	} while (0)
+#else
+#define DBG(n, args...)   do { } while (0)
+#endif
+
 struct adf702xnet_priv {
 	struct spi_device *spi;
 	struct net_device *ndev;
@@ -50,23 +70,23 @@ struct adf702xnet_priv {
 
 };
 
-#define DEFINE_SPI_REG(reg, off) \
+#define DEFINE_SPORT_REG(reg, off) \
 static inline u16 read_##reg(struct adf702xnet_priv  *drv_data) \
 	{ return bfin_read16(drv_data->regs_base + off); } \
 static inline void write_##reg(struct adf702xnet_priv  *drv_data, u16 v) \
 	{ bfin_write16(drv_data->regs_base + off, v); }
 
-DEFINE_SPI_REG(TCR1, 0x00)
-DEFINE_SPI_REG(TCR2, 0x04)
-DEFINE_SPI_REG(TCLKDIV, 0x08)
-DEFINE_SPI_REG(TFSDIV, 0x0C)
-DEFINE_SPI_REG(TX, 0x10)
-DEFINE_SPI_REG(RX, 0x18)
-DEFINE_SPI_REG(RCR1, 0x20)
-DEFINE_SPI_REG(RCR2, 0x24)
-DEFINE_SPI_REG(RCLKDIV, 0x28)
-DEFINE_SPI_REG(RFSDIV, 0x2C)
-DEFINE_SPI_REG(STAT, 0x30)
+DEFINE_SPORT_REG(TCR1, 0x00)
+DEFINE_SPORT_REG(TCR2, 0x04)
+DEFINE_SPORT_REG(TCLKDIV, 0x08)
+DEFINE_SPORT_REG(TFSDIV, 0x0C)
+DEFINE_SPORT_REG(TX, 0x10)
+DEFINE_SPORT_REG(RX, 0x18)
+DEFINE_SPORT_REG(RCR1, 0x20)
+DEFINE_SPORT_REG(RCR2, 0x24)
+DEFINE_SPORT_REG(RCLKDIV, 0x28)
+DEFINE_SPORT_REG(RFSDIV, 0x2C)
+DEFINE_SPORT_REG(STAT, 0x30)
 
 const u16 sym2chip[] = {
 	0x744A,
@@ -173,34 +193,22 @@ inline unsigned short getrxsize(struct adf702xnet_priv *lp, int offset)
 	int size = getsymbol(lp->rx_buf[offset + 1]) << 8 |
 			getsymbol(lp->rx_buf[offset + 2]);
 
-	if (size > 0) {
+	if (size > 0)
 		return size;
-	} else {
-		lp->ndev->stats.rx_errors++;
-		return 64;	/* Keep the Receiver busy for some time */
-	}
+
+	DBG(1, "%s :BITERR\n", __func__);
+	lp->ndev->stats.rx_errors++;
+	return 64;	/* Keep the Receiver busy for some time */
 }
 
 static int adf702x_spi_write(struct spi_device *spi, unsigned int data)
 {
-	struct spi_transfer t;
-	struct spi_message m;
 	u16 msg[2];
 
 	msg[0] = data >> 16;
 	msg[1] = data & 0xFFFF;
 
-	spi_message_init(&m);
-	memset(&t, 0, (sizeof t));
-
-	t.tx_buf = &msg[0];
-	t.len = 4;
-
-	spi_message_add_tail(&t, &m);
-
-	spi_sync(spi, &m);
-
-	return 4;
+	return spi_write(spi, (u8 *)&msg, 4);
 }
 
 static int adf702x_init(struct spi_device *spi)
@@ -247,7 +255,7 @@ static void adf702x_rx(struct spi_device *spi)
 	struct adf702x_platform_data *pdata = spi->dev.platform_data;
 	adf702x_spi_write(spi, pdata->adf702x_regs[0]);
 	udelay(REG0_DELAY);
-	pr_debug("%s():\n", __func__);
+	DBG(2, "%s():\n", __func__);
 }
 
 static void adf702x_tx(struct spi_device *spi)
@@ -255,7 +263,7 @@ static void adf702x_tx(struct spi_device *spi)
 	struct adf702x_platform_data *pdata = spi->dev.platform_data;
 	adf702x_spi_write(spi, pdata->tx_reg);
 	udelay(REG0_DELAY);
-	pr_debug("%s():\n", __func__);
+	DBG(2, "%s():\n", __func__);
 }
 
 static void adf702x_sport_init(struct adf702xnet_priv *lp)
@@ -297,10 +305,10 @@ static void adf702xnet_tx_work(struct work_struct *work)
 	struct adf702xnet_priv *lp = container_of(work,
 			struct adf702xnet_priv, tx_work.work);
 
-	pr_debug("%s: %s(): txDataCount(%d)\n",
+	DBG(2, "%s: %s(): txDataCount(%d)\n",
 		 lp->ndev->name, __func__,  lp->tx_skb->len);
 
-	pr_debug("GPIO = %d rx = %d\n", gpio_get_value(lp->gpio_int_rfs), lp->rx);
+	DBG(2, "GPIO = %d rx = %d\n", gpio_get_value(lp->gpio_int_rfs), lp->rx);
 
 	/*
 	 * Do some media sense here
@@ -332,7 +340,7 @@ static void adf702xnet_tx_done_work(struct work_struct *work)
 	struct adf702xnet_priv *lp = container_of(work,
 			struct adf702xnet_priv, tx_done_work);
 
-	pr_debug("%s: %s(): \n", lp->ndev->name, __func__);
+	DBG(2, "%s: %s(): \n", lp->ndev->name, __func__);
 
 	adf702x_setup_rx(lp);
 	adf702x_rx(lp->spi);
@@ -352,7 +360,7 @@ static int adf702xnet_xmit(struct sk_buff *skb, struct net_device *dev)
 	int i;
 	unsigned char delay;
 
-	pr_debug("%s:%s(): transmitting %d bytes\n",
+	DBG(2, "%s: %s(): transmitting %d bytes\n",
 		 dev->name, __func__, skb->len);
 
 	/* Only one packet at a time. Once TXDONE interrupt is serviced, the
@@ -369,12 +377,12 @@ static int adf702xnet_xmit(struct sk_buff *skb, struct net_device *dev)
 	lp->tx_buf[3] = getchip(skb->len >> 8);
 	lp->tx_buf[4] = getchip(skb->len & 0xFF);
 
-	pr_debug("TX TX: ");
+	DBG(3, "TX TX: ");
 	for (i = 0; i < skb->len; i++) {
 		lp->tx_buf[TX_HEADERSIZE + i] = getchip(buf_ptr[i]);
-		pr_debug("%x ", buf_ptr[i]);
+		DBG(3, "%x ", buf_ptr[i]);
 	}
-	pr_debug("\n");
+	DBG(3, "\n");
 
 	/* Avoid contentions
 	 * Schedule transmission randomly (0..64ms)
@@ -394,7 +402,7 @@ static int adf702xnet_receive(struct net_device *dev)
 	int i, ret;
 	u8 *data;
 
-	pr_debug("%s: %s(): \n", lp->ndev->name, __func__);
+	DBG(2, "%s: %s(): \n", lp->ndev->name, __func__);
 
 	skb = dev_alloc_skb(lp->rx_size + NET_IP_ALIGN);
 	if (!skb) {
@@ -406,17 +414,18 @@ static int adf702xnet_receive(struct net_device *dev)
 
 	data = skb_put(skb, lp->rx_size);
 
-	pr_debug("RX RX: ");
+	DBG(3, "RX RX: ");
 	for (i = 0; i < lp->rx_size; i++) {
 		data[i] = ret = getsymbol(lp->rx_buf[i]);
 		if (ret < 0) {
 			dev->stats.rx_errors++;
 			dev_kfree_skb(skb);
+			DBG(1, "\nRX BITERR chip = %x\n", lp->rx_buf[i]);
 			return -EIO;
 		}
-		pr_debug("%x ", data[i]);
+		DBG(3, "%x ", data[i]);
 	}
-	pr_debug("\n");
+	DBG(3, "\n");
 
 	skb->protocol = eth_type_trans(skb, dev);
 	skb->ip_summed = CHECKSUM_NONE;
@@ -439,14 +448,14 @@ static irqreturn_t adf702xnet_sport_err_irq(int irq, void *dev_id)
 	struct adf702xnet_priv *lp = netdev_priv(dev);
 	unsigned int stat = read_STAT(lp);
 
-	pr_debug("%s: %s(): \n", lp->ndev->name, __func__);
+	DBG(2, "%s: %s(): \n", lp->ndev->name, __func__);
 	/* Overflow in RX FIFO */
 	if (stat & ROVF)
-		pr_debug("%s: %s(): ROVF\n", lp->ndev->name, __func__);
+		DBG(1, "%s: %s(): ROVF\n", lp->ndev->name, __func__);
 
 	/* These should not happen */
 	if (stat & (TOVF | TUVF | RUVF)) {
-		pr_debug("SPORT Error:%s %s %s\n",
+		DBG(1, "SPORT Error:%s %s %s\n",
 		       (stat & TOVF) ? "TX overflow" : "",
 		       (stat & TUVF) ? "TX underflow" : "",
 		       (stat & RUVF) ? "RX underflow" : "");
@@ -472,7 +481,7 @@ static irqreturn_t adf702xnet_tx_interrupt(int irq, void *dev_id)
 	struct net_device *dev = dev_id;
 	struct adf702xnet_priv *lp = netdev_priv(dev);
 
-	pr_debug("%s:%s(): got TXDone\n",
+	DBG(2, "%s:%s(): got TXDone\n",
 			 dev->name, __func__);
 	write_TCR1(lp, read_TCR1(lp) & ~TSPEN);
 	disable_dma(lp->dma_ch_tx);
@@ -517,13 +526,13 @@ static irqreturn_t adf702xnet_rx_interrupt(int irq, void *dev_id)
 			lp->rx = 1;
 			lp->rx_preample = 0;
 
-			pr_debug("%s:%s(): got RX data %d\n",
+			DBG(2, "%s:%s(): got RX data %d\n",
 				 dev->name, __func__, lp->rx_size);
 
 			return IRQ_HANDLED;
 
 		} else {
-			pr_debug("%s:%s(): Failed MAGIC\n",
+			DBG(1, "%s:%s(): Failed MAGIC\n",
 				 dev->name, __func__);
 			write_RCR1(lp, read_RCR1(lp) & ~RSPEN);
 			SSYNC();
@@ -548,7 +557,7 @@ static int adf702xnet_open(struct net_device *dev)
 	struct adf702x_platform_data *pdata = lp->spi->dev.platform_data;
 	unsigned int syncword;
 
-	pr_debug("%s: adf702xnet_open\n", dev->name);
+	DBG(2, "%s: %s()\n", dev->name, __func__);
 
 	adf702x_sport_init(lp);
 
@@ -592,7 +601,7 @@ static int adf702xnet_open(struct net_device *dev)
 static int adf702xnet_close(struct net_device *dev)
 {
 	struct adf702xnet_priv *lp = netdev_priv(dev);
-	pr_debug("%s: %s()\n", dev->name, __func__);
+	DBG(2, "%s: %s()\n", dev->name, __func__);
 
 	netif_stop_queue(dev);
 	dma_disable_irq(lp->dma_ch_rx);
