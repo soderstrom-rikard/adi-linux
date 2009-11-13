@@ -794,7 +794,7 @@ static struct bfin5xx_spi_chip enc28j60_spi_chip_info = {
 };
 #endif
 
-#if defined(CONFIG_ADF7021) || defined(CONFIG_ADF7021_MODULE)
+#if defined(CONFIG_ADF702X) || defined(CONFIG_ADF702X_MODULE)
 static struct bfin5xx_spi_chip adf7021_spi_chip_info = {
 	.enable_dma	= 0,
 	.bits_per_word	= 16,
@@ -1026,7 +1026,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.mode = SPI_MODE_3,
 	},
 #endif
-#if defined(CONFIG_ADF7021) || defined(CONFIG_ADF7021_MODULE)
+#if defined(CONFIG_ADF702X) || defined(CONFIG_ADF702X_MODULE)
 	{
 		.modalias = "adf702x",
 		.max_speed_hz = 16000000,     /* max spi clock (SCK) speed in HZ */
