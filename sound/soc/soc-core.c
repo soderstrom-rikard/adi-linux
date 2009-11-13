@@ -634,6 +634,8 @@ static int soc_suspend(struct platform_device *pdev, pm_message_t state)
 	 */
 	if (!codec)
 		return 0;
+	if (!card->instantiated)
+		return 0;
 
 	/* Due to the resume being scheduled into a workqueue we could
 	* suspend before that's finished - wait for it to complete.
@@ -771,6 +773,9 @@ static int soc_resume(struct platform_device *pdev)
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_card *card = socdev->card;
 	struct snd_soc_dai *cpu_dai = card->dai_link[0].cpu_dai;
+
+	if (!card->instantiated)
+		return 0;
 
 	/* AC97 devices might have other drivers hanging off them so
 	 * need to resume immediately.  Other drivers don't have that
