@@ -115,23 +115,23 @@ struct slave_data {
 	struct transfer_ops *ops;
 };
 
-#define DEFINE_SPI_REG(reg, off) \
+#define DEFINE_SPORT_REG(reg, off) \
 static inline u16 read_##reg(struct master_data *drv_data) \
 	{ return bfin_read16(drv_data->regs_base + off); } \
 static inline void write_##reg(struct master_data *drv_data, u16 v) \
 	{ bfin_write16(drv_data->regs_base + off, v); }
 
-DEFINE_SPI_REG(TCR1, 0x00)
-DEFINE_SPI_REG(TCR2, 0x04)
-DEFINE_SPI_REG(TCLKDIV, 0x08)
-DEFINE_SPI_REG(TFSDIV, 0x0C)
-DEFINE_SPI_REG(TX, 0x10)
-DEFINE_SPI_REG(RX, 0x18)
-DEFINE_SPI_REG(RCR1, 0x20)
-DEFINE_SPI_REG(RCR2, 0x24)
-DEFINE_SPI_REG(RCLKDIV, 0x28)
-DEFINE_SPI_REG(RFSDIV, 0x2C)
-DEFINE_SPI_REG(STAT, 0x30)
+DEFINE_SPORT_REG(TCR1, 0x00)
+DEFINE_SPORT_REG(TCR2, 0x04)
+DEFINE_SPORT_REG(TCLKDIV, 0x08)
+DEFINE_SPORT_REG(TFSDIV, 0x0C)
+DEFINE_SPORT_REG(TX, 0x10)
+DEFINE_SPORT_REG(RX, 0x18)
+DEFINE_SPORT_REG(RCR1, 0x20)
+DEFINE_SPORT_REG(RCR2, 0x24)
+DEFINE_SPORT_REG(RCLKDIV, 0x28)
+DEFINE_SPORT_REG(RFSDIV, 0x2C)
+DEFINE_SPORT_REG(STAT, 0x30)
 
 static void bfin_sport_spi_enable(struct master_data *drv_data)
 {
