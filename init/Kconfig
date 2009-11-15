@@ -1058,7 +1058,7 @@ config SLOB
 endchoice
 
 config MMAP_ALLOW_UNINITIALIZED
-	bool "Allow mmaped anonymous memory to be un-initialized"
+	bool "Allow mmapped anonymous memory to be uninitialized"
 	depends on EMBEDDED && !MMU
 	default n
 	help
