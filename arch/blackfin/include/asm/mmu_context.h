@@ -95,14 +95,22 @@ static inline void __switch_mm(struct mm_struct *prev_mm, struct mm_struct *next
 #endif
 }
 
+#ifdef CONFIG_IPIPE
+#define lock_mm_switch(flags)	local_irq_save_hw_cond(flags)
+#define unlock_mm_switch(flags)	local_irq_restore_hw_cond(flags)
+#else
+#define lock_mm_switch(flags)	do { (void)(flags); } while (0)
+#define unlock_mm_switch(flags)	do { (void)(flags); } while (0)
+#endif /* CONFIG_IPIPE */
+
 #ifdef CONFIG_MPU
 static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
 			     struct task_struct *tsk)
 {
 	unsigned long flags;
-	local_irq_save_hw_cond(flags);
+	lock_mm_switch(flags);
 	__switch_mm(prev, next, tsk);
-	local_irq_restore_hw_cond(flags);
+	unlock_mm_switch(flags);
 }
 
 static inline void protect_page(struct mm_struct *mm, unsigned long addr,
