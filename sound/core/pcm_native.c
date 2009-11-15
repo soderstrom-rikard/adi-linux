@@ -3388,8 +3388,7 @@ static unsigned long snd_pcm_get_unmapped_area(struct file *file,
 	default:
 		return (unsigned long)runtime->dma_area + offset;
 	}
- }
-
+}
 #else
 # define snd_pcm_get_unmapped_area NULL
 #endif
