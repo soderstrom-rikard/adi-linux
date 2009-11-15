@@ -425,9 +425,10 @@ static struct platform_nand_data bfin_plat_nand_data = {
 	},
 };
 
+#define MAX(x, y) (x > y ? x : y)
 static struct resource bfin_plat_nand_resources = {
 	.start = 0x20212000,
-	.end   = 0x20212000 + (1 << max(BFIN_NAND_PLAT_CLE, BFIN_NAND_PLAT_ALE)),
+	.end   = 0x20212000 + (1 << MAX(BFIN_NAND_PLAT_CLE, BFIN_NAND_PLAT_ALE)),
 	.flags = IORESOURCE_IO,
 };
 
