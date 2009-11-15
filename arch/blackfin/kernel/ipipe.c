@@ -343,8 +343,7 @@ void __ipipe_enable_root_irqs_hw(void)
  */
 void __ipipe_stall_root(void)
 {
-	unsigned long *p;
-	unsigned long flags;
+	unsigned long *p, flags;
 
 	local_irq_save_hw(flags);
 	p = &__ipipe_root_status;
@@ -355,8 +354,7 @@ EXPORT_SYMBOL(__ipipe_stall_root);
 
 unsigned long __ipipe_test_and_stall_root(void)
 {
-	unsigned long *p;
-	unsigned long flags;
+	unsigned long *p, flags;
 	int x;
 
 	local_irq_save_hw(flags);
@@ -385,8 +383,7 @@ EXPORT_SYMBOL(__ipipe_test_root);
 
 void __ipipe_lock_root(void)
 {
-	unsigned long *p;
-	unsigned long flags;
+	unsigned long *p, flags;
 
 	local_irq_save_hw(flags);
 	p = &__ipipe_root_status;
@@ -397,8 +394,7 @@ EXPORT_SYMBOL(__ipipe_lock_root);
 
 void __ipipe_unlock_root(void)
 {
-	unsigned long *p;
-	unsigned long flags;
+	unsigned long *p, flags;
 
 	local_irq_save_hw(flags);
 	p = &__ipipe_root_status;
