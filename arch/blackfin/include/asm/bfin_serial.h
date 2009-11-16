@@ -38,10 +38,11 @@ struct bfin_serial_port {
 #elif ANOMALY_05000363
 	unsigned int anomaly_threshold;
 #endif
-#ifdef CONFIG_SERIAL_BFIN_CTSRTS
-# ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
+#ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
 	int scts;
-# endif
+#endif
+#if defined(CONFIG_SERIAL_BFIN_CTSRTS) || \
+	defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
 	int cts_pin;
 	int rts_pin;
 #endif
