@@ -90,7 +90,7 @@ static const u16 sym2chip[] = {
  * ONES: A instruction only DSPs feature
  * a XOR b -> return counted ONES (BIT Errors)
  */
-static inline unsigned short xor_ones(unsigned int a, unsigned int b)
+static inline unsigned short adf702x_xor_ones(unsigned int a, unsigned int b)
 {
 	unsigned short val;
 
@@ -105,7 +105,7 @@ static inline unsigned short xor_ones(unsigned int a, unsigned int b)
 /*
  * Get 32-bit chip from 8-bit symbol
  */
-static inline unsigned int getchip(unsigned char sym)
+static inline unsigned int adf702x_getchip(unsigned char sym)
 {
 	return (sym2chip[sym >> 4] << 16) | sym2chip[sym & 0xF];
 }
@@ -113,12 +113,12 @@ static inline unsigned int getchip(unsigned char sym)
 /*
  * Test packet MAGIC
  */
-static inline int testmagic(struct adf702x_priv *lp)
+static inline int adf702x_testmagic(struct adf702x_priv *lp)
 {
-	if (xor_ones(lp->rx_buf[1], MAGIC) < BITERR)
+	if (adf702x_xor_ones(lp->rx_buf[1], MAGIC) < BITERR)
 		return 1;
 
-	if (xor_ones(lp->rx_buf[0], MAGIC) < BITERR)
+	if (adf702x_xor_ones(lp->rx_buf[0], MAGIC) < BITERR)
 		return 0;
 
 	return -1;
@@ -128,7 +128,7 @@ static inline int testmagic(struct adf702x_priv *lp)
  * Get 8-bit symbol from 32-bit chip
  * Returns: symbol or -1 in case of an unrecoverable error
  */
-static int getsymbol(unsigned int chip)
+static int adf702x_getsymbol(unsigned int chip)
 {
 	int symhi, symlo;
 	unsigned chiphi, chiplo;
@@ -137,14 +137,14 @@ static int getsymbol(unsigned int chip)
 	chiplo = chip & 0xFFFF;
 
 	for (symhi = 0; symhi <= ARRAY_SIZE(sym2chip); symhi++)
-		if (xor_ones(chiphi, sym2chip[symhi]) < BITERR)
+		if (adf702x_xor_ones(chiphi, sym2chip[symhi]) < BITERR)
 			break;
 
 	if (symhi >= ARRAY_SIZE(sym2chip))
 		return -1;
 
 	for (symlo = 0; symlo <= ARRAY_SIZE(sym2chip); symlo++)
-		if (xor_ones(chiplo, sym2chip[symlo]) < BITERR)
+		if (adf702x_xor_ones(chiplo, sym2chip[symlo]) < BITERR)
 			break;
 
 	if (symlo >= ARRAY_SIZE(sym2chip))
@@ -157,10 +157,10 @@ static int getsymbol(unsigned int chip)
  * Get Packet size from header
  * Returns: size or 42 in case of an unrecoverable error
  */
-inline unsigned short getrxsize(struct adf702x_priv *lp, int offset)
+inline unsigned short adf702x_getrxsize(struct adf702x_priv *lp, int offset)
 {
-	int size = getsymbol(lp->rx_buf[offset + 1]) << 8 |
-			getsymbol(lp->rx_buf[offset + 2]);
+	int size = adf702x_getsymbol(lp->rx_buf[offset + 1]) << 8 |
+			adf702x_getsymbol(lp->rx_buf[offset + 2]);
 
 	if (size > 0)
 		return size;
@@ -269,7 +269,7 @@ static void adf702x_setup_rx(struct adf702x_priv *lp)
 	spin_unlock_irqrestore(&lp->lock, flags);
 }
 
-static void adf702xnet_tx_work(struct work_struct *work)
+static void adf702x_tx_work(struct work_struct *work)
 {
 	struct adf702x_priv *lp = container_of(work,
 			struct adf702x_priv, tx_work.work);
@@ -304,7 +304,7 @@ static void adf702xnet_tx_work(struct work_struct *work)
 	lp->ndev->stats.tx_bytes += lp->tx_skb->len;
 }
 
-static void adf702xnet_tx_done_work(struct work_struct *work)
+static void adf702x_tx_done_work(struct work_struct *work)
 {
 	struct adf702x_priv *lp = container_of(work,
 			struct adf702x_priv, tx_done_work);
@@ -322,7 +322,7 @@ static void adf702xnet_tx_done_work(struct work_struct *work)
 	netif_wake_queue(lp->ndev);
 }
 
-static int adf702xnet_xmit(struct sk_buff *skb, struct net_device *dev)
+static int adf702x_net_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct adf702x_priv *lp = netdev_priv(dev);
 	unsigned char *buf_ptr = skb->data;
@@ -346,12 +346,12 @@ static int adf702xnet_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	BUG_ON(lp->tx_skb->len > 0xFFFF);
 
-	lp->tx_buf[3] = getchip(skb->len >> 8);
-	lp->tx_buf[4] = getchip(skb->len & 0xFF);
+	lp->tx_buf[3] = adf702x_getchip(skb->len >> 8);
+	lp->tx_buf[4] = adf702x_getchip(skb->len & 0xFF);
 
 	DBG(3, "TX TX: ");
 	for (i = 0; i < skb->len; i++) {
-		lp->tx_buf[TX_HEADERSIZE + i] = getchip(buf_ptr[i]);
+		lp->tx_buf[TX_HEADERSIZE + i] = adf702x_getchip(buf_ptr[i]);
 		DBG(3, "%x ", buf_ptr[i]);
 	}
 	DBG(3, "\n");
@@ -367,7 +367,7 @@ static int adf702xnet_xmit(struct sk_buff *skb, struct net_device *dev)
 	return 0;
 }
 
-static int adf702xnet_receive(struct net_device *dev)
+static int adf702x_receive(struct net_device *dev)
 {
 	struct sk_buff *skb;
 	struct adf702x_priv *lp = netdev_priv(dev);
@@ -388,7 +388,7 @@ static int adf702xnet_receive(struct net_device *dev)
 
 	DBG(3, "RX RX: ");
 	for (i = 0; i < lp->rx_size; i++) {
-		data[i] = ret = getsymbol(lp->rx_buf[i]);
+		data[i] = ret = adf702x_getsymbol(lp->rx_buf[i]);
 		if (ret < 0) {
 			dev->stats.rx_errors++;
 			dev_kfree_skb(skb);
@@ -414,7 +414,7 @@ static int adf702xnet_receive(struct net_device *dev)
 	return 0;
 }
 
-static irqreturn_t adf702xnet_sport_err_irq(int irq, void *dev_id)
+static irqreturn_t adf702x_sport_err_irq(int irq, void *dev_id)
 {
 	struct net_device *dev = dev_id;
 	struct adf702x_priv *lp = netdev_priv(dev);
@@ -448,7 +448,7 @@ static irqreturn_t adf702xnet_sport_err_irq(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static irqreturn_t adf702xnet_tx_interrupt(int irq, void *dev_id)
+static irqreturn_t adf702x_tx_interrupt(int irq, void *dev_id)
 {
 	struct net_device *dev = dev_id;
 	struct adf702x_priv *lp = netdev_priv(dev);
@@ -464,7 +464,7 @@ static irqreturn_t adf702xnet_tx_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static irqreturn_t adf702xnet_rx_interrupt(int irq, void *dev_id)
+static irqreturn_t adf702x_rx_interrupt(int irq, void *dev_id)
 {
 	struct net_device *dev = dev_id;
 	struct adf702x_priv *lp = netdev_priv(dev);
@@ -479,15 +479,14 @@ static irqreturn_t adf702xnet_rx_interrupt(int irq, void *dev_id)
 		 * while we setup the DMA for the remaining chips.
 		 */
 
-		offset = testmagic(lp);
+		offset = adf702x_testmagic(lp);
 		if (offset >= 0) {
-			lp->rx_size = getrxsize(lp, offset);
+			lp->rx_size = adf702x_getrxsize(lp, offset);
 			if (offset == 1) {
 				set_dma_x_count(lp->dma_ch_rx, lp->rx_size);
 				set_dma_start_addr(lp->dma_ch_rx,
 					(unsigned long)lp->rx_buf);
 			} else {
-
 				lp->rx_buf[0] = lp->rx_buf[3];
 				set_dma_x_count(lp->dma_ch_rx, lp->rx_size - 1);
 				set_dma_start_addr(lp->dma_ch_rx,
@@ -514,7 +513,7 @@ static irqreturn_t adf702xnet_rx_interrupt(int irq, void *dev_id)
 	} else {
 		lp->sport->rcr1 &= ~RSPEN;
 		SSYNC();
-		adf702xnet_receive(dev);
+		adf702x_receive(dev);
 	}
 
 	adf702x_setup_rx(lp);
@@ -523,7 +522,7 @@ static irqreturn_t adf702xnet_rx_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int adf702xnet_open(struct net_device *dev)
+static int adf702x_net_open(struct net_device *dev)
 {
 	struct adf702x_priv *lp = netdev_priv(dev);
 	struct adf702x_platform_data *pdata = lp->spi->dev.platform_data;
@@ -570,7 +569,7 @@ static int adf702xnet_open(struct net_device *dev)
 	return 0;
 }
 
-static int adf702xnet_close(struct net_device *dev)
+static int adf702x_net_close(struct net_device *dev)
 {
 	struct adf702x_priv *lp = netdev_priv(dev);
 	DBG(2, "%s: %s()\n", dev->name, __func__);
@@ -581,10 +580,10 @@ static int adf702xnet_close(struct net_device *dev)
 	return 0;
 }
 
-static const struct net_device_ops adf702xnet_netdev_ops = {
-	.ndo_open		= adf702xnet_open,
-	.ndo_stop		= adf702xnet_close,
-	.ndo_start_xmit		= adf702xnet_xmit,
+static const struct net_device_ops adf702x_netdev_ops = {
+	.ndo_open		= adf702x_net_open,
+	.ndo_stop		= adf702x_net_close,
+	.ndo_start_xmit		= adf702x_net_xmit,
 	.ndo_change_mtu		= eth_change_mtu,
 	.ndo_validate_addr	= eth_validate_addr,
 	.ndo_set_mac_address	= eth_mac_addr,
@@ -611,7 +610,7 @@ static int __devinit adf702x_probe(struct spi_device *spi)
 	dev_set_drvdata(&spi->dev, ndev);
 	SET_NETDEV_DEV(ndev, &spi->dev);
 
-	ndev->netdev_ops = &adf702xnet_netdev_ops;
+	ndev->netdev_ops = &adf702x_netdev_ops;
 
 	/*
 	 * MAC address? we use a
@@ -658,13 +657,13 @@ static int __devinit adf702x_probe(struct spi_device *spi)
 		goto out4;
 	}
 
-	err = set_dma_callback(lp->dma_ch_rx, adf702xnet_rx_interrupt, ndev);
+	err = set_dma_callback(lp->dma_ch_rx, adf702x_rx_interrupt, ndev);
 	if (err) {
 		dev_err(&spi->dev, "failed to request RX irq\n");
 		goto out5;
 	}
 
-	err = set_dma_callback(lp->dma_ch_tx, adf702xnet_tx_interrupt, ndev);
+	err = set_dma_callback(lp->dma_ch_tx, adf702x_tx_interrupt, ndev);
 	if (err) {
 		dev_err(&spi->dev, "failed to request TX irq\n");
 		goto out5;
@@ -673,7 +672,7 @@ static int __devinit adf702x_probe(struct spi_device *spi)
 	dma_disable_irq(lp->dma_ch_rx);
 
 	if (lp->irq_sport_err) {
-		err = request_irq(lp->irq_sport_err, adf702xnet_sport_err_irq, 0,
+		err = request_irq(lp->irq_sport_err, adf702x_sport_err_irq, 0,
 			"ADF702x SPORT_ERROR", ndev);
 		if (err) {
 			dev_err(&spi->dev, "unable to request SPORT status interrupt\n");
@@ -715,8 +714,8 @@ static int __devinit adf702x_probe(struct spi_device *spi)
 		goto out9;
 
 	spin_lock_init(&lp->lock);
-	INIT_DELAYED_WORK(&lp->tx_work, adf702xnet_tx_work);
-	INIT_WORK(&lp->tx_done_work, adf702xnet_tx_done_work);
+	INIT_DELAYED_WORK(&lp->tx_work, adf702x_tx_work);
+	INIT_WORK(&lp->tx_done_work, adf702x_tx_done_work);
 	init_waitqueue_head(&lp->waitq);
 
 	dev_info(&spi->dev, "ADF702XNet Wireless Ethernet driver");
@@ -779,18 +778,18 @@ static struct spi_driver adf702x_spi_driver = {
 	.remove		= __devexit_p(adf702x_remove),
 };
 
-static int __init adf702xnet_init_module(void)
+static int __init adf702x_init_module(void)
 {
 	return spi_register_driver(&adf702x_spi_driver);;
 }
 
-static void __exit adf702xnet_exit_module(void)
+static void __exit adf702x_exit_module(void)
 {
 	spi_unregister_driver(&adf702x_spi_driver);
 }
 
-module_init(adf702xnet_init_module);
-module_exit(adf702xnet_exit_module);
+module_init(adf702x_init_module);
+module_exit(adf702x_exit_module);
 MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
 MODULE_DESCRIPTION("ADF702XNet Wireless Ethernet driver");
 MODULE_LICENSE("GPL");
