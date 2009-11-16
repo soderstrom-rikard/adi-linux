@@ -740,9 +740,10 @@ static int bfin_serial_startup(struct uart_port *port)
 	}
 #endif
 #ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
-	if (request_irq(uart->status_irq,
+	if (uart->cts_pin >= 0 && request_irq(uart->status_irq,
 		bfin_serial_mctrl_cts_int,
 		IRQF_DISABLED, "BFIN_UART_MODEM_STATUS", uart)) {
+		uart->cts_pin = -1;
 		pr_info("Unable to attach BlackFin UART Modem \
 			Status interrupt.\n");
 	}
@@ -791,7 +792,7 @@ static void bfin_serial_shutdown(struct uart_port *port)
 		free_irq(gpio_to_irq(uart->cts_pin), uart);
 #endif
 #ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
-	if (UART_GET_IER(uart) & EDSSI)
+	if (uart->cts_pin >= 0)
 		free_irq(uart->status_irq, uart);
 #endif
 }
@@ -1355,23 +1356,15 @@ static int bfin_serial_probe(struct platform_device *pdev)
 #if defined(CONFIG_SERIAL_BFIN_CTSRTS) || \
 	defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
 		res = platform_get_resource(pdev, IORESOURCE_IO, 0);
-		if (res == NULL) {
-# if defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
-			uart->cts_pin = 0;
-# else
+		if (res == NULL)
 			uart->cts_pin = -1;
-# endif
-		} else
+		else
 			uart->cts_pin = res->start;
 
 		res = platform_get_resource(pdev, IORESOURCE_IO, 1);
-		if (res == NULL) {
-# if defined(CONFIG_SERIAL_BFIN_HARD_CTSRTS)
-			uart->rts_pin = 0;
-# else
+		if (res == NULL)
 			uart->rts_pin = -1;
-# endif
-		} else
+		else
 			uart->rts_pin = res->start;
 # if defined(CONFIG_SERIAL_BFIN_CTSRTS)
 		if (uart->rts_pin >= 0)
