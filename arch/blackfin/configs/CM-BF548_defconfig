@@ -155,7 +155,7 @@ CONFIG_PREEMPT_NONE=y
 # CONFIG_BF544M is not set
 # CONFIG_BF547 is not set
 # CONFIG_BF547M is not set
-CONFIG_BF548=y
+CONFIG__BF548=y
 # CONFIG_BF548M is not set
 # CONFIG_BF549 is not set
 # CONFIG_BF549M is not set
