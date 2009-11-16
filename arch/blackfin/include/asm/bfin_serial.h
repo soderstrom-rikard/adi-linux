@@ -14,13 +14,6 @@
 #include <mach/bfin_serial.h>
 #include <linux/spinlock.h>
 
-#if defined(CONFIG_BFIN_UART0_CTSRTS) || \
-    defined(CONFIG_BFIN_UART1_CTSRTS) || \
-    defined(CONFIG_BFIN_UART2_CTSRTS) || \
-    defined(CONFIG_BFIN_UART3_CTSRTS)
-# define CONFIG_BFIN_UART_CTSRTS
-#endif
-
 struct circ_buf;
 struct timer_list;
 struct work_struct;
@@ -46,7 +39,7 @@ struct bfin_serial_port {
 	unsigned int anomaly_threshold;
 #endif
 #ifdef CONFIG_SERIAL_BFIN_CTSRTS
-# ifdef BFIN_UART_HARD_CTSRTS
+# ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
 	int scts;
 # endif
 	int cts_pin;

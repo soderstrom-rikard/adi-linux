@@ -11,4 +11,10 @@
 
 #define BFIN_UART_NR_PORTS	3
 
+#if defined(CONFIG_BFIN_UART0_CTSRTS) || \
+    defined(CONFIG_BFIN_UART1_CTSRTS) || \
+    defined(CONFIG_BFIN_UART2_CTSRTS)
+# define CONFIG_SERIAL_BFIN_CTSRTS
+#endif
+
 #endif
