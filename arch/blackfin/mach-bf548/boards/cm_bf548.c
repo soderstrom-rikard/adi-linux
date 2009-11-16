@@ -154,24 +154,6 @@ static struct resource bfin_uart0_resources[] = {
 		.end = CH_UART0_RX,
 		.flags = IORESOURCE_DMA,
 	},
-#ifdef CONFIG_BFIN_UART0_CTSRTS
-	{
-		/*
-		 * 0 means hardware CTS is not supported in this port.
-		 */
-		.start = 0,
-		.end = 0,
-		.flags = IORESOURCE_IO,
-	},
-	{
-		/*
-		 * 0 means hardware RTS is not supported in this port.
-		 */
-		.start = 0,
-		.end = 0,
-		.flags = IORESOURCE_IO,
-	},
-#endif
 };
 
 unsigned short bfin_uart0_peripherals[] = {
@@ -237,7 +219,7 @@ static struct resource bfin_uart1_resources[] = {
 
 unsigned short bfin_uart1_peripherals[] = {
 	P_UART1_TX, P_UART1_RX,
-#ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
+#ifdef CONFIG_BFIN_UART1_CTSRTS
 	P_UART1_RTS, P_UART1_CTS,
 #endif
 	0
@@ -280,24 +262,6 @@ static struct resource bfin_uart2_resources[] = {
 		.end = CH_UART2_RX,
 		.flags = IORESOURCE_DMA,
 	},
-#ifdef CONFIG_BFIN_UART2_CTSRTS
-	{
-		/*
-		 * 0 means hardware CTS is not supported in this port.
-		 */
-		.start = 0,
-		.end = 0,
-		.flags = IORESOURCE_IO,
-	},
-	{
-		/*
-		 * 0 means hardware RTS is not supported in this port.
-		 */
-		.start = 0,
-		.end = 0,
-		.flags = IORESOURCE_IO,
-	},
-#endif
 };
 
 unsigned short bfin_uart2_peripherals[] = {
@@ -363,7 +327,7 @@ static struct resource bfin_uart3_resources[] = {
 
 unsigned short bfin_uart3_peripherals[] = {
 	P_UART3_TX, P_UART3_RX,
-#ifdef CONFIG_SERIAL_BFIN_HARD_CTSRTS
+#ifdef CONFIG_BFIN_UART3_CTSRTS
 	P_UART3_RTS, P_UART3_CTS,
 #endif
 	0
