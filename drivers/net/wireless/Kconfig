@@ -40,13 +40,14 @@ config STRIP
 
 config ADF702X
 	tristate "ADF702x Narrow-Band Short-Range Radio Transceiver"
-	depends on EXPERIMENTAL && SPI && NET_ETHERNET && BLACKFIN
+	depends on EXPERIMENTAL && SPI && BLACKFIN
 	---help---
 	  This is a driver for Analog Devices series of ADF702x Narrow-Band
 	  Short-Range Radio Transceiver chipsets, including the ADF7021 and
 	  the ADF7025. This Ethernet like driver implements a custom
 	  software PHY.  Say Y if you want it compiled into the kernel.
-	  To compile this driver as a module, choose M here.
+	  To compile this driver as a module, choose M here. The module will
+	  be called adf702xnet.
 
 config ARLAN
 	tristate "Aironet Arlan 655 & IC2200 DS support"
@@ -282,7 +283,7 @@ config PCMCIA_WL3501
 	 micro support for ethtool.
 
 config PRISM54
-	tristate 'Intersil Prism GT/Duette/Indigo PCI/Cardbus'
+	tristate 'Intersil Prism GT/Duette/Indigo PCI/Cardbus' 
 	depends on PCI && EXPERIMENTAL && WLAN_80211
 	select WIRELESS_EXT
 	select FW_LOADER
@@ -292,7 +293,7 @@ config PRISM54
 	  ISL3880 - Prism GT            802.11 b/g
 	  ISL3877 - Prism Indigo        802.11 a
 	  ISL3890 - Prism Duette        802.11 a/b/g
-
+	  
 	  For a complete list of supported cards visit <http://prism54.org>.
 	  Here is the latest confirmed list of supported cards:
 
@@ -321,8 +322,8 @@ config PRISM54
 	  You will also need the /etc/hotplug/firmware.agent script from
 	  a current hotplug package.
 
-	  Note: You need a motherboard with DMA support to use any of these cards
-
+	  Note: You need a motherboard with DMA support to use any of these cards 
+	  
 	  If you want to compile the driver as a module ( = code which can be
 	  inserted in and removed from the running kernel whenever you want),
 	  say M here and read <file:Documentation/kbuild/modules.txt>.

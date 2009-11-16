@@ -775,30 +775,29 @@ static struct bfin5xx_spi_chip enc28j60_spi_chip_info = {
 
 #if defined(CONFIG_ADF702X) || defined(CONFIG_ADF702X_MODULE)
 static struct bfin5xx_spi_chip adf7021_spi_chip_info = {
-	.enable_dma	= 0,
 	.bits_per_word	= 16,
 	.cs_gpio = GPIO_PF10,
 };
 
 #include <linux/spi/adf702x.h>
-#define TXREG 		0x0160A470
+#define TXREG 	0x0160A470
 static const u32 adf7021_regs[] = {
-			0x09608FA0,
-			0x00575011,
-			0x00A7F092,
-			0x2B141563,
-			0x81F29E94,
-			0x00003155,
-			0x050A4F66,
-			0x00000007,
-			0x00000008,
-			0x000231E9,
-			0x3296354A,
-			0x891A2B3B,
-			0x00000D9C,
-			0x0000000D,
-			0x0000000E,
-			0x0000000F,
+	0x09608FA0,
+	0x00575011,
+	0x00A7F092,
+	0x2B141563,
+	0x81F29E94,
+	0x00003155,
+	0x050A4F66,
+	0x00000007,
+	0x00000008,
+	0x000231E9,
+	0x3296354A,
+	0x891A2B3B,
+	0x00000D9C,
+	0x0000000D,
+	0x0000000E,
+	0x0000000F,
 };
 
 static struct adf702x_platform_data adf7021_platform_data = {
