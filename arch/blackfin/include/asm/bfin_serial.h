@@ -14,6 +14,17 @@
 #include <mach/bfin_serial.h>
 #include <linux/spinlock.h>
 
+#if defined(CONFIG_BFIN_UART0_CTSRTS) || \
+    defined(CONFIG_BFIN_UART1_CTSRTS) || \
+    defined(CONFIG_BFIN_UART2_CTSRTS) || \
+    defined(CONFIG_BFIN_UART3_CTSRTS)
+# ifdef BFIN_UART_BF54X_STYLE
+#  define CONFIG_SERIAL_BFIN_HARD_CTSRTS
+# else
+#  define CONFIG_SERIAL_BFIN_CTSRTS
+# endif
+#endif
+
 struct circ_buf;
 struct timer_list;
 struct work_struct;
