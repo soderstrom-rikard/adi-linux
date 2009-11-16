@@ -67,7 +67,6 @@ struct adf702xnet_priv {
 	unsigned dma_ch_tx;
 	unsigned irq_sport_err;
 	unsigned gpio_int_rfs;
-
 };
 
 #define DEFINE_SPORT_REG(reg, off) \
@@ -116,7 +115,8 @@ const u16 sym2chip[] = {
 
 #define MAX_PACKET_SIZE	(1550 * 4)
 
-/* ONES: A instruction only DSPs feature
+/*
+ * ONES: A instruction only DSPs feature
  * a XOR b -> return counted ONES (BIT Errors)
  */
 static inline unsigned short xor_ones(unsigned int a, unsigned int b)
@@ -134,7 +134,6 @@ static inline unsigned short xor_ones(unsigned int a, unsigned int b)
 /*
  * Get 32-bit chip from 8-bit symbol
  */
-
 inline unsigned int getchip(unsigned char sym)
 {
 	return ((sym2chip[sym >> 4] << 16) | sym2chip[sym & 0xF]);
@@ -143,7 +142,6 @@ inline unsigned int getchip(unsigned char sym)
 /*
  * Test packet MAGIC
  */
-
 inline int testmagic(struct adf702xnet_priv *lp)
 {
 	if (xor_ones(lp->rx_buf[1], MAGIC) < BITERR)
@@ -159,7 +157,6 @@ inline int testmagic(struct adf702xnet_priv *lp)
  * Get 8-bit symbol from 32-bit chip
  * Returns: symbol or -1 in case of an unrecoverable error
  */
-
 static int getsymbol(unsigned int chip)
 {
 	int symhi, symlo;
@@ -180,14 +177,12 @@ static int getsymbol(unsigned int chip)
 		return -1;
 	else
 		return (symhi << 4) | symlo;
-
 }
 
 /*
  * Get Packet size from header
  * Returns: size or 42 in case of an unrecoverable error
  */
-
 inline unsigned short getrxsize(struct adf702xnet_priv *lp, int offset)
 {
 	int size = getsymbol(lp->rx_buf[offset + 1]) << 8 |
@@ -278,7 +273,6 @@ static void adf702x_sport_init(struct adf702xnet_priv *lp)
 	 * The ADF7025 requires SPORT TCLK generated externally
 	 * it should be within 2% of CDR_CLK/32.
 	 */
-
 	if (pdata->adf702x_model == MODEL_ADF7025) {
 		write_TCR1(lp, TCKFE | LATFS | DITFS | ITFS | ITCLK);
 		write_TCLKDIV(lp, pdata->adf7025_tclkdiv);
@@ -626,7 +620,6 @@ static const struct net_device_ops adf702xnet_netdev_ops = {
 
 static int __devinit adf702x_probe(struct spi_device *spi)
 {
-
 	struct net_device *ndev;
 	struct adf702xnet_priv *lp;
 	struct adf702x_platform_data *pdata = spi->dev.platform_data;
