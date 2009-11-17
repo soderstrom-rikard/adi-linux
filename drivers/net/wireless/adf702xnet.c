@@ -136,14 +136,14 @@ static int adf702x_getsymbol(unsigned int chip)
 	chiphi = chip >> 16;
 	chiplo = chip & 0xFFFF;
 
-	for (symhi = 0; symhi <= ARRAY_SIZE(sym2chip); symhi++)
+	for (symhi = 0; symhi < ARRAY_SIZE(sym2chip); symhi++)
 		if (adf702x_xor_ones(chiphi, sym2chip[symhi]) < BITERR)
 			break;
 
 	if (symhi >= ARRAY_SIZE(sym2chip))
 		return -1;
 
-	for (symlo = 0; symlo <= ARRAY_SIZE(sym2chip); symlo++)
+	for (symlo = 0; symlo < ARRAY_SIZE(sym2chip); symlo++)
 		if (adf702x_xor_ones(chiplo, sym2chip[symlo]) < BITERR)
 			break;
 
