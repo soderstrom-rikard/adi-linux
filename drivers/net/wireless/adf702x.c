@@ -51,7 +51,7 @@ struct adf702x_priv {
 	u32 *tx_buf;
 
 	/* Base reg base of SPORT controller */
-	struct sport_register *sport;
+	volatile struct sport_register *sport;
 	unsigned dma_ch_rx;
 	unsigned dma_ch_tx;
 	unsigned irq_sport_err;
@@ -239,9 +239,9 @@ static void adf702x_sport_init(struct adf702x_priv *lp)
 {
 	struct adf702x_platform_data *pdata = lp->spi->dev.platform_data;
 
-	lp->sport->tcr2 = SLEN(32-1);
+	lp->sport->tcr2 = DP_SLEN(32-1);
 	lp->sport->tcr1 = TCKFE | LATFS | DITFS | ITFS;
-	lp->sport->rcr2 = SLEN(32-1);
+	lp->sport->rcr2 = DP_SLEN(32-1);
 	lp->sport->rcr1 = RCKFE | LARFS;
 
 	/*
