@@ -17,9 +17,12 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
+#include <linux/mutex.h>
+#include <linux/sched.h>
 #include <linux/signal.h>
 #include <linux/types.h>
 #include <linux/uaccess.h>
+#include <linux/wait.h>
 
 #include <asm/blackfin.h>
 #include <asm/bfin_sport.h>
