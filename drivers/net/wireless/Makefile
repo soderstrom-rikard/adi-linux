@@ -7,7 +7,7 @@ obj-$(CONFIG_IPW2200) += ipw2x00/
 
 obj-$(CONFIG_STRIP) += strip.o
 obj-$(CONFIG_ARLAN) += arlan.o 
-obj-$(CONFIG_ADF702X) += adf702xnet.o
+obj-$(CONFIG_ADF702X) += adf702x.o
 
 arlan-objs := arlan-main.o arlan-proc.o
 

@@ -47,7 +47,7 @@ config ADF702X
 	  the ADF7025. This Ethernet like driver implements a custom
 	  software PHY.  Say Y if you want it compiled into the kernel.
 	  To compile this driver as a module, choose M here. The module will
-	  be called adf702xnet.
+	  be called adf702x.
 
 config ARLAN
 	tristate "Aironet Arlan 655 & IC2200 DS support"
