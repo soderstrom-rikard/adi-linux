@@ -28,6 +28,38 @@
 #include <asm/system.h>
 #include <asm/portmux.h>
 
+#define SPORT_MAJOR	237
+#define SPORT_NR_DEVS	2
+
+struct sport_dev {
+	struct cdev cdev;	/* Char device structure */
+
+	int sport_num;
+
+	int dma_rx_chan;
+	int dma_tx_chan;
+
+	int rx_irq;
+	unsigned char *rx_buf;	/* Buffer store the received data */
+	int rx_len;		/* How many bytes will be received */
+	int rx_received;	/* How many bytes has been received */
+
+	int tx_irq;
+	const unsigned char *tx_buf;
+	int tx_len;
+	int tx_sent;
+
+	int err_irq;
+
+	struct mutex mutex;	/* mutual exclusion semaphore */
+	struct task_struct *task;
+
+	wait_queue_head_t waitq;
+	int	wait_con;
+	struct sport_register *regs;
+	struct sport_config config;
+};
+
 static int sport_major = SPORT_MAJOR;
 static int sport_minor;
 static int sport_nr_devs = SPORT_NR_DEVS;	/* number of bare sport devices */
