@@ -719,7 +719,7 @@ static ssize_t sport_status_show(struct class *sport_class, char *buf)
 	return p - buf;
 }
 
-static struct file_operations sport_fops = {
+static const struct file_operations sport_fops = {
 	.owner = THIS_MODULE,
 	.read = sport_read,
 	.write = sport_write,
