@@ -987,7 +987,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.max_speed_hz = 20000000,     /* max spi clock (SCK) speed in HZ */
 		.irq = IRQ_PF6,
 		.bus_num = 0,
-		.chip_select = 0,	/* GPIO controlled SSEL */
+		.chip_select = GPIO_PF10 | USE_GPIO_CS,	/* GPIO controlled SSEL */
 		.controller_data = &enc28j60_spi_chip_info,
 		.mode = SPI_MODE_0,
 	},
@@ -1009,7 +1009,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.modalias = "adf702x",
 		.max_speed_hz = 16000000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0,
-		.chip_select = 0,	/* GPIO controlled SSEL */
+		.chip_select = GPIO_PF10 | USE_GPIO_CS,	/* GPIO controlled SSEL */
 		.controller_data = &adf7021_spi_chip_info,
 		.platform_data = &adf7021_platform_data,
 		.mode = SPI_MODE_0,

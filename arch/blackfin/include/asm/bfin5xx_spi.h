@@ -109,6 +109,7 @@
 #define CMD_SPI_GET_SYSTEMCLOCK   25
 #define CMD_SPI_SET_WRITECONTINUOUS     26
 
+#define USE_GPIO_CS           0x8000
 /* device.platform_data for SSP controller devices */
 struct bfin5xx_spi_master {
 	u16 num_chipselect;
