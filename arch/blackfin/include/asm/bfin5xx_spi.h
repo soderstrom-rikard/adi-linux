@@ -110,7 +110,6 @@
 #define CMD_SPI_SET_WRITECONTINUOUS     26
 
 #define MAX_CTRL_CS          8  /* cs in spi controller */
-#define MAX_GPIO_CS          MAX_BLACKFIN_GPIOS  /* gpio can be cs */
 
 /* device.platform_data for SSP controller devices */
 struct bfin5xx_spi_master {
