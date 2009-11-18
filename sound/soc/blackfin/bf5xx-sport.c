@@ -34,6 +34,7 @@
 #include <linux/gpio.h>
 #include <linux/bug.h>
 #include <asm/portmux.h>
+#include <asm/bfin_sport.h>
 #include <asm/dma.h>
 #include <asm/blackfin.h>
 #include <asm/cacheflush.h>
