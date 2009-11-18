@@ -98,6 +98,7 @@ static const struct snd_kcontrol_new ad1938_snd_controls[] = {
 static const struct snd_soc_dapm_widget ad1938_dapm_widgets[] = {
 	SND_SOC_DAPM_DAC("DAC", "Playback", AD1938_DAC_CTRL0, 0, 1),
 	SND_SOC_DAPM_ADC("ADC", "Capture", SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_SUPPLY("PLL_PWR", AD1938_PLL_CLK_CTRL0, 0, 1, NULL, 0),
 	SND_SOC_DAPM_SUPPLY("ADC_PWR", AD1938_ADC_CTRL0, 0, 1, NULL, 0),
 	SND_SOC_DAPM_OUTPUT("DAC1OUT"),
 	SND_SOC_DAPM_OUTPUT("DAC2OUT"),
@@ -108,6 +109,8 @@ static const struct snd_soc_dapm_widget ad1938_dapm_widgets[] = {
 };
 
 static const struct snd_soc_dapm_route audio_paths[] = {
+	{ "DAC", NULL, "PLL_PWR" },
+	{ "ADC", NULL, "PLL_PWR" },
 	{ "DAC", NULL, "ADC_PWR" },
 	{ "ADC", NULL, "ADC_PWR" },
 	{ "DAC1OUT", "DAC1 Switch", "DAC" },
@@ -131,16 +134,6 @@ static int ad1938_mute(struct snd_soc_dai *dai, int mute)
 	reg = (mute > 0) ? reg | AD1938_DAC_MASTER_MUTE : reg &
 		(~AD1938_DAC_MASTER_MUTE);
 	codec->write(codec, AD1938_DAC_CTRL2, reg);
-
-	return 0;
-}
-
-static inline int ad1938_pll_powerctrl(struct snd_soc_codec *codec, int cmd)
-{
-	int reg = codec->read(codec, AD1938_PLL_CLK_CTRL0);
-	reg = (cmd > 0) ? reg & (~AD1938_PLL_POWERDOWN) : reg |
-		AD1938_PLL_POWERDOWN;
-	codec->write(codec, AD1938_PLL_CLK_CTRL0, reg);
 
 	return 0;
 }
@@ -304,24 +297,6 @@ static int ad1938_hw_params(struct snd_pcm_substream *substream,
 	reg = (reg & (~AD1938_ADC_WORD_LEN_MASK)) | word_len;
 	codec->write(codec, AD1938_ADC_CTRL1, reg);
 
-	return 0;
-}
-
-static int ad1938_set_bias_level(struct snd_soc_codec *codec,
-		enum snd_soc_bias_level level)
-{
-	switch (level) {
-	case SND_SOC_BIAS_ON:
-		ad1938_pll_powerctrl(codec, 1);
-		break;
-	case SND_SOC_BIAS_PREPARE:
-		break;
-	case SND_SOC_BIAS_STANDBY:
-	case SND_SOC_BIAS_OFF:
-		ad1938_pll_powerctrl(codec, 0);
-		break;
-	}
-	codec->bias_level = level;
 	return 0;
 }
 
@@ -515,7 +490,6 @@ static int ad1938_register(struct ad1938_priv *ad1938)
 	codec->num_dai = 1;
 	codec->write = ad1938_write_reg;
 	codec->read = ad1938_read_reg_cache;
-	codec->set_bias_level = ad1938_set_bias_level;
 	INIT_LIST_HEAD(&codec->dapm_widgets);
 	INIT_LIST_HEAD(&codec->dapm_paths);
 
@@ -560,7 +534,6 @@ static int ad1938_register(struct ad1938_priv *ad1938)
 
 static void ad1938_unregister(struct ad1938_priv *ad1938)
 {
-	ad1938_set_bias_level(&ad1938->codec, SND_SOC_BIAS_OFF);
 	snd_soc_unregister_dai(&ad1938_dai);
 	snd_soc_unregister_codec(&ad1938->codec);
 	kfree(ad1938);
@@ -595,8 +568,6 @@ static int ad1938_probe(struct platform_device *pdev)
 	snd_soc_dapm_add_routes(codec, audio_paths, ARRAY_SIZE(audio_paths));
 	snd_soc_dapm_new_widgets(codec);
 
-	ad1938_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
-
 	ret = snd_soc_init_card(socdev);
 	if (ret < 0) {
 		dev_err(codec->dev, "failed to register card: %d\n", ret);
@@ -623,37 +594,9 @@ static int ad1938_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#ifdef CONFIG_PM
-static int ad1938_suspend(struct platform_device *pdev,
-		pm_message_t state)
-{
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->card->codec;
-
-	ad1938_set_bias_level(codec, SND_SOC_BIAS_OFF);
-	return 0;
-}
-
-static int ad1938_resume(struct platform_device *pdev)
-{
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->card->codec;
-
-	if (codec->suspend_bias_level == SND_SOC_BIAS_ON)
-		ad1938_set_bias_level(codec, SND_SOC_BIAS_ON);
-
-	return 0;
-}
-#else
-#define ad1938_suspend NULL
-#define ad1938_resume NULL
-#endif
-
 struct snd_soc_codec_device soc_codec_dev_ad1938 = {
 	.probe = 	ad1938_probe,
 	.remove = 	ad1938_remove,
-	.suspend =      ad1938_suspend,
-	.resume =       ad1938_resume,
 };
 EXPORT_SYMBOL_GPL(soc_codec_dev_ad1938);
 
