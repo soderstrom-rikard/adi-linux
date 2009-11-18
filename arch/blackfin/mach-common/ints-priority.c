@@ -26,6 +26,7 @@
 #include <asm/gpio.h>
 #include <asm/irq_handler.h>
 #include <asm/dpmc.h>
+#include <asm/bfin_sport.h>
 
 #define SIC_SYSIRQ(irq)	(irq - (IRQ_CORETMR + 1))
 
