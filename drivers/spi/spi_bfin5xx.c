@@ -103,6 +103,9 @@ struct master_data {
 	size_t rx_map_len;
 	size_t tx_map_len;
 	u8 n_bytes;
+	u16 ctrl_reg;
+	u16 flag_reg;
+
 	int cs_change;
 	struct transfer_ops *ops;
 };
@@ -1522,8 +1525,14 @@ static int bfin_spi_suspend(struct platform_device *pdev, pm_message_t state)
 	if (status != 0)
 		return status;
 
-	/* stop hardware */
-	bfin_spi_disable(drv_data);
+	drv_data->ctrl_reg = read_CTRL(drv_data);
+	drv_data->flag_reg = read_FLAG(drv_data);
+
+	/*
+	 * reset SPI_CTL and SPI_FLG registers
+	 */
+	write_FLAG(drv_data, 0xFF00);
+	write_CTRL(drv_data, 0x400);
 
 	return 0;
 }
@@ -1533,8 +1542,8 @@ static int bfin_spi_resume(struct platform_device *pdev)
 	struct master_data *drv_data = platform_get_drvdata(pdev);
 	int status = 0;
 
-	/* Enable the SPI interface */
-	bfin_spi_enable(drv_data);
+	write_CTRL(drv_data, drv_data->ctrl_reg);
+	write_FLAG(drv_data, drv_data->flag_reg);
 
 	/* Start the queue running */
 	status = bfin_spi_start_queue(drv_data);
