@@ -109,7 +109,9 @@
 #define CMD_SPI_GET_SYSTEMCLOCK   25
 #define CMD_SPI_SET_WRITECONTINUOUS     26
 
-#define USE_GPIO_CS           0x8000
+#define MAX_CTRL_CS          8  /* cs in spi controller */
+#define MAX_GPIO_CS          MAX_BLACKFIN_GPIOS  /* gpio can be cs */
+
 /* device.platform_data for SSP controller devices */
 struct bfin5xx_spi_master {
 	u16 num_chipselect;
@@ -125,7 +127,6 @@ struct bfin5xx_spi_chip {
 	u8 enable_dma;
 	u8 bits_per_word;
 	u16 cs_chg_udelay; /* Some devices require 16-bit delays */
-	u32 cs_gpio;
 	/* Value to send if no TX value is supplied, usually 0x0 or 0xFFFF */
 	u16 idle_tx_val;
 	u8 pio_interrupt; /* Enable spi data irq */
