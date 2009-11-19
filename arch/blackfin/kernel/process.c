@@ -262,9 +262,12 @@ void finish_atomic_sections (struct pt_regs *regs)
 	int __user *up0 = (int __user *)regs->p0;
 
 	switch (regs->pc) {
+	default:
+		/* not in middle of an atomic step, so resume like normal */
+		return;
+
 	case ATOMIC_XCHG32 + 2:
 		put_user(regs->r1, up0);
-		regs->pc = ATOMIC_XCHG32 + 4;
 		break;
 
 	case ATOMIC_CAS32 + 2:
@@ -272,7 +275,6 @@ void finish_atomic_sections (struct pt_regs *regs)
 		if (regs->r0 == regs->r1)
 	case ATOMIC_CAS32 + 6:
 			put_user(regs->r2, up0);
-		regs->pc = ATOMIC_CAS32 + 8;
 		break;
 
 	case ATOMIC_ADD32 + 2:
@@ -280,7 +282,6 @@ void finish_atomic_sections (struct pt_regs *regs)
 		/* fall through */
 	case ATOMIC_ADD32 + 4:
 		put_user(regs->r0, up0);
-		regs->pc = ATOMIC_ADD32 + 6;
 		break;
 
 	case ATOMIC_SUB32 + 2:
@@ -288,7 +289,6 @@ void finish_atomic_sections (struct pt_regs *regs)
 		/* fall through */
 	case ATOMIC_SUB32 + 4:
 		put_user(regs->r0, up0);
-		regs->pc = ATOMIC_SUB32 + 6;
 		break;
 
 	case ATOMIC_IOR32 + 2:
@@ -296,7 +296,6 @@ void finish_atomic_sections (struct pt_regs *regs)
 		/* fall through */
 	case ATOMIC_IOR32 + 4:
 		put_user(regs->r0, up0);
-		regs->pc = ATOMIC_IOR32 + 6;
 		break;
 
 	case ATOMIC_AND32 + 2:
@@ -304,7 +303,6 @@ void finish_atomic_sections (struct pt_regs *regs)
 		/* fall through */
 	case ATOMIC_AND32 + 4:
 		put_user(regs->r0, up0);
-		regs->pc = ATOMIC_AND32 + 6;
 		break;
 
 	case ATOMIC_XOR32 + 2:
@@ -312,9 +310,15 @@ void finish_atomic_sections (struct pt_regs *regs)
 		/* fall through */
 	case ATOMIC_XOR32 + 4:
 		put_user(regs->r0, up0);
-		regs->pc = ATOMIC_XOR32 + 6;
 		break;
 	}
+
+	/*
+	 * We've finished the atomic section, and the only thing left for
+	 * userspace is to do a RTS, so we might as well handle that too
+	 * since we need to update the PC anyways.
+	 */
+	regs->pc = regs->rets;
 }
 
 static inline
