@@ -33,6 +33,7 @@
 #include <linux/tty_flip.h>
 #include <linux/serial_core.h>
 
+#include <asm/bfin_sport.h>
 #include <asm/delay.h>
 #include <asm/portmux.h>
 
