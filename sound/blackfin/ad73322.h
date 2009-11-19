@@ -32,7 +32,7 @@
 #ifndef __AD73322_H__
 #define __AD73322_H__
 
-/*8 means 4 AD73322 is connected in cascade mode,since every AD73322 has 2 
+/*8 means 4 AD73322 is connected in cascade mode,since every AD73322 has 2
  *DAC/ADC pairs
  */
 #define NUM_DEVICES_CHAIN 8

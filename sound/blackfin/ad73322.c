@@ -29,8 +29,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/* 
- *This driver supports up to 4 AD73322 connected in cascade mode. 
+/*
+ *This driver supports up to 4 AD73322 connected in cascade mode.
  */
 
 #include <linux/init.h>
@@ -144,22 +144,30 @@ static void snd_ad73322_stop(int index);
 static inline int get_cap_slotindex(int index)
 {
 	int slot_index = 6;
-	switch(index) {
-	case 0:slot_index = 6; 
+	switch (index) {
+	case 0:
+		slot_index = 6;
 		break;
-	case 1:slot_index = 7; 
+	case 1:
+		slot_index = 7;
 		break;
-	case 2:slot_index = 4; 
+	case 2:
+		slot_index = 4;
 		break;
-	case 3:slot_index = 5; 
+	case 3:
+		slot_index = 5;
 		break;
-	case 4:slot_index = 2; 
+	case 4:
+		slot_index = 2;
 		break;
-	case 5:slot_index = 3; 
+	case 5:
+		slot_index = 3;
 		break;
-	case 6:slot_index = 0; 
+	case 6:
+		slot_index = 0;
 		break;
-	case 7:slot_index = 1; 
+	case 7:
+		slot_index = 1;
 		break;
 	}
 	return slot_index;
@@ -310,7 +318,7 @@ static int snd_ad73322_play_pre(struct snd_pcm_substream *substream)
 		sub_info->boundary *= 2;
 	}
 	sub_info->dma_offset = 0;
-	
+
 	return 0;
 }
 
@@ -537,14 +545,14 @@ static int snd_ad73322_cap_copy(struct snd_pcm_substream *substream, int channel
 	}
 	src += start * 8;
 	while (temp_count--) {
-		*idst++ = *(src +slot_index); 
+		*idst++ = *(src + slot_index);
 		src += 8;
 	}
 
 	if (temp2_count) {
 		src = (unsigned short *)chip->rx_dma_buf;
 		while (temp2_count--) {
-			*idst++ = *(src +slot_index); 
+			*idst++ = *(src + slot_index);
 			src += 8;
 		}
 	}
@@ -660,12 +668,12 @@ static void snd_ad73322_stop(int index)
 static void snd_ad73322_reset(void)
 {
 	snd_printd(KERN_INFO "%s is called\n", __FUNCTION__);
-	
+
 	/* Pull down GPIO_RESET pin on AD73322 */
 	gpio_direction_output(GPIO_RESET, 0);
 	udelay(200);
 	gpio_direction_output(GPIO_RESET, 1);
-	
+
 }
 
 /*************************************************************
@@ -675,7 +683,7 @@ static int snd_ad73322_configure(int index)
 {
 	short ctrl_regs[8];
 	short dev_addr,reg_addr;
-	int i,j;	
+	int i, j;
 	unsigned short status = 0;
 	short ctrl_buffer[NUM_DEVICES_CHAIN*8];
 	short *pctrl_buffer;
@@ -689,10 +697,10 @@ static int snd_ad73322_configure(int index)
 	ctrl_regs[4] = SEEN;
 	ctrl_regs[5] = 0;
 	ctrl_regs[6] = 0;
-	
+
 	pctrl_buffer = &ctrl_buffer[0];
 	reg_addr = 1;
-	for (i=0; i<8; i++)
+	for (i = 0; i < 8; i++)
 	{
 		dev_addr = NUM_DEVICES_CHAIN - 1;
 		for (j=0; j<NUM_DEVICES_CHAIN; j++)
@@ -749,9 +757,9 @@ static int snd_ad73322_configure(int index)
 #else
 	bfin_write_SPORT_TCR1(TFSR);
 	bfin_write_SPORT_TCR2(0xF);
-	SSYNC();	
-	
-	for (i=0; i<8; i++) {	
+	SSYNC();
+
+	for (i = 0; i < 8; i++) {
 		for (j=0; j<NUM_DEVICES_CHAIN; j++)
 			bfin_write_SPORT_TX16(ctrl_buffer[8*i+j]);
 		bfin_write_SPORT_TCR1(bfin_read_SPORT_TCR1() | TSPEN);
@@ -762,12 +770,12 @@ static int snd_ad73322_configure(int index)
 			SSYNC();
 		}
 		bfin_write_SPORT_TCR1(bfin_read_SPORT_TCR1() & ~TSPEN);
-	}	
+	}
 	SSYNC();
 	snd_ad73322_stop(index);
 #endif
 	local_irq_enable();
-	
+
 
 	return 0;
 }
@@ -902,11 +910,11 @@ static int __devinit snd_ad73322_probe(struct platform_device *pdev)
 	}
 #endif
 	ad73322->sport = sport;
-	for (i=0; i<NUM_DEVICES_CHAIN; i++) {
+	for (i = 0; i < NUM_DEVICES_CHAIN; i++) {
 		if ((err = snd_ad73322_pcm(ad73322, i)) < 0)
 			goto __nodev;
 	}
-	bf53x_sport_config_rx(sport, RFSR, 0xF, 0, 0); 
+	bf53x_sport_config_rx(sport, RFSR, 0xF, 0, 0);
 	bf53x_sport_config_tx(sport, TFSR, 0xF, 0, 0);
 	bf53x_sport_set_multichannel(sport, 1, 1);
 	bf53x_sport_config_rx_dma(sport, ad73322->rx_dma_buf,
@@ -986,7 +994,7 @@ static int snd_ad73322_suspend(struct platform_device *pdev, pm_message_t state)
 	int i;
 
 	snd_power_change_state(card, SNDRV_CTL_POWER_D3hot);
-	for (i=0; i<NUM_DEVICES_CHAIN; i++)	
+	for (i = 0; i < NUM_DEVICES_CHAIN; i++)
 		snd_pcm_suspend_all(ad73322->pcm[i]);
 
 	return 0;
