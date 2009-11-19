@@ -34,39 +34,8 @@
 #include <linux/types.h>
 #include <linux/wait.h>
 #include <linux/workqueue.h>
+#include <asm/bfin_sport.h>
 #include <asm/dma.h>
-
-/*
- * source: ADSP-BF533 Blackfin Processor Hardware Reference,
- * chapter 12, and appendix B-12 table  B10
- */
-
-struct sport_register {
-	unsigned short tcr1;    unsigned short reserved0;
-	unsigned short tcr2;    unsigned short reserved1;
-	unsigned short tclkdiv; unsigned short reserved2;
-	unsigned short tfsdiv;  unsigned short reserved3;
-	unsigned long tx;
-	unsigned long reserved_l0;
-	unsigned long rx;
-	unsigned long reserved_l1;
-	unsigned short rcr1;    unsigned short reserved4;
-	unsigned short rcr2;    unsigned short reserved5;
-	unsigned short rclkdiv; unsigned short reserved6;
-	unsigned short rfsdiv;  unsigned short reserved7;
-	unsigned short stat;    unsigned short reserved8;
-	unsigned short chnl;    unsigned short reserved9;
-	unsigned short mcmc1;   unsigned short reserved10;
-	unsigned short mcmc2;   unsigned short reserved11;
-	unsigned long mtcs0;
-	unsigned long mtcs1;
-	unsigned long mtcs2;
-	unsigned long mtcs3;
-	unsigned long mrcs0;
-	unsigned long mrcs1;
-	unsigned long mrcs2;
-	unsigned long mrcs3;
-};
 
 #define DESC_ELEMENT_COUNT 9
 
