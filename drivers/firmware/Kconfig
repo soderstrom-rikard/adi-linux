@@ -133,7 +133,7 @@ config ISCSI_IBFT
 	  Otherwise, say N.
 
 config SIGMA
-	bool "SigmaStudio firmware loader"
+	tristate "SigmaStudio firmware loader"
 	depends on I2C
 	default n
 	help
