@@ -743,6 +743,10 @@ static int __devexit bfin_adv7393_fb_remove(struct i2c_client *client)
 	return 0;
 }
 
+
+#undef USE_DEV_PM_OPS
+
+#ifdef USE_DEV_PM_OPS
 #ifdef CONFIG_PM
 static int bfin_adv7393_fb_suspend(struct device *dev)
 {
@@ -779,6 +783,42 @@ static struct dev_pm_ops bfin_adv7393_dev_pm_ops = {
 	.resume  = bfin_adv7393_fb_resume,
 };
 #endif
+#else
+#ifdef CONFIG_PM
+static int bfin_adv7393_fb_suspend(struct i2c_client *client, pm_message_t state)
+{
+	struct adv7393fb_device *fbdev = i2c_get_clientdata(client);
+
+	if (fbdev->open) {
+		bfin_disable_dma();
+		bfin_disable_ppi();
+		dma_desc_list(fbdev, DESTRUCT);
+	}
+	adv7393_mode(client, POWER_DOWN);
+
+	return 0;
+}
+
+static int bfin_adv7393_fb_resume(struct i2c_client *client)
+{
+	struct adv7393fb_device *fbdev = i2c_get_clientdata(client);
+
+	adv7393_mode(client, POWER_ON);
+
+	if (fbdev->open) {
+		dma_desc_list(fbdev, BUILD);
+		bfin_config_ppi(fbdev);
+		bfin_config_dma(fbdev);
+		bfin_enable_ppi();
+	}
+
+	return 0;
+}
+#else
+#define bfin_adv7393_fb_suspend	NULL
+#define bfin_adv7393_fb_resume	NULL
+#endif
+#endif
 
 static const struct i2c_device_id bfin_adv7393_id[] = {
 	{DRIVER_NAME, 0},
@@ -790,12 +830,18 @@ MODULE_DEVICE_TABLE(i2c, bfin_adv7393_id);
 static struct i2c_driver bfin_adv7393_fb_driver = {
 	.driver = {
 		   .name = DRIVER_NAME,
+#ifdef USE_DEV_PM_OPS
 #ifdef CONFIG_PM
 		   .pm   = &bfin_adv7393_dev_pm_ops,
+#endif
 #endif
 	},
 	.probe = bfin_adv7393_fb_probe,
 	.remove = __devexit_p(bfin_adv7393_fb_remove),
+#ifndef USE_DEV_PM_OPS
+	.suspend = bfin_adv7393_fb_suspend,
+	.resume = bfin_adv7393_fb_resume,
+#endif
 	.id_table = bfin_adv7393_id,
 };
 
