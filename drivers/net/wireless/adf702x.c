@@ -265,7 +265,6 @@ static void adf702x_setup_rx(struct adf702x_priv *lp)
 	set_dma_start_addr(lp->dma_ch_rx, (unsigned long)lp->rx_buf);
 	enable_dma(lp->dma_ch_rx);
 	lp->sport->rcr1 |= RSPEN;
-	SSYNC();
 	spin_unlock_irqrestore(&lp->lock, flags);
 }
 
@@ -287,7 +286,6 @@ static void adf702x_tx_work(struct work_struct *work)
 	wait_event(lp->waitq, !(lp->rx || gpio_get_value(lp->gpio_int_rfs)));
 
 	lp->sport->rcr1 &= ~RSPEN;
-	SSYNC();
 	disable_dma(lp->dma_ch_rx);
 	clear_dma_irqstat(lp->dma_ch_rx);
 
@@ -298,7 +296,6 @@ static void adf702x_tx_work(struct work_struct *work)
 	enable_dma(lp->dma_ch_tx);
 
 	lp->sport->tcr1 |= TSPEN;;
-	SSYNC();
 
 	lp->ndev->stats.tx_packets++;
 	lp->ndev->stats.tx_bytes += lp->tx_skb->len;
@@ -438,7 +435,6 @@ static irqreturn_t adf702x_sport_err_irq(int irq, void *dev_id)
 
 	lp->sport->stat = ROVF | RUVF | TUVF | TOVF; /* Clear ROVF bit */
 	lp->sport->rcr1 &= ~RSPEN;
-	SSYNC();
 
 	dev->stats.rx_over_errors++;
 	dev->stats.rx_errors++;
@@ -458,7 +454,6 @@ static irqreturn_t adf702x_tx_interrupt(int irq, void *dev_id)
 	lp->sport->tcr1 &= ~TSPEN;
 	disable_dma(lp->dma_ch_tx);
 	clear_dma_irqstat(lp->dma_ch_tx);
-	SSYNC();
 	schedule_work(&lp->tx_done_work);
 
 	return IRQ_HANDLED;
@@ -506,13 +501,11 @@ static irqreturn_t adf702x_rx_interrupt(int irq, void *dev_id)
 			DBG(1, "%s:%s(): Failed MAGIC\n",
 				 dev->name, __func__);
 			lp->sport->rcr1 &= ~RSPEN;
-			SSYNC();
 			dev->stats.rx_dropped++;
 			dev->stats.rx_errors++;
 		}
 	} else {
 		lp->sport->rcr1 &= ~RSPEN;
-		SSYNC();
 		adf702x_receive(dev);
 	}
 
