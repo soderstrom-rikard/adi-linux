@@ -93,7 +93,7 @@ static void __free_dma_pages(unsigned long addr, unsigned int pages)
 }
 
 void *dma_alloc_coherent(struct device *dev, size_t size,
-			 dma_addr_t * dma_handle, gfp_t gfp)
+			 dma_addr_t *dma_handle, gfp_t gfp)
 {
 	void *ret;
 
@@ -117,17 +117,31 @@ dma_free_coherent(struct device *dev, size_t size, void *vaddr,
 EXPORT_SYMBOL(dma_free_coherent);
 
 /*
- * Dummy functions defined for some existing drivers
+ * Streaming DMA mappings
  */
 
 dma_addr_t
 dma_map_single(struct device *dev, void *ptr, size_t size,
 	       enum dma_data_direction direction)
 {
-	BUG_ON(direction == DMA_NONE);
-
-	invalidate_dcache_range((unsigned long)ptr,
-			(unsigned long)ptr + size);
+	switch (direction) {
+	case DMA_NONE:
+		BUG();
+	case DMA_FROM_DEVICE:           /* invalidate only */
+		invalidate_dcache_range((dma_addr_t)ptr,
+				(dma_addr_t)ptr + size);
+		break;
+	case DMA_TO_DEVICE:		/* writeback only */
+		flush_dcache_range((dma_addr_t)ptr,
+				(dma_addr_t)ptr + size);
+		break;
+	case DMA_BIDIRECTIONAL:	/* writeback and invalidate */
+		flush_dcache_range((dma_addr_t)ptr,
+				(dma_addr_t)ptr + size);
+		invalidate_dcache_range((dma_addr_t)ptr,
+				(dma_addr_t)ptr + size);
+		break;
+	}
 
 	return (dma_addr_t) ptr;
 }
@@ -139,14 +153,31 @@ dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
 {
 	int i;
 
-	BUG_ON(direction == DMA_NONE);
-
-	for (i = 0; i < nents; i++, sg++) {
-		sg->dma_address = (dma_addr_t) sg_virt(sg);
-
-		invalidate_dcache_range(sg_dma_address(sg),
-					sg_dma_address(sg) +
-					sg_dma_len(sg));
+	switch (direction) {
+	case DMA_NONE:
+		BUG();
+	case DMA_FROM_DEVICE:            /* invalidate only */
+		for (i = 0; i < nents; i++, sg++) {
+			sg->dma_address = (dma_addr_t) sg_virt(sg);
+			invalidate_dcache_range(sg->dma_address,
+					  sg->dma_address + sg_dma_len(sg));
+		}
+		break;
+	case DMA_TO_DEVICE:		/* writeback only */
+		for (i = 0; i < nents; i++, sg++) {
+			sg->dma_address = (dma_addr_t) sg_virt(sg);
+			flush_dcache_range(sg->dma_address,
+					   sg->dma_address + sg_dma_len(sg));
+		}
+		break;
+	case DMA_BIDIRECTIONAL:	/* writeback and invalidate */
+		for (i = 0; i < nents; i++, sg++) {
+			flush_dcache_range(sg->dma_address,
+					   sg->dma_address + sg_dma_len(sg));
+			invalidate_dcache_range(sg->dma_address,
+					   sg->dma_address + sg_dma_len(sg));
+		}
+		break;
 	}
 
 	return nents;
@@ -156,13 +187,13 @@ EXPORT_SYMBOL(dma_map_sg);
 void dma_unmap_single(struct device *dev, dma_addr_t dma_addr, size_t size,
 		enum dma_data_direction direction)
 {
-	BUG_ON(direction == DMA_NONE);
+	BUG_ON(!valid_dma_direction(direction));
 }
 EXPORT_SYMBOL(dma_unmap_single);
 
 void dma_unmap_sg(struct device *dev, struct scatterlist *sg,
 		int nhwentries, enum dma_data_direction direction)
 {
-	BUG_ON(direction == DMA_NONE);
+	BUG_ON(!valid_dma_direction(direction));
 }
 EXPORT_SYMBOL(dma_unmap_sg);
