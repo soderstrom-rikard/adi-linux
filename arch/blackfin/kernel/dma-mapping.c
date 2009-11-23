@@ -122,22 +122,20 @@ EXPORT_SYMBOL(dma_free_coherent);
 
 dma_addr_t
 dma_map_single(struct device *dev, void *ptr, size_t size,
-	       enum dma_data_direction direction)
+		enum dma_data_direction direction)
 {
 	switch (direction) {
 	case DMA_NONE:
 		BUG();
-	case DMA_FROM_DEVICE:           /* invalidate only */
-		invalidate_dcache_range((dma_addr_t)ptr,
-				(dma_addr_t)ptr + size);
-		break;
 	case DMA_TO_DEVICE:		/* writeback only */
 		flush_dcache_range((dma_addr_t)ptr,
 				(dma_addr_t)ptr + size);
 		break;
-	case DMA_BIDIRECTIONAL:	/* writeback and invalidate */
-		flush_dcache_range((dma_addr_t)ptr,
-				(dma_addr_t)ptr + size);
+	case DMA_FROM_DEVICE: /* invalidate only */
+	case DMA_BIDIRECTIONAL: /* flush and invalidate */
+		/*
+		 * for blackfin, invalidating cache will flush cache too
+		 */
 		invalidate_dcache_range((dma_addr_t)ptr,
 				(dma_addr_t)ptr + size);
 		break;
@@ -156,13 +154,6 @@ dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
 	switch (direction) {
 	case DMA_NONE:
 		BUG();
-	case DMA_FROM_DEVICE:            /* invalidate only */
-		for (i = 0; i < nents; i++, sg++) {
-			sg->dma_address = (dma_addr_t) sg_virt(sg);
-			invalidate_dcache_range(sg->dma_address,
-					  sg->dma_address + sg_dma_len(sg));
-		}
-		break;
 	case DMA_TO_DEVICE:		/* writeback only */
 		for (i = 0; i < nents; i++, sg++) {
 			sg->dma_address = (dma_addr_t) sg_virt(sg);
@@ -170,12 +161,15 @@ dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
 					   sg->dma_address + sg_dma_len(sg));
 		}
 		break;
+	case DMA_FROM_DEVICE:   /* invalidate only */
 	case DMA_BIDIRECTIONAL:	/* writeback and invalidate */
+		/*
+		 * for blackfin, invalidating cache will flush cache too
+		 */
 		for (i = 0; i < nents; i++, sg++) {
-			flush_dcache_range(sg->dma_address,
-					   sg->dma_address + sg_dma_len(sg));
+			sg->dma_address = (dma_addr_t) sg_virt(sg);
 			invalidate_dcache_range(sg->dma_address,
-					   sg->dma_address + sg_dma_len(sg));
+					sg->dma_address + sg_dma_len(sg));
 		}
 		break;
 	}
