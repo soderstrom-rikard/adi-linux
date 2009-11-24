@@ -1,18 +1,18 @@
 config BF542
 	def_bool y
-	depends on _BF542 || BF542M
+	depends on BF542_std || BF542M
 config BF544
 	def_bool y
-	depends on _BF544 || BF544M
+	depends on BF544_std || BF544M
 config BF547
 	def_bool y
-	depends on _BF547 || BF547M
+	depends on BF547_std || BF547M
 config BF548
 	def_bool y
-	depends on _BF548 || BF548M
+	depends on BF548_std || BF548M
 config BF549
 	def_bool y
-	depends on _BF549 || BF549M
+	depends on BF549_std || BF549M
 
 config BF54xM
 	def_bool y

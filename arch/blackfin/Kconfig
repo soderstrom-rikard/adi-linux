@@ -176,7 +176,7 @@ config BF539
 	help
 	  BF539 Processor Support.
 
-config _BF542
+config BF542_std
 	bool "BF542"
 	help
 	  BF542 Processor Support.
@@ -186,7 +186,7 @@ config BF542M
 	help
 	  BF542 Processor Support.
 
-config _BF544
+config BF544_std
 	bool "BF544"
 	help
 	  BF544 Processor Support.
@@ -196,7 +196,7 @@ config BF544M
 	help
 	  BF544 Processor Support.
 
-config _BF547
+config BF547_std
 	bool "BF547"
 	help
 	  BF547 Processor Support.
@@ -206,7 +206,7 @@ config BF547M
 	help
 	  BF547 Processor Support.
 
-config _BF548
+config BF548_std
 	bool "BF548"
 	help
 	  BF548 Processor Support.
@@ -216,7 +216,7 @@ config BF548M
 	help
 	  BF548 Processor Support.
 
-config _BF549
+config BF549_std
 	bool "BF549"
 	help
 	  BF549 Processor Support.
