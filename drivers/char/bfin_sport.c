@@ -744,6 +744,8 @@ static void __exit sport_cleanup_module(void)
 		cdev_del(&sport_devices[i].cdev);
 
 	unregister_chrdev_region(devno, sport_nr_devs);
+
+	class_destroy(sport_class);
 }
 module_exit(sport_cleanup_module);
 
