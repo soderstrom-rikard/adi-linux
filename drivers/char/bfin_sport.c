@@ -318,21 +318,21 @@ static inline void sport_rx_read(struct sport_dev *dev)
 		while (dev->rx_received < dev->rx_len &&
 		       (dev->regs->stat & RXNE)) {
 			u8 *buf = (void *)dev->rx_buf + dev->rx_received;
-			*buf = bfin_read16(&dev->regs->rx);
+			*buf = dev->regs->rx16;
 			dev->rx_received += 1;
 		}
 	else if (cfg->word_len <= 16)
 		while (dev->rx_received < dev->rx_len &&
 		       (dev->regs->stat & RXNE)) {
 			u16 *buf = (void *)dev->rx_buf + dev->rx_received;
-			*buf = bfin_read16(&dev->regs->rx);
+			*buf = dev->regs->rx16;
 			dev->rx_received += 2;
 		}
 	else
 		while (dev->rx_received < dev->rx_len &&
 		       (dev->regs->stat & RXNE)) {
 			u32 *buf = (void *)dev->rx_buf + dev->rx_received;
-			*buf = bfin_read32(&dev->regs->rx);
+			*buf = bfin_read_sport_rx32(dev->regs);
 			dev->rx_received += 4;
 		}
 }
@@ -360,21 +360,21 @@ static inline void sport_tx_write(struct sport_dev *dev)
 		while (dev->tx_sent < dev->tx_len &&
 		       !(dev->regs->stat & TXF)) {
 			u8 *buf = (void *)dev->tx_buf + dev->tx_sent;
-			bfin_write16(&dev->regs->tx, *buf);
+			dev->regs->tx16 = *buf;
 			dev->tx_sent += 1;
 		}
 	else if (cfg->word_len <= 16)
 		while (dev->tx_sent < dev->tx_len &&
 		       !(dev->regs->stat & TXF)) {
 			u16 *buf = (void *)dev->tx_buf + dev->tx_sent;
-			bfin_write16(&dev->regs->tx, *buf);
+			dev->regs->tx16 = *buf;
 			dev->tx_sent += 2;
 		}
 	else
 		while (dev->tx_sent < dev->tx_len &&
 		       !(dev->regs->stat & TXF)) {
 			u32 *buf = (void *)dev->tx_buf + dev->tx_sent;
-			bfin_write32(&dev->regs->tx, *buf);
+			dev->regs->tx32 = *buf;
 			dev->tx_sent += 4;
 		}
 }
