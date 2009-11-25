@@ -4,6 +4,7 @@
 #define _ASM_BFIN_PCI_H
 
 #include <asm/scatterlist.h>
+#include <asm-generic/pci-dma-compat.h>
 
 /*
  *
