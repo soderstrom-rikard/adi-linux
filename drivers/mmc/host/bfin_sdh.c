@@ -525,8 +525,8 @@ static int __devinit sdh_probe(struct platform_device *pdev)
 
 out4:
 	free_irq(host->irq, host);
-	mmc_remove_host(mmc);
 out3:
+	mmc_remove_host(mmc);
 	dma_free_coherent(&pdev->dev, PAGE_SIZE, host->sg_cpu, host->sg_dma);
 out2:
 	free_dma(host->dma_ch);
