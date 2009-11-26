@@ -149,15 +149,18 @@ static u16 hz_to_spi_baud(u32 speed_hz)
 /* Chip select operation functions for cs_change flag */
 static void bfin_sport_spi_cs_active(struct master_data *drv_data, struct slave_data *chip)
 {
-	gpio_direction_output(chip->cs_gpio, 0);
+	if (chip->chip_select_num > MAX_CTRL_CS)
+		gpio_direction_output(chip->cs_gpio, 0);
 }
 
 static void bfin_sport_spi_cs_deactive(struct master_data *drv_data, struct slave_data *chip)
 {
-	gpio_direction_output(chip->cs_gpio, 1);
-	/* Move delay here for consistency */
-	if (chip->cs_chg_udelay)
-		udelay(chip->cs_chg_udelay);
+	if (chip->chip_select_num > MAX_CTRL_CS) {
+		gpio_direction_output(chip->cs_gpio, 1);
+		/* Move delay here for consistency */
+		if (chip->cs_chg_udelay)
+			udelay(chip->cs_chg_udelay);
+	}
 }
 
 /* stop controller and re-config current chip*/
@@ -673,7 +676,6 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 		chip->enable_dma = chip_info->enable_dma;
 		chip->bits_per_word = chip_info->bits_per_word;
 		chip->cs_chg_udelay = chip_info->cs_chg_udelay;
-		chip->cs_gpio = chip_info->cs_gpio;
 		chip->idle_tx_val = chip_info->idle_tx_val;
 	}
 
@@ -728,7 +730,11 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 
 	spi_set_ctldata(spi, chip);
 
-	if (chip->chip_select_num == 0) {
+	/* Use GPIO as CS, otherwise, we can do nothing to control the CS,
+	 * SPORT is in charge of controlling it.
+	 */
+	if (chip->chip_select_num > MAX_CTRL_CS) {
+		chip->cs_gpio = chip->chip_select_num - MAX_CTRL_CS;;
 		ret = gpio_request(chip->cs_gpio, spi->modalias);
 		if (ret)
 			dev_err(&spi->dev, "request GPIO CS failed\n");
@@ -752,7 +758,7 @@ static void bfin_sport_spi_cleanup(struct spi_device *spi)
 	if (!chip)
 		return;
 
-	if (chip->chip_select_num == 0)
+	if (chip->chip_select_num > MAX_CTRL_CS)
 		gpio_free(chip->cs_gpio);
 
 	kfree(chip);
