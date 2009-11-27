@@ -6,7 +6,11 @@
  * Licensed under the GPL-2 or later.
  */
 
+#define DRV_NAME "bfin_sport"
+#define pr_fmt(fmt) DRV_NAME ": " fmt
+
 #include <linux/cdev.h>
+#include <linux/completion.h>
 #include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/fcntl.h>
@@ -16,29 +20,18 @@
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/moduleparam.h>
 #include <linux/mutex.h>
-#include <linux/sched.h>
-#include <linux/signal.h>
 #include <linux/types.h>
 #include <linux/uaccess.h>
-#include <linux/wait.h>
 
+#include <asm/atomic.h>
 #include <asm/blackfin.h>
 #include <asm/bfin_sport.h>
 #include <asm/dma.h>
 #include <asm/cacheflush.h>
-#include <asm/system.h>
 #include <asm/portmux.h>
 
-#define SPORT_MAJOR	237
-#define SPORT_NR_DEVS	2
-
 struct sport_dev {
-	struct cdev cdev;	/* Char device structure */
-
-	int sport_num;
-
 	int dma_rx_chan;
 	int dma_tx_chan;
 
@@ -54,18 +47,14 @@ struct sport_dev {
 
 	int err_irq;
 
-	struct mutex mutex;	/* mutual exclusion semaphore */
-	struct task_struct *task;
+	struct mutex mutex;
+	unsigned int open_count;
 
-	wait_queue_head_t waitq;
-	int	wait_con;
-	struct sport_register *regs;
+	struct completion c;
+
+	volatile struct sport_register *regs;
 	struct sport_config config;
 };
-
-static int sport_major = SPORT_MAJOR;
-static int sport_minor;
-static int sport_nr_devs = SPORT_NR_DEVS;	/* number of bare sport devices */
 
 /* XXX: this should get pushed to platform device */
 #define SPORT_REQ(x) \
@@ -93,9 +82,9 @@ static u16 sport_req[][9] = {
 		.rx_irq      = IRQ_SPORT##x##_RX, \
 		.tx_irq      = IRQ_SPORT##x##_TX, \
 		.err_irq     = IRQ_SPORT##x##_ERROR, \
-		.regs        = (struct sport_register *)SPORT##x##_TCR1, \
+		.regs        = (void *)SPORT##x##_TCR1, \
 	}
-static struct sport_dev sport_devices[] = {
+static struct sport_dev sport_devs[] = {
 #ifdef SPORT0_TCR1
 	SPORT_PARAMS(0),
 #endif
@@ -110,13 +99,11 @@ static struct sport_dev sport_devices[] = {
 #endif
 };
 
-#define DRV_NAME "bfin_sport"
-
 static irqreturn_t dma_rx_irq_handler(int irq, void *dev_id);
 static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id);
 
 /* note: multichannel is in units of 8 channels, tdm_count is # channels NOT / 8 ! */
-static int sport_set_multichannel(struct sport_register *regs,
+static int sport_set_multichannel(volatile struct sport_register *regs,
 				  int tdm_count, int packed, int frame_delay)
 {
 	if (tdm_count) {
@@ -158,7 +145,7 @@ static int sport_configure(struct sport_dev *dev, struct sport_config *config)
 		/* Request rx dma and set irq handler */
 		ret = request_dma(dev->dma_rx_chan, "sport_rx_dma_chan");
 		if (ret) {
-			printk(KERN_ERR "Unable to request sport rx dma channel\n");
+			pr_err("unable to request sport rx dma channel\n");
 			return ret;
 		}
 		set_dma_callback(dev->dma_rx_chan, dma_rx_irq_handler, dev);
@@ -166,7 +153,7 @@ static int sport_configure(struct sport_dev *dev, struct sport_config *config)
 		/* Request tx dma and set irq handler */
 		ret = request_dma(dev->dma_tx_chan, "sport_tx_dma_chan");
 		if (ret) {
-			printk(KERN_ERR "Unable to request sport tx dma channel\n");
+			pr_err("unable to request sport tx dma channel\n");
 			return ret;
 		}
 		set_dma_callback(dev->dma_tx_chan, dma_tx_irq_handler, dev);
@@ -254,8 +241,7 @@ static inline uint16_t sport_wordsize(int word_len)
 	else if (word_len <= 32)
 		wordsize = WDSIZE_32;
 	else
-		printk(KERN_ERR "%s: word_len:%d is error\n", __func__,
-		       word_len);
+		pr_err("word_len of %d is invalid\n", word_len);
 
 	return wordsize;
 }
@@ -269,8 +255,7 @@ static irqreturn_t dma_rx_irq_handler(int irq, void *dev_id)
 	SSYNC();
 	disable_dma(dev->dma_rx_chan);
 
-	dev->wait_con = 1;
-	wake_up(&dev->waitq);
+	complete(&dev->c);
 
 	clear_dma_irqstat(dev->dma_rx_chan);
 	return IRQ_HANDLED;
@@ -284,14 +269,14 @@ static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id)
 	pr_debug("%s enter\n", __func__);
 	status = get_dma_curr_irqstat(dev->dma_tx_chan);
 	while (status & DMA_RUN) {
-		status = get_dma_curr_irqstat(dev->dma_tx_chan);
 		pr_debug("status:0x%04x\n", status);
+		status = get_dma_curr_irqstat(dev->dma_tx_chan);
 	}
 	status = dev->regs->stat;
 	while (!(status & TXHRE)) {
-		pr_debug("%s status:%x\n", __func__, status);
+		pr_debug("status:%x\n", status);
 		udelay(1);
-		status = *(volatile unsigned short *)&dev->regs->stat;
+		status = dev->regs->stat;
 	}
 	/* Wait for the last byte sent out */
 	udelay(500);
@@ -301,8 +286,7 @@ static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id)
 	SSYNC();
 	disable_dma(dev->dma_tx_chan);
 
-	dev->wait_con = 1;
-	wake_up(&dev->waitq);
+	complete(&dev->c);
 
 	/* Clear the interrupt status */
 	clear_dma_irqstat(dev->dma_tx_chan);
@@ -345,8 +329,7 @@ static irqreturn_t sport_rx_handler(int irq, void *dev_id)
 
 	if (dev->rx_received >= dev->rx_len) {
 		dev->regs->rcr1 &= ~RSPEN;
-		dev->wait_con = 1;
-		wake_up(&dev->waitq);
+		complete(&dev->c);
 	}
 
 	return IRQ_HANDLED;
@@ -392,16 +375,15 @@ static irqreturn_t sport_tx_handler(int irq, void *dev_id)
 
 		stat = dev->regs->stat;
 		while (!(stat & TXHRE)) {
+			pr_debug("%s: stat:%x\n", __func__, stat);
 			udelay(1);
-			pr_debug("%s:stat:%x\n", __func__, stat);
-			stat = *(volatile unsigned short *)&dev->regs->stat;
+			stat = dev->regs->stat;
 		}
 		udelay(500);
 		dev->regs->tcr1 &= ~TSPEN;
 		SSYNC();
-		pr_debug("%s:stat:%x\n", __func__, stat);
-		dev->wait_con = 1;
-		wake_up(&dev->waitq);
+		pr_debug("%s: stat:%x\n", __func__, stat);
+		complete(&dev->c);
 	}
 
 	return IRQ_HANDLED;
@@ -426,21 +408,18 @@ static irqreturn_t sport_err_handler(int irq, void *dev_id)
 		SSYNC();
 
 		if (!dev->config.dma_enabled && !dev->config.int_clk) {
-			if (status & TUVF) {
-				dev->wait_con = 1;
-				wake_up(&dev->waitq);
-			}
+			if (status & TUVF)
+				complete(&dev->c);
 		} else
-			printk(KERN_WARNING "sport %d status error:%s%s%s%s\n",
-			       dev->sport_num,
+			pr_warning("sport %p status error:%s%s%s%s\n",
+			       dev->regs,
 			       status & TOVF ? " TOVF" : "",
 			       status & TUVF ? " TUVF" : "",
 			       status & ROVF ? " ROVF" : "",
 			       status & RUVF ? " RUVF" : "");
 	}
 
-	if (dev->config.dma_enabled || dev->config.int_clk)
-		send_sig(SIGABRT, dev->task, 1);
+	/* XXX: should we always complete here and have read/write error ? */
 
 	return IRQ_HANDLED;
 }
@@ -451,12 +430,26 @@ static irqreturn_t sport_err_handler(int irq, void *dev_id)
 
 static int sport_open(struct inode *inode, struct file *filp)
 {
-	int ret;
-	struct sport_dev *dev;	/* device information */
+	int ret, minor;
+	struct sport_dev *dev;
 
 	pr_debug("%s enter\n", __func__);
-	dev = container_of(inode->i_cdev, struct sport_dev, cdev);
+
+	minor = MINOR(inode->i_rdev);
+	if (minor >= ARRAY_SIZE(sport_devs))
+		return -ENODEV;
+
+	dev = &sport_devs[minor];
+	if (!dev->regs)
+		return -ENODEV;
+
+	if (mutex_lock_interruptible(&dev->mutex))
+		return -ERESTARTSYS;
+
 	filp->private_data = dev;	/* for other methods */
+
+	if (dev->open_count++)
+		goto done;
 
 	memset(&dev->config, 0, sizeof(dev->config));
 
@@ -466,34 +459,34 @@ static int sport_open(struct inode *inode, struct file *filp)
 	dev->tx_buf = NULL;
 	dev->tx_len = 0;
 	dev->tx_sent = 0;
-	dev->wait_con = 0;
+	init_completion(&dev->c);
 
 	ret = request_irq(dev->tx_irq, sport_tx_handler, IRQF_SHARED, DRV_NAME "-tx", dev);
 	if (ret) {
-		printk(KERN_ERR "Unable to request sport tx irq\n");
+		pr_err("unable to request sport tx irq\n");
 		goto fail;
 	}
 
 	ret = request_irq(dev->rx_irq, sport_rx_handler, IRQF_SHARED, DRV_NAME "-rx", dev);
 	if (ret) {
-		printk(KERN_ERR "Unable to request sport rx irq\n");
+		pr_err("unable to request sport rx irq\n");
 		goto fail1;
 	}
 
 	ret = request_irq(dev->err_irq, sport_err_handler, 0, DRV_NAME "-err", dev);
 	if (ret) {
-		printk(KERN_ERR "Unable to request sport err irq\n");
+		pr_err("unable to request sport err irq\n");
 		goto fail2;
 	}
 
-	ret = peripheral_request_list(sport_req[dev->sport_num], DRV_NAME);
+	ret = peripheral_request_list(sport_req[minor], DRV_NAME);
 	if (ret) {
-		printk(KERN_ERR DRV_NAME ": Requesting Peripherals failed\n");
+		pr_err("requesting peripherals failed\n");
 		goto fail3;
 	}
 
-	dev->task = current;
-
+ done:
+	mutex_unlock(&dev->mutex);
 	return 0;
 
  fail3:
@@ -503,16 +496,25 @@ static int sport_open(struct inode *inode, struct file *filp)
  fail1:
 	free_irq(dev->tx_irq, dev);
  fail:
-
+	mutex_unlock(&dev->mutex);
 	return ret;
 }
 
 static int sport_release(struct inode *inode, struct file *filp)
 {
+	int minor;
 	struct sport_dev *dev;
 
 	pr_debug("%s enter\n", __func__);
-	dev = container_of(inode->i_cdev, struct sport_dev, cdev);
+
+	minor = MINOR(inode->i_rdev);
+	dev = &sport_devs[minor];
+
+	if (mutex_lock_interruptible(&dev->mutex))
+		return -ERESTARTSYS;
+
+	if (--dev->open_count)
+		goto done;
 
 	dev->regs->tcr1 &= ~TSPEN;
 	dev->regs->rcr1 &= ~RSPEN;
@@ -526,15 +528,16 @@ static int sport_release(struct inode *inode, struct file *filp)
 	}
 	free_irq(dev->err_irq, dev);
 
-	peripheral_free_list(sport_req[dev->sport_num]);
+	peripheral_free_list(sport_req[minor]);
 
+ done:
+	mutex_unlock(&dev->mutex);
 	return 0;
 }
 
 static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 			  loff_t *f_pos)
 {
-	DECLARE_COMPLETION(done);
 	struct sport_dev *dev = filp->private_data;
 	struct sport_config *cfg = &dev->config;
 
@@ -543,7 +546,6 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 	if (mutex_lock_interruptible(&dev->mutex))
 		return -ERESTARTSYS;
 
-	dev->wait_con = 0;
 	if (cfg->dma_enabled) {
 		int word_bytes = (cfg->word_len + 7) / 8;
 		uint16_t dma_config, xcount, ycount;
@@ -584,13 +586,11 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 	dev->regs->rcr1 |= RSPEN;
 	SSYNC();
 
-	if (wait_event_interruptible(dev->waitq, dev->wait_con) < 0) {
+	if (wait_for_completion_interruptible(&dev->c)) {
 		pr_debug("Receive a signal to interrupt\n");
-		dev->wait_con = 0;
-		mutex_unlock(&dev->mutex);
-		return -ERESTARTSYS;
+		count = -ERESTARTSYS;
+		/* fall through */
 	}
-	dev->wait_con = 0;
 
 	pr_debug("Complete called in dma rx irq handler\n");
 	mutex_unlock(&dev->mutex);
@@ -598,19 +598,9 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 	return count;
 }
 
-static void dump_dma_regs(void)
-{
-	struct dma_register *dma = (struct dma_register *)DMA4_NEXT_DESC_PTR;
-
-	pr_debug("%s config:0x%04x, x_count:0x%04x,"
-		 " x_modify:0x%04x\n", __func__, dma->cfg,
-		 dma->x_count, dma->x_modify);
-}
-
 static ssize_t sport_write(struct file *filp, const char __user *buf,
 			   size_t count, loff_t *f_pos)
 {
-	DECLARE_COMPLETION(done);
 	struct sport_dev *dev = filp->private_data;
 	struct sport_config *cfg = &dev->config;
 	pr_debug("%s count:%ld  dma_tx_chan:%d\n",
@@ -619,7 +609,6 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 	if (mutex_lock_interruptible(&dev->mutex))
 		return -ERESTARTSYS;
 
-	dev->wait_con = 0;
 	/* Configure dma to start transfer */
 	if (cfg->dma_enabled) {
 		uint16_t dma_config, xcount, ycount;
@@ -651,7 +640,6 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 		set_dma_config(dev->dma_tx_chan, dma_config);
 
 		enable_dma(dev->dma_tx_chan);
-		dump_dma_regs();
 	} else {
 		/* Configure parameters to start PIO transfer */
 		dev->tx_buf = buf;
@@ -664,13 +652,11 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 	SSYNC();
 
 	pr_debug("wait for transfer finished\n");
-	if (wait_event_interruptible(dev->waitq, dev->wait_con) < 0) {
+	if (wait_for_completion_interruptible(&dev->c)) {
 		pr_debug("Receive a signal to interrupt\n");
-		dev->wait_con = 0;
-		mutex_unlock(&dev->mutex);
-		return -ERESTARTSYS;
+		count = -ERESTARTSYS;
+		/* fall through */
 	}
-	dev->wait_con = 0;
 	pr_debug("waiting over\n");
 
 	mutex_unlock(&dev->mutex);
@@ -706,18 +692,22 @@ static ssize_t sport_status_show(struct class *sport_class, char *buf)
 	unsigned short i;
 	p = buf;
 
-	for (i = 0; i < sport_nr_devs; ++i)
+	for (i = 0; i < ARRAY_SIZE(sport_devs); ++i) {
+		if (!sport_devs[i].regs)
+			continue;
 		p += sprintf(p,
-			"sport%d:\nrx_irq=%d, rx_received=%d, tx_irq=%d, tx_sent=%d,\n"
-			"mode=%d, channels=%d, data_format=%d, word_len=%d.\n",
-			i, sport_devices[i].rx_irq,
-			sport_devices[i].rx_received,
-			sport_devices[i].tx_irq,
-			sport_devices[i].tx_sent,
-			sport_devices[i].config.mode,
-			sport_devices[i].config.channels,
-			sport_devices[i].config.data_format,
-			sport_devices[i].config.word_len);
+			"sport%d:\n"
+			"\trx_irq=%d rx_received=%d tx_irq=%d tx_sent=%d\n"
+			"\tmode=%d channels=%d data_format=%d word_len=%d\n",
+			i, sport_devs[i].rx_irq,
+			sport_devs[i].rx_received,
+			sport_devs[i].tx_irq,
+			sport_devs[i].tx_sent,
+			sport_devs[i].config.mode,
+			sport_devs[i].config.channels,
+			sport_devs[i].config.data_format,
+			sport_devs[i].config.word_len);
+	}
 
 	return p - buf;
 }
@@ -735,63 +725,77 @@ static struct class *sport_class;
 
 static CLASS_ATTR(status, S_IRUGO, &sport_status_show, NULL);
 
+static struct cdev sport_cdev;
+static dev_t sport_dev;
+
 static void __exit sport_cleanup_module(void)
 {
 	int i;
-	dev_t devno = MKDEV(sport_major, sport_minor);
 
-	for (i = 0; i < sport_nr_devs; ++i)
-		cdev_del(&sport_devices[i].cdev);
+	cdev_del(&sport_cdev);
+	unregister_chrdev_region(sport_dev, ARRAY_SIZE(sport_devs));
 
-	unregister_chrdev_region(devno, sport_nr_devs);
-
+	for (i = 0; i < ARRAY_SIZE(sport_devs); ++i)
+		if (sport_devs[i].regs)
+			device_destroy(sport_class, sport_dev + i);
 	class_destroy(sport_class);
 }
 module_exit(sport_cleanup_module);
 
-static void __init sport_setup_cdev(struct sport_dev *dev, int index)
-{
-	int err, devno = MKDEV(sport_major, sport_minor + index);
-
-	cdev_init(&dev->cdev, &sport_fops);
-	dev->cdev.owner = THIS_MODULE;
-	err = cdev_add(&dev->cdev, devno, 1);
-	if (err)
-		printk(KERN_NOTICE "Error %d adding sport%d", err, index);
-}
-
 static int __init sport_init_module(void)
 {
-	int minor;
-	int result, i;
-	dev_t dev = 0;
+	int ret, i, nr_devs;
+	nr_devs = ARRAY_SIZE(sport_devs);
 
-	dev = MKDEV(sport_major, sport_minor);
-	result = register_chrdev_region(dev, sport_nr_devs, "sport");
-	if (result < 0) {
-		printk(KERN_WARNING "sport: can't get major %d\n", sport_major);
-		return result;
+	ret = alloc_chrdev_region(&sport_dev, 0, nr_devs, "sport");
+	if (ret) {
+		pr_err("can't alloc %i minors\n", nr_devs);
+		goto err;
+	}
+
+	cdev_init(&sport_cdev, &sport_fops);
+	sport_cdev.owner = THIS_MODULE;
+	ret = cdev_add(&sport_cdev, sport_dev, nr_devs);
+	if (ret) {
+		pr_err("cdev_add() failed\n");
+		goto err_chrdev;
 	}
 
 	sport_class = class_create(THIS_MODULE, "sport");
-	result = class_create_file(sport_class, &class_attr_status);
-	if (result) {
-		unregister_chrdev_region(dev, sport_nr_devs);
-		return result;
+	ret = class_create_file(sport_class, &class_attr_status);
+	if (ret) {
+		pr_err("class_create(sport) failed\n");
+		goto err_cdev;
 	}
-	for (minor = 0; minor < sport_nr_devs; minor++)
-		device_create(sport_class, NULL, MKDEV(sport_major, minor),
-		              NULL, "sport%d", minor);
 
-	/* Initialize each device. */
-	for (i = 0; i < sport_nr_devs; ++i) {
-		sport_setup_cdev(&sport_devices[i], i);
-		sport_devices[i].sport_num = i;
-		mutex_init(&sport_devices[i].mutex);
-		init_waitqueue_head(&sport_devices[i].waitq);
+	for (i = 0; i < nr_devs; ++i) {
+		struct device *dev;
+		if (!sport_devs[i].regs)
+			continue;
+
+		dev = device_create(sport_class, NULL, sport_dev + i,
+		                    &sport_devs[i], "sport%d", i);
+		if (!dev)
+			goto err_dev;
+
+		mutex_init(&sport_devs[i].mutex);
+
+		pr_info("registered sport%i\n", i);
 	}
 
 	return 0;
+
+ err_dev:
+	while (--i > 0)
+		if (sport_devs[i].regs)
+			device_destroy(sport_class, sport_dev + i);
+	class_destroy(sport_class);
+ err_cdev:
+	cdev_del(&sport_cdev);
+ err_chrdev:
+	unregister_chrdev_region(sport_dev, nr_devs);
+ err:
+	return ret;
 }
 module_init(sport_init_module);
 
