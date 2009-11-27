@@ -731,7 +731,7 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 	spi_set_ctldata(spi, chip);
 
 	/* Use GPIO as CS, otherwise, we can do nothing to control the CS,
-	 * SPORT is in charge of controlling it.
+	 * SPORT is in charge of issuing cs-change-per-word kind of CS.
 	 */
 	if (chip->chip_select_num > MAX_CTRL_CS) {
 		chip->cs_gpio = chip->chip_select_num - MAX_CTRL_CS;;
