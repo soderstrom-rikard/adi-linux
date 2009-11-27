@@ -524,6 +524,12 @@ asmlinkage notrace void trap_c(struct pt_regs *fp)
 			break;
 		/* External Memory Addressing Error */
 		case (SEQSTAT_HWERRCAUSE_EXTERN_ADDR):
+			if (ANOMALY_05000310) {
+				unsigned int erraddr = fp->pc;
+				if ((erraddr >= (L1_CODE_START + L1_CODE_LENGTH - 512)) &&
+						(erraddr < (L1_CODE_START + L1_CODE_LENGTH)))
+					goto traps_done;
+			}
 			info.si_code = BUS_ADRERR;
 			sig = SIGBUS;
 			strerror = KERN_NOTICE HWC_x3(KERN_NOTICE);
