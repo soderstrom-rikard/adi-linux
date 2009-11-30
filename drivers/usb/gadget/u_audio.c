@@ -287,6 +287,7 @@ static int gaudio_close_snd_dev(struct gaudio *gau)
 	return 0;
 }
 
+static struct gaudio *the_card;
 /**
  * gaudio_setup - setup ALSA interface and preparing for USB transfer
  *
@@ -302,6 +303,9 @@ int __init gaudio_setup(struct gaudio *card)
 	if (ret)
 		ERROR(card, "we need at least one control device\n");
 
+	if (!the_card)
+		the_card = card;
+
 	return ret;
 
 }
@@ -311,9 +315,11 @@ int __init gaudio_setup(struct gaudio *card)
  *
  * This is called to free all resources allocated by @gaudio_setup().
  */
-void gaudio_cleanup(struct gaudio *card)
+void gaudio_cleanup(void)
 {
-	if (card)
-		gaudio_close_snd_dev(card);
+	if (the_card) {
+		gaudio_close_snd_dev(the_card);
+		the_card = NULL;
+	}
 }
 
