@@ -53,13 +53,16 @@ static struct usb_interface_descriptor ac_interface_desc __initdata = {
 DECLARE_USB_AC_HEADER_DESCRIPTOR(2);
 
 #define USB_DT_AC_HEADER_LENGH	USB_DT_AC_HEADER_SIZE(F_AUDIO_NUM_INTERFACES)
+/* 1 input terminal, 1 output terminal and 1 feature unit */
+#define USB_DT_TOTAL_LENGTH (USB_DT_AC_HEADER_LENGH + USB_DT_AC_INPUT_TERMINAL_SIZE\
++ USB_DT_AC_OUTPUT_TERMINAL_SIZE + USB_DT_AC_FEATURE_UNIT_SIZE(0))
 /* B.3.2  Class-Specific AC Interface Descriptor */
 static struct usb_ac_header_descriptor_2 ac_header_desc = {
 	.bLength =		USB_DT_AC_HEADER_LENGH,
 	.bDescriptorType =	USB_DT_CS_INTERFACE,
 	.bDescriptorSubtype =	HEADER,
 	.bcdADC =		__constant_cpu_to_le16(0x0100),
-	.wTotalLength =		__constant_cpu_to_le16(USB_DT_AC_HEADER_LENGH),
+	.wTotalLength =		__constant_cpu_to_le16(USB_DT_TOTAL_LENGTH),
 	.bInCollection =	F_AUDIO_NUM_INTERFACES,
 	.baInterfaceNr = {
 		[0] =		F_AUDIO_AC_INTERFACE,
