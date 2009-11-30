@@ -149,15 +149,15 @@ static u16 hz_to_spi_baud(u32 speed_hz)
 /* Chip select operation functions for cs_change flag */
 static void bfin_sport_spi_cs_active(struct master_data *drv_data, struct slave_data *chip)
 {
-		gpio_direction_output(chip->cs_gpio, 0);
+	gpio_direction_output(chip->cs_gpio, 0);
 }
 
 static void bfin_sport_spi_cs_deactive(struct master_data *drv_data, struct slave_data *chip)
 {
-		gpio_direction_output(chip->cs_gpio, 1);
-		/* Move delay here for consistency */
-		if (chip->cs_chg_udelay)
-			udelay(chip->cs_chg_udelay);
+	gpio_direction_output(chip->cs_gpio, 1);
+	/* Move delay here for consistency */
+	if (chip->cs_chg_udelay)
+		udelay(chip->cs_chg_udelay);
 }
 
 /* stop controller and re-config current chip*/
