@@ -1356,6 +1356,7 @@ unsigned long do_mmap_pgoff(struct file *file,
 			kmem_cache_free(vm_region_jar, region);
 			region = pregion;
 			result = start;
+			len = 0;
 			goto share;
 		}
 
@@ -1414,7 +1415,7 @@ share:
 
 	up_write(&nommu_region_sem);
 
-	if (prot & PROT_EXEC)
+	if (prot & PROT_EXEC && len)
 		flush_icache_range(result, result + len);
 
 	kleave(" = %lx", result);
