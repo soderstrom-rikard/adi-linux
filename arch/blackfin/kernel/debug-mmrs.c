@@ -58,6 +58,31 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_sport_wo, NULL, sport_set, "0x%08llx\n");
 #define D_SPORT_RO(name, bits, addr) _D_SPORT(name, addr, S_IRUSR, &fops_sport_ro)
 #define D_SPORT_WO(name, bits, addr) _D_SPORT(name, addr, S_IWUSR, &fops_sport_wo)
 
+#define DEFINE_SYSREG(sr, pre, post) \
+static int sysreg_##sr##_get(void *data, u64 *val) \
+{ \
+	unsigned long tmp; \
+	pre; \
+	__asm__ __volatile__("%0 = " #sr ";" : "=d"(tmp)); \
+	*val = tmp; \
+	return 0; \
+} \
+static int sysreg_##sr##_set(void *data, u64 val) \
+{ \
+	unsigned long tmp = val; \
+	__asm__ __volatile__(#sr " = %0;" : : "d"(tmp)); \
+	post; \
+	return 0; \
+} \
+DEFINE_SIMPLE_ATTRIBUTE(fops_sysreg_##sr, sysreg_##sr##_get, sysreg_##sr##_set, "0x%08llx\n")
+
+DEFINE_SYSREG(cycles, , );
+DEFINE_SYSREG(cycles2, __asm__ __volatile__("%0 = cycles;" : "=d"(tmp)), );
+DEFINE_SYSREG(emudat, , );
+DEFINE_SYSREG(seqstat, , );
+DEFINE_SYSREG(syscfg, , CSYNC());
+#define D_SYSREG(sr) debugfs_create_file(#sr, S_IRUSR|S_IWUSR, parent, NULL, &fops_sysreg_##sr)
+
 static struct dentry *debug_mmrs_dentry;
 
 static int __init bfin_debug_mmrs_init(void)
@@ -71,7 +96,12 @@ static int __init bfin_debug_mmrs_init(void)
 		return -1;
 
 	parent = debugfs_create_dir("Core Registers", top);
-	debugfs_create_x32("SEQSTAT", S_IRUSR, parent, &last_seqstat);
+	debugfs_create_x32("last_seqstat", S_IRUSR, parent, &last_seqstat);
+	D_SYSREG(cycles);
+	D_SYSREG(cycles2);
+	D_SYSREG(emudat);
+	D_SYSREG(seqstat);
+	D_SYSREG(syscfg);
 
 #ifdef __ADSPBF512__
 # define USE_BF512 1
