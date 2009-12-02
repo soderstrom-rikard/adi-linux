@@ -80,7 +80,6 @@ void __cpuinit platform_secondary_init(unsigned int cpu)
 int __cpuinit platform_boot_secondary(unsigned int cpu, struct task_struct *idle)
 {
 	unsigned long timeout;
-	int ret;
 
 	/* CoreB already running?! */
 	BUG_ON((bfin_read_SICA_SYSCR() & COREB_SRAM_INIT) == 0);
@@ -102,17 +101,13 @@ int __cpuinit platform_boot_secondary(unsigned int cpu, struct task_struct *idle
 		barrier();
 	}
 
-	ret = cpu_isset(cpu, cpu_callin_map) ? 0 : -ENOSYS;
-	if (ret) {
-		cpu_clear(cpu, cpu_present_map);
-		printk(KERN_CRIT "CPU%u: processor failed to boot (%d)\n", cpu, ret);
-		free_task(idle);
-	} else
+	if (cpu_isset(cpu, cpu_callin_map)) {
 		cpu_set(cpu, cpu_online_map);
-
-	/* release the lock and let coreb run */
-	spin_unlock(&boot_lock);
-	return ret;
+		/* release the lock and let coreb run */
+		spin_unlock(&boot_lock);
+		return 0;
+	} else
+		panic("CPU%u: processor failed to boot\n", cpu);
 }
 
 void __init platform_request_ipi(irq_handler_t handler)
