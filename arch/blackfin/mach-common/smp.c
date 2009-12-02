@@ -333,13 +333,6 @@ int __cpuinit __cpu_up(unsigned int cpu)
 
 	ret = platform_boot_secondary(cpu, idle);
 
-	if (ret) {
-		cpu_clear(cpu, cpu_present_map);
-		printk(KERN_CRIT "CPU%u: processor failed to boot (%d)\n", cpu, ret);
-		free_task(idle);
-	} else
-		cpu_set(cpu, cpu_online_map);
-
 	secondary_stack = NULL;
 
 	return ret;
