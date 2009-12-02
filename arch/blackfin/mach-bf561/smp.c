@@ -52,8 +52,6 @@ int __init setup_profiling_timer(unsigned int multiplier) /* not supported */
 
 void __cpuinit platform_secondary_init(unsigned int cpu)
 {
-	local_irq_disable();
-
 	/* Clone setup for peripheral interrupt sources from CoreA. */
 	bfin_write_SICB_IMASK0(bfin_read_SICA_IMASK0());
 	bfin_write_SICB_IMASK1(bfin_read_SICA_IMASK1());
@@ -69,11 +67,6 @@ void __cpuinit platform_secondary_init(unsigned int cpu)
 	bfin_write_SICB_IAR6(bfin_read_SICA_IAR6());
 	bfin_write_SICB_IAR7(bfin_read_SICA_IAR7());
 	SSYNC();
-
-	local_irq_enable();
-
-	/* Calibrate loops per jiffy value. */
-	calibrate_delay();
 
 	/* Store CPU-private information to the cpu_data array. */
 	bfin_setup_cpudata(cpu);

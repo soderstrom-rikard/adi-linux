@@ -408,9 +408,14 @@ void __cpuinit secondary_start_kernel(void)
 
 	setup_secondary(cpu);
 
+	platform_secondary_init(cpu);
+
 	local_irq_enable();
 
-	platform_secondary_init(cpu);
+	/* Calibrate loops per jiffy value.
+	 * IRQs need to be enabled here - D-cache can be invalidated
+	 * in timer irq handler, so core B can read correct jiffies. */
+	calibrate_delay();
 
 	cpu_idle();
 }
