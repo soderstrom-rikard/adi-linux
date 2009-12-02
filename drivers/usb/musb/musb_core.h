@@ -404,9 +404,6 @@ struct musb {
 	unsigned		hb_iso_rx:1;	/* high bandwidth iso rx? */
 	unsigned		hb_iso_tx:1;	/* high bandwidth iso tx? */
 
-	/* Disable PING packet to cope with ill-behaved usb thumb drives. */
-	unsigned disable_ping:1;
-
 #ifdef C_MP_TX
 	unsigned bulk_split:1;
 #define	can_bulk_split(musb,type) \
