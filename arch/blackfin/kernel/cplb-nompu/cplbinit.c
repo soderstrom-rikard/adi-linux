@@ -94,9 +94,19 @@ void __init generate_cplb_tables_all(void)
 	i_d = 0;
 	/* Normal RAM, including MTD FS.  */
 #ifdef CONFIG_MTD_UCLINUX
-	dcplb_bounds[i_d].eaddr = memory_mtd_start + mtd_size;
+	if ((DMA_UNCACHED_REGION >= 1 * 1024 * 1024) || (!DMA_UNCACHED_REGION) ||
+		(_ramend - (memory_mtd_start + mtd_size)) >= 1 * 1024 * 1024)
+		dcplb_bounds[i_d].eaddr = memory_mtd_start + mtd_size;
+	/* if DMA uncache size is less than 1MB, let the whole 1MB from normal_memory_end & 0xfffff uncached */
+	else
+		dcplb_bounds[i_d].eaddr = (memory_mtd_start + mtd_size) & ~(1 * 1024 * 1024);
 #else
-	dcplb_bounds[i_d].eaddr = memory_end;
+	if ((DMA_UNCACHED_REGION >= 1 * 1024 * 1024) || (!DMA_UNCACHED_REGION) ||
+		((_ramend - memory_end) >= 1 * 1024 * 1024))
+		dcplb_bounds[i_d].eaddr = memory_end;
+	/* if DMA uncache size is less than 1MB, let the whole 1MB from normal_memory_end & 0xfffff uncached */
+	else
+		dcplb_bounds[i_d].eaddr = memory_end & ~(1 * 1024 * 1024);
 #endif
 	dcplb_bounds[i_d++].data = SDRAM_DGENERIC;
 	/* DMA uncached region.  */
@@ -136,10 +146,22 @@ void __init generate_cplb_tables_all(void)
 	i_i = 0;
 	/* Normal RAM, including MTD FS.  */
 #ifdef CONFIG_MTD_UCLINUX
-	icplb_bounds[i_i].eaddr = memory_mtd_start + mtd_size;
+	/*
+	 * While DMA uncache size is 128/256/512KB, we let icplb cover the whole 1MB from normal_memory_end & 0xfffff
+	 * A bad result is the 128/256/512KB becomes be able to fetch instrcutions. But in order to protect the area,
+	 * we have to manage the area by page size
+	 */
+	if (unlikely((memory_mtd_start + mtd_size) & (1 * 1024 * 1024 - 1)))
+		icplb_bounds[i_i].eaddr = ((memory_mtd_start + mtd_size) & ~(1 * 1024 * 1024 - 1)) + 1 * 1024 * 1024;
+	else
+		icplb_bounds[i_i].eaddr = memory_mtd_start + mtd_size;
 #else
-	icplb_bounds[i_i].eaddr = memory_end;
+	if (unlikely(memory_end & (1 * 1024 * 1024 - 1)))
+		icplb_bounds[i_i].eaddr = (memory_end & ~(1 * 1024 * 1024 - 1)) + 1 * 1024 * 1024;
+	else
+		icplb_bounds[i_i].eaddr = memory_end;
 #endif
+
 	icplb_bounds[i_i++].data = SDRAM_IGENERIC;
 	/* DMA uncached region.  */
 	if (DMA_UNCACHED_REGION) {
