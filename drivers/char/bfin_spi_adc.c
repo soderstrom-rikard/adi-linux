@@ -68,32 +68,27 @@ static DEFINE_SPINLOCK(spiadc_lock);
 
 static int adc_spi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 {
+	int ret = 0;
 	unsigned long value;
 	struct bfin_spi_adc *bfin_spi_adc = filp->private_data;
 
 	switch (cmd) {
 	case CMD_SPI_GET_SYSTEMCLOCK:
-	{
 		value = get_sclk();
-		copy_to_user((unsigned long *)arg, &value, sizeof(unsigned long));
+		ret = copy_to_user((unsigned long *)arg, &value, sizeof(unsigned long)) ? -EFAULT : 0;
 		break;
-	}
 	case CMD_SPI_SET_BAUDRATE:
-	{
 		if (arg > (133000000 / 4))
 			return -EINVAL;
 		bfin_spi_adc->hz = arg;
 		break;
-	}
 	case CMD_SPI_SET_WRITECONTINUOUS:
-	{
 		bfin_spi_adc->cont = (unsigned char)arg;
 		break;
-	}
 	default:
 		return -EINVAL;
 	}
-	return 0;
+	return ret;
 }
 
 static ssize_t adc_spi_read (struct file *filp, char *buf, size_t count, loff_t *pos)
