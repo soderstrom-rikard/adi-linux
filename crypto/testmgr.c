@@ -1214,6 +1214,7 @@ static int test_cprng(struct crypto_rng *tfm, struct cprng_testvec *template,
 		return -ENOMEM;
 	}
 
+	err = 0; /* sanity in case tcount is 0 */
 	for (i = 0; i < tcount; i++) {
 		memset(result, 0, 32);
 
