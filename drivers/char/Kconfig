@@ -769,8 +769,6 @@ config IBM_BSR
 	  of threads across a large system which avoids bouncing a cacheline
 	  between several cores on a system
 
-source "drivers/char/can4linux/Kconfig"
-
 source "drivers/char/ipmi/Kconfig"
 
 config DS1620
