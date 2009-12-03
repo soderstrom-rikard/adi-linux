@@ -66,6 +66,7 @@ void can_bus_off(struct net_device *dev);
 
 void can_put_echo_skb(struct sk_buff *skb, struct net_device *dev, int idx);
 void can_get_echo_skb(struct net_device *dev, int idx);
+void can_free_echo_skb(struct net_device *dev, int idx);
 
 struct sk_buff *alloc_can_skb(struct net_device *dev, struct can_frame **cf);
 struct sk_buff *alloc_can_err_skb(struct net_device *dev,

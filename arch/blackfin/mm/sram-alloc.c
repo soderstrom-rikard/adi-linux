@@ -29,7 +29,7 @@ struct sram_piece {
 	struct sram_piece *next;
 };
 
-static DEFINE_PER_CPU(spinlock_t, l1sram_lock) ____cacheline_aligned_in_smp;
+static DEFINE_PER_CPU_SHARED_ALIGNED(spinlock_t, l1sram_lock);
 static DEFINE_PER_CPU(struct sram_piece, free_l1_ssram_head);
 static DEFINE_PER_CPU(struct sram_piece, used_l1_ssram_head);
 
@@ -44,11 +44,11 @@ static DEFINE_PER_CPU(struct sram_piece, used_l1_data_B_sram_head);
 #endif
 
 #if L1_DATA_A_LENGTH || L1_DATA_B_LENGTH
-static DEFINE_PER_CPU(spinlock_t, l1_data_sram_lock) ____cacheline_aligned_in_smp;
+static DEFINE_PER_CPU_SHARED_ALIGNED(spinlock_t, l1_data_sram_lock);
 #endif
 
 #if L1_CODE_LENGTH != 0
-static DEFINE_PER_CPU(spinlock_t, l1_inst_sram_lock) ____cacheline_aligned_in_smp;
+static DEFINE_PER_CPU_SHARED_ALIGNED(spinlock_t, l1_inst_sram_lock);
 static DEFINE_PER_CPU(struct sram_piece, free_l1_inst_sram_head);
 static DEFINE_PER_CPU(struct sram_piece, used_l1_inst_sram_head);
 #endif

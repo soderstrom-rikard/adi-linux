@@ -67,6 +67,8 @@ int console_printk[4] = {
 	DEFAULT_CONSOLE_LOGLEVEL,	/* default_console_loglevel */
 };
 
+static int saved_console_loglevel = -1;
+
 /*
  * Low level drivers may need that to know if they can schedule in
  * their unblank() callback or not. So let's export it.
@@ -204,12 +206,11 @@ __setup("log_buf_len=", log_buf_len_setup);
 #ifdef CONFIG_BOOT_PRINTK_DELAY
 
 static unsigned int boot_delay; /* msecs delay after each printk during bootup */
-static unsigned long long printk_delay_msec; /* per msec, based on boot_delay */
+static unsigned long long loops_per_msec;	/* based on boot_delay */
 
 static int __init boot_delay_setup(char *str)
 {
 	unsigned long lpj;
-	unsigned long long loops_per_msec;
 
 	lpj = preset_lpj ? preset_lpj : 1000000;	/* some guess */
 	loops_per_msec = (unsigned long long)lpj / 1000 * HZ;
@@ -218,10 +219,9 @@ static int __init boot_delay_setup(char *str)
 	if (boot_delay > 10 * 1000)
 		boot_delay = 0;
 
-	printk_delay_msec = loops_per_msec;
-	printk(KERN_DEBUG "boot_delay: %u, preset_lpj: %ld, lpj: %lu, "
-		"HZ: %d, printk_delay_msec: %llu\n",
-		boot_delay, preset_lpj, lpj, HZ, printk_delay_msec);
+	pr_debug("boot_delay: %u, preset_lpj: %ld, lpj: %lu, "
+		"HZ: %d, loops_per_msec: %llu\n",
+		boot_delay, preset_lpj, lpj, HZ, loops_per_msec);
 	return 1;
 }
 __setup("boot_delay=", boot_delay_setup);
@@ -234,7 +234,7 @@ static void boot_delay_msec(void)
 	if (boot_delay == 0 || system_state != SYSTEM_BOOTING)
 		return;
 
-	k = (unsigned long long)printk_delay_msec * boot_delay;
+	k = (unsigned long long)loops_per_msec * boot_delay;
 
 	timeout = jiffies + msecs_to_jiffies(boot_delay);
 	while (k) {
@@ -378,10 +378,15 @@ int do_syslog(int type, char __user *buf, int len)
 		logged_chars = 0;
 		break;
 	case 6:		/* Disable logging to console */
+		if (saved_console_loglevel == -1)
+			saved_console_loglevel = console_loglevel;
 		console_loglevel = minimum_console_loglevel;
 		break;
 	case 7:		/* Enable logging to console */
-		console_loglevel = default_console_loglevel;
+		if (saved_console_loglevel != -1) {
+			console_loglevel = saved_console_loglevel;
+			saved_console_loglevel = -1;
+		}
 		break;
 	case 8:		/* Set level of messages printed to console */
 		error = -EINVAL;
@@ -390,6 +395,8 @@ int do_syslog(int type, char __user *buf, int len)
 		if (len < minimum_console_loglevel)
 			len = minimum_console_loglevel;
 		console_loglevel = len;
+		/* Implicitly re-enable logging to console */
+		saved_console_loglevel = -1;
 		error = 0;
 		break;
 	case 9:		/* Number of chars in the log buffer */
@@ -646,6 +653,20 @@ static int recursion_bug;
 static int new_text_line = 1;
 static char printk_buf[1024];
 
+int printk_delay_msec __read_mostly;
+
+static inline void printk_delay(void)
+{
+	if (unlikely(printk_delay_msec)) {
+		int m = printk_delay_msec;
+
+		while (m--) {
+			mdelay(1);
+			touch_nmi_watchdog();
+		}
+	}
+}
+
 asmlinkage int vprintk(const char *fmt, va_list args)
 {
 	int printed_len = 0;
@@ -655,6 +676,7 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 	char *p;
 
 	boot_delay_msec();
+	printk_delay();
 
 	preempt_disable();
 	/* This stops the holder of console_sem just where we want him */
@@ -1065,12 +1087,6 @@ void __sched console_conditional_schedule(void)
 		cond_resched();
 }
 EXPORT_SYMBOL(console_conditional_schedule);
-
-void console_print(const char *s)
-{
-	printk(KERN_EMERG "%s", s);
-}
-EXPORT_SYMBOL(console_print);
 
 void console_unblank(void)
 {
