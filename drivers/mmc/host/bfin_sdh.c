@@ -53,7 +53,7 @@ struct dma_desc_array {
 	unsigned short	cfg;
 	unsigned short	x_count;
 	short		x_modify;
-} __attribute__((packed));
+} __packed;
 
 struct sdh_host {
 	struct mmc_host		*mmc;
@@ -149,15 +149,17 @@ static int sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	sdh_enable_stat_irq(host, (DAT_CRC_FAIL | DAT_TIME_OUT | DAT_END));
 	host->dma_len = dma_map_sg(mmc_dev(host->mmc), data->sg, data->sg_len, host->dma_dir);
 #if defined(CONFIG_BF54x)
-	int i;
 	dma_cfg |= DMAFLOW_ARRAY | NDSIZE_5 | RESTART | WDSIZE_32 | DMAEN;
-	for_each_sg(data->sg, sg, host->dma_len, i) {
-		host->sg_cpu[i].start_addr = sg_dma_address(sg);
-		host->sg_cpu[i].cfg = dma_cfg;
-		host->sg_cpu[i].x_count = sg_dma_len(sg) / 4;
-		host->sg_cpu[i].x_modify = 4;
-		dev_dbg(mmc_dev(host->mmc), "%d: start_addr:0x%lx, cfg:0x%x, x_count:0x%x,\
-				x_modify:0x%x\n", i, host->sg_cpu[i].start_addr,
+	{
+		int i;
+		for_each_sg(data->sg, sg, host->dma_len, i) {
+			host->sg_cpu[i].start_addr = sg_dma_address(sg);
+			host->sg_cpu[i].cfg = dma_cfg;
+			host->sg_cpu[i].x_count = sg_dma_len(sg) / 4;
+			host->sg_cpu[i].x_modify = 4;
+			dev_dbg(mmc_dev(host->mmc), "%d: start_addr:0x%lx, "
+				"cfg:0x%x, x_count:0x%x, x_modify:0x%x\n",
+				i, host->sg_cpu[i].start_addr,
 				host->sg_cpu[i].cfg, host->sg_cpu[i].x_count,
 				host->sg_cpu[i].x_modify);
 	}
@@ -205,8 +207,9 @@ static void sdh_start_cmd(struct sdh_host *host, struct mmc_command *cmd)
 	if (cmd->flags & MMC_RSP_PRESENT) {
 		sdh_cmd |= CMD_RSP;
 		stat_mask |= CMD_RESP_END;
-	} else
+	} else {
 		stat_mask |= CMD_SENT;
+	}
 
 	if (cmd->flags & MMC_RSP_136)
 		sdh_cmd |= CMD_L_RSP;
@@ -304,8 +307,9 @@ static int sdh_data_done(struct sdh_host *host, unsigned int stat)
 	if (host->mrq->stop) {
 		sdh_stop_clock(host);
 		sdh_start_cmd(host, host->mrq->stop);
-	} else
+	} else {
 		sdh_finish_request(host, host->mrq);
+	}
 
 	return 1;
 }
@@ -425,7 +429,7 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 	status = bfin_read_SDH_STATUS();
 	if (status & (CMD_SENT | CMD_RESP_END | CMD_TIME_OUT | CMD_CRC_FAIL)) {
 		handled |= sdh_cmd_done(host, status);
-		bfin_write_SDH_STATUS_CLR( CMD_SENT_STAT | CMD_RESP_END_STAT | \
+		bfin_write_SDH_STATUS_CLR(CMD_SENT_STAT | CMD_RESP_END_STAT | \
 				CMD_TIMEOUT_STAT | CMD_CRC_FAIL_STAT);
 		SSYNC();
 	}
