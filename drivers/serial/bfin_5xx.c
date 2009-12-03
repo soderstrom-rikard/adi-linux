@@ -1254,8 +1254,8 @@ static int bfin_serial_resume(struct platform_device *pdev)
 static int bfin_serial_probe(struct platform_device *pdev)
 {
 	struct resource *res;
-	struct bfin_serial_port *uart;
-	int ret;
+	struct bfin_serial_port *uart = NULL;
+	int ret = 0;
 
 	if (pdev->id < 0 || pdev->id >= BFIN_UART_NR_PORTS) {
 		dev_err(&pdev->dev, "Wrong bfin uart platform device id.\n");
@@ -1263,15 +1263,14 @@ static int bfin_serial_probe(struct platform_device *pdev)
 	}
 
 	if (bfin_serial_ports[pdev->id] == NULL) {
-		bfin_serial_ports[pdev->id] =
-			kzalloc(sizeof(struct bfin_serial_port), GFP_KERNEL);
 
-		uart = bfin_serial_ports[pdev->id];
+		uart = kzalloc(sizeof(*uart), GFP_KERNEL);
 		if (!uart) {
 			dev_err(&pdev->dev,
 				"fail to malloc bfin_serial_port\n");
 			return -ENOMEM;
 		}
+		bfin_serial_ports[pdev->id] = uart;
 
 #ifdef CONFIG_EARLY_PRINTK
 		if (!(bfin_earlyprintk_port.port.membase
