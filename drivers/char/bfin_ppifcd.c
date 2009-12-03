@@ -235,6 +235,7 @@ static irqreturn_t ppifcd_irq_error(int irq, void *dev_id, struct pt_regs *regs)
 static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd,
 		     unsigned long arg)
 {
+	int ret = 0;
 	u_long value;
 	ppi_device_t *pdev = filp->private_data;
 
@@ -300,15 +301,15 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd,
 			pr_debug
 			    ("ppi_ioctl: CMD_PPI_GET_SYSTEMCLOCK SCLK: %d \n",
 			     (int)value);
-			copy_to_user((unsigned long *)arg, &value,
-				     sizeof(unsigned long));
+			ret = copy_to_user((unsigned long *)arg, &value,
+				     sizeof(unsigned long)) ? -EFAULT : 0;
 			break;
 		}
 
 	default:
 		return -EINVAL;
 	}
-	return 0;
+	return ret;
 }
 
 /*
@@ -463,7 +464,7 @@ static int ppi_open(struct inode *inode, struct file *filp)
 {
 	char intname[20];
 	unsigned long flags;
-	int minor = MINOR(inode->i_rdev);
+	int ret, minor = MINOR(inode->i_rdev);
 
 	pr_debug("ppi_open:\n");
 
@@ -510,17 +511,24 @@ static int ppi_open(struct inode *inode, struct file *filp)
 
 	/* Request DMA channel, and pass the interrupt handler */
 
-	if (request_dma(CH_PPI, "BF533_PPI_DMA") < 0) {
-		panic("Unable to attach BlackFin PPI DMA channel\n");
+	ret = request_dma(CH_PPI, "BF533_PPI_DMA");
+	if (ret == 0)
+		ret = set_dma_callback(CH_PPI, (void *)ppifcd_irq,
+				 filp->private_data);
+	if (ret) {
+		ppiinfo.opened = 0;
+		spin_unlock_irqrestore(&ppifcd_lock, flags);
+		return ret;
+	}
+
+	ret = request_irq(IRQ_PPI_ERROR, (void *)ppifcd_irq_error, IRQF_DISABLED,
+		    "PPI ERROR", filp->private_data);
+	if (ret) {
+		free_dma(CH_PPI);
 		ppiinfo.opened = 0;
 		spin_unlock_irqrestore(&ppifcd_lock, flags);
 		return -EFAULT;
-	} else
-		set_dma_callback(CH_PPI, (void *)ppifcd_irq,
-				 filp->private_data);
-
-	request_irq(IRQ_PPI_ERROR, (void *)ppifcd_irq_error, IRQF_DISABLED,
-		    "PPI ERROR", filp->private_data);
+	}
 
 	spin_unlock_irqrestore(&ppifcd_lock, flags);
 
