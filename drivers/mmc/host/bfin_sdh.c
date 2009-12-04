@@ -162,6 +162,7 @@ static int sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 				i, host->sg_cpu[i].start_addr,
 				host->sg_cpu[i].cfg, host->sg_cpu[i].x_count,
 				host->sg_cpu[i].x_modify);
+		}
 	}
 	flush_dcache_range((unsigned int)host->sg_cpu,
 		(unsigned int)host->sg_cpu +
