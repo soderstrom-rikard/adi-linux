@@ -2251,10 +2251,10 @@ static int uart_kgdboc_port_startup(struct tty_driver *driver, int line)
 	struct uart_state *state = drv->state + line;
 	struct uart_port *port;
 
-	if (!state || !state->port)
+	if (!state || !state->uart_port)
 		return -1;
 
-	port = state->port;
+	port = state->uart_port;
 	if (port->ops->kgdboc_port_startup)
 		return port->ops->kgdboc_port_startup(port);
 	else
@@ -2267,10 +2267,10 @@ static void uart_kgdboc_port_shutdown(struct tty_driver *driver, int line)
 	struct uart_state *state = drv->state + line;
 	struct uart_port *port;
 
-	if (!state || !state->port)
+	if (!state || !state->uart_port)
 		return;
 
-	port = state->port;
+	port = state->uart_port;
 	if (port->ops->kgdboc_port_shutdown)
 		port->ops->kgdboc_port_shutdown(port);
 }
