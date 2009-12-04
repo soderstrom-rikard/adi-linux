@@ -119,9 +119,13 @@ static void ipi_call_function(unsigned int cpu, struct ipi_message *msg)
 	wait = msg->call_struct.wait;
 	cpu_clear(cpu, msg->call_struct.pending);
 	func(info);
-	if (wait)
-		cpu_clear(cpu, msg->call_struct.waitmask);
-	else
+	if (wait) {
+		/* 'wait' usually means synchronization between CPUs.
+		 * Tell other CPU to invalidate D cache in case shared data
+		 * was changed by func() */
+		smp_wmb();
+		cpu_clear(cpu, *msg->call_struct.waitmask);
+	} else
 		kfree(msg);
 }
 
@@ -216,6 +220,8 @@ int smp_call_function(void (*func)(void *info), void *info, int wait)
 			blackfin_dcache_invalidate_range(
 				(unsigned long)(&msg->call_struct.waitmask),
 				(unsigned long)(&msg->call_struct.waitmask));
+		/* Invalidate D cache. In case shared data is changed. */
+		smp_rmb();
 		kfree(msg);
 	}
 	return 0;
@@ -258,6 +264,8 @@ int smp_call_function_single(int cpuid, void (*func) (void *info), void *info,
 			blackfin_dcache_invalidate_range(
 				(unsigned long)(&msg->call_struct.waitmask),
 				(unsigned long)(&msg->call_struct.waitmask));
+		/* Invalidate D cache. In case shared data is changed. */
+		smp_rmb();
 		kfree(msg);
 	}
 	return 0;
