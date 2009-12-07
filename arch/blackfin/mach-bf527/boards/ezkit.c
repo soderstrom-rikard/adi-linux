@@ -34,7 +34,7 @@
 #ifdef CONFIG_BFIN527_EZKIT_V2
 const char bfin_board_name[] = "ADI BF527-EZKIT V2";
 #else
-const char bfin_board_name[] = "ADI BF537-STAMP";
+const char bfin_board_name[] = "ADI BF527-EZKIT";
 #endif
 
 /*
