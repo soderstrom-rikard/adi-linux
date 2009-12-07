@@ -124,7 +124,7 @@ static void ipi_call_function(unsigned int cpu, struct ipi_message *msg)
 		 * Tell other CPU to invalidate D cache in case shared data
 		 * was changed by func() */
 		smp_wmb();
-		cpu_clear(cpu, *msg->call_struct.waitmask);
+		cpu_clear(cpu, msg->call_struct.waitmask);
 	} else
 		kfree(msg);
 }
