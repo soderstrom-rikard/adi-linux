@@ -67,7 +67,7 @@ static int bf5xx_ad1938_hw_params(struct snd_pcm_substream *substream,
 		return ret;
 
 	/* set codec DAI slots, 8 channels, all channels are enabled */
-	ret = snd_soc_dai_set_tdm_slot(codec_dai, 0xFF, 8);
+	ret = snd_soc_dai_set_tdm_slot(codec_dai, 0xFF, 0xFF, 8, 32);
 	if (ret < 0)
 		return ret;
 
