@@ -153,7 +153,8 @@ static struct platform_device bf52x_t350mcqb_device = {
 #include <asm/bfin-lq035q1.h>
 
 static struct bfin_lq035q1fb_disp_info bfin_lq035q1_data = {
-	.mode = 	LQ035_NORM | LQ035_RGB | LQ035_RL | LQ035_TB,
+	.mode = LQ035_NORM | LQ035_RGB | LQ035_RL | LQ035_TB,
+	.ppi_mode = USE_RGB565_8_BIT_PPI,
 };
 
 static struct resource bfin_lq035q1_resources[] = {
