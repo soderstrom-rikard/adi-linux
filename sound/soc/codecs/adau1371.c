@@ -90,7 +90,7 @@ static int adau1371_read(struct snd_soc_codec *codec, unsigned int reg)
 		return -EIO;
 	}
 	/* perform the read */
-	if (codec->hw_read(codec->control_data, buf, 1) != 1) {
+	if (i2c_master_recv(codec->control_data, buf, 1) != 1) {
 		dev_err(codec->dev, "hw_read failed.\n");
 		return -EIO;
 	}
@@ -1086,7 +1086,6 @@ static __devinit int adau1371_i2c_probe(struct i2c_client *i2c,
 	codec = &adau1371->codec;
 	codec->private_data = adau1371;
 	codec->hw_write = (hw_write_t)i2c_master_send;
-	codec->hw_read = (hw_read_t)i2c_master_recv;
 
 	i2c_set_clientdata(i2c, adau1371);
 	codec->control_data = i2c;
