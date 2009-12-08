@@ -117,7 +117,7 @@ static int adau1761_read_reg_byte(struct snd_soc_codec *codec,
 	}
 
 	/* perform the read */
-	if (codec->hw_read(codec->control_data, buf, 1) != 1) {
+	if (i2c_master_recv(codec->control_data, buf, 1) != 1) {
 		dev_err(codec->dev, "read_reg_byte:hw_read failed.");
 		return -EIO;
 	}
@@ -150,7 +150,7 @@ static int adau1761_read_reg_block(struct snd_soc_codec *codec,
 		return -EIO;
 	}
 
-	if (codec->hw_read(codec->control_data, buf, len) != len)
+	if (i2c_master_recv(codec->control_data, buf, len) != len)
 		return -EIO;
 
 	for (i = 0; i < len; i++)
@@ -1071,7 +1071,6 @@ static __devinit int adau1761_i2c_probe(struct i2c_client *i2c,
 	codec = &adau1761->codec;
 	codec->private_data = adau1761;
 	codec->hw_write = (hw_write_t)i2c_master_send;
-	codec->hw_read = (hw_read_t)i2c_master_recv;
 
 	i2c_set_clientdata(i2c, adau1761);
 	codec->control_data = i2c;
