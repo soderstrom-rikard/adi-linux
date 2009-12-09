@@ -11,22 +11,6 @@
 #ifndef __BLACKFIN_CAN_H
 #define __BLACKFIN_CAN_H
 
-#include <asm/io.h>
-
-/*
- * bfin can private data
- */
-struct bfin_can_priv {
-	struct can_priv can;	/* must be the first member */
-	struct sk_buff *echo_skb;
-	struct net_device *dev;
-	u32 membase;
-	int rx_irq;
-	int tx_irq;
-	int err_irq;
-	unsigned short *pin_list;
-};
-
 /*
  * registers offset
  */
@@ -59,6 +43,31 @@ struct bfin_can_priv {
 #define OFFSET_MBRIF1               0x24
 #define OFFSET_MBRIF2               0x64
 
+/*
+ * transmit and receive channels
+ */
+#define TRANSMIT_CHL		24
+#define RECEIVE_STD_CHL 	0
+#define RECEIVE_EXT_CHL 	4
+#define RECEIVE_RTR_CHL 	8
+#define RECEIVE_EXT_RTR_CHL 	12
+
+/*
+ * bfin can private data
+ */
+struct bfin_can_priv {
+	struct can_priv can;	/* must be the first member */
+	struct net_device *dev;
+	void __iomem *membase;
+	int rx_irq;
+	int tx_irq;
+	int err_irq;
+	unsigned short *pin_list;
+};
+
+/*
+ * read/write CAN registers and messages
+ */
 #define can_membase(priv)  \
 	((priv)->membase)
 #define can_channel_membase(priv, channel) \
@@ -66,14 +75,11 @@ struct bfin_can_priv {
 #define can_mask_membase(priv, channel)  \
 	((priv)->membase + OFFSET_MB_MASK + ((channel) << 3))
 
-/*
- * read/write CAN registers and messages
- */
 #define CAN_WRITE_REG(val, addr) \
-	writew((val), (u16 *)(addr))
+	writew((val), (addr))
 
 #define CAN_READ_REG(addr) \
-	readw((u16 *)(addr))
+	readw((addr))
 
 #define CAN_WRITE_CTRL(priv, off, val) \
 	CAN_WRITE_REG(val, can_membase((priv)) + (off))
@@ -126,7 +132,7 @@ struct bfin_can_priv {
 				can_channel_membase((priv), (channel)) + OFFSET_OBJ_ID1); \
 	} while (0)
 
-inline void BFIN_CAN_WRITE_MSG(struct bfin_can_priv *priv, int channel, u8 *data, int dlc)
+static inline void CAN_WRITE_DATA(struct bfin_can_priv *priv, int channel, u8 *data, int dlc)
 {
 	int i;
 	u16 val;
@@ -138,7 +144,7 @@ inline void BFIN_CAN_WRITE_MSG(struct bfin_can_priv *priv, int channel, u8 *data
 	}
 }
 
-inline void BFIN_CAN_READ_MSG(struct bfin_can_priv *priv, int channel, u8 *data, int dlc)
+static inline void CAN_READ_DATA(struct bfin_can_priv *priv, int channel, u8 *data, int dlc)
 {
 	int i;
 	u16 val;
@@ -149,14 +155,5 @@ inline void BFIN_CAN_READ_MSG(struct bfin_can_priv *priv, int channel, u8 *data,
 		data[6 - i] = (6 - i) < dlc ? (val >> 8) : 0;
 	}
 }
-
-/*
- * transmit and receive channels
- */
-#define TRANSMIT_CHL		24
-#define RECEIVE_STD_CHL 	0
-#define RECEIVE_EXT_CHL 	4
-#define RECEIVE_RTR_CHL 	8
-#define RECEIVE_EXT_RTR_CHL 	12
 
 #endif 		/* __BLACKFIN_CAN_H */
