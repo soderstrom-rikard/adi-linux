@@ -48,7 +48,7 @@ config CAN_BFIN
 	  Driver for the Analog Devices Blackfin on-chip CAN controllers
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called bfin-can.
+	  module will be called bfin_can.
 
 source "drivers/net/can/sja1000/Kconfig"
 
