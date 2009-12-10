@@ -89,25 +89,25 @@ void __init generate_cplb_tables_cpu(unsigned int cpu)
 
 void __init generate_cplb_tables_all(void)
 {
+	unsigned long uncached_end;
 	int i_d, i_i;
 
 	i_d = 0;
 	/* Normal RAM, including MTD FS.  */
 #ifdef CONFIG_MTD_UCLINUX
-	if ((DMA_UNCACHED_REGION >= 1 * 1024 * 1024) || (!DMA_UNCACHED_REGION) ||
-		(_ramend - (memory_mtd_start + mtd_size)) >= 1 * 1024 * 1024)
-		dcplb_bounds[i_d].eaddr = memory_mtd_start + mtd_size;
-	/* if DMA uncache size is less than 1MB, let the whole 1MB from normal_memory_end & 0xfffff uncached */
-	else
-		dcplb_bounds[i_d].eaddr = (memory_mtd_start + mtd_size) & ~(1 * 1024 * 1024);
+	uncached_end = memory_mtd_start + mtd_size;
 #else
-	if ((DMA_UNCACHED_REGION >= 1 * 1024 * 1024) || (!DMA_UNCACHED_REGION) ||
-		((_ramend - memory_end) >= 1 * 1024 * 1024))
-		dcplb_bounds[i_d].eaddr = memory_end;
-	/* if DMA uncache size is less than 1MB, let the whole 1MB from normal_memory_end & 0xfffff uncached */
-	else
-		dcplb_bounds[i_d].eaddr = memory_end & ~(1 * 1024 * 1024);
+	uncached_end = memory_end;
 #endif
+	/*
+	 * if DMA uncached is less than 1MB, mark the 1MB chunk as uncached
+	 * so that we don't have to use 4kB pages and cause CPLB thrashing
+	 */
+	if ((DMA_UNCACHED_REGION >= 1 * 1024 * 1024) || !DMA_UNCACHED_REGION ||
+	    ((_ramend - uncached_end) >= 1 * 1024 * 1024))
+		dcplb_bounds[i_d].eaddr = uncached_end;
+	else
+		dcplb_bounds[i_d].eaddr = uncached_end & ~(1 * 1024 * 1024);
 	dcplb_bounds[i_d++].data = SDRAM_DGENERIC;
 	/* DMA uncached region.  */
 	if (DMA_UNCACHED_REGION) {
