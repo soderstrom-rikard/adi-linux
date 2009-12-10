@@ -1998,7 +1998,7 @@ static int musb_urb_enqueue(
 		 *
 		 * The upside of disabling it is simpler transfer scheduling.
 		 */
-		interval = 8;
+		interval = 0;
 	}
 	qh->intv_reg = interval;
 
