@@ -312,7 +312,7 @@ static void txstate(struct musb *musb, struct musb_request *req)
 			 * currently, don't use mode1 on Blackfin.
 			 */
 #if !defined(CONFIG_BLACKFIN) || defined(USE_MODE1)
-			request_size = min((size_t)request->length,
+			request_size = min_t(size_t, request->length,
 					musb_ep->dma->max_len);
 #else
 			request_size = fifo_count;
