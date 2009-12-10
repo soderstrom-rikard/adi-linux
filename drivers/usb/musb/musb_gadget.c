@@ -313,7 +313,7 @@ static void txstate(struct musb *musb, struct musb_request *req)
 			 */
 #if !defined(CONFIG_BLACKFIN) || defined(USE_MODE1)
 			request_size = min_t(size_t, request->length,
-					musb_ep->dma->max_len);
+						musb_ep->dma->max_len);
 #else
 			request_size = fifo_count;
 #endif
