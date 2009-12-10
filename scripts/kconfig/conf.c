@@ -231,6 +231,13 @@ static int conf_choice(struct menu *menu)
 	int type;
 	bool is_new;
 
+	/* Make sure at least one child is visible before we show anything */
+	for (child = menu->list; child; child = child->next)
+		if (menu_is_visible(child))
+			break;
+	if (!child)
+		return 1;
+
 	sym = menu->sym;
 	type = sym_get_type(sym);
 	is_new = !sym_has_value(sym);
