@@ -29,38 +29,6 @@
 #define BFIN_CAN_TIMEOUT 100
 
 /*
- * registers offset
- */
-#define OFFSET_MB_MASK              0x100
-#define OFFSET_MASK_AML             0x0
-#define OFFSET_MASK_AMH             0x4
-#define OFFSET_MB_OBJ               0x200
-#define OFFSET_OBJ_DATA             0x0
-#define OFFSET_OBJ_DLC              0x10
-#define OFFSET_OBJ_ID0              0x18
-#define OFFSET_OBJ_ID1              0x1C
-#define OFFSET_CLOCK                0x80
-#define OFFSET_TIMING               0x84
-#define OFFSET_STATUS               0x8C
-#define OFFSET_CEC                  0x90
-#define OFFSET_GIS                  0x94
-#define OFFSET_GIM                  0x98
-#define OFFSET_CONTROL              0xA0
-#define OFFSET_INTR                 0xA4
-#define OFFSET_ESR                  0xB4
-#define OFFSET_MBIM1                0x28
-#define OFFSET_MBIM2                0x68
-#define OFFSET_MC1                  0x0
-#define OFFSET_MC2                  0x40
-#define OFFSET_MD1                  0x4
-#define OFFSET_MD2                  0x44
-#define OFFSET_TRS2                 0x48
-#define OFFSET_MBTIF1               0x20
-#define OFFSET_MBTIF2               0x60
-#define OFFSET_MBRIF1               0x24
-#define OFFSET_MBRIF2               0x64
-
-/*
  * transmit and receive channels
  */
 #define TRANSMIT_CHL		24
@@ -68,6 +36,81 @@
 #define RECEIVE_EXT_CHL 	4
 #define RECEIVE_RTR_CHL 	8
 #define RECEIVE_EXT_RTR_CHL 	12
+#define MAX_CHL_NUMBER          32
+
+/*
+ * bfin can registers layout
+ */
+struct bfin_can_mask_regs {
+	u16 aml;
+	u16 dummy1;
+	u16 amh;
+	u16 dummy2;
+};
+
+struct bfin_can_channel_regs {
+	u16 data[8];
+	u16 dlc;
+	u16 dummy1;
+	u16 tsv;
+	u16 dummy2;
+	u16 id0;
+	u16 dummy3;
+	u16 id1;
+	u16 dummy4;
+};
+
+struct bfin_can_regs {
+	/*
+	 * global control and status registers
+	 */
+	u16 mc1;           /* offset 0 */
+	u16 dummy1;
+	u16 md1;           /* offset 4 */
+	u16 rsv1[13];
+	u16 mbtif1;        /* offset 0x20 */
+	u16 dummy2;
+	u16 mbrif1;        /* offset 0x24 */
+	u16 dummy3;
+	u16 mbim1;         /* offset 0x28 */
+	u16 rsv2[11];
+	u16 mc2;          /* offset 0x40 */
+	u16 dummy4;
+	u16 md2;          /* offset 0x44 */
+	u16 dummy5;
+	u16 trs2;         /* offset 0x48 */
+	u16 rsv3[11];
+	u16 mbtif2;       /* offset 0x60 */
+	u16 dummy6;
+	u16 mbrif2;       /* offset 0x64 */
+	u16 dummy7;
+	u16 mbim2;        /* offset 0x68 */
+	u16 rsv4[11];
+	u16 clk;          /* offset 0x80 */
+	u16 dummy8;
+	u16 timing;       /* offset 0x84 */
+	u16 rsv5[3];
+	u16 status;       /* offset 0x8c */
+	u16 dummy9;
+	u16 cec;          /* offset 0x90 */
+	u16 dummy10;
+	u16 gis;          /* offset 0x94 */
+	u16 dummy11;
+	u16 gim;          /* offset 0x98 */
+	u16 rsv6[3];
+	u16 ctrl;         /* offset 0xa0 */
+	u16 dummy12;
+	u16 intr;         /* offset 0xa4 */
+	u16 rsv7[7];
+	u16 esr;          /* offset 0xb4 */
+	u16 rsv8[37];
+
+	/*
+	 * channel(mailbox) mask and message registers
+	 */
+	struct bfin_can_mask_regs    msk[MAX_CHL_NUMBER]; /* offset 0x100 */
+	struct bfin_can_channel_regs chl[MAX_CHL_NUMBER]; /* offset 0x200 */
+};
 
 /*
  * bfin can private data
@@ -83,72 +126,8 @@ struct bfin_can_priv {
 };
 
 /*
- * read/write CAN registers and messages
+ * bfin can timing parameters
  */
-#define can_membase(priv)  \
-	((priv)->membase)
-#define can_channel_membase(priv, channel) \
-	((priv)->membase + OFFSET_MB_OBJ + ((channel) << 5))
-#define can_mask_membase(priv, channel)  \
-	((priv)->membase + OFFSET_MB_MASK + ((channel) << 3))
-
-#define CAN_WRITE_REG(val, addr) \
-	writew((val), (addr))
-
-#define CAN_READ_REG(addr) \
-	readw((addr))
-
-#define CAN_WRITE_CTRL(priv, off, val) \
-	CAN_WRITE_REG(val, can_membase((priv)) + (off))
-
-#define CAN_READ_CTRL(priv, off) \
-	CAN_READ_REG(can_membase((priv)) + (off))
-
-#define CAN_WRITE_AML(priv, channel, aml) \
-	(CAN_WRITE_REG((aml), can_mask_membase(priv, channel) + OFFSET_MASK_AML))
-
-#define CAN_WRITE_AMH(priv, channel, amh) \
-	(CAN_WRITE_REG((amh), can_mask_membase(priv, channel) + OFFSET_MASK_AMH))
-
-#define CAN_WRITE_DLC(priv, channel, length) \
-	(CAN_WRITE_REG((length), can_channel_membase(priv, channel) + OFFSET_OBJ_DLC))
-
-#define CAN_READ_DLC(priv, channel) \
-	(CAN_READ_REG(can_channel_membase((priv), (channel)) + OFFSET_OBJ_DLC))
-
-#define CAN_READ_OID(priv, channel) \
-	((CAN_READ_REG(can_channel_membase((priv), (channel)) + OFFSET_OBJ_ID1) & 0x1ffc) >> 2)
-
-#define CAN_READ_XOID(priv, channel) \
-	(((CAN_READ_REG(can_channel_membase((priv), (channel)) + OFFSET_OBJ_ID1) & 0x1fff) << 16) \
-	 + ((CAN_READ_REG(can_channel_membase((priv), (channel)) + OFFSET_OBJ_ID0))))
-
-#define CAN_READ_ID1(priv, channel) \
-	(CAN_READ_REG(can_channel_membase((priv), (channel)) + OFFSET_OBJ_ID1))
-
-#define CAN_WRITE_ID0(priv, channel, val) \
-	CAN_WRITE_REG((val), can_channel_membase((priv), (channel)) + OFFSET_OBJ_ID0)
-
-#define CAN_WRITE_OID(priv, channel, id) \
-	CAN_WRITE_REG(((id) << 2) | AME, can_channel_membase((priv), (channel)) + OFFSET_OBJ_ID1)
-
-#define CAN_WRITE_XOID(priv, channel, id)  \
-	do { \
-		CAN_WRITE_REG((id), can_channel_membase((priv), (channel)) + OFFSET_OBJ_ID0); \
-		CAN_WRITE_REG((((id) & 0x1FFF0000) >> 16) + IDE + AME, \
-				can_channel_membase((priv), (channel)) + OFFSET_OBJ_ID1); \
-	} while (0)
-
-#define CAN_WRITE_OID_RTR(priv, channel, id) \
-	CAN_WRITE_REG(((id) << 2) | RTR | AME, can_channel_membase((priv), (channel)) + OFFSET_OBJ_ID1)
-
-#define CAN_WRITE_XOID_RTR(priv, channel, id)  \
-	do { \
-		CAN_WRITE_REG((id), can_channel_membase((priv), (channel)) + OFFSET_OBJ_ID0); \
-		CAN_WRITE_REG((((id) & 0x1FFF0000) >> 16) + IDE + RTR + AME, \
-				can_channel_membase((priv), (channel)) + OFFSET_OBJ_ID1); \
-	} while (0)
-
 static struct can_bittiming_const bfin_can_bittiming_const = {
 	.name = DRV_NAME,
 	.tseg1_min = 1,
@@ -165,9 +144,97 @@ static struct can_bittiming_const bfin_can_bittiming_const = {
 	.brp_inc = 1,
 };
 
+/*
+ * inline functions to read/write ID, data length and payload of CAN frame
+ */
+static inline void bfin_can_write_oid(struct bfin_can_priv *priv, int channel, canid_t id)
+{
+	struct bfin_can_regs *reg = priv->membase;
+
+	writew((id << 2) + AME, &reg->chl[channel].id1);
+}
+
+static inline void bfin_can_write_oid_rtr(struct bfin_can_priv *priv, int channel, canid_t id)
+{
+	struct bfin_can_regs *reg = priv->membase;
+
+	writew((id << 2) + AME + RTR, &reg->chl[channel].id1);
+}
+
+static inline canid_t bfin_can_read_oid(struct bfin_can_priv *priv, int channel)
+{
+	struct bfin_can_regs *reg = priv->membase;
+
+	return (readw(&reg->chl[channel].id1) & 0x1ffc) >> 2;
+}
+
+static inline void bfin_can_write_xoid(struct bfin_can_priv *priv, int channel, canid_t id)
+{
+	struct bfin_can_regs *reg = priv->membase;
+
+	writew(id, &reg->chl[channel].id0);
+	writew(((id & 0x1FFF0000) >> 16) + IDE + AME, &reg->chl[channel].id1);
+}
+
+static inline void bfin_can_write_xoid_rtr(struct bfin_can_priv *priv, int channel, canid_t id)
+{
+	struct bfin_can_regs *reg = priv->membase;
+
+	writew(id, &reg->chl[channel].id0);
+	writew(((id & 0x1FFF0000) >> 16) + IDE + AME + RTR, &reg->chl[channel].id1);
+}
+
+static inline canid_t bfin_can_read_xoid(struct bfin_can_priv *priv, int channel)
+{
+	struct bfin_can_regs *reg = priv->membase;
+
+	return ((readw(&reg->chl[channel].id1) & 0x1FFF) << 16) + readw(&reg->chl[channel].id0);
+}
+
+static inline void bfin_can_write_dlc(struct bfin_can_priv *priv, int channel, u8 dlc)
+{
+	struct bfin_can_regs *reg = priv->membase;
+
+	writew(dlc, &reg->chl[channel].dlc);
+}
+
+static inline u8 bfin_can_read_dlc(struct bfin_can_priv *priv, int channel)
+{
+	struct bfin_can_regs *reg = priv->membase;
+
+	return readw(&reg->chl[channel].dlc);
+}
+
+static inline void bfin_can_write_data(struct bfin_can_priv *priv, int channel, u8 *data, u8 dlc)
+{
+	struct bfin_can_regs *reg = priv->membase;
+	int i;
+	u16 val;
+
+	for (i = 0; i < 8; i += 2) {
+		val = ((7 - i) < dlc ? (data[7 - i]) : 0) +
+			((6 - i) < dlc ? (data[6 - i] << 8) : 0);
+		writew(val, &reg->chl[channel].data[i]);
+	}
+}
+
+static inline void bfin_can_read_data(struct bfin_can_priv *priv, int channel, u8 *data, u8 dlc)
+{
+	struct bfin_can_regs *reg = priv->membase;
+	int i;
+	u16 val;
+
+	for (i = 0; i < 8; i += 2) {
+		val = readw(&reg->chl[channel].data[i]);
+		data[7 - i] = (7 - i) < dlc ? val : 0;
+		data[6 - i] = (6 - i) < dlc ? (val >> 8) : 0;
+	}
+}
+
 static int bfin_can_set_bittiming(struct net_device *dev)
 {
 	struct bfin_can_priv *priv = netdev_priv(dev);
+	struct bfin_can_regs *reg = priv->membase;
 	struct can_bittiming *bt = &priv->can.bittiming;
 	u16 clk, timing;
 
@@ -181,8 +248,8 @@ static int bfin_can_set_bittiming(struct net_device *dev)
 	if (priv->can.ctrlmode & CAN_CTRLMODE_3_SAMPLES)
 		timing |= SAM;
 
-	CAN_WRITE_CTRL(priv, OFFSET_CLOCK, clk);
-	CAN_WRITE_CTRL(priv, OFFSET_TIMING, timing);
+	writew(clk, &reg->clk);
+	writew(timing, &reg->timing);
 
 	dev_info(dev->dev.parent, "setting CLOCK=0x%04x TIMING=0x%04x\n", clk, timing);
 	return 0;
@@ -191,20 +258,21 @@ static int bfin_can_set_bittiming(struct net_device *dev)
 static void bfin_can_set_reset_mode(struct net_device *dev)
 {
 	struct bfin_can_priv *priv = netdev_priv(dev);
-	int i;
+	struct bfin_can_regs *reg = priv->membase;
 	int timeout = BFIN_CAN_TIMEOUT;
+	int i;
 
 	/* disable interrupts */
-	CAN_WRITE_CTRL(priv, OFFSET_MBIM1, 0);
-	CAN_WRITE_CTRL(priv, OFFSET_MBIM2, 0);
-	CAN_WRITE_CTRL(priv, OFFSET_GIM, 0);
+	writew(0, &reg->mbim1);
+	writew(0, &reg->mbim2);
+	writew(0, &reg->gim);
 
 	/* reset can and enter configuration mode */
-	CAN_WRITE_CTRL(priv, OFFSET_CONTROL, SRS | CCR);
+	writew(SRS | CCR, &reg->ctrl);
 	SSYNC();
-	CAN_WRITE_CTRL(priv, OFFSET_CONTROL, CCR);
+	writew(CCR, &reg->ctrl);
 	SSYNC();
-	while (!(CAN_READ_CTRL(priv, OFFSET_CONTROL) & CCA)) {
+	while (!(readw(&reg->ctrl) & CCA)) {
 		udelay(10);
 		if (--timeout == 0) {
 			dev_err(dev->dev.parent, "fail to enter configuration mode\n");
@@ -217,32 +285,33 @@ static void bfin_can_set_reset_mode(struct net_device *dev)
 	 * by writing to CAN Mailbox Configuration Registers 1 and 2
 	 * For all bits: 0 - Mailbox disabled, 1 - Mailbox enabled
 	 */
-	CAN_WRITE_CTRL(priv, OFFSET_MC1, 0);
-	CAN_WRITE_CTRL(priv, OFFSET_MC2, 0);
+	writew(0, &reg->mc1);
+	writew(0, &reg->mc2);
 
 	/* Set Mailbox Direction */
-	CAN_WRITE_CTRL(priv, OFFSET_MD1, 0xFFFF);  /* mailbox 1-16 are RX */
-	CAN_WRITE_CTRL(priv, OFFSET_MD2, 0);       /* mailbox 17-32 are TX */
+	writew(0xFFFF, &reg->md1);   /* mailbox 1-16 are RX */
+	writew(0, &reg->md2);   /* mailbox 17-32 are TX */
 
 	/* RECEIVE_STD_CHL */
 	for (i = 0; i < 2; i++) {
-		CAN_WRITE_OID(priv, RECEIVE_STD_CHL + i, 0);
-		CAN_WRITE_ID0(priv, RECEIVE_STD_CHL, 0);
-		CAN_WRITE_DLC(priv, RECEIVE_STD_CHL + i, 0);
-		CAN_WRITE_AMH(priv, RECEIVE_STD_CHL + i, 0x1FFF);
-		CAN_WRITE_AML(priv, RECEIVE_STD_CHL + i, 0xFFFF);
+		writew(0, &reg->chl[RECEIVE_STD_CHL + i].id0);
+		writew(AME, &reg->chl[RECEIVE_STD_CHL + i].id1);
+		writew(0, &reg->chl[RECEIVE_STD_CHL + i].dlc);
+		writew(0x1FFF, &reg->msk[RECEIVE_STD_CHL + i].amh);
+		writew(0xFFFF, &reg->msk[RECEIVE_STD_CHL + i].aml);
 	}
 
 	/* RECEIVE_EXT_CHL */
 	for (i = 0; i < 2; i++) {
-		CAN_WRITE_XOID(priv, RECEIVE_EXT_CHL + i, 0);
-		CAN_WRITE_DLC(priv, RECEIVE_EXT_CHL + i, 0);
-		CAN_WRITE_AMH(priv, RECEIVE_EXT_CHL + i, 0x1FFF);
-		CAN_WRITE_AML(priv, RECEIVE_EXT_CHL + i, 0xFFFF);
+		writew(0, &reg->chl[RECEIVE_EXT_CHL + i].id0);
+		writew(AME | IDE, &reg->chl[RECEIVE_EXT_CHL + i].id1);
+		writew(0, &reg->chl[RECEIVE_EXT_CHL + i].dlc);
+		writew(0x1FFF, &reg->msk[RECEIVE_EXT_CHL + i].amh);
+		writew(0xFFFF, &reg->msk[RECEIVE_EXT_CHL + i].aml);
 	}
 
-	CAN_WRITE_CTRL(priv, OFFSET_MC2, BIT(TRANSMIT_CHL - 16));
-	CAN_WRITE_CTRL(priv, OFFSET_MC1, BIT(RECEIVE_STD_CHL) + BIT(RECEIVE_EXT_CHL));
+	writew(BIT(TRANSMIT_CHL - 16), &reg->mc2);
+	writew(BIT(RECEIVE_STD_CHL) + BIT(RECEIVE_EXT_CHL), &reg->mc1);
 	SSYNC();
 
 	priv->can.state = CAN_STATE_STOPPED;
@@ -251,14 +320,15 @@ static void bfin_can_set_reset_mode(struct net_device *dev)
 static void bfin_can_set_normal_mode(struct net_device *dev)
 {
 	struct bfin_can_priv *priv = netdev_priv(dev);
+	struct bfin_can_regs *reg = priv->membase;
 	int timeout = BFIN_CAN_TIMEOUT;
 
 	/*
 	 * leave configuration mode
 	 */
-	CAN_WRITE_CTRL(priv, OFFSET_CONTROL, CAN_READ_CTRL(priv, OFFSET_CONTROL) & ~CCR);
+	writew(readw(&reg->ctrl) & ~CCR, &reg->ctrl);
 
-	while (CAN_READ_CTRL(priv, OFFSET_STATUS) & CCA) {
+	while (readw(&reg->status) & CCA) {
 		udelay(10);
 		if (--timeout == 0) {
 			dev_err(dev->dev.parent, "fail to leave configuration mode\n");
@@ -269,50 +339,26 @@ static void bfin_can_set_normal_mode(struct net_device *dev)
 	/*
 	 * clear _All_  tx and rx interrupts
 	 */
-	CAN_WRITE_CTRL(priv, OFFSET_MBTIF1, 0xFFFF);
-	CAN_WRITE_CTRL(priv, OFFSET_MBTIF2, 0xFFFF);
-	CAN_WRITE_CTRL(priv, OFFSET_MBRIF1, 0xFFFF);
-	CAN_WRITE_CTRL(priv, OFFSET_MBRIF2, 0xFFFF);
+	writew(0xFFFF, &reg->mbtif1);
+	writew(0xFFFF, &reg->mbtif2);
+	writew(0xFFFF, &reg->mbrif1);
+	writew(0xFFFF, &reg->mbrif2);
 
 	/*
 	 * clear global interrupt status register
 	 */
-	CAN_WRITE_CTRL(priv, OFFSET_GIS, 0x7FF); /* overwrites with '1' */
+	writew(0x7FF, &reg->gis); /* overwrites with '1' */
 
 	/*
 	 * Initialize Interrupts
 	 * - set bits in the mailbox interrupt mask register
 	 * - global interrupt mask
 	 */
-	CAN_WRITE_CTRL(priv, OFFSET_MBIM1, BIT(RECEIVE_STD_CHL) + BIT(RECEIVE_EXT_CHL));
-	CAN_WRITE_CTRL(priv, OFFSET_MBIM2, BIT(TRANSMIT_CHL - 16));
+	writew(BIT(RECEIVE_STD_CHL) + BIT(RECEIVE_EXT_CHL), &reg->mbim1);
+	writew(BIT(TRANSMIT_CHL - 16), &reg->mbim2);
 
-	CAN_WRITE_CTRL(priv, OFFSET_GIM, EPIM | BOIM | RMLIM);
+	writew(EPIM | BOIM | RMLIM, &reg->gim);
 	SSYNC();
-}
-
-static inline void bfin_can_write_data(struct bfin_can_priv *priv, int channel, u8 *data, int dlc)
-{
-	int i;
-	u16 val;
-
-	for (i = 0; i < 8; i += 2) {
-		val = ((7 - i) < dlc ? (data[7 - i]) : 0) +
-			((6 - i) < dlc ? (data[6 - i] << 8) : 0);
-		CAN_WRITE_REG(val, can_channel_membase((priv), (channel)) + OFFSET_OBJ_DATA + (i << 1));
-	}
-}
-
-static inline void bfin_can_read_data(struct bfin_can_priv *priv, int channel, u8 *data, int dlc)
-{
-	int i;
-	u16 val;
-
-	for (i = 0; i < 8; i += 2) {
-		val = CAN_READ_REG(can_channel_membase((priv), (channel)) + OFFSET_OBJ_DATA + (i << 1));
-		data[7 - i] = (7 - i) < dlc ? val : 0;
-		data[6 - i] = (6 - i) < dlc ? (val >> 8) : 0;
-	}
 }
 
 static void bfin_can_start(struct net_device *dev)
@@ -346,6 +392,7 @@ static int bfin_can_set_mode(struct net_device *dev, enum can_mode mode)
 static int bfin_can_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct bfin_can_priv *priv = netdev_priv(dev);
+	struct bfin_can_regs *reg = priv->membase;
 	struct can_frame *cf = (struct can_frame *)skb->data;
 	u8 dlc;
 	canid_t id;
@@ -358,37 +405,38 @@ static int bfin_can_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	/* fill id and data length code */
 	if (id & CAN_EFF_FLAG) {
 		if (id & CAN_RTR_FLAG)
-			CAN_WRITE_XOID_RTR(priv, TRANSMIT_CHL, id);
+			bfin_can_write_xoid_rtr(priv, TRANSMIT_CHL, id);
 		else
-			CAN_WRITE_XOID(priv, TRANSMIT_CHL, id);
+			bfin_can_write_xoid(priv, TRANSMIT_CHL, id);
 	} else {
 		if (id & CAN_RTR_FLAG)
-			CAN_WRITE_OID_RTR(priv, TRANSMIT_CHL, id);
+			bfin_can_write_oid_rtr(priv, TRANSMIT_CHL, id);
 		else
-			CAN_WRITE_OID(priv, TRANSMIT_CHL, id);
+			bfin_can_write_oid(priv, TRANSMIT_CHL, id);
 	}
 
 	bfin_can_write_data(priv, TRANSMIT_CHL, cf->data, dlc);
 
-	CAN_WRITE_DLC(priv, TRANSMIT_CHL, dlc);
+	bfin_can_write_dlc(priv, TRANSMIT_CHL, dlc);
 
 	dev->trans_start = jiffies;
 
 	can_put_echo_skb(skb, dev, 0);
 
 	/* set transmit request */
-	CAN_WRITE_CTRL(priv, OFFSET_TRS2, BIT(TRANSMIT_CHL - 16));
+	writew(BIT(TRANSMIT_CHL - 16), &reg->trs2);
 	return 0;
 }
 
-static void bfin_can_rx(struct net_device *dev, uint16_t isrc)
+static void bfin_can_rx(struct net_device *dev, u16 isrc)
 {
 	struct bfin_can_priv *priv = netdev_priv(dev);
 	struct net_device_stats *stats = &dev->stats;
+	struct bfin_can_regs *reg = priv->membase;
 	struct can_frame *cf;
 	struct sk_buff *skb;
 	canid_t id;
-	uint8_t dlc;
+	u8 dlc;
 	int obj;
 
 	skb = alloc_can_skb(dev, &cf);
@@ -398,17 +446,17 @@ static void bfin_can_rx(struct net_device *dev, uint16_t isrc)
 	/* get id and data length code */
 	if (isrc & BIT(RECEIVE_EXT_CHL)) {
 		/* extended frame format (EFF) */
-		id = CAN_READ_XOID(priv, RECEIVE_EXT_CHL);
+		id = bfin_can_read_xoid(priv, RECEIVE_EXT_CHL);
 		id |= CAN_EFF_FLAG;
 		obj = RECEIVE_EXT_CHL;
 	} else {
 		/* standard frame format (SFF) */
-		id = CAN_READ_OID(priv, RECEIVE_STD_CHL);
+		id = bfin_can_read_oid(priv, RECEIVE_STD_CHL);
 		obj = RECEIVE_STD_CHL;
 	}
-	if (CAN_READ_ID1(priv, obj) & RTR)
+	if (readw(&reg->chl[obj].id1) & RTR)
 		id |= CAN_RTR_FLAG;
-	dlc = CAN_READ_DLC(priv, obj);
+	dlc = bfin_can_read_dlc(priv, obj);
 
 	cf->can_id = id;
 	cf->can_dlc = dlc;
@@ -421,9 +469,10 @@ static void bfin_can_rx(struct net_device *dev, uint16_t isrc)
 	stats->rx_bytes += dlc;
 }
 
-static int bfin_can_err(struct net_device *dev, uint16_t isrc, uint16_t status)
+static int bfin_can_err(struct net_device *dev, u16 isrc, u16 status)
 {
 	struct bfin_can_priv *priv = netdev_priv(dev);
+	struct bfin_can_regs *reg = priv->membase;
 	struct net_device_stats *stats = &dev->stats;
 	struct can_frame *cf;
 	struct sk_buff *skb;
@@ -463,9 +512,9 @@ static int bfin_can_err(struct net_device *dev, uint16_t isrc, uint16_t status)
 
 	if (state != priv->can.state && (state == CAN_STATE_ERROR_WARNING ||
 				state == CAN_STATE_ERROR_PASSIVE)) {
-		uint16_t cec = CAN_READ_CTRL(priv, OFFSET_CEC);
-		uint8_t rxerr = cec;
-		uint8_t txerr = cec >> 8;
+		u16 cec = readw(&reg->cec);
+		u8 rxerr = cec;
+		u8 txerr = cec >> 8;
 		cf->can_id |= CAN_ERR_CRTL;
 		if (state == CAN_STATE_ERROR_WARNING) {
 			priv->can.can_stats.error_warning++;
@@ -509,26 +558,27 @@ irqreturn_t bfin_can_interrupt(int irq, void *dev_id)
 {
 	struct net_device *dev = dev_id;
 	struct bfin_can_priv *priv = netdev_priv(dev);
+	struct bfin_can_regs *reg = priv->membase;
 	struct net_device_stats *stats = &dev->stats;
-	uint16_t status, isrc;
+	u16 status, isrc;
 
-	if ((irq == priv->tx_irq) && CAN_READ_CTRL(priv, OFFSET_MBTIF2)) {
+	if ((irq == priv->tx_irq) && readw(&reg->mbtif2)) {
 		/* transmission complete interrupt */
-		CAN_WRITE_CTRL(priv, OFFSET_MBTIF2, 0xFFFF);
+		writew(0xFFFF, &reg->mbtif2);
 		stats->tx_packets++;
-		stats->tx_bytes += CAN_READ_DLC(priv, TRANSMIT_CHL);
+		stats->tx_bytes += bfin_can_read_dlc(priv, TRANSMIT_CHL);
 		can_get_echo_skb(dev, 0);
 		netif_wake_queue(dev);
-	} else if ((irq == priv->rx_irq) && CAN_READ_CTRL(priv, OFFSET_MBRIF1)) {
+	} else if ((irq == priv->rx_irq) && readw(&reg->mbrif1)) {
 		/* receive interrupt */
-		isrc = CAN_READ_CTRL(priv, OFFSET_MBRIF1);
-		CAN_WRITE_CTRL(priv, OFFSET_MBRIF1, 0xFFFF);
+		isrc = readw(&reg->mbrif1);
+		writew(0xFFFF, &reg->mbrif1);
 		bfin_can_rx(dev, isrc);
-	} else if ((irq == priv->err_irq) && CAN_READ_CTRL(priv, OFFSET_GIS)) {
+	} else if ((irq == priv->err_irq) && readw(&reg->gis)) {
 		/* error interrupt */
-		isrc = CAN_READ_CTRL(priv, OFFSET_GIS);
-		status = CAN_READ_CTRL(priv, OFFSET_ESR);
-		CAN_WRITE_CTRL(priv, OFFSET_GIS, 0x7FF);
+		isrc = readw(&reg->gis);
+		status = readw(&reg->esr);
+		writew(0x7FF, &reg->gis);
 		bfin_can_err(dev, isrc, status);
 	} else
 		return IRQ_NONE;
@@ -718,14 +768,14 @@ static int bfin_can_suspend(struct platform_device *pdev, pm_message_t mesg)
 {
 	struct net_device *dev = dev_get_drvdata(&pdev->dev);
 	struct bfin_can_priv *priv = netdev_priv(dev);
+	struct bfin_can_regs *reg = priv->membase;
 	int timeout = BFIN_CAN_TIMEOUT;
 
 	if (netif_running(dev)) {
 		/* enter sleep mode */
-		CAN_WRITE_CTRL(priv, OFFSET_CONTROL,
-			CAN_READ_CTRL(priv, OFFSET_CONTROL) | SMR);
+		writew(readw(&reg->ctrl) | SMR, &reg->ctrl);
 		SSYNC();
-		while (!(CAN_READ_CTRL(priv, OFFSET_INTR) & SMACK)) {
+		while (!(readw(&reg->intr) & SMACK)) {
 			udelay(10);
 			if (--timeout == 0) {
 				dev_err(dev->dev.parent, "fail to enter sleep mode\n");
@@ -741,10 +791,11 @@ static int bfin_can_resume(struct platform_device *pdev)
 {
 	struct net_device *dev = dev_get_drvdata(&pdev->dev);
 	struct bfin_can_priv *priv = netdev_priv(dev);
+	struct bfin_can_regs *reg = priv->membase;
 
 	if (netif_running(dev)) {
 		/* leave sleep mode */
-		CAN_WRITE_CTRL(priv, OFFSET_INTR, 0);
+		writew(0, &reg->intr);
 		SSYNC();
 	}
 
@@ -783,4 +834,3 @@ module_exit(bfin_can_exit);
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Blackfin on-chip CAN netdevice driver");
-
