@@ -56,7 +56,7 @@
 #define                      GPWS  0x1000     /* General-Purpose Wake-Up Status */
 
 /* VR_CTL Masks */
-#ifdef __ADSPBF52x__
+#if defined(__ADSPBF52x__) || defined(__ADSPBF51x__)
 #define FREQ			0x3000	/* Switching Oscillator Frequency For Regulator */
 #define FREQ_1000		0x3000	/* Switching Frequency Is 1 MHz */
 #else
@@ -106,7 +106,7 @@
 #define CLKBUFOE		0x4000	/* CLKIN Buffer Output Enable */
 #define SCKELOW			0x8000	/* Do Not Drive SCKE High During Reset After Hibernate */
 
-#ifdef __ADSPBF52x__
+#if defined(__ADSPBF52x__) || defined(__ADSPBF51x__)
 #define USBWE			0x0200	/* Enable USB Wakeup From Hibernate */
 #else
 #define USBWE			0x0800	/* Enable USB Wakeup From Hibernate */
