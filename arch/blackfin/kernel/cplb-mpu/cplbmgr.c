@@ -234,7 +234,7 @@ static noinline int icplb_miss(unsigned int cpu)
 	} else if (addr >= _ramend) {
 		i_data |= CPLB_USER_RD;
 		if (reserved_mem_icache_on)
-			d_data |= CPLB_L1_CHBL;
+			i_data |= CPLB_L1_CHBL;
 	} else {
 		/*
 		 * Two cases to distinguish - a supervisor access must
