@@ -7,17 +7,11 @@
  */
 
 #include <linux/types.h>
-#include <linux/mm.h>
+#include <linux/gfp.h>
 #include <linux/string.h>
-#include <linux/bootmem.h>
 #include <linux/spinlock.h>
-#include <linux/device.h>
 #include <linux/dma-mapping.h>
-#include <linux/io.h>
 #include <linux/scatterlist.h>
-#include <asm/cacheflush.h>
-#include <asm/bfin-global.h>
-#include <asm/sections.h>
 
 static spinlock_t dma_page_lock;
 static unsigned long *dma_page;
@@ -26,7 +20,7 @@ static unsigned long dma_base;
 static unsigned long dma_size;
 static unsigned int dma_initialized;
 
-void dma_alloc_init(unsigned long start, unsigned long end)
+static void dma_alloc_init(unsigned long start, unsigned long end)
 {
 	spin_lock_init(&dma_page_lock);
 	dma_initialized = 0;
@@ -119,38 +113,16 @@ EXPORT_SYMBOL(dma_free_coherent);
 /*
  * Streaming DMA mappings
  */
-static inline void __dma_sync(dma_addr_t addr, size_t size,
-		enum dma_data_direction direction)
+void __dma_sync(dma_addr_t addr, size_t size,
+		enum dma_data_direction dir)
 {
-	switch (direction) {
-	case DMA_NONE:
-		BUG();
-	case DMA_TO_DEVICE:		/* writeback only */
-		flush_dcache_range(addr, addr + size);
-		break;
-	case DMA_FROM_DEVICE: /* invalidate only */
-	case DMA_BIDIRECTIONAL: /* flush and invalidate */
-		/*
-		 * for blackfin, invalidating cache will flush cache too
-		 */
-		invalidate_dcache_range(addr, addr + size);
-		break;
-	}
+	_dma_sync(addr, size, dir);
 }
-
-dma_addr_t
-dma_map_single(struct device *dev, void *ptr, size_t size,
-		enum dma_data_direction direction)
-{
-	__dma_sync((dma_addr_t)ptr, size, direction);
-
-	return (dma_addr_t) ptr;
-}
-EXPORT_SYMBOL(dma_map_single);
+EXPORT_SYMBOL(__dma_sync);
 
 int
 dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
-		enum dma_data_direction direction)
+	   enum dma_data_direction direction)
 {
 	int i;
 
@@ -163,49 +135,8 @@ dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
 }
 EXPORT_SYMBOL(dma_map_sg);
 
-void dma_unmap_single(struct device *dev, dma_addr_t dma_addr, size_t size,
-		enum dma_data_direction direction)
-{
-	BUG_ON(!valid_dma_direction(direction));
-}
-EXPORT_SYMBOL(dma_unmap_single);
-
-void dma_unmap_sg(struct device *dev, struct scatterlist *sg,
-		int nhwentries, enum dma_data_direction direction)
-{
-	BUG_ON(!valid_dma_direction(direction));
-}
-EXPORT_SYMBOL(dma_unmap_sg);
-
-/*
- * transfer ownership of the mapped streaming DMA buffer to the CPU
- */
-void dma_sync_single_range_for_cpu(struct device *dev, dma_addr_t dma_handle,
-		unsigned long offset, size_t size, enum dma_data_direction direction)
-{
-	BUG_ON(!valid_dma_direction(direction));
-}
-EXPORT_SYMBOL(dma_sync_single_range_for_cpu);
-
-void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nelems,
-		enum dma_data_direction direction)
-{
-	BUG_ON(!valid_dma_direction(direction));
-}
-EXPORT_SYMBOL(dma_sync_sg_for_cpu);
-
-/*
- * allow the device to access the mapped streaming DMA buffer again
- */
-void dma_sync_single_range_for_device(struct device *dev, dma_addr_t dma_handle,
-		unsigned long offset, size_t size, enum dma_data_direction direction)
-{
-	__dma_sync(dma_handle + offset, size, direction);
-}
-EXPORT_SYMBOL(dma_sync_single_range_for_device);
-
-void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg, int nelems,
-		enum dma_data_direction direction)
+void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+			    int nelems, enum dma_data_direction direction)
 {
 	int i;
 
@@ -215,10 +146,3 @@ void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg, int nele
 	}
 }
 EXPORT_SYMBOL(dma_sync_sg_for_device);
-
-void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
-	       enum dma_data_direction direction)
-{
-	__dma_sync((dma_addr_t)vaddr, size, direction);
-}
-EXPORT_SYMBOL(dma_cache_sync);
