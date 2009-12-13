@@ -310,7 +310,6 @@ static void bfin_demux_error_irq(unsigned int int_err_irq,
 				 struct irq_desc *inta_desc)
 {
 	int irq = 0;
-	u16 iir;
 
 #if (defined(CONFIG_BF537) || defined(CONFIG_BF536))
 	if (bfin_read_EMAC_SYSTAT() & EMAC_ERR_MASK)
@@ -327,11 +326,9 @@ static void bfin_demux_error_irq(unsigned int int_err_irq,
 		irq = IRQ_CAN_ERROR;
 	else if (bfin_read_SPI_STAT() & SPI_ERR_MASK)
 		irq = IRQ_SPI_ERROR;
-	else if (((iir = bfin_read_UART0_IIR()) & UART_ERR_MASK_STAT1) &&
-	         (iir & UART_ERR_MASK_STAT0))
+	else if ((bfin_read_UART0_IIR() & UART_ERR_MASK_STAT) == UART_ERR_MASK_STAT)
 		irq = IRQ_UART0_ERROR;
-	else if (((iir = bfin_read_UART1_IIR()) & UART_ERR_MASK_STAT1) &&
-	         (iir & UART_ERR_MASK_STAT0))
+	else if ((bfin_read_UART1_IIR() & UART_ERR_MASK_STAT) == UART_ERR_MASK_STAT)
 		irq = IRQ_UART1_ERROR;
 
 	if (irq) {
