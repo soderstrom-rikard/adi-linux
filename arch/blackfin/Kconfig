@@ -255,9 +255,8 @@ config IRQ_PER_CPU
 	default y
 
 config HAVE_LEGACY_PER_CPU_AREA
-	bool
+	def_bool y
 	depends on SMP
-	default y
 
 config BF_REV_MIN
 	int
