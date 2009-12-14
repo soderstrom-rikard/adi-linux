@@ -70,7 +70,4 @@
 #define PORT_D GPIO_PD0
 #define PORT_E GPIO_PE0
 
-void bfin_special_gpio_free(unsigned gpio);
-int bfin_special_gpio_request(unsigned gpio, const char *label);
-
 #endif /* _MACH_GPIO_H_ */
