@@ -387,8 +387,7 @@ static inline unsigned long get_stack_usage_in_bytes(struct vm_area_struct *vma,
 	return ss.usage;
 }
 
-static inline void task_show_stack_usage(struct seq_file *m,
-						struct task_struct *task)
+static void task_show_stack_usage(struct seq_file *m, struct task_struct *task)
 {
 	struct vm_area_struct	*vma;
 	struct mm_struct	*mm = get_task_mm(task);
@@ -404,9 +403,24 @@ static inline void task_show_stack_usage(struct seq_file *m,
 		mmput(mm);
 	}
 }
-#else
+#else /* CONFIG_MMU */
+/*
+ * Calculate the size of a NOMMU process's stack
+ */
 static void task_show_stack_usage(struct seq_file *m, struct task_struct *task)
 {
+	unsigned long sp, base, usage;
+
+	base = task->stack_start;
+	sp = KSTK_ESP(task);
+
+#ifdef CONFIG_STACK_GROWSUP
+	usage = sp - base;
+#else
+	usage = base - sp;
+#endif
+
+	seq_printf(m, "Stack usage:\t%lu kB\n", (usage + 1023) >> 10);
 }
 #endif		/* CONFIG_MMU */
 
