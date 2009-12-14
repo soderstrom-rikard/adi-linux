@@ -76,6 +76,8 @@ static void bf538_gpio_free(struct gpio_chip *chip, unsigned gpio)
 	return bfin_special_gpio_free(chip->base + gpio);
 }
 
+/* We don't set the irq fields as these banks cannot generate interrupts */
+
 static struct gpio_chip bf538_portc_chip = {
 	.label = "GPIO-PC",
 	.direction_input = bf538_gpio_direction_input,
