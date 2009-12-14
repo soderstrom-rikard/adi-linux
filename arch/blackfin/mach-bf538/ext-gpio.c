@@ -1,5 +1,5 @@
 /*
- * GPIOLIB interface for BF538/9 PORT C,D and E GPIOs
+ * GPIOLIB interface for BF538/9 PORT C, D, and E GPIOs
  *
  * Copyright 2009 Analog Devices Inc.
  *
@@ -24,12 +24,12 @@ DEFINE_REG(PORTIO_SET, 0x20)
 DEFINE_REG(PORTIO_DIR, 0x40)
 DEFINE_REG(PORTIO_INEN, 0x50)
 
-int bf538_gpio_get_value(void __iomem *port, unsigned gpio)
+static int bf538_gpio_get_value(void __iomem *port, unsigned gpio)
 {
 	return !!(read_PORTIO(port) & (1u << gpio));
 }
 
-void bf538_gpio_set_value(void __iomem *port, unsigned gpio, int value)
+static void bf538_gpio_set_value(void __iomem *port, unsigned gpio, int value)
 {
 	if (value)
 		write_PORTIO_SET(port, (1u << gpio));
@@ -37,7 +37,7 @@ void bf538_gpio_set_value(void __iomem *port, unsigned gpio, int value)
 		write_PORTIO_CLEAR(port, (1u << gpio));
 }
 
-int bf538_gpio_direction_input(void __iomem *port, unsigned gpio)
+static int bf538_gpio_direction_input(void __iomem *port, unsigned gpio)
 {
 	write_PORTIO_DIR(port, read_PORTIO_DIR(port) & ~(1u << gpio));
 	write_PORTIO_INEN(port, read_PORTIO_INEN(port) | (1u << gpio));
@@ -45,7 +45,7 @@ int bf538_gpio_direction_input(void __iomem *port, unsigned gpio)
 	return 0;
 }
 
-int bf538_gpio_direction_output(void __iomem *port, unsigned gpio, int value)
+static int bf538_gpio_direction_output(void __iomem *port, unsigned gpio, int value)
 {
 	write_PORTIO_INEN(port, read_PORTIO_INEN(port) & ~(1u << gpio));
 	bf538_gpio_set_value(port, gpio, value);
@@ -58,24 +58,24 @@ int bf538_gpio_direction_output(void __iomem *port, unsigned gpio, int value)
  * PORTCIO
  */
 
-int bf538_extgpio_portc_direction_input(struct gpio_chip *chip, unsigned gpio)
+static int bf538_extgpio_portc_direction_input(struct gpio_chip *chip, unsigned gpio)
 {
 	return bf538_gpio_direction_input((void __iomem *)PORTCIO, gpio);
 }
 
-int bf538_extgpio_portc_direction_output(struct gpio_chip *chip, unsigned gpio,
+static int bf538_extgpio_portc_direction_output(struct gpio_chip *chip, unsigned gpio,
 					 int level)
 {
 	return bf538_gpio_direction_output((void __iomem *)PORTCIO, gpio,
 					   level);
 }
 
-int bf538_extgpio_portc_get_value(struct gpio_chip *chip, unsigned gpio)
+static int bf538_extgpio_portc_get_value(struct gpio_chip *chip, unsigned gpio)
 {
 	return bf538_gpio_get_value((void __iomem *)PORTCIO, gpio);
 }
 
-void bf538_extgpio_portc_set_value(struct gpio_chip *chip, unsigned gpio,
+static void bf538_extgpio_portc_set_value(struct gpio_chip *chip, unsigned gpio,
 				   int value)
 {
 	return bf538_gpio_set_value((void __iomem *)PORTCIO, gpio, value);
@@ -85,24 +85,24 @@ void bf538_extgpio_portc_set_value(struct gpio_chip *chip, unsigned gpio,
  * PORTDIO
  */
 
-int bf538_extgpio_portd_direction_input(struct gpio_chip *chip, unsigned gpio)
+static int bf538_extgpio_portd_direction_input(struct gpio_chip *chip, unsigned gpio)
 {
 	return bf538_gpio_direction_input((void __iomem *)PORTDIO, gpio);
 }
 
-int bf538_extgpio_portd_direction_output(struct gpio_chip *chip, unsigned gpio,
+static int bf538_extgpio_portd_direction_output(struct gpio_chip *chip, unsigned gpio,
 					 int level)
 {
 	return bf538_gpio_direction_output((void __iomem *)PORTDIO, gpio,
 					   level);
 }
 
-int bf538_extgpio_portd_get_value(struct gpio_chip *chip, unsigned gpio)
+static int bf538_extgpio_portd_get_value(struct gpio_chip *chip, unsigned gpio)
 {
 	return bf538_gpio_get_value((void __iomem *)PORTDIO, gpio);
 }
 
-void bf538_extgpio_portd_set_value(struct gpio_chip *chip, unsigned gpio,
+static void bf538_extgpio_portd_set_value(struct gpio_chip *chip, unsigned gpio,
 				   int value)
 {
 	return bf538_gpio_set_value((void __iomem *)PORTDIO, gpio, value);
@@ -112,35 +112,35 @@ void bf538_extgpio_portd_set_value(struct gpio_chip *chip, unsigned gpio,
  * PORTEIO
  */
 
-int bf538_extgpio_porte_direction_input(struct gpio_chip *chip, unsigned gpio)
+static int bf538_extgpio_porte_direction_input(struct gpio_chip *chip, unsigned gpio)
 {
 	return bf538_gpio_direction_input((void __iomem *)PORTEIO, gpio);
 }
 
-int bf538_extgpio_porte_direction_output(struct gpio_chip *chip, unsigned gpio,
+static int bf538_extgpio_porte_direction_output(struct gpio_chip *chip, unsigned gpio,
 					 int level)
 {
 	return bf538_gpio_direction_output((void __iomem *)PORTEIO, gpio,
 					   level);
 }
 
-int bf538_extgpio_porte_get_value(struct gpio_chip *chip, unsigned gpio)
+static int bf538_extgpio_porte_get_value(struct gpio_chip *chip, unsigned gpio)
 {
 	return bf538_gpio_get_value((void __iomem *)PORTEIO, gpio);
 }
 
-void bf538_extgpio_porte_set_value(struct gpio_chip *chip, unsigned gpio,
+static void bf538_extgpio_porte_set_value(struct gpio_chip *chip, unsigned gpio,
 				   int value)
 {
 	return bf538_gpio_set_value((void __iomem *)PORTEIO, gpio, value);
 }
 
-int bf538_extgpio_gpio_request(struct gpio_chip *chip, unsigned gpio)
+static int bf538_extgpio_gpio_request(struct gpio_chip *chip, unsigned gpio)
 {
 	return bfin_special_gpio_request(chip->base + gpio, chip->label);
 }
 
-void bf538_extgpio_gpio_free(struct gpio_chip *chip, unsigned gpio)
+static void bf538_extgpio_gpio_free(struct gpio_chip *chip, unsigned gpio)
 {
 	return bfin_special_gpio_free(chip->base + gpio);
 }
@@ -183,11 +183,8 @@ static struct gpio_chip bf538_porte_chip = {
 
 static int __init bf538_extgpio_setup(void)
 {
-	gpiochip_add(&bf538_portc_chip);
-	gpiochip_add(&bf538_portd_chip);
-	gpiochip_add(&bf538_porte_chip);
-
-	return 0;
+	return gpiochip_add(&bf538_portc_chip) |
+		gpiochip_add(&bf538_portd_chip) |
+		gpiochip_add(&bf538_porte_chip);
 }
-
 arch_initcall(bf538_extgpio_setup);
