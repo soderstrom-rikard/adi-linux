@@ -46,9 +46,6 @@ __dma_sync(dma_addr_t addr, size_t size, enum dma_data_direction dir);
 static inline void
 _dma_sync(dma_addr_t addr, size_t size, enum dma_data_direction dir)
 {
-	if (!__builtin_constant_p(dir))
-		return;
-
 	switch (dir) {
 	case DMA_NONE:
 		BUG();
