@@ -31,6 +31,7 @@
 #include <linux/dma-mapping.h>
 
 #include <asm/portmux.h>
+#include <asm/cacheflush.h>
 #include <asm/dma.h>
 
 #define port_membase(uart)     (((struct bfin_serial_port *)(uart))->port.membase)
@@ -415,6 +416,8 @@ static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart)
 	uart->tx_count = CIRC_CNT(xmit->head, xmit->tail, UART_XMIT_SIZE);
 	if (uart->tx_count > (UART_XMIT_SIZE - xmit->tail))
 		uart->tx_count = UART_XMIT_SIZE - xmit->tail;
+	blackfin_dcache_flush_range((unsigned long)(xmit->buf+xmit->tail),
+					(unsigned long)(xmit->buf+xmit->tail+uart->tx_count));
 	set_dma_config(uart->tx_dma_channel,
 		set_bfin_dma_config(DIR_READ, DMA_FLOW_STOP,
 			INTR_ON_BUF,
