@@ -28,11 +28,11 @@
 #include <asm/dpmc.h>
 #include <asm/bfin5xx_spi.h>
 #include <asm/bfin_sport.h>
+#include <asm/bfin_can.h>
 
 #define SIC_SYSIRQ(irq)	(irq - (IRQ_CORETMR + 1))
 
 #ifdef BF537_FAMILY
-#include <asm/bfin_can.h>
 # define BF537_GENERIC_ERROR_INT_DEMUX
 # define SPI_ERR_MASK   (BIT_STAT_TXCOL | BIT_STAT_RBSY | BIT_STAT_MODF | BIT_STAT_TXE)	/* SPI_STAT */
 # define SPORT_ERR_MASK (ROVF | RUVF | TOVF | TUVF)	/* SPORT_STAT */
