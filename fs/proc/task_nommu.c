@@ -162,8 +162,8 @@ static int nommu_vma_show(struct seq_file *m, struct vm_area_struct *vma)
 		pad_len_spaces(m, len);
 		seq_path(m, &file->f_path, "");
 	} else if (mm) {
-		if (vma->vm_start <= mm->start_brk &&
-				vma->vm_end >= mm->brk) {
+		if (vma->vm_start <= mm->start_stack &&
+				vma->vm_end >= mm->start_stack) {
 			pad_len_spaces(m, len);
 			seq_puts(m, "[stack]");
 		}
