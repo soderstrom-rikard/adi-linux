@@ -110,40 +110,45 @@ int __cpuinit platform_boot_secondary(unsigned int cpu, struct task_struct *idle
 		panic("CPU%u: processor failed to boot\n", cpu);
 }
 
-void __init platform_request_ipi(irq_handler_t handler)
+void __init platform_request_ipi(int irq, irq_handler_t handler)
 {
 	int ret;
+	char *desc[] = {"IRQ_SUPPLE_0", "IRQ_SUPPLE_1"}, *name;
 
-	ret = request_irq(IRQ_SUPPLE_0, handler, IRQF_DISABLED,
-			  "Supplemental Interrupt0", handler);
+	name = (irq == IRQ_SUPPLE_0) ? desc[0] : desc[1];
+
+	ret = request_irq(irq, handler, IRQF_DISABLED, name, handler);
 	if (ret)
-		panic("Cannot request supplemental interrupt 0 for IPI service");
+		panic("Cannot request %s for IPI service", name);
 }
 
-void platform_send_ipi(cpumask_t callmap)
+void platform_send_ipi(cpumask_t callmap, int irq)
 {
 	unsigned int cpu;
+	int offset = (irq == IRQ_SUPPLE_0) ? 6 : 8;
 
 	for_each_cpu_mask(cpu, callmap) {
 		BUG_ON(cpu >= 2);
 		SSYNC();
-		bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (6 + cpu)));
+		bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (offset + cpu)));
 		SSYNC();
 	}
 }
 
-void platform_send_ipi_cpu(unsigned int cpu)
+void platform_send_ipi_cpu(unsigned int cpu, int irq)
 {
+	int offset = (irq == IRQ_SUPPLE_0) ? 6 : 8;
 	BUG_ON(cpu >= 2);
 	SSYNC();
-	bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (6 + cpu)));
+	bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (offset + cpu)));
 	SSYNC();
 }
 
-void platform_clear_ipi(unsigned int cpu)
+void platform_clear_ipi(unsigned int cpu, int irq)
 {
+	int offset = (irq == IRQ_SUPPLE_0) ? 10 : 12;
 	BUG_ON(cpu >= 2);
 	SSYNC();
-	bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (10 + cpu)));
+	bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (offset + cpu)));
 	SSYNC();
 }

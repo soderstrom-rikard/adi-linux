@@ -17,10 +17,10 @@ int platform_boot_secondary(unsigned int cpu, struct task_struct *idle);
 
 void platform_secondary_init(unsigned int cpu);
 
-void platform_send_ipi(cpumask_t callmap);
+void platform_send_ipi(cpumask_t callmap, int irq);
 
-void platform_send_ipi_cpu(unsigned int cpu);
+void platform_send_ipi_cpu(unsigned int cpu, int irq);
 
-void platform_clear_ipi(unsigned int cpu);
+void platform_clear_ipi(unsigned int cpu, int irq);
 
 #endif /* !_MACH_BF561_SMP */
