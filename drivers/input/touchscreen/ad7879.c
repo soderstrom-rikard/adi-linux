@@ -133,8 +133,9 @@ struct ad7879 {
 	struct input_dev	*input;
 	struct work_struct	work;
 	struct timer_list	timer;
+#ifdef CONFIG_GPIOLIB
 	struct gpio_chip 	gc;
-
+#endif
 	struct mutex		mutex;
 	unsigned		disabled:1;	/* P: mutex */
 
