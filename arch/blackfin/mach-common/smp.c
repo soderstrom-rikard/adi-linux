@@ -155,9 +155,7 @@ static irqreturn_t ipi_handler_int1(int irq, void *dev_instance)
 	spin_lock_irqsave(&msg_queue->lock, flags);
 
 	while (msg_queue->count) {
-		msg = &msg_queue->ipi_message[msg_queue->head++];
-		msg_queue->head %= BFIN_IPI_MSGQ_LEN;
-		msg_queue->count--;
+		msg = &msg_queue->ipi_message[msg_queue->head];
 		switch (msg->type) {
 		case BFIN_IPI_CALL_FUNC:
 			spin_unlock_irqrestore(&msg_queue->lock, flags);
@@ -174,6 +172,9 @@ static irqreturn_t ipi_handler_int1(int irq, void *dev_instance)
 			0x%lx\n", cpu, msg->type);
 			break;
 		}
+		msg_queue->head++;
+		msg_queue->head %= BFIN_IPI_MSGQ_LEN;
+		msg_queue->count--;
 	}
 	spin_unlock_irqrestore(&msg_queue->lock, flags);
 	return IRQ_HANDLED;
@@ -207,7 +208,6 @@ static inline void smp_send_message(cpumask_t callmap, unsigned long type,
 			next_msg = (msg_queue->head + msg_queue->count)
 					% BFIN_IPI_MSGQ_LEN;
 			msg = &msg_queue->ipi_message[next_msg];
-			msg_queue->count++;
 			msg->type = type;
 			if (type == BFIN_IPI_CALL_FUNC) {
 				msg->call_struct.func = func;
@@ -215,6 +215,7 @@ static inline void smp_send_message(cpumask_t callmap, unsigned long type,
 				msg->call_struct.wait = wait;
 				msg->call_struct.waitmask = &waitmask;
 			}
+			msg_queue->count++;
 		} else
 			panic("IPI message queue overflow\n");
 		spin_unlock_irqrestore(&msg_queue->lock, flags);
