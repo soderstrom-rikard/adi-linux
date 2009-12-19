@@ -643,10 +643,12 @@ static void bfin_spi_pump_transfers(unsigned long data)
 	bits_per_word = transfer->bits_per_word ? : message->spi->bits_per_word;
 	if (bits_per_word == 8) {
 		drv_data->n_bytes = 1;
+		drv_data->len = transfer->len;
 		cr_width = 0;
 		drv_data->ops = &bfin_transfer_ops_u8;
 	} else {
 		drv_data->n_bytes = 2;
+		drv_data->len = (transfer->len) >> 1;
 		cr_width = BIT_CTL_WORDSIZE;
 		drv_data->ops = &bfin_transfer_ops_u16;
 	}
@@ -654,11 +656,6 @@ static void bfin_spi_pump_transfers(unsigned long data)
 	cr |= cr_width;
 	write_CTRL(drv_data, cr);
 
-	if (cr_width == BIT_CTL_WORDSIZE) {
-		drv_data->len = (transfer->len) >> 1;
-	} else {
-		drv_data->len = transfer->len;
-	}
 	dev_dbg(&drv_data->pdev->dev,
 		"transfer: drv_data->ops is %p, chip->ops is %p, u8_ops is %p\n",
 		drv_data->ops, chip->ops, &bfin_transfer_ops_u8);
