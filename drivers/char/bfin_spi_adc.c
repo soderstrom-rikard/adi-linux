@@ -36,6 +36,8 @@
 #include <linux/errno.h>
 #include <linux/fs.h>
 #include <linux/init.h>
+#include <linux/io.h>
+#include <linux/irq.h>
 #include <linux/string.h>
 #include <linux/interrupt.h>
 #include <linux/device.h>
@@ -44,33 +46,27 @@
 #include <linux/spinlock.h>
 #include <linux/dma-mapping.h>
 
-#include <asm/dma-mapping.h>
-#include <asm/io.h>
-#include <asm/irq.h>
-#include <asm/blackfin.h>
-#include <asm/cacheflush.h>
-#include <asm/bfin5xx_spi.h>
-#include <asm/dma.h>
+#define CMD_SPI_SET_BAUDRATE         2
+#define CMD_SPI_GET_SYSTEMCLOCK      25
+#define CMD_SPI_SET_WRITECONTINUOUS  26
 
-#define SPI0_ADC_MINOR         251
-
-struct bfin_spi_adc {
+struct spi_adc {
 	int             opened;
 	unsigned short  *buffer;
 	int             hz;
-	int 		cont;
+	int             cont;
 	struct spi_device *spidev;
 	dma_addr_t dma_handle;
 };
 
-struct bfin_spi_adc spi_adc;
+static struct spi_adc spi_adc;
 static DEFINE_SPINLOCK(spiadc_lock);
 
 static int adc_spi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
 {
 	int ret = 0;
 	unsigned long value;
-	struct bfin_spi_adc *bfin_spi_adc = filp->private_data;
+	struct spi_adc *spi_adc = filp->private_data;
 
 	switch (cmd) {
 	case CMD_SPI_GET_SYSTEMCLOCK:
@@ -80,10 +76,10 @@ static int adc_spi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsig
 	case CMD_SPI_SET_BAUDRATE:
 		if (arg > (133000000 / 4))
 			return -EINVAL;
-		bfin_spi_adc->hz = arg;
+		spi_adc->hz = arg;
 		break;
 	case CMD_SPI_SET_WRITECONTINUOUS:
-		bfin_spi_adc->cont = (unsigned char)arg;
+		spi_adc->cont = (unsigned char)arg;
 		break;
 	default:
 		return -EINVAL;
@@ -91,22 +87,22 @@ static int adc_spi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsig
 	return ret;
 }
 
-static ssize_t adc_spi_read (struct file *filp, char *buf, size_t count, loff_t *pos)
+static ssize_t adc_spi_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 {
 	int stat;
-	struct bfin_spi_adc *bfin_spi_adc = filp->private_data;
+	struct spi_adc *spi_adc = filp->private_data;
 	u8 *buffer;
 
 	struct spi_transfer	t = {
 			.len		= count,
-			.speed_hz	= bfin_spi_adc->hz,
+			.speed_hz	= spi_adc->hz,
 		};
 	struct spi_message	m;
 
 	if (count <= 0)
 		return -EINVAL;
 
-	buffer = dma_alloc_coherent(NULL, count, &bfin_spi_adc->dma_handle, GFP_KERNEL);
+	buffer = dma_alloc_coherent(NULL, count, &spi_adc->dma_handle, GFP_KERNEL);
 
 	if (buffer == NULL)
 		return -ENOMEM;
@@ -116,7 +112,7 @@ static ssize_t adc_spi_read (struct file *filp, char *buf, size_t count, loff_t 
 	spi_message_init(&m);
 	spi_message_add_tail(&t, &m);
 
-	stat = spi_sync(bfin_spi_adc->spidev, &m);
+	stat = spi_sync(spi_adc->spidev, &m);
 
 	if (stat == 0) {
 		unsigned long	missing;
@@ -128,35 +124,35 @@ static ssize_t adc_spi_read (struct file *filp, char *buf, size_t count, loff_t 
 			stat = count - missing;
 	}
 
-	dma_free_coherent(NULL, count, buffer, bfin_spi_adc->dma_handle);
+	dma_free_coherent(NULL, count, buffer, spi_adc->dma_handle);
 
 	return stat;
 }
 
-static ssize_t adc_spi_write (struct file *filp, const char *buf, size_t count, loff_t *f_pos)
+static ssize_t adc_spi_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos)
 {
 	int stat;
 	unsigned long missing;
-	struct bfin_spi_adc *bfin_spi_adc = filp->private_data;
+	struct spi_adc *spi_adc = filp->private_data;
 	u8 *buffer;
 
 	struct spi_transfer	t = {
 			.len		= count,
-			.speed_hz	= bfin_spi_adc->hz,
+			.speed_hz	= spi_adc->hz,
 		};
 	struct spi_message	m;
 
 	if (count <= 0)
 		return -EINVAL;
 
-	buffer = dma_alloc_coherent(NULL, count, &bfin_spi_adc->dma_handle, GFP_KERNEL);
+	buffer = dma_alloc_coherent(NULL, count, &spi_adc->dma_handle, GFP_KERNEL);
 
 	if (buffer == NULL)
 		return -ENOMEM;
 
 	t.tx_buf = buffer;
 
-	if (bfin_spi_adc->cont)  /* dirty hack for continuous DMA output mode */
+	if (spi_adc->cont)  /* dirty hack for continuous DMA output mode */
 		t.tx_dma = 0xFFFF;
 
 	spi_message_init(&m);
@@ -165,13 +161,13 @@ static ssize_t adc_spi_write (struct file *filp, const char *buf, size_t count, 
 	missing = copy_from_user(buffer, buf, count);
 
 	if (missing == 0) {
-		stat = spi_sync(bfin_spi_adc->spidev, &m);
+		stat = spi_sync(spi_adc->spidev, &m);
 		if (stat == 0)
 			stat = count;
 	} else
 		stat = -EFAULT;
 
-	dma_free_coherent(NULL, count, buffer, bfin_spi_adc->dma_handle);
+	dma_free_coherent(NULL, count, buffer, spi_adc->dma_handle);
 
 	return stat;
 }
@@ -179,11 +175,6 @@ static ssize_t adc_spi_write (struct file *filp, const char *buf, size_t count, 
 static int adc_spi_open(struct inode *inode, struct file *filp)
 {
 	unsigned long flags;
-	int minor = MINOR (inode->i_rdev);
-
-
-	if (minor != SPI0_ADC_MINOR)
-		return -ENXIO;
 
 	spin_lock_irqsave(&spiadc_lock, flags);
 	if (spi_adc.opened){
@@ -199,21 +190,21 @@ static int adc_spi_open(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-static int adc_spi_release (struct inode *inode, struct file *filp)
+static int adc_spi_release(struct inode *inode, struct file *filp)
 {
 	unsigned long flags;
-	struct bfin_spi_adc *bfin_spi_adc = filp->private_data;
+	struct spi_adc *spi_adc = filp->private_data;
 
 	spin_lock_irqsave(&spiadc_lock, flags);
-	bfin_spi_adc->opened = 0;
-	bfin_spi_adc->hz = 0;
-	bfin_spi_adc->cont = 0;
+	spi_adc->opened = 0;
+	spi_adc->hz = 0;
+	spi_adc->cont = 0;
 	spin_unlock_irqrestore(&spiadc_lock, flags);
 
 	return 0;
 }
 
-static struct file_operations bfin_spi_adc_fops = {
+static const struct file_operations spi_adc_fops = {
 	.owner = THIS_MODULE,
 	.read = adc_spi_read,
 	.write = adc_spi_write,
@@ -222,55 +213,54 @@ static struct file_operations bfin_spi_adc_fops = {
 	.release = adc_spi_release,
 };
 
-static int __devinit bfin_spi_adc_probe(struct spi_device *spi)
+static int __devinit spi_adc_probe(struct spi_device *spi)
 {
 	spi_adc.spidev = spi;
 
 	return 0;
 }
 
-static int __devexit bfin_spi_adc_remove(struct spi_device *spi)
+static int __devexit spi_adc_remove(struct spi_device *spi)
 {
-	printk(KERN_INFO "Goodbye SPI\n");
+	pr_info("spi_adc: goodbye\n");
 	return 0;
 }
 
-static struct spi_driver bfin_spi_adc_driver = {
+static struct spi_driver spi_adc_driver = {
 	.driver = {
 		.name	= "bfin_spi_adc",
 		.bus	= &spi_bus_type,
 		.owner	= THIS_MODULE,
 	},
-	.probe	= bfin_spi_adc_probe,
-	.remove	= __devexit_p(bfin_spi_adc_remove),
+	.probe	= spi_adc_probe,
+	.remove	= __devexit_p(spi_adc_remove),
 };
 
-static struct miscdevice bfin_adc_dev = {
-	SPI0_ADC_MINOR,
-	"spi",
-	&bfin_spi_adc_fops
+static struct miscdevice adc_dev = {
+	.minor = MISC_DYNAMIC_MINOR,
+	.name  = "spi",
+	.fops  = &spi_adc_fops
 };
 
-static int __init bfin_spi_adc_init(void)
+static int __init spi_adc_init(void)
 {
 	int result;
-	result = misc_register(&bfin_adc_dev);
+	result = misc_register(&adc_dev);
 	if (result < 0) {
-		printk(KERN_WARNING "SPI: Failed to register\n");
+		pr_err("spi_adc: failed to register\n");
 		return result;
 	}
 
-	return spi_register_driver(&bfin_spi_adc_driver);
+	return spi_register_driver(&spi_adc_driver);
 }
+module_init(spi_adc_init);
 
-static void __exit bfin_spi_adc_exit(void)
+static void __exit spi_adc_exit(void)
 {
-	spi_unregister_driver(&bfin_spi_adc_driver);
-	misc_deregister(&bfin_adc_dev);
+	spi_unregister_driver(&spi_adc_driver);
+	misc_deregister(&adc_dev);
 }
-
-module_init(bfin_spi_adc_init);
-module_exit(bfin_spi_adc_exit);
+module_exit(spi_adc_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("SPI-ADC/DAC Driver");
