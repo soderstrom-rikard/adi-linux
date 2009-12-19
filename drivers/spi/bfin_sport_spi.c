@@ -58,14 +58,10 @@ struct master_data {
 
 	/* Regs base of SPI controller */
 	volatile struct sport_register __iomem *regs;
-
 	int err_irq;
 
 	/* Pin request list */
 	u16 *pin_req;
-
-	/* BFIN hookup */
-	struct bfin5xx_spi_master *master_info;
 
 	/* Driver message queue */
 	struct workqueue_struct *workqueue;
@@ -85,33 +81,21 @@ struct master_data {
 	struct spi_message *cur_msg;
 	struct spi_transfer *cur_transfer;
 	struct slave_data *cur_chip;
-	size_t len_in_bytes;
-	size_t len;
 	void *tx;
 	void *tx_end;
 	void *rx;
 	void *rx_end;
 
-	size_t rx_map_len;
-	size_t tx_map_len;
-	u8 n_bytes;
 	int cs_change;
 	struct transfer_ops *ops;
 };
 
 struct slave_data {
-	u8 chip_select_num;
-	u8 n_bytes;
-	u8 width;		/* 0 or 1 */
-	u8 enable_dma;
-	u8 bits_per_word;	/* 8 or 16 */
-	u16 cs_chg_udelay;	/* Some devices require > 255usec delay */
 	u16 ctl_reg;
 	u16 baud;
-	u16 flag;
-	u16 idle_tx_val;
+	u16 cs_chg_udelay;	/* Some devices require > 255usec delay */
 	u32 cs_gpio;
-	u32 speed;
+	u16 idle_tx_val;
 	struct transfer_ops *ops;
 };
 
@@ -147,38 +131,17 @@ static u16 hz_to_spi_baud(u32 speed_hz)
 }
 
 /* Chip select operation functions for cs_change flag */
-static void bfin_sport_spi_cs_active(struct master_data *drv_data, struct slave_data *chip)
+static void bfin_sport_spi_cs_active(struct slave_data *chip)
 {
 	gpio_direction_output(chip->cs_gpio, 0);
 }
 
-static void bfin_sport_spi_cs_deactive(struct master_data *drv_data, struct slave_data *chip)
+static void bfin_sport_spi_cs_deactive(struct slave_data *chip)
 {
 	gpio_direction_output(chip->cs_gpio, 1);
 	/* Move delay here for consistency */
 	if (chip->cs_chg_udelay)
 		udelay(chip->cs_chg_udelay);
-}
-
-/* stop controller and re-config current chip*/
-static void bfin_sport_spi_restore_state(struct master_data *drv_data)
-{
-	struct slave_data *chip = drv_data->cur_chip;
-
-	bfin_sport_spi_disable(drv_data);
-	dev_dbg(&drv_data->pdev->dev, "restoring spi ctl state\n");
-
-	drv_data->regs->tcr1 = chip->ctl_reg;
-	drv_data->regs->tcr2 = chip->bits_per_word - 1;
-	drv_data->regs->tclkdiv = chip->baud;
-	drv_data->regs->tfsdiv = chip->bits_per_word - 1;
-	SSYNC();
-
-	drv_data->regs->rcr1 = chip->ctl_reg & ~(ITCLK | ITFS);
-	drv_data->regs->rcr2 = chip->bits_per_word - 1;
-	SSYNC();
-
-	bfin_sport_spi_cs_active(drv_data, chip);
 }
 
 static void bfin_sport_spi_u8_writer(struct master_data *drv_data)
@@ -277,6 +240,28 @@ static struct transfer_ops bfin_transfer_ops_u16 = {
 	.duplex = bfin_sport_spi_u16_duplex,
 };
 
+/* stop controller and re-config current chip*/
+static void bfin_sport_spi_restore_state(struct master_data *drv_data)
+{
+	struct slave_data *chip = drv_data->cur_chip;
+	unsigned int bits = (drv_data->ops == &bfin_transfer_ops_u8 ? 7 : 15);
+
+	bfin_sport_spi_disable(drv_data);
+	dev_dbg(&drv_data->pdev->dev, "restoring spi ctl state\n");
+
+	drv_data->regs->tcr1 = chip->ctl_reg;
+	drv_data->regs->tcr2 = bits;
+	drv_data->regs->tclkdiv = chip->baud;
+	drv_data->regs->tfsdiv = bits;
+	SSYNC();
+
+	drv_data->regs->rcr1 = chip->ctl_reg & ~(ITCLK | ITFS);
+	drv_data->regs->rcr2 = bits;
+	SSYNC();
+
+	bfin_sport_spi_cs_active(chip);
+}
+
 /* test if ther is more transfer to be done */
 static void *bfin_sport_spi_next_transfer(struct master_data *drv_data)
 {
@@ -318,7 +303,7 @@ static void bfin_sport_spi_giveback(struct master_data *drv_data)
 	msg->state = NULL;
 
 	if (!drv_data->cs_change)
-		bfin_sport_spi_cs_deactive(drv_data, chip);
+		bfin_sport_spi_cs_deactive(chip);
 
 	if (msg->complete)
 		msg->complete(msg->context);
@@ -354,7 +339,7 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 	struct spi_transfer *transfer = NULL;
 	struct spi_transfer *previous = NULL;
 	struct slave_data *chip = NULL;
-	u8 width = 0;
+	unsigned int bits_per_word;
 	u32 tranf_success = 1;
 	u8 full_duplex = 0;
 
@@ -416,43 +401,23 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 	} else
 		drv_data->rx = NULL;
 
-	drv_data->len_in_bytes = transfer->len;
 	drv_data->cs_change = transfer->cs_change;
 
 	/* Bits per word setup */
-	switch (transfer->bits_per_word) {
-	case 8:
-		drv_data->n_bytes = 1;
-		width = 8;
+	bits_per_word = transfer->bits_per_word ? : message->spi->bits_per_word;
+	if (bits_per_word == 8)
 		drv_data->ops = &bfin_transfer_ops_u8;
-		break;
-
-	case 16:
-		drv_data->n_bytes = 2;
-		width = 16;
-		drv_data->ops = &bfin_transfer_ops_u16;
-		break;
-
-	default:
-		drv_data->n_bytes = chip->n_bytes;
-		width = chip->width;
-		drv_data->ops = chip->ops;
-		break;
-	}
-
-	if (width == 16)
-		drv_data->len = transfer->len >> 1;
 	else
-		drv_data->len = transfer->len;
+		drv_data->ops = &bfin_transfer_ops_u16;
 
 	message->state = RUNNING_STATE;
 
 	if (drv_data->cs_change)
-		bfin_sport_spi_cs_active(drv_data, chip);
+		bfin_sport_spi_cs_active(chip);
 
 	dev_dbg(&drv_data->pdev->dev,
 		"now pumping a transfer: width is %d, len is %d\n",
-		width, transfer->len);
+		bits_per_word, transfer->len);
 
 	/* PIO mode write then read */
 	dev_dbg(&drv_data->pdev->dev, "doing IO transfer\n");
@@ -486,11 +451,11 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 		message->state = ERROR_STATE;
 	} else {
 		/* Update total byte transfered */
-		message->actual_length += drv_data->len_in_bytes;
+		message->actual_length += transfer->len;
 		/* Move to next transfer of this msg */
 		message->state = bfin_sport_spi_next_transfer(drv_data);
 		if (drv_data->cs_change)
-			bfin_sport_spi_cs_deactive(drv_data, chip);
+			bfin_sport_spi_cs_deactive(chip);
 	}
 
 	/* Schedule next transfer tasklet */
@@ -563,8 +528,8 @@ static void bfin_sport_spi_pump_messages(struct work_struct *work)
 					    struct spi_transfer, transfer_list);
 	bfin_sport_spi_restore_state(drv_data);
 	dev_dbg(&drv_data->pdev->dev, "got a message to pump, "
-		"state is set to: baud %d, flag 0x%x, ctl 0x%x\n",
-		drv_data->cur_chip->baud, drv_data->cur_chip->flag,
+		"state is set to: baud %d, cs_gpio %i, ctl 0x%x\n",
+		drv_data->cur_chip->baud, drv_data->cur_chip->cs_gpio,
 		drv_data->cur_chip->ctl_reg);
 
 	dev_dbg(&drv_data->pdev->dev,
@@ -645,35 +610,42 @@ static int bfin_sport_spi_transfer(struct spi_device *spi, struct spi_message *m
 	return 0;
 }
 
-/* first setup for new devices */
+/* Called every time common spi devices change state */
 static int bfin_sport_spi_setup(struct spi_device *spi)
 {
-	struct bfin5xx_spi_chip *chip_info = NULL;
-	struct slave_data *chip;
-	struct master_data *drv_data = spi_master_get_devdata(spi->master);
-	int ret = 0;
-
-	if (spi->bits_per_word != 8 && spi->bits_per_word != 16)
-		return -EINVAL;
+	struct slave_data *chip, *first = NULL;
+	int ret;
 
 	/* Only alloc (or use chip_info) on first setup */
 	chip = spi_get_ctldata(spi);
 	if (chip == NULL) {
-		chip = kzalloc(sizeof(*chip), GFP_KERNEL);
+		struct bfin5xx_spi_chip *chip_info;
+
+		chip = first = kzalloc(sizeof(*chip), GFP_KERNEL);
 		if (!chip)
 			return -ENOMEM;
 
-		chip->enable_dma = 0;
+		/* platform chip_info isn't required */
 		chip_info = spi->controller_data;
+		if (chip_info) {
+			/*
+			 * DITFS and TDTYPE are only thing we don't set, but it
+			 * probably doesn't make sense to let people change these.
+			 */
+			if (chip_info->ctl_reg || chip_info->enable_dma) {
+				ret = -EINVAL;
+				dev_err(&spi->dev, "don't set ctl_reg/enable_dma fields");
+				goto error;
+			}
+			chip->cs_chg_udelay = chip_info->cs_chg_udelay;
+			chip->idle_tx_val = chip_info->idle_tx_val;
+			spi->bits_per_word = chip_info->bits_per_word;
+		}
 	}
 
-	/* chip_info isn't always needed */
-	if (chip_info) {
-		chip->ctl_reg = chip_info->ctl_reg;
-		chip->enable_dma = chip_info->enable_dma;
-		chip->bits_per_word = chip_info->bits_per_word;
-		chip->cs_chg_udelay = chip_info->cs_chg_udelay;
-		chip->idle_tx_val = chip_info->idle_tx_val;
+	if (spi->bits_per_word != 8 && spi->bits_per_word != 16) {
+		ret = -EINVAL;
+		goto error;
 	}
 
 	/* translate common spi framework into our register
@@ -687,61 +659,32 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 
 	if (spi->mode & SPI_LSB_FIRST)
 		chip->ctl_reg |= TLSBIT;
+	else
+		chip->ctl_reg &= ~TLSBIT;
 
 	/* Sport in master mode */
 	chip->ctl_reg |= ITCLK | ITFS | TFSR | LATFS | LTFS;
 
-	/*
-	 * Notice: for blackfin, the speed_hz is the value of register
-	 * SPI_BAUD, not the real baudrate
-	 */
 	chip->baud = hz_to_spi_baud(spi->max_speed_hz);
-	chip->flag = 1 << spi->chip_select;
-	chip->chip_select_num = spi->chip_select;
 
-	switch (chip->bits_per_word) {
-	case 8:
-		chip->n_bytes = 1;
-		chip->width = 8;
-		chip->ops = &bfin_transfer_ops_u8;
-		break;
+	chip->cs_gpio = spi->chip_select;
+	ret = gpio_request(chip->cs_gpio, spi->modalias);
+	if (ret)
+		goto error;
 
-	case 16:
-		chip->n_bytes = 2;
-		chip->width = 16;
-		chip->ops = &bfin_transfer_ops_u16;
-		break;
-
-	default:
-		dev_err(&spi->dev, "%d bits_per_word is not supported\n",
-				chip->bits_per_word);
-		if (chip_info)
-			kfree(chip);
-		return -ENODEV;
-	}
-
-	dev_dbg(&spi->dev, "setup spi chip %s, width is %d, dma is %d\n",
-			spi->modalias, chip->width, chip->enable_dma);
-	dev_dbg(&spi->dev, "ctl_reg is 0x%x, flag_reg is 0x%x\n",
-			chip->ctl_reg, chip->flag);
+	dev_dbg(&spi->dev, "setup spi chip %s, width is %d\n",
+			spi->modalias, spi->bits_per_word);
+	dev_dbg(&spi->dev, "ctl_reg is 0x%x, GPIO is %i\n",
+			chip->ctl_reg, spi->chip_select);
 
 	spi_set_ctldata(spi, chip);
 
-	/* CS must be got by manipulating GPIO.
-	 */
-	if (chip->chip_select_num < MAX_CTRL_CS)
-		return -EINVAL;
+	bfin_sport_spi_cs_deactive(chip);
 
-	chip->cs_gpio = chip->chip_select_num - MAX_CTRL_CS;;
-	ret = gpio_request(chip->cs_gpio, spi->modalias);
-	if (ret)
-		dev_err(&spi->dev, "request GPIO CS failed\n");
-	else
-		gpio_direction_output(chip->cs_gpio, 1);
+	return ret;
 
-
-	bfin_sport_spi_cs_deactive(drv_data, chip);
-
+ error:
+	kfree(first);
 	return ret;
 }
 
@@ -873,7 +816,6 @@ static int __devinit bfin_sport_spi_probe(struct platform_device *pdev)
 
 	drv_data = spi_master_get_devdata(master);
 	drv_data->master = master;
-	drv_data->master_info = platform_info;
 	drv_data->pdev = pdev;
 	drv_data->pin_req = platform_info->pin_req;
 
