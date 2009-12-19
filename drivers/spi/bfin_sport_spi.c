@@ -423,13 +423,13 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 	switch (transfer->bits_per_word) {
 	case 8:
 		drv_data->n_bytes = 1;
-		width = CFG_SPI_WORDSIZE8;
+		width = 8;
 		drv_data->ops = &bfin_transfer_ops_u8;
 		break;
 
 	case 16:
 		drv_data->n_bytes = 2;
-		width = CFG_SPI_WORDSIZE16;
+		width = 16;
 		drv_data->ops = &bfin_transfer_ops_u16;
 		break;
 
@@ -440,7 +440,7 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 		break;
 	}
 
-	if (width == CFG_SPI_WORDSIZE16)
+	if (width == 16)
 		drv_data->len = transfer->len >> 1;
 	else
 		drv_data->len = transfer->len;
@@ -702,13 +702,13 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 	switch (chip->bits_per_word) {
 	case 8:
 		chip->n_bytes = 1;
-		chip->width = CFG_SPI_WORDSIZE8;
+		chip->width = 8;
 		chip->ops = &bfin_transfer_ops_u8;
 		break;
 
 	case 16:
 		chip->n_bytes = 2;
-		chip->width = CFG_SPI_WORDSIZE16;
+		chip->width = 16;
 		chip->ops = &bfin_transfer_ops_u16;
 		break;
 
