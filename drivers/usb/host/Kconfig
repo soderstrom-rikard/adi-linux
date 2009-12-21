@@ -332,15 +332,6 @@ config USB_SL811_HCD
 	  To compile this driver as a module, choose M here: the
 	  module will be called sl811-hcd.
 
-config USB_SL811_BFIN_IRQ
-	int "GPIO IRQ pin for Interrupt"
-	depends on (BLACKFIN && USB_SL811_HCD)
-	default 54
-	help
-	  Choose an IRQ_Pxx pin as SL811's interrupt. This must corresponds to
-	  the JP5 on usb daughter card.
-	  For more information look at include/asm-blackfin/mach-bfxxx/irq.h.
-
 choice
 	prompt "Dummy Delay ASYNC Memory Bank"
 	depends on (BLACKFIN && USB_SL811_HCD)
