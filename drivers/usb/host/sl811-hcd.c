@@ -840,7 +840,7 @@ static int sl811h_urb_enqueue(
 
 	} else {
 		INIT_LIST_HEAD(&ep->schedule);
-		ep->udev = usb_get_dev(udev);
+		ep->udev = udev;
 		ep->epnum = epnum;
 		ep->maxpacket = usb_maxpacket(udev, urb->pipe, is_out);
 		ep->defctrl = SL11H_HCTLMASK_ARM | SL11H_HCTLMASK_ENABLE;
@@ -1033,7 +1033,6 @@ sl811h_endpoint_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 	if (!list_empty(&hep->urb_list))
 		WARNING("ep %p not empty?\n", ep);
 
-	usb_put_dev(ep->udev);
 	kfree(ep);
 	hep->hcpriv = NULL;
 }
