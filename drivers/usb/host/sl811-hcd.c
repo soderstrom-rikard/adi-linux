@@ -1273,12 +1273,12 @@ sl811h_hub_control(
 		sl811h_hub_descriptor(sl811, (struct usb_hub_descriptor *) buf);
 		break;
 	case GetHubStatus:
-		put_unaligned (cpu_to_le32(0), (__le32 *) buf);
+		put_unaligned_le32(0, buf);
 		break;
 	case GetPortStatus:
 		if (wIndex != 1)
 			goto error;
-		put_unaligned (cpu_to_le32(sl811->port1), (__le32 *) buf);
+		put_unaligned_le32(sl811->port1, buf);
 
 #ifndef	VERBOSE
 	if (*(u16*)(buf+2))	/* only if wPortChange is interesting */
