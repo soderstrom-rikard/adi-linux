@@ -210,26 +210,28 @@ struct sl811h_ep {
  * NOTE:  caller must hold sl811->lock.
  */
 
-static inline u8 sl811_read(struct sl811 *sl811, int reg)
-{
-	DUMMY_DELAY_ACCESS;
-	writeb(reg, sl811->addr_reg);
-	DUMMY_DELAY_ACCESS;
-	return readb(sl811->data_reg);
-}
-
-static inline void sl811_write(struct sl811 *sl811, int reg, u8 val)
-{
-	DUMMY_DELAY_ACCESS;
-	writeb(reg, sl811->addr_reg);
-	DUMMY_DELAY_ACCESS;
-	writeb(val, sl811->data_reg);
-}
-
 static inline void sl811_writeb(u8 val, void __iomem *addr)
 {
 	DUMMY_DELAY_ACCESS;
 	writeb(val, addr);
+}
+
+static inline void sl811_write(struct sl811 *sl811, int reg, u8 val)
+{
+	sl811_writeb(reg, sl811->addr_reg);
+	sl811_writeb(val, sl811->data_reg);
+}
+
+static inline u8 sl811_readb(void __iomem *addr)
+{
+	DUMMY_DELAY_ACCESS;
+	return readb(addr);
+}
+
+static inline u8 sl811_read(struct sl811 *sl811, int reg)
+{
+	sl811_writeb(reg, sl811->addr_reg);
+	return sl811_readb(sl811->data_reg);
 }
 
 static inline void
@@ -240,14 +242,12 @@ sl811_write_buf(struct sl811 *sl811, int addr, const void *buf, size_t count)
 
 	if (!count)
 		return;
-	DUMMY_DELAY_ACCESS;
-	writeb(addr, sl811->addr_reg);
+	sl811_writeb(addr, sl811->addr_reg);
 
 	data = buf;
 	data_reg = sl811->data_reg;
 	do {
-		DUMMY_DELAY_ACCESS;
-		writeb(*data++, data_reg);
+		sl811_writeb(*data++, data_reg);
 	} while (--count);
 }
 
@@ -259,14 +259,12 @@ sl811_read_buf(struct sl811 *sl811, int addr, void *buf, size_t count)
 
 	if (!count)
 		return;
-	DUMMY_DELAY_ACCESS;
-	writeb(addr, sl811->addr_reg);
+	sl811_writeb(addr, sl811->addr_reg);
 
 	data = buf;
 	data_reg = sl811->data_reg;
 	do {
-		DUMMY_DELAY_ACCESS;
-		*data++ = readb(data_reg);
+		*data++ = sl811_readb(data_reg);
 	} while (--count);
 }
 
