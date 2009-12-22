@@ -20,6 +20,12 @@
 #if defined(CONFIG_USB_ISP1362_HCD) || defined(CONFIG_USB_ISP1362_HCD_MODULE)
 #include <linux/usb/isp1362.h>
 #endif
+#if defined(CONFIG_KEYBOARD_ADP5588) \
+	|| defined(CONFIG_KEYBOARD_ADP5588_MODULE) \
+	|| defined(CONFIG_GPIO_ADP5588) \
+	|| defined(CONFIG_GPIO_ADP5588_MODULE)
+#include <linux/i2c/adp5588.h>
+#endif
 #include <linux/ata_platform.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
@@ -1364,7 +1370,6 @@ static struct platform_device i2c_bfin_twi_device = {
 #endif
 
 #if defined(CONFIG_KEYBOARD_ADP5588) || defined(CONFIG_KEYBOARD_ADP5588_MODULE)
-#include <linux/i2c/adp5588.h>
 static const unsigned short adp5588_keymap[ADP5588_KEYMAPSIZE] = {
 	[0]	 = KEY_GRAVE,
 	[1]	 = KEY_1,
@@ -1561,7 +1566,6 @@ static struct adp5520_platform_data adp5520_pdev_data = {
 #endif
 
 #if defined(CONFIG_GPIO_ADP5588) || defined(CONFIG_GPIO_ADP5588_MODULE)
-#include <linux/i2c/adp5588.h>
 static struct adp5588_gpio_platform_data adp5588_gpio_data = {
 	.gpio_start = 50,
 	.pullup_dis_mask = 0,
