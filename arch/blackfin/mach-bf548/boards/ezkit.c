@@ -218,7 +218,7 @@ static const struct adxl34x_platform_data adxl34x_info = {
 	.fifo_mode = ADXL_FIFO_STREAM,
 	.orientation_enable = ADXL_EN_ORIENTATION_3D,
 	.deadzone_angle = ADXL_DEADZONE_ANGLE_10p8,
-	.divisor_length =  ADXL_LP_FILTER_DIVISOR_16,
+	.divisor_length = ADXL_LP_FILTER_DIVISOR_16,
 	/* EV_KEY {+Z, +Y, +X, -X, -Y, -Z} */
 	.ev_codes_orient_3d = {BTN_Z, BTN_Y, BTN_X, BTN_A, BTN_B, BTN_C},
 };
