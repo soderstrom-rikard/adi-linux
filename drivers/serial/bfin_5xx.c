@@ -25,7 +25,6 @@
 #include <linux/tty_flip.h>
 #include <linux/serial_core.h>
 #include <linux/gpio.h>
-#include <linux/io.h>
 #include <linux/irq.h>
 #include <linux/kgdb.h>
 #include <linux/dma-mapping.h>
