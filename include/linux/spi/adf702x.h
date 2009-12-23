@@ -29,5 +29,6 @@ struct adf702x_platform_data {
 	const u32 *adf702x_regs;
 	u32 tx_reg;
 	u32 adf7025_tclkdiv;
+	const u8 *mac_addr;
 };
 #endif
