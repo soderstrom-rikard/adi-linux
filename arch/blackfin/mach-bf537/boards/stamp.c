@@ -808,6 +808,8 @@ static const u32 adf7021_regs[] = {
 	0x0000000E,
 	0x0000000F,
 };
+#include <linux/if_ether.h>
+static const u8 adf7021_addr[ETH_ALEN] = {0x00, 0xe0, 0x22, 0xfe, 0xbf, 0xb8};
 
 static struct adf702x_platform_data adf7021_platform_data = {
 	.regs_base = (void *)SPORT1_TCR1,
@@ -820,6 +822,7 @@ static struct adf702x_platform_data adf7021_platform_data = {
 	.adf702x_model = MODEL_ADF7021,
 	.adf702x_regs = adf7021_regs,
 	.tx_reg = TXREG,
+	.mac_addr = adf7021_addr,
 };
 #endif
 
