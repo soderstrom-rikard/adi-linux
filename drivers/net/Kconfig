@@ -1078,6 +1078,17 @@ config DNET
 	  To compile this driver as a module, choose M here: the module
 	  will be called dnet.
 
+config ADF702X
+	tristate "ADF702x Narrow-Band Short-Range Radio Transceiver"
+	depends on SPI && BLACKFIN
+	---help---
+	  This is a driver for Analog Devices series of ADF702x Narrow-Band
+	  Short-Range Radio Transceiver chipsets, including the ADF7021 and
+	  the ADF7025. This Ethernet like driver implements a custom
+	  software PHY.  Say Y if you want it compiled into the kernel.
+	  To compile this driver as a module, choose M here. The module will
+	  be called adf702x.
+
 source "drivers/net/tulip/Kconfig"
 
 config AT1700
