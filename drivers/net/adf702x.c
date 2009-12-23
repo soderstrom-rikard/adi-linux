@@ -12,6 +12,7 @@
 #include <linux/module.h>
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
+#include <linux/rtnetlink.h>
 #include <linux/platform_device.h>
 #include <linux/spi/spi.h>
 #include <linux/random.h>
@@ -44,7 +45,7 @@ struct adf702x_priv {
 	wait_queue_head_t waitq;
 	dma_addr_t dma_handle;
 	spinlock_t lock;
-	unsigned rx_preample:1;
+	unsigned rx_preamble:1;
 	unsigned rx:1;
 	unsigned rx_size;
 	u32 *rx_buf;
@@ -77,30 +78,14 @@ static const u16 sym2chip[] = {
 	0x1DEE,
 };
 
-#define MAGIC		(0xA54662DA)
-#define RX_HEADERSIZE	4	/* ?(PREAMPLE) + MAGIC + LEN_HI + LEN_LO */
-#define TX_HEADERSIZE	5	/* PREAMPLE + PREAMPLE + MAGIC + LEN_HI + LEN_LO */
+#define PKT_MAGIC	(0xA54662DA)	/* Packet Valid Magic */
+#define RX_HEADERSIZE	4	/* ?(PREAMBLE) + PKT_MAGIC + LEN_HI + LEN_LO */
+#define TX_HEADERSIZE	5	/* PREAMBLE + PREAMBLE + PKT_MAGIC + LEN_HI + LEN_LO */
 #define FIFO_WA		6	/* Transfer additional words to workaround DMA FIFO issues */
 #define BITERR 		4	/* MAX Bit Errors Allowed */
 #define REG0_DELAY	40	/* PLL settling delay in us */
 
 #define MAX_PACKET_SIZE	(1550 * 4)
-
-/*
- * ONES: A instruction only DSPs feature
- * a XOR b -> return counted ONES (BIT Errors)
- */
-static inline unsigned short adf702x_xor_ones(unsigned int a, unsigned int b)
-{
-	unsigned short val;
-
-	__asm__ __volatile__ (
-				"%0 = %1 ^ %2;"
-				"%0.l = ONES %0;"
-				: "=d"(val) : "d"(a), "d"(b)
-				);
-	return val;
-}
 
 /*
  * Get 32-bit chip from 8-bit symbol
@@ -111,14 +96,14 @@ static inline unsigned int adf702x_getchip(unsigned char sym)
 }
 
 /*
- * Test packet MAGIC
+ * Test packet valid magic
  */
-static inline int adf702x_testmagic(struct adf702x_priv *lp)
+static inline int adf702x_testpkt_magic(struct adf702x_priv *lp)
 {
-	if (adf702x_xor_ones(lp->rx_buf[1], MAGIC) < BITERR)
+	if (hweight32(lp->rx_buf[1] ^ PKT_MAGIC) < BITERR)
 		return 1;
 
-	if (adf702x_xor_ones(lp->rx_buf[0], MAGIC) < BITERR)
+	if (hweight32(lp->rx_buf[0] ^ PKT_MAGIC) < BITERR)
 		return 0;
 
 	return -1;
@@ -137,14 +122,14 @@ static int adf702x_getsymbol(unsigned int chip)
 	chiplo = chip & 0xFFFF;
 
 	for (symhi = 0; symhi < ARRAY_SIZE(sym2chip); symhi++)
-		if (adf702x_xor_ones(chiphi, sym2chip[symhi]) < BITERR)
+		if (hweight32(chiphi ^ sym2chip[symhi]) < BITERR)
 			break;
 
 	if (symhi >= ARRAY_SIZE(sym2chip))
 		return -1;
 
 	for (symlo = 0; symlo < ARRAY_SIZE(sym2chip); symlo++)
-		if (adf702x_xor_ones(chiplo, sym2chip[symlo]) < BITERR)
+		if (hweight32(chiplo ^ sym2chip[symlo]) < BITERR)
 			break;
 
 	if (symlo >= ARRAY_SIZE(sym2chip))
@@ -155,9 +140,9 @@ static int adf702x_getsymbol(unsigned int chip)
 
 /*
  * Get Packet size from header
- * Returns: size or 42 in case of an unrecoverable error
+ * Returns: size or 64 in case of an unrecoverable error
  */
-inline unsigned short adf702x_getrxsize(struct adf702x_priv *lp, int offset)
+static inline unsigned short adf702x_getrxsize(struct adf702x_priv *lp, int offset)
 {
 	int size = adf702x_getsymbol(lp->rx_buf[offset + 1]) << 8 |
 			adf702x_getsymbol(lp->rx_buf[offset + 2]);
@@ -259,7 +244,7 @@ static void adf702x_setup_rx(struct adf702x_priv *lp)
 	unsigned long flags;
 
 	spin_lock_irqsave(&lp->lock, flags);
-	lp->rx_preample = 1;
+	lp->rx_preamble = 1;
 	lp->rx = 0;
 	set_dma_x_count(lp->dma_ch_rx, RX_HEADERSIZE);
 	set_dma_start_addr(lp->dma_ch_rx, (unsigned long)lp->rx_buf);
@@ -329,19 +314,15 @@ static int adf702x_net_xmit(struct sk_buff *skb, struct net_device *dev)
 	DBG(2, "%s: %s(): transmitting %d bytes\n",
 		 dev->name, __func__, skb->len);
 
-	if (!skb->len)
-		return 0;
-
 	/* Only one packet at a time. Once TXDONE interrupt is serviced, the
 	 * queue will be restarted.
 	 */
 	netif_stop_queue(dev);
-	/* save the timestamp */
-	lp->ndev->trans_start = jiffies;
+
 	/* Remember the skb for deferred processing */
 	lp->tx_skb = skb;
 
-	BUG_ON(lp->tx_skb->len > 0xFFFF);
+	BUG_ON(lp->tx_skb->len > MAX_PACKET_SIZE);
 
 	lp->tx_buf[3] = adf702x_getchip(skb->len >> 8);
 	lp->tx_buf[4] = adf702x_getchip(skb->len & 0xFF);
@@ -358,8 +339,8 @@ static int adf702x_net_xmit(struct sk_buff *skb, struct net_device *dev)
 	 * This allows other nodes to snip in
 	 */
 
-	get_random_bytes(&delay, sizeof(delay));
-	schedule_delayed_work(&lp->tx_work, msecs_to_jiffies(delay >> 2));
+	delay = random32() >> 26;
+	schedule_delayed_work(&lp->tx_work, msecs_to_jiffies(delay));
 
 	return 0;
 }
@@ -467,14 +448,14 @@ static irqreturn_t adf702x_rx_interrupt(int irq, void *dev_id)
 	disable_dma(lp->dma_ch_rx);
 	clear_dma_irqstat(lp->dma_ch_rx);
 
-	if (lp->rx_preample) {
+	if (lp->rx_preamble) {
 		/*
 		 * Keep the SPORT enabled
 		 * The FIFO associated with the SPORT acts as buffer -
 		 * while we setup the DMA for the remaining chips.
 		 */
 
-		offset = adf702x_testmagic(lp);
+		offset = adf702x_testpkt_magic(lp);
 		if (offset >= 0) {
 			lp->rx_size = adf702x_getrxsize(lp, offset);
 			if (offset == 1) {
@@ -488,9 +469,8 @@ static irqreturn_t adf702x_rx_interrupt(int irq, void *dev_id)
 					(unsigned long)&lp->rx_buf[1]);
 			}
 			enable_dma(lp->dma_ch_rx);
-			SSYNC();
 			lp->rx = 1;
-			lp->rx_preample = 0;
+			lp->rx_preamble = 0;
 
 			DBG(2, "%s:%s(): got RX data %d\n",
 				 dev->name, __func__, lp->rx_size);
@@ -498,7 +478,7 @@ static irqreturn_t adf702x_rx_interrupt(int irq, void *dev_id)
 			return IRQ_HANDLED;
 
 		} else {
-			DBG(1, "%s:%s(): Failed MAGIC\n",
+			DBG(1, "%s:%s(): Failed PKT_MAGIC\n",
 				 dev->name, __func__);
 			lp->sport->rcr1 &= ~RSPEN;
 			dev->stats.rx_dropped++;
@@ -549,9 +529,9 @@ static int adf702x_net_open(struct net_device *dev)
 		return -ENODEV;
 	}
 
-	lp->tx_buf[0] = syncword;
+	lp->tx_buf[0] = syncword; /* SFD Start-of-frame delimiter */
 	lp->tx_buf[1] = syncword;
-	lp->tx_buf[2] = MAGIC;
+	lp->tx_buf[2] = PKT_MAGIC;
 
 	adf702x_setup_rx(lp);
 
@@ -610,17 +590,16 @@ static int __devinit adf702x_probe(struct spi_device *spi)
 	 * random one ...
 	 */
 
-	random_ether_addr(ndev->dev_addr);
+	if (pdata->mac_addr && is_valid_ether_addr(pdata->mac_addr)) {
+		memcpy(ndev->dev_addr, pdata->mac_addr, ETH_ALEN);
+	} else {
+		dev_warn(&spi->dev, "using random MAC addr\n");
+		random_ether_addr(ndev->dev_addr);
+	}
 
 	ndev->mtu = 576;
 	ndev->tx_queue_len = 10;
 	ndev->watchdog_timeo = 0;
-
-	err = register_netdev(ndev);
-	if (err) {
-		dev_err(&spi->dev, "failed to register netdev\n");
-		goto out1;
-	}
 
 	lp = netdev_priv(ndev);
 	lp->ndev = ndev;
@@ -692,7 +671,7 @@ static int __devinit adf702x_probe(struct spi_device *spi)
 	/*
 	 * This GPIO is connected to the ADF702X INT
 	 * The ADF702X SWD feature starts the SPORT RX DMA (INT connected to SPORT RFS)
-	 * While the initial transfer runs (Preample, MAGIC and Packet length), we sense
+	 * While the initial transfer runs (PREAMBLE, PKT_MAGIC and Packet length), we sense
 	 * this GPIO to see if there is an ongoing transfer.
 	 */
 
@@ -710,6 +689,12 @@ static int __devinit adf702x_probe(struct spi_device *spi)
 	INIT_DELAYED_WORK(&lp->tx_work, adf702x_tx_work);
 	INIT_WORK(&lp->tx_done_work, adf702x_tx_done_work);
 	init_waitqueue_head(&lp->waitq);
+
+	err = register_netdev(ndev);
+	if (err) {
+		dev_err(&spi->dev, "failed to register netdev\n");
+		goto out9;
+	}
 
 	dev_info(&spi->dev, "ADF702XNet Wireless Ethernet driver");
 
@@ -732,7 +717,6 @@ out3:
 	peripheral_free_list(pdata->pin_req);
 out2:
 	unregister_netdev(ndev);
-out1:
 	free_netdev(ndev);
 	dev_set_drvdata(&spi->dev, NULL);
 out:
@@ -745,6 +729,11 @@ static int __devexit adf702x_remove(struct spi_device *spi)
 	struct net_device *dev = dev_get_drvdata(&spi->dev);
 	struct adf702x_priv *lp = netdev_priv(dev);
 
+	rtnl_lock();
+	dev_close(dev);
+	unregister_netdevice(dev);
+	rtnl_unlock();
+
 	dma_free_coherent(NULL, MAX_PACKET_SIZE, lp->rx_buf, lp->dma_handle);
 	dma_free_coherent(NULL, MAX_PACKET_SIZE, lp->tx_buf, lp->dma_handle);
 
@@ -756,7 +745,6 @@ static int __devexit adf702x_remove(struct spi_device *spi)
 	free_dma(lp->dma_ch_tx);
 	peripheral_free_list(pdata->pin_req);
 
-	unregister_netdev(dev);
 	free_netdev(dev);
 	dev_set_drvdata(&spi->dev, NULL);
 	return 0;
