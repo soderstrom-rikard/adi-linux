@@ -29,15 +29,15 @@
 #ifndef __AD1938_H__
 #define __AD1938_H__
 
-#define AD1938_PLL_CLK_CTRL0    0
+#define AD1938_PLL_CLK_CTRL0    0x800
 #define AD1938_PLL_POWERDOWN           0x01
-#define AD1938_PLL_CLK_CTRL1    1
-#define AD1938_DAC_CTRL0        2
+#define AD1938_PLL_CLK_CTRL1    0x801
+#define AD1938_DAC_CTRL0        0x802
 #define AD1938_DAC_POWERDOWN           0x01
 #define AD1938_DAC_SERFMT_MASK		0xC0
 #define AD1938_DAC_SERFMT_STEREO	(0 << 6)
 #define AD1938_DAC_SERFMT_TDM		(1 << 6)
-#define AD1938_DAC_CTRL1        3
+#define AD1938_DAC_CTRL1        0x803
 #define AD1938_DAC_2_CHANNELS   0
 #define AD1938_DAC_4_CHANNELS   1
 #define AD1938_DAC_8_CHANNELS   2
@@ -48,10 +48,10 @@
 #define AD1938_DAC_BCLK_MASTER  (1 << 5)
 #define AD1938_DAC_LEFT_HIGH    (1 << 3)
 #define AD1938_DAC_BCLK_INV     (1 << 7)
-#define AD1938_DAC_CTRL2        4
+#define AD1938_DAC_CTRL2        0x804
 #define AD1938_DAC_WORD_LEN_MASK	0xC
 #define AD1938_DAC_MASTER_MUTE  1
-#define AD1938_DAC_CHNL_MUTE    5
+#define AD1938_DAC_CHNL_MUTE    0x805
 #define AD1938_DACL1_MUTE       0
 #define AD1938_DACR1_MUTE       1
 #define AD1938_DACL2_MUTE       2
@@ -60,28 +60,28 @@
 #define AD1938_DACR3_MUTE       5
 #define AD1938_DACL4_MUTE       6
 #define AD1938_DACR4_MUTE       7
-#define AD1938_DAC_L1_VOL       6
-#define AD1938_DAC_R1_VOL       7
-#define AD1938_DAC_L2_VOL       8
-#define AD1938_DAC_R2_VOL       9
-#define AD1938_DAC_L3_VOL       10
-#define AD1938_DAC_R3_VOL       11
-#define AD1938_DAC_L4_VOL       12
-#define AD1938_DAC_R4_VOL       13
-#define AD1938_ADC_CTRL0        14
+#define AD1938_DAC_L1_VOL       0x806
+#define AD1938_DAC_R1_VOL       0x807
+#define AD1938_DAC_L2_VOL       0x808
+#define AD1938_DAC_R2_VOL       0x809
+#define AD1938_DAC_L3_VOL       0x80a
+#define AD1938_DAC_R3_VOL       0x80b
+#define AD1938_DAC_L4_VOL       0x80c
+#define AD1938_DAC_R4_VOL       0x80d
+#define AD1938_ADC_CTRL0        0x80e
 #define AD1938_ADC_POWERDOWN           0x01
 #define AD1938_ADC_HIGHPASS_FILTER	1
 #define AD1938_ADCL1_MUTE 		2
 #define AD1938_ADCR1_MUTE 		3
 #define AD1938_ADCL2_MUTE 		4
 #define AD1938_ADCR2_MUTE 		5
-#define AD1938_ADC_CTRL1        15
+#define AD1938_ADC_CTRL1        0x80f
 #define AD1938_ADC_SERFMT_MASK		0x60
 #define AD1938_ADC_SERFMT_STEREO	(0 << 5)
 #define AD1938_ADC_SERFMT_TDM		(1 << 2)
 #define AD1938_ADC_SERFMT_AUX		(2 << 5)
 #define AD1938_ADC_WORD_LEN_MASK	0x3
-#define AD1938_ADC_CTRL2        16
+#define AD1938_ADC_CTRL2        0x810
 #define AD1938_ADC_2_CHANNELS   0
 #define AD1938_ADC_4_CHANNELS   1
 #define AD1938_ADC_8_CHANNELS   2
