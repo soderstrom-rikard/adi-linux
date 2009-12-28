@@ -28,7 +28,6 @@ void __cpuinit platform_cpu_die(void)
 	bfin_write_TCNTL(0);
 
 	/* clear ipi interrupt */
-	/* bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (10 + 3))); */
 	bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (10 + 1)));
 	SSYNC();
 
