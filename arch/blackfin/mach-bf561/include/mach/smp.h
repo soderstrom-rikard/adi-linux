@@ -23,4 +23,6 @@ void platform_send_ipi_cpu(unsigned int cpu, int irq);
 
 void platform_clear_ipi(unsigned int cpu, int irq);
 
+void bfin_local_timer_setup(void);
+
 #endif /* !_MACH_BF561_SMP */
