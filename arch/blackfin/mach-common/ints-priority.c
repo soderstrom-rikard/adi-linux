@@ -166,17 +166,11 @@ static void bfin_internal_mask_irq(unsigned int irq)
 	local_irq_save_hw(flags);
 	mask_bank = SIC_SYSIRQ(irq) / 32;
 	mask_bit = SIC_SYSIRQ(irq) % 32;
+	bfin_write_SIC_IMASK(mask_bank, bfin_read_SIC_IMASK(mask_bank) &
+			    ~(1 << mask_bit));
 #ifdef CONFIG_SMP
-	if (cpumask_first(&bfin_irq_cpu_affinity) == 0)
-#endif
-		bfin_write_SIC_IMASK(mask_bank,
-			bfin_read_SIC_IMASK(mask_bank) &
-			~(1 << mask_bit));
-#ifdef CONFIG_SMP
-	if (cpumask_next(0, &bfin_irq_cpu_affinity) == 1)
-		bfin_write_SICB_IMASK(mask_bank,
-			bfin_read_SICB_IMASK(mask_bank) &
-			~(1 << mask_bit));
+	bfin_write_SICB_IMASK(mask_bank, bfin_read_SICB_IMASK(mask_bank) &
+			     ~(1 << mask_bit));
 #endif
 #endif
 	local_irq_restore_hw(flags);
@@ -195,11 +189,17 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 	local_irq_save_hw(flags);
 	mask_bank = SIC_SYSIRQ(irq) / 32;
 	mask_bit = SIC_SYSIRQ(irq) % 32;
-	bfin_write_SIC_IMASK(mask_bank, bfin_read_SIC_IMASK(mask_bank) |
-			     (1 << mask_bit));
 #ifdef CONFIG_SMP
-	bfin_write_SICB_IMASK(mask_bank, bfin_read_SICB_IMASK(mask_bank) |
-			     (1 << mask_bit));
+	if (cpumask_first(&bfin_irq_cpu_affinity) == 0)
+#endif
+		bfin_write_SIC_IMASK(mask_bank,
+			bfin_read_SIC_IMASK(mask_bank) |
+			(1 << mask_bit));
+#ifdef CONFIG_SMP
+	if (cpumask_first(&bfin_irq_cpu_affinity) == 1)
+		bfin_write_SICB_IMASK(mask_bank,
+			bfin_read_SICB_IMASK(mask_bank) |
+			(1 << mask_bit));
 #endif
 #endif
 	local_irq_restore_hw(flags);
@@ -208,9 +208,9 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 #ifdef CONFIG_SMP
 static int bfin_internal_set_affinity(unsigned int irq, const struct cpumask *mask)
 {
-	bfin_internal_unmask_irq(irq);
-	bfin_irq_cpu_affinity = *mask;
 	bfin_internal_mask_irq(irq);
+	bfin_irq_cpu_affinity = *mask;
+	bfin_internal_unmask_irq(irq);
 
 	return 0;
 }
