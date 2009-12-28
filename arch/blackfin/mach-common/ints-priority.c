@@ -51,10 +51,7 @@
  * -
  */
 
-#ifdef CONFIG_SMP
-/* cpu mask to limit irq events on specific cores in SMP kernel */
-static struct cpumask bfin_irq_cpu_affinity;
-#else
+#ifndef CONFIG_SMP
 /* Initialize this to an actual value to force it into the .data
  * section so that we know it is properly initialized at entry into
  * the kernel but before bss is initialized to zero (which is where
@@ -176,7 +173,12 @@ static void bfin_internal_mask_irq(unsigned int irq)
 	local_irq_restore_hw(flags);
 }
 
+#ifndef CONFIG_SMP
+static void bfin_internal_unmask_irq_affinity(unsigned int irq,
+		const struct cpumask *affinity)
+#else
 static void bfin_internal_unmask_irq(unsigned int irq)
+#endif
 {
 	unsigned long flags;
 
@@ -190,13 +192,13 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 	mask_bank = SIC_SYSIRQ(irq) / 32;
 	mask_bit = SIC_SYSIRQ(irq) % 32;
 #ifdef CONFIG_SMP
-	if (cpumask_first(&bfin_irq_cpu_affinity) == 0)
+	if (cpumask_first(affinity) == 0)
 #endif
 		bfin_write_SIC_IMASK(mask_bank,
 			bfin_read_SIC_IMASK(mask_bank) |
 			(1 << mask_bit));
 #ifdef CONFIG_SMP
-	if (cpumask_first(&bfin_irq_cpu_affinity) == 1)
+	if (cpumask_first(affinity) == 1)
 		bfin_write_SICB_IMASK(mask_bank,
 			bfin_read_SICB_IMASK(mask_bank) |
 			(1 << mask_bit));
@@ -206,11 +208,16 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 }
 
 #ifdef CONFIG_SMP
+static void bfin_internal_unmask_irq(unsigned int irq)
+{
+	struct irq_desc *desc = irq_to_desc(irq);
+	bfin_internal_unmask_irq_affinity(irq, desc->affinity);
+}
+
 static int bfin_internal_set_affinity(unsigned int irq, const struct cpumask *mask)
 {
 	bfin_internal_mask_irq(irq);
-	bfin_irq_cpu_affinity = *mask;
-	bfin_internal_unmask_irq(irq);
+	bfin_internal_unmask_irq(irq, mask);
 
 	return 0;
 }
