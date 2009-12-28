@@ -173,7 +173,7 @@ static void bfin_internal_mask_irq(unsigned int irq)
 	local_irq_restore_hw(flags);
 }
 
-#ifndef CONFIG_SMP
+#ifdef CONFIG_SMP
 static void bfin_internal_unmask_irq_affinity(unsigned int irq,
 		const struct cpumask *affinity)
 #else
