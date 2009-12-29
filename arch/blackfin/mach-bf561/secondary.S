@@ -13,7 +13,7 @@
 #include <asm/asm-offsets.h>
 #include <asm/trace.h>
 
-__CPUINIT
+__INIT
 
 /* Lay the initial stack into the L1 scratch area of Core B */
 #define INITIAL_STACK	(COREB_L1_SCRATCH_START + L1_SCRATCH_LENGTH - 12)
@@ -162,6 +162,7 @@ ENTRY(_coreb_trampoline_start)
 ENDPROC(_coreb_trampoline_start)
 ENTRY(_coreb_trampoline_end)
 
+.section ".text"
 ENTRY(_set_sicb_iwr)
 	P0.H = hi(SICB_IWR0);
 	P0.L = lo(SICB_IWR0);
@@ -195,6 +196,7 @@ ENTRY(_coreb_sleep)
 	jump (p0);
 ENDPROC(_coreb_sleep)
 
+__CPUINIT
 ENTRY(_coreb_start)
 	[--sp] = reti;
 

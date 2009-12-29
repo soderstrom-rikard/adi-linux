@@ -26,7 +26,7 @@ struct corelock_slot {
 void smp_icache_flush_range_others(unsigned long start,
 				   unsigned long end);
 #ifdef CONFIG_HOTPLUG_CPU
-extern char coreb_sleep;
+void coreb_sleep(u32 sic_iwr0, u32 sic_iwr1, u32 sic_iwr2);
 void cpu_die(void);
 void platform_cpu_die(void);
 int __cpu_disable(void);

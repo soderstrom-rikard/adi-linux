@@ -461,7 +461,7 @@ int __cpuexit __cpu_die(unsigned int cpu)
 	return wait_for_completion_timeout(&cpu_killed, 5000);
 }
 
-void __cpuinit cpu_die(void)
+void cpu_die(void)
 {
 	struct mm_struct *mm = current->active_mm;
 
