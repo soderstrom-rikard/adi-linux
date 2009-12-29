@@ -217,7 +217,7 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 static int bfin_internal_set_affinity(unsigned int irq, const struct cpumask *mask)
 {
 	bfin_internal_mask_irq(irq);
-	bfin_internal_unmask_irq(irq, mask);
+	bfin_internal_unmask_irq_affinity(irq, mask);
 
 	return 0;
 }
