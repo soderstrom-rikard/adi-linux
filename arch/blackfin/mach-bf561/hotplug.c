@@ -14,8 +14,7 @@ int hotplug_coreb;
 
 void __cpuinit platform_cpu_die(void)
 {
-	unsigned long jump_add = COREB_L1_CODE_START +\
-			(&cpu_sleep - &coreb_trampoline_start);
+	unsigned long jump_add = &coreb_sleep;
 	unsigned long iwr[2] = {0, 0};
 	unsigned long bank = (IRQ_SUPPLE_0 - IVG_BASE) / 32;
 	unsigned long bit = 1 << ((IRQ_SUPPLE_0 - IVG_BASE) % 32);
@@ -27,7 +26,7 @@ void __cpuinit platform_cpu_die(void)
 	/* disable core timer */
 	bfin_write_TCNTL(0);
 
-	/* clear ipi interrupt */
+	/* clear ipi interrupt IRQ_SUPPLE_0 */
 	bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (10 + 1)));
 	SSYNC();
 

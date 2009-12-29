@@ -160,6 +160,7 @@ ENTRY(_coreb_trampoline_start)
 .LWAIT_HERE:
 	jump .LWAIT_HERE;
 ENDPROC(_coreb_trampoline_start)
+ENTRY(_coreb_trampoline_end)
 
 ENTRY(_set_sicb_iwr)
 	P0.H = hi(SICB_IWR0);
@@ -172,17 +173,7 @@ ENTRY(_set_sicb_iwr)
 	RTS;
 ENDPROC(_set_sicb_iwr)
 
-ENTRY(_test_pll_locked_coreb)
-	P0.H = hi(PLL_STAT);
-	P0.L = lo(PLL_STAT);
-1:
-	R0 = W[P0] (Z);
-	CC = BITTST(R0,5);
-	IF !CC JUMP 1b;
-	RTS;
-ENDPROC(_test_pll_locked_coreb)
-
-ENTRY(_cpu_sleep)
+ENTRY(_coreb_sleep)
 	sp.l = lo(INITIAL_STACK);
 	sp.h = hi(INITIAL_STACK);
 	fp = sp;
@@ -195,8 +186,6 @@ ENTRY(_cpu_sleep)
 	IDLE;
 	STI R2;
 
-	call _test_pll_locked_coreb;
-
 	R0 = IWR_DISABLE_ALL;
 	R1 = IWR_DISABLE_ALL;
 	call _set_sicb_iwr;
@@ -204,9 +193,7 @@ ENTRY(_cpu_sleep)
 	p0.h = hi(COREB_L1_CODE_START);
 	p0.l = lo(COREB_L1_CODE_START);
 	jump (p0);
-ENDPROC(_cpu_sleep)
-
-ENTRY(_coreb_trampoline_end)
+ENDPROC(_coreb_sleep)
 
 ENTRY(_coreb_start)
 	[--sp] = reti;
