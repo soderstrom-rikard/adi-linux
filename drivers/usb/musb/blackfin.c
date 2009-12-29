@@ -171,8 +171,11 @@ static irqreturn_t blackfin_interrupt(int irq, void *__hci)
 		retval = musb_interrupt(musb);
 	}
 
+	if (is_otg_enabled(musb) && musb->xceiv->state == OTG_STATE_B_IDLE) {
+		mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
+		musb->a_wait_bcon = TIMER_DELAY;
+	}
 	spin_unlock_irqrestore(&musb->lock, flags);
-
 	/* REVISIT we sometimes get spurious IRQs on g_ep0
 	 * not clear why... fall in BF54x too.
 	 */
@@ -190,6 +193,9 @@ static void musb_conn_timer_handler(unsigned long _musb)
 
 	spin_lock_irqsave(&musb->lock, flags);
 	switch (musb->xceiv->state) {
+	case OTG_STATE_B_IDLE:
+		if (!is_peripheral_enabled(musb))
+			break;
 	case OTG_STATE_A_IDLE:
 	case OTG_STATE_A_WAIT_BCON:
 		/* Start a new session */
@@ -214,10 +220,9 @@ static void musb_conn_timer_handler(unsigned long _musb)
 
 			val = MUSB_POWER_HSENAB;
 			musb_writeb(musb->mregs, MUSB_POWER, val);
+			mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
 		}
-		mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
 		break;
-
 	default:
 		DBG(1, "%s state not handled\n", otg_state_string(musb));
 		break;
@@ -229,7 +234,7 @@ static void musb_conn_timer_handler(unsigned long _musb)
 
 void musb_platform_enable(struct musb *musb)
 {
-	if (is_host_enabled(musb)) {
+	if (!is_otg_enabled(musb) && is_host_enabled(musb)) {
 		mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
 		musb->a_wait_bcon = TIMER_DELAY;
 	}
@@ -263,7 +268,7 @@ static int bfin_set_power(struct otg_transceiver *x, unsigned mA)
 
 void musb_platform_try_idle(struct musb *musb, unsigned long timeout)
 {
-	if (is_host_enabled(musb))
+	if (!is_otg_enabled(musb) && is_host_enabled(musb))
 		mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
 }
 
