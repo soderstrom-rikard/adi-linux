@@ -5,18 +5,17 @@
  * Licensed under the GPL-2 or later.
  */
 
-#include <linux/init.h>
 #include <asm/blackfin.h>
-#include <asm/mem_map.h>
 #include <asm/smp.h>
+#define SIC_SYSIRQ(irq)	(irq - (IRQ_CORETMR + 1))
 
 int hotplug_coreb;
 
 void platform_cpu_die(void)
 {
 	unsigned long iwr[2] = {0, 0};
-	unsigned long bank = (IRQ_SUPPLE_0 - IVG_BASE) / 32;
-	unsigned long bit = 1 << ((IRQ_SUPPLE_0 - IVG_BASE) % 32);
+	unsigned long bank = SIC_SYSIRQ(IRQ_SUPPLE_0) / 32;
+	unsigned long bit = 1 << (SIC_SYSIRQ(IRQ_SUPPLE_0) % 32);
 
 	hotplug_coreb = 1;
 
