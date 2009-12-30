@@ -24,12 +24,10 @@ struct __kernel_sockaddr_storage {
 #include <linux/types.h>		/* pid_t			*/
 #include <linux/compiler.h>		/* __user			*/
 
-#ifdef __KERNEL__
-# ifdef CONFIG_PROC_FS
+#ifdef CONFIG_PROC_FS
 struct seq_file;
 extern void socket_seq_show(struct seq_file *seq);
-# endif
-#endif /* __KERNEL__ */
+#endif
 
 typedef unsigned short	sa_family_t;
 
@@ -295,7 +293,6 @@ struct ucred {
 /* IPX options */
 #define IPX_TYPE	1
 
-#ifdef __KERNEL__
 extern int memcpy_fromiovec(unsigned char *kdata, struct iovec *iov, int len);
 extern int memcpy_fromiovecend(unsigned char *kdata, const struct iovec *iov,
 			       int offset, int len);
@@ -312,6 +309,7 @@ extern int move_addr_to_user(struct sockaddr *kaddr, int klen, void __user *uadd
 extern int move_addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr);
 extern int put_cmsg(struct msghdr*, int level, int type, int len, void *data);
 
+#else /* !__KERNEL__ */
+# include <sys/socket.h>
 #endif
-#endif /* not kernel and not glibc */
 #endif /* _LINUX_SOCKET_H */
