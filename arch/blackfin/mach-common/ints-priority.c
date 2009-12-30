@@ -192,13 +192,13 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 	mask_bank = SIC_SYSIRQ(irq) / 32;
 	mask_bit = SIC_SYSIRQ(irq) % 32;
 #ifdef CONFIG_SMP
-	if (cpumask_first(affinity) == 0)
+	if (cpumask_test_cpu(0, affinity))
 #endif
 		bfin_write_SIC_IMASK(mask_bank,
 			bfin_read_SIC_IMASK(mask_bank) |
 			(1 << mask_bit));
 #ifdef CONFIG_SMP
-	if (cpumask_first(affinity) == 1)
+	if (cpumask_test_cpu(1, affinity))
 		bfin_write_SICB_IMASK(mask_bank,
 			bfin_read_SICB_IMASK(mask_bank) |
 			(1 << mask_bit));
