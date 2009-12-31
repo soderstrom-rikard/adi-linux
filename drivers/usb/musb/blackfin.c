@@ -170,8 +170,9 @@ static irqreturn_t blackfin_interrupt(int irq, void *__hci)
 		musb_writew(musb->mregs, MUSB_INTRRX, musb->int_rx);
 		retval = musb_interrupt(musb);
 	}
-
-	if (is_otg_enabled(musb) && musb->xceiv->state == OTG_STATE_B_IDLE) {
+	/* Start sampling ID pin,when plug is removed from MUSB*/
+	if (is_otg_enabled(musb) && (musb->xceiv->state == OTG_STATE_B_IDLE
+		|| musb->xceiv->state == OTG_STATE_A_WAIT_BCON)) {
 		mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
 		musb->a_wait_bcon = TIMER_DELAY;
 	}
@@ -190,20 +191,57 @@ static void musb_conn_timer_handler(unsigned long _musb)
 	struct musb *musb = (void *)_musb;
 	unsigned long flags;
 	u16 val;
+	static u8 toggle;
+	u8 retry;
 
 	spin_lock_irqsave(&musb->lock, flags);
 	switch (musb->xceiv->state) {
-	case OTG_STATE_B_IDLE:
-		if (!is_peripheral_enabled(musb))
-			break;
 	case OTG_STATE_A_IDLE:
 	case OTG_STATE_A_WAIT_BCON:
 		/* Start a new session */
 		val = musb_readw(musb->mregs, MUSB_DEVCTL);
+		val &= ~MUSB_DEVCTL_SESSION;
+		musb_writew(musb->mregs, MUSB_DEVCTL, val);
+		val = musb_readw(musb->mregs, MUSB_DEVCTL);
 		val |= MUSB_DEVCTL_SESSION;
 		musb_writew(musb->mregs, MUSB_DEVCTL, val);
-
 		val = musb_readw(musb->mregs, MUSB_DEVCTL);
+
+		if (!(val & MUSB_DEVCTL_BDEVICE)) {
+			gpio_set_value(musb->config->gpio_vrsel, 1);
+			musb->xceiv->state = OTG_STATE_A_WAIT_BCON;
+		} else {
+			gpio_set_value(musb->config->gpio_vrsel, 0);
+			/* Ignore VBUSERROR and SUSPEND IRQ */
+			val = musb_readb(musb->mregs, MUSB_INTRUSBE);
+			val &= ~MUSB_INTR_VBUSERROR;
+			musb_writeb(musb->mregs, MUSB_INTRUSBE, val);
+
+			val = MUSB_INTR_SUSPEND | MUSB_INTR_VBUSERROR;
+			musb_writeb(musb->mregs, MUSB_INTRUSB, val);
+			if (is_otg_enabled(musb))
+				musb->xceiv->state = OTG_STATE_B_IDLE;
+			else
+				musb_writeb(musb->mregs, MUSB_POWER, MUSB_POWER_HSENAB);
+		}
+		mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
+		break;
+	case OTG_STATE_B_IDLE:
+
+		if (!is_peripheral_enabled(musb))
+			break;
+		/* Sometimes, it needs to sample the ID pin several times
+		 * before getting the correct status, So, do the job here.
+		 */
+		for (retry = 0; retry < 2; retry++) {
+			/* Start a new session */
+			val = musb_readw(musb->mregs, MUSB_DEVCTL);
+			val |= MUSB_DEVCTL_SESSION;
+			musb_writew(musb->mregs, MUSB_DEVCTL, val);
+			val = musb_readw(musb->mregs, MUSB_DEVCTL);
+			udelay(100);
+		}
+
 		if (!(val & MUSB_DEVCTL_BDEVICE)) {
 			gpio_set_value(musb->config->gpio_vrsel, 1);
 			musb->xceiv->state = OTG_STATE_A_WAIT_BCON;
@@ -218,8 +256,20 @@ static void musb_conn_timer_handler(unsigned long _musb)
 			val = MUSB_INTR_SUSPEND | MUSB_INTR_VBUSERROR;
 			musb_writeb(musb->mregs, MUSB_INTRUSB, val);
 
-			val = MUSB_POWER_HSENAB;
-			musb_writeb(musb->mregs, MUSB_POWER, val);
+			/* Toggle the Soft Conn bit, so that we can response to
+			 * the inserting of either A-plug or B-plug.
+			 */
+			if (toggle) {
+				val = musb_readb(musb->mregs, MUSB_POWER);
+				val &= ~MUSB_POWER_SOFTCONN;
+				musb_writeb(musb->mregs, MUSB_POWER, val);
+				toggle = 0;
+			} else {
+				val = musb_readb(musb->mregs, MUSB_POWER);
+				val |= MUSB_POWER_SOFTCONN;
+				musb_writeb(musb->mregs, MUSB_POWER, val);
+				toggle = 1;
+			}
 			mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
 		}
 		break;
