@@ -125,7 +125,7 @@ SECTIONS
 	INIT_DATA_SECTION(16)
 	PERCPU(4)
 
-	.text_l1 L1_CODE_START : AT(LOADADDR(.exit.data) + SIZEOF(.exit.data))
+	.text_l1 L1_CODE_START : AT(LOADADDR(.data.percpu) + SIZEOF(.data.percpu))
 	{
 		. = ALIGN(4);
 		__stext_l1 = .;
