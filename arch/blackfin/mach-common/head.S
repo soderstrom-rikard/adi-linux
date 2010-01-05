@@ -144,11 +144,10 @@ ENTRY(__start)
 #endif
 
 	/* Initialize stack pointer */
-	r1.l = _init_thread_union;
-	r1.h = _init_thread_union;
-	r2 = THREAD_SIZE;
-	r6 = r1 + r2;
-	sp = r6;
+	sp.l = _init_thread_union;
+	sp.h = _init_thread_union;
+	p1 = THREAD_SIZE (z);
+	sp = sp + p1;
 	fp = sp;
 	usp = sp;
 
@@ -260,13 +259,10 @@ ENTRY(_real_start)
 	R0 = R7;
 	call _cmdline_init;
 
-	/* Load the current thread pointer and stack */
-	sp += 4; /* +4 is for reti loading */
-	usp = sp;
-	fp = sp;
-	sp += -12;
+	sp += -12 + 4; /* +4 is for reti loading above */
 	call _init_pda
 	sp += 12;
+emuexcpt;
 	jump.l _start_kernel;
 ENDPROC(_real_start)
 

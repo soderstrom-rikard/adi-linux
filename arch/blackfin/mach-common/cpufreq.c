@@ -119,6 +119,7 @@ static int __init __bfin_cpu_init(struct cpufreq_policy *policy)
 	cclk = get_cclk() / 1000;
 	sclk = get_sclk() / 1000;
 
+	/* Anomaly 273 seems to still exist on non-BF54x w/dcache turned on */
 #if ANOMALY_05000273 || ANOMALY_05000274 || \
 	(!defined(CONFIG_BF54x) && defined(CONFIG_BFIN_EXTMEM_DCACHEABLE))
 	min_cclk = sclk * 2;
