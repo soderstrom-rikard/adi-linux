@@ -192,7 +192,6 @@ static void musb_conn_timer_handler(unsigned long _musb)
 	unsigned long flags;
 	u16 val;
 	static u8 toggle;
-	u8 retry;
 
 	spin_lock_irqsave(&musb->lock, flags);
 	switch (musb->xceiv->state) {
@@ -230,17 +229,13 @@ static void musb_conn_timer_handler(unsigned long _musb)
 
 		if (!is_peripheral_enabled(musb))
 			break;
-		/* Sometimes, it needs to sample the ID pin several times
-		 * before getting the correct status, So, do the job here.
+		/* Start a new session. It seems that MUSB needs taking some time
+		 * to recognize the type of the plug inserted?
 		 */
-		for (retry = 0; retry < 2; retry++) {
-			/* Start a new session */
-			val = musb_readw(musb->mregs, MUSB_DEVCTL);
-			val |= MUSB_DEVCTL_SESSION;
-			musb_writew(musb->mregs, MUSB_DEVCTL, val);
-			val = musb_readw(musb->mregs, MUSB_DEVCTL);
-			udelay(100);
-		}
+		val = musb_readw(musb->mregs, MUSB_DEVCTL);
+		val |= MUSB_DEVCTL_SESSION;
+		musb_writew(musb->mregs, MUSB_DEVCTL, val);
+		val = musb_readw(musb->mregs, MUSB_DEVCTL);
 
 		if (!(val & MUSB_DEVCTL_BDEVICE)) {
 			gpio_set_value(musb->config->gpio_vrsel, 1);
@@ -270,7 +265,10 @@ static void musb_conn_timer_handler(unsigned long _musb)
 				musb_writeb(musb->mregs, MUSB_POWER, val);
 				toggle = 1;
 			}
-			mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
+			/* The delay time is set to 1/4 second by default, shortening it,
+			 * if accelerating A-plug detection is needed in OTG mode.
+			 */
+			mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY/4);
 		}
 		break;
 	default:
