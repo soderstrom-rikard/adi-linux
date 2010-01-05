@@ -261,8 +261,7 @@ ENTRY(_real_start)
 	call _cmdline_init;
 
 	/* Load the current thread pointer and stack */
-	p1 = THREAD_SIZE + 4 (z);	/* +4 is for reti loading */
-	sp = sp + p1;
+	sp += 4; /* +4 is for reti loading */
 	usp = sp;
 	fp = sp;
 	sp += -12;
