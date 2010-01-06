@@ -116,16 +116,17 @@ SECTIONS
 	{
 		EXIT_TEXT
 	}
-	.exit.data :
-	{
-		EXIT_DATA
-	}
 
 	. = ALIGN(16);
 	INIT_DATA_SECTION(16)
 	PERCPU(4)
 
-	.text_l1 L1_CODE_START : AT(LOADADDR(.data.percpu) + SIZEOF(.data.percpu))
+	.exit.data :
+	{
+		EXIT_DATA
+	}
+
+	.text_l1 L1_CODE_START : AT(LOADADDR(.exit.data) + SIZEOF(.exit.data))
 	{
 		. = ALIGN(4);
 		__stext_l1 = .;
