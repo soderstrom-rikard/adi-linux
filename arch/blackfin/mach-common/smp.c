@@ -296,8 +296,11 @@ void smp_send_stop(void)
 
 int __cpuinit __cpu_up(unsigned int cpu)
 {
-	struct task_struct *idle;
 	int ret;
+	static struct task_struct *idle;
+
+	if (idle)
+		free_task(idle);
 
 	idle = fork_idle(cpu);
 	if (IS_ERR(idle)) {
@@ -468,15 +471,10 @@ int __cpuexit __cpu_die(unsigned int cpu)
 
 void cpu_die(void)
 {
-	struct mm_struct *mm = current->active_mm;
-
 	complete(&cpu_killed);
 
-	if (mm != &init_mm)
-		switch_mm(mm, &init_mm, current);
-
-	atomic_dec(&mm->mm_users);
-	idle_task_exit();
+	atomic_dec(&init_mm.mm_users);
+	atomic_dec(&init_mm.mm_count);
 
 	local_irq_disable();
 	platform_cpu_die();
