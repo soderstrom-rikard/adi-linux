@@ -349,3 +349,4 @@ asmlinkage void do_notify_resume(struct pt_regs *regs)
 			key_replace_session_keyring();
 	}
 }
+
