@@ -14,7 +14,7 @@ OBJCOPYFLAGS     := -O binary -R .note -R .comment -S
 GZFLAGS          := -9
 
 KBUILD_CFLAGS           += $(call cc-option,-mno-fdpic)
-ifeq ($(CROSS_ROMKERNEL),y)
+ifeq ($(CONFIG_ROMKERNEL),y)
 KBUILD_CFLAGS           += -mlong-calls
 endif
 KBUILD_AFLAGS           += $(call cc-option,-mno-fdpic)
