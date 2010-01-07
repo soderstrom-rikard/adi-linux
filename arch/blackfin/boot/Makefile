@@ -11,11 +11,25 @@ MKIMAGE := $(srctree)/scripts/mkuboot.sh
 targets := vmImage vmImage.bin vmImage.bz2 vmImage.gz vmImage.lzma
 extra-y += vmlinux.bin vmlinux.bin.gz vmlinux.bin.bz2 vmlinux.bin.lzma
 
+ifeq ($(CONFIG_RAMKERNEL),y)
+
 quiet_cmd_uimage = UIMAGE  $@
       cmd_uimage = $(CONFIG_SHELL) $(MKIMAGE) -A $(ARCH) -O linux -T kernel \
                    -C $(2) -n '$(MACHINE)-$(KERNELRELEASE)' -a $(CONFIG_BOOT_LOAD) \
                    -e $(shell $(NM) vmlinux | awk '$$NF == "__start" {print $$1}') \
                    -d $< $@
+else
+
+ROM_BASE_HEX=$(shell echo "$(CONFIG_ROM_BASE)" | sed -e 's:^0[bBxX]::' | tr '[a-f]' '[A-F]')
+ROM_BASE_DEC=$(shell echo "obase=10;ibase=16;$(ROM_BASE_HEX)" | bc)
+ROM_LOAD_DEC=$(shell echo `expr $(ROM_BASE_DEC) + 64`)
+ROM_LOAD_HEX=$(shell echo "obase=16;ibase=10;$(ROM_LOAD_DEC)" | bc)
+
+quiet_cmd_uimage = UIMAGE  $@
+      cmd_uimage = $(CONFIG_SHELL) $(MKIMAGE) -A $(ARCH) -O linux -T kernel \
+                   -x -C $(2) -n '$(MACHINE)-$(KERNELRELEASE)' -a $(ROM_BASE_HEX) \
+                   -e $(ROM_LOAD_HEX) -d $< $@
+endif
 
 $(obj)/vmlinux.bin: vmlinux FORCE
 	$(call if_changed,objcopy)
@@ -42,9 +56,11 @@ $(obj)/vmImage.lzma: $(obj)/vmlinux.bin.lzma
 	$(call if_changed,uimage,lzma)
 
 suffix-y                      := bin
+ifeq ($(CONFIG_RAMKERNEL),y)
 suffix-$(CONFIG_KERNEL_GZIP)  := gz
 suffix-$(CONFIG_KERNEL_BZIP2) := bz2
 suffix-$(CONFIG_KERNEL_LZMA)  := lzma
+endif
 $(obj)/vmImage: $(obj)/vmImage.$(suffix-y)
 	@ln -sf $(notdir $<) $@
 

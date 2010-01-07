@@ -14,6 +14,9 @@ OBJCOPYFLAGS     := -O binary -R .note -R .comment -S
 GZFLAGS          := -9
 
 KBUILD_CFLAGS           += $(call cc-option,-mno-fdpic)
+ifeq ($(CROSS_ROMKERNEL),y)
+KBUILD_CFLAGS           += -mlong-calls
+endif
 KBUILD_AFLAGS           += $(call cc-option,-mno-fdpic)
 CFLAGS_MODULE    += -mlong-calls
 LDFLAGS_MODULE   += -m elf32bfin

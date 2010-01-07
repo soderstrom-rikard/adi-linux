@@ -13,22 +13,17 @@
 #include <asm/trace.h>
 #include <asm/asm-offsets.h>
 
+#ifdef CONFIG_ROMKERNEL
+.section   ".head.text","ax"
+#else
 __INIT
-
-ENTRY(__init_clear_bss)
-	r2 = r2 - r1;
-	cc = r2 == 0;
-	if cc jump .L_bss_done;
-	r2 >>= 2;
-	p1 = r1;
-	p2 = r2;
-	lsetup (1f, 1f) lc0 = p2;
-1:	[p1++] = r0;
-.L_bss_done:
-	rts;
-ENDPROC(__init_clear_bss)
-
+#endif
 ENTRY(__start)
+#ifdef CONFIG_ROMKERNEL
+	.rept 16;
+	.long 0xFFFFFFFF
+	.endr
+#endif
 	/* R0: argument of command line string, passed from uboot, save it */
 	R7 = R0;
 	/* Enable Cycle Counter and Nesting Of Interrupts */
@@ -188,6 +183,11 @@ ENTRY(__start)
 
 	/* Put The Code for PLL Programming and SDRAM Programming in L1 ISRAM */
 	call _bfin_relocate_l1_mem;
+
+#ifdef CONFIG_ROMKERNEL
+	call _bfin_relocate_xip_data;
+#endif
+
 #ifdef CONFIG_BFIN_KERNEL_CLOCK
 	/* Only use on-chip scratch space for stack when absolutely required
 	 * to avoid Anomaly 05000227 ... we know the init_clocks() func only
@@ -238,6 +238,23 @@ ENTRY(__start)
 .LWAIT_HERE:
 	jump .LWAIT_HERE;
 ENDPROC(__start)
+
+.previous
+
+__INIT
+
+ENTRY(__init_clear_bss)
+	r2 = r2 - r1;
+	cc = r2 == 0;
+	if cc jump .L_bss_done;
+	r2 >>= 2;
+	p1 = r1;
+	p2 = r2;
+	lsetup (1f, 1f) lc0 = p2;
+1:	[p1++] = r0;
+.L_bss_done:
+	rts;
+ENDPROC(__init_clear_bss)
 
 /* A little BF561 glue ... */
 #ifndef WDOG_CTL
