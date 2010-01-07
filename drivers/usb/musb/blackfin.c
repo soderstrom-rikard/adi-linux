@@ -170,7 +170,7 @@ static irqreturn_t blackfin_interrupt(int irq, void *__hci)
 		musb_writew(musb->mregs, MUSB_INTRRX, musb->int_rx);
 		retval = musb_interrupt(musb);
 	}
-	/* Start sampling ID pin,when plug is removed from MUSB*/
+	/* Start sampling ID pin, when plug is removed from MUSB */
 	if (is_otg_enabled(musb) && (musb->xceiv->state == OTG_STATE_B_IDLE
 		|| musb->xceiv->state == OTG_STATE_A_WAIT_BCON)) {
 		mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
@@ -268,7 +268,7 @@ static void musb_conn_timer_handler(unsigned long _musb)
 			/* The delay time is set to 1/4 second by default, shortening it,
 			 * if accelerating A-plug detection is needed in OTG mode.
 			 */
-			mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY/4);
+			mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY / 4);
 		}
 		break;
 	default:
