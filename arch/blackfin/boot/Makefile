@@ -56,11 +56,9 @@ $(obj)/vmImage.lzma: $(obj)/vmlinux.bin.lzma
 	$(call if_changed,uimage,lzma)
 
 suffix-y                      := bin
-ifeq ($(CONFIG_RAMKERNEL),y)
 suffix-$(CONFIG_KERNEL_GZIP)  := gz
 suffix-$(CONFIG_KERNEL_BZIP2) := bz2
 suffix-$(CONFIG_KERNEL_LZMA)  := lzma
-endif
 $(obj)/vmImage: $(obj)/vmImage.$(suffix-y)
 	@ln -sf $(notdir $<) $@
 

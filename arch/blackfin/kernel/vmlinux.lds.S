@@ -21,13 +21,11 @@ SECTIONS
 	. = CONFIG_BOOT_LOAD;
 #else
 	. = CONFIG_ROM_BASE;
-	.text_head :
+	.text.head :
 	{
-#ifdef CONFIG_ROMKERNEL
 		__text = .;
 		_text = .;
 		__stext = .;
-#endif
 		*(.head.text)
 	}
 #endif
@@ -43,7 +41,7 @@ SECTIONS
 		__stext = .;
 #endif
 		TEXT_TEXT
-#if !defined(CONFIG_SCHEDULE_L1) || defined(CONFIG_ROMKERNEL)
+#if !defined(CONFIG_SCHEDULE_L1)
 		SCHED_TEXT
 #endif
 		LOCK_TEXT
@@ -58,7 +56,7 @@ SECTIONS
 		*(.text.*)
 		*(.fixup)
 
-#if !L1_CODE_LENGTH || defined(CONFIG_ROMKERNEL)
+#if !L1_CODE_LENGTH
 		*(.l1.text)
 #endif
 

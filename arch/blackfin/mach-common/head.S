@@ -20,6 +20,7 @@ __INIT
 #endif
 ENTRY(__start)
 #ifdef CONFIG_ROMKERNEL
+	/* mkimage requires entry address = load address + 64 */
 	.rept 16;
 	.long 0xFFFFFFFF
 	.endr
@@ -238,8 +239,6 @@ ENTRY(__start)
 .LWAIT_HERE:
 	jump .LWAIT_HERE;
 ENDPROC(__start)
-
-.previous
 
 __INIT
 
