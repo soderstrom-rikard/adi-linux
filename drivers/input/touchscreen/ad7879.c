@@ -520,6 +520,17 @@ err_free_mem:
 
 static int __devexit ad7879_destroy(bus_device *bus, struct ad7879 *ts)
 {
+
+#ifdef CONFIG_GPIOLIB
+	struct ad7879_platform_data *pdata = bus->dev.platform_data;
+	int err;
+	if (pdata->gpio_export) {
+		err = gpiochip_remove(&ts->gc);
+		if (err)
+			dev_err(&bus->dev, "failed to remove gpio %d\n",
+				ts->gc.base);
+	}
+#endif
 	ad7879_disable(ts);
 	sysfs_remove_group(&ts->bus->dev.kobj, &ad7879_attr_group);
 	free_irq(ts->bus->irq, ts);
