@@ -168,7 +168,13 @@ ENTRY(_evt_ivhw)
 
 	r0 = sp;        /* stack frame pt_regs pointer argument ==> r0 */
 	SP += -12;
+#if defined(CONFIG_ROMKERNEL)
+        p5.l = _trap_c;
+        p5.h = _trap_c;
+        call ( p5 );
+#else
 	call _trap_c;
+#endif
 	SP += 12;
 
 #ifdef EBIU_ERRMST
