@@ -94,7 +94,11 @@ SECTIONS
 		___bss_stop = .;
 	}
 
+#if defined(CONFIG_ROMKERNEL)
 	.data : AT(LOADADDR(.bss) + SIZEOF(.bss))
+#else
+	.data :
+#endif
 	{
 		__sdata = .;
 		/* This gets done first, so the glob doesn't suck it in */
