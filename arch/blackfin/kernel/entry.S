@@ -44,13 +44,7 @@ ENTRY(_ret_from_fork)
 	sti r4;
 #endif /* CONFIG_IPIPE */
 	SP += -12;
-#if defined(CONFIG_ROMKERNEL)
-        p5.l = _schedule_tail;
-        p5.h = _schedule_tail;
-        call ( p5 );
-#else
-	call _schedule_tail;
-#endif
+	pseudo_long_call _schedule_tail, p5;
 	SP += 12;
 	r0 = [sp + PT_IPEND];
 	cc = bittst(r0,1);
@@ -85,13 +79,7 @@ ENTRY(_sys_vfork)
 	r0 += 24;
 	[--sp] = rets;
 	SP += -12;
-#if defined(CONFIG_ROMKERNEL)
-        p5.l = _bfin_vfork;
-        p5.h = _bfin_vfork;
-        call ( p5 );
-#else
-	call _bfin_vfork;
-#endif
+	pseudo_long_call _bfin_vfork, p5;
 	SP += 12;
 	rets = [sp++];
 	rts;
@@ -102,13 +90,7 @@ ENTRY(_sys_clone)
 	r0 += 24;
 	[--sp] = rets;
 	SP += -12;
-#if defined(CONFIG_ROMKERNEL)
-        p5.l = _bfin_clone;
-        p5.h = _bfin_clone;
-        call ( p5 );
-#else
-	call _bfin_clone;
-#endif
+	pseudo_long_call _bfin_clone, p5;
 	SP += 12;
 	rets = [sp++];
 	rts;
@@ -119,13 +101,7 @@ ENTRY(_sys_rt_sigreturn)
 	r0 += 24;
 	[--sp] = rets;
 	SP += -12;
-#if defined(CONFIG_ROMKERNEL)
-        p5.l = _do_rt_sigreturn;
-        p5.h = _do_rt_sigreturn;
-        call ( p5 );
-#else
-	call _do_rt_sigreturn;
-#endif
+	pseudo_long_call _do_rt_sigreturn, p5;
 	SP += 12;
 	rets = [sp++];
 	rts;

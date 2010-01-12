@@ -405,13 +405,7 @@ ENTRY(_double_fault)
 
 	r0 = sp;        /* stack frame pt_regs pointer argument ==> r0 */
 	SP += -12;
-#if defined(CONFIG_ROMKERNEL)
-        p5.l = _double_fault_c;
-        p5.h = _double_fault_c;
-        call ( p5 );
-#else
-	call _double_fault_c;
-#endif
+	pseudo_long_call _double_fault_c, p5;
 	SP += 12;
 .L_double_fault_panic:
         JUMP .L_double_fault_panic
@@ -453,13 +447,7 @@ ENTRY(_exception_to_level5)
 
 	r0 = sp; 	/* stack frame pt_regs pointer argument ==> r0 */
 	SP += -12;
-#if defined(CONFIG_ROMKERNEL)
-        p4.l = _trap_c;
-        p4.h = _trap_c;
-        call ( p4 );
-#else
-	call _trap_c;
-#endif
+	pseudo_long_call _trap_c, p4;
 	SP += 12;
 
 	/* If interrupts were off during the exception (IPEND[4] = 1), turn them off
@@ -563,13 +551,7 @@ ENTRY(_kernel_execve)
 	p0 = sp;
 	sp += -16;
 	[sp + 12] = p0;
-#if defined(CONFIG_ROMKERNEL)
-        p5.l = _do_execve;
-        p5.h = _do_execve;
-        call ( p5 );
-#else
-	call _do_execve;
-#endif
+	pseudo_long_call _do_execve, p5;
 	SP += 16;
 	cc = r0 == 0;
 	if ! cc jump .Lexecve_failed;
@@ -722,13 +704,7 @@ ENTRY(_system_call)
 	sp += 4;
 
 	SP += -12;
-#if defined(CONFIG_ROMKERNEL)
-	p4.l = _schedule;
-	p4.h = _schedule;
-	call ( p4 );
-#else
-	call _schedule;
-#endif
+	pseudo_long_call _schedule, p4;
 	SP += 12;
 
 	jump .Lresume_userspace_1;
@@ -747,13 +723,7 @@ ENTRY(_system_call)
 
 	r0 = sp;
 	SP += -12;
-#if defined(CONFIG_ROMKERNEL)
-        p5.l = _do_notify_resume;
-        p5.h = _do_notify_resume;
-        call ( p5 );
-#else
-	call _do_notify_resume;
-#endif
+	pseudo_long_call _do_notify_resume, p5;
 	SP += 12;
 
 .Lsyscall_really_exit:
@@ -766,13 +736,7 @@ ENDPROC(_system_call)
  * this symbol need not be global anyways, so ...
  */
 _sys_trace:
-#if defined(CONFIG_ROMKERNEL)
-        p5.l = _syscall_trace;
-        p5.h = _syscall_trace;
-        call ( p5 );
-#else
-	call _syscall_trace;
-#endif
+	pseudo_long_call _syscall_trace, p5;
 
 	/* Execute the appropriate system call */
 
@@ -796,13 +760,7 @@ _sys_trace:
 	SP += 24;
 	[sp + PT_R0] = r0;
 
-#if defined(CONFIG_ROMKERNEL)
-        p5.l = _syscall_trace;
-        p5.h = _syscall_trace;
-        call ( p5 );
-#else
-	call _syscall_trace;
-#endif
+	pseudo_long_call _syscall_trace, p5;
 	jump .Lresume_userspace;
 ENDPROC(_sys_trace)
 
@@ -1050,13 +1008,7 @@ ENTRY(_schedule_and_signal_from_int)
 	r0 = sp;
 	sp += -12;
 
-#if defined(CONFIG_ROMKERNEL)
-        p5.l = _finish_atomic_sections;
-        p5.h = _finish_atomic_sections;
-        call ( p5 );
-#else
-	call _finish_atomic_sections;
-#endif
+	pseudo_long_call _finish_atomic_sections, p5;
 	sp += 12;
 	jump.s .Lresume_userspace;
 ENDPROC(_schedule_and_signal_from_int)
