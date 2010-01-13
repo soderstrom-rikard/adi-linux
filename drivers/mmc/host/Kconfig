@@ -167,7 +167,7 @@ choice
 	  Choose which driver to use for the Atmel MCI Silicon
 
 config MMC_AT91
-	tristate "AT91 SD/MMC Card Interface support"
+	bool "AT91 SD/MMC Card Interface support"
 	depends on ARCH_AT91
 	help
 	  This selects the AT91 MCI controller.
@@ -175,7 +175,7 @@ config MMC_AT91
 	  If unsure, say N.
 
 config MMC_ATMELMCI
-	tristate "Atmel Multimedia Card Interface support"
+	bool "Atmel Multimedia Card Interface support"
 	depends on AVR32 || ARCH_AT91
 	help
 	  This selects the Atmel Multimedia Card Interface driver. If
