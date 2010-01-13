@@ -138,7 +138,9 @@ static void decode_address(char *buf, unsigned long address)
 		if (!mm)
 			continue;
 
-		down_write(&mm->mmap_sem);
+		while (!down_read_trylock(&mm->mmap_sem))
+			barrier();
+
 		for (n = rb_first(&mm->mm_rb); n; n = rb_next(n)) {
 			struct vm_area_struct *vma;
 
@@ -184,11 +186,11 @@ static void decode_address(char *buf, unsigned long address)
 				if (buf[0] == '\0')
 					sprintf(buf, "[ %s ] dynamic memory", name);
 
-				up_write(&mm->mmap_sem);
+				up_read(&mm->mmap_sem);
 				goto done;
 			}
 		}
-		up_write(&mm->mmap_sem);
+		up_read(&mm->mmap_sem);
 
 		if (!in_atomic)
 			mmput(mm);
