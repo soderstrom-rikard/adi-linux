@@ -361,6 +361,59 @@ void ad7879_gpio_set_value(struct gpio_chip *chip, unsigned gpio, int value)
 	ad7879_write(ts, AD7879_REG_CTRL2, ts->cmd_crtl2);
 	mutex_unlock(&ts->mutex);
 }
+
+static inline int ad7879_gpio_add(struct device *dev)
+{
+	struct ad7879 *ts = dev_get_drvdata(dev);
+	struct ad7879_platform_data *pdata = dev->platform_data;
+	int ret = 0;
+
+	if (pdata->gpio_export) {
+		ts->gc.direction_input = ad7879_gpio_direction_input;
+		ts->gc.direction_output = ad7879_gpio_direction_output;
+		ts->gc.get = ad7879_gpio_get_value;
+		ts->gc.set = ad7879_gpio_set_value;
+		ts->gc.can_sleep = 1;
+		ts->gc.base = pdata->gpio_base;
+		ts->gc.ngpio = 1;
+		ts->gc.label = "AD7879-GPIO";
+		ts->gc.owner = THIS_MODULE;
+		ts->gc.dev = dev;
+
+		ret = gpiochip_add(&ts->gc);
+		if (ret)
+			dev_err(dev, "failed to register gpio %d\n",
+				ts->gc.base);
+	}
+
+	return ret;
+}
+
+static int ad7879_gpio_remove(struct device *dev)
+{
+	struct ad7879 *ts = dev_get_drvdata(dev);
+	struct ad7879_platform_data *pdata = dev->platform_data;
+	int ret = 0;
+
+	if (pdata->gpio_export) {
+		ret = gpiochip_remove(&ts->gc);
+		if (ret)
+			dev_err(dev, "failed to remove gpio %d\n",
+				ts->gc.base);
+	}
+
+	return ret;
+}
+#else
+static inline int ad7879_gpio_add(struct device *dev)
+{
+	return 0;
+}
+
+static inline int ad7879_gpio_remove(struct device *dev)
+{
+	return 0;
+}
 #endif
 
 __devinit int
@@ -394,6 +447,7 @@ ad7879_probe(struct device *dev, struct ad7879_bus_ops *bops, u8 devid, u16 bust
 
 	ts->bops = *bops;
 	ts->input = input_dev;
+	dev_set_drvdata(dev, ts);
 
 	setup_timer(&ts->timer, ad7879_timer, (unsigned long) ts);
 	INIT_WORK(&ts->work, ad7879_work);
@@ -478,36 +532,21 @@ ad7879_probe(struct device *dev, struct ad7879_bus_ops *bops, u8 devid, u16 bust
 	if (err)
 		goto err_free_irq;
 
-	err = input_register_device(input_dev);
+	err = ad7879_gpio_add(dev);
 	if (err)
 		goto err_remove_attr;
+
+	err = input_register_device(input_dev);
+	if (err)
+		goto err_remove_gpio;
 
 	dev_info(dev, "Rev.%d touchscreen, irq %d\n",
 		 revid >> 8, ts->bops.irq);
 
-#ifdef CONFIG_GPIOLIB
-	if (pdata->gpio_export) {
-		ts->gc.direction_input = ad7879_gpio_direction_input;
-		ts->gc.direction_output = ad7879_gpio_direction_output;
-		ts->gc.get = ad7879_gpio_get_value;
-		ts->gc.set = ad7879_gpio_set_value;
-		ts->gc.can_sleep = 1;
-		ts->gc.base = pdata->gpio_base;
-		ts->gc.ngpio = 1;
-		ts->gc.label = "AD7879-GPIO";
-		ts->gc.owner = THIS_MODULE;
-
-		err = gpiochip_add(&ts->gc);
-		if (err)
-			dev_err(dev, "failed to register gpio %d\n",
-				ts->gc.base);
-	}
-#endif
-
-	dev_set_drvdata(dev, ts);
-
 	return 0;
 
+err_remove_gpio:
+	ad7879_gpio_remove(dev);
 err_remove_attr:
 	sysfs_remove_group(&dev->kobj, &ad7879_attr_group);
 err_free_irq:
@@ -516,6 +555,7 @@ err_free_mem:
 	input_free_device(input_dev);
 err_free_ts_mem:
 	kfree(ts);
+	dev_set_drvdata(dev, NULL);
 
 	return err;
 }
@@ -525,15 +565,7 @@ __devexit int ad7879_remove(struct device *dev)
 {
 	struct ad7879 *ts = dev_get_drvdata(dev);
 
-#ifdef CONFIG_GPIOLIB
-	struct ad7879_platform_data *pdata = dev->platform_data;
-	if (pdata->gpio_export) {
-		if (gpiochip_remove(&ts->gc))
-			dev_err(dev, "failed to remove gpio %d\n",
-				ts->gc.base);
-	}
-#endif
-
+	ad7879_gpio_remove(dev);
 	ad7879_disable(dev);
 	sysfs_remove_group(&dev->kobj, &ad7879_attr_group);
 	free_irq(ts->bops.irq, ts);

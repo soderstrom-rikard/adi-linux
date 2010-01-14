@@ -31,7 +31,7 @@ struct ad7879_platform_data {
 	/* 1 = AUX/VBAT/GPIO export GPIO to gpiolib
 	 * requires CONFIG_GPIOLIB
 	 */
-	u8	gpio_export;
+	bool	gpio_export;
 	/* identifies the first GPIO number handled by this chip;
 	 * or, if negative, requests dynamic ID allocation.
 	 */
