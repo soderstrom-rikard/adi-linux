@@ -384,7 +384,7 @@ ad7879_probe(struct device *dev, struct ad7879_bus_ops *bops, u8 devid, u16 bust
 
 	err = -ENOMEM;
 
-	ts = kmalloc(sizeof(*ts), GFP_KERNEL);
+	ts = kzalloc(sizeof(*ts), GFP_KERNEL);
 	if (!ts)
 		goto err_free_ts_mem;
 

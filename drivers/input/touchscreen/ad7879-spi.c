@@ -46,7 +46,7 @@ static int ad7879_spi_xfer(void *spi, u16 cmd, u8 count, u16 *tx_buf, u16 *rx_bu
 	struct spi_transfer *xfers;
 	void *spi_data;
 	u16 *command;
-	u16 *_tx_buf = _tx_buf, *_rx_buf = _rx_buf; /* shut gcc up */
+	u16 *_rx_buf = _rx_buf; /* shut gcc up */
 	u8 idx;
 	int ret;
 
@@ -57,12 +57,12 @@ static int ad7879_spi_xfer(void *spi, u16 cmd, u8 count, u16 *tx_buf, u16 *rx_bu
 	spi_message_init(&msg);
 
 	command = spi_data;
-	*command = cmd;
+	command[0] = cmd;
 	if (count == 1) {
 		/* ad7879_spi_{read,write} gave us buf on stack */
-		_rx_buf = rx_buf;
-		_tx_buf = tx_buf;
+		command[1] = *tx_buf;
 		tx_buf = &command[1];
+		_rx_buf = rx_buf;
 		rx_buf = &command[2];
 	}
 
@@ -82,10 +82,9 @@ static int ad7879_spi_xfer(void *spi, u16 cmd, u8 count, u16 *tx_buf, u16 *rx_bu
 	}
 
 	ret = spi_sync(spi, &msg);
-	if (count == 1) {
-		_tx_buf[0] = command[1];
+
+	if (count == 1)
 		_rx_buf[0] = command[2];
-	}
 
 	kfree(spi_data);
 
@@ -112,7 +111,7 @@ static int ad7879_spi_write(void *spi, u8 reg, u16 val)
 static int __devinit ad7879_spi_probe(struct spi_device *spi)
 {
 	struct ad7879_bus_ops bops = {
-		.bus_data = &spi,
+		.bus_data = spi,
 		.irq = spi->irq,
 		.read = ad7879_spi_read,
 		.multi_read = ad7879_spi_multi_read,

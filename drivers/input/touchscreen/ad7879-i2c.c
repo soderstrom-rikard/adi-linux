@@ -55,7 +55,7 @@ static int __devinit ad7879_i2c_probe(struct i2c_client *client,
 				      const struct i2c_device_id *id)
 {
 	struct ad7879_bus_ops bops = {
-		.bus_data = &client,
+		.bus_data = client,
 		.irq = client->irq,
 		.read = ad7879_i2c_read,
 		.multi_read = ad7879_i2c_multi_read,
