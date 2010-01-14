@@ -219,10 +219,10 @@ static unsigned int snd_soc_8_8_read_i2c(struct snd_soc_codec *codec,
 	xfer[1].addr = client->addr;
 	xfer[1].flags = I2C_M_RD;
 	xfer[1].len = 1;
-	xfer[1].buf = (u8 *)&data;
+	xfer[1].buf = &data;
 
-	ret = i2c_transfer(client->adapter, xfer, 1);
-	if (ret != 1) {
+	ret = i2c_transfer(client->adapter, xfer, 2);
+	if (ret != 2) {
 		dev_err(&client->dev, "i2c_transfer() returned %d\n", ret);
 		return 0;
 	}
