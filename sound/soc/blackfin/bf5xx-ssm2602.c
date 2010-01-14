@@ -112,18 +112,6 @@ static struct snd_soc_dai_link bf5xx_ssm2602_dai = {
 	.ops = &bf5xx_ssm2602_ops,
 };
 
-/*
- * SSM2602 2 wire address is determined by CSB
- * state during powerup.
- *    low  = 0x1a
- *    high = 0x1b
- */
-
-static struct ssm2602_setup_data bf5xx_ssm2602_setup = {
-	.i2c_bus = 0,
-	.i2c_address = 0x1b,
-};
-
 static struct snd_soc_card bf5xx_ssm2602 = {
 	.name = "bf5xx_ssm2602",
 	.platform = &bf5xx_i2s_soc_platform,
@@ -134,7 +122,6 @@ static struct snd_soc_card bf5xx_ssm2602 = {
 static struct snd_soc_device bf5xx_ssm2602_snd_devdata = {
 	.card = &bf5xx_ssm2602,
 	.codec_dev = &soc_codec_dev_ssm2602,
-	.codec_data = &bf5xx_ssm2602_setup,
 };
 
 static struct platform_device *bf5xx_ssm2602_snd_device;
