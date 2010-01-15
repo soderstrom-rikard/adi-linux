@@ -79,7 +79,7 @@ ENTRY(_sys_vfork)
 	r0 += 24;
 	[--sp] = rets;
 	SP += -12;
-	pseudo_long_call _bfin_vfork, p5;
+	pseudo_long_call _bfin_vfork, p2;
 	SP += 12;
 	rets = [sp++];
 	rts;
@@ -90,7 +90,7 @@ ENTRY(_sys_clone)
 	r0 += 24;
 	[--sp] = rets;
 	SP += -12;
-	pseudo_long_call _bfin_clone, p5;
+	pseudo_long_call _bfin_clone, p2;
 	SP += 12;
 	rets = [sp++];
 	rts;
@@ -101,7 +101,7 @@ ENTRY(_sys_rt_sigreturn)
 	r0 += 24;
 	[--sp] = rets;
 	SP += -12;
-	pseudo_long_call _do_rt_sigreturn, p5;
+	pseudo_long_call _do_rt_sigreturn, p2;
 	SP += 12;
 	rets = [sp++];
 	rts;
