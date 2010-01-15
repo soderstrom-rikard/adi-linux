@@ -57,24 +57,6 @@ struct adau1761_priv {
 };
 
 /*
- * read register cache
- */
-static inline unsigned int adau1761_read_reg_cache(
-	struct snd_soc_codec *codec, unsigned int reg)
-{
-	u8 *cache = codec->reg_cache;
-
-	if (reg < ADAU_FIRSTREG) {
-		/* hack, SoC kcontrol callbacks only support 1byte reg add */
-		reg = reg + ADAU_FIRSTREG;
-	}
-	if ((reg < ADAU_FIRSTREG) || (reg > ADAU_LASTREG))
-		return -EPERM;
-
-	return cache[reg - ADAU_FIRSTREG];
-}
-
-/*
  * write register cache
  */
 static inline int adau1761_write_reg_cache(struct snd_soc_codec *codec,
@@ -90,38 +72,6 @@ static inline int adau1761_write_reg_cache(struct snd_soc_codec *codec,
 
 	cache[reg - ADAU_FIRSTREG] = value;
 
-	return 0;
-}
-
-/*
- * read ADAU1761 hw register and update cache
- */
-static int adau1761_read_reg_byte(struct snd_soc_codec *codec,
-	unsigned int reg)
-{
-	u8 addr[2];
-	u8 buf[1] = {0};
-
-	if (reg < ADAU_FIRSTREG)
-		reg = reg + ADAU_FIRSTREG;
-
-	if ((reg < ADAU_FIRSTREG) || (reg > ADAU_LASTREG))
-		return -EIO;
-	addr[0] = (u8)(reg >> 8);
-	addr[1] = (u8)(reg & 0xFF);
-
-	/* write the 2byte read address */
-	if (codec->hw_write(codec->control_data, addr, 2) != 2) {
-		dev_err(codec->dev, "read_reg_byte:address write failed.");
-		return -EIO;
-	}
-
-	/* perform the read */
-	if (i2c_master_recv(codec->control_data, buf, 1) != 1) {
-		dev_err(codec->dev, "read_reg_byte:hw_read failed.");
-		return -EIO;
-	}
-	adau1761_write_reg_cache(codec, reg, (unsigned int)buf[0]);
 	return 0;
 }
 
@@ -158,33 +108,6 @@ static int adau1761_read_reg_block(struct snd_soc_codec *codec,
 
 	return 0;
 }
-
-/*
- * write to a adau1761 hw register
- */
-static int adau1761_write_reg_byte(struct snd_soc_codec *codec,
-	unsigned int reg, unsigned int value)
-{
-	/* 2byte register address, 1byte value */
-	u8 buf[3];
-
-	if (reg < ADAU_FIRSTREG)
-		reg = reg + ADAU_FIRSTREG;
-	buf[0] = (u8)(reg >> 8);
-	buf[1] = (u8)(reg & 0xFF);
-	buf[2] = (u8)(value & 0xFF);
-
-	if (adau1761_write_reg_cache(codec, reg, value) == -1)
-		return -EIO;
-
-	if (codec->hw_write(codec->control_data, buf, 3) == 3)
-		return 0;
-	else {
-		dev_err(codec->dev, "address byte write failed.");
-		return -EIO;
-	}
-}
-
 /*
  * write a multibyte ADAU1761 register (6byte pll reg)
  */
@@ -237,34 +160,34 @@ static int adau1761_mux_put(struct snd_kcontrol *kcontrol,
 	if (src == 0) {/* Select Mic */
 		adau1761->in_source = CAP_MIC;
 #ifdef ADAU1761_DIG_MIC
-		regvalue = (adau1761_read_reg_cache(codec, ADAU_ADCCTL0) & 0xFB)|0x4;
-		adau1761_write_reg_byte(codec, ADAU_ADCCTL0, regvalue);
+		regvalue = (snd_soc_read(codec, ADAU_ADCCTL0) & 0xFB)|0x4;
+		snd_soc_write(codec, ADAU_ADCCTL0, regvalue);
 #else
-		adau1761_write_reg_byte(codec, ADAU_RECMBIA, RECMBIA_DISABLE);
-		regvalue = (adau1761_read_reg_cache(codec, ADAU_RECVLCL)
+		snd_soc_write(codec, ADAU_RECMBIA, RECMBIA_DISABLE);
+		regvalue = (snd_soc_read(codec, ADAU_RECVLCL)
 				| RECVLC_ENABLE_MASK);
-		adau1761_write_reg_byte(codec, ADAU_RECVLCL, regvalue);
-		regvalue = (adau1761_read_reg_cache(codec, ADAU_RECVLCR)
+		snd_soc_write(codec, ADAU_RECVLCL, regvalue);
+		regvalue = (snd_soc_read(codec, ADAU_RECVLCR)
 				| RECVLC_ENABLE_MASK);
-		adau1761_write_reg_byte(codec, ADAU_RECVLCR, regvalue);
-		adau1761_write_reg_byte(codec, ADAU_RECMLC1, RECMLC_MIC_0DB);
-		adau1761_write_reg_byte(codec, ADAU_RECMRC1, RECMLC_MIC_0DB);
+		snd_soc_write(codec, ADAU_RECVLCR, regvalue);
+		snd_soc_write(codec, ADAU_RECMLC1, RECMLC_MIC_0DB);
+		snd_soc_write(codec, ADAU_RECMRC1, RECMLC_MIC_0DB);
 #endif
 	} else if (src == 1) {/* Select Line */
 		adau1761->in_source = CAP_LINE;
 #ifdef ADAU1761_DIG_MIC
-		regvalue = (adau1761_read_reg_cache(codec, ADAU_ADCCTL0) & 0xFB);
-		adau1761_write_reg_byte(codec, ADAU_ADCCTL0, regvalue);
+		regvalue = (snd_soc_read(codec, ADAU_ADCCTL0) & 0xFB);
+		snd_soc_write(codec, ADAU_ADCCTL0, regvalue);
 #endif
-		adau1761_write_reg_byte(codec, ADAU_RECMBIA, RECMBIA_DISABLE);
-		regvalue = (adau1761_read_reg_cache(codec, ADAU_RECVLCL)
+		snd_soc_write(codec, ADAU_RECMBIA, RECMBIA_DISABLE);
+		regvalue = (snd_soc_read(codec, ADAU_RECVLCL)
 				& RECVLC_DISABLE_MASK);
-		adau1761_write_reg_byte(codec, ADAU_RECVLCL, regvalue);
-		regvalue = (adau1761_read_reg_cache(codec, ADAU_RECVLCR)
+		snd_soc_write(codec, ADAU_RECVLCL, regvalue);
+		regvalue = (snd_soc_read(codec, ADAU_RECVLCR)
 				& RECVLC_DISABLE_MASK);
-		adau1761_write_reg_byte(codec, ADAU_RECVLCR, regvalue);
-		adau1761_write_reg_byte(codec, ADAU_RECMLC1, RECMLC_LINE_0DB);
-		adau1761_write_reg_byte(codec, ADAU_RECMRC1, RECMLC_LINE_0DB);
+		snd_soc_write(codec, ADAU_RECVLCR, regvalue);
+		snd_soc_write(codec, ADAU_RECMLC1, RECMLC_LINE_0DB);
+		snd_soc_write(codec, ADAU_RECMRC1, RECMLC_LINE_0DB);
 	}
 
 	return 0;
@@ -279,7 +202,7 @@ static int adau1761_mic_boost_get(struct snd_kcontrol *kcontrol,
 	if (adau1761->in_source & CAP_MIC)
 		ucontrol->value.integer.value[0] =
 		(RECMLC_MIC_20DB ==
-			adau1761_read_reg_cache(codec, ADAU_RECMLC1));
+			snd_soc_read(codec, ADAU_RECMLC1));
 	else
 		ucontrol->value.integer.value[0] = 0x0;
 
@@ -298,9 +221,9 @@ static int adau1761_mic_boost_put(struct snd_kcontrol *kcontrol,
 
 	if (adau1761->in_source & CAP_MIC) {
 		regvalue = (val) ? RECMLC_MIC_20DB : RECMLC_MIC_0DB;
-		if (adau1761_read_reg_cache(codec, ADAU_RECMLC1) != regvalue) {
-			adau1761_write_reg_byte(codec, ADAU_RECMLC1, regvalue);
-			adau1761_write_reg_byte(codec, ADAU_RECMRC1, regvalue);
+		if (snd_soc_read(codec, ADAU_RECMLC1) != regvalue) {
+			snd_soc_write(codec, ADAU_RECMLC1, regvalue);
+			snd_soc_write(codec, ADAU_RECMRC1, regvalue);
 			return 1;
 		}
 	}
@@ -341,29 +264,29 @@ static int adau1761_mute(struct snd_soc_dai *dai, int mute)
 
 	if (mute) {
 		/* mute outputs */
-		reg = (adau1761_read_reg_cache(codec, ADAU_PLBMLC0) & 0xFE) | 0x0;
-		adau1761_write_reg_byte(codec, ADAU_PLBMLC0, reg);
-		reg = (adau1761_read_reg_cache(codec, ADAU_PLBMRC0) & 0xFE) | 0x0;
-		adau1761_write_reg_byte(codec, ADAU_PLBMRC0, reg);
+		reg = (snd_soc_read(codec, ADAU_PLBMLC0) & 0xFE) | 0x0;
+		snd_soc_write(codec, ADAU_PLBMLC0, reg);
+		reg = (snd_soc_read(codec, ADAU_PLBMRC0) & 0xFE) | 0x0;
+		snd_soc_write(codec, ADAU_PLBMRC0, reg);
 
 		/* mute inputs */
-		reg = (adau1761_read_reg_cache(codec, ADAU_RECMLC0) & 0xFE) | 0x0;
-		adau1761_write_reg_byte(codec, ADAU_RECMLC0, reg);
-		reg = (adau1761_read_reg_cache(codec, ADAU_RECMRC0) & 0xFE) | 0x0;
-		adau1761_write_reg_byte(codec, ADAU_RECMRC0, reg);
+		reg = (snd_soc_read(codec, ADAU_RECMLC0) & 0xFE) | 0x0;
+		snd_soc_write(codec, ADAU_RECMLC0, reg);
+		reg = (snd_soc_read(codec, ADAU_RECMRC0) & 0xFE) | 0x0;
+		snd_soc_write(codec, ADAU_RECMRC0, reg);
 	} else {
 
 		/* un-mute inputs */
-		reg = (adau1761_read_reg_cache(codec, ADAU_RECMLC0) & 0xFE) | 0x1;
-		adau1761_write_reg_byte(codec, ADAU_RECMLC0, reg);
-		reg = (adau1761_read_reg_cache(codec, ADAU_RECMRC0) & 0xFE) | 0x1;
-		adau1761_write_reg_byte(codec, ADAU_RECMRC0, reg);
+		reg = (snd_soc_read(codec, ADAU_RECMLC0) & 0xFE) | 0x1;
+		snd_soc_write(codec, ADAU_RECMLC0, reg);
+		reg = (snd_soc_read(codec, ADAU_RECMRC0) & 0xFE) | 0x1;
+		snd_soc_write(codec, ADAU_RECMRC0, reg);
 
 		/* un-mute outputs */
-		reg = (adau1761_read_reg_cache(codec, ADAU_PLBMLC0) & 0xFE) | 0x1;
-		adau1761_write_reg_byte(codec, ADAU_PLBMLC0, reg);
-		reg = (adau1761_read_reg_cache(codec, ADAU_PLBMRC0) & 0xFE) | 0x1;
-		adau1761_write_reg_byte(codec, ADAU_PLBMRC0, reg);
+		reg = (snd_soc_read(codec, ADAU_PLBMLC0) & 0xFE) | 0x1;
+		snd_soc_write(codec, ADAU_PLBMLC0, reg);
+		reg = (snd_soc_read(codec, ADAU_PLBMRC0) & 0xFE) | 0x1;
+		snd_soc_write(codec, ADAU_PLBMRC0, reg);
 	}
 
 	return 0;
@@ -517,10 +440,10 @@ static int adau1761_pll_init(struct snd_soc_codec *codec)
 	u8 *pll_reg = adau1761->adau1761_pll_reg;
 	int ix = 0;
 	/* Clear dsp Run bit */
-	adau1761_write_reg_byte(codec, ADAU_DSP_RUN, 0x00);
+	snd_soc_write(codec, ADAU_DSP_RUN, 0x00);
 
 	/* Init ADAU1761 clocking */
-	adau1761_write_reg_byte(codec, ADAU_CLKCTRL,
+	snd_soc_write(codec, ADAU_CLKCTRL,
 		(CLKCTRL_SRC_PLL | CLKCTRL_FRQ_1024 | CLKCTRL_DISABLE));
 
 	ix = get_pll_settings(adau1761->sysclk, adau1761->pll_out);
@@ -553,7 +476,7 @@ static int adau1761_pll_enable(struct snd_soc_codec *codec, int enable)
 			++counter;
 			schedule_timeout_interruptible(msecs_to_jiffies(1));
 			adau1761_read_reg_block(codec, ADAU_PLLCTRL, 6);
-		} while (0 == (adau1761_read_reg_cache(codec, ADAU_PLLCTRL + 5) & 0x2)
+		} while (0 == (snd_soc_read(codec, ADAU_PLLCTRL + 5) & 0x2)
 			&& counter < 20);
 		if (counter >= 20)
 			return -1;
@@ -561,10 +484,10 @@ static int adau1761_pll_enable(struct snd_soc_codec *codec, int enable)
 		adau1761->pll_enable = 1;
 
 		/* Init ADAU1761 clocking */
-		adau1761_write_reg_byte(codec, ADAU_CLKCTRL,
+		snd_soc_write(codec, ADAU_CLKCTRL,
 			(CLKCTRL_SRC_PLL | CLKCTRL_FRQ_1024 | CLKCTRL_ENABLE));
 		/* restore dsp state */
-		adau1761_write_reg_byte(codec, ADAU_DSP_RUN, 0x01);
+		snd_soc_write(codec, ADAU_DSP_RUN, 0x01);
 	}
 
 	return 0;
@@ -575,10 +498,9 @@ static int adau1761_setprogram(struct snd_soc_codec *codec)
 {
 	int ret = 0;
 
-	adau1761_write_reg_byte(codec, ADAU_DSP_ENA, 0x01);
-	adau1761_read_reg_byte(codec, ADAU_DSP_ENA);
+	snd_soc_write(codec, ADAU_DSP_ENA, 0x01);
 	/* don't waste time writing program for adau1361 */
-	if (adau1761_read_reg_cache(codec, ADAU_DSP_ENA) != 0x01)
+	if (codec->hw_read(codec, ADAU_DSP_ENA) != 0x01)
 		return -ENODEV;
 	ret = process_sigma_firmware(codec->control_data, ADAU1761_FIRMWARE);
 
@@ -599,22 +521,22 @@ static int adau1761_reg_init(struct snd_soc_codec *codec)
 	/* Load deault regsiter settings */
 	for (i = 0; i < RESET_REGISTER_COUNT; ++i) {
 		regdata = adau1761_reset[i];
-		adau1761_write_reg_byte(codec, regdata.regaddress, regdata.regvalue);
+		snd_soc_write(codec, regdata.regaddress, regdata.regvalue);
 	}
 	/* Load mode registers */
 	registers = adau1761_mode_registers[mode];
 	for (i = 0; i < MODE_REGISTER_COUNT; ++i) {
 		regdata = registers[i];
-		adau1761_write_reg_byte(codec, regdata.regaddress, regdata.regvalue);
+		snd_soc_write(codec, regdata.regaddress, regdata.regvalue);
 	}
 	/* Load default program */
 	adau1761_setprogram(codec);
-	adau1761_write_reg_byte(codec, ADAU_SPRTCT1, 0x00);
+	snd_soc_write(codec, ADAU_SPRTCT1, 0x00);
 	/* unmute outputs */
-	adau1761_write_reg_byte(codec, ADAU_PLBHPVL, DAPM_HP_DEF);
-	adau1761_write_reg_byte(codec, ADAU_PLBHPVR, DAPM_HP_DEF);
-	adau1761_write_reg_byte(codec, ADAU_PLBLOVL, DAPM_LINE_DEF);
-	adau1761_write_reg_byte(codec, ADAU_PLBLOVR, DAPM_LINE_DEF);
+	snd_soc_write(codec, ADAU_PLBHPVL, DAPM_HP_DEF);
+	snd_soc_write(codec, ADAU_PLBHPVR, DAPM_HP_DEF);
+	snd_soc_write(codec, ADAU_PLBLOVL, DAPM_LINE_DEF);
+	snd_soc_write(codec, ADAU_PLBLOVR, DAPM_LINE_DEF);
 
 	return 0;
 }
@@ -677,12 +599,12 @@ static int adau1761_pcm_prepare(struct snd_pcm_substream *substream,
 	if (ret)
 		dev_err(codec->dev, "Failed to initialize PLL");
 
-	adau1761_write_reg_byte(codec, ADAU_SER_SRT, reg);
+	snd_soc_write(codec, ADAU_SER_SRT, reg);
 	/* Set DSP Rate to follow the serial rate */
-	adau1761_write_reg_byte(codec, ADAU_DSP_SR1, 0x07);
+	snd_soc_write(codec, ADAU_DSP_SR1, 0x07);
 
-	reg = (adau1761_read_reg_cache(codec, ADAU_CONVCT0) & 0xF8) | reg;
-	adau1761_write_reg_byte(codec, ADAU_CONVCT0, reg);
+	reg = (snd_soc_read(codec, ADAU_CONVCT0) & 0xF8) | reg;
+	snd_soc_write(codec, ADAU_CONVCT0, reg);
 
 	return ret;
 }
@@ -695,9 +617,9 @@ static void adau1761_shutdown(struct snd_pcm_substream *substream,
 	struct snd_soc_codec *codec = socdev->card->codec;
 	u8 reg;
 
-	adau1761_write_reg_byte(codec, ADAU_DSP_RUN, 0x0);
-	reg = adau1761_read_reg_cache(codec, ADAU_CLKCTRL);
-	adau1761_write_reg_byte(codec, ADAU_CLKCTRL, reg & ~0x1);
+	snd_soc_write(codec, ADAU_DSP_RUN, 0x0);
+	reg = snd_soc_read(codec, ADAU_CLKCTRL);
+	snd_soc_write(codec, ADAU_CLKCTRL, reg & ~0x1);
 
 }
 
@@ -708,15 +630,15 @@ static int adau1761_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	u8 reg = 0;
 
 	/* set master/slave audio interface */
-	reg = (adau1761_read_reg_cache(codec, ADAU_SPRTCT0) & 0xFE);
+	reg = (snd_soc_read(codec, ADAU_SPRTCT0) & 0xFE);
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 	case SND_SOC_DAIFMT_CBM_CFM:  /*master*/
 		reg |= 0x1;
-		adau1761_write_reg_byte(codec, ADAU_CLK_EN1, CLK_EN1_MASTER);
+		snd_soc_write(codec, ADAU_CLK_EN1, CLK_EN1_MASTER);
 		break;
 	case SND_SOC_DAIFMT_CBS_CFS: /*slave*/
 		reg |= 0x0;
-		adau1761_write_reg_byte(codec, ADAU_CLK_EN1, CLK_EN1_SLAVE);
+		snd_soc_write(codec, ADAU_CLK_EN1, CLK_EN1_SLAVE);
 		break;
 	default:
 		return 0;
@@ -741,7 +663,7 @@ static int adau1761_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	}
 
 	/* set I2S iface format*/
-	adau1761_write_reg_byte(codec, ADAU_SPRTCT0, reg);
+	snd_soc_write(codec, ADAU_SPRTCT0, reg);
 	return 0;
 }
 
@@ -807,15 +729,15 @@ static int adau1761_set_bias_level(struct snd_soc_codec *codec,
 	case SND_SOC_BIAS_PREPARE:
 		break;
 	case SND_SOC_BIAS_STANDBY:
-		adau1761_write_reg_byte(codec, ADAU_CLKCTRL,
+		snd_soc_write(codec, ADAU_CLKCTRL,
 			(CLKCTRL_SRC_PLL | CLKCTRL_FRQ_1024 | CLKCTRL_DISABLE));
 		break;
 	case SND_SOC_BIAS_OFF:
 		/* everything off, dac mute, inactive */
-		adau1761_write_reg_byte(codec, ADAU_RECPWRM, RECPWRM_LOW_PWR);
-		adau1761_write_reg_byte(codec, ADAU_PLBPWRM, PLBPWRM_LOW_PWR);
-		adau1761_write_reg_byte(codec, ADAU_PLBCTRL, PLBCTRL_POP_OFF);
-		adau1761_write_reg_byte(codec, ADAU_CLKCTRL,
+		snd_soc_write(codec, ADAU_RECPWRM, RECPWRM_LOW_PWR);
+		snd_soc_write(codec, ADAU_PLBPWRM, PLBPWRM_LOW_PWR);
+		snd_soc_write(codec, ADAU_PLBCTRL, PLBCTRL_POP_OFF);
+		snd_soc_write(codec, ADAU_CLKCTRL,
 			(CLKCTRL_SRC_PLL | CLKCTRL_FRQ_1024 | CLKCTRL_DISABLE));
 		break;
 
@@ -892,16 +814,16 @@ static void adau1761_resume_wq_handler(struct work_struct *work)
 		if (i > ADAU_MCLKPAD && i < ADAU_DSP_CRC)
 			continue;
 
-		v = adau1761_read_reg_cache(codec, i);
-		if (adau1761_write_reg_byte(codec, i, v) != 0) {
+		v = snd_soc_read(codec, i);
+		if (snd_soc_write(codec, i, v) != 0) {
 			dev_err(codec->dev, "ERROR WRITING %.4X AT REG %x\n", v, i);
 			return;
 		}
 	}
 
-	adau1761_write_reg_byte(codec, ADAU_PLBCTRL, PLBCTRL_POP_ON);
-	adau1761_write_reg_byte(codec, ADAU_RECPWRM, RECPWRM_RUN_PWR);
-	adau1761_write_reg_byte(codec, ADAU_PLBPWRM, PLBPWRM_RUN_PWR);
+	snd_soc_write(codec, ADAU_PLBCTRL, PLBCTRL_POP_ON);
+	snd_soc_write(codec, ADAU_RECPWRM, RECPWRM_RUN_PWR);
+	snd_soc_write(codec, ADAU_PLBPWRM, PLBPWRM_RUN_PWR);
 
 	adau1761_set_bias_level(codec, SND_SOC_BIAS_ON);
 
@@ -922,7 +844,7 @@ static int adau1761_resume(struct platform_device *pdev)
  * initialise the adau1761 driver
  * register the mixer and dsp interfaces with the kernel
  */
-static int adau1761_register(struct adau1761_priv *adau1761)
+static int adau1761_register(struct adau1761_priv *adau1761, enum snd_soc_control_type control)
 {
 	struct snd_soc_codec *codec = &adau1761->codec;
 	int ret = 0;
@@ -932,8 +854,6 @@ static int adau1761_register(struct adau1761_priv *adau1761)
 	INIT_LIST_HEAD(&codec->dapm_paths);
 	codec->name = "adau1761";
 	codec->owner = THIS_MODULE;
-	codec->read = adau1761_read_reg_cache;
-	codec->write = adau1761_write_reg_byte;
 	codec->set_bias_level = adau1761_set_bias_level;
 	codec->dai = &adau1761_dai;
 	codec->num_dai = 1;
@@ -941,6 +861,11 @@ static int adau1761_register(struct adau1761_priv *adau1761)
 	codec->reg_cache = kzalloc(ADAU_NUMCACHEREG, GFP_KERNEL);
 	if (codec->reg_cache == NULL)
 		return -ENOMEM;
+	ret = snd_soc_codec_set_cache_io(codec, 16, 8, control);
+	if (ret < 0) {
+		dev_err(codec->dev, "Failed to set cache I/O: %d\n", ret);
+		return ret;
+	}
 
 	ret = snd_soc_register_codec(codec);
 	if (ret != 0) {
@@ -1079,7 +1004,7 @@ static __devinit int adau1761_i2c_probe(struct i2c_client *i2c,
 	adau1761_codec = codec;
 
 	INIT_WORK(&adau1761->resume_work, adau1761_resume_wq_handler);
-	ret = adau1761_register(adau1761);
+	ret = adau1761_register(adau1761, SND_SOC_I2C);
 	if (ret < 0)
 		dev_err(&i2c->dev, "failed to initialize\n");
 
