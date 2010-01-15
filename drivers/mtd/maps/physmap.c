@@ -154,12 +154,12 @@ static int physmap_flash_probe(struct platform_device *dev)
 		simple_map_init(&info->map[i]);
 
 		probe_type = rom_probe_types;
-		for (; info->mtd[i] == NULL && *probe_type != NULL; probe_type++) {
-			if (info->probe_type != NULL)
-				if (strcmp(info->probe_type, *probe_type) != 0)
-					continue;
-			info->mtd[i] = do_map_probe(*probe_type, &info->map[i]);
-		}
+		if (info->probe_type == NULL) {
+			for (; info->mtd[i] == NULL && *probe_type != NULL; probe_type++)
+				info->mtd[i] = do_map_probe(*probe_type, &info->map[i]);
+		} else
+			info->mtd[i] = do_map_probe(info->probe_type, &info->map[i]);
+
 		if (info->mtd[i] == NULL) {
 			dev_err(&dev->dev, "map_probe failed\n");
 			err = -ENXIO;
