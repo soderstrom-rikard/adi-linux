@@ -627,8 +627,7 @@ static int adau1371_pcm_prepare(struct snd_pcm_substream *substream,
 	do {
 		++counter;
 		schedule_timeout_interruptible(msecs_to_jiffies(1));
-		snd_soc_read(codec, ADAU1371_PLLCTLB);
-	} while (((snd_soc_read(codec, ADAU1371_PLLCTLB)) & 0x02) == 0
+	} while (((codec->hw_read(codec, ADAU1371_PLLCTLB)) & 0x02) == 0
 			&& counter < 20);
 	if (counter >= 20) {
 		dev_err(codec->dev, "failed to initialize PLL\n");
