@@ -28,7 +28,6 @@ struct physmap_flash_info {
 	struct mtd_info		*mtd[MAX_RESOURCES];
 	struct mtd_info		*cmtd;
 	struct map_info		map[MAX_RESOURCES];
-	char                    *probe_type;
 #ifdef CONFIG_MTD_PARTITIONS
 	int			nr_parts;
 	struct mtd_partition	*parts;
@@ -141,7 +140,6 @@ static int physmap_flash_probe(struct platform_device *dev)
 		info->map[i].bankwidth = physmap_data->width;
 		info->map[i].set_vpp = physmap_data->set_vpp;
 		info->map[i].pfow_base = physmap_data->pfow_base;
-		info->probe_type = physmap_data->probe_type;
 
 		info->map[i].virt = devm_ioremap(&dev->dev, info->map[i].phys,
 						 info->map[i].size);
@@ -154,11 +152,11 @@ static int physmap_flash_probe(struct platform_device *dev)
 		simple_map_init(&info->map[i]);
 
 		probe_type = rom_probe_types;
-		if (info->probe_type == NULL) {
+		if (physmap_data->probe_type == NULL) {
 			for (; info->mtd[i] == NULL && *probe_type != NULL; probe_type++)
 				info->mtd[i] = do_map_probe(*probe_type, &info->map[i]);
 		} else
-			info->mtd[i] = do_map_probe(info->probe_type, &info->map[i]);
+			info->mtd[i] = do_map_probe(physmap_data->probe_type, &info->map[i]);
 
 		if (info->mtd[i] == NULL) {
 			dev_err(&dev->dev, "map_probe failed\n");
