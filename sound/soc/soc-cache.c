@@ -267,6 +267,40 @@ static unsigned int snd_soc_8_16_read_i2c(struct snd_soc_codec *codec,
 #define snd_soc_8_16_read_i2c NULL
 #endif
 
+#if defined(CONFIG_I2C) || (defined(CONFIG_I2C_MODULE) && defined(MODULE))
+static unsigned int snd_soc_16_8_read_i2c(struct snd_soc_codec *codec,
+					  unsigned int r)
+{
+	struct i2c_msg xfer[2];
+	u16 reg = r;
+	u8 data;
+	int ret;
+	struct i2c_client *client = codec->control_data;
+
+	/* Write register */
+	xfer[0].addr = client->addr;
+	xfer[0].flags = 0;
+	xfer[0].len = 2;
+	xfer[0].buf = &reg;
+
+	/* Read data */
+	xfer[1].addr = client->addr;
+	xfer[1].flags = I2C_M_RD;
+	xfer[1].len = 1;
+	xfer[1].buf = &data;
+
+	ret = i2c_transfer(client->adapter, xfer, 2);
+	if (ret != 2) {
+		dev_err(&client->dev, "i2c_transfer() returned %d\n", ret);
+		return 0;
+	}
+
+	return data;
+}
+#else
+#define snd_soc_16_8_read_i2c NULL
+#endif
+
 static unsigned int snd_soc_16_8_read(struct snd_soc_codec *codec,
 				     unsigned int reg)
 {
@@ -365,6 +399,7 @@ static struct {
 	{
 		.addr_bits = 16, .data_bits = 8,
 		.write = snd_soc_16_8_write, .read = snd_soc_16_8_read,
+		.i2c_read = snd_soc_16_8_read_i2c,
 		.spi_write = snd_soc_16_8_spi_write,
 	},
 };
