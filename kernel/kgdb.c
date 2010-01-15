@@ -395,22 +395,17 @@ int __weak kgdb_mem2hex(char *mem, char *buf, int count)
  */
 int __weak kgdb_ebin2mem(char *buf, char *mem, int count)
 {
-	int err = 0;
-	char c;
+	int size = 0;
+	char *c = buf;
 
 	while (count-- > 0) {
-		c = *buf++;
-		if (c == 0x7d)
-			c = *buf++ ^ 0x20;
-
-		err = probe_kernel_write(mem, &c, 1);
-		if (err)
-			break;
-
-		mem++;
+		if (c[size] == 0x7d)
+			c[size] = *buf++ ^ 0x20;
+		buf++;
+		size++;
 	}
 
-	return err;
+	return	probe_kernel_write(mem, c, size);
 }
 
 /*
