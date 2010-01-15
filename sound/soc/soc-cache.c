@@ -281,7 +281,7 @@ static unsigned int snd_soc_16_8_read_i2c(struct snd_soc_codec *codec,
 	xfer[0].addr = client->addr;
 	xfer[0].flags = 0;
 	xfer[0].len = 2;
-	xfer[0].buf = &reg;
+	xfer[0].buf = (u8 *)&reg;
 
 	/* Read data */
 	xfer[1].addr = client->addr;
