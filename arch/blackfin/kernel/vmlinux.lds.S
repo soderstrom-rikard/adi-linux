@@ -33,7 +33,7 @@ SECTIONS
 		__stext = .;
 		*(.romhead.text)
 		TEXT_TEXT
-#if !defined(CONFIG_SCHEDULE_L1)
+#ifndef CONFIG_SCHEDULE_L1
 		SCHED_TEXT
 #endif
 		LOCK_TEXT
@@ -65,6 +65,7 @@ SECTIONS
 	/* Just in case the first read only is a 32-bit access */
 	RO_DATA(4)
 	__rodata_end = .;
+
 #ifdef CONFIG_ROMKERNEL
 	. = CONFIG_BOOT_LOAD;
 	.bss : AT(__rodata_end)
@@ -173,7 +174,7 @@ SECTIONS
 
 		EXIT_DATA
 		__einitdata = .;
-        }
+	}
 	__init_data_lma = LOADADDR(.init.data);
 	__init_data_len = SIZEOF(.init.data);
 	__init_data_end = .;
