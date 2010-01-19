@@ -1001,7 +1001,6 @@ out:
 	return NETDEV_TX_OK;
 }
 
-#define ETH_FCS_LENGTH 4
 #define RX_ERROR_MASK (RX_LONG | RX_ALIGN | RX_CRC | RX_LEN | \
 	RX_FRAG | RX_ADDR | RX_DMAO | RX_PHY | RX_LATE | RX_RANGE)
 
@@ -1012,7 +1011,7 @@ static void bfin_mac_rx(struct net_device *dev)
 	struct bfin_mac_local *lp __maybe_unused = netdev_priv(dev);
 #if defined(BFIN_MAC_CSUM_OFFLOAD)
 	unsigned int i;
-	unsigned char fcs[ETH_FCS_LENGTH + 1];
+	unsigned char fcs[ETH_FCS_LEN + 1];
 #endif
 	/* check if frame status word reports an error condition
 	 * we which case we simply drop the packet
@@ -1047,7 +1046,7 @@ static void bfin_mac_rx(struct net_device *dev)
 
 	len = (unsigned short)((current_rx_ptr->status.status_word) & RX_FRLEN);
 	/* Deduce Ethernet FCS length from Ethernet payload length */
-	len -= ETH_FCS_LENGTH;
+	len -= ETH_FCS_LEN;
 	skb_put(skb, len);
 
 	skb->protocol = eth_type_trans(skb, dev);
@@ -1065,13 +1064,13 @@ static void bfin_mac_rx(struct net_device *dev)
 	 */
 	if (skb->len % 2) {
 		fcs[0] = 0;
-		for (i = 0; i < ETH_FCS_LENGTH; i++)
+		for (i = 0; i < ETH_FCS_LEN; i++)
 			fcs[i + 1] = ~skb->data[skb->len + i];
-		skb->csum = csum_partial(fcs, ETH_FCS_LENGTH + 1, skb->csum);
+		skb->csum = csum_partial(fcs, ETH_FCS_LEN + 1, skb->csum);
 	} else {
-		for (i = 0; i < ETH_FCS_LENGTH; i++)
+		for (i = 0; i < ETH_FCS_LEN; i++)
 			fcs[i] = ~skb->data[skb->len + i];
-		skb->csum = csum_partial(fcs, ETH_FCS_LENGTH, skb->csum);
+		skb->csum = csum_partial(fcs, ETH_FCS_LEN, skb->csum);
 	}
 	skb->ip_summed = CHECKSUM_COMPLETE;
 #endif
