@@ -88,6 +88,7 @@ __common_int_entry:
 #else
 	cli r1;
 #endif
+	TRACE_IRQS_OFF
 	[--sp] = RETI;  /* orig_pc */
 	/* Clear all L registers.  */
 	r1 = 0 (x);

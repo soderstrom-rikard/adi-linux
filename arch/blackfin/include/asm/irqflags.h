@@ -8,6 +8,8 @@
 #ifndef __ASM_BFIN_IRQFLAGS_H__
 #define __ASM_BFIN_IRQFLAGS_H__
 
+#ifndef __ASSEMBLY__
+
 #include <mach/blackfin.h>
 
 #ifdef CONFIG_SMP
@@ -216,5 +218,38 @@ static inline void raw_local_irq_restore(unsigned long flags)
 	if (!raw_irqs_disabled_flags(flags))
 		raw_local_irq_enable();
 }
+
+#else /* __ASSEMBLY__ */
+
+#ifdef CONFIG_TRACE_IRQFLAGS
+
+.macro bfin_trace_hardirqs_on
+	[--sp] = rets;
+	[--sp] = (r7:0, p5:0);
+	sp += -12;
+	call _trace_hardirqs_on;
+	sp += 12;
+	(r7:0, p5:0) = [sp++];
+	rets = [sp++];
+.endm
+
+.macro bfin_trace_hardirqs_off
+	[--sp] = rets;
+	[--sp] = (r7:0, p5:0);
+	sp += -12;
+	call _trace_hardirqs_off;
+	sp += 12;
+	(r7:0, p5:0) = [sp++];
+	rets = [sp++];
+.endm
+
+#  define TRACE_IRQS_ON 	bfin_trace_hardirqs_on
+#  define TRACE_IRQS_OFF	bfin_trace_hardirqs_off
+#else
+#  define TRACE_IRQS_ON
+#  define TRACE_IRQS_OFF
+#endif
+
+#endif /* __ASSEMBLY__ */
 
 #endif

@@ -966,6 +966,7 @@ ENTRY(_evt_evt14)
 #else
 	cli r0;
 #endif
+	TRACE_IRQS_OFF
 	[--sp] = RETI;
 	SP += 4;
 	rts;
@@ -997,6 +998,7 @@ ENTRY(_schedule_and_signal_from_int)
 	p0.h = _bfin_irq_flags;
 	r0 = [p0];
 #endif
+	TRACE_IRQS_ON
 	sti r0;
 
 	/* finish the userspace "atomic" functions for it */
