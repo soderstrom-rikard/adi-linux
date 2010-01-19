@@ -279,7 +279,6 @@ ENTRY(_real_start)
 	sp += -12 + 4; /* +4 is for reti loading above */
 	call _init_pda
 	sp += 12;
-emuexcpt;
 	jump.l _start_kernel;
 ENDPROC(_real_start)
 
