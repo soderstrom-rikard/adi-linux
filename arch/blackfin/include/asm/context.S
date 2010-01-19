@@ -4,8 +4,6 @@
  * Licensed under the GPL-2 or later.
  */
 
-#include <asm/irqflags.h>
-
 /*
  * NOTE!  The single-stepping code assumes that all interrupt handlers
  * start by saving SYSCFG on the stack with their first instruction.
@@ -75,7 +73,11 @@
 #else
 	cli r0;
 #endif
-	TRACE_IRQS_OFF
+#ifdef CONFIG_TRACE_IRQFLAGS
+	sp += -12;
+	call _trace_hardirqs_off;
+	sp += 12;
+#endif
 	[--sp] = RETI;  /*orig_pc*/
 	/* Clear all L registers.  */
 	r0 = 0 (x);
@@ -282,6 +284,13 @@
 	RETN = [sp++];
 	RETX = [sp++];
 	RETI = [sp++];
+
+#ifdef CONFIG_TRACE_IRQFLAGS
+	sp += -12;
+	call _trace_hardirqs_on;
+	sp += 12;
+#endif
+
 	RETS = [sp++];
 
 #ifdef CONFIG_SMP
@@ -292,7 +301,6 @@
 	p0.l = _bfin_irq_flags;
 	r0 = [p0];
 #endif
-	TRACE_IRQS_ON
 	sti r0;
 
 	sp += 4;	/* Skip Reserved */

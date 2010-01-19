@@ -966,7 +966,13 @@ ENTRY(_evt_evt14)
 #else
 	cli r0;
 #endif
-	TRACE_IRQS_OFF
+#ifdef CONFIG_TRACE_IRQFLAGS
+	[--sp] = rets;
+	sp += -12;
+	call _trace_hardirqs_off;
+	sp += 12;
+	rets = [sp++];
+#endif
 	[--sp] = RETI;
 	SP += 4;
 	rts;
@@ -990,6 +996,11 @@ ENTRY(_schedule_and_signal_from_int)
 	p1 = rets;
 	[sp + PT_RESERVED] = p1;
 
+#ifdef CONFIG_TRACE_IRQFLAGS
+	sp += -12;
+	call _trace_hardirqs_on;
+	sp += 12;
+#endif
 #ifdef CONFIG_SMP
 	GET_PDA(p0, r0); 	/* Fetch current PDA (can't migrate to other CPU here) */
 	r0 = [p0 + PDA_IRQFLAGS];
@@ -998,7 +1009,6 @@ ENTRY(_schedule_and_signal_from_int)
 	p0.h = _bfin_irq_flags;
 	r0 = [p0];
 #endif
-	TRACE_IRQS_ON
 	sti r0;
 
 	/* finish the userspace "atomic" functions for it */
