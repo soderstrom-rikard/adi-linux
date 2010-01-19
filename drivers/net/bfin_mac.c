@@ -1013,6 +1013,7 @@ static void bfin_mac_rx(struct net_device *dev)
 	unsigned int i;
 	unsigned char fcs[ETH_FCS_LEN + 1];
 #endif
+
 	/* check if frame status word reports an error condition
 	 * we which case we simply drop the packet
 	 */
@@ -1081,8 +1082,6 @@ static void bfin_mac_rx(struct net_device *dev)
 out:
 	current_rx_ptr->status.status_word = 0x00000000;
 	current_rx_ptr = current_rx_ptr->next;
-
-	return;
 }
 
 /* interrupt routine to handle rx and error signal */
