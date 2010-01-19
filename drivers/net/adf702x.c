@@ -3,7 +3,7 @@
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
- * Copyright (C) 2009 Michael Hennerich, Analog Devices Inc.
+ * Copyright (C) 2009-2010 Michael Hennerich, Analog Devices Inc.
  * Licensed under the GPL-2 or later.
  */
 
