@@ -104,7 +104,7 @@ enum {
 #define	TS_PEN_UP_TIMEOUT		msecs_to_jiffies(50)
 
 struct ad7879 {
-	struct ad7879_bus_ops	bops;
+	struct ad7879_bus_data	bdata;
 	struct input_dev	*input;
 	struct work_struct	work;
 	struct timer_list	timer;
@@ -129,15 +129,15 @@ struct ad7879 {
 
 static int ad7879_read(struct ad7879 *ts, u8 reg)
 {
-	return ts->bops.read(ts->bops.bus_data, reg);
+	return ts->bdata.bops->read(ts->bdata.client, reg);
 }
 static int ad7879_multi_read(struct ad7879 *ts, u8 first_reg, u8 count, u16 *buf)
 {
-	return ts->bops.multi_read(ts->bops.bus_data, first_reg, count, buf);
+	return ts->bdata.bops->multi_read(ts->bdata.client, first_reg, count, buf);
 }
 static int ad7879_write(struct ad7879 *ts, u8 reg, u16 val)
 {
-	return ts->bops.write(ts->bops.bus_data, reg, val);
+	return ts->bdata.bops->write(ts->bdata.client, reg, val);
 }
 
 static void ad7879_report(struct ad7879 *ts)
@@ -230,7 +230,7 @@ int ad7879_disable(struct device *dev)
 	if (!ts->disabled) {
 
 		ts->disabled = 1;
-		disable_irq(ts->bops.irq);
+		disable_irq(ts->bdata.irq);
 
 		cancel_work_sync(&ts->work);
 
@@ -256,7 +256,7 @@ int ad7879_enable(struct device *dev)
 	if (ts->disabled) {
 		ad7879_setup(ts);
 		ts->disabled = 0;
-		enable_irq(ts->bops.irq);
+		enable_irq(ts->bdata.irq);
 	}
 
 	mutex_unlock(&ts->mutex);
@@ -417,7 +417,7 @@ static inline int ad7879_gpio_remove(struct device *dev)
 #endif
 
 __devinit int
-ad7879_probe(struct device *dev, struct ad7879_bus_ops *bops, u8 devid, u16 bustype)
+ad7879_probe(struct device *dev, struct ad7879_bus_data *bdata, u8 devid, u16 bustype)
 {
 	struct input_dev *input_dev;
 	struct ad7879_platform_data *pdata = dev->platform_data;
@@ -425,7 +425,7 @@ ad7879_probe(struct device *dev, struct ad7879_bus_ops *bops, u8 devid, u16 bust
 	u16 revid;
 	struct ad7879 *ts;
 
-	if (!bops->irq) {
+	if (!bdata->irq) {
 		dev_err(dev, "no IRQ?\n");
 		return -ENODEV;
 	}
@@ -445,7 +445,7 @@ ad7879_probe(struct device *dev, struct ad7879_bus_ops *bops, u8 devid, u16 bust
 	if (!input_dev)
 		goto err_free_ts_mem;
 
-	ts->bops = *bops;
+	ts->bdata = *bdata;
 	ts->input = input_dev;
 	dev_set_drvdata(dev, ts);
 
@@ -521,10 +521,10 @@ ad7879_probe(struct device *dev, struct ad7879_bus_ops *bops, u8 devid, u16 bust
 
 	ad7879_setup(ts);
 
-	err = request_irq(ts->bops.irq, ad7879_irq, IRQF_TRIGGER_FALLING,
+	err = request_irq(ts->bdata.irq, ad7879_irq, IRQF_TRIGGER_FALLING,
 			  dev_name(dev), ts);
 	if (err) {
-		dev_err(dev, "irq %d busy?\n", ts->bops.irq);
+		dev_err(dev, "irq %d busy?\n", ts->bdata.irq);
 		goto err_free_mem;
 	}
 
@@ -541,7 +541,7 @@ ad7879_probe(struct device *dev, struct ad7879_bus_ops *bops, u8 devid, u16 bust
 		goto err_remove_gpio;
 
 	dev_info(dev, "Rev.%d touchscreen, irq %d\n",
-		 revid >> 8, ts->bops.irq);
+		 revid >> 8, ts->bdata.irq);
 
 	return 0;
 
@@ -550,7 +550,7 @@ err_remove_gpio:
 err_remove_attr:
 	sysfs_remove_group(&dev->kobj, &ad7879_attr_group);
 err_free_irq:
-	free_irq(ts->bops.irq, ts);
+	free_irq(ts->bdata.irq, ts);
 err_free_mem:
 	input_free_device(input_dev);
 err_free_ts_mem:
@@ -568,7 +568,7 @@ __devexit int ad7879_remove(struct device *dev)
 	ad7879_gpio_remove(dev);
 	ad7879_disable(dev);
 	sysfs_remove_group(&dev->kobj, &ad7879_attr_group);
-	free_irq(ts->bops.irq, ts);
+	free_irq(ts->bdata.irq, ts);
 	input_unregister_device(ts->input);
 	dev_set_drvdata(dev, NULL);
 	kfree(ts);

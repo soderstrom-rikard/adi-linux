@@ -108,14 +108,18 @@ static int ad7879_spi_write(void *spi, u8 reg, u16 val)
 	return ad7879_spi_xfer(spi, AD7879_WRITECMD(reg), 1, &val, &dummy);
 }
 
+static const struct ad7879_bus_ops bops = {
+	.read = ad7879_spi_read,
+	.multi_read = ad7879_spi_multi_read,
+	.write = ad7879_spi_write,
+};
+
 static int __devinit ad7879_spi_probe(struct spi_device *spi)
 {
-	struct ad7879_bus_ops bops = {
-		.bus_data = spi,
+	struct ad7879_bus_data bdata = {
+		.client = spi,
 		.irq = spi->irq,
-		.read = ad7879_spi_read,
-		.multi_read = ad7879_spi_multi_read,
-		.write = ad7879_spi_write,
+		.bops = &bops,
 	};
 
 	/* don't exceed max specified SPI CLK frequency */
@@ -124,7 +128,7 @@ static int __devinit ad7879_spi_probe(struct spi_device *spi)
 		return -EINVAL;
 	}
 
-	return ad7879_probe(&spi->dev, &bops, AD7879_DEVID, BUS_SPI);
+	return ad7879_probe(&spi->dev, &bdata, AD7879_DEVID, BUS_SPI);
 }
 
 static int __devexit ad7879_spi_remove(struct spi_device *spi)

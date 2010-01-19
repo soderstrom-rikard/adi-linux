@@ -13,21 +13,20 @@
 
 struct ad7879;
 
-typedef int (ad7879_read_t) (void *bus_data, u8 reg);
-typedef int (ad7879_multi_read_t) (void *bus_data, u8 first_reg, u8 count, u16 *buf);
-typedef int (ad7879_write_t) (void *bus_data, u8 reg, u16 val);
-
 struct ad7879_bus_ops {
-	void *bus_data;
+	int (*read) (void *client, u8 reg);
+	int (*multi_read) (void *client, u8 first_reg, u8 count, u16 *buf);
+	int (*write) (void *client, u8 reg, u16 val);
+};
+struct ad7879_bus_data {
+	void *client;
 	int irq;
-	ad7879_read_t *read;
-	ad7879_multi_read_t *multi_read;
-	ad7879_write_t *write;
+	const struct ad7879_bus_ops *bops;
 };
 
 int ad7879_disable(struct device *dev);
 int ad7879_enable(struct device *dev);
-int ad7879_probe(struct device *dev, struct ad7879_bus_ops *bops, u8 devid, u16 bustype);
+int ad7879_probe(struct device *dev, struct ad7879_bus_data *bdata, u8 devid, u16 bustype);
 int ad7879_remove(struct device *dev);
 
 #endif
