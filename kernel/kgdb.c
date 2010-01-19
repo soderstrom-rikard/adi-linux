@@ -405,7 +405,7 @@ int __weak kgdb_ebin2mem(char *buf, char *mem, int count)
 		size++;
 	}
 
-	return	probe_kernel_write(mem, c, size);
+	return probe_kernel_write(mem, c, size);
 }
 
 /*
