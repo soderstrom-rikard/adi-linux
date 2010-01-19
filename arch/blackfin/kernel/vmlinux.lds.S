@@ -21,13 +21,6 @@ SECTIONS
 	. = CONFIG_BOOT_LOAD;
 #else
 	. = CONFIG_ROM_BASE;
-	.text.head :
-	{
-		__text = .;
-		_text = .;
-		__stext = .;
-		*(.head.text)
-	}
 #endif
 
 	/* Neither the text, ro_data or bss section need to be aligned
@@ -35,11 +28,10 @@ SECTIONS
 	 */
 	.text :
 	{
-#ifdef CONFIG_RAMKERNEL
 		__text = .;
 		_text = .;
 		__stext = .;
-#endif
+		*(.romhead.text)
 		TEXT_TEXT
 #if !defined(CONFIG_SCHEDULE_L1)
 		SCHED_TEXT
@@ -73,7 +65,7 @@ SECTIONS
 	/* Just in case the first read only is a 32-bit access */
 	RO_DATA(4)
 	__rodata_end = .;
-#if defined(CONFIG_ROMKERNEL)
+#ifdef CONFIG_ROMKERNEL
 	. = CONFIG_BOOT_LOAD;
 	.bss : AT(__rodata_end)
 #else

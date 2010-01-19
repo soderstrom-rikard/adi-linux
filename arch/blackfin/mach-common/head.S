@@ -14,10 +14,11 @@
 #include <asm/asm-offsets.h>
 
 #ifdef CONFIG_ROMKERNEL
-.section   ".head.text","ax"
+.section ".romhead.text","ax"
 #else
 __INIT
 #endif
+
 ENTRY(__start)
 #ifdef CONFIG_ROMKERNEL
 	/* mkimage requires entry address = load address + 64 */
