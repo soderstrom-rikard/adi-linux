@@ -257,9 +257,7 @@ asmlinkage notrace void trap_c(struct pt_regs *fp)
 #ifdef CONFIG_DEBUG_BFIN_HWTRACE_ON
 	int j;
 #endif
-#ifdef CONFIG_DEBUG_HUNT_FOR_ZERO
 	unsigned int cpu = raw_smp_processor_id();
-#endif
 	const char *strerror = NULL;
 	int sig = 0;
 	siginfo_t info;
