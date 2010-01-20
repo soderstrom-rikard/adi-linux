@@ -31,7 +31,6 @@ SECTIONS
 		__text = .;
 		_text = .;
 		__stext = .;
-		*(.romhead.text)
 		TEXT_TEXT
 #ifndef CONFIG_SCHEDULE_L1
 		SCHED_TEXT
