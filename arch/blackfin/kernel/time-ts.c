@@ -21,6 +21,7 @@
 #include <asm/blackfin.h>
 #include <asm/time.h>
 #include <asm/gptimers.h>
+#include <asm/nmi.h>
 
 /* Accelerators for sched_clock()
  * convert from cycles(64bits) => nanoseconds (64bits)
@@ -313,6 +314,9 @@ irqreturn_t bfin_coretmr_interrupt(int irq, void *dev_id)
 
 	smp_mb();
 	evt->event_handler(evt);
+
+	check_nmi_watchdog(cpu);
+
 	return IRQ_HANDLED;
 }
 

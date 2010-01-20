@@ -35,3 +35,4 @@ obj-$(CONFIG_STACKTRACE)             += stacktrace.o
 CFLAGS_kgdb_test.o := -mlong-calls -O0
 
 obj-$(CONFIG_DEBUG_MMRS)             += debug-mmrs.o
+obj-$(CONFIG_NMI_WATCHDOG)           += nmi.o

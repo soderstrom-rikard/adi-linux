@@ -238,6 +238,17 @@ config EARLY_PRINTK
 	  all of this lives in the init section and is thrown away after the
 	  kernel boots completely.
 
+config NMI_WATCHDOG
+	bool "Enable NMI watchdog to help debuging lockup on SMP"
+	default n
+	depends on SMP
+	help
+	  if any CPU in the system does not execute the period local timer
+	  interrupt for more than 5 seconds, then the NMI handler dumps debug
+	  information. This information can be used to debug the lockup.
+
+	  Note: this feature means can not select BFIN_SCRATCH_REG_RETN
+
 config CPLB_INFO
 	bool "Display the CPLB information"
 	help
