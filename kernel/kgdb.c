@@ -399,9 +399,9 @@ static int kgdb_ebin2mem(char *buf, char *mem, int count)
 	char *c = buf;
 
 	while (count-- > 0) {
+		c[size] = buf++;
 		if (c[size] == 0x7d)
 			c[size] = *buf++ ^ 0x20;
-		buf++;
 		size++;
 	}
 
