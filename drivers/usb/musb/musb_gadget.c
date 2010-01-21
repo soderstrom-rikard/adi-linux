@@ -922,10 +922,10 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		 * likewise high bandwidth periodic tx
 		 */
 		/* Set TXMAXP with the FIFO size of the endpoint
-		 * to disable double buffering mode. It seems that double
-		 * buffering has problem if musb RTL revision number <= 1.9.
+		 * to disable double buffering mode. Currently, It seems that double
+		 * buffering has problem if musb RTL revision number < 2.0.
 		 */
-		if (MUSB_HWVERS_MAJOR(musb->hwvers) <= 1 && MUSB_HWVERS_MINOR(musb->hwvers) <= 9)
+		if (musb->hwvers < MUSB_HWVERS_2000)
 			musb_writew(regs, MUSB_TXMAXP, hw_ep->max_packet_sz_tx);
 		else
 			musb_writew(regs, MUSB_TXMAXP, tmp);
@@ -961,7 +961,7 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		/* Set RXMAXP with the FIFO size of the endpoint
 		 * to disable double buffering mode.
 		 */
-		if (MUSB_HWVERS_MAJOR(musb->hwvers) <= 1 && MUSB_HWVERS_MINOR(musb->hwvers) <= 9)
+		if (musb->hwvers < MUSB_HWVERS_2000)
 			musb_writew(regs, MUSB_RXMAXP, hw_ep->max_packet_sz_rx);
 		else
 			musb_writew(regs, MUSB_RXMAXP, tmp);
