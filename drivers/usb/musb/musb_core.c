@@ -1390,14 +1390,7 @@ static int __init musb_core_init(u16 musb_type, struct musb *musb)
 	}
 
 	/* log release info */
-#ifdef BLACKFIN
-	/* This register is invisible on Blackfin, actually the MUSB
-	 * RTL version of Blackfin is 1.9, So just set it's value to 1.9.
-	 */
-	musb->hwvers = 1 << 10 | 9;
-#else
 	musb->hwvers = musb_read_hwvers(mbase);
-#endif
 	snprintf(aRevision, 32, "%d.%d%s", MUSB_HWVERS_MAJOR(musb->hwvers),
 		MUSB_HWVERS_MINOR(musb->hwvers),
 		(musb->hwvers & MUSB_HWVERS_RC) ? "RC" : "");
