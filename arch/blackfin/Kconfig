@@ -661,7 +661,7 @@ comment "Misc"
 
 choice
 	prompt "Blackfin Exception Scratch Register"
-	default BFIN_SCRATCH_REG_RETE
+	default BFIN_SCRATCH_REG_RETN
 	help
 	  Select the resource to reserve for the Exception handler:
 	    - RETN: Non-Maskable Interrupt (NMI)

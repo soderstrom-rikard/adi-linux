@@ -315,7 +315,7 @@ irqreturn_t bfin_coretmr_interrupt(int irq, void *dev_id)
 	smp_mb();
 	evt->event_handler(evt);
 
-	check_nmi_watchdog(cpu);
+	touch_nmi_watchdog();
 
 	return IRQ_HANDLED;
 }

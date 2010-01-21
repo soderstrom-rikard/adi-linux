@@ -201,6 +201,7 @@ ENTRY(_evt_nmi)
 #ifndef CONFIG_NMI_WATCHDOG
 .weak _evt_nmi
 #else
+	/* Not take account of CPLBs, this handler will not return */
 	SAVE_ALL_SYS
 	r0 = sp;
 	r1 = retn;
@@ -209,45 +210,11 @@ ENTRY(_evt_nmi)
 
 	ANOMALY_283_315_WORKAROUND(p4, r5)
 
-	/* Turn caches off, to ensure we don't get double exceptions */
-	P4.L = LO(IMEM_CONTROL);
-	P4.H = HI(IMEM_CONTROL);
-	R5 = [P4];
-	[--SP] = R5;
-	BITCLR(R5,ENICPLB_P);
-	CSYNC;
-	[P4] = R5;
-	SSYNC;
-
-	P4.L = LO(DMEM_CONTROL);
-	P4.H = HI(DMEM_CONTROL);
-	R5 = [P4];
-	[--SP] = R5;
-	BITCLR(R5,ENDCPLB_P);
-	CSYNC;
-	[P4] = R5;
-	SSYNC;
-
 	SP += -12;
 	call _do_nmi;
 	SP += 12;
-
-	R5 = [SP++];
-	P4.L = LO(DMEM_CONTROL);
-	P4.H = HI(DMEM_CONTROL);
-	CSYNC;
-	[P4] = R5;
-	SSYNC;
-
-	R5 = [SP++];
-	P4.L = LO(IMEM_CONTROL);
-	P4.H = HI(IMEM_CONTROL);
-	CSYNC;
-	[P4] = R5;
-	SSYNC;
-
-	trace_buffer_restore(p4, r5);
-	RESTORE_ALL_SYS
+1:
+	jump 1b;
 #endif
 	rtn;
 ENDPROC(_evt_nmi)

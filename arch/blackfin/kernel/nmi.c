@@ -37,17 +37,18 @@
 
 #define DRV_NAME "nmi-wdt"
 
-#define NMI_WDT_TIMEOUT 5
+#define NMI_WDT_TIMEOUT 5   /* 5 seconds */
+#define NMI_CHECK_TIMEOUT (4 * HZ) /* 4 seconds in jiffies */
 static int nmi_wdt_cpu = 1;
 
 static unsigned int timeout = NMI_WDT_TIMEOUT;
 static int nmi_active;
-static int panic_on_timeout;
 
 static unsigned short wdoga_ctl;
 static unsigned int wdoga_cnt;
 static struct corelock_slot saved_corelock;
 static atomic_t nmi_touched[NR_CPUS];
+static struct timer_list ntimer;
 
 enum {
 	COREA_ENTER_NMI = 0,
@@ -124,19 +125,20 @@ static inline void  nmi_wdt_start(void)
 	bfin_write_WDOGB_CTL(WDEN_ENABLE | ICTL_NMI);
 }
 
-static int nmi_wdt_running(void)
+static inline int nmi_wdt_running(void)
 {
 	return ((bfin_read_WDOGB_CTL() & WDEN_MASK) != WDEN_DISABLE);
 }
 
-static int nmi_wdt_set_timeout(unsigned long t)
+static inline int nmi_wdt_set_timeout(unsigned long t)
 {
-	u32 cnt;
+	u32 cnt, sclk;
 	int run;
 
-	cnt = t * get_sclk();
-	if (cnt < get_sclk()) {
-		printk(KERN_WARNING "NMI: timeout value is too large\n");
+	sclk = get_sclk();
+	cnt = t * sclk;
+	if (cnt < sclk) {
+		pr_warning("NMI: timeout value is too large\n");
 		return -EINVAL;
 	}
 
@@ -149,24 +151,59 @@ static int nmi_wdt_set_timeout(unsigned long t)
 	return 0;
 }
 
+int check_nmi_wdt_touched(void)
+{
+	unsigned int this_cpu = smp_processor_id();
+	unsigned int cpu;
+
+	cpumask_t mask = cpu_online_map;
+
+	if (!atomic_read(&nmi_touched[this_cpu]))
+		return 1;
+
+	atomic_set(&nmi_touched[this_cpu], 0);
+
+	cpu_clear(this_cpu, mask);
+	for_each_cpu_mask(cpu, mask) {
+		blackfin_dcache_invalidate_range(
+			(unsigned long)(&nmi_touched[cpu]),
+				(unsigned long)(&nmi_touched[cpu]));
+		if (!atomic_read(&nmi_touched[cpu]))
+			return 1;
+		atomic_set(&nmi_touched[cpu], 0);
+	}
+
+	return 0;
+}
+
+static void nmi_wdt_timer(void *data)
+{
+	if (!check_nmi_wdt_touched())
+		nmi_wdt_keepalive();
+
+	mod_timer(&ntimer, jiffies + NMI_CHECK_TIMEOUT);
+}
+
 static int __init init_nmi_wdt(void)
 {
 	nmi_wdt_set_timeout(timeout);
 	nmi_wdt_start();
 	nmi_active = true;
-	printk(KERN_INFO "nmi_wdt: initialized: timeout=%d sec\n", timeout);
+
+	init_timer(&ntimer);
+	ntimer.function = (void *)nmi_wdt_timer;
+	ntimer.expires = jiffies + NMI_CHECK_TIMEOUT;
+	add_timer(&ntimer);
+
+	pr_info("nmi_wdt: initialized: timeout=%d sec\n", timeout);
 	return 0;
 }
 device_initcall(init_nmi_wdt);
 
-static int __init setup_nmi_watchdog(char *str)
+void touch_nmi_watchdog(void)
 {
-	if (!strncmp(str, "panic", 5))
-		panic_on_timeout = true;
-
-	return 1;
+	atomic_set(&nmi_touched[smp_processor_id()], 1);
 }
-__setup("nmi_watchdog=", setup_nmi_watchdog);
 
 /* Suspend/resume support */
 #ifdef CONFIG_PM
@@ -211,27 +248,6 @@ late_initcall(init_nmi_wdt_sysfs);
 #endif	/* CONFIG_PM */
 
 
-void touch_nmi_watchdog(void)
-{
-	nmi_wdt_keepalive();
-}
-
-void check_nmi_watchdog(unsigned int cpu)
-{
-	atomic_set(&nmi_touched[cpu], 1);
-
-	blackfin_dcache_invalidate_range(
-		(unsigned long)(&nmi_touched[1 - cpu]),
-			(unsigned long)(&nmi_touched[1 - cpu]));
-
-	if (atomic_read(&nmi_touched[0]) == 1 &&
-			atomic_read(&nmi_touched[1]) == 1) {
-		atomic_set(&nmi_touched[0], 0);
-		atomic_set(&nmi_touched[1], 0);
-		touch_nmi_watchdog();
-	}
-}
-
 asmlinkage notrace void do_nmi(struct pt_regs *fp)
 {
 	unsigned int cpu = smp_processor_id();
@@ -268,18 +284,15 @@ asmlinkage notrace void do_nmi(struct pt_regs *fp)
 		set_nmi_event(COREA_ENTER_NMI);
 	}
 
-	printk(KERN_EMERG "NMI Watchdog detected LOCKUP, dump for CPU %d\n",
-							smp_processor_id());
+	pr_emerg("\nNMI Watchdog detected LOCKUP, dump for CPU %d\n", cpu);
 	dump_bfin_process(fp);
 	dump_bfin_mem(fp);
 	show_regs(fp);
 	dump_bfin_trace_buffer();
 	show_stack(current, (unsigned long *)fp);
-	printk(KERN_EMERG "\n\n");
 
 	if (cpu == nmi_wdt_cpu) {
-		if (!panic_on_timeout)
-			nmi_wdt_start();
+		pr_emerg("This fault is not recoverable, sorry!\n");
 
 		/* CoreA dump finished, restore the corelock */
 		restore_corelock();
@@ -293,7 +306,5 @@ asmlinkage notrace void do_nmi(struct pt_regs *fp)
 		wait_nmi_event(COREB_EXIT_NMI);
 	}
 
-	while (panic_on_timeout)
-			barrier();
 	nmi_exit();
 }
