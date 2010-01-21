@@ -36,4 +36,12 @@ static inline void udelay(unsigned long usecs)
 	__delay((((usecs * HZSCALE) >> 11) * (loops_per_jiffy >> 11)) >> 6);
 }
 
+static inline void ndelay(unsigned long nsecs)
+{
+	extern unsigned long loops_per_jiffy;
+	__delay(((((1 * HZSCALE) >> 11) * (loops_per_jiffy >> 11)) >> 6) * nsecs / 1000);
+}
+
+#define ndelay ndelay
+
 #endif
