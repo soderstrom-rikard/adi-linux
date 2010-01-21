@@ -921,14 +921,14 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		/* REVISIT if can_bulk_split(), use by updating "tmp";
 		 * likewise high bandwidth periodic tx
 		 */
-#if defined(CONFIG_BLACKFIN) && ANOMALY_05000450
 		/* Set TXMAXP with the FIFO size of the endpoint
-		 * to disable double buffer mode.
+		 * to disable double buffering mode. It seems that double
+		 * buffering has problem if musb RTL revision number <= 1.9.
 		 */
-		musb_writew(regs, MUSB_TXMAXP, hw_ep->max_packet_sz_tx);
-#else
-		musb_writew(regs, MUSB_TXMAXP, tmp);
-#endif
+		if (MUSB_HWVERS_MAJOR(musb->hwvers) <= 1 && MUSB_HWVERS_MINOR(musb->hwvers) <= 9)
+			musb_writew(regs, MUSB_TXMAXP, hw_ep->max_packet_sz_tx);
+		else
+			musb_writew(regs, MUSB_TXMAXP, tmp);
 
 		csr = MUSB_TXCSR_MODE | MUSB_TXCSR_CLRDATATOG;
 		if (musb_readw(regs, MUSB_TXCSR)
@@ -958,14 +958,13 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		/* REVISIT if can_bulk_combine() use by updating "tmp"
 		 * likewise high bandwidth periodic rx
 		 */
-#if defined(CONFIG_BLACKFIN) && ANOMALY_05000465
 		/* Set RXMAXP with the FIFO size of the endpoint
-		 * to disable double buffer mode.
+		 * to disable double buffering mode.
 		 */
-		musb_writew(regs, MUSB_RXMAXP, hw_ep->max_packet_sz_rx);
-#else
-		musb_writew(regs, MUSB_RXMAXP, tmp);
-#endif
+		if (MUSB_HWVERS_MAJOR(musb->hwvers) <= 1 && MUSB_HWVERS_MINOR(musb->hwvers) <= 9)
+			musb_writew(regs, MUSB_RXMAXP, hw_ep->max_packet_sz_rx);
+		else
+			musb_writew(regs, MUSB_RXMAXP, tmp);
 
 		/* force shared fifo to OUT-only mode */
 		if (hw_ep->is_shared_fifo) {
