@@ -159,7 +159,7 @@ int check_nmi_wdt_touched(void)
 	cpumask_t mask = cpu_online_map;
 
 	if (!atomic_read(&nmi_touched[this_cpu]))
-		return 1;
+		return 0;
 
 	atomic_set(&nmi_touched[this_cpu], 0);
 
@@ -169,16 +169,16 @@ int check_nmi_wdt_touched(void)
 			(unsigned long)(&nmi_touched[cpu]),
 				(unsigned long)(&nmi_touched[cpu]));
 		if (!atomic_read(&nmi_touched[cpu]))
-			return 1;
+			return 0;
 		atomic_set(&nmi_touched[cpu], 0);
 	}
 
-	return 0;
+	return 1;
 }
 
 static void nmi_wdt_timer(void *data)
 {
-	if (!check_nmi_wdt_touched())
+	if (check_nmi_wdt_touched())
 		nmi_wdt_keepalive();
 
 	mod_timer(&ntimer, jiffies + NMI_CHECK_TIMEOUT);
