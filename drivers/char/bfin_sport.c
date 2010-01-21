@@ -54,6 +54,7 @@ struct sport_dev {
 
 	volatile struct sport_register *regs;
 	struct sport_config config;
+	int dma_tx_run;
 };
 
 /* XXX: this should get pushed to platform device */
@@ -285,7 +286,7 @@ static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id)
 	dev->regs->tcr1 &= ~TSPEN;
 	SSYNC();
 	disable_dma(dev->dma_tx_chan);
-
+	dev->dma_tx_run = 0;
 	complete(&dev->c);
 
 	/* Clear the interrupt status */
@@ -399,6 +400,10 @@ static irqreturn_t sport_err_handler(int irq, void *dev_id)
 
 	if (status & (TOVF | TUVF | ROVF | RUVF)) {
 		dev->regs->stat = (status & (TOVF | TUVF | ROVF | RUVF));
+		if (dev->dma_tx_run && dev->config.dma_enabled) {
+			dev->regs->tcr1 &= ~TSPEN;
+			goto out;
+		}
 		if (dev->config.dma_enabled) {
 			disable_dma(dev->dma_rx_chan);
 			disable_dma(dev->dma_tx_chan);
@@ -406,21 +411,16 @@ static irqreturn_t sport_err_handler(int irq, void *dev_id)
 		dev->regs->tcr1 &= ~TSPEN;
 		dev->regs->rcr1 &= ~RSPEN;
 		SSYNC();
-
-		if (!dev->config.dma_enabled && !dev->config.int_clk) {
-			if (status & TUVF)
-				complete(&dev->c);
-		} else
-			pr_warning("sport %p status error:%s%s%s%s\n",
-			       dev->regs,
-			       status & TOVF ? " TOVF" : "",
-			       status & TUVF ? " TUVF" : "",
-			       status & ROVF ? " ROVF" : "",
-			       status & RUVF ? " RUVF" : "");
+		pr_warning("sport %p status error:%s%s%s%s\n",
+		       dev->regs,
+		       status & TOVF ? " TOVF" : "",
+		       status & TUVF ? " TUVF" : "",
+		       status & ROVF ? " ROVF" : "",
+		       status & RUVF ? " RUVF" : "");
 	}
 
 	/* XXX: should we always complete here and have read/write error ? */
-
+out:
 	return IRQ_HANDLED;
 }
 
@@ -640,6 +640,7 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 		set_dma_config(dev->dma_tx_chan, dma_config);
 
 		enable_dma(dev->dma_tx_chan);
+		dev->dma_tx_run = 1;
 	} else {
 		/* Configure parameters to start PIO transfer */
 		dev->tx_buf = buf;
