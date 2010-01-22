@@ -118,7 +118,9 @@ ENTRY(_ftrace_graph_caller)
 	/* prepare_ftrace_return(parent, self_addr, frame_pointer) */
 	r0 = sp;	/* unsigned long *parent */
 	r1 = rets;	/* unsigned long self_addr */
+#ifdef CONFIG_HAVE_FUNCTION_GRAPH_FP_TEST
 	r2 = fp;	/* unsigned long frame_pointer */
+#endif
 	r0 += 16;	/* skip the 4 local regs on stack */
 	r1 += -MCOUNT_INSN_SIZE;
 	call _prepare_ftrace_return;
