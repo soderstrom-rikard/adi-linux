@@ -26,8 +26,8 @@ ENTRY(__mcount)
 	p1.l = _function_trace_stop;
 	p1.h = _function_trace_stop;
 	r3 = [p1];
-	cc = r3 != 0;
-	if cc jump _ftrace_stub (bp);
+	cc = r3 == 0;
+	if ! cc jump _ftrace_stub (bp);
 #endif
 
 	/* save third function arg early so we can do testing below */
