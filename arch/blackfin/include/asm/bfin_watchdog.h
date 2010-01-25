@@ -1,10 +1,13 @@
 /*
- * bfin_wdt.h - Blackfin watchdog definitions
+ * bfin_watchdog.h - Blackfin watchdog definitions
  *
- * Copyright 2010-2010 Analog Devices Inc.
+ * Copyright 2006-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
+
+#ifndef _BFIN_WATCHDOG_H
+#define _BFIN_WATCHDOG_H
 
 /* Bit in SWRST that indicates boot caused by watchdog */
 #define SWRST_RESET_WDOG 0x4000
@@ -23,3 +26,5 @@
 #define WDEN_MASK    0x0FF0
 #define WDEN_ENABLE  0x0000
 #define WDEN_DISABLE 0x0AD0
+
+#endif
