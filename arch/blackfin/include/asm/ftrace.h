@@ -20,23 +20,22 @@ extern inline void *return_address(unsigned int level)
 	unsigned long *endstack, *fp, *ret_addr;
 	unsigned int current_level = 0;
 
-	ret_addr = (unsigned long *)__builtin_return_address(0);
+	if (level == 0)
+		return __builtin_return_address(0);
+
 	fp = (unsigned long *)__builtin_frame_address(0);
 	endstack = (unsigned long *)PAGE_ALIGN((unsigned int)&level);
 
-	if (level == 0
-		|| !(fp && ((unsigned int)fp & 0x3) == 0 && fp < endstack))
-		return ret_addr;
-
-	fp = (unsigned long *)*fp;
-	while (current_level < level && fp && ((unsigned int)fp & 0x3) == 0
-		&& (fp + 1) < endstack) {
-		ret_addr = (unsigned long *)*(fp + 1);
-		current_level++;
+	while (((unsigned int)fp & 0x3) == 0 && fp
+			&& (fp + 1) < endstack && current_level < level) {
 		fp = (unsigned long *)*fp;
+		current_level++;
 	}
 
-	if (current_level < level)
+	if (((unsigned int)fp & 0x3) == 0 && fp
+			&& (fp + 1) < endstack)
+		ret_addr = (unsigned long *)*(fp + 1);
+	else
 		ret_addr = NULL;
 
 	return ret_addr;
