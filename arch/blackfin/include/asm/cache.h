@@ -63,5 +63,7 @@ void resync_core_icache(void);
 #endif
 #endif
 
+/* binfmt_flat.c uses this to align data section. */
+#define ARCH_SLAB_MINALIGN 8
 
 #endif
