@@ -213,7 +213,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t * info,
 	 */
 	if (regs->syscfg & TRACE_BITS) {
 		regs->syscfg &= ~TRACE_BITS;
-		ptrace_notify(SIGTRAP);
+		tracehook_signal_handler(sig, info, ka, regs, 0);
 	}
 
 	return 0;
