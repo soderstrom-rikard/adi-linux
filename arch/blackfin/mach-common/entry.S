@@ -997,6 +997,9 @@ ENTRY(_schedule_and_signal_from_int)
 	[sp + PT_RESERVED] = p1;
 
 #ifdef CONFIG_TRACE_IRQFLAGS
+	/* trace_hardirqs_on() checks if all irqs are disabled. But here IRQ 15
+	 * is turned on, so disable all irqs. */
+	cli r0;
 	sp += -12;
 	call _trace_hardirqs_on;
 	sp += 12;
