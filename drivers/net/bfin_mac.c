@@ -1001,6 +1001,7 @@ out:
 	return NETDEV_TX_OK;
 }
 
+#define IP_HEADER_OFF  0
 #define RX_ERROR_MASK (RX_LONG | RX_ALIGN | RX_CRC | RX_LEN | \
 	RX_FRAG | RX_ADDR | RX_DMAO | RX_PHY | RX_LATE | RX_RANGE)
 
@@ -1055,25 +1056,32 @@ static void bfin_mac_rx(struct net_device *dev)
 	bfin_rx_hwtstamp(dev, skb);
 
 #if defined(BFIN_MAC_CSUM_OFFLOAD)
-	skb->csum = current_rx_ptr->status.ip_payload_csum;
-	/*
-	 * Deduce Ethernet FCS from hardware generated IP payload checksum.
-	 * IP checksum is based on 16-bit one's complement algorithm.
-	 * To deduce a value from checksum is equal to add its inversion.
-	 * If the IP payload len is odd, the inversed FCS should also
-	 * begin from odd address and leave first byte zero.
+	/* Checksum offloading only works for IPv4 packets with the standard IP header
+	 * length of 20 bytes, because the blackfin MAC checksum calculation is
+	 * based on that assumption. We must NOT use the calculated checksum if our
+	 * IP version or header break that assumption.
 	 */
-	if (skb->len % 2) {
-		fcs[0] = 0;
-		for (i = 0; i < ETH_FCS_LEN; i++)
-			fcs[i + 1] = ~skb->data[skb->len + i];
-		skb->csum = csum_partial(fcs, ETH_FCS_LEN + 1, skb->csum);
-	} else {
-		for (i = 0; i < ETH_FCS_LEN; i++)
-			fcs[i] = ~skb->data[skb->len + i];
-		skb->csum = csum_partial(fcs, ETH_FCS_LEN, skb->csum);
+	if (skb->data[IP_HEADER_OFF] == 0x45) {
+		skb->csum = current_rx_ptr->status.ip_payload_csum;
+		/*
+		 * Deduce Ethernet FCS from hardware generated IP payload checksum.
+		 * IP checksum is based on 16-bit one's complement algorithm.
+		 * To deduce a value from checksum is equal to add its inversion.
+		 * If the IP payload len is odd, the inversed FCS should also
+		 * begin from odd address and leave first byte zero.
+		 */
+		if (skb->len % 2) {
+			fcs[0] = 0;
+			for (i = 0; i < ETH_FCS_LEN; i++)
+				fcs[i + 1] = ~skb->data[skb->len + i];
+			skb->csum = csum_partial(fcs, ETH_FCS_LEN + 1, skb->csum);
+		} else {
+			for (i = 0; i < ETH_FCS_LEN; i++)
+				fcs[i] = ~skb->data[skb->len + i];
+			skb->csum = csum_partial(fcs, ETH_FCS_LEN, skb->csum);
+		}
+		skb->ip_summed = CHECKSUM_COMPLETE;
 	}
-	skb->ip_summed = CHECKSUM_COMPLETE;
 #endif
 
 	netif_rx(skb);
