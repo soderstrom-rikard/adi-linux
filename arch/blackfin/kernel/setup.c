@@ -1271,8 +1271,8 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 	seq_printf(m, "board memory\t: %ld kB (0x%p -> 0x%p)\n",
 		 physical_mem_end >> 10, (void *)0, (void *)physical_mem_end);
 	seq_printf(m, "kernel memory\t: %d kB (0x%p -> 0x%p)\n",
-		((int)memory_end - (int)_stext) >> 10,
-		_stext,
+		((int)memory_end - (int)_rambase) >> 10,
+		(void *)_rambase,
 		(void *)memory_end);
 	seq_printf(m, "\n");
 
