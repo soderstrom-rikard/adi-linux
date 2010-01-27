@@ -11,6 +11,8 @@
 
 #include <asm/unaligned.h>
 
+#define ARCH_FLAT_DATA_ALIGN			0x20
+
 #define	flat_argvp_envp_on_stack()		0
 #define	flat_old_ram_flag(flags)		(flags)
 

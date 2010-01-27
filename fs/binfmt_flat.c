@@ -57,12 +57,17 @@
 #endif
 
 /*
- * User data (stack, data section and bss) needs to be aligned
- * for the same reasons as SLAB memory is, and to the same amount.
+ * User data (stack, data section and bss) needs to be aligned.
+ * If ARCH_FLAT_DATA_ALIGN is defined, use it.
+ */
+#ifdef ARCH_FLAT_DATA_ALIGN
+#define FLAT_DATA_ALIGN	(ARCH_FLAT_DATA_ALIGN)
+/* Otherwise user data nees to be aligned for the same reasons
+ * as SLAB memory is aligned, and to the same amount.
  * Avoid duplicating architecture specific code by using the same
  * macro as with SLAB allocation:
  */
-#ifdef ARCH_SLAB_MINALIGN
+#elif defined(ARCH_SLAB_MINALIGN)
 #define FLAT_DATA_ALIGN	(ARCH_SLAB_MINALIGN)
 #else
 #define FLAT_DATA_ALIGN	(sizeof(void *))
