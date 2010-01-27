@@ -20,7 +20,7 @@ snd-ad1836-objs := bf5xx-ad1836.o
 snd-ad1980-objs := bf5xx-ad1980.o
 snd-ssm2602-objs := bf5xx-ssm2602.o
 snd-ad73311-objs := bf5xx-ad73311.o
-snd-ad1938-objs := bf5xx-ad1938.o
+snd-ad193x-objs := bf5xx-ad193x.o
 snd-adau1371-objs := bf5xx-adau1371.o
 snd-adau1761-objs := bf5xx-adau1761.o
 
@@ -28,6 +28,6 @@ obj-$(CONFIG_SND_BF5XX_SOC_AD1836) += snd-ad1836.o
 obj-$(CONFIG_SND_BF5XX_SOC_AD1980) += snd-ad1980.o
 obj-$(CONFIG_SND_BF5XX_SOC_SSM2602) += snd-ssm2602.o
 obj-$(CONFIG_SND_BF5XX_SOC_AD73311) += snd-ad73311.o
-obj-$(CONFIG_SND_BF5XX_SOC_AD1938) += snd-ad1938.o
+obj-$(CONFIG_SND_BF5XX_SOC_AD193X) += snd-ad193x.o
 obj-$(CONFIG_SND_BF5XX_SOC_ADAU1371) += snd-adau1371.o
 obj-$(CONFIG_SND_BF5XX_SOC_ADAU1761) += snd-adau1761.o
