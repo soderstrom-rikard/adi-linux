@@ -332,7 +332,7 @@ static int __devinit ad183x_spi_probe(struct spi_device *spi)
 		ad183x->chl_ctrl.path_num = ARRAY_SIZE(ad1835a_ad1837a_audio_paths);
 		ad183x_dai.playback.channels_max = 8;
 		ad183x_dai.capture.channels_max = 2;
-	} else if ((strcmp(chip_name, "ad1835a") == 0) || (strcmp(chip_name, "ad1837a") == 0)) {
+	} else if ((strcmp(chip_name, "ad1838a") == 0) || (strcmp(chip_name, "ad1839a") == 0)) {
 		ad183x->chl_ctrl.snd_ctrls = (struct snd_kcontrol_new *)ad1838a_ad1839a_snd_controls;
 		ad183x->chl_ctrl.dapm_widgets = (struct snd_soc_dapm_widget *)ad1838a_ad1839a_dapm_widgets;
 		ad183x->chl_ctrl.audio_paths = (struct snd_soc_dapm_route *)ad1838a_ad1839a_audio_paths;
