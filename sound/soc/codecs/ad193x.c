@@ -1,5 +1,5 @@
 /*
- * AD193X Audio Codec driver
+ * AD193X Audio Codec driver supporting AD1936/7/8/9
  *
  * Copyright 2010 Analog Devices Inc.
  *
@@ -32,7 +32,7 @@ static const u8 ad193x_reg[AD193X_NUM_REGS] = {
 
 static struct snd_soc_codec *ad193x_codec;
 struct snd_soc_codec_device soc_codec_dev_ad193x;
-static int ad193x_register(struct ad193x_priv *ad193x);
+static int ad193x_register(struct ad193x_priv *ad193x, int bus_type);
 static void ad193x_unregister(struct ad193x_priv *ad193x);
 
 /*
@@ -283,7 +283,7 @@ static int ad193x_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-int ad193x_bus_probe(struct device *dev, void *ctrl_data)
+int ad193x_bus_probe(struct device *dev, void *ctrl_data, int bus_type)
 {
 	struct snd_soc_codec *codec;
 	struct ad193x_priv *ad193x;
@@ -298,7 +298,7 @@ int ad193x_bus_probe(struct device *dev, void *ctrl_data)
 
 	dev_set_drvdata(dev, ad193x);
 
-	return ad193x_register(ad193x);
+	return ad193x_register(ad193x, bus_type);
 }
 EXPORT_SYMBOL_GPL(ad193x_bus_probe);
 
@@ -341,7 +341,7 @@ struct snd_soc_dai ad193x_dai = {
 };
 EXPORT_SYMBOL_GPL(ad193x_dai);
 
-static int ad193x_register(struct ad193x_priv *ad193x)
+static int ad193x_register(struct ad193x_priv *ad193x, int bus_type)
 {
 	int ret;
 	struct snd_soc_codec *codec = &ad193x->codec;
@@ -369,7 +369,7 @@ static int ad193x_register(struct ad193x_priv *ad193x)
 
 	memcpy(codec->reg_cache, ad193x_reg, AD193X_NUM_REGS);
 
-	ret = snd_soc_codec_set_cache_io(codec, 16, 8, SND_SOC_SPI);
+	ret = snd_soc_codec_set_cache_io(codec, 16, 8, bus_type);
 	if (ret < 0) {
 		dev_err(codec->dev, "failed to set cache I/O: %d\n",
 				ret);

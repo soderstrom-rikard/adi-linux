@@ -1,29 +1,9 @@
 /*
- * File:         sound/soc/codecs/ad193x.h
- * Based on:
- * Author:       Barry Song <Barry.Song@analog.com>
+ * AD193X Audio Codec driver
  *
- * Created:      May 25, 2009
- * Description:  definitions for AD193X registers
+ * Copyright 2010 Analog Devices Inc.
  *
- * Modified:
- *
- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * Licensed under the GPL-2 or later.
  */
 
 #ifndef __AD193X_H__
@@ -97,6 +77,6 @@
 
 extern struct snd_soc_dai ad193x_dai;
 extern struct snd_soc_codec_device soc_codec_dev_ad193x;
-extern int ad193x_bus_probe(struct device *dev, void *ctrl_data);
+extern int ad193x_bus_probe(struct device *dev, void *ctrl_data, int bus_type);
 extern int ad193x_bus_remove(struct device *dev);
 #endif

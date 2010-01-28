@@ -10,12 +10,13 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/i2c.h>
+#include <sound/soc.h>
 #include "ad193x.h"
 
 static int __devinit ad193x_i2c_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
-	return ad193x_bus_probe(&client->dev, client);
+	return ad193x_bus_probe(&client->dev, client, SND_SOC_I2C);
 }
 
 static int __devexit ad193x_i2c_remove(struct i2c_client *client)

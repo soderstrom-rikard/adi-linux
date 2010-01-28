@@ -10,11 +10,12 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/spi/spi.h>
+#include <sound/soc.h>
 #include "ad193x.h"
 
 static int __devinit ad193x_spi_probe(struct spi_device *spi)
 {
-	return ad193x_bus_probe(&spi->dev, spi);
+	return ad193x_bus_probe(&spi->dev, spi, SND_SOC_SPI);
 }
 
 static int __devexit ad193x_spi_remove(struct spi_device *spi)
