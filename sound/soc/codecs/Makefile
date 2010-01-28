@@ -1,5 +1,5 @@
 snd-soc-ac97-objs := ac97.o
-snd-soc-ad1836-objs := ad1836.o
+snd-soc-ad183x-objs := ad183x.o
 snd-soc-ad193x-objs := ad193x.o
 snd-soc-ad193x-spi-objs := ad193x-spi.o
 snd-soc-ad193x-i2c-objs := ad193x-i2c.o
@@ -53,7 +53,7 @@ snd-soc-wm-hubs-objs := wm_hubs.o
 snd-soc-max9877-objs := max9877.o
 
 obj-$(CONFIG_SND_SOC_AC97_CODEC)	+= snd-soc-ac97.o
-obj-$(CONFIG_SND_SOC_AD1836)	+= snd-soc-ad1836.o
+obj-$(CONFIG_SND_SOC_AD183X)	+= snd-soc-ad183x.o
 obj-$(CONFIG_SND_SOC_AD193X)	+= snd-soc-ad193x.o
 obj-$(CONFIG_SND_SOC_AD193X_SPI)+= snd-soc-ad193x-spi.o
 obj-$(CONFIG_SND_SOC_AD193X_I2C)+= snd-soc-ad193x-i2c.o

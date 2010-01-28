@@ -61,13 +61,14 @@ config SND_BF5XX_TDM
 	  mode.
 	  You will also need to select the audio interfaces to support below.
 
-config SND_BF5XX_SOC_AD1836
-	tristate "SoC AD1836 Audio support for BF5xx"
+config SND_BF5XX_SOC_AD183X
+	tristate "SoC AD183X Audio support for BF5xx"
 	depends on SND_BF5XX_TDM && SPI_MASTER
 	select SND_BF5XX_SOC_TDM
-	select SND_SOC_AD1836
+	select SND_SOC_AD183X
 	help
 	  Say Y if you want to add support for SoC audio on BF5xx STAMP/EZKIT.
+	  This driver supports AD1935A, AD1937A, AD1938A, AD1939A and AD1836.
 
 config SND_BF5XX_SOC_AD193X
 	tristate "SoC AD193X Audio support for Blackfin"
