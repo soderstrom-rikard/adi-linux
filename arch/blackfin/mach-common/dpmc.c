@@ -61,17 +61,48 @@ err_out:
 }
 
 #ifdef CONFIG_CPU_FREQ
+static void bfin_core_idle(void *info)
+{
+	unsigned long flags = 0;
+	unsigned long iwr0, iwr1, iwr2;
+	unsigned int cpu = smp_processor_id();
+	unsigned long off = cpu ? 0x1000 : 0;
+
+	local_irq_save_hw(flags);
+	bfin_iwr_set_sup0(&iwr0, &iwr1, &iwr2, off);
+
+	platform_clear_ipi(cpu, IRQ_SUPPLE_0);
+	SSYNC();
+	asm("IDLE;");
+	bfin_iwr_restore(iwr0, iwr1, iwr2, off);
+
+	local_irq_restore_hw(flags);
+}
+
 static int
 vreg_cpufreq_notifier(struct notifier_block *nb, unsigned long val, void *data)
 {
 	struct cpufreq_freqs *freq = data;
+	unsigned int cpu;
+	unsigned int this_cpu = smp_processor_id();
+	cpumask_t mask = cpu_online_map;
+	cpu_clear(this_cpu, mask);
+
+	if (((struct cpufreq_freqs *)data)->cpu != CPUFREQ_CPU)
+		return 0;
 
 	if (val == CPUFREQ_PRECHANGE && freq->old < freq->new) {
+		smp_call_function(bfin_core_idle, NULL, 0);
 		bfin_set_vlev(bfin_get_vlev(freq->new));
 		udelay(pdata->vr_settling_time); /* Wait until Volatge settled */
-
-	} else if (val == CPUFREQ_POSTCHANGE && freq->old > freq->new)
+		for_each_cpu_mask(cpu, mask)
+			platform_send_ipi_cpu(cpu, IRQ_SUPPLE_0);
+	} else if (val == CPUFREQ_POSTCHANGE && freq->old > freq->new) {
+		smp_call_function(bfin_core_idle, NULL, 0);
 		bfin_set_vlev(bfin_get_vlev(freq->new));
+		for_each_cpu_mask(cpu, mask)
+			platform_send_ipi_cpu(cpu, IRQ_SUPPLE_0);
+	}
 
 	return 0;
 }

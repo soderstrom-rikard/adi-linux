@@ -162,6 +162,7 @@ ENTRY(_coreb_trampoline_start)
 ENDPROC(_coreb_trampoline_start)
 ENTRY(_coreb_trampoline_end)
 
+#ifdef CONFIG_HOTPLUG_CPU
 .section ".text"
 ENTRY(_set_sicb_iwr)
 	P0.H = hi(SICB_IWR0);
@@ -174,13 +175,11 @@ ENTRY(_set_sicb_iwr)
 	RTS;
 ENDPROC(_set_sicb_iwr)
 
-ENTRY(_coreb_sleep)
+ENTRY(_coreb_die)
 	sp.l = lo(INITIAL_STACK);
 	sp.h = hi(INITIAL_STACK);
 	fp = sp;
 	usp = sp;
-
-	call _set_sicb_iwr;
 
 	CLI R2;
 	SSYNC;
@@ -194,7 +193,8 @@ ENTRY(_coreb_sleep)
 	p0.h = hi(COREB_L1_CODE_START);
 	p0.l = lo(COREB_L1_CODE_START);
 	jump (p0);
-ENDPROC(_coreb_sleep)
+ENDPROC(_coreb_die)
+#endif
 
 __CPUINIT
 ENTRY(_coreb_start)
