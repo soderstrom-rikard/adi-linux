@@ -170,13 +170,16 @@ static irqreturn_t blackfin_interrupt(int irq, void *__hci)
 		musb_writew(musb->mregs, MUSB_INTRRX, musb->int_rx);
 		retval = musb_interrupt(musb);
 	}
+
 	/* Start sampling ID pin, when plug is removed from MUSB */
 	if (is_otg_enabled(musb) && (musb->xceiv->state == OTG_STATE_B_IDLE
 		|| musb->xceiv->state == OTG_STATE_A_WAIT_BCON)) {
 		mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY);
 		musb->a_wait_bcon = TIMER_DELAY;
 	}
+
 	spin_unlock_irqrestore(&musb->lock, flags);
+
 	/* REVISIT we sometimes get spurious IRQs on g_ep0
 	 * not clear why... fall in BF54x too.
 	 */
@@ -229,8 +232,8 @@ static void musb_conn_timer_handler(unsigned long _musb)
 
 		if (!is_peripheral_enabled(musb))
 			break;
-		/* Start a new session. It seems that MUSB needs taking some time
-		 * to recognize the type of the plug inserted?
+		/* Start a new session.  It seems that MUSB needs taking
+		 * some time to recognize the type of the plug inserted?
 		 */
 		val = musb_readw(musb->mregs, MUSB_DEVCTL);
 		val |= MUSB_DEVCTL_SESSION;
@@ -265,8 +268,9 @@ static void musb_conn_timer_handler(unsigned long _musb)
 				musb_writeb(musb->mregs, MUSB_POWER, val);
 				toggle = 1;
 			}
-			/* The delay time is set to 1/4 second by default, shortening it,
-			 * if accelerating A-plug detection is needed in OTG mode.
+			/* The delay time is set to 1/4 second by default,
+			 * shortening it, if accelerating A-plug detection
+			 * is needed in OTG mode.
 			 */
 			mod_timer(&musb_conn_timer, jiffies + TIMER_DELAY / 4);
 		}
