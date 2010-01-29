@@ -37,20 +37,26 @@
 #define SUPPLE_0_WAKEUP ((IRQ_SUPPLE_0 - (IRQ_CORETMR + 1)) % 32)
 
 static __inline__ void bfin_iwr_set_pll(unsigned long *iwr0,
-			unsigned long *iwr1, unsigned long *iwr2,
-					unsigned long off)
+			unsigned long *iwr1, unsigned long *iwr2)
 {
+#ifdef CONFIG_SMP
+	unsigned long SICA_SICB_OFF =
+			((bfin_read_DSPID() & 0xff) ? 0x1000 : 0);
+#else
+# define SICA_SICB_OFF 0
+#endif
+
 #ifdef SIC_IWR0
-	*iwr0 = bfin_read32(SIC_IWR0 + off);
+	*iwr0 = bfin_read32(SIC_IWR0 + SICA_SICB_OFF);
 #ifdef SIC_IWR1
-	*iwr1 = bfin_read32(SIC_IWR1 + off);
+	*iwr1 = bfin_read32(SIC_IWR1 + SICA_SICB_OFF);
 #ifdef SIC_IWR2
 	*iwr2 = bfin_read32(SIC_IWR2);
 	bfin_write32(SIC_IWR2, 0);
 #endif
-	bfin_write32(SIC_IWR1 + off, 0);
+	bfin_write32(SIC_IWR1 + SICA_SICB_OFF, 0);
 #endif
-	bfin_write32(SIC_IWR0 + off, IWR_ENABLE(0));
+	bfin_write32(SIC_IWR0 + SICA_SICB_OFF, IWR_ENABLE(0));
 #else
 	*iwr0 = bfin_read32(SIC_IWR);
 	bfin_write32(SIC_IWR, IWR_ENABLE(0));
@@ -60,24 +66,35 @@ static __inline__ void bfin_iwr_set_pll(unsigned long *iwr0,
 #if defined(CONFIG_HOTPLUG_CPU) || \
 	(defined(CONFIG_CPU_VOLTAGE) && defined(CONFIG_SMP))
 static __inline__ void bfin_iwr_set_sup0(unsigned long *iwr0,
-			unsigned long *iwr1, unsigned long *iwr2,
-					unsigned long off)
+			unsigned long *iwr1, unsigned long *iwr2)
 {
-	*iwr0 = bfin_read32(SIC_IWR0 + off);
-	*iwr1 = bfin_read32(SIC_IWR1 + off);
-	bfin_write32(SIC_IWR0 + off, 0);
-	bfin_write32(SIC_IWR1 + off, IWR_ENABLE(SUPPLE_0_WAKEUP));
+#ifdef CONFIG_SMP
+	unsigned long SICA_SICB_OFF =
+			((bfin_read_DSPID() & 0xff) ? 0x1000 : 0);
+#else
+# define SICA_SICB_OFF 0
+#endif
+	*iwr0 = bfin_read32(SIC_IWR0 + SICA_SICB_OFF);
+	*iwr1 = bfin_read32(SIC_IWR1 + SICA_SICB_OFF);
+	bfin_write32(SIC_IWR0 + SICA_SICB_OFF, 0);
+	bfin_write32(SIC_IWR1 + SICA_SICB_OFF, IWR_ENABLE(SUPPLE_0_WAKEUP));
 }
 #endif
 
 static __inline__ void bfin_iwr_restore(unsigned long iwr0,
-			unsigned long iwr1, unsigned long iwr2,
-					unsigned long off)
+			unsigned long iwr1, unsigned long iwr2)
 {
+#ifdef CONFIG_SMP
+	unsigned long SICA_SICB_OFF =
+			((bfin_read_DSPID() & 0xff) ? 0x1000 : 0);
+#else
+# define SICA_SICB_OFF 0
+#endif
+
 #ifdef SIC_IWR0
-	bfin_write32(SIC_IWR0 + off, iwr0);
+	bfin_write32(SIC_IWR0 + SICA_SICB_OFF, iwr0);
 #ifdef SIC_IWR1
-	bfin_write32(SIC_IWR1 + off, iwr1);
+	bfin_write32(SIC_IWR1 + SICA_SICB_OFF, iwr1);
 #ifdef SIC_IWR2
 	bfin_write32(SIC_IWR2, iwr2);
 #endif
@@ -92,19 +109,18 @@ static __inline__ void bfin_write_PLL_CTL(unsigned int val)
 {
 	unsigned long flags = 0;
 	unsigned long iwr0, iwr1, iwr2;
-	unsigned long off = (bfin_read_DSPID() & 0xff) ? 0x1000 : 0;
 
 	if (val == bfin_read_PLL_CTL())
 		return;
 
 	local_irq_save_hw(flags);
-	bfin_iwr_set_pll(&iwr0, &iwr1, &iwr2, off);
+	bfin_iwr_set_pll(&iwr0, &iwr1, &iwr2);
 
 	bfin_write16(PLL_CTL, val);
 	SSYNC();
 	asm("IDLE;");
 
-	bfin_iwr_restore(iwr0, iwr1, iwr2, off);
+	bfin_iwr_restore(iwr0, iwr1, iwr2);
 	local_irq_restore_hw(flags);
 }
 
@@ -113,19 +129,18 @@ static __inline__ void bfin_write_VR_CTL(unsigned int val)
 {
 	unsigned long flags = 0;
 	unsigned long iwr0, iwr1, iwr2;
-	unsigned long off = (bfin_read_DSPID() & 0xff) ? 0x1000 : 0;
 
 	if (val == bfin_read_VR_CTL())
 		return;
 
 	local_irq_save_hw(flags);
-	bfin_iwr_set_pll(&iwr0, &iwr1, &iwr2, off);
+	bfin_iwr_set_pll(&iwr0, &iwr1, &iwr2);
 
 	bfin_write16(VR_CTL, val);
 	SSYNC();
 	asm("IDLE;");
 
-	bfin_iwr_restore(iwr0, iwr1, iwr2, off);
+	bfin_iwr_restore(iwr0, iwr1, iwr2);
 	local_irq_restore_hw(flags);
 }
 

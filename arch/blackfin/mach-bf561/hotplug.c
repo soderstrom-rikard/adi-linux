@@ -13,7 +13,6 @@ int hotplug_coreb;
 void platform_cpu_die(void)
 {
 	unsigned long iwr;
-	unsigned long off = smp_processor_id() ? 0x1000 : 0;
 	hotplug_coreb = 1;
 
 	/* disable core timer */
@@ -24,7 +23,7 @@ void platform_cpu_die(void)
 	SSYNC();
 
 	/* set CoreB wakeup by ipi0, iwr will be discarded */
-	bfin_iwr_set_sup0(&iwr, &iwr, &iwr, off);
+	bfin_iwr_set_sup0(&iwr, &iwr, &iwr);
 	SSYNC();
 
 	coreb_die();
