@@ -31,7 +31,7 @@
 #ifndef __AD73311_H__
 #define __AD73311_H__
 
-#if defined(CONFIG_SND_SOC_AD73311)
+#if CONFIG_SND_AD7XXXX_SELECT == 0
 
 #define AD_CONTROL	0x8000
 #define AD_DATA		0x0000
@@ -87,7 +87,7 @@
 #define REGF_INV		(1 << 6)
 #define REGF_ALB		(1 << 7)
 
-#elif defined(CONFIG_SND_SOC_AD74111)
+#elif CONFIG_SND_AD7XXXX_SELECT == 1
 
 #define AD_READ		0x0000
 #define AD_WRITE	0x8000
@@ -138,8 +138,7 @@
 #define REGF_DAC_VOL(x)		(x & 0x3F)
 
 /* Control register G */
-#define CTRL_REG_F	(6 << 11)
-#define REGF_DAC_VOL(x)		(x & 0x1FF)
+#define CTRL_REG_G	(6 << 11)
 #endif
 
 extern struct snd_soc_dai ad73311_dai;

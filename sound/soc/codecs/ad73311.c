@@ -20,9 +20,9 @@
 #include <sound/initval.h>
 #include <sound/soc.h>
 
-#if defined(CONFIG_SND_SOC_AD73311)
+#if CONFIG_SND_AD7XXXX_SELECT == 0
 #define DRV_NAME "AD73311"
-#elif defined(CONFIG_SND_SOC_AD74111)
+#elif CONFIG_SND_AD7XXXX_SELECT == 1
 #define DRV_NAME "AD74111"
 #endif
 
