@@ -81,7 +81,7 @@ static int snd_ad73311_configure(void)
 	unsigned short ctrl_regs[7];
 	unsigned short status = 0;
 	int count = 0;
-#if defined(CONFIG_SND_SOC_AD73311)
+#if CONFIG_SND_AD7XXXX_SELECT == 0
 	/* DMCLK = MCLK = 16.384 MHz
 	 * SCLK = DMCLK/8 = 2.048 MHz
 	 * Sample Rate = DMCLK/2048  = 8 KHz
@@ -95,7 +95,7 @@ static int snd_ad73311_configure(void)
 	ctrl_regs[3] = AD_CONTROL | AD_WRITE | CTRL_REG_E | REGE_DA(0x1f);
 	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F | REGF_SEEN ;
 	ctrl_regs[5] = AD_CONTROL | AD_WRITE | CTRL_REG_A | REGA_MODE_DATA;
-#elif defined(CONFIG_SND_SOC_AD74111)
+#elif CONFIG_SND_AD7XXXX_SELECT == 1
 	/* MCLK = MCLK = 12.288 MHz
 	 * Sample Rate = 8 KHz
 	 * IMCLK = MCLK/6 = 2.048 MHz = 8kHz * 256
