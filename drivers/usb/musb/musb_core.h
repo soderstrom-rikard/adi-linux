@@ -328,6 +328,7 @@ struct musb {
 #define MUSB_HWVERS_1300	0x52C
 #define MUSB_HWVERS_1400	0x590
 #define MUSB_HWVERS_1800	0x720
+#define MUSB_HWVERS_1900	0x784
 #define MUSB_HWVERS_2000	0x800
 	u16			hwvers;
 

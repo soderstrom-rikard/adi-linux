@@ -462,10 +462,11 @@ static inline u8 musb_read_configdata(void __iomem *mbase)
 
 static inline u16 musb_read_hwvers(void __iomem *mbase)
 {
-	/* This register is invisible on Blackfin, actually the MUSB
-	 * RTL version of Blackfin is 1.9, So just set it's value to 1.9.
+	/*
+	 * This register is invisible on Blackfin, actually the MUSB
+	 * RTL version of Blackfin is 1.9, so just harcode its value.
 	 */
-	return 1 << 10 | 9;
+	return MUSB_HWVERS_1900;
 }
 
 static inline void __iomem *musb_read_target_reg_base(u8 i, void __iomem *mbase)
