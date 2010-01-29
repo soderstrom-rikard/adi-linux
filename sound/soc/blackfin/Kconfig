@@ -18,7 +18,7 @@ config SND_BF5XX_SOC_SSM2602
 	  Say Y if you want to add support for SoC audio on BF527-EZKIT.
 
 config SND_BF5XX_SOC_AD73311
-	tristate "SoC AD73311 Audio support for Blackfin"
+	tristate "SoC AD73311\AD74111 Audio support for Blackfin"
 	depends on SND_BF5XX_I2S
 	select SND_BF5XX_SOC_I2S
 	select SND_SOC_AD73311

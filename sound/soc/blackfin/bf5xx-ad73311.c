@@ -78,10 +78,10 @@ static int snd_ad73311_startup(void)
 
 static int snd_ad73311_configure(void)
 {
-	unsigned short ctrl_regs[6];
+	unsigned short ctrl_regs[7];
 	unsigned short status = 0;
 	int count = 0;
-
+#if defined(CONFIG_SND_SOC_AD73311)
 	/* DMCLK = MCLK = 16.384 MHz
 	 * SCLK = DMCLK/8 = 2.048 MHz
 	 * Sample Rate = DMCLK/2048  = 8 KHz
@@ -95,7 +95,23 @@ static int snd_ad73311_configure(void)
 	ctrl_regs[3] = AD_CONTROL | AD_WRITE | CTRL_REG_E | REGE_DA(0x1f);
 	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F | REGF_SEEN ;
 	ctrl_regs[5] = AD_CONTROL | AD_WRITE | CTRL_REG_A | REGA_MODE_DATA;
-
+#elif defined(CONFIG_SND_SOC_AD74111)
+	/* MCLK = MCLK = 12.288 MHz
+	 * Sample Rate = 8 KHz
+	 * IMCLK = MCLK/6 = 2.048 MHz = 8kHz * 256
+	 */
+	ctrl_regs[0] = AD_WRITE | CTRL_REG_A | REGA_REFAMP | REGA_REF |\
+			REGA_DAC | REGA_ADC_INPAMP;
+	ctrl_regs[1] = AD_WRITE | CTRL_REG_B | REGB_FCLKDIV(2) | \
+			REGB_SCLKDIV(1) | REGB_TCLKDIV(0);
+	ctrl_regs[2] = AD_WRITE | CTRL_REG_C | REGC_ADC_HP | \
+			REGC_WORD_WIDTH(0);
+	ctrl_regs[3] = AD_WRITE | CTRL_REG_D | REGD_MASTER | \
+			REGD_FDCLK | REGD_DSP_MODE;
+	ctrl_regs[4] = AD_WRITE | CTRL_REG_E;
+	ctrl_regs[5] = AD_WRITE | CTRL_REG_F;
+	ctrl_regs[6] = AD_WRITE | CTRL_REG_G;
+#endif
 	local_irq_disable();
 	snd_ad73311_startup();
 	udelay(1);
