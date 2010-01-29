@@ -1,5 +1,5 @@
 /*
- * ad73311.c  --  ALSA Soc AD73311 codec support
+ * ad73311.c  --  ALSA Soc AD73311/AD74111 codec support
  *
  * Copyright:	Analog Device Inc.
  * Author:	Cliff Cai <cliff.cai@analog.com>
@@ -20,10 +20,16 @@
 #include <sound/initval.h>
 #include <sound/soc.h>
 
+#if defined(CONFIG_SND_SOC_AD73311)
+#define DRV_NAME "AD73311"
+#elif defined(CONFIG_SND_SOC_AD74111)
+#define DRV_NAME "AD74111"
+#endif
+
 #include "ad73311.h"
 
 struct snd_soc_dai ad73311_dai = {
-	.name = "AD73311",
+	.name = "DRV_NAME",
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 1,
@@ -49,7 +55,7 @@ static int ad73311_soc_probe(struct platform_device *pdev)
 	if (codec == NULL)
 		return -ENOMEM;
 	mutex_init(&codec->mutex);
-	codec->name = "AD73311";
+	codec->name = "DRV_NAME";
 	codec->dev = &pdev->dev;
 	codec->owner = THIS_MODULE;
 	codec->dai = &ad73311_dai;
@@ -61,13 +67,13 @@ static int ad73311_soc_probe(struct platform_device *pdev)
 	/* register pcms */
 	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
 	if (ret < 0) {
-		printk(KERN_ERR "ad73311: failed to create pcms\n");
+		printk(KERN_ERR "%s: failed to create pcms\n", DRV_NAME);
 		goto pcm_err;
 	}
 
 	ret = snd_soc_init_card(socdev);
 	if (ret < 0) {
-		printk(KERN_ERR "ad73311: failed to register card\n");
+		printk(KERN_ERR "%s: failed to register card\n", DRV_NAME);
 		goto register_err;
 	}
 
@@ -111,6 +117,6 @@ static void __exit ad73311_exit(void)
 }
 module_exit(ad73311_exit);
 
-MODULE_DESCRIPTION("ASoC ad73311 driver");
+MODULE_DESCRIPTION("ASoC ad73311/ad74111 driver");
 MODULE_AUTHOR("Cliff Cai ");
 MODULE_LICENSE("GPL");
