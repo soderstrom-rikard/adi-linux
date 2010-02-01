@@ -36,7 +36,7 @@
 
 #define SUPPLE_0_WAKEUP ((IRQ_SUPPLE_0 - (IRQ_CORETMR + 1)) % 32)
 
-static __inline__ void bfin_iwr_set_pll(unsigned long *iwr0,
+static inline void bfin_iwr_set_pll(unsigned long *iwr0,
 			unsigned long *iwr1, unsigned long *iwr2)
 {
 #ifdef CONFIG_SMP
@@ -65,7 +65,7 @@ static __inline__ void bfin_iwr_set_pll(unsigned long *iwr0,
 
 #if defined(CONFIG_HOTPLUG_CPU) || \
 	(defined(CONFIG_CPU_VOLTAGE) && defined(CONFIG_SMP))
-static __inline__ void bfin_iwr_set_sup0(unsigned long *iwr0,
+static inline void bfin_iwr_set_sup0(unsigned long *iwr0,
 			unsigned long *iwr1, unsigned long *iwr2)
 {
 #ifdef CONFIG_SMP
@@ -81,7 +81,7 @@ static __inline__ void bfin_iwr_set_sup0(unsigned long *iwr0,
 }
 #endif
 
-static __inline__ void bfin_iwr_restore(unsigned long iwr0,
+static inline void bfin_iwr_restore(unsigned long iwr0,
 			unsigned long iwr1, unsigned long iwr2)
 {
 #ifdef CONFIG_SMP
@@ -105,7 +105,7 @@ static __inline__ void bfin_iwr_restore(unsigned long iwr0,
 }
 
 /* Writing to PLL_CTL initiates a PLL relock sequence. */
-static __inline__ void bfin_write_PLL_CTL(unsigned int val)
+static inline void bfin_write_PLL_CTL(unsigned int val)
 {
 	unsigned long flags = 0;
 	unsigned long iwr0, iwr1, iwr2;
@@ -125,7 +125,7 @@ static __inline__ void bfin_write_PLL_CTL(unsigned int val)
 }
 
 /* Writing to VR_CTL initiates a PLL relock sequence. */
-static __inline__ void bfin_write_VR_CTL(unsigned int val)
+static inline void bfin_write_VR_CTL(unsigned int val)
 {
 	unsigned long flags = 0;
 	unsigned long iwr0, iwr1, iwr2;
