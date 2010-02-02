@@ -29,7 +29,7 @@
 #include "ad73311.h"
 
 struct snd_soc_dai ad73311_dai = {
-	.name = "DRV_NAME",
+	.name = DRV_NAME,
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 1,
@@ -55,7 +55,7 @@ static int ad73311_soc_probe(struct platform_device *pdev)
 	if (codec == NULL)
 		return -ENOMEM;
 	mutex_init(&codec->mutex);
-	codec->name = "DRV_NAME";
+	codec->name = DRV_NAME;
 	codec->dev = &pdev->dev;
 	codec->owner = THIS_MODULE;
 	codec->dai = &ad73311_dai;
