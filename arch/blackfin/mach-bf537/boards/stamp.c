@@ -1643,6 +1643,14 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 		.platform_data = (void *)&ad7142_i2c_platform_data,
 	},
 #endif
+
+#if defined(CONFIG_AD715X) || defined(CONFIG_AD715X_MODULE)
+	{
+		I2C_BOARD_INFO("ad7150", 0x90),
+		.irq = IRQ_PG5, /* fixme: use real interrupt number */
+	},
+#endif
+
 #if defined(CONFIG_BFIN_TWI_LCD) || defined(CONFIG_BFIN_TWI_LCD_MODULE)
 	{
 		I2C_BOARD_INFO("pcf8574_lcd", 0x22),
