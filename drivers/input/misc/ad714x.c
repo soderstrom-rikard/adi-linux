@@ -17,8 +17,10 @@
 #define AD714X_STG_CAL_EN_REG     0x1
 #define AD714X_AMB_COMP_CTRL0_REG 0x2
 #define AD714X_PARTID_REG         0x17
-#define AD7147_PARTID             0x1470
 #define AD7142_PARTID             0xE620
+#define AD7143_PARTID             0xE630
+#define AD7147_PARTID             0x1470
+#define AD7148_PARTID             0x1480
 #define AD714X_STAGECFG_REG       0x80
 #define AD714X_SYSCFG_REG         0x0
 
@@ -934,18 +936,31 @@ static int ad714x_hw_detect(struct ad714x_chip *ad714x)
 
 	ad714x->read(ad714x->dev, AD714X_PARTID_REG, &data);
 	switch (data & 0xFFF0) {
-	case AD7147_PARTID:
-		ad714x->product = 0x7147;
-		ad714x->version = data & 0xF;
-		dev_info(ad714x->dev, "found AD7147 captouch, rev:%d\n",
-				ad714x->version);
-		return 0;
 	case AD7142_PARTID:
 		ad714x->product = 0x7142;
 		ad714x->version = data & 0xF;
 		dev_info(ad714x->dev, "found AD7142 captouch, rev:%d\n",
 				ad714x->version);
 		return 0;
+	case AD7143_PARTID:
+		ad714x->product = 0x7143;
+		ad714x->version = data & 0xF;
+		dev_info(ad714x->dev, "found AD7143 captouch, rev:%d\n",
+				ad714x->version);
+		return 0;
+	case AD7147_PARTID:
+		ad714x->product = 0x7147;
+		ad714x->version = data & 0xF;
+		dev_info(ad714x->dev, "found AD7147(A) captouch, rev:%d\n",
+				ad714x->version);
+		return 0;
+	case AD7148_PARTID:
+		ad714x->product = 0x7148;
+		ad714x->version = data & 0xF;
+		dev_info(ad714x->dev, "found AD7148 captouch, rev:%d\n",
+				ad714x->version);
+		return 0;
+
 	default:
 		dev_err(ad714x->dev,
 			"fail to detect AD714X captouch, read ID is %04x\n",
