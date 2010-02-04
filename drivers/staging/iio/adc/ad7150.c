@@ -1,5 +1,5 @@
 /*
- * AD715X capacitive sensor driver supporting AD7150/2/3/6
+ * AD7150 capacitive sensor driver supporting AD7150/1/6
  *
  * Copyright 2010 Analog Devices Inc.
  *
@@ -20,47 +20,47 @@
 #include "../sysfs.h"
 
 /*
- * AD715X registers definition
+ * AD7150 registers definition
  */
 
-#define AD715X_STATUS              0
-#define AD715X_STATUS_OUT1         (1 << 3)
-#define AD715X_STATUS_OUT2         (1 << 5)
-#define AD715X_CH1_DATA_HIGH       1
-#define AD715X_CH1_DATA_LOW        2
-#define AD715X_CH2_DATA_HIGH       3
-#define AD715X_CH2_DATA_LOW        4
-#define AD715X_CH1_AVG_HIGH        5
-#define AD715X_CH1_AVG_LOW         6
-#define AD715X_CH2_AVG_HIGH        7
-#define AD715X_CH2_AVG_LOW         8
-#define AD715X_CH1_SENSITIVITY     9
-#define AD715X_CH1_THR_HOLD_H      9
-#define AD715X_CH1_TIMEOUT         10
-#define AD715X_CH1_THR_HOLD_L      10
-#define AD715X_CH1_SETUP           11
-#define AD715X_CH2_SENSITIVITY     12
-#define AD715X_CH2_THR_HOLD_H      12
-#define AD715X_CH2_TIMEOUT         13
-#define AD715X_CH2_THR_HOLD_L      13
-#define AD715X_CH2_SETUP           14
-#define AD715X_CFG                 15
-#define AD715X_CFG_FIX             (1 << 7)
-#define AD715X_PD_TIMER            16
-#define AD715X_CH1_CAPDAC          17
-#define AD715X_CH2_CAPDAC          18
-#define AD715X_SN3                 19
-#define AD715X_SN2                 20
-#define AD715X_SN1                 21
-#define AD715X_SN0                 22
-#define AD715X_ID                  23
+#define AD7150_STATUS              0
+#define AD7150_STATUS_OUT1         (1 << 3)
+#define AD7150_STATUS_OUT2         (1 << 5)
+#define AD7150_CH1_DATA_HIGH       1
+#define AD7150_CH1_DATA_LOW        2
+#define AD7150_CH2_DATA_HIGH       3
+#define AD7150_CH2_DATA_LOW        4
+#define AD7150_CH1_AVG_HIGH        5
+#define AD7150_CH1_AVG_LOW         6
+#define AD7150_CH2_AVG_HIGH        7
+#define AD7150_CH2_AVG_LOW         8
+#define AD7150_CH1_SENSITIVITY     9
+#define AD7150_CH1_THR_HOLD_H      9
+#define AD7150_CH1_TIMEOUT         10
+#define AD7150_CH1_THR_HOLD_L      10
+#define AD7150_CH1_SETUP           11
+#define AD7150_CH2_SENSITIVITY     12
+#define AD7150_CH2_THR_HOLD_H      12
+#define AD7150_CH2_TIMEOUT         13
+#define AD7150_CH2_THR_HOLD_L      13
+#define AD7150_CH2_SETUP           14
+#define AD7150_CFG                 15
+#define AD7150_CFG_FIX             (1 << 7)
+#define AD7150_PD_TIMER            16
+#define AD7150_CH1_CAPDAC          17
+#define AD7150_CH2_CAPDAC          18
+#define AD7150_SN3                 19
+#define AD7150_SN2                 20
+#define AD7150_SN1                 21
+#define AD7150_SN0                 22
+#define AD7150_ID                  23
 
 
 /*
- * struct ad715x_chip_info - chip specifc information
+ * struct ad7150_chip_info - chip specifc information
  */
 
-struct ad715x_chip_info {
+struct ad7150_chip_info {
 	const char *name;
 	struct i2c_client *client;
 	struct iio_dev *indio_dev;
@@ -78,10 +78,10 @@ struct ad715x_chip_info {
 };
 
 /*
- * ad715x register access by I2C
+ * ad7150 register access by I2C
  */
 
-static int ad715x_i2c_read(struct ad715x_chip_info *chip, u8 reg, u8 *data)
+static int ad7150_i2c_read(struct ad7150_chip_info *chip, u8 reg, u8 *data)
 {
 	struct i2c_client *client = chip->client;
 	int ret = 0;
@@ -104,7 +104,7 @@ static int ad715x_i2c_read(struct ad715x_chip_info *chip, u8 reg, u8 *data)
 	return ret;
 }
 
-static int ad715x_i2c_write(struct ad715x_chip_info *chip, u8 reg, u8 data)
+static int ad7150_i2c_write(struct ad7150_chip_info *chip, u8 reg, u8 data)
 {
 	struct i2c_client *client = chip->client;
 	int ret = 0;
@@ -146,77 +146,77 @@ static int ad715x_i2c_write(struct ad715x_chip_info *chip, u8 reg, u8 data)
 #define IIO_DEV_ATTR_CH2_VALUE(_show)		\
 	IIO_DEVICE_ATTR(ch2_value, S_IRUGO, _show, NULL, 0)
 
-static ssize_t ad715x_show_threshold_modes(struct device *dev,
+static ssize_t ad7150_show_threshold_modes(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	return sprintf(buf, "adaptive\nfixed\n");
 }
 
-IIO_DEV_ATTR_AVAIL_THRESHOLD_MODES(ad715x_show_threshold_modes);
+IIO_DEV_ATTR_AVAIL_THRESHOLD_MODES(ad7150_show_threshold_modes);
 
-static ssize_t ad715x_show_ch1_value(struct device *dev,
+static ssize_t ad7150_show_ch1_value(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 	u8 data_l, data_h;
 
-	ad715x_i2c_read(chip, AD715X_CH1_DATA_HIGH, &data_h);
-	ad715x_i2c_read(chip, AD715X_CH1_DATA_LOW, &data_l);
+	ad7150_i2c_read(chip, AD7150_CH1_DATA_HIGH, &data_h);
+	ad7150_i2c_read(chip, AD7150_CH1_DATA_LOW, &data_l);
 	return sprintf(buf, "%d\n", (data_h << 8) | data_l);
 }
 
-IIO_DEV_ATTR_CH1_VALUE(ad715x_show_ch1_value);
+IIO_DEV_ATTR_CH1_VALUE(ad7150_show_ch1_value);
 
-static ssize_t ad715x_show_ch2_value(struct device *dev,
+static ssize_t ad7150_show_ch2_value(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 	u8 data_l, data_h;
 
-	ad715x_i2c_read(chip, AD715X_CH2_DATA_HIGH, &data_h);
-	ad715x_i2c_read(chip, AD715X_CH2_DATA_LOW, &data_l);
+	ad7150_i2c_read(chip, AD7150_CH2_DATA_HIGH, &data_h);
+	ad7150_i2c_read(chip, AD7150_CH2_DATA_LOW, &data_l);
 	return sprintf(buf, "%d\n", (data_h << 8) | data_l);
 }
 
-IIO_DEV_ATTR_CH2_VALUE(ad715x_show_ch2_value);
+IIO_DEV_ATTR_CH2_VALUE(ad7150_show_ch2_value);
 
 
-static ssize_t ad715x_show_threshold_mode(struct device *dev,
+static ssize_t ad7150_show_threshold_mode(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 
 	return sprintf(buf, "%s\n", chip->current_mode);
 }
 
-static ssize_t ad715x_store_threshold_mode(struct device *dev,
+static ssize_t ad7150_store_threshold_mode(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf,
 		size_t len)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 	u8 cfg;
 
-	ad715x_i2c_read(chip, AD715X_CFG, &cfg);
+	ad7150_i2c_read(chip, AD7150_CFG, &cfg);
 
 	if (strncmp(buf, "fixed", 5) == 0) {
 		strcpy(chip->current_mode, "fixed");
-		cfg |= AD715X_CFG_FIX;
-		ad715x_i2c_write(chip, AD715X_CFG, cfg);
+		cfg |= AD7150_CFG_FIX;
+		ad7150_i2c_write(chip, AD7150_CFG, cfg);
 
 		return len;
 	} else if (strncmp(buf, "adaptive", 8) == 0) {
 		strcpy(chip->current_mode, "adaptive");
-		cfg &= ~AD715X_CFG_FIX;
-		ad715x_i2c_write(chip, AD715X_CFG, cfg);
+		cfg &= ~AD7150_CFG_FIX;
+		ad7150_i2c_write(chip, AD7150_CFG, cfg);
 
 		return len;
 	}
@@ -226,34 +226,34 @@ static ssize_t ad715x_store_threshold_mode(struct device *dev,
 }
 
 IIO_DEV_ATTR_THRESHOLD_MODE(S_IRUGO | S_IWUSR,
-		ad715x_show_threshold_mode,
-		ad715x_store_threshold_mode);
+		ad7150_show_threshold_mode,
+		ad7150_store_threshold_mode);
 
-static ssize_t ad715x_show_ch1_threshold(struct device *dev,
+static ssize_t ad7150_show_ch1_threshold(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 
 	return sprintf(buf, "%d\n", chip->ch1_threshold);
 }
 
-static ssize_t ad715x_store_ch1_threshold(struct device *dev,
+static ssize_t ad7150_store_ch1_threshold(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf,
 		size_t len)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 	unsigned long data;
 	int ret;
 
 	ret = strict_strtoul(buf, 10, &data);
 
 	if ((!ret) && (data < 0x10000)) {
-		ad715x_i2c_write(chip, AD715X_CH1_THR_HOLD_H, data >> 8);
-		ad715x_i2c_write(chip, AD715X_CH1_THR_HOLD_L, data);
+		ad7150_i2c_write(chip, AD7150_CH1_THR_HOLD_H, data >> 8);
+		ad7150_i2c_write(chip, AD7150_CH1_THR_HOLD_L, data);
 		chip->ch1_threshold = data;
 		return len;
 	}
@@ -262,34 +262,34 @@ static ssize_t ad715x_store_ch1_threshold(struct device *dev,
 }
 
 IIO_DEV_ATTR_CH1_THRESHOLD(S_IRUGO | S_IWUSR,
-		ad715x_show_ch1_threshold,
-		ad715x_store_ch1_threshold);
+		ad7150_show_ch1_threshold,
+		ad7150_store_ch1_threshold);
 
-static ssize_t ad715x_show_ch2_threshold(struct device *dev,
+static ssize_t ad7150_show_ch2_threshold(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 
 	return sprintf(buf, "%d\n", chip->ch2_threshold);
 }
 
-static ssize_t ad715x_store_ch2_threshold(struct device *dev,
+static ssize_t ad7150_store_ch2_threshold(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf,
 		size_t len)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 	unsigned long data;
 	int ret;
 
 	ret = strict_strtoul(buf, 10, &data);
 
 	if ((!ret) && (data < 0x10000)) {
-		ad715x_i2c_write(chip, AD715X_CH2_THR_HOLD_H, data >> 8);
-		ad715x_i2c_write(chip, AD715X_CH2_THR_HOLD_L, data);
+		ad7150_i2c_write(chip, AD7150_CH2_THR_HOLD_H, data >> 8);
+		ad7150_i2c_write(chip, AD7150_CH2_THR_HOLD_L, data);
 		chip->ch2_threshold = data;
 		return len;
 	}
@@ -298,33 +298,33 @@ static ssize_t ad715x_store_ch2_threshold(struct device *dev,
 }
 
 IIO_DEV_ATTR_CH2_THRESHOLD(S_IRUGO | S_IWUSR,
-		ad715x_show_ch2_threshold,
-		ad715x_store_ch2_threshold);
+		ad7150_show_ch2_threshold,
+		ad7150_store_ch2_threshold);
 
-static ssize_t ad715x_show_ch1_sensitivity(struct device *dev,
+static ssize_t ad7150_show_ch1_sensitivity(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 
 	return sprintf(buf, "%d\n", chip->ch1_sensitivity);
 }
 
-static ssize_t ad715x_store_ch1_sensitivity(struct device *dev,
+static ssize_t ad7150_store_ch1_sensitivity(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf,
 		size_t len)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 	unsigned long data;
 	int ret;
 
 	ret = strict_strtoul(buf, 10, &data);
 
 	if ((!ret) && (data < 0x100)) {
-		ad715x_i2c_write(chip, AD715X_CH1_SENSITIVITY, data);
+		ad7150_i2c_write(chip, AD7150_CH1_SENSITIVITY, data);
 		chip->ch1_sensitivity = data;
 		return len;
 	}
@@ -333,33 +333,33 @@ static ssize_t ad715x_store_ch1_sensitivity(struct device *dev,
 }
 
 IIO_DEV_ATTR_CH1_SENSITIVITY(S_IRUGO | S_IWUSR,
-		ad715x_show_ch1_sensitivity,
-		ad715x_store_ch1_sensitivity);
+		ad7150_show_ch1_sensitivity,
+		ad7150_store_ch1_sensitivity);
 
-static ssize_t ad715x_show_ch2_sensitivity(struct device *dev,
+static ssize_t ad7150_show_ch2_sensitivity(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 
 	return sprintf(buf, "%d\n", chip->ch2_sensitivity);
 }
 
-static ssize_t ad715x_store_ch2_sensitivity(struct device *dev,
+static ssize_t ad7150_store_ch2_sensitivity(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf,
 		size_t len)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 	unsigned long data;
 	int ret;
 
 	ret = strict_strtoul(buf, 10, &data);
 
 	if ((!ret) && (data < 0x100)) {
-		ad715x_i2c_write(chip, AD715X_CH2_SENSITIVITY, data);
+		ad7150_i2c_write(chip, AD7150_CH2_SENSITIVITY, data);
 		chip->ch2_sensitivity = data;
 		return len;
 	}
@@ -368,33 +368,33 @@ static ssize_t ad715x_store_ch2_sensitivity(struct device *dev,
 }
 
 IIO_DEV_ATTR_CH2_SENSITIVITY(S_IRUGO | S_IWUSR,
-		ad715x_show_ch2_sensitivity,
-		ad715x_store_ch2_sensitivity);
+		ad7150_show_ch2_sensitivity,
+		ad7150_store_ch2_sensitivity);
 
-static ssize_t ad715x_show_ch1_timeout(struct device *dev,
+static ssize_t ad7150_show_ch1_timeout(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 
 	return sprintf(buf, "%d\n", chip->ch1_timeout);
 }
 
-static ssize_t ad715x_store_ch1_timeout(struct device *dev,
+static ssize_t ad7150_store_ch1_timeout(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf,
 		size_t len)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 	unsigned long data;
 	int ret;
 
 	ret = strict_strtoul(buf, 10, &data);
 
 	if ((!ret) && (data < 0x100)) {
-		ad715x_i2c_write(chip, AD715X_CH1_TIMEOUT, data);
+		ad7150_i2c_write(chip, AD7150_CH1_TIMEOUT, data);
 		chip->ch1_timeout = data;
 		return len;
 	}
@@ -403,33 +403,33 @@ static ssize_t ad715x_store_ch1_timeout(struct device *dev,
 }
 
 IIO_DEV_ATTR_CH1_TIMEOUT(S_IRUGO | S_IWUSR,
-		ad715x_show_ch1_timeout,
-		ad715x_store_ch1_timeout);
+		ad7150_show_ch1_timeout,
+		ad7150_store_ch1_timeout);
 
-static ssize_t ad715x_show_ch2_timeout(struct device *dev,
+static ssize_t ad7150_show_ch2_timeout(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 
 	return sprintf(buf, "%d\n", chip->ch2_timeout);
 }
 
-static ssize_t ad715x_store_ch2_timeout(struct device *dev,
+static ssize_t ad7150_store_ch2_timeout(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf,
 		size_t len)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 	unsigned long data;
 	int ret;
 
 	ret = strict_strtoul(buf, 10, &data);
 
 	if ((!ret) && (data < 0x100)) {
-		ad715x_i2c_write(chip, AD715X_CH2_TIMEOUT, data);
+		ad7150_i2c_write(chip, AD7150_CH2_TIMEOUT, data);
 		chip->ch2_timeout = data;
 		return len;
 	}
@@ -438,21 +438,21 @@ static ssize_t ad715x_store_ch2_timeout(struct device *dev,
 }
 
 IIO_DEV_ATTR_CH2_TIMEOUT(S_IRUGO | S_IWUSR,
-		ad715x_show_ch2_timeout,
-		ad715x_store_ch2_timeout);
+		ad7150_show_ch2_timeout,
+		ad7150_store_ch2_timeout);
 
-static ssize_t ad715x_show_name(struct device *dev,
+static ssize_t ad7150_show_name(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 	return sprintf(buf, "%s\n", chip->name);
 }
 
-IIO_DEVICE_ATTR(name, S_IRUGO, ad715x_show_name, NULL, 0);
+IIO_DEVICE_ATTR(name, S_IRUGO, ad7150_show_name, NULL, 0);
 
-static struct attribute *ad715x_attributes[] = {
+static struct attribute *ad7150_attributes[] = {
 	&iio_dev_attr_available_threshold_modes.dev_attr.attr,
 	&iio_dev_attr_threshold_mode.dev_attr.attr,
 	&iio_dev_attr_ch1_threshold.dev_attr.attr,
@@ -467,8 +467,8 @@ static struct attribute *ad715x_attributes[] = {
 	NULL,
 };
 
-static const struct attribute_group ad715x_attribute_group = {
-	.attrs = ad715x_attributes,
+static const struct attribute_group ad7150_attribute_group = {
+	.attrs = ad7150_attributes,
 };
 
 /*
@@ -492,40 +492,42 @@ static const struct attribute_group ad715x_attribute_group = {
 #define IIO_EVENT_ATTR_CH2_LOW_SH(_evlist, _show, _store, _mask)	\
 	IIO_EVENT_ATTR_SH(ch2_low, _evlist, _show, _store, _mask)
 
-static void ad715x_interrupt_handler_bh(struct work_struct *work_s)
+static void ad7150_interrupt_handler_bh(struct work_struct *work_s)
 {
 	struct iio_work_cont *wc
 		= container_of(work_s, struct iio_work_cont, ws_nocheck);
-	struct ad715x_chip_info *chip = wc->st;
+	struct ad7150_chip_info *chip = wc->st;
 	u8 int_status;
 
-	ad715x_i2c_read(chip, AD715X_STATUS, &int_status);
+	enable_irq(chip->client->irq);
 
-	if ((int_status & AD715X_STATUS_OUT1) && !(chip->old_state & AD715X_STATUS_OUT1))
+	ad7150_i2c_read(chip, AD7150_STATUS, &int_status);
+
+	if ((int_status & AD7150_STATUS_OUT1) && !(chip->old_state & AD7150_STATUS_OUT1))
 		iio_push_event(chip->indio_dev, 0,
 				IIO_EVENT_CODE_CH1_HIGH,
 				chip->last_timestamp);
-	else if ((!(int_status & AD715X_STATUS_OUT1)) && (chip->old_state & AD715X_STATUS_OUT1))
+	else if ((!(int_status & AD7150_STATUS_OUT1)) && (chip->old_state & AD7150_STATUS_OUT1))
 		iio_push_event(chip->indio_dev, 0,
 				IIO_EVENT_CODE_CH1_LOW,
 				chip->last_timestamp);
 
-	if ((int_status & AD715X_STATUS_OUT2) && !(chip->old_state & AD715X_STATUS_OUT2))
+	if ((int_status & AD7150_STATUS_OUT2) && !(chip->old_state & AD7150_STATUS_OUT2))
 		iio_push_event(chip->indio_dev, 0,
 				IIO_EVENT_CODE_CH2_HIGH,
 				chip->last_timestamp);
-	else if ((!(int_status & AD715X_STATUS_OUT2)) && (chip->old_state & AD715X_STATUS_OUT2))
+	else if ((!(int_status & AD7150_STATUS_OUT2)) && (chip->old_state & AD7150_STATUS_OUT2))
 		iio_push_event(chip->indio_dev, 0,
 				IIO_EVENT_CODE_CH2_LOW,
 				chip->last_timestamp);
 }
 
-static int ad715x_interrupt_handler_th(struct iio_dev *dev_info,
+static int ad7150_interrupt_handler_th(struct iio_dev *dev_info,
 		int index,
 		s64 timestamp,
 		int no_test)
 {
-	struct ad715x_chip_info *chip = dev_info->dev_data;
+	struct ad7150_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
 	schedule_work(&chip->work_cont_thresh.ws);
@@ -533,20 +535,20 @@ static int ad715x_interrupt_handler_th(struct iio_dev *dev_info,
 	return 0;
 }
 
-IIO_EVENT_SH(threshold, &ad715x_interrupt_handler_th);
+IIO_EVENT_SH(threshold, &ad7150_interrupt_handler_th);
 
-static ssize_t ad715x_query_out_mode(struct device *dev,
+static ssize_t ad7150_query_out_mode(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	/*
-	 * AD715X provides two logic output channels, which can be used as interrupt
+	 * AD7150 provides two logic output channels, which can be used as interrupt
 	 * but the pins are not configurable
 	 */
 	return sprintf(buf, "1\n");
 }
 
-static ssize_t ad715x_set_out_mode(struct device *dev,
+static ssize_t ad7150_set_out_mode(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf,
 		size_t len)
@@ -554,12 +556,12 @@ static ssize_t ad715x_set_out_mode(struct device *dev,
 	return len;
 }
 
-IIO_EVENT_ATTR_CH1_HIGH_SH(iio_event_threshold, ad715x_query_out_mode, ad715x_set_out_mode, 0);
-IIO_EVENT_ATTR_CH2_HIGH_SH(iio_event_threshold, ad715x_query_out_mode, ad715x_set_out_mode, 0);
-IIO_EVENT_ATTR_CH1_LOW_SH(iio_event_threshold, ad715x_query_out_mode, ad715x_set_out_mode, 0);
-IIO_EVENT_ATTR_CH2_LOW_SH(iio_event_threshold, ad715x_query_out_mode, ad715x_set_out_mode, 0);
+IIO_EVENT_ATTR_CH1_HIGH_SH(iio_event_threshold, ad7150_query_out_mode, ad7150_set_out_mode, 0);
+IIO_EVENT_ATTR_CH2_HIGH_SH(iio_event_threshold, ad7150_query_out_mode, ad7150_set_out_mode, 0);
+IIO_EVENT_ATTR_CH1_LOW_SH(iio_event_threshold, ad7150_query_out_mode, ad7150_set_out_mode, 0);
+IIO_EVENT_ATTR_CH2_LOW_SH(iio_event_threshold, ad7150_query_out_mode, ad7150_set_out_mode, 0);
 
-static struct attribute *ad715x_event_attributes[] = {
+static struct attribute *ad7150_event_attributes[] = {
 	&iio_event_attr_ch1_high.dev_attr.attr,
 	&iio_event_attr_ch2_high.dev_attr.attr,
 	&iio_event_attr_ch1_low.dev_attr.attr,
@@ -567,19 +569,19 @@ static struct attribute *ad715x_event_attributes[] = {
 	NULL,
 };
 
-static struct attribute_group ad715x_event_attribute_group = {
-	.attrs = ad715x_event_attributes,
+static struct attribute_group ad7150_event_attribute_group = {
+	.attrs = ad7150_event_attributes,
 };
 
 /*
  * device probe and remove
  */
 
-static int __devinit ad715x_probe(struct i2c_client *client,
+static int __devinit ad7150_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
 	int ret = 0, regdone = 0;
-	struct ad715x_chip_info *chip = kzalloc(sizeof(*chip), GFP_KERNEL);
+	struct ad7150_chip_info *chip = kzalloc(sizeof(*chip), GFP_KERNEL);
 	if (chip == NULL) {
 		ret = -ENOMEM;
 		goto error_ret;
@@ -599,8 +601,8 @@ static int __devinit ad715x_probe(struct i2c_client *client,
 
 	/* Echipabilish that the iio_dev is a child of the i2c device */
 	chip->indio_dev->dev.parent = &client->dev;
-	chip->indio_dev->attrs = &ad715x_attribute_group;
-	chip->indio_dev->event_attrs = &ad715x_event_attribute_group;
+	chip->indio_dev->attrs = &ad7150_attribute_group;
+	chip->indio_dev->event_attrs = &ad7150_event_attribute_group;
 	chip->indio_dev->dev_data = (void *)(chip);
 	chip->indio_dev->driver_module = THIS_MODULE;
 	chip->indio_dev->num_interrupt_lines = 1;
@@ -613,21 +615,25 @@ static int __devinit ad715x_probe(struct i2c_client *client,
 
 	if (client->irq && gpio_is_valid(irq_to_gpio(client->irq)) > 0) {
 		iio_init_work_cont(&chip->work_cont_thresh,
-				ad715x_interrupt_handler_bh,
-				ad715x_interrupt_handler_bh,
-				AD715X_STATUS,
+				ad7150_interrupt_handler_bh,
+				ad7150_interrupt_handler_bh,
+				AD7150_STATUS,
 				0,
 				chip);
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
 				IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-				"ad715x");
+				"ad7150");
 		if (ret)
 			goto error_free_dev;
+
+		iio_add_event_to_list(iio_event_attr_ch2_low.listel,
+				&chip->indio_dev->interrupts[0]->ev_list);
+
 	}
 
-	dev_err(&client->dev, "%s capacitive sensor registered, irq :%d\n", id->name, client->irq);
+	dev_err(&client->dev, "%s capacitive sensor registered, irq: %d\n", id->name, client->irq);
 
 	return 0;
 
@@ -642,9 +648,9 @@ error_ret:
 	return ret;
 }
 
-static int ad715x_remove(struct i2c_client *client)
+static int __devexit ad7150_remove(struct i2c_client *client)
 {
-	struct ad715x_chip_info *chip = i2c_get_clientdata(client);
+	struct ad7150_chip_info *chip = i2c_get_clientdata(client);
 	struct iio_dev *indio_dev = chip->indio_dev;
 
 	if (client->irq && gpio_is_valid(irq_to_gpio(client->irq)) > 0)
@@ -655,39 +661,37 @@ static int ad715x_remove(struct i2c_client *client)
 	return 0;
 }
 
-static const struct i2c_device_id ad715x_id[] = {
+static const struct i2c_device_id ad7150_id[] = {
 	{ "ad7150", 0 },
 	{ "ad7151", 0 },
-	{ "ad7152", 0 },
-	{ "ad7153", 0 },
 	{ "ad7156", 0 },
 	{}
 };
 
-MODULE_DEVICE_TABLE(i2c, ad715x_id);
+MODULE_DEVICE_TABLE(i2c, ad7150_id);
 
-static struct i2c_driver ad715x_driver = {
+static struct i2c_driver ad7150_driver = {
 	.driver = {
-		.name = "ad715x",
+		.name = "ad7150",
 	},
-	.probe = ad715x_probe,
-	.remove = ad715x_remove,
-	.id_table = ad715x_id,
+	.probe = ad7150_probe,
+	.remove = __devexit_p(ad7150_remove),
+	.id_table = ad7150_id,
 };
 
-static __init int ad715x_init(void)
+static __init int ad7150_init(void)
 {
-	return i2c_add_driver(&ad715x_driver);
+	return i2c_add_driver(&ad7150_driver);
 }
 
-static __exit void ad715x_exit(void)
+static __exit void ad7150_exit(void)
 {
-	i2c_del_driver(&ad715x_driver);
+	i2c_del_driver(&ad7150_driver);
 }
 
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
-MODULE_DESCRIPTION("Analog Device ad715x capacitive sensor driver");
+MODULE_DESCRIPTION("Analog Devices ad7150/1/6 capacitive sensor driver");
 MODULE_LICENSE("GPL v2");
 
-module_init(ad715x_init);
-module_exit(ad715x_exit);
+module_init(ad7150_init);
+module_exit(ad7150_exit);

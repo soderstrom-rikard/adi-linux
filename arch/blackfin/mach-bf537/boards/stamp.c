@@ -1644,7 +1644,7 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	},
 #endif
 
-#if defined(CONFIG_AD715X) || defined(CONFIG_AD715X_MODULE)
+#if defined(CONFIG_AD7150) || defined(CONFIG_AD7150_MODULE)
 	{
 		I2C_BOARD_INFO("ad7150", 0x90),
 		.irq = IRQ_PG5, /* fixme: use real interrupt number */
