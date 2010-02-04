@@ -1651,6 +1651,12 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	},
 #endif
 
+#if defined(CONFIG_AD7152) || defined(CONFIG_AD7152_MODULE)
+	{
+		I2C_BOARD_INFO("ad7152", 0x90),
+	},
+#endif
+
 #if defined(CONFIG_BFIN_TWI_LCD) || defined(CONFIG_BFIN_TWI_LCD_MODULE)
 	{
 		I2C_BOARD_INFO("pcf8574_lcd", 0x22),
