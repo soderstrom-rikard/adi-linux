@@ -1,5 +1,5 @@
 /*
- * AD714X CapTouch Programmable Controller driver
+ * AD714X CapTouch Programmable Controller driver supporting AD7142/3/7/8/7A
  *
  * Copyright 2009 Analog Devices Inc.
  *
