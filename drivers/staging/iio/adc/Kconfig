@@ -25,3 +25,10 @@ config AD7152
 	help
 	  Say yes here to build support for Analog Devices capacitive sensors.
 	  (ad7152, ad7153) Provides direct access via sysfs.
+
+config AD774X
+	tristate "Analog Devices ad7745/6/7 capacitive sensor driver"
+	depends on I2C
+	help
+	  Say yes here to build support for Analog Devices capacitive sensors.
+	  (ad7745, ad7746, ad7747) Provides direct access via sysfs.

@@ -71,7 +71,7 @@ struct ad7152_conversion_mode {
 struct ad7152_conversion_mode ad7152_conv_mode_table[AD7152_MAX_CONV_MODE] = {
 	{ "idle", 0 },
 	{ "continuous-conversion", 1 },
-	{ "single conversion", 2 },
+	{ "single-conversion", 2 },
 	{ "power-down", 3 },
 	{ "offset-calibration", 5 },
 	{ "gain-calibration", 6 },
