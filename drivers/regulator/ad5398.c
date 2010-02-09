@@ -18,7 +18,9 @@ struct ad5398_chip_info {
 	struct i2c_client *client;
 	unsigned int min_uA;
 	unsigned int max_uA;
-	unsigned int num_level;
+	unsigned int current_level;
+	unsigned int current_mask;
+	unsigned int current_offset;
 	struct regulator_dev rdev;
 };
 
@@ -27,7 +29,7 @@ static int ad5398_calc_current(struct ad5398_chip_info *chip,
 {
 	unsigned range_uA = chip->max_uA - chip->min_uA;
 
-	return chip->min_uA + (selector * range_uA / chip->num_level);
+	return chip->min_uA + (selector * range_uA / chip->current_level);
 }
 
 static int ad5398_get(struct regulator_dev *rdev)
@@ -43,7 +45,7 @@ static int ad5398_get(struct regulator_dev *rdev)
 		return ret;
 	}
 
-	ret = (be16_to_cpu(data) & CURRENT_VAL_MASK) >> CURRENT_VAL_OFFSET;
+	ret = (be16_to_cpu(data) & chip->current_mask) >> chip->current_offset;
 
 	return ad5398_calc_current(chip, ret);
 }
@@ -62,7 +64,7 @@ static int ad5398_set(struct regulator_dev *rdev, int min_uA, int max_uA)
 	if (min_uA < chip->min_uA)
 		min_uA = chip->min_uA;
 
-	selector = ((min_uA - chip->min_uA) * chip->num_level +
+	selector = ((min_uA - chip->min_uA) * chip->current_level +
 			range_uA - 1) / range_uA;
 	if (ad5398_calc_current(chip, selector) > max_uA)
 		return -EINVAL;
@@ -79,7 +81,7 @@ static int ad5398_set(struct regulator_dev *rdev, int min_uA, int max_uA)
 	data = be16_to_cpu(data);
 
 	/* prepare register data */
-	selector = (selector << CURRENT_VAL_OFFSET) & CURRENT_VAL_MASK;
+	selector = (selector << chip->current_offset) & chip->current_mask;
 	selector |= (data & CURRENT_EN_MASK);
 
 	/* write the new current value back as well as enable bit */
@@ -188,7 +190,7 @@ static int ad5398_probe(struct i2c_client *client,
 	if (!pdata || !(pdata->regulator_data))
 		return -EINVAL;
 
-	if (pdata->num_current_level >= CURRENT_VAL_MAX)
+	if (pdata->current_bits >= CURRENT_BITS_MAX)
 		return -EINVAL;
 
 	chip = kzalloc(sizeof(struct ad5398_chip_info), GFP_KERNEL);
@@ -199,7 +201,9 @@ static int ad5398_probe(struct i2c_client *client,
 
 	chip->min_uA = pdata->regulator_data->constraints.min_uA;
 	chip->max_uA = pdata->regulator_data->constraints.max_uA;
-	chip->num_level = pdata->num_current_level;
+	chip->current_level = 1 << pdata->current_bits;
+	chip->current_offset = pdata->current_offset;
+	chip->current_mask = (chip->current_level - 1) << chip->current_offset;
 
 	rdev = regulator_register(&ad5398_reg, &client->dev,
 			 pdata->regulator_data, chip);

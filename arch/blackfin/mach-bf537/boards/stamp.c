@@ -1688,7 +1688,8 @@ static struct regulator_init_data ad5398_regulator_data = {
 };
 
 static struct ad5398_platform_data ad5398_i2c_platform_data = {
-	.num_current_level = 1024,
+	.current_bits = 10,
+	.current_offset = 4,
 	.regulator_data = &ad5398_regulator_data,
 };
 

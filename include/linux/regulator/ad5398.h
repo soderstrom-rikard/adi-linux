@@ -13,9 +13,7 @@
 #include <linux/regulator/machine.h>
 
 #define CURRENT_EN_MASK		0x8000
-#define CURRENT_VAL_MASK	0x3FF0
-#define CURRENT_VAL_OFFSET	4
-#define CURRENT_VAL_MAX		0x8000
+#define CURRENT_BITS_MAX	16
 
 /**
  * ad5398_platform_data - platform data for ad5398
@@ -24,7 +22,8 @@
  * @ad5398_init_data: regulator init data
  */
 struct ad5398_platform_data {
-	unsigned short num_current_level;
+	unsigned short current_bits;	/* effective bits in register */
+	unsigned short current_offset;	/* offset of effective bits in register */
 	struct regulator_init_data *regulator_data;
 };
 
