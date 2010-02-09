@@ -81,11 +81,10 @@ struct ad7152_conversion_mode ad7152_conv_mode_table[AD7152_MAX_CONV_MODE] = {
  * ad7152 register access by I2C
  */
 
-static int ad7152_i2c_read(struct ad7152_chip_info *chip, u8 reg, u8 *data)
+static int ad7152_i2c_read(struct ad7152_chip_info *chip, u8 reg, u8 *data, int len)
 {
 	struct i2c_client *client = chip->client;
 	int ret = 0;
-	u8 rx;
 
 	ret = i2c_master_send(client, &reg, 1);
 	if (ret < 0) {
@@ -93,13 +92,11 @@ static int ad7152_i2c_read(struct ad7152_chip_info *chip, u8 reg, u8 *data)
 		return ret;
 	}
 
-	ret = i2c_master_recv(client, &rx, 1);
+	ret = i2c_master_recv(client, data, len);
 	if (ret < 0) {
 		dev_err(&client->dev, "I2C read error\n");
 		return ret;
 	}
-
-	*data = rx;
 
 	return ret;
 }
@@ -163,11 +160,10 @@ static ssize_t ad7152_show_ch1_value(struct device *dev,
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad7152_chip_info *chip = dev_info->dev_data;
-	u8 data_l, data_h;
+	u8 data[2];
 
-	ad7152_i2c_read(chip, AD7152_CH1_DATA_HIGH, &data_h);
-	ad7152_i2c_read(chip, AD7152_CH1_DATA_LOW, &data_l);
-	return sprintf(buf, "%d\n", (data_h << 8) | data_l);
+	ad7152_i2c_read(chip, AD7152_CH1_DATA_HIGH, data, 2);
+	return sprintf(buf, "%d\n", ((int)data[0] << 8) | data[1]);
 }
 
 IIO_DEV_ATTR_CH1_VALUE(ad7152_show_ch1_value);
@@ -178,11 +174,10 @@ static ssize_t ad7152_show_ch2_value(struct device *dev,
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad7152_chip_info *chip = dev_info->dev_data;
-	u8 data_l, data_h;
+	u8 data[2];
 
-	ad7152_i2c_read(chip, AD7152_CH2_DATA_HIGH, &data_h);
-	ad7152_i2c_read(chip, AD7152_CH2_DATA_LOW, &data_l);
-	return sprintf(buf, "%d\n", (data_h << 8) | data_l);
+	ad7152_i2c_read(chip, AD7152_CH2_DATA_HIGH, data, 2);
+	return sprintf(buf, "%d\n", ((int)data[0] << 8) | data[1]);
 }
 
 IIO_DEV_ATTR_CH2_VALUE(ad7152_show_ch2_value);
@@ -207,7 +202,7 @@ static ssize_t ad7152_store_conversion_mode(struct device *dev,
 	u8 cfg;
 	int i;
 
-	ad7152_i2c_read(chip, AD7152_CFG, &cfg);
+	ad7152_i2c_read(chip, AD7152_CFG, &cfg, 1);
 
 	for (i = 0; i < AD7152_MAX_CONV_MODE; i++) {
 		if (strncmp(buf, ad7152_conv_mode_table[i].name,
