@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2009 Analog Devices Inc.
+ * Copyright 2004-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later
  */
@@ -217,7 +217,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t * info,
 	 */
 	if (regs->syscfg & TRACE_BITS) {
 		regs->syscfg &= ~TRACE_BITS;
-		tracehook_signal_handler(sig, info, ka, regs, 0);
+		tracehook_signal_handler(sig, info, ka, regs, 1);
 	}
 
 	return 0;
