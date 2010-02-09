@@ -1063,12 +1063,12 @@ static struct regulator *_regulator_get(struct device *dev, const char *id,
 		if (map->dev_name &&
 		    (!devname || strcmp(map->dev_name, devname)))
 			continue;
+
 		if (strcmp(map->supply, id) == 0) {
 			rdev = map->regulator;
 			goto found;
 		}
 	}
-
 	mutex_unlock(&regulator_list_mutex);
 	return regulator;
 
