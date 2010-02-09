@@ -58,8 +58,11 @@ struct ad7152_chip_info {
 	struct iio_dev *indio_dev;
 	u16 ch1_offset;     /* Channel 1 offset calibration coefficient */
 	u16 ch1_gain;       /* Channel 1 gain coefficient */
+	u8  ch1_setup;
 	u16 ch2_offset;     /* Channel 2 offset calibration coefficient */
 	u16 ch2_gain;       /* Channel 1 gain coefficient */
+	u8  ch2_setup;
+	u8  filter_rate_setup; /* Capacitive channel digital filter setup; conversion time/update rate setup per channel */
 	char *conversion_mode;
 };
 
@@ -138,6 +141,12 @@ static int ad7152_i2c_write(struct ad7152_chip_info *chip, u8 reg, u8 data)
 	IIO_DEVICE_ATTR(ch1_value, S_IRUGO, _show, NULL, 0)
 #define IIO_DEV_ATTR_CH2_VALUE(_show)		\
 	IIO_DEVICE_ATTR(ch2_value, S_IRUGO, _show, NULL, 0)
+#define IIO_DEV_ATTR_CH1_SETUP(_mode, _show, _store)		\
+	IIO_DEVICE_ATTR(ch1_setup, _mode, _show, _store, 0)
+#define IIO_DEV_ATTR_CH2_SETUP(_mode, _show, _store)              \
+	IIO_DEVICE_ATTR(ch2_setup, _mode, _show, _store, 0)
+#define IIO_DEV_ATTR_FILTER_RATE_SETUP(_mode, _show, _store)              \
+	IIO_DEVICE_ATTR(filter_rate_setup, _mode, _show, _store, 0)
 
 static ssize_t ad7152_show_conversion_modes(struct device *dev,
 		struct device_attribute *attr,
@@ -367,6 +376,111 @@ IIO_DEV_ATTR_CH2_GAIN(S_IRUGO | S_IWUSR,
 		ad7152_show_ch2_gain,
 		ad7152_store_ch2_gain);
 
+static ssize_t ad7152_show_ch1_setup(struct device *dev,
+		struct device_attribute *attr,
+		char *buf)
+{
+	struct iio_dev *dev_info = dev_get_drvdata(dev);
+	struct ad7152_chip_info *chip = dev_info->dev_data;
+
+	return sprintf(buf, "0x%02x\n", chip->ch1_setup);
+}
+
+static ssize_t ad7152_store_ch1_setup(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf,
+		size_t len)
+{
+	struct iio_dev *dev_info = dev_get_drvdata(dev);
+	struct ad7152_chip_info *chip = dev_info->dev_data;
+	unsigned long data;
+	int ret;
+
+	ret = strict_strtoul(buf, 10, &data);
+
+	if ((!ret) && (data < 0x100)) {
+		ad7152_i2c_write(chip, AD7152_CH1_SETUP, data);
+		chip->ch1_setup = data;
+		return len;
+	}
+
+	return -EINVAL;
+}
+
+IIO_DEV_ATTR_CH1_SETUP(S_IRUGO | S_IWUSR,
+		ad7152_show_ch1_setup,
+		ad7152_store_ch1_setup);
+
+static ssize_t ad7152_show_ch2_setup(struct device *dev,
+		struct device_attribute *attr,
+		char *buf)
+{
+	struct iio_dev *dev_info = dev_get_drvdata(dev);
+	struct ad7152_chip_info *chip = dev_info->dev_data;
+
+	return sprintf(buf, "0x%02x\n", chip->ch2_setup);
+}
+
+static ssize_t ad7152_store_ch2_setup(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf,
+		size_t len)
+{
+	struct iio_dev *dev_info = dev_get_drvdata(dev);
+	struct ad7152_chip_info *chip = dev_info->dev_data;
+	unsigned long data;
+	int ret;
+
+	ret = strict_strtoul(buf, 10, &data);
+
+	if ((!ret) && (data < 0x100)) {
+		ad7152_i2c_write(chip, AD7152_CH2_SETUP, data);
+		chip->ch2_setup = data;
+		return len;
+	}
+
+	return -EINVAL;
+}
+
+IIO_DEV_ATTR_CH2_SETUP(S_IRUGO | S_IWUSR,
+		ad7152_show_ch2_setup,
+		ad7152_store_ch2_setup);
+
+static ssize_t ad7152_show_filter_rate_setup(struct device *dev,
+		struct device_attribute *attr,
+		char *buf)
+{
+	struct iio_dev *dev_info = dev_get_drvdata(dev);
+	struct ad7152_chip_info *chip = dev_info->dev_data;
+
+	return sprintf(buf, "0x%02x\n", chip->filter_rate_setup);
+}
+
+static ssize_t ad7152_store_filter_rate_setup(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf,
+		size_t len)
+{
+	struct iio_dev *dev_info = dev_get_drvdata(dev);
+	struct ad7152_chip_info *chip = dev_info->dev_data;
+	unsigned long data;
+	int ret;
+
+	ret = strict_strtoul(buf, 10, &data);
+
+	if ((!ret) && (data < 0x100)) {
+		ad7152_i2c_write(chip, AD7152_CFG2, data);
+		chip->filter_rate_setup = data;
+		return len;
+	}
+
+	return -EINVAL;
+}
+
+IIO_DEV_ATTR_FILTER_RATE_SETUP(S_IRUGO | S_IWUSR,
+		ad7152_show_filter_rate_setup,
+		ad7152_store_filter_rate_setup);
+
 static ssize_t ad7152_show_name(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
@@ -387,6 +501,9 @@ static struct attribute *ad7152_attributes[] = {
 	&iio_dev_attr_ch2_offset.dev_attr.attr,
 	&iio_dev_attr_ch1_value.dev_attr.attr,
 	&iio_dev_attr_ch2_value.dev_attr.attr,
+	&iio_dev_attr_ch1_setup.dev_attr.attr,
+	&iio_dev_attr_ch2_setup.dev_attr.attr,
+	&iio_dev_attr_filter_rate_setup.dev_attr.attr,
 	&iio_dev_attr_name.dev_attr.attr,
 	NULL,
 };

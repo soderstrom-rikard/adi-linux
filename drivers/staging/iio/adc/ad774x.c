@@ -132,8 +132,6 @@ static int ad774x_i2c_write(struct ad774x_chip_info *chip, u8 reg, u8 data)
 	IIO_DEVICE_ATTR(available_conversion_modes, S_IRUGO, _show, NULL, 0)
 #define IIO_DEV_ATTR_CONVERSION_MODE(_mode, _show, _store)              \
 	IIO_DEVICE_ATTR(conversion_mode, _mode, _show, _store, 0)
-#define IIO_DEV_ATTR_AVAIL_CAP_SETUPS(_show)				\
-	IIO_DEVICE_ATTR(available_cap_setup, S_IRUGO, _show, NULL, 0)
 #define IIO_DEV_ATTR_CAP_SETUP(_mode, _show, _store)		\
 	IIO_DEVICE_ATTR(cap_setup, _mode, _show, _store, 0)
 #define IIO_DEV_ATTR_VT_SETUP(_mode, _show, _store)              \
@@ -264,6 +262,7 @@ static ssize_t ad774x_store_cap_setup(struct device *dev,
 	ret = strict_strtoul(buf, 10, &data);
 
 	if ((!ret) && (data < 0x100)) {
+		ad774x_i2c_write(chip, AD774X_CAP_SETUP, data);
 		chip->cap_setup = data;
 		return len;
 	}
@@ -299,6 +298,7 @@ static ssize_t ad774x_store_vt_setup(struct device *dev,
 	ret = strict_strtoul(buf, 10, &data);
 
 	if ((!ret) && (data < 0x100)) {
+		ad774x_i2c_write(chip, AD774X_VT_SETUP, data);
 		chip->vt_setup = data;
 		return len;
 	}
@@ -333,6 +333,7 @@ static ssize_t ad774x_store_exec_setup(struct device *dev,
 	ret = strict_strtoul(buf, 10, &data);
 
 	if ((!ret) && (data < 0x100)) {
+		ad774x_i2c_write(chip, AD774X_EXEC_SETUP, data);
 		chip->exec_setup = data;
 		return len;
 	}
