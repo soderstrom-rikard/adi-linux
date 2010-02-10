@@ -162,5 +162,12 @@ config REGULATOR_AD5398
 	depends on I2C
 	help
 	  This driver supports AD5398 and AD5821 current regulator chips.
+
+config REGULATOR_ADP_SWITCH
+	tristate "Ananlog Devices Switch only power regulators"
+	help
+	  This driver supports ADP series siwtch only power regulator chips.
+	  ADP122, ADP123, ADP124, ADP125, ADP150, ADP5022, etc.
+
 endif
 
