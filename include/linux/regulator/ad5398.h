@@ -17,13 +17,13 @@
 
 /**
  * ad5398_platform_data - platform data for ad5398
- * @num_current_level: number of current levels, depends on effective
- *			DA register bits on chip.
+ * @current_bits: effective bits in register
+ * @current_offset: offset of effective bits in register
  * @ad5398_init_data: regulator init data
  */
 struct ad5398_platform_data {
-	unsigned short current_bits;	/* effective bits in register */
-	unsigned short current_offset;	/* offset of effective bits in register */
+	unsigned short current_bits;
+	unsigned short current_offset;
 	struct regulator_init_data *regulator_data;
 };
 
