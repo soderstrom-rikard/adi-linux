@@ -15,3 +15,4 @@ obj-y += light/
 obj-y += resolver/
 
 obj-y += trigger/
+obj-y += misc/

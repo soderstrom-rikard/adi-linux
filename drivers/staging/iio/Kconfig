@@ -46,4 +46,5 @@ source "drivers/staging/iio/resolver/Kconfig"
 
 source "drivers/staging/iio/trigger/Kconfig"
 
+source "drivers/staging/iio/misc/Kconfig"
 endif # IIO

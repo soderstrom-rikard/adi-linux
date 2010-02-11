@@ -1,0 +1,11 @@
+#
+# IIO misc drivers configuration
+#
+comment "Miscellaneous devices"
+
+config ADIS16400
+	tristate "Analog Devices adis16400 driver"
+	depends on SPI
+	help
+	  Say yes here to build support for Analog Devices adis16400 triaxial 
+	  inertial sensor with Magnetometer.

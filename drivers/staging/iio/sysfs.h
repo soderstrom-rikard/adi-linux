@@ -121,6 +121,12 @@ struct iio_const_attr {
 	IIO_DEVICE_ATTR(name, S_IRUGO, _show, NULL, 0)
 
 /**
+ * IIO_DEV_ATTR_RESET: resets the device
+ **/
+#define IIO_DEV_ATTR_RESET(_store)			\
+	IIO_DEVICE_ATTR(reset, S_IWUGO, NULL, _store, 0)
+
+/**
  * IIO_DEV_ATTR_SAMP_FREQ: sets any internal clock frequency
  **/
 #define IIO_DEV_ATTR_SAMP_FREQ(_mode, _show, _store)			\
