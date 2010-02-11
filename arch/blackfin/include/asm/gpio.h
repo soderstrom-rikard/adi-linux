@@ -247,6 +247,11 @@ static inline int gpio_cansleep(unsigned int gpio)
 	return __gpio_cansleep(gpio);
 }
 
+static inline int gpio_to_irq(unsigned gpio)
+{
+	return __gpio_to_irq(gpio);
+}
+
 #else /* !CONFIG_GPIOLIB */
 
 static inline int gpio_request(unsigned gpio, const char *label)
@@ -279,10 +284,6 @@ static inline void gpio_set_value(unsigned gpio, int value)
 	return bfin_gpio_set_value(gpio, value);
 }
 
-#include <asm-generic/gpio.h>		/* cansleep wrappers */
-#endif	/* !CONFIG_GPIOLIB */
-#include <asm/irq.h>
-
 static inline int gpio_to_irq(unsigned gpio)
 {
 	if (likely(gpio < MAX_BLACKFIN_GPIOS))
@@ -290,6 +291,10 @@ static inline int gpio_to_irq(unsigned gpio)
 
 	return -EINVAL;
 }
+
+#include <asm-generic/gpio.h>		/* cansleep wrappers */
+#endif	/* !CONFIG_GPIOLIB */
+#include <asm/irq.h>
 
 static inline int irq_to_gpio(unsigned irq)
 {
