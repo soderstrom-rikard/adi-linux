@@ -223,6 +223,9 @@ int bfin_gpio_direction_output(unsigned gpio, int value);
 int bfin_gpio_get_value(unsigned gpio);
 void bfin_gpio_set_value(unsigned gpio, int value);
 
+#include <asm/irq.h>
+#include <asm/errno.h>
+
 #ifdef CONFIG_GPIOLIB
 #include <asm-generic/gpio.h>		/* cansleep wrappers */
 
@@ -294,7 +297,6 @@ static inline int gpio_to_irq(unsigned gpio)
 
 #include <asm-generic/gpio.h>		/* cansleep wrappers */
 #endif	/* !CONFIG_GPIOLIB */
-#include <asm/irq.h>
 
 static inline int irq_to_gpio(unsigned irq)
 {
