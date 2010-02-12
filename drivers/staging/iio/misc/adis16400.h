@@ -118,7 +118,7 @@
 #define ADIS16400_MAX_TX 24
 #define ADIS16400_MAX_RX 24
 
-#define ADIS16400_SPI_SLOW	(u32)( 300 * 1000)
+#define ADIS16400_SPI_SLOW	(u32)(300 * 1000)
 #define ADIS16400_SPI_BURST	(u32)(1000 * 1000)
 #define ADIS16400_SPI_FAST	(u32)(2000 * 1000)
 
@@ -139,11 +139,9 @@ struct adis16400_state {
 	struct spi_device		*us;
 	struct work_struct		work_trigger_to_ring;
 	struct iio_work_cont		work_cont_thresh;
-//	bool				inter;
 	s64				last_timestamp;
 	struct iio_dev			*indio_dev;
 	struct iio_trigger		*trig;
-//	u32				cur_speed_hz;
 	u8				*tx;
 	u8				*rx;
 	struct mutex			buf_lock;

@@ -94,7 +94,6 @@ static void adis16400_poll_func_th(struct iio_dev *indio_dev)
 	 * handler running there is currently no way for the interrupt
 	 * to clear.
 	 */
-//	st->inter = 1;
 }
 
 /**
@@ -163,7 +162,6 @@ static void adis16400_trigger_bh_to_ring(struct work_struct *work_s)
 
 	int i = 0;
 	s16 *data;
-	char msg[1000];
 	size_t datasize = st->indio_dev
 		->ring->access.get_bpd(st->indio_dev->ring);
 
@@ -173,16 +171,12 @@ static void adis16400_trigger_bh_to_ring(struct work_struct *work_s)
 		return;
 	}
 
-//	st->inter = 0;
-
 	if (st->indio_dev->scan_count)
 		if (adis16400_spi_read_burst(&st->indio_dev->dev, st->rx) >= 0)
 			for (; i < st->indio_dev->scan_count; i++) {
 				data[i] = combine_8_to_16(st->rx[i*2+1],
 							  st->rx[i*2]);
-//				sprintf(msg + i*5, "%04x ", data[i]);
 			}
-//	printk("%s %lld\n", msg, st->last_timestamp);
 
 	/* Guaranteed to be aligned with 8 byte boundary */
 	if (st->indio_dev->scan_timestamp)
@@ -202,7 +196,7 @@ static void adis16400_trigger_bh_to_ring(struct work_struct *work_s)
 static int adis16400_data_rdy_ring_preenable(struct iio_dev *indio_dev)
 {
 	size_t size;
-	printk("adis16400_data_rdy_ring_preenable\n");
+	dev_dbg(&indio_dev->dev, "%s\n", __func__);
 	/* Check if there are any scan elements enabled, if not fail*/
 	if (!(indio_dev->scan_count || indio_dev->scan_timestamp))
 		return -EINVAL;

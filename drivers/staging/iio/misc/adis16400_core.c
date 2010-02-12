@@ -1,5 +1,5 @@
 /*
- * adis16400.c	support Analog Devices ADIS16400
+ * adis16400.c	support Analog Devices ADIS16400/5
  *		3d 2g Linear Accelerometers,
  *		3d Gyroscopes,
  *		3d Magnetometers via SPI
@@ -48,8 +48,8 @@
  * @val: the value to write
  **/
 int adis16400_spi_write_reg_8(struct device *dev,
-			      u8 reg_address,
-			      u8 val)
+		u8 reg_address,
+		u8 val)
 {
 	int ret;
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
@@ -66,21 +66,22 @@ int adis16400_spi_write_reg_8(struct device *dev,
 }
 
 /**
- * adis16400_spi_write_reg_s16() - write 2 bytes to a pair of registers
+ * adis16400_spi_write_reg_16() - write 2 bytes to a pair of registers
  * @dev: device associated with child of actual device (iio_dev or iio_trig)
  * @reg_address: the address of the lower of the two registers. Second register
  *               is assumed to have address one greater.
  * @val: value to be written
  **/
 static int adis16400_spi_write_reg_16(struct device *dev,
-				       u8 lower_reg_address,
-				       u16 value)
+		u8 lower_reg_address,
+		u16 value)
 {
 	int ret;
 	struct spi_message msg;
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	struct adis16400_state *st = iio_dev_get_devdata(indio_dev);
-	struct spi_transfer xfers[] = { {
+	struct spi_transfer xfers[] = {
+		{
 			.tx_buf = st->tx,
 			.bits_per_word = 8,
 			.len = 2,
@@ -116,14 +117,15 @@ static int adis16400_spi_write_reg_16(struct device *dev,
  * @val: somewhere to pass back the value read
  **/
 static int adis16400_spi_read_reg_16(struct device *dev,
-				      u8 lower_reg_address,
-				      u16 *val)
+		u8 lower_reg_address,
+		u16 *val)
 {
 	struct spi_message msg;
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	struct adis16400_state *st = iio_dev_get_devdata(indio_dev);
 	int ret;
-	struct spi_transfer xfers[] = { {
+	struct spi_transfer xfers[] = {
+		{
 			.tx_buf = st->tx,
 			.bits_per_word = 8,
 			.len = 2,
@@ -147,12 +149,11 @@ static int adis16400_spi_read_reg_16(struct device *dev,
 	spi_message_add_tail(&xfers[1], &msg);
 	ret = spi_sync(st->us, &msg);
 	if (ret) {
-		dev_err(&st->us->dev, "problem when reading 16 bit register 0x%02X", lower_reg_address);
+		dev_err(&st->us->dev, "problem when reading 16 bit register 0x%02X",
+				lower_reg_address);
 		goto error_ret;
 	}
 	*val = (st->rx[0] << 8) | st->rx[1];
-//	printk("Read from 0x%02x got 0x%02x, 0x%02x\n",
-//			lower_reg_address, st->rx[0], st->rx[1]);
 
 error_ret:
 	mutex_unlock(&st->buf_lock);
@@ -172,7 +173,8 @@ int adis16400_spi_read_burst(struct device *dev, u8 *rx)
 	u32 old_speed_hz = st->us->max_speed_hz;
 	int ret;
 
-	struct spi_transfer xfers[] = { {
+	struct spi_transfer xfers[] = {
+		{
 			.tx_buf = st->tx,
 			.bits_per_word = 8,
 			.len = 2,
@@ -213,10 +215,10 @@ int adis16400_spi_read_burst(struct device *dev, u8 *rx)
  * @rx: somewhere to pass back the value read (min size is 2*num bytes)
  **/
 int adis16400_spi_read_sequence(struct device *dev,
-				      u8 *tx, u8 *rx, int num)
+		u8 *tx, u8 *rx, int num)
 {
 	struct spi_message msg;
-	struct spi_transfer* xfers;
+	struct spi_transfer *xfers;
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	struct adis16400_state *st = iio_dev_get_devdata(indio_dev);
 	int ret, i;
@@ -231,7 +233,7 @@ int adis16400_spi_read_sequence(struct device *dev,
 	/* tx: |add1|addr2|addr3|...|addrN |zero|
 	 * rx: |zero|res1 |res2 |...|resN-1|resN| */
 	spi_message_init(&msg);
-	for (i=0; i < num+1; i++) {
+	for (i = 0; i < num + 1; i++) {
 		if (i > 0)
 			xfers[i].rx_buf = st->rx + 2*(i - 1);
 		if (i < num)
@@ -256,16 +258,16 @@ error_ret:
 }
 
 static ssize_t adis16400_spi_read_signed(struct device *dev,
-				     struct device_attribute *attr,
-				     char *buf,
-				     unsigned bits)
+		struct device_attribute *attr,
+		char *buf,
+		unsigned bits)
 {
 	int ret;
 	s16 val = 0;
 	unsigned shift = 16 - bits;
 	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
 
-	ret = adis16400_spi_read_reg_16(dev, this_attr->address, (u16*)&val);
+	ret = adis16400_spi_read_reg_16(dev, this_attr->address, (u16 *)&val);
 	if (ret)
 		return ret;
 
@@ -276,8 +278,8 @@ static ssize_t adis16400_spi_read_signed(struct device *dev,
 }
 
 static ssize_t adis16400_read_12bit_unsigned(struct device *dev,
-					     struct device_attribute *attr,
-					     char *buf)
+		struct device_attribute *attr,
+		char *buf)
 {
 	int ret;
 	u16 val = 0;
@@ -294,8 +296,8 @@ static ssize_t adis16400_read_12bit_unsigned(struct device *dev,
 }
 
 static ssize_t adis16400_read_14bit_signed(struct device *dev,
-				    struct device_attribute *attr,
-				    char *buf)
+		struct device_attribute *attr,
+		char *buf)
 {
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	ssize_t ret;
@@ -309,8 +311,8 @@ static ssize_t adis16400_read_14bit_signed(struct device *dev,
 }
 
 static ssize_t adis16400_read_12bit_signed(struct device *dev,
-				   struct device_attribute *attr,
-				   char *buf)
+		struct device_attribute *attr,
+		char *buf)
 {
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	ssize_t ret;
@@ -324,47 +326,46 @@ static ssize_t adis16400_read_12bit_signed(struct device *dev,
 }
 
 
-//static ssize_t adis16400_write_16bit_signed(struct device *dev,
-//					    struct device_attribute *attr,
-//					    const char *buf,
-//					    size_t len)
-//{
-//	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
-//	int ret;
-//	long val;
-//
-//	ret = strict_strtol(buf, 10, &val);
-//	if (ret)
-//		goto error_ret;
-//	ret = adis16400_spi_write_reg_s16(dev, this_attr->address, val);
-//
-//error_ret:
-//	return ret ? ret : len;
-//}
+static ssize_t adis16400_write_16bit(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf,
+		size_t len)
+{
+	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+	int ret;
+	long val;
+
+	ret = strict_strtol(buf, 10, &val);
+	if (ret)
+		goto error_ret;
+	ret = adis16400_spi_write_reg_16(dev, this_attr->address, val);
+
+error_ret:
+	return ret ? ret : len;
+}
 
 static ssize_t adis16400_read_frequency(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
+		struct device_attribute *attr,
+		char *buf)
 {
 	int ret, len = 0;
 	u16 t;
 	int sps;
 	ret = adis16400_spi_read_reg_16(dev,
-				       ADIS16400_SMPL_PRD,
-				       &t);
+			ADIS16400_SMPL_PRD,
+			&t);
 	if (ret)
 		return ret;
-//	printk("adis16400: get freq = %d\n", t);
-	sps =  (t & ADIS16400_SMPL_PRD_TIME_BASE)?53:1638;
+	sps =  (t & ADIS16400_SMPL_PRD_TIME_BASE) ? 53 : 1638;
 	sps /= (t & ADIS16400_SMPL_PRD_DIV_MASK) + 1;
 	len = sprintf(buf, "%d SPS\n", sps);
 	return len;
 }
 
 static ssize_t adis16400_write_frequency(struct device *dev,
-					 struct device_attribute *attr,
-					 const char *buf,
-					 size_t len)
+		struct device_attribute *attr,
+		const char *buf,
+		size_t len)
 {
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	struct adis16400_state *st = iio_dev_get_devdata(indio_dev);
@@ -379,16 +380,17 @@ static ssize_t adis16400_write_frequency(struct device *dev,
 	mutex_lock(&indio_dev->mlock);
 
 	t = (1638 / val);
-	if (t > 0) t--;
+	if (t > 0)
+		t--;
 	t &= ADIS16400_SMPL_PRD_DIV_MASK;
-	if ( (t & ADIS16400_SMPL_PRD_DIV_MASK) >= 0x0A )
+	if ((t & ADIS16400_SMPL_PRD_DIV_MASK) >= 0x0A)
 		st->us->max_speed_hz = ADIS16400_SPI_SLOW;
 	else
 		st->us->max_speed_hz = ADIS16400_SPI_FAST;
 
 	ret = adis16400_spi_write_reg_8(dev,
-					ADIS16400_SMPL_PRD,
-					t);
+			ADIS16400_SMPL_PRD,
+			t);
 
 	mutex_unlock(&indio_dev->mlock);
 
@@ -396,8 +398,8 @@ static ssize_t adis16400_write_frequency(struct device *dev,
 }
 
 static ssize_t adis16400_write_reset(struct device *dev,
-				     struct device_attribute *attr,
-				     const char *buf, size_t len)
+		struct device_attribute *attr,
+		const char *buf, size_t len)
 {
 	if (len < 1)
 		return -1;
@@ -438,8 +440,8 @@ int adis16400_reset(struct device *dev)
 {
 	int ret;
 	ret = adis16400_spi_write_reg_8(dev,
-					ADIS16400_GLOB_CMD,
-					ADIS16400_GLOB_CMD_SW_RESET);
+			ADIS16400_GLOB_CMD,
+			ADIS16400_GLOB_CMD_SW_RESET);
 	if (ret)
 		dev_err(dev, "problem resetting device");
 
@@ -463,8 +465,8 @@ int adis16400_self_test(struct device *dev)
 {
 	int ret;
 	ret = adis16400_spi_write_reg_16(dev,
-					 ADIS16400_MSC_CTRL,
-					 ADIS16400_MSC_CTRL_MEM_TEST);
+			ADIS16400_MSC_CTRL,
+			ADIS16400_MSC_CTRL_MEM_TEST);
 	if (ret) {
 		dev_err(dev, "problem starting self test");
 		goto err_ret;
@@ -564,7 +566,7 @@ static int adis16400_initial_setup(struct adis16400_state *st)
 		dev_warn(dev, "unknown product id");
 
 	printk(KERN_INFO DRIVER_NAME ": prod_id 0x%04x at CS%d (irq %d)\n",
-				prod_id, st->us->chip_select, st->us->irq);
+			prod_id, st->us->chip_select, st->us->irq);
 
 	/* use high spi speed if possible */
 	ret = adis16400_spi_read_reg_16(dev, ADIS16400_SMPL_PRD, &smp_prd);
@@ -579,48 +581,47 @@ err_ret:
 	return ret;
 }
 
-//static IIO_DEV_ATTR_ACCEL_X_OFFSET(S_IWUSR | S_IRUGO,
-//				   adis16400_read_signed,
-//				   adis16400_write_signed,
-//				   ADIS16400_XACCL_OFF);
-//
-//static IIO_DEV_ATTR_ACCEL_Y_OFFSET(S_IWUSR | S_IRUGO,
-//				   adis16400_read_signed,
-//				   adis16400_write_signed,
-//				   ADIS16400_YACCL_OFF);
-//
-//static IIO_DEV_ATTR_ACCEL_Z_OFFSET(S_IWUSR | S_IRUGO,
-//				   adis16400_read_signed,
-//				   adis16400_write_signed,
-//				   ADIS16400_ZACCL_OFF);
+static IIO_DEV_ATTR_ACCEL_X_OFFSET(S_IWUSR | S_IRUGO,
+		adis16400_read_12bit_signed,
+		adis16400_write_16bit,
+		ADIS16400_XACCL_OFF);
 
+static IIO_DEV_ATTR_ACCEL_Y_OFFSET(S_IWUSR | S_IRUGO,
+		adis16400_read_12bit_signed,
+		adis16400_write_16bit,
+		ADIS16400_YACCL_OFF);
+
+static IIO_DEV_ATTR_ACCEL_Z_OFFSET(S_IWUSR | S_IRUGO,
+		adis16400_read_12bit_signed,
+		adis16400_write_16bit,
+		ADIS16400_ZACCL_OFF);
 
 static IIO_DEV_ATTR_VOLT(supply, adis16400_read_14bit_signed,
-				ADIS16400_SUPPLY_OUT);
+		ADIS16400_SUPPLY_OUT);
 static IIO_CONST_ATTR(volt_supply_scale, "0.002418");
 
 static IIO_DEV_ATTR_GYRO_X(adis16400_read_14bit_signed,
-				ADIS16400_XGYRO_OUT);
+		ADIS16400_XGYRO_OUT);
 static IIO_DEV_ATTR_GYRO_Y(adis16400_read_14bit_signed,
-				ADIS16400_YGYRO_OUT);
+		ADIS16400_YGYRO_OUT);
 static IIO_DEV_ATTR_GYRO_Z(adis16400_read_14bit_signed,
-				ADIS16400_ZGYRO_OUT);
+		ADIS16400_ZGYRO_OUT);
 static IIO_CONST_ATTR(gyro_scale, "0.05 deg/s");
 
 static IIO_DEV_ATTR_ACCEL_X(adis16400_read_14bit_signed,
-				ADIS16400_XACCL_OUT);
+		ADIS16400_XACCL_OUT);
 static IIO_DEV_ATTR_ACCEL_Y(adis16400_read_14bit_signed,
-				ADIS16400_YACCL_OUT);
+		ADIS16400_YACCL_OUT);
 static IIO_DEV_ATTR_ACCEL_Z(adis16400_read_14bit_signed,
-				ADIS16400_ZACCL_OUT);
+		ADIS16400_ZACCL_OUT);
 static IIO_CONST_ATTR(accel_scale, "0.00333 g");
 
 static IIO_DEV_ATTR_MAGN_X(adis16400_read_14bit_signed,
-				ADIS16400_XMAGN_OUT);
+		ADIS16400_XMAGN_OUT);
 static IIO_DEV_ATTR_MAGN_Y(adis16400_read_14bit_signed,
-				ADIS16400_YMAGN_OUT);
+		ADIS16400_YMAGN_OUT);
 static IIO_DEV_ATTR_MAGN_Z(adis16400_read_14bit_signed,
-				ADIS16400_ZMAGN_OUT);
+		ADIS16400_ZMAGN_OUT);
 static IIO_CONST_ATTR(magn_scale, "0.0005 Gs");
 
 
@@ -629,16 +630,16 @@ static IIO_CONST_ATTR(temp_offset, "198.16 K");
 static IIO_CONST_ATTR(temp_scale, "0.14 K");
 
 static IIO_DEV_ATTR_VOLT(aux, adis16400_read_12bit_unsigned,
-				ADIS16400_AUX_ADC);
+		ADIS16400_AUX_ADC);
 static IIO_CONST_ATTR(volt_aux_scale, "0.000806");
 
 static IIO_DEV_ATTR_SAMP_FREQ(S_IWUSR | S_IRUGO,
-			      adis16400_read_frequency,
-			      adis16400_write_frequency);
+		adis16400_read_frequency,
+		adis16400_write_frequency);
 
 static IIO_DEV_ATTR_RESET(adis16400_write_reset);
 
-//static IIO_CONST_ATTR_AVAIL_SAMP_FREQ("409 546 819 1638");
+static IIO_CONST_ATTR_AVAIL_SAMP_FREQ("409 546 819 1638");
 
 static IIO_CONST_ATTR(name, "adis16400");
 
@@ -651,9 +652,9 @@ static struct attribute_group adis16400_event_attribute_group = {
 };
 
 static struct attribute *adis16400_attributes[] = {
-//	&iio_dev_attr_accel_x_calibbias.dev_attr.attr,
-//	&iio_dev_attr_accel_y_calibbias.dev_attr.attr,
-//	&iio_dev_attr_accel_z_calibbias.dev_attr.attr,
+	&iio_dev_attr_accel_x_offset.dev_attr.attr,
+	&iio_dev_attr_accel_y_offset.dev_attr.attr,
+	&iio_dev_attr_accel_z_offset.dev_attr.attr,
 	&iio_dev_attr_volt_supply.dev_attr.attr,
 	&iio_const_attr_volt_supply_scale.dev_attr.attr,
 	&iio_dev_attr_gyro_x.dev_attr.attr,
@@ -674,7 +675,7 @@ static struct attribute *adis16400_attributes[] = {
 	&iio_dev_attr_volt_aux.dev_attr.attr,
 	&iio_const_attr_volt_aux_scale.dev_attr.attr,
 	&iio_dev_attr_sampling_frequency.dev_attr.attr,
-//	&iio_const_attr_available_sampling_frequency.dev_attr.attr,
+	&iio_const_attr_available_sampling_frequency.dev_attr.attr,
 	&iio_dev_attr_reset.dev_attr.attr,
 	&iio_const_attr_name.dev_attr.attr,
 	NULL
@@ -739,18 +740,19 @@ static int __devinit adis16400_probe(struct spi_device *spi)
 	}
 
 	if (spi->irq && gpio_is_valid(irq_to_gpio(spi->irq)) > 0) {
-//		iio_init_work_cont(&st->work_cont_thresh,
-//				   NULL,
-//				   adis16400_thresh_handler_bh_no_check,
-//				   0,
-//				   0,
-//				   st);
-//		st->inter = 0;
+#if 0 /* fixme: here we should support */
+		iio_init_work_cont(&st->work_cont_thresh,
+				NULL,
+				adis16400_thresh_handler_bh_no_check,
+				0,
+				0,
+				st);
+#endif
 		ret = iio_register_interrupt_line(spi->irq,
-						  st->indio_dev,
-						  0,
-						  IRQF_TRIGGER_RISING,
-						  "adis16400");
+				st->indio_dev,
+				0,
+				IRQF_TRIGGER_RISING,
+				"adis16400");
 		if (ret)
 			goto error_uninitialize_ring;
 
@@ -842,5 +844,5 @@ static __exit void adis16400_exit(void)
 module_exit(adis16400_exit);
 
 MODULE_AUTHOR("Manuel Stahl <manuel.stahl@iis.fraunhofer.de>");
-MODULE_DESCRIPTION("AnalogDevices ADIS16400 IMU SPI driver");
+MODULE_DESCRIPTION("Analog Devices ADIS16400/5 IMU SPI driver");
 MODULE_LICENSE("GPL v2");

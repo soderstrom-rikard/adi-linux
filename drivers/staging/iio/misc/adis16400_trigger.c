@@ -23,7 +23,6 @@ static int adis16400_data_rdy_trig_poll(struct iio_dev *dev_info,
 	struct adis16400_state *st = iio_dev_get_devdata(dev_info);
 	struct iio_trigger *trig = st->trig;
 
-//	printk("adis16400_data_rdy_trig_poll\n");
 	trig->timestamp = timestamp;
 	iio_trigger_poll(trig);
 
@@ -53,7 +52,7 @@ static int adis16400_data_rdy_trigger_set_state(struct iio_trigger *trig,
 	struct iio_dev *indio_dev = st->indio_dev;
 	int ret = 0;
 
-	printk("adis16400_data_rdy_trigger_set_state(%d)\n", state);
+	dev_dbg(&indio_dev->dev, "%s (%d)\n", __func__, state);
 	ret = adis16400_set_irq(&st->indio_dev->dev, state);
 	if (state == false) {
 		iio_remove_event_from_list(&iio_event_data_rdy_trig,
@@ -77,7 +76,6 @@ static int adis16400_trig_try_reen(struct iio_trigger *trig)
 {
 	struct adis16400_state *st = trig->private_data;
 	enable_irq(st->us->irq);
-//	printk("adis16400_trig_try_reen\n");
 	/* irq reenabled so success! */
 	return 0;
 }
