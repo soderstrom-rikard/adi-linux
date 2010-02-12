@@ -146,15 +146,9 @@ void user_enable_single_step(struct task_struct *child)
 }
 
 /*
- * This would be named user_disable_single_step(), but common code calls
- * ptrace_disable() directly, so for now we redirect the former to the
- * latter in our asm/ptrace.h.
- *
  * Called by kernel/ptrace.c when detaching..
- *
- * Make sure the single step bit is not set.
  */
-void ptrace_disable(struct task_struct *child)
+void user_disable_single_step(struct task_struct *child)
 {
 	unsigned long tmp;
 	/* make sure the single step bit is not set. */
