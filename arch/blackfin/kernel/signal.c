@@ -315,8 +315,7 @@ asmlinkage void do_signal(struct pt_regs *regs)
 			if (test_thread_flag(TIF_RESTORE_SIGMASK))
 				clear_thread_flag(TIF_RESTORE_SIGMASK);
 
-			tracehook_signal_handler(sig, info, ka, regs,
-				test_thread_flag(TIF_SINGLESTEP));
+			tracehook_signal_handler(signr, &info, &ka, regs, 1);
 		}
 
 		return;
