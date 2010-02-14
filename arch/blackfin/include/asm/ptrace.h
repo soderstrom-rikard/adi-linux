@@ -196,4 +196,6 @@ extern void user_disable_single_step(struct task_struct *child);
 #define PT_FDPIC_EXEC 232
 #define PT_FDPIC_INTERP 236
 
+#define PT_LAST_PSEUDO PT_FDPIC_INTERP
+
 #endif				/* _BFIN_PTRACE_H */
