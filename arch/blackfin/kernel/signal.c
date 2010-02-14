@@ -210,16 +210,6 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t * info,
 	regs->r1 = (unsigned long)(&frame->info);
 	regs->r2 = (unsigned long)(&frame->uc);
 
-	/*
-	 * Clear the trace flag when entering the signal handler, but
-	 * notify any tracer that was single-stepping it. The tracer
-	 * may want to single-step inside the handler too.
-	 */
-	if (regs->syscfg & TRACE_BITS) {
-		regs->syscfg &= ~TRACE_BITS;
-		tracehook_signal_handler(sig, info, ka, regs, 1);
-	}
-
 	return 0;
 
  give_sigsegv:
@@ -324,6 +314,9 @@ asmlinkage void do_signal(struct pt_regs *regs)
 			 * clear the TIF_RESTORE_SIGMASK flag */
 			if (test_thread_flag(TIF_RESTORE_SIGMASK))
 				clear_thread_flag(TIF_RESTORE_SIGMASK);
+
+			tracehook_signal_handler(sig, info, ka, regs,
+				test_thread_flag(TIF_SINGLESTEP));
 		}
 
 		return;
