@@ -53,44 +53,44 @@ syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
 	regs->r0 = error ? -error : val;
 }
 
+/**
+ *	syscall_get_arguments()
+ *	@task:   unused
+ *	@regs:   the register layout to extract syscall arguments from
+ *	@i:      first syscall argument to extract
+ *	@n:      number of syscall arguments to extract
+ *	@args:   array to return the syscall arguments in
+ *
+ * args[0] gets i'th argument, args[n - 1] gets the i+n-1'th argument
+ */
 static inline void
 syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
                       unsigned int i, unsigned int n, unsigned long *args)
 {
-	/* wtf is "i" ? */
-	BUG_ON(i);
+	/*
+	 * Assume the ptrace layout doesn't change -- r5 is first in memory,
+	 * then r4, ..., then r0.  So we simply reverse the ptrace register
+	 * array in memory to store into the args array.
+	 */
+	long *aregs = &regs->r0 - i;
 
-	switch (n) {
-	case 6: args[5] = regs->r5;
-	case 5: args[4] = regs->r4;
-	case 4: args[3] = regs->r3;
-	case 3: args[2] = regs->r2;
-	case 2: args[1] = regs->r1;
-	case 1: args[0] = regs->r0;
-		break;
-	default:
-		BUG();
-	}
+	BUG_ON(i > 5 || i + n > 6);
+
+	while (n--)
+		*args++ = *aregs--;
 }
 
+/* See syscall_get_arguments() comments */
 static inline void
 syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
                       unsigned int i, unsigned int n, const unsigned long *args)
 {
-	/* wtf is "i" ? */
-	BUG_ON(i);
+	long *aregs = &regs->r0 - i;
 
-	switch (n) {
-	case 6: regs->r5 = args[5];
-	case 5: regs->r4 = args[4];
-	case 4: regs->r3 = args[3];
-	case 3: regs->r2 = args[2];
-	case 2: regs->r1 = args[1];
-	case 1: regs->r0 = args[0];
-		break;
-	default:
-		BUG();
-	}
+	BUG_ON(i > 5 || i + n > 6);
+
+	while (n--)
+		*aregs-- = *args++;
 }
 
 #endif
