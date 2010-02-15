@@ -1,6 +1,6 @@
 /*
  * linux/kernel/ptrace.c is by Ross Biro 1/23/92, edited by Linus Torvalds
- * these modifications are Copyright 2004-2009 Analog Devices Inc.
+ * these modifications are Copyright 2004-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2
  */
@@ -27,6 +27,7 @@
 #include <asm/fixed_code.h>
 #include <asm/cacheflush.h>
 #include <asm/mem_map.h>
+#include <asm/syscall.h>
 
 /*
  * does not yet catch signals sent when the child dies.
