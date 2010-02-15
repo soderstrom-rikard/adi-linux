@@ -31,7 +31,7 @@ syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 static inline void
 syscall_rollback(struct task_struct *task, struct pt_regs *regs)
 {
-	/* was zu tun !? */
+	regs->p0 = regs->orig_p0;
 }
 
 static inline long
