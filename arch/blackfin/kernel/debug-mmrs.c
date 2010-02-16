@@ -58,6 +58,20 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_sport_wo, NULL, sport_set, "0x%08llx\n");
 #define D_SPORT_RO(name, bits, addr) _D_SPORT(name, addr, S_IRUSR, &fops_sport_ro)
 #define D_SPORT_WO(name, bits, addr) _D_SPORT(name, addr, S_IWUSR, &fops_sport_wo)
 
+static int debug_cclk_get(void *data, u64 *val)
+{
+	*val = get_cclk();
+	return 0;
+}
+DEFINE_SIMPLE_ATTRIBUTE(fops_debug_cclk, debug_cclk_get, NULL, "0x%08llx\n");
+
+static int debug_sclk_get(void *data, u64 *val)
+{
+	*val = get_sclk();
+	return 0;
+}
+DEFINE_SIMPLE_ATTRIBUTE(fops_debug_sclk, debug_sclk_get, NULL, "0x%08llx\n");
+
 #define DEFINE_SYSREG(sr, pre, post) \
 static int sysreg_##sr##_get(void *data, u64 *val) \
 { \
@@ -96,6 +110,8 @@ static int __init bfin_debug_mmrs_init(void)
 		return -1;
 
 	parent = debugfs_create_dir("Core Registers", top);
+	debugfs_create_file("cclk", S_IRUSR, parent, NULL, &fops_debug_cclk);
+	debugfs_create_file("sclk", S_IRUSR, parent, NULL, &fops_debug_sclk);
 	debugfs_create_x32("last_seqstat", S_IRUSR, parent, &last_seqstat);
 	D_SYSREG(cycles);
 	D_SYSREG(cycles2);
