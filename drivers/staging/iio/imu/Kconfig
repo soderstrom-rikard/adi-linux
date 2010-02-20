@@ -1,7 +1,7 @@
 #
-# IIO misc drivers configuration
+# IIO imu drivers configuration
 #
-comment "Miscellaneous devices"
+comment "Inertial measurement units"
 
 config ADIS16300
 	tristate "Analog Devices ADIS16300 IMU SPI driver"
