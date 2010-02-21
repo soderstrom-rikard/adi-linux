@@ -18,7 +18,6 @@
 #include "../sysfs.h"
 
 #define DRV_NAME "ad2s90"
-struct spi_transfer xfer;
 
 struct ad2s90_state {
 	struct mutex lock;
@@ -32,12 +31,16 @@ static ssize_t ad2s90_read_angular(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
 	struct spi_message msg;
+	struct spi_transfer xfer;
 	int ret;
 	ssize_t len = 0;
-	u16 val = 0xfff0;
+	u16 val;
 	struct iio_dev *idev = dev_get_drvdata(dev);
 	struct ad2s90_state *st = idev->dev_data;
 
+	xfer.len = 1;
+	xfer.tx_buf = st->tx;
+	xfer.rx_buf = st->rx;
 	mutex_lock(&st->lock);
 
 	spi_message_init(&msg);
@@ -45,7 +48,7 @@ static ssize_t ad2s90_read_angular(struct device *dev,
 	ret = spi_sync(st->sdev, &msg);
 	if (ret)
 		goto error_ret;
-	val = (((u16)(st->rx[0])) << 8) | (st->rx[1] & 0xF0);
+	val = (((u16)(st->rx[0])) << 4) | ((st->rx[1] & 0xF0) >> 4);
 	len = sprintf(buf, "%d\n", val);
 error_ret:
 	mutex_unlock(&st->lock);
@@ -88,10 +91,6 @@ static int __devinit ad2s90_probe(struct spi_device *spi)
 	st->tx[0] = 0;
 	st->tx[1] = 0;
 
-	xfer.len = 1;
-	xfer.tx_buf = st->tx;
-	xfer.rx_buf = st->rx;
-
 	st->idev = iio_allocate_device();
 	if (st->idev == NULL) {
 		ret = -ENOMEM;
@@ -111,8 +110,8 @@ static int __devinit ad2s90_probe(struct spi_device *spi)
 		goto error_free_dev;
 
 	/* need 600ns between CS and the first falling edge of SCLK */
-	spi->max_speed_hz = 160000;
-	spi->mode = SPI_MODE_2;
+	spi->max_speed_hz = 830000;
+	spi->mode = SPI_MODE_3;
 	spi_setup(spi);
 
 	return 0;
