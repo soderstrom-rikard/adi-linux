@@ -30,6 +30,15 @@
 #define IIO_DEV_ATTR_GYRO_Z(_show, _addr)			\
 	IIO_DEVICE_ATTR(gyro_z, S_IRUGO, _show, NULL, _addr)
 
+#define IIO_DEV_ATTR_TEMP_X(_show, _addr)			\
+	IIO_DEVICE_ATTR(temp_x, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_TEMP_Y(_show, _addr)			\
+	IIO_DEVICE_ATTR(temp_y, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_TEMP_Z(_show, _addr)			\
+	IIO_DEVICE_ATTR(temp_z, S_IRUGO, _show, NULL, _addr)
+
 #define IIO_DEV_ATTR_INCLI_X(_show, _addr)			\
 	IIO_DEVICE_ATTR(incli_x, S_IRUGO, _show, NULL, _addr)
 
