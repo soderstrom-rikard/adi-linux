@@ -32,7 +32,7 @@ static inline void set_fs(mm_segment_t fs)
 #define VERIFY_READ	0
 #define VERIFY_WRITE	1
 
-#define access_ok(type, addr, size) _access_ok((unsigned long)(addr), (size))
+#define access_ok(type, addr, size) _access_ok((type), (unsigned long)(addr), (size))
 
 static inline int is_in_rom(unsigned long addr)
 {
@@ -58,9 +58,9 @@ static inline int is_in_rom(unsigned long addr)
  */
 
 #ifndef CONFIG_ACCESS_CHECK
-static inline int _access_ok(unsigned long addr, unsigned long size) { return 1; }
+static inline int _access_ok(unsigned long type, unsigned long addr, unsigned long size) { return 1; }
 #else
-extern int _access_ok(unsigned long addr, unsigned long size);
+extern int _access_ok(unsigned long type, unsigned long addr, unsigned long size);
 #endif
 
 /*
