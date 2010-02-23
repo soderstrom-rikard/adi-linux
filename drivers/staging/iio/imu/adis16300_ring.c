@@ -54,13 +54,13 @@ static IIO_SCAN_EL_TIMESTAMP;
 static struct attribute *adis16300_scan_el_attrs[] = {
 	&iio_scan_el_supply.dev_attr.attr,
 	&iio_scan_el_gyro_x.dev_attr.attr,
+	&iio_scan_el_temp.dev_attr.attr,
 	&iio_scan_el_accel_x.dev_attr.attr,
 	&iio_scan_el_accel_y.dev_attr.attr,
 	&iio_scan_el_accel_z.dev_attr.attr,
-	&iio_scan_el_temp.dev_attr.attr,
-	&iio_scan_el_adc_0.dev_attr.attr,
 	&iio_scan_el_incli_x.dev_attr.attr,
 	&iio_scan_el_incli_y.dev_attr.attr,
+	&iio_scan_el_adc_0.dev_attr.attr,
 	&iio_scan_el_timestamp.dev_attr.attr,
 	NULL,
 };
@@ -76,7 +76,7 @@ static struct attribute_group adis16300_scan_el_group = {
  **/
 static void adis16300_poll_func_th(struct iio_dev *indio_dev)
 {
-  struct adis16300_state *st = iio_dev_get_devdata(indio_dev);
+	struct adis16300_state *st = iio_dev_get_devdata(indio_dev);
 	st->last_timestamp = indio_dev->trig->timestamp;
 	schedule_work(&st->work_trigger_to_ring);
 	/* Indicate that this interrupt is being handled */

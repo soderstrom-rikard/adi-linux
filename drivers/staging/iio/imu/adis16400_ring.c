@@ -85,7 +85,7 @@ static struct attribute_group adis16400_scan_el_group = {
  **/
 static void adis16400_poll_func_th(struct iio_dev *indio_dev)
 {
-  struct adis16400_state *st = iio_dev_get_devdata(indio_dev);
+	struct adis16400_state *st = iio_dev_get_devdata(indio_dev);
 	st->last_timestamp = indio_dev->trig->timestamp;
 	schedule_work(&st->work_trigger_to_ring);
 	/* Indicate that this interrupt is being handled */
