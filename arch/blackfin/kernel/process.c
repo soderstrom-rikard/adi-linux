@@ -440,11 +440,9 @@ int bfin_mem_access_type(unsigned long addr, unsigned long size)
 __attribute__((l1_text))
 #endif
 /* Return 1 if access to memory range is OK, 0 otherwise */
-int _access_ok(unsigned long type, unsigned long addr, unsigned long size)
+int _access_ok(unsigned long addr, unsigned long size)
 {
-	struct mm_struct *mm = current->mm;
-	struct vm_area_struct *vma;
-	struct sram_list_struct *sraml;
+	int aret;
 
 	if (size == 0)
 		return 1;
@@ -453,24 +451,60 @@ int _access_ok(unsigned long type, unsigned long addr, unsigned long size)
 		return 0;
 	if (segment_eq(get_fs(), KERNEL_DS))
 		return 1;
-
-	down_read(&mm->mmap_sem);
-
-	vma = find_vma(mm, addr);
-	if (vma && (addr >= vma->vm_start) && (addr + size <= vma->vm_end)) {
-		if (((type == VERIFY_WRITE) && (vma->vm_flags & VM_WRITE)) ||
-				((type == VERIFY_READ) && (vma->vm_flags & VM_READ))) {
-			up_read(&mm->mmap_sem);
+#ifdef CONFIG_MTD_UCLINUX
+	if (1)
+#else
+	if (0)
+#endif
+	{
+		if (in_mem(addr, size, memory_start, memory_end))
 			return 1;
-		}
+		if (in_mem(addr, size, memory_mtd_end, physical_mem_end))
+			return 1;
+# ifndef CONFIG_ROMFS_ON_MTD
+		if (0)
+# endif
+			/* For XIP, allow user space to use pointers within the ROMFS.  */
+			if (in_mem(addr, size, memory_mtd_start, memory_mtd_end))
+				return 1;
+	} else {
+		if (in_mem(addr, size, memory_start, physical_mem_end))
+			return 1;
 	}
 
-	up_read(&mm->mmap_sem);
+	if (in_mem(addr, size, (unsigned long)__init_begin, (unsigned long)__init_end))
+		return 1;
 
-	for (sraml = mm->context.sram_list; sraml; sraml = sraml->next)
-		if ((addr >= (unsigned long)sraml->addr)
-				&& (addr + size < (unsigned long)sraml->addr + sraml->length))
-			return 1;
+	if (in_mem_const(addr, size, L1_CODE_START, L1_CODE_LENGTH))
+		return 1;
+	if (in_mem_const_off(addr, size, _etext_l1 - _stext_l1, L1_CODE_START, L1_CODE_LENGTH))
+		return 1;
+	if (in_mem_const_off(addr, size, _ebss_l1 - _sdata_l1, L1_DATA_A_START, L1_DATA_A_LENGTH))
+		return 1;
+	if (in_mem_const_off(addr, size, _ebss_b_l1 - _sdata_b_l1, L1_DATA_B_START, L1_DATA_B_LENGTH))
+		return 1;
+#ifdef COREB_L1_CODE_START
+	if (in_mem_const(addr, size, COREB_L1_CODE_START, COREB_L1_CODE_LENGTH))
+		return 1;
+	if (in_mem_const(addr, size, COREB_L1_SCRATCH_START, L1_SCRATCH_LENGTH))
+		return 1;
+	if (in_mem_const(addr, size, COREB_L1_DATA_A_START, COREB_L1_DATA_A_LENGTH))
+		return 1;
+	if (in_mem_const(addr, size, COREB_L1_DATA_B_START, COREB_L1_DATA_B_LENGTH))
+		return 1;
+#endif
+
+	aret = in_async(addr, size);
+	if (aret < 2)
+		return aret;
+
+	if (in_mem_const_off(addr, size, _ebss_l2 - _stext_l2, L2_START, L2_LENGTH))
+		return 1;
+
+	if (in_mem_const(addr, size, BOOT_ROM_START, BOOT_ROM_LENGTH))
+		return 1;
+	if (in_mem_const(addr, size, L1_ROM_START, L1_ROM_LENGTH))
+		return 1;
 
 	return 0;
 }
