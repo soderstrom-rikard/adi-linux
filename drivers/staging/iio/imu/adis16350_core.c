@@ -616,14 +616,6 @@ static IIO_CONST_ATTR_AVAIL_SAMP_FREQ("409 546 819 1638");
 
 static IIO_CONST_ATTR(name, "adis16350");
 
-static struct attribute *adis16350_event_attributes[] = {
-	NULL
-};
-
-static struct attribute_group adis16350_event_attribute_group = {
-	.attrs = adis16350_event_attributes,
-};
-
 static struct attribute *adis16350_attributes[] = {
 	&iio_dev_attr_accel_x_offset.dev_attr.attr,
 	&iio_dev_attr_accel_y_offset.dev_attr.attr,
@@ -653,6 +645,58 @@ static struct attribute *adis16350_attributes[] = {
 
 static const struct attribute_group adis16350_attribute_group = {
 	.attrs = adis16350_attributes,
+};
+
+static void adis16350_data_rdy_handler_bh_no_check(struct work_struct *work_s)
+{
+	struct iio_work_cont *wc
+		= container_of(work_s, struct iio_work_cont, ws_nocheck);
+	struct adis16350_state *st  = wc->st;
+
+	iio_push_event(st->indio_dev, 0,
+			IIO_EVENT_CODE_DATA_RDY,
+			st->last_timestamp);
+}
+
+static int adis16350_interrupt_handler_th(struct iio_dev *dev_info,
+		int index,
+		s64 timestamp,
+		int no_test)
+{
+	struct adis16350_state *st = dev_info->dev_data;
+
+	st->last_timestamp = timestamp;
+	schedule_work(&st->work_cont_data_rdy.ws);
+
+	return 0;
+}
+
+IIO_EVENT_SH(data_rdy, &adis16350_interrupt_handler_th);
+
+static ssize_t adis16350_query_out_mode(struct device *dev,
+		struct device_attribute *attr,
+		char *buf)
+{
+	return sprintf(buf, "1\n");
+}
+
+static ssize_t adis16350_set_out_mode(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf,
+		size_t len)
+{
+	return len;
+}
+
+IIO_EVENT_ATTR_SH(sam_rdy, iio_event_data_rdy, adis16350_query_out_mode, adis16350_set_out_mode, 0);
+
+static struct attribute *adis16350_event_attributes[] = {
+	&iio_event_attr_sam_rdy.dev_attr.attr,
+	NULL,
+};
+
+static struct attribute_group adis16350_event_attribute_group = {
+	.attrs = adis16350_event_attributes,
 };
 
 static int __devinit adis16350_probe(struct spi_device *spi)
@@ -710,14 +754,12 @@ static int __devinit adis16350_probe(struct spi_device *spi)
 	}
 
 	if (spi->irq && gpio_is_valid(irq_to_gpio(spi->irq)) > 0) {
-#if 0 /* fixme: here we should support */
-		iio_init_work_cont(&st->work_cont_thresh,
+		iio_init_work_cont(&st->work_cont_data_rdy,
 				NULL,
-				adis16350_thresh_handler_bh_no_check,
+				adis16350_data_rdy_handler_bh_no_check,
 				0,
 				0,
 				st);
-#endif
 		ret = iio_register_interrupt_line(spi->irq,
 				st->indio_dev,
 				0,
@@ -725,6 +767,9 @@ static int __devinit adis16350_probe(struct spi_device *spi)
 				"adis16350");
 		if (ret)
 			goto error_uninitialize_ring;
+
+		iio_add_event_to_list(iio_event_attr_sam_rdy.listel,
+				&st->indio_dev->interrupts[0]->ev_list);
 
 		ret = adis16350_probe_trigger(st->indio_dev);
 		if (ret)
