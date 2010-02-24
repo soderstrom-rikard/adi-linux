@@ -2135,8 +2135,6 @@ static struct regulator_init_data adp_switch_regulator_data[] = {
 		.constraints = {
 			.name = REGULATOR_ADP122,
 			.valid_ops_mask = REGULATOR_CHANGE_STATUS,
-			.min_uA = 0,
-			.max_uA = 300000,
 		},
 		.num_consumer_supplies = 1,	/* only 1 */
 		.consumer_supplies     = &adp122_consumers,
@@ -2146,8 +2144,6 @@ static struct regulator_init_data adp_switch_regulator_data[] = {
 		.constraints = {
 			.name = REGULATOR_ADP150,
 			.valid_ops_mask = REGULATOR_CHANGE_STATUS,
-			.min_uA = 0,
-			.max_uA = 150000,
 		},
 		.num_consumer_supplies = 1,	/* only 1 */
 		.consumer_supplies     = &adp150_consumers,
