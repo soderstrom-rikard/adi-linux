@@ -1103,13 +1103,27 @@ static int bfin_spi_setup(struct spi_device *spi)
 		chip->ctl_reg &= bfin_ctl_reg;
 	}
 
-	if (spi->bits_per_word != 8 && spi->bits_per_word != 16) {
-		dev_err(&spi->dev, "%d bits_per_word is not supported\n",
+	if (chip->chip_select_num >= MAX_CTRL_CS) {
+		/* GPIO supports multiples of 8 bits */
+		if (spi->bits_per_word % 8) {
+			dev_err(&spi->dev, "bits_per_word %d not multiple of 8 bits\n",
 				spi->bits_per_word);
-		goto error;
+			goto error;
+		}
+	} else {
+		/* Hardware CS only supports 8 and 16 bit */
+		if (spi->bits_per_word != 8 && spi->bits_per_word != 16) {
+			dev_err(&spi->dev, "bits_per_word %d is not supported\n",
+				spi->bits_per_word);
+			goto error;
+		}
 	}
 
 	/* translate common spi framework into our register */
+	if (spi->mode & ~(SPI_CPOL | SPI_CPHA | SPI_LSB_FIRST)) {
+		dev_err(&spi->dev, "unsupported spi modes detected\n");
+		goto error;
+	}
 	if (spi->mode & SPI_CPOL)
 		chip->ctl_reg |= BIT_CTL_CPOL;
 	if (spi->mode & SPI_CPHA)
