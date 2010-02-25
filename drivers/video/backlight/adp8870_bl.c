@@ -1,7 +1,7 @@
 /*
  * Backlight driver for Analog Devices ADP8870 Backlight Devices
  *
- * Copyright 2009 Analog Devices Inc.
+ * Copyright 2009-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -881,7 +881,6 @@ static int adp8870_i2c_resume(struct i2c_client *client)
 
 static const struct i2c_device_id adp8870_id[] = {
 	{ "adp8870", 0 },
-	{ "adp8860", 1 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, adp8870_id);
