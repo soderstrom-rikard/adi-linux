@@ -449,7 +449,6 @@ static int __devinit ad7414_probe(struct i2c_client *client,
 		goto error_free_chip;
 	}
 
-	/* Echipabilish that the iio_dev is a child of the i2c device */
 	chip->indio_dev->dev.parent = &client->dev;
 	chip->indio_dev->attrs = &ad7414_attribute_group;
 	if (strcmp(id->name, "ad7414") == 0)
