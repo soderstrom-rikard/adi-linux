@@ -1,5 +1,5 @@
 /*
- * AD5624R, AD5644R, AD5664R Digital to analog convertors
+ * AD5624R, AD5644R, AD5664R Digital to analog convertors spi driver
  *
  * Copyright 2010 Analog Devices Inc.
  *
@@ -30,6 +30,8 @@ struct ad5624r_state {
 	struct spi_device *us;
 	int data_len;
 	int ldac_mode;
+	int dac_power_mode[AD5624R_DAC_CHANNELS];
+	int internal_ref;
 };
 
 static int ad5624r_spi_write(struct spi_device *spi, u8 cmd, u8 addr, u16 val, u8 len)
@@ -112,6 +114,71 @@ static ssize_t ad5624r_write_ldac_mode(struct device *dev,
 	return ret ? ret : len;
 }
 
+static ssize_t ad5624r_read_dac_power_mode(struct device *dev,
+		struct device_attribute *attr,
+		char *buf)
+{
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ad5624r_state *st = indio_dev->dev_data;
+	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+
+	return sprintf(buf, "%d\n", st->dac_power_mode[this_attr->address]);
+}
+
+static ssize_t ad5624r_write_dac_power_mode(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf,
+		size_t len)
+{
+	long readin;
+	int ret;
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ad5624r_state *st = indio_dev->dev_data;
+	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+
+	ret = strict_strtol(buf, 10, &readin);
+	if (ret)
+		return ret;
+
+	ad5624r_spi_write(st->us, AD5624R_CMD_POWERDOWN_DAC, 0,
+			((readin & 0x3) << 4) | (1 << this_attr->address), 16);
+
+	st->dac_power_mode[this_attr->address] = readin & 0x3;
+
+	return ret ? ret : len;
+}
+
+static ssize_t ad5624r_read_internal_ref_mode(struct device *dev,
+		struct device_attribute *attr,
+		char *buf)
+{
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ad5624r_state *st = indio_dev->dev_data;
+
+	return sprintf(buf, "%d\n", st->internal_ref);
+}
+
+static ssize_t ad5624r_write_internal_ref_mode(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf,
+		size_t len)
+{
+	long readin;
+	int ret;
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ad5624r_state *st = indio_dev->dev_data;
+
+	ret = strict_strtol(buf, 10, &readin);
+	if (ret)
+		return ret;
+
+	ad5624r_spi_write(st->us, AD5624R_CMD_INTERNAL_REFER_SETUP, 0, !!readin, 16);
+
+	st->internal_ref = !!readin;
+
+	return ret ? ret : len;
+}
+
 static IIO_DEV_ATTR_DAC(0, ad5624r_write_dac, AD5624R_ADDR_DAC0);
 static IIO_DEV_ATTR_DAC(1, ad5624r_write_dac, AD5624R_ADDR_DAC1);
 static IIO_DEV_ATTR_DAC(2, ad5624r_write_dac, AD5624R_ADDR_DAC2);
@@ -119,13 +186,28 @@ static IIO_DEV_ATTR_DAC(3, ad5624r_write_dac, AD5624R_ADDR_DAC3);
 
 static IIO_DEVICE_ATTR(ldac_mode, S_IRUGO | S_IWUSR, ad5624r_read_ldac_mode,
 		ad5624r_write_ldac_mode, 0);
+static IIO_DEVICE_ATTR(internal_ref, S_IRUGO | S_IWUSR, ad5624r_read_internal_ref_mode,
+		ad5624r_write_internal_ref_mode, 0);
+
+#define IIO_DEV_ATTR_DAC_POWER_MODE(_num, _show, _store, _addr)			\
+	IIO_DEVICE_ATTR(dac_power_mode_##_num, S_IRUGO | S_IWUSR, _show, _store, _addr)
+
+static IIO_DEV_ATTR_DAC_POWER_MODE(0, ad5624r_read_dac_power_mode, ad5624r_write_dac_power_mode, 0);
+static IIO_DEV_ATTR_DAC_POWER_MODE(1, ad5624r_read_dac_power_mode, ad5624r_write_dac_power_mode, 1);
+static IIO_DEV_ATTR_DAC_POWER_MODE(2, ad5624r_read_dac_power_mode, ad5624r_write_dac_power_mode, 2);
+static IIO_DEV_ATTR_DAC_POWER_MODE(3, ad5624r_read_dac_power_mode, ad5624r_write_dac_power_mode, 3);
 
 static struct attribute *ad5624r_attributes[] = {
 	&iio_dev_attr_dac_0.dev_attr.attr,
 	&iio_dev_attr_dac_1.dev_attr.attr,
 	&iio_dev_attr_dac_2.dev_attr.attr,
 	&iio_dev_attr_dac_3.dev_attr.attr,
+	&iio_dev_attr_dac_power_mode_0.dev_attr.attr,
+	&iio_dev_attr_dac_power_mode_1.dev_attr.attr,
+	&iio_dev_attr_dac_power_mode_2.dev_attr.attr,
+	&iio_dev_attr_dac_power_mode_3.dev_attr.attr,
 	&iio_dev_attr_ldac_mode.dev_attr.attr,
+	&iio_dev_attr_internal_ref.dev_attr.attr,
 	NULL,
 };
 
@@ -226,5 +308,5 @@ static __exit void ad5624r_spi_exit(void)
 module_exit(ad5624r_spi_exit);
 
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
-MODULE_DESCRIPTION("Analog Devices AD5624/44/64R DAC driver");
+MODULE_DESCRIPTION("Analog Devices AD5624/44/64R DAC spi driver");
 MODULE_LICENSE("GPL v2");
