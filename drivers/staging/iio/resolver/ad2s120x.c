@@ -195,9 +195,9 @@ error_ret:
 
 static IIO_CONST_ATTR(description,
 	"12-Bit R/D Converter with Reference Oscillator");
-static IIO_DEVICE_ATTR(pos_vel, S_IRUGO, ad2s120x_read_pos_vel, NULL, NULL);
-static IIO_DEVICE_ATTR(pos, S_IRUGO, ad2s120x_read_pos, NULL, NULL);
-static IIO_DEVICE_ATTR(vel, S_IRUGO, ad2s120x_read_vel, NULL, NULL);
+static IIO_DEVICE_ATTR(pos_vel, S_IRUGO, ad2s120x_read_pos_vel, NULL, 0);
+static IIO_DEVICE_ATTR(pos, S_IRUGO, ad2s120x_read_pos, NULL, 0);
+static IIO_DEVICE_ATTR(vel, S_IRUGO, ad2s120x_read_vel, NULL, 0);
 
 static struct attribute *ad2s120x_attributes[] = {
 	&iio_const_attr_description.dev_attr.attr,
