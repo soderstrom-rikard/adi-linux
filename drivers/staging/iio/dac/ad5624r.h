@@ -1,6 +1,8 @@
 #ifndef SPI_AD5624R_H_
 #define SPI_AD5624R_H_
 
+#define AD5624R_DAC_CHANNELS	4
+
 #define AD5624R_ADDR_DAC0	0x0
 #define AD5624R_ADDR_DAC1	0x1
 #define AD5624R_ADDR_DAC2	0x2
