@@ -187,7 +187,7 @@ static ssize_t ad7414_show_temperature(struct device *dev,
 	value = (s16)be16_to_cpu(data);
 	value >>= AD7414_TEMP_OFFSET;
 
-	return sprintf(buf, "%d.%d%d\n", (value >> 2), (value & 3) * 25);
+	return sprintf(buf, "%d.%d\n", (value >> 2), (value & 3) * 25);
 }
 
 IIO_DEVICE_ATTR(temperature, S_IRUGO, ad7414_show_temperature, NULL, 0);
