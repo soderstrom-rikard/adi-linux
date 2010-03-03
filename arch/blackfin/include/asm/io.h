@@ -9,6 +9,7 @@
 
 #include <linux/compiler.h>
 #include <linux/types.h>
+#include <asm/byteorder.h>
 
 #define DECLARE_BFIN_RAW_READX(size, type, asm, asm_sign) \
 static inline type __raw_read##size(const volatile void __iomem *addr) \
