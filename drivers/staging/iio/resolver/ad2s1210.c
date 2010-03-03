@@ -253,7 +253,8 @@ static ssize_t ad2s1210_show_raw(struct device *dev,
 }
 
 static ssize_t ad2s1210_store_raw(struct device *dev,
-		struct device_attribute *attr, char *buf, size_t len)
+		struct device_attribute *attr,
+		const char *buf, size_t len)
 {
 	struct iio_dev *idev = dev_get_drvdata(dev);
 	struct ad2s1210_state *st = idev->dev_data;
@@ -272,7 +273,8 @@ static ssize_t ad2s1210_store_raw(struct device *dev,
 }
 
 static ssize_t ad2s1210_store_softreset(struct device *dev,
-			struct device_attribute *attr, char *buf, size_t len)
+			struct device_attribute *attr,
+			const char *buf, size_t len)
 {
 	struct iio_dev *idev = dev_get_drvdata(dev);
 	struct ad2s1210_state *st = idev->dev_data;
@@ -291,7 +293,8 @@ static ssize_t ad2s1210_show_fclkin(struct device *dev,
 }
 
 static ssize_t ad2s1210_store_fclkin(struct device *dev,
-			struct device_attribute *attr, char *buf, size_t len)
+			struct device_attribute *attr,
+			const char *buf, size_t len)
 {
 	struct iio_dev *idev = dev_get_drvdata(dev);
 	struct ad2s1210_state *st = idev->dev_data;
@@ -322,7 +325,8 @@ static ssize_t ad2s1210_show_fexcit(struct device *dev,
 }
 
 static ssize_t ad2s1210_store_fexcit(struct device *dev,
-			struct device_attribute *attr, char *buf, size_t len)
+			struct device_attribute *attr,
+			const char *buf, size_t len)
 {
 	struct iio_dev *idev = dev_get_drvdata(dev);
 	struct ad2s1210_state *st = idev->dev_data;
@@ -357,7 +361,8 @@ static ssize_t ad2s1210_show_control(struct device *dev,
 }
 
 static ssize_t ad2s1210_store_control(struct device *dev,
-			struct device_attribute *attr, char *buf, size_t len)
+			struct device_attribute *attr,
+			const char *buf, size_t len)
 {
 	struct iio_dev *idev = dev_get_drvdata(dev);
 	struct ad2s1210_state *st = idev->dev_data;
@@ -407,7 +412,8 @@ static ssize_t ad2s1210_show_resolution(struct device *dev,
 }
 
 static ssize_t ad2s1210_store_resolution(struct device *dev,
-			struct device_attribute *attr, char *buf, size_t len)
+			struct device_attribute *attr,
+			const char *buf, size_t len)
 {
 	struct iio_dev *idev = dev_get_drvdata(dev);
 	struct ad2s1210_state *st = idev->dev_data;
@@ -466,8 +472,9 @@ error_ret:
 	return ret ? ret : len;
 }
 
-static void ad2s1210_clear_fault(struct device *dev,
-			struct device_attribute *attr, char *buf, size_t len)
+static ssize_t ad2s1210_clear_fault(struct device *dev,
+			struct device_attribute *attr,
+			const char *buf, size_t len)
 {
 	struct iio_dev *idev = dev_get_drvdata(dev);
 	struct ad2s1210_state *st = idev->dev_data;
@@ -482,6 +489,8 @@ static void ad2s1210_clear_fault(struct device *dev,
 	start_sample(st);
 	stop_sample(st);
 	mutex_unlock(&st->lock);
+
+	return 0;
 }
 
 static ssize_t ad2s1210_show_reg(struct device *dev,
@@ -499,7 +508,7 @@ static ssize_t ad2s1210_show_reg(struct device *dev,
 }
 
 static ssize_t ad2s1210_store_reg(struct device *dev,
-		struct device_attribute *attr, char *buf, size_t len)
+		struct device_attribute *attr, const char *buf, size_t len)
 {
 	struct iio_dev *idev = dev_get_drvdata(dev);
 	struct ad2s1210_state *st = idev->dev_data;
@@ -652,25 +661,25 @@ static IIO_CONST_ATTR(description,
 	"Variable Resolution, 10-Bit to 16Bit R/D\n\
 Converter with Reference Oscillator");
 static IIO_DEVICE_ATTR(raw_io, S_IRUGO | S_IWUGO,
-		ad2s1210_show_raw, ad2s1210_store_raw, NULL);
+		ad2s1210_show_raw, ad2s1210_store_raw, 0);
 static IIO_DEVICE_ATTR(reset, S_IWUGO,
-		NULL, ad2s1210_store_softreset, NULL);
+		NULL, ad2s1210_store_softreset, 0);
 static IIO_DEVICE_ATTR(fclkin, S_IRUGO | S_IWUGO,
-		ad2s1210_show_fclkin, ad2s1210_store_fclkin, NULL);
+		ad2s1210_show_fclkin, ad2s1210_store_fclkin, 0);
 static IIO_DEVICE_ATTR(fexcit, S_IRUGO | S_IWUGO,
-		ad2s1210_show_fexcit,	ad2s1210_store_fexcit, NULL);
+		ad2s1210_show_fexcit,	ad2s1210_store_fexcit, 0);
 static IIO_DEVICE_ATTR(control, S_IRUGO | S_IWUGO,
-		ad2s1210_show_control, ad2s1210_store_control, NULL);
+		ad2s1210_show_control, ad2s1210_store_control, 0);
 static IIO_DEVICE_ATTR(bits, S_IRUGO | S_IWUGO,
-		ad2s1210_show_resolution, ad2s1210_store_resolution, NULL);
+		ad2s1210_show_resolution, ad2s1210_store_resolution, 0);
 static IIO_DEVICE_ATTR(fault, S_IRUGO | S_IWUGO,
-		ad2s1210_show_fault, ad2s1210_clear_fault, NULL);
+		ad2s1210_show_fault, ad2s1210_clear_fault, 0);
 static IIO_DEVICE_ATTR(pos, S_IRUGO,
-		ad2s1210_show_pos, NULL, NULL);
+		ad2s1210_show_pos, NULL, 0);
 static IIO_DEVICE_ATTR(vel, S_IRUGO,
-		ad2s1210_show_vel, NULL, NULL);
+		ad2s1210_show_vel, NULL, 0);
 static IIO_DEVICE_ATTR(pos_vel, S_IRUGO,
-		ad2s1210_show_pos_vel, NULL, NULL);
+		ad2s1210_show_pos_vel, NULL, 0);
 static IIO_DEVICE_ATTR(los_thrd, S_IRUGO | S_IWUGO,
 		ad2s1210_show_reg, ad2s1210_store_reg, REG_LOS_THRD);
 static IIO_DEVICE_ATTR(dos_ovr_thrd, S_IRUGO | S_IWUGO,
