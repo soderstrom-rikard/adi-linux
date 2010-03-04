@@ -164,7 +164,7 @@ static void bfin_internal_mask_irq(unsigned int irq)
 	mask_bank = SIC_SYSIRQ(irq) / 32;
 	mask_bit = SIC_SYSIRQ(irq) % 32;
 	bfin_write_SIC_IMASK(mask_bank, bfin_read_SIC_IMASK(mask_bank) &
-			    ~(1 << mask_bit));
+			     ~(1 << mask_bit));
 #ifdef CONFIG_SMP
 	bfin_write_SICB_IMASK(mask_bank, bfin_read_SICB_IMASK(mask_bank) &
 			     ~(1 << mask_bit));
