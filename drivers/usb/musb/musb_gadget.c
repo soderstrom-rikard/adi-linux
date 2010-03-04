@@ -512,7 +512,7 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 				request->zero = 0;
 			}
 			if (request->actual < request->length)
-				break;
+				return;
 
 			/* ... or if not, then complete it. */
 			musb_g_giveback(musb_ep, request, 0);
