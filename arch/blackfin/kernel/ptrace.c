@@ -27,7 +27,6 @@
 #include <asm/fixed_code.h>
 #include <asm/cacheflush.h>
 #include <asm/mem_map.h>
-#include <asm/syscall.h>
 
 /*
  * does not yet catch signals sent when the child dies.
