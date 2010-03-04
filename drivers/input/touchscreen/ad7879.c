@@ -109,7 +109,7 @@ struct ad7879 {
 	struct work_struct	work;
 	struct timer_list	timer;
 #ifdef CONFIG_GPIOLIB
-	struct gpio_chip 	gc;
+	struct gpio_chip	gc;
 #endif
 	struct mutex		mutex;
 	unsigned		disabled:1;	/* P: mutex */
@@ -304,7 +304,8 @@ static const struct attribute_group ad7879_attr_group = {
 };
 
 #ifdef CONFIG_GPIOLIB
-int ad7879_gpio_direction_input(struct gpio_chip *chip, unsigned gpio)
+static int ad7879_gpio_direction_input(struct gpio_chip *chip,
+					unsigned gpio)
 {
 	struct ad7879 *ts = container_of(chip, struct ad7879, gc);
 	int err;
@@ -317,7 +318,8 @@ int ad7879_gpio_direction_input(struct gpio_chip *chip, unsigned gpio)
 	return err;
 }
 
-int ad7879_gpio_direction_output(struct gpio_chip *chip, unsigned gpio, int level)
+static int ad7879_gpio_direction_output(struct gpio_chip *chip,
+					unsigned gpio, int level)
 {
 	struct ad7879 *ts = container_of(chip, struct ad7879, gc);
 	int err;
@@ -336,7 +338,7 @@ int ad7879_gpio_direction_output(struct gpio_chip *chip, unsigned gpio, int leve
 	return err;
 }
 
-int ad7879_gpio_get_value(struct gpio_chip *chip, unsigned gpio)
+static int ad7879_gpio_get_value(struct gpio_chip *chip, unsigned gpio)
 {
 	struct ad7879 *ts = container_of(chip, struct ad7879, gc);
 	u16 val;
@@ -348,7 +350,8 @@ int ad7879_gpio_get_value(struct gpio_chip *chip, unsigned gpio)
 	return !!(val & AD7879_GPIO_DATA);
 }
 
-void ad7879_gpio_set_value(struct gpio_chip *chip, unsigned gpio, int value)
+static void ad7879_gpio_set_value(struct gpio_chip *chip,
+				  unsigned gpio, int value)
 {
 	struct ad7879 *ts = container_of(chip, struct ad7879, gc);
 
@@ -362,7 +365,7 @@ void ad7879_gpio_set_value(struct gpio_chip *chip, unsigned gpio, int value)
 	mutex_unlock(&ts->mutex);
 }
 
-static inline int ad7879_gpio_add(struct device *dev)
+static int __devinit ad7879_gpio_add(struct device *dev)
 {
 	struct ad7879 *ts = dev_get_drvdata(dev);
 	struct ad7879_platform_data *pdata = dev->platform_data;
@@ -389,11 +392,16 @@ static inline int ad7879_gpio_add(struct device *dev)
 	return ret;
 }
 
-static int ad7879_gpio_remove(struct device *dev)
+/*
+ * We mark ad7879_gpio_remove inline so there is a chance the code
+ * gets discarded when not needed. We can't do __devinit/__devexit
+ * markup since it is used in both probe and remove methods.
+ */
+static inline void ad7879_gpio_remove(struct device *dev)
 {
 	struct ad7879 *ts = dev_get_drvdata(dev);
 	struct ad7879_platform_data *pdata = dev->platform_data;
-	int ret = 0;
+	int ret;
 
 	if (pdata->gpio_export) {
 		ret = gpiochip_remove(&ts->gc);
@@ -401,8 +409,6 @@ static int ad7879_gpio_remove(struct device *dev)
 			dev_err(dev, "failed to remove gpio %d\n",
 				ts->gc.base);
 	}
-
-	return ret;
 }
 #else
 static inline int ad7879_gpio_add(struct device *dev)
@@ -410,9 +416,8 @@ static inline int ad7879_gpio_add(struct device *dev)
 	return 0;
 }
 
-static inline int ad7879_gpio_remove(struct device *dev)
+static inline void ad7879_gpio_remove(struct device *dev)
 {
-	return 0;
 }
 #endif
 

@@ -110,9 +110,13 @@ int task_statm(struct mm_struct *mm, int *shared, int *text,
 		}
 	}
 
-	size += (*text = mm->end_code - mm->start_code);
-	size += (*data = mm->start_stack - mm->start_data);
+	*text = (PAGE_ALIGN(mm->end_code) - (mm->start_code & PAGE_MASK))
+		>> PAGE_SHIFT;
+	*data = (PAGE_ALIGN(mm->start_stack) - (mm->start_data & PAGE_MASK))
+		>> PAGE_SHIFT;
 	up_read(&mm->mmap_sem);
+	size >>= PAGE_SHIFT;
+	size += *text + *data;
 	*resident = size;
 	return size;
 }
@@ -163,7 +167,7 @@ static int nommu_vma_show(struct seq_file *m, struct vm_area_struct *vma)
 		seq_path(m, &file->f_path, "");
 	} else if (mm) {
 		if (vma->vm_start <= mm->start_stack &&
-				vma->vm_end >= mm->start_stack) {
+			vma->vm_end >= mm->start_stack) {
 			pad_len_spaces(m, len);
 			seq_puts(m, "[stack]");
 		}

@@ -59,7 +59,6 @@ do {											\
 } while(0)
 
 #if 0
-#define USE_ELF_CORE_DUMP
 #define CORE_DUMP_USE_REGSET
 #endif
 #define ELF_FDPIC_CORE_EFLAGS	EF_BFIN_FDPIC

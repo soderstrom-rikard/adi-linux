@@ -516,19 +516,7 @@ static int ad183x_probe(struct platform_device *pdev)
 	snd_soc_add_controls(codec, chl_ctrl->snd_ctrls, chl_ctrl->ctrl_num);
 	snd_soc_dapm_new_controls(codec, chl_ctrl->dapm_widgets, chl_ctrl->widget_num);
 	snd_soc_dapm_add_routes(codec, chl_ctrl->audio_paths, chl_ctrl->path_num);
-	snd_soc_dapm_new_widgets(codec);
 
-	ret = snd_soc_init_card(socdev);
-	if (ret < 0) {
-		dev_err(codec->dev, "failed to register card: %d\n", ret);
-		goto card_err;
-	}
-
-	return ret;
-
-card_err:
-	snd_soc_free_pcms(socdev);
-	snd_soc_dapm_free(socdev);
 pcm_err:
 	return ret;
 }

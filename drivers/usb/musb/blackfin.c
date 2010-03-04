@@ -30,6 +30,7 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 	void __iomem *fifo = hw_ep->fifo;
 	void __iomem *epio = hw_ep->regs;
 	u8 epnum = hw_ep->epnum;
+	u16 dma_reg = 0;
 
 	prefetch((u8 *)src);
 
@@ -41,17 +42,15 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 	dump_fifo_data(src, len);
 
 	if (!ANOMALY_05000380 && epnum != 0) {
-		u16 dma_reg;
-
-		flush_dcache_range((unsigned long)src,
-			(unsigned long)(src + len));
+		flush_dcache_range((unsigned int)src,
+			(unsigned int)(src + len));
 
 		/* Setup DMA address register */
-		dma_reg = (u32)src;
+		dma_reg = (u16) ((u32) src & 0xFFFF);
 		bfin_write16(USB_DMA_REG(epnum, USB_DMAx_ADDR_LOW), dma_reg);
 		SSYNC();
 
-		dma_reg = (u32)src >> 16;
+		dma_reg = (u16) (((u32) src >> 16) & 0xFFFF);
 		bfin_write16(USB_DMA_REG(epnum, USB_DMAx_ADDR_HIGH), dma_reg);
 		SSYNC();
 
@@ -80,9 +79,12 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 		SSYNC();
 
 		if (unlikely((unsigned long)src & 0x01))
-			outsw_8((unsigned long)fifo, src, (len + 1) >> 1);
+			outsw_8((unsigned long)fifo, src,
+				len & 0x01 ? (len >> 1) + 1 : len >> 1);
 		else
-			outsw((unsigned long)fifo, src, (len + 1) >> 1);
+			outsw((unsigned long)fifo, src,
+				len & 0x01 ? (len >> 1) + 1 : len >> 1);
+
 	}
 }
 /*
@@ -92,19 +94,19 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 {
 	void __iomem *fifo = hw_ep->fifo;
 	u8 epnum = hw_ep->epnum;
+	u16 dma_reg = 0;
 
 	if (ANOMALY_05000467 && epnum != 0) {
-		u16 dma_reg;
 
-		invalidate_dcache_range((unsigned long)dst,
-			(unsigned long)(dst + len));
+		invalidate_dcache_range((unsigned int)dst,
+			(unsigned int)(dst + len));
 
 		/* Setup DMA address register */
-		dma_reg = (u32)dst;
+		dma_reg = (u16) ((u32) dst & 0xFFFF);
 		bfin_write16(USB_DMA_REG(epnum, USB_DMAx_ADDR_LOW), dma_reg);
 		SSYNC();
 
-		dma_reg = (u32)dst >> 16;
+		dma_reg = (u16) (((u32) dst >> 16) & 0xFFFF);
 		bfin_write16(USB_DMA_REG(epnum, USB_DMAx_ADDR_HIGH), dma_reg);
 		SSYNC();
 
