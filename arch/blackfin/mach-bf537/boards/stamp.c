@@ -735,11 +735,11 @@ static const struct ad7877_platform_data bfin_ad7877_ts_info = {
 	.y_plate_ohms		= 486,
 	.pressure_max		= 1000,
 	.pressure_min		= 0,
-	.stopacq_polarity 	= 1,
-	.first_conversion_delay = 3,
-	.acquisition_time 	= 1,
-	.averaging 		= 1,
-	.pen_down_acc_interval 	= 1,
+	.stopacq_polarity	= 1,
+	.first_conversion_delay	= 3,
+	.acquisition_time	= 1,
+	.averaging		= 1,
+	.pen_down_acc_interval	= 1,
 };
 #endif
 
@@ -750,12 +750,12 @@ static const struct ad7879_platform_data bfin_ad7879_ts_info = {
 	.x_plate_ohms		= 620,	/* 620 Ohm from the touch datasheet */
 	.pressure_max		= 10000,
 	.pressure_min		= 0,
-	.first_conversion_delay = 3,	/* wait 512us before do a first conversion */
-	.acquisition_time 	= 1,	/* 4us acquisition time per sample */
+	.first_conversion_delay	= 3,	/* wait 512us before do a first conversion */
+	.acquisition_time	= 1,	/* 4us acquisition time per sample */
 	.median			= 2,	/* do 8 measurements */
-	.averaging 		= 1,	/* take the average of 4 middle samples */
-	.pen_down_acc_interval 	= 255,	/* 9.4 ms */
-	.gpio_export 		= 1,	/* Export GPIO to gpiolib */
+	.averaging		= 1,	/* take the average of 4 middle samples */
+	.pen_down_acc_interval	= 255,	/* 9.4 ms */
+	.gpio_export		= 1,	/* Export GPIO to gpiolib */
 	.gpio_base		= -1,	/* Dynamic allocation */
 };
 #endif
@@ -829,11 +829,11 @@ static struct bfin5xx_spi_chip enc28j60_spi_chip_info = {
 
 #if defined(CONFIG_ADF702X) || defined(CONFIG_ADF702X_MODULE)
 static struct bfin5xx_spi_chip adf7021_spi_chip_info = {
-	.bits_per_word	= 16,
+	.bits_per_word = 16,
 };
 
 #include <linux/spi/adf702x.h>
-#define TXREG 	0x0160A470
+#define TXREG 0x0160A470
 static const u32 adf7021_regs[] = {
 	0x09608FA0,
 	0x00575011,
@@ -1108,12 +1108,12 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #endif
 #if defined(CONFIG_INPUT_ADXL34X_SPI) || defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
 	{
-		.modalias		= "adxl34x",
-		.platform_data		= &adxl34x_info,
-		.irq			= IRQ_PF6,
-		.max_speed_hz		= 5000000,     /* max spi clock (SCK) speed in HZ */
-		.bus_num		= 0,
-		.chip_select  		= 2,
+		.modalias	= "adxl34x",
+		.platform_data	= &adxl34x_info,
+		.irq		= IRQ_PF6,
+		.max_speed_hz	= 5000000,     /* max spi clock (SCK) speed in HZ */
+		.bus_num	= 0,
+		.chip_select	= 2,
 		.controller_data = &spi_adxl34x_chip_info,
 		.mode = SPI_MODE_3,
 	},
@@ -1273,8 +1273,8 @@ static struct resource bfin_lq035q1_resources[] = {
 static struct platform_device bfin_lq035q1_device = {
 	.name		= "bfin-lq035q1",
 	.id		= -1,
-	.num_resources 	= ARRAY_SIZE(bfin_lq035q1_resources),
-	.resource 	= bfin_lq035q1_resources,
+	.num_resources	= ARRAY_SIZE(bfin_lq035q1_resources),
+	.resource	= bfin_lq035q1_resources,
 	.dev		= {
 		.platform_data = &bfin_lq035q1_data,
 	},
@@ -1578,21 +1578,21 @@ static struct adp5588_kpad_platform_data adp5588_kpad_data = {
 	 */
 
 static struct adp5520_backlight_platform_data adp5520_backlight_data = {
-	.fade_in 		= ADP5520_FADE_T_1200ms,
-	.fade_out 		= ADP5520_FADE_T_1200ms,
-	.fade_led_law 		= ADP5520_BL_LAW_LINEAR,
-	.en_ambl_sens 		= 1,
-	.abml_filt 		= ADP5520_BL_AMBL_FILT_640ms,
-	.l1_daylight_max 	= ADP5520_BL_CUR_mA(15),
-	.l1_daylight_dim 	= ADP5520_BL_CUR_mA(0),
-	.l2_office_max 		= ADP5520_BL_CUR_mA(7),
-	.l2_office_dim 		= ADP5520_BL_CUR_mA(0),
-	.l3_dark_max 		= ADP5520_BL_CUR_mA(3),
-	.l3_dark_dim 		= ADP5520_BL_CUR_mA(0),
-	.l2_trip 		= ADP5520_L2_COMP_CURR_uA(700),
-	.l2_hyst 		= ADP5520_L2_COMP_CURR_uA(50),
-	.l3_trip 		= ADP5520_L3_COMP_CURR_uA(80),
-	.l3_hyst 		= ADP5520_L3_COMP_CURR_uA(20),
+	.fade_in		= ADP5520_FADE_T_1200ms,
+	.fade_out		= ADP5520_FADE_T_1200ms,
+	.fade_led_law		= ADP5520_BL_LAW_LINEAR,
+	.en_ambl_sens		= 1,
+	.abml_filt		= ADP5520_BL_AMBL_FILT_640ms,
+	.l1_daylight_max	= ADP5520_BL_CUR_mA(15),
+	.l1_daylight_dim	= ADP5520_BL_CUR_mA(0),
+	.l2_office_max		= ADP5520_BL_CUR_mA(7),
+	.l2_office_dim		= ADP5520_BL_CUR_mA(0),
+	.l3_dark_max		= ADP5520_BL_CUR_mA(3),
+	.l3_dark_dim		= ADP5520_BL_CUR_mA(0),
+	.l2_trip		= ADP5520_L2_COMP_CURR_uA(700),
+	.l2_hyst		= ADP5520_L2_COMP_CURR_uA(50),
+	.l3_trip		= ADP5520_L3_COMP_CURR_uA(80),
+	.l3_hyst		= ADP5520_L3_COMP_CURR_uA(20),
 };
 
 	/*
