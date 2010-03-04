@@ -1,7 +1,7 @@
 /*
  * Miscellaneous IOCTL commands for Dynamic Power Management Controller Driver
  *
- * Copyright (C) 2004-2008 Analog Device Inc.
+ * Copyright (C) 2004-2009 Analog Device Inc.
  *
  * Licensed under the GPL-2
  */
@@ -10,7 +10,7 @@
 #define _BLACKFIN_DPMC_H_
 
 /* PLL_CTL Masks */
-#define DF				0x0001	/* 0: PLL = CLKIN, 1: PLL = CLKIN/2 */
+#define DF			0x0001	/* 0: PLL = CLKIN, 1: PLL = CLKIN/2 */
 #define PLL_OFF			0x0002	/* PLL Not Powered */
 #define STOPCK			0x0008	/* Core Clock Off */
 #define PDWN			0x0020	/* Enter Deep Sleep Mode */
@@ -39,21 +39,21 @@
 #define CCLK_DIV4 CSEL_DIV4
 #define CCLK_DIV8 CSEL_DIV8
 
-#define SET_SSEL(x)	((x) & 0xF)  /* Set SSEL = 0-15 --> SCLK = VCO/SSEL */
-#define SCLK_DIV(x)	(x)          /* SCLK = VCO / x */
+#define SET_SSEL(x)	((x) & 0xF)	/* Set SSEL = 0-15 --> SCLK = VCO/SSEL */
+#define SCLK_DIV(x)	(x)		/* SCLK = VCO / x */
 
 /* PLL_STAT Masks */
-#define ACTIVE_PLLENABLED	0x0001  /* Processor In Active Mode With PLL Enabled */
-#define FULL_ON				0x0002  /* Processor In Full On Mode */
-#define ACTIVE_PLLDISABLED	0x0004  /* Processor In Active Mode With PLL Disabled */
-#define PLL_LOCKED			0x0020  /* PLL_LOCKCNT Has Been Reached */
+#define ACTIVE_PLLENABLED	0x0001	/* Processor In Active Mode With PLL Enabled */
+#define FULL_ON			0x0002	/* Processor In Full On Mode */
+#define ACTIVE_PLLDISABLED	0x0004	/* Processor In Active Mode With PLL Disabled */
+#define PLL_LOCKED		0x0020	/* PLL_LOCKCNT Has Been Reached */
 
-#define                     RTCWS  0x400      /* RTC/Reset Wake-Up Status */
-#define                     CANWS  0x800      /* CAN Wake-Up Status */
-#define                     USBWS  0x2000     /* USB Wake-Up Status */
-#define                    KPADWS  0x4000     /* Keypad Wake-Up Status */
-#define                     ROTWS  0x8000     /* Rotary Wake-Up Status */
-#define                      GPWS  0x1000     /* General-Purpose Wake-Up Status */
+#define RTCWS			0x0400	/* RTC/Reset Wake-Up Status */
+#define CANWS			0x0800	/* CAN Wake-Up Status */
+#define USBWS			0x2000	/* USB Wake-Up Status */
+#define KPADWS			0x4000	/* Keypad Wake-Up Status */
+#define ROTWS			0x8000	/* Rotary Wake-Up Status */
+#define GPWS			0x1000	/* General-Purpose Wake-Up Status */
 
 /* VR_CTL Masks */
 #if defined(__ADSPBF52x__) || defined(__ADSPBF51x__)
@@ -75,7 +75,7 @@
 
 #define VLEV			0x00F0	/* Internal Voltage Level */
 #ifdef __ADSPBF52x__
-#define VLEV_085 		0x0040	/* VLEV = 0.85 V (-5% - +10% Accuracy) */
+#define VLEV_085		0x0040	/* VLEV = 0.85 V (-5% - +10% Accuracy) */
 #define VLEV_090		0x0050	/* VLEV = 0.90 V (-5% - +10% Accuracy) */
 #define VLEV_095		0x0060	/* VLEV = 0.95 V (-5% - +10% Accuracy) */
 #define VLEV_100		0x0070	/* VLEV = 1.00 V (-5% - +10% Accuracy) */
@@ -84,7 +84,7 @@
 #define VLEV_115		0x00A0	/* VLEV = 1.15 V (-5% - +10% Accuracy) */
 #define VLEV_120		0x00B0	/* VLEV = 1.20 V (-5% - +10% Accuracy) */
 #else
-#define VLEV_085 		0x0060	/* VLEV = 0.85 V (-5% - +10% Accuracy) */
+#define VLEV_085		0x0060	/* VLEV = 0.85 V (-5% - +10% Accuracy) */
 #define VLEV_090		0x0070	/* VLEV = 0.90 V (-5% - +10% Accuracy) */
 #define VLEV_095		0x0080	/* VLEV = 0.95 V (-5% - +10% Accuracy) */
 #define VLEV_100		0x0090	/* VLEV = 1.00 V (-5% - +10% Accuracy) */
