@@ -555,7 +555,6 @@ static struct platform_device bfin_can_device = {
 };
 #endif
 
-
 /*
  *  USB-LAN EzExtender board
  *  Driver needs to know address, irq and flag pin.
