@@ -26,6 +26,7 @@ obj-$(CONFIG_CPLB_INFO)              += cplbinfo.o
 obj-$(CONFIG_MODULES)                += module.o
 obj-$(CONFIG_KGDB)                   += kgdb.o
 obj-$(CONFIG_KGDB_TESTS)             += kgdb_test.o
+obj-$(CONFIG_NMI_WATCHDOG)           += nmi.o
 obj-$(CONFIG_EARLY_PRINTK)           += early_printk.o
 obj-$(CONFIG_EARLY_PRINTK)           += shadow_console.o
 obj-$(CONFIG_STACKTRACE)             += stacktrace.o
@@ -35,4 +36,3 @@ obj-$(CONFIG_STACKTRACE)             += stacktrace.o
 CFLAGS_kgdb_test.o := -mlong-calls -O0
 
 obj-$(CONFIG_DEBUG_MMRS)             += debug-mmrs.o
-obj-$(CONFIG_NMI_WATCHDOG)           += nmi.o
