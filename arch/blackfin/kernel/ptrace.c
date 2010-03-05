@@ -96,7 +96,7 @@ put_reg(struct task_struct *task, long regno, unsigned long data)
 		task->thread.usp = data;
 		break;
 	case PT_SYSCFG:	/* don't let userspace screw with this */
-		if (data != 0x6)
+		if ((data & ~1) != 0x6)
 			pr_warning("ptrace: ignore syscfg write of %#lx\n", data);
 		break;		/* regs->syscfg = data; break; */
 	default:
