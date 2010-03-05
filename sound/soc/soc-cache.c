@@ -328,8 +328,6 @@ static int snd_soc_16_8_write(struct snd_soc_codec *codec, unsigned int reg,
 	reg &= 0xff;
 	if (reg < codec->reg_cache_size)
 		cache[reg] = value;
-	else
-		return -1;
 	ret = codec->hw_write(codec->control_data, data, 3);
 	if (ret == 3)
 		return 0;
@@ -369,6 +367,7 @@ static int snd_soc_16_8_spi_write(void *control_data, const char *data,
 #else
 #define snd_soc_16_8_spi_write NULL
 #endif
+
 
 static struct {
 	int addr_bits;
