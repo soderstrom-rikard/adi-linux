@@ -123,9 +123,11 @@ static void ipi_call_function(unsigned int cpu, struct ipi_message *msg)
 	func(info);
 	if (wait) {
 #ifdef __ARCH_SYNC_CORE_DCACHE
-		/* 'wait' usually means synchronization between CPUs.
-		 * Invalidate D cache in case shared data
-		 * was changed by func(), to ensure cache coherence */
+		/*
+		 * 'wait' usually means synchronization between CPUs.
+		 * Invalidate D cache in case shared data was changed
+		 * by func() to ensure cache coherence.
+		 */
 		resync_core_dcache();
 #endif
 		cpu_clear(cpu, *msg->call_struct.waitmask);
@@ -230,8 +232,10 @@ static inline void smp_send_message(cpumask_t callmap, unsigned long type,
 				(unsigned long)(&waitmask),
 				(unsigned long)(&waitmask));
 #ifdef __ARCH_SYNC_CORE_DCACHE
-		 /* Invalidate D cache in case shared data was changed by
-		  * other processors, to ensure cache coherence */
+		/*
+		 * Invalidate D cache in case shared data was changed by
+		 * other processors to ensure cache coherence.
+		 */
 		resync_core_dcache();
 #endif
 	}
@@ -251,7 +255,6 @@ int smp_call_function(void (*func)(void *info), void *info, int wait)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(smp_call_function);
-
 
 int smp_call_function_single(int cpuid, void (*func) (void *info), void *info,
 				int wait)
