@@ -394,6 +394,11 @@ int init_syscall_trace(struct ftrace_event_call *call)
 	return 0;
 }
 
+unsigned long __init arch_syscall_addr(int nr)
+{
+	return (unsigned long)sys_call_table[nr];
+}
+
 int __init init_ftrace_syscalls(void)
 {
 	struct syscall_metadata *meta;
