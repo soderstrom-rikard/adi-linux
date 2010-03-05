@@ -305,7 +305,6 @@ static int sport_startup(struct uart_port *port)
 	free_irq(up->port.irq, up);
 
 	return ret;
-
 }
 
 /*
