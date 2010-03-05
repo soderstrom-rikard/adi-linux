@@ -20,12 +20,7 @@
 #if defined(CONFIG_USB_ISP1362_HCD) || defined(CONFIG_USB_ISP1362_HCD_MODULE)
 #include <linux/usb/isp1362.h>
 #endif
-#if defined(CONFIG_KEYBOARD_ADP5588) \
-	|| defined(CONFIG_KEYBOARD_ADP5588_MODULE) \
-	|| defined(CONFIG_GPIO_ADP5588) \
-	|| defined(CONFIG_GPIO_ADP5588_MODULE)
 #include <linux/i2c/adp5588.h>
-#endif
 #include <linux/etherdevice.h>
 #include <linux/ata_platform.h>
 #include <linux/irq.h>
