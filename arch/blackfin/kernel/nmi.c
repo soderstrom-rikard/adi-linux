@@ -3,7 +3,7 @@
  *
  * Originally based on bfin_wdt.c
  * Copyright 2010-2010 Analog Devices Inc.
- * 		Graff Yang <graf.yang@analog.com>
+ *		Graff Yang <graf.yang@analog.com>
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
@@ -23,7 +23,7 @@
 
 #define DRV_NAME "nmi-wdt"
 
-#define NMI_WDT_TIMEOUT 5   /* 5 seconds */
+#define NMI_WDT_TIMEOUT 5          /* 5 seconds */
 #define NMI_CHECK_TIMEOUT (4 * HZ) /* 4 seconds in jiffies */
 static int nmi_wdt_cpu = 1;
 
@@ -106,7 +106,7 @@ static inline void nmi_wdt_clear(void)
 	bfin_write_WDOGB_CTL(WDOG_EXPIRED | WDEN_DISABLE | ICTL_NONE);
 }
 
-static inline void  nmi_wdt_start(void)
+static inline void nmi_wdt_start(void)
 {
 	bfin_write_WDOGB_CTL(WDEN_ENABLE | ICTL_NMI);
 }
@@ -118,12 +118,13 @@ static inline int nmi_wdt_running(void)
 
 static inline int nmi_wdt_set_timeout(unsigned long t)
 {
-	u32 cnt, sclk;
+	u32 cnt, max_t, sclk;
 	int run;
 
 	sclk = get_sclk();
+	max_t = -1 / sclk;
 	cnt = t * sclk;
-	if (cnt < sclk) {
+	if (t > max_t) {
 		pr_warning("NMI: timeout value is too large\n");
 		return -EINVAL;
 	}
@@ -133,7 +134,9 @@ static inline int nmi_wdt_set_timeout(unsigned long t)
 	bfin_write_WDOGB_CNT(cnt);
 	if (run)
 		nmi_wdt_start();
+
 	timeout = t;
+
 	return 0;
 }
 
