@@ -171,8 +171,8 @@ static struct resource bfin_lq035q1_resources[] = {
 static struct platform_device bfin_lq035q1_device = {
 	.name		= "bfin-lq035q1",
 	.id		= -1,
-	.num_resources 	= ARRAY_SIZE(bfin_lq035q1_resources),
-	.resource 	= bfin_lq035q1_resources,
+	.num_resources	= ARRAY_SIZE(bfin_lq035q1_resources),
+	.resource	= bfin_lq035q1_resources,
 	.dev		= {
 		.platform_data = &bfin_lq035q1_data,
 	},
