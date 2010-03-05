@@ -1,7 +1,7 @@
 /*
  * Backlight driver for Analog Devices ADP8860 Backlight Devices
  *
- * Copyright 2010 Analog Devices Inc.
+ * Copyright 2009-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
