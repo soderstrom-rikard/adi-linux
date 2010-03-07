@@ -10,13 +10,14 @@
  * Licensed under the GPL-2 or later.
  */
 
+#include <linux/bitops.h>
 #include <linux/hardirq.h>
 #include <linux/sysdev.h>
 #include <linux/pm.h>
 #include <linux/nmi.h>
+#include <linux/smp.h>
+#include <linux/timer.h>
 #include <asm/blackfin.h>
-#include <asm/smp.h>
-#include <asm/bitops.h>
 #include <asm/atomic.h>
 #include <asm/cacheflush.h>
 #include <asm/bfin_watchdog.h>
@@ -154,8 +155,7 @@ int check_nmi_wdt_touched(void)
 
 	cpu_clear(this_cpu, mask);
 	for_each_cpu_mask(cpu, mask) {
-		blackfin_dcache_invalidate_range(
-			(unsigned long)(&nmi_touched[cpu]),
+		invalidate_dcache_range((unsigned long)(&nmi_touched[cpu]),
 				(unsigned long)(&nmi_touched[cpu]));
 		if (!atomic_read(&nmi_touched[cpu]))
 			return 0;
@@ -165,7 +165,7 @@ int check_nmi_wdt_touched(void)
 	return 1;
 }
 
-static void nmi_wdt_timer(void *data)
+static void nmi_wdt_timer(unsigned long data)
 {
 	if (check_nmi_wdt_touched())
 		nmi_wdt_keepalive();
@@ -180,7 +180,7 @@ static int __init init_nmi_wdt(void)
 	nmi_active = true;
 
 	init_timer(&ntimer);
-	ntimer.function = (void *)nmi_wdt_timer;
+	ntimer.function = nmi_wdt_timer;
 	ntimer.expires = jiffies + NMI_CHECK_TIMEOUT;
 	add_timer(&ntimer);
 
