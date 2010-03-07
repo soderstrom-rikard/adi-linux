@@ -37,7 +37,6 @@
  *		as published by the Free Software Foundation; either version
  *		2 of the License, or (at your option) any later version.
  */
-#define print_mac __disable_print_mac_warning
 #include <linux/module.h>
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -61,7 +60,6 @@
 #include <net/dsa.h>
 #include <asm/uaccess.h>
 #include <asm/system.h>
-#undef print_mac
 
 __setup("ether=", netdev_boot_setup);
 
