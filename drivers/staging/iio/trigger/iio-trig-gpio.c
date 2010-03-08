@@ -94,18 +94,11 @@ static int iio_gpio_trigger_probe(struct platform_device *dev)
 			 IIO_TRIGGER_NAME_LENGTH,
 			 "gpiotrig%d",
 			 pdata[i]);
-		ret = gpio_request(trig_info->gpio, trig->name);
-		if (ret)
-			goto error_free_name;
-
-		ret = gpio_direction_input(trig_info->gpio);
-		if (ret)
-			goto error_release_gpio;
 
 		irq = gpio_to_irq(trig_info->gpio);
 		if (irq < 0) {
 			ret = irq;
-			goto error_release_gpio;
+			goto error_free_name;
 		}
 
 		ret = request_irq(irq, iio_gpio_trigger_poll,
@@ -113,7 +106,7 @@ static int iio_gpio_trigger_probe(struct platform_device *dev)
 				  trig->name,
 				  trig);
 		if (ret)
-			goto error_release_gpio;
+			goto error_free_name;
 
 		ret = iio_trigger_register(trig);
 		if (ret)
@@ -127,8 +120,6 @@ static int iio_gpio_trigger_probe(struct platform_device *dev)
 /* First clean up the partly allocated trigger */
 error_release_irq:
 	free_irq(irq, trig);
-error_release_gpio:
-	gpio_free(trig_info->gpio);
 error_free_name:
 	kfree(trig->name);
 error_free_trig_info:
@@ -143,7 +134,6 @@ error_free_completed_registrations:
 				 alloc_list) {
 		trig_info = trig->private_data;
 		free_irq(gpio_to_irq(trig_info->gpio), trig);
-		gpio_free(trig_info->gpio);
 		kfree(trig->name);
 		kfree(trig_info);
 		iio_trigger_unregister(trig);
@@ -166,7 +156,6 @@ static int iio_gpio_trigger_remove(struct platform_device *dev)
 		trig_info = trig->private_data;
 		iio_trigger_unregister(trig);
 		free_irq(gpio_to_irq(trig_info->gpio), trig);
-		gpio_free(trig_info->gpio);
 		kfree(trig->name);
 		kfree(trig_info);
 		iio_put_trigger(trig);
