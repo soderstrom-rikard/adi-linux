@@ -377,10 +377,6 @@ static const struct snd_soc_dapm_route audio_conns[] = {
 	/* inputs */
 	{"Left Input", NULL, "LLINEIN"},
 	{"Right Input", NULL, "RLINEIN"},
-	{"Mic Bias", NULL, "LMICIN"},
-	{"Mic Bias", NULL, "RMICIN"},
-	{"Left Mic Mixer", NULL, "Mic Bias"},
-	{"Right Mic Mixer", NULL, "Mic Bias"},
 	{"ADC Left", NULL, "Left Input"},
 	{"ADC Right", NULL, "Right Input"},
 	{"ADC Left", NULL, "Left Mic Mixer"},
@@ -511,8 +507,6 @@ static int adau1361_reg_init(struct snd_soc_codec *codec)
 		regdata = registers[i];
 		snd_soc_write(codec, regdata.regaddress, regdata.regvalue);
 	}
-
-	snd_soc_write(codec, ADAU_SPRTCT1, 0x00);
 	/* unmute outputs */
 	snd_soc_write(codec, ADAU_PLBHPVL, DAPM_HP_DEF);
 	snd_soc_write(codec, ADAU_PLBHPVR, DAPM_HP_DEF);
@@ -561,7 +555,6 @@ static int adau1361_hw_params(struct snd_pcm_substream *substream,
 			break;
 		}
 	}
-
 	return 0;
 }
 

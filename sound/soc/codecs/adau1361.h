@@ -88,7 +88,6 @@ struct adau1361_mode_register {
 #define ADAU_DACCTL1	0x402B
 #define ADAU_DACCTL2	0x402C
 #define ADAU_SERPAD0	0x402D
-#define ADAU_SERPAD1	0x402E
 #define ADAU_COMPAD0	0x402F
 #define ADAU_COMPAD1	0x4030
 #define ADAU_MCLKPAD	0x4031
@@ -194,7 +193,7 @@ static struct adau1361_mode_register adau1361_reset[RESET_REGISTER_COUNT] = {
 	{ADAU_ALCCTR2, 0x00},
 	{ADAU_ALCCTR3, 0x1F},
 	{ADAU_SPRTCT0, ADAU_SRPT_CTRL0},
-	{ADAU_SPRTCT1, 0x21}, /*0x21 = 32bclocks frame, 0x41 = 48*/
+	{ADAU_SPRTCT1, 0x01}, /* 0x01 = 64bclocks frame */
 	{ADAU_CONVCT0, 0x00},
 	{ADAU_CONVCT1, 0x00},
 	{ADAU_ADCCTL0, 0x00},
@@ -213,7 +212,6 @@ static struct adau1361_mode_register adau1361_reset[RESET_REGISTER_COUNT] = {
 	{ADAU_DACCTL1, 0x00},
 	{ADAU_DACCTL2, 0x00},
 	{ADAU_SERPAD0, 0xAA},
-	{ADAU_SERPAD1, 0x00},
 	{ADAU_COMPAD0, 0xAA},
 	{ADAU_COMPAD1, 0x00},
 	{ADAU_MCLKPAD, 0x0A},
