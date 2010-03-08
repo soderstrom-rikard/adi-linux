@@ -931,6 +931,13 @@ static struct bfin5xx_spi_chip spi_adxl34x_chip_info = {
 };
 #endif
 
+#if defined(CONFIG_AD7476) || defined(CONFIG_AD7476_MODULE)
+static struct bfin5xx_spi_chip spi_ad7476_chip_info = {
+	.enable_dma = 0,         /* use dma transfer with this chip*/
+	.bits_per_word = 8,
+};
+#endif
+
 static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #if defined(CONFIG_MTD_M25P80) \
 	|| defined(CONFIG_MTD_M25P80_MODULE)
@@ -1134,6 +1141,18 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.controller_data = &ad7873_spi_chip_info,
 		.platform_data = &ad7873_pdata,
 		.mode = SPI_MODE_0,
+	},
+#endif
+#if defined(CONFIG_AD7476) \
+	|| defined(CONFIG_AD7476_MODULE)
+	{
+		.modalias = "ad7476", /* Name of spi_driver for this device */
+		.max_speed_hz = 6250000,     /* max spi clock (SCK) speed in HZ */
+		.bus_num = 0, /* Framework bus number */
+		.chip_select = 1, /* Framework chip select. */
+		.platform_data = NULL, /* No spi_driver specific config */
+		.controller_data = &spi_ad7476_chip_info,
+		.mode = SPI_MODE_3,
 	},
 #endif
 };
@@ -2230,6 +2249,17 @@ static struct platform_device adp150_userspace_consumer_device = {
 #endif
 #endif
 
+#if defined(CONFIG_IIO_GPIO_TRIGGER) || \
+	defined(CONFIG_IIO_GPIO_TRIGGER_MODULE)
+static const unsigned iio_gpio_trigger_pdata[] = {GPIO_PF5};
+static struct platform_device iio_gpio_trigger = {
+	.name = "iio_gpio_trigger",
+	.id = 0,
+	.dev = {
+		.platform_data = &iio_gpio_trigger_pdata,
+	},
+};
+#endif
 
 static struct platform_device *stamp_devices[] __initdata = {
 
@@ -2369,6 +2399,11 @@ static struct platform_device *stamp_devices[] __initdata = {
 	&adp122_userspace_consumer_device,
 	&adp150_userspace_consumer_device,
 #endif
+#endif
+
+#if defined(CONFIG_IIO_GPIO_TRIGGER) || \
+	defined(CONFIG_IIO_GPIO_TRIGGER_MODULE)
+	&iio_gpio_trigger,
 #endif
 };
 
