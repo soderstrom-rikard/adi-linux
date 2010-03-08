@@ -20,7 +20,6 @@
 #if defined(CONFIG_USB_ISP1362_HCD) || defined(CONFIG_USB_ISP1362_HCD_MODULE)
 #include <linux/usb/isp1362.h>
 #endif
-#include <linux/i2c/adp5588.h>
 #include <linux/etherdevice.h>
 #include <linux/ata_platform.h>
 #include <linux/irq.h>
@@ -39,6 +38,7 @@
 #include <linux/regulator/ad5398.h>
 #include <linux/regulator/consumer.h>
 #include <linux/regulator/userspace-consumer.h>
+#include <linux/i2c/adp5588.h>
 
 /*
  * Name the Board for the /proc/cpuinfo
