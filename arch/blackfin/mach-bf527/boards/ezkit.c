@@ -679,24 +679,6 @@ static struct resource bfin_uart0_resources[] = {
 		.end = CH_UART0_RX,
 		.flags = IORESOURCE_DMA,
 	},
-#ifdef CONFIG_BFIN_UART0_CTSRTS
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-#endif
 };
 
 unsigned short bfin_uart0_peripherals[] = {
@@ -741,22 +723,14 @@ static struct resource bfin_uart1_resources[] = {
 		.flags = IORESOURCE_DMA,
 	},
 #ifdef CONFIG_BFIN_UART1_CTSRTS
-	{
-		/*
-		 * The default CTS PIN is GPIO23 (GPIO_PF9).
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = 9,
-		.end = 9,
+	{	/* CTS pin */
+		.start = GPIO_PF9,
+		.end = GPIO_PF9,
 		.flags = IORESOURCE_IO,
 	},
-	{
-		/*
-		 * The default RTS PIN is GPIO_10 (GPIO_PF10).
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = 10,
-		.end = 10,
+	{	/* RTS pin */
+		.start = GPIO_PF10,
+		.end = GPIO_PF10,
 		.flags = IORESOURCE_IO,
 	},
 #endif
@@ -976,24 +950,6 @@ static struct resource bfin_sport0_uart_resources[] = {
 		.end = IRQ_SPORT0_ERROR,
 		.flags = IORESOURCE_IRQ,
 	},
-#ifdef CONFIG_SERIAL_BFIN_SPORT0_UART_CTSRTS
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-#endif
 };
 
 unsigned short bfin_sport0_peripherals[] = {
@@ -1028,24 +984,6 @@ static struct resource bfin_sport1_uart_resources[] = {
 		.end = IRQ_SPORT1_ERROR,
 		.flags = IORESOURCE_IRQ,
 	},
-#ifdef CONFIG_SERIAL_BFIN_SPORT1_UART_CTSRTS
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-#endif
 };
 
 unsigned short bfin_sport1_peripherals[] = {

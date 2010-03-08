@@ -354,24 +354,6 @@ static struct resource bfin_uart0_resources[] = {
 		.end = CH_UART0_RX,
 		.flags = IORESOURCE_DMA,
 	},
-#ifdef CONFIG_BFIN_UART0_CTSRTS
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-#endif
 };
 
 unsigned short bfin_uart0_peripherals[] = {
@@ -415,24 +397,6 @@ static struct resource bfin_uart1_resources[] = {
 		.end = CH_UART1_RX,
 		.flags = IORESOURCE_DMA,
 	},
-#ifdef CONFIG_BFIN_UART1_CTSRTS
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-#endif
 };
 
 unsigned short bfin_uart1_peripherals[] = {
@@ -544,24 +508,6 @@ static struct resource bfin_sport0_uart_resources[] = {
 		.end = IRQ_SPORT0_ERROR,
 		.flags = IORESOURCE_IRQ,
 	},
-#ifdef CONFIG_SERIAL_BFIN_SPORT0_UART_CTSRTS
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-#endif
 };
 
 unsigned short bfin_sport0_peripherals[] = {
@@ -596,24 +542,6 @@ static struct resource bfin_sport1_uart_resources[] = {
 		.end = IRQ_SPORT1_ERROR,
 		.flags = IORESOURCE_IRQ,
 	},
-#ifdef CONFIG_SERIAL_BFIN_SPORT1_UART_CTSRTS
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-	{
-		/*
-		 * Refer to arch/blackfin/mach-xxx/include/mach/gpio.h for the GPIO map.
-		 */
-		.start = -1,
-		.end = -1,
-		.flags = IORESOURCE_IO,
-	},
-#endif
 };
 
 unsigned short bfin_sport1_peripherals[] = {

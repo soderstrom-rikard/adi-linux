@@ -303,18 +303,12 @@ static struct resource bfin_uart1_resources[] = {
 		.flags = IORESOURCE_DMA,
 	},
 #ifdef CONFIG_BFIN_UART1_CTSRTS
-	{
-		/*
-		 * 0 means hardware CTS is not supported in this port.
-		 */
+	{	/* CTS pin -- 0 means not supported */
 		.start = GPIO_PE10,
 		.end = GPIO_PE10,
 		.flags = IORESOURCE_IO,
 	},
-	{
-		/*
-		 * 0 means hardware RTS is not supported in this port.
-		 */
+	{	/* RTS pin -- 0 means not supported */
 		.start = GPIO_PE9,
 		.end = GPIO_PE9,
 		.flags = IORESOURCE_IO,
@@ -411,18 +405,12 @@ static struct resource bfin_uart3_resources[] = {
 		.flags = IORESOURCE_DMA,
 	},
 #ifdef CONFIG_BFIN_UART3_CTSRTS
-	{
-		/*
-		 * 0 means hardware CTS is not supported in this port.
-		 */
+	{	/* CTS pin -- 0 means not supported */
 		.start = GPIO_PB3,
 		.end = GPIO_PB3,
 		.flags = IORESOURCE_IO,
 	},
-	{
-		/*
-		 * 0 means hardware RTS is not supported in this port.
-		 */
+	{	/* RTS pin -- 0 means not supported */
 		.start = GPIO_PB2,
 		.end = GPIO_PB2,
 		.flags = IORESOURCE_IO,
