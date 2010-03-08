@@ -144,10 +144,8 @@ ENTRY(__start)
 #endif
 
 	/* Initialize stack pointer */
-	sp.l = _init_thread_union;
-	sp.h = _init_thread_union;
-	p1 = THREAD_SIZE (z);
-	sp = sp + p1;
+	sp.l = _init_thread_union + THREAD_SIZE;
+	sp.h = _init_thread_union + THREAD_SIZE;
 	fp = sp;
 	usp = sp;
 
