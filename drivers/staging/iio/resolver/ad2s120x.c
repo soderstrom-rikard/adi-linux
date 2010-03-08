@@ -39,7 +39,7 @@ struct ad2s120x_state {
 	u8 tx[2];
 };
 
-static ssize_t ad2s120x_read_pos_vel(struct device *dev,
+static ssize_t ad2s120x_show_pos_vel(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
 	struct spi_message msg;
@@ -103,7 +103,7 @@ error_ret:
 	return ret ? ret : len;
 }
 
-static ssize_t ad2s120x_read_pos(struct device *dev,
+static ssize_t ad2s120x_show_pos(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
 	struct spi_message msg;
@@ -146,7 +146,7 @@ error_ret:
 	return ret ? ret : len;
 }
 
-static ssize_t ad2s120x_read_vel(struct device *dev,
+static ssize_t ad2s120x_show_vel(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
 	struct spi_message msg;
@@ -195,9 +195,9 @@ error_ret:
 
 static IIO_CONST_ATTR(description,
 	"12-Bit R/D Converter with Reference Oscillator");
-static IIO_DEVICE_ATTR(pos_vel, S_IRUGO, ad2s120x_read_pos_vel, NULL, 0);
-static IIO_DEVICE_ATTR(pos, S_IRUGO, ad2s120x_read_pos, NULL, 0);
-static IIO_DEVICE_ATTR(vel, S_IRUGO, ad2s120x_read_vel, NULL, 0);
+static IIO_DEVICE_ATTR(pos_vel, S_IRUGO, ad2s120x_show_pos_vel, NULL, 0);
+static IIO_DEVICE_ATTR(pos, S_IRUGO, ad2s120x_show_pos, NULL, 0);
+static IIO_DEVICE_ATTR(vel, S_IRUGO, ad2s120x_show_vel, NULL, 0);
 
 static struct attribute *ad2s120x_attributes[] = {
 	&iio_const_attr_description.dev_attr.attr,
@@ -224,6 +224,7 @@ static int __devinit ad2s120x_probe(struct spi_device *spi)
 						DRV_NAME, pins[pn]);
 			goto error_ret;
 		}
+		gpio_direction_output(pins[pn], 1);
 	}
 
 	st = kzalloc(sizeof(*st), GFP_KERNEL);
@@ -236,9 +237,7 @@ static int __devinit ad2s120x_probe(struct spi_device *spi)
 	mutex_init(&st->lock);
 	st->sdev = spi;
 	st->sample = pins[0];
-	st->rdvel = pins[2];
-	st->tx[0] = 0;
-	st->tx[1] = 0;
+	st->rdvel = pins[1];
 
 	st->idev = iio_allocate_device();
 	if (st->idev == NULL) {

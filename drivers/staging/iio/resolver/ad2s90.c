@@ -27,7 +27,7 @@ struct ad2s90_state {
 	u8 tx[2];
 };
 
-static ssize_t ad2s90_read_angular(struct device *dev,
+static ssize_t ad2s90_show_angular(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
 	struct spi_message msg;
@@ -61,7 +61,7 @@ error_ret:
 
 static IIO_CONST_ATTR(description,
 	"Low Cost, Complete 12-Bit Resolver-to-Digital Converter");
-static IIO_DEV_ATTR_SIMPLE_RESOLVER(ad2s90_read_angular);
+static IIO_DEV_ATTR_SIMPLE_RESOLVER(ad2s90_show_angular);
 
 static struct attribute *ad2s90_attributes[] = {
 	&iio_const_attr_description.dev_attr.attr,
@@ -88,8 +88,6 @@ static int __devinit ad2s90_probe(struct spi_device *spi)
 
 	mutex_init(&st->lock);
 	st->sdev = spi;
-	st->tx[0] = 0;
-	st->tx[1] = 0;
 
 	st->idev = iio_allocate_device();
 	if (st->idev == NULL) {
