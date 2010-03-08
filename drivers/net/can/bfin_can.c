@@ -27,6 +27,7 @@
 
 #define DRV_NAME "bfin_can"
 #define BFIN_CAN_TIMEOUT 100
+#define TX_ECHO_SKB_MAX  1
 
 /*
  * bfin can private data
@@ -507,7 +508,7 @@ struct net_device *alloc_bfin_candev(void)
 	struct net_device *dev;
 	struct bfin_can_priv *priv;
 
-	dev = alloc_candev(sizeof(*priv));
+	dev = alloc_candev(sizeof(*priv), TX_ECHO_SKB_MAX);
 	if (!dev)
 		return NULL;
 
