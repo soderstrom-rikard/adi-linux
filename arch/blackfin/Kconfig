@@ -641,7 +641,7 @@ endmenu
 menu "Clock souce"
 	depends on GENERIC_CLOCKEVENTS
 config CYCLES_CLOCKSOURCE
-	bool "'CYCLES'"
+	bool "CYCLES"
 	default y
 	depends on !BFIN_SCRATCH_REG_CYCLES
 	depends on !SMP
