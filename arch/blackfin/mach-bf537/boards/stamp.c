@@ -20,11 +20,12 @@
 #if defined(CONFIG_USB_ISP1362_HCD) || defined(CONFIG_USB_ISP1362_HCD_MODULE)
 #include <linux/usb/isp1362.h>
 #endif
+#include <linux/i2c.h>
+#include <linux/i2c/adp5588.h>
 #include <linux/etherdevice.h>
 #include <linux/ata_platform.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
-#include <linux/i2c.h>
 #include <linux/usb/sl811.h>
 #include <linux/spi/mmc_spi.h>
 #include <linux/leds.h>
@@ -42,7 +43,6 @@
 #endif
 #include <linux/regulator/consumer.h>
 #include <linux/regulator/userspace-consumer.h>
-#include <linux/i2c/adp5588.h>
 
 /*
  * Name the Board for the /proc/cpuinfo
@@ -1117,7 +1117,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.modalias	= "adxl34x",
 		.platform_data	= &adxl34x_info,
 		.irq		= IRQ_PF6,
-		.max_speed_hz	= 5000000,     /* max spi clock (SCK) speed in HZ */
+		.max_speed_hz	= 5000000,    /* max spi clock (SCK) speed in HZ */
 		.bus_num	= 0,
 		.chip_select	= 2,
 		.controller_data = &spi_adxl34x_chip_info,
