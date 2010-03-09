@@ -34,8 +34,12 @@
 #include <asm/reboot.h>
 #include <asm/portmux.h>
 #include <asm/dpmc.h>
+#ifdef CONFIG_REGULATOR_ADP_SWITCH
 #include <linux/regulator/adp_switch.h>
+#endif
+#ifdef CONFIG_REGULATOR_AD5398
 #include <linux/regulator/ad5398.h>
+#endif
 #include <linux/regulator/consumer.h>
 #include <linux/regulator/userspace-consumer.h>
 #include <linux/i2c/adp5588.h>
