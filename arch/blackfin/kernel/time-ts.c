@@ -202,8 +202,6 @@ static void __init bfin_gptmr0_init(void)
 #ifdef CONFIG_CORE_TIMER_IRQ_L1
 __attribute__((l1_text))
 #endif
-irqreturn_t bfin_gptmr0_interrupt(int irq, void *dev_id);
-
 irqreturn_t bfin_gptmr0_interrupt(int irq, void *dev_id)
 {
 	struct clock_event_device *evt = dev_id;
@@ -309,8 +307,6 @@ void bfin_coretmr_init(void)
 #ifdef CONFIG_CORE_TIMER_IRQ_L1
 __attribute__((l1_text))
 #endif
-irqreturn_t bfin_coretmr_interrupt(int irq, void *dev_id);
-
 irqreturn_t bfin_coretmr_interrupt(int irq, void *dev_id)
 {
 	int cpu = smp_processor_id();
@@ -394,6 +390,6 @@ void __init time_init(void)
 #endif
 
 #if !defined(CONFIG_TICKSOURCE_CORETMR) && !defined(CONFIG_TICKSOURCE_GPTMR0)
-	panic("At least one clock event device is required\n");
+# error at least one clock event device is required
 #endif
 }
