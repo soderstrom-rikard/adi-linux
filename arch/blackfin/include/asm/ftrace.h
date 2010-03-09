@@ -63,5 +63,4 @@ extern inline void *return_address(unsigned int level)
 
 #endif /* __ASSEMBLY__ */
 
-
 #endif
