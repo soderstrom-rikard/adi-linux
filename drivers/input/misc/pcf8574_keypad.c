@@ -13,7 +13,7 @@
 #include <linux/i2c.h>
 #include <linux/workqueue.h>
 
-#define	DRV_NAME "pcf8574_keypad"
+#define DRV_NAME "pcf8574_keypad"
 
 MODULE_AUTHOR("Michael Hennerich");
 MODULE_DESCRIPTION("Keypad input driver for 16 keys connected to PCF8574");
