@@ -15,11 +15,7 @@
 
 #define DRV_NAME "pcf8574_keypad"
 
-MODULE_AUTHOR("Michael Hennerich");
-MODULE_DESCRIPTION("Keypad input driver for 16 keys connected to PCF8574");
-MODULE_LICENSE("GPL");
-
-static unsigned char pcf8574_kp_btncode[] = {
+static const unsigned char pcf8574_kp_btncode[] = {
 	[0] = KEY_RESERVED,
 	[1] = KEY_ENTER,
 	[2] = KEY_BACKSLASH,
@@ -40,16 +36,14 @@ static unsigned char pcf8574_kp_btncode[] = {
 };
 
 struct kp_data {
-	unsigned char *btncode;
+	unsigned char btncode[17];
 	struct input_dev *idev;
 	struct i2c_client *client;
 	char name[64];
 	char phys[32];
 	unsigned char laststate;
 	unsigned char statechanged;
-	unsigned long irq_handled;
-	unsigned long events_sended;
-	unsigned long events_processed;
+	unsigned long events_sent;
 	struct work_struct pcf8574_kp_work;
 };
 
@@ -83,15 +77,13 @@ static void check_and_notify(struct work_struct *work)
 
 	lp->statechanged = lp->laststate ^ nextstate;
 
-	if (lp->statechanged) {
+	if (lp->statechanged)
 		input_report_key(lp->idev,
 				 nextstate > 17 ? lp->btncode[lp->laststate] :
 				 lp->btncode[nextstate],
 				 nextstate > 17 ? 0 : 1);
-
-		lp->events_sended++;
-	}
 	lp->laststate = nextstate;
+
 	input_sync(lp->idev);
 	enable_irq(lp->client->irq);
 }
@@ -117,23 +109,10 @@ static int __devinit pcf8574_kp_probe(struct i2c_client *client, const struct i2
 		return -ENODEV;
 	}
 
-	lp = kzalloc(sizeof(struct kp_data), GFP_KERNEL);
+	lp = kzalloc(sizeof(*lp), GFP_KERNEL);
 	if (!lp)
 		return -ENOMEM;
 	lp->client = client;
-
-	i2c_set_clientdata(client, lp);
-
-	if (client->irq > 0) {
-		ret = request_irq(client->irq, pcf8574_kp_irq_handler,
-			IRQF_TRIGGER_LOW, DRV_NAME, lp);
-		if (ret) {
-			dev_err(&client->dev, "IRQ %d is not free\n", client->irq);
-			goto fail_irq;
-		}
-	} else
-		dev_warn(&client->dev, "IRQ not configured!\n");
-
 
 	idev = input_allocate_device();
 	if (!idev) {
@@ -143,7 +122,7 @@ static int __devinit pcf8574_kp_probe(struct i2c_client *client, const struct i2
 	}
 
 	lp->idev = idev;
-	lp->btncode = pcf8574_kp_btncode;
+	memcpy(lp->btncode, pcf8574_kp_btncode, sizeof(pcf8574_kp_btncode));
 
 	idev->evbit[0] = 0;
 
@@ -169,7 +148,7 @@ static int __devinit pcf8574_kp_probe(struct i2c_client *client, const struct i2
 
 	input_set_drvdata(idev, lp);
 
-	ret = input_register_device(lp->idev);
+	ret = input_register_device(idev);
 	if (ret) {
 		dev_err(&client->dev, "input_register_device() failed\n");
 		goto fail_register;
@@ -182,18 +161,23 @@ static int __devinit pcf8574_kp_probe(struct i2c_client *client, const struct i2
 	/* Set up our workqueue. */
 	INIT_WORK(&lp->pcf8574_kp_work, check_and_notify);
 
-	dev_info(&client->dev, "input: %s at %s IRQ %d\n", lp->name, lp->phys,
-		client->irq);
+	i2c_set_clientdata(client, lp);
+
+	ret = request_irq(client->irq, pcf8574_kp_irq_handler,
+		IRQF_TRIGGER_LOW, DRV_NAME, lp);
+	if (ret) {
+		dev_err(&client->dev, "IRQ %d is not free\n", client->irq);
+		goto fail_irq;
+	}
 
 	return 0;
 
+ fail_irq:
+	input_unregister_device(idev);
  fail_register:
 	input_set_drvdata(idev, NULL);
 	input_free_device(idev);
  fail_allocate:
-	free_irq(client->irq, lp);
- fail_irq:
-	i2c_set_clientdata(client, NULL);
 	kfree(lp);
 
 	return ret;
@@ -218,28 +202,13 @@ static int __devexit pcf8574_kp_remove(struct i2c_client *client)
 #ifdef CONFIG_PM
 static int pcf8574_kp_resume(struct i2c_client *client)
 {
-	struct kp_data *lp = i2c_get_clientdata(client);
-	int ret;
-
-	if (client->irq > 0) {
-		ret = request_irq(client->irq, pcf8574_kp_irq_handler,
-			IRQF_TRIGGER_LOW, DRV_NAME, lp);
-		if (ret) {
-			dev_err(&client->dev, "IRQ %d is not free\n", client->irq);
-			return -ENODEV;
-		}
-	}
-
+	enable_irq(client->irq);
 	return 0;
 }
 
 static int pcf8574_kp_suspend(struct i2c_client *client, pm_message_t mesg)
 {
-	struct kp_data *lp = i2c_get_clientdata(client);
-
-	if (client->irq > 0)
-		free_irq(client->irq, lp);
-
+	disable_irq(client->irq);
 	return 0;
 }
 #else
@@ -255,7 +224,8 @@ MODULE_DEVICE_TABLE(i2c, pcf8574_kp_id);
 
 static struct i2c_driver pcf8574_kp_driver = {
 	.driver = {
-		.name = DRV_NAME,
+		.name  = DRV_NAME,
+		.owner = THIS_MODULE
 	},
 	.probe    = pcf8574_kp_probe,
 	.remove   = __devexit_p(pcf8574_kp_remove),
@@ -268,11 +238,14 @@ static int __init pcf8574_kp_init(void)
 {
 	return i2c_add_driver(&pcf8574_kp_driver);
 }
+module_init(pcf8574_kp_init);
 
 static void __exit pcf8574_kp_exit(void)
 {
 	i2c_del_driver(&pcf8574_kp_driver);
 }
-
-module_init(pcf8574_kp_init);
 module_exit(pcf8574_kp_exit);
+
+MODULE_AUTHOR("Michael Hennerich");
+MODULE_DESCRIPTION("Keypad input driver for 16 keys connected to PCF8574");
+MODULE_LICENSE("GPL");
