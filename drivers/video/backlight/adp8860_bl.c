@@ -88,7 +88,7 @@
 struct adp8860_led {
 	struct led_classdev	cdev;
 	struct work_struct	work;
-	struct i2c_client 	*client;
+	struct i2c_client	*client;
 	enum led_brightness	new_brightness;
 	int			id;
 	int			flags;

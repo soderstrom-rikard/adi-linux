@@ -2,13 +2,16 @@
  * Definitions and platform data for Analog Devices
  * Backlight drivers ADP8860
  *
- * Copyright 2010 Analog Devices Inc.
+ * Copyright 2009-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
 
 #ifndef __LINUX_I2C_ADP8860_H
 #define __LINUX_I2C_ADP8860_H
+
+#include <linux/leds.h>
+#include <linux/types.h>
 
 #define ID_ADP8860		8860
 
@@ -66,33 +69,33 @@
 #define ADP8860_FADE_T_5000ms	14
 #define ADP8860_FADE_T_5500ms	15	/* 5.5 Sec */
 
-#define ADP8860_FADE_LAW_LINEAR 	0
-#define ADP8860_FADE_LAW_SQUARE 	1
-#define ADP8860_FADE_LAW_CUBIC1 	2
-#define ADP8860_FADE_LAW_CUBIC2 	3
+#define ADP8860_FADE_LAW_LINEAR	0
+#define ADP8860_FADE_LAW_SQUARE	1
+#define ADP8860_FADE_LAW_CUBIC1	2
+#define ADP8860_FADE_LAW_CUBIC2	3
 
-#define ADP8860_BL_AMBL_FILT_80ms 	0	/* Light sensor filter time */
-#define ADP8860_BL_AMBL_FILT_160ms 	1
-#define ADP8860_BL_AMBL_FILT_320ms 	2
-#define ADP8860_BL_AMBL_FILT_640ms 	3
-#define ADP8860_BL_AMBL_FILT_1280ms 	4
-#define ADP8860_BL_AMBL_FILT_2560ms 	5
-#define ADP8860_BL_AMBL_FILT_5120ms 	6
-#define ADP8860_BL_AMBL_FILT_10240ms 	7	/* 10.24 sec */
+#define ADP8860_BL_AMBL_FILT_80ms	0	/* Light sensor filter time */
+#define ADP8860_BL_AMBL_FILT_160ms	1
+#define ADP8860_BL_AMBL_FILT_320ms	2
+#define ADP8860_BL_AMBL_FILT_640ms	3
+#define ADP8860_BL_AMBL_FILT_1280ms	4
+#define ADP8860_BL_AMBL_FILT_2560ms	5
+#define ADP8860_BL_AMBL_FILT_5120ms	6
+#define ADP8860_BL_AMBL_FILT_10240ms	7	/* 10.24 sec */
 
-	/*
-	 * Blacklight current 0..30mA
-	 */
+/*
+ * Blacklight current 0..30mA
+ */
 #define ADP8860_BL_CUR_mA(I)		((I * 127) / 30)
 
-	/*
-	 * L2 comparator current 0..1106uA
-	 */
+/*
+ * L2 comparator current 0..1106uA
+ */
 #define ADP8860_L2_COMP_CURR_uA(I)	((I * 255) / 1106)
 
-	/*
-	 * L3 comparator current 0..138uA
-	 */
+/*
+ * L3 comparator current 0..138uA
+ */
 #define ADP8860_L3_COMP_CURR_uA(I)	((I * 255) / 138)
 
 struct adp8860_backlight_platform_data {
