@@ -3,3 +3,10 @@
 #
 comment "Active energy metering IC"
 
+config ADE7754
+	tristate "Analog Devices ADE7754 Polyphase Multifunction Energy Metering IC Driver"
+	depends on SPI
+	help
+	  Say yes here to build support for Analog Devices ADE7754 Polyphase
+	  Multifunction Energy Metering IC Driver.
+

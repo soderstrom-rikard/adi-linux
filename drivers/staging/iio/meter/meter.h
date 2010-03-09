@@ -122,8 +122,26 @@
 #define IIO_DEV_ATTR_PHCAL(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(phcal, _mode, _show, _store, _addr)
 
+#define IIO_DEV_ATTR_APHCAL(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(aphcal, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_BPHCAL(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(bphcal, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CPHCAL(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(cphcal, _mode, _show, _store, _addr)
+
 #define IIO_DEV_ATTR_APOS(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(apos, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_AAPOS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(aapos, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_BAPOS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(bapos, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CAPOS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(capos, _mode, _show, _store, _addr)
 
 #define IIO_DEV_ATTR_WGAIN(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(wgain, _mode, _show, _store, _addr)
@@ -142,6 +160,42 @@
 
 #define IIO_DEV_ATTR_VRMS(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(vrms, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_AIRMS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(airms, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_BIRMS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(birms, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CIRMS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(cirms, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_AVRMS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(avrms, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_BVRMS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(bvrms, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CVRMS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(cvrms, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_AIRMSOS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(airmsos, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_BIRMSOS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(birmsos, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CIRMSOS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(cirmsos, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_AVRMSOS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(avrmsos, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_BVRMSOS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(bvrmsos, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CVRMSOS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(cvrmsos, _mode, _show, _store, _addr)
 
 #define IIO_DEV_ATTR_VAGAIN(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(vagain, _mode, _show, _store, _addr)
@@ -164,20 +218,20 @@
 #define IIO_DEV_ATTR_VPKLVL(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(vpklvl, _mode, _show, _store, _addr)
 
-#define IIO_DEV_ATTR_IPEAK(_show, _addr)			\
-	IIO_DEVICE_ATTR(ipeak, S_IRUGO, _show, NULL, _addr)
+#define IIO_DEV_ATTR_IPEAK(_mode, _show, _store, _addr)			\
+	IIO_DEVICE_ATTR(ipeak, _mode, _show, _store, _addr)
 
-#define IIO_DEV_ATTR_RIPEAK(_show, _addr)			\
-	IIO_DEVICE_ATTR(ripeak, S_IRUGO, _show, NULL, _addr)
+#define IIO_DEV_ATTR_RIPEAK(_mode, _show, _store, _addr)			\
+	IIO_DEVICE_ATTR(ripeak, _mode, _show, _store, _addr)
 
-#define IIO_DEV_ATTR_VPEAK(_show, _addr)			\
-	IIO_DEVICE_ATTR(vpeak, S_IRUGO, _show, NULL, _addr)
+#define IIO_DEV_ATTR_VPEAK(_mode, _show, _store, _addr)			\
+	IIO_DEVICE_ATTR(vpeak, _mode, _show, _store, _addr)
 
-#define IIO_DEV_ATTR_RVPEAK(_show, _addr)			\
-	IIO_DEVICE_ATTR(rvpeak, S_IRUGO, _show, NULL, _addr)
+#define IIO_DEV_ATTR_RVPEAK(_mode, _show, _store, _addr)			\
+	IIO_DEVICE_ATTR(rvpeak, _mode, _show, _store, _addr)
 
-#define IIO_DEV_ATTR_VPERIOD(_show, _addr)			\
-	IIO_DEVICE_ATTR(vperiod, S_IRUGO, _show, NULL, _addr)
+#define IIO_DEV_ATTR_VPERIOD(_mode, _show, _store, _addr)			\
+	IIO_DEVICE_ATTR(vperiod, _mode, _show, _store, _addr)
 
 /* active energy register, AENERGY, is more than half full */
 #define IIO_EVENT_ATTR_AENERGY_HALF_FULL(_evlist, _show, _store, _mask) \
