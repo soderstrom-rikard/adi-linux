@@ -12,7 +12,7 @@
 
 #ifndef __ASSEMBLY__
 
-#if defined(CONFIG_FRAME_POINTER)
+#ifdef CONFIG_FRAME_POINTER
 #include <linux/mm.h>
 
 extern inline void *return_address(unsigned int level)
@@ -24,16 +24,16 @@ extern inline void *return_address(unsigned int level)
 		return __builtin_return_address(0);
 
 	fp = (unsigned long *)__builtin_frame_address(0);
-	endstack = (unsigned long *)PAGE_ALIGN((unsigned int)&level);
+	endstack = (unsigned long *)PAGE_ALIGN((unsigned long)&level);
 
-	while (((unsigned int)fp & 0x3) == 0 && fp
-			&& (fp + 1) < endstack && current_level < level) {
+	while (((unsigned long)fp & 0x3) == 0 && fp &&
+	       (fp + 1) < endstack && current_level < level) {
 		fp = (unsigned long *)*fp;
 		current_level++;
 	}
 
-	if (((unsigned int)fp & 0x3) == 0 && fp
-			&& (fp + 1) < endstack)
+	if (((unsigned long)fp & 0x3) == 0 && fp &&
+	    (fp + 1) < endstack)
 		ret_addr = (unsigned long *)*(fp + 1);
 	else
 		ret_addr = NULL;
