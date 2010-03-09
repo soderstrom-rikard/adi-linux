@@ -161,7 +161,7 @@
 #define IRQ_MAC_STMDONE		126 /* Station Mgt. Transfer Done Interrupt */
 
 #define NR_MACH_IRQS	(IRQ_MAC_STMDONE + 1)
-#define NR_IRQS     	(NR_MACH_IRQS + NR_SPARE_IRQS)
+#define NR_IRQS		(NR_MACH_IRQS + NR_SPARE_IRQS)
 
 #define IVG7            7
 #define IVG8            8
