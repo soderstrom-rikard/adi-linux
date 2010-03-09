@@ -70,6 +70,8 @@
 
 #ifndef __ASSEMBLY__
 
+#include <linux/compiler.h>
+
 /***********************************************************
 *
 * FUNCTIONS: Blackfin General Purpose Ports Access Functions
