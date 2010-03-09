@@ -2255,13 +2255,19 @@ static struct platform_device adp150_userspace_consumer_device = {
 
 #if defined(CONFIG_IIO_GPIO_TRIGGER) || \
 	defined(CONFIG_IIO_GPIO_TRIGGER_MODULE)
-static const unsigned iio_gpio_trigger_pdata[] = {GPIO_PF5};
+
+static struct resource iio_gpio_trigger_resources[] = {
+	[0] = {
+		.start  = IRQ_PF5,
+		.end    = IRQ_PF5,
+		.flags  = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWEDGE,
+	},
+};
+
 static struct platform_device iio_gpio_trigger = {
 	.name = "iio_gpio_trigger",
-	.id = 0,
-	.dev = {
-		.platform_data = &iio_gpio_trigger_pdata,
-	},
+	.num_resources = ARRAY_SIZE(iio_gpio_trigger_resources),
+	.resource = iio_gpio_trigger_resources,
 };
 #endif
 
