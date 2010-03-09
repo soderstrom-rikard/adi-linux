@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2010 Analog Devices Inc.
+ * Copyright 2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2
  */
