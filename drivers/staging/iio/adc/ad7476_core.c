@@ -71,11 +71,11 @@ static ssize_t ad7476_show_scan_mode(struct device *dev,
 }
 
 
-IIO_DEV_ATTR_AVAIL_SCAN_MODES(ad7476_show_scan_mode);
-IIO_DEV_ATTR_SCAN_MODE(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_AVAIL_SCAN_MODES(ad7476_show_scan_mode);
+static IIO_DEV_ATTR_SCAN_MODE(S_IRUGO | S_IWUSR,
 		       ad7476_show_scan_mode, NULL);
 
-IIO_DEV_ATTR_SCAN(ad7476_scan);
+static IIO_DEV_ATTR_SCAN(ad7476_scan);
 
 static ssize_t ad7476_show_name(struct device *dev,
 				 struct device_attribute *attr,
@@ -84,7 +84,7 @@ static ssize_t ad7476_show_name(struct device *dev,
 	return sprintf(buf, "%s\n", CHIP_NAME);
 }
 
-IIO_DEVICE_ATTR(name, S_IRUGO, ad7476_show_name, NULL, 0);
+static IIO_DEVICE_ATTR(name, S_IRUGO, ad7476_show_name, NULL, 0);
 
 /*name export */
 

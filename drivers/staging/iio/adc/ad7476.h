@@ -21,7 +21,6 @@ struct ad7476_state {
 	unsigned char 			data[2];
 };
 
-#define SCAN_MODE "s0"
 #define CHIP_NAME "AD7876/7/8"
 
 #ifdef CONFIG_IIO_RING_BUFFER
