@@ -89,6 +89,8 @@ struct adp5588_kpad_platform_data {
 	unsigned short unlock_key2;	/* Unlock Key 2 */
 };
 
+struct i2c_client; /* forward declaration */
+
 struct adp5588_gpio_platform_data {
 	unsigned gpio_start;		/* GPIO Chip base # */
 	unsigned pullup_dis_mask;	/* Pull-Up Disable Mask */
