@@ -371,7 +371,7 @@ static int adp8860_bl_get_brightness(struct backlight_device *bl)
 	return data->current_brightness;
 }
 
-static struct backlight_ops adp8860_bl_ops = {
+static const struct backlight_ops adp8860_bl_ops = {
 	.update_status	= adp8860_bl_update_status,
 	.get_brightness	= adp8860_bl_get_brightness,
 };
