@@ -113,6 +113,33 @@
 #define IIO_DEV_ATTR_LVARENERGY(_show, _addr)			\
 	IIO_DEVICE_ATTR(lvarenergy, S_IRUGO, _show, NULL, _addr)
 
+#define IIO_DEV_ATTR_AWATTHR(_show, _addr)			\
+	IIO_DEVICE_ATTR(awatthr, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_BWATTHR(_show, _addr)			\
+	IIO_DEVICE_ATTR(bwatthr, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_CWATTHR(_show, _addr)			\
+	IIO_DEVICE_ATTR(cwatthr, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_AVARHR(_show, _addr)			\
+	IIO_DEVICE_ATTR(avarhr, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_BVARHR(_show, _addr)			\
+	IIO_DEVICE_ATTR(bvarhr, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_CVARHR(_show, _addr)			\
+	IIO_DEVICE_ATTR(cvarhr, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_AVAHR(_show, _addr)			\
+	IIO_DEVICE_ATTR(avahr, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_BVAHR(_show, _addr)			\
+	IIO_DEVICE_ATTR(bvahr, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_CVAHR(_show, _addr)			\
+	IIO_DEVICE_ATTR(cvahr, S_IRUGO, _show, NULL, _addr)
+
 #define IIO_DEV_ATTR_IOS(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(ios, _mode, _show, _store, _addr)
 
@@ -142,6 +169,24 @@
 
 #define IIO_DEV_ATTR_CAPOS(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(capos, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_AVRMSGAIN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(avrmsgain, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_BVRMSGAIN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(bvrmsgain, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CVRMSGAIN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(cvrmsgain, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_AIGAIN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(aigain, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_BIGAIN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(bigain, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CIGAIN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(cigain, _mode, _show, _store, _addr)
 
 #define IIO_DEV_ATTR_WGAIN(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(wgain, _mode, _show, _store, _addr)
