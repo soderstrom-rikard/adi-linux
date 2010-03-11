@@ -540,3 +540,23 @@ void panic_cplb_error(int cplb_panic, struct pt_regs *fp)
 	dump_stack();
 	panic("Unrecoverable event");
 }
+
+#ifdef CONFIG_BUG
+int is_valid_bugaddr(unsigned long addr)
+{
+	unsigned short opcode;
+
+	if (!get_instruction(&opcode, (unsigned short *)addr))
+		return 0;
+
+	return opcode == BFIN_BUG_OPCODE;
+}
+#endif
+
+/* stub this out */
+#ifndef CONFIG_DEBUG_VERBOSE
+void show_regs(struct pt_regs *fp)
+{
+
+}
+#endif
