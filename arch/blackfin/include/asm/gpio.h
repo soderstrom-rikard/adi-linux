@@ -167,9 +167,9 @@ int bfin_special_gpio_request(unsigned gpio, const char *label);
 #endif
 
 #ifdef CONFIG_PM
-u32 bfin_pm_standby_ctrl(unsigned ctrl);
+int bfin_pm_standby_ctrl(unsigned ctrl);
 
-static inline unsigned int bfin_pm_standby_setup(void)
+static inline int bfin_pm_standby_setup(void)
 {
 	return bfin_pm_standby_ctrl(1);
 }

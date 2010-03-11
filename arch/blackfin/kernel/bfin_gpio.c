@@ -531,7 +531,7 @@ int gpio_pm_wakeup_ctrl(unsigned gpio, unsigned ctrl)
 	return 0;
 }
 
-u32 bfin_pm_standby_ctrl(unsigned ctrl)
+int bfin_pm_standby_ctrl(unsigned ctrl)
 {
 	u16 bank, mask, i;
 
@@ -606,7 +606,7 @@ void bfin_gpio_pm_hibernate_restore(void)
 #else /* CONFIG_BF54x */
 #ifdef CONFIG_PM
 
-u32 bfin_pm_standby_ctrl(unsigned ctrl)
+int bfin_pm_standby_ctrl(unsigned ctrl)
 {
 	return 0;
 }
