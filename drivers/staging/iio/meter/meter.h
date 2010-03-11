@@ -56,6 +56,9 @@
 #define IIO_DEV_ATTR_APPARENT_POWER_C_GAIN(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(apparent_power_c_gain, _mode, _show, _store, _addr)
 
+#define IIO_DEV_ATTR_ACTIVE_POWER_GAIN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(active_power_gain, _mode, _show, _store, _addr)
+
 #define IIO_DEV_ATTR_ACTIVE_POWER_A_GAIN(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(active_power_a_gain, _mode, _show, _store, _addr)
 
@@ -95,6 +98,9 @@
 #define IIO_DEV_ATTR_AENERGY(_show, _addr)			\
 	IIO_DEVICE_ATTR(aenergy, S_IRUGO, _show, NULL, _addr)
 
+#define IIO_DEV_ATTR_LENERGY(_show, _addr)			\
+	IIO_DEVICE_ATTR(lenergy, S_IRUGO, _show, NULL, _addr)
+
 #define IIO_DEV_ATTR_RAENERGY(_show, _addr)			\
 	IIO_DEVICE_ATTR(raenergy, S_IRUGO, _show, NULL, _addr)
 
@@ -112,6 +118,9 @@
 
 #define IIO_DEV_ATTR_LVARENERGY(_show, _addr)			\
 	IIO_DEVICE_ATTR(lvarenergy, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_CHKSUM(_show, _addr)                       \
+	IIO_DEVICE_ATTR(chksum, S_IRUGO, _show, NULL, _addr)
 
 #define IIO_DEV_ATTR_AWATTHR(_show, _addr)			\
 	IIO_DEVICE_ATTR(awatthr, S_IRUGO, _show, NULL, _addr)
@@ -245,6 +254,9 @@
 #define IIO_DEV_ATTR_VAGAIN(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(vagain, _mode, _show, _store, _addr)
 
+#define IIO_DEV_ATTR_PGA_GAIN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(pga_gain, _mode, _show, _store, _addr)
+
 #define IIO_DEV_ATTR_VADIV(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(vadiv, _mode, _show, _store, _addr)
 
@@ -277,6 +289,9 @@
 
 #define IIO_DEV_ATTR_VPERIOD(_mode, _show, _store, _addr)			\
 	IIO_DEVICE_ATTR(vperiod, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CH_OFF(_num, _mode, _show, _store, _addr)			\
+  IIO_DEVICE_ATTR(choff_##_num, _mode, _show, _store, _addr)
 
 /* active energy register, AENERGY, is more than half full */
 #define IIO_EVENT_ATTR_AENERGY_HALF_FULL(_evlist, _show, _store, _mask) \
