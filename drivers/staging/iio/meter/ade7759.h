@@ -28,8 +28,8 @@
 #define ADE7759_READ_REG(a)    a
 #define ADE7759_WRITE_REG(a) ((a) | 0x80)
 
-#define ADE7759_MAX_TX    4
-#define ADE7759_MAX_RX    4
+#define ADE7759_MAX_TX    6
+#define ADE7759_MAX_RX    6
 #define ADE7759_STARTUP_DELAY 1
 
 #define ADE7759_SPI_SLOW	(u32)(300 * 1000)

@@ -443,7 +443,7 @@ error_ret:
 }
 
 /* Power down the device */
-int ade7758_stop_device(struct device *dev)
+static int ade7758_stop_device(struct device *dev)
 {
 	int ret;
 	u8 val;
