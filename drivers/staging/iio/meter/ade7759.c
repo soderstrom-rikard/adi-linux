@@ -261,12 +261,12 @@ error_ret:
 static int ade7759_reset(struct device *dev)
 {
 	int ret;
-	u8 val;
-	ade7759_spi_read_reg_8(dev,
+	u16 val;
+	ade7759_spi_read_reg_16(dev,
 			ADE7759_MODE,
 			&val);
 	val |= 1 << 6; /* Software Chip Reset */
-	ret = ade7759_spi_write_reg_8(dev,
+	ret = ade7759_spi_write_reg_16(dev,
 			ADE7759_MODE,
 			val);
 
@@ -362,12 +362,12 @@ error_ret:
 int ade7759_stop_device(struct device *dev)
 {
 	int ret;
-	u8 val;
-	ade7759_spi_read_reg_8(dev,
+	u16 val;
+	ade7759_spi_read_reg_16(dev,
 			ADE7759_MODE,
 			&val);
 	val |= 1 << 4;  /* AD converters can be turned off */
-	ret = ade7759_spi_write_reg_8(dev,
+	ret = ade7759_spi_write_reg_16(dev,
 			ADE7759_MODE,
 			val);
 
@@ -403,16 +403,16 @@ static ssize_t ade7759_read_frequency(struct device *dev,
 		char *buf)
 {
 	int ret, len = 0;
-	u8 t;
+	u16 t;
 	int sps;
-	ret = ade7759_spi_read_reg_8(dev,
+	ret = ade7759_spi_read_reg_16(dev,
 			ADE7759_MODE,
 			&t);
 	if (ret)
 		return ret;
 
 	t = (t >> 3) & 0x3;
-	sps = 26000 / (1 + t);
+	sps = 27900 / (1 + t);
 
 	len = sprintf(buf, "%d SPS\n", sps);
 	return len;
@@ -427,7 +427,7 @@ static ssize_t ade7759_write_frequency(struct device *dev,
 	struct ade7759_state *st = iio_dev_get_devdata(indio_dev);
 	unsigned long val;
 	int ret;
-	u8 reg, t;
+	u16 reg, t;
 
 	ret = strict_strtol(buf, 10, &val);
 	if (ret)
@@ -444,7 +444,7 @@ static ssize_t ade7759_write_frequency(struct device *dev,
 	else
 		st->us->max_speed_hz = ADE7759_SPI_FAST;
 
-	ret = ade7759_spi_read_reg_8(dev,
+	ret = ade7759_spi_read_reg_16(dev,
 			ADE7759_MODE,
 			&reg);
 	if (ret)
@@ -453,7 +453,7 @@ static ssize_t ade7759_write_frequency(struct device *dev,
 	reg &= ~(3 << 13);
 	reg |= t << 13;
 
-	ret = ade7759_spi_write_reg_8(dev,
+	ret = ade7759_spi_write_reg_16(dev,
 			ADE7759_MODE,
 			reg);
 
@@ -463,8 +463,8 @@ out:
 	return ret ? ret : len;
 }
 static IIO_DEV_ATTR_TEMP(ade7759_read_8bit);
-static IIO_CONST_ATTR(temp_offset, "129 C");
-static IIO_CONST_ATTR(temp_scale, "4 C");
+static IIO_CONST_ATTR(temp_offset, "70 C");
+static IIO_CONST_ATTR(temp_scale, "1 C");
 
 static IIO_DEV_ATTR_SAMP_FREQ(S_IWUSR | S_IRUGO,
 		ade7759_read_frequency,
