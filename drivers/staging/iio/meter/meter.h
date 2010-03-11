@@ -233,6 +233,12 @@
 #define IIO_DEV_ATTR_CVRMS(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(cvrms, _mode, _show, _store, _addr)
 
+#define IIO_DEV_ATTR_IRMSOS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(irmsos, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_VRMSOS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(vrmsos, _mode, _show, _store, _addr)
+
 #define IIO_DEV_ATTR_AIRMSOS(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(airmsos, _mode, _show, _store, _addr)
 
