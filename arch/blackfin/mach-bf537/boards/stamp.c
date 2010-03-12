@@ -1881,6 +1881,20 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	},
 #endif
 
+#if defined(CONFIG_ADT75) || defined(CONFIG_ADT75_MODULE)
+	{
+		I2C_BOARD_INFO("adt75", 0x9),
+		.irq = IRQ_PG5,
+		/*
+		 * platform_data pointer is borrwoed by the driver to
+		 * store custimer defined IRQ ALART level mode.
+		 * only IRQF_TRIGGER_HIGH and IRQF_TRIGGER_LOW are valid.
+		 */
+		.platform_data = (void *)IRQF_TRIGGER_LOW,
+	},
+#endif
+
+
 #if defined(CONFIG_BFIN_TWI_LCD) || defined(CONFIG_BFIN_TWI_LCD_MODULE)
 	{
 		I2C_BOARD_INFO("pcf8574_lcd", 0x22),
