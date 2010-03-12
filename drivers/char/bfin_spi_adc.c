@@ -46,9 +46,9 @@
 #include <linux/spinlock.h>
 #include <linux/dma-mapping.h>
 
-#define CMD_SPI_SET_BAUDRATE         2
-#define CMD_SPI_GET_SYSTEMCLOCK      25
-#define CMD_SPI_SET_WRITECONTINUOUS  26
+#define CMD_SPI_SET_BAUDRATE  		_IOW('f', 0, unsigned long)
+#define CMD_SPI_GET_SYSTEMCLOCK   	_IOR('f', 1, unsigned long)
+#define CMD_SPI_SET_WRITECONTINUOUS     _IOW('f', 2, unsigned long)
 
 struct spi_adc {
 	int             opened;
