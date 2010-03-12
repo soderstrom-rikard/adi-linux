@@ -1992,3 +1992,22 @@ int nommu_shrink_inode_mappings(struct inode *inode, size_t size,
 	up_write(&nommu_region_sem);
 	return 0;
 }
+
+int map_kernel_range_noflush(unsigned long addr, unsigned long size,
+					pgprot_t prot, struct page **pages)
+{
+}
+
+void unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
+{
+}
+
+struct vm_struct **pcpu_get_vm_areas(const unsigned long *offsets,
+					const size_t *sizes, int nr_vms,
+						size_t align, gfp_t gfp_mask)
+{
+}
+
+void pcpu_free_vm_areas(struct vm_struct **vms, int nr_vms)
+{
+}
