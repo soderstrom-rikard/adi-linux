@@ -53,6 +53,7 @@
  */
 #define AD7416_VALUE_MASK	0xFFC0
 #define AD7416_VALUE_OFFSET	6
+#define AD7416_TEMP_OFFSET	7
 
 
 /*
@@ -245,7 +246,7 @@ static ssize_t ad7416_show_value(struct device *dev,
 		value = (s16)be16_to_cpu(data);
 		value >>= AD7416_VALUE_OFFSET;
 
-		return sprintf(buf, "%d.%d\n", (value >> 2),
+		return sprintf(buf, "%d.%.2d\n", (value >> 2),
 			 (value & 3) * 25);
 	} else {
 		ret = ad7416_i2c_read(chip, AD7416_ADC_VALUE, (u8 *)&data);
@@ -427,14 +428,14 @@ static inline ssize_t ad7416_show_t_bound(struct device *dev,
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad7416_chip_info *chip = dev_info->dev_data;
-	char value;
+	s8 value;
 	int ret;
 
 	ret = ad7416_i2c_read(chip, bound_reg, &value);
 	if (ret)
 		return -EIO;
 
-	return sprintf(buf, "%d\n", value);
+	return sprintf(buf, "%d\n", value >> (AD7416_TEMP_OFFSET + 1));
 }
 
 static inline ssize_t ad7416_set_t_bound(struct device *dev,
@@ -445,15 +446,18 @@ static inline ssize_t ad7416_set_t_bound(struct device *dev,
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad7416_chip_info *chip = dev_info->dev_data;
-	unsigned long data;
+	long value;
+	s16 data;
 	int ret;
 
-	ret = strict_strtoul(buf, 10, &data);
+	ret = strict_strtol(buf, 10, &value);
 
-	if (ret)
+	if (ret || value > 127 || value < -128)
 		return -EINVAL;
+	value <<= (AD7416_TEMP_OFFSET + 1);
+	data = cpu_to_be16((s16)value);
 
-	ret = ad7416_i2c_write(chip, bound_reg, (s8)data);
+	ret = ad7416_i2c_write(chip, bound_reg, (u8)data);
 	if (ret)
 		return -EIO;
 
