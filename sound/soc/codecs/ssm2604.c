@@ -511,9 +511,9 @@ static int ssm2604_remove(struct platform_device *pdev)
 }
 
 struct snd_soc_codec_device soc_codec_dev_ssm2604 = {
-	.probe = 	ssm2604_probe,
-	.remove = 	ssm2604_remove,
-	.suspend = 	ssm2604_suspend,
+	.probe =	ssm2604_probe,
+	.remove =	ssm2604_remove,
+	.suspend =	ssm2604_suspend,
 	.resume =	ssm2604_resume,
 };
 EXPORT_SYMBOL_GPL(soc_codec_dev_ssm2604);
