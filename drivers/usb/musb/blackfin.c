@@ -204,9 +204,9 @@ static void musb_conn_timer_handler(unsigned long _musb)
 		val = musb_readw(musb->mregs, MUSB_DEVCTL);
 		val &= ~MUSB_DEVCTL_SESSION;
 		musb_writew(musb->mregs, MUSB_DEVCTL, val);
-		val = musb_readw(musb->mregs, MUSB_DEVCTL);
 		val |= MUSB_DEVCTL_SESSION;
 		musb_writew(musb->mregs, MUSB_DEVCTL, val);
+		/* Check if musb is host or peripheral. */
 		val = musb_readw(musb->mregs, MUSB_DEVCTL);
 
 		if (!(val & MUSB_DEVCTL_BDEVICE)) {
