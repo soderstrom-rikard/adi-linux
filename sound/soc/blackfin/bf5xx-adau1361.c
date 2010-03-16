@@ -77,7 +77,7 @@ static int bf5xx_adau1361_hw_params(struct snd_pcm_substream *substream,
 		return ret;
 
 	/* codec PLL input is PCLK/4 */
-	ret = codec_dai->ops->set_pll(codec_dai, 0, pll_in, pll_out);
+	ret = codec_dai->ops->set_pll(codec_dai, 0, 0, pll_in, pll_out);
 	if (ret < 0)
 		return ret;
 

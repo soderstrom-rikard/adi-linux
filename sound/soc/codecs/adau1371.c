@@ -501,7 +501,6 @@ static int adau1371_add_widgets(struct snd_soc_codec *codec)
 
 	snd_soc_dapm_add_routes(codec, audio_conn, ARRAY_SIZE(audio_conn));
 
-	snd_soc_dapm_new_widgets(codec);
 	return 0;
 }
 
@@ -974,17 +973,6 @@ static int adau1371_probe(struct platform_device *pdev)
 	snd_soc_add_controls(codec, adau1371_snd_controls,
 			     ARRAY_SIZE(adau1371_snd_controls));
 	adau1371_add_widgets(codec);
-	ret = snd_soc_init_card(socdev);
-	if (ret < 0) {
-		dev_err(codec->dev, "failed to register card: %d\n", ret);
-		goto card_err;
-	}
-
-	return ret;
-
-card_err:
-	snd_soc_free_pcms(socdev);
-	snd_soc_dapm_free(socdev);
 pcm_err:
 
 	return ret;

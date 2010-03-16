@@ -225,8 +225,6 @@ static int adau1381_add_widgets(struct snd_soc_codec *codec)
 				  ARRAY_SIZE(adau1381_dapm_widgets));
 
 	snd_soc_dapm_add_routes(codec, audio_conns, ARRAY_SIZE(audio_conns));
-
-	snd_soc_dapm_new_widgets(codec);
 	return 0;
 }
 
@@ -497,7 +495,7 @@ static int adau1381_set_dai_fmt(struct snd_soc_dai *codec_dai,
  * Clock after PLL and dividers
  */
 static int adau1381_set_dai_sysclk(struct snd_soc_dai *codec_dai,
-		int clk_id, unsigned int freq, int dir)
+		int clk_id, int source, unsigned int freq, int dir)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
 	struct adau1381_priv *adau1381 = codec->private_data;
@@ -742,17 +740,6 @@ static int adau1381_probe(struct platform_device *pdev)
 	snd_soc_add_controls(codec, adau1381_snd_controls,
 			     ARRAY_SIZE(adau1381_snd_controls));
 	adau1381_add_widgets(codec);
-	ret = snd_soc_init_card(socdev);
-	if (ret < 0) {
-		dev_err(codec->dev, "failed to register card: %d\n", ret);
-		goto card_err;
-	}
-
-	return ret;
-
-card_err:
-	snd_soc_free_pcms(socdev);
-	snd_soc_dapm_free(socdev);
 pcm_err:
 	return ret;
 }
