@@ -1,10 +1,12 @@
 /* The fake debug assert instructions
  *
- * Copyright 2004-2009 Analog Devices Inc.
+ * Copyright 2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later
  */
 
+#include <linux/types.h>
+#include <linux/kernel.h>
 #include <linux/ptrace.h>
 
 #define PseudoDbg_Assert_opcode         0xf0000000
@@ -54,5 +56,6 @@ bool execute_pseudodbg_assert(struct pt_regs *fp, unsigned int opcode)
 		}
 	}
 
+	fp->pc += 4;
 	return true;
 }

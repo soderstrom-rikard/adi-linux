@@ -14,9 +14,7 @@
 #include <linux/irq.h>
 #include <asm/trace.h>
 #include <asm/fixed_code.h>
-#ifdef CONFIG_BFIN_PSEUDO_DBGA
 #include <asm/pseudo_instructions.h>
-#endif
 
 #ifdef CONFIG_KGDB
 # include <linux/kgdb.h>
@@ -211,10 +209,8 @@ asmlinkage notrace void trap_c(struct pt_regs *fp)
 		 * Don't support these instructions inside the kernel
 		 */
 		if (!kernel_mode_regs(fp) && get_instruction(&opcode, (unsigned short *)fp->pc)) {
-			if (execute_pseudodbg_assert(fp, opcode)) {
-				fp->pc += 4;
+			if (execute_pseudodbg_assert(fp, opcode))
 				goto traps_done;
-			}
 		}
 #endif
 		info.si_code = ILL_ILLOPC;
