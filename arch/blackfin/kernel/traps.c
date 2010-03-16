@@ -14,6 +14,9 @@
 #include <linux/irq.h>
 #include <asm/trace.h>
 #include <asm/fixed_code.h>
+#ifdef CONFIG_BFIN_PSEUDO_DBGA
+#include <asm/pseudo_instructions.h>
+#endif
 
 #ifdef CONFIG_KGDB
 # include <linux/kgdb.h>
@@ -65,6 +68,9 @@ asmlinkage notrace void trap_c(struct pt_regs *fp)
 {
 #ifdef CONFIG_DEBUG_BFIN_HWTRACE_ON
 	int j;
+#endif
+#ifdef CONFIG_BFIN_PSEUDO_DBGA
+	int opcode;
 #endif
 	unsigned int cpu = raw_smp_processor_id();
 	const char *strerror = NULL;
@@ -195,6 +201,19 @@ asmlinkage notrace void trap_c(struct pt_regs *fp)
 				 * off at this point, so it won't be clobbered
 				 */
 				panic("BUG()");
+			}
+		}
+#endif
+#ifdef CONFIG_BFIN_PSEUDO_DBGA
+		/*
+		 * Support for the fake instructions, if the instruction fails,
+		 * then just execute a illegal opcode failure (like normal).
+		 * Don't support these instructions inside the kernel
+		 */
+		if (!kernel_mode_regs(fp) && get_instruction(&opcode, (unsigned short *)fp->pc)) {
+			if (execute_pseudodbg_assert(fp, opcode)) {
+				fp->pc += 4;
+				goto traps_done;
 			}
 		}
 #endif
