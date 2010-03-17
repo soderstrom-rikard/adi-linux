@@ -42,7 +42,7 @@
 /*
  * ADT75 masks
  */
-#define ADT75_VALUE_SIGN		12
+#define ADT75_VALUE_SIGN		0x800
 #define ADT75_VALUE_OFFSET		4
 #define ADT75_VALUE_MASK		0xF
 #define ADT75_VALUE_FLOAT_OFFSET	4
@@ -464,7 +464,7 @@ static inline ssize_t adt75_show_t_bound(struct device *dev,
 	data = be16_to_cpu(data) >> ADT75_VALUE_OFFSET;
 	if (data & ADT75_VALUE_SIGN) {
 		/* convert supplement to positive value */
-		data = (1 << ADT75_VALUE_SIGN) - data;
+		data = (ADT75_VALUE_SIGN << 1) - data;
 		sign = '-';
 	}
 
@@ -511,7 +511,7 @@ static inline ssize_t adt75_set_t_bound(struct device *dev,
 	data = (data << ADT75_VALUE_FLOAT_OFFSET) | (tmp2 & ADT75_VALUE_MASK);
 	if (tmp1 < 0)
 		/* convert positive value to supplyment */
-		data = (1 << ADT75_VALUE_SIGN) - data;
+		data = (ADT75_VALUE_SIGN << 1) - data;
 	data <<= ADT75_VALUE_OFFSET;
 	data = cpu_to_be16(data);
 
