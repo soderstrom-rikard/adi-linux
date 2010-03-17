@@ -390,7 +390,7 @@ static int ad193x_register(struct ad193x_priv *ad193x, int bus_type)
 	/* sata delay=1, adc aux mode */
 	snd_soc_write(codec, AD193X_ADC_CTRL1, 0x43);
 	/* pll input: mclki/xi */
-	snd_soc_write(codec, AD193X_PLL_CLK_CTRL0, 0x9D);
+	snd_soc_write(codec, AD193X_PLL_CLK_CTRL0, 0x99); /* mclk=24.576Mhz: 0x9D; mclk=12.288Mhz: 0x99 */
 	snd_soc_write(codec, AD193X_PLL_CLK_CTRL1, 0x04);
 
 	ret = snd_soc_register_codec(codec);
