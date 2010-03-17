@@ -32,7 +32,7 @@ MODULE_DEVICE_TABLE(i2c, ad193x_id);
 
 static struct i2c_driver ad193x_i2c_driver = {
 	.driver = {
-		.name = "ad193x_captouch",
+		.name = "ad193x",
 	},
 	.probe    = ad193x_i2c_probe,
 	.remove   = __devexit_p(ad193x_i2c_remove),
