@@ -42,6 +42,7 @@
 /*
  * ADT75 masks
  */
+#define ADT75_VALUE_SIGN		12
 #define ADT75_VALUE_OFFSET		4
 #define ADT75_VALUE_MASK		0xF
 #define ADT75_VALUE_FLOAT_OFFSET	4
@@ -211,7 +212,7 @@ static ssize_t adt75_show_value(struct device *dev,
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct adt75_chip_info *chip = dev_info->dev_data;
 	u16 data;
-	s16 value;
+	char sign = ' ';
 	int ret;
 
 	if (chip->config & ADT75_PD) {
@@ -230,11 +231,16 @@ static ssize_t adt75_show_value(struct device *dev,
 	if (ret)
 		return -EIO;
 
-	value = (s16)be16_to_cpu(data);
-	value >>= ADT75_VALUE_OFFSET;
+	data = be16_to_cpu(data) >> ADT75_VALUE_OFFSET;
+	if (data & ADT75_VALUE_SIGN) {
+		/* convert supplement to positive value */
+		data = (1 << ADT75_VALUE_SIGN) - data;
+		sign = '-';
+	}
 
-	return sprintf(buf, "%d.%.4d\n", (value >> ADT75_VALUE_FLOAT_OFFSET),
-		 (value & ADT75_VALUE_FLOAT_MASK) * 625);
+	return sprintf(buf, "%c%d.%.4d\n", sign,
+		(data >> ADT75_VALUE_FLOAT_OFFSET),
+		(data & ADT75_VALUE_FLOAT_MASK) * 625);
 }
 
 IIO_DEVICE_ATTR(value, S_IRUGO, adt75_show_value, NULL, 0);
@@ -448,18 +454,23 @@ static inline ssize_t adt75_show_t_bound(struct device *dev,
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct adt75_chip_info *chip = dev_info->dev_data;
 	u16 data;
-	s16 value;
+	char sign = ' ';
 	int ret;
 
 	ret = adt75_i2c_read(chip, bound_reg, (u8 *)&data);
 	if (ret)
 		return -EIO;
 
-	value = (s16)be16_to_cpu(data);
-	value >>= ADT75_VALUE_OFFSET;
+	data = be16_to_cpu(data) >> ADT75_VALUE_OFFSET;
+	if (data & ADT75_VALUE_SIGN) {
+		/* convert supplement to positive value */
+		data = (1 << ADT75_VALUE_SIGN) - data;
+		sign = '-';
+	}
 
-	return sprintf(buf, "%d.%.4d\n", (value >> ADT75_VALUE_FLOAT_OFFSET),
-		 (value & ADT75_VALUE_FLOAT_MASK) * 625);
+	return sprintf(buf, "%c%d.%.4d\n", sign,
+		(data >> ADT75_VALUE_FLOAT_OFFSET),
+		(data & ADT75_VALUE_FLOAT_MASK) * 625);
 }
 
 static inline ssize_t adt75_set_t_bound(struct device *dev,
@@ -470,8 +481,7 @@ static inline ssize_t adt75_set_t_bound(struct device *dev,
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct adt75_chip_info *chip = dev_info->dev_data;
-	unsigned long tmp1, tmp2;
-	s16 value;
+	long tmp1, tmp2;
 	u16 data;
 	char *pos;
 	int ret;
@@ -485,8 +495,8 @@ static inline ssize_t adt75_set_t_bound(struct device *dev,
 
 	if (pos) {
 		len = strlen(pos);
-		if (len > 4)
-			len = 4;
+		if (len > ADT75_VALUE_FLOAT_OFFSET)
+			len = ADT75_VALUE_FLOAT_OFFSET;
 		pos[len] = 0;
 		ret = strict_strtol(pos, 10, &tmp2);
 
@@ -494,10 +504,16 @@ static inline ssize_t adt75_set_t_bound(struct device *dev,
 			tmp2 = (tmp2 / 625) * 625;
 	}
 
-	value = (s16)tmp1;
-	value = (value << ADT75_VALUE_FLOAT_OFFSET) | (tmp2 & ADT75_VALUE_MASK);
-	value <<= ADT75_VALUE_OFFSET;
-	data = cpu_to_be16((u16)value);
+	if (tmp1 < 0)
+		data = (u16)(-tmp1);
+	else
+		data = (u16)tmp1;
+	data = (data << ADT75_VALUE_FLOAT_OFFSET) | (tmp2 & ADT75_VALUE_MASK);
+	if (tmp1 < 0)
+		/* convert positive value to supplyment */
+		data = (1 << ADT75_VALUE_SIGN) - data;
+	data <<= ADT75_VALUE_OFFSET;
+	data = cpu_to_be16(data);
 
 	ret = adt75_i2c_write(chip, bound_reg, (u8)data);
 	if (ret)
