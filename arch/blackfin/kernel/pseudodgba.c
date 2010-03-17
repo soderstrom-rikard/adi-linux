@@ -34,16 +34,27 @@ bool execute_pseudodbg_assert(struct pt_regs *fp, unsigned int opcode)
 	if ((opcode & 0xFF000000) != PseudoDbg_Assert_opcode)
 		return false;
 
-	if (grp != 0)
+	/* Only do Dregs and Pregs for now */
+	if (grp > 1)
 		return false;
 
-	value -= regtest;
+	/*
+	 * Unfortunately, the pt_regs structure is not laid out the same way as the
+	 * hardware register file, so we need to do some fix ups.
+	 */
+	if (grp == 0 || (grp == 1 && regtest < 6))
+		value -= (regtest + 8 * grp);
+	else if (grp == 1 && regtest == 6)
+		value = &fp->usp;
+	else if (grp == 1 && regtest == 7)
+		value = &fp->fp;
 
 	if (dbgop == 0 || dbgop == 2) {
 		/* DBGA ( regs_lo , uimm16 ) */
 		/* DBGAL ( regs , uimm16 ) */
 		if (expected != (*value & 0xFFFF)) {
-			pr_notice("DBGA (R%i.L,%x) failure, got %x\n", regtest, expected, (unsigned int)(*value & 0xFFFF));
+			pr_notice("DBGA (%s%i.L,0x%x) failure, got 0x%x\n", grp ? "P" : "R",
+				regtest, expected, (unsigned int)(*value & 0xFFFF));
 			return false;
 		}
 
@@ -51,7 +62,8 @@ bool execute_pseudodbg_assert(struct pt_regs *fp, unsigned int opcode)
 		/* DBGA ( regs_hi , uimm16 ) */
 		/* DBGAH ( regs , uimm16 ) */
 		if (expected != ((*value >> 16) & 0xFFFF)) {
-			pr_notice("DBGA (R%i.H,%x) failure, got %x\n", regtest, expected, (unsigned int)((*value >> 16) & 0xFFFF));
+			pr_notice("DBGA (%s%i.H,0x%x) failure, got 0x%x\n", grp ? "P" : "R",
+				regtest, expected, (unsigned int)((*value >> 16) & 0xFFFF));
 			return false;
 		}
 	}
