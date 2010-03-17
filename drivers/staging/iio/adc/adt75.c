@@ -95,7 +95,11 @@ static int adt75_i2c_write(struct adt75_chip_info *chip, u8 reg, u8 data)
 	struct i2c_client *client = chip->client;
 	int ret = 0;
 
-	ret = i2c_smbus_write_byte_data(client, reg, data);
+	if (reg == ADT75_CONFIG || reg == ADT75_ONESHOT)
+		ret = i2c_smbus_write_byte_data(client, reg, data);
+	else
+		ret = i2c_smbus_write_word_data(client, reg, data);
+
 	if (ret < 0)
 		dev_err(&client->dev, "I2C write error\n");
 
