@@ -369,7 +369,10 @@ static int ad193x_register(struct ad193x_priv *ad193x, int bus_type)
 
 	memcpy(codec->reg_cache, ad193x_reg, AD193X_NUM_REGS);
 
-	ret = snd_soc_codec_set_cache_io(codec, 16, 8, bus_type);
+	if (bus_type == SND_SOC_I2C)
+		ret = snd_soc_codec_set_cache_io(codec, 8, 8, bus_type);
+	else
+		ret = snd_soc_codec_set_cache_io(codec, 16, 8, bus_type);
 	if (ret < 0) {
 		dev_err(codec->dev, "failed to set cache I/O: %d\n",
 				ret);
