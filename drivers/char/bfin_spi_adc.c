@@ -182,6 +182,12 @@ static int adc_spi_open(struct inode *inode, struct file *filp)
 		return -EMFILE;
 	}
 
+	if (spi_adc.spidev == 0) {
+		spin_unlock_irqrestore(&spiadc_lock, flags);
+		pr_err("spi_adc: SPI driver failed to register\n");
+		return -ENODEV;
+	}
+
 	spi_adc.opened = 1;
 
 	filp->private_data = &spi_adc;
