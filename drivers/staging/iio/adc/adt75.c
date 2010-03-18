@@ -667,7 +667,7 @@ static int __devinit adt75_probe(struct i2c_client *client,
 		ret = adt75_i2c_read(chip, ADT75_CONFIG, &chip->config);
 		if (ret) {
 			ret = -EIO;
-			goto error_unreg_dev;
+			goto error_unreg_irq;
 		}
 
 		if (irq_flags == IRQF_TRIGGER_HIGH)
@@ -678,7 +678,7 @@ static int __devinit adt75_probe(struct i2c_client *client,
 		ret = adt75_i2c_write(chip, ADT75_CONFIG, chip->config);
 		if (ret) {
 			ret = -EIO;
-			goto error_unreg_dev;
+			goto error_unreg_irq;
 		}
 	}
 
@@ -686,7 +686,8 @@ static int __devinit adt75_probe(struct i2c_client *client,
 			 id->name);
 
 	return 0;
-
+error_unreg_irq:
+	iio_unregister_interrupt_line(chip->indio_dev, 0);
 error_unreg_dev:
 	iio_device_unregister(chip->indio_dev);
 error_free_dev:
