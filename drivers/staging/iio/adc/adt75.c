@@ -128,19 +128,21 @@ static ssize_t adt75_store_mode(struct device *dev,
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct adt75_chip_info *chip = dev_info->dev_data;
 	int ret;
+	u8 config;
 
 	ret = adt75_i2c_read(chip, ADT75_CONFIG, &chip->config);
 	if (ret)
 		return -EIO;
 
-	if (strcmp(buf, "full"))
-		chip->config &= ~ADT75_PD;
-	else
-		chip->config |= ADT75_PD;
+	config = chip->config & ~ADT75_PD;
+	if (!strcmp(buf, "full"))
+		config |= ADT75_PD;
 
-	ret = adt75_i2c_write(chip, ADT75_CONFIG, chip->config);
+	ret = adt75_i2c_write(chip, ADT75_CONFIG, config);
 	if (ret)
 		return -EIO;
+
+	chip->config = config;
 
 	return ret;
 }
@@ -178,6 +180,7 @@ static ssize_t adt75_store_oneshot(struct device *dev,
 	struct adt75_chip_info *chip = dev_info->dev_data;
 	unsigned long data = 0;
 	int ret;
+	u8 config;
 
 	ret = strict_strtoul(buf, 10, &data);
 	if (ret)
@@ -188,14 +191,15 @@ static ssize_t adt75_store_oneshot(struct device *dev,
 	if (ret)
 		return -EIO;
 
+	config = chip->config & ~ADT75_ONESHOT;
 	if (data)
-		chip->config |= ADT75_ONESHOT;
-	else
-		chip->config &= ~ADT75_ONESHOT;
+		config |= ADT75_ONESHOT;
 
-	ret = adt75_i2c_write(chip, ADT75_CONFIG, chip->config);
+	ret = adt75_i2c_write(chip, ADT75_CONFIG, config);
 	if (ret)
 		return -EIO;
+
+	chip->config = config;
 
 	return ret;
 }
@@ -330,20 +334,22 @@ static ssize_t adt75_set_oti_mode(struct device *dev,
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct adt75_chip_info *chip = dev_info->dev_data;
 	int ret;
+	u8 config;
 
 	/* retrive ALART status */
 	ret = adt75_i2c_read(chip, ADT75_CONFIG, &chip->config);
 	if (ret)
 		return -EIO;
 
-	if (strcmp(buf, "comparator") == 0)
-		chip->config &= ~ADT75_OS_INT;
-	else
-		chip->config |= ADT75_OS_INT;
+	config = chip->config & ~ADT75_OS_INT;
+	if (strcmp(buf, "comparator") != 0)
+		config |= ADT75_OS_INT;
 
-	ret = adt75_i2c_write(chip, ADT75_CONFIG, chip->config);
+	ret = adt75_i2c_write(chip, ADT75_CONFIG, config);
 	if (ret)
 		return -EIO;
+
+	chip->config = config;
 
 	return ret;
 }
@@ -380,6 +386,7 @@ static ssize_t adt75_set_smbus_alart(struct device *dev,
 	struct adt75_chip_info *chip = dev_info->dev_data;
 	unsigned long data = 0;
 	int ret;
+	u8 config;
 
 	ret = strict_strtoul(buf, 10, &data);
 	if (ret)
@@ -390,14 +397,15 @@ static ssize_t adt75_set_smbus_alart(struct device *dev,
 	if (ret)
 		return -EIO;
 
+	config = chip->config & ~ADT75_SMBUS_ALART;
 	if (data)
-		chip->config |= ADT75_SMBUS_ALART;
-	else
-		chip->config &= ~ADT75_SMBUS_ALART;
+		config |= ADT75_SMBUS_ALART;
 
-	ret = adt75_i2c_write(chip, ADT75_CONFIG, chip->config);
+	ret = adt75_i2c_write(chip, ADT75_CONFIG, config);
 	if (ret)
 		return -EIO;
+
+	chip->config = config;
 
 	return ret;
 }
@@ -428,6 +436,7 @@ static ssize_t adt75_set_fault_queue(struct device *dev,
 	struct adt75_chip_info *chip = dev_info->dev_data;
 	unsigned long data;
 	int ret;
+	u8 config;
 
 	ret = strict_strtoul(buf, 10, &data);
 	if (ret || data > 3)
@@ -438,11 +447,13 @@ static ssize_t adt75_set_fault_queue(struct device *dev,
 	if (ret)
 		return -EIO;
 
-	chip->config &= ~ADT75_FAULT_QUEUE_MASK;
-	chip->config |= (data << ADT75_FAULT_QUEUE_OFFSET);
-	ret = adt75_i2c_write(chip, ADT75_CONFIG, chip->config);
+	config = chip->config & ~ADT75_FAULT_QUEUE_MASK;
+	config |= (data << ADT75_FAULT_QUEUE_OFFSET);
+	ret = adt75_i2c_write(chip, ADT75_CONFIG, config);
 	if (ret)
 		return -EIO;
+
+	chip->config = config;
 
 	return ret;
 }
