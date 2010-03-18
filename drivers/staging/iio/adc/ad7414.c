@@ -361,7 +361,7 @@ static inline ssize_t ad7414_set_temperature_bound(struct device *dev,
 
 	ret = strict_strtol(buf, 10, &data);
 
-	if (ret || data > 127 || data < -127)
+	if (ret || data > 127 || data < -128)
 		return -EINVAL;
 
 	value = (s8)data;
