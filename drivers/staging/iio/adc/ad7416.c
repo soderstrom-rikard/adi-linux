@@ -51,8 +51,9 @@
 /*
  * AD7416 masks
  */
-#define AD7416_VALUE_MASK	0xFFC0
+#define AD7416_VALUE_SIGN	0x200
 #define AD7416_VALUE_OFFSET	6
+#define AD7416_BOUND_VALUE_SIGN	0x100
 #define AD7416_TEMP_OFFSET	7
 
 
@@ -228,7 +229,7 @@ static ssize_t ad7416_show_value(struct device *dev,
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad7416_chip_info *chip = dev_info->dev_data;
 	u16 data;
-	s16 value;
+	char sign = ' ';
 	int ret;
 
 	if (chip->mode) {
@@ -243,21 +244,24 @@ static ssize_t ad7416_show_value(struct device *dev,
 		if (ret)
 			return -EIO;
 
-		value = (s16)be16_to_cpu(data);
-		value >>= AD7416_VALUE_OFFSET;
+		data = be16_to_cpu(data);
+		data >>= AD7416_VALUE_OFFSET;
+		if (data & AD7416_VALUE_SIGN) {
+			data = (AD7416_VALUE_SIGN << 1) - data;
+			sign = '-';
+		}
 
-		return sprintf(buf, "%d.%.2d\n", (value >> 2),
-			 (value & 3) * 25);
+		return sprintf(buf, "%c%d.%.2d\n", sign, (data >> 2),
+			 (data & 3) * 25);
 	} else {
 		ret = ad7416_i2c_read(chip, AD7416_ADC_VALUE, (u8 *)&data);
 		if (ret)
 			return -EIO;
 
-		value = (s16)be16_to_cpu(data);
-		value >>= AD7416_VALUE_OFFSET;
-		value &= AD7416_VALUE_MASK;
+		data = be16_to_cpu(data);
+		data >>= AD7416_VALUE_OFFSET;
 
-		return sprintf(buf, "%d\n", value);
+		return sprintf(buf, "%u\n", data);
 	}
 }
 
@@ -428,14 +432,26 @@ static inline ssize_t ad7416_show_t_bound(struct device *dev,
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad7416_chip_info *chip = dev_info->dev_data;
-	s8 value;
+	u16 data;
+	s16 value;
 	int ret;
 
-	ret = ad7416_i2c_read(chip, bound_reg, &value);
+	ret = ad7416_i2c_read(chip, bound_reg, (u8 *)&data);
 	if (ret)
 		return -EIO;
 
-	return sprintf(buf, "%d\n", value >> (AD7416_TEMP_OFFSET + 1));
+	data = be16_to_cpu(data);
+	data >>= (AD7416_VALUE_OFFSET + 1);
+
+	if (chip->channel_id == 0) {
+		if (data & AD7416_BOUND_VALUE_SIGN) {
+			value = (s16)(data&(~AD7416_BOUND_VALUE_SIGN));
+			value = value - AD7416_BOUND_VALUE_SIGN;
+		}
+
+		return sprintf(buf, "%d\n", value >> 1),
+	} else
+		return sprintf(buf, "%u\n", data);
 }
 
 static inline ssize_t ad7416_set_t_bound(struct device *dev,
@@ -447,16 +463,28 @@ static inline ssize_t ad7416_set_t_bound(struct device *dev,
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad7416_chip_info *chip = dev_info->dev_data;
 	long value;
-	s16 data;
+	u16 data;
 	int ret;
 
-	ret = strict_strtol(buf, 10, &value);
+	if (chip->channel_id == 0) {
+		ret = strict_strtol(buf, 10, &value);
 
-	if (ret || value > 127 || value < -128)
-		return -EINVAL;
-	value <<= (AD7416_TEMP_OFFSET + 1);
-	data = cpu_to_be16((s16)value);
+		if (ret || value < -128 || value > 127)
+			return -EINVAL;
+		if (value < 0)
+			value = (AD7416_BOUND_VALUE_SIGN + value) |
+				AD7416_BOUND_VALUE_SIGN;
 
+		data = (u16)value << 1;
+	} else {
+		ret = strict_strtoul(buf, 10, &data);
+
+		if (ret || data > 511)
+			return -EINVAL;
+	}
+
+	data <<= (AD7416_BOUND_OFFSET + 1);
+	data = cpu_to_be16(data);
 	ret = ad7416_i2c_write(chip, bound_reg, (u8)data);
 	if (ret)
 		return -EIO;
