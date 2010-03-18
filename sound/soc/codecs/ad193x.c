@@ -352,8 +352,6 @@ static int ad193x_register(struct ad193x_priv *ad193x, int bus_type)
 	}
 
 	mutex_init(&codec->mutex);
-	INIT_LIST_HEAD(&codec->dapm_widgets);
-	INIT_LIST_HEAD(&codec->dapm_paths);
 	codec->private_data = ad193x;
 	codec->reg_cache = ad193x->reg_cache;
 	codec->reg_cache_size = AD193X_NUM_REGS;
