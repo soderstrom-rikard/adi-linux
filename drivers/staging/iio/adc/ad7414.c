@@ -42,9 +42,11 @@
 /*
  * AD7414 masks
  */
+#define AD7414_TEMP_SIGN	0x200
 #define AD7414_TEMP_MASK	0xFFC0
 #define AD7414_TEMP_OFFSET	6
 #define AD7414_ALERT_FLAG	0x20
+#define AD7414_T_SIGN		0x80
 #define AD7414_T_HIGH_FLAG	0x10
 #define AD7414_T_LOW_FLAG	0x8
 
@@ -167,7 +169,7 @@ static ssize_t ad7414_show_temperature(struct device *dev,
 	struct ad7414_chip_info *chip = dev_info->dev_data;
 	u8 config;
 	u16 data;
-	s16 value;
+	char sign = ' ';
 	int ret;
 
 	if (chip->mode) {
@@ -184,10 +186,13 @@ static ssize_t ad7414_show_temperature(struct device *dev,
 	if (ret)
 		return -EIO;
 
-	value = (s16)be16_to_cpu(data);
-	value >>= AD7414_TEMP_OFFSET;
+	data = be16_to_cpu(data) >> AD7414_TEMP_OFFSET;
+	if (data & AD7414_TEMP_SIGN) {
+		data = (AD7414_TEMP_SIGN << 1) - data;
+		sign = '-';
+	}
 
-	return sprintf(buf, "%d.%.2d\n", (value >> 2), (value & 3) * 25);
+	return sprintf(buf, "%c%d.%.2d\n", sign, (data >> 2), (data & 3) * 25);
 }
 
 IIO_DEVICE_ATTR(temperature, S_IRUGO, ad7414_show_temperature, NULL, 0);
@@ -329,14 +334,17 @@ static inline ssize_t ad7414_show_temperature_bound(struct device *dev,
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad7414_chip_info *chip = dev_info->dev_data;
-	char value;
+	s8 data;
 	int ret;
 
-	ret = ad7414_i2c_read(chip, bound_reg, &value);
+	ret = ad7414_i2c_read(chip, bound_reg, &data);
 	if (ret)
 		return -EIO;
 
-	return sprintf(buf, "%d\n", value);
+	if (data & AD7414_T_SIGN)
+		data = data&(~AD7414_T_SIGN) - AD7414_T_SIGN;
+
+	return sprintf(buf, "%d\n", data);
 }
 
 static inline ssize_t ad7414_set_temperature_bound(struct device *dev,
@@ -347,15 +355,20 @@ static inline ssize_t ad7414_set_temperature_bound(struct device *dev,
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad7414_chip_info *chip = dev_info->dev_data;
-	unsigned long data;
+	long data;
+	s8 value;
 	int ret;
 
-	ret = strict_strtoul(buf, 10, &data);
+	ret = strict_strtol(buf, 10, &data);
 
-	if (ret || data > 127 || data < -128)
+	if (ret || data > 127 || data < -127)
 		return -EINVAL;
 
-	ret = ad7414_i2c_write(chip, bound_reg, (u8)data);
+	value = (s8)data;
+	if (value < 0)
+		value = (AD7414_T_SIGN + value) | AD7414_T_SIGN;
+
+	ret = ad7414_i2c_write(chip, bound_reg, value);
 	if (ret)
 		return -EIO;
 
