@@ -671,7 +671,7 @@ static inline ssize_t adt7408_set_t_bound(struct device *dev,
 
 	ret = strict_strtol(buf, 10, &tmp1);
 
-	if (ret || tmp1 > 127 || tmp1 < -127)
+	if (ret || tmp1 > 127 || tmp1 < -128)
 		return -EINVAL;
 
 	if (pos) {
