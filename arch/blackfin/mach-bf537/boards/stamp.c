@@ -1865,12 +1865,7 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("ad7414", 0x9),
 		.irq = IRQ_PG5,
-		/*
-		 * platform_data pointer is borrwoed by the driver to
-		 * store custimer defined IRQ ALART level mode.
-		 * only IRQF_TRIGGER_HIGH and IRQF_TRIGGER_LOW are valid.
-		 */
-		.platform_data = (void *)IRQF_TRIGGER_LOW,
+		.irq_flags = IRQF_TRIGGER_LOW,
 	},
 #endif
 
@@ -1878,12 +1873,7 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("ad7417", 0xb),
 		.irq = IRQ_PG5,
-		/*
-		 * platform_data pointer is borrwoed by the driver to
-		 * store custimer defined IRQ ALART level mode.
-		 * only IRQF_TRIGGER_HIGH and IRQF_TRIGGER_LOW are valid.
-		 */
-		.platform_data = (void *)IRQF_TRIGGER_LOW,
+		.irq_flags = IRQF_TRIGGER_LOW,
 	},
 #endif
 
@@ -1891,12 +1881,7 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("adt75", 0x9),
 		.irq = IRQ_PG5,
-		/*
-		 * platform_data pointer is borrwoed by the driver to
-		 * store custimer defined IRQ ALART level mode.
-		 * only IRQF_TRIGGER_HIGH and IRQF_TRIGGER_LOW are valid.
-		 */
-		.platform_data = (void *)IRQF_TRIGGER_LOW,
+		.irq_flags = IRQF_TRIGGER_LOW,
 	},
 #endif
 
@@ -1904,12 +1889,7 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("adt7408", 0x18),
 		.irq = IRQ_PG5,
-		/*
-		 * platform_data pointer is borrwoed by the driver to
-		 * store custimer defined IRQ ALART level mode.
-		 * only IRQF_TRIGGER_HIGH and IRQF_TRIGGER_LOW are valid.
-		 */
-		.platform_data = (void *)IRQF_TRIGGER_LOW,
+		.irq_flags = IRQF_TRIGGER_LOW,
 	},
 #endif
 
