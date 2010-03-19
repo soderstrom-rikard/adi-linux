@@ -607,7 +607,7 @@ static int __devinit ad7416_probe(struct i2c_client *client,
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
-				chip->irq_flags,
+				client->irq_flags,
 				chip->name);
 		if (ret)
 			goto error_unreg_dev;
@@ -626,7 +626,7 @@ static int __devinit ad7416_probe(struct i2c_client *client,
 			goto error_unreg_irq;
 		}
 
-		if (chip->irq_flags & IRQF_TRIGGER_HIGH)
+		if (client->irq_flags & IRQF_TRIGGER_HIGH)
 			ret = ad7416_i2c_write(chip, AD7416_CONFIG,
 				config | AD7416_OTI_POLARITY);
 		else
