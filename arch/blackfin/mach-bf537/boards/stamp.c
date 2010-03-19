@@ -1827,6 +1827,13 @@ static struct platform_device ad5398_userspace_consumer_device = {
 #endif
 #endif
 
+#if defined(CONFIG_ADT7410) || defined(CONFIG_ADT7410_MODULE)
+/* INT bound temperature alarm event. line 1 */
+static unsigned long adt7410_platform_data[2] = {
+	IRQ_PG6, IRQF_TRIGGER_LOW,
+};
+#endif
+
 static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 #if defined(CONFIG_SND_SOC_AD193X_I2C) || defined(CONFIG_SND_SOC_AD193X_I2C_MODULE)
 	{
@@ -1892,6 +1899,17 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 		.irq_flags = IRQF_TRIGGER_LOW,
 	},
 #endif
+
+#if defined(CONFIG_ADT7410) || defined(CONFIG_ADT7410_MODULE)
+	{
+		I2C_BOARD_INFO("adt7410", 0x48),
+		/* CT critical temperature event. line 0 */
+		.irq = IRQ_PG5,
+		.irq_flags = IRQF_TRIGGER_LOW,
+		.platform_data = (void *)&adt7410_platform_data,
+	},
+#endif
+
 
 #if defined(CONFIG_BFIN_TWI_LCD) || defined(CONFIG_BFIN_TWI_LCD_MODULE)
 	{
