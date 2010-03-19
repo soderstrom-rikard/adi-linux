@@ -10,6 +10,8 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/device.h>
+#include <linux/i2c.h>
+#include <linux/spi/spi.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -467,6 +469,91 @@ struct snd_soc_codec_device soc_codec_dev_ad193x = {
 	.remove = 	ad193x_remove,
 };
 EXPORT_SYMBOL_GPL(soc_codec_dev_ad193x);
+
+#if defined(CONFIG_SPI_MASTER)
+static int __devinit ad193x_spi_probe(struct spi_device *spi)
+{
+	return ad193x_bus_probe(&spi->dev, spi, SND_SOC_SPI);
+}
+
+static int __devexit ad193x_spi_remove(struct spi_device *spi)
+{
+	return ad193x_bus_remove(&spi->dev);
+}
+
+static struct spi_driver ad193x_spi_driver = {
+	.driver = {
+		.name	= "ad193x",
+		.owner	= THIS_MODULE,
+	},
+	.probe		= ad193x_spi_probe,
+	.remove		= __devexit_p(ad193x_spi_remove),
+};
+#endif
+
+#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
+static const struct i2c_device_id ad193x_id[] = {
+	{ "ad1936", 0 },
+	{ "ad1937", 0 },
+	{ }
+};
+MODULE_DEVICE_TABLE(i2c, ad193x_id);
+
+static int __devinit ad193x_i2c_probe(struct i2c_client *client,
+		const struct i2c_device_id *id)
+{
+	return ad193x_bus_probe(&client->dev, client, SND_SOC_I2C);
+}
+
+static int __devexit ad193x_i2c_remove(struct i2c_client *client)
+{
+	return ad193x_bus_remove(&client->dev);
+}
+
+static struct i2c_driver ad193x_i2c_driver = {
+	.driver = {
+		.name = "ad193x",
+	},
+	.probe    = ad193x_i2c_probe,
+	.remove   = __devexit_p(ad193x_i2c_remove),
+	.id_table = ad193x_id,
+};
+#endif
+
+static int __init ad193x_modinit(void)
+{
+	int ret;
+
+#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
+	ret =  i2c_add_driver(&ad193x_i2c_driver);
+	if (ret != 0) {
+		printk(KERN_ERR "Failed to register AD193X I2C driver: %d\n",
+				ret);
+	}
+#endif
+
+#if defined(CONFIG_SPI_MASTER)
+	ret = spi_register_driver(&ad193x_spi_driver);
+	if (ret != 0) {
+		printk(KERN_ERR "Failed to register AD193X SPI driver: %d\n",
+				ret);
+	}
+#endif
+	return ret;
+}
+module_init(ad193x_modinit);
+
+static void __exit ad193x_modexit(void)
+{
+#if defined(CONFIG_SPI_MASTER)
+	spi_unregister_driver(&ad193x_spi_driver);
+#endif
+
+#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
+	i2c_del_driver(&ad193x_i2c_driver);
+#endif
+}
+module_exit(ad193x_modexit);
 
 MODULE_DESCRIPTION("ASoC ad193x driver");
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
