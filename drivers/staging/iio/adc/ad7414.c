@@ -436,14 +436,7 @@ static int __devinit ad7414_probe(struct i2c_client *client,
 {
 	struct ad7414_chip_info *chip;
 	int ret = 0;
-	unsigned int irq_flags = (unsigned int)client->dev.platform_data;
 	u8 config;
-
-	if (!(irq_flags == IRQF_TRIGGER_HIGH ||
-		irq_flags == IRQF_TRIGGER_LOW)) {
-		dev_err(&client->dev, "Invalid ALART polarity defined.\n");
-		return -EINVAL;
-	}
 
 	chip = kzalloc(sizeof(struct ad7414_chip_info), GFP_KERNEL);
 
@@ -488,7 +481,7 @@ static int __devinit ad7414_probe(struct i2c_client *client,
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
-				irq_flags,
+				chip->irq_flags,
 				chip->name);
 		if (ret)
 			goto error_unreg_dev;
@@ -507,7 +500,7 @@ static int __devinit ad7414_probe(struct i2c_client *client,
 			goto error_unreg_irq;
 		}
 
-		if (irq_flags == IRQF_TRIGGER_HIGH)
+		if (chip->irq_flags & IRQF_TRIGGER_HIGH)
 			ret = ad7414_i2c_write(chip, AD7414_CONFIG,
 				config | AD7414_ALERT_POLARITY);
 		else
