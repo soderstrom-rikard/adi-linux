@@ -64,7 +64,6 @@
  */
 #define ADT7408_BOUND_VALUE_SIGN		0x400
 #define ADT7408_BOUND_VALUE_OFFSET		2
-#define ADT7408_BOUND_VALUE_MASK		0x3
 #define ADT7408_BOUND_VALUE_FLOAT_OFFSET	2
 #define ADT7408_BOUND_VALUE_FLOAT_MASK		0x3
 #define ADT7408_T_VALUE_SIGN			0x1000
@@ -689,7 +688,8 @@ static inline ssize_t adt7408_set_t_bound(struct device *dev,
 		data = (u16)(-tmp1);
 	else
 		data = (u16)tmp1;
-	data = (data << ADT7408_BOUND_VALUE_FLOAT_OFFSET) | (tmp2 & ADT7408_BOUND_VALUE_MASK);
+	data = (data << ADT7408_BOUND_VALUE_FLOAT_OFFSET) |
+		(tmp2 & ADT7408_BOUND_VALUE_FLOAT_MASK);
 	if (tmp1 < 0)
 		/* convert positive value to supplyment */
 		data = (ADT7408_BOUND_VALUE_SIGN << 1) - data;
