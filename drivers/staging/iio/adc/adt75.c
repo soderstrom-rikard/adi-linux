@@ -44,7 +44,6 @@
  */
 #define ADT75_VALUE_SIGN		0x800
 #define ADT75_VALUE_OFFSET		4
-#define ADT75_VALUE_MASK		0xF
 #define ADT75_VALUE_FLOAT_OFFSET	4
 #define ADT75_VALUE_FLOAT_MASK		0xF
 
@@ -519,7 +518,7 @@ static inline ssize_t adt75_set_t_bound(struct device *dev,
 		data = (u16)(-tmp1);
 	else
 		data = (u16)tmp1;
-	data = (data << ADT75_VALUE_FLOAT_OFFSET) | (tmp2 & ADT75_VALUE_MASK);
+	data = (data << ADT75_VALUE_FLOAT_OFFSET) | (tmp2 & ADT75_VALUE_FLOAT_MASK);
 	if (tmp1 < 0)
 		/* convert positive value to supplyment */
 		data = (ADT75_VALUE_SIGN << 1) - data;
