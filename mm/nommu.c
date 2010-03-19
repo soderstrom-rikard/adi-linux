@@ -2007,7 +2007,8 @@ struct vm_struct **pcpu_get_vm_areas(const unsigned long *offsets,
 					const size_t *sizes, int nr_vms,
 						size_t align, gfp_t gfp_mask)
 {
-	panic("Cannot get vmalloc areas from blackfin SMP kernel\n");
+	pr_warning("Cannot get vmalloc areas from blackfin SMP kernel\n");
+	return NULL;
 }
 
 void pcpu_free_vm_areas(struct vm_struct **vms, int nr_vms)
