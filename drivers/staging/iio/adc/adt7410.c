@@ -302,22 +302,20 @@ static ssize_t adt7410_convert_temperature(struct adt7410_chip_info *chip,
 			/* convert supplement to positive value */
 			data = (u16)((ADT7410_T16_VALUE_SIGN << 1) - (u32)data);
 			sign = '-';
-
-			return sprintf(buf, "%c%d.%.7d\n", sign,
+		}
+		return sprintf(buf, "%c%d.%.7d\n", sign,
 				(data >> ADT7410_T16_VALUE_FLOAT_OFFSET),
 				(data & ADT7410_T16_VALUE_FLOAT_MASK) * 78125);
-		}
 	} else {
 		if (data & ADT7410_T13_VALUE_SIGN) {
 			/* convert supplement to positive value */
 			data >>= ADT7410_T13_VALUE_OFFSET;
 			data = (ADT7410_T13_VALUE_SIGN << 1) - data;
 			sign = '-';
-
-			return sprintf(buf, "%c%d.%.4d\n", sign,
+		}
+		return sprintf(buf, "%c%d.%.4d\n", sign,
 				(data >> ADT7410_T13_VALUE_FLOAT_OFFSET),
 				(data & ADT7410_T13_VALUE_FLOAT_MASK) * 625);
-		}
 	}
 }
 
@@ -712,19 +710,32 @@ IIO_EVENT_ATTR_SH(t_crit, iio_event_adt7410,
 IIO_EVENT_ATTR_SH(t_hyst, iio_event_adt7410,
 		adt7410_show_t_hyst, adt7410_set_t_hyst, 0);
 
-static struct attribute *adt7410_event_attributes[] = {
+static struct attribute *adt7410_event_int_attributes[] = {
 	&iio_event_attr_event_mode.dev_attr.attr,
 	&iio_event_attr_available_event_modes.dev_attr.attr,
 	&iio_event_attr_fault_queue.dev_attr.attr,
 	&iio_event_attr_t_alarm_high.dev_attr.attr,
 	&iio_event_attr_t_alarm_low.dev_attr.attr,
+	&iio_event_attr_t_hyst.dev_attr.attr,
+	NULL,
+};
+
+static struct attribute *adt7410_event_ct_attributes[] = {
+	&iio_event_attr_event_mode.dev_attr.attr,
+	&iio_event_attr_available_event_modes.dev_attr.attr,
+	&iio_event_attr_fault_queue.dev_attr.attr,
 	&iio_event_attr_t_crit.dev_attr.attr,
 	&iio_event_attr_t_hyst.dev_attr.attr,
 	NULL,
 };
 
-static struct attribute_group adt7410_event_attribute_group = {
-	.attrs = adt7410_event_attributes,
+static struct attribute_group adt7410_event_attribute_group[ADT7410_IRQS] = {
+	{
+		.attrs = adt7410_event_int_attributes,
+	},
+	{
+		.attrs = adt7410_event_ct_attributes,
+	}
 };
 
 /*
@@ -757,7 +768,7 @@ static int __devinit adt7410_probe(struct i2c_client *client,
 
 	chip->indio_dev->dev.parent = &client->dev;
 	chip->indio_dev->attrs = &adt7410_attribute_group;
-	chip->indio_dev->event_attrs = &adt7410_event_attribute_group;
+	chip->indio_dev->event_attrs = adt7410_event_attribute_group;
 	chip->indio_dev->dev_data = (void *)chip;
 	chip->indio_dev->driver_module = THIS_MODULE;
 	chip->indio_dev->num_interrupt_lines = ADT7410_IRQS;
@@ -788,10 +799,10 @@ static int __devinit adt7410_probe(struct i2c_client *client,
 
 	/* INT bound temperature alarm event. line 1 */
 	if (adt7410_platform_data[0]) {
-		ret = iio_register_interrupt_line(client->irq,
+		ret = iio_register_interrupt_line(adt7410_platform_data[0],
 				chip->indio_dev,
 				1,
-				client->irq_flags,
+				adt7410_platform_data[1],
 				chip->name);
 		if (ret)
 			goto error_unreg_ct_irq;
