@@ -486,7 +486,7 @@ void bfin_serial_rx_dma_timeout(struct bfin_serial_port *uart)
 {
 	int x_pos, pos;
 
-	dma_disable_irq(uart->rx_dma_channel);
+	dma_disable_irq_nosync(uart->rx_dma_channel);
 	spin_lock_bh(&uart->rx_lock);
 
 	/* 2D DMA RX buffer ring is used. Because curr_y_count and
