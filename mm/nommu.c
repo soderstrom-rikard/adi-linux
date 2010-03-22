@@ -1997,6 +1997,7 @@ int nommu_shrink_inode_mappings(struct inode *inode, size_t size,
 int map_kernel_range_noflush(unsigned long addr, unsigned long size,
 					pgprot_t prot, struct page **pages)
 {
+	return size >> PAGE_SHIFT;
 }
 
 void unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
