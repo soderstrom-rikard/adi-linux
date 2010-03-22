@@ -1830,7 +1830,7 @@ static struct platform_device ad5398_userspace_consumer_device = {
 #if defined(CONFIG_ADT7410) || defined(CONFIG_ADT7410_MODULE)
 /* INT bound temperature alarm event. line 1 */
 static unsigned long adt7410_platform_data[2] = {
-	IRQ_PG6, IRQF_TRIGGER_LOW,
+	IRQ_PG4, IRQF_TRIGGER_LOW,
 };
 #endif
 
