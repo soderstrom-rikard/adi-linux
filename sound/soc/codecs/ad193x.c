@@ -302,7 +302,6 @@ int ad193x_bus_probe(struct device *dev, void *ctrl_data, int bus_type)
 
 	return ad193x_register(ad193x, bus_type);
 }
-EXPORT_SYMBOL_GPL(ad193x_bus_probe);
 
 int ad193x_bus_remove(struct device *dev)
 {
@@ -311,7 +310,6 @@ int ad193x_bus_remove(struct device *dev)
 	ad193x_unregister(ad193x);
 	return 0;
 }
-EXPORT_SYMBOL_GPL(ad193x_bus_remove);
 
 static struct snd_soc_dai_ops ad193x_dai_ops = {
 	.hw_params = ad193x_hw_params,
