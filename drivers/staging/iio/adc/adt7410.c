@@ -416,6 +416,7 @@ static int adt7410_interrupt(struct iio_dev *dev_info,
 }
 
 IIO_EVENT_SH(adt7410, &adt7410_interrupt);
+IIO_EVENT_SH(adt7410_ct, &adt7410_interrupt);
 
 static ssize_t adt7410_show_event_mode(struct device *dev,
 		struct device_attribute *attr,
@@ -704,7 +705,7 @@ IIO_EVENT_ATTR_SH(t_alarm_high, iio_event_adt7410,
 		adt7410_show_t_alarm_high, adt7410_set_t_alarm_high, 0);
 IIO_EVENT_ATTR_SH(t_alarm_low, iio_event_adt7410,
 		adt7410_show_t_alarm_low, adt7410_set_t_alarm_low, 0);
-IIO_EVENT_ATTR_SH(t_crit, iio_event_adt7410,
+IIO_EVENT_ATTR_SH(t_crit, iio_event_adt7410_ct,
 		adt7410_show_t_crit, adt7410_set_t_crit, 0);
 IIO_EVENT_ATTR_SH(t_hyst, iio_event_adt7410,
 		adt7410_show_t_hyst, adt7410_set_t_hyst, 0);
@@ -790,7 +791,7 @@ static int __devinit adt7410_probe(struct i2c_client *client,
 		/*
 		 * The event handler list element refer to iio_event_adt7410.
 		 * All event attributes bind to the same event handler.
-		 * So, only register event handler once.
+		 * One event handler can only be added to one event list.
 		 */
 		iio_add_event_to_list(&iio_event_adt7410,
 				&chip->indio_dev->interrupts[0]->ev_list);
@@ -809,9 +810,9 @@ static int __devinit adt7410_probe(struct i2c_client *client,
 		/*
 		 * The event handler list element refer to iio_event_adt7410.
 		 * All event attributes bind to the same event handler.
-		 * So, only register event handler once.
+		 * One event handler can only be added to one event list.
 		 */
-		iio_add_event_to_list(&iio_event_adt7410,
+		iio_add_event_to_list(&iio_event_adt7410_ct,
 				&chip->indio_dev->interrupts[1]->ev_list);
 	}
 
