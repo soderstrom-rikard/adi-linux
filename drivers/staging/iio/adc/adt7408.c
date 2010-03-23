@@ -318,7 +318,7 @@ static const struct attribute_group adt7408_attribute_group = {
 
 static void adt7408_interrupt_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc = to_iio_work_cont_check(work_s);
+	struct iio_work_cont *wc = to_iio_work_cont_no_check(work_s);
 	struct adt7408_chip_info *chip = wc->st;
 	u16 config;
 	u16 data;
@@ -362,7 +362,7 @@ static int adt7408_interrupt(struct iio_dev *dev_info,
 	struct adt7408_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws);
+	schedule_work(&chip->work_cont_thresh.ws_nocheck);
 
 	return 0;
 }
