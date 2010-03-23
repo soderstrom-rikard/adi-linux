@@ -379,8 +379,7 @@ static const struct attribute_group adt7410_attribute_group = {
 
 static void adt7410_interrupt_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc
-		= container_of(work_s, struct iio_work_cont, ws_nocheck);
+	struct iio_work_cont *wc = to_iio_work_cont_check(work_s);
 	struct adt7410_chip_info *chip = wc->st;
 	u8 status;
 
