@@ -299,8 +299,7 @@ static const struct attribute_group ad7416_attribute_group = {
 
 static void ad7416_interrupt_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc
-		= container_of(work_s, struct iio_work_cont, ws_nocheck);
+	struct iio_work_cont *wc = to_iio_work_cont_no_check(work_s);
 	struct ad7416_chip_info *chip = wc->st;
 
 	enable_irq(chip->client->irq);
@@ -318,7 +317,7 @@ static int ad7416_interrupt(struct iio_dev *dev_info,
 	struct ad7416_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws);
+	schedule_work(&chip->work_cont_thresh.ws_nocheck);
 
 	return 0;
 }
