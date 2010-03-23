@@ -794,7 +794,8 @@ static int __devinit adt7410_probe(struct i2c_client *client,
 		 */
 		iio_add_event_to_list(&iio_event_adt7410,
 				&chip->indio_dev->interrupts[0]->ev_list);
-	}
+	} else
+		goto error_unreg_dev;
 
 	/* INT bound temperature alarm event. line 1 */
 	if (adt7410_platform_data[0]) {
@@ -813,37 +814,36 @@ static int __devinit adt7410_probe(struct i2c_client *client,
 		 */
 		iio_add_event_to_list(&iio_event_adt7410,
 				&chip->indio_dev->interrupts[1]->ev_list);
+	} else
+		goto error_unreg_ct_irq;
+
+	iio_init_work_cont(&chip->work_cont_thresh,
+			adt7410_interrupt_bh,
+			adt7410_interrupt_bh,
+			0,
+			0,
+			chip);
+
+	ret = adt7410_i2c_read_byte(chip, ADT7410_CONFIG, &chip->config);
+	if (ret) {
+		ret = -EIO;
+		goto error_unreg_int_irq;
 	}
 
-	if (client->irq && adt7410_platform_data[0]) {
-		iio_init_work_cont(&chip->work_cont_thresh,
-				adt7410_interrupt_bh,
-				adt7410_interrupt_bh,
-				0,
-				0,
-				chip);
+	if (client->irq_flags & IRQF_TRIGGER_HIGH)
+		chip->config |= ADT7410_CT_POLARITY;
+	else
+		chip->config &= ~ADT7410_CT_POLARITY;
 
-		ret = adt7410_i2c_read_byte(chip, ADT7410_CONFIG, &chip->config);
-		if (ret) {
-			ret = -EIO;
-			goto error_unreg_int_irq;
-		}
+	if (adt7410_platform_data[1] & IRQF_TRIGGER_HIGH)
+		chip->config |= ADT7410_INT_POLARITY;
+	else
+		chip->config &= ~ADT7410_INT_POLARITY;
 
-		if (client->irq_flags & IRQF_TRIGGER_HIGH)
-			chip->config |= ADT7410_CT_POLARITY;
-		else
-			chip->config &= ~ADT7410_CT_POLARITY;
-
-		if (adt7410_platform_data[1] & IRQF_TRIGGER_HIGH)
-			chip->config |= ADT7410_INT_POLARITY;
-		else
-			chip->config &= ~ADT7410_INT_POLARITY;
-
-		ret = adt7410_i2c_write_byte(chip, ADT7410_CONFIG, chip->config);
-		if (ret) {
-			ret = -EIO;
-			goto error_unreg_int_irq;
-		}
+	ret = adt7410_i2c_write_byte(chip, ADT7410_CONFIG, chip->config);
+	if (ret) {
+		ret = -EIO;
+		goto error_unreg_int_irq;
 	}
 
 	dev_info(&client->dev, "%s temperature sensor registered.\n",
