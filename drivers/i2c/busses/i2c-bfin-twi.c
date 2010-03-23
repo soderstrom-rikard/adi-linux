@@ -19,6 +19,7 @@
 #include <linux/completion.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
+#include <linux/delay.h>
 
 #include <asm/blackfin.h>
 #include <asm/portmux.h>
@@ -157,6 +158,27 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface,
 			dev_dbg(&iface->adap.dev, "Buffer Read Error\n");
 		if (mast_stat & BUFWRERR)
 			dev_dbg(&iface->adap.dev, "Buffer Write Error\n");
+
+		/* Faulty salve devices, may drive SDA low after a transfer
+		 * finishes. To release the bus this code generates up to 8
+		 * extra clocks until SDA is released.
+		 */
+
+		if (read_MASTER_STAT(iface) & SDASEN) {
+			int cnt = 8;
+			do {
+				write_MASTER_CTL(iface, SCLOVR);
+				udelay(6);
+				write_MASTER_CTL(iface, 0);
+				udelay(6);
+			} while ((read_MASTER_STAT(iface) & SDASEN) && cnt--);
+
+			write_MASTER_CTL(iface, SDAOVR | SCLOVR);
+			udelay(6);
+			write_MASTER_CTL(iface, SDAOVR);
+			udelay(6);
+			write_MASTER_CTL(iface, 0);
+		}
 
 		/* If it is a quick transfer, only address without data,
 		 * not an err, return 1.
