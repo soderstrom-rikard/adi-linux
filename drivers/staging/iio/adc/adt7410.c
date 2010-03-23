@@ -869,8 +869,11 @@ static int __devexit adt7410_remove(struct i2c_client *client)
 {
 	struct adt7410_chip_info *chip = i2c_get_clientdata(client);
 	struct iio_dev *indio_dev = chip->indio_dev;
+	unsigned long *adt7410_platform_data = client->dev.platform_data;
 
-	if (client->irq && gpio_is_valid(irq_to_gpio(client->irq)) > 0)
+	if (adt7410_platform_data[0])
+		iio_unregister_interrupt_line(indio_dev, 1);
+	if (client->irq)
 		iio_unregister_interrupt_line(indio_dev, 0);
 	iio_device_unregister(indio_dev);
 	kfree(chip);
