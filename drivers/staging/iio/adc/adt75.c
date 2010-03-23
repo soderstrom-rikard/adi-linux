@@ -299,7 +299,7 @@ static int adt75_interrupt(struct iio_dev *dev_info,
 	struct adt75_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws);
+	schedule_work(&chip->work_cont_thresh.ws_nocheck);
 
 	return 0;
 }
