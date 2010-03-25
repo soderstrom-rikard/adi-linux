@@ -1910,6 +1910,13 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	},
 #endif
 
+#if defined(CONFIG_AD7291) || defined(CONFIG_AD7291_MODULE)
+	{
+		I2C_BOARD_INFO("ad7291", 0x20),
+		.irq = IRQ_PG5,
+		.irq_flags = IRQF_TRIGGER_LOW,
+	},
+#endif
 
 #if defined(CONFIG_BFIN_TWI_LCD) || defined(CONFIG_BFIN_TWI_LCD_MODULE)
 	{
