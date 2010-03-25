@@ -877,6 +877,7 @@ static int __devexit adt7410_remove(struct i2c_client *client)
 	if (client->irq)
 		iio_unregister_interrupt_line(indio_dev, 0);
 	iio_device_unregister(indio_dev);
+	iio_free_device(chip->indio_dev);
 	kfree(chip);
 
 	return 0;
