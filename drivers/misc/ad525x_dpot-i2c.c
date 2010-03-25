@@ -87,6 +87,16 @@ static const struct i2c_device_id ad_dpot_id[] = {
 	{"ad5253", AD5253_ID},
 	{"ad5254", AD5254_ID},
 	{"ad5255", AD5255_ID},
+	{"ad5241", AD5241_ID},
+	{"ad5242", AD5242_ID},
+	{"ad5243", AD5243_ID},
+	{"ad5245", AD5245_ID},
+	{"ad5246", AD5246_ID},
+	{"ad5247", AD5247_ID},
+	{"ad5248", AD5248_ID},
+	{"ad5280", AD5280_ID},
+	{"ad5282", AD5282_ID},
+	{"adn2860", ADN2860_ID},
 	{}
 };
 MODULE_DEVICE_TABLE(i2c, ad_dpot_id);
