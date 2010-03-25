@@ -346,7 +346,7 @@ static void adt7408_interrupt_bh(struct work_struct *work_s)
 		iio_push_event(chip->indio_dev, 0,
 			IIO_EVENT_CODE_ADT7408_BELLOW_ALARM,
 			chip->last_timestamp);
-	if (data & ADT7408_T_ABOVE_ALARM)
+	if (data & ADT7408_T_ABOVE_CRIT)
 		iio_push_event(chip->indio_dev, 0,
 			IIO_EVENT_CODE_ADT7408_ABOVE_CRIT,
 			chip->last_timestamp);
