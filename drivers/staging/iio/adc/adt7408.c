@@ -694,7 +694,7 @@ static inline ssize_t adt7408_set_t_bound(struct device *dev,
 		data = (ADT7408_BOUND_VALUE_SIGN << 1) - data;
 	data <<= ADT7408_BOUND_VALUE_OFFSET;
 
-	ret = adt7408_i2c_write(chip, bound_reg, (u8)data);
+	ret = adt7408_i2c_write(chip, bound_reg, data);
 	if (ret)
 		return -EIO;
 
