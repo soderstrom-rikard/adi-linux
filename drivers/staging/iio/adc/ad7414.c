@@ -469,7 +469,7 @@ static int __devinit ad7414_probe(struct i2c_client *client,
 	if (ret)
 		goto error_free_dev;
 
-	if (client->irq && gpio_is_valid(irq_to_gpio(client->irq)) > 0) {
+	if (client->irq) {
 		iio_init_work_cont(&chip->work_cont_thresh,
 				ad7414_interrupt_bh,
 				ad7414_interrupt_bh,
@@ -532,9 +532,10 @@ static int __devexit ad7414_remove(struct i2c_client *client)
 	struct ad7414_chip_info *chip = i2c_get_clientdata(client);
 	struct iio_dev *indio_dev = chip->indio_dev;
 
-	if (client->irq && gpio_is_valid(irq_to_gpio(client->irq)) > 0)
+	if (client->irq)
 		iio_unregister_interrupt_line(indio_dev, 0);
 	iio_device_unregister(indio_dev);
+	iio_free_device(chip->indio_dev);
 	kfree(chip);
 
 	return 0;
