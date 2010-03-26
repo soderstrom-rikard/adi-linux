@@ -112,7 +112,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 
 #if defined(CONFIG_SND_BF5XX_SOC_AD183X) || defined(CONFIG_SND_BF5XX_SOC_AD183X_MODULE)
 	{
-		.modalias = "ad1836",
+		.modalias = "ad183x",
 		.max_speed_hz = 3125000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0,
 		.chip_select = 4,
