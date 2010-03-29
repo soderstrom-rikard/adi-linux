@@ -1602,10 +1602,6 @@ should_alloc_retry(gfp_t gfp_mask, unsigned int order,
 	if (gfp_mask & __GFP_NORETRY)
 		return 0;
 
-#ifndef CONFIG_MMU
-	drop_pagecache();
-#endif
-
 	/*
 	 * In this implementation, order <= PAGE_ALLOC_COSTLY_ORDER
 	 * means __GFP_NOFAIL, but that may not be true in other
@@ -1734,6 +1730,9 @@ __alloc_pages_high_priority(gfp_t gfp_mask, unsigned int order,
 	struct page *page;
 
 	do {
+#ifndef CONFIG_MMU
+		drop_pagecache();
+#endif
 		page = get_page_from_freelist(gfp_mask, nodemask, order,
 			zonelist, high_zoneidx, ALLOC_NO_WATERMARKS,
 			preferred_zone, migratetype);
