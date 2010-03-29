@@ -283,14 +283,14 @@ static int ad193x_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-int ad193x_bus_probe(struct device *dev, void *ctrl_data, int bus_type)
+static int ad193x_bus_probe(struct device *dev, void *ctrl_data, int bus_type)
 {
 	struct snd_soc_codec *codec;
 	struct ad193x_priv *ad193x;
 	int ret;
 
 	if (ad193x_codec) {
-		dev_err(codec->dev, "Another ad193x is registered\n");
+		dev_err(dev, "Another ad193x is registered\n");
 		return -EINVAL;
 	}
 
@@ -361,11 +361,10 @@ int ad193x_bus_probe(struct device *dev, void *ctrl_data, int bus_type)
 		return ret;
 	}
 
-
 	return 0;
 }
 
-int ad193x_bus_remove(struct device *dev)
+static int ad193x_bus_remove(struct device *dev)
 {
 	struct ad193x_priv *ad193x = dev_get_drvdata(dev);
 
