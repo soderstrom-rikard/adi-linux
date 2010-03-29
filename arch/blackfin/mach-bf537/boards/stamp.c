@@ -1835,7 +1835,7 @@ static unsigned long adt7410_platform_data[2] = {
 #endif
 
 static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
-#if defined(CONFIG_SND_SOC_AD193X_I2C) || defined(CONFIG_SND_SOC_AD193X_I2C_MODULE)
+#if defined(CONFIG_SND_BF5XX_SOC_AD193X) || defined(CONFIG_SND_BF5XX_SOC_AD193X_MODULE)
 	{
 		I2C_BOARD_INFO("ad1937", 0x04),
 	},
