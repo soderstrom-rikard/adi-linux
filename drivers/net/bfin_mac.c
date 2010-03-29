@@ -1665,7 +1665,8 @@ static int __init bfin_mac_init(void)
 {
 	int ret;
 	ret = platform_driver_register(&bfin_mii_bus_driver);
-	if (!ret)
+	/* platform driver probe function returns 0 if fails */
+	if (ret)
 		return platform_driver_register(&bfin_mac_driver);
 	return -ENODEV;
 }
