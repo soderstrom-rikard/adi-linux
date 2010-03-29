@@ -1846,10 +1846,6 @@ restart:
 	if (page)
 		goto got_pg;
 
-#ifndef CONFIG_MMU
-	drop_pagecache();
-#endif
-
 rebalance:
 	/* Allocate without watermarks if the context allows */
 	if (alloc_flags & ALLOC_NO_WATERMARKS) {
@@ -1880,6 +1876,10 @@ rebalance:
 					migratetype, &did_some_progress);
 	if (page)
 		goto got_pg;
+
+#ifndef CONFIG_MMU
+	drop_pagecache();
+#endif
 
 	/*
 	 * If we failed to make any progress reclaiming, then we are
