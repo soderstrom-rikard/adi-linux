@@ -501,8 +501,92 @@ static void decode_LDST_0(unsigned int opcode)
 	}
 }
 
+#define LDSTii_opcode           0xa000
+#define LDSTii_reg_bit          0
+#define LDSTii_reg_mask         0x7
+#define LDSTii_ptr_bit          3
+#define LDSTii_ptr_mask         0x7
+#define LDSTii_offset_bit       6
+#define LDSTii_offset_mask      0xf
+#define LDSTii_op_bit           10
+#define LDSTii_op_mask          0x3
+#define LDSTii_W_bit            12
+#define LDSTii_W_mask           0x1
+#define LDSTii_code_bit         13
+#define LDSTii_code_mask        0x7
+
+static void decode_LDSTii_0(unsigned int opcode)
+{
+	int reg = ((opcode >> LDSTii_reg_bit) & LDSTii_reg_mask);
+	int ptr = ((opcode >> LDSTii_ptr_bit) & LDSTii_ptr_mask);
+	int offset = ((opcode >> LDSTii_offset_bit) & LDSTii_offset_mask);
+	int op = ((opcode >> LDSTii_op_bit) & LDSTii_op_mask);
+	int W = ((opcode >> LDSTii_W_bit) & LDSTii_W_mask);
+
+	if (W == 0) {
+		pr_cont("%s%i = %s[P%i + %i]", op == 3 ? "R" : "P", reg,
+			op == 1 || op == 2 ? "" : "W", ptr, offset);
+		if (op == 2)
+			pr_cont("(Z)");
+		if (op == 3)
+			pr_cont("(X)");
+	} else {
+		pr_cont("%s[P%i + %i] = %s%i", op == 0 ? "" : "W", ptr,
+			offset, op == 3 ? "P" : "R", reg);
+	}
+}
+
+#define LDSTidxI_opcode         0xe4000000
+#define LDSTidxI_offset_bits    0
+#define LDSTidxI_offset_mask    0xffff
+#define LDSTidxI_reg_bits       16
+#define LDSTidxI_reg_mask       0x7
+#define LDSTidxI_ptr_bits       19
+#define LDSTidxI_ptr_mask       0x7
+#define LDSTidxI_sz_bits        22
+#define LDSTidxI_sz_mask        0x3
+#define LDSTidxI_Z_bits         24
+#define LDSTidxI_Z_mask         0x1
+#define LDSTidxI_W_bits         25
+#define LDSTidxI_W_mask         0x1
+#define LDSTidxI_code_bits      26
+#define LDSTidxI_code_mask      0x3f
+
+static void decode_LDSTidxI_0(unsigned int opcode)
+{
+	int Z      = ((opcode >> LDSTidxI_Z_bits)      & LDSTidxI_Z_mask);
+	int W      = ((opcode >> LDSTidxI_W_bits)      & LDSTidxI_W_mask);
+	int sz     = ((opcode >> LDSTidxI_sz_bits)     & LDSTidxI_sz_mask);
+	int reg    = ((opcode >> LDSTidxI_reg_bits)    & LDSTidxI_reg_mask);
+	int ptr    = ((opcode >> LDSTidxI_ptr_bits)    & LDSTidxI_ptr_mask);
+	int offset = ((opcode >> LDSTidxI_offset_bits) & LDSTidxI_offset_mask);
+
+	if (W == 0)
+		pr_cont("%s%i = ", sz == 0 && Z == 1 ? "P" : "R", reg);
+
+	if (sz == 1)
+		pr_cont("W");
+	if (sz == 2)
+		pr_cont("B");
+
+	pr_cont("[P%i + %s0x%x]", ptr, offset & 0x20 ? "-" : "",
+		(offset & 0x1f) << 2);
+
+	if (W == 0 && sz != 0) {
+		if (Z)
+			pr_cont("(X)");
+		else
+			pr_cont("(Z)");
+	}
+
+	if (W == 1)
+		pr_cont("= %s%i", (sz == 0 && Z == 1) ? "P" : "R", reg);
+
+}
+
 static void decode_opcode(unsigned int opcode)
 {
+
 
 	if ((opcode & 0xffffff00) == ProgCtrl_opcode)
 		decode_ProgCtrl_0(opcode);
@@ -518,6 +602,10 @@ static void decode_opcode(unsigned int opcode)
 		decode_dspLDST_0(opcode);
 	else if ((opcode & 0xfffff000) == LDST_opcode)
 		decode_LDST_0(opcode);
+	else if ((opcode & 0xffffe000) == LDSTii_opcode)
+		decode_LDSTii_0(opcode);
+	else if ((opcode & 0xfc000000) == LDSTidxI_opcode)
+		decode_LDSTidxI_0(opcode);
 	else if (opcode & 0xffff0000)
 		pr_cont("0x%08x", opcode);
 	else
