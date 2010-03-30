@@ -692,6 +692,13 @@ static struct bfin5xx_spi_chip ad2s1210_spi_chip_info = {
 };
 #endif
 
+#if defined(CONFIG_AD7314) || defined(CONFIG_AD7314_MODULE)
+static struct bfin5xx_spi_chip ad7314_spi_chip_info = {
+	.enable_dma = 0,
+	.bits_per_word = 16,
+};
+#endif
+
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 #define MMC_SPI_CARD_DETECT_INT IRQ_PF5
 
@@ -1047,6 +1054,17 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.controller_data = &ad2s1210_spi_chip_info,
 	},
 #endif
+
+#if defined(CONFIG_AD7314) || defined(CONFIG_AD7314_MODULE)
+	{
+		.modalias = "ad7314",
+		.max_speed_hz = 1000000,
+		.bus_num = 0,
+		.chip_select = 4,            /* CS, change it for your board */
+		.controller_data = &ad7314_spi_chip_info,
+	},
+#endif
+
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{
