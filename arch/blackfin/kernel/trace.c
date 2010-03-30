@@ -380,6 +380,67 @@ static void decode_LoopSetup_0(unsigned int opcode)
 		pr_cont(" >> 0x1");
 }
 
+#define DspLDST_opcode          0x9c00
+#define DspLDST_reg_bits        0
+#define DspLDST_reg_mask        0x7
+#define DspLDST_i_bits          3
+#define DspLDST_i_mask          0x3
+#define DspLDST_m_bits          5
+#define DspLDST_m_mask          0x3
+#define DspLDST_aop_bits        7
+#define DspLDST_aop_mask        0x3
+#define DspLDST_W_bits          9
+#define DspLDST_W_mask          0x1
+#define DspLDST_code_bits       10
+#define DspLDST_code_mask       0x3f
+
+static void decode_dspLDST_0(unsigned int opcode)
+{
+	int i   = ((opcode >> DspLDST_i_bits) & DspLDST_i_mask);
+	int m   = ((opcode >> DspLDST_m_bits) & DspLDST_m_mask);
+	int W   = ((opcode >> DspLDST_W_bits) & DspLDST_W_mask);
+	int aop = ((opcode >> DspLDST_aop_bits) & DspLDST_aop_mask);
+	int reg = ((opcode >> DspLDST_reg_bits) & DspLDST_reg_mask);
+
+	if (W == 0) {
+		pr_cont("R%i", reg);
+		switch (m) {
+		case 0:
+			pr_cont(" = ");
+			break;
+		case 1:
+			pr_cont(".L = ");
+			break;
+		case 2:
+			pr_cont(".W = ");
+			break;
+		}
+	}
+
+	pr_cont("[ I%i", i);
+
+	switch (aop) {
+	case 0:
+		pr_cont("++ ]");
+		break;
+	case 1:
+		pr_cont("-- ]");
+		break;
+	}
+
+	if (W == 1) {
+		pr_cont(" = R%i", reg);
+		switch (m) {
+		case 1:
+			pr_cont(".L = ");
+			break;
+		case 2:
+			pr_cont(".W = ");
+			break;
+		}
+	}
+}
+
 #define LDST_opcode             0x9000
 #define LDST_reg_bits           0
 #define LDST_reg_mask           0x7
@@ -453,6 +514,8 @@ static void decode_opcode(unsigned int opcode)
 		decode_CALLa_0(opcode);
 	else if ((opcode & 0xff8000C0) == LoopSetup_opcode)
 		decode_LoopSetup_0(opcode);
+	else if ((opcode & 0xfffffc00) == DspLDST_opcode)
+		decode_dspLDST_0(opcode);
 	else if ((opcode & 0xfffff000) == LDST_opcode)
 		decode_LDST_0(opcode);
 	else if (opcode & 0xffff0000)
