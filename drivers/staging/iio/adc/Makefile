@@ -20,3 +20,4 @@ obj-$(CONFIG_ADT7408) += adt7408.o
 obj-$(CONFIG_ADT7410) += adt7410.o
 obj-$(CONFIG_AD7291) += ad7291.o
 obj-$(CONFIG_AD7314) += ad7314.o
+obj-$(CONFIG_AD7816) += ad7816.o
