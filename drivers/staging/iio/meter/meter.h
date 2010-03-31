@@ -122,6 +122,15 @@
 #define IIO_DEV_ATTR_CHKSUM(_show, _addr)                       \
 	IIO_DEVICE_ATTR(chksum, S_IRUGO, _show, NULL, _addr)
 
+#define IIO_DEV_ATTR_ANGLE0(_show, _addr)                       \
+	IIO_DEVICE_ATTR(angle0, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_ANGLE1(_show, _addr)                       \
+	IIO_DEVICE_ATTR(angle1, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_ANGLE2(_show, _addr)                       \
+	IIO_DEVICE_ATTR(angle2, S_IRUGO, _show, NULL, _addr)
+
 #define IIO_DEV_ATTR_AWATTHR(_show, _addr)			\
 	IIO_DEVICE_ATTR(awatthr, S_IRUGO, _show, NULL, _addr)
 
@@ -130,6 +139,15 @@
 
 #define IIO_DEV_ATTR_CWATTHR(_show, _addr)			\
 	IIO_DEVICE_ATTR(cwatthr, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_AFWATTHR(_show, _addr)			\
+	IIO_DEVICE_ATTR(afwatthr, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_BFWATTHR(_show, _addr)			\
+	IIO_DEVICE_ATTR(bfwatthr, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_CFWATTHR(_show, _addr)			\
+	IIO_DEVICE_ATTR(cfwatthr, S_IRUGO, _show, NULL, _addr)
 
 #define IIO_DEV_ATTR_AVARHR(_show, _addr)			\
 	IIO_DEVICE_ATTR(avarhr, S_IRUGO, _show, NULL, _addr)
@@ -197,6 +215,18 @@
 #define IIO_DEV_ATTR_CIGAIN(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(cigain, _mode, _show, _store, _addr)
 
+#define IIO_DEV_ATTR_NIGAIN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(nigain, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_AVGAIN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(avgain, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_BVGAIN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(bvgain, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CVGAIN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(cvgain, _mode, _show, _store, _addr)
+
 #define IIO_DEV_ATTR_WGAIN(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(wgain, _mode, _show, _store, _addr)
 
@@ -208,6 +238,15 @@
 
 #define IIO_DEV_ATTR_CFDEN(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(cfden, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CF1DEN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(cf1den, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CF2DEN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(cf2den, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CF3DEN(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(cf3den, _mode, _show, _store, _addr)
 
 #define IIO_DEV_ATTR_IRMS(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(irms, _mode, _show, _store, _addr)
@@ -223,6 +262,9 @@
 
 #define IIO_DEV_ATTR_CIRMS(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(cirms, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_NIRMS(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(nirms, _mode, _show, _store, _addr)
 
 #define IIO_DEV_ATTR_AVRMS(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(avrms, _mode, _show, _store, _addr)
@@ -271,6 +313,12 @@
 
 #define IIO_DEV_ATTR_SAGCYC(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(sagcyc, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_CFCYC(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(cfcyc, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_PEAKCYC(_mode, _show, _store, _addr)                \
+	IIO_DEVICE_ATTR(peakcyc, _mode, _show, _store, _addr)
 
 #define IIO_DEV_ATTR_SAGLVL(_mode, _show, _store, _addr)                \
 	IIO_DEVICE_ATTR(saglvl, _mode, _show, _store, _addr)
