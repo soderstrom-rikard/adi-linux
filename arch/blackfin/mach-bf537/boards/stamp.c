@@ -699,6 +699,20 @@ static struct bfin5xx_spi_chip ad7314_spi_chip_info = {
 };
 #endif
 
+#if defined(CONFIG_AD7816) || defined(CONFIG_AD7816_MODULE)
+unsigned short ad7816_platform_data[] = {
+	GPIO_PF4, /* rdwr_pin */
+	GPIO_PF5, /* convert_pin */
+	GPIO_PF7, /* busy_pin */
+	0,
+};
+
+static struct bfin5xx_spi_chip ad7816_spi_chip_info = {
+	.enable_dma = 0,
+	.bits_per_word = 8,
+};
+#endif
+
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 #define MMC_SPI_CARD_DETECT_INT IRQ_PF5
 
@@ -1065,6 +1079,16 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 	},
 #endif
 
+#if defined(CONFIG_AD7816) || defined(CONFIG_AD7816_MODULE)
+	{
+		.modalias = "ad7818",
+		.max_speed_hz = 1000000,
+		.bus_num = 0,
+		.chip_select = 4,            /* CS, change it for your board */
+		.platform_data = ad7816_platform_data,
+		.controller_data = &ad7816_spi_chip_info,
+	},
+#endif
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{
