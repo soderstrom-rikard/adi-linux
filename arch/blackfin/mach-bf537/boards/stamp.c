@@ -1923,6 +1923,7 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 		I2C_BOARD_INFO("ad7417", 0xb),
 		.irq = IRQ_PG5,
 		.irq_flags = IRQF_TRIGGER_LOW,
+		.platform_data = (void *)GPIO_PF4,
 	},
 #endif
 
