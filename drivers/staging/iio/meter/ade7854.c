@@ -13,7 +13,6 @@
 #include <linux/mutex.h>
 #include <linux/device.h>
 #include <linux/kernel.h>
-#include <linux/spi/spi.h>
 
 #include <linux/sysfs.h>
 #include <linux/list.h>
@@ -23,298 +22,17 @@
 #include "meter.h"
 #include "ade7854.h"
 
-static int ade7854_spi_write_reg_8(struct device *dev,
-		u16 reg_address,
-		u8 value)
-{
-	int ret;
-	struct spi_message msg;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
-	struct spi_transfer xfers[] = {
-		{
-			.tx_buf = st->tx,
-			.bits_per_word = 8,
-			.len = 4,
-		}
-	};
-
-	mutex_lock(&st->buf_lock);
-	st->tx[0] = ADE7854_WRITE_REG;
-	st->tx[1] = (reg_address >> 8) & 0xFF;
-	st->tx[2] = reg_address & 0xFF;
-	st->tx[3] = value & 0xFF;
-
-	spi_message_init(&msg);
-	spi_message_add_tail(xfers, &msg);
-	ret = spi_sync(st->us, &msg);
-	mutex_unlock(&st->buf_lock);
-
-	return ret;
-}
-
-static int ade7854_spi_write_reg_16(struct device *dev,
-		u16 reg_address,
-		u16 value)
-{
-	int ret;
-	struct spi_message msg;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
-	struct spi_transfer xfers[] = {
-		{
-			.tx_buf = st->tx,
-			.bits_per_word = 8,
-			.len = 5,
-		}
-	};
-
-	mutex_lock(&st->buf_lock);
-	st->tx[0] = ADE7854_WRITE_REG;
-	st->tx[1] = (reg_address >> 8) & 0xFF;
-	st->tx[2] = reg_address & 0xFF;
-	st->tx[3] = (value >> 8) & 0xFF;
-	st->tx[4] = value & 0xFF;
-
-	spi_message_init(&msg);
-	spi_message_add_tail(xfers, &msg);
-	ret = spi_sync(st->us, &msg);
-	mutex_unlock(&st->buf_lock);
-
-	return ret;
-}
-
-static int ade7854_spi_write_reg_24(struct device *dev,
-		u16 reg_address,
-		u32 value)
-{
-	int ret;
-	struct spi_message msg;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
-	struct spi_transfer xfers[] = {
-		{
-			.tx_buf = st->tx,
-			.bits_per_word = 8,
-			.len = 6,
-		}
-	};
-
-	mutex_lock(&st->buf_lock);
-	st->tx[0] = ADE7854_WRITE_REG;
-	st->tx[1] = (reg_address >> 8) & 0xFF;
-	st->tx[2] = reg_address & 0xFF;
-	st->tx[3] = (value >> 16) & 0xFF;
-	st->tx[4] = (value >> 8) & 0xFF;
-	st->tx[5] = value & 0xFF;
-
-	spi_message_init(&msg);
-	spi_message_add_tail(xfers, &msg);
-	ret = spi_sync(st->us, &msg);
-	mutex_unlock(&st->buf_lock);
-
-	return ret;
-}
-
-static int ade7854_spi_write_reg_32(struct device *dev,
-		u16 reg_address,
-		u32 value)
-{
-	int ret;
-	struct spi_message msg;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
-	struct spi_transfer xfers[] = {
-		{
-			.tx_buf = st->tx,
-			.bits_per_word = 8,
-			.len = 7,
-		}
-	};
-
-	mutex_lock(&st->buf_lock);
-	st->tx[0] = ADE7854_WRITE_REG;
-	st->tx[1] = (reg_address >> 8) & 0xFF;
-	st->tx[2] = reg_address & 0xFF;
-	st->tx[3] = (value >> 24) & 0xFF;
-	st->tx[4] = (value >> 16) & 0xFF;
-	st->tx[5] = (value >> 8) & 0xFF;
-	st->tx[6] = value & 0xFF;
-
-	spi_message_init(&msg);
-	spi_message_add_tail(xfers, &msg);
-	ret = spi_sync(st->us, &msg);
-	mutex_unlock(&st->buf_lock);
-
-	return ret;
-}
-
-static int ade7854_spi_read_reg_8(struct device *dev,
-		u16 reg_address,
-		u8 *val)
-{
-	struct spi_message msg;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
-	int ret;
-	struct spi_transfer xfers[] = {
-		{
-			.tx_buf = st->tx,
-			.bits_per_word = 8,
-			.len = 4,
-		},
-	};
-
-	mutex_lock(&st->buf_lock);
-
-	st->tx[0] = ADE7854_READ_REG;
-	st->tx[1] = (reg_address >> 8) & 0xFF;
-	st->tx[2] = reg_address & 0xFF;
-	st->tx[3] = 0;
-
-	spi_message_init(&msg);
-	spi_message_add_tail(xfers, &msg);
-	ret = spi_sync(st->us, &msg);
-	if (ret) {
-		dev_err(&st->us->dev, "problem when reading 8 bit register 0x%02X",
-				reg_address);
-		goto error_ret;
-	}
-	*val = st->rx[3];
-
-error_ret:
-	mutex_unlock(&st->buf_lock);
-	return ret;
-}
-
-static int ade7854_spi_read_reg_16(struct device *dev,
-		u16 reg_address,
-		u16 *val)
-{
-	struct spi_message msg;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
-	int ret;
-	struct spi_transfer xfers[] = {
-		{
-			.tx_buf = st->tx,
-			.bits_per_word = 8,
-			.len = 5,
-		},
-	};
-
-	mutex_lock(&st->buf_lock);
-	st->tx[0] = ADE7854_READ_REG;
-	st->tx[1] = (reg_address >> 8) & 0xFF;
-	st->tx[2] = reg_address & 0xFF;
-	st->tx[3] = 0;
-	st->tx[4] = 0;
-
-	spi_message_init(&msg);
-	spi_message_add_tail(xfers, &msg);
-	ret = spi_sync(st->us, &msg);
-	if (ret) {
-		dev_err(&st->us->dev, "problem when reading 16 bit register 0x%02X",
-				reg_address);
-		goto error_ret;
-	}
-	*val = (st->rx[3] << 8) | st->rx[4];
-
-error_ret:
-	mutex_unlock(&st->buf_lock);
-	return ret;
-}
-
-static int ade7854_spi_read_reg_24(struct device *dev,
-		u16 reg_address,
-		u32 *val)
-{
-	struct spi_message msg;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
-	int ret;
-	struct spi_transfer xfers[] = {
-		{
-			.tx_buf = st->tx,
-			.bits_per_word = 8,
-			.len = 6,
-		},
-	};
-
-	mutex_lock(&st->buf_lock);
-
-	st->tx[0] = ADE7854_READ_REG;
-	st->tx[1] = (reg_address >> 8) & 0xFF;
-	st->tx[2] = reg_address & 0xFF;
-	st->tx[3] = 0;
-	st->tx[4] = 0;
-	st->tx[5] = 0;
-
-	spi_message_init(&msg);
-	spi_message_add_tail(xfers, &msg);
-	ret = spi_sync(st->us, &msg);
-	if (ret) {
-		dev_err(&st->us->dev, "problem when reading 24 bit register 0x%02X",
-				reg_address);
-		goto error_ret;
-	}
-	*val = (st->rx[3] << 16) | (st->rx[4] << 8) | st->rx[5];
-
-error_ret:
-	mutex_unlock(&st->buf_lock);
-	return ret;
-}
-
-static int ade7854_spi_read_reg_32(struct device *dev,
-		u16 reg_address,
-		u32 *val)
-{
-	struct spi_message msg;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
-	int ret;
-	struct spi_transfer xfers[] = {
-		{
-			.tx_buf = st->tx,
-			.bits_per_word = 8,
-			.len = 4,
-		},
-	};
-
-	mutex_lock(&st->buf_lock);
-
-	st->tx[0] = ADE7854_READ_REG;
-	st->tx[1] = (reg_address >> 8) & 0xFF;
-	st->tx[2] = reg_address & 0xFF;
-	st->tx[3] = 0;
-	st->tx[4] = 0;
-	st->tx[5] = 0;
-	st->tx[6] = 0;
-
-	spi_message_init(&msg);
-	spi_message_add_tail(xfers, &msg);
-	ret = spi_sync(st->us, &msg);
-	if (ret) {
-		dev_err(&st->us->dev, "problem when reading 32 bit register 0x%02X",
-				reg_address);
-		goto error_ret;
-	}
-	*val = (st->rx[3] << 24) | (st->rx[4] << 16) | (st->rx[5] << 8) | st->rx[6];
-
-error_ret:
-	mutex_unlock(&st->buf_lock);
-	return ret;
-}
-
 static ssize_t ade7854_read_8bit(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	int ret;
 	u8 val = 0;
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
 	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
 
-	ret = ade7854_spi_read_reg_8(dev, this_attr->address, &val);
+	ret = st->read_reg_8(dev, this_attr->address, &val);
 	if (ret)
 		return ret;
 
@@ -327,9 +45,11 @@ static ssize_t ade7854_read_16bit(struct device *dev,
 {
 	int ret;
 	u16 val = 0;
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
 	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
 
-	ret = ade7854_spi_read_reg_16(dev, this_attr->address, &val);
+	ret = st->read_reg_16(dev, this_attr->address, &val);
 	if (ret)
 		return ret;
 
@@ -342,9 +62,11 @@ static ssize_t ade7854_read_24bit(struct device *dev,
 {
 	int ret;
 	u32 val = 0;
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
 	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
 
-	ret = ade7854_spi_read_reg_24(dev, this_attr->address, &val);
+	ret = st->read_reg_24(dev, this_attr->address, &val);
 	if (ret)
 		return ret;
 
@@ -358,8 +80,10 @@ static ssize_t ade7854_read_32bit(struct device *dev,
 	int ret;
 	u32 val = 0;
 	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
 
-	ret = ade7854_spi_read_reg_32(dev, this_attr->address, &val);
+	ret = st->read_reg_32(dev, this_attr->address, &val);
 	if (ret)
 		return ret;
 
@@ -372,13 +96,16 @@ static ssize_t ade7854_write_8bit(struct device *dev,
 		size_t len)
 {
 	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
+
 	int ret;
 	long val;
 
 	ret = strict_strtol(buf, 10, &val);
 	if (ret)
 		goto error_ret;
-	ret = ade7854_spi_write_reg_8(dev, this_attr->address, val);
+	ret = st->write_reg_8(dev, this_attr->address, val);
 
 error_ret:
 	return ret ? ret : len;
@@ -390,13 +117,16 @@ static ssize_t ade7854_write_16bit(struct device *dev,
 		size_t len)
 {
 	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
+
 	int ret;
 	long val;
 
 	ret = strict_strtol(buf, 10, &val);
 	if (ret)
 		goto error_ret;
-	ret = ade7854_spi_write_reg_16(dev, this_attr->address, val);
+	ret = st->write_reg_16(dev, this_attr->address, val);
 
 error_ret:
 	return ret ? ret : len;
@@ -408,13 +138,16 @@ static ssize_t ade7854_write_24bit(struct device *dev,
 		size_t len)
 {
 	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
+
 	int ret;
 	long val;
 
 	ret = strict_strtol(buf, 10, &val);
 	if (ret)
 		goto error_ret;
-	ret = ade7854_spi_write_reg_24(dev, this_attr->address, val);
+	ret = st->write_reg_24(dev, this_attr->address, val);
 
 error_ret:
 	return ret ? ret : len;
@@ -426,13 +159,16 @@ static ssize_t ade7854_write_32bit(struct device *dev,
 		size_t len)
 {
 	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
+
 	int ret;
 	long val;
 
 	ret = strict_strtol(buf, 10, &val);
 	if (ret)
 		goto error_ret;
-	ret = ade7854_spi_write_reg_32(dev, this_attr->address, val);
+	ret = st->write_reg_32(dev, this_attr->address, val);
 
 error_ret:
 	return ret ? ret : len;
@@ -440,16 +176,15 @@ error_ret:
 
 static int ade7854_reset(struct device *dev)
 {
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
+
 	int ret;
 	u16 val;
 
-	ade7854_spi_read_reg_16(dev,
-			ADE7854_CONFIG,
-			&val);
+	st->read_reg_16(dev, ADE7854_CONFIG, &val);
 	val |= 1 << 7; /* Software Chip Reset */
-	ret = ade7854_spi_write_reg_16(dev,
-			ADE7854_CONFIG,
-			val);
+	ret = st->write_reg_16(dev, ADE7854_CONFIG, val);
 
 	return ret;
 }
@@ -693,9 +428,13 @@ static IIO_DEV_ATTR_CVAHR(ade7854_read_32bit,
 
 static int ade7854_set_irq(struct device *dev, bool enable)
 {
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct ade7854_state *st = iio_dev_get_devdata(indio_dev);
+
 	int ret;
 	u32 irqen;
-	ret = ade7854_spi_read_reg_32(dev, ADE7854_MASK0, &irqen);
+
+	ret = st->read_reg_32(dev, ADE7854_MASK0, &irqen);
 	if (ret)
 		goto error_ret;
 
@@ -705,7 +444,7 @@ static int ade7854_set_irq(struct device *dev, bool enable)
 	else
 		irqen &= ~(1 << 17);
 
-	ret = ade7854_spi_write_reg_32(dev, ADE7854_MASK0, irqen);
+	ret = st->write_reg_32(dev, ADE7854_MASK0, irqen);
 	if (ret)
 		goto error_ret;
 
@@ -717,10 +456,6 @@ static int ade7854_initial_setup(struct ade7854_state *st)
 {
 	int ret;
 	struct device *dev = &st->indio_dev->dev;
-
-	/* use low spi speed for init */
-	st->us->mode = SPI_MODE_3;
-	spi_setup(st->us);
 
 	/* Disable IRQ */
 	ret = ade7854_set_irq(dev, false);
@@ -828,16 +563,9 @@ static const struct attribute_group ade7854_attribute_group = {
 	.attrs = ade7854_attributes,
 };
 
-static int __devinit ade7854_probe(struct spi_device *spi)
+int ade7854_probe(struct ade7854_state *st, struct device *dev)
 {
 	int ret, regdone = 0;
-	struct ade7854_state *st = kzalloc(sizeof *st, GFP_KERNEL);
-	if (!st) {
-		ret =  -ENOMEM;
-		goto error_ret;
-	}
-	/* this is only used for removal purposes */
-	spi_set_drvdata(spi, st);
 
 	/* Allocate the comms buffers */
 	st->rx = kzalloc(sizeof(*st->rx)*ADE7854_MAX_RX, GFP_KERNEL);
@@ -850,7 +578,6 @@ static int __devinit ade7854_probe(struct spi_device *spi)
 		ret = -ENOMEM;
 		goto error_free_rx;
 	}
-	st->us = spi;
 	mutex_init(&st->buf_lock);
 	/* setup the industrialio driver allocated elements */
 	st->indio_dev = iio_allocate_device();
@@ -859,7 +586,7 @@ static int __devinit ade7854_probe(struct spi_device *spi)
 		goto error_free_tx;
 	}
 
-	st->indio_dev->dev.parent = &spi->dev;
+	st->indio_dev->dev.parent = dev;
 	st->indio_dev->num_interrupt_lines = 1;
 	st->indio_dev->event_attrs = &ade7854_event_attribute_group;
 	st->indio_dev->attrs = &ade7854_attribute_group;
@@ -882,7 +609,7 @@ static int __devinit ade7854_probe(struct spi_device *spi)
 		goto error_unreg_ring_funcs;
 	}
 
-	if (spi->irq) {
+	if (st->irq) {
 #if 0 /* fixme: here we should support */
 		iio_init_work_cont(&st->work_cont_thresh,
 				NULL,
@@ -891,7 +618,7 @@ static int __devinit ade7854_probe(struct spi_device *spi)
 				0,
 				st);
 #endif
-		ret = iio_register_interrupt_line(spi->irq,
+		ret = iio_register_interrupt_line(st->irq,
 				st->indio_dev,
 				0,
 				IRQF_TRIGGER_FALLING,
@@ -903,12 +630,10 @@ static int __devinit ade7854_probe(struct spi_device *spi)
 		if (ret)
 			goto error_unregister_line;
 	}
-
 	/* Get the device into a sane initial state */
 	ret = ade7854_initial_setup(st);
 	if (ret)
 		goto error_remove_trigger;
-	return 0;
 
 error_remove_trigger:
 	if (st->indio_dev->modes & INDIO_RING_TRIGGERED)
@@ -931,20 +656,19 @@ error_free_rx:
 	kfree(st->rx);
 error_free_st:
 	kfree(st);
-error_ret:
 	return ret;
-}
 
-/* fixme, confirm ordering in this function */
-static int ade7854_remove(struct spi_device *spi)
+}
+EXPORT_SYMBOL(ade7854_probe);
+
+int ade7854_remove(struct ade7854_state *st)
 {
-	struct ade7854_state *st = spi_get_drvdata(spi);
 	struct iio_dev *indio_dev = st->indio_dev;
 
 	flush_scheduled_work();
 
 	ade7854_remove_trigger(indio_dev);
-	if (spi->irq)
+	if (st->irq)
 		iio_unregister_interrupt_line(indio_dev, 0);
 
 	ade7854_uninitialize_ring(indio_dev->ring);
@@ -956,27 +680,7 @@ static int ade7854_remove(struct spi_device *spi)
 
 	return 0;
 }
-
-static struct spi_driver ade7854_driver = {
-	.driver = {
-		.name = "ade7854",
-		.owner = THIS_MODULE,
-	},
-	.probe = ade7854_probe,
-	.remove = __devexit_p(ade7854_remove),
-};
-
-static __init int ade7854_init(void)
-{
-	return spi_register_driver(&ade7854_driver);
-}
-module_init(ade7854_init);
-
-static __exit void ade7854_exit(void)
-{
-	spi_unregister_driver(&ade7854_driver);
-}
-module_exit(ade7854_exit);
+EXPORT_SYMBOL(ade7854_remove);
 
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
 MODULE_DESCRIPTION("Analog Devices ADE7854/58/68/78 Polyphase Multifunction Energy Metering IC Driver");

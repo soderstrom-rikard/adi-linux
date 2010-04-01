@@ -146,7 +146,7 @@
 
 /**
  * struct ade7854_state - device instance specific data
- * @us:			actual spi_device
+ * @spi:			actual spi_device
  * @work_trigger_to_ring: bh for triggered event handling
  * @work_cont_thresh: CLEAN
  * @inter:		used to check if new interrupt has been triggered
@@ -158,7 +158,8 @@
  * @buf_lock:		mutex to protect tx and rx
  **/
 struct ade7854_state {
-	struct spi_device		*us;
+	struct spi_device		*spi;
+	struct i2c_client               *i2c;
 	struct work_struct		work_trigger_to_ring;
 	struct iio_work_cont		work_cont_thresh;
 	s64				last_timestamp;
@@ -166,8 +167,21 @@ struct ade7854_state {
 	struct iio_trigger		*trig;
 	u8				*tx;
 	u8				*rx;
+	int				(*read_reg_8) (struct device *, u16, u8 *);
+	int				(*read_reg_16) (struct device *, u16, u16 *);
+	int				(*read_reg_24) (struct device *, u16, u32 *);
+	int				(*read_reg_32) (struct device *, u16, u32 *);
+	int				(*write_reg_8) (struct device *, u16, u8);
+	int				(*write_reg_16) (struct device *, u16, u16);
+	int				(*write_reg_24) (struct device *, u16, u32);
+	int				(*write_reg_32) (struct device *, u16, u32);
+	int                             irq;
 	struct mutex			buf_lock;
 };
+
+extern int ade7854_probe(struct ade7854_state *st, struct device *dev);
+extern int ade7854_remove(struct ade7854_state *st);
+
 #ifdef CONFIG_IIO_RING_BUFFER
 /* At the moment triggers are only used for ring buffer
  * filling. This may change!
