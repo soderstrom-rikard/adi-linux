@@ -633,14 +633,20 @@ static int __devinit ad7416_probe(struct i2c_client *client,
 	if (strcmp(chip->name, "ad7418") == 0) {
 		chip->channel_mask = AD7418_CHANNEL_MASK;
 		if (convert_pin) {
-			chip->convert_pin = (u16)convert_pin;
-			gpio_set_value(chip->convert_pin, 0);
+			ret = gpio_request(convert_pin, chip->name);
+			if (!ret) {
+				chip->convert_pin = (u16)convert_pin;
+				gpio_set_value(chip->convert_pin, 0);
+			}
 		}
 	} else if (strcmp(chip->name, "ad7417") == 0) {
 		chip->channel_mask = AD7417_CHANNEL_MASK;
 		if (convert_pin) {
-			chip->convert_pin = (u16)convert_pin;
-			gpio_set_value(chip->convert_pin, 0);
+			ret = gpio_request(convert_pin, chip->name);
+			if (!ret) {
+				chip->convert_pin = (u16)convert_pin;
+				gpio_set_value(chip->convert_pin, 0);
+			}
 		}
 	} else
 		chip->channel_mask = AD7416_CHANNEL_MASK;
@@ -731,6 +737,8 @@ static int __devexit ad7416_remove(struct i2c_client *client)
 		iio_unregister_interrupt_line(indio_dev, 0);
 	iio_device_unregister(indio_dev);
 	iio_free_device(chip->indio_dev);
+	if (chip->convert_pin)
+		gpio_free(chip->convert_pin);
 	kfree(chip);
 
 	return 0;
