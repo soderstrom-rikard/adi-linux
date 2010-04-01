@@ -22,7 +22,6 @@
 /*
  * AD7416 registers definition
  */
-
 #define AD7416_TEMPERATURE		0
 #define AD7416_CONFIG			1
 #define AD7416_T_OTI			2
@@ -42,6 +41,18 @@
 #define AD7416_CS_OFFSET		5
 
 /*
+ * AD7416 config
+ */
+#define AD7416_CONVERT			0x80
+
+/*
+ * AD7416 mode
+ */
+#define AD7416_MODE_FULL		0
+#define AD7416_MODE_SHUTDOWN		1
+#define AD7416_MODE_CONVERT		2
+
+/*
  * AD7416/7/8 channel maks
  */
 #define AD7416_CHANNEL_MASK	0x1
@@ -54,7 +65,6 @@
 #define AD7416_VALUE_SIGN	0x200
 #define AD7416_VALUE_OFFSET	6
 #define AD7416_BOUND_VALUE_SIGN	0x100
-#define AD7416_TEMP_OFFSET	7
 
 
 /*
@@ -67,6 +77,7 @@ struct ad7416_chip_info {
 	struct iio_dev		*indio_dev;
 	struct iio_work_cont	work_cont_thresh;
 	s64			last_timestamp;
+	u16			convert_pin;
 	u8			mode;
 	u8			channel_id;	/* 0 always be temperature */
 	u8			channel_mask;
@@ -120,10 +131,14 @@ static ssize_t ad7416_show_mode(struct device *dev,
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad7416_chip_info *chip = dev_info->dev_data;
 
-	if (chip->mode)
+	switch (chip->mode) {
+	case AD7416_MODE_SHUTDOWN:
 		return sprintf(buf, "power-save\n");
-	else
+	case AD7416_MODE_CONVERT:
+		return sprintf(buf, "convert\n");
+	default:
 		return sprintf(buf, "full\n");
+	}
 }
 
 static ssize_t ad7416_store_mode(struct device *dev,
@@ -133,24 +148,56 @@ static ssize_t ad7416_store_mode(struct device *dev,
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad7416_chip_info *chip = dev_info->dev_data;
-	u8 config;
+	u8 config, config2;
 	int ret;
 
 	ret = ad7416_i2c_read(chip, AD7416_CONFIG, &config);
 	if (ret)
 		return -EIO;
 
-	if (strcmp(buf, "full")) {
-		chip->mode = 0;
-		config &= ~AD7416_PD;
-	} else {
-		chip->mode = 1;
-		config |= AD7416_PD;
-	}
-
-	ret = ad7416_i2c_write(chip, AD7416_CONFIG, config);
+	ret = ad7416_i2c_read(chip, AD7416_CONFIG2, &config2);
 	if (ret)
 		return -EIO;
+
+	if (strcmp(buf, "full")) {
+		config2 &= ~AD7416_CONVERT;
+		config &= ~AD7416_PD;
+
+		ret = ad7416_i2c_write(chip, AD7416_CONFIG, config);
+		if (ret)
+			return -EIO;
+
+		if (chip->mode == AD7416_MODE_CONVERT) {
+			ret = ad7416_i2c_write(chip, AD7416_CONFIG2, config2);
+			if (ret)
+				return -EIO;
+		}
+
+		chip->mode = AD7416_MODE_FULL;
+	} else if (chip->convert_pin && strcmp(buf, "convert")) {
+		config2 |= AD7416_CONVERT;
+
+		ret = ad7416_i2c_write(chip, AD7416_CONFIG2, config2);
+		if (ret)
+			return -EIO;
+
+		chip->mode = AD7416_MODE_CONVERT;
+	} else {
+		config |= AD7416_PD;
+		config2 &= ~AD7416_CONVERT;
+
+		ret = ad7416_i2c_write(chip, AD7416_CONFIG, config);
+		if (ret)
+			return -EIO;
+
+		if (chip->mode == AD7416_MODE_CONVERT) {
+			ret = ad7416_i2c_write(chip, AD7416_CONFIG2, config2);
+			if (ret)
+				return -EIO;
+		}
+
+		chip->mode = AD7416_MODE_SHUTDOWN;
+	}
 
 	return ret;
 }
@@ -164,7 +211,13 @@ static ssize_t ad7416_show_available_modes(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
-	return sprintf(buf, "full\npower-save\n");
+	struct iio_dev *dev_info = dev_get_drvdata(dev);
+	struct ad7416_chip_info *chip = dev_info->dev_data;
+
+	if (chip->convert_pin)
+		return sprintf(buf, "full\npower-save\nconvert\n");
+	else
+		return sprintf(buf, "full\npower-save\n");
 }
 
 IIO_DEVICE_ATTR(available_modes, S_IRUGO, ad7416_show_available_modes, NULL, 0);
@@ -232,11 +285,14 @@ static ssize_t ad7416_show_value(struct device *dev,
 	char sign = ' ';
 	int ret;
 
-	if (chip->mode) {
+	if (chip->mode == AD7416_MODE_SHUTDOWN) {
 		/* write to active converter */
 		ret = i2c_smbus_write_byte(chip->client, AD7416_TEMPERATURE);
 		if (ret)
 			return -EIO;
+	} else if (chip->mode == AD7416_MODE_CONVERT) {
+		gpio_set_value(chip->convert_pin, 1);
+		gpio_set_value(chip->convert_pin, 0);
 	}
 
 	if (chip->channel_id == 0) {
@@ -446,9 +502,10 @@ static inline ssize_t ad7416_show_t_bound(struct device *dev,
 		if (data & AD7416_BOUND_VALUE_SIGN) {
 			value = (s16)(data&(~AD7416_BOUND_VALUE_SIGN));
 			value = value - AD7416_BOUND_VALUE_SIGN;
-		}
+		} else
+			value = (s16)data;
 
-		return sprintf(buf, "%d\n", value >> 1),
+		return sprintf(buf, "%d\n", value >> 1);
 	} else
 		return sprintf(buf, "%u\n", data);
 }
@@ -476,13 +533,15 @@ static inline ssize_t ad7416_set_t_bound(struct device *dev,
 
 		data = (u16)value << 1;
 	} else {
-		ret = strict_strtoul(buf, 10, &data);
+		ret = strict_strtoul(buf, 10, &value);
 
-		if (ret || data > 511)
+		if (ret || value > 511 || value < 0)
 			return -EINVAL;
+
+		data = (u16)value;
 	}
 
-	data <<= (AD7416_BOUND_OFFSET + 1);
+	data <<= (AD7416_VALUE_OFFSET + 1);
 	data = cpu_to_be16(data);
 	ret = ad7416_i2c_write(chip, bound_reg, (u8)data);
 	if (ret)
@@ -557,6 +616,7 @@ static int __devinit ad7416_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
 	struct ad7416_chip_info *chip;
+	unsigned long convert_pin = (unsigned long)client->dev.platform_data;
 	int ret = 0;
 	u8 config;
 
@@ -570,11 +630,19 @@ static int __devinit ad7416_probe(struct i2c_client *client,
 
 	chip->client = client;
 	chip->name = id->name;
-	if (strcmp(chip->name, "ad7418") == 0)
+	if (strcmp(chip->name, "ad7418") == 0) {
 		chip->channel_mask = AD7418_CHANNEL_MASK;
-	else if (strcmp(chip->name, "ad7417") == 0)
+		if (convert_pin) {
+			chip->convert_pin = (u16)convert_pin;
+			gpio_set_value(chip->convert_pin, 0);
+		}
+	} else if (strcmp(chip->name, "ad7417") == 0) {
 		chip->channel_mask = AD7417_CHANNEL_MASK;
-	else
+		if (convert_pin) {
+			chip->convert_pin = (u16)convert_pin;
+			gpio_set_value(chip->convert_pin, 0);
+		}
+	} else
 		chip->channel_mask = AD7416_CHANNEL_MASK;
 
 	chip->indio_dev = iio_allocate_device();
