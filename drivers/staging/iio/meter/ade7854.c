@@ -465,7 +465,6 @@ static int ade7854_initial_setup(struct ade7854_state *st)
 	}
 
 	ade7854_reset(dev);
-	dev_err(dev, "device not playing ball -> reset");
 	msleep(ADE7854_STARTUP_DELAY);
 
 err_ret:
@@ -634,6 +633,8 @@ int ade7854_probe(struct ade7854_state *st, struct device *dev)
 	ret = ade7854_initial_setup(st);
 	if (ret)
 		goto error_remove_trigger;
+
+	return 0;
 
 error_remove_trigger:
 	if (st->indio_dev->modes & INDIO_RING_TRIGGERED)
