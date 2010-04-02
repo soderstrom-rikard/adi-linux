@@ -438,7 +438,6 @@ static int ade7753_initial_setup(struct ade7753_state *st)
 	}
 
 	ade7753_reset(dev);
-	dev_err(dev, "device not playing ball -> reset");
 	msleep(ADE7753_STARTUP_DELAY);
 
 err_ret:
