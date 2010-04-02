@@ -1245,6 +1245,17 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.mode = SPI_MODE_1,
 	},
 #endif
+#if defined(CONFIG_ADE7854_SPI) \
+	|| defined(CONFIG_ADE7854_SPI_MODULE)
+	{
+		.modalias = "ade7854",
+		.max_speed_hz = 1000000,     /* max spi clock (SCK) speed in HZ */
+		.bus_num = 0,
+		.chip_select = 1, /* CS, change it for your board */
+		.platform_data = NULL, /* No spi_driver specific config */
+		.mode = SPI_MODE_3,
+	},
+#endif
 #if defined(CONFIG_ADIS16300) \
 	|| defined(CONFIG_ADIS16300_MODULE)
 	{
@@ -2001,6 +2012,12 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 		.irq = IRQ_PG5,
 		.irq_flags = IRQF_TRIGGER_LOW,
 		.platform_data = (void *)GPIO_PF4,
+	},
+#endif
+
+#if defined(CONFIG_ADE7854_I2C) || defined(CONFIG_ADE7854_I2C_MODULE)
+	{
+		I2C_BOARD_INFO("ade7854", 0x38),
 	},
 #endif
 
