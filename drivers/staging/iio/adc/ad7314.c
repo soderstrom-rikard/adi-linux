@@ -1,5 +1,5 @@
 /*
- * AD7314 digital temperature sensor driver
+ * AD7314 digital temperature sensor driver for AD7314, ADT7301 and ADT7302
  *
  * Copyright 2010 Analog Devices Inc.
  *
@@ -32,6 +32,14 @@
 #define AD7314_TEMP_OFFSET		5
 #define AD7314_TEMP_FLOAT_OFFSET	2
 #define AD7314_TEMP_FLOAT_MASK		0x3
+
+/*
+ * ADT7301 and ADT7302 temperature masks
+ */
+#define ADT7301_TEMP_SIGN		0x2000
+#define ADT7301_TEMP_MASK		0x2FFF
+#define ADT7301_TEMP_FLOAT_OFFSET	5
+#define ADT7301_TEMP_FLOAT_MASK		0x1F
 
 /*
  * struct ad7314_chip_info - chip specifc information
@@ -152,16 +160,28 @@ static ssize_t ad7314_show_temperature(struct device *dev,
 	if (chip->mode)
 		ad7314_spi_write(chip, chip->mode);
 
-	data = (be16_to_cpu(data) & AD7314_TEMP_MASK) >>
-		AD7314_TEMP_OFFSET;
-	if (data & AD7314_TEMP_SIGN) {
-		data = (AD7314_TEMP_SIGN << 1) - data;
-		sign = '-';
-	}
+	if (strcmp(chip->name, "ad7314")) {
+		data = (data & AD7314_TEMP_MASK) >>
+			AD7314_TEMP_OFFSET;
+		if (data & AD7314_TEMP_SIGN) {
+			data = (AD7314_TEMP_SIGN << 1) - data;
+			sign = '-';
+		}
 
-	return sprintf(buf, "%c%d.%.2d\n", sign,
-			data >> AD7314_TEMP_FLOAT_OFFSET,
-			(data & AD7314_TEMP_FLOAT_MASK) * 25);
+		return sprintf(buf, "%c%d.%.2d\n", sign,
+				data >> AD7314_TEMP_FLOAT_OFFSET,
+				(data & AD7314_TEMP_FLOAT_MASK) * 25);
+	} else {
+		data &= ADT7301_TEMP_MASK;
+		if (data & ADT7301_TEMP_SIGN) {
+			data = (ADT7301_TEMP_SIGN << 1) - data;
+			sign = '-';
+		}
+
+		return sprintf(buf, "%c%d.%.5d\n", sign,
+				data >> ADT7301_TEMP_FLOAT_OFFSET,
+				(data & ADT7301_TEMP_FLOAT_MASK) * 3125);
+	}
 }
 
 IIO_DEVICE_ATTR(temperature, S_IRUGO, ad7314_show_temperature, NULL, 0);
@@ -251,6 +271,13 @@ static int __devexit ad7314_remove(struct spi_device *spi_dev)
 	return 0;
 }
 
+static const struct spi_device_id ad7314_id[] = {
+	{ "adt7301", 0 },
+	{ "adt7302", 0 },
+	{ "ad7314", 0 },
+	{}
+};
+
 static struct spi_driver ad7314_driver = {
 	.driver = {
 		.name = "ad7314",
@@ -259,6 +286,7 @@ static struct spi_driver ad7314_driver = {
 	},
 	.probe = ad7314_probe,
 	.remove = __devexit_p(ad7314_remove),
+	.id_table = ad7314_id,
 };
 
 static __init int ad7314_init(void)
@@ -272,7 +300,7 @@ static __exit void ad7314_exit(void)
 }
 
 MODULE_AUTHOR("Sonic Zhang <sonic.zhang@analog.com>");
-MODULE_DESCRIPTION("Analog Devices AD7314 digital"
+MODULE_DESCRIPTION("Analog Devices AD7314, ADT7301 and ADT7302 digital"
 			" temperature sensor driver");
 MODULE_LICENSE("GPL v2");
 
