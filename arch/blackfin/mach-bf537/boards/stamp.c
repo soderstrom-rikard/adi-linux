@@ -1223,6 +1223,17 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.mode = SPI_MODE_1,
 	},
 #endif
+#if defined(CONFIG_ADE7758) \
+	|| defined(CONFIG_ADE7758_MODULE)
+	{
+		.modalias = "ade7758",
+		.max_speed_hz = 1000000,     /* max spi clock (SCK) speed in HZ */
+		.bus_num = 0,
+		.chip_select = 1, /* CS, change it for your board */
+		.platform_data = NULL, /* No spi_driver specific config */
+		.mode = SPI_MODE_1,
+	},
+#endif
 #if defined(CONFIG_ADIS16300) \
 	|| defined(CONFIG_ADIS16300_MODULE)
 	{
