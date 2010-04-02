@@ -174,7 +174,7 @@ bool execute_pseudodbg(struct pt_regs *fp, unsigned int opcode)
 		if (!fix_up_reg(fp, &value1, 4, 2 * reg + 1))
 			return false;
 
-		pr_notice("DBG A%i = %02lx%08lx\n", reg, value & 0xF, value1);
+		pr_notice("DBG A%i = %02lx%08lx\n", reg, value & 0xFF, value1);
 		fp->pc += 2;
 		return true;
 
