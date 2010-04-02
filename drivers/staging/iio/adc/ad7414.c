@@ -341,7 +341,7 @@ static inline ssize_t ad7414_show_temperature_bound(struct device *dev,
 		return -EIO;
 
 	if (data & AD7414_T_SIGN)
-		data = data&(~AD7414_T_SIGN) - AD7414_T_SIGN;
+		data = (data&(~AD7414_T_SIGN)) - AD7414_T_SIGN;
 
 	return sprintf(buf, "%d\n", data);
 }
