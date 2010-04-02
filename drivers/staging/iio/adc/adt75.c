@@ -237,7 +237,7 @@ static ssize_t adt75_show_value(struct device *dev,
 	data = be16_to_cpu(data) >> ADT75_VALUE_OFFSET;
 	if (data & ADT75_VALUE_SIGN) {
 		/* convert supplement to positive value */
-		data = (1 << ADT75_VALUE_SIGN) - data;
+		data = (ADT75_VALUE_SIGN << 1) - data;
 		sign = '-';
 	}
 
