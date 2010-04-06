@@ -155,7 +155,6 @@ static int adau1361_mux_put(struct snd_kcontrol *kcontrol,
 	int src = ucontrol->value.integer.value[0];
 	u8 regvalue = 0;
 
-
 	if (src == 0) {/* Select Mic */
 		adau1361->in_source = CAP_MIC;
 #ifdef ADAU1361_DIG_MIC
@@ -232,24 +231,24 @@ static int adau1361_mic_boost_put(struct snd_kcontrol *kcontrol,
 
 static const char *adau1361_input_select[] = {"Mic", "Line"};
 static const struct soc_enum adau1361_enums[] = {
-	SOC_ENUM_SINGLE(ADAU_RECMLC1-ADAU_FIRSTREG, 0, 2, adau1361_input_select),
+	SOC_ENUM_SINGLE(ADAU_RECMLC1, 0, 2, adau1361_input_select),
 };
 
 static const struct snd_kcontrol_new adau1361_snd_controls[] = {
-SOC_DOUBLE_R("Master Playback Volume", ADAU_DACCTL1-ADAU_FIRSTREG,
-	ADAU_DACCTL2-ADAU_FIRSTREG, 0, 255, 1),
-SOC_DOUBLE_R("Capture Volume", ADAU_ADCCTL1-ADAU_FIRSTREG,
-	ADAU_ADCCTL2-ADAU_FIRSTREG, 0, 255, 1),
-SOC_DOUBLE_R("Capture Switch", ADAU_RECMLC0-ADAU_FIRSTREG,
-	ADAU_RECMRC0-ADAU_FIRSTREG, 0, 1, 0),
+SOC_DOUBLE_R("Master Playback Volume", ADAU_DACCTL1,
+	ADAU_DACCTL2, 0, 255, 1),
+SOC_DOUBLE_R("Capture Volume", ADAU_ADCCTL1,
+	ADAU_ADCCTL2, 0, 255, 1),
+SOC_DOUBLE_R("Capture Switch", ADAU_RECMLC0,
+	ADAU_RECMRC0, 0, 1, 0),
 SOC_ENUM_EXT("Capture Source", adau1361_enums[0],
 	adau1361_mux_get, adau1361_mux_put),
-SOC_SINGLE_EXT("Mic Boost (+20dB)", ADAU_RECMLC1-ADAU_FIRSTREG, 0, 1, 0,
+SOC_SINGLE_EXT("Mic Boost (+20dB)", ADAU_RECMLC1, 0, 1, 0,
 	adau1361_mic_boost_get, adau1361_mic_boost_put),
-SOC_DOUBLE_R("Headphone Playback Volume", ADAU_PLBHPVL-ADAU_FIRSTREG,
-	ADAU_PLBHPVR-ADAU_FIRSTREG, 2, 63, 0),
-SOC_DOUBLE_R("Line Playback Volume", ADAU_PLBLOVL-ADAU_FIRSTREG,
-	ADAU_PLBLOVR-ADAU_FIRSTREG, 2, 63, 0),
+SOC_DOUBLE_R("Headphone Playback Volume", ADAU_PLBHPVL,
+	ADAU_PLBHPVR, 2, 63, 0),
+SOC_DOUBLE_R("Line Playback Volume", ADAU_PLBLOVL,
+	ADAU_PLBLOVR, 2, 63, 0),
 };
 
 /*
@@ -262,30 +261,31 @@ static int adau1361_mute(struct snd_soc_dai *dai, int mute)
 	u8 reg = 0;
 
 	if (mute) {
-		/* mute outputs */
-		reg = (snd_soc_read(codec, ADAU_PLBMLC0) & 0xFE) | 0x0;
-		snd_soc_write(codec, ADAU_PLBMLC0, reg);
-		reg = (snd_soc_read(codec, ADAU_PLBMRC0) & 0xFE) | 0x0;
-		snd_soc_write(codec, ADAU_PLBMRC0, reg);
-
 		/* mute inputs */
 		reg = (snd_soc_read(codec, ADAU_RECMLC0) & 0xFE) | 0x0;
 		snd_soc_write(codec, ADAU_RECMLC0, reg);
 		reg = (snd_soc_read(codec, ADAU_RECMRC0) & 0xFE) | 0x0;
 		snd_soc_write(codec, ADAU_RECMRC0, reg);
-	} else {
+		/* mute outputs */
+		reg = (snd_soc_read(codec, ADAU_PLBMLC0) & 0xFE) | 0x1;
+		snd_soc_write(codec, ADAU_PLBMLC0, reg);
+		reg = (snd_soc_read(codec, ADAU_PLBMRC0) & 0xFE) | 0x1;
+		snd_soc_write(codec, ADAU_PLBMRC0, reg);
 
+	} else {
+		/* un-mute outputs, according to the spec,
+		   we should enable mixer3 and mixer4 here,
+		   but it seems that things are converse here.
+		 */
+		reg = (snd_soc_read(codec, ADAU_PLBMLC0) & 0xFE) | 0x0;
+		snd_soc_write(codec, ADAU_PLBMLC0, reg);
+		reg = (snd_soc_read(codec, ADAU_PLBMRC0) & 0xFE) | 0x0;
+		snd_soc_write(codec, ADAU_PLBMRC0, reg);
 		/* un-mute inputs */
 		reg = (snd_soc_read(codec, ADAU_RECMLC0) & 0xFE) | 0x1;
 		snd_soc_write(codec, ADAU_RECMLC0, reg);
 		reg = (snd_soc_read(codec, ADAU_RECMRC0) & 0xFE) | 0x1;
 		snd_soc_write(codec, ADAU_RECMRC0, reg);
-
-		/* un-mute outputs */
-		reg = (snd_soc_read(codec, ADAU_PLBMLC0) & 0xFE) | 0x1;
-		snd_soc_write(codec, ADAU_PLBMLC0, reg);
-		reg = (snd_soc_read(codec, ADAU_PLBMRC0) & 0xFE) | 0x1;
-		snd_soc_write(codec, ADAU_PLBMRC0, reg);
 	}
 
 	return 0;
@@ -293,46 +293,46 @@ static int adau1361_mute(struct snd_soc_dai *dai, int mute)
 
 /* Left Mixer */
 static const struct snd_kcontrol_new adau1361_left_mixer_controls[] = {
-SOC_DAPM_SINGLE("LineLeft Bypass Switch", ADAU_PLBLOVL-ADAU_FIRSTREG, 1, 1, 0),
-SOC_DAPM_SINGLE("HPLeft Bypass Switch", ADAU_PLBHPVL-ADAU_FIRSTREG, 1, 1, 0),
+SOC_DAPM_SINGLE("LineLeft Bypass Switch", ADAU_PLBLOVL, 1, 1, 0),
+SOC_DAPM_SINGLE("HPLeft Bypass Switch", ADAU_PLBHPVL, 1, 1, 0),
 };
 
 /* Right mixer */
 static const struct snd_kcontrol_new adau1361_right_mixer_controls[] = {
-SOC_DAPM_SINGLE("LineRight Bypass Switch", ADAU_PLBLOVR-ADAU_FIRSTREG, 1, 1, 0),
-SOC_DAPM_SINGLE("HPRight Bypass Switch", ADAU_PLBHPVR-ADAU_FIRSTREG, 1, 1, 0),
+SOC_DAPM_SINGLE("LineRight Bypass Switch", ADAU_PLBLOVR, 1, 1, 0),
+SOC_DAPM_SINGLE("HPRight Bypass Switch", ADAU_PLBHPVR, 1, 1, 0),
 };
 
 static const struct snd_soc_dapm_widget adau1361_dapm_widgets[] = {
 
-SND_SOC_DAPM_MIXER("Left Mixer", ADAU_PLBPWRM-ADAU_FIRSTREG, 2, 1, \
+SND_SOC_DAPM_MIXER("Left Mixer", ADAU_PLBPWRM, 2, 1, \
 	&adau1361_left_mixer_controls[0], ARRAY_SIZE(adau1361_left_mixer_controls)),
-SND_SOC_DAPM_MIXER("Left Out", ADAU_PLBPWRM-ADAU_FIRSTREG, 0, 0, NULL, 0),
-SND_SOC_DAPM_MIXER("Left Line Mixer", ADAU_PLBMLLO-ADAU_FIRSTREG, 0, 0, NULL, 0),
+SND_SOC_DAPM_MIXER("Left Out", ADAU_PLBPWRM, 0, 0, NULL, 0),
+SND_SOC_DAPM_MIXER("Left Line Mixer", ADAU_PLBMLLO, 0, 0, NULL, 0),
 SND_SOC_DAPM_OUTPUT("LOUT"),
 SND_SOC_DAPM_OUTPUT("LHPOUT"),
 
-SND_SOC_DAPM_MIXER("Right Mixer", ADAU_PLBPWRM-ADAU_FIRSTREG, 3, 1, \
+SND_SOC_DAPM_MIXER("Right Mixer", ADAU_PLBPWRM, 3, 1, \
 	&adau1361_right_mixer_controls[0], ARRAY_SIZE(adau1361_right_mixer_controls)),
-SND_SOC_DAPM_MIXER("Right Out", ADAU_PLBPWRM-ADAU_FIRSTREG, 1, 0, NULL, 0),
-SND_SOC_DAPM_MIXER("Right Line Mixer", ADAU_PLBMRLO-ADAU_FIRSTREG, 0, 0, NULL, 0),
+SND_SOC_DAPM_MIXER("Right Out", ADAU_PLBPWRM, 1, 0, NULL, 0),
+SND_SOC_DAPM_MIXER("Right Line Mixer", ADAU_PLBMRLO, 0, 0, NULL, 0),
 SND_SOC_DAPM_OUTPUT("ROUT"),
 SND_SOC_DAPM_OUTPUT("RHPOUT"),
 
 SND_SOC_DAPM_DAC("DAC", "Playback", SND_SOC_NOPM, 0, 0),
-SND_SOC_DAPM_MIXER("DAC Enable Left", ADAU_DACCTL0-ADAU_FIRSTREG, 0, 0, NULL, 0),
-SND_SOC_DAPM_MIXER("DAC Enable Right", ADAU_DACCTL0-ADAU_FIRSTREG, 1, 0, NULL, 0),
-SND_SOC_DAPM_MIXER("HP Bias Left", ADAU_PLBPWRM-ADAU_FIRSTREG, 6, 1, NULL, 0),
-SND_SOC_DAPM_MIXER("HP Bias Right", ADAU_PLBLRMC-ADAU_FIRSTREG, 0, 0, NULL, 0),
+SND_SOC_DAPM_MIXER("DAC Enable Left", ADAU_DACCTL0, 0, 0, NULL, 0),
+SND_SOC_DAPM_MIXER("DAC Enable Right", ADAU_DACCTL0, 1, 0, NULL, 0),
+SND_SOC_DAPM_MIXER("HP Bias Left", ADAU_PLBPWRM, 6, 1, NULL, 0),
+SND_SOC_DAPM_MIXER("HP Bias Right", ADAU_PLBLRMC, 0, 0, NULL, 0),
 
 SND_SOC_DAPM_ADC("ADC", "Capture", SND_SOC_NOPM, 0, 0),
-SND_SOC_DAPM_MIXER("ADC Left", ADAU_ADCCTL0-ADAU_FIRSTREG, 0, 0, NULL, 0),
-SND_SOC_DAPM_MIXER("ADC Right", ADAU_ADCCTL0-ADAU_FIRSTREG, 1, 0, NULL, 0),
+SND_SOC_DAPM_MIXER("ADC Left", ADAU_ADCCTL0, 0, 0, NULL, 0),
+SND_SOC_DAPM_MIXER("ADC Right", ADAU_ADCCTL0, 1, 0, NULL, 0),
 
 #if !defined(ADAU1361_DIG_MIC)
-SND_SOC_DAPM_MICBIAS("Mic Bias", ADAU_RECMBIA-ADAU_FIRSTREG, 0, 0),
-SND_SOC_DAPM_MIXER("Left Mic Mixer", ADAU_RECVLCL-ADAU_FIRSTREG, 0, 0, NULL, 0),
-SND_SOC_DAPM_MIXER("Right Mic Mixer", ADAU_RECVLCR-ADAU_FIRSTREG, 0, 0, NULL, 0),
+SND_SOC_DAPM_MICBIAS("Mic Bias", ADAU_RECMBIA, 0, 0),
+SND_SOC_DAPM_MIXER("Left Mic Mixer", ADAU_RECVLCL, 0, 0, NULL, 0),
+SND_SOC_DAPM_MIXER("Right Mic Mixer", ADAU_RECVLCR, 0, 0, NULL, 0),
 #else
 SND_SOC_DAPM_MICBIAS("Mic Bias Left", SND_SOC_NOPM, 1, 0),
 SND_SOC_DAPM_MICBIAS("Mic Bias Right", SND_SOC_NOPM, 1, 0),
@@ -340,8 +340,8 @@ SND_SOC_DAPM_MIXER("Left Mic Mixer", SND_SOC_NOPM, 0, 0, NULL, 0),
 SND_SOC_DAPM_MIXER("Right Mic Mixer", SND_SOC_NOPM, 0, 0, NULL, 0),
 #endif
 
-SND_SOC_DAPM_MIXER("Left Input", ADAU_RECPWRM-ADAU_FIRSTREG, 1, 1, NULL, 0),
-SND_SOC_DAPM_MIXER("Right Input", ADAU_RECPWRM-ADAU_FIRSTREG, 2, 1, NULL, 0),
+SND_SOC_DAPM_MIXER("Left Input", ADAU_RECPWRM, 1, 1, NULL, 0),
+SND_SOC_DAPM_MIXER("Right Input", ADAU_RECPWRM, 2, 1, NULL, 0),
 
 SND_SOC_DAPM_INPUT("LMICIN"),
 SND_SOC_DAPM_INPUT("RMICIN"),
