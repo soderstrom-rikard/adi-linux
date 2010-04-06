@@ -196,7 +196,7 @@ ENTRY(_coreb_die)
 ENDPROC(_coreb_die)
 #endif
 
-__CPUINIT
+__INIT
 ENTRY(_coreb_start)
 	[--sp] = reti;
 
