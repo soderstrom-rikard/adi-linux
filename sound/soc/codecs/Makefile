@@ -7,6 +7,7 @@ snd-soc-adau1361-objs := adau1361.o
 snd-soc-adau1371-objs := adau1371.o
 snd-soc-adau1381-objs := adau1381.o
 snd-soc-adau1761-objs := adau1761.o
+snd-soc-adav80x-objs := adav80x.o
 snd-soc-ads117x-objs := ads117x.o
 snd-soc-ak4104-objs := ak4104.o
 snd-soc-ak4535-objs := ak4535.o

@@ -68,6 +68,14 @@ config SND_BF5XX_SOC_ADAU1381
 	help
 	  Say Y if you want to add support for ADAU1381 SoC audio.
 
+config SND_BF5XX_SOC_ADAV80X
+	tristate "SoC ADAV801/3 Audio support"
+	depends on SND_BF5XX_I2S && (SPI_MASTER || I2C)
+	select SND_BF5XX_SOC_I2S
+	select SND_SOC_ADAV80X
+	help
+	  Say Y if you want to add support for ADAV80X SoC audio.
+
 config SND_BFIN_AD73311_SE
 	int "PF pin for AD73311L Chip Select"
 	depends on SND_BF5XX_SOC_AD73311

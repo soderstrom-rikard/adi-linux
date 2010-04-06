@@ -25,6 +25,7 @@ snd-adau1371-objs := bf5xx-adau1371.o
 snd-adau1761-objs := bf5xx-adau1761.o
 snd-adau1361-objs := bf5xx-adau1361.o
 snd-adau1381-objs := bf5xx-adau1381.o
+snd-adav80x-objs := bf5xx-adav80x.o
 
 obj-$(CONFIG_SND_BF5XX_SOC_AD183X) += snd-ad183x.o
 obj-$(CONFIG_SND_BF5XX_SOC_AD1980) += snd-ad1980.o
