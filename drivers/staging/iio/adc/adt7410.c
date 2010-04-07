@@ -197,7 +197,7 @@ static ssize_t adt7410_store_mode(struct device *dev,
 	return ret;
 }
 
-IIO_DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
 		adt7410_show_mode,
 		adt7410_store_mode,
 		0);
@@ -209,7 +209,7 @@ static ssize_t adt7410_show_available_modes(struct device *dev,
 	return sprintf(buf, "full\none-shot\nsps\npower-down\n");
 }
 
-IIO_DEVICE_ATTR(available_modes, S_IRUGO, adt7410_show_available_modes, NULL, 0);
+static IIO_DEVICE_ATTR(available_modes, S_IRUGO, adt7410_show_available_modes, NULL, 0);
 
 static ssize_t adt7410_show_resolution(struct device *dev,
 		struct device_attribute *attr,
@@ -264,7 +264,7 @@ static ssize_t adt7410_store_resolution(struct device *dev,
 	return ret;
 }
 
-IIO_DEVICE_ATTR(resolution, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(resolution, S_IRUGO | S_IWUSR,
 		adt7410_show_resolution,
 		adt7410_store_resolution,
 		0);
@@ -287,7 +287,7 @@ static ssize_t adt7410_show_id(struct device *dev,
 			(id & ADT7410_MANUFACTORY_ID_MASK) >> ADT7410_MANUFACTORY_ID_OFFSET);
 }
 
-IIO_DEVICE_ATTR(id, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(id, S_IRUGO | S_IWUSR,
 		adt7410_show_id,
 		NULL,
 		0);
@@ -342,7 +342,7 @@ static ssize_t adt7410_show_value(struct device *dev,
 	return adt7410_convert_temperature(chip, data, buf);
 }
 
-IIO_DEVICE_ATTR(value, S_IRUGO, adt7410_show_value, NULL, 0);
+static IIO_DEVICE_ATTR(value, S_IRUGO, adt7410_show_value, NULL, 0);
 
 static ssize_t adt7410_show_name(struct device *dev,
 		struct device_attribute *attr,
@@ -353,7 +353,7 @@ static ssize_t adt7410_show_name(struct device *dev,
 	return sprintf(buf, "%s\n", chip->name);
 }
 
-IIO_DEVICE_ATTR(name, S_IRUGO, adt7410_show_name, NULL, 0);
+static IIO_DEVICE_ATTR(name, S_IRUGO, adt7410_show_name, NULL, 0);
 
 static struct attribute *adt7410_attributes[] = {
 	&iio_dev_attr_available_modes.dev_attr.attr,
