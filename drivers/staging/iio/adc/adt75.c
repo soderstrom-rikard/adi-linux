@@ -146,7 +146,7 @@ static ssize_t adt75_store_mode(struct device *dev,
 	return ret;
 }
 
-IIO_DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
 		adt75_show_mode,
 		adt75_store_mode,
 		0);
@@ -158,7 +158,7 @@ static ssize_t adt75_show_available_modes(struct device *dev,
 	return sprintf(buf, "full\npower-down\n");
 }
 
-IIO_DEVICE_ATTR(available_modes, S_IRUGO, adt75_show_available_modes, NULL, 0);
+static IIO_DEVICE_ATTR(available_modes, S_IRUGO, adt75_show_available_modes, NULL, 0);
 
 static ssize_t adt75_show_oneshot(struct device *dev,
 		struct device_attribute *attr,
@@ -203,7 +203,7 @@ static ssize_t adt75_store_oneshot(struct device *dev,
 	return ret;
 }
 
-IIO_DEVICE_ATTR(oneshot, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(oneshot, S_IRUGO | S_IWUSR,
 		adt75_show_oneshot,
 		adt75_store_oneshot,
 		0);
@@ -246,7 +246,7 @@ static ssize_t adt75_show_value(struct device *dev,
 		(data & ADT75_VALUE_FLOAT_MASK) * 625);
 }
 
-IIO_DEVICE_ATTR(value, S_IRUGO, adt75_show_value, NULL, 0);
+static IIO_DEVICE_ATTR(value, S_IRUGO, adt75_show_value, NULL, 0);
 
 static ssize_t adt75_show_name(struct device *dev,
 		struct device_attribute *attr,
@@ -257,7 +257,7 @@ static ssize_t adt75_show_name(struct device *dev,
 	return sprintf(buf, "%s\n", chip->name);
 }
 
-IIO_DEVICE_ATTR(name, S_IRUGO, adt75_show_name, NULL, 0);
+static IIO_DEVICE_ATTR(name, S_IRUGO, adt75_show_name, NULL, 0);
 
 static struct attribute *adt75_attributes[] = {
 	&iio_dev_attr_available_modes.dev_attr.attr,
