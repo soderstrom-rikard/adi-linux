@@ -192,7 +192,7 @@ static ssize_t ad7291_store_mode(struct device *dev,
 	return ret;
 }
 
-IIO_DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
 		ad7291_show_mode,
 		ad7291_store_mode,
 		0);
@@ -204,7 +204,7 @@ static ssize_t ad7291_show_available_modes(struct device *dev,
 	return sprintf(buf, "command\nautocycle\n");
 }
 
-IIO_DEVICE_ATTR(available_modes, S_IRUGO, ad7291_show_available_modes, NULL, 0);
+static IIO_DEVICE_ATTR(available_modes, S_IRUGO, ad7291_show_available_modes, NULL, 0);
 
 static ssize_t ad7291_store_reset(struct device *dev,
 		struct device_attribute *attr,
@@ -225,7 +225,7 @@ static ssize_t ad7291_store_reset(struct device *dev,
 	return ret;
 }
 
-IIO_DEVICE_ATTR(reset, S_IWUSR,
+static IIO_DEVICE_ATTR(reset, S_IWUSR,
 		NULL,
 		ad7291_store_reset,
 		0);
@@ -263,7 +263,7 @@ static ssize_t ad7291_store_ext_ref(struct device *dev,
 	return ret;
 }
 
-IIO_DEVICE_ATTR(ext_ref, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(ext_ref, S_IRUGO | S_IWUSR,
 		ad7291_show_ext_ref,
 		ad7291_store_ext_ref,
 		0);
@@ -301,7 +301,7 @@ static ssize_t ad7291_store_noise_delay(struct device *dev,
 	return ret;
 }
 
-IIO_DEVICE_ATTR(noise_delay, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(noise_delay, S_IRUGO | S_IWUSR,
 		ad7291_show_noise_delay,
 		ad7291_store_noise_delay,
 		0);
@@ -331,7 +331,7 @@ static ssize_t ad7291_show_t_sense(struct device *dev,
 		(data & AD7291_T_VALUE_FLOAT_MASK) * 25);
 }
 
-IIO_DEVICE_ATTR(t_sense, S_IRUGO, ad7291_show_t_sense, NULL, 0);
+static IIO_DEVICE_ATTR(t_sense, S_IRUGO, ad7291_show_t_sense, NULL, 0);
 
 static ssize_t ad7291_show_t_average(struct device *dev,
 		struct device_attribute *attr,
@@ -358,7 +358,7 @@ static ssize_t ad7291_show_t_average(struct device *dev,
 		(data & AD7291_T_VALUE_FLOAT_MASK) * 25);
 }
 
-IIO_DEVICE_ATTR(t_average, S_IRUGO, ad7291_show_t_average, NULL, 0);
+static IIO_DEVICE_ATTR(t_average, S_IRUGO, ad7291_show_t_average, NULL, 0);
 
 static ssize_t ad7291_show_voltage(struct device *dev,
 		struct device_attribute *attr,
@@ -387,7 +387,7 @@ static ssize_t ad7291_show_voltage(struct device *dev,
 	return size;
 }
 
-IIO_DEVICE_ATTR(voltage, S_IRUGO, ad7291_show_voltage, NULL, 0);
+static IIO_DEVICE_ATTR(voltage, S_IRUGO, ad7291_show_voltage, NULL, 0);
 
 static ssize_t ad7291_show_channel_mask(struct device *dev,
 		struct device_attribute *attr,
@@ -432,7 +432,7 @@ static ssize_t ad7291_store_channel_mask(struct device *dev,
 	return ret;
 }
 
-IIO_DEVICE_ATTR(channel_mask, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(channel_mask, S_IRUGO | S_IWUSR,
 		ad7291_show_channel_mask,
 		ad7291_store_channel_mask,
 		0);
@@ -446,7 +446,7 @@ static ssize_t ad7291_show_name(struct device *dev,
 	return sprintf(buf, "%s\n", chip->name);
 }
 
-IIO_DEVICE_ATTR(name, S_IRUGO, ad7291_show_name, NULL, 0);
+static IIO_DEVICE_ATTR(name, S_IRUGO, ad7291_show_name, NULL, 0);
 
 static struct attribute *ad7291_attributes[] = {
 	&iio_dev_attr_available_modes.dev_attr.attr,
