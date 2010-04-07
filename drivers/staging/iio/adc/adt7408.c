@@ -173,7 +173,7 @@ static ssize_t adt7408_store_mode(struct device *dev,
 	return ret;
 }
 
-IIO_DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
 		adt7408_show_mode,
 		adt7408_store_mode,
 		0);
@@ -185,7 +185,7 @@ static ssize_t adt7408_show_available_modes(struct device *dev,
 	return sprintf(buf, "full\npower-down\n");
 }
 
-IIO_DEVICE_ATTR(available_modes, S_IRUGO, adt7408_show_available_modes, NULL, 0);
+static IIO_DEVICE_ATTR(available_modes, S_IRUGO, adt7408_show_available_modes, NULL, 0);
 
 static ssize_t adt7408_show_capability(struct device *dev,
 		struct device_attribute *attr,
@@ -203,7 +203,7 @@ static ssize_t adt7408_show_capability(struct device *dev,
 	return sprintf(buf, "0x%x\n", capability);
 }
 
-IIO_DEVICE_ATTR(capability, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(capability, S_IRUGO | S_IWUSR,
 		adt7408_show_capability,
 		NULL,
 		0);
@@ -224,7 +224,7 @@ static ssize_t adt7408_show_manufactory_id(struct device *dev,
 	return sprintf(buf, "0x%x\n", id);
 }
 
-IIO_DEVICE_ATTR(manufactory_id, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(manufactory_id, S_IRUGO | S_IWUSR,
 		adt7408_show_manufactory_id,
 		NULL,
 		0);
@@ -245,7 +245,7 @@ static ssize_t adt7408_show_device_id(struct device *dev,
 	return sprintf(buf, "0x%x\n", id);
 }
 
-IIO_DEVICE_ATTR(device_id, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(device_id, S_IRUGO | S_IWUSR,
 		adt7408_show_device_id,
 		NULL,
 		0);
@@ -280,7 +280,7 @@ static ssize_t adt7408_show_value(struct device *dev,
 		(data & ADT7408_T_VALUE_FLOAT_MASK) * 625);
 }
 
-IIO_DEVICE_ATTR(value, S_IRUGO, adt7408_show_value, NULL, 0);
+static IIO_DEVICE_ATTR(value, S_IRUGO, adt7408_show_value, NULL, 0);
 
 static ssize_t adt7408_show_name(struct device *dev,
 		struct device_attribute *attr,
@@ -291,7 +291,7 @@ static ssize_t adt7408_show_name(struct device *dev,
 	return sprintf(buf, "%s\n", chip->name);
 }
 
-IIO_DEVICE_ATTR(name, S_IRUGO, adt7408_show_name, NULL, 0);
+static IIO_DEVICE_ATTR(name, S_IRUGO, adt7408_show_name, NULL, 0);
 
 static struct attribute *adt7408_attributes[] = {
 	&iio_dev_attr_available_modes.dev_attr.attr,
