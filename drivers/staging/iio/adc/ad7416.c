@@ -202,7 +202,7 @@ static ssize_t ad7416_store_mode(struct device *dev,
 	return ret;
 }
 
-IIO_DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
 		ad7416_show_mode,
 		ad7416_store_mode,
 		0);
@@ -220,7 +220,7 @@ static ssize_t ad7416_show_available_modes(struct device *dev,
 		return sprintf(buf, "full\npower-save\n");
 }
 
-IIO_DEVICE_ATTR(available_modes, S_IRUGO, ad7416_show_available_modes, NULL, 0);
+static IIO_DEVICE_ATTR(available_modes, S_IRUGO, ad7416_show_available_modes, NULL, 0);
 
 static ssize_t ad7416_show_channel(struct device *dev,
 		struct device_attribute *attr,
@@ -269,7 +269,7 @@ static ssize_t ad7416_store_channel(struct device *dev,
 	return ret;
 }
 
-IIO_DEVICE_ATTR(channel, S_IRUGO | S_IWUSR,
+static IIO_DEVICE_ATTR(channel, S_IRUGO | S_IWUSR,
 		ad7416_show_channel,
 		ad7416_store_channel,
 		0);
@@ -321,7 +321,7 @@ static ssize_t ad7416_show_value(struct device *dev,
 	}
 }
 
-IIO_DEVICE_ATTR(value, S_IRUGO, ad7416_show_value, NULL, 0);
+static IIO_DEVICE_ATTR(value, S_IRUGO, ad7416_show_value, NULL, 0);
 
 static ssize_t ad7416_show_name(struct device *dev,
 		struct device_attribute *attr,
@@ -332,7 +332,7 @@ static ssize_t ad7416_show_name(struct device *dev,
 	return sprintf(buf, "%s\n", chip->name);
 }
 
-IIO_DEVICE_ATTR(name, S_IRUGO, ad7416_show_name, NULL, 0);
+static IIO_DEVICE_ATTR(name, S_IRUGO, ad7416_show_name, NULL, 0);
 
 static struct attribute *ad7416_attributes[] = {
 	&iio_dev_attr_available_modes.dev_attr.attr,
