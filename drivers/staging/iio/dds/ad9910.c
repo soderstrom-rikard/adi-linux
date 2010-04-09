@@ -335,10 +335,7 @@ static void ad9910_init(struct ad9910_state *st)
 	ret = spi_sync(st->sdev, &msg);
 	if (ret)
 		goto error_ret;
-#define PLL_ENA		(1)
-#define PFD_RST		(1 << 2)
-#define REFCLK_RST	(1 << 6)
-#define REFCLK_BYP	(1 << 7)
+
 	cfr[0] = CFR3;
 	cfr[1] = PLL_ENA;
 	cfr[2] = 0;
