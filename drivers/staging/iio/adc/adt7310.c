@@ -359,11 +359,14 @@ static ssize_t adt7310_show_value(struct device *dev,
 	struct adt7310_chip_info *chip = dev_info->dev_data;
 	u8 status;
 	u16 data;
-	int ret;
+	int ret, i = 0;
 
 	do {
 		ret = adt7310_spi_read_byte(chip, ADT7310_STATUS, &status);
 		if (ret)
+			return -EIO;
+		i++;
+		if (i == 10000)
 			return -EIO;
 	} while (status & ADT7310_STAT_NOT_RDY);
 
