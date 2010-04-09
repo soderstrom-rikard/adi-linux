@@ -721,6 +721,20 @@ static struct bfin5xx_spi_chip ad7816_spi_chip_info = {
 };
 #endif
 
+#if defined(CONFIG_ADT7310) || defined(CONFIG_ADT7310_MODULE)
+static unsigned long adt7310_platform_data[3] = {
+/* INT bound temperature alarm event. line 1 */
+	IRQ_PG4, IRQF_TRIGGER_LOW,
+/* CT bound temperature alarm event irq_flags. line 0 */
+	IRQF_TRIGGER_LOW,
+};
+
+static struct bfin5xx_spi_chip adt7310_spi_chip_info = {
+	.enable_dma = 0,
+	.bits_per_word = 8,
+};
+#endif
+
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 #define MMC_SPI_CARD_DETECT_INT IRQ_PF5
 
@@ -1106,6 +1120,18 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.chip_select = 4,            /* CS, change it for your board */
 		.platform_data = ad7816_platform_data,
 		.controller_data = &ad7816_spi_chip_info,
+	},
+#endif
+
+#if defined(CONFIG_ADT7310) || defined(CONFIG_ADT7310_MODULE)
+	{
+		.modalias = "adt7310",
+		.max_speed_hz = 1000000,
+		.irq = IRQ_PG5,		/* CT alarm event. Line 0 */
+		.bus_num = 0,
+		.chip_select = 4,	/* CS, change it for your board */
+		.platform_data = adt7310_platform_data,
+		.controller_data = &adt7310_spi_chip_info,
 	},
 #endif
 
