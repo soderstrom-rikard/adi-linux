@@ -327,11 +327,14 @@ static ssize_t adt7410_show_value(struct device *dev,
 	struct adt7410_chip_info *chip = dev_info->dev_data;
 	u8 status;
 	u16 data;
-	int ret;
+	int ret, i = 0;
 
 	do {
 		ret = adt7410_i2c_read_byte(chip, ADT7410_STATUS, &status);
 		if (ret)
+			return -EIO;
+		i++;
+		if (i == 10000)
 			return -EIO;
 	} while (status & ADT7410_STAT_NOT_RDY);
 
