@@ -708,7 +708,7 @@ static struct bfin5xx_spi_chip ad7314_spi_chip_info = {
 #endif
 
 #if defined(CONFIG_AD7816) || defined(CONFIG_AD7816_MODULE)
-unsigned short ad7816_platform_data[] = {
+static unsigned short ad7816_platform_data[] = {
 	GPIO_PF4, /* rdwr_pin */
 	GPIO_PF5, /* convert_pin */
 	GPIO_PF7, /* busy_pin */
