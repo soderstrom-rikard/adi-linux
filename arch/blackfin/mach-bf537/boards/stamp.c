@@ -1110,6 +1110,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.bus_num = 0,
 		.chip_select = 4,            /* CS, change it for your board */
 		.controller_data = &ad7314_spi_chip_info,
+		.mode = SPI_MODE_1,
 	},
 #endif
 
@@ -1121,6 +1122,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.chip_select = 4,            /* CS, change it for your board */
 		.platform_data = ad7816_platform_data,
 		.controller_data = &ad7816_spi_chip_info,
+		.mode = SPI_MODE_3,
 	},
 #endif
 
@@ -1133,6 +1135,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.chip_select = 4,	/* CS, change it for your board */
 		.platform_data = adt7310_platform_data,
 		.controller_data = &adt7310_spi_chip_info,
+		.mode = SPI_MODE_3,
 	},
 #endif
 
