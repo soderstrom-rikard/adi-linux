@@ -13,6 +13,7 @@ obj-y += accel/
 obj-y += adc/
 obj-y += dac/
 obj-y += imu/
+obj-y += gyro/
 obj-y += light/
 obj-y += meter/
 obj-y += resolver/
