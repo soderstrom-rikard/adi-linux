@@ -401,18 +401,21 @@ static int __devinit ad7816_probe(struct spi_device *spi_dev)
 			chip->rdwr_pin);
 		goto error_free_chip;
 	}
+	gpio_direction_input(chip->rdwr_pin);
 	ret = gpio_request(chip->convert_pin, chip->name);
 	if (ret) {
 		dev_err(&spi_dev->dev, "Fail to request convert gpio PIN %d.\n",
 			chip->convert_pin);
 		goto error_free_gpio_rdwr;
 	}
+	gpio_direction_input(chip->convert_pin);
 	ret = gpio_request(chip->busy_pin, chip->name);
 	if (ret) {
 		dev_err(&spi_dev->dev, "Fail to request busy gpio PIN %d.\n",
 			chip->busy_pin);
 		goto error_free_gpio_convert;
 	}
+	gpio_direction_input(busy_pin);
 
 	chip->indio_dev = iio_allocate_device();
 	if (chip->indio_dev == NULL) {
