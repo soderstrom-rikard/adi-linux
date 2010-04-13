@@ -226,7 +226,7 @@ static ssize_t adt7310_store_mode(struct device *dev,
 
 	chip->config = config;
 
-	return ret;
+	return len;
 }
 
 static IIO_DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
@@ -293,7 +293,7 @@ static ssize_t adt7310_store_resolution(struct device *dev,
 
 	chip->config = config;
 
-	return ret;
+	return len;
 }
 
 static IIO_DEVICE_ATTR(resolution, S_IRUGO | S_IWUSR,
@@ -493,7 +493,7 @@ static ssize_t adt7310_set_event_mode(struct device *dev,
 
 	chip->config = config;
 
-	return ret;
+	return len;
 }
 
 static ssize_t adt7310_show_available_event_modes(struct device *dev,
@@ -545,7 +545,7 @@ static ssize_t adt7310_set_fault_queue(struct device *dev,
 
 	chip->config = config;
 
-	return ret;
+	return len;
 }
 
 static inline ssize_t adt7310_show_t_bound(struct device *dev,
@@ -633,7 +633,7 @@ static inline ssize_t adt7310_set_t_bound(struct device *dev,
 	if (ret)
 		return -EIO;
 
-	return ret;
+	return len;
 }
 
 static ssize_t adt7310_show_t_alarm_high(struct device *dev,
@@ -725,7 +725,7 @@ static inline ssize_t adt7310_set_t_hyst(struct device *dev,
 	if (ret)
 		return -EIO;
 
-	return ret;
+	return len;
 }
 
 IIO_EVENT_ATTR_SH(event_mode, iio_event_adt7310,
