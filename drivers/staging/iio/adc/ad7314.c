@@ -120,7 +120,7 @@ static ssize_t ad7314_store_mode(struct device *dev,
 
 	chip->mode = mode;
 
-	return ret;
+	return len;
 }
 
 static IIO_DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
