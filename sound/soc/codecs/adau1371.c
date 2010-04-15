@@ -848,7 +848,7 @@ static int adau1371_register(struct adau1371_priv *adau1371, enum snd_soc_contro
 	INIT_LIST_HEAD(&codec->dapm_widgets);
 	INIT_LIST_HEAD(&codec->dapm_paths);
 
-	codec->name = "adau1371";
+	codec->name = "ADAU1371";
 	codec->owner = THIS_MODULE;
 	codec->set_bias_level = adau1371_set_bias_level;
 	codec->dai = &adau1371_dai;
