@@ -248,6 +248,36 @@ static int ad193x_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	return 0;
 }
 
+static int ad193x_set_dai_pll(struct snd_soc_dai *codec_dai,
+		int pll_id, int source, unsigned int freq_in, unsigned int freq_out)
+{
+	struct snd_soc_codec *codec = codec_dai->codec;
+	int reg;
+
+	reg = snd_soc_read(codec, AD193X_PLL_CLK_CTRL0);
+
+	switch (freq_in) {
+	case 12288000:
+		reg = (reg & AD193X_PLL_INPUT_MASK) | AD193X_PLL_INPUT_256;
+		break;
+	case 18432000:
+		reg = (reg & AD193X_PLL_INPUT_MASK) | AD193X_PLL_INPUT_384;
+		break;
+	case 24576000:
+		reg = (reg & AD193X_PLL_INPUT_MASK) | AD193X_PLL_INPUT_512;
+		break;
+	case 36864000:
+		reg = (reg & AD193X_PLL_INPUT_MASK) | AD193X_PLL_INPUT_768;
+		break;
+	default:
+		dev_err(codec->dev, "ad193x_set_dai_pll: unsupported pll input freq:%d", freq_in);
+		return -EINVAL;
+	}
+
+	snd_soc_write(codec, AD193X_PLL_CLK_CTRL0, reg);
+	return 0;
+}
+
 static int ad193x_hw_params(struct snd_pcm_substream *substream,
 		struct snd_pcm_hw_params *params,
 		struct snd_soc_dai *dai)
@@ -381,6 +411,7 @@ static struct snd_soc_dai_ops ad193x_dai_ops = {
 	.digital_mute = ad193x_mute,
 	.set_tdm_slot = ad193x_set_tdm_slot,
 	.set_fmt = ad193x_set_dai_fmt,
+	.set_pll = ad193x_set_dai_pll,
 };
 
 /* codec DAI instance */

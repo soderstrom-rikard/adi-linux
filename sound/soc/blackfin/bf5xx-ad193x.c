@@ -77,6 +77,13 @@ static int bf5xx_ad193x_hw_params(struct snd_pcm_substream *substream,
 	if (ret < 0)
 		return ret;
 
+#if 0
+	/* if input frequency is not 12288000, we need set pll */
+	ret = snd_soc_dai_set_pll(codec_dai, 0, 0,
+			24576000, 12288000);
+	if (ret < 0)
+		return ret;
+#endif
 	return 0;
 }
 
