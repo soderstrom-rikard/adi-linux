@@ -40,7 +40,7 @@
 #define ADIS16300_AUX_DAC   0x30 /* Auxiliary DAC data */
 
 #define ADIS16300_ERROR_ACTIVE			(1<<14)
-#define ADIS16300_NEW_DATA			(1<<14)
+#define ADIS16300_NEW_DATA			(1<<15)
 
 /* MSC_CTRL */
 #define ADIS16300_MSC_CTRL_MEM_TEST		(1<<11)
