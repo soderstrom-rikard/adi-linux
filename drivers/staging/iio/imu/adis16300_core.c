@@ -121,12 +121,12 @@ static int adis16300_spi_read_reg_16(struct device *dev,
 			.tx_buf = st->tx,
 			.bits_per_word = 8,
 			.len = 2,
-			.cs_change = 1,
+			.cs_change = 0,
 		}, {
 			.rx_buf = st->rx,
 			.bits_per_word = 8,
 			.len = 2,
-			.cs_change = 1,
+			.cs_change = 0,
 		},
 	};
 
