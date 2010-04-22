@@ -25,6 +25,7 @@ snd-adau1371-objs := bf5xx-adau1371.o
 snd-adau1761-objs := bf5xx-adau1761.o
 snd-adau1361-objs := bf5xx-adau1361.o
 snd-adau1381-objs := bf5xx-adau1381.o
+snd-adau1373-objs := bf5xx-adau1373.o
 snd-adav80x-objs := bf5xx-adav80x.o
 
 obj-$(CONFIG_SND_BF5XX_SOC_AD183X) += snd-ad183x.o
@@ -36,3 +37,4 @@ obj-$(CONFIG_SND_BF5XX_SOC_ADAU1371) += snd-adau1371.o
 obj-$(CONFIG_SND_BF5XX_SOC_ADAU1761) += snd-adau1761.o
 obj-$(CONFIG_SND_BF5XX_SOC_ADAU1361) += snd-adau1361.o
 obj-$(CONFIG_SND_BF5XX_SOC_ADAU1381) += snd-adau1381.o
+obj-$(CONFIG_SND_BF5XX_SOC_ADAU1373) += snd-adau1373.o
