@@ -20,7 +20,7 @@
 
 #include <linux/types.h>
 #include <dirent.h>
-#include "iio_util.h"
+#include "iio_utils.h"
 
 static const char *ring_access = "/dev/iio/lis3l02dq_ring_access";
 static const char *ring_event = "/dev/iio/lis3l02dq_ring_event";
