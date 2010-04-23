@@ -474,9 +474,7 @@ static int __init adav80x_init(void)
 		printk(KERN_ERR "Failed to register ADAV80X I2C driver: %d\n",
 				ret);
 	}
-#endif
-
-#if defined(CONFIG_SPI_MASTER)
+#elif defined(CONFIG_SPI_MASTER)
 	ret = spi_register_driver(&adav80x_spi_driver);
 	if (ret != 0) {
 		printk(KERN_ERR "Failed to register ADAV80X SPI driver: %d\n",
@@ -489,12 +487,10 @@ module_init(adav80x_init);
 
 static void __exit adav80x_exit(void)
 {
-#if defined(CONFIG_SPI_MASTER)
-	spi_unregister_driver(&adav80x_spi_driver);
-#endif
-
 #if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 	i2c_del_driver(&adav80x_i2c_driver);
+#elif defined(CONFIG_SPI_MASTER)
+	spi_unregister_driver(&adav80x_spi_driver);
 #endif
 }
 module_exit(adav80x_exit);

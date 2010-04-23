@@ -71,6 +71,7 @@ obj-$(CONFIG_SND_SOC_ADAU1371)	+= snd-soc-adau1371.o
 obj-$(CONFIG_SND_SOC_ADAU1381)	+= snd-soc-adau1381.o
 obj-$(CONFIG_SND_SOC_ADAU1761)	+= snd-soc-adau1761.o
 obj-$(CONFIG_SND_SOC_ADAU1373)	+= snd-soc-adau1373.o
+obj-$(CONFIG_SND_SOC_ADAV80X)	+= snd-soc-adav80x.o
 obj-$(CONFIG_SND_SOC_ADS117X)	+= snd-soc-ads117x.o
 obj-$(CONFIG_SND_SOC_AK4104)	+= snd-soc-ak4104.o
 obj-$(CONFIG_SND_SOC_AK4535)	+= snd-soc-ak4535.o
