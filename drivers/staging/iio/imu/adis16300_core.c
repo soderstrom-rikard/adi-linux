@@ -174,8 +174,8 @@ int adis16300_spi_read_burst(struct device *dev, u8 *rx)
 		}, {
 			.rx_buf = rx,
 			.bits_per_word = 8,
-			.len = 24,
-			.cs_change = 1,
+			.len = 18,
+			.cs_change = 0,
 		},
 	};
 
@@ -429,6 +429,7 @@ int adis16300_set_irq(struct device *dev, bool enable)
 		goto error_ret;
 
 	msc |= ADIS16300_MSC_CTRL_DATA_RDY_POL_HIGH;
+	msc &= ~ADIS16300_MSC_CTRL_DATA_RDY_DIO2;
 	if (enable)
 		msc |= ADIS16300_MSC_CTRL_DATA_RDY_EN;
 	else

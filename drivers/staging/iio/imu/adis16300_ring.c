@@ -140,7 +140,7 @@ static int adis16300_data_rdy_ring_preenable(struct iio_dev *indio_dev)
 	if (indio_dev->ring->access.set_bpd) {
 		if (indio_dev->scan_timestamp)
 			if (indio_dev->scan_count) /* Timestamp and data */
-				size = 6*sizeof(s64);
+				size = 4*sizeof(s64);
 			else /* Timestamp only  */
 				size = sizeof(s64);
 		else /* Data only */
