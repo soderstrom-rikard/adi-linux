@@ -747,6 +747,18 @@ static struct bfin5xx_spi_chip ad7298_spi_chip_info = {
 };
 #endif
 
+#if defined(CONFIG_ADT7316_SPI) || defined(CONFIG_ADT7316_SPI_MODULE)
+static unsigned long adt7316_spi_data[2] = {
+	IRQF_TRIGGER_LOW, /* interrupt flags */
+	GPIO_PF7, /* ldac_pin, 0 means DAC/LDAC registers control DAC update */
+};
+
+static struct bfin5xx_spi_chip adt7316_spi_chip_info = {
+	.enable_dma = 0,
+	.bits_per_word = 8,
+};
+#endif
+
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 #define MMC_SPI_CARD_DETECT_INT IRQ_PF5
 
@@ -1159,6 +1171,19 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.chip_select = 4,            /* CS, change it for your board */
 		.platform_data = ad7298_platform_data,
 		.controller_data = &ad7298_spi_chip_info,
+		.mode = SPI_MODE_3,
+	},
+#endif
+
+#if defined(CONFIG_ADT7316_SPI) || defined(CONFIG_ADT7316_SPI_MODULE)
+	{
+		.modalias = "adt7316",
+		.max_speed_hz = 1000000,
+		.irq = IRQ_PG5,		/* interrupt line */
+		.bus_num = 0,
+		.chip_select = 4,	/* CS, change it for your board */
+		.platform_data = adt7316_spi_data,
+		.controller_data = &adt7316_spi_chip_info,
 		.mode = SPI_MODE_3,
 	},
 #endif
@@ -2090,6 +2115,14 @@ static unsigned long adt7410_platform_data[2] = {
 };
 #endif
 
+#if defined(CONFIG_ADT7316_I2C) || defined(CONFIG_ADT7316_I2C_MODULE)
+/* INT bound temperature alarm event. line 1 */
+static unsigned long adt7316_i2c_data[2] = {
+	IRQF_TRIGGER_LOW, /* interrupt flags */
+	GPIO_PF4, /* ldac_pin, 0 means DAC/LDAC registers control DAC update */
+};
+#endif
+
 static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 #if defined(CONFIG_SND_BF5XX_SOC_AD193X) || defined(CONFIG_SND_BF5XX_SOC_AD193X_MODULE)
 	{
@@ -2184,6 +2217,14 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 		I2C_BOARD_INFO("ad7291", 0x20),
 		.irq = IRQ_PG5,
 		.irq_flags = IRQF_TRIGGER_LOW,
+	},
+#endif
+
+#if defined(CONFIG_ADT7316_I2C) || defined(CONFIG_ADT7316_I2C_MODULE)
+	{
+		I2C_BOARD_INFO("adt7316", 0x48),
+		.irq = IRQ_PG6,
+		.platform_data = (void *)&adt7316_i2c_data,
 	},
 #endif
 
