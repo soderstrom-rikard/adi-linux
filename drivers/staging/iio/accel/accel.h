@@ -39,6 +39,18 @@
 #define IIO_DEV_ATTR_ACCEL_PEAK(_show, _addr)			\
 	IIO_DEVICE_ATTR(accel_peak, S_IRUGO, _show, NULL, _addr)
 
+#define IIO_DEV_ATTR_ACCEL_XPEAK(_show, _addr)			\
+	IIO_DEVICE_ATTR(accel_xpeak, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_ACCEL_YPEAK(_show, _addr)			\
+	IIO_DEVICE_ATTR(accel_ypeak, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_ACCEL_ZPEAK(_show, _addr)			\
+	IIO_DEVICE_ATTR(accel_zpeak, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_ACCEL_XYZPEAK(_show, _addr)		\
+	IIO_DEVICE_ATTR(accel_xyzpeak, S_IRUGO, _show, NULL, _addr)
+
 /* Thresholds are somewhat chip dependent - may need quite a few defs here */
 /* For unified thresholds (shared across all directions */
 
