@@ -1384,6 +1384,18 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.mode = SPI_MODE_3,
 	},
 #endif
+#if defined(CONFIG_ADIS16220) \
+	|| defined(CONFIG_ADIS16220_MODULE)
+	{
+		.modalias = "adis16220",
+		.max_speed_hz = 2000000,     /* max spi clock (SCK) speed in HZ */
+		.bus_num = 0,
+		.chip_select = 5, /* CS, change it for your board */
+		.platform_data = NULL, /* No spi_driver specific config */
+		.mode = SPI_MODE_3,
+		.irq = IRQ_PF4,
+	},
+#endif
 #if defined(CONFIG_ADIS16260) \
 	|| defined(CONFIG_ADIS16260_MODULE)
 	{
