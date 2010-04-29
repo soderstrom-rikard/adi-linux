@@ -22,7 +22,7 @@
 #include "../sysfs.h"
 #include "accel.h"
 #include "../imu/volt.h"
-#include "../imu/gyro.h"
+#include "../gyro/gyro.h"
 #include "../adc/adc.h"
 
 #include "adis16209.h"

@@ -21,7 +21,7 @@
 #include "../iio.h"
 #include "../sysfs.h"
 #include "../accel/accel.h"
-#include "gyro.h"
+#include "../gyro/gyro.h"
 #include "volt.h"
 
 #include "adis16350.h"

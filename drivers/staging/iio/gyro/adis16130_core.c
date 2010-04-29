@@ -20,7 +20,7 @@
 
 #include "../iio.h"
 #include "../sysfs.h"
-#include "../imu/gyro.h"
+#include "gyro.h"
 #include "../adc/adc.h"
 
 #include "adis16130.h"

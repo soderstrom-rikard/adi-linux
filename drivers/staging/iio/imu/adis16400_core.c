@@ -28,7 +28,7 @@
 #include "../iio.h"
 #include "../sysfs.h"
 #include "../accel/accel.h"
-#include "gyro.h"
+#include "../gyro/gyro.h"
 #include "magnet.h"
 #include "volt.h"
 
