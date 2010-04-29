@@ -1,5 +1,5 @@
 /*
- * I2C bus driver for ADT7316/7/8 ADT7516/7/8 digital temperature
+ * I2C bus driver for ADT7316/7/8 ADT7516/7/9 digital temperature
  * sensor, ADC and DAC
  *
  * Copyright 2010 Analog Devices Inc.
@@ -117,7 +117,7 @@ static const struct i2c_device_id adt7316_i2c_id[] = {
 	{ "adt7318", 0 },
 	{ "adt7516", 0 },
 	{ "adt7517", 0 },
-	{ "adt7518", 0 },
+	{ "adt7519", 0 },
 	{ }
 };
 
@@ -161,7 +161,7 @@ static __exit void adt7316_i2c_exit(void)
 }
 
 MODULE_AUTHOR("Sonic Zhang <sonic.zhang@analog.com>");
-MODULE_DESCRIPTION("I2C bus driver for Analog Devices ADT7316/7/8 and"
+MODULE_DESCRIPTION("I2C bus driver for Analog Devices ADT7316/7/9 and"
 			"ADT7516/7/8 digital temperature sensor, ADC and DAC");
 MODULE_LICENSE("GPL v2");
 

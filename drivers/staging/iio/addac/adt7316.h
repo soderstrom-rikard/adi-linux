@@ -1,5 +1,5 @@
 /*
- * ADT7316 digital temperature sensor driver supporting ADT7316/7/8 ADT7516/7/8
+ * ADT7316 digital temperature sensor driver supporting ADT7316/7/8 ADT7516/7/9
  *
  * Copyright 2010 Analog Devices Inc.
  *

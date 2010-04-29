@@ -1,5 +1,5 @@
 /*
- * ADT7316 digital temperature sensor driver supporting ADT7316/7/8 ADT7516/7/8
+ * ADT7316 digital temperature sensor driver supporting ADT7316/7/8 ADT7516/7/9
  *
  *
  * Copyright 2010 Analog Devices Inc.
@@ -162,7 +162,7 @@
 #define ID_ADT7318		0x3
 #define ID_ADT7516		0x11
 #define ID_ADT7517		0x12
-#define ID_ADT7518		0x13
+#define ID_ADT7519		0x14
 
 #define ID_FAMILY_MASK		0xF0
 #define ID_ADT73XX		0x0
@@ -661,9 +661,9 @@ static ssize_t adt7316_show_da_high_resolution(struct device *dev,
 	struct adt7316_chip_info *chip = dev_info->dev_data;
 
 	if (chip->config3 & ADT7316_DA_HIGH_RESOLUTION) {
-		if (chip->id == ID_ADT7316)
+		if (chip->id == ID_ADT7316 || chip->id == ID_ADT7516)
 			return sprintf(buf, "1 (12 bits)\n");
-		else if (chip->id == ID_ADT7317)
+		else if (chip->id == ID_ADT7317 || chip->id == ID_ADT7517)
 			return sprintf(buf, "1 (10 bits)\n");
 	}
 
@@ -684,9 +684,9 @@ static ssize_t adt7316_store_da_high_resolution(struct device *dev,
 
 	if (!memcmp(buf, "1", 1)) {
 		config3 = chip->config3 | ADT7316_DA_HIGH_RESOLUTION;
-		if (chip->id == ID_ADT7316)
+		if (chip->id == ID_ADT7316 || chip->id == ID_ADT7516)
 			chip->dac_bits = 12;
-		else if (chip->id == ID_ADT7317)
+		else if (chip->id == ID_ADT7317 || chip->id == ID_ADT7517)
 			chip->dac_bits = 10;
 	} else
 		config3 = chip->config3 & (~ADT7316_DA_HIGH_RESOLUTION);
@@ -2401,6 +2401,6 @@ int __devexit adt7316_remove(struct device *dev)
 EXPORT_SYMBOL(adt7316_remove);
 
 MODULE_AUTHOR("Sonic Zhang <sonic.zhang@analog.com>");
-MODULE_DESCRIPTION("Analog Devices ADT7316/7/8 and ADT7516/7/8 digital"
+MODULE_DESCRIPTION("Analog Devices ADT7316/7/8 and ADT7516/7/9 digital"
 			" temperature sensor, ADC and DAC driver");
 MODULE_LICENSE("GPL v2");

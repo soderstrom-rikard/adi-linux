@@ -1,5 +1,5 @@
 
-# Makefile for industrial I/O ADC drivers
+# Makefile for industrial I/O ADDAC drivers
 #
 
 obj-$(CONFIG_ADT7316) += adt7316.o
