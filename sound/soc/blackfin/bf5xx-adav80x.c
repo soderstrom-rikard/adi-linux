@@ -57,23 +57,13 @@ static int bf5xx_adav80x_hw_params(struct snd_pcm_substream *substream,
 
 	pr_debug("%s rate %d format %x\n", __func__, params_rate(params),
 		params_format(params));
-	/*
-	 * If you are using a crystal source which frequency is not 12MHz
-	 * then modify the below case statement with frequency of the crystal.
-	 *
-	 * If you are using the SPORT to generate clocking then this is
-	 * where to do it.
-	 */
 
 	switch (params_rate(params)) {
-	case 8000:
-	case 16000:
+	case 32000:
+	case 44100:
 	case 48000:
 	case 96000:
-	case 11025:
-	case 22050:
-	case 44100:
-		clk = 12000000;
+		clk = params_rate(params);
 		break;
 	}
 
@@ -91,12 +81,17 @@ static int bf5xx_adav80x_hw_params(struct snd_pcm_substream *substream,
 		SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0)
 		return ret;
-/*
-	ret = snd_soc_dai_set_sysclk(codec_dai, ADAV80X_SYSCLK, clk,
-		SND_SOC_CLOCK_IN);
+
+	/* For the ADAV80X evaluation board, use the on board crystal
+	   as XIN, and use XIN as source for PLL1 */
+	ret = snd_soc_dai_set_pll(codec_dai, ADAV80X_CLK_PLL1,
+			ADAV80X_CLK_XIN, 27000000, clk);
+
+	/* If you want to use XIN as clock source */
+	/* ret = snd_soc_dai_set_pll(codec_dai, 0, ADAV80X_CLK_XIN,
+		27000000, 0); */
 	if (ret < 0)
 		return ret;
-*/
 	return 0;
 }
 

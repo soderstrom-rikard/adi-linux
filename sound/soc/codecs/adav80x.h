@@ -1,6 +1,15 @@
 extern struct snd_soc_dai adav80x_dai;
 extern struct snd_soc_codec_device soc_codec_dev_adav80x;
 
+/* Clock source */
+#define ADAV80X_CLK_XIN		1
+#define ADAV80X_CLK_PLL1	2
+#define ADAV80X_CLK_PLL2	3
+#define ADAV80X_CLK_INTERNAL1	4
+#define ADAV80X_CLK_INTERNAL2	5
+#define ADAV80X_CLK_MCLKI	6
+
+
 #if (CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 /* ADAV80X I2C interface requires left-shifting reg addr for 1-bit */
 #define ADAV80X_NUM_REGS (0x7E<<1)
@@ -36,6 +45,7 @@ extern struct snd_soc_codec_device soc_codec_dev_adav80x;
 #define ADAV80X_PLL_CTRL2	(0x75<<1)
 #define ADAV80X_ICLK_CTRL1	(0x76<<1)
 #define ADAV80X_ICLK_CTRL2	(0x77<<1)
+#define ADAV80X_PLL_CLK_SRC	(0x78<<1)
 
 #define ADAV80X_PLL_OUTE	(0x7A<<1)
 #define ADAV80X_ALC_CTRL1	(0x7B<<1)
@@ -75,6 +85,7 @@ extern struct snd_soc_codec_device soc_codec_dev_adav80x;
 #define ADAV80X_PLL_CTRL2	0x75
 #define ADAV80X_ICLK_CTRL1	0x76
 #define ADAV80X_ICLK_CTRL2	0x77
+#define ADAV80X_PLL_CLK_SRC	0x78
 
 #define ADAV80X_PLL_OUTE	0x7A
 #define ADAV80X_ALC_CTRL1	0x7B

@@ -25,6 +25,7 @@
 struct adav80x_priv {
 	struct snd_soc_codec codec;
 	u16 reg_cache[ADAV80X_NUM_REGS];
+	int clk_src; /* clock source for ADC, DAC and internal clock */
 };
 
 static struct snd_soc_codec *adav80x_codec;
@@ -135,15 +136,66 @@ static int adav80x_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	return 0;
 }
 
+static int adav80x_set_adc_clock(struct snd_soc_codec *codec,
+		int clk_id, unsigned int sample_rate)
+{
+	int reg;
+
+	if (clk_id == ADAV80X_CLK_PLL1) {
+		/* ADC assumes that the MCLK ratre is 256 times the sample rate.
+		   We also assumes PLL1 clock rate to be (256 * Fs),
+		   So set ADC MCLK divider to be 1 */
+
+		reg = snd_soc_read(codec, ADAV80X_ADC_CTRL1);
+		/* ADC Modulator clock is 6.144MHz Max,
+		   need to set devidor properly */
+		if (sample_rate == 96000)
+			reg |= 0x80;
+		else if (sample_rate == 48000)
+			reg &= 0x7F;
+		else
+			/* Unsupported sample rate */
+			return -1;
+
+		snd_soc_write(codec, ADAV80X_ADC_CTRL1, reg);
+	}
+
+	return 0;
+}
+
+static int adav80x_set_dac_clock(struct snd_soc_codec *codec,
+		int clk_id, unsigned int sample_rate)
+{
+	int reg;
+
+	if (clk_id == ADAV80X_CLK_PLL1) {
+		/* PLL1 clock rate is assumed to be 256 * Fs */
+
+		reg = snd_soc_read(codec, ADAV80X_DAC_CTRL2);
+		if (sample_rate == 96000)
+			/* Set the MCLK divider to be MCLK/2,
+			   and MCLK = 128 * Fs */
+			reg |= 0x24;
+		else
+			reg &= 0x11;
+
+		snd_soc_write(codec, ADAV80X_DAC_CTRL2, reg);
+	}
+
+	return 0;
+}
+
 static int adav80x_hw_params(struct snd_pcm_substream *substream,
 		struct snd_pcm_hw_params *params,
 		struct snd_soc_dai *dai)
 {
 	int word_len = 0;
+	int rate = params_rate(params);
 
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
+	struct adav80x_priv *adav80x = codec->private_data;
 
 	/* bit size */
 	switch (params_format(params)) {
@@ -166,6 +218,14 @@ static int adav80x_hw_params(struct snd_pcm_substream *substream,
 
 	/* Record Port Control */
 	snd_soc_update_bits(codec, ADAV80X_REC_CTRL, 0x3<<2, word_len<<2);
+
+	/* Set up clock */
+	if (adav80x->clk_src == ADAV80X_CLK_PLL1) {
+		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+			adav80x_set_dac_clock(codec, ADAV80X_CLK_PLL1, rate);
+		else
+			adav80x_set_adc_clock(codec, ADAV80X_CLK_PLL1, rate);
+	}
 
 	return 0;
 }
@@ -198,10 +258,86 @@ static int adav80x_mute(struct snd_soc_dai *dai, int mute)
 	return 0;
 }
 
+
+static int adav80x_set_dai_pll(struct snd_soc_dai *codec_dai, int pll_id,
+		int source, unsigned int freq_in, unsigned int freq_out)
+{
+	struct snd_soc_codec *codec = codec_dai->codec;
+	struct adav80x_priv *adav80x = codec->private_data;
+	int reg = 0;
+
+	/* For now, we only enable PLL1 with XIN as source */
+	if (source != ADAV80X_CLK_XIN)
+		return -1;
+
+	if (freq_in && freq_out) {
+		/* XIN - assumes 27MHz */
+		if (freq_in != 27000000)
+			return -1;
+
+		if (pll_id != ADAV80X_CLK_PLL1)
+			return -1;
+
+		/* freq_out = sample_rate * 256 */
+		switch (freq_out) {
+		case 32000:
+			reg = 0x8;
+			break;
+		case 44100:
+			reg = 0xC;
+			break;
+		case 48000:
+			reg = 0x0;
+			break;
+		case 64000:
+			reg = 0x9;
+			break;
+		case 88200:
+			reg = 0xD;
+			break;
+		case 96000:
+			reg = 0x1;
+			break;
+		}
+
+		/* Set PLL1 clock */
+		snd_soc_write(codec, ADAV80X_PLL_CTRL2, reg);
+
+		if (adav80x->clk_src == ADAV80X_CLK_PLL1)
+			return 0;
+		else
+			adav80x->clk_src = ADAV80X_CLK_PLL1;
+
+		/* select XIN as PLL1 clock source */
+		snd_soc_write(codec, ADAV80X_PLL_CLK_SRC, 0x0);
+		/* set PLL1 as clock source for internal clock, DAC, ADC */
+		snd_soc_write(codec, ADAV80X_ICLK_CTRL1, 0x4A);
+		snd_soc_write(codec, ADAV80X_ICLK_CTRL2, 0x10);
+		/* Power on PLL1, power down PLL2, power on XTAL */
+		snd_soc_write(codec, ADAV80X_PLL_CTRL1, 0x8);
+
+	} else	{
+		if (adav80x->clk_src == ADAV80X_CLK_XIN)
+			return 0;
+		else
+			adav80x->clk_src = ADAV80X_CLK_XIN;
+
+		/* Turn off PLL, power on XTAL */
+		snd_soc_write(codec, ADAV80X_PLL_CTRL1, 0xC);
+
+		/* DAC, ADC, ICLK clock source - XIN */
+		snd_soc_write(codec, ADAV80X_ICLK_CTRL1, 0x0);
+		snd_soc_write(codec, ADAV80X_ICLK_CTRL2, 0x0);
+	}
+
+	return 0;
+}
+
 static struct snd_soc_dai_ops adav80x_dai_ops = {
 	.hw_params = adav80x_hw_params,
 	.set_fmt = adav80x_set_dai_fmt,
 	.digital_mute = adav80x_mute,
+	.set_pll = adav80x_set_dai_pll,
 };
 
 /* codec DAI instance */
@@ -212,7 +348,8 @@ struct snd_soc_dai adav80x_dai = {
 		.stream_name = "Playback",
 		.channels_min = 2,
 		.channels_max = 2,
-		.rates = SNDRV_PCM_RATE_48000,
+		.rates = SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_44100 |
+				SNDRV_PCM_RATE_32000 | SNDRV_PCM_RATE_96000,
 		.formats = SNDRV_PCM_FMTBIT_S32_LE | SNDRV_PCM_FMTBIT_S16_LE |
 			SNDRV_PCM_FMTBIT_S20_3LE | SNDRV_PCM_FMTBIT_S24_LE,
 	},
@@ -220,7 +357,7 @@ struct snd_soc_dai adav80x_dai = {
 		.stream_name = "Capture",
 		.channels_min = 2,
 		.channels_max = 2,
-		.rates = SNDRV_PCM_RATE_48000,
+		.rates = SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_96000,
 		.formats = SNDRV_PCM_FMTBIT_S32_LE | SNDRV_PCM_FMTBIT_S16_LE |
 			SNDRV_PCM_FMTBIT_S20_3LE | SNDRV_PCM_FMTBIT_S24_LE,
 	},
@@ -337,13 +474,6 @@ static int adav80x_register(struct adav80x_priv *adav80x, int bus_type)
 
 	/* default setting for adav80x */
 
-	/* These should be set on board level? */
-	/* DAC, ADC, ICLK clock source - XIN */
-	snd_soc_write(codec, ADAV80X_ICLK_CTRL1, 0x0);
-	snd_soc_write(codec, ADAV80X_ICLK_CTRL2, 0x0);
-
-	/* Power up XTAL oscillator */
-	snd_soc_write(codec, ADAV80X_PLL_CTRL1, 0xC);
 	/* Power down SYSCLK output, power down S/PDIF receiver */
 	snd_soc_write(codec, ADAV80X_PLL_OUTE, 0x27);
 
@@ -359,7 +489,7 @@ static int adav80x_register(struct adav80x_priv *adav80x, int bus_type)
 	snd_soc_write(codec, ADAV80X_GDELAY_MUTE, 0x80);
 
 	/* DAC: de-emphasis: none, MCLCK divider: 1, MCLK=256xFs */
-	snd_soc_write(codec, ADAV80X_DAC_CTRL2, 0x0);
+	/* snd_soc_write(codec, ADAV80X_DAC_CTRL2, 0x0); */
 	/* Disable DAC zero flag */
 	snd_soc_write(codec, ADAV80X_DAC_CTRL3, 0x6);
 	/* DAC: volume */
@@ -367,9 +497,9 @@ static int adav80x_register(struct adav80x_priv *adav80x, int bus_type)
 	snd_soc_write(codec, ADAV80X_DAC_R_VOL, 0xFF);
 
 	/* ADC: power up, unmute adc channles */
-	snd_soc_write(codec, ADAV80X_ADC_CTRL1, 0x0);
+	/* snd_soc_write(codec, ADAV80X_ADC_CTRL1, 0x0); */
 	/* MCLCK divider: 1 */
-	snd_soc_write(codec, ADAV80X_ADC_CTRL2, 0x0);
+	/* snd_soc_write(codec, ADAV80X_ADC_CTRL2, 0x0); */
 	/* ADC: volumn */
 	snd_soc_write(codec, ADAV80X_ADC_L_VOL, 0xFF);
 	snd_soc_write(codec, ADAV80X_ADC_R_VOL, 0xFF);
