@@ -3,6 +3,9 @@
 #
 obj-$(CONFIG_KXSD9)	+= kxsd9.o
 
+adis16209-y             := adis16209_core.o
+obj-$(CONFIG_ADIS16209) += adis16209.o
+
 adis16220-y             := adis16220_core.o
 obj-$(CONFIG_ADIS16220) += adis16220.o
 

@@ -54,5 +54,23 @@
 #define IIO_DEV_ATTR_INCLI_Y(_show, _addr)			\
 	IIO_DEVICE_ATTR(incli_y, S_IRUGO, _show, NULL, _addr)
 
+#define IIO_DEV_ATTR_INCLI_Z(_show, _addr)			\
+	IIO_DEVICE_ATTR(incli_z, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_INCLI_X_OFFSET(_mode, _show, _store, _addr) \
+	IIO_DEVICE_ATTR(incli_x_offset, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_INCLI_Y_OFFSET(_mode, _show, _store, _addr) \
+	IIO_DEVICE_ATTR(incli_y_offset, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_INCLI_Z_OFFSET(_mode, _show, _store, _addr) \
+	IIO_DEVICE_ATTR(incli_z_offset, _mode, _show, _store, _addr)
+
+#define IIO_DEV_ATTR_ROT(_show, _addr)                    \
+	IIO_DEVICE_ATTR(rot, S_IRUGO, _show, NULL, _addr)
+
+#define IIO_DEV_ATTR_ROT_OFFSET(_mode, _show, _store, _addr) \
+	IIO_DEVICE_ATTR(rot_offset, _mode, _show, _store, _addr)
+
 #define IIO_DEV_ATTR_ANGL(_show, _addr)                         \
 	IIO_DEVICE_ATTR(angl, S_IRUGO, _show, NULL, _addr)
