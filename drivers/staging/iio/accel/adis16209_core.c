@@ -613,13 +613,8 @@ error_ret:
 /* fixme, confirm ordering in this function */
 static int adis16209_remove(struct spi_device *spi)
 {
-	int ret;
 	struct adis16209_state *st = spi_get_drvdata(spi);
 	struct iio_dev *indio_dev = st->indio_dev;
-
-	ret = adis16209_stop_device(&(indio_dev->dev));
-	if (ret)
-		goto err_ret;
 
 	flush_scheduled_work();
 
@@ -635,9 +630,6 @@ static int adis16209_remove(struct spi_device *spi)
 	kfree(st);
 
 	return 0;
-
-err_ret:
-	return ret;
 }
 
 static struct spi_driver adis16209_driver = {
