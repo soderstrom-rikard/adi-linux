@@ -118,19 +118,19 @@ static int adis16209_spi_read_reg_16(struct device *dev,
 			.bits_per_word = 8,
 			.len = 2,
 			.cs_change = 1,
+			.delay_usecs = 20,
 		}, {
 			.rx_buf = st->rx,
 			.bits_per_word = 8,
 			.len = 2,
 			.cs_change = 1,
+			.delay_usecs = 20,
 		},
 	};
 
 	mutex_lock(&st->buf_lock);
 	st->tx[0] = ADIS16209_READ_REG(lower_reg_address);
 	st->tx[1] = 0;
-	st->tx[2] = 0;
-	st->tx[3] = 0;
 
 	spi_message_init(&msg);
 	spi_message_add_tail(&xfers[0], &msg);
@@ -245,18 +245,26 @@ static ssize_t adis16209_read_14bit_unsigned(struct device *dev,
 	return sprintf(buf, "%u\n", val & 0x3FFF);
 }
 
-static ssize_t adis16209_read_12bit_signed(struct device *dev,
+static ssize_t adis16209_read_temp(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	ssize_t ret;
+	s16 val;
 
 	/* Take the iio_dev status lock */
 	mutex_lock(&indio_dev->mlock);
-	ret =  adis16209_spi_read_signed(dev, attr, buf, 12);
-	mutex_unlock(&indio_dev->mlock);
 
+	ret = adis16209_spi_read_reg_16(dev, ADIS16209_TEMP_OUT, (u16 *)&val);
+	if (ret)
+		goto error_ret;
+
+	val = ((s16)(val << 4) >> 4);
+	ret = sprintf(buf, "%d\n", val);
+
+error_ret:
+	mutex_unlock(&indio_dev->mlock);
 	return ret;
 }
 
@@ -366,12 +374,12 @@ int adis16209_check_status(struct device *dev)
 	int ret;
 
 	ret = adis16209_spi_read_reg_16(dev, ADIS16209_DIAG_STAT, &status);
-
 	if (ret < 0) {
 		dev_err(dev, "Reading status failed\n");
 		goto error_ret;
 	}
 	ret = status;
+
 	if (status & ADIS16209_DIAG_STAT_SELFTEST_FAIL)
 		dev_err(dev, "Self test failure\n");
 	if (status & ADIS16209_DIAG_STAT_SPI_FAIL)
@@ -400,6 +408,11 @@ static int adis16209_initial_setup(struct adis16209_state *st)
 	}
 
 	/* Do self test */
+	ret = adis16209_self_test(dev);
+	if (ret) {
+		dev_err(dev, "self test failure");
+		goto err_ret;
+	}
 
 	/* Read status register to check the result */
 	ret = adis16209_check_status(dev);
@@ -459,7 +472,7 @@ static IIO_CONST_ATTR(incli_scale, "0.025 D");
 static IIO_DEV_ATTR_ROT(adis16209_read_14bit_signed,
 		ADIS16209_ROT_OUT);
 
-static IIO_DEV_ATTR_TEMP(adis16209_read_12bit_signed);
+static IIO_DEV_ATTR_TEMP(adis16209_read_temp);
 static IIO_CONST_ATTR(temp_offset, "25 K");
 static IIO_CONST_ATTR(temp_scale, "-0.47 K");
 
