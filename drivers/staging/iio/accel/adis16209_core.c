@@ -149,51 +149,43 @@ error_ret:
 }
 
 /**
- * adis16209_spi_read_sequence() - read a sequence of 16-bit registers
+ * adis16209_spi_read_burst() - read all data registers
  * @dev: device associated with child of actual device (iio_dev or iio_trig)
- * @tx: register addresses in bytes 0,2,4,6... (min size is 2*num bytes)
- * @rx: somewhere to pass back the value read (min size is 2*num bytes)
+ * @rx: somewhere to pass back the value read
  **/
-int adis16209_spi_read_sequence(struct device *dev,
-		u8 *tx, u8 *rx, int num)
+int adis16209_spi_read_burst(struct device *dev, u8 *rx)
 {
 	struct spi_message msg;
-	struct spi_transfer *xfers;
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	struct adis16209_state *st = iio_dev_get_devdata(indio_dev);
-	int ret, i;
-
-	xfers = kzalloc(num + 1, GFP_KERNEL);
-	if (xfers == NULL) {
-		dev_err(&st->us->dev, "memory alloc failed");
-		ret = -ENOMEM;
-		goto error_ret;
-	}
-
-	/* tx: |add1|addr2|addr3|...|addrN |zero|
-	 * rx: |zero|res1 |res2 |...|resN-1|resN| */
-	spi_message_init(&msg);
-	for (i = 0; i < num + 1; i++) {
-		if (i > 0)
-			xfers[i].rx_buf = st->rx + 2*(i - 1);
-		if (i < num)
-			xfers[i].tx_buf = st->tx + 2*i;
-		xfers[i].bits_per_word = 8;
-		xfers[i].len = 2;
-		xfers[i].cs_change = 1;
-		spi_message_add_tail(&xfers[i], &msg);
-	}
+	struct spi_transfer xfers[ADIS16209_OUTPUTS + 1];
+	int ret;
+	int i;
 
 	mutex_lock(&st->buf_lock);
 
+	spi_message_init(&msg);
+
+	memset(xfers, 0, sizeof(xfers));
+	for (i = 0; i <= ADIS16209_OUTPUTS; i++) {
+		xfers[i].bits_per_word = 8;
+		xfers[i].cs_change = 1;
+		xfers[i].len = 2;
+		xfers[i].delay_usecs = 20;
+		xfers[i].tx_buf = st->tx + 2 * i;
+		st->tx[2 * i] = ADIS16209_READ_REG(ADIS16209_SUPPLY_OUT + 2 * i);
+		st->tx[2 * i + 1] = 0;
+		if (i >= 1)
+			xfers[i].rx_buf = rx + 2 * (i - 1);
+		spi_message_add_tail(&xfers[i], &msg);
+	}
+
 	ret = spi_sync(st->us, &msg);
 	if (ret)
-		dev_err(&st->us->dev, "problem when reading sequence");
+		dev_err(&st->us->dev, "problem when burst reading");
 
 	mutex_unlock(&st->buf_lock);
-	kfree(xfers);
 
-error_ret:
 	return ret;
 }
 
@@ -378,7 +370,7 @@ int adis16209_check_status(struct device *dev)
 		dev_err(dev, "Reading status failed\n");
 		goto error_ret;
 	}
-	ret = status;
+	ret = status & 0x1F;
 
 	if (status & ADIS16209_DIAG_STAT_SELFTEST_FAIL)
 		dev_err(dev, "Self test failure\n");
@@ -571,14 +563,6 @@ static int __devinit adis16209_probe(struct spi_device *spi)
 	}
 
 	if (spi->irq && gpio_is_valid(irq_to_gpio(spi->irq)) > 0) {
-#if 0 /* fixme: here we should support */
-		iio_init_work_cont(&st->work_cont_thresh,
-				NULL,
-				adis16209_thresh_handler_bh_no_check,
-				0,
-				0,
-				st);
-#endif
 		ret = iio_register_interrupt_line(spi->irq,
 				st->indio_dev,
 				0,

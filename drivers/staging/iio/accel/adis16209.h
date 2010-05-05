@@ -34,6 +34,8 @@
 #define ADIS16209_DIAG_STAT      0x3C /* Diagnostics, system status register */
 #define ADIS16209_GLOB_CMD       0x3E /* Operation, system command register */
 
+#define ADIS16209_OUTPUTS        8
+
 /* MSC_CTRL */
 #define ADIS16209_MSC_CTRL_PWRUP_SELF_TEST	(1 << 10) /* Self-test at power-on: 1 = disabled, 0 = enabled */
 #define ADIS16209_MSC_CTRL_SELF_TEST_EN	        (1 << 8)  /* Self-test enable */
@@ -105,14 +107,15 @@ int adis16209_stop_device(struct device *dev);
 int adis16209_check_status(struct device *dev);
 
 #ifdef CONFIG_IIO_RING_BUFFER
-/* At the moment triggers are only used for ring buffer
- * filling. This may change!
- */
-
 enum adis16209_scan {
-	ADIS16209_SCAN_XY,
-	ADIS16209_SCAN_Z,
-	ADIS16209_SCAN_XYZ,
+	ADIS16209_SCAN_SUPPLY,
+	ADIS16209_SCAN_ACC_X,
+	ADIS16209_SCAN_ACC_Y,
+	ADIS16209_SCAN_AUX_ADC,
+	ADIS16209_SCAN_TEMP,
+	ADIS16209_SCAN_INCLI_X,
+	ADIS16209_SCAN_INCLI_Y,
+	ADIS16209_SCAN_ROT,
 };
 
 void adis16209_remove_trigger(struct iio_dev *indio_dev);
@@ -121,7 +124,6 @@ int adis16209_probe_trigger(struct iio_dev *indio_dev);
 ssize_t adis16209_read_data_from_ring(struct device *dev,
 				      struct device_attribute *attr,
 				      char *buf);
-
 
 int adis16209_configure_ring(struct iio_dev *indio_dev);
 void adis16209_unconfigure_ring(struct iio_dev *indio_dev);
