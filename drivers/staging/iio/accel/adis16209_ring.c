@@ -34,7 +34,7 @@ static IIO_SCAN_EL_C(accel_y, ADIS16209_SCAN_ACC_Y, IIO_SIGNED(14),
 		     ADIS16209_YACCL_OUT, NULL);
 static IIO_SCAN_EL_C(aux_adc, ADIS16209_SCAN_AUX_ADC, IIO_UNSIGNED(12),
 		     ADIS16209_AUX_ADC, NULL);
-static IIO_SCAN_EL_C(temp, ADIS16209_SCAN_TEMP, IIO_SIGNED(12),
+static IIO_SCAN_EL_C(temp, ADIS16209_SCAN_TEMP, IIO_UNSIGNED(12),
 		     ADIS16209_TEMP_OUT, NULL);
 static IIO_SCAN_EL_C(incli_x, ADIS16209_SCAN_INCLI_X, IIO_SIGNED(14),
 		     ADIS16209_XINCL_OUT, NULL);
@@ -74,6 +74,47 @@ static void adis16209_poll_func_th(struct iio_dev *indio_dev)
 	schedule_work(&st->work_trigger_to_ring);
 }
 
+/**
+ * adis16209_read_ring_data() read data registers which will be placed into ring
+ * @dev: device associated with child of actual device (iio_dev or iio_trig)
+ * @rx: somewhere to pass back the value read
+ **/
+static int adis16209_read_ring_data(struct device *dev, u8 *rx)
+{
+	struct spi_message msg;
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct adis16209_state *st = iio_dev_get_devdata(indio_dev);
+	struct spi_transfer xfers[ADIS16209_OUTPUTS + 1];
+	int ret;
+	int i;
+
+	mutex_lock(&st->buf_lock);
+
+	spi_message_init(&msg);
+
+	memset(xfers, 0, sizeof(xfers));
+	for (i = 0; i <= ADIS16209_OUTPUTS; i++) {
+		xfers[i].bits_per_word = 8;
+		xfers[i].cs_change = 1;
+		xfers[i].len = 2;
+		xfers[i].delay_usecs = 20;
+		xfers[i].tx_buf = st->tx + 2 * i;
+		st->tx[2 * i] = ADIS16209_READ_REG(ADIS16209_SUPPLY_OUT + 2 * i);
+		st->tx[2 * i + 1] = 0;
+		if (i >= 1)
+			xfers[i].rx_buf = rx + 2 * (i - 1);
+		spi_message_add_tail(&xfers[i], &msg);
+	}
+
+	ret = spi_sync(st->us, &msg);
+	if (ret)
+		dev_err(&st->us->dev, "problem when burst reading");
+
+	mutex_unlock(&st->buf_lock);
+
+	return ret;
+}
+
 /* Whilst this makes a lot of calls to iio_sw_ring functions - it is to device
  * specific to be rolled into the core.
  */
@@ -95,7 +136,7 @@ static void adis16209_trigger_bh_to_ring(struct work_struct *work_s)
 	}
 
 	if (st->indio_dev->scan_count)
-		if (adis16209_spi_read_burst(&st->indio_dev->dev, st->rx) >= 0)
+		if (adis16209_read_ring_data(&st->indio_dev->dev, st->rx) >= 0)
 			for (; i < st->indio_dev->scan_count; i++) {
 				data[i] = combine_8_to_16(st->rx[i*2+1],
 							  st->rx[i*2]);
@@ -114,6 +155,7 @@ static void adis16209_trigger_bh_to_ring(struct work_struct *work_s)
 
 	return;
 }
+
 /* in these circumstances is it better to go with unaligned packing and
  * deal with the cost?*/
 static int adis16209_data_rdy_ring_preenable(struct iio_dev *indio_dev)
@@ -126,8 +168,10 @@ static int adis16209_data_rdy_ring_preenable(struct iio_dev *indio_dev)
 
 	if (indio_dev->ring->access.set_bpd) {
 		if (indio_dev->scan_timestamp)
-			if (indio_dev->scan_count) /* Timestamp and data */
-				size = 3*sizeof(s64);
+			if (indio_dev->scan_count)
+				/* Timestamp and data, let timestamp aligned with sizeof(s64) */
+				size = (((indio_dev->scan_count * sizeof(s16)) + sizeof(s64) - 1) & ~(sizeof(s64) - 1))
+					+ sizeof(s64);
 			else /* Timestamp only  */
 				size = sizeof(s64);
 		else /* Data only */

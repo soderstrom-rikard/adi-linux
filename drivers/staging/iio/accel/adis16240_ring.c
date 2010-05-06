@@ -27,17 +27,17 @@ static inline u16 combine_8_to_16(u8 lower, u8 upper)
 }
 
 static IIO_SCAN_EL_C(supply, ADIS16240_SCAN_SUPPLY, IIO_UNSIGNED(10),
-		     ADIS16240_SUPPLY_OUT, NULL);
+		ADIS16240_SUPPLY_OUT, NULL);
 static IIO_SCAN_EL_C(accel_x, ADIS16240_SCAN_ACC_X, IIO_SIGNED(10),
-		     ADIS16240_XACCL_OUT, NULL);
+		ADIS16240_XACCL_OUT, NULL);
 static IIO_SCAN_EL_C(accel_y, ADIS16240_SCAN_ACC_Y, IIO_SIGNED(10),
-		     ADIS16240_YACCL_OUT, NULL);
+		ADIS16240_YACCL_OUT, NULL);
 static IIO_SCAN_EL_C(accel_z, ADIS16240_SCAN_ACC_Z, IIO_SIGNED(10),
-		     ADIS16240_ZACCL_OUT, NULL);
+		ADIS16240_ZACCL_OUT, NULL);
 static IIO_SCAN_EL_C(aux_adc, ADIS16240_SCAN_AUX_ADC, IIO_UNSIGNED(10),
-		     ADIS16240_AUX_ADC, NULL);
-static IIO_SCAN_EL_C(temp, ADIS16240_SCAN_TEMP, IIO_SIGNED(10),
-		     ADIS16240_TEMP_OUT, NULL);
+		ADIS16240_AUX_ADC, NULL);
+static IIO_SCAN_EL_C(temp, ADIS16240_SCAN_TEMP, IIO_UNSIGNED(10),
+		ADIS16240_TEMP_OUT, NULL);
 
 static IIO_SCAN_EL_TIMESTAMP;
 
@@ -68,14 +68,53 @@ static void adis16240_poll_func_th(struct iio_dev *indio_dev)
 	schedule_work(&st->work_trigger_to_ring);
 }
 
-/* Whilst this makes a lot of calls to iio_sw_ring functions - it is to device
- * specific to be rolled into the core.
- */
+/**
+ * adis16240_read_ring_data() read data registers which will be placed into ring
+ * @dev: device associated with child of actual device (iio_dev or iio_trig)
+ * @rx: somewhere to pass back the value read
+ **/
+static int adis16240_read_ring_data(struct device *dev, u8 *rx)
+{
+	struct spi_message msg;
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct adis16240_state *st = iio_dev_get_devdata(indio_dev);
+	struct spi_transfer xfers[ADIS16240_OUTPUTS + 1];
+	int ret;
+	int i;
+
+	mutex_lock(&st->buf_lock);
+
+	spi_message_init(&msg);
+
+	memset(xfers, 0, sizeof(xfers));
+	for (i = 0; i <= ADIS16240_OUTPUTS; i++) {
+		xfers[i].bits_per_word = 8;
+		xfers[i].cs_change = 1;
+		xfers[i].len = 2;
+		xfers[i].delay_usecs = 30;
+		xfers[i].tx_buf = st->tx + 2 * i;
+		st->tx[2 * i] = ADIS16240_READ_REG(ADIS16240_SUPPLY_OUT + 2 * i);
+		st->tx[2 * i + 1] = 0;
+		if (i >= 1)
+			xfers[i].rx_buf = rx + 2 * (i - 1);
+		spi_message_add_tail(&xfers[i], &msg);
+	}
+
+	ret = spi_sync(st->us, &msg);
+	if (ret)
+		dev_err(&st->us->dev, "problem when burst reading");
+
+	mutex_unlock(&st->buf_lock);
+
+	return ret;
+}
+
+
 static void adis16240_trigger_bh_to_ring(struct work_struct *work_s)
 {
 	struct adis16240_state *st
 		= container_of(work_s, struct adis16240_state,
-			       work_trigger_to_ring);
+				work_trigger_to_ring);
 
 	int i = 0;
 	s16 *data;
@@ -89,10 +128,10 @@ static void adis16240_trigger_bh_to_ring(struct work_struct *work_s)
 	}
 
 	if (st->indio_dev->scan_count)
-		if (adis16240_spi_read_burst(&st->indio_dev->dev, st->rx) >= 0)
+		if (adis16240_read_ring_data(&st->indio_dev->dev, st->rx) >= 0)
 			for (; i < st->indio_dev->scan_count; i++) {
 				data[i] = combine_8_to_16(st->rx[i*2+1],
-							  st->rx[i*2]);
+						st->rx[i*2]);
 			}
 
 	/* Guaranteed to be aligned with 8 byte boundary */
@@ -100,16 +139,15 @@ static void adis16240_trigger_bh_to_ring(struct work_struct *work_s)
 		*((s64 *)(data + ((i + 3)/4)*4)) = st->last_timestamp;
 
 	st->indio_dev->ring->access.store_to(st->indio_dev->ring,
-					    (u8 *)data,
-					    st->last_timestamp);
+			(u8 *)data,
+			st->last_timestamp);
 
 	iio_trigger_notify_done(st->indio_dev->trig);
 	kfree(data);
 
 	return;
 }
-/* in these circumstances is it better to go with unaligned packing and
- * deal with the cost?*/
+
 static int adis16240_data_rdy_ring_preenable(struct iio_dev *indio_dev)
 {
 	size_t size;
@@ -120,8 +158,10 @@ static int adis16240_data_rdy_ring_preenable(struct iio_dev *indio_dev)
 
 	if (indio_dev->ring->access.set_bpd) {
 		if (indio_dev->scan_timestamp)
-			if (indio_dev->scan_count) /* Timestamp and data */
-				size = 3*sizeof(s64);
+			if (indio_dev->scan_count)
+				/* Timestamp and data, let timestamp aligned with sizeof(s64) */
+				size = (((indio_dev->scan_count * sizeof(s16)) + sizeof(s64) - 1) & ~(sizeof(s64) - 1))
+					+ sizeof(s64);
 			else /* Timestamp only  */
 				size = sizeof(s64);
 		else /* Data only */
@@ -136,7 +176,7 @@ static int adis16240_data_rdy_ring_postenable(struct iio_dev *indio_dev)
 {
 	return indio_dev->trig
 		? iio_trigger_attach_poll_func(indio_dev->trig,
-					       indio_dev->pollfunc)
+				indio_dev->pollfunc)
 		: 0;
 }
 
@@ -144,7 +184,7 @@ static int adis16240_data_rdy_ring_predisable(struct iio_dev *indio_dev)
 {
 	return indio_dev->trig
 		? iio_trigger_dettach_poll_func(indio_dev->trig,
-						indio_dev->pollfunc)
+				indio_dev->pollfunc)
 		: 0;
 }
 

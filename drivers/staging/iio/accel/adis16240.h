@@ -100,12 +100,6 @@ struct adis16240_state {
 	struct mutex			buf_lock;
 };
 
-int adis16240_spi_write_reg_8(struct device *dev,
-			      u8 reg_address,
-			      u8 val);
-
-int adis16240_spi_read_burst(struct device *dev, u8 *rx);
-
 int adis16240_set_irq(struct device *dev, bool enable);
 
 #ifdef CONFIG_IIO_RING_BUFFER

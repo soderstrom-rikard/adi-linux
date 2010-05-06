@@ -29,13 +29,15 @@
 
 #define DRIVER_NAME		"adis16209"
 
+static int adis16209_check_status(struct device *dev);
+
 /**
  * adis16209_spi_write_reg_8() - write single byte to a register
  * @dev: device associated with child of actual device (iio_dev or iio_trig)
  * @reg_address: the address of the register to be written
  * @val: the value to write
  **/
-int adis16209_spi_write_reg_8(struct device *dev,
+static int adis16209_spi_write_reg_8(struct device *dev,
 		u8 reg_address,
 		u8 val)
 {
@@ -148,65 +150,6 @@ error_ret:
 	return ret;
 }
 
-/**
- * adis16209_spi_read_burst() - read all data registers
- * @dev: device associated with child of actual device (iio_dev or iio_trig)
- * @rx: somewhere to pass back the value read
- **/
-int adis16209_spi_read_burst(struct device *dev, u8 *rx)
-{
-	struct spi_message msg;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct adis16209_state *st = iio_dev_get_devdata(indio_dev);
-	struct spi_transfer xfers[ADIS16209_OUTPUTS + 1];
-	int ret;
-	int i;
-
-	mutex_lock(&st->buf_lock);
-
-	spi_message_init(&msg);
-
-	memset(xfers, 0, sizeof(xfers));
-	for (i = 0; i <= ADIS16209_OUTPUTS; i++) {
-		xfers[i].bits_per_word = 8;
-		xfers[i].cs_change = 1;
-		xfers[i].len = 2;
-		xfers[i].delay_usecs = 20;
-		xfers[i].tx_buf = st->tx + 2 * i;
-		st->tx[2 * i] = ADIS16209_READ_REG(ADIS16209_SUPPLY_OUT + 2 * i);
-		st->tx[2 * i + 1] = 0;
-		if (i >= 1)
-			xfers[i].rx_buf = rx + 2 * (i - 1);
-		spi_message_add_tail(&xfers[i], &msg);
-	}
-
-	ret = spi_sync(st->us, &msg);
-	if (ret)
-		dev_err(&st->us->dev, "problem when burst reading");
-
-	mutex_unlock(&st->buf_lock);
-
-	return ret;
-}
-
-static ssize_t adis16209_spi_read_signed(struct device *dev,
-		struct device_attribute *attr,
-		char *buf,
-		unsigned bits)
-{
-	int ret;
-	s16 val = 0;
-	unsigned shift = 16 - bits;
-	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
-
-	ret = adis16209_spi_read_reg_16(dev, this_attr->address, (u16 *)&val);
-	if (ret)
-		return ret;
-
-	val = ((s16)(val << shift) >> shift);
-	return sprintf(buf, "%d\n", val);
-}
-
 static ssize_t adis16209_read_12bit_unsigned(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
@@ -218,6 +161,9 @@ static ssize_t adis16209_read_12bit_unsigned(struct device *dev,
 	ret = adis16209_spi_read_reg_16(dev, this_attr->address, &val);
 	if (ret)
 		return ret;
+
+	if (val & ADIS16209_ERROR_ACTIVE)
+		adis16209_check_status(dev);
 
 	return sprintf(buf, "%u\n", val & 0x0FFF);
 }
@@ -234,6 +180,9 @@ static ssize_t adis16209_read_14bit_unsigned(struct device *dev,
 	if (ret)
 		return ret;
 
+	if (val & ADIS16209_ERROR_ACTIVE)
+		adis16209_check_status(dev);
+
 	return sprintf(buf, "%u\n", val & 0x3FFF);
 }
 
@@ -243,7 +192,7 @@ static ssize_t adis16209_read_temp(struct device *dev,
 {
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	ssize_t ret;
-	s16 val;
+	u16 val;
 
 	/* Take the iio_dev status lock */
 	mutex_lock(&indio_dev->mlock);
@@ -252,7 +201,10 @@ static ssize_t adis16209_read_temp(struct device *dev,
 	if (ret)
 		goto error_ret;
 
-	val = ((s16)(val << 4) >> 4);
+	if (val & ADIS16209_ERROR_ACTIVE)
+		adis16209_check_status(dev);
+
+	val &= 0xFFF;
 	ret = sprintf(buf, "%d\n", val);
 
 error_ret:
@@ -265,11 +217,21 @@ static ssize_t adis16209_read_14bit_signed(struct device *dev,
 		char *buf)
 {
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+	s16 val = 0;
 	ssize_t ret;
 
-	/* Take the iio_dev status lock */
 	mutex_lock(&indio_dev->mlock);
-	ret =  adis16209_spi_read_signed(dev, attr, buf, 14);
+
+	ret = adis16209_spi_read_reg_16(dev, this_attr->address, (u16 *)&val);
+	if (!ret) {
+		if (val & ADIS16209_ERROR_ACTIVE)
+			adis16209_check_status(dev);
+
+		val = ((s16)(val << 2) >> 2);
+		ret = sprintf(buf, "%d\n", val);
+	}
+
 	mutex_unlock(&indio_dev->mlock);
 
 	return ret;
@@ -293,25 +255,38 @@ error_ret:
 	return ret ? ret : len;
 }
 
+static int adis16209_reset(struct device *dev)
+{
+	int ret;
+	ret = adis16209_spi_write_reg_8(dev,
+			ADIS16209_GLOB_CMD,
+			ADIS16209_GLOB_CMD_SW_RESET);
+	if (ret)
+		dev_err(dev, "problem resetting device");
+
+	return ret;
+}
+
 static ssize_t adis16209_write_reset(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t len)
 {
 	if (len < 1)
-		return -1;
+		return -EINVAL;
 	switch (buf[0]) {
 	case '1':
 	case 'y':
 	case 'Y':
 		return adis16209_reset(dev);
 	}
-	return -1;
+	return -EINVAL;
 }
 
 int adis16209_set_irq(struct device *dev, bool enable)
 {
-	int ret;
+	int ret = 0;
 	u16 msc;
+
 	ret = adis16209_spi_read_reg_16(dev, ADIS16209_MSC_CTRL, &msc);
 	if (ret)
 		goto error_ret;
@@ -324,43 +299,12 @@ int adis16209_set_irq(struct device *dev, bool enable)
 		msc &= ~ADIS16209_MSC_CTRL_DATA_RDY_EN;
 
 	ret = adis16209_spi_write_reg_16(dev, ADIS16209_MSC_CTRL, msc);
-	if (ret)
-		goto error_ret;
 
 error_ret:
 	return ret;
 }
 
-int adis16209_reset(struct device *dev)
-{
-	int ret;
-	ret = adis16209_spi_write_reg_8(dev,
-			ADIS16209_GLOB_CMD,
-			ADIS16209_GLOB_CMD_SW_RESET);
-	if (ret)
-		dev_err(dev, "problem resetting device");
-
-	return ret;
-}
-
-int adis16209_self_test(struct device *dev)
-{
-	int ret;
-	ret = adis16209_spi_write_reg_16(dev,
-			ADIS16209_MSC_CTRL,
-			ADIS16209_MSC_CTRL_SELF_TEST_EN);
-	if (ret) {
-		dev_err(dev, "problem starting self test");
-		goto err_ret;
-	}
-
-	adis16209_check_status(dev);
-
-err_ret:
-	return ret;
-}
-
-int adis16209_check_status(struct device *dev)
+static int adis16209_check_status(struct device *dev)
 {
 	u16 status;
 	int ret;
@@ -384,6 +328,23 @@ int adis16209_check_status(struct device *dev)
 		dev_err(dev, "Power supply below 3.15V\n");
 
 error_ret:
+	return ret;
+}
+
+static int adis16209_self_test(struct device *dev)
+{
+	int ret;
+	ret = adis16209_spi_write_reg_16(dev,
+			ADIS16209_MSC_CTRL,
+			ADIS16209_MSC_CTRL_SELF_TEST_EN);
+	if (ret) {
+		dev_err(dev, "problem starting self test");
+		goto err_ret;
+	}
+
+	adis16209_check_status(dev);
+
+err_ret:
 	return ret;
 }
 
@@ -428,10 +389,10 @@ err_ret:
 
 static IIO_DEV_ATTR_VOLT(supply, adis16209_read_14bit_unsigned,
 		ADIS16209_SUPPLY_OUT);
-static IIO_CONST_ATTR(volt_supply_scale, "0.30518 mV");
+static IIO_CONST_ATTR(volt_supply_scale, "0.30518");
 static IIO_DEV_ATTR_VOLT(aux, adis16209_read_12bit_unsigned,
 		ADIS16209_AUX_ADC);
-static IIO_CONST_ATTR(volt_aux_scale, "0.6105 mV");
+static IIO_CONST_ATTR(volt_aux_scale, "0.6105");
 
 static IIO_DEV_ATTR_ACCEL_X(adis16209_read_14bit_signed,
 		ADIS16209_XACCL_OUT);
@@ -445,7 +406,7 @@ static IIO_DEV_ATTR_ACCEL_Y_OFFSET(S_IWUSR | S_IRUGO,
 		adis16209_read_14bit_signed,
 		adis16209_write_16bit,
 		ADIS16209_YACCL_NULL);
-static IIO_CONST_ATTR(accel_scale, "0.24414 mg");
+static IIO_CONST_ATTR(accel_scale, "0.24414");
 
 static IIO_DEV_ATTR_INCLI_X(adis16209_read_14bit_signed,
 		ADIS16209_XINCL_OUT);
@@ -459,14 +420,14 @@ static IIO_DEV_ATTR_INCLI_Y_OFFSET(S_IWUSR | S_IRUGO,
 		adis16209_read_14bit_signed,
 		adis16209_write_16bit,
 		ADIS16209_YACCL_NULL);
-static IIO_CONST_ATTR(incli_scale, "0.025 D");
+static IIO_CONST_ATTR(incli_scale, "0.025");
 
 static IIO_DEV_ATTR_ROT(adis16209_read_14bit_signed,
 		ADIS16209_ROT_OUT);
 
 static IIO_DEV_ATTR_TEMP(adis16209_read_temp);
-static IIO_CONST_ATTR(temp_offset, "25 K");
-static IIO_CONST_ATTR(temp_scale, "-0.47 K");
+static IIO_CONST_ATTR(temp_offset, "25");
+static IIO_CONST_ATTR(temp_scale, "-0.47");
 
 static IIO_DEV_ATTR_RESET(adis16209_write_reset);
 
@@ -562,7 +523,7 @@ static int __devinit adis16209_probe(struct spi_device *spi)
 		goto error_unreg_ring_funcs;
 	}
 
-	if (spi->irq && gpio_is_valid(irq_to_gpio(spi->irq)) > 0) {
+	if (spi->irq) {
 		ret = iio_register_interrupt_line(spi->irq,
 				st->indio_dev,
 				0,
@@ -583,10 +544,9 @@ static int __devinit adis16209_probe(struct spi_device *spi)
 	return 0;
 
 error_remove_trigger:
-	if (st->indio_dev->modes & INDIO_RING_TRIGGERED)
-		adis16209_remove_trigger(st->indio_dev);
+	adis16209_remove_trigger(st->indio_dev);
 error_unregister_line:
-	if (st->indio_dev->modes & INDIO_RING_TRIGGERED)
+	if (spi->irq)
 		iio_unregister_interrupt_line(st->indio_dev, 0);
 error_uninitialize_ring:
 	adis16209_uninitialize_ring(st->indio_dev->ring);
@@ -607,7 +567,6 @@ error_ret:
 	return ret;
 }
 
-/* fixme, confirm ordering in this function */
 static int adis16209_remove(struct spi_device *spi)
 {
 	struct adis16209_state *st = spi_get_drvdata(spi);
@@ -616,12 +575,12 @@ static int adis16209_remove(struct spi_device *spi)
 	flush_scheduled_work();
 
 	adis16209_remove_trigger(indio_dev);
-	if (spi->irq && gpio_is_valid(irq_to_gpio(spi->irq)) > 0)
+	if (spi->irq)
 		iio_unregister_interrupt_line(indio_dev, 0);
 
 	adis16209_uninitialize_ring(indio_dev->ring);
-	adis16209_unconfigure_ring(indio_dev);
 	iio_device_unregister(indio_dev);
+	adis16209_unconfigure_ring(indio_dev);
 	kfree(st->tx);
 	kfree(st->rx);
 	kfree(st);

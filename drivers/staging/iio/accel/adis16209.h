@@ -61,8 +61,7 @@
 #define ADIS16209_MAX_TX 24
 #define ADIS16209_MAX_RX 24
 
-#define ADIS16209_SPI_BURST	(u32)(1000 * 1000)
-#define ADIS16209_SPI_FAST	(u32)(2000 * 1000)
+#define ADIS16209_ERROR_ACTIVE          (1<<14)
 
 /**
  * struct adis16209_state - device instance specific data
@@ -89,22 +88,7 @@ struct adis16209_state {
 	struct mutex			buf_lock;
 };
 
-int adis16209_spi_write_reg_8(struct device *dev,
-			      u8 reg_address,
-			      u8 val);
-
-int adis16209_spi_read_burst(struct device *dev, u8 *rx);
-
-int adis16209_spi_read_sequence(struct device *dev,
-				      u8 *tx, u8 *rx, int num);
-
 int adis16209_set_irq(struct device *dev, bool enable);
-
-int adis16209_reset(struct device *dev);
-
-int adis16209_stop_device(struct device *dev);
-
-int adis16209_check_status(struct device *dev);
 
 #ifdef CONFIG_IIO_RING_BUFFER
 enum adis16209_scan {
