@@ -41,6 +41,8 @@
 #define ADIS16240_SMPL_PRD       0x48 /* Internal sample period (rate) control */
 #define ADIS16240_GLOB_CMD       0x4A /* System command */
 
+#define ADIS16240_OUTPUTS        6
+
 /* MSC_CTRL */
 #define ADIS16240_MSC_CTRL_XYZPEAK_OUT_EN	(1 << 15) /* Enables sum-of-squares output (XYZPEAK_OUT) */
 #define ADIS16240_MSC_CTRL_X_Y_ZPEAK_OUT_EN	(1 << 14) /* Enables peak tracking output
@@ -68,12 +70,10 @@
 #define ADIS16240_GLOB_CMD_SW_RESET	(1<<7)
 #define ADIS16240_GLOB_CMD_STANDBY	(1<<2)
 
+#define ADIS16240_ERROR_ACTIVE          (1<<14)
+
 #define ADIS16240_MAX_TX 24
 #define ADIS16240_MAX_RX 24
-
-#define ADIS16240_SPI_SLOW	(u32)(300 * 1000)
-#define ADIS16240_SPI_BURST	(u32)(1000 * 1000)
-#define ADIS16240_SPI_FAST	(u32)(2000 * 1000)
 
 /**
  * struct adis16240_state - device instance specific data
@@ -106,16 +106,7 @@ int adis16240_spi_write_reg_8(struct device *dev,
 
 int adis16240_spi_read_burst(struct device *dev, u8 *rx);
 
-int adis16240_spi_read_sequence(struct device *dev,
-				      u8 *tx, u8 *rx, int num);
-
 int adis16240_set_irq(struct device *dev, bool enable);
-
-int adis16240_reset(struct device *dev);
-
-int adis16240_stop_device(struct device *dev);
-
-int adis16240_check_status(struct device *dev);
 
 #ifdef CONFIG_IIO_RING_BUFFER
 /* At the moment triggers are only used for ring buffer
@@ -123,9 +114,12 @@ int adis16240_check_status(struct device *dev);
  */
 
 enum adis16240_scan {
-	ADIS16240_SCAN_XY,
-	ADIS16240_SCAN_Z,
-	ADIS16240_SCAN_XYZ,
+	ADIS16240_SCAN_SUPPLY,
+	ADIS16240_SCAN_ACC_X,
+	ADIS16240_SCAN_ACC_Y,
+	ADIS16240_SCAN_ACC_Z,
+	ADIS16240_SCAN_AUX_ADC,
+	ADIS16240_SCAN_TEMP,
 };
 
 void adis16240_remove_trigger(struct iio_dev *indio_dev);
