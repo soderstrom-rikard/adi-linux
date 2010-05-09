@@ -422,7 +422,7 @@ show_##_name(struct device *dev, \
 			  struct device_attribute *attr, char *buf) \
 { \
 	return sysfs_show_reg(dev, attr, buf, _reg); \
-};
+}
 
 #define DPOT_DEVICE_SET(_name, _reg) static ssize_t \
 set_##_name(struct device *dev, \
@@ -430,7 +430,7 @@ set_##_name(struct device *dev, \
 			 const char *buf, size_t count) \
 { \
 	return sysfs_set_reg(dev, attr, buf, count, _reg); \
-};
+}
 
 #define DPOT_DEVICE_SHOW_SET(name, reg) \
 DPOT_DEVICE_SHOW(name, reg) \
@@ -535,7 +535,7 @@ set_##_name(struct device *dev, \
 			 const char *buf, size_t count) \
 { \
 	return sysfs_do_cmd(dev, attr, buf, count, _cmd); \
-}; \
+} \
 static DEVICE_ATTR(_name, S_IWUSR | S_IRUGO, NULL, set_##_name);
 
 DPOT_DEVICE_DO_CMD(inc_all, DPOT_INC_ALL);
