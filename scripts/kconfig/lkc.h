@@ -162,6 +162,30 @@ static inline bool sym_has_value(struct symbol *sym)
 	return sym->flags & SYMBOL_DEF_USER ? true : false;
 }
 
+#define internal_error(fmt, args...) \
+do { \
+	fprintf(stderr, "%s:%s:%i: %s: " fmt "\n", __FILE__, \
+		__func__, __LINE__, _("internal error"), ## args); \
+	exit(1); \
+} while (0)
+
+#define xfwrite(ptr, size, nmemb, stream) \
+({ \
+	size_t _nmemb = (nmemb); \
+	size_t ret = fwrite(ptr, size, _nmemb, stream); \
+	if (ret != _nmemb) \
+		internal_error("%s", _("fwrite() came up short")); \
+	ret; \
+})
+
+#define xfgets(s, size, stream) \
+({ \
+	char *ret = fgets(s, size, stream); \
+	if (ret == NULL) \
+		internal_error("%s", _("fgets() came up short")); \
+	ret; \
+})
+
 #ifdef __cplusplus
 }
 #endif
