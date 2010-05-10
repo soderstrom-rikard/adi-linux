@@ -658,7 +658,7 @@ static int adau1373_hw_params(struct snd_pcm_substream *substream,
 		break;
 	}
 	reg = snd_soc_read(codec, ADAU_DAIA);
-	snd_soc_write(codec, ADAU_DAIACTL, reg | dai_ctl);
+	snd_soc_write(codec, ADAU_DAIA, reg | dai_ctl);
 	snd_soc_write(codec, ADAU_PLLACTL, 0x00);
 	snd_soc_write(codec, ADAU_PLLACTL6, 0x01);
 
@@ -961,12 +961,11 @@ static int adau1373_init(struct adau1373_priv *adau1373)
 	adau1373->in_chan_mask = CAP_INPA;
 
 	/* Capture settings */
-#ifdef DIGMIC
+#if DIGMIC
 	/* Digital microphone A */
 	snd_soc_write(codec, ADAU_DMICCTL, 0x01);
 #else
-
-	snd_soc_write(codec, ADAU1373_INPUTMODE, 0x00);
+	snd_soc_write(codec, ADAU_INPMODE, 0x00);
 	/* Input volume gain: 0 db */
 	snd_soc_write(codec, ADAU_IN1LCTL, 0x0D);
 	snd_soc_write(codec, ADAU_IN1RCTL, 0x0D);
@@ -997,7 +996,7 @@ static int adau1373_init(struct adau1373_priv *adau1373)
 	snd_soc_write(codec, ADAU_LCDOUTP, 0x1F);
 
 	/* clock souce: PLL1, FS, 64 bits per frame */
-	snd_soc_write(codec, ADAU_BCLKDIVA, 0x1A);
+	snd_soc_write(codec, ADAU_BCLKDIVA, 0x02);
 
 
 
