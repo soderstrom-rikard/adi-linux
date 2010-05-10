@@ -159,13 +159,13 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface,
 		if (mast_stat & BUFWRERR)
 			dev_dbg(&iface->adap.dev, "Buffer Write Error\n");
 
-		/* Faulty salve devices, may drive SDA low after a transfer
-		 * finishes. To release the bus this code generates up to 8
+		/* Faulty slave devices, may drive SDA low after a transfer
+		 * finishes. To release the bus this code generates up to 9
 		 * extra clocks until SDA is released.
 		 */
 
 		if (read_MASTER_STAT(iface) & SDASEN) {
-			int cnt = 8;
+			int cnt = 9;
 			do {
 				write_MASTER_CTL(iface, SCLOVR);
 				udelay(6);
