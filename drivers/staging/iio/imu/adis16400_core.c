@@ -273,6 +273,7 @@ static ssize_t adis16400_spi_read_signed(struct device *dev,
 
 	if (val & ADIS16400_ERROR_ACTIVE)
 		adis16400_check_status(dev);
+
 	val = ((s16)(val << shift) >> shift);
 	return sprintf(buf, "%d\n", val);
 }

@@ -32,8 +32,10 @@
 #define ADIS16260_PROD_ID    0x56 /* Product identifier; convert to decimal = 16,265/16,260 */
 #define ADIS16260_SERIAL_NUM 0x58 /* Serial number */
 
+#define ADIS16260_OUTPUTS    5
+
 #define ADIS16260_ERROR_ACTIVE			(1<<14)
-#define ADIS16260_NEW_DATA			(1<<14)
+#define ADIS16260_NEW_DATA			(1<<15)
 
 /* MSC_CTRL */
 #define ADIS16260_MSC_CTRL_MEM_TEST		(1<<11)
@@ -101,22 +103,7 @@ struct adis16260_state {
 	struct mutex			buf_lock;
 };
 
-int adis16260_spi_write_reg_8(struct device *dev,
-			      u8 reg_address,
-			      u8 val);
-
-int adis16260_spi_read_burst(struct device *dev, u8 *rx);
-
-int adis16260_spi_read_sequence(struct device *dev,
-				      u8 *tx, u8 *rx, int num);
-
 int adis16260_set_irq(struct device *dev, bool enable);
-
-int adis16260_reset(struct device *dev);
-
-int adis16260_stop_device(struct device *dev);
-
-int adis16260_check_status(struct device *dev);
 
 #ifdef CONFIG_IIO_RING_BUFFER
 /* At the moment triggers are only used for ring buffer
@@ -126,8 +113,9 @@ int adis16260_check_status(struct device *dev);
 enum adis16260_scan {
 	ADIS16260_SCAN_SUPPLY,
 	ADIS16260_SCAN_GYRO,
+	ADIS16260_SCAN_AUX_ADC,
 	ADIS16260_SCAN_TEMP,
-	ADIS16260_SCAN_ADC_0,
+	ADIS16260_SCAN_ANGL,
 };
 
 void adis16260_remove_trigger(struct iio_dev *indio_dev);
