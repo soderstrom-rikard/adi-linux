@@ -28,6 +28,8 @@
 
 #define DRIVER_NAME		"adis16220"
 
+static int adis16220_check_status(struct device *dev);
+
 /**
  * adis16220_spi_write_reg_8() - write single byte to a register
  * @dev: device associated with child of actual device (iio_dev or iio_trig)
@@ -73,11 +75,13 @@ static int adis16220_spi_write_reg_16(struct device *dev,
 			.bits_per_word = 8,
 			.len = 2,
 			.cs_change = 1,
+			.delay_usecs = 25,
 		}, {
 			.tx_buf = st->tx + 2,
 			.bits_per_word = 8,
 			.len = 2,
 			.cs_change = 1,
+			.delay_usecs = 25,
 		},
 	};
 
@@ -117,11 +121,13 @@ static int adis16220_spi_read_reg_16(struct device *dev,
 			.bits_per_word = 8,
 			.len = 2,
 			.cs_change = 1,
+			.delay_usecs = 25,
 		}, {
 			.rx_buf = st->rx,
 			.bits_per_word = 8,
 			.len = 2,
 			.cs_change = 1,
+			.delay_usecs = 25,
 		},
 	};
 
@@ -277,6 +283,30 @@ error_ret:
 	return ret ? ret : len;
 }
 
+static int adis16220_capture(struct device *dev)
+{
+	int ret;
+	ret = adis16220_spi_write_reg_16(dev,
+			ADIS16220_GLOB_CMD,
+			0xBF08); /* initiates a manual data capture */
+	if (ret)
+		dev_err(dev, "problem beginning capture");
+
+	return ret;
+}
+
+static int adis16220_reset(struct device *dev)
+{
+	int ret;
+	ret = adis16220_spi_write_reg_8(dev,
+			ADIS16220_GLOB_CMD,
+			ADIS16220_GLOB_CMD_SW_RESET);
+	if (ret)
+		dev_err(dev, "problem resetting device");
+
+	return ret;
+}
+
 static ssize_t adis16220_write_reset(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t len)
@@ -287,7 +317,22 @@ static ssize_t adis16220_write_reset(struct device *dev,
 	case '1':
 	case 'y':
 	case 'Y':
-		return adis16220_reset(dev);
+		return adis16220_reset(dev) == 0 ? len : -EIO;
+	}
+	return -1;
+}
+
+static ssize_t adis16220_write_capture(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t len)
+{
+	if (len < 1)
+		return -1;
+	switch (buf[0]) {
+	case '1':
+	case 'y':
+	case 'Y':
+		return adis16220_capture(dev) == 0 ? len : -EIO;
 	}
 	return -1;
 }
@@ -314,19 +359,7 @@ error_ret:
 	return ret;
 }
 
-int adis16220_reset(struct device *dev)
-{
-	int ret;
-	ret = adis16220_spi_write_reg_8(dev,
-			ADIS16220_GLOB_CMD,
-			ADIS16220_GLOB_CMD_SW_RESET);
-	if (ret)
-		dev_err(dev, "problem resetting device");
-
-	return ret;
-}
-
-int adis16220_self_test(struct device *dev)
+static int adis16220_self_test(struct device *dev)
 {
 	int ret;
 	ret = adis16220_spi_write_reg_16(dev,
@@ -343,7 +376,7 @@ err_ret:
 	return ret;
 }
 
-int adis16220_check_status(struct device *dev)
+static int adis16220_check_status(struct device *dev)
 {
 	u16 status;
 	int ret;
@@ -354,21 +387,8 @@ int adis16220_check_status(struct device *dev)
 		dev_err(dev, "Reading status failed\n");
 		goto error_ret;
 	}
-	ret = status;
-	if (status & ADIS16220_DIAG_STAT_ALM_MAG2)
-		dev_err(dev, "AIN2 sample > ALM_MAG2\n");
-	if (status & ADIS16220_DIAG_STAT_ALM_MAG1)
-		dev_err(dev, "AIN1 sample > ALM_MAG1\n");
-	if (status & ADIS16220_DIAG_STAT_ALM_MAGA)
-		dev_err(dev, "Acceleration sample > ALM_MAGA\n");
-	if (status & ADIS16220_DIAG_STAT_ALM_MAGS)
-		dev_err(dev, "Error condition programmed into ALM_MAGS[11:0]\n");
-	if (status & ADIS16220_DIAG_STAT_PEAK_AIN2)
-		dev_err(dev, "|Peak value in AIN2 data capture| > ALM_MAG2\n");
-	if (status & ADIS16220_DIAG_STAT_PEAK_AIN1)
-		dev_err(dev, "|Peak value in AIN1 data capture| > ALM_MAG1\n");
-	if (status & ADIS16220_DIAG_STAT_PEAK_ACCEL)
-		dev_err(dev, "|Peak value in acceleration data capture| > ALM_MAGA\n");
+	ret = status & 0x7F;
+
 	if (status & ADIS16220_DIAG_STAT_VIOLATION)
 		dev_err(dev, "Capture period violation/interruption\n");
 	if (status & ADIS16220_DIAG_STAT_SPI_FAIL)
@@ -397,6 +417,11 @@ static int adis16220_initial_setup(struct adis16220_state *st)
 	}
 
 	/* Do self test */
+	ret = adis16220_self_test(dev);
+	if (ret) {
+		dev_err(dev, "self test failure");
+		goto err_ret;
+	}
 
 	/* Read status register to check the result */
 	ret = adis16220_check_status(dev);
@@ -438,6 +463,19 @@ static IIO_DEV_ATTR_ADC(2, adis16220_read_16bit, ADIS16220_CAPT_BUF2);
 
 static IIO_DEV_ATTR_RESET(adis16220_write_reset);
 
+#define IIO_DEV_ATTR_CAPTURE(_store)			\
+	IIO_DEVICE_ATTR(capture, S_IWUGO, NULL, _store, 0)
+
+static IIO_DEV_ATTR_CAPTURE(adis16220_write_capture);
+
+#define IIO_DEV_ATTR_CAPTURE_COUNT(_mode, _show, _store, _addr)	\
+	IIO_DEVICE_ATTR(capture_count, _mode, _show, _store, _addr)
+
+static IIO_DEV_ATTR_CAPTURE_COUNT(S_IWUSR | S_IRUGO,
+		adis16220_read_16bit,
+		adis16220_write_16bit,
+		ADIS16220_CAPT_PNTR);
+
 static IIO_CONST_ATTR_AVAIL_SAMP_FREQ("100200");
 
 static IIO_CONST_ATTR(name, "adis16220");
@@ -463,6 +501,8 @@ static struct attribute *adis16220_attributes[] = {
 	&iio_const_attr_temp_scale.dev_attr.attr,
 	&iio_const_attr_available_sampling_frequency.dev_attr.attr,
 	&iio_dev_attr_reset.dev_attr.attr,
+	&iio_dev_attr_capture.dev_attr.attr,
+	&iio_dev_attr_capture_count.dev_attr.attr,
 	&iio_const_attr_name.dev_attr.attr,
 	NULL
 };

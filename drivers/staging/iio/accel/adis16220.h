@@ -75,7 +75,6 @@
 #define ADIS16220_MAX_TX 24
 #define ADIS16220_MAX_RX 24
 
-#define ADIS16220_SPI_SLOW	(u32)(300 * 1000)
 #define ADIS16220_SPI_BURST	(u32)(1000 * 1000)
 #define ADIS16220_SPI_FAST	(u32)(2000 * 1000)
 
@@ -104,22 +103,8 @@ struct adis16220_state {
 	struct mutex			buf_lock;
 };
 
-int adis16220_spi_write_reg_8(struct device *dev,
-			      u8 reg_address,
-			      u8 val);
-
-int adis16220_spi_read_burst(struct device *dev, u8 *rx);
-
-int adis16220_spi_read_sequence(struct device *dev,
-				      u8 *tx, u8 *rx, int num);
 
 int adis16220_set_irq(struct device *dev, bool enable);
-
-int adis16220_reset(struct device *dev);
-
-int adis16220_stop_device(struct device *dev);
-
-int adis16220_check_status(struct device *dev);
 
 #ifdef CONFIG_IIO_RING_BUFFER
 /* At the moment triggers are only used for ring buffer
