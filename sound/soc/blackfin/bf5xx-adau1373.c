@@ -31,18 +31,10 @@
  * clock divider and MCLK divider to get the required rate.
  */
 static const struct _pll_settings adau1373_pll_settings[] = {
-	/* 96k */
-	{ 12288000, 96000, 0, 0, 0x0, 0x4, 0x0 },
 	/* 48k */
 	{ 12288000, 48000, 0, 0, 0x0, 0x4, 0x0 },
 	/* 44.1k */
-	{ 12288000, 44100, 40, 27, 0x0, 0x3, 0x1 },
-	/* 22.05k */
-	{ 12288000, 22050, 40, 27, 0x0, 0x3, 0x1 },
-	/* 16k */
-	{ 12288000, 16000, 0, 0, 0x0, 0x4, 0x0 },
-	/* 8k */
-	{ 12288000, 8000, 0, 0, 0x0, 0x4, 0x0 },
+	{ 12288000, 44100, 27, 40, 0x0, 0x3, 0x1 },
 };
 
 static struct adau1373_platform_data adau1373_pdata = {

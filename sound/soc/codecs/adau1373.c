@@ -596,7 +596,22 @@ static int adau1373_hw_params(struct snd_pcm_substream *substream,
 	int i = 0;
 	u8 dai_ctl;
 
-	i = get_coeff(adau1373, params_rate(params));
+	switch (params_rate(params)) {
+	case 96000:
+	case 48000:
+	case 16000:
+	case 8000:
+		i = get_coeff(adau1373, 48000);
+		break;
+	case 44100:
+	case 22050:
+		i = get_coeff(adau1373, 44100);
+		break;
+	default:
+		dev_err(codec->dev, "rate : %d isn't supported\n", params_rate(params));
+		break;
+	}
+
 	if (i == adau1373->data->pll_settings_num)
 		return -EINVAL;
 	/* Divide PLL output(48k * 1024 or 44.1k * 1024) to get wanted rate */
@@ -685,13 +700,10 @@ static int adau1373_pcm_prepare(struct snd_pcm_substream *substream,
 		return -1;
 
 	}
-	/* Use DAI A */
-	snd_soc_write(codec, ADAU_DAIACTL, 0x01);
-	snd_soc_write(codec, ADAU_SRCARTA, 0x90);
-	snd_soc_write(codec, ADAU_SRCARTB, 0x00);
-	snd_soc_write(codec, ADAU_DEEMPCTL, 0x01);
-	udelay(10);
 
+	/* Use DAI A */
+	snd_soc_write(codec, ADAU_DAIACTL, 0x05);
+	snd_soc_write(codec, ADAU_DEEMPCTL, 0x11);
 	reg = snd_soc_read(codec, ADAU_CLK1SDIV);
 	snd_soc_write(codec, ADAU_CLK1SDIV, reg | CLKSDIV_COREN);
 
@@ -986,41 +998,36 @@ static int adau1373_init(struct adau1373_priv *adau1373)
 	/* Playback settings*/
 
 	/* Headphone enabled */
-	snd_soc_write(codec, ADAU_LHPMIX, 0x10);
+	snd_soc_write(codec, ADAU_LHPMIX, 0x20);
 	snd_soc_write(codec, ADAU_RHPMIX, 0x20);
 
 	snd_soc_write(codec, ADAU_HPCTRL, 0x10);
 	snd_soc_write(codec, ADAU_HPCTRL2, 0x20);
 	/* 0db */
-	snd_soc_write(codec, ADAU_RCDOUTP, 0x1F);
-	snd_soc_write(codec, ADAU_LCDOUTP, 0x1F);
+	snd_soc_write(codec, ADAU_LHPOUTP, 0x1F);
+	snd_soc_write(codec, ADAU_RHPOUTP, 0x1F);
 
 	/* clock souce: PLL1, FS, 64 bits per frame */
 	snd_soc_write(codec, ADAU_BCLKDIVA, 0x02);
 
+	snd_soc_write(codec, ADAU_DINMIXC0, 0x01);
+	snd_soc_write(codec, ADAU_DOPMIXC3, 0x01);
 
-
+	snd_soc_write(codec, ADAU_DINMIXC1, 0x08);
+	snd_soc_write(codec, ADAU_DOPMIXC0, 0x02);
 	/* PWR on input port A, MIC1 BIAS, right and left ADCs */
 	reg = 0xB1;
 	snd_soc_write(codec, ADAU_PWDCTL1, reg);
-	/* PWR on right and left DACs */
+	/* PWR on right and left 0f DAC1 */
 	reg = 0x30;
 	snd_soc_write(codec, ADAU_PWDCTL2, reg);
 	reg = 0x03;
 	snd_soc_write(codec, ADAU_PWDCTL3, reg);
-#if 0
-	/* Increase the driven ability of DAIA, maybe not necessary in real use */
-	snd_soc_write(codec, ADAU1373_PAD_CTL, PADCTL_DAIA);
 
-	/* Enable Dynamic range control */
-	adau1373_set_drc(codec, adau1373->data->drc_settings);
-	snd_soc_write(codec, ADAU1373_DRCMODE,
-		DRCMODE_RIGHT_ENA | DRCMODE_LEFT_ENA | DRCMODE_NGEN);
-	/* Playback signal input */
-	snd_soc_write(codec, ADAU1373_DSPMODE, DSPMODE_PLAYBACK_ENA);
-#endif
 	/* Enable playback, capture */
-	snd_soc_write(codec, ADAU_DIGEN, 0x0B);
+	snd_soc_write(codec, ADAU_DIGEN, 0x05);
+	snd_soc_write(codec, 0x3C, 0x07);
+	snd_soc_write(codec, 0x3C, 0x05);
 
 	return 0;
 
