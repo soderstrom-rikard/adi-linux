@@ -308,14 +308,14 @@ static ssize_t adis16260_write_reset(struct device *dev,
 		const char *buf, size_t len)
 {
 	if (len < 1)
-		return -1;
+		return -EINVAL;
 	switch (buf[0]) {
 	case '1':
 	case 'y':
 	case 'Y':
 		return adis16260_reset(dev);
 	}
-	return -1;
+	return -EINVAL;
 }
 
 int adis16260_set_irq(struct device *dev, bool enable)
