@@ -1412,7 +1412,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 	|| defined(CONFIG_ADIS16240_MODULE)
 	{
 		.modalias = "adis16240",
-		.max_speed_hz = 2000000,     /* max spi clock (SCK) speed in HZ */
+		.max_speed_hz = 1500000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0,
 		.chip_select = 5, /* CS, change it for your board */
 		.platform_data = NULL, /* No spi_driver specific config */
@@ -1424,11 +1424,12 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 	|| defined(CONFIG_ADIS16260_MODULE)
 	{
 		.modalias = "adis16260",
-		.max_speed_hz = 2500000,     /* max spi clock (SCK) speed in HZ */
+		.max_speed_hz = 1500000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0,
-		.chip_select = 1, /* CS, change it for your board */
+		.chip_select = 5, /* CS, change it for your board */
 		.platform_data = NULL, /* No spi_driver specific config */
 		.mode = SPI_MODE_3,
+		.irq = IRQ_PF4,
 	},
 #endif
 #if defined(CONFIG_ADIS16261) \
