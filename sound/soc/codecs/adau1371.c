@@ -651,12 +651,13 @@ static void adau1371_shutdown(struct snd_pcm_substream *substream,
 	struct snd_soc_codec *codec = socdev->card->codec;
 	u8 reg;
 
-	reg = snd_soc_read(codec, ADAU1371_CLKSDIV);
 	/* deactivate */
-	if (!codec->active)
+	if (!codec->active) {
+		snd_soc_write(codec, ADAU1371_PLLCTLB, 0x0);
+		snd_soc_write(codec, ADAU1371_SRCDAICTL, 0x0);
+		reg = snd_soc_read(codec, ADAU1371_CLKSDIV);
 		snd_soc_write(codec, ADAU1371_CLKSDIV, reg & ~CLKSDIV_COREN);
-	snd_soc_write(codec, ADAU1371_PLLCTLB, 0x0);
-	snd_soc_write(codec, ADAU1371_SRCDAICTL, 0x0);
+	}
 }
 
 static int adau1371_mute(struct snd_soc_dai *dai, int mute)
