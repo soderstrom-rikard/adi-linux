@@ -326,47 +326,47 @@ static int adau1373_mux_put(struct snd_kcontrol *kcontrol,
 	case 0:
 		chip->in_chan_mask = CAP_INPA;
 		snd_soc_write(codec, ADAU_DMICCTL, 0x00);
-		snd_soc_write(codec, ADAU_LADCMIX, AIN1_SIGNAL_ENA);
-		snd_soc_write(codec, ADAU_RADCMIX, AIN1_SIGNAL_ENA);
+		snd_soc_write(codec, ADAU_LADCMIX, INPA_EN);
+		snd_soc_write(codec, ADAU_RADCMIX, INPA_EN);
 		snd_soc_write(codec, ADAU_IN1LCTL, cache[ADAU_IN1LCTL]);
 		snd_soc_write(codec, ADAU_IN1RCTL, cache[ADAU_IN1RCTL]);
 		/* Disable other ports */
 		snd_soc_write(codec, ADAU_PWDCTL1,
-			reg & ~(PWRCTLA_INBPD | PWRCTLA_INCPD | PWRCTLA_INDPD));
-		snd_soc_write(codec, ADAU_PWDCTL1, reg | PWRCTLA_INAPD);
+			reg & ~(AIN2PWR | AIN3PWR | AIN4PWR));
+		snd_soc_write(codec, ADAU_PWDCTL1, reg | AIN1PWR);
 		break;
 	case 1:
 		chip->in_chan_mask = CAP_INPB;
 		snd_soc_write(codec, ADAU_DMICCTL, 0x00);
-		snd_soc_write(codec, ADAU_LADCMIX, AIN2_SIGNAL_ENA);
-		snd_soc_write(codec, ADAU_RADCMIX, AIN2_SIGNAL_ENA);
+		snd_soc_write(codec, ADAU_LADCMIX, INPB_EN);
+		snd_soc_write(codec, ADAU_RADCMIX, INPB_EN);
 		snd_soc_write(codec, ADAU_IN2LCTL, cache[ADAU_IN2LCTL]);
 		snd_soc_write(codec, ADAU_IN2RCTL, cache[ADAU_IN2RCTL]);
 		snd_soc_write(codec, ADAU_PWDCTL1,
-			reg & ~(PWRCTLA_INAPD | PWRCTLA_INCPD | PWRCTLA_INDPD));
-		snd_soc_write(codec, ADAU_PWDCTL1, reg | PWRCTLA_INBPD);
+			reg & ~(AIN1PWR | AIN3PWR | AIN4PWR));
+		snd_soc_write(codec, ADAU_PWDCTL1, reg | AIN2PWR);
 		break;
 	case 2:
 		chip->in_chan_mask = CAP_INPC;
 		snd_soc_write(codec, ADAU_DMICCTL, 0x00);
-		snd_soc_write(codec, ADAU_LADCMIX, AIN3_SIGNAL_ENA);
-		snd_soc_write(codec, ADAU_RADCMIX, AIN3_SIGNAL_ENA);
+		snd_soc_write(codec, ADAU_LADCMIX, INPC_EN);
+		snd_soc_write(codec, ADAU_RADCMIX, INPC_EN);
 		snd_soc_write(codec, ADAU_IN3LCTL, cache[ADAU_IN3LCTL]);
 		snd_soc_write(codec, ADAU_IN3RCTL, cache[ADAU_IN3RCTL]);
 		snd_soc_write(codec, ADAU_PWDCTL1,
-			reg & ~(PWRCTLA_INAPD | PWRCTLA_INBPD | PWRCTLA_INDPD));
-		snd_soc_write(codec, ADAU_PWDCTL1, reg | PWRCTLA_INCPD);
+			reg & ~(AIN1PWR | AIN2PWR | AIN4PWR));
+		snd_soc_write(codec, ADAU_PWDCTL1, reg | AIN3PWR);
 		break;
 	case 3:
 		chip->in_chan_mask = CAP_INPD;
 		snd_soc_write(codec, ADAU_DMICCTL, 0x00);
-		snd_soc_write(codec, ADAU_LADCMIX, AIN4_SIGNAL_ENA);
-		snd_soc_write(codec, ADAU_RADCMIX, AIN4_SIGNAL_ENA);
+		snd_soc_write(codec, ADAU_LADCMIX, INPD_EN);
+		snd_soc_write(codec, ADAU_RADCMIX, INPD_EN);
 		snd_soc_write(codec, ADAU_AUXLCTL, cache[ADAU_AUXLCTL]);
 		snd_soc_write(codec, ADAU_AUXRCTL, cache[ADAU_AUXRCTL]);
 		snd_soc_write(codec, ADAU_PWDCTL1,
-			reg & ~(PWRCTLA_INAPD | PWRCTLA_INBPD | PWRCTLA_INCPD));
-		snd_soc_write(codec, ADAU_PWDCTL1, reg | PWRCTLA_INDPD);
+			reg & ~(AIN1PWR | AIN2PWR | AIN3PWR));
+		snd_soc_write(codec, ADAU_PWDCTL1, reg | AIN4PWR);
 		break;
 	case 4:
 		chip->in_chan_mask = CAP_DMIC;
@@ -430,8 +430,8 @@ static int adau1373_play_sel_put(struct snd_kcontrol *kcontrol,
 	switch (ucontrol->value.enumerated.item[0]) {
 	case 0:
 		chip->out_chan_mask = PB_LINE1;
-		snd_soc_write(codec, ADAU_LLN1MIX, LDAC_SIGNAL_ENA);
-		snd_soc_write(codec, ADAU_RLN1MIX, RDAC_SIGNAL_ENA);
+		snd_soc_write(codec, ADAU_LLN1MIX, DAC1_LEFT);
+		snd_soc_write(codec, ADAU_RLN1MIX, DAC1_RIGHT);
 		snd_soc_write(codec, ADAU_LLN1OPT, cache[ADAU_LLN1OPT]);
 		snd_soc_write(codec, ADAU_RLN1OPT, cache[ADAU_RLN1OPT]);
 		/* Disable other ports */
@@ -441,8 +441,8 @@ static int adau1373_play_sel_put(struct snd_kcontrol *kcontrol,
 		break;
 	case 1:
 		chip->out_chan_mask = PB_LINE2;
-		snd_soc_write(codec, ADAU_LLN2MIX, LDAC_SIGNAL_ENA);
-		snd_soc_write(codec, ADAU_RLN2MIX, RDAC_SIGNAL_ENA);
+		snd_soc_write(codec, ADAU_LLN2MIX, DAC1_LEFT);
+		snd_soc_write(codec, ADAU_RLN2MIX, DAC1_RIGHT);
 		snd_soc_write(codec, ADAU_LLN2OPT, cache[ADAU_LLN2OPT]);
 		snd_soc_write(codec, ADAU_RLN2OPT, cache[ADAU_RLN2OPT]);
 		snd_soc_write(codec, ADAU_PWDCTL2, reg0 & ~0x03);
@@ -451,8 +451,8 @@ static int adau1373_play_sel_put(struct snd_kcontrol *kcontrol,
 		break;
 	case 2:
 		chip->out_chan_mask = PB_SPK;
-		snd_soc_write(codec, ADAU_LCDMIX, LDAC_SIGNAL_ENA);
-		snd_soc_write(codec, ADAU_RCDMIX, RDAC_SIGNAL_ENA);
+		snd_soc_write(codec, ADAU_LCDMIX, DAC1_LEFT);
+		snd_soc_write(codec, ADAU_RCDMIX, DAC1_RIGHT);
 		snd_soc_write(codec, ADAU_LCDOUTP, cache[ADAU_LCDOUTP]);
 		snd_soc_write(codec, ADAU_RCDOUTP, cache[ADAU_RCDOUTP]);
 		snd_soc_write(codec, ADAU_PWDCTL2, reg0 & ~0x0F);
@@ -461,15 +461,15 @@ static int adau1373_play_sel_put(struct snd_kcontrol *kcontrol,
 		break;
 	case 3:
 		chip->out_chan_mask = PB_EARP;
-		snd_soc_write(codec, ADAU_EPMIX, LDAC_SIGNAL_ENA);
+		snd_soc_write(codec, ADAU_EPMIX, DAC1_LEFT);
 		snd_soc_write(codec, ADAU_PWDCTL2, reg0 & ~0x0F);
 		snd_soc_write(codec, ADAU_PWDCTL3, reg1 | 0x10);
 		snd_soc_write(codec, ADAU_PWDCTL3, reg1 & ~0x0E);
 		break;
 	case 4:
 		chip->out_chan_mask = PB_HP;
-		snd_soc_write(codec, ADAU_LHPMIX, LDAC_SIGNAL_ENA);
-		snd_soc_write(codec, ADAU_RHPMIX, RDAC_SIGNAL_ENA);
+		snd_soc_write(codec, ADAU_LHPMIX, DAC1_LEFT);
+		snd_soc_write(codec, ADAU_RHPMIX, DAC1_RIGHT);
 		snd_soc_write(codec, ADAU_LHPOUTP, cache[ADAU_LHPOUTP]);
 		snd_soc_write(codec, ADAU_RHPOUTP, cache[ADAU_RHPOUTP]);
 		snd_soc_write(codec, ADAU_PWDCTL2, reg0 & ~0x0F);
@@ -657,16 +657,16 @@ static int adau1373_hw_params(struct snd_pcm_substream *substream,
 	/* bit size */
 	switch (params_format(params)) {
 	case SNDRV_PCM_FORMAT_S16_LE:
-		dai_ctl = DAICTL_WLEN16;
+		dai_ctl = WLA_16;
 		break;
 	case SNDRV_PCM_FORMAT_S20_3LE:
-		dai_ctl = DAICTL_WLEN20;
+		dai_ctl = WLA_20;
 		break;
 	case SNDRV_PCM_FORMAT_S24_LE:
-		dai_ctl = DAICTL_WLEN24;
+		dai_ctl = WLA_24;
 		break;
 	case SNDRV_PCM_FORMAT_S32_LE:
-		dai_ctl = DAICTL_WLEN32;
+		dai_ctl = WLA_32;
 		break;
 	default:
 		dai_ctl = 0;
@@ -675,7 +675,7 @@ static int adau1373_hw_params(struct snd_pcm_substream *substream,
 	reg = snd_soc_read(codec, ADAU_DAIA);
 	snd_soc_write(codec, ADAU_DAIA, reg | dai_ctl);
 	snd_soc_write(codec, ADAU_PLLACTL, 0x00);
-	snd_soc_write(codec, ADAU_PLLACTL6, 0x01);
+	snd_soc_write(codec, ADAU_PLLACTL6, PLLEN);
 
 	return 0;
 }
@@ -693,7 +693,7 @@ static int adau1373_pcm_prepare(struct snd_pcm_substream *substream,
 	do {
 		++counter;
 		schedule_timeout_interruptible(msecs_to_jiffies(1));
-	} while (((codec->hw_read(codec, ADAU_PLLACTL6)) & 0x04) == 0
+	} while (((codec->hw_read(codec, ADAU_PLLACTL6)) & PLL_LOCKED) == 0
 			&& counter < 20);
 	if (counter >= 20) {
 		dev_err(codec->dev, "failed to initialize PLL\n");
@@ -702,8 +702,7 @@ static int adau1373_pcm_prepare(struct snd_pcm_substream *substream,
 	}
 
 	/* Use DAI A */
-	snd_soc_write(codec, ADAU_DAIACTL, 0x05);
-	snd_soc_write(codec, ADAU_DEEMPCTL, 0x11);
+	snd_soc_write(codec, ADAU_DAIACTL, DAI_EN);
 	reg = snd_soc_read(codec, ADAU_CLK1SDIV);
 	snd_soc_write(codec, ADAU_CLK1SDIV, reg | CLKSDIV_COREN);
 
@@ -735,11 +734,11 @@ static int adau1373_mute(struct snd_soc_dai *dai, int mute)
 	reg0 = snd_soc_read(codec, ADAU_PWDCTL1);
 	reg1 = snd_soc_read(codec, ADAU_PWDCTL2);
 	if (mute) {
-		snd_soc_write(codec, ADAU_PWDCTL1, reg0 & ~0xc0);
-		snd_soc_write(codec, ADAU_PWDCTL2, reg1 & ~0x30);
+		snd_soc_write(codec, ADAU_PWDCTL1, reg0 & ~(LADCPWR | RADCPWR));
+		snd_soc_write(codec, ADAU_PWDCTL2, reg1 & ~(LDAC1PWR | RDAC1PWR));
 	} else {
-		snd_soc_write(codec, ADAU_PWDCTL1, reg0 | 0xc0);
-		snd_soc_write(codec, ADAU_PWDCTL2, reg1 | 0x30);
+		snd_soc_write(codec, ADAU_PWDCTL1, reg0 | LADCPWR | RADCPWR);
+		snd_soc_write(codec, ADAU_PWDCTL2, reg1 | LDAC1PWR | RDAC1PWR);
 	}
 	return 0;
 }
@@ -764,7 +763,7 @@ static int adau1373_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	/* set master/slave audio interface */
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 	case SND_SOC_DAIFMT_CBM_CFM:
-		dai_ctl |= 0x40;
+		dai_ctl |= MSA;
 		break;
 	case SND_SOC_DAIFMT_CBS_CFS:
 		break;
@@ -775,16 +774,16 @@ static int adau1373_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	/* interface format */
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_I2S:
-		dai_ctl |= 0x02;
+		dai_ctl |= FORMAT_I2S;
 		break;
 	case SND_SOC_DAIFMT_RIGHT_J:
-		dai_ctl |= 0x00;
+		dai_ctl |= FORMAT_RJUST;
 		break;
 	case SND_SOC_DAIFMT_LEFT_J:
-		dai_ctl |= 0x01;
+		dai_ctl |= FORMAT_LJUST;
 		break;
 	case SND_SOC_DAIFMT_DSP_B:
-		dai_ctl |= 0x03;
+		dai_ctl |= FORMAT_DSP;
 		break;
 	default:
 		return -EINVAL;
@@ -795,13 +794,13 @@ static int adau1373_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	case SND_SOC_DAIFMT_NB_NF:
 		break;
 	case SND_SOC_DAIFMT_IB_IF:
-		dai_ctl |= 0x90;
+		dai_ctl |= LRPA_INV | BCLK_INV;
 		break;
 	case SND_SOC_DAIFMT_IB_NF:
-		dai_ctl |= 0x80;
+		dai_ctl |= BCLK_INV;
 		break;
 	case SND_SOC_DAIFMT_NB_IF:
-		dai_ctl |= 0x10;
+		dai_ctl |= LRPA_INV;
 		break;
 	default:
 		return -EINVAL;
@@ -822,7 +821,7 @@ static int adau1373_set_bias_level(struct snd_soc_codec *codec,
 	reg_clk = snd_soc_read(codec, ADAU_CLK1SDIV);
 	switch (level) {
 	case SND_SOC_BIAS_ON:
-		snd_soc_write(codec, ADAU_PWDCTL3, reg_pwr | 0x01);
+		snd_soc_write(codec, ADAU_PWDCTL3, reg_pwr | WHOLEPWR);
 		snd_soc_write(codec, ADAU_CLK1SDIV, reg_clk | CLKSDIV_COREN);
 		/* vref/mid, osc on, dac unmute */
 		break;
@@ -833,7 +832,7 @@ static int adau1373_set_bias_level(struct snd_soc_codec *codec,
 		snd_soc_write(codec, ADAU_CLK1SDIV, reg_clk & ~CLKSDIV_COREN);
 		break;
 	case SND_SOC_BIAS_OFF:
-		snd_soc_write(codec, ADAU_PWDCTL3, reg_pwr & ~0x01);
+		snd_soc_write(codec, ADAU_PWDCTL3, reg_pwr & ~WHOLEPWR);
 		snd_soc_write(codec, ADAU_CLK1SDIV, reg_clk & ~CLKSDIV_COREN);
 		break;
 	}
@@ -976,7 +975,7 @@ static int adau1373_init(struct adau1373_priv *adau1373)
 	/* Capture settings */
 #if DIGMIC
 	/* Digital microphone A */
-	snd_soc_write(codec, ADAU_DMICCTL, 0x01);
+	snd_soc_write(codec, ADAU_DMICCTL, DMICAEN);
 #else
 	snd_soc_write(codec, ADAU_INPMODE, 0x00);
 	/* Input volume gain: 0 db */
@@ -990,8 +989,8 @@ static int adau1373_init(struct adau1373_priv *adau1373)
 	snd_soc_write(codec, ADAU_AUXRCTL, 0x0D);
 
 	/* AIN1 enabled */
-	snd_soc_write(codec, ADAU_LADCMIX, 0x01);
-	snd_soc_write(codec, ADAU_RADCMIX, 0x01);
+	snd_soc_write(codec, ADAU_LADCMIX, INPA_EN);
+	snd_soc_write(codec, ADAU_RADCMIX, INPA_EN);
 
 	snd_soc_write(codec, ADAU_MICCTR1, 0x00);
 	snd_soc_write(codec, ADAU_EPCNTRL, 0x0C);
@@ -999,34 +998,36 @@ static int adau1373_init(struct adau1373_priv *adau1373)
 	/* Playback settings*/
 
 	/* Headphone enabled */
-	snd_soc_write(codec, ADAU_LHPMIX, 0x20);
-	snd_soc_write(codec, ADAU_RHPMIX, 0x20);
+	snd_soc_write(codec, ADAU_LHPMIX, DAC1_RIGHT);
+	snd_soc_write(codec, ADAU_RHPMIX, DAC1_RIGHT);
 
-	snd_soc_write(codec, ADAU_HPCTRL, 0x10);
-	snd_soc_write(codec, ADAU_HPCTRL2, 0x20);
+	snd_soc_write(codec, ADAU_HPCTRL, POPTIME4M);
+	snd_soc_write(codec, ADAU_HPCTRL2, LVLTHR400);
 	/* 0db */
 	snd_soc_write(codec, ADAU_LHPOUTP, 0x1F);
 	snd_soc_write(codec, ADAU_RHPOUTP, 0x1F);
 
-	/* clock souce: PLL1, FS, 64 bits per frame */
-	snd_soc_write(codec, ADAU_BCLKDIVA, 0x02);
+	/* clock souce: CLK1, FS, 64 bits per frame */
+	snd_soc_write(codec, ADAU_BCLKDIVA, BPFA_64);
 
-	snd_soc_write(codec, ADAU_DINMIXC0, 0x01);
-	snd_soc_write(codec, ADAU_DOPMIXC3, 0x01);
+	/* Playback: Channel 0, DAIA --> DAC */
+	snd_soc_write(codec, ADAU_DINMIXC0, DIN_AIFAPB);
+	snd_soc_write(codec, ADAU_DOPMIXC3, DOUT_CH0_DAC);
+	/* Capture: Channel 1, ADC --> DAIA */
+	snd_soc_write(codec, ADAU_DINMIXC1, DIN_ADC);
+	snd_soc_write(codec, ADAU_DOPMIXC0, DOUT_CH1_REC);
 
-	snd_soc_write(codec, ADAU_DINMIXC1, 0x08);
-	snd_soc_write(codec, ADAU_DOPMIXC0, 0x02);
 	/* PWR on input port A, MIC1 BIAS, right and left ADCs */
-	reg = 0xB1;
+	reg = AIN1PWR | MICB1PWR | RADCPWR | LADCPWR;
 	snd_soc_write(codec, ADAU_PWDCTL1, reg);
 	/* PWR on right and left 0f DAC1 */
-	reg = 0x30;
+	reg = RDAC1PWR | LDAC1PWR;
 	snd_soc_write(codec, ADAU_PWDCTL2, reg);
-	reg = 0x03;
+	reg = WHOLEPWR | HPPWR;
 	snd_soc_write(codec, ADAU_PWDCTL3, reg);
 
 	/* Enable playback, capture */
-	snd_soc_write(codec, ADAU_DIGEN, 0x05);
+	snd_soc_write(codec, ADAU_DIGEN, PBAEN | RECEN);
 	snd_soc_write(codec, 0x3C, 0x07);
 	snd_soc_write(codec, 0x3C, 0x05);
 

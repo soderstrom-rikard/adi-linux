@@ -125,7 +125,6 @@
 #define ADAU_DCPBLVOL	0x66
 #define ADAU_DCPBRVOL	0x67
 
-
 #define ADAU_DARCLVOL	0x68
 #define ADAU_DARCRVOL	0x69
 #define ADAU_DBRCLVOL	0x6A
@@ -178,81 +177,148 @@ struct adau1361_mode_settings{
  * (Mask value to extract the corresponding Register field)
  */
 
-#define VOL_MASK		0x1F
-#define AIN1_SIGNAL_ENA		0x01
-#define AIN2_SIGNAL_ENA		0x02
-#define AIN3_SIGNAL_ENA		0x04
-#define AIN4_SIGNAL_ENA		0x08
-#define LDAC_SIGNAL_ENA		0x10
-#define RDAC_SIGNAL_ENA		0x20
+/* ADC_GAIN */
+#define ADCLGAIN0	0x01
+#define ADCLGAIN1	0x02
+#define ADCLGAIN2	0x04
+#define ADCLGAIN3	0x08
+#define ADCRGAIN0	0x10
+#define ADCRGAIN1	0x20
+#define ADCRGAIN2	0x40
+#define ADCRGAIN3	0x80
 
-/* PWR Management */
-#define PWRCTLA_INAPD		0x01
-#define PWRCTLA_INBPD		0x02
-#define PWRCTLA_INCPD		0x04
-#define PWRCTLA_INDPD		0x08
-#define PWRCTLA_PASSPD		0x10
-#define PWRCTLA_MICBPD		0x20
-#define PWRCTLA_LADCPD		0x40
-#define PWRCTLA_RADCPD		0x80
+/* INPUT MIX */
+#define INPA_EN		0x01
+#define INPB_EN		0x02
+#define INPC_EN		0x04
+#define INPD_EN		0x08
+#define DAC1_LEFT	0x10
+#define DAC1_RIGHT	0x20
+#define DAC2_LEFT	0x40
+#define DAC2_RIGHT	0x80
 
-#define PWRCTLB_PWDB		0x01
-#define PWRCTLB_HPPD		0x02
-#define PWRCTLB_LCDPD		0x04
-#define PWRCTLB_RCDPD		0x08
-#define PWRCTLB_LDACPD		0x10
-#define PWRCTLB_RDACPD		0x20
-#define PWRCTLB_LLNPD		0x40
-#define PWRCTLB_RLNPD		0x80
+/* HP_CTRL */
+#define POPTIME2M	0x00
+#define POPTIME4M	0x10
+#define POPTIME8M	0x20
+#define POPTIME16M	0x30
+#define HPMODECLAG	0x00
+#define HPMODEHELO	0x04
+#define HPMODELEHO	0x08
+#define HPOCL1		0x00
+#define HPOCL2		0x01
+#define HPOCL3		0x02
+#define HPOCL4		0x03
 
-/* PLL Control */
+/* HP_CTRL2 */
+#define VOLLIMEN_MON	0x01
+#define LVLTHR300	0x00
+#define LVLTHR400	0x20
+#define LVLTHR500	0x40
 
-#define PLLCTLA_X_SHIFT		1
-#define PLLCTLA_R_SHIFT		3
-#define PLLCTLB_PLLEN		0x01	/* PLL enable */
-#define PLLCTLB_LOCK		0x20	/* Lock poll */
+/* PWDN_CTRL1 */
+#define AIN1PWR		0x01
+#define AIN2PWR		0x02
+#define AIN3PWR		0x04
+#define AIN4PWR		0x08
+#define MICB1PWR	0x10
+#define MICB2PWR	0x20
+#define RADCPWR		0x40
+#define LADCPWR		0x80
 
-/*Clock GEN*/
+/* PWDN_CTRL2 */
+#define LLN1PWR		0x01
+#define RLN1PWR		0x02
+#define LLN2PWR		0x04
+#define RLN2PWR		0x08
+#define RDAC1PWR	0x10
+#define LDAC1PWR	0x20
+#define LDAC2PWR	0x40
+#define RDAC2PWR	0x80
 
-#define CLKSDIV_COREN		0x80	/* Core clock enable */
-#define CLKSDIV_PLL_BYPASS	0x40	/* Bypass PLL */
-#define CLKSDIV_CLKDIV_SHIFT	3
-#define CLKSDIV_MCLKDIV_SHIFT	0
+/* PWDN_CTRL3 */
+#define WHOLEPWR	0x01
+#define HPPWR		0x02
+#define RCDPWR		0x04
+#define LCDPWR		0x08
+#define EPPWR		0x10
+#define BSTPWR	0x20
+#define ZDPWR	0x40
 
-/* DAI Control */
+/* PLL_CTRL6 */
+#define PLLEN		0x01
+#define DPLL_BYPASS	0x02
+#define PLL_LOCKED	0x04
+#define DPLL_LOCKED	0x08
 
-#define DAICTL_FMRJUST		0x00	/* Audio interface mode */
-#define DAICTL_FMLJUST		0x01
-#define DAICTL_FMI2S		0x02
-#define DAICTL_FMDSP		0x03
+/* CLK1SDIV */
+#define CLKSDIV_COREN	0x80
+#define CLKSDIV_CLKDIV_SHIFT 3
+/* DAIA */
+#define FORMAT_RJUST	0x00
+#define FORMAT_LJUST	0x01
+#define FORMAT_I2S	0x02
+#define FORMAT_DSP	0x03
 
-#define DAICTL_WLEN16		0x00	/* Word length */
-#define DAICTL_WLEN20		0x04
-#define DAICTL_WLEN24		0x08
-#define DAICTL_WLEN32		0x0c
+#define WLA_16		0x00
+#define WLA_20		0x04
+#define WLA_24		0x08
+#define WLA_32		0x0C
 
-#define DAICTL_LRPA		0x10
-#define DAICTL_SWAPA		0x20
-#define DAICTL_MSA		0x40	/* Codec in master mode */
-#define DAICTL_BLKINVA		0x80
+#define LRPA_INV	0x10
+#define SWAPA		0x20
+#define MSA		0x40
+#define BCLK_INV	0x80
 
-/* Number of bit clock per frame */
-#define BCLKDIV_BPFA256		0x00
-#define BCLKDIV_BPFA128		0x01
-#define BCLKDIV_BPFA64		0x02
-#define BCLKDIV_BPFA32		0x03
+/* BCLKDIVA */
+#define BPFA_256	0x00
+#define BPFA_128	0x01
+#define BPFA_64		0x02
+#define BPFA_32		0x03
 
-/* SRC/DAI Control */
-#define SRCDAICTL_DAIA_ENA	0x01
-#define SRCDAICTL_DAIB_ENA	0x02
-#define SRCDAICTL_SRCREC_ENA	0x04
-#define SRCDAICTL_SRCPB_ENA	0x08
-/* DIGMIC */
-#define DIGMIC_EN		0x01
+#define DAISR_FS	0x00
+#define DAISRC_CLK2	0x20
+
+/* DAI_CTRL*/
+#define DAI_EN		0x01
+
+/* DIN_MIX_CTRL */
+#define DIN_AIFAPB	0x01
+#define DIN_AIFBPB	0x02
+#define DIN_AIFCPB	0x04
+#define DIN_ADC		0x08
+#define DIN_ADCSWP	0x10
+#define DIN_DMIC	0x20
+#define DIN_DMICSWP	0x40
+
+/* DOUT_MIX_CTRL */
+#define DOUT_CH0_REC	0x01
+#define DOUT_CH1_REC	0x02
+#define DOUT_CH2_REC	0x04
+#define DOUT_CH3_REC	0x08
+#define DOUT_CH4_REC	0x10
+
+/* DOUT_MIX_CTRL_DAC */
+#define DOUT_CH0_DAC	0x01
+#define DOUT_CH1_DAC	0x02
+#define DOUT_CH2_DAC	0x04
+#define DOUT_CH3_DAC	0x08
+#define DOUT_CH4_DAC	0x10
+
+/* DIGMIC_CTRL*/
+#define DMICAEN		0x01
+#define DMICASWP	0x02
+#define DMICBEN		0x04
+#define DMICBSWP	0x08
+#define DMIC2MONO	0x80
+
 /* DIGEN */
-#define DIGEN_PBEN		0x01
-#define DIGEN_RECEN		0x02
-#define DIGEN_FDSPEN		0x04
+#define PBAEN		0x01
+#define PBBEN		0x02
+#define RECEN		0x04
+#define DRECEN		0x08
+#define FDSPEN		0x10
+
 
 #define PB_LINE1		0x01
 #define PB_LINE2		0x02
