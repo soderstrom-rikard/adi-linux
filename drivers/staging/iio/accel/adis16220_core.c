@@ -153,55 +153,6 @@ error_ret:
 	return ret;
 }
 
-/**
- * adis16220_spi_read_sequence() - read a sequence of 16-bit registers
- * @dev: device associated with child of actual device (iio_dev or iio_trig)
- * @tx: register addresses in bytes 0,2,4,6... (min size is 2*num bytes)
- * @rx: somewhere to pass back the value read (min size is 2*num bytes)
- **/
-int adis16220_spi_read_sequence(struct device *dev,
-		u8 *tx, u8 *rx, int num)
-{
-	struct spi_message msg;
-	struct spi_transfer *xfers;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct adis16220_state *st = iio_dev_get_devdata(indio_dev);
-	int ret, i;
-
-	xfers = kzalloc(num + 1, GFP_KERNEL);
-	if (xfers == NULL) {
-		dev_err(&st->us->dev, "memory alloc failed");
-		ret = -ENOMEM;
-		goto error_ret;
-	}
-
-	/* tx: |add1|addr2|addr3|...|addrN |zero|
-	 * rx: |zero|res1 |res2 |...|resN-1|resN| */
-	spi_message_init(&msg);
-	for (i = 0; i < num + 1; i++) {
-		if (i > 0)
-			xfers[i].rx_buf = st->rx + 2*(i - 1);
-		if (i < num)
-			xfers[i].tx_buf = st->tx + 2*i;
-		xfers[i].bits_per_word = 8;
-		xfers[i].len = 2;
-		xfers[i].cs_change = 1;
-		spi_message_add_tail(&xfers[i], &msg);
-	}
-
-	mutex_lock(&st->buf_lock);
-
-	ret = spi_sync(st->us, &msg);
-	if (ret)
-		dev_err(&st->us->dev, "problem when reading sequence");
-
-	mutex_unlock(&st->buf_lock);
-	kfree(xfers);
-
-error_ret:
-	return ret;
-}
-
 static ssize_t adis16220_spi_read_signed(struct device *dev,
 		struct device_attribute *attr,
 		char *buf,
@@ -250,21 +201,6 @@ static ssize_t adis16220_read_16bit(struct device *dev,
 	return ret;
 }
 
-static ssize_t adis16220_read_12bit_signed(struct device *dev,
-		struct device_attribute *attr,
-		char *buf)
-{
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	ssize_t ret;
-
-	/* Take the iio_dev status lock */
-	mutex_lock(&indio_dev->mlock);
-	ret =  adis16220_spi_read_signed(dev, attr, buf, 12);
-	mutex_unlock(&indio_dev->mlock);
-
-	return ret;
-}
-
 static ssize_t adis16220_write_16bit(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf,
@@ -291,6 +227,8 @@ static int adis16220_capture(struct device *dev)
 			0xBF08); /* initiates a manual data capture */
 	if (ret)
 		dev_err(dev, "problem beginning capture");
+
+	msleep(10); /* delay for capture to finish */
 
 	return ret;
 }
@@ -335,28 +273,6 @@ static ssize_t adis16220_write_capture(struct device *dev,
 		return adis16220_capture(dev) == 0 ? len : -EIO;
 	}
 	return -1;
-}
-
-int adis16220_set_irq(struct device *dev, bool enable)
-{
-	int ret;
-	u16 msc;
-	ret = adis16220_spi_read_reg_16(dev, ADIS16220_MSC_CTRL, &msc);
-	if (ret)
-		goto error_ret;
-
-	msc |= ADIS16220_MSC_CTRL_DIO1_ACT_HIGH;
-	if (enable)
-		msc |= ADIS16220_MSC_CTRL_DIO1_BUSY_IND;
-	else
-		msc &= ~ADIS16220_MSC_CTRL_DIO1_BUSY_IND;
-
-	ret = adis16220_spi_write_reg_16(dev, ADIS16220_MSC_CTRL, msc);
-	if (ret)
-		goto error_ret;
-
-error_ret:
-	return ret;
 }
 
 static int adis16220_self_test(struct device *dev)
@@ -409,13 +325,6 @@ static int adis16220_initial_setup(struct adis16220_state *st)
 	int ret;
 	struct device *dev = &st->indio_dev->dev;
 
-	/* Disable IRQ */
-	ret = adis16220_set_irq(dev, false);
-	if (ret) {
-		dev_err(dev, "disable irq failed");
-		goto err_ret;
-	}
-
 	/* Do self test */
 	ret = adis16220_self_test(dev);
 	if (ret) {
@@ -443,6 +352,97 @@ err_ret:
 	return ret;
 }
 
+static ssize_t adis16220_capture_buffer_read(struct adis16220_state *st, char *buf,
+			loff_t off, size_t count, int addr)
+{
+	struct spi_message msg;
+	struct spi_transfer xfers[] = {
+		{
+			.tx_buf = st->tx,
+			.bits_per_word = 8,
+			.len = 2,
+			.cs_change = 1,
+			.delay_usecs = 25,
+		}, {
+			.tx_buf = st->tx,
+			.rx_buf = st->rx,
+			.bits_per_word = 8,
+			.cs_change = 1,
+			.delay_usecs = 25,
+		},
+	};
+	int ret;
+	int i;
+
+	if (unlikely(!count))
+		return count;
+
+	if ((off >= ADIS16220_CAPTURE_SIZE) || (count & 1) || (off & 1))
+		return -EINVAL;
+
+	if (off + count > ADIS16220_CAPTURE_SIZE)
+		count = ADIS16220_CAPTURE_SIZE - off;
+
+	/* write the begin position of capture buffer */
+	ret = adis16220_spi_write_reg_16(&st->indio_dev->dev, ADIS16220_CAPT_PNTR, off > 1);
+	if (ret)
+		return -EIO;
+
+	/* read count/2 values from capture buffer */
+	mutex_lock(&st->buf_lock);
+
+	for (i = 0; i < count; i += 2) {
+		st->tx[i] = ADIS16220_READ_REG(addr);
+		st->tx[i + 1] = 0;
+	}
+	xfers[1].len = count;
+
+	spi_message_init(&msg);
+	spi_message_add_tail(&xfers[0], &msg);
+	spi_message_add_tail(&xfers[1], &msg);
+	ret = spi_sync(st->us, &msg);
+	if (ret) {
+
+		mutex_unlock(&st->buf_lock);
+		return -EIO;
+	}
+
+	memcpy(buf, st->rx, count);
+
+	mutex_unlock(&st->buf_lock);
+	return count;
+}
+
+static ssize_t adis16220_accel_bin_read(struct kobject *kobj, struct bin_attribute *attr,
+		char *buf, loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct adis16220_state *st = iio_dev_get_devdata(indio_dev);
+
+	return adis16220_capture_buffer_read(st, buf, off, count, ADIS16220_CAPT_BUFA);
+}
+
+static ssize_t adis16220_adc1_bin_read(struct kobject *kobj, struct bin_attribute *attr,
+		char *buf, loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct adis16220_state *st = iio_dev_get_devdata(indio_dev);
+
+	return adis16220_capture_buffer_read(st, buf, off, count, ADIS16220_CAPT_BUF1);
+}
+
+static ssize_t adis16220_adc2_bin_read(struct kobject *kobj, struct bin_attribute *attr,
+		char *buf, loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct adis16220_state *st = iio_dev_get_devdata(indio_dev);
+
+	return adis16220_capture_buffer_read(st, buf, off, count, ADIS16220_CAPT_BUF2);
+}
+
 static IIO_DEV_ATTR_VOLT(supply, adis16220_read_12bit_unsigned,
 		ADIS16220_CAPT_SUPPLY);
 static IIO_CONST_ATTR(volt_supply_scale, "0.0012207");
@@ -454,9 +454,9 @@ static IIO_DEV_ATTR_ACCEL_OFFSET(S_IWUSR | S_IRUGO,
 		adis16220_read_16bit,
 		adis16220_write_16bit,
 		ADIS16220_ACCL_NULL);
-static IIO_DEV_ATTR_TEMP(adis16220_read_12bit_signed);
-static IIO_CONST_ATTR(temp_offset, "25 K");
-static IIO_CONST_ATTR(temp_scale, "-0.47 K");
+static IIO_DEV_ATTR_TEMP(adis16220_read_12bit_unsigned);
+static IIO_CONST_ATTR(temp_offset, "25");
+static IIO_CONST_ATTR(temp_scale, "-0.47");
 
 static IIO_DEV_ATTR_ADC(1, adis16220_read_16bit, ADIS16220_CAPT_BUF1);
 static IIO_DEV_ATTR_ADC(2, adis16220_read_16bit, ADIS16220_CAPT_BUF2);
@@ -479,14 +479,6 @@ static IIO_DEV_ATTR_CAPTURE_COUNT(S_IWUSR | S_IRUGO,
 static IIO_CONST_ATTR_AVAIL_SAMP_FREQ("100200");
 
 static IIO_CONST_ATTR(name, "adis16220");
-
-static struct attribute *adis16220_event_attributes[] = {
-	NULL
-};
-
-static struct attribute_group adis16220_event_attribute_group = {
-	.attrs = adis16220_event_attributes,
-};
 
 static struct attribute *adis16220_attributes[] = {
 	&iio_dev_attr_volt_supply.dev_attr.attr,
@@ -543,66 +535,58 @@ static int __devinit adis16220_probe(struct spi_device *spi)
 	}
 
 	st->indio_dev->dev.parent = &spi->dev;
-	st->indio_dev->num_interrupt_lines = 1;
-	st->indio_dev->event_attrs = &adis16220_event_attribute_group;
 	st->indio_dev->attrs = &adis16220_attribute_group;
 	st->indio_dev->dev_data = (void *)(st);
 	st->indio_dev->driver_module = THIS_MODULE;
 	st->indio_dev->modes = INDIO_DIRECT_MODE;
 
-	ret = adis16220_configure_ring(st->indio_dev);
+	ret = iio_device_register(st->indio_dev);
+	if (ret)
+		goto error_free_dev;
+	regdone = 1;
+
+	st->accel_bin.attr.name = "accel_bin";
+	st->accel_bin.attr.mode = S_IRUGO;
+	st->accel_bin.attr.owner = THIS_MODULE;
+	st->accel_bin.read = adis16220_accel_bin_read;
+	st->accel_bin.size = ADIS16220_CAPTURE_SIZE;
+
+	ret = sysfs_create_bin_file(&st->indio_dev->dev.kobj, &st->accel_bin);
 	if (ret)
 		goto error_free_dev;
 
-	ret = iio_device_register(st->indio_dev);
+	st->adc1_bin.attr.name = "adc1_bin";
+	st->adc1_bin.attr.mode = S_IRUGO;
+	st->adc1_bin.attr.owner = THIS_MODULE;
+	st->adc1_bin.read = adis16220_adc1_bin_read;
+	st->adc1_bin.size = ADIS16220_CAPTURE_SIZE;
+
+	ret = sysfs_create_bin_file(&st->indio_dev->dev.kobj, &st->adc1_bin);
 	if (ret)
-		goto error_unreg_ring_funcs;
-	regdone = 1;
+		goto error_rm_accel_bin;
 
-	ret = adis16220_initialize_ring(st->indio_dev->ring);
-	if (ret) {
-		printk(KERN_ERR "failed to initialize the ring\n");
-		goto error_unreg_ring_funcs;
-	}
+	st->adc2_bin.attr.name = "adc2_bin";
+	st->adc2_bin.attr.mode = S_IRUGO;
+	st->adc2_bin.attr.owner = THIS_MODULE;
+	st->adc2_bin.read = adis16220_adc2_bin_read;
+	st->adc2_bin.size = ADIS16220_CAPTURE_SIZE;
 
-	if (spi->irq && gpio_is_valid(irq_to_gpio(spi->irq)) > 0) {
-#if 0 /* fixme: here we should support */
-		iio_init_work_cont(&st->work_cont_thresh,
-				NULL,
-				adis16220_thresh_handler_bh_no_check,
-				0,
-				0,
-				st);
-#endif
-		ret = iio_register_interrupt_line(spi->irq,
-				st->indio_dev,
-				0,
-				IRQF_TRIGGER_RISING,
-				"adis16220");
-		if (ret)
-			goto error_uninitialize_ring;
-
-		ret = adis16220_probe_trigger(st->indio_dev);
-		if (ret)
-			goto error_unregister_line;
-	}
+	ret = sysfs_create_bin_file(&st->indio_dev->dev.kobj, &st->adc2_bin);
+	if (ret)
+		goto error_rm_adc1_bin;
 
 	/* Get the device into a sane initial state */
 	ret = adis16220_initial_setup(st);
 	if (ret)
-		goto error_remove_trigger;
+		goto error_rm_adc2_bin;
 	return 0;
 
-error_remove_trigger:
-	if (st->indio_dev->modes & INDIO_RING_TRIGGERED)
-		adis16220_remove_trigger(st->indio_dev);
-error_unregister_line:
-	if (st->indio_dev->modes & INDIO_RING_TRIGGERED)
-		iio_unregister_interrupt_line(st->indio_dev, 0);
-error_uninitialize_ring:
-	adis16220_uninitialize_ring(st->indio_dev->ring);
-error_unreg_ring_funcs:
-	adis16220_unconfigure_ring(st->indio_dev);
+error_rm_adc2_bin:
+	sysfs_remove_bin_file(&st->indio_dev->dev.kobj, &st->adc2_bin);
+error_rm_adc1_bin:
+	sysfs_remove_bin_file(&st->indio_dev->dev.kobj, &st->adc1_bin);
+error_rm_accel_bin:
+	sysfs_remove_bin_file(&st->indio_dev->dev.kobj, &st->accel_bin);
 error_free_dev:
 	if (regdone)
 		iio_device_unregister(st->indio_dev);
@@ -618,7 +602,6 @@ error_ret:
 	return ret;
 }
 
-/* fixme, confirm ordering in this function */
 static int adis16220_remove(struct spi_device *spi)
 {
 	struct adis16220_state *st = spi_get_drvdata(spi);
@@ -626,12 +609,9 @@ static int adis16220_remove(struct spi_device *spi)
 
 	flush_scheduled_work();
 
-	adis16220_remove_trigger(indio_dev);
-	if (spi->irq && gpio_is_valid(irq_to_gpio(spi->irq)) > 0)
-		iio_unregister_interrupt_line(indio_dev, 0);
-
-	adis16220_uninitialize_ring(indio_dev->ring);
-	adis16220_unconfigure_ring(indio_dev);
+	sysfs_remove_bin_file(&st->indio_dev->dev.kobj, &st->adc2_bin);
+	sysfs_remove_bin_file(&st->indio_dev->dev.kobj, &st->adc1_bin);
+	sysfs_remove_bin_file(&st->indio_dev->dev.kobj, &st->accel_bin);
 	iio_device_unregister(indio_dev);
 	kfree(st->tx);
 	kfree(st->rx);

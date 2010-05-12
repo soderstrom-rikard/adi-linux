@@ -38,6 +38,8 @@
 #define ADIS16220_PROD_ID       0x56 /* Product identifier; convert to decimal = 16220 */
 #define ADIS16220_SERIAL_NUM    0x58 /* Serial number */
 
+#define ADIS16220_CAPTURE_SIZE  2048
+
 /* MSC_CTRL */
 #define ADIS16220_MSC_CTRL_SELF_TEST_EN	        (1 << 8)
 #define ADIS16220_MSC_CTRL_POWER_SUP_COM_AIN1	(1 << 1)
@@ -72,8 +74,8 @@
 #define ADIS16220_GLOB_CMD_SELF_TEST	(1<<2)
 #define ADIS16220_GLOB_CMD_PWR_DOWN	(1<<1)
 
-#define ADIS16220_MAX_TX 24
-#define ADIS16220_MAX_RX 24
+#define ADIS16220_MAX_TX 2048
+#define ADIS16220_MAX_RX 2048
 
 #define ADIS16220_SPI_BURST	(u32)(1000 * 1000)
 #define ADIS16220_SPI_FAST	(u32)(2000 * 1000)
@@ -93,81 +95,13 @@
  **/
 struct adis16220_state {
 	struct spi_device		*us;
-	struct work_struct		work_trigger_to_ring;
-	struct iio_work_cont		work_cont_thresh;
-	s64				last_timestamp;
 	struct iio_dev			*indio_dev;
-	struct iio_trigger		*trig;
 	u8				*tx;
 	u8				*rx;
+	struct bin_attribute            accel_bin;
+	struct bin_attribute            adc1_bin;
+	struct bin_attribute            adc2_bin;
 	struct mutex			buf_lock;
 };
 
-
-int adis16220_set_irq(struct device *dev, bool enable);
-
-#ifdef CONFIG_IIO_RING_BUFFER
-/* At the moment triggers are only used for ring buffer
- * filling. This may change!
- */
-
-enum adis16220_scan {
-	ADIS16220_SCAN_SUPPLY,
-	ADIS16220_SCAN_GYRO,
-	ADIS16220_SCAN_TEMP,
-	ADIS16220_SCAN_ADC_0,
-	ADIS16220_SCAN_ADC_1,
-};
-
-void adis16220_remove_trigger(struct iio_dev *indio_dev);
-int adis16220_probe_trigger(struct iio_dev *indio_dev);
-
-ssize_t adis16220_read_data_from_ring(struct device *dev,
-				      struct device_attribute *attr,
-				      char *buf);
-
-
-int adis16220_configure_ring(struct iio_dev *indio_dev);
-void adis16220_unconfigure_ring(struct iio_dev *indio_dev);
-
-int adis16220_initialize_ring(struct iio_ring_buffer *ring);
-void adis16220_uninitialize_ring(struct iio_ring_buffer *ring);
-#else /* CONFIG_IIO_RING_BUFFER */
-
-static inline void adis16220_remove_trigger(struct iio_dev *indio_dev)
-{
-}
-
-static inline int adis16220_probe_trigger(struct iio_dev *indio_dev)
-{
-	return 0;
-}
-
-static inline ssize_t
-adis16220_read_data_from_ring(struct device *dev,
-			      struct device_attribute *attr,
-			      char *buf)
-{
-	return 0;
-}
-
-static int adis16220_configure_ring(struct iio_dev *indio_dev)
-{
-	return 0;
-}
-
-static inline void adis16220_unconfigure_ring(struct iio_dev *indio_dev)
-{
-}
-
-static inline int adis16220_initialize_ring(struct iio_ring_buffer *ring)
-{
-	return 0;
-}
-
-static inline void adis16220_uninitialize_ring(struct iio_ring_buffer *ring)
-{
-}
-
-#endif /* CONFIG_IIO_RING_BUFFER */
 #endif /* SPI_ADIS16220_H_ */
