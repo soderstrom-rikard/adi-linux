@@ -355,22 +355,6 @@ err_ret:
 static ssize_t adis16220_capture_buffer_read(struct adis16220_state *st, char *buf,
 			loff_t off, size_t count, int addr)
 {
-	struct spi_message msg;
-	struct spi_transfer xfers[] = {
-		{
-			.tx_buf = st->tx,
-			.bits_per_word = 8,
-			.len = 2,
-			.cs_change = 1,
-			.delay_usecs = 25,
-		}, {
-			.tx_buf = st->tx,
-			.rx_buf = st->rx,
-			.bits_per_word = 8,
-			.cs_change = 1,
-			.delay_usecs = 25,
-		},
-	};
 	int ret;
 	int i;
 
@@ -389,27 +373,12 @@ static ssize_t adis16220_capture_buffer_read(struct adis16220_state *st, char *b
 		return -EIO;
 
 	/* read count/2 values from capture buffer */
-	mutex_lock(&st->buf_lock);
-
 	for (i = 0; i < count; i += 2) {
-		st->tx[i] = ADIS16220_READ_REG(addr);
-		st->tx[i + 1] = 0;
-	}
-	xfers[1].len = count;
-
-	spi_message_init(&msg);
-	spi_message_add_tail(&xfers[0], &msg);
-	spi_message_add_tail(&xfers[1], &msg);
-	ret = spi_sync(st->us, &msg);
-	if (ret) {
-
-		mutex_unlock(&st->buf_lock);
-		return -EIO;
+		ret = adis16220_spi_read_reg_16(&st->indio_dev->dev, addr, (u16 *)(buf + i));
+		if (ret)
+			return -EIO;
 	}
 
-	memcpy(buf, st->rx, count);
-
-	mutex_unlock(&st->buf_lock);
 	return count;
 }
 
