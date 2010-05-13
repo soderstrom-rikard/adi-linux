@@ -154,6 +154,24 @@
 #define ADAU_ALCCTL5	0x7B
 #define ADAU_ALCCTL6	0x7C
 
+#define ADAU_DRCCTL1	0xC2
+#define ADAU_DRCCTL2	0xC3
+#define ADAU_DRCCTL3	0xC4
+#define ADAU_DRCCTL4	0xC5
+#define ADAU_DRCCTL5	0xC6
+#define ADAU_DRCCTL6	0xC7
+#define ADAU_DRCCTL7	0xC8
+#define ADAU_DRCCTL8	0xC9
+#define ADAU_DRCCTL9	0xCA
+#define ADAU_DRCCTLA	0xCB
+#define ADAU_DRCCTLB	0xCC
+#define ADAU_DRCCTLC	0xCD
+#define ADAU_DRCCTLD	0xCE
+
+#define ADAU_FDSPSEL1	0xDD
+#define ADAU_FDSPSEL2	0xDE
+#define ADAU_FDSPSEL3	0xDF
+
 #define ADAU_PBALPCTL	0xE0
 #define ADAU_PBBLPCTL	0xE1
 
@@ -165,12 +183,6 @@
 #define ADAU_CHIPIDM	0xED
 #define ADAU_CHIPIDL	0xEE
 #define ADAU_RESET	0xFF
-
-
-struct adau1361_mode_settings{
-	u8  regaddress;
-	u8  regvalue;
-};
 
 /*
  * ADAU1373 Codec Register Field definitions
@@ -281,6 +293,43 @@ struct adau1361_mode_settings{
 
 /* DAI_CTRL*/
 #define DAI_EN		0x01
+#define DAI_SRCAEN	0x04
+
+/* DIN_MIX_CTRL */
+#define DIN_AIFAPB	0x01
+#define DIN_AIFBPB	0x02
+#define DIN_AIFCPB	0x04
+#define DIN_ADC		0x08
+#define DIN_ADCSWP	0x10
+#define DIN_DMIC	0x20
+#define DIN_DMICSWP	0x40
+
+/* DOUT_MIX_CTRL */
+#define DOUT_CH0_REC	0x01
+#define DOUT_CH1_REC	0x02
+#define DOUT_CH2_REC	0x04
+#define DOUT_CH3_REC	0x08
+#define DOUT_CH4_REC	0x10
+
+/* DOUT_MIX_CTRL_DAC */
+#define DOUT_CH0_DAC	0x01
+#define DOUT_CH1_DAC	0x02
+#define DOUT_CH2_DAC	0x04
+#define DOUT_CH3_DAC	0x08
+#define DOUT_CH4_DAC	0x10
+
+/* DIGMIC_CTRL*/
+#define DMICAEN		0x01
+#define DMICASWP	0x02
+#define DMICBEN		0x04
+#define DMICBSWP	0x08
+#define DMIC2MONO	0x80
+
+#define DAISR_FS	0x00
+#define DAISRC_CLK2	0x20
+
+/* DAI_CTRL*/
+#define DAI_EN		0x01
 
 /* DIN_MIX_CTRL */
 #define DIN_AIFAPB	0x01
@@ -335,26 +384,6 @@ struct adau1361_mode_settings{
 #define ADC_MUTE_MASK		0xc0
 #define DAC_MUTE_MASK		0x30
 
-/* DRC */
-#define DRCMODE_NGEN		0x01
-#define DRCMODE_RIGHT_ENA	0x04
-#define DRCMODE_LEFT_ENA	0x08
-
-/* DSP MODE */
-#define DSPMODE_PLAYBACK_ENA	0x01
-#define DSPMODE_CAPTURE_ENA	0x02
-
-/* PAD_CTL */
-#define PADCTL_DAIA		0x01
-#define PADCTL_DAIB		0x02
-#define PADCTL_GPIO		0x04
-#define PADCTL_I2C		0x08
-#define PADCTL_I2CFLT		0x10
-
-#define BE_SHIFT		2
-#define EQ_SHIFT		4
-#define HPF_SHIFT		6
-
 #define ADAU1373_CACHEREGNUM	0x100
 
 #define ADAU1373_SYSCLK		0
@@ -362,11 +391,6 @@ struct adau1361_mode_settings{
 
 #define CHANNELS_INPUT		2
 #define CHANNELS_OUTPUT		2
-
-struct adau1373_setup_data {
-	int i2c_bus;
-	unsigned short i2c_address;
-};
 
 struct _pll_settings {
 	u32 mclk;
@@ -378,15 +402,10 @@ struct _pll_settings {
 	u8 type:1;
 };
 
-struct _srate_set {
-	int fs;
-	u8 reg;
-};
-
 struct adau1373_platform_data {
 	u8 pll_settings_num;
 	const struct _pll_settings *pll_settings;
-	u8 drc_settings[8];
+	u8 drc_settings[13];
 };
 
 extern struct snd_soc_dai adau1373_dai;

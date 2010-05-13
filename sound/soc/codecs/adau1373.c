@@ -568,20 +568,23 @@ static inline int get_coeff(struct adau1373_priv *adau1373, int rate)
 	return i;
 }
 
-#if 0
 static void adau1373_set_drc(struct snd_soc_codec *codec, u8 *dsettings)
 {
-	snd_soc_write(codec, ADAU1373_DRCCTL1, dsettings[0]);
-	snd_soc_write(codec, ADAU1373_DRCCTL2, dsettings[1]);
-	snd_soc_write(codec, ADAU1373_DRCSC1, dsettings[2]);
-	snd_soc_write(codec, ADAU1373_DRCSC2, dsettings[3]);
-	snd_soc_write(codec, ADAU1373_DRCSC3, dsettings[4]);
-	snd_soc_write(codec, ADAU1373_DRCGS1, dsettings[5]);
-	snd_soc_write(codec, ADAU1373_DRCGS2, dsettings[6]);
-	snd_soc_write(codec, ADAU1373_DRCGS3, dsettings[7]);
-
+	snd_soc_write(codec, ADAU_DRCCTL1, dsettings[0]);
+	snd_soc_write(codec, ADAU_DRCCTL2, dsettings[1]);
+	snd_soc_write(codec, ADAU_DRCCTL3, dsettings[2]);
+	snd_soc_write(codec, ADAU_DRCCTL4, dsettings[3]);
+	snd_soc_write(codec, ADAU_DRCCTL5, dsettings[4]);
+	snd_soc_write(codec, ADAU_DRCCTL6, dsettings[5]);
+	snd_soc_write(codec, ADAU_DRCCTL7, dsettings[6]);
+	snd_soc_write(codec, ADAU_DRCCTL8, dsettings[7]);
+	snd_soc_write(codec, ADAU_DRCCTL9, dsettings[8]);
+	snd_soc_write(codec, ADAU_DRCCTLA, dsettings[9]);
+	snd_soc_write(codec, ADAU_DRCCTLB, dsettings[10]);
+	snd_soc_write(codec, ADAU_DRCCTLC, dsettings[11]);
+	snd_soc_write(codec, ADAU_DRCCTLD, dsettings[12]);
 }
-#endif
+
 /* Set rate and format */
 static int adau1373_hw_params(struct snd_pcm_substream *substream,
 			      struct snd_pcm_hw_params *params,
@@ -1026,8 +1029,10 @@ static int adau1373_init(struct adau1373_priv *adau1373)
 	reg = WHOLEPWR | HPPWR;
 	snd_soc_write(codec, ADAU_PWDCTL3, reg);
 
+	adau1373_set_drc(codec, adau1373->data->drc_settings);
+	snd_soc_write(codec, ADAU_FDSPSEL1, 0x03);
 	/* Enable playback, capture */
-	snd_soc_write(codec, ADAU_DIGEN, PBAEN | RECEN);
+	snd_soc_write(codec, ADAU_DIGEN, PBAEN | RECEN | FDSPEN);
 	snd_soc_write(codec, 0x3C, 0x07);
 	snd_soc_write(codec, 0x3C, 0x05);
 
