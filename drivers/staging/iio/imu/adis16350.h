@@ -44,7 +44,7 @@
 #define ADIS16350_AUX_DAC   0x30 /* Auxiliary DAC data */
 
 #define ADIS16350_ERROR_ACTIVE			(1<<14)
-#define ADIS16350_NEW_DATA			(1<<14)
+#define ADIS16350_NEW_DATA			(1<<15)
 
 /* MSC_CTRL */
 #define ADIS16350_MSC_CTRL_MEM_TEST		(1<<11)
@@ -121,27 +121,9 @@ struct adis16350_state {
 	struct mutex			buf_lock;
 };
 
-int adis16350_spi_write_reg_8(struct device *dev,
-			      u8 reg_address,
-			      u8 val);
-
-int adis16350_spi_read_burst(struct device *dev, u8 *rx);
-
-int adis16350_spi_read_sequence(struct device *dev,
-				      u8 *tx, u8 *rx, int num);
-
 int adis16350_set_irq(struct device *dev, bool enable);
 
-int adis16350_reset(struct device *dev);
-
-int adis16350_stop_device(struct device *dev);
-
-int adis16350_check_status(struct device *dev);
-
 #ifdef CONFIG_IIO_RING_BUFFER
-/* At the moment triggers are only used for ring buffer
- * filling. This may change!
- */
 
 enum adis16350_scan {
 	ADIS16350_SCAN_SUPPLY,

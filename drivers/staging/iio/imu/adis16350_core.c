@@ -28,13 +28,15 @@
 
 #define DRIVER_NAME		"adis16350"
 
+static int adis16350_check_status(struct device *dev);
+
 /**
  * adis16350_spi_write_reg_8() - write single byte to a register
  * @dev: device associated with child of actual device (iio_dev or iio_trig)
  * @reg_address: the address of the register to be written
  * @val: the value to write
  **/
-int adis16350_spi_write_reg_8(struct device *dev,
+static int adis16350_spi_write_reg_8(struct device *dev,
 		u8 reg_address,
 		u8 val)
 {
@@ -73,11 +75,13 @@ static int adis16350_spi_write_reg_16(struct device *dev,
 			.bits_per_word = 8,
 			.len = 2,
 			.cs_change = 1,
+			.delay_usecs = 25,
 		}, {
 			.tx_buf = st->tx + 2,
 			.bits_per_word = 8,
 			.len = 2,
 			.cs_change = 1,
+			.delay_usecs = 25,
 		},
 	};
 
@@ -117,11 +121,13 @@ static int adis16350_spi_read_reg_16(struct device *dev,
 			.bits_per_word = 8,
 			.len = 2,
 			.cs_change = 1,
+			.delay_usecs = 25,
 		}, {
 			.rx_buf = st->rx,
 			.bits_per_word = 8,
 			.len = 2,
 			.cs_change = 1,
+			.delay_usecs = 25,
 		},
 	};
 
@@ -147,102 +153,6 @@ error_ret:
 	return ret;
 }
 
-/**
- * adis16350_spi_read_burst() - read all data registers
- * @dev: device associated with child of actual device (iio_dev or iio_trig)
- * @rx: somewhere to pass back the value read (min size is 24 bytes)
- **/
-int adis16350_spi_read_burst(struct device *dev, u8 *rx)
-{
-	struct spi_message msg;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct adis16350_state *st = iio_dev_get_devdata(indio_dev);
-	u32 old_speed_hz = st->us->max_speed_hz;
-	int ret;
-
-	struct spi_transfer xfers[] = {
-		{
-			.tx_buf = st->tx,
-			.bits_per_word = 8,
-			.len = 2,
-			.cs_change = 0,
-		}, {
-			.rx_buf = rx,
-			.bits_per_word = 8,
-			.len = 24,
-			.cs_change = 1,
-		},
-	};
-
-	mutex_lock(&st->buf_lock);
-	st->tx[0] = ADIS16350_READ_REG(ADIS16350_GLOB_CMD);
-	st->tx[1] = 0;
-
-	spi_message_init(&msg);
-	spi_message_add_tail(&xfers[0], &msg);
-	spi_message_add_tail(&xfers[1], &msg);
-
-	st->us->max_speed_hz = min(ADIS16350_SPI_BURST, old_speed_hz);
-	spi_setup(st->us);
-
-	ret = spi_sync(st->us, &msg);
-	if (ret)
-		dev_err(&st->us->dev, "problem when burst reading");
-
-	st->us->max_speed_hz = old_speed_hz;
-	spi_setup(st->us);
-	mutex_unlock(&st->buf_lock);
-	return ret;
-}
-
-/**
- * adis16350_spi_read_sequence() - read a sequence of 16-bit registers
- * @dev: device associated with child of actual device (iio_dev or iio_trig)
- * @tx: register addresses in bytes 0,2,4,6... (min size is 2*num bytes)
- * @rx: somewhere to pass back the value read (min size is 2*num bytes)
- **/
-int adis16350_spi_read_sequence(struct device *dev,
-		u8 *tx, u8 *rx, int num)
-{
-	struct spi_message msg;
-	struct spi_transfer *xfers;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct adis16350_state *st = iio_dev_get_devdata(indio_dev);
-	int ret, i;
-
-	xfers = kzalloc(num + 1, GFP_KERNEL);
-	if (xfers == NULL) {
-		dev_err(&st->us->dev, "memory alloc failed");
-		ret = -ENOMEM;
-		goto error_ret;
-	}
-
-	/* tx: |add1|addr2|addr3|...|addrN |zero|
-	 * rx: |zero|res1 |res2 |...|resN-1|resN| */
-	spi_message_init(&msg);
-	for (i = 0; i < num + 1; i++) {
-		if (i > 0)
-			xfers[i].rx_buf = st->rx + 2*(i - 1);
-		if (i < num)
-			xfers[i].tx_buf = st->tx + 2*i;
-		xfers[i].bits_per_word = 8;
-		xfers[i].len = 2;
-		xfers[i].cs_change = 1;
-		spi_message_add_tail(&xfers[i], &msg);
-	}
-
-	mutex_lock(&st->buf_lock);
-
-	ret = spi_sync(st->us, &msg);
-	if (ret)
-		dev_err(&st->us->dev, "problem when reading sequence");
-
-	mutex_unlock(&st->buf_lock);
-	kfree(xfers);
-
-error_ret:
-	return ret;
-}
 
 static ssize_t adis16350_spi_read_signed(struct device *dev,
 		struct device_attribute *attr,
@@ -311,7 +221,6 @@ static ssize_t adis16350_read_12bit_signed(struct device *dev,
 
 	return ret;
 }
-
 
 static ssize_t adis16350_write_16bit(struct device *dev,
 		struct device_attribute *attr,
@@ -384,6 +293,18 @@ static ssize_t adis16350_write_frequency(struct device *dev,
 	return ret ? ret : len;
 }
 
+static int adis16350_reset(struct device *dev)
+{
+	int ret;
+	ret = adis16350_spi_write_reg_8(dev,
+			ADIS16350_GLOB_CMD,
+			ADIS16350_GLOB_CMD_SW_RESET);
+	if (ret)
+		dev_err(dev, "problem resetting device");
+
+	return ret;
+}
+
 static ssize_t adis16350_write_reset(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t len)
@@ -399,8 +320,6 @@ static ssize_t adis16350_write_reset(struct device *dev,
 	return -1;
 }
 
-
-
 int adis16350_set_irq(struct device *dev, bool enable)
 {
 	int ret;
@@ -410,6 +329,8 @@ int adis16350_set_irq(struct device *dev, bool enable)
 		goto error_ret;
 
 	msc |= ADIS16350_MSC_CTRL_DATA_RDY_POL_HIGH;
+	msc &= ~ADIS16350_MSC_CTRL_DATA_RDY_DIO2;
+
 	if (enable)
 		msc |= ADIS16350_MSC_CTRL_DATA_RDY_EN;
 	else
@@ -423,20 +344,8 @@ error_ret:
 	return ret;
 }
 
-int adis16350_reset(struct device *dev)
-{
-	int ret;
-	ret = adis16350_spi_write_reg_8(dev,
-			ADIS16350_GLOB_CMD,
-			ADIS16350_GLOB_CMD_SW_RESET);
-	if (ret)
-		dev_err(dev, "problem resetting device");
-
-	return ret;
-}
-
 /* Power down the device */
-int adis16350_stop_device(struct device *dev)
+static int adis16350_stop_device(struct device *dev)
 {
 	int ret;
 	u16 val = ADIS16350_SLP_CNT_POWER_OFF;
@@ -448,7 +357,7 @@ int adis16350_stop_device(struct device *dev)
 	return ret;
 }
 
-int adis16350_self_test(struct device *dev)
+static int adis16350_self_test(struct device *dev)
 {
 	int ret;
 	ret = adis16350_spi_write_reg_16(dev,
@@ -465,7 +374,7 @@ err_ret:
 	return ret;
 }
 
-int adis16350_check_status(struct device *dev)
+static int adis16350_check_status(struct device *dev)
 {
 	u16 status;
 	int ret;
@@ -531,6 +440,11 @@ static int adis16350_initial_setup(struct adis16350_state *st)
 	}
 
 	/* Do self test */
+	ret = adis16350_self_test(dev);
+	if (ret) {
+		dev_err(dev, "self test failure");
+		goto err_ret;
+	}
 
 	/* Read status register to check the result */
 	ret = adis16350_check_status(dev);
@@ -574,7 +488,7 @@ static IIO_DEV_ATTR_ACCEL_Z_OFFSET(S_IWUSR | S_IRUGO,
 		adis16350_write_16bit,
 		ADIS16350_ZACCL_OFF);
 
-static IIO_DEV_ATTR_VOLT(supply, adis16350_read_14bit_signed,
+static IIO_DEV_ATTR_VOLT(supply, adis16350_read_12bit_unsigned,
 		ADIS16350_SUPPLY_OUT);
 static IIO_CONST_ATTR(volt_supply_scale, "0.002418");
 
@@ -584,7 +498,7 @@ static IIO_DEV_ATTR_GYRO_Y(adis16350_read_14bit_signed,
 		ADIS16350_YGYRO_OUT);
 static IIO_DEV_ATTR_GYRO_Z(adis16350_read_14bit_signed,
 		ADIS16350_ZGYRO_OUT);
-static IIO_CONST_ATTR(gyro_scale, "0.05 deg/s");
+static IIO_CONST_ATTR(gyro_scale, "0.05");
 
 static IIO_DEV_ATTR_ACCEL_X(adis16350_read_14bit_signed,
 		ADIS16350_XACCL_OUT);
@@ -592,7 +506,7 @@ static IIO_DEV_ATTR_ACCEL_Y(adis16350_read_14bit_signed,
 		ADIS16350_YACCL_OUT);
 static IIO_DEV_ATTR_ACCEL_Z(adis16350_read_14bit_signed,
 		ADIS16350_ZACCL_OUT);
-static IIO_CONST_ATTR(accel_scale, "0.00333 g");
+static IIO_CONST_ATTR(accel_scale, "0.00333");
 
 static IIO_DEV_ATTR_TEMP_X(adis16350_read_12bit_signed,
 		ADIS16350_XTEMP_OUT);
@@ -600,7 +514,7 @@ static IIO_DEV_ATTR_TEMP_Y(adis16350_read_12bit_signed,
 		ADIS16350_YTEMP_OUT);
 static IIO_DEV_ATTR_TEMP_Z(adis16350_read_12bit_signed,
 		ADIS16350_ZTEMP_OUT);
-static IIO_CONST_ATTR(temp_scale, "0.0005 Gs");
+static IIO_CONST_ATTR(temp_scale, "0.0005");
 
 static IIO_DEV_ATTR_VOLT(aux, adis16350_read_12bit_unsigned,
 		ADIS16350_AUX_ADC);
@@ -647,51 +561,7 @@ static const struct attribute_group adis16350_attribute_group = {
 	.attrs = adis16350_attributes,
 };
 
-static void adis16350_data_rdy_handler_bh_no_check(struct work_struct *work_s)
-{
-	struct iio_work_cont *wc
-		= container_of(work_s, struct iio_work_cont, ws_nocheck);
-	struct adis16350_state *st  = wc->st;
-
-	iio_push_event(st->indio_dev, 0,
-			IIO_EVENT_CODE_DATA_RDY,
-			st->last_timestamp);
-}
-
-static int adis16350_interrupt_handler_th(struct iio_dev *dev_info,
-		int index,
-		s64 timestamp,
-		int no_test)
-{
-	struct adis16350_state *st = dev_info->dev_data;
-
-	st->last_timestamp = timestamp;
-	schedule_work(&st->work_cont_data_rdy.ws);
-
-	return 0;
-}
-
-IIO_EVENT_SH(data_rdy, &adis16350_interrupt_handler_th);
-
-static ssize_t adis16350_query_out_mode(struct device *dev,
-		struct device_attribute *attr,
-		char *buf)
-{
-	return sprintf(buf, "1\n");
-}
-
-static ssize_t adis16350_set_out_mode(struct device *dev,
-		struct device_attribute *attr,
-		const char *buf,
-		size_t len)
-{
-	return len;
-}
-
-IIO_EVENT_ATTR_SH(sam_rdy, iio_event_data_rdy, adis16350_query_out_mode, adis16350_set_out_mode, 0);
-
 static struct attribute *adis16350_event_attributes[] = {
-	&iio_event_attr_sam_rdy.dev_attr.attr,
 	NULL,
 };
 
@@ -753,13 +623,7 @@ static int __devinit adis16350_probe(struct spi_device *spi)
 		goto error_unreg_ring_funcs;
 	}
 
-	if (spi->irq && gpio_is_valid(irq_to_gpio(spi->irq)) > 0) {
-		iio_init_work_cont(&st->work_cont_data_rdy,
-				NULL,
-				adis16350_data_rdy_handler_bh_no_check,
-				0,
-				0,
-				st);
+	if (spi->irq) {
 		ret = iio_register_interrupt_line(spi->irq,
 				st->indio_dev,
 				0,
@@ -767,9 +631,6 @@ static int __devinit adis16350_probe(struct spi_device *spi)
 				"adis16350");
 		if (ret)
 			goto error_uninitialize_ring;
-
-		iio_add_event_to_list(iio_event_attr_sam_rdy.listel,
-				&st->indio_dev->interrupts[0]->ev_list);
 
 		ret = adis16350_probe_trigger(st->indio_dev);
 		if (ret)
@@ -783,10 +644,9 @@ static int __devinit adis16350_probe(struct spi_device *spi)
 	return 0;
 
 error_remove_trigger:
-	if (st->indio_dev->modes & INDIO_RING_TRIGGERED)
-		adis16350_remove_trigger(st->indio_dev);
+	adis16350_remove_trigger(st->indio_dev);
 error_unregister_line:
-	if (st->indio_dev->modes & INDIO_RING_TRIGGERED)
+	if (spi->irq)
 		iio_unregister_interrupt_line(st->indio_dev, 0);
 error_uninitialize_ring:
 	adis16350_uninitialize_ring(st->indio_dev->ring);
@@ -807,7 +667,6 @@ error_ret:
 	return ret;
 }
 
-/* fixme, confirm ordering in this function */
 static int adis16350_remove(struct spi_device *spi)
 {
 	int ret;
@@ -821,12 +680,12 @@ static int adis16350_remove(struct spi_device *spi)
 	flush_scheduled_work();
 
 	adis16350_remove_trigger(indio_dev);
-	if (spi->irq && gpio_is_valid(irq_to_gpio(spi->irq)) > 0)
+	if (spi->irq)
 		iio_unregister_interrupt_line(indio_dev, 0);
 
 	adis16350_uninitialize_ring(indio_dev->ring);
-	adis16350_unconfigure_ring(indio_dev);
 	iio_device_unregister(indio_dev);
+	adis16350_unconfigure_ring(indio_dev);
 	kfree(st->tx);
 	kfree(st->rx);
 	kfree(st);
