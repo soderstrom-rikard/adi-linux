@@ -28,10 +28,7 @@
 
 #define DRIVER_NAME		"adis16300"
 
-/* At the moment the spi framework doesn't allow global setting of cs_change.
- * It's in the likely to be added comment at the top of spi.h.
- * This means that use cannot be made of spi_write etc.
- */
+static int adis16300_check_status(struct device *dev);
 
 /**
  * adis16300_spi_write_reg_8() - write single byte to a register
@@ -39,7 +36,7 @@
  * @reg_address: the address of the register to be written
  * @val: the value to write
  **/
-int adis16300_spi_write_reg_8(struct device *dev,
+static int adis16300_spi_write_reg_8(struct device *dev,
 		u8 reg_address,
 		u8 val)
 {
@@ -78,11 +75,13 @@ static int adis16300_spi_write_reg_16(struct device *dev,
 			.bits_per_word = 8,
 			.len = 2,
 			.cs_change = 1,
+			.delay_usecs = 75,
 		}, {
 			.tx_buf = st->tx + 2,
 			.bits_per_word = 8,
 			.len = 2,
 			.cs_change = 1,
+			.delay_usecs = 75,
 		},
 	};
 
@@ -121,12 +120,14 @@ static int adis16300_spi_read_reg_16(struct device *dev,
 			.tx_buf = st->tx,
 			.bits_per_word = 8,
 			.len = 2,
-			.cs_change = 0,
+			.cs_change = 1,
+			.delay_usecs = 75,
 		}, {
 			.rx_buf = st->rx,
 			.bits_per_word = 8,
 			.len = 2,
-			.cs_change = 0,
+			.cs_change = 1,
+			.delay_usecs = 75,
 		},
 	};
 
@@ -200,55 +201,6 @@ int adis16300_spi_read_burst(struct device *dev, u8 *rx)
 	return ret;
 }
 
-/**
- * adis16300_spi_read_sequence() - read a sequence of 16-bit registers
- * @dev: device associated with child of actual device (iio_dev or iio_trig)
- * @tx: register addresses in bytes 0,2,4,6... (min size is 2*num bytes)
- * @rx: somewhere to pass back the value read (min size is 2*num bytes)
- **/
-int adis16300_spi_read_sequence(struct device *dev,
-		u8 *tx, u8 *rx, int num)
-{
-	struct spi_message msg;
-	struct spi_transfer *xfers;
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct adis16300_state *st = iio_dev_get_devdata(indio_dev);
-	int ret, i;
-
-	xfers = kzalloc(num + 1, GFP_KERNEL);
-	if (xfers == NULL) {
-		dev_err(&st->us->dev, "memory alloc failed");
-		ret = -ENOMEM;
-		goto error_ret;
-	}
-
-	/* tx: |add1|addr2|addr3|...|addrN |zero|
-	 * rx: |zero|res1 |res2 |...|resN-1|resN| */
-	spi_message_init(&msg);
-	for (i = 0; i < num + 1; i++) {
-		if (i > 0)
-			xfers[i].rx_buf = st->rx + 2*(i - 1);
-		if (i < num)
-			xfers[i].tx_buf = st->tx + 2*i;
-		xfers[i].bits_per_word = 8;
-		xfers[i].len = 2;
-		xfers[i].cs_change = 1;
-		spi_message_add_tail(&xfers[i], &msg);
-	}
-
-	mutex_lock(&st->buf_lock);
-
-	ret = spi_sync(st->us, &msg);
-	if (ret)
-		dev_err(&st->us->dev, "problem when reading sequence");
-
-	mutex_unlock(&st->buf_lock);
-	kfree(xfers);
-
-error_ret:
-	return ret;
-}
-
 static ssize_t adis16300_spi_read_signed(struct device *dev,
 		struct device_attribute *attr,
 		char *buf,
@@ -285,6 +237,24 @@ static ssize_t adis16300_read_12bit_unsigned(struct device *dev,
 		adis16300_check_status(dev);
 
 	return sprintf(buf, "%u\n", val & 0x0FFF);
+}
+
+static ssize_t adis16300_read_14bit_unsigned(struct device *dev,
+		struct device_attribute *attr,
+		char *buf)
+{
+	int ret;
+	u16 val = 0;
+	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+
+	ret = adis16300_spi_read_reg_16(dev, this_attr->address, &val);
+	if (ret)
+		return ret;
+
+	if (val & ADIS16300_ERROR_ACTIVE)
+		adis16300_check_status(dev);
+
+	return sprintf(buf, "%u\n", val & 0x3FFF);
 }
 
 static ssize_t adis16300_read_14bit_signed(struct device *dev,
@@ -403,6 +373,18 @@ static ssize_t adis16300_write_frequency(struct device *dev,
 	return ret ? ret : len;
 }
 
+static int adis16300_reset(struct device *dev)
+{
+	int ret;
+	ret = adis16300_spi_write_reg_8(dev,
+			ADIS16300_GLOB_CMD,
+			ADIS16300_GLOB_CMD_SW_RESET);
+	if (ret)
+		dev_err(dev, "problem resetting device");
+
+	return ret;
+}
+
 static ssize_t adis16300_write_reset(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t len)
@@ -417,8 +399,6 @@ static ssize_t adis16300_write_reset(struct device *dev,
 	}
 	return -1;
 }
-
-
 
 int adis16300_set_irq(struct device *dev, bool enable)
 {
@@ -443,20 +423,8 @@ error_ret:
 	return ret;
 }
 
-int adis16300_reset(struct device *dev)
-{
-	int ret;
-	ret = adis16300_spi_write_reg_8(dev,
-			ADIS16300_GLOB_CMD,
-			ADIS16300_GLOB_CMD_SW_RESET);
-	if (ret)
-		dev_err(dev, "problem resetting device");
-
-	return ret;
-}
-
 /* Power down the device */
-int adis16300_stop_device(struct device *dev)
+static int adis16300_stop_device(struct device *dev)
 {
 	int ret;
 	u16 val = ADIS16300_SLP_CNT_POWER_OFF;
@@ -468,7 +436,7 @@ int adis16300_stop_device(struct device *dev)
 	return ret;
 }
 
-int adis16300_self_test(struct device *dev)
+static int adis16300_self_test(struct device *dev)
 {
 	int ret;
 	ret = adis16300_spi_write_reg_16(dev,
@@ -485,7 +453,7 @@ err_ret:
 	return ret;
 }
 
-int adis16300_check_status(struct device *dev)
+static int adis16300_check_status(struct device *dev)
 {
 	u16 status;
 	int ret;
@@ -547,6 +515,11 @@ static int adis16300_initial_setup(struct adis16300_state *st)
 	}
 
 	/* Do self test */
+	ret = adis16300_self_test(dev);
+	if (ret) {
+		dev_err(dev, "self test failure");
+		goto err_ret;
+	}
 
 	/* Read status register to check the result */
 	ret = adis16300_check_status(dev);
@@ -590,13 +563,13 @@ static IIO_DEV_ATTR_ACCEL_Z_OFFSET(S_IWUSR | S_IRUGO,
 		adis16300_write_16bit,
 		ADIS16300_ZACCL_OFF);
 
-static IIO_DEV_ATTR_VOLT(supply, adis16300_read_14bit_signed,
+static IIO_DEV_ATTR_VOLT(supply, adis16300_read_14bit_unsigned,
 		ADIS16300_SUPPLY_OUT);
 static IIO_CONST_ATTR(volt_supply_scale, "0.00242");
 
 static IIO_DEV_ATTR_GYRO_X(adis16300_read_14bit_signed,
 		ADIS16300_XGYRO_OUT);
-static IIO_CONST_ATTR(gyro_scale, "0.05 deg/s");
+static IIO_CONST_ATTR(gyro_scale, "0.05");
 
 static IIO_DEV_ATTR_ACCEL_X(adis16300_read_14bit_signed,
 		ADIS16300_XACCL_OUT);
@@ -604,17 +577,17 @@ static IIO_DEV_ATTR_ACCEL_Y(adis16300_read_14bit_signed,
 		ADIS16300_YACCL_OUT);
 static IIO_DEV_ATTR_ACCEL_Z(adis16300_read_14bit_signed,
 		ADIS16300_ZACCL_OUT);
-static IIO_CONST_ATTR(accel_scale, "0.0006 g");
+static IIO_CONST_ATTR(accel_scale, "0.0006");
 
 static IIO_DEV_ATTR_INCLI_X(adis16300_read_13bit_signed,
 		ADIS16300_XINCLI_OUT);
 static IIO_DEV_ATTR_INCLI_Y(adis16300_read_13bit_signed,
 		ADIS16300_YINCLI_OUT);
-static IIO_CONST_ATTR(incli_scale, "0.044 d");
+static IIO_CONST_ATTR(incli_scale, "0.044");
 
-static IIO_DEV_ATTR_TEMP(adis16300_read_12bit_signed);
-static IIO_CONST_ATTR(temp_offset, "198.16 K");
-static IIO_CONST_ATTR(temp_scale, "0.14 K");
+static IIO_DEV_ATTR_TEMP(adis16300_read_12bit_unsigned);
+static IIO_CONST_ATTR(temp_offset, "198.16");
+static IIO_CONST_ATTR(temp_scale, "0.14");
 
 static IIO_DEV_ATTR_VOLT(aux, adis16300_read_12bit_unsigned,
 		ADIS16300_AUX_ADC);
@@ -723,15 +696,7 @@ static int __devinit adis16300_probe(struct spi_device *spi)
 		goto error_unreg_ring_funcs;
 	}
 
-	if (spi->irq && gpio_is_valid(irq_to_gpio(spi->irq)) > 0) {
-#if 0 /* fixme: here we should support */
-		iio_init_work_cont(&st->work_cont_thresh,
-				NULL,
-				adis16300_thresh_handler_bh_no_check,
-				0,
-				0,
-				st);
-#endif
+	if (spi->irq > 0) {
 		ret = iio_register_interrupt_line(spi->irq,
 				st->indio_dev,
 				0,
@@ -752,10 +717,9 @@ static int __devinit adis16300_probe(struct spi_device *spi)
 	return 0;
 
 error_remove_trigger:
-	if (st->indio_dev->modes & INDIO_RING_TRIGGERED)
-		adis16300_remove_trigger(st->indio_dev);
+	adis16300_remove_trigger(st->indio_dev);
 error_unregister_line:
-	if (st->indio_dev->modes & INDIO_RING_TRIGGERED)
+	if (spi->irq)
 		iio_unregister_interrupt_line(st->indio_dev, 0);
 error_uninitialize_ring:
 	adis16300_uninitialize_ring(st->indio_dev->ring);
@@ -776,7 +740,6 @@ error_ret:
 	return ret;
 }
 
-/* fixme, confirm ordering in this function */
 static int adis16300_remove(struct spi_device *spi)
 {
 	int ret;
@@ -790,12 +753,12 @@ static int adis16300_remove(struct spi_device *spi)
 	flush_scheduled_work();
 
 	adis16300_remove_trigger(indio_dev);
-	if (spi->irq && gpio_is_valid(irq_to_gpio(spi->irq)) > 0)
+	if (spi->irq)
 		iio_unregister_interrupt_line(indio_dev, 0);
 
 	adis16300_uninitialize_ring(indio_dev->ring);
-	adis16300_unconfigure_ring(indio_dev);
 	iio_device_unregister(indio_dev);
+	adis16300_unconfigure_ring(indio_dev);
 	kfree(st->tx);
 	kfree(st->rx);
 	kfree(st);
