@@ -7,6 +7,7 @@
  */
 
 #include <linux/input.h>	/* BUS_SPI */
+#include <linux/slab.h>
 #include <linux/spi/spi.h>
 
 #include "ad7879.h"
@@ -126,6 +127,11 @@ static int __devinit ad7879_spi_probe(struct spi_device *spi)
 	if (spi->max_speed_hz > MAX_SPI_FREQ_HZ) {
 		dev_err(&spi->dev, "SPI CLK %d Hz?\n", spi->max_speed_hz);
 		return -EINVAL;
+	}
+
+	if (spi->bits_per_word != 16) {
+		spi->bits_per_word = 16;
+		spi_setup(spi);
 	}
 
 	return ad7879_probe(&spi->dev, &bdata, AD7879_DEVID, BUS_SPI);
