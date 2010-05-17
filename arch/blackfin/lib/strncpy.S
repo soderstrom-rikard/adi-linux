@@ -5,6 +5,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/context.S>
 
 /* void *strncpy(char *dest, const char *src, size_t n);
  * R0 = address (dest)
@@ -68,7 +69,7 @@ ENTRY(_strncpy)
 	R0 = RETS;
 	I0 = R0;
 	R0 = P0;
-	CALL _memset;
+	pseudo_long_call _memset, p0;
 	R0 = I0;
 	RETS = R0;
 	R0 = I1;
