@@ -670,6 +670,11 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 		return -EINVAL;
 	}
 
+	if (spi->bits_per_word != 16) {
+		spi->bits_per_word = 16;
+		spi_setup(spi);
+	}
+
 	ts = kzalloc(sizeof(struct ad7877), GFP_KERNEL);
 	input_dev = input_allocate_device();
 	if (!ts || !input_dev) {
