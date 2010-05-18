@@ -234,7 +234,7 @@ static ssize_t adt75_show_value(struct device *dev,
 	if (ret)
 		return -EIO;
 
-	data = be16_to_cpu(data) >> ADT75_VALUE_OFFSET;
+	data = swab16(data) >> ADT75_VALUE_OFFSET;
 	if (data & ADT75_VALUE_SIGN) {
 		/* convert supplement to positive value */
 		data = (ADT75_VALUE_SIGN << 1) - data;
@@ -471,7 +471,7 @@ static inline ssize_t adt75_show_t_bound(struct device *dev,
 	if (ret)
 		return -EIO;
 
-	data = be16_to_cpu(data) >> ADT75_VALUE_OFFSET;
+	data = swab16(data) >> ADT75_VALUE_OFFSET;
 	if (data & ADT75_VALUE_SIGN) {
 		/* convert supplement to positive value */
 		data = (ADT75_VALUE_SIGN << 1) - data;
@@ -523,7 +523,7 @@ static inline ssize_t adt75_set_t_bound(struct device *dev,
 		/* convert positive value to supplyment */
 		data = (ADT75_VALUE_SIGN << 1) - data;
 	data <<= ADT75_VALUE_OFFSET;
-	data = cpu_to_be16(data);
+	data = swab16(data);
 
 	ret = adt75_i2c_write(chip, bound_reg, (u8)data);
 	if (ret)

@@ -186,7 +186,7 @@ static ssize_t ad7414_show_temperature(struct device *dev,
 	if (ret)
 		return -EIO;
 
-	data = be16_to_cpu(data) >> AD7414_TEMP_OFFSET;
+	data = swab16(data) >> AD7414_TEMP_OFFSET;
 	if (data & AD7414_TEMP_SIGN) {
 		data = (AD7414_TEMP_SIGN << 1) - data;
 		sign = '-';
@@ -239,7 +239,7 @@ static void ad7414_interrupt_bh(struct work_struct *work_s)
 	ret = ad7414_i2c_read(chip, AD7414_TEMPERATURE, (u8 *)&status);
 	if (ret)
 		return;
-	status = be16_to_cpu(status);
+	status = swab16(status);
 
 	/* clear ALART pin in chip configuration register */
 	ret = ad7414_i2c_read(chip, AD7414_CONFIG, &config);

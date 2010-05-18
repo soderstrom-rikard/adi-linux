@@ -99,7 +99,7 @@ static int adt7410_i2c_read_word(struct adt7410_chip_info *chip, u8 reg, u16 *da
 		return ret;
 	}
 
-	*data = be16_to_cpu((u16)ret);
+	*data = swab16((u16)ret);
 
 	return 0;
 }
@@ -109,7 +109,7 @@ static int adt7410_i2c_write_word(struct adt7410_chip_info *chip, u8 reg, u16 da
 	struct i2c_client *client = chip->client;
 	int ret = 0;
 
-	ret = i2c_smbus_write_word_data(client, reg, cpu_to_be16(data));
+	ret = i2c_smbus_write_word_data(client, reg, swab16(data));
 	if (ret < 0)
 		dev_err(&client->dev, "I2C write error\n");
 

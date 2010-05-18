@@ -300,7 +300,7 @@ static ssize_t ad7416_show_value(struct device *dev,
 		if (ret)
 			return -EIO;
 
-		data = be16_to_cpu(data);
+		data = swab16(data);
 		data >>= AD7416_VALUE_OFFSET;
 		if (data & AD7416_VALUE_SIGN) {
 			data = (AD7416_VALUE_SIGN << 1) - data;
@@ -314,7 +314,7 @@ static ssize_t ad7416_show_value(struct device *dev,
 		if (ret)
 			return -EIO;
 
-		data = be16_to_cpu(data);
+		data = swab16(data);
 		data >>= AD7416_VALUE_OFFSET;
 
 		return sprintf(buf, "%u\n", data);
@@ -495,7 +495,7 @@ static inline ssize_t ad7416_show_t_bound(struct device *dev,
 	if (ret)
 		return -EIO;
 
-	data = be16_to_cpu(data);
+	data = swab16(data);
 	data >>= (AD7416_VALUE_OFFSET + 1);
 
 	if (chip->channel_id == 0) {
@@ -542,7 +542,7 @@ static inline ssize_t ad7416_set_t_bound(struct device *dev,
 	}
 
 	data <<= (AD7416_VALUE_OFFSET + 1);
-	data = cpu_to_be16(data);
+	data = swab16(data);
 	ret = ad7416_i2c_write(chip, bound_reg, (u8)data);
 	if (ret)
 		return -EIO;

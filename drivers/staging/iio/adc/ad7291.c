@@ -94,7 +94,7 @@ static int ad7291_i2c_read(struct ad7291_chip_info *chip, u8 reg, u16 *data)
 		return ret;
 	}
 
-	*data = be16_to_cpu((u16)ret);
+	*data = swab16((u16)ret);
 
 	return 0;
 }
@@ -104,7 +104,7 @@ static int ad7291_i2c_write(struct ad7291_chip_info *chip, u8 reg, u16 data)
 	struct i2c_client *client = chip->client;
 	int ret = 0;
 
-	ret = i2c_smbus_write_word_data(client, reg, cpu_to_be16(data));
+	ret = i2c_smbus_write_word_data(client, reg, swab16(data));
 	if (ret < 0)
 		dev_err(&client->dev, "I2C write error\n");
 
@@ -151,7 +151,7 @@ static int ad7291_i2c_read_data(struct ad7291_chip_info *chip, u8 reg, u16 *data
 	ret >>= 2;
 
 	for (i = 0; i < ret; i++)
-		data[i] = be16_to_cpu(data[i]);
+		data[i] = swab16(data[i]);
 
 	return ret;
 }
