@@ -3,6 +3,10 @@
 #
 obj-$(CONFIG_KXSD9)	+= kxsd9.o
 
+adis16201-y             := adis16201_core.o
+adis16201-$(CONFIG_IIO_RING_BUFFER) += adis16201_ring.o adis16201_trigger.o
+obj-$(CONFIG_ADIS16201) += adis16201.o
+
 adis16209-y             := adis16209_core.o
 adis16209-$(CONFIG_IIO_RING_BUFFER) += adis16209_ring.o adis16209_trigger.o
 obj-$(CONFIG_ADIS16209) += adis16209.o
