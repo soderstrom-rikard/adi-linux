@@ -172,8 +172,8 @@ static irqreturn_t ipi_handler_int1(int irq, void *dev_instance)
 			spin_lock_irqsave(&msg_queue->lock, flags);
 			break;
 		default:
-			printk(KERN_CRIT "CPU%u: Unknown IPI message \
-			0x%lx\n", cpu, msg->type);
+			printk(KERN_CRIT "CPU%u: Unknown IPI message 0x%lx\n",
+			       cpu, msg->type);
 			break;
 		}
 		msg_queue->head++;
