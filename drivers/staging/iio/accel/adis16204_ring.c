@@ -26,7 +26,7 @@ static inline u16 combine_8_to_16(u8 lower, u8 upper)
 	return _lower | (_upper << 8);
 }
 
-static IIO_SCAN_EL_C(supply, ADIS16204_SCAN_SUPPLY, IIO_UNSIGNED(14),
+static IIO_SCAN_EL_C(supply, ADIS16204_SCAN_SUPPLY, IIO_UNSIGNED(12),
 		     ADIS16204_SUPPLY_OUT, NULL);
 static IIO_SCAN_EL_C(accel_x, ADIS16204_SCAN_ACC_X, IIO_SIGNED(14),
 		     ADIS16204_XACCL_OUT, NULL);

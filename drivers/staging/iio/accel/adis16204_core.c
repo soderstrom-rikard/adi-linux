@@ -168,24 +168,6 @@ static ssize_t adis16204_read_12bit_unsigned(struct device *dev,
 	return sprintf(buf, "%u\n", val & 0x0FFF);
 }
 
-static ssize_t adis16204_read_14bit_unsigned(struct device *dev,
-		struct device_attribute *attr,
-		char *buf)
-{
-	int ret;
-	u16 val = 0;
-	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
-
-	ret = adis16204_spi_read_reg_16(dev, this_attr->address, &val);
-	if (ret)
-		return ret;
-
-	if (val & ADIS16204_ERROR_ACTIVE)
-		adis16204_check_status(dev);
-
-	return sprintf(buf, "%u\n", val & 0x3FFF);
-}
-
 static ssize_t adis16204_read_temp(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
@@ -209,6 +191,31 @@ static ssize_t adis16204_read_temp(struct device *dev,
 
 error_ret:
 	mutex_unlock(&indio_dev->mlock);
+	return ret;
+}
+
+static ssize_t adis16204_read_12bit_signed(struct device *dev,
+		struct device_attribute *attr,
+		char *buf)
+{
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+	s16 val = 0;
+	ssize_t ret;
+
+	mutex_lock(&indio_dev->mlock);
+
+	ret = adis16204_spi_read_reg_16(dev, this_attr->address, (u16 *)&val);
+	if (!ret) {
+		if (val & ADIS16204_ERROR_ACTIVE)
+			adis16204_check_status(dev);
+
+		val = ((s16)(val << 4) >> 4);
+		ret = sprintf(buf, "%d\n", val);
+	}
+
+	mutex_unlock(&indio_dev->mlock);
+
 	return ret;
 }
 
@@ -387,26 +394,36 @@ err_ret:
 	return ret;
 }
 
-static IIO_DEV_ATTR_VOLT(supply, adis16204_read_14bit_unsigned,
+static IIO_DEV_ATTR_VOLT(supply, adis16204_read_12bit_unsigned,
 		ADIS16204_SUPPLY_OUT);
-static IIO_CONST_ATTR(volt_supply_scale, "0.30518");
+static IIO_CONST_ATTR(volt_supply_scale, "0.00122");
 static IIO_DEV_ATTR_VOLT(aux, adis16204_read_12bit_unsigned,
 		ADIS16204_AUX_ADC);
-static IIO_CONST_ATTR(volt_aux_scale, "0.6105");
+static IIO_CONST_ATTR(volt_aux_scale, "0.00061");
 
 static IIO_DEV_ATTR_ACCEL_X(adis16204_read_14bit_signed,
 		ADIS16204_XACCL_OUT);
 static IIO_DEV_ATTR_ACCEL_Y(adis16204_read_14bit_signed,
 		ADIS16204_YACCL_OUT);
+static IIO_DEV_ATTR_ACCEL_XY(adis16204_read_14bit_signed,
+		ADIS16204_XY_RSS_OUT);
+static IIO_DEV_ATTR_ACCEL_XPEAK(adis16204_read_14bit_signed,
+		ADIS16204_X_PEAK_OUT);
+static IIO_DEV_ATTR_ACCEL_YPEAK(adis16204_read_14bit_signed,
+		ADIS16204_Y_PEAK_OUT);
+static IIO_DEV_ATTR_ACCEL_XYPEAK(adis16204_read_14bit_signed,
+		ADIS16204_XY_PEAK_OUT);
 static IIO_DEV_ATTR_ACCEL_X_OFFSET(S_IWUSR | S_IRUGO,
-		adis16204_read_14bit_signed,
+		adis16204_read_12bit_signed,
 		adis16204_write_16bit,
 		ADIS16204_XACCL_NULL);
 static IIO_DEV_ATTR_ACCEL_Y_OFFSET(S_IWUSR | S_IRUGO,
-		adis16204_read_14bit_signed,
+		adis16204_read_12bit_signed,
 		adis16204_write_16bit,
 		ADIS16204_YACCL_NULL);
-static IIO_CONST_ATTR(accel_scale, "0.24414");
+static IIO_CONST_ATTR(accel_x_scale, "0.017125");
+static IIO_CONST_ATTR(accel_y_scale, "0.008407");
+static IIO_CONST_ATTR(accel_xy_scale, "0.017125");
 
 static IIO_DEV_ATTR_TEMP(adis16204_read_temp);
 static IIO_CONST_ATTR(temp_offset, "25");
@@ -436,9 +453,15 @@ static struct attribute *adis16204_attributes[] = {
 	&iio_const_attr_volt_aux_scale.dev_attr.attr,
 	&iio_dev_attr_accel_x.dev_attr.attr,
 	&iio_dev_attr_accel_y.dev_attr.attr,
+	&iio_dev_attr_accel_xy.dev_attr.attr,
+	&iio_dev_attr_accel_xpeak.dev_attr.attr,
+	&iio_dev_attr_accel_ypeak.dev_attr.attr,
+	&iio_dev_attr_accel_xypeak.dev_attr.attr,
 	&iio_dev_attr_accel_x_offset.dev_attr.attr,
 	&iio_dev_attr_accel_y_offset.dev_attr.attr,
-	&iio_const_attr_accel_scale.dev_attr.attr,
+	&iio_const_attr_accel_x_scale.dev_attr.attr,
+	&iio_const_attr_accel_y_scale.dev_attr.attr,
+	&iio_const_attr_accel_xy_scale.dev_attr.attr,
 	NULL
 };
 
