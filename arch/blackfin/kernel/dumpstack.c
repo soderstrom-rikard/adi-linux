@@ -18,11 +18,9 @@
  */
 static bool is_bfin_call(unsigned short *addr)
 {
-	unsigned short *ins_addr;
-	unsigned int opcode = 0;
-	ins_addr = (unsigned short *)addr;
+	unsigned int opcode;
 
-	if (!get_instruction(&opcode, ins_addr))
+	if (!get_instruction(&opcode, addr))
 		return false;
 
 	if ((opcode >= 0x0060 && opcode <= 0x0067) ||
