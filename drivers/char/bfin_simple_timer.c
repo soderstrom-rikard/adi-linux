@@ -151,7 +151,9 @@ static int timer_read_proc(char *buf, char **start, off_t offset, int cnt, int *
 	return ret;
 }
 
-static ssize_t timer_status_show(struct class *timer_class, char *buf)
+static ssize_t
+timer_status_show(struct class *timer_class, struct class_attribute *attr,
+                  char *buf)
 {
 	char *p;
 	unsigned short i;
