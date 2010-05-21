@@ -66,6 +66,13 @@ static int bf5xx_ad193x_hw_params(struct snd_pcm_substream *substream,
 	if (ret < 0)
 		return ret;
 
+#if 0
+	ret = snd_soc_dai_set_sysclk(codec_dai, 0, 24576000,
+			SND_SOC_CLOCK_IN);
+	if (ret < 0)
+		return ret;
+#endif
+
 	/* set codec DAI slots, 8 channels, all channels are enabled */
 	ret = snd_soc_dai_set_tdm_slot(codec_dai, 0xFF, 0xFF, 8, 32);
 	if (ret < 0)
@@ -77,13 +84,6 @@ static int bf5xx_ad193x_hw_params(struct snd_pcm_substream *substream,
 	if (ret < 0)
 		return ret;
 
-#if 0
-	/* if input frequency is not 12288000, we need set pll */
-	ret = snd_soc_dai_set_pll(codec_dai, 0, 0,
-			24576000, 12288000);
-	if (ret < 0)
-		return ret;
-#endif
 	return 0;
 }
 

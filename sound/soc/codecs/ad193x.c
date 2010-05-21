@@ -23,6 +23,7 @@
 
 /* codec private data */
 struct ad193x_priv {
+	unsigned int sysclk;
 	struct snd_soc_codec codec;
 	u8 reg_cache[AD193X_NUM_REGS];
 };
@@ -250,45 +251,32 @@ static int ad193x_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	return 0;
 }
 
-static int ad193x_set_dai_pll(struct snd_soc_dai *codec_dai,
-		int pll_id, int source, unsigned int freq_in, unsigned int freq_out)
+static int ad193x_set_dai_sysclk(struct snd_soc_dai *codec_dai,
+		int clk_id, unsigned int freq, int dir)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	int reg;
-
-	reg = snd_soc_read(codec, AD193X_PLL_CLK_CTRL0);
-
-	switch (freq_in) {
+	struct ad193x_priv *ad193x = codec->private_data;
+	switch (freq) {
 	case 12288000:
-		reg = (reg & AD193X_PLL_INPUT_MASK) | AD193X_PLL_INPUT_256;
-		break;
 	case 18432000:
-		reg = (reg & AD193X_PLL_INPUT_MASK) | AD193X_PLL_INPUT_384;
-		break;
 	case 24576000:
-		reg = (reg & AD193X_PLL_INPUT_MASK) | AD193X_PLL_INPUT_512;
-		break;
 	case 36864000:
-		reg = (reg & AD193X_PLL_INPUT_MASK) | AD193X_PLL_INPUT_768;
-		break;
-	default:
-		dev_err(codec->dev, "ad193x_set_dai_pll: unsupported pll input freq:%d", freq_in);
-		return -EINVAL;
+		ad193x->sysclk = freq;
+		return 0;
 	}
-
-	snd_soc_write(codec, AD193X_PLL_CLK_CTRL0, reg);
-	return 0;
+	return -EINVAL;
 }
 
 static int ad193x_hw_params(struct snd_pcm_substream *substream,
 		struct snd_pcm_hw_params *params,
 		struct snd_soc_dai *dai)
 {
-	int word_len = 0, reg = 0;
+	int word_len = 0, reg = 0, master_rate = 0;
 
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
+	struct ad193x_priv *ad193x = codec->private_data;
 
 	/* bit size */
 	switch (params_format(params)) {
@@ -303,6 +291,25 @@ static int ad193x_hw_params(struct snd_pcm_substream *substream,
 		word_len = 0;
 		break;
 	}
+
+	switch (ad193x->sysclk) {
+	case 12288000:
+		master_rate = AD193X_PLL_INPUT_256;
+		break;
+	case 18432000:
+		master_rate = AD193X_PLL_INPUT_384;
+		break;
+	case 24576000:
+		master_rate = AD193X_PLL_INPUT_512;
+		break;
+	case 36864000:
+		master_rate = AD193X_PLL_INPUT_768;
+		break;
+	}
+
+	reg = snd_soc_read(codec, AD193X_PLL_CLK_CTRL0);
+	reg = (reg & AD193X_PLL_INPUT_MASK) | master_rate;
+	snd_soc_write(codec, AD193X_PLL_CLK_CTRL0, reg);
 
 	reg = snd_soc_read(codec, AD193X_DAC_CTRL2);
 	reg = (reg & (~AD193X_DAC_WORD_LEN_MASK)) | word_len;
@@ -377,6 +384,7 @@ static int ad193x_bus_probe(struct device *dev, void *ctrl_data, int bus_type)
 	/* pll input: mclki/xi */
 	snd_soc_write(codec, AD193X_PLL_CLK_CTRL0, 0x99); /* mclk=24.576Mhz: 0x9D; mclk=12.288Mhz: 0x99 */
 	snd_soc_write(codec, AD193X_PLL_CLK_CTRL1, 0x04);
+	ad193x->sysclk = 12288000;
 
 	ret = snd_soc_register_codec(codec);
 	if (ret != 0) {
@@ -412,8 +420,8 @@ static struct snd_soc_dai_ops ad193x_dai_ops = {
 	.hw_params = ad193x_hw_params,
 	.digital_mute = ad193x_mute,
 	.set_tdm_slot = ad193x_set_tdm_slot,
+	.set_sysclk	= ad193x_set_dai_sysclk,
 	.set_fmt = ad193x_set_dai_fmt,
-	.set_pll = ad193x_set_dai_pll,
 };
 
 /* codec DAI instance */
