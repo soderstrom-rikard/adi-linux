@@ -50,7 +50,7 @@ module_param(isdnprot, int, 0);
    handler.
 */
 
-static int avma1cs_config(struct pcmcia_device *link);
+static int avma1cs_config(struct pcmcia_device *link) __devinit ;
 static void avma1cs_release(struct pcmcia_device *link);
 
 /*
@@ -59,7 +59,7 @@ static void avma1cs_release(struct pcmcia_device *link);
    needed to manage one actual PCMCIA card.
 */
 
-static void avma1cs_detach(struct pcmcia_device *p_dev);
+static void avma1cs_detach(struct pcmcia_device *p_dev) __devexit ;
 
 
 /*
@@ -140,7 +140,7 @@ static int __devinit avma1cs_probe(struct pcmcia_device *p_dev)
 
 ======================================================================*/
 
-static void avma1cs_detach(struct pcmcia_device *link)
+static void __devexit avma1cs_detach(struct pcmcia_device *link)
 {
 	dev_dbg(&link->dev, "avma1cs_detach(0x%p)\n", link);
 	avma1cs_release(link);
@@ -282,7 +282,7 @@ static struct pcmcia_driver avma1cs_driver = {
 		.name	= "avma1_cs",
 	},
 	.probe		= avma1cs_probe,
-	.remove		= avma1cs_detach,
+	.remove		= __devexit_p(avma1cs_detach),
 	.id_table	= avma1cs_ids,
 };
 

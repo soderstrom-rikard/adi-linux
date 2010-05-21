@@ -720,7 +720,6 @@ retry:
 		/* port status seems weird until after reset, so
 		 * force the reset and make khubd clean up later.
 		 */
-
 		if (irqstat & SL11H_INTMASK_RD)
 			sl811->port1 &= ~(1 << USB_PORT_FEAT_CONNECTION);
 		else

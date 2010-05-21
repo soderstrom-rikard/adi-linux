@@ -57,7 +57,7 @@ module_param(protocol, int, 0);
    handler.
 */
 
-static int teles_cs_config(struct pcmcia_device *link);
+static int teles_cs_config(struct pcmcia_device *link) __devinit ;
 static void teles_cs_release(struct pcmcia_device *link);
 
 /*
@@ -66,7 +66,7 @@ static void teles_cs_release(struct pcmcia_device *link);
    needed to manage one actual PCMCIA card.
 */
 
-static void teles_detach(struct pcmcia_device *p_dev);
+static void teles_detach(struct pcmcia_device *p_dev) __devexit ;
 
 /*
    A linked list of "instances" of the teles_cs device.  Each actual
@@ -156,7 +156,7 @@ static int __devinit teles_probe(struct pcmcia_device *link)
 
 ======================================================================*/
 
-static void teles_detach(struct pcmcia_device *link)
+static void __devexit teles_detach(struct pcmcia_device *link)
 {
 	local_info_t *info = link->priv;
 
@@ -319,7 +319,7 @@ static struct pcmcia_driver teles_cs_driver = {
 		.name	= "teles_cs",
 	},
 	.probe		= teles_probe,
-	.remove		= teles_detach,
+	.remove		= __devexit_p(teles_detach),
 	.id_table       = teles_ids,
 	.suspend	= teles_suspend,
 	.resume		= teles_resume,

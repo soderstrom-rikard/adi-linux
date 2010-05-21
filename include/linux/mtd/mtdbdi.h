@@ -10,7 +10,7 @@
  */
 
 /*
- * mtdbdi.c
+ * mtdcore.c
  */
 extern struct backing_dev_info mtd_bdi_unmappable;
 extern struct backing_dev_info mtd_bdi_ro_mappable;

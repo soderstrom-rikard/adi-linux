@@ -43,6 +43,7 @@
 #include <linux/moduleparam.h>
 #include <linux/stat.h>
 #include <linux/dma-mapping.h>
+#include <linux/slab.h>
 
 #include "musb_core.h"
 
@@ -1728,8 +1729,7 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 		return -EINVAL;
 
 	/* driver must be initialized to support peripheral mode */
-	if (!musb || !(musb->board_mode == MUSB_OTG
-				|| musb->board_mode != MUSB_OTG)) {
+	if (!musb) {
 		DBG(1, "%s, no dev??\n", __func__);
 		return -ENODEV;
 	}

@@ -2708,4 +2708,3 @@ module_exit (cleanup);
 MODULE_DESCRIPTION (DRIVER_DESC);
 MODULE_AUTHOR ("PLX Technology, Inc.");
 MODULE_LICENSE ("GPL");
-

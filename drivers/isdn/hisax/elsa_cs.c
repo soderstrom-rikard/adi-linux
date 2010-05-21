@@ -76,7 +76,7 @@ module_param(protocol, int, 0);
    handler.
 */
 
-static int elsa_cs_config(struct pcmcia_device *link);
+static int elsa_cs_config(struct pcmcia_device *link) __devinit ;
 static void elsa_cs_release(struct pcmcia_device *link);
 
 /*
@@ -85,7 +85,7 @@ static void elsa_cs_release(struct pcmcia_device *link);
    needed to manage one actual PCMCIA card.
 */
 
-static void elsa_cs_detach(struct pcmcia_device *p_dev);
+static void elsa_cs_detach(struct pcmcia_device *p_dev) __devexit;
 
 /*
    A driver needs to provide a dev_node_t structure for each device
@@ -166,7 +166,7 @@ static int __devinit elsa_cs_probe(struct pcmcia_device *link)
 
 ======================================================================*/
 
-static void elsa_cs_detach(struct pcmcia_device *link)
+static void __devexit elsa_cs_detach(struct pcmcia_device *link)
 {
 	local_info_t *info = link->priv;
 
@@ -327,7 +327,7 @@ static struct pcmcia_driver elsa_cs_driver = {
 		.name	= "elsa_cs",
 	},
 	.probe		= elsa_cs_probe,
-	.remove		= elsa_cs_detach,
+	.remove		= __devexit_p(elsa_cs_detach),
 	.id_table	= elsa_ids,
 	.suspend	= elsa_suspend,
 	.resume		= elsa_resume,

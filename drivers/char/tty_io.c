@@ -1875,6 +1875,7 @@ got_driver:
 		 */
 		if (filp->f_op == &hung_up_tty_fops)
 			filp->f_op = &tty_fops;
+		unlock_kernel();
 		goto retry_open;
 	}
 	unlock_kernel();
@@ -2030,7 +2031,7 @@ static int tiocgwinsz(struct tty_struct *tty, struct winsize __user *arg)
  *	@rows: rows (character)
  *	@cols: cols (character)
  *
- *	Update the termios variables and send the neccessary signals to
+ *	Update the termios variables and send the necessary signals to
  *	peform a terminal resize correctly
  */
 

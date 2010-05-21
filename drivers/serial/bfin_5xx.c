@@ -16,6 +16,7 @@
 
 #include <linux/module.h>
 #include <linux/ioport.h>
+#include <linux/gfp.h>
 #include <linux/io.h>
 #include <linux/init.h>
 #include <linux/console.h>
@@ -27,6 +28,7 @@
 #include <linux/gpio.h>
 #include <linux/irq.h>
 #include <linux/kgdb.h>
+#include <linux/slab.h>
 #include <linux/dma-mapping.h>
 
 #include <asm/portmux.h>

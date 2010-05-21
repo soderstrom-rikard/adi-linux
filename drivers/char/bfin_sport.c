@@ -1,7 +1,7 @@
 /*
  * simple char interface to Blackfin SPORT peripheral
  *
- * Copyright 2004-2009 Analog Devices Inc.
+ * Copyright 2004-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -688,7 +688,9 @@ static int sport_ioctl(struct inode *inode, struct file *filp,
 	return 0;
 }
 
-static ssize_t sport_status_show(struct class *sport_class, char *buf)
+static ssize_t
+sport_status_show(struct class *sport_class, struct class_attribute *attr,
+                  char *buf)
 {
 	char *p;
 	unsigned short i;

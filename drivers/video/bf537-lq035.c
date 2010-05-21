@@ -2,7 +2,7 @@
  * Analog Devices Blackfin(BF537 STAMP) + SHARP TFT LCD.
  * http://docs.blackfin.uclinux.org/doku.php?id=hw:cards:tft-lcd
  *
- * Copyright 2006-2009 Analog Devices Inc.
+ * Copyright 2006-2010 Analog Devices Inc.
  * Licensed under the GPL-2.
  */
 
@@ -28,6 +28,7 @@
 #include <linux/i2c.h>
 #include <linux/spinlock.h>
 #include <linux/dma-mapping.h>
+#include <linux/slab.h>
 #include <linux/platform_device.h>
 
 #include <asm/blackfin.h>
@@ -689,6 +690,8 @@ static struct lcd_device *lcd_dev;
 
 static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 {
+	struct backlight_properties props;
+
 	if (request_dma(CH_PPI, DRIVER_NAME)) {
 		pr_err("couldn't request PPI DMA\n");
 		return -EFAULT;
@@ -795,8 +798,8 @@ static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 
 	i2c_add_driver(&ad5280_driver);
 
-	bl_dev = backlight_device_register("bf537-bl", NULL, NULL, &bfin_lq035fb_bl_ops);
-	bl_dev->props.max_brightness = MAX_BRIGHENESS;
+	props.max_brightness = MAX_BRIGHENESS;
+	bl_dev = backlight_device_register("bf537-bl", NULL, NULL, &bfin_lq035fb_bl_ops, &props);
 
 	lcd_dev = lcd_device_register(DRIVER_NAME, &pdev->dev, NULL, &bfin_lcd_ops);
 	lcd_dev->props.max_contrast = 255,
