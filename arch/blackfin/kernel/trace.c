@@ -1,7 +1,7 @@
 /* provide some functions which dump the trace buffer, in a nice way for people
  * to read it, and understand what is going on
  *
- * Copyright 2004-2009 Analog Devices Inc.
+ * Copyright 2004-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later
  */
@@ -586,7 +586,6 @@ static void decode_LDSTidxI_0(unsigned int opcode)
 
 static void decode_opcode(unsigned int opcode)
 {
-
 #ifdef CONFIG_BUG
 	if (opcode == BFIN_BUG_OPCODE)
 		pr_cont("BUG");
@@ -614,7 +613,6 @@ static void decode_opcode(unsigned int opcode)
 		pr_cont("0x%08x", opcode);
 	else
 		pr_cont("0x%04x", opcode);
-
 }
 
 #define BIT_MULTI_INS 0x08000000
@@ -981,4 +979,3 @@ unlock:
 
 	pr_notice("\n");
 }
-

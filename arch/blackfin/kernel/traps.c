@@ -1,5 +1,7 @@
 /*
- * Copyright 2004-2009 Analog Devices Inc.
+ * Main exception handling logic.
+ *
+ * Copyright 2004-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later
  */

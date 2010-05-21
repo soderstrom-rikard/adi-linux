@@ -1,4 +1,4 @@
-/* The pseduo debug instructions
+/* The fake debug assert instructions
  *
  * Copyright 2010 Analog Devices Inc.
  *

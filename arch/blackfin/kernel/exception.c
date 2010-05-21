@@ -43,4 +43,3 @@ int bfin_free_exception(unsigned int exception, void (*handler)(void))
 	return 0;
 }
 EXPORT_SYMBOL(bfin_free_exception);
-
