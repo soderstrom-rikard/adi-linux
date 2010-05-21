@@ -12,14 +12,6 @@
 #include <linux/module.h>
 #include <asm/trace.h>
 
-#ifdef CONFIG_DEBUG_VERBOSE
-#define verbose_printk(fmt, arg...) \
-	printk(fmt, ##arg)
-#else
-#define verbose_printk(fmt, arg...) \
-	({ if (0) printk(fmt, ##arg); 0; })
-#endif
-
 /*
  * Checks to see if the address pointed to is either a
  * 16-bit CALL instruction, or a 32-bit CALL instruction
