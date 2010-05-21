@@ -70,6 +70,7 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/delay.h>
+#include <linux/slab.h>
 
 #define DRIVER_VERSION			"0.2"
 
