@@ -11,6 +11,7 @@
 #include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
+#include <linux/slab.h>
 #include <linux/workqueue.h>
 
 #define DRV_NAME "pcf8574_keypad"
@@ -36,64 +37,47 @@ static const unsigned char pcf8574_kp_btncode[] = {
 };
 
 struct kp_data {
-	unsigned char btncode[17];
+	unsigned short btncode[ARRAY_SIZE(pcf8574_kp_btncode)];
 	struct input_dev *idev;
 	struct i2c_client *client;
 	char name[64];
 	char phys[32];
 	unsigned char laststate;
-	unsigned char statechanged;
-	unsigned long events_sent;
-	struct work_struct pcf8574_kp_work;
 };
 
 static short read_state(struct kp_data *lp)
 {
 	unsigned char x, y, a, b;
 
-	if (lp->client) {
-		i2c_smbus_write_byte(lp->client, 240);
-		x = 0xF & (~(i2c_smbus_read_byte(lp->client) >> 4));
+	i2c_smbus_write_byte(lp->client, 240);
+	x = 0xF & (~(i2c_smbus_read_byte(lp->client) >> 4));
 
-		i2c_smbus_write_byte(lp->client, 15);
-		y = 0xF & (~i2c_smbus_read_byte(lp->client));
+	i2c_smbus_write_byte(lp->client, 15);
+	y = 0xF & (~i2c_smbus_read_byte(lp->client));
 
-		for (a = 0; x > 0; a++)
-			x = x >> 1;
-		for (b = 0; y > 0; b++)
-			y = y >> 1;
+	for (a = 0; x > 0; a++)
+		x = x >> 1;
+	for (b = 0; y > 0; b++)
+		y = y >> 1;
 
-		return ((a - 1) * 4) + b;
-	}
-
-	return -1;
-}
-
-static void check_and_notify(struct work_struct *work)
-{
-	struct kp_data *lp =
-	    container_of(work, struct kp_data, pcf8574_kp_work);
-	unsigned char nextstate = read_state(lp);
-
-	lp->statechanged = lp->laststate ^ nextstate;
-
-	if (lp->statechanged)
-		input_report_key(lp->idev,
-				 nextstate > 17 ? lp->btncode[lp->laststate] :
-				 lp->btncode[nextstate],
-				 nextstate > 17 ? 0 : 1);
-	lp->laststate = nextstate;
-
-	input_sync(lp->idev);
-	enable_irq(lp->client->irq);
+	return ((a - 1) * 4) + b;
 }
 
 static irqreturn_t pcf8574_kp_irq_handler(int irq, void *dev_id)
 {
 	struct kp_data *lp = dev_id;
+	unsigned char nextstate = read_state(lp);
 
-	disable_irq_nosync(lp->client->irq);
-	schedule_work(&lp->pcf8574_kp_work);
+	if (lp->laststate != nextstate) {
+		int key_down = nextstate <= ARRAY_SIZE(lp->btncode);
+		unsigned short keycode = key_down ?
+			lp->btncode[nextstate] : lp->btncode[lp->laststate];
+
+		input_report_key(lp->idev, keycode, key_down);
+		input_sync(lp->idev);
+
+		lp->laststate = nextstate;
+	}
 
 	return IRQ_HANDLED;
 }
@@ -112,7 +96,6 @@ static int __devinit pcf8574_kp_probe(struct i2c_client *client, const struct i2
 	lp = kzalloc(sizeof(*lp), GFP_KERNEL);
 	if (!lp)
 		return -ENOMEM;
-	lp->client = client;
 
 	idev = input_allocate_device();
 	if (!idev) {
@@ -122,19 +105,17 @@ static int __devinit pcf8574_kp_probe(struct i2c_client *client, const struct i2
 	}
 
 	lp->idev = idev;
-	memcpy(lp->btncode, pcf8574_kp_btncode, sizeof(pcf8574_kp_btncode));
+	lp->client = client;
 
-	idev->evbit[0] = 0;
-
-	idev->evbit[0] |= BIT_MASK(EV_KEY);
+	idev->evbit[0] = BIT_MASK(EV_KEY);
 	idev->keycode = lp->btncode;
-	idev->keycodesize = sizeof(pcf8574_kp_btncode);
-	idev->keycodemax = ARRAY_SIZE(pcf8574_kp_btncode);
+	idev->keycodesize = sizeof(lp->btncode[0]);
+	idev->keycodemax = ARRAY_SIZE(lp->btncode);
 
-	for (i = 0; i < ARRAY_SIZE(pcf8574_kp_btncode); ++i)
+	for (i = 0; i < ARRAY_SIZE(pcf8574_kp_btncode); i++) {
+		lp->btncode[i] = pcf8574_kp_btncode[i];
 		__set_bit(lp->btncode[i] & KEY_MAX, idev->keybit);
-
-	__clear_bit(KEY_RESERVED, idev->keybit);
+	}
 
 	sprintf(lp->name, DRV_NAME);
 	sprintf(lp->phys, "kp_data/input0");
@@ -154,22 +135,17 @@ static int __devinit pcf8574_kp_probe(struct i2c_client *client, const struct i2
 		goto fail_register;
 	}
 
-	lp->statechanged = 0x0;
-
 	lp->laststate = read_state(lp);
 
-	/* Set up our workqueue. */
-	INIT_WORK(&lp->pcf8574_kp_work, check_and_notify);
-
-	i2c_set_clientdata(client, lp);
-
-	ret = request_irq(client->irq, pcf8574_kp_irq_handler,
-		IRQF_TRIGGER_LOW, DRV_NAME, lp);
+	ret = request_threaded_irq(client->irq, NULL, pcf8574_kp_irq_handler,
+				   IRQF_TRIGGER_LOW | IRQF_ONESHOT,
+				   DRV_NAME, lp);
 	if (ret) {
 		dev_err(&client->dev, "IRQ %d is not free\n", client->irq);
 		goto fail_irq;
 	}
 
+	i2c_set_clientdata(client, lp);
 	return 0;
 
  fail_irq:
@@ -187,10 +163,8 @@ static int __devexit pcf8574_kp_remove(struct i2c_client *client)
 {
 	struct kp_data *lp = i2c_get_clientdata(client);
 
-	if (client->irq > 0)
-		free_irq(client->irq, lp);
+	free_irq(client->irq, lp);
 
-	input_set_drvdata(lp->idev, NULL);
 	input_unregister_device(lp->idev);
 	kfree(lp);
 
@@ -203,12 +177,14 @@ static int __devexit pcf8574_kp_remove(struct i2c_client *client)
 static int pcf8574_kp_resume(struct i2c_client *client)
 {
 	enable_irq(client->irq);
+
 	return 0;
 }
 
 static int pcf8574_kp_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	disable_irq(client->irq);
+
 	return 0;
 }
 #else
@@ -225,7 +201,7 @@ MODULE_DEVICE_TABLE(i2c, pcf8574_kp_id);
 static struct i2c_driver pcf8574_kp_driver = {
 	.driver = {
 		.name  = DRV_NAME,
-		.owner = THIS_MODULE
+		.owner = THIS_MODULE,
 	},
 	.probe    = pcf8574_kp_probe,
 	.remove   = __devexit_p(pcf8574_kp_remove),
