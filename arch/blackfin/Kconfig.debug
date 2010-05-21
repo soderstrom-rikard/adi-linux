@@ -264,12 +264,12 @@ config BFIN_ISRAM_SELF_TEST
 	help
 	  Run some self tests of the isram driver code at boot.
 
-config BFIN_PSEUDO_DBGA
-	bool "Support dbg assert instruction"
+config BFIN_PSEUDODBG_INSNS
+	bool "Support pseudo debug instructions"
 	default n
 	help
 	  This option allows the kernel to emulate some pseudo instructions which
-	  allow simulator test cases to be run on the hardware.
+	  allow simulator test cases to be run under Linux with no changes.
 
 	  Most people should say N here.
 

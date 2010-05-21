@@ -67,7 +67,7 @@ asmlinkage notrace void trap_c(struct pt_regs *fp)
 #ifdef CONFIG_DEBUG_BFIN_HWTRACE_ON
 	int j;
 #endif
-#ifdef CONFIG_BFIN_PSEUDO_DBGA
+#ifdef CONFIG_BFIN_PSEUDODBG_INSNS
 	int opcode;
 #endif
 	unsigned int cpu = raw_smp_processor_id();
@@ -202,7 +202,7 @@ asmlinkage notrace void trap_c(struct pt_regs *fp)
 			}
 		}
 #endif
-#ifdef CONFIG_BFIN_PSEUDO_DBGA
+#ifdef CONFIG_BFIN_PSEUDODBG_INSNS
 		/*
 		 * Support for the fake instructions, if the instruction fails,
 		 * then just execute a illegal opcode failure (like normal).
