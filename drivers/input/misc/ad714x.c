@@ -10,6 +10,7 @@
 #include <linux/init.h>
 #include <linux/input.h>
 #include <linux/interrupt.h>
+#include <linux/slab.h>
 #include <linux/input/ad714x.h>
 #include "ad714x.h"
 
