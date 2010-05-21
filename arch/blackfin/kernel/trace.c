@@ -80,11 +80,11 @@ void decode_address(char *buf, unsigned long address)
 		strcat(buf, "/* on-chip scratchpad */");
 		return;
 
-	} else if (address > physical_mem_end && address < ASYNC_BANK0_BASE) {
+	} else if (address >= physical_mem_end && address < ASYNC_BANK0_BASE) {
 		strcat(buf, "/* unconnected memory */");
 		return;
 
-	} else if (address > ASYNC_BANK3_BASE + ASYNC_BANK3_SIZE && address < BOOT_ROM_START) {
+	} else if (address >= ASYNC_BANK3_BASE + ASYNC_BANK3_SIZE && address < BOOT_ROM_START) {
 		strcat(buf, "/* reserved memory */");
 		return;
 
@@ -235,7 +235,7 @@ bool get_instruction(unsigned int *val, unsigned short *address)
 		return false;
 
 	/* Data banks will never have instructions */
-	if (addr > BOOT_ROM_START + BOOT_ROM_LENGTH && addr < L1_CODE_START)
+	if (addr >= BOOT_ROM_START + BOOT_ROM_LENGTH && addr < L1_CODE_START)
 		return false;
 
 	if (!get_mem16(&opcode0, address))
@@ -245,9 +245,9 @@ bool get_instruction(unsigned int *val, unsigned short *address)
 	if ((opcode0 & 0xc000) == 0xc000) {
 		if (!get_mem16(&opcode1, address + 1))
 			return false;
-		*val = (unsigned int)((opcode0 << 16) + opcode1);
+		*val = (opcode0 << 16) + opcode1;
 	} else
-		*val = (unsigned int)opcode0;
+		*val = opcode0;
 
 	return true;
 }
