@@ -751,6 +751,7 @@ static const struct attribute_group adp8870_bl_attr_group = {
 static int __devinit adp8870_probe(struct i2c_client *client,
 					const struct i2c_device_id *id)
 {
+	struct backlight_properties props;
 	struct backlight_device *bl;
 	struct adp8870_bl *data;
 	struct adp8870_backlight_platform_data *pdata =
@@ -791,16 +792,15 @@ static int __devinit adp8870_probe(struct i2c_client *client,
 
 	mutex_init(&data->lock);
 
+	memset(&props, 0, sizeof(props));
+	props.max_brightness = props.brightness = ADP8870_MAX_BRIGHTNESS;
 	bl = backlight_device_register(dev_driver_string(&client->dev),
-			&client->dev, data, &adp8870_bl_ops);
+			&client->dev, data, &adp8870_bl_ops, &props);
 	if (IS_ERR(bl)) {
 		dev_err(&client->dev, "failed to register backlight\n");
 		ret = PTR_ERR(bl);
 		goto out2;
 	}
-
-	bl->props.max_brightness =
-		bl->props.brightness = ADP8870_MAX_BRIGHTNESS;
 
 	data->bl = bl;
 
