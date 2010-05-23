@@ -24,7 +24,7 @@
 	IIO_DEVICE_ATTR(accel_z_gain, _mode, _show, _store, _addr)
 
 #define IIO_DEV_ATTR_ACCEL(_show, _addr)			\
-	IIO_DEVICE_ATTR(accel, S_IRUGO, _show, NULL, _addr)
+	IIO_DEVICE_ATTR(accel_raw, S_IRUGO, _show, NULL, _addr)
 
 #define IIO_DEV_ATTR_ACCEL_X(_show, _addr)			\
 	IIO_DEVICE_ATTR(accel_x_raw, S_IRUGO, _show, NULL, _addr)

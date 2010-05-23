@@ -21,7 +21,6 @@
 #include "../iio.h"
 #include "../sysfs.h"
 #include "accel.h"
-#include "../imu/volt.h"
 #include "../adc/adc.h"
 
 #include "adis16220.h"
@@ -36,7 +35,7 @@ static int adis16220_check_status(struct device *dev);
  * @reg_address: the address of the register to be written
  * @val: the value to write
  **/
-int adis16220_spi_write_reg_8(struct device *dev,
+static int adis16220_spi_write_reg_8(struct device *dev,
 		u8 reg_address,
 		u8 val)
 {
@@ -142,8 +141,9 @@ static int adis16220_spi_read_reg_16(struct device *dev,
 	spi_message_add_tail(&xfers[1], &msg);
 	ret = spi_sync(st->us, &msg);
 	if (ret) {
-		dev_err(&st->us->dev, "problem when reading 16 bit register 0x%02X",
-				lower_reg_address);
+		dev_err(&st->us->dev,
+			"problem when reading 16 bit register 0x%02X",
+			lower_reg_address);
 		goto error_ret;
 	}
 	*val = (st->rx[0] << 8) | st->rx[1];
@@ -352,9 +352,28 @@ err_ret:
 	return ret;
 }
 
-static ssize_t adis16220_capture_buffer_read(struct adis16220_state *st, char *buf,
-			loff_t off, size_t count, int addr)
+static ssize_t adis16220_capture_buffer_read(struct adis16220_state *st,
+					char *buf,
+					loff_t off,
+					size_t count,
+					int addr)
 {
+	struct spi_message msg;
+	struct spi_transfer xfers[] = {
+		{
+			.tx_buf = st->tx,
+			.bits_per_word = 8,
+			.len = 2,
+			.cs_change = 1,
+			.delay_usecs = 25,
+		}, {
+			.tx_buf = st->tx,
+			.rx_buf = st->rx,
+			.bits_per_word = 8,
+			.cs_change = 1,
+			.delay_usecs = 25,
+		},
+	};
 	int ret;
 	int i;
 
@@ -368,69 +387,99 @@ static ssize_t adis16220_capture_buffer_read(struct adis16220_state *st, char *b
 		count = ADIS16220_CAPTURE_SIZE - off;
 
 	/* write the begin position of capture buffer */
-	ret = adis16220_spi_write_reg_16(&st->indio_dev->dev, ADIS16220_CAPT_PNTR, off > 1);
+	ret = adis16220_spi_write_reg_16(&st->indio_dev->dev,
+					ADIS16220_CAPT_PNTR,
+					off > 1);
 	if (ret)
 		return -EIO;
 
 	/* read count/2 values from capture buffer */
+	mutex_lock(&st->buf_lock);
+
 	for (i = 0; i < count; i += 2) {
-		ret = adis16220_spi_read_reg_16(&st->indio_dev->dev, addr, (u16 *)(buf + i));
-		if (ret)
-			return -EIO;
+		st->tx[i] = ADIS16220_READ_REG(addr);
+		st->tx[i + 1] = 0;
+	}
+	xfers[1].len = count;
+
+	spi_message_init(&msg);
+	spi_message_add_tail(&xfers[0], &msg);
+	spi_message_add_tail(&xfers[1], &msg);
+	ret = spi_sync(st->us, &msg);
+	if (ret) {
+
+		mutex_unlock(&st->buf_lock);
+		return -EIO;
 	}
 
+	memcpy(buf, st->rx, count);
+
+	mutex_unlock(&st->buf_lock);
 	return count;
 }
 
-static ssize_t adis16220_accel_bin_read(struct kobject *kobj, struct bin_attribute *attr,
-		char *buf, loff_t off, size_t count)
+static ssize_t adis16220_accel_bin_read(struct kobject *kobj,
+					struct bin_attribute *attr,
+					char *buf,
+					loff_t off,
+					size_t count)
 {
 	struct device *dev = container_of(kobj, struct device, kobj);
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	struct adis16220_state *st = iio_dev_get_devdata(indio_dev);
 
-	return adis16220_capture_buffer_read(st, buf, off, count, ADIS16220_CAPT_BUFA);
+	return adis16220_capture_buffer_read(st, buf,
+					off, count,
+					ADIS16220_CAPT_BUFA);
 }
 
-static ssize_t adis16220_adc1_bin_read(struct kobject *kobj, struct bin_attribute *attr,
-		char *buf, loff_t off, size_t count)
+static ssize_t adis16220_adc1_bin_read(struct kobject *kobj,
+				struct bin_attribute *attr,
+				char *buf, loff_t off,
+				size_t count)
 {
 	struct device *dev = container_of(kobj, struct device, kobj);
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	struct adis16220_state *st = iio_dev_get_devdata(indio_dev);
 
-	return adis16220_capture_buffer_read(st, buf, off, count, ADIS16220_CAPT_BUF1);
+	return adis16220_capture_buffer_read(st, buf,
+					off, count,
+					ADIS16220_CAPT_BUF1);
 }
 
-static ssize_t adis16220_adc2_bin_read(struct kobject *kobj, struct bin_attribute *attr,
-		char *buf, loff_t off, size_t count)
+static ssize_t adis16220_adc2_bin_read(struct kobject *kobj,
+				struct bin_attribute *attr,
+				char *buf, loff_t off,
+				size_t count)
 {
 	struct device *dev = container_of(kobj, struct device, kobj);
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	struct adis16220_state *st = iio_dev_get_devdata(indio_dev);
 
-	return adis16220_capture_buffer_read(st, buf, off, count, ADIS16220_CAPT_BUF2);
+	return adis16220_capture_buffer_read(st, buf,
+					off, count,
+					ADIS16220_CAPT_BUF2);
 }
 
-static IIO_DEV_ATTR_VOLT(supply, adis16220_read_12bit_unsigned,
+static IIO_DEV_ATTR_IN_NAMED_RAW(supply, adis16220_read_12bit_unsigned,
 		ADIS16220_CAPT_SUPPLY);
-static IIO_CONST_ATTR(volt_supply_scale, "0.0012207");
-static IIO_DEV_ATTR_ACCEL(adis16220_read_16bit,
-		ADIS16220_CAPT_BUFA);
-static IIO_DEV_ATTR_ACCEL_PEAK(adis16220_read_16bit,
-		ADIS16220_CAPT_PEAKA);
+static IIO_CONST_ATTR(in_supply_scale, "0.0012207");
+static IIO_DEV_ATTR_ACCEL(adis16220_read_16bit, ADIS16220_CAPT_BUFA);
+static IIO_DEVICE_ATTR(accel_peak_raw, S_IRUGO, adis16220_read_16bit,
+		NULL, ADIS16220_CAPT_PEAKA);
 static IIO_DEV_ATTR_ACCEL_OFFSET(S_IWUSR | S_IRUGO,
 		adis16220_read_16bit,
 		adis16220_write_16bit,
 		ADIS16220_ACCL_NULL);
-static IIO_DEV_ATTR_TEMP(adis16220_read_12bit_unsigned);
+static IIO_DEV_ATTR_TEMP_RAW(adis16220_read_12bit_unsigned);
 static IIO_CONST_ATTR(temp_offset, "25");
 static IIO_CONST_ATTR(temp_scale, "-0.47");
 
-static IIO_DEV_ATTR_ADC(1, adis16220_read_16bit, ADIS16220_CAPT_BUF1);
-static IIO_DEV_ATTR_ADC(2, adis16220_read_16bit, ADIS16220_CAPT_BUF2);
+static IIO_DEV_ATTR_IN_RAW(0, adis16220_read_16bit, ADIS16220_CAPT_BUF1);
+static IIO_DEV_ATTR_IN_RAW(1, adis16220_read_16bit, ADIS16220_CAPT_BUF2);
 
-static IIO_DEV_ATTR_RESET(adis16220_write_reset);
+static IIO_DEVICE_ATTR(reset, S_IWUSR, NULL,
+		adis16220_write_reset, 0);
 
 #define IIO_DEV_ATTR_CAPTURE(_store)			\
 	IIO_DEVICE_ATTR(capture, S_IWUGO, NULL, _store, 0)
@@ -450,14 +499,14 @@ static IIO_CONST_ATTR_AVAIL_SAMP_FREQ("100200");
 static IIO_CONST_ATTR(name, "adis16220");
 
 static struct attribute *adis16220_attributes[] = {
-	&iio_dev_attr_volt_supply.dev_attr.attr,
-	&iio_const_attr_volt_supply_scale.dev_attr.attr,
-	&iio_dev_attr_accel.dev_attr.attr,
+	&iio_dev_attr_in_supply_raw.dev_attr.attr,
+	&iio_const_attr_in_supply_scale.dev_attr.attr,
+	&iio_dev_attr_accel_raw.dev_attr.attr,
 	&iio_dev_attr_accel_offset.dev_attr.attr,
-	&iio_dev_attr_accel_peak.dev_attr.attr,
-	&iio_dev_attr_temp.dev_attr.attr,
-	&iio_dev_attr_adc_1.dev_attr.attr,
-	&iio_dev_attr_adc_2.dev_attr.attr,
+	&iio_dev_attr_accel_peak_raw.dev_attr.attr,
+	&iio_dev_attr_temp_raw.dev_attr.attr,
+	&iio_dev_attr_in0_raw.dev_attr.attr,
+	&iio_dev_attr_in1_raw.dev_attr.attr,
 	&iio_const_attr_temp_offset.dev_attr.attr,
 	&iio_const_attr_temp_scale.dev_attr.attr,
 	&iio_const_attr_available_sampling_frequency.dev_attr.attr,
@@ -611,5 +660,5 @@ static __exit void adis16220_exit(void)
 module_exit(adis16220_exit);
 
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
-MODULE_DESCRIPTION("Analog Devices ADIS16220 Programmable Digital Vibration Sensor driver");
+MODULE_DESCRIPTION("Analog Devices ADIS16220 Digital Vibration Sensor");
 MODULE_LICENSE("GPL v2");
