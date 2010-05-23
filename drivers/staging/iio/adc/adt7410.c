@@ -889,6 +889,7 @@ static int __devexit adt7410_remove(struct i2c_client *client)
 
 static const struct i2c_device_id adt7410_id[] = {
 	{ "adt7410", 0 },
+	{}
 };
 
 MODULE_DEVICE_TABLE(i2c, adt7410_id);

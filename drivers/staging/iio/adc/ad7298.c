@@ -466,6 +466,7 @@ static int __devexit ad7298_remove(struct spi_device *spi_dev)
 
 static const struct spi_device_id ad7298_id[] = {
 	{ "ad7298", 0 },
+	{}
 };
 
 MODULE_DEVICE_TABLE(spi, ad7298_id);
