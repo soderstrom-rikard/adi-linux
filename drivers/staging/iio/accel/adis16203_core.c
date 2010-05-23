@@ -21,6 +21,7 @@
 #include "../iio.h"
 #include "../sysfs.h"
 #include "accel.h"
+#include "inclinometer.h"
 #include "../imu/volt.h"
 #include "../gyro/gyro.h"
 #include "../adc/adc.h"
