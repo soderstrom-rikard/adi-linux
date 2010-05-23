@@ -29,7 +29,8 @@
 #define ADIS16260_GLOB_CMD   0x3E /* Control, global commands */
 #define ADIS16260_LOT_ID1    0x52 /* Lot Identification Code 1 */
 #define ADIS16260_LOT_ID2    0x54 /* Lot Identification Code 2 */
-#define ADIS16260_PROD_ID    0x56 /* Product identifier; convert to decimal = 16,265/16,260 */
+#define ADIS16260_PROD_ID    0x56 /* Product identifier;
+				   * convert to decimal = 16,265/16,260 */
 #define ADIS16260_SERIAL_NUM 0x58 /* Serial number */
 
 #define ADIS16260_OUTPUTS    5
@@ -39,7 +40,8 @@
 
 /* MSC_CTRL */
 #define ADIS16260_MSC_CTRL_MEM_TEST		(1<<11)
-#define ADIS16260_MSC_CTRL_INT_SELF_TEST	(1<<10) /* Internal self-test enable */
+/* Internal self-test enable */
+#define ADIS16260_MSC_CTRL_INT_SELF_TEST	(1<<10)
 #define ADIS16260_MSC_CTRL_NEG_SELF_TEST	(1<<9)
 #define ADIS16260_MSC_CTRL_POS_SELF_TEST	(1<<8)
 #define ADIS16260_MSC_CTRL_DATA_RDY_EN		(1<<2)
@@ -47,7 +49,8 @@
 #define ADIS16260_MSC_CTRL_DATA_RDY_DIO2	(1<<0)
 
 /* SMPL_PRD */
-#define ADIS16260_SMPL_PRD_TIME_BASE	(1<<7) /* Time base (tB): 0 = 1.953 ms, 1 = 60.54 ms */
+/* Time base (tB): 0 = 1.953 ms, 1 = 60.54 ms */
+#define ADIS16260_SMPL_PRD_TIME_BASE	(1<<7)
 #define ADIS16260_SMPL_PRD_DIV_MASK	0x7F
 
 /* SLP_CNT */

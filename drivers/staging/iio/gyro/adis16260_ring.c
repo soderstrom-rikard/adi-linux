@@ -37,7 +37,7 @@ static IIO_SCAN_EL_C(temp, ADIS16260_SCAN_TEMP, IIO_UNSIGNED(12),
 static IIO_SCAN_EL_C(angl, ADIS16260_SCAN_ANGL, IIO_UNSIGNED(12),
 		ADIS16260_ANGL_OUT, NULL);
 
-static IIO_SCAN_EL_TIMESTAMP;
+static IIO_SCAN_EL_TIMESTAMP(5);
 
 static struct attribute *adis16260_scan_el_attrs[] = {
 	&iio_scan_el_supply.dev_attr.attr,
@@ -91,9 +91,13 @@ static int adis16260_read_ring_data(struct device *dev, u8 *rx)
 		xfers[i].delay_usecs = 30;
 		xfers[i].tx_buf = st->tx + 2 * i;
 		if (i < 2) /* SUPPLY_OUT:0x02 GYRO_OUT:0x04 */
-			st->tx[2 * i] = ADIS16260_READ_REG(ADIS16260_SUPPLY_OUT + 2 * i);
+			st->tx[2 * i]
+				= ADIS16260_READ_REG(ADIS16260_SUPPLY_OUT
+						+ 2 * i);
 		else /* 0x06 to 0x09 is reserved */
-			st->tx[2 * i] = ADIS16260_READ_REG(ADIS16260_SUPPLY_OUT + 2 * i + 4);
+			st->tx[2 * i]
+				= ADIS16260_READ_REG(ADIS16260_SUPPLY_OUT
+						+ 2 * i + 4);
 		st->tx[2 * i + 1] = 0;
 		if (i >= 1)
 			xfers[i].rx_buf = rx + 2 * (i - 1);
@@ -159,8 +163,10 @@ static int adis16260_data_rdy_ring_preenable(struct iio_dev *indio_dev)
 	if (indio_dev->ring->access.set_bpd) {
 		if (indio_dev->scan_timestamp)
 			if (indio_dev->scan_count)
-				/* Timestamp and data, let timestamp aligned with sizeof(s64) */
-				size = (((indio_dev->scan_count * sizeof(s16)) + sizeof(s64) - 1) & ~(sizeof(s64) - 1))
+				/* Timestamp (aligned s64) and data */
+				size = (((indio_dev->scan_count * sizeof(s16))
+						+ sizeof(s64) - 1)
+					& ~(sizeof(s64) - 1))
 					+ sizeof(s64);
 			else /* Timestamp only  */
 				size = sizeof(s64);
@@ -241,7 +247,7 @@ error_iio_sw_rb_free:
 
 int adis16260_initialize_ring(struct iio_ring_buffer *ring)
 {
-	return iio_ring_buffer_register(ring);
+	return iio_ring_buffer_register(ring, 0);
 }
 
 void adis16260_uninitialize_ring(struct iio_ring_buffer *ring)

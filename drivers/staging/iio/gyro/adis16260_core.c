@@ -20,8 +20,8 @@
 
 #include "../iio.h"
 #include "../sysfs.h"
+#include "../adc/adc.h"
 #include "gyro.h"
-#include "../imu/volt.h"
 
 #include "adis16260.h"
 
@@ -141,8 +141,9 @@ static int adis16260_spi_read_reg_16(struct device *dev,
 	spi_message_add_tail(&xfers[1], &msg);
 	ret = spi_sync(st->us, &msg);
 	if (ret) {
-		dev_err(&st->us->dev, "problem when reading 16 bit register 0x%02X",
-				lower_reg_address);
+		dev_err(&st->us->dev,
+			"problem when reading 16 bit register 0x%02X",
+			lower_reg_address);
 		goto error_ret;
 	}
 	*val = (st->rx[0] << 8) | st->rx[1];
@@ -385,7 +386,7 @@ static int adis16260_check_status(struct device *dev)
 	if (status & ADIS16260_DIAG_STAT_FLASH_CHK)
 		dev_err(dev, "Flash checksum error\n");
 	if (status & ADIS16260_DIAG_STAT_SELF_TEST)
-		dev_err(dev, "Self test error \n");
+		dev_err(dev, "Self test error\n");
 	if (status & ADIS16260_DIAG_STAT_OVERFLOW)
 		dev_err(dev, "Sensor overrange\n");
 	if (status & ADIS16260_DIAG_STAT_SPI_FAIL)
@@ -440,9 +441,10 @@ err_ret:
 	return ret;
 }
 
-static IIO_DEV_ATTR_VOLT(supply, adis16260_read_12bit_unsigned,
-		ADIS16260_SUPPLY_OUT);
-static IIO_CONST_ATTR(volt_supply_scale, "0.0018315");
+static IIO_DEV_ATTR_IN_NAMED_RAW(supply,
+				adis16260_read_12bit_unsigned,
+				ADIS16260_SUPPLY_OUT);
+static IIO_CONST_ATTR(in_supply_scale, "0.0018315");
 
 static IIO_DEV_ATTR_GYRO(adis16260_read_14bit_signed,
 		ADIS16260_GYRO_OUT);
@@ -455,13 +457,13 @@ static IIO_DEV_ATTR_GYRO_OFFSET(S_IWUSR | S_IRUGO,
 		adis16260_write_16bit,
 		ADIS16260_GYRO_OFF);
 
-static IIO_DEV_ATTR_TEMP(adis16260_read_12bit_unsigned);
+static IIO_DEV_ATTR_TEMP_RAW(adis16260_read_12bit_unsigned);
 static IIO_CONST_ATTR(temp_offset, "25");
 static IIO_CONST_ATTR(temp_scale, "0.1453");
 
-static IIO_DEV_ATTR_VOLT(aux, adis16260_read_12bit_unsigned,
+static IIO_DEV_ATTR_IN_RAW(0, adis16260_read_12bit_unsigned,
 		ADIS16260_AUX_ADC);
-static IIO_CONST_ATTR(volt_aux_scale, "0.0006105");
+static IIO_CONST_ATTR(in0_scale, "0.0006105");
 
 static IIO_DEV_ATTR_SAMP_FREQ(S_IWUSR | S_IRUGO,
 		adis16260_read_frequency,
@@ -469,7 +471,7 @@ static IIO_DEV_ATTR_SAMP_FREQ(S_IWUSR | S_IRUGO,
 static IIO_DEV_ATTR_ANGL(adis16260_read_14bit_signed,
 		ADIS16260_ANGL_OUT);
 
-static IIO_DEV_ATTR_RESET(adis16260_write_reset);
+static IIO_DEVICE_ATTR(reset, S_IWUSR, NULL, adis16260_write_reset, 0);
 
 static IIO_CONST_ATTR_AVAIL_SAMP_FREQ("256 2048");
 
@@ -484,17 +486,17 @@ static struct attribute_group adis16260_event_attribute_group = {
 };
 
 static struct attribute *adis16260_attributes[] = {
-	&iio_dev_attr_volt_supply.dev_attr.attr,
-	&iio_const_attr_volt_supply_scale.dev_attr.attr,
-	&iio_dev_attr_gyro.dev_attr.attr,
+	&iio_dev_attr_in_supply_raw.dev_attr.attr,
+	&iio_const_attr_in_supply_scale.dev_attr.attr,
+	&iio_dev_attr_gyro_raw.dev_attr.attr,
 	&iio_dev_attr_gyro_scale.dev_attr.attr,
 	&iio_dev_attr_gyro_offset.dev_attr.attr,
-	&iio_dev_attr_angl.dev_attr.attr,
-	&iio_dev_attr_temp.dev_attr.attr,
+	&iio_dev_attr_angl_raw.dev_attr.attr,
+	&iio_dev_attr_temp_raw.dev_attr.attr,
 	&iio_const_attr_temp_offset.dev_attr.attr,
 	&iio_const_attr_temp_scale.dev_attr.attr,
-	&iio_dev_attr_volt_aux.dev_attr.attr,
-	&iio_const_attr_volt_aux_scale.dev_attr.attr,
+	&iio_dev_attr_in0_raw.dev_attr.attr,
+	&iio_const_attr_in0_scale.dev_attr.attr,
 	&iio_dev_attr_sampling_frequency.dev_attr.attr,
 	&iio_const_attr_available_sampling_frequency.dev_attr.attr,
 	&iio_dev_attr_reset.dev_attr.attr,
@@ -655,5 +657,5 @@ static __exit void adis16260_exit(void)
 module_exit(adis16260_exit);
 
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
-MODULE_DESCRIPTION("Analog Devices ADIS16260/5 Digital Gyroscope Sensor SPI driver");
+MODULE_DESCRIPTION("Analog Devices ADIS16260/5 Digital Gyroscope Sensor");
 MODULE_LICENSE("GPL v2");
