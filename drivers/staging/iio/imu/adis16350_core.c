@@ -21,8 +21,8 @@
 #include "../iio.h"
 #include "../sysfs.h"
 #include "../accel/accel.h"
+#include "../adc/adc.h"
 #include "../gyro/gyro.h"
-#include "volt.h"
 
 #include "adis16350.h"
 
@@ -142,8 +142,9 @@ static int adis16350_spi_read_reg_16(struct device *dev,
 	spi_message_add_tail(&xfers[1], &msg);
 	ret = spi_sync(st->us, &msg);
 	if (ret) {
-		dev_err(&st->us->dev, "problem when reading 16 bit register 0x%02X",
-				lower_reg_address);
+		dev_err(&st->us->dev,
+			"problem when reading 16 bit register 0x%02X",
+			lower_reg_address);
 		goto error_ret;
 	}
 	*val = (st->rx[0] << 8) | st->rx[1];
@@ -405,7 +406,7 @@ static int adis16350_check_status(struct device *dev)
 	if (status & ADIS16350_DIAG_STAT_FLASH_CHK)
 		dev_err(dev, "Flash checksum error\n");
 	if (status & ADIS16350_DIAG_STAT_SELF_TEST)
-		dev_err(dev, "Self test error \n");
+		dev_err(dev, "Self test error\n");
 	if (status & ADIS16350_DIAG_STAT_OVERFLOW)
 		dev_err(dev, "Sensor overrange\n");
 	if (status & ADIS16350_DIAG_STAT_SPI_FAIL)
@@ -488,9 +489,9 @@ static IIO_DEV_ATTR_ACCEL_Z_OFFSET(S_IWUSR | S_IRUGO,
 		adis16350_write_16bit,
 		ADIS16350_ZACCL_OFF);
 
-static IIO_DEV_ATTR_VOLT(supply, adis16350_read_12bit_unsigned,
+static IIO_DEV_ATTR_IN_NAMED_RAW(supply, adis16350_read_12bit_unsigned,
 		ADIS16350_SUPPLY_OUT);
-static IIO_CONST_ATTR(volt_supply_scale, "0.002418");
+static IIO_CONST_ATTR(in_supply_scale, "0.002418");
 
 static IIO_DEV_ATTR_GYRO_X(adis16350_read_14bit_signed,
 		ADIS16350_XGYRO_OUT);
@@ -508,23 +509,24 @@ static IIO_DEV_ATTR_ACCEL_Z(adis16350_read_14bit_signed,
 		ADIS16350_ZACCL_OUT);
 static IIO_CONST_ATTR(accel_scale, "0.00333");
 
-static IIO_DEV_ATTR_TEMP_X(adis16350_read_12bit_signed,
-		ADIS16350_XTEMP_OUT);
-static IIO_DEV_ATTR_TEMP_Y(adis16350_read_12bit_signed,
-		ADIS16350_YTEMP_OUT);
-static IIO_DEV_ATTR_TEMP_Z(adis16350_read_12bit_signed,
-		ADIS16350_ZTEMP_OUT);
+static IIO_DEVICE_ATTR(temp_x_raw, S_IRUGO, adis16350_read_12bit_signed,
+		NULL, ADIS16350_XTEMP_OUT);
+static IIO_DEVICE_ATTR(temp_y_raw, S_IRUGO, adis16350_read_12bit_signed,
+		NULL, ADIS16350_YTEMP_OUT);
+static IIO_DEVICE_ATTR(temp_z_raw, S_IRUGO, adis16350_read_12bit_signed,
+		NULL, ADIS16350_ZTEMP_OUT);
 static IIO_CONST_ATTR(temp_scale, "0.0005");
 
-static IIO_DEV_ATTR_VOLT(aux, adis16350_read_12bit_unsigned,
+static IIO_DEV_ATTR_IN_RAW(0, adis16350_read_12bit_unsigned,
 		ADIS16350_AUX_ADC);
-static IIO_CONST_ATTR(volt_aux_scale, "0.000806");
+static IIO_CONST_ATTR(in0_scale, "0.000806");
 
 static IIO_DEV_ATTR_SAMP_FREQ(S_IWUSR | S_IRUGO,
 		adis16350_read_frequency,
 		adis16350_write_frequency);
 
-static IIO_DEV_ATTR_RESET(adis16350_write_reset);
+static IIO_DEVICE_ATTR(reset, S_IWUSR, NULL,
+		adis16350_write_reset, 0);
 
 static IIO_CONST_ATTR_AVAIL_SAMP_FREQ("409 546 819 1638");
 
@@ -534,22 +536,22 @@ static struct attribute *adis16350_attributes[] = {
 	&iio_dev_attr_accel_x_offset.dev_attr.attr,
 	&iio_dev_attr_accel_y_offset.dev_attr.attr,
 	&iio_dev_attr_accel_z_offset.dev_attr.attr,
-	&iio_dev_attr_volt_supply.dev_attr.attr,
-	&iio_const_attr_volt_supply_scale.dev_attr.attr,
-	&iio_dev_attr_gyro_x.dev_attr.attr,
-	&iio_dev_attr_gyro_y.dev_attr.attr,
-	&iio_dev_attr_gyro_z.dev_attr.attr,
+	&iio_dev_attr_in_supply_raw.dev_attr.attr,
+	&iio_const_attr_in_supply_scale.dev_attr.attr,
+	&iio_dev_attr_gyro_x_raw.dev_attr.attr,
+	&iio_dev_attr_gyro_y_raw.dev_attr.attr,
+	&iio_dev_attr_gyro_z_raw.dev_attr.attr,
 	&iio_const_attr_gyro_scale.dev_attr.attr,
-	&iio_dev_attr_accel_x.dev_attr.attr,
-	&iio_dev_attr_accel_y.dev_attr.attr,
-	&iio_dev_attr_accel_z.dev_attr.attr,
+	&iio_dev_attr_accel_x_raw.dev_attr.attr,
+	&iio_dev_attr_accel_y_raw.dev_attr.attr,
+	&iio_dev_attr_accel_z_raw.dev_attr.attr,
 	&iio_const_attr_accel_scale.dev_attr.attr,
-	&iio_dev_attr_temp_x.dev_attr.attr,
-	&iio_dev_attr_temp_y.dev_attr.attr,
-	&iio_dev_attr_temp_z.dev_attr.attr,
+	&iio_dev_attr_temp_x_raw.dev_attr.attr,
+	&iio_dev_attr_temp_y_raw.dev_attr.attr,
+	&iio_dev_attr_temp_z_raw.dev_attr.attr,
 	&iio_const_attr_temp_scale.dev_attr.attr,
-	&iio_dev_attr_volt_aux.dev_attr.attr,
-	&iio_const_attr_volt_aux_scale.dev_attr.attr,
+	&iio_dev_attr_in0_raw.dev_attr.attr,
+	&iio_const_attr_in0_scale.dev_attr.attr,
 	&iio_dev_attr_sampling_frequency.dev_attr.attr,
 	&iio_const_attr_available_sampling_frequency.dev_attr.attr,
 	&iio_dev_attr_reset.dev_attr.attr,

@@ -53,7 +53,7 @@ static IIO_SCAN_EL_C(temp_z, ADIS16350_SCAN_TEMP_Z, IIO_SIGNED(12),
 static IIO_SCAN_EL_C(adc_0, ADIS16350_SCAN_ADC_0, IIO_UNSIGNED(12),
 		ADIS16350_AUX_ADC, NULL);
 
-static IIO_SCAN_EL_TIMESTAMP;
+static IIO_SCAN_EL_TIMESTAMP(11);
 
 static struct attribute *adis16350_scan_el_attrs[] = {
 	&iio_scan_el_supply.dev_attr.attr,
@@ -92,7 +92,7 @@ static void adis16350_poll_func_th(struct iio_dev *indio_dev)
  * @dev: device associated with child of actual device (iio_dev or iio_trig)
  * @rx: somewhere to pass back the value read (min size is 24 bytes)
  **/
-int adis16350_spi_read_burst(struct device *dev, u8 *rx)
+static int adis16350_spi_read_burst(struct device *dev, u8 *rx)
 {
 	struct spi_message msg;
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
@@ -187,8 +187,10 @@ static int adis16350_data_rdy_ring_preenable(struct iio_dev *indio_dev)
 	if (indio_dev->ring->access.set_bpd) {
 		if (indio_dev->scan_timestamp)
 			if (indio_dev->scan_count)
-				/* Timestamp and data, let timestamp aligned with sizeof(s64) */
-				size = (((indio_dev->scan_count * sizeof(s16)) + sizeof(s64) - 1) & ~(sizeof(s64) - 1))
+				/* Timestamp (aligned sizeof(s64) and data */
+				size = (((indio_dev->scan_count * sizeof(s16))
+						+ sizeof(s64) - 1)
+					& ~(sizeof(s64) - 1))
 					+ sizeof(s64);
 			else /* Timestamp only  */
 				size = sizeof(s64);
@@ -275,7 +277,7 @@ error_iio_sw_rb_free:
 
 int adis16350_initialize_ring(struct iio_ring_buffer *ring)
 {
-	return iio_ring_buffer_register(ring);
+	return iio_ring_buffer_register(ring, 0);
 }
 
 void adis16350_uninitialize_ring(struct iio_ring_buffer *ring)
