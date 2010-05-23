@@ -2,7 +2,6 @@
 #include "../sysfs.h"
 
 /* Accelerometer types of attribute */
-
 #define IIO_DEV_ATTR_ACCEL_OFFSET(_mode, _show, _store, _addr)	\
 	IIO_DEVICE_ATTR(accel_offset, _mode, _show, _store, _addr)
 
@@ -28,13 +27,13 @@
 	IIO_DEVICE_ATTR(accel, S_IRUGO, _show, NULL, _addr)
 
 #define IIO_DEV_ATTR_ACCEL_X(_show, _addr)			\
-	IIO_DEVICE_ATTR(accel_x, S_IRUGO, _show, NULL, _addr)
+	IIO_DEVICE_ATTR(accel_x_raw, S_IRUGO, _show, NULL, _addr)
 
 #define IIO_DEV_ATTR_ACCEL_Y(_show, _addr)			\
-	IIO_DEVICE_ATTR(accel_y, S_IRUGO, _show, NULL, _addr)
+	IIO_DEVICE_ATTR(accel_y_raw, S_IRUGO, _show, NULL, _addr)
 
 #define IIO_DEV_ATTR_ACCEL_Z(_show, _addr)			\
-	IIO_DEVICE_ATTR(accel_z, S_IRUGO, _show, NULL, _addr)
+	IIO_DEVICE_ATTR(accel_z_raw, S_IRUGO, _show, NULL, _addr)
 
 /* XY combined acceleration */
 #define IIO_DEV_ATTR_ACCEL_XY(_show, _addr)			\
@@ -88,7 +87,6 @@
 
 #define IIO_DEV_ATTR_ACCEL_THRESH_Z(_mode, _show, _store, _addr)	\
 	IIO_DEVICE_ATTR(thresh_accel_z, _mode, _show, _store, _addr)
-
 
 /**
  * IIO_EVENT_ATTR_ACCEL_X_HIGH: threshold event, x acceleration
