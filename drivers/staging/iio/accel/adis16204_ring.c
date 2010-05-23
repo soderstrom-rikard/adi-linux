@@ -38,7 +38,7 @@ static IIO_SCAN_EL_C(aux_adc, ADIS16204_SCAN_AUX_ADC, IIO_UNSIGNED(12),
 static IIO_SCAN_EL_C(temp, ADIS16204_SCAN_TEMP, IIO_UNSIGNED(12),
 		     ADIS16204_TEMP_OUT, NULL);
 
-static IIO_SCAN_EL_TIMESTAMP;
+static IIO_SCAN_EL_TIMESTAMP(5);
 
 static struct attribute *adis16204_scan_el_attrs[] = {
 	&iio_scan_el_supply.dev_attr.attr,
