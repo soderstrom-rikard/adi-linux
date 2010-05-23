@@ -21,7 +21,7 @@
 #include "../iio.h"
 #include "../sysfs.h"
 #include "accel.h"
-#include "../imu/volt.h"
+#include "inclinometer.h"
 #include "../gyro/gyro.h"
 #include "../adc/adc.h"
 
@@ -139,8 +139,9 @@ static int adis16209_spi_read_reg_16(struct device *dev,
 	spi_message_add_tail(&xfers[1], &msg);
 	ret = spi_sync(st->us, &msg);
 	if (ret) {
-		dev_err(&st->us->dev, "problem when reading 16 bit register 0x%02X",
-				lower_reg_address);
+		dev_err(&st->us->dev,
+			"problem when reading 16 bit register 0x%02X",
+			lower_reg_address);
 		goto error_ret;
 	}
 	*val = (st->rx[0] << 8) | st->rx[1];
@@ -387,12 +388,12 @@ err_ret:
 	return ret;
 }
 
-static IIO_DEV_ATTR_VOLT(supply, adis16209_read_14bit_unsigned,
+static IIO_DEV_ATTR_IN_NAMED_RAW(supply, adis16209_read_14bit_unsigned,
 		ADIS16209_SUPPLY_OUT);
-static IIO_CONST_ATTR(volt_supply_scale, "0.30518");
-static IIO_DEV_ATTR_VOLT(aux, adis16209_read_12bit_unsigned,
+static IIO_CONST_ATTR(in_supply_scale, "0.30518");
+static IIO_DEV_ATTR_IN_RAW(0, adis16209_read_12bit_unsigned,
 		ADIS16209_AUX_ADC);
-static IIO_CONST_ATTR(volt_aux_scale, "0.6105");
+static IIO_CONST_ATTR(in0_scale, "0.6105");
 
 static IIO_DEV_ATTR_ACCEL_X(adis16209_read_14bit_signed,
 		ADIS16209_XACCL_OUT);
@@ -422,14 +423,14 @@ static IIO_DEV_ATTR_INCLI_Y_OFFSET(S_IWUSR | S_IRUGO,
 		ADIS16209_YACCL_NULL);
 static IIO_CONST_ATTR(incli_scale, "0.025");
 
-static IIO_DEV_ATTR_ROT(adis16209_read_14bit_signed,
-		ADIS16209_ROT_OUT);
+static IIO_DEVICE_ATTR(rot_raw, S_IRUGO, adis16209_read_14bit_signed,
+		       NULL, ADIS16209_ROT_OUT);
 
 static IIO_DEV_ATTR_TEMP(adis16209_read_temp);
 static IIO_CONST_ATTR(temp_offset, "25");
 static IIO_CONST_ATTR(temp_scale, "-0.47");
 
-static IIO_DEV_ATTR_RESET(adis16209_write_reset);
+static IIO_DEVICE_ATTR(reset, S_IWUSR, NULL, adis16209_write_reset, 0);
 
 static IIO_CONST_ATTR(name, "adis16209");
 
@@ -442,26 +443,26 @@ static struct attribute_group adis16209_event_attribute_group = {
 };
 
 static struct attribute *adis16209_attributes[] = {
-	&iio_dev_attr_volt_supply.dev_attr.attr,
-	&iio_const_attr_volt_supply_scale.dev_attr.attr,
+	&iio_dev_attr_in_supply_raw.dev_attr.attr,
+	&iio_const_attr_in_supply_scale.dev_attr.attr,
 	&iio_dev_attr_temp.dev_attr.attr,
 	&iio_const_attr_temp_offset.dev_attr.attr,
 	&iio_const_attr_temp_scale.dev_attr.attr,
 	&iio_dev_attr_reset.dev_attr.attr,
 	&iio_const_attr_name.dev_attr.attr,
-	&iio_dev_attr_volt_aux.dev_attr.attr,
-	&iio_const_attr_volt_aux_scale.dev_attr.attr,
-	&iio_dev_attr_accel_x.dev_attr.attr,
-	&iio_dev_attr_accel_y.dev_attr.attr,
+	&iio_dev_attr_in0_raw.dev_attr.attr,
+	&iio_const_attr_in0_scale.dev_attr.attr,
+	&iio_dev_attr_accel_x_raw.dev_attr.attr,
+	&iio_dev_attr_accel_y_raw.dev_attr.attr,
 	&iio_dev_attr_accel_x_offset.dev_attr.attr,
 	&iio_dev_attr_accel_y_offset.dev_attr.attr,
 	&iio_const_attr_accel_scale.dev_attr.attr,
-	&iio_dev_attr_incli_x.dev_attr.attr,
-	&iio_dev_attr_incli_y.dev_attr.attr,
+	&iio_dev_attr_incli_x_raw.dev_attr.attr,
+	&iio_dev_attr_incli_y_raw.dev_attr.attr,
 	&iio_dev_attr_incli_x_offset.dev_attr.attr,
 	&iio_dev_attr_incli_y_offset.dev_attr.attr,
 	&iio_const_attr_incli_scale.dev_attr.attr,
-	&iio_dev_attr_rot.dev_attr.attr,
+	&iio_dev_attr_rot_raw.dev_attr.attr,
 	NULL
 };
 
@@ -610,5 +611,5 @@ static __exit void adis16209_exit(void)
 module_exit(adis16209_exit);
 
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
-MODULE_DESCRIPTION("Analog Devices ADIS16209 Programmable Digital Vibration Sensor driver");
+MODULE_DESCRIPTION("Analog Devices ADIS16209 Digital Vibration Sensor driver");
 MODULE_LICENSE("GPL v2");
