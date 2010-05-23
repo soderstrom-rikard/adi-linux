@@ -3,7 +3,7 @@
 #
 
 max1363-y := max1363_core.o
-max1363-$(CONFIG_MAX1363_RING_BUFFER) += max1363_ring.o
+max1363-y += max1363_ring.o
 
 ad7476-y := ad7476_core.o
 ad7476-$(CONFIG_IIO_RING_BUFFER) += ad7476_ring.o
