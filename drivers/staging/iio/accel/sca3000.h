@@ -296,7 +296,9 @@ int sca3000_register_ring_access_and_init(struct iio_dev *indio_dev)
 	return 0;
 }
 
-static inline void sca3000_ring_int_process(u8 val, void *ring) {};
+static inline void sca3000_ring_int_process(u8 val, void *ring)
+{
+}
 
 #endif
 

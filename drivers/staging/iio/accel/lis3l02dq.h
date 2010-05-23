@@ -226,6 +226,8 @@ static inline int lis3l02dq_initialize_ring(struct iio_ring_buffer *ring)
 {
 	return 0;
 }
-static inline void lis3l02dq_uninitialize_ring(struct iio_ring_buffer *ring) {};
+static inline void lis3l02dq_uninitialize_ring(struct iio_ring_buffer *ring)
+{
+}
 #endif /* CONFIG_IIO_RING_BUFFER */
 #endif /* SPI_LIS3L02DQ_H_ */
