@@ -167,7 +167,7 @@ static ssize_t ad774x_show_conversion_modes(struct device *dev,
 	return len;
 }
 
-IIO_DEV_ATTR_AVAIL_CONVERSION_MODES(ad774x_show_conversion_modes);
+static IIO_DEV_ATTR_AVAIL_CONVERSION_MODES(ad774x_show_conversion_modes);
 
 static ssize_t ad774x_show_conversion_mode(struct device *dev,
 		struct device_attribute *attr,
@@ -206,7 +206,7 @@ static ssize_t ad774x_store_conversion_mode(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CONVERSION_MODE(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CONVERSION_MODE(S_IRUGO | S_IWUSR,
 		ad774x_show_conversion_mode,
 		ad774x_store_conversion_mode);
 
@@ -223,7 +223,7 @@ static ssize_t ad774x_show_daca_value(struct device *dev,
 	return sprintf(buf, "%02x\n", data);
 }
 
-IIO_DEV_ATTR_DACA_VALUE(ad774x_show_daca_value);
+static IIO_DEV_ATTR_DACA_VALUE(ad774x_show_daca_value);
 
 static ssize_t ad774x_show_dacb_value(struct device *dev,
 		struct device_attribute *attr,
@@ -238,7 +238,7 @@ static ssize_t ad774x_show_dacb_value(struct device *dev,
 	return sprintf(buf, "%02x\n", data);
 }
 
-IIO_DEV_ATTR_DACB_VALUE(ad774x_show_dacb_value);
+static IIO_DEV_ATTR_DACB_VALUE(ad774x_show_dacb_value);
 
 static ssize_t ad774x_show_cap_setup(struct device *dev,
 		struct device_attribute *attr,
@@ -272,7 +272,7 @@ static ssize_t ad774x_store_cap_setup(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CAP_SETUP(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CAP_SETUP(S_IRUGO | S_IWUSR,
 		ad774x_show_cap_setup,
 		ad774x_store_cap_setup);
 
@@ -307,7 +307,7 @@ static ssize_t ad774x_store_vt_setup(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_VT_SETUP(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_VT_SETUP(S_IRUGO | S_IWUSR,
 		ad774x_show_vt_setup,
 		ad774x_store_vt_setup);
 
@@ -342,7 +342,7 @@ static ssize_t ad774x_store_exec_setup(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_EXEC_SETUP(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_EXEC_SETUP(S_IRUGO | S_IWUSR,
 		ad774x_show_exec_setup,
 		ad774x_store_exec_setup);
 
@@ -378,7 +378,7 @@ static ssize_t ad774x_store_volt_gain(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_VOLT_GAIN(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_VOLT_GAIN(S_IRUGO | S_IWUSR,
 		ad774x_show_volt_gain,
 		ad774x_store_volt_gain);
 
@@ -397,7 +397,7 @@ static ssize_t ad774x_show_cap_data(struct device *dev,
 	return sprintf(buf, "%ld\n", data);
 }
 
-IIO_DEV_ATTR_CAP_DATA(ad774x_show_cap_data);
+static IIO_DEV_ATTR_CAP_DATA(ad774x_show_cap_data);
 
 static ssize_t ad774x_show_vt_data(struct device *dev,
 		struct device_attribute *attr,
@@ -414,7 +414,7 @@ static ssize_t ad774x_show_vt_data(struct device *dev,
 	return sprintf(buf, "%ld\n", data);
 }
 
-IIO_DEV_ATTR_VT_DATA(ad774x_show_vt_data);
+static IIO_DEV_ATTR_VT_DATA(ad774x_show_vt_data);
 
 static ssize_t ad774x_show_cap_offs(struct device *dev,
 		struct device_attribute *attr,
@@ -448,7 +448,7 @@ static ssize_t ad774x_store_cap_offs(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CAP_OFFS(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CAP_OFFS(S_IRUGO | S_IWUSR,
 		ad774x_show_cap_offs,
 		ad774x_store_cap_offs);
 
@@ -484,7 +484,7 @@ static ssize_t ad774x_store_cap_gain(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CAP_GAIN(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CAP_GAIN(S_IRUGO | S_IWUSR,
 		ad774x_show_cap_gain,
 		ad774x_store_cap_gain);
 
@@ -497,7 +497,7 @@ static ssize_t ad774x_show_name(struct device *dev,
 	return sprintf(buf, "%s\n", chip->name);
 }
 
-IIO_DEVICE_ATTR(name, S_IRUGO, ad774x_show_name, NULL, 0);
+static IIO_DEVICE_ATTR(name, S_IRUGO, ad774x_show_name, NULL, 0);
 
 static struct attribute *ad774x_attributes[] = {
 	&iio_dev_attr_available_conversion_modes.dev_attr.attr,

@@ -184,7 +184,7 @@ static ssize_t ad7150_show_conversion_modes(struct device *dev,
 	return len;
 }
 
-IIO_DEV_ATTR_AVAIL_CONVERSION_MODES(ad7150_show_conversion_modes);
+static IIO_DEV_ATTR_AVAIL_CONVERSION_MODES(ad7150_show_conversion_modes);
 
 static ssize_t ad7150_show_conversion_mode(struct device *dev,
 		struct device_attribute *attr,
@@ -223,7 +223,7 @@ static ssize_t ad7150_store_conversion_mode(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CONVERSION_MODE(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CONVERSION_MODE(S_IRUGO | S_IWUSR,
 		ad7150_show_conversion_mode,
 		ad7150_store_conversion_mode);
 
@@ -234,7 +234,7 @@ static ssize_t ad7150_show_threshold_modes(struct device *dev,
 	return sprintf(buf, "adaptive\nfixed\n");
 }
 
-IIO_DEV_ATTR_AVAIL_THRESHOLD_MODES(ad7150_show_threshold_modes);
+static IIO_DEV_ATTR_AVAIL_THRESHOLD_MODES(ad7150_show_threshold_modes);
 
 static ssize_t ad7150_show_ch1_value(struct device *dev,
 		struct device_attribute *attr,
@@ -248,7 +248,7 @@ static ssize_t ad7150_show_ch1_value(struct device *dev,
 	return sprintf(buf, "%d\n", ((int) data[0] << 8) | data[1]);
 }
 
-IIO_DEV_ATTR_CH1_VALUE(ad7150_show_ch1_value);
+static IIO_DEV_ATTR_CH1_VALUE(ad7150_show_ch1_value);
 
 static ssize_t ad7150_show_ch2_value(struct device *dev,
 		struct device_attribute *attr,
@@ -262,7 +262,7 @@ static ssize_t ad7150_show_ch2_value(struct device *dev,
 	return sprintf(buf, "%d\n", ((int) data[0] << 8) | data[1]);
 }
 
-IIO_DEV_ATTR_CH2_VALUE(ad7150_show_ch2_value);
+static IIO_DEV_ATTR_CH2_VALUE(ad7150_show_ch2_value);
 
 static ssize_t ad7150_show_threshold_mode(struct device *dev,
 		struct device_attribute *attr,
@@ -303,7 +303,7 @@ static ssize_t ad7150_store_threshold_mode(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_THRESHOLD_MODE(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_THRESHOLD_MODE(S_IRUGO | S_IWUSR,
 		ad7150_show_threshold_mode,
 		ad7150_store_threshold_mode);
 
@@ -339,7 +339,7 @@ static ssize_t ad7150_store_ch1_threshold(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH1_THRESHOLD(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH1_THRESHOLD(S_IRUGO | S_IWUSR,
 		ad7150_show_ch1_threshold,
 		ad7150_store_ch1_threshold);
 
@@ -375,7 +375,7 @@ static ssize_t ad7150_store_ch2_threshold(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH2_THRESHOLD(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH2_THRESHOLD(S_IRUGO | S_IWUSR,
 		ad7150_show_ch2_threshold,
 		ad7150_store_ch2_threshold);
 
@@ -410,7 +410,7 @@ static ssize_t ad7150_store_ch1_sensitivity(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH1_SENSITIVITY(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH1_SENSITIVITY(S_IRUGO | S_IWUSR,
 		ad7150_show_ch1_sensitivity,
 		ad7150_store_ch1_sensitivity);
 
@@ -445,7 +445,7 @@ static ssize_t ad7150_store_ch2_sensitivity(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH2_SENSITIVITY(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH2_SENSITIVITY(S_IRUGO | S_IWUSR,
 		ad7150_show_ch2_sensitivity,
 		ad7150_store_ch2_sensitivity);
 
@@ -480,7 +480,7 @@ static ssize_t ad7150_store_ch1_timeout(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH1_TIMEOUT(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH1_TIMEOUT(S_IRUGO | S_IWUSR,
 		ad7150_show_ch1_timeout,
 		ad7150_store_ch1_timeout);
 
@@ -515,7 +515,7 @@ static ssize_t ad7150_store_ch2_timeout(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH2_TIMEOUT(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH2_TIMEOUT(S_IRUGO | S_IWUSR,
 		ad7150_show_ch2_timeout,
 		ad7150_store_ch2_timeout);
 
@@ -551,7 +551,7 @@ static ssize_t ad7150_store_ch1_setup(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH1_SETUP(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH1_SETUP(S_IRUGO | S_IWUSR,
 		ad7150_show_ch1_setup,
 		ad7150_store_ch1_setup);
 
@@ -586,7 +586,7 @@ static ssize_t ad7150_store_ch2_setup(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH2_SETUP(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH2_SETUP(S_IRUGO | S_IWUSR,
 		ad7150_show_ch2_setup,
 		ad7150_store_ch2_setup);
 
@@ -599,7 +599,7 @@ static ssize_t ad7150_show_name(struct device *dev,
 	return sprintf(buf, "%s\n", chip->name);
 }
 
-IIO_DEVICE_ATTR(name, S_IRUGO, ad7150_show_name, NULL, 0);
+static IIO_DEVICE_ATTR(name, S_IRUGO, ad7150_show_name, NULL, 0);
 
 static ssize_t ad7150_show_powerdown_timer(struct device *dev,
 		struct device_attribute *attr,
@@ -631,7 +631,7 @@ static ssize_t ad7150_store_powerdown_timer(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_POWERDOWN_TIMER(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_POWERDOWN_TIMER(S_IRUGO | S_IWUSR,
 		ad7150_show_powerdown_timer,
 		ad7150_store_powerdown_timer);
 

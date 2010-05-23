@@ -162,7 +162,7 @@ static ssize_t ad7152_show_conversion_modes(struct device *dev,
 	return len;
 }
 
-IIO_DEV_ATTR_AVAIL_CONVERSION_MODES(ad7152_show_conversion_modes);
+static IIO_DEV_ATTR_AVAIL_CONVERSION_MODES(ad7152_show_conversion_modes);
 
 static ssize_t ad7152_show_ch1_value(struct device *dev,
 		struct device_attribute *attr,
@@ -176,7 +176,7 @@ static ssize_t ad7152_show_ch1_value(struct device *dev,
 	return sprintf(buf, "%d\n", ((int)data[0] << 8) | data[1]);
 }
 
-IIO_DEV_ATTR_CH1_VALUE(ad7152_show_ch1_value);
+static IIO_DEV_ATTR_CH1_VALUE(ad7152_show_ch1_value);
 
 static ssize_t ad7152_show_ch2_value(struct device *dev,
 		struct device_attribute *attr,
@@ -190,7 +190,7 @@ static ssize_t ad7152_show_ch2_value(struct device *dev,
 	return sprintf(buf, "%d\n", ((int)data[0] << 8) | data[1]);
 }
 
-IIO_DEV_ATTR_CH2_VALUE(ad7152_show_ch2_value);
+static IIO_DEV_ATTR_CH2_VALUE(ad7152_show_ch2_value);
 
 static ssize_t ad7152_show_conversion_mode(struct device *dev,
 		struct device_attribute *attr,
@@ -229,7 +229,7 @@ static ssize_t ad7152_store_conversion_mode(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CONVERSION_MODE(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CONVERSION_MODE(S_IRUGO | S_IWUSR,
 		ad7152_show_conversion_mode,
 		ad7152_store_conversion_mode);
 
@@ -265,7 +265,7 @@ static ssize_t ad7152_store_ch1_offset(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH1_OFFSET(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH1_OFFSET(S_IRUGO | S_IWUSR,
 		ad7152_show_ch1_offset,
 		ad7152_store_ch1_offset);
 
@@ -301,7 +301,7 @@ static ssize_t ad7152_store_ch2_offset(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH2_OFFSET(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH2_OFFSET(S_IRUGO | S_IWUSR,
 		ad7152_show_ch2_offset,
 		ad7152_store_ch2_offset);
 
@@ -337,7 +337,7 @@ static ssize_t ad7152_store_ch1_gain(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH1_GAIN(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH1_GAIN(S_IRUGO | S_IWUSR,
 		ad7152_show_ch1_gain,
 		ad7152_store_ch1_gain);
 
@@ -373,7 +373,7 @@ static ssize_t ad7152_store_ch2_gain(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH2_GAIN(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH2_GAIN(S_IRUGO | S_IWUSR,
 		ad7152_show_ch2_gain,
 		ad7152_store_ch2_gain);
 
@@ -408,7 +408,7 @@ static ssize_t ad7152_store_ch1_setup(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH1_SETUP(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH1_SETUP(S_IRUGO | S_IWUSR,
 		ad7152_show_ch1_setup,
 		ad7152_store_ch1_setup);
 
@@ -443,7 +443,7 @@ static ssize_t ad7152_store_ch2_setup(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_CH2_SETUP(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_CH2_SETUP(S_IRUGO | S_IWUSR,
 		ad7152_show_ch2_setup,
 		ad7152_store_ch2_setup);
 
@@ -478,7 +478,7 @@ static ssize_t ad7152_store_filter_rate_setup(struct device *dev,
 	return -EINVAL;
 }
 
-IIO_DEV_ATTR_FILTER_RATE_SETUP(S_IRUGO | S_IWUSR,
+static IIO_DEV_ATTR_FILTER_RATE_SETUP(S_IRUGO | S_IWUSR,
 		ad7152_show_filter_rate_setup,
 		ad7152_store_filter_rate_setup);
 
@@ -491,7 +491,7 @@ static ssize_t ad7152_show_name(struct device *dev,
 	return sprintf(buf, "%s\n", chip->name);
 }
 
-IIO_DEVICE_ATTR(name, S_IRUGO, ad7152_show_name, NULL, 0);
+static IIO_DEVICE_ATTR(name, S_IRUGO, ad7152_show_name, NULL, 0);
 
 static struct attribute *ad7152_attributes[] = {
 	&iio_dev_attr_available_conversion_modes.dev_attr.attr,
