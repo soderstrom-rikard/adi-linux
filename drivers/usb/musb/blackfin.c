@@ -396,23 +396,23 @@ int __init musb_platform_init(struct musb *musb)
 	return 0;
 }
 
-int musb_platform_suspend(struct musb *musb)
+#ifdef CONFIG_PM
+void musb_platform_save_context(struct musb *musb,
+			struct musb_context_registers *musb_context)
 {
-	return 0;
 }
 
-int musb_platform_resume(struct musb *musb)
+void musb_platform_restore_context(struct musb *musb,
+			struct musb_context_registers *musb_context)
 {
-	return 0;
 }
-
+#endif
 
 int musb_platform_exit(struct musb *musb)
 {
 
 	bfin_vbus_power(musb, 0 /*off*/, 1);
 	gpio_free(musb->config->gpio_vrsel);
-	musb_platform_suspend(musb);
 
 	return 0;
 }
