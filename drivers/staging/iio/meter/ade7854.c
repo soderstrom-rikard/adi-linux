@@ -13,7 +13,7 @@
 #include <linux/mutex.h>
 #include <linux/device.h>
 #include <linux/kernel.h>
-
+#include <linux/slab.h>
 #include <linux/sysfs.h>
 #include <linux/list.h>
 

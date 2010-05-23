@@ -12,6 +12,7 @@
 #include <linux/mutex.h>
 #include <linux/device.h>
 #include <linux/spi/spi.h>
+#include <linux/slab.h>
 #include <linux/sysfs.h>
 
 #include "../iio.h"

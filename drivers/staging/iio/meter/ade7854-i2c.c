@@ -9,6 +9,7 @@
 #include <linux/device.h>
 #include <linux/kernel.h>
 #include <linux/i2c.h>
+#include <linux/slab.h>
 
 #include "../iio.h"
 #include "ade7854.h"

@@ -9,6 +9,7 @@
 #include <linux/device.h>
 #include <linux/kernel.h>
 #include <linux/spi/spi.h>
+#include <linux/slab.h>
 
 #include "../iio.h"
 #include "ade7854.h"
