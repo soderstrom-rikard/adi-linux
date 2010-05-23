@@ -236,5 +236,5 @@ void ad7476_uninitialize_ring(struct iio_ring_buffer *ring)
 
 int ad7476_initialize_ring(struct iio_ring_buffer *ring)
 {
-	return iio_ring_buffer_register(ring);
+	return iio_ring_buffer_register(ring, 0);
 };

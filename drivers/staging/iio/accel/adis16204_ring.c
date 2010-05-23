@@ -243,7 +243,7 @@ error_iio_sw_rb_free:
 
 int adis16204_initialize_ring(struct iio_ring_buffer *ring)
 {
-	return iio_ring_buffer_register(ring);
+	return iio_ring_buffer_register(ring, 0);
 }
 
 void adis16204_uninitialize_ring(struct iio_ring_buffer *ring)
