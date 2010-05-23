@@ -28,7 +28,7 @@ static int ad714x_i2c_resume(struct i2c_client *client)
 #endif
 
 static int ad714x_i2c_write(struct device *dev, unsigned short reg,
-		unsigned short data)
+				unsigned short data)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	int ret = 0;
@@ -50,7 +50,7 @@ static int ad714x_i2c_write(struct device *dev, unsigned short reg,
 }
 
 static int ad714x_i2c_read(struct device *dev, unsigned short reg,
-		unsigned short *data)
+				unsigned short *data)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	int ret = 0;
@@ -64,39 +64,42 @@ static int ad714x_i2c_read(struct device *dev, unsigned short reg,
 	u8 rx[2];
 
 	ret = i2c_master_send(client, tx, 2);
-	if (ret < 0) {
-		dev_err(&client->dev, "I2C read error\n");
-		return ret;
-	}
+	if (ret >= 0)
+		ret = i2c_master_recv(client, rx, 2);
 
-	ret = i2c_master_recv(client, rx, 2);
-	if (ret < 0) {
+	if (unlikely(ret < 0)) {
 		dev_err(&client->dev, "I2C read error\n");
-		return ret;
+	} else {
+		_data[0] = rx[1];
+		_data[1] = rx[0];
 	}
-
-	_data[0] = rx[1];
-	_data[1] = rx[0];
 
 	return ret;
 }
 
 static int __devinit ad714x_i2c_probe(struct i2c_client *client,
-		const struct i2c_device_id *id)
+					const struct i2c_device_id *id)
 {
-	int ret = 0;
-	struct ad714x_chip *chip = NULL;
+	struct ad714x_chip *chip;
 
-	ret = ad714x_probe(&chip, &client->dev, BUS_I2C, client->irq,
-		ad714x_i2c_read, ad714x_i2c_write);
+	chip = ad714x_probe(&client->dev, BUS_I2C, client->irq,
+			    ad714x_i2c_read, ad714x_i2c_write);
+	if (IS_ERR(chip))
+		return PTR_ERR(chip);
+
 	i2c_set_clientdata(client, chip);
 
-	return ret;
+	return 0;
 }
 
 static int __devexit ad714x_i2c_remove(struct i2c_client *client)
 {
-	return ad714x_remove(i2c_get_clientdata(client));
+	struct ad714x_chip *chip = i2c_get_clientdata(client);
+
+	ad714x_remove(chip);
+	i2c_set_clientdata(client, NULL);
+
+	return 0;
 }
 
 static const struct i2c_device_id ad714x_id[] = {

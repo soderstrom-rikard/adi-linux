@@ -53,19 +53,26 @@ static int ad714x_spi_write(struct device *dev, unsigned short reg,
 
 static int __devinit ad714x_spi_probe(struct spi_device *spi)
 {
-	int ret;
-	struct ad714x_chip *chip = NULL;
+	struct ad714x_chip *chip;
 
-	ret = ad714x_probe(&chip, &spi->dev, BUS_SPI, spi->irq,
-		ad714x_spi_read, ad714x_spi_write);
+	chip = ad714x_probe(&spi->dev, BUS_SPI, spi->irq,
+			    ad714x_spi_read, ad714x_spi_write);
+	if (IS_ERR(chip))
+		return PTR_ERR(chip);
+
 	spi_set_drvdata(spi, chip);
 
-	return ret;
+	return 0;
 }
 
 static int __devexit ad714x_spi_remove(struct spi_device *spi)
 {
-	return ad714x_remove(spi_get_drvdata(spi));
+	struct ad714x_chip *chip = spi_get_drvdata(spi);
+
+	ad714x_remove(chip);
+	spi_set_drvdata(spi, NULL);
+
+	return 0;
 }
 
 static struct spi_driver ad714x_spi_driver = {
