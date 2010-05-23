@@ -141,12 +141,10 @@ static int __devinit bfin_flash_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	state->map.name       = DRIVER_NAME;
-#ifdef CONFIG_MTD_COMPLEX_MAPPINGS
 	state->map.read       = bfin_flash_read;
 	state->map.copy_from  = bfin_flash_copy_from;
 	state->map.write      = bfin_flash_write;
 	state->map.copy_to    = bfin_flash_copy_to;
-#endif
 	state->map.bankwidth  = pdata->width;
 	state->map.size       = memory->end - memory->start + 1;
 	state->map.virt       = (void __iomem *)memory->start;
