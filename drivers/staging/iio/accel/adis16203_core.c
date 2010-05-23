@@ -413,8 +413,8 @@ static struct attribute *adis16203_attributes[] = {
 	&iio_const_attr_name.dev_attr.attr,
 	&iio_dev_attr_volt_aux.dev_attr.attr,
 	&iio_const_attr_volt_aux_scale.dev_attr.attr,
-	&iio_dev_attr_incli_x.dev_attr.attr,
-	&iio_dev_attr_incli_y.dev_attr.attr,
+	&iio_dev_attr_incli_x_raw.dev_attr.attr,
+	&iio_dev_attr_incli_y_raw.dev_attr.attr,
 	&iio_dev_attr_incli_x_offset.dev_attr.attr,
 	&iio_const_attr_incli_scale.dev_attr.attr,
 	NULL

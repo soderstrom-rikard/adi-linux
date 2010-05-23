@@ -595,10 +595,10 @@ static struct attribute_group adis16261_event_attribute_group = {
 static struct attribute *adis16261_attributes[] = {
 	&iio_dev_attr_volt_supply.dev_attr.attr,
 	&iio_const_attr_volt_supply_scale.dev_attr.attr,
-	&iio_dev_attr_gyro.dev_attr.attr,
+	&iio_dev_attr_gyro_raw.dev_attr.attr,
 	&iio_dev_attr_gyro_scale.dev_attr.attr,
 	&iio_dev_attr_gyro_offset.dev_attr.attr,
-	&iio_dev_attr_angl.dev_attr.attr,
+	&iio_dev_attr_angl_raw.dev_attr.attr,
 	&iio_dev_attr_temp.dev_attr.attr,
 	&iio_const_attr_temp_offset.dev_attr.attr,
 	&iio_const_attr_temp_scale.dev_attr.attr,
