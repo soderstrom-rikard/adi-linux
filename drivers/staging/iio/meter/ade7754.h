@@ -128,11 +128,13 @@ int ade7754_initialize_ring(struct iio_ring_buffer *ring);
 void ade7754_uninitialize_ring(struct iio_ring_buffer *ring);
 #else /* CONFIG_IIO_RING_BUFFER */
 
-static inline void ade7754_remove_trigger(struct iio_dev *indio_dev) {};
+static inline void ade7754_remove_trigger(struct iio_dev *indio_dev)
+{
+}
 static inline int ade7754_probe_trigger(struct iio_dev *indio_dev)
 {
 	return 0;
-};
+}
 
 static inline ssize_t
 ade7754_read_data_from_ring(struct device *dev,
@@ -140,19 +142,22 @@ ade7754_read_data_from_ring(struct device *dev,
 			      char *buf)
 {
 	return 0;
-};
+}
 
 static int ade7754_configure_ring(struct iio_dev *indio_dev)
 {
 	return 0;
-};
+}
 static inline void ade7754_unconfigure_ring(struct iio_dev *indio_dev)
-{};
+{
+}
 static inline int ade7754_initialize_ring(struct iio_ring_buffer *ring)
 {
 	return 0;
-};
-static inline void ade7754_uninitialize_ring(struct iio_ring_buffer *ring) {};
+}
+static inline void ade7754_uninitialize_ring(struct iio_ring_buffer *ring)
+{
+}
 #endif /* CONFIG_IIO_RING_BUFFER */
 
 #endif

@@ -232,9 +232,9 @@ void ad7476_ring_cleanup(struct iio_dev *indio_dev)
 void ad7476_uninitialize_ring(struct iio_ring_buffer *ring)
 {
 	iio_ring_buffer_unregister(ring);
-};
+}
 
 int ad7476_initialize_ring(struct iio_ring_buffer *ring)
 {
 	return iio_ring_buffer_register(ring, 0);
-};
+}

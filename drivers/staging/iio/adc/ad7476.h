@@ -38,12 +38,12 @@ void ad7476_uninitialize_ring(struct iio_ring_buffer *ring);
 
 static inline void ad7476_uninitialize_ring(struct iio_ring_buffer *ring)
 {
-};
+}
 
 static inline int ad7476_initialize_ring(struct iio_ring_buffer *ring)
 {
 	return 0;
-};
+}
 
 
 static inline ssize_t ad7476_scan_from_ring(struct device *dev,
@@ -51,14 +51,16 @@ static inline ssize_t ad7476_scan_from_ring(struct device *dev,
 					     char *buf)
 {
 	return 0;
-};
+}
 
 static inline int
 ad7476_register_ring_funcs_and_init(struct iio_dev *indio_dev)
 {
 	return 0;
-};
+}
 
-static inline void ad7476_ring_cleanup(struct iio_dev *indio_dev) {};
+static inline void ad7476_ring_cleanup(struct iio_dev *indio_dev)
+{
+}
 #endif /* CONFIG_IIO_RING_BUFFER */
 #endif /* _AD7476_H_ */
