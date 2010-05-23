@@ -1358,7 +1358,9 @@ static struct file_operations ppi_fops = {
       fasync:ppi_fasync,
 };
 
-static ssize_t ppi_status_show(struct class *ppi_class,	char *buf)
+static ssize_t
+ppi_status_show(struct class *ppi_class, struct class_attribute *attr,
+                char *buf)
 {
 	char *p;
 	unsigned short i;
