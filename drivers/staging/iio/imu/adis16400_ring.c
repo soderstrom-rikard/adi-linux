@@ -55,7 +55,7 @@ static IIO_SCAN_EL_C(temp, ADIS16400_SCAN_TEMP, IIO_SIGNED(12),
 static IIO_SCAN_EL_C(adc_0, ADIS16400_SCAN_ADC_0, IIO_SIGNED(12),
 		     ADIS16400_AUX_ADC, NULL);
 
-static IIO_SCAN_EL_TIMESTAMP;
+static IIO_SCAN_EL_TIMESTAMP(12);
 
 static struct attribute *adis16400_scan_el_attrs[] = {
 	&iio_scan_el_supply.dev_attr.attr,
@@ -236,7 +236,7 @@ error_iio_sw_rb_free:
 
 int adis16400_initialize_ring(struct iio_ring_buffer *ring)
 {
-	return iio_ring_buffer_register(ring);
+	return iio_ring_buffer_register(ring, 0);
 }
 
 void adis16400_uninitialize_ring(struct iio_ring_buffer *ring)
