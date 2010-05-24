@@ -50,4 +50,3 @@ config AD2S1210_GPIO_NONE
 	bool "take the responsibility by user"
 
 endchoice
-
