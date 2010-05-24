@@ -64,7 +64,8 @@ inline int find_type_by_name(const char *name, const char *type)
 						+ strlen(type)
 						+ 1
 						+ numstrlen
-						+ 1);
+						+ 1
+						+ IIO_MAX_NAME_LENGTH);
 				if (filename == NULL)
 					return -ENOMEM;
 				sprintf(filename, "%s%s%d/name",
