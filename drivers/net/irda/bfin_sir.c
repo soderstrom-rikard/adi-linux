@@ -108,10 +108,9 @@ static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
 	case 115200:
 
 		/*
-		 * IRDA is not affected by ANOMALY_05000230, either can
-		 * not apply workaround for 05000230 like uart driver,
-		 * which slightly speed up the baud rate.
-		 * Verified on BF533.
+		 * IRDA is not affected by anomaly 05000230, so there is no
+		 * need to tweak the divisor like he UART driver (which will
+		 * slightly speed up the baud rate on us).
 		 */
 		quot = (port->clk + (8 * speed)) / (16 * speed);
 
