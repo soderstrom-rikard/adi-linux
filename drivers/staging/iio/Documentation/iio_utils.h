@@ -62,10 +62,8 @@ inline int find_type_by_name(const char *name, const char *type)
 					1) != 0) {
 				filename = malloc(strlen(iio_dir)
 						+ strlen(type)
-						+ 1
 						+ numstrlen
-						+ 1
-						+ IIO_MAX_NAME_LENGTH);
+						+ 6);
 				if (filename == NULL)
 					return -ENOMEM;
 				sprintf(filename, "%s%s%d/name",
