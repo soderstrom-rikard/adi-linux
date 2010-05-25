@@ -277,7 +277,7 @@ config BACKLIGHT_ADP5520
 	  be called adp5520_bl.
 
 config BACKLIGHT_ADP8860
-	tristate "Backlight Driver for ADP8860/ADP8863/ADP8861 using WLED"
+	tristate "Backlight Driver for ADP8860/ADP8861/ADP8863 using WLED"
 	depends on BACKLIGHT_CLASS_DEVICE && I2C
 	select NEW_LEDS
 	select LEDS_CLASS
