@@ -23,3 +23,7 @@ obj-$(CONFIG_AD7314) += ad7314.o
 obj-$(CONFIG_AD7816) += ad7816.o
 obj-$(CONFIG_ADT7310) += adt7310.o
 obj-$(CONFIG_AD7298) += ad7298.o
+
+ad799x-y := ad799x_core.o
+ad799x-$(CONFIG_AD799X_RING_BUFFER) += ad799x_ring.o
+obj-$(CONFIG_AD799X) += ad799x.o
