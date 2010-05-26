@@ -136,20 +136,19 @@ static ssize_t ad799x_show_precision(struct device *dev,
 static IIO_DEVICE_ATTR(in_precision, S_IRUGO, ad799x_show_precision,
 		       NULL, 0);
 
-int ad7991_5_9_set_scan_mode(struct ad799x_state *st, unsigned mask)
+static int ad7991_5_9_set_scan_mode(struct ad799x_state *st, unsigned mask)
 {
 	return i2c_smbus_write_byte(st->client,
 		st->config | (mask << AD799X_CHANNEL_SHIFT));
 }
 
-int ad7992_3_4_set_scan_mode(struct ad799x_state *st, unsigned mask)
+static int ad7992_3_4_set_scan_mode(struct ad799x_state *st, unsigned mask)
 {
-
 	return ad799x_i2c_write8(st, AD7998_CONF_REG,
 		st->config | (mask << AD799X_CHANNEL_SHIFT));
 }
 
-int ad7997_8_set_scan_mode(struct ad799x_state *st, unsigned mask)
+static int ad7997_8_set_scan_mode(struct ad799x_state *st, unsigned mask)
 {
 	return ad799x_i2c_write16(st, AD7998_CONF_REG,
 		st->config | (mask << AD799X_CHANNEL_SHIFT));
@@ -323,7 +322,6 @@ static ssize_t ad799x_write_frequency(struct device *dev,
 	}
 
 	ret = ad799x_i2c_write8(st, AD7998_CYCLE_TMR_REG, t);
-
 
 error_ret_mutex:
 	mutex_unlock(&dev_info->mlock);
@@ -671,7 +669,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 		.int_vref_mv = 4096,
 		.dev_attrs = &ad7991_5_9_3_4_dev_attr_group,
 		.scan_attrs = &ad7991_5_9_3_4_scan_el_group,
-		.ad799x_set_scan_mode = (void *) ad7991_5_9_set_scan_mode,
+		.ad799x_set_scan_mode = ad7991_5_9_set_scan_mode,
 	},
 	[ad7995] = {
 		.num_inputs = 4,
@@ -679,7 +677,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 		.int_vref_mv = 1024,
 		.dev_attrs = &ad7991_5_9_3_4_dev_attr_group,
 		.scan_attrs = &ad7991_5_9_3_4_scan_el_group,
-		.ad799x_set_scan_mode = (void *) ad7991_5_9_set_scan_mode,
+		.ad799x_set_scan_mode = ad7991_5_9_set_scan_mode,
 	},
 	[ad7999] = {
 		.num_inputs = 4,
@@ -687,7 +685,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 		.int_vref_mv = 1024,
 		.dev_attrs = &ad7991_5_9_3_4_dev_attr_group,
 		.scan_attrs = &ad7991_5_9_3_4_scan_el_group,
-		.ad799x_set_scan_mode = (void *) ad7991_5_9_set_scan_mode,
+		.ad799x_set_scan_mode = ad7991_5_9_set_scan_mode,
 	},
 	[ad7992] = {
 		.num_inputs = 2,
@@ -698,7 +696,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 		.dev_attrs = &ad7992_dev_attr_group,
 		.scan_attrs = &ad7992_scan_el_group,
 		.event_attrs = &ad7992_event_attrs_group,
-		.ad799x_set_scan_mode = (void *) ad7992_3_4_set_scan_mode,
+		.ad799x_set_scan_mode = ad7992_3_4_set_scan_mode,
 	},
 	[ad7993] = {
 		.num_inputs = 4,
@@ -709,7 +707,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 		.dev_attrs = &ad7991_5_9_3_4_dev_attr_group,
 		.scan_attrs = &ad7991_5_9_3_4_scan_el_group,
 		.event_attrs = &ad7993_4_7_8_event_attrs_group,
-		.ad799x_set_scan_mode = (void *) ad7992_3_4_set_scan_mode,
+		.ad799x_set_scan_mode = ad7992_3_4_set_scan_mode,
 	},
 	[ad7994] = {
 		.num_inputs = 4,
@@ -720,7 +718,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 		.dev_attrs = &ad7991_5_9_3_4_dev_attr_group,
 		.scan_attrs = &ad7991_5_9_3_4_scan_el_group,
 		.event_attrs = &ad7993_4_7_8_event_attrs_group,
-		.ad799x_set_scan_mode = (void *) ad7992_3_4_set_scan_mode,
+		.ad799x_set_scan_mode = ad7992_3_4_set_scan_mode,
 	},
 	[ad7997] = {
 		.num_inputs = 8,
@@ -731,7 +729,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 		.dev_attrs = &ad7997_8_dev_attr_group,
 		.scan_attrs = &ad7997_8_scan_el_group,
 		.event_attrs = &ad7993_4_7_8_event_attrs_group,
-		.ad799x_set_scan_mode = (void *) ad7997_8_set_scan_mode,
+		.ad799x_set_scan_mode = ad7997_8_set_scan_mode,
 	},
 	[ad7998] = {
 		.num_inputs = 8,
@@ -742,14 +740,9 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 		.dev_attrs = &ad7997_8_dev_attr_group,
 		.scan_attrs = &ad7997_8_scan_el_group,
 		.event_attrs = &ad7993_4_7_8_event_attrs_group,
-		.ad799x_set_scan_mode = (void *) ad7997_8_set_scan_mode,
+		.ad799x_set_scan_mode = ad7997_8_set_scan_mode,
 	},
 };
-
-static int ad799x_initial_setup(struct ad799x_state *st)
-{
-	return ad799x_set_scan_mode(st, 0);
-}
 
 static int __devinit ad799x_probe(struct i2c_client *client,
 				   const struct i2c_device_id *id)
@@ -802,7 +795,7 @@ static int __devinit ad799x_probe(struct i2c_client *client,
 	st->indio_dev->modes = INDIO_DIRECT_MODE;
 	st->indio_dev->num_interrupt_lines = 1;
 
-	ret = ad799x_initial_setup(st);
+	ret = ad799x_set_scan_mode(st, 0);
 	if (ret)
 		goto error_free_device;
 
@@ -853,12 +846,11 @@ error_put_reg:
 	if (!IS_ERR(st->reg))
 		regulator_put(st->reg);
 	kfree(st);
-
 error_ret:
 	return ret;
 }
 
-static int ad799x_remove(struct i2c_client *client)
+static __devexit int ad799x_remove(struct i2c_client *client)
 {
 	struct ad799x_state *st = i2c_get_clientdata(client);
 	struct iio_dev *indio_dev = st->indio_dev;
@@ -897,7 +889,7 @@ static struct i2c_driver ad799x_driver = {
 		.name = "ad799x",
 	},
 	.probe = ad799x_probe,
-	.remove = ad799x_remove,
+	.remove = __devexit_p(ad799x_remove),
 	.id_table = ad799x_id,
 };
 
