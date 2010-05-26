@@ -140,7 +140,7 @@ static int ad7879_write(struct ad7879 *ts, u8 reg, u16 val)
 	return ts->bdata.bops->write(ts->bdata.client, reg, val);
 }
 
-static void ad7879_report(struct ad7879 *ts)
+static int ad7879_report(struct ad7879 *ts)
 {
 	struct input_dev *input_dev = ts->input;
 	unsigned Rt;
@@ -167,11 +167,17 @@ static void ad7879_report(struct ad7879 *ts)
 		Rt /= z1;
 		Rt = (Rt + 2047) >> 12;
 
+		if (!timer_pending(&ts->timer))
+			input_report_key(input_dev, BTN_TOUCH, 1);
+
 		input_report_abs(input_dev, ABS_X, x);
 		input_report_abs(input_dev, ABS_Y, y);
 		input_report_abs(input_dev, ABS_PRESSURE, Rt);
 		input_sync(input_dev);
+		return 0;
 	}
+
+	return -EINVAL;
 }
 
 static void ad7879_work(struct work_struct *work)
@@ -180,8 +186,8 @@ static void ad7879_work(struct work_struct *work)
 
 	/* use keventd context to read the result registers */
 	ad7879_multi_read(ts, AD7879_REG_XPLUS, AD7879_NR_SENSE, ts->conversion_data);
-	ad7879_report(ts);
-	mod_timer(&ts->timer, jiffies + TS_PEN_UP_TIMEOUT);
+	if (!ad7879_report(ts))
+		mod_timer(&ts->timer, jiffies + TS_PEN_UP_TIMEOUT);
 }
 
 static void ad7879_ts_event_release(struct ad7879 *ts)
@@ -189,6 +195,7 @@ static void ad7879_ts_event_release(struct ad7879 *ts)
 	struct input_dev *input_dev = ts->input;
 
 	input_report_abs(input_dev, ABS_PRESSURE, 0);
+	input_report_key(input_dev, BTN_TOUCH, 0);
 	input_sync(input_dev);
 }
 
@@ -474,6 +481,8 @@ ad7879_probe(struct device *dev, struct ad7879_bus_data *bdata, u8 devid, u16 bu
 	input_dev->dev.parent = dev;
 	input_dev->id.bustype = bustype;
 
+	__set_bit(EV_KEY, input_dev->evbit);
+	__set_bit(BTN_TOUCH, input_dev->keybit);
 	__set_bit(EV_ABS, input_dev->evbit);
 	__set_bit(ABS_X, input_dev->absbit);
 	__set_bit(ABS_Y, input_dev->absbit);
