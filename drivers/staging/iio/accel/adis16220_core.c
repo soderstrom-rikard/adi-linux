@@ -291,9 +291,9 @@ static int adis16220_check_status(struct device *dev)
 	if (status & ADIS16220_DIAG_STAT_FLASH_UPT)
 		dev_err(dev, "Flash update failed\n");
 	if (status & ADIS16220_DIAG_STAT_POWER_HIGH)
-		dev_err(dev, "Power supply above 5.25V\n");
+		dev_err(dev, "Power supply above 3.625V\n");
 	if (status & ADIS16220_DIAG_STAT_POWER_LOW)
-		dev_err(dev, "Power supply below 4.75V\n");
+		dev_err(dev, "Power supply below 3.15V\n");
 
 error_ret:
 	return ret;
