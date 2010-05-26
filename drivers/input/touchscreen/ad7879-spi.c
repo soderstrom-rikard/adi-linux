@@ -117,6 +117,7 @@ static const struct ad7879_bus_ops bops = {
 
 static int __devinit ad7879_spi_probe(struct spi_device *spi)
 {
+	int err;
 	struct ad7879_bus_data bdata = {
 		.client = spi,
 		.irq = spi->irq,
@@ -129,9 +130,11 @@ static int __devinit ad7879_spi_probe(struct spi_device *spi)
 		return -EINVAL;
 	}
 
-	if (spi->bits_per_word != 16) {
-		spi->bits_per_word = 16;
-		spi_setup(spi);
+	spi->bits_per_word = 16;
+	err = spi_setup(spi);
+	if (err) {
+		dev_dbg(&spi->dev, "spi master doesn't support 16 bits/word\n");
+		return err;
 	}
 
 	return ad7879_probe(&spi->dev, &bdata, AD7879_DEVID, BUS_SPI);
