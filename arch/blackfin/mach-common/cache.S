@@ -11,7 +11,11 @@
 #include <asm/cache.h>
 #include <asm/page.h>
 
+#ifdef CONFIG_CACHE_FLUSH_L1
+.section .l1.text
+#else
 .text
+#endif
 
 /* 05000443 - IFLUSH cannot be last instruction in hardware loop */
 #if ANOMALY_05000443
