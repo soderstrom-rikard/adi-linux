@@ -57,12 +57,10 @@
 
 /* if 220 exists, can not set External Memory WB and L2 not_cached, either External Memory not_cached and L2 WB */
 #if ANOMALY_05000220 && \
-	((defined(CONFIG_BFIN_EXTMEM_WRITEBACK) && !defined(CONFIG_BFIN_L2_DCACHEABLE)) || \
-	 (!defined(CONFIG_BFIN_EXTMEM_DCACHEABLE) && defined(CONFIG_BFIN_L2_WRITEBACK)))
-# error You are exposing Anomaly 220 in this config, either config L2 as Write Through, or make External Memory WB.
+	(defined(CONFIG_BFIN_EXTMEM_WRITEBACK) || defined(CONFIG_BFIN_L2_WRITEBACK))
+# error "Anomaly 05000220 does not allow you to use Write Back cache with L2 or External Memory"
 #endif
 
-#if ANOMALY_05000475 && \
-	(defined(CONFIG_BFIN_EXTMEM_WRITEBACK) || defined(CONFIG_BFIN_L2_WRITEBACK))
-# error "Anomaly 475 does not allow you to use Write Back cache with L2 or External Memory"
+#if ANOMALY_05000491 && !defined(CONFIG_CACHE_FLUSH_L1)
+# error You need IFLUSH in L1 inst while Anomaly 05000491 applies
 #endif
