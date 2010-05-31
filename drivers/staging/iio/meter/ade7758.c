@@ -183,7 +183,7 @@ static int ade7758_spi_read_reg_24(struct device *dev,
 		{
 			.tx_buf = st->tx,
 			.bits_per_word = 8,
-			.len = 3,
+			.len = 4,
 		},
 	};
 
