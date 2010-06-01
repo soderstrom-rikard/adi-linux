@@ -539,11 +539,20 @@ static void bf5xx_nand_dma_rw(struct mtd_info *mtd,
 	enable_dma(CH_NFC);
 
 	/* Start PAGE read/write operation */
-	if (is_read)
+	if (is_read) {
 		bfin_write_NFC_PGCTL(PG_RD_START);
-	else
+		wait_for_completion(&info->dma_completion);
+	} else {
 		bfin_write_NFC_PGCTL(PG_WR_START);
-	wait_for_completion(&info->dma_completion);
+		wait_for_completion(&info->dma_completion);
+		/*
+		 * When the DMA generates an interrupt on completion, the WR_DONE
+		 * bit should be checked to verify the last transfer is complete
+		 */
+		while ((bfin_read_NFC_IRQSTAT() & WR_DONE) != WR_DONE)
+			cpu_relax();
+		bfin_write_NFC_IRQSTAT(WR_DONE);
+	}
 }
 
 static void bf5xx_nand_dma_read_buf(struct mtd_info *mtd,
