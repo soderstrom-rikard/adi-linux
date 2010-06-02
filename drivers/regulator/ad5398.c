@@ -1,5 +1,5 @@
 /*
- * ad5398.c  --  Voltage and current regulation for AD5398 and AD5821
+ * Voltage and current regulation for AD5398 and AD5821
  *
  * Copyright 2010 Analog Devices Inc.
  *
@@ -7,6 +7,7 @@
  *
  * Licensed under the GPL-2 or later.
  */
+
 #include <linux/module.h>
 #include <linux/err.h>
 #include <linux/i2c.h>
@@ -111,7 +112,7 @@ static int ad5398_set_current_limit(struct regulator_dev *rdev, int min_uA, int 
 	selector |= (data & AD5398_CURRENT_EN_MASK);
 
 	/* write the new current value back as well as enable bit */
-	ret = ad5398_write_reg(client, (unsigned short)selector);
+	ret = ad5398_write_reg(client, selector);
 
 	return ret;
 }
@@ -175,7 +176,7 @@ static int ad5398_disable(struct regulator_dev *rdev)
 	return ret;
 }
 
-static struct regulator_ops ad5398_ops = {
+static const struct regulator_ops ad5398_ops = {
 	.get_current_limit = ad5398_get_current_limit,
 	.set_current_limit = ad5398_set_current_limit,
 	.enable = ad5398_enable,
@@ -183,7 +184,7 @@ static struct regulator_ops ad5398_ops = {
 	.is_enabled = ad5398_is_enabled,
 };
 
-static struct regulator_desc ad5398_reg = {
+static const struct regulator_desc ad5398_reg = {
 		.name = "isink",
 		.id = 0,
 		.ops = &ad5398_ops,
@@ -212,14 +213,14 @@ static int ad5398_probe(struct i2c_client *client,
 	struct regulator_dev *rdev;
 	struct regulator_init_data *init_data = client->dev.platform_data;
 	struct ad5398_chip_info *chip;
-	struct ad5398_current_data_format *df =
+	const struct ad5398_current_data_format *df =
 			(struct ad5398_current_data_format *)id->driver_data;
 	int ret;
 
 	if (!init_data)
 		return -EINVAL;
 
-	chip = kzalloc(sizeof(struct ad5398_chip_info), GFP_KERNEL);
+	chip = kzalloc(sizeof(*chip), GFP_KERNEL);
 	if (!chip)
 		return -ENOMEM;
 
@@ -240,7 +241,7 @@ static int ad5398_probe(struct i2c_client *client,
 	}
 
 	i2c_set_clientdata(client, chip);
-	dev_dbg(&client->dev, "%s regulator driver loaded\n", id->name);
+	dev_dbg(&client->dev, "%s regulator driver is registered.\n", id->name);
 	return 0;
 
 err:
@@ -261,7 +262,7 @@ static int ad5398_remove(struct i2c_client *client)
 
 static struct i2c_driver ad5398_driver = {
 	.probe = ad5398_probe,
-	.remove = ad5398_remove,
+	.remove = __devexit_p(ad5398_remove),
 	.driver		= {
 		.name	= "ad5398",
 	},
@@ -283,3 +284,4 @@ module_exit(ad5398_exit);
 MODULE_DESCRIPTION("AD5398 and AD5821 current regulator driver");
 MODULE_AUTHOR("Sonic Zhang");
 MODULE_LICENSE("GPL");
+MODULE_ALIAS("platform:ad5398-regulator");
