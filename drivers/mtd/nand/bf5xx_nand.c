@@ -322,8 +322,8 @@ static int bf5xx_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 	/* If ecc size is 512, correct second 256 bytes */
 	if (chip->ecc.size == 512) {
 		dat += 256;
-		read_ecc += 8;
-		calc_ecc += 8;
+		read_ecc += 3;
+		calc_ecc += 3;
 		ret |= bf5xx_nand_correct_data_256(mtd, dat, read_ecc, calc_ecc);
 	}
 
