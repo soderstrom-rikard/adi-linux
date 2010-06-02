@@ -618,6 +618,10 @@ static int adau1373_hw_params(struct snd_pcm_substream *substream,
 
 	if (i == adau1373->data->pll_settings_num)
 		return -EINVAL;
+
+	reg = snd_soc_read(codec, ADAU_CLK1SDIV);
+	snd_soc_write(codec, ADAU_CLK1SDIV, reg & ~CLKSDIV_COREN);
+	snd_soc_write(codec, ADAU_PLLACTL6, 0x0);
 	/* Divide PLL output(48k * 1024 or 44.1k * 1024) to get wanted rate */
 	switch (params_rate(params)) {
 	case 96000:
@@ -642,10 +646,8 @@ static int adau1373_hw_params(struct snd_pcm_substream *substream,
 		dev_err(codec->dev, "rate : %d isn't supported\n", params_rate(params));
 		break;
 	}
-	reg = snd_soc_read(codec, ADAU_CLK1SDIV);
-	snd_soc_write(codec, ADAU_CLK1SDIV, reg & ~CLKSDIV_COREN);
+
 	/* Set PLL */
-	snd_soc_write(codec, ADAU_PLLACTL6, 0x00);
 
 	snd_soc_write(codec, ADAU_PLLACTL1,
 		((pll_settings + i)->m & 0xff00) >> 8);
@@ -678,8 +680,6 @@ static int adau1373_hw_params(struct snd_pcm_substream *substream,
 	}
 	reg = snd_soc_read(codec, ADAU_DAIA);
 	snd_soc_write(codec, ADAU_DAIA, reg | dai_ctl);
-	snd_soc_write(codec, ADAU_PLLACTL, 0x00);
-	snd_soc_write(codec, ADAU_PLLACTL6, PLLEN);
 
 	return 0;
 }
@@ -693,6 +693,8 @@ static int adau1373_pcm_prepare(struct snd_pcm_substream *substream,
 	int counter = 0;
 	u8 reg;
 
+	snd_soc_write(codec, ADAU_PLLACTL, 0x00);
+	snd_soc_write(codec, ADAU_PLLACTL6, PLLEN);
 	/* Chcek if PLL is locked by polling the lock bit */
 	do {
 		++counter;
@@ -707,6 +709,7 @@ static int adau1373_pcm_prepare(struct snd_pcm_substream *substream,
 
 	/* Use DAI A */
 	snd_soc_write(codec, ADAU_DAIACTL, DAI_EN);
+	udelay(10);
 	reg = snd_soc_read(codec, ADAU_CLK1SDIV);
 	snd_soc_write(codec, ADAU_CLK1SDIV, reg | CLKSDIV_COREN);
 
@@ -726,7 +729,7 @@ static void adau1373_shutdown(struct snd_pcm_substream *substream,
 		reg = snd_soc_read(codec, ADAU_CLK1SDIV);
 		snd_soc_write(codec, ADAU_DAIACTL, 0x00);
 		snd_soc_write(codec, ADAU_CLK1SDIV, reg & ~CLKSDIV_COREN);
-		snd_soc_write(codec, ADAU_PLLACTL6, 0x0);
+		snd_soc_write(codec, ADAU_PLLACTL6, 0x00);
 	}
 }
 
@@ -826,18 +829,15 @@ static int adau1373_set_bias_level(struct snd_soc_codec *codec,
 	switch (level) {
 	case SND_SOC_BIAS_ON:
 		snd_soc_write(codec, ADAU_PWDCTL3, reg_pwr | WHOLEPWR);
-		snd_soc_write(codec, ADAU_CLK1SDIV, reg_clk | CLKSDIV_COREN);
 		/* vref/mid, osc on, dac unmute */
 		break;
 	case SND_SOC_BIAS_PREPARE:
 		break;
 	case SND_SOC_BIAS_STANDBY:
 		/* everything off except vref/vmid, */
-		snd_soc_write(codec, ADAU_CLK1SDIV, reg_clk & ~CLKSDIV_COREN);
+		snd_soc_write(codec, ADAU_PWDCTL3, reg_pwr & ~WHOLEPWR);
 		break;
 	case SND_SOC_BIAS_OFF:
-		snd_soc_write(codec, ADAU_PWDCTL3, reg_pwr & ~WHOLEPWR);
-		snd_soc_write(codec, ADAU_CLK1SDIV, reg_clk & ~CLKSDIV_COREN);
 		break;
 	}
 	codec->bias_level = level;
