@@ -176,7 +176,7 @@ static int ad5398_disable(struct regulator_dev *rdev)
 	return ret;
 }
 
-static const struct regulator_ops ad5398_ops = {
+static struct regulator_ops ad5398_ops = {
 	.get_current_limit = ad5398_get_current_limit,
 	.set_current_limit = ad5398_set_current_limit,
 	.enable = ad5398_enable,
@@ -184,12 +184,12 @@ static const struct regulator_ops ad5398_ops = {
 	.is_enabled = ad5398_is_enabled,
 };
 
-static const struct regulator_desc ad5398_reg = {
-		.name = "isink",
-		.id = 0,
-		.ops = &ad5398_ops,
-		.type = REGULATOR_CURRENT,
-		.owner = THIS_MODULE,
+static struct regulator_desc ad5398_reg = {
+	.name = "isink",
+	.id = 0,
+	.ops = &ad5398_ops,
+	.type = REGULATOR_CURRENT,
+	.owner = THIS_MODULE,
 };
 
 struct ad5398_current_data_format {
@@ -206,8 +206,8 @@ static const struct i2c_device_id ad5398_id[] = {
 };
 MODULE_DEVICE_TABLE(i2c, ad5398_id);
 
-static int ad5398_probe(struct i2c_client *client,
-		      const struct i2c_device_id *id)
+static int __devinit ad5398_probe(struct i2c_client *client,
+				  const struct i2c_device_id *id)
 {
 	struct regulator_dev *rdev;
 	struct regulator_init_data *init_data = client->dev.platform_data;
@@ -248,7 +248,7 @@ err:
 	return ret;
 }
 
-static int ad5398_remove(struct i2c_client *client)
+static int __devexit ad5398_remove(struct i2c_client *client)
 {
 	struct ad5398_chip_info *chip = i2c_get_clientdata(client);
 
