@@ -13,12 +13,14 @@
 #include <linux/slab.h>
 #include <linux/platform_device.h>
 #include <linux/regulator/driver.h>
-#include <linux/regulator/ad5398.h>
+#include <linux/regulator/machine.h>
+
+#define AD5398_CURRENT_EN_MASK	0x8000
 
 struct ad5398_chip_info {
 	struct i2c_client *client;
-	unsigned int min_uA;
-	unsigned int max_uA;
+	int min_uA;
+	int max_uA;
 	unsigned int current_level;
 	unsigned int current_mask;
 	unsigned int current_offset;
@@ -33,25 +35,51 @@ static int ad5398_calc_current(struct ad5398_chip_info *chip,
 	return chip->min_uA + (selector * range_uA / chip->current_level);
 }
 
-static int ad5398_get(struct regulator_dev *rdev)
+static int ad5398_read_reg(struct i2c_client *client, unsigned short *data)
+{
+	unsigned short val;
+	int ret;
+
+	ret = i2c_master_recv(client, (char *)&val, 2);
+	if (ret < 0) {
+		dev_err(&client->dev, "I2C read error\n");
+		return ret;
+	}
+	*data = swab16(val);
+
+	return ret;
+}
+
+static int ad5398_write_reg(struct i2c_client *client, const unsigned short data)
+{
+	unsigned short val;
+	int ret;
+
+	val = swab16(data);
+	ret = i2c_master_send(client, (char *)&val, 2);
+	if (ret < 0)
+		dev_err(&client->dev, "I2C write error\n");
+
+	return ret;
+}
+
+static int ad5398_get_current_limit(struct regulator_dev *rdev)
 {
 	struct ad5398_chip_info *chip = rdev_get_drvdata(rdev);
 	struct i2c_client *client = chip->client;
 	unsigned short data;
 	int ret;
 
-	ret = i2c_master_recv(client, (char *)&data, 2);
-	if (ret < 0) {
-		dev_err(&client->dev, "I2C read error\n");
+	ret = ad5398_read_reg(client, &data);
+	if (ret < 0)
 		return ret;
-	}
 
-	ret = (be16_to_cpu(data) & chip->current_mask) >> chip->current_offset;
+	ret = (data & chip->current_mask) >> chip->current_offset;
 
 	return ad5398_calc_current(chip, ret);
 }
 
-static int ad5398_set(struct regulator_dev *rdev, int min_uA, int max_uA)
+static int ad5398_set_current_limit(struct regulator_dev *rdev, int min_uA, int max_uA)
 {
 	struct ad5398_chip_info *chip = rdev_get_drvdata(rdev);
 	struct i2c_client *client = chip->client;
@@ -74,22 +102,16 @@ static int ad5398_set(struct regulator_dev *rdev, int min_uA, int max_uA)
 		ad5398_calc_current(chip, selector) / 1000);
 
 	/* read chip enable bit */
-	ret = i2c_master_recv(client, (char *)&data, 2);
-	if (ret < 0) {
-		dev_err(&client->dev, "I2C read error\n");
+	ret = ad5398_read_reg(client, &data);
+	if (ret < 0)
 		return ret;
-	}
-	data = be16_to_cpu(data);
 
 	/* prepare register data */
 	selector = (selector << chip->current_offset) & chip->current_mask;
-	selector |= (data & CURRENT_EN_MASK);
+	selector |= (data & AD5398_CURRENT_EN_MASK);
 
 	/* write the new current value back as well as enable bit */
-	data = cpu_to_be16((unsigned short)selector);
-	ret = i2c_master_send(client, (char *)&data, 2);
-	if (ret < 0)
-		dev_err(&client->dev, "I2C write error\n");
+	ret = ad5398_write_reg(client, (unsigned short)selector);
 
 	return ret;
 }
@@ -101,13 +123,11 @@ static int ad5398_is_enabled(struct regulator_dev *rdev)
 	unsigned short data;
 	int ret;
 
-	ret = i2c_master_recv(client, (char *)&data, 2);
-	if (ret < 0) {
-		dev_err(&client->dev, "I2C read error\n");
+	ret = ad5398_read_reg(client, &data);
+	if (ret < 0)
 		return ret;
-	}
 
-	if (be16_to_cpu(data) & CURRENT_EN_MASK)
+	if (data & AD5398_CURRENT_EN_MASK)
 		return 1;
 	else
 		return 0;
@@ -120,20 +140,16 @@ static int ad5398_enable(struct regulator_dev *rdev)
 	unsigned short data;
 	int ret;
 
-	ret = i2c_master_recv(client, (char *)&data, 2);
-	if (ret < 0) {
-		dev_err(&client->dev, "I2C read error\n");
+	ret = ad5398_read_reg(client, &data);
+	if (ret < 0)
 		return ret;
-	}
-	data = be16_to_cpu(data);
-	if (data & CURRENT_EN_MASK)
+
+	if (data & AD5398_CURRENT_EN_MASK)
 		return 0;
 
-	data = cpu_to_be16(data | CURRENT_EN_MASK);
+	data |= AD5398_CURRENT_EN_MASK;
 
-	ret = i2c_master_send(client, (char *)&data, 2);
-	if (ret < 0)
-		dev_err(&client->dev, "I2C write error\n");
+	ret = ad5398_write_reg(client, data);
 
 	return ret;
 }
@@ -145,31 +161,26 @@ static int ad5398_disable(struct regulator_dev *rdev)
 	unsigned short data;
 	int ret;
 
-	ret = i2c_master_recv(client, (char *)&data, 2);
-	if (ret < 0) {
-		dev_err(&client->dev, "I2C read error\n");
+	ret = ad5398_read_reg(client, &data);
+	if (ret < 0)
 		return ret;
-	}
-	if (!(data & CURRENT_EN_MASK))
+
+	if (!(data & AD5398_CURRENT_EN_MASK))
 		return 0;
 
-	data = cpu_to_be16(data & ~CURRENT_EN_MASK);
+	data &= ~AD5398_CURRENT_EN_MASK;
 
-	ret = i2c_master_send(client, (char *)&data, 2);
-	if (ret < 0)
-		dev_err(&client->dev, "I2C write error\n");
+	ret = ad5398_write_reg(client, data);
 
 	return ret;
 }
 
 static struct regulator_ops ad5398_ops = {
-	.get_current_limit = ad5398_get,
-	.set_current_limit = ad5398_set,
+	.get_current_limit = ad5398_get_current_limit,
+	.set_current_limit = ad5398_set_current_limit,
 	.enable = ad5398_enable,
 	.disable = ad5398_disable,
 	.is_enabled = ad5398_is_enabled,
-	.set_suspend_enable = ad5398_enable,
-	.set_suspend_disable = ad5398_disable,
 };
 
 static struct regulator_desc ad5398_reg = {
@@ -180,18 +191,32 @@ static struct regulator_desc ad5398_reg = {
 		.owner = THIS_MODULE,
 };
 
+struct ad5398_current_data_format {
+	int current_bits;
+	int current_offset;
+};
+
+static const struct ad5398_current_data_format ad5398_df = {10, 4};
+static const struct ad5398_current_data_format ad5821_df = {10, 4};
+
+static const struct i2c_device_id ad5398_id[] = {
+	{ "ad5398", (kernel_ulong_t)&ad5398_df },
+	{ "ad5821", (kernel_ulong_t)&ad5821_df },
+	{ }
+};
+MODULE_DEVICE_TABLE(i2c, ad5398_id);
+
 static int ad5398_probe(struct i2c_client *client,
 		      const struct i2c_device_id *id)
 {
 	struct regulator_dev *rdev;
-	struct ad5398_platform_data *pdata = client->dev.platform_data;
+	struct regulator_init_data *init_data = client->dev.platform_data;
 	struct ad5398_chip_info *chip;
+	struct ad5398_current_data_format *df =
+			(struct ad5398_current_data_format *)id->driver_data;
 	int ret;
 
-	if (!pdata || !(pdata->regulator_data))
-		return -EINVAL;
-
-	if (pdata->current_bits >= CURRENT_BITS_MAX)
+	if (!init_data)
 		return -EINVAL;
 
 	chip = kzalloc(sizeof(struct ad5398_chip_info), GFP_KERNEL);
@@ -200,14 +225,13 @@ static int ad5398_probe(struct i2c_client *client,
 
 	chip->client = client;
 
-	chip->min_uA = pdata->regulator_data->constraints.min_uA;
-	chip->max_uA = pdata->regulator_data->constraints.max_uA;
-	chip->current_level = 1 << pdata->current_bits;
-	chip->current_offset = pdata->current_offset;
+	chip->min_uA = init_data->constraints.min_uA;
+	chip->max_uA = init_data->constraints.max_uA;
+	chip->current_level = 1 << df->current_bits;
+	chip->current_offset = df->current_offset;
 	chip->current_mask = (chip->current_level - 1) << chip->current_offset;
 
-	rdev = regulator_register(&ad5398_reg, &client->dev,
-			 pdata->regulator_data, chip);
+	rdev = regulator_register(&ad5398_reg, &client->dev, init_data, chip);
 	if (IS_ERR(rdev)) {
 		ret = PTR_ERR(rdev);
 		dev_err(&client->dev, "failed to register %s %s\n",
@@ -216,7 +240,7 @@ static int ad5398_probe(struct i2c_client *client,
 	}
 
 	i2c_set_clientdata(client, chip);
-	dev_info(&client->dev, "%s regulator driver loaded\n", id->name);
+	dev_dbg(&client->dev, "%s regulator driver loaded\n", id->name);
 	return 0;
 
 err:
@@ -228,21 +252,12 @@ static int ad5398_remove(struct i2c_client *client)
 {
 	struct ad5398_chip_info *chip = i2c_get_clientdata(client);
 
-	if (chip) {
-		regulator_unregister(&chip->rdev);
-		kfree(chip);
-	}
+	regulator_unregister(&chip->rdev);
+	kfree(chip);
 	i2c_set_clientdata(client, NULL);
 
 	return 0;
 }
-
-static const struct i2c_device_id ad5398_id[] = {
-	{ "ad5398", 0 },
-	{ "ad5821", 1 },
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, ad5398_id);
 
 static struct i2c_driver ad5398_driver = {
 	.probe = ad5398_probe,
