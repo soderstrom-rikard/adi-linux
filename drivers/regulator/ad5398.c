@@ -197,12 +197,11 @@ struct ad5398_current_data_format {
 	int current_offset;
 };
 
-static const struct ad5398_current_data_format ad5398_df = {10, 4};
-static const struct ad5398_current_data_format ad5821_df = {10, 4};
+static const struct ad5398_current_data_format df_10_4 = {10, 4};
 
 static const struct i2c_device_id ad5398_id[] = {
-	{ "ad5398", (kernel_ulong_t)&ad5398_df },
-	{ "ad5821", (kernel_ulong_t)&ad5821_df },
+	{ "ad5398", (kernel_ulong_t)&df_10_4 },
+	{ "ad5821", (kernel_ulong_t)&df_10_4 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, ad5398_id);
