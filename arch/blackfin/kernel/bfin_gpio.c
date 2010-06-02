@@ -695,7 +695,7 @@ int peripheral_request(unsigned short per, const char *label)
 	/* If a pin can be muxed as either GPIO or peripheral, make
 	 * sure it is not already a GPIO pin when we request it.
 	 */
-	if (unlikely(!check_gpio(ident) && is_reserved(gpio, ident))) {
+	if (unlikely(!check_gpio(ident) && is_reserved(gpio, ident, 1))) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 		printk(KERN_ERR
@@ -705,7 +705,7 @@ int peripheral_request(unsigned short per, const char *label)
 		return -EBUSY;
 	}
 
-	if (unlikely(is_reserved(peri, ident))) {
+	if (unlikely(is_reserved(peri, ident, 1))) {
 
 		/*
 		 * Pin functions like AMC address strobes my
@@ -782,7 +782,7 @@ void peripheral_free(unsigned short per)
 
 	local_irq_save_hw(flags);
 
-	if (unlikely(!is_reserved(peri, ident))) {
+	if (unlikely(!is_reserved(peri, ident, 0))) {
 		local_irq_restore_hw(flags);
 		return;
 	}
@@ -841,7 +841,7 @@ int bfin_gpio_request(unsigned gpio, const char *label)
 		return 0;
 	}
 
-	if (unlikely(is_reserved(gpio, gpio))) {
+	if (unlikely(is_reserved(gpio, gpio, 1))) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 		printk(KERN_ERR "bfin-gpio: GPIO %d is already reserved by %s !\n",
@@ -849,7 +849,7 @@ int bfin_gpio_request(unsigned gpio, const char *label)
 		local_irq_restore_hw(flags);
 		return -EBUSY;
 	}
-	if (unlikely(is_reserved(peri, gpio))) {
+	if (unlikely(is_reserved(peri, gpio, 1))) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 		printk(KERN_ERR
@@ -858,7 +858,7 @@ int bfin_gpio_request(unsigned gpio, const char *label)
 		local_irq_restore_hw(flags);
 		return -EBUSY;
 	}
-	if (unlikely(is_reserved(gpio_irq, gpio))) {
+	if (unlikely(is_reserved(gpio_irq, gpio, 1))) {
 		printk(KERN_NOTICE "bfin-gpio: GPIO %d is already reserved as gpio-irq!"
 		       " (Documentation/blackfin/bfin-gpio-notes.txt)\n", gpio);
 	}
@@ -890,7 +890,7 @@ void bfin_gpio_free(unsigned gpio)
 
 	local_irq_save_hw(flags);
 
-	if (unlikely(!is_reserved(gpio, gpio))) {
+	if (unlikely(!is_reserved(gpio, gpio, 0))) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 		gpio_error(gpio);
@@ -926,14 +926,14 @@ int bfin_special_gpio_request(unsigned gpio, const char *label)
 		return 0;
 	}
 
-	if (unlikely(is_reserved(special_gpio, gpio))) {
+	if (unlikely(is_reserved(special_gpio, gpio), 1)) {
 		local_irq_restore_hw(flags);
 		printk(KERN_ERR "bfin-gpio: GPIO %d is already reserved by %s !\n",
 		       gpio, get_label(gpio));
 
 		return -EBUSY;
 	}
-	if (unlikely(is_reserved(peri, gpio))) {
+	if (unlikely(is_reserved(peri, gpio), 1)) {
 		local_irq_restore_hw(flags);
 		printk(KERN_ERR
 		       "bfin-gpio: GPIO %d is already reserved as Peripheral by %s !\n",
@@ -961,7 +961,7 @@ void bfin_special_gpio_free(unsigned gpio)
 
 	local_irq_save_hw(flags);
 
-	if (unlikely(!is_reserved(special_gpio, gpio))) {
+	if (unlikely(!is_reserved(special_gpio, gpio, 0))) {
 		gpio_error(gpio);
 		local_irq_restore_hw(flags);
 		return;
@@ -985,7 +985,7 @@ int bfin_gpio_irq_request(unsigned gpio, const char *label)
 
 	local_irq_save_hw(flags);
 
-	if (unlikely(is_reserved(peri, gpio))) {
+	if (unlikely(is_reserved(peri, gpio, 1))) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 		printk(KERN_ERR
@@ -994,7 +994,7 @@ int bfin_gpio_irq_request(unsigned gpio, const char *label)
 		local_irq_restore_hw(flags);
 		return -EBUSY;
 	}
-	if (unlikely(is_reserved(gpio, gpio)))
+	if (unlikely(is_reserved(gpio, gpio, 1)))
 		printk(KERN_NOTICE "bfin-gpio: GPIO %d is already reserved by %s! "
 		       "(Documentation/blackfin/bfin-gpio-notes.txt)\n",
 		       gpio, get_label(gpio));
@@ -1018,7 +1018,7 @@ void bfin_gpio_irq_free(unsigned gpio)
 
 	local_irq_save_hw(flags);
 
-	if (unlikely(!is_reserved(gpio_irq, gpio))) {
+	if (unlikely(!is_reserved(gpio_irq, gpio, 0))) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 		gpio_error(gpio);
@@ -1047,7 +1047,7 @@ int bfin_gpio_direction_input(unsigned gpio)
 {
 	unsigned long flags;
 
-	if (unlikely(!is_reserved(gpio, gpio))) {
+	if (unlikely(!is_reserved(gpio, gpio, 0))) {
 		gpio_error(gpio);
 		return -EINVAL;
 	}
@@ -1089,7 +1089,7 @@ int bfin_gpio_direction_output(unsigned gpio, int value)
 {
 	unsigned long flags;
 
-	if (unlikely(!is_reserved(gpio, gpio))) {
+	if (unlikely(!is_reserved(gpio, gpio, 0))) {
 		gpio_error(gpio);
 		return -EINVAL;
 	}
@@ -1158,13 +1158,13 @@ static int gpio_proc_read(char *buf, char **start, off_t offset,
 	int c, irq, gpio, outlen = 0;
 
 	for (c = 0; c < MAX_RESOURCES; c++) {
-		irq = is_reserved(gpio_irq, c);
-		gpio = is_reserved(gpio, c);
+		irq = is_reserved(gpio_irq, c, 1);
+		gpio = is_reserved(gpio, c, 1);
 		if (!check_gpio(c) && (gpio || irq))
 			len = sprintf(buf, "GPIO_%d: \t%s%s \t\tGPIO %s\n", c,
 				 get_label(c), (gpio && irq) ? " *" : "",
 				 get_gpio_dir(c) ? "OUTPUT" : "INPUT");
-		else if (is_reserved(peri, c))
+		else if (is_reserved(peri, c, 1))
 			len = sprintf(buf, "GPIO_%d: \t%s \t\tPeripheral\n", c, get_label(c));
 		else
 			continue;
