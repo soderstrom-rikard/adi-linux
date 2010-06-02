@@ -344,7 +344,7 @@ static int bf5xx_nand_calculate_ecc(struct mtd_info *mtd,
 	u32 code[2];
 	u8 *p;
 
-	/* first 4 bytes ECC code for 256 page size */
+	/* first 3 bytes ECC code for 256 page size */
 	ecc0 = bfin_read_NFC_ECC0();
 	ecc1 = bfin_read_NFC_ECC1();
 
@@ -352,11 +352,10 @@ static int bf5xx_nand_calculate_ecc(struct mtd_info *mtd,
 
 	dev_dbg(info->device, "returning ecc 0x%08x\n", code[0]);
 
-	/* first 3 bytes in ecc_code for 256 page size */
 	p = (u8 *) code;
 	memcpy(ecc_code, p, 3);
 
-	/* second 4 bytes ECC code for 512 ecc size */
+	/* second 3 bytes ECC code for 512 ecc size */
 	if (chip->ecc.size == 512) {
 		ecc0 = bfin_read_NFC_ECC2();
 		ecc1 = bfin_read_NFC_ECC3();
@@ -633,7 +632,8 @@ static int bf5xx_nand_hw_init(struct bf5xx_nand_info *info)
 		(plat->data_width ? 16 : 8),
 		plat->wr_dly, plat->rd_dly);
 
-	val = (plat->data_width << NFC_NWIDTH_OFFSET) |
+	val = (1 << NFC_PG_SIZE_OFFSET) |
+		(plat->data_width << NFC_NWIDTH_OFFSET) |
 		(plat->rd_dly << NFC_RDDLY_OFFSET) |
 		(plat->wr_dly << NFC_WRDLY_OFFSET);
 	dev_dbg(info->device, "NFC_CTL is 0x%04x\n", val);
@@ -704,24 +704,25 @@ static int bf5xx_nand_scan(struct mtd_info *mtd)
 	int ret;
 
 	ret = nand_scan_ident(mtd, 1);
-	if (!ret) {
-		if (hardware_ecc) {
-			/*
-			 * for nand with page size > 512B, think it as several sections with 512B
-			 */
-			if (mtd->writesize >= 512) {
-				chip->ecc.size = 512;
-				chip->ecc.bytes = 6;
-				bfin_write_NFC_CTL(bfin_read_NFC_CTL() | (1 << NFC_PG_SIZE_OFFSET));
-				SSYNC();
-			} else {
-				chip->ecc.size = 256;
-				chip->ecc.bytes = 3;
-			}
+	if (ret)
+		return ret;
+
+	if (hardware_ecc) {
+		/*
+		 * for nand with page size > 512B, think it as several sections with 512B
+		 */
+		if (likely(mtd->writesize >= 512)) {
+			chip->ecc.size = 512;
+			chip->ecc.bytes = 6;
+		} else {
+			chip->ecc.size = 256;
+			chip->ecc.bytes = 3;
+			bfin_write_NFC_CTL(bfin_read_NFC_CTL() & ~(1 << NFC_PG_SIZE_OFFSET));
+			SSYNC();
 		}
-		ret = nand_scan_tail(mtd);
 	}
-	return ret;
+
+	return	nand_scan_tail(mtd);
 }
 
 /*
