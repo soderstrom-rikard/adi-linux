@@ -926,14 +926,14 @@ int bfin_special_gpio_request(unsigned gpio, const char *label)
 		return 0;
 	}
 
-	if (unlikely(is_reserved(special_gpio, gpio), 1)) {
+	if (unlikely(is_reserved(special_gpio, gpio, 1))) {
 		local_irq_restore_hw(flags);
 		printk(KERN_ERR "bfin-gpio: GPIO %d is already reserved by %s !\n",
 		       gpio, get_label(gpio));
 
 		return -EBUSY;
 	}
-	if (unlikely(is_reserved(peri, gpio), 1)) {
+	if (unlikely(is_reserved(peri, gpio, 1))) {
 		local_irq_restore_hw(flags);
 		printk(KERN_ERR
 		       "bfin-gpio: GPIO %d is already reserved as Peripheral by %s !\n",
