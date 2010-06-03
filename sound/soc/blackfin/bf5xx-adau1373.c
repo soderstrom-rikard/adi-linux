@@ -40,7 +40,8 @@ static const struct _pll_settings adau1373_pll_settings[] = {
 static struct adau1373_platform_data adau1373_pdata = {
 	.pll_settings_num       = ARRAY_SIZE(adau1373_pll_settings),
 	.pll_settings   = adau1373_pll_settings,
-	.drc_settings	= { 0x07, 0x77, 0x33, 0x88, 0x5d, 0x77, 0x77, 0x13 },
+	.drc_settings	= { 0x03, 0x33, 0x00, 0x00, 0x00, 0x88, 0x00,
+			    0x77, 0x77, 0x13, 0x00, 0x02, 0x03 },
 };
 
 static int bf5xx_adau1373_hw_params(struct snd_pcm_substream *substream,
