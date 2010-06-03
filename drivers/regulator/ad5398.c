@@ -22,6 +22,8 @@ struct ad5398_chip_info {
 	struct i2c_client *client;
 	int min_uA;
 	int max_uA;
+	int user_min_uA;
+	int user_max_uA;
 	unsigned int current_level;
 	unsigned int current_mask;
 	unsigned int current_offset;
@@ -46,7 +48,7 @@ static int ad5398_read_reg(struct i2c_client *client, unsigned short *data)
 		dev_err(&client->dev, "I2C read error\n");
 		return ret;
 	}
-	*data = swab16(val);
+	*data = be16_to_cpu(val);
 
 	return ret;
 }
@@ -56,7 +58,7 @@ static int ad5398_write_reg(struct i2c_client *client, const unsigned short data
 	unsigned short val;
 	int ret;
 
-	val = swab16(data);
+	val = cpu_to_be16(data);
 	ret = i2c_master_send(client, (char *)&val, 2);
 	if (ret < 0)
 		dev_err(&client->dev, "I2C write error\n");
@@ -89,10 +91,12 @@ static int ad5398_set_current_limit(struct regulator_dev *rdev, int min_uA, int 
 	unsigned short data;
 	int ret;
 
-	if (min_uA > chip->max_uA || max_uA < chip->min_uA)
+	if (min_uA > chip->user_max_uA || max_uA < chip->user_min_uA)
 		return -EINVAL;
-	if (min_uA < chip->min_uA)
-		min_uA = chip->min_uA;
+	if (min_uA < chip->user_min_uA)
+		min_uA = chip->user_min_uA;
+	if (max_uA > chip->user_max_uA)
+		max_uA = chip->user_max_uA;
 
 	selector = ((min_uA - chip->min_uA) * chip->current_level +
 			range_uA - 1) / range_uA;
@@ -109,10 +113,10 @@ static int ad5398_set_current_limit(struct regulator_dev *rdev, int min_uA, int 
 
 	/* prepare register data */
 	selector = (selector << chip->current_offset) & chip->current_mask;
-	selector |= (data & AD5398_CURRENT_EN_MASK);
+	data = (unsigned short)selector | (data & AD5398_CURRENT_EN_MASK);
 
 	/* write the new current value back as well as enable bit */
-	ret = ad5398_write_reg(client, selector);
+	ret = ad5398_write_reg(client, data);
 
 	return ret;
 }
@@ -195,13 +199,15 @@ static struct regulator_desc ad5398_reg = {
 struct ad5398_current_data_format {
 	int current_bits;
 	int current_offset;
+	int min_uA;
+	int max_uA;
 };
 
-static const struct ad5398_current_data_format df_10_4 = {10, 4};
+static const struct ad5398_current_data_format df_10_4_120 = {10, 4, 0, 120000};
 
 static const struct i2c_device_id ad5398_id[] = {
-	{ "ad5398", (kernel_ulong_t)&df_10_4 },
-	{ "ad5821", (kernel_ulong_t)&df_10_4 },
+	{ "ad5398", (kernel_ulong_t)&df_10_4_120 },
+	{ "ad5821", (kernel_ulong_t)&df_10_4_120 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, ad5398_id);
@@ -225,8 +231,16 @@ static int __devinit ad5398_probe(struct i2c_client *client,
 
 	chip->client = client;
 
-	chip->min_uA = init_data->constraints.min_uA;
-	chip->max_uA = init_data->constraints.max_uA;
+	chip->min_uA = df->min_uA;
+	chip->max_uA = df->max_uA;
+	if (chip->min_uA < init_data->constraints.min_uA)
+		chip->user_min_uA = init_data->constraints.min_uA;
+	else
+		chip->user_min_uA = chip->min_uA;
+	if (chip->max_uA > init_data->constraints.max_uA)
+		chip->user_max_uA = init_data->constraints.max_uA;
+	else
+		chip->user_max_uA = chip->max_uA;
 	chip->current_level = 1 << df->current_bits;
 	chip->current_offset = df->current_offset;
 	chip->current_mask = (chip->current_level - 1) << chip->current_offset;
