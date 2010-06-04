@@ -22,8 +22,6 @@ struct ad5398_chip_info {
 	struct i2c_client *client;
 	int min_uA;
 	int max_uA;
-	int user_min_uA;
-	int user_max_uA;
 	unsigned int current_level;
 	unsigned int current_mask;
 	unsigned int current_offset;
@@ -91,12 +89,10 @@ static int ad5398_set_current_limit(struct regulator_dev *rdev, int min_uA, int 
 	unsigned short data;
 	int ret;
 
-	if (min_uA > chip->user_max_uA || max_uA < chip->user_min_uA)
+	if (min_uA > chip->max_uA || min_uA < chip->min_uA)
 		return -EINVAL;
-	if (min_uA < chip->user_min_uA)
-		min_uA = chip->user_min_uA;
-	if (max_uA > chip->user_max_uA)
-		max_uA = chip->user_max_uA;
+	if (max_uA > chip->max_uA || max_uA < chip->min_uA)
+		return -EINVAL;
 
 	selector = ((min_uA - chip->min_uA) * chip->current_level +
 			range_uA - 1) / range_uA;
@@ -180,7 +176,7 @@ static int ad5398_disable(struct regulator_dev *rdev)
 	return ret;
 }
 
-static struct regulator_ops ad5398_ops = {
+static const struct regulator_ops ad5398_ops = {
 	.get_current_limit = ad5398_get_current_limit,
 	.set_current_limit = ad5398_set_current_limit,
 	.enable = ad5398_enable,
@@ -188,7 +184,7 @@ static struct regulator_ops ad5398_ops = {
 	.is_enabled = ad5398_is_enabled,
 };
 
-static struct regulator_desc ad5398_reg = {
+static const struct regulator_desc ad5398_reg = {
 	.name = "isink",
 	.id = 0,
 	.ops = &ad5398_ops,
@@ -213,7 +209,7 @@ static const struct i2c_device_id ad5398_id[] = {
 MODULE_DEVICE_TABLE(i2c, ad5398_id);
 
 static int __devinit ad5398_probe(struct i2c_client *client,
-				  const struct i2c_device_id *id)
+				const struct i2c_device_id *id)
 {
 	struct regulator_dev *rdev;
 	struct regulator_init_data *init_data = client->dev.platform_data;
@@ -233,14 +229,6 @@ static int __devinit ad5398_probe(struct i2c_client *client,
 
 	chip->min_uA = df->min_uA;
 	chip->max_uA = df->max_uA;
-	if (chip->min_uA < init_data->constraints.min_uA)
-		chip->user_min_uA = init_data->constraints.min_uA;
-	else
-		chip->user_min_uA = chip->min_uA;
-	if (chip->max_uA > init_data->constraints.max_uA)
-		chip->user_max_uA = init_data->constraints.max_uA;
-	else
-		chip->user_max_uA = chip->max_uA;
 	chip->current_level = 1 << df->current_bits;
 	chip->current_offset = df->current_offset;
 	chip->current_mask = (chip->current_level - 1) << chip->current_offset;
@@ -297,4 +285,4 @@ module_exit(ad5398_exit);
 MODULE_DESCRIPTION("AD5398 and AD5821 current regulator driver");
 MODULE_AUTHOR("Sonic Zhang");
 MODULE_LICENSE("GPL");
-MODULE_ALIAS("platform:ad5398-regulator");
+MODULE_ALIAS("i2c:ad5398-regulator");
