@@ -176,7 +176,7 @@ static int ad5398_disable(struct regulator_dev *rdev)
 	return ret;
 }
 
-static const struct regulator_ops ad5398_ops = {
+static struct regulator_ops ad5398_ops = {
 	.get_current_limit = ad5398_get_current_limit,
 	.set_current_limit = ad5398_set_current_limit,
 	.enable = ad5398_enable,
@@ -184,7 +184,7 @@ static const struct regulator_ops ad5398_ops = {
 	.is_enabled = ad5398_is_enabled,
 };
 
-static const struct regulator_desc ad5398_reg = {
+static struct regulator_desc ad5398_reg = {
 	.name = "isink",
 	.id = 0,
 	.ops = &ad5398_ops,
