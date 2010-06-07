@@ -340,7 +340,7 @@ EXPORT_SYMBOL(iio_read_ring_length);
 }
 EXPORT_SYMBOL(iio_write_ring_length);
 
-ssize_t iio_read_ring_bpd(struct device *dev,
+ssize_t iio_read_ring_bps(struct device *dev,
 			  struct device_attribute *attr,
 			  char *buf)
 {
@@ -353,7 +353,7 @@ ssize_t iio_read_ring_bpd(struct device *dev,
 
 	return len;
 }
-EXPORT_SYMBOL(iio_read_ring_bpd);
+EXPORT_SYMBOL(iio_read_ring_bps);
 
 ssize_t iio_store_ring_enable(struct device *dev,
 			      struct device_attribute *attr,
