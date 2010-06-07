@@ -269,7 +269,7 @@ ssize_t iio_write_ring_length(struct device *dev,
 			      struct device_attribute *attr,
 			      const char *buf,
 			      size_t len);
-ssize_t iio_read_ring_bps(struct device *dev,
+ssize_t iio_read_ring_bpd(struct device *dev,
 			  struct device_attribute *attr,
 			  char *buf);
 ssize_t iio_store_ring_enable(struct device *dev,
