@@ -69,6 +69,9 @@
  * Here we can be a bit looser than the data sections since this
  * needs to only meet arch ABI requirements.
  */
+#ifndef ARCH_SLAB_MINALIGN /* glue between 2.6.34 and 2.6.35 */
+# define ARCH_SLAB_MINALIGN 0
+#endif
 #define FLAT_STACK_ALIGN	max_t(unsigned long, sizeof(void *), ARCH_SLAB_MINALIGN)
 
 #define RELOC_FAILED 0xff00ff01		/* Relocation incorrect somewhere */
