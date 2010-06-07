@@ -31,7 +31,6 @@
 #define CAP_MIC  1
 #define CAP_LINE 2
 #define CAPTURE_SOURCE_NUMBER 2
-#define ADAU1361_DIG_MIC 0
 
 struct snd_soc_codec_device soc_codec_dev_adau1361;
 static struct snd_soc_codec *adau1361_codec;
@@ -588,9 +587,10 @@ static void adau1361_shutdown(struct snd_pcm_substream *substream,
 	struct snd_soc_codec *codec = socdev->card->codec;
 	u8 reg;
 
-	reg = snd_soc_read(codec, ADAU_CLKCTRL);
-	snd_soc_write(codec, ADAU_CLKCTRL, reg & ~0x1);
-
+	if (!codec->active) {
+		reg = snd_soc_read(codec, ADAU_CLKCTRL);
+		snd_soc_write(codec, ADAU_CLKCTRL, reg & ~0x1);
+	}
 }
 
 static int adau1361_set_dai_fmt(struct snd_soc_dai *codec_dai,
