@@ -104,5 +104,5 @@ extern int musb_gadget_setup(struct musb *);
 extern void musb_gadget_cleanup(struct musb *);
 
 extern void musb_g_giveback(struct musb_ep *, struct usb_request *, int);
-
+extern void musb_ep_restart(struct musb *musb, struct musb_request *req);
 #endif		/* __MUSB_GADGET_H */

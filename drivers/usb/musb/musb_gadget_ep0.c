@@ -264,6 +264,7 @@ __acquires(musb->lock)
 				void __iomem		*regs;
 				int			is_in;
 				u16			csr;
+				struct musb_request	*request;
 
 				if (epnum == 0 || epnum >= MUSB_C_NUM_EPS ||
 				    ctrlrequest->wValue != USB_ENDPOINT_HALT)
@@ -278,6 +279,8 @@ __acquires(musb->lock)
 					musb_ep = &ep->ep_out;
 				if (!musb_ep->desc)
 					break;
+
+				request = to_musb_request(next_request(musb_ep));
 
 				handled = 1;
 				/* Ignore request if endpoint is wedged */
@@ -302,6 +305,11 @@ __acquires(musb->lock)
 					musb_writew(regs, MUSB_RXCSR, csr);
 				}
 
+				/* maybe start the first request in the queue */
+				if (!musb_ep->busy && request) {
+					DBG(3, "restarting the request\n");
+					musb_ep_restart(musb, request);
+				}
 				/* select ep0 again */
 				musb_ep_select(mbase, 0);
 				} break;
