@@ -86,6 +86,19 @@ config TOUCHSCREEN_AD7879_SPI
 	  To compile this driver as a module, choose M here: the
 	  module will be called ad7879-spi.
 
+config TOUCHSCREEN_AD7160
+	tristate "AD7160 based touchscreens"
+	depends on I2C
+	help
+	  Say Y here if you have a touchscreen interface using the
+	  AD7160 controller, and your board-specific initialization
+	  code includes that.
+
+	  If unsure, say N (but it's safe to say "Y").
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ad7160.
+
 config TOUCHSCREEN_BITSY
 	tristate "Compaq iPAQ H3600 (Bitsy) touchscreen"
 	depends on SA1100_BITSY
