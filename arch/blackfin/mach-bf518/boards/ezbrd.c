@@ -87,13 +87,53 @@ static struct platform_device rtc_device = {
 #endif
 
 #if defined(CONFIG_BFIN_MAC) || defined(CONFIG_BFIN_MAC_MODULE)
+unsigned short bfin_mac_peripherals[] = {
+#if defined(CONFIG_BFIN_MAC_RMII)
+	P_MII0_ETxD0,
+	P_MII0_ETxD1,
+	P_MII0_ETxD2,
+	P_MII0_ETxD3,
+	P_MII0_ETxEN,
+	P_MII0_TxCLK,
+	P_MII0_PHYINT,
+	P_MII0_COL,
+	P_MII0_ERxD0,
+	P_MII0_ERxD1,
+	P_MII0_ERxD2,
+	P_MII0_ERxD3,
+	P_MII0_ERxDV,
+	P_MII0_ERxCLK,
+	P_MII0_CRS,
+	P_MII0_MDC,
+	P_MII0_MDIO,
+	0
+#else
+	P_MII0_ETxD0,
+	P_MII0_ETxD1,
+	P_MII0_ETxEN,
+	P_MII0_ERxD0,
+	P_MII0_ERxD1,
+	P_MII0_TxCLK,
+	P_MII0_PHYINT,
+	P_MII0_CRS,
+	P_MII0_MDC,
+	P_MII0_MDIO,
+	0
+#endif
+};
+
 static struct platform_device bfin_mii_bus = {
 	.name = "bfin_mii_bus",
+	.dev = {
+		.platform_data = &bfin_mac_peripherals,
+	}
 };
 
 static struct platform_device bfin_mac_device = {
 	.name = "bfin_mac",
-	.dev.platform_data = &bfin_mii_bus,
+	.dev = {
+		.platform_data = &bfin_mii_bus,
+	}
 };
 
 #if defined(CONFIG_NET_DSA_KSZ8893M) || defined(CONFIG_NET_DSA_KSZ8893M_MODULE)
