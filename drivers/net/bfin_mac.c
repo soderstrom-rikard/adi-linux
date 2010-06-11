@@ -1267,11 +1267,18 @@ static void bfin_mac_timeout(struct net_device *dev)
 
 	bfin_mac_disable();
 
-	if (timer_pending(&lp->tx_reclaim_timer))
-		del_timer(&(lp->tx_reclaim_timer));
+	del_timer(&lp->tx_reclaim_timer);
 
 	/* reset tx queue */
-	current_tx_ptr = tx_list_head;
+	while (tx_list_head != current_tx_ptr) {
+		tx_list_head->desc_a.config &= ~DMAEN;
+		tx_list_head->status.status_word = 0;
+		if (tx_list_head->skb) {
+			dev_kfree_skb(tx_list_head->skb);
+			tx_list_head->skb = NULL;
+		}
+		tx_list_head = tx_list_head->next;
+	}
 
 	if (netif_queue_stopped(lp->ndev))
 		netif_wake_queue(lp->ndev);
