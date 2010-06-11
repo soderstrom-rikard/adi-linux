@@ -75,12 +75,6 @@ static struct net_dma_desc_tx *current_tx_ptr;
 static struct net_dma_desc_tx *tx_desc;
 static struct net_dma_desc_rx *rx_desc;
 
-#if defined(CONFIG_BFIN_MAC_RMII)
-static u16 pin_req[] = P_RMII0;
-#else
-static u16 pin_req[] = P_MII0;
-#endif
-
 static void desc_list_free(void)
 {
 	struct net_dma_desc_rx *r;
@@ -1516,7 +1510,7 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 	if (!lp->mii_bus) {
 		dev_err(&pdev->dev, "Cannot get mii_bus!\n");
 		rc = -ENODEV;
-		goto out_err_mii_bus_probe;
+		goto out_err_probe_mac;
 	}
 	lp->mii_bus->priv = ndev;
 
@@ -1567,8 +1561,6 @@ out_err_request_irq:
 out_err_mii_probe:
 	mdiobus_unregister(lp->mii_bus);
 	mdiobus_free(lp->mii_bus);
-out_err_mii_bus_probe:
-	peripheral_free_list(pin_req);
 out_err_probe_mac:
 	platform_set_drvdata(pdev, NULL);
 	free_netdev(ndev);
@@ -1590,8 +1582,6 @@ static int __devexit bfin_mac_remove(struct platform_device *pdev)
 	free_irq(IRQ_MAC_RX, ndev);
 
 	free_netdev(ndev);
-
-	peripheral_free_list(pin_req);
 
 	return 0;
 }
@@ -1638,6 +1628,7 @@ static int bfin_mac_resume(struct platform_device *pdev)
 static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
 {
 	struct mii_bus *miibus;
+	unsigned short *pin_req = (unsigned short *)pdev->dev.platform_data;
 	int rc, i;
 
 	/*
@@ -1688,6 +1679,8 @@ out_err_alloc:
 static int __devexit bfin_mii_bus_remove(struct platform_device *pdev)
 {
 	struct mii_bus *miibus = platform_get_drvdata(pdev);
+	unsigned short *pin_req = (unsigned short *)pdev->dev.platform_data;
+
 	platform_set_drvdata(pdev, NULL);
 	mdiobus_unregister(miibus);
 	kfree(miibus->irq);
