@@ -190,7 +190,7 @@ static struct platform_device rtc_device = {
 
 
 #if defined(CONFIG_BFIN_MAC) || defined(CONFIG_BFIN_MAC_MODULE)
-unsigned short bfin_mac_peripherals[] =
+static unsigned short bfin_mac_peripherals[] =
 #if defined(CONFIG_BFIN_MAC_RMII)
 	P_RMII0;
 #else
