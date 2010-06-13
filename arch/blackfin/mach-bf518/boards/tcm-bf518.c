@@ -81,12 +81,7 @@ static struct platform_device rtc_device = {
 #endif
 
 #if defined(CONFIG_BFIN_MAC) || defined(CONFIG_BFIN_MAC_MODULE)
-static unsigned short bfin_mac_peripherals[] =
-#if defined(CONFIG_BFIN_MAC_RMII)
-	P_RMII0;
-#else
-	P_MII0;
-#endif
+static const unsigned short bfin_mac_peripherals[] = P_MII0;
 
 static struct platform_device bfin_mii_bus = {
 	.name = "bfin_mii_bus",
