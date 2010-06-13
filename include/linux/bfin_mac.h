@@ -97,6 +97,17 @@ struct bfin_mac_local {
 #endif
 };
 
+struct bfin_phydev_platform_data {
+	unsigned short addr;
+	unsigned short irq;
+};
+
+struct bfin_mii_bus_platform_data {
+	int phydev_number;
+	struct bfin_phydev_platform_data *phydev_data;
+	unsigned short *mac_peripherals;
+};
+
 extern void bfin_get_ether_addr(char *addr);
 
 #endif

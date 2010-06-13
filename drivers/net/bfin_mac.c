@@ -23,7 +23,6 @@
 #include <linux/device.h>
 #include <linux/spinlock.h>
 #include <linux/mii.h>
-#include <linux/phy.h>
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
 #include <linux/ethtool.h>
@@ -39,7 +38,7 @@
 #include <asm/cacheflush.h>
 #include <asm/portmux.h>
 
-#include "bfin_mac.h"
+#include <linux/bfin_mac.h>
 
 #define DRV_NAME	"bfin_mac"
 #define DRV_VERSION	"1.1"
@@ -340,23 +339,23 @@ static void bfin_mac_adjust_link(struct net_device *dev)
 		}
 
 		if (phydev->speed != lp->old_speed) {
-#if defined(CONFIG_BFIN_MAC_RMII)
-			u32 opmode = bfin_read_EMAC_OPMODE();
-			switch (phydev->speed) {
-			case 10:
-				opmode |= RMII_10;
-				break;
-			case 100:
-				opmode &= ~(RMII_10);
-				break;
-			default:
-				printk(KERN_WARNING
-					"%s: Ack!  Speed (%d) is not 10/100!\n",
-					DRV_NAME, phydev->speed);
-				break;
+			if (phydev->interface == PHY_INTERFACE_MODE_RMII) {
+				u32 opmode = bfin_read_EMAC_OPMODE();
+				switch (phydev->speed) {
+				case 10:
+					opmode |= RMII_10;
+					break;
+				case 100:
+					opmode &= ~(RMII_10);
+					break;
+				default:
+					printk(KERN_WARNING
+						"%s: Ack!  Speed (%d) is not 10/100!\n",
+						DRV_NAME, phydev->speed);
+					break;
+				}
+				bfin_write_EMAC_OPMODE(opmode);
 			}
-			bfin_write_EMAC_OPMODE(opmode);
-#endif
 
 			new_state = 1;
 			lp->old_speed = phydev->speed;
@@ -385,7 +384,7 @@ static void bfin_mac_adjust_link(struct net_device *dev)
 /* MDC  = 2.5 MHz */
 #define MDC_CLK 2500000
 
-static int mii_probe(struct net_device *dev)
+static int mii_probe(struct net_device *dev, int phy_mode)
 {
 	struct bfin_mac_local *lp = netdev_priv(dev);
 	struct phy_device *phydev = NULL;
@@ -422,13 +421,14 @@ static int mii_probe(struct net_device *dev)
 		return -ENODEV;
 	}
 
-#if defined(CONFIG_BFIN_MAC_RMII)
+	if (!(phy_mode == PHY_INTERFACE_MODE_RMII ||
+		phy_mode == PHY_INTERFACE_MODE_MII)) {
+		printk(KERN_INFO "%s: Invalid phy interface mode\n", dev->name);
+		return -EINVAL;
+	}
+
 	phydev = phy_connect(dev, dev_name(&phydev->dev), &bfin_mac_adjust_link,
-			0, PHY_INTERFACE_MODE_RMII);
-#else
-	phydev = phy_connect(dev, dev_name(&phydev->dev), &bfin_mac_adjust_link,
-			0, PHY_INTERFACE_MODE_MII);
-#endif
+			0, phy_mode);
 
 	if (IS_ERR(phydev)) {
 		printk(KERN_ERR "%s: Could not attach to PHY\n", dev->name);
@@ -570,6 +570,7 @@ void setup_system_regs(struct net_device *dev)
 	 * Configure checksum support and rcve frame word alignment
 	 */
 	sysctl = bfin_read_EMAC_SYSCTL();
+	sysctl |= PHYIE;
 	sysctl |= RXDWA;
 #if defined(BFIN_MAC_CSUM_OFFLOAD)
 	sysctl |= RXCKS;
@@ -1210,7 +1211,7 @@ static void bfin_mac_disable(void)
 /*
  * Enable Interrupts, Receive, and Transmit
  */
-static int bfin_mac_enable(void)
+static int bfin_mac_enable(struct phy_device *phydev)
 {
 	int ret;
 	u32 opmode;
@@ -1240,12 +1241,13 @@ static int bfin_mac_enable(void)
 		opmode |= DRO | DC | PSF;
 	opmode |= RE;
 
-#if defined(CONFIG_BFIN_MAC_RMII)
-	opmode |= RMII; /* For Now only 100MBit are supported */
+	if (phydev->interface == PHY_INTERFACE_MODE_RMII) {
+		opmode |= RMII; /* For Now only 100MBit are supported */
 #if (defined(CONFIG_BF537) || defined(CONFIG_BF536)) && CONFIG_BF_REV_0_2
-	opmode |= TE;
+		opmode |= TE;
 #endif
-#endif
+	}
+
 	/* Turn on the EMAC rx */
 	bfin_write_EMAC_OPMODE(opmode);
 
@@ -1277,7 +1279,7 @@ static void bfin_mac_timeout(struct net_device *dev)
 	if (netif_queue_stopped(lp->ndev))
 		netif_wake_queue(lp->ndev);
 
-	bfin_mac_enable();
+	bfin_mac_enable(lp->phydev);
 
 	/* We can accept TX packets again */
 	dev->trans_start = jiffies;
@@ -1351,11 +1353,19 @@ static void bfin_mac_set_multicast_list(struct net_device *dev)
 
 static int bfin_mac_ioctl(struct net_device *netdev, struct ifreq *ifr, int cmd)
 {
+	struct bfin_mac_local *lp = netdev_priv(netdev);
+
+	if (!netif_running(netdev))
+		return -EINVAL;
+
 	switch (cmd) {
 	case SIOCSHWTSTAMP:
 		return bfin_mac_hwtstamp_ioctl(netdev, ifr, cmd);
 	default:
-		return -EOPNOTSUPP;
+		if (lp->phydev)
+			return phy_mii_ioctl(lp->phydev, if_mii(ifr), cmd);
+		else
+			return -EOPNOTSUPP;
 	}
 }
 
@@ -1403,7 +1413,7 @@ static int bfin_mac_open(struct net_device *dev)
 	setup_mac_addr(dev->dev_addr);
 
 	bfin_mac_disable();
-	ret = bfin_mac_enable();
+	ret = bfin_mac_enable(lp->phydev);
 	if (ret)
 		return ret;
 	pr_debug("hardware init finished\n");
@@ -1459,6 +1469,7 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 	struct net_device *ndev;
 	struct bfin_mac_local *lp;
 	struct platform_device *pd;
+	struct bfin_mii_bus_platform_data *mii_bus_data;
 	int rc;
 
 	ndev = alloc_etherdev(sizeof(struct bfin_mac_local));
@@ -1513,8 +1524,9 @@ static int __devinit bfin_mac_probe(struct platform_device *pdev)
 		goto out_err_probe_mac;
 	}
 	lp->mii_bus->priv = ndev;
+	mii_bus_data = pd->dev.platform_data;
 
-	rc = mii_probe(ndev);
+	rc = mii_probe(ndev, mii_bus_data->phy_mode);
 	if (rc) {
 		dev_err(&pdev->dev, "MII Probe failed!\n");
 		goto out_err_mii_probe;
@@ -1628,9 +1640,13 @@ static int bfin_mac_resume(struct platform_device *pdev)
 static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
 {
 	struct mii_bus *miibus;
-	unsigned short *pin_req = (unsigned short *)pdev->dev.platform_data;
+	struct bfin_mii_bus_platform_data *mii_bus_pd =
+		(struct bfin_mii_bus_platform_data *)pdev->dev.platform_data;
+	unsigned short *pin_req = NULL;
 	int rc, i;
 
+	if (mii_bus_pd)
+		pin_req = mii_bus_pd->mac_peripherals;
 	/*
 	 * We are setting up a network card,
 	 * so set the GPIO pins to Ethernet mode
@@ -1653,10 +1669,18 @@ static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
 	miibus->name = "bfin_mii_bus";
 	snprintf(miibus->id, MII_BUS_ID_SIZE, "0");
 	miibus->irq = kmalloc(sizeof(int)*PHY_MAX_ADDR, GFP_KERNEL);
-	if (miibus->irq == NULL)
-		goto out_err_alloc;
-	for (i = 0; i < PHY_MAX_ADDR; ++i)
-		miibus->irq[i] = PHY_POLL;
+	if (miibus->irq != NULL &&
+		mii_bus_pd && mii_bus_pd->phydev_number > 0) {
+		for (i = 0; i < PHY_MAX_ADDR; ++i)
+			miibus->irq[i] = PHY_POLL;
+
+		if (mii_bus_pd->phydev_number >= PHY_MAX_ADDR)
+			mii_bus_pd->phydev_number = PHY_MAX_ADDR;
+
+		for (i = 0; i < mii_bus_pd->phydev_number; ++i)
+			miibus->irq[mii_bus_pd->phydev_data[i].addr] =
+				mii_bus_pd->phydev_data[i].irq;
+	}
 
 	rc = mdiobus_register(miibus);
 	if (rc) {
@@ -1679,13 +1703,15 @@ out_err_alloc:
 static int __devexit bfin_mii_bus_remove(struct platform_device *pdev)
 {
 	struct mii_bus *miibus = platform_get_drvdata(pdev);
-	unsigned short *pin_req = (unsigned short *)pdev->dev.platform_data;
+	struct bfin_mii_bus_platform_data *mii_bus_pd =
+		(struct bfin_mii_bus_platform_data *)pdev->dev.platform_data;
 
 	platform_set_drvdata(pdev, NULL);
 	mdiobus_unregister(miibus);
 	kfree(miibus->irq);
 	mdiobus_free(miibus);
-	peripheral_free_list(pin_req);
+	if (mii_bus_pd)
+		peripheral_free_list(mii_bus_pd->mac_peripherals);
 	return 0;
 }
 
