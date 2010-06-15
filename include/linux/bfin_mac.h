@@ -14,6 +14,7 @@
 #include <linux/clocksource.h>
 #include <linux/timecompare.h>
 #include <linux/timer.h>
+#include <linux/phy.h>
 
 /*
  * Disable hardware checksum for bug #5600 if writeback cache is
@@ -105,7 +106,8 @@ struct bfin_phydev_platform_data {
 struct bfin_mii_bus_platform_data {
 	int phydev_number;
 	struct bfin_phydev_platform_data *phydev_data;
-	unsigned short *mac_peripherals;
+	const unsigned short *mac_peripherals;
+	int phy_mode;
 };
 
 extern void bfin_get_ether_addr(char *addr);
