@@ -15,7 +15,7 @@
 #include <linux/timecompare.h>
 #include <linux/timer.h>
 #include <linux/phy.h>
-
+#include <linux/etherdevice.h>
 /*
  * Disable hardware checksum for bug #5600 if writeback cache is
  * enabled. Otherwize, corrupted RX packet will be sent up stack
