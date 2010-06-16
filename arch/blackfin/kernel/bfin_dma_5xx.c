@@ -468,6 +468,29 @@ void *dma_memcpy(void *pdst, const void *psrc, size_t size)
 EXPORT_SYMBOL(dma_memcpy);
 
 /**
+ *	dma_memcpy_nocache - DMA memcpy under mutex lock
+ *	- No cache flush/invalidate
+ *
+ * Do not check arguments before starting the DMA memcpy.  Break the transfer
+ * up into two pieces.  The first transfer is in multiples of 64k and the
+ * second transfer is the piece smaller than 64k.
+ */
+void *dma_memcpy_nocache(void *pdst, const void *psrc, size_t size)
+{
+	unsigned long dst = (unsigned long)pdst;
+	unsigned long src = (unsigned long)psrc;
+	size_t bulk, rest;
+
+	bulk = size & ~0xffff;
+	rest = size - bulk;
+	if (bulk)
+		_dma_memcpy(pdst, psrc, bulk);
+	_dma_memcpy(pdst + bulk, psrc + bulk, rest);
+	return pdst;
+}
+EXPORT_SYMBOL(dma_memcpy_nocache);
+
+/**
  *	safe_dma_memcpy - DMA memcpy w/argument checking
  *
  * Verify arguments are safe before heading to dma_memcpy().
