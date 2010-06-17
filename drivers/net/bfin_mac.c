@@ -38,7 +38,7 @@
 #include <asm/cacheflush.h>
 #include <asm/portmux.h>
 
-#include <linux/bfin_mac.h>
+#include "bfin_mac.h"
 
 #define DRV_NAME	"bfin_mac"
 #define DRV_VERSION	"1.1"
