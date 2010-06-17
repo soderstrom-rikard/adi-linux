@@ -1642,7 +1642,7 @@ static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
 	struct mii_bus *miibus;
 	struct bfin_mii_bus_platform_data *mii_bus_pd =
 		(struct bfin_mii_bus_platform_data *)pdev->dev.platform_data;
-	unsigned short *pin_req = NULL;
+	const unsigned short *pin_req = NULL;
 	int rc, i;
 
 	if (mii_bus_pd)
