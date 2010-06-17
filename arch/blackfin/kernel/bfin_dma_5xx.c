@@ -450,7 +450,6 @@ void *dma_memcpy(void *pdst, const void *psrc, size_t size)
 {
 	unsigned long dst = (unsigned long)pdst;
 	unsigned long src = (unsigned long)psrc;
-	size_t bulk, rest;
 
 	if (bfin_addr_dcacheable(src))
 		blackfin_dcache_flush_range(src, src + size);
@@ -458,12 +457,7 @@ void *dma_memcpy(void *pdst, const void *psrc, size_t size)
 	if (bfin_addr_dcacheable(dst))
 		blackfin_dcache_invalidate_range(dst, dst + size);
 
-	bulk = size & ~0xffff;
-	rest = size - bulk;
-	if (bulk)
-		_dma_memcpy(pdst, psrc, bulk);
-	_dma_memcpy(pdst + bulk, psrc + bulk, rest);
-	return pdst;
+	return dma_memcpy_nocache(pdst, psrc, size);
 }
 EXPORT_SYMBOL(dma_memcpy);
 
@@ -477,8 +471,6 @@ EXPORT_SYMBOL(dma_memcpy);
  */
 void *dma_memcpy_nocache(void *pdst, const void *psrc, size_t size)
 {
-	unsigned long dst = (unsigned long)pdst;
-	unsigned long src = (unsigned long)psrc;
 	size_t bulk, rest;
 
 	bulk = size & ~0xffff;
