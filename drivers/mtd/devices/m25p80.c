@@ -795,8 +795,13 @@ static int __devinit m25p_probe(struct spi_device *spi)
 
 		jid = jedec_probe(spi);
 		if (!jid) {
-			dev_info(&spi->dev, "non-JEDEC variant of %s\n",
-				 id->name);
+			if (data->jedec) {
+				dev_err(&spi->dev, "fail to detect%s\n",
+						id->name);
+				return -ENODEV;
+			} else
+				dev_info(&spi->dev, "non-JEDEC variant of %s\n",
+						id->name);
 		} else if (jid != id) {
 			/*
 			 * JEDEC knows better, so overwrite platform ID. We
