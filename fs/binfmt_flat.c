@@ -806,9 +806,9 @@ static int load_flat_file(struct linux_binprm * bprm,
 	flush_icache_range(start_code, end_code);
 
 	if (flags & FLAT_FLAG_L1STK) {
-#ifndef CONFIG_APP_STACK_L1
+#ifdef CONFIG_SMP
 		flags &= ~FLAT_FLAG_L1STK;
-		printk(KERN_NOTICE "BINFMT_FLAT: L1 stack support disabled - will continue anyway\n");
+		printk(KERN_NOTICE "BINFMT_FLAT: L1 stack is not supported in SMP kernel.\n");
 #else
 		if (stack_base == 0) {
 			printk("BINFMT_FLAT: requesting L1 stack for shared library\n");
