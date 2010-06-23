@@ -534,6 +534,26 @@ static int load_flat_file(struct linux_binprm * bprm,
 	/*
 	 * calculate the extra space we need to map in
 	 */
+	if (flags & FLAT_FLAG_L1STK) {
+#ifdef CONFIG_SMP
+		flags &= ~FLAT_FLAG_L1STK;
+		printk(KERN_NOTICE "BINFMT_FLAT: L1 stack is not supported in SMP kernel.\n");
+#else
+		if (stack_base == 0) {
+			printk("BINFMT_FLAT: requesting L1 stack for shared library\n");
+			ret = -ENOEXEC;
+			goto err;
+		}
+		stack_len = alloc_l1stack(stack_len, stack_base);
+		if (stack_len == 0) {
+			printk("BINFMT_FLAT: stack size with arguments exceeds scratchpad memory\n");
+			ret = -ENOMEM;
+			goto err;
+		}
+		*extra_stack = stack_len;
+#endif
+	}
+
 	extra = max_t(unsigned long, bss_len + stack_len,
 			relocs * sizeof(unsigned long));
 
@@ -804,26 +824,6 @@ static int load_flat_file(struct linux_binprm * bprm,
 	}
 	
 	flush_icache_range(start_code, end_code);
-
-	if (flags & FLAT_FLAG_L1STK) {
-#ifdef CONFIG_SMP
-		flags &= ~FLAT_FLAG_L1STK;
-		printk(KERN_NOTICE "BINFMT_FLAT: L1 stack is not supported in SMP kernel.\n");
-#else
-		if (stack_base == 0) {
-			printk("BINFMT_FLAT: requesting L1 stack for shared library\n");
-			ret = -ENOEXEC;
-			goto err;
-		}
-		stack_len = alloc_l1stack(stack_len, stack_base);
-		if (stack_len == 0) {
-			printk("BINFMT_FLAT: stack size with arguments exceeds scratchpad memory\n");
-			ret = -ENOMEM;
-			goto err;
-		}
-		*extra_stack = stack_len;
-#endif
-	}
 
 	/* zero the BSS,  BRK and stack areas */
 	memset((void*)(datapos + data_len), 0, bss_len + 
