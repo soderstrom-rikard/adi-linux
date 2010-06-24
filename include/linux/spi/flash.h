@@ -25,11 +25,6 @@ struct flash_platform_data {
 
 	char		*type;
 
-	/*
-	 * For non-JEDEC, id will be 0. In this case, we can't be sure
-	 * whether the flash exists with runtime probing.
-	 */
-	int             non_jedec;
 	/* we'll likely add more ... use JEDEC IDs, etc */
 };
 
