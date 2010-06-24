@@ -217,8 +217,9 @@ static int init_kgdboe(void)
 static void cleanup_kgdboe(void)
 {
 	netpoll_cleanup(&np);
+	if (configured == 2)
+		kgdb_unregister_io_module(&local_kgdb_io_ops);
 	configured = 0;
-	kgdb_unregister_io_module(&local_kgdb_io_ops);
 }
 
 static int param_set_kgdboe_var(const char *kmessage, struct kernel_param *kp)

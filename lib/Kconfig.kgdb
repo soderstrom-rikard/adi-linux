@@ -30,7 +30,7 @@ config KGDB_SERIAL_CONSOLE
 config KGDBOE
 	tristate "KGDB: On ethernet"
 	depends on KGDB
-	select NETPOLL
+	select NETCONSOLE
 	select NETPOLL_TRAP
 	select NET_POLL_CONTROLLER
 	help
