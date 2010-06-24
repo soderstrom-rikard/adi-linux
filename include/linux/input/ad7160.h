@@ -13,6 +13,8 @@
 #ifndef __LINUX_INPUT_AD7160_H__
 #define __LINUX_INPUT_AD7160_H__
 
+#include <linux/types.h>
+
 struct ad7160_platform_data {
 	u32 sensor_x_res;
 	u32 sensor_y_res;
@@ -91,4 +93,14 @@ struct ad7160_platform_data {
 
 	u32 ev_code_double_tap;
 };
+
+struct ad7160_iocreg_access {
+	__u32 reg;
+	__u32 data;
+} __attribute__ ((packed));
+
+#define AD7160_RAW_IOCSREG	_IOW('o', 1, struct ad7160_iocreg_access)
+#define AD7160_RAW_IOCGREG	_IOR('o', 2, struct ad7160_iocreg_access)
+#define AD7160_RAW_IOCGJUNKSIZE	_IOR('o', 3, unsigned int)
+
 #endif

@@ -297,6 +297,7 @@ static void ad7160_work(struct work_struct *work)
 	}
 
 	ad7160_report(ts);
+	ad7160_feed_raw();
 }
 
 static irqreturn_t ad7160_irq(int irq, void *handle)

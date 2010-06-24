@@ -99,6 +99,13 @@ config TOUCHSCREEN_AD7160
 	  To compile this driver as a module, choose M here: the
 	  module will be called ad7160.
 
+config TOUCHSCREEN_AD7160_RAW
+	tristate "AD7160 based touchscreens raw data interface"
+	depends on TOUCHSCREEN_AD7160
+	help
+	  Say Y here if you have a touchscreen interface using the AD7160
+	  and you want the raw data character interface
+
 config TOUCHSCREEN_BITSY
 	tristate "Compaq iPAQ H3600 (Bitsy) touchscreen"
 	depends on SA1100_BITSY

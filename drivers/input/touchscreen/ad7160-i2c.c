@@ -40,21 +40,21 @@ static int ad7160_raw_i2c_read(void *dev, u32 reg, u32 len, u32 *data)
 {
 	struct i2c_client *client = dev;
 	struct i2c_msg msg[2];
-	u32 block_data[MAX_DATA_CNT];
+	u32 block_data;
 	int ret, icnt;
 
-	block_data[0] = cpu_to_be32(reg);
+	block_data = cpu_to_be32(reg);
 
 	msg[0].addr = client->addr;
 	msg[0].flags = client->flags & I2C_M_TEN;
 	msg[0].len = REG_SIZE_BYTES;
-	msg[0].buf = (char *)block_data;
+	msg[0].buf = (char *)&block_data;
 
 	msg[1].addr = client->addr;
 	msg[1].flags = client->flags & I2C_M_TEN;
 	msg[1].flags |= I2C_M_RD;
 	msg[1].len = len * REG_SIZE_BYTES;
-	msg[1].buf = (char *)block_data;
+	msg[1].buf = (char *)data;
 
 	ret = i2c_transfer(client->adapter, msg, 2);
 	if (ret != 2) {
@@ -63,7 +63,7 @@ static int ad7160_raw_i2c_read(void *dev, u32 reg, u32 len, u32 *data)
 	}
 
 	for (icnt = 0; icnt < len; icnt++)
-		data[icnt] = be32_to_cpu(block_data[icnt]);
+		data[icnt] = be32_to_cpu(data[icnt]);
 
 	return len;
 }
@@ -127,17 +127,29 @@ static const struct ad7160_bus_ops bops = {
 static int __devinit ad7160_i2c_probe(struct i2c_client *client,
 				      const struct i2c_device_id *id)
 {
+	int ret;
 	struct ad7160_bus_data bdata = {
 		.client = client,
 		.irq = client->irq,
 		.bops = &bops,
 	};
 
-	return ad7160_probe(&client->dev, &bdata, AD7160_DEVID, BUS_I2C);
+	ret = ad7160_probe(&client->dev, &bdata, AD7160_DEVID, BUS_I2C);
+	if (ret < 0)
+		return ret;
+
+	ret = ad7160_probe_raw(&client->dev, &bdata, AD7160_DEVID, BUS_I2C);
+	if (ret < 0) {
+		dev_err(&client->dev, "failed to add raw data interface\n");
+		ad7160_remove(&client->dev);
+	}
+
+	return ret;
 }
 
 static int __devexit ad7160_i2c_remove(struct i2c_client *client)
 {
+	ad7160_remove_raw(&client->dev);
 	return ad7160_remove(&client->dev);
 }
 
