@@ -447,17 +447,38 @@ static int load_flat_file(struct linux_binprm * bprm,
 	hdr = ((struct flat_hdr *) bprm->buf);		/* exec-header */
 	inode = bprm->file->f_path.dentry->d_inode;
 
+	relocs    = ntohl(hdr->reloc_count);
+	flags     = ntohl(hdr->flags);
+	rev       = ntohl(hdr->rev);
+
 	text_len  = ntohl(hdr->data_start);
 	data_len  = ntohl(hdr->data_end) - ntohl(hdr->data_start);
 	bss_len   = ntohl(hdr->bss_end) - ntohl(hdr->data_end);
 	stack_len = ntohl(hdr->stack_size);
+
+	if (flags & FLAT_FLAG_L1STK) {
+#ifdef CONFIG_SMP
+		flags &= ~FLAT_FLAG_L1STK;
+		printk(KERN_NOTICE "BINFMT_FLAT: L1 stack is not supported in SMP kernel.\n");
+#else
+		if (stack_base == 0) {
+			printk("BINFMT_FLAT: requesting L1 stack for shared library\n");
+			ret = -ENOEXEC;
+			goto err;
+		}
+		stack_len = alloc_l1stack(stack_len, stack_base);
+		if (stack_len == 0) {
+			printk("BINFMT_FLAT: stack size with arguments exceeds scratchpad memory\n");
+			ret = -ENOMEM;
+			goto err;
+		}
+#endif
+	}
+
 	if (extra_stack) {
 		stack_len += *extra_stack;
 		*extra_stack = stack_len;
 	}
-	relocs    = ntohl(hdr->reloc_count);
-	flags     = ntohl(hdr->flags);
-	rev       = ntohl(hdr->rev);
 
 	if (strncmp(hdr->magic, "bFLT", 4)) {
 		/*
@@ -534,26 +555,6 @@ static int load_flat_file(struct linux_binprm * bprm,
 	/*
 	 * calculate the extra space we need to map in
 	 */
-	if (flags & FLAT_FLAG_L1STK) {
-#ifdef CONFIG_SMP
-		flags &= ~FLAT_FLAG_L1STK;
-		printk(KERN_NOTICE "BINFMT_FLAT: L1 stack is not supported in SMP kernel.\n");
-#else
-		if (stack_base == 0) {
-			printk("BINFMT_FLAT: requesting L1 stack for shared library\n");
-			ret = -ENOEXEC;
-			goto err;
-		}
-		stack_len = alloc_l1stack(stack_len, stack_base);
-		if (stack_len == 0) {
-			printk("BINFMT_FLAT: stack size with arguments exceeds scratchpad memory\n");
-			ret = -ENOMEM;
-			goto err;
-		}
-		*extra_stack = stack_len;
-#endif
-	}
-
 	extra = max_t(unsigned long, bss_len + stack_len,
 			relocs * sizeof(unsigned long));
 
@@ -967,8 +968,8 @@ static int load_flat_binary(struct linux_binprm * bprm, struct pt_regs * regs)
 	if (l1stack_base) {
 		/* Find L1 stack pointer corresponding to the current bottom
 		   of the stack in normal RAM.  */
-		l1stack_base += stack_len - (ramstack_top - (unsigned long)sp);
-		if (!activate_l1stack(current->mm, ramstack_top - stack_len))
+		l1stack_base += l1_stack_len - (((unsigned long)p & ~3) - (unsigned long)sp);
+		if (!activate_l1stack(current->mm, ((unsigned long)p & ~3) - l1_stack_len))
 			l1stack_base = 0;
 	}
 
