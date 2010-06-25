@@ -139,10 +139,9 @@ static int __devinit ad7160_i2c_probe(struct i2c_client *client,
 		return ret;
 
 	ret = ad7160_probe_raw(&client->dev, &bdata, AD7160_DEVID, BUS_I2C);
-	if (ret < 0) {
+
+	if (ret < 0)
 		dev_err(&client->dev, "failed to add raw data interface\n");
-		ad7160_remove(&client->dev);
-	}
 
 	return ret;
 }

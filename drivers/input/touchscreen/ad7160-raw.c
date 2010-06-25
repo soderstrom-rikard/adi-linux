@@ -17,6 +17,8 @@
 #include <linux/err.h>
 #include <linux/kfifo.h>
 #include <linux/slab.h>
+#include <linux/device.h>
+#include <linux/i2c.h>
 
 #include <asm/uaccess.h>
 #include <asm/system.h>
@@ -31,8 +33,10 @@
 #define AFE_MTL_CDCVAL0		0x40051B80
 #define MAX_NUM_MTL_CDC		182
 
+#define AD7160_RAW_FIFO_DEPTH	10
 #define AD7160_RAW_JUNK_SIZE	((MAX_NUM_SLF_CDC + MAX_NUM_MTL_CDC) * sizeof(unsigned int))
-#define AD7160_RAW_FIFO_SIZE	(10 * AD7160_RAW_JUNK_SIZE)
+
+#define AD7160_RAW_FIFO_SIZE	(AD7160_RAW_FIFO_DEPTH * AD7160_RAW_JUNK_SIZE)
 
 #define MAX_I2C_READNUM		63	/* Some I2C adaptors limitation */
 
@@ -44,6 +48,7 @@
 
 static struct ad7160_raw_device {
 	struct ad7160_bus_data	bdata;
+	struct device *dev;
 	struct mutex lock;
 	struct kfifo fifo;
 	spinlock_t fifo_lock;
@@ -97,13 +102,14 @@ void ad7160_feed_raw(void)
 			AD7160_RAW_JUNK_SIZE);
 
 	if (ret != AD7160_RAW_JUNK_SIZE) {
-		printk(KERN_ERR "FIFO Buffer Overflow: failed to put %lu bytes,"
-		 "fifo reached %d\n Resetting FIFO\n",
-		 AD7160_RAW_JUNK_SIZE - ret,
-		 kfifo_len(&ad7160_raw_device.fifo));
+		dev_warn(ad7160_raw_device.dev,
+			"FIFO Buffer Overflow: failed to put %lu bytes,"
+			"fifo reached %d\n Resetting FIFO\n",
+			AD7160_RAW_JUNK_SIZE - ret,
+			kfifo_len(&ad7160_raw_device.fifo));
 
-		 kfifo_reset(&ad7160_raw_device.fifo);
-		 kfifo_in(&ad7160_raw_device.fifo,
+		kfifo_reset(&ad7160_raw_device.fifo);
+		kfifo_in(&ad7160_raw_device.fifo,	/* try again */
 			&ad7160_raw_device.buffer[0],
 			AD7160_RAW_JUNK_SIZE);
 	}
@@ -132,6 +138,11 @@ static int ad7160_raw_misc_release(struct inode *inode, struct file *file)
 static int ad7160_raw_misc_open(struct inode *inode, struct file *file)
 {
 	mutex_lock(&ad7160_raw_device.lock);
+	if (ad7160_raw_device.open) {
+		mutex_unlock(&ad7160_raw_device.lock);
+		return -EBUSY;
+	}
+
 	/* Flush input queue on open */
 	kfifo_reset(&ad7160_raw_device.fifo);
 	ad7160_raw_device.open = true;
@@ -259,16 +270,19 @@ ad7160_probe_raw(struct device *dev, struct ad7160_bus_data *bdata,
 {
 	int error;
 
+	if (ad7160_raw_device.dev)
+		return -EBUSY;
+
 	spin_lock_init(&ad7160_raw_device.fifo_lock);
 	error = kfifo_alloc(&ad7160_raw_device.fifo, AD7160_RAW_FIFO_SIZE, GFP_KERNEL);
 	if (error) {
-		printk(KERN_ERR "ad7160_raw: kfifo_alloc failed\n");
+		dev_err(dev, "ad7160_raw: kfifo_alloc failed\n");
 		return error;
 	}
 
 	ad7160_raw_device.buffer = kzalloc(AD7160_RAW_JUNK_SIZE, GFP_KERNEL);
 	if (ad7160_raw_device.buffer == NULL) {
-		printk(KERN_ERR "ad7160_raw: buffer alloc failed\n");
+		dev_err(dev, "ad7160_raw: buffer alloc failed\n");
 		goto err_kfifo_free;
 	}
 
@@ -276,10 +290,11 @@ ad7160_probe_raw(struct device *dev, struct ad7160_bus_data *bdata,
 	mutex_init(&ad7160_raw_device.lock);
 
 	ad7160_raw_device.bdata = *bdata;
+	ad7160_raw_device.dev = dev;
 
 	error = misc_register(&ad7160_raw_misc_device);
 	if (error) {
-		printk(KERN_ERR "ad7160_raw: misc_register failed\n");
+		dev_err(dev, "ad7160_raw: misc_register failed\n");
 		goto err_free_buffer;
 	}
 
@@ -289,6 +304,7 @@ ad7160_probe_raw(struct device *dev, struct ad7160_bus_data *bdata,
 	kfree(ad7160_raw_device.buffer);
  err_kfifo_free:
 	kfifo_free(&ad7160_raw_device.fifo);
+	ad7160_raw_device.dev = NULL;
 
 	return error;
 }
@@ -298,6 +314,7 @@ __devexit int ad7160_remove_raw(struct device *dev)
 	misc_deregister(&ad7160_raw_misc_device);
 	kfifo_free(&ad7160_raw_device.fifo);
 	kfree(ad7160_raw_device.buffer);
+	ad7160_raw_device.dev = NULL;
 
 	return 0;
 }
