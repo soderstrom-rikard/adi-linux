@@ -311,10 +311,11 @@ ad7160_probe_raw(struct device *dev, struct ad7160_bus_data *bdata,
 
 __devexit int ad7160_remove_raw(struct device *dev)
 {
-	misc_deregister(&ad7160_raw_misc_device);
-	kfifo_free(&ad7160_raw_device.fifo);
-	kfree(ad7160_raw_device.buffer);
-	ad7160_raw_device.dev = NULL;
-
+	if (ad7160_raw_device.dev) {
+		misc_deregister(&ad7160_raw_misc_device);
+		kfifo_free(&ad7160_raw_device.fifo);
+		kfree(ad7160_raw_device.buffer);
+		ad7160_raw_device.dev = NULL;
+	}
 	return 0;
 }
