@@ -100,7 +100,7 @@ config TOUCHSCREEN_AD7160
 	  module will be called ad7160.
 
 config TOUCHSCREEN_AD7160_RAW
-	tristate "AD7160 based touchscreens raw data interface"
+	bool "AD7160 based touchscreens raw data interface"
 	depends on TOUCHSCREEN_AD7160
 	help
 	  Say Y here if you have a touchscreen interface using the AD7160

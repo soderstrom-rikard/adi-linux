@@ -5,6 +5,7 @@
 # Each configuration option enables a list of files.
 
 wm97xx-ts-y := wm97xx-core.o
+ad7160-ts-y := ad7160.o ad7160-i2c.o
 
 obj-$(CONFIG_TOUCHSCREEN_88PM860X)	+= 88pm860x-ts.o
 obj-$(CONFIG_TOUCHSCREEN_AD7877)	+= ad7877.o
@@ -48,5 +49,5 @@ obj-$(CONFIG_TOUCHSCREEN_WM97XX_ATMEL)	+= atmel-wm97xx.o
 obj-$(CONFIG_TOUCHSCREEN_WM97XX_MAINSTONE)	+= mainstone-wm97xx.o
 obj-$(CONFIG_TOUCHSCREEN_WM97XX_ZYLONITE)	+= zylonite-wm97xx.o
 obj-$(CONFIG_TOUCHSCREEN_W90X900)	+= w90p910_ts.o
-obj-$(CONFIG_TOUCHSCREEN_AD7160)	+= ad7160.o ad7160-i2c.o
-obj-$(CONFIG_TOUCHSCREEN_AD7160_RAW)	+= ad7160-raw.o
+obj-$(CONFIG_TOUCHSCREEN_AD7160)	+= ad7160-ts.o
+ad7160-ts-$(CONFIG_TOUCHSCREEN_AD7160_RAW)	+= ad7160-raw.o

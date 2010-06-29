@@ -33,7 +33,7 @@ void ad7160_enable(struct device *dev);
 int ad7160_probe(struct device *dev, struct ad7160_bus_data *bdata, u32 devid, u16 bustype);
 int ad7160_remove(struct device *dev);
 
-#ifdef CONFIG_TOUCHSCREEN_AD7160_RAW
+#if defined(CONFIG_TOUCHSCREEN_AD7160_RAW) || defined(CONFIG_TOUCHSCREEN_AD7160_RAW_MODULE)
 int ad7160_probe_raw(struct device *dev, struct ad7160_bus_data *bdata, u32 devid, u16 bustype);
 int ad7160_remove_raw(struct device *dev);
 void ad7160_feed_raw(void);
