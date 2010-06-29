@@ -136,7 +136,7 @@ static inline int is_user_addr_valid(struct task_struct *child,
 	if (start >= FIXED_CODE_START && start + len < FIXED_CODE_END)
 		return 0;
 
-#ifdef CONFIG_APP_STACK_L1
+#ifndef CONFIG_EXCEPTION_L1_SCRATCH
 	if (child->mm->context.l1_stack_save)
 		if (start >= (unsigned long)l1_stack_base &&
 			start + len < (unsigned long)l1_stack_base + l1_stack_len)
