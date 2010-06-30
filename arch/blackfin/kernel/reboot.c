@@ -30,42 +30,50 @@ static void bfin_reset(void)
 	 */
 	__builtin_bfin_ssync();
 
-#if !(defined(__ADSPBF526__) && (__SILICON_REVISION__ > 0))
-	/* Initiate System software reset. */
-	bfin_write_SWRST(0x7);
-
-	/* Due to the way reset is handled in the hardware, we need
-	 * to delay for 10 SCLKS.  The only reliable way to do this is
-	 * to calculate the CCLK/SCLK ratio and multiply 10.  For now,
-	 * we'll assume worse case which is a 1:15 ratio.
+	/* The bootrom checks to see how it was reset and will
+	 * automatically perform a software reset for us when
+	 * it starts executing after the core reset.
 	 */
-	asm(
+	/* force to execute this workaround since some chips can't
+	 * reset normally even though their anomaly lists don't
+	 * include ANOMALY_05000353 and ANOMALY_05000386.
+	 */
+	if (1/* ANOMALY_05000353 || ANOMALY_05000386 */) {
+		/* Initiate System software reset. */
+		bfin_write_SWRST(0x7);
+
+		/* Due to the way reset is handled in the hardware, we need
+		 * to delay for 10 SCLKS.  The only reliable way to do this is
+		 * to calculate the CCLK/SCLK ratio and multiply 10.  For now,
+		 * we'll assume worse case which is a 1:15 ratio.
+		 */
+		asm(
 			"LSETUP (1f, 1f) LC0 = %0\n"
 			"1: nop;"
 			:
 			: "a" (15 * 10)
 			: "LC0", "LB0", "LT0"
-	   );
+		);
 
-	/* Clear System software reset */
-	bfin_write_SWRST(0);
+		/* Clear System software reset */
+		bfin_write_SWRST(0);
 
-	/* The BF526 ROM will crash during reset */
+		/* The BF526 ROM will crash during reset */
 #if defined(__ADSPBF522__) || defined(__ADSPBF524__) || defined(__ADSPBF526__)
-	bfin_read_SWRST();
+		bfin_read_SWRST();
 #endif
 
-	/* Wait for the SWRST write to complete.  Cannot rely on SSYNC
-	 * though as the System state is all reset now.
-	 */
-	asm(
+		/* Wait for the SWRST write to complete.  Cannot rely on SSYNC
+		 * though as the System state is all reset now.
+		 */
+		asm(
 			"LSETUP (1f, 1f) LC1 = %0\n"
 			"1: nop;"
 			:
 			: "a" (15 * 1)
 			: "LC1", "LB1", "LT1"
-	   );
-#endif
+		);
+	}
 
 	while (1)
 		/* Issue core reset */
