@@ -38,7 +38,7 @@ static void bfin_reset(void)
 	 * reset normally even though their anomaly lists don't
 	 * include ANOMALY_05000353 and ANOMALY_05000386.
 	 */
-	if (1/* ANOMALY_05000353 || ANOMALY_05000386 */) {
+	if (!((bfin_cpuid() == 0x27e4) && (bfin_revid() > 0))) {
 		/* Initiate System software reset. */
 		bfin_write_SWRST(0x7);
 
