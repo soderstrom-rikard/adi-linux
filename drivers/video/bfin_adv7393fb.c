@@ -402,17 +402,14 @@ static int __devinit bfin_adv7393_fb_probe(struct i2c_client *client,
 	fbdev->line_len =
 	    fbdev->modes[mode].xres * (fbdev->modes[mode].bpp / 8);
 
-#if defined(BF533_FAMILY)
-	/* This implicitly covers ANOMALY_05000400
-	 * PPI Does Not Start Properly In Specific Mode
-	 */
-	if (ANOMALY_05000400 && gpio_request(P_IDENT(P_PPI0_FS3), "PPI0_FS3")) {
-		dev_err(&client->dev, "PPI0_FS3 GPIO request failed\n");
-		return -EBUSY;
+	/* Workaround "PPI Does Not Start Properly In Specific Mode" */
+	if (ANOMALY_05000400) {
+		if (gpio_request(P_IDENT(P_PPI0_FS3), "PPI0_FS3")) {
+			dev_err(&client->dev, "PPI0_FS3 GPIO request failed\n");
+			return -EBUSY;
+		}
+		gpio_direction_output(P_IDENT(P_PPI0_FS3), 0);
 	}
-
-	gpio_direction_output(P_IDENT(P_PPI0_FS3), 0);
-#endif
 
 	if (peripheral_request_list(ppi_req, DRIVER_NAME)) {
 		dev_err(&client->dev, "requesting PPI peripheral failed\n");
@@ -734,9 +731,8 @@ static int __devexit bfin_adv7393_fb_remove(struct i2c_client *client)
 	fb_dealloc_cmap(&fbdev->info.cmap);
 	kfree(fbdev->info.pseudo_palette);
 
-#if defined(BF533_FAMILY)
-	gpio_free(P_IDENT(P_PPI0_FS3));	/* FS3 */
-#endif
+	if (ANOMALY_05000400)
+		gpio_free(P_IDENT(P_PPI0_FS3));	/* FS3 */
 	peripheral_free_list(ppi_req);
 	kfree(fbdev);
 
