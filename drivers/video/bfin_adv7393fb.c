@@ -406,7 +406,7 @@ static int __devinit bfin_adv7393_fb_probe(struct i2c_client *client,
 	/* This implicitly covers ANOMALY_05000400
 	 * PPI Does Not Start Properly In Specific Mode
 	 */
-	if (gpio_request(P_IDENT(P_PPI0_FS3), "PPI0_FS3")) {
+	if (ANOMALY_05000400 && gpio_request(P_IDENT(P_PPI0_FS3), "PPI0_FS3")) {
 		dev_err(&client->dev, "PPI0_FS3 GPIO request failed\n");
 		return -EBUSY;
 	}
