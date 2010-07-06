@@ -1149,10 +1149,11 @@ static int bfin_spi_setup(struct spi_device *spi)
 	chip->baud = hz_to_spi_baud(spi->max_speed_hz);
 	chip->chip_select_num = spi->chip_select;
 	if (chip->chip_select_num < MAX_CTRL_CS) {
-		if (!(spi->mode & SPI_CPHA)) {
-			dev_err(&spi->dev, "please use a GPIO as chipselect while CPHA is 0\n");
-			goto error;
-		}
+		if (!(spi->mode & SPI_CPHA))
+			dev_warn(&spi->dev, "Warning: SPI CPHA not set:"
+			" Slave Select not under software control!\n"
+			" See Documentation/blackfin/bfin-spi-notes.txt");
+
 		chip->flag = (1 << spi->chip_select) << 8;
 	} else
 		chip->cs_gpio = chip->chip_select_num - MAX_CTRL_CS;
