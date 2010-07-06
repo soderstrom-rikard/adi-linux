@@ -695,7 +695,6 @@ static int __devinit ad7877_probe(struct spi_device *spi)
 	}
 
 	spi->bits_per_word = 16;
-	spi->mode = SPI_MODE_0;
 	err = spi_setup(spi);
 	if (err) {
 		dev_dbg(&spi->dev, "spi master doesn't support 16 bits/word\n");
