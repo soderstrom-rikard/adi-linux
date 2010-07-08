@@ -14,6 +14,7 @@
 #include <linux/spi/spi.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
+#include <linux/delay.h>
 #include <asm/dma.h>
 #include <asm/bfin5xx_spi.h>
 #include <asm/portmux.h>
@@ -520,6 +521,17 @@ static int __init ezkit_init(void)
 #if defined(CONFIG_SMC91X) || defined(CONFIG_SMC91X_MODULE)
 	bfin_write_FIO0_DIR(bfin_read_FIO0_DIR() | (1 << 12));
 	SSYNC();
+#endif
+
+#if defined(CONFIG_SND_BF5XX_SOC_AD183X) || defined(CONFIG_SND_BF5XX_SOC_AD183X_MODULE)
+	bfin_write_FIO0_DIR(bfin_read_FIO0_DIR() | (1 << 15));
+	bfin_write_FIO0_FLAG_S(1 << 15);
+	SSYNC();
+	/*
+	 * This initialization lasts for approximately 4500 MCLKs.
+	 * MCLK = 12.288MHz
+	 */
+	udelay(400);
 #endif
 
 	spi_register_board_info(bfin_spi_board_info, ARRAY_SIZE(bfin_spi_board_info));

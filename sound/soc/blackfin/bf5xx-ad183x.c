@@ -97,16 +97,6 @@ static int __init bf5xx_ad183x_init(void)
 {
 	int ret;
 
-#ifdef CONFIG_BFIN561_EZKIT
-	ret = gpio_request(GPIO_PF15, "ad1836-rst");
-	if (ret) {
-		printk(KERN_ERR "could not get ad1836 reset gpio\n");
-		goto out;
-	} else {
-		gpio_direction_output(GPIO_PF15, 1);
-	}
-#endif
-
 	bfxx_ad183x_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!bfxx_ad183x_snd_device)
 		return -ENOMEM;
@@ -118,16 +108,12 @@ static int __init bf5xx_ad183x_init(void)
 	if (ret)
 		platform_device_put(bfxx_ad183x_snd_device);
 
-out:
 	return ret;
 }
 
 static void __exit bf5xx_ad183x_exit(void)
 {
 	platform_device_unregister(bfxx_ad183x_snd_device);
-#ifdef CONFIG_BFIN561_EZKIT
-	gpio_free(GPIO_PF15);
-#endif
 }
 
 module_init(bf5xx_ad183x_init);
