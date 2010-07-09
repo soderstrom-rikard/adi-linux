@@ -420,9 +420,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -1123,9 +1125,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -1937,9 +1941,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -2774,9 +2780,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -3502,9 +3510,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -4216,9 +4226,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -4930,9 +4942,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -5815,9 +5829,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -6781,9 +6797,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -7747,9 +7765,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -8642,9 +8662,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_FAULT_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -9277,9 +9299,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_FAULT_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -9912,9 +9936,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_FAULT_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -10621,9 +10647,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -11711,9 +11739,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -12801,9 +12831,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -14239,9 +14271,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -15490,9 +15524,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -16947,9 +16983,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -18635,9 +18673,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -20675,9 +20715,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -21862,9 +21904,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -24036,9 +24080,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -26204,9 +26250,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
@@ -27774,9 +27822,11 @@ static int __init bfin_debug_mmrs_init(void)
 		D("ICPLB_FAULT_ADDR", 32, 0xFFE0100C);
 		D("ICPLB_STATUS", 32, 0xFFE01008);
 		D("IMEM_CONTROL", 32, 0xFFE01004);
-		D("ITEST_COMMAND", 32, 0xFFE01300);
-		D("ITEST_DATA0", 32, 0xFFE01400);
-		D("ITEST_DATA1", 32, 0xFFE01404);
+		if (!ANOMALY_05000481) {
+			D("ITEST_COMMAND", 32, 0xFFE01300);
+			D("ITEST_DATA0", 32, 0xFFE01400);
+			D("ITEST_DATA1", 32, 0xFFE01404);
+		}
 
 		parent = debugfs_create_dir("L1 Data Memory Registers", top);
 		D("DCPLB_ADDR0", 32, 0xFFE00100);
