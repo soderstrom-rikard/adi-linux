@@ -1099,8 +1099,8 @@ crc_recover:
 		mmc_spi_data_do(host, mrq->cmd, mrq->data, mrq->data->blksz);
 
 		/*
-		 * SPI bus is not reliable when doing large dada transfer.
-		 * If occational crc error is reported by SD device when do
+		 * SPI bus is not reliable when doing large data transfer.
+		 * If occasional crc error is reported by SD device when do
 		 * data read/write over SPI, it can be recovered by doing
 		 * last SD command again. The retry count is set to 5 to
 		 * ensure the driver pass any stress test.
