@@ -232,9 +232,8 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 	/*
 	 * ANOMALY_05000254 - Incorrect Timer Pulse Width in Single-Shot PWM_OUT Mode with External Clock
 	 */
-	if (ANOMALY_05000254) {
+	if (ANOMALY_05000254)
 		fs2_timer_cfg |= TIMER_PERIOD_CNT;	/* set up frame sync to be recurring */
-	}
 
 
 	if (conf->dimensions ==	CFG_PPI_DIMS_2D) {	/* configure for 2D transfers */
@@ -271,10 +270,8 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 		dev->fs_int_timer_id = dev->fs2_timer_id;
 
 		enable_gptimers(t_mask);
-		if (ANOMALY_05000254) {
+		if (ANOMALY_05000254)
 			disable_gptimers_sync(dev->fs2_timer_bit);
-		}
-
 	} else {
 		t_mask = dev->fs1_timer_bit;
 
@@ -293,9 +290,8 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 
 		dev->fs_int_timer_id = dev->fs1_timer_id;
 		enable_gptimers(t_mask);
-		if (ANOMALY_05000254) {
+		if (ANOMALY_05000254)
 			disable_gptimers_sync(t_mask);
-		}
 	}
 	pr_debug("enable_gptimers(mask=%d)\n", t_mask);
 }
@@ -519,10 +515,10 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 				if (peripheral_request_list(dev->per_ppifs, PPI_DEVNAME)) {
 					spin_unlock_irqrestore(&dev->lock, flags);
 					printk(KERN_ERR	PPI_DEVNAME
-					": Requesting Peripherals failed\n");
+							": Requesting Peripherals failed\n");
 					return -EBUSY;
 				}
-				}
+			}
 			break;
 		}
 	case CMD_PPI_FIELD_SELECT:
@@ -1348,19 +1344,19 @@ static int ppi_release(struct inode *inode, struct file	*filp)
 	return 0;
 }
 
-static struct file_operations ppi_fops = {
-      owner:THIS_MODULE,
-      read:ppi_read,
-      write:ppi_write,
-      ioctl:ppi_ioctl,
-      open:ppi_open,
-      release:ppi_release,
-      fasync:ppi_fasync,
+static const struct file_operations ppi_fops = {
+      .owner = THIS_MODULE,
+      .read = ppi_read,
+      .write = ppi_write,
+      .ioctl = ppi_ioctl,
+      .open = ppi_open,
+      .release = ppi_release,
+      .fasync = ppi_fasync,
 };
 
 static ssize_t
 ppi_status_show(struct class *ppi_class, struct class_attribute *attr,
-                char *buf)
+		char *buf)
 {
 	char *p;
 	unsigned short i;
