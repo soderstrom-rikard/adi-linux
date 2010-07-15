@@ -108,6 +108,7 @@ struct ppi_register {
 #define PORT_EN		EPPI_EN
 #define PORT_DIR	EPPI_DIR
 #define PORT_CFG	FS_CFG
+#define PACK_EN         PACKEN
 #define PPI_COUNT_CORR_OFFSET	0
 #define XFR_TYPE_SHIFT	2
 #define PORT_CFG_SHIFT	4  /* FS_CFG */
@@ -139,17 +140,18 @@ struct ppi_register {
 
 struct ppi_config {
 	unsigned char opened;
-	unsigned char datalen;
+	unsigned char data_len;
+	unsigned char pack_mode;
 	unsigned char fs23;
 	unsigned char timers;
-	unsigned char triggeredge;
+	unsigned char trigger_edge;
 	unsigned char dimensions;
 	unsigned short delay;
 	unsigned short access_mode;
 	unsigned short done;
 	unsigned short dma_config;
-	unsigned short linelen;
-	unsigned short numlines;
+	unsigned short line_len;
+	unsigned short num_lines;
 	unsigned short fs1_blanking;
 	unsigned short ppi_control;
 #if defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)	/* EPPI */
@@ -203,13 +205,13 @@ static inline void disable_ppi_dma(struct ppi_dev *dev)
 	}
 }
 
-static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
+static void setup_timers(struct	ppi_dev	*dev, unsigned int frame_size)
 {
 	struct ppi_config *conf	= &dev->conf;
 	short fs1_timer_cfg = 0;
 	short fs2_timer_cfg = 0;
 	unsigned short t_mask;
-	unsigned int linePeriod;
+	unsigned int line_period;
 	/*
 	 ** set	timer configuration register template
 	 **
@@ -220,7 +222,7 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 
 	fs1_timer_cfg =	(TIMER_CLK_SEL | TIMER_TIN_SEL | TIMER_MODE_PWM);
 
-	if (conf->triggeredge)
+	if (conf->trigger_edge)
 		fs1_timer_cfg &= ~TIMER_PULSE_HI;
 	else
 		fs1_timer_cfg |= TIMER_PULSE_HI;
@@ -238,8 +240,8 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 
 	if (conf->dimensions ==	CFG_PPI_DIMS_2D) {	/* configure for 2D transfers */
 
-		linePeriod = conf->linelen + conf->delay + conf->fs1_blanking + 1;
-		frameSize = linePeriod * conf->numlines - conf->fs1_blanking - 1;
+		line_period = conf->line_len + conf->delay + conf->fs1_blanking + 1;
+		frame_size = line_period * conf->num_lines - conf->fs1_blanking - 1;
 
 		/*
 		 ** configure 2	timers for 2D
@@ -249,8 +251,8 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 		t_mask = dev->fs1_timer_bit | dev->fs2_timer_bit;	/* use both timers */
 
 		set_gptimer_config(dev->fs2_timer_id, fs2_timer_cfg);
-		set_gptimer_period(dev->fs2_timer_id, frameSize + 2);
-		set_gptimer_pwidth(dev->fs2_timer_id, frameSize);
+		set_gptimer_period(dev->fs2_timer_id, frame_size + 2);
+		set_gptimer_pwidth(dev->fs2_timer_id, frame_size);
 		pr_debug
 		    ("Timer %d:	(frame/vsync) config = %04hX, period = %d, width = %d\n",
 		     dev->fs2_timer_id,	get_gptimer_config(dev->fs2_timer_id),
@@ -258,9 +260,9 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 		     get_gptimer_pwidth(dev->fs2_timer_id));
 
 		set_gptimer_config(dev->fs1_timer_id, fs1_timer_cfg);
-		set_gptimer_period(dev->fs1_timer_id, linePeriod);
+		set_gptimer_period(dev->fs1_timer_id, line_period);
 
-		set_gptimer_pwidth(dev->fs1_timer_id, (conf->linelen >>	2));
+		set_gptimer_pwidth(dev->fs1_timer_id, (conf->line_len >> 2));
 		pr_debug
 		    ("Timer %d:	(line/hsync) config = %04hX, period = %d, width	= %d\n",
 		     dev->fs1_timer_id,	get_gptimer_config(dev->fs1_timer_id),
@@ -280,8 +282,8 @@ static void setup_timers(struct	ppi_dev	*dev, unsigned int frameSize)
 		 ** use fs2_timer_cfg,  'cuz it is the non-recurring config
 		 */
 		set_gptimer_config(dev->fs1_timer_id, fs2_timer_cfg);
-		set_gptimer_period(dev->fs1_timer_id, frameSize	+ 2);
-		set_gptimer_pwidth(dev->fs1_timer_id, frameSize);
+		set_gptimer_period(dev->fs1_timer_id, frame_size + 2);
+		set_gptimer_pwidth(dev->fs1_timer_id, frame_size);
 
 		pr_debug("Timer	%d: config = %04hX, period = %d, width = %d\n",
 			dev->fs1_timer_id, fs2_timer_cfg,
@@ -535,20 +537,29 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 		}
 	case CMD_PPI_PACKING:
 		{
-#if 0
 			pr_debug("ppi_ioctl: CMD_PPI_PACKING\n");
 			regdata	= dev->regs->ppi_control;
-			if (arg)
+			if (arg) {
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)
+				/*
+				 * The PACK_EN bit only has meaning when the PPI port width (selected by
+				 * DLEN[2:0]) is 8 bits
+				 */
+				if (conf->data_len > CFG_PPI_DATALEN_8) {
+					printk(KERN_ERR	PPI_DEVNAME "ppi_ioctl:	CMD_PPI_PACKING"
+							"PACKING can't work while PPI port width isn't 8\n");
+					goto err_inval;
+				}
 				regdata	|= PACK_EN;
-			else
-				regdata	&= ~PACK_EN;
-			conf->ppi_control = regdata;
-			dev->regs->ppi_control = regdata;
-#else
-			printk(KERN_ERR	PPI_DEVNAME "ppi_ioctl:	CMD_PPI_PACKING\
-				 Not supported\n");
-			goto err_inval;
+				pr_debug("ppi_ioctl: CMD_PPI_PACKING packing enable\n");
 #endif
+			} else {
+				regdata	&= ~PACK_EN;
+				pr_debug("ppi_ioctl: CMD_PPI_PACKING packing disable\n");
+			}
+			conf->ppi_control = regdata;
+			conf->pack_mode = !!arg;
+			dev->regs->ppi_control = regdata;
 			break;
 		}
 	case CMD_PPI_SKIPPING:
@@ -580,7 +591,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 			pr_debug("ppi_ioctl: CMD_PPI_DATALEN\n");
 			if (arg	< 0 || arg > 7)
 				goto err_inval;
-			conf->datalen =	(unsigned short)arg;
+			conf->data_len =	(unsigned short)arg;
 			regdata	= dev->regs->ppi_control;
 			regdata	&= ~DLENGTH;
 			regdata	|= (arg	<< PORT_DLEN_SHIFT);
@@ -601,7 +612,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 			pr_debug("ppi_ioctl:  CMD_PPI_LINELEN\n");
 			if (arg	< 0 || arg > PPI_DMA_MAXSIZE)
 				goto err_inval;
-			conf->linelen =	(unsigned short)arg;
+			conf->line_len = (unsigned short)arg;
 			break;
 		}
 	case CMD_PPI_NUMLINES:
@@ -609,7 +620,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 			pr_debug("ppi_ioctl:  CMD_PPI_NUMLINES\n");
 			if (arg	< 0 || arg > PPI_DMA_MAXSIZE)
 				goto err_inval;
-			conf->numlines = (unsigned short)arg;
+			conf->num_lines = (unsigned short)arg;
 			break;
 
 		}
@@ -673,7 +684,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 	case CMD_PPI_TRIG_EDGE:
 		{
 			pr_debug("ppi_ioctl: CMD_PPI_TRIG_EDGE\n");
-			conf->triggeredge = (unsigned short)arg;
+			conf->trigger_edge = (unsigned short)arg;
 			regdata	= dev->regs->ppi_control;
 			if (arg)
 				regdata	|= POLS;
@@ -701,7 +712,7 @@ static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned 
 			pr_debug("ppi_ioctl: CMD_PPI_FSACTIVE_SELECT\n");
 			if (arg < 0 || arg > 3)
 				goto err_inval;
-			conf->triggeredge = (unsigned short)arg;
+			conf->trigger_edge = (unsigned short)arg;
 			regdata	= dev->regs->ppi_control;
 			regdata &= ~POLS;
 			regdata |= (arg << 13);
@@ -942,7 +953,10 @@ static int ppi_fasync(int fd, struct file *filp, int on)
  *
  * RETURN
  * positive number: bytes read back
- * -EINVIL When	word size is set to 16,	reading	odd bytes.
+ * -EINVAL When	word size is bigger than 8, reading odd bytes
+ *         When word size is bigger than 16, reading bytes which can't be divided exactly by 4
+ *         For PPI PACKING mode, reading odd bytes
+ *         For EPPI PAKCING mode, read bytes which can't be divided exactly by 4
  * -EAGAIN When	reading	mode is	set to non block and there is no rx data.
  *
  * FUNCTION(S) CALLED:
@@ -958,29 +972,111 @@ static int ppi_fasync(int fd, struct file *filp, int on)
  */
 static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
 {
-
-	unsigned short stepSize;
 	unsigned long flags;
 	int ierr;
 	struct ppi_dev *dev = filp->private_data;
 	struct ppi_config *conf	= &dev->conf;
 	unsigned int dma = dev->dma_chan;
+	unsigned int step_size, frame_size, x_count;
 
 	pr_debug("ppi_read(0x%08X, %d)\n", (int)buf, (int)count);
 
-	if (count <= 0)
-		return 0;
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)
+	if ((conf->data_len > CFG_PPI_DATALEN_8) || conf->pack_mode)
+		step_size = 2;
+	else
+		step_size = 1;
+#elif defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)
+	if ((conf->data_len > CFG_PPI_DATALEN_16) || conf->pack_mode)
+		step_size = 4;
+	else if (conf->data_len > CFG_PPI_DATALEN_8)
+		step_size = 2;
+	else
+		step_size = 1;
+#endif
 
-	if (conf->linelen == 0) {
-		if (conf->datalen > CFG_PPI_DATALEN_8)
-			conf->linelen = count / 2;
-		else
-			conf->linelen = count;
+	if ((count & (step_size - 1)) | ((unsigned long)buf & (step_size - 1)))
+		return -EINVAL;
+
+	frame_size = count / step_size;
+
+	/*
+	 * calculate line len according to count, if it is not configured
+	 */
+	if (conf->dimensions ==	CFG_PPI_DIMS_2D) {
+		if ((conf->line_len == 0) || (conf->num_lines == 0)) {
+			printk(KERN_ERR	PPI_DEVNAME
+					": Devices is not configured right, 0 row or 0 column in 2D mode\n");
+			return -EINVAL;
+		}
+	} else if (conf->line_len == 0) {
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)
+		if (conf->data_len > CFG_PPI_DATALEN_8)
+			conf->line_len = count / step_size;
+#elif defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)
+		switch (conf->data_len) {
+		case CFG_PPI_DATALEN_8:
+			conf->line_len = count;
+			break;
+		case CFG_PPI_DATALEN_10:
+		case CFG_PPI_DATALEN_12:
+		case CFG_PPI_DATALEN_14:
+		case CFG_PPI_DATALEN_16:
+			conf->line_len = count / 2;
+			break;
+		case CFG_PPI_DATALEN_18:
+		case CFG_PPI_DATALEN_24:
+			if (conf->pack_mode)
+				conf->line_len = count / 3;
+			else
+				conf->line_len = count / 4;
+			break;
+		}
+#endif
 	}
 
 	if (ANOMALY_05000179) {
-		if (conf->linelen < 3)
+		if (conf->line_len < 3)
 			return -EFAULT;
+	}
+
+	/*
+	 * calculate DMA x_count according to line_len, PPI data length, and packing mode
+	 */
+	if (conf->dimensions == CFG_PPI_DIMS_2D) {
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)
+		if (conf->pack_mode)
+			x_count = conf->line_len / 2;
+		else
+			x_count = conf->line_len;
+#elif defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)
+		if (conf->pack_mode) {
+			switch (conf->data_len) {
+			case CFG_PPI_DATALEN_8:
+				x_count  =  conf->line_len / 4;
+				break;
+			case CFG_PPI_DATALEN_10:
+			case CFG_PPI_DATALEN_12:
+			case CFG_PPI_DATALEN_14:
+			case CFG_PPI_DATALEN_16:
+				x_count  =  conf->line_len / 2;
+				break;
+			case CFG_PPI_DATALEN_18:
+			case CFG_PPI_DATALEN_24:
+				/*
+				 * When DLEN=18, the EPPI sign-extends or zero-fills the 18-bit data
+				 * to 24 bits and packs four 24-bit words into three 32-bit words.
+				 * When DLEN=24, the EPPI packs four 24-bit words into three 32-bit
+				 * words.
+				 */
+				x_count = conf->line_len * 3 / 4;
+				break;
+			default:
+				break;
+			}
+		} else
+			x_count = conf->line_len;
+#endif
 	}
 
 	spin_lock_irqsave(&dev->lock, flags);
@@ -994,7 +1090,7 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
 	conf->access_mode = PPI_READ;
 
 	blackfin_dcache_invalidate_range((unsigned long)buf,
-					 ((unsigned long)buf) +	count);
+					 (unsigned long)buf + count);
 	/*
 	 ** Configure DMA Controller
 	 ** WNR:  memory write
@@ -1004,12 +1100,21 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
 	 */
 	conf->dma_config = WNR | RESTART | DI_EN;
 
-	if (conf->datalen > CFG_PPI_DATALEN_8) {	/* adjust transfer size	*/
-		conf->dma_config |= WDSIZE_16;
-		stepSize = 2;
-	} else {
+	switch (step_size) {
+	case 4:
+		conf->dma_config |= WDSIZE_32;
 		conf->dma_config &= ~WDSIZE_16;
-		stepSize = 1;
+		break;
+	case 2:
+		conf->dma_config &= ~WDSIZE_32;
+		conf->dma_config |= WDSIZE_16;
+		break;
+	case 1:
+		conf->dma_config &= ~WDSIZE_32;
+		conf->dma_config &= ~WDSIZE_16;
+		break;
+	default:
+		break;
 	}
 
 	/*
@@ -1017,31 +1122,29 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
 	 */
 	if (conf->dimensions ==	CFG_PPI_DIMS_2D) {	/* configure for 2D transfers */
 		pr_debug
-		    ("PPI read -- 2D data xcount = linelen = %hd, ycount = numlines = %hd stepsize = %hd \n",
-		     conf->linelen, conf->numlines, stepSize);
+		    ("PPI read -- 2D data xcount = line_len = %hd, ycount = num_lines = %hd stepsize = %hd \n",
+		     conf->line_len, conf->num_lines, step_size);
 
-		set_dma_x_count(dma, conf->linelen);
-		set_dma_y_count(dma, conf->numlines);
-		set_dma_y_modify(dma, stepSize);
+		set_dma_x_count(dma, x_count);
+		set_dma_x_modify(dma, step_size);
+		set_dma_y_count(dma, conf->num_lines);
+		set_dma_y_modify(dma, step_size);
 		conf->dma_config |= DMA2D;
 	} else {
-		if (conf->datalen > CFG_PPI_DATALEN_8)	/* adjust transfer size	*/
-			set_dma_x_count(dma, count / 2);
-		else
-			set_dma_x_count(dma, count);
+		set_dma_x_count(dma, frame_size);
 
 		pr_debug("PPI read -- 1D data count = %d\n",
-			(int)(conf->datalen ? count / 2	: count));
+			(int)frame_size);
 	}
 
 	set_dma_config(dma, conf->dma_config);
 	set_dma_start_addr(dma,	(unsigned long)buf);
-	set_dma_x_modify(dma, stepSize);
+	set_dma_x_modify(dma, step_size);
 
 	/* configure PPI registers to match DMA	registers */
 	dev->regs->ppi_control &= ~PORT_DIR;
-	dev->regs->ppi_count = conf->linelen - PPI_COUNT_CORR_OFFSET;
-	dev->regs->ppi_frame = conf->numlines;
+	dev->regs->ppi_count = conf->line_len - PPI_COUNT_CORR_OFFSET;
+	dev->regs->ppi_frame = conf->num_lines;
 	dev->regs->ppi_delay = conf->delay;
 
 	if (conf->timers)
@@ -1090,7 +1193,10 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
  * 0: There is no data send out or parameter error.
  * RETURN:
  * >0 The actual count sending out.
- * -EINVIL When word size is set to 16, writing odd bytes.
+ * -EINVAL When word size is set to 16, writing odd bytes.
+ * 	   When word size is bigger than 16, writing bytes which can't be divided exactly by 4
+ *         For PPI PACKING mode, writing odd bytes
+ *         For EPPI PAKCING mode, writing bytes which can't be divided exactly by 4
  * -EAGAIN When sending mode is set to non block and there is no tx buffer.
  *
  * FUNCTION(S) CALLED:
@@ -1099,8 +1205,8 @@ static ssize_t ppi_read(struct file *filp, char	*buf, size_t count, loff_t *pos)
  *
  * GLOBAL VARIABLES MODIFIED: NIL
  *
- * DESCRIPTION: It is invoked when user call 'read' system call
- *              to read from system.
+ * DESCRIPTION: It is invoked when user call 'write' system call
+ *              to write to system.
  *
  * CAUTION:
  */
@@ -1110,24 +1216,110 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	struct ppi_config *conf	= &dev->conf;
 	unsigned int dma = dev->dma_chan;
 	int ierr;
-	unsigned int frameSize;
-	unsigned short stepSize;
+	unsigned int step_size, frame_size, x_count;
 	unsigned long flags;
 
 	pr_debug("ppi_write:\n");
 
-	if (count <= 0)
-		return 0;
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)
+	if ((conf->data_len > CFG_PPI_DATALEN_8) || conf->pack_mode)
+		step_size = 2;
+	else
+		step_size = 1;
+#elif defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)
+	if ((conf->data_len > CFG_PPI_DATALEN_16) || conf->pack_mode)
+		step_size = 4;
+	else if (conf->data_len > CFG_PPI_DATALEN_8)
+		step_size = 2;
+	else
+		step_size = 1;
+#endif
 
-	if (conf->linelen == 0) {
-		if (conf->datalen > CFG_PPI_DATALEN_8)
-			conf->linelen = count / 2;
-		else
-			conf->linelen = count;
+	if ((count & (step_size - 1)) | ((unsigned long)buf & (step_size - 1)))	{
+		printk(KERN_ERR	PPI_DEVNAME
+				": DMA buffer address or length not aligned with stepsize\n");
+		return -EINVAL;
 	}
+
+	frame_size = count / step_size;
+
+	/*
+	 * calculate line len according to count, if it is not configured
+	 */
+	if (conf->dimensions ==	CFG_PPI_DIMS_2D) {	/* configure for 2D transfers */
+		if ((conf->line_len == 0) || (conf->num_lines == 0)) {
+			printk(KERN_ERR	PPI_DEVNAME
+					": Devices is not configured right, 0 row or 0 column in 2D mode\n");
+			return -EINVAL;
+		}
+	} else if (conf->line_len == 0) {
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)
+		if (conf->data_len > CFG_PPI_DATALEN_8)
+			conf->line_len = count / step_size;
+#elif defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)
+		switch (conf->data_len) {
+		case CFG_PPI_DATALEN_8:
+			conf->line_len = count;
+			break;
+		case CFG_PPI_DATALEN_10:
+		case CFG_PPI_DATALEN_12:
+		case CFG_PPI_DATALEN_14:
+		case CFG_PPI_DATALEN_16:
+			conf->line_len = count / 2;
+			break;
+		case CFG_PPI_DATALEN_18:
+		case CFG_PPI_DATALEN_24:
+			if (conf->pack_mode)
+				conf->line_len = count / 3;
+			else
+				conf->line_len = count / 4;
+			break;
+		}
+#endif
+	}
+
 	if (ANOMALY_05000179) {
-		if (conf->linelen < 3)
+		if (conf->line_len < 3)
 			return -EFAULT;
+	}
+
+	/*
+	 * calculate DMA x_count according to line_len, PPI data length, and packing mode
+	 */
+	if (conf->dimensions == CFG_PPI_DIMS_2D) {
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)
+		if (conf->pack_mode)
+			x_count = conf->line_len / 2;
+		else
+			x_count = conf->line_len;
+#elif defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)
+		if (conf->pack_mode) {
+			switch (conf->data_len) {
+			case CFG_PPI_DATALEN_8:
+				x_count  =  conf->line_len / 4;
+				break;
+			case CFG_PPI_DATALEN_10:
+			case CFG_PPI_DATALEN_12:
+			case CFG_PPI_DATALEN_14:
+			case CFG_PPI_DATALEN_16:
+				x_count  =  conf->line_len / 2;
+				break;
+			case CFG_PPI_DATALEN_18:
+			case CFG_PPI_DATALEN_24:
+				/*
+				 * When DLEN=18, the EPPI sign-extends or zero-fills the 18-bit data
+				 * to 24 bits and packs four 24-bit words into three 32-bit words.
+				 * When DLEN=24, the EPPI packs four 24-bit words into three 32-bit
+				 * words.
+				 */
+				x_count = conf->line_len * 3 / 4;
+				break;
+			default:
+				break;
+			}
+		} else
+			x_count = conf->line_len;
+#endif
 	}
 
 	spin_lock_irqsave(&dev->lock, flags);
@@ -1141,7 +1333,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	conf->access_mode = PPI_WRITE;
 
 	blackfin_dcache_invalidate_range((unsigned long)buf,
-					 ((unsigned long)buf + count));
+					 (unsigned long)buf + count);
 
 	/*
 	 ** Configure DMA Controller
@@ -1152,28 +1344,35 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	 */
 	conf->dma_config = RESTART | DI_EN;
 
-	if (conf->datalen > CFG_PPI_DATALEN_8) {	/* adjust transfer size	*/
-		conf->dma_config |= WDSIZE_16;
-		frameSize = count / 2;
-		stepSize = 2;
-	} else {
+	switch (step_size) {
+	case 4:
+		conf->dma_config |= WDSIZE_32;
 		conf->dma_config &= ~WDSIZE_16;
-		frameSize = count;
-		stepSize = 1;
+		break;
+	case 2:
+		conf->dma_config &= ~WDSIZE_32;
+		conf->dma_config |= WDSIZE_16;
+		break;
+	case 1:
+		conf->dma_config &= ~WDSIZE_32;
+		conf->dma_config &= ~WDSIZE_16;
+		break;
+	default:
+		break;
 	}
 
 	if (conf->dimensions ==	CFG_PPI_DIMS_2D) {	/* configure for 2D transfers */
-		pr_debug("PPI write -- 2D data linelen = %hd, numlines = %hd\n",
-			conf->linelen, conf->numlines);
-		set_dma_x_count(dma, conf->linelen);
-		set_dma_x_modify(dma, stepSize);
-		set_dma_y_count(dma, conf->numlines);
-		set_dma_y_modify(dma, stepSize);
+		pr_debug("PPI write -- 2D data line_len = %hd, num_lines = %hd\n",
+			conf->line_len, conf->num_lines);
+		set_dma_x_count(dma, x_count);
+		set_dma_x_modify(dma, step_size);
+		set_dma_y_count(dma, conf->num_lines);
+		set_dma_y_modify(dma, step_size);
 		conf->dma_config |= DMA2D;
 	} else {
 		pr_debug("PPI write -- 1D data count = %d\n", (int)count);
-		set_dma_x_count(dma, frameSize);
-		set_dma_x_modify(dma, stepSize);
+		set_dma_x_count(dma, frame_size);
+		set_dma_x_modify(dma, step_size);
 	}
 
 	set_dma_start_addr(dma,	(unsigned long)buf);
@@ -1183,8 +1382,8 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	/* configure PPI registers to match DMA	registers */
 
 	dev->regs->ppi_control |= PORT_DIR;
-	dev->regs->ppi_count = conf->linelen - PPI_COUNT_CORR_OFFSET;
-	dev->regs->ppi_frame = conf->numlines;
+	dev->regs->ppi_count = conf->line_len - PPI_COUNT_CORR_OFFSET;
+	dev->regs->ppi_frame = conf->num_lines;
 	dev->regs->ppi_delay = conf->delay;
 
 	enable_dma(dma);
@@ -1193,7 +1392,7 @@ static ssize_t ppi_write(struct file *filp, const char *buf, size_t count, loff_
 	SSYNC();
 
 	if (conf->timers)
-		setup_timers(dev, frameSize);
+		setup_timers(dev, frame_size);
 
 	/* Wait	for DMA	to finish */
 
@@ -1332,8 +1531,8 @@ static int ppi_release(struct inode *inode, struct file	*filp)
 
 	peripheral_free_list(dev->per_ppi0_7);
 
-	if (conf->datalen > CFG_PPI_DATALEN_8)
-		peripheral_free_list(&dev->per_ppi8_15[7 - dev->conf.datalen]);
+	if (conf->data_len > CFG_PPI_DATALEN_8)
+		peripheral_free_list(&dev->per_ppi8_15[7 - dev->conf.data_len]);
 
 	if (conf->fs23)
 		peripheral_free_list(dev->per_ppifs);
@@ -1366,25 +1565,25 @@ ppi_status_show(struct class *ppi_class, struct class_attribute *attr,
 		for (i = 0; i <	ppi_nr_devs; ++i)
 			p += sprintf(p,
 				     "PPI%d:\n irq %d\n	irq error %d\n dma chan	%d\n open %d\n"
-				     " datalen %d\n fs23 %d\n timers %d\n triggeredge %d\n"
+				     " data_len %d\n fs23 %d\n timers %d\n trigger_edge %d\n"
 				     " dims=%d\n delay=%d\n mode=%d\n done=%d\n"
-				     " dma config 0x%X\n linelen %d\n lines number %d\n	ppi control 0x%X\n",
+				     " dma config 0x%X\n line_len %d\n lines number %d\n	ppi control 0x%X\n",
 					i,
 					ppi_devices[i].irq,
 					ppi_devices[i].irq_error,
 					ppi_devices[i].dma_chan,
 					ppi_devices[i].conf.opened,
-					ppi_devices[i].conf.datalen,
+					ppi_devices[i].conf.data_len,
 					ppi_devices[i].conf.fs23,
 					ppi_devices[i].conf.timers,
-					ppi_devices[i].conf.triggeredge,
+					ppi_devices[i].conf.trigger_edge,
 					ppi_devices[i].conf.dimensions,
 					ppi_devices[i].conf.delay,
 					ppi_devices[i].conf.access_mode,
 					ppi_devices[i].conf.done,
 					ppi_devices[i].conf.dma_config,
-					ppi_devices[i].conf.linelen,
-					ppi_devices[i].conf.numlines,
+					ppi_devices[i].conf.line_len,
+					ppi_devices[i].conf.num_lines,
 					ppi_devices[i].conf.ppi_control);
 	}
 	return p - buf;

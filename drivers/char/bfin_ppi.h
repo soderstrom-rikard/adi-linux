@@ -115,6 +115,7 @@
 #define CFG_PPI_SKIP_ODD           0
 #define CFG_PPI_SKIP_EVEN          1
 
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)
 #define CFG_PPI_DATALEN_8        0
 #define CFG_PPI_DATALEN_10       1
 #define CFG_PPI_DATALEN_11       2
@@ -123,6 +124,15 @@
 #define CFG_PPI_DATALEN_14       5
 #define CFG_PPI_DATALEN_15       6
 #define CFG_PPI_DATALEN_16       7
+#elif defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)
+#define CFG_PPI_DATALEN_8        0
+#define CFG_PPI_DATALEN_10       1
+#define CFG_PPI_DATALEN_12       2
+#define CFG_PPI_DATALEN_14       3
+#define CFG_PPI_DATALEN_16       4
+#define CFG_PPI_DATALEN_18       5
+#define CFG_PPI_DATALEN_24       6
+#endif
 
 #define CFG_PPI_CLK_EDGE_RISE      0
 #define CFG_PPI_CLK_EDGE_FALL      1
