@@ -69,11 +69,15 @@
 # define PPI_DATA_LEN       	DLEN_8
 # define DMA_FLOW_MODE      	0x0000	/* STOPMODE */
 #ifdef CONFIG_BF561
-# define DMA_WDSIZE_16      	WDSIZE_32
-# define PPI_PACKING        	(PACK_EN | DMA32)
+# define DMA_WDSIZE_16		WDSIZE_32
+# define PPI_PACKING		(PACK_EN | DMA32)
+#endif
+#ifdef CONFIG_BF54x
+# define DMA_WDSIZE_16		WDSIZE_32
+# define PPI_PACKING		PACK_EN
 #else
-# define DMA_WDSIZE_16      	WDSIZE_16
-# define PPI_PACKING        	PACK_EN
+# define DMA_WDSIZE_16		WDSIZE_16
+# define PPI_PACKING		PACK_EN
 #endif
 
 
