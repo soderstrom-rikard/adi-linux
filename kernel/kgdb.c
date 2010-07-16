@@ -1048,7 +1048,7 @@ static void gdb_cmd_query(struct kgdb_state *ks)
 }
 
 /* Handle the 'H' task query packets */
-static void gdb_cmd_task(struct kgdb_state *ks)
+static int gdb_cmd_task(struct kgdb_state *ks)
 {
 	struct task_struct *thread;
 	char *ptr;
@@ -1065,6 +1065,15 @@ static void gdb_cmd_task(struct kgdb_state *ks)
 		kgdb_usethread = thread;
 		ks->kgdb_usethreadid = ks->threadid;
 		strcpy(remcom_out_buffer, "OK");
+#ifdef CONFIG_SMP
+		/* switch cpu only when it is not a thread query request */
+		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+			!ks->thr_query && ks->kgdb_usethreadid < -1) {
+			kgdb_roundup_cpu(raw_smp_processor_id(), 0);
+			kgdb_contthread = kgdb_usethread;
+			return 1;
+		}
+#endif
 		break;
 	case 'c':
 		ptr = &remcom_in_buffer[2];
@@ -1082,6 +1091,8 @@ static void gdb_cmd_task(struct kgdb_state *ks)
 		strcpy(remcom_out_buffer, "OK");
 		break;
 	}
+
+	return 0;
 }
 
 /* Handle the 'T' thread query packets */
@@ -1089,6 +1100,9 @@ static void gdb_cmd_thread(struct kgdb_state *ks)
 {
 	char *ptr = &remcom_in_buffer[1];
 	struct task_struct *thread;
+
+	/* reset thread query count before thread operation */
+	ks->thr_query = 0;
 
 	kgdb_hex2long(&ptr, &ks->threadid);
 	thread = getthread(ks->linux_regs, ks->threadid);
@@ -1202,20 +1216,31 @@ static int gdb_serial_stub(struct kgdb_state *ks)
 	memset(remcom_out_buffer, 0, sizeof(remcom_out_buffer));
 
 	if (kgdb_connected) {
-		unsigned char thref[8];
-		char *ptr;
+		/* reply the thread switch request after finish swtiching cpu */
+		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+			!kgdb_single_step && kgdb_contthread == current) {
+			remcom_out_buffer[0] = 'O';
+			remcom_out_buffer[1] = 'K';
+			remcom_out_buffer[2] = 0;
+			put_packet(remcom_out_buffer);
+		} else {
+			unsigned char thref[8];
+			char *ptr;
 
-		/* Reply to host that an exception has occurred */
-		ptr = remcom_out_buffer;
-		*ptr++ = 'T';
-		ptr = pack_hex_byte(ptr, ks->signo);
-		ptr += strlen(strcpy(ptr, "thread:"));
-		int_to_threadref(thref, shadow_pid(current->pid));
-		ptr = pack_threadid(ptr, thref);
-		*ptr++ = ';';
-		put_packet(remcom_out_buffer);
+			/* Reply to host that an exception has occurred */
+			ptr = remcom_out_buffer;
+			*ptr++ = 'T';
+			ptr = pack_hex_byte(ptr, ks->signo);
+			ptr += strlen(strcpy(ptr, "thread:"));
+			int_to_threadref(thref, shadow_pid(current->pid));
+			ptr = pack_threadid(ptr, thref);
+			*ptr++ = ';';
+			put_packet(remcom_out_buffer);
+		}
 	}
 
+	kgdb_single_step = 0;
+	kgdb_contthread = current;
 	kgdb_usethread = kgdb_info[ks->cpu].task;
 	ks->kgdb_usethreadid = shadow_pid(kgdb_info[ks->cpu].task->pid);
 	ks->pass_exception = 0;
@@ -1262,7 +1287,8 @@ static int gdb_serial_stub(struct kgdb_state *ks)
 			gdb_cmd_query(ks);
 			break;
 		case 'H': /* task related */
-			gdb_cmd_task(ks);
+			if (gdb_cmd_task(ks))
+				return 0;
 			break;
 		case 'T': /* Query thread status */
 			gdb_cmd_thread(ks);
@@ -1302,6 +1328,7 @@ default_handle:
 			if (error >= 0 || remcom_in_buffer[0] == 'D' ||
 			    remcom_in_buffer[0] == 'k') {
 				error = 0;
+				kgdb_contthread = NULL;
 				goto kgdb_exit;
 			}
 
@@ -1451,13 +1478,17 @@ return_normal:
 	 * CPU in a spin state while the debugger is active
 	 */
 	if (!kgdb_single_step) {
-		for (i = 0; i < NR_CPUS; i++)
-			atomic_inc(&passive_cpu_wait[i]);
+		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+			kgdb_contthread == current)
+			atomic_inc(&passive_cpu_wait[cpu]);
+		else
+			for (i = 0; i < NR_CPUS; i++)
+				atomic_inc(&passive_cpu_wait[i]);
 	}
 
 #ifdef CONFIG_SMP
 	/* Signal the other CPUs to enter kgdb_wait() */
-	if ((!kgdb_single_step) && kgdb_do_roundup)
+	if ((!kgdb_single_step) && kgdb_do_roundup && kgdb_contthread != current)
 		kgdb_roundup_cpus(flags);
 #endif
 
@@ -1475,8 +1506,6 @@ return_normal:
 	 */
 	kgdb_post_primary_code(ks->linux_regs, ks->ex_vector, ks->err_code);
 	kgdb_deactivate_sw_breakpoints();
-	kgdb_single_step = 0;
-	kgdb_contthread = current;
 	exception_level = 0;
 	trace_on = tracing_is_on();
 	if (trace_on)
@@ -1492,15 +1521,22 @@ return_normal:
 	atomic_dec(&cpu_in_kgdb[ks->cpu]);
 
 	if (!kgdb_single_step) {
-		for (i = NR_CPUS-1; i >= 0; i--)
+		/* wake up next master cpu when do real cpu switch */
+		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+			kgdb_contthread) {
+			i = -(ks->kgdb_usethreadid + 2);
 			atomic_dec(&passive_cpu_wait[i]);
-		/*
-		 * Wait till all the CPUs have quit
-		 * from the debugger.
-		 */
-		for_each_online_cpu(i) {
-			while (atomic_read(&cpu_in_kgdb[i]))
-				cpu_relax();
+		} else {
+			for (i = NR_CPUS-1; i >= 0; i--)
+				atomic_dec(&passive_cpu_wait[i]);
+			/*
+			 * Wait till all the CPUs have quit
+			 * from the debugger.
+			 */
+			for_each_online_cpu(i) {
+				while (atomic_read(&cpu_in_kgdb[i]))
+					cpu_relax();
+			}
 		}
 	}
 
@@ -1569,6 +1605,18 @@ int kgdb_nmicallback(int cpu, void *regs)
 		kgdb_info[cpu].exception_state |= DCPU_IS_SLAVE;
 		kgdb_cpu_enter(ks, regs);
 		kgdb_info[cpu].exception_state &= ~DCPU_IS_SLAVE;
+
+		/* Trap into kgdb as the active CPU if gdb asks to switch. */
+		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+			kgdb_contthread == current) {
+#ifdef __ARCH_SYNC_CORE_ICACHE
+			resync_core_icache();
+#endif
+#ifdef __ARCH_SYNC_CORE_DCACHE
+			resync_core_dcache();
+#endif
+			kgdb_breakpoint();
+		}
 		return 0;
 	}
 #endif
