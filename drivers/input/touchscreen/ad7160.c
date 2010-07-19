@@ -19,47 +19,8 @@
 #include <linux/input/ad7160.h>
 #include "ad7160.h"
 
-/* H/W registers */
-
-#define AD7160_REG_CHIPID		0x40002024
-#define AD7160_REG_AFE_PWR		0x40050000
-#define AD7160_REG_AFE_CFG1		0x40050004
-#define AD7160_REG_AFE_CFG2		0x40050008
-#define AD7160_REG_AFE_CFG3		0x4005000C
-#define AD7160_REG_AFE_AMB		0x40050018
-#define AD7160_REG_AFE_SLFAVG		0x4005001C
-#define AD7160_REG_AFE_MTLAVG		0x40050020
-#define AD7160_REG_AFE_DEVID		0x40050114
-#define AD7160_REG_AFE_TEST1		0x40050818
-#define AD7160_REG_AFE_TEST2		0x4005081C
-#define AD7160_REG_AFE_GND_OFFS0	0x40051040
-#define AD7160_REG_AFE_GND_CAL_OFFS0	0x400510C0
-
-/* S/W registers */
-
-#define AD7160_REG_DEVICE_ID		0x40051700
-#define AD7160_REG_REV_ID		0x40051704
-#define AD7160_REG_FW_REV		0x40051708
-#define AD7160_REG_XY_RES		0x40051710
-#define AD7160_REG_FINGER_ACT_CTRL	0x40051728
-#define AD7160_REG_FINGER_ACT_STAT	0x40051784
-#define AD7160_REG_GEST_STAT		0x40051788
-#define AD7160_REG_NB_FINGERS		0x4005178C
-#define AD7160_REG_POS_DATA_STATUS1	0x40051790
-#define AD7160_REG_INT_GEST_EN_CTRL	0x4005173C
-
-
-/* Debug registers */
-#define AD7160_REG_STAGE_READ_INDEX	0x40051800
-#define AD7160_REG_STAGE_READ_SLF_CDC	0x40051804
-
 #define AD7160_FORCE_CALIBRATION	0x800
 #define AD7160_IIR_FILTER_ENABLE	0x2000
-
-#define AD7160_DEMO_CTRL_STAT		0x40051740
-#define AD7160_LPM_CTRL			0x40051714
-#define AD7160_POSITION_WINDOW_CTRL	0x40051750
-
 #define AD7160_SIL_ID			0x7160
 
 /*
@@ -318,7 +279,7 @@ static void ad7160_setup(struct ad7160 *ts)
 
 	ts->tracking_id = 1;
 
-	ad7160_write(ts, AD7160_LPM_CTRL, 0);
+	ad7160_write(ts, AD7160_REG_LPM_CTRL, 0);
 	ad7160_write(ts, AD7160_REG_INT_GEST_EN_CTRL,
 			(ts->pdata->ev_code_tap != 0 ? AD7160_TAP_ENABLE : 0) |
 			(ts->pdata->ev_code_double_tap != 0
@@ -333,10 +294,10 @@ static void ad7160_setup(struct ad7160 *ts)
 			ts->pdata->sensor_x_res);
 
 	/* Reset demo control/status register */
-	ad7160_write(ts, AD7160_DEMO_CTRL_STAT, AD7160_SW_IIR_FILTER_EN);
+	ad7160_write(ts, AD7160_REG_DEMO_CTRL_STAT, AD7160_SW_IIR_FILTER_EN);
 
 	/* Position window update control register */
-	ad7160_write(ts, AD7160_POSITION_WINDOW_CTRL,
+	ad7160_write(ts, AD7160_REG_POSITION_WINDOW_CTRL,
 		(ts->pdata->move_window << 8) |
 		ts->pdata->first_touch_window);
 
@@ -350,7 +311,7 @@ void ad7160_disable(struct device *dev)
 	mutex_lock(&ts->mutex);
 
 	if (!ts->disabled) {
-		ad7160_write(ts, AD7160_LPM_CTRL, AD7160_SHUTDOWN);
+		ad7160_write(ts, AD7160_REG_LPM_CTRL, AD7160_SHUTDOWN);
 		ts->disabled = 1;
 		disable_irq(ts->bdata.irq);
 		cancel_work_sync(&ts->work);
