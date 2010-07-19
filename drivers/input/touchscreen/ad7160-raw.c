@@ -207,16 +207,14 @@ static long ad7160_raw_misc_ioctl(struct file *fp,
 			break;
 		}
 
-		val32 = ad7160_raw_device.bdata.bops->read(
+		val32 = ad7160_raw_device.bdata.bops->multi_read(
 				ad7160_raw_device.bdata.client,
-				reg_access.reg);
+				reg_access.reg, 1, &reg_access.data);
 
 		if (val32 < 0) {
 			ret = -EIO;
 			break;
 		}
-
-		reg_access.data = val32;
 
 		if (copy_to_user(argp, &reg_access, sizeof(reg_access)))
 			ret = -EFAULT;
