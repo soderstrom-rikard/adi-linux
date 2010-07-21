@@ -516,6 +516,8 @@ static int adau1761_reg_init(struct snd_soc_codec *codec)
 #else /* analog mic */
 	int mode = 0;
 #endif
+	adau1761_pll_init(codec);
+	adau1761_pll_enable(codec, 1);
 
 	/* Load deault regsiter settings */
 	for (i = 0; i < RESET_REGISTER_COUNT; ++i) {
