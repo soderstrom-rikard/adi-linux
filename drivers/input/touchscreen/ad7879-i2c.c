@@ -18,12 +18,20 @@
 #ifdef CONFIG_PM
 static int ad7879_i2c_suspend(struct i2c_client *client, pm_message_t message)
 {
-	return ad7879_disable(&client->dev);
+	struct ad7879 *ts = i2c_get_clientdata(client);
+
+	ad7879_suspend(ts);
+
+	return 0;
 }
 
 static int ad7879_i2c_resume(struct i2c_client *client)
 {
-	return ad7879_enable(&client->dev);
+	struct ad7879 *ts = i2c_get_clientdata(client);
+
+	ad7879_resume(ts);
+
+	return 0;
 }
 #else
 # define ad7879_i2c_suspend NULL
@@ -33,13 +41,17 @@ static int ad7879_i2c_resume(struct i2c_client *client)
 /* All registers are word-sized.
  * AD7879 uses a high-byte first convention.
  */
-static int ad7879_i2c_read(void *client, u8 reg)
+static int ad7879_i2c_read(struct device *dev, u8 reg)
 {
+	struct i2c_client *client = to_i2c_client(dev);
+
 	return swab16(i2c_smbus_read_word_data(client, reg));
 }
 
-static int ad7879_i2c_multi_read(void *client, u8 first_reg, u8 count, u16 *buf)
+static int ad7879_i2c_multi_read(struct device *dev,
+				 u8 first_reg, u8 count, u16 *buf)
 {
+	struct i2c_client *client = to_i2c_client(dev);
 	u8 idx;
 
 	i2c_smbus_read_i2c_block_data(client, first_reg, count * 2, (u8 *)buf);
@@ -50,25 +62,24 @@ static int ad7879_i2c_multi_read(void *client, u8 first_reg, u8 count, u16 *buf)
 	return 0;
 }
 
-static int ad7879_i2c_write(void *client, u8 reg, u16 val)
+static int ad7879_i2c_write(struct device *dev, u8 reg, u16 val)
 {
+	struct i2c_client *client = to_i2c_client(dev);
+
 	return i2c_smbus_write_word_data(client, reg, swab16(val));
 }
 
-static const struct ad7879_bus_ops bops = {
-	.read = ad7879_i2c_read,
-	.multi_read = ad7879_i2c_multi_read,
-	.write = ad7879_i2c_write,
+static const struct ad7879_bus_ops ad7879_i2c_bus_ops = {
+	.bustype	= BUS_I2C,
+	.read		= ad7879_i2c_read,
+	.multi_read	= ad7879_i2c_multi_read,
+	.write		= ad7879_i2c_write,
 };
 
 static int __devinit ad7879_i2c_probe(struct i2c_client *client,
 				      const struct i2c_device_id *id)
 {
-	struct ad7879_bus_data bdata = {
-		.client = client,
-		.irq = client->irq,
-		.bops = &bops,
-	};
+	struct ad7879 *ts;
 
 	if (!i2c_check_functionality(client->adapter,
 				     I2C_FUNC_SMBUS_WORD_DATA)) {
@@ -76,12 +87,23 @@ static int __devinit ad7879_i2c_probe(struct i2c_client *client,
 		return -EIO;
 	}
 
-	return ad7879_probe(&client->dev, &bdata, AD7879_DEVID, BUS_I2C);
+	ts = ad7879_probe(&client->dev, AD7879_DEVID, client->irq,
+			  &ad7879_i2c_bus_ops);
+	if (IS_ERR(ts))
+		return PTR_ERR(ts);
+
+	i2c_set_clientdata(client, ts);
+
+	return 0;
 }
 
 static int __devexit ad7879_i2c_remove(struct i2c_client *client)
 {
-	return ad7879_remove(&client->dev);
+	struct ad7879 *ts = i2c_get_clientdata(client);
+
+	ad7879_remove(ts);
+
+	return 0;
 }
 
 static const struct i2c_device_id ad7879_id[] = {

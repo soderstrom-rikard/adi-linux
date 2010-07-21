@@ -12,21 +12,19 @@
 #include <linux/types.h>
 
 struct ad7879;
+struct device;
 
 struct ad7879_bus_ops {
-	int (*read) (void *client, u8 reg);
-	int (*multi_read) (void *client, u8 first_reg, u8 count, u16 *buf);
-	int (*write) (void *client, u8 reg, u16 val);
-};
-struct ad7879_bus_data {
-	void *client;
-	int irq;
-	const struct ad7879_bus_ops *bops;
+	u16 bustype;
+	int (*read)(struct device *dev, u8 reg);
+	int (*multi_read)(struct device *dev, u8 first_reg, u8 count, u16 *buf);
+	int (*write)(struct device *dev, u8 reg, u16 val);
 };
 
-int ad7879_disable(struct device *dev);
-int ad7879_enable(struct device *dev);
-int ad7879_probe(struct device *dev, struct ad7879_bus_data *bdata, u8 devid, u16 bustype);
-int ad7879_remove(struct device *dev);
+void ad7879_suspend(struct ad7879 *);
+void ad7879_resume(struct ad7879 *);
+struct ad7879 *ad7879_probe(struct device *dev, u8 devid, unsigned irq,
+			    const struct ad7879_bus_ops *bops);
+void ad7879_remove(struct ad7879 *);
 
 #endif

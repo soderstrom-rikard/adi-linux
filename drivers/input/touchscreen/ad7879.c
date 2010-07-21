@@ -28,7 +28,8 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/slab.h>
-#include <linux/workqueue.h>
+#include <linux/spi/spi.h>
+#include <linux/i2c.h>
 #include <linux/gpio.h>
 
 #include <linux/spi/ad7879.h>
@@ -104,15 +105,18 @@ enum {
 #define	TS_PEN_UP_TIMEOUT		msecs_to_jiffies(50)
 
 struct ad7879 {
-	struct ad7879_bus_data	bdata;
+	const struct ad7879_bus_ops *bops;
+
+	struct device		*dev;
 	struct input_dev	*input;
-	struct work_struct	work;
 	struct timer_list	timer;
 #ifdef CONFIG_GPIOLIB
 	struct gpio_chip	gc;
-#endif
 	struct mutex		mutex;
-	unsigned		disabled:1;	/* P: mutex */
+#endif
+	unsigned int		irq;
+	bool			disabled;	/* P: input->mutex */
+	bool			suspended;	/* P: input->mutex */
 	u16			conversion_data[AD7879_NR_SENSE];
 	char			phys[32];
 	u8			first_conversion_delay;
@@ -129,15 +133,17 @@ struct ad7879 {
 
 static int ad7879_read(struct ad7879 *ts, u8 reg)
 {
-	return ts->bdata.bops->read(ts->bdata.client, reg);
+	return ts->bops->read(ts->dev, reg);
 }
+
 static int ad7879_multi_read(struct ad7879 *ts, u8 first_reg, u8 count, u16 *buf)
 {
-	return ts->bdata.bops->multi_read(ts->bdata.client, first_reg, count, buf);
+	return ts->bops->multi_read(ts->dev, first_reg, count, buf);
 }
+
 static int ad7879_write(struct ad7879 *ts, u8 reg, u16 val)
 {
-	return ts->bdata.bops->write(ts->bdata.client, reg, val);
+	return ts->bops->write(ts->dev, reg, val);
 }
 
 static int ad7879_report(struct ad7879 *ts)
@@ -153,12 +159,14 @@ static int ad7879_report(struct ad7879 *ts)
 
 	/*
 	 * The samples processed here are already preprocessed by the AD7879.
-	 * The preprocessing function consists of a median and an averaging filter.
-	 * The combination of these two techniques provides a robust solution,
-	 * discarding the spurious noise in the signal and keeping only the data of interest.
-	 * The size of both filters is programmable. (dev.platform_data, see linux/spi/ad7879.h)
-	 * Other user-programmable conversion controls include variable acquisition time,
-	 * and first conversion delay. Up to 16 averages can be taken per conversion.
+	 * The preprocessing function consists of a median and an averaging
+	 * filter.  The combination of these two techniques provides a robust
+	 * solution, discarding the spurious noise in the signal and keeping
+	 * only the data of interest.  The size of both filters is
+	 * programmable. (dev.platform_data, see linux/spi/ad7879.h) Other
+	 * user-programmable conversion controls include variable acquisition
+	 * time, and first conversion delay. Up to 16 averages can be taken
+	 * per conversion.
 	 */
 
 	if (likely(x && z1)) {
@@ -178,16 +186,6 @@ static int ad7879_report(struct ad7879 *ts)
 	}
 
 	return -EINVAL;
-}
-
-static void ad7879_work(struct work_struct *work)
-{
-	struct ad7879 *ts = container_of(work, struct ad7879, work);
-
-	/* use keventd context to read the result registers */
-	ad7879_multi_read(ts, AD7879_REG_XPLUS, AD7879_NR_SENSE, ts->conversion_data);
-	if (!ad7879_report(ts))
-		mod_timer(&ts->timer, jiffies + TS_PEN_UP_TIMEOUT);
 }
 
 static void ad7879_ts_event_release(struct ad7879 *ts)
@@ -210,67 +208,99 @@ static irqreturn_t ad7879_irq(int irq, void *handle)
 {
 	struct ad7879 *ts = handle;
 
-	/* The repeated conversion sequencer controlled by TMR kicked off too fast.
-	 * We ignore the last and process the sample sequence currently in the queue.
-	 * It can't be older than 9.4ms
-	 */
+	ad7879_multi_read(ts, AD7879_REG_XPLUS, AD7879_NR_SENSE, ts->conversion_data);
 
-	if (!work_pending(&ts->work))
-		schedule_work(&ts->work);
+	if (!ad7879_report(ts))
+		mod_timer(&ts->timer, jiffies + TS_PEN_UP_TIMEOUT);
 
 	return IRQ_HANDLED;
 }
 
-static void ad7879_setup(struct ad7879 *ts)
+static void __ad7879_enable(struct ad7879 *ts)
 {
 	ad7879_write(ts, AD7879_REG_CTRL2, ts->cmd_crtl2);
 	ad7879_write(ts, AD7879_REG_CTRL3, ts->cmd_crtl3);
 	ad7879_write(ts, AD7879_REG_CTRL1, ts->cmd_crtl1);
+
+	enable_irq(ts->irq);
 }
 
-int ad7879_disable(struct device *dev)
+static void __ad7879_disable(struct ad7879 *ts)
 {
-	struct ad7879 *ts = dev_get_drvdata(dev);
+	disable_irq(ts->irq);
 
-	mutex_lock(&ts->mutex);
+	if (del_timer_sync(&ts->timer))
+		ad7879_ts_event_release(ts);
 
-	if (!ts->disabled) {
+	ad7879_write(ts, AD7879_REG_CTRL2, AD7879_PM(AD7879_PM_SHUTDOWN));
+}
 
-		ts->disabled = 1;
-		disable_irq(ts->bdata.irq);
 
-		cancel_work_sync(&ts->work);
+static int ad7879_open(struct input_dev *input)
+{
+	struct ad7879 *ts = input_get_drvdata(input);
 
-		if (del_timer_sync(&ts->timer))
-			ad7879_ts_event_release(ts);
-
-		ad7879_write(ts, AD7879_REG_CTRL2,
-			     AD7879_PM(AD7879_PM_SHUTDOWN));
-	}
-
-	mutex_unlock(&ts->mutex);
+	/* protected by input->mutex */
+	if (!ts->disabled && !ts->suspended)
+		__ad7879_enable(ts);
 
 	return 0;
 }
-EXPORT_SYMBOL(ad7879_disable);
 
-int ad7879_enable(struct device *dev)
+static void ad7879_close(struct input_dev* input)
 {
-	struct ad7879 *ts = dev_get_drvdata(dev);
+	struct ad7879 *ts = input_get_drvdata(input);
 
-	mutex_lock(&ts->mutex);
+	/* protected by input->mutex */
+	if (!ts->disabled && !ts->suspended)
+		__ad7879_disable(ts);
+}
 
-	if (ts->disabled) {
-		ad7879_setup(ts);
-		ts->disabled = 0;
-		enable_irq(ts->bdata.irq);
+void ad7879_suspend(struct ad7879 *ts)
+{
+	mutex_lock(&ts->input->mutex);
+
+	if (!ts->suspended && !ts->disabled && ts->input->users)
+		__ad7879_disable(ts);
+
+	ts->suspended = true;
+
+	mutex_unlock(&ts->input->mutex);
+}
+EXPORT_SYMBOL(ad7879_suspend);
+
+void ad7879_resume(struct ad7879 *ts)
+{
+	mutex_lock(&ts->input->mutex);
+
+	if (ts->suspended && !ts->disabled && ts->input->users)
+		__ad7879_enable(ts);
+
+	ts->suspended = false;
+
+	mutex_unlock(&ts->input->mutex);
+}
+EXPORT_SYMBOL(ad7879_resume);
+
+static void ad7879_toggle(struct ad7879 *ts, bool disable)
+{
+	mutex_lock(&ts->input->mutex);
+
+	if (!ts->suspended && ts->input->users != 0) {
+
+		if (disable) {
+			if (ts->disabled)
+				__ad7879_enable(ts);
+		} else {
+			if (!ts->disabled)
+				__ad7879_disable(ts);
+		}
 	}
 
-	mutex_unlock(&ts->mutex);
+	ts->disabled = disable;
 
-	return 0;
+	mutex_unlock(&ts->input->mutex);
 }
-EXPORT_SYMBOL(ad7879_enable);
 
 static ssize_t ad7879_disable_show(struct device *dev,
 				     struct device_attribute *attr, char *buf)
@@ -284,6 +314,7 @@ static ssize_t ad7879_disable_store(struct device *dev,
 				     struct device_attribute *attr,
 				     const char *buf, size_t count)
 {
+	struct ad7879 *ts = dev_get_drvdata(dev);
 	unsigned long val;
 	int error;
 
@@ -291,10 +322,7 @@ static ssize_t ad7879_disable_store(struct device *dev,
 	if (error)
 		return error;
 
-	if (val)
-		ad7879_disable(dev);
-	else
-		ad7879_enable(dev);
+	ad7879_toggle(ts, val);
 
 	return count;
 }
@@ -372,11 +400,12 @@ static void ad7879_gpio_set_value(struct gpio_chip *chip,
 	mutex_unlock(&ts->mutex);
 }
 
-static int __devinit ad7879_gpio_add(struct device *dev)
+static int ad7879_gpio_add(struct ad7879 *ts,
+			   const struct ad7879_platform_data *pdata)
 {
-	struct ad7879 *ts = dev_get_drvdata(dev);
-	struct ad7879_platform_data *pdata = dev->platform_data;
 	int ret = 0;
+
+	mutex_init(&ts->mutex);
 
 	if (pdata->gpio_export) {
 		ts->gc.direction_input = ad7879_gpio_direction_input;
@@ -388,82 +417,75 @@ static int __devinit ad7879_gpio_add(struct device *dev)
 		ts->gc.ngpio = 1;
 		ts->gc.label = "AD7879-GPIO";
 		ts->gc.owner = THIS_MODULE;
-		ts->gc.dev = dev;
+		ts->gc.dev = ts->dev;
 
 		ret = gpiochip_add(&ts->gc);
 		if (ret)
-			dev_err(dev, "failed to register gpio %d\n",
+			dev_err(ts->dev, "failed to register gpio %d\n",
 				ts->gc.base);
 	}
 
 	return ret;
 }
 
-/*
- * We mark ad7879_gpio_remove inline so there is a chance the code
- * gets discarded when not needed. We can't do __devinit/__devexit
- * markup since it is used in both probe and remove methods.
- */
-static inline void ad7879_gpio_remove(struct device *dev)
+static void ad7879_gpio_remove(struct ad7879 *ts)
 {
-	struct ad7879 *ts = dev_get_drvdata(dev);
-	struct ad7879_platform_data *pdata = dev->platform_data;
+	const struct ad7879_platform_data *pdata = ts->dev->platform_data;
 	int ret;
 
 	if (pdata->gpio_export) {
 		ret = gpiochip_remove(&ts->gc);
 		if (ret)
-			dev_err(dev, "failed to remove gpio %d\n",
+			dev_err(ts->dev, "failed to remove gpio %d\n",
 				ts->gc.base);
 	}
 }
 #else
-static inline int ad7879_gpio_add(struct device *dev)
+static inline int ad7879_gpio_add(struct ad7879 *ts,
+				  const struct ad7879_platform_data *pdata)
 {
 	return 0;
 }
 
-static inline void ad7879_gpio_remove(struct device *dev)
+static inline void ad7879_gpio_remove(struct ad7879 *ts)
 {
 }
 #endif
 
-__devinit int
-ad7879_probe(struct device *dev, struct ad7879_bus_data *bdata, u8 devid, u16 bustype)
+struct ad7879 *ad7879_probe(struct device *dev, u8 devid, unsigned int irq,
+			    const struct ad7879_bus_ops *bops)
 {
-	struct input_dev *input_dev;
 	struct ad7879_platform_data *pdata = dev->platform_data;
+	struct ad7879 *ts;
+	struct input_dev *input_dev;
 	int err;
 	u16 revid;
-	struct ad7879 *ts;
 
-	if (!bdata->irq) {
+	if (!irq) {
 		dev_err(dev, "no IRQ?\n");
-		return -ENODEV;
+		err = -EINVAL;
+		goto err_out;
 	}
 
 	if (!pdata) {
 		dev_err(dev, "no platform data?\n");
-		return -ENODEV;
+		err = -EINVAL;
+		goto err_out;
 	}
 
-	err = -ENOMEM;
-
 	ts = kzalloc(sizeof(*ts), GFP_KERNEL);
-	if (!ts)
-		goto err_free_ts_mem;
-
 	input_dev = input_allocate_device();
-	if (!input_dev)
-		goto err_free_ts_mem;
+	if (!ts || !input_dev) {
+		err = -ENOMEM;
+		goto err_free_mem;
+	}
 
-	ts->bdata = *bdata;
+	ts->bops = bops;
+	ts->dev = dev;
 	ts->input = input_dev;
-	dev_set_drvdata(dev, ts);
+	ts->irq = irq;
 
 	setup_timer(&ts->timer, ad7879_timer, (unsigned long) ts);
-	INIT_WORK(&ts->work, ad7879_work);
-	mutex_init(&ts->mutex);
 
 	ts->x_plate_ohms = pdata->x_plate_ohms ? : 400;
 	ts->pressure_max = pdata->pressure_max ? : ~0;
@@ -479,14 +501,20 @@ ad7879_probe(struct device *dev, struct ad7879_bus_data *bdata, u8 devid, u16 bu
 	input_dev->name = "AD7879 Touchscreen";
 	input_dev->phys = ts->phys;
 	input_dev->dev.parent = dev;
-	input_dev->id.bustype = bustype;
+	input_dev->id.bustype = bops->bustype;
 
-	__set_bit(EV_KEY, input_dev->evbit);
-	__set_bit(BTN_TOUCH, input_dev->keybit);
+	input_dev->open = ad7879_open;
+	input_dev->close = ad7879_close;
+
+	input_set_drvdata(input_dev, ts);
+
 	__set_bit(EV_ABS, input_dev->evbit);
 	__set_bit(ABS_X, input_dev->absbit);
 	__set_bit(ABS_Y, input_dev->absbit);
 	__set_bit(ABS_PRESSURE, input_dev->absbit);
+
+	__set_bit(EV_KEY, input_dev->evbit);
+	__set_bit(BTN_TOUCH, input_dev->keybit);
 
 	input_set_abs_params(input_dev, ABS_X,
 			pdata->x_min ? : 0,
@@ -500,7 +528,6 @@ ad7879_probe(struct device *dev, struct ad7879_bus_data *bdata, u8 devid, u16 bu
 			pdata->pressure_min, pdata->pressure_max, 0, 0);
 
 	err = ad7879_write(ts, AD7879_REG_CTRL2, AD7879_RESET);
-
 	if (err < 0) {
 		dev_err(dev, "Failed to write %s\n", input_dev->name);
 		goto err_free_mem;
@@ -533,20 +560,21 @@ ad7879_probe(struct device *dev, struct ad7879_bus_data *bdata, u8 devid, u16 bu
 			AD7879_ACQ(ts->acquisition_time) |
 			AD7879_TMR(ts->pen_down_acc_interval);
 
-	ad7879_setup(ts);
-
-	err = request_irq(ts->bdata.irq, ad7879_irq, IRQF_TRIGGER_FALLING,
-			  dev_name(dev), ts);
+	err = request_threaded_irq(ts->irq, NULL, ad7879_irq,
+				   IRQF_TRIGGER_FALLING,
+				   dev_name(dev), ts);
 	if (err) {
-		dev_err(dev, "irq %d busy?\n", ts->bdata.irq);
+		dev_err(dev, "irq %d busy?\n", ts->irq);
 		goto err_free_mem;
 	}
+
+	__ad7879_disable(ts);
 
 	err = sysfs_create_group(&dev->kobj, &ad7879_attr_group);
 	if (err)
 		goto err_free_irq;
 
-	err = ad7879_gpio_add(dev);
+	err = ad7879_gpio_add(ts, pdata);
 	if (err)
 		goto err_remove_attr;
 
@@ -554,42 +582,29 @@ ad7879_probe(struct device *dev, struct ad7879_bus_data *bdata, u8 devid, u16 bu
 	if (err)
 		goto err_remove_gpio;
 
-	dev_info(dev, "Rev.%d touchscreen, irq %d\n",
-		 revid >> 8, ts->bdata.irq);
-
-	return 0;
+	return ts;
 
 err_remove_gpio:
-	ad7879_gpio_remove(dev);
+	ad7879_gpio_remove(ts);
 err_remove_attr:
 	sysfs_remove_group(&dev->kobj, &ad7879_attr_group);
 err_free_irq:
-	free_irq(ts->bdata.irq, ts);
+	free_irq(ts->irq, ts);
 err_free_mem:
 	input_free_device(input_dev);
-err_free_ts_mem:
 	kfree(ts);
-	dev_set_drvdata(dev, NULL);
-
-	return err;
+err_out:
+	return ERR_PTR(err);
 }
 EXPORT_SYMBOL(ad7879_probe);
 
-__devexit int ad7879_remove(struct device *dev)
+void ad7879_remove(struct ad7879 *ts)
 {
-	struct ad7879 *ts = dev_get_drvdata(dev);
-
-	ad7879_gpio_remove(dev);
-	ad7879_disable(dev);
-	sysfs_remove_group(&dev->kobj, &ad7879_attr_group);
-	free_irq(ts->bdata.irq, ts);
+	ad7879_gpio_remove(ts);
+	sysfs_remove_group(&ts->dev->kobj, &ad7879_attr_group);
+	free_irq(ts->irq, ts);
 	input_unregister_device(ts->input);
-	dev_set_drvdata(dev, NULL);
 	kfree(ts);
-
-	dev_dbg(dev, "unregistered touchscreen\n");
-
-	return 0;
 }
 EXPORT_SYMBOL(ad7879_remove);
 

@@ -7,7 +7,6 @@
  */
 
 #include <linux/input.h>	/* BUS_SPI */
-#include <linux/slab.h>
 #include <linux/spi/spi.h>
 
 #include "ad7879.h"
@@ -24,12 +23,20 @@
 #ifdef CONFIG_PM
 static int ad7879_spi_suspend(struct spi_device *spi, pm_message_t message)
 {
-	return ad7879_disable(&spi->dev);
+	struct ad7879 *ts = spi_get_drvdata(spi);
+
+	ad7879_suspend(ts);
+
+	return 0;
 }
 
 static int ad7879_spi_resume(struct spi_device *spi)
 {
-	return ad7879_enable(&spi->dev);
+	struct ad7879 *ts = spi_get_drvdata(spi);
+
+	ad7879_resume(ts);
+
+	return 0;
 }
 #else
 # define ad7879_spi_suspend NULL
@@ -41,7 +48,8 @@ static int ad7879_spi_resume(struct spi_device *spi)
  * The main traffic is done in ad7879_collect().
  */
 
-static int ad7879_spi_xfer(void *spi, u16 cmd, u8 count, u16 *tx_buf, u16 *rx_buf)
+static int ad7879_spi_xfer(struct spi_device *spi,
+			   u16 cmd, u8 count, u16 *tx_buf, u16 *rx_buf)
 {
 	struct spi_message msg;
 	struct spi_transfer *xfers;
@@ -92,37 +100,41 @@ static int ad7879_spi_xfer(void *spi, u16 cmd, u8 count, u16 *tx_buf, u16 *rx_bu
 	return ret;
 }
 
-static int ad7879_spi_multi_read(void *spi, u8 first_reg, u8 count, u16 *buf)
+static int ad7879_spi_multi_read(struct device *dev,
+				 u8 first_reg, u8 count, u16 *buf)
 {
+	struct spi_device *spi = to_spi_device(dev);
+
 	return ad7879_spi_xfer(spi, AD7879_READCMD(first_reg), count, NULL, buf);
 }
 
-static int ad7879_spi_read(void *spi, u8 reg)
+static int ad7879_spi_read(struct device *dev, u8 reg)
 {
+	struct spi_device *spi = to_spi_device(dev);
 	u16 ret, dummy;
+
 	return ad7879_spi_xfer(spi, AD7879_READCMD(reg), 1, &dummy, &ret) ? : ret;
 }
 
-static int ad7879_spi_write(void *spi, u8 reg, u16 val)
+static int ad7879_spi_write(struct device *dev, u8 reg, u16 val)
 {
+	struct spi_device *spi = to_spi_device(dev);
 	u16 dummy;
+
 	return ad7879_spi_xfer(spi, AD7879_WRITECMD(reg), 1, &val, &dummy);
 }
 
-static const struct ad7879_bus_ops bops = {
-	.read = ad7879_spi_read,
-	.multi_read = ad7879_spi_multi_read,
-	.write = ad7879_spi_write,
+static const struct ad7879_bus_ops ad7879_spi_bus_ops = {
+	.bustype	= BUS_SPI,
+	.read		= ad7879_spi_read,
+	.multi_read	= ad7879_spi_multi_read,
+	.write		= ad7879_spi_write,
 };
 
 static int __devinit ad7879_spi_probe(struct spi_device *spi)
 {
+	struct ad7879 *ts;
 	int err;
-	struct ad7879_bus_data bdata = {
-		.client = spi,
-		.irq = spi->irq,
-		.bops = &bops,
-	};
 
 	/* don't exceed max specified SPI CLK frequency */
 	if (spi->max_speed_hz > MAX_SPI_FREQ_HZ) {
@@ -133,16 +145,27 @@ static int __devinit ad7879_spi_probe(struct spi_device *spi)
 	spi->bits_per_word = 16;
 	err = spi_setup(spi);
 	if (err) {
-		dev_dbg(&spi->dev, "spi master doesn't support 16 bits/word\n");
-		return err;
+	        dev_dbg(&spi->dev, "spi master doesn't support 16 bits/word\n");
+	        return err;
 	}
 
-	return ad7879_probe(&spi->dev, &bdata, AD7879_DEVID, BUS_SPI);
+	ts = ad7879_probe(&spi->dev, AD7879_DEVID, spi->irq, &ad7879_spi_bus_ops);
+	if (IS_ERR(ts))
+		return PTR_ERR(ts);
+
+	spi_set_drvdata(spi, ts);
+
+	return 0;
 }
 
 static int __devexit ad7879_spi_remove(struct spi_device *spi)
 {
-	return ad7879_remove(&spi->dev);
+	struct ad7879 *ts = spi_get_drvdata(spi);
+
+	ad7879_remove(ts);
+	spi_set_drvdata(spi, NULL);
+
+	return 0;
 }
 
 static struct spi_driver ad7879_spi_driver = {
