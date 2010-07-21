@@ -71,7 +71,7 @@ static int ad7160_read_multi(u32 reg, u32 len, u32 *data)
 
 		ret = ad7160_raw_device.bdata.bops->multi_read(
 				ad7160_raw_device.bdata.client,
-				reg + count,
+				reg + (count * sizeof(data)),
 				readnum,
 				&data[count]);
 		count += readnum;
