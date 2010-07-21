@@ -17,6 +17,7 @@ else
 endif
 
 obj-$(CONFIG_BINFMT_ELF_FDPIC)       += binfmt_elf_fdpic.o
+obj-$(CONFIG_DYNAMIC_FTRACE)         += ftrace.o
 obj-$(CONFIG_FUNCTION_TRACER)        += ftrace-entry.o
 obj-$(CONFIG_FUNCTION_GRAPH_TRACER)  += ftrace.o
 CFLAGS_REMOVE_ftrace.o = -pg
