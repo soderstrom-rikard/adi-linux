@@ -3,13 +3,12 @@
  *
  * - KSZ8893M support
  *
- * Copyright 2008-2009 Analog Devices Inc.
- *
- * Enter bugs at http://blackfin.uclinux.org/
+ * Copyright 2008-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
- *
  */
+
+#define pr_fmt(fmt) "ksz8893m: " fmt
 
 #include <linux/list.h>
 #include <linux/netdevice.h>
@@ -46,7 +45,7 @@ static int ksz8893m_read(unsigned char *din, unsigned char reg, int len)
 	if (!ret)
 		return message.status;
 
-	printk(KERN_ERR "ksz8893m: read reg%d failed, ret=%d.\n", reg, ret);
+	pr_err("read reg%d failed, ret=%d\n", reg, ret);
 	return ret;
 }
 
@@ -69,7 +68,7 @@ static int ksz8893m_write(unsigned char *dout, unsigned char reg, int len)
 	if (!ret)
 		return message.status;
 
-	printk(KERN_ERR "ksz8893m: write reg%d failed, ret=%d.\n", reg, ret);
+	pr_err("write reg%d failed, ret=%d\n", reg, ret);
 	return ret;
 }
 
@@ -217,7 +216,7 @@ static int ksz8893m_port_to_phy_addr(int port)
 	if (port >= 1 && port <= KSZ8893M_PORT_NUM)
 		return port;
 
-	printk(KERN_WARNING "ksz8893m: use default phy addr 3\n");
+	pr_warning("use default phy addr 3\n");
 	return 3;
 }
 
@@ -236,7 +235,7 @@ ksz8893m_phy_write(struct dsa_switch *ds,
 	return mdiobus_write(ds->master_mii_bus, phy_addr, regnum, val);
 }
 
-void ksz8893m_poll_link(struct dsa_switch *ds)
+static void ksz8893m_poll_link(struct dsa_switch *ds)
 {
 	int i;
 
@@ -299,7 +298,7 @@ void ksz8893m_poll_link(struct dsa_switch *ds)
 static int __devinit spi_switch_probe(struct spi_device *spi)
 {
 	if (sw.dev) {
-		printk(KERN_ERR "ksz8893m: only one instance supported at a time\n");
+		pr_err("only one instance supported at a time\n");
 		return 1;
 	}
 	memset(&sw.xfer, 0, sizeof(sw.xfer));
@@ -333,12 +332,13 @@ static struct dsa_switch_driver ksz8893m_switch_driver = {
 	.poll_link		= ksz8893m_poll_link,
 };
 
-int __init ksz8893m_init(void)
+static int __init ksz8893m_init(void)
 {
 	int ret;
+
 	ret = spi_register_driver(&spi_switch_driver);
 	if (ret) {
-		printk(KERN_ERR "ksz8893m: Can't register driver!\n");
+		pr_err("can't register driver\n");
 		return ret;
 	}
 
@@ -347,14 +347,13 @@ int __init ksz8893m_init(void)
 }
 module_init(ksz8893m_init);
 
-void __exit ksz8893m_cleanup(void)
+static void __exit ksz8893m_cleanup(void)
 {
 	spi_unregister_driver(&spi_switch_driver);
 	unregister_switch_driver(&ksz8893m_switch_driver);
 }
 module_exit(ksz8893m_cleanup);
 
-MODULE_AUTHOR("Graf.Yang <graf.yang@analog.com>");
+MODULE_AUTHOR("Graf Yang <graf.yang@analog.com>");
 MODULE_DESCRIPTION("KSZ8893M driver for DSA");
 MODULE_LICENSE("GPL");
-

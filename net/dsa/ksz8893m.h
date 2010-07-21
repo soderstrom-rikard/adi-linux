@@ -1,5 +1,16 @@
-#ifndef __KSZ8893M_H
-#define __KSZ8893M_H
+/*
+ * Integrated 3-Port 10/100 Managed Switch with PHYs
+ *
+ * - KSZ8893M support
+ *
+ * Copyright 2008-2010 Analog Devices Inc.
+ *
+ * Licensed under the GPL-2 or later.
+ */
+
+#ifndef __KSZ8893M_H__
+#define __KSZ8893M_H__
+
 #include <linux/netdevice.h>
 
 #define KSZ8893M_PORT_NUM 3
@@ -9,7 +20,6 @@
 
 #define SPI_READ          3
 #define SPI_WRITE         2
-
 
 /* PHYID High */
 #define PHYID_HIGH        0x22
@@ -209,4 +219,5 @@ enum switch_phy_reg {
 	QMDebug1,
 	QMDebug2,
 };
+
 #endif
