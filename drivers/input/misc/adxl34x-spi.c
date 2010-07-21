@@ -46,7 +46,7 @@ static int adxl34x_spi_write(struct device *dev,
 
 static int adxl34x_spi_read_block(struct device *dev,
 				  unsigned char reg, int count,
-				  unsigned char *buf)
+				  void *buf)
 {
 	struct spi_device *spi = to_spi_device(dev);
 	ssize_t status;
@@ -57,11 +57,16 @@ static int adxl34x_spi_read_block(struct device *dev,
 	return (status < 0) ? status : 0;
 }
 
+static const struct adxl34x_bus_ops adx134x_spi_bops = {
+	.bustype	= BUS_SPI,
+	.write		= adxl34x_spi_write,
+	.read		= adxl34x_spi_read,
+	.read_block	= adxl34x_spi_read_block,
+};
+
 static int __devinit adxl34x_spi_probe(struct spi_device *spi)
 {
-	struct adxl34x_bus_ops bops;
 	struct adxl34x *ac;
-	int error;
 
 	/* don't exceed max specified SPI CLK frequency */
 	if (spi->max_speed_hz > MAX_SPI_FREQ_HZ) {
@@ -69,32 +74,41 @@ static int __devinit adxl34x_spi_probe(struct spi_device *spi)
 		return -EINVAL;
 	}
 
-	bops.bustype = BUS_SPI;
-	bops.write = adxl34x_spi_write;
-	bops.read = adxl34x_spi_read;
-	bops.read_block = adxl34x_spi_read_block;
-	error = adxl34x_probe(&ac, &spi->dev, spi->irq,
-		spi->max_speed_hz > MAX_FREQ_NO_FIFODELAY, &bops);
+	ac = adxl34x_probe(&spi->dev, spi->irq,
+			   spi->max_speed_hz > MAX_FREQ_NO_FIFODELAY,
+			   &adx134x_spi_bops);
+
+	if (IS_ERR(ac))
+		return PTR_ERR(ac);
+
 	spi_set_drvdata(spi, ac);
 
-	return error;
+	return 0;
 }
 
 static int __devexit adxl34x_spi_remove(struct spi_device *spi)
 {
-	return adxl34x_remove(dev_get_drvdata(&spi->dev));
+	struct adxl34x *ac = dev_get_drvdata(&spi->dev);
+
+	return adxl34x_remove(ac);
 }
 
 #ifdef CONFIG_PM
 static int adxl34x_suspend(struct spi_device *spi, pm_message_t message)
 {
-	adxl34x_disable(spi_get_drvdata(spi));
+	struct adxl34x *ac = dev_get_drvdata(&spi->dev);
+
+	adxl34x_disable(ac);
+
 	return 0;
 }
 
 static int adxl34x_resume(struct spi_device *spi)
 {
-	adxl34x_enable(spi_get_drvdata(spi));
+	struct adxl34x *ac = dev_get_drvdata(&spi->dev);
+
+	adxl34x_enable(ac);
+
 	return 0;
 }
 #else

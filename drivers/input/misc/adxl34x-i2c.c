@@ -16,6 +16,7 @@
 static int adxl34x_smbus_read(struct device *dev, unsigned char reg)
 {
 	struct i2c_client *client = to_i2c_client(dev);
+
 	return i2c_smbus_read_byte_data(client, reg);
 }
 
@@ -23,20 +24,22 @@ static int adxl34x_smbus_write(struct device *dev,
 			       unsigned char reg, unsigned char val)
 {
 	struct i2c_client *client = to_i2c_client(dev);
+
 	return i2c_smbus_write_byte_data(client, reg, val);
 }
 
 static int adxl34x_smbus_read_block(struct device *dev,
 				    unsigned char reg, int count,
-				    unsigned char *buf)
+				    void *buf)
 {
 	struct i2c_client *client = to_i2c_client(dev);
+
 	return i2c_smbus_read_i2c_block_data(client, reg, count, buf);
 }
 
 static int adxl34x_i2c_read_block(struct device *dev,
 				  unsigned char reg, int count,
-				  unsigned char *buf)
+				  void *buf)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	int ret;
@@ -44,19 +47,34 @@ static int adxl34x_i2c_read_block(struct device *dev,
 	ret = i2c_master_send(client, &reg, 1);
 	if (ret < 0)
 		return ret;
+
 	ret = i2c_master_recv(client, buf, count);
 	if (ret < 0)
 		return ret;
+
 	if (ret != count)
 		return -EIO;
 
 	return 0;
 }
 
+static const struct adxl34x_bus_ops adx134x_smbus_bops = {
+	.bustype	= BUS_I2C,
+	.write		= adxl34x_smbus_write,
+	.read		= adxl34x_smbus_read,
+	.read_block	= adxl34x_smbus_read_block,
+};
+
+static const struct adxl34x_bus_ops adx134x_i2c_bops = {
+	.bustype	= BUS_I2C,
+	.write		= adxl34x_smbus_write,
+	.read		= adxl34x_smbus_read,
+	.read_block	= adxl34x_i2c_read_block,
+};
+
 static int __devinit adxl34x_i2c_probe(struct i2c_client *client,
 				       const struct i2c_device_id *id)
 {
-	struct adxl34x_bus_ops bops;
 	struct adxl34x *ac;
 	int error;
 
@@ -67,36 +85,41 @@ static int __devinit adxl34x_i2c_probe(struct i2c_client *client,
 		return -EIO;
 	}
 
-	bops.bustype = BUS_I2C;
-	bops.write = adxl34x_smbus_write;
-	bops.read = adxl34x_smbus_read;
-	if (i2c_check_functionality(client->adapter,
-	    I2C_FUNC_SMBUS_READ_I2C_BLOCK))
-		bops.read_block = adxl34x_smbus_read_block;
-	else
-		bops.read_block = adxl34x_i2c_read_block;
+	ac = adxl34x_probe(&client->dev, client->irq, false,
+			   i2c_check_functionality(client->adapter,
+						   I2C_FUNC_SMBUS_READ_I2C_BLOCK) ?
+				&adx134x_smbus_bops : &adx134x_i2c_bops);
+	if (IS_ERR(ac))
+		return PTR_ERR(ac);
 
-	error = adxl34x_probe(&ac, &client->dev, client->irq, 0, &bops);
 	i2c_set_clientdata(client, ac);
 
-	return error;
+	return 0;
 }
 
 static int __devexit adxl34x_i2c_remove(struct i2c_client *client)
 {
-	return adxl34x_remove(i2c_get_clientdata(client));
+	struct adxl34x *ac = i2c_get_clientdata(client);
+
+	return adxl34x_remove(ac);
 }
 
 #ifdef CONFIG_PM
 static int adxl34x_suspend(struct i2c_client *client, pm_message_t message)
 {
-	adxl34x_disable(i2c_get_clientdata(client));
+	struct adxl34x *ac = i2c_get_clientdata(client);
+
+	adxl34x_disable(ac);
+
 	return 0;
 }
 
 static int adxl34x_resume(struct i2c_client *client)
 {
-	adxl34x_enable(i2c_get_clientdata(client));
+	struct adxl34x *ac = i2c_get_clientdata(client);
+
+	adxl34x_enable(ac);
+
 	return 0;
 }
 #else
