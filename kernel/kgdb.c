@@ -1068,7 +1068,8 @@ static int gdb_cmd_task(struct kgdb_state *ks)
 #ifdef CONFIG_SMP
 		/* switch cpu only when it is not a thread query request */
 		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
-			!ks->thr_query && ks->kgdb_usethreadid < -1) {
+			!ks->thr_query && ks->kgdb_usethreadid < -1 &&
+			(-ks->kgdb_usethreadid - 2) != raw_smp_processor_id()) {
 			kgdb_roundup_cpu(raw_smp_processor_id(), 0);
 			kgdb_contthread = kgdb_usethread;
 			return 1;
@@ -1520,23 +1521,18 @@ return_normal:
 
 	atomic_dec(&cpu_in_kgdb[ks->cpu]);
 
-	if (!kgdb_single_step) {
-		/* wake up next master cpu when do real cpu switch */
-		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
-			kgdb_contthread) {
-			i = -(ks->kgdb_usethreadid + 2);
+	if (!kgdb_single_step &&
+		!((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+		kgdb_contthread)) {
+		for (i = NR_CPUS-1; i >= 0; i--)
 			atomic_dec(&passive_cpu_wait[i]);
-		} else {
-			for (i = NR_CPUS-1; i >= 0; i--)
-				atomic_dec(&passive_cpu_wait[i]);
-			/*
-			 * Wait till all the CPUs have quit
-			 * from the debugger.
-			 */
-			for_each_online_cpu(i) {
-				while (atomic_read(&cpu_in_kgdb[i]))
-					cpu_relax();
-			}
+		/*
+		 * Wait till all the CPUs have quit
+		 * from the debugger.
+		 */
+		for_each_online_cpu(i) {
+			while (atomic_read(&cpu_in_kgdb[i]))
+				cpu_relax();
 		}
 	}
 
@@ -1552,6 +1548,14 @@ kgdb_restore:
 		tracing_on();
 	/* Free kgdb_active */
 	atomic_set(&kgdb_active, -1);
+	/* wake up next master cpu when do real cpu switch */
+	if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+		kgdb_contthread) {
+		i = -(ks->kgdb_usethreadid + 2);
+		atomic_dec(&passive_cpu_wait[i]);
+		while (atomic_read(&kgdb_active) == -1)
+			cpu_relax();
+	}
 	touch_softlockup_watchdog_sync();
 	clocksource_touch_watchdog();
 	local_irq_restore(flags);
