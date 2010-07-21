@@ -11,102 +11,42 @@
 #ifndef __KSZ8893M_H__
 #define __KSZ8893M_H__
 
-#include <linux/netdevice.h>
-
 #define KSZ8893M_PORT_NUM 3
 #define KSZ8893M_CPU_PORT 3
 
 #define DEFAULT_PORT_VID  0
 
+/* Simple SPI command set for poking registers */
 #define SPI_READ          3
 #define SPI_WRITE         2
 
-/* PHYID High */
+/* Expected value for MII_PHYSID1 */
 #define PHYID_HIGH        0x22
-/* PHYID Low */
+/* Expected value for MII_PHYSID2 */
 #define PHYID_LOW         0x1430
 
-/* MII Basic Control */
-#define SOFT_RESET        0x8000
-#define LOOPBACK          0x4000
-#define FORCE_100         0x2000
-#define AN_ENABLE         0x1000
-#define POWER_DOWN        0x0800
-#define ISOLATE           0x0400
-#define RESTART_AN        0x0200
-#define FORCE_FULL_DUPLEX 0x0100
-#define COLLISION_TEST    0x0080
-/* Bit Reserved */
+/* ChipID0 defines */
+#define FAMILY_ID         0x88
+
+/* ChipID1_StartSwitch defines */
+#define START_SWITCH      0x01
+
+/* Port3Control0 defines */
+#define TAG_INSERTION     0x04
+
+/* GlobalControl9 defines */
+#define SPECIAL_TPID_MODE 0x01
+
+/* BMCR Reserved Bits */
 #define HP_MDIX           0x0020
-#define Force_MDI         0x0010
+#define FORCE_MDI         0x0010
 #define DISABLE_MDIX      0x0008
 #define DIS_FAR_END_FAULT 0x0004
 #define DISABLE_TRANSMIT  0x0002
 #define DISABLE_LED       0x0001
 
-/* MII Basic Status */
-#define T4_CAPABLE        0x8000
-#define FULL_100_CAPABLE  0x4000
-#define HALF_100_CAPABLE  0x2000
-#define FULL_10_CAPABLE   0x1000
-#define HALF_10_CAPABLE   0x0800
-/* 4 Bits Reserved */
+/* BMSCR Reserved Bits */
 #define PREAMBLE_SUPPRESS 0x0040
-#define AN_COMPLETE       0x0020
-#define FAR_END_FAULT     0x0010
-#define AN_CAPABLE        0x0008
-#define LINK_STATUS       0x0004
-#define JABBER_TEST       0x0002
-#define EXTENDED_CAPABLE  0x0001
-
-/* Auto-Negotiation Advertisement Ability */
-#define NEXT_PAGE         0x8000
-/* Bit Reserved */
-#define REMOTE_FAULT      0x2000
-/* 2 Bits Reserved */
-#define PAUSE             0x0400
-/* Bit Reserved */
-#define ADV_100_FULL      0x0100
-#define ADV_100_HALF      0x0080
-#define ADV_10_FULL       0x0040
-#define ADV_10_HALF       0x0020
-#define SELECTOR_FIELD    0x001F
-
-/* Auto-Negotiation Link Partner Ability */
-#define NEXT_PAGE         0x8000
-#define LP_ACK            0x4000
-#define REMOTE_FAULT      0x2000
-/* 2 Bits Reserved */
-#define PAUSE             0x0400
-/* Bit Reserved */
-#define ADV_100_FULL      0x0100
-#define ADV_100_HALF      0x0080
-#define ADV_10_FULL       0x0040
-#define ADV_10_HALF       0x0020
-/* 5 Bits Reserved */
-
-/* LinkMD Control/Status */
-#define VCT_ENABLE        0x8000
-#define VCT_RESULT        0x6000
-#define VCT_10M_SHORT     0x1000
-/* 3 Bits Reserved */
-#define VCT_FAULT_COUNT   0x01FF
-
-/* PHY Special Control/Status */
-/* 10 Bits Reserved */
-#define POLRVS            0x0020
-#define MDI_X_STATUS      0x0010
-#define FORCE_LNK         0x0008
-#define PWRSAVE           0x0004
-#define REMOTE_LOOPBACK   0x0002
-/* Bit Reserved */
-
-
-#define FAMILY_ID         0x88
-#define START_SWITCH      0x01
-#define TAG_INSERTION     0x04
-#define SPECIAL_TPID_MODE 0x01
-
 
 enum switch_phy_reg {
 	/* Global Registers: 0-15 */

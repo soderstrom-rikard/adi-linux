@@ -167,8 +167,8 @@ static int ksz8893m_setup_port(struct dsa_switch *ds, int p)
 	val = mdiobus_read(ds->master_mii_bus, p, MII_BMCR);
 	if (val < 0)
 		return val;
-	val |= AN_ENABLE | FORCE_100 | FORCE_FULL_DUPLEX;
-	val &= ~(POWER_DOWN | DISABLE_MDIX | DIS_FAR_END_FAULT |\
+	val |= BMCR_ANENABLE | BMCR_SPEED100 | BMCR_FULLDPLX;
+	val &= ~(BMCR_PDOWN | DISABLE_MDIX | DIS_FAR_END_FAULT |
 			DISABLE_TRANSMIT | DISABLE_LED);
 	ret = mdiobus_write(ds->master_mii_bus, p, MII_BMCR, val);
 	if (ret < 0)
@@ -177,7 +177,8 @@ static int ksz8893m_setup_port(struct dsa_switch *ds, int p)
 	val = mdiobus_read(ds->master_mii_bus, p, MII_ADVERTISE);
 	if (val < 0)
 		return val;
-	val |= ADV_10_HALF | ADV_10_FULL | ADV_100_HALF | ADV_100_FULL;
+	val |= ADVERTISE_10HALF | ADVERTISE_10FULL |
+		ADVERTISE_100HALF | ADVERTISE_100FULL;
 	ret = mdiobus_write(ds->master_mii_bus, p, MII_ADVERTISE, val);
 	if (ret < 0)
 		return ret;
@@ -215,9 +216,7 @@ static int ksz8893m_port_to_phy_addr(int port)
 {
 	if (port >= 1 && port <= KSZ8893M_PORT_NUM)
 		return port;
-
-	pr_warning("use default phy addr 3\n");
-	return 3;
+	return -1;
 }
 
 static int
@@ -241,11 +240,7 @@ static void ksz8893m_poll_link(struct dsa_switch *ds)
 
 	for (i = 1; i < KSZ8893M_PORT_NUM; i++) {
 		struct net_device *dev;
-		int val;
-		int link;
-		int speed;
-		int duplex;
-		int anc;
+		int val, link;
 
 		dev = ds->ports[i];
 		if (dev == NULL)
@@ -257,8 +252,7 @@ static void ksz8893m_poll_link(struct dsa_switch *ds)
 			if (val < 0)
 				continue;
 
-			link = !!(val & LINK_STATUS);
-			anc = !!(val & AN_COMPLETE);
+			link = val & BMSR_LSTATUS;
 		}
 
 		if (!link) {
@@ -269,27 +263,15 @@ static void ksz8893m_poll_link(struct dsa_switch *ds)
 			continue;
 		}
 
-		speed = 10;
-		duplex = 0;
 		val = mdiobus_read(ds->master_mii_bus, i, MII_BMSR);
 		if (val < 0)
 			continue;
-		val &= HALF_10_CAPABLE | FULL_10_CAPABLE |\
-		       HALF_100_CAPABLE | FULL_100_CAPABLE;
-		if (val & FULL_100_CAPABLE) {
-			speed = 100;
-			duplex = 1;
-		} else if (val & HALF_100_CAPABLE) {
-			speed = 100;
-			duplex = 0;
-		} else if (val & FULL_10_CAPABLE) {
-			speed = 10;
-			duplex = 1;
-		}
 
 		if (!netif_carrier_ok(dev)) {
 			printk(KERN_INFO "%s: link up, %d Mb/s, %s duplex\n",
-					dev->name, speed, duplex ? "full" : "half");
+					dev->name,
+					(val & LPA_100) ? 100 : 10,
+					(val & LPA_DUPLEX) ? "half" : "full");
 			netif_carrier_on(dev);
 		}
 	}
