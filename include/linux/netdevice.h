@@ -1063,6 +1063,7 @@ static inline bool netdev_uses_stpid_tags(struct net_device *dev)
 
 	return 0;
 }
+
 /**
  *	netdev_priv - access network device private data
  *	@dev: network device
