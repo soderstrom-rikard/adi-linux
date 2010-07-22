@@ -1217,6 +1217,7 @@ static int gdb_serial_stub(struct kgdb_state *ks)
 	memset(remcom_out_buffer, 0, sizeof(remcom_out_buffer));
 
 	if (kgdb_connected) {
+#ifdef CONFIG_SMP
 		/* reply the thread switch request after finish swtiching cpu */
 		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
 			!kgdb_single_step && kgdb_contthread == current) {
@@ -1225,6 +1226,7 @@ static int gdb_serial_stub(struct kgdb_state *ks)
 			remcom_out_buffer[2] = 0;
 			put_packet(remcom_out_buffer);
 		} else {
+#endif
 			unsigned char thref[8];
 			char *ptr;
 
@@ -1237,7 +1239,9 @@ static int gdb_serial_stub(struct kgdb_state *ks)
 			ptr = pack_threadid(ptr, thref);
 			*ptr++ = ';';
 			put_packet(remcom_out_buffer);
+#ifdef CONFIG_SMP
 		}
+#endif
 	}
 
 	kgdb_single_step = 0;
@@ -1479,10 +1483,12 @@ return_normal:
 	 * CPU in a spin state while the debugger is active
 	 */
 	if (!kgdb_single_step) {
+#ifdef CONFIG_SMP
 		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
 			kgdb_contthread == current)
 			atomic_inc(&passive_cpu_wait[cpu]);
 		else
+#endif
 			for (i = 0; i < NR_CPUS; i++)
 				atomic_inc(&passive_cpu_wait[i]);
 	}
@@ -1521,8 +1527,12 @@ return_normal:
 
 	atomic_dec(&cpu_in_kgdb[ks->cpu]);
 
+#ifdef CONFIG_SMP
 	if (!kgdb_single_step && !((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
 		kgdb_contthread)) {
+#else
+	if (!kgdb_single_step) {
+#endif
 		for (i = NR_CPUS-1; i >= 0; i--)
 			atomic_dec(&passive_cpu_wait[i]);
 		/*
@@ -1547,14 +1557,27 @@ kgdb_restore:
 		tracing_on();
 	/* Free kgdb_active */
 	atomic_set(&kgdb_active, -1);
+#ifdef CONFIG_SMP
 	/* wake up next master cpu when do real cpu switch */
-	if (!kgdb_single_step && (arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
-		kgdb_contthread) {
-		i = -(ks->kgdb_usethreadid + 2);
-		atomic_dec(&passive_cpu_wait[i]);
-		while (atomic_read(&kgdb_active) == -1)
-			cpu_relax();
+	if (!kgdb_single_step) {
+		if (!CACHE_FLUSH_IS_SAFE) {
+#ifdef __ARCH_SYNC_CORE_ICACHE
+			resync_core_icache();
+#endif
+#ifdef __ARCH_SYNC_CORE_DCACHE
+			resync_core_dcache();
+#endif
+		}
+
+		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+			kgdb_contthread) {
+			i = -(ks->kgdb_usethreadid + 2);
+			atomic_dec(&passive_cpu_wait[i]);
+			while (atomic_read(&kgdb_active) == -1)
+				cpu_relax();
+		}
 	}
+#endif
 	touch_softlockup_watchdog_sync();
 	clocksource_touch_watchdog();
 	local_irq_restore(flags);
@@ -1609,17 +1632,19 @@ int kgdb_nmicallback(int cpu, void *regs)
 		kgdb_cpu_enter(ks, regs);
 		kgdb_info[cpu].exception_state &= ~DCPU_IS_SLAVE;
 
-		/* Trap into kgdb as the active CPU if gdb asks to switch. */
-		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
-			kgdb_contthread == current) {
+		if (!CACHE_FLUSH_IS_SAFE) {
 #ifdef __ARCH_SYNC_CORE_ICACHE
 			resync_core_icache();
 #endif
 #ifdef __ARCH_SYNC_CORE_DCACHE
 			resync_core_dcache();
 #endif
-			kgdb_breakpoint();
 		}
+		/* Trap into kgdb as the active CPU if gdb asks to switch. */
+		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+			kgdb_contthread == current)
+			kgdb_breakpoint();
+
 		return 0;
 	}
 #endif
