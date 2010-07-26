@@ -13,12 +13,12 @@
 #include <linux/i2c.h>
 #include <linux/sigma.h>
 
-/* Return: 0==OK, <0==error, >0==no more actions */
+/* Return: 0==OK, <0==error, =1 ==no more actions */
 int process_sigma_action(struct i2c_client *client, struct sigma_firmware *ssfw)
 {
 	struct sigma_action *sa = (void *)(ssfw->fw->data + ssfw->pos);
 	size_t len = sigma_action_len(sa);
-	int ret;
+	int ret = 0;
 
 	pr_debug("%s: instr:%i addr:%#x len:%zu\n", __func__,
 		sa->instr, sa->addr, len);
@@ -30,7 +30,8 @@ int process_sigma_action(struct i2c_client *client, struct sigma_firmware *ssfw)
 			if (ssfw->fw->size < ssfw->pos + len)
 				return -EINVAL;
 			ret = i2c_master_send(client, (void *)&sa->addr, len);
-			len -= 2;
+			if (ret < 0)
+				return -EINVAL;
 			break;
 
 		case SIGMA_ACTION_DELAY:
@@ -46,11 +47,9 @@ int process_sigma_action(struct i2c_client *client, struct sigma_firmware *ssfw)
 			return -EINVAL;
 	}
 
-	if (!ret) {
-		ssfw->pos += sigma_action_size(sa, len);
-		return ssfw->pos == ssfw->fw->size;
-	} else
-		return ret;
+	/* when arrive here ret=0 or sent data */
+	ssfw->pos += sigma_action_size(sa, len);
+	return ssfw->pos == ssfw->fw->size;
 }
 
 int process_sigma_actions(struct i2c_client *client, struct sigma_firmware *ssfw)

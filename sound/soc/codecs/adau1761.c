@@ -262,32 +262,28 @@ static int adau1761_mute(struct snd_soc_dai *dai, int mute)
 {
 	struct snd_soc_codec *codec = dai->codec;
 	u8 reg = 0;
-
 	if (mute) {
-		/* mute outputs */
-		reg = (snd_soc_read(codec, ADAU_PLBMLC0) & 0xFE) | 0x0;
-		snd_soc_write(codec, ADAU_PLBMLC0, reg);
-		reg = (snd_soc_read(codec, ADAU_PLBMRC0) & 0xFE) | 0x0;
-		snd_soc_write(codec, ADAU_PLBMRC0, reg);
-
 		/* mute inputs */
 		reg = (snd_soc_read(codec, ADAU_RECMLC0) & 0xFE) | 0x0;
 		snd_soc_write(codec, ADAU_RECMLC0, reg);
 		reg = (snd_soc_read(codec, ADAU_RECMRC0) & 0xFE) | 0x0;
 		snd_soc_write(codec, ADAU_RECMRC0, reg);
+		/* mute outputs */
+		reg = (snd_soc_read(codec, ADAU_PLBMLC0) & 0xFE) | 0x1;
+		snd_soc_write(codec, ADAU_PLBMLC0, reg);
+		reg = (snd_soc_read(codec, ADAU_PLBMRC0) & 0xFE) | 0x1;
+		snd_soc_write(codec, ADAU_PLBMRC0, reg);
 	} else {
-
+		/* un-mute outputs */
+		reg = (snd_soc_read(codec, ADAU_PLBMLC0) & 0xFE) | 0x0;
+		snd_soc_write(codec, ADAU_PLBMLC0, reg);
+		reg = (snd_soc_read(codec, ADAU_PLBMRC0) & 0xFE) | 0x0;
+		snd_soc_write(codec, ADAU_PLBMRC0, reg);
 		/* un-mute inputs */
 		reg = (snd_soc_read(codec, ADAU_RECMLC0) & 0xFE) | 0x1;
 		snd_soc_write(codec, ADAU_RECMLC0, reg);
 		reg = (snd_soc_read(codec, ADAU_RECMRC0) & 0xFE) | 0x1;
 		snd_soc_write(codec, ADAU_RECMRC0, reg);
-
-		/* un-mute outputs */
-		reg = (snd_soc_read(codec, ADAU_PLBMLC0) & 0xFE) | 0x1;
-		snd_soc_write(codec, ADAU_PLBMLC0, reg);
-		reg = (snd_soc_read(codec, ADAU_PLBMRC0) & 0xFE) | 0x1;
-		snd_soc_write(codec, ADAU_PLBMRC0, reg);
 	}
 
 	return 0;
@@ -493,14 +489,45 @@ static int adau1761_pll_enable(struct snd_soc_codec *codec, int enable)
 
 }
 
+/*
+ * read ADAU1761 hw register and update cache
+ */
+static int adau1761_read_reg_byte(struct snd_soc_codec *codec,
+	unsigned int reg)
+{
+	u8 addr[2];
+	u8 buf[1] = {0};
+
+	if (reg < ADAU_FIRSTREG)
+		reg = reg + ADAU_FIRSTREG;
+
+	if ((reg < ADAU_FIRSTREG) || (reg > ADAU_LASTREG))
+		return -EIO;
+
+	addr[0] = (u8)(reg >> 8);
+	addr[1] = (u8)(reg & 0xFF);
+
+	/* write the 2byte read address */
+	if (codec->hw_write(codec->control_data, addr, 2) != 2) {
+		printk(KERN_ERR "read_reg_byte:address write failed.");
+		return -EIO;
+	}
+
+	if (i2c_master_recv(codec->control_data, buf, 1) != 1)
+		return -EIO;
+
+	return buf[0];
+}
+
 static int adau1761_setprogram(struct snd_soc_codec *codec)
 {
 	int ret = 0;
 
 	snd_soc_write(codec, ADAU_DSP_ENA, 0x01);
 	/* don't waste time writing program for adau1361 */
-	if (codec->hw_read(codec, ADAU_DSP_ENA) != 0x01)
+	if (adau1761_read_reg_byte(codec, ADAU_DSP_ENA) != 0x01)
 		return -ENODEV;
+
 	ret = process_sigma_firmware(codec->control_data, ADAU1761_FIRMWARE);
 
 	return ret;
