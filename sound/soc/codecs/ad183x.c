@@ -495,8 +495,8 @@ static int ad183x_probe(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec;
-	struct ad183x_priv *ad183x = ad183x_codec->private_data;
-	struct ad183x_chl_ctrls *chl_ctrl = &ad183x->chl_ctrl;
+	struct ad183x_priv *ad183x;
+	struct ad183x_chl_ctrls *chl_ctrl;
 	int ret = 0;
 
 	if (ad183x_codec == NULL) {
@@ -504,6 +504,8 @@ static int ad183x_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+	ad183x = ad183x_codec->private_data;
+	chl_ctrl = &ad183x->chl_ctrl;
 	socdev->card->codec = ad183x_codec;
 	codec = ad183x_codec;
 
