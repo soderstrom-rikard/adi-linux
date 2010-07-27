@@ -19,9 +19,8 @@
 #include <linux/input/ad7160.h>
 #include "ad7160.h"
 
-#define AD7160_FORCE_CALIBRATION	0x800
-#define AD7160_IIR_FILTER_ENABLE	0x2000
 #define AD7160_SIL_ID			0x7160
+#define AD7160_DRIVER_INTERFACE_ID	0x800
 
 /*
  * Bit definition
@@ -51,6 +50,13 @@
 #define AD7160_EASY_SETUP			(1 << 3)
 #define AD7160_MTL_OFFS_ADJUST_BUSY		(1 << 30)
 #define AD7160_SLF_OFFS_ADJUST_BUSY		(1 << 31)
+
+
+/* REV_ID */
+#define AD7160_INTERFACE_REV_ID_SHIFT		0
+#define AD7160_SILICON_REV_ID_SHIFT		16
+#define AD7160_INTERFACE_REV_ID_MASK		0xFFFF
+#define AD7160_SILICON_REV_ID_MASK		0xFFFF
 
 #define AD7160_STAT_X_OFFS			0
 #define AD7160_STAT_X_MASK			0xFFF
@@ -381,7 +387,7 @@ ad7160_probe(struct device *dev, struct ad7160_bus_data *bdata,
 	struct input_dev *input_dev;
 	struct ad7160_platform_data *pdata = dev->platform_data;
 	int err;
-	u32 revid;
+	u32 revid, fw_revid;
 	struct ad7160 *ts;
 
 	if (!bdata->irq) {
@@ -487,8 +493,11 @@ ad7160_probe(struct device *dev, struct ad7160_bus_data *bdata,
 		goto err_free_mem;
 	}
 
-	input_dev->id.version = ad7160_read(ts, AD7160_REG_REV_ID) >> 16;
-	revid = ad7160_read(ts, AD7160_REG_FW_REV);
+	fw_revid = ad7160_read(ts, AD7160_REG_FW_REV);
+	revid = ad7160_read(ts, AD7160_REG_REV_ID);
+
+	input_dev->id.version = (revid >> AD7160_INTERFACE_REV_ID_SHIFT) &
+				AD7160_INTERFACE_REV_ID_MASK;
 
 	ad7160_setup(ts);
 
@@ -507,9 +516,17 @@ ad7160_probe(struct device *dev, struct ad7160_bus_data *bdata,
 	if (err)
 		goto err_remove_attr;
 
-	dev_info(dev, "Rev.%d touchscreen, irq %d Firmware REV %d.%d.%d.%d\n",
-		 input_dev->id.version, ts->bdata.irq, revid >> 12,
-		 (revid >> 8) & 0xF, (revid >> 4) & 0xF, revid & 0xF);
+	if (input_dev->id.version > AD7160_DRIVER_INTERFACE_ID)
+		dev_warn(dev, "Driver implements Interface REV %x, "
+		"device probed implements %x!\n", AD7160_DRIVER_INTERFACE_ID,
+		input_dev->id.version);
+
+	dev_info(dev, "Rev.%d touchscreen, irq %d, Interface REV %x, "
+		 "Firmware REV %d.%d.%d.%d\n",
+		 (revid >> AD7160_SILICON_REV_ID_SHIFT) &
+		 AD7160_SILICON_REV_ID_MASK,
+		 ts->bdata.irq, input_dev->id.version, fw_revid >> 12,
+		 (fw_revid >> 8) & 0xF, (fw_revid >> 4) & 0xF, fw_revid & 0xF);
 
 	return 0;
 
