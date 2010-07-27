@@ -548,15 +548,30 @@ static struct platform_device bfin_sir1_device = {
 #if defined(CONFIG_TOUCHSCREEN_AD7160) || defined(CONFIG_TOUCHSCREEN_AD7160_MODULE)
 #include <linux/input/ad7160.h>
 static const struct ad7160_platform_data bfin_ad7160_ts_info = {
-	.sensor_x_res = 480,
-	.sensor_y_res = 272,
+	.sensor_x_res = 854,
+	.sensor_y_res = 480,
 	.pressure = 100,
 	.filter_coef = 3,
 	.coord_pref = AD7160_ORIG_TOP_LEFT,
 	.first_touch_window = 5,
 	.move_window = 3,
-	.event_cabs = /*AD7160_EMIT_ABS_MT_TRACKING_ID |*/ AD7160_EMIT_ABS_MT_PRESSURE | AD7160_TRACKING_ID_ASCENDING,
+	.event_cabs = AD7160_EMIT_ABS_MT_TRACKING_ID |
+			AD7160_EMIT_ABS_MT_PRESSURE |
+			AD7160_TRACKING_ID_ASCENDING,
 	.finger_act_ctrl = 0x64,
+	.haptic_effect1_ctrl = AD7160_HAPTIC_SLOT_A(60) |
+				AD7160_HAPTIC_SLOT_A_LVL_HIGH |
+				AD7160_HAPTIC_SLOT_B(60) |
+				AD7160_HAPTIC_SLOT_B_LVL_LOW,
+
+	.haptic_effect2_ctrl = AD7160_HAPTIC_SLOT_A(20) |
+				AD7160_HAPTIC_SLOT_A_LVL_HIGH |
+				AD7160_HAPTIC_SLOT_B(80) |
+				AD7160_HAPTIC_SLOT_B_LVL_LOW |
+				AD7160_HAPTIC_SLOT_C(120) |
+				AD7160_HAPTIC_SLOT_C_LVL_HIGH |
+				AD7160_HAPTIC_SLOT_D(30) |
+				AD7160_HAPTIC_SLOT_D_LVL_LOW,
 };
 #endif
 
