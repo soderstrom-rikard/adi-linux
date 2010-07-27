@@ -92,6 +92,38 @@ struct ad7160_platform_data {
 	 */
 
 	u32 ev_code_double_tap;
+
+	/*
+	 * The number of pulses varies for each effect. It is possible to
+	 * define the ON and the OFF time of each pulse. The time is defined
+	 * over 7 bits with a resolution of 100uS.
+	 */
+
+#define AD7160_HAPTIC_SLOT_A(x)			(((x) & 0x7F) << 0)
+#define AD7160_HAPTIC_SLOT_B(x)			(((x) & 0x7F) << 8)
+#define AD7160_HAPTIC_SLOT_C(x)			(((x) & 0x7F) << 16)
+#define AD7160_HAPTIC_SLOT_D(x)			(((x) & 0x7F) << 24)
+#define AD7160_HAPTIC_SLOT_A_LVL_HIGH		(1 << 7)
+#define AD7160_HAPTIC_SLOT_B_LVL_HIGH		(1 << 15)
+#define AD7160_HAPTIC_SLOT_C_LVL_HIGH		(1 << 23)
+#define AD7160_HAPTIC_SLOT_D_LVL_HIGH		(1 << 31)
+#define AD7160_HAPTIC_SLOT_A_LVL_LOW		(0 << 7)
+#define AD7160_HAPTIC_SLOT_B_LVL_LOW		(0 << 15)
+#define AD7160_HAPTIC_SLOT_C_LVL_LOW		(0 << 23)
+#define AD7160_HAPTIC_SLOT_D_LVL_LOW		(0 << 31)
+
+	u32 haptic_effect1_ctrl;	/* 2 Slots */
+	u32 haptic_effect2_ctrl;	/* 4 Slots */
+	u32 haptic_effect3_ctrl1;	/* 6 Slots */
+	u32 haptic_effect3_ctrl2;
+	u32 haptic_effect4_ctrl1;	/* 8 Slots */
+	u32 haptic_effect4_ctrl2;
+	u32 haptic_effect5_ctrl1;	/* 10 Slots */
+	u32 haptic_effect5_ctrl2;
+	u32 haptic_effect5_ctrl3;
+	u32 haptic_effect6_ctrl1;	/* 12 Slots */
+	u32 haptic_effect6_ctrl2;
+	u32 haptic_effect6_ctrl3;
 };
 
 struct ad7160_iocreg_access {

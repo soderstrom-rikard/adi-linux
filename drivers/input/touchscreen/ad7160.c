@@ -14,6 +14,7 @@
 #include <linux/irq.h>
 #include <linux/slab.h>
 #include <linux/workqueue.h>
+#include <linux/hrtimer.h>
 #include <asm/unaligned.h>
 
 #include <linux/input/ad7160.h>
@@ -51,12 +52,16 @@
 #define AD7160_MTL_OFFS_ADJUST_BUSY		(1 << 30)
 #define AD7160_SLF_OFFS_ADJUST_BUSY		(1 << 31)
 
-
 /* REV_ID */
 #define AD7160_INTERFACE_REV_ID_SHIFT		0
 #define AD7160_SILICON_REV_ID_SHIFT		16
 #define AD7160_INTERFACE_REV_ID_MASK		0xFFFF
 #define AD7160_SILICON_REV_ID_MASK		0xFFFF
+
+/* HAPTIC_CTRL */
+#define AD7160_HAPTIC_EFFECTS(x)		((x) & 0xF)
+#define AD7160_HAPTIC_EN			(1 << 4)
+#define AD7160_ACTUATOR_EN			(1 << 5)
 
 #define AD7160_STAT_X_OFFS			0
 #define AD7160_STAT_X_MASK			0xFFF
@@ -73,6 +78,7 @@
 
 #define AD7160_MAX_TRACKING_ID			0x0FFFF
 #define AD7160_TRACKING_ID_FREE			0xF0000
+#define AD7160_MAX_TIMED_HAPTIC_DUR		100000
 
 struct ad7160 {
 	struct ad7160_bus_data	bdata;
@@ -80,6 +86,10 @@ struct ad7160 {
 	struct work_struct	work;
 	struct mutex		mutex;
 	struct ad7160_platform_data *pdata;
+
+	struct hrtimer		timer;
+	struct work_struct	hwork;
+	struct mutex		hmutex;
 	unsigned		disabled:1;	/* P: mutex */
 	unsigned		handle_gest:1;
 
@@ -279,11 +289,17 @@ static irqreturn_t ad7160_irq(int irq, void *handle)
 static void ad7160_setup(struct ad7160 *ts)
 {
 	int i;
+	u32 *effect_ctl;
 
 	for (i = 0; i < MAX_NUM_FINGERS; i++)
 		ts->tracking_lut[i] = AD7160_TRACKING_ID_FREE;
 
 	ts->tracking_id = 1;
+
+	for (i = AD7160_REG_HAPTIC_EFFECT1_CTRL,
+	     effect_ctl = &ts->pdata->haptic_effect1_ctrl;
+	     i <= AD7160_REG_HAPTIC_EFFECT6_CTRL3; i += 4)
+		ad7160_write(ts, i, *effect_ctl++);
 
 	ad7160_write(ts, AD7160_REG_LPM_CTRL, 0);
 	ad7160_write(ts, AD7160_REG_INT_GEST_EN_CTRL,
@@ -371,8 +387,100 @@ static ssize_t ad7160_disable_store(struct device *dev,
 
 static DEVICE_ATTR(disable, 0664, ad7160_disable_show, ad7160_disable_store);
 
+static void ad7160_hwork(struct work_struct *work)
+{
+	struct ad7160 *ts = container_of(work, struct ad7160, hwork);
+	ad7160_write(ts, AD7160_REG_HAPTIC_CTRL, 0);
+}
+
+static enum hrtimer_restart ad7160_haptic_timer_func(struct hrtimer *timer)
+{
+	struct ad7160 *ts =
+		container_of(timer, struct ad7160, timer);
+
+	schedule_work(&ts->hwork);
+
+	return HRTIMER_NORESTART;
+}
+
+static ssize_t ad7160_timed_haptic_show(struct device *dev,
+				     struct device_attribute *attr, char *buf)
+{
+	struct ad7160 *ts = dev_get_drvdata(dev);
+	int remaining;
+
+	if (hrtimer_active(&ts->timer)) {
+		ktime_t r = hrtimer_get_remaining(&ts->timer);
+		struct timeval t = ktime_to_timeval(r);
+		remaining = t.tv_sec * 1000 + t.tv_usec / 1000;
+	} else
+		remaining = 0;
+
+	return sprintf(buf, "%d\n", remaining);
+}
+
+static ssize_t ad7160_timed_haptic_store(struct device *dev,
+				     struct device_attribute *attr,
+				     const char *buf, size_t count)
+{
+	struct ad7160 *ts = dev_get_drvdata(dev);
+	unsigned long value;
+	int error;
+
+	error = strict_strtoul(buf, 10, &value);
+	if (error)
+		return error;
+
+	mutex_lock(&ts->hmutex);
+	/* cancel previous timer and wait for the handler to finish.  */
+	hrtimer_cancel(&ts->timer);
+
+	if (value > 0) {
+		if (value > AD7160_MAX_TIMED_HAPTIC_DUR)
+			value = AD7160_MAX_TIMED_HAPTIC_DUR;
+
+		ad7160_write(ts, AD7160_REG_HAPTIC_CTRL, AD7160_ACTUATOR_EN);
+
+		hrtimer_start(&ts->timer,
+			ktime_set(value / 1000, (value % 1000) * 1000000),
+			HRTIMER_MODE_REL);
+	}
+
+	mutex_unlock(&ts->hmutex);
+
+	return count;
+}
+
+static DEVICE_ATTR(timed_haptic, 0664, ad7160_timed_haptic_show, ad7160_timed_haptic_store);
+
+static ssize_t ad7160_effect_haptic_store(struct device *dev,
+				     struct device_attribute *attr,
+				     const char *buf, size_t count)
+{
+	struct ad7160 *ts = dev_get_drvdata(dev);
+	unsigned long value;
+	int error;
+
+	error = strict_strtoul(buf, 10, &value);
+	if (error)
+		return error;
+
+	mutex_lock(&ts->hmutex);
+
+	if ((value > 0) && (value < 16))
+		ad7160_write(ts, AD7160_REG_HAPTIC_CTRL, AD7160_HAPTIC_EFFECTS(value) | AD7160_HAPTIC_EN);
+
+	mutex_unlock(&ts->hmutex);
+
+	return count;
+}
+
+static DEVICE_ATTR(effect_haptic, 0664, NULL, ad7160_effect_haptic_store);
+
 static struct attribute *ad7160_attributes[] = {
 	&dev_attr_disable.attr,
+	&dev_attr_timed_haptic.attr,
+	&dev_attr_effect_haptic.attr,
 	NULL
 };
 
@@ -507,6 +615,12 @@ ad7160_probe(struct device *dev, struct ad7160_bus_data *bdata,
 		dev_err(dev, "irq %d busy?\n", ts->bdata.irq);
 		goto err_free_mem;
 	}
+
+
+	INIT_WORK(&ts->hwork, ad7160_hwork);
+	mutex_init(&ts->hmutex);
+	hrtimer_init(&ts->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	ts->timer.function = ad7160_haptic_timer_func;
 
 	err = sysfs_create_group(&dev->kobj, &ad7160_attr_group);
 	if (err)
