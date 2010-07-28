@@ -323,28 +323,8 @@ int musb_platform_set_mode(struct musb *musb, u8 musb_mode)
 	return -EIO;
 }
 
-int __init musb_platform_init(struct musb *musb)
+static void musb_platform_reg_init(struct musb *musb)
 {
-
-	/*
-	 * Rev 1.0 BF549 EZ-KITs require PE7 to be high for both DEVICE
-	 * and OTG HOST modes, while rev 1.1 and greater require PE7 to
-	 * be low for DEVICE mode and high for HOST mode. We set it high
-	 * here because we are in host mode
-	 */
-
-	if (gpio_request(musb->config->gpio_vrsel, "USB_VRSEL")) {
-		printk(KERN_ERR "Failed ro request USB_VRSEL GPIO_%d \n",
-			musb->config->gpio_vrsel);
-		return -ENODEV;
-	}
-	gpio_direction_output(musb->config->gpio_vrsel, 0);
-
-	usb_nop_xceiv_register();
-	musb->xceiv = otg_get_transceiver();
-	if (!musb->xceiv)
-		return -ENODEV;
-
 	if (ANOMALY_05000346) {
 		bfin_write_USB_APHY_CALIB(ANOMALY_05000346_value);
 		SSYNC();
@@ -378,6 +358,31 @@ int __init musb_platform_init(struct musb *musb)
 				EP2_RX_ENA | EP3_RX_ENA | EP4_RX_ENA |
 				EP5_RX_ENA | EP6_RX_ENA | EP7_RX_ENA);
 	SSYNC();
+}
+
+int __init musb_platform_init(struct musb *musb)
+{
+
+	/*
+	 * Rev 1.0 BF549 EZ-KITs require PE7 to be high for both DEVICE
+	 * and OTG HOST modes, while rev 1.1 and greater require PE7 to
+	 * be low for DEVICE mode and high for HOST mode. We set it high
+	 * here because we are in host mode
+	 */
+
+	if (gpio_request(musb->config->gpio_vrsel, "USB_VRSEL")) {
+		printk(KERN_ERR "Failed ro request USB_VRSEL GPIO_%d \n",
+			musb->config->gpio_vrsel);
+		return -ENODEV;
+	}
+	gpio_direction_output(musb->config->gpio_vrsel, 0);
+
+	usb_nop_xceiv_register();
+	musb->xceiv = otg_get_transceiver();
+	if (!musb->xceiv)
+		return -ENODEV;
+
+	musb_platform_reg_init(musb);
 
 	if (is_host_enabled(musb)) {
 		musb->board_set_vbus = bfin_set_vbus;
@@ -401,6 +406,7 @@ void musb_platform_save_context(struct musb *musb,
 void musb_platform_restore_context(struct musb *musb,
 			struct musb_context_registers *musb_context)
 {
+	musb_platform_reg_init(musb);
 }
 #endif
 
