@@ -442,10 +442,10 @@
 /* Two-Wire Interface 0	(0xFFC01400 - 0xFFC014FF)			 */
 #define	TWI0_CLKDIV			0xFFC01400	/* Serial Clock	Divider	Register */
 #define	TWI0_CONTROL		0xFFC01404	/* TWI0	Master Internal	Time Reference Register */
-#define	TWI0_SLAVE_CTRL		0xFFC01408	/* Slave Mode Control Register */
+#define	TWI0_SLAVE_CTL		0xFFC01408	/* Slave Mode Control Register */
 #define	TWI0_SLAVE_STAT		0xFFC0140C	/* Slave Mode Status Register */
 #define	TWI0_SLAVE_ADDR		0xFFC01410	/* Slave Mode Address Register */
-#define	TWI0_MASTER_CTRL	0xFFC01414	/* Master Mode Control Register */
+#define	TWI0_MASTER_CTL	0xFFC01414	/* Master Mode Control Register */
 #define	TWI0_MASTER_STAT	0xFFC01418	/* Master Mode Status Register */
 #define	TWI0_MASTER_ADDR	0xFFC0141C	/* Master Mode Address Register */
 #define	TWI0_INT_STAT		0xFFC01420	/* TWI0	Master Interrupt Register */
@@ -761,10 +761,10 @@
 /* Two-Wire Interface 1	(0xFFC02200 - 0xFFC022FF)			 */
 #define	TWI1_CLKDIV			0xFFC02200	/* Serial Clock	Divider	Register */
 #define	TWI1_CONTROL		0xFFC02204	/* TWI1	Master Internal	Time Reference Register */
-#define	TWI1_SLAVE_CTRL		0xFFC02208	/* Slave Mode Control Register */
+#define	TWI1_SLAVE_CTL		0xFFC02208	/* Slave Mode Control Register */
 #define	TWI1_SLAVE_STAT		0xFFC0220C	/* Slave Mode Status Register */
 #define	TWI1_SLAVE_ADDR		0xFFC02210	/* Slave Mode Address Register */
-#define	TWI1_MASTER_CTRL	0xFFC02214	/* Master Mode Control Register */
+#define	TWI1_MASTER_CTL	0xFFC02214	/* Master Mode Control Register */
 #define	TWI1_MASTER_STAT	0xFFC02218	/* Master Mode Status Register */
 #define	TWI1_MASTER_ADDR	0xFFC0221C	/* Master Mode Address Register */
 #define	TWI1_INT_STAT		0xFFC02220	/* TWI1	Master Interrupt Register */

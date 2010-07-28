@@ -1147,7 +1147,7 @@
 #define	TWI_ENA		0x0080		/* TWI Enable									*/
 #define	SCCB		0x0200		/* SCCB Compatibility Enable					*/
 
-/* TWI_SLAVE_CTRL Masks															*/
+/* TWI_SLAVE_CTL Masks															*/
 #define	SEN			0x0001		/* Slave Enable									*/
 #define	SADD_LEN	0x0002		/* Slave Address Length							*/
 #define	STDVAL		0x0004		/* Slave Transmit Data Valid					*/
@@ -1158,7 +1158,7 @@
 #define	SDIR		0x0001		/* Slave Transfer Direction (Transmit/Receive*)	*/
 #define GCALL		0x0002		/* General Call Indicator						*/
 
-/* TWI_MASTER_CTRL Masks													*/
+/* TWI_MASTER_CTL Masks													*/
 #define	MEN			0x0001		/* Master Mode Enable						*/
 #define	MADD_LEN	0x0002		/* Master Address Length					*/
 #define	MDIR		0x0004		/* Master Transmit Direction (RX/TX*)		*/
