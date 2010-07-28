@@ -71,6 +71,8 @@ ENTRY(_get_core_lock_noflush)
 	SSYNC(r2);
 	jump .Lretry_corelock_noflush
 .Ldone_corelock_noflush:
+	nop;
+	CSYNC(r2);
 	rts;
 ENDPROC(_get_core_lock_noflush)
 
