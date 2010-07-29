@@ -450,7 +450,7 @@
 #define	TWI0_MASTER_ADDR	0xFFC0141C	/* Master Mode Address Register */
 #define	TWI0_INT_STAT		0xFFC01420	/* TWI0	Master Interrupt Register */
 #define	TWI0_INT_MASK		0xFFC01424	/* TWI0	Master Interrupt Mask Register */
-#define	TWI0_FIFO_CTRL		0xFFC01428	/* FIFO	Control	Register */
+#define	TWI0_FIFO_CTL		0xFFC01428	/* FIFO	Control	Register */
 #define	TWI0_FIFO_STAT		0xFFC0142C	/* FIFO	Status Register */
 #define	TWI0_XMT_DATA8		0xFFC01480	/* FIFO	Transmit Data Single Byte Register */
 #define	TWI0_XMT_DATA16		0xFFC01484	/* FIFO	Transmit Data Double Byte Register */
@@ -769,7 +769,7 @@
 #define	TWI1_MASTER_ADDR	0xFFC0221C	/* Master Mode Address Register */
 #define	TWI1_INT_STAT		0xFFC02220	/* TWI1	Master Interrupt Register */
 #define	TWI1_INT_MASK		0xFFC02224	/* TWI1	Master Interrupt Mask Register */
-#define	TWI1_FIFO_CTRL		0xFFC02228	/* FIFO	Control	Register */
+#define	TWI1_FIFO_CTL		0xFFC02228	/* FIFO	Control	Register */
 #define	TWI1_FIFO_STAT		0xFFC0222C	/* FIFO	Status Register */
 #define	TWI1_XMT_DATA8		0xFFC02280	/* FIFO	Transmit Data Single Byte Register */
 #define	TWI1_XMT_DATA16		0xFFC02284	/* FIFO	Transmit Data Double Byte Register */
@@ -2145,7 +2145,7 @@
 #define	XMTSERV		0x0040		/* Transmit FIFO Service */
 #define	RCVSERV		0x0080		/* Receive FIFO	Service */
 
-/* TWIx_FIFO_CTRL Masks					 */
+/* TWIx_FIFO_CTL Masks					 */
 #define	XMTFLUSH	0x0001		/* Transmit Buffer Flush */
 #define	RCVFLUSH	0x0002		/* Receive Buffer Flush */
 #define	XMTINTLEN	0x0004		/* Transmit Buffer Interrupt Length */
