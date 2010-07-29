@@ -1359,7 +1359,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("RSI_RESPONSE3", 32, 0xFFC03820);
 		D("RSI_RESP_CMD", 16, 0xFFC03810);
 		D("RSI_STATUS", 32, 0xFFC03834);
-		D("RSI_STATUSCL", 16, 0xFFC03838);
+		D_WO("RSI_STATUSCL", 16, 0xFFC03838);
 
 		parent = debugfs_create_dir("SPI", top);
 		D("SPI0_BAUD", 16, 0xFFC00514);
@@ -2175,7 +2175,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("RSI_RESPONSE3", 32, 0xFFC03820);
 		D("RSI_RESP_CMD", 16, 0xFFC03810);
 		D("RSI_STATUS", 32, 0xFFC03834);
-		D("RSI_STATUSCL", 16, 0xFFC03838);
+		D_WO("RSI_STATUSCL", 16, 0xFFC03838);
 
 		parent = debugfs_create_dir("SPI", top);
 		D("SPI0_BAUD", 16, 0xFFC00514);
@@ -3014,7 +3014,7 @@ static int __init bfin_debug_mmrs_init(void)
 		D("RSI_RESPONSE3", 32, 0xFFC03820);
 		D("RSI_RESP_CMD", 16, 0xFFC03810);
 		D("RSI_STATUS", 32, 0xFFC03834);
-		D("RSI_STATUSCL", 16, 0xFFC03838);
+		D_WO("RSI_STATUSCL", 16, 0xFFC03838);
 
 		parent = debugfs_create_dir("SPI", top);
 		D("SPI0_BAUD", 16, 0xFFC00514);
