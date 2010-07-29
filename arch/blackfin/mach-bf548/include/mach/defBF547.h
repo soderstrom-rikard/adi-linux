@@ -107,7 +107,7 @@
 #define                 TWI1_MASTER_ADDR  0xffc0221c   /* TWI Master Mode Address Register */
 #define                    TWI1_INT_STAT  0xffc02220   /* TWI Interrupt Status Register */
 #define                    TWI1_INT_MASK  0xffc02224   /* TWI Interrupt Mask Register */
-#define                   TWI1_FIFO_CTRL  0xffc02228   /* TWI FIFO Control Register */
+#define                    TWI1_FIFO_CTL  0xffc02228   /* TWI FIFO Control Register */
 #define                   TWI1_FIFO_STAT  0xffc0222c   /* TWI FIFO Status Register */
 #define                   TWI1_XMT_DATA8  0xffc02280   /* TWI FIFO Transmit Data Single Byte Register */
 #define                  TWI1_XMT_DATA16  0xffc02284   /* TWI FIFO Transmit Data Double Byte Register */
