@@ -397,8 +397,8 @@ struct _pll_settings {
 	u32 rate;
 	u16 n;
 	u16 m;
-	u8 input_div:2;
 	u8 integer:4;
+	u8 input_div:2;
 	u8 type:1;
 };
 

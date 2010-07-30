@@ -31,9 +31,33 @@ struct adau1373_priv {
 	unsigned int sysclk;
 	unsigned int out_chan_mask;
 	unsigned int in_chan_mask;
+	u8 adau1373_pll_reg[6];
 	struct adau1373_platform_data *data;
 	struct snd_soc_codec codec;
 };
+
+
+/*
+ * write a multibyte ADAU1373 register (6byte pll reg)
+ */
+static int adau1373_write_reg_block(struct snd_soc_codec *codec,
+	unsigned int reg, u8 length, u8 *values)
+{
+	int count = length + 1; /*data plus 8bit register address*/
+	u8 buf[7] = {0, 0, 0, 0, 0, 0, 0};
+
+	buf[0] = (u8)(reg & 0xFF);
+
+	if (length > 0)
+		memcpy(&buf[1], values, length);
+
+	if (codec->hw_write(codec->control_data, buf, count) == count)
+		return 0;
+	else {
+		dev_err(codec->dev, "address block write failed.");
+		return -EIO;
+	}
+}
 
 static int adau1373_volume_info(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_info *uinfo)
@@ -596,6 +620,7 @@ static int adau1373_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
 	struct adau1373_priv *adau1373 = codec->private_data;
+	u8 *pll_reg = adau1373->adau1373_pll_reg;
 	const struct _pll_settings *pll_settings = adau1373->data->pll_settings;
 	int i = 0;
 	u8 dai_ctl;
@@ -621,7 +646,6 @@ static int adau1373_hw_params(struct snd_pcm_substream *substream,
 
 	reg = snd_soc_read(codec, ADAU_CLK1SDIV);
 	snd_soc_write(codec, ADAU_CLK1SDIV, reg & ~CLKSDIV_COREN);
-	snd_soc_write(codec, ADAU_PLLACTL6, 0x0);
 	/* Divide PLL output(48k * 1024 or 44.1k * 1024) to get wanted rate */
 	switch (params_rate(params)) {
 	case 96000:
@@ -648,7 +672,7 @@ static int adau1373_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	/* Set PLL */
-
+#if 0
 	snd_soc_write(codec, ADAU_PLLACTL1,
 		((pll_settings + i)->m & 0xff00) >> 8);
 	snd_soc_write(codec, ADAU_PLLACTL2, (pll_settings + i)->m
@@ -657,8 +681,16 @@ static int adau1373_hw_params(struct snd_pcm_substream *substream,
 		((pll_settings + i)->n & 0xff00) >> 8);
 	snd_soc_write(codec, ADAU_PLLACTL4, (pll_settings + i)->n
 		& 0xff);
-	snd_soc_write(codec, ADAU_PLLACTL5, (pll_settings + i)->integer << 3 |
-		 (pll_settings + i)->input_div << 1 | (pll_settings + i)->type);
+#endif
+	pll_reg[0] = ((pll_settings + i)->m & 0xff00) >> 8;
+	pll_reg[1] = (pll_settings + i)->m & 0xff;
+	pll_reg[2] = ((pll_settings + i)->n & 0xff00) >> 8;
+	pll_reg[3] = (pll_settings + i)->n & 0xff;
+	pll_reg[4] = (pll_settings + i)->integer << 3 |
+		 (pll_settings + i)->input_div << 1 | (pll_settings + i)->type;
+	pll_reg[5] =  0x00;
+
+	adau1373_write_reg_block(codec, ADAU_PLLACTL1, 6, pll_reg);
 
 	/* bit size */
 	switch (params_format(params)) {
@@ -690,11 +722,16 @@ static int adau1373_pcm_prepare(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
+	struct adau1373_priv *adau1373 = codec->private_data;
+	u8 *pll_reg = adau1373->adau1373_pll_reg;
 	int counter = 0;
 	u8 reg;
 
-	snd_soc_write(codec, ADAU_PLLACTL, 0x00);
-	snd_soc_write(codec, ADAU_PLLACTL6, PLLEN);
+	reg = snd_soc_read(codec, ADAU_PWDCTL3);
+	snd_soc_write(codec, ADAU_PWDCTL3, reg | WHOLEPWR);
+
+	pll_reg[5] = PLLEN;
+	adau1373_write_reg_block(codec, ADAU_PLLACTL1, 6, pll_reg);
 	/* Chcek if PLL is locked by polling the lock bit */
 	do {
 		++counter;
@@ -707,11 +744,11 @@ static int adau1373_pcm_prepare(struct snd_pcm_substream *substream,
 
 	}
 
-	/* Use DAI A */
-	snd_soc_write(codec, ADAU_DAIACTL, DAI_EN);
-	udelay(10);
 	reg = snd_soc_read(codec, ADAU_CLK1SDIV);
 	snd_soc_write(codec, ADAU_CLK1SDIV, reg | CLKSDIV_COREN);
+	udelay(10);
+	/* Use DAI A */
+	snd_soc_write(codec, ADAU_DAIACTL, DAI_EN);
 
 	return 0;
 }
