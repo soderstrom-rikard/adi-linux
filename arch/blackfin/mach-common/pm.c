@@ -148,6 +148,9 @@ int bfin_pm_suspend_mem_enter(void)
 #ifdef CONFIG_PM_BFIN_WAKE_GP
 	wakeup |= GPWE;
 #endif
+#ifdef CONFIG_PM_BFIN_WAKE_USB
+	wakeup |= USBWE;
+#endif
 
 	local_irq_save_hw(flags);
 
