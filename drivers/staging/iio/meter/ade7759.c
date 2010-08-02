@@ -81,6 +81,7 @@ static int ade7759_spi_read_reg_8(struct device *dev,
 	struct spi_transfer xfers[] = {
 		{
 			.tx_buf = st->tx,
+			.rx_buf = st->rx,
 			.bits_per_word = 8,
 			.len = 2,
 		},
@@ -116,6 +117,7 @@ static int ade7759_spi_read_reg_16(struct device *dev,
 	struct spi_transfer xfers[] = {
 		{
 			.tx_buf = st->tx,
+			.rx_buf = st->rx,
 			.bits_per_word = 8,
 			.len = 3,
 		},
@@ -152,6 +154,7 @@ static int ade7759_spi_read_reg_40(struct device *dev,
 	struct spi_transfer xfers[] = {
 		{
 			.tx_buf = st->tx,
+			.rx_buf = st->rx,
 			.bits_per_word = 8,
 			.len = 6,
 		},
