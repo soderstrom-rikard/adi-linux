@@ -69,16 +69,6 @@ static int adp5588_gpio_read(struct i2c_client *client, u8 reg)
 	return ret;
 }
 
-static int adp5588_gpio_read_intstat(struct i2c_client *client, u8 *buf)
-{
-	int ret = i2c_smbus_read_i2c_block_data(client, GPIO_INT_STAT1, 3, buf);
-
-	if (ret < 0)
-		dev_err(&client->dev, "Read INT_STAT Error\n");
-
-	return ret;
-}
-
 static int adp5588_gpio_write(struct i2c_client *client, u8 reg, u8 val)
 {
 	int ret = i2c_smbus_write_byte_data(client, reg, val);
@@ -164,6 +154,7 @@ static int adp5588_gpio_direction_output(struct gpio_chip *chip,
 	return ret;
 }
 
+#ifdef CONFIG_GPIO_ADP5588_IRQ
 static int adp5588_gpio_to_irq(struct gpio_chip *chip, unsigned off)
 {
 	struct adp5588_gpio *dev =
@@ -248,6 +239,16 @@ static struct irq_chip adp5588_irq_chip = {
 	.set_type		= adp5588_irq_set_type,
 };
 
+static int adp5588_gpio_read_intstat(struct i2c_client *client, u8 *buf)
+{
+	int ret = i2c_smbus_read_i2c_block_data(client, GPIO_INT_STAT1, 3, buf);
+
+	if (ret < 0)
+		dev_err(&client->dev, "Read INT_STAT Error\n");
+
+	return ret;
+}
+
 static irqreturn_t adp5588_irq_handler(int irq, void *devid)
 {
 	struct adp5588_gpio *dev = devid;
@@ -327,6 +328,25 @@ out:
 	dev->irq_base = 0;
 	return ret;
 }
+static void adp5588_irq_teardown(struct adp5588_gpio *dev)
+{
+	if (dev->irq_base)
+		free_irq(dev->client->irq, dev);
+}
+
+#else
+static int adp5588_irq_setup(struct adp5588_gpio *dev)
+{
+	struct i2c_client *client = dev->client;
+	dev_warn(&client->dev, "interrupt support not compiled in\n");
+
+	return 0;
+}
+
+static void adp5588_irq_teardown(struct adp5588_gpio *dev)
+{
+}
+#endif /* CONFIG_GPIO_ADP5588_IRQ */
 
 static int __devinit adp5588_gpio_probe(struct i2c_client *client,
 					const struct i2c_device_id *id)
@@ -415,8 +435,7 @@ static int __devinit adp5588_gpio_probe(struct i2c_client *client,
 	return 0;
 
 err_irq:
-	if (dev->irq_base)
-		free_irq(dev->client->irq, dev);
+	adp5588_irq_teardown(dev);
 err:
 	kfree(dev);
 	return ret;
