@@ -303,6 +303,8 @@ struct adxl34x_platform_data {
 #define ADXL_EN_ORIENTATION_3D		2
 #define ADXL_EN_ORIENTATION_2D_3D	3
 
+	u8 orientation_enable;
+
 	/*
 	 * The width of the deadzone region between two or more
 	 * orientation positions is determined by setting the Deadzone
@@ -311,11 +313,9 @@ struct adxl34x_platform_data {
 	 * angle where the orientation is considered invalid.
 	 */
 
-	u8 orientation_enable;
-
-#define ADXL_DEADZONE_ANGLE_0p0	0	/* !!!0.0 [deg] */
-#define ADXL_DEADZONE_ANGLE_3p6	1	/* 3.6 [deg] */
-#define ADXL_DEADZONE_ANGLE_7p2	2	/* 7.2 [deg] */
+#define ADXL_DEADZONE_ANGLE_0p0		0	/* !!!0.0 [deg] */
+#define ADXL_DEADZONE_ANGLE_3p6		1	/* 3.6 [deg] */
+#define ADXL_DEADZONE_ANGLE_7p2		2	/* 7.2 [deg] */
 #define ADXL_DEADZONE_ANGLE_10p8	3	/* 10.8 [deg] */
 #define ADXL_DEADZONE_ANGLE_14p4	4	/* 14.4 [deg] */
 #define ADXL_DEADZONE_ANGLE_18p0	5	/* 18.0 [deg] */
