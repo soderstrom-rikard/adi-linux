@@ -72,7 +72,7 @@ static int stpid_rcv(struct sk_buff *skb, struct net_device *dev,
 	/* The ether_head has been pulled by master driver */
 	dsa_header = skb->data - 2;
 
-	vid = ((dsa_header[2] & 0x0f)<<8 | dsa_header[3]);
+	vid = ((dsa_header[2] & 0x0f) << 8 | dsa_header[3]);
 
 	source_port = dsa_header[1] & 0x03;
 	if (source_port >= DSA_MAX_PORTS || ds->ports[source_port] == NULL)
