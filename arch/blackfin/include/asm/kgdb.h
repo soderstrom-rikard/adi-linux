@@ -103,11 +103,7 @@ static inline void arch_kgdb_breakpoint(void)
 	asm("EXCPT 2;");
 }
 #define BREAK_INSTR_SIZE	2
-#ifdef CONFIG_SMP
-# define CACHE_FLUSH_IS_SAFE	0
-#else
-# define CACHE_FLUSH_IS_SAFE	1
-#endif
+#define CACHE_FLUSH_IS_SAFE	1
 #define GDB_ADJUSTS_BREAK_OFFSET
 #define GDB_SKIP_HW_WATCH_TEST
 #define HW_INST_WATCHPOINT_NUM	6
