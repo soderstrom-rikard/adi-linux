@@ -59,6 +59,7 @@
 #define LOCK_EN		(1 << 0)
 
 #define PTIME_MASK	0x3
+#define LTIME_MASK	0x3
 
 /* Key Event Register xy */
 #define KEY_EV_PRESSED		(1 << 7)
@@ -363,6 +364,8 @@ static int __devinit adp5589_setup(struct i2c_client *client)
 				     pdata->unlock_key1);
 		ret |= adp5589_write(client, ADP5589_UNLOCK2,
 				     pdata->unlock_key2);
+		ret |= adp5589_write(client, ADP5589_UNLOCK_TIMERS,
+				     pdata->unlock_timer & LTIME_MASK);
 		ret |= adp5589_write(client, ADP5589_LOCK_CFG, LOCK_EN);
 	}
 
@@ -412,6 +415,10 @@ static int __devinit adp5589_setup(struct i2c_client *client)
 			pull_mask = 0;
 		}
 	}
+
+	for (i = 0; i <= ADP_BANK(MAXGPIO); i++)
+		ret |= adp5589_write(client, ADP5589_DEBOUNCE_DIS_A + i,
+				     pdata->debounce_dis_mask >> (i * 8));
 
 	ret |= adp5589_write(client, ADP5589_POLL_PTIME_CFG,
 			     pdata->scan_cycle_time & PTIME_MASK);

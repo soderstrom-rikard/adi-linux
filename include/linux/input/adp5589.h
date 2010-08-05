@@ -145,9 +145,11 @@ struct adp5589_kpad_platform_data {
 	unsigned short keymapsize;	/* Keymap size */
 	unsigned repeat:1;		/* Enable key repeat */
 	unsigned en_keylock:1;		/* Enable key lock feature */
-	unsigned short unlock_key1;	/* Unlock Key 1 */
-	unsigned short unlock_key2;	/* Unlock Key 2 */
-	unsigned short scan_cycle_time;	/* Time between consecutive scan cycles */
+	unsigned char unlock_key1;	/* Unlock Key 1 */
+	unsigned char unlock_key2;	/* Unlock Key 2 */
+	unsigned char unlock_timer;	/* Time in seconds [0..7] between the two unlock keys 0=disable */
+	unsigned char scan_cycle_time;	/* Time between consecutive scan cycles */
+	unsigned debounce_dis_mask;	/* Disable debounce mask */
 	unsigned pull_dis_mask;		/* Disable all pull resistors mask */
 	unsigned pullup_en_100k;	/* Pull-Up 100k Enable Mask */
 	unsigned pullup_en_300k;	/* Pull-Up 300k Enable Mask */
