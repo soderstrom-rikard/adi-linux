@@ -11,7 +11,8 @@
 #include <asm/cache.h>
 #include <asm/page.h>
 
-#ifdef CONFIG_CACHE_FLUSH_L1
+/* 05000491 - IFLUSH needs to reside in L1 memory */
+#if defined(CONFIG_CACHE_FLUSH_L1) || (!defined(CONFIG_SMP) && ANOMALY_05000491)
 .section .l1.text
 #else
 .text
@@ -68,7 +69,22 @@
 
 /* Invalidate all instruction cache lines assocoiated with this memory area */
 ENTRY(_blackfin_icache_flush_range)
+#if defined(CONFIG_SMP) && ANOMALY_05000491
+	p0.L = LO(DSPID);
+	p0.H = HI(DSPID);
+	r2 = 0xff;
+	r3 = [p0];
+	r3 = r3 & r2;
+	r3 <<= 2;
+	p1 = r3;
+	p0.L = _blackfin_iflush_l1_entry;
+	p0.H = _blackfin_iflush_l1_entry;
+	p0 = p0 + p1;
+	p1 = [p0];
+	jump (p1);
+#else
 	do_flush IFLUSH
+#endif
 ENDPROC(_blackfin_icache_flush_range)
 
 /* Throw away all D-cached data in specified region without any obligation to

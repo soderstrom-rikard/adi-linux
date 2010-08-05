@@ -9,6 +9,6 @@ obj-y := \
 obj-$(CONFIG_PM)          += pm.o dpmc_modes.o
 obj-$(CONFIG_CPU_FREQ)    += cpufreq.o
 obj-$(CONFIG_CPU_VOLTAGE) += dpmc.o
-obj-$(CONFIG_SMP)         += smp.o
+obj-$(CONFIG_SMP)         += smp.o smp_iflush_l1.o
 obj-$(CONFIG_BFIN_KERNEL_CLOCK) += clocks-init.o
 obj-$(CONFIG_DEBUG_ICACHE_CHECK) += irqpanic.o
