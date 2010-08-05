@@ -249,8 +249,8 @@ void __init bfin_relocate_coreb_l1_mem(void)
 	blackfin_iflush_l1_entry[1] = (unsigned long)blackfin_icache_flush_range_l1 -
 			(unsigned long)_stext_l1 + COREB_L1_CODE_START;
 #endif
-#endif
 }
+#endif
 
 #ifdef CONFIG_ROMKERNEL
 void __init bfin_relocate_xip_data(void)
