@@ -8,7 +8,6 @@
  * by ADI now.
  */
 
-
 #ifndef _AD1980_H
 #define _AD1980_H
 /* Bit definition of Power-Down Control/Status Register */
