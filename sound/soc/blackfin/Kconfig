@@ -186,7 +186,6 @@ config SND_BF5XX_SOC_AD1980
 	  Sep. 2009, this ad1980 driver is not maintained, tested and supported
 	  by ADI now.
 
-
 config SND_BF5XX_SOC_SPORT
 	tristate
 
