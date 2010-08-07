@@ -9,8 +9,8 @@ config ADIS16201
 	select IIO_TRIGGER if IIO_RING_BUFFER
 	select IIO_SW_RING if IIO_RING_BUFFER
 	help
-	  Say yes here to build support for Analog Devices adis16201 dual-axis digital inclinometer
-	  and accelerometer.
+	  Say yes here to build support for Analog Devices adis16201 dual-axis
+	  digital inclinometer and accelerometer.
 
 config ADIS16203
 	tristate "Analog Devices ADIS16203 Programmable 360 Degrees Inclinometer"
@@ -18,8 +18,8 @@ config ADIS16203
 	select IIO_TRIGGER if IIO_RING_BUFFER
 	select IIO_SW_RING if IIO_RING_BUFFER
 	help
-	  Say yes here to build support for Analog Devices adis16203 Programmable 360 Degrees
-	  Inclinometer.
+	  Say yes here to build support for Analog Devices adis16203 Programmable
+	  360 Degrees Inclinometer.
 
 config ADIS16204
 	tristate "Analog Devices ADIS16204 Programmable High-g Digital Impact Sensor and Recorder"
@@ -27,8 +27,8 @@ config ADIS16204
 	select IIO_TRIGGER if IIO_RING_BUFFER
 	select IIO_SW_RING if IIO_RING_BUFFER
 	help
-	  Say yes here to build support for Analog Devices adis16204 Programmable High-g Digital
-	  Impact Sensor and Recorder.
+	  Say yes here to build support for Analog Devices adis16204 Programmable
+	  High-g Digital Impact Sensor and Recorder.
 
 config ADIS16209
 	tristate "Analog Devices ADIS16209 Dual-Axis Digital Inclinometer and Accelerometer"
