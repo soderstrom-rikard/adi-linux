@@ -82,4 +82,5 @@
 
 extern struct snd_soc_dai ad193x_dai;
 extern struct snd_soc_codec_device soc_codec_dev_ad193x;
+
 #endif
