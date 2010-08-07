@@ -25,30 +25,20 @@ config SND_BF5XX_SOC_AD73311
 	help
 	  Say Y if you want to add support for AD73311 codec on Blackfin.
 
+config SND_BFIN_AD73311_SE
+	int "PF pin for AD73311L Chip Select"
+	depends on SND_BF5XX_SOC_AD73311
+	default 4
+	help
+	  Enter the GPIO used to control AD73311's SE pin. Acceptable
+	  values are 0 to 7
+
 config SND_AD7XXXX_SELECT
 	int "Select AD73311 or AD74111"
 	depends on SND_SOC_AD73311
 	default 0
 	help
 	  Set "0" to select AD73311, "1" for AD74111.
-
-config SND_BF5XX_SOC_ADAU1371
-	tristate "SoC ADAU1371 Audio support"
-	depends on SND_BF5XX_I2S
-	select SND_BF5XX_SOC_I2S
-	select SND_SOC_ADAU1371
-	select I2C
-	help
-	  Say Y if you want to add support for ADAU1371 SoC audio.
-
-config SND_BF5XX_SOC_ADAU1761
-	tristate "SoC ADAU1761 Audio support"
-	depends on SND_BF5XX_I2S
-	select SND_BF5XX_SOC_I2S
-	select SND_SOC_ADAU1761
-	select I2C
-	help
-	  Say Y if you want to add support for ADAU1761 SoC audio.
 
 config SND_BF5XX_SOC_ADAU1361
 	tristate "SoC ADAU1361 Audio support"
@@ -59,14 +49,14 @@ config SND_BF5XX_SOC_ADAU1361
 	help
 	  Say Y if you want to add support for ADAU1361 SoC audio.
 
-config SND_BF5XX_SOC_ADAU1381
-	tristate "SoC ADAU1381 Audio support"
+config SND_BF5XX_SOC_ADAU1371
+	tristate "SoC ADAU1371 Audio support"
 	depends on SND_BF5XX_I2S
 	select SND_BF5XX_SOC_I2S
-	select SND_SOC_ADAU1381
+	select SND_SOC_ADAU1371
 	select I2C
 	help
-	  Say Y if you want to add support for ADAU1381 SoC audio.
+	  Say Y if you want to add support for ADAU1371 SoC audio.
 
 config SND_BF5XX_SOC_ADAU1373
 	tristate "SoC ADAU1373 Audio support"
@@ -77,6 +67,24 @@ config SND_BF5XX_SOC_ADAU1373
 	help
 	  Say Y if you want to add support for ADAU1373 SoC audio.
 
+config SND_BF5XX_SOC_ADAU1381
+	tristate "SoC ADAU1381 Audio support"
+	depends on SND_BF5XX_I2S
+	select SND_BF5XX_SOC_I2S
+	select SND_SOC_ADAU1381
+	select I2C
+	help
+	  Say Y if you want to add support for ADAU1381 SoC audio.
+
+config SND_BF5XX_SOC_ADAU1761
+	tristate "SoC ADAU1761 Audio support"
+	depends on SND_BF5XX_I2S
+	select SND_BF5XX_SOC_I2S
+	select SND_SOC_ADAU1761
+	select I2C
+	help
+	  Say Y if you want to add support for ADAU1761 SoC audio.
+
 config SND_BF5XX_SOC_ADAV80X
 	tristate "SoC ADAV801/3 Audio support"
 	depends on SND_BF5XX_I2S && (SPI_MASTER || I2C)
@@ -84,14 +92,6 @@ config SND_BF5XX_SOC_ADAV80X
 	select SND_SOC_ADAV80X
 	help
 	  Say Y if you want to add support for ADAV80X SoC audio.
-
-config SND_BFIN_AD73311_SE
-	int "PF pin for AD73311L Chip Select"
-	depends on SND_BF5XX_SOC_AD73311
-	default 4
-	help
-	  Enter the GPIO used to control AD73311's SE pin. Acceptable
-	  values are 0 to 7
 
 config SND_BF5XX_TDM
 	tristate "SoC I2S(TDM mode) Audio for the ADI BF5xx chip"
