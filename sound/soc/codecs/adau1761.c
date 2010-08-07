@@ -992,9 +992,9 @@ static int adau1761_remove(struct platform_device *pdev)
 }
 
 struct snd_soc_codec_device soc_codec_dev_adau1761 = {
-	.probe = 	adau1761_probe,
-	.remove = 	adau1761_remove,
-	.suspend = 	adau1761_suspend,
+	.probe =	adau1761_probe,
+	.remove =	adau1761_remove,
+	.suspend =	adau1761_suspend,
 	.resume =	adau1761_resume,
 };
 EXPORT_SYMBOL_GPL(soc_codec_dev_adau1761);

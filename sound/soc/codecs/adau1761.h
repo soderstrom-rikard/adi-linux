@@ -31,7 +31,7 @@ struct adau1761_mode_register {
 #define ADAU_SRPT_CTRL0		0x01
 #else
 /* IIS slave mode*/
-#define ADAU_SRPT_CTRL0 	0x00
+#define ADAU_SRPT_CTRL0		0x00
 #endif
 
 /* adau1761_set_dai_sysclk clk_id */
@@ -52,7 +52,7 @@ struct adau1761_mode_register {
 /* ADAU1761 control registers */
 #define ADAU_FIRSTREG	0x4000
 
-#define ADAU_CLKCTRL 	0x4000
+#define ADAU_CLKCTRL	0x4000
 #define ADAU_PLLCTRL	0x4002
 #define ADAU_MICCTRL	0x4008
 #define ADAU_RECPWRM	0x4009

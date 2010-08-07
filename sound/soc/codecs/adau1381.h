@@ -29,7 +29,7 @@ struct adau1381_mode_register {
 #define ADAU_SRPT_CTRL0		0x01
 #else
 /* IIS slave mode*/
-#define ADAU_SRPT_CTRL0 	0x00
+#define ADAU_SRPT_CTRL0		0x00
 #endif
 
 /* adau1381_set_dai_sysclk clk_id */
@@ -45,7 +45,7 @@ struct adau1381_mode_register {
 /* ADAU1381 control registers */
 #define ADAU_FIRSTREG	0x4000
 
-#define ADAU_CLKCTRL 	0x4000
+#define ADAU_CLKCTRL	0x4000
 #define ADAU_RGUCTRL	0x4001
 #define ADAU_PLLCTRL	0x4002
 #define ADAU_RECCTRL	0x4008
