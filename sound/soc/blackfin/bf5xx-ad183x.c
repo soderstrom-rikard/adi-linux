@@ -122,4 +122,3 @@ module_exit(bf5xx_ad183x_exit);
 MODULE_AUTHOR("Barry Song");
 MODULE_DESCRIPTION("ALSA SoC AD183X board driver");
 MODULE_LICENSE("GPL");
-
