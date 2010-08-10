@@ -22,7 +22,6 @@
 #include "../sysfs.h"
 #include "accel.h"
 #include "inclinometer.h"
-#include "../imu/volt.h"
 #include "../gyro/gyro.h"
 #include "../adc/adc.h"
 
@@ -418,12 +417,12 @@ err_ret:
 	return ret;
 }
 
-static IIO_DEV_ATTR_VOLT(supply, adis16201_read_12bit_unsigned,
+static IIO_DEV_ATTR_IN_NAMED_RAW(supply, adis16201_read_12bit_unsigned,
 		ADIS16201_SUPPLY_OUT);
-static IIO_CONST_ATTR(volt_supply_scale, "0.00122");
-static IIO_DEV_ATTR_VOLT(aux, adis16201_read_12bit_unsigned,
+static IIO_CONST_ATTR(in_supply_scale, "0.00122");
+static IIO_DEV_ATTR_IN_RAW(0, adis16201_read_12bit_unsigned,
 		ADIS16201_AUX_ADC);
-static IIO_CONST_ATTR(volt_aux_scale, "0.00061");
+static IIO_CONST_ATTR(in0_scale, "0.00061");
 
 static IIO_DEV_ATTR_ACCEL_X(adis16201_read_14bit_signed,
 		ADIS16201_XACCL_OUT);
@@ -457,7 +456,7 @@ static IIO_DEV_ATTR_TEMP(adis16201_read_temp);
 static IIO_CONST_ATTR(temp_offset, "25");
 static IIO_CONST_ATTR(temp_scale, "-0.47");
 
-static IIO_DEV_ATTR_RESET(adis16201_write_reset);
+static IIO_DEVICE_ATTR(reset, S_IWUSR, NULL, adis16201_write_reset, 0);
 
 static IIO_CONST_ATTR(name, "adis16201");
 
@@ -470,15 +469,15 @@ static struct attribute_group adis16201_event_attribute_group = {
 };
 
 static struct attribute *adis16201_attributes[] = {
-	&iio_dev_attr_volt_supply.dev_attr.attr,
-	&iio_const_attr_volt_supply_scale.dev_attr.attr,
+	&iio_dev_attr_in_supply_raw.dev_attr.attr,
+	&iio_const_attr_in_supply_scale.dev_attr.attr,
 	&iio_dev_attr_temp.dev_attr.attr,
 	&iio_const_attr_temp_offset.dev_attr.attr,
 	&iio_const_attr_temp_scale.dev_attr.attr,
 	&iio_dev_attr_reset.dev_attr.attr,
 	&iio_const_attr_name.dev_attr.attr,
-	&iio_dev_attr_volt_aux.dev_attr.attr,
-	&iio_const_attr_volt_aux_scale.dev_attr.attr,
+	&iio_dev_attr_in0_raw.dev_attr.attr,
+	&iio_const_attr_in0_scale.dev_attr.attr,
 	&iio_dev_attr_accel_x_raw.dev_attr.attr,
 	&iio_dev_attr_accel_y_raw.dev_attr.attr,
 	&iio_dev_attr_accel_x_offset.dev_attr.attr,

@@ -21,7 +21,7 @@
 #include "../iio.h"
 #include "../sysfs.h"
 #include "gyro.h"
-#include "../imu/volt.h"
+#include "../adc/adc.h"
 
 #include "adis16261.h"
 
@@ -549,9 +549,9 @@ err_ret:
 	return ret;
 }
 
-static IIO_DEV_ATTR_VOLT(supply, adis16261_read_12bit_signed,
+static IIO_DEV_ATTR_IN_NAMED_RAW(supply, adis16261_read_12bit_signed,
 		ADIS16261_SUPPLY_OUT);
-static IIO_CONST_ATTR(volt_supply_scale, "0.0018315");
+static IIO_CONST_ATTR(in_supply_scale, "0.0018315");
 
 static IIO_DEV_ATTR_GYRO(adis16261_read_14bit_signed,
 		ADIS16261_GYRO_OUT);
@@ -568,9 +568,9 @@ static IIO_DEV_ATTR_TEMP(adis16261_read_12bit_signed);
 static IIO_CONST_ATTR(temp_offset, "25 K");
 static IIO_CONST_ATTR(temp_scale, "0.1453 K");
 
-static IIO_DEV_ATTR_VOLT(aux, adis16261_read_12bit_unsigned,
+static IIO_DEV_ATTR_IN_NAMED_RAW(aux, adis16261_read_12bit_unsigned,
 		ADIS16261_AUX_ADC);
-static IIO_CONST_ATTR(volt_aux_scale, "0.0006105");
+static IIO_CONST_ATTR(in_aux_scale, "0.0006105");
 
 static IIO_DEV_ATTR_SAMP_FREQ(S_IWUSR | S_IRUGO,
 		adis16261_read_frequency,
@@ -593,8 +593,8 @@ static struct attribute_group adis16261_event_attribute_group = {
 };
 
 static struct attribute *adis16261_attributes[] = {
-	&iio_dev_attr_volt_supply.dev_attr.attr,
-	&iio_const_attr_volt_supply_scale.dev_attr.attr,
+	&iio_dev_attr_in_supply_raw.dev_attr.attr,
+	&iio_const_attr_in_supply_scale.dev_attr.attr,
 	&iio_dev_attr_gyro_raw.dev_attr.attr,
 	&iio_dev_attr_gyro_scale.dev_attr.attr,
 	&iio_dev_attr_gyro_offset.dev_attr.attr,
@@ -602,8 +602,8 @@ static struct attribute *adis16261_attributes[] = {
 	&iio_dev_attr_temp.dev_attr.attr,
 	&iio_const_attr_temp_offset.dev_attr.attr,
 	&iio_const_attr_temp_scale.dev_attr.attr,
-	&iio_dev_attr_volt_aux.dev_attr.attr,
-	&iio_const_attr_volt_aux_scale.dev_attr.attr,
+	&iio_dev_attr_in_aux_raw.dev_attr.attr,
+	&iio_const_attr_in_aux_scale.dev_attr.attr,
 	&iio_dev_attr_sampling_frequency.dev_attr.attr,
 	&iio_const_attr_available_sampling_frequency.dev_attr.attr,
 	&iio_dev_attr_reset.dev_attr.attr,
