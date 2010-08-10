@@ -89,7 +89,6 @@
 #define ADP5589_GENERAL_CFG		0x4D
 #define ADP5589_INT_EN			0x4E
 
-
 #define ADP5589_DEVICE_ID_MASK	0xF
 
 /* Put one of these structures in i2c_board_info platform_data */
@@ -139,6 +138,27 @@ struct adp5589_gpi_map {
 #define ADP5589_SCAN_CYCLE_30ms		2
 #define ADP5589_SCAN_CYCLE_40ms		3
 
+/* RESET_CFG */
+#define RESET_PULSE_WIDTH_500us		0
+#define RESET_PULSE_WIDTH_1ms		1
+#define RESET_PULSE_WIDTH_2ms		2
+#define RESET_PULSE_WIDTH_10ms		3
+
+#define RESET_TRIG_TIME_0ms		(0 << 2)
+#define RESET_TRIG_TIME_1000ms		(1 << 2)
+#define RESET_TRIG_TIME_1500ms		(2 << 2)
+#define RESET_TRIG_TIME_2000ms		(3 << 2)
+#define RESET_TRIG_TIME_2500ms		(4 << 2)
+#define RESET_TRIG_TIME_3000ms		(5 << 2)
+#define RESET_TRIG_TIME_3500ms		(6 << 2)
+#define RESET_TRIG_TIME_4000ms		(7 << 2)
+
+#define RESET_PASSTHRU_EN		(1 << 5)
+#define RESET1_POL_HIGH			(1 << 6)
+#define RESET1_POL_LOW			(0 << 6)
+#define RESET2_POL_HIGH			(1 << 7)
+#define RESET2_POL_LOW			(0 << 7)
+
 /* Mask Bits:
  * C C C C C C C C C C C | R R R R R R R R
  * 1 9 8 7 6 5 4 3 2 1 0 | 7 6 5 4 3 2 1 0
@@ -161,6 +181,12 @@ struct adp5589_kpad_platform_data {
 	unsigned char unlock_key2;	/* Unlock Key 2 */
 	unsigned char unlock_timer;	/* Time in seconds [0..7] between the two unlock keys 0=disable */
 	unsigned char scan_cycle_time;	/* Time between consecutive scan cycles */
+	unsigned char reset_cfg;	/* Reset config */
+	unsigned short reset1_key_1;	/* Reset Key 1 */
+	unsigned short reset1_key_2;	/* Reset Key 2 */
+	unsigned short reset1_key_3;	/* Reset Key 3 */
+	unsigned short reset2_key_1;	/* Reset Key 1 */
+	unsigned short reset2_key_2;	/* Reset Key 2 */
 	unsigned debounce_dis_mask;	/* Disable debounce mask */
 	unsigned pull_dis_mask;		/* Disable all pull resistors mask */
 	unsigned pullup_en_100k;	/* Pull-Up 100k Enable Mask */

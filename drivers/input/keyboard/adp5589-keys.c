@@ -55,6 +55,10 @@
 #define LOCK_STAT	(1 << 5)
 #define KEC		0xF
 
+/* PIN_CONFIG_D Register */
+#define C4_EXTEND_CFG	(1 << 6)	/* RESET2 */
+#define R4_EXTEND_CFG	(1 << 5)	/* RESET1 */
+
 /* LOCK_CFG */
 #define LOCK_EN		(1 << 0)
 
@@ -77,6 +81,7 @@ struct adp5589_kpad {
 	unsigned short keycode[ADP5589_KEYMAPSIZE];
 	const struct adp5589_gpi_map *gpimap;
 	unsigned short gpimapsize;
+	unsigned extend_cfg;
 #ifdef CONFIG_GPIOLIB
 	unsigned char gpiomap[MAXGPIO];
 	bool export_gpio;
@@ -194,6 +199,12 @@ static int __devinit adp5589_build_gpiomap(struct adp5589_kpad *kpad,
 
 	for (i = 0; i < kpad->gpimapsize; i++)
 		pin_used[kpad->gpimap[i].pin - ADP5589_GPI_PIN_BASE] = true;
+
+	if (kpad->extend_cfg & R4_EXTEND_CFG)
+		pin_used[4] = true;
+
+	if (kpad->extend_cfg & C4_EXTEND_CFG)
+		pin_used[12] = true;
 
 	for (i = 0; i < MAXGPIO; i++)
 		if (!pin_used[i])
@@ -340,8 +351,19 @@ static irqreturn_t adp5589_irq(int irq, void *handle)
 	return IRQ_HANDLED;
 }
 
-static int __devinit adp5589_setup(struct i2c_client *client)
+static int __devinit adp5589_get_evcode(struct adp5589_kpad *kpad, unsigned short key)
 {
+	int i;
+	for (i = 0; i < ADP5589_KEYMAPSIZE; i++)
+		if (key == kpad->keycode[i])
+			return (i + 1) | KEY_EV_PRESSED;
+
+	dev_err(&kpad->client->dev, "RESET/UNLOCK key not in keycode map\n");
+	return -EINVAL;
+}
+static int __devinit adp5589_setup(struct adp5589_kpad *kpad)
+{
+	struct i2c_client *client = kpad->client;
 	const struct adp5589_kpad_platform_data *pdata =
 	    client->dev.platform_data;
 	int i, ret;
@@ -410,6 +432,37 @@ static int __devinit adp5589_setup(struct i2c_client *client)
 					     pull_mask);
 			pull_mask = 0;
 		}
+	}
+
+	if (pdata->reset1_key_1 && pdata->reset1_key_2 &&
+		pdata->reset1_key_3) {
+		ret |= adp5589_write(client, ADP5589_RESET1_EVENT_A,
+				     adp5589_get_evcode(kpad,
+				     pdata->reset1_key_1));
+		ret |= adp5589_write(client, ADP5589_RESET1_EVENT_B,
+				     adp5589_get_evcode(kpad,
+				     pdata->reset1_key_2));
+		ret |= adp5589_write(client, ADP5589_RESET1_EVENT_C,
+				     adp5589_get_evcode(kpad,
+				     pdata->reset1_key_3));
+		kpad->extend_cfg |= R4_EXTEND_CFG;
+	}
+
+	if (pdata->reset2_key_1 && pdata->reset2_key_2) {
+		ret |= adp5589_write(client, ADP5589_RESET2_EVENT_A,
+				     adp5589_get_evcode(kpad,
+				     pdata->reset2_key_1));
+		ret |= adp5589_write(client, ADP5589_RESET2_EVENT_B,
+				     adp5589_get_evcode(kpad,
+				     pdata->reset2_key_2));
+		kpad->extend_cfg |= C4_EXTEND_CFG;
+	}
+
+	if (kpad->extend_cfg) {
+		ret |= adp5589_write(client, ADP5589_RESET_CFG,
+				     pdata->reset_cfg);
+		ret |= adp5589_write(client, ADP5589_PIN_CONFIG_D,
+				     kpad->extend_cfg);
 	}
 
 	for (i = 0; i <= ADP_BANK(MAXGPIO); i++)
@@ -603,7 +656,7 @@ static int __devinit adp5589_probe(struct i2c_client *client,
 		goto err_unreg_dev;
 	}
 
-	error = adp5589_setup(client);
+	error = adp5589_setup(kpad);
 	if (error)
 		goto err_free_irq;
 
