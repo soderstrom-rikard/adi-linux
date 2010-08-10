@@ -133,14 +133,26 @@ struct adp5589_gpi_map {
 	unsigned short sw_evt;
 };
 
+/* scan_cycle_time */
 #define ADP5589_SCAN_CYCLE_10ms		0
 #define ADP5589_SCAN_CYCLE_20ms		1
 #define ADP5589_SCAN_CYCLE_30ms		2
 #define ADP5589_SCAN_CYCLE_40ms		3
 
+/* Mask Bits:
+ * C C C C C C C C C C C | R R R R R R R R
+ * 1 9 8 7 6 5 4 3 2 1 0 | 7 6 5 4 3 2 1 0
+ * 0
+ * ---------------- BIT ------------------
+ * 1 1 1 1 1 1 1 1 1 0 0 | 0 0 0 0 0 0 0 0
+ * 8 7 6 5 4 3 2 1 0 9 8 | 7 6 5 4 3 2 1 0
+ */
+
+#define ADP_ROW(x)			(1 << (x))
+#define ADP_COL(x)			(1 << (x + 8))
+
 struct adp5589_kpad_platform_data {
-	int rows;			/* Number of rows */
-	int cols;			/* Number of columns */
+	unsigned keypad_en_mask;	/* Keypad (Rows/Columns) enable mask */
 	const unsigned short *keymap;	/* Pointer to keymap */
 	unsigned short keymapsize;	/* Keymap size */
 	unsigned repeat:1;		/* Enable key repeat */

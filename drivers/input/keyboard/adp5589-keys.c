@@ -65,8 +65,6 @@
 #define KEY_EV_PRESSED		(1 << 7)
 #define KEY_EV_MASK		(0x7F)
 
-#define KP_SEL(x)		(0xFFFF >> (16 - x))	/* 2^x-1 */
-
 #define KEYP_MAX_EVENT		16
 
 #define MAXGPIO			19
@@ -190,12 +188,9 @@ static int __devinit adp5589_build_gpiomap(struct adp5589_kpad *kpad,
 
 	memset(pin_used, false, sizeof(pin_used));
 
-	for (i = 0; i < pdata->rows; i++)
-		pin_used[i] = true;
-
-	for (i = 0; i < pdata->cols; i++)
-		pin_used[i + ADP5589_GPI_PIN_COL_BASE -
-			 ADP5589_GPI_PIN_BASE] = true;
+	for (i = 0; i < MAXGPIO; i++)
+		if (pdata->keypad_en_mask & (1 << i))
+			pin_used[i] = true;
 
 	for (i = 0; i < kpad->gpimapsize; i++)
 		pin_used[kpad->gpimap[i].pin - ADP5589_GPI_PIN_BASE] = true;
@@ -353,11 +348,12 @@ static int __devinit adp5589_setup(struct i2c_client *client)
 	unsigned char evt_mode1 = 0, evt_mode2 = 0, evt_mode3 = 0;
 	unsigned char pull_mask = 0;
 
-	ret = adp5589_write(client, ADP5589_PIN_CONFIG_A, KP_SEL(pdata->rows));
+	ret = adp5589_write(client, ADP5589_PIN_CONFIG_A,
+			    pdata->keypad_en_mask & 0xFF);
 	ret |= adp5589_write(client, ADP5589_PIN_CONFIG_B,
-			     KP_SEL(pdata->cols) & 0xFF);
+			     (pdata->keypad_en_mask >> 8) & 0xFF);
 	ret |= adp5589_write(client, ADP5589_PIN_CONFIG_C,
-			     KP_SEL(pdata->cols) >> 8);
+			     (pdata->keypad_en_mask >> 16) & 0xFF);
 
 	if (pdata->en_keylock) {
 		ret |= adp5589_write(client, ADP5589_UNLOCK1,
@@ -498,7 +494,8 @@ static int __devinit adp5589_probe(struct i2c_client *client,
 		return -EINVAL;
 	}
 
-	if (!pdata->rows || !pdata->cols || !pdata->keymap) {
+	if (!((pdata->keypad_en_mask & 0xFF) &&
+		(pdata->keypad_en_mask >> 8)) || !pdata->keymap) {
 		dev_err(&client->dev, "no rows, cols or keymap from pdata\n");
 		return -EINVAL;
 	}
@@ -526,16 +523,10 @@ static int __devinit adp5589_probe(struct i2c_client *client,
 			return -EINVAL;
 		}
 
-		if (pin <= ADP5589_GPI_PIN_ROW_END) {
-			if (pin - ADP5589_GPI_PIN_ROW_BASE + 1 <= pdata->rows) {
-				dev_err(&client->dev, "invalid gpi row data\n");
-				return -EINVAL;
-			}
-		} else {
-			if (pin - ADP5589_GPI_PIN_COL_BASE + 1 <= pdata->cols) {
-				dev_err(&client->dev, "invalid gpi col data\n");
-				return -EINVAL;
-			}
+		if ((1 << (pin - ADP5589_GPI_PIN_ROW_BASE)) &
+			pdata->keypad_en_mask) {
+			dev_err(&client->dev, "invalid gpi row/col data\n");
+			return -EINVAL;
 		}
 	}
 
