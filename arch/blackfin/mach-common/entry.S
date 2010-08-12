@@ -1000,7 +1000,7 @@ _resume_kernel_from_int:
 	[--sp] = rets;
 	sp += -12;
 	/* up to irq14 so that reti after restore_all can return to irq15(kernel) */
-	pseudo_long_call _up_to_irq14, p5;
+	pseudo_long_call _up_to_irq14, p4;
 	sp += 12;
 	rets = [sp++];
 
