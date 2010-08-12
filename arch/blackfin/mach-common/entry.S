@@ -992,11 +992,9 @@ _resume_kernel_from_int:
 	rti;
 .Lkernel_schedule:
 	[--sp] = rets;
-	[--sp] = ( r7:4, p5:3 );
 	sp += -12;
-	pseudo_long_call _preempt_schedule_irq, p5;
+	pseudo_long_call _preempt_schedule_irq, p4;
 	sp += 12;
-	( r7:4, p5:3 ) = [sp++];
 	rets = [sp++];
 
 	[--sp] = rets;
