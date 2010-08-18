@@ -423,7 +423,7 @@ static IIO_DEV_ATTR_CVRMSGAIN(S_IWUSR | S_IRUGO,
 		ade7758_write_16bit,
 		ADE7758_CVRMSGAIN);
 
-static int ade7758_set_irq(struct device *dev, bool enable)
+int ade7758_set_irq(struct device *dev, bool enable)
 {
 	int ret;
 	u32 irqen;
@@ -548,6 +548,64 @@ out:
 
 	return ret ? ret : len;
 }
+
+static ssize_t ade7758_read_waveform_type(struct device *dev,
+		struct device_attribute *attr,
+		char *buf)
+{
+	int ret, len = 0;
+	u8 t;
+	ret = ade7758_spi_read_reg_8(dev,
+			ADE7758_WAVMODE,
+			&t);
+	if (ret)
+		return ret;
+
+	t = (t >> 2) & 0x7;
+
+	len = sprintf(buf, "%d\n", t);
+
+	return len;
+}
+
+static ssize_t ade7758_write_waveform_type(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf,
+		size_t len)
+{
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	unsigned long val;
+	int ret;
+	u8 reg;
+
+	ret = strict_strtol(buf, 10, &val);
+	if (ret)
+		return ret;
+
+	if (val > 4)
+		return -EINVAL;
+
+	mutex_lock(&indio_dev->mlock);
+
+	ret = ade7758_spi_read_reg_8(dev,
+			ADE7758_WAVMODE,
+			&reg);
+	if (ret)
+		goto out;
+
+	reg &= ~(7 << 2);
+	reg |= val << 2;
+
+	ret = ade7758_spi_write_reg_8(dev,
+			ADE7758_WAVMODE,
+			reg);
+
+out:
+	mutex_unlock(&indio_dev->mlock);
+
+	return ret ? ret : len;
+}
+
 static IIO_DEV_ATTR_TEMP(ade7758_read_8bit);
 static IIO_CONST_ATTR(temp_offset, "129 C");
 static IIO_CONST_ATTR(temp_scale, "4 C");
@@ -575,6 +633,19 @@ static IIO_DEV_ATTR_SAMP_FREQ(S_IWUSR | S_IRUGO,
 		ade7758_read_frequency,
 		ade7758_write_frequency);
 
+/**
+ * IIO_DEV_ATTR_WAVEFORM_TYPE - set the type of waveform.
+ * @_mode: sysfs file mode/permissions
+ * @_show: output method for the attribute
+ * @_store: input method for the attribute
+ **/
+#define IIO_DEV_ATTR_WAVEFORM_TYPE(_mode, _show, _store)			\
+	IIO_DEVICE_ATTR(waveform_type, _mode, _show, _store, 0)
+
+static IIO_DEV_ATTR_WAVEFORM_TYPE(S_IWUSR | S_IRUGO,
+		ade7758_read_waveform_type,
+		ade7758_write_waveform_type);
+
 static IIO_DEV_ATTR_RESET(ade7758_write_reset);
 
 static IIO_CONST_ATTR_AVAIL_SAMP_FREQ("26000 13000 65000 33000");
@@ -594,6 +665,7 @@ static struct attribute *ade7758_attributes[] = {
 	&iio_const_attr_temp_offset.dev_attr.attr,
 	&iio_const_attr_temp_scale.dev_attr.attr,
 	&iio_dev_attr_sampling_frequency.dev_attr.attr,
+	&iio_dev_attr_waveform_type.dev_attr.attr,
 	&iio_const_attr_available_sampling_frequency.dev_attr.attr,
 	&iio_dev_attr_reset.dev_attr.attr,
 	&iio_const_attr_name.dev_attr.attr,
@@ -695,14 +767,6 @@ static int __devinit ade7758_probe(struct spi_device *spi)
 	}
 
 	if (spi->irq) {
-#if 0 /* fixme: here we should support */
-		iio_init_work_cont(&st->work_cont_thresh,
-				NULL,
-				ade7758_thresh_handler_bh_no_check,
-				0,
-				0,
-				st);
-#endif
 		ret = iio_register_interrupt_line(spi->irq,
 				st->indio_dev,
 				0,
@@ -747,7 +811,6 @@ error_ret:
 	return ret;
 }
 
-/* fixme, confirm ordering in this function */
 static int ade7758_remove(struct spi_device *spi)
 {
 	int ret;
@@ -765,8 +828,8 @@ static int ade7758_remove(struct spi_device *spi)
 		iio_unregister_interrupt_line(indio_dev, 0);
 
 	ade7758_uninitialize_ring(indio_dev->ring);
-	ade7758_unconfigure_ring(indio_dev);
 	iio_device_unregister(indio_dev);
+	ade7758_unconfigure_ring(indio_dev);
 	kfree(st->tx);
 	kfree(st->rx);
 	kfree(st);

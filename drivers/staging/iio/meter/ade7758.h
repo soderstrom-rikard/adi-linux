@@ -79,7 +79,7 @@
 #define ADE7758_READ_REG(a)    a
 #define ADE7758_WRITE_REG(a) ((a) | 0x80)
 
-#define ADE7758_MAX_TX    4
+#define ADE7758_MAX_TX    8
 #define ADE7758_MAX_RX    4
 #define ADE7758_STARTUP_DELAY 1
 
@@ -119,25 +119,7 @@ struct ade7758_state {
  */
 
 enum ade7758_scan {
-	ADE7758_SCAN_PHA_V,
-	ADE7758_SCAN_PHB_V,
-	ADE7758_SCAN_PHC_V,
-
-	ADE7758_SCAN_PHA_I,
-	ADE7758_SCAN_PHB_I,
-	ADE7758_SCAN_PHC_I,
-
-	ADE7758_SCAN_PHA_APMO,
-	ADE7758_SCAN_PHB_APMO,
-	ADE7758_SCAN_PHC_APMO,
-
-	ADE7758_SCAN_PHA_RAPMO,
-	ADE7758_SCAN_PHB_RAPMO,
-	ADE7758_SCAN_PHC_RAPMO,
-
-	ADE7758_SCAN_PHA_VAMO,
-	ADE7758_SCAN_PHB_VAMO,
-	ADE7758_SCAN_PHC_VAMO,
+	ADE7758_SCAN_WFORM,
 };
 
 void ade7758_remove_trigger(struct iio_dev *indio_dev);
@@ -153,6 +135,7 @@ void ade7758_unconfigure_ring(struct iio_dev *indio_dev);
 
 int ade7758_initialize_ring(struct iio_ring_buffer *ring);
 void ade7758_uninitialize_ring(struct iio_ring_buffer *ring);
+int ade7758_set_irq(struct device *dev, bool enable);
 #else /* CONFIG_IIO_RING_BUFFER */
 
 static inline void ade7758_remove_trigger(struct iio_dev *indio_dev)
