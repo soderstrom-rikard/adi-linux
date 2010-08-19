@@ -497,8 +497,8 @@ static ssize_t ade7758_read_frequency(struct device *dev,
 	if (ret)
 		return ret;
 
-	t = (t >> 3) & 0x3;
-	sps = 26000 / (1 + t);
+	t = (t >> 5) & 0x3;
+	sps = 26040 / (1 << t);
 
 	len = sprintf(buf, "%d SPS\n", sps);
 	return len;
@@ -521,9 +521,9 @@ static ssize_t ade7758_write_frequency(struct device *dev,
 
 	mutex_lock(&indio_dev->mlock);
 
-	t = (26000 / val);
+	t = (26040 / val);
 	if (t > 0)
-		t--;
+		t >>= 1;
 
 	if (t > 1)
 		st->us->max_speed_hz = ADE7758_SPI_SLOW;
@@ -536,8 +536,8 @@ static ssize_t ade7758_write_frequency(struct device *dev,
 	if (ret)
 		goto out;
 
-	reg &= ~(3 << 3);
-	reg |= t << 3;
+	reg &= ~(5 << 3);
+	reg |= t << 5;
 
 	ret = ade7758_spi_write_reg_8(dev,
 			ADE7758_WAVMODE,
