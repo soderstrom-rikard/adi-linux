@@ -16,6 +16,8 @@
 #include <linux/workqueue.h>
 #include <linux/hrtimer.h>
 #include <asm/unaligned.h>
+#include <linux/firmware.h>
+#include <linux/delay.h>
 
 #include <linux/input/ad7160.h>
 #include "ad7160.h"
@@ -38,6 +40,9 @@
 #define AD7160_DOUBLE_TAP			(1 << 9)
 
 /* LPM_CTRL */
+
+#define AD7160_LPM_TIMEOUTms(x)			((x) & 0xFFFF)
+#define AD7160_LPM_WAKEUP_INTERVALms(x)		(((x) & 0x3FF) << 16)
 #define AD7160_PWR_SAVE_CONV			(1 << 26)
 #define AD7160_PROX_WK_UP			(1 << 28)
 #define AD7160_FINGER_ACT_WK_UP			(1 << 29)
@@ -80,6 +85,42 @@
 #define AD7160_TRACKING_ID_FREE			0xF0000
 #define AD7160_MAX_TIMED_HAPTIC_DUR		100000
 
+/* Firmware Loader Defines */
+
+#define CMD_ERASE_PAGE		0xC1
+#define CMD_DWNLD_DATA		0xC2
+#define CMD_VERIFY		0xC3
+#define AD7160_NUM_OF_PAGES	62
+#define AD7160_PAGE_SIZE	512
+#define AD7160_MAX_FW_SIZE	(AD7160_NUM_OF_PAGES * AD7160_PAGE_SIZE)
+#define AD7160_CMD_HDR_SIZE	5
+#define AD7160_SPLIT_SIZE	200
+
+#define BOOT_MODE_MAGIC		0x012357BD
+#define BOOT_MODE_REVID		0x10AD
+#define NORM_MODE_REVID		0x7160
+#define MODE_REVID_SHIFT	16
+
+#define FIRMWARE		"ad7160_fw.bin"
+#define AD7160_FW_MAGIC		0x00AD7160
+
+struct fw_header {
+	unsigned int fmagic;
+	unsigned int hlenght;
+	unsigned int crc24;
+} __attribute__ ((packed));
+
+/*
+ * CRC-24 Calculation using a look up table specific to
+ * the polynome: x^24 + x^23 + x^6 + x^5 + x + 1
+ */
+
+/* CRC24 definitions */
+#define CRC_INIT	0xFFFFFFFF
+#define CRC_WIDTH	24
+#define CRC_MASK	((1<<(CRC_WIDTH)) - 1)
+#define CRC_FINAL_XOR	0x00000000
+
 struct ad7160 {
 	struct ad7160_bus_data	bdata;
 	struct input_dev	*input;
@@ -90,8 +131,13 @@ struct ad7160 {
 	struct hrtimer		timer;
 	struct work_struct	hwork;
 	struct mutex		hmutex;
-	unsigned		disabled:1;	/* P: mutex */
+	bool			disabled;	/* P: mutex */
+	bool			opened;		/* P: mutex */
+	bool			suspended;	/* P: mutex */
+	bool			irq_disabled;	/* P: mutex */
+
 	unsigned		handle_gest:1;
+	unsigned		lpm_ctrl;
 
 	u32			num_fingers;
 	u32			gest_stat;
@@ -102,19 +148,30 @@ struct ad7160 {
 	char			phys[32];
 };
 
-static int ad7160_read(struct ad7160 *ts, u32 reg)
+static inline int ad7160_read(struct ad7160 *ts, u32 reg)
 {
 	return ts->bdata.bops->read(ts->bdata.client, reg);
 }
-static int ad7160_multi_read(struct ad7160 *ts,
+static inline int ad7160_multi_read(struct ad7160 *ts,
 	u32 first_reg, u32 count, u32 *buf)
 {
 	return ts->bdata.bops->multi_read(ts->bdata.client,
 		first_reg, count, buf);
 }
-static int ad7160_write(struct ad7160 *ts, u32 reg, u32 val)
+static inline int ad7160_write(struct ad7160 *ts, u32 reg, u32 val)
 {
 	return ts->bdata.bops->write(ts->bdata.client, reg, val);
+}
+
+static inline int ad7160_write_bytes(struct ad7160 *ts, u32 count, u8 *buf)
+{
+	return ts->bdata.bops->multi_write_bytes(ts->bdata.client,
+		count, buf);
+}
+
+static inline void ad7160_wakeup(struct ad7160 *ts)
+{
+	ts->bdata.bops->wakeup(ts->bdata.client);
 }
 
 static unsigned ad7160_handle_tracking_id(struct ad7160 *ts,
@@ -280,6 +337,7 @@ static void ad7160_work(struct work_struct *work)
 static irqreturn_t ad7160_irq(int irq, void *handle)
 {
 	struct ad7160 *ts = handle;
+
 	if (!work_pending(&ts->work))
 		schedule_work(&ts->work);
 
@@ -301,7 +359,12 @@ static void ad7160_setup(struct ad7160 *ts)
 	     i <= AD7160_REG_HAPTIC_EFFECT6_CTRL3; i += 4)
 		ad7160_write(ts, i, *effect_ctl++);
 
-	ad7160_write(ts, AD7160_REG_LPM_CTRL, 0);
+	ts->lpm_ctrl = AD7160_LPM_TIMEOUTms(1000) |
+			 AD7160_LPM_WAKEUP_INTERVALms(200) |
+			 AD7160_PROX_WK_UP |
+			 AD7160_FINGER_ACT_WK_UP;
+
+	ad7160_write(ts, AD7160_REG_LPM_CTRL, ts->lpm_ctrl);
 	ad7160_write(ts, AD7160_REG_INT_GEST_EN_CTRL,
 			(ts->pdata->ev_code_tap != 0 ? AD7160_TAP_ENABLE : 0) |
 			(ts->pdata->ev_code_double_tap != 0
@@ -327,39 +390,79 @@ static void ad7160_setup(struct ad7160 *ts)
 		ts->pdata->finger_act_ctrl);
 }
 
-void ad7160_disable(struct device *dev)
+static void __ad7160_disable(struct ad7160 *ts)
 {
-	struct ad7160 *ts = dev_get_drvdata(dev);
+	disable_irq_nosync(ts->bdata.irq);
+	cancel_work_sync(&ts->work);
+	ts->irq_disabled = true;
+}
+
+static void __ad7160_enable(struct ad7160 *ts)
+{
+	enable_irq(ts->bdata.irq);
+	ts->irq_disabled = false;
+}
+
+static int ad7160_input_open(struct input_dev *input)
+{
+	struct ad7160 *ts = input_get_drvdata(input);
+
 	mutex_lock(&ts->mutex);
+	if (!ts->suspended && !ts->disabled)
+		__ad7160_enable(ts);
 
-	if (!ts->disabled) {
-		ad7160_write(ts, AD7160_REG_LPM_CTRL, AD7160_SHUTDOWN);
-		ts->disabled = 1;
-		disable_irq(ts->bdata.irq);
-		cancel_work_sync(&ts->work);
-	}
+	ts->opened = true;
+	mutex_unlock(&ts->mutex);
 
+	return 0;
+}
+
+static void ad7160_input_close(struct input_dev *input)
+{
+	struct ad7160 *ts = input_get_drvdata(input);
+
+	mutex_lock(&ts->mutex);
+	if (!ts->suspended && !ts->disabled)
+		__ad7160_disable(ts);
+
+	ts->opened = false;
 	mutex_unlock(&ts->mutex);
 }
-EXPORT_SYMBOL(ad7160_disable);
 
-void ad7160_enable(struct device *dev)
+
+void ad7160_suspend(struct device *dev)
 {
 	struct ad7160 *ts = dev_get_drvdata(dev);
+
+	ad7160_write(ts, AD7160_REG_LPM_CTRL,
+		     ts->lpm_ctrl | AD7160_SHUTDOWN);
+
 	mutex_lock(&ts->mutex);
+	if (!ts->suspended && !ts->disabled && ts->opened)
+		__ad7160_disable(ts);
 
-	if (ts->disabled) {
-		ad7160_setup(ts);
-		ts->disabled = 0;
-		enable_irq(ts->bdata.irq);
-	}
-
+	ts->suspended = true;
 	mutex_unlock(&ts->mutex);
 }
-EXPORT_SYMBOL(ad7160_enable);
+
+void ad7160_resume(struct device *dev)
+{
+	struct ad7160 *ts = dev_get_drvdata(dev);
+
+	ad7160_wakeup(ts);
+	ad7160_write(ts, AD7160_REG_LPM_CTRL, ts->lpm_ctrl);
+	ad7160_setup(ts);
+
+	mutex_lock(&ts->mutex);
+	if (ts->suspended && !ts->disabled && ts->opened)
+		__ad7160_enable(ts);
+
+	ts->suspended = false;
+	mutex_unlock(&ts->mutex);
+}
 
 static ssize_t ad7160_disable_show(struct device *dev,
-				     struct device_attribute *attr, char *buf)
+				    struct device_attribute *attr, char *buf)
 {
 	struct ad7160 *ts = dev_get_drvdata(dev);
 
@@ -370,6 +473,7 @@ static ssize_t ad7160_disable_store(struct device *dev,
 				     struct device_attribute *attr,
 				     const char *buf, size_t count)
 {
+	struct ad7160 *ts = dev_get_drvdata(dev);
 	unsigned long val;
 	int error;
 
@@ -377,10 +481,21 @@ static ssize_t ad7160_disable_store(struct device *dev,
 	if (error)
 		return error;
 
-	if (val)
-		ad7160_disable(dev);
-	else
-		ad7160_enable(dev);
+	mutex_lock(&ts->mutex);
+
+	if (!ts->suspended && ts->opened) {
+		if (val) {
+			if (!ts->disabled)
+				__ad7160_disable(ts);
+		} else {
+			if (ts->disabled)
+				__ad7160_enable(ts);
+		}
+	}
+
+	ts->disabled = !!val;
+
+	mutex_unlock(&ts->mutex);
 
 	return count;
 }
@@ -477,10 +592,308 @@ static ssize_t ad7160_effect_haptic_store(struct device *dev,
 
 static DEVICE_ATTR(effect_haptic, 0664, NULL, ad7160_effect_haptic_store);
 
+#if defined(CONFIG_TOUCHSCREEN_AD7160_FW) || defined(CONFIG_TOUCHSCREEN_AD7160_FW_MODULE)
+static unsigned int crc_table[256] = {
+	0x00000000, 0x00800063, 0x008000A5, 0x000000C6,
+	0x00800129, 0x0000014A, 0x0000018C, 0x008001EF,
+	0x00800231, 0x00000252, 0x00000294, 0x008002F7,
+	0x00000318, 0x0080037B, 0x008003BD, 0x000003DE,
+	0x00800401, 0x00000462, 0x000004A4, 0x008004C7,
+	0x00000528, 0x0080054B, 0x0080058D, 0x000005EE,
+	0x00000630, 0x00800653, 0x00800695, 0x000006F6,
+	0x00800719, 0x0000077A, 0x000007BC, 0x008007DF,
+	0x00800861, 0x00000802, 0x000008C4, 0x008008A7,
+	0x00000948, 0x0080092B, 0x008009ED, 0x0000098E,
+	0x00000A50, 0x00800A33, 0x00800AF5, 0x00000A96,
+	0x00800B79, 0x00000B1A, 0x00000BDC, 0x00800BBF,
+	0x00000C60, 0x00800C03, 0x00800CC5, 0x00000CA6,
+	0x00800D49, 0x00000D2A, 0x00000DEC, 0x00800D8F,
+	0x00800E51, 0x00000E32, 0x00000EF4, 0x00800E97,
+	0x00000F78, 0x00800F1B, 0x00800FDD, 0x00000FBE,
+	0x008010A1, 0x000010C2, 0x00001004, 0x00801067,
+	0x00001188, 0x008011EB, 0x0080112D, 0x0000114E,
+	0x00001290, 0x008012F3, 0x00801235, 0x00001256,
+	0x008013B9, 0x000013DA, 0x0000131C, 0x0080137F,
+	0x000014A0, 0x008014C3, 0x00801405, 0x00001466,
+	0x00801589, 0x000015EA, 0x0000152C, 0x0080154F,
+	0x00801691, 0x000016F2, 0x00001634, 0x00801657,
+	0x000017B8, 0x008017DB, 0x0080171D, 0x0000177E,
+	0x000018C0, 0x008018A3, 0x00801865, 0x00001806,
+	0x008019E9, 0x0000198A, 0x0000194C, 0x0080192F,
+	0x00801AF1, 0x00001A92, 0x00001A54, 0x00801A37,
+	0x00001BD8, 0x00801BBB, 0x00801B7D, 0x00001B1E,
+	0x00801CC1, 0x00001CA2, 0x00001C64, 0x00801C07,
+	0x00001DE8, 0x00801D8B, 0x00801D4D, 0x00001D2E,
+	0x00001EF0, 0x00801E93, 0x00801E55, 0x00001E36,
+	0x00801FD9, 0x00001FBA, 0x00001F7C, 0x00801F1F,
+	0x00802121, 0x00002142, 0x00002184, 0x008021E7,
+	0x00002008, 0x0080206B, 0x008020AD, 0x000020CE,
+	0x00002310, 0x00802373, 0x008023B5, 0x000023D6,
+	0x00802239, 0x0000225A, 0x0000229C, 0x008022FF,
+	0x00002520, 0x00802543, 0x00802585, 0x000025E6,
+	0x00802409, 0x0000246A, 0x000024AC, 0x008024CF,
+	0x00802711, 0x00002772, 0x000027B4, 0x008027D7,
+	0x00002638, 0x0080265B, 0x0080269D, 0x000026FE,
+	0x00002940, 0x00802923, 0x008029E5, 0x00002986,
+	0x00802869, 0x0000280A, 0x000028CC, 0x008028AF,
+	0x00802B71, 0x00002B12, 0x00002BD4, 0x00802BB7,
+	0x00002A58, 0x00802A3B, 0x00802AFD, 0x00002A9E,
+	0x00802D41, 0x00002D22, 0x00002DE4, 0x00802D87,
+	0x00002C68, 0x00802C0B, 0x00802CCD, 0x00002CAE,
+	0x00002F70, 0x00802F13, 0x00802FD5, 0x00002FB6,
+	0x00802E59, 0x00002E3A, 0x00002EFC, 0x00802E9F,
+	0x00003180, 0x008031E3, 0x00803125, 0x00003146,
+	0x008030A9, 0x000030CA, 0x0000300C, 0x0080306F,
+	0x008033B1, 0x000033D2, 0x00003314, 0x00803377,
+	0x00003298, 0x008032FB, 0x0080323D, 0x0000325E,
+	0x00803581, 0x000035E2, 0x00003524, 0x00803547,
+	0x000034A8, 0x008034CB, 0x0080340D, 0x0000346E,
+	0x000037B0, 0x008037D3, 0x00803715, 0x00003776,
+	0x00803699, 0x000036FA, 0x0000363C, 0x0080365F,
+	0x008039E1, 0x00003982, 0x00003944, 0x00803927,
+	0x000038C8, 0x008038AB, 0x0080386D, 0x0000380E,
+	0x00003BD0, 0x00803BB3, 0x00803B75, 0x00003B16,
+	0x00803AF9, 0x00003A9A, 0x00003A5C, 0x00803A3F,
+	0x00003DE0, 0x00803D83, 0x00803D45, 0x00003D26,
+	0x00803CC9, 0x00003CAA, 0x00003C6C, 0x00803C0F,
+	0x00803FD1, 0x00003FB2, 0x00003F74, 0x00803F17,
+	0x00003EF8, 0x00803E9B, 0x00803E5D, 0x00003E3E,
+};
+
+static unsigned int do_crc24(unsigned long len, unsigned char *data)
+{
+	unsigned int crc  = CRC_INIT;
+
+#if defined(__BIG_ENDIAN)
+	while (len--) {
+		crc = crc_table[((crc >> (CRC_WIDTH-8)) ^ *data++) & 0xFFL]
+			^ (crc << 8);
+	}
+	crc ^= CRC_FINAL_XOR;
+#elif defined(__LITTLE_ENDIAN)
+	len = len / 4;
+	while (len--) {
+		crc = crc_table[((crc >> (CRC_WIDTH-8)) ^ data[3]) & 0xFFL]
+			^ (crc << 8);
+		crc = crc_table[((crc >> (CRC_WIDTH-8)) ^ data[2]) & 0xFFL]
+			^ (crc << 8);
+		crc = crc_table[((crc >> (CRC_WIDTH-8)) ^ data[1]) & 0xFFL]
+			^ (crc << 8);
+		crc = crc_table[((crc >> (CRC_WIDTH-8)) ^ data[0]) & 0xFFL]
+			^ (crc << 8);
+
+		data += 4;
+	}
+	crc ^= CRC_FINAL_XOR;
+#else
+#error ("ENDIAN not recognized")
+#endif
+	return crc & CRC_MASK;
+}
+
+static int ad7160_enter_boot_mode(struct ad7160 *ts)
+{
+	int ret;
+	unsigned id;
+
+	ret = ad7160_write(ts, AD7160_REG_BOOT_MODE_CTRL,
+			   BOOT_MODE_MAGIC);
+	if (ret < 0)
+		return ret;
+
+	/* write BOOT_MODE_MAGIC twice to enter boot mode */
+	ad7160_write(ts, AD7160_REG_BOOT_MODE_CTRL,
+		     BOOT_MODE_MAGIC);
+
+	mdelay(50);	/* Wait for 50ms */
+
+	id = ad7160_read(ts, AD7160_REG_AFE_DEVID);
+	if ((id >> MODE_REVID_SHIFT) == BOOT_MODE_REVID)
+		return 0;
+
+	return -EFAULT;
+}
+
+static int ad7160_flash_erase(struct ad7160 *ts)
+{
+	unsigned char cmd = CMD_ERASE_PAGE;
+	int ret;
+
+	ret = ad7160_write_bytes(ts, 1, &cmd);
+	mdelay(2000);	/* Wait for 2secs */
+
+	return ret;
+}
+
+static int ad7160_flash(struct ad7160 *ts, unsigned char *data,
+			unsigned int size)
+{
+	int ret, i;
+	unsigned offset;
+
+	for (i = 0; i < DIV_ROUND_UP(size, AD7160_SPLIT_SIZE); i++) {
+		offset = i * AD7160_SPLIT_SIZE;
+		data[0 + (i * AD7160_SPLIT_SIZE)] = CMD_DWNLD_DATA;		/* command */
+		data[1 + (i * AD7160_SPLIT_SIZE)] = offset >> 8;		/* offset msb */
+		data[2 + (i * AD7160_SPLIT_SIZE)] = offset & 0xFF;		/* offset lsb */
+		data[3 + (i * AD7160_SPLIT_SIZE)] = AD7160_SPLIT_SIZE >> 8;	/* buffer size msb */
+		data[4 + (i * AD7160_SPLIT_SIZE)] = AD7160_SPLIT_SIZE & 0xFF;	/* buffer size lsb */
+
+		ret = ad7160_write_bytes(ts, AD7160_CMD_HDR_SIZE +
+					 AD7160_SPLIT_SIZE,
+					 &data[i * AD7160_SPLIT_SIZE]);
+	}
+
+	return ret;
+}
+
+static int ad7160_flash_verify(struct ad7160 *ts, unsigned int crc24)
+{
+	unsigned char cmd[9];
+	unsigned id;
+
+	memset(cmd, 0, sizeof(cmd));
+
+	cmd[0] = CMD_VERIFY;
+	cmd[6] = (crc24 >> 16) & 0xFF;
+	cmd[7] = (crc24 >> 8) & 0xFF;
+	cmd[8] = crc24 & 0xFF;
+
+	ad7160_write_bytes(ts, sizeof(cmd), cmd);
+
+	mdelay(1000);
+
+	id = ad7160_read(ts, AD7160_REG_AFE_DEVID);
+	if ((id >> MODE_REVID_SHIFT) == NORM_MODE_REVID)
+		return 0;
+
+	return -EFAULT;
+}
+
+static int ad7160_flash_firmware(struct device *dev, unsigned char *data,
+				 unsigned int size, unsigned int crc24)
+{
+	struct ad7160 *ts = dev_get_drvdata(dev);
+	int ret;
+	bool irq_disabled;
+
+	mutex_lock(&ts->mutex);
+	irq_disabled = ts->irq_disabled;
+	if (!irq_disabled)
+		__ad7160_disable(ts);
+
+	ret = ad7160_enter_boot_mode(ts);
+	if (ret < 0) {
+		dev_err(dev, "failed to enter boot mode\n");
+		return ret;
+	}
+
+	ret = ad7160_flash_erase(ts);
+	if (ret < 0)			/* no way out - continue anyways */
+		dev_err(dev, "failed to send erase command\n");
+
+	ret = ad7160_flash(ts, data, size);
+	if (ret < 0)			/* no way out - continue anyways */
+		dev_err(dev, "failed to flash\n");
+
+	ret = ad7160_flash_verify(ts, crc24);
+	if (ret < 0)			/* no way out - continue anyways */
+		dev_err(dev, "verify flash failed\n");
+
+	ad7160_setup(ts);
+	if (!irq_disabled)
+		__ad7160_enable(ts);
+	mutex_unlock(&ts->mutex);
+
+	return ret;
+}
+
+static int ad7160_update_fw(struct device *dev, const char *fw_name)
+{
+	const struct firmware *fw;
+	struct fw_header *header;
+	int ret;
+	unsigned char *temp;
+	unsigned hlenght;
+
+	ret = request_firmware(&fw, fw_name, dev);
+	if (ret) {
+		dev_err(dev, "request_firmware() failed with %i\n", ret);
+		return ret;
+	}
+
+	header = (struct fw_header *) fw->data;
+
+	if (le32_to_cpu(header->fmagic) != AD7160_FW_MAGIC) {
+		dev_err(dev, "firmware file magic failed\n");
+		ret = -EFAULT;
+		goto out_release_fw;
+	}
+
+	hlenght = le32_to_cpu(header->hlenght);
+
+	temp = kmalloc(AD7160_MAX_FW_SIZE + AD7160_CMD_HDR_SIZE, GFP_KERNEL);
+	if (temp == NULL) {
+		ret = -ENOMEM;
+		goto out_release_fw;
+	}
+
+	memcpy(temp + AD7160_CMD_HDR_SIZE, fw->data + hlenght, fw->size - hlenght);
+
+	/* pad the remaining bytes with 0xFF */
+	memset(temp + AD7160_CMD_HDR_SIZE + fw->size - hlenght, 0xFF,
+	       AD7160_MAX_FW_SIZE - fw->size + hlenght);
+
+	/*
+	 * The upper 4 bytes of a block is not included when generating
+	 * the crc/signature, because this is where the signature is stored.
+	 */
+
+	if (do_crc24(AD7160_MAX_FW_SIZE - 4, temp + AD7160_CMD_HDR_SIZE)
+		!= le32_to_cpu(header->crc24)) {
+
+		dev_err(dev, "firmware crc check failed\n");
+		ret = -EFAULT;
+		goto out_free_mem;
+	}
+	/* MAGIC and CRC ok */
+	ret = ad7160_flash_firmware(dev, temp, AD7160_MAX_FW_SIZE,
+				    le32_to_cpu(header->crc24));
+
+out_free_mem:
+	kfree(temp);
+out_release_fw:
+	release_firmware(fw);
+	return ret;
+}
+
+static ssize_t ad7160_update_fw_store(struct device *dev,
+				      struct device_attribute *attr,
+				      const char *buf, size_t count)
+{
+	unsigned long value;
+	int error;
+
+	error = strict_strtoul(buf, 10, &value);
+	if (error)
+		return error;
+
+	if (value == 1)
+		ad7160_update_fw(dev, FIRMWARE);
+
+	return count;
+}
+
+static DEVICE_ATTR(update_fw, 0664, NULL, ad7160_update_fw_store);
+#endif /* CONFIG_TOUCHSCREEN_AD7160_FW */
+
 static struct attribute *ad7160_attributes[] = {
 	&dev_attr_disable.attr,
 	&dev_attr_timed_haptic.attr,
 	&dev_attr_effect_haptic.attr,
+#if defined(CONFIG_TOUCHSCREEN_AD7160_FW) || defined(CONFIG_TOUCHSCREEN_AD7160_FW_MODULE)
+	&dev_attr_update_fw.attr,
+#endif
 	NULL
 };
 
@@ -534,6 +947,10 @@ ad7160_probe(struct device *dev, struct ad7160_bus_data *bdata,
 	input_dev->phys = ts->phys;
 	input_dev->dev.parent = dev;
 	input_dev->id.bustype = bustype;
+	input_dev->open = ad7160_input_open;
+	input_dev->close = ad7160_input_close;
+
+	input_set_drvdata(input_dev, ts);
 
 	__set_bit(EV_ABS, input_dev->evbit);
 	__set_bit(EV_KEY, input_dev->evbit);
@@ -616,6 +1033,7 @@ ad7160_probe(struct device *dev, struct ad7160_bus_data *bdata,
 		goto err_free_mem;
 	}
 
+	disable_irq_nosync(ts->bdata.irq);
 
 	INIT_WORK(&ts->hwork, ad7160_hwork);
 	mutex_init(&ts->hmutex);
@@ -662,7 +1080,6 @@ __devexit int ad7160_remove(struct device *dev)
 {
 	struct ad7160 *ts = dev_get_drvdata(dev);
 
-	ad7160_disable(dev);
 	sysfs_remove_group(&dev->kobj, &ad7160_attr_group);
 	free_irq(ts->bdata.irq, ts);
 	input_unregister_device(ts->input);

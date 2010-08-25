@@ -11,6 +11,7 @@
 
 #include <linux/types.h>
 
+#define AD7160_REG_AFE_DEVID			0x40050114
 #define AD7160_REG_DEVICE_ID			0x40051700
 #define AD7160_REG_REV_ID			0x40051704
 #define AD7160_REG_FW_REV			0x40051708
@@ -20,7 +21,7 @@
 #define AD7160_REG_DMA_CTRL			0x40051718
 #define AD7160_REG_AFE_DAC_OFFS_CTRL		0x4005171C
 #define AD7160_REG_LPM_CTRL			0x40051720
-#define AD7160_REG_BOOT_MODE_CTRL		0x40051744
+#define AD7160_REG_BOOT_MODE_CTRL		0x40051724
 #define AD7160_REG_FINGER_ACT_CTRL		0x40051738
 #define AD7160_REG_XY_NB_SENSORS		0x4005173C
 #define AD7160_REG_XY_RES			0x40051740
@@ -85,15 +86,18 @@ struct ad7160_bus_ops {
 	int (*read) (void *dev, u32 reg);
 	int (*multi_read) (void *dev, u32 first_reg, u32 count, u32 *buf);
 	int (*write) (void *dev, u32 reg, u32 val);
+	int (*multi_write_bytes) (void *dev, u32 count, u8 *buf);
+	void (*wakeup) (void *dev);
 };
+
 struct ad7160_bus_data {
 	void *client;
 	int irq;
 	const struct ad7160_bus_ops *bops;
 };
 
-void ad7160_disable(struct device *dev);
-void ad7160_enable(struct device *dev);
+void ad7160_suspend(struct device *dev);
+void ad7160_resume(struct device *dev);
 int ad7160_probe(struct device *dev, struct ad7160_bus_data *bdata, u32 devid, u16 bustype);
 int ad7160_remove(struct device *dev);
 

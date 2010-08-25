@@ -18,13 +18,13 @@
 #ifdef CONFIG_PM
 static int ad7160_i2c_suspend(struct i2c_client *client, pm_message_t message)
 {
-	ad7160_disable(&client->dev);
+	ad7160_suspend(&client->dev);
 	return 0;
 }
 
 static int ad7160_i2c_resume(struct i2c_client *client)
 {
-	ad7160_enable(&client->dev);
+	ad7160_resume(&client->dev);
 	return 0;
 }
 #else
@@ -58,7 +58,8 @@ static int ad7160_raw_i2c_read(void *dev, u32 reg, u32 len, u32 *data)
 
 	ret = i2c_transfer(client->adapter, msg, 2);
 	if (ret != 2) {
-		dev_err(&client->dev, "read error %d\n", ret);
+		dev_err(&client->dev, "I2C read error: (%d) reg: 0x%X len: %d\n",
+			ret, reg, len);
 		return -EIO;
 	}
 
@@ -88,40 +89,53 @@ static int ad7160_raw_i2c_write(void *dev, u32 reg, u32 len, u32 *data)
 
 }
 
+static int ad7160_i2c_write_bytes(void *dev, u32 len, u8 *data)
+{
+	struct i2c_client *client = dev;
+
+	int ret = i2c_master_send(client, data, len);
+	if (ret < 0) {
+		dev_err(&client->dev, "I2C write error\n");
+		return ret;
+	}
+	return len;
+}
+
+/*
+ * The AD7160 doesn't ACK on wake-up
+ * So this is expected to generate a address NACK
+ */
+
+static void ad7160_i2c_wakeup(void *dev)
+{
+	struct i2c_client *client = dev;
+	char dummy = 0;
+	i2c_master_send(client, &dummy, 1);
+}
+
 static int ad7160_i2c_read(void *dev, u32 reg)
 {
+	struct i2c_client *client = dev;
 	int ret;
 	u32 retval;
-	struct i2c_client *client = dev;
 
 	ret = ad7160_raw_i2c_read(client, reg, 1, &retval);
 
-	if (ret < 0) {
-		dev_err(&client->dev, "read error\n");
-		return ret;
-	}
-
-	return retval;
+	return (ret < 0 ? ret : retval);
 }
 
 static int ad7160_i2c_write(void *dev, u32 reg, u32 val)
 {
 	struct i2c_client *client = dev;
-	int ret;
-	u32 retval = val;
-
-	ret = ad7160_raw_i2c_write(client, reg, 1, &retval);
-
-	if (ret < 0)
-		dev_err(&client->dev, "write error\n");
-
-	return ret;
+	return ad7160_raw_i2c_write(client, reg, 1, &val);
 }
 
 static const struct ad7160_bus_ops bops = {
 	.read = ad7160_i2c_read,
 	.multi_read = ad7160_raw_i2c_read,
 	.write = ad7160_i2c_write,
+	.multi_write_bytes = ad7160_i2c_write_bytes,
+	.wakeup = ad7160_i2c_wakeup,
 };
 
 static int __devinit ad7160_i2c_probe(struct i2c_client *client,
