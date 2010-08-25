@@ -106,6 +106,13 @@ config TOUCHSCREEN_AD7160_RAW
 	  Say Y here if you have a touchscreen interface using the AD7160
 	  and you want the raw data character interface
 
+config TOUCHSCREEN_AD7160_FW
+	bool "AD7160 based touchscreens firmware loading support"
+	depends on TOUCHSCREEN_AD7160
+	help
+	  Say Y here if you have a touchscreen interface using the AD7160
+	  and you want to be able to replace the firmware on your device
+
 config TOUCHSCREEN_BITSY
 	tristate "Compaq iPAQ H3600 (Bitsy) touchscreen"
 	depends on SA1100_BITSY
