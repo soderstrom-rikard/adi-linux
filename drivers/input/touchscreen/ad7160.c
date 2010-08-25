@@ -784,6 +784,7 @@ static int ad7160_flash_firmware(struct device *dev, unsigned char *data,
 
 	ret = ad7160_enter_boot_mode(ts);
 	if (ret < 0) {
+		mutex_unlock(&ts->mutex);
 		dev_err(dev, "failed to enter boot mode\n");
 		return ret;
 	}
