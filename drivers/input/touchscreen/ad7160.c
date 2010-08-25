@@ -804,6 +804,8 @@ static int ad7160_flash_firmware(struct device *dev, unsigned char *data,
 		dev_err(dev, "verify flash failed\n");
 
 	ad7160_setup(ts);
+	if (!irq_disabled)
+		__ad7160_enable(ts);
 	mutex_unlock(&ts->mutex);
 
 	return ret;
