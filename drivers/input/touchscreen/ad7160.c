@@ -733,11 +733,11 @@ static int ad7160_flash(struct ad7160 *ts, unsigned char *data,
 
 	for (i = 0; i < DIV_ROUND_UP(size, AD7160_SPLIT_SIZE); i++) {
 		offset = i * AD7160_SPLIT_SIZE;
-		data[0 + (i * AD7160_SPLIT_SIZE)] = CMD_DWNLD_DATA;		/* command */
-		data[1 + (i * AD7160_SPLIT_SIZE)] = offset >> 8;		/* offset msb */
-		data[2 + (i * AD7160_SPLIT_SIZE)] = offset & 0xFF;		/* offset lsb */
-		data[3 + (i * AD7160_SPLIT_SIZE)] = AD7160_SPLIT_SIZE >> 8;	/* buffer size msb */
-		data[4 + (i * AD7160_SPLIT_SIZE)] = AD7160_SPLIT_SIZE & 0xFF;	/* buffer size lsb */
+		data[0 + offset] = CMD_DWNLD_DATA;		/* command */
+		data[1 + offset] = offset >> 8;			/* offset msb */
+		data[2 + offset] = offset & 0xFF;		/* offset lsb */
+		data[3 + offset] = AD7160_SPLIT_SIZE >> 8;	/* buffer size msb */
+		data[4 + offset] = AD7160_SPLIT_SIZE & 0xFF;	/* buffer size lsb */
 
 		ret = ad7160_write_bytes(ts, AD7160_CMD_HDR_SIZE +
 					 AD7160_SPLIT_SIZE,
@@ -784,11 +784,8 @@ static int ad7160_flash_firmware(struct device *dev, unsigned char *data,
 
 	ret = ad7160_enter_boot_mode(ts);
 	if (ret < 0) {
-		if (!irq_disabled)
-			__ad7160_enable(ts);
-		mutex_unlock(&ts->mutex);
 		dev_err(dev, "failed to enter boot mode\n");
-		return ret;
+		goto out_failed;
 	}
 
 	ret = ad7160_flash_erase(ts);
@@ -804,6 +801,7 @@ static int ad7160_flash_firmware(struct device *dev, unsigned char *data,
 		dev_err(dev, "verify flash failed\n");
 
 	ad7160_setup(ts);
+out_failed:
 	if (!irq_disabled)
 		__ad7160_enable(ts);
 	mutex_unlock(&ts->mutex);
