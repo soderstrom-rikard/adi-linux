@@ -784,6 +784,8 @@ static int ad7160_flash_firmware(struct device *dev, unsigned char *data,
 
 	ret = ad7160_enter_boot_mode(ts);
 	if (ret < 0) {
+		if (!irq_disabled)
+			__ad7160_enable(ts);
 		mutex_unlock(&ts->mutex);
 		dev_err(dev, "failed to enter boot mode\n");
 		return ret;
@@ -802,8 +804,6 @@ static int ad7160_flash_firmware(struct device *dev, unsigned char *data,
 		dev_err(dev, "verify flash failed\n");
 
 	ad7160_setup(ts);
-	if (!irq_disabled)
-		__ad7160_enable(ts);
 	mutex_unlock(&ts->mutex);
 
 	return ret;
