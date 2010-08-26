@@ -834,7 +834,7 @@ static int ad7160_update_fw(struct device *dev, const char *fw_name)
 	hlenght = le32_to_cpu(header->hlenght);
 
 	if ((fw->size - hlenght) > AD7160_MAX_FW_SIZE) {
-		dev_err(dev, "invalid firmware size (%d)\n", fw->size);
+		dev_err(dev, "invalid firmware size (%d)\n", (int)fw->size);
 		ret = -EFAULT;
 		goto out_release_fw;
 	}
@@ -1019,10 +1019,15 @@ ad7160_probe(struct device *dev, struct ad7160_bus_data *bdata,
 	input_dev->id.product = ad7160_read(ts, AD7160_REG_DEVICE_ID) & 0xFFFF;
 
 	if (input_dev->id.product != AD7160_SIL_ID) {
-		dev_err(dev, "Failed to probe %s (%x vs %x)\n",
-			input_dev->name, input_dev->id.product, AD7160_SIL_ID);
-		err = -ENODEV;
-		goto err_free_mem;
+		if ((ad7160_read(ts, AD7160_REG_AFE_DEVID) >> MODE_REVID_SHIFT)
+			== BOOT_MODE_REVID) {
+			dev_warn(dev, "Device in boot mode - upload firmware!\n");
+		} else  {
+			dev_err(dev, "Failed to probe %s (%x vs %x)\n",
+				input_dev->name, input_dev->id.product, AD7160_SIL_ID);
+			err = -ENODEV;
+			goto err_free_mem;
+		}
 	}
 
 	fw_revid = ad7160_read(ts, AD7160_REG_FW_REV);
