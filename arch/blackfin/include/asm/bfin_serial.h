@@ -82,6 +82,25 @@ struct bfin_serial_port {
 #define ERBFI                    0x01  /* Enable Receive Buffer Full Interrupt */
 #define ETBEI                    0x02  /* Enable Transmit Buffer Empty Interrupt */
 #define ELSI                     0x04  /* Enable RX Status Interrupt */
+#define EDSSI                    0x08  /* Enable Modem Status Interrupt */
+#define EDTPTI                   0x10  /* Enable DMA Transmit PIRQ Interrupt */
+#define ETFI                     0x20  /* Enable Transmission Finished Interrupt */
+#define ERFCI                    0x40  /* Enable Receive FIFO Count Interrupt */
+
+/* UART_MCR Masks */
+#define XOFF                     0x01  /* Transmitter Off */
+#define MRTS                     0x02  /* Manual Request To Send */
+#define RFIT                     0x04  /* Receive FIFO IRQ Threshold */
+#define RFRT                     0x08  /* Receive FIFO RTS Threshold */
+#define LOOP_ENA                 0x10  /* Loopback Mode Enable */
+#define FCPOL                    0x20  /* Flow Control Pin Polarity */
+#define ARTS                     0x40  /* Automatic Request To Send */
+#define ACTS                     0x80  /* Automatic Clear To Send */
+
+/* UART_MSR Masks */
+#define SCTS                     0x01  /* Sticky CTS */
+#define CTS                      0x10  /* Clear To Send */
+#define RFCS                     0x20  /* Receive FIFO Count Status */
 
 /* UART_GCTL Masks */
 #define UCEN                     0x01  /* Enable UARTx Clocks */
