@@ -833,6 +833,12 @@ static int ad7160_update_fw(struct device *dev, const char *fw_name)
 
 	hlenght = le32_to_cpu(header->hlenght);
 
+	if ((fw->size - hlenght) > AD7160_MAX_FW_SIZE) {
+		dev_err(dev, "invalid firmware size (%d)\n", fw->size);
+		ret = -EFAULT;
+		goto out_release_fw;
+	}
+
 	temp = kmalloc(AD7160_MAX_FW_SIZE + AD7160_CMD_HDR_SIZE, GFP_KERNEL);
 	if (temp == NULL) {
 		ret = -ENOMEM;
