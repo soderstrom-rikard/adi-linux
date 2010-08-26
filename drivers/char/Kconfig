@@ -25,16 +25,6 @@ config BFIN_PPI
 	  peripherals.  It is really only useful for working with raw
 	  data streams.
 
-config BFIN_PPIFCD
-	tristate "Blackfin PPI Camera frame capture driver"
-	depends on BLACKFIN
-	default n
-	---help---
-	  If you say Y here, you will get support for various CMOS Camera Modules
-	  connected to Blackfin's PPI port.  This is a very simple driver and
-	  only supports "snapshots".  If you want a video source, look at the
-	  V4L device drivers.
-
 config BFIN_SIMPLE_TIMER
 	tristate "Blackfin General Purpose Timers char device interface"
 	select BFIN_GPTIMERS
