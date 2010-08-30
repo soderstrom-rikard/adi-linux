@@ -2422,7 +2422,7 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 #endif
 #if defined(CONFIG_BFIN_TWI_LCD) || defined(CONFIG_BFIN_TWI_LCD_MODULE)
 	{
-		I2C_BOARD_INFO("ad5252", 0x2f),
+		I2C_BOARD_INFO("ad5252", 0x2e),
 	},
 #endif
 };
