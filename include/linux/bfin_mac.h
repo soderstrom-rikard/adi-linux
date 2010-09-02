@@ -14,7 +14,7 @@
 
 struct bfin_phydev_platform_data {
 	unsigned short addr;
-	unsigned short irq;
+	int irq;
 };
 
 struct bfin_mii_bus_platform_data {
@@ -22,6 +22,7 @@ struct bfin_mii_bus_platform_data {
 	struct bfin_phydev_platform_data *phydev_data;
 	const unsigned short *mac_peripherals;
 	int phy_mode;
+	unsigned int phy_mask;
 };
 
 #endif

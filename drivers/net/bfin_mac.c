@@ -403,8 +403,8 @@ static int mii_probe(struct net_device *dev, int phy_mode)
 	sysctl = (sysctl & ~MDCDIV) | SET_MDCDIV(mdc_div);
 	bfin_write_EMAC_SYSCTL(sysctl);
 
-	/* search for connect PHY device */
-	for (i = PHY_MAX_ADDR - 1; i >= 0; i--) {
+	/* search for connected PHY device */
+	for (i = 0; i < PHY_MAX_ADDR; ++i) {
 		struct phy_device *const tmp_phydev = lp->mii_bus->phy_map[i];
 
 		if (!tmp_phydev)
@@ -563,6 +563,8 @@ static const struct ethtool_ops bfin_mac_ethtool_ops = {
 /**************************************************************************/
 void setup_system_regs(struct net_device *dev)
 {
+	struct bfin_mac_local *lp = netdev_priv(dev);
+	int i;
 	unsigned short sysctl;
 
 	/*
@@ -570,7 +572,17 @@ void setup_system_regs(struct net_device *dev)
 	 * Configure checksum support and rcve frame word alignment
 	 */
 	sysctl = bfin_read_EMAC_SYSCTL();
-	sysctl |= PHYIE;
+
+	/*
+	 * check if interrupt is requested for any PHY,
+	 * enable PHY interrupt only if needed
+	 */
+	for (i = 0; i < PHY_MAX_ADDR; ++i)
+		if (lp->mii_bus->irq[i] != PHY_POLL)
+			break;
+	if (i < PHY_MAX_ADDR)
+		sysctl |= PHYIE;
+
 	sysctl |= RXDWA;
 #if defined(BFIN_MAC_CSUM_OFFLOAD)
 	sysctl |= RXCKS;
@@ -1647,6 +1659,11 @@ static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
 
 	if (mii_bus_pd)
 		pin_req = mii_bus_pd->mac_peripherals;
+	else {
+		dev_err(&pdev->dev, "No peripherals in platform data!\n");
+		return -EINVAL;
+	}
+
 	/*
 	 * We are setting up a network card,
 	 * so set the GPIO pins to Ethernet mode
@@ -1669,17 +1686,29 @@ static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
 	miibus->name = "bfin_mii_bus";
 	snprintf(miibus->id, MII_BUS_ID_SIZE, "0");
 	miibus->irq = kmalloc(sizeof(int)*PHY_MAX_ADDR, GFP_KERNEL);
-	if (miibus->irq != NULL &&
-		mii_bus_pd && mii_bus_pd->phydev_number > 0) {
+	if (miibus->irq != NULL) {
 		for (i = 0; i < PHY_MAX_ADDR; ++i)
 			miibus->irq[i] = PHY_POLL;
 
-		if (mii_bus_pd->phydev_number >= PHY_MAX_ADDR)
-			mii_bus_pd->phydev_number = PHY_MAX_ADDR;
-
-		for (i = 0; i < mii_bus_pd->phydev_number; ++i)
-			miibus->irq[mii_bus_pd->phydev_data[i].addr] =
-				mii_bus_pd->phydev_data[i].irq;
+		if (mii_bus_pd) {
+			miibus->phy_mask = mii_bus_pd->phy_mask;
+			if (mii_bus_pd->phydev_number > 0 &&
+				mii_bus_pd->phydev_number <= PHY_MAX_ADDR) {
+				for (i = 0; i < mii_bus_pd->phydev_number; ++i) {
+					unsigned short phyaddr =
+						mii_bus_pd->phydev_data[i].addr;
+					if (phyaddr < PHY_MAX_ADDR)
+						miibus->irq[phyaddr] =
+							mii_bus_pd->phydev_data[i].irq;
+					else
+						dev_err(&pdev->dev,
+							"Invalid PHY address %i for phydev %i\n",
+							phyaddr, i);
+				}
+			} else
+				dev_err(&pdev->dev, "Invalid number (%i) of phydevs\n",
+					mii_bus_pd->phydev_number);
+		}
 	}
 
 	rc = mdiobus_register(miibus);
