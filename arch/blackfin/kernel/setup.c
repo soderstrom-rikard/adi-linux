@@ -232,7 +232,7 @@ void __init bfin_relocate_coreb_l1_mem(void)
 
 	/* if necessary, copy L1 text to L1 instruction SRAM */
 	if (L1_CODE_LENGTH && text_l1_len)
-		early_dma_memcpy((void *)COREB_L1_CODE_START, _text_l1_lma,
+		early_dma_memcpy((void *)COREB_L1_CODE_START + 0x200, _text_l1_lma,
 				text_l1_len);
 
 	/* if necessary, copy L1 data to L1 data bank A SRAM */
@@ -247,7 +247,7 @@ void __init bfin_relocate_coreb_l1_mem(void)
 
 #if ANOMALY_05000491
 	blackfin_iflush_l1_entry[1] = (unsigned long)blackfin_icache_flush_range_l1 -
-			(unsigned long)_stext_l1 + COREB_L1_CODE_START;
+			(unsigned long)_stext_l1 + COREB_L1_CODE_START + 0x200;
 #endif
 }
 #endif
