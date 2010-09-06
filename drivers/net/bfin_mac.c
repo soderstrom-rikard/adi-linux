@@ -1684,6 +1684,9 @@ static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
 
 	miibus->parent = &pdev->dev;
 	miibus->name = "bfin_mii_bus";
+	if (mii_bus_pd)
+		miibus->phy_mask = mii_bus_pd->phy_mask;
+
 	snprintf(miibus->id, MII_BUS_ID_SIZE, "0");
 	miibus->irq = kmalloc(sizeof(int)*PHY_MAX_ADDR, GFP_KERNEL);
 	if (miibus->irq != NULL) {
@@ -1691,7 +1694,6 @@ static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
 			miibus->irq[i] = PHY_POLL;
 
 		if (mii_bus_pd) {
-			miibus->phy_mask = mii_bus_pd->phy_mask;
 			if (mii_bus_pd->phydev_number > 0 &&
 				mii_bus_pd->phydev_number <= PHY_MAX_ADDR) {
 				for (i = 0; i < mii_bus_pd->phydev_number; ++i) {
