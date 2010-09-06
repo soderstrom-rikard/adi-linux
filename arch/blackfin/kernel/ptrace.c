@@ -114,7 +114,7 @@ put_reg(struct task_struct *task, long regno, unsigned long data)
 /*
  * check that an address falls within the bounds of the target process's memory mappings
  */
-static inline int is_user_addr_valid(struct task_struct *child,
+inline int is_user_addr_valid(struct task_struct *child,
 				     unsigned long start, unsigned long len)
 {
 	struct vm_area_struct *vma;
