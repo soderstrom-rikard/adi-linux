@@ -113,8 +113,8 @@ extern void user_disable_single_step(struct task_struct *child);
 /* common code demands this function */
 #define ptrace_disable(child) user_disable_single_step(child)
 
-extern inline int is_user_addr_valid(struct task_struct *child,
-				unsigned long start, unsigned long len);
+extern int is_user_addr_valid(struct task_struct *child,
+			      unsigned long start, unsigned long len);
 
 /*
  * Get the address of the live pt_regs for the specified task.
