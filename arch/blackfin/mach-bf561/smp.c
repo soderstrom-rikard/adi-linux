@@ -32,11 +32,10 @@ void __init platform_prepare_cpus(unsigned int max_cpus)
 {
 	int len;
 
-	len = &coreb_trampoline_end - &coreb_trampoline_start + 1;
+	len = &coreb_trampoline_end - &coreb_trampoline_start;
 	BUG_ON(len > L1_CODE_LENGTH);
 
-	dma_memcpy((void *)COREB_L1_CODE_START, &coreb_trampoline_start, len);
-
+	bfin_relocate_coreb_l1_mem();
 	/* Both cores ought to be present on a bf561! */
 	cpu_set(0, cpu_present_map); /* CoreA */
 	cpu_set(1, cpu_present_map); /* CoreB */
@@ -106,8 +105,6 @@ int __cpuinit platform_boot_secondary(unsigned int cpu, struct task_struct *idle
 	if (cpu_online(cpu)) {
 		/* release the lock and let coreb run */
 		spin_unlock(&boot_lock);
-
-		bfin_relocate_coreb_l1_mem();
 
 		return 0;
 	} else

@@ -369,8 +369,6 @@ void __cpuinit secondary_start_kernel(void)
 	 */
 	init_exception_vectors();
 
-	bfin_setup_caches(cpu);
-
 	local_irq_disable();
 
 	/* Attach the new idle task to the global mm. */
@@ -389,6 +387,7 @@ void __cpuinit secondary_start_kernel(void)
 
 	local_irq_enable();
 
+	bfin_setup_caches(cpu);
 	/*
 	 * Calibrate loops per jiffy value.
 	 * IRQs need to be enabled here - D-cache can be invalidated
