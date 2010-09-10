@@ -837,7 +837,7 @@ static struct platform_device bfin_atapi_device = {
 #if defined(CONFIG_MTD_NAND_BF5XX) || defined(CONFIG_MTD_NAND_BF5XX_MODULE)
 static struct mtd_partition partition_info[] = {
 	{
-		.name = "bootloader(nor)",
+		.name = "bootloader(nand)",
 		.offset = 0,
 		.size = 0x80000,
 	}, {
