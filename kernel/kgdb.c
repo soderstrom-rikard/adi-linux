@@ -1047,6 +1047,10 @@ static void gdb_cmd_query(struct kgdb_state *ks)
 	}
 }
 
+#ifdef CONFIG_SMP
+static int cont_curr_cpu_thread;
+#endif
+
 /* Handle the 'H' task query packets */
 static int gdb_cmd_task(struct kgdb_state *ks)
 {
@@ -1088,6 +1092,8 @@ static int gdb_cmd_task(struct kgdb_state *ks)
 				break;
 			}
 			kgdb_contthread = thread;
+			if (ks->threadid == shadow_pid(0))
+				cont_curr_cpu_thread = 1;
 		}
 		strcpy(remcom_out_buffer, "OK");
 		break;
@@ -1235,6 +1241,12 @@ static int gdb_serial_stub(struct kgdb_state *ks)
 			*ptr++ = 'T';
 			ptr = pack_hex_byte(ptr, ks->signo);
 			ptr += strlen(strcpy(ptr, "thread:"));
+#ifdef CONFIG_SMP
+			if (cont_curr_cpu_thread) {
+				int_to_threadref(thref, shadow_pid(0));
+				cont_curr_cpu_thread = 0;
+			} else
+#endif
 			int_to_threadref(thref, shadow_pid(current->pid));
 			ptr = pack_threadid(ptr, thref);
 			*ptr++ = ';';
