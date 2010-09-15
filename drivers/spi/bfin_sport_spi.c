@@ -342,7 +342,6 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 	unsigned int bits_per_word;
 	u32 tranf_success = 1;
 	u8 full_duplex = 0;
-	u16 old_baud = 0;
 
 	/* Get current state information */
 	message = drv_data->cur_msg;
@@ -369,12 +368,6 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 		return;
 	}
 
-	if (transfer->speed_hz) {
-		old_baud = chip->baud;
-		chip->baud = hz_to_spi_baud(transfer->speed_hz);
-		drv_data->regs->tclkdiv = chip->baud;
-		SSYNC();
-	}
 	/* Delay if requested at end of transfer */
 	if (message->state == RUNNING_STATE) {
 		dev_dbg(&drv_data->pdev->dev, "transfer: still running ...\n");
@@ -465,10 +458,6 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 			bfin_sport_spi_cs_deactive(chip);
 	}
 
-	if (transfer->speed_hz) {
-		drv_data->regs->tclkdiv = old_baud;
-		SSYNC();
-	}
 	/* Schedule next transfer tasklet */
 	tasklet_schedule(&drv_data->pump_transfers);
 }
