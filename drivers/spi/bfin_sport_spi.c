@@ -342,6 +342,7 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 	unsigned int bits_per_word;
 	u32 tranf_success = 1;
 	u8 full_duplex = 0;
+	u16 old_baud = 0;
 
 	/* Get current state information */
 	message = drv_data->cur_msg;
@@ -349,6 +350,7 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 	chip = drv_data->cur_chip;
 
 	if (transfer->speed_hz) {
+		old_baud = chip->baud;
 		chip->baud = hz_to_spi_baud(transfer->speed_hz);
 		drv_data->regs->tclkdiv = chip->baud;
 		SSYNC();
@@ -463,6 +465,10 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 			bfin_sport_spi_cs_deactive(chip);
 	}
 
+	if (transfer->speed_hz) {
+		drv_data->regs->tclkdiv = old_baud;
+		SSYNC();
+	}
 	/* Schedule next transfer tasklet */
 	tasklet_schedule(&drv_data->pump_transfers);
 }
