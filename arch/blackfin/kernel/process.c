@@ -454,8 +454,22 @@ int _access_ok(unsigned long addr, unsigned long size)
 	if (0)
 #endif
 	{
-		if (in_mem(addr, size, memory_start, memory_end))
-			return 1;
+		/* When init section is released to kernel memory management system,
+		 * it may be merged into the same buddy block if it is adjacent to
+		 * generic allocable memory region. In this case, an address range
+		 * may across the border.
+		 */
+		if (__init_end == memory_start)
+			if (in_mem(addr, size, (unsigned long)__init_begin, (unsigned long)memory_end))
+				return 1;
+		else {
+			if (in_mem(addr, size, memory_start, memory_end))
+				return 1;
+
+			if (in_mem(addr, size, (unsigned long)__init_begin, (unsigned long)__init_end))
+				return 1;
+		}
+
 		if (in_mem(addr, size, memory_mtd_end, physical_mem_end))
 			return 1;
 # ifndef CONFIG_ROMFS_ON_MTD
@@ -465,12 +479,22 @@ int _access_ok(unsigned long addr, unsigned long size)
 			if (in_mem(addr, size, memory_mtd_start, memory_mtd_end))
 				return 1;
 	} else {
-		if (in_mem(addr, size, memory_start, physical_mem_end))
-			return 1;
-	}
+		/* When init section is released to kernel memory management system,
+		 * it may be merged into the same buddy block if it is adjacent to
+		 * generic allocable memory region. In this case, an address range
+		 * may across the border.
+		 */
+		if (__init_end == memory_start)
+			if (in_mem(addr, size, (unsigned long)__init_begin, (unsigned long)physical_mem_end))
+				return 1;
+		else {
+			if (in_mem(addr, size, memory_start, physical_mem_end))
+				return 1;
 
-	if (in_mem(addr, size, (unsigned long)__init_begin, (unsigned long)__init_end))
-		return 1;
+			if (in_mem(addr, size, (unsigned long)__init_begin, (unsigned long)__init_end))
+				return 1;
+		}
+	}
 
 	if (in_mem_const(addr, size, L1_CODE_START, L1_CODE_LENGTH))
 		return 1;
