@@ -215,75 +215,107 @@ static void port_setup(unsigned gpio, unsigned short usage)
 }
 
 #ifdef BF537_FAMILY
-static struct {
-	unsigned short res;
-	unsigned short offset;
-} port_mux_lut[] = {
-	{.res = P_PPI0_D13, .offset = 11},
-	{.res = P_PPI0_D14, .offset = 11},
-	{.res = P_PPI0_D15, .offset = 11},
-	{.res = P_SPORT1_TFS, .offset = 11},
-	{.res = P_SPORT1_TSCLK, .offset = 11},
-	{.res = P_SPORT1_DTPRI, .offset = 11},
-	{.res = P_PPI0_D10, .offset = 10},
-	{.res = P_PPI0_D11, .offset = 10},
-	{.res = P_PPI0_D12, .offset = 10},
-	{.res = P_SPORT1_RSCLK, .offset = 10},
-	{.res = P_SPORT1_RFS, .offset = 10},
-	{.res = P_SPORT1_DRPRI, .offset = 10},
-	{.res = P_PPI0_D8, .offset = 9},
-	{.res = P_PPI0_D9, .offset = 9},
-	{.res = P_SPORT1_DRSEC, .offset = 9},
-	{.res = P_SPORT1_DTSEC, .offset = 9},
-	{.res = P_TMR2, .offset = 8},
-	{.res = P_PPI0_FS3, .offset = 8},
-	{.res = P_TMR3, .offset = 7},
-	{.res = P_SPI0_SSEL4, .offset = 7},
-	{.res = P_TMR4, .offset = 6},
-	{.res = P_SPI0_SSEL5, .offset = 6},
-	{.res = P_TMR5, .offset = 5},
-	{.res = P_SPI0_SSEL6, .offset = 5},
-	{.res = P_UART1_RX, .offset = 4},
-	{.res = P_UART1_TX, .offset = 4},
-	{.res = P_TMR6, .offset = 4},
-	{.res = P_TMR7, .offset = 4},
-	{.res = P_UART0_RX, .offset = 3},
-	{.res = P_UART0_TX, .offset = 3},
-	{.res = P_DMAR0, .offset = 3},
-	{.res = P_DMAR1, .offset = 3},
-	{.res = P_SPORT0_DTSEC, .offset = 1},
-	{.res = P_SPORT0_DRSEC, .offset = 1},
-	{.res = P_CAN0_RX, .offset = 1},
-	{.res = P_CAN0_TX, .offset = 1},
-	{.res = P_SPI0_SSEL7, .offset = 1},
-	{.res = P_SPORT0_TFS, .offset = 0},
-	{.res = P_SPORT0_DTPRI, .offset = 0},
-	{.res = P_SPI0_SSEL2, .offset = 0},
-	{.res = P_SPI0_SSEL3, .offset = 0},
+s8 port_mux[] = {
+	[GPIO_PF0] = 3,
+	[GPIO_PF1] = 3,
+	[GPIO_PF2] = 4,
+	[GPIO_PF3] = 4,
+	[GPIO_PF4] = 5,
+	[GPIO_PF5] = 6,
+	[GPIO_PF6] = 7,
+	[GPIO_PF7] = 8,
+	[GPIO_PF8] = -1,
+	[GPIO_PF9] = -1,
+	[GPIO_PF10] = -1,
+	[GPIO_PF11] = -1,
+	[GPIO_PF12] = -1,
+	[GPIO_PF13] = -1,
+	[GPIO_PF14] = -1,
+	[GPIO_PF15] = -1,
+	[GPIO_PG0] = -1,
+	[GPIO_PG1] = -1,
+	[GPIO_PG2] = -1,
+	[GPIO_PG3] = -1,
+	[GPIO_PG4] = -1,
+	[GPIO_PG5] = -1,
+	[GPIO_PG6] = -1,
+	[GPIO_PG7] = -1,
+	[GPIO_PG8] = 9,
+	[GPIO_PG9] = 9,
+	[GPIO_PG10] = 10,
+	[GPIO_PG11] = 10,
+	[GPIO_PG12] = 10,
+	[GPIO_PG13] = 11,
+	[GPIO_PG14] = 11,
+	[GPIO_PG15] = 11,
+	[GPIO_PH0 ... GPIO_PH15] = -1,
+	[PORT_PJ0] = -1,
+	[PORT_PJ1] = -1,
+	[PORT_PJ2] = -1,
+	[PORT_PJ3] = -1,
+	[PORT_PJ4] = 1,
+	[PORT_PJ5] = 1,
+	[PORT_PJ6] = -1,
+	[PORT_PJ7] = -1,
+	[PORT_PJ8] = -1,
+	[PORT_PJ9] = -1,
+	[PORT_PJ10] = 0,
+	[PORT_PJ11] = 0,
 };
+
+int portmuxgroup_check(unsigned short per)
+{
+	u16 m, ident, pfunc;
+	s8 offset;
+	u16 function = P_FUNCT2MUX(per);
+	offset = port_mux[P_IDENT(per)];
+	ident = P_IDENT(per);
+	for (m = 0; m < ARRAY_SIZE(port_mux); m++) {
+		if (m == ident)
+			continue;
+		if (port_mux[m] == offset) {
+			if (is_reserved(peri, m, 1)) {
+				pfunc =  bfin_read_PORT_MUX();
+				if (offset == 1)
+					pfunc = (pfunc >> offset) & 3;
+				else
+					pfunc = (pfunc >> offset) & 1;
+				if (pfunc != function) {
+					printk(KERN_ERR "pin grounp conflict!"
+						"request pin %d func %d"
+						"conflict with pin %d func %d\n"
+						, ident, function,
+						m, pfunc);
+					return -EINVAL;
+				}
+			}
+		}
+	}
+	return 0;
+}
 
 static void portmux_setup(unsigned short per)
 {
-	u16 y, offset, muxreg;
+	u16 ident, muxreg, reg;
+	s8 offset;
 	u16 function = P_FUNCT2MUX(per);
 
-	for (y = 0; y < ARRAY_SIZE(port_mux_lut); y++) {
-		if (port_mux_lut[y].res == per) {
+	/* SET PORTMUX REG */
+	ident = P_IDENT(per);
+	offset = port_mux[ident];
+	if (offset == -1)
+		return;
+	reg = muxreg = bfin_read_PORT_MUX();
 
-			/* SET PORTMUX REG */
+	if (offset != 1)
+		muxreg &= ~(1 << offset);
+	else
+		muxreg &= ~(3 << 1);
 
-			offset = port_mux_lut[y].offset;
-			muxreg = bfin_read_PORT_MUX();
-
-			if (offset != 1)
-				muxreg &= ~(1 << offset);
-			else
-				muxreg &= ~(3 << 1);
-
-			muxreg |= (function << offset);
-			bfin_write_PORT_MUX(muxreg);
-		}
-	}
+	muxreg |= (function << offset);
+	if (muxreg == reg)
+		return;
+	bfin_write_PORT_MUX(muxreg);
 }
 #elif defined(CONFIG_BF54x)
 inline void portmux_setup(unsigned short per)
@@ -310,12 +342,41 @@ inline u16 get_portmux(unsigned short per)
 	return (pmux >> (2 * gpio_sub_n(ident)) & 0x3);
 }
 #elif defined(CONFIG_BF52x) || defined(CONFIG_BF51x)
+int portmuxgroup_check(unsigned short per)
+{
+	u16 pin, pfunc;
+	u16 ident = P_IDENT(per), function = P_FUNCT2MUX(per);
+	u8 offset = pmux_offset[gpio_bank(ident)][gpio_sub_n(ident)];
+	for (pin = 0; pin < 16; pin++) {
+		if (offset == pmux_offset[gpio_bank(ident)][pin]) {
+			if ((gpio_bank(ident)*16 + pin) == ident)
+				continue;
+			if (is_reserved(peri, gpio_bank(ident)*16 + pin, 1)) {
+				pfunc = *port_mux[gpio_bank(ident)];
+				pfunc = (pfunc >> offset) & 3;
+				if (pfunc != function) {
+					printk(KERN_ERR "pin grounp conflict!"
+						"request pin %d func %d"
+						"conflict with pin %d func %d\n"
+						, ident, function,
+						gpio_bank(ident)*16 + pin,
+						pfunc);
+					return -EINVAL;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
 inline void portmux_setup(unsigned short per)
 {
 	u16 pmux, ident = P_IDENT(per), function = P_FUNCT2MUX(per);
 	u8 offset = pmux_offset[gpio_bank(ident)][gpio_sub_n(ident)];
 
 	pmux = *port_mux[gpio_bank(ident)];
+	if  (((pmux >> offset) & 3) == function)
+		return;
 	pmux &= ~(3 << offset);
 	pmux |= (function & 3) << offset;
 	*port_mux[gpio_bank(ident)] = pmux;
@@ -735,6 +796,12 @@ int peripheral_request(unsigned short per, const char *label)
 		}
 	}
 
+#if defined(CONFIG_BF52x) || defined(CONFIG_BF51x) || defined(BF537_FAMILY)
+	if (unlikely(portmuxgroup_check(per))) {
+		local_irq_restore_hw(flags);
+		return -EBUSY;
+	}
+#endif
  anyway:
 	reserve(peri, ident);
 
