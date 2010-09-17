@@ -215,7 +215,7 @@ static void port_setup(unsigned gpio, unsigned short usage)
 }
 
 #ifdef BF537_FAMILY
-s8 port_mux[] = {
+static const s8 port_mux[] = {
 	[GPIO_PF0] = 3,
 	[GPIO_PF1] = 3,
 	[GPIO_PF2] = 4,
@@ -263,28 +263,26 @@ s8 port_mux[] = {
 	[PORT_PJ11] = 0,
 };
 
-int portmuxgroup_check(unsigned short per)
+static int portmuxgroup_check(unsigned short per)
 {
 	u16 m, ident, pfunc;
 	s8 offset;
 	u16 function = P_FUNCT2MUX(per);
 	offset = port_mux[P_IDENT(per)];
 	ident = P_IDENT(per);
+	pfunc = bfin_read_PORT_MUX();
 	for (m = 0; m < ARRAY_SIZE(port_mux); m++) {
 		if (m == ident)
 			continue;
 		if (port_mux[m] == offset) {
 			if (is_reserved(peri, m, 1)) {
-				pfunc =  bfin_read_PORT_MUX();
 				if (offset == 1)
 					pfunc = (pfunc >> offset) & 3;
 				else
 					pfunc = (pfunc >> offset) & 1;
 				if (pfunc != function) {
-					printk(KERN_ERR "pin grounp conflict!"
-						"request pin %d func %d"
-						"conflict with pin %d func %d\n"
-						, ident, function,
+					pr_err(KERN_ERR "pin grounp conflict! request pin %d func %d conflict with pin %d func %d\n",
+						ident, function,
 						m, pfunc);
 					return -EINVAL;
 				}
@@ -342,24 +340,23 @@ inline u16 get_portmux(unsigned short per)
 	return (pmux >> (2 * gpio_sub_n(ident)) & 0x3);
 }
 #elif defined(CONFIG_BF52x) || defined(CONFIG_BF51x)
-int portmuxgroup_check(unsigned short per)
+static int portmuxgroup_check(unsigned short per)
 {
-	u16 pin, pfunc;
+	u16 pin, gpiopin, pfunc;
 	u16 ident = P_IDENT(per), function = P_FUNCT2MUX(per);
 	u8 offset = pmux_offset[gpio_bank(ident)][gpio_sub_n(ident)];
-	for (pin = 0; pin < 16; pin++) {
+	for (pin = 0; pin < GPIO_BANKSIZE; pin++) {
 		if (offset == pmux_offset[gpio_bank(ident)][pin]) {
-			if ((gpio_bank(ident)*16 + pin) == ident)
+			gpiopin = gpio_bank(ident) * GPIO_BANKSIZE + pin;
+			if (gpiopin == ident)
 				continue;
-			if (is_reserved(peri, gpio_bank(ident)*16 + pin, 1)) {
+			if (is_reserved(peri, gpiopin, 1)) {
 				pfunc = *port_mux[gpio_bank(ident)];
 				pfunc = (pfunc >> offset) & 3;
 				if (pfunc != function) {
-					printk(KERN_ERR "pin grounp conflict!"
-						"request pin %d func %d"
-						"conflict with pin %d func %d\n"
-						, ident, function,
-						gpio_bank(ident)*16 + pin,
+					pr_err(KERN_ERR "pin grounp conflict! request pin %d func %d conflict with pin %d func %d\n",
+						ident, function,
+						gpiopin,
 						pfunc);
 					return -EINVAL;
 				}
@@ -384,6 +381,7 @@ inline void portmux_setup(unsigned short per)
 }
 #else
 # define portmux_setup(...)  do { } while (0)
+# define portmuxgroup_check(...)  do { } while (0)
 #endif
 
 #ifndef CONFIG_BF54x
@@ -796,12 +794,10 @@ int peripheral_request(unsigned short per, const char *label)
 		}
 	}
 
-#if defined(CONFIG_BF52x) || defined(CONFIG_BF51x) || defined(BF537_FAMILY)
 	if (unlikely(portmuxgroup_check(per))) {
 		local_irq_restore_hw(flags);
 		return -EBUSY;
 	}
-#endif
  anyway:
 	reserve(peri, ident);
 
