@@ -1092,8 +1092,10 @@ static int gdb_cmd_task(struct kgdb_state *ks)
 				break;
 			}
 			kgdb_contthread = thread;
+#ifdef CONFIG_SMP
 			if (ks->threadid == shadow_pid(0))
 				cont_curr_cpu_thread = 1;
+#endif
 		}
 		strcpy(remcom_out_buffer, "OK");
 		break;
