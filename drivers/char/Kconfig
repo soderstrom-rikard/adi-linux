@@ -34,6 +34,14 @@ config BFIN_SIMPLE_TIMER
 	  provides an interface to the above Blackfin General Purpose timers
 	  hardware.  See drivers/char/bfin_simple_timer.c for details.
 
+config BFIN_LATENCYTEST
+	tristate "Blackfin preempt latency test char device interface"
+	select BFIN_GPTIMERS
+	default n
+	help
+	  If you say Y here, you will get the latency test char-device driver
+	  that provides an interface for preempt kernel latency test.
+
 config BFIN_SPI_ADC
 	tristate "Blackfin ADSP SPI ADC support"
 	depends on BLACKFIN
