@@ -339,6 +339,10 @@ inline u16 get_portmux(unsigned short per)
 
 	return (pmux >> (2 * gpio_sub_n(ident)) & 0x3);
 }
+static int portmuxgroup_check(unsigned short per)
+{
+	return 0;
+}
 #elif defined(CONFIG_BF52x) || defined(CONFIG_BF51x)
 static int portmuxgroup_check(unsigned short per)
 {
@@ -381,7 +385,10 @@ inline void portmux_setup(unsigned short per)
 }
 #else
 # define portmux_setup(...)  do { } while (0)
-# define portmuxgroup_check(...)  do { } while (0)
+static int portmuxgroup_check(unsigned short per)
+{
+	return 0;
+}
 #endif
 
 #ifndef CONFIG_BF54x
