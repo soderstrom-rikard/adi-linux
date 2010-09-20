@@ -281,7 +281,7 @@ static int portmuxgroup_check(unsigned short per)
 				else
 					pfunc = (pfunc >> offset) & 1;
 				if (pfunc != function) {
-					pr_err(KERN_ERR "pin grounp conflict! request pin %d func %d conflict with pin %d func %d\n",
+					pr_err("pin grounp conflict! request pin %d func %d conflict with pin %d func %d\n",
 						ident, function,
 						m, pfunc);
 					return -EINVAL;
@@ -358,7 +358,7 @@ static int portmuxgroup_check(unsigned short per)
 				pfunc = *port_mux[gpio_bank(ident)];
 				pfunc = (pfunc >> offset) & 3;
 				if (pfunc != function) {
-					pr_err(KERN_ERR "pin grounp conflict! request pin %d func %d conflict with pin %d func %d\n",
+					pr_err("pin grounp conflict! request pin %d func %d conflict with pin %d func %d\n",
 						ident, function,
 						gpiopin,
 						pfunc);
