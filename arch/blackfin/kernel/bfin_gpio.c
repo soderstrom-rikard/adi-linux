@@ -263,7 +263,7 @@ static const s8 port_mux[] = {
 	[PORT_PJ11] = 0,
 };
 
-static int portmuxgroup_check(unsigned short per)
+static int portmux_group_check(unsigned short per)
 {
 	u16 m, ident, pfunc;
 	s8 offset;
@@ -281,9 +281,8 @@ static int portmuxgroup_check(unsigned short per)
 				else
 					pfunc = (pfunc >> offset) & 1;
 				if (pfunc != function) {
-					pr_err("pin grounp conflict! request pin %d func %d conflict with pin %d func %d\n",
-						ident, function,
-						m, pfunc);
+					pr_err("pin group conflict! request pin %d func %d conflict with pin %d func %d\n",
+						ident, function, m, pfunc);
 					return -EINVAL;
 				}
 			}
@@ -339,12 +338,12 @@ inline u16 get_portmux(unsigned short per)
 
 	return (pmux >> (2 * gpio_sub_n(ident)) & 0x3);
 }
-static int portmuxgroup_check(unsigned short per)
+static int portmux_group_check(unsigned short per)
 {
 	return 0;
 }
 #elif defined(CONFIG_BF52x) || defined(CONFIG_BF51x)
-static int portmuxgroup_check(unsigned short per)
+static int portmux_group_check(unsigned short per)
 {
 	u16 pin, gpiopin, pfunc;
 	u16 ident = P_IDENT(per), function = P_FUNCT2MUX(per);
@@ -358,10 +357,8 @@ static int portmuxgroup_check(unsigned short per)
 				pfunc = *port_mux[gpio_bank(ident)];
 				pfunc = (pfunc >> offset) & 3;
 				if (pfunc != function) {
-					pr_err("pin grounp conflict! request pin %d func %d conflict with pin %d func %d\n",
-						ident, function,
-						gpiopin,
-						pfunc);
+					pr_err("pin group conflict! request pin %d func %d conflict with pin %d func %d\n",
+						ident, function, gpiopin, pfunc);
 					return -EINVAL;
 				}
 			}
@@ -385,7 +382,7 @@ inline void portmux_setup(unsigned short per)
 }
 #else
 # define portmux_setup(...)  do { } while (0)
-static int portmuxgroup_check(unsigned short per)
+static int portmux_group_check(unsigned short per)
 {
 	return 0;
 }
@@ -801,7 +798,7 @@ int peripheral_request(unsigned short per, const char *label)
 		}
 	}
 
-	if (unlikely(portmuxgroup_check(per))) {
+	if (unlikely(portmux_group_check(per))) {
 		local_irq_restore_hw(flags);
 		return -EBUSY;
 	}
