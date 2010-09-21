@@ -134,7 +134,7 @@ static void __init free_init_pages(const char *what, unsigned long begin, unsign
 {
 	unsigned long addr;
 	/* next to check that the page we free is not a partial page */
-	for (addr = begin; addr + PAGE_SIZE < end; addr += PAGE_SIZE) {
+	for (addr = begin; addr + PAGE_SIZE <= end; addr += PAGE_SIZE) {
 		ClearPageReserved(virt_to_page(addr));
 		init_page_count(virt_to_page(addr));
 		free_page(addr);
