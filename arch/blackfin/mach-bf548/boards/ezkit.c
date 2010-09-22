@@ -843,7 +843,7 @@ static struct mtd_partition partition_info[] = {
 		.size = 0x80000,
 	}, {
 		.name = "linux kernel(nand)",
-		.offset = 0,
+		.offset = MTDPART_OFS_APPEND,
 		.size = 4 * 1024 * 1024,
 	},
 	{
