@@ -269,6 +269,8 @@ static int portmux_group_check(unsigned short per)
 	s8 offset;
 	u16 function = P_FUNCT2MUX(per);
 	offset = port_mux[P_IDENT(per)];
+	if (offset < 0)
+		return 0;
 	ident = P_IDENT(per);
 	pfunc = bfin_read_PORT_MUX();
 	for (m = 0; m < ARRAY_SIZE(port_mux); m++) {
