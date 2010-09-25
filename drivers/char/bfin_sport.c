@@ -47,6 +47,10 @@ struct sport_dev {
 
 	int err_irq;
 
+	int sport_mode;
+	int sport_clkdiv;
+	int irq_notfreed;
+
 	struct mutex mutex;
 	unsigned int open_count;
 
@@ -128,6 +132,22 @@ static int sport_set_multichannel(volatile struct sport_register *regs,
 	return 0;
 }
 
+static u16 hz_to_sport_clkdiv(u32 speed_hz)
+{
+	u_long clk, sclk = get_sclk();
+	int div = (sclk / (2 * speed_hz)) - 1;
+
+	if (div < 0)
+		div = 0;
+
+	clk = sclk / (2 * (div + 1));
+
+	if (clk > speed_hz)
+		div++;
+
+	return div;
+}
+
 static int sport_configure(struct sport_dev *dev, struct sport_config *config)
 {
 	unsigned int tcr1, tcr2, rcr1, rcr2;
@@ -175,6 +195,12 @@ static int sport_configure(struct sport_dev *dev, struct sport_config *config)
 
 		rcr1 |= (RCKFE | RFSR);
 		rcr2 |= RSFSE;
+	} else if (config->mode == NDSO_MODE) {
+		dev->sport_mode = NDSO_MODE;
+		rcr1 = RFSR | LARFS | LRFS;
+		tcr1 = ITCLK | ITFS | TFSR | LATFS | LTFS;
+		clkdiv = dev->sport_clkdiv;
+		fsdiv = config->word_len - 1;
 	} else {
 		tcr1 |= (config->lsb_first << 4) | (config->fsync << 10) |
 		      (config->data_indep << 11) | (config->act_low << 12) |
@@ -296,6 +322,34 @@ static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static void sport_ndso_rx_read(struct sport_dev *dev)
+{
+	struct sport_config *cfg = &dev->config;
+
+	dev->regs->tcr1 |= TSPEN;
+	dev->regs->rcr1 |= RSPEN;
+	if (cfg->word_len <= 8)
+		while (dev->rx_received < dev->rx_len) {
+			dev->regs->tx16 = 0x00;
+			while (!(dev->regs->stat & RXNE))
+				cpu_relax();
+			u8 *buf = (void *)dev->rx_buf + dev->rx_received;
+			*buf = dev->regs->rx16;
+			dev->rx_received += 1;
+		}
+	else if (cfg->word_len <= 16)
+		while (dev->rx_received < dev->rx_len) {
+			dev->regs->tx16 = 0x0000;
+			while (!(dev->regs->stat & RXNE))
+				cpu_relax();
+			u16 *buf = (void *)dev->rx_buf + dev->rx_received;
+			*buf = dev->regs->rx16;
+			dev->rx_received += 2;
+		}
+	dev->regs->tcr1 &= ~TSPEN;
+	dev->regs->rcr1 &= ~RSPEN;
+}
+
 static inline void sport_rx_read(struct sport_dev *dev)
 {
 	struct sport_config *cfg = &dev->config;
@@ -337,6 +391,37 @@ static irqreturn_t sport_rx_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static void sport_ndso_tx_write(struct sport_dev *dev)
+{
+	struct sport_config *cfg = &dev->config;
+	int i, dummy;
+
+	dev->regs->tcr1 |= TSPEN;
+	dev->regs->rcr1 |= RSPEN;
+	if (cfg->word_len <= 8)
+		while (dev->tx_sent < dev->tx_len) {
+			u8 *buf = (void *)dev->tx_buf + dev->tx_sent;
+			dev->regs->tx16 = *buf;
+			dev->tx_sent += 1;
+			while (!(dev->regs->stat & RXNE))
+				cpu_relax();
+			dummy = dev->regs->rx16;
+		}
+	else if (cfg->word_len <= 16) {
+		while (dev->tx_sent < dev->tx_len) {
+			u16 *buf = (void *)dev->tx_buf + dev->tx_sent;
+			dev->regs->tx16 = *buf;
+			dev->tx_sent += 2;
+			while (!(dev->regs->stat & RXNE))
+				cpu_relax();
+			dummy = dev->regs->rx16;
+		}
+		dev->tx_sent = 0;
+	}
+	dev->regs->tcr1 &= ~TSPEN;
+	dev->regs->rcr1 &= ~RSPEN;
+}
+
 static inline void sport_tx_write(struct sport_dev *dev)
 {
 	struct sport_config *cfg = &dev->config;
@@ -368,8 +453,10 @@ static irqreturn_t sport_tx_handler(int irq, void *dev_id)
 {
 	struct sport_dev *dev = dev_id;
 
-	if (dev->tx_sent < dev->tx_len)
-		sport_tx_write(dev);
+	if (dev->sport_mode != NDSO_MODE) {
+		if (dev->tx_sent < dev->tx_len)
+			sport_tx_write(dev);
+	}
 
 	if (dev->tx_len != 0 && dev->tx_sent >= dev->tx_len
 	    && dev->config.int_clk) {
@@ -487,6 +574,8 @@ static int sport_open(struct inode *inode, struct file *filp)
 		goto fail3;
 	}
 
+	dev->sport_clkdiv = 0x24;
+	dev->irq_notfreed = 1;
  done:
 	mutex_unlock(&dev->mutex);
 	return 0;
@@ -525,8 +614,11 @@ static int sport_release(struct inode *inode, struct file *filp)
 		free_dma(dev->dma_rx_chan);
 		free_dma(dev->dma_tx_chan);
 	} else {
-		free_irq(dev->tx_irq, dev);
-		free_irq(dev->rx_irq, dev);
+		if (dev->irq_notfreed) {
+			free_irq(dev->tx_irq, dev);
+			free_irq(dev->rx_irq, dev);
+			dev->irq_notfreed = 0;
+		}
 	}
 	free_irq(dev->err_irq, dev);
 
@@ -585,6 +677,16 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 		dev->rx_received = 0;
 	}
 
+	if (dev->sport_mode == NDSO_MODE) {
+		if (dev->irq_notfreed) {
+			free_irq(dev->tx_irq, dev);
+			free_irq(dev->rx_irq, dev);
+			dev->irq_notfreed = 0;
+		}
+		sport_ndso_rx_read(dev);
+		goto out;
+	}
+
 	dev->regs->rcr1 |= RSPEN;
 	SSYNC();
 
@@ -593,7 +695,7 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 		count = -ERESTARTSYS;
 		/* fall through */
 	}
-
+out:
 	pr_debug("Complete called in dma rx irq handler\n");
 	mutex_unlock(&dev->mutex);
 
@@ -647,9 +749,18 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 		dev->tx_buf = buf;
 		dev->tx_len = count;
 		dev->tx_sent = 0;
-
+		if (dev->sport_mode == NDSO_MODE) {
+			if (dev->irq_notfreed) {
+				free_irq(dev->tx_irq, dev);
+				free_irq(dev->rx_irq, dev);
+				dev->irq_notfreed = 0;
+			}
+			sport_ndso_tx_write(dev);
+			goto out;
+		}
 		sport_tx_write(dev);
 	}
+
 	dev->regs->tcr1 |= TSPEN;
 	SSYNC();
 
@@ -660,7 +771,7 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 		/* fall through */
 	}
 	pr_debug("waiting over\n");
-
+out:
 	mutex_unlock(&dev->mutex);
 
 	return count;
@@ -671,6 +782,7 @@ static int sport_ioctl(struct inode *inode, struct file *filp,
 {
 	struct sport_dev *dev = filp->private_data;
 	struct sport_config config;
+	unsigned long value;
 
 	pr_debug("%s: enter, arg:0x%lx\n", __func__, arg);
 	switch (cmd) {
@@ -679,6 +791,17 @@ static int sport_ioctl(struct inode *inode, struct file *filp,
 			return -EFAULT;
 		if (sport_configure(dev, &config) < 0)
 			return -EFAULT;
+		break;
+
+	case SPORT_IOC_GET_SYSTEMCLOCK:
+		value = get_sclk();
+		copy_to_user((unsigned long *)arg, &value, sizeof(unsigned long));
+		break;
+
+	case SPORT_IOC_SET_BAUDRATE:
+		if (arg > (133000000 / 4))
+			return -EINVAL;
+		dev->sport_clkdiv = hz_to_sport_clkdiv(arg);
 		break;
 
 	default:
