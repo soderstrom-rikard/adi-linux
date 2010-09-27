@@ -30,6 +30,7 @@ static struct snd_soc_codec *ssm2604_codec;
 /* codec private data */
 struct ssm2604_priv {
 	unsigned int sysclk;
+	u16 pwr_state;
 	struct snd_pcm_substream *master_substream;
 	struct snd_pcm_substream *slave_substream;
 	struct snd_soc_codec codec;
@@ -438,7 +439,9 @@ static int ssm2604_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
+	struct ssm2602_priv *ssm2602 = codec->private_data;
 
+	ssm2602->pwr_state = snd_soc_read(codec, SSM2602_PWR);
 	ssm2604_set_bias_level(codec, SND_SOC_BIAS_OFF);
 	return 0;
 }
@@ -447,6 +450,7 @@ static int ssm2604_resume(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
+	struct ssm2602_priv *ssm2602 = codec->private_data;
 	int i;
 	u8 data[2];
 	u16 *cache = codec->reg_cache;
@@ -459,6 +463,7 @@ static int ssm2604_resume(struct platform_device *pdev)
 	}
 	ssm2604_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 	ssm2604_set_bias_level(codec, codec->suspend_bias_level);
+	snd_soc_write(codec, SSM2602_PWR, ssm2602->pwr_state);
 	return 0;
 }
 
