@@ -8,6 +8,9 @@
  * Modified:
  *               Copyright 2008 Analog Devices Inc.
  *
+ * Modified:
+ *		 Copyright 2010 Nanakos Chrysostomos <nanakos@wired-net.gr>
+ *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
  * This program is free software; you can redistribute it and/or modify
@@ -49,6 +52,18 @@
 #include "bf5xx-i2s-pcm.h"
 #include "bf5xx-i2s.h"
 
+/*
+ * Defaults for amixer-settable parameters, adds to fixed values in
+ * snd_ad73311_configure
+ * TODO: later not as global variable
+ */
+struct ad73311_ctrls ad73311 = {
+	.ogain  = 2,
+	.igain  = 2,
+	.rfseen = 1,
+	.srate  = 0,
+};
+
 #if CONFIG_SND_BF5XX_SPORT_NUM == 0
 #define bfin_write_SPORT_TCR1	bfin_write_SPORT0_TCR1
 #define bfin_read_SPORT_TCR1	bfin_read_SPORT0_TCR1
@@ -64,8 +79,16 @@
 #endif
 
 #define GPIO_SE CONFIG_SND_BFIN_AD73311_SE
+#define GPIO_RESET CONFIG_SND_BFIN_AD73311_RESET
 
 static struct snd_soc_card bf5xx_ad73311;
+
+static int snd_ad73311_reset(void)
+{
+	gpio_set_value(GPIO_RESET, 0);
+	udelay(100);
+	gpio_set_value(GPIO_RESET, 1);
+}
 
 static int snd_ad73311_startup(void)
 {
@@ -73,6 +96,7 @@ static int snd_ad73311_startup(void)
 
 	/* Pull up SE pin on AD73311L */
 	gpio_set_value(GPIO_SE, 1);
+	udelay(1);
 	return 0;
 }
 
@@ -84,16 +108,17 @@ static int snd_ad73311_configure(void)
 #if CONFIG_SND_AD7XXXX_SELECT == 0
 	/* DMCLK = MCLK = 16.384 MHz
 	 * SCLK = DMCLK/8 = 2.048 MHz
-	 * Sample Rate = DMCLK/2048  = 8 KHz
+	 * Sample Rate = DMCLK/2048  = 8 KHz  (DIRATE)
 	 */
 	ctrl_regs[0] = AD_CONTROL | AD_WRITE | CTRL_REG_B | REGB_MCDIV(0) | \
-			REGB_SCDIV(0) | REGB_DIRATE(0);
+			REGB_SCDIV(0) | REGB_DIRATE(ad73311.srate);
 	ctrl_regs[1] = AD_CONTROL | AD_WRITE | CTRL_REG_C | REGC_PUDEV | \
 			REGC_PUADC | REGC_PUDAC | REGC_PUREF | REGC_REFUSE ;
-	ctrl_regs[2] = AD_CONTROL | AD_WRITE | CTRL_REG_D | REGD_OGS(2) | \
-			REGD_IGS(2);
+	ctrl_regs[2] = AD_CONTROL | AD_WRITE | CTRL_REG_D | \
+			REGD_OGS(ad73311.ogain) | REGD_IGS(ad73311.igain);
 	ctrl_regs[3] = AD_CONTROL | AD_WRITE | CTRL_REG_E | REGE_DA(0x1f);
-	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F | REGF_SEEN ;
+	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F |
+			(ad73311.rfseen ? REGF_SEEN : 0);
 	ctrl_regs[5] = AD_CONTROL | AD_WRITE | CTRL_REG_A | REGA_MODE_DATA;
 #elif CONFIG_SND_AD7XXXX_SELECT == 1
 	/* MCLK = MCLK = 12.288 MHz
@@ -113,8 +138,8 @@ static int snd_ad73311_configure(void)
 	ctrl_regs[6] = AD_WRITE | CTRL_REG_G;
 #endif
 	local_irq_disable();
+	snd_ad73311_reset();
 	snd_ad73311_startup();
-	udelay(1);
 
 	bfin_write_SPORT_TCR1(TFSR);
 	bfin_write_SPORT_TCR2(0xF);
@@ -146,6 +171,11 @@ static int snd_ad73311_configure(void)
 	return 0;
 }
 
+int ad73311_reg_config(void)
+{
+	return snd_ad73311_configure();
+}
+
 static int bf5xx_probe(struct platform_device *pdev)
 {
 	int err;
@@ -154,7 +184,15 @@ static int bf5xx_probe(struct platform_device *pdev)
 		return -EBUSY;
 	}
 
+	if (GPIO_SE != GPIO_RESET)
+		if (gpio_request(GPIO_RESET, "AD73311_RESET")) {
+			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __func__, GPIO_RESET);
+			gpio_free(GPIO_SE);
+			return -EBUSY;
+		}
+
 	gpio_direction_output(GPIO_SE, 0);
+	gpio_direction_output(GPIO_RESET, 0);
 
 	err = snd_ad73311_configure();
 	if (err < 0)
@@ -239,7 +277,7 @@ module_init(bf5xx_ad73311_init);
 module_exit(bf5xx_ad73311_exit);
 
 /* Module information */
-MODULE_AUTHOR("Cliff Cai");
+MODULE_AUTHOR("Cliff Cai,Nanakos Chrysostomos");
 MODULE_DESCRIPTION("ALSA SoC AD73311 Blackfin");
 MODULE_LICENSE("GPL");
 

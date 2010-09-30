@@ -33,6 +33,14 @@ config SND_BFIN_AD73311_SE
 	  Enter the GPIO used to control AD73311's SE pin. Acceptable
 	  values are 0 to 7
 
+config SND_BFIN_AD73311_RESET
+	int "RESET pin for AD73311L Chip Select"
+	depends on SND_BF5XX_SOC_AD73311
+	default 4
+	help
+	  Enter the GPIO used to control AD73311's RESET pin. Acceptable
+	  values are 0 to 7
+
 config SND_AD7XXXX_SELECT
 	int "Select AD73311 or AD74111"
 	depends on SND_SOC_AD73311

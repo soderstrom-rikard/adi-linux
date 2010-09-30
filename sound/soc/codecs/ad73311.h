@@ -33,6 +33,13 @@
 
 #if CONFIG_SND_AD7XXXX_SELECT == 0
 
+struct ad73311_ctrls {
+	unsigned int ogain:3;
+	unsigned int igain:3;
+	unsigned int rfseen:1;
+	unsigned int srate:2;
+};
+
 #define AD_CONTROL	0x8000
 #define AD_DATA		0x0000
 #define AD_READ		0x4000
@@ -143,4 +150,8 @@
 
 extern struct snd_soc_dai ad73311_dai;
 extern struct snd_soc_codec_device soc_codec_dev_ad73311;
+extern struct ad73311_ctrls ad73311;
+EXPORT_SYMBOL(ad73311);
+extern int ad73311_reg_config(void);
+EXPORT_SYMBOL(ad73311_reg_config);
 #endif

@@ -4,6 +4,8 @@
  * Copyright:	Analog Device Inc.
  * Author:	Cliff Cai <cliff.cai@analog.com>
  *
+ * Modified:    Copyright 2010 Nanakos Chrysostomos <nanakos@wired-net.gr>
+ *
  *  This program is free software; you can redistribute  it and/or modify it
  *  under  the terms of  the GNU General  Public License as published by the
  *  Free Software Foundation;  either version 2 of the  License, or (at your
@@ -17,9 +19,9 @@
 #include <linux/device.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
-#include <sound/ac97_codec.h>
 #include <sound/initval.h>
 #include <sound/soc.h>
+#include "ad73311.h"
 
 #if CONFIG_SND_AD7XXXX_SELECT == 0
 #define DRV_NAME "AD73311"
@@ -27,7 +29,104 @@
 #define DRV_NAME "AD74111"
 #endif
 
-#include "ad73311.h"
+#define AD73311_RATES (SNDRV_PCM_RATE_8000  | \
+					SNDRV_PCM_RATE_16000 | \
+					SNDRV_PCM_RATE_32000 | \
+					SNDRV_PCM_RATE_64000)
+
+static int ad73311_ogain_put(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *uvalue)
+{
+	if (ad73311.ogain != (7 - uvalue->value.integer.value[0])) {
+		ad73311.ogain = 7 - uvalue->value.integer.value[0];
+		return ad73311_reg_config();
+	}
+	return 0;
+}
+
+static int ad73311_ogain_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *uvalue)
+{
+	uvalue->value.integer.value[0] =  7 - ad73311.ogain;
+	return 0;
+}
+
+static int ad73311_igain_put(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *uvalue)
+{
+	if (ad73311.igain != uvalue->value.integer.value[0]) {
+		ad73311.igain =  uvalue->value.integer.value[0];
+		return ad73311_reg_config();
+	}
+	return 0;
+}
+
+static int ad73311_igain_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *uvalue)
+{
+	uvalue->value.integer.value[0] = ad73311.igain;
+	return 0;
+}
+
+static int ad73311_rfseen_put(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *uvalue)
+{
+	if (ad73311.rfseen != uvalue->value.integer.value[0]) {
+		ad73311.rfseen = uvalue->value.integer.value[0];
+		return ad73311_reg_config();
+	}
+	return 0;
+
+}
+
+static int ad73311_rfseen_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *uvalue)
+{
+	uvalue->value.integer.value[0] = ad73311.rfseen;
+	return 0;
+}
+
+static int ad73311_srate_put(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *uvalue)
+{
+	int tmpvar = 0;
+	if (ad73311.srate != uvalue->value.integer.value[0]) {
+		ad73311.srate = uvalue->value.integer.value[0];
+		switch (ad73311.srate) {
+		case 0:
+			tmpvar = SNDRV_PCM_RATE_8000;
+			break;
+		case 1:
+			tmpvar = SNDRV_PCM_RATE_16000;
+			break;
+		case 2:
+			tmpvar = SNDRV_PCM_RATE_32000;
+			break;
+		case 3:
+			tmpvar = SNDRV_PCM_RATE_64000;
+			break;
+		}
+		ad73311_dai.playback.rates = tmpvar;
+		ad73311_dai.capture.rates = tmpvar;
+		return ad73311_reg_config();
+	}
+	return 0;
+
+}
+
+static int ad73311_srate_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *uvalue)
+{
+	uvalue->value.integer.value[0] = ad73311.srate;
+	return 0;
+}
+
+static const struct snd_kcontrol_new ad73311_snd_controls[] = {
+	SOC_SINGLE_EXT("IGAIN", 0, 1, 7, 0, ad73311_igain_get, ad73311_igain_put),
+	SOC_SINGLE_EXT("OGAIN", 0, 1, 7, 0, ad73311_ogain_get, ad73311_ogain_put),
+	SOC_SINGLE_BOOL_EXT("SEEN", 0, ad73311_rfseen_get, ad73311_rfseen_put),
+	SOC_SINGLE_EXT("SRATE", 0, 1, 3, 0, ad73311_srate_get, ad73311_srate_put),
+};
 
 struct snd_soc_dai ad73311_dai = {
 	.name = DRV_NAME,
@@ -71,6 +170,10 @@ static int ad73311_soc_probe(struct platform_device *pdev)
 		printk(KERN_ERR "%s: failed to create pcms\n", DRV_NAME);
 		goto pcm_err;
 	}
+	if (CONFIG_SND_AD7XXXX_SELECT == 0)
+		/* Register alsa controls */
+		snd_soc_add_controls(codec, ad73311_snd_controls,
+					ARRAY_SIZE(ad73311_snd_controls));
 
 	return ret;
 
@@ -111,5 +214,5 @@ static void __exit ad73311_exit(void)
 module_exit(ad73311_exit);
 
 MODULE_DESCRIPTION("ASoC ad73311/ad74111 driver");
-MODULE_AUTHOR("Cliff Cai ");
+MODULE_AUTHOR("Cliff Cai, Nanakos Chrysostomos ");
 MODULE_LICENSE("GPL");
