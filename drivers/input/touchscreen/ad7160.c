@@ -378,9 +378,6 @@ static void ad7160_setup(struct ad7160 *ts)
 			(ts->pdata->sensor_y_res << 12) |
 			ts->pdata->sensor_x_res);
 
-	/* Reset demo control/status register */
-	ad7160_write(ts, AD7160_REG_DEMO_CTRL_STAT, AD7160_SW_IIR_FILTER_EN);
-
 	/* Position window update control register */
 	ad7160_write(ts, AD7160_REG_POSITION_WINDOW_CTRL,
 		(ts->pdata->move_window << 8) |
