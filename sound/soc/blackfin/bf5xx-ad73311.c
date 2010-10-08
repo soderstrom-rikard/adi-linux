@@ -63,6 +63,7 @@ struct ad73311_ctrls ad73311 = {
 	.rfseen = 1,
 	.srate  = 0,
 };
+EXPORT_SYMBOL(ad73311);
 
 #if CONFIG_SND_BF5XX_SPORT_NUM == 0
 #define bfin_write_SPORT_TCR1	bfin_write_SPORT0_TCR1
@@ -175,6 +176,7 @@ int ad73311_reg_config(void)
 {
 	return snd_ad73311_configure();
 }
+EXPORT_SYMBOL(ad73311_reg_config);
 
 static int bf5xx_probe(struct platform_device *pdev)
 {
