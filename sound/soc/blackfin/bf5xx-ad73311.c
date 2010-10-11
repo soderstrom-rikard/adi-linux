@@ -52,19 +52,6 @@
 #include "bf5xx-i2s-pcm.h"
 #include "bf5xx-i2s.h"
 
-/*
- * Defaults for amixer-settable parameters, adds to fixed values in
- * snd_ad73311_configure
- * TODO: later not as global variable
- */
-struct ad73311_ctrls ad73311 = {
-	.ogain  = 2,
-	.igain  = 2,
-	.rfseen = 1,
-	.srate  = 0,
-};
-EXPORT_SYMBOL(ad73311);
-
 #if CONFIG_SND_BF5XX_SPORT_NUM == 0
 #define bfin_write_SPORT_TCR1	bfin_write_SPORT0_TCR1
 #define bfin_read_SPORT_TCR1	bfin_read_SPORT0_TCR1
@@ -83,6 +70,52 @@ EXPORT_SYMBOL(ad73311);
 #define GPIO_RESET CONFIG_SND_BFIN_AD73311_RESET
 
 static struct snd_soc_card bf5xx_ad73311;
+static int bf5xx_probe(struct platform_device *pdev);
+
+static int bf5xx_ad73311_hw_params(struct snd_pcm_substream *substream,
+	struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+	int ret = 0;
+
+	pr_debug("%s rate %d format %x\n", __func__, params_rate(params),
+		params_format(params));
+
+	/* set cpu DAI configuration */
+	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_DSP_A |
+		SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+
+static struct snd_soc_ops bf5xx_ad73311_ops = {
+	.hw_params = bf5xx_ad73311_hw_params,
+};
+
+static struct snd_soc_dai_link bf5xx_ad73311_dai = {
+	.name = "ad73311",
+	.stream_name = "AD73311",
+	.cpu_dai = &bf5xx_i2s_dai,
+	.codec_dai = &ad73311_dai,
+	.ops = &bf5xx_ad73311_ops,
+};
+
+static struct snd_soc_card bf5xx_ad73311 = {
+	.name = "bf5xx_ad73311",
+	.platform = &bf5xx_i2s_soc_platform,
+	.probe = bf5xx_probe,
+	.dai_link = &bf5xx_ad73311_dai,
+	.num_links = 1,
+};
+
+static struct snd_soc_device bf5xx_ad73311_snd_devdata = {
+	.card = &bf5xx_ad73311,
+	.codec_dev = &soc_codec_dev_ad73311,
+};
 
 static int snd_ad73311_reset(void)
 {
@@ -172,11 +205,11 @@ static int snd_ad73311_configure(void)
 	return 0;
 }
 
-int ad73311_reg_config(void)
+static int bf5xx_ad73311_reg_write(void *control_data, const char *data,
+				 int len)
 {
 	return snd_ad73311_configure();
 }
-EXPORT_SYMBOL(ad73311_reg_config);
 
 static int bf5xx_probe(struct platform_device *pdev)
 {
@@ -196,57 +229,14 @@ static int bf5xx_probe(struct platform_device *pdev)
 	gpio_direction_output(GPIO_SE, 0);
 	gpio_direction_output(GPIO_RESET, 0);
 
+	if (ad73311_codec != NULL)
+		ad73311_codec->hw_write = bf5xx_ad73311_reg_write;
 	err = snd_ad73311_configure();
 	if (err < 0)
 		return -EFAULT;
 
 	return 0;
 }
-
-static int bf5xx_ad73311_hw_params(struct snd_pcm_substream *substream,
-	struct snd_pcm_hw_params *params)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
-	int ret = 0;
-
-	pr_debug("%s rate %d format %x\n", __func__, params_rate(params),
-		params_format(params));
-
-	/* set cpu DAI configuration */
-	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_DSP_A |
-		SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
-	if (ret < 0)
-		return ret;
-
-	return 0;
-}
-
-
-static struct snd_soc_ops bf5xx_ad73311_ops = {
-	.hw_params = bf5xx_ad73311_hw_params,
-};
-
-static struct snd_soc_dai_link bf5xx_ad73311_dai = {
-	.name = "ad73311",
-	.stream_name = "AD73311",
-	.cpu_dai = &bf5xx_i2s_dai,
-	.codec_dai = &ad73311_dai,
-	.ops = &bf5xx_ad73311_ops,
-};
-
-static struct snd_soc_card bf5xx_ad73311 = {
-	.name = "bf5xx_ad73311",
-	.platform = &bf5xx_i2s_soc_platform,
-	.probe = bf5xx_probe,
-	.dai_link = &bf5xx_ad73311_dai,
-	.num_links = 1,
-};
-
-static struct snd_soc_device bf5xx_ad73311_snd_devdata = {
-	.card = &bf5xx_ad73311,
-	.codec_dev = &soc_codec_dev_ad73311,
-};
 
 static struct platform_device *bf5xx_ad73311_snd_device;
 

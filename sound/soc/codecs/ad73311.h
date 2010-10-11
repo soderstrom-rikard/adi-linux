@@ -151,5 +151,5 @@ struct ad73311_ctrls {
 extern struct snd_soc_dai ad73311_dai;
 extern struct snd_soc_codec_device soc_codec_dev_ad73311;
 extern struct ad73311_ctrls ad73311;
-extern int ad73311_reg_config(void);
+extern struct snd_soc_codec *ad73311_codec;
 #endif

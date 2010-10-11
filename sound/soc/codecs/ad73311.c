@@ -34,12 +34,26 @@
 					SNDRV_PCM_RATE_32000 | \
 					SNDRV_PCM_RATE_64000)
 
+struct snd_soc_codec *ad73311_codec;
+EXPORT_SYMBOL(ad73311_codec);
+
+struct ad73311_ctrls ad73311 = {
+	.ogain  = 2,
+	.igain  = 2,
+	.rfseen = 1,
+	.srate  = 0,
+};
+EXPORT_SYMBOL(ad73311);
+
 static int ad73311_ogain_put(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *uvalue)
 {
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+
 	if (ad73311.ogain != (7 - uvalue->value.integer.value[0])) {
 		ad73311.ogain = 7 - uvalue->value.integer.value[0];
-		return ad73311_reg_config();
+		return codec->hw_write(codec->control_data, (char *)&ad73311,
+						sizeof(struct ad73311_ctrls));
 	}
 	return 0;
 }
@@ -54,9 +68,11 @@ static int ad73311_ogain_get(struct snd_kcontrol *kcontrol,
 static int ad73311_igain_put(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *uvalue)
 {
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	if (ad73311.igain != uvalue->value.integer.value[0]) {
 		ad73311.igain =  uvalue->value.integer.value[0];
-		return ad73311_reg_config();
+		return codec->hw_write(codec->control_data, (char *)&ad73311,
+						sizeof(struct ad73311_ctrls));
 	}
 	return 0;
 }
@@ -71,9 +87,11 @@ static int ad73311_igain_get(struct snd_kcontrol *kcontrol,
 static int ad73311_rfseen_put(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *uvalue)
 {
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	if (ad73311.rfseen != uvalue->value.integer.value[0]) {
 		ad73311.rfseen = uvalue->value.integer.value[0];
-		return ad73311_reg_config();
+		return codec->hw_write(codec->control_data, (char *)&ad73311,
+						sizeof(struct ad73311_ctrls));
 	}
 	return 0;
 
@@ -90,6 +108,7 @@ static int ad73311_srate_put(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *uvalue)
 {
 	int tmpvar = 0;
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	if (ad73311.srate != uvalue->value.integer.value[0]) {
 		ad73311.srate = uvalue->value.integer.value[0];
 		switch (ad73311.srate) {
@@ -108,7 +127,8 @@ static int ad73311_srate_put(struct snd_kcontrol *kcontrol,
 		}
 		ad73311_dai.playback.rates = tmpvar;
 		ad73311_dai.capture.rates = tmpvar;
-		return ad73311_reg_config();
+		return codec->hw_write(codec->control_data, (char *)&ad73311,
+						sizeof(struct ad73311_ctrls));
 	}
 	return 0;
 
@@ -148,12 +168,9 @@ EXPORT_SYMBOL_GPL(ad73311_dai);
 static int ad73311_soc_probe(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec;
+	struct snd_soc_codec *codec = ad73311_codec;
 	int ret = 0;
 
-	codec = kzalloc(sizeof(struct snd_soc_codec), GFP_KERNEL);
-	if (codec == NULL)
-		return -ENOMEM;
 	mutex_init(&codec->mutex);
 	codec->name = DRV_NAME;
 	codec->dev = &pdev->dev;
@@ -178,7 +195,6 @@ static int ad73311_soc_probe(struct platform_device *pdev)
 	return ret;
 
 pcm_err:
-	kfree(socdev->card->codec);
 	socdev->card->codec = NULL;
 	return ret;
 }
@@ -186,12 +202,7 @@ pcm_err:
 static int ad73311_soc_remove(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->card->codec;
-
-	if (codec == NULL)
-		return 0;
 	snd_soc_free_pcms(socdev);
-	kfree(codec);
 	return 0;
 }
 
@@ -203,13 +214,23 @@ EXPORT_SYMBOL_GPL(soc_codec_dev_ad73311);
 
 static int __init ad73311_init(void)
 {
+	struct snd_soc_codec *codec;
+
+	codec = kzalloc(sizeof(struct snd_soc_codec), GFP_KERNEL);
+	if (codec == NULL)
+		return -ENOMEM;
+	ad73311_codec = codec;
 	return snd_soc_register_dai(&ad73311_dai);
 }
 module_init(ad73311_init);
 
 static void __exit ad73311_exit(void)
 {
+	struct snd_soc_codec *codec = ad73311_codec;
+
 	snd_soc_unregister_dai(&ad73311_dai);
+	ad73311_codec = NULL;
+	kfree(codec);
 }
 module_exit(ad73311_exit);
 
