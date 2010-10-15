@@ -353,6 +353,7 @@ static void bfin_sport_spi_pump_transfers(unsigned long data)
 	else
 		drv_data->regs->tclkdiv = chip->baud;
 	SSYNC();
+
 	/*
 	 * if msg is error or done, report it back using complete() callback
 	 */
