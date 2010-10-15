@@ -48,7 +48,6 @@ struct sport_dev {
 
 	int sport_mode;
 	int sport_clkdiv;
-	int irq_notfreed;
 
 	struct mutex mutex;
 	unsigned int open_count;
@@ -214,6 +213,16 @@ static int sport_configure(struct sport_dev *dev, struct sport_config *config)
 			rcr2 |= RXSE;
 	}
 
+	if (!config->dma_enabled) {
+		if (config->mode == NDSO_MODE) {
+			disable_irq(dev->tx_irq);
+			disable_irq(dev->rx_irq);
+		} else {
+			enable_irq(dev->tx_irq);
+			enable_irq(dev->rx_irq);
+		}
+	}
+
 	/* Using internal clock */
 	if (config->int_clk) {
 		u_long sclk = get_sclk();
@@ -329,21 +338,30 @@ static void sport_ndso_rx_read(struct sport_dev *dev)
 	dev->regs->rcr1 |= RSPEN;
 	if (cfg->word_len <= 8)
 		while (dev->rx_received < dev->rx_len) {
+			u8 *buf = (void *)dev->rx_buf + dev->rx_received;
 			dev->regs->tx16 = 0x00;
 			while (!(dev->regs->stat & RXNE))
 				cpu_relax();
-			u8 *buf = (void *)dev->rx_buf + dev->rx_received;
 			*buf = dev->regs->rx16;
 			dev->rx_received += 1;
 		}
 	else if (cfg->word_len <= 16)
 		while (dev->rx_received < dev->rx_len) {
+			u16 *buf = (void *)dev->rx_buf + dev->rx_received;
 			dev->regs->tx16 = 0x0000;
 			while (!(dev->regs->stat & RXNE))
 				cpu_relax();
-			u16 *buf = (void *)dev->rx_buf + dev->rx_received;
 			*buf = dev->regs->rx16;
 			dev->rx_received += 2;
+		}
+	else
+		while (dev->rx_received < dev->rx_len) {
+			u32 *buf = (void *)dev->rx_buf + dev->rx_received;
+			dev->regs->tx32 = 0x0000;
+			while (!(dev->regs->stat & RXNE))
+				cpu_relax();
+			*buf = dev->regs->rx32;
+			dev->rx_received += 4;
 		}
 	dev->regs->tcr1 &= ~TSPEN;
 	dev->regs->rcr1 &= ~RSPEN;
@@ -393,7 +411,7 @@ static irqreturn_t sport_rx_handler(int irq, void *dev_id)
 static void sport_ndso_tx_write(struct sport_dev *dev)
 {
 	struct sport_config *cfg = &dev->config;
-	int i, dummy;
+	int dummy;
 
 	dev->regs->tcr1 |= TSPEN;
 	dev->regs->rcr1 |= RSPEN;
@@ -406,7 +424,7 @@ static void sport_ndso_tx_write(struct sport_dev *dev)
 				cpu_relax();
 			dummy = dev->regs->rx16;
 		}
-	else if (cfg->word_len <= 16) {
+	else if (cfg->word_len <= 16)
 		while (dev->tx_sent < dev->tx_len) {
 			u16 *buf = (void *)dev->tx_buf + dev->tx_sent;
 			dev->regs->tx16 = *buf;
@@ -415,8 +433,15 @@ static void sport_ndso_tx_write(struct sport_dev *dev)
 				cpu_relax();
 			dummy = dev->regs->rx16;
 		}
-		dev->tx_sent = 0;
-	}
+	else
+		while (dev->tx_sent < dev->tx_len) {
+			u32 *buf = (void *)dev->tx_buf + dev->tx_sent;
+			dev->regs->tx32 = *buf;
+			dev->tx_sent += 4;
+			while (!(dev->regs->stat & RXNE))
+				cpu_relax();
+			dummy = dev->regs->rx32;
+		}
 	dev->regs->tcr1 &= ~TSPEN;
 	dev->regs->rcr1 &= ~RSPEN;
 }
@@ -574,7 +599,6 @@ static int sport_open(struct inode *inode, struct file *filp)
 	}
 
 	dev->sport_clkdiv = 0x24;
-	dev->irq_notfreed = 1;
  done:
 	mutex_unlock(&dev->mutex);
 	return 0;
@@ -613,11 +637,8 @@ static int sport_release(struct inode *inode, struct file *filp)
 		free_dma(dev->dma_rx_chan);
 		free_dma(dev->dma_tx_chan);
 	} else {
-		if (dev->irq_notfreed) {
-			free_irq(dev->tx_irq, dev);
-			free_irq(dev->rx_irq, dev);
-			dev->irq_notfreed = 0;
-		}
+		free_irq(dev->tx_irq, dev);
+		free_irq(dev->rx_irq, dev);
 	}
 	free_irq(dev->err_irq, dev);
 
@@ -677,11 +698,6 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 	}
 
 	if (dev->sport_mode == NDSO_MODE) {
-		if (dev->irq_notfreed) {
-			free_irq(dev->tx_irq, dev);
-			free_irq(dev->rx_irq, dev);
-			dev->irq_notfreed = 0;
-		}
 		sport_ndso_rx_read(dev);
 		goto out;
 	}
@@ -749,11 +765,6 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 		dev->tx_len = count;
 		dev->tx_sent = 0;
 		if (dev->sport_mode == NDSO_MODE) {
-			if (dev->irq_notfreed) {
-				free_irq(dev->tx_irq, dev);
-				free_irq(dev->rx_irq, dev);
-				dev->irq_notfreed = 0;
-			}
 			sport_ndso_tx_write(dev);
 			goto out;
 		}
@@ -794,7 +805,8 @@ static int sport_ioctl(struct inode *inode, struct file *filp,
 
 	case SPORT_IOC_GET_SYSTEMCLOCK:
 		value = get_sclk();
-		copy_to_user((unsigned long *)arg, &value, sizeof(unsigned long));
+		if (copy_to_user((void *)arg, &value, sizeof(value)))
+			return -EFAULT;
 		break;
 
 	case SPORT_IOC_SET_BAUDRATE:
