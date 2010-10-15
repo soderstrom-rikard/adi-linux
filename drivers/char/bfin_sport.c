@@ -6,8 +6,7 @@
  * Licensed under the GPL-2 or later.
  */
 
-#define DRV_NAME "bfin_sport"
-#define pr_fmt(fmt) DRV_NAME ": " fmt
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/cdev.h>
 #include <linux/completion.h>
@@ -550,25 +549,25 @@ static int sport_open(struct inode *inode, struct file *filp)
 	dev->tx_sent = 0;
 	init_completion(&dev->c);
 
-	ret = request_irq(dev->tx_irq, sport_tx_handler, IRQF_SHARED, DRV_NAME "-tx", dev);
+	ret = request_irq(dev->tx_irq, sport_tx_handler, IRQF_SHARED, KBUILD_MODNAME "-tx", dev);
 	if (ret) {
 		pr_err("unable to request sport tx irq\n");
 		goto fail;
 	}
 
-	ret = request_irq(dev->rx_irq, sport_rx_handler, IRQF_SHARED, DRV_NAME "-rx", dev);
+	ret = request_irq(dev->rx_irq, sport_rx_handler, IRQF_SHARED, KBUILD_MODNAME "-rx", dev);
 	if (ret) {
 		pr_err("unable to request sport rx irq\n");
 		goto fail1;
 	}
 
-	ret = request_irq(dev->err_irq, sport_err_handler, 0, DRV_NAME "-err", dev);
+	ret = request_irq(dev->err_irq, sport_err_handler, 0, KBUILD_MODNAME "-err", dev);
 	if (ret) {
 		pr_err("unable to request sport err irq\n");
 		goto fail2;
 	}
 
-	ret = peripheral_request_list(sport_req[minor], DRV_NAME);
+	ret = peripheral_request_list(sport_req[minor], KBUILD_MODNAME);
 	if (ret) {
 		pr_err("requesting peripherals failed\n");
 		goto fail3;
