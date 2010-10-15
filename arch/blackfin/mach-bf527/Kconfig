@@ -79,7 +79,7 @@ config BF527_NAND_D_PORTH
 	  PORT H
 endchoice
 
-comment "Hysteresis/schmitt Trigger Control"
+comment "Hysteresis/Schmitt Trigger Control"
 config BFIN_HYSTERESIS_CONTROL
 	bool "Enable Hysteresis Control"
 	help

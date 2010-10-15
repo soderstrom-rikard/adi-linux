@@ -62,7 +62,7 @@ config BF518_UART1_PORTG
 	  PORT G
 endchoice
 
-comment "Hysteresis/schmitt Trigger Control"
+comment "Hysteresis/Schmitt Trigger Control"
 config BFIN_HYSTERESIS_CONTROL
 	bool "Enable Hysteresis Control"
 	help
