@@ -6,7 +6,7 @@
  * Licensed under the GPL-2.
  */
 
-#define pr_fmt(fmt) DRIVER_NAME ": " fmt
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -37,20 +37,20 @@
 #include <asm/dma.h>
 #include <asm/portmux.h>
 
-#define DRIVER_NAME "bf537-lq035"
-
 #define NO_BL 1
 
 #define MAX_BRIGHENESS	95
-#define MIN_BRIGHENESS  5
-#define BFIN_LCD_NBR_PALETTE_ENTRIES	256
+#define MIN_BRIGHENESS	5
+#define NBR_PALETTE	256
 
-#define PPI0_16 {P_PPI0_CLK, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3, \
- P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, P_PPI0_D8, P_PPI0_D9, P_PPI0_D10, \
- P_PPI0_D11, P_PPI0_D12, P_PPI0_D13, P_PPI0_D14, P_PPI0_D15, 0}
+static const unsigned short ppi_pins[] = {
+	P_PPI0_CLK, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3,
+	P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7,
+	P_PPI0_D8, P_PPI0_D9, P_PPI0_D10, P_PPI0_D11,
+	P_PPI0_D12, P_PPI0_D13, P_PPI0_D14, P_PPI0_D15, 0
+};
 
 static unsigned char *fb_buffer;          /* RGB Buffer */
-static dma_addr_t dma_handle;             /* ? */
 static unsigned long *dma_desc_table;
 static int t_conf_done, lq035_open_cnt;
 static DEFINE_SPINLOCK(bfin_lq035_lock);
@@ -79,19 +79,20 @@ static void set_vcomm(void)
 {
 	int nr;
 
-	if (ad5280_client) {
-		nr = i2c_smbus_write_byte_data(ad5280_client, 0x00, vcomm_value);
-		if (nr)
-			pr_err("i2c_smbus_write_byte_data fail: %d\n", nr);
-	}
+	if (!ad5280_client)
+		return;
+
+	nr = i2c_smbus_write_byte_data(ad5280_client, 0x00, vcomm_value);
+	if (nr)
+		pr_err("i2c_smbus_write_byte_data fail: %d\n", nr);
 }
 
 static int __devinit ad5280_probe(struct i2c_client *client,
-					const struct i2c_device_id *id)
+				  const struct i2c_device_id *id)
 {
 	int ret;
 	if (!i2c_check_functionality(client->adapter,
-					I2C_FUNC_SMBUS_BYTE_DATA)) {
+				     I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(&client->dev, "SMBUS Byte Data not Supported\n");
 		return -EIO;
 	}
@@ -122,15 +123,15 @@ MODULE_DEVICE_TABLE(i2c, ad5280_id);
 
 static struct i2c_driver ad5280_driver = {
 	.driver = {
-		   .name = "bf537-lq035-ad5280",
-		   },
+		.name = "bf537-lq035-ad5280",
+	},
 	.probe = ad5280_probe,
 	.remove = __devexit_p(ad5280_remove),
 	.id_table = ad5280_id,
 };
 
 #ifdef CONFIG_PNAV10
-#define MOD     GPIO_PH13
+#define MOD GPIO_PH13
 
 #define bfin_write_TIMER_LP_CONFIG	bfin_write_TIMER0_CONFIG
 #define bfin_write_TIMER_LP_WIDTH	bfin_write_TIMER0_WIDTH
@@ -211,7 +212,7 @@ static struct i2c_driver ad5280_driver = {
 
 #endif
 
-#define LCD_X_RES			240 /*Horizontal Resolution */
+#define LCD_X_RES			240 /* Horizontal Resolution */
 #define LCD_Y_RES			320 /* Vertical Resolution */
 
 #define LCD_BBP				16  /* Bit Per Pixel */
@@ -221,20 +222,22 @@ static struct i2c_driver ad5280_driver = {
  * we have a difference of 1 between START_LINES
  * and U_LINES.
  */
-#define START_LINES          8              /* lines for field flyback or field blanking signal */
-#define U_LINES              (9)            /* number of undisplayed blanking lines */
+#define START_LINES       8   /* lines for field flyback or field blanking signal */
+#define U_LINES           9   /* number of undisplayed blanking lines */
 
-#define FRAMES_PER_SEC       (60)
+#define FRAMES_PER_SEC    (60)
 
-#define DCLKS_PER_FRAME      (FREQ_PPI_CLK/FRAMES_PER_SEC)
-#define DCLKS_PER_LINE       (DCLKS_PER_FRAME/(LCD_Y_RES+U_LINES))
+#define DCLKS_PER_FRAME   (FREQ_PPI_CLK/FRAMES_PER_SEC)
+#define DCLKS_PER_LINE    (DCLKS_PER_FRAME/(LCD_Y_RES+U_LINES))
 
-#define PPI_CONFIG_VALUE     (PORT_DIR|XFR_TYPE|DLEN_16|POLS)
-#define PPI_DELAY_VALUE      (0)
-#define TIMER_CONFIG         (PWM_OUT|PERIOD_CNT|TIN_SEL|CLK_SEL)
+#define PPI_CONFIG_VALUE  (PORT_DIR|XFR_TYPE|DLEN_16|POLS)
+#define PPI_DELAY_VALUE   (0)
+#define TIMER_CONFIG      (PWM_OUT|PERIOD_CNT|TIN_SEL|CLK_SEL)
 
-#define ACTIVE_VIDEO_MEM_OFFSET	(LCD_X_RES*START_LINES*(LCD_BBP/8)) /* Active Video Offset */
+#define ACTIVE_VIDEO_MEM_OFFSET	(LCD_X_RES*START_LINES*(LCD_BBP/8))
 #define ACTIVE_VIDEO_MEM_SIZE	(LCD_Y_RES*LCD_X_RES*(LCD_BBP/8))
+#define TOTAL_VIDEO_MEM_SIZE	((LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8))
+#define TOTAL_DMA_DESC_SIZE	(2 * sizeof(u32) * (LCD_Y_RES + U_LINES))
 
 static void start_timers(void) /* CHECK with HW */
 {
@@ -258,10 +261,11 @@ static void start_timers(void) /* CHECK with HW */
 	local_irq_restore(flags);
 }
 
-static void config_timers(void) /* CHECKME */
+static void config_timers(void)
 {
 	/* Stop timers */
-	bfin_write_TIMER_DISABLE(TIMDIS_SP|TIMDIS_SPS|TIMDIS_REV|TIMDIS_LP|TIMDIS_PS_CLS);
+	bfin_write_TIMER_DISABLE(TIMDIS_SP|TIMDIS_SPS|TIMDIS_REV|
+				 TIMDIS_LP|TIMDIS_PS_CLS);
 	SSYNC();
 
 	/* LP, timer 6 */
@@ -324,14 +328,15 @@ static int config_dma(void)
 		for (i = U_LINES; i < U_LINES + LCD_Y_RES; ++i) {
 			/* visible lines */
 			dma_desc_table[2*i] = (unsigned long)&dma_desc_table[2*i+2];
-			dma_desc_table[2*i+1] = (unsigned long)fb_buffer + (LCD_Y_RES+U_LINES-1-i)*2;
+			dma_desc_table[2*i+1] = (unsigned long)fb_buffer +
+						(LCD_Y_RES+U_LINES-1-i)*2;
 		}
 
 		/* last descriptor points to first */
 		dma_desc_table[2*(LCD_Y_RES+U_LINES-1)] = (unsigned long)&dma_desc_table[0];
 
 		set_dma_x_count(CH_PPI, LCD_X_RES);
-		set_dma_x_modify(CH_PPI, LCD_Y_RES*(LCD_BBP/8));
+		set_dma_x_modify(CH_PPI, LCD_Y_RES * (LCD_BBP / 8));
 		set_dma_y_count(CH_PPI, 0);
 		set_dma_y_modify(CH_PPI, 0);
 		set_dma_next_desc_addr(CH_PPI, (void *)dma_desc_table[0]);
@@ -355,9 +360,8 @@ static int config_dma(void)
 	return 0;
 }
 
-static int request_ports(void)
+static int __devinit request_ports(void)
 {
-	u16 ppi_req[] = PPI0_16;
 	u16 tmr_req[] = TIMERS;
 
 	/*
@@ -367,24 +371,24 @@ static int request_ports(void)
 		PPI_CLK: PF15
 	*/
 
-	if (peripheral_request_list(ppi_req, DRIVER_NAME)) {
+	if (peripheral_request_list(ppi_pins, KBUILD_MODNAME)) {
 		pr_err("requesting PPI peripheral failed\n");
 		return -EBUSY;
 	}
 
-	if (peripheral_request_list(tmr_req, DRIVER_NAME)) {
-		peripheral_free_list(ppi_req);
+	if (peripheral_request_list(tmr_req, KBUILD_MODNAME)) {
+		peripheral_free_list(ppi_pins);
 		pr_err("requesting timer peripheral failed\n");
 		return -EBUSY;
 	}
 
 #if (defined(UD) && defined(LBR))
-	if (gpio_request(UD, DRIVER_NAME)) {
+	if (gpio_request(UD, KBUILD_MODNAME)) {
 		pr_err("requesting GPIO %d failed\n", UD);
 		return -EBUSY;
 	}
 
-	if (gpio_request(LBR, DRIVER_NAME)) {
+	if (gpio_request(LBR, KBUILD_MODNAME)) {
 		pr_err("requesting GPIO %d failed\n", LBR);
 		gpio_free(UD);
 		return -EBUSY;
@@ -395,7 +399,7 @@ static int request_ports(void)
 
 #endif
 
-	if (gpio_request(MOD, DRIVER_NAME)) {
+	if (gpio_request(MOD, KBUILD_MODNAME)) {
 		pr_err("requesting GPIO %d failed\n", MOD);
 #if (defined(UD) && defined(LBR))
 		gpio_free(LBR);
@@ -412,13 +416,12 @@ static int request_ports(void)
 
 static void free_ports(void)
 {
-	u16 ppi_req[] = PPI0_16;
 	u16 tmr_req[] = TIMERS;
 
-	peripheral_free_list(ppi_req);
+	peripheral_free_list(ppi_pins);
 	peripheral_free_list(tmr_req);
 
-#if (defined(UD) && defined(LBR))
+#if defined(UD) && defined(LBR)
 	gpio_free(LBR);
 	gpio_free(UD);
 #endif
@@ -447,7 +450,7 @@ static struct fb_var_screeninfo bfin_lq035_fb_defined = {
 };
 
 static struct fb_fix_screeninfo bfin_lq035_fb_fix __devinitdata = {
-	.id		= DRIVER_NAME,
+	.id		= KBUILD_MODNAME,
 	.smem_len	= ACTIVE_VIDEO_MEM_SIZE,
 	.type		= FB_TYPE_PACKED_PIXELS,
 	.visual		= FB_VISUAL_TRUECOLOR,
@@ -511,7 +514,8 @@ static int bfin_lq035_fb_release(struct fb_info *info, int user)
 }
 
 
-static int bfin_lq035_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
+static int bfin_lq035_fb_check_var(struct fb_var_screeninfo *var,
+				   struct fb_info *info)
 {
 	switch (var->bits_per_pixel) {
 	case 16:/* DIRECTCOLOUR, 64k */
@@ -534,10 +538,11 @@ static int bfin_lq035_fb_check_var(struct fb_var_screeninfo *var, struct fb_info
 		return -EINVAL;
 	}
 
-	if (info->var.xres != var->xres || info->var.yres != var->yres ||
+	if (info->var.xres != var->xres ||
+	    info->var.yres != var->yres ||
 	    info->var.xres_virtual != var->xres_virtual ||
 	    info->var.yres_virtual != var->yres_virtual) {
-		pr_debug("%s: Resolution not supported: X%u x Y%u \n",
+		pr_debug("%s: Resolution not supported: X%u x Y%u\n",
 			 __func__, var->xres, var->yres);
 		return -EINVAL;
 	}
@@ -559,7 +564,7 @@ static int bfin_lq035_fb_check_var(struct fb_var_screeninfo *var, struct fb_info
  * Rotate the display of this angle. This doesn't seems to be used by the core,
  * but as our hardware supports it, so why not implementing it...
  */
-void bfin_lq035_fb_rotate(struct fb_info *fbi, int angle)
+static void bfin_lq035_fb_rotate(struct fb_info *fbi, int angle)
 {
 	pr_debug("%s: %p %d", __func__, fbi, angle);
 #if (defined(UD) && defined(LBR))
@@ -577,7 +582,7 @@ void bfin_lq035_fb_rotate(struct fb_info *fbi, int angle)
 #endif
 }
 
-int bfin_lq035_fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
+static int bfin_lq035_fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
 {
 	if (nocursor)
 		return 0;
@@ -585,17 +590,16 @@ int bfin_lq035_fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
 		return -EINVAL;	/* just to force soft_cursor() call */
 }
 
-static int bfin_lq035_fb_setcolreg(u_int regno, u_int red, u_int green, u_int blue,
-			 u_int transp, struct fb_info *info)
+static int bfin_lq035_fb_setcolreg(u_int regno, u_int red, u_int green,
+				   u_int blue, u_int transp,
+				   struct fb_info *info)
 {
-	if (regno >= BFIN_LCD_NBR_PALETTE_ENTRIES)
+	if (regno >= NBR_PALETTE)
 		return -EINVAL;
 
-	if (info->var.grayscale) {
+	if (info->var.grayscale)
 		/* grayscale = 0.30*R + 0.59*G + 0.11*B */
-		red = green = blue =
-		    (red * 77 + green * 151 + blue * 28) >> 8;
-	}
+		red = green = blue = (red * 77 + green * 151 + blue * 28) >> 8;
 
 	if (info->fix.visual == FB_VISUAL_TRUECOLOR) {
 
@@ -638,7 +642,7 @@ static int bl_get_brightness(struct backlight_device *bd)
 	return current_brightness;
 }
 
-static struct backlight_ops bfin_lq035fb_bl_ops = {
+static const struct backlight_ops bfin_lq035fb_bl_ops = {
 	.get_brightness	= bl_get_brightness,
 };
 
@@ -681,8 +685,8 @@ static int bfin_lcd_check_fb(struct lcd_device *lcd, struct fb_info *fi)
 static struct lcd_ops bfin_lcd_ops = {
 	.get_power	= bfin_lcd_get_power,
 	.set_power	= bfin_lcd_set_power,
-	.get_contrast   = bfin_lcd_get_contrast,
-	.set_contrast   = bfin_lcd_set_contrast,
+	.get_contrast	= bfin_lcd_get_contrast,
+	.set_contrast	= bfin_lcd_set_contrast,
 	.check_fb	= bfin_lcd_check_fb,
 };
 
@@ -691,8 +695,9 @@ static struct lcd_device *lcd_dev;
 static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 {
 	struct backlight_properties props;
+	dma_addr_t dma_handle;
 
-	if (request_dma(CH_PPI, DRIVER_NAME)) {
+	if (request_dma(CH_PPI, KBUILD_MODNAME)) {
 		pr_err("couldn't request PPI DMA\n");
 		return -EFAULT;
 	}
@@ -703,9 +708,9 @@ static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 		return -EFAULT;
 	}
 
-	fb_buffer = dma_alloc_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), &dma_handle, GFP_KERNEL);
-
-	if (NULL == fb_buffer) {
+	fb_buffer = dma_alloc_coherent(NULL, TOTAL_VIDEO_MEM_SIZE,
+				       &dma_handle, GFP_KERNEL);
+	if (fb_buffer == NULL) {
 		pr_err("couldn't allocate dma buffer\n");
 		free_dma(CH_PPI);
 		free_ports();
@@ -713,35 +718,32 @@ static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 	}
 
 	if (L1_DATA_A_LENGTH)
-		dma_desc_table = l1_data_sram_zalloc(sizeof(unsigned long) * 2 * (LCD_Y_RES + U_LINES));
+		dma_desc_table = l1_data_sram_zalloc(TOTAL_DMA_DESC_SIZE);
 	else
-		dma_desc_table = dma_alloc_coherent(NULL, sizeof(unsigned long) * 2 * (LCD_Y_RES + U_LINES), &dma_handle, 0);
+		dma_desc_table = dma_alloc_coherent(NULL, TOTAL_DMA_DESC_SIZE,
+						    &dma_handle, 0);
 
-	if (NULL == dma_desc_table) {
+	if (dma_desc_table == NULL) {
 		pr_err("couldn't allocate dma descriptor\n");
 		free_dma(CH_PPI);
 		free_ports();
-		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
+		dma_free_coherent(NULL, TOTAL_VIDEO_MEM_SIZE, fb_buffer, 0);
 		return -ENOMEM;
 	}
 
+	bfin_lq035_fb.screen_base = (void *)fb_buffer;
+	bfin_lq035_fb_fix.smem_start = (int)fb_buffer;
 	if (landscape) {
-		bfin_lq035_fb_defined.xres			= LCD_Y_RES;
-		bfin_lq035_fb_defined.yres			= LCD_X_RES;
-		bfin_lq035_fb_defined.xres_virtual		= LCD_Y_RES;
-		bfin_lq035_fb_defined.yres_virtual		= LCD_X_RES;
+		bfin_lq035_fb_defined.xres = LCD_Y_RES;
+		bfin_lq035_fb_defined.yres = LCD_X_RES;
+		bfin_lq035_fb_defined.xres_virtual = LCD_Y_RES;
+		bfin_lq035_fb_defined.yres_virtual = LCD_X_RES;
 
-		bfin_lq035_fb_fix.line_length	= LCD_Y_RES*(LCD_BBP/8);
-
-		bfin_lq035_fb.screen_base = (void *)fb_buffer;
-		bfin_lq035_fb_fix.smem_start = (int)fb_buffer;
-
+		bfin_lq035_fb_fix.line_length = LCD_Y_RES*(LCD_BBP/8);
 	} else {
-
-		bfin_lq035_fb.screen_base = (void *)fb_buffer + ACTIVE_VIDEO_MEM_OFFSET;
-		bfin_lq035_fb_fix.smem_start = (int)fb_buffer + ACTIVE_VIDEO_MEM_OFFSET;
+		bfin_lq035_fb.screen_base += ACTIVE_VIDEO_MEM_OFFSET;
+		bfin_lq035_fb_fix.smem_start += ACTIVE_VIDEO_MEM_OFFSET;
 	}
-
 
 	bfin_lq035_fb_defined.green.msb_right = 0;
 	bfin_lq035_fb_defined.red.msb_right   = 0;
@@ -771,16 +773,16 @@ static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 		pr_err("failed to allocate pseudo_palette\n");
 		free_dma(CH_PPI);
 		free_ports();
-		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
+		dma_free_coherent(NULL, TOTAL_VIDEO_MEM_SIZE, fb_buffer, 0);
 		return -ENOMEM;
 	}
 
-	if (fb_alloc_cmap(&bfin_lq035_fb.cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0) < 0) {
+	if (fb_alloc_cmap(&bfin_lq035_fb.cmap, NBR_PALETTE, 0) < 0) {
 		pr_err("failed to allocate colormap (%d entries)\n",
-			BFIN_LCD_NBR_PALETTE_ENTRIES);
+			NBR_PALETTE);
 		free_dma(CH_PPI);
 		free_ports();
-		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
+		dma_free_coherent(NULL, TOTAL_VIDEO_MEM_SIZE, fb_buffer, 0);
 		kfree(bfin_lq035_fb.pseudo_palette);
 		return -EFAULT;
 	}
@@ -789,7 +791,7 @@ static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 		pr_err("unable to register framebuffer\n");
 		free_dma(CH_PPI);
 		free_ports();
-		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
+		dma_free_coherent(NULL, TOTAL_VIDEO_MEM_SIZE, fb_buffer, 0);
 		fb_buffer = NULL;
 		kfree(bfin_lq035_fb.pseudo_palette);
 		fb_dealloc_cmap(&bfin_lq035_fb.cmap);
@@ -800,9 +802,11 @@ static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 
 	memset(&props, 0, sizeof(props));
 	props.max_brightness = MAX_BRIGHENESS;
-	bl_dev = backlight_device_register("bf537-bl", NULL, NULL, &bfin_lq035fb_bl_ops, &props);
+	bl_dev = backlight_device_register("bf537-bl", NULL, NULL,
+					   &bfin_lq035fb_bl_ops, &props);
 
-	lcd_dev = lcd_device_register(DRIVER_NAME, &pdev->dev, NULL, &bfin_lcd_ops);
+	lcd_dev = lcd_device_register(KBUILD_MODNAME, &pdev->dev, NULL,
+				      &bfin_lcd_ops);
 	lcd_dev->props.max_contrast = 255,
 
 	pr_info("initialized");
@@ -813,16 +817,15 @@ static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 static int __devexit bfin_lq035_remove(struct platform_device *pdev)
 {
 	if (fb_buffer != NULL)
-		dma_free_coherent(NULL, (LCD_Y_RES+U_LINES)*LCD_X_RES*(LCD_BBP/8), fb_buffer, dma_handle);
+		dma_free_coherent(NULL, TOTAL_VIDEO_MEM_SIZE, fb_buffer, 0);
 
-	if (dma_desc_table) {
-		if (L1_DATA_A_LENGTH)
-			l1_data_sram_free(dma_desc_table);
-		else
-			dma_free_coherent(NULL, sizeof(unsigned long) * 2 * (LCD_Y_RES + U_LINES), &dma_handle, 0);
-	}
+	if (L1_DATA_A_LENGTH)
+		l1_data_sram_free(dma_desc_table);
+	else
+		dma_free_coherent(NULL, TOTAL_DMA_DESC_SIZE, NULL, 0);
 
-	bfin_write_TIMER_DISABLE(TIMEN_SP|TIMEN_SPS|TIMEN_PS_CLS|TIMEN_LP|TIMEN_REV);
+	bfin_write_TIMER_DISABLE(TIMEN_SP|TIMEN_SPS|TIMEN_PS_CLS|
+				 TIMEN_LP|TIMEN_REV);
 	t_conf_done = 0;
 
 	free_dma(CH_PPI);
@@ -889,7 +892,7 @@ static struct platform_driver bfin_lq035_driver = {
 	.suspend = bfin_lq035_suspend,
 	.resume = bfin_lq035_resume,
 	.driver = {
-		.name = DRIVER_NAME,
+		.name = KBUILD_MODNAME,
 		.owner = THIS_MODULE,
 	},
 };
