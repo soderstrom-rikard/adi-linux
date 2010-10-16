@@ -318,14 +318,14 @@ static void hold_anon_vma(struct rmap_item *rmap_item,
 			  struct anon_vma *anon_vma)
 {
 	rmap_item->anon_vma = anon_vma;
-	atomic_inc(&anon_vma->ksm_refcount);
+	atomic_inc(&anon_vma->external_refcount);
 }
 
 static void drop_anon_vma(struct rmap_item *rmap_item)
 {
 	struct anon_vma *anon_vma = rmap_item->anon_vma;
 
-	if (atomic_dec_and_lock(&anon_vma->ksm_refcount, &anon_vma->lock)) {
+	if (atomic_dec_and_lock(&anon_vma->external_refcount, &anon_vma->lock)) {
 		int empty = list_empty(&anon_vma->head);
 		spin_unlock(&anon_vma->lock);
 		if (empty)
@@ -1523,8 +1523,6 @@ struct page *ksm_does_need_to_copy(struct page *page,
 {
 	struct page *new_page;
 
-	unlock_page(page);	/* any racers will COW it, not modify it */
-
 	new_page = alloc_page_vma(GFP_HIGHUSER_MOVABLE, vma, address);
 	if (new_page) {
 		copy_user_highpage(new_page, page, address, vma);
@@ -1540,7 +1538,6 @@ struct page *ksm_does_need_to_copy(struct page *page,
 			add_page_to_unevictable_list(new_page);
 	}
 
-	page_cache_release(page);
 	return new_page;
 }
 

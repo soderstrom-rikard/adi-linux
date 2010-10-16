@@ -16,8 +16,8 @@
 #include <linux/fb.h>
 #include <linux/backlight.h>
 #include <linux/leds.h>
-#include <linux/workqueue.h>
 #include <linux/slab.h>
+#include <linux/workqueue.h>
 
 #include <linux/i2c/adp8860.h>
 #define ADP8860_EXT_FEATURES
@@ -655,11 +655,11 @@ static const struct attribute_group adp8860_bl_attr_group = {
 static int __devinit adp8860_probe(struct i2c_client *client,
 					const struct i2c_device_id *id)
 {
-	struct backlight_properties props;
 	struct backlight_device *bl;
 	struct adp8860_bl *data;
 	struct adp8860_backlight_platform_data *pdata =
 		client->dev.platform_data;
+	struct backlight_properties props;
 	uint8_t reg_val;
 	int ret;
 
@@ -706,10 +706,11 @@ static int __devinit adp8860_probe(struct i2c_client *client,
 	data->current_brightness = 0;
 	i2c_set_clientdata(client, data);
 
+	memset(&props, 0, sizeof(props));
+	props.max_brightness = ADP8860_MAX_BRIGHTNESS;
+
 	mutex_init(&data->lock);
 
-	memset(&props, 0, sizeof(props));
-	props.max_brightness = props.brightness = ADP8860_MAX_BRIGHTNESS;
 	bl = backlight_device_register(dev_driver_string(&client->dev),
 			&client->dev, data, &adp8860_bl_ops, &props);
 	if (IS_ERR(bl)) {
@@ -717,6 +718,9 @@ static int __devinit adp8860_probe(struct i2c_client *client,
 		ret = PTR_ERR(bl);
 		goto out2;
 	}
+
+	bl->props.max_brightness =
+		bl->props.brightness = ADP8860_MAX_BRIGHTNESS;
 
 	data->bl = bl;
 
@@ -752,7 +756,6 @@ out:
 out1:
 	backlight_device_unregister(bl);
 out2:
-	i2c_set_clientdata(client, NULL);
 	kfree(data);
 
 	return ret;
@@ -772,7 +775,6 @@ static int __devexit adp8860_remove(struct i2c_client *client)
 			&adp8860_bl_attr_group);
 
 	backlight_device_unregister(data->bl);
-	i2c_set_clientdata(client, NULL);
 	kfree(data);
 
 	return 0;

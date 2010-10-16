@@ -608,6 +608,122 @@ void ad7879_remove(struct ad7879 *ts)
 }
 EXPORT_SYMBOL(ad7879_remove);
 
+static struct spi_driver ad7879_driver = {
+	.driver = {
+		.name	= "ad7879",
+		.bus	= &spi_bus_type,
+		.owner	= THIS_MODULE,
+	},
+	.probe		= ad7879_probe,
+	.remove		= __devexit_p(ad7879_remove),
+	.suspend	= ad7879_suspend,
+	.resume		= ad7879_resume,
+};
+
+static int __init ad7879_init(void)
+{
+	return spi_register_driver(&ad7879_driver);
+}
+module_init(ad7879_init);
+
+static void __exit ad7879_exit(void)
+{
+	spi_unregister_driver(&ad7879_driver);
+}
+module_exit(ad7879_exit);
+
+#elif defined(CONFIG_TOUCHSCREEN_AD7879_I2C) || defined(CONFIG_TOUCHSCREEN_AD7879_I2C_MODULE)
+
+/* All registers are word-sized.
+ * AD7879 uses a high-byte first convention.
+ */
+static int ad7879_read(struct i2c_client *client, u8 reg)
+{
+	return swab16(i2c_smbus_read_word_data(client, reg));
+}
+
+static int ad7879_write(struct i2c_client *client, u8 reg, u16 val)
+{
+	return i2c_smbus_write_word_data(client, reg, swab16(val));
+}
+
+static void ad7879_collect(struct ad7879 *ts)
+{
+	int i;
+
+	for (i = 0; i < AD7879_NR_SENSE; i++)
+		ts->conversion_data[i] = ad7879_read(ts->bus,
+						     AD7879_REG_XPLUS + i);
+}
+
+static int __devinit ad7879_probe(struct i2c_client *client,
+					const struct i2c_device_id *id)
+{
+	struct ad7879 *ts;
+	int error;
+
+	if (!i2c_check_functionality(client->adapter,
+					I2C_FUNC_SMBUS_WORD_DATA)) {
+		dev_err(&client->dev, "SMBUS Word Data not Supported\n");
+		return -EIO;
+	}
+
+	ts = kzalloc(sizeof(struct ad7879), GFP_KERNEL);
+	if (!ts)
+		return -ENOMEM;
+
+	i2c_set_clientdata(client, ts);
+	ts->bus = client;
+
+	error = ad7879_construct(client, ts);
+	if (error)
+		kfree(ts);
+
+	return error;
+}
+
+static int __devexit ad7879_remove(struct i2c_client *client)
+{
+	struct ad7879 *ts = dev_get_drvdata(&client->dev);
+
+	ad7879_destroy(client, ts);
+	kfree(ts);
+
+	return 0;
+}
+
+static const struct i2c_device_id ad7879_id[] = {
+	{ "ad7879", 0 },
+	{ "ad7889", 0 },
+	{ }
+};
+MODULE_DEVICE_TABLE(i2c, ad7879_id);
+
+static struct i2c_driver ad7879_driver = {
+	.driver = {
+		.name	= "ad7879",
+		.owner	= THIS_MODULE,
+	},
+	.probe		= ad7879_probe,
+	.remove		= __devexit_p(ad7879_remove),
+	.suspend	= ad7879_suspend,
+	.resume		= ad7879_resume,
+	.id_table	= ad7879_id,
+};
+
+static int __init ad7879_init(void)
+{
+	return i2c_add_driver(&ad7879_driver);
+}
+module_init(ad7879_init);
+
+static void __exit ad7879_exit(void)
+{
+	i2c_del_driver(&ad7879_driver);
+}
+module_exit(ad7879_exit);
+#endif
+
 MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
 MODULE_DESCRIPTION("AD7879(-1) touchscreen Driver");
 MODULE_LICENSE("GPL");

@@ -1,7 +1,7 @@
 /*
  * AD183X Audio Codec driver supporting AD1835A, AD1836, AD1837A, AD1838A, AD1839A
  *
- * Copyright 2010 Analog Devices Inc.
+ * Copyright 2009-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -423,7 +423,7 @@ static int ad183x_register(struct ad183x_priv *ad183x)
 	mutex_init(&codec->mutex);
 	INIT_LIST_HEAD(&codec->dapm_widgets);
 	INIT_LIST_HEAD(&codec->dapm_paths);
-	codec->private_data = ad183x;
+	snd_soc_codec_set_drvdata(codec, ad183x);
 	codec->reg_cache = ad183x->reg_cache;
 	codec->reg_cache_size = AD183X_NUM_REGS;
 	codec->name = "AD183X";
@@ -504,7 +504,7 @@ static int ad183x_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	ad183x = ad183x_codec->private_data;
+	ad183x = snd_soc_codec_get_drvdata(codec);
 	chl_ctrl = &ad183x->chl_ctrl;
 	socdev->card->codec = ad183x_codec;
 	codec = ad183x_codec;

@@ -1071,7 +1071,6 @@ out:
 	bfin_tx_hwtstamp(dev, skb);
 
 	current_tx_ptr = current_tx_ptr->next;
-	dev->trans_start = jiffies;
 	dev->stats.tx_packets++;
 	dev->stats.tx_bytes += (skb->len);
 
@@ -1294,21 +1293,21 @@ static void bfin_mac_timeout(struct net_device *dev)
 	bfin_mac_enable(lp->phydev);
 
 	/* We can accept TX packets again */
-	dev->trans_start = jiffies;
+	dev->trans_start = jiffies; /* prevent tx timeout */
 	netif_wake_queue(dev);
 }
 
 static void bfin_mac_multicast_hash(struct net_device *dev)
 {
 	u32 emac_hashhi, emac_hashlo;
-	struct dev_mc_list *dmi;
+	struct netdev_hw_addr *ha;
 	char *addrs;
 	u32 crc;
 
 	emac_hashhi = emac_hashlo = 0;
 
-	netdev_for_each_mc_addr(dmi, dev) {
-		addrs = dmi->dmi_addr;
+	netdev_for_each_mc_addr(ha, dev) {
+		addrs = ha->addr;
 
 		/* skip non-multicast addresses */
 		if (!(*addrs & 1))
@@ -1325,8 +1324,6 @@ static void bfin_mac_multicast_hash(struct net_device *dev)
 
 	bfin_write_EMAC_HASHHI(emac_hashhi);
 	bfin_write_EMAC_HASHLO(emac_hashlo);
-
-	return;
 }
 
 /*

@@ -135,6 +135,18 @@
 #define FTDI_NDI_AURORA_SCU_PID		0xDA74	/* NDI Aurora SCU */
 
 /*
+ * ChamSys Limited (www.chamsys.co.uk) USB wing/interface product IDs
+ */
+#define FTDI_CHAMSYS_24_MASTER_WING_PID        0xDAF8
+#define FTDI_CHAMSYS_PC_WING_PID       0xDAF9
+#define FTDI_CHAMSYS_USB_DMX_PID       0xDAFA
+#define FTDI_CHAMSYS_MIDI_TIMECODE_PID 0xDAFB
+#define FTDI_CHAMSYS_MINI_WING_PID     0xDAFC
+#define FTDI_CHAMSYS_MAXI_WING_PID     0xDAFD
+#define FTDI_CHAMSYS_MEDIA_WING_PID    0xDAFE
+#define FTDI_CHAMSYS_WING_PID  0xDAFF
+
+/*
  * Westrex International devices submitted by Cory Lee
  */
 #define FTDI_WESTREX_MODEL_777_PID	0xDC00	/* Model 777 */
@@ -283,8 +295,8 @@
 /*
  * Hameg HO820 and HO870 interface (using VID 0x0403)
  */
-#define        HAMEG_HO820_PID         0xed74
-#define        HAMEG_HO870_PID         0xed71
+#define HAMEG_HO820_PID			0xed74
+#define HAMEG_HO870_PID			0xed71
 
 /*
  *  MaxStream devices	www.maxstream.net
@@ -297,14 +309,14 @@
  * and Mike Studer (K6EEP) <k6eep@hamsoftware.org>.
  * Ian Abbott <abbotti@mev.co.uk> added a few more from the driver INF file.
  */
-#define FTDI_MHAM_KW_PID 0xEEE8		/* USB-KW interface */
-#define FTDI_MHAM_YS_PID 0xEEE9		/* USB-YS interface */
-#define FTDI_MHAM_Y6_PID 0xEEEA		/* USB-Y6 interface */
-#define FTDI_MHAM_Y8_PID 0xEEEB		/* USB-Y8 interface */
-#define FTDI_MHAM_IC_PID 0xEEEC		/* USB-IC interface */
-#define FTDI_MHAM_DB9_PID 0xEEED	/* USB-DB9 interface */
-#define FTDI_MHAM_RS232_PID 0xEEEE	/* USB-RS232 interface */
-#define FTDI_MHAM_Y9_PID 0xEEEF		/* USB-Y9 interface */
+#define FTDI_MHAM_KW_PID	0xEEE8	/* USB-KW interface */
+#define FTDI_MHAM_YS_PID	0xEEE9	/* USB-YS interface */
+#define FTDI_MHAM_Y6_PID	0xEEEA	/* USB-Y6 interface */
+#define FTDI_MHAM_Y8_PID	0xEEEB	/* USB-Y8 interface */
+#define FTDI_MHAM_IC_PID	0xEEEC	/* USB-IC interface */
+#define FTDI_MHAM_DB9_PID	0xEEED	/* USB-DB9 interface */
+#define FTDI_MHAM_RS232_PID	0xEEEE	/* USB-RS232 interface */
+#define FTDI_MHAM_Y9_PID	0xEEEF	/* USB-Y9 interface */
 
 /* Domintell products  http://www.domintell.com */
 #define FTDI_DOMINTELL_DGQG_PID	0xEF50	/* Master */
@@ -491,22 +503,15 @@
  * Blackfin gnICE JTAG
  * http://docs.blackfin.uclinux.org/doku.php?id=hw:jtag:gnice
  */
-#define ADI_VID 		0x0456
-#define ADI_GNICE_PID 		0xF000
-#define ADI_GNICEPLUS_PID 	0xF001
+#define ADI_VID			0x0456
+#define ADI_GNICE_PID		0xF000
+#define ADI_GNICEPLUS_PID	0xF001
 
 /*
  * RATOC REX-USB60F
  */
 #define RATOC_VENDOR_ID		0x0584
 #define RATOC_PRODUCT_ID_USB60F	0xb020
-
-/*
- * Contec products (http://www.contec.com)
- * Submitted by Daniel Sangorrin
- */
-#define CONTEC_VID		0x06CE	/* Vendor ID */
-#define CONTEC_COM1USBH_PID	0x8311	/* COM-1(USB)H */
 
 /*
  * Contec products (http://www.contec.com)
@@ -619,13 +624,13 @@
 #define SEALEVEL_2802_7_PID	0X2872	/* SeaLINK+8/485 (2802) Port 7 */
 #define SEALEVEL_2802_8_PID	0X2882	/* SeaLINK+8/485 (2802) Port 8 */
 #define SEALEVEL_2803_1_PID	0X2813	/* SeaLINK+8 (2803) Port 1 */
-#define SEALEVEL_2803_2_PID	0X2823 	/* SeaLINK+8 (2803) Port 2 */
-#define SEALEVEL_2803_3_PID	0X2833 	/* SeaLINK+8 (2803) Port 3 */
-#define SEALEVEL_2803_4_PID	0X2843 	/* SeaLINK+8 (2803) Port 4 */
-#define SEALEVEL_2803_5_PID	0X2853 	/* SeaLINK+8 (2803) Port 5 */
-#define SEALEVEL_2803_6_PID	0X2863 	/* SeaLINK+8 (2803) Port 6 */
-#define SEALEVEL_2803_7_PID	0X2873 	/* SeaLINK+8 (2803) Port 7 */
-#define SEALEVEL_2803_8_PID	0X2883 	/* SeaLINK+8 (2803) Port 8 */
+#define SEALEVEL_2803_2_PID	0X2823	/* SeaLINK+8 (2803) Port 2 */
+#define SEALEVEL_2803_3_PID	0X2833	/* SeaLINK+8 (2803) Port 3 */
+#define SEALEVEL_2803_4_PID	0X2843	/* SeaLINK+8 (2803) Port 4 */
+#define SEALEVEL_2803_5_PID	0X2853	/* SeaLINK+8 (2803) Port 5 */
+#define SEALEVEL_2803_6_PID	0X2863	/* SeaLINK+8 (2803) Port 6 */
+#define SEALEVEL_2803_7_PID	0X2873	/* SeaLINK+8 (2803) Port 7 */
+#define SEALEVEL_2803_8_PID	0X2883	/* SeaLINK+8 (2803) Port 8 */
 
 /*
  * JETI SPECTROMETER SPECBOS 1201
@@ -1033,7 +1038,7 @@
  */
 #define EVOLUTION_VID		0xDEEE	/* Vendor ID */
 #define EVOLUTION_ER1_PID	0x0300	/* ER1 Control Module */
-#define EVO_8U232AM_PID	0x02FF	/* Evolution robotics RCM2 (FT232AM)*/
+#define EVO_8U232AM_PID		0x02FF	/* Evolution robotics RCM2 (FT232AM)*/
 #define EVO_HYBRID_PID		0x0302	/* Evolution robotics RCM4 PID (FT232BM)*/
 #define EVO_RCM4_PID		0x0303	/* Evolution robotics RCM4 PID */
 

@@ -13,6 +13,7 @@
 #include <linux/device.h>
 #include <linux/i2c.h>
 #include <linux/spi/spi.h>
+#include <linux/slab.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -344,7 +345,7 @@ static int ad193x_bus_probe(struct device *dev, void *ctrl_data, int bus_type)
 	mutex_init(&codec->mutex);
 	codec->control_data = ctrl_data;
 	codec->dev = dev;
-	codec->private_data = ad193x;
+	snd_soc_codec_set_drvdata(codec, ad193x);
 	codec->reg_cache = ad193x->reg_cache;
 	codec->reg_cache_size = AD193X_NUM_REGS;
 	codec->name = "AD193X";

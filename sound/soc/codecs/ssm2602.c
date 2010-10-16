@@ -230,7 +230,7 @@ static int ssm2602_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct ssm2602_priv *ssm2602 = codec->private_data;
+	struct ssm2602_priv *ssm2602 = snd_soc_codec_get_drvdata(codec);
 	u16 iface = snd_soc_read(codec, SSM2602_IFACE) & 0xfff3;
 	int i = get_coeff(ssm2602->sysclk, params_rate(params));
 
@@ -285,7 +285,6 @@ static void ssm2602_shutdown(struct snd_pcm_substream *substream,
 	/* deactivate */
 	if (!codec->active)
 		snd_soc_write(codec, SSM2602_ACTIVE, 0);
-
 }
 
 static int ssm2602_mute(struct snd_soc_dai *dai, int mute)
@@ -304,7 +303,7 @@ static int ssm2602_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 		int clk_id, unsigned int freq, int dir)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	struct ssm2602_priv *ssm2602 = codec->private_data;
+	struct ssm2602_priv *ssm2602 = snd_soc_codec_get_drvdata(codec);
 	switch (freq) {
 	case 11289600:
 	case 12000000:
@@ -464,7 +463,6 @@ static int ssm2602_resume(struct platform_device *pdev)
 		codec->hw_write(codec->control_data, data, 2);
 	}
 	ssm2602_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
-	ssm2602_set_bias_level(codec, codec->suspend_bias_level);
 	snd_soc_write(codec, SSM2602_PWR, ssm2602->pwr_state);
 	return 0;
 }
