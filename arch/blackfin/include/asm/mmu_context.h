@@ -85,7 +85,7 @@ static inline void __switch_mm(struct mm_struct *prev_mm, struct mm_struct *next
 	}
 #endif
 
-#ifndef CONFIG_EXCEPTION_L1_SCRATCH
+#ifdef CONFIG_APP_STACK_L1
 	/* L1 stack switching.  */
 	if (!next_mm->context.l1_stack_save)
 		return;
@@ -188,7 +188,7 @@ static inline void destroy_context(struct mm_struct *mm)
 	unsigned int cpu = smp_processor_id();
 #endif
 
-#ifndef CONFIG_EXCEPTION_L1_SCRATCH
+#ifdef CONFIG_APP_STACK_L1
 	if (current_l1_stack_save == mm->context.l1_stack_save)
 		current_l1_stack_save = 0;
 	if (mm->context.l1_stack_save)
