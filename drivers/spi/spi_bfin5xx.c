@@ -73,10 +73,7 @@ struct master_data {
 	struct list_head queue;
 	int busy;
 	bool running;
-#ifdef CONFIG_SPI_BFIN_LOCK
-	/* SPI bus is lock by a slave for exclusive access */
-	int locked;
-#endif
+
 	/* Message Transfer pump */
 	struct tasklet_struct pump_transfers;
 
@@ -882,12 +879,6 @@ static void bfin_spi_pump_messages(struct work_struct *work)
 {
 	struct master_data *drv_data;
 	unsigned long flags;
-#ifdef CONFIG_SPI_BFIN_LOCK
-	int locked_cs = -1;
-	int next_cs = -1;
-	struct slave_data *chip = NULL;
-	struct spi_message *next_msg = NULL, *msg = NULL;
-#endif
 
 	drv_data = container_of(work, struct master_data, pump_messages);
 
@@ -906,42 +897,10 @@ static void bfin_spi_pump_messages(struct work_struct *work)
 		return;
 	}
 
-#ifdef CONFIG_SPI_BFIN_LOCK
-	/* Extract head of queue */
-	next_msg = list_entry(drv_data->queue.next,
-		struct spi_message, queue);
-
-	if (drv_data->locked) {
-		locked_cs = drv_data->locked;
-		chip = spi_get_ctldata(next_msg->spi);
-		next_cs = next_msg->spi->chip_select ? next_msg->spi->chip_select :
-			chip->cs_gpio;
-	}
-
-	/* Someone has locked the bus */
-	if (drv_data->locked && next_cs != locked_cs) {
-		list_for_each_entry(msg, &drv_data->queue, queue) {
-			chip = spi_get_ctldata(msg->spi);
-			next_cs = msg->spi->chip_select ?
-					msg->spi->chip_select : chip->cs_gpio;
-			if (next_cs == locked_cs) {
-				next_msg = msg;
-				break;
-			}
-		}
-		/* Do nothing even if there are messages for other devices */
-		if (next_cs != locked_cs) {
-			drv_data->busy = 0;
-			spin_unlock_irqrestore(&drv_data->lock, flags);
-			return;
-		}
-	}
-	drv_data->cur_msg = next_msg;
-#else
 	/* Extract head of queue */
 	drv_data->cur_msg = list_entry(drv_data->queue.next,
-		struct spi_message, queue);
-#endif
+				       struct spi_message, queue);
+
 	/* Setup the SSP using the per chip configuration */
 	drv_data->cur_chip = spi_get_ctldata(drv_data->cur_msg->spi);
 	bfin_spi_restore_state(drv_data);
@@ -967,54 +926,6 @@ static void bfin_spi_pump_messages(struct work_struct *work)
 
 	drv_data->busy = 1;
 	spin_unlock_irqrestore(&drv_data->lock, flags);
-}
-
-/*
- * lock the spi bus for exclusive access
- */
-static int bfin_spi_lock_bus(struct spi_device *spi)
-{
-	int ret = -ENOSYS;
-#ifdef CONFIG_SPI_BFIN_LOCK
-	struct master_data *drv_data = spi_master_get_devdata(spi->master);
-	struct slave_data *chip = spi_get_ctldata(spi);
-	unsigned long flags;
-
-	spin_lock_irqsave(&drv_data->lock, flags);
-	if (!drv_data->locked) {
-		drv_data->locked = spi->chip_select ?
-			spi->chip_select : chip->cs_gpio;
-		ret = 0;
-	} else
-		ret = -ENOLCK;
-	spin_unlock_irqrestore(&drv_data->lock, flags);
-#endif
-	return ret;
-}
-
-static int bfin_spi_unlock_bus(struct spi_device *spi)
-{
-	int ret = -ENOSYS;
-#ifdef CONFIG_SPI_BFIN_LOCK
-	struct master_data *drv_data = spi_master_get_devdata(spi->master);
-	struct slave_data *chip = spi_get_ctldata(spi);
-	unsigned long flags;
-	int cs = spi->chip_select ? spi->chip_select : chip->cs_gpio;
-
-	spin_lock_irqsave(&drv_data->lock, flags);
-	if (cs == drv_data->locked) {
-		drv_data->locked = 0;
-		ret = 0;
-
-		/* kick off transfer of all pending messeages */
-		if (drv_data->running && !drv_data->busy &&
-			!list_empty(&drv_data->queue))
-			queue_work(drv_data->workqueue, &drv_data->pump_messages);
-	} else
-		ret = -ENOLCK;
-	spin_unlock_irqrestore(&drv_data->lock, flags);
-#endif
-	return ret;
 }
 
 /*
@@ -1286,9 +1197,6 @@ static inline int bfin_spi_init_queue(struct master_data *drv_data)
 	INIT_LIST_HEAD(&drv_data->queue);
 	spin_lock_init(&drv_data->lock);
 
-#ifdef CONFIG_SPI_BFIN_LOCK
-	drv_data->locked = 0;
-#endif
 	drv_data->running = false;
 	drv_data->busy = 0;
 
@@ -1336,9 +1244,6 @@ static inline int bfin_spi_stop_queue(struct master_data *drv_data)
 
 	spin_lock_irqsave(&drv_data->lock, flags);
 
-#ifdef CONFIG_SPI_BFIN_LOCK
-	drv_data->locked = 0;
-#endif
 	/*
 	 * This is a bit lame, but is optimized for the common execution path.
 	 * A wait_queue on the drv_data->busy could be used, but then the common
@@ -1405,8 +1310,6 @@ static int __init bfin_spi_probe(struct platform_device *pdev)
 	master->cleanup = bfin_spi_cleanup;
 	master->setup = bfin_spi_setup;
 	master->transfer = bfin_spi_transfer;
-	master->lock_bus = bfin_spi_lock_bus;
-	master->unlock_bus = bfin_spi_unlock_bus;
 
 	/* Find and map our resources */
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);

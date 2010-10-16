@@ -70,10 +70,7 @@ struct master_data {
 	struct list_head queue;
 	int busy;
 	bool run;
-#ifdef CONFIG_SPI_BFIN_LOCK
-	/* SPI bus is lock by a slave for exclusive access */
-	int locked;
-#endif
+
 	/* Message Transfer pump */
 	struct tasklet_struct pump_transfers;
 
@@ -474,10 +471,6 @@ static void bfin_sport_spi_pump_messages(struct work_struct *work)
 	struct master_data *drv_data;
 	unsigned long flags;
 	struct spi_message *next_msg;
-#ifdef CONFIG_SPI_BFIN_LOCK
-	int locked_cs = -1;
-	struct spi_message *msg = NULL;
-#endif
 
 	drv_data = container_of(work, struct master_data, pump_messages);
 
@@ -499,27 +492,6 @@ static void bfin_sport_spi_pump_messages(struct work_struct *work)
 	/* Extract head of queue */
 	next_msg = list_entry(drv_data->queue.next,
 		struct spi_message, queue);
-
-#ifdef CONFIG_SPI_BFIN_LOCK
-	if (drv_data->locked)
-		locked_cs = drv_data->locked;
-
-	/* Someone has locked the bus */
-	if (drv_data->locked && next_msg->spi->chip_select != locked_cs) {
-		list_for_each_entry(msg, &drv_data->queue, queue) {
-			if (msg->spi->chip_select == locked_cs) {
-				next_msg = msg;
-				break;
-			}
-		}
-		/* Do nothing even if there are messages for other devices */
-		if (next_msg->spi->chip_select != locked_cs) {
-			drv_data->busy = 0;
-			spin_unlock_irqrestore(&drv_data->lock, flags);
-			return;
-		}
-	}
-#endif
 
 	drv_data->cur_msg = next_msg;
 
@@ -548,42 +520,6 @@ static void bfin_sport_spi_pump_messages(struct work_struct *work)
 	drv_data->busy = 1;
 	spin_unlock_irqrestore(&drv_data->lock, flags);
 }
-
-/*
- * lock the spi bus for exclusive access
- */
-#ifdef CONFIG_SPI_BFIN_LOCK
-static int bfin_sport_spi_lock_bus(struct spi_device *spi)
-{
-	struct master_data *drv_data = spi_master_get_devdata(spi->master);
-	unsigned long flags;
-
-	spin_lock_irqsave(&drv_data->lock, flags);
-	if (drv_data->locked) {
-		spin_unlock_irqrestore(&drv_data->lock, flags);
-		return -ENOLCK;
-	}
-	drv_data->locked = spi->chip_select;
-	spin_unlock_irqrestore(&drv_data->lock, flags);
-
-	return 0;
-}
-
-static int bfin_sport_spi_unlock_bus(struct spi_device *spi)
-{
-	struct master_data *drv_data = spi_master_get_devdata(spi->master);
-	unsigned long flags;
-
-	spin_lock_irqsave(&drv_data->lock, flags);
-	drv_data->locked = 0;
-	spin_unlock_irqrestore(&drv_data->lock, flags);
-
-	return 0;
-}
-#else
-# define bfin_sport_spi_lock_bus   NULL
-# define bfin_sport_spi_unlock_bus NULL
-#endif
 
 /*
  * got a msg to transfer, queue it in drv_data->queue.
@@ -715,9 +651,6 @@ static inline int bfin_sport_spi_init_queue(struct master_data *drv_data)
 	INIT_LIST_HEAD(&drv_data->queue);
 	spin_lock_init(&drv_data->lock);
 
-#ifdef CONFIG_SPI_BFIN_LOCK
-	drv_data->locked = 0;
-#endif
 	drv_data->run = false;
 	drv_data->busy = 0;
 
@@ -765,9 +698,6 @@ static inline int bfin_sport_spi_stop_queue(struct master_data *drv_data)
 
 	spin_lock_irqsave(&drv_data->lock, flags);
 
-#ifdef CONFIG_SPI_BFIN_LOCK
-	drv_data->locked = 0;
-#endif
 	/*
 	 * This is a bit lame, but is optimized for the common execution path.
 	 * A wait_queue on the drv_data->busy could be used, but then the common
@@ -831,8 +761,6 @@ static int __devinit bfin_sport_spi_probe(struct platform_device *pdev)
 	master->cleanup = bfin_sport_spi_cleanup;
 	master->setup = bfin_sport_spi_setup;
 	master->transfer = bfin_sport_spi_transfer;
-	master->lock_bus = bfin_sport_spi_lock_bus;
-	master->unlock_bus = bfin_sport_spi_unlock_bus;
 
 	/* Find and map our resources */
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
