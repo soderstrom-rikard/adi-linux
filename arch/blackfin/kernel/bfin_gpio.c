@@ -1,7 +1,7 @@
 /*
  * GPIO Abstraction Layer
  *
- * Copyright 2006-2009 Analog Devices Inc.
+ * Copyright 2006-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later
  */
@@ -224,22 +224,8 @@ static const s8 port_mux[] = {
 	[GPIO_PF5] = 6,
 	[GPIO_PF6] = 7,
 	[GPIO_PF7] = 8,
-	[GPIO_PF8] = -1,
-	[GPIO_PF9] = -1,
-	[GPIO_PF10] = -1,
-	[GPIO_PF11] = -1,
-	[GPIO_PF12] = -1,
-	[GPIO_PF13] = -1,
-	[GPIO_PF14] = -1,
-	[GPIO_PF15] = -1,
-	[GPIO_PG0] = -1,
-	[GPIO_PG1] = -1,
-	[GPIO_PG2] = -1,
-	[GPIO_PG3] = -1,
-	[GPIO_PG4] = -1,
-	[GPIO_PG5] = -1,
-	[GPIO_PG6] = -1,
-	[GPIO_PG7] = -1,
+	[GPIO_PF8 ... GPIO_PF15] = -1,
+	[GPIO_PG0 ... GPIO_PG7] = -1,
 	[GPIO_PG8] = 9,
 	[GPIO_PG9] = 9,
 	[GPIO_PG10] = 10,
@@ -249,79 +235,71 @@ static const s8 port_mux[] = {
 	[GPIO_PG14] = 11,
 	[GPIO_PG15] = 11,
 	[GPIO_PH0 ... GPIO_PH15] = -1,
-	[PORT_PJ0] = -1,
-	[PORT_PJ1] = -1,
-	[PORT_PJ2] = -1,
-	[PORT_PJ3] = -1,
+	[PORT_PJ0 ... PORT_PJ3] = -1,
 	[PORT_PJ4] = 1,
 	[PORT_PJ5] = 1,
-	[PORT_PJ6] = -1,
-	[PORT_PJ7] = -1,
-	[PORT_PJ8] = -1,
-	[PORT_PJ9] = -1,
+	[PORT_PJ6 ... PORT_PJ9] = -1,
 	[PORT_PJ10] = 0,
 	[PORT_PJ11] = 0,
 };
 
 static int portmux_group_check(unsigned short per)
 {
-	u16 m, ident, pfunc;
-	s8 offset;
+	u16 ident = P_IDENT(per);
 	u16 function = P_FUNCT2MUX(per);
-	offset = port_mux[P_IDENT(per)];
+	s8 offset = port_mux[ident];
+	u16 m, pmux, pfunc;
+
 	if (offset < 0)
 		return 0;
-	ident = P_IDENT(per);
-	pfunc = bfin_read_PORT_MUX();
-	for (m = 0; m < ARRAY_SIZE(port_mux); m++) {
+
+	pmux = bfin_read_PORT_MUX();
+	for (m = 0; m < ARRAY_SIZE(port_mux); ++m) {
 		if (m == ident)
 			continue;
-		if (port_mux[m] == offset) {
-			if (is_reserved(peri, m, 1)) {
-				if (offset == 1)
-					pfunc = (pfunc >> offset) & 3;
-				else
-					pfunc = (pfunc >> offset) & 1;
-				if (pfunc != function) {
-					pr_err("pin group conflict! request pin %d func %d conflict with pin %d func %d\n",
-						ident, function, m, pfunc);
-					return -EINVAL;
-				}
-			}
+		if (port_mux[m] != offset)
+			continue;
+		if (!is_reserved(peri, m, 1))
+			continue;
+
+		if (offset == 1)
+			pfunc = (pmux >> offset) & 3;
+		else
+			pfunc = (pmux >> offset) & 1;
+		if (pfunc != function) {
+			pr_err("pin group conflict! request pin %d func %d conflict with pin %d func %d\n",
+				ident, function, m, pfunc);
+			return -EINVAL;
 		}
 	}
+
 	return 0;
 }
 
 static void portmux_setup(unsigned short per)
 {
-	u16 ident, muxreg, reg;
-	s8 offset;
+	u16 ident = P_IDENT(per);
 	u16 function = P_FUNCT2MUX(per);
+	s8 offset = port_mux[ident];
+	u16 pmux;
 
-	/* SET PORTMUX REG */
-	ident = P_IDENT(per);
-	offset = port_mux[ident];
 	if (offset == -1)
 		return;
-	reg = muxreg = bfin_read_PORT_MUX();
 
+	pmux = bfin_read_PORT_MUX();
 	if (offset != 1)
-		muxreg &= ~(1 << offset);
+		pmux &= ~(1 << offset);
 	else
-		muxreg &= ~(3 << 1);
-
-	muxreg |= (function << offset);
-	if (muxreg == reg)
-		return;
-	bfin_write_PORT_MUX(muxreg);
+		pmux &= ~(3 << 1);
+	pmux |= (function << offset);
+	bfin_write_PORT_MUX(pmux);
 }
 #elif defined(CONFIG_BF54x)
 inline void portmux_setup(unsigned short per)
 {
-	u32 pmux;
 	u16 ident = P_IDENT(per);
 	u16 function = P_FUNCT2MUX(per);
+	u32 pmux;
 
 	pmux = gpio_array[gpio_bank(ident)]->port_mux;
 
@@ -333,11 +311,8 @@ inline void portmux_setup(unsigned short per)
 
 inline u16 get_portmux(unsigned short per)
 {
-	u32 pmux;
 	u16 ident = P_IDENT(per);
-
-	pmux = gpio_array[gpio_bank(ident)]->port_mux;
-
+	u32 pmux = gpio_array[gpio_bank(ident)]->port_mux;
 	return (pmux >> (2 * gpio_sub_n(ident)) & 0x3);
 }
 static int portmux_group_check(unsigned short per)
@@ -347,32 +322,39 @@ static int portmux_group_check(unsigned short per)
 #elif defined(CONFIG_BF52x) || defined(CONFIG_BF51x)
 static int portmux_group_check(unsigned short per)
 {
-	u16 pin, gpiopin, pfunc;
-	u16 ident = P_IDENT(per), function = P_FUNCT2MUX(per);
+	u16 ident = P_IDENT(per);
+	u16 function = P_FUNCT2MUX(per);
 	u8 offset = pmux_offset[gpio_bank(ident)][gpio_sub_n(ident)];
-	for (pin = 0; pin < GPIO_BANKSIZE; pin++) {
-		if (offset == pmux_offset[gpio_bank(ident)][pin]) {
-			gpiopin = gpio_bank(ident) * GPIO_BANKSIZE + pin;
-			if (gpiopin == ident)
-				continue;
-			if (is_reserved(peri, gpiopin, 1)) {
-				pfunc = *port_mux[gpio_bank(ident)];
-				pfunc = (pfunc >> offset) & 3;
-				if (pfunc != function) {
-					pr_err("pin group conflict! request pin %d func %d conflict with pin %d func %d\n",
-						ident, function, gpiopin, pfunc);
-					return -EINVAL;
-				}
-			}
+	u16 pin, gpiopin, pfunc;
+
+	for (pin = 0; pin < GPIO_BANKSIZE; ++pin) {
+		if (offset != pmux_offset[gpio_bank(ident)][pin])
+			continue;
+
+		gpiopin = gpio_bank(ident) * GPIO_BANKSIZE + pin;
+		if (gpiopin == ident)
+			continue;
+		if (!is_reserved(peri, gpiopin, 1))
+			continue;
+
+		pfunc = *port_mux[gpio_bank(ident)];
+		pfunc = (pfunc >> offset) & 3;
+		if (pfunc != function) {
+			pr_err("pin group conflict! request pin %d func %d conflict with pin %d func %d\n",
+				ident, function, gpiopin, pfunc);
+			return -EINVAL;
 		}
 	}
+
 	return 0;
 }
 
 inline void portmux_setup(unsigned short per)
 {
-	u16 pmux, ident = P_IDENT(per), function = P_FUNCT2MUX(per);
+	u16 ident = P_IDENT(per);
+	u16 function = P_FUNCT2MUX(per);
 	u8 offset = pmux_offset[gpio_bank(ident)][gpio_sub_n(ident)];
+	u16 pmux;
 
 	pmux = *port_mux[gpio_bank(ident)];
 	if  (((pmux >> offset) & 3) == function)
