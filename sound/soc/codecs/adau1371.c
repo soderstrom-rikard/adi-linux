@@ -48,7 +48,7 @@ static int adau1371_volume_get(struct snd_kcontrol *kcontrol,
 {
 	int i;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct adau1371_priv *chip = codec->private_data;
+	struct adau1371_priv *chip = snd_soc_codec_get_drvdata(codec);
 	u8 *cache = codec->reg_cache;
 
 	for (i = 0; i < CHANNELS_OUTPUT; ++i) {
@@ -71,7 +71,7 @@ static int adau1371_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int i;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct adau1371_priv *chip = codec->private_data;
+	struct adau1371_priv *chip = snd_soc_codec_get_drvdata(codec);
 	int change = 0;
 	u8 *cache = codec->reg_cache;
 
@@ -114,7 +114,7 @@ static int adau1371_cap_volume_get(struct snd_kcontrol *kcontrol,
 {
 	int i;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct adau1371_priv *chip = codec->private_data;
+	struct adau1371_priv *chip = snd_soc_codec_get_drvdata(codec);
 	u8 *cache = codec->reg_cache;
 
 	for (i = 0; i < CHANNELS_INPUT; ++i) {
@@ -140,7 +140,7 @@ static int adau1371_cap_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int i, check, vol;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct adau1371_priv *chip = codec->private_data;
+	struct adau1371_priv *chip = snd_soc_codec_get_drvdata(codec);
 	int change = 0;
 	u8 *cache = codec->reg_cache;
 
@@ -282,7 +282,7 @@ static int adau1371_mux_get(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct adau1371_priv *chip = codec->private_data;
+	struct adau1371_priv *chip = snd_soc_codec_get_drvdata(codec);
 
 	if (chip->in_chan_mask & CAP_INPA)
 		ucontrol->value.integer.value[0] = 0;
@@ -300,7 +300,7 @@ static int adau1371_mux_put(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct adau1371_priv *chip = codec->private_data;
+	struct adau1371_priv *chip = snd_soc_codec_get_drvdata(codec);
 	u8 reg, *cache = codec->reg_cache;
 
 	reg = snd_soc_read(codec, ADAU1371_PWRCTLA);
@@ -371,7 +371,7 @@ static int adau1371_play_sel_get(struct snd_kcontrol *kcontrol,
 				 struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct adau1371_priv *chip = codec->private_data;
+	struct adau1371_priv *chip = snd_soc_codec_get_drvdata(codec);
 
 	if (chip->out_chan_mask & PB_LINE)
 		ucontrol->value.enumerated.item[0] = 0;
@@ -387,7 +387,7 @@ static int adau1371_play_sel_put(struct snd_kcontrol *kcontrol,
 				 struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct adau1371_priv *chip = codec->private_data;
+	struct adau1371_priv *chip = snd_soc_codec_get_drvdata(codec);
 	u8 *cache = codec->reg_cache;
 	u8 reg;
 
@@ -542,7 +542,7 @@ static int adau1371_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct adau1371_priv *adau1371 = codec->private_data;
+	struct adau1371_priv *adau1371 = snd_soc_codec_get_drvdata(codec);
 	const struct _pll_settings *pll_settings = adau1371->data->pll_settings;
 	int i = 0;
 	u8 dai_ctl;
@@ -679,7 +679,7 @@ static int adau1371_set_dai_sysclk(struct snd_soc_dai *codec_dai, int clk_id,
 				   unsigned int freq, int dir)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	struct adau1371_priv *adau1371 = codec->private_data;
+	struct adau1371_priv *adau1371 = snd_soc_codec_get_drvdata(codec);
 
 	adau1371->sysclk = freq;
 
@@ -959,7 +959,7 @@ static int adau1371_probe(struct platform_device *pdev)
 
 	socdev->card->codec = adau1371_codec;
 	codec = adau1371_codec;
-	adau1371 = codec->private_data;
+	adau1371 = snd_soc_codec_get_drvdata(codec);
 	adau1371->data = pdev->dev.platform_data;
 
 	ret = adau1371_init(adau1371);
@@ -1010,7 +1010,7 @@ static __devinit int adau1371_i2c_probe(struct i2c_client *i2c,
 	if (adau1371 == NULL)
 		return -ENOMEM;
 	codec = &adau1371->codec;
-	codec->private_data = adau1371;
+	snd_soc_codec_set_drvdata(codec, adau1371);
 	codec->hw_write = (hw_write_t)i2c_master_send;
 
 	i2c_set_clientdata(i2c, adau1371);

@@ -440,7 +440,7 @@ static int ssm2602_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct ssm2602_priv *ssm2602 = codec->private_data;
+	struct ssm2602_priv *ssm2602 = snd_soc_codec_get_drvdata(codec);
 
 	ssm2602->pwr_state = snd_soc_read(codec, SSM2602_PWR);
 	ssm2602_set_bias_level(codec, SND_SOC_BIAS_OFF);
@@ -451,7 +451,7 @@ static int ssm2602_resume(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct ssm2602_priv *ssm2602 = codec->private_data;
+	struct ssm2602_priv *ssm2602 = snd_soc_codec_get_drvdata(codec);
 	int i;
 	u8 data[2];
 	u16 *cache = codec->reg_cache;
@@ -593,7 +593,7 @@ static int ssm2602_i2c_probe(struct i2c_client *i2c,
 	if (ssm2602 == NULL)
 		return -ENOMEM;
 	codec = &ssm2602->codec;
-	codec->private_data = ssm2602;
+	snd_soc_codec_set_drvdata(codec, ssm2602);
 
 	i2c_set_clientdata(i2c, ssm2602);
 	codec->control_data = i2c;

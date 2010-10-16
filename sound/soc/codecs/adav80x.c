@@ -196,7 +196,7 @@ static int adav80x_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct adav80x_priv *adav80x = codec->private_data;
+	struct adav80x_priv *adav80x = snd_soc_codec_get_drvdata(codec);
 
 	/* bit size */
 	switch (params_format(params)) {
@@ -264,7 +264,7 @@ static int adav80x_set_dai_pll(struct snd_soc_dai *codec_dai, int pll_id,
 		int source, unsigned int freq_in, unsigned int freq_out)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	struct adav80x_priv *adav80x = codec->private_data;
+	struct adav80x_priv *adav80x = snd_soc_codec_get_drvdata(codec);
 	int reg = 0;
 
 	/* For now, we only enable PLL1 with XIN as source */
@@ -428,7 +428,7 @@ static int adav80x_register(struct adav80x_priv *adav80x, int bus_type)
 	}
 
 	mutex_init(&codec->mutex);
-	codec->private_data = adav80x;
+	snd_soc_codec_set_drvdata(codec, adav80x);
 	codec->reg_cache = adav80x->reg_cache;
 	codec->reg_cache_size = ADAV80X_NUM_REGS;
 	codec->name = "ADAV80X";

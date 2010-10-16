@@ -257,7 +257,7 @@ static int ad193x_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 		int clk_id, unsigned int freq, int dir)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	struct ad193x_priv *ad193x = codec->private_data;
+	struct ad193x_priv *ad193x = snd_soc_codec_get_drvdata(codec);
 	switch (freq) {
 	case 12288000:
 	case 18432000:
@@ -278,7 +278,7 @@ static int ad193x_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct ad193x_priv *ad193x = codec->private_data;
+	struct ad193x_priv *ad193x = snd_soc_codec_get_drvdata(codec);
 
 	/* bit size */
 	switch (params_format(params)) {

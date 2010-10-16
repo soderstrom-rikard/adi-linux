@@ -263,7 +263,7 @@ static inline int get_pll_settings(int mclk, int pll_out)
 
 static int adau1381_pll_init(struct snd_soc_codec *codec)
 {
-	struct adau1381_priv *adau1381 = codec->private_data;
+	struct adau1381_priv *adau1381 = snd_soc_codec_get_drvdata(codec);
 	u8 *pll_reg = adau1381->adau1381_pll_reg;
 	int ix = 0;
 
@@ -288,7 +288,7 @@ static int adau1381_pll_init(struct snd_soc_codec *codec)
 
 static int adau1381_pll_enable(struct snd_soc_codec *codec, int enable)
 {
-	struct adau1381_priv *adau1381 = codec->private_data;
+	struct adau1381_priv *adau1381 = snd_soc_codec_get_drvdata(codec);
 	u8 *pll_reg = adau1381->adau1381_pll_reg;
 	int counter = 0;
 
@@ -387,7 +387,7 @@ static int adau1381_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct adau1381_priv *adau1381 = codec->private_data;
+	struct adau1381_priv *adau1381 = snd_soc_codec_get_drvdata(codec);
 	int rate = params_rate(params);
 	int i;
 
@@ -410,7 +410,7 @@ static int adau1381_pcm_prepare(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct adau1381_priv *adau1381 = codec->private_data;
+	struct adau1381_priv *adau1381 = snd_soc_codec_get_drvdata(codec);
 	u8 reg = 0;
 	int ret = 0;
 
@@ -496,10 +496,10 @@ static int adau1381_set_dai_fmt(struct snd_soc_dai *codec_dai,
  * Clock after PLL and dividers
  */
 static int adau1381_set_dai_sysclk(struct snd_soc_dai *codec_dai,
-		int clk_id, int source, unsigned int freq, int dir)
+		int clk_id, unsigned int freq, int dir)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	struct adau1381_priv *adau1381 = codec->private_data;
+	struct adau1381_priv *adau1381 = snd_soc_codec_get_drvdata(codec);
 
 	switch (freq) {
 	case 12000000:
@@ -515,10 +515,10 @@ static int adau1381_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 }
 
 static int adau1381_set_dai_pll(struct snd_soc_dai *codec_dai,
-		int pll_id, unsigned int freq_in, unsigned int freq_out)
+		int pll_id, int source, unsigned int freq_in, unsigned int freq_out)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	struct adau1381_priv *adau1381 = codec->private_data;
+	struct adau1381_priv *adau1381 = snd_soc_codec_get_drvdata(codec);
 
 	/* fixed MCLK only supported for now */
 	if (adau1381->sysclk != freq_in)
@@ -647,7 +647,7 @@ static int adau1381_resume(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct adau1381_priv *adau1381 = codec->private_data;
+	struct adau1381_priv *adau1381 = snd_soc_codec_get_drvdata(codec);
 
 	adau1381->pdev = pdev;
 	schedule_work(&adau1381->resume_work);
@@ -719,7 +719,7 @@ static int adau1381_probe(struct platform_device *pdev)
 
 	socdev->card->codec = adau1381_codec;
 	codec = adau1381_codec;
-	adau1381 = codec->private_data;
+	adau1381 = snd_soc_codec_get_drvdata(codec);
 	adau1381->in_source = CAP_MIC; /*default is mic input*/
 	adau1381->sysclk = ADAU1381_MCLK_RATE;
 	adau1381->pll_out = ADAU1381_PLL_FREQ_48;
@@ -776,7 +776,7 @@ static __devinit int adau1381_i2c_probe(struct i2c_client *i2c,
 	if (adau1381 == NULL)
 		return -ENOMEM;
 	codec = &adau1381->codec;
-	codec->private_data = adau1381;
+	snd_soc_codec_set_drvdata(codec, adau1381);
 	codec->hw_write = (hw_write_t)i2c_master_send;
 
 	i2c_set_clientdata(i2c, adau1381);

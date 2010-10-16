@@ -139,7 +139,7 @@ static int adau1761_mux_get(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct adau1761_priv *adau1761 = codec->private_data;
+	struct adau1761_priv *adau1761 = snd_soc_codec_get_drvdata(codec);
 
 	if (adau1761->in_source & CAP_MIC)
 		ucontrol->value.integer.value[0] = 0x0;
@@ -153,7 +153,7 @@ static int adau1761_mux_put(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct adau1761_priv *adau1761 = codec->private_data;
+	struct adau1761_priv *adau1761 = snd_soc_codec_get_drvdata(codec);
 	int src = ucontrol->value.integer.value[0];
 	u8 regvalue = 0;
 
@@ -198,7 +198,7 @@ static int adau1761_mic_boost_get(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct adau1761_priv *adau1761 = codec->private_data;
+	struct adau1761_priv *adau1761 = snd_soc_codec_get_drvdata(codec);
 
 	if (adau1761->in_source & CAP_MIC)
 		ucontrol->value.integer.value[0] =
@@ -216,7 +216,7 @@ static int adau1761_mic_boost_put(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct adau1761_priv *adau1761 = codec->private_data;
+	struct adau1761_priv *adau1761 = snd_soc_codec_get_drvdata(codec);
 	int val = ucontrol->value.integer.value[0];
 	u8 regvalue = 0;
 
@@ -431,7 +431,7 @@ static inline int get_pll_settings(int mclk, int pll_out)
 
 static int adau1761_pll_init(struct snd_soc_codec *codec)
 {
-	struct adau1761_priv *adau1761 = codec->private_data;
+	struct adau1761_priv *adau1761 = snd_soc_codec_get_drvdata(codec);
 	u8 *pll_reg = adau1761->adau1761_pll_reg;
 	int ix = 0;
 	/* Clear dsp Run bit */
@@ -458,7 +458,7 @@ static int adau1761_pll_init(struct snd_soc_codec *codec)
 
 static int adau1761_pll_enable(struct snd_soc_codec *codec, int enable)
 {
-	struct adau1761_priv *adau1761 = codec->private_data;
+	struct adau1761_priv *adau1761 = snd_soc_codec_get_drvdata(codec);
 	u8 *pll_reg = adau1761->adau1761_pll_reg;
 	int counter = 0;
 
@@ -595,7 +595,7 @@ static int adau1761_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct adau1761_priv *adau1761 = codec->private_data;
+	struct adau1761_priv *adau1761 = snd_soc_codec_get_drvdata(codec);
 	int rate = params_rate(params);
 	int i;
 
@@ -618,7 +618,7 @@ static int adau1761_pcm_prepare(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct adau1761_priv *adau1761 = codec->private_data;
+	struct adau1761_priv *adau1761 = snd_soc_codec_get_drvdata(codec);
 	u8 reg = 0;
 	int ret = 0;
 
@@ -702,7 +702,7 @@ static int adau1761_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 		int clk_id, unsigned int freq, int dir)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	struct adau1761_priv *adau1761 = codec->private_data;
+	struct adau1761_priv *adau1761 = snd_soc_codec_get_drvdata(codec);
 
 	switch (freq) {
 	case 12000000:
@@ -721,7 +721,7 @@ static int adau1761_set_dai_pll(struct snd_soc_dai *codec_dai,
 		int pll_id, int source, unsigned int freq_in, unsigned int freq_out)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	struct adau1761_priv *adau1761 = codec->private_data;
+	struct adau1761_priv *adau1761 = snd_soc_codec_get_drvdata(codec);
 
 	/* fixed MCLK only supported for now */
 	if (adau1761->sysclk != freq_in)
@@ -861,7 +861,7 @@ static int adau1761_resume(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct adau1761_priv *adau1761 = codec->private_data;
+	struct adau1761_priv *adau1761 = snd_soc_codec_get_drvdata(codec);
 
 	adau1761->pdev = pdev;
 	schedule_work(&adau1761->resume_work);
@@ -948,7 +948,7 @@ static int adau1761_probe(struct platform_device *pdev)
 
 	socdev->card->codec = adau1761_codec;
 	codec = adau1761_codec;
-	adau1761 = codec->private_data;
+	adau1761 = snd_soc_codec_get_drvdata(codec);
 	adau1761->in_source = CAP_MIC; /*default is mic input*/
 	adau1761->sysclk = ADAU1761_MCLK_RATE;
 	adau1761->pll_out = ADAU1761_PLL_FREQ_48;
@@ -1011,7 +1011,7 @@ static __devinit int adau1761_i2c_probe(struct i2c_client *i2c,
 	if (adau1761 == NULL)
 		return -ENOMEM;
 	codec = &adau1761->codec;
-	codec->private_data = adau1761;
+	snd_soc_codec_set_drvdata(codec, adau1761);
 	codec->hw_write = (hw_write_t)i2c_master_send;
 
 	i2c_set_clientdata(i2c, adau1761);
