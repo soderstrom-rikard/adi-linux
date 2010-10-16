@@ -177,7 +177,7 @@ static int ssm2604_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct ssm2604_priv *ssm2604 = codec->private_data;
+	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
 	struct i2c_client *i2c = codec->control_data;
 	u16 iface = snd_soc_read(codec, SSM2604_IFACE) & 0xfff3;
 	int i = get_coeff(ssm2604->sysclk, params_rate(params));
@@ -222,7 +222,7 @@ static int ssm2604_startup(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct ssm2604_priv *ssm2604 = codec->private_data;
+	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
 	struct i2c_client *i2c = codec->control_data;
 	struct snd_pcm_runtime *master_runtime;
 
@@ -273,7 +273,7 @@ static void ssm2604_shutdown(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_device *socdev = rtd->socdev;
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct ssm2604_priv *ssm2604 = codec->private_data;
+	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
 
 	/* deactivate */
 	if (!codec->active)
@@ -301,7 +301,7 @@ static int ssm2604_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 		int clk_id, unsigned int freq, int dir)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	struct ssm2604_priv *ssm2604 = codec->private_data;
+	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
 	switch (freq) {
 	case 11289600:
 	case 12000000:
@@ -439,7 +439,7 @@ static int ssm2604_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct ssm2604_priv *ssm2604 = codec->private_data;
+	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
 
 	ssm2604->pwr_state = snd_soc_read(codec, SSM2604_PWR);
 	ssm2604_set_bias_level(codec, SND_SOC_BIAS_OFF);
@@ -450,7 +450,7 @@ static int ssm2604_resume(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
-	struct ssm2604_priv *ssm2604 = codec->private_data;
+	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
 	int i;
 	u8 data[2];
 	u16 *cache = codec->reg_cache;
@@ -588,7 +588,7 @@ static int ssm2604_i2c_probe(struct i2c_client *i2c,
 	if (ssm2604 == NULL)
 		return -ENOMEM;
 	codec = &ssm2604->codec;
-	codec->private_data = ssm2604;
+	snd_soc_codec_set_drvdata(codec, ssm2604);
 
 	i2c_set_clientdata(i2c, ssm2604);
 	codec->control_data = i2c;
