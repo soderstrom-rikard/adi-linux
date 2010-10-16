@@ -1526,7 +1526,7 @@ static void ppi_setup_cdev(struct ppi_dev *dev, int index)
  *              or, you invoke it directly when it needs remove
  *              ppi module.
  */
-static void __exit ppi_cleanup_module(void)
+static void /*__exit*/ ppi_cleanup_module(void)
 {
 	int i;
 	dev_t devno = MKDEV(ppi_major, ppi_minor);
