@@ -11,20 +11,10 @@
  * For more information, please read the data sheet:
  * http://www.hitachi-displays-eu.com/doc/TX09D70VM1CDA.PDF
  *
- * This program is free software; you can distribute it and/or modify it
- * under the terms of the GNU General Public License (Version 2) as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 59 Temple Place - Suite 330, Boston MA 02111-1307, USA.
- *
+ * Licensed under the GPL-2.
  */
+
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -40,18 +30,18 @@
 #include <asm/dma.h>
 #include <asm/portmux.h>
 
-#define DRIVER_NAME "hitachi-tx09"
-
 #define MAX_BRIGHTNESS 100
 #define BFIN_LCD_NBR_PALETTE_ENTRIES	256
 
-#undef BITREVERSED		/* colors bitreversed? (only needed for older EXT-CAM boards) */
+#ifndef CONFIG_FB_HITACHI_TX09_REFRESHRATE
+# define CONFIG_FB_HITACHI_TX09_REFRESHRATE 25
+#endif
 
-#define PPI0_16 {P_PPI0_CLK, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3, \
-		P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7, P_PPI0_D8, P_PPI0_D9, P_PPI0_D10, \
-		P_PPI0_D11, P_PPI0_D12, P_PPI0_D13, P_PPI0_D14, P_PPI0_D15, 0}
+/* colors bitreversed? (only needed for older EXT-CAM boards) */
+#undef BITREVERSED
 
-#if defined(CONFIG_BFIN537_BLUETECHNIX_CM_E) || defined(CONFIG_BFIN537_BLUETECHNIX_CM_U)
+#if defined(CONFIG_BFIN537_BLUETECHNIX_CM_E) || \
+    defined(CONFIG_BFIN537_BLUETECHNIX_CM_U)
 
 #define TIMER_DCLK 3
 #define TIMER_HSYNC 0
@@ -82,14 +72,22 @@
 #define WRITE_PPI_COUNT(x) bfin_write_PPI0_COUNT(x)
 
 #else
-#error The Hitachi TX-09 frame buffer driver only supports Bluetechnix CM-BF537E and CM-BF561
+#error this driver only supports Bluetechnix CM-BF537E and CM-BF561 boards
 #endif
 
 #endif
 
+#define CONCAT(a, b, c, d) a ## b ## c ## d
 #define BFIN_WRITE(a, b) CONCAT(bfin_write_TIMER, a, _, b)
 #define BFIN_READ(a, b)  CONCAT(bfin_read_TIMER, a, _, b)
-#define CONCAT(a, b, c, d) a ## b ## c ## d
+
+static const unsigned short ppi_req[] = {
+	P_PPI0_CLK, P_PPI0_D0, P_PPI0_D1, P_PPI0_D2,
+	P_PPI0_D3, P_PPI0_D4, P_PPI0_D5, P_PPI0_D6,
+	P_PPI0_D7, P_PPI0_D8, P_PPI0_D9, P_PPI0_D10,
+	P_PPI0_D11, P_PPI0_D12, P_PPI0_D13, P_PPI0_D14,
+	P_PPI0_D15, 0,
+};
 
 static unsigned char *fb_buffer;	/* RGB Buffer */
 static dma_addr_t dma_handle;
@@ -227,27 +225,27 @@ static void config_timers(void)
 	BFIN_WRITE(TIMER_DCLK, WIDTH) (timer_period / 2);
 	SSYNC();
 
-	/* brightness timer */
+	/* brightness timer -- 100% duty cycle */
 	BFIN_WRITE(TIMER_BACKLIGHT, CONFIG) (PERIOD_CNT | PULSE_HI | PWM_OUT);
 	timer_period = get_sclk() / 100000;
 	BFIN_WRITE(TIMER_BACKLIGHT, PERIOD) (timer_period);
-	BFIN_WRITE(TIMER_BACKLIGHT, WIDTH) (timer_period - 1);	/* 100% duty cycle */
+	BFIN_WRITE(TIMER_BACKLIGHT, WIDTH) (timer_period - 1);
 	SSYNC();
 
-	/* hsync timer */
-	BFIN_WRITE(TIMER_HSYNC, CONFIG) (CLK_SEL | TIN_SEL | PERIOD_CNT | PWM_OUT);	/* clocked by PPI_clk */
+	/* hsync timer -- clocked by PPI_clk */
+	BFIN_WRITE(TIMER_HSYNC, CONFIG) (CLK_SEL | TIN_SEL | PERIOD_CNT | PWM_OUT);
 	BFIN_WRITE(TIMER_HSYNC, PERIOD) (273);	/* 240 + 33 blanking */
 	BFIN_WRITE(TIMER_HSYNC, WIDTH) (5);
 	SSYNC();
 
-	/* dtmg timer */
-	BFIN_WRITE(TIMER_DTMG, CONFIG) (CLK_SEL | TIN_SEL | PERIOD_CNT | PWM_OUT);	/* clocked by PPI_clk */
+	/* dtmg timer -- clocked by PPI_clk */
+	BFIN_WRITE(TIMER_DTMG, CONFIG) (CLK_SEL | TIN_SEL | PERIOD_CNT | PWM_OUT);
 	BFIN_WRITE(TIMER_DTMG, PERIOD) (273);
 	BFIN_WRITE(TIMER_DTMG, WIDTH) (33);
 	SSYNC();
 
-	/* vsync timer */
-	BFIN_WRITE(TIMER_VSYNC, CONFIG) (CLK_SEL | TIN_SEL | PERIOD_CNT | PWM_OUT);	/* clocked by PPI_clk */
+	/* vsync timer -- clocked by PPI_clk */
+	BFIN_WRITE(TIMER_VSYNC, CONFIG) (CLK_SEL | TIN_SEL | PERIOD_CNT | PWM_OUT);
 	BFIN_WRITE(TIMER_VSYNC, PERIOD) (89271);
 	BFIN_WRITE(TIMER_VSYNC, WIDTH) (1911);
 	SSYNC();
@@ -310,13 +308,13 @@ static int config_dma(void)
 	set_dma_x_modify(CH_PPI, 2 * 320);
 	set_dma_y_count(CH_PPI, 0);
 	set_dma_y_modify(CH_PPI, 0);
-	set_dma_next_desc_addr(CH_PPI, (unsigned long)dma_desc_table[2 * 326]);
+	set_dma_next_desc_addr(CH_PPI, (void *)dma_desc_table[2 * 326]);
 #else
 	set_dma_x_count(CH_PPI, 240);
 	set_dma_x_modify(CH_PPI, 2);
 	set_dma_y_count(CH_PPI, 0);
 	set_dma_y_modify(CH_PPI, 0);
-	set_dma_next_desc_addr(CH_PPI, (unsigned long)dma_desc_table[2 * 326]);
+	set_dma_next_desc_addr(CH_PPI, (void *)dma_desc_table[2 * 326]);
 #endif
 
 	set_dma_config(CH_PPI, 0x7404);
@@ -326,27 +324,24 @@ static int config_dma(void)
 
 static int request_ports(int action)
 {
-	u16 ppi_req[] = PPI0_16;
 	u16 tmr_req[] = TIMERS;
 
 	if (action) {
-		if (peripheral_request_list(ppi_req, DRIVER_NAME)) {
-			printk(KERN_ERR DRIVER_NAME
-			       ": Requesting Peripherals PPI faild\n");
+		if (peripheral_request_list(ppi_req, KBUILD_MODNAME)) {
+			pr_err("requesting peripherals PPI failed\n");
 			return -EFAULT;
 		}
 
-		if (peripheral_request_list(tmr_req, DRIVER_NAME)) {
+		if (peripheral_request_list(tmr_req, KBUILD_MODNAME)) {
 			peripheral_free_list(ppi_req);
-			printk(KERN_ERR DRIVER_NAME
-			       ": Requesting Peripherals TMR faild\n");
+			pr_err("requesting peripherals TMR failed\n");
 			return -EFAULT;
 		}
 
-		if (gpio_request(PCI_PIN, DRIVER_NAME)) {
+		if (gpio_request(PCI_PIN, KBUILD_MODNAME)) {
 			peripheral_free_list(ppi_req);
 			peripheral_free_list(tmr_req);
-			printk(KERN_ERR ": Requesting GPIO %d faild\n", PCI_PIN);
+			pr_err("requesting GPIO %d failed\n", PCI_PIN);
 			return -EFAULT;
 		}
 
@@ -358,6 +353,7 @@ static int request_ports(int action)
 
 		gpio_free(PCI_PIN);
 	}
+
 	return 0;
 }
 
@@ -396,7 +392,7 @@ static struct fb_var_screeninfo tx09_fb_defined = {
 };
 
 static struct fb_fix_screeninfo tx09_fb_fix = {
-	.id = DRIVER_NAME,
+	.id = KBUILD_MODNAME,
 	.smem_len = 320 * 240 * 2,
 	.type = FB_TYPE_PACKED_PIXELS,
 	.visual = FB_VISUAL_TRUECOLOR,
@@ -580,50 +576,51 @@ static int bl_get_brightness(struct backlight_device *bd)
 	return current_brightness;
 }
 
-static struct backlight_ops tx09fb_bl_ops = {
+static const struct backlight_ops tx09fb_bl_ops = {
 	.get_brightness = bl_get_brightness,
 	.update_status = bl_update_properties,
 };
 
 static int __devinit tx09_probe(struct platform_device *pdev)
 {
+	struct backlight_properties props;
+	int dma_desc_len;
+
 	pr_debug("%s\n", __func__);
 
-	printk(KERN_INFO DRIVER_NAME ": FrameBuffer initializing...\n");
-
 	/* dma channel */
-	if (request_dma(CH_PPI, "BF533_PPI_DMA") < 0) {
-		printk(KERN_ERR DRIVER_NAME ": couldn't request PPI dma.\n");
+	if (request_dma(CH_PPI, "PPI_DMA") < 0) {
+		pr_err("couldn't request PPI dma\n");
 		return -EFAULT;
 	}
 
 	/* gpio ports */
 	if (request_ports(1)) {
-		printk(KERN_ERR DRIVER_NAME ": couldn't request gpio port.\n");
+		pr_err("couldn't request gpio port\n");
 		free_dma(CH_PPI);
 		return -EFAULT;
 	}
 
-	/* frame buffer */
-	fb_buffer = dma_alloc_coherent(NULL, 240 * 320 * 2, &dma_handle, GFP_KERNEL);	/* 7 blanking lines, 2 bytes/pixel */
+	/* frame buffer: blanking lines, 2 bytes/pixel */
+	fb_buffer = dma_alloc_coherent(NULL, 240 * 320 * 2,
+		&dma_handle, GFP_KERNEL);
 	if (fb_buffer == NULL) {
-		printk(KERN_ERR DRIVER_NAME
-		       ": couldn't allocate dma buffer.\n");
+		pr_err("couldn't allocate dma buffer\n");
 		free_dma(CH_PPI);
 		request_ports(0);
 		return -ENOMEM;
 	}
 
 	/* dma descriptor list */
+	dma_desc_len = sizeof(unsigned long) * 2 * (320 + 7);
 	if (L1_DATA_A_LENGTH)
-		dma_desc_table = l1_data_sram_zalloc(sizeof(unsigned long) * 2 * (320 + 7));
+		dma_desc_table = l1_data_sram_zalloc(dma_desc_len);
 	else
-		dma_desc_table = dma_alloc_coherent(NULL, sizeof(unsigned long) * 2 * (320 + 7),
+		dma_desc_table = dma_alloc_coherent(NULL, dma_desc_len,
 			&dma_handle, 0);
 
 	if (dma_desc_table == NULL) {
-		printk(KERN_ERR DRIVER_NAME
-		       ": couldn't allocate dma descriptor.\n");
+		pr_err("couldn't allocate dma descriptor\n");
 		free_dma(CH_PPI);
 		request_ports(0);
 		dma_free_coherent(NULL, 240 * 320 * 2, fb_buffer, dma_handle);
@@ -642,8 +639,7 @@ static int __devinit tx09_probe(struct platform_device *pdev)
 	/* pseudo palette */
 	tx09_fb.pseudo_palette = kzalloc(sizeof(u32) * 16, GFP_KERNEL);
 	if (!tx09_fb.pseudo_palette) {
-		printk(KERN_ERR DRIVER_NAME
-		       "Failed to allocate pseudo palette\n");
+		pr_err("failed to allocate pseudo palette\n");
 		free_dma(CH_PPI);
 		request_ports(0);
 		dma_free_coherent(NULL, 240 * 320 * 2, fb_buffer, dma_handle);
@@ -652,8 +648,7 @@ static int __devinit tx09_probe(struct platform_device *pdev)
 
 	/* color map */
 	if (fb_alloc_cmap(&tx09_fb.cmap, BFIN_LCD_NBR_PALETTE_ENTRIES, 0) < 0) {
-		printk(KERN_ERR DRIVER_NAME
-		       "Failed to allocate colormap (%d entries)\n",
+		pr_err("failed to allocate colormap (%d entries)\n",
 		       BFIN_LCD_NBR_PALETTE_ENTRIES);
 		free_dma(CH_PPI);
 		request_ports(0);
@@ -664,8 +659,7 @@ static int __devinit tx09_probe(struct platform_device *pdev)
 
 	/* register framebuffer */
 	if (register_framebuffer(&tx09_fb) < 0) {
-		printk(KERN_ERR DRIVER_NAME
-		       ": unable to register framebuffer.\n");
+		pr_err("unable to register framebuffer\n");
 		free_dma(CH_PPI);
 		request_ports(0);
 		dma_free_coherent(NULL, 240 * 320 * 2, fb_buffer, dma_handle);
@@ -674,11 +668,12 @@ static int __devinit tx09_probe(struct platform_device *pdev)
 	}
 
 	/* backlight device */
-	bl_dev =
-	    backlight_device_register("hitachi-bl", NULL, NULL, &tx09fb_bl_ops);
-	bl_dev->props.max_brightness = MAX_BRIGHTNESS;
+	memset(&props, 0, sizeof(props));
+	props.max_brightness = MAX_BRIGHTNESS;
+	bl_dev = backlight_device_register("hitachi-bl", NULL, NULL,
+			&tx09fb_bl_ops, &props);
 
-	printk(KERN_INFO "Done.\n");
+	pr_info("initialized");
 
 	return 0;
 }
@@ -690,13 +685,11 @@ static int __devexit tx09_remove(struct platform_device *pdev)
 	if (fb_buffer != NULL)
 		dma_free_coherent(NULL, 240 * 320 * 2, fb_buffer, dma_handle);
 
-	if (dma_desc_table) {
-		if (L1_DATA_A_LENGTH)
-			l1_data_sram_free(dma_desc_table);
-		else
-			dma_free_coherent(NULL, sizeof(unsigned long) * 2 * (320 + 7),
-					  &dma_handle, 0);
-	}
+	if (L1_DATA_A_LENGTH)
+		l1_data_sram_free(dma_desc_table);
+	else
+		dma_free_coherent(NULL, sizeof(unsigned long) * 2 * (320 + 7),
+				  &dma_handle, 0);
 
 	stop_timers();
 
@@ -711,7 +704,7 @@ static int __devexit tx09_remove(struct platform_device *pdev)
 
 	request_ports(0);
 
-	printk(KERN_INFO DRIVER_NAME ": Unregistered LCD driver.\n");
+	pr_info("Unregistered LCD driver\n");
 
 	return 0;
 }
@@ -754,24 +747,23 @@ static struct platform_driver tx09_driver = {
 	.suspend = tx09_suspend,
 	.resume = tx09_resume,
 	.driver = {
-		   .name = DRIVER_NAME,
-		   .owner = THIS_MODULE,
-		   },
+		.name = KBUILD_MODNAME,
+		.owner = THIS_MODULE,
+	},
 };
 
 static int __init tx09_driver_init(void)
 {
 	return platform_driver_register(&tx09_driver);
 }
+module_init(tx09_driver_init);
 
 static void __exit tx09_driver_cleanup(void)
 {
 	platform_driver_unregister(&tx09_driver);
 }
+module_exit(tx09_driver_cleanup);
 
 MODULE_DESCRIPTION("Hitachi TX09D70VM1CDA TFT LCD Driver");
 MODULE_AUTHOR("Harald Krapfenbauer");
 MODULE_LICENSE("GPL");
-
-module_init(tx09_driver_init);
-module_exit(tx09_driver_cleanup);
