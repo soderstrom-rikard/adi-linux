@@ -12,6 +12,7 @@
 #include <linux/module.h>
 #include <linux/delay.h>
 #include <linux/device.h>
+#include <linux/gpio.h>
 #include <linux/io.h>
 #include <linux/ioport.h>
 #include <linux/irq.h>
@@ -21,7 +22,6 @@
 #include <linux/spi/spi.h>
 #include <linux/workqueue.h>
 
-#include <asm/gpio.h>
 #include <asm/portmux.h>
 #include <asm/bfin5xx_spi.h>
 #include <asm/blackfin.h>
@@ -29,7 +29,7 @@
 #include <asm/cacheflush.h>
 
 #define DRV_NAME	"bfin-sport-spi"
-#define DRV_DESC	"Emulate a SPI bus with via Blackfin SPORT"
+#define DRV_DESC	"Emulate a SPI bus via Blackfin SPORT"
 
 MODULE_AUTHOR("Cliff Cai");
 MODULE_DESCRIPTION(DRV_DESC);
@@ -541,7 +541,7 @@ static int bfin_sport_spi_transfer(struct spi_device *spi, struct spi_message *m
 	msg->status = -EINPROGRESS;
 	msg->state = START_STATE;
 
-	dev_dbg(&spi->dev, "adding an msg in transfer() \n");
+	dev_dbg(&spi->dev, "adding an msg in transfer()\n");
 	list_add_tail(&msg->queue, &drv_data->queue);
 
 	if (drv_data->run && !drv_data->busy)
@@ -571,8 +571,8 @@ static int bfin_sport_spi_setup(struct spi_device *spi)
 		chip_info = spi->controller_data;
 		if (chip_info) {
 			/*
-			 * DITFS and TDTYPE are only thing we don't set, but it
-			 * probably doesn't make sense to let people change these.
+			 * DITFS and TDTYPE are only thing we don't set, but
+			 * they probably shouldn't be changed by people.
 			 */
 			if (chip_info->ctl_reg || chip_info->enable_dma) {
 				ret = -EINVAL;
@@ -870,7 +870,7 @@ static int __devexit bfin_sport_spi_remove(struct platform_device *pdev)
 static int bfin_sport_spi_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct master_data *drv_data = platform_get_drvdata(pdev);
-	int status = 0;
+	int status;
 
 	status = bfin_sport_spi_stop_queue(drv_data);
 	if (status)
@@ -879,25 +879,23 @@ static int bfin_sport_spi_suspend(struct platform_device *pdev, pm_message_t sta
 	/* stop hardware */
 	bfin_sport_spi_disable(drv_data);
 
-	return 0;
+	return status;
 }
 
 static int bfin_sport_spi_resume(struct platform_device *pdev)
 {
 	struct master_data *drv_data = platform_get_drvdata(pdev);
-	int status = 0;
+	int status;
 
 	/* Enable the SPI interface */
 	bfin_sport_spi_enable(drv_data);
 
 	/* Start the queue running */
 	status = bfin_sport_spi_start_queue(drv_data);
-	if (status) {
+	if (status)
 		dev_err(&pdev->dev, "problem resuming queue\n");
-		return status;
-	}
 
-	return 0;
+	return status;
 }
 #else
 # define bfin_sport_spi_suspend NULL
