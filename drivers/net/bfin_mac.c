@@ -1276,7 +1276,7 @@ static void bfin_mac_timeout(struct net_device *dev)
 
 	del_timer(&lp->tx_reclaim_timer);
 
-	/* reset tx queue */
+	/* reset tx queue and free skb */
 	while (tx_list_head != current_tx_ptr) {
 		tx_list_head->desc_a.config &= ~DMAEN;
 		tx_list_head->status.status_word = 0;
