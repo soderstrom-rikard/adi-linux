@@ -75,13 +75,13 @@ asmlinkage int sys_bfin_spinlock(int *p)
 
 SYSCALL_DEFINE3(cacheflush, unsigned long, addr, unsigned long, len, int, op)
 {
-	if (is_user_addr_valid(current, addr, len) == 0) {
-		if (op & DCACHE)
-			blackfin_dcache_flush_range(addr, addr + len);
-		if (op & ICACHE)
-			blackfin_icache_flush_range(addr, addr + len);
-		return 0;
-	}
+	if (is_user_addr_valid(current, addr, len) != 0)
+		return -EINVAL;
 
-	return -EINVAL;
+	if (op & DCACHE)
+		blackfin_dcache_flush_range(addr, addr + len);
+	if (op & ICACHE)
+		blackfin_icache_flush_range(addr, addr + len);
+
+	return 0;
 }
