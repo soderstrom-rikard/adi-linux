@@ -22,8 +22,53 @@
 #define D32(name)        d(#name, 32, name)
 #define D16(name)        d(#name, 16, name)
 
+/*
+ * Core registers (not memory mapped)
+ */
 extern u32 last_seqstat;
 
+static int debug_cclk_get(void *data, u64 *val)
+{
+	*val = get_cclk();
+	return 0;
+}
+DEFINE_SIMPLE_ATTRIBUTE(fops_debug_cclk, debug_cclk_get, NULL, "0x%08llx\n");
+
+static int debug_sclk_get(void *data, u64 *val)
+{
+	*val = get_sclk();
+	return 0;
+}
+DEFINE_SIMPLE_ATTRIBUTE(fops_debug_sclk, debug_sclk_get, NULL, "0x%08llx\n");
+
+#define DEFINE_SYSREG(sr, pre, post) \
+static int sysreg_##sr##_get(void *data, u64 *val) \
+{ \
+	unsigned long tmp; \
+	pre; \
+	__asm__ __volatile__("%0 = " #sr ";" : "=d"(tmp)); \
+	*val = tmp; \
+	return 0; \
+} \
+static int sysreg_##sr##_set(void *data, u64 val) \
+{ \
+	unsigned long tmp = val; \
+	__asm__ __volatile__(#sr " = %0;" : : "d"(tmp)); \
+	post; \
+	return 0; \
+} \
+DEFINE_SIMPLE_ATTRIBUTE(fops_sysreg_##sr, sysreg_##sr##_get, sysreg_##sr##_set, "0x%08llx\n")
+
+DEFINE_SYSREG(cycles, , );
+DEFINE_SYSREG(cycles2, __asm__ __volatile__("%0 = cycles;" : "=d"(tmp)), );
+DEFINE_SYSREG(emudat, , );
+DEFINE_SYSREG(seqstat, , );
+DEFINE_SYSREG(syscfg, , CSYNC());
+#define D_SYSREG(sr) debugfs_create_file(#sr, S_IRUSR|S_IWUSR, parent, NULL, &fops_sysreg_##sr)
+
+/*
+ * SPORT
+ */
 static inline int sport_width(void *mmr)
 {
 	unsigned long lmmr = (unsigned long)mmr;
@@ -66,45 +111,9 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_sport_wo, NULL, sport_set, "0x%08llx\n");
 #define D_SPORT_RO(name, bits, addr) _D_SPORT(name, addr, S_IRUSR, &fops_sport_ro)
 #define D_SPORT_WO(name, bits, addr) _D_SPORT(name, addr, S_IWUSR, &fops_sport_wo)
 
-static int debug_cclk_get(void *data, u64 *val)
-{
-	*val = get_cclk();
-	return 0;
-}
-DEFINE_SIMPLE_ATTRIBUTE(fops_debug_cclk, debug_cclk_get, NULL, "0x%08llx\n");
-
-static int debug_sclk_get(void *data, u64 *val)
-{
-	*val = get_sclk();
-	return 0;
-}
-DEFINE_SIMPLE_ATTRIBUTE(fops_debug_sclk, debug_sclk_get, NULL, "0x%08llx\n");
-
-#define DEFINE_SYSREG(sr, pre, post) \
-static int sysreg_##sr##_get(void *data, u64 *val) \
-{ \
-	unsigned long tmp; \
-	pre; \
-	__asm__ __volatile__("%0 = " #sr ";" : "=d"(tmp)); \
-	*val = tmp; \
-	return 0; \
-} \
-static int sysreg_##sr##_set(void *data, u64 val) \
-{ \
-	unsigned long tmp = val; \
-	__asm__ __volatile__(#sr " = %0;" : : "d"(tmp)); \
-	post; \
-	return 0; \
-} \
-DEFINE_SIMPLE_ATTRIBUTE(fops_sysreg_##sr, sysreg_##sr##_get, sysreg_##sr##_set, "0x%08llx\n")
-
-DEFINE_SYSREG(cycles, , );
-DEFINE_SYSREG(cycles2, __asm__ __volatile__("%0 = cycles;" : "=d"(tmp)), );
-DEFINE_SYSREG(emudat, , );
-DEFINE_SYSREG(seqstat, , );
-DEFINE_SYSREG(syscfg, , CSYNC());
-#define D_SYSREG(sr) debugfs_create_file(#sr, S_IRUSR|S_IWUSR, parent, NULL, &fops_sysreg_##sr)
-
+/*
+ * The actual debugfs generation
+ */
 static struct dentry *debug_mmrs_dentry;
 
 static int __init bfin_debug_mmrs_init(void)
@@ -274,22 +283,170 @@ static int __init bfin_debug_mmrs_init(void)
 	D32(WPDACNT1);
 	D32(WPSTAT);
 
+	/* System MMRs */
+#ifdef ATAPI_CONTROL
+	parent = debugfs_create_dir("atapi", top);
+	D16(ATAPI_CONTROL);
+	D16(ATAPI_DEV_ADDR);
+	D16(ATAPI_DEV_RXBUF);
+	D16(ATAPI_DEV_TXBUF);
+	D16(ATAPI_DMA_TFRCNT);
+	D16(ATAPI_INT_MASK);
+	D16(ATAPI_INT_STATUS);
+	D16(ATAPI_LINE_STATUS);
+	D16(ATAPI_MULTI_TIM_0);
+	D16(ATAPI_MULTI_TIM_1);
+	D16(ATAPI_MULTI_TIM_2);
+	D16(ATAPI_PIO_TFRCNT);
+	D16(ATAPI_PIO_TIM_0);
+	D16(ATAPI_PIO_TIM_1);
+	D16(ATAPI_REG_TIM_0);
+	D16(ATAPI_SM_STATE);
+	D16(ATAPI_STATUS);
+	D16(ATAPI_TERMINATE);
+	D16(ATAPI_UDMAOUT_TFRCNT);
+	D16(ATAPI_ULTRA_TIM_0);
+	D16(ATAPI_ULTRA_TIM_1);
+	D16(ATAPI_ULTRA_TIM_2);
+	D16(ATAPI_ULTRA_TIM_3);
+	D16(ATAPI_UMAIN_TFRCNT);
+	D16(ATAPI_XFER_LEN);
+#endif
+
+#ifdef CNT_COMMAND
+	parent = debugfs_create_dir("counter", top);
+	D16(CNT_COMMAND);
+	D16(CNT_CONFIG);
+	D32(CNT_COUNTER);
+	D16(CNT_DEBOUNCE);
+	D16(CNT_IMASK);
+	D32(CNT_MAX);
+	D32(CNT_MIN);
+	D16(CNT_STATUS);
+#endif
+
+	parent = debugfs_create_dir("ebiu_amc", top);
+	D32(EBIU_AMBCTL0);
+	D32(EBIU_AMBCTL1);
+	D16(EBIU_AMGCTL);
+#ifdef EBIU_MBSCTL
+	D16(EBIU_MBSCTL);
+	D32(EBIU_ARBSTAT);
+	D32(EBIU_MODE);
+	D16(EBIU_FCTL);
+#endif
+
+#ifdef EBIU_SDGCTL
+	parent = debugfs_create_dir("ebiu_sdram", top);
+# ifdef __ADSPBF561__
+	D32(EBIU_SDBCTL);
+# else
+	D16(EBIU_SDBCTL);
+# endif
+	D32(EBIU_SDGCTL);
+	D16(EBIU_SDRRC);
+	D16(EBIU_SDSTAT);
+#endif
+
+#ifdef EBIU_DDRACCT
+	parent = debugfs_create_dir("ebiu_ddr", top);
+	D32(EBIU_DDRACCT);
+	D32(EBIU_DDRARCT);
+	D32(EBIU_DDRBRC0);
+	D32(EBIU_DDRBRC1);
+	D32(EBIU_DDRBRC2);
+	D32(EBIU_DDRBRC3);
+	D32(EBIU_DDRBRC4);
+	D32(EBIU_DDRBRC5);
+	D32(EBIU_DDRBRC6);
+	D32(EBIU_DDRBRC7);
+	D32(EBIU_DDRBWC0);
+	D32(EBIU_DDRBWC1);
+	D32(EBIU_DDRBWC2);
+	D32(EBIU_DDRBWC3);
+	D32(EBIU_DDRBWC4);
+	D32(EBIU_DDRBWC5);
+	D32(EBIU_DDRBWC6);
+	D32(EBIU_DDRBWC7);
+	D32(EBIU_DDRCTL0);
+	D32(EBIU_DDRCTL1);
+	D32(EBIU_DDRCTL2);
+	D32(EBIU_DDRCTL3);
+	D32(EBIU_DDRGC0);
+	D32(EBIU_DDRGC1);
+	D32(EBIU_DDRGC2);
+	D32(EBIU_DDRGC3);
+	D32(EBIU_DDRMCCL);
+	D32(EBIU_DDRMCEN);
+	D32(EBIU_DDRQUE);
+	D32(EBIU_DDRTACT);
+	D32(EBIU_ERRADD);
+	D16(EBIU_ERRMST);
+	D16(EBIU_RSTCTL);
+#endif
+
+#ifdef KPAD_CTL
+	parent = debugfs_create_dir("keypad", top);
+	D16(KPAD_CTL);
+	D16(KPAD_PRESCALE);
+	D16(KPAD_MSEL);
+	D16(KPAD_ROWCOL);
+	D16(KPAD_STAT);
+	D16(KPAD_SOFTEVAL);
+#endif
+
+#ifdef OTP_CONTROL
+	parent = debugfs_create_dir("otp", top);
+	D16(OTP_CONTROL);
+	D16(OTP_BEN);
+	D16(OTP_STATUS);
+	D32(OTP_TIMING);
+	D32(OTP_DATA0);
+	D32(OTP_DATA1);
+	D32(OTP_DATA2);
+	D32(OTP_DATA3);
+#endif
+
+	parent = debugfs_create_dir("pll", top);
+	D16(PLL_CTL);
+	D16(PLL_DIV);
+	D16(PLL_LOCKCNT);
+	D16(PLL_STAT);
+	D16(VR_CTL);
+	D32(CHIPID);	/* it's part of this hardware block */
+
+#ifdef RTC_ALARM
+	parent = debugfs_create_dir("rtc", top);
+	D32(RTC_ALARM);
+	D16(RTC_ICTL);
+	D16(RTC_ISTAT);
+	D16(RTC_PREN);
+	D32(RTC_STAT);
+	D16(RTC_SWCNT);
+#endif
+
+#ifdef WDOG_CNT
+	parent = debugfs_create_dir("watchdog", top);
+	D32(WDOG_CNT);
+	D16(WDOG_CTL);
+	D32(WDOG_STAT);
+#endif
+#ifdef WDOGA_CNT
+	parent = debugfs_create_dir("watchdog", top);
+	D32(WDOGA_CNT);
+	D16(WDOGA_CTL);
+	D32(WDOGA_STAT);
+	D32(WDOGB_CNT);
+	D16(WDOGB_CTL);
+	D32(WDOGB_STAT);
+#endif
+
 #ifdef __ADSPBF512__
 # define USE_BF512 1
 #else
 # define USE_BF512 0
 #endif
 	if (USE_BF512) {
-
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0350C);
-		d("CNT_CONFIG", 16, 0xFFC03500);
-		d("CNT_COUNTER", 32, 0xFFC03514);
-		d("CNT_DEBOUNCE", 16, 0xFFC03510);
-		d("CNT_IMASK", 16, 0xFFC03504);
-		d("CNT_MAX", 32, 0xFFC03518);
-		d("CNT_MIN", 32, 0xFFC0351C);
-		d("CNT_STATUS", 16, 0xFFC03508);
 
 		parent = debugfs_create_dir("DMA Controller", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
@@ -453,27 +610,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA_TC_CNT", 16, 0xFFC00B0C);
 		d("DMA_TC_PER", 16, 0xFFC00B10);
 
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
-
-		parent = debugfs_create_dir("External Bus Interface Unit", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
 		parent = debugfs_create_dir("GPIO PIN", top);
 		d("PORTF_DRIVE", 16, 0xFFC03220);
 		d("PORTF_HYSTERESIS", 16, 0xFFC03240);
@@ -570,13 +706,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("OTP_DATA1", 32, 0xFFC03684);
 		d("OTP_DATA2", 32, 0xFFC03688);
 		d("OTP_DATA3", 32, 0xFFC0368C);
-
-		parent = debugfs_create_dir("PLL Register File", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
@@ -839,16 +968,6 @@ static int __init bfin_debug_mmrs_init(void)
 #endif
 	if (USE_BF514) {
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0350C);
-		d("CNT_CONFIG", 16, 0xFFC03500);
-		d("CNT_COUNTER", 32, 0xFFC03514);
-		d("CNT_DEBOUNCE", 16, 0xFFC03510);
-		d("CNT_IMASK", 16, 0xFFC03504);
-		d("CNT_MAX", 32, 0xFFC03518);
-		d("CNT_MIN", 32, 0xFFC0351C);
-		d("CNT_STATUS", 16, 0xFFC03508);
-
 		parent = debugfs_create_dir("DMA Controller", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -1011,27 +1130,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA_TC_CNT", 16, 0xFFC00B0C);
 		d("DMA_TC_PER", 16, 0xFFC00B10);
 
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
-
-		parent = debugfs_create_dir("External Bus Interface Unit", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
 		parent = debugfs_create_dir("GPIO PIN", top);
 		d("PORTF_DRIVE", 16, 0xFFC03220);
 		d("PORTF_HYSTERESIS", 16, 0xFFC03240);
@@ -1128,13 +1226,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("OTP_DATA1", 32, 0xFFC03684);
 		d("OTP_DATA2", 32, 0xFFC03688);
 		d("OTP_DATA3", 32, 0xFFC0368C);
-
-		parent = debugfs_create_dir("PLL Register File", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
@@ -1427,16 +1518,6 @@ static int __init bfin_debug_mmrs_init(void)
 #endif
 	if (USE_BF516) {
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0350C);
-		d("CNT_CONFIG", 16, 0xFFC03500);
-		d("CNT_COUNTER", 32, 0xFFC03514);
-		d("CNT_DEBOUNCE", 16, 0xFFC03510);
-		d("CNT_IMASK", 16, 0xFFC03504);
-		d("CNT_MAX", 32, 0xFFC03518);
-		d("CNT_MIN", 32, 0xFFC0351C);
-		d("CNT_STATUS", 16, 0xFFC03508);
-
 		parent = debugfs_create_dir("DMA Controller", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -1680,27 +1761,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("EMAC_WKUP_FFMSK3", 32, 0xFFC0303C);
 		d("EMAC_WKUP_FFOFF", 32, 0xFFC03044);
 
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
-
-		parent = debugfs_create_dir("External Bus Interface Unit", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
 		parent = debugfs_create_dir("GPIO PIN", top);
 		d("PORTF_DRIVE", 16, 0xFFC03220);
 		d("PORTF_HYSTERESIS", 16, 0xFFC03240);
@@ -1797,13 +1857,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("OTP_DATA1", 32, 0xFFC03684);
 		d("OTP_DATA2", 32, 0xFFC03688);
 		d("OTP_DATA3", 32, 0xFFC0368C);
-
-		parent = debugfs_create_dir("PLL Register File", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
@@ -2096,16 +2149,6 @@ static int __init bfin_debug_mmrs_init(void)
 #endif
 	if (USE_BF518) {
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0350C);
-		d("CNT_CONFIG", 16, 0xFFC03500);
-		d("CNT_COUNTER", 32, 0xFFC03514);
-		d("CNT_DEBOUNCE", 16, 0xFFC03510);
-		d("CNT_IMASK", 16, 0xFFC03504);
-		d("CNT_MAX", 32, 0xFFC03518);
-		d("CNT_MIN", 32, 0xFFC0351C);
-		d("CNT_STATUS", 16, 0xFFC03508);
-
 		parent = debugfs_create_dir("DMA Controller", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -2372,27 +2415,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("EMAC_WKUP_FFMSK3", 32, 0xFFC0303C);
 		d("EMAC_WKUP_FFOFF", 32, 0xFFC03044);
 
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
-
-		parent = debugfs_create_dir("External Bus Interface Unit", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
 		parent = debugfs_create_dir("GPIO PIN", top);
 		d("PORTF_DRIVE", 16, 0xFFC03220);
 		d("PORTF_HYSTERESIS", 16, 0xFFC03240);
@@ -2489,13 +2511,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("OTP_DATA1", 32, 0xFFC03684);
 		d("OTP_DATA2", 32, 0xFFC03688);
 		d("OTP_DATA3", 32, 0xFFC0368C);
-
-		parent = debugfs_create_dir("PLL Register File", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
@@ -2788,16 +2803,6 @@ static int __init bfin_debug_mmrs_init(void)
 #endif
 	if (USE_BF522) {
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0350C);
-		d("CNT_CONFIG", 16, 0xFFC03500);
-		d("CNT_COUNTER", 32, 0xFFC03514);
-		d("CNT_DEBOUNCE", 16, 0xFFC03510);
-		d("CNT_IMASK", 16, 0xFFC03504);
-		d("CNT_MAX", 32, 0xFFC03518);
-		d("CNT_MIN", 32, 0xFFC0351C);
-		d("CNT_STATUS", 16, 0xFFC03508);
-
 		parent = debugfs_create_dir("DMA Controller", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -2960,18 +2965,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA_TC_CNT", 16, 0xFFC00B0C);
 		d("DMA_TC_PER", 16, 0xFFC00B10);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-
 		parent = debugfs_create_dir("GPIO PIN", top);
 		d("PORTF_DRIVE", 16, 0xFFC03220);
 		d("PORTF_HYSTERESIS", 16, 0xFFC03240);
@@ -3090,23 +3083,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NONGPIO_HYSTERESIS", 16, 0xFFC03288);
 		d("NONGPIO_SLEW", 16, 0xFFC03284);
 
-		parent = debugfs_create_dir("OTP", top);
-		d("OTP_BEN", 16, 0xFFC03604);
-		d("OTP_CONTROL", 16, 0xFFC03600);
-		d("OTP_DATA0", 32, 0xFFC03680);
-		d("OTP_DATA1", 32, 0xFFC03684);
-		d("OTP_DATA2", 32, 0xFFC03688);
-		d("OTP_DATA3", 32, 0xFFC0368C);
-		d("OTP_STATUS", 16, 0xFFC03608);
-		d("OTP_TIMING", 32, 0xFFC0360C);
-
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
-
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
 		d("PPI_COUNT", 16, 0xFFC01008);
@@ -3171,14 +3147,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
@@ -3341,11 +3309,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("UART1_RBR", 16, 0xFFC02000);
 		d("UART1_SCR", 16, 0xFFC0201C);
 		d("UART1_THR", 16, 0xFFC02000);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF522 */
 
@@ -3356,16 +3319,6 @@ static int __init bfin_debug_mmrs_init(void)
 #endif
 	if (USE_BF523) {
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0350C);
-		d("CNT_CONFIG", 16, 0xFFC03500);
-		d("CNT_COUNTER", 32, 0xFFC03514);
-		d("CNT_DEBOUNCE", 16, 0xFFC03510);
-		d("CNT_IMASK", 16, 0xFFC03504);
-		d("CNT_MAX", 32, 0xFFC03518);
-		d("CNT_MIN", 32, 0xFFC0351C);
-		d("CNT_STATUS", 16, 0xFFC03508);
-
 		parent = debugfs_create_dir("DMA Controller", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -3528,18 +3481,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA_TC_CNT", 16, 0xFFC00B0C);
 		d("DMA_TC_PER", 16, 0xFFC00B10);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-
 		parent = debugfs_create_dir("GPIO PIN", top);
 		d("PORTF_DRIVE", 16, 0xFFC03220);
 		d("PORTF_HYSTERESIS", 16, 0xFFC03240);
@@ -3658,23 +3599,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NONGPIO_HYSTERESIS", 16, 0xFFC03288);
 		d("NONGPIO_SLEW", 16, 0xFFC03284);
 
-		parent = debugfs_create_dir("OTP", top);
-		d("OTP_BEN", 16, 0xFFC03604);
-		d("OTP_CONTROL", 16, 0xFFC03600);
-		d("OTP_DATA0", 32, 0xFFC03680);
-		d("OTP_DATA1", 32, 0xFFC03684);
-		d("OTP_DATA2", 32, 0xFFC03688);
-		d("OTP_DATA3", 32, 0xFFC0368C);
-		d("OTP_STATUS", 16, 0xFFC03608);
-		d("OTP_TIMING", 32, 0xFFC0360C);
-
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
-
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
 		d("PPI_COUNT", 16, 0xFFC01008);
@@ -3739,14 +3663,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
@@ -3909,11 +3825,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("UART1_RBR", 16, 0xFFC02000);
 		d("UART1_SCR", 16, 0xFFC0201C);
 		d("UART1_THR", 16, 0xFFC02000);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF523 */
 
@@ -3924,16 +3835,6 @@ static int __init bfin_debug_mmrs_init(void)
 #endif
 	if (USE_BF524) {
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0350C);
-		d("CNT_CONFIG", 16, 0xFFC03500);
-		d("CNT_COUNTER", 32, 0xFFC03514);
-		d("CNT_DEBOUNCE", 16, 0xFFC03510);
-		d("CNT_IMASK", 16, 0xFFC03504);
-		d("CNT_MAX", 32, 0xFFC03518);
-		d("CNT_MIN", 32, 0xFFC0351C);
-		d("CNT_STATUS", 16, 0xFFC03508);
-
 		parent = debugfs_create_dir("DMA Controller", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -4096,18 +3997,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA_TC_CNT", 16, 0xFFC00B0C);
 		d("DMA_TC_PER", 16, 0xFFC00B10);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-
 		parent = debugfs_create_dir("GPIO PIN", top);
 		d("PORTF_DRIVE", 16, 0xFFC03220);
 		d("PORTF_HYSTERESIS", 16, 0xFFC03240);
@@ -4226,23 +4115,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NONGPIO_HYSTERESIS", 16, 0xFFC03288);
 		d("NONGPIO_SLEW", 16, 0xFFC03284);
 
-		parent = debugfs_create_dir("OTP", top);
-		d("OTP_BEN", 16, 0xFFC03604);
-		d("OTP_CONTROL", 16, 0xFFC03600);
-		d("OTP_DATA0", 32, 0xFFC03680);
-		d("OTP_DATA1", 32, 0xFFC03684);
-		d("OTP_DATA2", 32, 0xFFC03688);
-		d("OTP_DATA3", 32, 0xFFC0368C);
-		d("OTP_STATUS", 16, 0xFFC03608);
-		d("OTP_TIMING", 32, 0xFFC0360C);
-
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
-
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
 		d("PPI_COUNT", 16, 0xFFC01008);
@@ -4307,14 +4179,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
@@ -4648,11 +4512,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("USB_TXTYPE", 16, 0xFFC03854);
 		d("USB_TX_MAX_PACKET", 16, 0xFFC03840);
 		d("USB_VPLEN", 16, 0xFFC0394C);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF524 */
 
@@ -4663,16 +4522,6 @@ static int __init bfin_debug_mmrs_init(void)
 #endif
 	if (USE_BF525) {
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0350C);
-		d("CNT_CONFIG", 16, 0xFFC03500);
-		d("CNT_COUNTER", 32, 0xFFC03514);
-		d("CNT_DEBOUNCE", 16, 0xFFC03510);
-		d("CNT_IMASK", 16, 0xFFC03504);
-		d("CNT_MAX", 32, 0xFFC03518);
-		d("CNT_MIN", 32, 0xFFC0351C);
-		d("CNT_STATUS", 16, 0xFFC03508);
-
 		parent = debugfs_create_dir("DMA Controller", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -4835,18 +4684,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA_TC_CNT", 16, 0xFFC00B0C);
 		d("DMA_TC_PER", 16, 0xFFC00B10);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-
 		parent = debugfs_create_dir("GPIO PIN", top);
 		d("PORTF_DRIVE", 16, 0xFFC03220);
 		d("PORTF_HYSTERESIS", 16, 0xFFC03240);
@@ -4965,23 +4802,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NONGPIO_HYSTERESIS", 16, 0xFFC03288);
 		d("NONGPIO_SLEW", 16, 0xFFC03284);
 
-		parent = debugfs_create_dir("OTP", top);
-		d("OTP_BEN", 16, 0xFFC03604);
-		d("OTP_CONTROL", 16, 0xFFC03600);
-		d("OTP_DATA0", 32, 0xFFC03680);
-		d("OTP_DATA1", 32, 0xFFC03684);
-		d("OTP_DATA2", 32, 0xFFC03688);
-		d("OTP_DATA3", 32, 0xFFC0368C);
-		d("OTP_STATUS", 16, 0xFFC03608);
-		d("OTP_TIMING", 32, 0xFFC0360C);
-
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
-
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
 		d("PPI_COUNT", 16, 0xFFC01008);
@@ -5046,14 +4866,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
@@ -5387,11 +5199,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("USB_TXTYPE", 16, 0xFFC03854);
 		d("USB_TX_MAX_PACKET", 16, 0xFFC03840);
 		d("USB_VPLEN", 16, 0xFFC0394C);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF525 */
 
@@ -5402,16 +5209,6 @@ static int __init bfin_debug_mmrs_init(void)
 #endif
 	if (USE_BF526) {
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0350C);
-		d("CNT_CONFIG", 16, 0xFFC03500);
-		d("CNT_COUNTER", 32, 0xFFC03514);
-		d("CNT_DEBOUNCE", 16, 0xFFC03510);
-		d("CNT_IMASK", 16, 0xFFC03504);
-		d("CNT_MAX", 32, 0xFFC03518);
-		d("CNT_MIN", 32, 0xFFC0351C);
-		d("CNT_STATUS", 16, 0xFFC03508);
-
 		parent = debugfs_create_dir("DMA Controller", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -5574,15 +5371,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA_TC_CNT", 16, 0xFFC00B0C);
 		d("DMA_TC_PER", 16, 0xFFC00B10);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
 		parent = debugfs_create_dir("Ethernet Controller", top);
 		d("EMAC_ADDRHI", 32, 0xFFC03008);
 		d("EMAC_ADDRLO", 32, 0xFFC03004);
@@ -5663,9 +5451,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("EMAC_WKUP_FFMSK2", 32, 0xFFC03038);
 		d("EMAC_WKUP_FFMSK3", 32, 0xFFC0303C);
 		d("EMAC_WKUP_FFOFF", 32, 0xFFC03044);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
 
 		parent = debugfs_create_dir("GPIO PIN", top);
 		d("PORTF_DRIVE", 16, 0xFFC03220);
@@ -5785,23 +5570,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NONGPIO_HYSTERESIS", 16, 0xFFC03288);
 		d("NONGPIO_SLEW", 16, 0xFFC03284);
 
-		parent = debugfs_create_dir("OTP", top);
-		d("OTP_BEN", 16, 0xFFC03604);
-		d("OTP_CONTROL", 16, 0xFFC03600);
-		d("OTP_DATA0", 32, 0xFFC03680);
-		d("OTP_DATA1", 32, 0xFFC03684);
-		d("OTP_DATA2", 32, 0xFFC03688);
-		d("OTP_DATA3", 32, 0xFFC0368C);
-		d("OTP_STATUS", 16, 0xFFC03608);
-		d("OTP_TIMING", 32, 0xFFC0360C);
-
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
-
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
 		d("PPI_COUNT", 16, 0xFFC01008);
@@ -5866,14 +5634,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
@@ -6207,11 +5967,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("USB_TXTYPE", 16, 0xFFC03854);
 		d("USB_TX_MAX_PACKET", 16, 0xFFC03840);
 		d("USB_VPLEN", 16, 0xFFC0394C);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF526 */
 
@@ -6222,16 +5977,6 @@ static int __init bfin_debug_mmrs_init(void)
 #endif
 	if (USE_BF527) {
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0350C);
-		d("CNT_CONFIG", 16, 0xFFC03500);
-		d("CNT_COUNTER", 32, 0xFFC03514);
-		d("CNT_DEBOUNCE", 16, 0xFFC03510);
-		d("CNT_IMASK", 16, 0xFFC03504);
-		d("CNT_MAX", 32, 0xFFC03518);
-		d("CNT_MIN", 32, 0xFFC0351C);
-		d("CNT_STATUS", 16, 0xFFC03508);
-
 		parent = debugfs_create_dir("DMA Controller", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -6394,15 +6139,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA_TC_CNT", 16, 0xFFC00B0C);
 		d("DMA_TC_PER", 16, 0xFFC00B10);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
 		parent = debugfs_create_dir("Ethernet Controller", top);
 		d("EMAC_ADDRHI", 32, 0xFFC03008);
 		d("EMAC_ADDRLO", 32, 0xFFC03004);
@@ -6483,9 +6219,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("EMAC_WKUP_FFMSK2", 32, 0xFFC03038);
 		d("EMAC_WKUP_FFMSK3", 32, 0xFFC0303C);
 		d("EMAC_WKUP_FFOFF", 32, 0xFFC03044);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
 
 		parent = debugfs_create_dir("GPIO PIN", top);
 		d("PORTF_DRIVE", 16, 0xFFC03220);
@@ -6605,23 +6338,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NONGPIO_HYSTERESIS", 16, 0xFFC03288);
 		d("NONGPIO_SLEW", 16, 0xFFC03284);
 
-		parent = debugfs_create_dir("OTP", top);
-		d("OTP_BEN", 16, 0xFFC03604);
-		d("OTP_CONTROL", 16, 0xFFC03600);
-		d("OTP_DATA0", 32, 0xFFC03680);
-		d("OTP_DATA1", 32, 0xFFC03684);
-		d("OTP_DATA2", 32, 0xFFC03688);
-		d("OTP_DATA3", 32, 0xFFC0368C);
-		d("OTP_STATUS", 16, 0xFFC03608);
-		d("OTP_TIMING", 32, 0xFFC0360C);
-
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
-
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
 		d("PPI_COUNT", 16, 0xFFC01008);
@@ -6686,14 +6402,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
@@ -7027,11 +6735,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("USB_TXTYPE", 16, 0xFFC03854);
 		d("USB_TX_MAX_PACKET", 16, 0xFFC03840);
 		d("USB_VPLEN", 16, 0xFFC0394C);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF527 */
 
@@ -7166,17 +6869,7 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMAFLX7_YCOUNT", 16, 0xFFC00DD8);
 		d("DMAFLX7_YMODIFY", 16, 0xFFC00DDC);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
 		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_X_COUNT", 16, 0xFFC00C30);
 		d("DMA0_CURR_Y_COUNT", 16, 0xFFC00C38);
@@ -7364,13 +7057,8 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S1_Y_MODIFY", 16, 0xFFC00EDC);
 
 		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
 		d("SWRST", 16, 0xFFC00100);
 		d("SYSCR", 16, 0xFFC00104);
-		d("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
@@ -7378,14 +7066,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PPI_DELAY", 16, 0xFFC0100C);
 		d("PPI_FRAME", 16, 0xFFC01010);
 		d("PPI_STATUS", 16, 0xFFC01004);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
@@ -7465,11 +7145,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("UART_RBR", 16, 0xFFC00400);
 		d("UART_SCR", 16, 0xFFC0041C);
 		d("UART_THR", 16, 0xFFC00400);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF531 */
 
@@ -7604,17 +7279,7 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMAFLX7_YCOUNT", 16, 0xFFC00DD8);
 		d("DMAFLX7_YMODIFY", 16, 0xFFC00DDC);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
 		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_X_COUNT", 16, 0xFFC00C30);
 		d("DMA0_CURR_Y_COUNT", 16, 0xFFC00C38);
@@ -7802,13 +7467,8 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S1_Y_MODIFY", 16, 0xFFC00EDC);
 
 		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
 		d("SWRST", 16, 0xFFC00100);
 		d("SYSCR", 16, 0xFFC00104);
-		d("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
@@ -7816,14 +7476,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PPI_DELAY", 16, 0xFFC0100C);
 		d("PPI_FRAME", 16, 0xFFC01010);
 		d("PPI_STATUS", 16, 0xFFC01004);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
@@ -7903,11 +7555,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("UART_RBR", 16, 0xFFC00400);
 		d("UART_SCR", 16, 0xFFC0041C);
 		d("UART_THR", 16, 0xFFC00400);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF532 */
 
@@ -8042,17 +7689,7 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMAFLX7_YCOUNT", 16, 0xFFC00DD8);
 		d("DMAFLX7_YMODIFY", 16, 0xFFC00DDC);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
 		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_X_COUNT", 16, 0xFFC00C30);
 		d("DMA0_CURR_Y_COUNT", 16, 0xFFC00C38);
@@ -8240,13 +7877,8 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S1_Y_MODIFY", 16, 0xFFC00EDC);
 
 		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
 		d("SWRST", 16, 0xFFC00100);
 		d("SYSCR", 16, 0xFFC00104);
-		d("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
@@ -8254,14 +7886,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PPI_DELAY", 16, 0xFFC0100C);
 		d("PPI_FRAME", 16, 0xFFC01010);
 		d("PPI_STATUS", 16, 0xFFC01004);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
@@ -8341,11 +7965,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("UART_RBR", 16, 0xFFC00400);
 		d("UART_SCR", 16, 0xFFC0041C);
 		d("UART_THR", 16, 0xFFC00400);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF533 */
 
@@ -8628,18 +8247,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA_TC_CNT", 16, 0xFFC00B0C);
 		d("DMA_TC_PER", 16, 0xFFC00B10);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-
 		parent = debugfs_create_dir("Handshake MDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC03308);
 		d("HMDMA0_BCOUNT", 16, 0xFFC03318);
@@ -8974,13 +8581,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("CAN_MB31_LENGTH", 16, 0xFFC02FF0);
 		d("CAN_MB31_TIMESTAMP", 16, 0xFFC02FF4);
 
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
-
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
 		d("PPI_COUNT", 16, 0xFFC01008);
@@ -9046,14 +8646,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
@@ -9202,11 +8794,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("UART1_RBR", 16, 0xFFC02000);
 		d("UART1_SCR", 16, 0xFFC0201C);
 		d("UART1_THR", 16, 0xFFC02000);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF534 */
 
@@ -9489,15 +9076,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA_TC_CNT", 16, 0xFFC00B0C);
 		d("DMA_TC_PER", 16, 0xFFC00B10);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
 		parent = debugfs_create_dir("Ethernet Controller", top);
 		d("EMAC_ADDRHI", 32, 0xFFC03008);
 		d("EMAC_ADDRLO", 32, 0xFFC03004);
@@ -9578,9 +9156,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("EMAC_WKUP_FFMSK2", 32, 0xFFC03038);
 		d("EMAC_WKUP_FFMSK3", 32, 0xFFC0303C);
 		d("EMAC_WKUP_FFOFF", 32, 0xFFC03044);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
 
 		parent = debugfs_create_dir("Handshake MDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC03308);
@@ -9916,13 +9491,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("CAN_MB31_LENGTH", 16, 0xFFC02FF0);
 		d("CAN_MB31_TIMESTAMP", 16, 0xFFC02FF4);
 
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
-
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
 		d("PPI_COUNT", 16, 0xFFC01008);
@@ -9988,14 +9556,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
@@ -10144,11 +9704,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("UART1_RBR", 16, 0xFFC02000);
 		d("UART1_SCR", 16, 0xFFC0201C);
 		d("UART1_THR", 16, 0xFFC02000);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF536 */
 
@@ -10431,15 +9986,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA_TC_CNT", 16, 0xFFC00B0C);
 		d("DMA_TC_PER", 16, 0xFFC00B10);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
 		parent = debugfs_create_dir("Ethernet Controller", top);
 		d("EMAC_ADDRHI", 32, 0xFFC03008);
 		d("EMAC_ADDRLO", 32, 0xFFC03004);
@@ -10520,9 +10066,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("EMAC_WKUP_FFMSK2", 32, 0xFFC03038);
 		d("EMAC_WKUP_FFMSK3", 32, 0xFFC0303C);
 		d("EMAC_WKUP_FFOFF", 32, 0xFFC03044);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
 
 		parent = debugfs_create_dir("Handshake MDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC03308);
@@ -10858,13 +10401,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("CAN_MB31_LENGTH", 16, 0xFFC02FF0);
 		d("CAN_MB31_TIMESTAMP", 16, 0xFFC02FF4);
 
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
-
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
 		d("PPI_COUNT", 16, 0xFFC01008);
@@ -10930,14 +10466,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
@@ -11086,11 +10614,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("UART1_RBR", 16, 0xFFC02000);
 		d("UART1_SCR", 16, 0xFFC0201C);
 		d("UART1_THR", 16, 0xFFC02000);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF537 */
 
@@ -11775,18 +11298,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA9_Y_COUNT", 16, 0xFFC01C58);
 		d("DMA9_Y_MODIFY", 16, 0xFFC01C5C);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-
 		parent = debugfs_create_dir("GPIO Port C", top);
 		d("PORTCIO", 16, 0xFFC01510);
 		d("PORTCIO_CLEAR", 16, 0xFFC01520);
@@ -11953,27 +11464,12 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA1_S1_Y_COUNT", 16, 0xFFC01FD8);
 		d("MDMA1_S1_Y_MODIFY", 16, 0xFFC01FDC);
 
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
-
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
 		d("PPI_COUNT", 16, 0xFFC01008);
 		d("PPI_DELAY", 16, 0xFFC0100C);
 		d("PPI_FRAME", 16, 0xFFC01010);
 		d("PPI_STATUS", 16, 0xFFC01004);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI0_BAUD", 16, 0xFFC00514);
@@ -12191,11 +11687,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("UART2_RBR", 16, 0xFFC02100);
 		d("UART2_SCR", 16, 0xFFC0211C);
 		d("UART2_THR", 16, 0xFFC02100);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF538 */
 
@@ -12880,18 +12371,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA9_Y_COUNT", 16, 0xFFC01C58);
 		d("DMA9_Y_MODIFY", 16, 0xFFC01C5C);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 16, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-
 		parent = debugfs_create_dir("GPIO Port C", top);
 		d("PORTCIO", 16, 0xFFC01510);
 		d("PORTCIO_CLEAR", 16, 0xFFC01520);
@@ -13173,27 +12652,12 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MXVR_SYNC_LCHAN_6", 32, 0xFFC02790);
 		d("MXVR_SYNC_LCHAN_7", 32, 0xFFC02794);
 
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
-
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI_CONTROL", 16, 0xFFC01000);
 		d("PPI_COUNT", 16, 0xFFC01008);
 		d("PPI_DELAY", 16, 0xFFC0100C);
 		d("PPI_FRAME", 16, 0xFFC01010);
 		d("PPI_STATUS", 16, 0xFFC01004);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI0_BAUD", 16, 0xFFC00514);
@@ -13412,11 +12876,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("UART2_SCR", 16, 0xFFC0211C);
 		d("UART2_THR", 16, 0xFFC02100);
 
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
-
 	}	/* BF539 */
 
 #ifdef __ADSPBF542__
@@ -13425,33 +12884,6 @@ static int __init bfin_debug_mmrs_init(void)
 # define USE_BF542 0
 #endif
 	if (USE_BF542) {
-
-		parent = debugfs_create_dir("ATAPI", top);
-		d("ATAPI_CONTROL", 16, 0xFFC03800);
-		d("ATAPI_DEV_ADDR", 16, 0xFFC03808);
-		d("ATAPI_DEV_RXBUF", 16, 0xFFC03810);
-		d("ATAPI_DEV_TXBUF", 16, 0xFFC0380C);
-		d("ATAPI_DMA_TFRCNT", 16, 0xFFC03830);
-		d("ATAPI_INT_MASK", 16, 0xFFC03814);
-		d("ATAPI_INT_STATUS", 16, 0xFFC03818);
-		d("ATAPI_LINE_STATUS", 16, 0xFFC03820);
-		d("ATAPI_MULTI_TIM_0", 16, 0xFFC03850);
-		d("ATAPI_MULTI_TIM_1", 16, 0xFFC03854);
-		d("ATAPI_MULTI_TIM_2", 16, 0xFFC03858);
-		d("ATAPI_PIO_TFRCNT", 16, 0xFFC0382C);
-		d("ATAPI_PIO_TIM_0", 16, 0xFFC03844);
-		d("ATAPI_PIO_TIM_1", 16, 0xFFC03848);
-		d("ATAPI_REG_TIM_0", 16, 0xFFC03840);
-		d("ATAPI_SM_STATE", 16, 0xFFC03824);
-		d("ATAPI_STATUS", 16, 0xFFC03804);
-		d("ATAPI_TERMINATE", 16, 0xFFC03828);
-		d("ATAPI_UDMAOUT_TFRCNT", 16, 0xFFC03838);
-		d("ATAPI_ULTRA_TIM_0", 16, 0xFFC03860);
-		d("ATAPI_ULTRA_TIM_1", 16, 0xFFC03864);
-		d("ATAPI_ULTRA_TIM_2", 16, 0xFFC03868);
-		d("ATAPI_ULTRA_TIM_3", 16, 0xFFC0386C);
-		d("ATAPI_UMAIN_TFRCNT", 16, 0xFFC03834);
-		d("ATAPI_XFER_LEN", 16, 0xFFC0381C);
 
 		parent = debugfs_create_dir("CAN0 Acceptance Mask RAM", top);
 		d("CAN0_AM00H", 16, 0xFFC02B04);
@@ -13821,16 +13253,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("CAN0_MB31_LENGTH", 16, 0xFFC02FF0);
 		d("CAN0_MB31_TIMESTAMP", 16, 0xFFC02FF4);
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0420C);
-		d("CNT_CONFIG", 16, 0xFFC04200);
-		d("CNT_COUNTER", 32, 0xFFC04214);
-		d("CNT_DEBOUNCE", 16, 0xFFC04210);
-		d("CNT_IMASK", 16, 0xFFC04204);
-		d("CNT_MAX", 32, 0xFFC04218);
-		d("CNT_MIN", 32, 0xFFC0421C);
-		d("CNT_STATUS", 16, 0xFFC04208);
-
 		parent = debugfs_create_dir("DMA", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -14150,48 +13572,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMAC1_TCCNT", 16, 0xFFC01B10);
 		d("DMAC1_TCPER", 16, 0xFFC01B0C);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_ARBSTAT", 32, 0xFFC00A10);
-		d("EBIU_DDRACCT", 32, 0xFFC00AA0);
-		d("EBIU_DDRARCT", 32, 0xFFC00AAC);
-		d("EBIU_DDRBRC0", 32, 0xFFC00A60);
-		d("EBIU_DDRBRC1", 32, 0xFFC00A64);
-		d("EBIU_DDRBRC2", 32, 0xFFC00A68);
-		d("EBIU_DDRBRC3", 32, 0xFFC00A6C);
-		d("EBIU_DDRBRC4", 32, 0xFFC00A70);
-		d("EBIU_DDRBRC5", 32, 0xFFC00A74);
-		d("EBIU_DDRBRC6", 32, 0xFFC00A78);
-		d("EBIU_DDRBRC7", 32, 0xFFC00A7C);
-		d("EBIU_DDRBWC0", 32, 0xFFC00A80);
-		d("EBIU_DDRBWC1", 32, 0xFFC00A84);
-		d("EBIU_DDRBWC2", 32, 0xFFC00A88);
-		d("EBIU_DDRBWC3", 32, 0xFFC00A8C);
-		d("EBIU_DDRBWC4", 32, 0xFFC00A90);
-		d("EBIU_DDRBWC5", 32, 0xFFC00A94);
-		d("EBIU_DDRBWC6", 32, 0xFFC00A98);
-		d("EBIU_DDRBWC7", 32, 0xFFC00A9C);
-		d("EBIU_DDRCTL0", 32, 0xFFC00A20);
-		d("EBIU_DDRCTL1", 32, 0xFFC00A24);
-		d("EBIU_DDRCTL2", 32, 0xFFC00A28);
-		d("EBIU_DDRCTL3", 32, 0xFFC00A2C);
-		d("EBIU_DDRGC0", 32, 0xFFC00AB0);
-		d("EBIU_DDRGC1", 32, 0xFFC00AB4);
-		d("EBIU_DDRGC2", 32, 0xFFC00AB8);
-		d("EBIU_DDRGC3", 32, 0xFFC00ABC);
-		d("EBIU_DDRMCCL", 32, 0xFFC00AC4);
-		d("EBIU_DDRMCEN", 32, 0xFFC00AC0);
-		d("EBIU_DDRQUE", 32, 0xFFC00A30);
-		d("EBIU_DDRTACT", 32, 0xFFC00AA8);
-		d("EBIU_ERRADD", 32, 0xFFC00A34);
-		d("EBIU_ERRMST", 16, 0xFFC00A38);
-		d("EBIU_FCTL", 32, 0xFFC00A18);
-		d("EBIU_MBSCTL", 32, 0xFFC00A0C);
-		d("EBIU_MODE", 32, 0xFFC00A14);
-		d("EBIU_RSTCTL", 16, 0xFFC00A3C);
-
 		parent = debugfs_create_dir("EPPI", top);
 		d("EPPI1_CLIP", 32, 0xFFC01334);
 		d("EPPI1_CLKDIV", 16, 0xFFC0131C);
@@ -14222,9 +13602,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("EPPI2_VCOUNT", 16, 0xFFC0290C);
 		d("EPPI2_VDELAY", 16, 0xFFC02910);
 
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-
 		parent = debugfs_create_dir("HMDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC04508);
 		d("HMDMA0_BCOUNT", 16, 0xFFC04518);
@@ -14240,14 +13617,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("HMDMA1_ECOUNT", 16, 0xFFC04554);
 		d("HMDMA1_ECOVERFLOW", 16, 0xFFC04550);
 		d("HMDMA1_ECURGENT", 16, 0xFFC0454C);
-
-		parent = debugfs_create_dir("KEYPAD", top);
-		d("KPAD_CTL", 16, 0xFFC04100);
-		d("KPAD_MSEL", 16, 0xFFC04108);
-		d("KPAD_PRESCALE", 16, 0xFFC04104);
-		d("KPAD_ROWCOL", 16, 0xFFC0410C);
-		d("KPAD_SOFTEVAL", 16, 0xFFC04114);
-		d("KPAD_STAT", 16, 0xFFC04110);
 
 		parent = debugfs_create_dir("MDMA", top);
 		d("MDMA_D0_CONFIG", 16, 0xFFC00F08);
@@ -14373,16 +13742,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NFC_RST", 16, 0xFFC03B24);
 		d_RO("NFC_STAT", 16, 0xFFC03B04);
 
-		parent = debugfs_create_dir("OTP", top);
-		d("OTP_BEN", 16, 0xFFC04304);
-		d("OTP_CONTROL", 16, 0xFFC04300);
-		d("OTP_DATA0", 32, 0xFFC04380);
-		d("OTP_DATA1", 32, 0xFFC04384);
-		d("OTP_DATA2", 32, 0xFFC04388);
-		d("OTP_DATA3", 32, 0xFFC0438C);
-		d("OTP_STATUS", 16, 0xFFC04308);
-		d("OTP_TIMING", 32, 0xFFC0430C);
-
 		parent = debugfs_create_dir("PINT_0", top);
 		d("PINT0_ASSIGN", 32, 0xFFC0140C);
 		d("PINT0_EDGE_CLEAR", 32, 0xFFC01414);
@@ -14430,13 +13789,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PINT3_MASK_CLEAR", 32, 0xFFC01494);
 		d("PINT3_MASK_SET", 32, 0xFFC01490);
 		d("PINT3_PINSTATE", 32, 0xFFC014B0);
-
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PWM_TMR", top);
 		d("TIMER0_CONFIG", 16, 0xFFC01600);
@@ -14574,14 +13926,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTJ_INEN", 16, 0xFFC015F8);
 		d("PORTJ_MUX", 32, 0xFFC015FC);
 		d("PORTJ_SET", 16, 0xFFC015E8);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SDH", top);
 		d("SDH_ARGUMENT", 32, 0xFFC03908);
@@ -14958,11 +14302,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("USB_TXTYPE", 16, 0xFFC03C54);
 		d("USB_TX_MAX_PACKET", 16, 0xFFC03C40);
 		d("USB_VPLEN", 16, 0xFFC03D4C);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF542 */
 
@@ -15709,16 +15048,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("CAN1_MB31_LENGTH", 16, 0xFFC037F0);
 		d("CAN1_MB31_TIMESTAMP", 16, 0xFFC037F4);
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0420C);
-		d("CNT_CONFIG", 16, 0xFFC04200);
-		d("CNT_COUNTER", 32, 0xFFC04214);
-		d("CNT_DEBOUNCE", 16, 0xFFC04210);
-		d("CNT_IMASK", 16, 0xFFC04204);
-		d("CNT_MAX", 32, 0xFFC04218);
-		d("CNT_MIN", 32, 0xFFC0421C);
-		d("CNT_STATUS", 16, 0xFFC04208);
-
 		parent = debugfs_create_dir("DMA", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -16038,48 +15367,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMAC1_TCCNT", 16, 0xFFC01B10);
 		d("DMAC1_TCPER", 16, 0xFFC01B0C);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_ARBSTAT", 32, 0xFFC00A10);
-		d("EBIU_DDRACCT", 32, 0xFFC00AA0);
-		d("EBIU_DDRARCT", 32, 0xFFC00AAC);
-		d("EBIU_DDRBRC0", 32, 0xFFC00A60);
-		d("EBIU_DDRBRC1", 32, 0xFFC00A64);
-		d("EBIU_DDRBRC2", 32, 0xFFC00A68);
-		d("EBIU_DDRBRC3", 32, 0xFFC00A6C);
-		d("EBIU_DDRBRC4", 32, 0xFFC00A70);
-		d("EBIU_DDRBRC5", 32, 0xFFC00A74);
-		d("EBIU_DDRBRC6", 32, 0xFFC00A78);
-		d("EBIU_DDRBRC7", 32, 0xFFC00A7C);
-		d("EBIU_DDRBWC0", 32, 0xFFC00A80);
-		d("EBIU_DDRBWC1", 32, 0xFFC00A84);
-		d("EBIU_DDRBWC2", 32, 0xFFC00A88);
-		d("EBIU_DDRBWC3", 32, 0xFFC00A8C);
-		d("EBIU_DDRBWC4", 32, 0xFFC00A90);
-		d("EBIU_DDRBWC5", 32, 0xFFC00A94);
-		d("EBIU_DDRBWC6", 32, 0xFFC00A98);
-		d("EBIU_DDRBWC7", 32, 0xFFC00A9C);
-		d("EBIU_DDRCTL0", 32, 0xFFC00A20);
-		d("EBIU_DDRCTL1", 32, 0xFFC00A24);
-		d("EBIU_DDRCTL2", 32, 0xFFC00A28);
-		d("EBIU_DDRCTL3", 32, 0xFFC00A2C);
-		d("EBIU_DDRGC0", 32, 0xFFC00AB0);
-		d("EBIU_DDRGC1", 32, 0xFFC00AB4);
-		d("EBIU_DDRGC2", 32, 0xFFC00AB8);
-		d("EBIU_DDRGC3", 32, 0xFFC00ABC);
-		d("EBIU_DDRMCCL", 32, 0xFFC00AC4);
-		d("EBIU_DDRMCEN", 32, 0xFFC00AC0);
-		d("EBIU_DDRQUE", 32, 0xFFC00A30);
-		d("EBIU_DDRTACT", 32, 0xFFC00AA8);
-		d("EBIU_ERRADD", 32, 0xFFC00A34);
-		d("EBIU_ERRMST", 16, 0xFFC00A38);
-		d("EBIU_FCTL", 32, 0xFFC00A18);
-		d("EBIU_MBSCTL", 32, 0xFFC00A0C);
-		d("EBIU_MODE", 32, 0xFFC00A14);
-		d("EBIU_RSTCTL", 16, 0xFFC00A3C);
-
 		parent = debugfs_create_dir("EPPI", top);
 		d("EPPI0_CLIP", 32, 0xFFC01034);
 		d("EPPI0_CLKDIV", 16, 0xFFC0101C);
@@ -16123,9 +15410,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("EPPI2_STATUS", 16, 0xFFC02900);
 		d("EPPI2_VCOUNT", 16, 0xFFC0290C);
 		d("EPPI2_VDELAY", 16, 0xFFC02910);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
 
 		parent = debugfs_create_dir("HMDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC04508);
@@ -16272,16 +15556,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NFC_RST", 16, 0xFFC03B24);
 		d_RO("NFC_STAT", 16, 0xFFC03B04);
 
-		parent = debugfs_create_dir("OTP", top);
-		d("OTP_BEN", 16, 0xFFC04304);
-		d("OTP_CONTROL", 16, 0xFFC04300);
-		d("OTP_DATA0", 32, 0xFFC04380);
-		d("OTP_DATA1", 32, 0xFFC04384);
-		d("OTP_DATA2", 32, 0xFFC04388);
-		d("OTP_DATA3", 32, 0xFFC0438C);
-		d("OTP_STATUS", 16, 0xFFC04308);
-		d("OTP_TIMING", 32, 0xFFC0430C);
-
 		parent = debugfs_create_dir("PINT_0", top);
 		d("PINT0_ASSIGN", 32, 0xFFC0140C);
 		d("PINT0_EDGE_CLEAR", 32, 0xFFC01414);
@@ -16350,13 +15624,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PIXC_PPL", 16, 0xFFC04404);
 		d("PIXC_RYCON", 32, 0xFFC04440);
 		d("PIXC_TC", 32, 0xFFC04450);
-
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PWM_TMR", top);
 		d("TIMER0_CONFIG", 16, 0xFFC01600);
@@ -16509,14 +15776,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTJ_INEN", 16, 0xFFC015F8);
 		d("PORTJ_MUX", 32, 0xFFC015FC);
 		d("PORTJ_SET", 16, 0xFFC015E8);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SIC", top);
 		d("SIC_IAR0", 32, 0xFFC00130);
@@ -16706,11 +15965,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("UART3_SCR", 16, 0xFFC0311C);
 		d("UART3_THR", 16, 0xFFC03128);
 
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
-
 	}	/* BF544 */
 
 #ifdef __ADSPBF547__
@@ -16719,43 +15973,6 @@ static int __init bfin_debug_mmrs_init(void)
 # define USE_BF547 0
 #endif
 	if (USE_BF547) {
-
-		parent = debugfs_create_dir("ATAPI", top);
-		d("ATAPI_CONTROL", 16, 0xFFC03800);
-		d("ATAPI_DEV_ADDR", 16, 0xFFC03808);
-		d("ATAPI_DEV_RXBUF", 16, 0xFFC03810);
-		d("ATAPI_DEV_TXBUF", 16, 0xFFC0380C);
-		d("ATAPI_DMA_TFRCNT", 16, 0xFFC03830);
-		d("ATAPI_INT_MASK", 16, 0xFFC03814);
-		d("ATAPI_INT_STATUS", 16, 0xFFC03818);
-		d("ATAPI_LINE_STATUS", 16, 0xFFC03820);
-		d("ATAPI_MULTI_TIM_0", 16, 0xFFC03850);
-		d("ATAPI_MULTI_TIM_1", 16, 0xFFC03854);
-		d("ATAPI_MULTI_TIM_2", 16, 0xFFC03858);
-		d("ATAPI_PIO_TFRCNT", 16, 0xFFC0382C);
-		d("ATAPI_PIO_TIM_0", 16, 0xFFC03844);
-		d("ATAPI_PIO_TIM_1", 16, 0xFFC03848);
-		d("ATAPI_REG_TIM_0", 16, 0xFFC03840);
-		d("ATAPI_SM_STATE", 16, 0xFFC03824);
-		d("ATAPI_STATUS", 16, 0xFFC03804);
-		d("ATAPI_TERMINATE", 16, 0xFFC03828);
-		d("ATAPI_UDMAOUT_TFRCNT", 16, 0xFFC03838);
-		d("ATAPI_ULTRA_TIM_0", 16, 0xFFC03860);
-		d("ATAPI_ULTRA_TIM_1", 16, 0xFFC03864);
-		d("ATAPI_ULTRA_TIM_2", 16, 0xFFC03868);
-		d("ATAPI_ULTRA_TIM_3", 16, 0xFFC0386C);
-		d("ATAPI_UMAIN_TFRCNT", 16, 0xFFC03834);
-		d("ATAPI_XFER_LEN", 16, 0xFFC0381C);
-
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0420C);
-		d("CNT_CONFIG", 16, 0xFFC04200);
-		d("CNT_COUNTER", 32, 0xFFC04214);
-		d("CNT_DEBOUNCE", 16, 0xFFC04210);
-		d("CNT_IMASK", 16, 0xFFC04204);
-		d("CNT_MAX", 32, 0xFFC04218);
-		d("CNT_MIN", 32, 0xFFC0421C);
-		d("CNT_STATUS", 16, 0xFFC04208);
 
 		parent = debugfs_create_dir("DMA", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
@@ -17076,48 +16293,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMAC1_TCCNT", 16, 0xFFC01B10);
 		d("DMAC1_TCPER", 16, 0xFFC01B0C);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_ARBSTAT", 32, 0xFFC00A10);
-		d("EBIU_DDRACCT", 32, 0xFFC00AA0);
-		d("EBIU_DDRARCT", 32, 0xFFC00AAC);
-		d("EBIU_DDRBRC0", 32, 0xFFC00A60);
-		d("EBIU_DDRBRC1", 32, 0xFFC00A64);
-		d("EBIU_DDRBRC2", 32, 0xFFC00A68);
-		d("EBIU_DDRBRC3", 32, 0xFFC00A6C);
-		d("EBIU_DDRBRC4", 32, 0xFFC00A70);
-		d("EBIU_DDRBRC5", 32, 0xFFC00A74);
-		d("EBIU_DDRBRC6", 32, 0xFFC00A78);
-		d("EBIU_DDRBRC7", 32, 0xFFC00A7C);
-		d("EBIU_DDRBWC0", 32, 0xFFC00A80);
-		d("EBIU_DDRBWC1", 32, 0xFFC00A84);
-		d("EBIU_DDRBWC2", 32, 0xFFC00A88);
-		d("EBIU_DDRBWC3", 32, 0xFFC00A8C);
-		d("EBIU_DDRBWC4", 32, 0xFFC00A90);
-		d("EBIU_DDRBWC5", 32, 0xFFC00A94);
-		d("EBIU_DDRBWC6", 32, 0xFFC00A98);
-		d("EBIU_DDRBWC7", 32, 0xFFC00A9C);
-		d("EBIU_DDRCTL0", 32, 0xFFC00A20);
-		d("EBIU_DDRCTL1", 32, 0xFFC00A24);
-		d("EBIU_DDRCTL2", 32, 0xFFC00A28);
-		d("EBIU_DDRCTL3", 32, 0xFFC00A2C);
-		d("EBIU_DDRGC0", 32, 0xFFC00AB0);
-		d("EBIU_DDRGC1", 32, 0xFFC00AB4);
-		d("EBIU_DDRGC2", 32, 0xFFC00AB8);
-		d("EBIU_DDRGC3", 32, 0xFFC00ABC);
-		d("EBIU_DDRMCCL", 32, 0xFFC00AC4);
-		d("EBIU_DDRMCEN", 32, 0xFFC00AC0);
-		d("EBIU_DDRQUE", 32, 0xFFC00A30);
-		d("EBIU_DDRTACT", 32, 0xFFC00AA8);
-		d("EBIU_ERRADD", 32, 0xFFC00A34);
-		d("EBIU_ERRMST", 16, 0xFFC00A38);
-		d("EBIU_FCTL", 32, 0xFFC00A18);
-		d("EBIU_MBSCTL", 32, 0xFFC00A0C);
-		d("EBIU_MODE", 32, 0xFFC00A14);
-		d("EBIU_RSTCTL", 16, 0xFFC00A3C);
-
 		parent = debugfs_create_dir("EPPI", top);
 		d("EPPI0_CLIP", 32, 0xFFC01034);
 		d("EPPI0_CLKDIV", 16, 0xFFC0101C);
@@ -17162,9 +16337,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("EPPI2_VCOUNT", 16, 0xFFC0290C);
 		d("EPPI2_VDELAY", 16, 0xFFC02910);
 
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-
 		parent = debugfs_create_dir("HMDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC04508);
 		d("HMDMA0_BCOUNT", 16, 0xFFC04518);
@@ -17185,14 +16357,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("HOST_CONTROL", 16, 0xFFC03A00);
 		d("HOST_STATUS", 16, 0xFFC03A04);
 		d("HOST_TIMEOUT", 16, 0xFFC03A08);
-
-		parent = debugfs_create_dir("KEYPAD", top);
-		d("KPAD_CTL", 16, 0xFFC04100);
-		d("KPAD_MSEL", 16, 0xFFC04108);
-		d("KPAD_PRESCALE", 16, 0xFFC04104);
-		d("KPAD_ROWCOL", 16, 0xFFC0410C);
-		d("KPAD_SOFTEVAL", 16, 0xFFC04114);
-		d("KPAD_STAT", 16, 0xFFC04110);
 
 		parent = debugfs_create_dir("MDMA", top);
 		d("MDMA_D0_CONFIG", 16, 0xFFC00F08);
@@ -17318,16 +16482,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NFC_RST", 16, 0xFFC03B24);
 		d_RO("NFC_STAT", 16, 0xFFC03B04);
 
-		parent = debugfs_create_dir("OTP", top);
-		d("OTP_BEN", 16, 0xFFC04304);
-		d("OTP_CONTROL", 16, 0xFFC04300);
-		d("OTP_DATA0", 32, 0xFFC04380);
-		d("OTP_DATA1", 32, 0xFFC04384);
-		d("OTP_DATA2", 32, 0xFFC04388);
-		d("OTP_DATA3", 32, 0xFFC0438C);
-		d("OTP_STATUS", 16, 0xFFC04308);
-		d("OTP_TIMING", 32, 0xFFC0430C);
-
 		parent = debugfs_create_dir("PINT_0", top);
 		d("PINT0_ASSIGN", 32, 0xFFC0140C);
 		d("PINT0_EDGE_CLEAR", 32, 0xFFC01414);
@@ -17396,13 +16550,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PIXC_PPL", 16, 0xFFC04404);
 		d("PIXC_RYCON", 32, 0xFFC04440);
 		d("PIXC_TC", 32, 0xFFC04450);
-
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PWM_TMR", top);
 		d("TIMER0_CONFIG", 16, 0xFFC01600);
@@ -17556,13 +16703,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTJ_MUX", 32, 0xFFC015FC);
 		d("PORTJ_SET", 16, 0xFFC015E8);
 
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SDH", top);
 		d("SDH_ARGUMENT", 32, 0xFFC03908);
@@ -18003,11 +17143,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("USB_TX_MAX_PACKET", 16, 0xFFC03C40);
 		d("USB_VPLEN", 16, 0xFFC03D4C);
 
-		parent = debugfs_create_dir("WDOG", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
-
 	}	/* BF547 */
 
 #ifdef __ADSPBF548__
@@ -18016,33 +17151,6 @@ static int __init bfin_debug_mmrs_init(void)
 # define USE_BF548 0
 #endif
 	if (USE_BF548) {
-
-		parent = debugfs_create_dir("ATAPI", top);
-		d("ATAPI_CONTROL", 16, 0xFFC03800);
-		d("ATAPI_DEV_ADDR", 16, 0xFFC03808);
-		d("ATAPI_DEV_RXBUF", 16, 0xFFC03810);
-		d("ATAPI_DEV_TXBUF", 16, 0xFFC0380C);
-		d("ATAPI_DMA_TFRCNT", 16, 0xFFC03830);
-		d("ATAPI_INT_MASK", 16, 0xFFC03814);
-		d("ATAPI_INT_STATUS", 16, 0xFFC03818);
-		d("ATAPI_LINE_STATUS", 16, 0xFFC03820);
-		d("ATAPI_MULTI_TIM_0", 16, 0xFFC03850);
-		d("ATAPI_MULTI_TIM_1", 16, 0xFFC03854);
-		d("ATAPI_MULTI_TIM_2", 16, 0xFFC03858);
-		d("ATAPI_PIO_TFRCNT", 16, 0xFFC0382C);
-		d("ATAPI_PIO_TIM_0", 16, 0xFFC03844);
-		d("ATAPI_PIO_TIM_1", 16, 0xFFC03848);
-		d("ATAPI_REG_TIM_0", 16, 0xFFC03840);
-		d("ATAPI_SM_STATE", 16, 0xFFC03824);
-		d("ATAPI_STATUS", 16, 0xFFC03804);
-		d("ATAPI_TERMINATE", 16, 0xFFC03828);
-		d("ATAPI_UDMAOUT_TFRCNT", 16, 0xFFC03838);
-		d("ATAPI_ULTRA_TIM_0", 16, 0xFFC03860);
-		d("ATAPI_ULTRA_TIM_1", 16, 0xFFC03864);
-		d("ATAPI_ULTRA_TIM_2", 16, 0xFFC03868);
-		d("ATAPI_ULTRA_TIM_3", 16, 0xFFC0386C);
-		d("ATAPI_UMAIN_TFRCNT", 16, 0xFFC03834);
-		d("ATAPI_XFER_LEN", 16, 0xFFC0381C);
 
 		parent = debugfs_create_dir("CAN0 Acceptance Mask RAM", top);
 		d("CAN0_AM00H", 16, 0xFFC02B04);
@@ -18780,16 +17888,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("CAN1_MB31_LENGTH", 16, 0xFFC037F0);
 		d("CAN1_MB31_TIMESTAMP", 16, 0xFFC037F4);
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0420C);
-		d("CNT_CONFIG", 16, 0xFFC04200);
-		d("CNT_COUNTER", 32, 0xFFC04214);
-		d("CNT_DEBOUNCE", 16, 0xFFC04210);
-		d("CNT_IMASK", 16, 0xFFC04204);
-		d("CNT_MAX", 32, 0xFFC04218);
-		d("CNT_MIN", 32, 0xFFC0421C);
-		d("CNT_STATUS", 16, 0xFFC04208);
-
 		parent = debugfs_create_dir("DMA", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -19109,48 +18207,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMAC1_TCCNT", 16, 0xFFC01B10);
 		d("DMAC1_TCPER", 16, 0xFFC01B0C);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_ARBSTAT", 32, 0xFFC00A10);
-		d("EBIU_DDRACCT", 32, 0xFFC00AA0);
-		d("EBIU_DDRARCT", 32, 0xFFC00AAC);
-		d("EBIU_DDRBRC0", 32, 0xFFC00A60);
-		d("EBIU_DDRBRC1", 32, 0xFFC00A64);
-		d("EBIU_DDRBRC2", 32, 0xFFC00A68);
-		d("EBIU_DDRBRC3", 32, 0xFFC00A6C);
-		d("EBIU_DDRBRC4", 32, 0xFFC00A70);
-		d("EBIU_DDRBRC5", 32, 0xFFC00A74);
-		d("EBIU_DDRBRC6", 32, 0xFFC00A78);
-		d("EBIU_DDRBRC7", 32, 0xFFC00A7C);
-		d("EBIU_DDRBWC0", 32, 0xFFC00A80);
-		d("EBIU_DDRBWC1", 32, 0xFFC00A84);
-		d("EBIU_DDRBWC2", 32, 0xFFC00A88);
-		d("EBIU_DDRBWC3", 32, 0xFFC00A8C);
-		d("EBIU_DDRBWC4", 32, 0xFFC00A90);
-		d("EBIU_DDRBWC5", 32, 0xFFC00A94);
-		d("EBIU_DDRBWC6", 32, 0xFFC00A98);
-		d("EBIU_DDRBWC7", 32, 0xFFC00A9C);
-		d("EBIU_DDRCTL0", 32, 0xFFC00A20);
-		d("EBIU_DDRCTL1", 32, 0xFFC00A24);
-		d("EBIU_DDRCTL2", 32, 0xFFC00A28);
-		d("EBIU_DDRCTL3", 32, 0xFFC00A2C);
-		d("EBIU_DDRGC0", 32, 0xFFC00AB0);
-		d("EBIU_DDRGC1", 32, 0xFFC00AB4);
-		d("EBIU_DDRGC2", 32, 0xFFC00AB8);
-		d("EBIU_DDRGC3", 32, 0xFFC00ABC);
-		d("EBIU_DDRMCCL", 32, 0xFFC00AC4);
-		d("EBIU_DDRMCEN", 32, 0xFFC00AC0);
-		d("EBIU_DDRQUE", 32, 0xFFC00A30);
-		d("EBIU_DDRTACT", 32, 0xFFC00AA8);
-		d("EBIU_ERRADD", 32, 0xFFC00A34);
-		d("EBIU_ERRMST", 16, 0xFFC00A38);
-		d("EBIU_FCTL", 32, 0xFFC00A18);
-		d("EBIU_MBSCTL", 32, 0xFFC00A0C);
-		d("EBIU_MODE", 32, 0xFFC00A14);
-		d("EBIU_RSTCTL", 16, 0xFFC00A3C);
-
 		parent = debugfs_create_dir("EPPI", top);
 		d("EPPI0_CLIP", 32, 0xFFC01034);
 		d("EPPI0_CLKDIV", 16, 0xFFC0101C);
@@ -19195,9 +18251,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("EPPI2_VCOUNT", 16, 0xFFC0290C);
 		d("EPPI2_VDELAY", 16, 0xFFC02910);
 
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-
 		parent = debugfs_create_dir("HMDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC04508);
 		d("HMDMA0_BCOUNT", 16, 0xFFC04518);
@@ -19218,14 +18271,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("HOST_CONTROL", 16, 0xFFC03A00);
 		d("HOST_STATUS", 16, 0xFFC03A04);
 		d("HOST_TIMEOUT", 16, 0xFFC03A08);
-
-		parent = debugfs_create_dir("KEYPAD", top);
-		d("KPAD_CTL", 16, 0xFFC04100);
-		d("KPAD_MSEL", 16, 0xFFC04108);
-		d("KPAD_PRESCALE", 16, 0xFFC04104);
-		d("KPAD_ROWCOL", 16, 0xFFC0410C);
-		d("KPAD_SOFTEVAL", 16, 0xFFC04114);
-		d("KPAD_STAT", 16, 0xFFC04110);
 
 		parent = debugfs_create_dir("MDMA", top);
 		d("MDMA_D0_CONFIG", 16, 0xFFC00F08);
@@ -19351,16 +18396,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NFC_RST", 16, 0xFFC03B24);
 		d_RO("NFC_STAT", 16, 0xFFC03B04);
 
-		parent = debugfs_create_dir("OTP", top);
-		d("OTP_BEN", 16, 0xFFC04304);
-		d("OTP_CONTROL", 16, 0xFFC04300);
-		d("OTP_DATA0", 32, 0xFFC04380);
-		d("OTP_DATA1", 32, 0xFFC04384);
-		d("OTP_DATA2", 32, 0xFFC04388);
-		d("OTP_DATA3", 32, 0xFFC0438C);
-		d("OTP_STATUS", 16, 0xFFC04308);
-		d("OTP_TIMING", 32, 0xFFC0430C);
-
 		parent = debugfs_create_dir("PINT_0", top);
 		d("PINT0_ASSIGN", 32, 0xFFC0140C);
 		d("PINT0_EDGE_CLEAR", 32, 0xFFC01414);
@@ -19429,13 +18464,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PIXC_PPL", 16, 0xFFC04404);
 		d("PIXC_RYCON", 32, 0xFFC04440);
 		d("PIXC_TC", 32, 0xFFC04450);
-
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PWM_TMR", top);
 		d("TIMER0_CONFIG", 16, 0xFFC01600);
@@ -19588,14 +18616,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTJ_INEN", 16, 0xFFC015F8);
 		d("PORTJ_MUX", 32, 0xFFC015FC);
 		d("PORTJ_SET", 16, 0xFFC015E8);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SDH", top);
 		d("SDH_ARGUMENT", 32, 0xFFC03908);
@@ -20030,11 +19050,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("USB_TX_MAX_PACKET", 16, 0xFFC03C40);
 		d("USB_VPLEN", 16, 0xFFC03D4C);
 
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
-
 	}	/* BF548 */
 
 #ifdef __ADSPBF549__
@@ -20043,33 +19058,6 @@ static int __init bfin_debug_mmrs_init(void)
 # define USE_BF549 0
 #endif
 	if (USE_BF549) {
-
-		parent = debugfs_create_dir("ATAPI", top);
-		d("ATAPI_CONTROL", 16, 0xFFC03800);
-		d("ATAPI_DEV_ADDR", 16, 0xFFC03808);
-		d("ATAPI_DEV_RXBUF", 16, 0xFFC03810);
-		d("ATAPI_DEV_TXBUF", 16, 0xFFC0380C);
-		d("ATAPI_DMA_TFRCNT", 16, 0xFFC03830);
-		d("ATAPI_INT_MASK", 16, 0xFFC03814);
-		d("ATAPI_INT_STATUS", 16, 0xFFC03818);
-		d("ATAPI_LINE_STATUS", 16, 0xFFC03820);
-		d("ATAPI_MULTI_TIM_0", 16, 0xFFC03850);
-		d("ATAPI_MULTI_TIM_1", 16, 0xFFC03854);
-		d("ATAPI_MULTI_TIM_2", 16, 0xFFC03858);
-		d("ATAPI_PIO_TFRCNT", 16, 0xFFC0382C);
-		d("ATAPI_PIO_TIM_0", 16, 0xFFC03844);
-		d("ATAPI_PIO_TIM_1", 16, 0xFFC03848);
-		d("ATAPI_REG_TIM_0", 16, 0xFFC03840);
-		d("ATAPI_SM_STATE", 16, 0xFFC03824);
-		d("ATAPI_STATUS", 16, 0xFFC03804);
-		d("ATAPI_TERMINATE", 16, 0xFFC03828);
-		d("ATAPI_UDMAOUT_TFRCNT", 16, 0xFFC03838);
-		d("ATAPI_ULTRA_TIM_0", 16, 0xFFC03860);
-		d("ATAPI_ULTRA_TIM_1", 16, 0xFFC03864);
-		d("ATAPI_ULTRA_TIM_2", 16, 0xFFC03868);
-		d("ATAPI_ULTRA_TIM_3", 16, 0xFFC0386C);
-		d("ATAPI_UMAIN_TFRCNT", 16, 0xFFC03834);
-		d("ATAPI_XFER_LEN", 16, 0xFFC0381C);
 
 		parent = debugfs_create_dir("CAN0 Acceptance Mask RAM", top);
 		d("CAN0_AM00H", 16, 0xFFC02B04);
@@ -20807,16 +19795,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("CAN1_MB31_LENGTH", 16, 0xFFC037F0);
 		d("CAN1_MB31_TIMESTAMP", 16, 0xFFC037F4);
 
-		parent = debugfs_create_dir("Counter", top);
-		d("CNT_COMMAND", 16, 0xFFC0420C);
-		d("CNT_CONFIG", 16, 0xFFC04200);
-		d("CNT_COUNTER", 32, 0xFFC04214);
-		d("CNT_DEBOUNCE", 16, 0xFFC04210);
-		d("CNT_IMASK", 16, 0xFFC04204);
-		d("CNT_MAX", 32, 0xFFC04218);
-		d("CNT_MIN", 32, 0xFFC0421C);
-		d("CNT_STATUS", 16, 0xFFC04208);
-
 		parent = debugfs_create_dir("DMA", top);
 		d("DMA0_CONFIG", 16, 0xFFC00C08);
 		d("DMA0_CURR_ADDR", 32, 0xFFC00C24);
@@ -21136,48 +20114,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMAC1_TCCNT", 16, 0xFFC01B10);
 		d("DMAC1_TCPER", 16, 0xFFC01B0C);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_ARBSTAT", 32, 0xFFC00A10);
-		d("EBIU_DDRACCT", 32, 0xFFC00AA0);
-		d("EBIU_DDRARCT", 32, 0xFFC00AAC);
-		d("EBIU_DDRBRC0", 32, 0xFFC00A60);
-		d("EBIU_DDRBRC1", 32, 0xFFC00A64);
-		d("EBIU_DDRBRC2", 32, 0xFFC00A68);
-		d("EBIU_DDRBRC3", 32, 0xFFC00A6C);
-		d("EBIU_DDRBRC4", 32, 0xFFC00A70);
-		d("EBIU_DDRBRC5", 32, 0xFFC00A74);
-		d("EBIU_DDRBRC6", 32, 0xFFC00A78);
-		d("EBIU_DDRBRC7", 32, 0xFFC00A7C);
-		d("EBIU_DDRBWC0", 32, 0xFFC00A80);
-		d("EBIU_DDRBWC1", 32, 0xFFC00A84);
-		d("EBIU_DDRBWC2", 32, 0xFFC00A88);
-		d("EBIU_DDRBWC3", 32, 0xFFC00A8C);
-		d("EBIU_DDRBWC4", 32, 0xFFC00A90);
-		d("EBIU_DDRBWC5", 32, 0xFFC00A94);
-		d("EBIU_DDRBWC6", 32, 0xFFC00A98);
-		d("EBIU_DDRBWC7", 32, 0xFFC00A9C);
-		d("EBIU_DDRCTL0", 32, 0xFFC00A20);
-		d("EBIU_DDRCTL1", 32, 0xFFC00A24);
-		d("EBIU_DDRCTL2", 32, 0xFFC00A28);
-		d("EBIU_DDRCTL3", 32, 0xFFC00A2C);
-		d("EBIU_DDRGC0", 32, 0xFFC00AB0);
-		d("EBIU_DDRGC1", 32, 0xFFC00AB4);
-		d("EBIU_DDRGC2", 32, 0xFFC00AB8);
-		d("EBIU_DDRGC3", 32, 0xFFC00ABC);
-		d("EBIU_DDRMCCL", 32, 0xFFC00AC4);
-		d("EBIU_DDRMCEN", 32, 0xFFC00AC0);
-		d("EBIU_DDRQUE", 32, 0xFFC00A30);
-		d("EBIU_DDRTACT", 32, 0xFFC00AA8);
-		d("EBIU_ERRADD", 32, 0xFFC00A34);
-		d("EBIU_ERRMST", 16, 0xFFC00A38);
-		d("EBIU_FCTL", 32, 0xFFC00A18);
-		d("EBIU_MBSCTL", 32, 0xFFC00A0C);
-		d("EBIU_MODE", 32, 0xFFC00A14);
-		d("EBIU_RSTCTL", 16, 0xFFC00A3C);
-
 		parent = debugfs_create_dir("EPPI", top);
 		d("EPPI0_CLIP", 32, 0xFFC01034);
 		d("EPPI0_CLKDIV", 16, 0xFFC0101C);
@@ -21222,9 +20158,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("EPPI2_VCOUNT", 16, 0xFFC0290C);
 		d("EPPI2_VDELAY", 16, 0xFFC02910);
 
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-
 		parent = debugfs_create_dir("HMDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC04508);
 		d("HMDMA0_BCOUNT", 16, 0xFFC04518);
@@ -21245,14 +20178,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("HOST_CONTROL", 16, 0xFFC03A00);
 		d("HOST_STATUS", 16, 0xFFC03A04);
 		d("HOST_TIMEOUT", 16, 0xFFC03A08);
-
-		parent = debugfs_create_dir("KEYPAD", top);
-		d("KPAD_CTL", 16, 0xFFC04100);
-		d("KPAD_MSEL", 16, 0xFFC04108);
-		d("KPAD_PRESCALE", 16, 0xFFC04104);
-		d("KPAD_ROWCOL", 16, 0xFFC0410C);
-		d("KPAD_SOFTEVAL", 16, 0xFFC04114);
-		d("KPAD_STAT", 16, 0xFFC04110);
 
 		parent = debugfs_create_dir("MDMA", top);
 		d("MDMA_D0_CONFIG", 16, 0xFFC00F08);
@@ -21496,16 +20421,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NFC_RST", 16, 0xFFC03B24);
 		d_RO("NFC_STAT", 16, 0xFFC03B04);
 
-		parent = debugfs_create_dir("OTP", top);
-		d("OTP_BEN", 16, 0xFFC04304);
-		d("OTP_CONTROL", 16, 0xFFC04300);
-		d("OTP_DATA0", 32, 0xFFC04380);
-		d("OTP_DATA1", 32, 0xFFC04384);
-		d("OTP_DATA2", 32, 0xFFC04388);
-		d("OTP_DATA3", 32, 0xFFC0438C);
-		d("OTP_STATUS", 16, 0xFFC04308);
-		d("OTP_TIMING", 32, 0xFFC0430C);
-
 		parent = debugfs_create_dir("PINT_0", top);
 		d("PINT0_ASSIGN", 32, 0xFFC0140C);
 		d("PINT0_EDGE_CLEAR", 32, 0xFFC01414);
@@ -21574,13 +20489,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PIXC_PPL", 16, 0xFFC04404);
 		d("PIXC_RYCON", 32, 0xFFC04440);
 		d("PIXC_TC", 32, 0xFFC04450);
-
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
 
 		parent = debugfs_create_dir("PWM_TMR", top);
 		d("TIMER0_CONFIG", 16, 0xFFC01600);
@@ -21733,14 +20641,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTJ_INEN", 16, 0xFFC015F8);
 		d("PORTJ_MUX", 32, 0xFFC015FC);
 		d("PORTJ_SET", 16, 0xFFC015E8);
-
-		parent = debugfs_create_dir("RTC", top);
-		d("RTC_ALARM", 32, 0xFFC00310);
-		d("RTC_ICTL", 16, 0xFFC00304);
-		d("RTC_ISTAT", 16, 0xFFC00308);
-		d("RTC_PREN", 16, 0xFFC00314);
-		d("RTC_STAT", 32, 0xFFC00300);
-		d("RTC_SWCNT", 16, 0xFFC0030C);
 
 		parent = debugfs_create_dir("SDH", top);
 		d("SDH_ARGUMENT", 32, 0xFFC03908);
@@ -22174,11 +21074,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("USB_TXTYPE", 16, 0xFFC03C54);
 		d("USB_TX_MAX_PACKET", 16, 0xFFC03C40);
 		d("USB_VPLEN", 16, 0xFFC03D4C);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOG_CNT", 32, 0xFFC00204);
-		d("WDOG_CTL", 16, 0xFFC00200);
-		d("WDOG_STAT", 32, 0xFFC00208);
 
 	}	/* BF549 */
 
@@ -22555,18 +21450,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMA2_9_Y_COUNT", 16, 0xFFC00E58);
 		d("DMA2_9_Y_MODIFY", 16, 0xFFC00E5C);
 
-		parent = debugfs_create_dir("EBIU", top);
-		d("EBIU_AMBCTL0", 32, 0xFFC00A04);
-		d("EBIU_AMBCTL1", 32, 0xFFC00A08);
-		d("EBIU_AMGCTL", 16, 0xFFC00A00);
-		d("EBIU_SDBCTL", 32, 0xFFC00A14);
-		d("EBIU_SDGCTL", 32, 0xFFC00A10);
-		d("EBIU_SDRRC", 16, 0xFFC00A18);
-		d("EBIU_SDSTAT", 16, 0xFFC00A1C);
-
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("CHIPID", 32, 0xFFC00014);
-
 		parent = debugfs_create_dir("Flag 0", top);
 		d("FIO0_BOTH", 16, 0xFFC0073C);
 		d("FIO0_DIR", 16, 0xFFC00730);
@@ -22800,13 +21683,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA2_S1_Y_COUNT", 16, 0xFFC00FD8);
 		d("MDMA2_S1_Y_MODIFY", 16, 0xFFC00FDC);
 
-		parent = debugfs_create_dir("PLL", top);
-		d("PLL_CTL", 16, 0xFFC00000);
-		d("PLL_DIV", 16, 0xFFC00004);
-		d("PLL_LOCKCNT", 16, 0xFFC00010);
-		d("PLL_STAT", 16, 0xFFC0000C);
-		d("VR_CTL", 16, 0xFFC00008);
-
 		parent = debugfs_create_dir("PPI", top);
 		d("PPI0_CONTROL", 16, 0xFFC01000);
 		d("PPI0_COUNT", 16, 0xFFC01008);
@@ -22982,14 +21858,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("UART_RBR", 16, 0xFFC00400);
 		d("UART_SCR", 16, 0xFFC0041C);
 		d("UART_THR", 16, 0xFFC00400);
-
-		parent = debugfs_create_dir("Watchdog", top);
-		d("WDOGA_CNT", 32, 0xFFC00204);
-		d("WDOGA_CTL", 16, 0xFFC00200);
-		d("WDOGA_STAT", 32, 0xFFC00208);
-		d("WDOGB_CNT", 32, 0xFFC01204);
-		d("WDOGB_CTL", 16, 0xFFC01200);
-		d("WDOGB_STAT", 32, 0xFFC01208);
 
 	}	/* BF561 */
 
