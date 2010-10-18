@@ -87,7 +87,7 @@ struct spi_device {
 #define	SPI_READY	0x80			/* slave pulls low to pause */
 	u8			bits_per_word;
 	int			irq;
-	unsigned long 		irq_flags;
+	unsigned long		irq_flags;
 	void			*controller_state;
 	void			*controller_data;
 	char			modalias[SPI_NAME_SIZE];

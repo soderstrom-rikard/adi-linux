@@ -259,7 +259,7 @@ struct i2c_board_info {
 	struct device_node *of_node;
 #endif
 	int		irq;
-	unsigned long 	irq_flags;
+	unsigned long	irq_flags;
 };
 
 /**
