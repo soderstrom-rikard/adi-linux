@@ -1028,20 +1028,10 @@ static int bfin_spi_setup(struct spi_device *spi)
 		chip->ctl_reg &= bfin_ctl_reg;
 	}
 
-	if (chip->chip_select_num >= MAX_CTRL_CS) {
-		/* GPIO supports multiples of 8 bits */
-		if (spi->bits_per_word % 8) {
-			dev_err(&spi->dev, "bits_per_word %d not multiple of 8 bits\n",
+	if (spi->bits_per_word != 8 && spi->bits_per_word != 16) {
+		dev_err(&spi->dev, "%d bits_per_word is not supported\n",
 				spi->bits_per_word);
-			goto error;
-		}
-	} else {
-		/* Hardware CS only supports 8 and 16 bit */
-		if (spi->bits_per_word != 8 && spi->bits_per_word != 16) {
-			dev_err(&spi->dev, "bits_per_word %d is not supported\n",
-				spi->bits_per_word);
-			goto error;
-		}
+		goto error;
 	}
 
 	/* translate common spi framework into our register */
