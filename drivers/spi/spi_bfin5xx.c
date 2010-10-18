@@ -975,7 +975,7 @@ static u16 ssel[][MAX_SPI_SSEL] = {
 	P_SPI2_SSEL6, P_SPI2_SSEL7},
 };
 
-/* first setup for new devices */
+/* setup for devices (may be called multiple times -- not just first setup) */
 static int bfin_spi_setup(struct spi_device *spi)
 {
 	struct bfin5xx_spi_chip *chip_info;
