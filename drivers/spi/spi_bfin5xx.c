@@ -105,7 +105,7 @@ struct master_data {
 	u16 flag_reg;
 
 	int cs_change;
-	struct transfer_ops *ops;
+	const struct transfer_ops *ops;
 };
 
 struct slave_data {
@@ -119,7 +119,7 @@ struct slave_data {
 	u32 cs_gpio;
 	u16 idle_tx_val;
 	u8 pio_interrupt;	/* use spi data irq */
-	struct transfer_ops *ops;
+	const struct transfer_ops *ops;
 };
 
 #define DEFINE_SPI_REG(reg, off) \
@@ -304,7 +304,7 @@ static void bfin_spi_u8_duplex(struct master_data *drv_data)
 	}
 }
 
-static struct transfer_ops bfin_transfer_ops_u8 = {
+static const struct transfer_ops bfin_transfer_ops_u8 = {
 	.write  = bfin_spi_u8_writer,
 	.read   = bfin_spi_u8_reader,
 	.duplex = bfin_spi_u8_duplex,
@@ -358,7 +358,7 @@ static void bfin_spi_u16_duplex(struct master_data *drv_data)
 	}
 }
 
-static struct transfer_ops bfin_transfer_ops_u16 = {
+static const struct transfer_ops bfin_transfer_ops_u16 = {
 	.write  = bfin_spi_u16_writer,
 	.read   = bfin_spi_u16_reader,
 	.duplex = bfin_spi_u16_duplex,
