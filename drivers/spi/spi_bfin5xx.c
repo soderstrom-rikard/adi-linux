@@ -1435,8 +1435,8 @@ static int bfin_spi_suspend(struct platform_device *pdev, pm_message_t state)
 	/*
 	 * reset SPI_CTL and SPI_FLG registers
 	 */
+	write_CTRL(drv_data, BIT_CTL_CPHA | BIT_CTL_MASTER);
 	write_FLAG(drv_data, 0xFF00);
-	write_CTRL(drv_data, 0x400);
 
 	return 0;
 }
