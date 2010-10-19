@@ -395,6 +395,26 @@ static int __init bfin_debug_mmrs_init(void)
 	D16(KPAD_SOFTEVAL);
 #endif
 
+#ifdef NFC_ADDR
+	parent = debugfs_create_dir("nfc", top);
+	D_WO(NFC_ADDR, 16);
+	D_WO(NFC_CMD, 16);
+	D_RO(NFC_COUNT, 16);
+	D16(NFC_CTL);
+	D_WO(NFC_DATA_RD, 16);
+	D_WO(NFC_DATA_WR, 16);
+	D_RO(NFC_ECC0, 16);
+	D_RO(NFC_ECC1, 16);
+	D_RO(NFC_ECC2, 16);
+	D_RO(NFC_ECC3, 16);
+	D16(NFC_IRQMASK);
+	D16(NFC_IRQSTAT);
+	D_WO(NFC_PGCTL, 16);
+	D_RO(NFC_READ, 16);
+	D16(NFC_RST);
+	D_RO(NFC_STAT, 16);
+#endif
+
 #ifdef OTP_CONTROL
 	parent = debugfs_create_dir("otp", top);
 	D16(OTP_CONTROL);
@@ -2489,24 +2509,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S1_Y_COUNT", 16, 0xFFC00FD8);
 		d("MDMA_S1_Y_MODIFY", 16, 0xFFC00FDC);
 
-		parent = debugfs_create_dir("NFC", top);
-		d("NFC_ADDR", 16, 0xFFC03740);
-		d("NFC_CMD", 16, 0xFFC03744);
-		d("NFC_COUNT", 16, 0xFFC03720);
-		d("NFC_CTL", 16, 0xFFC03700);
-		d("NFC_DATA_RD", 16, 0xFFC0374C);
-		d("NFC_DATA_WR", 16, 0xFFC03748);
-		d("NFC_ECC0", 16, 0xFFC03710);
-		d("NFC_ECC1", 16, 0xFFC03714);
-		d("NFC_ECC2", 16, 0xFFC03718);
-		d("NFC_ECC3", 16, 0xFFC0371C);
-		d("NFC_IRQMASK", 16, 0xFFC0370C);
-		d("NFC_IRQSTAT", 16, 0xFFC03708);
-		d("NFC_PGCTL", 16, 0xFFC03728);
-		d("NFC_READ", 16, 0xFFC0372C);
-		d("NFC_RST", 16, 0xFFC03724);
-		d("NFC_STAT", 16, 0xFFC03704);
-
 		parent = debugfs_create_dir("NON-GPIO", top);
 		d("NONGPIO_DRIVE", 16, 0xFFC03280);
 		d("NONGPIO_HYSTERESIS", 16, 0xFFC03288);
@@ -2983,24 +2985,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S1_X_MODIFY", 16, 0xFFC00FD4);
 		d("MDMA_S1_Y_COUNT", 16, 0xFFC00FD8);
 		d("MDMA_S1_Y_MODIFY", 16, 0xFFC00FDC);
-
-		parent = debugfs_create_dir("NFC", top);
-		d("NFC_ADDR", 16, 0xFFC03740);
-		d("NFC_CMD", 16, 0xFFC03744);
-		d("NFC_COUNT", 16, 0xFFC03720);
-		d("NFC_CTL", 16, 0xFFC03700);
-		d("NFC_DATA_RD", 16, 0xFFC0374C);
-		d("NFC_DATA_WR", 16, 0xFFC03748);
-		d("NFC_ECC0", 16, 0xFFC03710);
-		d("NFC_ECC1", 16, 0xFFC03714);
-		d("NFC_ECC2", 16, 0xFFC03718);
-		d("NFC_ECC3", 16, 0xFFC0371C);
-		d("NFC_IRQMASK", 16, 0xFFC0370C);
-		d("NFC_IRQSTAT", 16, 0xFFC03708);
-		d("NFC_PGCTL", 16, 0xFFC03728);
-		d("NFC_READ", 16, 0xFFC0372C);
-		d("NFC_RST", 16, 0xFFC03724);
-		d("NFC_STAT", 16, 0xFFC03704);
 
 		parent = debugfs_create_dir("NON-GPIO", top);
 		d("NONGPIO_DRIVE", 16, 0xFFC03280);
@@ -3730,24 +3714,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S1_X_MODIFY", 16, 0xFFC00FD4);
 		d("MDMA_S1_Y_COUNT", 16, 0xFFC00FD8);
 		d("MDMA_S1_Y_MODIFY", 16, 0xFFC00FDC);
-
-		parent = debugfs_create_dir("NFC", top);
-		d("NFC_ADDR", 16, 0xFFC03740);
-		d("NFC_CMD", 16, 0xFFC03744);
-		d("NFC_COUNT", 16, 0xFFC03720);
-		d("NFC_CTL", 16, 0xFFC03700);
-		d("NFC_DATA_RD", 16, 0xFFC0374C);
-		d("NFC_DATA_WR", 16, 0xFFC03748);
-		d("NFC_ECC0", 16, 0xFFC03710);
-		d("NFC_ECC1", 16, 0xFFC03714);
-		d("NFC_ECC2", 16, 0xFFC03718);
-		d("NFC_ECC3", 16, 0xFFC0371C);
-		d("NFC_IRQMASK", 16, 0xFFC0370C);
-		d("NFC_IRQSTAT", 16, 0xFFC03708);
-		d("NFC_PGCTL", 16, 0xFFC03728);
-		d("NFC_READ", 16, 0xFFC0372C);
-		d("NFC_RST", 16, 0xFFC03724);
-		d("NFC_STAT", 16, 0xFFC03704);
 
 		parent = debugfs_create_dir("NON-GPIO", top);
 		d("NONGPIO_DRIVE", 16, 0xFFC03280);
@@ -9325,24 +9291,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S3_Y_COUNT", 16, 0xFFC01FD8);
 		d("MDMA_S3_Y_MODIFY", 16, 0xFFC01FDC);
 
-		parent = debugfs_create_dir("NFC", top);
-		d_WO("NFC_ADDR", 16, 0xFFC03B40);
-		d_WO("NFC_CMD", 16, 0xFFC03B44);
-		d_RO("NFC_COUNT", 16, 0xFFC03B20);
-		d("NFC_CTL", 16, 0xFFC03B00);
-		d_WO("NFC_DATA_RD", 16, 0xFFC03B4C);
-		d_WO("NFC_DATA_WR", 16, 0xFFC03B48);
-		d_RO("NFC_ECC0", 16, 0xFFC03B10);
-		d_RO("NFC_ECC1", 16, 0xFFC03B14);
-		d_RO("NFC_ECC2", 16, 0xFFC03B18);
-		d_RO("NFC_ECC3", 16, 0xFFC03B1C);
-		d("NFC_IRQMASK", 16, 0xFFC03B0C);
-		d("NFC_IRQSTAT", 16, 0xFFC03B08);
-		d_WO("NFC_PGCTL", 16, 0xFFC03B28);
-		d_RO("NFC_READ", 16, 0xFFC03B2C);
-		d("NFC_RST", 16, 0xFFC03B24);
-		d_RO("NFC_STAT", 16, 0xFFC03B04);
-
 		parent = debugfs_create_dir("PINT_0", top);
 		d("PINT0_ASSIGN", 32, 0xFFC0140C);
 		d("PINT0_EDGE_CLEAR", 32, 0xFFC01414);
@@ -11074,24 +11022,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S3_Y_COUNT", 16, 0xFFC01FD8);
 		d("MDMA_S3_Y_MODIFY", 16, 0xFFC01FDC);
 
-		parent = debugfs_create_dir("NFC", top);
-		d_WO("NFC_ADDR", 16, 0xFFC03B40);
-		d_WO("NFC_CMD", 16, 0xFFC03B44);
-		d_RO("NFC_COUNT", 16, 0xFFC03B20);
-		d("NFC_CTL", 16, 0xFFC03B00);
-		d_WO("NFC_DATA_RD", 16, 0xFFC03B4C);
-		d_WO("NFC_DATA_WR", 16, 0xFFC03B48);
-		d_RO("NFC_ECC0", 16, 0xFFC03B10);
-		d_RO("NFC_ECC1", 16, 0xFFC03B14);
-		d_RO("NFC_ECC2", 16, 0xFFC03B18);
-		d_RO("NFC_ECC3", 16, 0xFFC03B1C);
-		d("NFC_IRQMASK", 16, 0xFFC03B0C);
-		d("NFC_IRQSTAT", 16, 0xFFC03B08);
-		d_WO("NFC_PGCTL", 16, 0xFFC03B28);
-		d_RO("NFC_READ", 16, 0xFFC03B2C);
-		d("NFC_RST", 16, 0xFFC03B24);
-		d_RO("NFC_STAT", 16, 0xFFC03B04);
-
 		parent = debugfs_create_dir("PINT_0", top);
 		d("PINT0_ASSIGN", 32, 0xFFC0140C);
 		d("PINT0_EDGE_CLEAR", 32, 0xFFC01414);
@@ -11967,24 +11897,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S3_X_MODIFY", 16, 0xFFC01FD4);
 		d("MDMA_S3_Y_COUNT", 16, 0xFFC01FD8);
 		d("MDMA_S3_Y_MODIFY", 16, 0xFFC01FDC);
-
-		parent = debugfs_create_dir("NFC", top);
-		d_WO("NFC_ADDR", 16, 0xFFC03B40);
-		d_WO("NFC_CMD", 16, 0xFFC03B44);
-		d_RO("NFC_COUNT", 16, 0xFFC03B20);
-		d("NFC_CTL", 16, 0xFFC03B00);
-		d_WO("NFC_DATA_RD", 16, 0xFFC03B4C);
-		d_WO("NFC_DATA_WR", 16, 0xFFC03B48);
-		d_RO("NFC_ECC0", 16, 0xFFC03B10);
-		d_RO("NFC_ECC1", 16, 0xFFC03B14);
-		d_RO("NFC_ECC2", 16, 0xFFC03B18);
-		d_RO("NFC_ECC3", 16, 0xFFC03B1C);
-		d("NFC_IRQMASK", 16, 0xFFC03B0C);
-		d("NFC_IRQSTAT", 16, 0xFFC03B08);
-		d_WO("NFC_PGCTL", 16, 0xFFC03B28);
-		d_RO("NFC_READ", 16, 0xFFC03B2C);
-		d("NFC_RST", 16, 0xFFC03B24);
-		d_RO("NFC_STAT", 16, 0xFFC03B04);
 
 		parent = debugfs_create_dir("PINT_0", top);
 		d("PINT0_ASSIGN", 32, 0xFFC0140C);
@@ -13815,24 +13727,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S3_X_MODIFY", 16, 0xFFC01FD4);
 		d("MDMA_S3_Y_COUNT", 16, 0xFFC01FD8);
 		d("MDMA_S3_Y_MODIFY", 16, 0xFFC01FDC);
-
-		parent = debugfs_create_dir("NFC", top);
-		d_WO("NFC_ADDR", 16, 0xFFC03B40);
-		d_WO("NFC_CMD", 16, 0xFFC03B44);
-		d_RO("NFC_COUNT", 16, 0xFFC03B20);
-		d("NFC_CTL", 16, 0xFFC03B00);
-		d_WO("NFC_DATA_RD", 16, 0xFFC03B4C);
-		d_WO("NFC_DATA_WR", 16, 0xFFC03B48);
-		d_RO("NFC_ECC0", 16, 0xFFC03B10);
-		d_RO("NFC_ECC1", 16, 0xFFC03B14);
-		d_RO("NFC_ECC2", 16, 0xFFC03B18);
-		d_RO("NFC_ECC3", 16, 0xFFC03B1C);
-		d("NFC_IRQMASK", 16, 0xFFC03B0C);
-		d("NFC_IRQSTAT", 16, 0xFFC03B08);
-		d_WO("NFC_PGCTL", 16, 0xFFC03B28);
-		d_RO("NFC_READ", 16, 0xFFC03B2C);
-		d("NFC_RST", 16, 0xFFC03B24);
-		d_RO("NFC_STAT", 16, 0xFFC03B04);
 
 		parent = debugfs_create_dir("PINT_0", top);
 		d("PINT0_ASSIGN", 32, 0xFFC0140C);
@@ -15775,24 +15669,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MXVR_SYNC_LCHAN_5", 32, 0xFFC0278C);
 		d("MXVR_SYNC_LCHAN_6", 32, 0xFFC02790);
 		d("MXVR_SYNC_LCHAN_7", 32, 0xFFC02794);
-
-		parent = debugfs_create_dir("NFC", top);
-		d_WO("NFC_ADDR", 16, 0xFFC03B40);
-		d_WO("NFC_CMD", 16, 0xFFC03B44);
-		d_RO("NFC_COUNT", 16, 0xFFC03B20);
-		d("NFC_CTL", 16, 0xFFC03B00);
-		d_WO("NFC_DATA_RD", 16, 0xFFC03B4C);
-		d_WO("NFC_DATA_WR", 16, 0xFFC03B48);
-		d_RO("NFC_ECC0", 16, 0xFFC03B10);
-		d_RO("NFC_ECC1", 16, 0xFFC03B14);
-		d_RO("NFC_ECC2", 16, 0xFFC03B18);
-		d_RO("NFC_ECC3", 16, 0xFFC03B1C);
-		d("NFC_IRQMASK", 16, 0xFFC03B0C);
-		d("NFC_IRQSTAT", 16, 0xFFC03B08);
-		d_WO("NFC_PGCTL", 16, 0xFFC03B28);
-		d_RO("NFC_READ", 16, 0xFFC03B2C);
-		d("NFC_RST", 16, 0xFFC03B24);
-		d_RO("NFC_STAT", 16, 0xFFC03B04);
 
 		parent = debugfs_create_dir("PINT_0", top);
 		d("PINT0_ASSIGN", 32, 0xFFC0140C);
