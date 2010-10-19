@@ -560,6 +560,25 @@ static int __init bfin_debug_mmrs_init(void)
 	D32(SIC_ISR2);
 	D32(SIC_IWR2);
 #endif
+#ifdef SICB_RVECT
+	D16(SICB_SWRST);
+	D16(SICB_SYSCR);
+	D16(SICB_RVECT);
+	D32(SICB_IAR0);
+	D32(SICB_IAR1);
+	D32(SICB_IAR2);
+	D32(SICB_IAR3);
+	D32(SICB_IAR4);
+	D32(SICB_IAR5);
+	D32(SICB_IAR6);
+	D32(SICB_IAR7);
+	D32(SICB_IMASK0);
+	D32(SICB_IMASK1);
+	D32(SICB_ISR0);
+	D32(SICB_ISR1);
+	D32(SICB_IWR0);
+	D32(SICB_IWR1);
+#endif
 
 #ifdef WDOG_CNT
 	parent = debugfs_create_dir("watchdog", top);
@@ -16983,44 +17002,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PPI1_DELAY", 16, 0xFFC0130C);
 		d("PPI1_FRAME", 16, 0xFFC01310);
 		d("PPI1_STATUS", 16, 0xFFC01304);
-
-		parent = debugfs_create_dir("SICA Register File", top);
-		d("SICA_IAR0", 32, 0xFFC00124);
-		d("SICA_IAR1", 32, 0xFFC00128);
-		d("SICA_IAR2", 32, 0xFFC0012C);
-		d("SICA_IAR3", 32, 0xFFC00130);
-		d("SICA_IAR4", 32, 0xFFC00134);
-		d("SICA_IAR5", 32, 0xFFC00138);
-		d("SICA_IAR6", 32, 0xFFC0013C);
-		d("SICA_IAR7", 32, 0xFFC00140);
-		d("SICA_IMASK0", 32, 0xFFC0010C);
-		d("SICA_IMASK1", 32, 0xFFC00110);
-		d("SICA_ISR0", 32, 0xFFC00114);
-		d("SICA_ISR1", 32, 0xFFC00118);
-		d("SICA_IWR0", 32, 0xFFC0011C);
-		d("SICA_IWR1", 32, 0xFFC00120);
-		d("SICA_RVECT", 16, 0xFFC00108);
-		d("SICA_SWRST", 16, 0xFFC00100);
-		d("SICA_SYSCR", 16, 0xFFC00104);
-
-		parent = debugfs_create_dir("SICB Register File", top);
-		d("SICB_IAR0", 32, 0xFFC01124);
-		d("SICB_IAR1", 32, 0xFFC01128);
-		d("SICB_IAR2", 32, 0xFFC0112C);
-		d("SICB_IAR3", 32, 0xFFC01130);
-		d("SICB_IAR4", 32, 0xFFC01134);
-		d("SICB_IAR5", 32, 0xFFC01138);
-		d("SICB_IAR6", 32, 0xFFC0113C);
-		d("SICB_IAR7", 32, 0xFFC01140);
-		d("SICB_IMASK0", 32, 0xFFC0110C);
-		d("SICB_IMASK1", 32, 0xFFC01110);
-		d("SICB_ISR0", 32, 0xFFC01114);
-		d("SICB_ISR1", 32, 0xFFC01118);
-		d("SICB_IWR0", 32, 0xFFC0111C);
-		d("SICB_IWR1", 32, 0xFFC01120);
-		d("SICB_RVECT", 16, 0xFFC01108);
-		d("SICB_SWRST", 16, 0xFFC01100);
-		d("SICB_SYSCR", 16, 0xFFC01104);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
