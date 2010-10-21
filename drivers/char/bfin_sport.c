@@ -787,8 +787,7 @@ out:
 	return count;
 }
 
-static int sport_ioctl(struct inode *inode, struct file *filp,
-		       unsigned int cmd, unsigned long arg)
+static long sport_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	struct sport_dev *dev = filp->private_data;
 	struct sport_config config;
@@ -854,7 +853,7 @@ static const struct file_operations sport_fops = {
 	.owner = THIS_MODULE,
 	.read = sport_read,
 	.write = sport_write,
-	.ioctl = sport_ioctl,
+	.unlocked_ioctl = sport_ioctl,
 	.open = sport_open,
 	.release = sport_release,
 };
