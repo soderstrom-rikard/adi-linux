@@ -137,6 +137,7 @@ struct adp5588_kpad_platform_data {
 	unsigned short unlock_key2;	/* Unlock Key 2 */
 	const struct adp5588_gpi_map *gpimap;
 	unsigned short gpimapsize;
+	const struct adp5588_gpio_platform_data *gpio_data;
 };
 
 struct i2c_client; /* forward declaration */

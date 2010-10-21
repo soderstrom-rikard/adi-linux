@@ -1,6 +1,8 @@
 /*
  * Common Intel AGPGART and GTT definitions.
  */
+#ifndef _INTEL_AGP_H
+#define _INTEL_AGP_H
 
 /* Intel registers */
 #define INTEL_APSIZE	0xb4
@@ -60,6 +62,12 @@
 #define I810_PTE_LOCAL		0x00000002
 #define I810_PTE_VALID		0x00000001
 #define I830_PTE_SYSTEM_CACHED  0x00000006
+/* GT PTE cache control fields */
+#define GEN6_PTE_UNCACHED	0x00000002
+#define GEN6_PTE_LLC		0x00000004
+#define GEN6_PTE_LLC_MLC	0x00000006
+#define GEN6_PTE_GFDT		0x00000008
+
 #define I810_SMRAM_MISCC	0x70
 #define I810_GFX_MEM_WIN_SIZE	0x00010000
 #define I810_GFX_MEM_WIN_32M	0x00010000
@@ -246,3 +254,5 @@
 		agp_bridge->dev->device == PCI_DEVICE_ID_INTEL_IRONLAKE_MA_HB || \
 		agp_bridge->dev->device == PCI_DEVICE_ID_INTEL_IRONLAKE_MC2_HB || \
 		IS_SNB)
+
+#endif

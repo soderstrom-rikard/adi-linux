@@ -183,8 +183,7 @@ static int bf5xx_tdm_set_channel_map(struct snd_soc_dai *dai,
 #ifdef CONFIG_PM
 static int bf5xx_tdm_suspend(struct snd_soc_dai *dai)
 {
-	struct sport_device *sport =
-		(struct sport_device *)dai->private_data;
+	struct sport_device *sport = dai->private_data;
 
 	if (dai->playback.active)
 		sport_tx_stop(sport);
@@ -202,8 +201,7 @@ static int bf5xx_tdm_suspend(struct snd_soc_dai *dai)
 static int bf5xx_tdm_resume(struct snd_soc_dai *dai)
 {
 	int ret;
-	struct sport_device *sport =
-		(struct sport_device *)dai->private_data;
+	struct sport_device *sport = dai->private_data;
 
 	ret = sport_set_multichannel(sport, 8, 0xFF, 1);
 	if (ret) {

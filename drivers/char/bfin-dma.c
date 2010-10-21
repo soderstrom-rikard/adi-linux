@@ -1,7 +1,7 @@
 /*
  * Blackfin DMA Interface
  *
- * Copyright 2008-2009 Analog Devices Inc.
+ * Copyright 2008-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -236,8 +236,7 @@ static int bdi_do_dma(struct dma_state *state, int async)
  * Every command needs a valid struct user_dma_state as an argument.  This lets
  * us pick out the exact MDMA channel they wish to utilize.
  */
-static int bfin_dma_ioctl(struct inode *inode, struct file *filp,
-                          unsigned cmd, unsigned long arg)
+static long bfin_dma_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	struct user_dma_state __user *ustate = (void *)arg;
 	struct dma_state *state;
@@ -287,15 +286,15 @@ static int bfin_dma_ioctl(struct inode *inode, struct file *filp,
 	return -EINVAL;
 }
 
-static struct file_operations bfin_dma_fops = {
-	.owner    = THIS_MODULE,
-	.ioctl    = bfin_dma_ioctl,
+static const struct file_operations bfin_dma_fops = {
+	.owner          = THIS_MODULE,
+	.unlocked_ioctl = bfin_dma_ioctl,
 };
 
 static struct miscdevice bfin_dma_misc_device = {
-	.minor    = MISC_DYNAMIC_MINOR,
-	.name     = DRIVER_NAME,
-	.fops     = &bfin_dma_fops,
+	.minor = MISC_DYNAMIC_MINOR,
+	.name  = DRIVER_NAME,
+	.fops  = &bfin_dma_fops,
 };
 
 /**

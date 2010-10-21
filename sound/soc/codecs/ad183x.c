@@ -417,6 +417,7 @@ static int ad183x_register(struct ad183x_priv *ad183x)
 
 	if (ad183x_codec) {
 		dev_err(codec->dev, "Another ad183x is registered\n");
+		kfree(ad183x);
 		return -EINVAL;
 	}
 

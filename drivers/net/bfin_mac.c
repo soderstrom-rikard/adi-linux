@@ -1372,7 +1372,7 @@ static int bfin_mac_ioctl(struct net_device *netdev, struct ifreq *ifr, int cmd)
 		return bfin_mac_hwtstamp_ioctl(netdev, ifr, cmd);
 	default:
 		if (lp->phydev)
-			return phy_mii_ioctl(lp->phydev, if_mii(ifr), cmd);
+			return phy_mii_ioctl(lp->phydev, ifr, cmd);
 		else
 			return -EOPNOTSUPP;
 	}

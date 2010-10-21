@@ -182,7 +182,6 @@ cond_syscall(sys_eventfd2);
 /* performance counters: */
 cond_syscall(sys_perf_event_open);
 
-/* 2.6.35 -> 2.6.36 glue */
+/* fanotify! */
 cond_syscall(sys_fanotify_init);
 cond_syscall(sys_fanotify_mark);
-cond_syscall(sys_prlimit64);

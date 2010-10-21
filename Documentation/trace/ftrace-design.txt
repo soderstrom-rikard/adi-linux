@@ -374,7 +374,7 @@ The last function is used to do runtime patching of the active tracer.  This
 will be modifying the assembly code at the location of the ftrace_call symbol
 inside of the ftrace_caller() function.  So you should have sufficient padding
 at that location to support the new function calls you'll be inserting.  Some
-people will be using a "call" type instruction while others will be sing a
+people will be using a "call" type instruction while others will be using a
 "branch" type instruction.  Specifically, the function is:
 	ftrace_update_ftrace_func()
 
