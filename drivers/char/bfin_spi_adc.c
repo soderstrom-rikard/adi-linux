@@ -62,9 +62,9 @@ struct spi_adc {
 static struct spi_adc spi_adc;
 static DEFINE_SPINLOCK(spiadc_lock);
 
-static int adc_spi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
+static long adc_spi_ioctl(struct file *filp, uint cmd, unsigned long arg)
 {
-	int ret = 0;
+	long ret = 0;
 	unsigned long value;
 	struct spi_adc *spi_adc = filp->private_data;
 
@@ -214,7 +214,7 @@ static const struct file_operations spi_adc_fops = {
 	.owner = THIS_MODULE,
 	.read = adc_spi_read,
 	.write = adc_spi_write,
-	.ioctl = adc_spi_ioctl,
+	.unlocked_ioctl = adc_spi_ioctl,
 	.open = adc_spi_open,
 	.release = adc_spi_release,
 };
