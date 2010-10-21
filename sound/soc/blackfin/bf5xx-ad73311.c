@@ -117,21 +117,20 @@ static struct snd_soc_device bf5xx_ad73311_snd_devdata = {
 	.codec_dev = &soc_codec_dev_ad73311,
 };
 
-static int snd_ad73311_reset(void)
+static void snd_ad73311_reset(void)
 {
 	gpio_set_value(GPIO_RESET, 0);
 	udelay(100);
 	gpio_set_value(GPIO_RESET, 1);
 }
 
-static int snd_ad73311_startup(void)
+static void snd_ad73311_startup(void)
 {
 	pr_debug("%s enter\n", __func__);
 
 	/* Pull up SE pin on AD73311L */
 	gpio_set_value(GPIO_SE, 1);
 	udelay(1);
-	return 0;
 }
 
 static int snd_ad73311_configure(void)
