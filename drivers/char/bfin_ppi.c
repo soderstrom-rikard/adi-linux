@@ -455,7 +455,7 @@ static irqreturn_t ppi_irq_error(int irq, void *dev_id)
  *
  * DESCRIPTION:
  */
-static int ppi_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
+static long ppi_ioctl(struct file *filp, uint cmd, unsigned long arg)
 {
 	unsigned long regdata;
 	unsigned long flags;
@@ -1456,7 +1456,7 @@ static const struct file_operations ppi_fops = {
 	.owner = THIS_MODULE,
 	.read = ppi_read,
 	.write = ppi_write,
-	.ioctl = ppi_ioctl,
+	.unlocked_ioctl = ppi_ioctl,
 	.open = ppi_open,
 	.release = ppi_release,
 	.fasync = ppi_fasync,
