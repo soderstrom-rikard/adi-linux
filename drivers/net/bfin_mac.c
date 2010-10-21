@@ -1,7 +1,7 @@
 /*
  * Blackfin On-Chip MAC Driver
  *
- * Copyright 2004-2007 Analog Devices Inc.
+ * Copyright 2004-2010 Analog Devices Inc.
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
@@ -346,7 +346,7 @@ static void bfin_mac_adjust_link(struct net_device *dev)
 					opmode |= RMII_10;
 					break;
 				case 100:
-					opmode &= ~(RMII_10);
+					opmode &= ~RMII_10;
 					break;
 				default:
 					printk(KERN_WARNING
@@ -421,8 +421,8 @@ static int mii_probe(struct net_device *dev, int phy_mode)
 		return -ENODEV;
 	}
 
-	if (!(phy_mode == PHY_INTERFACE_MODE_RMII ||
-		phy_mode == PHY_INTERFACE_MODE_MII)) {
+	if (phy_mode != PHY_INTERFACE_MODE_RMII &&
+		phy_mode != PHY_INTERFACE_MODE_MII) {
 		printk(KERN_INFO "%s: Invalid phy interface mode\n", dev->name);
 		return -EINVAL;
 	}
@@ -572,7 +572,6 @@ void setup_system_regs(struct net_device *dev)
 	 * Configure checksum support and rcve frame word alignment
 	 */
 	sysctl = bfin_read_EMAC_SYSCTL();
-
 	/*
 	 * check if interrupt is requested for any PHY,
 	 * enable PHY interrupt only if needed
@@ -582,7 +581,6 @@ void setup_system_regs(struct net_device *dev)
 			break;
 	if (i < PHY_MAX_ADDR)
 		sysctl |= PHYIE;
-
 	sysctl |= RXDWA;
 #if defined(BFIN_MAC_CSUM_OFFLOAD)
 	sysctl |= RXCKS;
@@ -1649,14 +1647,12 @@ static int bfin_mac_resume(struct platform_device *pdev)
 static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
 {
 	struct mii_bus *miibus;
-	struct bfin_mii_bus_platform_data *mii_bus_pd =
-		(struct bfin_mii_bus_platform_data *)pdev->dev.platform_data;
-	const unsigned short *pin_req = NULL;
+	struct bfin_mii_bus_platform_data *mii_bus_pd;
+	const unsigned short *pin_req;
 	int rc, i;
 
-	if (mii_bus_pd)
-		pin_req = mii_bus_pd->mac_peripherals;
-	else {
+	mii_bus_pd = dev_get_platdata(&pdev->dev);
+	if (!mii_bus_pd) {
 		dev_err(&pdev->dev, "No peripherals in platform data!\n");
 		return -EINVAL;
 	}
@@ -1665,6 +1661,7 @@ static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
 	 * We are setting up a network card,
 	 * so set the GPIO pins to Ethernet mode
 	 */
+	pin_req = mii_bus_pd->mac_peripherals;
 	rc = peripheral_request_list(pin_req, DRV_NAME);
 	if (rc) {
 		dev_err(&pdev->dev, "Requesting peripherals failed!\n");
@@ -1681,33 +1678,28 @@ static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
 
 	miibus->parent = &pdev->dev;
 	miibus->name = "bfin_mii_bus";
-	if (mii_bus_pd)
-		miibus->phy_mask = mii_bus_pd->phy_mask;
+	miibus->phy_mask = mii_bus_pd->phy_mask;
 
 	snprintf(miibus->id, MII_BUS_ID_SIZE, "0");
 	miibus->irq = kmalloc(sizeof(int)*PHY_MAX_ADDR, GFP_KERNEL);
-	if (miibus->irq != NULL) {
-		for (i = 0; i < PHY_MAX_ADDR; ++i)
-			miibus->irq[i] = PHY_POLL;
+	if (!miibus->irq)
+		goto out_err_irq_alloc;
 
-		if (mii_bus_pd) {
-			if (mii_bus_pd->phydev_number > 0 &&
-				mii_bus_pd->phydev_number <= PHY_MAX_ADDR) {
-				for (i = 0; i < mii_bus_pd->phydev_number; ++i) {
-					unsigned short phyaddr =
-						mii_bus_pd->phydev_data[i].addr;
-					if (phyaddr < PHY_MAX_ADDR)
-						miibus->irq[phyaddr] =
-							mii_bus_pd->phydev_data[i].irq;
-					else
-						dev_err(&pdev->dev,
-							"Invalid PHY address %i for phydev %i\n",
-							phyaddr, i);
-				}
-			} else
-				dev_err(&pdev->dev, "Invalid number (%i) of phydevs\n",
-					mii_bus_pd->phydev_number);
-		}
+	for (i = rc; i < PHY_MAX_ADDR; ++i)
+		miibus->irq[i] = PHY_POLL;
+
+	rc = clamp(mii_bus_pd->phydev_number, 0, PHY_MAX_ADDR);
+	if (rc != mii_bus_pd->phydev_number)
+		dev_err(&pdev->dev, "Invalid number (%i) of phydevs\n",
+			mii_bus_pd->phydev_number);
+	for (i = 0; i < rc; ++i) {
+		unsigned short phyaddr = mii_bus_pd->phydev_data[i].addr;
+		if (phyaddr < PHY_MAX_ADDR)
+			miibus->irq[phyaddr] = mii_bus_pd->phydev_data[i].irq;
+		else
+			dev_err(&pdev->dev,
+				"Invalid PHY address %i for phydev %i\n",
+				phyaddr, i);
 	}
 
 	rc = mdiobus_register(miibus);
@@ -1721,6 +1713,7 @@ static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
 
 out_err_mdiobus_register:
 	kfree(miibus->irq);
+out_err_irq_alloc:
 	mdiobus_free(miibus);
 out_err_alloc:
 	peripheral_free_list(pin_req);
@@ -1732,14 +1725,14 @@ static int __devexit bfin_mii_bus_remove(struct platform_device *pdev)
 {
 	struct mii_bus *miibus = platform_get_drvdata(pdev);
 	struct bfin_mii_bus_platform_data *mii_bus_pd =
-		(struct bfin_mii_bus_platform_data *)pdev->dev.platform_data;
+		dev_get_platdata(&pdev->dev);
 
 	platform_set_drvdata(pdev, NULL);
 	mdiobus_unregister(miibus);
 	kfree(miibus->irq);
 	mdiobus_free(miibus);
-	if (mii_bus_pd)
-		peripheral_free_list(mii_bus_pd->mac_peripherals);
+	peripheral_free_list(mii_bus_pd->mac_peripherals);
+
 	return 0;
 }
 
