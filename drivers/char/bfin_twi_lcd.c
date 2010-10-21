@@ -192,10 +192,8 @@ static struct i2c_driver pcf8574_lcd_driver = {
 	.id_table = pcf8574_lcd_id,
 };
 
-static int lcd_ioctl(struct inode *inode, struct file *file,
-		     unsigned int cmd, unsigned long arg)
+static long lcd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-
 	switch (cmd) {
 
 	case LCD_Contr:
@@ -339,8 +337,8 @@ static ssize_t lcd_write(struct file *filp, const char *buf, size_t count,
 static const struct file_operations lcd_fops = {
 	.owner = THIS_MODULE,
 	.write = lcd_write,
-	.ioctl = lcd_ioctl,
-	.open  = lcd_open,
+	.unlocked_ioctl = lcd_ioctl,
+	.open = lcd_open,
 };
 
 static struct miscdevice bfin_twi_lcd_dev = {
