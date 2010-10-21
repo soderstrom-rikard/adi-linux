@@ -44,12 +44,13 @@ MODULE_AUTHOR("Axel Weiss <awe@aglaia-gmbh.de>");
 MODULE_DESCRIPTION("simple timer char-device interface for Blackfin gptimers");
 MODULE_LICENSE("GPL");
 
-static unsigned long isr_count[MAX_BLACKFIN_GPTIMERS];
-static const struct {
+struct timer {
 	unsigned short id, bit;
-	unsigned long irqbit;
+	unsigned long irqbit, isr_count;
 	int irq;
-} timer_code[MAX_BLACKFIN_GPTIMERS] = {
+};
+
+static struct timer timer_code[MAX_BLACKFIN_GPTIMERS] = {
 	{TIMER0_id,  TIMER0bit,  TIMER_STATUS_TIMIL0,  IRQ_TIMER0},
 	{TIMER1_id,  TIMER1bit,  TIMER_STATUS_TIMIL1,  IRQ_TIMER1},
 	{TIMER2_id,  TIMER2bit,  TIMER_STATUS_TIMIL2,  IRQ_TIMER2},
@@ -70,29 +71,30 @@ static const struct {
 #endif
 };
 
-static int timer_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigned long arg)
+static long
+timer_ioctl(struct file *filp, uint cmd, unsigned long arg)
 {
-	int minor = MINOR(inode->i_rdev);
+	struct timer *t = filp->private_data;
 	unsigned long n;
 	switch (cmd) {
 	case BFIN_SIMPLE_TIMER_SET_PERIOD:
 		if (arg < 2)
 			return -EFAULT;
 		n = ((get_sclk() / 1000) * arg) / 1000;
-		set_gptimer_period(timer_code[minor].id, n);
-		set_gptimer_pwidth(timer_code[minor].id, n >> 1);
+		set_gptimer_period(t->id, n);
+		set_gptimer_pwidth(t->id, n >> 1);
 		pr_debug(DRV_NAME ": TIMER_SET_PERIOD: arg=%lu, period=%lu, width=%lu\n",
 			arg, n, n >> 1);
 		break;
 	case BFIN_SIMPLE_TIMER_START:
-		enable_gptimers(timer_code[minor].bit);
+		enable_gptimers(t->bit);
 		break;
 	case BFIN_SIMPLE_TIMER_STOP:
-		disable_gptimers(timer_code[minor].bit);
+		disable_gptimers(t->bit);
 		break;
 	case BFIN_SIMPLE_TIMER_READ:
 		/* XXX: this should be put_user() */
-		*((unsigned long *)arg) = isr_count[minor];
+		*((unsigned long *)arg) = t->isr_count;
 		break;
 	default:
 		return -EINVAL;
@@ -100,53 +102,68 @@ static int timer_ioctl(struct inode *inode, struct file *filp, uint cmd, unsigne
 	return 0;
 }
 
-static irqreturn_t timer_isr(int irq, void *dev_id)
+static irqreturn_t
+timer_isr(int irq, void *dev_id)
 {
 	int minor = (int)dev_id;
+	struct timer *t = &timer_code[minor];
 #if (MAX_BLACKFIN_GPTIMERS > 8)
 	int octet = BFIN_TIMER_OCTET(minor);
 #else
 	int octet = 0;
 #endif
 	unsigned long state = get_gptimer_status(octet);
-	if (state & timer_code[minor].irqbit) {
-		set_gptimer_status(octet, timer_code[minor].irqbit);
-		++isr_count[minor];
+	if (state & t->irqbit) {
+		set_gptimer_status(octet, t->irqbit);
+		t->isr_count++;
 	}
 	return IRQ_HANDLED;
 }
 
-static int timer_open(struct inode *inode, struct file *filp)
+static int
+timer_open(struct inode *inode, struct file *filp)
 {
 	int minor = MINOR(inode->i_rdev);
+	struct timer *t;
 	int err = 0;
+
 	if (minor >= MAX_BLACKFIN_GPTIMERS)
 		return -ENODEV;
-	err = request_irq(timer_code[minor].irq, timer_isr, IRQF_DISABLED, DRV_NAME, (void *)minor);
+
+	t = &timer_code[minor];
+	filp->private_data = t;
+
+	err = request_irq(t->irq, timer_isr, IRQF_DISABLED, DRV_NAME, (void *)minor);
 	if (err < 0) {
-		printk(KERN_ERR "request_irq(%d) failed\n", timer_code[minor].irq);
+		printk(KERN_ERR "request_irq(%d) failed\n", t->irq);
 		return err;
 	}
-	set_gptimer_config(timer_code[minor].id, OUT_DIS | PWM_OUT | PERIOD_CNT | IRQ_ENA);
+
+	set_gptimer_config(t->id, OUT_DIS | PWM_OUT | PERIOD_CNT | IRQ_ENA);
 	pr_debug(DRV_NAME ": device(%d) opened\n", minor);
+
 	return 0;
 }
 
-static int timer_close(struct inode *inode, struct file *filp)
+static int
+timer_close(struct inode *inode, struct file *filp)
 {
 	int minor = MINOR(inode->i_rdev);
-	disable_gptimers(timer_code[minor].bit);
-	free_irq(timer_code[minor].irq, (void *)minor);
+	struct timer *t = filp->private_data;;
+	disable_gptimers(t->bit);
+	free_irq(t->irq, (void *)minor);
 	pr_debug(DRV_NAME ": device(%d) closed\n", minor);
 	return 0;
 }
 
-static int timer_read_proc(char *buf, char **start, off_t offset, int cnt, int *eof, void *data)
+static int
+timer_read_proc(char *buf, char **start, off_t offset, int cnt, int *eof, void *data)
 {
 	int i, ret = 0;
 
 	for (i = 0; i < MAX_BLACKFIN_GPTIMERS; ++i)
-		ret += sprintf(buf + ret, "timer %2d isr count: %lu\n", i, isr_count[i]);
+		ret += sprintf(buf + ret, "timer %2d isr count: %lu\n",
+			i, timer_code[i].isr_count);
 
 	return ret;
 }
@@ -160,16 +177,17 @@ timer_status_show(struct class *timer_class, struct class_attribute *attr,
 	p = buf;
 
 	for (i = 0; i < MAX_BLACKFIN_GPTIMERS; ++i)
-		p += sprintf(p, "timer %2d isr count: %lu\n", i, isr_count[i]);
+		p += sprintf(p, "timer %2d isr count: %lu\n",
+			i, timer_code[i].isr_count);
 
 	return p - buf;
 }
 
-static struct file_operations fops = {
-	.owner   = THIS_MODULE,
-	.ioctl   = timer_ioctl,
-	.open    = timer_open,
-	.release = timer_close,
+static const struct file_operations fops = {
+	.owner          = THIS_MODULE,
+	.unlocked_ioctl = timer_ioctl,
+	.open           = timer_open,
+	.release        = timer_close,
 };
 
 static struct proc_dir_entry *timer_dir_entry;
