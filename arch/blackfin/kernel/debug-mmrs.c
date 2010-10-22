@@ -577,7 +577,7 @@ static int __init bfin_debug_mmrs_init(void)
 #if defined(CAN_MC1) || defined(CAN0_MC1) || defined(CAN1_MC1)
 	parent = debugfs_create_dir("can", top);
 # ifdef CAN_MC1
-	bfin_debug_mmrs_can(parent, CAN_MC1, -1)
+	bfin_debug_mmrs_can(parent, CAN_MC1, -1);
 # endif
 # ifdef CAN0_MC1
 	CAN(0);
@@ -1043,7 +1043,7 @@ static int __init bfin_debug_mmrs_init(void)
 #if defined(PPI_STATUS) || defined(PPI0_STATUS) || defined(PPI1_STATUS)
 	parent = debugfs_create_dir("ppi", top);
 # ifdef PPI_STATUS
-	bfin_debug_mmrs_ppi(parent, PPI_STATUS, -1)
+	bfin_debug_mmrs_ppi(parent, PPI_STATUS, -1);
 # endif
 # ifdef PPI0_STATUS
 	PPI(0);
@@ -1246,7 +1246,7 @@ static int __init bfin_debug_mmrs_init(void)
 #if defined(TWI_CLKDIV) || defined(TWI0_CLKDIV) || defined(TWI1_CLKDIV)
 	parent = debugfs_create_dir("twi", top);
 # ifdef TWI_CLKDIV
-	bfin_debug_mmrs_twi(parent, TWI_CLKDIV, -1)
+	bfin_debug_mmrs_twi(parent, TWI_CLKDIV, -1);
 # endif
 # ifdef TWI0_CLKDIV
 	TWI(0);
