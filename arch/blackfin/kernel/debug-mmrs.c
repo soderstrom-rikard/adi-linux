@@ -493,6 +493,13 @@ static int __init bfin_debug_mmrs_init(void)
 # endif
 #endif
 
+#ifdef HOST_CONTROL
+	parent = debugfs_create_dir("hostdp", top);
+	D16(HOST_CONTROL);
+	D16(HOST_STATUS);
+	D16(HOST_TIMEOUT);
+#endif
+
 #ifdef KPAD_CTL
 	parent = debugfs_create_dir("keypad", top);
 	D16(KPAD_CTL);
@@ -1549,11 +1556,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTH_MUX", 16, 0xFFC03218);
 		d("PORTH_SLEW", 16, 0xFFC03238);
 
-		parent = debugfs_create_dir("HOST", top);
-		d("HOST_CONTROL", 16, 0xFFC03400);
-		d("HOST_STATUS", 16, 0xFFC03404);
-		d("HOST_TIMEOUT", 16, 0xFFC03408);
-
 		parent = debugfs_create_dir("Handshake MDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC03308);
 		d("HMDMA0_BCOUNT", 16, 0xFFC03318);
@@ -2035,11 +2037,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTH_HYSTERESIS", 16, 0xFFC03248);
 		d("PORTH_MUX", 16, 0xFFC03218);
 		d("PORTH_SLEW", 16, 0xFFC03238);
-
-		parent = debugfs_create_dir("HOST", top);
-		d("HOST_CONTROL", 16, 0xFFC03400);
-		d("HOST_STATUS", 16, 0xFFC03404);
-		d("HOST_TIMEOUT", 16, 0xFFC03408);
 
 		parent = debugfs_create_dir("Handshake MDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC03308);
@@ -7255,11 +7252,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("HMDMA1_ECOVERFLOW", 16, 0xFFC04550);
 		d("HMDMA1_ECURGENT", 16, 0xFFC0454C);
 
-		parent = debugfs_create_dir("HOSTDP", top);
-		d("HOST_CONTROL", 16, 0xFFC03A00);
-		d("HOST_STATUS", 16, 0xFFC03A04);
-		d("HOST_TIMEOUT", 16, 0xFFC03A08);
-
 		parent = debugfs_create_dir("MDMA", top);
 		d("MDMA_D0_CONFIG", 16, 0xFFC00F08);
 		d("MDMA_D0_CURR_ADDR", 32, 0xFFC00F24);
@@ -8109,11 +8101,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("HMDMA1_ECOUNT", 16, 0xFFC04554);
 		d("HMDMA1_ECOVERFLOW", 16, 0xFFC04550);
 		d("HMDMA1_ECURGENT", 16, 0xFFC0454C);
-
-		parent = debugfs_create_dir("HOSTDP", top);
-		d("HOST_CONTROL", 16, 0xFFC03A00);
-		d("HOST_STATUS", 16, 0xFFC03A04);
-		d("HOST_TIMEOUT", 16, 0xFFC03A08);
 
 		parent = debugfs_create_dir("MDMA", top);
 		d("MDMA_D0_CONFIG", 16, 0xFFC00F08);
@@ -9919,11 +9906,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("HMDMA1_ECOVERFLOW", 16, 0xFFC04550);
 		d("HMDMA1_ECURGENT", 16, 0xFFC0454C);
 
-		parent = debugfs_create_dir("HOSTDP", top);
-		d("HOST_CONTROL", 16, 0xFFC03A00);
-		d("HOST_STATUS", 16, 0xFFC03A04);
-		d("HOST_TIMEOUT", 16, 0xFFC03A08);
-
 		parent = debugfs_create_dir("MDMA", top);
 		d("MDMA_D0_CONFIG", 16, 0xFFC00F08);
 		d("MDMA_D0_CURR_ADDR", 32, 0xFFC00F24);
@@ -11721,11 +11703,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("HMDMA1_ECOUNT", 16, 0xFFC04554);
 		d("HMDMA1_ECOVERFLOW", 16, 0xFFC04550);
 		d("HMDMA1_ECURGENT", 16, 0xFFC0454C);
-
-		parent = debugfs_create_dir("HOSTDP", top);
-		d("HOST_CONTROL", 16, 0xFFC03A00);
-		d("HOST_STATUS", 16, 0xFFC03A04);
-		d("HOST_TIMEOUT", 16, 0xFFC03A08);
 
 		parent = debugfs_create_dir("MDMA", top);
 		d("MDMA_D0_CONFIG", 16, 0xFFC00F08);
