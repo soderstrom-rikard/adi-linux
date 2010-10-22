@@ -12,6 +12,7 @@
 #include <linux/module.h>
 #include <asm/blackfin.h>
 #include <asm/bfin_can.h>
+#include <asm/bfin_ppi.h>
 
 #define _d(name, bits, addr, perms) debugfs_create_x##bits(name, perms, parent, (u##bits *)addr)
 #define d(name, bits, addr)         _d(name, bits, addr, S_IRUSR|S_IWUSR)
@@ -22,6 +23,24 @@
 #define D_WO(name, bits) d_WO(#name, bits, name)
 #define D32(name)        d(#name, 32, name)
 #define D16(name)        d(#name, 16, name)
+
+#define REGS_OFF(peri, mmr) offsetof(struct bfin_##peri##_regs, mmr)
+#define __REGS(peri, sname, rname) \
+	do { \
+		struct bfin_##peri##_regs r; \
+		void *addr = (void *)(base + REGS_OFF(peri, rname)); \
+		strcpy(_buf, sname); \
+		if (sizeof(r.rname) == 2) \
+			debugfs_create_x16(buf, S_IRUSR|S_IWUSR, parent, addr); \
+		else \
+			debugfs_create_x32(buf, S_IRUSR|S_IWUSR, parent, addr); \
+	} while (0)
+#define REGS_STR_PFX(buf, pfx, num) \
+	({ \
+		buf + (num >= 0 ? \
+			sprintf(buf, #pfx "%i_", num) : \
+			sprintf(buf, #pfx "_")); \
+	})
 
 /*
  * Core registers (not memory mapped)
@@ -70,18 +89,14 @@ DEFINE_SYSREG(syscfg, , CSYNC());
 /*
  * CAN
  */
-#define CAN_OFF(mmr) offsetof(struct bfin_can_regs, mmr)
-#define __CAN(uname, lname) \
-	do { \
-		strcpy(_buf, #uname); \
-		debugfs_create_x16(buf, S_IRUSR|S_IWUSR, parent, (u16 *)(base + CAN_OFF(lname))); \
-	} while (0)
+#define CAN_OFF(mmr)  REGS_OFF(can, mmr)
+#define __CAN(uname, lname) __REGS(can, #uname, lname)
 static void __init __maybe_unused
 bfin_debug_mmrs_can(struct dentry *parent, unsigned long base, int num)
 {
 	static struct dentry *am, *mb;
 	int i, j;
-	char buf[32], *_buf = buf + sprintf(buf, "CAN%i_", num);
+	char buf[32], *_buf = REGS_STR_PFX(buf, CAN, num);
 
 	if (!am) {
 		am = debugfs_create_dir("am", parent);
@@ -166,6 +181,31 @@ bfin_debug_mmrs_can(struct dentry *parent, unsigned long base, int num)
 #define CAN(num) bfin_debug_mmrs_can(parent, CAN##num##_MC1, num)
 
 /*
+ * EPPI
+ */
+#define __EPPI(uname, lname) __REGS(eppi, #uname, lname)
+static void __init __maybe_unused
+bfin_debug_mmrs_eppi(struct dentry *parent, unsigned long base, int num)
+{
+	char buf[32], *_buf = REGS_STR_PFX(buf, EPPI, num);
+	__EPPI(STATUS, status);
+	__EPPI(HCOUNT, hcount);
+	__EPPI(HDELAY, hdelay);
+	__EPPI(VCOUNT, vcount);
+	__EPPI(VDELAY, vdelay);
+	__EPPI(FRAME, frame);
+	__EPPI(LINE, line);
+	__EPPI(CLKDIV, clkdiv);
+	__EPPI(CONTROL, control);
+	__EPPI(FS1W_HBL, fs1w_hbl);
+	__EPPI(FS1P_AVPL, fs1p_avpl);
+	__EPPI(FS2W_LVB, fs2w_lvb);
+	__EPPI(FS2P_LAVF, fs2p_lavf);
+	__EPPI(CLIP, clip);
+}
+#define EPPI(num) bfin_debug_mmrs_eppi(parent, EPPI##num##_STATUS, num)
+
+/*
  * General Purpose Timers
  */
 #define GPTIMER_OFF(mmr) (TIMER0_##mmr - TIMER0_CONFIG)
@@ -177,13 +217,29 @@ bfin_debug_mmrs_can(struct dentry *parent, unsigned long base, int num)
 static void __init __maybe_unused
 bfin_debug_mmrs_gptimer(struct dentry *parent, unsigned long base, int num)
 {
-	char buf[32], *_buf = buf + sprintf(buf, "TIMER%i_", num);
+	char buf[32], *_buf = REGS_STR_PFX(buf, TIMER, num);
 	__GPTIMER(CONFIG);
 	__GPTIMER(COUNTER);
 	__GPTIMER(PERIOD);
 	__GPTIMER(WIDTH);
 }
 #define GPTIMER(num) bfin_debug_mmrs_gptimer(parent, TIMER##num##_CONFIG, num)
+
+/*
+ * PPI
+ */
+#define __PPI(uname, lname) __REGS(ppi, #uname, lname)
+static void __init __maybe_unused
+bfin_debug_mmrs_ppi(struct dentry *parent, unsigned long base, int num)
+{
+	char buf[32], *_buf = REGS_STR_PFX(buf, PPI, num);
+	__PPI(CONTROL, control);
+	__PPI(STATUS, status);
+	__PPI(COUNT, count);
+	__PPI(DELAY, delay);
+	__PPI(FRAME, frame);
+}
+#define PPI(num) bfin_debug_mmrs_ppi(parent, PPI##num##_STATUS, num)
 
 /*
  * SPORT
@@ -240,9 +296,9 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_sport_wo, NULL, sport_set, "0x%08llx\n");
 		debugfs_create_x##bits(buf, S_IRUSR|S_IWUSR, parent, (u##bits *)(base + SPORT_OFF(name))); \
 	} while (0)
 static void __init __maybe_unused
-bfin_debug_mmrs_spi(struct dentry *parent, unsigned long base, int num)
+bfin_debug_mmrs_sport(struct dentry *parent, unsigned long base, int num)
 {
-	char buf[32], *_buf = buf + sprintf(buf, "SPORT%i_", num);
+	char buf[32], *_buf = REGS_STR_PFX(buf, SPORT, num);
 	__SPORT(CHNL, 16);
 	__SPORT(MCMC1, 16);
 	__SPORT(MCMC2, 16);
@@ -266,7 +322,7 @@ bfin_debug_mmrs_spi(struct dentry *parent, unsigned long base, int num)
 	__SPORT(TFSDIV, 16);
 	__SPORT_WO(TX);
 }
-#define SPORT(num) bfin_debug_mmrs_spi(parent, SPORT##num##_TCR1, num)
+#define SPORT(num) bfin_debug_mmrs_sport(parent, SPORT##num##_TCR1, num)
 
 /*
  * The actual debugfs generation
@@ -277,7 +333,7 @@ static int __init bfin_debug_mmrs_init(void)
 {
 	struct dentry *top, *parent;
 
-	printk(KERN_DEBUG "Setting up Blackfin MMR debugfs\n");
+	pr_info("Setting up Blackfin MMR debugfs\n");
 
 	top = debugfs_create_dir("blackfin", NULL);
 	if (top == NULL)
@@ -663,6 +719,19 @@ static int __init bfin_debug_mmrs_init(void)
 # endif
 #endif
 
+#if defined(EPPI0_STATUS) || defined(EPPI1_STATUS) || defined(EPPI2_STATUS)
+	parent = debugfs_create_dir("eppi", top);
+# ifdef EPPI0_STATUS
+	EPPI(0);
+# endif
+# ifdef EPPI1_STATUS
+	EPPI(1);
+# endif
+# ifdef EPPI2_STATUS
+	EPPI(2);
+# endif
+#endif
+
 	parent = debugfs_create_dir("gptimer", top);
 #ifdef TIMER_DISABLE
 	D16(TIMER_DISABLE);
@@ -922,6 +991,19 @@ static int __init bfin_debug_mmrs_init(void)
 	D16(PLL_STAT);
 	D16(VR_CTL);
 	D32(CHIPID);	/* it's part of this hardware block */
+
+#if defined(PPI_STATUS) || defined(PPI0_STATUS) || defined(PPI1_STATUS)
+	parent = debugfs_create_dir("ppi", top);
+# ifdef PPI_STATUS
+	bfin_debug_mmrs_ppi(parent, PPI_STATUS, -1)
+# endif
+# ifdef PPI0_STATUS
+	PPI(0);
+# endif
+# ifdef PPI1_STATUS
+	PPI(1);
+# endif
+#endif
 
 #ifdef PWM_CTRL
 	parent = debugfs_create_dir("pwm", top);
@@ -1378,19 +1460,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NONGPIO_DRIVE", 16, 0xFFC03280);
 		d("NONGPIO_HYSTERESIS", 16, 0xFFC03288);
 
-		parent = debugfs_create_dir("OTP", top);
-		d("OTP_DATA0", 32, 0xFFC03680);
-		d("OTP_DATA1", 32, 0xFFC03684);
-		d("OTP_DATA2", 32, 0xFFC03688);
-		d("OTP_DATA3", 32, 0xFFC0368C);
-
-		parent = debugfs_create_dir("PPI", top);
-		d("PPI_CONTROL", 16, 0xFFC01000);
-		d("PPI_COUNT", 16, 0xFFC01008);
-		d("PPI_DELAY", 16, 0xFFC0100C);
-		d("PPI_FRAME", 16, 0xFFC01010);
-		d("PPI_STATUS", 16, 0xFFC01004);
-
 		parent = debugfs_create_dir("Pin Control", top);
 		d("PORTF_FER", 16, 0xFFC03200);
 		d("PORTG_FER", 16, 0xFFC03204);
@@ -1781,13 +1850,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NONGPIO_DRIVE", 16, 0xFFC03280);
 		d("NONGPIO_HYSTERESIS", 16, 0xFFC03288);
 		d("NONGPIO_SLEW", 16, 0xFFC03284);
-
-		parent = debugfs_create_dir("PPI", top);
-		d("PPI_CONTROL", 16, 0xFFC01000);
-		d("PPI_COUNT", 16, 0xFFC01008);
-		d("PPI_DELAY", 16, 0xFFC0100C);
-		d("PPI_FRAME", 16, 0xFFC01010);
-		d("PPI_STATUS", 16, 0xFFC01004);
 
 		parent = debugfs_create_dir("Pin Control", top);
 		d("PORTF_FER", 16, 0xFFC03200);
@@ -2180,13 +2242,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("NONGPIO_DRIVE", 16, 0xFFC03280);
 		d("NONGPIO_HYSTERESIS", 16, 0xFFC03288);
 		d("NONGPIO_SLEW", 16, 0xFFC03284);
-
-		parent = debugfs_create_dir("PPI", top);
-		d("PPI_CONTROL", 16, 0xFFC01000);
-		d("PPI_COUNT", 16, 0xFFC01008);
-		d("PPI_DELAY", 16, 0xFFC0100C);
-		d("PPI_FRAME", 16, 0xFFC01010);
-		d("PPI_STATUS", 16, 0xFFC01004);
 
 		parent = debugfs_create_dir("Pin Control", top);
 		d("PORTF_FER", 16, 0xFFC03200);
@@ -2800,13 +2855,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S1_Y_COUNT", 16, 0xFFC00ED8);
 		d("MDMA_S1_Y_MODIFY", 16, 0xFFC00EDC);
 
-		parent = debugfs_create_dir("PPI", top);
-		d("PPI_CONTROL", 16, 0xFFC01000);
-		d("PPI_COUNT", 16, 0xFFC01008);
-		d("PPI_DELAY", 16, 0xFFC0100C);
-		d("PPI_FRAME", 16, 0xFFC01010);
-		d("PPI_STATUS", 16, 0xFFC01004);
-
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
 		d("SPI_CTL", 16, 0xFFC00500);
@@ -3085,13 +3133,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S1_X_MODIFY", 16, 0xFFC00FD4);
 		d("MDMA_S1_Y_COUNT", 16, 0xFFC00FD8);
 		d("MDMA_S1_Y_MODIFY", 16, 0xFFC00FDC);
-
-		parent = debugfs_create_dir("PPI", top);
-		d("PPI_CONTROL", 16, 0xFFC01000);
-		d("PPI_COUNT", 16, 0xFFC01008);
-		d("PPI_DELAY", 16, 0xFFC0100C);
-		d("PPI_FRAME", 16, 0xFFC01010);
-		d("PPI_STATUS", 16, 0xFFC01004);
 
 		parent = debugfs_create_dir("Pin Control", top);
 		d("PORTF_FER", 16, 0xFFC03200);
@@ -3691,13 +3732,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA1_S1_Y_COUNT", 16, 0xFFC01FD8);
 		d("MDMA1_S1_Y_MODIFY", 16, 0xFFC01FDC);
 
-		parent = debugfs_create_dir("PPI", top);
-		d("PPI_CONTROL", 16, 0xFFC01000);
-		d("PPI_COUNT", 16, 0xFFC01008);
-		d("PPI_DELAY", 16, 0xFFC0100C);
-		d("PPI_FRAME", 16, 0xFFC01010);
-		d("PPI_STATUS", 16, 0xFFC01004);
-
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI0_BAUD", 16, 0xFFC00514);
 		d("SPI0_CTL", 16, 0xFFC00500);
@@ -4117,36 +4151,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMAC1_PERIMUX", 16, 0xFFC04340);
 		d("DMAC1_TCCNT", 16, 0xFFC01B10);
 		d("DMAC1_TCPER", 16, 0xFFC01B0C);
-
-		parent = debugfs_create_dir("EPPI", top);
-		d("EPPI1_CLIP", 32, 0xFFC01334);
-		d("EPPI1_CLKDIV", 16, 0xFFC0131C);
-		d("EPPI1_CONTROL", 32, 0xFFC01320);
-		d("EPPI1_FRAME", 16, 0xFFC01314);
-		d("EPPI1_FS1P_AVPL", 32, 0xFFC01328);
-		d("EPPI1_FS1W_HBL", 32, 0xFFC01324);
-		d("EPPI1_FS2P_LAVF", 32, 0xFFC01330);
-		d("EPPI1_FS2W_LVB", 32, 0xFFC0132C);
-		d("EPPI1_HCOUNT", 16, 0xFFC01304);
-		d("EPPI1_HDELAY", 16, 0xFFC01308);
-		d("EPPI1_LINE", 16, 0xFFC01318);
-		d("EPPI1_STATUS", 16, 0xFFC01300);
-		d("EPPI1_VCOUNT", 16, 0xFFC0130C);
-		d("EPPI1_VDELAY", 16, 0xFFC01310);
-		d("EPPI2_CLIP", 32, 0xFFC02934);
-		d("EPPI2_CLKDIV", 16, 0xFFC0291C);
-		d("EPPI2_CONTROL", 32, 0xFFC02920);
-		d("EPPI2_FRAME", 16, 0xFFC02914);
-		d("EPPI2_FS1P_AVPL", 32, 0xFFC02928);
-		d("EPPI2_FS1W_HBL", 32, 0xFFC02924);
-		d("EPPI2_FS2P_LAVF", 32, 0xFFC02930);
-		d("EPPI2_FS2W_LVB", 32, 0xFFC0292C);
-		d("EPPI2_HCOUNT", 16, 0xFFC02904);
-		d("EPPI2_HDELAY", 16, 0xFFC02908);
-		d("EPPI2_LINE", 16, 0xFFC02918);
-		d("EPPI2_STATUS", 16, 0xFFC02900);
-		d("EPPI2_VCOUNT", 16, 0xFFC0290C);
-		d("EPPI2_VDELAY", 16, 0xFFC02910);
 
 		parent = debugfs_create_dir("HMDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC04508);
@@ -4989,50 +4993,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMAC1_TCCNT", 16, 0xFFC01B10);
 		d("DMAC1_TCPER", 16, 0xFFC01B0C);
 
-		parent = debugfs_create_dir("EPPI", top);
-		d("EPPI0_CLIP", 32, 0xFFC01034);
-		d("EPPI0_CLKDIV", 16, 0xFFC0101C);
-		d("EPPI0_CONTROL", 32, 0xFFC01020);
-		d("EPPI0_FRAME", 16, 0xFFC01014);
-		d("EPPI0_FS1P_AVPL", 32, 0xFFC01028);
-		d("EPPI0_FS1W_HBL", 32, 0xFFC01024);
-		d("EPPI0_FS2P_LAVF", 32, 0xFFC01030);
-		d("EPPI0_FS2W_LVB", 32, 0xFFC0102C);
-		d("EPPI0_HCOUNT", 16, 0xFFC01004);
-		d("EPPI0_HDELAY", 16, 0xFFC01008);
-		d("EPPI0_LINE", 16, 0xFFC01018);
-		d("EPPI0_STATUS", 16, 0xFFC01000);
-		d("EPPI0_VCOUNT", 16, 0xFFC0100C);
-		d("EPPI0_VDELAY", 16, 0xFFC01010);
-		d("EPPI1_CLIP", 32, 0xFFC01334);
-		d("EPPI1_CLKDIV", 16, 0xFFC0131C);
-		d("EPPI1_CONTROL", 32, 0xFFC01320);
-		d("EPPI1_FRAME", 16, 0xFFC01314);
-		d("EPPI1_FS1P_AVPL", 32, 0xFFC01328);
-		d("EPPI1_FS1W_HBL", 32, 0xFFC01324);
-		d("EPPI1_FS2P_LAVF", 32, 0xFFC01330);
-		d("EPPI1_FS2W_LVB", 32, 0xFFC0132C);
-		d("EPPI1_HCOUNT", 16, 0xFFC01304);
-		d("EPPI1_HDELAY", 16, 0xFFC01308);
-		d("EPPI1_LINE", 16, 0xFFC01318);
-		d("EPPI1_STATUS", 16, 0xFFC01300);
-		d("EPPI1_VCOUNT", 16, 0xFFC0130C);
-		d("EPPI1_VDELAY", 16, 0xFFC01310);
-		d("EPPI2_CLIP", 32, 0xFFC02934);
-		d("EPPI2_CLKDIV", 16, 0xFFC0291C);
-		d("EPPI2_CONTROL", 32, 0xFFC02920);
-		d("EPPI2_FRAME", 16, 0xFFC02914);
-		d("EPPI2_FS1P_AVPL", 32, 0xFFC02928);
-		d("EPPI2_FS1W_HBL", 32, 0xFFC02924);
-		d("EPPI2_FS2P_LAVF", 32, 0xFFC02930);
-		d("EPPI2_FS2W_LVB", 32, 0xFFC0292C);
-		d("EPPI2_HCOUNT", 16, 0xFFC02904);
-		d("EPPI2_HDELAY", 16, 0xFFC02908);
-		d("EPPI2_LINE", 16, 0xFFC02918);
-		d("EPPI2_STATUS", 16, 0xFFC02900);
-		d("EPPI2_VCOUNT", 16, 0xFFC0290C);
-		d("EPPI2_VDELAY", 16, 0xFFC02910);
-
 		parent = debugfs_create_dir("HMDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC04508);
 		d("HMDMA0_BCOUNT", 16, 0xFFC04518);
@@ -5728,50 +5688,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("DMAC1_PERIMUX", 16, 0xFFC04340);
 		d("DMAC1_TCCNT", 16, 0xFFC01B10);
 		d("DMAC1_TCPER", 16, 0xFFC01B0C);
-
-		parent = debugfs_create_dir("EPPI", top);
-		d("EPPI0_CLIP", 32, 0xFFC01034);
-		d("EPPI0_CLKDIV", 16, 0xFFC0101C);
-		d("EPPI0_CONTROL", 32, 0xFFC01020);
-		d("EPPI0_FRAME", 16, 0xFFC01014);
-		d("EPPI0_FS1P_AVPL", 32, 0xFFC01028);
-		d("EPPI0_FS1W_HBL", 32, 0xFFC01024);
-		d("EPPI0_FS2P_LAVF", 32, 0xFFC01030);
-		d("EPPI0_FS2W_LVB", 32, 0xFFC0102C);
-		d("EPPI0_HCOUNT", 16, 0xFFC01004);
-		d("EPPI0_HDELAY", 16, 0xFFC01008);
-		d("EPPI0_LINE", 16, 0xFFC01018);
-		d("EPPI0_STATUS", 16, 0xFFC01000);
-		d("EPPI0_VCOUNT", 16, 0xFFC0100C);
-		d("EPPI0_VDELAY", 16, 0xFFC01010);
-		d("EPPI1_CLIP", 32, 0xFFC01334);
-		d("EPPI1_CLKDIV", 16, 0xFFC0131C);
-		d("EPPI1_CONTROL", 32, 0xFFC01320);
-		d("EPPI1_FRAME", 16, 0xFFC01314);
-		d("EPPI1_FS1P_AVPL", 32, 0xFFC01328);
-		d("EPPI1_FS1W_HBL", 32, 0xFFC01324);
-		d("EPPI1_FS2P_LAVF", 32, 0xFFC01330);
-		d("EPPI1_FS2W_LVB", 32, 0xFFC0132C);
-		d("EPPI1_HCOUNT", 16, 0xFFC01304);
-		d("EPPI1_HDELAY", 16, 0xFFC01308);
-		d("EPPI1_LINE", 16, 0xFFC01318);
-		d("EPPI1_STATUS", 16, 0xFFC01300);
-		d("EPPI1_VCOUNT", 16, 0xFFC0130C);
-		d("EPPI1_VDELAY", 16, 0xFFC01310);
-		d("EPPI2_CLIP", 32, 0xFFC02934);
-		d("EPPI2_CLKDIV", 16, 0xFFC0291C);
-		d("EPPI2_CONTROL", 32, 0xFFC02920);
-		d("EPPI2_FRAME", 16, 0xFFC02914);
-		d("EPPI2_FS1P_AVPL", 32, 0xFFC02928);
-		d("EPPI2_FS1W_HBL", 32, 0xFFC02924);
-		d("EPPI2_FS2P_LAVF", 32, 0xFFC02930);
-		d("EPPI2_FS2W_LVB", 32, 0xFFC0292C);
-		d("EPPI2_HCOUNT", 16, 0xFFC02904);
-		d("EPPI2_HDELAY", 16, 0xFFC02908);
-		d("EPPI2_LINE", 16, 0xFFC02918);
-		d("EPPI2_STATUS", 16, 0xFFC02900);
-		d("EPPI2_VCOUNT", 16, 0xFFC0290C);
-		d("EPPI2_VDELAY", 16, 0xFFC02910);
 
 		parent = debugfs_create_dir("HMDMA", top);
 		d("HMDMA0_BCINIT", 16, 0xFFC04508);
@@ -6934,18 +6850,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA2_S1_X_MODIFY", 16, 0xFFC00FD4);
 		d("MDMA2_S1_Y_COUNT", 16, 0xFFC00FD8);
 		d("MDMA2_S1_Y_MODIFY", 16, 0xFFC00FDC);
-
-		parent = debugfs_create_dir("PPI", top);
-		d("PPI0_CONTROL", 16, 0xFFC01000);
-		d("PPI0_COUNT", 16, 0xFFC01008);
-		d("PPI0_DELAY", 16, 0xFFC0100C);
-		d("PPI0_FRAME", 16, 0xFFC01010);
-		d("PPI0_STATUS", 16, 0xFFC01004);
-		d("PPI1_CONTROL", 16, 0xFFC01300);
-		d("PPI1_COUNT", 16, 0xFFC01308);
-		d("PPI1_DELAY", 16, 0xFFC0130C);
-		d("PPI1_FRAME", 16, 0xFFC01310);
-		d("PPI1_STATUS", 16, 0xFFC01304);
 
 		parent = debugfs_create_dir("SPI", top);
 		d("SPI_BAUD", 16, 0xFFC00514);
