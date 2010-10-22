@@ -626,15 +626,14 @@
 		VMLINUX_SYMBOL(__security_initcall_end) = .;
 
 #ifdef CONFIG_BLK_DEV_INITRD
-#define INIT_RAMFS(align)						\
-	. = ALIGN(align);						\
+#define INIT_RAM_FS							\
+	. = ALIGN(4);							\
 	VMLINUX_SYMBOL(__initramfs_start) = .;				\
 	*(.init.ramfs)							\
 	VMLINUX_SYMBOL(__initramfs_end) = .;
 #else
-#define INIT_RAMFS(align)
+#define INIT_RAM_FS
 #endif
-#define INIT_RAM_FS INIT_RAMFS(PAGE_SIZE)
 
 /*
  * Default discarded sections.

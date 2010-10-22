@@ -153,7 +153,7 @@ SECTIONS
 		INIT_CALLS
 		CON_INITCALL
 		SECURITY_INITCALL
-		INIT_RAMFS(4)
+		INIT_RAM_FS
 
 		. = ALIGN(4);
 		___per_cpu_load = .;
