@@ -10,9 +10,12 @@
 #include <linux/fs.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+
 #include <asm/blackfin.h>
 #include <asm/bfin_can.h>
 #include <asm/bfin_ppi.h>
+#include <asm/bfin5xx_spi.h>
+#include <asm/bfin_twi.h>
 
 #define _d(name, bits, addr, perms) debugfs_create_x##bits(name, perms, parent, (u##bits *)addr)
 #define d(name, bits, addr)         _d(name, bits, addr, S_IRUSR|S_IWUSR)
@@ -242,6 +245,24 @@ bfin_debug_mmrs_ppi(struct dentry *parent, unsigned long base, int num)
 #define PPI(num) bfin_debug_mmrs_ppi(parent, PPI##num##_STATUS, num)
 
 /*
+ * SPI
+ */
+#define __SPI(uname, lname) __REGS(spi, #uname, lname)
+static void __init __maybe_unused
+bfin_debug_mmrs_spi(struct dentry *parent, unsigned long base, int num)
+{
+	char buf[32], *_buf = REGS_STR_PFX(buf, SPI, num);
+	__SPI(CTL, ctl);
+	__SPI(FLG, flg);
+	__SPI(STAT, stat);
+	__SPI(TDBR, tdbr);
+	__SPI(RDBR, rdbr);
+	__SPI(BAUD, baud);
+	__SPI(SHADOW, shadow);
+}
+#define SPI(num) bfin_debug_mmrs_spi(parent, SPI##num##_REGBASE, num)
+
+/*
  * SPORT
  */
 static inline int sport_width(void *mmr)
@@ -325,6 +346,33 @@ bfin_debug_mmrs_sport(struct dentry *parent, unsigned long base, int num)
 #define SPORT(num) bfin_debug_mmrs_sport(parent, SPORT##num##_TCR1, num)
 
 /*
+ * TWI
+ */
+#define __TWI(uname, lname) __REGS(twi, #uname, lname)
+static void __init __maybe_unused
+bfin_debug_mmrs_twi(struct dentry *parent, unsigned long base, int num)
+{
+	char buf[32], *_buf = REGS_STR_PFX(buf, TWI, num);
+	__TWI(CLKDIV, clkdiv);
+	__TWI(CONTROL, control);
+	__TWI(SLAVE_CTL, slave_ctl);
+	__TWI(SLAVE_STAT, slave_stat);
+	__TWI(SLAVE_ADDR, slave_addr);
+	__TWI(MASTER_CTL, master_ctl);
+	__TWI(MASTER_STAT, master_stat);
+	__TWI(MASTER_ADDR, master_addr);
+	__TWI(INT_STAT, int_stat);
+	__TWI(INT_MASK, int_mask);
+	__TWI(FIFO_CTL, fifo_ctl);
+	__TWI(FIFO_STAT, fifo_stat);
+	__TWI(XMT_DATA8, xmt_data8);
+	__TWI(XMT_DATA16, xmt_data16);
+	__TWI(RCV_DATA8, rcv_data8);
+	__TWI(RCV_DATA16, rcv_data16);
+}
+#define TWI(num) bfin_debug_mmrs_twi(parent, TWI##num##_CLKDIV, num)
+
+/*
  * The actual debugfs generation
  */
 static struct dentry *debug_mmrs_dentry;
@@ -333,7 +381,7 @@ static int __init bfin_debug_mmrs_init(void)
 {
 	struct dentry *top, *parent;
 
-	pr_info("Setting up Blackfin MMR debugfs\n");
+	pr_info("debug-mmrs: setting up Blackfin MMR debugfs\n");
 
 	top = debugfs_create_dir("blackfin", NULL);
 	if (top == NULL)
@@ -1170,6 +1218,17 @@ static int __init bfin_debug_mmrs_init(void)
 	D32(SICB_IWR1);
 #endif
 
+	parent = debugfs_create_dir("spi", top);
+#ifdef SPI0_REGBASE
+	SPI(0);
+#endif
+#ifdef SPI1_REGBASE
+	SPI(1);
+#endif
+#ifdef SPI2_REGBASE
+	SPI(2);
+#endif
+
 	parent = debugfs_create_dir("sport", top);
 #ifdef SPORT0_STAT
 	SPORT(0);
@@ -1182,6 +1241,19 @@ static int __init bfin_debug_mmrs_init(void)
 #endif
 #ifdef SPORT3_STAT
 	SPORT(3);
+#endif
+
+#if defined(TWI_CLKDIV) || defined(TWI0_CLKDIV) || defined(TWI1_CLKDIV)
+	parent = debugfs_create_dir("twi", top);
+# ifdef TWI_CLKDIV
+	bfin_debug_mmrs_twi(parent, TWI_CLKDIV, -1)
+# endif
+# ifdef TWI0_CLKDIV
+	TWI(0);
+# endif
+# ifdef TWI1_CLKDIV
+	TWI(1);
+# endif
 #endif
 
 #ifdef WDOG_CNT
@@ -1517,40 +1589,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("SPI", top);
-		d("SPI0_BAUD", 16, 0xFFC00514);
-		d("SPI0_CTL", 16, 0xFFC00500);
-		d("SPI0_FLG", 16, 0xFFC00504);
-		d("SPI0_RDBR", 16, 0xFFC00510);
-		d("SPI0_SHADOW", 16, 0xFFC00518);
-		d("SPI0_STAT", 16, 0xFFC00508);
-		d("SPI0_TDBR", 16, 0xFFC0050C);
-		d("SPI1_BAUD", 16, 0xFFC03414);
-		d("SPI1_CTL", 16, 0xFFC03400);
-		d("SPI1_FLG", 16, 0xFFC03404);
-		d("SPI1_RDBR", 16, 0xFFC03410);
-		d("SPI1_SHADOW", 16, 0xFFC03418);
-		d("SPI1_STAT", 16, 0xFFC03408);
-		d("SPI1_TDBR", 16, 0xFFC0340C);
-
-		parent = debugfs_create_dir("TWI", top);
-		d("TWI_CLKDIV", 16, 0xFFC01400);
-		d("TWI_CONTROL", 16, 0xFFC01404);
-		d("TWI_FIFO_CTL", 16, 0xFFC01428);
-		d("TWI_FIFO_STAT", 16, 0xFFC0142C);
-		d("TWI_INT_MASK", 16, 0xFFC01424);
-		d("TWI_INT_STAT", 16, 0xFFC01420);
-		d("TWI_MASTER_ADDR", 16, 0xFFC0141C);
-		d("TWI_MASTER_CTL", 16, 0xFFC01414);
-		d("TWI_MASTER_STAT", 16, 0xFFC01418);
-		d("TWI_RCV_DATA16", 16, 0xFFC0148C);
-		d("TWI_RCV_DATA8", 16, 0xFFC01488);
-		d("TWI_SLAVE_ADDR", 16, 0xFFC01410);
-		d("TWI_SLAVE_CTL", 16, 0xFFC01408);
-		d("TWI_SLAVE_STAT", 16, 0xFFC0140C);
-		d("TWI_XMT_DATA16", 16, 0xFFC01484);
-		d("TWI_XMT_DATA8", 16, 0xFFC01480);
 
 		parent = debugfs_create_dir("UART0", top);
 		d("UART0_DLH", 16, 0xFFC00404);
@@ -1908,33 +1946,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("SPI", top);
-		d("SPI_BAUD", 16, 0xFFC00514);
-		d("SPI_CTL", 16, 0xFFC00500);
-		d("SPI_FLG", 16, 0xFFC00504);
-		d("SPI_RDBR", 16, 0xFFC00510);
-		d("SPI_SHADOW", 16, 0xFFC00518);
-		d("SPI_STAT", 16, 0xFFC00508);
-		d("SPI_TDBR", 16, 0xFFC0050C);
-
-		parent = debugfs_create_dir("TWI", top);
-		d("TWI_CLKDIV", 16, 0xFFC01400);
-		d("TWI_CONTROL", 16, 0xFFC01404);
-		d("TWI_FIFO_CTL", 16, 0xFFC01428);
-		d("TWI_FIFO_STAT", 16, 0xFFC0142C);
-		d("TWI_INT_MASK", 16, 0xFFC01424);
-		d("TWI_INT_STAT", 16, 0xFFC01420);
-		d("TWI_MASTER_ADDR", 16, 0xFFC0141C);
-		d("TWI_MASTER_CTL", 16, 0xFFC01414);
-		d("TWI_MASTER_STAT", 16, 0xFFC01418);
-		d("TWI_RCV_DATA16", 16, 0xFFC0148C);
-		d("TWI_RCV_DATA8", 16, 0xFFC01488);
-		d("TWI_SLAVE_ADDR", 16, 0xFFC01410);
-		d("TWI_SLAVE_CTL", 16, 0xFFC01408);
-		d("TWI_SLAVE_STAT", 16, 0xFFC0140C);
-		d("TWI_XMT_DATA16", 16, 0xFFC01484);
-		d("TWI_XMT_DATA8", 16, 0xFFC01480);
 
 		parent = debugfs_create_dir("UART", top);
 		d("UART0_DLH", 16, 0xFFC00404);
@@ -2300,33 +2311,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("SPI", top);
-		d("SPI_BAUD", 16, 0xFFC00514);
-		d("SPI_CTL", 16, 0xFFC00500);
-		d("SPI_FLG", 16, 0xFFC00504);
-		d("SPI_RDBR", 16, 0xFFC00510);
-		d("SPI_SHADOW", 16, 0xFFC00518);
-		d("SPI_STAT", 16, 0xFFC00508);
-		d("SPI_TDBR", 16, 0xFFC0050C);
-
-		parent = debugfs_create_dir("TWI", top);
-		d("TWI_CLKDIV", 16, 0xFFC01400);
-		d("TWI_CONTROL", 16, 0xFFC01404);
-		d("TWI_FIFO_CTL", 16, 0xFFC01428);
-		d("TWI_FIFO_STAT", 16, 0xFFC0142C);
-		d("TWI_INT_MASK", 16, 0xFFC01424);
-		d("TWI_INT_STAT", 16, 0xFFC01420);
-		d("TWI_MASTER_ADDR", 16, 0xFFC0141C);
-		d("TWI_MASTER_CTL", 16, 0xFFC01414);
-		d("TWI_MASTER_STAT", 16, 0xFFC01418);
-		d("TWI_RCV_DATA16", 16, 0xFFC0148C);
-		d("TWI_RCV_DATA8", 16, 0xFFC01488);
-		d("TWI_SLAVE_ADDR", 16, 0xFFC01410);
-		d("TWI_SLAVE_CTL", 16, 0xFFC01408);
-		d("TWI_SLAVE_STAT", 16, 0xFFC0140C);
-		d("TWI_XMT_DATA16", 16, 0xFFC01484);
-		d("TWI_XMT_DATA8", 16, 0xFFC01480);
 
 		parent = debugfs_create_dir("UART", top);
 		d("UART0_DLH", 16, 0xFFC00404);
@@ -2855,15 +2839,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA_S1_Y_COUNT", 16, 0xFFC00ED8);
 		d("MDMA_S1_Y_MODIFY", 16, 0xFFC00EDC);
 
-		parent = debugfs_create_dir("SPI", top);
-		d("SPI_BAUD", 16, 0xFFC00514);
-		d("SPI_CTL", 16, 0xFFC00500);
-		d("SPI_FLG", 16, 0xFFC00504);
-		d("SPI_RDBR", 16, 0xFFC00510);
-		d("SPI_SHADOW", 16, 0xFFC00518);
-		d("SPI_STAT", 16, 0xFFC00508);
-		d("SPI_TDBR", 16, 0xFFC0050C);
-
 		parent = debugfs_create_dir("UART", top);
 		d("UART_DLH", 16, 0xFFC00404);
 		d("UART_DLL", 16, 0xFFC00400);
@@ -3192,33 +3167,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTHIO_POLAR", 16, 0xFFC01734);
 		d("PORTHIO_SET", 16, 0xFFC01708);
 		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-		parent = debugfs_create_dir("SPI", top);
-		d("SPI_BAUD", 16, 0xFFC00514);
-		d("SPI_CTL", 16, 0xFFC00500);
-		d("SPI_FLG", 16, 0xFFC00504);
-		d("SPI_RDBR", 16, 0xFFC00510);
-		d("SPI_SHADOW", 16, 0xFFC00518);
-		d("SPI_STAT", 16, 0xFFC00508);
-		d("SPI_TDBR", 16, 0xFFC0050C);
-
-		parent = debugfs_create_dir("TWI", top);
-		d("TWI_CLKDIV", 16, 0xFFC01400);
-		d("TWI_CONTROL", 16, 0xFFC01404);
-		d("TWI_FIFO_CTL", 16, 0xFFC01428);
-		d("TWI_FIFO_STAT", 16, 0xFFC0142C);
-		d("TWI_INT_MASK", 16, 0xFFC01424);
-		d("TWI_INT_STAT", 16, 0xFFC01420);
-		d("TWI_MASTER_ADDR", 16, 0xFFC0141C);
-		d("TWI_MASTER_CTL", 16, 0xFFC01414);
-		d("TWI_MASTER_STAT", 16, 0xFFC01418);
-		d("TWI_RCV_DATA16", 16, 0xFFC0148C);
-		d("TWI_RCV_DATA8", 16, 0xFFC01488);
-		d("TWI_SLAVE_ADDR", 16, 0xFFC01410);
-		d("TWI_SLAVE_CTL", 16, 0xFFC01408);
-		d("TWI_SLAVE_STAT", 16, 0xFFC0140C);
-		d("TWI_XMT_DATA16", 16, 0xFFC01484);
-		d("TWI_XMT_DATA8", 16, 0xFFC01480);
 
 		parent = debugfs_create_dir("UART", top);
 		d("UART0_DLH", 16, 0xFFC00404);
@@ -3731,63 +3679,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA1_S1_X_MODIFY", 16, 0xFFC01FD4);
 		d("MDMA1_S1_Y_COUNT", 16, 0xFFC01FD8);
 		d("MDMA1_S1_Y_MODIFY", 16, 0xFFC01FDC);
-
-		parent = debugfs_create_dir("SPI", top);
-		d("SPI0_BAUD", 16, 0xFFC00514);
-		d("SPI0_CTL", 16, 0xFFC00500);
-		d("SPI0_FLG", 16, 0xFFC00504);
-		d("SPI0_RDBR", 16, 0xFFC00510);
-		d("SPI0_SHADOW", 16, 0xFFC00518);
-		d("SPI0_STAT", 16, 0xFFC00508);
-		d("SPI0_TDBR", 16, 0xFFC0050C);
-		d("SPI1_BAUD", 16, 0xFFC02314);
-		d("SPI1_CTL", 16, 0xFFC02300);
-		d("SPI1_FLG", 16, 0xFFC02304);
-		d("SPI1_RDBR", 16, 0xFFC02310);
-		d("SPI1_SHADOW", 16, 0xFFC02318);
-		d("SPI1_STAT", 16, 0xFFC02308);
-		d("SPI1_TDBR", 16, 0xFFC0230C);
-		d("SPI2_BAUD", 16, 0xFFC02414);
-		d("SPI2_CTL", 16, 0xFFC02400);
-		d("SPI2_FLG", 16, 0xFFC02404);
-		d("SPI2_RDBR", 16, 0xFFC02410);
-		d("SPI2_SHADOW", 16, 0xFFC02418);
-		d("SPI2_STAT", 16, 0xFFC02408);
-		d("SPI2_TDBR", 16, 0xFFC0240C);
-
-		parent = debugfs_create_dir("TWI", top);
-		d("TWI0_CLKDIV", 16, 0xFFC01400);
-		d("TWI0_CONTROL", 16, 0xFFC01404);
-		d("TWI0_FIFO_CTL", 16, 0xFFC01428);
-		d("TWI0_FIFO_STAT", 16, 0xFFC0142C);
-		d("TWI0_INT_MASK", 16, 0xFFC01424);
-		d("TWI0_INT_STAT", 16, 0xFFC01420);
-		d("TWI0_MASTER_ADDR", 16, 0xFFC0141C);
-		d("TWI0_MASTER_CTL", 16, 0xFFC01414);
-		d("TWI0_MASTER_STAT", 16, 0xFFC01418);
-		d("TWI0_RCV_DATA16", 16, 0xFFC0148C);
-		d("TWI0_RCV_DATA8", 16, 0xFFC01488);
-		d("TWI0_SLAVE_ADDR", 16, 0xFFC01410);
-		d("TWI0_SLAVE_CTRL", 16, 0xFFC01408);
-		d("TWI0_SLAVE_STAT", 16, 0xFFC0140C);
-		d("TWI0_XMT_DATA16", 16, 0xFFC01484);
-		d("TWI0_XMT_DATA8", 16, 0xFFC01480);
-		d("TWI1_CLKDIV", 16, 0xFFC02200);
-		d("TWI1_CONTROL", 16, 0xFFC02204);
-		d("TWI1_FIFO_CTL", 16, 0xFFC02228);
-		d("TWI1_FIFO_STAT", 16, 0xFFC0222C);
-		d("TWI1_INT_MASK", 16, 0xFFC02224);
-		d("TWI1_INT_STAT", 16, 0xFFC02220);
-		d("TWI1_MASTER_ADDR", 16, 0xFFC0221C);
-		d("TWI1_MASTER_CTL", 16, 0xFFC02214);
-		d("TWI1_MASTER_STAT", 16, 0xFFC02218);
-		d("TWI1_RCV_DATA16", 16, 0xFFC0228C);
-		d("TWI1_RCV_DATA8", 16, 0xFFC02288);
-		d("TWI1_SLAVE_ADDR", 16, 0xFFC02210);
-		d("TWI1_SLAVE_CTRL", 16, 0xFFC02208);
-		d("TWI1_SLAVE_STAT", 16, 0xFFC0220C);
-		d("TWI1_XMT_DATA16", 16, 0xFFC02284);
-		d("TWI1_XMT_DATA8", 16, 0xFFC02280);
 
 		parent = debugfs_create_dir("UART", top);
 		d("UART0_DLH", 16, 0xFFC00404);
@@ -4421,40 +4312,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTJ_INEN", 16, 0xFFC015F8);
 		d("PORTJ_MUX", 32, 0xFFC015FC);
 		d("PORTJ_SET", 16, 0xFFC015E8);
-
-		parent = debugfs_create_dir("SPI", top);
-		d("SPI0_BAUD", 16, 0xFFC00514);
-		d("SPI0_CTL", 16, 0xFFC00500);
-		d("SPI0_FLG", 16, 0xFFC00504);
-		d("SPI0_RDBR", 16, 0xFFC00510);
-		d("SPI0_SHADOW", 16, 0xFFC00518);
-		d("SPI0_STAT", 16, 0xFFC00508);
-		d("SPI0_TDBR", 16, 0xFFC0050C);
-		d("SPI1_BAUD", 16, 0xFFC02314);
-		d("SPI1_CTL", 16, 0xFFC02300);
-		d("SPI1_FLG", 16, 0xFFC02304);
-		d("SPI1_RDBR", 16, 0xFFC02310);
-		d("SPI1_SHADOW", 16, 0xFFC02318);
-		d("SPI1_STAT", 16, 0xFFC02308);
-		d("SPI1_TDBR", 16, 0xFFC0230C);
-
-		parent = debugfs_create_dir("TWI", top);
-		d("TWI0_CLKDIV", 16, 0xFFC00700);
-		d("TWI0_CONTROL", 16, 0xFFC00704);
-		d("TWI0_FIFO_CTL", 16, 0xFFC00728);
-		d("TWI0_FIFO_STAT", 16, 0xFFC0072C);
-		d("TWI0_INT_MASK", 16, 0xFFC00724);
-		d("TWI0_INT_STAT", 16, 0xFFC00720);
-		d("TWI0_MASTER_ADDR", 16, 0xFFC0071C);
-		d("TWI0_MASTER_CTL", 16, 0xFFC00714);
-		d("TWI0_MASTER_STAT", 16, 0xFFC00718);
-		d("TWI0_RCV_DATA16", 16, 0xFFC0078C);
-		d("TWI0_RCV_DATA8", 16, 0xFFC00788);
-		d("TWI0_SLAVE_ADDR", 16, 0xFFC00710);
-		d("TWI0_SLAVE_CTL", 16, 0xFFC00708);
-		d("TWI0_SLAVE_STAT", 16, 0xFFC0070C);
-		d("TWI0_XMT_DATA16", 16, 0xFFC00784);
-		d("TWI0_XMT_DATA8", 16, 0xFFC00780);
 
 		parent = debugfs_create_dir("UART", top);
 		d("UART0_DLH", 16, 0xFFC00404);
@@ -5263,56 +5120,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTJ_MUX", 32, 0xFFC015FC);
 		d("PORTJ_SET", 16, 0xFFC015E8);
 
-		parent = debugfs_create_dir("SPI", top);
-		d("SPI0_BAUD", 16, 0xFFC00514);
-		d("SPI0_CTL", 16, 0xFFC00500);
-		d("SPI0_FLG", 16, 0xFFC00504);
-		d("SPI0_RDBR", 16, 0xFFC00510);
-		d("SPI0_SHADOW", 16, 0xFFC00518);
-		d("SPI0_STAT", 16, 0xFFC00508);
-		d("SPI0_TDBR", 16, 0xFFC0050C);
-		d("SPI1_BAUD", 16, 0xFFC02314);
-		d("SPI1_CTL", 16, 0xFFC02300);
-		d("SPI1_FLG", 16, 0xFFC02304);
-		d("SPI1_RDBR", 16, 0xFFC02310);
-		d("SPI1_SHADOW", 16, 0xFFC02318);
-		d("SPI1_STAT", 16, 0xFFC02308);
-		d("SPI1_TDBR", 16, 0xFFC0230C);
-
-		parent = debugfs_create_dir("TWI", top);
-		d("TWI0_CLKDIV", 16, 0xFFC00700);
-		d("TWI0_CONTROL", 16, 0xFFC00704);
-		d("TWI0_FIFO_CTL", 16, 0xFFC00728);
-		d("TWI0_FIFO_STAT", 16, 0xFFC0072C);
-		d("TWI0_INT_MASK", 16, 0xFFC00724);
-		d("TWI0_INT_STAT", 16, 0xFFC00720);
-		d("TWI0_MASTER_ADDR", 16, 0xFFC0071C);
-		d("TWI0_MASTER_CTL", 16, 0xFFC00714);
-		d("TWI0_MASTER_STAT", 16, 0xFFC00718);
-		d("TWI0_RCV_DATA16", 16, 0xFFC0078C);
-		d("TWI0_RCV_DATA8", 16, 0xFFC00788);
-		d("TWI0_SLAVE_ADDR", 16, 0xFFC00710);
-		d("TWI0_SLAVE_CTL", 16, 0xFFC00708);
-		d("TWI0_SLAVE_STAT", 16, 0xFFC0070C);
-		d("TWI0_XMT_DATA16", 16, 0xFFC00784);
-		d("TWI0_XMT_DATA8", 16, 0xFFC00780);
-		d("TWI1_CLKDIV", 16, 0xFFC02200);
-		d("TWI1_CONTROL", 16, 0xFFC02204);
-		d("TWI1_FIFO_CTL", 16, 0xFFC02228);
-		d("TWI1_FIFO_STAT", 16, 0xFFC0222C);
-		d("TWI1_INT_MASK", 16, 0xFFC02224);
-		d("TWI1_INT_STAT", 16, 0xFFC02220);
-		d("TWI1_MASTER_ADDR", 16, 0xFFC0221C);
-		d("TWI1_MASTER_CTL", 16, 0xFFC02214);
-		d("TWI1_MASTER_STAT", 16, 0xFFC02218);
-		d("TWI1_RCV_DATA16", 16, 0xFFC0228C);
-		d("TWI1_RCV_DATA8", 16, 0xFFC02288);
-		d("TWI1_SLAVE_ADDR", 16, 0xFFC02210);
-		d("TWI1_SLAVE_CTL", 16, 0xFFC02208);
-		d("TWI1_SLAVE_STAT", 16, 0xFFC0220C);
-		d("TWI1_XMT_DATA16", 16, 0xFFC02284);
-		d("TWI1_XMT_DATA8", 16, 0xFFC02280);
-
 		parent = debugfs_create_dir("UART", top);
 		d("UART0_DLH", 16, 0xFFC00404);
 		d("UART0_DLL", 16, 0xFFC00400);
@@ -5958,63 +5765,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("PORTJ_INEN", 16, 0xFFC015F8);
 		d("PORTJ_MUX", 32, 0xFFC015FC);
 		d("PORTJ_SET", 16, 0xFFC015E8);
-
-		parent = debugfs_create_dir("SPI", top);
-		d("SPI0_BAUD", 16, 0xFFC00514);
-		d("SPI0_CTL", 16, 0xFFC00500);
-		d("SPI0_FLG", 16, 0xFFC00504);
-		d("SPI0_RDBR", 16, 0xFFC00510);
-		d("SPI0_SHADOW", 16, 0xFFC00518);
-		d("SPI0_STAT", 16, 0xFFC00508);
-		d("SPI0_TDBR", 16, 0xFFC0050C);
-		d("SPI1_BAUD", 16, 0xFFC02314);
-		d("SPI1_CTL", 16, 0xFFC02300);
-		d("SPI1_FLG", 16, 0xFFC02304);
-		d("SPI1_RDBR", 16, 0xFFC02310);
-		d("SPI1_SHADOW", 16, 0xFFC02318);
-		d("SPI1_STAT", 16, 0xFFC02308);
-		d("SPI1_TDBR", 16, 0xFFC0230C);
-		d("SPI2_BAUD", 16, 0xFFC02414);
-		d("SPI2_CTL", 16, 0xFFC02400);
-		d("SPI2_FLG", 16, 0xFFC02404);
-		d("SPI2_RDBR", 16, 0xFFC02410);
-		d("SPI2_SHADOW", 16, 0xFFC02418);
-		d("SPI2_STAT", 16, 0xFFC02408);
-		d("SPI2_TDBR", 16, 0xFFC0240C);
-
-		parent = debugfs_create_dir("TWI", top);
-		d("TWI0_CLKDIV", 16, 0xFFC00700);
-		d("TWI0_CONTROL", 16, 0xFFC00704);
-		d("TWI0_FIFO_CTL", 16, 0xFFC00728);
-		d("TWI0_FIFO_STAT", 16, 0xFFC0072C);
-		d("TWI0_INT_MASK", 16, 0xFFC00724);
-		d("TWI0_INT_STAT", 16, 0xFFC00720);
-		d("TWI0_MASTER_ADDR", 16, 0xFFC0071C);
-		d("TWI0_MASTER_CTL", 16, 0xFFC00714);
-		d("TWI0_MASTER_STAT", 16, 0xFFC00718);
-		d("TWI0_RCV_DATA16", 16, 0xFFC0078C);
-		d("TWI0_RCV_DATA8", 16, 0xFFC00788);
-		d("TWI0_SLAVE_ADDR", 16, 0xFFC00710);
-		d("TWI0_SLAVE_CTL", 16, 0xFFC00708);
-		d("TWI0_SLAVE_STAT", 16, 0xFFC0070C);
-		d("TWI0_XMT_DATA16", 16, 0xFFC00784);
-		d("TWI0_XMT_DATA8", 16, 0xFFC00780);
-		d("TWI1_CLKDIV", 16, 0xFFC02200);
-		d("TWI1_CONTROL", 16, 0xFFC02204);
-		d("TWI1_FIFO_CTL", 16, 0xFFC02228);
-		d("TWI1_FIFO_STAT", 16, 0xFFC0222C);
-		d("TWI1_INT_MASK", 16, 0xFFC02224);
-		d("TWI1_INT_STAT", 16, 0xFFC02220);
-		d("TWI1_MASTER_ADDR", 16, 0xFFC0221C);
-		d("TWI1_MASTER_CTL", 16, 0xFFC02214);
-		d("TWI1_MASTER_STAT", 16, 0xFFC02218);
-		d("TWI1_RCV_DATA16", 16, 0xFFC0228C);
-		d("TWI1_RCV_DATA8", 16, 0xFFC02288);
-		d("TWI1_SLAVE_ADDR", 16, 0xFFC02210);
-		d("TWI1_SLAVE_CTL", 16, 0xFFC02208);
-		d("TWI1_SLAVE_STAT", 16, 0xFFC0220C);
-		d("TWI1_XMT_DATA16", 16, 0xFFC02284);
-		d("TWI1_XMT_DATA8", 16, 0xFFC02280);
 
 		parent = debugfs_create_dir("UART0", top);
 		d("UART0_DLH", 16, 0xFFC00404);
@@ -6850,15 +6600,6 @@ static int __init bfin_debug_mmrs_init(void)
 		d("MDMA2_S1_X_MODIFY", 16, 0xFFC00FD4);
 		d("MDMA2_S1_Y_COUNT", 16, 0xFFC00FD8);
 		d("MDMA2_S1_Y_MODIFY", 16, 0xFFC00FDC);
-
-		parent = debugfs_create_dir("SPI", top);
-		d("SPI_BAUD", 16, 0xFFC00514);
-		d("SPI_CTL", 16, 0xFFC00500);
-		d("SPI_FLG", 16, 0xFFC00504);
-		d("SPI_RDBR", 16, 0xFFC00510);
-		d("SPI_SHADOW", 16, 0xFFC00518);
-		d("SPI_STAT", 16, 0xFFC00508);
-		d("SPI_TDBR", 16, 0xFFC0050C);
 
 		parent = debugfs_create_dir("UART", top);
 		d("UART_DLH", 16, 0xFFC00404);
