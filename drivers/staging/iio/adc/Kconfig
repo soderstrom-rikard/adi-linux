@@ -41,12 +41,26 @@ config AD7152
 	  Say yes here to build support for Analog Devices capacitive sensors.
 	  (ad7152, ad7153) Provides direct access via sysfs.
 
-config AD774X
-	tristate "Analog Devices ad7745/6/7 capacitive sensor driver"
+config AD7291
+	tristate "Analog Devices AD7291 temperature sensor driver"
 	depends on I2C
 	help
-	  Say yes here to build support for Analog Devices capacitive sensors.
-	  (ad7745, ad7746, ad7747) Provides direct access via sysfs.
+	  Say yes here to build support for Analog Devices AD7291
+	  temperature sensors.
+
+config AD7298
+	tristate "Analog Devices AD7298 temperature sensor and ADC driver"
+	depends on SPI
+	help
+	  Say yes here to build support for Analog Devices AD7298
+	  temperature sensors and ADC.
+
+config AD7314
+	tristate "Analog Devices AD7314 temperature sensor driver"
+	depends on SPI
+	help
+	  Say yes here to build support for Analog Devices AD7314
+	  temperature sensors.
 
 config AD7414
 	tristate "Analog Devices AD7414 and AD7415 temperature sensor driver"
@@ -73,60 +87,18 @@ config AD7476
 	  To compile this driver as a module, choose M here: the
 	  module will be called ad7476.
 
-config ADT75
-	tristate "Analog Devices ADT75 temperature sensor driver"
+config AD774X
+	tristate "Analog Devices ad7745/6/7 capacitive sensor driver"
 	depends on I2C
 	help
-	  Say yes here to build support for Analog Devices ADT75
-	  temperature sensors.
-
-config ADT7408
-	tristate "Analog Devices ADT7408 temperature sensor driver"
-	depends on I2C
-	help
-	  Say yes here to build support for Analog Devices ADT7408
-	  temperature sensors.
-
-config ADT7410
-	tristate "Analog Devices ADT7410 temperature sensor driver"
-	depends on I2C
-	help
-	  Say yes here to build support for Analog Devices ADT7410
-	  temperature sensors.
-
-config AD7291
-	tristate "Analog Devices AD7291 temperature sensor driver"
-	depends on I2C
-	help
-	  Say yes here to build support for Analog Devices AD7291
-	  temperature sensors.
-
-config AD7314
-	tristate "Analog Devices AD7314 temperature sensor driver"
-	depends on SPI
-	help
-	  Say yes here to build support for Analog Devices AD7314
-	  temperature sensors.
+	  Say yes here to build support for Analog Devices capacitive sensors.
+	  (ad7745, ad7746, ad7747) Provides direct access via sysfs.
 
 config AD7816
 	tristate "Analog Devices AD7816/7/8 temperature sensor and ADC driver"
 	depends on SPI
 	help
 	  Say yes here to build support for Analog Devices AD7816/7/8
-	  temperature sensors and ADC.
-
-config ADT7310
-	tristate "Analog Devices ADT7310 temperature sensor driver"
-	depends on SPI
-	help
-	  Say yes here to build support for Analog Devices ADT7310
-	  temperature sensors.
-
-config AD7298
-	tristate "Analog Devices AD7298 temperature sensor and ADC driver"
-	depends on SPI
-	help
-	  Say yes here to build support for Analog Devices AD7298
 	  temperature sensors and ADC.
 
 config AD799X
@@ -148,3 +120,31 @@ config AD799X_RING_BUFFER
 	help
 	  Say yes here to include ring buffer support in the AD799X
 	  ADC driver.
+
+config ADT75
+	tristate "Analog Devices ADT75 temperature sensor driver"
+	depends on I2C
+	help
+	  Say yes here to build support for Analog Devices ADT75
+	  temperature sensors.
+
+config ADT7408
+	tristate "Analog Devices ADT7408 temperature sensor driver"
+	depends on I2C
+	help
+	  Say yes here to build support for Analog Devices ADT7408
+	  temperature sensors.
+
+config ADT7410
+	tristate "Analog Devices ADT7410 temperature sensor driver"
+	depends on I2C
+	help
+	  Say yes here to build support for Analog Devices ADT7410
+	  temperature sensors.
+
+config ADT7310
+	tristate "Analog Devices ADT7310 temperature sensor driver"
+	depends on SPI
+	help
+	  Say yes here to build support for Analog Devices ADT7310
+	  temperature sensors.
