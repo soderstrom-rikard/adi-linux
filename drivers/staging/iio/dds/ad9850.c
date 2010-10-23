@@ -61,7 +61,7 @@ error_ret:
 	return ret ? ret : len;
 }
 
-static IIO_DEVICE_ATTR(dds, S_IWUSR, NULL, ad9850_set_parameter, NULL);
+static IIO_DEVICE_ATTR(dds, S_IWUSR, NULL, ad9850_set_parameter, 0);
 
 static struct attribute *ad9850_attributes[] = {
 	&iio_dev_attr_dds.dev_attr.attr,

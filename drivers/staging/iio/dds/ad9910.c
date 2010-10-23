@@ -294,7 +294,7 @@ error_ret:
 	return ret ? ret : len;
 }
 
-static IIO_DEVICE_ATTR(dds, S_IWUSR, NULL, ad9910_set_parameter, NULL);
+static IIO_DEVICE_ATTR(dds, S_IWUSR, NULL, ad9910_set_parameter, 0);
 
 static void ad9910_init(struct ad9910_state *st)
 {
