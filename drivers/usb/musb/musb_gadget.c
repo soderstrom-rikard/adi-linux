@@ -510,8 +510,6 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 						| MUSB_TXCSR_TXPKTRDY);
 				request->zero = 0;
 			}
-			if (request->actual < request->length)
-				return;
 
 			if (request->actual == request->length) {
 				musb_g_giveback(musb_ep, request, 0);
