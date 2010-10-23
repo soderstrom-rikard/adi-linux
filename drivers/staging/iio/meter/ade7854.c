@@ -609,14 +609,6 @@ int ade7854_probe(struct ade7854_state *st, struct device *dev)
 	}
 
 	if (st->irq) {
-#if 0 /* fixme: here we should support */
-		iio_init_work_cont(&st->work_cont_thresh,
-				NULL,
-				ade7854_thresh_handler_bh_no_check,
-				0,
-				0,
-				st);
-#endif
 		ret = iio_register_interrupt_line(st->irq,
 				st->indio_dev,
 				0,

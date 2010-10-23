@@ -570,14 +570,6 @@ static int __devinit ade7759_probe(struct spi_device *spi)
 	}
 
 	if (spi->irq) {
-#if 0 /* fixme: here we should support */
-		iio_init_work_cont(&st->work_cont_thresh,
-				NULL,
-				ade7759_thresh_handler_bh_no_check,
-				0,
-				0,
-				st);
-#endif
 		ret = iio_register_interrupt_line(spi->irq,
 				st->indio_dev,
 				0,

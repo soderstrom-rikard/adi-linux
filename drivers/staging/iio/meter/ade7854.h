@@ -148,7 +148,6 @@
  * struct ade7854_state - device instance specific data
  * @spi:			actual spi_device
  * @work_trigger_to_ring: bh for triggered event handling
- * @work_cont_thresh: CLEAN
  * @inter:		used to check if new interrupt has been triggered
  * @last_timestamp:	passing timestamp from th to bh of interrupt handler
  * @indio_dev:		industrial I/O device structure
@@ -161,7 +160,6 @@ struct ade7854_state {
 	struct spi_device		*spi;
 	struct i2c_client               *i2c;
 	struct work_struct		work_trigger_to_ring;
-	struct iio_work_cont		work_cont_thresh;
 	s64				last_timestamp;
 	struct iio_dev			*indio_dev;
 	struct iio_trigger		*trig;

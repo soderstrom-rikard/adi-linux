@@ -176,7 +176,7 @@
 struct adt7316_chip_info {
 	const char		*name;
 	struct iio_dev		*indio_dev;
-	struct iio_work_cont	work_cont_thresh;
+	struct work_struct	thresh_work;
 	s64			last_timestamp;
 	struct adt7316_bus	bus;
 	u16			ldac_pin;
@@ -1797,8 +1797,8 @@ static const struct attribute_group adt7516_attribute_group = {
 
 static void adt7316_interrupt_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc = to_iio_work_cont_no_check(work_s);
-	struct adt7316_chip_info *chip = wc->st;
+	struct adt7316_chip_info *chip =
+		container_of(work_s, struct adt7316_chip_info, thresh_work);
 	u8 stat1, stat2;
 	int i, ret, count;
 
@@ -1836,7 +1836,7 @@ static int adt7316_interrupt(struct iio_dev *dev_info,
 	struct adt7316_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws_nocheck);
+	schedule_work(&chip->thresh_work);
 
 	return 0;
 }
@@ -2323,13 +2323,6 @@ int __devinit adt7316_probe(struct device *dev, struct adt7316_bus *bus,
 		goto error_free_dev;
 
 	if (chip->bus.irq > 0) {
-		iio_init_work_cont(&chip->work_cont_thresh,
-				adt7316_interrupt_bh,
-				adt7316_interrupt_bh,
-				0,
-				0,
-				chip);
-
 		if (adt7316_platform_data[0])
 			chip->bus.irq_flags = adt7316_platform_data[0];
 
@@ -2348,6 +2341,8 @@ int __devinit adt7316_probe(struct device *dev, struct adt7316_bus *bus,
 		 */
 		iio_add_event_to_list(&iio_event_adt7316,
 				&chip->indio_dev->interrupts[0]->ev_list);
+
+		INIT_WORK(&chip->thresh_work, adt7316_interrupt_bh);
 
 		if (chip->bus.irq_flags & IRQF_TRIGGER_HIGH)
 			chip->config1 |= ADT7316_INT_POLARITY;
