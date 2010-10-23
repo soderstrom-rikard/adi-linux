@@ -57,12 +57,12 @@
  */
 
 struct ad7414_chip_info {
-	const char		*name;
-	struct i2c_client	*client;
-	struct iio_dev		*indio_dev;
-	struct iio_work_cont	work_cont_thresh;
-	s64			last_timestamp;
-	u8			mode;
+	const char *name;
+	struct i2c_client *client;
+	struct iio_dev *indio_dev;
+	struct work_struct thresh_work;
+	s64 last_timestamp;
+	u8  mode;
 };
 
 /*
@@ -230,8 +230,8 @@ static const struct attribute_group ad7414_attribute_group = {
 
 static void ad7414_interrupt_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc = to_iio_work_cont_no_check(work_s);
-	struct ad7414_chip_info *chip = wc->st;
+	struct ad7414_chip_info *chip =
+		container_of(work_s, struct ad7414_chip_info, thresh_work);
 	u16 status;
 	u8 config;
 	int ret;
@@ -271,7 +271,7 @@ static int ad7414_interrupt(struct iio_dev *dev_info,
 	struct ad7414_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws_nocheck);
+	schedule_work(&chip->thresh_work);
 
 	return 0;
 }
@@ -471,13 +471,6 @@ static int __devinit ad7414_probe(struct i2c_client *client,
 		goto error_free_dev;
 
 	if (client->irq) {
-		iio_init_work_cont(&chip->work_cont_thresh,
-				ad7414_interrupt_bh,
-				ad7414_interrupt_bh,
-				0,
-				0,
-				chip);
-
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
@@ -493,6 +486,8 @@ static int __devinit ad7414_probe(struct i2c_client *client,
 		 */
 		iio_add_event_to_list(&iio_event_ad7414,
 				&chip->indio_dev->interrupts[0]->ev_list);
+
+		INIT_WORK(&chip->thresh_work, ad7414_interrupt_bh);
 
 		ret = ad7414_i2c_read(chip, AD7414_CONFIG, &config);
 		if (ret) {

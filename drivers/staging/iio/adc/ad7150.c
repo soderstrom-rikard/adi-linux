@@ -66,9 +66,9 @@ struct ad7150_chip_info {
 	const char *name;
 	struct i2c_client *client;
 	struct iio_dev *indio_dev;
-	struct iio_work_cont		work_cont_thresh;
-	bool				inter;
-	s64				last_timestamp;
+	struct work_struct thresh_work;
+	bool inter;
+	s64 last_timestamp;
 	u16 ch1_threshold;     /* Ch1 Threshold (in fixed threshold mode) */
 	u8  ch1_sensitivity;   /* Ch1 Sensitivity (in adaptive threshold mode) */
 	u8  ch1_timeout;       /* Ch1 Timeout (in adaptive threshold mode) */
@@ -680,9 +680,8 @@ static const struct attribute_group ad7150_attribute_group = {
 
 static void ad7150_interrupt_handler_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc
-		= container_of(work_s, struct iio_work_cont, ws_nocheck);
-	struct ad7150_chip_info *chip = wc->st;
+	struct ad7150_chip_info *chip =
+		container_of(work_s, struct ad7150_chip_info, thresh_work);
 	u8 int_status;
 
 	enable_irq(chip->client->irq);
@@ -716,7 +715,7 @@ static int ad7150_interrupt_handler_th(struct iio_dev *dev_info,
 	struct ad7150_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws);
+	schedule_work(&chip->thresh_work);
 
 	return 0;
 }
@@ -800,12 +799,6 @@ static int __devinit ad7150_probe(struct i2c_client *client,
 	regdone = 1;
 
 	if (client->irq && gpio_is_valid(irq_to_gpio(client->irq)) > 0) {
-		iio_init_work_cont(&chip->work_cont_thresh,
-				ad7150_interrupt_handler_bh,
-				ad7150_interrupt_handler_bh,
-				AD7150_STATUS,
-				0,
-				chip);
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
@@ -817,6 +810,7 @@ static int __devinit ad7150_probe(struct i2c_client *client,
 		iio_add_event_to_list(iio_event_attr_ch2_low.listel,
 				&chip->indio_dev->interrupts[0]->ev_list);
 
+		INIT_WORK(&chip->thresh_work, ad7150_interrupt_handler_bh);
 	}
 
 	dev_err(&client->dev, "%s capacitive sensor registered, irq: %d\n", id->name, client->irq);

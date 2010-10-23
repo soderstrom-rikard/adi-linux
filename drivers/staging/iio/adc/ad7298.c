@@ -47,12 +47,12 @@
  */
 
 struct ad7298_chip_info {
-	const char		*name;
-	struct spi_device	*spi_dev;
-	struct iio_dev		*indio_dev;
-	u16			command;
-	u16			busy_pin;
-	u8			channels;	/* Active voltage channels */
+	const char *name;
+	struct spi_device *spi_dev;
+	struct iio_dev *indio_dev;
+	u16 command;
+	u16 busy_pin;
+	u8  channels;	/* Active voltage channels */
 };
 
 /*

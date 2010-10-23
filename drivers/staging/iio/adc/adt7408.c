@@ -84,12 +84,12 @@
  */
 
 struct adt7408_chip_info {
-	const char		*name;
-	struct i2c_client	*client;
-	struct iio_dev		*indio_dev;
-	struct iio_work_cont	work_cont_thresh;
-	s64			last_timestamp;
-	u16			config;
+	const char *name;
+	struct i2c_client *client;
+	struct iio_dev *indio_dev;
+	struct work_struct thresh_work;
+	s64 last_timestamp;
+	u16 config;
 };
 
 /*
@@ -319,8 +319,8 @@ static const struct attribute_group adt7408_attribute_group = {
 
 static void adt7408_interrupt_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc = to_iio_work_cont_no_check(work_s);
-	struct adt7408_chip_info *chip = wc->st;
+	struct adt7408_chip_info *chip =
+		container_of(work_s, struct adt7408_chip_info, thresh_work);
 	u16 config;
 	u16 data;
 
@@ -363,7 +363,7 @@ static int adt7408_interrupt(struct iio_dev *dev_info,
 	struct adt7408_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws_nocheck);
+	schedule_work(&chip->thresh_work);
 
 	return 0;
 }
@@ -904,13 +904,6 @@ static int __devinit adt7408_probe(struct i2c_client *client,
 		goto error_free_dev;
 
 	if (client->irq) {
-		iio_init_work_cont(&chip->work_cont_thresh,
-				adt7408_interrupt_bh,
-				adt7408_interrupt_bh,
-				0,
-				0,
-				chip);
-
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
@@ -926,6 +919,8 @@ static int __devinit adt7408_probe(struct i2c_client *client,
 		 */
 		iio_add_event_to_list(&iio_event_adt7408,
 				&chip->indio_dev->interrupts[0]->ev_list);
+
+		INIT_WORK(&chip->thresh_work, adt7408_interrupt_bh);
 
 		ret = adt7408_i2c_read(chip, ADT7408_CONFIG, &chip->config);
 		if (ret) {

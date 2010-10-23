@@ -77,12 +77,12 @@
  */
 
 struct adt7410_chip_info {
-	const char		*name;
-	struct i2c_client	*client;
-	struct iio_dev		*indio_dev;
-	struct iio_work_cont	work_cont_thresh;
-	s64			last_timestamp;
-	u8			config;
+	const char *name;
+	struct i2c_client *client;
+	struct iio_dev *indio_dev;
+	struct work_struct thresh_work;
+	s64 last_timestamp;
+	u8  config;
 };
 
 /*
@@ -383,8 +383,8 @@ static const struct attribute_group adt7410_attribute_group = {
 
 static void adt7410_interrupt_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc = to_iio_work_cont_check(work_s);
-	struct adt7410_chip_info *chip = wc->st;
+	struct adt7410_chip_info *chip =
+		container_of(work_s, struct adt7410_chip_info, thresh_work);
 	u8 status;
 
 	if (adt7410_i2c_read_byte(chip, ADT7410_STATUS, &status))
@@ -414,7 +414,7 @@ static int adt7410_interrupt(struct iio_dev *dev_info,
 	struct adt7410_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws);
+	schedule_work(&chip->thresh_work);
 
 	return 0;
 }
@@ -821,12 +821,7 @@ static int __devinit adt7410_probe(struct i2c_client *client,
 	}
 
 	if (client->irq && adt7410_platform_data[0]) {
-		iio_init_work_cont(&chip->work_cont_thresh,
-				adt7410_interrupt_bh,
-				adt7410_interrupt_bh,
-				0,
-				0,
-				chip);
+		INIT_WORK(&chip->thresh_work, adt7410_interrupt_bh);
 
 		ret = adt7410_i2c_read_byte(chip, ADT7410_CONFIG, &chip->config);
 		if (ret) {

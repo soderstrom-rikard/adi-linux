@@ -73,15 +73,15 @@
  */
 
 struct ad7416_chip_info {
-	const char		*name;
-	struct i2c_client	*client;
-	struct iio_dev		*indio_dev;
-	struct iio_work_cont	work_cont_thresh;
-	s64			last_timestamp;
-	u16			convert_pin;
-	u8			mode;
-	u8			channel_id;	/* 0 always be temperature */
-	u8			channel_mask;
+	const char *name;
+	struct i2c_client *client;
+	struct iio_dev *indio_dev;
+	struct work_struct thresh_work;
+	s64 last_timestamp;
+	u16 convert_pin;
+	u8  mode;
+	u8  channel_id;	/* 0 always be temperature */
+	u8  channel_mask;
 };
 
 /*
@@ -356,8 +356,8 @@ static const struct attribute_group ad7416_attribute_group = {
 
 static void ad7416_interrupt_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc = to_iio_work_cont_no_check(work_s);
-	struct ad7416_chip_info *chip = wc->st;
+	struct ad7416_chip_info *chip =
+		container_of(work_s, struct ad7416_chip_info, thresh_work);
 
 	enable_irq(chip->client->irq);
 
@@ -374,7 +374,7 @@ static int ad7416_interrupt(struct iio_dev *dev_info,
 	struct ad7416_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws_nocheck);
+	schedule_work(&chip->thresh_work);
 
 	return 0;
 }
@@ -671,13 +671,6 @@ static int __devinit ad7416_probe(struct i2c_client *client,
 		goto error_free_dev;
 
 	if (client->irq) {
-		iio_init_work_cont(&chip->work_cont_thresh,
-				ad7416_interrupt_bh,
-				ad7416_interrupt_bh,
-				0,
-				0,
-				chip);
-
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
@@ -693,6 +686,8 @@ static int __devinit ad7416_probe(struct i2c_client *client,
 		 */
 		iio_add_event_to_list(&iio_event_ad7416,
 				&chip->indio_dev->interrupts[0]->ev_list);
+
+		INIT_WORK(&chip->thresh_work, ad7416_interrupt_bh);
 
 		ret = ad7416_i2c_read(chip, AD7416_CONFIG, &config);
 		if (ret) {

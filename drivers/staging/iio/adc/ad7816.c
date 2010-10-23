@@ -44,17 +44,17 @@
  */
 
 struct ad7816_chip_info {
-	const char		*name;
-	struct spi_device	*spi_dev;
-	struct iio_dev		*indio_dev;
-	struct iio_work_cont	work_cont_thresh;
-	s64			last_timestamp;
-	u16			rdwr_pin;
-	u16			convert_pin;
-	u16			busy_pin;
-	u8			oti_data[AD7816_CS_MAX+1];
-	u8			channel_id;	/* 0 always be temperature */
-	u8			mode;
+	const char *name;
+	struct spi_device *spi_dev;
+	struct iio_dev *indio_dev;
+	struct work_struct thresh_work;
+	s64 last_timestamp;
+	u16 rdwr_pin;
+	u16 convert_pin;
+	u16 busy_pin;
+	u8  oti_data[AD7816_CS_MAX+1];
+	u8  channel_id;	/* 0 always be temperature */
+	u8  mode;
 };
 
 /*
@@ -268,8 +268,8 @@ static const struct attribute_group ad7816_attribute_group = {
 
 static void ad7816_interrupt_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc = to_iio_work_cont_no_check(work_s);
-	struct ad7816_chip_info *chip = wc->st;
+	struct ad7816_chip_info *chip =
+		container_of(work_s, struct ad7816_chip_info, thresh_work);
 
 	enable_irq(chip->spi_dev->irq);
 
@@ -286,7 +286,7 @@ static int ad7816_interrupt(struct iio_dev *dev_info,
 	struct ad7816_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws_nocheck);
+	schedule_work(&chip->thresh_work);
 
 	return 0;
 }
@@ -441,13 +441,6 @@ static int __devinit ad7816_probe(struct spi_device *spi_dev)
 		spi_dev->irq_flags &= ~IRQF_TRIGGER_MASK;
 		spi_dev->irq_flags |= IRQF_TRIGGER_LOW;
 
-		iio_init_work_cont(&chip->work_cont_thresh,
-				ad7816_interrupt_bh,
-				ad7816_interrupt_bh,
-				0,
-				0,
-				chip);
-
 		ret = iio_register_interrupt_line(spi_dev->irq,
 				chip->indio_dev,
 				0,
@@ -463,6 +456,8 @@ static int __devinit ad7816_probe(struct spi_device *spi_dev)
 		 */
 		iio_add_event_to_list(&iio_event_ad7816,
 				&chip->indio_dev->interrupts[0]->ev_list);
+
+		INIT_WORK(&chip->thresh_work, ad7816_interrupt_bh);
 	}
 
 	dev_info(&spi_dev->dev, "%s temperature sensor and ADC registered.\n",

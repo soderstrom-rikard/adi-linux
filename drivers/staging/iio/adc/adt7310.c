@@ -82,12 +82,12 @@
  */
 
 struct adt7310_chip_info {
-	const char		*name;
-	struct spi_device	*spi_dev;
-	struct iio_dev		*indio_dev;
-	struct iio_work_cont	work_cont_thresh;
-	s64			last_timestamp;
-	u8			config;
+	const char *name;
+	struct spi_device *spi_dev;
+	struct iio_dev *indio_dev;
+	struct work_struct thresh_work;
+	s64 last_timestamp;
+	u8  config;
 };
 
 /*
@@ -415,8 +415,8 @@ static const struct attribute_group adt7310_attribute_group = {
 
 static void adt7310_interrupt_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc = to_iio_work_cont_check(work_s);
-	struct adt7310_chip_info *chip = wc->st;
+	struct adt7310_chip_info *chip =
+		container_of(work_s, struct adt7310_chip_info, thresh_work);
 	u8 status;
 
 	if (adt7310_spi_read_byte(chip, ADT7310_STATUS, &status))
@@ -444,7 +444,7 @@ static int adt7310_interrupt(struct iio_dev *dev_info,
 	struct adt7310_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws);
+	schedule_work(&chip->thresh_work);
 
 	return 0;
 }
@@ -852,12 +852,7 @@ static int __devinit adt7310_probe(struct spi_device *spi_dev)
 	}
 
 	if (spi_dev->irq && adt7310_platform_data[0]) {
-		iio_init_work_cont(&chip->work_cont_thresh,
-				adt7310_interrupt_bh,
-				adt7310_interrupt_bh,
-				0,
-				0,
-				chip);
+		INIT_WORK(&chip->thresh_work, adt7310_interrupt_bh);
 
 		ret = adt7310_spi_read_byte(chip, ADT7310_CONFIG, &chip->config);
 		if (ret) {

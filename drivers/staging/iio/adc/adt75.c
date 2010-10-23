@@ -54,12 +54,12 @@
  */
 
 struct adt75_chip_info {
-	const char		*name;
-	struct i2c_client	*client;
-	struct iio_dev		*indio_dev;
-	struct iio_work_cont	work_cont_thresh;
-	s64			last_timestamp;
-	u8			config;
+	const char *name;
+	struct i2c_client *client;
+	struct iio_dev *indio_dev;
+	struct work_struct thresh_work;
+	s64 last_timestamp;
+	u8  config;
 };
 
 /*
@@ -281,9 +281,8 @@ static const struct attribute_group adt75_attribute_group = {
 
 static void adt75_interrupt_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc
-		= container_of(work_s, struct iio_work_cont, ws_nocheck);
-	struct adt75_chip_info *chip = wc->st;
+	struct adt75_chip_info *chip =
+		container_of(work_s, struct adt75_chip_info, thresh_work);
 
 	enable_irq(chip->client->irq);
 
@@ -300,7 +299,7 @@ static int adt75_interrupt(struct iio_dev *dev_info,
 	struct adt75_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws_nocheck);
+	schedule_work(&chip->thresh_work);
 
 	return 0;
 }
@@ -634,13 +633,6 @@ static int __devinit adt75_probe(struct i2c_client *client,
 		goto error_free_dev;
 
 	if (client->irq > 0) {
-		iio_init_work_cont(&chip->work_cont_thresh,
-				adt75_interrupt_bh,
-				adt75_interrupt_bh,
-				0,
-				0,
-				chip);
-
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
@@ -656,6 +648,8 @@ static int __devinit adt75_probe(struct i2c_client *client,
 		 */
 		iio_add_event_to_list(&iio_event_adt75,
 				&chip->indio_dev->interrupts[0]->ev_list);
+
+		INIT_WORK(&chip->thresh_work, adt75_interrupt_bh);
 
 		ret = adt75_i2c_read(chip, ADT75_CONFIG, &chip->config);
 		if (ret) {

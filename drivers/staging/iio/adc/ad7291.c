@@ -62,13 +62,13 @@
  */
 
 struct ad7291_chip_info {
-	const char		*name;
-	struct i2c_client	*client;
-	struct iio_dev		*indio_dev;
-	struct iio_work_cont	work_cont_thresh;
-	s64			last_timestamp;
-	u16			command;
-	u8			channels;	/* Active voltage channels */
+	const char *name;
+	struct i2c_client *client;
+	struct iio_dev *indio_dev;
+	struct work_struct thresh_work;
+	s64 last_timestamp;
+	u16 command;
+	u8  channels;	/* Active voltage channels */
 };
 
 /*
@@ -479,8 +479,8 @@ static const struct attribute_group ad7291_attribute_group = {
 
 static void ad7291_interrupt_bh(struct work_struct *work_s)
 {
-	struct iio_work_cont *wc = to_iio_work_cont_no_check(work_s);
-	struct ad7291_chip_info *chip = wc->st;
+	struct ad7291_chip_info *chip =
+		container_of(work_s, struct ad7291_chip_info, thresh_work);
 	u16 t_status, v_status;
 	u16 command;
 	int i;
@@ -525,7 +525,7 @@ static int ad7291_interrupt(struct iio_dev *dev_info,
 	struct ad7291_chip_info *chip = dev_info->dev_data;
 
 	chip->last_timestamp = timestamp;
-	schedule_work(&chip->work_cont_thresh.ws_nocheck);
+	schedule_work(&chip->thresh_work);
 
 	return 0;
 }
@@ -945,13 +945,6 @@ static int __devinit ad7291_probe(struct i2c_client *client,
 		goto error_free_dev;
 
 	if (client->irq > 0) {
-		iio_init_work_cont(&chip->work_cont_thresh,
-				ad7291_interrupt_bh,
-				ad7291_interrupt_bh,
-				0,
-				0,
-				chip);
-
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
@@ -967,6 +960,8 @@ static int __devinit ad7291_probe(struct i2c_client *client,
 		 */
 		iio_add_event_to_list(&iio_event_ad7291,
 				&chip->indio_dev->interrupts[0]->ev_list);
+
+		INIT_WORK(&chip->thresh_work, ad7291_interrupt_bh);
 
 		if (client->irq_flags & IRQF_TRIGGER_LOW)
 			chip->command |= AD7291_ALART_POLARITY;

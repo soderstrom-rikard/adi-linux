@@ -47,12 +47,11 @@
  */
 
 struct ad7314_chip_info {
-	const char		*name;
-	struct spi_device	*spi_dev;
-	struct iio_dev		*indio_dev;
-	struct iio_work_cont	work_cont_thresh;
-	s64			last_timestamp;
-	u8			mode;
+	const char *name;
+	struct spi_device *spi_dev;
+	struct iio_dev *indio_dev;
+	s64 last_timestamp;
+	u8  mode;
 };
 
 /*
