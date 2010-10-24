@@ -486,7 +486,7 @@ int adis16261_check_status(struct device *dev)
 	if (status & ADIS16261_DIAG_STAT_ALARM1)
 		dev_err(dev, "Alarm 1 active\n");
 	if (status & ADIS16261_DIAG_STAT_SELF_TEST)
-		dev_err(dev, "Self test error \n");
+		dev_err(dev, "Self test error\n");
 	if (status & ADIS16261_DIAG_STAT_OVERFLOW)
 		dev_err(dev, "Sensor overrange\n");
 	if (status & ADIS16261_DIAG_STAT_SPI_FAIL)
