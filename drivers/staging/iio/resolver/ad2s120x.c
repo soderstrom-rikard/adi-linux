@@ -15,7 +15,7 @@
 #include <linux/slab.h>
 #include <linux/sysfs.h>
 #include <linux/delay.h>
-#include <asm/gpio.h>
+#include <linux/gpio.h>
 
 #include "../iio.h"
 #include "../sysfs.h"
