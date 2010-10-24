@@ -373,7 +373,7 @@ int __init musb_platform_init(struct musb *musb, void *board_data)
 	 */
 
 	if (gpio_request(musb->config->gpio_vrsel, "USB_VRSEL")) {
-		printk(KERN_ERR "Failed ro request USB_VRSEL GPIO_%d \n",
+		printk(KERN_ERR "Failed ro request USB_VRSEL GPIO_%d\n",
 			musb->config->gpio_vrsel);
 		return -ENODEV;
 	}
@@ -405,10 +405,11 @@ void musb_platform_save_context(struct musb *musb,
 {
 	if (is_host_active(musb))
 		/*
-		* During hibernate gpio_vrsel will change from high to low which
-		* will generate wakeup event resume the system immediately.
-		* Set it to 0 before hibernate to avoid this wakeup event.
-		*/
+		 * During hibernate gpio_vrsel will change from high to low
+		 * low which will generate wakeup event resume the system
+		 * immediately.  Set it to 0 before hibernate to avoid this
+		 * wakeup event.
+		 */
 		gpio_set_value(musb->config->gpio_vrsel, 0);
 }
 
