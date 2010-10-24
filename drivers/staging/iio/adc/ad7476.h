@@ -8,7 +8,7 @@ struct ad7476_mode {
 
 struct ad7476_state {
 	struct iio_dev			*indio_dev;
-	struct spi_device 		*spi;
+	struct spi_device		*spi;
 	char				setupbyte;
 	char				configbyte;
 	const struct ad7476_chip_info	*chip_info;
@@ -18,7 +18,7 @@ struct ad7476_state {
 	struct iio_trigger		*trig;
 	struct spi_transfer		xfer;
 	struct spi_message		msg;
-	unsigned char 			data[2];
+	unsigned char			data[2];
 };
 
 #define CHIP_NAME "AD7876/7/8"
