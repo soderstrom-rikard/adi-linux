@@ -156,3 +156,4 @@ module_exit(ad2s90_spi_exit);
 
 MODULE_AUTHOR("Graff Yang <graff.yang@gmail.com>");
 MODULE_DESCRIPTION("Analog Devices AD2S90 Resolver to Digital SPI driver");
+MODULE_LICENSE("GPL v2");

@@ -167,3 +167,4 @@ module_exit(ad5930_spi_exit);
 
 MODULE_AUTHOR("Cliff Cai");
 MODULE_DESCRIPTION("Analog Devices ad5930 driver");
+MODULE_LICENSE("GPL v2");

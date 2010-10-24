@@ -263,3 +263,4 @@ module_exit(ad9832_spi_exit);
 
 MODULE_AUTHOR("Cliff Cai");
 MODULE_DESCRIPTION("Analog Devices ad9832 driver");
+MODULE_LICENSE("GPL v2");
