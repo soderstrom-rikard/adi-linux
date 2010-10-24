@@ -76,31 +76,6 @@ config AD7416
 	  Say yes here to build support for Analog Devices AD74167/8
 	  temperature sensors and ADC.
 
-config AD7476
-	tristate "Analog Devices AD7475/6/7/8 and AD7495 ADC driver"
-	depends on SPI
-	help
-	  Say yes here to build support for Analog Devices AD7475/6/7/8,
-	  AD7495 ADC driver.
-	  If unsure, say N (but it's safe to say "Y").
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called ad7476.
-
-config AD774X
-	tristate "Analog Devices ad7745/6/7 capacitive sensor driver"
-	depends on I2C
-	help
-	  Say yes here to build support for Analog Devices capacitive sensors.
-	  (ad7745, ad7746, ad7747) Provides direct access via sysfs.
-
-config AD7816
-	tristate "Analog Devices AD7816/7/8 temperature sensor and ADC driver"
-	depends on SPI
-	help
-	  Say yes here to build support for Analog Devices AD7816/7/8
-	  temperature sensors and ADC.
-
 config AD799X
 	tristate "Analog Devices AD799x ADC driver"
 	depends on I2C
@@ -120,6 +95,35 @@ config AD799X_RING_BUFFER
 	help
 	  Say yes here to include ring buffer support in the AD799X
 	  ADC driver.
+
+config AD7476
+	tristate "Analog Devices AD7475/6/7/8 AD7466/7/8 and AD7495 ADC driver"
+	depends on SPI
+	select IIO_RING_BUFFER	
+	select IIO_SW_RING
+	select IIO_TRIGGER 	
+	help
+	  Say yes here to build support for Analog Devices
+	  AD7475, AD7476, AD7477, AD7478, AD7466, AD7467, AD7468, AD7495
+	  SPI analog to digital convertors (ADC).
+	  If unsure, say N (but it's safe to say "Y").
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ad7476.
+
+config AD774X
+	tristate "Analog Devices ad7745/6/7 capacitive sensor driver"
+	depends on I2C
+	help
+	  Say yes here to build support for Analog Devices capacitive sensors.
+	  (ad7745, ad7746, ad7747) Provides direct access via sysfs.
+
+config AD7816
+	tristate "Analog Devices AD7816/7/8 temperature sensor and ADC driver"
+	depends on SPI
+	help
+	  Say yes here to build support for Analog Devices AD7816/7/8
+	  temperature sensors and ADC.
 
 config ADT75
 	tristate "Analog Devices ADT75 temperature sensor driver"

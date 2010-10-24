@@ -661,10 +661,10 @@ static const struct attribute_group ad7150_attribute_group = {
  * threshold events
  */
 
-#define IIO_EVENT_CODE_CH1_HIGH    (IIO_EVENT_CODE_DEVICE_SPECIFIC + 1)
-#define IIO_EVENT_CODE_CH1_LOW     (IIO_EVENT_CODE_DEVICE_SPECIFIC + 2)
-#define IIO_EVENT_CODE_CH2_HIGH    (IIO_EVENT_CODE_DEVICE_SPECIFIC + 3)
-#define IIO_EVENT_CODE_CH2_LOW     (IIO_EVENT_CODE_DEVICE_SPECIFIC + 4)
+#define IIO_EVENT_CODE_CH1_HIGH    IIO_BUFFER_EVENT_CODE(0)
+#define IIO_EVENT_CODE_CH1_LOW     IIO_BUFFER_EVENT_CODE(1)
+#define IIO_EVENT_CODE_CH2_HIGH    IIO_BUFFER_EVENT_CODE(2)
+#define IIO_EVENT_CODE_CH2_LOW     IIO_BUFFER_EVENT_CODE(3)
 
 #define IIO_EVENT_ATTR_CH1_HIGH_SH(_evlist, _show, _store, _mask)	\
 	IIO_EVENT_ATTR_SH(ch1_high, _evlist, _show, _store, _mask)

@@ -264,7 +264,7 @@ static const struct attribute_group ad7816_attribute_group = {
  * temperature bound events
  */
 
-#define IIO_EVENT_CODE_AD7816_OTI    (IIO_EVENT_CODE_DEVICE_SPECIFIC + 1)
+#define IIO_EVENT_CODE_AD7816_OTI    IIO_BUFFER_EVENT_CODE(0)
 
 static void ad7816_interrupt_bh(struct work_struct *work_s)
 {

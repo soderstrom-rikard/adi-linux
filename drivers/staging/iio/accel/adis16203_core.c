@@ -369,12 +369,12 @@ err_ret:
 	return ret;
 }
 
-static IIO_DEV_ATTR_IN_NAMED_RAW(supply, adis16203_read_12bit_unsigned,
+static IIO_DEV_ATTR_IN_NAMED_RAW(0, supply, adis16203_read_12bit_unsigned,
 		ADIS16203_SUPPLY_OUT);
-static IIO_CONST_ATTR(in_supply_scale, "0.00122");
-static IIO_DEV_ATTR_IN_RAW(0, adis16203_read_12bit_unsigned,
+static IIO_CONST_ATTR(in0_supply_scale, "0.00122");
+static IIO_DEV_ATTR_IN_RAW(1, adis16203_read_12bit_unsigned,
 		ADIS16203_AUX_ADC);
-static IIO_CONST_ATTR(in0_scale, "0.00061");
+static IIO_CONST_ATTR(in1_scale, "0.00061");
 
 static IIO_DEV_ATTR_INCLI_X(adis16203_read_14bit_signed,
 		ADIS16203_XINCL_OUT);
@@ -386,7 +386,7 @@ static IIO_DEV_ATTR_INCLI_X_OFFSET(S_IWUSR | S_IRUGO,
 		ADIS16203_INCL_NULL);
 static IIO_CONST_ATTR(incli_scale, "0.025");
 
-static IIO_DEV_ATTR_TEMP(adis16203_read_temp);
+static IIO_DEV_ATTR_TEMP_RAW(adis16203_read_temp);
 static IIO_CONST_ATTR(temp_offset, "25");
 static IIO_CONST_ATTR(temp_scale, "-0.47");
 
@@ -403,15 +403,15 @@ static struct attribute_group adis16203_event_attribute_group = {
 };
 
 static struct attribute *adis16203_attributes[] = {
-	&iio_dev_attr_in_supply_raw.dev_attr.attr,
-	&iio_const_attr_in_supply_scale.dev_attr.attr,
-	&iio_dev_attr_temp.dev_attr.attr,
+	&iio_dev_attr_in0_supply_raw.dev_attr.attr,
+	&iio_const_attr_in0_supply_scale.dev_attr.attr,
+	&iio_dev_attr_temp_raw.dev_attr.attr,
 	&iio_const_attr_temp_offset.dev_attr.attr,
 	&iio_const_attr_temp_scale.dev_attr.attr,
 	&iio_dev_attr_reset.dev_attr.attr,
 	&iio_const_attr_name.dev_attr.attr,
-	&iio_dev_attr_in0_raw.dev_attr.attr,
-	&iio_const_attr_in0_scale.dev_attr.attr,
+	&iio_dev_attr_in1_raw.dev_attr.attr,
+	&iio_const_attr_in1_scale.dev_attr.attr,
 	&iio_dev_attr_incli_x_raw.dev_attr.attr,
 	&iio_dev_attr_incli_y_raw.dev_attr.attr,
 	&iio_dev_attr_incli_x_offset.dev_attr.attr,

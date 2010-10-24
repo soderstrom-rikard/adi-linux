@@ -225,8 +225,8 @@ static const struct attribute_group ad7414_attribute_group = {
  * temperature bound events
  */
 
-#define IIO_EVENT_CODE_AD7414_T_HIGH    (IIO_EVENT_CODE_DEVICE_SPECIFIC + 1)
-#define IIO_EVENT_CODE_AD7414_T_LOW     (IIO_EVENT_CODE_DEVICE_SPECIFIC + 2)
+#define IIO_EVENT_CODE_AD7414_T_HIGH    IIO_BUFFER_EVENT_CODE(0)
+#define IIO_EVENT_CODE_AD7414_T_LOW     IIO_BUFFER_EVENT_CODE(1)
 
 static void ad7414_interrupt_bh(struct work_struct *work_s)
 {

@@ -58,7 +58,7 @@ error_ret:
 }
 
 #define IIO_DEV_ATTR_SIMPLE_RESOLVER(_show) \
-	IIO_DEVICE_ATTR(angular, S_IRUGO, _show, NULL, NULL)
+	IIO_DEVICE_ATTR(angular, S_IRUGO, _show, NULL, 0)
 
 static IIO_CONST_ATTR(description,
 	"Low Cost, Complete 12-Bit Resolver-to-Digital Converter");

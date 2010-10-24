@@ -138,7 +138,7 @@ error_ret:
 	return ret ? ret : len;
 }
 
-static IIO_DEV_ATTR_TEMP(adis16130_temp_read);
+static IIO_DEV_ATTR_TEMP_RAW(adis16130_temp_read);
 
 static IIO_CONST_ATTR(name, "adis16130");
 
@@ -160,7 +160,7 @@ static struct attribute_group adis16130_event_attribute_group = {
 };
 
 static struct attribute *adis16130_attributes[] = {
-	&iio_dev_attr_temp.dev_attr.attr,
+	&iio_dev_attr_temp_raw.dev_attr.attr,
 	&iio_const_attr_name.dev_attr.attr,
 	&iio_dev_attr_gyro_raw.dev_attr.attr,
 	&iio_dev_attr_bits_mode.dev_attr.attr,

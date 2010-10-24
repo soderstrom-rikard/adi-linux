@@ -65,7 +65,6 @@
 #define IIO_DEV_ATTR_ACCEL_Z(_show, _addr)			\
 	IIO_DEVICE_ATTR(accel_z_raw, S_IRUGO, _show, NULL, _addr)
 
-/* XY combined acceleration */
 #define IIO_DEV_ATTR_ACCEL_XY(_show, _addr)			\
 	IIO_DEVICE_ATTR(accel_xy, S_IRUGO, _show, NULL, _addr)
 
@@ -86,4 +85,3 @@
 
 #define IIO_DEV_ATTR_ACCEL_XYZPEAK(_show, _addr)		\
 	IIO_DEVICE_ATTR(accel_xyzpeak, S_IRUGO, _show, NULL, _addr)
-

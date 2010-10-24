@@ -549,9 +549,9 @@ err_ret:
 	return ret;
 }
 
-static IIO_DEV_ATTR_IN_NAMED_RAW(supply, adis16261_read_12bit_signed,
+static IIO_DEV_ATTR_IN_NAMED_RAW(0, supply, adis16261_read_12bit_signed,
 		ADIS16261_SUPPLY_OUT);
-static IIO_CONST_ATTR(in_supply_scale, "0.0018315");
+static IIO_CONST_ATTR(in0_supply_scale, "0.0018315");
 
 static IIO_DEV_ATTR_GYRO(adis16261_read_14bit_signed,
 		ADIS16261_GYRO_OUT);
@@ -564,13 +564,13 @@ static IIO_DEV_ATTR_GYRO_OFFSET(S_IWUSR | S_IRUGO,
 		adis16261_write_16bit,
 		ADIS16261_GYRO_OFF);
 
-static IIO_DEV_ATTR_TEMP(adis16261_read_12bit_signed);
+static IIO_DEV_ATTR_TEMP_RAW(adis16261_read_12bit_signed);
 static IIO_CONST_ATTR(temp_offset, "25 K");
 static IIO_CONST_ATTR(temp_scale, "0.1453 K");
 
-static IIO_DEV_ATTR_IN_NAMED_RAW(aux, adis16261_read_12bit_unsigned,
+static IIO_DEV_ATTR_IN_NAMED_RAW(1, aux, adis16261_read_12bit_unsigned,
 		ADIS16261_AUX_ADC);
-static IIO_CONST_ATTR(in_aux_scale, "0.0006105");
+static IIO_CONST_ATTR(in1_aux_scale, "0.0006105");
 
 static IIO_DEV_ATTR_SAMP_FREQ(S_IWUSR | S_IRUGO,
 		adis16261_read_frequency,
@@ -580,7 +580,7 @@ static IIO_DEV_ATTR_ANGL(adis16261_read_14bit_signed,
 
 static IIO_DEV_ATTR_RESET(adis16261_write_reset);
 
-static IIO_CONST_ATTR_AVAIL_SAMP_FREQ("0.129 ~ 256");
+static IIO_CONST_ATTR_SAMP_FREQ_AVAIL("0.129 ~ 256");
 
 static IIO_CONST_ATTR(name, "adis16261");
 
@@ -593,19 +593,19 @@ static struct attribute_group adis16261_event_attribute_group = {
 };
 
 static struct attribute *adis16261_attributes[] = {
-	&iio_dev_attr_in_supply_raw.dev_attr.attr,
-	&iio_const_attr_in_supply_scale.dev_attr.attr,
+	&iio_dev_attr_in0_supply_raw.dev_attr.attr,
+	&iio_const_attr_in0_supply_scale.dev_attr.attr,
 	&iio_dev_attr_gyro_raw.dev_attr.attr,
 	&iio_dev_attr_gyro_scale.dev_attr.attr,
 	&iio_dev_attr_gyro_offset.dev_attr.attr,
 	&iio_dev_attr_angl_raw.dev_attr.attr,
-	&iio_dev_attr_temp.dev_attr.attr,
+	&iio_dev_attr_temp_raw.dev_attr.attr,
 	&iio_const_attr_temp_offset.dev_attr.attr,
 	&iio_const_attr_temp_scale.dev_attr.attr,
-	&iio_dev_attr_in_aux_raw.dev_attr.attr,
-	&iio_const_attr_in_aux_scale.dev_attr.attr,
+	&iio_dev_attr_in1_aux_raw.dev_attr.attr,
+	&iio_const_attr_in1_aux_scale.dev_attr.attr,
 	&iio_dev_attr_sampling_frequency.dev_attr.attr,
-	&iio_const_attr_available_sampling_frequency.dev_attr.attr,
+	&iio_const_attr_sampling_frequency_available.dev_attr.attr,
 	&iio_dev_attr_reset.dev_attr.attr,
 	&iio_const_attr_name.dev_attr.attr,
 	NULL

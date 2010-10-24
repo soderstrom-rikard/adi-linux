@@ -473,7 +473,7 @@ err_ret:
 
 static IIO_DEV_ATTR_RESET(ade7854_write_reset);
 
-static IIO_CONST_ATTR_AVAIL_SAMP_FREQ("8000");
+static IIO_CONST_ATTR_SAMP_FREQ_AVAIL("8000");
 
 static IIO_CONST_ATTR(name, "ade7854");
 
@@ -525,7 +525,7 @@ static struct attribute *ade7854_attributes[] = {
 	&iio_dev_attr_avahr.dev_attr.attr,
 	&iio_dev_attr_bvahr.dev_attr.attr,
 	&iio_dev_attr_cvahr.dev_attr.attr,
-	&iio_const_attr_available_sampling_frequency.dev_attr.attr,
+	&iio_const_attr_sampling_frequency_available.dev_attr.attr,
 	&iio_dev_attr_reset.dev_attr.attr,
 	&iio_const_attr_name.dev_attr.attr,
 	&iio_dev_attr_vpeak.dev_attr.attr,
