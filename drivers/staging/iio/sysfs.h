@@ -136,6 +136,13 @@ struct iio_const_attr {
 	IIO_DEVICE_ATTR(reset, S_IWUGO, NULL, _store, 0)
 
 /**
+ * IIO_CONST_ATTR_NAME - constant identifier
+ * @_string: the name
+ **/
+#define IIO_CONST_ATTR_NAME(_string)				\
+	IIO_CONST_ATTR(name, _string)
+
+/**
  * IIO_DEV_ATTR_SAMP_FREQ - sets any internal clock frequency
  * @_mode: sysfs file mode/permissions
  * @_show: output method for the attribute
@@ -162,10 +169,6 @@ struct iio_const_attr {
  *
  * Constant version
  **/
-/* Deprecated */
-#define IIO_CONST_ATTR_AVAIL_SAMP_FREQ(_string)			\
-	IIO_CONST_ATTR(available_sampling_frequency, _string)
-
 #define IIO_CONST_ATTR_SAMP_FREQ_AVAIL(_string)			\
 	IIO_CONST_ATTR(sampling_frequency_available, _string)
 
@@ -249,6 +252,12 @@ struct iio_const_attr {
 
 #define IIO_DEV_ATTR_TEMP_RAW(_show)			\
 	IIO_DEVICE_ATTR(temp_raw, S_IRUGO, _show, NULL, 0)
+
+#define IIO_CONST_ATTR_TEMP_OFFSET(_string)		\
+	IIO_CONST_ATTR(temp_offset, _string)
+
+#define IIO_CONST_ATTR_TEMP_SCALE(_string)		\
+	IIO_CONST_ATTR(temp_scale, _string)
 
 /**
  * IIO_EVENT_SH - generic shared event handler
