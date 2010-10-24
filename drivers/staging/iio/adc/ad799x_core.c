@@ -105,15 +105,14 @@ static int ad799x_scan_el_set_state(struct iio_scan_el *scan_el,
 				       bool state)
 {
 	struct ad799x_state *st = indio_dev->dev_data;
-	return ad799x_set_scan_mode(st, st->indio_dev->scan_mask);
+	return ad799x_set_scan_mode(st, st->indio_dev->ring->scan_mask);
 }
 
 /* Here we claim all are 16 bits. This currently does no harm and saves
  * us a lot of scan element listings */
 
 #define AD799X_SCAN_EL(number)						\
-	IIO_SCAN_EL_C(in##number, number, IIO_UNSIGNED(16), 0,		\
-	ad799x_scan_el_set_state);
+	IIO_SCAN_EL_C(in##number, number, 0, ad799x_scan_el_set_state);
 
 static AD799X_SCAN_EL(0);
 static AD799X_SCAN_EL(1);
@@ -124,17 +123,18 @@ static AD799X_SCAN_EL(5);
 static AD799X_SCAN_EL(6);
 static AD799X_SCAN_EL(7);
 
-static ssize_t ad799x_show_precision(struct device *dev,
+static ssize_t ad799x_show_type(struct device *dev,
 				struct device_attribute *attr,
 				char *buf)
 {
-	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad799x_state *st = iio_dev_get_devdata(dev_info);
-	return sprintf(buf, "%d\n", st->chip_info->bits);
-}
+	struct iio_ring_buffer *ring = dev_get_drvdata(dev);
+	struct iio_dev *indio_dev = ring->indio_dev;
+	struct ad799x_state *st = indio_dev->dev_data;
 
-static IIO_DEVICE_ATTR(in_precision, S_IRUGO, ad799x_show_precision,
-		       NULL, 0);
+	return sprintf(buf, "%c%d/%d\n", st->chip_info->sign,
+		       st->chip_info->bits, AD799X_STORAGEBITS);
+}
+static IIO_DEVICE_ATTR(in_type, S_IRUGO, ad799x_show_type, NULL, 0);
 
 static int ad7991_5_9_set_scan_mode(struct ad799x_state *st, unsigned mask)
 {
@@ -212,11 +212,11 @@ static ssize_t ad799x_read_single_channel(struct device *dev,
 		if (ret < 0)
 			goto error_ret;
 
-		data = rxbuf[0] & 0xFFF;
+		data = rxbuf[0];
 	}
 
 	/* Pretty print the result */
-	len = sprintf(buf, "%u\n", data);
+	len = sprintf(buf, "%u\n", data & ((1 << (st->chip_info->bits)) - 1));
 
 error_ret:
 	mutex_unlock(&dev_info->mlock);
@@ -369,15 +369,6 @@ static ssize_t ad799x_write_channel_config(struct device *dev,
 	return ret ? ret : len;
 }
 
-#define IIO_EVENT_CODE_AD7998_IN0_LOW	(IIO_EVENT_CODE_DEVICE_SPECIFIC + 0)
-#define IIO_EVENT_CODE_AD7998_IN0_HIGH	(IIO_EVENT_CODE_DEVICE_SPECIFIC + 1)
-#define IIO_EVENT_CODE_AD7998_IN1_LOW	(IIO_EVENT_CODE_DEVICE_SPECIFIC + 2)
-#define IIO_EVENT_CODE_AD7998_IN1_HIGH	(IIO_EVENT_CODE_DEVICE_SPECIFIC + 3)
-#define IIO_EVENT_CODE_AD7998_IN2_LOW	(IIO_EVENT_CODE_DEVICE_SPECIFIC + 4)
-#define IIO_EVENT_CODE_AD7998_IN2_HIGH	(IIO_EVENT_CODE_DEVICE_SPECIFIC + 5)
-#define IIO_EVENT_CODE_AD7998_IN3_LOW	(IIO_EVENT_CODE_DEVICE_SPECIFIC + 6)
-#define IIO_EVENT_CODE_AD7998_IN3_HIGH	(IIO_EVENT_CODE_DEVICE_SPECIFIC + 7)
-
 static void ad799x_interrupt_bh(struct work_struct *work_s)
 {
 	struct ad799x_state *st = container_of(work_s,
@@ -396,7 +387,9 @@ static void ad799x_interrupt_bh(struct work_struct *work_s)
 	for (i = 0; i < 8; i++) {
 		if (status & (1 << i))
 			iio_push_event(st->indio_dev, 0,
-				IIO_EVENT_CODE_AD7998_IN0_LOW + i,
+				i & 0x1 ?
+				IIO_EVENT_CODE_IN_HIGH_THRESH(i >> 1) :
+				IIO_EVENT_CODE_IN_LOW_THRESH(i >> 1),
 				st->last_timestamp);
 	}
 
@@ -435,14 +428,11 @@ static ssize_t ad799x_show_scale(struct device *dev,
 	/* Driver currently only support internal vref */
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad799x_state *st = iio_dev_get_devdata(dev_info);
-	/* Corresponds to Vref / 2^(bits) */
 
-	if ((1 << (st->chip_info->bits + 1))
-	    > st->int_vref_mv)
-		return sprintf(buf, "0.5\n");
-	else
-		return sprintf(buf, "%d\n",
-			st->int_vref_mv >> st->chip_info->bits);
+	/* Corresponds to Vref / 2^(bits) */
+	unsigned int scale_uv = (st->int_vref_mv * 1000) >> st->chip_info->bits;
+
+	return sprintf(buf, "%d.%d\n", scale_uv / 1000, scale_uv % 1000);
 }
 
 static IIO_DEVICE_ATTR(in_scale, S_IRUGO, ad799x_show_scale, NULL, 0);
@@ -474,10 +464,14 @@ static struct attribute_group ad7991_5_9_3_4_dev_attr_group = {
 
 static struct attribute *ad7991_5_9_3_4_scan_el_attrs[] = {
 	&iio_scan_el_in0.dev_attr.attr,
+	&iio_const_attr_in0_index.dev_attr.attr,
 	&iio_scan_el_in1.dev_attr.attr,
+	&iio_const_attr_in1_index.dev_attr.attr,
 	&iio_scan_el_in2.dev_attr.attr,
+	&iio_const_attr_in2_index.dev_attr.attr,
 	&iio_scan_el_in3.dev_attr.attr,
-	&iio_dev_attr_in_precision.dev_attr.attr,
+	&iio_const_attr_in3_index.dev_attr.attr,
+	&iio_dev_attr_in_type.dev_attr.attr,
 	NULL,
 };
 
@@ -500,8 +494,10 @@ static struct attribute_group ad7992_dev_attr_group = {
 
 static struct attribute *ad7992_scan_el_attrs[] = {
 	&iio_scan_el_in0.dev_attr.attr,
+	&iio_const_attr_in0_index.dev_attr.attr,
 	&iio_scan_el_in1.dev_attr.attr,
-	&iio_dev_attr_in_precision.dev_attr.attr,
+	&iio_const_attr_in1_index.dev_attr.attr,
+	&iio_dev_attr_in_type.dev_attr.attr,
 	NULL,
 };
 
@@ -530,14 +526,22 @@ static struct attribute_group ad7997_8_dev_attr_group = {
 
 static struct attribute *ad7997_8_scan_el_attrs[] = {
 	&iio_scan_el_in0.dev_attr.attr,
+	&iio_const_attr_in0_index.dev_attr.attr,
 	&iio_scan_el_in1.dev_attr.attr,
+	&iio_const_attr_in1_index.dev_attr.attr,
 	&iio_scan_el_in2.dev_attr.attr,
+	&iio_const_attr_in2_index.dev_attr.attr,
 	&iio_scan_el_in3.dev_attr.attr,
+	&iio_const_attr_in3_index.dev_attr.attr,
 	&iio_scan_el_in4.dev_attr.attr,
+	&iio_const_attr_in4_index.dev_attr.attr,
 	&iio_scan_el_in5.dev_attr.attr,
+	&iio_const_attr_in5_index.dev_attr.attr,
 	&iio_scan_el_in6.dev_attr.attr,
+	&iio_const_attr_in6_index.dev_attr.attr,
 	&iio_scan_el_in7.dev_attr.attr,
-	&iio_dev_attr_in_precision.dev_attr.attr,
+	&iio_const_attr_in7_index.dev_attr.attr,
+	&iio_dev_attr_in_type.dev_attr.attr,
 	NULL,
 };
 
@@ -665,6 +669,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 	[ad7991] = {
 		.num_inputs = 4,
 		.bits = 12,
+		.sign = IIO_SCAN_EL_TYPE_UNSIGNED,
 		.int_vref_mv = 4096,
 		.dev_attrs = &ad7991_5_9_3_4_dev_attr_group,
 		.scan_attrs = &ad7991_5_9_3_4_scan_el_group,
@@ -673,6 +678,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 	[ad7995] = {
 		.num_inputs = 4,
 		.bits = 10,
+		.sign = IIO_SCAN_EL_TYPE_UNSIGNED,
 		.int_vref_mv = 1024,
 		.dev_attrs = &ad7991_5_9_3_4_dev_attr_group,
 		.scan_attrs = &ad7991_5_9_3_4_scan_el_group,
@@ -681,6 +687,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 	[ad7999] = {
 		.num_inputs = 4,
 		.bits = 10,
+		.sign = IIO_SCAN_EL_TYPE_UNSIGNED,
 		.int_vref_mv = 1024,
 		.dev_attrs = &ad7991_5_9_3_4_dev_attr_group,
 		.scan_attrs = &ad7991_5_9_3_4_scan_el_group,
@@ -689,6 +696,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 	[ad7992] = {
 		.num_inputs = 2,
 		.bits = 12,
+		.sign = IIO_SCAN_EL_TYPE_UNSIGNED,
 		.int_vref_mv = 4096,
 		.monitor_mode = true,
 		.default_config = AD7998_ALERT_EN,
@@ -700,6 +708,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 	[ad7993] = {
 		.num_inputs = 4,
 		.bits = 10,
+		.sign = IIO_SCAN_EL_TYPE_UNSIGNED,
 		.int_vref_mv = 1024,
 		.monitor_mode = true,
 		.default_config = AD7998_ALERT_EN,
@@ -711,6 +720,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 	[ad7994] = {
 		.num_inputs = 4,
 		.bits = 12,
+		.sign = IIO_SCAN_EL_TYPE_UNSIGNED,
 		.int_vref_mv = 4096,
 		.monitor_mode = true,
 		.default_config = AD7998_ALERT_EN,
@@ -722,6 +732,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 	[ad7997] = {
 		.num_inputs = 8,
 		.bits = 10,
+		.sign = IIO_SCAN_EL_TYPE_UNSIGNED,
 		.int_vref_mv = 1024,
 		.monitor_mode = true,
 		.default_config = AD7998_ALERT_EN,
@@ -733,6 +744,7 @@ static const struct ad799x_chip_info ad799x_chip_info_tbl[] = {
 	[ad7998] = {
 		.num_inputs = 8,
 		.bits = 12,
+		.sign = IIO_SCAN_EL_TYPE_UNSIGNED,
 		.int_vref_mv = 4096,
 		.monitor_mode = true,
 		.default_config = AD7998_ALERT_EN,
@@ -786,7 +798,6 @@ static int __devinit ad799x_probe(struct i2c_client *client,
 	/* Estabilish that the iio_dev is a child of the i2c device */
 	st->indio_dev->dev.parent = &client->dev;
 	st->indio_dev->attrs = st->chip_info->dev_attrs;
-	st->indio_dev->scan_el_attrs = st->chip_info->scan_attrs;
 	st->indio_dev->event_attrs = st->chip_info->event_attrs;
 
 	st->indio_dev->dev_data = (void *)(st);
@@ -806,7 +817,8 @@ static int __devinit ad799x_probe(struct i2c_client *client,
 	if (ret)
 		goto error_cleanup_ring;
 	regdone = 1;
-	ret = ad799x_initialize_ring(st->indio_dev->ring);
+
+	ret = iio_ring_buffer_register(st->indio_dev->ring, 0);
 	if (ret)
 		goto error_cleanup_ring;
 
@@ -857,7 +869,7 @@ static __devexit int ad799x_remove(struct i2c_client *client)
 	if (client->irq > 0 && st->chip_info->monitor_mode)
 		iio_unregister_interrupt_line(indio_dev, 0);
 
-	ad799x_uninitialize_ring(indio_dev->ring);
+	iio_ring_buffer_unregister(indio_dev->ring);
 	ad799x_ring_cleanup(indio_dev);
 	iio_device_unregister(indio_dev);
 	if (!IS_ERR(st->reg)) {

@@ -25,32 +25,50 @@
 
 #include "ad7476.h"
 
-ssize_t ad7476_scan_from_ring(struct device *dev,
-			       struct device_attribute *attr,
-			       char *buf)
-{
-	struct iio_dev *dev_info = dev_get_drvdata(dev);
-	struct ad7476_state *info = dev_info->dev_data;
-	int i, ret, len = 0;
-	char *ring_data;
+static IIO_SCAN_EL_C(in0, 0, 0, NULL);
 
-	ring_data = kmalloc(info->current_mode->numvals*2, GFP_KERNEL);
+static ssize_t ad7476_show_type(struct device *dev,
+				struct device_attribute *attr,
+				char *buf)
+{
+	struct iio_ring_buffer *ring = dev_get_drvdata(dev);
+	struct iio_dev *indio_dev = ring->indio_dev;
+	struct ad7476_state *st = indio_dev->dev_data;
+
+	return sprintf(buf, "%c%d/%d>>%d\n", st->chip_info->sign,
+		       st->chip_info->bits, st->chip_info->storagebits,
+		       st->chip_info->res_shift);
+}
+static IIO_DEVICE_ATTR(in_type, S_IRUGO, ad7476_show_type, NULL, 0);
+
+static struct attribute *ad7476_scan_el_attrs[] = {
+	&iio_scan_el_in0.dev_attr.attr,
+	&iio_const_attr_in0_index.dev_attr.attr,
+	&iio_dev_attr_in_type.dev_attr.attr,
+	NULL,
+};
+
+static struct attribute_group ad7476_scan_el_group = {
+	.name = "scan_elements",
+	.attrs = ad7476_scan_el_attrs,
+};
+
+int ad7476_scan_from_ring(struct ad7476_state *st)
+{
+	struct iio_ring_buffer *ring = st->indio_dev->ring;
+	int ret;
+	u8 *ring_data;
+
+	ring_data = kmalloc(ring->access.get_bytes_per_datum(ring), GFP_KERNEL);
 	if (ring_data == NULL) {
 		ret = -ENOMEM;
 		goto error_ret;
 	}
-	ret = dev_info->ring->access.read_last(dev_info->ring, ring_data);
+	ret = ring->access.read_last(ring, ring_data);
 	if (ret)
 		goto error_free_ring_data;
-	len += sprintf(buf+len, "ring ");
-	for (i = 0; i < info->current_mode->numvals; i++)
-		len += sprintf(buf + len, "%d ",
-			       ((int)(ring_data[i*2 + 0] & 0xFF) << 8)
-			       + ((int)(ring_data[i*2 + 1])));
-	len += sprintf(buf + len, "\n");
-	kfree(ring_data);
 
-	return len;
+	ret = (ring_data[0] << 8) | ring_data[1];
 
 error_free_ring_data:
 	kfree(ring_data);
@@ -70,44 +88,15 @@ static int ad7476_ring_preenable(struct iio_dev *indio_dev)
 	struct ad7476_state *st = indio_dev->dev_data;
 	size_t d_size;
 
-	if (indio_dev->ring->access.set_bpd) {
-		d_size = st->current_mode->numvals*2 + sizeof(s64);
+	if (indio_dev->ring->access.set_bytes_per_datum) {
+		d_size = st->chip_info->storagebits / 8 + sizeof(s64);
 		if (d_size % 8)
 			d_size += 8 - (d_size % 8);
-		indio_dev->ring->access.set_bpd(indio_dev->ring, d_size);
+		indio_dev->ring->access.set_bytes_per_datum(indio_dev->ring,
+							    d_size);
 	}
 
 	return 0;
-}
-
-/**
- * ad7476_ring_postenable() typical ring post enable
- *
- * Only not moved into the core for the hardware ring buffer cases
- * that are more sophisticated.
- **/
-static int ad7476_ring_postenable(struct iio_dev *indio_dev)
-{
-	if (indio_dev->trig == NULL)
-		return 0;
-	return iio_trigger_attach_poll_func(indio_dev->trig,
-					    indio_dev->pollfunc);
-}
-
-/**
- * ad7476_ring_predisable() runs just prior to ring buffer being disabled
- *
- * Typical predisable function which ensures that no trigger events can
- * occur before we disable the ring buffer (and hence would have no idea
- * what to do with them)
- **/
-static int ad7476_ring_predisable(struct iio_dev *indio_dev)
-{
-	if (indio_dev->trig)
-		return iio_trigger_dettach_poll_func(indio_dev->trig,
-						     indio_dev->pollfunc);
-	else
-		return 0;
 }
 
 /**
@@ -117,12 +106,11 @@ static int ad7476_ring_predisable(struct iio_dev *indio_dev)
  * then.  Some triggers will generate their own time stamp.  Currently
  * there is no way of notifying them when no one cares.
  **/
-void ad7476_poll_func_th(struct iio_dev *indio_dev)
+static void ad7476_poll_func_th(struct iio_dev *indio_dev, s64 time)
 {
 	struct ad7476_state *st = indio_dev->dev_data;
 
 	schedule_work(&st->poll_work);
-
 	return;
 }
 /**
@@ -139,14 +127,14 @@ static void ad7476_poll_bh_to_ring(struct work_struct *work_s)
 	struct ad7476_state *st = container_of(work_s, struct ad7476_state,
 						  poll_work);
 	struct iio_dev *indio_dev = st->indio_dev;
-	struct iio_sw_ring_buffer *ring = iio_to_sw_ring(indio_dev->ring);
+	struct iio_sw_ring_buffer *sw_ring = iio_to_sw_ring(indio_dev->ring);
 	s64 time_ns;
 	__u8 *rxbuf;
 	int b_sent;
 	size_t d_size;
 
 	/* Ensure the timestamp is 8 byte aligned */
-	d_size = st->current_mode->numvals*2 + sizeof(s64);
+	d_size = st->chip_info->storagebits / 8 + sizeof(s64);
 	if (d_size % sizeof(s64))
 		d_size += sizeof(s64) - (d_size % sizeof(s64));
 
@@ -154,19 +142,11 @@ static void ad7476_poll_bh_to_ring(struct work_struct *work_s)
 	if (atomic_inc_return(&st->protect_ring) > 1)
 		return;
 
-	/* Monitor mode prevents reading. Whilst not currently implemented
-	 * might as well have this test in here in the meantime as it does
-	 * no harm.
-	 */
-	if (st->current_mode->numvals == 0)
-		return;
-
-	rxbuf = kmalloc(d_size,	GFP_KERNEL);
+	rxbuf = kzalloc(d_size,	GFP_KERNEL);
 	if (rxbuf == NULL)
 		return;
 
-	b_sent = spi_read(st->spi, rxbuf,
-				 st->current_mode->numvals * 2);
+	b_sent = spi_read(st->spi, rxbuf, st->chip_info->storagebits / 8);
 	if (b_sent < 0)
 		goto done;
 
@@ -174,12 +154,11 @@ static void ad7476_poll_bh_to_ring(struct work_struct *work_s)
 
 	memcpy(rxbuf + d_size - sizeof(s64), &time_ns, sizeof(time_ns));
 
-	indio_dev->ring->access.store_to(&ring->buf, rxbuf, time_ns);
+	indio_dev->ring->access.store_to(&sw_ring->buf, rxbuf, time_ns);
 done:
 	kfree(rxbuf);
 	atomic_dec(&st->protect_ring);
 }
-
 
 int ad7476_register_ring_funcs_and_init(struct iio_dev *indio_dev)
 {
@@ -192,20 +171,18 @@ int ad7476_register_ring_funcs_and_init(struct iio_dev *indio_dev)
 		goto error_ret;
 	}
 	/* Effectively select the ring buffer implementation */
-	iio_ring_sw_register_funcs(&st->indio_dev->ring->access);
-	indio_dev->pollfunc = kzalloc(sizeof(*indio_dev->pollfunc), GFP_KERNEL);
-	if (indio_dev->pollfunc == NULL) {
-		ret = -ENOMEM;
+	iio_ring_sw_register_funcs(&indio_dev->ring->access);
+	ret = iio_alloc_pollfunc(indio_dev, NULL, &ad7476_poll_func_th);
+	if (ret)
 		goto error_deallocate_sw_rb;
-	}
-	/* Configure the polling function called on trigger interrupts */
-	indio_dev->pollfunc->poll_func_main = &ad7476_poll_func_th;
-	indio_dev->pollfunc->private_data = indio_dev;
 
 	/* Ring buffer functions - here trigger setup related */
-	indio_dev->ring->postenable = &ad7476_ring_postenable;
+
 	indio_dev->ring->preenable = &ad7476_ring_preenable;
-	indio_dev->ring->predisable = &ad7476_ring_predisable;
+	indio_dev->ring->postenable = &iio_triggered_ring_postenable;
+	indio_dev->ring->predisable = &iio_triggered_ring_predisable;
+	indio_dev->ring->scan_el_attrs = &ad7476_scan_el_group;
+
 	INIT_WORK(&st->poll_work, &ad7476_poll_bh_to_ring);
 
 	/* Flag that polled ring buffering is possible */
@@ -227,14 +204,4 @@ void ad7476_ring_cleanup(struct iio_dev *indio_dev)
 	}
 	kfree(indio_dev->pollfunc);
 	iio_sw_rb_free(indio_dev->ring);
-}
-
-void ad7476_uninitialize_ring(struct iio_ring_buffer *ring)
-{
-	iio_ring_buffer_unregister(ring);
-}
-
-int ad7476_initialize_ring(struct iio_ring_buffer *ring)
-{
-	return iio_ring_buffer_register(ring, 0);
 }

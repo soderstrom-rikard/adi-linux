@@ -13,7 +13,7 @@
 #define  _AD799X_H_
 
 #define AD799X_CHANNEL_SHIFT			4
-
+#define AD799X_STORAGEBITS			16
 /*
  * AD7991, AD7995 and AD7999 defines
  */
@@ -97,6 +97,8 @@ struct ad799x_state;
 struct ad799x_chip_info {
 	u8				num_inputs;
 	u8				bits;
+	u8				storagebits;
+	char				sign;
 	u16				int_vref_mv;
 	bool				monitor_mode;
 	u16				default_config;
@@ -124,7 +126,7 @@ struct ad799x_state {
 };
 
 /*
- * TODO: struct ad799x_platform_data needs to go into inlude/linux/iio
+ * TODO: struct ad799x_platform_data needs to go into include/linux/iio
  */
 
 struct ad799x_platform_data {
@@ -137,18 +139,7 @@ int ad799x_set_scan_mode(struct ad799x_state *st, unsigned mask);
 int ad799x_single_channel_from_ring(struct ad799x_state *st, long mask);
 int ad799x_register_ring_funcs_and_init(struct iio_dev *indio_dev);
 void ad799x_ring_cleanup(struct iio_dev *indio_dev);
-int ad799x_initialize_ring(struct iio_ring_buffer *ring);
-void ad799x_uninitialize_ring(struct iio_ring_buffer *ring);
 #else /* CONFIG_AD799X_RING_BUFFER */
-static inline void ad799x_uninitialize_ring(struct iio_ring_buffer *ring)
-{
-}
-
-static inline int ad799x_initialize_ring(struct iio_ring_buffer *ring)
-{
-	return 0;
-}
-
 int ad799x_single_channel_from_ring(struct ad799x_state *st, long mask)
 {
 	return -EINVAL;
