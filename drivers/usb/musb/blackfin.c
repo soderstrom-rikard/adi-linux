@@ -381,8 +381,10 @@ int __init musb_platform_init(struct musb *musb, void *board_data)
 
 	usb_nop_xceiv_register();
 	musb->xceiv = otg_get_transceiver();
-	if (!musb->xceiv)
+	if (!musb->xceiv) {
+		gpio_free(musb->config->gpio_vrsel);
 		return -ENODEV;
+	}
 
 	musb_platform_reg_init(musb);
 
