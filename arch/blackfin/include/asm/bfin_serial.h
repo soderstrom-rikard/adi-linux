@@ -140,6 +140,49 @@ struct bfin_serial_port {
 # undef OFFSET_IIR
 #endif
 
+/*
+ * All Blackfin system MMRs are padded to 32bits even if the register
+ * itself is only 16bits.  So use a helper macro to streamline this.
+ */
+#define __BFP(m) u16 m; u16 __pad_##m
+struct bfin_uart_regs {
+#ifdef BFIN_UART_BF54X_STYLE
+	__BFP(dll);
+	__BFP(dlh);
+	__BFP(gctl);
+	__BFP(lcr);
+	__BFP(mcr);
+	__BFP(lsr);
+	__BFP(msr);
+	__BFP(scr);
+	__BFP(ier_set);
+	__BFP(ier_clear);
+	__BFP(thr);
+	__BFP(rbr);
+#else
+	union {
+		u16 dll;
+		u16 thr;
+		const u16 rbr;
+	};
+	const u16 __pad0;
+	union {
+		u16 dlh;
+		u16 ier;
+	};
+	const u16 __pad1;
+	const __BFP(iir);
+	__BFP(lcr);
+	__BFP(mcr);
+	__BFP(lsr);
+	__BFP(msr);
+	__BFP(scr);
+	const u32 __pad2;
+	__BFP(gctl);
+#endif
+};
+#undef __BFP
+
 #define UART_GET_CHAR(p)      bfin_read16(port_membase(p) + OFFSET_RBR)
 #define UART_GET_DLL(p)       bfin_read16(port_membase(p) + OFFSET_DLL)
 #define UART_GET_DLH(p)       bfin_read16(port_membase(p) + OFFSET_DLH)
@@ -186,6 +229,16 @@ struct bfin_serial_port {
 
 #define UART_CLEAR_DLAB(p)    do { UART_PUT_LCR(p, UART_GET_LCR(p) & ~DLAB); SSYNC(); } while (0)
 #define UART_SET_DLAB(p)      do { UART_PUT_LCR(p, UART_GET_LCR(p) | DLAB); SSYNC(); } while (0)
+
+#ifndef put_lsr_cache
+# define put_lsr_cache(p, v)
+#endif
+#ifndef get_lsr_cache
+# define get_lsr_cache(p) 0
+#endif
+#ifndef port_membase
+# define port_membase(p) 0
+#endif
 
 /* The hardware clears the LSR bits upon read, so we need to cache
  * some of the more fun bits in software so they don't get lost
