@@ -907,7 +907,7 @@ static int __devinit adt7408_probe(struct i2c_client *client,
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
-				client->irq_flags,
+				IRQF_TRIGGER_LOW,
 				chip->name);
 		if (ret)
 			goto error_unreg_dev;
@@ -928,10 +928,8 @@ static int __devinit adt7408_probe(struct i2c_client *client,
 			goto error_unreg_irq;
 		}
 
-		if (client->irq_flags & IRQF_TRIGGER_HIGH)
-			chip->config |= ADT7408_EVENT_POLARITY;
-		else
-			chip->config &= ~ADT7408_EVENT_POLARITY;
+		/* set irq polarity low level */
+		chip->config &= ~ADT7408_EVENT_POLARITY;
 
 		ret = adt7408_i2c_write(chip, ADT7408_CONFIG, chip->config);
 		if (ret) {
