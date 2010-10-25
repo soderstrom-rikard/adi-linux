@@ -781,6 +781,7 @@ static int __devinit adt7310_probe(struct spi_device *spi_dev)
 	struct adt7310_chip_info *chip;
 	int ret = 0;
 	unsigned long *adt7310_platform_data = spi_dev->dev.platform_data;
+	unsigned long irq_flags;
 
 	chip = kzalloc(sizeof(struct adt7310_chip_info), GFP_KERNEL);
 
@@ -814,11 +815,13 @@ static int __devinit adt7310_probe(struct spi_device *spi_dev)
 	/* CT critcal temperature event. line 0 */
 	if (spi_dev->irq) {
 		if (adt7310_platform_data[2])
-			spi_dev->irq_flags = adt7310_platform_data[2];
+			irq_flags = adt7310_platform_data[2];
+		else
+			irq_flags = IRQF_TRIGGER_LOW;
 		ret = iio_register_interrupt_line(spi_dev->irq,
 				chip->indio_dev,
 				0,
-				spi_dev->irq_flags,
+				irq_flags,
 				chip->name);
 		if (ret)
 			goto error_unreg_dev;
@@ -860,10 +863,8 @@ static int __devinit adt7310_probe(struct spi_device *spi_dev)
 			goto error_unreg_int_irq;
 		}
 
-		if (spi_dev->irq_flags & IRQF_TRIGGER_HIGH)
-			chip->config |= ADT7310_CT_POLARITY;
-		else
-			chip->config &= ~ADT7310_CT_POLARITY;
+		/* set irq polarity low level */
+		chip->config &= ~ADT7310_CT_POLARITY;
 
 		if (adt7310_platform_data[1] & IRQF_TRIGGER_HIGH)
 			chip->config |= ADT7310_INT_POLARITY;
