@@ -44,7 +44,7 @@ struct adis16130_state {
 	struct mutex			buf_lock;
 };
 
-#ifdef CONFIG_IIO_RING_BUFFER
+#if defined(CONFIG_IIO_RING_BUFFER) && defined(THIS_HAS_RING_BUFFER_SUPPORT)
 /* At the moment triggers are only used for ring buffer
  * filling. This may change!
  */
