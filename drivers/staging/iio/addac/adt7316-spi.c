@@ -10,6 +10,7 @@
 #include <linux/device.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/interrupt.h>
 #include <linux/spi/spi.h>
 
 #include "adt7316.h"
@@ -93,7 +94,7 @@ static int __devinit adt7316_spi_probe(struct spi_device *spi_dev)
 	struct adt7316_bus bus = {
 		.client = spi_dev,
 		.irq = spi_dev->irq,
-		.irq_flags = spi_dev->irq_flags,
+		.irq_flags = IRQF_TRIGGER_LOW,
 		.read = adt7316_spi_read,
 		.write = adt7316_spi_write,
 		.multi_read = adt7316_spi_multi_read,

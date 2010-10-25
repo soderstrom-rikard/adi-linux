@@ -10,6 +10,7 @@
 #include <linux/device.h>
 #include <linux/kernel.h>
 #include <linux/i2c.h>
+#include <linux/interrupt.h>
 
 #include "adt7316.h"
 
@@ -96,7 +97,7 @@ static int __devinit adt7316_i2c_probe(struct i2c_client *client,
 	struct adt7316_bus bus = {
 		.client = client,
 		.irq = client->irq,
-		.irq_flags = client->irq_flags,
+		.irq_flags = IRQF_TRIGGER_LOW,
 		.read = adt7316_i2c_read,
 		.write = adt7316_i2c_write,
 		.multi_read = adt7316_i2c_multi_read,
