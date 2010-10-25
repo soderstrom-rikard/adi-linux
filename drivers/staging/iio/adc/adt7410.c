@@ -787,7 +787,7 @@ static int __devinit adt7410_probe(struct i2c_client *client,
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
-				client->irq_flags,
+				IRQF_TRIGGER_LOW,
 				chip->name);
 		if (ret)
 			goto error_unreg_dev;
@@ -829,10 +829,8 @@ static int __devinit adt7410_probe(struct i2c_client *client,
 			goto error_unreg_int_irq;
 		}
 
-		if (client->irq_flags & IRQF_TRIGGER_HIGH)
-			chip->config |= ADT7410_CT_POLARITY;
-		else
-			chip->config &= ~ADT7410_CT_POLARITY;
+		/* set irq polarity low level */
+		chip->config &= ~ADT7410_CT_POLARITY;
 
 		if (adt7410_platform_data[1] & IRQF_TRIGGER_HIGH)
 			chip->config |= ADT7410_INT_POLARITY;
