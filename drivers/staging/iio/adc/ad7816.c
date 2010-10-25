@@ -438,13 +438,10 @@ static int __devinit ad7816_probe(struct spi_device *spi_dev)
 
 	if (spi_dev->irq) {
 		/* Only low trigger is supported in ad7816/7/8 */
-		spi_dev->irq_flags &= ~IRQF_TRIGGER_MASK;
-		spi_dev->irq_flags |= IRQF_TRIGGER_LOW;
-
 		ret = iio_register_interrupt_line(spi_dev->irq,
 				chip->indio_dev,
 				0,
-				spi_dev->irq_flags,
+				IRQF_TRIGGER_LOW,
 				chip->name);
 		if (ret)
 			goto error_unreg_dev;
