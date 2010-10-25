@@ -180,7 +180,7 @@ struct ade7854_state {
 extern int ade7854_probe(struct ade7854_state *st, struct device *dev);
 extern int ade7854_remove(struct ade7854_state *st);
 
-#ifdef CONFIG_IIO_RING_BUFFER
+#if defined(CONFIG_IIO_RING_BUFFER) && defined(THIS_HAS_RING_BUFFER_SUPPORT)
 /* At the moment triggers are only used for ring buffer
  * filling. This may change!
  */
@@ -225,10 +225,11 @@ ade7854_read_data_from_ring(struct device *dev,
 	return 0;
 }
 
-static int ade7854_configure_ring(struct iio_dev *indio_dev)
+static inline int ade7854_configure_ring(struct iio_dev *indio_dev)
 {
 	return 0;
 }
+
 static inline void ade7854_unconfigure_ring(struct iio_dev *indio_dev)
 {
 }
