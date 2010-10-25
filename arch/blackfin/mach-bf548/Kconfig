@@ -54,7 +54,7 @@ choice
 		RX -> DMA13
 		TX -> DMA14
 
-config	UART2_DMA_RX_ON_DMA18
+config UART2_DMA_RX_ON_DMA18
 	bool "UART2 DMA RX -> DMA18 TX -> DMA19"
 	help
 		UART2 DMA channel assignment
@@ -62,7 +62,7 @@ config	UART2_DMA_RX_ON_DMA18
 		TX -> DMA19
 		use SPORT2 default DMA channel
 
-config	UART2_DMA_RX_ON_DMA13
+config UART2_DMA_RX_ON_DMA13
 	bool "UART2 DMA RX -> DMA13 TX -> DMA14"
 	help
 		UART2 DMA channel assignment
@@ -83,7 +83,7 @@ choice
 		RX -> DMA15
 		TX -> DMA16
 
-config	UART3_DMA_RX_ON_DMA20
+config UART3_DMA_RX_ON_DMA20
 	bool "UART3 DMA RX -> DMA20 TX -> DMA21"
 	help
 		UART3 DMA channel assignment
@@ -91,13 +91,14 @@ config	UART3_DMA_RX_ON_DMA20
 		TX -> DMA21
 		use SPORT3 default DMA channel
 
-config	UART3_DMA_RX_ON_DMA15
+config UART3_DMA_RX_ON_DMA15
 	bool "UART3 DMA RX -> DMA15 TX -> DMA16"
 	help
 		UART3 DMA channel assignment
 		RX -> DMA15
 		TX -> DMA16
 		use PIXC default DMA channel
+
 endchoice
 
 comment "Interrupt Priority Assignment"

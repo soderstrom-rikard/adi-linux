@@ -112,7 +112,7 @@ int request_dma(unsigned int channel, const char *device_id)
 	}
 
 #ifdef CONFIG_BF54x
-#if defined(CH_UART2_RX) && defined(CH_UART2_TX)
+# if defined(CH_UART2_RX) && defined(CH_UART2_TX)
 	if (channel == CH_UART2_RX) {
 		unsigned int per_map;
 		per_map = dma_ch[channel].regs->peripheral_map & 0xFFF;
@@ -127,8 +127,8 @@ int request_dma(unsigned int channel, const char *device_id)
 			dma_ch[channel].regs->peripheral_map = per_map |
 				(0xD<<12);
 	}
-#endif
-#if defined(CH_UART3_RX) && defined(CH_UART3_TX)
+# endif
+# if defined(CH_UART3_RX) && defined(CH_UART3_TX)
 	if (channel == CH_UART3_RX) {
 		unsigned int per_map;
 		per_map = dma_ch[channel].regs->peripheral_map & 0xFFF;
@@ -143,7 +143,7 @@ int request_dma(unsigned int channel, const char *device_id)
 			dma_ch[channel].regs->peripheral_map = per_map |
 				(0xF<<12);
 	}
-#endif
+# endif
 #endif
 
 	dma_ch[channel].device_id = device_id;
