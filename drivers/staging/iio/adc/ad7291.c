@@ -948,7 +948,7 @@ static int __devinit ad7291_probe(struct i2c_client *client,
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
-				client->irq_flags,
+				IRQF_TRIGGER_LOW,
 				chip->name);
 		if (ret)
 			goto error_unreg_dev;
@@ -963,8 +963,8 @@ static int __devinit ad7291_probe(struct i2c_client *client,
 
 		INIT_WORK(&chip->thresh_work, ad7291_interrupt_bh);
 
-		if (client->irq_flags & IRQF_TRIGGER_LOW)
-			chip->command |= AD7291_ALART_POLARITY;
+		/* set irq polarity low level */
+		chip->command |= AD7291_ALART_POLARITY;
 	}
 
 	ret = ad7291_i2c_write(chip, AD7291_COMMAND, chip->command);
