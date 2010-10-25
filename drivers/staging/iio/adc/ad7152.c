@@ -88,7 +88,7 @@ struct ad7152_conversion_mode ad7152_conv_mode_table[AD7152_MAX_CONV_MODE] = {
 static int ad7152_i2c_read(struct ad7152_chip_info *chip, u8 reg, u8 *data, int len)
 {
 	struct i2c_client *client = chip->client;
-	int ret = 0;
+	int ret;
 
 	ret = i2c_master_send(client, &reg, 1);
 	if (ret < 0) {
@@ -99,7 +99,6 @@ static int ad7152_i2c_read(struct ad7152_chip_info *chip, u8 reg, u8 *data, int 
 	ret = i2c_master_recv(client, data, len);
 	if (ret < 0) {
 		dev_err(&client->dev, "I2C read error\n");
-		return ret;
 	}
 
 	return ret;
@@ -108,7 +107,7 @@ static int ad7152_i2c_read(struct ad7152_chip_info *chip, u8 reg, u8 *data, int 
 static int ad7152_i2c_write(struct ad7152_chip_info *chip, u8 reg, u8 data)
 {
 	struct i2c_client *client = chip->client;
-	int ret = 0;
+	int ret;
 
 	u8 tx[2] = {
 		reg,
@@ -157,7 +156,9 @@ static ssize_t ad7152_show_conversion_modes(struct device *dev,
 	int len = 0;
 
 	for (i = 0; i < AD7152_MAX_CONV_MODE; i++)
-		len += sprintf(buf + len, "%s\n", ad7152_conv_mode_table[i].name);
+		len += sprintf(buf + len, "%s ", ad7152_conv_mode_table[i].name);
+
+	len += sprintf(buf + len, "\n");
 
 	return len;
 }
@@ -214,7 +215,7 @@ static ssize_t ad7152_store_conversion_mode(struct device *dev,
 
 	ad7152_i2c_read(chip, AD7152_CFG, &cfg, 1);
 
-	for (i = 0; i < AD7152_MAX_CONV_MODE; i++) {
+	for (i = 0; i < AD7152_MAX_CONV_MODE; i++)
 		if (strncmp(buf, ad7152_conv_mode_table[i].name,
 				strlen(ad7152_conv_mode_table[i].name) - 1) == 0) {
 			chip->conversion_mode = ad7152_conv_mode_table[i].name;
@@ -222,7 +223,6 @@ static ssize_t ad7152_store_conversion_mode(struct device *dev,
 			ad7152_i2c_write(chip, AD7152_CFG, cfg);
 			return len;
 		}
-	}
 
 	dev_err(dev, "not supported conversion mode\n");
 
