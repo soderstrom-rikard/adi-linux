@@ -474,7 +474,7 @@ static int __devinit ad7414_probe(struct i2c_client *client,
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
-				client->irq_flags,
+				IRQF_TRIGGER_LOW,
 				chip->name);
 		if (ret)
 			goto error_unreg_dev;
@@ -495,12 +495,9 @@ static int __devinit ad7414_probe(struct i2c_client *client,
 			goto error_unreg_irq;
 		}
 
-		if (client->irq_flags & IRQF_TRIGGER_HIGH)
-			ret = ad7414_i2c_write(chip, AD7414_CONFIG,
-				config | AD7414_ALERT_POLARITY);
-		else
-			ret = ad7414_i2c_write(chip, AD7414_CONFIG,
-				config & ~AD7414_ALERT_POLARITY);
+		/* set irq polarity low level */
+		ret = ad7414_i2c_write(chip, AD7414_CONFIG,
+			config & ~AD7414_ALERT_POLARITY);
 		if (ret) {
 			ret = -EIO;
 			goto error_unreg_irq;
