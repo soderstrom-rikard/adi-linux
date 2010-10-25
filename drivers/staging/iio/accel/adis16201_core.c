@@ -162,8 +162,11 @@ static ssize_t adis16201_read_12bit_unsigned(struct device *dev,
 	if (ret)
 		return ret;
 
-	if (val & ADIS16201_ERROR_ACTIVE)
-		adis16201_check_status(dev);
+	if (val & ADIS16201_ERROR_ACTIVE) {
+		ret = adis16201_check_status(dev);
+		if (ret)
+			return ret;
+	}
 
 	return sprintf(buf, "%u\n", val & 0x0FFF);
 }
@@ -183,8 +186,11 @@ static ssize_t adis16201_read_temp(struct device *dev,
 	if (ret)
 		goto error_ret;
 
-	if (val & ADIS16201_ERROR_ACTIVE)
-		adis16201_check_status(dev);
+	if (val & ADIS16201_ERROR_ACTIVE) {
+		ret = adis16201_check_status(dev);
+		if (ret)
+			goto error_ret;
+	}
 
 	val &= 0xFFF;
 	ret = sprintf(buf, "%d\n", val);
@@ -207,13 +213,16 @@ static ssize_t adis16201_read_9bit_signed(struct device *dev,
 
 	ret = adis16201_spi_read_reg_16(dev, this_attr->address, (u16 *)&val);
 	if (!ret) {
-		if (val & ADIS16201_ERROR_ACTIVE)
-			adis16201_check_status(dev);
-
+		if (val & ADIS16201_ERROR_ACTIVE) {
+			ret = adis16201_check_status(dev);
+			if (ret)
+				goto error_ret;
+		}
 		val = ((s16)(val << 7) >> 7);
 		ret = sprintf(buf, "%d\n", val);
 	}
 
+error_ret:
 	mutex_unlock(&indio_dev->mlock);
 
 	return ret;
@@ -232,13 +241,17 @@ static ssize_t adis16201_read_12bit_signed(struct device *dev,
 
 	ret = adis16201_spi_read_reg_16(dev, this_attr->address, (u16 *)&val);
 	if (!ret) {
-		if (val & ADIS16201_ERROR_ACTIVE)
-			adis16201_check_status(dev);
+		if (val & ADIS16201_ERROR_ACTIVE) {
+			ret = adis16201_check_status(dev);
+			if (ret)
+				goto error_ret;
+		}
 
 		val = ((s16)(val << 4) >> 4);
 		ret = sprintf(buf, "%d\n", val);
 	}
 
+error_ret:
 	mutex_unlock(&indio_dev->mlock);
 
 	return ret;
@@ -257,13 +270,17 @@ static ssize_t adis16201_read_14bit_signed(struct device *dev,
 
 	ret = adis16201_spi_read_reg_16(dev, this_attr->address, (u16 *)&val);
 	if (!ret) {
-		if (val & ADIS16201_ERROR_ACTIVE)
-			adis16201_check_status(dev);
+		if (val & ADIS16201_ERROR_ACTIVE) {
+			ret = adis16201_check_status(dev);
+			if (ret)
+				goto error_ret;
+		}
 
 		val = ((s16)(val << 2) >> 2);
 		ret = sprintf(buf, "%d\n", val);
 	}
 
+error_ret:
 	mutex_unlock(&indio_dev->mlock);
 
 	return ret;
@@ -347,6 +364,8 @@ static int adis16201_check_status(struct device *dev)
 		goto error_ret;
 	}
 	ret = status & 0xF;
+	if (ret)
+		ret = -EFAULT;
 
 	if (status & ADIS16201_DIAG_STAT_SPI_FAIL)
 		dev_err(dev, "SPI failure\n");
@@ -372,7 +391,7 @@ static int adis16201_self_test(struct device *dev)
 		goto err_ret;
 	}
 
-	adis16201_check_status(dev);
+	ret = adis16201_check_status(dev);
 
 err_ret:
 	return ret;
