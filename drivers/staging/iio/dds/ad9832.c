@@ -23,11 +23,11 @@
 #define value_mask (u16)0xf000
 #define cmd_shift 12
 #define add_shift 8
-#define SYNC (1 << 13)
-#define SELSRC (1 << 12)
-#define SLEEP (1 << 13)
-#define RESET (1 << 12)
-#define CLR (1 << 11)
+#define AD9832_SYNC (1 << 13)
+#define AD9832_SELSRC (1 << 12)
+#define AD9832_SLEEP (1 << 13)
+#define AD9832_RESET (1 << 12)
+#define AD9832_CLR (1 << 11)
 
 #define ADD_FREQ0LL 0x0
 #define ADD_FREQ0HL 0x1
@@ -131,7 +131,7 @@ static void ad9832_init(struct ad9832_state *st)
 	int ret;
 	u16 config = 0;
 
-	config = 0x3 << 14 | SLEEP | RESET | CLR;
+	config = 0x3 << 14 | AD9832_SLEEP | AD9832_RESET | AD9832_CLR;
 
 	mutex_lock(&st->lock);
 
@@ -144,7 +144,7 @@ static void ad9832_init(struct ad9832_state *st)
 	if (ret)
 		goto error_ret;
 
-	config = 0x2 << 14 | SYNC | SELSRC;
+	config = 0x2 << 14 | AD9832_SYNC | AD9832_SELSRC;
 	xfer.len = 2;
 	xfer.tx_buf = &config;
 
