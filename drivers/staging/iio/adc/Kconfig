@@ -62,13 +62,6 @@ config AD7314
 	  Say yes here to build support for Analog Devices AD7314
 	  temperature sensors.
 
-config AD7414
-	tristate "Analog Devices AD7414 and AD7415 temperature sensor driver"
-	depends on I2C
-	help
-	  Say yes here to build support for Analog Devices AD7414 and AD7415
-	  temperature sensors.
-
 config AD7416
 	tristate "Analog Devices AD7416/7/8 temperature sensor and ADC driver"
 	depends on I2C
@@ -121,25 +114,11 @@ config AD7745
 	  To compile this driver as a module, choose M here: the
 	  module will be called ad7745.
 
-config AD7816
-	tristate "Analog Devices AD7816/7/8 temperature sensor and ADC driver"
-	depends on SPI
-	help
-	  Say yes here to build support for Analog Devices AD7816/7/8
-	  temperature sensors and ADC.
-
 config ADT75
 	tristate "Analog Devices ADT75 temperature sensor driver"
 	depends on I2C
 	help
 	  Say yes here to build support for Analog Devices ADT75
-	  temperature sensors.
-
-config ADT7408
-	tristate "Analog Devices ADT7408 temperature sensor driver"
-	depends on I2C
-	help
-	  Say yes here to build support for Analog Devices ADT7408
 	  temperature sensors.
 
 config ADT7410
