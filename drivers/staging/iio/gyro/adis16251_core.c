@@ -1,5 +1,5 @@
 /*
- * ADIS16261 Programmable Digital Gyroscope Sensor Driver
+ * ADIS16251 Programmable Digital Gyroscope Sensor Driver
  *
  * Copyright 2010 Analog Devices Inc.
  *
@@ -23,9 +23,9 @@
 #include "gyro.h"
 #include "../adc/adc.h"
 
-#include "adis16261.h"
+#include "adis16251.h"
 
-#define DRIVER_NAME		"adis16261"
+#define DRIVER_NAME		"adis16251"
 
 /* At the moment the spi framework doesn't allow global setting of cs_change.
  * It's in the likely to be added comment at the top of spi.h.
@@ -33,21 +33,21 @@
  */
 
 /**
- * adis16261_spi_write_reg_8() - write single byte to a register
+ * adis16251_spi_write_reg_8() - write single byte to a register
  * @dev: device associated with child of actual device (iio_dev or iio_trig)
  * @reg_address: the address of the register to be written
  * @val: the value to write
  **/
-int adis16261_spi_write_reg_8(struct device *dev,
+int adis16251_spi_write_reg_8(struct device *dev,
 		u8 reg_address,
 		u8 val)
 {
 	int ret;
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct adis16261_state *st = iio_dev_get_devdata(indio_dev);
+	struct adis16251_state *st = iio_dev_get_devdata(indio_dev);
 
 	mutex_lock(&st->buf_lock);
-	st->tx[0] = ADIS16261_WRITE_REG(reg_address);
+	st->tx[0] = ADIS16251_WRITE_REG(reg_address);
 	st->tx[1] = val;
 
 	ret = spi_write(st->us, st->tx, 2);
@@ -57,20 +57,20 @@ int adis16261_spi_write_reg_8(struct device *dev,
 }
 
 /**
- * adis16261_spi_write_reg_16() - write 2 bytes to a pair of registers
+ * adis16251_spi_write_reg_16() - write 2 bytes to a pair of registers
  * @dev: device associated with child of actual device (iio_dev or iio_trig)
  * @reg_address: the address of the lower of the two registers. Second register
  *               is assumed to have address one greater.
  * @val: value to be written
  **/
-static int adis16261_spi_write_reg_16(struct device *dev,
+static int adis16251_spi_write_reg_16(struct device *dev,
 		u8 lower_reg_address,
 		u16 value)
 {
 	int ret;
 	struct spi_message msg;
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct adis16261_state *st = iio_dev_get_devdata(indio_dev);
+	struct adis16251_state *st = iio_dev_get_devdata(indio_dev);
 	struct spi_transfer xfers[] = {
 		{
 			.tx_buf = st->tx,
@@ -86,9 +86,9 @@ static int adis16261_spi_write_reg_16(struct device *dev,
 	};
 
 	mutex_lock(&st->buf_lock);
-	st->tx[0] = ADIS16261_WRITE_REG(lower_reg_address);
+	st->tx[0] = ADIS16251_WRITE_REG(lower_reg_address);
 	st->tx[1] = value & 0xFF;
-	st->tx[2] = ADIS16261_WRITE_REG(lower_reg_address + 1);
+	st->tx[2] = ADIS16251_WRITE_REG(lower_reg_address + 1);
 	st->tx[3] = (value >> 8) & 0xFF;
 
 	spi_message_init(&msg);
@@ -101,19 +101,19 @@ static int adis16261_spi_write_reg_16(struct device *dev,
 }
 
 /**
- * adis16261_spi_read_reg_16() - read 2 bytes from a 16-bit register
+ * adis16251_spi_read_reg_16() - read 2 bytes from a 16-bit register
  * @dev: device associated with child of actual device (iio_dev or iio_trig)
  * @reg_address: the address of the lower of the two registers. Second register
  *               is assumed to have address one greater.
  * @val: somewhere to pass back the value read
  **/
-static int adis16261_spi_read_reg_16(struct device *dev,
+static int adis16251_spi_read_reg_16(struct device *dev,
 		u8 lower_reg_address,
 		u16 *val)
 {
 	struct spi_message msg;
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct adis16261_state *st = iio_dev_get_devdata(indio_dev);
+	struct adis16251_state *st = iio_dev_get_devdata(indio_dev);
 	int ret;
 	struct spi_transfer xfers[] = {
 		{
@@ -130,7 +130,7 @@ static int adis16261_spi_read_reg_16(struct device *dev,
 	};
 
 	mutex_lock(&st->buf_lock);
-	st->tx[0] = ADIS16261_READ_REG(lower_reg_address);
+	st->tx[0] = ADIS16251_READ_REG(lower_reg_address);
 	st->tx[1] = 0;
 	st->tx[2] = 0;
 	st->tx[3] = 0;
@@ -152,15 +152,15 @@ error_ret:
 }
 
 /**
- * adis16261_spi_read_burst() - read all data registers
+ * adis16251_spi_read_burst() - read all data registers
  * @dev: device associated with child of actual device (iio_dev or iio_trig)
  * @rx: somewhere to pass back the value read (min size is 24 bytes)
  **/
-int adis16261_spi_read_burst(struct device *dev, u8 *rx)
+int adis16251_spi_read_burst(struct device *dev, u8 *rx)
 {
 	struct spi_message msg;
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct adis16261_state *st = iio_dev_get_devdata(indio_dev);
+	struct adis16251_state *st = iio_dev_get_devdata(indio_dev);
 	u32 old_speed_hz = st->us->max_speed_hz;
 	int ret;
 
@@ -179,14 +179,14 @@ int adis16261_spi_read_burst(struct device *dev, u8 *rx)
 	};
 
 	mutex_lock(&st->buf_lock);
-	st->tx[0] = ADIS16261_READ_REG(ADIS16261_GLOB_CMD);
+	st->tx[0] = ADIS16251_READ_REG(ADIS16251_GLOB_CMD);
 	st->tx[1] = 0;
 
 	spi_message_init(&msg);
 	spi_message_add_tail(&xfers[0], &msg);
 	spi_message_add_tail(&xfers[1], &msg);
 
-	st->us->max_speed_hz = min(ADIS16261_SPI_BURST, old_speed_hz);
+	st->us->max_speed_hz = min(ADIS16251_SPI_BURST, old_speed_hz);
 	spi_setup(st->us);
 
 	ret = spi_sync(st->us, &msg);
@@ -200,18 +200,18 @@ int adis16261_spi_read_burst(struct device *dev, u8 *rx)
 }
 
 /**
- * adis16261_spi_read_sequence() - read a sequence of 16-bit registers
+ * adis16251_spi_read_sequence() - read a sequence of 16-bit registers
  * @dev: device associated with child of actual device (iio_dev or iio_trig)
  * @tx: register addresses in bytes 0,2,4,6... (min size is 2*num bytes)
  * @rx: somewhere to pass back the value read (min size is 2*num bytes)
  **/
-int adis16261_spi_read_sequence(struct device *dev,
+int adis16251_spi_read_sequence(struct device *dev,
 		u8 *tx, u8 *rx, int num)
 {
 	struct spi_message msg;
 	struct spi_transfer *xfers;
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct adis16261_state *st = iio_dev_get_devdata(indio_dev);
+	struct adis16251_state *st = iio_dev_get_devdata(indio_dev);
 	int ret, i;
 
 	xfers = kzalloc(num + 1, GFP_KERNEL);
@@ -248,7 +248,7 @@ error_ret:
 	return ret;
 }
 
-static ssize_t adis16261_spi_read_signed(struct device *dev,
+static ssize_t adis16251_spi_read_signed(struct device *dev,
 		struct device_attribute *attr,
 		char *buf,
 		unsigned bits)
@@ -258,17 +258,17 @@ static ssize_t adis16261_spi_read_signed(struct device *dev,
 	unsigned shift = 16 - bits;
 	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
 
-	ret = adis16261_spi_read_reg_16(dev, this_attr->address, (u16 *)&val);
+	ret = adis16251_spi_read_reg_16(dev, this_attr->address, (u16 *)&val);
 	if (ret)
 		return ret;
 
-	if (val & ADIS16261_ERROR_ACTIVE)
-		adis16261_check_status(dev);
+	if (val & ADIS16251_ERROR_ACTIVE)
+		adis16251_check_status(dev);
 	val = ((s16)(val << shift) >> shift);
 	return sprintf(buf, "%d\n", val);
 }
 
-static ssize_t adis16261_read_12bit_unsigned(struct device *dev,
+static ssize_t adis16251_read_12bit_unsigned(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
@@ -276,17 +276,17 @@ static ssize_t adis16261_read_12bit_unsigned(struct device *dev,
 	u16 val = 0;
 	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
 
-	ret = adis16261_spi_read_reg_16(dev, this_attr->address, &val);
+	ret = adis16251_spi_read_reg_16(dev, this_attr->address, &val);
 	if (ret)
 		return ret;
 
-	if (val & ADIS16261_ERROR_ACTIVE)
-		adis16261_check_status(dev);
+	if (val & ADIS16251_ERROR_ACTIVE)
+		adis16251_check_status(dev);
 
 	return sprintf(buf, "%u\n", val & 0x0FFF);
 }
 
-static ssize_t adis16261_read_14bit_signed(struct device *dev,
+static ssize_t adis16251_read_14bit_signed(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
@@ -295,13 +295,13 @@ static ssize_t adis16261_read_14bit_signed(struct device *dev,
 
 	/* Take the iio_dev status lock */
 	mutex_lock(&indio_dev->mlock);
-	ret =  adis16261_spi_read_signed(dev, attr, buf, 14);
+	ret =  adis16251_spi_read_signed(dev, attr, buf, 14);
 	mutex_unlock(&indio_dev->mlock);
 
 	return ret;
 }
 
-static ssize_t adis16261_read_12bit_signed(struct device *dev,
+static ssize_t adis16251_read_12bit_signed(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
@@ -310,13 +310,13 @@ static ssize_t adis16261_read_12bit_signed(struct device *dev,
 
 	/* Take the iio_dev status lock */
 	mutex_lock(&indio_dev->mlock);
-	ret =  adis16261_spi_read_signed(dev, attr, buf, 12);
+	ret =  adis16251_spi_read_signed(dev, attr, buf, 12);
 	mutex_unlock(&indio_dev->mlock);
 
 	return ret;
 }
 
-static ssize_t adis16261_write_16bit(struct device *dev,
+static ssize_t adis16251_write_16bit(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf,
 		size_t len)
@@ -328,37 +328,37 @@ static ssize_t adis16261_write_16bit(struct device *dev,
 	ret = strict_strtol(buf, 10, &val);
 	if (ret)
 		goto error_ret;
-	ret = adis16261_spi_write_reg_16(dev, this_attr->address, val);
+	ret = adis16251_spi_write_reg_16(dev, this_attr->address, val);
 
 error_ret:
 	return ret ? ret : len;
 }
 
-static ssize_t adis16261_read_frequency(struct device *dev,
+static ssize_t adis16251_read_frequency(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	int ret, len = 0;
 	u16 t;
 	int sps;
-	ret = adis16261_spi_read_reg_16(dev,
-			ADIS16261_SMPL_PRD,
+	ret = adis16251_spi_read_reg_16(dev,
+			ADIS16251_SMPL_PRD,
 			&t);
 	if (ret)
 		return ret;
-	sps =  (t & ADIS16261_SMPL_PRD_TIME_BASE) ? 8 : 256;
-	sps /= (t & ADIS16261_SMPL_PRD_DIV_MASK) + 1;
+	sps =  (t & ADIS16251_SMPL_PRD_TIME_BASE) ? 8 : 256;
+	sps /= (t & ADIS16251_SMPL_PRD_DIV_MASK) + 1;
 	len = sprintf(buf, "%d SPS\n", sps);
 	return len;
 }
 
-static ssize_t adis16261_write_frequency(struct device *dev,
+static ssize_t adis16251_write_frequency(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf,
 		size_t len)
 {
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct adis16261_state *st = iio_dev_get_devdata(indio_dev);
+	struct adis16251_state *st = iio_dev_get_devdata(indio_dev);
 	long val;
 	int ret;
 	u8 t;
@@ -372,14 +372,14 @@ static ssize_t adis16261_write_frequency(struct device *dev,
 	t = (256 / val);
 	if (t > 0)
 		t--;
-	t &= ADIS16261_SMPL_PRD_DIV_MASK;
-	if ((t & ADIS16261_SMPL_PRD_DIV_MASK) >= 0x0A)
-		st->us->max_speed_hz = ADIS16261_SPI_SLOW;
+	t &= ADIS16251_SMPL_PRD_DIV_MASK;
+	if ((t & ADIS16251_SMPL_PRD_DIV_MASK) >= 0x0A)
+		st->us->max_speed_hz = ADIS16251_SPI_SLOW;
 	else
-		st->us->max_speed_hz = ADIS16261_SPI_FAST;
+		st->us->max_speed_hz = ADIS16251_SPI_FAST;
 
-	ret = adis16261_spi_write_reg_8(dev,
-			ADIS16261_SMPL_PRD,
+	ret = adis16251_spi_write_reg_8(dev,
+			ADIS16251_SMPL_PRD,
 			t);
 
 	mutex_unlock(&indio_dev->mlock);
@@ -387,7 +387,7 @@ static ssize_t adis16261_write_frequency(struct device *dev,
 	return ret ? ret : len;
 }
 
-static ssize_t adis16261_write_reset(struct device *dev,
+static ssize_t adis16251_write_reset(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t len)
 {
@@ -397,28 +397,28 @@ static ssize_t adis16261_write_reset(struct device *dev,
 	case '1':
 	case 'y':
 	case 'Y':
-		return adis16261_reset(dev);
+		return adis16251_reset(dev);
 	}
 	return -1;
 }
 
 
 
-int adis16261_set_irq(struct device *dev, bool enable)
+int adis16251_set_irq(struct device *dev, bool enable)
 {
 	int ret;
 	u16 msc;
-	ret = adis16261_spi_read_reg_16(dev, ADIS16261_MSC_CTRL, &msc);
+	ret = adis16251_spi_read_reg_16(dev, ADIS16251_MSC_CTRL, &msc);
 	if (ret)
 		goto error_ret;
 
-	msc |= ADIS16261_MSC_CTRL_DATA_RDY_POL_HIGH;
+	msc |= ADIS16251_MSC_CTRL_DATA_RDY_POL_HIGH;
 	if (enable)
-		msc |= ADIS16261_MSC_CTRL_DATA_RDY_EN;
+		msc |= ADIS16251_MSC_CTRL_DATA_RDY_EN;
 	else
-		msc &= ~ADIS16261_MSC_CTRL_DATA_RDY_EN;
+		msc &= ~ADIS16251_MSC_CTRL_DATA_RDY_EN;
 
-	ret = adis16261_spi_write_reg_16(dev, ADIS16261_MSC_CTRL, msc);
+	ret = adis16251_spi_write_reg_16(dev, ADIS16251_MSC_CTRL, msc);
 	if (ret)
 		goto error_ret;
 
@@ -426,12 +426,12 @@ error_ret:
 	return ret;
 }
 
-int adis16261_reset(struct device *dev)
+int adis16251_reset(struct device *dev)
 {
 	int ret;
-	ret = adis16261_spi_write_reg_8(dev,
-			ADIS16261_GLOB_CMD,
-			ADIS16261_GLOB_CMD_SW_RESET);
+	ret = adis16251_spi_write_reg_8(dev,
+			ADIS16251_GLOB_CMD,
+			ADIS16251_GLOB_CMD_SW_RESET);
 	if (ret)
 		dev_err(dev, "problem resetting device");
 
@@ -439,82 +439,82 @@ int adis16261_reset(struct device *dev)
 }
 
 /* Power down the device */
-int adis16261_stop_device(struct device *dev)
+int adis16251_stop_device(struct device *dev)
 {
 	int ret;
-	u16 val = ADIS16261_SLP_CNT_POWER_OFF;
+	u16 val = ADIS16251_SLP_CNT_POWER_OFF;
 
-	ret = adis16261_spi_write_reg_16(dev, ADIS16261_SLP_CNT, val);
+	ret = adis16251_spi_write_reg_16(dev, ADIS16251_SLP_CNT, val);
 	if (ret)
 		dev_err(dev, "problem with turning device off: SLP_CNT");
 
 	return ret;
 }
 
-int adis16261_self_test(struct device *dev)
+int adis16251_self_test(struct device *dev)
 {
 	int ret;
 
-	ret = adis16261_spi_write_reg_16(dev,
-			ADIS16261_MSC_CTRL,
-			ADIS16261_MSC_CTRL_INT_SELF_TEST);
+	ret = adis16251_spi_write_reg_16(dev,
+			ADIS16251_MSC_CTRL,
+			ADIS16251_MSC_CTRL_INT_SELF_TEST);
 	if (ret) {
 		dev_err(dev, "problem starting self test");
 		goto err_ret;
 	}
 
-	adis16261_check_status(dev);
+	adis16251_check_status(dev);
 
 err_ret:
 	return ret;
 }
 
-int adis16261_check_status(struct device *dev)
+int adis16251_check_status(struct device *dev)
 {
 	u16 status;
 	int ret;
 
-	ret = adis16261_spi_read_reg_16(dev, ADIS16261_DIAG_STAT, &status);
+	ret = adis16251_spi_read_reg_16(dev, ADIS16251_DIAG_STAT, &status);
 
 	if (ret < 0) {
 		dev_err(dev, "Reading status failed\n");
 		goto error_ret;
 	}
 	ret = status;
-	if (status & ADIS16261_DIAG_STAT_ALARM2)
+	if (status & ADIS16251_DIAG_STAT_ALARM2)
 		dev_err(dev, "Alarm 2 active\n");
-	if (status & ADIS16261_DIAG_STAT_ALARM1)
+	if (status & ADIS16251_DIAG_STAT_ALARM1)
 		dev_err(dev, "Alarm 1 active\n");
-	if (status & ADIS16261_DIAG_STAT_SELF_TEST)
+	if (status & ADIS16251_DIAG_STAT_SELF_TEST)
 		dev_err(dev, "Self test error\n");
-	if (status & ADIS16261_DIAG_STAT_OVERFLOW)
+	if (status & ADIS16251_DIAG_STAT_OVERFLOW)
 		dev_err(dev, "Sensor overrange\n");
-	if (status & ADIS16261_DIAG_STAT_SPI_FAIL)
+	if (status & ADIS16251_DIAG_STAT_SPI_FAIL)
 		dev_err(dev, "SPI failure\n");
-	if (status & ADIS16261_DIAG_STAT_FLASH_UPT)
+	if (status & ADIS16251_DIAG_STAT_FLASH_UPT)
 		dev_err(dev, "Flash update failed\n");
-	if (status & ADIS16261_DIAG_STAT_POWER_HIGH)
+	if (status & ADIS16251_DIAG_STAT_POWER_HIGH)
 		dev_err(dev, "Power supply above 5.25V\n");
-	if (status & ADIS16261_DIAG_STAT_POWER_LOW)
+	if (status & ADIS16251_DIAG_STAT_POWER_LOW)
 		dev_err(dev, "Power supply below 4.75V\n");
 
 error_ret:
 	return ret;
 }
 
-static int adis16261_initial_setup(struct adis16261_state *st)
+static int adis16251_initial_setup(struct adis16251_state *st)
 {
 	int ret;
 	u16 smp_prd;
 	struct device *dev = &st->indio_dev->dev;
 
 	/* use low spi speed for init */
-	st->us->max_speed_hz = ADIS16261_SPI_SLOW;
+	st->us->max_speed_hz = ADIS16251_SPI_SLOW;
 	st->us->mode = SPI_MODE_3;
 	spi_setup(st->us);
 
 	/* Disable IRQ */
-	ret = adis16261_set_irq(dev, false);
+	ret = adis16251_set_irq(dev, false);
 	if (ret) {
 		dev_err(dev, "disable irq failed");
 		goto err_ret;
@@ -523,12 +523,12 @@ static int adis16261_initial_setup(struct adis16261_state *st)
 	/* Do self test */
 
 	/* Read status register to check the result */
-	ret = adis16261_check_status(dev);
+	ret = adis16251_check_status(dev);
 	if (ret) {
-		adis16261_reset(dev);
+		adis16251_reset(dev);
 		dev_err(dev, "device not playing ball -> reset");
-		msleep(ADIS16261_STARTUP_DELAY);
-		ret = adis16261_check_status(dev);
+		msleep(ADIS16251_STARTUP_DELAY);
+		ret = adis16251_check_status(dev);
 		if (ret) {
 			dev_err(dev, "giving up");
 			goto err_ret;
@@ -539,9 +539,9 @@ static int adis16261_initial_setup(struct adis16261_state *st)
 			st->us->chip_select, st->us->irq);
 
 	/* use high spi speed if possible */
-	ret = adis16261_spi_read_reg_16(dev, ADIS16261_SMPL_PRD, &smp_prd);
-	if (!ret && (smp_prd & ADIS16261_SMPL_PRD_DIV_MASK) < 0x0A) {
-		st->us->max_speed_hz = ADIS16261_SPI_SLOW;
+	ret = adis16251_spi_read_reg_16(dev, ADIS16251_SMPL_PRD, &smp_prd);
+	if (!ret && (smp_prd & ADIS16251_SMPL_PRD_DIV_MASK) < 0x0A) {
+		st->us->max_speed_hz = ADIS16251_SPI_SLOW;
 		spi_setup(st->us);
 	}
 
@@ -549,50 +549,50 @@ err_ret:
 	return ret;
 }
 
-static IIO_DEV_ATTR_IN_NAMED_RAW(0, supply, adis16261_read_12bit_signed,
-		ADIS16261_SUPPLY_OUT);
+static IIO_DEV_ATTR_IN_NAMED_RAW(0, supply, adis16251_read_12bit_signed,
+		ADIS16251_SUPPLY_OUT);
 static IIO_CONST_ATTR(in0_supply_scale, "0.0018315");
 
-static IIO_DEV_ATTR_GYRO(adis16261_read_14bit_signed,
-		ADIS16261_GYRO_OUT);
+static IIO_DEV_ATTR_GYRO(adis16251_read_14bit_signed,
+		ADIS16251_GYRO_OUT);
 static IIO_DEV_ATTR_GYRO_SCALE(S_IWUSR | S_IRUGO,
-		adis16261_read_12bit_signed,
-		adis16261_write_16bit,
-		ADIS16261_GYRO_SCALE);
+		adis16251_read_12bit_signed,
+		adis16251_write_16bit,
+		ADIS16251_GYRO_SCALE);
 static IIO_DEV_ATTR_GYRO_OFFSET(S_IWUSR | S_IRUGO,
-		adis16261_read_12bit_signed,
-		adis16261_write_16bit,
-		ADIS16261_GYRO_OFF);
+		adis16251_read_12bit_signed,
+		adis16251_write_16bit,
+		ADIS16251_GYRO_OFF);
 
-static IIO_DEV_ATTR_TEMP_RAW(adis16261_read_12bit_signed);
+static IIO_DEV_ATTR_TEMP_RAW(adis16251_read_12bit_signed);
 static IIO_CONST_ATTR(temp_offset, "25 K");
 static IIO_CONST_ATTR(temp_scale, "0.1453 K");
 
-static IIO_DEV_ATTR_IN_NAMED_RAW(1, aux, adis16261_read_12bit_unsigned,
-		ADIS16261_AUX_ADC);
+static IIO_DEV_ATTR_IN_NAMED_RAW(1, aux, adis16251_read_12bit_unsigned,
+		ADIS16251_AUX_ADC);
 static IIO_CONST_ATTR(in1_aux_scale, "0.0006105");
 
 static IIO_DEV_ATTR_SAMP_FREQ(S_IWUSR | S_IRUGO,
-		adis16261_read_frequency,
-		adis16261_write_frequency);
-static IIO_DEV_ATTR_ANGL(adis16261_read_14bit_signed,
-		ADIS16261_ANGL_OUT);
+		adis16251_read_frequency,
+		adis16251_write_frequency);
+static IIO_DEV_ATTR_ANGL(adis16251_read_14bit_signed,
+		ADIS16251_ANGL_OUT);
 
-static IIO_DEV_ATTR_RESET(adis16261_write_reset);
+static IIO_DEV_ATTR_RESET(adis16251_write_reset);
 
 static IIO_CONST_ATTR_SAMP_FREQ_AVAIL("0.129 ~ 256");
 
-static IIO_CONST_ATTR(name, "adis16261");
+static IIO_CONST_ATTR(name, "adis16251");
 
-static struct attribute *adis16261_event_attributes[] = {
+static struct attribute *adis16251_event_attributes[] = {
 	NULL
 };
 
-static struct attribute_group adis16261_event_attribute_group = {
-	.attrs = adis16261_event_attributes,
+static struct attribute_group adis16251_event_attribute_group = {
+	.attrs = adis16251_event_attributes,
 };
 
-static struct attribute *adis16261_attributes[] = {
+static struct attribute *adis16251_attributes[] = {
 	&iio_dev_attr_in0_supply_raw.dev_attr.attr,
 	&iio_const_attr_in0_supply_scale.dev_attr.attr,
 	&iio_dev_attr_gyro_raw.dev_attr.attr,
@@ -611,14 +611,14 @@ static struct attribute *adis16261_attributes[] = {
 	NULL
 };
 
-static const struct attribute_group adis16261_attribute_group = {
-	.attrs = adis16261_attributes,
+static const struct attribute_group adis16251_attribute_group = {
+	.attrs = adis16251_attributes,
 };
 
-static int __devinit adis16261_probe(struct spi_device *spi)
+static int __devinit adis16251_probe(struct spi_device *spi)
 {
 	int ret, regdone = 0;
-	struct adis16261_state *st = kzalloc(sizeof *st, GFP_KERNEL);
+	struct adis16251_state *st = kzalloc(sizeof *st, GFP_KERNEL);
 	if (!st) {
 		ret =  -ENOMEM;
 		goto error_ret;
@@ -627,12 +627,12 @@ static int __devinit adis16261_probe(struct spi_device *spi)
 	spi_set_drvdata(spi, st);
 
 	/* Allocate the comms buffers */
-	st->rx = kzalloc(sizeof(*st->rx)*ADIS16261_MAX_RX, GFP_KERNEL);
+	st->rx = kzalloc(sizeof(*st->rx)*ADIS16251_MAX_RX, GFP_KERNEL);
 	if (st->rx == NULL) {
 		ret = -ENOMEM;
 		goto error_free_st;
 	}
-	st->tx = kzalloc(sizeof(*st->tx)*ADIS16261_MAX_TX, GFP_KERNEL);
+	st->tx = kzalloc(sizeof(*st->tx)*ADIS16251_MAX_TX, GFP_KERNEL);
 	if (st->tx == NULL) {
 		ret = -ENOMEM;
 		goto error_free_rx;
@@ -648,13 +648,13 @@ static int __devinit adis16261_probe(struct spi_device *spi)
 
 	st->indio_dev->dev.parent = &spi->dev;
 	st->indio_dev->num_interrupt_lines = 1;
-	st->indio_dev->event_attrs = &adis16261_event_attribute_group;
-	st->indio_dev->attrs = &adis16261_attribute_group;
+	st->indio_dev->event_attrs = &adis16251_event_attribute_group;
+	st->indio_dev->attrs = &adis16251_attribute_group;
 	st->indio_dev->dev_data = (void *)(st);
 	st->indio_dev->driver_module = THIS_MODULE;
 	st->indio_dev->modes = INDIO_DIRECT_MODE;
 
-	ret = adis16261_configure_ring(st->indio_dev);
+	ret = adis16251_configure_ring(st->indio_dev);
 	if (ret)
 		goto error_free_dev;
 
@@ -663,7 +663,7 @@ static int __devinit adis16261_probe(struct spi_device *spi)
 		goto error_unreg_ring_funcs;
 	regdone = 1;
 
-	ret = adis16261_initialize_ring(st->indio_dev->ring);
+	ret = adis16251_initialize_ring(st->indio_dev->ring);
 	if (ret) {
 		printk(KERN_ERR "failed to initialize the ring\n");
 		goto error_unreg_ring_funcs;
@@ -674,31 +674,31 @@ static int __devinit adis16261_probe(struct spi_device *spi)
 				st->indio_dev,
 				0,
 				IRQF_TRIGGER_RISING,
-				"adis16261");
+				"adis16251");
 		if (ret)
 			goto error_uninitialize_ring;
 
-		ret = adis16261_probe_trigger(st->indio_dev);
+		ret = adis16251_probe_trigger(st->indio_dev);
 		if (ret)
 			goto error_unregister_line;
 	}
 
 	/* Get the device into a sane initial state */
-	ret = adis16261_initial_setup(st);
+	ret = adis16251_initial_setup(st);
 	if (ret)
 		goto error_remove_trigger;
 	return 0;
 
 error_remove_trigger:
 	if (st->indio_dev->modes & INDIO_RING_TRIGGERED)
-		adis16261_remove_trigger(st->indio_dev);
+		adis16251_remove_trigger(st->indio_dev);
 error_unregister_line:
 	if (st->indio_dev->modes & INDIO_RING_TRIGGERED)
 		iio_unregister_interrupt_line(st->indio_dev, 0);
 error_uninitialize_ring:
-	adis16261_uninitialize_ring(st->indio_dev->ring);
+	adis16251_uninitialize_ring(st->indio_dev->ring);
 error_unreg_ring_funcs:
-	adis16261_unconfigure_ring(st->indio_dev);
+	adis16251_unconfigure_ring(st->indio_dev);
 error_free_dev:
 	if (regdone)
 		iio_device_unregister(st->indio_dev);
@@ -715,24 +715,24 @@ error_ret:
 }
 
 /* fixme, confirm ordering in this function */
-static int adis16261_remove(struct spi_device *spi)
+static int adis16251_remove(struct spi_device *spi)
 {
 	int ret;
-	struct adis16261_state *st = spi_get_drvdata(spi);
+	struct adis16251_state *st = spi_get_drvdata(spi);
 	struct iio_dev *indio_dev = st->indio_dev;
 
-	ret = adis16261_stop_device(&(indio_dev->dev));
+	ret = adis16251_stop_device(&(indio_dev->dev));
 	if (ret)
 		goto err_ret;
 
 	flush_scheduled_work();
 
-	adis16261_remove_trigger(indio_dev);
+	adis16251_remove_trigger(indio_dev);
 	if (spi->irq && gpio_is_valid(irq_to_gpio(spi->irq)) > 0)
 		iio_unregister_interrupt_line(indio_dev, 0);
 
-	adis16261_uninitialize_ring(indio_dev->ring);
-	adis16261_unconfigure_ring(indio_dev);
+	adis16251_uninitialize_ring(indio_dev->ring);
+	adis16251_unconfigure_ring(indio_dev);
 	iio_device_unregister(indio_dev);
 	kfree(st->tx);
 	kfree(st->rx);
@@ -744,27 +744,27 @@ err_ret:
 	return ret;
 }
 
-static struct spi_driver adis16261_driver = {
+static struct spi_driver adis16251_driver = {
 	.driver = {
-		.name = "adis16261",
+		.name = "adis16251",
 		.owner = THIS_MODULE,
 	},
-	.probe = adis16261_probe,
-	.remove = __devexit_p(adis16261_remove),
+	.probe = adis16251_probe,
+	.remove = __devexit_p(adis16251_remove),
 };
 
-static __init int adis16261_init(void)
+static __init int adis16251_init(void)
 {
-	return spi_register_driver(&adis16261_driver);
+	return spi_register_driver(&adis16251_driver);
 }
-module_init(adis16261_init);
+module_init(adis16251_init);
 
-static __exit void adis16261_exit(void)
+static __exit void adis16251_exit(void)
 {
-	spi_unregister_driver(&adis16261_driver);
+	spi_unregister_driver(&adis16251_driver);
 }
-module_exit(adis16261_exit);
+module_exit(adis16251_exit);
 
 MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
-MODULE_DESCRIPTION("Analog Devices ADIS16261 Digital Gyroscope Sensor SPI driver");
+MODULE_DESCRIPTION("Analog Devices ADIS16251 Digital Gyroscope Sensor SPI driver");
 MODULE_LICENSE("GPL v2");
