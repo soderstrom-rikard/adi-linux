@@ -24,30 +24,31 @@
  * AD774X registers definition
  */
 
-#define AD774X_STATUS              0
-#define AD774X_STATUS_RDY          (1 << 2)
-#define AD774X_STATUS_RDYVT        (1 << 1)
-#define AD774X_STATUS_RDYCAP       (1 << 0)
-#define AD774X_CAP_DATA_HIGH       1
-#define AD774X_CAP_DATA_MID        2
-#define AD774X_CAP_DATA_LOW        3
-#define AD774X_VT_DATA_HIGH        4
-#define AD774X_VT_DATA_MID         5
-#define AD774X_VT_DATA_LOW         6
-#define AD774X_CAP_SETUP           7
-#define AD774X_VT_SETUP            8
-#define AD774X_EXEC_SETUP          9
-#define AD774X_CFG                 10
-#define AD774X_CAPDACA             11
-#define AD774X_CAPDACB             12
-#define AD774X_CAP_OFFH            13
-#define AD774X_CAP_OFFL            14
-#define AD774X_CAP_GAINH           15
-#define AD774X_CAP_GAINL           16
-#define AD774X_VOLT_GAINH          17
-#define AD774X_VOLT_GAINL          18
+#define	AD774X_STATUS		0
+#define	AD774X_STATUS_RDY	(1 << 2)
+#define	AD774X_STATUS_RDYVT	(1 << 1)
+#define	AD774X_STATUS_RDYCAP	(1 << 0)
+#define	AD774X_CAP_DATA_HIGH	1
+#define	AD774X_CAP_DATA_MID	2
+#define	AD774X_CAP_DATA_LOW	3
+#define	AD774X_VT_DATA_HIGH	4
+#define	AD774X_VT_DATA_MID	5
+#define	AD774X_VT_DATA_LOW	6
+#define	AD774X_CAP_SETUP	7
+#define	AD774X_VT_SETUP		8
+#define	AD774X_EXEC_SETUP	9
+#define	AD774X_CFG		10
+#define	AD774X_CAPDACA		11
+#define	AD774X_CAPDACB		12
+#define	AD774X_CAPDAC_EN	(1 << 7)
+#define	AD774X_CAP_OFFH		13
+#define	AD774X_CAP_OFFL		14
+#define	AD774X_CAP_GAINH	15
+#define	AD774X_CAP_GAINL	16
+#define	AD774X_VOLT_GAINH	17
+#define	AD774X_VOLT_GAINL	18
 
-#define AD774X_MAX_CONV_MODE       6
+#define	AD774X_MAX_CONV_MODE	6
 
 /*
  * struct ad774x_chip_info - chip specifc information
@@ -91,7 +92,7 @@ struct ad774x_conversion_mode ad774x_conv_mode_table[AD774X_MAX_CONV_MODE] = {
 static int ad774x_i2c_read(struct ad774x_chip_info *chip, u8 reg, u8 *data, int len)
 {
 	struct i2c_client *client = chip->client;
-	int ret = 0;
+	int ret;
 
 	ret = i2c_master_send(client, &reg, 1);
 	if (ret < 0) {
@@ -111,7 +112,7 @@ static int ad774x_i2c_read(struct ad774x_chip_info *chip, u8 reg, u8 *data, int 
 static int ad774x_i2c_write(struct ad774x_chip_info *chip, u8 reg, u8 data)
 {
 	struct i2c_client *client = chip->client;
-	int ret = 0;
+	int ret;
 
 	u8 tx[2] = {
 		reg,
@@ -136,23 +137,19 @@ static int ad774x_i2c_write(struct ad774x_chip_info *chip, u8 reg, u8 data)
 #define IIO_DEV_ATTR_CAP_SETUP(_mode, _show, _store)		\
 	IIO_DEVICE_ATTR(cap_setup, _mode, _show, _store, 0)
 #define IIO_DEV_ATTR_VT_SETUP(_mode, _show, _store)              \
-	IIO_DEVICE_ATTR(vt_setup, _mode, _show, _store, 0)
+	IIO_DEVICE_ATTR(in0_setup, _mode, _show, _store, 0)
 #define IIO_DEV_ATTR_EXEC_SETUP(_mode, _show, _store)              \
 	IIO_DEVICE_ATTR(exec_setup, _mode, _show, _store, 0)
 #define IIO_DEV_ATTR_VOLT_GAIN(_mode, _show, _store)		\
-	IIO_DEVICE_ATTR(volt_gain, _mode, _show, _store, 0)
+	IIO_DEVICE_ATTR(in0_gain, _mode, _show, _store, 0)
 #define IIO_DEV_ATTR_CAP_OFFS(_mode, _show, _store)		\
 	IIO_DEVICE_ATTR(cap_offs, _mode, _show, _store, 0)
 #define IIO_DEV_ATTR_CAP_GAIN(_mode, _show, _store)		\
 	IIO_DEVICE_ATTR(cap_gain, _mode, _show, _store, 0)
-#define IIO_DEV_ATTR_DACA_VALUE(_show)		\
-	IIO_DEVICE_ATTR(daca_value, S_IRUGO, _show, NULL, 0)
-#define IIO_DEV_ATTR_DACB_VALUE(_show)		\
-	IIO_DEVICE_ATTR(dacb_value, S_IRUGO, _show, NULL, 0)
 #define IIO_DEV_ATTR_CAP_DATA(_show)		\
-	IIO_DEVICE_ATTR(cap_data, S_IRUGO, _show, NULL, 0)
+	IIO_DEVICE_ATTR(cap0_raw, S_IRUGO, _show, NULL, 0)
 #define IIO_DEV_ATTR_VT_DATA(_show)		\
-	IIO_DEVICE_ATTR(vt_data, S_IRUGO, _show, NULL, 0)
+	IIO_DEVICE_ATTR(in0_raw, S_IRUGO, _show, NULL, 0)
 
 static ssize_t ad774x_show_conversion_modes(struct device *dev,
 		struct device_attribute *attr,
@@ -162,7 +159,9 @@ static ssize_t ad774x_show_conversion_modes(struct device *dev,
 	int len = 0;
 
 	for (i = 0; i < AD774X_MAX_CONV_MODE; i++)
-		len += sprintf(buf + len, "%s\n", ad774x_conv_mode_table[i].name);
+		len += sprintf(buf + len, "%s ", ad774x_conv_mode_table[i].name);
+
+	len += sprintf(buf + len, "\n");
 
 	return len;
 }
@@ -210,35 +209,51 @@ static IIO_DEV_ATTR_CONVERSION_MODE(S_IRUGO | S_IWUSR,
 		ad774x_show_conversion_mode,
 		ad774x_store_conversion_mode);
 
-static ssize_t ad774x_show_daca_value(struct device *dev,
+static ssize_t ad774x_show_dac_value(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad774x_chip_info *chip = dev_info->dev_data;
+	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
 	u8 data;
 
-	ad774x_i2c_read(chip, AD774X_CAPDACA, &data, 1);
+	ad774x_i2c_read(chip, this_attr->address, &data, 1);
 
-	return sprintf(buf, "%02x\n", data);
+	return sprintf(buf, "%02x\n", data & 0x7F);
 }
 
-static IIO_DEV_ATTR_DACA_VALUE(ad774x_show_daca_value);
-
-static ssize_t ad774x_show_dacb_value(struct device *dev,
+static ssize_t ad774x_store_dac_value(struct device *dev,
 		struct device_attribute *attr,
-		char *buf)
+		const char *buf,
+		size_t len)
 {
 	struct iio_dev *dev_info = dev_get_drvdata(dev);
 	struct ad774x_chip_info *chip = dev_info->dev_data;
-	u8 data;
+	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
+	unsigned long data;
+	int ret;
 
-	ad774x_i2c_read(chip, AD774X_CAPDACB, &data, 1);
+	ret = strict_strtoul(buf, 10, &data);
 
-	return sprintf(buf, "%02x\n", data);
+	if (!ret) {
+		ad774x_i2c_write(chip, this_attr->address,
+			(data ? AD774X_CAPDAC_EN : 0) | (data & 0x7F));
+		return len;
+	}
+
+	return -EINVAL;
 }
 
-static IIO_DEV_ATTR_DACB_VALUE(ad774x_show_dacb_value);
+static IIO_DEVICE_ATTR(capdac0_raw, S_IRUGO | S_IWUSR,
+			ad774x_show_dac_value,
+			ad774x_store_dac_value,
+			AD774X_CAPDACA);
+
+static IIO_DEVICE_ATTR(capdac1_raw, S_IRUGO | S_IWUSR,
+			ad774x_show_dac_value,
+			ad774x_store_dac_value,
+			AD774X_CAPDACB);
 
 static ssize_t ad774x_show_cap_setup(struct device *dev,
 		struct device_attribute *attr,
@@ -267,7 +282,6 @@ static ssize_t ad774x_store_cap_setup(struct device *dev,
 		chip->cap_setup = data;
 		return len;
 	}
-
 
 	return -EINVAL;
 }
@@ -503,14 +517,15 @@ static struct attribute *ad774x_attributes[] = {
 	&iio_dev_attr_available_conversion_modes.dev_attr.attr,
 	&iio_dev_attr_conversion_mode.dev_attr.attr,
 	&iio_dev_attr_cap_setup.dev_attr.attr,
-	&iio_dev_attr_vt_setup.dev_attr.attr,
+	&iio_dev_attr_in0_setup.dev_attr.attr,
 	&iio_dev_attr_exec_setup.dev_attr.attr,
 	&iio_dev_attr_cap_offs.dev_attr.attr,
 	&iio_dev_attr_cap_gain.dev_attr.attr,
-	&iio_dev_attr_volt_gain.dev_attr.attr,
-	&iio_dev_attr_cap_data.dev_attr.attr,
-	&iio_dev_attr_daca_value.dev_attr.attr,
-	&iio_dev_attr_dacb_value.dev_attr.attr,
+	&iio_dev_attr_in0_gain.dev_attr.attr,
+	&iio_dev_attr_in0_raw.dev_attr.attr,
+	&iio_dev_attr_cap0_raw.dev_attr.attr,
+	&iio_dev_attr_capdac0_raw.dev_attr.attr,
+	&iio_dev_attr_capdac1_raw.dev_attr.attr,
 	&iio_dev_attr_name.dev_attr.attr,
 	NULL,
 };
@@ -626,7 +641,7 @@ static int __devinit ad774x_probe(struct i2c_client *client,
 		goto error_free_chip;
 	}
 
-	/* Echipabilish that the iio_dev is a child of the i2c device */
+	/* Establish that the iio_dev is a child of the i2c device */
 	chip->indio_dev->dev.parent = &client->dev;
 	chip->indio_dev->attrs = &ad774x_attribute_group;
 	chip->indio_dev->event_attrs = &ad774x_event_attribute_group;
@@ -640,7 +655,7 @@ static int __devinit ad774x_probe(struct i2c_client *client,
 		goto error_free_dev;
 	regdone = 1;
 
-	if (client->irq && gpio_is_valid(irq_to_gpio(client->irq)) > 0) {
+	if (client->irq) {
 		ret = iio_register_interrupt_line(client->irq,
 				chip->indio_dev,
 				0,
@@ -675,7 +690,7 @@ static int __devexit ad774x_remove(struct i2c_client *client)
 	struct ad774x_chip_info *chip = i2c_get_clientdata(client);
 	struct iio_dev *indio_dev = chip->indio_dev;
 
-	if (client->irq && gpio_is_valid(irq_to_gpio(client->irq)) > 0)
+	if (client->irq)
 		iio_unregister_interrupt_line(indio_dev, 0);
 	iio_device_unregister(indio_dev);
 	kfree(chip);
