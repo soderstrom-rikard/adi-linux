@@ -451,7 +451,7 @@ int adis16251_stop_device(struct device *dev)
 	return ret;
 }
 
-int adis16251_self_test(struct device *dev)
+static int adis16251_self_test(struct device *dev)
 {
 	int ret;
 
@@ -480,7 +480,14 @@ int adis16251_check_status(struct device *dev)
 		dev_err(dev, "Reading status failed\n");
 		goto error_ret;
 	}
-	ret = status;
+
+	if (!(status & ADIS16251_DIAG_STAT_ERR_MASK)) {
+		ret = 0;
+		goto error_ret;
+	}
+
+	ret = -EFAULT;
+
 	if (status & ADIS16251_DIAG_STAT_ALARM2)
 		dev_err(dev, "Alarm 2 active\n");
 	if (status & ADIS16251_DIAG_STAT_ALARM1)
