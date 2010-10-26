@@ -6,8 +6,8 @@ comment "Analog digital bi-direction convertors"
 config ADT7316
 	tristate "Analog Devices ADT7316/7/8 ADT7516/7/9 temperature sensor, ADC and DAC driver"
 	help
-	  Say yes here to build support for Analog Devices ADT7316/7/8
-	  and ADT7516/7/9 temperature sensors, ADC and DAC.
+	  Say yes here to build support for Analog Devices ADT7316, ADT7317, ADT7318
+	  and ADT7516, ADT7517, ADT7519 temperature sensors, ADC and DAC.
 
 config ADT7316_SPI
 	tristate "support SPI bus connection"
