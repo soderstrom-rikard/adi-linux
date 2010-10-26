@@ -24,31 +24,31 @@
  * AD774X registers definition
  */
 
-#define	AD774X_STATUS		0
-#define	AD774X_STATUS_RDY	(1 << 2)
-#define	AD774X_STATUS_RDYVT	(1 << 1)
-#define	AD774X_STATUS_RDYCAP	(1 << 0)
-#define	AD774X_CAP_DATA_HIGH	1
-#define	AD774X_CAP_DATA_MID	2
-#define	AD774X_CAP_DATA_LOW	3
-#define	AD774X_VT_DATA_HIGH	4
-#define	AD774X_VT_DATA_MID	5
-#define	AD774X_VT_DATA_LOW	6
-#define	AD774X_CAP_SETUP	7
-#define	AD774X_VT_SETUP		8
-#define	AD774X_EXEC_SETUP	9
-#define	AD774X_CFG		10
-#define	AD774X_CAPDACA		11
-#define	AD774X_CAPDACB		12
-#define	AD774X_CAPDAC_EN	(1 << 7)
-#define	AD774X_CAP_OFFH		13
-#define	AD774X_CAP_OFFL		14
-#define	AD774X_CAP_GAINH	15
-#define	AD774X_CAP_GAINL	16
-#define	AD774X_VOLT_GAINH	17
-#define	AD774X_VOLT_GAINL	18
+#define AD774X_STATUS		0
+#define AD774X_STATUS_RDY	(1 << 2)
+#define AD774X_STATUS_RDYVT	(1 << 1)
+#define AD774X_STATUS_RDYCAP	(1 << 0)
+#define AD774X_CAP_DATA_HIGH	1
+#define AD774X_CAP_DATA_MID	2
+#define AD774X_CAP_DATA_LOW	3
+#define AD774X_VT_DATA_HIGH	4
+#define AD774X_VT_DATA_MID	5
+#define AD774X_VT_DATA_LOW	6
+#define AD774X_CAP_SETUP	7
+#define AD774X_VT_SETUP		8
+#define AD774X_EXEC_SETUP	9
+#define AD774X_CFG		10
+#define AD774X_CAPDACA		11
+#define AD774X_CAPDACB		12
+#define AD774X_CAPDAC_EN	(1 << 7)
+#define AD774X_CAP_OFFH		13
+#define AD774X_CAP_OFFL		14
+#define AD774X_CAP_GAINH	15
+#define AD774X_CAP_GAINL	16
+#define AD774X_VOLT_GAINH	17
+#define AD774X_VOLT_GAINL	18
 
-#define	AD774X_MAX_CONV_MODE	6
+#define AD774X_MAX_CONV_MODE	6
 
 /*
  * struct ad774x_chip_info - chip specifc information
