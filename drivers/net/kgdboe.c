@@ -216,9 +216,10 @@ static int init_kgdboe(void)
 
 static void cleanup_kgdboe(void)
 {
-	netpoll_cleanup(&np);
 	if (configured == 2)
-		kgdb_unregister_io_module(&local_kgdb_io_ops);
+		return;
+	netpoll_cleanup(&np);
+	kgdb_unregister_io_module(&local_kgdb_io_ops);
 	configured = 0;
 }
 
