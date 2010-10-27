@@ -1,7 +1,7 @@
 /*
  * Blackfin On-Chip Serial Driver
  *
- * Copyright 2006-2008 Analog Devices Inc.
+ * Copyright 2006-2010 Analog Devices Inc.
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
@@ -12,6 +12,7 @@
 #define SUPPORT_SYSRQ
 #endif
 
+#define DRIVER_NAME "bfin-uart"
 #define pr_fmt(fmt) DRIVER_NAME ": " fmt
 
 #include <linux/module.h>
@@ -52,7 +53,6 @@
 #define BFIN_SERIAL_DEV_NAME	"ttyBF"
 #define BFIN_SERIAL_MAJOR	204
 #define BFIN_SERIAL_MINOR	64
-#define DRIVER_NAME		"bfin-uart"
 
 static struct bfin_serial_port *bfin_serial_ports[BFIN_UART_NR_PORTS];
 
@@ -686,7 +686,7 @@ static int bfin_serial_startup(struct uart_port *port)
 		/*
 		 * UART2 and UART3 on BF548 share interrupt PINs and DMA
 		 * controllers with SPORT2 and SPORT3. UART rx and tx
-		 * interrupts are generated in PIO mode only when  configure
+		 * interrupts are generated in PIO mode only when configure
 		 * their peripheral mapping registers properly, which means
 		 * request corresponding DMA channels in PIO mode as well.
 		 */
