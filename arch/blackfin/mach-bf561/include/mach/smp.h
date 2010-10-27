@@ -17,6 +17,8 @@ int platform_boot_secondary(unsigned int cpu, struct task_struct *idle);
 
 void platform_secondary_init(unsigned int cpu);
 
+void platform_request_ipi(int irq, irq_handler_t handler);
+
 void platform_send_ipi(cpumask_t callmap, int irq);
 
 void platform_send_ipi_cpu(unsigned int cpu, int irq);

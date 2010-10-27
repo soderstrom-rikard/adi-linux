@@ -48,8 +48,6 @@ void __cpuinitdata *init_retx_coreb, *init_saved_retx_coreb,
 	*init_saved_seqstat_coreb, *init_saved_icplb_fault_addr_coreb,
 	*init_saved_dcplb_fault_addr_coreb;
 
-void __init platform_request_ipi(int irq, irq_handler_t handler);
-
 #define BFIN_IPI_RESCHEDULE   0
 #define BFIN_IPI_CALL_FUNC    1
 #define BFIN_IPI_CPU_STOP     2
