@@ -34,14 +34,14 @@ bfin_iwr_save(unsigned long niwr0, unsigned long niwr1, unsigned long niwr2,
               unsigned long *iwr0, unsigned long *iwr1, unsigned long *iwr2)
 {
 #ifdef SIC_IWR
-	iwr0 = bfin_read_SIC_IWR();
+	*iwr0 = bfin_read_SIC_IWR();
 #else
-	iwr0 = bfin_read_SIC_IWR0();
+	*iwr0 = bfin_read_SIC_IWR0();
 # ifdef SIC_IWR1
-	iwr1 = bfin_read_SIC_IWR1();
+	*iwr1 = bfin_read_SIC_IWR1();
 # endif
 # ifdef SIC_IWR2
-	iwr2 = bfin_read_SIC_IWR2();
+	*iwr2 = bfin_read_SIC_IWR2();
 # endif
 #endif
 	bfin_iwr_restore(niwr0, niwr1, niwr2);
