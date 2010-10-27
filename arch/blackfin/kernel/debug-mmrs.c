@@ -224,11 +224,11 @@ bfin_debug_mmrs_dma(struct dentry *parent, unsigned long base, int num, char mdm
 #define DMA(num)  _DMA(num, DMA##num##_NEXT_DESC_PTR, 0, "")
 #define _MDMA(num, x) \
 	do { \
-		_DMA(num, x##MDMA_D##num##_CONFIG, 'D', #x); \
-		_DMA(num, x##MDMA_S##num##_CONFIG, 'S', #x); \
+		_DMA(num, x##DMA_D##num##_CONFIG, 'D', #x); \
+		_DMA(num, x##DMA_S##num##_CONFIG, 'S', #x); \
 	} while (0)
-#define MDMA(num) _MDMA(num, )
-#define IMDMA(num) _MDMA(num, I)
+#define MDMA(num) _MDMA(num, M)
+#define IMDMA(num) _MDMA(num, IM)
 
 /*
  * EPPI
