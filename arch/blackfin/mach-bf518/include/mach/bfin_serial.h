@@ -1,7 +1,7 @@
 /*
- * bfin_serial.h - Blackfin UART/Serial definitions
+ * mach/bfin_serial.h - Blackfin UART/Serial definitions
  *
- * Copyright 2006-2009 Analog Devices Inc.
+ * Copyright 2006-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
