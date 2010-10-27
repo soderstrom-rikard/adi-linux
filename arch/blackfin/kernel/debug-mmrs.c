@@ -12,6 +12,7 @@
 #include <linux/module.h>
 
 #include <asm/blackfin.h>
+#include <asm/gpio.h>
 #include <asm/bfin_can.h>
 #include <asm/bfin_dma.h>
 #include <asm/bfin_ppi.h>
@@ -44,6 +45,12 @@
 	({ \
 		buf + (num >= 0 ? \
 			sprintf(buf, #pfx "%i_", num) : \
+			sprintf(buf, #pfx "_")); \
+	})
+#define REGS_STR_PFX_C(buf, pfx, num) \
+	({ \
+		buf + (num >= 0 ? \
+			sprintf(buf, #pfx "%c_", 'A' + num) : \
 			sprintf(buf, #pfx "_")); \
 	})
 
@@ -712,7 +719,33 @@ static int __init bfin_debug_mmrs_init(void)
 	D16(DMAC1_PERIMUX);
 #endif
 
-#ifndef __ADSPBF561__
+#ifdef __ADSPBF561__
+	/* XXX: should rewrite the MMR map */
+# define DMA0_NEXT_DESC_PTR DMA2_0_NEXT_DESC_PTR
+# define DMA1_NEXT_DESC_PTR DMA2_1_NEXT_DESC_PTR
+# define DMA2_NEXT_DESC_PTR DMA2_2_NEXT_DESC_PTR
+# define DMA3_NEXT_DESC_PTR DMA2_3_NEXT_DESC_PTR
+# define DMA4_NEXT_DESC_PTR DMA2_4_NEXT_DESC_PTR
+# define DMA5_NEXT_DESC_PTR DMA2_5_NEXT_DESC_PTR
+# define DMA6_NEXT_DESC_PTR DMA2_6_NEXT_DESC_PTR
+# define DMA7_NEXT_DESC_PTR DMA2_7_NEXT_DESC_PTR
+# define DMA8_NEXT_DESC_PTR DMA2_8_NEXT_DESC_PTR
+# define DMA9_NEXT_DESC_PTR DMA2_9_NEXT_DESC_PTR
+# define DMA10_NEXT_DESC_PTR DMA2_10_NEXT_DESC_PTR
+# define DMA11_NEXT_DESC_PTR DMA2_11_NEXT_DESC_PTR
+# define DMA12_NEXT_DESC_PTR DMA1_0_NEXT_DESC_PTR
+# define DMA13_NEXT_DESC_PTR DMA1_1_NEXT_DESC_PTR
+# define DMA14_NEXT_DESC_PTR DMA1_2_NEXT_DESC_PTR
+# define DMA15_NEXT_DESC_PTR DMA1_3_NEXT_DESC_PTR
+# define DMA16_NEXT_DESC_PTR DMA1_4_NEXT_DESC_PTR
+# define DMA17_NEXT_DESC_PTR DMA1_5_NEXT_DESC_PTR
+# define DMA18_NEXT_DESC_PTR DMA1_6_NEXT_DESC_PTR
+# define DMA19_NEXT_DESC_PTR DMA1_7_NEXT_DESC_PTR
+# define DMA20_NEXT_DESC_PTR DMA1_8_NEXT_DESC_PTR
+# define DMA21_NEXT_DESC_PTR DMA1_9_NEXT_DESC_PTR
+# define DMA22_NEXT_DESC_PTR DMA1_10_NEXT_DESC_PTR
+# define DMA23_NEXT_DESC_PTR DMA1_11_NEXT_DESC_PTR
+#endif
 	parent = debugfs_create_dir("dma", top);
 	DMA(0);
 	DMA(1);
@@ -723,13 +756,13 @@ static int __init bfin_debug_mmrs_init(void)
 	DMA(5);
 	DMA(6);
 	DMA(7);
-#ifdef DMA8_CONFIG
+#ifdef DMA8_NEXT_DESC_PTR
 	DMA(8);
 	DMA(9);
 	DMA(10);
 	DMA(11);
 #endif
-#ifdef DMA12_CONFIG
+#ifdef DMA12_NEXT_DESC_PTR
 	DMA(12);
 	DMA(13);
 	DMA(14);
@@ -739,12 +772,11 @@ static int __init bfin_debug_mmrs_init(void)
 	DMA(18);
 	DMA(19);
 #endif
-#ifdef DMA20_CONFIG
+#ifdef DMA20_NEXT_DESC_PTR
 	DMA(20);
 	DMA(21);
 	DMA(22);
 	DMA(23);
-#endif
 #endif
 
 	parent = debugfs_create_dir("ebiu_amc", top);
@@ -1923,13 +1955,13 @@ static int __init bfin_debug_mmrs_init(void)
 	if (USE_BF538 || USE_BF539) {
 
 		parent = debugfs_create_dir("GPIO Port C", top);
+		d("PORTCIO_FER", 16, 0xFFC01500);
 		d("PORTCIO", 16, 0xFFC01510);
 		d("PORTCIO_CLEAR", 16, 0xFFC01520);
-		d("PORTCIO_DIR", 16, 0xFFC01550);
-		d("PORTCIO_FER", 16, 0xFFC01500);
-		d("PORTCIO_INEN", 16, 0xFFC01560);
 		d("PORTCIO_SET", 16, 0xFFC01530);
 		d("PORTCIO_TOGGLE", 16, 0xFFC01540);
+		d("PORTCIO_DIR", 16, 0xFFC01550);
+		d("PORTCIO_INEN", 16, 0xFFC01560);
 
 		parent = debugfs_create_dir("GPIO Port D", top);
 		d("PORTDIO", 16, 0xFFC01514);
@@ -1975,157 +2007,51 @@ static int __init bfin_debug_mmrs_init(void)
 #else
 # define USE_BF54x 0
 #endif
-	if (USE_BF54x) {
 
-		parent = debugfs_create_dir("PINT_0", top);
-		d("PINT0_ASSIGN", 32, 0xFFC0140C);
-		d("PINT0_EDGE_CLEAR", 32, 0xFFC01414);
-		d("PINT0_EDGE_SET", 32, 0xFFC01410);
-		d("PINT0_INVERT_CLEAR", 32, 0xFFC0141C);
-		d("PINT0_INVERT_SET", 32, 0xFFC01418);
-		d("PINT0_IRQ", 32, 0xFFC01408);
-		d("PINT0_LATCH", 32, 0xFFC01424);
-		d("PINT0_MASK_CLEAR", 32, 0xFFC01404);
-		d("PINT0_MASK_SET", 32, 0xFFC01400);
-		d("PINT0_PINSTATE", 32, 0xFFC01420);
+#ifdef __ADSPBF54x__
+	{
+		int num;
+		unsigned long base;
+		char *_buf, buf[32];
 
-		parent = debugfs_create_dir("PINT_1", top);
-		d("PINT1_ASSIGN", 32, 0xFFC0143C);
-		d("PINT1_EDGE_CLEAR", 32, 0xFFC01444);
-		d("PINT1_EDGE_SET", 32, 0xFFC01440);
-		d("PINT1_INVERT_CLEAR", 32, 0xFFC0144C);
-		d("PINT1_INVERT_SET", 32, 0xFFC01448);
-		d("PINT1_IRQ", 32, 0xFFC01438);
-		d("PINT1_LATCH", 32, 0xFFC01454);
-		d("PINT1_MASK_CLEAR", 32, 0xFFC01434);
-		d("PINT1_MASK_SET", 32, 0xFFC01430);
-		d("PINT1_PINSTATE", 32, 0xFFC01450);
+#define __PINT(uname, lname) __REGS(pint, #uname, lname)
+		parent = debugfs_create_dir("pint", top);
+		base = PINT0_MASK_SET;
+		for (num = 0; num < 4; ++num) {
+			_buf = REGS_STR_PFX(buf, PINT, num);
+			__PINT(MASK_SET, mask_set);
+			__PINT(MASK_CLEAR, mask_clear);
+			__PINT(IRQ, irq);
+			__PINT(ASSIGN, assign);
+			__PINT(EDGE_SET, edge_set);
+			__PINT(EDGE_CLEAR, edge_clear);
+			__PINT(INVERT_SET, invert_set);
+			__PINT(INVERT_CLEAR, invert_clear);
+			__PINT(PINSTATE, pinstate);
+			__PINT(LATCH, latch);
+			base += sizeof(struct bfin_pint_regs);
+		}
 
-		parent = debugfs_create_dir("PINT_2", top);
-		d("PINT2_ASSIGN", 32, 0xFFC0146C);
-		d("PINT2_EDGE_CLEAR", 32, 0xFFC01474);
-		d("PINT2_EDGE_SET", 32, 0xFFC01470);
-		d("PINT2_INVERT_CLEAR", 32, 0xFFC0147C);
-		d("PINT2_INVERT_SET", 32, 0xFFC01478);
-		d("PINT2_IRQ", 32, 0xFFC01468);
-		d("PINT2_LATCH", 32, 0xFFC01484);
-		d("PINT2_MASK_CLEAR", 32, 0xFFC01464);
-		d("PINT2_MASK_SET", 32, 0xFFC01460);
-		d("PINT2_PINSTATE", 32, 0xFFC01480);
+#define bfin_gpio_regs gpio_port_t
+#define __PORT(uname, lname) __REGS(gpio, #uname, lname)
+		parent = debugfs_create_dir("port", top);
+		base = PORTA_FER;
+		for (num = 0; num < 10; ++num) {
+			_buf = REGS_STR_PFX_C(buf, PORT, num);
+			__PORT(FER, port_fer);
+			__PORT(SET, data_set);
+			__PORT(CLEAR, data_clear);
+			__PORT(DIR_SET, dir_set);
+			__PORT(DIR_CLEAR, dir_clear);
+			__PORT(INEN, inen);
+			__PORT(MUX, port_mux);
+			_buf[-1] = '\0';
+			d(buf, 16, base + REGS_OFF(gpio, data));
+			base += sizeof(struct bfin_gpio_regs);
+		}
 
-		parent = debugfs_create_dir("PINT_3", top);
-		d("PINT3_ASSIGN", 32, 0xFFC0149C);
-		d("PINT3_EDGE_CLEAR", 32, 0xFFC014A4);
-		d("PINT3_EDGE_SET", 32, 0xFFC014A0);
-		d("PINT3_INVERT_CLEAR", 32, 0xFFC014AC);
-		d("PINT3_INVERT_SET", 32, 0xFFC014A8);
-		d("PINT3_IRQ", 32, 0xFFC01498);
-		d("PINT3_LATCH", 32, 0xFFC014B4);
-		d("PINT3_MASK_CLEAR", 32, 0xFFC01494);
-		d("PINT3_MASK_SET", 32, 0xFFC01490);
-		d("PINT3_PINSTATE", 32, 0xFFC014B0);
-
-		parent = debugfs_create_dir("Port_A", top);
-		d("PORTA", 16, 0xFFC014C4);
-		d("PORTA_CLEAR", 16, 0xFFC014CC);
-		d("PORTA_DIR_CLEAR", 16, 0xFFC014D4);
-		d("PORTA_DIR_SET", 16, 0xFFC014D0);
-		d("PORTA_FER", 16, 0xFFC014C0);
-		d("PORTA_INEN", 16, 0xFFC014D8);
-		d("PORTA_MUX", 32, 0xFFC014DC);
-		d("PORTA_SET", 16, 0xFFC014C8);
-
-		parent = debugfs_create_dir("Port_B", top);
-		d("PORTB", 16, 0xFFC014E4);
-		d("PORTB_CLEAR", 16, 0xFFC014EC);
-		d("PORTB_DIR_CLEAR", 16, 0xFFC014F4);
-		d("PORTB_DIR_SET", 16, 0xFFC014F0);
-		d("PORTB_FER", 16, 0xFFC014E0);
-		d("PORTB_INEN", 16, 0xFFC014F8);
-		d("PORTB_MUX", 32, 0xFFC014FC);
-		d("PORTB_SET", 16, 0xFFC014E8);
-
-		parent = debugfs_create_dir("Port_C", top);
-		d("PORTC", 16, 0xFFC01504);
-		d("PORTC_CLEAR", 16, 0xFFC0150C);
-		d("PORTC_DIR_CLEAR", 16, 0xFFC01514);
-		d("PORTC_DIR_SET", 16, 0xFFC01510);
-		d("PORTC_FER", 16, 0xFFC01500);
-		d("PORTC_INEN", 16, 0xFFC01518);
-		d("PORTC_MUX", 32, 0xFFC0151C);
-		d("PORTC_SET", 16, 0xFFC01508);
-
-		parent = debugfs_create_dir("Port_D", top);
-		d("PORTD", 16, 0xFFC01524);
-		d("PORTD_CLEAR", 16, 0xFFC0152C);
-		d("PORTD_DIR_CLEAR", 16, 0xFFC01534);
-		d("PORTD_DIR_SET", 16, 0xFFC01530);
-		d("PORTD_FER", 16, 0xFFC01520);
-		d("PORTD_INEN", 16, 0xFFC01538);
-		d("PORTD_MUX", 32, 0xFFC0153C);
-		d("PORTD_SET", 16, 0xFFC01528);
-
-		parent = debugfs_create_dir("Port_E", top);
-		d("PORTE", 16, 0xFFC01544);
-		d("PORTE_CLEAR", 16, 0xFFC0154C);
-		d("PORTE_DIR_CLEAR", 16, 0xFFC01554);
-		d("PORTE_DIR_SET", 16, 0xFFC01550);
-		d("PORTE_FER", 16, 0xFFC01540);
-		d("PORTE_INEN", 16, 0xFFC01558);
-		d("PORTE_MUX", 32, 0xFFC0155C);
-		d("PORTE_SET", 16, 0xFFC01548);
-
-		parent = debugfs_create_dir("Port_F", top);
-		d("PORTF", 16, 0xFFC01564);
-		d("PORTF_CLEAR", 16, 0xFFC0156C);
-		d("PORTF_DIR_CLEAR", 16, 0xFFC01574);
-		d("PORTF_DIR_SET", 16, 0xFFC01570);
-		d("PORTF_FER", 16, 0xFFC01560);
-		d("PORTF_INEN", 16, 0xFFC01578);
-		d("PORTF_MUX", 32, 0xFFC0157C);
-		d("PORTF_SET", 16, 0xFFC01568);
-
-		parent = debugfs_create_dir("Port_G", top);
-		d("PORTG", 16, 0xFFC01584);
-		d("PORTG_CLEAR", 16, 0xFFC0158C);
-		d("PORTG_DIR_CLEAR", 16, 0xFFC01594);
-		d("PORTG_DIR_SET", 16, 0xFFC01590);
-		d("PORTG_FER", 16, 0xFFC01580);
-		d("PORTG_INEN", 16, 0xFFC01598);
-		d("PORTG_MUX", 32, 0xFFC0159C);
-		d("PORTG_SET", 16, 0xFFC01588);
-
-		parent = debugfs_create_dir("Port_H", top);
-		d("PORTH", 16, 0xFFC015A4);
-		d("PORTH_CLEAR", 16, 0xFFC015AC);
-		d("PORTH_DIR_CLEAR", 16, 0xFFC015B4);
-		d("PORTH_DIR_SET", 16, 0xFFC015B0);
-		d("PORTH_FER", 16, 0xFFC015A0);
-		d("PORTH_INEN", 16, 0xFFC015B8);
-		d("PORTH_MUX", 32, 0xFFC015BC);
-		d("PORTH_SET", 16, 0xFFC015A8);
-
-		parent = debugfs_create_dir("Port_I", top);
-		d("PORTI", 16, 0xFFC015C4);
-		d("PORTI_CLEAR", 16, 0xFFC015CC);
-		d("PORTI_DIR_CLEAR", 16, 0xFFC015D4);
-		d("PORTI_DIR_SET", 16, 0xFFC015D0);
-		d("PORTI_FER", 16, 0xFFC015C0);
-		d("PORTI_INEN", 16, 0xFFC015D8);
-		d("PORTI_MUX", 32, 0xFFC015DC);
-		d("PORTI_SET", 16, 0xFFC015C8);
-
-		parent = debugfs_create_dir("Port_J", top);
-		d("PORTJ", 16, 0xFFC015E4);
-		d("PORTJ_CLEAR", 16, 0xFFC015EC);
-		d("PORTJ_DIR_CLEAR", 16, 0xFFC015F4);
-		d("PORTJ_DIR_SET", 16, 0xFFC015F0);
-		d("PORTJ_FER", 16, 0xFFC015E0);
-		d("PORTJ_INEN", 16, 0xFFC015F8);
-		d("PORTJ_MUX", 32, 0xFFC015FC);
-		d("PORTJ_SET", 16, 0xFFC015E8);
-
-	}	/* BF54x */
+	}
+#endif	/* BF54x */
 
 #ifdef __ADSPBF561__
 # define USE_BF561 1
@@ -2133,366 +2059,6 @@ static int __init bfin_debug_mmrs_init(void)
 # define USE_BF561 0
 #endif
 	if (USE_BF561) {
-
-		parent = debugfs_create_dir("DMA1 Channel-0", top);
-		d("DMA1_0_CONFIG", 16, 0xFFC01C08);
-		d("DMA1_0_CURR_ADDR", 32, 0xFFC01C24);
-		d("DMA1_0_CURR_DESC_PTR", 32, 0xFFC01C20);
-		d("DMA1_0_CURR_X_COUNT", 16, 0xFFC01C30);
-		d("DMA1_0_CURR_Y_COUNT", 16, 0xFFC01C38);
-		d("DMA1_0_IRQ_STATUS", 16, 0xFFC01C28);
-		d("DMA1_0_NEXT_DESC_PTR", 32, 0xFFC01C00);
-		d("DMA1_0_PERIPHERAL_MAP", 16, 0xFFC01C2C);
-		d("DMA1_0_START_ADDR", 32, 0xFFC01C04);
-		d("DMA1_0_X_COUNT", 16, 0xFFC01C10);
-		d("DMA1_0_X_MODIFY", 16, 0xFFC01C14);
-		d("DMA1_0_Y_COUNT", 16, 0xFFC01C18);
-		d("DMA1_0_Y_MODIFY", 16, 0xFFC01C1C);
-
-		parent = debugfs_create_dir("DMA1 Channel-10", top);
-		d("DMA1_10_CONFIG", 16, 0xFFC01E88);
-		d("DMA1_10_CURR_ADDR", 32, 0xFFC01EA4);
-		d("DMA1_10_CURR_DESC_PTR", 32, 0xFFC01EA0);
-		d("DMA1_10_CURR_X_COUNT", 16, 0xFFC01EB0);
-		d("DMA1_10_CURR_Y_COUNT", 16, 0xFFC01EB8);
-		d("DMA1_10_IRQ_STATUS", 16, 0xFFC01EA8);
-		d("DMA1_10_NEXT_DESC_PTR", 32, 0xFFC01E80);
-		d("DMA1_10_PERIPHERAL_MAP", 16, 0xFFC01EAC);
-		d("DMA1_10_START_ADDR", 32, 0xFFC01E84);
-		d("DMA1_10_X_COUNT", 16, 0xFFC01E90);
-		d("DMA1_10_X_MODIFY", 16, 0xFFC01E94);
-		d("DMA1_10_Y_COUNT", 16, 0xFFC01E98);
-		d("DMA1_10_Y_MODIFY", 16, 0xFFC01E9C);
-
-		parent = debugfs_create_dir("DMA1 Channel-11", top);
-		d("DMA1_11_CONFIG", 16, 0xFFC01EC8);
-		d("DMA1_11_CURR_ADDR", 32, 0xFFC01EE4);
-		d("DMA1_11_CURR_DESC_PTR", 32, 0xFFC01EE0);
-		d("DMA1_11_CURR_X_COUNT", 16, 0xFFC01EF0);
-		d("DMA1_11_CURR_Y_COUNT", 16, 0xFFC01EF8);
-		d("DMA1_11_IRQ_STATUS", 16, 0xFFC01EE8);
-		d("DMA1_11_NEXT_DESC_PTR", 32, 0xFFC01EC0);
-		d("DMA1_11_PERIPHERAL_MAP", 16, 0xFFC01EEC);
-		d("DMA1_11_START_ADDR", 32, 0xFFC01EC4);
-		d("DMA1_11_X_COUNT", 16, 0xFFC01ED0);
-		d("DMA1_11_X_MODIFY", 16, 0xFFC01ED4);
-		d("DMA1_11_Y_COUNT", 16, 0xFFC01ED8);
-		d("DMA1_11_Y_MODIFY", 16, 0xFFC01EDC);
-
-		parent = debugfs_create_dir("DMA1 Channel-1", top);
-		d("DMA1_1_CONFIG", 16, 0xFFC01C48);
-		d("DMA1_1_CURR_ADDR", 32, 0xFFC01C64);
-		d("DMA1_1_CURR_DESC_PTR", 32, 0xFFC01C60);
-		d("DMA1_1_CURR_X_COUNT", 16, 0xFFC01C70);
-		d("DMA1_1_CURR_Y_COUNT", 16, 0xFFC01C78);
-		d("DMA1_1_IRQ_STATUS", 16, 0xFFC01C68);
-		d("DMA1_1_NEXT_DESC_PTR", 32, 0xFFC01C40);
-		d("DMA1_1_PERIPHERAL_MAP", 16, 0xFFC01C6C);
-		d("DMA1_1_START_ADDR", 32, 0xFFC01C44);
-		d("DMA1_1_X_COUNT", 16, 0xFFC01C50);
-		d("DMA1_1_X_MODIFY", 16, 0xFFC01C54);
-		d("DMA1_1_Y_COUNT", 16, 0xFFC01C58);
-		d("DMA1_1_Y_MODIFY", 16, 0xFFC01C5C);
-
-		parent = debugfs_create_dir("DMA1 Channel-2", top);
-		d("DMA1_2_CONFIG", 16, 0xFFC01C88);
-		d("DMA1_2_CURR_ADDR", 32, 0xFFC01CA4);
-		d("DMA1_2_CURR_DESC_PTR", 32, 0xFFC01CA0);
-		d("DMA1_2_CURR_X_COUNT", 16, 0xFFC01CB0);
-		d("DMA1_2_CURR_Y_COUNT", 16, 0xFFC01CB8);
-		d("DMA1_2_IRQ_STATUS", 16, 0xFFC01CA8);
-		d("DMA1_2_NEXT_DESC_PTR", 32, 0xFFC01C80);
-		d("DMA1_2_PERIPHERAL_MAP", 16, 0xFFC01CAC);
-		d("DMA1_2_START_ADDR", 32, 0xFFC01C84);
-		d("DMA1_2_X_COUNT", 16, 0xFFC01C90);
-		d("DMA1_2_X_MODIFY", 16, 0xFFC01C94);
-		d("DMA1_2_Y_COUNT", 16, 0xFFC01C98);
-		d("DMA1_2_Y_MODIFY", 16, 0xFFC01C9C);
-
-		parent = debugfs_create_dir("DMA1 Channel-3", top);
-		d("DMA1_3_CONFIG", 16, 0xFFC01CC8);
-		d("DMA1_3_CURR_ADDR", 32, 0xFFC01CE4);
-		d("DMA1_3_CURR_DESC_PTR", 32, 0xFFC01CE0);
-		d("DMA1_3_CURR_X_COUNT", 16, 0xFFC01CF0);
-		d("DMA1_3_CURR_Y_COUNT", 16, 0xFFC01CF8);
-		d("DMA1_3_IRQ_STATUS", 16, 0xFFC01CE8);
-		d("DMA1_3_NEXT_DESC_PTR", 32, 0xFFC01CC0);
-		d("DMA1_3_PERIPHERAL_MAP", 16, 0xFFC01CEC);
-		d("DMA1_3_START_ADDR", 32, 0xFFC01CC4);
-		d("DMA1_3_X_COUNT", 16, 0xFFC01CD0);
-		d("DMA1_3_X_MODIFY", 16, 0xFFC01CD4);
-		d("DMA1_3_Y_COUNT", 16, 0xFFC01CD8);
-		d("DMA1_3_Y_MODIFY", 16, 0xFFC01CDC);
-
-		parent = debugfs_create_dir("DMA1 Channel-4", top);
-		d("DMA1_4_CONFIG", 16, 0xFFC01D08);
-		d("DMA1_4_CURR_ADDR", 32, 0xFFC01D24);
-		d("DMA1_4_CURR_DESC_PTR", 32, 0xFFC01D20);
-		d("DMA1_4_CURR_X_COUNT", 16, 0xFFC01D30);
-		d("DMA1_4_CURR_Y_COUNT", 16, 0xFFC01D38);
-		d("DMA1_4_IRQ_STATUS", 16, 0xFFC01D28);
-		d("DMA1_4_NEXT_DESC_PTR", 32, 0xFFC01D00);
-		d("DMA1_4_PERIPHERAL_MAP", 16, 0xFFC01D2C);
-		d("DMA1_4_START_ADDR", 32, 0xFFC01D04);
-		d("DMA1_4_X_COUNT", 16, 0xFFC01D10);
-		d("DMA1_4_X_MODIFY", 16, 0xFFC01D14);
-		d("DMA1_4_Y_COUNT", 16, 0xFFC01D18);
-		d("DMA1_4_Y_MODIFY", 16, 0xFFC01D1C);
-
-		parent = debugfs_create_dir("DMA1 Channel-5", top);
-		d("DMA1_5_CONFIG", 16, 0xFFC01D48);
-		d("DMA1_5_CURR_ADDR", 32, 0xFFC01D64);
-		d("DMA1_5_CURR_DESC_PTR", 32, 0xFFC01D60);
-		d("DMA1_5_CURR_X_COUNT", 16, 0xFFC01D70);
-		d("DMA1_5_CURR_Y_COUNT", 16, 0xFFC01D78);
-		d("DMA1_5_IRQ_STATUS", 16, 0xFFC01D68);
-		d("DMA1_5_NEXT_DESC_PTR", 32, 0xFFC01D40);
-		d("DMA1_5_PERIPHERAL_MAP", 16, 0xFFC01D6C);
-		d("DMA1_5_START_ADDR", 32, 0xFFC01D44);
-		d("DMA1_5_X_COUNT", 16, 0xFFC01D50);
-		d("DMA1_5_X_MODIFY", 16, 0xFFC01D54);
-		d("DMA1_5_Y_COUNT", 16, 0xFFC01D58);
-		d("DMA1_5_Y_MODIFY", 16, 0xFFC01D5C);
-
-		parent = debugfs_create_dir("DMA1 Channel-6", top);
-		d("DMA1_6_CONFIG", 16, 0xFFC01D88);
-		d("DMA1_6_CURR_ADDR", 32, 0xFFC01DA4);
-		d("DMA1_6_CURR_DESC_PTR", 32, 0xFFC01DA0);
-		d("DMA1_6_CURR_X_COUNT", 16, 0xFFC01DB0);
-		d("DMA1_6_CURR_Y_COUNT", 16, 0xFFC01DB8);
-		d("DMA1_6_IRQ_STATUS", 16, 0xFFC01DA8);
-		d("DMA1_6_NEXT_DESC_PTR", 32, 0xFFC01D80);
-		d("DMA1_6_PERIPHERAL_MAP", 16, 0xFFC01DAC);
-		d("DMA1_6_START_ADDR", 32, 0xFFC01D84);
-		d("DMA1_6_X_COUNT", 16, 0xFFC01D90);
-		d("DMA1_6_X_MODIFY", 16, 0xFFC01D94);
-		d("DMA1_6_Y_COUNT", 16, 0xFFC01D98);
-		d("DMA1_6_Y_MODIFY", 16, 0xFFC01D9C);
-
-		parent = debugfs_create_dir("DMA1 Channel-7", top);
-		d("DMA1_7_CONFIG", 16, 0xFFC01DC8);
-		d("DMA1_7_CURR_ADDR", 32, 0xFFC01DE4);
-		d("DMA1_7_CURR_DESC_PTR", 32, 0xFFC01DE0);
-		d("DMA1_7_CURR_X_COUNT", 16, 0xFFC01DF0);
-		d("DMA1_7_CURR_Y_COUNT", 16, 0xFFC01DF8);
-		d("DMA1_7_IRQ_STATUS", 16, 0xFFC01DE8);
-		d("DMA1_7_NEXT_DESC_PTR", 32, 0xFFC01DC0);
-		d("DMA1_7_PERIPHERAL_MAP", 16, 0xFFC01DEC);
-		d("DMA1_7_START_ADDR", 32, 0xFFC01DC4);
-		d("DMA1_7_X_COUNT", 16, 0xFFC01DD0);
-		d("DMA1_7_X_MODIFY", 16, 0xFFC01DD4);
-		d("DMA1_7_Y_COUNT", 16, 0xFFC01DD8);
-		d("DMA1_7_Y_MODIFY", 16, 0xFFC01DDC);
-
-		parent = debugfs_create_dir("DMA1 Channel-8", top);
-		d("DMA1_8_CONFIG", 16, 0xFFC01E08);
-		d("DMA1_8_CURR_ADDR", 32, 0xFFC01E24);
-		d("DMA1_8_CURR_DESC_PTR", 32, 0xFFC01E20);
-		d("DMA1_8_CURR_X_COUNT", 16, 0xFFC01E30);
-		d("DMA1_8_CURR_Y_COUNT", 16, 0xFFC01E38);
-		d("DMA1_8_IRQ_STATUS", 16, 0xFFC01E28);
-		d("DMA1_8_NEXT_DESC_PTR", 32, 0xFFC01E00);
-		d("DMA1_8_PERIPHERAL_MAP", 16, 0xFFC01E2C);
-		d("DMA1_8_START_ADDR", 32, 0xFFC01E04);
-		d("DMA1_8_X_COUNT", 16, 0xFFC01E10);
-		d("DMA1_8_X_MODIFY", 16, 0xFFC01E14);
-		d("DMA1_8_Y_COUNT", 16, 0xFFC01E18);
-		d("DMA1_8_Y_MODIFY", 16, 0xFFC01E1C);
-
-		parent = debugfs_create_dir("DMA1 Channel-9", top);
-		d("DMA1_9_CONFIG", 16, 0xFFC01E48);
-		d("DMA1_9_CURR_ADDR", 32, 0xFFC01E64);
-		d("DMA1_9_CURR_DESC_PTR", 32, 0xFFC01E60);
-		d("DMA1_9_CURR_X_COUNT", 16, 0xFFC01E70);
-		d("DMA1_9_CURR_Y_COUNT", 16, 0xFFC01E78);
-		d("DMA1_9_IRQ_STATUS", 16, 0xFFC01E68);
-		d("DMA1_9_NEXT_DESC_PTR", 32, 0xFFC01E40);
-		d("DMA1_9_PERIPHERAL_MAP", 16, 0xFFC01E6C);
-		d("DMA1_9_START_ADDR", 32, 0xFFC01E44);
-		d("DMA1_9_X_COUNT", 16, 0xFFC01E50);
-		d("DMA1_9_X_MODIFY", 16, 0xFFC01E54);
-		d("DMA1_9_Y_COUNT", 16, 0xFFC01E58);
-		d("DMA1_9_Y_MODIFY", 16, 0xFFC01E5C);
-
-		parent = debugfs_create_dir("DMA2 Channel 0", top);
-		d("DMA2_0_CONFIG", 16, 0xFFC00C08);
-		d("DMA2_0_CURR_ADDR", 32, 0xFFC00C24);
-		d("DMA2_0_CURR_DESC_PTR", 32, 0xFFC00C20);
-		d("DMA2_0_CURR_X_COUNT", 16, 0xFFC00C30);
-		d("DMA2_0_CURR_Y_COUNT", 16, 0xFFC00C38);
-		d("DMA2_0_IRQ_STATUS", 16, 0xFFC00C28);
-		d("DMA2_0_NEXT_DESC_PTR", 32, 0xFFC00C00);
-		d("DMA2_0_PERIPHERAL_MAP", 16, 0xFFC00C2C);
-		d("DMA2_0_START_ADDR", 32, 0xFFC00C04);
-		d("DMA2_0_X_COUNT", 16, 0xFFC00C10);
-		d("DMA2_0_X_MODIFY", 16, 0xFFC00C14);
-		d("DMA2_0_Y_COUNT", 16, 0xFFC00C18);
-		d("DMA2_0_Y_MODIFY", 16, 0xFFC00C1C);
-
-		parent = debugfs_create_dir("DMA2 Channel 10", top);
-		d("DMA2_10_CONFIG", 16, 0xFFC00E88);
-		d("DMA2_10_CURR_ADDR", 32, 0xFFC00EA4);
-		d("DMA2_10_CURR_DESC_PTR", 32, 0xFFC00EA0);
-		d("DMA2_10_CURR_X_COUNT", 16, 0xFFC00EB0);
-		d("DMA2_10_CURR_Y_COUNT", 16, 0xFFC00EB8);
-		d("DMA2_10_IRQ_STATUS", 16, 0xFFC00EA8);
-		d("DMA2_10_NEXT_DESC_PTR", 32, 0xFFC00E80);
-		d("DMA2_10_PERIPHERAL_MAP", 16, 0xFFC00EAC);
-		d("DMA2_10_START_ADDR", 32, 0xFFC00E84);
-		d("DMA2_10_X_COUNT", 16, 0xFFC00E90);
-		d("DMA2_10_X_MODIFY", 16, 0xFFC00E94);
-		d("DMA2_10_Y_COUNT", 16, 0xFFC00E98);
-		d("DMA2_10_Y_MODIFY", 16, 0xFFC00E9C);
-
-		parent = debugfs_create_dir("DMA2 Channel 11", top);
-		d("DMA2_11_CONFIG", 16, 0xFFC00EC8);
-		d("DMA2_11_CURR_ADDR", 32, 0xFFC00EE4);
-		d("DMA2_11_CURR_DESC_PTR", 32, 0xFFC00EE0);
-		d("DMA2_11_CURR_X_COUNT", 16, 0xFFC00EF0);
-		d("DMA2_11_CURR_Y_COUNT", 16, 0xFFC00EF8);
-		d("DMA2_11_IRQ_STATUS", 16, 0xFFC00EE8);
-		d("DMA2_11_NEXT_DESC_PTR", 32, 0xFFC00EC0);
-		d("DMA2_11_PERIPHERAL_MAP", 16, 0xFFC00EEC);
-		d("DMA2_11_START_ADDR", 32, 0xFFC00EC4);
-		d("DMA2_11_X_COUNT", 16, 0xFFC00ED0);
-		d("DMA2_11_X_MODIFY", 16, 0xFFC00ED4);
-		d("DMA2_11_Y_COUNT", 16, 0xFFC00ED8);
-		d("DMA2_11_Y_MODIFY", 16, 0xFFC00EDC);
-
-		parent = debugfs_create_dir("DMA2 Channel 1", top);
-		d("DMA2_1_CONFIG", 16, 0xFFC00C48);
-		d("DMA2_1_CURR_ADDR", 32, 0xFFC00C64);
-		d("DMA2_1_CURR_DESC_PTR", 32, 0xFFC00C60);
-		d("DMA2_1_CURR_X_COUNT", 16, 0xFFC00C70);
-		d("DMA2_1_CURR_Y_COUNT", 16, 0xFFC00C78);
-		d("DMA2_1_IRQ_STATUS", 16, 0xFFC00C68);
-		d("DMA2_1_NEXT_DESC_PTR", 32, 0xFFC00C40);
-		d("DMA2_1_PERIPHERAL_MAP", 16, 0xFFC00C6C);
-		d("DMA2_1_START_ADDR", 32, 0xFFC00C44);
-		d("DMA2_1_X_COUNT", 16, 0xFFC00C50);
-		d("DMA2_1_X_MODIFY", 16, 0xFFC00C54);
-		d("DMA2_1_Y_COUNT", 16, 0xFFC00C58);
-		d("DMA2_1_Y_MODIFY", 16, 0xFFC00C5C);
-
-		parent = debugfs_create_dir("DMA2 Channel 2", top);
-		d("DMA2_2_CONFIG", 16, 0xFFC00C88);
-		d("DMA2_2_CURR_ADDR", 32, 0xFFC00CA4);
-		d("DMA2_2_CURR_DESC_PTR", 32, 0xFFC00CA0);
-		d("DMA2_2_CURR_X_COUNT", 16, 0xFFC00CB0);
-		d("DMA2_2_CURR_Y_COUNT", 16, 0xFFC00CB8);
-		d("DMA2_2_IRQ_STATUS", 16, 0xFFC00CA8);
-		d("DMA2_2_NEXT_DESC_PTR", 32, 0xFFC00C80);
-		d("DMA2_2_PERIPHERAL_MAP", 16, 0xFFC00CAC);
-		d("DMA2_2_START_ADDR", 32, 0xFFC00C84);
-		d("DMA2_2_X_COUNT", 16, 0xFFC00C90);
-		d("DMA2_2_X_MODIFY", 16, 0xFFC00C94);
-		d("DMA2_2_Y_COUNT", 16, 0xFFC00C98);
-		d("DMA2_2_Y_MODIFY", 16, 0xFFC00C9C);
-
-		parent = debugfs_create_dir("DMA2 Channel 3", top);
-		d("DMA2_3_CONFIG", 16, 0xFFC00CC8);
-		d("DMA2_3_CURR_ADDR", 32, 0xFFC00CE4);
-		d("DMA2_3_CURR_DESC_PTR", 32, 0xFFC00CE0);
-		d("DMA2_3_CURR_X_COUNT", 16, 0xFFC00CF0);
-		d("DMA2_3_CURR_Y_COUNT", 16, 0xFFC00CF8);
-		d("DMA2_3_IRQ_STATUS", 16, 0xFFC00CE8);
-		d("DMA2_3_NEXT_DESC_PTR", 32, 0xFFC00CC0);
-		d("DMA2_3_PERIPHERAL_MAP", 16, 0xFFC00CEC);
-		d("DMA2_3_START_ADDR", 32, 0xFFC00CC4);
-		d("DMA2_3_X_COUNT", 16, 0xFFC00CD0);
-		d("DMA2_3_X_MODIFY", 16, 0xFFC00CD4);
-		d("DMA2_3_Y_COUNT", 16, 0xFFC00CD8);
-		d("DMA2_3_Y_MODIFY", 16, 0xFFC00CDC);
-
-		parent = debugfs_create_dir("DMA2 Channel 4", top);
-		d("DMA2_4_CONFIG", 16, 0xFFC00D08);
-		d("DMA2_4_CURR_ADDR", 32, 0xFFC00D24);
-		d("DMA2_4_CURR_DESC_PTR", 32, 0xFFC00D20);
-		d("DMA2_4_CURR_X_COUNT", 16, 0xFFC00D30);
-		d("DMA2_4_CURR_Y_COUNT", 16, 0xFFC00D38);
-		d("DMA2_4_IRQ_STATUS", 16, 0xFFC00D28);
-		d("DMA2_4_NEXT_DESC_PTR", 32, 0xFFC00D00);
-		d("DMA2_4_PERIPHERAL_MAP", 16, 0xFFC00D2C);
-		d("DMA2_4_START_ADDR", 32, 0xFFC00D04);
-		d("DMA2_4_X_COUNT", 16, 0xFFC00D10);
-		d("DMA2_4_X_MODIFY", 16, 0xFFC00D14);
-		d("DMA2_4_Y_COUNT", 16, 0xFFC00D18);
-		d("DMA2_4_Y_MODIFY", 16, 0xFFC00D1C);
-
-		parent = debugfs_create_dir("DMA2 Channel 5", top);
-		d("DMA2_5_CONFIG", 16, 0xFFC00D48);
-		d("DMA2_5_CURR_ADDR", 32, 0xFFC00D64);
-		d("DMA2_5_CURR_DESC_PTR", 32, 0xFFC00D60);
-		d("DMA2_5_CURR_X_COUNT", 16, 0xFFC00D70);
-		d("DMA2_5_CURR_Y_COUNT", 16, 0xFFC00D78);
-		d("DMA2_5_IRQ_STATUS", 16, 0xFFC00D68);
-		d("DMA2_5_NEXT_DESC_PTR", 32, 0xFFC00D40);
-		d("DMA2_5_PERIPHERAL_MAP", 16, 0xFFC00D6C);
-		d("DMA2_5_START_ADDR", 32, 0xFFC00D44);
-		d("DMA2_5_X_COUNT", 16, 0xFFC00D50);
-		d("DMA2_5_X_MODIFY", 16, 0xFFC00D54);
-		d("DMA2_5_Y_COUNT", 16, 0xFFC00D58);
-		d("DMA2_5_Y_MODIFY", 16, 0xFFC00D5C);
-
-		parent = debugfs_create_dir("DMA2 Channel 6", top);
-		d("DMA2_6_CONFIG", 16, 0xFFC00D88);
-		d("DMA2_6_CURR_ADDR", 32, 0xFFC00DA4);
-		d("DMA2_6_CURR_DESC_PTR", 32, 0xFFC00DA0);
-		d("DMA2_6_CURR_X_COUNT", 16, 0xFFC00DB0);
-		d("DMA2_6_CURR_Y_COUNT", 16, 0xFFC00DB8);
-		d("DMA2_6_IRQ_STATUS", 16, 0xFFC00DA8);
-		d("DMA2_6_NEXT_DESC_PTR", 32, 0xFFC00D80);
-		d("DMA2_6_PERIPHERAL_MAP", 16, 0xFFC00DAC);
-		d("DMA2_6_START_ADDR", 32, 0xFFC00D84);
-		d("DMA2_6_X_COUNT", 16, 0xFFC00D90);
-		d("DMA2_6_X_MODIFY", 16, 0xFFC00D94);
-		d("DMA2_6_Y_COUNT", 16, 0xFFC00D98);
-		d("DMA2_6_Y_MODIFY", 16, 0xFFC00D9C);
-
-		parent = debugfs_create_dir("DMA2 Channel 7", top);
-		d("DMA2_7_CONFIG", 16, 0xFFC00DC8);
-		d("DMA2_7_CURR_ADDR", 32, 0xFFC00DE4);
-		d("DMA2_7_CURR_DESC_PTR", 32, 0xFFC00DE0);
-		d("DMA2_7_CURR_X_COUNT", 16, 0xFFC00DF0);
-		d("DMA2_7_CURR_Y_COUNT", 16, 0xFFC00DF8);
-		d("DMA2_7_IRQ_STATUS", 16, 0xFFC00DE8);
-		d("DMA2_7_NEXT_DESC_PTR", 32, 0xFFC00DC0);
-		d("DMA2_7_PERIPHERAL_MAP", 16, 0xFFC00DEC);
-		d("DMA2_7_START_ADDR", 32, 0xFFC00DC4);
-		d("DMA2_7_X_COUNT", 16, 0xFFC00DD0);
-		d("DMA2_7_X_MODIFY", 16, 0xFFC00DD4);
-		d("DMA2_7_Y_COUNT", 16, 0xFFC00DD8);
-		d("DMA2_7_Y_MODIFY", 16, 0xFFC00DDC);
-
-		parent = debugfs_create_dir("DMA2 Channel 8", top);
-		d("DMA2_8_CONFIG", 16, 0xFFC00E08);
-		d("DMA2_8_CURR_ADDR", 32, 0xFFC00E24);
-		d("DMA2_8_CURR_DESC_PTR", 32, 0xFFC00E20);
-		d("DMA2_8_CURR_X_COUNT", 16, 0xFFC00E30);
-		d("DMA2_8_CURR_Y_COUNT", 16, 0xFFC00E38);
-		d("DMA2_8_IRQ_STATUS", 16, 0xFFC00E28);
-		d("DMA2_8_NEXT_DESC_PTR", 32, 0xFFC00E00);
-		d("DMA2_8_PERIPHERAL_MAP", 16, 0xFFC00E2C);
-		d("DMA2_8_START_ADDR", 32, 0xFFC00E04);
-		d("DMA2_8_X_COUNT", 16, 0xFFC00E10);
-		d("DMA2_8_X_MODIFY", 16, 0xFFC00E14);
-		d("DMA2_8_Y_COUNT", 16, 0xFFC00E18);
-		d("DMA2_8_Y_MODIFY", 16, 0xFFC00E1C);
-
-		parent = debugfs_create_dir("DMA2 Channel 9", top);
-		d("DMA2_9_CONFIG", 16, 0xFFC00E48);
-		d("DMA2_9_CURR_ADDR", 32, 0xFFC00E64);
-		d("DMA2_9_CURR_DESC_PTR", 32, 0xFFC00E60);
-		d("DMA2_9_CURR_X_COUNT", 16, 0xFFC00E70);
-		d("DMA2_9_CURR_Y_COUNT", 16, 0xFFC00E78);
-		d("DMA2_9_IRQ_STATUS", 16, 0xFFC00E68);
-		d("DMA2_9_NEXT_DESC_PTR", 32, 0xFFC00E40);
-		d("DMA2_9_PERIPHERAL_MAP", 16, 0xFFC00E6C);
-		d("DMA2_9_START_ADDR", 32, 0xFFC00E44);
-		d("DMA2_9_X_COUNT", 16, 0xFFC00E50);
-		d("DMA2_9_X_MODIFY", 16, 0xFFC00E54);
-		d("DMA2_9_Y_COUNT", 16, 0xFFC00E58);
-		d("DMA2_9_Y_MODIFY", 16, 0xFFC00E5C);
 
 		parent = debugfs_create_dir("Flag 0", top);
 		d("FIO0_BOTH", 16, 0xFFC0073C);
