@@ -1,7 +1,7 @@
 /*
  * bfin_serial.h - Blackfin UART/Serial definitions
  *
- * Copyright 2006-2009 Analog Devices Inc.
+ * Copyright 2006-2010 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -10,9 +10,9 @@
 #define __BFIN_ASM_SERIAL_H__
 
 #include <linux/serial_core.h>
+#include <linux/spinlock.h>
 #include <mach/anomaly.h>
 #include <mach/bfin_serial.h>
-#include <linux/spinlock.h>
 
 #if defined(CONFIG_BFIN_UART0_CTSRTS) || \
     defined(CONFIG_BFIN_UART1_CTSRTS) || \
@@ -183,6 +183,10 @@ struct bfin_uart_regs {
 };
 #undef __BFP
 
+#ifndef port_membase
+# define port_membase(p) 0
+#endif
+
 #define UART_GET_CHAR(p)      bfin_read16(port_membase(p) + OFFSET_RBR)
 #define UART_GET_DLL(p)       bfin_read16(port_membase(p) + OFFSET_DLL)
 #define UART_GET_DLH(p)       bfin_read16(port_membase(p) + OFFSET_DLH)
@@ -235,9 +239,6 @@ struct bfin_uart_regs {
 #endif
 #ifndef get_lsr_cache
 # define get_lsr_cache(p) 0
-#endif
-#ifndef port_membase
-# define port_membase(p) 0
 #endif
 
 /* The hardware clears the LSR bits upon read, so we need to cache
