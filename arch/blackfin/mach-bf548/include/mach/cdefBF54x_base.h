@@ -2629,19 +2629,5 @@
 
 /* Handshake MDMA is not defined in the shared file because it is not available on the ADSP-BF542 bfin_read_()rocessor */
 
-/* legacy definitions */
-#define bfin_read_EBIU_AMCBCTL0		bfin_read_EBIU_AMBCTL0
-#define bfin_write_EBIU_AMCBCTL0	bfin_write_EBIU_AMBCTL0
-#define bfin_read_EBIU_AMCBCTL1		bfin_read_EBIU_AMBCTL1
-#define bfin_write_EBIU_AMCBCTL1	bfin_write_EBIU_AMBCTL1
-#define bfin_read_PINT0_IRQ		bfin_read_PINT0_REQUEST
-#define bfin_write_PINT0_IRQ		bfin_write_PINT0_REQUEST
-#define bfin_read_PINT1_IRQ		bfin_read_PINT1_REQUEST
-#define bfin_write_PINT1_IRQ		bfin_write_PINT1_REQUEST
-#define bfin_read_PINT2_IRQ		bfin_read_PINT2_REQUEST
-#define bfin_write_PINT2_IRQ		bfin_write_PINT2_REQUEST
-#define bfin_read_PINT3_IRQ		bfin_read_PINT3_REQUEST
-#define bfin_write_PINT3_IRQ		bfin_write_PINT3_REQUEST
-
 #endif /* _CDEF_BF54X_H */
 
