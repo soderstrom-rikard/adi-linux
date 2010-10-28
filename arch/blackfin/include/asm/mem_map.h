@@ -9,7 +9,6 @@
 #define __BFIN_MEM_MAP_H__
 
 #include <mach/mem_map.h>
-#include <mach/blackfin.h>
 
 /* Every Blackfin so far has MMRs like this */
 #ifndef COREMMR_BASE
@@ -37,19 +36,15 @@
 # define L1_ROM_LENGTH 0
 #endif
 
-
-#ifdef __ASSEMBLY__
 /* Allow wonky SMP ports to override this */
-# ifndef GET_PDA_SAFE
-#  define GET_PDA_SAFE(preg) \
+#ifndef GET_PDA_SAFE
+# define GET_PDA_SAFE(preg) \
 	preg.l = _cpu_pda; \
 	preg.h = _cpu_pda;
-#  define GET_PDA(preg, dreg) GET_PDA_SAFE(preg)
-# endif
+# define GET_PDA(preg, dreg) GET_PDA_SAFE(preg)
 
-#else /* ! __ASSEMBLY__ */
+# ifndef __ASSEMBLY__
 
-# ifndef CONFIG_SMP
 static inline unsigned long get_l1_scratch_start_cpu(int cpu)
 {
 	return L1_SCRATCH_START;
@@ -82,42 +77,8 @@ static inline unsigned long get_l1_data_b_start(void)
 {
 	return get_l1_data_b_start_cpu(0);
 }
-# else
 
-static inline unsigned long get_l1_scratch_start_cpu(int cpu)
-{
-	return cpu ? COREB_L1_SCRATCH_START : COREA_L1_SCRATCH_START;
-}
-static inline unsigned long get_l1_code_start_cpu(int cpu)
-{
-	return cpu ? COREB_L1_CODE_START : COREA_L1_CODE_START;
-}
-static inline unsigned long get_l1_data_a_start_cpu(int cpu)
-{
-	return cpu ? COREB_L1_DATA_A_START : COREA_L1_DATA_A_START;
-}
-static inline unsigned long get_l1_data_b_start_cpu(int cpu)
-{
-	return cpu ? COREB_L1_DATA_B_START : COREA_L1_DATA_B_START;
-}
-
-static inline unsigned long get_l1_scratch_start(void)
-{
-	return get_l1_scratch_start_cpu(bfin_read_CHIPID() & 0xff);
-}
-static inline unsigned long get_l1_code_start(void)
-{
-	return get_l1_code_start_cpu(bfin_read_CHIPID() & 0xff);
-}
-static inline unsigned long get_l1_data_a_start(void)
-{
-	return get_l1_data_a_start_cpu(bfin_read_CHIPID() & 0xff);
-}
-static inline unsigned long get_l1_data_b_start(void)
-{
-	return get_l1_data_b_start_cpu(bfin_read_CHIPID() & 0xff);
-}
-# endif
-#endif /* __ASSEMBLY__ */
+# endif /* __ASSEMBLY__ */
+#endif /* !GET_PDA_SAFE */
 
 #endif
