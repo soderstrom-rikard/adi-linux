@@ -113,7 +113,7 @@ int __cpuinit platform_boot_secondary(unsigned int cpu, struct task_struct *idle
 
 static const char supple0[] = "IRQ_SUPPLE_0";
 static const char supple1[] = "IRQ_SUPPLE_1";
-void __init platform_request_ipi(int irq, irq_handler_t handler)
+void __init platform_request_ipi(int irq, void *handler)
 {
 	int ret;
 	const char *name = (irq == IRQ_SUPPLE_0) ? supple0 : supple1;
