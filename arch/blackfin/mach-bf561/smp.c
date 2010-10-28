@@ -111,12 +111,12 @@ int __cpuinit platform_boot_secondary(unsigned int cpu, struct task_struct *idle
 		panic("CPU%u: processor failed to boot\n", cpu);
 }
 
+static const char supple0[] = "IRQ_SUPPLE_0";
+static const char supple1[] = "IRQ_SUPPLE_1";
 void __init platform_request_ipi(int irq, irq_handler_t handler)
 {
 	int ret;
-	char *desc[] = {"IRQ_SUPPLE_0", "IRQ_SUPPLE_1"}, *name;
-
-	name = (irq == IRQ_SUPPLE_0) ? desc[0] : desc[1];
+	const char *name = (irq == IRQ_SUPPLE_0) ? supple0 : supple1;
 
 	ret = request_irq(irq, handler, IRQF_DISABLED | IRQF_PERCPU, name, handler);
 	if (ret)
