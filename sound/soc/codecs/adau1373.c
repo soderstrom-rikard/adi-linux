@@ -899,14 +899,14 @@ struct snd_soc_dai adau1373_dai = {
 	.name = "ADAU1373",
 	.playback = {
 		.stream_name  = "Playback",
-		.channels_min = 1,
+		.channels_min = 2,
 		.channels_max = 2,
 		.rates        = adau1373_RATES,
 		.formats      = adau1373_FORMATS,
 	},
 	.capture = {
 		.stream_name  = "Capture",
-		.channels_min = 1,
+		.channels_min = 2,
 		.channels_max = 2,
 		.rates        = adau1373_RATES,
 		.formats      = adau1373_FORMATS,
