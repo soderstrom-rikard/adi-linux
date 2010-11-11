@@ -7,6 +7,8 @@
 #ifndef _MACH_PLL_H
 #define _MACH_PLL_H
 
+#ifndef __ASSEMBLY__
+
 #ifdef CONFIG_SMP
 
 #include <asm/blackfin.h>
@@ -42,6 +44,8 @@ bfin_iwr_set_sup0(unsigned long *iwr0, unsigned long *iwr1, unsigned long *iwr2)
 {
 	bfin_iwr_save(0, IWR_ENABLE(SUPPLE_0_WAKEUP), 0, iwr0, iwr1, iwr2);
 }
+
+#endif
 
 #endif
 

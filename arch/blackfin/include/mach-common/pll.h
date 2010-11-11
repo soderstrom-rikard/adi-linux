@@ -7,6 +7,8 @@
 #ifndef _MACH_COMMON_PLL_H
 #define _MACH_COMMON_PLL_H
 
+#ifndef __ASSEMBLY__
+
 #include <asm/blackfin.h>
 #include <asm/irqflags.h>
 
@@ -78,5 +80,7 @@ static inline void bfin_write_VR_CTL(unsigned int val)
 {
 	_bfin_write_pll_relock(VR_CTL, val);
 }
+
+#endif
 
 #endif
