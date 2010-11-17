@@ -351,10 +351,8 @@ static int kgdb_arch_imask;
 
 void kgdb_post_primary_code(struct pt_regs *regs, int e_vector, int err_code)
 {
-#ifdef CONFIG_PREEMPT
 	if (kgdb_single_step)
 		preempt_enable();
-#endif
 
 #ifdef CONFIG_IPIPE
 	if (kgdb_arch_imask) {
