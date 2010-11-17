@@ -346,7 +346,7 @@ void kgdb_roundup_cpu(int cpu, unsigned long flags)
 #endif
 
 #ifdef CONFIG_IPIPE
-int kgdb_arch_imask;
+static int kgdb_arch_imask;
 
 void kgdb_post_primary_code(struct pt_regs *regs, int e_vector, int err_code)
 {
