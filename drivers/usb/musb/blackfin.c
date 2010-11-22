@@ -424,8 +424,9 @@ void musb_platform_restore_context(struct musb *musb,
 
 int musb_platform_exit(struct musb *musb)
 {
-
 	gpio_free(musb->config->gpio_vrsel);
 
+	otg_put_transceiver(musb->xceiv);
+	usb_nop_xceiv_unregister();
 	return 0;
 }
