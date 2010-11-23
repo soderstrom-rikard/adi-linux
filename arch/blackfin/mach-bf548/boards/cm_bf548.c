@@ -755,7 +755,7 @@ static struct platform_device bf54x_sdh_device = {
 #endif
 
 #if defined(CONFIG_CAN_BFIN) || defined(CONFIG_CAN_BFIN_MODULE)
-unsigned short bfin_can_peripherals[] = {
+static unsigned short bfin_can_peripherals[] = {
 	P_CAN0_RX, P_CAN0_TX, 0
 };
 
