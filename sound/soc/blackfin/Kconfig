@@ -57,15 +57,6 @@ config SND_BF5XX_SOC_ADAU1361
 	help
 	  Say Y if you want to add support for ADAU1361 SoC audio.
 
-config SND_BF5XX_SOC_ADAU1371
-	tristate "SoC ADAU1371 Audio support"
-	depends on SND_BF5XX_I2S
-	select SND_BF5XX_SOC_I2S
-	select SND_SOC_ADAU1371
-	select I2C
-	help
-	  Say Y if you want to add support for ADAU1371 SoC audio.
-
 config SND_BF5XX_SOC_ADAU1373
 	tristate "SoC ADAU1373 Audio support"
 	depends on SND_BF5XX_I2S
