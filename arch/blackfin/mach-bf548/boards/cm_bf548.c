@@ -156,7 +156,7 @@ static struct resource bfin_uart0_resources[] = {
 	},
 };
 
-unsigned short bfin_uart0_peripherals[] = {
+static unsigned short bfin_uart0_peripherals[] = {
 	P_UART0_TX, P_UART0_RX, 0
 };
 
@@ -211,7 +211,7 @@ static struct resource bfin_uart1_resources[] = {
 #endif
 };
 
-unsigned short bfin_uart1_peripherals[] = {
+static unsigned short bfin_uart1_peripherals[] = {
 	P_UART1_TX, P_UART1_RX,
 #ifdef CONFIG_BFIN_UART1_CTSRTS
 	P_UART1_RTS, P_UART1_CTS,
@@ -258,7 +258,7 @@ static struct resource bfin_uart2_resources[] = {
 	},
 };
 
-unsigned short bfin_uart2_peripherals[] = {
+static unsigned short bfin_uart2_peripherals[] = {
 	P_UART2_TX, P_UART2_RX, 0
 };
 
@@ -313,7 +313,7 @@ static struct resource bfin_uart3_resources[] = {
 #endif
 };
 
-unsigned short bfin_uart3_peripherals[] = {
+static unsigned short bfin_uart3_peripherals[] = {
 	P_UART3_TX, P_UART3_RX,
 #ifdef CONFIG_BFIN_UART3_CTSRTS
 	P_UART3_RTS, P_UART3_CTS,
@@ -551,7 +551,7 @@ static struct resource bfin_sport0_uart_resources[] = {
 	},
 };
 
-unsigned short bfin_sport0_peripherals[] = {
+static unsigned short bfin_sport0_peripherals[] = {
 	P_SPORT0_TFS, P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
 	P_SPORT0_DRPRI, P_SPORT0_RSCLK, 0
 };
@@ -585,7 +585,7 @@ static struct resource bfin_sport1_uart_resources[] = {
 	},
 };
 
-unsigned short bfin_sport1_peripherals[] = {
+static unsigned short bfin_sport1_peripherals[] = {
 	P_SPORT1_TFS, P_SPORT1_DTPRI, P_SPORT1_TSCLK, P_SPORT1_RFS,
 	P_SPORT1_DRPRI, P_SPORT1_RSCLK, 0
 };
@@ -619,7 +619,7 @@ static struct resource bfin_sport2_uart_resources[] = {
 	},
 };
 
-unsigned short bfin_sport2_peripherals[] = {
+static unsigned short bfin_sport2_peripherals[] = {
 	P_SPORT2_TFS, P_SPORT2_DTPRI, P_SPORT2_TSCLK, P_SPORT2_RFS,
 	P_SPORT2_DRPRI, P_SPORT2_RSCLK, P_SPORT2_DRSEC, P_SPORT2_DTSEC, 0
 };
@@ -653,7 +653,7 @@ static struct resource bfin_sport3_uart_resources[] = {
 	},
 };
 
-unsigned short bfin_sport3_peripherals[] = {
+static unsigned short bfin_sport3_peripherals[] = {
 	P_SPORT3_TFS, P_SPORT3_DTPRI, P_SPORT3_TSCLK, P_SPORT3_RFS,
 	P_SPORT3_DRPRI, P_SPORT3_RSCLK, P_SPORT3_DRSEC, P_SPORT3_DTSEC, 0
 };
