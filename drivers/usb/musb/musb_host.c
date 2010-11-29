@@ -2012,9 +2012,6 @@ static int musb_urb_enqueue(
 		/* ISO always uses logarithmic encoding */
 		interval = min_t(u8, epd->bInterval, 16);
 		break;
-	case USB_ENDPOINT_XFER_CONTROL:
-		interval = (urb->dev->speed == USB_SPEED_HIGH) ? 8 : 5;
-		break;
 	default:
 		/* REVISIT we actually want to use NAK limits, hinting to the
 		 * transfer scheduling logic to try some other qh, e.g. try
