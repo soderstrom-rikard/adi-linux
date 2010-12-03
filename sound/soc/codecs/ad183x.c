@@ -505,10 +505,10 @@ static int ad183x_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+	codec = ad183x_codec;
 	ad183x = snd_soc_codec_get_drvdata(codec);
 	chl_ctrl = &ad183x->chl_ctrl;
 	socdev->card->codec = ad183x_codec;
-	codec = ad183x_codec;
 
 	/* register pcms */
 	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
