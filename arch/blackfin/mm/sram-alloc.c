@@ -712,6 +712,7 @@ int sram_free_with_lsl(const void *addr)
 			ret = sram_free(addr);
 			*tmp = lsl->next;
 			kfree(lsl);
+			break;
 		}
 
 	return ret;
