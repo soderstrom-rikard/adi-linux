@@ -425,6 +425,7 @@ static irqreturn_t bfin_spi_pio_irq_handler(int irq, void *dev_id)
 	struct bfin_spi_slave_data *chip = drv_data->cur_chip;
 	struct spi_message *msg = drv_data->cur_msg;
 	int n_bytes = drv_data->n_bytes;
+	int loop = 0;
 
 	/* wait until transfer finished. */
 	while (!(read_STAT(drv_data) & BIT_STAT_RXS))
@@ -435,10 +436,13 @@ static irqreturn_t bfin_spi_pio_irq_handler(int irq, void *dev_id)
 		/* last read */
 		if (drv_data->rx) {
 			dev_dbg(&drv_data->pdev->dev, "last read\n");
-			if (n_bytes == 2)
-				*(u16 *) (drv_data->rx) = read_RDBR(drv_data);
-			else if (n_bytes == 1)
-				*(u8 *) (drv_data->rx) = read_RDBR(drv_data);
+			if (n_bytes % 2) {
+				for (loop = 0; loop < n_bytes/2; loop++)
+					*((u16 *)(drv_data->rx) + loop) = read_RDBR(drv_data);
+			} else {
+				for (loop = 0; loop < n_bytes; loop++)
+					*((u8 *)(drv_data->rx) + loop) = read_RDBR(drv_data);
+			}
 			drv_data->rx += n_bytes;
 		}
 
@@ -458,29 +462,45 @@ static irqreturn_t bfin_spi_pio_irq_handler(int irq, void *dev_id)
 	if (drv_data->rx && drv_data->tx) {
 		/* duplex */
 		dev_dbg(&drv_data->pdev->dev, "duplex: write_TDBR\n");
-		if (drv_data->n_bytes == 2) {
-			*(u16 *) (drv_data->rx) = read_RDBR(drv_data);
-			write_TDBR(drv_data, (*(u16 *) (drv_data->tx)));
-		} else if (drv_data->n_bytes == 1) {
-			*(u8 *) (drv_data->rx) = read_RDBR(drv_data);
-			write_TDBR(drv_data, (*(u8 *) (drv_data->tx)));
+		if (n_bytes % 2) {
+			for (loop = 0; loop < n_bytes/2; loop++) {
+				*((u16 *)(drv_data->rx) + loop) = read_RDBR(drv_data);
+				write_TDBR(drv_data, *((u16 *)(drv_data->tx) + loop));
+			}
+		} else {
+			for (loop = 0; loop < n_bytes; loop++) {
+				*((u8 *)(drv_data->rx) + loop) = read_RDBR(drv_data);
+				write_TDBR(drv_data, *((u8 *)(drv_data->tx) + loop));
+			}
 		}
 	} else if (drv_data->rx) {
 		/* read */
 		dev_dbg(&drv_data->pdev->dev, "read: write_TDBR\n");
-		if (drv_data->n_bytes == 2)
-			*(u16 *) (drv_data->rx) = read_RDBR(drv_data);
-		else if (drv_data->n_bytes == 1)
-			*(u8 *) (drv_data->rx) = read_RDBR(drv_data);
-		write_TDBR(drv_data, chip->idle_tx_val);
+		if (n_bytes % 2) {
+			for (loop = 0; loop < n_bytes/2; loop++) {
+				*((u16 *)(drv_data->rx) + loop) = read_RDBR(drv_data);
+				write_TDBR(drv_data, chip->idle_tx_val);
+			}
+		} else {
+			for (loop = 0; loop < n_bytes; loop++) {
+				*((u8 *)(drv_data->rx) + loop) = read_RDBR(drv_data);
+				write_TDBR(drv_data, chip->idle_tx_val);
+			}
+		}
 	} else if (drv_data->tx) {
 		/* write */
 		dev_dbg(&drv_data->pdev->dev, "write: write_TDBR\n");
-		bfin_spi_dummy_read(drv_data);
-		if (drv_data->n_bytes == 2)
-			write_TDBR(drv_data, (*(u16 *) (drv_data->tx)));
-		else if (drv_data->n_bytes == 1)
-			write_TDBR(drv_data, (*(u8 *) (drv_data->tx)));
+		if (n_bytes % 2) {
+			for (loop = 0; loop < n_bytes/2; loop++) {
+				read_RDBR(drv_data);
+				write_TDBR(drv_data, *((u16 *)(drv_data->tx) + loop));
+			}
+		} else {
+			for (loop = 0; loop < n_bytes; loop++) {
+				read_RDBR(drv_data);
+				write_TDBR(drv_data, *((u8 *)(drv_data->tx) + loop));
+			}
+		}
 	}
 
 	if (drv_data->tx)
@@ -652,16 +672,16 @@ static void bfin_spi_pump_transfers(unsigned long data)
 
 	/* Bits per word setup */
 	bits_per_word = transfer->bits_per_word ? : message->spi->bits_per_word;
-	if (bits_per_word == 8) {
-		drv_data->n_bytes = 1;
-		drv_data->len = transfer->len;
-		cr_width = 0;
-		drv_data->ops = &bfin_bfin_spi_transfer_ops_u8;
-	} else if (bits_per_word == 16) {
-		drv_data->n_bytes = 2;
+	if ((bits_per_word > 0) && (bits_per_word % 16 == 0)) {
+		drv_data->n_bytes = bits_per_word/8;
 		drv_data->len = (transfer->len) >> 1;
 		cr_width = BIT_CTL_WORDSIZE;
 		drv_data->ops = &bfin_bfin_spi_transfer_ops_u16;
+	} else if ((bits_per_word > 0) && (bits_per_word % 8 == 0)) {
+		drv_data->n_bytes = bits_per_word/8;
+		drv_data->len = transfer->len;
+		cr_width = 0;
+		drv_data->ops = &bfin_bfin_spi_transfer_ops_u8;
 	} else {
 		dev_err(&drv_data->pdev->dev, "transfer: unsupported bits_per_word\n");
 		message->status = -EINVAL;
@@ -816,10 +836,15 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		if (drv_data->tx == NULL)
 			write_TDBR(drv_data, chip->idle_tx_val);
 		else {
-			if (bits_per_word == 8)
-				write_TDBR(drv_data, (*(u8 *) (drv_data->tx)));
-			else
-				write_TDBR(drv_data, (*(u16 *) (drv_data->tx)));
+			int loop;
+			if (bits_per_word % 16 == 0) {
+				for (loop = 0; loop < bits_per_word/16; loop++)
+					write_TDBR(drv_data, (*(u16 *)(drv_data->tx) + loop));
+			} else if (bits_per_word % 8 == 0) {
+				for (loop = 0; loop < bits_per_word/8; loop++)
+					write_TDBR(drv_data, (*(u8 *)(drv_data->tx) + loop));
+			}
+
 			drv_data->tx += drv_data->n_bytes;
 		}
 
@@ -1032,7 +1057,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 		chip->ctl_reg &= bfin_ctl_reg;
 	}
 
-	if (spi->bits_per_word != 8 && spi->bits_per_word != 16) {
+	if (spi->bits_per_word % 8) {
 		dev_err(&spi->dev, "%d bits_per_word is not supported\n",
 				spi->bits_per_word);
 		goto error;
