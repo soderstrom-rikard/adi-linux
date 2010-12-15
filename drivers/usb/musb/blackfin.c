@@ -405,14 +405,6 @@ int __init musb_platform_init(struct musb *musb, void *board_data)
 void musb_platform_save_context(struct musb *musb,
 			struct musb_context_registers *musb_context)
 {
-	if (is_host_active(musb))
-		/*
-		 * During hibernate gpio_vrsel will change from high to low
-		 * low which will generate wakeup event resume the system
-		 * immediately.  Set it to 0 before hibernate to avoid this
-		 * wakeup event.
-		 */
-		gpio_set_value(musb->config->gpio_vrsel, 0);
 }
 
 void musb_platform_restore_context(struct musb *musb,
