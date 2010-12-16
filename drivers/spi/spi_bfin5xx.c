@@ -437,15 +437,13 @@ static irqreturn_t bfin_spi_pio_irq_handler(int irq, void *dev_id)
 		if (drv_data->rx) {
 			dev_dbg(&drv_data->pdev->dev, "last read\n");
 			if (n_bytes % 2) {
-				for (loop = 0; loop < n_bytes/2; loop++) {
-					u16 *temp = (u16 *)drv_data->rx + loop;
-					*temp = read_RDBR(drv_data);
-				}
+				u16 *buf = (u16 *)drv_data->rx;
+				for (loop = 0; loop < n_bytes / 2; loop++)
+					*buf++ = read_RDBR(drv_data);
 			} else {
-				for (loop = 0; loop < n_bytes; loop++) {
-					u8 *temp = (u8 *)drv_data->rx + loop;
-					*temp = read_RDBR(drv_data);
-				}
+				u8 *buf = (u8 *)drv_data->rx;
+				for (loop = 0; loop < n_bytes; loop++)
+					*buf++ = read_RDBR(drv_data);
 			}
 			drv_data->rx += n_bytes;
 		}
@@ -467,33 +465,33 @@ static irqreturn_t bfin_spi_pio_irq_handler(int irq, void *dev_id)
 		/* duplex */
 		dev_dbg(&drv_data->pdev->dev, "duplex: write_TDBR\n");
 		if (n_bytes % 2) {
-			for (loop = 0; loop < n_bytes/2; loop++) {
-				u16 *temp = (u16 *)drv_data->rx + loop;
-				u16 *temp2 = (u16 *)drv_data->tx + loop;
-				*temp = read_RDBR(drv_data);
-				write_TDBR(drv_data, *temp2);
+			u16 *buf = (u16 *)drv_data->rx;
+			u16 *buf2 = (u16 *)drv_data->tx;
+			for (loop = 0; loop < n_bytes / 2; loop++) {
+				*buf++ = read_RDBR(drv_data);
+				write_TDBR(drv_data, *buf2++);
 			}
 		} else {
+			u8 *buf = (u8 *)drv_data->rx;
+			u8 *buf2 = (u8 *)drv_data->tx;
 			for (loop = 0; loop < n_bytes; loop++) {
-				u8 *temp = (u8 *)drv_data->rx + loop;
-				u8 *temp2 = (u8 *)drv_data->tx + loop;
-				*temp = read_RDBR(drv_data);
-				write_TDBR(drv_data, *temp2);
+				*buf++ = read_RDBR(drv_data);
+				write_TDBR(drv_data, *buf2++);
 			}
 		}
 	} else if (drv_data->rx) {
 		/* read */
 		dev_dbg(&drv_data->pdev->dev, "read: write_TDBR\n");
 		if (n_bytes % 2) {
-			for (loop = 0; loop < n_bytes/2; loop++) {
-				u16 *temp = (u16 *)drv_data->rx + loop;
-				*temp = read_RDBR(drv_data);
+			u16 *buf = (u16 *)drv_data->rx;
+			for (loop = 0; loop < n_bytes / 2; loop++) {
+				*buf++ = read_RDBR(drv_data);
 				write_TDBR(drv_data, chip->idle_tx_val);
 			}
 		} else {
+			u8 *buf = (u8 *)drv_data->rx;
 			for (loop = 0; loop < n_bytes; loop++) {
-				u8 *temp = (u8 *)drv_data->rx + loop;
-				*temp = read_RDBR(drv_data);
+				*buf++ = read_RDBR(drv_data);
 				write_TDBR(drv_data, chip->idle_tx_val);
 			}
 		}
@@ -501,16 +499,16 @@ static irqreturn_t bfin_spi_pio_irq_handler(int irq, void *dev_id)
 		/* write */
 		dev_dbg(&drv_data->pdev->dev, "write: write_TDBR\n");
 		if (n_bytes % 2) {
-			for (loop = 0; loop < n_bytes/2; loop++) {
-				u16 *temp = (u16 *)drv_data->tx + loop;
+			u16 *buf = (u16 *)drv_data->tx;
+			for (loop = 0; loop < n_bytes / 2; loop++) {
 				read_RDBR(drv_data);
-				write_TDBR(drv_data, *temp);
+				write_TDBR(drv_data, *buf++);
 			}
 		} else {
+			u8 *buf = (u8 *)drv_data->tx;
 			for (loop = 0; loop < n_bytes; loop++) {
-				u8 *temp = (u8 *)drv_data->tx + loop;
 				read_RDBR(drv_data);
-				write_TDBR(drv_data, *temp);
+				write_TDBR(drv_data, *buf++);
 			}
 		}
 	}
@@ -850,15 +848,15 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		else {
 			int loop;
 			if (bits_per_word % 16 == 0) {
-				for (loop = 0; loop < bits_per_word/16; loop++) {
-					u16 *temp = (u16 *)drv_data->tx + loop;
-					write_TDBR(drv_data, *temp);
+				u16 *buf = (u16 *)drv_data->tx;
+				for (loop = 0; loop < bits_per_word / 16;
+						loop++) {
+					write_TDBR(drv_data, *buf++);
 				}
 			} else if (bits_per_word % 8 == 0) {
-				for (loop = 0; loop < bits_per_word/8; loop++) {
-					u8 *temp = (u8 *)drv_data->tx + loop;
-					write_TDBR(drv_data, *temp);
-				}
+				u8 *buf = (u8 *)drv_data->tx;
+				for (loop = 0; loop < bits_per_word / 8; loop++)
+					write_TDBR(drv_data, *buf++);
 			}
 
 			drv_data->tx += drv_data->n_bytes;
