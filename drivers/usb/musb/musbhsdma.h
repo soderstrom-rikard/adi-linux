@@ -102,16 +102,26 @@ static inline void musb_write_hsdma_addr(void __iomem *mbase,
 
 static inline u32 musb_read_hsdma_count(void __iomem *mbase, u8 bchannel)
 {
-	return musb_readl(mbase,
+	u32 count = musb_readw(mbase,
 		MUSB_HSDMA_CHANNEL_OFFSET(bchannel, MUSB_HSDMA_COUNT_HIGH));
+
+	count = count << 16;
+
+	count |= musb_readw(mbase,
+		MUSB_HSDMA_CHANNEL_OFFSET(bchannel, MUSB_HSDMA_COUNT_LOW));
+
+	return count;
 }
 
 static inline void musb_write_hsdma_count(void __iomem *mbase,
 				u8 bchannel, u32 len)
 {
-	musb_writel(mbase,
+	musb_writew(mbase,
+		MUSB_HSDMA_CHANNEL_OFFSET(bchannel, MUSB_HSDMA_COUNT_LOW),
+		((u16)((u32) len & 0xFFFF)));
+	musb_writew(mbase,
 		MUSB_HSDMA_CHANNEL_OFFSET(bchannel, MUSB_HSDMA_COUNT_HIGH),
-		len);
+		((u16)(((u32) len >> 16) & 0xFFFF)));
 }
 
 #endif /* CONFIG_BLACKFIN */
