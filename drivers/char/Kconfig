@@ -53,11 +53,6 @@ config BFIN_SPORT
 
 	  If unsure, then say N.
 
-config BFIN_TWI_LCD
-	tristate "TWI/I2C LCD support for HD44780 based LCD modules"
-	depends on I2C && EXPERIMENTAL && BLACKFIN
-	default n
-
 config VT
 	bool "Virtual terminal" if EMBEDDED
 	depends on !S390
