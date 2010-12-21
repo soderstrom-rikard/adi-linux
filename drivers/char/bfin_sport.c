@@ -256,10 +256,11 @@ static int sport_configure(struct sport_dev *dev, struct sport_config *config)
 	SSYNC();
 
 	pr_debug("tcr1:0x%x, tcr2:0x%x, rcr1:0x%x, rcr2:0x%x\n"
-		 "mcmc1:0x%x, mcmc2:0x%x\n",
+		 "mcmc1:0x%x, mcmc2:0x%x, mtcs0:0x%x, mrcs0:0x%x\n",
 		 dev->regs->tcr1, dev->regs->tcr2,
 		 dev->regs->rcr1, dev->regs->rcr2,
-		 dev->regs->mcmc1, dev->regs->mcmc2);
+		 dev->regs->mcmc1, dev->regs->mcmc2,
+		 dev->regs->mtcs0, dev->regs->mrcs0);
 
 	return 0;
 }
@@ -283,8 +284,12 @@ static inline uint16_t sport_wordsize(int word_len)
 static irqreturn_t dma_rx_irq_handler(int irq, void *dev_id)
 {
 	struct sport_dev *dev = dev_id;
+	int status;
 
 	pr_debug("%s enter\n", __func__);
+	status = dev->regs->mcmc2;
+	if (status & MCMEN)
+		dev->regs->rcr1 &= ~RSPEN;
 	dev->regs->rcr1 &= ~RSPEN;
 	SSYNC();
 	disable_dma(dev->dma_rx_chan);
@@ -318,6 +323,9 @@ static irqreturn_t dma_tx_irq_handler(int irq, void *dev_id)
 	pr_debug("%s status:%x\n", __func__, status);
 
 	dev->regs->tcr1 &= ~TSPEN;
+	status = dev->regs->mcmc2;
+	if (status & MCMEN)
+		dev->regs->rcr1 &= ~RSPEN;
 	SSYNC();
 	enable_irq(dev->err_irq);
 	disable_dma(dev->dma_tx_chan);
@@ -654,6 +662,7 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 {
 	struct sport_dev *dev = filp->private_data;
 	struct sport_config *cfg = &dev->config;
+	int status;
 
 	pr_debug("%s count:%ld\n", __func__, count);
 
@@ -703,6 +712,9 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 	}
 
 	dev->regs->rcr1 |= RSPEN;
+	status = dev->regs->mcmc2;
+	if (status & MCMEN)
+		dev->regs->tcr1 |= TSPEN;
 	SSYNC();
 
 	if (wait_for_completion_interruptible(&dev->c)) {
@@ -720,6 +732,7 @@ out:
 static ssize_t sport_write(struct file *filp, const char __user *buf,
 			   size_t count, loff_t *f_pos)
 {
+	int status;
 	struct sport_dev *dev = filp->private_data;
 	struct sport_config *cfg = &dev->config;
 	pr_debug("%s count:%ld  dma_tx_chan:%d\n",
@@ -771,6 +784,9 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 		sport_tx_write(dev);
 	}
 
+	status = dev->regs->mcmc2;
+	if (status & MCMEN)
+		dev->regs->rcr1 |= RSPEN;
 	dev->regs->tcr1 |= TSPEN;
 	SSYNC();
 
