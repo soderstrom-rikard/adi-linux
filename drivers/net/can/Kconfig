@@ -63,6 +63,14 @@ config CAN_BFIN
 	  To compile this driver as a module, choose M here: the
 	  module will be called bfin_can.
 
+config BFIN_CAN0
+	depends on CAN_DEV && BF54x
+	bool "Enalbe CAN0"
+
+config BFIN_CAN1
+	depends on CAN_DEV && BF54x
+	bool "Enalbe CAN1"
+
 config CAN_JANZ_ICAN3
 	tristate "Janz VMOD-ICAN3 Intelligent CAN controller"
 	depends on CAN_DEV && MFD_JANZ_CMODIO
