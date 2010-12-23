@@ -230,8 +230,8 @@ static struct adau1361_mode_register adau1361_mode0[MODE_REGISTER_COUNT] = {
 	{ADAU_PLBLOVR, 0x02},
 	{ADAU_PLBMNOC, 0xE5},
 	/*analog mic*/
-	{ADAU_RECVLCL, 0x42},
-	{ADAU_RECVLCR, 0x42},
+	{ADAU_RECVLCL, 0x82},
+	{ADAU_RECVLCR, 0x82},
 	{ADAU_MICCTRL, 0x00},
 };
 
