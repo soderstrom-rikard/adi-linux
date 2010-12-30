@@ -1,0 +1,16 @@
+#
+# intercore communication protocol for ADI
+#
+
+menuconfig ICC_DRIVER
+	bool "icc driver"
+	select BF561_COREB
+	help
+		ADI icc driver
+if ICC_DRIVER
+config	ICC
+	bool "icc protocol"
+	default N
+	help
+		ICC protocol
+endif
