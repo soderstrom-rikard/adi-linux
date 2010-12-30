@@ -366,6 +366,26 @@ static void __init smp_init(void)
 static inline void setup_nr_cpu_ids(void) { }
 static inline void smp_prepare_cpus(unsigned int maxcpus) { }
 
+# ifdef CONFIG_ICC
+void platform_request_ipi(int irq, void *handler);
+
+void platform_send_ipi(cpumask_t callmap, int irq);
+
+void platform_send_ipi_cpu(unsigned int cpu, int irq);
+
+void platform_clear_ipi(unsigned int cpu, int irq);
+
+irqreturn_t ipi_handler_int0(int irq, void *dev_instance);
+irqreturn_t ipi_handler_int1(int irq, void *dev_instance);
+
+
+void __init icc_prepare_cpus(unsigned int max_cpus)
+{
+	platform_request_ipi(IRQ_SUPPLE_0, ipi_handler_int0);
+	platform_request_ipi(IRQ_SUPPLE_1, ipi_handler_int1);
+}
+# endif
+
 #else
 
 /* Setup number of possible processor ids */
@@ -884,6 +904,10 @@ static int __init kernel_init(void * unused)
 	cad_pid = task_pid(current);
 
 	smp_prepare_cpus(setup_max_cpus);
+
+#ifdef CONFIG_ICC
+	icc_prepare_cpus(setup_max_cpus);
+#endif
 
 	do_pre_smp_initcalls();
 

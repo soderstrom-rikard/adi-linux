@@ -168,7 +168,7 @@ static void bfin_internal_mask_irq(unsigned int irq)
 	mask_bit = SIC_SYSIRQ(irq) % 32;
 	bfin_write_SIC_IMASK(mask_bank, bfin_read_SIC_IMASK(mask_bank) &
 			     ~(1 << mask_bit));
-#ifdef CONFIG_SMP
+#if defined(CONFIG_SMP) || defined(CONFIG_ICC)
 	bfin_write_SICB_IMASK(mask_bank, bfin_read_SICB_IMASK(mask_bank) &
 			     ~(1 << mask_bit));
 #endif
@@ -1119,7 +1119,7 @@ int __init init_arch_irq(void)
 # ifdef CONFIG_BF54x
 	bfin_write_SIC_IMASK2(SIC_UNMASK_ALL);
 # endif
-# ifdef CONFIG_SMP
+# if defined(CONFIG_SMP) || defined(CONFIG_ICC)
 	bfin_write_SICB_IMASK0(SIC_UNMASK_ALL);
 	bfin_write_SICB_IMASK1(SIC_UNMASK_ALL);
 # endif
@@ -1186,13 +1186,12 @@ int __init init_arch_irq(void)
 			set_irq_chained_handler(irq, bfin_demux_mac_status_irq);
 			break;
 #endif
-#ifdef CONFIG_SMP
+#if defined(CONFIG_SMP) || defined(CONFIG_ICC)
 		case IRQ_SUPPLE_0:
 		case IRQ_SUPPLE_1:
 			set_irq_handler(irq, handle_percpu_irq);
 			break;
 #endif
-
 #ifdef CONFIG_TICKSOURCE_CORETMR
 		case IRQ_CORETMR:
 # ifdef CONFIG_SMP
