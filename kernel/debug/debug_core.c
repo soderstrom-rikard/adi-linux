@@ -570,13 +570,19 @@ return_normal:
 	 * CPU in a spin state while the debugger is active
 	 */
 	if (!kgdb_single_step) {
-		for (i = 0; i < NR_CPUS; i++)
-			atomic_inc(&passive_cpu_wait[i]);
+#ifdef CONFIG_SMP
+		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+			kgdb_contthread == current)
+			atomic_inc(&passive_cpu_wait[cpu]);
+		else
+#endif
+			for (i = 0; i < NR_CPUS; i++)
+				atomic_inc(&passive_cpu_wait[i]);
 	}
 
 #ifdef CONFIG_SMP
 	/* Signal the other CPUs to enter kgdb_wait() */
-	if ((!kgdb_single_step) && kgdb_do_roundup)
+	if ((!kgdb_single_step) && kgdb_do_roundup && kgdb_contthread != current)
 		kgdb_roundup_cpus(flags);
 #endif
 
@@ -629,7 +635,12 @@ cpu_master_loop:
 
 	atomic_dec(&cpu_in_kgdb[ks->cpu]);
 
+#ifdef CONFIG_SMP
+	if (!kgdb_single_step && !((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+		kgdb_contthread)) {
+#else
 	if (!kgdb_single_step) {
+#endif
 		for (i = NR_CPUS-1; i >= 0; i--)
 			atomic_dec(&passive_cpu_wait[i]);
 		/*
@@ -659,6 +670,27 @@ kgdb_restore:
 		tracing_on();
 	/* Free kgdb_active */
 	atomic_set(&kgdb_active, -1);
+#ifdef CONFIG_SMP
+	/* wake up next master cpu when do real cpu switch */
+	if (!kgdb_single_step) {
+		if (!CACHE_FLUSH_IS_SAFE) {
+#ifdef __ARCH_SYNC_CORE_ICACHE
+			resync_core_icache();
+#endif
+#ifdef __ARCH_SYNC_CORE_DCACHE
+			resync_core_dcache();
+#endif
+		}
+
+		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+			kgdb_contthread) {
+			i = -(ks->kgdb_usethreadid + 2);
+			atomic_dec(&passive_cpu_wait[i]);
+			while (atomic_read(&kgdb_active) == -1)
+				cpu_relax();
+		}
+	}
+#endif
 	touch_softlockup_watchdog_sync();
 	clocksource_touch_watchdog();
 	local_irq_restore(flags);
@@ -712,6 +744,20 @@ int kgdb_nmicallback(int cpu, void *regs)
 		kgdb_info[cpu].exception_state |= DCPU_IS_SLAVE;
 		kgdb_cpu_enter(ks, regs);
 		kgdb_info[cpu].exception_state &= ~DCPU_IS_SLAVE;
+
+		if (!CACHE_FLUSH_IS_SAFE) {
+#ifdef __ARCH_SYNC_CORE_ICACHE
+			resync_core_icache();
+#endif
+#ifdef __ARCH_SYNC_CORE_DCACHE
+			resync_core_dcache();
+#endif
+		}
+		/* Trap into kgdb as the active CPU if gdb asks to switch. */
+		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
+			kgdb_contthread == current)
+			kgdb_breakpoint();
+
 		return 0;
 	}
 #endif
