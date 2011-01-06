@@ -130,9 +130,6 @@ config SND_SOC_ADAV80X
 config SND_SOC_ADS117X
 	tristate
 
-config SND_SOC_ADAV80X
-	tristate
-
 config SND_SOC_AK4104
 	tristate
 
