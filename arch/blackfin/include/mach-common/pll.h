@@ -57,7 +57,7 @@ static inline void _bfin_write_pll_relock(u32 addr, unsigned int val)
 	if (val == bfin_read_PLL_CTL())
 		return;
 
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 	/* Enable the PLL Wakeup bit in SIC IWR */
 	bfin_iwr_save(IWR_ENABLE(0), 0, 0, &iwr0, &iwr1, &iwr2);
 
@@ -66,7 +66,7 @@ static inline void _bfin_write_pll_relock(u32 addr, unsigned int val)
 	asm("IDLE;");
 
 	bfin_iwr_restore(iwr0, iwr1, iwr2);
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 }
 
 /* Writing to PLL_CTL initiates a PLL relock sequence */

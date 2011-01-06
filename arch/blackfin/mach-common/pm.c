@@ -52,7 +52,6 @@ void bfin_pm_suspend_standby_enter(void)
 #else
 	bfin_write_SIC_IWR(IWR_DISABLE_ALL);
 #endif
-
 }
 
 int bf53x_suspend_l1_mem(unsigned char *memptr)
@@ -143,7 +142,6 @@ int bfin_pm_suspend_mem_enter(void)
 #ifdef CONFIG_PM_BFIN_WAKE_GP
 	wakeup |= GPWE;
 #endif
-
 
 	ret = blackfin_dma_suspend();
 

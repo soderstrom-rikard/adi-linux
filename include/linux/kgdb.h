@@ -35,16 +35,6 @@ struct pt_regs;
  */
 extern int kgdb_skipexception(int exception, struct pt_regs *regs);
 
-/**
- *	kgdb_disable_hw_debug - (optional) Disable hardware debugging hook
- *	@regs: Current &struct pt_regs.
- *
- *	This function will be called if the particular architecture must
- *	disable hardware debugging while it is processing gdb packets or
- *	handling exception.
- */
-extern void kgdb_disable_hw_debug(struct pt_regs *regs);
-
 struct tasklet_struct;
 struct task_struct;
 struct uart_port;
@@ -108,7 +98,6 @@ extern int dbg_set_reg(int regno, void *mem, struct pt_regs *regs);
 #endif
 
 #define KGDB_HW_BREAKPOINT	1
-#define KGDB_THR_PROC_SWAP	2
 
 /*
  * Functions each KGDB-supporting architecture must provide:
@@ -206,19 +195,6 @@ kgdb_arch_handle_exception(int vector, int signo, int err_code,
 extern void kgdb_roundup_cpus(unsigned long flags);
 
 /**
- *	kgdb_roundup_cpu - Get spcific CPU into a holding pattern
- *	@cpu: Specific cpu id
- *	@flags: Current IRQ state
- *
- *	On SMP systems, we need to switch cpu from current active one to
- *	the other passive one. This get current active CPU into a known state
- *	in kgdb_wait().
- *
- *	On non-SMP systems, this is not called.
- */
-extern void kgdb_roundup_cpu(int cpu, unsigned long flags);
-
-/**
  *	kgdb_arch_set_pc - Generic call back to the program counter
  *	@regs: Current &struct pt_regs.
  *  @pc: The new value for the program counter
@@ -257,6 +233,8 @@ extern void kgdb_arch_late(void);
  * breakpoint.
  * @remove_hw_breakpoint: Allow an architecture to specify how to remove a
  * hardware breakpoint.
+ * @disable_hw_break: Allow an architecture to specify how to disable
+ * hardware breakpoints for a single cpu.
  * @remove_all_hw_break: Allow an architecture to specify how to remove all
  * hardware breakpoints.
  * @correct_hw_break: Allow an architecture to specify how to correct the
@@ -270,6 +248,7 @@ struct kgdb_arch {
 	int	(*remove_breakpoint)(unsigned long, char *);
 	int	(*set_hw_breakpoint)(unsigned long, int, enum kgdb_bptype);
 	int	(*remove_hw_breakpoint)(unsigned long, int, enum kgdb_bptype);
+	void	(*disable_hw_break)(struct pt_regs *regs);
 	void	(*remove_all_hw_break)(void);
 	void	(*correct_hw_break)(void);
 };

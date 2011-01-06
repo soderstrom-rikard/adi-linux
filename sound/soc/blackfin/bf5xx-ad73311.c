@@ -8,9 +8,6 @@
  * Modified:
  *               Copyright 2008 Analog Devices Inc.
  *
- * Modified:
- *		 Copyright 2010 Nanakos Chrysostomos <nanakos@wired-net.gr>
- *
  * Bugs:         Enter bugs at http://blackfin.uclinux.org/
  *
  * This program is free software; you can redistribute it and/or modify
@@ -50,7 +47,6 @@
 #include "../codecs/ad73311.h"
 #include "bf5xx-sport.h"
 #include "bf5xx-i2s-pcm.h"
-#include "bf5xx-i2s.h"
 
 #if CONFIG_SND_BF5XX_SPORT_NUM == 0
 #define bfin_write_SPORT_TCR1	bfin_write_SPORT0_TCR1
@@ -67,112 +63,41 @@
 #endif
 
 #define GPIO_SE CONFIG_SND_BFIN_AD73311_SE
-#define GPIO_RESET CONFIG_SND_BFIN_AD73311_RESET
 
 static struct snd_soc_card bf5xx_ad73311;
-static int bf5xx_probe(struct platform_device *pdev);
 
-static int bf5xx_ad73311_hw_params(struct snd_pcm_substream *substream,
-	struct snd_pcm_hw_params *params)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
-	int ret = 0;
-
-	pr_debug("%s rate %d format %x\n", __func__, params_rate(params),
-		params_format(params));
-
-	/* set cpu DAI configuration */
-	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_DSP_A |
-		SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
-	if (ret < 0)
-		return ret;
-
-	return 0;
-}
-
-
-static struct snd_soc_ops bf5xx_ad73311_ops = {
-	.hw_params = bf5xx_ad73311_hw_params,
-};
-
-static struct snd_soc_dai_link bf5xx_ad73311_dai = {
-	.name = "ad73311",
-	.stream_name = "AD73311",
-	.cpu_dai = &bf5xx_i2s_dai,
-	.codec_dai = &ad73311_dai,
-	.ops = &bf5xx_ad73311_ops,
-};
-
-static struct snd_soc_card bf5xx_ad73311 = {
-	.name = "bf5xx_ad73311",
-	.platform = &bf5xx_i2s_soc_platform,
-	.probe = bf5xx_probe,
-	.dai_link = &bf5xx_ad73311_dai,
-	.num_links = 1,
-};
-
-static struct snd_soc_device bf5xx_ad73311_snd_devdata = {
-	.card = &bf5xx_ad73311,
-	.codec_dev = &soc_codec_dev_ad73311,
-};
-
-static void snd_ad73311_reset(void)
-{
-	gpio_set_value(GPIO_RESET, 0);
-	udelay(100);
-	gpio_set_value(GPIO_RESET, 1);
-}
-
-static void snd_ad73311_startup(void)
+static int snd_ad73311_startup(void)
 {
 	pr_debug("%s enter\n", __func__);
 
 	/* Pull up SE pin on AD73311L */
 	gpio_set_value(GPIO_SE, 1);
-	udelay(1);
+	return 0;
 }
 
 static int snd_ad73311_configure(void)
 {
-	unsigned short ctrl_regs[7];
+	unsigned short ctrl_regs[6];
 	unsigned short status = 0;
 	int count = 0;
-#if CONFIG_SND_AD7XXXX_SELECT == 0
+
 	/* DMCLK = MCLK = 16.384 MHz
 	 * SCLK = DMCLK/8 = 2.048 MHz
-	 * Sample Rate = DMCLK/2048  = 8 KHz  (DIRATE)
+	 * Sample Rate = DMCLK/2048  = 8 KHz
 	 */
 	ctrl_regs[0] = AD_CONTROL | AD_WRITE | CTRL_REG_B | REGB_MCDIV(0) | \
-			REGB_SCDIV(0) | REGB_DIRATE(ad73311.srate);
+			REGB_SCDIV(0) | REGB_DIRATE(0);
 	ctrl_regs[1] = AD_CONTROL | AD_WRITE | CTRL_REG_C | REGC_PUDEV | \
 			REGC_PUADC | REGC_PUDAC | REGC_PUREF | REGC_REFUSE ;
-	ctrl_regs[2] = AD_CONTROL | AD_WRITE | CTRL_REG_D | \
-			REGD_OGS(ad73311.ogain) | REGD_IGS(ad73311.igain);
+	ctrl_regs[2] = AD_CONTROL | AD_WRITE | CTRL_REG_D | REGD_OGS(2) | \
+			REGD_IGS(2);
 	ctrl_regs[3] = AD_CONTROL | AD_WRITE | CTRL_REG_E | REGE_DA(0x1f);
-	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F |
-			(ad73311.rfseen ? REGF_SEEN : 0);
+	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F | REGF_SEEN ;
 	ctrl_regs[5] = AD_CONTROL | AD_WRITE | CTRL_REG_A | REGA_MODE_DATA;
-#elif CONFIG_SND_AD7XXXX_SELECT == 1
-	/* MCLK = MCLK = 12.288 MHz
-	 * Sample Rate = 8 KHz
-	 * IMCLK = MCLK/6 = 2.048 MHz = 8kHz * 256
-	 */
-	ctrl_regs[0] = AD_WRITE | CTRL_REG_A | REGA_REFAMP | REGA_REF |\
-			REGA_DAC | REGA_ADC_INPAMP;
-	ctrl_regs[1] = AD_WRITE | CTRL_REG_B | REGB_FCLKDIV(2) | \
-			REGB_SCLKDIV(1) | REGB_TCLKDIV(0);
-	ctrl_regs[2] = AD_WRITE | CTRL_REG_C | REGC_ADC_HP | \
-			REGC_WORD_WIDTH(0);
-	ctrl_regs[3] = AD_WRITE | CTRL_REG_D | REGD_MASTER | \
-			REGD_FDCLK | REGD_DSP_MODE;
-	ctrl_regs[4] = AD_WRITE | CTRL_REG_E;
-	ctrl_regs[5] = AD_WRITE | CTRL_REG_F;
-	ctrl_regs[6] = AD_WRITE | CTRL_REG_G;
-#endif
+
 	local_irq_disable();
-	snd_ad73311_reset();
 	snd_ad73311_startup();
+	udelay(1);
 
 	bfin_write_SPORT_TCR1(TFSR);
 	bfin_write_SPORT_TCR2(0xF);
@@ -204,12 +129,6 @@ static int snd_ad73311_configure(void)
 	return 0;
 }
 
-static int bf5xx_ad73311_reg_write(void *control_data, const char *data,
-				 int len)
-{
-	return snd_ad73311_configure();
-}
-
 static int bf5xx_probe(struct platform_device *pdev)
 {
 	int err;
@@ -218,24 +137,55 @@ static int bf5xx_probe(struct platform_device *pdev)
 		return -EBUSY;
 	}
 
-	if (GPIO_SE != GPIO_RESET)
-		if (gpio_request(GPIO_RESET, "AD73311_RESET")) {
-			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __func__, GPIO_RESET);
-			gpio_free(GPIO_SE);
-			return -EBUSY;
-		}
-
 	gpio_direction_output(GPIO_SE, 0);
-	gpio_direction_output(GPIO_RESET, 0);
 
-	if (ad73311_codec != NULL)
-		ad73311_codec->hw_write = bf5xx_ad73311_reg_write;
 	err = snd_ad73311_configure();
 	if (err < 0)
 		return -EFAULT;
 
 	return 0;
 }
+
+static int bf5xx_ad73311_hw_params(struct snd_pcm_substream *substream,
+	struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+	int ret = 0;
+
+	pr_debug("%s rate %d format %x\n", __func__, params_rate(params),
+		params_format(params));
+
+	/* set cpu DAI configuration */
+	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_DSP_A |
+		SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+
+static struct snd_soc_ops bf5xx_ad73311_ops = {
+	.hw_params = bf5xx_ad73311_hw_params,
+};
+
+static struct snd_soc_dai_link bf5xx_ad73311_dai = {
+	.name = "ad73311",
+	.stream_name = "AD73311",
+	.cpu_dai_name = "bf5xx-i2s",
+	.codec_dai_name = "ad73311-hifi",
+	.platform_name = "bfin-pcm-audio",
+	.codec_name = "ad73311-codec",
+	.ops = &bf5xx_ad73311_ops,
+};
+
+static struct snd_soc_card bf5xx_ad73311 = {
+	.name = "bf5xx_ad73311",
+	.probe = bf5xx_probe,
+	.dai_link = &bf5xx_ad73311_dai,
+	.num_links = 1,
+};
 
 static struct platform_device *bf5xx_ad73311_snd_device;
 
@@ -248,8 +198,7 @@ static int __init bf5xx_ad73311_init(void)
 	if (!bf5xx_ad73311_snd_device)
 		return -ENOMEM;
 
-	platform_set_drvdata(bf5xx_ad73311_snd_device, &bf5xx_ad73311_snd_devdata);
-	bf5xx_ad73311_snd_devdata.dev = &bf5xx_ad73311_snd_device->dev;
+	platform_set_drvdata(bf5xx_ad73311_snd_device, &bf5xx_ad73311);
 	ret = platform_device_add(bf5xx_ad73311_snd_device);
 
 	if (ret)
@@ -268,7 +217,7 @@ module_init(bf5xx_ad73311_init);
 module_exit(bf5xx_ad73311_exit);
 
 /* Module information */
-MODULE_AUTHOR("Cliff Cai,Nanakos Chrysostomos");
+MODULE_AUTHOR("Cliff Cai");
 MODULE_DESCRIPTION("ALSA SoC AD73311 Blackfin");
 MODULE_LICENSE("GPL");
 

@@ -238,7 +238,7 @@ EXPORT_SYMBOL_GPL(soc_ac97_ops);
 #ifdef CONFIG_PM
 static int bf5xx_ac97_suspend(struct snd_soc_dai *dai)
 {
-	struct sport_device *sport = dai->private_data;
+	struct sport_device *sport = snd_soc_dai_get_drvdata(dai);
 
 	pr_debug("%s : sport %d\n", __func__, dai->id);
 	if (!dai->active)
@@ -253,7 +253,7 @@ static int bf5xx_ac97_suspend(struct snd_soc_dai *dai)
 static int bf5xx_ac97_resume(struct snd_soc_dai *dai)
 {
 	int ret;
-	struct sport_device *sport = dai->private_data;
+	struct sport_device *sport = snd_soc_dai_get_drvdata(dai);
 
 	pr_debug("%s : sport %d\n", __func__, dai->id);
 	if (!dai->active)
@@ -390,43 +390,80 @@ sport_err:
 gpio_err:
 #endif
 	free_page((unsigned long)cmd_count);
+	cmd_count = NULL;
 
 	return ret;
 }
 
-static int __devexit bf5xx_ac97_remove(struct platform_device *pdev)
+static int bf5xx_ac97_remove(struct snd_soc_dai *dai)
 {
-	struct sport_device *sport_handle = platform_get_drvdata(pdev);
-	int *cmd_count = sport_handle->private_data;
-
-	snd_soc_unregister_dai(&bfin_ac97_dai);
-	sport_done(sport_handle);
 	free_page((unsigned long)cmd_count);
+	cmd_count = NULL;
+	sport_done(sport_handle);
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
 	gpio_free(CONFIG_SND_BF5XX_RESET_GPIO_NUM);
 #endif
 	return 0;
 }
 
-static struct platform_driver bf5xx_ac97_driver = {
-	.probe  = bf5xx_ac97_probe,
-	.remove = __devexit_p(bf5xx_ac97_remove),
-	.driver = {
-		.name   = "bfin-ac97",
-		.owner  = THIS_MODULE,
-	},
+struct snd_soc_dai_driver bfin_ac97_dai = {
+	.ac97_control = 1,
+	.probe = bf5xx_ac97_probe,
+	.remove = bf5xx_ac97_remove,
+	.suspend = bf5xx_ac97_suspend,
+	.resume = bf5xx_ac97_resume,
+	.playback = {
+		.stream_name = "AC97 Playback",
+		.channels_min = 2,
+#if defined(CONFIG_SND_BF5XX_MULTICHAN_SUPPORT)
+		.channels_max = 6,
+#else
+		.channels_max = 2,
+#endif
+		.rates = SNDRV_PCM_RATE_48000,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
+	.capture = {
+		.stream_name = "AC97 Capture",
+		.channels_min = 2,
+		.channels_max = 2,
+		.rates = SNDRV_PCM_RATE_48000,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
 };
-static int __init bf5xx_ac97_init(void)
-{
-	return platform_driver_register(&bf5xx_ac97_driver);
-}
-module_init(bf5xx_ac97_init);
+EXPORT_SYMBOL_GPL(bfin_ac97_dai);
 
-static void __exit bf5xx_ac97_exit(void)
+static __devinit int asoc_bfin_ac97_probe(struct platform_device *pdev)
 {
-	platform_driver_unregister(&bf5xx_ac97_driver);
+	return snd_soc_register_dai(&pdev->dev, &bfin_ac97_dai);
 }
-module_exit(bf5xx_ac97_exit);
+
+static int __devexit asoc_bfin_ac97_remove(struct platform_device *pdev)
+{
+	snd_soc_unregister_dai(&pdev->dev);
+	return 0;
+}
+
+static struct platform_driver asoc_bfin_ac97_driver = {
+	.driver = {
+			.name = "bfin-ac97",
+			.owner = THIS_MODULE,
+	},
+
+	.probe = asoc_bfin_ac97_probe,
+	.remove = __devexit_p(asoc_bfin_ac97_remove),
+};
+
+static int __init bfin_ac97_init(void)
+{
+	return platform_driver_register(&asoc_bfin_ac97_driver);
+}
+module_init(bfin_ac97_init);
+
+static void __exit bfin_ac97_exit(void)
+{
+	platform_driver_unregister(&asoc_bfin_ac97_driver);
+}
+module_exit(bfin_ac97_exit);
+
 
 MODULE_AUTHOR("Roy Huang");
 MODULE_DESCRIPTION("AC97 driver for ADI Blackfin");

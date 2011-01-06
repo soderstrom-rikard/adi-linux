@@ -101,10 +101,10 @@
 #define BFIN_WRITE_FIO_FLAG(name, val) \
 	do { \
 		unsigned long __flags; \
-		local_irq_save_hw(__flags); \
+		__flags = hard_local_irq_save(); \
 		bfin_write16(FIO_FLAG_##name, val); \
 		bfin_read_CHIPID(); \
-		local_irq_restore_hw(__flags); \
+		hard_local_irq_restore(__flags); \
 	} while (0)
 #define bfin_write_FIO_FLAG_D(val)           BFIN_WRITE_FIO_FLAG(D, val)
 #define bfin_write_FIO_FLAG_C(val)           BFIN_WRITE_FIO_FLAG(C, val)
@@ -115,10 +115,10 @@
 	({ \
 		unsigned long __flags; \
 		u16 __ret; \
-		local_irq_save_hw(__flags); \
+		__flags = hard_local_irq_save(); \
 		__ret = bfin_read16(FIO_FLAG_##name); \
 		bfin_read_CHIPID(); \
-		local_irq_restore_hw(__flags); \
+		hard_local_irq_restore(__flags); \
 		__ret; \
 	})
 #define bfin_read_FIO_FLAG_D()               BFIN_READ_FIO_FLAG(D)

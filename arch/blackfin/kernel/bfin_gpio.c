@@ -396,13 +396,13 @@ static int portmux_group_check(unsigned short per)
 void set_gpio_ ## name(unsigned gpio, unsigned short arg) \
 { \
 	unsigned long flags; \
-	local_irq_save_hw(flags); \
+	flags = hard_local_irq_save(); \
 	if (arg) \
 		gpio_array[gpio_bank(gpio)]->name |= gpio_bit(gpio); \
 	else \
 		gpio_array[gpio_bank(gpio)]->name &= ~gpio_bit(gpio); \
 	AWA_DUMMY_READ(name); \
-	local_irq_restore_hw(flags); \
+	hard_local_irq_restore(flags); \
 } \
 EXPORT_SYMBOL(set_gpio_ ## name);
 
@@ -418,14 +418,14 @@ void set_gpio_ ## name(unsigned gpio, unsigned short arg) \
 { \
 	unsigned long flags; \
 	if (ANOMALY_05000311 || ANOMALY_05000323) \
-		local_irq_save_hw(flags); \
+		flags = hard_local_irq_save(); \
 	if (arg) \
 		gpio_array[gpio_bank(gpio)]->name ## _set = gpio_bit(gpio); \
 	else \
 		gpio_array[gpio_bank(gpio)]->name ## _clear = gpio_bit(gpio); \
 	if (ANOMALY_05000311 || ANOMALY_05000323) { \
 		AWA_DUMMY_READ(name); \
-		local_irq_restore_hw(flags); \
+		hard_local_irq_restore(flags); \
 	} \
 } \
 EXPORT_SYMBOL(set_gpio_ ## name);
@@ -438,11 +438,11 @@ void set_gpio_toggle(unsigned gpio)
 {
 	unsigned long flags;
 	if (ANOMALY_05000311 || ANOMALY_05000323)
-		local_irq_save_hw(flags);
+		flags = hard_local_irq_save();
 	gpio_array[gpio_bank(gpio)]->toggle = gpio_bit(gpio);
 	if (ANOMALY_05000311 || ANOMALY_05000323) {
 		AWA_DUMMY_READ(toggle);
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 	}
 }
 EXPORT_SYMBOL(set_gpio_toggle);
@@ -455,11 +455,11 @@ void set_gpiop_ ## name(unsigned gpio, unsigned short arg) \
 { \
 	unsigned long flags; \
 	if (ANOMALY_05000311 || ANOMALY_05000323) \
-		local_irq_save_hw(flags); \
+		flags = hard_local_irq_save(); \
 	gpio_array[gpio_bank(gpio)]->name = arg; \
 	if (ANOMALY_05000311 || ANOMALY_05000323) { \
 		AWA_DUMMY_READ(name); \
-		local_irq_restore_hw(flags); \
+		hard_local_irq_restore(flags); \
 	} \
 } \
 EXPORT_SYMBOL(set_gpiop_ ## name);
@@ -480,11 +480,11 @@ unsigned short get_gpio_ ## name(unsigned gpio) \
 	unsigned long flags; \
 	unsigned short ret; \
 	if (ANOMALY_05000311 || ANOMALY_05000323) \
-		local_irq_save_hw(flags); \
+		flags = hard_local_irq_save(); \
 	ret = 0x01 & (gpio_array[gpio_bank(gpio)]->name >> gpio_sub_n(gpio)); \
 	if (ANOMALY_05000311 || ANOMALY_05000323) { \
 		AWA_DUMMY_READ(name); \
-		local_irq_restore_hw(flags); \
+		hard_local_irq_restore(flags); \
 	} \
 	return ret; \
 } \
@@ -507,11 +507,11 @@ unsigned short get_gpiop_ ## name(unsigned gpio) \
 	unsigned long flags; \
 	unsigned short ret; \
 	if (ANOMALY_05000311 || ANOMALY_05000323) \
-		local_irq_save_hw(flags); \
+		flags = hard_local_irq_save(); \
 	ret = (gpio_array[gpio_bank(gpio)]->name); \
 	if (ANOMALY_05000311 || ANOMALY_05000323) { \
 		AWA_DUMMY_READ(name); \
-		local_irq_restore_hw(flags); \
+		hard_local_irq_restore(flags); \
 	} \
 	return ret; \
 } \
@@ -572,14 +572,14 @@ int gpio_pm_wakeup_ctrl(unsigned gpio, unsigned ctrl)
 	if (check_gpio(gpio) < 0)
 		return -EINVAL;
 
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 	if (ctrl)
 		reserve(wakeup, gpio);
 	else
 		unreserve(wakeup, gpio);
 
 	set_gpio_maskb(gpio, ctrl);
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 
 	return 0;
 }
@@ -737,7 +737,7 @@ int peripheral_request(unsigned short per, const char *label)
 
 	BUG_ON(ident >= MAX_RESOURCES);
 
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 
 	/* If a pin can be muxed as either GPIO or peripheral, make
 	 * sure it is not already a GPIO pin when we request it.
@@ -748,7 +748,7 @@ int peripheral_request(unsigned short per, const char *label)
 		printk(KERN_ERR
 		       "%s: Peripheral %d is already reserved as GPIO by %s !\n",
 		       __func__, ident, get_label(ident));
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		return -EBUSY;
 	}
 
@@ -777,13 +777,13 @@ int peripheral_request(unsigned short per, const char *label)
 			printk(KERN_ERR
 			       "%s: Peripheral %d function %d is already reserved by %s !\n",
 			       __func__, ident, P_FUNCT2MUX(per), get_label(ident));
-			local_irq_restore_hw(flags);
+			hard_local_irq_restore(flags);
 			return -EBUSY;
 		}
 	}
 
 	if (unlikely(portmux_group_check(per))) {
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		return -EBUSY;
 	}
  anyway:
@@ -792,7 +792,7 @@ int peripheral_request(unsigned short per, const char *label)
 	portmux_setup(per);
 	port_setup(ident, PERIPHERAL_USAGE);
 
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 	set_label(ident, label);
 
 	return 0;
@@ -831,10 +831,10 @@ void peripheral_free(unsigned short per)
 	if (!(per & P_DEFINED))
 		return;
 
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 
 	if (unlikely(!is_reserved(peri, ident, 0))) {
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		return;
 	}
 
@@ -845,7 +845,7 @@ void peripheral_free(unsigned short per)
 
 	set_label(ident, "free");
 
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 }
 EXPORT_SYMBOL(peripheral_free);
 
@@ -879,7 +879,7 @@ int bfin_gpio_request(unsigned gpio, const char *label)
 	if (check_gpio(gpio) < 0)
 		return -EINVAL;
 
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 
 	/*
 	 * Allow that the identical GPIO can
@@ -888,7 +888,7 @@ int bfin_gpio_request(unsigned gpio, const char *label)
 	 */
 
 	if (cmp_label(gpio, label) == 0) {
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		return 0;
 	}
 
@@ -897,7 +897,7 @@ int bfin_gpio_request(unsigned gpio, const char *label)
 			dump_stack();
 		printk(KERN_ERR "bfin-gpio: GPIO %d is already reserved by %s !\n",
 		       gpio, get_label(gpio));
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		return -EBUSY;
 	}
 	if (unlikely(is_reserved(peri, gpio, 1))) {
@@ -906,7 +906,7 @@ int bfin_gpio_request(unsigned gpio, const char *label)
 		printk(KERN_ERR
 		       "bfin-gpio: GPIO %d is already reserved as Peripheral by %s !\n",
 		       gpio, get_label(gpio));
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		return -EBUSY;
 	}
 	if (unlikely(is_reserved(gpio_irq, gpio, 1))) {
@@ -922,7 +922,7 @@ int bfin_gpio_request(unsigned gpio, const char *label)
 	reserve(gpio, gpio);
 	set_label(gpio, label);
 
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 
 	port_setup(gpio, GPIO_USAGE);
 
@@ -939,13 +939,13 @@ void bfin_gpio_free(unsigned gpio)
 
 	might_sleep();
 
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 
 	if (unlikely(!is_reserved(gpio, gpio, 0))) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 		gpio_error(gpio);
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		return;
 	}
 
@@ -953,7 +953,7 @@ void bfin_gpio_free(unsigned gpio)
 
 	set_label(gpio, "free");
 
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 }
 EXPORT_SYMBOL(bfin_gpio_free);
 
@@ -964,7 +964,7 @@ int bfin_special_gpio_request(unsigned gpio, const char *label)
 {
 	unsigned long flags;
 
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 
 	/*
 	 * Allow that the identical GPIO can
@@ -973,19 +973,19 @@ int bfin_special_gpio_request(unsigned gpio, const char *label)
 	 */
 
 	if (cmp_label(gpio, label) == 0) {
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		return 0;
 	}
 
 	if (unlikely(is_reserved(special_gpio, gpio, 1))) {
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		printk(KERN_ERR "bfin-gpio: GPIO %d is already reserved by %s !\n",
 		       gpio, get_label(gpio));
 
 		return -EBUSY;
 	}
 	if (unlikely(is_reserved(peri, gpio, 1))) {
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		printk(KERN_ERR
 		       "bfin-gpio: GPIO %d is already reserved as Peripheral by %s !\n",
 		       gpio, get_label(gpio));
@@ -997,7 +997,7 @@ int bfin_special_gpio_request(unsigned gpio, const char *label)
 	reserve(peri, gpio);
 
 	set_label(gpio, label);
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 	port_setup(gpio, GPIO_USAGE);
 
 	return 0;
@@ -1010,18 +1010,18 @@ void bfin_special_gpio_free(unsigned gpio)
 
 	might_sleep();
 
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 
 	if (unlikely(!is_reserved(special_gpio, gpio, 0))) {
 		gpio_error(gpio);
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		return;
 	}
 
 	unreserve(special_gpio, gpio);
 	unreserve(peri, gpio);
 	set_label(gpio, "free");
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 }
 EXPORT_SYMBOL(bfin_special_gpio_free);
 #endif
@@ -1034,7 +1034,7 @@ int bfin_gpio_irq_request(unsigned gpio, const char *label)
 	if (check_gpio(gpio) < 0)
 		return -EINVAL;
 
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 
 	if (unlikely(is_reserved(peri, gpio, 1))) {
 		if (system_state == SYSTEM_BOOTING)
@@ -1042,7 +1042,7 @@ int bfin_gpio_irq_request(unsigned gpio, const char *label)
 		printk(KERN_ERR
 		       "bfin-gpio: GPIO %d is already reserved as Peripheral by %s !\n",
 		       gpio, get_label(gpio));
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		return -EBUSY;
 	}
 	if (unlikely(is_reserved(gpio, gpio, 1)))
@@ -1053,7 +1053,7 @@ int bfin_gpio_irq_request(unsigned gpio, const char *label)
 	reserve(gpio_irq, gpio);
 	set_label(gpio, label);
 
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 
 	port_setup(gpio, GPIO_USAGE);
 
@@ -1067,13 +1067,13 @@ void bfin_gpio_irq_free(unsigned gpio)
 	if (check_gpio(gpio) < 0)
 		return;
 
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 
 	if (unlikely(!is_reserved(gpio_irq, gpio, 0))) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 		gpio_error(gpio);
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		return;
 	}
 
@@ -1081,7 +1081,7 @@ void bfin_gpio_irq_free(unsigned gpio)
 
 	set_label(gpio, "free");
 
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 }
 
 static inline void __bfin_gpio_direction_input(unsigned gpio)
@@ -1103,10 +1103,10 @@ int bfin_gpio_direction_input(unsigned gpio)
 		return -EINVAL;
 	}
 
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 	__bfin_gpio_direction_input(gpio);
 	AWA_DUMMY_READ(inen);
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 
 	return 0;
 }
@@ -1121,9 +1121,9 @@ void bfin_gpio_irq_prepare(unsigned gpio)
 	port_setup(gpio, GPIO_USAGE);
 
 #ifdef CONFIG_BF54x
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 	__bfin_gpio_direction_input(gpio);
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 #endif
 }
 
@@ -1145,7 +1145,7 @@ int bfin_gpio_direction_output(unsigned gpio, int value)
 		return -EINVAL;
 	}
 
-	local_irq_save_hw(flags);
+	flags = hard_local_irq_save();
 
 	gpio_array[gpio_bank(gpio)]->inen &= ~gpio_bit(gpio);
 	gpio_set_value(gpio, value);
@@ -1156,7 +1156,7 @@ int bfin_gpio_direction_output(unsigned gpio, int value)
 #endif
 
 	AWA_DUMMY_READ(dir);
-	local_irq_restore_hw(flags);
+	hard_local_irq_restore(flags);
 
 	return 0;
 }
@@ -1171,11 +1171,11 @@ int bfin_gpio_get_value(unsigned gpio)
 
 	if (unlikely(get_gpio_edge(gpio))) {
 		int ret;
-		local_irq_save_hw(flags);
+		flags = hard_local_irq_save();
 		set_gpio_edge(gpio, 0);
 		ret = get_gpio_data(gpio);
 		set_gpio_edge(gpio, 1);
-		local_irq_restore_hw(flags);
+		hard_local_irq_restore(flags);
 		return ret;
 	} else
 		return get_gpio_data(gpio);

@@ -781,12 +781,8 @@ static void gdb_cmd_query(struct kgdb_state *ks)
 	}
 }
 
-#ifdef CONFIG_SMP
-static int cont_curr_cpu_thread;
-#endif
-
 /* Handle the 'H' task query packets */
-static int gdb_cmd_task(struct kgdb_state *ks)
+static void gdb_cmd_task(struct kgdb_state *ks)
 {
 	struct task_struct *thread;
 	char *ptr;
@@ -803,16 +799,6 @@ static int gdb_cmd_task(struct kgdb_state *ks)
 		kgdb_usethread = thread;
 		ks->kgdb_usethreadid = ks->threadid;
 		strcpy(remcom_out_buffer, "OK");
-#ifdef CONFIG_SMP
-		/* switch cpu only when it is not a thread query request */
-		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
-			!ks->thr_query && ks->kgdb_usethreadid < -1 &&
-			(-ks->kgdb_usethreadid - 2) != raw_smp_processor_id()) {
-			kgdb_roundup_cpu(raw_smp_processor_id(), 0);
-			kgdb_contthread = kgdb_usethread;
-			return 1;
-		}
-#endif
 		break;
 	case 'c':
 		ptr = &remcom_in_buffer[2];
@@ -826,16 +812,10 @@ static int gdb_cmd_task(struct kgdb_state *ks)
 				break;
 			}
 			kgdb_contthread = thread;
-#ifdef CONFIG_SMP
-			if (ks->threadid == shadow_pid(0))
-				cont_curr_cpu_thread = 1;
-#endif
 		}
 		strcpy(remcom_out_buffer, "OK");
 		break;
 	}
-
-	return 0;
 }
 
 /* Handle the 'T' thread query packets */
@@ -843,9 +823,6 @@ static void gdb_cmd_thread(struct kgdb_state *ks)
 {
 	char *ptr = &remcom_in_buffer[1];
 	struct task_struct *thread;
-
-	/* reset thread query count before thread operation */
-	ks->thr_query = 0;
 
 	kgdb_hex2long(&ptr, &ks->threadid);
 	thread = getthread(ks->linux_regs, ks->threadid);
@@ -962,41 +939,19 @@ int gdb_serial_stub(struct kgdb_state *ks)
 	ks->pass_exception = 0;
 
 	if (kgdb_connected) {
-#ifdef CONFIG_SMP
-		/* reply the thread switch request after finish swtiching cpu */
-		if ((arch_kgdb_ops.flags & KGDB_THR_PROC_SWAP) &&
-			!kgdb_single_step && kgdb_contthread == current) {
-			remcom_out_buffer[0] = 'O';
-			remcom_out_buffer[1] = 'K';
-			remcom_out_buffer[2] = 0;
-			put_packet(remcom_out_buffer);
-		} else {
-#endif
-			unsigned char thref[BUF_THREAD_ID_SIZE];
-			char *ptr;
+		unsigned char thref[BUF_THREAD_ID_SIZE];
+		char *ptr;
 
-			/* Reply to host that an exception has occurred */
-			ptr = remcom_out_buffer;
-			*ptr++ = 'T';
-			ptr = pack_hex_byte(ptr, ks->signo);
-			ptr += strlen(strcpy(ptr, "thread:"));
-#ifdef CONFIG_SMP
-			if (cont_curr_cpu_thread) {
-				int_to_threadref(thref, shadow_pid(0));
-				cont_curr_cpu_thread = 0;
-			} else
-#endif
-			int_to_threadref(thref, shadow_pid(current->pid));
-			ptr = pack_threadid(ptr, thref);
-			*ptr++ = ';';
-			put_packet(remcom_out_buffer);
-#ifdef CONFIG_SMP
-		}
-#endif
+		/* Reply to host that an exception has occurred */
+		ptr = remcom_out_buffer;
+		*ptr++ = 'T';
+		ptr = pack_hex_byte(ptr, ks->signo);
+		ptr += strlen(strcpy(ptr, "thread:"));
+		int_to_threadref(thref, shadow_pid(current->pid));
+		ptr = pack_threadid(ptr, thref);
+		*ptr++ = ';';
+		put_packet(remcom_out_buffer);
 	}
-
-	kgdb_single_step = 0;
-	kgdb_contthread = current;
 
 	while (1) {
 		error = 0;
@@ -1048,8 +1003,7 @@ int gdb_serial_stub(struct kgdb_state *ks)
 			gdb_cmd_query(ks);
 			break;
 		case 'H': /* task related */
-			if (gdb_cmd_task(ks))
-				return 0;
+			gdb_cmd_task(ks);
 			break;
 		case 'T': /* Query thread status */
 			gdb_cmd_thread(ks);
@@ -1096,7 +1050,6 @@ default_handle:
 			if (error >= 0 || remcom_in_buffer[0] == 'D' ||
 			    remcom_in_buffer[0] == 'k') {
 				error = 0;
-				kgdb_contthread = NULL;
 				goto kgdb_exit;
 			}
 

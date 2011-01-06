@@ -185,17 +185,20 @@ static int ad7879_report(struct ad7879 *ts)
 		if (Rt > ts->pressure_max)
 			return -EINVAL;
 
-		if (!timer_pending(&ts->timer)) {
-			ts->x = x;
-			ts->y = y;
-			ts->Rt = Rt;
+		/*
+		 * Note that we delay reporting events by one sample.
+		 * This is done to avoid reporting last sample of the
+		 * touch sequence, which may be incomplete if finger
+		 * leaves the surface before last reading is taken.
+		 */
+		if (timer_pending(&ts->timer)) {
+			/* Touch continues */
 			input_report_key(input_dev, BTN_TOUCH, 1);
+			input_report_abs(input_dev, ABS_X, ts->x);
+			input_report_abs(input_dev, ABS_Y, ts->y);
+			input_report_abs(input_dev, ABS_PRESSURE, ts->Rt);
+			input_sync(input_dev);
 		}
-
-		input_report_abs(input_dev, ABS_X, ts->x);
-		input_report_abs(input_dev, ABS_Y, ts->y);
-		input_report_abs(input_dev, ABS_PRESSURE, ts->Rt);
-		input_sync(input_dev);
 
 		ts->x = x;
 		ts->y = y;
