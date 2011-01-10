@@ -402,7 +402,7 @@ static int __init dnp5370_init(void)
 	printk(KERN_INFO "DNP/5370: registering %zu SPI slave devices\n",
 	       ARRAY_SIZE(bfin_spi_board_info));
 	spi_register_board_info(bfin_spi_board_info, ARRAY_SIZE(bfin_spi_board_info));
-	printk(KERN_INFO "DNP/5370: MAC %pM\n", FLASH_MAC);
+	printk(KERN_INFO "DNP/5370: MAC %pM\n", (void *)FLASH_MAC);
 	return 0;
 }
 arch_initcall(dnp5370_init);
