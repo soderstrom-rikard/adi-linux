@@ -14,7 +14,7 @@
 #include <linux/bitmap.h>
 #include <linux/slab.h>
 #include <icc.h>
-#include <asm-generic/uaccess.h>
+#include <linux/poll.h>
 
 #ifdef DEBUG
 #define sm_debug(fmt, ...) \
@@ -45,6 +45,7 @@ void wakeup_icc_thread(void)
 {
 	if (icc_info->iccq_thread)
 		wake_up_process(icc_info->iccq_thread);
+	wake_up(&icc_info->iccq_rx_wait);
 }
 
 static int init_sm_message_queue(void)
@@ -506,11 +507,28 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	return 0;
 }
 
+unsigned int icc_poll(struct file *file, poll_table *wait)
+{
+	unsigned int mask = 0;
+	int cpu = blackfin_core_id();
+	int pending;
+
+	poll_wait(file, &icc_info->iccq_rx_wait, wait);
+
+	pending = iccqueue_getpending(cpu);
+	if (pending)
+		mask |= POLLIN | POLLRDNORM;
+
+	return mask;
+}
+
+
 static const struct file_operations icc_fops = {
 	.owner          = THIS_MODULE,
 	.open		= icc_open,
 	.release	= icc_release,
 	.unlocked_ioctl = icc_ioctl,
+	.poll		= icc_poll,
 };
 
 static struct miscdevice icc_dev = {
@@ -643,10 +661,10 @@ void msg_handle(int cpu)
 	}
 
 	slot = sm_find_session(msg->dst_ep, 0, icc_info->sessions_table);
+	session = &icc_info->sessions_table[slot];
 
-	if (slot >= 0 && slot < 32) {
-		printk("proto ops slot %d \n", slot);
-		session = &icc_info->sessions_table[slot];
+	if ((slot >= 0 && slot < 32)
+		&& (SM_MSG_PROTOCOL(msg->type) == session->type)) {
 		session->proto_ops->recvmsg(msg, session);
 	} else {
 		printk("discard msg\n");

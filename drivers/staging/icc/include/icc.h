@@ -139,6 +139,8 @@ struct sm_icc_desc {
 	struct sm_message_queue *icc_queue;
 	struct sm_session_table *sessions_table;
 	struct task_struct *iccq_thread;
+	wait_queue_head_t iccq_tx_wait;
+	wait_queue_head_t iccq_rx_wait;
 };
 
 #endif
