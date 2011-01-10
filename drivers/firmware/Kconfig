@@ -137,6 +137,7 @@ config ISCSI_IBFT
 config SIGMA
 	tristate "SigmaStudio firmware loader"
 	depends on I2C
+	select CRC32
 	default n
 	help
 	  Enable helper functions for working with Analog Devices SigmaDSP
