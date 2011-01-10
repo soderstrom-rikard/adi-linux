@@ -1,5 +1,5 @@
 /*
- * Emulate a SPI bus using the Blackfin SPORT peripheral
+ * SPI bus via the Blackfin SPORT peripheral
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
@@ -29,7 +29,7 @@
 #include <asm/cacheflush.h>
 
 #define DRV_NAME	"bfin-sport-spi"
-#define DRV_DESC	"Emulate a SPI bus via Blackfin SPORT"
+#define DRV_DESC	"SPI bus via the Blackfin SPORT"
 
 MODULE_AUTHOR("Cliff Cai");
 MODULE_DESCRIPTION(DRV_DESC);

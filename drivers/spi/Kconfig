@@ -67,11 +67,10 @@ config SPI_BFIN
 	  This is the SPI controller master driver for Blackfin 5xx processor.
 
 config SPI_BFIN_SPORT
-	tristate "emulate SPI bus with Blackfin SPORT"
+	tristate "SPI bus via Blackfin SPORT"
 	depends on BLACKFIN
 	help
-	  Enable support for emulating a SPI bus over the Blackfin SPORT
-	  peripheral.
+	  Enable support for a SPI bus via the Blackfin SPORT peripheral.
 
 	  This driver can also be built as a module.  If so, the module
 	  will be called bfin_sport_spi.
