@@ -200,15 +200,15 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 
 /* 8 Megabyte Atmel NOR flash chip at SPI bus */
 #if defined(CONFIG_MTD_DATAFLASH) || defined(CONFIG_MTD_DATAFLASH_MODULE)
-    {
+	{
 	.modalias        = "mtd_dataflash",
 	.max_speed_hz    = 16700000,
 	.bus_num         = 0,
 	.chip_select     = 2,
 	.platform_data   = &bfin_spi_dataflash_data,
 	.controller_data = &spi_dataflash_chip_info,
-	.mode	         = SPI_MODE_3, /* SPI_CPHA and SPI_CPOL */
-    },
+	.mode            = SPI_MODE_3, /* SPI_CPHA and SPI_CPOL */
+	},
 #endif
 };
 
@@ -412,7 +412,7 @@ arch_initcall(dnp5370_init);
  */
 void bfin_get_ether_addr(char *addr)
 {
-    *(u32 *)(&(addr[0])) = bfin_read32(FLASH_MAC);
-    *(u16 *)(&(addr[4])) = bfin_read16(FLASH_MAC + 4);
+	*(u32 *)(&(addr[0])) = bfin_read32(FLASH_MAC);
+	*(u16 *)(&(addr[4])) = bfin_read16(FLASH_MAC + 4);
 }
 EXPORT_SYMBOL(bfin_get_ether_addr);
