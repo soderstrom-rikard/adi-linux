@@ -731,6 +731,15 @@ config HVC_UDBG
        select HVC_DRIVER
        default n
 
+config HVC_BFIN_JTAG
+	bool "Blackfin JTAG console"
+	depends on BLACKFIN
+	select HVC_DRIVER
+	help
+	 This console uses the Blackfin JTAG to create a console under the
+	 the HVC driver.  If you don't have JTAG, then you probably don't
+	 want this option.
+
 config VIRTIO_CONSOLE
 	tristate "Virtio console"
 	depends on VIRTIO
