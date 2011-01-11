@@ -59,7 +59,7 @@ struct bfin_sport_spi_master_data {
 	struct spi_master *master;
 
 	/* Regs base of SPI controller */
-	volatile struct sport_register __iomem *regs;
+	struct sport_register __iomem *regs;
 	int err_irq;
 
 	/* Pin request list */
@@ -110,16 +110,16 @@ struct bfin_sport_spi_slave_data {
 static void
 bfin_sport_spi_enable(struct bfin_sport_spi_master_data *drv_data)
 {
-	drv_data->regs->tcr1 |= TSPEN;
-	drv_data->regs->rcr1 |= TSPEN;
+	bfin_write_or(&drv_data->regs->tcr1, TSPEN);
+	bfin_write_or(&drv_data->regs->rcr1, TSPEN);
 	SSYNC();
 }
 
 static void
 bfin_sport_spi_disable(struct bfin_sport_spi_master_data *drv_data)
 {
-	drv_data->regs->tcr1 &= ~TSPEN;
-	drv_data->regs->rcr1 &= ~TSPEN;
+	bfin_write_and(&drv_data->regs->tcr1, ~TSPEN);
+	bfin_write_and(&drv_data->regs->rcr1, ~TSPEN);
 	SSYNC();
 }
 
@@ -161,7 +161,7 @@ static void
 bfin_sport_spi_stat_poll_complete(struct bfin_sport_spi_master_data *drv_data)
 {
 	unsigned long timeout = jiffies + HZ;
-	while (!(drv_data->regs->stat & RXNE))
+	while (!(bfin_read(&drv_data->regs->stat) & RXNE))
 		if (!time_before(jiffies, timeout))
 			break;
 		else
@@ -174,9 +174,9 @@ bfin_sport_spi_u8_writer(struct bfin_sport_spi_master_data *drv_data)
 	u16 dummy;
 
 	while (drv_data->tx < drv_data->tx_end) {
-		drv_data->regs->tx16 = *drv_data->tx8++;
+		bfin_write(&drv_data->regs->tx16, *drv_data->tx8++);
 		bfin_sport_spi_stat_poll_complete(drv_data);
-		dummy = drv_data->regs->rx16;
+		dummy = bfin_read(&drv_data->regs->rx16);
 	}
 }
 
@@ -186,9 +186,9 @@ bfin_sport_spi_u8_reader(struct bfin_sport_spi_master_data *drv_data)
 	u16 tx_val = drv_data->cur_chip->idle_tx_val;
 
 	while (drv_data->rx < drv_data->rx_end) {
-		drv_data->regs->tx16 = tx_val;
+		bfin_write(&drv_data->regs->tx16, tx_val);
 		bfin_sport_spi_stat_poll_complete(drv_data);
-		*drv_data->rx8++ = drv_data->regs->rx16;
+		*drv_data->rx8++ = bfin_read(&drv_data->regs->rx16);
 	}
 }
 
@@ -196,9 +196,9 @@ static void
 bfin_sport_spi_u8_duplex(struct bfin_sport_spi_master_data *drv_data)
 {
 	while (drv_data->rx < drv_data->rx_end) {
-		drv_data->regs->tx16 = *drv_data->tx8++;
+		bfin_write(&drv_data->regs->tx16, *drv_data->tx8++);
 		bfin_sport_spi_stat_poll_complete(drv_data);
-		*drv_data->rx8++ = drv_data->regs->rx16;
+		*drv_data->rx8++ = bfin_read(&drv_data->regs->rx16);
 	}
 }
 
@@ -214,9 +214,9 @@ bfin_sport_spi_u16_writer(struct bfin_sport_spi_master_data *drv_data)
 	u16 dummy;
 
 	while (drv_data->tx < drv_data->tx_end) {
-		drv_data->regs->tx16 = *drv_data->tx16++;
+		bfin_write(&drv_data->regs->tx16, *drv_data->tx16++);
 		bfin_sport_spi_stat_poll_complete(drv_data);
-		dummy = drv_data->regs->rx16;
+		dummy = bfin_read(&drv_data->regs->rx16);
 	}
 }
 
@@ -226,9 +226,9 @@ bfin_sport_spi_u16_reader(struct bfin_sport_spi_master_data *drv_data)
 	u16 tx_val = drv_data->cur_chip->idle_tx_val;
 
 	while (drv_data->rx < drv_data->rx_end) {
-		drv_data->regs->tx16 = tx_val;
+		bfin_write(&drv_data->regs->tx16, tx_val);
 		bfin_sport_spi_stat_poll_complete(drv_data);
-		*drv_data->rx16++ = drv_data->regs->rx16;
+		*drv_data->rx16++ = bfin_read(&drv_data->regs->rx16);
 	}
 }
 
@@ -236,9 +236,9 @@ static void
 bfin_sport_spi_u16_duplex(struct bfin_sport_spi_master_data *drv_data)
 {
 	while (drv_data->rx < drv_data->rx_end) {
-		drv_data->regs->tx16 = *drv_data->tx16++;
+		bfin_write(&drv_data->regs->tx16, *drv_data->tx16++);
 		bfin_sport_spi_stat_poll_complete(drv_data);
-		*drv_data->rx16++ = drv_data->regs->rx16;
+		*drv_data->rx16++ = bfin_read(&drv_data->regs->rx16);
 	}
 }
 
@@ -258,14 +258,14 @@ bfin_sport_spi_restore_state(struct bfin_sport_spi_master_data *drv_data)
 	bfin_sport_spi_disable(drv_data);
 	dev_dbg(drv_data->dev, "restoring spi ctl state\n");
 
-	drv_data->regs->tcr1 = chip->ctl_reg;
-	drv_data->regs->tcr2 = bits;
-	drv_data->regs->tclkdiv = chip->baud;
-	drv_data->regs->tfsdiv = bits;
+	bfin_write(&drv_data->regs->tcr1, chip->ctl_reg);
+	bfin_write(&drv_data->regs->tcr2, bits);
+	bfin_write(&drv_data->regs->tclkdiv, chip->baud);
+	bfin_write(&drv_data->regs->tfsdiv, bits);
 	SSYNC();
 
-	drv_data->regs->rcr1 = chip->ctl_reg & ~(ITCLK | ITFS);
-	drv_data->regs->rcr2 = bits;
+	bfin_write(&drv_data->regs->rcr1, chip->ctl_reg & ~(ITCLK | ITFS));
+	bfin_write(&drv_data->regs->rcr2, bits);
 	SSYNC();
 
 	bfin_sport_spi_cs_active(chip);
@@ -322,10 +322,10 @@ sport_err_handler(int irq, void *dev_id)
 	u16 status;
 
 	dev_dbg(drv_data->dev, "%s enter\n", __func__);
-	status = drv_data->regs->stat & (TOVF | TUVF | ROVF | RUVF);
+	status = bfin_read(&drv_data->regs->stat) & (TOVF | TUVF | ROVF | RUVF);
 
 	if (status) {
-		drv_data->regs->stat = status;
+		bfin_write(&drv_data->regs->stat, status);
 		SSYNC();
 
 		bfin_sport_spi_disable(drv_data);
@@ -357,9 +357,9 @@ bfin_sport_spi_pump_transfers(unsigned long data)
 	chip = drv_data->cur_chip;
 
 	if (transfer->speed_hz)
-		drv_data->regs->tclkdiv = hz_to_spi_baud(transfer->speed_hz);
+		bfin_write(&drv_data->regs->tclkdiv, hz_to_spi_baud(transfer->speed_hz));
 	else
-		drv_data->regs->tclkdiv = chip->baud;
+		bfin_write(&drv_data->regs->tclkdiv, chip->baud);
 	SSYNC();
 
 	/*
@@ -851,7 +851,7 @@ bfin_sport_spi_probe(struct platform_device *pdev)
  out_error_queue_alloc:
 	bfin_sport_spi_destroy_queue(drv_data);
  out_error_get_ires:
-	iounmap((void *)drv_data->regs);
+	iounmap(drv_data->regs);
  out_error_ioremap:
  out_error_get_res:
 	spi_master_put(master);
