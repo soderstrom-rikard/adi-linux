@@ -10,7 +10,7 @@ extern struct snd_soc_codec_device soc_codec_dev_adav80x;
 #define ADAV80X_CLK_MCLKI	6
 
 
-#if (CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
+#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 /* ADAV80X I2C interface requires left-shifting reg addr for 1-bit */
 #define ADAV80X_NUM_REGS (0x7E<<1)
 
