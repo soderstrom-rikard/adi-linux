@@ -1,7 +1,7 @@
 /*
  * board driver for adau1381 sound chip
  *
- * Copyright 2010 Analog Devices Inc.
+ * Copyright 2010-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -22,13 +22,12 @@
 #include "../codecs/adau1381.h"
 #include "bf5xx-sport.h"
 #include "bf5xx-i2s-pcm.h"
-#include "bf5xx-i2s.h"
 
 static int bf5xx_adau1381_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	unsigned int pll_in = 0, pll_out = 0;
 	int ret = 0;
@@ -56,14 +55,14 @@ static int bf5xx_adau1381_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	/* set codec DAI configuration */
-	ret = codec_dai->ops->set_fmt(codec_dai,
+	ret = codec_dai->driver->ops->set_fmt(codec_dai,
 		SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF |
 		SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0)
 		return ret;
 
 	/* set cpu DAI configuration */
-	ret = cpu_dai->ops->set_fmt(cpu_dai,
+	ret = cpu_dai->driver->ops->set_fmt(cpu_dai,
 		SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF |
 		SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0)
@@ -71,13 +70,13 @@ static int bf5xx_adau1381_hw_params(struct snd_pcm_substream *substream,
 
 	/* set the codec system clock for DAC and ADC */
 	pll_in = ADAU1381_MCLK_RATE; /* fixed rate MCLK */
-	ret = codec_dai->ops->set_sysclk(codec_dai, ADAU1381_MCLK_ID, pll_in,
+	ret = codec_dai->driver->ops->set_sysclk(codec_dai, ADAU1381_MCLK_ID, pll_in,
 		SND_SOC_CLOCK_IN);
 	if (ret < 0)
 		return ret;
 
 	/* codec PLL input is PCLK/4 */
-	ret = codec_dai->ops->set_pll(codec_dai, 0, 0, pll_in, pll_out);
+	ret = codec_dai->driver->ops->set_pll(codec_dai, 0, 0, pll_in, pll_out);
 	if (ret < 0)
 		return ret;
 

@@ -265,7 +265,7 @@ static int bf5xx_pcm_open(struct snd_pcm_substream *substream)
 	}
 	return 0;
 
-out:
+ out:
 	return ret;
 }
 

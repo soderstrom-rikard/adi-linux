@@ -1,7 +1,7 @@
 /*
  * board driver for adau1373 sound chip
  *
- * Copyright 2010 Analog Devices Inc.
+ * Copyright 2010-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -22,7 +22,6 @@
 #include "../codecs/adau1373.h"
 #include "bf5xx-sport.h"
 #include "bf5xx-i2s-pcm.h"
-#include "bf5xx-i2s.h"
 
 /* PLL settings coefficients, Crystal here is 12.288MHz one.
  * Change things here, if you want to support more rates or change
@@ -48,7 +47,7 @@ static int bf5xx_adau1373_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	int ret = 0;
 	/* Change input crystal source here */
