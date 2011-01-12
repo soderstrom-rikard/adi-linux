@@ -84,6 +84,24 @@ static int __init proc_dma_init(void)
 late_initcall(proc_dma_init);
 #endif
 
+static void set_dma_peripheral_map(unsigned int channel, const char *device_id)
+{
+#ifdef CONFIG_BF54x
+	unsigned int per_map;
+
+	switch (channel) {
+		case CH_UART2_RX: per_map = 0xC << 12; break;
+		case CH_UART2_TX: per_map = 0xD << 12; break;
+		case CH_UART3_RX: per_map = 0xE << 12; break;
+		case CH_UART3_TX: per_map = 0xF << 12; break;
+		default:          return;
+	}
+
+	if (strncmp(device_id, "BFIN_UART", 9) == 0)
+		dma_ch[channel].regs->peripheral_map = per_map;
+#endif
+}
+
 /**
  *	request_dma - request a DMA channel
  *
@@ -111,41 +129,7 @@ int request_dma(unsigned int channel, const char *device_id)
 		return -EBUSY;
 	}
 
-#ifdef CONFIG_BF54x
-# if defined(CH_UART2_RX) && defined(CH_UART2_TX)
-	if (channel == CH_UART2_RX) {
-		unsigned int per_map;
-		per_map = dma_ch[channel].regs->peripheral_map & 0xFFF;
-		if (strncmp(device_id, "BFIN_UART", 9) == 0)
-			dma_ch[channel].regs->peripheral_map = per_map |
-				(0xC<<12);
-	}
-	if (channel == CH_UART2_TX) {
-		unsigned int per_map;
-		per_map = dma_ch[channel].regs->peripheral_map & 0xFFF;
-		if (strncmp(device_id, "BFIN_UART", 9) == 0)
-			dma_ch[channel].regs->peripheral_map = per_map |
-				(0xD<<12);
-	}
-# endif
-# if defined(CH_UART3_RX) && defined(CH_UART3_TX)
-	if (channel == CH_UART3_RX) {
-		unsigned int per_map;
-		per_map = dma_ch[channel].regs->peripheral_map & 0xFFF;
-		if (strncmp(device_id, "BFIN_UART", 9) == 0)
-			dma_ch[channel].regs->peripheral_map = per_map |
-				(0xE<<12);
-	}
-	if (channel == CH_UART3_TX) {
-		unsigned int per_map;
-		per_map = dma_ch[channel].regs->peripheral_map & 0xFFF;
-		if (strncmp(device_id, "BFIN_UART", 9) == 0)
-			dma_ch[channel].regs->peripheral_map = per_map |
-				(0xF<<12);
-	}
-# endif
-#endif
-
+	set_dma_peripheral_map(channel, device_id);
 	dma_ch[channel].device_id = device_id;
 	dma_ch[channel].irq = 0;
 
