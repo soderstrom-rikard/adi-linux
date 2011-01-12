@@ -55,7 +55,7 @@ struct bf5xx_i2s_port {
 static int bf5xx_i2s_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 		unsigned int fmt)
 {
-	struct sport_device *sport_handle = cpu_dai->private_data;
+	struct sport_device *sport_handle = snd_soc_dai_get_drvdata(cpu_dai);
 	struct bf5xx_i2s_port *bf5xx_i2s = sport_handle->private_data;
 	int ret = 0;
 
@@ -101,7 +101,7 @@ static int bf5xx_i2s_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params,
 				struct snd_soc_dai *dai)
 {
-	struct sport_device *sport_handle = dai->private_data;
+	struct sport_device *sport_handle = snd_soc_dai_get_drvdata(dai);
 	struct bf5xx_i2s_port *bf5xx_i2s = sport_handle->private_data;
 	int ret = 0;
 
@@ -155,7 +155,7 @@ static int bf5xx_i2s_hw_params(struct snd_pcm_substream *substream,
 static void bf5xx_i2s_shutdown(struct snd_pcm_substream *substream,
 			       struct snd_soc_dai *dai)
 {
-	struct sport_device *sport_handle = dai->private_data;
+	struct sport_device *sport_handle = snd_soc_dai_get_drvdata(dai);
 	struct bf5xx_i2s_port *bf5xx_i2s = sport_handle->private_data;
 
 	pr_debug("%s enter\n", __func__);
@@ -167,7 +167,7 @@ static void bf5xx_i2s_shutdown(struct snd_pcm_substream *substream,
 #ifdef CONFIG_PM
 static int bf5xx_i2s_suspend(struct snd_soc_dai *dai)
 {
-	struct sport_device *sport_handle = dai->private_data;
+	struct sport_device *sport_handle = snd_soc_dai_get_drvdata(dai);
 	pr_debug("%s : sport %d\n", __func__, dai->id);
 
 	if (dai->capture_active)
@@ -179,7 +179,7 @@ static int bf5xx_i2s_suspend(struct snd_soc_dai *dai)
 
 static int bf5xx_i2s_resume(struct snd_soc_dai *dai)
 {
-	struct sport_device *sport_handle = dai->private_data;
+	struct sport_device *sport_handle = snd_soc_dai_get_drvdata(dai);
 	struct bf5xx_i2s_port *bf5xx_i2s = sport_handle->private_data;
 	int ret;
 
