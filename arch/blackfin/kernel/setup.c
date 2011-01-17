@@ -792,10 +792,6 @@ static __init void setup_bootmem_allocator(void)
 	reserve_bootmem(PAGE_OFFSET,
 		memory_start + bootmap_size + PAGE_SIZE - 1 - PAGE_OFFSET,
 		BOOTMEM_DEFAULT);
-#ifdef CONFIG_ICC
-	reserve_bootmem(memory_end - 0x400000, 0x400000, BOOTMEM_DEFAULT);
-#endif
-
 }
 
 #define EBSZ_TO_MEG(ebsz) \
