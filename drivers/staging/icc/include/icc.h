@@ -30,6 +30,7 @@ typedef sm_uint16_t sm_atomic_t;
 enum {
 	SP_GENERAL = 0,
 	SP_CORE_CONTROL,
+	SP_TASK_MANAGER,
 	SP_RES_MANAGER,
 	SP_PACKET,
 	SP_SESSION_PACKET,
@@ -39,6 +40,7 @@ enum {
 
 #define SM_UNCONNECT 0
 #define SM_CONNECT 0x1
+#define SM_CONNECTING 0x2
 
 #define SM_BAD_ENDPOINT SM_MSG_TYPE(0, 0)
 #define SM_BAD_MSG SM_MSG_TYPE(0, 1)
@@ -49,6 +51,9 @@ enum {
 #define SM_CORE_STOPPED		SM_MSG_TYPE(SP_CORE_CONTROL, 3)
 #define SM_CORE_RESET		SM_MSG_TYPE(SP_CORE_CONTROL, 4)
 #define SM_CORE_RESETED		SM_MSG_TYPE(SP_CORE_CONTROL, 5)
+
+#define SM_TASK_RUN		SM_MSG_TYPE(SP_TASK_MANAGER, 0)
+#define SM_TASK_KILL		SM_MSG_TYPE(SP_TASK_MANAGER, 1)
 
 #define SM_RES_MGR_REQUEST	SM_MSG_TYPE(SP_RES_MANAGER, 0)
 #define SM_RES_MGR_REQUEST_OK	SM_MSG_TYPE(SP_RES_MANAGER, 1)
@@ -102,9 +107,9 @@ struct sm_message {
 
 /* Simple FIFO buffer */
 struct sm_message_queue {
-	struct sm_message messages[SM_MSGQ_LEN];
 	sm_atomic_t sent;
 	sm_atomic_t received; /* head of the queue */
+	struct sm_message messages[SM_MSGQ_LEN];
 };
 
 struct sm_session {
@@ -120,12 +125,14 @@ struct sm_session {
 };
 
 #define MAX_ENDPOINTS 32
+#define MAX_SESSIONS 32
 struct sm_session_table {
 	struct sm_session sessions[MAX_ENDPOINTS];
 	sm_uint32_t	nfree;
 	sm_uint32_t	bits[(MAX_ENDPOINTS - 1) / BITS_PER_LONG + 1];
 	struct list_head next_table;
 	struct mutex lock;
+	sm_uint16_t	refcnt;
 };
 
 struct sm_proto {
@@ -143,6 +150,11 @@ struct sm_icc_desc {
 	wait_queue_head_t iccq_rx_wait;
 };
 
+struct sm_task {
+	void (*task_init)(void);
+	void (*task_exit)(void);
+};
+
 #endif
 
 #define CMD_COREB_START		_IO('m', 0)
@@ -154,7 +166,7 @@ struct sm_icc_desc {
 #define CMD_SM_RECV		_IO('m', 6)
 #define CMD_SM_SHUTDOWN		_IO('m', 7)
 
-struct sm_user_param {
+struct sm_packet {
 	sm_uint32_t session_idx;
 	sm_uint32_t local_ep;
 	sm_uint32_t remote_ep;
