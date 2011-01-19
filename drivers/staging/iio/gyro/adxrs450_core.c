@@ -281,7 +281,7 @@ static ssize_t adxrs450_read_sensor_data(struct device *dev,
 	return len;
 }
 
-/* Recommeded Startup Sequence by spec */
+/* Recommended Startup Sequence by spec */
 static int adxrs450_initial_setup(struct adxrs450_state *st)
 {
 	u32 t;
@@ -289,7 +289,6 @@ static int adxrs450_initial_setup(struct adxrs450_state *st)
 	struct device *dev = &st->indio_dev->dev;
 	/* use low spi speed for init */
 	st->us->max_speed_hz = ADXRS450_SPI_SLOW;
-	st->us->chip_select = 4;
 	st->us->mode = SPI_MODE_0;
 	spi_setup(st->us);
 
