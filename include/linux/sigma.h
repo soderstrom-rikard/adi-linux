@@ -1,9 +1,9 @@
 /*
  * Load firmware files from Analog Devices SigmaStudio
  *
- * Copyright 2009 Analog Devices Inc.
- *
- * Licensed under the GPL-2 or later.
+ * Copyright 2009 Analog Devices Inc.
+ *
+ * Licensed under the GPL-2 or later.
  */
 
 #ifndef __SIGMA_FIRMWARE_H__
@@ -11,6 +11,8 @@
 
 #include <linux/firmware.h>
 #include <linux/types.h>
+
+struct i2c_client;
 
 #define SIGMA_MAGIC "ADISIGM"
 
@@ -52,8 +54,6 @@ static inline size_t sigma_action_size(struct sigma_action *sa, u32 payload_len)
 {
 	return sizeof(*sa) + payload_len + (payload_len % 2);
 }
-
-struct i2c_client;
 
 extern int process_sigma_firmware(struct i2c_client *client, const char *name);
 

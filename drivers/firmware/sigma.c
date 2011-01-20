@@ -1,9 +1,9 @@
 /*
  * Load Analog Devices SigmaStudio firmware files
  *
- * Copyright 2009 Analog Devices Inc.
- *
- * Licensed under the GPL-2 or later.
+ * Copyright 2009-2011 Analog Devices Inc.
+ *
+ * Licensed under the GPL-2 or later.
  */
 
 #include <linux/crc32.h>
@@ -14,7 +14,8 @@
 #include <linux/sigma.h>
 
 /* Return: 0==OK, <0==error, =1 ==no more actions */
-int process_sigma_action(struct i2c_client *client, struct sigma_firmware *ssfw)
+static int
+process_sigma_action(struct i2c_client *client, struct sigma_firmware *ssfw)
 {
 	struct sigma_action *sa = (void *)(ssfw->fw->data + ssfw->pos);
 	size_t len = sigma_action_len(sa);
@@ -24,27 +25,27 @@ int process_sigma_action(struct i2c_client *client, struct sigma_firmware *ssfw)
 		sa->instr, sa->addr, len);
 
 	switch (sa->instr) {
-		case SIGMA_ACTION_WRITEXBYTES:
-		case SIGMA_ACTION_WRITESINGLE:
-		case SIGMA_ACTION_WRITESAFELOAD:
-			if (ssfw->fw->size < ssfw->pos + len)
-				return -EINVAL;
-			ret = i2c_master_send(client, (void *)&sa->addr, len);
-			if (ret < 0)
-				return -EINVAL;
-			break;
-
-		case SIGMA_ACTION_DELAY:
-			ret = 0;
-			udelay(len);
-			len = 0;
-			break;
-
-		case SIGMA_ACTION_END:
-			return 1;
-
-		default:
+	case SIGMA_ACTION_WRITEXBYTES:
+	case SIGMA_ACTION_WRITESINGLE:
+	case SIGMA_ACTION_WRITESAFELOAD:
+		if (ssfw->fw->size < ssfw->pos + len)
 			return -EINVAL;
+		ret = i2c_master_send(client, (void *)&sa->addr, len);
+		if (ret < 0)
+			return -EINVAL;
+		break;
+
+	case SIGMA_ACTION_DELAY:
+		ret = 0;
+		udelay(len);
+		len = 0;
+		break;
+
+	case SIGMA_ACTION_END:
+		return 1;
+
+	default:
+		return -EINVAL;
 	}
 
 	/* when arrive here ret=0 or sent data */
@@ -52,7 +53,8 @@ int process_sigma_action(struct i2c_client *client, struct sigma_firmware *ssfw)
 	return ssfw->pos == ssfw->fw->size;
 }
 
-int process_sigma_actions(struct i2c_client *client, struct sigma_firmware *ssfw)
+static int
+process_sigma_actions(struct i2c_client *client, struct sigma_firmware *ssfw)
 {
 	pr_debug("%s: processing %p\n", __func__, ssfw);
 
@@ -72,6 +74,7 @@ int process_sigma_firmware(struct i2c_client *client, const char *name)
 	struct sigma_firmware_header *ssfw_head;
 	struct sigma_firmware ssfw;
 	const struct firmware *fw;
+	u32 crc;
 
 	pr_debug("%s: loading firmware %s\n", __func__, name);
 
@@ -84,16 +87,18 @@ int process_sigma_firmware(struct i2c_client *client, const char *name)
 	ssfw.fw = fw;
 
 	/* then verify the header */
-	if (fw->size < sizeof(*ssfw_head)) {
-		ret = -ENODATA;
+	ret = -EINVAL;
+	if (fw->size < sizeof(*ssfw_head))
 		goto done;
-	}
+
 	ssfw_head = (void *)fw->data;
-	if (memcmp(ssfw_head->magic, SIGMA_MAGIC, ARRAY_SIZE(ssfw_head->magic))) {
-		ret = -EINVAL;
+	if (memcmp(ssfw_head->magic, SIGMA_MAGIC, ARRAY_SIZE(ssfw_head->magic)))
 		goto done;
-	}
-	pr_debug("%s: crc=%x\n", __func__, crc32(0, fw->data, fw->size));
+
+	crc = crc32(0, fw->data, fw->size);
+	pr_debug("%s: crc=%x\n", __func__, crc);
+	if (crc != ssfw_head->crc)
+		goto done;
 
 	ssfw.pos = sizeof(*ssfw_head);
 
