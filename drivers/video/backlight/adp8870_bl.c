@@ -1,7 +1,7 @@
 /*
  * Backlight driver for Analog Devices ADP8870 Backlight Devices
  *
- * Copyright 2009-2010 Analog Devices Inc.
+ * Copyright 2009-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -104,7 +104,7 @@
 
 #define FADE_VAL(in, out)	((0xF & (in)) | ((0xF & (out)) << 4))
 #define BL_CFGR_VAL(law, blv)	((((blv) & CFGR_BLV_MASK) << CFGR_BLV_SHIFT) | ((0x3 & (law)) << 1))
-#define ALS_CMPR_CFG_VAL(filt)	((0x7 & filt) << 1)
+#define ALS_CMPR_CFG_VAL(filt)	((0x7 & (filt)) << 1)
 
 struct adp8870_bl {
 	struct i2c_client *client;
@@ -137,14 +137,18 @@ static int adp8870_read(struct i2c_client *client, int reg, uint8_t *val)
 		return ret;
 	}
 
-	*val = (uint8_t)ret;
+	*val = ret;
 	return 0;
 }
 
 
 static int adp8870_write(struct i2c_client *client, u8 reg, u8 val)
 {
-	return i2c_smbus_write_byte_data(client, reg, val);
+	int ret = i2c_smbus_write_byte_data(client, reg, val);
+	if (ret)
+		dev_err(&client->dev, "failed to write\n");
+
+	return ret;
 }
 
 static int adp8870_set_bits(struct i2c_client *client, int reg, uint8_t bit_mask)
@@ -203,6 +207,9 @@ static void adp8870_led_set(struct led_classdev *led_cdev,
 
 	led = container_of(led_cdev, struct adp8870_led, cdev);
 	led->new_brightness = value;
+	/*
+	 * Use workqueue for IO since I2C operations can sleep.
+	 */
 	schedule_work(&led->work);
 }
 
@@ -212,13 +219,18 @@ static int adp8870_led_setup(struct adp8870_led *led)
 	int ret = 0;
 
 	ret = adp8870_write(client, ADP8870_ISC1 + led->id - 1, 0);
-	ret |= adp8870_set_bits(client, ADP8870_ISCC, 1 << (led->id - 1));
+	if (ret)
+		return ret;
+
+	ret = adp8870_set_bits(client, ADP8870_ISCC, 1 << (led->id - 1));
+	if (ret)
+		return ret;
 
 	if (led->id > 4)
-		ret |= adp8870_set_bits(client, ADP8870_ISCT1,
+		ret = adp8870_set_bits(client, ADP8870_ISCT1,
 				(led->flags & 0x3) << ((led->id - 5) * 2));
 	else
-		ret |= adp8870_set_bits(client, ADP8870_ISCT2,
+		ret = adp8870_set_bits(client, ADP8870_ISCT2,
 				(led->flags & 0x3) << ((led->id - 1) * 2));
 
 	return ret;
@@ -233,22 +245,26 @@ static int __devinit adp8870_led_probe(struct i2c_client *client)
 	struct led_info *cur_led;
 	int ret, i;
 
-	led = kzalloc(sizeof(*led) * pdata->num_leds, GFP_KERNEL);
+
+	led = kcalloc(pdata->num_leds, sizeof(*led), GFP_KERNEL);
 	if (led == NULL) {
 		dev_err(&client->dev, "failed to alloc memory\n");
 		return -ENOMEM;
 	}
 
 	ret = adp8870_write(client, ADP8870_ISCLAW, pdata->led_fade_law);
+	if (ret)
+		goto err_free;
+
 	ret = adp8870_write(client, ADP8870_ISCT1,
 			(pdata->led_on_time & 0x3) << 6);
-	ret |= adp8870_write(client, ADP8870_ISCF,
-			FADE_VAL(pdata->led_fade_in, pdata->led_fade_out));
-
-	if (ret) {
-		dev_err(&client->dev, "failed to write\n");
+	if (ret)
 		goto err_free;
-	}
+
+	ret = adp8870_write(client, ADP8870_ISCF,
+			FADE_VAL(pdata->led_fade_in, pdata->led_fade_out));
+	if (ret)
+		goto err_free;
 
 	for (i = 0; i < pdata->num_leds; ++i) {
 		cur_led = &pdata->leds[i];
@@ -344,27 +360,39 @@ static int adp8870_bl_set(struct backlight_device *bl, int brightness)
 	if (data->pdata->en_ambl_sens) {
 		if ((brightness > 0) && (brightness < ADP8870_MAX_BRIGHTNESS)) {
 			/* Disable Ambient Light auto adjust */
-			ret |= adp8870_clr_bits(client, ADP8870_MDCR,
+			ret = adp8870_clr_bits(client, ADP8870_MDCR,
 					CMP_AUTOEN);
-			ret |= adp8870_write(client, ADP8870_BLMX1, brightness);
+			if (ret)
+				return ret;
+			ret = adp8870_write(client, ADP8870_BLMX1, brightness);
+			if (ret)
+				return ret;
 		} else {
 			/*
 			 * MAX_BRIGHTNESS -> Enable Ambient Light auto adjust
 			 * restore daylight l1 sysfs brightness
 			 */
-			ret |= adp8870_write(client, ADP8870_BLMX1,
+			ret = adp8870_write(client, ADP8870_BLMX1,
 					 data->cached_daylight_max);
-			ret |= adp8870_set_bits(client, ADP8870_MDCR,
+			if (ret)
+				return ret;
+
+			ret = adp8870_set_bits(client, ADP8870_MDCR,
 					 CMP_AUTOEN);
+			if (ret)
+				return ret;
 		}
-	} else
-		ret |= adp8870_write(client, ADP8870_BLMX1, brightness);
+	} else {
+		ret = adp8870_write(client, ADP8870_BLMX1, brightness);
+		if (ret)
+			return ret;
+	}
 
 	if (data->current_brightness && brightness == 0)
-		ret |= adp8870_set_bits(client,
+		ret = adp8870_set_bits(client,
 				ADP8870_MDCR, DIM_EN);
 	else if (data->current_brightness == 0 && brightness)
-		ret |= adp8870_clr_bits(client,
+		ret = adp8870_clr_bits(client,
 				ADP8870_MDCR, DIM_EN);
 
 	if (!ret)
@@ -404,57 +432,119 @@ static int adp8870_bl_setup(struct backlight_device *bl)
 	struct adp8870_backlight_platform_data *pdata = data->pdata;
 	int ret = 0;
 
-	ret |= adp8870_write(client, ADP8870_BLSEL, ~pdata->bl_led_assign);
-	ret |= adp8870_write(client, ADP8870_PWMLED, pdata->pwm_assign);
-	ret |= adp8870_write(client, ADP8870_BLMX1, pdata->l1_daylight_max);
-	ret |= adp8870_write(client, ADP8870_BLDM1, pdata->l1_daylight_dim);
+	ret = adp8870_write(client, ADP8870_BLSEL, ~pdata->bl_led_assign);
+	if (ret)
+		return ret;
+
+	ret = adp8870_write(client, ADP8870_PWMLED, pdata->pwm_assign);
+	if (ret)
+		return ret;
+
+	ret = adp8870_write(client, ADP8870_BLMX1, pdata->l1_daylight_max);
+	if (ret)
+		return ret;
+
+	ret = adp8870_write(client, ADP8870_BLDM1, pdata->l1_daylight_dim);
+	if (ret)
+		return ret;
 
 	if (pdata->en_ambl_sens) {
 		data->cached_daylight_max = pdata->l1_daylight_max;
-		ret |= adp8870_write(client, ADP8870_BLMX2,
+		ret = adp8870_write(client, ADP8870_BLMX2,
 						pdata->l2_bright_max);
-		ret |= adp8870_write(client, ADP8870_BLDM2,
+		if (ret)
+			return ret;
+		ret = adp8870_write(client, ADP8870_BLDM2,
 						pdata->l2_bright_dim);
-		ret |= adp8870_write(client, ADP8870_BLMX3,
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_BLMX3,
 						pdata->l3_office_max);
-		ret |= adp8870_write(client, ADP8870_BLDM3,
+		if (ret)
+			return ret;
+		ret = adp8870_write(client, ADP8870_BLDM3,
 						pdata->l3_office_dim);
-		ret |= adp8870_write(client, ADP8870_BLMX4,
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_BLMX4,
 						pdata->l4_indoor_max);
-		ret |= adp8870_write(client, ADP8870_BLDM4,
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_BLDM4,
 						pdata->l4_indor_dim);
-		ret |= adp8870_write(client, ADP8870_BLMX5,
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_BLMX5,
 						pdata->l5_dark_max);
-		ret |= adp8870_write(client, ADP8870_BLDM5,
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_BLDM5,
 						pdata->l5_dark_dim);
+		if (ret)
+			return ret;
 
-		ret |= adp8870_write(client, ADP8870_L2TRP, pdata->l2_trip);
-		ret |= adp8870_write(client, ADP8870_L2HYS, pdata->l2_hyst);
-		ret |= adp8870_write(client, ADP8870_L3TRP, pdata->l3_trip);
-		ret |= adp8870_write(client, ADP8870_L3HYS, pdata->l3_hyst);
-		ret |= adp8870_write(client, ADP8870_L4TRP, pdata->l4_trip);
-		ret |= adp8870_write(client, ADP8870_L4HYS, pdata->l4_hyst);
-		ret |= adp8870_write(client, ADP8870_L5TRP, pdata->l5_trip);
-		ret |= adp8870_write(client, ADP8870_L5HYS, pdata->l5_hyst);
-		ret |= adp8870_write(client, ADP8870_ALS1_EN, L5_EN | L4_EN |
+		ret = adp8870_write(client, ADP8870_L2TRP, pdata->l2_trip);
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_L2HYS, pdata->l2_hyst);
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_L3TRP, pdata->l3_trip);
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_L3HYS, pdata->l3_hyst);
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_L4TRP, pdata->l4_trip);
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_L4HYS, pdata->l4_hyst);
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_L5TRP, pdata->l5_trip);
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_L5HYS, pdata->l5_hyst);
+		if (ret)
+			return ret;
+
+		ret = adp8870_write(client, ADP8870_ALS1_EN, L5_EN | L4_EN |
 						L3_EN | L2_EN);
+		if (ret)
+			return ret;
 
-		ret |= adp8870_write(client, ADP8870_CMP_CTL,
+		ret = adp8870_write(client, ADP8870_CMP_CTL,
 			ALS_CMPR_CFG_VAL(pdata->abml_filt));
-
+		if (ret)
+			return ret;
 	}
 
-	ret |= adp8870_write(client, ADP8870_CFGR,
+	ret = adp8870_write(client, ADP8870_CFGR,
 			BL_CFGR_VAL(pdata->bl_fade_law, 0));
+	if (ret)
+		return ret;
 
-	ret |= adp8870_write(client, ADP8870_BLFR, FADE_VAL(pdata->bl_fade_in,
+	ret = adp8870_write(client, ADP8870_BLFR, FADE_VAL(pdata->bl_fade_in,
 			pdata->bl_fade_out));
-
+	if (ret)
+		return ret;
 	/*
 	 * ADP8870 Rev0 requires GDWN_DIS bit set
 	 */
 
-	ret |= adp8870_set_bits(client, ADP8870_MDCR, BLEN | DIM_EN | NSTBY |
+	ret = adp8870_set_bits(client, ADP8870_MDCR, BLEN | DIM_EN | NSTBY |
 			(data->revid == 0 ? GDWN_DIS : 0));
 
 	return ret;
@@ -659,8 +749,12 @@ static ssize_t adp8870_bl_ambient_light_level_show(struct device *dev,
 
 	mutex_lock(&data->lock);
 	error = adp8870_read(data->client, ADP8870_PH1LEVL, &reg_val);
+	if (error < 0) {
+		mutex_unlock(&data->lock);
+		return error;
+	}
 	ret_val = reg_val;
-	error |= adp8870_read(data->client, ADP8870_PH1LEVH, &reg_val);
+	error = adp8870_read(data->client, ADP8870_PH1LEVH, &reg_val);
 	mutex_unlock(&data->lock);
 
 	if (error < 0)
