@@ -53,7 +53,9 @@ enum {
 #define SM_CORE_RESETED		SM_MSG_TYPE(SP_CORE_CONTROL, 5)
 
 #define SM_TASK_RUN		SM_MSG_TYPE(SP_TASK_MANAGER, 0)
-#define SM_TASK_KILL		SM_MSG_TYPE(SP_TASK_MANAGER, 1)
+#define SM_TASK_RUN_ACK		SM_MSG_TYPE(SP_TASK_MANAGER, 1)
+#define SM_TASK_KILL		SM_MSG_TYPE(SP_TASK_MANAGER, 2)
+#define SM_TASK_KILL_ACK	SM_MSG_TYPE(SP_TASK_MANAGER, 3)
 
 #define SM_RES_MGR_REQUEST	SM_MSG_TYPE(SP_RES_MANAGER, 0)
 #define SM_RES_MGR_REQUEST_OK	SM_MSG_TYPE(SP_RES_MANAGER, 1)
@@ -92,10 +94,10 @@ enum {
 
 struct sm_message {
 	struct list_head next;
-	sm_uint32_t dst;
-	sm_uint32_t src;
-	sm_uint32_t dst_ep;
-	sm_uint32_t src_ep;
+	sm_uint16_t dst;
+	sm_uint16_t src;
+	sm_uint16_t dst_ep;
+	sm_uint16_t src_ep;
 	sm_uint32_t type;
 	sm_uint32_t length;
 	sm_uint32_t flags;
@@ -112,8 +114,15 @@ struct sm_message_queue {
 	struct sm_message messages[SM_MSGQ_LEN];
 };
 
+struct sm_buf {
+	struct list_head next;
+	void *buf;
+	sm_uint32_t size;
+};
+
 struct sm_session {
 	struct list_head messages; /*rx queue sm message*/
+	struct list_head bufs;
 	sm_uint32_t	local_ep;
 	sm_uint32_t	remote_ep; /*remote ep*/
 	sm_uint32_t	type;
@@ -149,12 +158,6 @@ struct sm_icc_desc {
 	wait_queue_head_t iccq_tx_wait;
 	wait_queue_head_t iccq_rx_wait;
 };
-
-struct sm_task {
-	void (*task_init)(void);
-	void (*task_exit)(void);
-};
-
 #endif
 
 #define CMD_COREB_START		_IO('m', 0)
@@ -166,6 +169,7 @@ struct sm_task {
 #define CMD_SM_RECV		_IO('m', 6)
 #define CMD_SM_SHUTDOWN		_IO('m', 7)
 
+#define MAX_TASK_NAME 64
 struct sm_packet {
 	sm_uint32_t session_idx;
 	sm_uint32_t local_ep;
@@ -176,5 +180,13 @@ struct sm_packet {
 	sm_uint32_t buf_len;
 	void *buf;
 };
+
+struct sm_task {
+	int (*task_init)(int argc, char *argv[]);
+	void (*task_exit)(void);
+	int task_argc;
+	char task_argv[1][MAX_TASK_NAME];
+};
+
 
 #endif

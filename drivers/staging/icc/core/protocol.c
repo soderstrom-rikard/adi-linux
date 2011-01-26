@@ -126,7 +126,7 @@ sm_find_session(sm_uint32_t local_ep, sm_uint32_t remote_ep,
 	sm_debug("%s bits %08x localep %d\n", __func__, table->bits[0], local_ep);
 	for_each_set_bit(index, table->bits, BITS_PER_LONG) {
 		session = &table->sessions[index];
-		sm_debug("index %d ,local ep %d\n", index, session->local_ep);
+		sm_debug("index %d ,local ep %d type %x\n", index, session->local_ep, session->type);
 		if (session->local_ep == local_ep) {
 			if (remote_ep && session->remote_ep != remote_ep)
 				return -EINVAL;
@@ -146,6 +146,10 @@ static int sm_create_session(sm_uint32_t src_ep, sm_uint32_t type)
 		sm_debug("already bound index %d srcep %d\n", index, src_ep);
 		return -EINVAL;
 	}
+	if (type >= SP_MAX) {
+		sm_debug("bad type %x\n", type);
+		return -EINVAL;
+	}
 
 	index = sm_alloc_session(table);
 	if (index >= 0 && index < 32) {
@@ -155,11 +159,12 @@ static int sm_create_session(sm_uint32_t src_ep, sm_uint32_t type)
 		table->sessions[index].flags = 0;
 		table->sessions[index].type = type;
 		table->sessions[index].proto_ops = sm_protos[type];
+		INIT_LIST_HEAD(&table->sessions[index].bufs);
 		INIT_LIST_HEAD(&table->sessions[index].messages);
 		init_waitqueue_head(&table->sessions[index].rx_wait);
 		sm_debug("create ep index %d srcep %d type %d\n", index, src_ep, type);
 		sm_debug("session %p\n", &table->sessions[index]);
-		return 0;
+		return index;
 	}
 	return -EAGAIN;
 }
@@ -191,7 +196,7 @@ static int iccqueue_getpending(sm_uint32_t srccpu)
 	sm_atomic_t sent = sm_atomic_read(&inqueue->sent);
 	sm_atomic_t received = sm_atomic_read(&inqueue->received);
 	sm_atomic_t pending;
-	printk("sm msgq sent=%d received=%d\n", sent, received);
+/*	printk("sm msgq sent=%d received=%d\n", sent, received); */
 	pending = sent - received;
 	if (pending < 0)
 		pending += USHRT_MAX;
@@ -209,94 +214,6 @@ static int sm_send_message_internal(struct sm_message *msg, int dst_cpu,
 	return ret;
 }
 
-static int
-sm_send_packet(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu,
-		void *buf, sm_uint32_t len)
-{
-	struct sm_session *session;
-	struct sm_message *m;
-	void *payload_buf = NULL;
-	int ret = -EAGAIN;
-	if (session_idx < 0 && session_idx >= MAX_SESSIONS)
-		return -EINVAL;
-	session = sm_index_to_session(session_idx);
-	sm_debug("%s: %u %p\n", __func__, session_idx, session);
-	m = kzalloc(sizeof(struct sm_message), GFP_KERNEL);
-	if (!m)
-		return -ENOMEM;
-
-	m->src_ep = session->local_ep;
-	m->src = blackfin_core_id();
-	m->dst_ep = dst_ep;
-	m->dst = dst_cpu;
-	m->length = len;
-	m->type = SM_MSG_TYPE(session->type, 0);
-
-	sm_debug("%s: len %d type %x dst %d dstep %d src %d srcep %d\n", __func__, m->length, m->type, m->dst, m->dst_ep, m->src, m->src_ep);
-	if (m->length) {
-		payload_buf = kzalloc(m->length, GFP_KERNEL);
-		if (!payload_buf) {
-			ret = -ENOMEM;
-			goto out;
-		}
-
-		m->payload = (sm_address_t)payload_buf;
-
-		if (copy_from_user((void *)m->payload, buf, m->length)) {
-			ret = -EFAULT;
-			goto fail;
-		}
-		if (session->proto_ops->sendmsg)
-			ret = session->proto_ops->sendmsg(m, session);
-		else
-			sm_debug("session type not supported\n");
-		if (ret)
-			goto fail;
-
-		ret = sm_send_message_internal(m, m->dst, m->src);
-		if (ret)
-			goto fail;
-
-	} else {
-		ret = -EINVAL;
-		goto out;
-	}
-
-fail:
-	kfree(payload_buf);
-out:
-	kfree(m);
-	return ret;
-}
-
-static int sm_recv_packet(sm_uint32_t local_ep, void *user_buf,
-			int nonblock)
-{
-	struct sm_session *session = NULL;
-	struct sm_message *message = NULL;
-	sm_uint32_t index = sm_find_session(local_ep, 0, icc_info->sessions_table);
-
-	session = sm_index_to_session(index);
-
-	if (list_empty(&session->messages)) {
-		sm_debug("recv sleep on queue\n");
-		if (nonblock)
-			return -EAGAIN;
-		mutex_unlock(&icc_info->sessions_table->lock);
-		interruptible_sleep_on(&session->rx_wait);
-		mutex_lock(&icc_info->sessions_table->lock);
-	}
-
-	if (!iccqueue_getpending(0))
-		return -EINTR;
-
-	message = list_first_entry(&session->messages, struct sm_message, next);
-
-	copy_to_user(user_buf, (void *)message->payload, message->length);
-	list_del(&message->next);
-	kfree(message);
-	return 0;
-}
 
 int
 sm_send_control_msg(struct sm_session *session, sm_uint32_t remote_ep,
@@ -309,7 +226,6 @@ sm_send_control_msg(struct sm_session *session, sm_uint32_t remote_ep,
 	m = kzalloc(sizeof(struct sm_message), GFP_KERNEL);
 	if (!m)
 		return -ENOMEM;
-	sm_debug("alloc message\n");
 
 	m->type = type;
 	m->src = blackfin_core_id();
@@ -326,6 +242,7 @@ sm_send_control_msg(struct sm_session *session, sm_uint32_t remote_ep,
 	return ret;
 
 }
+
 
 int sm_send_packet_ack(struct sm_session *session, sm_uint32_t remote_ep,
 		sm_uint32_t dst_cpu, sm_uint32_t payload, sm_uint32_t len)
@@ -382,6 +299,107 @@ int sm_send_error(struct sm_session *session, sm_uint32_t remote_ep,
 {
 	return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
 					0, SM_PACKET_ERROR);
+}
+
+
+static int
+sm_send_packet(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu,
+		void *buf, sm_uint32_t len)
+{
+	struct sm_session *session;
+	struct sm_message *m;
+	void *payload_buf = NULL;
+	int ret = -EAGAIN;
+	if (session_idx < 0 && session_idx >= MAX_SESSIONS)
+		return -EINVAL;
+	session = sm_index_to_session(session_idx);
+	sm_debug("%s: %u %p\n", __func__, session_idx, session);
+	m = kzalloc(sizeof(struct sm_message), GFP_KERNEL);
+	if (!m)
+		return -ENOMEM;
+
+	m->src_ep = session->local_ep;
+	m->src = blackfin_core_id();
+	m->dst_ep = dst_ep;
+	m->dst = dst_cpu;
+	m->length = len;
+
+	sm_debug("%s: len %d type %x dst %d dstep %d src %d srcep %d\n", __func__, m->length, m->type, m->dst, m->dst_ep, m->src, m->src_ep);
+	if (m->length) {
+		payload_buf = kzalloc(m->length, GFP_KERNEL);
+		if (!payload_buf) {
+			ret = -ENOMEM;
+			goto out;
+		}
+		sm_debug("alloc buffer %x\n", payload_buf);
+
+		m->payload = (sm_address_t)payload_buf;
+
+		if (copy_from_user((void *)m->payload, buf, m->length)) {
+			ret = -EFAULT;
+			goto fail;
+		}
+
+	} else {
+		ret = -EINVAL;
+		goto out;
+	}
+
+	if (session->proto_ops->sendmsg) {
+		ret = session->proto_ops->sendmsg(m, session);
+	} else {
+		sm_debug("session type not supported\n");
+		ret = 0;
+	}
+	if (ret)
+		goto fail;
+
+	ret = sm_send_message_internal(m, m->dst, m->src);
+	if (ret)
+		goto fail;
+
+fail:
+	kfree(payload_buf);
+out:
+	kfree(m);
+	return ret;
+}
+
+static int sm_recv_packet(sm_uint32_t local_ep, void *user_buf,
+			int nonblock)
+{
+	struct sm_session *session = NULL;
+	struct sm_message *message = NULL;
+	sm_uint32_t index = sm_find_session(local_ep, 0, icc_info->sessions_table);
+
+	session = sm_index_to_session(index);
+
+	if (list_empty(&session->messages)) {
+		sm_debug("recv sleep on queue\n");
+		if (nonblock)
+			return -EAGAIN;
+		mutex_unlock(&icc_info->sessions_table->lock);
+		interruptible_sleep_on(&session->rx_wait);
+		mutex_lock(&icc_info->sessions_table->lock);
+	}
+
+	if (!iccqueue_getpending(0))
+		return -EINTR;
+
+	message = list_first_entry(&session->messages, struct sm_message, next);
+
+	copy_to_user(user_buf, (void *)message->payload, message->length);
+
+	if (message->type == SM_PACKET_READY)
+		sm_send_packet_ack(session, message->src_ep, message->src,
+				message->payload, message->length);
+	else if (message->type == SM_SESSION_PACKET_READY)
+		sm_send_session_packet_ack(session, message->src_ep, message->src,
+				message->payload, message->length);
+
+	list_del(&message->next);
+	kfree(message);
+	return 0;
 }
 
 static int
@@ -520,6 +538,11 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		break;
 	case CMD_SM_CREATE:
 		ret = sm_create_session(local_ep, type);
+		if (ret < 0) {
+			sm_debug("create session failed srcep %d\n", local_ep);
+			ret = -EINVAL;
+		}
+		pkt->session_idx = ret;
 		break;
 	case CMD_SM_CONNECT:
 		ret = sm_connect_session(remote_ep, dst_cpu, local_ep);
@@ -588,11 +611,13 @@ static int msg_recv_internal(struct sm_message *msg, struct sm_session *session)
 
 static int sm_default_sendmsg(struct sm_message *msg, struct sm_session *session)
 {
-	sm_debug("%s msg type %x\n", __func__, msg->type);
-	switch (SM_MSG_PROTOCOL(msg->type)) {
+	sm_debug("%s session type %x\n", __func__, session->type);
+	switch (session->type) {
 	case SP_PACKET:
+		msg->type = SM_MSG_TYPE(session->type, 0);
 		break;
 	case SP_SESSION_PACKET:
+		msg->type = SM_MSG_TYPE(session->type, 0);
 		break;
 	case SM_PACKET_ERROR:
 		printk("SM ERROR %08x\n", msg->payload);
@@ -612,6 +637,7 @@ sm_default_recvmsg(struct sm_message *msg, struct sm_session *session)
 	switch (msg->type) {
 	case SM_PACKET_CONSUMED:
 	case SM_SESSION_PACKET_COMSUMED:
+		sm_debug("free buf %x\n", msg->payload);
 		kfree((void *)msg->payload);
 		break;
 	case SM_SESSION_PACKET_CONNECT_ACK:
@@ -636,13 +662,9 @@ sm_default_recvmsg(struct sm_message *msg, struct sm_session *session)
 		session->flags = 0;
 	case SM_PACKET_READY:
 		msg_recv_internal(msg, session);
-		sm_send_packet_ack(session, msg->src_ep, msg->src,
-					msg->payload, msg->length);
 		break;
 	case SM_SESSION_PACKET_READY:
 		msg_recv_internal(msg, session);
-		sm_send_session_packet_ack(session, msg->src_ep,
-				msg->src, msg->payload, msg->length);
 		break;
 	case SM_PACKET_ERROR:
 		printk("SM ERROR %08x\n", msg->payload);
@@ -665,6 +687,65 @@ static int sm_default_error(struct sm_message *msg, struct sm_session *session)
 	return 0;
 }
 
+static int sm_task_sendmsg(struct sm_message *msg, struct sm_session *session)
+{
+	struct sm_task *task;
+	if (msg->length >= sizeof(struct sm_task))
+		msg->type = SM_TASK_RUN;
+	else
+		msg->type = SM_TASK_KILL;
+	sm_debug("%s msg type %x\n", __func__, msg->type);
+	switch (msg->type) {
+	case SM_TASK_RUN:
+		task = (struct sm_task *)msg->payload;
+		break;
+	case SM_TASK_KILL:
+		break;
+	default:
+		break;
+	};
+	return 0;
+}
+
+static int sm_task_recvmsg(struct sm_message *msg, struct sm_session *session)
+{
+	sm_uint32_t *buf = msg->payload;
+	sm_debug("%s msg type %x\n", __func__, msg->type);
+	switch (msg->type) {
+	case SM_TASK_RUN_ACK:
+		sm_debug("task id %d\n", buf[0]);
+		kfree(msg->payload);
+		break;
+	case SM_TASK_KILL_ACK:
+		sm_debug("task exit with %d\n", buf[0]);
+		break;
+	default:
+		break;
+	};
+	return 0;
+}
+
+struct sm_proto core_control_proto = {
+	.sendmsg = NULL,
+	.recvmsg = NULL,
+	.shutdown = NULL,
+	.error = NULL,
+};
+
+struct sm_proto task_manager_proto = {
+	.sendmsg = sm_task_sendmsg,
+	.recvmsg = sm_task_recvmsg,
+	.shutdown = NULL,
+	.error = NULL,
+};
+
+struct sm_proto res_manager_proto = {
+	.sendmsg = NULL,
+	.recvmsg = NULL,
+	.shutdown = NULL,
+	.error = NULL,
+};
+
 struct sm_proto packet_proto = {
 	.sendmsg = sm_default_sendmsg,
 	.recvmsg = sm_default_recvmsg,
@@ -686,22 +767,21 @@ void msg_handle(int cpu)
 	sm_atomic_t received = sm_atomic_read(&inqueue->received);
 	struct sm_message *msg;
 	struct sm_session *session;
-	sm_uint32_t slot;
+	sm_uint32_t index;
 
 	msg = &inqueue->messages[(received % SM_MSGQ_LEN)];
 
 	if (msg->type == SM_BAD_MSG) {
 		sm_debug("%s\n", msg->payload);
-		memset(msg->payload, 0, 64);
 		sm_message_dequeue(cpu, msg);
 		return;
 	}
 
-	slot = sm_find_session(msg->dst_ep, 0, icc_info->sessions_table);
-	session = &icc_info->sessions_table[slot];
+	index = sm_find_session(msg->dst_ep, 0, icc_info->sessions_table);
 
-	if ((slot >= 0 && slot < 32)
-		&& (SM_MSG_PROTOCOL(msg->type) == session->type)) {
+	session = sm_index_to_session(index);
+
+	if (session && (SM_MSG_PROTOCOL(msg->type) == session->type)) {
 		if (session->proto_ops->recvmsg)
 			session->proto_ops->recvmsg(msg, session);
 		else
@@ -738,6 +818,9 @@ static int message_queue_thread(void *d)
 
 void register_sm_proto()
 {
+	sm_protos[SP_CORE_CONTROL] = &core_control_proto;
+	sm_protos[SP_TASK_MANAGER] = &task_manager_proto;
+	sm_protos[SP_RES_MANAGER] = &res_manager_proto;
 	sm_protos[SP_PACKET] = &packet_proto;
 	sm_protos[SP_SESSION_PACKET] = &session_packet_proto;
 }
