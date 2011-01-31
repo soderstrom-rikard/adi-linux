@@ -809,7 +809,7 @@ static int gdb_cmd_task(struct kgdb_state *ks)
 		if (!ks->thr_query && ks->kgdb_usethreadid < -1) {
 			dbg_switch_cpu = -ks->kgdb_usethreadid - 2;
 			if (cpu_possible(dbg_switch_cpu) && cpu_online(dbg_switch_cpu) &&
-				dbg_switch_cpu != raw_smp_processor_id() {
+				dbg_switch_cpu != raw_smp_processor_id()) {
 				kgdb_roundup_cpu(raw_smp_processor_id(), 0);
 				ack_switch_cpu = 1;
 				return 1;
