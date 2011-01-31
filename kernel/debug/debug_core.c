@@ -82,7 +82,7 @@ static int kgdb_use_con;
 /* Flag for alternate operations for early debugging */
 bool dbg_is_early = true;
 /* Next cpu to become the master debug core */
-int dbg_switch_cpu;
+int dbg_switch_cpu = -1;
 
 /* Use kdb or gdbserver mode */
 int dbg_kdb_mode = 1;
@@ -513,7 +513,8 @@ cpu_loop:
 				break;
 			}
 		} else if (kgdb_info[cpu].exception_state & DCPU_IS_SLAVE) {
-			if (!raw_spin_is_locked(&dbg_slave_lock) && !dbg_switch_cpu)
+			if (!raw_spin_is_locked(&dbg_slave_lock) &&
+				(dbg_switch_cpu < 0 || dbg_switch_cpu == cpu))
 				goto return_normal;
 		} else {
 return_normal:
@@ -577,7 +578,7 @@ return_normal:
 
 #ifdef CONFIG_SMP
 	/* Signal the other CPUs to enter kgdb_wait() */
-	if ((!kgdb_single_step) && kgdb_do_roundup && !dbg_switch_cpu)
+	if ((!kgdb_single_step) && kgdb_do_roundup && dbg_switch_cpu < 0)
 		kgdb_roundup_cpus(flags);
 #endif
 
@@ -596,7 +597,7 @@ return_normal:
 	kgdb_single_step = 0;
 	kgdb_contthread = current;
 	exception_level = 0;
-	dbg_switch_cpu = 0;
+	dbg_switch_cpu = -1;
 	trace_on = tracing_is_on();
 	if (trace_on)
 		tracing_off();
@@ -618,7 +619,7 @@ cpu_master_loop:
 		} else if (error == DBG_SWITCH_CPU_EVENT) {
 			kgdb_info[dbg_switch_cpu].exception_state |=
 				DCPU_NEXT_MASTER;
-			dbg_switch_cpu = 0;
+			dbg_switch_cpu = -1;
 			goto cpu_loop;
 		} else {
 			kgdb_info[cpu].ret_state = error;
@@ -630,7 +631,7 @@ cpu_master_loop:
 	if (dbg_io_ops->post_exception)
 		dbg_io_ops->post_exception();
 
-	if (!kgdb_single_step && !dbg_switch_cpu) {
+	if (!kgdb_single_step && dbg_switch_cpu < 0) {
 		raw_spin_unlock(&dbg_slave_lock);
 		/* Wait till all the CPUs have quit from the debugger. */
 		while (kgdb_do_roundup && atomic_read(&slaves_in_kgdb))
@@ -660,7 +661,7 @@ kgdb_restore:
 	raw_spin_unlock(&dbg_master_lock);
 #ifdef CONFIG_SMP
 	/* wake up next master cpu when do real cpu switch */
-	if (dbg_switch_cpu && !kgdb_single_step) {
+	if (dbg_switch_cpu >= 0 && !kgdb_single_step) {
 		if (!CACHE_FLUSH_IS_SAFE) {
 #ifdef __ARCH_SYNC_CORE_ICACHE
 			resync_core_icache();
@@ -732,7 +733,7 @@ int kgdb_nmicallback(int cpu, void *regs)
 #endif
 		}
 		/* Trap into kgdb as the master CPU if gdb asks to switch. */
-		if (dbg_switch_cpu)
+		if (dbg_switch_cpu >= 0)
 			kgdb_breakpoint();
 
 		return 0;
