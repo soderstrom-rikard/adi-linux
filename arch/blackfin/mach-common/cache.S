@@ -74,14 +74,12 @@ ENTRY(_blackfin_icache_flush_range)
 #if defined(CONFIG_SMP) && ANOMALY_05000491
 	p0.L = LO(DSPID);
 	p0.H = HI(DSPID);
-	r2 = 0xff;
-	r3 = [p0];
-	r3 = r3 & r2;
-	r3 <<= 2;
-	p1 = r3;
+	r0 = [p0];
+	r0 = r0.b (z);
+	p2 = r0;
 	p0.L = _blackfin_iflush_l1_entry;
 	p0.H = _blackfin_iflush_l1_entry;
-	p0 = p0 + p1;
+	p0 = p0 + (p2 << 2);
 	p1 = [p0];
 	jump (p1);
 #else
