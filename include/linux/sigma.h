@@ -1,7 +1,7 @@
 /*
  * Load firmware files from Analog Devices SigmaStudio
  *
- * Copyright 2009 Analog Devices Inc.
+ * Copyright 2009-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
