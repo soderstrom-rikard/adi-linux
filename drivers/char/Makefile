@@ -56,7 +56,6 @@ obj-$(CONFIG_BFIN_OTP)		+= bfin-otp.o
 obj-$(CONFIG_BFIN_DMA_INTERFACE) += bfin-dma.o
 obj-$(CONFIG_BFIN_PPI)		+= bfin_ppi.o
 obj-$(CONFIG_BFIN_SIMPLE_TIMER)	+= bfin_simple_timer.o
-obj-$(CONFIG_BFIN_SPI_ADC)	+= bfin_spi_adc.o
 obj-$(CONFIG_BFIN_SPORT)	+= bfin_sport.o
 
 obj-$(CONFIG_PRINTER)		+= lp.o

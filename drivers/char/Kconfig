@@ -34,13 +34,6 @@ config BFIN_SIMPLE_TIMER
 	  provides an interface to the above Blackfin General Purpose timers
 	  hardware.  See drivers/char/bfin_simple_timer.c for details.
 
-config BFIN_SPI_ADC
-	tristate "Blackfin ADSP SPI ADC support"
-	depends on BLACKFIN
-	select SPI
-	select SPI_BFIN
-	default n
-
 config BFIN_SPORT
 	tristate "Blackfin SPORT driver for direct raw access"
 	depends on BLACKFIN
