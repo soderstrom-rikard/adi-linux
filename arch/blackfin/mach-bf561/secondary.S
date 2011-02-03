@@ -13,7 +13,11 @@
 #include <asm/asm-offsets.h>
 #include <asm/trace.h>
 
-.section .l1.text.secondary
+/*
+ * This code must come first as CoreB is hardcoded (in hardware)
+ * to start at the beginning of its L1 instruction memory.
+ */
+.section .l1.text.head
 
 /* Lay the initial stack into the L1 scratch area of Core B */
 #define INITIAL_STACK	(COREB_L1_SCRATCH_START + L1_SCRATCH_LENGTH - 12)

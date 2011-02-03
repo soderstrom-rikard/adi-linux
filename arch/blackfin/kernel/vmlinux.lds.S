@@ -176,10 +176,7 @@ SECTIONS
 	{
 		. = ALIGN(4);
 		__stext_l1 = .;
-#ifdef CONFIG_SMP
-		*(.l1.text.secondary)
-		. = ALIGN(4);
-#endif
+		*(.l1.text.head)
 		*(.l1.text)
 #ifdef CONFIG_SCHEDULE_L1
 		SCHED_TEXT
