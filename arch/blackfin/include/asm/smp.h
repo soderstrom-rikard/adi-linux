@@ -19,7 +19,7 @@
 
 extern void bfin_relocate_coreb_l1_mem(void);
 
-#if ANOMALY_05000491
+#if defined(CONFIG_SMP) && defined(CONFIG_ICACHE_FLUSH_L1)
 asmlinkage void blackfin_icache_flush_range_l1(unsigned long *ptr);
 extern unsigned long blackfin_iflush_l1_entry[NR_CPUS];
 #endif

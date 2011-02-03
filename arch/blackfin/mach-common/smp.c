@@ -40,7 +40,7 @@
  */
 struct corelock_slot corelock __attribute__ ((__section__(".l2.bss")));
 
-#if ANOMALY_05000491
+#ifdef CONFIG_ICACHE_FLUSH_L1
 unsigned long blackfin_iflush_l1_entry[NR_CPUS];
 #endif
 

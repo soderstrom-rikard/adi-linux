@@ -11,8 +11,7 @@
 #include <asm/cache.h>
 #include <asm/page.h>
 
-/* 05000491 - IFLUSH needs to reside in L1 memory */
-#if defined(CONFIG_CACHE_FLUSH_L1) || (!defined(CONFIG_SMP) && ANOMALY_05000491)
+#ifdef CONFIG_ICACHE_FLUSH_L1
 .section .l1.text
 #else
 .text
@@ -70,8 +69,17 @@
 .endm
 
 /* Invalidate all instruction cache lines assocoiated with this memory area */
+#ifdef CONFIG_SMP
+# define _blackfin_icache_flush_range _blackfin_icache_flush_range_l1
+#endif
 ENTRY(_blackfin_icache_flush_range)
-#if defined(CONFIG_SMP) && ANOMALY_05000491
+	do_flush IFLUSH
+ENDPROC(_blackfin_icache_flush_range)
+
+#ifdef CONFIG_SMP
+.text
+# undef _blackfin_icache_flush_range
+ENTRY(_blackfin_icache_flush_range)
 	p0.L = LO(DSPID);
 	p0.H = HI(DSPID);
 	r3 = [p0];
@@ -82,10 +90,14 @@ ENTRY(_blackfin_icache_flush_range)
 	p0 = p0 + (p2 << 2);
 	p1 = [p0];
 	jump (p1);
-#else
-	do_flush IFLUSH
-#endif
 ENDPROC(_blackfin_icache_flush_range)
+#endif
+
+#ifdef CONFIG_DCACHE_FLUSH_L1
+.section .l1.text
+#else
+.text
+#endif
 
 /* Throw away all D-cached data in specified region without any obligation to
  * write them back.  Since the Blackfin ISA does not have an "invalidate"

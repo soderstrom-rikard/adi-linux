@@ -215,7 +215,7 @@ void __init bfin_relocate_l1_mem(void)
 
 	early_dma_memcpy_done();
 
-#if defined(CONFIG_SMP) && ANOMALY_05000491
+#if defined(CONFIG_SMP) && defined(CONFIG_ICACHE_FLUSH_L1)
 	blackfin_iflush_l1_entry[0] = (unsigned long)blackfin_icache_flush_range_l1;
 #endif
 	/* if necessary, copy L2 text/data to L2 SRAM */
@@ -248,7 +248,7 @@ void __init bfin_relocate_coreb_l1_mem(void)
 				data_b_l1_len);
 
 	early_dma_memcpy_done();
-#if ANOMALY_05000491
+#ifdef CONFIG_ICACHE_FLUSH_L1
 	blackfin_iflush_l1_entry[1] = (unsigned long)blackfin_icache_flush_range_l1 -
 			(unsigned long)_stext_l1 + COREB_L1_CODE_START;
 #endif
