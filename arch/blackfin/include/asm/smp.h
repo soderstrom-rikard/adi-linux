@@ -17,7 +17,6 @@
 
 #define raw_smp_processor_id()  blackfin_core_id()
 
-extern char coreb_trampoline_start, coreb_trampoline_end;
 extern void bfin_relocate_coreb_l1_mem(void);
 
 #if ANOMALY_05000491

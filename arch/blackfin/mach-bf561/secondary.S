@@ -164,7 +164,6 @@ ENTRY(_coreb_trampoline_start)
 .LWAIT_HERE:
 	jump .LWAIT_HERE;
 ENDPROC(_coreb_trampoline_start)
-ENTRY(_coreb_trampoline_end)
 
 #ifdef CONFIG_HOTPLUG_CPU
 .section ".text"
