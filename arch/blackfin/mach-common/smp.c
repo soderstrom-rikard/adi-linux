@@ -386,6 +386,7 @@ void __cpuinit secondary_start_kernel(void)
 	local_irq_enable();
 
 	bfin_setup_caches(cpu);
+
 	/*
 	 * Calibrate loops per jiffy value.
 	 * IRQs need to be enabled here - D-cache can be invalidated

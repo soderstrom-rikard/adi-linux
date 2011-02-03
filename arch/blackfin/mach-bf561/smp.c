@@ -99,7 +99,6 @@ int __cpuinit platform_boot_secondary(unsigned int cpu, struct task_struct *idle
 	if (cpu_online(cpu)) {
 		/* release the lock and let coreb run */
 		spin_unlock(&boot_lock);
-
 		return 0;
 	} else
 		panic("CPU%u: processor failed to boot\n", cpu);

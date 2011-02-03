@@ -24,7 +24,6 @@ asmlinkage void blackfin_icache_flush_range_l1(unsigned long *ptr);
 extern unsigned long blackfin_iflush_l1_entry[NR_CPUS];
 #endif
 
-
 struct corelock_slot {
 	int lock;
 };
