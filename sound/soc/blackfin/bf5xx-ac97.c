@@ -289,9 +289,7 @@ static int bf5xx_ac97_resume(struct snd_soc_dai *dai)
 #define bf5xx_ac97_resume	NULL
 #endif
 
-struct snd_soc_dai bfin_ac97_dai = {
-	.name = "bf5xx-ac97",
-	.id = 0,
+static struct snd_soc_dai_driver bfin_ac97_dai = {
 	.ac97_control = 1,
 	.suspend = bf5xx_ac97_suspend,
 	.resume = bf5xx_ac97_resume,
@@ -312,9 +310,8 @@ struct snd_soc_dai bfin_ac97_dai = {
 		.rates = SNDRV_PCM_RATE_48000,
 		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
 };
-EXPORT_SYMBOL_GPL(bfin_ac97_dai);
 
-static int __devinit bf5xx_ac97_probe(struct platform_device *pdev)
+static int __devinit asoc_bfin_ac97_probe(struct platform_device *pdev)
 {
 	int *cmd_count;
 	struct sport_device *sport_handle;
@@ -342,9 +339,6 @@ static int __devinit bf5xx_ac97_probe(struct platform_device *pdev)
 		goto sport_err;
 	}
 
-	bfin_ac97_dai.private_data = sport_handle;
-	bfin_ac97_dai.dev = &pdev->dev;
-	bfin_ac97_dai.ac97_pdata = sport_handle;
 	platform_set_drvdata(pdev, sport_handle);
 	sport_handle->private_data = cmd_count;
 
@@ -374,7 +368,7 @@ static int __devinit bf5xx_ac97_probe(struct platform_device *pdev)
 		goto sport_config_err;
 	}
 
-	ret = snd_soc_register_dai(&bfin_ac97_dai);
+	ret = snd_soc_register_dai(&pdev->dev, &bfin_ac97_dai);
 	if (ret) {
 		pr_err("Failed to register DAI: %d\n", ret);
 		goto sport_config_err;
@@ -395,50 +389,17 @@ gpio_err:
 	return ret;
 }
 
-static int bf5xx_ac97_remove(struct snd_soc_dai *dai)
+static int __devexit asoc_bfin_ac97_remove(struct platform_device *pdev)
 {
-	free_page((unsigned long)cmd_count);
-	cmd_count = NULL;
+	struct sport_device *sport_handle = platform_get_drvdata(pdev);
+	int *cmd_count = sport_handle->private_data;
+
+	snd_soc_unregister_dai(&pdev->dev);
 	sport_done(sport_handle);
+	free_page((unsigned long)cmd_count);
 #ifdef CONFIG_SND_BF5XX_HAVE_COLD_RESET
 	gpio_free(CONFIG_SND_BF5XX_RESET_GPIO_NUM);
 #endif
-	return 0;
-}
-
-struct snd_soc_dai_driver bfin_ac97_dai = {
-	.ac97_control = 1,
-	.probe = bf5xx_ac97_probe,
-	.remove = bf5xx_ac97_remove,
-	.suspend = bf5xx_ac97_suspend,
-	.resume = bf5xx_ac97_resume,
-	.playback = {
-		.stream_name = "AC97 Playback",
-		.channels_min = 2,
-#if defined(CONFIG_SND_BF5XX_MULTICHAN_SUPPORT)
-		.channels_max = 6,
-#else
-		.channels_max = 2,
-#endif
-		.rates = SNDRV_PCM_RATE_48000,
-		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
-	.capture = {
-		.stream_name = "AC97 Capture",
-		.channels_min = 2,
-		.channels_max = 2,
-		.rates = SNDRV_PCM_RATE_48000,
-		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
-};
-EXPORT_SYMBOL_GPL(bfin_ac97_dai);
-
-static __devinit int asoc_bfin_ac97_probe(struct platform_device *pdev)
-{
-	return snd_soc_register_dai(&pdev->dev, &bfin_ac97_dai);
-}
-
-static int __devexit asoc_bfin_ac97_remove(struct platform_device *pdev)
-{
-	snd_soc_unregister_dai(&pdev->dev);
 	return 0;
 }
 
