@@ -40,66 +40,6 @@
 
 #include "bf5xx-sport.h"
 
-/*
- * Setting the TFS pin selector for SPORT 0 based on whether the selected
- * port id F or G. If the port is F then no conflict should exist for the
- * TFS. When Port G is selected and EMAC then there is a conflict between
- * the PHY interrupt line and TFS.  Current settings prevent the conflict
- * by ignoring the TFS pin when Port G is selected. This allows both
- * codecs and EMAC using Port G concurrently.
- */
-#if 0
-
-#ifdef CONFIG_BF527_SPORT0_PORTG
-#define LOCAL_SPORT0_TFS (0)
-#else
-#define LOCAL_SPORT0_TFS (P_SPORT0_TFS)
-#endif
-
-#define SPORT_REQ(x) \
-	[x] = {P_SPORT##x##_TFS, P_SPORT##x##_DTPRI, P_SPORT##x##_TSCLK, \
-		P_SPORT##x##_RFS, P_SPORT##x##_DRPRI, P_SPORT##x##_RSCLK, 0}
-
-static u16 sport_req[][7] = {
-#ifdef SPORT0_TCR1
-	{P_SPORT0_DTPRI, P_SPORT0_TSCLK, P_SPORT0_RFS,
-		P_SPORT0_DRPRI, P_SPORT0_RSCLK, LOCAL_SPORT0_TFS, 0},
-#endif
-#ifdef SPORT1_TCR1
-	SPORT_REQ(1),
-#endif
-#ifdef SPORT2_TCR1
-	SPORT_REQ(2),
-#endif
-#ifdef SPORT3_TCR1
-	SPORT_REQ(3),
-#endif
-};
-
-#define SPORT_PARAMS(x) \
-	[x] = { \
-		.dma_rx_chan = CH_SPORT##x##_RX, \
-		.dma_tx_chan = CH_SPORT##x##_TX, \
-		.err_irq     = IRQ_SPORT##x##_ERROR, \
-		.regs        = (struct sport_register *)SPORT##x##_TCR1, \
-	}
-static struct sport_param sport_params[4] = {
-#ifdef SPORT0_TCR1
-	SPORT_PARAMS(0),
-#endif
-#ifdef SPORT1_TCR1
-	SPORT_PARAMS(1),
-#endif
-#ifdef SPORT2_TCR1
-	SPORT_PARAMS(2),
-#endif
-#ifdef SPORT3_TCR1
-	SPORT_PARAMS(3),
-#endif
-};
-
-#endif
-
 /* delay between frame sync pulse and first data bit in multichannel mode */
 #define FRAME_DELAY (1<<12)
 
