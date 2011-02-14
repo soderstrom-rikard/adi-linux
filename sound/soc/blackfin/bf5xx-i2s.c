@@ -256,10 +256,17 @@ static int __devinit bf5xx_i2s_probe(struct platform_device *pdev)
 
 	params.num = pdev->id;
 	params.pin_req = pdata->pin_req;
-	params.regs = pdata->regs;
 	params.private_data = bf5xx_i2s;
 	params.wdsize = 4;
 	params.dummy_count = 2 * sizeof(u32);
+
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!res) {
+		pr_err("no MEM resource\n");
+		ret = -ENODEV;
+		goto sport_err;
+	}
+	params.regs = (struct sport_register *)res->start;
 
 	/* first RX, then TX */
 	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
