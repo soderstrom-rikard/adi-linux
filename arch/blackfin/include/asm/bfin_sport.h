@@ -103,6 +103,11 @@ struct sport_register {
 };
 #undef __BFP
 
+struct bfin_snd_platform_data {
+	unsigned short *pin_req;
+	struct sport_register *regs;
+};
+
 #define bfin_read_sport_rx32(base) \
 ({ \
 	struct sport_register *__mmrs = (void *)base; \
