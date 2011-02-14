@@ -43,7 +43,7 @@ struct sport_device {
 	int dma_rx_chan;
 	int dma_tx_chan;
 	int err_irq;
-	unsigned short *pin_req;
+	const unsigned short *pin_req;
 	struct sport_register *regs;
 
 	unsigned char *rx_buf;
@@ -110,7 +110,7 @@ struct sport_param {
 	int dma_rx_chan;
 	int dma_tx_chan;
 	int err_irq;
-	unsigned short *pin_req;
+	const unsigned short *pin_req;
 	struct sport_register *regs;
 	unsigned int wdsize;
 	unsigned int dummy_count;
