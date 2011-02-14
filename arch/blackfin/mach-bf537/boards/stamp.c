@@ -2590,12 +2590,6 @@ static struct platform_device bfin_dpmc = {
 	defined(CONFIG_SND_BF5XX_TDM) || defined(CONFIG_SND_BF5XX_TDM_MODULE) || \
 	defined(CONFIG_SND_BF5XX_AC97) || defined(CONFIG_SND_BF5XX_AC97_MODULE)
 
-#ifdef CONFIG_BF527_SPORT0_PORTG
-#define LOCAL_SPORT0_TFS (0)
-#else
-#define LOCAL_SPORT0_TFS (P_SPORT0_TFS)
-#endif
-
 #define SPORT_REQ(x) \
 	[x] = {P_SPORT##x##_TFS, P_SPORT##x##_DTPRI, P_SPORT##x##_TSCLK, \
 		P_SPORT##x##_RFS, P_SPORT##x##_DRPRI, P_SPORT##x##_RSCLK, 0}
