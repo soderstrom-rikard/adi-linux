@@ -240,7 +240,9 @@ static int __devinit bf5xx_i2s_probe(struct platform_device *pdev)
 {
 	struct sport_device *sport_handle;
 	struct bf5xx_i2s_port *bf5xx_i2s;
-	int sport_num = pdev->id;
+	struct sport_param params;
+	struct bfin_snd_platform_data *pdata;
+	struct resource *res;
 	int ret;
 
 	pr_debug("%s enter\n", __func__);
@@ -250,16 +252,48 @@ static int __devinit bf5xx_i2s_probe(struct platform_device *pdev)
 	if (!bf5xx_i2s)
 		return -ENOMEM;
 
+	pdata = pdev->dev.platform_data;
+
+	params.num = pdev->id;
+	params.pin_req = pdata->pin_req;
+	params.regs = pdata->regs;
+	params.private_data = bf5xx_i2s;
+	params.wdsize = 4;
+	params.dummy_count = 2 * sizeof(u32);
+
+	/* first RX, then TX */
+	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
+	if (!res) {
+		pr_err("no rx DMA resource\n");
+		ret = -ENODEV;
+		goto sport_err;
+	}
+	params.dma_rx_chan = res->start;
+
+	res = platform_get_resource(pdev, IORESOURCE_DMA, 1);
+	if (!res) {
+		pr_err("no tx DMA resource\n");
+		ret = -ENODEV;
+		goto sport_err;
+	}
+	params.dma_tx_chan = res->start;
+
+	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+	if (!res) {
+		pr_err("no irq resource\n");
+		ret = -ENODEV;
+		goto sport_err;
+	}
+	params.err_irq = res->start;
+
 	/* request DMA for SPORT */
-	sport_handle = sport_init(sport_num, 4, \
-			2 * sizeof(u32), NULL);
+	sport_handle = sport_init(&params);
 	if (!sport_handle) {
 		ret = -ENODEV;
 		goto sport_err;
 	}
 
 	platform_set_drvdata(pdev, sport_handle);
-	sport_handle->private_data = bf5xx_i2s;
 
 	ret = snd_soc_register_dai(&pdev->dev, &bf5xx_i2s_dai);
 	if (ret) {

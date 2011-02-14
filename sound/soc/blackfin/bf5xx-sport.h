@@ -105,17 +105,19 @@ struct sport_device {
 	void *private_data;
 };
 
-extern struct sport_device *sport_handle;
-
 struct sport_param {
+	int num;
 	int dma_rx_chan;
 	int dma_tx_chan;
 	int err_irq;
+	unsigned short *pin_req;
 	struct sport_register *regs;
+	unsigned int wdsize;
+	unsigned int dummy_count;
+	void *private_data;
 };
 
-struct sport_device *sport_init(int num, unsigned wdsize,
-		unsigned dummy_count, void *private_data);
+struct sport_device *sport_init(struct sport_param *param);
 
 void sport_done(struct sport_device *sport);
 

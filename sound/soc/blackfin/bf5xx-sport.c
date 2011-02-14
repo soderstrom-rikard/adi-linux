@@ -48,6 +48,8 @@
  * by ignoring the TFS pin when Port G is selected. This allows both
  * codecs and EMAC using Port G concurrently.
  */
+#if 0
+
 #ifdef CONFIG_BF527_SPORT0_PORTG
 #define LOCAL_SPORT0_TFS (0)
 #else
@@ -95,6 +97,8 @@ static struct sport_param sport_params[4] = {
 	SPORT_PARAMS(3),
 #endif
 };
+
+#endif
 
 /* delay between frame sync pulse and first data bit in multichannel mode */
 #define FRAME_DELAY (1<<12)
@@ -853,16 +857,14 @@ int sport_set_err_callback(struct sport_device *sport,
 }
 EXPORT_SYMBOL(sport_set_err_callback);
 
-struct sport_device *sport_init(int num, unsigned wdsize,
-		unsigned dummy_count, void *private_data)
+struct sport_device *sport_init(struct sport_param *param)
 {
 	int ret;
 	struct sport_device *sport;
 	pr_debug("%s enter\n", __func__);
-	BUG_ON(num >= ARRAY_SIZE(sport_params));
-	BUG_ON(wdsize == 0 || dummy_count == 0);
+	BUG_ON(param->wdsize == 0 || param->dummy_count == 0);
 
-	if (peripheral_request_list(&sport_req[num][0], "soc-audio")) {
+	if (peripheral_request_list(param->pin_req, "soc-audio")) {
 		pr_err("Requesting Peripherals failed\n");
 		return NULL;
 	}
@@ -874,13 +876,13 @@ struct sport_device *sport_init(int num, unsigned wdsize,
 	}
 
 	memset(sport, 0, sizeof(struct sport_device));
-	sport->num = num;
-	sport->dma_rx_chan = sport_params[num].dma_rx_chan;
-	sport->dma_tx_chan = sport_params[num].dma_tx_chan;
-	sport->err_irq = sport_params[num].err_irq;
-	sport->regs = sport_params[num].regs;
-	sport->pin_req = sport_req[num];
-	sport->private_data = private_data;
+	sport->num = param->num;
+	sport->dma_rx_chan = param->dma_rx_chan;
+	sport->dma_tx_chan = param->dma_tx_chan;
+	sport->err_irq = param->err_irq;
+	sport->regs = param->regs;
+	sport->pin_req = param->pin_req;
+	sport->private_data = param->private_data;
 
 	if (request_dma(sport->dma_rx_chan, "SPORT RX Data") == -EBUSY) {
 		pr_err("Failed to request RX dma %d\n", \
@@ -916,31 +918,42 @@ struct sport_device *sport_init(int num, unsigned wdsize,
 			sport->dma_rx_chan, sport->dma_tx_chan,
 			sport->err_irq, sport->regs);
 
-	sport->wdsize = wdsize;
-	sport->dummy_count = dummy_count;
+	sport->wdsize = param->wdsize;
+	sport->dummy_count = param->dummy_count;
 
 	if (L1_DATA_A_LENGTH)
-		sport->dummy_buf = l1_data_sram_zalloc(dummy_count * 2);
+		sport->dummy_buf = l1_data_sram_zalloc(param->dummy_count * 2);
 	else
-		sport->dummy_buf = kzalloc(dummy_count * 2, GFP_KERNEL);
+		sport->dummy_buf = kzalloc(param->dummy_count * 2, GFP_KERNEL);
 	if (sport->dummy_buf == NULL) {
 		pr_err("Failed to allocate dummy buffer\n");
-		goto __error;
+		goto __error1;
 	}
 
 	ret = sport_config_rx_dummy(sport);
 	if (ret) {
 		pr_err("Failed to config rx dummy ring\n");
-		goto __error;
+		goto __error2;
 	}
 	ret = sport_config_tx_dummy(sport);
 	if (ret) {
 		pr_err("Failed to config tx dummy ring\n");
-		goto __error;
+		goto __error3;
 	}
 
 	return sport;
-__error:
+__error3:
+	if (L1_DATA_A_LENGTH)
+		l1_data_sram_free(sport->dummy_rx_desc);
+	else
+		dma_free_coherent(NULL, 2*sizeof(struct dmasg),
+				sport->dummy_rx_desc, 0);
+__error2:
+	if (L1_DATA_A_LENGTH)
+		l1_data_sram_free(sport->dummy_buf);
+	else
+		kfree(sport->dummy_buf);
+__error1:
 	free_irq(sport->err_irq, sport);
 __init_err3:
 	free_dma(sport->dma_tx_chan);
@@ -949,7 +962,7 @@ __init_err2:
 __init_err1:
 	kfree(sport);
 __init_err0:
-	peripheral_free_list(&sport_req[num][0]);
+	peripheral_free_list(param->pin_req);
 	return NULL;
 }
 EXPORT_SYMBOL(sport_init);
@@ -982,7 +995,7 @@ void sport_done(struct sport_device *sport)
 	free_dma(sport->dma_tx_chan);
 	free_irq(sport->err_irq, sport);
 
-	peripheral_free_list(&sport_req[sport->num][0]);
+	peripheral_free_list(sport->pin_req);
 	kfree(sport);
 }
 EXPORT_SYMBOL(sport_done);
