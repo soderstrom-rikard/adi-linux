@@ -2602,16 +2602,19 @@ static const u16 bfin_snd_pin[][7] = {
 static struct bfin_snd_platform_data bfin_snd_data[] = {
 	{
 		.pin_req = &bfin_snd_pin[0][0],
-		.regs = (struct sport_register *)SPORT0_TCR1,
 	},
 	{
 		.pin_req = &bfin_snd_pin[1][0],
-		.regs = (struct sport_register *)SPORT1_TCR1,
 	},
 };
 
 #define BFIN_SND_RES(x) \
 	[x] = { \
+		{ \
+			.start = SPORT##x##_TCR1, \
+			.end = SPORT##x##_TCR1, \
+			.flags = IORESOURCE_MEM \
+		}, \
 		{ \
 			.start = CH_SPORT##x##_RX, \
 			.end = CH_SPORT##x##_RX, \
@@ -2629,7 +2632,7 @@ static struct bfin_snd_platform_data bfin_snd_data[] = {
 		} \
 	}
 
-static struct resource bfin_snd_resources[][3] = {
+static struct resource bfin_snd_resources[][4] = {
 	BFIN_SND_RES(0),
 	BFIN_SND_RES(1),
 };
