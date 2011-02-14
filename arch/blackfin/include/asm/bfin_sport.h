@@ -104,7 +104,7 @@ struct sport_register {
 #undef __BFP
 
 struct bfin_snd_platform_data {
-	unsigned short *pin_req;
+	const unsigned short *pin_req;
 	struct sport_register *regs;
 };
 

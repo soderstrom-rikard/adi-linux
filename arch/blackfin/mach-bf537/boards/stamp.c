@@ -2594,7 +2594,7 @@ static struct platform_device bfin_dpmc = {
 	[x] = {P_SPORT##x##_TFS, P_SPORT##x##_DTPRI, P_SPORT##x##_TSCLK, \
 		P_SPORT##x##_RFS, P_SPORT##x##_DRPRI, P_SPORT##x##_RSCLK, 0}
 
-static u16 bfin_snd_pin[][7] = {
+static const u16 bfin_snd_pin[][7] = {
 	SPORT_REQ(0),
 	SPORT_REQ(1),
 };
