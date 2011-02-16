@@ -63,24 +63,33 @@
 #endif
 
 #define GPIO_SE CONFIG_SND_BFIN_AD73311_SE
+#define GPIO_RESET CONFIG_SND_BFIN_AD73311_RESET
 
 static struct snd_soc_card bf5xx_ad73311;
 
-static int snd_ad73311_startup(void)
+static void snd_ad73311_reset(void)
+{
+	gpio_set_value(GPIO_RESET, 0);
+	udelay(100);
+	gpio_set_value(GPIO_RESET, 1);
+}
+
+static void snd_ad73311_startup(void)
 {
 	pr_debug("%s enter\n", __func__);
 
 	/* Pull up SE pin on AD73311L */
 	gpio_set_value(GPIO_SE, 1);
-	return 0;
+	udelay(1);
 }
 
 static int snd_ad73311_configure(void)
 {
-	unsigned short ctrl_regs[6];
+	unsigned short ctrl_regs[7];
 	unsigned short status = 0;
 	int count = 0;
 
+#if CONFIG_SND_AD7XXXX_SELECT == 0
 	/* DMCLK = MCLK = 16.384 MHz
 	 * SCLK = DMCLK/8 = 2.048 MHz
 	 * Sample Rate = DMCLK/2048  = 8 KHz
@@ -94,10 +103,26 @@ static int snd_ad73311_configure(void)
 	ctrl_regs[3] = AD_CONTROL | AD_WRITE | CTRL_REG_E | REGE_DA(0x1f);
 	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F | REGF_SEEN ;
 	ctrl_regs[5] = AD_CONTROL | AD_WRITE | CTRL_REG_A | REGA_MODE_DATA;
-
+#elif CONFIG_SND_AD7XXXX_SELECT == 1
+	/* MCLK = MCLK = 12.288 MHz
+	 * Sample Rate = 8 KHz
+	 * IMCLK = MCLK/6 = 2.048 MHz = 8kHz * 256
+	 */
+	ctrl_regs[0] = AD_WRITE | CTRL_REG_A | REGA_REFAMP | REGA_REF |\
+			REGA_DAC | REGA_ADC_INPAMP;
+	ctrl_regs[1] = AD_WRITE | CTRL_REG_B | REGB_FCLKDIV(2) | \
+			REGB_SCLKDIV(1) | REGB_TCLKDIV(0);
+	ctrl_regs[2] = AD_WRITE | CTRL_REG_C | REGC_ADC_HP | \
+			REGC_WORD_WIDTH(0);
+	ctrl_regs[3] = AD_WRITE | CTRL_REG_D | REGD_MASTER | \
+			REGD_FDCLK | REGD_DSP_MODE;
+	ctrl_regs[4] = AD_WRITE | CTRL_REG_E;
+	ctrl_regs[5] = AD_WRITE | CTRL_REG_F;
+	ctrl_regs[6] = AD_WRITE | CTRL_REG_G;
+#endif
 	local_irq_disable();
+	snd_ad73311_reset();
 	snd_ad73311_startup();
-	udelay(1);
 
 	bfin_write_SPORT_TCR1(TFSR);
 	bfin_write_SPORT_TCR2(0xF);
@@ -137,7 +162,16 @@ static int bf5xx_probe(struct platform_device *pdev)
 		return -EBUSY;
 	}
 
+	if (GPIO_SE != GPIO_RESET) {
+		if (gpio_request(GPIO_RESET, "AD73311_RESET")) {
+			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __func__, GPIO_RESET);
+			gpio_free(GPIO_SE);
+			return -EBUSY;
+		}
+	}
+
 	gpio_direction_output(GPIO_SE, 0);
+	gpio_direction_output(GPIO_RESET, 0);
 
 	err = snd_ad73311_configure();
 	if (err < 0)
