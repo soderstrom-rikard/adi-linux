@@ -130,6 +130,17 @@ cifs_bp_rename_retry:
 	return full_path;
 }
 
+static void setup_cifs_dentry(struct cifsTconInfo *tcon,
+			      struct dentry *direntry,
+			      struct inode *newinode)
+{
+	if (tcon->nocase)
+		direntry->d_op = &cifs_ci_dentry_ops;
+	else
+		direntry->d_op = &cifs_dentry_ops;
+	d_instantiate(direntry, newinode);
+}
+
 /* Inode operations in similar order to how they appear in Linux file fs.h */
 
 int
@@ -282,8 +293,10 @@ cifs_create(struct inode *inode, struct dentry *direntry, int mode,
 			args.uid = NO_CHANGE_64;
 			args.gid = NO_CHANGE_64;
 		}
-		CIFSSMBUnixSetFileInfo(xid, tcon, &args, fileHandle,
-					current->tgid);
+		CIFSSMBUnixSetPathInfo(xid, tcon, full_path, &args,
+					cifs_sb->local_nls,
+					cifs_sb->mnt_cifs_flags &
+						CIFS_MOUNT_MAP_SPECIAL_CHR);
 	} else {
 		/* BB implement mode setting via Windows security
 		   descriptors e.g. */
@@ -316,7 +329,7 @@ cifs_create_get_file_info:
 
 cifs_create_set_dentry:
 	if (rc == 0)
-		d_instantiate(direntry, newinode);
+		setup_cifs_dentry(tcon, direntry, newinode);
 	else
 		cFYI(1, "Create worked, get_inode_info failed rc = %d", rc);
 
@@ -407,6 +420,10 @@ int cifs_mknod(struct inode *inode, struct dentry *direntry, int mode,
 
 		rc = cifs_get_inode_info_unix(&newinode, full_path,
 						inode->i_sb, xid);
+		if (pTcon->nocase)
+			direntry->d_op = &cifs_ci_dentry_ops;
+		else
+			direntry->d_op = &cifs_dentry_ops;
 
 		if (rc == 0)
 			d_instantiate(direntry, newinode);
@@ -586,6 +603,10 @@ cifs_lookup(struct inode *parent_dir_inode, struct dentry *direntry,
 				parent_dir_inode->i_sb, xid, NULL);
 
 	if ((rc == 0) && (newInode != NULL)) {
+		if (pTcon->nocase)
+			direntry->d_op = &cifs_ci_dentry_ops;
+		else
+			direntry->d_op = &cifs_dentry_ops;
 		d_add(direntry, newInode);
 		if (posix_open) {
 			filp = lookup_instantiate_filp(nd, direntry,
@@ -612,6 +633,10 @@ cifs_lookup(struct inode *parent_dir_inode, struct dentry *direntry,
 	} else if (rc == -ENOENT) {
 		rc = 0;
 		direntry->d_time = jiffies;
+		if (pTcon->nocase)
+			direntry->d_op = &cifs_ci_dentry_ops;
+		else
+			direntry->d_op = &cifs_dentry_ops;
 		d_add(direntry, NULL);
 	/*	if it was once a directory (but how can we tell?) we could do
 		shrink_dcache_parent(direntry); */
@@ -631,34 +656,22 @@ lookup_out:
 static int
 cifs_d_revalidate(struct dentry *direntry, struct nameidata *nd)
 {
+	int isValid = 1;
+
 	if (direntry->d_inode) {
 		if (cifs_revalidate_dentry(direntry))
 			return 0;
-		else
-			return 1;
+	} else {
+		cFYI(1, "neg dentry 0x%p name = %s",
+			 direntry, direntry->d_name.name);
+		if (time_after(jiffies, direntry->d_time + HZ) ||
+			!lookupCacheEnabled) {
+			d_drop(direntry);
+			isValid = 0;
+		}
 	}
 
-	/*
-	 * This may be nfsd (or something), anyway, we can't see the
-	 * intent of this. So, since this can be for creation, drop it.
-	 */
-	if (!nd)
-		return 0;
-
-	/*
-	 * Drop the negative dentry, in order to make sure to use the
-	 * case sensitive name which is specified by user if this is
-	 * for creation.
-	 */
-	if (!(nd->flags & (LOOKUP_CONTINUE | LOOKUP_PARENT))) {
-		if (nd->flags & (LOOKUP_CREATE | LOOKUP_RENAME_TARGET))
-			return 0;
-	}
-
-	if (time_after(jiffies, direntry->d_time + HZ) || !lookupCacheEnabled)
-		return 0;
-
-	return 1;
+	return isValid;
 }
 
 /* static int cifs_d_delete(struct dentry *direntry)
@@ -675,10 +688,9 @@ const struct dentry_operations cifs_dentry_ops = {
 /* d_delete:       cifs_d_delete,      */ /* not needed except for debugging */
 };
 
-static int cifs_ci_hash(const struct dentry *dentry, const struct inode *inode,
-		struct qstr *q)
+static int cifs_ci_hash(struct dentry *dentry, struct qstr *q)
 {
-	struct nls_table *codepage = CIFS_SB(dentry->d_sb)->local_nls;
+	struct nls_table *codepage = CIFS_SB(dentry->d_inode->i_sb)->local_nls;
 	unsigned long hash;
 	int i;
 
@@ -691,16 +703,21 @@ static int cifs_ci_hash(const struct dentry *dentry, const struct inode *inode,
 	return 0;
 }
 
-static int cifs_ci_compare(const struct dentry *parent,
-		const struct inode *pinode,
-		const struct dentry *dentry, const struct inode *inode,
-		unsigned int len, const char *str, const struct qstr *name)
+static int cifs_ci_compare(struct dentry *dentry, struct qstr *a,
+			   struct qstr *b)
 {
-	struct nls_table *codepage = CIFS_SB(pinode->i_sb)->local_nls;
+	struct nls_table *codepage = CIFS_SB(dentry->d_inode->i_sb)->local_nls;
 
-	if ((name->len == len) &&
-	    (nls_strnicmp(codepage, name->name, str, len) == 0))
+	if ((a->len == b->len) &&
+	    (nls_strnicmp(codepage, a->name, b->name, a->len) == 0)) {
+		/*
+		 * To preserve case, don't let an existing negative dentry's
+		 * case take precedence.  If a is not a negative dentry, this
+		 * should have no side effects
+		 */
+		memcpy((void *)a->name, b->name, a->len);
 		return 0;
+	}
 	return 1;
 }
 
