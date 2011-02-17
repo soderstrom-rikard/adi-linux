@@ -22,14 +22,8 @@
 	printk(KERN_CRIT "sm_debug:"pr_fmt(fmt), ##__VA_ARGS__)
 #else
 #define sm_debug(fmt, ...) \
-	({if (0) printk(KERN_CRIT "sm_debug:"pr_fmt(fmt), ##__VA_ARGS__); 0; })
+	({ if (0) printk(KERN_CRIT "sm_debug:"pr_fmt(fmt), ##__VA_ARGS__); 0; })
 #endif
-
-void platform_request_ipi(int irq, void *handler, void *data);
-
-void platform_send_ipi_cpu(unsigned int cpu, int irq);
-
-void platform_clear_ipi(unsigned int cpu, int irq);
 
 struct sm_icc_desc *icc_info;
 struct sm_proto *sm_protos[SP_MAX];
@@ -210,7 +204,7 @@ static int sm_send_message_internal(struct sm_message *msg, int dst_cpu,
 	int ret = 0;
 	ret = sm_message_enqueue(dst_cpu, src_cpu, msg);
 	if (!ret)
-		platform_send_ipi_cpu(dst_cpu, IRQ_SUPPLE_0);
+		icc_send_ipi_cpu(dst_cpu, IRQ_SUPPLE_0);
 	return ret;
 }
 

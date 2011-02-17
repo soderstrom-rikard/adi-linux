@@ -49,6 +49,15 @@ void platform_clear_ipi(unsigned int cpu, int irq)
 	SSYNC();
 }
 
+void icc_send_ipi_cpu(unsigned int cpu, int irq)
+{
+	platform_send_ipi_cpu(cpu, irq);
+}
+
+void icc_clear_ipi_cpu(unsigned int cpu, int irq)
+{
+	platform_clear_ipi(cpu, irq);
+}
 
 irqreturn_t ipi_handler_int0(int irq, void *dev_instance)
 {

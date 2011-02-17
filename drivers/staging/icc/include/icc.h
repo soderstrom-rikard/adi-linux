@@ -1,21 +1,15 @@
+/*
+ * Copyright 2010-2011 Analog Devices Inc.
+ *
+ * Licensed under the GPL-2 or later.
+ */
+
 #ifndef _ICC_H
 #define _ICC_H
 
-/* arch specific */
-#define sm_atomic_read(v) bfin_read16(v)
-#define sm_atomic_write(v, i) bfin_write16(v, i)
-
-typedef unsigned char sm_unit_t;
-typedef unsigned short sm_uint16_t;
-typedef unsigned long sm_uint32_t;
-typedef sm_uint32_t sm_address_t;
-typedef sm_uint16_t sm_atomic_t;
-#define MSGQ_START_ADDR	0xFEB18000
-#define MSG_BUF_ADDR	0xFEB1F000
-
-#define SM_DATA_ATTR __atrribute__((section .l2.atomic))
-#define SM_ATOMIC(type, name) SM_DATA_ATTR \
-		__typeof__(type) name
+#include <mach/icc.h>
+void icc_send_ipi_cpu(unsigned int cpu, int irq);
+void icc_clear_ipi(unsigned int cpu, int irq);
 
 /* sm protocol */
 /* compose type enumeration value from protocol & subtype */
@@ -160,7 +154,7 @@ struct sm_icc_desc {
 };
 #endif
 
-#define CMD_COREB_START		_IO('m', 0)
+#define CMD_COREB_START		_IO('b', 0)
 #define CMD_COREB_STOP		_IO('m', 1)
 #define CMD_COREB_RESET		_IO('m', 2)
 #define CMD_SM_SEND		_IO('m', 3)
