@@ -1,0 +1,100 @@
+/*
+ * header file for adau1701 SigmaDSP processor
+ *
+ * Copyright 2011 Analog Devices Inc.
+ *
+ * Licensed under the GPL-2 or later.
+ */
+
+#ifndef _ADAU1701_H
+#define _ADAU1701_H
+
+/*
+ * Register definition.
+ */
+#define ADAU1701_FIRSTREG	0x0800
+#define ADAU1701_LASTREG	0x0827
+#define ADAU1701_IFACE0		0x0800
+#define ADAU1701_IFACE1		0x0801
+#define ADAU1701_IFACE2		0x0802
+#define ADAU1701_IFACE3		0x0803
+#define ADAU1701_IFACE4		0x0804
+#define ADAU1701_IFACE5		0x0805
+#define ADAU1701_IFACE6		0x0806
+#define ADAU1701_IFACE7		0x0807
+
+#define ADAU1701_GPIOSET	0x0808
+#define ADAU1701_AUXADC0	0x0809
+#define ADAU1701_AUXADC1	0x080A
+#define ADAU1701_AUXADC2	0x080B
+#define ADAU1701_AUXADC3	0x080C
+
+#define ADAU1701_SAFELD0	0x0810
+#define ADAU1701_SAFELD1	0x0811
+#define ADAU1701_SAFELD2	0x0812
+#define ADAU1701_SAFELD3	0x0813
+#define ADAU1701_SAFELD4	0x0814
+
+#define ADAU1701_SLDADD0	0x0815
+#define ADAU1701_SLDADD1	0x0816
+#define ADAU1701_SLDADD2	0x0817
+#define ADAU1701_SLDADD3	0x0818
+#define ADAU1701_SLDADD4	0x0819
+
+#define ADAU1701_DATCAP0	0x081A
+#define ADAU1701_DATCAP1	0x081B
+
+#define ADAU1701_DSPCTRL	0x081C
+#define ADAU1701_DSPRES		0x081D
+#define ADAU1701_SEROCTL	0x081E
+#define ADAU1701_SERITL1	0x081F
+
+#define ADAU1701_MPCONF0	0x0820
+#define ADAU1701_MPCONF1	0x0821
+
+#define ADAU1701_AUXNPOW	0x0822
+#define ADAU1701_AUXADCE	0x0824
+
+#define ADAU1701_OSCIPOW	0x0826
+#define ADAU1701_DACSET		0x0827
+
+
+#define ADAU1701_NUMCACHEREG	0x29
+
+/* Bit fields */
+#define DSPCTRL_CR		(1 << 2)
+#define DSPCTRL_DAM		(1 << 3)
+#define DSPCTRL_ADM		(1 << 4)
+#define DSPCTRL_IST		(1 << 5)
+#define DSPCTRL_IFCW		(1 << 6)
+#define DSPCTRL_GPCW		(1 << 7)
+#define DSPCTRL_AACW		(1 << 8)
+
+#define MPCONF_GPIOIDE		(0)
+#define MPCONF_GPIOINDE		(1)
+#define MPCONF_GPIOOPT		(2)
+#define MPCONF_OCOPT		(3)
+#define MPCONF_SDATAP		(4)
+#define MPCONF_GPIOIDEI		(8)
+#define MPCONF_GPIOINDEI	(9)
+#define MPCONF_GPIOOPTI		(0xA)
+#define MPCONF_OCOPTI		(0xB)
+#define MPCONF_SDATAPI		(0xC)
+#define MPCONF_AUXADC		(0xF)
+
+#define AUXNPOW_AAPD		(0x80)
+#define AUXNPOW_VBPD		(0x40)
+#define AUXNPOW_VRPD		(0x20)
+#define AUXNPOW_D3PD		(0x1)
+#define AUXNPOW_D2PD		(0x2)
+#define AUXNPOW_D1PD		(0x4)
+#define AUXNPOW_D0PD		(0x8)
+
+#define SERITL1_LEFTJ		(1)
+#define SERITL1_TDM		(2)
+
+#define	AUXADCE_AAEN		(1 << 15)
+
+#define	DACSET_DACEN		(1)
+
+#endif
