@@ -1,6 +1,6 @@
 snd-soc-88pm860x-objs := 88pm860x-codec.o
 snd-soc-ac97-objs := ac97.o
-snd-soc-ad1836-objs := ad1836.o
+snd-soc-ad183x-objs := ad183x.o
 snd-soc-ad193x-objs := ad193x.o
 snd-soc-ad1980-objs := ad1980.o
 snd-soc-ad73311-objs := ad73311.o
@@ -81,7 +81,7 @@ snd-soc-wm9090-objs := wm9090.o
 
 obj-$(CONFIG_SND_SOC_88PM860X)	+= snd-soc-88pm860x.o
 obj-$(CONFIG_SND_SOC_AC97_CODEC)	+= snd-soc-ac97.o
-obj-$(CONFIG_SND_SOC_AD1836)	+= snd-soc-ad1836.o
+obj-$(CONFIG_SND_SOC_AD183X)	+= snd-soc-ad183x.o
 obj-$(CONFIG_SND_SOC_AD193X)	+= snd-soc-ad193x.o
 obj-$(CONFIG_SND_SOC_AD1980)	+= snd-soc-ad1980.o
 obj-$(CONFIG_SND_SOC_AD73311) += snd-soc-ad73311.o

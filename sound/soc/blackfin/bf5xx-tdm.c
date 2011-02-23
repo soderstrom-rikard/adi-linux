@@ -231,6 +231,10 @@ static int bf5xx_tdm_resume(struct snd_soc_dai *dai)
 #define bf5xx_tdm_resume       NULL
 #endif
 
+#define BF5XX_TDM_RATES SNDRV_PCM_RATE_48000
+
+#define BF5XX_TDM_FORMATS SNDRV_PCM_FMTBIT_S32_LE
+
 static struct snd_soc_dai_ops bf5xx_tdm_dai_ops = {
 	.hw_params      = bf5xx_tdm_hw_params,
 	.set_fmt        = bf5xx_tdm_set_dai_fmt,
@@ -244,13 +248,13 @@ static struct snd_soc_dai_driver bf5xx_tdm_dai = {
 	.playback = {
 		.channels_min = 2,
 		.channels_max = 8,
-		.rates = SNDRV_PCM_RATE_48000,
-		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
+		.rates = BF5XX_TDM_RATES,
+		.formats = BF5XX_TDM_FORMATS,},
 	.capture = {
 		.channels_min = 2,
 		.channels_max = 8,
-		.rates = SNDRV_PCM_RATE_48000,
-		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
+		.rates = BF5XX_TDM_RATES,
+		.formats = BF5XX_TDM_FORMATS,},
 	.ops = &bf5xx_tdm_dai_ops,
 };
 
@@ -258,7 +262,9 @@ static int __devinit bfin_tdm_probe(struct platform_device *pdev)
 {
 	struct sport_device *sport_handle;
 	struct bf5xx_tdm_port *bf5xx_tdm;
-	int sport_num = pdev->id;
+	struct sport_param params;
+	struct bfin_snd_platform_data *pdata;
+	struct resource *res;
 	int ret = 0;
 
 	/* request sport private data */
@@ -266,18 +272,56 @@ static int __devinit bfin_tdm_probe(struct platform_device *pdev)
 	if (!bf5xx_tdm)
 		return -ENOMEM;
 
+	pdata = pdev->dev.platform_data;
+
+	params.num = pdev->id;
+	params.pin_req = pdata->pin_req;
+	params.private_data = bf5xx_tdm;
+	params.wdsize = 4;
+	params.dummy_count = 8 * sizeof(u32);
+
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!res) {
+		pr_err("no MEM resource\n");
+		ret = -ENODEV;
+		goto sport_err;
+	}
+	params.regs = (struct sport_register *)res->start;
+
+
+	/* first RX, then TX */
+	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
+	if (!res) {
+		pr_err("no rx DMA resource\n");
+		ret = -ENODEV;
+		goto sport_err;
+	}
+	params.dma_rx_chan = res->start;
+
+	res = platform_get_resource(pdev, IORESOURCE_DMA, 1);
+	if (!res) {
+		pr_err("no tx DMA resource\n");
+		ret = -ENODEV;
+		goto sport_err;
+	}
+	params.dma_tx_chan = res->start;
+
+	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+	if (!res) {
+		pr_err("no irq resource\n");
+		ret = -ENODEV;
+		goto sport_err;
+	}
+	params.err_irq = res->start;
+
 	/* request DMA for SPORT */
-	sport_handle = sport_init(sport_num, 4, \
-			8 * sizeof(u32), bf5xx_tdm);
+	sport_handle = sport_init(&params);
 	if (!sport_handle) {
 		ret = -ENODEV;
 		goto sport_err;
 	}
 
-	bf5xx_tdm_dai.private_data = sport_handle;
-	bf5xx_tdm_dai.dev = &pdev->dev;
 	platform_set_drvdata(pdev, sport_handle);
-	sport_handle->private_data = bf5xx_tdm;
 
 	/* SPORT works in TDM mode */
 	ret = sport_set_multichannel(sport_handle, 8, 0xFF, 1);
