@@ -82,6 +82,17 @@
 #define MPCONF_SDATAPI		(0xC)
 #define MPCONF_AUXADC		(0xF)
 
+#define SEROCTL_MASTER		(0x0800)
+#define SEROCTL_OBF16		(0x0000)
+#define SEROCTL_OBF8		(0x0200)
+#define SEROCTL_OBF4		(0x0400)
+#define SEROCTL_OBF2		(0x0600)
+
+#define SEROCTL_OLF1024		(0x0000)
+#define SEROCTL_OLF512		(0x0080)
+#define SEROCTL_OLF256		(0x0100)
+#define SEROCTL_OLFRSV		(0x0180)
+
 #define AUXNPOW_AAPD		(0x80)
 #define AUXNPOW_VBPD		(0x40)
 #define AUXNPOW_VRPD		(0x20)
@@ -94,7 +105,7 @@
 #define SERITL1_TDM		(2)
 
 #define	AUXADCE_AAEN		(1 << 15)
-
+#define OSCIPOW_OPD		(0x04)
 #define	DACSET_DACEN		(1)
 
 #endif
