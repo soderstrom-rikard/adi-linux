@@ -558,8 +558,7 @@ static struct bfin5xx_spi_chip ad1836_spi_chip_info = {
 };
 #endif
 
-#if defined(CONFIG_SND_BF5XX_SOC_AD193X) \
-	|| defined(CONFIG_SND_BF5XX_SOC_AD193X_MODULE)
+#ifdef CONFIG_SND_SOC_AD193X_SPI
 static struct bfin5xx_spi_chip ad1938_spi_chip_info = {
 	.enable_dma = 0,
 	.bits_per_word = 8,
@@ -1082,9 +1081,9 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 	},
 #endif
 
-#if defined(CONFIG_SND_BF5XX_SOC_AD193X) || defined(CONFIG_SND_BF5XX_SOC_AD193X_MODULE)
+#ifdef CONFIG_SND_SOC_AD193X_SPI
 	{
-		.modalias = "ad193x",
+		.modalias = "ad193x-codec",
 		.max_speed_hz = 3125000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0,
 		.chip_select = 5,
@@ -2214,7 +2213,7 @@ static unsigned long adt7316_i2c_data[2] = {
 #endif
 
 static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
-#if defined(CONFIG_SND_BF5XX_SOC_AD193X) || defined(CONFIG_SND_BF5XX_SOC_AD193X_MODULE)
+#ifdef CONFIG_SND_SOC_AD193X_I2C
 	{
 		I2C_BOARD_INFO("ad1937", 0x04),
 	},
