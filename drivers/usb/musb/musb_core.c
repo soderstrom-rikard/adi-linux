@@ -2355,6 +2355,17 @@ void musb_restore_context(struct musb *musb)
 	musb_writeb(musb_base, MUSB_INTRUSBE, musb_context.intrusbe);
 	musb_writeb(musb_base, MUSB_DEVCTL, musb_context.devctl);
 
+#ifdef CONFIG_BLACKFIN
+	/*
+	 * Blackfin musb-host can't resume without reprobe if not polling for
+	 * detected 'A'device.
+	 */
+	if (is_host_enabled(musb)) {
+		while (musb_readb(musb_base, MUSB_DEVCTL) & MUSB_DEVCTL_BDEVICE)
+			mdelay(10);
+	}
+#endif
+
 	for (i = 0; i < musb->config->num_eps; ++i) {
 		epio = musb->endpoints[i].regs;
 		musb_writew(epio, MUSB_TXMAXP,
