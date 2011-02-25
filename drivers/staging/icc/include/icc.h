@@ -86,26 +86,29 @@ enum {
 #include <linux/wait.h>
 #include <linux/mutex.h>
 
-struct sm_message {
-	struct list_head next;
-	sm_uint16_t dst;
-	sm_uint16_t src;
+struct sm_msg {
 	sm_uint16_t dst_ep;
 	sm_uint16_t src_ep;
 	sm_uint32_t type;
 	sm_uint32_t length;
-	sm_uint32_t flags;
 	sm_address_t payload;
 };
 
-/* A magic number - stress test shows this is safe for common cases */
+struct sm_message {
+	struct list_head next;
+	sm_uint16_t dst;
+	sm_uint16_t src;
+	struct sm_msg msg;
+	sm_uint32_t flags;
+};
+
 #define SM_MSGQ_LEN 8
 
 /* Simple FIFO buffer */
 struct sm_message_queue {
 	sm_atomic_t sent;
 	sm_atomic_t received; /* head of the queue */
-	struct sm_message messages[SM_MSGQ_LEN];
+	struct sm_msg messages[SM_MSGQ_LEN];
 };
 
 struct sm_buf {
@@ -175,12 +178,26 @@ struct sm_packet {
 	void *buf;
 };
 
+#define L3_TYPE_AUDIO 1
+#define L3_TYPE_VIDEO 2
+#define L3_TYPE_ENCODE 4
+#define L3_TYPE_DECODE 8
+
+struct l3_proto_head {
+	unsigned int type;
+	unsigned int todo;
+	unsigned int chunk_addr;
+	unsigned int chunk_size;
+	unsigned int status;
+};
+
 struct sm_task {
 	int (*task_init)(int argc, char *argv[]);
 	void (*task_exit)(void);
 	int task_argc;
 	char task_argv[1][MAX_TASK_NAME];
 };
-
+#define __icc_task __attribute__((section(".icc.text")))
+#define __icc_task_data __attribute__((section(".icc.data")))
 
 #endif
