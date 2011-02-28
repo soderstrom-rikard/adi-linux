@@ -1,5 +1,5 @@
 /*
- * File:         bf5xx_ac97_sport.h
+ * File:         bf5xx_sport.h
  * Based on:
  * Author:       Roy Huang <roy.huang@analog.com>
  *
