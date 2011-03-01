@@ -70,19 +70,30 @@ static struct snd_soc_ops bf5xx_ad183x_ops = {
 	.hw_params = bf5xx_ad183x_hw_params,
 };
 
-static struct snd_soc_dai_link bf5xx_ad183x_dai = {
-	.name = "ad183x",
-	.stream_name = "AD183X",
-	.cpu_dai_name = "bfin-tdm.0",
-	.codec_dai_name = "ad183x-hifi",
-	.platform_name = "bfin-pcm-audio",
-	.codec_name = "spi0.4",
-	.ops = &bf5xx_ad183x_ops,
+static struct snd_soc_dai_link bf5xx_ad183x_dai[] = {
+	{
+		.name = "ad183x",
+		.stream_name = "AD183X",
+		.cpu_dai_name = "bfin-tdm.0",
+		.codec_dai_name = "ad183x-hifi",
+		.platform_name = "bfin-pcm-audio",
+		.codec_name = "spi0.4",
+		.ops = &bf5xx_ad183x_ops,
+	},
+	{
+		.name = "ad183x",
+		.stream_name = "AD183X",
+		.cpu_dai_name = "bfin-tdm.1",
+		.codec_dai_name = "ad183x-hifi",
+		.platform_name = "bfin-pcm-audio",
+		.codec_name = "spi0.4",
+		.ops = &bf5xx_ad183x_ops,
+	}
 };
 
 static struct snd_soc_card bf5xx_ad183x = {
 	.name = "bf5xx_ad183x",
-	.dai_link = &bf5xx_ad183x_dai,
+	.dai_link = &bf5xx_ad183x_dai[CONFIG_SND_BF5XX_SPORT_NUM],
 	.num_links = 1,
 };
 

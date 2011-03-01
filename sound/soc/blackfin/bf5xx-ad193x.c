@@ -84,23 +84,38 @@ static struct snd_soc_ops bf5xx_ad193x_ops = {
 	.hw_params = bf5xx_ad193x_hw_params,
 };
 
-static struct snd_soc_dai_link bf5xx_ad193x_dai = {
-	.name = "ad193x",
-	.stream_name = "AD193X",
-	.cpu_dai_name = "bfin-tdm.0",
-	.codec_dai_name ="ad193x-hifi",
-	.platform_name = "bfin-pcm-audio",
+static struct snd_soc_dai_link bf5xx_ad193x_dai[] = {
+	{
+		.name = "ad193x",
+		.stream_name = "AD193X",
+		.cpu_dai_name = "bfin-tdm.0",
+		.codec_dai_name = "ad193x-hifi",
+		.platform_name = "bfin-pcm-audio",
 #if defined(CONFIG_SND_SOC_AD193X_SPI)
-	.codec_name = "spi0.5",
+		.codec_name = "spi0.5",
 #elif defined(CONFIG_SND_SOC_AD193X_I2C)
-	.codec_name = "ad193x-codec.0-0004",
+		.codec_name = "ad193x-codec.0-0004",
 #endif
-	.ops = &bf5xx_ad193x_ops,
+		.ops = &bf5xx_ad193x_ops,
+	},
+	{
+		.name = "ad193x",
+		.stream_name = "AD193X",
+		.cpu_dai_name = "bfin-tdm.1",
+		.codec_dai_name = "ad193x-hifi",
+		.platform_name = "bfin-pcm-audio",
+#if defined(CONFIG_SND_SOC_AD193X_SPI)
+		.codec_name = "spi0.5",
+#elif defined(CONFIG_SND_SOC_AD193X_I2C)
+		.codec_name = "ad193x-codec.0-0004",
+#endif
+		.ops = &bf5xx_ad193x_ops,
+	}
 };
 
 static struct snd_soc_card bf5xx_ad193x = {
 	.name = "bf5xx_ad193x",
-	.dai_link = &bf5xx_ad193x_dai,
+	.dai_link = &bf5xx_ad193x_dai[CONFIG_SND_BF5XX_SPORT_NUM],
 	.num_links = 1,
 };
 

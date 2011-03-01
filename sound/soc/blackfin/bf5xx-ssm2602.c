@@ -103,19 +103,30 @@ static struct snd_soc_ops bf5xx_ssm2602_ops = {
 	.hw_params = bf5xx_ssm2602_hw_params,
 };
 
-static struct snd_soc_dai_link bf5xx_ssm2602_dai = {
-	.name = "ssm2602",
-	.stream_name = "SSM2602",
-	.cpu_dai_name = "bfin-i2s.0",
-	.codec_dai_name = "ssm2602-hifi",
-	.platform_name = "bfin-pcm-audio",
-	.codec_name = "ssm2602-codec.0-001b",
-	.ops = &bf5xx_ssm2602_ops,
+static struct snd_soc_dai_link bf5xx_ssm2602_dai[] = {
+	{
+		.name = "ssm2602",
+		.stream_name = "SSM2602",
+		.cpu_dai_name = "bfin-i2s.0",
+		.codec_dai_name = "ssm2602-hifi",
+		.platform_name = "bfin-pcm-audio",
+		.codec_name = "ssm2602-codec.0-001b",
+		.ops = &bf5xx_ssm2602_ops,
+	},
+	{
+		.name = "ssm2602",
+		.stream_name = "SSM2602",
+		.cpu_dai_name = "bfin-i2s.1",
+		.codec_dai_name = "ssm2602-hifi",
+		.platform_name = "bfin-pcm-audio",
+		.codec_name = "ssm2602-codec.0-001b",
+		.ops = &bf5xx_ssm2602_ops,
+	}
 };
 
 static struct snd_soc_card bf5xx_ssm2602 = {
 	.name = "bf5xx_ssm2602",
-	.dai_link = &bf5xx_ssm2602_dai,
+	.dai_link = &bf5xx_ssm2602_dai[CONFIG_SND_BF5XX_SPORT_NUM],
 	.num_links = 1,
 };
 
