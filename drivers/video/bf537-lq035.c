@@ -6,7 +6,7 @@
  * Licensed under the GPL-2.
  */
 
-#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+#define pr_fmt(fmt) DRIVER_NAME ": " fmt
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -36,6 +36,8 @@
 #include <asm/dpmc.h>
 #include <asm/dma.h>
 #include <asm/portmux.h>
+
+#define DRIVER_NAME "bf537-lq035"
 
 #define NO_BL 1
 
@@ -171,9 +173,7 @@ static struct i2c_driver ad5280_driver = {
 
 #else
 
-#define UD      GPIO_PF13	/* Up / Down */
 #define MOD     GPIO_PF10
-#define LBR     GPIO_PF14	/* Left Right */
 
 #define bfin_write_TIMER_LP_CONFIG	bfin_write_TIMER6_CONFIG
 #define bfin_write_TIMER_LP_WIDTH	bfin_write_TIMER6_WIDTH
@@ -371,24 +371,24 @@ static int __devinit request_ports(void)
 		PPI_CLK: PF15
 	*/
 
-	if (peripheral_request_list(ppi_pins, KBUILD_MODNAME)) {
+	if (peripheral_request_list(ppi_pins, DRIVER_NAME)) {
 		pr_err("requesting PPI peripheral failed\n");
 		return -EBUSY;
 	}
 
-	if (peripheral_request_list(tmr_req, KBUILD_MODNAME)) {
+	if (peripheral_request_list(tmr_req, DRIVER_NAME)) {
 		peripheral_free_list(ppi_pins);
 		pr_err("requesting timer peripheral failed\n");
 		return -EBUSY;
 	}
 
 #if (defined(UD) && defined(LBR))
-	if (gpio_request(UD, KBUILD_MODNAME)) {
+	if (gpio_request(UD, DRIVER_NAME)) {
 		pr_err("requesting GPIO %d failed\n", UD);
 		return -EBUSY;
 	}
 
-	if (gpio_request(LBR, KBUILD_MODNAME)) {
+	if (gpio_request(LBR, DRIVER_NAME)) {
 		pr_err("requesting GPIO %d failed\n", LBR);
 		gpio_free(UD);
 		return -EBUSY;
@@ -399,7 +399,7 @@ static int __devinit request_ports(void)
 
 #endif
 
-	if (gpio_request(MOD, KBUILD_MODNAME)) {
+	if (gpio_request(MOD, DRIVER_NAME)) {
 		pr_err("requesting GPIO %d failed\n", MOD);
 #if (defined(UD) && defined(LBR))
 		gpio_free(LBR);
@@ -450,7 +450,7 @@ static struct fb_var_screeninfo bfin_lq035_fb_defined = {
 };
 
 static struct fb_fix_screeninfo bfin_lq035_fb_fix __devinitdata = {
-	.id		= KBUILD_MODNAME,
+	.id		= DRIVER_NAME,
 	.smem_len	= ACTIVE_VIDEO_MEM_SIZE,
 	.type		= FB_TYPE_PACKED_PIXELS,
 	.visual		= FB_VISUAL_TRUECOLOR,
@@ -697,7 +697,7 @@ static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 	struct backlight_properties props;
 	dma_addr_t dma_handle;
 
-	if (request_dma(CH_PPI, KBUILD_MODNAME)) {
+	if (request_dma(CH_PPI, DRIVER_NAME)) {
 		pr_err("couldn't request PPI DMA\n");
 		return -EFAULT;
 	}
@@ -805,7 +805,7 @@ static int __devinit bfin_lq035_probe(struct platform_device *pdev)
 	bl_dev = backlight_device_register("bf537-bl", NULL, NULL,
 					   &bfin_lq035fb_bl_ops, &props);
 
-	lcd_dev = lcd_device_register(KBUILD_MODNAME, &pdev->dev, NULL,
+	lcd_dev = lcd_device_register(DRIVER_NAME, &pdev->dev, NULL,
 				      &bfin_lcd_ops);
 	lcd_dev->props.max_contrast = 255,
 
@@ -892,7 +892,7 @@ static struct platform_driver bfin_lq035_driver = {
 	.suspend = bfin_lq035_suspend,
 	.resume = bfin_lq035_resume,
 	.driver = {
-		.name = KBUILD_MODNAME,
+		.name = DRIVER_NAME,
 		.owner = THIS_MODULE,
 	},
 };
