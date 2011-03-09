@@ -431,6 +431,7 @@ uvc_queue_mmap(struct uvc_video_queue *queue, struct vm_area_struct *vma)
 			break;
 	}
 
+#ifdef CONFIG_MMU
 	if (i == queue->count || size != queue->buf_size) {
 		ret = -EINVAL;
 		goto done;
@@ -452,6 +453,20 @@ uvc_queue_mmap(struct uvc_video_queue *queue, struct vm_area_struct *vma)
 		addr += PAGE_SIZE;
 		size -= PAGE_SIZE;
 	}
+#else
+	if (i == queue->count ||
+		PAGE_ALIGN(size) != queue->buf_size) {
+		ret = -EINVAL;
+		goto done;
+	}
+
+	/* documentation/nommu-mmap.txt */
+	vma->vm_flags |= VM_IO | VM_MAYSHARE;
+
+	addr = (unsigned long)queue->mem + buffer->buf.m.offset;
+	vma->vm_start = addr;
+	vma->vm_end = addr +  queue->buf_size;
+#endif
 
 	vma->vm_ops = &uvc_vm_ops;
 	vma->vm_private_data = buffer;

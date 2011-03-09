@@ -1084,6 +1084,39 @@ static unsigned int uvc_v4l2_poll(struct file *file, poll_table *wait)
 	return uvc_queue_poll(&stream->queue, file, wait);
 }
 
+#ifndef CONFIG_MMU
+static unsigned long uvc_v4l2_get_unmapped_area(struct file *file,
+		unsigned long addr, unsigned long len, unsigned long pgoff,
+		unsigned long flags)
+{
+	struct uvc_fh *handle = (struct uvc_fh *)file->private_data;
+	struct uvc_streaming *stream = handle->stream;
+	struct uvc_video_queue *queue = &stream->queue;
+	struct uvc_buffer *uninitialized_var(buffer);
+	unsigned int i;
+	int ret = 0;
+
+	mutex_lock(&queue->mutex);
+	for (i = 0; i < queue->count; ++i) {
+		buffer = &queue->buffer[i];
+		if ((buffer->buf.m.offset >> PAGE_SHIFT) == pgoff)
+			break;
+	}
+
+	if (i == queue->count ||
+		PAGE_ALIGN(len) != queue->buf_size) {
+		ret = -EINVAL;
+		goto done;
+	}
+
+	addr = (unsigned long)queue->mem + buffer->buf.m.offset;
+	ret = addr;
+done:
+	mutex_unlock(&queue->mutex);
+	return ret;
+}
+#endif
+
 const struct v4l2_file_operations uvc_fops = {
 	.owner		= THIS_MODULE,
 	.open		= uvc_v4l2_open,
@@ -1092,5 +1125,8 @@ const struct v4l2_file_operations uvc_fops = {
 	.read		= uvc_v4l2_read,
 	.mmap		= uvc_v4l2_mmap,
 	.poll		= uvc_v4l2_poll,
+#ifndef CONFIG_MMU
+	.get_unmapped_area = uvc_v4l2_get_unmapped_area,
+#endif
 };
 

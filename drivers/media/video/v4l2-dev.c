@@ -299,6 +299,21 @@ static int v4l2_mmap(struct file *filp, struct vm_area_struct *vm)
 	return ret;
 }
 
+#ifndef CONFIG_MMU
+static unsigned long v4l2_get_unmapped_area(struct file *filp,
+		unsigned long addr, unsigned long len, unsigned long pgoff,
+		unsigned long flags)
+{
+	struct video_device *vdev = video_devdata(filp);
+
+	if (!vdev->fops->get_unmapped_area)
+		return -ENOSYS;
+	if (!video_is_registered(vdev))
+		return -ENODEV;
+	return vdev->fops->get_unmapped_area(filp, addr, len, pgoff, flags);
+}
+#endif
+
 /* Override for the open function */
 static int v4l2_open(struct inode *inode, struct file *filp)
 {
@@ -362,6 +377,9 @@ static const struct file_operations v4l2_fops = {
 	.write = v4l2_write,
 	.open = v4l2_open,
 	.mmap = v4l2_mmap,
+#ifndef CONFIG_MMU
+	.get_unmapped_area = v4l2_get_unmapped_area,
+#endif
 	.unlocked_ioctl = v4l2_ioctl,
 #ifdef CONFIG_COMPAT
 	.compat_ioctl = v4l2_compat_ioctl32,
