@@ -141,4 +141,10 @@
 #define CTRL_REG_G      (6 << 11)
 #endif
 
+struct ad73311_snd_ctrls {
+	char dirate; /* Decimation/Interpolation Rate */
+	char igs; /* Input Gain Select */
+	char ogs; /* Output Gain Select */
+};
+
 #endif

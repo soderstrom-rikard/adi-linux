@@ -83,7 +83,7 @@ static void snd_ad73311_startup(void)
 	udelay(1);
 }
 
-static int snd_ad73311_configure(void)
+static int snd_ad73311_configure(struct ad73311_snd_ctrls *ctrl)
 {
 	unsigned short ctrl_regs[7];
 	unsigned short status = 0;
@@ -95,11 +95,11 @@ static int snd_ad73311_configure(void)
 	 * Sample Rate = DMCLK/2048  = 8 KHz
 	 */
 	ctrl_regs[0] = AD_CONTROL | AD_WRITE | CTRL_REG_B | REGB_MCDIV(0) | \
-			REGB_SCDIV(0) | REGB_DIRATE(0);
+			REGB_SCDIV(0) | REGB_DIRATE(ctrl->dirate);
 	ctrl_regs[1] = AD_CONTROL | AD_WRITE | CTRL_REG_C | REGC_PUDEV | \
 			REGC_PUADC | REGC_PUDAC | REGC_PUREF | REGC_REFUSE ;
-	ctrl_regs[2] = AD_CONTROL | AD_WRITE | CTRL_REG_D | REGD_OGS(2) | \
-			REGD_IGS(2);
+	ctrl_regs[2] = AD_CONTROL | AD_WRITE | CTRL_REG_D | REGD_OGS(ctrl->ogs) | \
+			REGD_IGS(ctrl->igs);
 	ctrl_regs[3] = AD_CONTROL | AD_WRITE | CTRL_REG_E | REGE_DA(0x1f);
 	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F | REGF_SEEN ;
 	ctrl_regs[5] = AD_CONTROL | AD_WRITE | CTRL_REG_A | REGA_MODE_DATA;
@@ -154,9 +154,26 @@ static int snd_ad73311_configure(void)
 	return 0;
 }
 
+static int snd_ad73311_write(void *control_data, const char *data, int len)
+{
+	return snd_ad73311_configure((struct ad73311_snd_ctrls *)data);
+}
+
+static int snd_ad73311_init(struct snd_soc_pcm_runtime *rtd)
+{
+	struct snd_soc_codec *codec = rtd->codec;
+	codec->hw_write = snd_ad73311_write;
+	return 0;
+}
+
 static int bf5xx_probe(struct platform_device *pdev)
 {
 	int err;
+	struct ad73311_snd_ctrls ctrl = {
+		.dirate = 0,
+		.igs = 2,
+		.ogs = 2,
+	};
 	if (gpio_request(GPIO_SE, "AD73311_SE")) {
 		printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __func__, GPIO_SE);
 		return -EBUSY;
@@ -173,7 +190,7 @@ static int bf5xx_probe(struct platform_device *pdev)
 	gpio_direction_output(GPIO_SE, 0);
 	gpio_direction_output(GPIO_RESET, 0);
 
-	err = snd_ad73311_configure();
+	err = snd_ad73311_configure(&ctrl);
 	if (err < 0)
 		return -EFAULT;
 
@@ -212,6 +229,7 @@ static struct snd_soc_dai_link bf5xx_ad73311_dai[] = {
 		.codec_dai_name = "ad73311-hifi",
 		.platform_name = "bfin-pcm-audio",
 		.codec_name = "ad73311-codec",
+		.init = snd_ad73311_init,
 		.ops = &bf5xx_ad73311_ops,
 	},
 	{
@@ -221,6 +239,7 @@ static struct snd_soc_dai_link bf5xx_ad73311_dai[] = {
 		.codec_dai_name = "ad73311-hifi",
 		.platform_name = "bfin-pcm-audio",
 		.codec_name = "ad73311-codec",
+		.init = snd_ad73311_init,
 		.ops = &bf5xx_ad73311_ops,
 	}
 };
