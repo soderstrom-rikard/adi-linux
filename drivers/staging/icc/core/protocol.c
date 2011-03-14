@@ -15,6 +15,7 @@
 #include <linux/slab.h>
 #include <icc.h>
 #include <linux/poll.h>
+#include <linux/proc_fs.h>
 
 #define DEBUG
 #ifdef DEBUG
@@ -27,6 +28,7 @@
 
 struct sm_icc_desc *icc_info;
 struct sm_proto *sm_protos[SP_MAX];
+struct proc_dir_entry *icc_dump;
 
 static int icc_init(void)
 {
@@ -88,10 +90,12 @@ static int sm_message_enqueue(int dstcpu, int srccpu, struct sm_msg *msg)
 	return 0;
 }
 
-static int sm_message_dequeue(int srccpu, struct sm_message *msg)
+static int sm_message_dequeue(int srccpu, struct sm_msg *msg)
 {
 	struct sm_message_queue *inqueue = &icc_info->icc_queue[srccpu];
-	sm_atomic_t received = sm_atomic_read(&inqueue->received);
+	sm_atomic_t received;
+	memset(msg, 0, sizeof(struct sm_msg));
+	received = sm_atomic_read(&inqueue->received);
 	received++;
 	sm_atomic_write(&inqueue->received, received);
 	sm_debug("received %d\n", received);
@@ -163,8 +167,7 @@ static int sm_create_session(sm_uint32_t src_ep, sm_uint32_t type)
 		table->sessions[index].flags = 0;
 		table->sessions[index].type = type;
 		table->sessions[index].proto_ops = sm_protos[type];
-		INIT_LIST_HEAD(&table->sessions[index].bufs);
-		INIT_LIST_HEAD(&table->sessions[index].messages);
+		INIT_LIST_HEAD(&table->sessions[index].rx_messages);
 		init_waitqueue_head(&table->sessions[index].rx_wait);
 		sm_debug("create ep index %d srcep %d type %d\n", index, src_ep, type);
 		sm_debug("session %p\n", &table->sessions[index]);
@@ -187,7 +190,7 @@ static sm_uint32_t sm_session_to_index(struct sm_session *session)
 {
 	struct sm_session_table *table = icc_info->sessions_table;
 	sm_uint32_t index;
-	if ((session > &table->sessions[0])
+	if ((session >= &table->sessions[0])
 		&& (session < &table->sessions[MAX_SESSIONS])) {
 		return (session - &table->sessions[0])/sizeof(struct sm_session);
 	}
@@ -306,7 +309,7 @@ int sm_send_error(struct sm_session *session, sm_uint32_t remote_ep,
 
 static int
 sm_send_packet(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu,
-		void *buf, sm_uint32_t len)
+		void *buf, sm_uint32_t len, int nonblock)
 {
 	struct sm_session *session;
 	struct sm_message *m;
@@ -320,9 +323,16 @@ sm_send_packet(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu,
 	if (!m)
 		return -ENOMEM;
 
+	if (session->type == SP_SESSION_PACKET) {
+		if (session->flags == SM_CONNECT)
+			m->msg.dst_ep = session->remote_ep;
+		else
+			return -EINVAL;
+	} else
+		m->msg.dst_ep = dst_ep;
+
 	m->msg.src_ep = session->local_ep;
 	m->src = blackfin_core_id();
-	m->msg.dst_ep = dst_ep;
 	m->dst = dst_cpu;
 	m->msg.length = len;
 
@@ -357,9 +367,14 @@ sm_send_packet(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu,
 		goto fail;
 
 	sm_debug("%s: len %d type %x dst %d dstep %d src %d srcep %d\n", __func__, m->msg.length, m->msg.type, m->dst, m->msg.dst_ep, m->src, m->msg.src_ep);
+retry:
 	ret = sm_send_message_internal(&m->msg, m->dst, m->src);
-	if (ret)
+	if (ret == -EAGAIN) {
+		interruptible_sleep_on(&icc_info->iccq_tx_wait);
+		goto retry;
+	} else {
 		goto fail;
+	}
 
 fail:
 	kfree(payload_buf);
@@ -378,7 +393,7 @@ static int sm_recv_packet(sm_uint32_t local_ep, void *user_buf,
 
 	session = sm_index_to_session(index);
 
-	if (list_empty(&session->messages)) {
+	if (list_empty(&session->rx_messages)) {
 		sm_debug("recv sleep on queue\n");
 		if (nonblock)
 			return -EAGAIN;
@@ -387,10 +402,10 @@ static int sm_recv_packet(sm_uint32_t local_ep, void *user_buf,
 		mutex_lock(&icc_info->sessions_table->lock);
 	}
 
-	if (!iccqueue_getpending(0))
+	if (list_empty(&session->rx_messages))
 		return -EINTR;
 
-	message = list_first_entry(&session->messages, struct sm_message, next);
+	message = list_first_entry(&session->rx_messages, struct sm_message, next);
 	msg = &message->msg;
 
 	copy_to_user(user_buf, (void *)message->msg.payload, message->msg.length);
@@ -410,11 +425,14 @@ static int sm_recv_packet(sm_uint32_t local_ep, void *user_buf,
 static int
 sm_wait_for_connect_ack(struct sm_session *session)
 {
+	long timeout;
 	mutex_unlock(&icc_info->sessions_table->lock);
-	interruptible_sleep_on_timeout(&session->rx_wait, 1000);
+	interruptible_sleep_on(&session->rx_wait);
 	mutex_lock(&icc_info->sessions_table->lock);
-	if (!iccqueue_getpending(0))
+	if (signal_pending(current)) {
+		sm_debug("signal\n");
 		return -EINTR;
+	}
 	return 0;
 }
 
@@ -426,13 +444,17 @@ static int sm_connect_session(sm_uint32_t dst_ep, sm_uint32_t dst_cpu,
 	sm_uint32_t slot = sm_find_session(src_ep, 0, table);
 	if (slot >= 32)
 		return -EINVAL;
+	sm_debug("session index %d\n", slot);
 	session = &table->sessions[slot];
 	sm_send_connect(session, dst_ep, dst_cpu);
 	if (sm_wait_for_connect_ack(session))
 		return -EAGAIN;
-	table->sessions[slot].remote_ep = dst_ep;
+	sm_debug("received connect ack\n");
+	if (table->sessions[slot].remote_ep == dst_ep)
+		sm_debug("auto accept\n");
+
 	table->sessions[slot].flags = SM_CONNECT;
-	sm_send_connect_done(session, dst_ep, dst_cpu);
+	sm_send_connect_done(session, table->sessions[slot].remote_ep, dst_cpu);
 	return 0;
 }
 
@@ -468,8 +490,8 @@ static int sm_destroy_session(sm_uint32_t src_ep)
 		return -EINVAL;
 
 	session = &table->sessions[slot];
-	while (!list_empty(&session->messages)) {
-		message = list_first_entry(&session->messages,
+	while (!list_empty(&session->rx_messages)) {
+		message = list_first_entry(&session->rx_messages,
 					struct sm_message, next);
 		msg = &message->msg;
 
@@ -538,7 +560,7 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	mutex_lock(&icc_info->sessions_table->lock);
 	switch (cmd) {
 	case CMD_SM_SEND:
-		ret = sm_send_packet(session_idx, remote_ep, dst_cpu, buf, len);
+		ret = sm_send_packet(session_idx, remote_ep, dst_cpu, buf, len, nonblock);
 		break;
 	case CMD_SM_RECV:
 		ret = sm_recv_packet(local_ep, buf, nonblock);
@@ -613,7 +635,7 @@ static int msg_recv_internal(struct sm_msg *msg, struct sm_session *session)
 
 	message->dst = cpu;
 	message->src = cpu ^ 1;
-	list_add(&message->next, &session->messages);
+	list_add(&message->next, &session->rx_messages);
 	sm_debug("%s wakeup wait thread\n", __func__);
 	wake_up(&session->rx_wait);
 	return ret;
@@ -649,9 +671,12 @@ sm_default_recvmsg(struct sm_msg *msg, struct sm_session *session)
 	case SM_SESSION_PACKET_COMSUMED:
 		sm_debug("free buf %x\n", msg->payload);
 		kfree((void *)msg->payload);
+		wake_up(&icc_info->iccq_tx_wait);
 		break;
 	case SM_SESSION_PACKET_CONNECT_ACK:
 		sm_debug("%s wakeup wait thread\n", __func__);
+		session->remote_ep = msg->src_ep;
+		session->flags = SM_CONNECT;
 		wake_up(&session->rx_wait);
 		break;
 	case SM_SESSION_PACKET_CONNECT:
@@ -782,7 +807,8 @@ void msg_handle(int cpu)
 	msg = &inqueue->messages[(received % SM_MSGQ_LEN)];
 
 	if (msg->type == SM_BAD_MSG) {
-		sm_debug("%s\n", msg->payload);
+		sm_debug("%p %s\n", msg->payload, msg->payload);
+		sm_debug("%d : %d\n", msg->src_ep, msg->dst_ep);
 		sm_message_dequeue(cpu, msg);
 		return;
 	}
@@ -835,6 +861,36 @@ void register_sm_proto()
 	sm_protos[SP_SESSION_PACKET] = &session_packet_proto;
 }
 
+static int
+icc_write_proc(struct file *file, const char __user * buffer,
+		unsigned long count, void *data)
+{
+	char line[8];
+	unsigned long val;
+	int ret;
+	struct sm_session *session;
+	struct sm_session_table *table = icc_info->sessions_table;
+
+	ret = copy_from_user(line, buffer, count);
+	if (ret)
+		return -EFAULT;
+
+	if (strict_strtoul(line, 10, &val))
+		return -EINVAL;
+
+	sm_debug("session index %d\n", val);
+	if (val < 0 && val >= MAX_SESSIONS)
+		return -EINVAL;
+
+	session = &table->sessions[val];
+	sm_debug(" %d", session->local_ep);
+	sm_debug(" %d", session->remote_ep);
+	sm_debug(" %X", session->type);
+	sm_debug(" %X\n", session->flags);
+
+	return count;
+}
+
 static int __init bf561_icc_test_init(void)
 {
 	int ret = 0;
@@ -847,10 +903,14 @@ static int __init bf561_icc_test_init(void)
 	register_sm_proto();
 
 	init_waitqueue_head(&icc_info->iccq_rx_wait);
+	init_waitqueue_head(&icc_info->iccq_tx_wait);
 	icc_info->iccq_thread = kthread_run(message_queue_thread,
 					icc_info->icc_queue, "iccqd");
 	if (IS_ERR(icc_info->iccq_thread))
-		sm_debug("kthread create failed %d\n", PTR_ERR(icc_info->iccq_thread));
+		sm_debug("kthread create failed %ld\n", PTR_ERR(icc_info->iccq_thread));
+
+	icc_dump = create_proc_entry("icc_dump", 644, NULL);
+	icc_dump->write_proc = icc_write_proc;
 	return misc_register(&icc_dev);
 }
 module_init(bf561_icc_test_init);

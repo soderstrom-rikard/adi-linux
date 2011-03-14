@@ -118,7 +118,7 @@ struct sm_buf {
 };
 
 struct sm_session {
-	struct list_head messages; /*rx queue sm message*/
+	struct list_head rx_messages; /*rx queue sm message*/
 	struct list_head bufs;
 	sm_uint32_t	local_ep;
 	sm_uint32_t	remote_ep; /*remote ep*/
