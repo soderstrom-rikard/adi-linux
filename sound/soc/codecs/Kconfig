@@ -21,7 +21,7 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_ADAU1381 if I2C
 	select SND_SOC_ADAU1761 if I2C
 	select SND_SOC_ADAV80X if SND_SOC_I2C_AND_SPI
-	select SND_SOC_ADAU1701 if I2C
+	select SND_SOC_ADAU1701 if (I2C && SIGMA)
 	select SND_SOC_ADS117X
 	select SND_SOC_AK4104 if SPI_MASTER
 	select SND_SOC_AK4535 if I2C
@@ -136,6 +136,7 @@ config SND_SOC_ADAV80X
 
 config SND_SOC_ADAU1701
 	tristate
+	select SIGMA
 
 config SND_SOC_ADS117X
 	tristate
