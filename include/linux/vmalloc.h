@@ -44,10 +44,13 @@ extern void vm_unmap_aliases(void);
 
 #ifdef CONFIG_MMU
 extern void __init vmalloc_init(void);
+#define vcoalesce(...) vmap(...)
 #else
 static inline void vmalloc_init(void)
 {
 }
+extern void *vcoalesce(struct page **pages, unsigned int count,
+			unsigned long flags, pgprot_t prot);
 #endif
 
 extern void *vmalloc(unsigned long size);

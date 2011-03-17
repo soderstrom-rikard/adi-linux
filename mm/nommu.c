@@ -402,7 +402,8 @@ void *vmalloc_32_user(unsigned long size)
 }
 EXPORT_SYMBOL(vmalloc_32_user);
 
-void *vmap(struct page **pages, unsigned int count, unsigned long flags, pgprot_t prot)
+void *vcoalesce(struct page **pages, unsigned int count,
+	unsigned long flags, pgprot_t prot)
 {
 	unsigned int i;
 	void *new_map, *page_data;
@@ -418,6 +419,13 @@ void *vmap(struct page **pages, unsigned int count, unsigned long flags, pgprot_
 	}
 
 	return new_map;
+}
+EXPORT_SYMBOL(vcoalesce);
+
+void *vmap(struct page **pages, unsigned int count, unsigned long flags, pgprot_t prot)
+{
+	BUG();
+	return NULL;
 }
 EXPORT_SYMBOL(vmap);
 

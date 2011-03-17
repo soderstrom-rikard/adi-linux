@@ -248,7 +248,7 @@ static ssize_t firmware_loading_store(struct device *dev,
 	case 0:
 		if (test_bit(FW_STATUS_LOADING, &fw_priv->status)) {
 			vunmap(fw_priv->fw->data);
-			fw_priv->fw->data = vmap(fw_priv->pages,
+			fw_priv->fw->data = vcoalesce(fw_priv->pages,
 						 fw_priv->nr_pages,
 						 0, PAGE_KERNEL_RO);
 			if (!fw_priv->fw->data) {
