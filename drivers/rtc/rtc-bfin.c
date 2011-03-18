@@ -242,7 +242,6 @@ static void bfin_rtc_int_set_alarm(struct bfin_rtc *rtc)
 }
 static int bfin_rtc_ioctl(struct device *dev, unsigned int cmd, unsigned long arg)
 {
-	struct bfin_rtc *rtc = dev_get_drvdata(dev);
 	int ret = 0;
 
 	dev_dbg_stamp(dev);
