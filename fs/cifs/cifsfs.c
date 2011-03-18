@@ -177,6 +177,13 @@ cifs_read_super(struct super_block *sb, void *data,
 		rc = -ENOMEM;
 		goto out_no_root;
 	}
+
+	/* do that *after* d_alloc_root() - we want NULL ->d_op for root here */
+	if (cifs_sb_master_tcon(cifs_sb)->nocase)
+		sb->s_d_op = &cifs_ci_dentry_ops;
+	else
+		sb->s_d_op = &cifs_dentry_ops;
+
 #ifdef CONFIG_CIFS_EXPERIMENTAL
 	if (cifs_sb->mnt_cifs_flags & CIFS_MOUNT_SERVER_INUM) {
 		cFYI(1, "export ops supported");
@@ -290,6 +297,9 @@ static int cifs_permission(struct inode *inode, int mask, unsigned int flags)
 {
 	struct cifs_sb_info *cifs_sb;
 
+	if (flags & IPERM_FLAG_RCU)
+		return -ECHILD;
+
 	cifs_sb = CIFS_SB(inode->i_sb);
 
 	if (cifs_sb->mnt_cifs_flags & CIFS_MOUNT_NO_PERM) {
@@ -301,8 +311,7 @@ static int cifs_permission(struct inode *inode, int mask, unsigned int flags)
 		on the client (above and beyond ACL on servers) for
 		servers which do not support setting and viewing mode bits,
 		so allowing client to check permissions is useful */
-		/* return generic_permission(inode, mask, flags, NULL); */
-		return generic_permission(inode, mask, NULL);
+		return generic_permission(inode, mask, flags, NULL);
 }
 
 static struct kmem_cache *cifs_inode_cachep;
@@ -340,11 +349,17 @@ cifs_alloc_inode(struct super_block *sb)
 	return &cifs_inode->vfs_inode;
 }
 
+static void cifs_i_callback(struct rcu_head *head)
+{
+	struct inode *inode = container_of(head, struct inode, i_rcu);
+	INIT_LIST_HEAD(&inode->i_dentry);
+	kmem_cache_free(cifs_inode_cachep, CIFS_I(inode));
+}
+
 static void
 cifs_destroy_inode(struct inode *inode)
 {
-	INIT_LIST_HEAD(&inode->i_dentry);
-	kmem_cache_free(cifs_inode_cachep, CIFS_I(inode));
+	call_rcu(&inode->i_rcu, cifs_i_callback);
 }
 
 static void

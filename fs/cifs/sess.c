@@ -814,7 +814,7 @@ ssetup_ntlmssp_authenticate:
 		pSMB->req.hdr.Flags2 |= SMBFLG2_EXT_SEC;
 		capabilities |= CAP_EXTENDED_SECURITY;
 		pSMB->req.Capabilities |= cpu_to_le32(capabilities);
-		switch (phase) {
+		switch(phase) {
 		case NtLmNegotiate:
 			build_ntlmssp_negotiate_blob(
 				pSMB->req.SecurityBlob, ses);
