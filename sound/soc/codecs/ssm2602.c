@@ -446,9 +446,6 @@ static int ssm2602_resume(struct snd_soc_codec *codec)
 
 	ssm2602_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 
-	if (codec->suspend_bias_level == SND_SOC_BIAS_ON)
-		ssm2602_set_bias_level(codec, SND_SOC_BIAS_ON);
-
 	return 0;
 }
 
