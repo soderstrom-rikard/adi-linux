@@ -2113,7 +2113,7 @@ void unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
 
 struct vm_struct **pcpu_get_vm_areas(const unsigned long *offsets,
 					const size_t *sizes, int nr_vms,
-						size_t align, gfp_t gfp_mask)
+					size_t align)
 {
 	pr_warning("Cannot get vmalloc areas from blackfin SMP kernel\n");
 	return NULL;
