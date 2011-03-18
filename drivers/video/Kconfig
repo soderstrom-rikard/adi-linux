@@ -11,6 +11,13 @@ config HAVE_FB_ATMEL
 config HAVE_FB_IMX
 	bool
 
+config SH_MIPI_DSI
+	tristate
+	depends on (SUPERH || ARCH_SHMOBILE) && HAVE_CLK
+
+config SH_LCD_MIPI_DSI
+	bool
+
 source "drivers/char/agp/Kconfig"
 
 source "drivers/gpu/vga/Kconfig"
@@ -185,6 +192,14 @@ config FB_SYS_FOPS
        tristate
        depends on FB
        default n
+
+config FB_WMT_GE_ROPS
+	tristate
+	depends on FB
+	default n
+	---help---
+	  Include functions for accelerated rectangle filling and area
+	  copying using WonderMedia Graphics Engine operations.
 
 config FB_DEFERRED_IO
 	bool
@@ -406,7 +421,7 @@ config FB_SA1100
 	  Y here.
 
 config FB_IMX
-	tristate "Motorola i.MX LCD support"
+	tristate "Freescale i.MX LCD support"
 	depends on FB && (HAVE_FB_IMX || ARCH_MX1 || ARCH_MX2)
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
@@ -852,24 +867,14 @@ config FB_N411
 config FB_HGA
 	tristate "Hercules mono graphics support"
 	depends on FB && X86
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
 	help
 	  Say Y here if you have a Hercules mono graphics card.
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called hgafb.
 
-	  As this card technology is 15 years old, most people will answer N
-	  here.
-
-config FB_HGA_ACCEL
-	bool "Hercules mono Acceleration functions (EXPERIMENTAL)"
-	depends on FB_HGA && EXPERIMENTAL
-	---help---
-	This will compile the Hercules mono graphics with
-	acceleration functions.
+	  As this card technology is at least 25 years old,
+	  most people will answer N here.
 
 config FB_SGIVW
 	tristate "SGI Visual Workstation framebuffer support"
@@ -1258,7 +1263,7 @@ config FB_CARILLO_RANCH
 
 config FB_INTEL
 	tristate "Intel 830M/845G/852GM/855GM/865G/915G/945G/945GM/965G/965GM support (EXPERIMENTAL)"
-	depends on EXPERIMENTAL && FB && PCI && X86 && AGP_INTEL && EMBEDDED
+	depends on EXPERIMENTAL && FB && PCI && X86 && AGP_INTEL && EXPERT
 	select FB_MODE_HELPERS
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
@@ -1311,7 +1316,7 @@ config FB_MATROX
 	  module will be called matroxfb.
 
 	  You can pass several parameters to the driver at boot time or at
-	  module load time. The parameters look like "video=matrox:XXX", and
+	  module load time. The parameters look like "video=matroxfb:XXX", and
 	  are described in <file:Documentation/fb/matroxfb.txt>.
 
 config FB_MATROX_MILLENIUM
@@ -1824,6 +1829,24 @@ config FB_AU1200
 	  various panels and CRTs by passing in kernel cmd line option
 	  au1200fb:panel=<name>.
 
+config FB_VT8500
+	bool "VT8500 LCD Driver"
+	depends on (FB = y) && ARM && ARCH_VT8500 && VTWM_VERSION_VT8500
+	select FB_WMT_GE_ROPS
+	select FB_SYS_IMAGEBLIT
+	help
+	  This is the framebuffer driver for VIA VT8500 integrated LCD
+	  controller.
+
+config FB_WM8505
+	bool "WM8505 frame buffer support"
+	depends on (FB = y) && ARM && ARCH_VT8500 && VTWM_VERSION_WM8505
+	select FB_WMT_GE_ROPS
+	select FB_SYS_IMAGEBLIT
+	help
+	  This is the framebuffer driver for WonderMedia WM8505
+	  integrated LCD controller.
+
 source "drivers/video/geode/Kconfig"
 
 config FB_HIT
@@ -1952,6 +1975,16 @@ config FB_PXA_PARAMETERS
 
 	  <file:Documentation/fb/pxafb.txt> describes the available parameters.
 
+config PXA3XX_GCU
+	tristate "PXA3xx 2D graphics accelerator driver"
+	depends on FB_PXA
+	help
+	  Kernelspace driver for the 2D graphics controller unit (GCU)
+	  found on PXA3xx processors. There is a counterpart driver in the
+	  DirectFB suite, see http://www.directfb.org/
+
+	  If you compile this as a module, it will be called pxa3xx_gcu.
+
 config FB_MBX
 	tristate "2700G LCD framebuffer support"
 	depends on FB && ARCH_PXA
@@ -1999,13 +2032,6 @@ config FB_W100
 	  say M here and read <file:Documentation/kbuild/modules.txt>.
 
 	  If unsure, say N.
-
-config SH_MIPI_DSI
-	tristate
-	depends on (SUPERH || ARCH_SHMOBILE) && HAVE_CLK
-
-config SH_LCD_MIPI_DSI
-	bool
 
 config FB_SH_MOBILE_LCDC
 	tristate "SuperH Mobile LCDC framebuffer support"
@@ -2136,6 +2162,20 @@ config FB_SM501
 
 	  If unsure, say N.
 
+config FB_UDL
+	tristate "Displaylink USB Framebuffer support"
+	depends on FB && USB
+	select FB_MODE_HELPERS
+	select FB_SYS_FILLRECT
+	select FB_SYS_COPYAREA
+	select FB_SYS_IMAGEBLIT
+	select FB_SYS_FOPS
+	select FB_DEFERRED_IO
+	---help---
+	  This is a kernel framebuffer driver for DisplayLink USB devices.
+	  Supports fbdev clients like xf86-video-fbdev, kdrive, fbi, and
+	  mplayer -vo fbdev. Supports all USB 2.0 era DisplayLink devices.
+	  To compile as a module, choose M here: the module name is udlfb.
 
 config FB_PNX4008_DUM
 	tristate "Display Update Module support on Philips PNX4008 board"

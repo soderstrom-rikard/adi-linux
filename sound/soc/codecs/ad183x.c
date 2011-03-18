@@ -17,7 +17,6 @@
 #include <sound/initval.h>
 #include <sound/soc.h>
 #include <sound/tlv.h>
-#include <sound/soc-dapm.h>
 #include <linux/spi/spi.h>
 #include "ad183x.h"
 
@@ -322,6 +321,7 @@ static int ad183x_probe(struct snd_soc_codec *codec)
 {
 	struct ad183x_priv *ad183x = snd_soc_codec_get_drvdata(codec);
 	struct ad183x_chl_ctrls *chl_ctrl;
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
 	int ret;
 
 	ret = snd_soc_codec_set_cache_io(codec, 4, 12, ad183x->control_type);
@@ -354,8 +354,8 @@ static int ad183x_probe(struct snd_soc_codec *codec)
 	chl_ctrl = &ad183x->chl_ctrl;
 
 	snd_soc_add_controls(codec, chl_ctrl->snd_ctrls, chl_ctrl->ctrl_num);
-	snd_soc_dapm_new_controls(codec, chl_ctrl->dapm_widgets, chl_ctrl->widget_num);
-	snd_soc_dapm_add_routes(codec, chl_ctrl->audio_paths, chl_ctrl->path_num);
+	snd_soc_dapm_new_controls(dapm, chl_ctrl->dapm_widgets, chl_ctrl->widget_num);
+	snd_soc_dapm_add_routes(dapm, chl_ctrl->audio_paths, chl_ctrl->path_num);
 
 	return 0;
 }

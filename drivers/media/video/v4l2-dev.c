@@ -437,6 +437,10 @@ static int get_index(struct video_device *vdev)
  *	The registration code assigns minor numbers and device node numbers
  *	based on the requested type and registers the new device node with
  *	the kernel.
+ *
+ *	This function assumes that struct video_device was zeroed when it
+ *	was allocated and does not contain any stale date.
+ *
  *	An error is returned if no free minor or device node number could be
  *	found, or if the registration of the device node failed.
  *
@@ -458,7 +462,6 @@ static int __video_register_device(struct video_device *vdev, int type, int nr,
 	int minor_offset = 0;
 	int minor_cnt = VIDEO_NUM_DEVICES;
 	const char *name_base;
-	void *priv = vdev->dev.p;
 
 	/* A minor value of -1 marks this video device as never
 	   having been registered */
@@ -577,10 +580,6 @@ static int __video_register_device(struct video_device *vdev, int type, int nr,
 	}
 
 	/* Part 4: register the device with sysfs */
-	memset(&vdev->dev, 0, sizeof(vdev->dev));
-	/* The memset above cleared the device's device_private, so
-	   put back the copy we made earlier. */
-	vdev->dev.p = priv;
 	vdev->dev.class = &video_class;
 	vdev->dev.devt = MKDEV(VIDEO_MAJOR, vdev->minor);
 	if (vdev->parent)
