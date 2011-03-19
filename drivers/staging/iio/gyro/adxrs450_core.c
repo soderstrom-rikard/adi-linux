@@ -25,10 +25,7 @@
 
 #include "adxrs450.h"
 
-#define DRIVER_NAME		"adxrs450"
-
-/* ADXRS450 only support 32-bit spi transfer, all the registers are read only */
-
+#define DRIVER_NAME		"ADXRS450"
 
 /**
  * adxrs450_spi_read_reg_16() - read 2 bytes from a register pair
@@ -48,29 +45,79 @@ static int adxrs450_spi_read_reg_16(struct device *dev,
 	struct spi_transfer xfers[] = {
 		{
 			.tx_buf = st->tx,
-			.bits_per_word = 32,
-			.len = 4,
-			.cs_change = 1,
-		}, {
 			.rx_buf = st->rx,
-			.bits_per_word = 32,
+			.bits_per_word = 8,
 			.len = 4,
-			.cs_change = 1,
 		},
 	};
-
+	/* Needs to send the command twice to get the wanted value */
 	mutex_lock(&st->buf_lock);
-	st->tx[0] = ADXRS450_READ_REG(reg_address);
+	st->tx[0] = ADXRS450_READ_DATA | reg_address >> 7;
+	st->tx[1] = reg_address << 1;
+	st->tx[2] = 0;
+	st->tx[3] = 0;
 	spi_message_init(&msg);
 	spi_message_add_tail(&xfers[0], &msg);
-	spi_message_add_tail(&xfers[1], &msg);
 	ret = spi_sync(st->us, &msg);
 	if (ret) {
 		dev_err(&st->us->dev, "problem while reading 16 bit register 0x%02x\n",
 				reg_address);
 		goto error_ret;
 	}
-	*val = (st->rx[0] >> 5);
+
+	spi_message_init(&msg);
+	spi_message_add_tail(&xfers[0], &msg);
+	ret = spi_sync(st->us, &msg);
+	if (ret) {
+		dev_err(&st->us->dev, "problem while reading 16 bit register 0x%02x\n",
+				reg_address);
+		goto error_ret;
+	}
+
+	*val = (st->rx[1] & 0x1f) << 11 | st->rx[2] << 3 | (st->rx[3] & 0xe0) >> 5;
+
+error_ret:
+	mutex_unlock(&st->buf_lock);
+	return ret;
+}
+
+/**
+ * adxrs450_spi_write_reg_16() - write 2 bytes data to a register pair
+ * @dev: device associated with child of actual device (iio_dev or iio_trig)
+ * @reg_address: the address of the lower of the two registers,which should be an even address,
+ * Second register's address is reg_address + 1.
+ * @val: value to be written.
+ **/
+static int adxrs450_spi_write_reg_16(struct device *dev,
+		u8 reg_address,
+		u16 *val)
+{
+	struct spi_message msg;
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct adxrs450_state *st = iio_dev_get_devdata(indio_dev);
+	int ret;
+	struct spi_transfer xfers[] = {
+		{
+			.tx_buf = st->tx,
+			.rx_buf = st->rx,
+			.bits_per_word = 8,
+			.len = 4,
+		},
+	};
+
+	mutex_lock(&st->buf_lock);
+	st->tx[0] = ADXRS450_WRITE_DATA | reg_address >> 7;
+	st->tx[1] = reg_address << 1 | *val >> 15;
+	st->tx[2] = *val >> 7;
+	st->tx[3] = *val << 1;
+	spi_message_init(&msg);
+	spi_message_add_tail(&xfers[0], &msg);
+	ret = spi_sync(st->us, &msg);
+	if (ret) {
+		dev_err(&st->us->dev, "problem while writing 16 bit register 0x%02x\n",
+				reg_address);
+		goto error_ret;
+	}
 
 error_ret:
 	mutex_unlock(&st->buf_lock);
@@ -82,7 +129,55 @@ error_ret:
  * @dev: device associated with child of actual device (iio_dev or iio_trig)
  * @val: somewhere to pass back the value read
  **/
-static int adxrs450_spi_sensor_data(struct device *dev,
+static int adxrs450_spi_sensor_data(struct device *dev, u16 *val)
+{
+	struct spi_message msg;
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct adxrs450_state *st = iio_dev_get_devdata(indio_dev);
+	int ret;
+	struct spi_transfer xfers[] = {
+		{
+			.tx_buf = st->tx,
+			.rx_buf = st->rx,
+			.bits_per_word = 8,
+			.len = 4,
+		}
+	};
+
+	mutex_lock(&st->buf_lock);
+	st->tx[0] = ADXRS450_SENSOR_DATA;
+	st->tx[1] = 0;
+	st->tx[2] = 0;
+	st->tx[3] = 0;
+
+	spi_message_init(&msg);
+	spi_message_add_tail(&xfers[0], &msg);
+	ret = spi_sync(st->us, &msg);
+	if (ret) {
+		dev_err(&st->us->dev, "Problem while reading sensor data\n");
+		goto error_ret;
+	}
+
+	spi_message_init(&msg);
+	spi_message_add_tail(&xfers[0], &msg);
+	ret = spi_sync(st->us, &msg);
+	if (ret) {
+		dev_err(&st->us->dev, "Problem while reading sensor data\n");
+		goto error_ret;
+	}
+
+	*val = (st->rx[0] & 0x03) << 14 | st->rx[1] << 6 | (st->rx[2] & 0xfc) >> 2;
+error_ret:
+	mutex_unlock(&st->buf_lock);
+	return ret;
+}
+
+/**
+ * adxrs450_spi_initial() - use for initializing procedure.
+ * @dev: device associated with child of actual device (iio_dev or iio_trig)
+ * @val: somewhere to pass back the value read
+ **/
+static int adxrs450_spi_initial(struct device *dev,
 		u32 *val, char chk)
 {
 	struct spi_message msg;
@@ -92,50 +187,32 @@ static int adxrs450_spi_sensor_data(struct device *dev,
 	struct spi_transfer xfers[] = {
 		{
 			.tx_buf = st->tx,
-			.bits_per_word = 32,
-			.len = 4,
-			.cs_change = 1,
-		}, {
 			.rx_buf = st->rx,
-			.bits_per_word = 32,
+			.bits_per_word = 8,
 			.len = 4,
-			.cs_change = 1,
 		},
 	};
 
 	mutex_lock(&st->buf_lock);
 	st->tx[0] = ADXRS450_SENSOR_DATA;
+	st->tx[1] = 0;
+	st->tx[2] = 0;
+	st->tx[3] = 0;
 	if (chk)
-		st->tx[0] |= 0x2;
+		st->tx[3] |= (ADXRS450_CHK | ADXRS450_P);
 	spi_message_init(&msg);
 	spi_message_add_tail(&xfers[0], &msg);
-	spi_message_add_tail(&xfers[1], &msg);
 	ret = spi_sync(st->us, &msg);
 	if (ret) {
-		dev_err(&st->us->dev, "problem while reading sensor data\n");
+		dev_err(&st->us->dev, "Problem while reading initializing data\n");
 		goto error_ret;
 	}
 
-	*val = st->rx[0];
+	*val = st->rx[0] << 24 | st->rx[1] << 16 | st->rx[2] << 8 | st->rx[3];
 
 error_ret:
 	mutex_unlock(&st->buf_lock);
 	return ret;
-}
-
-static ssize_t adxrs450_read_rate(struct device *dev,
-		struct device_attribute *attr,
-		char *buf)
-{
-	int ret, len = 0;
-	u16 t;
-	ret = adxrs450_spi_read_reg_16(dev,
-			ADXRS450_RATE1,
-			&t);
-	if (ret)
-		return ret;
-	len = sprintf(buf, "%d\n", t);
-	return len;
 }
 
 static ssize_t adxrs450_read_temp(struct device *dev,
@@ -146,36 +223,6 @@ static ssize_t adxrs450_read_temp(struct device *dev,
 	u16 t;
 	ret = adxrs450_spi_read_reg_16(dev,
 			ADXRS450_TEMP1,
-			&t);
-	if (ret)
-		return ret;
-	len = sprintf(buf, "%d\n", t);
-	return len;
-}
-
-static ssize_t adxrs450_read_locst(struct device *dev,
-		struct device_attribute *attr,
-		char *buf)
-{
-	int ret, len = 0;
-	u16 t;
-	ret = adxrs450_spi_read_reg_16(dev,
-			ADXRS450_LOCST1,
-			&t);
-	if (ret)
-		return ret;
-	len = sprintf(buf, "%d\n", t);
-	return len;
-}
-
-static ssize_t adxrs450_read_hicst(struct device *dev,
-		struct device_attribute *attr,
-		char *buf)
-{
-	int ret, len = 0;
-	u16 t;
-	ret = adxrs450_spi_read_reg_16(dev,
-			ADXRS450_HICST1,
 			&t);
 	if (ret)
 		return ret;
@@ -198,72 +245,21 @@ static ssize_t adxrs450_read_quad(struct device *dev,
 	return len;
 }
 
-static ssize_t adxrs450_read_fault(struct device *dev,
+static ssize_t adxrs450_write_dnc(struct device *dev,
 		struct device_attribute *attr,
-		char *buf)
+		const char *buf,
+		size_t len)
 {
-	int ret, len = 0;
-	u16 t;
-	ret = adxrs450_spi_read_reg_16(dev,
-			ADXRS450_FAULT1,
-			&t);
-	if (ret)
-		return ret;
-	len = sprintf(buf, "%d\n", t);
-	return len;
-}
+	int ret;
+	u16 val;
 
-static ssize_t adxrs450_read_pid(struct device *dev,
-		struct device_attribute *attr,
-		char *buf)
-{
-	int ret, len = 0;
-	u16 t;
-	ret = adxrs450_spi_read_reg_16(dev,
-			ADXRS450_PID1,
-			&t);
-	if (ret)
-		return ret;
-	len = sprintf(buf, "%d\n", t);
-	return len;
-}
-
-static ssize_t adxrs450_read_sn(struct device *dev,
-		struct device_attribute *attr,
-		char *buf)
-{
-	int ret, len = 0;
-	u16 t0, t1;
-	u32 t;
-	ret = adxrs450_spi_read_reg_16(dev,
-			ADXRS450_SNH,
-			&t0);
-	if (ret)
-		return ret;
-
-	ret = adxrs450_spi_read_reg_16(dev,
-			ADXRS450_SNL,
-			&t1);
-	if (ret)
-		return ret;
-	t = (t0 << 16) | t1;
-	len = sprintf(buf, "%d\n", t);
-	return len;
-}
-
-static ssize_t adxrs450_read_dnc(struct device *dev,
-		struct device_attribute *attr,
-		char *buf)
-{
-	int ret, len = 0;
-	u16 t;
-	ret = adxrs450_spi_read_reg_16(dev,
+	if (len == 0 || len > 2)
+		return -EINVAL;
+	memcpy(&val, buf, len);
+	ret = adxrs450_spi_write_reg_16(dev,
 			ADXRS450_DNC1,
-			&t);
-	if (ret)
-		return ret;
-	len = sprintf(buf, "%d\n", t);
-	return len;
+			&val);
+	return ret ? ret : len;
 }
 
 static ssize_t adxrs450_read_sensor_data(struct device *dev,
@@ -271,13 +267,13 @@ static ssize_t adxrs450_read_sensor_data(struct device *dev,
 		char *buf)
 {
 	int ret, len = 0;
-	u32 t;
-	u16 data;
-	ret = adxrs450_spi_sensor_data(dev, &t, 0);
+	u16 t;
+
+	ret = adxrs450_spi_sensor_data(dev, &t);
 	if (ret)
 		return ret;
-	data = (u16)(t >> 10);
-	len = sprintf(buf, "%d\n", data);
+
+	len = sprintf(buf, "%d\n", t);
 	return len;
 }
 
@@ -285,78 +281,83 @@ static ssize_t adxrs450_read_sensor_data(struct device *dev,
 static int adxrs450_initial_setup(struct adxrs450_state *st)
 {
 	u32 t;
+	u16 data;
 	int ret;
 	struct device *dev = &st->indio_dev->dev;
-	/* use low spi speed for init */
-	st->us->max_speed_hz = ADXRS450_SPI_SLOW;
-	st->us->mode = SPI_MODE_0;
-	spi_setup(st->us);
 
 	msleep(ADXRS450_STARTUP_DELAY*2);
-
-	ret = adxrs450_spi_sensor_data(dev, &t, 1);
+	ret = adxrs450_spi_initial(dev, &t, 1);
 	if (ret)
 		return ret;
-	if (t != 0x00000001)
+	if (t != 0x01) {
+		dev_err(&st->us->dev, "The initial response is not correct!\n");
 		return -ENODEV;
 
+	}
+
 	msleep(ADXRS450_STARTUP_DELAY);
-	ret = adxrs450_spi_sensor_data(dev, &t, 0);
+	ret = adxrs450_spi_initial(dev, &t, 0);
 	if (ret)
 		return ret;
+
 	msleep(ADXRS450_STARTUP_DELAY);
-	ret = adxrs450_spi_sensor_data(dev, &t, 0);
+	ret = adxrs450_spi_initial(dev, &t, 0);
 	if (ret)
 		return ret;
-	if (((t & 0xff) != 0xff) && (ADXRS450_GET_ST(t) != 2))
-		return -EIO;
-	ret = adxrs450_spi_sensor_data(dev, &t, 0);
-	if (ret)
-		return ret;
-	if (((t & 0xff) != 0xff) && (ADXRS450_GET_ST(t) != 2))
+	if (((t & 0xff) | 0x01) != 0xff || ADXRS450_GET_ST(t) != 2) {
+		dev_err(&st->us->dev, "The second response is not correct!\n");
 		return -EIO;
 
-	printk(KERN_INFO DRIVER_NAME ": at CS%d\n",
+	}
+	ret = adxrs450_spi_initial(dev, &t, 0);
+	if (ret)
+		return ret;
+	if (((t & 0xff) | 0x01) != 0xff || ADXRS450_GET_ST(t) != 2) {
+		dev_err(&st->us->dev, "The third response is not correct!\n");
+		return -EIO;
+
+	}
+	ret = adxrs450_spi_read_reg_16(dev, ADXRS450_FAULT1, &data);
+	if (ret)
+		return ret;
+	if (data & 0x0fff) {
+		dev_err(&st->us->dev, "The device is not in normal status!\n");
+		return -EINVAL;
+	}
+	ret = adxrs450_spi_read_reg_16(dev, ADXRS450_PID1, &data);
+	if (ret)
+		return ret;
+	dev_info(&st->us->dev, "The Part ID is 0x%x\n", data);
+
+	ret = adxrs450_spi_read_reg_16(dev, ADXRS450_SNL, &data);
+	if (ret)
+		return ret;
+	t = data;
+	ret = adxrs450_spi_read_reg_16(dev, ADXRS450_SNH, &data);
+	if (ret)
+		return ret;
+	t |= data << 16;
+	dev_info(&st->us->dev, "The Serial Number is 0x%x\n", t);
+
+	dev_info(&st->us->dev, "%s at CS%d\n", DRIVER_NAME,
 			st->us->chip_select);
 
 	return 0;
 }
 
-static IIO_DEVICE_ATTR(sensor_data, S_IRUGO,
-		adxrs450_read_sensor_data, NULL, 0);
-static IIO_DEVICE_ATTR(rate, S_IRUGO,
-		adxrs450_read_rate, NULL, 0);
-static IIO_DEVICE_ATTR(temperature, S_IRUGO,
-		adxrs450_read_temp, NULL, 0);
-static IIO_DEVICE_ATTR(low_cst, S_IRUGO,
-		adxrs450_read_locst, NULL, 0);
-static IIO_DEVICE_ATTR(high_cst, S_IRUGO,
-		adxrs450_read_hicst, NULL, 0);
+static IIO_DEV_ATTR_GYRO_Z(adxrs450_read_sensor_data, 0);
+static IIO_DEV_ATTR_TEMP_RAW(adxrs450_read_temp);
 static IIO_DEVICE_ATTR(quad, S_IRUGO,
 		adxrs450_read_quad, NULL, 0);
-static IIO_DEVICE_ATTR(fault, S_IRUGO,
-		adxrs450_read_fault, NULL, 0);
-static IIO_DEVICE_ATTR(part_id, S_IRUGO,
-		adxrs450_read_pid, NULL, 0);
-static IIO_DEVICE_ATTR(serial_number, S_IRUGO,
-		adxrs450_read_sn, NULL, 0);
-static IIO_DEVICE_ATTR(dynamic_null_correction, S_IRUGO,
-		adxrs450_read_dnc, NULL, 0);
-
-
+static IIO_DEVICE_ATTR(dynamic_null_correction, S_IWUGO,
+		NULL, adxrs450_write_dnc, 0);
 static IIO_CONST_ATTR(name, "adxrs450");
 
 static struct attribute *adxrs450_attributes[] = {
 
-	&iio_dev_attr_sensor_data.dev_attr.attr,
-	&iio_dev_attr_rate.dev_attr.attr,
-	&iio_dev_attr_temperature.dev_attr.attr,
-	&iio_dev_attr_low_cst.dev_attr.attr,
-	&iio_dev_attr_high_cst.dev_attr.attr,
+	&iio_dev_attr_gyro_z_raw.dev_attr.attr,
+	&iio_dev_attr_temp_raw.dev_attr.attr,
 	&iio_dev_attr_quad.dev_attr.attr,
-	&iio_dev_attr_fault.dev_attr.attr,
-	&iio_dev_attr_part_id.dev_attr.attr,
-	&iio_dev_attr_serial_number.dev_attr.attr,
 	&iio_dev_attr_dynamic_null_correction.dev_attr.attr,
 	&iio_const_attr_name.dev_attr.attr,
 	NULL
@@ -374,7 +375,7 @@ static int __devinit adxrs450_probe(struct spi_device *spi)
 		ret =  -ENOMEM;
 		goto error_ret;
 	}
-	/* this is only used for removal purposes */
+	/* This is only used for removal purposes */
 	spi_set_drvdata(spi, st);
 
 	/* Allocate the comms buffers */
