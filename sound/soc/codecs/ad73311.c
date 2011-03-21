@@ -44,6 +44,7 @@ static struct ad73311_snd_ctrls ad73311_ctrls = {
 	.dirate = 0,
 	.igs = 2,
 	.ogs = 2,
+	.se_en = 1,
 };
 
 static int ad73311_ogs_put(struct snd_kcontrol *kcontrol,
@@ -121,6 +122,26 @@ static int ad73311_dirate_get(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int ad73311_seen_put(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	if (ad73311_ctrls.se_en != ucontrol->value.integer.value[0]) {
+		ad73311_ctrls.se_en = ucontrol->value.integer.value[0];
+		return codec->hw_write(codec->control_data, (char *)&ad73311_ctrls,
+				sizeof(ad73311_ctrls));
+	}
+	return 0;
+}
+
+static int ad73311_seen_get(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = ad73311_ctrls.se_en;
+	return 0;
+}
+
+
 static const struct snd_kcontrol_new ad73311_snd_controls[] = {
 	SOC_SINGLE_EXT("ADC Capture Volume", CTRL_REG_D, 0, 7, 0,
 			ad73311_igs_get, ad73311_igs_put),
@@ -128,6 +149,8 @@ static const struct snd_kcontrol_new ad73311_snd_controls[] = {
 			ad73311_ogs_get, ad73311_ogs_put),
 	SOC_SINGLE_EXT("Decimation/Interpolation Rate", CTRL_REG_B, 0, 3, 0,
 			ad73311_dirate_get, ad73311_dirate_put),
+	SOC_SINGLE_EXT("Single-Ended Enable Switch", CTRL_REG_F, 5, 1, 0,
+			ad73311_seen_get, ad73311_seen_put),
 };
 #endif
 

@@ -83,7 +83,7 @@
 /* Control register F */
 #define CTRL_REG_F	(5 << 8)
 
-#define REGF_SEEN		(1 << 5)
+#define REGF_SEEN(x)		((x & 0x1) << 5)
 #define REGF_INV		(1 << 6)
 #define REGF_ALB		(1 << 7)
 
@@ -145,6 +145,7 @@ struct ad73311_snd_ctrls {
 	char dirate; /* Decimation/Interpolation Rate */
 	char igs; /* Input Gain Select */
 	char ogs; /* Output Gain Select */
+	char se_en; /* Single-Ended Enable */
 };
 
 #endif

@@ -100,7 +100,7 @@ static int snd_ad73311_configure(struct ad73311_snd_ctrls *ctrl)
 	ctrl_regs[2] = AD_CONTROL | AD_WRITE | CTRL_REG_D | REGD_OGS(ctrl->ogs) | \
 			REGD_IGS(ctrl->igs);
 	ctrl_regs[3] = AD_CONTROL | AD_WRITE | CTRL_REG_E | REGE_DA(0x1f);
-	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F | REGF_SEEN ;
+	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F | REGF_SEEN(ctrl->se_en) ;
 	ctrl_regs[5] = AD_CONTROL | AD_WRITE | CTRL_REG_A | REGA_MODE_DATA;
 #elif CONFIG_SND_AD7XXXX_SELECT == 1
 	/* MCLK = MCLK = 12.288 MHz
@@ -172,6 +172,7 @@ static int bf5xx_probe(struct platform_device *pdev)
 		.dirate = 0,
 		.igs = 2,
 		.ogs = 2,
+		.se_en = 1,
 	};
 	if (gpio_request(GPIO_SE, "AD73311_SE")) {
 		printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __func__, GPIO_SE);
