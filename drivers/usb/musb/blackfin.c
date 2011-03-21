@@ -539,7 +539,7 @@ static struct dev_pm_ops bfin_pm_ops = {
 	.resume		= bfin_resume,
 };
 
-#define DEV_PM_OPS	(&bfin_pm_ops)
+#define DEV_PM_OPS	&bfin_pm_ops
 #else
 #define DEV_PM_OPS	NULL
 #endif
