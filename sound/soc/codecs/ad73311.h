@@ -83,7 +83,7 @@
 /* Control register F */
 #define CTRL_REG_F	(5 << 8)
 
-#define REGF_SEEN(x)		((x & 0x1) << 5)
+#define REGF_SEEN(x)		(((x) & 0x1) << 5)
 #define REGF_INV		(1 << 6)
 #define REGF_ALB		(1 << 7)
 

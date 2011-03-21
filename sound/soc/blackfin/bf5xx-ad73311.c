@@ -96,11 +96,11 @@ static int snd_ad73311_configure(struct ad73311_snd_ctrls *ctrl)
 	ctrl_regs[0] = AD_CONTROL | AD_WRITE | CTRL_REG_B | REGB_MCDIV(0) | \
 			REGB_SCDIV(0) | REGB_DIRATE(ctrl->dirate);
 	ctrl_regs[1] = AD_CONTROL | AD_WRITE | CTRL_REG_C | REGC_PUDEV | \
-			REGC_PUADC | REGC_PUDAC | REGC_PUREF | REGC_REFUSE ;
+			REGC_PUADC | REGC_PUDAC | REGC_PUREF | REGC_REFUSE;
 	ctrl_regs[2] = AD_CONTROL | AD_WRITE | CTRL_REG_D | REGD_OGS(ctrl->ogs) | \
 			REGD_IGS(ctrl->igs);
 	ctrl_regs[3] = AD_CONTROL | AD_WRITE | CTRL_REG_E | REGE_DA(0x1f);
-	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F | REGF_SEEN(ctrl->se_en) ;
+	ctrl_regs[4] = AD_CONTROL | AD_WRITE | CTRL_REG_F | REGF_SEEN(ctrl->se_en);
 	ctrl_regs[5] = AD_CONTROL | AD_WRITE | CTRL_REG_A | REGA_MODE_DATA;
 #elif CONFIG_SND_AD7XXXX_SELECT == 1
 	/* MCLK = MCLK = 12.288 MHz
