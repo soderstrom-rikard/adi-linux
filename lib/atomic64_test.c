@@ -12,8 +12,6 @@
 #include <linux/kernel.h>
 #include <asm/atomic.h>
 
-#ifdef ATOMIC64_INIT
-
 #define INIT(c) do { atomic64_set(&v, c); r = c; } while (0)
 static __init int test_atomic64(void)
 {
@@ -166,5 +164,3 @@ static __init int test_atomic64(void)
 }
 
 core_initcall(test_atomic64);
-
-#endif
