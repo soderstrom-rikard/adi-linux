@@ -428,7 +428,6 @@ static const struct musb_platform_ops bfin_ops = {
 	.set_mode	= bfin_musb_set_mode,
 	.try_idle	= bfin_musb_try_idle,
 
-	.vbus_status	= bfin_musb_vbus_status,
 	.set_vbus	= bfin_musb_set_vbus,
 };
 
