@@ -1174,36 +1174,6 @@ bfin_serial_console_setup(struct console *co, char *options)
 	return uart_set_options(&uart->port, co, baud, parity, bits, flow);
 }
 
-#if defined(CONFIG_IPIPE) && defined(CONFIG_IPIPE_DEBUG)
-
-#include <stdarg.h>
-
-void __ipipe_serial_debug(const char *fmt, ...)
-{
-	struct bfin_serial_port *uart = bfin_serial_ports[0];
-	int flags, i, count;
-	char buf[128];
-	va_list ap;
-
-	va_start(ap, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, ap);
-	va_end(ap);
-	count = strlen(buf);
-
-	flags = hard_local_irq_save();
-
-	for (i = 0; i < count; i++) {
-		bfin_serial_console_putchar(&uart->port, buf[i]);
-		if (buf[i] == '\n')
-			bfin_serial_console_putchar(&uart->port, '\r');
-	}
-
-	hard_local_irq_restore(flags);
-}
-EXPORT_SYMBOL_GPL(__ipipe_serial_debug);
-
-#endif /* CONFIG_IPIPE */
-
 static struct console bfin_serial_console = {
 	.name		= BFIN_SERIAL_DEV_NAME,
 	.write		= bfin_serial_console_write,
