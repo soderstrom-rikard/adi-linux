@@ -2099,27 +2099,3 @@ int nommu_shrink_inode_mappings(struct inode *inode, size_t size,
 	up_write(&nommu_region_sem);
 	return 0;
 }
-
-#ifdef CONFIG_SMP
-int map_kernel_range_noflush(unsigned long addr, unsigned long size,
-					pgprot_t prot, struct page **pages)
-{
-	return size >> PAGE_SHIFT;
-}
-
-void unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
-{
-}
-
-struct vm_struct **pcpu_get_vm_areas(const unsigned long *offsets,
-					const size_t *sizes, int nr_vms,
-					size_t align)
-{
-	pr_warning("Cannot get vmalloc areas from blackfin SMP kernel\n");
-	return NULL;
-}
-
-void pcpu_free_vm_areas(struct vm_struct **vms, int nr_vms)
-{
-}
-#endif
