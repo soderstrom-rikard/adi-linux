@@ -1,9 +1,9 @@
 /*
  * Analog Devices ADP5589 I/O Expander and QWERTY Keypad Controller
  *
- * Copyright 2010 Analog Devices Inc.
+ * Copyright 2010-2011 Analog Devices Inc.
  *
- * Licensed under the GPL-2 or later.
+ * Licensed under the GPL-2.
  */
 
 #ifndef _ADP5589_H
