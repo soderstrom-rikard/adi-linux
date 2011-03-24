@@ -2648,6 +2648,13 @@ static struct platform_device bfin_ad73311_codec_device = {
 };
 #endif
 
+#if defined(CONFIG_SND_BF5XX_SOC_AD74111) || defined(CONFIG_SND_BF5XX_SOC_AD74111_MODULE)
+static struct platform_device bfin_ad74111_codec_device = {
+	.name = "ad74111-codec",
+	.id = -1,
+};
+#endif
+
 #if defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE)
 static struct platform_device bfin_i2s = {
 	.name = "bfin-i2s",
@@ -2866,6 +2873,10 @@ static struct platform_device *stamp_devices[] __initdata = {
 
 #if defined(CONFIG_SND_BF5XX_SOC_AD73311) || defined(CONFIG_SND_BF5XX_SOC_AD73311_MODULE)
 	&bfin_ad73311_codec_device,
+#endif
+
+#if defined(CONFIG_SND_BF5XX_SOC_AD74111) || defined(CONFIG_SND_BF5XX_SOC_AD74111_MODULE)
+	&bfin_ad74111_codec_device,
 #endif
 
 #if defined(CONFIG_SND_BF5XX_SOC_I2S) || defined(CONFIG_SND_BF5XX_SOC_I2S_MODULE)
