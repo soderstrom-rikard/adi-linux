@@ -697,7 +697,7 @@ static int __devexit adp5589_remove(struct i2c_client *client)
 	return 0;
 }
 
-#ifdef CONFIG_PM
+#ifdef CONFIG_PM_SLEEP
 static int adp5589_suspend(struct device *dev)
 {
 	struct adp5589_kpad *kpad = dev_get_drvdata(dev);
@@ -723,12 +723,9 @@ static int adp5589_resume(struct device *dev)
 
 	return 0;
 }
-
-static const struct dev_pm_ops adp5589_dev_pm_ops = {
-	.suspend = adp5589_suspend,
-	.resume = adp5589_resume,
-};
 #endif
+
+static SIMPLE_DEV_PM_OPS(adp5589_dev_pm_ops, adp5589_suspend, adp5589_resume);
 
 static const struct i2c_device_id adp5589_id[] = {
 	{"adp5589-keys", 0},
@@ -739,11 +736,10 @@ MODULE_DEVICE_TABLE(i2c, adp5589_id);
 
 static struct i2c_driver adp5589_driver = {
 	.driver = {
-		   .name = KBUILD_MODNAME,
-#ifdef CONFIG_PM
-		   .pm = &adp5589_dev_pm_ops,
-#endif
-		   },
+		.name = KBUILD_MODNAME,
+		.owner = THIS_MODULE,
+		.pm = &adp5589_dev_pm_ops,
+	},
 	.probe = adp5589_probe,
 	.remove = __devexit_p(adp5589_remove),
 	.id_table = adp5589_id,
@@ -766,4 +762,3 @@ module_exit(adp5589_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
 MODULE_DESCRIPTION("ADP5589 Keypad driver");
-MODULE_ALIAS("i2c:adp5589-keys");
