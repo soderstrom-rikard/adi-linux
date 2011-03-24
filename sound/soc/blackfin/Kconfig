@@ -18,35 +18,20 @@ config SND_BF5XX_SOC_SSM2602
 	  Say Y if you want to add support for SoC audio on BF527-EZKIT.
 
 config SND_BF5XX_SOC_AD73311
-	tristate "SoC AD73311/AD74111 Audio support for Blackfin"
+	tristate "SoC AD73311 Audio support for Blackfin"
 	depends on SND_BF5XX_I2S
 	select SND_BF5XX_SOC_I2S
 	select SND_SOC_AD73311
 	help
 	  Say Y if you want to add support for AD73311 codec on Blackfin.
 
-config SND_BFIN_AD73311_SE
-	int "PF pin for AD73311L Chip Select"
-	depends on SND_BF5XX_SOC_AD73311
-	default 4
+config SND_BF5XX_SOC_AD74111
+	tristate "SoC AD74111 Audio support for Blackfin"
+	depends on SND_BF5XX_I2S
+	select SND_BF5XX_SOC_I2S
+	select SND_SOC_AD74111
 	help
-	  Enter the GPIO used to control AD73311's SE pin. Acceptable
-	  values are 0 to 7
-
-config SND_BFIN_AD73311_RESET
-	int "RESET pin for AD73311L Chip Select"
-	depends on SND_BF5XX_SOC_AD73311
-	default 4
-	help
-	  Enter the GPIO used to control AD73311's RESET pin. Acceptable
-	  values are 0 to 7
-
-config SND_AD7XXXX_SELECT
-	int "Select AD73311 or AD74111"
-	depends on SND_SOC_AD73311
-	default 0
-	help
-	  Set 0 for AD73311, 1 for AD74111.
+	  Say Y if you want to add support for AD74111 codec on Blackfin.
 
 config SND_BF5XX_SOC_ADAU1361
 	tristate "SoC ADAU1361 Audio support"
@@ -139,16 +124,6 @@ config SND_SOC_AD193X_I2C
 	  Say Y if you want to use I2C to control AD193X codec.
 
 endchoice
-
-config SND_BF5XX_RESET_GPIO_NUM
-	int "Set a GPIO for cold reset"
-	depends on SND_BF5XX_HAVE_COLD_RESET
-	range 0 159
-	default 19 if BFIN548_EZKIT
-	default 5 if BFIN537_STAMP
-	default 0
-	help
-	  Set the correct GPIO for RESET the sound chip.
 
 config SND_BF5XX_SOC_SPORT
 	tristate

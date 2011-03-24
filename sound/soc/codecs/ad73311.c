@@ -39,7 +39,6 @@ static struct snd_soc_dai_driver ad73311_dai = {
 		.formats = SNDRV_PCM_FMTBIT_S16_LE, },
 };
 
-#if CONFIG_SND_AD7XXXX_SELECT == 0
 static struct ad73311_snd_ctrls ad73311_ctrls = {
 	.dirate = 0,
 	.igs = 2,
@@ -152,14 +151,11 @@ static const struct snd_kcontrol_new ad73311_snd_controls[] = {
 	SOC_SINGLE_EXT("Single-Ended Enable Switch", CTRL_REG_F, 5, 1, 0,
 			ad73311_seen_get, ad73311_seen_put),
 };
-#endif
 
 static int ad73311_soc_probe(struct snd_soc_codec *codec)
 {
-#if CONFIG_SND_AD7XXXX_SELECT == 0
 	snd_soc_add_controls(codec, ad73311_snd_controls,
 			ARRAY_SIZE(ad73311_snd_controls));
-#endif
 	return 0;
 }
 
