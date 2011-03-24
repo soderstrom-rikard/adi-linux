@@ -175,8 +175,8 @@ struct adp5589_kpad_platform_data {
 	unsigned keypad_en_mask;	/* Keypad (Rows/Columns) enable mask */
 	const unsigned short *keymap;	/* Pointer to keymap */
 	unsigned short keymapsize;	/* Keymap size */
-	unsigned repeat:1;		/* Enable key repeat */
-	unsigned en_keylock:1;		/* Enable key lock feature */
+	bool repeat;			/* Enable key repeat */
+	bool en_keylock;		/* Enable key lock feature */
 	unsigned char unlock_key1;	/* Unlock Key 1 */
 	unsigned char unlock_key2;	/* Unlock Key 2 */
 	unsigned char unlock_timer;	/* Time in seconds [0..7] between the two unlock keys 0=disable */
