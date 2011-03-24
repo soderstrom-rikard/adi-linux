@@ -179,7 +179,7 @@ apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
 	unsigned long location, value, size;
 
 	pr_debug("applying relocate section %u to %u\n",
-		 relsec, sechdrs[relsec].sh_info);
+		relsec, sechdrs[relsec].sh_info);
 
 	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
 		/* This is where to make the change */
@@ -196,13 +196,13 @@ apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
 #ifdef CONFIG_SMP
 		if (location >= COREB_L1_DATA_A_START) {
 			pr_err("cannot relocate in L1: %u (SMP kernel)\n",
-			       ELF32_R_TYPE(rel[i].r_info));
+				ELF32_R_TYPE(rel[i].r_info));
 			return -ENOEXEC;
 		}
 #endif
 
 		pr_debug("location is %lx, value is %lx type is %d\n",
-			 location, value, ELF32_R_TYPE(rel[i].r_info));
+			location, value, ELF32_R_TYPE(rel[i].r_info));
 
 		switch (ELF32_R_TYPE(rel[i].r_info)) {
 
@@ -222,12 +222,12 @@ apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
 		case R_BFIN_PCREL12_JUMP_S:
 		case R_BFIN_PCREL10:
 			pr_err("unsupported relocation: %u (no -mlong-calls?)\n",
-			       ELF32_R_TYPE(rel[i].r_info));
+				ELF32_R_TYPE(rel[i].r_info));
 			return -ENOEXEC;
 
 		default:
 			pr_err("unknown relocation: %u\n",
-			       ELF32_R_TYPE(rel[i].r_info));
+				ELF32_R_TYPE(rel[i].r_info));
 			return -ENOEXEC;
 		}
 
