@@ -23,17 +23,11 @@
 
 #include "ssm2604.h"
 
-#define SSM2604_VERSION "0.1"
-
-struct snd_soc_codec_device soc_codec_dev_ssm2604;
-static struct snd_soc_codec *ssm2604_codec;
 /* codec private data */
 struct ssm2604_priv {
 	unsigned int sysclk;
 	u16 pwr_state;
-	struct snd_pcm_substream *master_substream;
-	struct snd_pcm_substream *slave_substream;
-	struct snd_soc_codec codec;
+	enum snd_soc_control_type control_type;
 };
 
 /*
@@ -106,10 +100,11 @@ static const struct snd_soc_dapm_route audio_conn[] = {
 
 static int ssm2604_add_widgets(struct snd_soc_codec *codec)
 {
-	snd_soc_dapm_new_controls(codec, ssm2604_dapm_widgets,
-				  ARRAY_SIZE(ssm2604_dapm_widgets));
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
 
-	snd_soc_dapm_add_routes(codec, audio_conn, ARRAY_SIZE(audio_conn));
+	snd_soc_dapm_new_controls(dapm, ssm2604_dapm_widgets,
+				  ARRAY_SIZE(ssm2604_dapm_widgets));
+	snd_soc_dapm_add_routes(dapm, audio_conn, ARRAY_SIZE(audio_conn));
 
 	return 0;
 }
@@ -175,17 +170,10 @@ static int ssm2604_hw_params(struct snd_pcm_substream *substream,
 {
 	u16 srate;
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_device *socdev = rtd->socdev;
-	struct snd_soc_codec *codec = socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
 	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
-	struct i2c_client *i2c = codec->control_data;
 	u16 iface = snd_soc_read(codec, SSM2604_IFACE) & 0xfff3;
 	int i = get_coeff(ssm2604->sysclk, params_rate(params));
-
-	if (substream == ssm2604->slave_substream) {
-		dev_dbg(&i2c->dev, "Ignoring hw_params for slave substream\n");
-		return 0;
-	}
 
 	/*no match is found*/
 	if (i == ARRAY_SIZE(coeff_div))
@@ -216,51 +204,11 @@ static int ssm2604_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-static int ssm2604_startup(struct snd_pcm_substream *substream,
-			   struct snd_soc_dai *dai)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_device *socdev = rtd->socdev;
-	struct snd_soc_codec *codec = socdev->card->codec;
-	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
-	struct i2c_client *i2c = codec->control_data;
-	struct snd_pcm_runtime *master_runtime;
-
-	/* The DAI has shared clocks so if we already have a playback or
-	 * capture going then constrain this substream to match it.
-	 * TODO: the ssm2604 allows pairs of non-matching PB/REC rates
-	 */
-	if (ssm2604->master_substream) {
-		master_runtime = ssm2604->master_substream->runtime;
-		dev_dbg(&i2c->dev, "Constraining to %d bits at %dHz\n",
-			master_runtime->sample_bits,
-			master_runtime->rate);
-
-		if (master_runtime->rate != 0)
-			snd_pcm_hw_constraint_minmax(substream->runtime,
-						     SNDRV_PCM_HW_PARAM_RATE,
-						     master_runtime->rate,
-						     master_runtime->rate);
-
-		if (master_runtime->sample_bits != 0)
-			snd_pcm_hw_constraint_minmax(substream->runtime,
-						     SNDRV_PCM_HW_PARAM_SAMPLE_BITS,
-						     master_runtime->sample_bits,
-						     master_runtime->sample_bits);
-
-		ssm2604->slave_substream = substream;
-	} else
-		ssm2604->master_substream = substream;
-
-	return 0;
-}
-
 static int ssm2604_pcm_prepare(struct snd_pcm_substream *substream,
 			       struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_device *socdev = rtd->socdev;
-	struct snd_soc_codec *codec = socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
 	/* set active */
 	snd_soc_write(codec, SSM2604_ACTIVE, ACTIVE_ACTIVATE_CODEC);
 
@@ -271,18 +219,11 @@ static void ssm2604_shutdown(struct snd_pcm_substream *substream,
 			     struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_device *socdev = rtd->socdev;
-	struct snd_soc_codec *codec = socdev->card->codec;
-	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
+	struct snd_soc_codec *codec = rtd->codec;
 
 	/* deactivate */
 	if (!codec->active)
 		snd_soc_write(codec, SSM2604_ACTIVE, 0);
-
-	if (ssm2604->master_substream == substream)
-		ssm2604->master_substream = ssm2604->slave_substream;
-
-	ssm2604->slave_substream = NULL;
 }
 
 static int ssm2604_mute(struct snd_soc_dai *dai, int mute)
@@ -396,19 +337,16 @@ static int ssm2604_set_bias_level(struct snd_soc_codec *codec,
 		break;
 
 	}
-	codec->bias_level = level;
+	codec->dapm.bias_level = level;
 	return 0;
 }
 
-#define SSM2604_RATES (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_32000 |\
-		SNDRV_PCM_RATE_44100 | SNDRV_PCM_RATE_48000 |\
-		SNDRV_PCM_RATE_88200 | SNDRV_PCM_RATE_96000)
+#define SSM2604_RATES SNDRV_PCM_RATE_8000_96000
 
 #define SSM2604_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE |\
 		SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE)
 
 static struct snd_soc_dai_ops ssm2604_dai_ops = {
-	.startup	= ssm2604_startup,
 	.prepare	= ssm2604_pcm_prepare,
 	.hw_params	= ssm2604_hw_params,
 	.shutdown	= ssm2604_shutdown,
@@ -417,8 +355,8 @@ static struct snd_soc_dai_ops ssm2604_dai_ops = {
 	.set_fmt	= ssm2604_set_dai_fmt,
 };
 
-struct snd_soc_dai ssm2604_dai = {
-	.name = "SSM2604",
+static struct snd_soc_dai_driver ssm2604_dai = {
+	.name = "ssm2604-hifi",
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 2,
@@ -433,12 +371,9 @@ struct snd_soc_dai ssm2604_dai = {
 		.formats = SSM2604_FORMATS,},
 	.ops = &ssm2604_dai_ops,
 };
-EXPORT_SYMBOL_GPL(ssm2604_dai);
 
-static int ssm2604_suspend(struct platform_device *pdev, pm_message_t state)
+static int ssm2604_suspend(struct snd_soc_codec *codec, pm_message_t state)
 {
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->card->codec;
 	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
 
 	ssm2604->pwr_state = snd_soc_read(codec, SSM2604_PWR);
@@ -446,44 +381,39 @@ static int ssm2604_suspend(struct platform_device *pdev, pm_message_t state)
 	return 0;
 }
 
-static int ssm2604_resume(struct platform_device *pdev)
+static int ssm2604_resume(struct snd_soc_codec *codec)
 {
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->card->codec;
 	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
 	int i;
-	u8 data[2];
 	u16 *cache = codec->reg_cache;
 
 	/* Sync reg_cache with the hardware */
-	for (i = 0; i < ARRAY_SIZE(ssm2604_reg); i++) {
-		data[0] = (i << 1) | ((cache[i] >> 8) & 0x0001);
-		data[1] = cache[i] & 0x00ff;
-		codec->hw_write(codec->control_data, data, 2);
-	}
+	for (i = 0; i < ARRAY_SIZE(ssm2604_reg); i++)
+		snd_soc_write(codec, i, cache[i]);
+
 	ssm2604_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
-	ssm2604_set_bias_level(codec, codec->suspend_bias_level);
 	snd_soc_write(codec, SSM2604_PWR, ssm2604->pwr_state);
+
 	return 0;
 }
 
-static int ssm2604_probe(struct platform_device *pdev)
+static int ssm2604_probe(struct snd_soc_codec *codec)
 {
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec;
+	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
 	int reg, ret = 0;
 
-	socdev->card->codec = ssm2604_codec;
-	codec = ssm2604_codec;
-
-	ssm2604_reset(codec);
-
-	/* register pcms */
-	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
+	ret = snd_soc_codec_set_cache_io(codec, 7, 9, ssm2604->control_type);
 	if (ret < 0) {
-		dev_err(codec->dev, "ssm2604: failed to create pcms\n");
-		goto pcm_err;
+		dev_err(codec->dev, "Failed to set cache I/O: %d\n", ret);
+		return ret;
 	}
+
+	ret = ssm2604_reset(codec);
+	if (ret < 0) {
+		dev_err(codec->dev, "Failed to issue reset: %d\n", ret);
+		return ret;
+	}
+
 	/*power on device*/
 	snd_soc_write(codec, SSM2604_ACTIVE, 0);
 	/* set the update bits */
@@ -499,110 +429,53 @@ static int ssm2604_probe(struct platform_device *pdev)
 				ARRAY_SIZE(ssm2604_snd_controls));
 	ssm2604_add_widgets(codec);
 
-	return ret;
-
-pcm_err:
-	return ret;
-}
-
-/* remove everything here */
-static int ssm2604_remove(struct platform_device *pdev)
-{
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-
-	snd_soc_free_pcms(socdev);
-	snd_soc_dapm_free(socdev);
-
 	return 0;
 }
 
-struct snd_soc_codec_device soc_codec_dev_ssm2604 = {
+/* remove everything here */
+static int ssm2604_remove(struct snd_soc_codec *codec)
+{
+	ssm2604_set_bias_level(codec, SND_SOC_BIAS_OFF);
+	return 0;
+}
+
+static struct snd_soc_codec_driver soc_codec_dev_ssm2604 = {
 	.probe =	ssm2604_probe,
 	.remove =	ssm2604_remove,
 	.suspend =	ssm2604_suspend,
 	.resume =	ssm2604_resume,
+	.set_bias_level = ssm2604_set_bias_level,
+	.reg_cache_size = sizeof(ssm2604_reg),
+	.reg_word_size = sizeof(u16),
+	.reg_cache_default = ssm2604_reg,
 };
-EXPORT_SYMBOL_GPL(soc_codec_dev_ssm2604);
 
-static int ssm2604_register(struct ssm2604_priv *ssm2604, enum snd_soc_control_type control)
-{
-	struct snd_soc_codec *codec = &ssm2604->codec;
-	int ret = 0;
-
-	mutex_init(&codec->mutex);
-	INIT_LIST_HEAD(&codec->dapm_widgets);
-	INIT_LIST_HEAD(&codec->dapm_paths);
-	codec->name = "SSM2604";
-	codec->owner = THIS_MODULE;
-	codec->bias_level = SND_SOC_BIAS_OFF;
-	codec->set_bias_level = ssm2604_set_bias_level;
-	codec->dai = &ssm2604_dai;
-	codec->num_dai = 1;
-	codec->reg_cache_size = sizeof(ssm2604_reg);
-	codec->reg_cache = kmemdup(ssm2604_reg, sizeof(ssm2604_reg),
-					GFP_KERNEL);
-	if (codec->reg_cache == NULL)
-		return -ENOMEM;
-
-	ret = snd_soc_codec_set_cache_io(codec, 7, 9, control);
-	if (ret < 0) {
-		dev_err(codec->dev, "Failed to set cache I/O: %d\n", ret);
-		return ret;
-	}
-
-	ret = snd_soc_register_codec(codec);
-	if (ret != 0) {
-		dev_err(codec->dev, "Failed to register codec: %d\n", ret);
-		return ret;
-	}
-
-	ret = snd_soc_register_dai(&ssm2604_dai);
-	if (ret != 0) {
-		dev_err(codec->dev, "Failed to register DAI: %d\n", ret);
-		snd_soc_unregister_codec(codec);
-		return ret;
-	}
-
-	return ret;
-}
-
-static void ssm2604_unregister(struct ssm2604_priv *ssm2604)
-{
-	struct snd_soc_codec *codec = &ssm2604->codec;
-
-	ssm2604_set_bias_level(&ssm2604->codec, SND_SOC_BIAS_OFF);
-	kfree(codec->reg_cache);
-	snd_soc_unregister_dai(&ssm2604_dai);
-	snd_soc_unregister_codec(&ssm2604->codec);
-	kfree(ssm2604);
-	ssm2604_codec = NULL;
-}
+#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 
 static int ssm2604_i2c_probe(struct i2c_client *i2c,
 			     const struct i2c_device_id *id)
 {
 	struct ssm2604_priv *ssm2604;
-	struct snd_soc_codec *codec;
+	int ret;
 
 	ssm2604 = kzalloc(sizeof(struct ssm2604_priv), GFP_KERNEL);
 	if (ssm2604 == NULL)
 		return -ENOMEM;
-	codec = &ssm2604->codec;
-	snd_soc_codec_set_drvdata(codec, ssm2604);
 
 	i2c_set_clientdata(i2c, ssm2604);
-	codec->control_data = i2c;
+	ssm2604->control_type = SND_SOC_I2C;
 
-	codec->dev = &i2c->dev;
-	ssm2604_codec = codec;
-
-	return ssm2604_register(ssm2604, SND_SOC_I2C);
+	ret = snd_soc_register_codec(&i2c->dev,
+			&soc_codec_dev_ssm2604, &ssm2604_dai, 1);
+	if (ret < 0)
+		kfree(ssm2604);
+	return ret;
 }
 
-static __devexit int ssm2604_i2c_remove(struct i2c_client *client)
+static int ssm2604_i2c_remove(struct i2c_client *client)
 {
-	struct ssm2604_priv *ssm2604 = i2c_get_clientdata(client);
-	ssm2604_unregister(ssm2604);
+	snd_soc_unregister_codec(&client->dev);
+	kfree(i2c_get_clientdata(client));
 	return 0;
 }
 
@@ -615,31 +488,34 @@ MODULE_DEVICE_TABLE(i2c, ssm2604_i2c_id);
 /* corgi i2c codec control layer */
 static struct i2c_driver ssm2604_i2c_driver = {
 	.driver = {
-		.name = "ssm2604",
+		.name = "ssm2604-codec",
 		.owner = THIS_MODULE,
 	},
 	.probe    = ssm2604_i2c_probe,
-	.remove   = __devexit_p(ssm2604_i2c_remove),
+	.remove   = ssm2604_i2c_remove,
 	.id_table = ssm2604_i2c_id,
 };
+#endif
 
 static int __init ssm2604_modinit(void)
 {
-	int ret;
-
+	int ret = 0;
+#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 	ret = i2c_add_driver(&ssm2604_i2c_driver);
 	if (ret != 0) {
 		printk(KERN_ERR "Failed to register ssm2604 I2C driver: %d\n",
 		       ret);
 	}
-
+#endif
 	return ret;
 }
 module_init(ssm2604_modinit);
 
 static void __exit ssm2604_exit(void)
 {
+#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 	i2c_del_driver(&ssm2604_i2c_driver);
+#endif
 }
 module_exit(ssm2604_exit);
 
