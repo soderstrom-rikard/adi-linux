@@ -387,14 +387,8 @@ static int ad193x_probe(struct snd_soc_codec *codec)
 	return ret;
 }
 
-static int ad193x_remove(struct snd_soc_codec *codec)
-{
-	return 0;
-}
-
 static struct snd_soc_codec_driver soc_codec_dev_ad193x = {
 	.probe = 	ad193x_probe,
-	.remove =	ad193x_remove,
 	.reg_cache_default = ad193x_reg,
 	.reg_cache_size = AD193X_NUM_REGS,
 	.reg_word_size = sizeof(u16),
