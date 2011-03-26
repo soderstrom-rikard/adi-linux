@@ -1,7 +1,7 @@
 /*
  * AD183X Audio Codec driver supporting AD1835A, AD1836, AD1837A, AD1838A, AD1839A
  *
- * Copyright 2009-2010 Analog Devices Inc.
+ * Copyright 2009-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
