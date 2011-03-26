@@ -1,13 +1,9 @@
 /*
- * ad74111.c  --  ALSA Soc AD74111 codec support
+ * ALSA Soc AD74111 codec support
  *
- * Copyright:	Analog Device Inc.
- * Author:	Cliff Cai <cliff.cai@analog.com>
+ * Copyright 2009-2011 Analog Devices Inc.
  *
- *  This program is free software; you can redistribute  it and/or modify it
- *  under  the terms of  the GNU General  Public License as published by the
- *  Free Software Foundation;  either version 2 of the  License, or (at your
- *  option) any later version.
+ * Licensed under the GPL-2 or later.
  */
 
 #include <linux/init.h>
@@ -20,6 +16,8 @@
 #include <sound/ac97_codec.h>
 #include <sound/initval.h>
 #include <sound/soc.h>
+
+#include "ad74111.h"
 
 static struct snd_soc_dai_driver ad74111_dai = {
 	.name = "ad74111-hifi",
@@ -53,8 +51,8 @@ static int __devexit ad74111_remove(struct platform_device *pdev)
 
 static struct platform_driver ad74111_codec_driver = {
 	.driver = {
-			.name = "ad74111-codec",
-			.owner = THIS_MODULE,
+		.name = "ad74111-codec",
+		.owner = THIS_MODULE,
 	},
 
 	.probe = ad74111_probe,
@@ -73,6 +71,6 @@ static void __exit ad74111_exit(void)
 }
 module_exit(ad74111_exit);
 
-MODULE_DESCRIPTION("ASoC ad74111 driver");
-MODULE_AUTHOR("Cliff Cai ");
+MODULE_DESCRIPTION("ASoC AD74111 driver");
+MODULE_AUTHOR("Cliff Cai");
 MODULE_LICENSE("GPL");
