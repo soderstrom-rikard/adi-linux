@@ -19,8 +19,9 @@
 #include <asm/dma.h>
 #include <asm/portmux.h>
 #include <linux/gpio.h>
+
 #include "../codecs/adau1373.h"
-#include "bf5xx-sport.h"
+
 #include "bf5xx-i2s-pcm.h"
 
 /* PLL settings coefficients, Crystal here is 12.288MHz one.

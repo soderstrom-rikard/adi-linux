@@ -19,8 +19,9 @@
 #include <asm/dma.h>
 #include <asm/portmux.h>
 #include <linux/gpio.h>
+
 #include "../codecs/adav80x.h"
-#include "bf5xx-sport.h"
+
 #include "bf5xx-i2s-pcm.h"
 
 static struct snd_soc_card bf5xx_adav80x;

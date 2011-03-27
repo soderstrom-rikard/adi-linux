@@ -29,7 +29,6 @@
 #include <asm/portmux.h>
 
 #include "../codecs/ad183x.h"
-#include "bf5xx-sport.h"
 
 #include "bf5xx-tdm-pcm.h"
 #include "bf5xx-tdm.h"

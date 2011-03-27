@@ -19,8 +19,9 @@
 #include <asm/dma.h>
 #include <asm/portmux.h>
 #include <linux/gpio.h>
+
 #include "../codecs/adau1761.h"
-#include "bf5xx-sport.h"
+
 #include "bf5xx-i2s-pcm.h"
 
 static int bf5xx_adau1761_hw_params(struct snd_pcm_substream *substream,

@@ -248,81 +248,23 @@ static struct snd_soc_dai_driver bf5xx_i2s_dai = {
 static int __devinit bf5xx_i2s_probe(struct platform_device *pdev)
 {
 	struct sport_device *sport_handle;
-	struct bf5xx_i2s_port *bf5xx_i2s;
-	struct sport_param params;
-	struct bfin_snd_platform_data *pdata;
-	struct resource *res;
 	int ret;
 
-	pr_debug("%s enter\n", __func__);
+	/* configure SPORT for I2S */
+	sport_handle = sport_init(pdev, 4, 2 * sizeof(u32),
+		sizeof(struct bf5xx_i2s_port));
+	if (!sport_handle)
+		return -ENODEV;
 
-	/* request sport private data */
-	bf5xx_i2s = kzalloc(sizeof(*bf5xx_i2s), GFP_KERNEL);
-	if (!bf5xx_i2s)
-		return -ENOMEM;
-
-	pdata = pdev->dev.platform_data;
-
-	params.num = pdev->id;
-	params.pin_req = pdata->pin_req;
-	params.private_data = bf5xx_i2s;
-	params.wdsize = 4;
-	params.dummy_count = 2 * sizeof(u32);
-
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (!res) {
-		pr_err("no MEM resource\n");
-		ret = -ENODEV;
-		goto sport_err;
-	}
-	params.regs = (struct sport_register *)res->start;
-
-	/* first RX, then TX */
-	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
-	if (!res) {
-		pr_err("no rx DMA resource\n");
-		ret = -ENODEV;
-		goto sport_err;
-	}
-	params.dma_rx_chan = res->start;
-
-	res = platform_get_resource(pdev, IORESOURCE_DMA, 1);
-	if (!res) {
-		pr_err("no tx DMA resource\n");
-		ret = -ENODEV;
-		goto sport_err;
-	}
-	params.dma_tx_chan = res->start;
-
-	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-	if (!res) {
-		pr_err("no irq resource\n");
-		ret = -ENODEV;
-		goto sport_err;
-	}
-	params.err_irq = res->start;
-
-	/* request DMA for SPORT */
-	sport_handle = sport_init(&params);
-	if (!sport_handle) {
-		ret = -ENODEV;
-		goto sport_err;
-	}
-
-	platform_set_drvdata(pdev, sport_handle);
-
+	/* register with the ASoC layers */
 	ret = snd_soc_register_dai(&pdev->dev, &bf5xx_i2s_dai);
 	if (ret) {
 		pr_err("Failed to register DAI: %d\n", ret);
-		goto dai_err;
+		sport_done(sport_handle);
+		return ret;
 	}
 
 	return 0;
-dai_err:
-	sport_done(sport_handle);
-sport_err:
-	kfree(bf5xx_i2s);
-	return ret;
 }
 
 static int __devexit bf5xx_i2s_remove(struct platform_device *pdev)
@@ -365,4 +307,3 @@ module_exit(bfin_i2s_exit);
 MODULE_AUTHOR("Cliff Cai");
 MODULE_DESCRIPTION("I2S driver for ADI Blackfin");
 MODULE_LICENSE("GPL");
-

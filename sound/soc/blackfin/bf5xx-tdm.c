@@ -261,67 +261,13 @@ static struct snd_soc_dai_driver bf5xx_tdm_dai = {
 static int __devinit bfin_tdm_probe(struct platform_device *pdev)
 {
 	struct sport_device *sport_handle;
-	struct bf5xx_tdm_port *bf5xx_tdm;
-	struct sport_param params;
-	struct bfin_snd_platform_data *pdata;
-	struct resource *res;
-	int ret = 0;
+	int ret;
 
-	/* request sport private data */
-	bf5xx_tdm = kzalloc(sizeof(*bf5xx_tdm), GFP_KERNEL);
-	if (!bf5xx_tdm)
-		return -ENOMEM;
-
-	pdata = pdev->dev.platform_data;
-
-	params.num = pdev->id;
-	params.pin_req = pdata->pin_req;
-	params.private_data = bf5xx_tdm;
-	params.wdsize = 4;
-	params.dummy_count = 8 * sizeof(u32);
-
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (!res) {
-		pr_err("no MEM resource\n");
-		ret = -ENODEV;
-		goto sport_err;
-	}
-	params.regs = (struct sport_register *)res->start;
-
-
-	/* first RX, then TX */
-	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
-	if (!res) {
-		pr_err("no rx DMA resource\n");
-		ret = -ENODEV;
-		goto sport_err;
-	}
-	params.dma_rx_chan = res->start;
-
-	res = platform_get_resource(pdev, IORESOURCE_DMA, 1);
-	if (!res) {
-		pr_err("no tx DMA resource\n");
-		ret = -ENODEV;
-		goto sport_err;
-	}
-	params.dma_tx_chan = res->start;
-
-	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-	if (!res) {
-		pr_err("no irq resource\n");
-		ret = -ENODEV;
-		goto sport_err;
-	}
-	params.err_irq = res->start;
-
-	/* request DMA for SPORT */
-	sport_handle = sport_init(&params);
-	if (!sport_handle) {
-		ret = -ENODEV;
-		goto sport_err;
-	}
-
-	platform_set_drvdata(pdev, sport_handle);
+	/* configure SPORT for TDM */
+	sport_handle = sport_init(pdev, 4, 8 * sizeof(u32),
+		sizeof(struct bf5xx_tdm_port));
+	if (!sport_handle)
+		return -ENODEV;
 
 	/* SPORT works in TDM mode */
 	ret = sport_set_multichannel(sport_handle, 8, 0xFF, 1);
@@ -355,8 +301,6 @@ static int __devinit bfin_tdm_probe(struct platform_device *pdev)
 
 sport_config_err:
 	sport_done(sport_handle);
-sport_err:
-	kfree(bf5xx_tdm);
 	return ret;
 }
 

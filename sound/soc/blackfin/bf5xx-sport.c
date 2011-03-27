@@ -797,32 +797,83 @@ int sport_set_err_callback(struct sport_device *sport,
 }
 EXPORT_SYMBOL(sport_set_err_callback);
 
-struct sport_device *sport_init(struct sport_param *param)
+static int sport_config_pdev(struct platform_device *pdev, struct sport_param *param)
+{
+	/* Extract settings from platform data */
+	struct bfin_snd_platform_data *pdata = pdev->dev.platform_data;
+	struct resource *res;
+
+	param->num = pdev->id;
+	param->pin_req = pdata->pin_req;
+
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!res) {
+		pr_err("no MEM resource\n");
+		return -ENODEV;
+	}
+	param->regs = (struct sport_register *)res->start;
+
+	/* first RX, then TX */
+	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
+	if (!res) {
+		pr_err("no rx DMA resource\n");
+		return -ENODEV;
+	}
+	param->dma_rx_chan = res->start;
+
+	res = platform_get_resource(pdev, IORESOURCE_DMA, 1);
+	if (!res) {
+		pr_err("no tx DMA resource\n");
+		return -ENODEV;
+	}
+	param->dma_tx_chan = res->start;
+
+	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+	if (!res) {
+		pr_err("no irq resource\n");
+		return -ENODEV;
+	}
+	param->err_irq = res->start;
+
+	return 0;
+}
+
+struct sport_device *sport_init(struct platform_device *pdev,
+	unsigned int wdsize, unsigned int dummy_count, size_t priv_size)
 {
 	int ret;
+	struct sport_param param;
 	struct sport_device *sport;
-	pr_debug("%s enter\n", __func__);
-	BUG_ON(param->wdsize == 0 || param->dummy_count == 0);
 
-	if (peripheral_request_list(param->pin_req, "soc-audio")) {
+	pr_debug("%s enter\n", __func__);
+
+	param.wdsize = wdsize;
+	param.dummy_count = dummy_count;
+	BUG_ON(param.wdsize == 0 || param.dummy_count == 0);
+
+	ret = sport_config_pdev(pdev, &param);
+	if (ret) {
+		pr_err("Invalid SPORT parameters\n");
+		return NULL;
+	}
+
+	if (peripheral_request_list(param.pin_req, "soc-audio")) {
 		pr_err("Requesting Peripherals failed\n");
 		return NULL;
 	}
 
-	sport = kmalloc(sizeof(struct sport_device), GFP_KERNEL);
+	sport = kzalloc(sizeof(*sport), GFP_KERNEL);
 	if (!sport) {
 		pr_err("Failed to allocate for sport device\n");
 		goto __init_err0;
 	}
 
-	memset(sport, 0, sizeof(struct sport_device));
-	sport->num = param->num;
-	sport->dma_rx_chan = param->dma_rx_chan;
-	sport->dma_tx_chan = param->dma_tx_chan;
-	sport->err_irq = param->err_irq;
-	sport->regs = param->regs;
-	sport->pin_req = param->pin_req;
-	sport->private_data = param->private_data;
+	sport->num = param.num;
+	sport->dma_rx_chan = param.dma_rx_chan;
+	sport->dma_tx_chan = param.dma_tx_chan;
+	sport->err_irq = param.err_irq;
+	sport->regs = param.regs;
+	sport->pin_req = param.pin_req;
 
 	if (request_dma(sport->dma_rx_chan, "SPORT RX Data") == -EBUSY) {
 		pr_err("Failed to request RX dma %d\n", \
@@ -858,13 +909,19 @@ struct sport_device *sport_init(struct sport_param *param)
 			sport->dma_rx_chan, sport->dma_tx_chan,
 			sport->err_irq, sport->regs);
 
-	sport->wdsize = param->wdsize;
-	sport->dummy_count = param->dummy_count;
+	sport->wdsize = param.wdsize;
+	sport->dummy_count = param.dummy_count;
+
+	sport->private_data = kzalloc(priv_size, GFP_KERNEL);
+	if (!sport->private_data) {
+		pr_err("could not alloc priv data %zu bytes\n", priv_size);
+		goto __init_err4;
+	}
 
 	if (L1_DATA_A_LENGTH)
-		sport->dummy_buf = l1_data_sram_zalloc(param->dummy_count * 2);
+		sport->dummy_buf = l1_data_sram_zalloc(param.dummy_count * 2);
 	else
-		sport->dummy_buf = kzalloc(param->dummy_count * 2, GFP_KERNEL);
+		sport->dummy_buf = kzalloc(param.dummy_count * 2, GFP_KERNEL);
 	if (sport->dummy_buf == NULL) {
 		pr_err("Failed to allocate dummy buffer\n");
 		goto __error1;
@@ -881,6 +938,8 @@ struct sport_device *sport_init(struct sport_param *param)
 		goto __error3;
 	}
 
+	platform_set_drvdata(pdev, sport);
+
 	return sport;
 __error3:
 	if (L1_DATA_A_LENGTH)
@@ -894,6 +953,8 @@ __error2:
 	else
 		kfree(sport->dummy_buf);
 __error1:
+	kfree(sport->private_data);
+__init_err4:
 	free_irq(sport->err_irq, sport);
 __init_err3:
 	free_dma(sport->dma_tx_chan);
@@ -902,7 +963,7 @@ __init_err2:
 __init_err1:
 	kfree(sport);
 __init_err0:
-	peripheral_free_list(param->pin_req);
+	peripheral_free_list(param.pin_req);
 	return NULL;
 }
 EXPORT_SYMBOL(sport_init);

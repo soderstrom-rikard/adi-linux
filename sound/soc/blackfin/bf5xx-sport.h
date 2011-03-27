@@ -33,6 +33,7 @@
 #include <linux/types.h>
 #include <linux/wait.h>
 #include <linux/workqueue.h>
+#include <linux/platform_device.h>
 #include <asm/dma.h>
 #include <asm/bfin_sport.h>
 
@@ -117,7 +118,8 @@ struct sport_param {
 	void *private_data;
 };
 
-struct sport_device *sport_init(struct sport_param *param);
+struct sport_device *sport_init(struct platform_device *pdev,
+	unsigned int wdsize, unsigned int dummy_count, size_t priv_size);
 
 void sport_done(struct sport_device *sport);
 
