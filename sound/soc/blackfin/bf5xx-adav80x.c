@@ -81,21 +81,17 @@ static struct snd_soc_ops bf5xx_adav80x_ops = {
 static struct snd_soc_dai_link bf5xx_adav80x_dai = {
 	.name = "adav80x",
 	.stream_name = "ADAV80X",
-	.cpu_dai = &bf5xx_i2s_dai,
-	.codec_dai = &adav80x_dai,
+	.cpu_dai_name = "bfin-i2s",
+	.codec_dai_name = "ADAV80X",
+	.platform_name = "bfin-pcm-audio",
+	.codec_name = "adav80x",
 	.ops = &bf5xx_adav80x_ops,
 };
 
 static struct snd_soc_card bf5xx_adav80x = {
 	.name = "bf5xx_adav80x",
-	.platform = &bf5xx_i2s_soc_platform,
 	.dai_link = &bf5xx_adav80x_dai,
 	.num_links = 1,
-};
-
-static struct snd_soc_device bf5xx_adav80x_snd_devdata = {
-	.card = &bf5xx_adav80x,
-	.codec_dev = &soc_codec_dev_adav80x,
 };
 
 static struct platform_device *bf5xx_adav80x_snd_device;
@@ -104,13 +100,12 @@ static int __init bf5xx_adav80x_init(void)
 {
 	int ret;
 
+	pr_debug("%s enter\n", __func__);
 	bf5xx_adav80x_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!bf5xx_adav80x_snd_device)
 		return -ENOMEM;
 
-	platform_set_drvdata(bf5xx_adav80x_snd_device,
-				&bf5xx_adav80x_snd_devdata);
-	bf5xx_adav80x_snd_devdata.dev = &bf5xx_adav80x_snd_device->dev;
+	platform_set_drvdata(bf5xx_adav80x_snd_device, &bf5xx_adav80x);
 	ret = platform_device_add(bf5xx_adav80x_snd_device);
 
 	if (ret)
@@ -118,13 +113,13 @@ static int __init bf5xx_adav80x_init(void)
 
 	return ret;
 }
+module_init(bf5xx_adav80x_init);
 
 static void __exit bf5xx_adav80x_exit(void)
 {
+	pr_debug("%s enter\n", __func__);
 	platform_device_unregister(bf5xx_adav80x_snd_device);
 }
-
-module_init(bf5xx_adav80x_init);
 module_exit(bf5xx_adav80x_exit);
 
 /* Module information */

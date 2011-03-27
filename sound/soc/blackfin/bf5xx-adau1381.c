@@ -90,21 +90,17 @@ static struct snd_soc_ops bf5xx_adau1381_ops = {
 static struct snd_soc_dai_link bf5xx_adau1381_dai = {
 	.name = "adau1381",
 	.stream_name = "adau1381",
-	.cpu_dai = &bf5xx_i2s_dai,
-	.codec_dai = &adau1381_dai,
+	.cpu_dai_name = "bfin-i2s",
+	.codec_dai_name = "ADAU1381",
+	.platform_name = "bfin-pcm-audio",
+	.codec_name = "adau1381",
 	.ops = &bf5xx_adau1381_ops,
 };
 
 static struct snd_soc_card bf5xx_adau1381 = {
 	.name = "bf5xx_adau1381",
-	.platform = &bf5xx_i2s_soc_platform,
 	.dai_link = &bf5xx_adau1381_dai,
 	.num_links = 1,
-};
-
-static struct snd_soc_device bf5xx_adau1381_snd_devdata = {
-	.card = &bf5xx_adau1381,
-	.codec_dev = &soc_codec_dev_adau1381,
 };
 
 static struct platform_device *bf5xx_adau1381_snd_device;
@@ -118,9 +114,7 @@ static int __init bf5xx_adau1381_init(void)
 	if (!bf5xx_adau1381_snd_device)
 		return -ENOMEM;
 
-	platform_set_drvdata(bf5xx_adau1381_snd_device,
-				&bf5xx_adau1381_snd_devdata);
-	bf5xx_adau1381_snd_devdata.dev = &bf5xx_adau1381_snd_device->dev;
+	platform_set_drvdata(bf5xx_adau1381_snd_device, &bf5xx_adau1381);
 	ret = platform_device_add(bf5xx_adau1381_snd_device);
 
 	if (ret)
@@ -139,5 +133,5 @@ module_exit(bf5xx_adau1381_exit);
 
 /* Module information */
 MODULE_AUTHOR("Cliff Cai");
-MODULE_DESCRIPTION("ALSA SoC adau1381");
+MODULE_DESCRIPTION("ALSA SoC adau1381 Blackfin board");
 MODULE_LICENSE("GPL");
