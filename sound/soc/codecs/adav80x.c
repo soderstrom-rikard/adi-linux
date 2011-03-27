@@ -20,19 +20,16 @@
 #include <sound/soc.h>
 #include <sound/tlv.h>
 #include <sound/soc-dapm.h>
+
 #include "adav80x.h"
 
-
+/* codec private data */
 struct adav80x_priv {
 	struct snd_soc_codec codec;
 	u16 reg_cache[ADAV80X_NUM_REGS];
 	int clk_src; /* clock source for ADC, DAC and internal clock */
+	enum snd_soc_control_type control_type;
 };
-
-static struct snd_soc_codec *adav80x_codec;
-struct snd_soc_codec_device soc_codec_dev_adav80x;
-static int adav80x_register(struct adav80x_priv *adav80x, int bus_type);
-static void adav80x_unregister(struct adav80x_priv *adav80x);
 
 static const struct snd_soc_dapm_widget adav80x_dapm_widgets[] = {
 	SND_SOC_DAPM_DAC("DAC", "Playback", ADAV80X_DAC_CTRL1, 7, 1),
@@ -80,6 +77,17 @@ static const struct snd_kcontrol_new adav80x_snd_controls[] = {
 	/* DAC de-emphasis */
 	SOC_ENUM("Playback Deemphasis", adav80x_deemp_enum),
 };
+
+static int adav80x_add_widgets(struct snd_soc_codec *codec)
+{
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
+
+	snd_soc_dapm_new_controls(dapm, adav80x_dapm_widgets,
+				  ARRAY_SIZE(adav80x_dapm_widgets));
+	snd_soc_dapm_add_routes(dapm, audio_paths, ARRAY_SIZE(audio_paths));
+
+	return 0;
+}
 
 /*
  * DAI ops entries
@@ -194,8 +202,7 @@ static int adav80x_hw_params(struct snd_pcm_substream *substream,
 	int rate = params_rate(params);
 
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_device *socdev = rtd->socdev;
-	struct snd_soc_codec *codec = socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
 	struct adav80x_priv *adav80x = snd_soc_codec_get_drvdata(codec);
 
 	/* bit size */
@@ -214,7 +221,6 @@ static int adav80x_hw_params(struct snd_pcm_substream *substream,
 		break;
 	}
 
-
 	/* Playback port does not need to set word length? */
 
 	/* Record Port Control */
@@ -231,22 +237,6 @@ static int adav80x_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-#ifdef CONFIG_PM
-static int adav80x_soc_suspend(struct platform_device *pdev,
-		pm_message_t state)
-{
-	return 0;
-}
-
-static int adav80x_soc_resume(struct platform_device *pdev)
-{
-	return 0;
-}
-#else
-#define adav80x_soc_suspend NULL
-#define adav80x_soc_resume  NULL
-#endif
-
 static int adav80x_mute(struct snd_soc_dai *dai, int mute)
 {
 	struct snd_soc_codec *codec = dai->codec;
@@ -258,7 +248,6 @@ static int adav80x_mute(struct snd_soc_dai *dai, int mute)
 
 	return 0;
 }
-
 
 static int adav80x_set_dai_pll(struct snd_soc_dai *codec_dai, int pll_id,
 		int source, unsigned int freq_in, unsigned int freq_out)
@@ -343,7 +332,7 @@ static struct snd_soc_dai_ops adav80x_dai_ops = {
 
 /* codec DAI instance */
 /* DAC sample rates: 32/44.1/48/96/192kHz, ADC sample reate: 48/96kHz - TBD */
-struct snd_soc_dai adav80x_dai = {
+static struct snd_soc_dai_driver adav80x_dai = {
 	.name = "ADAV80X",
 	.playback = {
 		.stream_name = "Playback",
@@ -364,112 +353,22 @@ struct snd_soc_dai adav80x_dai = {
 	},
 	.ops = &adav80x_dai_ops,
 };
-EXPORT_SYMBOL_GPL(adav80x_dai);
 
-
-static int adav80x_probe(struct platform_device *pdev)
+static int adav80x_probe(struct snd_soc_codec *codec)
 {
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec;
-	int ret = 0;
-
-	if (adav80x_codec == NULL) {
-		dev_err(&pdev->dev, "Codec device not registered\n");
-		return -ENODEV;
-	}
-
-	socdev->card->codec = adav80x_codec;
-	codec = adav80x_codec;
-
-	/* register pcms */
-	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
-	if (ret < 0) {
-		dev_err(codec->dev, "failed to create pcms: %d\n", ret);
-		goto pcm_err;
-	}
-
-	snd_soc_add_controls(codec, adav80x_snd_controls,
-				ARRAY_SIZE(adav80x_snd_controls));
-	snd_soc_dapm_new_controls(codec, adav80x_dapm_widgets,
-				  ARRAY_SIZE(adav80x_dapm_widgets));
-	snd_soc_dapm_add_routes(codec, audio_paths, ARRAY_SIZE(audio_paths));
-
-pcm_err:
-	return ret;
-}
-
-/* power down chip */
-static int adav80x_remove(struct platform_device *pdev)
-{
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-
-	snd_soc_free_pcms(socdev);
-	snd_soc_dapm_free(socdev);
-
-	return 0;
-}
-
-struct snd_soc_codec_device soc_codec_dev_adav80x = {
-	.probe =	adav80x_probe,
-	.remove =	adav80x_remove,
-	.suspend =	adav80x_soc_suspend,
-	.resume =	adav80x_soc_resume,
-};
-EXPORT_SYMBOL_GPL(soc_codec_dev_adav80x);
-
-static int adav80x_register(struct adav80x_priv *adav80x, int bus_type)
-{
+	struct adav80x_priv *adav80x = snd_soc_codec_get_drvdata(codec);
 	int ret;
-	struct snd_soc_codec *codec = &adav80x->codec;
 
-	if (adav80x_codec) {
-		dev_err(codec->dev, "Another adav80x is registered\n");
-		return -EINVAL;
-	}
-
-	mutex_init(&codec->mutex);
-	snd_soc_codec_set_drvdata(codec, adav80x);
-	codec->reg_cache = adav80x->reg_cache;
-	codec->reg_cache_size = ADAV80X_NUM_REGS;
-	codec->name = "ADAV80X";
-	codec->owner = THIS_MODULE;
-	codec->dai = &adav80x_dai;
-	codec->num_dai = 1;
-
-	INIT_LIST_HEAD(&codec->dapm_widgets);
-	INIT_LIST_HEAD(&codec->dapm_paths);
-
-	adav80x_dai.dev = codec->dev;
-	adav80x_codec = codec;
-
-
-	if (bus_type == SND_SOC_I2C)
-		/* addr(7-bit left shifted 1), data(8bit)*/
-		ret = snd_soc_codec_set_cache_io(codec, 8, 8, bus_type);
+	if (adav80x->control_type == SND_SOC_I2C)
+		/* addr(7-bit left shifted 1), data(8bit) */
+		ret = snd_soc_codec_set_cache_io(codec, 8, 8, adav80x->control_type);
 	else
 		/* register format: addr(7bit), data(9bit) */
 		/* set spi bits_per_word to 8 instead of 16,
 		   since addr need to be transfer before data */
-		ret = snd_soc_codec_set_cache_io(codec, 7, 9, bus_type);
-	if (ret < 0) {
-		dev_err(codec->dev, "failed to set cache I/O: %d\n",
-				ret);
-		kfree(adav80x);
-		return ret;
-	}
-
-	ret = snd_soc_register_codec(codec);
-	if (ret != 0) {
-		dev_err(codec->dev, "Failed to register codec: %d\n", ret);
-		kfree(adav80x);
-		return ret;
-	}
-
-	ret = snd_soc_register_dai(&adav80x_dai);
-	if (ret != 0) {
-		dev_err(codec->dev, "Failed to register DAI: %d\n", ret);
-		snd_soc_unregister_codec(codec);
-		kfree(adav80x);
+		ret = snd_soc_codec_set_cache_io(codec, 7, 9, adav80x->control_type);
+	if (ret) {
+		dev_err(codec->dev, "failed to set cache I/O: %d\n", ret);
 		return ret;
 	}
 
@@ -508,41 +407,57 @@ static int adav80x_register(struct adav80x_priv *adav80x, int bus_type)
 	/* Disable ALC */
 	snd_soc_write(codec, ADAV80X_ALC_CTRL1, 0x0);
 
+	snd_soc_add_controls(codec, adav80x_snd_controls,
+				ARRAY_SIZE(adav80x_snd_controls));
+	adav80x_add_widgets(codec);
+
+	return ret;
+}
+
+/* power down chip */
+static int adav80x_remove(struct snd_soc_codec *codec)
+{
+	/* XXX: prob need to set bias here or something */
+
 	return 0;
 }
 
-static void adav80x_unregister(struct adav80x_priv *adav80x)
-{
-	snd_soc_unregister_dai(&adav80x_dai);
-	snd_soc_unregister_codec(&adav80x->codec);
-	kfree(adav80x);
-	adav80x_codec = NULL;
-}
+static struct snd_soc_codec_driver soc_codec_dev_adav80x = {
+	.probe   = adav80x_probe,
+	.remove  = adav80x_remove,
+	.suspend = NULL,
+	.resume  = NULL,
+	.set_bias_level = adav80x_set_bias_level,
+	.reg_cache_size = sizeof(adav80x_reg),
+	.reg_word_size = sizeof(u16),
+	.reg_cache_default = adav80x_reg,
+};
 
 static int __devinit adav80x_bus_probe(struct device *dev, void *ctrl_data,
-		int bus_type)
+		enum snd_soc_control_type bus_type)
 {
-	struct snd_soc_codec *codec;
 	struct adav80x_priv *adav80x;
+	int ret;
 
-	adav80x = kzalloc(sizeof(struct adav80x_priv), GFP_KERNEL);
+	adav80x = kzalloc(sizeof(*adav80x), GFP_KERNEL);
 	if (adav80x == NULL)
 		return -ENOMEM;
 
-	codec = &adav80x->codec;
-	codec->control_data = ctrl_data;
-	codec->dev = dev;
-
 	dev_set_drvdata(dev, adav80x);
+	adav80x->control_type = bus_type;
 
-	return adav80x_register(adav80x, bus_type);
+	ret = snd_soc_register_codec(dev,
+			&soc_codec_dev_adav80x, &adav80x_dai, 1);
+	if (ret)
+		kfree(adav80x);
+
+	return ret;
 }
 
 int adav80x_bus_remove(struct device *dev)
 {
-	struct adav80x_priv *adav80x = dev_get_drvdata(dev);
-
-	adav80x_unregister(adav80x);
+	snd_soc_unregister_codec(dev);
+	kfree(dev_get_drvdata(dev));
 	return 0;
 }
 
@@ -588,6 +503,7 @@ static int __devexit adav80x_i2c_remove(struct i2c_client *client)
 static struct i2c_driver adav80x_i2c_driver = {
 	.driver = {
 		.name = "adav80x",
+		.owner = THIS_MODULE,
 	},
 	.probe    = adav80x_i2c_probe,
 	.remove   = __devexit_p(adav80x_i2c_remove),
@@ -597,21 +513,20 @@ static struct i2c_driver adav80x_i2c_driver = {
 
 static int __init adav80x_init(void)
 {
-	int ret;
+	int ret = 0;
 
 #if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
-	ret =  i2c_add_driver(&adav80x_i2c_driver);
-	if (ret != 0) {
-		printk(KERN_ERR "Failed to register ADAV80X I2C driver: %d\n",
-				ret);
-	}
-#elif defined(CONFIG_SPI_MASTER)
-	ret = spi_register_driver(&adav80x_spi_driver);
-	if (ret != 0) {
-		printk(KERN_ERR "Failed to register ADAV80X SPI driver: %d\n",
-				ret);
-	}
+	ret = i2c_add_driver(&adav80x_i2c_driver);
+	if (ret)
+		return ret;
 #endif
+
+#if defined(CONFIG_SPI_MASTER)
+	ret = spi_register_driver(&adav80x_spi_driver);
+	if (ret)
+		return ret;
+#endif
+
 	return ret;
 }
 module_init(adav80x_init);
@@ -620,7 +535,8 @@ static void __exit adav80x_exit(void)
 {
 #if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 	i2c_del_driver(&adav80x_i2c_driver);
-#elif defined(CONFIG_SPI_MASTER)
+#endif
+#if defined(CONFIG_SPI_MASTER)
 	spi_unregister_driver(&adav80x_spi_driver);
 #endif
 }
