@@ -440,7 +440,7 @@ static int __devexit ad183x_spi_remove(struct spi_device *spi)
 
 static struct spi_driver ad183x_spi_driver = {
 	.driver = {
-		.name	= "ad183x-codec",
+		.name	= "ad183x",
 		.owner	= THIS_MODULE,
 	},
 	.probe		= ad183x_spi_probe,

@@ -435,7 +435,7 @@ MODULE_DEVICE_TABLE(i2c, adau1701_i2c_id);
 /* corgi i2c codec control layer */
 static struct i2c_driver adau1701_i2c_driver = {
 	.driver = {
-		.name = "adau1701-codec",
+		.name = "adau1701",
 		.owner = THIS_MODULE,
 	},
 	.probe    = adau1701_i2c_probe,

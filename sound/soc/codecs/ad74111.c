@@ -51,7 +51,7 @@ static int __devexit ad74111_remove(struct platform_device *pdev)
 
 static struct platform_driver ad74111_codec_driver = {
 	.driver = {
-		.name = "ad74111-codec",
+		.name = "ad74111",
 		.owner = THIS_MODULE,
 	},
 
