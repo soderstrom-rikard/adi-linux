@@ -40,7 +40,7 @@ struct adau1373_priv {
 static int adau1373_write_reg_block(struct snd_soc_codec *codec,
 	unsigned int reg, u8 length, u8 *values)
 {
-	int count = length + 1; /*data plus 8bit register address*/
+	int count = length + 1; /* data plus 8bit register address */
 	u8 buf[7] = {0, 0, 0, 0, 0, 0, 0};
 
 	buf[0] = (u8)(reg & 0xFF);
@@ -967,7 +967,7 @@ static int adau1373_init(struct snd_soc_codec *codec)
 	snd_soc_write(codec, ADAU_MICCTR1, 0x00);
 	snd_soc_write(codec, ADAU_EPCNTRL, 0x0C);
 #endif
-	/* Playback settings*/
+	/* Playback settings */
 
 	/* Headphone enabled */
 	snd_soc_write(codec, ADAU_LHPMIX, DAC1_RIGHT);

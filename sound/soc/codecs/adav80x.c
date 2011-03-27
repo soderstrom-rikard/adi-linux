@@ -1,7 +1,7 @@
 /*
  * ADAV80X Audio Codec driver supporting ADAV801, ADAV803
  *
- * Copyright 2010 Analog Devices Inc.
+ * Copyright 2010-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */

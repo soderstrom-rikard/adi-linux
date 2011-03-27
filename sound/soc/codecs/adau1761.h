@@ -1,24 +1,13 @@
 /*
- * header file fortone adau1761 sound chip
+ * header file for ADAU1761 sound chip
  *
- * Copyright 2009 Analog Devices Inc.
+ * Copyright 2009-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
 
-
 #ifndef __ADAU1761_H__
 #define __ADAU1761_H__
-
-struct adau1761_setup_data {
-	unsigned short i2c_bus;
-	unsigned short i2c_address;
-};
-
-struct adau1761_mode_register {
-	u16  regaddress;
-	u16  regvalue;
-};
 
 #define RESET_REGISTER_COUNT 54
 #define MODE_REGISTER_COUNT 10
@@ -27,10 +16,10 @@ struct adau1761_mode_register {
 #define ADAU1716_ADC_SOFT_PATCH 1
 #define MASTER_MODE 1
 #ifdef MASTER_MODE
-/* IIS mater mode*/
+/* IIS mater mode */
 #define ADAU_SRPT_CTRL0		0x01
 #else
-/* IIS slave mode*/
+/* IIS slave mode */
 #define ADAU_SRPT_CTRL0		0x00
 #endif
 
@@ -132,14 +121,14 @@ struct adau1761_mode_register {
 #define CLKCTRL_DISABLE		0x0
 #define CLKCTRL_ENABLE		0x1
 
-/* PLL Control -- 6 bytes*/
-/*Bytes 5-6*/
+/* PLL Control -- 6 bytes */
+/* Bytes 5-6 */
 #define PLLCTRL_DEN_MSB		0x00
 #define PLLCTRL_DEN_LSB		0x00
-/*Bytes 3-4*/
+/* Bytes 3-4 */
 #define PLLCTRL_NUM_MSB		0x00
 #define PLLCTRL_NUM_LSB		0x00
-/*Byte 2*/
+/* Byte 2 */
 #define PLLCTRL_INTPART_R2	0x10
 #define PLLCTRL_INTPART_R3	0x18
 #define PLLCTRL_INTPART_R4	0x20
@@ -153,15 +142,15 @@ struct adau1761_mode_register {
 #define PLLCTRL_INPUT_DIV4	0x06
 #define PLLCTRL_TYPE_INT	0x0
 #define PLLCTRL_TYPE_FRAC	0x1
-/*Byte 1*/
+/* Byte 1 */
 #define PLLCTRL_DISABLE		0x0
 #define PLLCTRL_ENABLE		0x1
 
-/*ADC*/
+/* ADC */
 #define ADCCTL_DISABLE_MASK	0xFC
 #define ADCCTL_ENABLE_MASK	0x03
 
-/*MIC*/
+/* MIC */
 #define RECMBIA_DISABLE		0x00
 #define RECMBIA_ENABLE		0x01
 #define RECVLC_DISABLE_MASK	0xFC
@@ -191,127 +180,11 @@ struct adau1761_mode_register {
 #define ADAU1761_BITSFRAM_32	0x4000
 #define ADAU1761_BITSFRAM_48	0x8000
 
-/*playback output control*/
+/* playback output control */
 #define ADAU1761_VOLUME_MASK 0xFC
 #define ADAU1761_VOLUME_BITS 0x2
 #define ADAU1761_MUTE_MASK 0x02
 #define ADAU1761_MUTE_BITS 0x1
 #define ADAU1761_ADVOL_MASK 0xff
-
-/*
- * Reset Mode - ADC capture/DAC playback, dsp core disabled
- * (AInput mixers 0db, AOuput mixers 0db, HP out ON, DSP core OFF)
-*/
-static struct adau1761_mode_register adau1761_reset[RESET_REGISTER_COUNT] = {
-	/* mute outputs */
-	{ADAU_PLBMNOC, 0xE5},
-	{ADAU_PLBHPVL, 0x01},
-	{ADAU_PLBHPVR, 0x01},
-	{ADAU_PLBLOVL, 0x00},
-	{ADAU_PLBLOVR, 0x00},
-
-	{ADAU_DSP_RUN, 0x00},
-	{ADAU_DSP_ENA, 0x00},
-	{ADAU_MICCTRL, 0x00},
-	{ADAU_RECPWRM, 0x00},
-	{ADAU_RECMLC0, 0x01},
-	{ADAU_RECMLC1, RECMLC_MIC_0DB},
-	{ADAU_RECMRC0, 0x01},
-	{ADAU_RECMRC1, RECMLC_MIC_0DB},
-	{ADAU_RECVLCL, 0x82},
-	{ADAU_RECVLCR, 0x82},
-	{ADAU_RECMBIA, RECMBIA_DISABLE},
-	{ADAU_ALCCTR0, 0x00},
-	{ADAU_ALCCTR1, 0x00},
-	{ADAU_ALCCTR2, 0x00},
-	{ADAU_ALCCTR3, 0x1F},
-	{ADAU_SPRTCT0, ADAU_SRPT_CTRL0},
-	{ADAU_SPRTCT1, 0x21}, /*0x21 = 32bclocks frame, 0x41 = 48*/
-	{ADAU_CONVCT0, 0x00},
-	{ADAU_CONVCT1, 0x00},
-	{ADAU_ADCCTL0, 0x00},
-	{ADAU_ADCCTL1, 0x00},
-	{ADAU_ADCCTL2, 0x00},
-	{ADAU_PLBMLC0, 0x21},
-	{ADAU_PLBMLC1, 0x00},
-	{ADAU_PLBMRC0, 0x41},
-	{ADAU_PLBMRC1, 0x00},
-	{ADAU_PLBMLLO, 0x03},
-	{ADAU_PLBMRLO, 0x09},
-	{ADAU_PLBLRMC, 0x01},
-	{ADAU_PLBCTRL, 0x00},
-	{ADAU_PLBPWRM, 0x00},
-	{ADAU_DACCTL0, 0x03},
-	{ADAU_DACCTL1, 0x00},
-	{ADAU_DACCTL2, 0x00},
-	{ADAU_DSP_CRC, 0x00},
-	{ADAU_DSP_GPI, 0x00},
-	{ADAU_DSP_SR1, 0x07},
-	{ADAU_SERPAD0, 0xAA},
-	{ADAU_SERPAD1, 0x00},
-	{ADAU_COMPAD0, 0xAA},
-	{ADAU_COMPAD1, 0x00},
-	{ADAU_MCLKPAD, 0x0A},
-	{ADAU_INP_ROT, 0x01},
-#ifdef ADAU1716_ADC_SOFT_PATCH
-	{ADAU_OUT_ROT, 0x00},
-#else
-	{ADAU_OUT_ROT, 0x01},
-#endif
-	{ADAU_SER_SRT, 0x00},
-	{ADAU_DSP_SLW, 0x00},
-	{ADAU_SER_DAT, 0x00},
-	{ADAU_CLK_EN0, 0x5F},
-	{ADAU_CLK_EN1, 0x01},
-};
-
-/*
- * Default Mode
- * Analog microphones, ADC capture/DAC playback, dsp core disabled
- * (AInput mixers ON, AOuput mixers ON, HP out ON)
-*/
-static struct adau1761_mode_register adau1761_mode0[MODE_REGISTER_COUNT] = {
-	/* mute outputs */
-	{ADAU_PLBHPVL, 0x03},
-	{ADAU_PLBHPVR, 0x03},
-	{ADAU_PLBLOVL, 0x02},
-	{ADAU_PLBLOVR, 0x02},
-	{ADAU_PLBMNOC, 0xE5},
-
-	{ADAU_CLK_EN0, 0x5F},
-	{ADAU_CLK_EN1, 0x01},
-
-	/*analog mic*/
-	{ADAU_RECVLCL, 0x82},
-	{ADAU_RECVLCR, 0x82},
-	{ADAU_MICCTRL, 0x00},
-};
-
-/*
- * Digital Microphone mode,
- * IIS Master, ADC capture/DAC playback, dsp core disabled
- * (AInput mixers OFF, AOuput mixers ON, HP out ON)
- */
-static struct adau1761_mode_register adau1761_mode1[MODE_REGISTER_COUNT] = {
-	/* mute outputs */
-	{ADAU_PLBHPVL, 0x03},
-	{ADAU_PLBHPVR, 0x03},
-	{ADAU_PLBLOVL, 0x02},
-	{ADAU_PLBLOVR, 0x02},
-	{ADAU_PLBMNOC, 0xE5},
-
-	{ADAU_CLK_EN0, 0x5F},
-	{ADAU_CLK_EN1, 0x03},
-
-	/*digital mic*/
-	{ADAU_RECVLCL, 0x00},
-	{ADAU_RECVLCR, 0x00},
-	{ADAU_MICCTRL, 0x20},
-};
-
-static struct adau1761_mode_register *adau1761_mode_registers[] = {
-	adau1761_mode0,
-	adau1761_mode1,
-};
 
 #endif

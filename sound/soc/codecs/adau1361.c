@@ -50,6 +50,106 @@ struct adau1361_priv {
 	enum snd_soc_control_type control_type;
 };
 
+struct adau1361_setup_data {
+	unsigned short i2c_bus;
+	unsigned short i2c_address;
+};
+
+struct adau1361_mode_register {
+	u16 regaddress;
+	u16 regvalue;
+};
+
+/*
+ * Reset Mode - ADC capture/DAC playback
+ * (AInput mixers 0db, AOuput mixers 0db, HP out ON)
+ */
+static struct adau1361_mode_register adau1361_reset[RESET_REGISTER_COUNT] = {
+	/* mute outputs */
+	{ADAU_PLBMNOC, 0xE5},
+	{ADAU_PLBHPVL, 0x01},
+	{ADAU_PLBHPVR, 0x01},
+	{ADAU_PLBLOVL, 0x00},
+	{ADAU_PLBLOVR, 0x00},
+	{ADAU_MICCTRL, 0x00},
+	{ADAU_RECPWRM, 0x00},
+	{ADAU_RECMLC0, 0x01},
+	{ADAU_RECMLC1, RECMLC_MIC_0DB},
+	{ADAU_RECMRC0, 0x01},
+	{ADAU_RECMRC1, RECMLC_MIC_0DB},
+	{ADAU_RECVLCL, 0x82},
+	{ADAU_RECVLCR, 0x82},
+	{ADAU_RECMBIA, RECMBIA_DISABLE},
+	{ADAU_ALCCTR0, 0x00},
+	{ADAU_ALCCTR1, 0x00},
+	{ADAU_ALCCTR2, 0x00},
+	{ADAU_ALCCTR3, 0x1F},
+	{ADAU_SPRTCT0, ADAU_SRPT_CTRL0},
+	{ADAU_SPRTCT1, 0x01}, /* 0x01 = 64bclocks frame */
+	{ADAU_CONVCT0, 0x00},
+	{ADAU_CONVCT1, 0x00},
+	{ADAU_ADCCTL0, 0x00},
+	{ADAU_ADCCTL1, 0x00},
+	{ADAU_ADCCTL2, 0x00},
+	{ADAU_PLBMLC0, 0x21},
+	{ADAU_PLBMLC1, 0x00},
+	{ADAU_PLBMRC0, 0x41},
+	{ADAU_PLBMRC1, 0x00},
+	{ADAU_PLBMLLO, 0x03},
+	{ADAU_PLBMRLO, 0x09},
+	{ADAU_PLBLRMC, 0x01},
+	{ADAU_PLBCTRL, 0x00},
+	{ADAU_PLBPWRM, 0x00},
+	{ADAU_DACCTL0, 0x03},
+	{ADAU_DACCTL1, 0x00},
+	{ADAU_DACCTL2, 0x00},
+	{ADAU_SERPAD0, 0xAA},
+	{ADAU_COMPAD0, 0xAA},
+	{ADAU_COMPAD1, 0x00},
+	{ADAU_MCLKPAD, 0x0A},
+};
+
+/*
+ * Default Mode
+ * Analog microphones, ADC capture/DAC playback
+ * (AInput mixers ON, AOuput mixers ON, HP out ON)
+ */
+static struct adau1361_mode_register adau1361_mode0[MODE_REGISTER_COUNT] = {
+	/* mute outputs */
+	{ADAU_PLBHPVL, 0x03},
+	{ADAU_PLBHPVR, 0x03},
+	{ADAU_PLBLOVL, 0x02},
+	{ADAU_PLBLOVR, 0x02},
+	{ADAU_PLBMNOC, 0xE5},
+	/* analog mic */
+	{ADAU_RECVLCL, 0x82},
+	{ADAU_RECVLCR, 0x82},
+	{ADAU_MICCTRL, 0x00},
+};
+
+/*
+ * Digital Microphone mode,
+ * IIS Master, ADC capture/DAC playback
+ * (AInput mixers OFF, AOuput mixers ON, HP out ON)
+ */
+static struct adau1361_mode_register adau1361_mode1[MODE_REGISTER_COUNT] = {
+	/* mute outputs */
+	{ADAU_PLBHPVL, 0x03},
+	{ADAU_PLBHPVR, 0x03},
+	{ADAU_PLBLOVL, 0x02},
+	{ADAU_PLBLOVR, 0x02},
+	{ADAU_PLBMNOC, 0xE5},
+	/* digital mic */
+	{ADAU_RECVLCL, 0x00},
+	{ADAU_RECVLCR, 0x00},
+	{ADAU_MICCTRL, 0x20},
+};
+
+static struct adau1361_mode_register *adau1361_mode_registers[] = {
+	adau1361_mode0,
+	adau1361_mode1,
+};
+
 /*
  * write register cache
  */
@@ -109,7 +209,7 @@ static int adau1361_read_reg_block(struct snd_soc_codec *codec,
 static int adau1361_write_reg_block(struct snd_soc_codec *codec,
 	unsigned int reg, u8 length, u8 *values)
 {
-	int count = length + 2; /*data plus 16bit register address*/
+	int count = length + 2; /* data plus 16bit register address */
 	u8 buf[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 	buf[0] = (u8)(reg >> 8);
@@ -403,13 +503,13 @@ struct _pll_div {
 };
 
 static const struct _pll_div clock_dividers[] = {
-	{ 12000000, 45158400, 625, 477, /*44.1kHz*/
+	{ 12000000, 45158400, 625, 477, /* 44.1kHz */
 		(PLLCTRL_INTPART_R3|PLLCTRL_INPUT_DIV1|PLLCTRL_TYPE_FRAC) },
-	{12000000, 49152000, 125, 12, /*48kHz*/
+	{12000000, 49152000, 125, 12, /* 48kHz */
 		(PLLCTRL_INTPART_R4|PLLCTRL_INPUT_DIV1|PLLCTRL_TYPE_FRAC) },
-	{12288000, 45158400, 40, 27, /*44.1Khz*/
+	{12288000, 45158400, 40, 27, /* 44.1Khz */
 		(PLLCTRL_INTPART_R3|PLLCTRL_INPUT_DIV1|PLLCTRL_TYPE_FRAC) },
-	{12288000, 49152000, 0, 0, /*48kHz*/
+	{12288000, 49152000, 0, 0, /* 48kHz */
 		(PLLCTRL_INTPART_R4|PLLCTRL_INPUT_DIV1|PLLCTRL_TYPE_INT) },
 };
 
@@ -460,7 +560,7 @@ static int adau1361_pll_enable(struct snd_soc_codec *codec, int enable)
 		pll_reg[5]  = PLLCTRL_ENABLE;
 		adau1361_write_reg_block(codec, ADAU_PLLCTRL, 6, pll_reg);
 
-		/* wait for PLL lock*/
+		/* wait for PLL lock */
 		do {
 			++counter;
 			schedule_timeout_interruptible(msecs_to_jiffies(1));
@@ -596,10 +696,10 @@ static int adau1361_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	/* set master/slave audio interface */
 	reg = (snd_soc_read(codec, ADAU_SPRTCT0) & 0xFE);
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
-	case SND_SOC_DAIFMT_CBM_CFM:  /*master*/
+	case SND_SOC_DAIFMT_CBM_CFM:  /* master */
 		reg |= 0x1;
 		break;
-	case SND_SOC_DAIFMT_CBS_CFS: /*slave*/
+	case SND_SOC_DAIFMT_CBS_CFS: /* slave */
 		reg &= ~0x1;
 		break;
 	default:
@@ -624,7 +724,7 @@ static int adau1361_set_dai_fmt(struct snd_soc_dai *codec_dai,
 		return 0;
 	}
 
-	/* set I2S iface format*/
+	/* set I2S iface format */
 	snd_soc_write(codec, ADAU_SPRTCT0, reg);
 	return 0;
 }
@@ -827,7 +927,7 @@ static struct snd_soc_codec_driver soc_codec_dev_adau1361 = {
 	.suspend = adau1361_suspend,
 	.resume  = adau1361_resume,
 	.set_bias_level = adau1361_set_bias_level,
-	.reg_cache_size = sizeof(adau1361_reg) /*ADAU_NUMCACHEREG*/,
+	.reg_cache_size = sizeof(adau1361_reg) /* ADAU_NUMCACHEREG */,
 	.reg_word_size = sizeof(u16),
 	.reg_cache_default = adau1361_reg,
 };

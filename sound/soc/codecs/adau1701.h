@@ -1,5 +1,5 @@
 /*
- * header file for adau1701 SigmaDSP processor
+ * header file for ADAU1701 SigmaDSP processor
  *
  * Copyright 2011 Analog Devices Inc.
  *

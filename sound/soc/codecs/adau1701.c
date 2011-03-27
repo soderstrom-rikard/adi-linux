@@ -94,7 +94,7 @@ static int adau1701_write_register(struct snd_soc_codec *codec,
 		return -EINVAL;
 	}
 	length = register_table[i].length;
-	count = length + 2; /*data plus 16bit register address*/
+	count = length + 2; /* data plus 16bit register address */
 
 	buf[0] = reg_address >> 8;
 	buf[1] = reg_address;
@@ -226,7 +226,7 @@ static int adau1701_set_dai_fmt(struct snd_soc_dai *codec_dai,
 		return -EINVAL;
 	}
 
-	/* set iface format*/
+	/* set iface format */
 	adau1701_write_register(codec, ADAU1701_SERITL1, reg);
 	return 0;
 }

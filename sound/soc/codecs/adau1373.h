@@ -1,7 +1,7 @@
 /*
- * Driver for ADAU1373 sound codec
+ * header file for ADAU1373 sound codec
  *
- * Copyright 2010 Analog Devices Inc.
+ * Copyright 2010-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -291,7 +291,7 @@
 #define DAISR_FS	0x00
 #define DAISRC_CLK2	0x20
 
-/* DAI_CTRL*/
+/* DAI_CTRL */
 #define DAI_EN		0x01
 #define DAI_SRCAEN	0x04
 
@@ -318,7 +318,7 @@
 #define DOUT_CH3_DAC	0x08
 #define DOUT_CH4_DAC	0x10
 
-/* DIGMIC_CTRL*/
+/* DIGMIC_CTRL */
 #define DMICAEN		0x01
 #define DMICASWP	0x02
 #define DMICBEN		0x04
@@ -328,7 +328,7 @@
 #define DAISR_FS	0x00
 #define DAISRC_CLK2	0x20
 
-/* DAI_CTRL*/
+/* DAI_CTRL */
 #define DAI_EN		0x01
 
 /* DIN_MIX_CTRL */
@@ -354,7 +354,7 @@
 #define DOUT_CH3_DAC	0x08
 #define DOUT_CH4_DAC	0x10
 
-/* DIGMIC_CTRL*/
+/* DIGMIC_CTRL */
 #define DMICAEN		0x01
 #define DMICASWP	0x02
 #define DMICBEN		0x04
