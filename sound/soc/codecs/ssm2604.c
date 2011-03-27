@@ -1,7 +1,7 @@
 /*
  * Driver for ssm2604 sound codec
  *
- * Copyright 2010 Analog Devices Inc.
+ * Copyright 2010-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -414,7 +414,7 @@ static int ssm2604_probe(struct snd_soc_codec *codec)
 		return ret;
 	}
 
-	/*power on device*/
+	/* power on device */
 	snd_soc_write(codec, SSM2604_ACTIVE, 0);
 	/* set the update bits */
 	reg = snd_soc_read(codec, SSM2604_LINVOL);
@@ -440,25 +440,23 @@ static int ssm2604_remove(struct snd_soc_codec *codec)
 }
 
 static struct snd_soc_codec_driver soc_codec_dev_ssm2604 = {
-	.probe =	ssm2604_probe,
-	.remove =	ssm2604_remove,
-	.suspend =	ssm2604_suspend,
-	.resume =	ssm2604_resume,
+	.probe   = ssm2604_probe,
+	.remove  = ssm2604_remove,
+	.suspend = ssm2604_suspend,
+	.resume  = ssm2604_resume,
 	.set_bias_level = ssm2604_set_bias_level,
 	.reg_cache_size = sizeof(ssm2604_reg),
 	.reg_word_size = sizeof(u16),
 	.reg_cache_default = ssm2604_reg,
 };
 
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
-
-static int ssm2604_i2c_probe(struct i2c_client *i2c,
+static __devinit int ssm2604_i2c_probe(struct i2c_client *i2c,
 			     const struct i2c_device_id *id)
 {
 	struct ssm2604_priv *ssm2604;
 	int ret;
 
-	ssm2604 = kzalloc(sizeof(struct ssm2604_priv), GFP_KERNEL);
+	ssm2604 = kzalloc(sizeof(*ssm2604), GFP_KERNEL);
 	if (ssm2604 == NULL)
 		return -ENOMEM;
 
@@ -467,12 +465,13 @@ static int ssm2604_i2c_probe(struct i2c_client *i2c,
 
 	ret = snd_soc_register_codec(&i2c->dev,
 			&soc_codec_dev_ssm2604, &ssm2604_dai, 1);
-	if (ret < 0)
+	if (ret)
 		kfree(ssm2604);
+
 	return ret;
 }
 
-static int ssm2604_i2c_remove(struct i2c_client *client)
+static __devexit int ssm2604_i2c_remove(struct i2c_client *client)
 {
 	snd_soc_unregister_codec(&client->dev);
 	kfree(i2c_get_clientdata(client));
@@ -492,30 +491,19 @@ static struct i2c_driver ssm2604_i2c_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe    = ssm2604_i2c_probe,
-	.remove   = ssm2604_i2c_remove,
+	.remove   = __devexit_p(ssm2604_i2c_remove),
 	.id_table = ssm2604_i2c_id,
 };
-#endif
 
 static int __init ssm2604_modinit(void)
 {
-	int ret = 0;
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
-	ret = i2c_add_driver(&ssm2604_i2c_driver);
-	if (ret != 0) {
-		printk(KERN_ERR "Failed to register ssm2604 I2C driver: %d\n",
-		       ret);
-	}
-#endif
-	return ret;
+	return i2c_add_driver(&ssm2604_i2c_driver);
 }
 module_init(ssm2604_modinit);
 
 static void __exit ssm2604_exit(void)
 {
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 	i2c_del_driver(&ssm2604_i2c_driver);
-#endif
 }
 module_exit(ssm2604_exit);
 

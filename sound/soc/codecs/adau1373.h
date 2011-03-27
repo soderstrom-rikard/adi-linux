@@ -408,7 +408,4 @@ struct adau1373_platform_data {
 	u8 drc_settings[13];
 };
 
-extern struct snd_soc_dai adau1373_dai;
-extern struct snd_soc_codec_device soc_codec_dev_adau1373;
-
 #endif

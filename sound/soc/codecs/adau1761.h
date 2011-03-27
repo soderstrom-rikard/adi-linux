@@ -314,7 +314,4 @@ static struct adau1761_mode_register *adau1761_mode_registers[] = {
 	adau1761_mode1,
 };
 
-extern struct snd_soc_dai adau1761_dai;
-extern struct snd_soc_codec_device soc_codec_dev_adau1761;
-
 #endif

@@ -259,7 +259,7 @@ static int adau1701_set_bias_level(struct snd_soc_codec *codec,
 		break;
 
 	}
-	codec->bias_level = level;
+	codec->dapm.bias_level = level;
 	return 0;
 }
 
@@ -274,7 +274,7 @@ static struct snd_soc_dai_ops adau1701_dai_ops = {
 	.set_fmt	= adau1701_set_dai_fmt,
 };
 
-struct snd_soc_dai_driver adau1701_dai = {
+static struct snd_soc_dai_driver adau1701_dai = {
 	.name = "adau1701",
 	.playback = {
 		.stream_name = "Playback",

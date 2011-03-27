@@ -1,7 +1,7 @@
 /*
  * Driver for ADAU1361 sound codec
  *
- * Copyright 2010 Analog Devices Inc.
+ * Copyright 2010-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -25,15 +25,10 @@
 
 #include "adau1361.h"
 
-#define AUDIO_NAME "adau1361"
-#define ADAU1361_VERSION "0.1"
-
 #define CAP_MIC  1
 #define CAP_LINE 2
 #define CAPTURE_SOURCE_NUMBER 2
 
-struct snd_soc_codec_device soc_codec_dev_adau1361;
-static struct snd_soc_codec *adau1361_codec;
 /* codec private data */
 struct adau1361_priv {
 	unsigned int sysclk;
@@ -52,6 +47,7 @@ struct adau1361_priv {
 	u8 dapm_lineR;
 	u8 dapm_hpL;
 	u8 dapm_hpR;
+	enum snd_soc_control_type control_type;
 };
 
 /*
@@ -388,10 +384,11 @@ static const struct snd_soc_dapm_route audio_conns[] = {
 
 static int adau1361_add_widgets(struct snd_soc_codec *codec)
 {
-	snd_soc_dapm_new_controls(codec, adau1361_dapm_widgets,
-				  ARRAY_SIZE(adau1361_dapm_widgets));
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
 
-	snd_soc_dapm_add_routes(codec, audio_conns, ARRAY_SIZE(audio_conns));
+	snd_soc_dapm_new_controls(dapm, adau1361_dapm_widgets,
+				  ARRAY_SIZE(adau1361_dapm_widgets));
+	snd_soc_dapm_add_routes(dapm, audio_conns, ARRAY_SIZE(audio_conns));
 
 	return 0;
 }
@@ -540,8 +537,7 @@ static int adau1361_hw_params(struct snd_pcm_substream *substream,
 			      struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_device *socdev = rtd->socdev;
-	struct snd_soc_codec *codec = socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
 	struct adau1361_priv *adau1361 = snd_soc_codec_get_drvdata(codec);
 	int rate = params_rate(params);
 	int i;
@@ -562,8 +558,7 @@ static int adau1361_pcm_prepare(struct snd_pcm_substream *substream,
 				struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_device *socdev = rtd->socdev;
-	struct snd_soc_codec *codec = socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
 	struct adau1361_priv *adau1361 = snd_soc_codec_get_drvdata(codec);
 	u8 reg = 0;
 	int ret = 0;
@@ -583,8 +578,7 @@ static void adau1361_shutdown(struct snd_pcm_substream *substream,
 			      struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_device *socdev = rtd->socdev;
-	struct snd_soc_codec *codec = socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
 	u8 reg;
 
 	if (!codec->active) {
@@ -710,7 +704,7 @@ static int adau1361_set_bias_level(struct snd_soc_codec *codec,
 		break;
 
 	}
-	codec->bias_level = level;
+	codec->dapm.bias_level = level;
 	return 0;
 }
 
@@ -733,7 +727,7 @@ static struct snd_soc_dai_ops adau1361_dai_ops = {
 	.set_pll	= adau1361_set_dai_pll,
 };
 
-struct snd_soc_dai adau1361_dai = {
+static struct snd_soc_dai_driver adau1361_dai = {
 	.name = "ADAU1361",
 	.playback = {
 		.stream_name = "Playback",
@@ -751,13 +745,9 @@ struct snd_soc_dai adau1361_dai = {
 	},
 	.ops = &adau1361_dai_ops,
 };
-EXPORT_SYMBOL_GPL(adau1361_dai);
 
-static int adau1361_suspend(struct platform_device *pdev, pm_message_t state)
+static int adau1361_suspend(struct snd_soc_codec *codec, pm_message_t state)
 {
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->card->codec;
-
 	adau1361_set_bias_level(codec, SND_SOC_BIAS_OFF);
 	return 0;
 }
@@ -792,161 +782,82 @@ static void adau1361_resume_wq_handler(struct work_struct *work)
 
 }
 
-static int adau1361_resume(struct platform_device *pdev)
+static int adau1361_resume(struct snd_soc_codec *codec)
 {
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->card->codec;
 	struct adau1361_priv *adau1361 = snd_soc_codec_get_drvdata(codec);
 
-	adau1361->pdev = pdev;
 	schedule_work(&adau1361->resume_work);
 	return 0;
 }
 
-/*
- * initialise the adau1361 driver
- * register the mixer and dsp interfaces with the kernel
- */
-static int adau1361_register(struct adau1361_priv *adau1361, enum snd_soc_control_type control)
+static int adau1361_probe(struct snd_soc_codec *codec)
 {
-	struct snd_soc_codec *codec = &adau1361->codec;
+	struct adau1361_priv *adau1361 = snd_soc_codec_get_drvdata(codec);
 	int ret = 0;
 
-	mutex_init(&codec->mutex);
-	INIT_LIST_HEAD(&codec->dapm_widgets);
-	INIT_LIST_HEAD(&codec->dapm_paths);
-	codec->name = "adau1361";
-	codec->owner = THIS_MODULE;
-	codec->set_bias_level = adau1361_set_bias_level;
-	codec->dai = &adau1361_dai;
-	codec->num_dai = 1;
-	codec->reg_cache_size = ADAU_NUMCACHEREG;
-	codec->reg_cache = kzalloc(ADAU_NUMCACHEREG, GFP_KERNEL);
-	if (codec->reg_cache == NULL)
-		return -ENOMEM;
-
-	ret = snd_soc_codec_set_cache_io(codec, 16, 8, control);
+	ret = snd_soc_codec_set_cache_io(codec, 16, 8, adau1361->control_type);
 	if (ret < 0) {
 		dev_err(codec->dev, "Failed to set cache I/O: %d\n", ret);
 		return ret;
 	}
 
-	ret = snd_soc_register_codec(codec);
-	if (ret != 0) {
-		dev_err(codec->dev, "Failed to register codec: %d\n", ret);
-		return ret;
-	}
-
-	ret = snd_soc_register_dai(&adau1361_dai);
-	if (ret != 0) {
-		dev_err(codec->dev, "Failed to register DAI: %d\n", ret);
-		snd_soc_unregister_codec(codec);
-		return ret;
-	}
-
-	return ret;
-}
-
-static void adau1361_unregister(struct adau1361_priv *adau1361)
-{
-	struct snd_soc_codec *codec = &adau1361->codec;
-
-	adau1361_set_bias_level(codec, SND_SOC_BIAS_OFF);
-	kfree(codec->reg_cache);
-	snd_soc_unregister_dai(&adau1361_dai);
-	snd_soc_unregister_codec(codec);
-	kfree(adau1361);
-	adau1361_codec = NULL;
-}
-
-static int adau1361_probe(struct platform_device *pdev)
-{
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec;
-	struct adau1361_priv *adau1361;
-	int ret = 0;
-
-	socdev->card->codec = adau1361_codec;
-	codec = adau1361_codec;
-	adau1361 = snd_soc_codec_get_drvdata(codec);
-	adau1361->in_source = CAP_MIC; /*default is mic input*/
-	adau1361->sysclk = ADAU1361_MCLK_RATE;
-	adau1361->pll_out = ADAU1361_PLL_FREQ_48;
-	adau1361->dapm_lineL = DAPM_LINE_DEF;
-	adau1361->dapm_lineR = DAPM_LINE_DEF;
-	adau1361->dapm_hpL = DAPM_HP_DEF;
-	adau1361->dapm_hpR = DAPM_HP_DEF;
-	adau1361->pdev = pdev;
-
 	ret = adau1361_reg_init(codec);
-	if (ret < 0)
-		dev_err(codec->dev, "failed to initialize\n");
-	/* register pcms */
-	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
 	if (ret < 0) {
-		dev_err(codec->dev, "failed to create pcms: %d\n", ret);
-		goto pcm_err;
+		dev_err(codec->dev, "failed to initialize\n");
+		return ret;
 	}
 
 	snd_soc_add_controls(codec, adau1361_snd_controls,
 			     ARRAY_SIZE(adau1361_snd_controls));
 	adau1361_add_widgets(codec);
-pcm_err:
-	return ret;
-}
-
-/* remove everything here */
-static int adau1361_remove(struct platform_device *pdev)
-{
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-
-	snd_soc_free_pcms(socdev);
-	snd_soc_dapm_free(socdev);
 
 	return 0;
 }
 
-struct snd_soc_codec_device soc_codec_dev_adau1361 = {
-	.probe =	adau1361_probe,
-	.remove =	adau1361_remove,
-	.suspend =	adau1361_suspend,
-	.resume =	adau1361_resume,
-};
-EXPORT_SYMBOL_GPL(soc_codec_dev_adau1361);
+/* remove everything here */
+static int adau1361_remove(struct snd_soc_codec *codec)
+{
+	adau1361_set_bias_level(codec, SND_SOC_BIAS_OFF);
+	return 0;
+}
 
+static struct snd_soc_codec_driver soc_codec_dev_adau1361 = {
+	.probe   = adau1361_probe,
+	.remove  = adau1361_remove,
+	.suspend = adau1361_suspend,
+	.resume  = adau1361_resume,
+	.set_bias_level = adau1361_set_bias_level,
+	.reg_cache_size = sizeof(adau1361_reg) /*ADAU_NUMCACHEREG*/,
+	.reg_word_size = sizeof(u16),
+	.reg_cache_default = adau1361_reg,
+};
 
 static __devinit int adau1361_i2c_probe(struct i2c_client *i2c,
 			      const struct i2c_device_id *id)
 {
 	struct adau1361_priv *adau1361;
-	struct snd_soc_codec *codec;
-	int ret = 0;
+	int ret;
 
-	adau1361 = kzalloc(sizeof(struct adau1361_priv), GFP_KERNEL);
+	adau1361 = kzalloc(sizeof(*adau1361), GFP_KERNEL);
 	if (adau1361 == NULL)
 		return -ENOMEM;
-	codec = &adau1361->codec;
-	snd_soc_codec_set_drvdata(codec, adau1361);
-	codec->hw_write = (hw_write_t)i2c_master_send;
 
 	i2c_set_clientdata(i2c, adau1361);
-	codec->control_data = i2c;
-
-	codec->dev = &i2c->dev;
-	adau1361_codec = codec;
+	adau1361->control_type = SND_SOC_I2C;
 
 	INIT_WORK(&adau1361->resume_work, adau1361_resume_wq_handler);
-	ret = adau1361_register(adau1361, SND_SOC_I2C);
-	if (ret < 0)
-		dev_err(&i2c->dev, "failed to initialize\n");
+	ret = snd_soc_register_codec(&i2c->dev,
+			&soc_codec_dev_adau1361, &adau1361_dai, 1);
+	if (ret)
+		kfree(adau1361);
 
 	return ret;
 }
 
 static __devexit int adau1361_i2c_remove(struct i2c_client *client)
 {
-	struct adau1361_priv *adau1361 = i2c_get_clientdata(client);
-	adau1361_unregister(adau1361);
+	snd_soc_unregister_codec(&client->dev);
+	kfree(i2c_get_clientdata(client));
 	return 0;
 }
 
@@ -969,15 +880,7 @@ static struct i2c_driver adau1361_i2c_driver = {
 
 static int __init adau1361_modinit(void)
 {
-	int ret;
-
-	ret = i2c_add_driver(&adau1361_i2c_driver);
-	if (ret != 0) {
-		printk(KERN_ERR "Failed to register adau1361 I2C driver: %d\n",
-		       ret);
-	}
-
-	return ret;
+	return i2c_add_driver(&adau1361_i2c_driver);
 }
 module_init(adau1361_modinit);
 
