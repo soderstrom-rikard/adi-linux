@@ -437,12 +437,7 @@ static int ssm2602_suspend(struct snd_soc_codec *codec, pm_message_t state)
 
 static int ssm2602_resume(struct snd_soc_codec *codec)
 {
-	int i;
-	u16 *cache = codec->reg_cache;
-
-	/* Sync reg_cache with the hardware */
-	for (i = 0; i < ARRAY_SIZE(ssm2602_reg); i++)
-		snd_soc_write(codec, i, cache[i]);
+	snd_soc_cache_sync(codec);
 
 	ssm2602_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 

@@ -378,18 +378,15 @@ static int ssm2604_suspend(struct snd_soc_codec *codec, pm_message_t state)
 
 	ssm2604->pwr_state = snd_soc_read(codec, SSM2604_PWR);
 	ssm2604_set_bias_level(codec, SND_SOC_BIAS_OFF);
+
 	return 0;
 }
 
 static int ssm2604_resume(struct snd_soc_codec *codec)
 {
 	struct ssm2604_priv *ssm2604 = snd_soc_codec_get_drvdata(codec);
-	int i;
-	u16 *cache = codec->reg_cache;
 
-	/* Sync reg_cache with the hardware */
-	for (i = 0; i < ARRAY_SIZE(ssm2604_reg); i++)
-		snd_soc_write(codec, i, cache[i]);
+	snd_soc_cache_sync(codec);
 
 	ssm2604_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 	snd_soc_write(codec, SSM2604_PWR, ssm2604->pwr_state);
