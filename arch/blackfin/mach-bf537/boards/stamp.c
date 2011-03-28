@@ -1071,7 +1071,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #if defined(CONFIG_SND_BF5XX_SOC_AD183X) \
 	|| defined(CONFIG_SND_BF5XX_SOC_AD183X_MODULE)
 	{
-		.modalias = "ad183x-codec",
+		.modalias = "ad183x",
 		.max_speed_hz = 3125000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0,
 		.chip_select = 4,
@@ -1083,7 +1083,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 
 #ifdef CONFIG_SND_SOC_AD193X_SPI
 	{
-		.modalias = "ad193x-codec",
+		.modalias = "ad193x",
 		.max_speed_hz = 3125000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0,
 		.chip_select = 5,
@@ -2643,14 +2643,14 @@ static struct platform_device bfin_pcm = {
 
 #if defined(CONFIG_SND_BF5XX_SOC_AD73311) || defined(CONFIG_SND_BF5XX_SOC_AD73311_MODULE)
 static struct platform_device bfin_ad73311_codec_device = {
-	.name = "ad73311-codec",
+	.name = "ad73311",
 	.id = -1,
 };
 #endif
 
 #if defined(CONFIG_SND_BF5XX_SOC_AD74111) || defined(CONFIG_SND_BF5XX_SOC_AD74111_MODULE)
 static struct platform_device bfin_ad74111_codec_device = {
-	.name = "ad74111-codec",
+	.name = "ad74111",
 	.id = -1,
 };
 #endif
