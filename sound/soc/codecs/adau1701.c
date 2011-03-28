@@ -14,7 +14,6 @@
 #include <linux/i2c.h>
 #include <linux/workqueue.h>
 #include <linux/platform_device.h>
-#include <linux/sigma.h>
 #include <linux/sysfs.h>
 #include <linux/slab.h>
 #include <sound/core.h>
@@ -81,9 +80,9 @@ static const struct register_lut register_table[] = {
 static int adau1701_write_register(struct snd_soc_codec *codec,
 	u16 reg_address, u32 value)
 {
-	int i;
+	int i, ret;
 	int length, count;
-	u8 buf[8];
+	u8 buf[6] = { 0, 0, 0, 0, 0, 0 };
 
 	for (i = 0; i < ARRAY_SIZE(register_table); i++) {
 		if (register_table[i].address == reg_address)
@@ -113,11 +112,17 @@ static int adau1701_write_register(struct snd_soc_codec *codec,
 		buf[4] = value >> 8;
 		buf[5] = value;
 	}
-	return i2c_master_send(codec->control_data, buf, count);
+	ret = i2c_master_send(codec->control_data, buf, count);
+	if (ret == count)
+		return 0;
+	else {
+		dev_err(codec->dev, "adau1701_write_register failed.");
+		return -EIO;
+	}
 }
 
 /*
- * read ADAU1701 hw register
+ * Read ADAU1701 hw register
  */
 static u32 adau1701_read_register(struct snd_soc_codec *codec,
 	u16 reg_address)
@@ -165,15 +170,6 @@ static u32 adau1701_read_register(struct snd_soc_codec *codec,
 		value = (buf[0] << 16) | (buf[1] << 8) | buf[2];
 	}
 	return value;
-}
-
-static int adau1701_setprogram(struct snd_soc_codec *codec)
-{
-	int ret;
-
-	ret = process_sigma_firmware(codec->control_data, ADAU1701_FIRMWARE);
-
-	return ret;
 }
 
 static int adau1701_pcm_prepare(struct snd_pcm_substream *substream,
@@ -305,38 +301,10 @@ static int adau1701_resume(struct snd_soc_codec *codec)
 	return 0;
 }
 
-static ssize_t adau1371_dsp_load(struct device *dev,
-				  struct device_attribute *attr,
-				  const char *buf, size_t count)
-{
-	int ret;
-	u32 reg;
-	struct adau1701_priv *adau1701 = dev_get_drvdata(dev);
-	struct snd_soc_codec *codec = adau1701->codec;
-
-	reg = ADAU1701_DSPCTRL_DAM | ADAU1701_DSPCTRL_ADM;
-	adau1701_write_register(codec, ADAU1701_DSPCTRL, reg);
-	ret = adau1701_setprogram(codec);
-	reg = ADAU1701_DSPCTRL_DAM | ADAU1701_DSPCTRL_ADM;
-	adau1701_write_register(codec, ADAU1701_DSPCTRL, reg);
-	if (ret)
-		return ret;
-	else
-		return count;
-}
-static DEVICE_ATTR(dsp, 0644, NULL, adau1371_dsp_load);
-
 static int adau1701_reg_init(struct snd_soc_codec *codec)
 {
 	u32 reg;
-	int ret;
 
-	/* Load default program */
-	ret = adau1701_setprogram(codec);
-	if (ret < 0) {
-		dev_err(codec->dev, "Loading program data failed\n");
-		goto error;
-	}
 	reg = 0x08;
 	adau1701_write_register(codec, ADAU1701_DSPRES, reg);
 	adau1701_write_register(codec, ADAU1701_SEROCTL, 0);
@@ -359,8 +327,7 @@ static int adau1701_reg_init(struct snd_soc_codec *codec)
 	/* Power-up the oscillator */
 	adau1701_write_register(codec, ADAU1701_OSCIPOW, 0);
 #endif
-error:
-	return ret;
+	return 0;
 }
 
 static int adau1701_probe(struct snd_soc_codec *codec)
@@ -380,9 +347,6 @@ static int adau1701_probe(struct snd_soc_codec *codec)
 		dev_err(codec->dev, "failed to initialize\n");
 		return ret;
 	}
-	ret = device_create_file(codec->dev, &dev_attr_dsp);
-	if (ret)
-		dev_err(codec->dev, "device_create_file() failed\n");
 
 	return ret;
 }
