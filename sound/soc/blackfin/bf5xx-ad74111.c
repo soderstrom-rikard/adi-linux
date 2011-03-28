@@ -194,7 +194,7 @@ static struct snd_soc_dai_link bf5xx_ad74111_dai[] = {
 		.cpu_dai_name = "bfin-i2s.0",
 		.codec_dai_name = "ad74111-hifi",
 		.platform_name = "bfin-pcm-audio",
-		.codec_name = "ad74111-codec",
+		.codec_name = "ad74111",
 		.ops = &bf5xx_ad74111_ops,
 	},
 	{
@@ -203,7 +203,7 @@ static struct snd_soc_dai_link bf5xx_ad74111_dai[] = {
 		.cpu_dai_name = "bfin-i2s.1",
 		.codec_dai_name = "ad74111-hifi",
 		.platform_name = "bfin-pcm-audio",
-		.codec_name = "ad74111-codec",
+		.codec_name = "ad74111",
 		.ops = &bf5xx_ad74111_ops,
 	}
 };
