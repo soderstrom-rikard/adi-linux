@@ -30,7 +30,6 @@
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/delay.h>
-#include <linux/slab.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -173,6 +172,7 @@ static void bf5xx_i2s_shutdown(struct snd_pcm_substream *substream,
 static int bf5xx_i2s_suspend(struct snd_soc_dai *dai)
 {
 	struct sport_device *sport_handle = snd_soc_dai_get_drvdata(dai);
+
 	pr_debug("%s : sport %d\n", __func__, dai->id);
 
 	if (dai->capture_active)
@@ -283,8 +283,8 @@ static struct platform_driver bfin_i2s_driver = {
 	.probe  = bf5xx_i2s_probe,
 	.remove = __devexit_p(bf5xx_i2s_remove),
 	.driver = {
-		.name   = "bfin-i2s",
-		.owner  = THIS_MODULE,
+		.name = "bfin-i2s",
+		.owner = THIS_MODULE,
 	},
 };
 
@@ -305,3 +305,4 @@ module_exit(bfin_i2s_exit);
 MODULE_AUTHOR("Cliff Cai");
 MODULE_DESCRIPTION("I2S driver for ADI Blackfin");
 MODULE_LICENSE("GPL");
+

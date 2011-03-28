@@ -39,7 +39,6 @@
 #include <asm/cacheflush.h>
 
 #include "bf5xx-sport.h"
-
 /* delay between frame sync pulse and first data bit in multichannel mode */
 #define FRAME_DELAY (1<<12)
 

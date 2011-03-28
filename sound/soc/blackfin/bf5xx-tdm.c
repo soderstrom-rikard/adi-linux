@@ -32,7 +32,6 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/device.h>
-#include <linux/slab.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -43,7 +42,6 @@
 #include <asm/portmux.h>
 #include <linux/mutex.h>
 #include <linux/gpio.h>
-#include <asm/portmux.h>
 
 #include "bf5xx-sport.h"
 #include "bf5xx-tdm.h"
@@ -86,7 +84,6 @@ static int bf5xx_tdm_hw_params(struct snd_pcm_substream *substream,
 {
 	struct sport_device *sport_handle = snd_soc_dai_get_drvdata(dai);
 	struct bf5xx_tdm_port *bf5xx_tdm = sport_handle->private_data;
-
 	int ret = 0;
 
 	bf5xx_tdm->tcr2 &= ~0x1f;
@@ -190,9 +187,7 @@ static int bf5xx_tdm_suspend(struct snd_soc_dai *dai)
 	if (dai->capture_active)
 		sport_rx_stop(sport);
 
-	/*
-	 * isolate sync/clock pins from codec while sports resume
-	 */
+	/* isolate sync/clock pins from codec while sports resume */
 	peripheral_free_list(sport->pin_req);
 
 	return 0;
@@ -231,10 +226,6 @@ static int bf5xx_tdm_resume(struct snd_soc_dai *dai)
 #define bf5xx_tdm_resume       NULL
 #endif
 
-#define BF5XX_TDM_RATES SNDRV_PCM_RATE_48000
-
-#define BF5XX_TDM_FORMATS SNDRV_PCM_FMTBIT_S32_LE
-
 static struct snd_soc_dai_ops bf5xx_tdm_dai_ops = {
 	.hw_params      = bf5xx_tdm_hw_params,
 	.set_fmt        = bf5xx_tdm_set_dai_fmt,
@@ -248,13 +239,13 @@ static struct snd_soc_dai_driver bf5xx_tdm_dai = {
 	.playback = {
 		.channels_min = 2,
 		.channels_max = 8,
-		.rates = BF5XX_TDM_RATES,
-		.formats = BF5XX_TDM_FORMATS,},
+		.rates = SNDRV_PCM_RATE_48000,
+		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
 	.capture = {
 		.channels_min = 2,
 		.channels_max = 8,
-		.rates = BF5XX_TDM_RATES,
-		.formats = BF5XX_TDM_FORMATS,},
+		.rates = SNDRV_PCM_RATE_48000,
+		.formats = SNDRV_PCM_FMTBIT_S32_LE,},
 	.ops = &bf5xx_tdm_dai_ops,
 };
 
