@@ -106,7 +106,7 @@ static struct snd_soc_dai_link bf5xx_ad193x_dai[] = {
 #if defined(CONFIG_SND_SOC_AD193X_SPI)
 		.codec_name = "spi0.5",
 #elif defined(CONFIG_SND_SOC_AD193X_I2C)
-		.codec_name = "ad193x-codec.0-0004",
+		.codec_name = "ad193x.0-0004",
 #endif
 		.ops = &bf5xx_ad193x_ops,
 	},
@@ -119,7 +119,7 @@ static struct snd_soc_dai_link bf5xx_ad193x_dai[] = {
 #if defined(CONFIG_SND_SOC_AD193X_SPI)
 		.codec_name = "spi0.5",
 #elif defined(CONFIG_SND_SOC_AD193X_I2C)
-		.codec_name = "ad193x-codec.0-0004",
+		.codec_name = "ad193x.0-0004",
 #endif
 		.ops = &bf5xx_ad193x_ops,
 	}
