@@ -15,6 +15,7 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_AC97_CODEC if SND_SOC_AC97_BUS
 	select SND_SOC_AD183X if SPI_MASTER
 	select SND_SOC_AD193X if SND_SOC_I2C_AND_SPI
+	select SND_SOC_AD1980 if SND_SOC_AC97_BUS
 	select SND_SOC_AD73311
 	select SND_SOC_AD74111
 	select SND_SOC_ADAU1361 if I2C
@@ -118,6 +119,9 @@ config SND_SOC_AD183X
 	tristate
 
 config SND_SOC_AD193X
+	tristate
+
+config SND_SOC_AD1980
 	tristate
 
 config SND_SOC_AD73311
