@@ -672,10 +672,7 @@ static bool musb_tx_dma_program(struct dma_controller *dma,
 	wmb();
 
 	if (!dma->channel_program(channel, pkt_size, mode,
-			urb->transfer_dma + offset,
-			(channel->desired_mode == 0) ? length :
-				length - (length % qh->maxpacket)))
-	{
+			urb->transfer_dma + offset, length)) {
 		dma->channel_release(channel);
 		hw_ep->tx_channel = NULL;
 
@@ -1753,10 +1750,7 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 			 */
 			ret = c->channel_program(
 				dma, qh->maxpacket,
-				dma->desired_mode, buf,
-				(dma->desired_mode == 0)
-				? length
-				: length - (length % qh->maxpacket));
+				dma->desired_mode, buf, length);
 
 			if (!ret) {
 				c->channel_release(dma);
