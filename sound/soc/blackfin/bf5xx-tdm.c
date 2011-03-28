@@ -307,11 +307,9 @@ sport_config_err:
 static int __devexit bfin_tdm_remove(struct platform_device *pdev)
 {
 	struct sport_device *sport_handle = platform_get_drvdata(pdev);
-	struct bf5xx_tdm_port *bf5xx_tdm = sport_handle->private_data;
 
 	snd_soc_unregister_dai(&pdev->dev);
 	sport_done(sport_handle);
-	kfree(bf5xx_tdm);
 
 	return 0;
 }

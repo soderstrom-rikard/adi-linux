@@ -270,13 +270,11 @@ static int __devinit bf5xx_i2s_probe(struct platform_device *pdev)
 static int __devexit bf5xx_i2s_remove(struct platform_device *pdev)
 {
 	struct sport_device *sport_handle = platform_get_drvdata(pdev);
-	struct bf5xx_i2s_port *bf5xx_i2s = sport_handle->private_data;
 
 	pr_debug("%s enter\n", __func__);
 
 	snd_soc_unregister_dai(&pdev->dev);
 	sport_done(sport_handle);
-	kfree(bf5xx_i2s);
 
 	return 0;
 }
