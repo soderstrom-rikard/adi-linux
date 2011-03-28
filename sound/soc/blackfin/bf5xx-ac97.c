@@ -167,7 +167,7 @@ void bf5xx_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
 static void bf5xx_ac97_warm_reset(struct snd_ac97 *ac97)
 {
 	struct sport_device *sport_handle = ac97_sport_handle;
-	u16 gpio = P_IDENT(sport_handle->pin_req[0]);
+	u16 gpio = P_IDENT(sport_handle->pin_req[3]);
 
 	pr_debug("%s enter\n", __func__);
 
