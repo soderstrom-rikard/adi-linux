@@ -1237,6 +1237,7 @@ static int bfin_mac_enable(struct phy_device *phydev)
 
 	if (phydev->interface == PHY_INTERFACE_MODE_RMII) {
 		opmode |= RMII; /* For Now only 100MBit are supported */
+#if defined(CONFIG_BF537) || defined(CONFIG_BF536)
 		if (__SILICON_REVISION__ < 3) {
 			/*
 			 * This isn't publicly documented (fun times!), but in
@@ -1247,6 +1248,7 @@ static int bfin_mac_enable(struct phy_device *phydev)
 			 */
 			opmode |= TE;
 		}
+#endif
 	}
 
 	/* Turn on the EMAC rx */
