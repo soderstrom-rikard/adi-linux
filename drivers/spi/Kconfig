@@ -81,7 +81,7 @@ config SPI_BFIN_SPORT
 	  Enable support for a SPI bus via the Blackfin SPORT peripheral.
 
 	  This driver can also be built as a module.  If so, the module
-	  will be called bfin_sport_spi.
+	  will be called spi_bfin_sport.
 
 config SPI_AU1550
 	tristate "Au1550/Au12x0 SPI Controller"

@@ -3,7 +3,7 @@
  *
  * Enter bugs at http://blackfin.uclinux.org/
  *
- * Copyright 2009 Analog Devices Inc.
+ * Copyright 2009-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
@@ -45,7 +45,7 @@ enum bfin_sport_spi_state {
 
 struct bfin_sport_spi_master_data;
 
-struct transfer_ops {
+struct bfin_sport_transfer_ops {
 	void (*write) (struct bfin_sport_spi_master_data *);
 	void (*read) (struct bfin_sport_spi_master_data *);
 	void (*duplex) (struct bfin_sport_spi_master_data *);
@@ -95,7 +95,7 @@ struct bfin_sport_spi_master_data {
 	void *rx_end;
 
 	int cs_change;
-	struct transfer_ops *ops;
+	struct bfin_sport_transfer_ops *ops;
 };
 
 struct bfin_sport_spi_slave_data {
@@ -104,7 +104,7 @@ struct bfin_sport_spi_slave_data {
 	u16 cs_chg_udelay;	/* Some devices require > 255usec delay */
 	u32 cs_gpio;
 	u16 idle_tx_val;
-	struct transfer_ops *ops;
+	struct bfin_sport_transfer_ops *ops;
 };
 
 static void
@@ -125,7 +125,7 @@ bfin_sport_spi_disable(struct bfin_sport_spi_master_data *drv_data)
 
 /* Caculate the SPI_BAUD register value based on input HZ */
 static u16
-hz_to_spi_baud(u32 speed_hz)
+bfin_sport_hz_to_spi_baud(u32 speed_hz)
 {
 	u_long clk, sclk = get_sclk();
 	int div = (sclk / (2 * speed_hz)) - 1;
@@ -161,11 +161,10 @@ static void
 bfin_sport_spi_stat_poll_complete(struct bfin_sport_spi_master_data *drv_data)
 {
 	unsigned long timeout = jiffies + HZ;
-	while (!(bfin_read(&drv_data->regs->stat) & RXNE))
+	while (!(bfin_read(&drv_data->regs->stat) & RXNE)) {
 		if (!time_before(jiffies, timeout))
 			break;
-		else
-			cpu_relax();
+	}
 }
 
 static void
@@ -202,7 +201,7 @@ bfin_sport_spi_u8_duplex(struct bfin_sport_spi_master_data *drv_data)
 	}
 }
 
-static struct transfer_ops bfin_transfer_ops_u8 = {
+static struct bfin_sport_transfer_ops bfin_sport_transfer_ops_u8 = {
 	.write  = bfin_sport_spi_u8_writer,
 	.read   = bfin_sport_spi_u8_reader,
 	.duplex = bfin_sport_spi_u8_duplex,
@@ -242,18 +241,18 @@ bfin_sport_spi_u16_duplex(struct bfin_sport_spi_master_data *drv_data)
 	}
 }
 
-static struct transfer_ops bfin_transfer_ops_u16 = {
+static struct bfin_sport_transfer_ops bfin_sport_transfer_ops_u16 = {
 	.write  = bfin_sport_spi_u16_writer,
 	.read   = bfin_sport_spi_u16_reader,
 	.duplex = bfin_sport_spi_u16_duplex,
 };
 
-/* stop controller and re-config current chip*/
+/* stop controller and re-config current chip */
 static void
 bfin_sport_spi_restore_state(struct bfin_sport_spi_master_data *drv_data)
 {
 	struct bfin_sport_spi_slave_data *chip = drv_data->cur_chip;
-	unsigned int bits = (drv_data->ops == &bfin_transfer_ops_u8 ? 7 : 15);
+	unsigned int bits = (drv_data->ops == &bfin_sport_transfer_ops_u8 ? 7 : 15);
 
 	bfin_sport_spi_disable(drv_data);
 	dev_dbg(drv_data->dev, "restoring spi ctl state\n");
@@ -284,8 +283,9 @@ bfin_sport_spi_next_transfer(struct bfin_sport_spi_master_data *drv_data)
 		    list_entry(trans->transfer_list.next,
 			       struct spi_transfer, transfer_list);
 		return RUNNING_STATE;
-	} else
-		return DONE_STATE;
+	}
+
+	return DONE_STATE;
 }
 
 /*
@@ -349,6 +349,7 @@ bfin_sport_spi_pump_transfers(unsigned long data)
 	struct bfin_sport_spi_slave_data *chip = NULL;
 	unsigned int bits_per_word;
 	u32 tranf_success = 1;
+	u32 transfer_speed;
 	u8 full_duplex = 0;
 
 	/* Get current state information */
@@ -357,9 +358,10 @@ bfin_sport_spi_pump_transfers(unsigned long data)
 	chip = drv_data->cur_chip;
 
 	if (transfer->speed_hz)
-		bfin_write(&drv_data->regs->tclkdiv, hz_to_spi_baud(transfer->speed_hz));
+		transfer_speed = bfin_sport_hz_to_spi_baud(transfer->speed_hz);
 	else
-		bfin_write(&drv_data->regs->tclkdiv, chip->baud);
+		transfer_speed = chip->baud;
+	bfin_write(&drv_data->regs->tclkdiv, transfer_speed);
 	SSYNC();
 
 	/*
@@ -420,9 +422,9 @@ bfin_sport_spi_pump_transfers(unsigned long data)
 	/* Bits per word setup */
 	bits_per_word = transfer->bits_per_word ? : message->spi->bits_per_word;
 	if (bits_per_word == 8)
-		drv_data->ops = &bfin_transfer_ops_u8;
+		drv_data->ops = &bfin_sport_transfer_ops_u8;
 	else
-		drv_data->ops = &bfin_transfer_ops_u16;
+		drv_data->ops = &bfin_sport_transfer_ops_u16;
 
 	drv_data->state = RUNNING_STATE;
 
@@ -513,7 +515,7 @@ bfin_sport_spi_pump_messages(struct work_struct *work)
 
 	list_del_init(&drv_data->cur_msg->queue);
 
-	/* Initial message state */
+	/* Initialize message state */
 	drv_data->cur_msg->state = START_STATE;
 	drv_data->cur_transfer = list_entry(drv_data->cur_msg->transfers.next,
 					    struct spi_transfer, transfer_list);
@@ -622,7 +624,7 @@ bfin_sport_spi_setup(struct spi_device *spi)
 	/* Sport in master mode */
 	chip->ctl_reg |= ITCLK | ITFS | TFSR | LATFS | LTFS;
 
-	chip->baud = hz_to_spi_baud(spi->max_speed_hz);
+	chip->baud = bfin_sport_hz_to_spi_baud(spi->max_speed_hz);
 
 	chip->cs_gpio = spi->chip_select;
 	ret = gpio_request(chip->cs_gpio, spi->modalias);
@@ -929,6 +931,7 @@ bfin_sport_spi_resume(struct platform_device *pdev)
 static struct platform_driver bfin_sport_spi_driver = {
 	.driver	= {
 		.name = DRV_NAME,
+		.owner = THIS_MODULE,
 	},
 	.probe   = bfin_sport_spi_probe,
 	.remove  = __devexit_p(bfin_sport_spi_remove),
