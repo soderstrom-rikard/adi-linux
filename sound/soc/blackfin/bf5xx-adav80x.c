@@ -84,13 +84,13 @@ static struct snd_soc_dai_link bf5xx_adav80x_dai = {
 	.stream_name = "ADAV80X",
 	.cpu_dai_name = "bfin-i2s",
 	.codec_dai_name = "ADAV80X",
-	.platform_name = "bfin-pcm-audio",
+	.platform_name = "bfin-i2s-pcm-audio",
 	.codec_name = "adav80x",
 	.ops = &bf5xx_adav80x_ops,
 };
 
 static struct snd_soc_card bf5xx_adav80x = {
-	.name = "bf5xx_adav80x",
+	.name = "bfin-adav80x",
 	.dai_link = &bf5xx_adav80x_dai,
 	.num_links = 1,
 };

@@ -209,7 +209,7 @@ static struct snd_soc_dai_link bf5xx_ad73311_dai[] = {
 		.stream_name = "AD73311",
 		.cpu_dai_name = "bfin-i2s.0",
 		.codec_dai_name = "ad73311-hifi",
-		.platform_name = "bfin-pcm-audio",
+		.platform_name = "bfin-i2s-pcm-audio",
 		.codec_name = "ad73311",
 		.init = snd_ad73311_init,
 		.ops = &bf5xx_ad73311_ops,
@@ -219,15 +219,15 @@ static struct snd_soc_dai_link bf5xx_ad73311_dai[] = {
 		.stream_name = "AD73311",
 		.cpu_dai_name = "bfin-i2s.1",
 		.codec_dai_name = "ad73311-hifi",
-		.platform_name = "bfin-pcm-audio",
+		.platform_name = "bfin-i2s-pcm-audio",
 		.codec_name = "ad73311",
 		.init = snd_ad73311_init,
 		.ops = &bf5xx_ad73311_ops,
-	}
+	},
 };
 
 static struct snd_soc_card bf5xx_ad73311 = {
-	.name = "bf5xx_ad73311",
+	.name = "bfin-ad73311",
 	.probe = bf5xx_probe,
 	.dai_link = &bf5xx_ad73311_dai[CONFIG_SND_BF5XX_SPORT_NUM],
 	.num_links = 1,
