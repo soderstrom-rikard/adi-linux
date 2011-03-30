@@ -111,15 +111,11 @@ struct sm_message_queue {
 	struct sm_msg messages[SM_MSGQ_LEN];
 };
 
-struct sm_buf {
-	struct list_head next;
-	void *buf;
-	sm_uint32_t size;
-};
-
 struct sm_session {
 	struct list_head rx_messages; /*rx queue sm message*/
-	struct list_head bufs;
+	struct list_head tx_messages;
+	sm_uint32_t	n_avail;
+	sm_uint32_t	n_uncompleted;
 	sm_uint32_t	local_ep;
 	sm_uint32_t	remote_ep; /*remote ep*/
 	sm_uint32_t	type;
@@ -134,8 +130,10 @@ struct sm_session {
 #define MAX_SESSIONS 32
 struct sm_session_table {
 	struct sm_session sessions[MAX_ENDPOINTS];
-	sm_uint32_t	nfree;
-	sm_uint32_t	bits[(MAX_ENDPOINTS - 1) / BITS_PER_LONG + 1];
+	uint32_t	nfree;
+	uint32_t session_mask;
+	uint32_t session_pending;
+	uint32_t	bits[(MAX_ENDPOINTS - 1) / BITS_PER_LONG + 1];
 	struct list_head next_table;
 	struct mutex lock;
 	sm_uint16_t	refcnt;
@@ -165,17 +163,34 @@ struct sm_icc_desc {
 #define CMD_SM_CONNECT		_IO('m', 5)
 #define CMD_SM_RECV		_IO('m', 6)
 #define CMD_SM_SHUTDOWN		_IO('m', 7)
+#define CMD_SM_GET_NODE_STATUS	_IO('m', 8)
+#define CMD_SM_GET_SESSION_STATUS _IO('m', 9)
 
 #define MAX_TASK_NAME 64
+struct sm_node_status {
+	uint32_t session_mask;
+	uint32_t session_pending;
+	uint32_t nfree;
+};
+
+struct sm_session_status {
+	uint32_t avail;
+	uint32_t uncomplete;
+	uint32_t status;
+};
+
 struct sm_packet {
-	sm_uint32_t session_idx;
-	sm_uint32_t local_ep;
-	sm_uint32_t remote_ep;
-	sm_uint32_t type;
-	sm_uint32_t dst_cpu;
-	sm_uint32_t src_cpu;
-	sm_uint32_t buf_len;
+	uint32_t session_idx;
+	uint32_t local_ep;
+	uint32_t remote_ep;
+	uint32_t type;
+	uint32_t flag;
+	uint32_t dst_cpu;
+	uint32_t src_cpu;
+	uint32_t buf_len;
 	void *buf;
+	uint32_t param_len;
+	void *param;
 };
 
 #define L3_TYPE_AUDIO 1
@@ -195,7 +210,7 @@ struct sm_task {
 	int (*task_init)(int argc, char *argv[]);
 	void (*task_exit)(void);
 	int task_argc;
-	char task_argv[1][MAX_TASK_NAME];
+	char task_argv[3][MAX_TASK_NAME];
 };
 #define __icc_task __attribute__((section(".icc.text")))
 #define __icc_task_data __attribute__((section(".icc.data")))
