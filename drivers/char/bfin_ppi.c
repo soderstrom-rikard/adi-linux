@@ -103,6 +103,7 @@ struct ppi_register {
 #define PORT_DIR	EPPI_DIR
 #define PORT_CFG	FS_CFG
 #define PACK_EN		PACKEN
+#define EPPI_PACK_EN	(1 << 20)
 #define PPI_COUNT_CORR_OFFSET	0
 #define XFR_TYPE_SHIFT	2
 #define PORT_CFG_SHIFT	4  /* FS_CFG */
@@ -511,7 +512,6 @@ static long ppi_ioctl(struct file *filp, uint cmd, unsigned long arg)
 		pr_debug("ppi_ioctl: CMD_PPI_PACKING\n");
 		regdata = dev->regs->ppi_control;
 		if (arg) {
-#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)
 			/*
 			 * The PACK_EN bit only has meaning when the PPI port width (selected by
 			 * DLEN[2:0]) is 8 bits
@@ -521,11 +521,18 @@ static long ppi_ioctl(struct file *filp, uint cmd, unsigned long arg)
 						"PACKING can't work while PPI port width isn't 8\n");
 				goto err_inval;
 			}
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)
 			regdata |= PACK_EN;
-			pr_debug("ppi_ioctl: CMD_PPI_PACKING packing enable\n");
+#elif defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)
+			regdata |= EPPI_PACK_EN;
 #endif
+			pr_debug("ppi_ioctl: CMD_PPI_PACKING packing enable\n");
 		} else {
+#if defined(PPI_CONTROL) || defined(PPI0_CONTROL)
 			regdata &= ~PACK_EN;
+#elif defined(EPPI0_CONTROL) || defined(EPPI1_CONTROL)
+			regdata &= ~EPPI_PACK_EN;
+#endif
 			pr_debug("ppi_ioctl: CMD_PPI_PACKING packing disable\n");
 		}
 		conf->ppi_control = regdata;
