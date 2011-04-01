@@ -333,8 +333,8 @@ static int bfin_musb_set_mode(struct musb *musb, u8 musb_mode)
 	return -EIO;
 }
 
-static int bfin_musb_channel_program(struct dma_channel *channel,
-				u16 *packet_sz, u8 *mode,
+static int bfin_musb_adjust_channel_params(struct dma_channel *channel,
+				u16 packet_sz, u8 *mode,
 				dma_addr_t *dma_addr, u32 *len)
 {
 	struct musb_dma_channel *musb_channel = channel->private_data;
@@ -348,7 +348,7 @@ static int bfin_musb_channel_program(struct dma_channel *channel,
 	 */
 	if (ANOMALY_05000450) {
 		if (musb_channel->transmit && *mode == 1)
-			*len = *len - (*len % *packet_sz);
+			*len = *len - (*len % packet_sz);
 	}
 
 	return 0;
@@ -453,7 +453,7 @@ static const struct musb_platform_ops bfin_ops = {
 	.vbus_status	= bfin_musb_vbus_status,
 	.set_vbus	= bfin_musb_set_vbus,
 
-	.channel_program = bfin_musb_channel_program,
+	.adjust_channel_params = bfin_musb_adjust_channel_params,
 };
 
 static u64 bfin_dmamask = DMA_BIT_MASK(32);

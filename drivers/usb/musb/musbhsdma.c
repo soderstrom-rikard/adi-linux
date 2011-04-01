@@ -170,9 +170,9 @@ static int dma_channel_program(struct dma_channel *channel,
 		channel->status == MUSB_DMA_STATUS_BUSY);
 
 	/* Let targets check/tweak the arguments */
-	if (musb->ops->channel_program) {
-		int ret = musb->ops->channel_program(channel, &packet_sz,
-			&mode, &dma_addr, &len);
+	if (musb->ops->adjust_channel_params) {
+		int ret = musb->ops->adjust_channel_params(channel,
+			packet_sz, &mode, &dma_addr, &len);
 		if (ret)
 			return ret;
 	}

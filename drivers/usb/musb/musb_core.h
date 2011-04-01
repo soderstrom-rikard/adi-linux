@@ -276,8 +276,8 @@ struct musb_platform_ops {
 	int	(*vbus_status)(struct musb *musb);
 	void	(*set_vbus)(struct musb *musb, int on);
 
-	int	(*channel_program)(struct dma_channel *channel,
-				u16 *packet_sz, u8 *mode,
+	int	(*adjust_channel_params)(struct dma_channel *channel,
+				u16 packet_sz, u8 *mode,
 				dma_addr_t *dma_addr, u32 *len);
 };
 
