@@ -682,6 +682,22 @@
 	}
 
 /**
+ * PERCPU_INPUT - the percpu input sections
+ *
+ * The core percpu section names and core symbols which do not rely
+ * directly upon load addresses.
+ */
+#define PERCPU_INPUT							\
+	VMLINUX_SYMBOL(__per_cpu_start) = .;				\
+	*(.data..percpu..first)						\
+	. = ALIGN(PAGE_SIZE);						\
+	*(.data..percpu..page_aligned)					\
+	*(.data..percpu..readmostly)					\
+	*(.data..percpu)						\
+	*(.data..percpu..shared_aligned)				\
+	VMLINUX_SYMBOL(__per_cpu_end) = .;
+
+/**
  * PERCPU_VADDR - define output section for percpu area
  * @vaddr: explicit base address (optional)
  * @phdr: destination PHDR (optional)
@@ -704,14 +720,7 @@
 	VMLINUX_SYMBOL(__per_cpu_load) = .;				\
 	.data..percpu vaddr : AT(VMLINUX_SYMBOL(__per_cpu_load)		\
 				- LOAD_OFFSET) {			\
-		VMLINUX_SYMBOL(__per_cpu_start) = .;			\
-		*(.data..percpu..first)					\
-		. = ALIGN(PAGE_SIZE);					\
-		*(.data..percpu..page_aligned)				\
-		*(.data..percpu..readmostly)				\
-		*(.data..percpu)					\
-		*(.data..percpu..shared_aligned)			\
-		VMLINUX_SYMBOL(__per_cpu_end) = .;			\
+		PERCPU_INPUT						\
 	} phdr								\
 	. = VMLINUX_SYMBOL(__per_cpu_load) + SIZEOF(.data..percpu);
 
@@ -732,14 +741,7 @@
 	. = ALIGN(align);						\
 	.data..percpu	: AT(ADDR(.data..percpu) - LOAD_OFFSET) {	\
 		VMLINUX_SYMBOL(__per_cpu_load) = .;			\
-		VMLINUX_SYMBOL(__per_cpu_start) = .;			\
-		*(.data..percpu..first)					\
-		. = ALIGN(PAGE_SIZE);					\
-		*(.data..percpu..page_aligned)				\
-		*(.data..percpu..readmostly)				\
-		*(.data..percpu)					\
-		*(.data..percpu..shared_aligned)			\
-		VMLINUX_SYMBOL(__per_cpu_end) = .;			\
+		PERCPU_INPUT						\
 	}
 
 
