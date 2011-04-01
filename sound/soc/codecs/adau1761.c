@@ -40,7 +40,7 @@ struct adau1761_priv {
 	unsigned int out_route;
 	unsigned int pll_out;
 	struct work_struct resume_work;
-	struct snd_soc_codec codec;
+	struct snd_soc_codec *codec;
 	int dapm_state_suspend;
 	struct platform_device *pdev;
 	u8 pll_enable;
@@ -62,6 +62,58 @@ struct adau1761_setup_data {
 struct adau1761_mode_register {
 	u16 regaddress;
 	u16 regvalue;
+};
+
+static const u8 adau1761_reg[ADAU_NUMCACHEREG] = {
+	0x00, /* R0 - CLKCTRL */
+	0x00, /* RESERVED */
+	0x00, /* R1 - PLL_MH */
+	0xFD, /* R1 - PLL_ML */
+	0x00, /* R1 - PLL_NH */
+	0x0C, /* R1 - PLL_NL */
+	0x10, /* R1 - PLL_CTR0 */
+	0x00, /* R1 - PLL_CTR1 */
+	0x00, /* R2 - MICCTRL */
+	0x00, /* R3 - RECPWRM */
+	0x00, /* R4 - RECMLC0 */
+	0x00, /* R5 - RECMLC1 */
+	0x00, /* R6 - RECMRC0 */
+	0x00, /* R7 - RECMRC1 */
+	0x00, /* R8 - RECVLCL */
+	0x00, /* R9 - RECVLCR */
+	0x00, /* R10 - RECMBIA */
+	0x00, /* R11 - ALCCTR0 */
+	0x00, /* R12 - ALCCTR1 */
+	0x00, /* R13 - ALCCTR2 */
+	0x00, /* R14 - ALCCTR3 */
+	0x00, /* R15 - SPRTCT0 */
+	0x00, /* R16 - SPRTCT1 */
+	0x00, /* R17 - CONVCT0 */
+	0x00, /* R18 - CONVCT1 */
+	0x10, /* R19 - ADCCTL0 */
+	0x00, /* R20 - ADCCTL1 */
+	0x00, /* R21 - ADCCTL2 */
+	0x00, /* R22 - PLBMLC0 */
+	0x00, /* R23 - PLBMLC1 */
+	0x00, /* R24 - PLBMRC0 */
+	0x00, /* R25 - PLBMRC1 */
+	0x00, /* R26 - PLBMLLO */
+	0x00, /* R27 - PLBMRLO */
+	0x00, /* R28 - PLBLRMC */
+	0x02, /* R29 - PLBHPVL */
+	0x02, /* R30 - PLBHPVR */
+	0x02, /* R31 - PLBLOVL */
+	0x02, /* R32 - PLBLOVR */
+	0x02, /* R33 - PLBMNOC */
+	0x00, /* R34 - PLBCTRL */
+	0x00, /* R35 - PLBPWRM */
+	0x00, /* R36 - DACCTL0 */
+	0x00, /* R37 - DACCTL1 */
+	0x00, /* R38 - DACCTL2 */
+	0xAA, /* R39 - SERPAD0 */
+	0xAA, /* R40 - COMPAD0 */
+	0x00, /* R41 - COMPAD1 */
+	0x08, /* R42 - MCLKPAD */
 };
 
 /*
@@ -943,7 +995,7 @@ static int adau1761_suspend(struct snd_soc_codec *codec, pm_message_t state)
 static void adau1761_resume_wq_handler(struct work_struct *work)
 {
 	struct adau1761_priv *adau1761 = container_of(work, struct adau1761_priv, resume_work);
-	struct snd_soc_codec *codec = &adau1761->codec;
+	struct snd_soc_codec *codec = adau1761->codec;
 	unsigned int i, v;
 
 	adau1761_pll_init(codec);
@@ -987,6 +1039,9 @@ static ssize_t adau1371_dsp_load(struct device *dev,
 				  struct device_attribute *attr,
 				  const char *buf, size_t count)
 {
+	struct adau1761_priv *adau1761 = dev_get_drvdata(dev);
+	struct snd_soc_codec *codec = adau1761->codec;
+
 	return adau1761_setprogram(codec) ? : count;
 }
 static DEVICE_ATTR(dsp, 0644, NULL, adau1371_dsp_load);
@@ -996,6 +1051,7 @@ static int adau1761_probe(struct snd_soc_codec *codec)
 	struct adau1761_priv *adau1761 = snd_soc_codec_get_drvdata(codec);
 	int ret = 0;
 
+	adau1761->codec = codec;
 	ret = snd_soc_codec_set_cache_io(codec, 16, 8, adau1761->control_type);
 	if (ret < 0) {
 		dev_err(codec->dev, "Failed to set cache I/O: %d\n", ret);
