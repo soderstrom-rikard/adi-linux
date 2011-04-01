@@ -82,7 +82,7 @@
 
 #define ADAU_LASTREG	0x4031
 
-#define ADAU_NUMCACHEREG	44
+#define ADAU_NUMCACHEREG	50
 
 /* Register field definitions */
 /* Clock Control */

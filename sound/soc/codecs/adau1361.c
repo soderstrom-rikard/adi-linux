@@ -60,6 +60,58 @@ struct adau1361_mode_register {
 	u16 regvalue;
 };
 
+static const u8 adau1361_reg[ADAU_NUMCACHEREG] = {
+	0x00, /* R0 - CLKCTRL */
+	0x00, /* RESERVED */
+	0x00, /* R1 - PLL_MH */
+	0xFD, /* R1 - PLL_ML */
+	0x00, /* R1 - PLL_NH */
+	0x0C, /* R1 - PLL_NL */
+	0x10, /* R1 - PLL_CTR0 */
+	0x00, /* R1 - PLL_CTR1 */
+	0x00, /* R2 - MICCTRL */
+	0x00, /* R3 - RECPWRM */
+	0x00, /* R4 - RECMLC0 */
+	0x00, /* R5 - RECMLC1 */
+	0x00, /* R6 - RECMRC0 */
+	0x00, /* R7 - RECMRC1 */
+	0x00, /* R8 - RECVLCL */
+	0x00, /* R9 - RECVLCR */
+	0x00, /* R10 - RECMBIA */
+	0x00, /* R11 - ALCCTR0 */
+	0x00, /* R12 - ALCCTR1 */
+	0x00, /* R13 - ALCCTR2 */
+	0x00, /* R14 - ALCCTR3 */
+	0x00, /* R15 - SPRTCT0 */
+	0x00, /* R16 - SPRTCT1 */
+	0x00, /* R17 - CONVCT0 */
+	0x00, /* R18 - CONVCT1 */
+	0x10, /* R19 - ADCCTL0 */
+	0x00, /* R20 - ADCCTL1 */
+	0x00, /* R21 - ADCCTL2 */
+	0x00, /* R22 - PLBMLC0 */
+	0x00, /* R23 - PLBMLC1 */
+	0x00, /* R24 - PLBMRC0 */
+	0x00, /* R25 - PLBMRC1 */
+	0x00, /* R26 - PLBMLLO */
+	0x00, /* R27 - PLBMRLO */
+	0x00, /* R28 - PLBLRMC */
+	0x02, /* R29 - PLBHPVL */
+	0x02, /* R30 - PLBHPVR */
+	0x02, /* R31 - PLBLOVL */
+	0x02, /* R32 - PLBLOVR */
+	0x02, /* R33 - PLBMNOC */
+	0x00, /* R34 - PLBCTRL */
+	0x00, /* R35 - PLBPWRM */
+	0x00, /* R36 - DACCTL0 */
+	0x00, /* R37 - DACCTL1 */
+	0x00, /* R38 - DACCTL2 */
+	0xAA, /* R39 - SERPAD0 */
+	0xAA, /* R40 - COMPAD0 */
+	0x00, /* R41 - COMPAD1 */
+	0x08, /* R42 - MCLKPAD */
+};
+
 /*
  * Reset Mode - ADC capture/DAC playback
  * (AInput mixers 0db, AOuput mixers 0db, HP out ON)
