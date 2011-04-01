@@ -44,7 +44,7 @@ extern void vm_unmap_aliases(void);
 
 #ifdef CONFIG_MMU
 extern void __init vmalloc_init(void);
-#define vcoalesce(...) vmap(...)
+#define vcoalesce(...) vmap(__VA_ARGS__)
 #else
 static inline void vmalloc_init(void)
 {
