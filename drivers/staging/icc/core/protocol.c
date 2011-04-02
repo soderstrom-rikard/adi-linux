@@ -384,7 +384,6 @@ retry:
 fail:
 	kfree(payload_buf);
 out:
-	kfree(m);
 	return ret;
 }
 
@@ -451,28 +450,27 @@ sm_wait_for_connect_ack(struct sm_session *session)
 		sm_debug("signal\n");
 		return -EINTR;
 	}
-	return 0;
+	if (session->flags == SM_CONNECT)
+		return 0;
+	else
+		return -EAGAIN;
 }
 
-static int sm_connect_session(sm_uint32_t dst_ep, sm_uint32_t dst_cpu,
-			sm_uint32_t src_ep)
+static int sm_connect_session(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu)
 {
 	struct sm_session *session;
-	struct sm_session_table *table = icc_info->sessions_table;
-	sm_uint32_t slot = sm_find_session(src_ep, 0, table);
-	if (slot >= 32)
+	session = sm_index_to_session(session_idx);
+	if (!session)
 		return -EINVAL;
-	sm_debug("session index %d\n", slot);
-	session = &table->sessions[slot];
+	session->type = SP_SESSION_PACKET;
 	sm_send_connect(session, dst_ep, dst_cpu);
 	if (sm_wait_for_connect_ack(session))
 		return -EAGAIN;
 	sm_debug("received connect ack\n");
-	if (table->sessions[slot].remote_ep == dst_ep)
+	if (session->remote_ep == dst_ep)
 		sm_debug("auto accept\n");
 
-	table->sessions[slot].flags = SM_CONNECT;
-	sm_send_connect_done(session, table->sessions[slot].remote_ep, dst_cpu);
+	sm_send_connect_done(session, session->remote_ep, dst_cpu);
 	return 0;
 }
 
@@ -487,28 +485,41 @@ static int sm_disconnect_session(sm_uint32_t dst_ep, sm_uint32_t src_ep,
 	table->sessions[slot].flags = 0;
 }
 
-static int sm_update_session(sm_uint32_t src_ep, sm_uint32_t dst_ep,
-					struct sm_session_table *table)
+static int sm_open_session(sm_uint32_t index)
 {
-	sm_uint32_t slot = sm_find_session(src_ep, dst_ep, table);
-	if (slot >= 32)
+	struct sm_session *session;
+	session = sm_index_to_session(index);
+	if (!session)
 		return -EINVAL;
-	table->sessions[slot].remote_ep = dst_ep;
-	table->sessions[slot].flags = SM_CONNECT;
+	if (session->flags == SM_CONNECT) {
+		session->flags |= SM_OPEN;
+		return 0;
+	}
+	return -EINVAL;
 }
 
-static int sm_destroy_session(sm_uint32_t src_ep)
+static int sm_close_session(sm_uint32_t index)
 {
-	struct sm_session_table *table = icc_info->sessions_table;
 	struct sm_session *session;
-	struct sm_message *message = NULL;
-	struct sm_msg *msg = NULL;
-	sm_debug("%s\n", __func__);
-	sm_uint32_t slot = sm_find_session(src_ep, 0, table);
-	if (slot < 0)
+	session = sm_index_to_session(index);
+	if (!session)
 		return -EINVAL;
+	if (session->flags & SM_OPEN) {
+		session->flags &= ~SM_OPEN;
+		return 0;
+	}
+	return -EINVAL;
+}
 
-	session = &table->sessions[slot];
+static int sm_destroy_session(sm_uint32_t session_idx)
+{
+	struct sm_message *message;
+	struct sm_msg *msg;
+	struct sm_session *session;
+	struct sm_session_table *table = icc_info->sessions_table;
+	session = sm_index_to_session(session_idx);
+	if (!session)
+		return -EINVAL;
 	while (!list_empty(&session->rx_messages)) {
 		message = list_first_entry(&session->rx_messages,
 					struct sm_message, next);
@@ -527,7 +538,7 @@ static int sm_destroy_session(sm_uint32_t src_ep)
 	if (session->flags == SM_CONNECT)
 		sm_send_close(session, msg->src_ep, message->src);
 
-	sm_free_session(slot, table);
+	sm_free_session(session_idx, table);
 	return 0;
 }
 
@@ -633,10 +644,16 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		pkt->session_idx = ret;
 		break;
 	case CMD_SM_CONNECT:
-		ret = sm_connect_session(remote_ep, dst_cpu, local_ep);
+		ret = sm_connect_session(session_idx, remote_ep, dst_cpu);
+		break;
+	case CMD_SM_OPEN:
+		ret = sm_open_session(session_idx);
+		break;
+	case CMD_SM_CLOSE:
+		ret = sm_close_session(session_idx);
 		break;
 	case CMD_SM_SHUTDOWN:
-		ret = sm_destroy_session(local_ep);
+		ret = sm_destroy_session(session_idx);
 		break;
 	case CMD_SM_GET_NODE_STATUS:
 		ret = icc_get_node_status(pkt->param, pkt->param_len);
@@ -717,7 +734,6 @@ static int sm_default_sendmsg(struct sm_message *message, struct sm_session *ses
 		msg->type = SM_MSG_TYPE(session->type, 0);
 		list_add(&message->next, &session->tx_messages);
 		session->n_uncompleted++;
-		sm_debug("uncomplete %08x\n", msg->payload);
 		break;
 	case SM_PACKET_ERROR:
 		printk("SM ERROR %08x\n", msg->payload);
@@ -738,20 +754,26 @@ sm_default_recvmsg(struct sm_msg *msg, struct sm_session *session)
 	switch (msg->type) {
 	case SM_PACKET_CONSUMED:
 	case SM_SESSION_PACKET_COMSUMED:
+		mutex_lock(&icc_info->sessions_table->lock);
 		/* icc queue is FIFO, so handle first message */
-		if (!list_empty(&session->tx_messages)) {
-			uncompleted = list_first_entry(&session->tx_messages, struct sm_message, next);
-			if ((uncompleted->msg.payload != msg->payload) ||
-				(uncompleted->msg.dst_ep != msg->src_ep)) {
-				sm_debug("unmatched ack %08x %x uncomplete tx %08x\n", msg->payload, msg->length, uncompleted->msg.payload);
-				break;
+		list_for_each_entry(uncompleted, &session->tx_messages, next) {
+			if ((uncompleted->msg.payload == msg->payload) &&
+					(uncompleted->msg.dst_ep != msg->src_ep)) {
+				sm_debug("ack matched free buf %x\n", msg->payload);
+				goto matched;
 			}
-			sm_debug("free buf %x\n", msg->payload);
-			list_del(&uncompleted->next);
-			kfree((void *)msg->payload);
-			session->n_uncompleted--;
-			wake_up(&icc_info->iccq_tx_wait);
+			sm_debug("unmatched ack %08x %x uncomplete tx %08x\n", msg->payload, msg->length, uncompleted->msg.payload);
 		}
+		mutex_unlock(&icc_info->sessions_table->lock);
+		sm_debug("unmatched ack %08x %x uncomplete tx %08x\n", msg->payload, msg->length, uncompleted->msg.payload);
+		break;
+matched:
+		list_del(&uncompleted->next);
+		mutex_unlock(&icc_info->sessions_table->lock);
+		kfree(uncompleted);
+		kfree((void *)msg->payload);
+		session->n_uncompleted--;
+		wake_up(&icc_info->iccq_tx_wait);
 		break;
 	case SM_SESSION_PACKET_CONNECT_ACK:
 		sm_debug("%s wakeup wait thread\n", __func__);
