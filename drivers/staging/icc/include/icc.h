@@ -36,6 +36,7 @@ enum {
 #define SM_CONNECT 0x1
 #define SM_CONNECTING 0x2
 #define SM_OPEN 0x4
+#define SM_ACTIVE 0x8
 
 #define SM_BAD_ENDPOINT SM_MSG_TYPE(0, 0)
 #define SM_BAD_MSG SM_MSG_TYPE(0, 1)
@@ -142,7 +143,7 @@ struct sm_session_table {
 
 struct sm_proto {
 	int (*sendmsg)(struct sm_message *msg, struct sm_session *session);
-	int (*recvmsg)(struct sm_message *msg, struct sm_session *session);
+	int (*recvmsg)(struct sm_msg *msg, struct sm_session *session);
 	int (*shutdown)(struct sm_session *session);
 	int (*error)(struct sm_message *msg, struct sm_session *session);
 };
@@ -168,6 +169,7 @@ struct sm_icc_desc {
 #define CMD_SM_GET_SESSION_STATUS _IO('m', 9)
 #define CMD_SM_OPEN _IO('m', 10)
 #define CMD_SM_CLOSE _IO('m', 11)
+#define CMD_SM_ACTIVE _IO('m', 12)
 
 #define MAX_TASK_NAME 64
 struct sm_node_status {

@@ -16,6 +16,8 @@
 #include <icc.h>
 #include <linux/poll.h>
 #include <linux/proc_fs.h>
+#include <linux/wait.h>
+#include <linux/sched.h>
 
 #define DEBUG
 #ifdef DEBUG
@@ -298,6 +300,27 @@ int sm_send_connect_done(struct sm_session *session, sm_uint32_t remote_ep,
 					0, SM_SESSION_PACKET_CONNECT_DONE);
 }
 
+int sm_send_session_active(struct sm_session *session, sm_uint32_t remote_ep,
+			sm_uint32_t dst_cpu)
+{
+	return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
+					0, SM_SESSION_PACKET_ACTIVE);
+}
+
+int sm_send_session_active_ack(struct sm_session *session, sm_uint32_t remote_ep,
+			sm_uint32_t dst_cpu)
+{
+	return sm_send_control_msg(session, remote_ep, dst_cpu, SM_OPEN,
+					0, SM_SESSION_PACKET_ACTIVE_ACK);
+}
+
+int sm_send_session_active_noack(struct sm_session *session, sm_uint32_t remote_ep,
+			sm_uint32_t dst_cpu)
+{
+	return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
+					0, SM_SESSION_PACKET_ACTIVE_ACK);
+}
+
 int sm_send_close_ack(struct sm_session *session, sm_uint32_t remote_ep,
 			sm_uint32_t dst_cpu)
 {
@@ -454,6 +477,26 @@ sm_wait_for_connect_ack(struct sm_session *session)
 		return 0;
 	else
 		return -EAGAIN;
+}
+
+static int sm_get_remote_session_active(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu)
+{
+	struct sm_session *session;
+	session = sm_index_to_session(session_idx);
+	if (!session)
+		return -EINVAL;
+	session->type = SP_SESSION_PACKET;
+	sm_send_session_active(session, dst_ep, dst_cpu);
+	mutex_unlock(&icc_info->sessions_table->lock);
+	wait_event_interruptible_timeout(session->rx_wait,
+				(session->flags & SM_ACTIVE), 5);
+	mutex_lock(&icc_info->sessions_table->lock);
+
+	if (session->flags & SM_ACTIVE) {
+		sm_debug("received active ack\n");
+		return 0;
+	}
+	return -EAGAIN;
 }
 
 static int sm_connect_session(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu)
@@ -652,6 +695,9 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case CMD_SM_CLOSE:
 		ret = sm_close_session(session_idx);
 		break;
+	case CMD_SM_ACTIVE:
+		ret = sm_get_remote_session_active(session_idx, remote_ep, dst_cpu);
+		break;
 	case CMD_SM_SHUTDOWN:
 		ret = sm_destroy_session(session_idx);
 		break;
@@ -717,6 +763,8 @@ static int msg_recv_internal(struct sm_msg *msg, struct sm_session *session)
 
 	message->dst = cpu;
 	message->src = cpu ^ 1;
+	if (session->handle)
+		session->handle(message, session);
 	list_add(&message->next, &session->rx_messages);
 	session->n_avail++;
 	sm_debug("%s wakeup wait thread\n", __func__);
@@ -758,7 +806,7 @@ sm_default_recvmsg(struct sm_msg *msg, struct sm_session *session)
 		/* icc queue is FIFO, so handle first message */
 		list_for_each_entry(uncompleted, &session->tx_messages, next) {
 			if ((uncompleted->msg.payload == msg->payload) &&
-					(uncompleted->msg.dst_ep != msg->src_ep)) {
+					(uncompleted->msg.dst_ep == msg->src_ep)) {
 				sm_debug("ack matched free buf %x\n", msg->payload);
 				goto matched;
 			}
@@ -789,6 +837,20 @@ matched:
 	case SM_SESSION_PACKET_CONNECT_DONE:
 		sm_debug("%s connect done\n", __func__);
 		session->flags = SM_CONNECT;
+		break;
+	case SM_SESSION_PACKET_ACTIVE:
+		if (session->flags & SM_OPEN)
+			sm_send_session_active_ack(session, msg->src_ep, cpu ^ 1);
+		else
+			sm_send_session_active_noack(session, msg->src_ep, cpu ^ 1);
+		break;
+	case SM_SESSION_PACKET_ACTIVE_ACK:
+		if (session->flags & SM_OPEN) {
+			if (msg->payload == SM_OPEN) {
+				session->flags |= SM_ACTIVE;
+				wake_up(&session->rx_wait);
+			}
+		}
 		break;
 	case SM_SESSION_PACKET_CLOSE:
 		session->remote_ep = 0;
