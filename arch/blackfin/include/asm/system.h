@@ -15,21 +15,17 @@
 #include <asm/pda.h>
 #include <asm/irq.h>
 
-#ifdef CONFIG_SMP
-#ifdef __ARCH_SYNC_CORE_DCACHE
-/* Force Core data cache coherence */
-# define mb()	do { barrier(); smp_check_barrier(); smp_mark_barrier(); } while (0)
-# define rmb()	do { barrier(); smp_check_barrier(); } while (0)
-# define wmb()	do { barrier(); smp_mark_barrier(); } while (0)
-# define read_barrier_depends()	do { barrier(); smp_check_barrier(); } while (0)
-#else
-# define
-# define mb()	barrier()
-# define rmb()	barrier()
-# define wmb()	barrier()
-# define read_barrier_depends()	do { } while (0)
-#endif
+/*
+ * Force strict CPU ordering.
+ */
+#define nop()  __asm__ __volatile__ ("nop;\n\t" : : )
+#define smp_mb()  mb()
+#define smp_rmb() rmb()
+#define smp_wmb() wmb()
+#define set_mb(var, value) do { var = value; mb(); } while (0)
+#define smp_read_barrier_depends()	read_barrier_depends()
 
+#ifdef CONFIG_SMP
 asmlinkage unsigned long __raw_xchg_1_asm(volatile void *ptr, unsigned long value);
 asmlinkage unsigned long __raw_xchg_2_asm(volatile void *ptr, unsigned long value);
 asmlinkage unsigned long __raw_xchg_4_asm(volatile void *ptr, unsigned long value);
@@ -39,6 +35,19 @@ asmlinkage unsigned long __raw_cmpxchg_2_asm(volatile void *ptr,
 					unsigned long new, unsigned long old);
 asmlinkage unsigned long __raw_cmpxchg_4_asm(volatile void *ptr,
 					unsigned long new, unsigned long old);
+
+#ifdef __ARCH_SYNC_CORE_DCACHE
+/* Force Core data cache coherence */
+# define mb()	do { barrier(); smp_check_barrier(); smp_mark_barrier(); } while (0)
+# define rmb()	do { barrier(); smp_check_barrier(); } while (0)
+# define wmb()	do { barrier(); smp_mark_barrier(); } while (0)
+# define read_barrier_depends()	do { barrier(); smp_check_barrier(); } while (0)
+#else
+# define mb()	barrier()
+# define rmb()	barrier()
+# define wmb()	barrier()
+# define read_barrier_depends()	do { } while (0)
+#endif
 
 static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
 				   int size)
@@ -148,14 +157,6 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
 #include <asm-generic/cmpxchg.h>
 
 #endif /* !CONFIG_SMP */
-
-#define nop()	__asm__ __volatile__ ("nop;\n\t" : : )
-#define set_mb(var, value)	do { var = value; mb(); } while (0)
-
-#define smp_mb()	mb()
-#define smp_rmb()	rmb()
-#define smp_wmb()	wmb()
-#define smp_read_barrier_depends()	read_barrier_depends()
 
 #define xchg(ptr, x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
 #define tas(ptr) ((void)xchg((ptr), 1))
