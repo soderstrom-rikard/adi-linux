@@ -856,7 +856,6 @@ static int bfin_gpio_set_wake(struct irq_data *d, unsigned int state)
 	u32 pint_irq;
 	u32 pint_val = irq2pint_lut[d->irq - SYS_IRQS];
 	u32 bank = PINT_2_BANK(pint_val);
-	u32 pintbit = PINT_BIT(pint_val);
 
 	switch (bank) {
 	case 0:
@@ -1038,6 +1037,7 @@ int __init init_arch_irq(void)
 			set_irq_handler(irq, handle_percpu_irq);
 			break;
 #endif
+
 #ifdef CONFIG_TICKSOURCE_CORETMR
 		case IRQ_CORETMR:
 # ifdef CONFIG_SMP
