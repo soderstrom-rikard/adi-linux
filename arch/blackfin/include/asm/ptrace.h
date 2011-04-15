@@ -104,8 +104,6 @@ struct pt_regs {
 #define user_mode(regs) (!(((regs)->ipend & ~0x10) & (((regs)->ipend & ~0x10) - 1)))
 
 #define arch_has_single_step()	(1)
-extern void user_enable_single_step(struct task_struct *child);
-extern void user_disable_single_step(struct task_struct *child);
 /* common code demands this function */
 #define ptrace_disable(child) user_disable_single_step(child)
 
