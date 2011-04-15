@@ -1,7 +1,7 @@
 /*
  * debugfs interface to core/system MMRs
  *
- * Copyright 2007-2010 Analog Devices Inc.
+ * Copyright 2007-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later
  */
@@ -19,6 +19,12 @@
 #include <asm/bfin_serial.h>
 #include <asm/bfin5xx_spi.h>
 #include <asm/bfin_twi.h>
+
+/* Common code defines PORT_MUX on us, so redirect the MMR back locally */
+#ifdef BFIN_PORT_MUX
+#undef PORT_MUX
+#define PORT_MUX BFIN_PORT_MUX
+#endif
 
 #define _d(name, bits, addr, perms) debugfs_create_x##bits(name, perms, parent, (u##bits *)addr)
 #define d(name, bits, addr)         _d(name, bits, addr, S_IRUSR|S_IWUSR)
@@ -292,6 +298,48 @@ bfin_debug_mmrs_hmdma(struct dentry *parent, unsigned long base, int num)
 	__HMDMA(BCOUNT, bcount);
 }
 #define HMDMA(num) bfin_debug_mmrs_hmdma(parent, HMDMA##num##_CONTROL, num)
+
+/*
+ * Port/GPIO
+ */
+#define bfin_gpio_regs gpio_port_t
+#define __PORT(uname, lname) __REGS(gpio, #uname, lname)
+static void __init __maybe_unused
+bfin_debug_mmrs_port(struct dentry *parent, unsigned long base, int num)
+{
+	char buf[32], *_buf;
+#ifdef __ADSPBF54x__
+	_buf = REGS_STR_PFX_C(buf, PORT, num);
+	__PORT(FER, port_fer);
+	__PORT(SET, data_set);
+	__PORT(CLEAR, data_clear);
+	__PORT(DIR_SET, dir_set);
+	__PORT(DIR_CLEAR, dir_clear);
+	__PORT(INEN, inen);
+	__PORT(MUX, port_mux);
+#else
+	_buf = buf + sprintf(buf, "PORT%cIO_", num);
+	__PORT(CLEAR, data_clear);
+	__PORT(SET, data_set);
+	__PORT(TOGGLE, toggle);
+	__PORT(MASKA, maska);
+	__PORT(MASKA_CLEAR, maska_clear);
+	__PORT(MASKA_SET, maska_set);
+	__PORT(MASKA_TOGGLE, maska_toggle);
+	__PORT(MASKB, maskb);
+	__PORT(MASKB_CLEAR, maskb_clear);
+	__PORT(MASKB_SET, maskb_set);
+	__PORT(MASKB_TOGGLE, maskb_toggle);
+	__PORT(DIR, dir);
+	__PORT(POLAR, polar);
+	__PORT(EDGE, edge);
+	__PORT(BOTH, both);
+	__PORT(INEN, inen);
+#endif
+	_buf[-1] = '\0';
+	d(buf, 16, base + REGS_OFF(gpio, data));
+}
+#define PORT(base, num) bfin_debug_mmrs_port(parent, base, num)
 
 /*
  * PPI
@@ -1662,357 +1710,119 @@ static int __init bfin_debug_mmrs_init(void)
 	D32(WDOGB_STAT);
 #endif
 
-#ifdef __ADSPBF51x__
-# define USE_BF51x 1
-#else
-# define USE_BF51x 0
+	/* BF533 glue */
+#ifdef FIO_FLAG_D
+#define PORTFIO FIO_FLAG_D
 #endif
-	if (USE_BF51x) {
+	/* BF561 glue */
+#ifdef FIO0_FLAG_D
+#define PORTFIO FIO0_FLAG_D
+#endif
+#ifdef FIO1_FLAG_D
+#define PORTGIO FIO1_FLAG_D
+#endif
+#ifdef FIO2_FLAG_D
+#define PORTHIO FIO2_FLAG_D
+#endif
+	parent = debugfs_create_dir("port", top);
+#ifdef PORTFIO
+	PORT(PORTFIO, 'F');
+#endif
+#ifdef PORTGIO
+	PORT(PORTGIO, 'G');
+#endif
+#ifdef PORTHIO
+	PORT(PORTHIO, 'H');
+#endif
 
-		parent = debugfs_create_dir("GPIO PIN", top);
-		d("PORTF_FER", 16, 0xFFC03200);
-		d("PORTF_DRIVE", 16, 0xFFC03220);
-		d("PORTF_HYSTERESIS", 16, 0xFFC03240);
-		d("PORTF_MUX", 16, 0xFFC03210);
-		d("PORTG_FER", 16, 0xFFC03204);
-		d("PORTG_DRIVE", 16, 0xFFC03224);
-		d("PORTG_HYSTERESIS", 16, 0xFFC03244);
-		d("PORTG_MUX", 16, 0xFFC03214);
-		d("PORTH_FER", 16, 0xFFC03208);
-		d("PORTH_DRIVE", 16, 0xFFC03228);
-		d("PORTH_HYSTERESIS", 16, 0xFFC03248);
-		d("PORTH_MUX", 16, 0xFFC03218);
+#ifdef __ADSPBF51x__
+	D16(PORTF_FER);
+	D16(PORTF_DRIVE);
+	D16(PORTF_HYSTERESIS);
+	D16(PORTF_MUX);
 
-		parent = debugfs_create_dir("NON-GPIO", top);
-		d("NONGPIO_DRIVE", 16, 0xFFC03280);
-		d("NONGPIO_HYSTERESIS", 16, 0xFFC03288);
+	D16(PORTG_FER);
+	D16(PORTG_DRIVE);
+	D16(PORTG_HYSTERESIS);
+	D16(PORTG_MUX);
 
-		parent = debugfs_create_dir("Port I-O", top);
-		d("PORTFIO", 16, 0xFFC00700);
-		d("PORTFIO_BOTH", 16, 0xFFC0073C);
-		d("PORTFIO_CLEAR", 16, 0xFFC00704);
-		d("PORTFIO_DIR", 16, 0xFFC00730);
-		d("PORTFIO_EDGE", 16, 0xFFC00738);
-		d("PORTFIO_INEN", 16, 0xFFC00740);
-		d("PORTFIO_MASKA", 16, 0xFFC00710);
-		d("PORTFIO_MASKA_CLEAR", 16, 0xFFC00714);
-		d("PORTFIO_MASKA_SET", 16, 0xFFC00718);
-		d("PORTFIO_MASKA_TOGGLE", 16, 0xFFC0071C);
-		d("PORTFIO_MASKB", 16, 0xFFC00720);
-		d("PORTFIO_MASKB_CLEAR", 16, 0xFFC00724);
-		d("PORTFIO_MASKB_SET", 16, 0xFFC00728);
-		d("PORTFIO_MASKB_TOGGLE", 16, 0xFFC0072C);
-		d("PORTFIO_POLAR", 16, 0xFFC00734);
-		d("PORTFIO_SET", 16, 0xFFC00708);
-		d("PORTFIO_TOGGLE", 16, 0xFFC0070C);
-		d("PORTGIO", 16, 0xFFC01500);
-		d("PORTGIO_BOTH", 16, 0xFFC0153C);
-		d("PORTGIO_CLEAR", 16, 0xFFC01504);
-		d("PORTGIO_DIR", 16, 0xFFC01530);
-		d("PORTGIO_EDGE", 16, 0xFFC01538);
-		d("PORTGIO_INEN", 16, 0xFFC01540);
-		d("PORTGIO_MASKA", 16, 0xFFC01510);
-		d("PORTGIO_MASKA_CLEAR", 16, 0xFFC01514);
-		d("PORTGIO_MASKA_SET", 16, 0xFFC01518);
-		d("PORTGIO_MASKA_TOGGLE", 16, 0xFFC0151C);
-		d("PORTGIO_MASKB", 16, 0xFFC01520);
-		d("PORTGIO_MASKB_CLEAR", 16, 0xFFC01524);
-		d("PORTGIO_MASKB_SET", 16, 0xFFC01528);
-		d("PORTGIO_MASKB_TOGGLE", 16, 0xFFC0152C);
-		d("PORTGIO_POLAR", 16, 0xFFC01534);
-		d("PORTGIO_SET", 16, 0xFFC01508);
-		d("PORTGIO_TOGGLE", 16, 0xFFC0150C);
-		d("PORTHIO", 16, 0xFFC01700);
-		d("PORTHIO_BOTH", 16, 0xFFC0173C);
-		d("PORTHIO_CLEAR", 16, 0xFFC01704);
-		d("PORTHIO_DIR", 16, 0xFFC01730);
-		d("PORTHIO_EDGE", 16, 0xFFC01738);
-		d("PORTHIO_INEN", 16, 0xFFC01740);
-		d("PORTHIO_MASKA", 16, 0xFFC01710);
-		d("PORTHIO_MASKA_CLEAR", 16, 0xFFC01714);
-		d("PORTHIO_MASKA_SET", 16, 0xFFC01718);
-		d("PORTHIO_MASKA_TOGGLE", 16, 0xFFC0171C);
-		d("PORTHIO_MASKB", 16, 0xFFC01720);
-		d("PORTHIO_MASKB_CLEAR", 16, 0xFFC01724);
-		d("PORTHIO_MASKB_SET", 16, 0xFFC01728);
-		d("PORTHIO_MASKB_TOGGLE", 16, 0xFFC0172C);
-		d("PORTHIO_POLAR", 16, 0xFFC01734);
-		d("PORTHIO_SET", 16, 0xFFC01708);
-		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
+	D16(PORTH_FER);
+	D16(PORTH_DRIVE);
+	D16(PORTH_HYSTERESIS);
+	D16(PORTH_MUX);
 
-	}	/* BF51x */
+	D16(MISCPORT_DRIVE);
+	D16(MISCPORT_HYSTERESIS);
+#endif	/* BF51x */
 
 #ifdef __ADSPBF52x__
-# define USE_BF52x 1
-#else
-# define USE_BF52x 0
-#endif
-	if (USE_BF52x) {
+	D16(PORTF_FER);
+	D16(PORTF_DRIVE);
+	D16(PORTF_HYSTERESIS);
+	D16(PORTF_MUX);
+	D16(PORTF_SLEW);
 
-		parent = debugfs_create_dir("GPIO PIN", top);
-		d("PORTF_FER", 16, 0xFFC03200);
-		d("PORTF_DRIVE", 16, 0xFFC03220);
-		d("PORTF_HYSTERESIS", 16, 0xFFC03240);
-		d("PORTF_MUX", 16, 0xFFC03210);
-		d("PORTF_SLEW", 16, 0xFFC03230);
-		d("PORTG_FER", 16, 0xFFC03204);
-		d("PORTG_DRIVE", 16, 0xFFC03224);
-		d("PORTG_HYSTERESIS", 16, 0xFFC03244);
-		d("PORTG_MUX", 16, 0xFFC03214);
-		d("PORTG_SLEW", 16, 0xFFC03234);
-		d("PORTH_FER", 16, 0xFFC03208);
-		d("PORTH_DRIVE", 16, 0xFFC03228);
-		d("PORTH_HYSTERESIS", 16, 0xFFC03248);
-		d("PORTH_MUX", 16, 0xFFC03218);
-		d("PORTH_SLEW", 16, 0xFFC03238);
+	D16(PORTG_FER);
+	D16(PORTG_DRIVE);
+	D16(PORTG_HYSTERESIS);
+	D16(PORTG_MUX);
+	D16(PORTG_SLEW);
 
-		parent = debugfs_create_dir("NON-GPIO", top);
-		d("NONGPIO_DRIVE", 16, 0xFFC03280);
-		d("NONGPIO_HYSTERESIS", 16, 0xFFC03288);
-		d("NONGPIO_SLEW", 16, 0xFFC03284);
+	D16(PORTH_FER);
+	D16(PORTH_DRIVE);
+	D16(PORTH_HYSTERESIS);
+	D16(PORTH_MUX);
+	D16(PORTH_SLEW);
 
-		parent = debugfs_create_dir("Port I-O", top);
-		d("PORTFIO", 16, 0xFFC00700);
-		d("PORTFIO_BOTH", 16, 0xFFC0073C);
-		d("PORTFIO_CLEAR", 16, 0xFFC00704);
-		d("PORTFIO_DIR", 16, 0xFFC00730);
-		d("PORTFIO_EDGE", 16, 0xFFC00738);
-		d("PORTFIO_INEN", 16, 0xFFC00740);
-		d("PORTFIO_MASKA", 16, 0xFFC00710);
-		d("PORTFIO_MASKA_CLEAR", 16, 0xFFC00714);
-		d("PORTFIO_MASKA_SET", 16, 0xFFC00718);
-		d("PORTFIO_MASKA_TOGGLE", 16, 0xFFC0071C);
-		d("PORTFIO_MASKB", 16, 0xFFC00720);
-		d("PORTFIO_MASKB_CLEAR", 16, 0xFFC00724);
-		d("PORTFIO_MASKB_SET", 16, 0xFFC00728);
-		d("PORTFIO_MASKB_TOGGLE", 16, 0xFFC0072C);
-		d("PORTFIO_POLAR", 16, 0xFFC00734);
-		d("PORTFIO_SET", 16, 0xFFC00708);
-		d("PORTFIO_TOGGLE", 16, 0xFFC0070C);
-		d("PORTGIO", 16, 0xFFC01500);
-		d("PORTGIO_BOTH", 16, 0xFFC0153C);
-		d("PORTGIO_CLEAR", 16, 0xFFC01504);
-		d("PORTGIO_DIR", 16, 0xFFC01530);
-		d("PORTGIO_EDGE", 16, 0xFFC01538);
-		d("PORTGIO_INEN", 16, 0xFFC01540);
-		d("PORTGIO_MASKA", 16, 0xFFC01510);
-		d("PORTGIO_MASKA_CLEAR", 16, 0xFFC01514);
-		d("PORTGIO_MASKA_SET", 16, 0xFFC01518);
-		d("PORTGIO_MASKA_TOGGLE", 16, 0xFFC0151C);
-		d("PORTGIO_MASKB", 16, 0xFFC01520);
-		d("PORTGIO_MASKB_CLEAR", 16, 0xFFC01524);
-		d("PORTGIO_MASKB_SET", 16, 0xFFC01528);
-		d("PORTGIO_MASKB_TOGGLE", 16, 0xFFC0152C);
-		d("PORTGIO_POLAR", 16, 0xFFC01534);
-		d("PORTGIO_SET", 16, 0xFFC01508);
-		d("PORTGIO_TOGGLE", 16, 0xFFC0150C);
-		d("PORTHIO", 16, 0xFFC01700);
-		d("PORTHIO_BOTH", 16, 0xFFC0173C);
-		d("PORTHIO_CLEAR", 16, 0xFFC01704);
-		d("PORTHIO_DIR", 16, 0xFFC01730);
-		d("PORTHIO_EDGE", 16, 0xFFC01738);
-		d("PORTHIO_INEN", 16, 0xFFC01740);
-		d("PORTHIO_MASKA", 16, 0xFFC01710);
-		d("PORTHIO_MASKA_CLEAR", 16, 0xFFC01714);
-		d("PORTHIO_MASKA_SET", 16, 0xFFC01718);
-		d("PORTHIO_MASKA_TOGGLE", 16, 0xFFC0171C);
-		d("PORTHIO_MASKB", 16, 0xFFC01720);
-		d("PORTHIO_MASKB_CLEAR", 16, 0xFFC01724);
-		d("PORTHIO_MASKB_SET", 16, 0xFFC01728);
-		d("PORTHIO_MASKB_TOGGLE", 16, 0xFFC0172C);
-		d("PORTHIO_POLAR", 16, 0xFFC01734);
-		d("PORTHIO_SET", 16, 0xFFC01708);
-		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
+	D16(MISCPORT_DRIVE);
+	D16(MISCPORT_HYSTERESIS);
+	D16(MISCPORT_SLEW);
+#endif	/* BF52x */
 
-	}	/* BF52x */
+#ifdef BF537_FAMILY
+	D16(PORTF_FER);
+	D16(PORTG_FER);
+	D16(PORTH_FER);
+	D16(PORT_MUX);
+#endif	/* BF534 BF536 BF537 */
 
-#ifdef __ADSPBF531__
-# define USE_BF531 1
-#else
-# define USE_BF531 0
-#endif
-#ifdef __ADSPBF532__
-# define USE_BF532 1
-#else
-# define USE_BF532 0
-#endif
-#ifdef __ADSPBF533__
-# define USE_BF533 1
-#else
-# define USE_BF533 0
-#endif
-	if (USE_BF531 || USE_BF532 || USE_BF533) {
+#ifdef BF538_FAMILY
+	D16(PORTCIO_FER);
+	D16(PORTCIO);
+	D16(PORTCIO_CLEAR);
+	D16(PORTCIO_SET);
+	D16(PORTCIO_TOGGLE);
+	D16(PORTCIO_DIR);
+	D16(PORTCIO_INEN);
 
-		parent = debugfs_create_dir("Extended Registers", top);
-		d("FIO_BOTH", 16, 0xFFC0073C);
-		d("FIO_DIR", 16, 0xFFC00730);
-		d("FIO_EDGE", 16, 0xFFC00738);
-		d("FIO_FLAG_C", 16, 0xFFC00704);
-		d("FIO_FLAG_D", 16, 0xFFC00700);
-		d("FIO_FLAG_S", 16, 0xFFC00708);
-		d("FIO_FLAG_T", 16, 0xFFC0070C);
-		d("FIO_INEN", 16, 0xFFC00740);
-		d("FIO_MASKA_C", 16, 0xFFC00714);
-		d("FIO_MASKA_D", 16, 0xFFC00710);
-		d("FIO_MASKA_S", 16, 0xFFC00718);
-		d("FIO_MASKA_T", 16, 0xFFC0071C);
-		d("FIO_MASKB_C", 16, 0xFFC00724);
-		d("FIO_MASKB_D", 16, 0xFFC00720);
-		d("FIO_MASKB_S", 16, 0xFFC00728);
-		d("FIO_MASKB_T", 16, 0xFFC0072C);
-		d("FIO_POLAR", 16, 0xFFC00734);
+	D16(PORTDIO);
+	D16(PORTDIO_CLEAR);
+	D16(PORTDIO_DIR);
+	D16(PORTDIO_FER);
+	D16(PORTDIO_INEN);
+	D16(PORTDIO_SET);
+	D16(PORTDIO_TOGGLE);
 
-	}	/* BF531 BF532 BF533 */
-
-#ifdef __ADSPBF534__
-# define USE_BF534 1
-#else
-# define USE_BF534 0
-#endif
-#ifdef __ADSPBF536__
-# define USE_BF536 1
-#else
-# define USE_BF536 0
-#endif
-#ifdef __ADSPBF537__
-# define USE_BF537 1
-#else
-# define USE_BF537 0
-#endif
-	if (USE_BF534 || USE_BF536 || USE_BF537) {
-
-		parent = debugfs_create_dir("Pin Control", top);
-		d("PORTF_FER", 16, 0xFFC03200);
-		d("PORTG_FER", 16, 0xFFC03204);
-		d("PORTH_FER", 16, 0xFFC03208);
-		d("PORT_MUX", 16, 0xFFC0320C);
-
-		parent = debugfs_create_dir("Port I-O", top);
-		d("PORTFIO", 16, 0xFFC00700);
-		d("PORTFIO_BOTH", 16, 0xFFC0073C);
-		d("PORTFIO_CLEAR", 16, 0xFFC00704);
-		d("PORTFIO_DIR", 16, 0xFFC00730);
-		d("PORTFIO_EDGE", 16, 0xFFC00738);
-		d("PORTFIO_INEN", 16, 0xFFC00740);
-		d("PORTFIO_MASKA", 16, 0xFFC00710);
-		d("PORTFIO_MASKA_CLEAR", 16, 0xFFC00714);
-		d("PORTFIO_MASKA_SET", 16, 0xFFC00718);
-		d("PORTFIO_MASKA_TOGGLE", 16, 0xFFC0071C);
-		d("PORTFIO_MASKB", 16, 0xFFC00720);
-		d("PORTFIO_MASKB_CLEAR", 16, 0xFFC00724);
-		d("PORTFIO_MASKB_SET", 16, 0xFFC00728);
-		d("PORTFIO_MASKB_TOGGLE", 16, 0xFFC0072C);
-		d("PORTFIO_POLAR", 16, 0xFFC00734);
-		d("PORTFIO_SET", 16, 0xFFC00708);
-		d("PORTFIO_TOGGLE", 16, 0xFFC0070C);
-		d("PORTGIO", 16, 0xFFC01500);
-		d("PORTGIO_BOTH", 16, 0xFFC0153C);
-		d("PORTGIO_CLEAR", 16, 0xFFC01504);
-		d("PORTGIO_DIR", 16, 0xFFC01530);
-		d("PORTGIO_EDGE", 16, 0xFFC01538);
-		d("PORTGIO_INEN", 16, 0xFFC01540);
-		d("PORTGIO_MASKA", 16, 0xFFC01510);
-		d("PORTGIO_MASKA_CLEAR", 16, 0xFFC01514);
-		d("PORTGIO_MASKA_SET", 16, 0xFFC01518);
-		d("PORTGIO_MASKA_TOGGLE", 16, 0xFFC0151C);
-		d("PORTGIO_MASKB", 16, 0xFFC01520);
-		d("PORTGIO_MASKB_CLEAR", 16, 0xFFC01524);
-		d("PORTGIO_MASKB_SET", 16, 0xFFC01528);
-		d("PORTGIO_MASKB_TOGGLE", 16, 0xFFC0152C);
-		d("PORTGIO_POLAR", 16, 0xFFC01534);
-		d("PORTGIO_SET", 16, 0xFFC01508);
-		d("PORTGIO_TOGGLE", 16, 0xFFC0150C);
-		d("PORTHIO", 16, 0xFFC01700);
-		d("PORTHIO_BOTH", 16, 0xFFC0173C);
-		d("PORTHIO_CLEAR", 16, 0xFFC01704);
-		d("PORTHIO_DIR", 16, 0xFFC01730);
-		d("PORTHIO_EDGE", 16, 0xFFC01738);
-		d("PORTHIO_INEN", 16, 0xFFC01740);
-		d("PORTHIO_MASKA", 16, 0xFFC01710);
-		d("PORTHIO_MASKA_CLEAR", 16, 0xFFC01714);
-		d("PORTHIO_MASKA_SET", 16, 0xFFC01718);
-		d("PORTHIO_MASKA_TOGGLE", 16, 0xFFC0171C);
-		d("PORTHIO_MASKB", 16, 0xFFC01720);
-		d("PORTHIO_MASKB_CLEAR", 16, 0xFFC01724);
-		d("PORTHIO_MASKB_SET", 16, 0xFFC01728);
-		d("PORTHIO_MASKB_TOGGLE", 16, 0xFFC0172C);
-		d("PORTHIO_POLAR", 16, 0xFFC01734);
-		d("PORTHIO_SET", 16, 0xFFC01708);
-		d("PORTHIO_TOGGLE", 16, 0xFFC0170C);
-
-	}	/* BF534 BF536 BF537 */
-
-#ifdef __ADSPBF538__
-# define USE_BF538 1
-#else
-# define USE_BF538 0
-#endif
-#ifdef __ADSPBF539__
-# define USE_BF539 1
-#else
-# define USE_BF539 0
-#endif
-	if (USE_BF538 || USE_BF539) {
-
-		parent = debugfs_create_dir("GPIO Port C", top);
-		d("PORTCIO_FER", 16, 0xFFC01500);
-		d("PORTCIO", 16, 0xFFC01510);
-		d("PORTCIO_CLEAR", 16, 0xFFC01520);
-		d("PORTCIO_SET", 16, 0xFFC01530);
-		d("PORTCIO_TOGGLE", 16, 0xFFC01540);
-		d("PORTCIO_DIR", 16, 0xFFC01550);
-		d("PORTCIO_INEN", 16, 0xFFC01560);
-
-		parent = debugfs_create_dir("GPIO Port D", top);
-		d("PORTDIO", 16, 0xFFC01514);
-		d("PORTDIO_CLEAR", 16, 0xFFC01524);
-		d("PORTDIO_DIR", 16, 0xFFC01554);
-		d("PORTDIO_FER", 16, 0xFFC01504);
-		d("PORTDIO_INEN", 16, 0xFFC01564);
-		d("PORTDIO_SET", 16, 0xFFC01534);
-		d("PORTDIO_TOGGLE", 16, 0xFFC01544);
-
-		parent = debugfs_create_dir("GPIO Port E", top);
-		d("PORTEIO", 16, 0xFFC01518);
-		d("PORTEIO_CLEAR", 16, 0xFFC01528);
-		d("PORTEIO_DIR", 16, 0xFFC01558);
-		d("PORTEIO_FER", 16, 0xFFC01508);
-		d("PORTEIO_INEN", 16, 0xFFC01568);
-		d("PORTEIO_SET", 16, 0xFFC01538);
-		d("PORTEIO_TOGGLE", 16, 0xFFC01548);
-
-		parent = debugfs_create_dir("GPIO Port F", top);
-		d("PORTFIO", 16, 0xFFC00700);
-		d("PORTFIO_BOTH", 16, 0xFFC0073C);
-		d("PORTFIO_CLEAR", 16, 0xFFC00704);
-		d("PORTFIO_DIR", 16, 0xFFC00730);
-		d("PORTFIO_EDGE", 16, 0xFFC00738);
-		d("PORTFIO_INEN", 16, 0xFFC00740);
-		d("PORTFIO_MASKA", 16, 0xFFC00710);
-		d("PORTFIO_MASKA_CLEAR", 16, 0xFFC00714);
-		d("PORTFIO_MASKA_SET", 16, 0xFFC00718);
-		d("PORTFIO_MASKA_TOGGLE", 16, 0xFFC0071C);
-		d("PORTFIO_MASKB", 16, 0xFFC00720);
-		d("PORTFIO_MASKB_CLEAR", 16, 0xFFC00724);
-		d("PORTFIO_MASKB_SET", 16, 0xFFC00728);
-		d("PORTFIO_MASKB_TOGGLE", 16, 0xFFC0072C);
-		d("PORTFIO_POLAR", 16, 0xFFC00734);
-		d("PORTFIO_SET", 16, 0xFFC00708);
-		d("PORTFIO_TOGGLE", 16, 0xFFC0070C);
-
-	}	/* BF538 BF539 */
-
-#ifdef __ADSPBF54x__
-# define USE_BF54x 1
-#else
-# define USE_BF54x 0
-#endif
+	D16(PORTEIO);
+	D16(PORTEIO_CLEAR);
+	D16(PORTEIO_DIR);
+	D16(PORTEIO_FER);
+	D16(PORTEIO_INEN);
+	D16(PORTEIO_SET);
+	D16(PORTEIO_TOGGLE);
+#endif	/* BF538 BF539 */
 
 #ifdef __ADSPBF54x__
 	{
 		int num;
 		unsigned long base;
 		char *_buf, buf[32];
+
+		base = PORTA_FER;
+		for (num = 0; num < 10; ++num) {
+			PORT(base, num);
+			base += sizeof(struct bfin_gpio_regs);
+		}
 
 #define __PINT(uname, lname) __REGS(pint, #uname, lname)
 		parent = debugfs_create_dir("pint", top);
@@ -2032,92 +1842,8 @@ static int __init bfin_debug_mmrs_init(void)
 			base += sizeof(struct bfin_pint_regs);
 		}
 
-#define bfin_gpio_regs gpio_port_t
-#define __PORT(uname, lname) __REGS(gpio, #uname, lname)
-		parent = debugfs_create_dir("port", top);
-		base = PORTA_FER;
-		for (num = 0; num < 10; ++num) {
-			_buf = REGS_STR_PFX_C(buf, PORT, num);
-			__PORT(FER, port_fer);
-			__PORT(SET, data_set);
-			__PORT(CLEAR, data_clear);
-			__PORT(DIR_SET, dir_set);
-			__PORT(DIR_CLEAR, dir_clear);
-			__PORT(INEN, inen);
-			__PORT(MUX, port_mux);
-			_buf[-1] = '\0';
-			d(buf, 16, base + REGS_OFF(gpio, data));
-			base += sizeof(struct bfin_gpio_regs);
-		}
-
 	}
 #endif	/* BF54x */
-
-#ifdef __ADSPBF561__
-# define USE_BF561 1
-#else
-# define USE_BF561 0
-#endif
-	if (USE_BF561) {
-
-		parent = debugfs_create_dir("Flag 0", top);
-		d("FIO0_BOTH", 16, 0xFFC0073C);
-		d("FIO0_DIR", 16, 0xFFC00730);
-		d("FIO0_EDGE", 16, 0xFFC00738);
-		d("FIO0_FLAG_C", 16, 0xFFC00704);
-		d("FIO0_FLAG_D", 16, 0xFFC00700);
-		d("FIO0_FLAG_S", 16, 0xFFC00708);
-		d("FIO0_FLAG_T", 16, 0xFFC0070C);
-		d("FIO0_INEN", 16, 0xFFC00740);
-		d("FIO0_MASKA_C", 16, 0xFFC00714);
-		d("FIO0_MASKA_D", 16, 0xFFC00710);
-		d("FIO0_MASKA_S", 16, 0xFFC00718);
-		d("FIO0_MASKA_T", 16, 0xFFC0071C);
-		d("FIO0_MASKB_C", 16, 0xFFC00724);
-		d("FIO0_MASKB_D", 16, 0xFFC00720);
-		d("FIO0_MASKB_S", 16, 0xFFC00728);
-		d("FIO0_MASKB_T", 16, 0xFFC0072C);
-		d("FIO0_POLAR", 16, 0xFFC00734);
-
-		parent = debugfs_create_dir("Flag 1", top);
-		d("FIO1_BOTH", 16, 0xFFC0153C);
-		d("FIO1_DIR", 16, 0xFFC01530);
-		d("FIO1_EDGE", 16, 0xFFC01538);
-		d("FIO1_FLAG_C", 16, 0xFFC01504);
-		d("FIO1_FLAG_D", 16, 0xFFC01500);
-		d("FIO1_FLAG_S", 16, 0xFFC01508);
-		d("FIO1_FLAG_T", 16, 0xFFC0150C);
-		d("FIO1_INEN", 16, 0xFFC01540);
-		d("FIO1_MASKA_C", 16, 0xFFC01514);
-		d("FIO1_MASKA_D", 16, 0xFFC01510);
-		d("FIO1_MASKA_S", 16, 0xFFC01518);
-		d("FIO1_MASKA_T", 16, 0xFFC0151C);
-		d("FIO1_MASKB_C", 16, 0xFFC01524);
-		d("FIO1_MASKB_D", 16, 0xFFC01520);
-		d("FIO1_MASKB_S", 16, 0xFFC01528);
-		d("FIO1_MASKB_T", 16, 0xFFC0152C);
-		d("FIO1_POLAR", 16, 0xFFC01534);
-
-		parent = debugfs_create_dir("Flag 2", top);
-		d("FIO2_BOTH", 16, 0xFFC0173C);
-		d("FIO2_DIR", 16, 0xFFC01730);
-		d("FIO2_EDGE", 16, 0xFFC01738);
-		d("FIO2_FLAG_C", 16, 0xFFC01704);
-		d("FIO2_FLAG_D", 16, 0xFFC01700);
-		d("FIO2_FLAG_S", 16, 0xFFC01708);
-		d("FIO2_FLAG_T", 16, 0xFFC0170C);
-		d("FIO2_INEN", 16, 0xFFC01740);
-		d("FIO2_MASKA_C", 16, 0xFFC01714);
-		d("FIO2_MASKA_D", 16, 0xFFC01710);
-		d("FIO2_MASKA_S", 16, 0xFFC01718);
-		d("FIO2_MASKA_T", 16, 0xFFC0171C);
-		d("FIO2_MASKB_C", 16, 0xFFC01724);
-		d("FIO2_MASKB_D", 16, 0xFFC01720);
-		d("FIO2_MASKB_S", 16, 0xFFC01728);
-		d("FIO2_MASKB_T", 16, 0xFFC0172C);
-		d("FIO2_POLAR", 16, 0xFFC01734);
-
-	}	/* BF561 */
 
 	debug_mmrs_dentry = top;
 
