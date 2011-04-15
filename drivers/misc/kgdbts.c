@@ -285,25 +285,26 @@ static void hw_break_val_write(void)
 static int check_and_rewind_pc(char *put_str, char *arg)
 {
 	unsigned long addr = lookup_addr(arg);
+	unsigned long ip;
 	int offset = 0;
 
 	kgdb_hex2mem(&put_str[1], (char *)kgdbts_gdb_regs,
 		 NUMREGBYTES);
 	gdb_regs_to_pt_regs(kgdbts_gdb_regs, &kgdbts_regs);
-	v2printk("Stopped at IP: %lx\n", instruction_pointer(&kgdbts_regs));
+	ip = instruction_pointer(&kgdbts_regs);
+	v2printk("Stopped at IP: %lx\n", ip);
 #ifdef GDB_ADJUSTS_BREAK_OFFSET
 	/* On some arches, a breakpoint stop requires it to be decremented */
-	if (addr + BREAK_INSTR_SIZE == instruction_pointer(&kgdbts_regs))
+	if (addr + BREAK_INSTR_SIZE == ip)
 		offset = -BREAK_INSTR_SIZE;
 #endif
-	if (strcmp(arg, "silent") &&
-		instruction_pointer(&kgdbts_regs) + offset != addr) {
+	if (strcmp(arg, "silent") && ip + offset != addr) {
 		eprintk("kgdbts: BP mismatch %lx expected %lx\n",
-			   instruction_pointer(&kgdbts_regs) + offset, addr);
+			   ip + offset, addr);
 		return 1;
 	}
 	/* Readjust the instruction pointer if needed */
-	instruction_pointer(&kgdbts_regs) += offset;
+	instruction_pointer_set(&kgdbts_regs, ip + offset);
 	return 0;
 }
 
