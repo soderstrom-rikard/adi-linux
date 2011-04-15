@@ -105,7 +105,6 @@ struct pt_regs {
 #define instruction_pointer(regs) ((regs)->pc)
 #define user_stack_pointer(regs)  ((regs)->usp)
 #define profile_pc(regs) instruction_pointer(regs)
-extern void show_regs(struct pt_regs *);
 
 #define arch_has_single_step()	(1)
 extern void user_enable_single_step(struct task_struct *child);

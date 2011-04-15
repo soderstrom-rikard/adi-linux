@@ -44,8 +44,6 @@
 #define kernel_stack_pointer(_regs)	((unsigned long)(_regs)->regs[15])
 #define instruction_pointer(regs)	((unsigned long)(regs)->pc)
 
-extern void show_regs(struct pt_regs *);
-
 #define arch_has_single_step()	(1)
 
 /*
