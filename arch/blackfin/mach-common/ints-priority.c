@@ -23,6 +23,7 @@
 #include <asm/blackfin.h>
 #include <asm/gpio.h>
 #include <asm/irq_handler.h>
+#include <asm/dpmc.h>
 
 #define SIC_SYSIRQ(irq)	(irq - (IRQ_CORETMR + 1))
 
@@ -134,9 +135,7 @@ static void bfin_core_unmask_irq(struct irq_data *d)
 
 void bfin_internal_mask_irq(unsigned int irq)
 {
-	unsigned long flags;
-
-	flags = hard_local_irq_save();
+	unsigned long flags = hard_local_irq_save();
 
 #ifdef SIC_IMASK0
 	unsigned mask_bank = SIC_SYSIRQ(irq) / 32;
@@ -167,9 +166,7 @@ static void bfin_internal_unmask_irq_affinity(unsigned int irq,
 void bfin_internal_unmask_irq(unsigned int irq)
 #endif
 {
-	unsigned long flags;
-
-	flags = hard_local_irq_save();
+	unsigned long flags = hard_local_irq_save();
 
 #ifdef SIC_IMASK0
 	unsigned mask_bank = SIC_SYSIRQ(irq) / 32;
