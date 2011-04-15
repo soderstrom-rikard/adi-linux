@@ -19,9 +19,6 @@
 #ifdef CONFIG_IPIPE
 #include <linux/ipipe.h>
 #endif
-#ifdef CONFIG_KGDB
-#include <linux/kgdb.h>
-#endif
 #include <asm/traps.h>
 #include <asm/blackfin.h>
 #include <asm/gpio.h>
@@ -155,22 +152,22 @@ static void bfin_internal_mask_irq(unsigned int irq)
 {
 	unsigned long flags;
 
-#ifdef CONFIG_BF53x
 	flags = hard_local_irq_save();
-	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() &
-			     ~(1 << SIC_SYSIRQ(irq)));
-#else
-	unsigned mask_bank, mask_bit;
-	flags = hard_local_irq_save();
-	mask_bank = SIC_SYSIRQ(irq) / 32;
-	mask_bit = SIC_SYSIRQ(irq) % 32;
+
+#ifdef SIC_IMASK0
+	unsigned mask_bank = SIC_SYSIRQ(irq) / 32;
+	unsigned mask_bit = SIC_SYSIRQ(irq) % 32;
 	bfin_write_SIC_IMASK(mask_bank, bfin_read_SIC_IMASK(mask_bank) &
 			     ~(1 << mask_bit));
-#if defined(CONFIG_SMP) || defined(CONFIG_ICC)
+# if defined(CONFIG_SMP) || defined(CONFIG_ICC)
 	bfin_write_SICB_IMASK(mask_bank, bfin_read_SICB_IMASK(mask_bank) &
 			     ~(1 << mask_bit));
+# endif
+#else
+	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() &
+			     ~(1 << SIC_SYSIRQ(irq)));
 #endif
-#endif
+
 	hard_local_irq_restore(flags);
 }
 
@@ -188,28 +185,28 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 {
 	unsigned long flags;
 
-#ifdef CONFIG_BF53x
 	flags = hard_local_irq_save();
-	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() |
-			     (1 << SIC_SYSIRQ(irq)));
-#else
-	unsigned mask_bank, mask_bit;
-	flags = hard_local_irq_save();
-	mask_bank = SIC_SYSIRQ(irq) / 32;
-	mask_bit = SIC_SYSIRQ(irq) % 32;
-#ifdef CONFIG_SMP
+
+#ifdef SIC_IMASK0
+	unsigned mask_bank = SIC_SYSIRQ(irq) / 32;
+	unsigned mask_bit = SIC_SYSIRQ(irq) % 32;
+# ifdef CONFIG_SMP
 	if (cpumask_test_cpu(0, affinity))
-#endif
+# endif
 		bfin_write_SIC_IMASK(mask_bank,
 			bfin_read_SIC_IMASK(mask_bank) |
 			(1 << mask_bit));
-#ifdef CONFIG_SMP
+# ifdef CONFIG_SMP
 	if (cpumask_test_cpu(1, affinity))
 		bfin_write_SICB_IMASK(mask_bank,
 			bfin_read_SICB_IMASK(mask_bank) |
 			(1 << mask_bit));
+# endif
+#else
+	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() |
+			     (1 << SIC_SYSIRQ(irq)));
 #endif
-#endif
+
 	hard_local_irq_restore(flags);
 }
 
@@ -292,6 +289,8 @@ static int bfin_internal_set_wake_chip(struct irq_data *d, unsigned int state)
 {
 	return bfin_internal_set_wake(d->irq, state);
 }
+#else
+# define bfin_internal_set_wake_chip NULL
 #endif
 
 static struct irq_chip bfin_core_irqchip = {
@@ -312,9 +311,7 @@ static struct irq_chip bfin_internal_irqchip = {
 #ifdef CONFIG_SMP
 	.irq_set_affinity = bfin_internal_set_affinity,
 #endif
-#ifdef CONFIG_PM
 	.irq_set_wake = bfin_internal_set_wake_chip,
-#endif
 };
 
 static void bfin_handle_irq(unsigned irq)
@@ -508,6 +505,8 @@ int bfin_mac_status_set_wake(struct irq_data *d, unsigned int state)
 	return bfin_internal_set_wake(IRQ_MAC_ERROR, state);
 #endif
 }
+#else
+# define bfin_mac_status_set_wake NULL
 #endif
 
 static struct irq_chip bfin_mac_status_irqchip = {
@@ -516,9 +515,7 @@ static struct irq_chip bfin_mac_status_irqchip = {
 	.irq_mask_ack = bfin_mac_status_mask_irq,
 	.irq_mask = bfin_mac_status_mask_irq,
 	.irq_unmask = bfin_mac_status_unmask_irq,
-#ifdef CONFIG_PM
 	.irq_set_wake = bfin_mac_status_set_wake,
-#endif
 };
 
 static void bfin_demux_mac_status_irq(unsigned int int_err_irq,
@@ -682,6 +679,8 @@ int bfin_gpio_set_wake(struct irq_data *d, unsigned int state)
 {
 	return gpio_pm_wakeup_ctrl(irq_to_gpio(d->irq), state);
 }
+#else
+# define bfin_gpio_set_wake NULL
 #endif
 
 static void bfin_demux_gpio_irq(unsigned int inta_irq,
@@ -700,7 +699,7 @@ static void bfin_demux_gpio_irq(unsigned int inta_irq,
 		irq = IRQ_PH0;
 		break;
 # endif
-#elif defined(CONFIG_BF538) || defined(CONFIG_BF539)
+#elif defined(BF538_FAMILY)
 	case IRQ_PORTF_INTA:
 		irq = IRQ_PF0;
 		break;
@@ -1039,6 +1038,8 @@ void bfin_pm_restore(void)
 		}
 	}
 }
+#else
+# define bfin_gpio_set_wake NULL
 #endif
 
 static void bfin_demux_gpio_irq(unsigned int inta_irq,
@@ -1091,9 +1092,7 @@ static struct irq_chip bfin_gpio_irqchip = {
 	.irq_set_type = bfin_gpio_irq_type,
 	.irq_startup = bfin_gpio_irq_startup,
 	.irq_shutdown = bfin_gpio_irq_shutdown,
-#ifdef CONFIG_PM
 	.irq_set_wake = bfin_gpio_set_wake,
-#endif
 };
 
 void __cpuinit init_exception_vectors(void)
@@ -1127,12 +1126,12 @@ int __init init_arch_irq(void)
 {
 	int irq;
 	unsigned long ilat = 0;
+
 	/*  Disable all the peripheral intrs  - page 4-29 HW Ref manual */
-#if defined(CONFIG_BF54x) || defined(CONFIG_BF52x) || defined(CONFIG_BF561) \
-	|| defined(BF538_FAMILY) || defined(CONFIG_BF51x)
+#ifdef SIC_IMASK0
 	bfin_write_SIC_IMASK0(SIC_UNMASK_ALL);
 	bfin_write_SIC_IMASK1(SIC_UNMASK_ALL);
-# ifdef CONFIG_BF54x
+# ifdef SIC_IMASK2
 	bfin_write_SIC_IMASK2(SIC_UNMASK_ALL);
 # endif
 # if defined(CONFIG_SMP) || defined(CONFIG_ICC)
@@ -1186,7 +1185,7 @@ int __init init_arch_irq(void)
 		case IRQ_PROG0_INTA:
 		case IRQ_PROG1_INTA:
 		case IRQ_PROG2_INTA:
-#elif defined(CONFIG_BF538) || defined(CONFIG_BF539)
+#elif defined(BF538_FAMILY)
 		case IRQ_PORTF_INTA:
 #endif
 			set_irq_chained_handler(irq,
@@ -1212,11 +1211,10 @@ int __init init_arch_irq(void)
 		case IRQ_CORETMR:
 # ifdef CONFIG_SMP
 			set_irq_handler(irq, handle_percpu_irq);
-			break;
 # else
 			set_irq_handler(irq, handle_simple_irq);
-			break;
 # endif
+			break;
 #endif
 
 #ifdef CONFIG_TICKSOURCE_GPTMR0
@@ -1225,15 +1223,13 @@ int __init init_arch_irq(void)
 			break;
 #endif
 
+		default:
 #ifdef CONFIG_IPIPE
-		default:
 			set_irq_handler(irq, handle_level_irq);
-			break;
-#else /* !CONFIG_IPIPE */
-		default:
+#else
 			set_irq_handler(irq, handle_simple_irq);
+#endif
 			break;
-#endif /* !CONFIG_IPIPE */
 		}
 	}
 
