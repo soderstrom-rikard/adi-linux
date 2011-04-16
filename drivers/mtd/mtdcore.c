@@ -37,7 +37,6 @@
 #include <linux/gfp.h>
 
 #include <linux/mtd/mtd.h>
-#include <linux/mtd/mtdbdi.h>
 
 #include "mtdcore.h"
 /*
@@ -47,7 +46,6 @@
 struct backing_dev_info mtd_bdi_unmappable = {
 	.capabilities	= BDI_CAP_MAP_COPY,
 };
-EXPORT_SYMBOL(mtd_bdi_unmappable);
 
 /*
  * backing device capabilities for R/O mappable devices (such as ROM)
@@ -58,7 +56,6 @@ struct backing_dev_info mtd_bdi_ro_mappable = {
 	.capabilities	= (BDI_CAP_MAP_COPY | BDI_CAP_MAP_DIRECT |
 			   BDI_CAP_EXEC_MAP | BDI_CAP_READ_MAP),
 };
-EXPORT_SYMBOL(mtd_bdi_ro_mappable);
 
 /*
  * backing device capabilities for writable mappable devices (such as RAM)
@@ -70,7 +67,6 @@ struct backing_dev_info mtd_bdi_rw_mappable = {
 			   BDI_CAP_EXEC_MAP | BDI_CAP_READ_MAP |
 			   BDI_CAP_WRITE_MAP),
 };
-EXPORT_SYMBOL(mtd_bdi_rw_mappable);
 
 static int mtd_cls_suspend(struct device *dev, pm_message_t state);
 static int mtd_cls_resume(struct device *dev);

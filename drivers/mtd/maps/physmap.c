@@ -19,7 +19,6 @@
 #include <linux/mtd/partitions.h>
 #include <linux/mtd/physmap.h>
 #include <linux/mtd/concat.h>
-#include <linux/mtd/mtdbdi.h>
 #include <linux/io.h>
 
 #define MAX_RESOURCES		4
@@ -71,20 +70,6 @@ static int physmap_flash_remove(struct platform_device *dev)
 			map_destroy(info->mtd[i]);
 	}
 	return 0;
-}
-
-/*
- * Allow NOMMU mmap() to directly map the device (if not NULL)
- * - return the address to which the offset maps
- * - return -ENOSYS to indicate refusal to do the mapping
- */
-static unsigned long physmap_unmapped_area(struct mtd_info *mtd,
-					   unsigned long len,
-					   unsigned long offset,
-					   unsigned long flags)
-{
-	struct map_info *map = mtd->priv;
-	return (unsigned long) map->virt + offset;
 }
 
 static const char *rom_probe_types[] = {
@@ -164,9 +149,6 @@ static int physmap_flash_probe(struct platform_device *dev)
 		} else {
 			devices_found++;
 		}
-		if (info->mtd[i]->get_unmapped_area == NULL)
-			info->mtd[i]->get_unmapped_area = physmap_unmapped_area;
-		info->mtd[i]->backing_dev_info = &mtd_bdi_ro_mappable;
 		info->mtd[i]->owner = THIS_MODULE;
 		info->mtd[i]->dev.parent = &dev->dev;
 	}
