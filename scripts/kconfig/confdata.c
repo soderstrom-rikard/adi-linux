@@ -746,8 +746,6 @@ static int conf_split_config(void)
 		fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (fd == -1) {
 			if (errno != ENOENT) {
-				conf_warning("sym '%s' with path '%s': %s",
-					     sym->name, path, strerror(errno));
 				res = 1;
 				break;
 			}
