@@ -201,16 +201,16 @@ void __init init_mach_irq(void)
 	bfin_write_EMAC_SYSTAT(-1);
 #endif
 
-	set_irq_chained_handler(IRQ_GENERIC_ERROR, bf537_demux_error_irq);
+	irq_set_chained_handler(IRQ_GENERIC_ERROR, bf537_demux_error_irq);
 	for (irq = IRQ_PPI_ERROR; irq <= IRQ_UART1_ERROR; irq++)
-		set_irq_chip_and_handler(irq, &bf537_generic_error_irqchip,
+		irq_set_chip_and_handler(irq, &bf537_generic_error_irqchip,
 					 handle_level_irq);
 
 #if defined(CONFIG_BFIN_MAC) || defined(CONFIG_BFIN_MAC_MODULE)
-	set_irq_chained_handler(IRQ_PH_INTA_MAC_RX, bf537_demux_mac_rx_irq);
-	set_irq_chip_and_handler(IRQ_MAC_RX, &bf537_mac_rx_irqchip, handle_level_irq);
-	set_irq_chip_and_handler(IRQ_PORTH_INTA, &bf537_mac_rx_irqchip, handle_level_irq);
+	irq_set_chained_handler(IRQ_PH_INTA_MAC_RX, bf537_demux_mac_rx_irq);
+	irq_set_chip_and_handler(IRQ_MAC_RX, &bf537_mac_rx_irqchip, handle_level_irq);
+	irq_set_chip_and_handler(IRQ_PORTH_INTA, &bf537_mac_rx_irqchip, handle_level_irq);
 
-	set_irq_chained_handler(IRQ_MAC_ERROR, bfin_demux_mac_status_irq);
+	irq_set_chained_handler(IRQ_MAC_ERROR, bfin_demux_mac_status_irq);
 #endif
 }

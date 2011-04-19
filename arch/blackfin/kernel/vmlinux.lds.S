@@ -136,7 +136,7 @@ SECTIONS
 
 	. = ALIGN(16);
 	INIT_DATA_SECTION(16)
-	PERCPU(PAGE_SIZE)
+	PERCPU(32, PAGE_SIZE)
 
 	.exit.data :
 	{
@@ -156,7 +156,7 @@ SECTIONS
 		INIT_RAM_FS
 
 		___per_cpu_load = .;
-		PERCPU_INPUT
+		PERCPU_INPUT(32)
 
 		EXIT_DATA
 		__einitdata = .;
