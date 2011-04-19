@@ -111,7 +111,7 @@ struct sm_message_queue {
 	sm_atomic_t sent;
 	sm_atomic_t received; /* head of the queue */
 	struct sm_msg messages[SM_MSGQ_LEN];
-};
+} __attribute__((__aligned__(256)));
 
 struct sm_session {
 	struct list_head rx_messages; /*rx queue sm message*/
