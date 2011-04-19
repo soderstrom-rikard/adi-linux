@@ -1,7 +1,7 @@
 /*
  * simple char interface to Blackfin SPORT peripheral
  *
- * Copyright 2004-2010 Analog Devices Inc.
+ * Copyright 2004-2011 Analog Devices Inc.
  *
  * Licensed under the GPL-2 or later.
  */
