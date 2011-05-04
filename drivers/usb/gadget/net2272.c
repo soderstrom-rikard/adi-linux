@@ -43,9 +43,6 @@
 #include <asm/byteorder.h>
 #include <asm/system.h>
 #include <asm/unaligned.h>
-#ifdef CONFIG_BLACKFIN
-#include <asm/dpmc.h>
-#endif
 
 #undef	DEBUG			/* messages on error and most fault paths */
 #undef	VERBOSE			/* extra debug messages (success too) */
@@ -402,11 +399,7 @@ static int
 write_packet (struct net2272_ep *ep,
 		u8 *buf, struct net2272_request *req, unsigned max)
 {
-#ifdef CONFIG_BLACKFIN
-	u16		__iomem *ep_data =(u16*) (ep->dev->base_addr + EP_DATA);
-#else
 	u16		__iomem *ep_data = ep->dev->base_addr + EP_DATA;
-#endif
 	unsigned	length, count;
 	u16		*bufp;
 	u8		tmp;
@@ -517,11 +510,7 @@ static int
 read_packet (struct net2272_ep *ep,
 		u8 *buf, struct net2272_request *req, unsigned avail)
 {
-#ifdef CONFIG_BLACKFIN
-	u16			__iomem *ep_data = (u16*)(ep->dev->base_addr + EP_DATA);
-#else
 	u16			__iomem *ep_data = ep->dev->base_addr + EP_DATA;
-#endif
 	unsigned		is_short;
 	u16			*bufp;
 
@@ -2473,102 +2462,15 @@ static int __devinit net2272_probe(struct platform_device *pdev)
 		dev_warn (&pdev->dev, "ignoring\n");
 		return -EBUSY;
 	}
-#ifdef CONFIG_BLACKFIN
-	{
-		struct resource *iomem;
 
+	if (!irq)
 		irq = platform_get_irq(pdev, 0);
-		iomem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+
+	if (!base) {
+		struct resource *iomem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 		if (iomem)
 			base = iomem->start;
-#ifdef CONFIG_BFIN533_STAMP
-		/* Set PF0 to 0, PF1 to 1 make /AMS3 work properly */
-
-	if (gpio_request(GPIO_0, driver_name)) {
-		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_0);
-		return -EBUSY;
 	}
-	if (gpio_request(GPIO_1, driver_name)) {
-		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_1);
-		gpio_free(GPIO_0);
-		return -EBUSY;
-	}
-	gpio_direction_output(GPIO_0, 0);
-	gpio_direction_output(GPIO_1, 1);
-#endif
-
-#if defined(CONFIG_BFIN533_STAMP) || defined(CONFIG_BFIN561_EZKIT)
-	if (gpio_request(GPIO_11, driver_name)) {
-		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_11);
-		gpio_free(GPIO_0);
-		gpio_free(GPIO_1);
-		return -EBUSY;
-	}
-	gpio_direction_output(GPIO_11, 0);
-	/* Reset USB Chip */
-	/* Hold it for 2ms */
-	mdelay(2);
-	gpio_set_value(GPIO_11, 1);
-#endif
-
-#ifdef CONFIG_BFIN537_STAMP
-	if (gpio_request(GPIO_6, driver_name)) {
-		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_6);
-		return -EBUSY;
-	}
-
-	gpio_direction_output(GPIO_6, 0);
-	/* Reset USB Chip */
-	/* Hold it for 2ms */
-	mdelay(2);
-	gpio_set_value(GPIO_6, 1);
-#endif
-
-#ifdef CONFIG_BFIN537_BLUETECHNIX_CM_U
-	/* Set PH15 Low make /AMS2 work properly */
-	if (gpio_request(GPIO_47, driver_name)) {
-		printk(KERN_ERR "net2272: Failed ro request GPIO_%d\n", GPIO_47);
-		return -EBUSY;
-	}
-	gpio_direction_output(GPIO_47, 0);
-	/* enable CLKBUF output */
-	bfin_write_VR_CTL(bfin_read_VR_CTL() | CLKBUFOE);
-	/* Reset USB Chip */
-	if (gpio_request(GPIO_45, driver_name)) {
-		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_45);
-		return -EBUSY;
-	}
-	gpio_direction_output(GPIO_45, 0);
-	/* Hold it for 2ms */
-	mdelay(2);
-	gpio_set_value(GPIO_45, 1);
-#endif
-
-#if defined(CONFIG_BFIN537_BLUETECHNIX_TCM) || defined(CONFIG_BFIN537_BLUETECHNIX_CM_E)
-	/* Reset USB Chip, PG14 */
-	if (gpio_request(GPIO_30, driver_name)) {
-		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_30);
-		return -EBUSY;
-	}
-	gpio_direction_output(GPIO_30, 0);
-	/* Hold it for 2ms */
-	mdelay(2);
-	gpio_set_value(GPIO_30, 1);
-#endif
-
-#ifdef CONFIG_BFIN561_BLUETECHNIX_CM
-	/* Reset USB Chip, PF46 */
-	if (gpio_request(GPIO_PF46, driver_name)) {
-		printk(KERN_ERR "net2272: Failed to request GPIO_%d\n", GPIO_PF46);
-		return -EBUSY;
-	}
-	gpio_direction_output(GPIO_PF46, 0);
-	/* Hold it for 2ms */
-	mdelay(2);
-	gpio_set_value(GPIO_PF46, 1);
-#endif
-	}
-#endif
 
 	if (!base || !irq) {
 		printk ("must provide base/irq as parameters! %lu %d\n", base, irq);
