@@ -2930,6 +2930,24 @@ static struct platform_device *stamp_devices[] __initdata = {
 #endif
 };
 
+static int __init net2272_init(void)
+{
+#if defined(CONFIG_USB_NET2272) || defined(CONFIG_USB_NET2272_MODULE)
+	int ret;
+
+	ret = gpio_request(GPIO_PF6, "net2272");
+	if (ret)
+		return ret;
+
+	/* Reset the USB chip */
+	gpio_direction_output(GPIO_PF6, 0);
+	mdelay(2);
+	gpio_set_value(GPIO_PF6, 1);
+#endif
+
+	return 0;
+}
+
 static int __init stamp_init(void)
 {
 	printk(KERN_INFO "%s(): registering device resources\n", __func__);
@@ -2939,6 +2957,9 @@ static int __init stamp_init(void)
 	i2c_register_board_info(0, bfin_i2c_board_info,
 				ARRAY_SIZE(bfin_i2c_board_info));
 	spi_register_board_info(bfin_spi_board_info, ARRAY_SIZE(bfin_spi_board_info));
+
+	if (net2272_init())
+		pr_warning("unable to configure net2272; it probably won't work\n");
 
 	return 0;
 }
