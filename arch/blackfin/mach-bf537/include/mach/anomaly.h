@@ -166,6 +166,8 @@
 #define ANOMALY_05000475 (1)
 /* TESTSET Instruction Cannot Be Interrupted */
 #define ANOMALY_05000477 (1)
+/* The data swap between two DMA channels when sereral DMA channel become active */
+#define ANOMALY_05000480 (__SILICON_REVISION__ < 3)
 /* Reads of ITEST_COMMAND and ITEST_DATA Registers Cause Cache Corruption */
 #define ANOMALY_05000481 (1)
 /* IFLUSH sucks at life */
