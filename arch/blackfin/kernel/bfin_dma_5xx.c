@@ -21,7 +21,6 @@
 #include <asm/dma.h>
 #include <asm/uaccess.h>
 #include <asm/early_printk.h>
-#include <mach/cdefBF537.h>
 
 /*
  * To make sure we work around 05000119 - we always check DMA_DONE bit,
@@ -38,8 +37,8 @@ static int __init blackfin_dma_init(void)
 	printk(KERN_INFO "Blackfin DMA Controller\n");
 
 
-#if defined(CONFIG_BF537) && ANOMALY_05000480
-	bfin_write_DMA_TC_PER(0x1111);
+#ifdef ANOMALY_05000480
+	bfin_write_DMAC_TC_PER(0x1111);
 #endif
 
 	for (i = 0; i < MAX_DMA_CHANNELS; i++) {
