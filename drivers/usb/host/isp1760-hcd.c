@@ -1669,6 +1669,7 @@ static int isp1760_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 			ints[i].qh = NULL;
 			ints[i].qtd = NULL;
 
+			urb->status = status;
 			isp1760_urb_done(hcd, urb);
 			if (qtd)
 				pe(hcd, qh, qtd);
