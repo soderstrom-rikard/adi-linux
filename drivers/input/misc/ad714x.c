@@ -1152,6 +1152,8 @@ struct ad714x_chip *ad714x_probe(struct device *dev, u16 bus_type, int irq,
 			input[alloc_idx]->id.bustype = bus_type;
 			input[alloc_idx]->id.product = ad714x->product;
 			input[alloc_idx]->id.version = ad714x->version;
+			input[alloc_idx]->name = "ad714x_captouch_slider";
+			input[alloc_idx]->dev.parent = dev;
 
 			error = input_register_device(input[alloc_idx]);
 			if (error)
@@ -1182,6 +1184,8 @@ struct ad714x_chip *ad714x_probe(struct device *dev, u16 bus_type, int irq,
 			input[alloc_idx]->id.bustype = bus_type;
 			input[alloc_idx]->id.product = ad714x->product;
 			input[alloc_idx]->id.version = ad714x->version;
+			input[alloc_idx]->name = "ad714x_captouch_wheel";
+			input[alloc_idx]->dev.parent = dev;
 
 			error = input_register_device(input[alloc_idx]);
 			if (error)
@@ -1215,6 +1219,8 @@ struct ad714x_chip *ad714x_probe(struct device *dev, u16 bus_type, int irq,
 			input[alloc_idx]->id.bustype = bus_type;
 			input[alloc_idx]->id.product = ad714x->product;
 			input[alloc_idx]->id.version = ad714x->version;
+			input[alloc_idx]->name = "ad714x_captouch_pad";
+			input[alloc_idx]->dev.parent = dev;
 
 			error = input_register_device(input[alloc_idx]);
 			if (error)
@@ -1243,6 +1249,8 @@ struct ad714x_chip *ad714x_probe(struct device *dev, u16 bus_type, int irq,
 		input[alloc_idx]->id.bustype = bus_type;
 		input[alloc_idx]->id.product = ad714x->product;
 		input[alloc_idx]->id.version = ad714x->version;
+		input[alloc_idx]->name = "ad714x_captouch_button";
+		input[alloc_idx]->dev.parent = dev;
 
 		error = input_register_device(input[alloc_idx]);
 		if (error)
