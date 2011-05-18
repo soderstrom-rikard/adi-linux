@@ -38,7 +38,7 @@ static int __init blackfin_dma_init(void)
 
 
 #if ANOMALY_05000480
-	bfin_write_DMAC_TC_PER(0x1111);
+	bfin_write_DMAC_TC_PER(0x0111);
 #endif
 
 	for (i = 0; i < MAX_DMA_CHANNELS; i++) {
