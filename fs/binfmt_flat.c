@@ -849,6 +849,8 @@ static int load_flat_shared_library(int id, struct lib_info *libs)
 	int res;
 	char buf[16];
 
+	memset(&bprm, 0, sizeof(bprm));
+
 	/* Create the file name */
 	sprintf(buf, "/lib/lib%d.so", id);
 
@@ -863,6 +865,12 @@ static int load_flat_shared_library(int id, struct lib_info *libs)
 	res = -ENOMEM;
 	if (!bprm.cred)
 		goto out;
+
+	/* We don't really care about recalculating credentials at this point
+	 * as we're past the point of no return and are dealing with shared
+	 * libraries.
+	 */
+	bprm.cred_prepared = 1;
 
 	res = prepare_binprm(&bprm);
 

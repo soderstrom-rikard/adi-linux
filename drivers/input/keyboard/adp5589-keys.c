@@ -147,9 +147,8 @@ static int adp5589_gpio_direction_input(struct gpio_chip *chip, unsigned off)
 	mutex_lock(&kpad->gpio_lock);
 
 	kpad->dir[bank] &= ~bit;
-	ret =
-	    adp5589_write(kpad->client, ADP5589_GPIO_DIRECTION_A + bank,
-			  kpad->dir[bank]);
+	ret = adp5589_write(kpad->client, ADP5589_GPIO_DIRECTION_A + bank,
+			    kpad->dir[bank]);
 
 	mutex_unlock(&kpad->gpio_lock);
 
@@ -251,8 +250,8 @@ static int __devinit adp5589_gpio_add(struct adp5589_kpad *kpad)
 	for (i = 0; i <= ADP_BANK(MAXGPIO); i++) {
 		kpad->dat_out[i] = adp5589_read(kpad->client,
 						ADP5589_GPO_DATA_OUT_A + i);
-		kpad->dir[i] =
-		    adp5589_read(kpad->client, ADP5589_GPIO_DIRECTION_A + i);
+		kpad->dir[i] = adp5589_read(kpad->client,
+					    ADP5589_GPIO_DIRECTION_A + i);
 	}
 
 	if (gpio_data->setup) {
@@ -299,26 +298,32 @@ static inline void adp5589_gpio_remove(struct adp5589_kpad *kpad)
 }
 #endif
 
+static void adp5589_report_switches(struct adp5589_kpad *kpad,
+				    int key, int key_val)
+{
+	int i;
+
+	for (i = 0; i < kpad->gpimapsize; i++) {
+		if (key_val == kpad->gpimap[i].pin) {
+			input_report_switch(kpad->input,
+					    kpad->gpimap[i].sw_evt,
+					    key & KEY_EV_PRESSED);
+			break;
+		}
+	}
+}
+
 static void adp5589_report_events(struct adp5589_kpad *kpad, int ev_cnt)
 {
-	int i, j;
+	int i;
 
 	for (i = 0; i < ev_cnt; i++) {
 		int key = adp5589_read(kpad->client, ADP5589_FIFO_1 + i);
 		int key_val = key & KEY_EV_MASK;
 
-		if (key_val >= ADP5589_GPI_PIN_BASE
-		    && key_val <= ADP5589_GPI_PIN_END) {
-			for (j = 0; j < kpad->gpimapsize; j++) {
-				if (key_val == kpad->gpimap[j].pin) {
-					input_report_switch(kpad->input,
-							    kpad->gpimap[j].
-							    sw_evt,
-							    key &
-							    KEY_EV_PRESSED);
-					break;
-				}
-			}
+		if (key_val >= ADP5589_GPI_PIN_BASE &&
+		    key_val <= ADP5589_GPI_PIN_END) {
+			adp5589_report_switches(kpad, key, key_val);
 		} else {
 			input_report_key(kpad->input,
 					 kpad->keycode[key_val - 1],
@@ -345,6 +350,7 @@ static irqreturn_t adp5589_irq(int irq, void *handle)
 			input_sync(kpad->input);
 		}
 	}
+
 	adp5589_write(client, ADP5589_INT_STATUS, status);	/* Status is W1C */
 
 	return IRQ_HANDLED;
@@ -353,13 +359,16 @@ static irqreturn_t adp5589_irq(int irq, void *handle)
 static int __devinit adp5589_get_evcode(struct adp5589_kpad *kpad, unsigned short key)
 {
 	int i;
+
 	for (i = 0; i < ADP5589_KEYMAPSIZE; i++)
 		if (key == kpad->keycode[i])
 			return (i + 1) | KEY_EV_PRESSED;
 
 	dev_err(&kpad->client->dev, "RESET/UNLOCK key not in keycode map\n");
+
 	return -EINVAL;
 }
+
 static int __devinit adp5589_setup(struct adp5589_kpad *kpad)
 {
 	struct i2c_client *client = kpad->client;
@@ -414,6 +423,7 @@ static int __devinit adp5589_setup(struct adp5589_kpad *kpad)
 
 	for (i = 0; i < MAXGPIO; i++) {
 		unsigned val = 0;
+
 		if (pdata->pullup_en_300k & (1 << i))
 			val = 0;
 		else if (pdata->pulldown_en_300k & (1 << i))
@@ -425,7 +435,7 @@ static int __devinit adp5589_setup(struct adp5589_kpad *kpad)
 
 		pull_mask |= val << (2 * (i & 0x3));
 
-		if (((i & 0x3) == 0x3) || (i == (MAXGPIO - 1))) {
+		if ((i & 0x3) == 0x3 || i == MAXGPIO - 1) {
 			ret |= adp5589_write(client,
 					     ADP5589_RPULL_CONFIG_A + (i >> 2),
 					     pull_mask);
@@ -433,27 +443,26 @@ static int __devinit adp5589_setup(struct adp5589_kpad *kpad)
 		}
 	}
 
-	if (pdata->reset1_key_1 && pdata->reset1_key_2 &&
-		pdata->reset1_key_3) {
+	if (pdata->reset1_key_1 && pdata->reset1_key_2 && pdata->reset1_key_3) {
 		ret |= adp5589_write(client, ADP5589_RESET1_EVENT_A,
 				     adp5589_get_evcode(kpad,
-				     pdata->reset1_key_1));
+							pdata->reset1_key_1));
 		ret |= adp5589_write(client, ADP5589_RESET1_EVENT_B,
 				     adp5589_get_evcode(kpad,
-				     pdata->reset1_key_2));
+							pdata->reset1_key_2));
 		ret |= adp5589_write(client, ADP5589_RESET1_EVENT_C,
 				     adp5589_get_evcode(kpad,
-				     pdata->reset1_key_3));
+							pdata->reset1_key_3));
 		kpad->extend_cfg |= R4_EXTEND_CFG;
 	}
 
 	if (pdata->reset2_key_1 && pdata->reset2_key_2) {
 		ret |= adp5589_write(client, ADP5589_RESET2_EVENT_A,
 				     adp5589_get_evcode(kpad,
-				     pdata->reset2_key_1));
+							pdata->reset2_key_1));
 		ret |= adp5589_write(client, ADP5589_RESET2_EVENT_B,
 				     adp5589_get_evcode(kpad,
-				     pdata->reset2_key_2));
+							pdata->reset2_key_2));
 		kpad->extend_cfg |= C4_EXTEND_CFG;
 	}
 
@@ -528,8 +537,7 @@ static int __devinit adp5589_probe(struct i2c_client *client,
 				   const struct i2c_device_id *id)
 {
 	struct adp5589_kpad *kpad;
-	const struct adp5589_kpad_platform_data *pdata =
-	    client->dev.platform_data;
+	const struct adp5589_kpad_platform_data *pdata;
 	struct input_dev *input;
 	unsigned int revid;
 	int ret, i;
@@ -541,13 +549,14 @@ static int __devinit adp5589_probe(struct i2c_client *client,
 		return -EIO;
 	}
 
+	pdata = client->dev.platform_data;
 	if (!pdata) {
 		dev_err(&client->dev, "no platform data?\n");
 		return -EINVAL;
 	}
 
 	if (!((pdata->keypad_en_mask & 0xFF) &&
-		(pdata->keypad_en_mask >> 8)) || !pdata->keymap) {
+			(pdata->keypad_en_mask >> 8)) || !pdata->keymap) {
 		dev_err(&client->dev, "no rows, cols or keymap from pdata\n");
 		return -EINVAL;
 	}
@@ -576,7 +585,7 @@ static int __devinit adp5589_probe(struct i2c_client *client,
 		}
 
 		if ((1 << (pin - ADP5589_GPI_PIN_ROW_BASE)) &
-			pdata->keypad_en_mask) {
+				pdata->keypad_en_mask) {
 			dev_err(&client->dev, "invalid gpi row/col data\n");
 			return -EINVAL;
 		}
@@ -749,14 +758,12 @@ static int __init adp5589_init(void)
 {
 	return i2c_add_driver(&adp5589_driver);
 }
-
 module_init(adp5589_init);
 
 static void __exit adp5589_exit(void)
 {
 	i2c_del_driver(&adp5589_driver);
 }
-
 module_exit(adp5589_exit);
 
 MODULE_LICENSE("GPL");

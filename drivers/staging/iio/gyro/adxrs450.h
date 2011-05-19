@@ -15,7 +15,6 @@
 #define ADXRS450_QUAD1	0x08	/* Quad Memory Registers */
 #define ADXRS450_FAULT1	0x0A	/* Fault Registers */
 #define ADXRS450_PID1	0x0C	/* Part ID Register 1 */
-#define ADXRS450_PID0	0x0D	/* Part ID Register 0 */
 #define ADXRS450_SNH	0x0E	/* Serial Number Registers, 4 bytes */
 #define ADXRS450_SNL	0x10
 #define ADXRS450_DNC1	0x12	/* Dynamic Null Correction Registers */
@@ -35,8 +34,8 @@
 
 #define ADXRS450_WRERR_MASK	(0x7 << 29)
 
-#define ADXRS450_MAX_RX 8
-#define ADXRS450_MAX_TX 8
+#define ADXRS450_MAX_RX 4
+#define ADXRS450_MAX_TX 4
 
 #define ADXRS450_GET_ST(a)	((a >> 26) & 0x3)
 

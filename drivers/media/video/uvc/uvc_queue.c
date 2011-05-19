@@ -426,8 +426,7 @@ int uvc_queue_mmap(struct uvc_video_queue *queue, struct vm_area_struct *vma)
 			break;
 	}
 
-#ifdef CONFIG_MMU
-	if (i == queue->count || size != queue->buf_size) {
+	if (i == queue->count || PAGE_ALIGN(size) != queue->buf_size) {
 		ret = -EINVAL;
 		goto done;
 	}
@@ -439,6 +438,7 @@ int uvc_queue_mmap(struct uvc_video_queue *queue, struct vm_area_struct *vma)
 	vma->vm_flags |= VM_IO;
 
 	addr = (unsigned long)queue->mem + buffer->buf.m.offset;
+#ifdef CONFIG_MMU
 	while (size > 0) {
 		page = vmalloc_to_page((void *)addr);
 		if ((ret = vm_insert_page(vma, start, page)) < 0)
@@ -448,19 +448,6 @@ int uvc_queue_mmap(struct uvc_video_queue *queue, struct vm_area_struct *vma)
 		addr += PAGE_SIZE;
 		size -= PAGE_SIZE;
 	}
-#else
-	if (i == queue->count ||
-		PAGE_ALIGN(size) != queue->buf_size) {
-		ret = -EINVAL;
-		goto done;
-	}
-
-	vma->vm_flags |= VM_IO | VM_MAYSHARE; /* documentation/nommu-mmap.txt */
-
-	addr = (unsigned long)queue->mem + buffer->buf.m.offset;
-
-	vma->vm_start = addr;
-	vma->vm_end = addr + queue->buf_size;
 #endif
 
 	vma->vm_ops = &uvc_vm_ops;
@@ -504,6 +491,36 @@ done:
 	mutex_unlock(&queue->mutex);
 	return mask;
 }
+
+#ifndef CONFIG_MMU
+/*
+ * Get unmapped area.
+ *
+ * NO-MMU arch need this function to make mmap() work correctly.
+ */
+unsigned long uvc_queue_get_unmapped_area(struct uvc_video_queue *queue,
+		unsigned long pgoff)
+{
+	struct uvc_buffer *buffer;
+	unsigned int i;
+	unsigned long ret;
+
+	mutex_lock(&queue->mutex);
+	for (i = 0; i < queue->count; ++i) {
+		buffer = &queue->buffer[i];
+		if ((buffer->buf.m.offset >> PAGE_SHIFT) == pgoff)
+			break;
+	}
+	if (i == queue->count) {
+		ret = -EINVAL;
+		goto done;
+	}
+	ret = (unsigned long)queue->mem + buffer->buf.m.offset;
+done:
+	mutex_unlock(&queue->mutex);
+	return ret;
+}
+#endif
 
 /*
  * Enable or disable the video buffers queue.
