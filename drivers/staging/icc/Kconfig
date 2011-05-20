@@ -4,6 +4,7 @@
 
 menuconfig ICC_DRIVER
 	bool "icc driver"
+	depends on !SMP
 	select BF561_COREB
 	help
 	  the icc driver is a device driver that control the DSP devices,
@@ -11,7 +12,7 @@ menuconfig ICC_DRIVER
 if ICC_DRIVER
 config	ICC
 	bool "icc protocol"
-	default N
+	default Y
 	help
 	  ICC protocol, a shared memory based protocol for communication between
 	  linux core and DSP core

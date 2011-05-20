@@ -7,16 +7,12 @@
 #ifndef _ICC_H
 #define _ICC_H
 
-#include <mach/icc.h>
-void icc_send_ipi_cpu(unsigned int cpu, int irq);
-void icc_clear_ipi(unsigned int cpu, int irq);
-
 /* sm protocol */
 /* compose type enumeration value from protocol & subtype */
 #define SM_MSG_TYPE(protocol, subtype) (((protocol)<<24)|(subtype))
 
 /* extract subtype from type enumeration value */
-#define SM_MSG_SUBTYPE(type) ((type)&0xffffff)
+#define SM_MSG_SUBTYPE(type) ((type)&0xff)
 
 /* extract protocol from type enumeration value */
 #define SM_MSG_PROTOCOL(type) (((type)>>24)&0xff)
@@ -28,6 +24,8 @@ enum {
 	SP_RES_MANAGER,
 	SP_PACKET,
 	SP_SESSION_PACKET,
+	SP_SCALAR,
+	SP_SESSION_SCALAR,
 	SP_MAX,
 };
 
@@ -70,7 +68,7 @@ enum {
 #define SM_PACKET_ERROR_ACK	SM_MSG_TYPE(SP_PACKET, 3)
 
 #define SM_SESSION_PACKET_READY		SM_MSG_TYPE(SP_SESSION_PACKET, 0)
-#define SM_SESSION_PACKET_COMSUMED	SM_MSG_TYPE(SP_SESSION_PACKET, 1)
+#define SM_SESSION_PACKET_CONSUMED	SM_MSG_TYPE(SP_SESSION_PACKET, 1)
 #define SM_SESSION_PACKET_ERROR		SM_MSG_TYPE(SP_SESSION_PACKET, 2)
 #define SM_SESSION_PACKET_ERROR_ACK	SM_MSG_TYPE(SP_SESSION_PACKET, 3)
 #define SM_SESSION_PACKET_CONNECT	SM_MSG_TYPE(SP_SESSION_PACKET, 4)
@@ -81,19 +79,49 @@ enum {
 #define SM_SESSION_PACKET_CLOSE		SM_MSG_TYPE(SP_SESSION_PACKET, 9)
 #define SM_SESSION_PACKET_CLOSE_ACK	SM_MSG_TYPE(SP_SESSION_PACKET, 10)
 
+#define SM_SCALAR_8BIT			0
+#define SM_SCALAR_16BIT			1
+#define SM_SCALAR_32BIT			2
+#define SM_SCALAR_64BIT			3
+
+#define SM_SCALAR_READY_8		SM_MSG_TYPE(SP_SCALAR, SM_SCALAR_8BIT)
+#define SM_SCALAR_READY_16		SM_MSG_TYPE(SP_SCALAR, SM_SCALAR_16BIT)
+#define SM_SCALAR_READY_32		SM_MSG_TYPE(SP_SCALAR, SM_SCALAR_32BIT)
+#define SM_SCALAR_READY_64		SM_MSG_TYPE(SP_SCALAR, SM_SCALAR_64BIT)
+#define SM_SCALAR_CONSUMED		SM_MSG_TYPE(SP_SCALAR, 4)
+#define SM_SCALAR_ERROR			SM_MSG_TYPE(SP_SCALAR, 5)
+#define SM_SCALAR_ERROR_ACK		SM_MSG_TYPE(SP_SCALAR, 6)
+
+#define SM_SESSION_SCALAR_READY_8	SM_MSG_TYPE(SP_SESSION_SCALAR, SM_SCALAR_8BIT)
+#define SM_SESSION_SCALAR_READY_16	SM_MSG_TYPE(SP_SESSION_SCALAR, SM_SCALAR_16BIT)
+#define SM_SESSION_SCALAR_READY_32	SM_MSG_TYPE(SP_SESSION_SCALAR, SM_SCALAR_32BIT)
+#define SM_SESSION_SCALAR_READY_64	SM_MSG_TYPE(SP_SESSION_SCALAR, SM_SCALAR_64BIT)
+#define SM_SESSION_SCALAR_CONSUMED	SM_MSG_TYPE(SP_SESSION_SCALAR, 4)
+#define SM_SESSION_SCALAR_ERROR		SM_MSG_TYPE(SP_SESSION_SCALAR, 5)
+#define SM_SESSION_SCALAR_ERROR_ACK	SM_MSG_TYPE(SP_SESSION_SCALAR, 6)
+#define SM_SESSION_SCALAR_CONNECT	SM_MSG_TYPE(SP_SESSION_SCALAR, 7)
+#define SM_SESSION_SCALAR_CONNECT_ACK	SM_MSG_TYPE(SP_SESSION_SCALAR, 8)
+#define SM_SESSION_SCALAR_CONNECT_DONE	SM_MSG_TYPE(SP_SESSION_SCALAR, 9)
+#define SM_SESSION_SCALAR_ACTIVE	SM_MSG_TYPE(SP_SESSION_SCALAR, 10)
+#define SM_SESSION_SCALAR_ACTIVE_ACK	SM_MSG_TYPE(SP_SESSION_SCALAR, 11)
+#define SM_SESSION_SCALAR_CLOSE		SM_MSG_TYPE(SP_SESSION_SCALAR, 12)
+#define SM_SESSION_SCALAR_CLOSE_ACK	SM_MSG_TYPE(SP_SESSION_SCALAR, 13)
 
 #ifdef __KERNEL__
-
+#include <mach/icc.h>
 #include <linux/types.h>
 #include <linux/wait.h>
 #include <linux/mutex.h>
+
+void icc_send_ipi_cpu(unsigned int cpu, int irq);
+void icc_clear_ipi(unsigned int cpu, int irq);
 
 struct sm_msg {
 	sm_uint16_t dst_ep;
 	sm_uint16_t src_ep;
 	sm_uint32_t type;
-	sm_uint32_t length;
 	sm_address_t payload;
+	sm_uint32_t length ;
 };
 
 struct sm_message {
@@ -126,7 +154,7 @@ struct sm_session {
 	int (*handle)(struct sm_message *msg, struct sm_session *session);
 	struct sm_proto *proto_ops;
 	wait_queue_head_t rx_wait;
-};
+} __attribute__((__aligned__(4)));
 
 #define MAX_ENDPOINTS 32
 #define MAX_SESSIONS 32
@@ -197,6 +225,16 @@ struct sm_packet {
 	uint32_t param_len;
 	void *param;
 };
+
+#define SM_SCALAR_CMD(x) ((x) >> 16 & 0xffff)
+#define SM_SCALAR_CMDARG(x) ((x) & 0xffff)
+#define SM_SCALAR_CMD_HEAD 0xFE
+#define SM_SCALAR_ACK_HEAD   0xFF
+#define SM_SCALAR_CMD_GET_SESSION_ID        0x1
+#define SM_SCALAR_CMD_GET_SESSION_TYPE      0x2
+
+#define MK_SM_SCALAR_CMD(x) (((x) & 0xffff) | (SM_SCALAR_CMD_HEAD << 16))
+#define MK_SM_SCALAR_CMD_ACK(x) (((x) & 0xffff) | (SM_SCALAR_ACK_HEAD << 16))
 
 #define L3_TYPE_AUDIO 1
 #define L3_TYPE_VIDEO 2
