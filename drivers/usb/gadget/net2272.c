@@ -2554,32 +2554,6 @@ static int __devexit net2272_remove(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, NULL);
 	the_controller = NULL;
-
-#ifdef CONFIG_BFIN533_STAMP
-	gpio_free(GPIO_0);
-	gpio_free(GPIO_1);
-#endif
-
-#ifdef CONFIG_BFIN537_BLUETECHNIX_CM_U
-	/* Set PH15 high */
-	gpio_direction_output(GPIO_47, 1);
-	gpio_free(GPIO_47);
-	/* Free reset line */
-	gpio_free(GPIO_45);
-	/* Disable CLKBUF out */
-	bfin_write_VR_CTL(bfin_read_VR_CTL() & ~CLKBUFOE);
-#endif
-
-#if defined(CONFIG_BFIN537_BLUETECHNIX_TCM) || defined(CONFIG_BFIN537_BLUETECHNIX_CM_E)
-	/* Free reset line */
-	gpio_free(GPIO_30);
-#endif
-
-#ifdef CONFIG_BFIN561_BLUETECHNIX_CM
-	/* Free reset line */
-	gpio_free(GPIO_PF46);
-#endif
-
 	kfree(dev);
 
 	return 0;
@@ -2702,14 +2676,6 @@ done2:
 done1:
 	iounmap(dev->base_addr);
 done:
-#ifdef CONFIG_BFIN533_STAMP
-	gpio_free(GPIO_0);
-	gpio_free(GPIO_1);
-#endif
-
-#ifdef CONFIG_BFIN537_BLUETECHNIX_CM
-	gpio_free(GPIO_47);
-#endif
 
 	return retval;
 }
