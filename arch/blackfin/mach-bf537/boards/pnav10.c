@@ -184,16 +184,6 @@ static struct flash_platform_data bfin_spi_flash_data = {
 /* SPI flash chip (m25p64) */
 static struct bfin5xx_spi_chip spi_flash_chip_info = {
 	.enable_dma = 0,         /* use dma transfer with this chip*/
-	.bits_per_word = 8,
-};
-#endif
-
-#if defined(CONFIG_BFIN_SPI_ADC) \
-	|| defined(CONFIG_BFIN_SPI_ADC_MODULE)
-/* SPI ADC chip */
-static struct bfin5xx_spi_chip spi_adc_chip_info = {
-	.enable_dma = 1,         /* use dma transfer with this chip*/
-	.bits_per_word = 16,
 };
 #endif
 
@@ -208,16 +198,10 @@ static struct bfin5xx_spi_chip ad1836_spi_chip_info = {
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 static struct bfin5xx_spi_chip mmc_spi_chip_info = {
 	.enable_dma = 0,
-	.bits_per_word = 8,
 };
 #endif
 
 #if defined(CONFIG_TOUCHSCREEN_AD7877) || defined(CONFIG_TOUCHSCREEN_AD7877_MODULE)
-static struct bfin5xx_spi_chip spi_ad7877_chip_info = {
-	.enable_dma = 0,
-	.bits_per_word = 16,
-};
-
 static const struct ad7877_platform_data bfin_ad7877_ts_info = {
 	.model			= 7877,
 	.vref_delay_usecs	= 50,	/* internal, no capacitor */
@@ -245,18 +229,6 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.platform_data = &bfin_spi_flash_data,
 		.controller_data = &spi_flash_chip_info,
 		.mode = SPI_MODE_3,
-	},
-#endif
-
-#if defined(CONFIG_BFIN_SPI_ADC) \
-	|| defined(CONFIG_BFIN_SPI_ADC_MODULE)
-	{
-		.modalias = "bfin_spi_adc", /* Name of spi_driver for this device */
-		.max_speed_hz = 6250000,     /* max spi clock (SCK) speed in HZ */
-		.bus_num = 0, /* Framework bus number */
-		.chip_select = 1, /* Framework chip select. */
-		.platform_data = NULL, /* No spi_driver specific config */
-		.controller_data = &spi_adc_chip_info,
 	},
 #endif
 
@@ -288,7 +260,6 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 	.max_speed_hz		= 12500000,     /* max spi clock (SCK) speed in HZ */
 	.bus_num		= 0,
 	.chip_select  		= 5,
-	.controller_data = &spi_ad7877_chip_info,
 },
 #endif
 
