@@ -458,6 +458,16 @@ config USB_GADGET_NET2272
 	  dynamically linked module called "net2272" and force all
 	  gadget drivers to also be dynamically linked.
 
+config USB_GADGET_NET2272_DMA
+	boolean "Support external DMA controller"
+	depends on USB_GADGET_NET2272
+	help
+	  The NET2272 part can optionally support an external DMA
+	  controller, but your board has to have support in the
+	  driver itself.
+
+	  If unsure, say "N" here.  The driver works fine in PIO mode.
+
 config USB_NET2272
 	tristate
 	depends on USB_GADGET_NET2272
