@@ -1578,6 +1578,73 @@ static struct platform_device bfin_lq035q1_device = {
 };
 #endif
 
+#if defined(CONFIG_VIDEO_BLACKFIN_PPI) \
+	|| defined(CONFIG_VIDEO_BLACKFIN_PPI_MODULE)
+static struct resource bfin_ppi_resources[] = {
+	{
+		.start = CH_PPI,
+		.end   = CH_PPI,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = IRQ_PPI_ERROR,
+		.end   = IRQ_PPI_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = PPI_CONTROL,
+		.end   = PPI_FRAME + 3,
+		.flags = IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device bfin_ppi_device = {
+	.name          = "ppi",
+	.id            = -1,
+	.num_resources = ARRAY_SIZE(bfin_ppi_resources),
+	.resource      = bfin_ppi_resources,
+};
+#endif
+
+#if defined(CONFIG_VIDEO_BLACKFIN_CAPTURE) \
+	|| defined(CONFIG_VIDEO_BLACKFIN_CAPTURE_MODULE)
+#include <media/blackfin/bfin_capture.h>
+
+static struct v4l2_input vs6624_inputs[] = {
+	{
+		.index = 0,
+		.name = "Camera",
+		.type = V4L2_INPUT_TYPE_CAMERA,
+		.std = V4L2_STD_UNKNOWN,
+	},
+};
+
+static struct bcap_route vs6624_routes[] = {
+	{
+		.input = 0,
+		.output = 0,
+	},
+};
+
+static struct bfin_capture_config bfin_capture_data = {
+	.card_name = "BF537",
+	.inputs = vs6624_inputs,
+	.num_inputs = ARRAY_SIZE(vs6624_inputs),
+	.routes = vs6624_routes,
+	.i2c_adapter_id = 0,
+	.board_info = {
+		I2C_BOARD_INFO("vs6624", 0x10)
+	},
+};
+
+static struct platform_device bfin_capture_device = {
+	.name = "bfin_capture",
+	.dev = {
+		.platform_data = &bfin_capture_data,
+	},
+};
+#endif
+
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
 #ifdef CONFIG_SERIAL_BFIN_UART0
 static struct resource bfin_uart0_resources[] = {
@@ -2733,6 +2800,16 @@ static struct platform_device *stamp_devices[] __initdata = {
 
 #if defined(CONFIG_FB_BFIN_LQ035Q1) || defined(CONFIG_FB_BFIN_LQ035Q1_MODULE)
 	&bfin_lq035q1_device,
+#endif
+
+#if defined(CONFIG_VIDEO_BLACKFIN_CAPTURE) \
+	|| defined(CONFIG_VIDEO_BLACKFIN_CAPTURE_MODULE)
+	&bfin_capture_device,
+#endif
+
+#if defined(CONFIG_VIDEO_BLACKFIN_PPI) \
+	|| defined(CONFIG_VIDEO_BLACKFIN_PPI_MODULE)
+	&bfin_ppi_device,
 #endif
 
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)

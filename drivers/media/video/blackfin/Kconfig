@@ -1,0 +1,19 @@
+config VIDEO_BLACKFIN_CAPTURE
+	tristate "Blackfin Video Capture Driver"
+	depends on VIDEO_DEV && BLACKFIN
+	select VIDEOBUF_DMA_CONTIG
+	help
+	  V4L2 bridge driver for Blackfin video capture device.
+	  Choose PPI or EPPI as its interface.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called bfin_capture.
+
+config VIDEO_BLACKFIN_PPI
+	tristate "Blackfin PPI Driver"
+	depends on VIDEO_BLACKFIN_CAPTURE
+	help
+	  Support for Blackfin Parallel Peripheral Interface.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ppi.

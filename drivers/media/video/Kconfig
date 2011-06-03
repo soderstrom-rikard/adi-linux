@@ -282,6 +282,16 @@ config VIDEO_ADV7180
 	  To compile this driver as a module, choose M here: the
 	  module will be called adv7180.
 
+config VIDEO_ADV7183
+	tristate "Analog Devices ADV7183 decoder"
+	depends on VIDEO_V4L2 && I2C
+	---help---
+	  V4l2 subdevice driver for the Analog Devices
+	  ADV7183 video decoder.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called adv7183.
+
 config VIDEO_BT819
 	tristate "BT819A VideoStream decoder"
 	depends on VIDEO_V4L2 && I2C
@@ -328,6 +338,16 @@ config VIDEO_OV7670
 	  This is a Video4Linux2 sensor-level driver for the OmniVision
 	  OV7670 VGA camera.  It currently only works with the M88ALP01
 	  controller.
+
+config VIDEO_VS6624
+	tristate "ST VS6624 sensor support"
+	depends on VIDEO_V4L2 && I2C
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the ST VS6624
+	  camera.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called vs6624.
 
 config VIDEO_MT9V011
 	tristate "Micron mt9v011 sensor support"
@@ -695,6 +715,8 @@ source "drivers/media/video/ivtv/Kconfig"
 source "drivers/media/video/cx18/Kconfig"
 
 source "drivers/media/video/saa7164/Kconfig"
+
+source "drivers/media/video/blackfin/Kconfig"
 
 config VIDEO_M32R_AR
 	tristate "AR devices"
