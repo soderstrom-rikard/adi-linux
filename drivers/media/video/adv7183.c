@@ -1,0 +1,563 @@
+/*
+ * adv7183.c Analog Devices ADV7183 video decoder driver
+ *
+ * Copyright (c) 2011 Scott Jiang <Scott.Jiang.Linux@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/errno.h>
+#include <linux/types.h>
+#include <linux/i2c.h>
+#include <linux/slab.h>
+#include <linux/delay.h>
+#include <linux/videodev2.h>
+#include <media/v4l2-device.h>
+#include <media/v4l2-chip-ident.h>
+#include <media/v4l2-ctrls.h>
+#include <media/adv7183.h>
+#include "adv7183_regs.h"
+
+struct adv7183 {
+	struct v4l2_subdev sd;
+	struct v4l2_ctrl_handler hdl;
+
+	v4l2_std_id std; /* Current set standard */
+	u32 input;
+	u32 output;
+};
+
+/* EXAMPLES USING 27 MHz CLOCK
+ * Mode 1 CVBS Input (Composite Video on AIN5)
+ * All standards are supported through autodetect, 8-bit, 4:2:2, ITU-R BT.656 output on P15 to P8.
+ */
+static const unsigned char adv7183_init_regs[] = {
+	ADV7183_IN_CTRL, 0x04,           /* CVBS input on AIN5 */
+	ADV7183_DIGI_CLAMP_CTRL_1, 0x00, /* Slow down digital clamps */
+	ADV7183_SHAP_FILT_CTRL, 0x41,    /* Set CSFM to SH1 */
+	ADV7183_ADC_CTRL, 0x16,          /* Power down ADC 1 and ADC 2 */
+	ADV7183_CTI_DNR_CTRL_4, 0x04,    /* Set DNR threshold to 4 for flat response */
+	/* ADI recommended programming sequence */
+	ADV7183_ADI_CTRL, 0x80,
+	ADV7183_CTI_DNR_CTRL_4, 0x20,
+	0x52, 0x18,
+	0x58, 0xED,
+	0x77, 0xC5,
+	0x7C, 0x93,
+	0x7D, 0x00,
+	0xD0, 0x48,
+	0xD5, 0xA0,
+	0xD7, 0xEA,
+	ADV7183_SD_SATURATION_CR, 0x3E,
+	ADV7183_PAL_V_END, 0x3E,
+	ADV7183_PAL_F_TOGGLE, 0x0F,
+	ADV7183_ADI_CTRL, 0x00,
+	0x00, 0x00,
+};
+
+static inline struct adv7183 *to_adv7183(struct v4l2_subdev *sd)
+{
+	return container_of(sd, struct adv7183, sd);
+}
+static inline struct v4l2_subdev *to_sd(struct v4l2_ctrl *ctrl)
+{
+	return &container_of(ctrl->handler, struct adv7183, hdl)->sd;
+}
+
+static inline int adv7183_read(struct v4l2_subdev *sd, unsigned char reg)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+
+	return i2c_smbus_read_byte_data(client, reg);
+}
+
+static inline int adv7183_write(struct v4l2_subdev *sd, unsigned char reg,
+				unsigned char value)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+
+	return i2c_smbus_write_byte_data(client, reg, value);
+}
+
+static int adv7183_writeregs(struct v4l2_subdev *sd, const unsigned char *regs)
+{
+	unsigned char reg, data;
+
+	while (*regs != 0x00) {
+		reg = *regs++;
+		data = *regs++;
+
+		adv7183_write(sd, reg, data);
+	}
+	return 0;
+}
+
+static int adv7183_log_status(struct v4l2_subdev *sd)
+{
+	printk(KERN_DEBUG "adv7183: Input control = 0x%02x\n",
+			adv7183_read(sd, ADV7183_IN_CTRL));
+	printk(KERN_DEBUG "adv7183: Video selection = 0x%02x\n",
+			adv7183_read(sd, ADV7183_VD_SEL));
+	printk(KERN_DEBUG "adv7183: Output control = 0x%02x\n",
+			adv7183_read(sd, ADV7183_OUT_CTRL));
+	printk(KERN_DEBUG "adv7183: Extended output control = 0x%02x\n",
+			adv7183_read(sd, ADV7183_EXT_OUT_CTRL));
+	printk(KERN_DEBUG "adv7183: Autodetect enable = 0x%02x\n",
+			adv7183_read(sd, ADV7183_AUTO_DET_EN));
+	printk(KERN_DEBUG "adv7183: Contrast = 0x%02x\n",
+			adv7183_read(sd, ADV7183_CONTRAST));
+	printk(KERN_DEBUG "adv7183: Brightness = 0x%02x\n",
+			adv7183_read(sd, ADV7183_BRIGHTNESS));
+	printk(KERN_DEBUG "adv7183: Hue = 0x%02x\n",
+			adv7183_read(sd, ADV7183_HUE));
+	printk(KERN_DEBUG "adv7183: Default value Y = 0x%02x\n",
+			adv7183_read(sd, ADV7183_DEF_Y));
+	printk(KERN_DEBUG "adv7183: Default value C = 0x%02x\n",
+			adv7183_read(sd, ADV7183_DEF_C));
+	printk(KERN_DEBUG "adv7183: ADI control = 0x%02x\n",
+			adv7183_read(sd, ADV7183_ADI_CTRL));
+	printk(KERN_DEBUG "adv7183: Power Management = 0x%02x\n",
+			adv7183_read(sd, ADV7183_POW_MANAGE));
+	printk(KERN_DEBUG "adv7183: Status 1 2 and 3 = 0x%02x 0x%02x 0x%02x\n",
+			adv7183_read(sd, ADV7183_STATUS_1),
+			adv7183_read(sd, ADV7183_STATUS_2),
+			adv7183_read(sd, ADV7183_STATUS_3));
+	printk(KERN_DEBUG "adv7183: Ident = 0x%02x\n",
+			adv7183_read(sd, ADV7183_IDENT));
+	printk(KERN_DEBUG "adv7183: Analog clamp control = 0x%02x\n",
+			adv7183_read(sd, ADV7183_ANAL_CLAMP_CTRL));
+	printk(KERN_DEBUG "adv7183: Digital clamp control 1 = 0x%02x\n",
+			adv7183_read(sd, ADV7183_DIGI_CLAMP_CTRL_1));
+	printk(KERN_DEBUG "adv7183: Shaping filter control 1 and 2 = 0x%02x 0x%02x\n",
+			adv7183_read(sd, ADV7183_SHAP_FILT_CTRL),
+			adv7183_read(sd, ADV7183_SHAP_FILT_CTRL_2));
+	printk(KERN_DEBUG "adv7183: Comb filter control = 0x%02x\n",
+			adv7183_read(sd, ADV7183_COMB_FILT_CTRL));
+	printk(KERN_DEBUG "adv7183: ADI control 2 = 0x%02x\n",
+			adv7183_read(sd, ADV7183_ADI_CTRL_2));
+	printk(KERN_DEBUG "adv7183: Pixel delay control = 0x%02x\n",
+			adv7183_read(sd, ADV7183_PIX_DELAY_CTRL));
+	printk(KERN_DEBUG "adv7183: Misc gain control = 0x%02x\n",
+			adv7183_read(sd, ADV7183_MISC_GAIN_CTRL));
+	printk(KERN_DEBUG "adv7183: AGC mode control = 0x%02x\n",
+			adv7183_read(sd, ADV7183_AGC_MODE_CTRL));
+	printk(KERN_DEBUG "adv7183: Chroma gain control 1 and 2 = 0x%02x 0x%02x\n",
+			adv7183_read(sd, ADV7183_CHRO_GAIN_CTRL_1),
+			adv7183_read(sd, ADV7183_CHRO_GAIN_CTRL_2));
+	printk(KERN_DEBUG "adv7183: Luma gain control 1 and 2 = 0x%02x 0x%02x\n",
+			adv7183_read(sd, ADV7183_LUMA_GAIN_CTRL_1),
+			adv7183_read(sd, ADV7183_LUMA_GAIN_CTRL_2));
+	printk(KERN_DEBUG "adv7183: Vsync field control 1 2 and 3 = 0x%02x 0x%02x 0x%02x\n",
+			adv7183_read(sd, ADV7183_VS_FIELD_CTRL_1),
+			adv7183_read(sd, ADV7183_VS_FIELD_CTRL_2),
+			adv7183_read(sd, ADV7183_VS_FIELD_CTRL_3));
+	printk(KERN_DEBUG "adv7183: Hsync positon control 1 2 and 3 = 0x%02x 0x%02x 0x%02x\n",
+			adv7183_read(sd, ADV7183_HS_POS_CTRL_1),
+			adv7183_read(sd, ADV7183_HS_POS_CTRL_2),
+			adv7183_read(sd, ADV7183_HS_POS_CTRL_3));
+	printk(KERN_DEBUG "adv7183: Polarity = 0x%02x\n",
+			adv7183_read(sd, ADV7183_POLARITY));
+	printk(KERN_DEBUG "adv7183: ADC control = 0x%02x\n",
+			adv7183_read(sd, ADV7183_ADC_CTRL));
+	printk(KERN_DEBUG "adv7183: SD offset Cb and Cr = 0x%02x 0x%02x\n",
+			adv7183_read(sd, ADV7183_SD_OFFSET_CB),
+			adv7183_read(sd, ADV7183_SD_OFFSET_CR));
+	printk(KERN_DEBUG "adv7183: SD saturation Cb and Cr = 0x%02x 0x%02x\n",
+			adv7183_read(sd, ADV7183_SD_SATURATION_CB),
+			adv7183_read(sd, ADV7183_SD_SATURATION_CR));
+	printk(KERN_DEBUG "adv7183: Drive strength = 0x%02x\n",
+			adv7183_read(sd, ADV7183_DRIVE_STR));
+
+	return 0;
+}
+
+static int adv7183_s_std(struct v4l2_subdev *sd, v4l2_std_id std)
+{
+	struct adv7183 *decoder = to_adv7183(sd);
+	int reg;
+
+	if (std == decoder->std)
+		return 0;
+	reg = adv7183_read(sd, ADV7183_IN_CTRL) & 0xF;
+	if (std == V4L2_STD_ALL)
+		adv7183_write(sd, ADV7183_IN_CTRL, reg);
+	else {
+		if (std == V4L2_STD_PAL_60)
+			reg |= 0x60;
+		else if (std == V4L2_STD_NTSC_443)
+			reg |= 0x70;
+		else if (std == V4L2_STD_PAL_N)
+			reg |= 0x90;
+		else if (std == V4L2_STD_PAL_M)
+			reg |= 0xA0;
+		else if (std == V4L2_STD_PAL_Nc)
+			reg |= 0xC0;
+		else if (std & V4L2_STD_PAL)
+			reg |= 0x80;
+		else if (std & V4L2_STD_NTSC)
+			reg |= 0x50;
+		else if (std & V4L2_STD_SECAM)
+			reg |= 0xE0;
+		else
+			return -EINVAL;
+		adv7183_write(sd, ADV7183_IN_CTRL, reg);
+	}
+
+	decoder->std = std;
+
+	return 0;
+}
+
+static int adv7183_reset(struct v4l2_subdev *sd, u32 val)
+{
+	int reg;
+
+	reg = adv7183_read(sd, ADV7183_POW_MANAGE) | 0x80;
+	adv7183_write(sd, ADV7183_POW_MANAGE, reg);
+	msleep(20);
+	return 0;
+}
+
+static int adv7183_s_routing(struct v4l2_subdev *sd,
+				u32 input, u32 output, u32 config)
+{
+	struct adv7183 *decoder = to_adv7183(sd);
+	int reg;
+
+	if ((input > ADV7183_COMPONENT1) || (output > ADV7183_16BIT_OUT))
+		return -EINVAL;
+
+	if (input != decoder->input) {
+		decoder->input = input;
+		reg = adv7183_read(sd, ADV7183_IN_CTRL) & 0xF0;
+		switch (input) {
+		case ADV7183_COMPOSITE1:
+			reg |= 0x1;
+			break;
+		case ADV7183_COMPOSITE2:
+			reg |= 0x2;
+			break;
+		case ADV7183_COMPOSITE3:
+			reg |= 0x3;
+			break;
+		case ADV7183_COMPOSITE4:
+			reg |= 0x4;
+			break;
+		case ADV7183_COMPOSITE5:
+			reg |= 0x5;
+			break;
+		case ADV7183_COMPOSITE6:
+			reg |= 0xB;
+			break;
+		case ADV7183_COMPOSITE7:
+			reg |= 0xC;
+			break;
+		case ADV7183_COMPOSITE8:
+			reg |= 0xD;
+			break;
+		case ADV7183_COMPOSITE9:
+			reg |= 0xE;
+			break;
+		case ADV7183_COMPOSITE10:
+			reg |= 0xF;
+			break;
+		case ADV7183_SVIDEO0:
+			reg |= 0x6;
+			break;
+		case ADV7183_SVIDEO1:
+			reg |= 0x7;
+			break;
+		case ADV7183_SVIDEO2:
+			reg |= 0x8;
+			break;
+		case ADV7183_COMPONENT0:
+			reg |= 0x9;
+			break;
+		case ADV7183_COMPONENT1:
+			reg |= 0xA;
+			break;
+		default:
+			break;
+		}
+		adv7183_write(sd, ADV7183_IN_CTRL, reg);
+	}
+
+	if (output != decoder->output) {
+		decoder->output = output;
+		reg = adv7183_read(sd, ADV7183_OUT_CTRL) & 0xC0;
+		switch (output) {
+		case ADV7183_16BIT_OUT:
+			reg |= 0x9;
+			break;
+		default:
+			reg |= 0xC;
+			break;
+		}
+		adv7183_write(sd, ADV7183_OUT_CTRL, reg);
+	}
+
+	return 0;
+}
+
+static int adv7183_s_ctrl(struct v4l2_ctrl *ctrl)
+{
+	struct v4l2_subdev *sd = to_sd(ctrl);
+	int val = ctrl->val;
+
+	switch (ctrl->id) {
+	case V4L2_CID_BRIGHTNESS:
+		if (val < 0)
+			val = 127 - val;
+		adv7183_write(sd, ADV7183_BRIGHTNESS, val);
+		break;
+	case V4L2_CID_CONTRAST:
+		adv7183_write(sd, ADV7183_CONTRAST, val);
+		break;
+	case V4L2_CID_SATURATION:
+		adv7183_write(sd, ADV7183_SD_SATURATION_CB, val >> 8);
+		adv7183_write(sd, ADV7183_SD_SATURATION_CR, (val & 0xFF));
+		break;
+	case V4L2_CID_HUE:
+		adv7183_write(sd, ADV7183_SD_OFFSET_CB, val >> 8);
+		adv7183_write(sd, ADV7183_SD_OFFSET_CR, (val & 0xFF));
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int adv7183_querystd(struct v4l2_subdev *sd, v4l2_std_id *std)
+{
+	struct adv7183 *decoder = to_adv7183(sd);
+	int reg;
+
+	if (decoder->std == V4L2_STD_ALL) {
+		reg = adv7183_read(sd, ADV7183_STATUS_1);
+		switch ((reg >> 0x4) & 0x7) {
+		case 0:
+			*std = V4L2_STD_NTSC;
+			break;
+		case 1:
+			*std = V4L2_STD_NTSC_443;
+			break;
+		case 2:
+			*std = V4L2_STD_PAL_M;
+			break;
+		case 3:
+			*std = V4L2_STD_PAL_60;
+			break;
+		case 4:
+			*std = V4L2_STD_PAL;
+			break;
+		case 5:
+			*std = V4L2_STD_SECAM;
+			break;
+		case 6:
+			*std = V4L2_STD_PAL_Nc | V4L2_STD_PAL_N;
+			break;
+		case 7:
+			*std = V4L2_STD_SECAM;
+			break;
+		default:
+			*std = V4L2_STD_UNKNOWN;
+			break;
+		}
+	} else
+		*std = decoder->std;
+	return 0;
+}
+
+static int adv7183_g_input_status(struct v4l2_subdev *sd, u32 *status)
+{
+	int reg;
+
+	*status = V4L2_IN_ST_NO_SIGNAL;
+	reg = adv7183_read(sd, ADV7183_STATUS_1);
+	if (reg < 0)
+		return reg;
+	else if (reg & 0x1)
+		*status = 0;
+	return 0;
+}
+
+static int adv7183_g_chip_ident(struct v4l2_subdev *sd,
+		struct v4l2_dbg_chip_ident *chip)
+{
+	int rev;
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+
+	/* 0x11 for adv7183, 0x13 for adv7183b */
+	rev = adv7183_read(sd, ADV7183_IDENT);
+
+	return v4l2_chip_ident_i2c_client(client, chip, V4L2_IDENT_ADV7183, rev);
+}
+
+#ifdef CONFIG_VIDEO_ADV_DEBUG
+static int adv7183_g_register(struct v4l2_subdev *sd, struct v4l2_dbg_register *reg)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+
+	if (!v4l2_chip_match_i2c_client(client, &reg->match))
+		return -EINVAL;
+	if (!capable(CAP_SYS_ADMIN))
+		return -EPERM;
+	reg->val = adv7183_read(sd, reg->reg & 0xff);
+	reg->size = 1;
+	return 0;
+}
+
+static int adv7183_s_register(struct v4l2_subdev *sd, struct v4l2_dbg_register *reg)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+
+	if (!v4l2_chip_match_i2c_client(client, &reg->match))
+		return -EINVAL;
+	if (!capable(CAP_SYS_ADMIN))
+		return -EPERM;
+	adv7183_write(sd, reg->reg & 0xff, reg->val & 0xff);
+	return 0;
+}
+#endif
+
+static const struct v4l2_ctrl_ops adv7183_ctrl_ops = {
+	.s_ctrl = adv7183_s_ctrl,
+};
+
+static const struct v4l2_subdev_core_ops adv7183_core_ops = {
+	.log_status = adv7183_log_status,
+	.s_std = adv7183_s_std,
+	.reset = adv7183_reset,
+	.g_chip_ident = adv7183_g_chip_ident,
+	.g_ext_ctrls = v4l2_subdev_g_ext_ctrls,
+	.try_ext_ctrls = v4l2_subdev_try_ext_ctrls,
+	.s_ext_ctrls = v4l2_subdev_s_ext_ctrls,
+	.g_ctrl = v4l2_subdev_g_ctrl,
+	.s_ctrl = v4l2_subdev_s_ctrl,
+	.queryctrl = v4l2_subdev_queryctrl,
+	.querymenu = v4l2_subdev_querymenu,
+#ifdef CONFIG_VIDEO_ADV_DEBUG
+	.g_register = adv7183_g_register,
+	.s_register = adv7183_s_register,
+#endif
+};
+
+static const struct v4l2_subdev_video_ops adv7183_video_ops = {
+	.s_routing = adv7183_s_routing,
+	.querystd = adv7183_querystd,
+	.g_input_status = adv7183_g_input_status,
+};
+
+static const struct v4l2_subdev_ops adv7183_ops = {
+	.core = &adv7183_core_ops,
+	.video = &adv7183_video_ops,
+};
+
+static int adv7183_probe(struct i2c_client *client,
+			const struct i2c_device_id *id)
+{
+	struct adv7183 *decoder;
+	struct v4l2_subdev *sd;
+	struct v4l2_ctrl_handler *hdl;
+
+	/* Check if the adapter supports the needed features */
+	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
+		return -EIO;
+
+	v4l_info(client, "chip found @ 0x%02x (%s)\n",
+			client->addr << 1, client->adapter->name);
+
+	decoder = kzalloc(sizeof(struct adv7183), GFP_KERNEL);
+	if (decoder == NULL)
+		return -ENOMEM;
+
+	sd = &decoder->sd;
+	v4l2_i2c_subdev_init(sd, client, &adv7183_ops);
+
+	hdl = &decoder->hdl;
+	v4l2_ctrl_handler_init(hdl, 4);
+	v4l2_ctrl_new_std(hdl, &adv7183_ctrl_ops,
+			V4L2_CID_BRIGHTNESS, -128, 127, 1, 0);
+	v4l2_ctrl_new_std(hdl, &adv7183_ctrl_ops,
+			V4L2_CID_CONTRAST, 0, 0xFF, 1, 0x80);
+	v4l2_ctrl_new_std(hdl, &adv7183_ctrl_ops,
+			V4L2_CID_SATURATION, 0, 0xFFFF, 1, 0x8080);
+	v4l2_ctrl_new_std(hdl, &adv7183_ctrl_ops,
+			V4L2_CID_HUE, 0, 0xFFFF, 1, 0x8080);
+	/* hook the control handler into the driver */
+	sd->ctrl_handler = hdl;
+	if (hdl->error) {
+		int err = hdl->error;
+
+		v4l2_ctrl_handler_free(hdl);
+		kfree(decoder);
+		return err;
+	}
+
+	decoder->std = V4L2_STD_ALL; /* Default is autodetect */
+	decoder->input = ADV7183_COMPOSITE4;
+	decoder->output = ADV7183_8BIT_OUT;
+	adv7183_writeregs(sd, adv7183_init_regs);
+	/* initialize the hardware to the default control values */
+	v4l2_ctrl_handler_setup(hdl);
+
+	return 0;
+}
+
+static int adv7183_remove(struct i2c_client *client)
+{
+	struct v4l2_subdev *sd = i2c_get_clientdata(client);
+
+	v4l2_device_unregister_subdev(sd);
+	v4l2_ctrl_handler_free(sd->ctrl_handler);
+	kfree(to_adv7183(sd));
+	return 0;
+}
+
+static const struct i2c_device_id adv7183_id[] = {
+	{"adv7183", 0},
+	{},
+};
+
+MODULE_DEVICE_TABLE(i2c, adv7183_id);
+
+static struct i2c_driver adv7183_driver = {
+	.driver = {
+		.owner  = THIS_MODULE,
+		.name   = "adv7183",
+	},
+	.probe          = adv7183_probe,
+	.remove         = adv7183_remove,
+	.id_table       = adv7183_id,
+};
+
+static __init int adv7183_init(void)
+{
+	return i2c_add_driver(&adv7183_driver);
+}
+
+static __exit void adv7183_exit(void)
+{
+	i2c_del_driver(&adv7183_driver);
+}
+
+module_init(adv7183_init);
+module_exit(adv7183_exit);
+
+MODULE_DESCRIPTION("Analog Devices ADV7183 video decoder driver");
+MODULE_AUTHOR("Scott Jiang");
+MODULE_LICENSE("GPL v2");
