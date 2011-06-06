@@ -108,8 +108,8 @@ ENTRY(_coreb_trampoline_start)
 
 	/* EVT15 = _real_start */
 
-	p1.l = _real_start;
-	p1.h = _real_start;
+	p1.l = _coreb_start;
+	p1.h = _coreb_start;
 	[p5 + (EVT15 - COREMMR_BASE)] = p1;
 	csync;
 
