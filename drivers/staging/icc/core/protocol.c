@@ -18,6 +18,7 @@
 #include <linux/proc_fs.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
+#include <asm/cacheflush.h>
 
 #define DEBUG
 #ifdef DEBUG
@@ -538,13 +539,6 @@ static int sm_recv_scalar(sm_uint32_t session_idx, sm_uint16_t *src_ep,
 	if (type)
 		*type = msg->type;
 
-	if (SM_MSG_PROTOCOL(msg->type) == SP_SCALAR)
-		sm_send_scalar_ack(session, msg->src_ep, message->src,
-				msg->payload, msg->length);
-	else if (SM_MSG_PROTOCOL(msg->type) == SP_SESSION_SCALAR)
-		sm_send_session_scalar_ack(session, msg->src_ep, message->src,
-				msg->payload, msg->length);
-
 	sm_debug("scalar0 %x, scalar1 %x\n", *scalar0, *scalar1);
 	session->n_avail--;
 	kfree(message);
@@ -591,7 +585,12 @@ static int sm_recv_packet(sm_uint32_t session_idx, sm_uint16_t *src_ep,
 	if (buf_len)
 		*buf_len = message->msg.length;
 
+
+	sm_debug("recv %s\n", message->msg.payload);
+
 	copy_to_user(user_buf, (void *)message->msg.payload, message->msg.length);
+
+	blackfin_dcache_invalidate_range(msg->payload, msg->payload + msg->length);
 
 	if (msg->type == SM_PACKET_READY)
 		sm_send_packet_ack(session, msg->src_ep, message->src,
@@ -802,8 +801,6 @@ int icc_handle_scalar_cmd(struct sm_msg *msg)
 	if (SM_SCALAR_CMD(scalar0) != SM_SCALAR_CMD_HEAD)
 		return 0;
 
-	sm_send_scalar_ack(NULL, msg->src_ep, src_cpu,
-				msg->payload, msg->length);
 	switch (SM_SCALAR_CMDARG(scalar0)) {
 	case SM_SCALAR_CMD_GET_SESSION_ID:
 		index = sm_find_session(scalar1, 0, icc_info->sessions_table);
@@ -970,10 +967,10 @@ static int msg_recv_internal(struct sm_msg *msg, struct sm_session *session)
 	}
 	mutex_lock(&icc_info->sessions_table->lock);
 	list_add(&message->next, &session->rx_messages);
-	mutex_unlock(&icc_info->sessions_table->lock);
 	session->n_avail++;
 	sm_debug("%s wakeup wait thread\n", __func__);
 	wake_up(&session->rx_wait);
+	mutex_unlock(&icc_info->sessions_table->lock);
 	return ret;
 }
 
@@ -986,6 +983,7 @@ static int sm_default_sendmsg(struct sm_message *message, struct sm_session *ses
 	switch (session->type) {
 	case SP_PACKET:
 	case SP_SESSION_PACKET:
+		blackfin_dcache_flush_range(msg->payload, msg->payload + msg->length);
 	case SP_SCALAR:
 	case SP_SESSION_SCALAR:
 		list_add(&message->next, &session->tx_messages);
@@ -1086,9 +1084,11 @@ matched1:
 		session->remote_ep = 0;
 		session->flags = 0;
 	case SM_PACKET_READY:
-		msg_recv_internal(msg, session);
-		break;
 	case SM_SESSION_PACKET_READY:
+		if (SM_MSG_PROTOCOL(msg->type) != session->type) {
+			coreb_msg("msg type %08x unmatch session type %08x\n", msg->type, session->type);
+			break;
+		}
 		msg_recv_internal(msg, session);
 		break;
 	case SM_SCALAR_READY_8:
@@ -1246,7 +1246,7 @@ void msg_handle(int cpu)
 		return;
 	}
 
-	if (session && (SM_MSG_PROTOCOL(msg->type) == session->type)) {
+	if (session) {
 		if (session->proto_ops->recvmsg)
 			session->proto_ops->recvmsg(msg, session);
 		else
