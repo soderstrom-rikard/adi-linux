@@ -46,7 +46,6 @@ struct sport_dev {
 
 	int err_irq;
 
-	int sport_mode;
 	int sport_clkdiv;
 
 	struct mutex mutex;
@@ -194,7 +193,6 @@ static int sport_configure(struct sport_dev *dev, struct sport_config *config)
 		rcr1 |= (RCKFE | RFSR);
 		rcr2 |= RSFSE;
 	} else if (config->mode == NDSO_MODE) {
-		dev->sport_mode = NDSO_MODE;
 		rcr1 = RFSR | LARFS | LRFS;
 		tcr1 = ITCLK | ITFS | TFSR | LATFS | LTFS;
 		clkdiv = dev->sport_clkdiv;
@@ -485,7 +483,7 @@ static irqreturn_t sport_tx_handler(int irq, void *dev_id)
 {
 	struct sport_dev *dev = dev_id;
 
-	if (dev->sport_mode != NDSO_MODE) {
+	if (dev->config.mode != NDSO_MODE) {
 		if (dev->tx_sent < dev->tx_len)
 			sport_tx_write(dev);
 	}
@@ -706,7 +704,7 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 		dev->rx_received = 0;
 	}
 
-	if (dev->sport_mode == NDSO_MODE) {
+	if (dev->config.mode == NDSO_MODE) {
 		sport_ndso_rx_read(dev);
 		goto out;
 	}
@@ -777,7 +775,7 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 		dev->tx_buf = buf;
 		dev->tx_len = count;
 		dev->tx_sent = 0;
-		if (dev->sport_mode == NDSO_MODE) {
+		if (dev->config.mode == NDSO_MODE) {
 			sport_ndso_tx_write(dev);
 			goto out;
 		}
