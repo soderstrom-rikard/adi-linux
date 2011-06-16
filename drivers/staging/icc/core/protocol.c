@@ -590,7 +590,7 @@ static int sm_recv_packet(sm_uint32_t session_idx, sm_uint16_t *src_ep,
 
 	copy_to_user(user_buf, (void *)message->msg.payload, message->msg.length);
 
-	blackfin_dcache_invalidate_range(msg->payload, msg->payload + msg->length);
+	invalidate_dcache_range(msg->payload, msg->payload + msg->length);
 
 	if (msg->type == SM_PACKET_READY)
 		sm_send_packet_ack(session, msg->src_ep, message->src,
@@ -983,7 +983,7 @@ static int sm_default_sendmsg(struct sm_message *message, struct sm_session *ses
 	switch (session->type) {
 	case SP_PACKET:
 	case SP_SESSION_PACKET:
-		blackfin_dcache_flush_range(msg->payload, msg->payload + msg->length);
+		flush_dcache_range(msg->payload, msg->payload + msg->length);
 	case SP_SCALAR:
 	case SP_SESSION_SCALAR:
 		list_add(&message->next, &session->tx_messages);
@@ -1086,7 +1086,7 @@ matched1:
 	case SM_PACKET_READY:
 	case SM_SESSION_PACKET_READY:
 		if (SM_MSG_PROTOCOL(msg->type) != session->type) {
-			coreb_msg("msg type %08x unmatch session type %08x\n", msg->type, session->type);
+			sm_debug("msg type %08x unmatch session type %08x\n", msg->type, session->type);
 			break;
 		}
 		msg_recv_internal(msg, session);
