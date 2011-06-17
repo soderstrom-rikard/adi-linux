@@ -96,7 +96,7 @@ config SND_BF5XX_SOC_AD1836
 
 config SND_BF5XX_SOC_AD193X
 	tristate "SoC AD193X Audio support for Blackfin"
-	depends on SND_BF5XX_TDM
+	depends on SND_BF5XX_TDM && (SPI_MASTER || I2C)
 	select SND_BF5XX_SOC_TDM
 	select SND_SOC_AD193X
 	help
