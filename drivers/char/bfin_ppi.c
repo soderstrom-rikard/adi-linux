@@ -1626,7 +1626,7 @@ static int __init ppi_init_module(void)
 	ppi_devices[1].regs = (struct ppi_register *)PPI1_CONTROL;
 	ppi_devices[1].dma_chan = CH_PPI1;
 	ppi_devices[1].irq = IRQ_PPI1;
-	ppi_devices[1].irq_error = IRQ_PPI1_ERROR;
+	ppi_devices[1].irq_error = IRQ_PPI2_ERROR;
 	ppi_devices[1].fs1_timer_id = FS1_1_TIMER_ID;
 	ppi_devices[1].fs2_timer_id = FS1_2_TIMER_ID;
 	ppi_devices[1].fs1_timer_bit = FS1_1_TIMER_BIT;
