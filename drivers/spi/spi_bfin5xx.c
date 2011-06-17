@@ -687,7 +687,7 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		drv_data->len = (transfer->len) >> 1;
 		cr_width = BIT_CTL_WORDSIZE;
 		drv_data->ops = &bfin_bfin_spi_transfer_ops_u16;
-	} else if ((bits_per_word > 0) && (bits_per_word % 8 == 0)) {
+	} else if (bits_per_word % 8 == 0) {
 		drv_data->n_bytes = bits_per_word/8;
 		drv_data->len = transfer->len;
 		cr_width = 0;
