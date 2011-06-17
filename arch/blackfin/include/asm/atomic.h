@@ -1,8 +1,8 @@
 /*
- * Copyright 2004-2011 Analog Devices Inc.
- *
- * Licensed under the GPL-2 or later.
- */
+ * Copyright 2004-2011 Analog Devices Inc.
+ *
+ * Licensed under the GPL-2 or later.
+ */
 
 #ifndef __ARCH_BLACKFIN_ATOMIC__
 #define __ARCH_BLACKFIN_ATOMIC__
