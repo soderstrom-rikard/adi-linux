@@ -303,31 +303,36 @@ sm_send_session_scalar_ack(struct sm_session *session, sm_uint32_t remote_ep,
 }
 
 int sm_send_connect(struct sm_session *session, sm_uint32_t remote_ep,
-			sm_uint32_t dst_cpu)
+			sm_uint32_t dst_cpu, sm_uint32_t type)
 {
 	return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
-					0, SM_SESSION_PACKET_CONNECT);
-}
-
-int sm_send_close(struct sm_session *session, sm_uint32_t remote_ep,
-			sm_uint32_t dst_cpu)
-{
-	return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
-					0, SM_SESSION_PACKET_CLOSE);
+					0, type);
 }
 
 int sm_send_connect_ack(struct sm_session *session, sm_uint32_t remote_ep,
 			sm_uint32_t dst_cpu)
 {
-	return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
+	if (session->type == SP_SESSION_PACKET)
+		return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
 					0, SM_SESSION_PACKET_CONNECT_ACK);
+	else if (session->type == SP_SESSION_SCALAR)
+		return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
+					0, SM_SESSION_SCALAR_CONNECT_ACK);
+	else
+		return -EINVAL;
 }
 
 int sm_send_connect_done(struct sm_session *session, sm_uint32_t remote_ep,
 			sm_uint32_t dst_cpu)
 {
-	return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
+	if (session->type == SP_SESSION_PACKET)
+		return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
 					0, SM_SESSION_PACKET_CONNECT_DONE);
+	else if (session->type == SP_SESSION_SCALAR)
+		return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
+				0, SM_SESSION_SCALAR_CONNECT_DONE);
+	else
+		return -EINVAL;
 }
 
 int sm_send_session_active(struct sm_session *session, sm_uint32_t remote_ep,
@@ -351,11 +356,30 @@ int sm_send_session_active_noack(struct sm_session *session, sm_uint32_t remote_
 					0, SM_SESSION_PACKET_ACTIVE_ACK);
 }
 
+int sm_send_close(struct sm_session *session, sm_uint32_t remote_ep,
+			sm_uint32_t dst_cpu)
+{
+	if (session->type == SP_SESSION_PACKET)
+		return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
+					0, SM_SESSION_PACKET_CLOSE);
+	else if (session->type == SP_SESSION_SCALAR)
+		return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
+					0, SM_SESSION_SCALAR_CLOSE);
+	else
+		return -EINVAL;
+}
+
 int sm_send_close_ack(struct sm_session *session, sm_uint32_t remote_ep,
 			sm_uint32_t dst_cpu)
 {
-	return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
+	if (session->type == SP_SESSION_PACKET)
+		return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
 					0, SM_SESSION_PACKET_CLOSE_ACK);
+	else if (session->type == SP_SESSION_SCALAR)
+		return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
+					0, SM_SESSION_SCALAR_CLOSE_ACK);
+	else
+		return -EINVAL;
 }
 
 int sm_send_error(struct sm_session *session, sm_uint32_t remote_ep,
@@ -536,8 +560,27 @@ static int sm_recv_scalar(sm_uint32_t session_idx, sm_uint16_t *src_ep,
 		*scalar0 = msg->payload;
 	if (scalar1)
 		*scalar1 = msg->length;
-	if (type)
-		*type = msg->type;
+
+	if (type) {
+		switch (msg->type) {
+		case SM_SCALAR_READY_8:
+		case SM_SESSION_SCALAR_READY_8:
+			*type = 1;
+			break;
+		case SM_SCALAR_READY_16:
+		case SM_SESSION_SCALAR_READY_16:
+			*type = 2;
+			break;
+		case SM_SCALAR_READY_32:
+		case SM_SESSION_SCALAR_READY_32:
+			*type = 4;
+			break;
+		case SM_SCALAR_READY_64:
+		case SM_SESSION_SCALAR_READY_64:
+			*type = 8;
+			break;
+		}
+	}
 
 	sm_debug("scalar0 %x, scalar1 %x\n", *scalar0, *scalar1);
 	session->n_avail--;
@@ -641,14 +684,22 @@ static int sm_get_remote_session_active(sm_uint32_t session_idx, sm_uint32_t dst
 	return -EAGAIN;
 }
 
-static int sm_connect_session(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu)
+static int sm_connect_session(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu, sm_uint32_t type)
 {
 	struct sm_session *session;
+	uint32_t msg_type;
 	session = sm_index_to_session(session_idx);
 	if (!session)
 		return -EINVAL;
-	session->type = SP_SESSION_PACKET;
-	sm_send_connect(session, dst_ep, dst_cpu);
+	if (type == SP_SESSION_SCALAR) {
+		session->type = SP_SESSION_SCALAR;
+		msg_type = SM_SESSION_SCALAR_CONNECT;
+	} else if (type == SP_SESSION_PACKET) {
+		session->type = SP_SESSION_PACKET;
+		msg_type = SM_SESSION_PACKET_CONNECT;
+	} else
+		return -EINVAL;
+	sm_send_connect(session, dst_ep, dst_cpu, msg_type);
 	if (sm_wait_for_connect_ack(session))
 		return -EAGAIN;
 	sm_debug("received connect ack\n");
@@ -852,6 +903,8 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	len = pkt->buf_len;
 	buf = pkt->buf;
 	nonblock = (file->f_flags & O_NONBLOCK) | (pkt->flag & O_NONBLOCK);
+
+	sm_debug("ioctl type %x\n", type);
 	mutex_lock(&icc_info->sessions_table->lock);
 	switch (cmd) {
 	case CMD_SM_SEND:
@@ -882,7 +935,7 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		pkt->session_idx = ret;
 		break;
 	case CMD_SM_CONNECT:
-		ret = sm_connect_session(session_idx, remote_ep, dst_cpu);
+		ret = sm_connect_session(session_idx, remote_ep, dst_cpu, type);
 		break;
 	case CMD_SM_OPEN:
 		ret = sm_open_session(session_idx);
@@ -1048,17 +1101,21 @@ matched1:
 		wake_up(&icc_info->iccq_tx_wait);
 		break;
 	case SM_SESSION_PACKET_CONNECT_ACK:
+	case SM_SESSION_SCALAR_CONNECT_ACK:
 		sm_debug("%s wakeup wait thread\n", __func__);
 		session->remote_ep = msg->src_ep;
 		session->flags = SM_CONNECT;
 		wake_up(&session->rx_wait);
 		break;
 	case SM_SESSION_PACKET_CONNECT:
+	case SM_SESSION_SCALAR_CONNECT:
 		session->remote_ep = msg->src_ep;
 		session->flags = SM_CONNECTING;
+		session->type = SM_MSG_PROTOCOL(msg->type);
 		sm_send_connect_ack(session, msg->src_ep, cpu ^ 1);
 		break;
 	case SM_SESSION_PACKET_CONNECT_DONE:
+	case SM_SESSION_SCALAR_CONNECT_DONE:
 		sm_debug("%s connect done\n", __func__);
 		session->flags = SM_CONNECT;
 		break;
