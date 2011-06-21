@@ -870,7 +870,7 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		message->actual_length += drv_data->len_in_bytes;
 		/* Move to next transfer of this msg */
 		message->state = bfin_spi_next_transfer(drv_data);
-		if (drv_data->cs_change)
+		if (drv_data->cs_change && message->state != DONE_STATE)
 			bfin_spi_cs_deactive(drv_data, chip);
 	}
 
