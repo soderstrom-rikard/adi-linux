@@ -375,7 +375,7 @@ static void txstate(struct musb *musb, struct musb_request *req)
 
 #ifdef CONFIG_USB_INVENTRA_DMA
 		{
-			if (request_size < musb_ep->packet_sz)
+			if (request_size <= musb_ep->packet_sz)
 				musb_ep->dma->desired_mode = 0;
 			else
 				musb_ep->dma->desired_mode = 1;
