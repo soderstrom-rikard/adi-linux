@@ -717,14 +717,14 @@ static int __init net2272_init(void)
 #if defined(CONFIG_USB_NET2272) || defined(CONFIG_USB_NET2272_MODULE)
 	int ret;
 
-	ret = gpio_request(GPIO_30, "net2272");
+	ret = gpio_request(GPIO_PG14, "net2272");
 	if (ret)
 		return ret;
 
 	/* Reset USB Chip, PG14 */
-	gpio_direction_output(GPIO_30, 0);
+	gpio_direction_output(GPIO_PG14, 0);
 	mdelay(2);
-	gpio_set_value(GPIO_30, 1);
+	gpio_set_value(GPIO_PG14, 1);
 #endif
 
 	return 0;

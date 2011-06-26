@@ -715,26 +715,26 @@ static int __init net2272_init(void)
 #if defined(CONFIG_USB_NET2272) || defined(CONFIG_USB_NET2272_MODULE)
 	int ret;
 
-	ret = gpio_request(GPIO_47, driver_name);
+	ret = gpio_request(GPIO_PH15, driver_name);
 	if (ret)
 		return ret;
 
-	ret = gpio_request(GPIO_45, "net2272");
+	ret = gpio_request(GPIO_PH13, "net2272");
 	if (ret) {
-		gpio_free(GPIO_47);
+		gpio_free(GPIO_PH15);
 		return ret;
 	}
 
 	/* Set PH15 Low make /AMS2 work properly */
-	gpio_direction_output(GPIO_47, 0);
+	gpio_direction_output(GPIO_PH15, 0);
 
 	/* enable CLKBUF output */
 	bfin_write_VR_CTL(bfin_read_VR_CTL() | CLKBUFOE);
 
 	/* Reset the USB chip */
-	gpio_direction_output(GPIO_45, 0);
+	gpio_direction_output(GPIO_PH13, 0);
 	mdelay(2);
-	gpio_set_value(GPIO_45, 1);
+	gpio_set_value(GPIO_PH13, 1);
 #endif
 
 	return 0;
