@@ -310,8 +310,10 @@ ENDPROC(_test_pll_locked)
 #define _PM_POP(n, x, w, base)  w[FP + ((x) - (base))] = PM_REG##n;
 #define PM_PUSH_SYNC(n)         [--sp] = (PM_REGSET##n);
 #define PM_POP_SYNC(n)          (PM_REGSET##n) = [sp++];
-#define PM_PUSH(n, x)           _PM_PUSH(n, x, , COREMMR_BASE)
-#define PM_POP(n, x)            _PM_POP(n, x, , COREMMR_BASE)
+#define PM_PUSH(n, x)           PM_REG##n = [FP++];
+#define PM_POP(n, x)            [FP--] = PM_REG##n;
+#define PM_CORE_PUSH(n, x)      _PM_PUSH(n, x, , COREMMR_BASE)
+#define PM_CORE_POP(n, x)       _PM_POP(n, x, , COREMMR_BASE)
 #define PM_SYS_PUSH(n, x)       _PM_PUSH(n, x, , SYSMMR_BASE)
 #define PM_SYS_POP(n, x)        _PM_POP(n, x, , SYSMMR_BASE)
 #define PM_SYS_PUSH16(n, x)     _PM_PUSH(n, x, w, SYSMMR_BASE)
@@ -493,123 +495,123 @@ ENTRY(_do_hibernate)
 
 	/* DCPLB Addr */
 	FP = I1;
-	R7 = [FP++];	/* DCPLB_ADDR0 */
-	R6 = [FP++];	/* DCPLB_ADDR1 */
-	R5 = [FP++];	/* DCPLB_ADDR2 */
-	R4 = [FP++];	/* DCPLB_ADDR3 */
-	R3 = [FP++];	/* DCPLB_ADDR4 */
-	R2 = [FP++];	/* DCPLB_ADDR5 */
-	R1 = [FP++];	/* DCPLB_ADDR6 */
-	R0 = [FP++];	/* DCPLB_ADDR7 */
-	P5 = [FP++];	/* DCPLB_ADDR8 */
-	P4 = [FP++];	/* DCPLB_ADDR9 */
-	P3 = [FP++];	/* DCPLB_ADDR10 */
-	P2 = [FP++];	/* DCPLB_ADDR11 */
-	P1 = [FP++];	/* DCPLB_ADDR12 */
-	P0 = [FP++];	/* DCPLB_ADDR13 */
-	[--sp] = (R7:0, P5:0);
-	R7 = [FP++];	/* DCPLB_ADDR14 */
-	R6 = [FP++];	/* DCPLB_ADDR15 */
+	PM_PUSH(0, DCPLB_ADDR0)
+	PM_PUSH(1, DCPLB_ADDR1)
+	PM_PUSH(2, DCPLB_ADDR2)
+	PM_PUSH(3, DCPLB_ADDR3)
+	PM_PUSH(4, DCPLB_ADDR4)
+	PM_PUSH(5, DCPLB_ADDR5)
+	PM_PUSH(6, DCPLB_ADDR6)
+	PM_PUSH(7, DCPLB_ADDR7)
+	PM_PUSH(8, DCPLB_ADDR8)
+	PM_PUSH(9, DCPLB_ADDR9)
+	PM_PUSH(10, DCPLB_ADDR10)
+	PM_PUSH(11, DCPLB_ADDR11)
+	PM_PUSH(12, DCPLB_ADDR12)
+	PM_PUSH(13, DCPLB_ADDR13)
+	PM_PUSH_SYNC(13)
+	PM_PUSH(0, DCPLB_ADDR14)
+	PM_PUSH(1, DCPLB_ADDR15)
 
 	/* DCPLB Data */
 	FP = I2;
-	R5 = [FP++];	/* DCPLB_DATA0 */
-	R4 = [FP++];	/* DCPLB_DATA1 */
-	R3 = [FP++];	/* DCPLB_DATA2 */
-	R2 = [FP++];	/* DCPLB_DATA3 */
-	R1 = [FP++];	/* DCPLB_DATA4 */
-	R0 = [FP++];	/* DCPLB_DATA5 */
-	P5 = [FP++];	/* DCPLB_DATA6 */
-	P4 = [FP++];	/* DCPLB_DATA7 */
-	P3 = [FP++];	/* DCPLB_DATA8 */
-	P2 = [FP++];	/* DCPLB_DATA9 */
-	P1 = [FP++];	/* DCPLB_DATA10 */
-	P0 = [FP++];	/* DCPLB_DATA11 */
-	[--sp] = (R7:0, P5:0);
-	R7 = [FP++];	/* DCPLB_DATA12 */
-	R6 = [FP++];	/* DCPLB_DATA13 */
-	R5 = [FP++];	/* DCPLB_DATA14 */
-	R4 = [FP++];	/* DCPLB_DATA15 */
+	PM_PUSH(2, DCPLB_DATA0)
+	PM_PUSH(3, DCPLB_DATA1)
+	PM_PUSH(4, DCPLB_DATA2)
+	PM_PUSH(5, DCPLB_DATA3)
+	PM_PUSH(6, DCPLB_DATA4)
+	PM_PUSH(7, DCPLB_DATA5)
+	PM_PUSH(8, DCPLB_DATA6)
+	PM_PUSH(9, DCPLB_DATA7)
+	PM_PUSH(10, DCPLB_DATA8)
+	PM_PUSH(11, DCPLB_DATA9)
+	PM_PUSH(12, DCPLB_DATA10)
+	PM_PUSH(13, DCPLB_DATA11)
+	PM_PUSH_SYNC(13)
+	PM_PUSH(0, DCPLB_DATA12)
+	PM_PUSH(1, DCPLB_DATA13)
+	PM_PUSH(2, DCPLB_DATA14)
+	PM_PUSH(3, DCPLB_DATA15)
 
 	/* ICPLB Addr */
 	FP = I3;
-	R3 = [FP++];	/* ICPLB_ADDR0 */
-	R2 = [FP++];	/* ICPLB_ADDR1 */
-	R1 = [FP++];	/* ICPLB_ADDR2 */
-	R0 = [FP++];	/* ICPLB_ADDR3 */
-	P5 = [FP++];	/* ICPLB_ADDR4 */
-	P4 = [FP++];	/* ICPLB_ADDR5 */
-	P3 = [FP++];	/* ICPLB_ADDR6 */
-	P2 = [FP++];	/* ICPLB_ADDR7 */
-	P1 = [FP++];	/* ICPLB_ADDR8 */
-	P0 = [FP++];	/* ICPLB_ADDR9 */
-	[--sp] = (R7:0, P5:0);
-	R7 = [FP++];	/* ICPLB_ADDR10 */
-	R6 = [FP++];	/* ICPLB_ADDR11 */
-	R5 = [FP++];	/* ICPLB_ADDR12 */
-	R4 = [FP++];	/* ICPLB_ADDR13 */
-	R3 = [FP++];	/* ICPLB_ADDR14 */
-	R2 = [FP++];	/* ICPLB_ADDR15 */
+	PM_PUSH(4, ICPLB_ADDR0)
+	PM_PUSH(5, ICPLB_ADDR1)
+	PM_PUSH(6, ICPLB_ADDR2)
+	PM_PUSH(7, ICPLB_ADDR3)
+	PM_PUSH(8, ICPLB_ADDR4)
+	PM_PUSH(9, ICPLB_ADDR5)
+	PM_PUSH(10, ICPLB_ADDR6)
+	PM_PUSH(11, ICPLB_ADDR7)
+	PM_PUSH(12, ICPLB_ADDR8)
+	PM_PUSH(13, ICPLB_ADDR9)
+	PM_PUSH_SYNC(13)
+	PM_PUSH(0, ICPLB_ADDR10)
+	PM_PUSH(1, ICPLB_ADDR11)
+	PM_PUSH(2, ICPLB_ADDR12)
+	PM_PUSH(3, ICPLB_ADDR13)
+	PM_PUSH(4, ICPLB_ADDR14)
+	PM_PUSH(5, ICPLB_ADDR15)
 
 	/* ICPLB Data */
 	FP = B0;
-	R1 = [FP++];	/* ICPLB_DATA0 */
-	R0 = [FP++];	/* ICPLB_DATA1 */
-	P5 = [FP++];	/* ICPLB_DATA2 */
-	P4 = [FP++];	/* ICPLB_DATA3 */
-	P3 = [FP++];	/* ICPLB_DATA4 */
-	P2 = [FP++];	/* ICPLB_DATA5 */
-	P1 = [FP++];	/* ICPLB_DATA6 */
-	P0 = [FP++];	/* ICPLB_DATA7 */
-	[--sp] = (R7:0, P5:0);
-	R7 = [FP++];	/* ICPLB_DATA8 */
-	R6 = [FP++];	/* ICPLB_DATA9 */
-	R5 = [FP++];	/* ICPLB_DATA10 */
-	R4 = [FP++];	/* ICPLB_DATA11 */
-	R3 = [FP++];	/* ICPLB_DATA12 */
-	R2 = [FP++];	/* ICPLB_DATA13 */
-	R1 = [FP++];	/* ICPLB_DATA14 */
-	R0 = [FP++];	/* ICPLB_DATA15 */
+	PM_PUSH(6, ICPLB_DATA0)
+	PM_PUSH(7, ICPLB_DATA1)
+	PM_PUSH(8, ICPLB_DATA2)
+	PM_PUSH(9, ICPLB_DATA3)
+	PM_PUSH(10, ICPLB_DATA4)
+	PM_PUSH(11, ICPLB_DATA5)
+	PM_PUSH(12, ICPLB_DATA6)
+	PM_PUSH(13, ICPLB_DATA7)
+	PM_PUSH_SYNC(13)
+	PM_PUSH(0, ICPLB_DATA8)
+	PM_PUSH(1, ICPLB_DATA9)
+	PM_PUSH(2, ICPLB_DATA10)
+	PM_PUSH(3, ICPLB_DATA11)
+	PM_PUSH(4, ICPLB_DATA12)
+	PM_PUSH(5, ICPLB_DATA13)
+	PM_PUSH(6, ICPLB_DATA14)
+	PM_PUSH(7, ICPLB_DATA15)
 
 	/* Event Vectors */
 	FP = B1;
-	P5 = [FP++];	/* EVT2 */
-	P4 = [FP++];	/* EVT3 */
-	FP += 4;		/* EVT4 */
-	P3 = [FP++];	/* EVT5 */
-	P2 = [FP++];	/* EVT6 */
-	P1 = [FP++];	/* EVT7 */
-	P0 = [FP++];	/* EVT8 */
-	[--sp] = (R7:0, P5:0);
-	R7 = [FP++];	/* EVT9 */
-	R6 = [FP++];	/* EVT10 */
-	R5 = [FP++];	/* EVT11 */
-	R4 = [FP++];	/* EVT12 */
-	R3 = [FP++];	/* EVT13 */
-	R2 = [FP++];	/* EVT14 */
-	R1 = [FP++];	/* EVT15 */
+	PM_PUSH(8, EVT2)
+	PM_PUSH(9, EVT3)
+	FP += 4;	/* EVT4 */
+	PM_PUSH(10, EVT5)
+	PM_PUSH(11, EVT6)
+	PM_PUSH(12, EVT7)
+	PM_PUSH(13, EVT8)
+	PM_PUSH_SYNC(13)
+	PM_PUSH(0, EVT9)
+	PM_PUSH(1, EVT10)
+	PM_PUSH(2, EVT11)
+	PM_PUSH(3, EVT12)
+	PM_PUSH(4, EVT13)
+	PM_PUSH(5, EVT14)
+	PM_PUSH(6, EVT15)
 
 	/* CEC */
 	FP = B2;
-	R0 = [FP++];	/* IMASK */
-	FP += 4;		/* IPEND */
-	P5 = [FP++];	/* ILAT */
-	P4 = [FP++];	/* IPRIO */
+	PM_PUSH(7, IMASK)
+	FP += 4;	/* IPEND */
+	PM_PUSH(8, ILAT)
+	PM_PUSH(9, IPRIO)
 
 	/* Core Timer */
 	FP = B3;
-	P3 = [FP++];	/* TCNTL */
-	P2 = [FP++];	/* TPERIOD */
-	P1 = [FP++];	/* TSCALE */
-	P0 = [FP++];	/* TCOUNT */
-	[--sp] = (R7:0, P5:0);
+	PM_PUSH(10, TCNTL)
+	PM_PUSH(11, TPERIOD)
+	PM_PUSH(12, TSCALE)
+	PM_PUSH(13, TCOUNT)
+	PM_PUSH_SYNC(13)
 
 	/* Misc non-contiguous registers */
 	FP = I0;
-	R7 = [FP + (DMEM_CONTROL - COREMMR_BASE)];
-	R6 = [FP + (IMEM_CONTROL - COREMMR_BASE)];
-	R5 = [FP + (TBUFCTL - COREMMR_BASE)];
-	[--sp] = (R7:5);
+	PM_CORE_PUSH(0, DMEM_CONTROL);
+	PM_CORE_PUSH(1, IMEM_CONTROL);
+	PM_CORE_PUSH(2, TBUFCTL);
+	PM_PUSH_SYNC(2)
 
 	/* Setup args to hibernate mode early for pipeline optimization */
 	R0 = M3;
@@ -651,123 +653,123 @@ ENTRY(_do_hibernate)
 
 	/* Misc non-contiguous registers */
 	FP = I0;
-	(R7:5) = [sp++];
-	[FP + (TBUFCTL - COREMMR_BASE)] = R5;
-	[FP + (IMEM_CONTROL - COREMMR_BASE)] = R6;
-	[FP + (DMEM_CONTROL - COREMMR_BASE)] = R7;
+	PM_POP_SYNC(2)
+	PM_CORE_POP(2, TBUFCTL)
+	PM_CORE_POP(1, IMEM_CONTROL)
+	PM_CORE_POP(0, DMEM_CONTROL)
 
 	/* Core Timer */
-	(R7:0, P5:0) = [sp++];
+	PM_POP_SYNC(13)
 	FP = B3;
-	[FP--] = P0;	/* TCOUNT */
-	[FP--] = P1;	/* TSCALE */
-	[FP--] = P2;	/* TPERIOD */
-	[FP--] = P3;	/* TCNTL */
+	PM_POP(13, TCOUNT)
+	PM_POP(12, TSCALE)
+	PM_POP(11, TPERIOD)
+	PM_POP(10, TCNTL)
 
 	/* CEC */
 	FP = B2;
-	[FP--] = P4;	/* IPRIO */
-	[FP--] = P5;	/* ILAT */
-	FP += -4;		/* IPEND */
-	[FP--] = R0;	/* IMASK */
+	PM_POP(9, IPRIO)
+	PM_POP(8, ILAT)
+	FP += -4;	/* IPEND */
+	PM_POP(7, IMASK)
 
 	/* Event Vectors */
 	FP = B1;
-	[FP--] = R1;	/* EVT15 */
-	[FP--] = R2;	/* EVT14 */
-	[FP--] = R3;	/* EVT13 */
-	[FP--] = R4;	/* EVT12 */
-	[FP--] = R5;	/* EVT11 */
-	[FP--] = R6;	/* EVT10 */
-	[FP--] = R7;	/* EVT9 */
-	(R7:0, P5:0) = [sp++];
-	[FP--] = P0;	/* EVT8 */
-	[FP--] = P1;	/* EVT7 */
-	[FP--] = P2;	/* EVT6 */
-	[FP--] = P3;	/* EVT5 */
-	FP += -4;		/* EVT4 */
-	[FP--] = P4;	/* EVT3 */
-	[FP--] = P5;	/* EVT2 */
+	PM_POP(6, EVT15)
+	PM_POP(5, EVT14)
+	PM_POP(4, EVT13)
+	PM_POP(3, EVT12)
+	PM_POP(2, EVT11)
+	PM_POP(1, EVT10)
+	PM_POP(0, EVT9)
+	PM_POP_SYNC(13)
+	PM_POP(13, EVT8)
+	PM_POP(12, EVT7)
+	PM_POP(11, EVT6)
+	PM_POP(10, EVT5)
+	FP += -4;	/* EVT4 */
+	PM_POP(9, EVT3)
+	PM_POP(8, EVT2)
 
 	/* ICPLB Data */
 	FP = B0;
-	[FP--] = R0;	/* ICPLB_DATA15 */
-	[FP--] = R1;	/* ICPLB_DATA14 */
-	[FP--] = R2;	/* ICPLB_DATA13 */
-	[FP--] = R3;	/* ICPLB_DATA12 */
-	[FP--] = R4;	/* ICPLB_DATA11 */
-	[FP--] = R5;	/* ICPLB_DATA10 */
-	[FP--] = R6;	/* ICPLB_DATA9 */
-	[FP--] = R7;	/* ICPLB_DATA8 */
-	(R7:0, P5:0) = [sp++];
-	[FP--] = P0;	/* ICPLB_DATA7 */
-	[FP--] = P1;	/* ICPLB_DATA6 */
-	[FP--] = P2;	/* ICPLB_DATA5 */
-	[FP--] = P3;	/* ICPLB_DATA4 */
-	[FP--] = P4;	/* ICPLB_DATA3 */
-	[FP--] = P5;	/* ICPLB_DATA2 */
-	[FP--] = R0;	/* ICPLB_DATA1 */
-	[FP--] = R1;	/* ICPLB_DATA0 */
+	PM_POP(7, ICPLB_DATA15)
+	PM_POP(6, ICPLB_DATA14)
+	PM_POP(5, ICPLB_DATA13)
+	PM_POP(4, ICPLB_DATA12)
+	PM_POP(3, ICPLB_DATA11)
+	PM_POP(2, ICPLB_DATA10)
+	PM_POP(1, ICPLB_DATA9)
+	PM_POP(0, ICPLB_DATA8)
+	PM_POP_SYNC(13)
+	PM_POP(13, ICPLB_DATA7)
+	PM_POP(12, ICPLB_DATA6)
+	PM_POP(11, ICPLB_DATA5)
+	PM_POP(10, ICPLB_DATA4)
+	PM_POP(9, ICPLB_DATA3)
+	PM_POP(8, ICPLB_DATA2)
+	PM_POP(7, ICPLB_DATA1)
+	PM_POP(6, ICPLB_DATA0)
 
 	/* ICPLB Addr */
 	FP = I3;
-	[FP--] = R2;	/* ICPLB_ADDR15 */
-	[FP--] = R3;	/* ICPLB_ADDR14 */
-	[FP--] = R4;	/* ICPLB_ADDR13 */
-	[FP--] = R5;	/* ICPLB_ADDR12 */
-	[FP--] = R6;	/* ICPLB_ADDR11 */
-	[FP--] = R7;	/* ICPLB_ADDR10 */
-	(R7:0, P5:0) = [sp++];
-	[FP--] = P0;	/* ICPLB_ADDR9 */
-	[FP--] = P1;	/* ICPLB_ADDR8 */
-	[FP--] = P2;	/* ICPLB_ADDR7 */
-	[FP--] = P3;	/* ICPLB_ADDR6 */
-	[FP--] = P4;	/* ICPLB_ADDR5 */
-	[FP--] = P5;	/* ICPLB_ADDR4 */
-	[FP--] = R0;	/* ICPLB_ADDR3 */
-	[FP--] = R1;	/* ICPLB_ADDR2 */
-	[FP--] = R2;	/* ICPLB_ADDR1 */
-	[FP--] = R3;	/* ICPLB_ADDR0 */
+	PM_POP(5, ICPLB_ADDR15)
+	PM_POP(4, ICPLB_ADDR14)
+	PM_POP(3, ICPLB_ADDR13)
+	PM_POP(2, ICPLB_ADDR12)
+	PM_POP(1, ICPLB_ADDR11)
+	PM_POP(0, ICPLB_ADDR10)
+	PM_POP_SYNC(13)
+	PM_POP(13, ICPLB_ADDR9)
+	PM_POP(12, ICPLB_ADDR8)
+	PM_POP(11, ICPLB_ADDR7)
+	PM_POP(10, ICPLB_ADDR6)
+	PM_POP(9, ICPLB_ADDR5)
+	PM_POP(8, ICPLB_ADDR4)
+	PM_POP(7, ICPLB_ADDR3)
+	PM_POP(6, ICPLB_ADDR2)
+	PM_POP(5, ICPLB_ADDR1)
+	PM_POP(4, ICPLB_ADDR0)
 
 	/* DCPLB Data */
 	FP = I2;
-	[FP--] = R4;	/* DCPLB_DATA15 */
-	[FP--] = R5;	/* DCPLB_DATA14 */
-	[FP--] = R6;	/* DCPLB_DATA13 */
-	[FP--] = R7;	/* DCPLB_DATA12 */
-	(R7:0, P5:0) = [sp++];
-	[FP--] = P0;	/* DCPLB_DATA11 */
-	[FP--] = P1;	/* DCPLB_DATA10 */
-	[FP--] = P2;	/* DCPLB_DATA9 */
-	[FP--] = P3;	/* DCPLB_DATA8 */
-	[FP--] = P4;	/* DCPLB_DATA7 */
-	[FP--] = P5;	/* DCPLB_DATA6 */
-	[FP--] = R0;	/* DCPLB_DATA5 */
-	[FP--] = R1;	/* DCPLB_DATA4 */
-	[FP--] = R2;	/* DCPLB_DATA3 */
-	[FP--] = R3;	/* DCPLB_DATA2 */
-	[FP--] = R4;	/* DCPLB_DATA1 */
-	[FP--] = R5;	/* DCPLB_DATA0 */
+	PM_POP(3, DCPLB_DATA15)
+	PM_POP(2, DCPLB_DATA14)
+	PM_POP(1, DCPLB_DATA13)
+	PM_POP(0, DCPLB_DATA12)
+	PM_POP_SYNC(13)
+	PM_POP(13, DCPLB_DATA11)
+	PM_POP(12, DCPLB_DATA10)
+	PM_POP(11, DCPLB_DATA9)
+	PM_POP(10, DCPLB_DATA8)
+	PM_POP(9, DCPLB_DATA7)
+	PM_POP(8, DCPLB_DATA6)
+	PM_POP(7, DCPLB_DATA5)
+	PM_POP(6, DCPLB_DATA4)
+	PM_POP(5, DCPLB_DATA3)
+	PM_POP(4, DCPLB_DATA2)
+	PM_POP(3, DCPLB_DATA1)
+	PM_POP(2, DCPLB_DATA0)
 
 	/* DCPLB Addr */
 	FP = I1;
-	[FP--] = R6;	/* DCPLB_ADDR15 */
-	[FP--] = R7;	/* DCPLB_ADDR14 */
-	(R7:0, P5:0) = [sp++];
-	[FP--] = P0;	/* DCPLB_ADDR13 */
-	[FP--] = P1;	/* DCPLB_ADDR12 */
-	[FP--] = P2;	/* DCPLB_ADDR11 */
-	[FP--] = P3;	/* DCPLB_ADDR10 */
-	[FP--] = P4;	/* DCPLB_ADDR9 */
-	[FP--] = P5;	/* DCPLB_ADDR8 */
-	[FP--] = R0;	/* DCPLB_ADDR7 */
-	[FP--] = R1;	/* DCPLB_ADDR6 */
-	[FP--] = R2;	/* DCPLB_ADDR5 */
-	[FP--] = R3;	/* DCPLB_ADDR4 */
-	[FP--] = R4;	/* DCPLB_ADDR3 */
-	[FP--] = R5;	/* DCPLB_ADDR2 */
-	[FP--] = R6;	/* DCPLB_ADDR1 */
-	[FP--] = R7;	/* DCPLB_ADDR0 */
+	PM_POP(1, DCPLB_ADDR15)
+	PM_POP(0, DCPLB_ADDR14)
+	PM_POP_SYNC(13)
+	PM_POP(13, DCPLB_ADDR13)
+	PM_POP(12, DCPLB_ADDR12)
+	PM_POP(11, DCPLB_ADDR11)
+	PM_POP(10, DCPLB_ADDR10)
+	PM_POP(9, DCPLB_ADDR9)
+	PM_POP(8, DCPLB_ADDR8)
+	PM_POP(7, DCPLB_ADDR7)
+	PM_POP(6, DCPLB_ADDR6)
+	PM_POP(5, DCPLB_ADDR5)
+	PM_POP(4, DCPLB_ADDR4)
+	PM_POP(3, DCPLB_ADDR3)
+	PM_POP(2, DCPLB_ADDR2)
+	PM_POP(1, DCPLB_ADDR1)
+	PM_POP(0, DCPLB_ADDR0)
 
 	/* Restore System MMRs */
 	FP.H = hi(SYSMMR_BASE);
