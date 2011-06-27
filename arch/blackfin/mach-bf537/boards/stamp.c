@@ -543,14 +543,6 @@ static struct bfin5xx_spi_chip spi_flash_chip_info = {
 };
 #endif
 
-#if defined(CONFIG_SND_BF5XX_SOC_AD183X) \
-	|| defined(CONFIG_SND_BF5XX_SOC_AD183X_MODULE)
-static struct bfin5xx_spi_chip ad1836_spi_chip_info = {
-	.enable_dma = 0,
-	.bits_per_word = 16,
-};
-#endif
-
 #if defined(CONFIG_INPUT_AD714X_SPI) || defined(CONFIG_INPUT_AD714X_SPI_MODULE)
 #include <linux/input/ad714x.h>
 
@@ -662,7 +654,6 @@ static struct ad714x_platform_data ad7142_i2c_platform_data = {
 #if defined(CONFIG_AD2S90) || defined(CONFIG_AD2S90_MODULE)
 static struct bfin5xx_spi_chip ad2s90_spi_chip_info = {
 	.enable_dma = 0,
-	.bits_per_word = 16,
 };
 #endif
 
@@ -674,7 +665,6 @@ static unsigned short ad2s120x_platform_data[] = {
 
 static struct bfin5xx_spi_chip ad2s120x_spi_chip_info = {
 	.enable_dma = 0,
-	.bits_per_word = 16,
 };
 #endif
 
@@ -697,7 +687,6 @@ static struct bfin5xx_spi_chip ad2s1210_spi_chip_info = {
 #if defined(CONFIG_AD7314) || defined(CONFIG_AD7314_MODULE)
 static struct bfin5xx_spi_chip ad7314_spi_chip_info = {
 	.enable_dma = 0,
-	.bits_per_word = 16,
 };
 #endif
 
@@ -852,10 +841,6 @@ static struct bfin5xx_spi_chip enc28j60_spi_chip_info = {
 #endif
 
 #if defined(CONFIG_ADF702X) || defined(CONFIG_ADF702X_MODULE)
-static struct bfin5xx_spi_chip adf7021_spi_chip_info = {
-	.bits_per_word = 16,
-};
-
 #include <linux/spi/adf702x.h>
 #define TXREG 0x0160A470
 static const u32 adf7021_regs[] = {
@@ -989,7 +974,6 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.bus_num = 0,
 		.chip_select = 4,
 		.platform_data = "ad1836", /* only includes chip name for the moment */
-		.controller_data = &ad1836_spi_chip_info,
 		.mode = SPI_MODE_3,
 	},
 #endif
@@ -1195,7 +1179,6 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.max_speed_hz = 16000000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0,
 		.chip_select = GPIO_PF10 + MAX_CTRL_CS,	/* GPIO controlled SSEL */
-		.controller_data = &adf7021_spi_chip_info,
 		.platform_data = &adf7021_platform_data,
 		.mode = SPI_MODE_0,
 	},
