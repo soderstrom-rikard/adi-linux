@@ -1839,10 +1839,20 @@ struct page *follow_page(struct vm_area_struct *vma, unsigned long address,
 	return NULL;
 }
 
-int remap_pfn_range(struct vm_area_struct *vma, unsigned long from,
-		unsigned long to, unsigned long size, pgprot_t prot)
+int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
+		unsigned long pfn, unsigned long size, pgprot_t prot)
 {
-	vma->vm_start = vma->vm_pgoff << PAGE_SHIFT;
+	unsigned long end = addr + PAGE_ALIGN(size);
+
+	if (addr != (pfn << PAGE_SHIFT))
+		return -EINVAL;
+
+	if (addr == vma->vm_start && end == vma->vm_end) {
+		vma->vm_pgoff = pfn;
+		vma->vm_flags |= VM_PFN_AT_MMAP;
+	}
+
+	vma->vm_flags |= VM_IO | VM_RESERVED | VM_PFNMAP;
 	return 0;
 }
 EXPORT_SYMBOL(remap_pfn_range);
