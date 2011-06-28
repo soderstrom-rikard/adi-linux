@@ -37,7 +37,6 @@ struct ppi_ops {
 	int (*stop)(struct ppi_if *intf);
 	int (*set_params)(struct ppi_if *intf, struct ppi_params *params);
 	void (*update_addr)(struct ppi_if *intf, unsigned long addr);
-	void (*clear_int)(struct ppi_if *intf);
 };
 
 struct ppi_if {

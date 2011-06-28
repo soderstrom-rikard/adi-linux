@@ -45,12 +45,11 @@ static int ppi_start(struct ppi_if *intf);
 static int ppi_stop(struct ppi_if *intf);
 static int ppi_set_params(struct ppi_if *intf, struct ppi_params *params);
 static void ppi_update_addr(struct ppi_if *intf, unsigned long addr);
-static void ppi_clear_int(struct ppi_if *intf);
 
 static const unsigned short ppi_req[] = {
 	P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3,
 	P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7,
-	P_PPI0_CLK, P_PPI0_FS1,
+	P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2,
 	0,
 };
 
@@ -61,7 +60,6 @@ static struct ppi_ops ppi_ops = {
 	.stop = ppi_stop,
 	.set_params = ppi_set_params,
 	.update_addr = ppi_update_addr,
-	.clear_int = ppi_clear_int,
 };
 
 static struct ppi_if ppi_intf = {
@@ -77,7 +75,9 @@ static irqreturn_t ppi_irq_err(int irq, void *dev_id)
 	unsigned short status;
 
 	status = regr(REG_PPI_STATUS);
-	printk(KERN_INFO, "%s: status = 0x%x\n", __func__, status);
+	if (printk_ratelimit())
+		pr_info("%s: status = 0x%x\n", __func__, status);
+
 	regw(0xff, REG_PPI_STATUS);
 
 	return IRQ_HANDLED;
@@ -86,14 +86,14 @@ static irqreturn_t ppi_irq_err(int irq, void *dev_id)
 static int ppi_attach_irq(struct ppi_if *intf, irq_handler_t handler)
 {
 	if (request_dma(intf->dma_ch, "PPI_DMA") < 0) {
-		printk(KERN_ERR "Unable to allocate DMA channel for PPI\n");
+		pr_err("Unable to allocate DMA channel for PPI\n");
 		return -EBUSY;
 	}
 	set_dma_callback(intf->dma_ch, handler, intf);
 
 	if (request_irq(intf->irq_err, ppi_irq_err, IRQF_DISABLED,
 				"PPI ERROR", intf)) {
-		printk(KERN_ERR "Unable to allocate IRQ for PPI\n");
+		pr_err("Unable to allocate IRQ for PPI\n");
 		free_dma(intf->dma_ch);
 		return -EBUSY;
 	}
@@ -122,10 +122,11 @@ static int ppi_start(struct ppi_if *intf)
 static int ppi_stop(struct ppi_if *intf)
 {
 	/* disable PPI */
-	intf->ppi_control &= PORT_EN;
+	intf->ppi_control &= ~PORT_EN;
 	regw(intf->ppi_control, REG_PPI_CONTROL);
 
 	/* disable DMA */
+	clear_dma_irqstat(intf->dma_ch);
 	disable_dma(intf->dma_ch);
 
 	SSYNC();
@@ -146,7 +147,7 @@ static int ppi_set_params(struct ppi_if *intf, struct ppi_params *params)
 	set_dma_config(intf->dma_ch, intf->dma_config);
 
 	/* config PPI */
-	intf->ppi_control = (PACK_EN | DLEN_8 | FLD_SEL);
+	intf->ppi_control = (PACK_EN | DLEN_8 | 0x000c | 0x0020);
 	regw(intf->ppi_control, REG_PPI_CONTROL);
 	regw(intf->bytes_per_line - 1, REG_PPI_COUNT);
 	regw(intf->lines_per_frame, REG_PPI_FRAME);
@@ -160,18 +161,13 @@ static void ppi_update_addr(struct ppi_if *intf, unsigned long addr)
 	set_dma_start_addr(intf->dma_ch, addr);
 }
 
-static void ppi_clear_int(struct ppi_if *intf)
-{
-	clear_dma_irqstat(intf->dma_ch);
-}
-
 struct ppi_if *bfin_get_ppi_if(void)
 {
 	return &ppi_intf;
 }
 EXPORT_SYMBOL(bfin_get_ppi_if);
 
-static int ppi_probe(struct platform_device *pdev)
+static int __devinit ppi_probe(struct platform_device *pdev)
 {
 	int ret;
 	struct resource *res;
@@ -253,7 +249,7 @@ static int __init ppi_init(void)
 	return platform_driver_register(&ppi_driver);
 }
 
-static void ppi_exit(void)
+static void __exit ppi_exit(void)
 {
 	platform_driver_unregister(&ppi_driver);
 }
