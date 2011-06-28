@@ -62,7 +62,7 @@ struct vs6624 {
 	struct v4l2_mbus_framefmt fmt;
 };
 
-static struct vs6624_format {
+static const struct vs6624_format {
 	enum v4l2_mbus_pixelcode mbus_code;
 	enum v4l2_colorspace colorspace;
 } vs6624_formats[] = {
@@ -515,7 +515,7 @@ static inline int vs6624_read(struct v4l2_subdev *sd, u16 index)
 	u8 buf[2];
 
 	buf[0] = index >> 8;
-	buf[1] = index & 0xFF;
+	buf[1] = index;
 	i2c_master_send(client, buf, 2);
 	i2c_master_recv(client, buf, 1);
 
@@ -529,7 +529,7 @@ static inline int vs6624_write(struct v4l2_subdev *sd, u16 index,
 	u8 buf[3];
 
 	buf[0] = index >> 8;
-	buf[1] = index & 0xFF;
+	buf[1] = index;
 	buf[2] = value;
 
 	return i2c_master_send(client, buf, 3);
@@ -680,7 +680,7 @@ static int vs6624_g_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
 		return -EINVAL;
 
-	memset(cp, 0, sizeof(struct v4l2_captureparm));
+	memset(cp, 0, sizeof(*cp));
 	cp->capability = V4L2_CAP_TIMEPERFRAME;
 	cp->timeperframe.numerator = sensor->frame_rate.denominator;
 	cp->timeperframe.denominator = sensor->frame_rate.numerator;
@@ -722,6 +722,7 @@ static int vs6624_s_stream(struct v4l2_subdev *sd, int enable)
 		vs6624_write(sd, VS6624_USER_CMD, 0x2);
 	else
 		vs6624_write(sd, VS6624_USER_CMD, 0x4);
+	udelay(100);
 	return 0;
 }
 
@@ -798,7 +799,7 @@ static const struct v4l2_subdev_ops vs6624_ops = {
 	.video = &vs6624_video_ops,
 };
 
-static int vs6624_probe(struct i2c_client *client,
+static int __devinit vs6624_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
 	struct vs6624 *sensor;
@@ -813,13 +814,14 @@ static int vs6624_probe(struct i2c_client *client,
 
 	ret = gpio_request(VS6624_CE, "VS6624 Chip Enable");
 	if (ret) {
-		printk(KERN_ERR "failed to request GPIO %d\n", VS6624_CE);
+		v4l_err(client, "failed to request GPIO %d\n", VS6624_CE);
 		return ret;
 	}
 	gpio_direction_output(VS6624_CE, 1);
+	/* wait 100ms before any further i2c writes are performed */
 	mdelay(100);
 
-	sensor = kzalloc(sizeof(struct vs6624), GFP_KERNEL);
+	sensor = kzalloc(sizeof(*sensor), GFP_KERNEL);
 	if (sensor == NULL) {
 		gpio_free(VS6624_CE);
 		return -ENOMEM;
@@ -862,7 +864,6 @@ static int vs6624_probe(struct i2c_client *client,
 
 	sensor->fmt = vs6624_default_fmt;
 
-
 	v4l_info(client, "chip found @ 0x%02x (%s)\n",
 			client->addr << 1, client->adapter->name);
 
@@ -892,7 +893,7 @@ static int vs6624_probe(struct i2c_client *client,
 	return 0;
 }
 
-static int vs6624_remove(struct i2c_client *client)
+static int __devexit vs6624_remove(struct i2c_client *client)
 {
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
 
@@ -916,7 +917,7 @@ static struct i2c_driver vs6624_driver = {
 		.name   = "vs6624",
 	},
 	.probe          = vs6624_probe,
-	.remove         = vs6624_remove,
+	.remove         = __devexit_p(vs6624_remove),
 	.id_table       = vs6624_id,
 };
 

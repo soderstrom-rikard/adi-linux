@@ -21,7 +21,7 @@
 #define _VS6624_REGS_H_
 
 /* low level control registers */
-#define	VS6624_MICRO_EN               0xC003 /* power enable for all MCU clock */
+#define VS6624_MICRO_EN               0xC003 /* power enable for all MCU clock */
 #define VS6624_DIO_EN                 0xC044 /* enable digital I/O */
 /* device parameters */
 #define VS6624_DEV_ID_MSB             0x0001 /* device id MSB */
