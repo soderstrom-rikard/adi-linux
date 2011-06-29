@@ -790,12 +790,7 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 		/* protocol/endpoint/interval/NAKlimit */
 		if (epnum) {
 			musb_writeb(epio, MUSB_TXTYPE, qh->type_reg);
-			if (musb->double_buffer_not_ok)
-				musb_writew(epio, MUSB_TXMAXP,
-						hw_ep->max_packet_sz_tx);
-			else
-				musb_writew(epio, MUSB_TXMAXP,
-						qh->maxpacket |
+			musb_writew(epio, MUSB_TXMAXP, qh->maxpacket |
 						((qh->hb_mult - 1) << 11));
 			musb_writeb(epio, MUSB_TXINTERVAL, qh->intv_reg);
 		} else {
