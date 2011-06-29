@@ -1593,6 +1593,8 @@ static struct platform_device bfin_ppi_device = {
 	|| defined(CONFIG_VIDEO_BLACKFIN_CAPTURE_MODULE)
 #include <media/blackfin/bfin_capture.h>
 
+#if defined(CONFIG_VIDEO_VS6624) \
+	|| defined(CONFIG_VIDEO_VS6624__MODULE)
 static struct v4l2_input vs6624_inputs[] = {
 	{
 		.index = 0,
@@ -1618,7 +1620,9 @@ static struct bfin_capture_config bfin_capture_data = {
 	.board_info = {
 		I2C_BOARD_INFO("vs6624", 0x10)
 	},
+	.flags = PPI_FLAG_PACK_EN,
 };
+#endif
 
 static struct platform_device bfin_capture_device = {
 	.name = "bfin_capture",

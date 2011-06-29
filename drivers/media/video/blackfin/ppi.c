@@ -28,7 +28,7 @@
 #include <asm/blackfin.h>
 #include <asm/portmux.h>
 
-#include "ppi.h"
+#include <media/blackfin/ppi.h>
 
 #define regr(reg)               readw((reg) + ppi_base)
 #define regw(value, reg)        writew(value, ((reg) + ppi_base))
@@ -135,6 +135,8 @@ static int ppi_stop(struct ppi_if *intf)
 
 static int ppi_set_params(struct ppi_if *intf, struct ppi_params *params)
 {
+	int ck_skip = 0;
+
 	intf->bytes_per_line = params->width * params->bpp;
 	intf->lines_per_frame = params->height;
 
@@ -147,7 +149,67 @@ static int ppi_set_params(struct ppi_if *intf, struct ppi_params *params)
 	set_dma_config(intf->dma_ch, intf->dma_config);
 
 	/* config PPI */
-	intf->ppi_control = (PACK_EN | DLEN_8 | 0x000c | 0x0020);
+	if (params->flags & PPI_FLAG_TX_MOD) {
+		/* ppi in transmit mode */
+		intf->ppi_control = 0x0002;
+		/* set xfer type */
+		if (!(params->flags & PPI_FLAG_NO_SYNC))
+			intf->ppi_control |= 0x000c;
+		/* set port cfg */
+		else if (params->flags & PPI_FLAG_ONE_SYNC)
+			intf->ppi_control |= 0x0000;
+		else if (params->flags & PPI_FLAG_FS2_ASSERT)
+			intf->ppi_control |= 0x0030;
+		else
+			intf->ppi_control |= 0x0010;
+	} else {
+		/* ppi in receive mode */
+		intf->ppi_control = 0x0000;
+		/* set xfer type */
+		if (params->flags & PPI_FLAG_BT656) {
+			if (params->flags & PPI_FLAG_ACTIVE_FLD)
+				intf->ppi_control |= 0x0000;
+			else if (params->flags & PPI_FLAG_ENTIRE_FLD)
+				intf->ppi_control |= 0x0004;
+			else
+				intf->ppi_control |= 0x0008;
+			ck_skip = 1;
+		} else {
+			intf->ppi_control |= 0x000C;
+			/* set port cfg */
+			if (params->flags & PPI_FLAG_NO_SYNC)
+				intf->ppi_control |= 0x0030;
+			else if (params->flags & PPI_FLAG_ONE_SYNC) {
+				intf->ppi_control |= 0x0000;
+				ck_skip = 1;
+			} else if (params->flags & PPI_FLAG_INTER_SYNC)
+				/* 2 or 3 internal frame syncs */
+				intf->ppi_control |= 0x0010;
+			else {
+				/* 2 or 3 external frame syncs */
+				intf->ppi_control |= 0x0020;
+				ck_skip = 1;
+			}
+		}
+	}
+	if (params->flags & PPI_FLAG_FLD_SEL)
+		intf->ppi_control |= FLD_SEL;
+	if (params->flags & PPI_FLAG_PACK_EN)
+		intf->ppi_control |= PACK_EN;
+	if (params->flags & PPI_FLAG_DMA32)
+		intf->ppi_control |= DMA32;
+	if (params->flags & PPI_FLAG_CLK_FALL)
+		intf->ppi_control |= POLC;
+	if (params->flags & PPI_FLAG_FS_FALL)
+		intf->ppi_control |= POLS;
+	if (ck_skip) {
+		if (params->flags & PPI_FLAG_SKIP_EN) {
+			intf->ppi_control |= SKIP_EN;
+			if (params->flags & PPI_FLAG_SKIP_EVEN)
+				intf->ppi_control |= SKIP_EO;
+		}
+	}
+	intf->ppi_control |= DLEN_8;
 	regw(intf->ppi_control, REG_PPI_CONTROL);
 	regw(intf->bytes_per_line - 1, REG_PPI_COUNT);
 	regw(intf->lines_per_frame, REG_PPI_FRAME);

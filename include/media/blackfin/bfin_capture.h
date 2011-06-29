@@ -1,10 +1,10 @@
 #ifndef _BFIN_CAPTURE_H_
 #define _BFIN_CAPTURE_H_
 
-#ifdef __KERNEL__
-
 #include <linux/i2c.h>
 #include <linux/videodev2.h>
+
+#include <media/blackfin/ppi.h>
 
 struct bcap_route {
 	u32 input;
@@ -24,8 +24,8 @@ struct bfin_capture_config {
 	int i2c_adapter_id;
 	/* i2c subdevice board info */
 	struct i2c_board_info board_info;
+	/* ppi control flag */
+	unsigned long flags;
 };
-
-#endif
 
 #endif

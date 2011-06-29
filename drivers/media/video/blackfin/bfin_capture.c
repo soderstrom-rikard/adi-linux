@@ -46,7 +46,6 @@
 #include <asm/dma.h>
 
 #include <media/blackfin/bfin_capture.h>
-#include "ppi.h"
 
 #define CAPTURE_DRV_NAME        "bfin_capture"
 #define BCAP_MIN_NUM_BUF        3
@@ -351,6 +350,7 @@ static int bcap_start_streaming(struct vb2_queue *vq)
 	params.width = bcap_dev->fmt.width;
 	params.height = bcap_dev->fmt.height;
 	params.bpp = bcap_dev->bpp;
+	params.flags = bcap_dev->cfg->flags;
 	ret = ppi->ops->set_params(ppi, &params);
 	if (ret < 0) {
 		v4l2_err(&bcap_dev->v4l2_dev,
