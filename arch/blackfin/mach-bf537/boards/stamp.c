@@ -1620,7 +1620,7 @@ static struct bfin_capture_config bfin_capture_data = {
 	.board_info = {
 		I2C_BOARD_INFO("vs6624", 0x10)
 	},
-	.flags = PPI_FLAG_PACK_EN,
+	.ppi_control = (PACK_EN | DLEN_8 | XFR_TYPE | 0x0020),
 };
 #endif
 

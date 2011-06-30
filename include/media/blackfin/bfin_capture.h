@@ -24,8 +24,8 @@ struct bfin_capture_config {
 	int i2c_adapter_id;
 	/* i2c subdevice board info */
 	struct i2c_board_info board_info;
-	/* ppi control flag */
-	unsigned long flags;
+	/* ppi control */
+	unsigned short ppi_control;
 };
 
 #endif
