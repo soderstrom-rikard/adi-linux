@@ -769,7 +769,11 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 		}
 		set_dma_config(dev->dma_tx_chan, dma_config);
 
+		/* dma interrupt should not be handled before sport is enabled */
+		disable_irq(dev->tx_irq);
 		enable_dma(dev->dma_tx_chan);
+		dev->regs->tcr1 |= TSPEN;
+		enable_irq(dev->tx_irq);
 	} else {
 		/* Configure parameters to start PIO transfer */
 		dev->tx_buf = buf;
@@ -780,6 +784,7 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 			goto out;
 		}
 		sport_tx_write(dev);
+		dev->regs->tcr1 |= TSPEN;
 	}
 
 	status = dev->regs->mcmc2;
