@@ -149,7 +149,7 @@ static int snd_ad73311_init(struct snd_soc_pcm_runtime *rtd)
 	return 0;
 }
 
-static int bf5xx_probe(struct platform_device *pdev)
+static int bf5xx_probe(struct snd_soc_card *card)
 {
 	int err;
 	struct ad73311_snd_ctrls ctrl = {
