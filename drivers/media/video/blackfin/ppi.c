@@ -139,11 +139,19 @@ static int ppi_set_params(struct ppi_if *intf, struct ppi_params *params)
 	intf->lines_per_frame = params->height;
 
 	/* config DMA */
-	intf->dma_config = (DMA_FLOW_STOP | WNR | RESTART | WDSIZE_16 | DMA2D | DI_EN);
-	set_dma_x_count(intf->dma_ch, intf->bytes_per_line >> 1);
-	set_dma_x_modify(intf->dma_ch, 2);
+	intf->dma_config = (DMA_FLOW_STOP | WNR | RESTART | DMA2D | DI_EN);
+	if (params->ppi_control & DMA32) {
+		intf->dma_config |= WDSIZE_32;
+		set_dma_x_count(intf->dma_ch, intf->bytes_per_line >> 2);
+		set_dma_x_modify(intf->dma_ch, 4);
+		set_dma_y_modify(intf->dma_ch, 4);
+	} else {
+		intf->dma_config |= WDSIZE_16;
+		set_dma_x_count(intf->dma_ch, intf->bytes_per_line >> 1);
+		set_dma_x_modify(intf->dma_ch, 2);
+		set_dma_y_modify(intf->dma_ch, 2);
+	}
 	set_dma_y_count(intf->dma_ch, intf->lines_per_frame);
-	set_dma_y_modify(intf->dma_ch, 2);
 	set_dma_config(intf->dma_ch, intf->dma_config);
 
 	/* config PPI */
