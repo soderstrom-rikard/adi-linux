@@ -24,6 +24,7 @@
 #include <linux/i2c.h>
 #include <linux/slab.h>
 #include <linux/delay.h>
+#include <linux/gpio.h>
 #include <linux/videodev2.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-chip-ident.h>
@@ -38,6 +39,9 @@ struct adv7183 {
 	v4l2_std_id std; /* Current set standard */
 	u32 input;
 	u32 output;
+	unsigned reset_pin;
+	unsigned oe_pin;
+	struct v4l2_mbus_framefmt fmt;
 };
 
 /* EXAMPLES USING 27 MHz CLOCK
@@ -65,7 +69,6 @@ static const unsigned char adv7183_init_regs[] = {
 	ADV7183_PAL_V_END, 0x3E,
 	ADV7183_PAL_F_TOGGLE, 0x0F,
 	ADV7183_ADI_CTRL, 0x00,
-	0x00, 0x00,
 };
 
 static inline struct adv7183 *to_adv7183(struct v4l2_subdev *sd)
@@ -92,13 +95,21 @@ static inline int adv7183_write(struct v4l2_subdev *sd, unsigned char reg,
 	return i2c_smbus_write_byte_data(client, reg, value);
 }
 
-static int adv7183_writeregs(struct v4l2_subdev *sd, const unsigned char *regs)
+static int adv7183_writeregs(struct v4l2_subdev *sd,
+		const unsigned char *regs, unsigned int num)
 {
 	unsigned char reg, data;
+	unsigned int cnt = 0;
 
-	while (*regs != 0x00) {
+	if (num & 0x1) {
+		v4l2_err(sd, "invalid regs array\n");
+		return -1;
+	}
+
+	while (cnt < num) {
 		reg = *regs++;
 		data = *regs++;
+		cnt += 2;
 
 		adv7183_write(sd, reg, data);
 	}
@@ -107,80 +118,82 @@ static int adv7183_writeregs(struct v4l2_subdev *sd, const unsigned char *regs)
 
 static int adv7183_log_status(struct v4l2_subdev *sd)
 {
-	printk(KERN_DEBUG "adv7183: Input control = 0x%02x\n",
+	struct adv7183 *decoder = to_adv7183(sd);
+
+	v4l2_info(sd, "adv7183: Input control = 0x%02x\n",
 			adv7183_read(sd, ADV7183_IN_CTRL));
-	printk(KERN_DEBUG "adv7183: Video selection = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Video selection = 0x%02x\n",
 			adv7183_read(sd, ADV7183_VD_SEL));
-	printk(KERN_DEBUG "adv7183: Output control = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Output control = 0x%02x\n",
 			adv7183_read(sd, ADV7183_OUT_CTRL));
-	printk(KERN_DEBUG "adv7183: Extended output control = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Extended output control = 0x%02x\n",
 			adv7183_read(sd, ADV7183_EXT_OUT_CTRL));
-	printk(KERN_DEBUG "adv7183: Autodetect enable = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Autodetect enable = 0x%02x\n",
 			adv7183_read(sd, ADV7183_AUTO_DET_EN));
-	printk(KERN_DEBUG "adv7183: Contrast = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Contrast = 0x%02x\n",
 			adv7183_read(sd, ADV7183_CONTRAST));
-	printk(KERN_DEBUG "adv7183: Brightness = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Brightness = 0x%02x\n",
 			adv7183_read(sd, ADV7183_BRIGHTNESS));
-	printk(KERN_DEBUG "adv7183: Hue = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Hue = 0x%02x\n",
 			adv7183_read(sd, ADV7183_HUE));
-	printk(KERN_DEBUG "adv7183: Default value Y = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Default value Y = 0x%02x\n",
 			adv7183_read(sd, ADV7183_DEF_Y));
-	printk(KERN_DEBUG "adv7183: Default value C = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Default value C = 0x%02x\n",
 			adv7183_read(sd, ADV7183_DEF_C));
-	printk(KERN_DEBUG "adv7183: ADI control = 0x%02x\n",
+	v4l2_info(sd, "adv7183: ADI control = 0x%02x\n",
 			adv7183_read(sd, ADV7183_ADI_CTRL));
-	printk(KERN_DEBUG "adv7183: Power Management = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Power Management = 0x%02x\n",
 			adv7183_read(sd, ADV7183_POW_MANAGE));
-	printk(KERN_DEBUG "adv7183: Status 1 2 and 3 = 0x%02x 0x%02x 0x%02x\n",
+	v4l2_info(sd, "adv7183: Status 1 2 and 3 = 0x%02x 0x%02x 0x%02x\n",
 			adv7183_read(sd, ADV7183_STATUS_1),
 			adv7183_read(sd, ADV7183_STATUS_2),
 			adv7183_read(sd, ADV7183_STATUS_3));
-	printk(KERN_DEBUG "adv7183: Ident = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Ident = 0x%02x\n",
 			adv7183_read(sd, ADV7183_IDENT));
-	printk(KERN_DEBUG "adv7183: Analog clamp control = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Analog clamp control = 0x%02x\n",
 			adv7183_read(sd, ADV7183_ANAL_CLAMP_CTRL));
-	printk(KERN_DEBUG "adv7183: Digital clamp control 1 = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Digital clamp control 1 = 0x%02x\n",
 			adv7183_read(sd, ADV7183_DIGI_CLAMP_CTRL_1));
-	printk(KERN_DEBUG "adv7183: Shaping filter control 1 and 2 = 0x%02x 0x%02x\n",
+	v4l2_info(sd, "adv7183: Shaping filter control 1 and 2 = 0x%02x 0x%02x\n",
 			adv7183_read(sd, ADV7183_SHAP_FILT_CTRL),
 			adv7183_read(sd, ADV7183_SHAP_FILT_CTRL_2));
-	printk(KERN_DEBUG "adv7183: Comb filter control = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Comb filter control = 0x%02x\n",
 			adv7183_read(sd, ADV7183_COMB_FILT_CTRL));
-	printk(KERN_DEBUG "adv7183: ADI control 2 = 0x%02x\n",
+	v4l2_info(sd, "adv7183: ADI control 2 = 0x%02x\n",
 			adv7183_read(sd, ADV7183_ADI_CTRL_2));
-	printk(KERN_DEBUG "adv7183: Pixel delay control = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Pixel delay control = 0x%02x\n",
 			adv7183_read(sd, ADV7183_PIX_DELAY_CTRL));
-	printk(KERN_DEBUG "adv7183: Misc gain control = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Misc gain control = 0x%02x\n",
 			adv7183_read(sd, ADV7183_MISC_GAIN_CTRL));
-	printk(KERN_DEBUG "adv7183: AGC mode control = 0x%02x\n",
+	v4l2_info(sd, "adv7183: AGC mode control = 0x%02x\n",
 			adv7183_read(sd, ADV7183_AGC_MODE_CTRL));
-	printk(KERN_DEBUG "adv7183: Chroma gain control 1 and 2 = 0x%02x 0x%02x\n",
+	v4l2_info(sd, "adv7183: Chroma gain control 1 and 2 = 0x%02x 0x%02x\n",
 			adv7183_read(sd, ADV7183_CHRO_GAIN_CTRL_1),
 			adv7183_read(sd, ADV7183_CHRO_GAIN_CTRL_2));
-	printk(KERN_DEBUG "adv7183: Luma gain control 1 and 2 = 0x%02x 0x%02x\n",
+	v4l2_info(sd, "adv7183: Luma gain control 1 and 2 = 0x%02x 0x%02x\n",
 			adv7183_read(sd, ADV7183_LUMA_GAIN_CTRL_1),
 			adv7183_read(sd, ADV7183_LUMA_GAIN_CTRL_2));
-	printk(KERN_DEBUG "adv7183: Vsync field control 1 2 and 3 = 0x%02x 0x%02x 0x%02x\n",
+	v4l2_info(sd, "adv7183: Vsync field control 1 2 and 3 = 0x%02x 0x%02x 0x%02x\n",
 			adv7183_read(sd, ADV7183_VS_FIELD_CTRL_1),
 			adv7183_read(sd, ADV7183_VS_FIELD_CTRL_2),
 			adv7183_read(sd, ADV7183_VS_FIELD_CTRL_3));
-	printk(KERN_DEBUG "adv7183: Hsync positon control 1 2 and 3 = 0x%02x 0x%02x 0x%02x\n",
+	v4l2_info(sd, "adv7183: Hsync positon control 1 2 and 3 = 0x%02x 0x%02x 0x%02x\n",
 			adv7183_read(sd, ADV7183_HS_POS_CTRL_1),
 			adv7183_read(sd, ADV7183_HS_POS_CTRL_2),
 			adv7183_read(sd, ADV7183_HS_POS_CTRL_3));
-	printk(KERN_DEBUG "adv7183: Polarity = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Polarity = 0x%02x\n",
 			adv7183_read(sd, ADV7183_POLARITY));
-	printk(KERN_DEBUG "adv7183: ADC control = 0x%02x\n",
+	v4l2_info(sd, "adv7183: ADC control = 0x%02x\n",
 			adv7183_read(sd, ADV7183_ADC_CTRL));
-	printk(KERN_DEBUG "adv7183: SD offset Cb and Cr = 0x%02x 0x%02x\n",
+	v4l2_info(sd, "adv7183: SD offset Cb and Cr = 0x%02x 0x%02x\n",
 			adv7183_read(sd, ADV7183_SD_OFFSET_CB),
 			adv7183_read(sd, ADV7183_SD_OFFSET_CR));
-	printk(KERN_DEBUG "adv7183: SD saturation Cb and Cr = 0x%02x 0x%02x\n",
+	v4l2_info(sd, "adv7183: SD saturation Cb and Cr = 0x%02x 0x%02x\n",
 			adv7183_read(sd, ADV7183_SD_SATURATION_CB),
 			adv7183_read(sd, ADV7183_SD_SATURATION_CR));
-	printk(KERN_DEBUG "adv7183: Drive strength = 0x%02x\n",
+	v4l2_info(sd, "adv7183: Drive strength = 0x%02x\n",
 			adv7183_read(sd, ADV7183_DRIVE_STR));
-
+	v4l2_ctrl_handler_log_status(&decoder->hdl, sd->name);
 	return 0;
 }
 
@@ -227,7 +240,8 @@ static int adv7183_reset(struct v4l2_subdev *sd, u32 val)
 
 	reg = adv7183_read(sd, ADV7183_POW_MANAGE) | 0x80;
 	adv7183_write(sd, ADV7183_POW_MANAGE, reg);
-	msleep(20);
+	/* wait 5ms before any further i2c writes are performed */
+	usleep_range(5000, 10000);
 	return 0;
 }
 
@@ -368,7 +382,7 @@ static int adv7183_querystd(struct v4l2_subdev *sd, v4l2_std_id *std)
 			*std = V4L2_STD_SECAM;
 			break;
 		case 6:
-			*std = V4L2_STD_PAL_Nc | V4L2_STD_PAL_N;
+			*std = V4L2_STD_PAL_Nc;
 			break;
 		case 7:
 			*std = V4L2_STD_SECAM;
@@ -392,6 +406,67 @@ static int adv7183_g_input_status(struct v4l2_subdev *sd, u32 *status)
 		return reg;
 	else if (reg & 0x1)
 		*status = 0;
+	return 0;
+}
+
+static int adv7183_enum_mbus_fmt(struct v4l2_subdev *sd, unsigned index,
+				enum v4l2_mbus_pixelcode *code)
+{
+	if (index > 0)
+		return -EINVAL;
+
+	*code = V4L2_MBUS_FMT_UYVY8_2X8;
+	return 0;
+}
+
+static int adv7183_try_mbus_fmt(struct v4l2_subdev *sd,
+				struct v4l2_mbus_framefmt *fmt)
+{
+	v4l2_std_id std;
+
+	fmt->code = V4L2_MBUS_FMT_UYVY8_2X8;
+	fmt->colorspace = V4L2_COLORSPACE_SMPTE170M;
+	adv7183_querystd(sd, &std);
+	if (std & V4L2_STD_525_60) {
+		fmt->field = V4L2_FIELD_SEQ_TB;
+		fmt->width = 720;
+		fmt->height = 480;
+	} else {
+		fmt->field = V4L2_FIELD_SEQ_BT;
+		fmt->width = 720;
+		fmt->height = 576;
+	}
+	return 0;
+}
+
+static int adv7183_s_mbus_fmt(struct v4l2_subdev *sd,
+				struct v4l2_mbus_framefmt *fmt)
+{
+	struct adv7183 *decoder = to_adv7183(sd);
+
+	adv7183_try_mbus_fmt(sd, fmt);
+	decoder->fmt = *fmt;
+	return 0;
+}
+
+static int adv7183_g_mbus_fmt(struct v4l2_subdev *sd,
+				struct v4l2_mbus_framefmt *fmt)
+{
+	struct adv7183 *decoder = to_adv7183(sd);
+
+	*fmt = decoder->fmt;
+	return 0;
+}
+
+static int adv7183_s_stream(struct v4l2_subdev *sd, int enable)
+{
+	struct adv7183 *decoder = to_adv7183(sd);
+
+	if (enable)
+		gpio_direction_output(decoder->oe_pin, 0);
+	else
+		gpio_direction_output(decoder->oe_pin, 1);
+	udelay(1);
 	return 0;
 }
 
@@ -460,6 +535,11 @@ static const struct v4l2_subdev_video_ops adv7183_video_ops = {
 	.s_routing = adv7183_s_routing,
 	.querystd = adv7183_querystd,
 	.g_input_status = adv7183_g_input_status,
+	.enum_mbus_fmt = adv7183_enum_mbus_fmt,
+	.try_mbus_fmt = adv7183_try_mbus_fmt,
+	.s_mbus_fmt = adv7183_s_mbus_fmt,
+	.g_mbus_fmt = adv7183_g_mbus_fmt,
+	.s_stream = adv7183_s_stream,
 };
 
 static const struct v4l2_subdev_ops adv7183_ops = {
@@ -473,6 +553,8 @@ static int adv7183_probe(struct i2c_client *client,
 	struct adv7183 *decoder;
 	struct v4l2_subdev *sd;
 	struct v4l2_ctrl_handler *hdl;
+	int ret;
+	const unsigned *pin_array;
 
 	/* Check if the adapter supports the needed features */
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
@@ -484,6 +566,22 @@ static int adv7183_probe(struct i2c_client *client,
 	decoder = kzalloc(sizeof(struct adv7183), GFP_KERNEL);
 	if (decoder == NULL)
 		return -ENOMEM;
+
+	pin_array = client->dev.platform_data;
+	decoder->reset_pin = pin_array[0];
+	decoder->oe_pin = pin_array[1];
+
+	if (gpio_request(decoder->reset_pin, "ADV7183 Reset")) {
+		v4l_err(client, "failed to request GPIO %d\n", decoder->reset_pin);
+		ret = -EBUSY;
+		goto err_free_decoder;
+	}
+
+	if (gpio_request(decoder->oe_pin, "ADV7183 Output Enable")) {
+		v4l_err(client, "failed to request GPIO %d\n", decoder->oe_pin);
+		ret = -EBUSY;
+		goto err_free_reset;
+	}
 
 	sd = &decoder->sd;
 	v4l2_i2c_subdev_init(sd, client, &adv7183_ops);
@@ -501,30 +599,50 @@ static int adv7183_probe(struct i2c_client *client,
 	/* hook the control handler into the driver */
 	sd->ctrl_handler = hdl;
 	if (hdl->error) {
-		int err = hdl->error;
+		ret = hdl->error;
 
 		v4l2_ctrl_handler_free(hdl);
-		kfree(decoder);
-		return err;
+		goto err_free_oe;
 	}
 
 	decoder->std = V4L2_STD_ALL; /* Default is autodetect */
 	decoder->input = ADV7183_COMPOSITE4;
 	decoder->output = ADV7183_8BIT_OUT;
-	adv7183_writeregs(sd, adv7183_init_regs);
+
+	gpio_direction_output(decoder->oe_pin, 1);
+	/* reset chip */
+	gpio_direction_output(decoder->reset_pin, 0);
+	/* reset pulse width at least 5ms */
+	mdelay(10);
+	gpio_direction_output(decoder->reset_pin, 1);
+	/* wait 5ms before any further i2c writes are performed */
+	mdelay(5);
+
+	adv7183_writeregs(sd, adv7183_init_regs, ARRAY_SIZE(adv7183_init_regs));
+
 	/* initialize the hardware to the default control values */
 	v4l2_ctrl_handler_setup(hdl);
 
 	return 0;
+err_free_oe:
+	gpio_free(decoder->oe_pin);
+err_free_reset:
+	gpio_free(decoder->reset_pin);
+err_free_decoder:
+	kfree(decoder);
+	return ret;
 }
 
 static int adv7183_remove(struct i2c_client *client)
 {
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
+	struct adv7183 *decoder = to_adv7183(sd);
 
 	v4l2_device_unregister_subdev(sd);
 	v4l2_ctrl_handler_free(sd->ctrl_handler);
-	kfree(to_adv7183(sd));
+	gpio_free(decoder->oe_pin);
+	gpio_free(decoder->reset_pin);
+	kfree(decoder);
 	return 0;
 }
 
@@ -541,7 +659,7 @@ static struct i2c_driver adv7183_driver = {
 		.name   = "adv7183",
 	},
 	.probe          = adv7183_probe,
-	.remove         = adv7183_remove,
+	.remove         = __devexit_p(adv7183_remove),
 	.id_table       = adv7183_id,
 };
 
