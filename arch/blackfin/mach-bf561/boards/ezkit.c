@@ -417,6 +417,106 @@ static struct platform_device bfin_dpmc = {
 	},
 };
 
+#if defined(CONFIG_VIDEO_BLACKFIN_PPI) \
+	|| defined(CONFIG_VIDEO_BLACKFIN_PPI_MODULE)
+static struct resource bfin_ppi_resources[] = {
+	{
+		.start = CH_PPI0,
+		.end   = CH_PPI0,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = IRQ_PPI1_ERROR,
+		.end   = IRQ_PPI1_ERROR,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = PPI0_CONTROL,
+		.end   = PPI0_FRAME + 3,
+		.flags = IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device bfin_ppi_device = {
+	.name          = "ppi",
+	.id            = -1,
+	.num_resources = ARRAY_SIZE(bfin_ppi_resources),
+	.resource      = bfin_ppi_resources,
+};
+#endif
+
+#if defined(CONFIG_VIDEO_BLACKFIN_CAPTURE) \
+	|| defined(CONFIG_VIDEO_BLACKFIN_CAPTURE_MODULE)
+#include <media/blackfin/bfin_capture.h>
+
+#if defined(CONFIG_VIDEO_ADV7183) \
+	|| defined(CONFIG_VIDEO_ADV7183_MODULE)
+#include <media/adv7183.h>
+static struct v4l2_input adv7183_inputs[] = {
+	{
+		.index = 0,
+		.name = "Composite",
+		.type = V4L2_INPUT_TYPE_CAMERA,
+		.std = V4L2_STD_ALL,
+	},
+	{
+		.index = 1,
+		.name = "S-Video",
+		.type = V4L2_INPUT_TYPE_CAMERA,
+		.std = V4L2_STD_ALL,
+	},
+	{
+		.index = 2,
+		.name = "Component",
+		.type = V4L2_INPUT_TYPE_CAMERA,
+		.std = V4L2_STD_ALL,
+	},
+};
+
+static struct bcap_route adv7183_routes[] = {
+	{
+		.input = ADV7183_COMPOSITE4,
+		.output = ADV7183_8BIT_OUT,
+	},
+	{
+		.input = ADV7183_SVIDEO0,
+		.output = ADV7183_8BIT_OUT,
+	},
+	{
+		.input = ADV7183_COMPONENT0,
+		.output = ADV7183_8BIT_OUT,
+	},
+};
+
+
+static const unsigned adv7183_gpio[] = {
+	GPIO_PF13, /* reset pin */
+	GPIO_PF2,  /* output enable pin */
+};
+
+static struct bfin_capture_config bfin_capture_data = {
+	.card_name = "BF561",
+	.inputs = adv7183_inputs,
+	.num_inputs = ARRAY_SIZE(adv7183_inputs),
+	.routes = adv7183_routes,
+	.i2c_adapter_id = 0,
+	.board_info = {
+		.type = "adv7183",
+		.addr = 0x20,
+		.platform_data = (void *)adv7183_gpio,
+	},
+	.ppi_control = (PACK_EN | DLEN_8 | DMA32 | FLD_SEL),
+};
+#endif
+
+static struct platform_device bfin_capture_device = {
+	.name = "bfin_capture",
+	.dev = {
+		.platform_data = &bfin_capture_data,
+	},
+};
+#endif
+
 #if defined(CONFIG_SND_BF5XX_I2S) || defined(CONFIG_SND_BF5XX_I2S_MODULE)
 static struct platform_device bfin_i2s = {
 	.name = "bfin-i2s",
@@ -487,6 +587,16 @@ static struct platform_device *ezkit_devices[] __initdata = {
 
 #if defined(CONFIG_MTD_PHYSMAP) || defined(CONFIG_MTD_PHYSMAP_MODULE)
 	&ezkit_flash_device,
+#endif
+
+#if defined(CONFIG_VIDEO_BLACKFIN_CAPTURE) \
+	|| defined(CONFIG_VIDEO_BLACKFIN_CAPTURE_MODULE)
+	&bfin_capture_device,
+#endif
+
+#if defined(CONFIG_VIDEO_BLACKFIN_PPI) \
+	|| defined(CONFIG_VIDEO_BLACKFIN_PPI_MODULE)
+	&bfin_ppi_device,
 #endif
 
 #if defined(CONFIG_SND_BF5XX_I2S) || defined(CONFIG_SND_BF5XX_I2S_MODULE)
