@@ -590,8 +590,11 @@ static int bcap_g_std(struct file *file, void *priv, v4l2_std_id *std)
 {
 	struct bcap_device *bcap_dev = video_drvdata(file);
 
-	*std = bcap_dev->std;
-	return 0;
+	if (bcap_dev->std) {
+		*std = bcap_dev->std;
+		return 0;
+	} else
+		return -EINVAL;
 }
 
 static int bcap_s_std(struct file *file, void *priv, v4l2_std_id *std)
@@ -618,12 +621,18 @@ static int bcap_enum_input(struct file *file, void *priv,
 {
 	struct bcap_device *bcap_dev = video_drvdata(file);
 	struct bfin_capture_config *config = bcap_dev->cfg;
+	int ret;
+	u32 status;
 
 	if (input->index >= config->num_inputs)
 		return -EINVAL;
 
 	memcpy(input, &config->inputs[input->index],
 		sizeof(*input));
+	/* get input status */
+	ret = v4l2_subdev_call(bcap_dev->sd, video, g_input_status, &status);
+	if (!ret)
+		input->status = status;
 	return 0;
 }
 
@@ -1038,6 +1047,8 @@ static int __devinit bcap_probe(struct platform_device *pdev)
 		/* update tvnorms from the sub devices */
 		for (i = 0; i < config->num_inputs; i++)
 			vfd->tvnorms |= config->inputs[i].std;
+		/* set default std */
+		bcap_dev->std = vfd->tvnorms;
 	} else {
 		v4l2_err(&bcap_dev->v4l2_dev,
 				"Unable to register sub device\n");
