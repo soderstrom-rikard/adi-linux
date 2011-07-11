@@ -1240,9 +1240,6 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 	request = to_musb_request(req);
 	request->musb = musb;
 
-	if (request->ep != musb_ep)
-		return -EINVAL;
-
 	DBG(4, "<== to %s request=%p\n", ep->name, req);
 
 	/* request is mine now... */
