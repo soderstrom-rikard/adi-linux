@@ -563,11 +563,14 @@ static int adv7183_probe(struct i2c_client *client,
 	v4l_info(client, "chip found @ 0x%02x (%s)\n",
 			client->addr << 1, client->adapter->name);
 
+	pin_array = client->dev.platform_data;
+	if (pin_array == NULL)
+		return -EINVAL;
+
 	decoder = kzalloc(sizeof(struct adv7183), GFP_KERNEL);
 	if (decoder == NULL)
 		return -ENOMEM;
 
-	pin_array = client->dev.platform_data;
 	decoder->reset_pin = pin_array[0];
 	decoder->oe_pin = pin_array[1];
 
