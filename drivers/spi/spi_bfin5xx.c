@@ -1060,7 +1060,10 @@ static int bfin_spi_setup(struct spi_device *spi)
 	if (chip->chip_select_num < MAX_CTRL_CS) {
 		if (!(spi->mode & SPI_CPHA))
 			dev_warn(&spi->dev, "Warning: SPI CPHA not set:"
-				" Slave Select not under software control!\n"
+				" Slave Select not under software control!,if
+				any of your device has to be in mode 0 or 2, use
+				GPIO based CS for all SPI devices to secure the
+				CS operation!\n"
 				" See Documentation/blackfin/bfin-spi-notes.txt");
 
 		chip->flag = (1 << spi->chip_select) << 8;
