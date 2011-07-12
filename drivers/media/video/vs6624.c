@@ -32,12 +32,6 @@
 #include <asm/gpio.h>
 #include "vs6624_regs.h"
 
-#ifdef CONFIG_BFIN548_EZKIT
-#define VS6624_CE       GPIO_PG6
-#else
-#define VS6624_CE       GPIO_PF10
-#endif
-
 #define VS6624_DEVICE_ID 624
 
 #define VGA_WIDTH       640
@@ -60,6 +54,7 @@ struct vs6624 {
 	struct v4l2_ctrl_handler hdl;
 	struct v4l2_fract frame_rate;
 	struct v4l2_mbus_framefmt fmt;
+	unsigned ce_pin;
 };
 
 static const struct vs6624_format {
@@ -806,24 +801,29 @@ static int __devinit vs6624_probe(struct i2c_client *client,
 	struct v4l2_subdev *sd;
 	struct v4l2_ctrl_handler *hdl;
 	u16 device_id;
+	const unsigned *ce;
 	int ret;
 
 	/* Check if the adapter supports the needed features */
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C))
 		return -EIO;
 
-	ret = gpio_request(VS6624_CE, "VS6624 Chip Enable");
+	ce = client->dev.platform_data;
+	if (ce == NULL)
+		return -EINVAL;
+
+	ret = gpio_request(*ce, "VS6624 Chip Enable");
 	if (ret) {
-		v4l_err(client, "failed to request GPIO %d\n", VS6624_CE);
+		v4l_err(client, "failed to request GPIO %d\n", *ce);
 		return ret;
 	}
-	gpio_direction_output(VS6624_CE, 1);
+	gpio_direction_output(*ce, 1);
 	/* wait 100ms before any further i2c writes are performed */
 	mdelay(100);
 
 	sensor = kzalloc(sizeof(*sensor), GFP_KERNEL);
 	if (sensor == NULL) {
-		gpio_free(VS6624_CE);
+		gpio_free(*ce);
 		return -ENOMEM;
 	}
 
@@ -843,7 +843,7 @@ static int __devinit vs6624_probe(struct i2c_client *client,
 		v4l_info(client, "chip found @ 0x%02x (%s) is not vs6624\n",
 				client->addr << 1, client->adapter->name);
 		kfree(sensor);
-		gpio_free(VS6624_CE);
+		gpio_free(*ce);
 		return -ENODEV;
 	}
 
@@ -863,6 +863,7 @@ static int __devinit vs6624_probe(struct i2c_client *client,
 			sensor->frame_rate.denominator & 0xFF);
 
 	sensor->fmt = vs6624_default_fmt;
+	sensor->ce_pin = *ce;
 
 	v4l_info(client, "chip found @ 0x%02x (%s)\n",
 			client->addr << 1, client->adapter->name);
@@ -884,7 +885,7 @@ static int __devinit vs6624_probe(struct i2c_client *client,
 
 		v4l2_ctrl_handler_free(hdl);
 		kfree(sensor);
-		gpio_free(VS6624_CE);
+		gpio_free(*ce);
 		return err;
 	}
 
@@ -896,11 +897,12 @@ static int __devinit vs6624_probe(struct i2c_client *client,
 static int __devexit vs6624_remove(struct i2c_client *client)
 {
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
+	struct vs6624 *sensor = to_vs6624(sd);
 
 	v4l2_device_unregister_subdev(sd);
 	v4l2_ctrl_handler_free(sd->ctrl_handler);
-	kfree(to_vs6624(sd));
-	gpio_free(VS6624_CE);
+	gpio_free(sensor->ce_pin);
+	kfree(sensor);
 	return 0;
 }
 

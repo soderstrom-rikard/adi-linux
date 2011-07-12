@@ -1611,6 +1611,8 @@ static struct bcap_route vs6624_routes[] = {
 	},
 };
 
+static const unsigned vs6624_ce_pin = GPIO_PF10;
+
 static struct bfin_capture_config bfin_capture_data = {
 	.card_name = "BF537",
 	.inputs = vs6624_inputs,
@@ -1618,7 +1620,9 @@ static struct bfin_capture_config bfin_capture_data = {
 	.routes = vs6624_routes,
 	.i2c_adapter_id = 0,
 	.board_info = {
-		I2C_BOARD_INFO("vs6624", 0x10)
+		.type = "vs6624",
+		.addr = 0x10,
+		.platform_data = (void *)&vs6624_ce_pin,
 	},
 	.ppi_control = (PACK_EN | DLEN_8 | XFR_TYPE | 0x0020),
 };
