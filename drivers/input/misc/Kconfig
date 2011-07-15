@@ -467,4 +467,15 @@ config INPUT_XEN_KBDDEV_FRONTEND
 	  To compile this driver as a module, choose M here: the
 	  module will be called xen-kbdfront.
 
+config INPUT_ADUX1001_VIBRA
+	tristate "ADUX1001 Smart Electromagnetic Actuator Haptic Driver"
+	depends on I2C
+	select INPUT_FF_MEMLESS
+	help
+	  This option enables support for the Analog Devices ADUX1001
+	  Smart Electromagnetic Actuator Haptic Driver.
+
+	  To compile this driver as a module, choose M here. The module will
+	  be called adux1001-vibra.
+
 endif
