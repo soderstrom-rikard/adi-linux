@@ -9,6 +9,13 @@
 #ifndef __LINUX_ADUX1001_H
 #define __LINUX_ADUX1001_H
 
+#include <linux/compiler.h>
+#include <linux/types.h>
+
+/* Don't change declaration:
+ * this struct matches the over-the-wire format the device expects
+ */
+
 struct adux1001_calib_data {
 	unsigned char slra_cal0;
 	unsigned char slra_cal1;
@@ -17,6 +24,8 @@ struct adux1001_calib_data {
 	unsigned char slra_cal4;
 	unsigned char slra_cal5;
 } __packed;
+
+struct i2c_client; /* forward declaration */
 
 struct adux1001_vibra_platform_data {
 	/* Actuator Selection: true = ERM, false = LRA */
