@@ -469,7 +469,7 @@ config INPUT_XEN_KBDDEV_FRONTEND
 
 config INPUT_ADUX1001_VIBRA
 	tristate "ADUX1001 Smart Electromagnetic Actuator Haptic Driver"
-	depends on I2C
+	depends on I2C && HAVE_PWM
 	select INPUT_FF_MEMLESS
 	help
 	  This option enables support for the Analog Devices ADUX1001

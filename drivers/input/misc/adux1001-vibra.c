@@ -460,7 +460,7 @@ static int __devinit adux1001_probe(struct i2c_client *client,
 	if (!chip->input) {
 		dev_err(&client->dev, "input device allocation failed\n");
 		ret = -ENOMEM;
-		goto err_release_pwm ;
+		goto err_release_pwm;
 	}
 
 	input_set_drvdata(chip->input, chip);
