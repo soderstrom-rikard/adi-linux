@@ -1594,7 +1594,7 @@ static struct platform_device bfin_ppi_device = {
 #include <media/blackfin/bfin_capture.h>
 
 #if defined(CONFIG_VIDEO_VS6624) \
-	|| defined(CONFIG_VIDEO_VS6624__MODULE)
+	|| defined(CONFIG_VIDEO_VS6624_MODULE)
 static struct v4l2_input vs6624_inputs[] = {
 	{
 		.index = 0,
