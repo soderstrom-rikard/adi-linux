@@ -225,6 +225,17 @@ config BF561
 	help
 	  BF561 Processor Support.
 
+config BF609
+	bool "BF609"
+	help
+	  BF609 Processor Support.
+
+config BF609_FPGA
+	bool "BF609_FPGA"
+	depends on BF609
+	help
+	  BF609 Processor on FPGA.
+
 endchoice
 
 config SMP
@@ -250,27 +261,27 @@ config HOTPLUG_CPU
 
 config BF_REV_MIN
 	int
-	default 0 if (BF51x || BF52x || (BF54x && !BF54xM))
+	default 0 if (BF51x || BF52x || (BF54x && !BF54xM)) || BF60x
 	default 2 if (BF537 || BF536 || BF534)
 	default 3 if (BF561 || BF533 || BF532 || BF531 || BF54xM)
 	default 4 if (BF538 || BF539)
 
 config BF_REV_MAX
 	int
-	default 2 if (BF51x || BF52x || (BF54x && !BF54xM))
+	default 2 if (BF51x || BF52x || (BF54x && !BF54xM)) || BF60x
 	default 3 if (BF537 || BF536 || BF534 || BF54xM)
 	default 5 if (BF561 || BF538 || BF539)
 	default 6 if (BF533 || BF532 || BF531)
 
 choice
 	prompt "Silicon Rev"
-	default BF_REV_0_0 if (BF51x || BF52x)
+	default BF_REV_0_0 if (BF51x || BF52x || BF60x)
 	default BF_REV_0_2 if (BF534 || BF536 || BF537 || (BF54x && !BF54xM))
 	default BF_REV_0_3 if (BF531 || BF532 || BF533 || BF54xM || BF561)
 
 config BF_REV_0_0
 	bool "0.0"
-	depends on (BF51x || BF52x || (BF54x && !BF54xM))
+	depends on (BF51x || BF52x || (BF54x && !BF54xM) || BF60x)
 
 config BF_REV_0_1
 	bool "0.1"
@@ -349,6 +360,7 @@ source "arch/blackfin/mach-bf561/Kconfig"
 source "arch/blackfin/mach-bf537/Kconfig"
 source "arch/blackfin/mach-bf538/Kconfig"
 source "arch/blackfin/mach-bf548/Kconfig"
+source "arch/blackfin/mach-bf609/Kconfig"
 
 menu "Board customizations"
 
@@ -367,7 +379,7 @@ config CMDLINE
 config BOOT_LOAD
 	hex "Kernel load address for booting"
 	default "0x1000"
-	range 0x1000 0x20000000
+	range 0x1000 0xC0000000
 	help
 	  This option allows you to set the load address of the kernel.
 	  This can be useful if you are on a board which has a small amount
@@ -377,6 +389,13 @@ config BOOT_LOAD
 	  Note that you need to keep this value above 4k (0x1000) as this
 	  memory region is used to capture NULL pointer references as well
 	  as some core kernel functions.
+
+config PHY_RAM_BASE_ADDRESS
+	hex "Physical RAM Base"
+	depends on BF609_FPGA
+	default "0xB4000000"
+	help
+	  set BF609 FPGA physical SRAM base address
 
 config ROM_BASE
 	hex "Kernel ROM Base"

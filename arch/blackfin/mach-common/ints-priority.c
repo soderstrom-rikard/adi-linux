@@ -78,7 +78,11 @@ static void __init search_IAR(void)
 
 		for (irqN = 0; irqN < NR_PERI_INTS; irqN += 4) {
 			int irqn;
-			u32 iar = bfin_read32((unsigned long *)SIC_IAR0 +
+			u32 iar =
+#ifdef CONFIG_BF60x
+				0;
+#else
+				 bfin_read32((unsigned long *)SIC_IAR0 +
 #if defined(CONFIG_BF51x) || defined(CONFIG_BF52x) || \
 	defined(CONFIG_BF538) || defined(CONFIG_BF539)
 				((irqN % 32) >> 3) + ((irqN / 32) * ((SIC_IAR4 - SIC_IAR0) / 4))
@@ -86,7 +90,7 @@ static void __init search_IAR(void)
 				(irqN >> 3)
 #endif
 				);
-
+#endif
 			for (irqn = irqN; irqn < irqN + 4; ++irqn) {
 				int iar_shift = (irqn & 7) * 4;
 				if (ivg == (0xf & (iar >> iar_shift))) {
@@ -137,6 +141,8 @@ void bfin_internal_mask_irq(unsigned int irq)
 {
 	unsigned long flags = hard_local_irq_save();
 
+#ifndef CONFIG_BF60x
+
 #ifdef SIC_IMASK0
 	unsigned mask_bank = SIC_SYSIRQ(irq) / 32;
 	unsigned mask_bit = SIC_SYSIRQ(irq) % 32;
@@ -151,6 +157,7 @@ void bfin_internal_mask_irq(unsigned int irq)
 			     ~(1 << SIC_SYSIRQ(irq)));
 #endif
 
+#endif
 	hard_local_irq_restore(flags);
 }
 
@@ -167,6 +174,8 @@ void bfin_internal_unmask_irq(unsigned int irq)
 #endif
 {
 	unsigned long flags = hard_local_irq_save();
+
+#ifndef CONFIG_BF60x
 
 #ifdef SIC_IMASK0
 	unsigned mask_bank = SIC_SYSIRQ(irq) / 32;
@@ -186,6 +195,8 @@ void bfin_internal_unmask_irq(unsigned int irq)
 #else
 	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() |
 			     (1 << SIC_SYSIRQ(irq)));
+#endif
+
 #endif
 
 	hard_local_irq_restore(flags);
@@ -951,6 +962,8 @@ int __init init_arch_irq(void)
 	int irq;
 	unsigned long ilat = 0;
 
+#ifndef CONFIG_BF60x
+
 	/*  Disable all the peripheral intrs  - page 4-29 HW Ref manual */
 #ifdef SIC_IMASK0
 	bfin_write_SIC_IMASK0(SIC_UNMASK_ALL);
@@ -964,6 +977,8 @@ int __init init_arch_irq(void)
 # endif
 #else
 	bfin_write_SIC_IMASK(SIC_UNMASK_ALL);
+#endif
+
 #endif
 
 	local_irq_disable();
@@ -1081,6 +1096,7 @@ int __init init_arch_irq(void)
 	    IMASK_IVG14 | IMASK_IVG13 | IMASK_IVG12 | IMASK_IVG11 |
 	    IMASK_IVG10 | IMASK_IVG9 | IMASK_IVG8 | IMASK_IVG7 | IMASK_IVGHW;
 
+#ifndef CONFIG_BF60x
 	/* This implicitly covers ANOMALY_05000171
 	 * Boot-ROM code modifies SICA_IWRx wakeup registers
 	 */
@@ -1104,6 +1120,7 @@ int __init init_arch_irq(void)
 	bfin_write_SIC_IWR(IWR_DISABLE_ALL);
 #endif
 
+#endif
 	return 0;
 }
 
@@ -1118,6 +1135,7 @@ static int vec_to_irq(int vec)
 
 	if (likely(vec == EVT_IVTMR_P))
 		return IRQ_CORETMR;
+#ifndef CONFIG_BF60x
 
 #ifdef SIC_ISR
 	sic_status[0] = bfin_read_SIC_IMASK() & bfin_read_SIC_ISR();
@@ -1135,6 +1153,8 @@ static int vec_to_irq(int vec)
 #endif
 #ifdef SIC_ISR2
 	sic_status[2] = bfin_read_SIC_ISR2() & bfin_read_SIC_IMASK2();
+#endif
+
 #endif
 
 	for (;; ivg++) {

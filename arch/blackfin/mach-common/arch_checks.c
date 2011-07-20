@@ -43,7 +43,7 @@
 #endif
 
 /* The entire kernel must be able to make a 24bit pcrel call to start of L1 */
-#if ((0xffffffff - L1_CODE_START + 1) + CONFIG_BOOT_LOAD) > 0x1000000
+#if !defined(CONFIG_BF609_FPGA) && ((0xffffffff - L1_CODE_START + 1) + CONFIG_BOOT_LOAD) > 0x1000000
 # error "The kernel load address is too high; keep it below 10meg for safety"
 #endif
 
@@ -61,6 +61,6 @@
 # error "Anomaly 05000220 does not allow you to use Write Back cache with L2 or External Memory"
 #endif
 
-#if ANOMALY_05000491 && !defined(CONFIG_ICACHE_FLUSH_L1)
+#if !defined(CONFIG_BF609_FPGA) && ANOMALY_05000491 && !defined(CONFIG_ICACHE_FLUSH_L1)
 # error You need IFLUSH in L1 inst while Anomaly 05000491 applies
 #endif

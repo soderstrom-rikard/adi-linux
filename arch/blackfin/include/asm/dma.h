@@ -22,12 +22,24 @@
 #define DATA_SIZE_8			0
 #define DATA_SIZE_16		1
 #define DATA_SIZE_32		2
+#ifdef CONFIG_BF60x
+#define DATA_SIZE_64		3
+#define DATA_SIZE_128		4
+#define DATA_SIZE_256		5
+#endif
 
 #define DMA_FLOW_STOP		0
 #define DMA_FLOW_AUTO		1
+#ifdef CONFIG_BF60x
+#define DMA_FLOW_LIST		4
+#define DMA_FLOW_ARRAY		5
+#define DMA_FLOW_LIST_DEMAND	6
+#define DMA_FLOW_ARRAY_DEMAND	7
+#else
 #define DMA_FLOW_ARRAY		4
 #define DMA_FLOW_SMALL		6
 #define DMA_FLOW_LARGE		7
+#endif
 
 #define DIMENSION_LINEAR	0
 #define DIMENSION_2D		1
@@ -37,7 +49,12 @@
 
 #define INTR_DISABLE		0
 #define INTR_ON_BUF			2
+#ifdef CONFIG_BF60x
+#define INTR_ON_ROW			1
+#define INTR_ON_PERIPHERAL		3
+#else
 #define INTR_ON_ROW			3
+#endif
 
 #define DMA_NOSYNC_KEEP_DMA_BUF	0
 #define DMA_SYNC_RESTART		1
@@ -52,17 +69,59 @@ struct dma_desc_array {
 struct dmasg {
 	void *next_desc_addr;
 	unsigned long start_addr;
+#ifdef CONFIG_BF60x
+	unsigned long cfg;
+	unsigned long x_count;
+	long x_modify;
+	unsigned long y_count;
+	long y_modify;
+#else
 	unsigned short cfg;
 	unsigned short x_count;
 	short x_modify;
 	unsigned short y_count;
 	short y_modify;
+#endif
 } __attribute__((packed));
 
 struct dma_register {
 	void *next_desc_ptr;	/* DMA Next Descriptor Pointer register */
 	unsigned long start_addr;	/* DMA Start address  register */
+#ifdef CONFIG_BF60x
+	unsigned long cfg;	/* DMA Configuration register */
 
+	unsigned long x_count;	/* DMA x_count register */
+
+	long x_modify;	/* DMA x_modify register */
+
+	unsigned long y_count;	/* DMA y_count register */
+
+	long y_modify;	/* DMA y_modify register */
+
+	unsigned long reserved;
+	unsigned long reserved2;
+
+	void *curr_desc_ptr;	/* DMA Current Descriptor Pointer
+					   register */
+	void *prev_desc_ptr;	/* DMA previous initial Descriptor Pointer
+					   register */
+	unsigned long curr_addr_ptr;	/* DMA Current Address Pointer
+						   register */
+	unsigned long irq_status;	/* DMA irq status register */
+
+	unsigned long curr_x_count;	/* DMA Current x-count register */
+
+	unsigned long curr_y_count;	/* DMA Current y-count register */
+
+	unsigned long reserved3;
+
+	unsigned long bw_limit_count;	/* DMA band width limit count register */
+	unsigned long curr_bw_limit_count;	/* DMA Current band width limit
+							count register */
+	unsigned long bw_monitor_count;	/* DMA band width limit count register */
+	unsigned long curr_bw_monitor_count;	/* DMA Current band width limit
+							count register */
+#else
 	unsigned short cfg;	/* DMA Configuration register */
 	unsigned short dummy1;	/* DMA Configuration register */
 
@@ -99,6 +158,7 @@ struct dma_register {
 	unsigned short dummy9;
 
 	unsigned long reserved3;
+#endif
 
 };
 

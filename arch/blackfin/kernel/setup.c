@@ -747,8 +747,11 @@ static __init void setup_bootmem_allocator(void)
 	/* pfn of the first usable page frame after kernel image*/
 	if (min_low_pfn < memory_start >> PAGE_SHIFT)
 		min_low_pfn = memory_start >> PAGE_SHIFT;
-
+#ifdef CONFIG_BF609_FPGA
+	start_pfn = CONFIG_PHY_RAM_BASE_ADDRESS >> PAGE_SHIFT;
+#else
 	start_pfn = PAGE_OFFSET >> PAGE_SHIFT;
+#endif
 	end_pfn = memory_end >> PAGE_SHIFT;
 
 	/*
@@ -793,8 +796,13 @@ static __init void setup_bootmem_allocator(void)
 	}
 
 	/* reserve memory before memory_start, including bootmap */
+#ifdef CONFIG_BF609_FPGA
+	reserve_bootmem(CONFIG_PHY_RAM_BASE_ADDRESS,
+		memory_start + bootmap_size + PAGE_SIZE - 1 - CONFIG_PHY_RAM_BASE_ADDRESS,
+#else
 	reserve_bootmem(PAGE_OFFSET,
 		memory_start + bootmap_size + PAGE_SIZE - 1 - PAGE_OFFSET,
+#endif
 		BOOTMEM_DEFAULT);
 }
 
@@ -850,6 +858,8 @@ static inline int __init get_mem_size(void)
 	if ((ddrctl & 0xc000) == 0x4000)
 		ret *= 2;
 	return ret;
+#elif defined(CONFIG_BF609_FPGA)
+	return 0xB40 + 2; /* 2M total in FPGA SRAM 0xB4000000 */
 #endif
 	BUG();
 }
@@ -869,6 +879,7 @@ void __init setup_arch(char **cmdline_p)
 	enable_shadow_console();
 
 	/* Check to make sure we are running on the right processor */
+	mmr =  bfin_cpuid();
 	if (unlikely(CPUID != bfin_cpuid()))
 		printk(KERN_ERR "ERROR: Not running on ADSP-%s: unknown CPUID 0x%04x Rev 0.%d\n",
 			CPU, bfin_cpuid(), bfin_revid());
@@ -903,10 +914,12 @@ void __init setup_arch(char **cmdline_p)
 
 	memory_setup();
 
+#ifndef CONFIG_BF609_FPGA
 	/* Initialize Async memory banks */
 	bfin_write_EBIU_AMBCTL0(AMBCTL0VAL);
 	bfin_write_EBIU_AMBCTL1(AMBCTL1VAL);
 	bfin_write_EBIU_AMGCTL(AMGCTLVAL);
+#endif
 #ifdef CONFIG_EBIU_MBSCTLVAL
 	bfin_write_EBIU_MBSCTL(CONFIG_EBIU_MBSCTLVAL);
 	bfin_write_EBIU_MODE(CONFIG_EBIU_MODEVAL);
@@ -937,7 +950,7 @@ void __init setup_arch(char **cmdline_p)
 	printk(KERN_INFO "Hardware Trace %s and %sabled\n",
 		(mmr & 0x1) ? "active" : "off",
 		(mmr & 0x2) ? "en" : "dis");
-
+#ifndef CONFIG_BF609_FPGA
 	mmr = bfin_read_SYSCR();
 	printk(KERN_INFO "Boot Mode: %i\n", mmr & 0xF);
 
@@ -979,7 +992,7 @@ void __init setup_arch(char **cmdline_p)
 		printk(KERN_INFO "Recovering from Watchdog event\n");
 	else if (_bfin_swrst & RESET_SOFTWARE)
 		printk(KERN_NOTICE "Reset caused by Software reset\n");
-
+#endif
 	printk(KERN_INFO "Blackfin support (C) 2004-2010 Analog Devices, Inc.\n");
 	if (bfin_compiled_revid() == 0xffff)
 		printk(KERN_INFO "Compiled for ADSP-%s Rev any, running on 0.%d\n", CPU, bfin_revid());
@@ -1018,6 +1031,7 @@ void __init setup_arch(char **cmdline_p)
 	   these locations are the ones that we advertise to userspace.  */
 	memcpy((void *)FIXED_CODE_START, &fixed_code_start,
 	       FIXED_CODE_END - FIXED_CODE_START);
+#ifndef CONFIG_BF609_FPGA
 	BUG_ON((char *)&sigreturn_stub - (char *)&fixed_code_start
 	       != SIGRETURN_STUB - FIXED_CODE_START);
 	BUG_ON((char *)&atomic_xchg32 - (char *)&fixed_code_start
@@ -1036,7 +1050,7 @@ void __init setup_arch(char **cmdline_p)
 	       != ATOMIC_XOR32 - FIXED_CODE_START);
 	BUG_ON((char *)&safe_user_instruction - (char *)&fixed_code_start
 		!= SAFE_USER_INSTRUCTION - FIXED_CODE_START);
-
+#endif
 #ifdef CONFIG_SMP
 	platform_init_cpus();
 #endif
@@ -1077,6 +1091,9 @@ early_param("clkin_hz=", early_init_clkin_hz);
 /* Get the voltage input multiplier */
 static u_long get_vco(void)
 {
+#ifdef CONFIG_BF609_FPGA
+	return CONFIG_CLKIN_HZ;
+#else
 	static u_long cached_vco;
 	u_long msel, pll_ctl;
 
@@ -1095,11 +1112,15 @@ static u_long get_vco(void)
 	cached_vco >>= (1 & pll_ctl);	/* DF bit */
 	cached_vco *= msel;
 	return cached_vco;
+#endif
 }
 
 /* Get the Core clock */
 u_long get_cclk(void)
 {
+#ifdef CONFIG_BF609_FPGA
+	return get_vco() / 6;
+#else
 	static u_long cached_cclk_pll_div, cached_cclk;
 	u_long csel, ssel;
 
@@ -1119,12 +1140,16 @@ u_long get_cclk(void)
 	else
 		cached_cclk = get_vco() >> csel;
 	return cached_cclk;
+#endif
 }
 EXPORT_SYMBOL(get_cclk);
 
 /* Get the System clock */
 u_long get_sclk(void)
 {
+#ifdef CONFIG_BF609_FPGA
+	return get_vco() / 4;
+#else
 	static u_long cached_sclk;
 	u_long ssel;
 
@@ -1145,6 +1170,7 @@ u_long get_sclk(void)
 
 	cached_sclk = get_vco() / ssel;
 	return cached_sclk;
+#endif
 }
 EXPORT_SYMBOL(get_sclk);
 

@@ -19,9 +19,12 @@
  * reset while the Core B bit (on dual core parts) is cleared by
  * the core reset.
  */
+#ifndef CONFIG_BF609_FPGA
 __attribute__ ((__l1_text__, __noreturn__))
+#endif
 static void bfin_reset(void)
 {
+#ifndef CONFIG_BF609_FPGA
 	if (!ANOMALY_05000353 && !ANOMALY_05000386)
 		bfrom_SoftReset((void *)(L1_SCRATCH_START + L1_SCRATCH_LENGTH - 20));
 
@@ -57,7 +60,7 @@ static void bfin_reset(void)
 	if (__SILICON_REVISION__ < 1 && bfin_revid() < 1)
 		bfin_read_SWRST();
 #endif
-
+#endif
 	/* Wait for the SWRST write to complete.  Cannot rely on SSYNC
 	 * though as the System state is all reset now.
 	 */

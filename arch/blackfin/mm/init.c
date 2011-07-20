@@ -48,7 +48,11 @@ void __init paging_init(void)
 
 	unsigned long zones_size[MAX_NR_ZONES] = {
 		[0] = 0,
+#ifdef CONFIG_BF609_FPGA
+		[ZONE_DMA] = (end_mem - CONFIG_PHY_RAM_BASE_ADDRESS) >> PAGE_SHIFT,
+#else
 		[ZONE_DMA] = (end_mem - PAGE_OFFSET) >> PAGE_SHIFT,
+#endif
 		[ZONE_NORMAL] = 0,
 #ifdef CONFIG_HIGHMEM
 		[ZONE_HIGHMEM] = 0,
@@ -60,7 +64,12 @@ void __init paging_init(void)
 
 	pr_debug("free_area_init -> start_mem is %#lx virtual_end is %#lx\n",
 	        PAGE_ALIGN(memory_start), end_mem);
+#ifdef CONFIG_BF609_FPGA
+	free_area_init_node(0, zones_size,
+		CONFIG_PHY_RAM_BASE_ADDRESS >> PAGE_SHIFT, NULL);
+#else   
 	free_area_init(zones_size);
+#endif
 }
 
 asmlinkage void __init init_pda(void)

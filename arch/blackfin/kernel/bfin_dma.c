@@ -213,9 +213,10 @@ int blackfin_dma_suspend(void)
 			printk(KERN_ERR "DMA Channel %d failed to suspend\n", i);
 			return -EBUSY;
 		}
-
+#ifndef CONFIG_BF60x
 		if (i < MAX_DMA_SUSPEND_CHANNELS)
 			dma_ch[i].saved_peripheral_map = dma_ch[i].regs->peripheral_map;
+#endif
 	}
 
 #if ANOMALY_05000480
@@ -230,9 +231,10 @@ void blackfin_dma_resume(void)
 
 	for (i = 0; i < MAX_DMA_CHANNELS; ++i) {
 		dma_ch[i].regs->cfg = 0;
-
+#ifdef CONFIG_BF60x
 		if (i < MAX_DMA_SUSPEND_CHANNELS)
 			dma_ch[i].regs->peripheral_map = dma_ch[i].saved_peripheral_map;
+#endif
 	}
 #if ANOMALY_05000480
 	bfin_write_DMAC_TC_PER(0x0111);
@@ -249,8 +251,10 @@ void blackfin_dma_resume(void)
 void __init blackfin_dma_early_init(void)
 {
 	early_shadow_stamp();
+#ifndef CONFIG_BF60x
 	bfin_write_MDMA_S0_CONFIG(0);
 	bfin_write_MDMA_S1_CONFIG(0);
+#endif
 }
 
 void __init early_dma_memcpy(void *pdst, const void *psrc, size_t size)
@@ -268,6 +272,7 @@ void __init early_dma_memcpy(void *pdst, const void *psrc, size_t size)
 	BUG_ON(src % 4);
 	BUG_ON(size % 4);
 
+#ifndef CONFIG_BF60x
 	src_ch = 0;
 	/* Find an avalible memDMA channel */
 	while (1) {
@@ -308,7 +313,7 @@ void __init early_dma_memcpy(void *pdst, const void *psrc, size_t size)
 	/* Enable */
 	bfin_write16(&src_ch->cfg, DMAEN | WDSIZE_32);
 	bfin_write16(&dst_ch->cfg, WNR | DI_EN | DMAEN | WDSIZE_32);
-
+#endif
 	/* Since we are atomic now, don't use the workaround ssync */
 	__builtin_bfin_ssync();
 }
@@ -317,6 +322,7 @@ void __init early_dma_memcpy_done(void)
 {
 	early_shadow_stamp();
 
+#ifndef CONFIG_BF60x
 	while ((bfin_read_MDMA_S0_CONFIG() && !(bfin_read_MDMA_D0_IRQ_STATUS() & DMA_DONE)) ||
 	       (bfin_read_MDMA_S1_CONFIG() && !(bfin_read_MDMA_D1_IRQ_STATUS() & DMA_DONE)))
 		continue;
@@ -332,7 +338,7 @@ void __init early_dma_memcpy_done(void)
 	bfin_write_MDMA_S1_CONFIG(0);
 	bfin_write_MDMA_D0_CONFIG(0);
 	bfin_write_MDMA_D1_CONFIG(0);
-
+#endif
 	__builtin_bfin_ssync();
 }
 
@@ -349,6 +355,7 @@ static void __dma_memcpy(u32 daddr, s16 dmod, u32 saddr, s16 smod, size_t cnt, u
 	static DEFINE_SPINLOCK(mdma_lock);
 	unsigned long flags;
 
+#ifndef CONFIG_BF60x
 	spin_lock_irqsave(&mdma_lock, flags);
 
 	/* Force a sync in case a previous config reset on this channel
@@ -407,6 +414,7 @@ static void __dma_memcpy(u32 daddr, s16 dmod, u32 saddr, s16 smod, size_t cnt, u
 
 	bfin_write_MDMA_S0_CONFIG(0);
 	bfin_write_MDMA_D0_CONFIG(0);
+#endif
 }
 
 /**
