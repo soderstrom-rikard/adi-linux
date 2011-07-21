@@ -1,7 +1,7 @@
 /*
  * adv7183.h - definition for adv7183 inputs and outputs
  *
- * Copyright (c) 2011 Scott Jiang <Scott.Jiang.Linux@gmail.com>
+ * Copyright (c) 2011 Analog Devices Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as

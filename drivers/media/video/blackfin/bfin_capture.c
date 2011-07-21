@@ -1,7 +1,7 @@
 /*
  * Analog Devices video capture driver
  *
- * Copyright (c) 2011 Scott Jiang <Scott.Jiang.Linux@gmail.com>
+ * Copyright (c) 2011 Analog Devices Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -1106,5 +1106,5 @@ module_init(bcap_init);
 module_exit(bcap_exit);
 
 MODULE_DESCRIPTION("Analog Devices video capture driver");
-MODULE_AUTHOR("Scott Jiang");
+MODULE_AUTHOR("Scott Jiang <Scott.Jiang.Linux@gmail.com>");
 MODULE_LICENSE("GPL v2");

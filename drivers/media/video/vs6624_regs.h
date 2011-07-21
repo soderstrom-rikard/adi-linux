@@ -1,7 +1,7 @@
 /*
  * vs6624 - ST VS6624 CMOS image sensor registers
  *
- * Copyright (c) 2011 Scott Jiang <Scott.Jiang.Linux@gmail.com>
+ * Copyright (c) 2011 Analog Devices Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
