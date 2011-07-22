@@ -1844,7 +1844,7 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 {
 	unsigned long end = addr + PAGE_ALIGN(size);
 
-	if (addr != (pfn << PAGE_SHIFT))
+	if ((addr & PAGE_MASK) != (pfn << PAGE_SHIFT))
 		return -EINVAL;
 
 	if (addr == vma->vm_start && end == vma->vm_end) {
