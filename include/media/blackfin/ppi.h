@@ -32,26 +32,32 @@ struct ppi_params {
 };
 
 struct ppi_ops {
-	int (*attach_irq)(struct ppi_if *intf, irq_handler_t handler);
-	void (*detach_irq)(struct ppi_if *intf);
-	int (*start)(struct ppi_if *intf);
-	int (*stop)(struct ppi_if *intf);
-	int (*set_params)(struct ppi_if *intf, struct ppi_params *params);
-	void (*update_addr)(struct ppi_if *intf, unsigned long addr);
+	int (*attach_irq)(struct ppi_if *ppi, irq_handler_t handler);
+	void (*detach_irq)(struct ppi_if *ppi);
+	int (*start)(struct ppi_if *ppi);
+	int (*stop)(struct ppi_if *ppi);
+	int (*set_params)(struct ppi_if *ppi, struct ppi_params *params);
+	void (*update_addr)(struct ppi_if *ppi, unsigned long addr);
+};
+
+struct ppi_info {
+	const char *name; /* ppi or eppi */
+	int dma_ch;
+	int irq_err;
+	unsigned long base;
+	const unsigned short *pin_req;
 };
 
 struct ppi_if {
-	int dma_ch;
-	int irq_err;
 	int dma_config;
 	int bytes_per_line;
 	int lines_per_frame;
 	unsigned short ppi_control;
-	const unsigned short *pin_req;
-	struct ppi_ops *ops;
+	const struct ppi_ops *ops;
+	const struct ppi_info *info;
 	void *priv;
 };
 
-struct ppi_if *bfin_get_ppi_if(void);
-
+struct ppi_if *create_ppi_instance(const struct ppi_info *info);
+void delete_ppi_instance(struct ppi_if *ppi);
 #endif

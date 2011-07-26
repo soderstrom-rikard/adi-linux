@@ -48,7 +48,7 @@
 #include <media/blackfin/bfin_capture.h>
 
 #define CAPTURE_DRV_NAME        "bfin_capture"
-#define BCAP_MIN_NUM_BUF        3
+#define BCAP_MIN_NUM_BUF        2
 
 struct bcap_format {
 	u8 *desc;
@@ -160,7 +160,7 @@ static int bcap_open(struct file *file)
 		return -ENODEV;
 	}
 
-	bcap_fh = kmalloc(sizeof(*bcap_fh), GFP_KERNEL);
+	bcap_fh = kzalloc(sizeof(*bcap_fh), GFP_KERNEL);
 	if (!bcap_fh) {
 		v4l2_err(&bcap_dev->v4l2_dev,
 			 "unable to allocate memory for file handle object\n");
@@ -959,9 +959,9 @@ static int __devinit bcap_probe(struct platform_device *pdev)
 
 	bcap_dev->cfg = config;
 
-	bcap_dev->ppi = bfin_get_ppi_if();
+	bcap_dev->ppi = create_ppi_instance(config->ppi_info);
 	if (!bcap_dev->ppi) {
-		v4l2_err(pdev->dev.driver, "Unable to get ppi\n");
+		v4l2_err(pdev->dev.driver, "Unable to create ppi\n");
 		ret = -ENODEV;
 		goto err_free_dev;
 	}
@@ -970,7 +970,7 @@ static int __devinit bcap_probe(struct platform_device *pdev)
 	bcap_dev->alloc_ctx = vb2_dma_contig_init_ctx(&pdev->dev);
 	if (IS_ERR(bcap_dev->alloc_ctx)) {
 		ret = PTR_ERR(bcap_dev->alloc_ctx);
-		goto err_free_dev;
+		goto err_free_ppi;
 	}
 
 	vfd = video_device_alloc();
@@ -1065,6 +1065,8 @@ err_release_vdev:
 		video_device_release(bcap_dev->video_dev);
 err_cleanup_ctx:
 	vb2_dma_contig_cleanup_ctx(bcap_dev->alloc_ctx);
+err_free_ppi:
+	delete_ppi_instance(bcap_dev->ppi);
 err_free_dev:
 	kfree(bcap_dev);
 	return ret;
@@ -1079,6 +1081,7 @@ static int __devexit bcap_remove(struct platform_device *pdev)
 	video_unregister_device(bcap_dev->video_dev);
 	v4l2_device_unregister(v4l2_dev);
 	vb2_dma_contig_cleanup_ctx(bcap_dev->alloc_ctx);
+	delete_ppi_instance(bcap_dev->ppi);
 	kfree(bcap_dev);
 	return 0;
 }
