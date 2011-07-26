@@ -1557,37 +1557,23 @@ static struct platform_device bfin_lq035q1_device = {
 };
 #endif
 
-#if defined(CONFIG_VIDEO_BLACKFIN_PPI) \
-	|| defined(CONFIG_VIDEO_BLACKFIN_PPI_MODULE)
-static struct resource bfin_ppi_resources[] = {
-	{
-		.start = CH_PPI,
-		.end   = CH_PPI,
-		.flags = IORESOURCE_DMA,
-	},
-	{
-		.start = IRQ_PPI_ERROR,
-		.end   = IRQ_PPI_ERROR,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
-		.start = PPI_CONTROL,
-		.end   = PPI_FRAME + 3,
-		.flags = IORESOURCE_MEM,
-	},
-};
-
-static struct platform_device bfin_ppi_device = {
-	.name          = "ppi",
-	.id            = -1,
-	.num_resources = ARRAY_SIZE(bfin_ppi_resources),
-	.resource      = bfin_ppi_resources,
-};
-#endif
-
 #if defined(CONFIG_VIDEO_BLACKFIN_CAPTURE) \
 	|| defined(CONFIG_VIDEO_BLACKFIN_CAPTURE_MODULE)
 #include <media/blackfin/bfin_capture.h>
+static const unsigned short ppi_req[] = {
+	P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3,
+	P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7,
+	P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2,
+	0,
+};
+
+static const struct ppi_info ppi_info = {
+	.name = "ppi",
+	.dma_ch = CH_PPI,
+	.irq_err = IRQ_PPI_ERROR,
+	.base = PPI_CONTROL,
+	.pin_req = ppi_req,
+};
 
 #if defined(CONFIG_VIDEO_VS6624) \
 	|| defined(CONFIG_VIDEO_VS6624_MODULE)
@@ -1620,6 +1606,7 @@ static struct bfin_capture_config bfin_capture_data = {
 		.addr = 0x10,
 		.platform_data = (void *)&vs6624_ce_pin,
 	},
+	.ppi_info = &ppi_info,
 	.ppi_control = (PACK_EN | DLEN_8 | XFR_TYPE | 0x0020),
 };
 #endif
@@ -2808,11 +2795,6 @@ static struct platform_device *stamp_devices[] __initdata = {
 #if defined(CONFIG_VIDEO_BLACKFIN_CAPTURE) \
 	|| defined(CONFIG_VIDEO_BLACKFIN_CAPTURE_MODULE)
 	&bfin_capture_device,
-#endif
-
-#if defined(CONFIG_VIDEO_BLACKFIN_PPI) \
-	|| defined(CONFIG_VIDEO_BLACKFIN_PPI_MODULE)
-	&bfin_ppi_device,
 #endif
 
 #if defined(CONFIG_SERIAL_BFIN) || defined(CONFIG_SERIAL_BFIN_MODULE)
