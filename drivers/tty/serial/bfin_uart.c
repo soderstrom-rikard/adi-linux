@@ -674,7 +674,7 @@ static int bfin_serial_startup(struct uart_port *port)
 	}
 
 	if (request_irq
-	    (uart->port.tx_irq, bfin_serial_tx_int, IRQF_DISABLED,
+	    (uart->tx_irq, bfin_serial_tx_int, IRQF_DISABLED,
 	     "BFIN_UART_TX", uart)) {
 		printk(KERN_NOTICE "Unable to attach BlackFin UART TX interrupt\n");
 		free_irq(uart->rx_irq, uart);
