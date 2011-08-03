@@ -556,7 +556,7 @@
         UART0
    ========================= */
 #define UART0_REVID                 0xFFC02000         /* UART0 Revision ID Register */
-#define UART0_GCTL                  0xFFC02004         /* UART0 Control Register */
+#define UART0_CTL                   0xFFC02004         /* UART0 Control Register */
 #define UART0_STAT                  0xFFC02008         /* UART0 Status Register */
 #define UART0_SCR                   0xFFC0200C         /* UART0 Scratch Register */
 #define UART0_CLK                   0xFFC02010         /* UART0 Clock Rate Register */
@@ -568,14 +568,14 @@
 #define UART0_TAIP                  0xFFC02028         /* UART0 Transmit Address/Insert Pulse Register */
 #define UART0_TSR                   0xFFC0202C         /* UART0 Transmit Shift Register */
 #define UART0_RSR                   0xFFC02030         /* UART0 Receive Shift Register */
-#define UART0_TXCNT                 0xFFC02034         /* UART0 Transmit Counter Register */
-#define UART0_RXCNT                 0xFFC02038         /* UART0 Receive Counter Register */
+#define UART0_TXDIV                 0xFFC02034         /* UART0 Transmit Clock Devider Register */
+#define UART0_RXDIV                 0xFFC02038         /* UART0 Receive Clock Devider Register */
 
 /* =========================
         UART1
    ========================= */
 #define UART1_REVID                 0xFFC02400         /* UART1 Revision ID Register */
-#define UART1_GCTL                  0xFFC02404         /* UART1 Control Register */
+#define UART1_CTL                   0xFFC02404         /* UART1 Control Register */
 #define UART1_STAT                  0xFFC02408         /* UART1 Status Register */
 #define UART1_SCR                   0xFFC0240C         /* UART1 Scratch Register */
 #define UART1_CLK                   0xFFC02410         /* UART1 Clock Rate Register */
@@ -587,8 +587,8 @@
 #define UART1_TAIP                  0xFFC02428         /* UART1 Transmit Address/Insert Pulse Register */
 #define UART1_TSR                   0xFFC0242C         /* UART1 Transmit Shift Register */
 #define UART1_RSR                   0xFFC02430         /* UART1 Receive Shift Register */
-#define UART1_TXCNT                 0xFFC02434         /* UART1 Transmit Counter Register */
-#define UART1_RXCNT                 0xFFC02438         /* UART1 Receive Counter Register */
+#define UART1_TXDIV                 0xFFC02434         /* UART1 Transmit Clock Devider Register */
+#define UART1_RXDIV                 0xFFC02438         /* UART1 Receive Clock Devider Register */
 
 
 /* =========================
@@ -1271,7 +1271,7 @@
 #define DMA1_CURR_DESC_PTR             0xFFC410A4         /* DMA1 Current Descriptor Pointer */
 #define DMA1_PREV_DESC_PTR             0xFFC410A8         /* DMA1 Previous Initial Descriptor Pointer */
 #define DMA1_CURR_ADDR               0xFFC410AC         /* DMA1 Current Address */
-#define DMA1_STAT                   0xFFC410B0         /* DMA1 Status Register */
+#define DMA1_IRQ_STATUS                   0xFFC410B0         /* DMA1 Status Register */
 #define DMA1_CURR_X_COUNT               0xFFC410B4         /* DMA1 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA1_CURR_Y_COUNT               0xFFC410B8         /* DMA1 Current Row Count (2D only) */
 #define DMA1_BWL_COUNT                 0xFFC410C0         /* DMA1 Bandwidth Limit Count */
@@ -1292,7 +1292,7 @@
 #define DMA2_CURR_DESC_PTR             0xFFC41124         /* DMA2 Current Descriptor Pointer */
 #define DMA2_PREV_DESC_PTR             0xFFC41128         /* DMA2 Previous Initial Descriptor Pointer */
 #define DMA2_CURR_ADDR               0xFFC4112C         /* DMA2 Current Address */
-#define DMA2_STAT                   0xFFC41130         /* DMA2 Status Register */
+#define DMA2_IRQ_STATUS                   0xFFC41130         /* DMA2 Status Register */
 #define DMA2_CURR_X_COUNT               0xFFC41134         /* DMA2 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA2_CURR_Y_COUNT               0xFFC41138         /* DMA2 Current Row Count (2D only) */
 #define DMA2_BWL_COUNT                 0xFFC41140         /* DMA2 Bandwidth Limit Count */
@@ -1313,7 +1313,7 @@
 #define DMA3_CURR_DESC_PTR             0xFFC411A4         /* DMA3 Current Descriptor Pointer */
 #define DMA3_PREV_DESC_PTR             0xFFC411A8         /* DMA3 Previous Initial Descriptor Pointer */
 #define DMA3_CURR_ADDR               0xFFC411AC         /* DMA3 Current Address */
-#define DMA3_STAT                   0xFFC411B0         /* DMA3 Status Register */
+#define DMA3_IRQ_STATUS                   0xFFC411B0         /* DMA3 Status Register */
 #define DMA3_CURR_X_COUNT               0xFFC411B4         /* DMA3 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA3_CURR_Y_COUNT               0xFFC411B8         /* DMA3 Current Row Count (2D only) */
 #define DMA3_BWL_COUNT                 0xFFC411C0         /* DMA3 Bandwidth Limit Count */
@@ -1334,7 +1334,7 @@
 #define DMA4_CURR_DESC_PTR             0xFFC41224         /* DMA4 Current Descriptor Pointer */
 #define DMA4_PREV_DESC_PTR             0xFFC41228         /* DMA4 Previous Initial Descriptor Pointer */
 #define DMA4_CURR_ADDR               0xFFC4122C         /* DMA4 Current Address */
-#define DMA4_STAT                   0xFFC41230         /* DMA4 Status Register */
+#define DMA4_IRQ_STATUS                   0xFFC41230         /* DMA4 Status Register */
 #define DMA4_CURR_X_COUNT               0xFFC41234         /* DMA4 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA4_CURR_Y_COUNT               0xFFC41238         /* DMA4 Current Row Count (2D only) */
 #define DMA4_BWL_COUNT                 0xFFC41240         /* DMA4 Bandwidth Limit Count */
@@ -1355,7 +1355,7 @@
 #define DMA5_CURR_DESC_PTR             0xFFC412A4         /* DMA5 Current Descriptor Pointer */
 #define DMA5_PREV_DESC_PTR             0xFFC412A8         /* DMA5 Previous Initial Descriptor Pointer */
 #define DMA5_CURR_ADDR               0xFFC412AC         /* DMA5 Current Address */
-#define DMA5_STAT                   0xFFC412B0         /* DMA5 Status Register */
+#define DMA5_IRQ_STATUS                   0xFFC412B0         /* DMA5 Status Register */
 #define DMA5_CURR_X_COUNT               0xFFC412B4         /* DMA5 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA5_CURR_Y_COUNT               0xFFC412B8         /* DMA5 Current Row Count (2D only) */
 #define DMA5_BWL_COUNT                 0xFFC412C0         /* DMA5 Bandwidth Limit Count */
@@ -1376,7 +1376,7 @@
 #define DMA6_CURR_DESC_PTR             0xFFC41324         /* DMA6 Current Descriptor Pointer */
 #define DMA6_PREV_DESC_PTR             0xFFC41328         /* DMA6 Previous Initial Descriptor Pointer */
 #define DMA6_CURR_ADDR               0xFFC4132C         /* DMA6 Current Address */
-#define DMA6_STAT                   0xFFC41330         /* DMA6 Status Register */
+#define DMA6_IRQ_STATUS                   0xFFC41330         /* DMA6 Status Register */
 #define DMA6_CURR_X_COUNT               0xFFC41334         /* DMA6 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA6_CURR_Y_COUNT               0xFFC41338         /* DMA6 Current Row Count (2D only) */
 #define DMA6_BWL_COUNT                 0xFFC41340         /* DMA6 Bandwidth Limit Count */
@@ -1397,7 +1397,7 @@
 #define DMA7_CURR_DESC_PTR             0xFFC413A4         /* DMA7 Current Descriptor Pointer */
 #define DMA7_PREV_DESC_PTR             0xFFC413A8         /* DMA7 Previous Initial Descriptor Pointer */
 #define DMA7_CURR_ADDR               0xFFC413AC         /* DMA7 Current Address */
-#define DMA7_STAT                   0xFFC413B0         /* DMA7 Status Register */
+#define DMA7_IRQ_STATUS                   0xFFC413B0         /* DMA7 Status Register */
 #define DMA7_CURR_X_COUNT               0xFFC413B4         /* DMA7 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA7_CURR_Y_COUNT               0xFFC413B8         /* DMA7 Current Row Count (2D only) */
 #define DMA7_BWL_COUNT                 0xFFC413C0         /* DMA7 Bandwidth Limit Count */
@@ -1418,7 +1418,7 @@
 #define DMA8_CURR_DESC_PTR             0xFFC41424         /* DMA8 Current Descriptor Pointer */
 #define DMA8_PREV_DESC_PTR             0xFFC41428         /* DMA8 Previous Initial Descriptor Pointer */
 #define DMA8_CURR_ADDR               0xFFC4142C         /* DMA8 Current Address */
-#define DMA8_STAT                   0xFFC41430         /* DMA8 Status Register */
+#define DMA8_IRQ_STATUS                   0xFFC41430         /* DMA8 Status Register */
 #define DMA8_CURR_X_COUNT               0xFFC41434         /* DMA8 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA8_CURR_Y_COUNT               0xFFC41438         /* DMA8 Current Row Count (2D only) */
 #define DMA8_BWL_COUNT                 0xFFC41440         /* DMA8 Bandwidth Limit Count */
@@ -1439,7 +1439,7 @@
 #define DMA9_CURR_DESC_PTR             0xFFC414A4         /* DMA9 Current Descriptor Pointer */
 #define DMA9_PREV_DESC_PTR             0xFFC414A8         /* DMA9 Previous Initial Descriptor Pointer */
 #define DMA9_CURR_ADDR               0xFFC414AC         /* DMA9 Current Address */
-#define DMA9_STAT                   0xFFC414B0         /* DMA9 Status Register */
+#define DMA9_IRQ_STATUS                   0xFFC414B0         /* DMA9 Status Register */
 #define DMA9_CURR_X_COUNT               0xFFC414B4         /* DMA9 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA9_CURR_Y_COUNT               0xFFC414B8         /* DMA9 Current Row Count (2D only) */
 #define DMA9_BWL_COUNT                 0xFFC414C0         /* DMA9 Bandwidth Limit Count */
@@ -1460,7 +1460,7 @@
 #define DMA10_CURR_DESC_PTR            0xFFC05024         /* DMA10 Current Descriptor Pointer */
 #define DMA10_PREV_DESC_PTR            0xFFC05028         /* DMA10 Previous Initial Descriptor Pointer */
 #define DMA10_CURR_ADDR              0xFFC0502C         /* DMA10 Current Address */
-#define DMA10_STAT                  0xFFC05030         /* DMA10 Status Register */
+#define DMA10_IRQ_STATUS                  0xFFC05030         /* DMA10 Status Register */
 #define DMA10_CURR_X_COUNT              0xFFC05034         /* DMA10 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA10_CURR_Y_COUNT              0xFFC05038         /* DMA10 Current Row Count (2D only) */
 #define DMA10_BWL_COUNT                0xFFC05040         /* DMA10 Bandwidth Limit Count */
@@ -1481,7 +1481,7 @@
 #define DMA11_CURR_DESC_PTR            0xFFC050A4         /* DMA11 Current Descriptor Pointer */
 #define DMA11_PREV_DESC_PTR            0xFFC050A8         /* DMA11 Previous Initial Descriptor Pointer */
 #define DMA11_CURR_ADDR              0xFFC050AC         /* DMA11 Current Address */
-#define DMA11_STAT                  0xFFC050B0         /* DMA11 Status Register */
+#define DMA11_IRQ_STATUS                  0xFFC050B0         /* DMA11 Status Register */
 #define DMA11_CURR_X_COUNT              0xFFC050B4         /* DMA11 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA11_CURR_Y_COUNT              0xFFC050B8         /* DMA11 Current Row Count (2D only) */
 #define DMA11_BWL_COUNT                0xFFC050C0         /* DMA11 Bandwidth Limit Count */
@@ -1502,7 +1502,7 @@
 #define DMA12_CURR_DESC_PTR            0xFFC05124         /* DMA12 Current Descriptor Pointer */
 #define DMA12_PREV_DESC_PTR            0xFFC05128         /* DMA12 Previous Initial Descriptor Pointer */
 #define DMA12_CURR_ADDR              0xFFC0512C         /* DMA12 Current Address */
-#define DMA12_STAT                  0xFFC05130         /* DMA12 Status Register */
+#define DMA12_IRQ_STATUS                  0xFFC05130         /* DMA12 Status Register */
 #define DMA12_CURR_X_COUNT              0xFFC05134         /* DMA12 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA12_CURR_Y_COUNT              0xFFC05138         /* DMA12 Current Row Count (2D only) */
 #define DMA12_BWL_COUNT                0xFFC05140         /* DMA12 Bandwidth Limit Count */
@@ -1523,7 +1523,7 @@
 #define DMA13_CURR_DESC_PTR            0xFFC07024         /* DMA13 Current Descriptor Pointer */
 #define DMA13_PREV_DESC_PTR            0xFFC07028         /* DMA13 Previous Initial Descriptor Pointer */
 #define DMA13_CURR_ADDR              0xFFC0702C         /* DMA13 Current Address */
-#define DMA13_STAT                  0xFFC07030         /* DMA13 Status Register */
+#define DMA13_IRQ_STATUS                  0xFFC07030         /* DMA13 Status Register */
 #define DMA13_CURR_X_COUNT              0xFFC07034         /* DMA13 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA13_CURR_Y_COUNT              0xFFC07038         /* DMA13 Current Row Count (2D only) */
 #define DMA13_BWL_COUNT                0xFFC07040         /* DMA13 Bandwidth Limit Count */
@@ -1544,7 +1544,7 @@
 #define DMA14_CURR_DESC_PTR            0xFFC070A4         /* DMA14 Current Descriptor Pointer */
 #define DMA14_PREV_DESC_PTR            0xFFC070A8         /* DMA14 Previous Initial Descriptor Pointer */
 #define DMA14_CURR_ADDR              0xFFC070AC         /* DMA14 Current Address */
-#define DMA14_STAT                  0xFFC070B0         /* DMA14 Status Register */
+#define DMA14_IRQ_STATUS                  0xFFC070B0         /* DMA14 Status Register */
 #define DMA14_CURR_X_COUNT              0xFFC070B4         /* DMA14 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA14_CURR_Y_COUNT              0xFFC070B8         /* DMA14 Current Row Count (2D only) */
 #define DMA14_BWL_COUNT                0xFFC070C0         /* DMA14 Bandwidth Limit Count */
@@ -1565,7 +1565,7 @@
 #define DMA15_CURR_DESC_PTR            0xFFC07124         /* DMA15 Current Descriptor Pointer */
 #define DMA15_PREV_DESC_PTR            0xFFC07128         /* DMA15 Previous Initial Descriptor Pointer */
 #define DMA15_CURR_ADDR              0xFFC0712C         /* DMA15 Current Address */
-#define DMA15_STAT                  0xFFC07130         /* DMA15 Status Register */
+#define DMA15_IRQ_STATUS                  0xFFC07130         /* DMA15 Status Register */
 #define DMA15_CURR_X_COUNT              0xFFC07134         /* DMA15 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA15_CURR_Y_COUNT              0xFFC07138         /* DMA15 Current Row Count (2D only) */
 #define DMA15_BWL_COUNT                0xFFC07140         /* DMA15 Bandwidth Limit Count */
@@ -1586,7 +1586,7 @@
 #define DMA16_CURR_DESC_PTR            0xFFC071A4         /* DMA16 Current Descriptor Pointer */
 #define DMA16_PREV_DESC_PTR            0xFFC071A8         /* DMA16 Previous Initial Descriptor Pointer */
 #define DMA16_CURR_ADDR              0xFFC071AC         /* DMA16 Current Address */
-#define DMA16_STAT                  0xFFC071B0         /* DMA16 Status Register */
+#define DMA16_IRQ_STATUS                  0xFFC071B0         /* DMA16 Status Register */
 #define DMA16_CURR_X_COUNT              0xFFC071B4         /* DMA16 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA16_CURR_Y_COUNT              0xFFC071B8         /* DMA16 Current Row Count (2D only) */
 #define DMA16_BWL_COUNT                0xFFC071C0         /* DMA16 Bandwidth Limit Count */
@@ -1607,7 +1607,7 @@
 #define DMA17_CURR_DESC_PTR            0xFFC07224         /* DMA17 Current Descriptor Pointer */
 #define DMA17_PREV_DESC_PTR            0xFFC07228         /* DMA17 Previous Initial Descriptor Pointer */
 #define DMA17_CURR_ADDR              0xFFC0722C         /* DMA17 Current Address */
-#define DMA17_STAT                  0xFFC07230         /* DMA17 Status Register */
+#define DMA17_IRQ_STATUS                  0xFFC07230         /* DMA17 Status Register */
 #define DMA17_CURR_X_COUNT              0xFFC07234         /* DMA17 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA17_CURR_Y_COUNT              0xFFC07238         /* DMA17 Current Row Count (2D only) */
 #define DMA17_BWL_COUNT                0xFFC07240         /* DMA17 Bandwidth Limit Count */
@@ -1628,7 +1628,7 @@
 #define DMA18_CURR_DESC_PTR            0xFFC072A4         /* DMA18 Current Descriptor Pointer */
 #define DMA18_PREV_DESC_PTR            0xFFC072A8         /* DMA18 Previous Initial Descriptor Pointer */
 #define DMA18_CURR_ADDR              0xFFC072AC         /* DMA18 Current Address */
-#define DMA18_STAT                  0xFFC072B0         /* DMA18 Status Register */
+#define DMA18_IRQ_STATUS                  0xFFC072B0         /* DMA18 Status Register */
 #define DMA18_CURR_X_COUNT              0xFFC072B4         /* DMA18 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA18_CURR_Y_COUNT              0xFFC072B8         /* DMA18 Current Row Count (2D only) */
 #define DMA18_BWL_COUNT                0xFFC072C0         /* DMA18 Bandwidth Limit Count */
@@ -1649,7 +1649,7 @@
 #define DMA19_CURR_DESC_PTR            0xFFC07324         /* DMA19 Current Descriptor Pointer */
 #define DMA19_PREV_DESC_PTR            0xFFC07328         /* DMA19 Previous Initial Descriptor Pointer */
 #define DMA19_CURR_ADDR              0xFFC0732C         /* DMA19 Current Address */
-#define DMA19_STAT                  0xFFC07330         /* DMA19 Status Register */
+#define DMA19_IRQ_STATUS                  0xFFC07330         /* DMA19 Status Register */
 #define DMA19_CURR_X_COUNT              0xFFC07334         /* DMA19 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA19_CURR_Y_COUNT              0xFFC07338         /* DMA19 Current Row Count (2D only) */
 #define DMA19_BWL_COUNT                0xFFC07340         /* DMA19 Bandwidth Limit Count */
@@ -1670,7 +1670,7 @@
 #define DMA20_CURR_DESC_PTR            0xFFC073A4         /* DMA20 Current Descriptor Pointer */
 #define DMA20_PREV_DESC_PTR            0xFFC073A8         /* DMA20 Previous Initial Descriptor Pointer */
 #define DMA20_CURR_ADDR              0xFFC073AC         /* DMA20 Current Address */
-#define DMA20_STAT                  0xFFC073B0         /* DMA20 Status Register */
+#define DMA20_IRQ_STATUS                  0xFFC073B0         /* DMA20 Status Register */
 #define DMA20_CURR_X_COUNT              0xFFC073B4         /* DMA20 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA20_CURR_Y_COUNT              0xFFC073B8         /* DMA20 Current Row Count (2D only) */
 #define DMA20_BWL_COUNT                0xFFC073C0         /* DMA20 Bandwidth Limit Count */
@@ -1691,7 +1691,7 @@
 #define DMA21_CURR_DESC_PTR            0xFFC09024         /* DMA21 Current Descriptor Pointer */
 #define DMA21_PREV_DESC_PTR            0xFFC09028         /* DMA21 Previous Initial Descriptor Pointer */
 #define DMA21_CURR_ADDR              0xFFC0902C         /* DMA21 Current Address */
-#define DMA21_STAT                  0xFFC09030         /* DMA21 Status Register */
+#define DMA21_IRQ_STATUS                  0xFFC09030         /* DMA21 Status Register */
 #define DMA21_CURR_X_COUNT              0xFFC09034         /* DMA21 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA21_CURR_Y_COUNT              0xFFC09038         /* DMA21 Current Row Count (2D only) */
 #define DMA21_BWL_COUNT                0xFFC09040         /* DMA21 Bandwidth Limit Count */
@@ -1712,7 +1712,7 @@
 #define DMA22_CURR_DESC_PTR            0xFFC090A4         /* DMA22 Current Descriptor Pointer */
 #define DMA22_PREV_DESC_PTR            0xFFC090A8         /* DMA22 Previous Initial Descriptor Pointer */
 #define DMA22_CURR_ADDR              0xFFC090AC         /* DMA22 Current Address */
-#define DMA22_STAT                  0xFFC090B0         /* DMA22 Status Register */
+#define DMA22_IRQ_STATUS                  0xFFC090B0         /* DMA22 Status Register */
 #define DMA22_CURR_X_COUNT              0xFFC090B4         /* DMA22 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA22_CURR_Y_COUNT              0xFFC090B8         /* DMA22 Current Row Count (2D only) */
 #define DMA22_BWL_COUNT                0xFFC090C0         /* DMA22 Bandwidth Limit Count */
@@ -1733,7 +1733,7 @@
 #define DMA23_CURR_DESC_PTR            0xFFC09124         /* DMA23 Current Descriptor Pointer */
 #define DMA23_PREV_DESC_PTR            0xFFC09128         /* DMA23 Previous Initial Descriptor Pointer */
 #define DMA23_CURR_ADDR              0xFFC0912C         /* DMA23 Current Address */
-#define DMA23_STAT                  0xFFC09130         /* DMA23 Status Register */
+#define DMA23_IRQ_STATUS                  0xFFC09130         /* DMA23 Status Register */
 #define DMA23_CURR_X_COUNT              0xFFC09134         /* DMA23 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA23_CURR_Y_COUNT              0xFFC09138         /* DMA23 Current Row Count (2D only) */
 #define DMA23_BWL_COUNT                0xFFC09140         /* DMA23 Bandwidth Limit Count */
@@ -1754,7 +1754,7 @@
 #define DMA24_CURR_DESC_PTR            0xFFC091A4         /* DMA24 Current Descriptor Pointer */
 #define DMA24_PREV_DESC_PTR            0xFFC091A8         /* DMA24 Previous Initial Descriptor Pointer */
 #define DMA24_CURR_ADDR              0xFFC091AC         /* DMA24 Current Address */
-#define DMA24_STAT                  0xFFC091B0         /* DMA24 Status Register */
+#define DMA24_IRQ_STATUS                  0xFFC091B0         /* DMA24 Status Register */
 #define DMA24_CURR_X_COUNT              0xFFC091B4         /* DMA24 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA24_CURR_Y_COUNT              0xFFC091B8         /* DMA24 Current Row Count (2D only) */
 #define DMA24_BWL_COUNT                0xFFC091C0         /* DMA24 Bandwidth Limit Count */
@@ -1775,7 +1775,7 @@
 #define DMA25_CURR_DESC_PTR            0xFFC09224         /* DMA25 Current Descriptor Pointer */
 #define DMA25_PREV_DESC_PTR            0xFFC09228         /* DMA25 Previous Initial Descriptor Pointer */
 #define DMA25_CURR_ADDR              0xFFC0922C         /* DMA25 Current Address */
-#define DMA25_STAT                  0xFFC09230         /* DMA25 Status Register */
+#define DMA25_IRQ_STATUS                  0xFFC09230         /* DMA25 Status Register */
 #define DMA25_CURR_X_COUNT              0xFFC09234         /* DMA25 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA25_CURR_Y_COUNT              0xFFC09238         /* DMA25 Current Row Count (2D only) */
 #define DMA25_BWL_COUNT                0xFFC09240         /* DMA25 Bandwidth Limit Count */
@@ -1796,7 +1796,7 @@
 #define DMA26_CURR_DESC_PTR            0xFFC092A4         /* DMA26 Current Descriptor Pointer */
 #define DMA26_PREV_DESC_PTR            0xFFC092A8         /* DMA26 Previous Initial Descriptor Pointer */
 #define DMA26_CURR_ADDR              0xFFC092AC         /* DMA26 Current Address */
-#define DMA26_STAT                  0xFFC092B0         /* DMA26 Status Register */
+#define DMA26_IRQ_STATUS                  0xFFC092B0         /* DMA26 Status Register */
 #define DMA26_CURR_X_COUNT              0xFFC092B4         /* DMA26 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA26_CURR_Y_COUNT              0xFFC092B8         /* DMA26 Current Row Count (2D only) */
 #define DMA26_BWL_COUNT                0xFFC092C0         /* DMA26 Bandwidth Limit Count */
@@ -1817,7 +1817,7 @@
 #define DMA27_CURR_DESC_PTR            0xFFC09324         /* DMA27 Current Descriptor Pointer */
 #define DMA27_PREV_DESC_PTR            0xFFC09328         /* DMA27 Previous Initial Descriptor Pointer */
 #define DMA27_CURR_ADDR              0xFFC0932C         /* DMA27 Current Address */
-#define DMA27_STAT                  0xFFC09330         /* DMA27 Status Register */
+#define DMA27_IRQ_STATUS                  0xFFC09330         /* DMA27 Status Register */
 #define DMA27_CURR_X_COUNT              0xFFC09334         /* DMA27 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA27_CURR_Y_COUNT              0xFFC09338         /* DMA27 Current Row Count (2D only) */
 #define DMA27_BWL_COUNT                0xFFC09340         /* DMA27 Bandwidth Limit Count */
@@ -1838,7 +1838,7 @@
 #define DMA28_CURR_DESC_PTR            0xFFC093A4         /* DMA28 Current Descriptor Pointer */
 #define DMA28_PREV_DESC_PTR            0xFFC093A8         /* DMA28 Previous Initial Descriptor Pointer */
 #define DMA28_CURR_ADDR              0xFFC093AC         /* DMA28 Current Address */
-#define DMA28_STAT                  0xFFC093B0         /* DMA28 Status Register */
+#define DMA28_IRQ_STATUS                  0xFFC093B0         /* DMA28 Status Register */
 #define DMA28_CURR_X_COUNT              0xFFC093B4         /* DMA28 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA28_CURR_Y_COUNT              0xFFC093B8         /* DMA28 Current Row Count (2D only) */
 #define DMA28_BWL_COUNT                0xFFC093C0         /* DMA28 Bandwidth Limit Count */
@@ -1859,7 +1859,7 @@
 #define DMA29_CURR_DESC_PTR            0xFFC0B024         /* DMA29 Current Descriptor Pointer */
 #define DMA29_PREV_DESC_PTR            0xFFC0B028         /* DMA29 Previous Initial Descriptor Pointer */
 #define DMA29_CURR_ADDR              0xFFC0B02C         /* DMA29 Current Address */
-#define DMA29_STAT                  0xFFC0B030         /* DMA29 Status Register */
+#define DMA29_IRQ_STATUS                  0xFFC0B030         /* DMA29 Status Register */
 #define DMA29_CURR_X_COUNT              0xFFC0B034         /* DMA29 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA29_CURR_Y_COUNT              0xFFC0B038         /* DMA29 Current Row Count (2D only) */
 #define DMA29_BWL_COUNT                0xFFC0B040         /* DMA29 Bandwidth Limit Count */
@@ -1880,7 +1880,7 @@
 #define DMA30_CURR_DESC_PTR            0xFFC0B0A4         /* DMA30 Current Descriptor Pointer */
 #define DMA30_PREV_DESC_PTR            0xFFC0B0A8         /* DMA30 Previous Initial Descriptor Pointer */
 #define DMA30_CURR_ADDR              0xFFC0B0AC         /* DMA30 Current Address */
-#define DMA30_STAT                  0xFFC0B0B0         /* DMA30 Status Register */
+#define DMA30_IRQ_STATUS                  0xFFC0B0B0         /* DMA30 Status Register */
 #define DMA30_CURR_X_COUNT              0xFFC0B0B4         /* DMA30 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA30_CURR_Y_COUNT              0xFFC0B0B8         /* DMA30 Current Row Count (2D only) */
 #define DMA30_BWL_COUNT                0xFFC0B0C0         /* DMA30 Bandwidth Limit Count */
@@ -1901,7 +1901,7 @@
 #define DMA31_CURR_DESC_PTR            0xFFC0B124         /* DMA31 Current Descriptor Pointer */
 #define DMA31_PREV_DESC_PTR            0xFFC0B128         /* DMA31 Previous Initial Descriptor Pointer */
 #define DMA31_CURR_ADDR              0xFFC0B12C         /* DMA31 Current Address */
-#define DMA31_STAT                  0xFFC0B130         /* DMA31 Status Register */
+#define DMA31_IRQ_STATUS                  0xFFC0B130         /* DMA31 Status Register */
 #define DMA31_CURR_X_COUNT              0xFFC0B134         /* DMA31 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA31_CURR_Y_COUNT              0xFFC0B138         /* DMA31 Current Row Count (2D only) */
 #define DMA31_BWL_COUNT                0xFFC0B140         /* DMA31 Bandwidth Limit Count */
@@ -1922,7 +1922,7 @@
 #define DMA32_CURR_DESC_PTR            0xFFC0B1A4         /* DMA32 Current Descriptor Pointer */
 #define DMA32_PREV_DESC_PTR            0xFFC0B1A8         /* DMA32 Previous Initial Descriptor Pointer */
 #define DMA32_CURR_ADDR              0xFFC0B1AC         /* DMA32 Current Address */
-#define DMA32_STAT                  0xFFC0B1B0         /* DMA32 Status Register */
+#define DMA32_IRQ_STATUS                  0xFFC0B1B0         /* DMA32 Status Register */
 #define DMA32_CURR_X_COUNT              0xFFC0B1B4         /* DMA32 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA32_CURR_Y_COUNT              0xFFC0B1B8         /* DMA32 Current Row Count (2D only) */
 #define DMA32_BWL_COUNT                0xFFC0B1C0         /* DMA32 Bandwidth Limit Count */
@@ -1943,7 +1943,7 @@
 #define DMA33_CURR_DESC_PTR            0xFFC0D024         /* DMA33 Current Descriptor Pointer */
 #define DMA33_PREV_DESC_PTR            0xFFC0D028         /* DMA33 Previous Initial Descriptor Pointer */
 #define DMA33_CURR_ADDR              0xFFC0D02C         /* DMA33 Current Address */
-#define DMA33_STAT                  0xFFC0D030         /* DMA33 Status Register */
+#define DMA33_IRQ_STATUS                  0xFFC0D030         /* DMA33 Status Register */
 #define DMA33_CURR_X_COUNT              0xFFC0D034         /* DMA33 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA33_CURR_Y_COUNT              0xFFC0D038         /* DMA33 Current Row Count (2D only) */
 #define DMA33_BWL_COUNT                0xFFC0D040         /* DMA33 Bandwidth Limit Count */
@@ -1964,7 +1964,7 @@
 #define DMA34_CURR_DESC_PTR            0xFFC0D0A4         /* DMA34 Current Descriptor Pointer */
 #define DMA34_PREV_DESC_PTR            0xFFC0D0A8         /* DMA34 Previous Initial Descriptor Pointer */
 #define DMA34_CURR_ADDR              0xFFC0D0AC         /* DMA34 Current Address */
-#define DMA34_STAT                  0xFFC0D0B0         /* DMA34 Status Register */
+#define DMA34_IRQ_STATUS                  0xFFC0D0B0         /* DMA34 Status Register */
 #define DMA34_CURR_X_COUNT              0xFFC0D0B4         /* DMA34 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA34_CURR_Y_COUNT              0xFFC0D0B8         /* DMA34 Current Row Count (2D only) */
 #define DMA34_BWL_COUNT                0xFFC0D0C0         /* DMA34 Bandwidth Limit Count */
@@ -1985,7 +1985,7 @@
 #define DMA35_CURR_DESC_PTR            0xFFC10024         /* DMA35 Current Descriptor Pointer */
 #define DMA35_PREV_DESC_PTR            0xFFC10028         /* DMA35 Previous Initial Descriptor Pointer */
 #define DMA35_CURR_ADDR              0xFFC1002C         /* DMA35 Current Address */
-#define DMA35_STAT                  0xFFC10030         /* DMA35 Status Register */
+#define DMA35_IRQ_STATUS                  0xFFC10030         /* DMA35 Status Register */
 #define DMA35_CURR_X_COUNT              0xFFC10034         /* DMA35 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA35_CURR_Y_COUNT              0xFFC10038         /* DMA35 Current Row Count (2D only) */
 #define DMA35_BWL_COUNT                0xFFC10040         /* DMA35 Bandwidth Limit Count */
@@ -2006,7 +2006,7 @@
 #define DMA36_CURR_DESC_PTR            0xFFC100A4         /* DMA36 Current Descriptor Pointer */
 #define DMA36_PREV_DESC_PTR            0xFFC100A8         /* DMA36 Previous Initial Descriptor Pointer */
 #define DMA36_CURR_ADDR              0xFFC100AC         /* DMA36 Current Address */
-#define DMA36_STAT                  0xFFC100B0         /* DMA36 Status Register */
+#define DMA36_IRQ_STATUS                  0xFFC100B0         /* DMA36 Status Register */
 #define DMA36_CURR_X_COUNT              0xFFC100B4         /* DMA36 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA36_CURR_Y_COUNT              0xFFC100B8         /* DMA36 Current Row Count (2D only) */
 #define DMA36_BWL_COUNT                0xFFC100C0         /* DMA36 Bandwidth Limit Count */
@@ -2027,7 +2027,7 @@
 #define DMA37_CURR_DESC_PTR            0xFFC10124         /* DMA37 Current Descriptor Pointer */
 #define DMA37_PREV_DESC_PTR            0xFFC10128         /* DMA37 Previous Initial Descriptor Pointer */
 #define DMA37_CURR_ADDR              0xFFC1012C         /* DMA37 Current Address */
-#define DMA37_STAT                  0xFFC10130         /* DMA37 Status Register */
+#define DMA37_IRQ_STATUS                  0xFFC10130         /* DMA37 Status Register */
 #define DMA37_CURR_X_COUNT              0xFFC10134         /* DMA37 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA37_CURR_Y_COUNT              0xFFC10138         /* DMA37 Current Row Count (2D only) */
 #define DMA37_BWL_COUNT                0xFFC10140         /* DMA37 Bandwidth Limit Count */
@@ -2048,7 +2048,7 @@
 #define DMA38_CURR_DESC_PTR            0xFFC12024         /* DMA38 Current Descriptor Pointer */
 #define DMA38_PREV_DESC_PTR            0xFFC12028         /* DMA38 Previous Initial Descriptor Pointer */
 #define DMA38_CURR_ADDR              0xFFC1202C         /* DMA38 Current Address */
-#define DMA38_STAT                  0xFFC12030         /* DMA38 Status Register */
+#define DMA38_IRQ_STATUS                  0xFFC12030         /* DMA38 Status Register */
 #define DMA38_CURR_X_COUNT              0xFFC12034         /* DMA38 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA38_CURR_Y_COUNT              0xFFC12038         /* DMA38 Current Row Count (2D only) */
 #define DMA38_BWL_COUNT                0xFFC12040         /* DMA38 Bandwidth Limit Count */
@@ -2069,7 +2069,7 @@
 #define DMA39_CURR_DESC_PTR            0xFFC120A4         /* DMA39 Current Descriptor Pointer */
 #define DMA39_PREV_DESC_PTR            0xFFC120A8         /* DMA39 Previous Initial Descriptor Pointer */
 #define DMA39_CURR_ADDR              0xFFC120AC         /* DMA39 Current Address */
-#define DMA39_STAT                  0xFFC120B0         /* DMA39 Status Register */
+#define DMA39_IRQ_STATUS                  0xFFC120B0         /* DMA39 Status Register */
 #define DMA39_CURR_X_COUNT              0xFFC120B4         /* DMA39 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA39_CURR_Y_COUNT              0xFFC120B8         /* DMA39 Current Row Count (2D only) */
 #define DMA39_BWL_COUNT                0xFFC120C0         /* DMA39 Bandwidth Limit Count */
@@ -2090,7 +2090,7 @@
 #define DMA40_CURR_DESC_PTR            0xFFC12124         /* DMA40 Current Descriptor Pointer */
 #define DMA40_PREV_DESC_PTR            0xFFC12128         /* DMA40 Previous Initial Descriptor Pointer */
 #define DMA40_CURR_ADDR              0xFFC1212C         /* DMA40 Current Address */
-#define DMA40_STAT                  0xFFC12130         /* DMA40 Status Register */
+#define DMA40_IRQ_STATUS                  0xFFC12130         /* DMA40 Status Register */
 #define DMA40_CURR_X_COUNT              0xFFC12134         /* DMA40 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA40_CURR_Y_COUNT              0xFFC12138         /* DMA40 Current Row Count (2D only) */
 #define DMA40_BWL_COUNT                0xFFC12140         /* DMA40 Bandwidth Limit Count */
@@ -2111,7 +2111,7 @@
 #define DMA41_CURR_DESC_PTR            0xFFC121A4         /* DMA41 Current Descriptor Pointer */
 #define DMA41_PREV_DESC_PTR            0xFFC121A8         /* DMA41 Previous Initial Descriptor Pointer */
 #define DMA41_CURR_ADDR              0xFFC121AC         /* DMA41 Current Address */
-#define DMA41_STAT                  0xFFC121B0         /* DMA41 Status Register */
+#define DMA41_IRQ_STATUS                  0xFFC121B0         /* DMA41 Status Register */
 #define DMA41_CURR_X_COUNT              0xFFC121B4         /* DMA41 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA41_CURR_Y_COUNT              0xFFC121B8         /* DMA41 Current Row Count (2D only) */
 #define DMA41_BWL_COUNT                0xFFC121C0         /* DMA41 Bandwidth Limit Count */
@@ -2132,7 +2132,7 @@
 #define DMA42_CURR_DESC_PTR            0xFFC14024         /* DMA42 Current Descriptor Pointer */
 #define DMA42_PREV_DESC_PTR            0xFFC14028         /* DMA42 Previous Initial Descriptor Pointer */
 #define DMA42_CURR_ADDR              0xFFC1402C         /* DMA42 Current Address */
-#define DMA42_STAT                  0xFFC14030         /* DMA42 Status Register */
+#define DMA42_IRQ_STATUS                  0xFFC14030         /* DMA42 Status Register */
 #define DMA42_CURR_X_COUNT              0xFFC14034         /* DMA42 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA42_CURR_Y_COUNT              0xFFC14038         /* DMA42 Current Row Count (2D only) */
 #define DMA42_BWL_COUNT                0xFFC14040         /* DMA42 Bandwidth Limit Count */
@@ -2153,7 +2153,7 @@
 #define DMA43_CURR_DESC_PTR            0xFFC140A4         /* DMA43 Current Descriptor Pointer */
 #define DMA43_PREV_DESC_PTR            0xFFC140A8         /* DMA43 Previous Initial Descriptor Pointer */
 #define DMA43_CURR_ADDR              0xFFC140AC         /* DMA43 Current Address */
-#define DMA43_STAT                  0xFFC140B0         /* DMA43 Status Register */
+#define DMA43_IRQ_STATUS                  0xFFC140B0         /* DMA43 Status Register */
 #define DMA43_CURR_X_COUNT              0xFFC140B4         /* DMA43 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA43_CURR_Y_COUNT              0xFFC140B8         /* DMA43 Current Row Count (2D only) */
 #define DMA43_BWL_COUNT                0xFFC140C0         /* DMA43 Bandwidth Limit Count */
@@ -2174,7 +2174,7 @@
 #define DMA44_CURR_DESC_PTR            0xFFC14124         /* DMA44 Current Descriptor Pointer */
 #define DMA44_PREV_DESC_PTR            0xFFC14128         /* DMA44 Previous Initial Descriptor Pointer */
 #define DMA44_CURR_ADDR              0xFFC1412C         /* DMA44 Current Address */
-#define DMA44_STAT                  0xFFC14130         /* DMA44 Status Register */
+#define DMA44_IRQ_STATUS                  0xFFC14130         /* DMA44 Status Register */
 #define DMA44_CURR_X_COUNT              0xFFC14134         /* DMA44 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA44_CURR_Y_COUNT              0xFFC14138         /* DMA44 Current Row Count (2D only) */
 #define DMA44_BWL_COUNT                0xFFC14140         /* DMA44 Bandwidth Limit Count */
@@ -2195,7 +2195,7 @@
 #define DMA45_CURR_DESC_PTR            0xFFC141A4         /* DMA45 Current Descriptor Pointer */
 #define DMA45_PREV_DESC_PTR            0xFFC141A8         /* DMA45 Previous Initial Descriptor Pointer */
 #define DMA45_CURR_ADDR              0xFFC141AC         /* DMA45 Current Address */
-#define DMA45_STAT                  0xFFC141B0         /* DMA45 Status Register */
+#define DMA45_IRQ_STATUS                  0xFFC141B0         /* DMA45 Status Register */
 #define DMA45_CURR_X_COUNT              0xFFC141B4         /* DMA45 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA45_CURR_Y_COUNT              0xFFC141B8         /* DMA45 Current Row Count (2D only) */
 #define DMA45_BWL_COUNT                0xFFC141C0         /* DMA45 Bandwidth Limit Count */
@@ -2216,7 +2216,7 @@
 #define DMA46_CURR_DESC_PTR            0xFFC14224         /* DMA46 Current Descriptor Pointer */
 #define DMA46_PREV_DESC_PTR            0xFFC14228         /* DMA46 Previous Initial Descriptor Pointer */
 #define DMA46_CURR_ADDR              0xFFC1422C         /* DMA46 Current Address */
-#define DMA46_STAT                  0xFFC14230         /* DMA46 Status Register */
+#define DMA46_IRQ_STATUS                  0xFFC14230         /* DMA46 Status Register */
 #define DMA46_CURR_X_COUNT              0xFFC14234         /* DMA46 Current Count(1D) or intra-row XCNT (2D) */
 #define DMA46_CURR_Y_COUNT              0xFFC14238         /* DMA46 Current Row Count (2D only) */
 #define DMA46_BWL_COUNT                0xFFC14240         /* DMA46 Bandwidth Limit Count */
@@ -2238,7 +2238,7 @@
 #define MDMA0_DEST_CRC0_CURR_DESC_PTR   (DMA22_CURR_DESC_PTR)
 #define MDMA0_DEST_CRC0_PREV_DESC_PTR   (DMA22_PREV_DESC_PTR)
 #define MDMA0_DEST_CRC0_CURR_ADDR     (DMA22_CURR_ADDR)
-#define MDMA0_DEST_CRC0_STAT         (DMA22_STAT)
+#define MDMA0_DEST_CRC0_IRQ_STATUS         (DMA22_IRQ_STATUS)
 #define MDMA0_DEST_CRC0_CURR_X_COUNT     (DMA22_CURR_X_COUNT)
 #define MDMA0_DEST_CRC0_CURR_Y_COUNT     (DMA22_CURR_Y_COUNT)
 #define MDMA0_DEST_CRC0_BWL_COUNT       (DMA22_BWL_COUNT)
@@ -2255,7 +2255,7 @@
 #define MDMA0_SRC_CRC0_CURR_DESC_PTR    (DMA21_CURR_DESC_PTR)
 #define MDMA0_SRC_CRC0_PREV_DESC_PTR    (DMA21_PREV_DESC_PTR)
 #define MDMA0_SRC_CRC0_CURR_ADDR      (DMA21_CURR_ADDR)
-#define MDMA0_SRC_CRC0_STAT          (DMA21_STAT)
+#define MDMA0_SRC_CRC0_IRQ_STATUS          (DMA21_IRQ_STATUS)
 #define MDMA0_SRC_CRC0_CURR_X_COUNT      (DMA21_CURR_X_COUNT)
 #define MDMA0_SRC_CRC0_CURR_Y_COUNT      (DMA21_CURR_Y_COUNT)
 #define MDMA0_SRC_CRC0_BWL_COUNT        (DMA21_BWL_COUNT)
@@ -2272,7 +2272,7 @@
 #define MDMA1_DEST_CRC1_CURR_DESC_PTR   (DMA24_CURR_DESC_PTR)
 #define MDMA1_DEST_CRC1_PREV_DESC_PTR   (DMA24_PREV_DESC_PTR)
 #define MDMA1_DEST_CRC1_CURR_ADDR     (DMA24_CURR_ADDR)
-#define MDMA1_DEST_CRC1_STAT         (DMA24_STAT)
+#define MDMA1_DEST_CRC1_IRQ_STATUS         (DMA24_IRQ_STATUS)
 #define MDMA1_DEST_CRC1_CURR_X_COUNT     (DMA24_CURR_X_COUNT)
 #define MDMA1_DEST_CRC1_CURR_Y_COUNT     (DMA24_CURR_Y_COUNT)
 #define MDMA1_DEST_CRC1_BWL_COUNT       (DMA24_BWL_COUNT)
@@ -2289,7 +2289,7 @@
 #define MDMA1_SRC_CRC1_CURR_DESC_PTR    (DMA23_CURR_DESC_PTR)
 #define MDMA1_SRC_CRC1_PREV_DESC_PTR    (DMA23_PREV_DESC_PTR)
 #define MDMA1_SRC_CRC1_CURR_ADDR      (DMA23_CURR_ADDR)
-#define MDMA1_SRC_CRC1_STAT          (DMA23_STAT)
+#define MDMA1_SRC_CRC1_IRQ_STATUS          (DMA23_IRQ_STATUS)
 #define MDMA1_SRC_CRC1_CURR_X_COUNT      (DMA23_CURR_X_COUNT)
 #define MDMA1_SRC_CRC1_CURR_Y_COUNT      (DMA23_CURR_Y_COUNT)
 #define MDMA1_SRC_CRC1_BWL_COUNT        (DMA23_BWL_COUNT)
@@ -2306,7 +2306,7 @@
 #define MDMA2_DEST_CURR_DESC_PTR            (DMA26_CURR_DESC_PTR)
 #define MDMA2_DEST_PREV_DESC_PTR            (DMA26_PREV_DESC_PTR)
 #define MDMA2_DEST_CURR_ADDR              (DMA26_CURR_ADDR)
-#define MDMA2_DEST_STAT                  (DMA26_STAT)
+#define MDMA2_DEST_IRQ_STATUS                  (DMA26_IRQ_STATUS)
 #define MDMA2_DEST_CURR_X_COUNT              (DMA26_CURR_X_COUNT)
 #define MDMA2_DEST_CURR_Y_COUNT              (DMA26_CURR_Y_COUNT)
 #define MDMA2_DEST_BWL_COUNT                (DMA26_BWL_COUNT)
@@ -2323,7 +2323,7 @@
 #define MDMA2_SRC_CURR_DESC_PTR            (DMA25_CURR_DESC_PTR)
 #define MDMA2_SRC_PREV_DESC_PTR            (DMA25_PREV_DESC_PTR)
 #define MDMA2_SRC_CURR_ADDR              (DMA25_CURR_ADDR)
-#define MDMA2_SRC_STAT                  (DMA25_STAT)
+#define MDMA2_SRC_IRQ_STATUS                  (DMA25_IRQ_STATUS)
 #define MDMA2_SRC_CURR_X_COUNT              (DMA25_CURR_X_COUNT)
 #define MDMA2_SRC_CURR_Y_COUNT              (DMA25_CURR_Y_COUNT)
 #define MDMA2_SRC_BWL_COUNT                (DMA25_BWL_COUNT)
@@ -2340,7 +2340,7 @@
 #define MDMA3_DEST_CURR_DESC_PTR            (DMA28_CURR_DESC_PTR)
 #define MDMA3_DEST_PREV_DESC_PTR            (DMA28_PREV_DESC_PTR)
 #define MDMA3_DEST_CURR_ADDR              (DMA28_CURR_ADDR)
-#define MDMA3_DEST_STAT                  (DMA28_STAT)
+#define MDMA3_DEST_IRQ_STATUS                  (DMA28_IRQ_STATUS)
 #define MDMA3_DEST_CURR_X_COUNT              (DMA28_CURR_X_COUNT)
 #define MDMA3_DEST_CURR_Y_COUNT              (DMA28_CURR_Y_COUNT)
 #define MDMA3_DEST_BWL_COUNT                (DMA28_BWL_COUNT)
@@ -2357,7 +2357,7 @@
 #define MDMA3_SRC_CURR_DESC_PTR            (DMA27_CURR_DESC_PTR)
 #define MDMA3_SRC_PREV_DESC_PTR            (DMA27_PREV_DESC_PTR)
 #define MDMA3_SRC_CURR_ADDR              (DMA27_CURR_ADDR)
-#define MDMA3_SRC_STAT                  (DMA27_STAT)
+#define MDMA3_SRC_IRQ_STATUS                  (DMA27_IRQ_STATUS)
 #define MDMA3_SRC_CURR_X_COUNT              (DMA27_CURR_X_COUNT)
 #define MDMA3_SRC_CURR_Y_COUNT              (DMA27_CURR_Y_COUNT)
 #define MDMA3_SRC_BWL_COUNT                (DMA27_BWL_COUNT)

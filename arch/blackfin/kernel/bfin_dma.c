@@ -213,10 +213,8 @@ int blackfin_dma_suspend(void)
 			printk(KERN_ERR "DMA Channel %d failed to suspend\n", i);
 			return -EBUSY;
 		}
-#ifndef CONFIG_BF60x
 		if (i < MAX_DMA_SUSPEND_CHANNELS)
 			dma_ch[i].saved_peripheral_map = dma_ch[i].regs->peripheral_map;
-#endif
 	}
 
 #if ANOMALY_05000480
@@ -231,10 +229,8 @@ void blackfin_dma_resume(void)
 
 	for (i = 0; i < MAX_DMA_CHANNELS; ++i) {
 		dma_ch[i].regs->cfg = 0;
-#ifdef CONFIG_BF60x
 		if (i < MAX_DMA_SUSPEND_CHANNELS)
 			dma_ch[i].regs->peripheral_map = dma_ch[i].saved_peripheral_map;
-#endif
 	}
 #if ANOMALY_05000480
 	bfin_write_DMAC_TC_PER(0x0111);
@@ -251,10 +247,8 @@ void blackfin_dma_resume(void)
 void __init blackfin_dma_early_init(void)
 {
 	early_shadow_stamp();
-#ifndef CONFIG_BF60x
 	bfin_write_MDMA_S0_CONFIG(0);
 	bfin_write_MDMA_S1_CONFIG(0);
-#endif
 }
 
 void __init early_dma_memcpy(void *pdst, const void *psrc, size_t size)
@@ -272,7 +266,6 @@ void __init early_dma_memcpy(void *pdst, const void *psrc, size_t size)
 	BUG_ON(src % 4);
 	BUG_ON(size % 4);
 
-#ifndef CONFIG_BF60x
 	src_ch = 0;
 	/* Find an avalible memDMA channel */
 	while (1) {
@@ -284,10 +277,10 @@ void __init early_dma_memcpy(void *pdst, const void *psrc, size_t size)
 			src_ch = (struct dma_register *)MDMA_S0_NEXT_DESC_PTR;
 		}
 
-		if (!bfin_read16(&src_ch->cfg))
+		if (!DMA_MMR_READ(&src_ch->cfg))
 			break;
-		else if (bfin_read16(&dst_ch->irq_status) & DMA_DONE) {
-			bfin_write16(&src_ch->cfg, 0);
+		else if (DMA_MMR_READ(&dst_ch->irq_status) & DMA_DONE) {
+			DMA_MMR_WRITE(&src_ch->cfg, 0);
 			break;
 		}
 	}
@@ -300,20 +293,20 @@ void __init early_dma_memcpy(void *pdst, const void *psrc, size_t size)
 
 	/* Destination */
 	bfin_write32(&dst_ch->start_addr, dst);
-	bfin_write16(&dst_ch->x_count, size >> 2);
-	bfin_write16(&dst_ch->x_modify, 1 << 2);
-	bfin_write16(&dst_ch->irq_status, DMA_DONE | DMA_ERR);
+	DMA_MMR_WRITE(&dst_ch->x_count, size >> 2);
+	DMA_MMR_WRITE(&dst_ch->x_modify, 1 << 2);
+	DMA_MMR_WRITE(&dst_ch->irq_status, DMA_DONE | DMA_ERR);
 
 	/* Source */
 	bfin_write32(&src_ch->start_addr, src);
-	bfin_write16(&src_ch->x_count, size >> 2);
-	bfin_write16(&src_ch->x_modify, 1 << 2);
-	bfin_write16(&src_ch->irq_status, DMA_DONE | DMA_ERR);
+	DMA_MMR_WRITE(&src_ch->x_count, size >> 2);
+	DMA_MMR_WRITE(&src_ch->x_modify, 1 << 2);
+	DMA_MMR_WRITE(&src_ch->irq_status, DMA_DONE | DMA_ERR);
 
 	/* Enable */
-	bfin_write16(&src_ch->cfg, DMAEN | WDSIZE_32);
-	bfin_write16(&dst_ch->cfg, WNR | DI_EN | DMAEN | WDSIZE_32);
-#endif
+	DMA_MMR_WRITE(&src_ch->cfg, DMAEN | WDSIZE_32);
+	DMA_MMR_WRITE(&dst_ch->cfg, WNR | DI_EN_Y | DMAEN | WDSIZE_32);
+
 	/* Since we are atomic now, don't use the workaround ssync */
 	__builtin_bfin_ssync();
 }
@@ -322,7 +315,6 @@ void __init early_dma_memcpy_done(void)
 {
 	early_shadow_stamp();
 
-#ifndef CONFIG_BF60x
 	while ((bfin_read_MDMA_S0_CONFIG() && !(bfin_read_MDMA_D0_IRQ_STATUS() & DMA_DONE)) ||
 	       (bfin_read_MDMA_S1_CONFIG() && !(bfin_read_MDMA_D1_IRQ_STATUS() & DMA_DONE)))
 		continue;
@@ -338,7 +330,7 @@ void __init early_dma_memcpy_done(void)
 	bfin_write_MDMA_S1_CONFIG(0);
 	bfin_write_MDMA_D0_CONFIG(0);
 	bfin_write_MDMA_D1_CONFIG(0);
-#endif
+
 	__builtin_bfin_ssync();
 }
 
@@ -355,7 +347,6 @@ static void __dma_memcpy(u32 daddr, s16 dmod, u32 saddr, s16 smod, size_t cnt, u
 	static DEFINE_SPINLOCK(mdma_lock);
 	unsigned long flags;
 
-#ifndef CONFIG_BF60x
 	spin_lock_irqsave(&mdma_lock, flags);
 
 	/* Force a sync in case a previous config reset on this channel
@@ -398,7 +389,10 @@ static void __dma_memcpy(u32 daddr, s16 dmod, u32 saddr, s16 smod, size_t cnt, u
 	bfin_write_MDMA_S0_IRQ_STATUS(DMA_DONE | DMA_ERR);
 
 	bfin_write_MDMA_S0_CONFIG(DMAEN | conf);
-	bfin_write_MDMA_D0_CONFIG(WNR | DI_EN | DMAEN | conf);
+	if (conf & DMA2D)
+		bfin_write_MDMA_D0_CONFIG(WNR | DI_EN_Y | DMAEN | conf);
+	else
+		bfin_write_MDMA_D0_CONFIG(WNR | DI_EN_X | DMAEN | conf);
 
 	spin_unlock_irqrestore(&mdma_lock, flags);
 
@@ -414,7 +408,6 @@ static void __dma_memcpy(u32 daddr, s16 dmod, u32 saddr, s16 smod, size_t cnt, u
 
 	bfin_write_MDMA_S0_CONFIG(0);
 	bfin_write_MDMA_D0_CONFIG(0);
-#endif
 }
 
 /**
@@ -456,8 +449,10 @@ static void *_dma_memcpy(void *pdst, const void *psrc, size_t size)
 	}
 	size >>= shift;
 
+#ifndef DMA_MMR_SIZE_32
 	if (size > 0x10000)
 		conf |= DMA2D;
+#endif
 
 	__dma_memcpy(dst, mod, src, mod, size, conf);
 
@@ -496,6 +491,9 @@ EXPORT_SYMBOL(dma_memcpy);
  */
 void *dma_memcpy_nocache(void *pdst, const void *psrc, size_t size)
 {
+#ifdef DMA_MMR_SIZE_32
+	_dma_memcpy(pdst, psrc, size);
+#else
 	size_t bulk, rest;
 
 	bulk = size & ~0xffff;
@@ -503,6 +501,7 @@ void *dma_memcpy_nocache(void *pdst, const void *psrc, size_t size)
 	if (bulk)
 		_dma_memcpy(pdst, psrc, bulk);
 	_dma_memcpy(pdst + bulk, psrc + bulk, rest);
+#endif
 	return pdst;
 }
 EXPORT_SYMBOL(dma_memcpy_nocache);
@@ -522,14 +521,14 @@ void *safe_dma_memcpy(void *dst, const void *src, size_t size)
 }
 EXPORT_SYMBOL(safe_dma_memcpy);
 
-static void _dma_out(unsigned long addr, unsigned long buf, unsigned short len,
+static void _dma_out(unsigned long addr, unsigned long buf, unsigned DMA_MMR_SIZE_TYPE len,
                      u16 size, u16 dma_size)
 {
 	blackfin_dcache_flush_range(buf, buf + len * size);
 	__dma_memcpy(addr, 0, buf, size, len, dma_size);
 }
 
-static void _dma_in(unsigned long addr, unsigned long buf, unsigned short len,
+static void _dma_in(unsigned long addr, unsigned long buf, unsigned DMA_MMR_SIZE_TYPE len,
                     u16 size, u16 dma_size)
 {
 	blackfin_dcache_invalidate_range(buf, buf + len * size);
@@ -537,7 +536,7 @@ static void _dma_in(unsigned long addr, unsigned long buf, unsigned short len,
 }
 
 #define MAKE_DMA_IO(io, bwl, isize, dmasize, cnst) \
-void dma_##io##s##bwl(unsigned long addr, cnst void *buf, unsigned short len) \
+void dma_##io##s##bwl(unsigned long addr, cnst void *buf, unsigned DMA_MMR_SIZE_TYPE len) \
 { \
 	_dma_##io(addr, (unsigned long)buf, len, isize, WDSIZE_##dmasize); \
 } \

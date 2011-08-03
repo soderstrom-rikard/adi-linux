@@ -42,10 +42,10 @@
 #define CH_MEM_STREAM3_DEST          28
 #define CH_EPPI0_CH0                  29
 #define CH_EPPI0_CH1                  30
-#define CH_EPPI2_CH0                  31
-#define CH_EPPI2_CH1                  32
-#define CH_EPPI1_CH0                  33
-#define CH_EPPI1_CH1                  34
+#define CH_EPPI1_CH0                  31
+#define CH_EPPI1_CH1                  32
+#define CH_EPPI2_CH0                  33
+#define CH_EPPI2_CH1                  34
 #define CH_PIXC_CH0                   35
 #define CH_PIXC_CH1                   36
 #define CH_PIXC_CH2                   37
@@ -60,5 +60,36 @@
 #define CH_PVP_CPDOA                  46
 
 #define MAX_DMA_CHANNELS 47
+#define MAX_DMA_SUSPEND_CHANNELS 0
+#define DMA_MMR_SIZE_32
+
+#define bfin_read_MDMA_S0_CONFIG bfin_read_MDMA0_SRC_CRC0_CONFIG
+#define bfin_write_MDMA_S0_CONFIG bfin_write_MDMA0_SRC_CRC0_CONFIG
+#define bfin_read_MDMA_S0_IRQ_STATUS bfin_read_MDMA0_SRC_CRC0_IRQ_STATUS
+#define bfin_write_MDMA_S0_IRQ_STATUS bfin_write_MDMA0_SRC_CRC0_IRQ_STATUS
+#define bfin_write_MDMA_S0_START_ADDR bfin_write_MDMA0_SRC_CRC0_START_ADDR
+#define bfin_write_MDMA_S0_X_COUNT bfin_write_MDMA0_SRC_CRC0_X_COUNT
+#define bfin_write_MDMA_S0_X_MODIFY bfin_write_MDMA0_SRC_CRC0_X_MODIFY
+#define bfin_write_MDMA_S0_Y_COUNT bfin_write_MDMA0_SRC_CRC0_Y_COUNT
+#define bfin_write_MDMA_S0_Y_MODIFY bfin_write_MDMA0_SRC_CRC0_Y_MODIFY
+#define bfin_read_MDMA_D0_CONFIG bfin_read_MDMA0_DEST_CRC0_CONFIG
+#define bfin_write_MDMA_D0_CONFIG bfin_write_MDMA0_DEST_CRC0_CONFIG
+#define bfin_read_MDMA_D0_IRQ_STATUS bfin_read_MDMA0_DEST_CRC0_IRQ_STATUS
+#define bfin_write_MDMA_D0_IRQ_STATUS bfin_write_MDMA0_DEST_CRC0_IRQ_STATUS
+#define bfin_write_MDMA_D0_START_ADDR bfin_write_MDMA0_DEST_CRC0_START_ADDR
+#define bfin_write_MDMA_D0_X_COUNT bfin_write_MDMA0_DEST_CRC0_X_COUNT
+#define bfin_write_MDMA_D0_X_MODIFY bfin_write_MDMA0_DEST_CRC0_X_MODIFY
+#define bfin_write_MDMA_D0_Y_COUNT bfin_write_MDMA0_DEST_CRC0_Y_COUNT
+#define bfin_write_MDMA_D0_Y_MODIFY bfin_write_MDMA0_DEST_CRC0_Y_MODIFY
+#define bfin_read_MDMA_S1_CONFIG bfin_read_MDMA1_SRC_CRC1_CONFIG
+#define bfin_write_MDMA_S1_CONFIG bfin_write_MDMA1_SRC_CRC1_CONFIG
+#define bfin_read_MDMA_D1_CONFIG bfin_read_MDMA1_DEST_CRC1_CONFIG
+#define bfin_write_MDMA_D1_CONFIG bfin_write_MDMA1_DEST_CRC1_CONFIG
+#define bfin_read_MDMA_D1_IRQ_STATUS bfin_read_MDMA1_DEST_CRC1_IRQ_STATUS
+#define bfin_write_MDMA_D1_IRQ_STATUS bfin_write_MDMA1_DEST_CRC1_IRQ_STATUS
+#define MDMA_S0_NEXT_DESC_PTR MDMA0_SRC_CRC0_NEXT_DESC_PTR
+#define MDMA_D0_NEXT_DESC_PTR MDMA0_DEST_CRC0_NEXT_DESC_PTR
+#define MDMA_S1_NEXT_DESC_PTR MDMA1_SRC_CRC1_NEXT_DESC_PTR
+#define MDMA_D1_NEXT_DESC_PTR MDMA1_DEST_CRC1_NEXT_DESC_PTR
 
 #endif
