@@ -153,13 +153,18 @@ static struct platform_device rtc_device = {
 #ifdef CONFIG_SERIAL_BFIN_UART0
 static struct resource bfin_uart0_resources[] = {
 	{
-		.start = UART0_GCTL,
-		.end = UART0_RXCNT+4,
+		.start = UART0_REVID,
+		.end = UART0_RXDIV+4,
 		.flags = IORESOURCE_MEM,
 	},
 	{
 		.start = IRQ_UART0_TX,
-		.end = IRQ_UART0_TX+1,
+		.end = IRQ_UART0_TX,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_UART0_RX,
+		.end = IRQ_UART0_RX,
 		.flags = IORESOURCE_IRQ,
 	},
 	{
@@ -177,10 +182,26 @@ static struct resource bfin_uart0_resources[] = {
 		.end = CH_UART0_RX,
 		.flags = IORESOURCE_DMA,
 	},
+#ifdef CONFIG_BFIN_UART1_CTSRTS
+	{	/* CTS pin -- 0 means not supported */
+		.start = GPIO_PE10,
+		.end = GPIO_PE10,
+		.flags = IORESOURCE_IO,
+	},
+	{	/* RTS pin -- 0 means not supported */
+		.start = GPIO_PE9,
+		.end = GPIO_PE9,
+		.flags = IORESOURCE_IO,
+	},
+#endif
 };
 
 static unsigned short bfin_uart0_peripherals[] = {
-	P_UART0_TX, P_UART0_RX, 0
+	P_UART0_TX, P_UART0_RX,
+#ifdef CONFIG_BFIN_UART1_CTSRTS
+	P_UART0_RTS, P_UART0_CTS,
+#endif
+	0
 };
 
 static struct platform_device bfin_uart0_device = {
@@ -196,13 +217,18 @@ static struct platform_device bfin_uart0_device = {
 #ifdef CONFIG_SERIAL_BFIN_UART1
 static struct resource bfin_uart1_resources[] = {
 	{
-		.start = UART1_GCTL,
-		.end = UART1_RXCNT+4,
+		.start = UART1_REVID,
+		.end = UART1_RXDIV+4,
 		.flags = IORESOURCE_MEM,
 	},
 	{
 		.start = IRQ_UART1_TX,
-		.end = IRQ_UART1_TX+1,
+		.end = IRQ_UART1_TX,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_UART1_RX,
+		.end = IRQ_UART1_RX,
 		.flags = IORESOURCE_IRQ,
 	},
 	{
@@ -220,10 +246,25 @@ static struct resource bfin_uart1_resources[] = {
 		.end = CH_UART1_RX,
 		.flags = IORESOURCE_DMA,
 	},
+#ifdef CONFIG_BFIN_UART1_CTSRTS
+	{	/* CTS pin -- 0 means not supported */
+		.start = GPIO_PE10,
+		.end = GPIO_PE10,
+		.flags = IORESOURCE_IO,
+	},
+	{	/* RTS pin -- 0 means not supported */
+		.start = GPIO_PE9,
+		.end = GPIO_PE9,
+		.flags = IORESOURCE_IO,
+	},
+#endif
 };
 
 static unsigned short bfin_uart1_peripherals[] = {
 	P_UART1_TX, P_UART1_RX,
+#ifdef CONFIG_BFIN_UART1_CTSRTS
+	P_UART1_RTS, P_UART1_CTS,
+#endif
 	0
 };
 

@@ -10,6 +10,7 @@
 #define __BFIN_MACH_SERIAL_H__
 
 #define BFIN_UART_NR_PORTS	2
+#define BFIN_UART_TX_FIFO_SIZE	8
 
 #define BFIN_UART_BF60X_STYLE
 
