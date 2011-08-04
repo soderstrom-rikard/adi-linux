@@ -207,9 +207,13 @@ struct sm_node_status {
 };
 
 struct sm_session_status {
-	uint32_t avail;
-	uint32_t uncomplete;
-	uint32_t status;
+	uint32_t	n_avail;
+	uint32_t	n_uncompleted;
+	uint32_t	local_ep;
+	uint32_t	remote_ep;
+	uint32_t	type;
+	uint32_t	pid;
+	uint32_t	flags;
 };
 
 struct sm_packet {

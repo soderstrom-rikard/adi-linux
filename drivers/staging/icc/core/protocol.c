@@ -632,7 +632,6 @@ static int sm_recv_packet(sm_uint32_t session_idx, sm_uint16_t *src_ep,
 	sm_debug("recv %s\n", message->msg.payload);
 
 	copy_to_user(user_buf, (void *)message->msg.payload, message->msg.length);
-
 	invalidate_dcache_range(msg->payload, msg->payload + msg->length);
 
 	if (msg->type == SM_PACKET_READY)
@@ -823,9 +822,14 @@ int icc_get_session_status(void *user_param, uint32_t size, uint32_t session_idx
 		return -ENOMEM;
 
 	sm_debug("session status index %d, avail %d\n", session_idx, session->n_avail);
-	param->avail = session->n_avail;
-	param->uncomplete = session->n_uncompleted;
-	param->status = session->flags;
+
+	param->n_avail = session->n_avail;
+	param->n_uncompleted = session->n_uncompleted;
+	param->local_ep = session->local_ep;
+	param->remote_ep = session->remote_ep;
+	param->type = session->type;
+	param->pid = session->pid;
+	param->flags = session->flags;
 
 	if (copy_to_user(user_param, (void *)param, size))
 		ret = -EFAULT;
