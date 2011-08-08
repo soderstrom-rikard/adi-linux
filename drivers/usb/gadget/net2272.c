@@ -27,20 +27,19 @@
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/ioport.h>
-#include <linux/irq.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/pci.h>
 #include <linux/platform_device.h>
+#include <linux/prefetch.h>
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/timer.h>
 #include <linux/usb.h>
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
-#include <linux/prefetch.h>
 
 #include <asm/byteorder.h>
 #include <asm/system.h>
