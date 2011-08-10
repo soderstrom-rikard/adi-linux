@@ -307,7 +307,8 @@ static int ad193x_hw_params(struct snd_pcm_substream *substream,
 	snd_soc_write(codec, AD193X_PLL_CLK_CTRL0, reg);
 
 	reg = snd_soc_read(codec, AD193X_DAC_CTRL2);
-	reg = (reg & (~AD193X_DAC_WORD_LEN_MASK)) | word_len;
+	reg = (reg & (~AD193X_DAC_WORD_LEN_MASK))
+		| (word_len << AD193X_DAC_WORD_LEN_SHFT);
 	snd_soc_write(codec, AD193X_DAC_CTRL2, reg);
 
 	reg = snd_soc_read(codec, AD193X_ADC_CTRL1);
@@ -361,7 +362,10 @@ static int ad193x_probe(struct snd_soc_codec *codec)
 		dev_err(codec->dev, "failed to set cache I/O: %d\n", ret);
 		return ret;
 	}
-
+#if defined(CONFIG_SPI_MASTER)
+	/* asoc cache layer can't support this kind of spi registers now */
+	codec->cache_bypass = 1;
+#endif
 	/* default setting for ad193x */
 
 	/* unmute dac channels */
