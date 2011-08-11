@@ -1332,6 +1332,7 @@ static int bfin_serial_probe(struct platform_device *pdev)
 			ret = -ENOENT;
 			goto out_error_unmap;
 		}
+		uart->port.irq = uart->rx_irq;
 
 		uart->status_irq = platform_get_irq(pdev, 2);
 		if (uart->status_irq < 0) {
