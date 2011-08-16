@@ -103,6 +103,9 @@ struct bfin_serial_port {
 #define CTS                      0x10000  /* Clear To Send */
 #define RFCS                     0x20000  /* Receive FIFO Count Status */
 
+/* UART_CLOCK Masks */
+#define EDBO                     0x80000000 /* Enable Devide by One */
+
 #else /* BFIN_UART_BF60X_STYLE */
 
 /* UART_LCR Masks */
