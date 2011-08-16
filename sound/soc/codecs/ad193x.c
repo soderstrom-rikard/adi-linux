@@ -27,11 +27,6 @@ struct ad193x_priv {
 	int sysclk;
 };
 
-/* ad193x register cache & default register settings */
-static const u8 ad193x_reg[AD193X_NUM_REGS] = {
-	0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0,
-};
-
 /*
  * AD193X volume/mute/de-emphasis etc. controls
  */
@@ -362,10 +357,7 @@ static int ad193x_probe(struct snd_soc_codec *codec)
 		dev_err(codec->dev, "failed to set cache I/O: %d\n", ret);
 		return ret;
 	}
-#if defined(CONFIG_SPI_MASTER)
-	/* asoc cache layer can't support this kind of spi registers now */
-	codec->cache_bypass = 1;
-#endif
+
 	/* default setting for ad193x */
 
 	/* unmute dac channels */
@@ -393,9 +385,6 @@ static int ad193x_probe(struct snd_soc_codec *codec)
 
 static struct snd_soc_codec_driver soc_codec_dev_ad193x = {
 	.probe = 	ad193x_probe,
-	.reg_cache_default = ad193x_reg,
-	.reg_cache_size = AD193X_NUM_REGS,
-	.reg_word_size = sizeof(u16),
 };
 
 #if defined(CONFIG_SPI_MASTER)
