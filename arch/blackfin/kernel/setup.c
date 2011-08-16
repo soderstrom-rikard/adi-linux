@@ -1148,7 +1148,7 @@ EXPORT_SYMBOL(get_cclk);
 u_long get_sclk(void)
 {
 #ifdef CONFIG_BF609_FPGA
-	return get_vco() / 4;
+	return get_cclk() / 4;
 #else
 	static u_long cached_sclk;
 	u_long ssel;
