@@ -865,8 +865,13 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 			port->ignore_status_mask |= OE;
 	}
 
+#ifdef CONFIG_BF609_FPGA
+	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk);
+	quot = uart_get_divisor(port, baud/16);
+#else
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
 	quot = uart_get_divisor(port, baud);
+#endif
 
 	/* If discipline is not IRDA, apply ANOMALY_05000230 */
 	if (termios->c_line != N_IRDA)
@@ -881,7 +886,11 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	/* Set DLAB in LCR to Access CLK */
 	UART_SET_DLAB(uart);
 
+#ifdef CONFIG_BF609_FPGA
+	UART_PUT_CLK(uart, quot | EDBO);
+#else
 	UART_PUT_CLK(uart, quot);
+#endif
 	SSYNC();
 
 	/* Clear DLAB in LCR to Access THR RBR IER */
@@ -1108,7 +1117,11 @@ bfin_serial_console_get_options(struct bfin_serial_port *uart, int *baud,
 		/* Clear DLAB in LCR to Access THR RBR IER */
 		UART_CLEAR_DLAB(uart);
 
+#ifdef CONFIG_BF609_FPGA
+		*baud = get_sclk() / clk;
+#else
 		*baud = get_sclk() / (16*clk);
+#endif
 	}
 	pr_debug("%s:baud = %d, parity = %c, bits= %d\n", __func__, *baud, *parity, *bits);
 }
