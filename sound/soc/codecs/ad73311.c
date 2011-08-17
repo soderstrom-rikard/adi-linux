@@ -146,9 +146,9 @@ static const struct snd_kcontrol_new ad73311_snd_controls[] = {
 			ad73311_igs_get, ad73311_igs_put),
 	SOC_SINGLE_EXT("DAC Playback Volume", CTRL_REG_D, 4, 7, 0,
 			ad73311_ogs_get, ad73311_ogs_put),
-	SOC_SINGLE_EXT("Decimation/Interpolation Rate", CTRL_REG_B, 0, 3, 0,
+	SOC_SINGLE_EXT("Sample Rate", CTRL_REG_B, 0, 3, 0,
 			ad73311_dirate_get, ad73311_dirate_put),
-	SOC_SINGLE_EXT("Single-Ended Enable Switch", CTRL_REG_F, 5, 1, 0,
+	SOC_SINGLE_EXT("Single-Ended Switch", CTRL_REG_F, 5, 1, 0,
 			ad73311_seen_get, ad73311_seen_put),
 };
 
