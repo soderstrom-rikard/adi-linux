@@ -62,16 +62,17 @@
 #define bfin_read_SPORT_STAT	bfin_read_SPORT1_STAT
 #endif
 
-#define GPIO_SE 4
-#define GPIO_RESET 4
-
 static struct snd_soc_card bf5xx_ad73311;
+static struct ad73311_platform_data {
+	unsigned sport_en_pin;
+	unsigned reset_pin;
+} machine;
 
 static void snd_ad73311_reset(void)
 {
-	gpio_set_value(GPIO_RESET, 0);
+	gpio_set_value(machine.reset_pin, 0);
 	udelay(100);
-	gpio_set_value(GPIO_RESET, 1);
+	gpio_set_value(machine.reset_pin, 1);
 }
 
 static void snd_ad73311_startup(void)
@@ -79,7 +80,7 @@ static void snd_ad73311_startup(void)
 	pr_debug("%s enter\n", __func__);
 
 	/* Pull up SE pin on AD73311L */
-	gpio_set_value(GPIO_SE, 1);
+	gpio_set_value(machine.sport_en_pin, 1);
 	udelay(1);
 }
 
@@ -104,7 +105,8 @@ static int snd_ad73311_configure(struct ad73311_snd_ctrls *ctrl)
 	ctrl_regs[5] = AD_CONTROL | AD_WRITE | CTRL_REG_A | REGA_MODE_DATA;
 
 	local_irq_disable();
-	snd_ad73311_reset();
+	if (machine.reset_pin != -1)
+		snd_ad73311_reset();
 	snd_ad73311_startup();
 
 	bfin_write_SPORT_TCR1(TFSR);
@@ -158,20 +160,6 @@ static int bf5xx_probe(struct snd_soc_card *card)
 		.ogs = 2,
 		.se_en = 1,
 	};
-	if (gpio_request(GPIO_SE, "AD73311_SE")) {
-		printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __func__, GPIO_SE);
-		return -EBUSY;
-	}
-	gpio_direction_output(GPIO_SE, 0);
-
-	if (GPIO_SE != GPIO_RESET) {
-		if (gpio_request(GPIO_RESET, "AD73311_RESET")) {
-			printk(KERN_ERR "%s: Failed ro request GPIO_%d\n", __func__, GPIO_RESET);
-			gpio_free(GPIO_SE);
-			return -EBUSY;
-		}
-		gpio_direction_output(GPIO_RESET, 0);
-	}
 
 	err = snd_ad73311_configure(&ctrl);
 	if (err < 0)
@@ -233,30 +221,87 @@ static struct snd_soc_card bf5xx_ad73311 = {
 	.num_links = 1,
 };
 
-static struct platform_device *bf5xx_ad73311_snd_device;
+static __devinit int bf5xx_ad73311_driver_probe(struct platform_device *pdev)
+{
+	struct snd_soc_card *card = &bf5xx_ad73311;
+	const unsigned *gpio;
+	int ret;
+
+	gpio = pdev->dev.platform_data;
+	if (!gpio) {
+		dev_err(&pdev->dev, "No platform data supplied\n");
+		return -EINVAL;
+	}
+
+	machine.sport_en_pin = gpio[0];
+	if (pdev->id == 2)
+		machine.reset_pin = gpio[1];
+	else
+		machine.reset_pin = -1;
+
+	if (gpio_request(machine.sport_en_pin, "AD73311_SE")) {
+		dev_err(&pdev->dev, "Failed ro request GPIO_%d\n",
+				machine.sport_en_pin);
+		return -EBUSY;
+	}
+	gpio_direction_output(machine.sport_en_pin, 0);
+
+	if (machine.reset_pin != -1) {
+		if (gpio_request(machine.reset_pin, "AD73311_RESET")) {
+			dev_err(&pdev->dev, "Failed ro request GPIO_%d\n",
+					machine.reset_pin);
+			ret = -EBUSY;
+			goto err_free_se;
+		}
+		gpio_direction_output(machine.reset_pin, 0);
+	}
+
+	card->dev = &pdev->dev;
+	platform_set_drvdata(pdev, card);
+
+	ret = snd_soc_register_card(card);
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to register card\n");
+		goto err_free_reset;
+	}
+	return 0;
+err_free_reset:
+	if (machine.reset_pin != -1)
+		gpio_free(machine.reset_pin);
+err_free_se:
+	gpio_free(machine.sport_en_pin);
+	return ret;
+}
+
+static int __devexit bf5xx_ad73311_driver_remove(struct platform_device *pdev)
+{
+	struct snd_soc_card *card = platform_get_drvdata(pdev);
+
+	snd_soc_unregister_card(card);
+	if (machine.reset_pin != -1)
+		gpio_free(machine.reset_pin);
+	gpio_free(machine.sport_en_pin);
+	return 0;
+}
+
+static struct platform_driver bf5xx_ad73311_driver = {
+	.driver = {
+		.name = "bfin-snd-ad73311",
+		.owner = THIS_MODULE,
+		.pm = &snd_soc_pm_ops,
+	},
+	.probe = bf5xx_ad73311_driver_probe,
+	.remove = __devexit_p(bf5xx_ad73311_driver_remove),
+};
 
 static int __init bf5xx_ad73311_init(void)
 {
-	int ret;
-
-	pr_debug("%s enter\n", __func__);
-	bf5xx_ad73311_snd_device = platform_device_alloc("soc-audio", -1);
-	if (!bf5xx_ad73311_snd_device)
-		return -ENOMEM;
-
-	platform_set_drvdata(bf5xx_ad73311_snd_device, &bf5xx_ad73311);
-	ret = platform_device_add(bf5xx_ad73311_snd_device);
-
-	if (ret)
-		platform_device_put(bf5xx_ad73311_snd_device);
-
-	return ret;
+	return platform_driver_register(&bf5xx_ad73311_driver);
 }
 
 static void __exit bf5xx_ad73311_exit(void)
 {
-	pr_debug("%s enter\n", __func__);
-	platform_device_unregister(bf5xx_ad73311_snd_device);
+	platform_driver_unregister(&bf5xx_ad73311_driver);
 }
 
 module_init(bf5xx_ad73311_init);
