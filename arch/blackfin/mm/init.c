@@ -107,10 +107,10 @@ void __init mem_init(void)
 	totalram_pages = free_all_bootmem();
 
 	reservedpages = 0;
-	for (tmp = 0; tmp < max_mapnr; tmp++)
+	for (tmp = ARCH_PFN_OFFSET; tmp < max_mapnr; tmp++)
 		if (PageReserved(pfn_to_page(tmp)))
 			reservedpages++;
-	freepages =  max_mapnr - reservedpages;
+	freepages =  max_mapnr - ARCH_PFN_OFFSET - reservedpages;
 
 	/* do not count in kernel image between _rambase and _ramstart */
 	reservedpages -= (_ramstart - _rambase) >> PAGE_SHIFT;
@@ -125,7 +125,7 @@ void __init mem_init(void)
 	printk(KERN_INFO
 	     "Memory available: %luk/%luk RAM, "
 		"(%uk init code, %uk kernel code, %uk data, %uk dma, %uk reserved)\n",
-		(unsigned long) freepages << (PAGE_SHIFT-10), _ramend >> 10,
+		(unsigned long) freepages << (PAGE_SHIFT-10), (_ramend - CONFIG_PHY_RAM_BASE_ADDRESS) >> 10,
 		initk, codek, datak, DMA_UNCACHED_REGION >> 10, (reservedpages << (PAGE_SHIFT-10)));
 }
 
