@@ -29,7 +29,6 @@ extern void sigreturn_stub(void);
 #endif
 #endif
 
-#ifdef CONFIG_BF609_FPGA
 #define FIXED_CODE_START	CONFIG_PHY_RAM_BASE_ADDRESS + 0x400
 
 #define SIGRETURN_STUB		CONFIG_PHY_RAM_BASE_ADDRESS + 0x400
@@ -49,28 +48,5 @@ extern void sigreturn_stub(void);
 #define SAFE_USER_INSTRUCTION   CONFIG_PHY_RAM_BASE_ADDRESS + 0x480
 
 #define FIXED_CODE_END		CONFIG_PHY_RAM_BASE_ADDRESS + 0x490
-
-#else
-#define FIXED_CODE_START	0x400
-
-#define SIGRETURN_STUB		0x400
-
-#define ATOMIC_SEQS_START	0x410
-
-#define ATOMIC_XCHG32		0x410
-#define ATOMIC_CAS32		0x420
-#define ATOMIC_ADD32		0x430
-#define ATOMIC_SUB32		0x440
-#define ATOMIC_IOR32		0x450
-#define ATOMIC_AND32		0x460
-#define ATOMIC_XOR32		0x470
-
-#define ATOMIC_SEQS_END		0x480
-
-#define SAFE_USER_INSTRUCTION   0x480
-
-#define FIXED_CODE_END		0x490
-
-#endif
 
 #endif

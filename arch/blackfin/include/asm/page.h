@@ -7,12 +7,8 @@
 #ifndef _BLACKFIN_PAGE_H
 #define _BLACKFIN_PAGE_H
 
-#ifdef CONFIG_BF609_FPGA
 #define ARCH_PFN_OFFSET (CONFIG_PHY_RAM_BASE_ADDRESS >> PAGE_SHIFT)
 #define MAP_NR(addr) (((unsigned long)(addr)-CONFIG_PHY_RAM_BASE_ADDRESS) >> PAGE_SHIFT)
-#else  
-#define MAP_NR(addr) (((unsigned long)(addr)-PAGE_OFFSET) >> PAGE_SHIFT)
-#endif
 
 #define VM_DATA_DEFAULT_FLAGS \
 	(VM_READ | VM_WRITE | \

@@ -704,7 +704,7 @@ void __init find_min_max_pfn(void)
 	int i;
 
 	max_pfn = 0;
-	min_low_pfn = memory_end;
+	min_low_pfn = PFN_DOWN(memory_end);
 
 	for (i = 0; i < bfin_memmap.nr_map; i++) {
 		unsigned long start, end;
@@ -747,11 +747,7 @@ static __init void setup_bootmem_allocator(void)
 	/* pfn of the first usable page frame after kernel image*/
 	if (min_low_pfn < memory_start >> PAGE_SHIFT)
 		min_low_pfn = memory_start >> PAGE_SHIFT;
-#ifdef CONFIG_BF609_FPGA
 	start_pfn = CONFIG_PHY_RAM_BASE_ADDRESS >> PAGE_SHIFT;
-#else
-	start_pfn = PAGE_OFFSET >> PAGE_SHIFT;
-#endif
 	end_pfn = memory_end >> PAGE_SHIFT;
 
 	/*
@@ -796,13 +792,8 @@ static __init void setup_bootmem_allocator(void)
 	}
 
 	/* reserve memory before memory_start, including bootmap */
-#ifdef CONFIG_BF609_FPGA
 	reserve_bootmem(CONFIG_PHY_RAM_BASE_ADDRESS,
 		memory_start + bootmap_size + PAGE_SIZE - 1 - CONFIG_PHY_RAM_BASE_ADDRESS,
-#else
-	reserve_bootmem(PAGE_OFFSET,
-		memory_start + bootmap_size + PAGE_SIZE - 1 - PAGE_OFFSET,
-#endif
 		BOOTMEM_DEFAULT);
 }
 

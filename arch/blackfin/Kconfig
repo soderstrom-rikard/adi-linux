@@ -379,7 +379,7 @@ config CMDLINE
 config BOOT_LOAD
 	hex "Kernel load address for booting"
 	default "0x1000"
-	range 0x1000 0xC0000000
+	range 0x1000 0xB8000000
 	help
 	  This option allows you to set the load address of the kernel.
 	  This can be useful if you are on a board which has a small amount
@@ -392,8 +392,8 @@ config BOOT_LOAD
 
 config PHY_RAM_BASE_ADDRESS
 	hex "Physical RAM Base"
-	depends on BF609_FPGA
-	default "0xB4000000"
+	default "0xB4000000" if BF609_FPGA
+	default "0"
 	help
 	  set BF609 FPGA physical SRAM base address
 
