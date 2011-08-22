@@ -476,7 +476,7 @@ sm_send_packet(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu,
 		payload_buf = kzalloc(m->msg.length, GFP_KERNEL);
 		if (!payload_buf) {
 			ret = -ENOMEM;
-			goto out;
+			goto fail1;
 		}
 		sm_debug("alloc buffer %x\n", payload_buf);
 
@@ -484,12 +484,12 @@ sm_send_packet(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu,
 
 		if (copy_from_user((void *)m->msg.payload, buf, m->msg.length)) {
 			ret = -EFAULT;
-			goto fail;
+			goto fail2;
 		}
 
 	} else {
 		ret = -EINVAL;
-		goto out;
+		goto fail1;
 	}
 
 	if (session->proto_ops->sendmsg) {
@@ -499,20 +499,24 @@ sm_send_packet(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu,
 		ret = 0;
 	}
 	if (ret)
-		goto fail;
+		goto fail2;
 
 	sm_debug("%s: len %d type %x dst %d dstep %d src %d srcep %d\n", __func__, m->msg.length, m->msg.type, m->dst, m->msg.dst_ep, m->src, m->msg.src_ep);
 retry:
 	ret = sm_send_message_internal(&m->msg, m->dst, m->src);
-	if ((!nonblock) && (ret == -EAGAIN)) {
+	if (ret == -EAGAIN) {
+		if (nonblock)
+			goto fail2;
 		interruptible_sleep_on(&icc_info->iccq_tx_wait);
 		goto retry;
 	} else {
 		goto out;
 	}
 
-fail:
+fail2:
 	kfree(payload_buf);
+fail1:
+	kfree(m);
 out:
 	return ret;
 }
@@ -535,9 +539,7 @@ static int sm_recv_scalar(sm_uint32_t session_idx, sm_uint16_t *src_ep,
 		sm_debug("recv sleep on queue\n");
 		if (nonblock)
 			return -EAGAIN;
-		mutex_unlock(&icc_info->sessions_table->lock);
 		interruptible_sleep_on(&session->rx_wait);
-		mutex_lock(&icc_info->sessions_table->lock);
 	}
 
 	if (list_empty(&session->rx_messages)) {
@@ -545,10 +547,12 @@ static int sm_recv_scalar(sm_uint32_t session_idx, sm_uint16_t *src_ep,
 		return -EINTR;
 	}
 
+	mutex_lock(&icc_info->sessions_table->lock);
 	message = list_first_entry(&session->rx_messages, struct sm_message, next);
 	msg = &message->msg;
 
 	list_del(&message->next);
+	mutex_unlock(&icc_info->sessions_table->lock);
 
 	if (src_ep)
 		*src_ep = msg->src_ep;
@@ -607,17 +611,19 @@ static int sm_recv_packet(sm_uint32_t session_idx, sm_uint16_t *src_ep,
 		sm_debug("recv sleep on queue\n");
 		if (nonblock)
 			return -EAGAIN;
-		mutex_unlock(&icc_info->sessions_table->lock);
 		interruptible_sleep_on(&session->rx_wait);
-		mutex_lock(&icc_info->sessions_table->lock);
 	}
 
-	if (list_empty(&session->rx_messages))
+	if (list_empty(&session->rx_messages)) {
+		sm_debug("should not fail here\n");
 		return -EINTR;
+	}
 
+	mutex_lock(&icc_info->sessions_table->lock);
 	message = list_first_entry(&session->rx_messages, struct sm_message, next);
 	msg = &message->msg;
 	list_del(&message->next);
+	mutex_unlock(&icc_info->sessions_table->lock);
 
 	if (src_ep)
 		*src_ep = msg->src_ep;
@@ -650,9 +656,7 @@ static int
 sm_wait_for_connect_ack(struct sm_session *session)
 {
 	long timeout;
-	mutex_unlock(&icc_info->sessions_table->lock);
 	interruptible_sleep_on(&session->rx_wait);
-	mutex_lock(&icc_info->sessions_table->lock);
 	if (signal_pending(current)) {
 		sm_debug("signal\n");
 		return -EINTR;
@@ -671,10 +675,8 @@ static int sm_get_remote_session_active(sm_uint32_t session_idx, sm_uint32_t dst
 		return -EINVAL;
 	session->type = SP_SESSION_PACKET;
 	sm_send_session_active(session, dst_ep, dst_cpu);
-	mutex_unlock(&icc_info->sessions_table->lock);
 	wait_event_interruptible_timeout(session->rx_wait,
 				(session->flags & SM_ACTIVE), 5);
-	mutex_lock(&icc_info->sessions_table->lock);
 
 	if (session->flags & SM_ACTIVE) {
 		sm_debug("received active ack\n");
@@ -755,6 +757,8 @@ static int sm_destroy_session(sm_uint32_t session_idx)
 	session = sm_index_to_session(session_idx);
 	if (!session)
 		return -EINVAL;
+
+	mutex_lock(&icc_info->sessions_table->lock);
 	while (!list_empty(&session->rx_messages)) {
 		message = list_first_entry(&session->rx_messages,
 					struct sm_message, next);
@@ -769,6 +773,7 @@ static int sm_destroy_session(sm_uint32_t session_idx)
 		list_del(&message->next);
 		kfree(message);
 	}
+	mutex_unlock(&icc_info->sessions_table->lock);
 
 	if (session->flags == SM_CONNECT)
 		sm_send_close(session, msg->src_ep, message->src);
@@ -908,8 +913,6 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	buf = pkt->buf;
 	nonblock = (file->f_flags & O_NONBLOCK) | (pkt->flag & O_NONBLOCK);
 
-	sm_debug("ioctl type %x\n", type);
-	mutex_lock(&icc_info->sessions_table->lock);
 	switch (cmd) {
 	case CMD_SM_SEND:
 		if ((SM_MSG_PROTOCOL(type) == SP_SCALAR) ||
@@ -934,7 +937,6 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		if (ret < 0) {
 			sm_debug("create session failed srcep %d\n", local_ep);
 			ret = -EINVAL;
-			break;
 		}
 		pkt->session_idx = ret;
 		break;
@@ -964,7 +966,6 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		break;
 	}
 
-	mutex_unlock(&icc_info->sessions_table->lock);
 	if (copy_to_user((void *)arg, pkt, sizeof(struct sm_packet)))
 		ret = -EFAULT;
 	kfree(pkt);
@@ -1043,8 +1044,10 @@ static int sm_default_sendmsg(struct sm_message *message, struct sm_session *ses
 		flush_dcache_range(msg->payload, msg->payload + msg->length);
 	case SP_SCALAR:
 	case SP_SESSION_SCALAR:
+		mutex_lock(&icc_info->sessions_table->lock);
 		list_add(&message->next, &session->tx_messages);
 		session->n_uncompleted++;
+		mutex_unlock(&icc_info->sessions_table->lock);
 		break;
 	case SM_PACKET_ERROR:
 		printk("SM ERROR %08x\n", msg->payload);

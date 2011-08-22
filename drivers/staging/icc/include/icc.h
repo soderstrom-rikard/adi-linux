@@ -159,14 +159,14 @@ struct sm_session {
 #define MAX_ENDPOINTS 32
 #define MAX_SESSIONS 32
 struct sm_session_table {
-	struct sm_session sessions[MAX_ENDPOINTS];
+	struct list_head next_table;
+	struct mutex lock;
 	uint32_t	nfree;
 	uint32_t session_mask;
 	uint32_t session_pending;
 	uint32_t	bits[(MAX_ENDPOINTS - 1) / BITS_PER_LONG + 1];
-	struct list_head next_table;
-	struct mutex lock;
 	sm_uint16_t	refcnt;
+	struct sm_session sessions[MAX_ENDPOINTS];
 };
 
 struct sm_proto {

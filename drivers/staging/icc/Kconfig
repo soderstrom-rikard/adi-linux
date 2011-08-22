@@ -4,7 +4,7 @@
 
 menuconfig ICC_DRIVER
 	bool "icc driver"
-	depends on !SMP
+	depends on !SMP && !BFIN_L2_DCACHEABLE
 	select BF561_COREB
 	help
 	  the icc driver is a device driver that control the DSP devices,
