@@ -95,4 +95,70 @@
 #define DMA_PIRQ		0
 #endif
 
+/*
+ * All Blackfin system MMRs are padded to 32bits even if the register
+ * itself is only 16bits.  So use a helper macro to streamline this.
+ */
+#define __BFP(m) u16 m; u16 __pad_##m
+
+/*
+ * bfin dma registers layout
+ */
+struct bfin_dma_regs {
+	u32 next_desc_ptr;
+	u32 start_addr;
+#ifdef CONFIG_BF60x
+	u32 cfg;
+	u32 x_count;
+	u32 x_modify;
+	u32 y_count;
+	u32 y_modify;
+	u32 pad1;
+	u32 pad2;
+	u32 curr_desc_ptr;
+	u32 prev_desc_ptr;
+	u32 curr_addr;
+	u32 irq_status;
+	u32 curr_x_count;
+	u32 curr_y_count;
+	u32 pad3;
+	u32 bw_limit_count;
+	u32 curr_bw_limit_count;
+	u32 bw_monitor_count;
+	u32 curr_bw_monitor_count;
+#else
+	__BFP(config);
+	u32 __pad0;
+	__BFP(x_count);
+	__BFP(x_modify);
+	__BFP(y_count);
+	__BFP(y_modify);
+	u32 curr_desc_ptr;
+	u32 curr_addr;
+	__BFP(irq_status);
+	__BFP(peripheral_map);
+	__BFP(curr_x_count);
+	u32 __pad1;
+	__BFP(curr_y_count);
+	u32 __pad2;
+#endif
+};
+
+#ifndef CONFIG_BF60x
+/*
+ * bfin handshake mdma registers layout
+ */
+struct bfin_hmdma_regs {
+	__BFP(control);
+	__BFP(ecinit);
+	__BFP(bcinit);
+	__BFP(ecurgent);
+	__BFP(ecoverflow);
+	__BFP(ecount);
+	__BFP(bcount);
+};
+#endif
+
+#undef __BFP
+
 #endif
