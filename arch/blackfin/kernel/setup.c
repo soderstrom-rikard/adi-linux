@@ -611,7 +611,8 @@ static __init void memory_setup(void)
 
 		/* ROM_FS is XIP, so if we found it, we need to limit memory */
 		if (memory_end > max_mem) {
-			pr_info("Limiting kernel memory to %liMB due to anomaly 05000263\n", max_mem >> 20);
+			pr_info("Limiting kernel memory to %liMB due to anomaly 05000263\n",
+				(max_mem - CONFIG_PHY_RAM_BASE_ADDRESS) >> 20);
 			memory_end = max_mem;
 		}
 	}
@@ -641,7 +642,8 @@ static __init void memory_setup(void)
 	 * doesn't exist, or we don't need to - then dont.
 	 */
 	if (memory_end > max_mem) {
-		pr_info("Limiting kernel memory to %liMB due to anomaly 05000263\n", max_mem >> 20);
+		pr_info("Limiting kernel memory to %liMB due to anomaly 05000263\n",
+				(max_mem - CONFIG_PHY_RAM_BASE_ADDRESS) >> 20);
 		memory_end = max_mem;
 	}
 
@@ -660,8 +662,8 @@ static __init void memory_setup(void)
 	init_mm.end_data = (unsigned long)_edata;
 	init_mm.brk = (unsigned long)0;
 
-	printk(KERN_INFO "Board Memory: %ldMB\n", physical_mem_end >> 20);
-	printk(KERN_INFO "Kernel Managed Memory: %ldMB\n", _ramend >> 20);
+	printk(KERN_INFO "Board Memory: %ldMB\n", (physical_mem_end - CONFIG_PHY_RAM_BASE_ADDRESS) >> 20);
+	printk(KERN_INFO "Kernel Managed Memory: %ldMB\n", (_ramend - CONFIG_PHY_RAM_BASE_ADDRESS) >> 20);
 
 	printk(KERN_INFO "Memory map:\n"
 	       "  fixedcode = 0x%p-0x%p\n"
