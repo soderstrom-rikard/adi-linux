@@ -1022,7 +1022,6 @@ void __init setup_arch(char **cmdline_p)
 	   these locations are the ones that we advertise to userspace.  */
 	memcpy((void *)FIXED_CODE_START, &fixed_code_start,
 	       FIXED_CODE_END - FIXED_CODE_START);
-#ifndef CONFIG_BF609_FPGA
 	BUG_ON((char *)&sigreturn_stub - (char *)&fixed_code_start
 	       != SIGRETURN_STUB - FIXED_CODE_START);
 	BUG_ON((char *)&atomic_xchg32 - (char *)&fixed_code_start
@@ -1041,7 +1040,7 @@ void __init setup_arch(char **cmdline_p)
 	       != ATOMIC_XOR32 - FIXED_CODE_START);
 	BUG_ON((char *)&safe_user_instruction - (char *)&fixed_code_start
 		!= SAFE_USER_INSTRUCTION - FIXED_CODE_START);
-#endif
+
 #ifdef CONFIG_SMP
 	platform_init_cpus();
 #endif
