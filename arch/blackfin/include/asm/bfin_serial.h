@@ -163,7 +163,7 @@ struct bfin_serial_port {
 #define ETFI                     0x20  /* Enable Transmission Finished Interrupt */
 #define ERFCI                    0x40  /* Enable Receive FIFO Count Interrupt */
 
-#ifdef BFIN_UART_BF60X_STYLE
+#if defined(BFIN_UART_BF60X_STYLE)
 # define OFFSET_REDIV            0x00  /* Version ID Register             */
 # define OFFSET_CTL              0x04  /* Control Register                */
 # define OFFSET_STAT             0x08  /* Status Register                 */
@@ -174,7 +174,7 @@ struct bfin_serial_port {
 # define OFFSET_IER_CLEAR        0x1C  /* Clear Interrupt Enable Register */
 # define OFFSET_RBR              0x20  /* Receive Buffer register         */
 # define OFFSET_THR              0x24  /* Transmit Holding register       */
-#elif BFIN_UART_BF54X_STYLE
+#elif defined(BFIN_UART_BF54X_STYLE)
 # define OFFSET_DLL              0x00  /* Divisor Latch (Low-Byte)        */
 # define OFFSET_DLH              0x04  /* Divisor Latch (High-Byte)       */
 # define OFFSET_GCTL             0x08  /* Global Control Register         */
@@ -210,7 +210,7 @@ struct bfin_serial_port {
  */
 #define __BFP(m) u16 m; u16 __pad_##m
 struct bfin_uart_regs {
-#ifdef BFIN_UART_BF60X_STYLE
+#if defined(BFIN_UART_BF60X_STYLE)
 	u32 revid;
 	u32 ctl;
 	u32 stat;
@@ -226,7 +226,7 @@ struct bfin_uart_regs {
 	u32 rsr;
 	u32 txdiv;
 	u32 rxdiv;
-#elif BFIN_UART_BF54X_STYLE
+#elif defined(BFIN_UART_BF54X_STYLE)
 	__BFP(dll);
 	__BFP(dlh);
 	__BFP(gctl);
