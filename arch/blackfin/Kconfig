@@ -392,8 +392,8 @@ config BOOT_LOAD
 
 config PHY_RAM_BASE_ADDRESS
 	hex "Physical RAM Base"
-	default "0xB4000000" if BF609_FPGA
-	default "0"
+	default 0xB4000000 if BF609_FPGA
+	default 0x0
 	help
 	  set BF609 FPGA physical SRAM base address
 

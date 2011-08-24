@@ -29,6 +29,10 @@ extern void sigreturn_stub(void);
 #endif
 #endif
 
+#ifndef CONFIG_PHY_RAM_BASE_ADDRESS
+#define CONFIG_PHY_RAM_BASE_ADDRESS	0x0
+#endif
+
 #define FIXED_CODE_START	(CONFIG_PHY_RAM_BASE_ADDRESS + 0x400)
 
 #define SIGRETURN_STUB		(CONFIG_PHY_RAM_BASE_ADDRESS + 0x400)
