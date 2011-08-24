@@ -105,7 +105,6 @@ static int sm_message_dequeue(int srccpu, struct sm_msg *msg)
 	received = sm_atomic_read(&inqueue->received);
 	received++;
 	sm_atomic_write(&inqueue->received, received);
-	sm_debug("received %d\n", received);
 	return 0;
 }
 
@@ -507,7 +506,9 @@ retry:
 	if (ret == -EAGAIN) {
 		if (nonblock)
 			goto fail2;
+		sm_debug(">>>>sleep on send queue\n");
 		interruptible_sleep_on(&icc_info->iccq_tx_wait);
+		sm_debug("<<<<wakeup send queue\n");
 		goto retry;
 	} else {
 		goto out;
@@ -1014,7 +1015,7 @@ static int msg_recv_internal(struct sm_msg *msg, struct sm_session *session)
 	if (!message)
 		return -ENOMEM;
 	else
-		memcpy(&message->msg, msg, sizeof(struct sm_message));
+		memcpy(&message->msg, msg, sizeof(struct sm_msg));
 
 	message->dst = cpu;
 	message->src = cpu ^ 1;
@@ -1070,12 +1071,11 @@ sm_default_recvmsg(struct sm_msg *msg, struct sm_session *session)
 	case SM_SESSION_PACKET_CONSUMED:
 		mutex_lock(&icc_info->sessions_table->lock);
 		/* icc queue is FIFO, so handle first message */
-		list_for_each_entry(uncompleted, &session->tx_messages, next) {
+		list_for_each_entry_reverse(uncompleted, &session->tx_messages, next) {
 			if (uncompleted->msg.payload == msg->payload) {
-				sm_debug("ack matched free buf %x\n", msg->payload);
+				sm_debug("ack matched free buf %x message %p %p %p\n", msg->payload, uncompleted, uncompleted->next.next, uncompleted->next.prev);
 				goto matched;
 			}
-			sm_debug("unmatched ack %08x %x uncomplete tx %08x\n", msg->payload, msg->length, uncompleted->msg.payload);
 		}
 		mutex_unlock(&icc_info->sessions_table->lock);
 		break;
@@ -1096,7 +1096,6 @@ matched:
 				sm_debug("ack matched free buf %x\n", msg->payload);
 				goto matched1;
 			}
-			sm_debug("unmatched ack %08x %x uncomplete tx %08x\n", msg->payload, msg->length, uncompleted->msg.payload);
 		}
 		mutex_unlock(&icc_info->sessions_table->lock);
 		break;
@@ -1288,8 +1287,7 @@ void msg_handle(int cpu)
 	msg = &inqueue->messages[(received % SM_MSGQ_LEN)];
 
 	if (msg->type == SM_BAD_MSG) {
-		sm_debug("%p %s", msg->payload, msg->payload);
-		sm_debug("\t%d : %d\n", msg->src_ep, msg->dst_ep);
+		printk(KERN_WARNING "%s", msg->payload);
 		sm_message_dequeue(cpu, msg);
 		return;
 	}
