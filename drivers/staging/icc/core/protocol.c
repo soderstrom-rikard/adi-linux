@@ -777,7 +777,7 @@ static int sm_destroy_session(sm_uint32_t session_idx)
 	mutex_unlock(&icc_info->sessions_table->lock);
 
 	if (session->flags == SM_CONNECT)
-		sm_send_close(session, msg->src_ep, message->src);
+		sm_send_close(session, session->remote_ep, 1);
 
 	sm_free_session(session_idx, table);
 	return 0;
