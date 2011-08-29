@@ -1020,6 +1020,13 @@ static int msg_recv_internal(struct sm_msg *msg, struct sm_session *session)
 	message->dst = cpu;
 	message->src = cpu ^ 1;
 
+	if ((SM_MSG_PROTOCOL(msg->type) == SP_SCALAR))
+		sm_send_scalar_ack(session, msg->src_ep, message->src,
+				msg->payload, msg->length);
+	else if ((SM_MSG_PROTOCOL(msg->type) == SP_SESSION_SCALAR))
+		sm_send_session_scalar_ack(session, msg->src_ep, message->src,
+				msg->payload, msg->length);
+
 	if (session->handle) {
 		session->handle(message, session);
 		return 0;
