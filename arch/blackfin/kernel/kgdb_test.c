@@ -51,6 +51,8 @@ void kgdb_l2_test(void)
 #endif
 
 
+int kgdb_test(char *name, int len, int count, int z) __attribute__((__noinline__));
+
 int kgdb_test(char *name, int len, int count, int z)
 {
 	pr_alert("kgdb name(%d): %s, %d, %d\n", len, name, count, z);
