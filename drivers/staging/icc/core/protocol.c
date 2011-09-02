@@ -227,7 +227,7 @@ static int sm_send_message_internal(struct sm_msg *msg, int dst_cpu,
 					int src_cpu)
 {
 	int ret = 0;
-	sm_debug("%s: dst %d src %d\n", __func__, dst_cpu, src_cpu);
+	sm_debug("%s: dst %d src %d %08x\n", __func__, dst_cpu, src_cpu, msg->type);
 	ret = sm_message_enqueue(dst_cpu, src_cpu, msg);
 	if (!ret)
 		icc_send_ipi_cpu(dst_cpu, IRQ_SUPPLE_0);
@@ -752,6 +752,7 @@ static int sm_close_session(sm_uint32_t index)
 static int sm_destroy_session(sm_uint32_t session_idx)
 {
 	struct sm_message *message;
+	struct sm_message *uncompleted;
 	struct sm_msg *msg;
 	struct sm_session *session;
 	struct sm_session_table *table = icc_info->sessions_table;
@@ -776,8 +777,23 @@ static int sm_destroy_session(sm_uint32_t session_idx)
 	}
 	mutex_unlock(&icc_info->sessions_table->lock);
 
-	if (session->flags == SM_CONNECT)
+	mutex_lock(&icc_info->sessions_table->lock);
+	while (!list_empty(&session->tx_messages)) {
+		mutex_unlock(&icc_info->sessions_table->lock);
+		schedule_timeout(500);
+		mutex_lock(&icc_info->sessions_table->lock);
+	}
+	mutex_unlock(&icc_info->sessions_table->lock);
+
+	if (session->flags == SM_CONNECT) {
 		sm_send_close(session, session->remote_ep, 1);
+
+		interruptible_sleep_on(&session->rx_wait);
+		if (signal_pending(current)) {
+			sm_debug("signal\n");
+			return -EINTR;
+		}
+	}
 
 	sm_free_session(session_idx, table);
 	return 0;
@@ -1311,19 +1327,16 @@ void msg_handle(int cpu)
 	sm_debug("session %p index %d msg type%x\n", session, index, msg->type);
 
 	if (!session) {
+		sm_debug("discard msg type %x\n", msg->type);
 		sm_message_dequeue(cpu, msg);
+		wake_up(&icc_info->iccq_tx_wait);
 		return;
 	}
 
-	if (session) {
-		if (session->proto_ops->recvmsg)
-			session->proto_ops->recvmsg(msg, session);
-		else
-			sm_debug("session type not supported\n");
-	} else {
-		sm_debug("discard msg type %x sessiontype %x\n", msg->type, session->type);
-		sm_message_dequeue(cpu, msg);
-	}
+	if (session->proto_ops->recvmsg)
+		session->proto_ops->recvmsg(msg, session);
+	else
+		sm_debug("session type not supported\n");
 }
 
 static int message_queue_thread(void *d)
