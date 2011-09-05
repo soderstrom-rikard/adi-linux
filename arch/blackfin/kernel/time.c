@@ -56,7 +56,11 @@ void __init setup_core_timer(void)
 	/* the TSCALE prescaler counter */
 	bfin_write_TSCALE(TIME_SCALE - 1);
 
+#ifdef CONFIG_BF609_FPGA
+	tcount = ((get_cclk() / ((HZ/100) * TIME_SCALE)) - 1);
+#else
 	tcount = ((get_cclk() / (HZ * TIME_SCALE)) - 1);
+#endif
 	bfin_write_TPERIOD(tcount);
 	bfin_write_TCOUNT(tcount);
 
