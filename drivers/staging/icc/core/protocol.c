@@ -587,7 +587,7 @@ static int sm_recv_scalar(sm_uint32_t session_idx, sm_uint16_t *src_ep,
 		}
 	}
 
-	sm_debug("scalar0 %x, scalar1 %x\n", *scalar0, *scalar1);
+	sm_debug("scalar0 %x, scalar1 %x type %d\n", *scalar0, *scalar1, *type);
 	session->n_avail--;
 	kfree(message);
 
@@ -762,6 +762,7 @@ static int sm_destroy_session(sm_uint32_t session_idx)
 
 	mutex_lock(&icc_info->sessions_table->lock);
 	while (!list_empty(&session->rx_messages)) {
+		sm_debug("drain rx list\n");
 		message = list_first_entry(&session->rx_messages,
 					struct sm_message, next);
 		msg = &message->msg;
@@ -1048,7 +1049,7 @@ static int msg_recv_internal(struct sm_msg *msg, struct sm_session *session)
 		return 0;
 	}
 	mutex_lock(&icc_info->sessions_table->lock);
-	list_add(&message->next, &session->rx_messages);
+	list_add_tail(&message->next, &session->rx_messages);
 	session->n_avail++;
 	sm_debug("%s wakeup wait thread\n", __func__);
 	wake_up(&session->rx_wait);
@@ -1069,7 +1070,7 @@ static int sm_default_sendmsg(struct sm_message *message, struct sm_session *ses
 	case SP_SCALAR:
 	case SP_SESSION_SCALAR:
 		mutex_lock(&icc_info->sessions_table->lock);
-		list_add(&message->next, &session->tx_messages);
+		list_add_tail(&message->next, &session->tx_messages);
 		session->n_uncompleted++;
 		mutex_unlock(&icc_info->sessions_table->lock);
 		break;
@@ -1094,7 +1095,7 @@ sm_default_recvmsg(struct sm_msg *msg, struct sm_session *session)
 	case SM_SESSION_PACKET_CONSUMED:
 		mutex_lock(&icc_info->sessions_table->lock);
 		/* icc queue is FIFO, so handle first message */
-		list_for_each_entry_reverse(uncompleted, &session->tx_messages, next) {
+		list_for_each_entry(uncompleted, &session->tx_messages, next) {
 			if (uncompleted->msg.payload == msg->payload) {
 				sm_debug("ack matched free buf %x message %p %p %p\n", msg->payload, uncompleted, uncompleted->next.next, uncompleted->next.prev);
 				goto matched;
@@ -1163,12 +1164,17 @@ matched1:
 		}
 		break;
 	case SM_SESSION_PACKET_CLOSE:
+	case SM_SESSION_SCALAR_CLOSE:
 		session->remote_ep = 0;
 		session->flags = 0;
 		sm_send_close_ack(session, msg->src_ep, cpu ^ 1);
+		break;
 	case SM_SESSION_PACKET_CLOSE_ACK:
+	case SM_SESSION_SCALAR_CLOSE_ACK:
 		session->remote_ep = 0;
 		session->flags = 0;
+		wake_up(&session->rx_wait);
+		break;
 	case SM_PACKET_READY:
 	case SM_SESSION_PACKET_READY:
 		if (SM_MSG_PROTOCOL(msg->type) != session->type) {
@@ -1311,12 +1317,6 @@ void msg_handle(int cpu)
 
 	if (msg->type == SM_BAD_MSG) {
 		printk(KERN_WARNING "%s", msg->payload);
-		sm_message_dequeue(cpu, msg);
-		return;
-	}
-
-	if (icc_handle_scalar_cmd(msg)) {
-		sm_debug("handle scalar cmd\n");
 		sm_message_dequeue(cpu, msg);
 		return;
 	}
