@@ -68,10 +68,12 @@
 #define ADUX1001_SLRA_CAL3	0x16 /* Smart LRA mode calibration results
 					register 3. Maximum negative back EMF
 					value R/W */
-#define ADUX1001_SLRA_CAL4	0x17 /* Smart LRA mode calibration results
-					register 4. LRA resonance period R/W */
-#define ADUX1001_SLRA_CAL5	0x18 /* Smart LRA mode calibration results
-					register 5. LRA resonance period R/W */
+#define ADUX1001_RESERVED0	0x17 /* LRA specific values (RESET: 0x63) */
+#define ADUX1001_RESERVED1	0x18 /* LRA specific values (RESET: 0x10) */
+#define ADUX1001_RESERVED2	0x19 /* LRA specific values (RESET: 0x41) */
+#define ADUX1001_RESERVED3	0x1A /* LRA specific values (RESET: 0x5C) */
+#define ADUX1001_RESERVED4	0x1B /* LRA specific values (RESET: 0x02) */
+
 #define ADUX1001_STATUS		0x1C /* Status flags R */
 #define ADUX1001_VERSION	0x1D /* ADUX1001 silicon revision R */
 
@@ -107,7 +109,8 @@
 #define ADUX1001_I2C_MODE_ACTIVATE	(1 << 0)
 
 /* CALIBRATE, Register Address 0x12, Reset 0x00 */
-#define ADUX1001_CAL_CYCLES(x)		(((x) & 0x1F) << 1)
+#define ADUX1001_PERIOD_CAL_CYCLES(x)	(((x) & 0x7) << 5)
+#define ADUX1001_AMP_CAL_CYCLES(x)	(((x) & 0xF) << 1)
 #define ADUX1001_CALIBRATE_EN		(1 << 0)
 
 /* STATUS, Register Address 0x1C, Reset 0x20 */
@@ -163,7 +166,8 @@ static int adux1001_calibrate(struct i2c_client *client)
 	unsigned val, delay_ms;
 	int ret;
 
-	val = ADUX1001_CAL_CYCLES(pdata->calibration_cycles) |
+	val = ADUX1001_PERIOD_CAL_CYCLES(pdata->period_calibration_cycles) |
+		ADUX1001_AMP_CAL_CYCLES(pdata->amp_calibration_cycles) |
 		ADUX1001_CALIBRATE_EN;
 
 	ret = i2c_smbus_write_byte_data(client, ADUX1001_CALIBRATE, val);
@@ -172,7 +176,7 @@ static int adux1001_calibrate(struct i2c_client *client)
 		return ret;
 	}
 	/* assume default resonant period value (6.55ms) */
-	delay_ms = pdata->calibration_cycles * 7;
+	delay_ms = pdata->amp_calibration_cycles * 7;
 
 	do {
 		msleep(delay_ms);
@@ -196,7 +200,7 @@ static int adux1001_read_calibdata(struct i2c_client *client,
 	unsigned char *data = (unsigned char *) calib_data;
 	int reg, ret;
 
-	for (reg = ADUX1001_SLRA_CAL0; reg <= ADUX1001_SLRA_CAL5; reg++) {
+	for (reg = ADUX1001_SLRA_CAL0; reg <= ADUX1001_SLRA_CAL3; reg++) {
 		ret = i2c_smbus_read_byte_data(client, reg);
 		if (ret < 0)
 			return ret;
@@ -212,9 +216,25 @@ static int adux1001_write_calibdata(struct i2c_client *client,
 	unsigned char *data = (unsigned char *) calib_data;
 	int reg, ret;
 
-	for (reg = ADUX1001_SLRA_CAL0; reg <= ADUX1001_SLRA_CAL5; reg++) {
+	for (reg = ADUX1001_SLRA_CAL0; reg <= ADUX1001_SLRA_CAL3; reg++) {
 		ret = i2c_smbus_write_byte_data(client, reg,
 						data[reg - ADUX1001_SLRA_CAL0]);
+		if (ret < 0)
+			return ret;
+	 }
+
+	return 0;
+}
+
+static int adux1001_write_reserved_data(struct i2c_client *client,
+				struct adux1001_reserved_data *reserved_data)
+{
+	unsigned char *data = (unsigned char *) reserved_data;
+	int reg, ret;
+
+	for (reg = ADUX1001_RESERVED0; reg <= ADUX1001_RESERVED4; reg++) {
+		ret = i2c_smbus_write_byte_data(client, reg,
+						data[reg - ADUX1001_RESERVED0]);
 		if (ret < 0)
 			return ret;
 	 }
@@ -244,12 +264,11 @@ static int adux1001_setup(struct i2c_client *client)
 	}
 
 	val = i2c_smbus_read_byte_data(client, ADUX1001_VERSION);
-	if ((val & ADUX1001_VERSION_MASK) <= 1) {
-		/* Workaround for Silicon Rev.0 */
-		i2c_smbus_write_byte_data(client, 0x19, 0x47);
-		i2c_smbus_write_byte_data(client, 0x1A, 0xC0);
-		i2c_smbus_write_byte_data(client, 0x1B, 0x68);
-	}
+	if ((val & ADUX1001_VERSION_MASK) <= 1)
+		dev_err(&client->dev, "unsupported VERSION detected\n");
+
+	if (pdata->reserved_data)
+		adux1001_write_reserved_data(client, pdata->reserved_data);
 
 	config = ADUX1001_UVLO_EN(!pdata->uvlo_dis) |
 		ADUX1001_OCLO_EN(!pdata->oclo_dis) |

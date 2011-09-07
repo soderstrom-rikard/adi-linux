@@ -21,8 +21,14 @@ struct adux1001_calib_data {
 	unsigned char slra_cal1;
 	unsigned char slra_cal2;
 	unsigned char slra_cal3;
-	unsigned char slra_cal4;
-	unsigned char slra_cal5;
+} __packed;
+
+struct adux1001_reserved_data {
+	unsigned char reserved0;
+	unsigned char reserved1;
+	unsigned char reserved2;
+	unsigned char reserved3;
+	unsigned char reserved4;
 } __packed;
 
 struct i2c_client; /* forward declaration */
@@ -69,7 +75,7 @@ struct adux1001_vibra_platform_data {
 
 	unsigned char loop_gain;		/* 2..15 */
 
-	/* 0..8, from 50mA - 150mA in 12.5mA steps */
+	/* 0..7, from 40mA - 160mA in 10mA steps */
 	unsigned char max_output_current;
 
 	bool lra_output_unit_1ms;		/* true = 1ms, false = LRA
@@ -79,7 +85,10 @@ struct adux1001_vibra_platform_data {
 	unsigned char output_rate;		/* Rate = lra_output_unit *
 						 * output_rate, 1..127 */
 
-	unsigned char calibration_cycles;	/* 1..31 */
+	unsigned char period_calibration_cycles;	/* 0..7 */
+	unsigned char amp_calibration_cycles;		/* 0..15 */
+
+	struct adux1001_reserved_data *reserved_data;
 
 	/* initial arbitrary waveform buffer */
 	unsigned char *arb_wform_buffer_array;
