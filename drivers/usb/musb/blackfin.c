@@ -539,18 +539,6 @@ static int __exit bfin_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int bfin_suspend(struct device *dev)
 {
-	struct bfin_glue	*glue = dev_get_drvdata(dev);
-	struct musb		*musb = glue_to_musb(glue);
-
-	if (is_host_active(musb))
-		/*
-		 * During hibernate gpio_vrsel will change from high to low
-		 * low which will generate wakeup event resume the system
-		 * immediately.  Set it to 0 before hibernate to avoid this
-		 * wakeup event.
-		 */
-		gpio_set_value(musb->config->gpio_vrsel, 0);
-
 	return 0;
 }
 
