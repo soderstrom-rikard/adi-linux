@@ -211,32 +211,18 @@ static int bcap_mmap(struct file *file, struct vm_area_struct *vma)
 
 #ifndef CONFIG_MMU
 static unsigned long bcap_get_unmapped_area(struct file *file,
-		unsigned long addr, unsigned long len, unsigned long pgoff,
-		unsigned long flags)
+					    unsigned long addr,
+					    unsigned long len,
+					    unsigned long pgoff,
+					    unsigned long flags)
 {
 	struct bcap_device *bcap_dev = video_drvdata(file);
-	struct vb2_queue *q = &bcap_dev->buffer_queue;
-	struct vb2_buffer *vb;
-	unsigned int buffer, plane;
-	unsigned long off = pgoff << PAGE_SHIFT;
-	int found = 0;
 
-	for (buffer = 0; buffer < q->num_buffers; ++buffer) {
-		vb = q->bufs[buffer];
-
-		for (plane = 0; plane < vb->num_planes; ++plane) {
-			if (vb->v4l2_planes[plane].m.mem_offset == off) {
-				found = 1;
-				break;
-			}
-		}
-		if (found)
-			break;
-	}
-	if (buffer == q->num_buffers)
-		return -EINVAL;
-	addr = (unsigned long)vb2_plane_vaddr(vb, 0);
-	return addr;
+	return vb2_get_unmapped_area(&bcap_dev->buffer_queue,
+				     addr,
+				     len,
+				     pgoff,
+				     flags);
 }
 #endif
 
