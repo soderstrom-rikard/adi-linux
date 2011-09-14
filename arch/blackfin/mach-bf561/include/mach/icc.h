@@ -17,6 +17,7 @@ typedef unsigned long sm_uint32_t;
 typedef sm_uint32_t sm_address_t;
 typedef sm_uint16_t sm_atomic_t;
 #define MSGQ_START_ADDR		0xFEB18000
+#define MSGQ_SIZE		0x4000
 #define DEBUG_MSG_BUF_ADDR	0xFEB1F000
 
 #define COREB_TASK_START	0x3C00000

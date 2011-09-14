@@ -132,7 +132,7 @@ struct sm_message {
 	sm_uint32_t flags;
 };
 
-#define SM_MSGQ_LEN 8
+#define SM_MSGQ_LEN 16
 
 /* Simple FIFO buffer */
 struct sm_message_queue {

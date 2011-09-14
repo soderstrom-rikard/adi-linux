@@ -606,8 +606,6 @@ static int sm_recv_packet(sm_uint32_t session_idx, sm_uint16_t *src_ep,
 	if (!session)
 		return -EINVAL;
 
-	sm_debug("recv sleep on queue index %s index %d\n", __func__, session_idx);
-
 	if (list_empty(&session->rx_messages)) {
 		sm_debug("recv sleep on queue\n");
 		if (nonblock)
@@ -636,7 +634,7 @@ static int sm_recv_packet(sm_uint32_t session_idx, sm_uint16_t *src_ep,
 		*buf_len = message->msg.length;
 
 
-	sm_debug("recv %s\n", message->msg.payload);
+	sm_debug("recv {%s}\n", message->msg.payload);
 
 	copy_to_user(user_buf, (void *)message->msg.payload, message->msg.length);
 	invalidate_dcache_range(msg->payload, msg->payload + msg->length);
@@ -781,7 +779,11 @@ static int sm_destroy_session(sm_uint32_t session_idx)
 	mutex_lock(&icc_info->sessions_table->lock);
 	while (!list_empty(&session->tx_messages)) {
 		mutex_unlock(&icc_info->sessions_table->lock);
-		schedule_timeout(500);
+		set_current_state(TASK_INTERRUPTIBLE);
+		sm_debug("drain tx list\n");
+		schedule_timeout(HZ * 2);
+		sm_debug("drain tx list1\n");
+		set_current_state(TASK_RUNNING);
 		mutex_lock(&icc_info->sessions_table->lock);
 	}
 	mutex_unlock(&icc_info->sessions_table->lock);
@@ -789,6 +791,7 @@ static int sm_destroy_session(sm_uint32_t session_idx)
 	if (session->flags == SM_CONNECT) {
 		sm_send_close(session, session->remote_ep, 1);
 
+		sm_debug("send close\n");
 		interruptible_sleep_on(&session->rx_wait);
 		if (signal_pending(current)) {
 			sm_debug("signal\n");
@@ -1051,7 +1054,7 @@ static int msg_recv_internal(struct sm_msg *msg, struct sm_session *session)
 	mutex_lock(&icc_info->sessions_table->lock);
 	list_add_tail(&message->next, &session->rx_messages);
 	session->n_avail++;
-	sm_debug("%s wakeup wait thread\n", __func__);
+	sm_debug("%s wakeup wait thread avail %d\n", __func__, session->n_avail);
 	wake_up(&session->rx_wait);
 	mutex_unlock(&icc_info->sessions_table->lock);
 	return ret;
@@ -1225,6 +1228,7 @@ static int sm_task_sendmsg(struct sm_message *message, struct sm_session *sessio
 	sm_debug("%s msg type %x\n", __func__, msg->type);
 	switch (msg->type) {
 	case SM_TASK_RUN:
+		flush_dcache_range(0x3C00000, 0x3FFFFFF);
 		task = (struct sm_task *)msg->payload;
 		sm_debug("%s init addr%p\n", __func__, task->task_init);
 		break;
@@ -1400,7 +1404,6 @@ icc_write_proc(struct file *file, const char __user * buffer,
 	sm_debug(" %d", session->remote_ep);
 	sm_debug(" %X", session->type);
 	sm_debug(" %X\n", session->flags);
-
 	return count;
 }
 
