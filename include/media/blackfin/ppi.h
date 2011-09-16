@@ -58,6 +58,6 @@ struct ppi_if {
 	void *priv;
 };
 
-struct ppi_if *create_ppi_instance(const struct ppi_info *info);
-void delete_ppi_instance(struct ppi_if *ppi);
+struct ppi_if *ppi_create_instance(const struct ppi_info *info);
+void ppi_delete_instance(struct ppi_if *ppi);
 #endif

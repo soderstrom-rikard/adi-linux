@@ -17,15 +17,12 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <linux/kernel.h>
 #include <linux/slab.h>
-#include <linux/ioport.h>
-#include <linux/platform_device.h>
 
 #include <asm/bfin_ppi.h>
-#include <asm/dma.h>
-#include <asm/cacheflush.h>
 #include <asm/blackfin.h>
+#include <asm/cacheflush.h>
+#include <asm/dma.h>
 #include <asm/portmux.h>
 
 #include <media/blackfin/ppi.h>
@@ -172,11 +169,11 @@ static void ppi_update_addr(struct ppi_if *ppi, unsigned long addr)
 	set_dma_start_addr(ppi->info->dma_ch, addr);
 }
 
-struct ppi_if *create_ppi_instance(const struct ppi_info *info)
+struct ppi_if *ppi_create_instance(const struct ppi_info *info)
 {
 	struct ppi_if *ppi;
 
-	if ((info == NULL) || (info->name == NULL) || (info->pin_req == NULL))
+	if (!info || !info->name || !info->pin_req)
 		return NULL;
 
 	if (peripheral_request_list(info->pin_req, KBUILD_MODNAME)) {
@@ -185,7 +182,7 @@ struct ppi_if *create_ppi_instance(const struct ppi_info *info)
 	}
 
 	ppi = kzalloc(sizeof(*ppi), GFP_KERNEL);
-	if (ppi == NULL) {
+	if (!ppi) {
 		peripheral_free_list(info->pin_req);
 		pr_err("unable to allocate memory for ppi handle\n");
 		return NULL;
@@ -197,7 +194,7 @@ struct ppi_if *create_ppi_instance(const struct ppi_info *info)
 	return ppi;
 }
 
-void delete_ppi_instance(struct ppi_if *ppi)
+void ppi_delete_instance(struct ppi_if *ppi)
 {
 	peripheral_free_list(ppi->info->pin_req);
 	kfree(ppi);

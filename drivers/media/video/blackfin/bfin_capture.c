@@ -17,31 +17,26 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/io.h>
+#include <linux/completion.h>
 #include <linux/delay.h>
 #include <linux/errno.h>
 #include <linux/fs.h>
+#include <linux/i2c.h>
+#include <linux/init.h>
 #include <linux/interrupt.h>
-#include <linux/completion.h>
+#include <linux/io.h>
 #include <linux/mm.h>
-#include <linux/moduleparam.h>
-#include <linux/time.h>
-#include <linux/version.h>
-#include <linux/device.h>
+#include <linux/module.h>
 #include <linux/platform_device.h>
-#include <linux/clk.h>
-#include <linux/sched.h>
 #include <linux/slab.h>
+#include <linux/time.h>
+#include <linux/types.h>
 
-#include <media/v4l2-common.h>
-#include <media/v4l2-ioctl.h>
-#include <media/v4l2-device.h>
-#include <media/videobuf2-dma-contig.h>
 #include <media/v4l2-chip-ident.h>
+#include <media/v4l2-common.h>
+#include <media/v4l2-device.h>
+#include <media/v4l2-ioctl.h>
+#include <media/videobuf2-dma-contig.h>
 
 #include <asm/dma.h>
 
@@ -69,7 +64,7 @@ struct bcap_device {
 	struct video_device *video_dev;
 	/* sub device instance */
 	struct v4l2_subdev *sd;
-	/* caputre config */
+	/* capture config */
 	struct bfin_capture_config *cfg;
 	/* ppi interface */
 	struct ppi_if *ppi;
@@ -98,18 +93,18 @@ struct bcap_device {
 	/* used to wait ppi to complete one transfer */
 	struct completion comp;
 	/* number of users performing IO */
-	u32 io_usrs;
+	unsigned int io_usrs;
 	/* number of open instances of the device */
-	u32 usrs;
+	unsigned int usrs;
 	/* indicate whether streaming has started */
-	u8 started;
+	bool started;
 };
 
 struct bcap_fh {
 	struct v4l2_fh fh;
 	struct bcap_device *bcap_dev;
 	/* indicates whether this file handle is doing IO */
-	u8 io_allowed;
+	bool io_allowed;
 };
 
 static const struct bcap_format bcap_formats[] = {
@@ -178,7 +173,7 @@ static int bcap_open(struct file *file)
 	v4l2_fh_add(&bcap_fh->fh);
 	bcap_fh->bcap_dev = bcap_dev;
 	bcap_dev->usrs++;
-	bcap_fh->io_allowed = 0;
+	bcap_fh->io_allowed = false;
 	return 0;
 }
 
@@ -355,23 +350,24 @@ static int bcap_stop_streaming(struct vb2_queue *vq)
 	struct ppi_if *ppi = bcap_dev->ppi;
 	int ret;
 
-	if (bcap_dev->started) {
-		bcap_dev->started = 0;
-		wait_for_completion(&bcap_dev->comp);
-		ppi->ops->stop(ppi);
-		ppi->ops->detach_irq(ppi);
-		ret = v4l2_subdev_call(bcap_dev->sd, video, s_stream, 0);
-		if (ret && (ret != -ENOIOCTLCMD))
-			v4l2_err(&bcap_dev->v4l2_dev,
-					"stream off failed in subdev\n");
+	if (!bcap_dev->started)
+		return 0;
 
-		/* release all active buffers */
-		while (!list_empty(&bcap_dev->dma_queue)) {
-			bcap_dev->next_frm = list_entry(bcap_dev->dma_queue.next,
+	bcap_dev->started = false;
+	wait_for_completion(&bcap_dev->comp);
+	ppi->ops->stop(ppi);
+	ppi->ops->detach_irq(ppi);
+	ret = v4l2_subdev_call(bcap_dev->sd, video, s_stream, 0);
+	if (ret && (ret != -ENOIOCTLCMD))
+		v4l2_err(&bcap_dev->v4l2_dev,
+				"stream off failed in subdev\n");
+
+	/* release all active buffers */
+	while (!list_empty(&bcap_dev->dma_queue)) {
+		bcap_dev->next_frm = list_entry(bcap_dev->dma_queue.next,
 						struct bcap_buffer, list);
-			list_del(&bcap_dev->next_frm->list);
-			vb2_buffer_done(&bcap_dev->next_frm->vb, VB2_BUF_STATE_ERROR);
-		}
+		list_del(&bcap_dev->next_frm->list);
+		vb2_buffer_done(&bcap_dev->next_frm->vb, VB2_BUF_STATE_ERROR);
 	}
 	return 0;
 }
@@ -400,7 +396,7 @@ static int bcap_reqbufs(struct file *file, void *priv,
 		return -EBUSY;
 	}
 
-	bcap_fh->io_allowed = 1;
+	bcap_fh->io_allowed = true;
 	bcap_dev->io_usrs = 1;
 
 	return vb2_reqbufs(&bcap_dev->buffer_queue, req_buf);
@@ -447,7 +443,7 @@ static irqreturn_t bcap_isr(int irq, void *dev_id)
 	struct bcap_device *bcap_dev = ppi->priv;
 	struct timeval timevalue;
 	struct vb2_buffer *vb = &bcap_dev->cur_frm->vb;
-	dma_addr_t *addr;
+	dma_addr_t addr;
 
 	spin_lock(&bcap_dev->lock);
 
@@ -460,15 +456,15 @@ static irqreturn_t bcap_isr(int irq, void *dev_id)
 
 	ppi->ops->stop(ppi);
 
-	if (!bcap_dev->started)
+	if (!bcap_dev->started) {
 		complete(&bcap_dev->comp);
-	else {
+	} else {
 		if (!list_empty(&bcap_dev->dma_queue)) {
 			bcap_dev->next_frm = list_entry(bcap_dev->dma_queue.next,
 						struct bcap_buffer, list);
 			list_del(&bcap_dev->next_frm->list);
-			addr = vb2_plane_cookie(&bcap_dev->next_frm->vb, 0);
-			ppi->ops->update_addr(ppi, (unsigned long)(*addr));
+			addr = vb2_dma_contig_plane_paddr(&bcap_dev->next_frm->vb, 0);
+			ppi->ops->update_addr(ppi, (unsigned long)addr);
 		}
 		ppi->ops->start(ppi);
 	}
@@ -484,7 +480,7 @@ static int bcap_streamon(struct file *file, void *priv,
 	struct bcap_device *bcap_dev = video_drvdata(file);
 	struct bcap_fh *fh = file->private_data;
 	struct ppi_if *ppi = bcap_dev->ppi;
-	dma_addr_t *addr;
+	dma_addr_t addr;
 	int ret;
 
 	if (!fh->io_allowed)
@@ -501,7 +497,7 @@ static int bcap_streamon(struct file *file, void *priv,
 	/* if dma queue is empty, return error */
 	if (list_empty(&bcap_dev->dma_queue)) {
 		v4l2_err(&bcap_dev->v4l2_dev, "dma queue is empty\n");
-		ret = -EIO;
+		ret = -EINVAL;
 		goto err;
 	}
 
@@ -511,12 +507,12 @@ static int bcap_streamon(struct file *file, void *priv,
 	bcap_dev->cur_frm = bcap_dev->next_frm;
 	/* remove buffer from the dma queue */
 	list_del(&bcap_dev->cur_frm->list);
-	addr = vb2_plane_cookie(&bcap_dev->cur_frm->vb, 0);
+	addr = vb2_dma_contig_plane_paddr(&bcap_dev->cur_frm->vb, 0);
 	/* update DMA address */
-	ppi->ops->update_addr(ppi, (unsigned long)(*addr));
+	ppi->ops->update_addr(ppi, (unsigned long)addr);
 	/* enable ppi */
 	ppi->ops->start(ppi);
-	bcap_dev->started = 1;
+	bcap_dev->started = true;
 
 	return 0;
 err:
@@ -613,8 +609,7 @@ static int bcap_enum_input(struct file *file, void *priv,
 	if (input->index >= config->num_inputs)
 		return -EINVAL;
 
-	memcpy(input, &config->inputs[input->index],
-		sizeof(*input));
+	*input = config->inputs[input->index];
 	/* get input status */
 	ret = v4l2_subdev_call(bcap_dev->sd, video, g_input_status, &status);
 	if (!ret)
@@ -667,24 +662,22 @@ static int bcap_try_format(struct bcap_device *bcap,
 	int ret, i;
 
 	for (i = 0; i < BCAP_MAX_FMTS; i++) {
-		if ((pixfmt->pixelformat == bcap_formats[i].pixelformat)) {
-			fmt = &bcap_formats[i];
-			if (mbus_code)
-				*mbus_code = fmt->mbus_code;
-			if (bpp)
-				*bpp = fmt->bpp;
-			v4l2_fill_mbus_format(&mbus_fmt, pixfmt,
-						fmt->mbus_code);
-			ret = v4l2_subdev_call(bcap->sd, video,
-						try_mbus_fmt, &mbus_fmt);
-			if (ret < 0)
-				return ret;
-			v4l2_fill_pix_format(pixfmt, &mbus_fmt);
-			pixfmt->bytesperline = pixfmt->width * fmt->bpp;
-			pixfmt->sizeimage = pixfmt->bytesperline
-						* pixfmt->height;
-			return 0;
-		}
+		if (pixfmt->pixelformat != bcap_formats[i].pixelformat)
+			continue;
+		fmt = &bcap_formats[i];
+		if (mbus_code)
+			*mbus_code = fmt->mbus_code;
+		if (bpp)
+			*bpp = fmt->bpp;
+		v4l2_fill_mbus_format(&mbus_fmt, pixfmt, fmt->mbus_code);
+		ret = v4l2_subdev_call(bcap->sd, video,
+					try_mbus_fmt, &mbus_fmt);
+		if (ret < 0)
+			return ret;
+		v4l2_fill_pix_format(pixfmt, &mbus_fmt);
+		pixfmt->bytesperline = pixfmt->width * fmt->bpp;
+		pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
+		return 0;
 	}
 	return -EINVAL;
 }
@@ -703,14 +696,14 @@ static int bcap_enum_fmt_vid_cap(struct file *file, void  *priv,
 		return ret;
 
 	for (i = 0; i < BCAP_MAX_FMTS; i++) {
-		if (mbus_code == bcap_formats[i].mbus_code) {
-			fmt->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-			strlcpy(fmt->description,
-					bcap_formats[index].desc,
-					 sizeof(fmt->description));
-			fmt->pixelformat = bcap_formats[index].pixelformat;
-			return 0;
-		}
+		if (mbus_code != bcap_formats[i].mbus_code)
+			continue;
+		fmt->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		strlcpy(fmt->description,
+			bcap_formats[index].desc,
+			sizeof(fmt->description));
+		fmt->pixelformat = bcap_formats[index].pixelformat;
+		return 0;
 	}
 	v4l2_err(&bcap_dev->v4l2_dev,
 			"subdev fmt is not supported by bcap\n");
@@ -747,14 +740,14 @@ static int bcap_g_fmt_vid_cap(struct file *file, void *priv,
 		return ret;
 
 	for (i = 0; i < BCAP_MAX_FMTS; i++) {
-		if (mbus_fmt.code == bcap_formats[i].mbus_code) {
-			bcap_fmt = &bcap_formats[i];
-			v4l2_fill_pix_format(pixfmt, &mbus_fmt);
-			pixfmt->bytesperline = pixfmt->width * bcap_fmt->bpp;
-			pixfmt->sizeimage = pixfmt->bytesperline
-						* pixfmt->height;
-			return 0;
-		}
+		if (mbus_fmt.code != bcap_formats[i].mbus_code)
+			continue;
+		bcap_fmt = &bcap_formats[i];
+		v4l2_fill_pix_format(pixfmt, &mbus_fmt);
+		pixfmt->pixelformat = bcap_fmt->pixelformat;
+		pixfmt->bytesperline = pixfmt->width * bcap_fmt->bpp;
+		pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
+		return 0;
 	}
 	v4l2_err(&bcap_dev->v4l2_dev,
 			"subdev fmt is not supported by bcap\n");
@@ -945,7 +938,7 @@ static int __devinit bcap_probe(struct platform_device *pdev)
 
 	bcap_dev->cfg = config;
 
-	bcap_dev->ppi = create_ppi_instance(config->ppi_info);
+	bcap_dev->ppi = ppi_create_instance(config->ppi_info);
 	if (!bcap_dev->ppi) {
 		v4l2_err(pdev->dev.driver, "Unable to create ppi\n");
 		ret = -ENODEV;
@@ -1052,7 +1045,7 @@ err_release_vdev:
 err_cleanup_ctx:
 	vb2_dma_contig_cleanup_ctx(bcap_dev->alloc_ctx);
 err_free_ppi:
-	delete_ppi_instance(bcap_dev->ppi);
+	ppi_delete_instance(bcap_dev->ppi);
 err_free_dev:
 	kfree(bcap_dev);
 	return ret;
@@ -1067,7 +1060,7 @@ static int __devexit bcap_remove(struct platform_device *pdev)
 	video_unregister_device(bcap_dev->video_dev);
 	v4l2_device_unregister(v4l2_dev);
 	vb2_dma_contig_cleanup_ctx(bcap_dev->alloc_ctx);
-	delete_ppi_instance(bcap_dev->ppi);
+	ppi_delete_instance(bcap_dev->ppi);
 	kfree(bcap_dev);
 	return 0;
 }
@@ -1094,6 +1087,6 @@ static __exit void bcap_exit(void)
 module_init(bcap_init);
 module_exit(bcap_exit);
 
-MODULE_DESCRIPTION("Analog Devices video capture driver");
+MODULE_DESCRIPTION("Analog Devices blackfin video capture driver");
 MODULE_AUTHOR("Scott Jiang <Scott.Jiang.Linux@gmail.com>");
 MODULE_LICENSE("GPL v2");
