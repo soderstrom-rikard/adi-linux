@@ -49,7 +49,7 @@ struct bcap_format {
 	u8 *desc;
 	u32 pixelformat;
 	enum v4l2_mbus_pixelcode mbus_code;
-	int bpp; /* bytes per pixel */
+	int bpp; /* bits per pixel */
 };
 
 struct bcap_buffer {
@@ -74,7 +74,7 @@ struct bcap_device {
 	v4l2_std_id std;
 	/* used to store pixel format */
 	struct v4l2_pix_format fmt;
-	/* bytes per pixel*/
+	/* bits per pixel*/
 	int bpp;
 	/* pointing to current video buffer */
 	struct bcap_buffer *cur_frm;
@@ -112,25 +112,25 @@ static const struct bcap_format bcap_formats[] = {
 		.desc        = "YCbCr 4:2:2 Interleaved UYVY",
 		.pixelformat = V4L2_PIX_FMT_UYVY,
 		.mbus_code   = V4L2_MBUS_FMT_UYVY8_2X8,
-		.bpp         = 2,
+		.bpp         = 16,
 	},
 	{
 		.desc        = "YCbCr 4:2:2 Interleaved YUYV",
 		.pixelformat = V4L2_PIX_FMT_YUYV,
 		.mbus_code   = V4L2_MBUS_FMT_YUYV8_2X8,
-		.bpp         = 2,
+		.bpp         = 16,
 	},
 	{
 		.desc        = "RGB 565",
 		.pixelformat = V4L2_PIX_FMT_RGB565,
 		.mbus_code   = V4L2_MBUS_FMT_RGB565_2X8_LE,
-		.bpp         = 2,
+		.bpp         = 16,
 	},
 	{
 		.desc        = "RGB 444",
 		.pixelformat = V4L2_PIX_FMT_RGB444,
 		.mbus_code   = V4L2_MBUS_FMT_RGB444_2X8_PADHI_LE,
-		.bpp         = 2,
+		.bpp         = 16,
 	},
 
 };
@@ -675,7 +675,7 @@ static int bcap_try_format(struct bcap_device *bcap,
 		if (ret < 0)
 			return ret;
 		v4l2_fill_pix_format(pixfmt, &mbus_fmt);
-		pixfmt->bytesperline = pixfmt->width * fmt->bpp;
+		pixfmt->bytesperline = pixfmt->width * fmt->bpp / 8;
 		pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
 		return 0;
 	}
@@ -745,7 +745,7 @@ static int bcap_g_fmt_vid_cap(struct file *file, void *priv,
 		bcap_fmt = &bcap_formats[i];
 		v4l2_fill_pix_format(pixfmt, &mbus_fmt);
 		pixfmt->pixelformat = bcap_fmt->pixelformat;
-		pixfmt->bytesperline = pixfmt->width * bcap_fmt->bpp;
+		pixfmt->bytesperline = pixfmt->width * bcap_fmt->bpp / 8;
 		pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
 		return 0;
 	}

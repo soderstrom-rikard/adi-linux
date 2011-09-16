@@ -131,7 +131,7 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 {
 	const struct ppi_info *info = ppi->info;
 
-	ppi->bytes_per_line = params->width * params->bpp;
+	ppi->bytes_per_line = params->width * params->bpp / 8;
 	ppi->lines_per_frame = params->height;
 
 	/* config DMA */
