@@ -20,7 +20,7 @@
 #ifndef _ADV7183_REGS_H_
 #define _ADV7183_REGS_H_
 
-#define	ADV7183_IN_CTRL            0x00 /* Input control */
+#define ADV7183_IN_CTRL            0x00 /* Input control */
 #define ADV7183_VD_SEL             0x01 /* Video selection */
 #define ADV7183_OUT_CTRL           0x03 /* Output control */
 #define ADV7183_EXT_OUT_CTRL       0x04 /* Extended output control */
