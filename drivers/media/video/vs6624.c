@@ -17,22 +17,22 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <linux/module.h>
-#include <linux/init.h>
-#include <linux/errno.h>
-#include <linux/types.h>
-#include <linux/i2c.h>
-#include <linux/slab.h>
 #include <linux/delay.h>
+#include <linux/errno.h>
+#include <linux/gpio.h>
+#include <linux/i2c.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/slab.h>
+#include <linux/types.h>
 #include <linux/videodev2.h>
-#include <media/v4l2-device.h>
+
 #include <media/v4l2-chip-ident.h>
 #include <media/v4l2-ctrls.h>
+#include <media/v4l2-device.h>
 #include <media/v4l2-mediabus.h>
-#include <asm/gpio.h>
-#include "vs6624_regs.h"
 
-#define VS6624_DEVICE_ID 624
+#include "vs6624_regs.h"
 
 #define VGA_WIDTH       640
 #define VGA_HEIGHT      480
@@ -416,44 +416,44 @@ static const u16 vs6624_p2[] = {
 };
 
 static const u16 vs6624_run_setup[] = {
-	0x1d18, 0x00,		/* Enableconstrainedwhitebalance */
-	0x200d, 0x3c,		/* Damper PeakGain Output MSB */
-	0x200e, 0x66,		/* Damper PeakGain Output LSB */
-	0x1f03, 0x65,		/* Damper Low MSB */
-	0x1f04, 0xd1,		/* Damper Low LSB */
-	0x1f07, 0x66,		/* Damper High MSB */
-	0x1f08, 0x62,		/* Damper High LSB */
-	0x1f0b, 0x00,		/* Damper Min output MSB */
-	0x1f0c, 0x00,		/* Damper Min output LSB */
-	0x2600, 0x00,		/* Nora fDisable */
-	0x2602, 0x04,		/* Nora usage */
-	0x260d, 0x63,		/* Damper Low MSB Changed 0x63 to 0x65 */
-	0x260e, 0xd1,		/* Damper Low LSB */
-	0x2611, 0x68,		/* Damper High MSB */
-	0x2612, 0xdd,		/* Damper High LSB */
-	0x2615, 0x3a,		/* Damper Min output MSB */
-	0x2616, 0x00,		/* Damper Min output LSB */
-	0x2480, 0x00,		/* Disable */
-	0x1d8a, 0x30,		/* MAXWeightHigh */
-	0x1d91, 0x62,		/* fpDamperLowThresholdHigh MSB */
-	0x1d92, 0x4a,		/* fpDamperLowThresholdHigh LSB */
-	0x1d95, 0x65,		/* fpDamperHighThresholdHigh MSB */
-	0x1d96, 0x0e,		/* fpDamperHighThresholdHigh LSB */
-	0x1da1, 0x3a,		/* fpMinimumDamperOutputLow MSB */
-	0x1da2, 0xb8,		/* fpMinimumDamperOutputLow LSB */
-	0x1e08, 0x06,		/* MAXWeightLow */
-	0x1e0a, 0x0a,		/* MAXWeightHigh */
-	0x1601, 0x3a,		/* Red A MSB */
-	0x1602, 0x14,		/* Red A LSB */
-	0x1605, 0x3b,		/* Blue A MSB */
-	0x1606, 0x85,		/* BLue A LSB */
-	0x1609, 0x3b,		/* RED B MSB */
-	0x160a, 0x85,		/* RED B LSB */
-	0x160d, 0x3a,		/* Blue B MSB */
-	0x160e, 0x14,		/* Blue B LSB */
-	0x1611, 0x30,		/* Max Distance from Locus MSB */
-	0x1612, 0x8f,		/* Max Distance from Locus MSB */
-	0x1614, 0x01,		/* Enable constrainer */
+	0x1d18, 0x00,				/* Enableconstrainedwhitebalance */
+	VS6624_PEAK_MIN_OUT_G_MSB, 0x3c,	/* Damper PeakGain Output MSB */
+	VS6624_PEAK_MIN_OUT_G_LSB, 0x66,	/* Damper PeakGain Output LSB */
+	VS6624_CM_LOW_THR_MSB, 0x65,		/* Damper Low MSB */
+	VS6624_CM_LOW_THR_LSB, 0xd1,		/* Damper Low LSB */
+	VS6624_CM_HIGH_THR_MSB, 0x66,		/* Damper High MSB */
+	VS6624_CM_HIGH_THR_LSB, 0x62,		/* Damper High LSB */
+	VS6624_CM_MIN_OUT_MSB, 0x00,		/* Damper Min output MSB */
+	VS6624_CM_MIN_OUT_LSB, 0x00,		/* Damper Min output LSB */
+	VS6624_NORA_DISABLE, 0x00,		/* Nora fDisable */
+	VS6624_NORA_USAGE, 0x04,		/* Nora usage */
+	VS6624_NORA_LOW_THR_MSB, 0x63,		/* Damper Low MSB Changed 0x63 to 0x65 */
+	VS6624_NORA_LOW_THR_LSB, 0xd1,		/* Damper Low LSB */
+	VS6624_NORA_HIGH_THR_MSB, 0x68,		/* Damper High MSB */
+	VS6624_NORA_HIGH_THR_LSB, 0xdd,		/* Damper High LSB */
+	VS6624_NORA_MIN_OUT_MSB, 0x3a,		/* Damper Min output MSB */
+	VS6624_NORA_MIN_OUT_LSB, 0x00,		/* Damper Min output LSB */
+	VS6624_F2B_DISABLE, 0x00,		/* Disable */
+	0x1d8a, 0x30,				/* MAXWeightHigh */
+	0x1d91, 0x62,				/* fpDamperLowThresholdHigh MSB */
+	0x1d92, 0x4a,				/* fpDamperLowThresholdHigh LSB */
+	0x1d95, 0x65,				/* fpDamperHighThresholdHigh MSB */
+	0x1d96, 0x0e,				/* fpDamperHighThresholdHigh LSB */
+	0x1da1, 0x3a,				/* fpMinimumDamperOutputLow MSB */
+	0x1da2, 0xb8,				/* fpMinimumDamperOutputLow LSB */
+	0x1e08, 0x06,				/* MAXWeightLow */
+	0x1e0a, 0x0a,				/* MAXWeightHigh */
+	0x1601, 0x3a,				/* Red A MSB */
+	0x1602, 0x14,				/* Red A LSB */
+	0x1605, 0x3b,				/* Blue A MSB */
+	0x1606, 0x85,				/* BLue A LSB */
+	0x1609, 0x3b,				/* RED B MSB */
+	0x160a, 0x85,				/* RED B LSB */
+	0x160d, 0x3a,				/* Blue B MSB */
+	0x160e, 0x14,				/* Blue B LSB */
+	0x1611, 0x30,				/* Max Distance from Locus MSB */
+	0x1612, 0x8f,				/* Max Distance from Locus MSB */
+	0x1614, 0x01,				/* Enable constrainer */
 	0x0000, 0x00,
 };
 
@@ -504,7 +504,7 @@ static inline struct v4l2_subdev *to_sd(struct v4l2_ctrl *ctrl)
 	return &container_of(ctrl->handler, struct vs6624, hdl)->sd;
 }
 
-static inline int vs6624_read(struct v4l2_subdev *sd, u16 index)
+static int vs6624_read(struct v4l2_subdev *sd, u16 index)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	u8 buf[2];
@@ -517,7 +517,7 @@ static inline int vs6624_read(struct v4l2_subdev *sd, u16 index)
 	return buf[0];
 }
 
-static inline int vs6624_write(struct v4l2_subdev *sd, u16 index,
+static int vs6624_write(struct v4l2_subdev *sd, u16 index,
 				u8 value)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
@@ -532,13 +532,14 @@ static inline int vs6624_write(struct v4l2_subdev *sd, u16 index,
 
 static int vs6624_writeregs(struct v4l2_subdev *sd, const u16 *regs)
 {
-	u16 reg, data;
+	u16 reg;
+	u8 data;
 
 	while (*regs != 0x00) {
 		reg = *regs++;
 		data = *regs++;
 
-		vs6624_write(sd, reg, (u8)data);
+		vs6624_write(sd, reg, data);
 	}
 	return 0;
 }
@@ -727,7 +728,7 @@ static int vs6624_g_chip_ident(struct v4l2_subdev *sd,
 	int rev;
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 
-	rev = vs6624_read(sd, VS6624_FW_VSN_MAJOR) << 8
+	rev = (vs6624_read(sd, VS6624_FW_VSN_MAJOR) << 8)
 		| vs6624_read(sd, VS6624_FW_VSN_MINOR);
 
 	return v4l2_chip_ident_i2c_client(client, chip, V4L2_IDENT_VS6624, rev);
@@ -800,7 +801,6 @@ static int __devinit vs6624_probe(struct i2c_client *client,
 	struct vs6624 *sensor;
 	struct v4l2_subdev *sd;
 	struct v4l2_ctrl_handler *hdl;
-	u16 device_id;
 	const unsigned *ce;
 	int ret;
 
@@ -835,17 +835,6 @@ static int __devinit vs6624_probe(struct i2c_client *client,
 	vs6624_write(sd, VS6624_DIO_EN, 0x1);
 	mdelay(10);
 	vs6624_writeregs(sd, vs6624_p2);
-
-	/* make sure the sensor is vs6624 */
-	device_id = vs6624_read(sd, VS6624_DEV_ID_MSB) << 8
-			| vs6624_read(sd, VS6624_DEV_ID_LSB);
-	if (device_id != VS6624_DEVICE_ID) {
-		v4l_info(client, "chip found @ 0x%02x (%s) is not vs6624\n",
-				client->addr << 1, client->adapter->name);
-		kfree(sensor);
-		gpio_free(*ce);
-		return -ENODEV;
-	}
 
 	vs6624_writeregs(sd, vs6624_default);
 	vs6624_write(sd, VS6624_HSYNC_SETUP, 0xF);
