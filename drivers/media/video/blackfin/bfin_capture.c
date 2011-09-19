@@ -147,12 +147,39 @@ static int bcap_open(struct file *file)
 {
 	struct bcap_device *bcap_dev = video_drvdata(file);
 	struct video_device *vfd = bcap_dev->video_dev;
+	struct v4l2_mbus_framefmt mbus_fmt;
+	struct v4l2_pix_format *pixfmt = &bcap_dev->fmt;
+	const struct bcap_format *bcap_fmt;
 	struct bcap_fh *bcap_fh;
-	int ret;
+	int ret, i;
 
 	if (!bcap_dev->sd) {
 		v4l2_err(&bcap_dev->v4l2_dev, "No sub device registered\n");
 		return -ENODEV;
+	}
+
+	/* if first open, query format of subdevice as default format */
+	if (!bcap_dev->usrs) {
+		ret = v4l2_subdev_call(bcap_dev->sd, video,
+					g_mbus_fmt, &mbus_fmt);
+		if (ret < 0)
+			return ret;
+
+		for (i = 0; i < BCAP_MAX_FMTS; i++) {
+			if (mbus_fmt.code != bcap_formats[i].mbus_code)
+				continue;
+			bcap_fmt = &bcap_formats[i];
+			v4l2_fill_pix_format(pixfmt, &mbus_fmt);
+			pixfmt->pixelformat = bcap_fmt->pixelformat;
+			pixfmt->bytesperline = pixfmt->width * bcap_fmt->bpp / 8;
+			pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
+			break;
+		}
+		if (i == BCAP_MAX_FMTS) {
+			v4l2_err(&bcap_dev->v4l2_dev,
+					"subdev fmt is not supported by bcap\n");
+			return -EINVAL;
+		}
 	}
 
 	bcap_fh = kzalloc(sizeof(*bcap_fh), GFP_KERNEL);
