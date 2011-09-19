@@ -980,7 +980,6 @@ static int __devinit bcap_probe(struct platform_device *pdev)
 	spin_lock_init(&bcap_dev->lock);
 	/* initialize queue */
 	q = &bcap_dev->buffer_queue;
-	memset(q, 0, sizeof(*q));
 	q->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	q->io_modes = VB2_MMAP;
 	q->drv_priv = bcap_dev;
