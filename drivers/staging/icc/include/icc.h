@@ -198,6 +198,8 @@ struct sm_icc_desc {
 #define CMD_SM_OPEN _IO('m', 10)
 #define CMD_SM_CLOSE _IO('m', 11)
 #define CMD_SM_ACTIVE _IO('m', 12)
+#define CMD_SM_REQUEST_UNCACHED_BUF _IO('m', 13)
+#define CMD_SM_RELEASE_UNCACHED_BUF _IO('m', 14)
 
 #define MAX_TASK_NAME 64
 struct sm_node_status {
@@ -225,6 +227,7 @@ struct sm_packet {
 	uint32_t dst_cpu;
 	uint32_t src_cpu;
 	uint32_t buf_len;
+	uint32_t paddr;
 	void *buf;
 	uint32_t param_len;
 	void *param;

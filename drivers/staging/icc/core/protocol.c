@@ -18,6 +18,7 @@
 #include <linux/proc_fs.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
+#include <linux/dma-mapping.h>
 #include <asm/cacheflush.h>
 
 #define DEBUG
@@ -917,6 +918,7 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	sm_uint32_t session_idx;
 	struct sm_session *session;
 	void *buf;
+	dma_addr_t paddr;
 	struct sm_packet *pkt = kzalloc(sizeof(struct sm_packet),
 							GFP_KERNEL);
 	if (!pkt)
@@ -981,6 +983,16 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		break;
 	case CMD_SM_GET_SESSION_STATUS:
 		ret = icc_get_session_status(pkt->param, pkt->param_len, session_idx);
+		break;
+	case CMD_SM_REQUEST_UNCACHED_BUF:
+		buf = dma_alloc_coherent(NULL, pkt->buf_len, &paddr, GFP_KERNEL);
+		if (!buf)
+			ret = -ENOMEM;
+		pkt->buf = buf;
+		pkt->paddr = paddr;
+		break;
+	case CMD_SM_RELEASE_UNCACHED_BUF:
+		dma_free_coherent(NULL, pkt->buf_len, pkt->buf, pkt->paddr);
 		break;
 	default:
 		ret = -EINVAL;
