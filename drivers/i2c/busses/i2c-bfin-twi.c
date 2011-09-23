@@ -99,7 +99,7 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface,
 		 */
 		else if (iface->cur_mode == TWI_I2C_MODE_COMBINED)
 			write_MASTER_CTL(iface,
-				read_MASTER_CTL(iface) | MDIR | RSTART);
+				read_MASTER_CTL(iface) | MDIR);
 		else if (iface->manual_stop)
 			write_MASTER_CTL(iface,
 				read_MASTER_CTL(iface) | STOP);
@@ -107,10 +107,10 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface,
 		         iface->cur_msg + 1 < iface->msg_num) {
 			if (iface->pmsg[iface->cur_msg + 1].flags & I2C_M_RD)
 				write_MASTER_CTL(iface,
-					read_MASTER_CTL(iface) | RSTART | MDIR);
+					read_MASTER_CTL(iface) | MDIR);
 			else
 				write_MASTER_CTL(iface,
-					(read_MASTER_CTL(iface) | RSTART) & ~MDIR);
+					read_MASTER_CTL(iface) & ~MDIR);
 		}
 	}
 	if (twi_int_status & RCVSERV) {
@@ -144,10 +144,10 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface,
 					iface->cur_msg + 1 < iface->msg_num) {
 				if (iface->pmsg[iface->cur_msg + 1].flags & I2C_M_RD)
 					write_MASTER_CTL(iface,
-						read_MASTER_CTL(iface) | RSTART | MDIR);
+						read_MASTER_CTL(iface) | MDIR);
 				else
 					write_MASTER_CTL(iface,
-						(read_MASTER_CTL(iface) | RSTART) & ~MDIR);
+						read_MASTER_CTL(iface) & ~MDIR);
 			}
 		}
 	}
@@ -262,9 +262,10 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface,
 					(0xff << 6)));
 				iface->manual_stop = 1;
 			}
-			/* remove restart bit and enable master receive */
-			write_MASTER_CTL(iface,
-				read_MASTER_CTL(iface) & ~RSTART);
+			/* remove restart bit before last message */
+			if (iface->cur_msg+1 == iface->msg_num)
+				write_MASTER_CTL(iface,
+					read_MASTER_CTL(iface) & ~RSTART);
 		} else {
 			iface->result = 1;
 			write_INT_MASK(iface, 0);
@@ -327,7 +328,8 @@ static int bfin_twi_do_master_xfer(struct i2c_adapter *adap,
 		return -EINVAL;
 	}
 
-	iface->cur_mode = TWI_I2C_MODE_REPEAT;
+	if (iface->msg_num > 1)
+		iface->cur_mode = TWI_I2C_MODE_REPEAT;
 	iface->manual_stop = 0;
 	iface->transPtr = pmsg->buf;
 	iface->writeNum = iface->readNum = pmsg->len;
@@ -372,6 +374,7 @@ static int bfin_twi_do_master_xfer(struct i2c_adapter *adap,
 
 	/* Master enable */
 	write_MASTER_CTL(iface, read_MASTER_CTL(iface) | MEN |
+		(iface->msg_num > 1 ? RSTART : 0) |
 		((iface->read_write == I2C_SMBUS_READ) ? MDIR : 0) |
 		((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ > 100) ? FAST : 0));
 	SSYNC();
@@ -540,7 +543,7 @@ int bfin_twi_do_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 		else
 			write_MASTER_CTL(iface, 0x1 << 6);
 		/* Master enable */
-		write_MASTER_CTL(iface, read_MASTER_CTL(iface) | MEN |
+		write_MASTER_CTL(iface, read_MASTER_CTL(iface) | MEN | RSTART |
 			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ>100) ? FAST : 0));
 		break;
 	default:
