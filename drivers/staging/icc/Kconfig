@@ -16,4 +16,9 @@ config	ICC
 	help
 	  ICC protocol, a shared memory based protocol for communication between
 	  linux core and DSP core
+config ICC_DEBUG
+	bool "icc debug"
+	default N
+	help
+	  ICC verbose debug messages
 endif

@@ -17,6 +17,14 @@
 /* extract protocol from type enumeration value */
 #define SM_MSG_PROTOCOL(type) (((type)>>24)&0xff)
 
+#ifdef CONFIG_ICC_DEBUG
+#define sm_debug(fmt, ...) \
+	printk(KERN_CRIT "sm_debug:"pr_fmt(fmt), ##__VA_ARGS__)
+#else
+#define sm_debug(fmt, ...) \
+	({ if (0) printk(KERN_CRIT "sm_debug:"pr_fmt(fmt), ##__VA_ARGS__); 0; })
+#endif
+
 enum {
 	SP_GENERAL = 0,
 	SP_CORE_CONTROL,
@@ -173,7 +181,7 @@ struct sm_proto {
 	int (*sendmsg)(struct sm_message *msg, struct sm_session *session);
 	int (*recvmsg)(struct sm_msg *msg, struct sm_session *session);
 	int (*shutdown)(struct sm_session *session);
-	int (*error)(struct sm_message *msg, struct sm_session *session);
+	int (*error)(struct sm_msg *msg, struct sm_session *session);
 };
 
 struct sm_icc_desc {
