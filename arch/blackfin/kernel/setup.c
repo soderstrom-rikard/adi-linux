@@ -851,8 +851,12 @@ static inline int __init get_mem_size(void)
 	if ((ddrctl & 0xc000) == 0x4000)
 		ret *= 2;
 	return ret;
-#elif defined(CONFIG_BF609_FPGA)
+#elif defined(CONFIG_BF60x)
+# ifdef CONFIG_BF609_FPGA
 	return 0xB40 + 2; /* 2M total in FPGA SRAM 0xB4000000 */
+# else
+	return 128; /* 128M total in BF609-ezkit */
+# endif
 #endif
 	BUG();
 }
@@ -907,7 +911,7 @@ void __init setup_arch(char **cmdline_p)
 
 	memory_setup();
 
-#ifndef CONFIG_BF609_FPGA
+#ifndef CONFIG_BF60x
 	/* Initialize Async memory banks */
 	bfin_write_EBIU_AMBCTL0(AMBCTL0VAL);
 	bfin_write_EBIU_AMBCTL1(AMBCTL1VAL);
@@ -943,7 +947,7 @@ void __init setup_arch(char **cmdline_p)
 	printk(KERN_INFO "Hardware Trace %s and %sabled\n",
 		(mmr & 0x1) ? "active" : "off",
 		(mmr & 0x2) ? "en" : "dis");
-#ifndef CONFIG_BF609_FPGA
+#ifndef CONFIG_BF60x
 	mmr = bfin_read_SYSCR();
 	printk(KERN_INFO "Boot Mode: %i\n", mmr & 0xF);
 
@@ -1083,10 +1087,14 @@ early_param("clkin_hz=", early_init_clkin_hz);
 /* Get the voltage input multiplier */
 static u_long get_vco(void)
 {
-#ifdef CONFIG_BF609_FPGA
-	return CONFIG_CLKIN_HZ;
-#else
 	static u_long cached_vco;
+#ifdef CONFIG_BF60x
+# ifdef CONFIG_BF609_FPGA
+	return CONFIG_CLKIN_HZ;
+# else
+	return cached_vco;
+# endif
+#else
 	u_long msel, pll_ctl;
 
 	/* The assumption here is that VCO never changes at runtime.
@@ -1110,10 +1118,14 @@ static u_long get_vco(void)
 /* Get the Core clock */
 u_long get_cclk(void)
 {
-#ifdef CONFIG_BF609_FPGA
-	return get_vco() / 6;
-#else
 	static u_long cached_cclk_pll_div, cached_cclk;
+#ifdef CONFIG_BF60x
+# ifdef CONFIG_BF609_FPGA
+	return get_vco() / 6;
+# else
+	return cached_cclk;
+# endif
+#else
 	u_long csel, ssel;
 
 	if (bfin_read_PLL_STAT() & 0x1)
@@ -1139,10 +1151,14 @@ EXPORT_SYMBOL(get_cclk);
 /* Get the System clock */
 u_long get_sclk(void)
 {
-#ifdef CONFIG_BF609_FPGA
-	return get_cclk() / 4;
-#else
 	static u_long cached_sclk;
+#ifdef CONFIG_BF60x
+# ifdef CONFIG_BF609_FPGA
+	return get_cclk() / 4;
+# else
+	return cached_sclk;
+# endif
+#else
 	u_long ssel;
 
 	/* The assumption here is that SCLK never changes at runtime.

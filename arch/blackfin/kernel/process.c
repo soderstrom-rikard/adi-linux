@@ -331,7 +331,7 @@ int in_mem_const(unsigned long addr, unsigned long size,
 {
 	return in_mem_const_off(addr, size, 0, const_addr, const_size);
 }
-#ifdef CONFIG_BF609_FPGA
+#ifdef CONFIG_BF60x
 #define ASYNC_ENABLED(bnum, bctlnum)	1 
 #else
 #define ASYNC_ENABLED(bnum, bctlnum) \

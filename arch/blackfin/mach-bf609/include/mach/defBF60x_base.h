@@ -879,6 +879,9 @@
 #define WDOG0_CTL                   0xFFC17000         /* WDOG0 Control Register */
 #define WDOG0_CNT                   0xFFC17004         /* WDOG0 Count Register */
 #define WDOG0_STAT                  0xFFC17008         /* WDOG0 Watchdog Timer Status Register */
+#define WDOG_CTL		WDOG0_CTL
+#define WDOG_CNT		WDOG0_CNT
+#define WDOG_STAT		WDOG0_STAT
 
 /* =========================
         WDOG1

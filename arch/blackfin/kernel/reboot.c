@@ -24,7 +24,7 @@ __attribute__ ((__l1_text__, __noreturn__))
 #endif
 static void bfin_reset(void)
 {
-#ifndef CONFIG_BF609_FPGA
+#ifndef CONFIG_BF60x
 	if (!ANOMALY_05000353 && !ANOMALY_05000386)
 		bfrom_SoftReset((void *)(L1_SCRATCH_START + L1_SCRATCH_LENGTH - 20));
 

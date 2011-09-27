@@ -214,14 +214,12 @@ ENDPROC(__start)
 ENTRY(_real_start)
 	/* Enable nested interrupts */
 	[--sp] = reti;
-#ifndef CONFIG_BF609_FPGA
 	/* watchdog off for now */
 	p0.l = lo(WDOG_CTL);
 	p0.h = hi(WDOG_CTL);
 	r0 = 0xAD6(z);
 	w[p0] = r0;
 	ssync;
-#endif
 	/* Pass the u-boot arguments to the global value command line */
 	R0 = R7;
 	call _cmdline_init;
