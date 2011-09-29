@@ -1182,6 +1182,35 @@ u_long get_sclk(void)
 }
 EXPORT_SYMBOL(get_sclk);
 
+#ifdef CONFIG_BF60x
+/* Get the bf60x clock of SCLK0 domain */
+u_long get_sclk0(void)
+{
+	static u_long cached_sclk0;
+
+	return cached_sclk0;
+}
+EXPORT_SYMBOL(get_sclk0);
+
+/* Get the bf60x clock of SCLK1 domain */
+u_long get_sclk1(void)
+{
+	static u_long cached_sclk1;
+
+	return cached_sclk1;
+}
+EXPORT_SYMBOL(get_sclk1);
+
+/* Get the bf60x DRAM clock */
+u_long get_dramclk(void)
+{
+	static u_long cached_dramclk;
+
+	return cached_dramclk;
+}
+EXPORT_SYMBOL(get_dramclk);
+#endif
+
 unsigned long sclk_to_usecs(unsigned long sclk)
 {
 	u64 tmp = USEC_PER_SEC * (u64)sclk;
