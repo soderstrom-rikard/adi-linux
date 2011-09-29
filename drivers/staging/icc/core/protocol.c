@@ -794,7 +794,8 @@ static int
 icc_open(struct inode *inode, struct file *file)
 {
 	int ret = 0;
-
+	struct sm_session_table *table = icc_info->sessions_table;
+	table->refcnt++;
 	return ret;
 }
 
@@ -805,9 +806,12 @@ icc_release(struct inode *inode, struct file *file)
 	struct sm_session_table *table = icc_info->sessions_table;
 	int used;
 	int i;
-	used = MAX_ENDPOINTS - table->nfree;
-	for (i = 0; i < used; i++)
-		sm_free_session(i, table);
+	table->refcnt--;
+	if (table->refcnt == 0) {
+		used = MAX_ENDPOINTS - table->nfree;
+		for (i = 0; i < used; i++)
+			sm_free_session(i, table);
+	}
 	WARN_ON(table->nfree != MAX_ENDPOINTS);
 	return ret;
 }
