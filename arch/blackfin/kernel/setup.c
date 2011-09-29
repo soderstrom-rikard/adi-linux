@@ -916,11 +916,11 @@ void __init setup_arch(char **cmdline_p)
 	bfin_write_EBIU_AMBCTL0(AMBCTL0VAL);
 	bfin_write_EBIU_AMBCTL1(AMBCTL1VAL);
 	bfin_write_EBIU_AMGCTL(AMGCTLVAL);
-#endif
 #ifdef CONFIG_EBIU_MBSCTLVAL
 	bfin_write_EBIU_MBSCTL(CONFIG_EBIU_MBSCTLVAL);
 	bfin_write_EBIU_MODE(CONFIG_EBIU_MODEVAL);
 	bfin_write_EBIU_FCTL(CONFIG_EBIU_FCTLVAL);
+#endif
 #endif
 #ifdef CONFIG_BFIN_HYSTERESIS_CONTROL
 	bfin_write_PORTF_HYSTERESIS(HYST_PORTF_0_15);
