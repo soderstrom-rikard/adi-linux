@@ -806,12 +806,13 @@ icc_release(struct inode *inode, struct file *file)
 	struct sm_session_table *table = icc_info->sessions_table;
 	int used;
 	int i;
+	pid_t pid = current->pid;
 	table->refcnt--;
-	if (table->refcnt == 0) {
-		used = MAX_ENDPOINTS - table->nfree;
-		for (i = 0; i < used; i++)
+	for (i = 0; i < MAX_ENDPOINTS; i++) {
+		if (table->sessions[i].pid == pid)
 			sm_free_session(i, table);
 	}
+
 	WARN_ON(table->nfree != MAX_ENDPOINTS);
 	return ret;
 }
