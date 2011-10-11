@@ -119,10 +119,13 @@ static sm_uint32_t sm_alloc_session(struct sm_session_table *table)
 
 static int sm_free_session(sm_uint32_t slot, struct sm_session_table *table)
 {
-	memset(&table->sessions[slot], 0, sizeof(struct sm_session));
-	__clear_bit((int)slot, (unsigned long *)table->bits);
-	table->nfree++;
-	return 0;
+	if (test_bit((int)slot, (unsigned long *)table->bits)) {
+		memset(&table->sessions[slot], 0, sizeof(struct sm_session));
+		__clear_bit((int)slot, (unsigned long *)table->bits);
+		table->nfree++;
+		return 0;
+	}
+	return -1;
 }
 
 static int
@@ -813,7 +816,6 @@ icc_release(struct inode *inode, struct file *file)
 			sm_free_session(i, table);
 	}
 
-	WARN_ON(table->nfree != MAX_ENDPOINTS);
 	return ret;
 }
 
