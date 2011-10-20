@@ -681,6 +681,9 @@ static int __devinit adf702x_probe(struct spi_device *spi)
 
 	gpio_direction_input(lp->gpio_int_rfs);
 
+	spi->bits_per_word = 16;
+	spi_setup(spi);
+
 	err = adf702x_init(lp->spi);
 	if (err)
 		goto out9;
