@@ -2206,23 +2206,6 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	},
 #endif
 
-#if defined(CONFIG_AD7414) || defined(CONFIG_AD7414_MODULE)
-	{
-		I2C_BOARD_INFO("ad7414", 0x9),
-		.irq = IRQ_PG5,
-		.irq_flags = IRQF_TRIGGER_LOW,
-	},
-#endif
-
-#if defined(CONFIG_AD7416) || defined(CONFIG_AD7416_MODULE)
-	{
-		I2C_BOARD_INFO("ad7417", 0xb),
-		.irq = IRQ_PG5,
-		.irq_flags = IRQF_TRIGGER_LOW,
-		.platform_data = (void *)GPIO_PF4,
-	},
-#endif
-
 #if defined(CONFIG_ADE7854_I2C) || defined(CONFIG_ADE7854_I2C_MODULE)
 	{
 		I2C_BOARD_INFO("ade7854", 0x38),
@@ -2233,15 +2216,6 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("adt75", 0x9),
 		.irq = IRQ_PG5,
-		.irq_flags = IRQF_TRIGGER_LOW,
-	},
-#endif
-
-#if defined(CONFIG_ADT7408) || defined(CONFIG_ADT7408_MODULE)
-	{
-		I2C_BOARD_INFO("adt7408", 0x18),
-		.irq = IRQ_PG5,
-		.irq_flags = IRQF_TRIGGER_LOW,
 	},
 #endif
 
@@ -2250,7 +2224,6 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 		I2C_BOARD_INFO("adt7410", 0x48),
 		/* CT critical temperature event. line 0 */
 		.irq = IRQ_PG5,
-		.irq_flags = IRQF_TRIGGER_LOW,
 		.platform_data = (void *)&adt7410_platform_data,
 	},
 #endif
@@ -2259,7 +2232,6 @@ static struct i2c_board_info __initdata bfin_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("ad7291", 0x20),
 		.irq = IRQ_PG5,
-		.irq_flags = IRQF_TRIGGER_LOW,
 	},
 #endif
 
