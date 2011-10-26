@@ -91,6 +91,8 @@ static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
 		break;
 	}
 
+	smp_mb();
+
 	return tmp;
 }
 #define cmpxchg(ptr, o, n) \
