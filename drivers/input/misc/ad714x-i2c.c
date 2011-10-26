@@ -27,60 +27,49 @@ static int ad714x_i2c_resume(struct device *dev)
 
 static SIMPLE_DEV_PM_OPS(ad714x_i2c_pm, ad714x_i2c_suspend, ad714x_i2c_resume);
 
-static int ad714x_i2c_write(struct device *dev, unsigned short reg,
-				unsigned short data)
+static int ad714x_i2c_write(struct ad714x_chip *chip,
+			    unsigned short reg, unsigned short data)
 {
-	struct i2c_client *client = to_i2c_client(dev);
-	int ret = 0;
-	unsigned short tx[2] = {
-		cpu_to_be16(reg),
-		cpu_to_be16(data)
-	};
+	struct i2c_client *client = to_i2c_client(chip->dev);
+	int error;
 
-	ret = i2c_master_send(client, (u8 *)tx, 4);
-	if (ret < 0)
-		dev_err(&client->dev, "I2C write error\n");
+	chip->xfer_buf[0] = cpu_to_be16(reg);
+	chip->xfer_buf[1] = cpu_to_be16(data);
 
-	return ret;
+	error = i2c_master_send(client, (u8 *)chip->xfer_buf,
+				2 * sizeof(*chip->xfer_buf));
+	if (unlikely(error < 0)) {
+		dev_err(&client->dev, "I2C write error: %d\n", error);
+		return error;
+	}
+
+	return 0;
 }
 
-static int ad714x_i2c_read(struct device *dev, unsigned short reg,
-				unsigned short *data)
+static int ad714x_i2c_read(struct ad714x_chip *chip,
+			   unsigned short reg, unsigned short *data, size_t len)
 {
-	struct i2c_client *client = to_i2c_client(dev);
-	int ret = 0;
-	unsigned short tx = cpu_to_be16(reg);
+	struct i2c_client *client = to_i2c_client(chip->dev);
+	int i;
+	int error;
 
-	ret = i2c_master_send(client, (u8 *)&tx, 2);
-	if (ret >= 0)
-		ret = i2c_master_recv(client, (u8 *)data, 2);
+	chip->xfer_buf[0] = cpu_to_be16(reg);
 
-	if (unlikely(ret < 0))
-		dev_err(&client->dev, "I2C read error\n");
-	else
-		*data = be16_to_cpu(*data);
+	error = i2c_master_send(client, (u8 *)chip->xfer_buf,
+				sizeof(*chip->xfer_buf));
+	if (error >= 0)
+		error = i2c_master_recv(client, (u8 *)chip->xfer_buf,
+					len * sizeof(*chip->xfer_buf));
 
-	return ret;
-}
+	if (unlikely(error < 0)) {
+		dev_err(&client->dev, "I2C read error: %d\n", error);
+		return error;
+	}
 
-static int ad714x_i2c_read_seq(struct device *dev, unsigned short reg,
-				unsigned short *data, unsigned len)
-{
-	struct i2c_client *client = to_i2c_client(dev);
-	int ret = 0, i;
-	unsigned short tx = cpu_to_be16(reg);
+	for (i = 0; i < len; i++)
+		data[i] = be16_to_cpu(chip->xfer_buf[i]);
 
-	ret = i2c_master_send(client, (u8 *)&tx, 2);
-	if (ret >= 0)
-		ret = i2c_master_recv(client, (u8 *)data, len * 2);
-
-	if (unlikely(ret < 0))
-		dev_err(&client->dev, "I2C read error\n");
-	else
-		for (i = 0; i < len; i++)
-			data[i] = be16_to_cpu(data[i]);
-
-	return ret;
+	return 0;
 }
 
 static int __devinit ad714x_i2c_probe(struct i2c_client *client,
@@ -89,8 +78,7 @@ static int __devinit ad714x_i2c_probe(struct i2c_client *client,
 	struct ad714x_chip *chip;
 
 	chip = ad714x_probe(&client->dev, BUS_I2C, client->irq,
-			    ad714x_i2c_read, ad714x_i2c_read_seq,
-			    ad714x_i2c_write);
+			    ad714x_i2c_read, ad714x_i2c_write);
 	if (IS_ERR(chip))
 		return PTR_ERR(chip);
 

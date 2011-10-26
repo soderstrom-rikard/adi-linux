@@ -26,7 +26,8 @@ snd-adau1361-objs := bf5xx-adau1361.o
 snd-adau1373-objs := bf5xx-adau1373.o
 snd-adau1381-objs := bf5xx-adau1381.o
 snd-adau1761-objs := bf5xx-adau1761.o
-snd-adav80x-objs := bf5xx-adav80x.o
+snd-soc-bfin-eval-adau1701-objs := bfin-eval-adau1701.o
+snd-soc-bfin-eval-adav80x-objs := bfin-eval-adav80x.o
 
 obj-$(CONFIG_SND_BF5XX_SOC_AD1836) += snd-ad1836.o
 obj-$(CONFIG_SND_BF5XX_SOC_AD1980) += snd-ad1980.o
@@ -38,4 +39,5 @@ obj-$(CONFIG_SND_BF5XX_SOC_ADAU1361) += snd-adau1361.o
 obj-$(CONFIG_SND_BF5XX_SOC_ADAU1373) += snd-adau1373.o
 obj-$(CONFIG_SND_BF5XX_SOC_ADAU1381) += snd-adau1381.o
 obj-$(CONFIG_SND_BF5XX_SOC_ADAU1761) += snd-adau1761.o
-obj-$(CONFIG_SND_BF5XX_SOC_ADAV80X) += snd-adav80x.o
+obj-$(CONFIG_SND_SOC_BFIN_EVAL_ADAU1701) += snd-soc-bfin-eval-adau1701.o
+obj-$(CONFIG_SND_SOC_BFIN_EVAL_ADAV80X) += snd-soc-bfin-eval-adav80x.o

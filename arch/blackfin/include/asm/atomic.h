@@ -29,6 +29,5 @@ asmlinkage int __raw_atomic_test_asm(const volatile int *ptr, int value);
 #endif
 
 #include <asm-generic/atomic.h>
-#include <asm-generic/atomic64.h>
 
 #endif

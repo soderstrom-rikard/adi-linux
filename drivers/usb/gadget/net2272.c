@@ -737,8 +737,8 @@ net2272_kick_dma(struct net2272_ep *ep, struct net2272_request *req)
 	if (req->req.length & 1)
 		return -EINVAL;
 
-	dev_vdbg(ep->dev->dev, "kick_dma %s req %p dma %08x\n",
-		ep->ep.name, req, req->req.dma);
+	dev_vdbg(ep->dev->dev, "kick_dma %s req %p dma %08llx\n",
+		ep->ep.name, req, (unsigned long long) req->req.dma);
 
 	net2272_ep_write(ep, EP_RSPSET, 1 << ALT_NAK_OUT_PACKETS);
 
@@ -856,9 +856,9 @@ net2272_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_flags)
 		req->mapped = 1;
 	}
 
-	dev_vdbg(dev->dev, "%s queue req %p, len %d buf %p dma %08x %s\n",
+	dev_vdbg(dev->dev, "%s queue req %p, len %d buf %p dma %08llx %s\n",
 		_ep->name, _req, _req->length, _req->buf,
-		_req->dma, _req->zero ? "zero" : "!zero");
+		(unsigned long long) _req->dma, _req->zero ? "zero" : "!zero");
 
 	spin_lock_irqsave(&dev->lock, flags);
 
@@ -1172,11 +1172,17 @@ net2272_pullup(struct usb_gadget *_gadget, int is_on)
 	return 0;
 }
 
+static int net2272_start(struct usb_gadget_driver *driver,
+		int (*bind)(struct usb_gadget *));
+static int net2272_stop(struct usb_gadget_driver *driver);
+
 static const struct usb_gadget_ops net2272_ops = {
 	.get_frame       = net2272_get_frame,
 	.wakeup          = net2272_wakeup,
 	.set_selfpowered = net2272_set_selfpowered,
-	.pullup          = net2272_pullup
+	.pullup			= net2272_pullup,
+	.start			= net2272_start,
+	.stop			= net2272_stop,
 };
 
 /*---------------------------------------------------------------------------*/
@@ -1447,7 +1453,7 @@ net2272_ep0_start(struct net2272 *dev)
  * disconnect is reported.  then a host may connect again, or
  * the driver might get unbound.
  */
-int usb_gadget_probe_driver(struct usb_gadget_driver *driver,
+static int net2272_start(struct usb_gadget_driver *driver,
 	int (*bind)(struct usb_gadget *))
 {
 	struct net2272 *dev = the_controller;
@@ -1487,7 +1493,6 @@ int usb_gadget_probe_driver(struct usb_gadget_driver *driver,
 
 	return 0;
 }
-EXPORT_SYMBOL(usb_gadget_probe_driver);
 
 static void
 stop_activity(struct net2272 *dev, struct usb_gadget_driver *driver)
@@ -1515,7 +1520,7 @@ stop_activity(struct net2272 *dev, struct usb_gadget_driver *driver)
 	net2272_usb_reinit(dev);
 }
 
-int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
+static int net2272_stop(struct usb_gadget_driver *driver)
 {
 	struct net2272 *dev = the_controller;
 	unsigned long flags;
@@ -1538,7 +1543,6 @@ int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
 	dev_dbg(dev->dev, "unregistered driver '%s'\n", driver->driver.name);
 	return 0;
 }
-EXPORT_SYMBOL(usb_gadget_unregister_driver);
 
 /*---------------------------------------------------------------------------*/
 /* handle ep-a/ep-b dma completions */
@@ -2217,6 +2221,8 @@ net2272_gadget_release(struct device *_dev)
 static void __devexit
 net2272_remove(struct net2272 *dev)
 {
+	usb_del_gadget_udc(&dev->gadget);
+
 	/* start with the driver above us */
 	if (dev->driver) {
 		/* should have been done already by driver model core */
@@ -2310,8 +2316,14 @@ net2272_probe_fin(struct net2272 *dev, unsigned int irqflags)
 	if (ret)
 		goto err_dev_reg;
 
+	ret = usb_add_gadget_udc(dev->dev, &dev->gadget);
+	if (ret)
+		goto err_add_udc;
+
 	return 0;
 
+err_add_udc:
+	device_remove_file(dev->dev, &dev_attr_registers);
  err_dev_reg:
 	device_unregister(&dev->gadget.dev);
  err_irq:
@@ -2599,9 +2611,19 @@ static struct pci_driver net2272_pci_driver = {
 	.remove   = __devexit_p(net2272_pci_remove),
 };
 
+static int net2272_pci_register(void)
+{
+	return pci_register_driver(&net2272_pci_driver);
+}
+
+static void net2272_pci_unregister(void)
+{
+	pci_unregister_driver(&net2272_pci_driver);
+}
+
 #else
-# define pci_register_driver(x) 1
-# define pci_unregister_driver(x) 1
+static inline int net2272_pci_register(void) { return 0; }
+static inline void net2272_pci_unregister(void) { }
 #endif
 
 /*---------------------------------------------------------------------------*/
@@ -2698,17 +2720,29 @@ static struct platform_driver net2272_plat_driver = {
 	},
 	/* FIXME .suspend, .resume */
 };
+MODULE_ALIAS("platform:net2272");
 
 static int __init net2272_init(void)
 {
-	return pci_register_driver(&net2272_pci_driver) &
-		platform_driver_register(&net2272_plat_driver);
+	int ret;
+
+	ret = net2272_pci_register();
+	if (ret)
+		return ret;
+	ret = platform_driver_register(&net2272_plat_driver);
+	if (ret)
+		goto err_pci;
+	return ret;
+
+err_pci:
+	net2272_pci_unregister();
+	return ret;
 }
 module_init(net2272_init);
 
 static void __exit net2272_cleanup(void)
 {
-	pci_unregister_driver(&net2272_pci_driver);
+	net2272_pci_unregister();
 	platform_driver_unregister(&net2272_plat_driver);
 }
 module_exit(net2272_cleanup);

@@ -1497,7 +1497,7 @@ static int bfin_earlyprintk_probe(struct platform_device *pdev)
 	}
 
 	bfin_earlyprintk_port.port.membase = ioremap(res->start,
-			res->end - res->start);
+						     resource_size(res));
 	if (!bfin_earlyprintk_port.port.membase) {
 		dev_err(&pdev->dev, "Cannot map uart IO\n");
 		ret = -ENXIO;
