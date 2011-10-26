@@ -27,8 +27,6 @@ __mutex_fastpath_lock(atomic_t *count, void (*fail_fn)(atomic_t *))
 {
 	if (unlikely(atomic_xchg(count, 0) != 1))
 		fail_fn(count);
-	else
-		smp_rmb();
 }
 
 /**
@@ -46,8 +44,6 @@ __mutex_fastpath_lock_retval(atomic_t *count, int (*fail_fn)(atomic_t *))
 {
 	if (unlikely(atomic_xchg(count, 0) != 1))
 		return fail_fn(count);
-	else
-		smp_rmb();
 	return 0;
 }
 
@@ -68,8 +64,6 @@ __mutex_fastpath_unlock(atomic_t *count, void (*fail_fn)(atomic_t *))
 {
 	if (unlikely(atomic_xchg(count, 1) != 0))
 		fail_fn(count);
-	else
-		smp_wmb();
 }
 
 #define __mutex_slowpath_needs_to_unlock()		0
@@ -110,8 +104,6 @@ __mutex_fastpath_trylock(atomic_t *count, int (*fail_fn)(atomic_t *))
 		if (prev < 0)
 			prev = 0;
 	}
-	if (prev)
-		smp_rmb();
 
 	return prev;
 }
