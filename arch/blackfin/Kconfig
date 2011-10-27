@@ -227,6 +227,7 @@ config BF561
 
 config BF609
 	bool "BF609"
+	select CLKDEV_LOOKUP
 	help
 	  BF609 Processor Support.
 
