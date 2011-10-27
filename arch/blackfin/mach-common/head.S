@@ -28,12 +28,17 @@ ENTRY(__init_clear_bss)
 	rts;
 ENDPROC(__init_clear_bss)
 
+#define CONFIG_NOLOADER_KERNEL_BOOT
 ENTRY(__start)
 	/* R0: argument of command line string, passed from uboot, save it */
 #ifdef CONFIG_BF609_FPGA
 	R7 = 0;
 #else
 	R7 = R0;
+#endif
+
+#ifdef CONFIG_NOLOADER_KERNEL_BOOT
+	R7 = 0;
 #endif
 
 	/* Enable Cycle Counter and Nesting Of Interrupts */
@@ -150,8 +155,10 @@ ENTRY(__start)
 	r2.h = ___bss_stop;
 	call __init_clear_bss
 
+#ifndef CONFIG_NOLOADER_KERNEL_BOOT
 	/* Put The Code for PLL Programming and SDRAM Programming in L1 ISRAM */
 	call _bfin_relocate_l1_mem;
+#endif
 
 #ifdef CONFIG_ROMKERNEL
 	call _bfin_relocate_xip_data;
