@@ -25,6 +25,7 @@
 #include <asm/cacheflush.h>
 #include <asm/blackfin.h>
 #include <asm/cplbinit.h>
+#include <asm/clocks.h>
 #include <asm/div64.h>
 #include <asm/cpu.h>
 #include <asm/fixed_code.h>
@@ -870,6 +871,7 @@ void __init setup_arch(char **cmdline_p)
 {
 	u32 mmr;
 	unsigned long sclk, cclk;
+	struct clk *clk;
 
 	native_machine_early_platform_add_devices();
 
@@ -930,8 +932,20 @@ void __init setup_arch(char **cmdline_p)
 					~HYST_NONEGPIO_MASK) | HYST_NONEGPIO);
 #endif
 
-	cclk = get_cclk();
-	sclk = get_sclk();
+#ifdef CONFIG_BF60x
+	clk_init();
+#endif
+	clk = clk_get(NULL, "CCLK");
+	if (!IS_ERR(clk)) {
+		cclk = clk_get_rate(clk);
+		clk_put(clk);
+	}
+
+	clk = clk_get(NULL, "SCLK0");
+	if (!IS_ERR(clk)) {
+		sclk = clk_get_rate(clk);
+		clk_put(clk);
+	}
 
 	if ((ANOMALY_05000273 || ANOMALY_05000274) && (cclk >> 1) < sclk)
 		panic("ANOMALY 05000273 or 05000274: CCLK must be >= 2*SCLK");
@@ -1089,11 +1103,7 @@ static u_long get_vco(void)
 {
 	static u_long cached_vco;
 #ifdef CONFIG_BF60x
-# ifdef CONFIG_BF609_FPGA
 	return CONFIG_CLKIN_HZ;
-# else
-	return cached_vco;
-# endif
 #else
 	u_long msel, pll_ctl;
 
@@ -1120,11 +1130,7 @@ u_long get_cclk(void)
 {
 	static u_long cached_cclk_pll_div, cached_cclk;
 #ifdef CONFIG_BF60x
-# ifdef CONFIG_BF609_FPGA
-	return get_vco() / 6;
-# else
-	return cached_cclk;
-# endif
+	return get_vco() * 16;
 #else
 	u_long csel, ssel;
 
@@ -1153,11 +1159,7 @@ u_long get_sclk(void)
 {
 	static u_long cached_sclk;
 #ifdef CONFIG_BF60x
-# ifdef CONFIG_BF609_FPGA
 	return get_cclk() / 4;
-# else
-	return cached_sclk;
-# endif
 #else
 	u_long ssel;
 

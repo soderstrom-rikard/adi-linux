@@ -15,6 +15,7 @@
 #define DRIVER_NAME "bfin-uart"
 #define pr_fmt(fmt) DRIVER_NAME ": " fmt
 
+#include <linux/clk.h>
 #include <linux/module.h>
 #include <linux/ioport.h>
 #include <linux/gfp.h>
@@ -865,7 +866,7 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 			port->ignore_status_mask |= OE;
 	}
 
-#ifdef CONFIG_BF609_FPGA
+#if defined(CONFIG_BF60x)
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk);
 	quot = uart_get_divisor(port, baud/16);
 #else
@@ -886,7 +887,7 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	/* Set DLAB in LCR to Access CLK */
 	UART_SET_DLAB(uart);
 
-#ifdef CONFIG_BF609_FPGA
+#if defined(CONFIG_BF60x)
 	UART_PUT_CLK(uart, quot | EDBO);
 #else
 	UART_PUT_CLK(uart, quot);
@@ -1117,7 +1118,7 @@ bfin_serial_console_get_options(struct bfin_serial_port *uart, int *baud,
 		/* Clear DLAB in LCR to Access THR RBR IER */
 		UART_CLEAR_DLAB(uart);
 
-#ifdef CONFIG_BF609_FPGA
+#if defined(CONFIG_BF60x)
 		*baud = get_sclk() / clk;
 #else
 		*baud = get_sclk() / (16*clk);
@@ -1270,6 +1271,7 @@ static int bfin_serial_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct bfin_serial_port *uart = NULL;
 	int ret = 0;
+	struct clk *uart_clk;
 
 	if (pdev->id < 0 || pdev->id >= BFIN_UART_NR_PORTS) {
 		dev_err(&pdev->dev, "Wrong bfin uart platform device id.\n");
@@ -1304,9 +1306,12 @@ static int bfin_serial_probe(struct platform_device *pdev)
 #ifdef CONFIG_EARLY_PRINTK
 		}
 #endif
-
 		spin_lock_init(&uart->port.lock);
-		uart->port.uartclk   = get_sclk();
+		uart_clk = clk_get(NULL, "SCLK0");
+		if (!IS_ERR(uart_clk)) {
+			uart->port.uartclk   = clk_get_rate(uart_clk);
+			clk_put(uart_clk);
+		}
 		uart->port.fifosize  = BFIN_UART_TX_FIFO_SIZE;
 		uart->port.ops       = &bfin_serial_pops;
 		uart->port.line      = pdev->id;
@@ -1511,6 +1516,8 @@ static int bfin_earlyprintk_probe(struct platform_device *pdev)
 	bfin_earlyprintk_port.port.mapbase = res->start;
 	bfin_earlyprintk_port.port.line = pdev->id;
 	bfin_earlyprintk_port.port.uartclk = get_sclk();
+	bfin_write_UART0_CLK(0x800006c8);
+
 	bfin_earlyprintk_port.port.fifosize  = BFIN_UART_TX_FIFO_SIZE;
 	spin_lock_init(&bfin_earlyprintk_port.port.lock);
 
