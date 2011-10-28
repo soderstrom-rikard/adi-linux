@@ -556,6 +556,7 @@ static int adv7183_probe(struct i2c_client *client,
 	struct v4l2_subdev *sd;
 	struct v4l2_ctrl_handler *hdl;
 	int ret;
+	struct v4l2_mbus_framefmt fmt;
 	const unsigned *pin_array;
 
 	/* Check if the adapter supports the needed features */
@@ -610,7 +611,8 @@ static int adv7183_probe(struct i2c_client *client,
 		goto err_free_oe;
 	}
 
-	decoder->std = V4L2_STD_ALL; /* Default is autodetect */
+	/* v4l2 doesn't support an autodetect standard, pick PAL as default */
+	decoder->std = V4L2_STD_PAL;
 	decoder->input = ADV7183_COMPOSITE4;
 	decoder->output = ADV7183_8BIT_OUT;
 
@@ -624,6 +626,10 @@ static int adv7183_probe(struct i2c_client *client,
 	mdelay(5);
 
 	adv7183_writeregs(sd, adv7183_init_regs, ARRAY_SIZE(adv7183_init_regs));
+	adv7183_s_std(sd, V4L2_STD_PAL);
+	fmt.width = 720;
+	fmt.height = 576;
+	adv7183_s_mbus_fmt(sd, &fmt);
 
 	/* initialize the hardware to the default control values */
 	v4l2_ctrl_handler_setup(hdl);
