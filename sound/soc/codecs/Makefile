@@ -1,6 +1,7 @@
 snd-soc-88pm860x-objs := 88pm860x-codec.o
 snd-soc-ac97-objs := ac97.o
 snd-soc-adau17x1-objs := adau17x1.o
+snd-soc-adau1761-objs := adau1761.o
 snd-soc-ad1836-objs := ad1836.o
 snd-soc-ad193x-objs := ad193x.o
 snd-soc-ad1980-objs := ad1980.o
@@ -106,6 +107,7 @@ obj-$(CONFIG_SND_SOC_AD1836)	+= snd-soc-ad1836.o
 obj-$(CONFIG_SND_SOC_AD193X)	+= snd-soc-ad193x.o
 obj-$(CONFIG_SND_SOC_AD1980)	+= snd-soc-ad1980.o
 obj-$(CONFIG_SND_SOC_ADAU17X1)	+= snd-soc-adau17x1.o
+obj-$(CONFIG_SND_SOC_ADAU1761)	+= snd-soc-adau1761.o
 obj-$(CONFIG_SND_SOC_AD73311) += snd-soc-ad73311.o
 obj-$(CONFIG_SND_SOC_AD74111)	+= snd-soc-ad74111.o
 obj-$(CONFIG_SND_SOC_ADAU1373)	+= snd-soc-adau1373.o
