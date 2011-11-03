@@ -934,18 +934,23 @@ void __init setup_arch(char **cmdline_p)
 
 #ifdef CONFIG_BF60x
 	clk_init();
-#endif
 	clk = clk_get(NULL, "CCLK");
 	if (!IS_ERR(clk)) {
 		cclk = clk_get_rate(clk);
 		clk_put(clk);
-	}
+	} else
+		cclk = 0;
 
 	clk = clk_get(NULL, "SCLK0");
 	if (!IS_ERR(clk)) {
 		sclk = clk_get_rate(clk);
 		clk_put(clk);
-	}
+	} else
+		sclk = 0;
+#else
+	cclk = get_cclk();
+	sclk = get_sclk();
+#endif
 
 	if ((ANOMALY_05000273 || ANOMALY_05000274) && (cclk >> 1) < sclk)
 		panic("ANOMALY 05000273 or 05000274: CCLK must be >= 2*SCLK");
