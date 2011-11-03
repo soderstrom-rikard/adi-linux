@@ -62,9 +62,6 @@
 #define NEEDS_INITIALIZATION 0x11
 #define PLL_BYPASS	     0x2
 
-#define CLK_IN 25000000
-
-
 static LIST_HEAD(clk_list);
 
 static void clk_reg_write_mask(u32 reg, uint32_t val, uint32_t mask)
@@ -212,7 +209,7 @@ unsigned long sys_clk_get_rate(struct clk *clk)
 	df = (ctl &  CGU0_CTL_DF);
 	div = (div & clk->mask) >> clk->shift;
 	if (clk->parent->flags & PLL_BYPASS) {
-		drate = CLK_IN / (df + 1);
+		drate = CONFIG_CLKIN_HZ / (df + 1);
 		drate *=  msel;
 		drate /= div;
 		return drate;
@@ -254,7 +251,7 @@ static struct clk_ops sys_clk_ops = {
 
 static struct clk sys_clkin = {
 	.name       = "SYS_CLKIN",
-	.rate       = CLK_IN,
+	.rate       = CONFIG_CLKIN_HZ,
 	.ops        = &vco_ops,
 };
 
