@@ -899,6 +899,10 @@ void __init setup_arch(char **cmdline_p)
 
 	memset(&bfin_memmap, 0, sizeof(bfin_memmap));
 
+#ifdef CONFIG_BF60x
+	/* Should init clock device before parse command early */
+	clk_init();
+#endif
 	/* If the user does not specify things on the command line, use
 	 * what the bootloader set things up as
 	 */
@@ -933,7 +937,6 @@ void __init setup_arch(char **cmdline_p)
 #endif
 
 #ifdef CONFIG_BF60x
-	clk_init();
 	clk = clk_get(NULL, "CCLK");
 	if (!IS_ERR(clk)) {
 		cclk = clk_get_rate(clk);
