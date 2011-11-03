@@ -1103,7 +1103,16 @@ static u_long get_vco(void)
 {
 	static u_long cached_vco;
 #ifdef CONFIG_BF60x
-	return CONFIG_CLKIN_HZ;
+	struct clk *vco;
+	u_long vco_rate;
+
+	vco = clk_get(NULL, "SYS_CLKIN");
+	if (IS_ERR(vco))
+		return 0;
+
+	vco_rate = clk_get_rate(vco);
+	clk_put(vco);
+	return vco_rate;
 #else
 	u_long msel, pll_ctl;
 
@@ -1128,10 +1137,19 @@ static u_long get_vco(void)
 /* Get the Core clock */
 u_long get_cclk(void)
 {
-	static u_long cached_cclk_pll_div, cached_cclk;
 #ifdef CONFIG_BF60x
-	return get_vco() * 16;
+	struct clk *cclk;
+	u_long cclk_rate;
+
+	cclk = clk_get(NULL, "CCLK");
+	if (IS_ERR(cclk))
+		return 0;
+
+	cclk_rate = clk_get_rate(cclk);
+	clk_put(cclk);
+	return cclk_rate;
 #else
+	static u_long cached_cclk_pll_div, cached_cclk;
 	u_long csel, ssel;
 
 	if (bfin_read_PLL_STAT() & 0x1)
@@ -1154,13 +1172,63 @@ u_long get_cclk(void)
 }
 EXPORT_SYMBOL(get_cclk);
 
+#ifdef CONFIG_BF60x
+/* Get the bf60x clock of SCLK0 domain */
+u_long get_sclk0(void)
+{
+	struct clk *sclk0;
+	u_long sclk0_rate;
+
+	sclk0 = clk_get(NULL, "SCLK0");
+	if (IS_ERR(sclk0))
+		return 0;
+
+	sclk0_rate = clk_get_rate(sclk0);
+	clk_put(sclk0);
+	return sclk0_rate;
+}
+EXPORT_SYMBOL(get_sclk0);
+
+/* Get the bf60x clock of SCLK1 domain */
+u_long get_sclk1(void)
+{
+	struct clk *sclk1;
+	u_long sclk1_rate;
+
+	sclk1 = clk_get(NULL, "SCLK1");
+	if (IS_ERR(sclk1))
+		return 0;
+
+	sclk1_rate = clk_get_rate(sclk1);
+	clk_put(sclk1);
+	return sclk1_rate;
+}
+EXPORT_SYMBOL(get_sclk1);
+
+/* Get the bf60x DRAM clock */
+u_long get_dclk(void)
+{
+	struct clk *dclk;
+	u_long dclk_rate;
+
+	dclk = clk_get(NULL, "DCLK");
+	if (IS_ERR(dclk))
+		return 0;
+
+	dclk_rate = clk_get_rate(dclk);
+	clk_put(dclk);
+	return dclk_rate;
+}
+EXPORT_SYMBOL(get_dclk);
+#endif
+
 /* Get the System clock */
 u_long get_sclk(void)
 {
-	static u_long cached_sclk;
 #ifdef CONFIG_BF60x
-	return get_cclk() / 4;
+	return get_sclk0();
 #else
+	static u_long cached_sclk;
 	u_long ssel;
 
 	/* The assumption here is that SCLK never changes at runtime.
@@ -1183,35 +1251,6 @@ u_long get_sclk(void)
 #endif
 }
 EXPORT_SYMBOL(get_sclk);
-
-#ifdef CONFIG_BF60x
-/* Get the bf60x clock of SCLK0 domain */
-u_long get_sclk0(void)
-{
-	static u_long cached_sclk0;
-
-	return cached_sclk0;
-}
-EXPORT_SYMBOL(get_sclk0);
-
-/* Get the bf60x clock of SCLK1 domain */
-u_long get_sclk1(void)
-{
-	static u_long cached_sclk1;
-
-	return cached_sclk1;
-}
-EXPORT_SYMBOL(get_sclk1);
-
-/* Get the bf60x DRAM clock */
-u_long get_dramclk(void)
-{
-	static u_long cached_dramclk;
-
-	return cached_dramclk;
-}
-EXPORT_SYMBOL(get_dramclk);
-#endif
 
 unsigned long sclk_to_usecs(unsigned long sclk)
 {
