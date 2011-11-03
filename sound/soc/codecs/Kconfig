@@ -153,6 +153,10 @@ config SND_SOC_ADAU1701
 config SND_SOC_ADAV80X
 	tristate
 
+config SND_SOC_ADAU17X1
+	select SND_SOC_SIGMADSP
+	tristate
+
 config SND_SOC_ADAV80X
 	tristate
 
