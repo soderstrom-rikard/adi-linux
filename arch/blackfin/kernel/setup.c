@@ -1083,10 +1083,12 @@ subsys_initcall(topology_init);
 
 /* Get the input clock frequency */
 static u_long cached_clkin_hz = CONFIG_CLKIN_HZ;
+#ifndef CONFIG_BF60x
 static u_long get_clkin_hz(void)
 {
 	return cached_clkin_hz;
 }
+#endif
 static int __init early_init_clkin_hz(char *buf)
 {
 	cached_clkin_hz = simple_strtoul(buf, NULL, 0);
@@ -1098,22 +1100,11 @@ static int __init early_init_clkin_hz(char *buf)
 }
 early_param("clkin_hz=", early_init_clkin_hz);
 
+#ifndef CONFIG_BF60x
 /* Get the voltage input multiplier */
 static u_long get_vco(void)
 {
 	static u_long cached_vco;
-#ifdef CONFIG_BF60x
-	struct clk *vco;
-	u_long vco_rate;
-
-	vco = clk_get(NULL, "SYS_CLKIN");
-	if (IS_ERR(vco))
-		return 0;
-
-	vco_rate = clk_get_rate(vco);
-	clk_put(vco);
-	return vco_rate;
-#else
 	u_long msel, pll_ctl;
 
 	/* The assumption here is that VCO never changes at runtime.
@@ -1131,8 +1122,8 @@ static u_long get_vco(void)
 	cached_vco >>= (1 & pll_ctl);	/* DF bit */
 	cached_vco *= msel;
 	return cached_vco;
-#endif
 }
+#endif
 
 /* Get the Core clock */
 u_long get_cclk(void)
