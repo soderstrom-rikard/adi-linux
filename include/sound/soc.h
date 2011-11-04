@@ -957,6 +957,17 @@ static inline bool snd_soc_volsw_is_stereo(struct soc_mixer_control *mc)
 	return 1;
 }
 
+static inline int snd_soc_codec_set_bias_level(struct snd_soc_codec *codec,
+	enum snd_soc_bias_level level)
+{
+	if (codec->driver->set_bias_level)
+		return codec->driver->set_bias_level(codec, level);
+	else
+		codec->dapm.bias_level = level;
+
+	return 0;
+}
+
 int snd_soc_util_init(void);
 void snd_soc_util_exit(void);
 
