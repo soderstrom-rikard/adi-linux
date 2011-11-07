@@ -18,8 +18,13 @@
 
 /* System Reset and Interrubfin_read_()t Controller (0xFFC00100 - 0xFFC00104) */
 
-/* SEC Registers */
-
+/* SEC0 Registers */
+#define bfin_read_SEC0_CCTL()		bfin_read32(SEC0_CCTL)
+#define bfin_write_SEC0_CCTL(val)	bfin_write32(SEC0_CCTL, val)
+#define bfin_read_SEC0_CSID()		bfin_read32(SEC0_CSID)
+#define bfin_write_SEC0_CSID(val)	bfin_write32(SEC0_CSID, val)
+#define bfin_read_SEC_GCTL()		bfin_read32(SEC_GCTL)
+#define bfin_write_SEC_GCTL(val)	bfin_write32(SEC_GCTL, val)
 
 /* Watchdog Timer Registers */
 

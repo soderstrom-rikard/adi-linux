@@ -460,6 +460,7 @@ static void __init mm_init(void)
 	vmalloc_init();
 }
 
+void bf609_irq_test(void);
 asmlinkage void __init start_kernel(void)
 {
 	char * command_line;
@@ -633,6 +634,8 @@ asmlinkage void __init start_kernel(void)
 
 	ftrace_init();
 
+//	bf609_irq_test();
+
 	/* Do the rest non-__init'ed, we're now alive */
 	rest_init();
 }
@@ -777,6 +780,7 @@ static noinline int init_post(void)
 		printk(KERN_WARNING "Failed to execute %s.  Attempting "
 					"defaults...\n", execute_command);
 	}
+	while(1);
 	run_init_process("/sbin/init");
 	run_init_process("/etc/init");
 	run_init_process("/bin/init");

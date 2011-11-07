@@ -2427,336 +2427,479 @@
 /* =========================
         SEC Registers
    ========================= */
-
-/* =========================
-        SEC0
-   ========================= */
-
 /* ------------------------------------------------------------------------------------------------------------------------
        SEC Core Interface (SCI) Register Definitions
    ------------------------------------------------------------------------------------------------------------------------ */
-#define SEC0_CCTL0                  0xFFCA4400         /* SEC0 Core Control Register n */
-#define SEC0_CCTL1                  0xFFCA4440         /* SEC0 Core Control Register n */
-#define SEC0_CSTAT0                 0xFFCA4404         /* SEC0 Core Status Register n */
-#define SEC0_CSTAT1                 0xFFCA4444         /* SEC0 Core Status Register n */
-#define SEC0_CPND0                  0xFFCA4408         /* SEC0 Core Pending IRQ Register n */
-#define SEC0_CPND1                  0xFFCA4448         /* SEC0 Core Pending IRQ Register n */
-#define SEC0_CACT0                  0xFFCA440C         /* SEC0 Core Active IRQ Register n */
-#define SEC0_CACT1                  0xFFCA444C         /* SEC0 Core Active IRQ Register n */
-#define SEC0_CPMSK0                 0xFFCA4410         /* SEC0 Core IRQ Priority Mask Register n */
-#define SEC0_CPMSK1                 0xFFCA4450         /* SEC0 Core IRQ Priority Mask Register n */
-#define SEC0_CGMSK0                 0xFFCA4414         /* SEC0 Core IRQ Group Mask Register n */
-#define SEC0_CGMSK1                 0xFFCA4454         /* SEC0 Core IRQ Group Mask Register n */
-#define SEC0_CPLVL0                 0xFFCA4418         /* SEC0 Core IRQ Priority Level Register n */
-#define SEC0_CPLVL1                 0xFFCA4458         /* SEC0 Core IRQ Priority Level Register n */
-#define SEC0_CSID0                  0xFFCA441C         /* SEC0 Core IRQ Source ID Register n */
-#define SEC0_CSID1                  0xFFCA445C         /* SEC0 Core IRQ Source ID Register n */
+#define SEC0_CCTL                  0xFFCA4400         /* SEC0 Core Control Register n */
+#define SEC0_CSTAT                 0xFFCA4404         /* SEC0 Core Status Register n */
+#define SEC0_CPND                  0xFFCA4408         /* SEC0 Core Pending IRQ Register n */
+#define SEC0_CACT                  0xFFCA440C         /* SEC0 Core Active IRQ Register n */
+#define SEC0_CPMSK                 0xFFCA4410         /* SEC0 Core IRQ Priority Mask Register n */
+#define SEC0_CGMSK                 0xFFCA4414         /* SEC0 Core IRQ Group Mask Register n */
+#define SEC0_CPLVL                 0xFFCA4418         /* SEC0 Core IRQ Priority Level Register n */
+#define SEC0_CSID                  0xFFCA441C         /* SEC0 Core IRQ Source ID Register n */
+
+#define SEC1_CCTL                  0xFFCA4440         /* SEC1 Core Control Register n */
+#define SEC1_CSTAT                 0xFFCA4444         /* SEC1 Core Status Register n */
+#define SEC1_CPND                  0xFFCA4448         /* SEC1 Core Pending IRQ Register n */
+#define SEC1_CACT                  0xFFCA444C         /* SEC1 Core Active IRQ Register n */
+#define SEC1_CPMSK                 0xFFCA4450         /* SEC1 Core IRQ Priority Mask Register n */
+#define SEC1_CGMSK                 0xFFCA4454         /* SEC1 Core IRQ Group Mask Register n */
+#define SEC1_CPLVL                 0xFFCA4458         /* SEC1 Core IRQ Priority Level Register n */
+#define SEC1_CSID                  0xFFCA445C         /* SEC1 Core IRQ Source ID Register n */
 
 /* ------------------------------------------------------------------------------------------------------------------------
        SEC Fault Management Interface (SFI) Register Definitions
    ------------------------------------------------------------------------------------------------------------------------ */
-#define SEC0_FCTL                   0xFFCA4010         /* SEC0 Fault Control Register */
-#define SEC0_FSTAT                  0xFFCA4014         /* SEC0 Fault Status Register */
-#define SEC0_FSID                   0xFFCA4018         /* SEC0 Fault Source ID Register */
-#define SEC0_FEND                   0xFFCA401C         /* SEC0 Fault End Register */
-#define SEC0_FDLY                   0xFFCA4020         /* SEC0 Fault Delay Register */
-#define SEC0_FDLY_CUR               0xFFCA4024         /* SEC0 Fault Delay Current Register */
-#define SEC0_FSRDLY                 0xFFCA4028         /* SEC0 Fault System Reset Delay Register */
-#define SEC0_FSRDLY_CUR             0xFFCA402C         /* SEC0 Fault System Reset Delay Current Register */
-#define SEC0_FCOPP                  0xFFCA4030         /* SEC0 Fault COP Period Register */
-#define SEC0_FCOPP_CUR              0xFFCA4034         /* SEC0 Fault COP Period Current Register */
+#define SEC_FCTL                   0xFFCA4010         /* SEC Fault Control Register */
+#define SEC_FSTAT                  0xFFCA4014         /* SEC Fault Status Register */
+#define SEC_FSID                   0xFFCA4018         /* SEC Fault Source ID Register */
+#define SEC_FEND                   0xFFCA401C         /* SEC Fault End Register */
+#define SEC_FDLY                   0xFFCA4020         /* SEC Fault Delay Register */
+#define SEC_FDLY_CUR               0xFFCA4024         /* SEC Fault Delay Current Register */
+#define SEC_FSRDLY                 0xFFCA4028         /* SEC Fault System Reset Delay Register */
+#define SEC_FSRDLY_CUR             0xFFCA402C         /* SEC Fault System Reset Delay Current Register */
+#define SEC_FCOPP                  0xFFCA4030         /* SEC Fault COP Period Register */
+#define SEC_FCOPP_CUR              0xFFCA4034         /* SEC Fault COP Period Current Register */
 
 /* ------------------------------------------------------------------------------------------------------------------------
        SEC Global Register Definitions
    ------------------------------------------------------------------------------------------------------------------------ */
-#define SEC0_GCTL                   0xFFCA4000         /* SEC0 Global Control Register */
-#define SEC0_GSTAT                  0xFFCA4004         /* SEC0 Global Status Register */
-#define SEC0_RAISE                  0xFFCA4008         /* SEC0 Global Raise Register */
-#define SEC0_END                    0xFFCA400C         /* SEC0 Global End Register */
+#define SEC_GCTL                   0xFFCA4000         /* SEC Global Control Register */
+#define SEC_GSTAT                  0xFFCA4004         /* SEC Global Status Register */
+#define SEC_RAISE                  0xFFCA4008         /* SEC Global Raise Register */
+#define SEC_END                    0xFFCA400C         /* SEC Global End Register */
 
 /* ------------------------------------------------------------------------------------------------------------------------
        SEC Source Interface (SSI) Register Definitions
    ------------------------------------------------------------------------------------------------------------------------ */
-#define SEC0_SCTL0                  0xFFCA4800         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL1                  0xFFCA4808         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL2                  0xFFCA4810         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL3                  0xFFCA4818         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL4                  0xFFCA4820         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL5                  0xFFCA4828         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL6                  0xFFCA4830         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL7                  0xFFCA4838         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL8                  0xFFCA4840         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL9                  0xFFCA4848         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL10                 0xFFCA4850         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL11                 0xFFCA4858         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL12                 0xFFCA4860         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL13                 0xFFCA4868         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL14                 0xFFCA4870         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL15                 0xFFCA4878         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL16                 0xFFCA4880         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL17                 0xFFCA4888         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL18                 0xFFCA4890         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL19                 0xFFCA4898         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL20                 0xFFCA48A0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL21                 0xFFCA48A8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL22                 0xFFCA48B0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL23                 0xFFCA48B8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL24                 0xFFCA48C0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL25                 0xFFCA48C8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL26                 0xFFCA48D0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL27                 0xFFCA48D8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL28                 0xFFCA48E0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL29                 0xFFCA48E8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL30                 0xFFCA48F0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL31                 0xFFCA48F8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL32                 0xFFCA4900         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL33                 0xFFCA4908         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL34                 0xFFCA4910         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL35                 0xFFCA4918         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL36                 0xFFCA4920         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL37                 0xFFCA4928         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL38                 0xFFCA4930         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL39                 0xFFCA4938         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL40                 0xFFCA4940         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL41                 0xFFCA4948         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL42                 0xFFCA4950         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL43                 0xFFCA4958         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL44                 0xFFCA4960         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL45                 0xFFCA4968         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL46                 0xFFCA4970         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL47                 0xFFCA4978         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL48                 0xFFCA4980         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL49                 0xFFCA4988         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL50                 0xFFCA4990         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL51                 0xFFCA4998         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL52                 0xFFCA49A0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL53                 0xFFCA49A8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL54                 0xFFCA49B0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL55                 0xFFCA49B8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL56                 0xFFCA49C0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL57                 0xFFCA49C8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL58                 0xFFCA49D0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL59                 0xFFCA49D8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL60                 0xFFCA49E0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL61                 0xFFCA49E8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL62                 0xFFCA49F0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL63                 0xFFCA49F8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL64                 0xFFCA4A00         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL65                 0xFFCA4A08         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL66                 0xFFCA4A10         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL67                 0xFFCA4A18         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL68                 0xFFCA4A20         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL69                 0xFFCA4A28         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL70                 0xFFCA4A30         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL71                 0xFFCA4A38         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL72                 0xFFCA4A40         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL73                 0xFFCA4A48         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL74                 0xFFCA4A50         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL75                 0xFFCA4A58         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL76                 0xFFCA4A60         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL77                 0xFFCA4A68         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL78                 0xFFCA4A70         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL79                 0xFFCA4A78         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL80                 0xFFCA4A80         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL81                 0xFFCA4A88         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL82                 0xFFCA4A90         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL83                 0xFFCA4A98         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL84                 0xFFCA4AA0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL85                 0xFFCA4AA8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL86                 0xFFCA4AB0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL87                 0xFFCA4AB8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL88                 0xFFCA4AC0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL89                 0xFFCA4AC8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL90                 0xFFCA4AD0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL91                 0xFFCA4AD8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL92                 0xFFCA4AE0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL93                 0xFFCA4AE8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL94                 0xFFCA4AF0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL95                 0xFFCA4AF8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL96                 0xFFCA4B00         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL97                 0xFFCA4B08         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL98                 0xFFCA4B10         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL99                 0xFFCA4B18         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL100                0xFFCA4B20         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL101                0xFFCA4B28         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL102                0xFFCA4B30         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL103                0xFFCA4B38         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL104                0xFFCA4B40         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL105                0xFFCA4B48         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL106                0xFFCA4B50         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL107                0xFFCA4B58         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL108                0xFFCA4B60         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL109                0xFFCA4B68         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL110                0xFFCA4B70         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL111                0xFFCA4B78         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL112                0xFFCA4B80         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL113                0xFFCA4B88         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL114                0xFFCA4B90         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL115                0xFFCA4B98         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL116                0xFFCA4BA0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL117                0xFFCA4BA8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL118                0xFFCA4BB0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL119                0xFFCA4BB8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL120                0xFFCA4BC0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL121                0xFFCA4BC8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL122                0xFFCA4BD0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL123                0xFFCA4BD8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL124                0xFFCA4BE0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL125                0xFFCA4BE8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL126                0xFFCA4BF0         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL127                0xFFCA4BF8         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL128                0xFFCA4C00         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL129                0xFFCA4C08         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL130                0xFFCA4C10         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL131                0xFFCA4C18         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL132                0xFFCA4C20         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL133                0xFFCA4C28         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL134                0xFFCA4C30         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL135                0xFFCA4C38         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL136                0xFFCA4C40         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL137                0xFFCA4C48         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL138                0xFFCA4C50         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SCTL139                0xFFCA4C58         /* SEC0 IRQ Source Control Register n */
-#define SEC0_SSTAT0                 0xFFCA4804         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT1                 0xFFCA480C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT2                 0xFFCA4814         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT3                 0xFFCA481C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT4                 0xFFCA4824         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT5                 0xFFCA482C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT6                 0xFFCA4834         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT7                 0xFFCA483C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT8                 0xFFCA4844         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT9                 0xFFCA484C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT10                0xFFCA4854         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT11                0xFFCA485C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT12                0xFFCA4864         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT13                0xFFCA486C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT14                0xFFCA4874         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT15                0xFFCA487C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT16                0xFFCA4884         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT17                0xFFCA488C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT18                0xFFCA4894         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT19                0xFFCA489C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT20                0xFFCA48A4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT21                0xFFCA48AC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT22                0xFFCA48B4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT23                0xFFCA48BC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT24                0xFFCA48C4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT25                0xFFCA48CC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT26                0xFFCA48D4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT27                0xFFCA48DC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT28                0xFFCA48E4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT29                0xFFCA48EC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT30                0xFFCA48F4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT31                0xFFCA48FC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT32                0xFFCA4904         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT33                0xFFCA490C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT34                0xFFCA4914         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT35                0xFFCA491C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT36                0xFFCA4924         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT37                0xFFCA492C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT38                0xFFCA4934         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT39                0xFFCA493C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT40                0xFFCA4944         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT41                0xFFCA494C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT42                0xFFCA4954         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT43                0xFFCA495C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT44                0xFFCA4964         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT45                0xFFCA496C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT46                0xFFCA4974         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT47                0xFFCA497C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT48                0xFFCA4984         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT49                0xFFCA498C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT50                0xFFCA4994         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT51                0xFFCA499C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT52                0xFFCA49A4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT53                0xFFCA49AC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT54                0xFFCA49B4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT55                0xFFCA49BC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT56                0xFFCA49C4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT57                0xFFCA49CC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT58                0xFFCA49D4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT59                0xFFCA49DC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT60                0xFFCA49E4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT61                0xFFCA49EC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT62                0xFFCA49F4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT63                0xFFCA49FC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT64                0xFFCA4A04         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT65                0xFFCA4A0C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT66                0xFFCA4A14         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT67                0xFFCA4A1C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT68                0xFFCA4A24         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT69                0xFFCA4A2C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT70                0xFFCA4A34         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT71                0xFFCA4A3C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT72                0xFFCA4A44         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT73                0xFFCA4A4C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT74                0xFFCA4A54         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT75                0xFFCA4A5C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT76                0xFFCA4A64         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT77                0xFFCA4A6C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT78                0xFFCA4A74         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT79                0xFFCA4A7C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT80                0xFFCA4A84         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT81                0xFFCA4A8C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT82                0xFFCA4A94         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT83                0xFFCA4A9C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT84                0xFFCA4AA4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT85                0xFFCA4AAC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT86                0xFFCA4AB4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT87                0xFFCA4ABC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT88                0xFFCA4AC4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT89                0xFFCA4ACC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT90                0xFFCA4AD4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT91                0xFFCA4ADC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT92                0xFFCA4AE4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT93                0xFFCA4AEC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT94                0xFFCA4AF4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT95                0xFFCA4AFC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT96                0xFFCA4B04         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT97                0xFFCA4B0C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT98                0xFFCA4B14         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT99                0xFFCA4B1C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT100               0xFFCA4B24         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT101               0xFFCA4B2C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT102               0xFFCA4B34         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT103               0xFFCA4B3C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT104               0xFFCA4B44         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT105               0xFFCA4B4C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT106               0xFFCA4B54         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT107               0xFFCA4B5C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT108               0xFFCA4B64         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT109               0xFFCA4B6C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT110               0xFFCA4B74         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT111               0xFFCA4B7C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT112               0xFFCA4B84         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT113               0xFFCA4B8C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT114               0xFFCA4B94         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT115               0xFFCA4B9C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT116               0xFFCA4BA4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT117               0xFFCA4BAC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT118               0xFFCA4BB4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT119               0xFFCA4BBC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT120               0xFFCA4BC4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT121               0xFFCA4BCC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT122               0xFFCA4BD4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT123               0xFFCA4BDC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT124               0xFFCA4BE4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT125               0xFFCA4BEC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT126               0xFFCA4BF4         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT127               0xFFCA4BFC         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT128               0xFFCA4C04         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT129               0xFFCA4C0C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT130               0xFFCA4C14         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT131               0xFFCA4C1C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT132               0xFFCA4C24         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT133               0xFFCA4C2C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT134               0xFFCA4C34         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT135               0xFFCA4C3C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT136               0xFFCA4C44         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT137               0xFFCA4C4C         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT138               0xFFCA4C54         /* SEC0 IRQ Source Status Register n */
-#define SEC0_SSTAT139               0xFFCA4C5C         /* SEC0 IRQ Source Status Register n */
+#define SEC_SCTL0                  0xFFCA4800         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL1                  0xFFCA4808         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL2                  0xFFCA4810         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL3                  0xFFCA4818         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL4                  0xFFCA4820         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL5                  0xFFCA4828         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL6                  0xFFCA4830         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL7                  0xFFCA4838         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL8                  0xFFCA4840         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL9                  0xFFCA4848         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL10                 0xFFCA4850         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL11                 0xFFCA4858         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL12                 0xFFCA4860         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL13                 0xFFCA4868         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL14                 0xFFCA4870         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL15                 0xFFCA4878         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL16                 0xFFCA4880         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL17                 0xFFCA4888         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL18                 0xFFCA4890         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL19                 0xFFCA4898         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL20                 0xFFCA48A0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL21                 0xFFCA48A8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL22                 0xFFCA48B0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL23                 0xFFCA48B8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL24                 0xFFCA48C0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL25                 0xFFCA48C8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL26                 0xFFCA48D0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL27                 0xFFCA48D8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL28                 0xFFCA48E0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL29                 0xFFCA48E8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL30                 0xFFCA48F0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL31                 0xFFCA48F8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL32                 0xFFCA4900         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL33                 0xFFCA4908         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL34                 0xFFCA4910         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL35                 0xFFCA4918         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL36                 0xFFCA4920         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL37                 0xFFCA4928         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL38                 0xFFCA4930         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL39                 0xFFCA4938         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL40                 0xFFCA4940         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL41                 0xFFCA4948         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL42                 0xFFCA4950         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL43                 0xFFCA4958         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL44                 0xFFCA4960         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL45                 0xFFCA4968         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL46                 0xFFCA4970         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL47                 0xFFCA4978         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL48                 0xFFCA4980         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL49                 0xFFCA4988         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL50                 0xFFCA4990         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL51                 0xFFCA4998         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL52                 0xFFCA49A0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL53                 0xFFCA49A8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL54                 0xFFCA49B0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL55                 0xFFCA49B8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL56                 0xFFCA49C0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL57                 0xFFCA49C8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL58                 0xFFCA49D0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL59                 0xFFCA49D8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL60                 0xFFCA49E0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL61                 0xFFCA49E8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL62                 0xFFCA49F0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL63                 0xFFCA49F8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL64                 0xFFCA4A00         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL65                 0xFFCA4A08         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL66                 0xFFCA4A10         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL67                 0xFFCA4A18         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL68                 0xFFCA4A20         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL69                 0xFFCA4A28         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL70                 0xFFCA4A30         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL71                 0xFFCA4A38         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL72                 0xFFCA4A40         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL73                 0xFFCA4A48         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL74                 0xFFCA4A50         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL75                 0xFFCA4A58         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL76                 0xFFCA4A60         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL77                 0xFFCA4A68         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL78                 0xFFCA4A70         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL79                 0xFFCA4A78         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL80                 0xFFCA4A80         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL81                 0xFFCA4A88         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL82                 0xFFCA4A90         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL83                 0xFFCA4A98         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL84                 0xFFCA4AA0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL85                 0xFFCA4AA8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL86                 0xFFCA4AB0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL87                 0xFFCA4AB8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL88                 0xFFCA4AC0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL89                 0xFFCA4AC8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL90                 0xFFCA4AD0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL91                 0xFFCA4AD8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL92                 0xFFCA4AE0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL93                 0xFFCA4AE8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL94                 0xFFCA4AF0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL95                 0xFFCA4AF8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL96                 0xFFCA4B00         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL97                 0xFFCA4B08         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL98                 0xFFCA4B10         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL99                 0xFFCA4B18         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL100                0xFFCA4B20         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL101                0xFFCA4B28         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL102                0xFFCA4B30         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL103                0xFFCA4B38         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL104                0xFFCA4B40         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL105                0xFFCA4B48         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL106                0xFFCA4B50         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL107                0xFFCA4B58         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL108                0xFFCA4B60         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL109                0xFFCA4B68         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL110                0xFFCA4B70         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL111                0xFFCA4B78         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL112                0xFFCA4B80         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL113                0xFFCA4B88         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL114                0xFFCA4B90         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL115                0xFFCA4B98         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL116                0xFFCA4BA0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL117                0xFFCA4BA8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL118                0xFFCA4BB0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL119                0xFFCA4BB8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL120                0xFFCA4BC0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL121                0xFFCA4BC8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL122                0xFFCA4BD0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL123                0xFFCA4BD8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL124                0xFFCA4BE0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL125                0xFFCA4BE8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL126                0xFFCA4BF0         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL127                0xFFCA4BF8         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL128                0xFFCA4C00         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL129                0xFFCA4C08         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL130                0xFFCA4C10         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL131                0xFFCA4C18         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL132                0xFFCA4C20         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL133                0xFFCA4C28         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL134                0xFFCA4C30         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL135                0xFFCA4C38         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL136                0xFFCA4C40         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL137                0xFFCA4C48         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL138                0xFFCA4C50         /* SEC IRQ Source Control Register n */
+#define SEC_SCTL139                0xFFCA4C58         /* SEC IRQ Source Control Register n */
+#define SEC_SSTAT0                 0xFFCA4804         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT1                 0xFFCA480C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT2                 0xFFCA4814         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT3                 0xFFCA481C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT4                 0xFFCA4824         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT5                 0xFFCA482C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT6                 0xFFCA4834         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT7                 0xFFCA483C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT8                 0xFFCA4844         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT9                 0xFFCA484C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT10                0xFFCA4854         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT11                0xFFCA485C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT12                0xFFCA4864         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT13                0xFFCA486C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT14                0xFFCA4874         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT15                0xFFCA487C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT16                0xFFCA4884         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT17                0xFFCA488C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT18                0xFFCA4894         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT19                0xFFCA489C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT20                0xFFCA48A4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT21                0xFFCA48AC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT22                0xFFCA48B4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT23                0xFFCA48BC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT24                0xFFCA48C4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT25                0xFFCA48CC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT26                0xFFCA48D4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT27                0xFFCA48DC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT28                0xFFCA48E4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT29                0xFFCA48EC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT30                0xFFCA48F4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT31                0xFFCA48FC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT32                0xFFCA4904         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT33                0xFFCA490C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT34                0xFFCA4914         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT35                0xFFCA491C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT36                0xFFCA4924         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT37                0xFFCA492C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT38                0xFFCA4934         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT39                0xFFCA493C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT40                0xFFCA4944         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT41                0xFFCA494C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT42                0xFFCA4954         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT43                0xFFCA495C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT44                0xFFCA4964         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT45                0xFFCA496C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT46                0xFFCA4974         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT47                0xFFCA497C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT48                0xFFCA4984         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT49                0xFFCA498C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT50                0xFFCA4994         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT51                0xFFCA499C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT52                0xFFCA49A4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT53                0xFFCA49AC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT54                0xFFCA49B4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT55                0xFFCA49BC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT56                0xFFCA49C4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT57                0xFFCA49CC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT58                0xFFCA49D4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT59                0xFFCA49DC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT60                0xFFCA49E4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT61                0xFFCA49EC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT62                0xFFCA49F4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT63                0xFFCA49FC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT64                0xFFCA4A04         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT65                0xFFCA4A0C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT66                0xFFCA4A14         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT67                0xFFCA4A1C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT68                0xFFCA4A24         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT69                0xFFCA4A2C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT70                0xFFCA4A34         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT71                0xFFCA4A3C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT72                0xFFCA4A44         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT73                0xFFCA4A4C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT74                0xFFCA4A54         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT75                0xFFCA4A5C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT76                0xFFCA4A64         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT77                0xFFCA4A6C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT78                0xFFCA4A74         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT79                0xFFCA4A7C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT80                0xFFCA4A84         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT81                0xFFCA4A8C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT82                0xFFCA4A94         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT83                0xFFCA4A9C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT84                0xFFCA4AA4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT85                0xFFCA4AAC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT86                0xFFCA4AB4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT87                0xFFCA4ABC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT88                0xFFCA4AC4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT89                0xFFCA4ACC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT90                0xFFCA4AD4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT91                0xFFCA4ADC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT92                0xFFCA4AE4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT93                0xFFCA4AEC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT94                0xFFCA4AF4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT95                0xFFCA4AFC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT96                0xFFCA4B04         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT97                0xFFCA4B0C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT98                0xFFCA4B14         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT99                0xFFCA4B1C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT100               0xFFCA4B24         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT101               0xFFCA4B2C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT102               0xFFCA4B34         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT103               0xFFCA4B3C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT104               0xFFCA4B44         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT105               0xFFCA4B4C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT106               0xFFCA4B54         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT107               0xFFCA4B5C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT108               0xFFCA4B64         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT109               0xFFCA4B6C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT110               0xFFCA4B74         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT111               0xFFCA4B7C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT112               0xFFCA4B84         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT113               0xFFCA4B8C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT114               0xFFCA4B94         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT115               0xFFCA4B9C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT116               0xFFCA4BA4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT117               0xFFCA4BAC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT118               0xFFCA4BB4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT119               0xFFCA4BBC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT120               0xFFCA4BC4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT121               0xFFCA4BCC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT122               0xFFCA4BD4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT123               0xFFCA4BDC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT124               0xFFCA4BE4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT125               0xFFCA4BEC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT126               0xFFCA4BF4         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT127               0xFFCA4BFC         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT128               0xFFCA4C04         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT129               0xFFCA4C0C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT130               0xFFCA4C14         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT131               0xFFCA4C1C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT132               0xFFCA4C24         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT133               0xFFCA4C2C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT134               0xFFCA4C34         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT135               0xFFCA4C3C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT136               0xFFCA4C44         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT137               0xFFCA4C4C         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT138               0xFFCA4C54         /* SEC IRQ Source Status Register n */
+#define SEC_SSTAT139               0xFFCA4C5C         /* SEC IRQ Source Status Register n */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_CCTL                             Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_CCTL_LOCK                   0x80000000    /* LOCK: Lock */
+#define SEC_CCTL_NMI_EN                 0x00010000    /* NMIEN: Enable */
+#define SEC_CCTL_WAITIDLE               0x00001000    /* WFI: Wait for Idle */
+#define SEC_CCTL_RESET                  0x00000002    /* RESET: Reset */
+#define SEC_CCTL_EN                     0x00000001    /* EN: Enable */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_CSTAT                            Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_CSTAT_NMI                   0x00010000    /* NMI Status */
+#define SEC_CSTAT_WAITING               0x00001000    /* WFI: Waiting */
+#define SEC_CSTAT_VALID_SID             0x00000400    /* SIDV: Valid */
+#define SEC_CSTAT_VALID_ACT             0x00000200    /* ACTV: Valid */
+#define SEC_CSTAT_VALID_PND             0x00000100    /* PNDV: Valid */
+#define SEC_CSTAT_ERRC                  0x00000030    /* Error Cause */
+#define SEC_CSTAT_ACKERR                0x00000010    /* ERRC: Acknowledge Error */
+#define SEC_CSTAT_ERR                   0x00000002    /* ERR: Error Occurred */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_CPND                             Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_CPND_PRIO                   0x0000FF00    /* Highest Pending IRQ Priority */
+#define SEC_CPND_SID                    0x000000FF    /* Highest Pending IRQ Source ID */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_CACT                             Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_CACT_PRIO                   0x0000FF00    /* Highest Active IRQ Priority */
+#define SEC_CACT_SID                    0x000000FF    /* Highest Active IRQ Source ID */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_CPMSK                            Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_CPMSK_LOCK                  0x80000000    /* LOCK: Lock */
+#define SEC_CPMSK_PRIO                  0x000000FF    /* IRQ Priority Mask */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_CGMSK                            Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_CGMSK_LOCK                  0x80000000    /* LOCK: Lock */
+#define SEC_CGMSK_MASK                  0x00000100    /* UGRP: Mask Ungrouped Sources */
+#define SEC_CGMSK_GRP                   0x0000000F    /* Grouped Mask */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_CPLVL                            Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_CPLVL_LOCK                  0x80000000    /* LOCK: Lock */
+#define SEC_CPLVL_PLVL                  0x00000007    /* Priority Levels */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_CSID                             Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_CSID_SID                    0x000000FF    /* Source ID */
+
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_FCTL                             Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_FCTL_LOCK                   0x80000000    /* LOCK: Lock */
+#define SEC_FCTL_FLTPND_MODE            0x00002000    /* TES: Fault Pending Mode */
+#define SEC_FCTL_COP_MODE               0x00001000    /* CMS: COP Mode */
+#define SEC_FCTL_FLTIN_EN               0x00000080    /* FIEN: Enable */
+#define SEC_FCTL_SYSRST_EN              0x00000040    /* SREN: Enable */
+#define SEC_FCTL_TRGOUT_EN              0x00000020    /* TOEN: Enable */
+#define SEC_FCTL_FLTOUT_EN              0x00000010    /* FOEN: Enable */
+#define SEC_FCTL_RESET                  0x00000002    /* RESET: Reset */
+#define SEC_FCTL_EN                     0x00000001    /* EN: Enable */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_FSTAT                            Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_FSTAT_NXTFLT                0x00000400    /* NPND: Pending */
+#define SEC_FSTAT_FLTACT                0x00000200    /* ACT: Active Fault */
+#define SEC_FSTAT_FLTPND                0x00000100    /* PND: Pending */
+#define SEC_FSTAT_ERRC                  0x00000030    /* Error Cause */
+#define SEC_FSTAT_ENDERR                0x00000020    /* ERRC: End Error */
+#define SEC_FSTAT_ERR                   0x00000002    /* ERR: Error Occurred */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_FSID                             Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_FSID_SRC_EXTFLT             0x00010000    /* FEXT: Fault External */
+#define SEC_FSID_SID                    0x000000FF    /* Source ID */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_FEND                             Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_FEND_END_EXTFLT             0x00010000    /* FEXT: Fault External */
+#define SEC_FEND_SID                    0x000000FF    /* Source ID */
+
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_GCTL                             Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_GCTL_LOCK                   0x80000000    /* Lock */
+#define SEC_GCTL_RESET                  0x00000002    /* Reset */
+#define SEC_GCTL_EN                     0x00000001    /* Enable */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_GSTAT                            Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_GSTAT_LWERR                 0x80000000    /* LWERR: Error Occurred */
+#define SEC_GSTAT_ADRERR                0x40000000    /* ADRERR: Error Occurred */
+#define SEC_GSTAT_SID                   0x00FF0000    /* Source ID for SSI Error */
+#define SEC_GSTAT_SCI                   0x00000F00    /* SCI ID for SCI Error */
+#define SEC_GSTAT_ERRC                  0x00000030    /* Error Cause */
+#define SEC_GSTAT_SCIERR                0x00000010    /* ERRC: SCI Error */
+#define SEC_GSTAT_SSIERR                0x00000020    /* ERRC: SSI Error */
+#define SEC_GSTAT_ERR                   0x00000002    /* ERR: Error Occurred */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_RAISE                            Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_RAISE_SID                   0x000000FF    /* Source ID IRQ Set to Pending */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_END                              Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_END_SID                     0x000000FF    /* Source ID IRQ to End */
+
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_SCTL                             Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_SCTL_LOCK                   0x80000000    /* Lock */
+#define SEC_SCTL_CTG                    0x0F000000    /* Core Target Select */
+#define SEC_SCTL_GRP                    0x000F0000    /* Group Select */
+#define SEC_SCTL_PRIO                   0x0000FF00    /* Priority Level Select */
+#define SEC_SCTL_ERR_EN                 0x00000010    /* ERREN: Enable */
+#define SEC_SCTL_EDGE                   0x00000008    /* ES: Edge Sensitive */
+#define SEC_SCTL_SRC_EN                 0x00000004    /* SEN: Enable */
+#define SEC_SCTL_FAULT_EN               0x00000002    /* FEN: Enable */
+#define SEC_SCTL_INT_EN                 0x00000001    /* IEN: Enable */
+
+/* ------------------------------------------------------------------------------------------------------------------------
+        SEC_SSTAT                            Pos/Masks     Description
+   ------------------------------------------------------------------------------------------------------------------------ */
+#define SEC_SSTAT_CHID                  0x00FF0000    /* Channel ID */
+#define SEC_SSTAT_ACTIVE_SRC            0x00000200    /* ACT: Active Source */
+#define SEC_SSTAT_PENDING               0x00000100    /* PND: Pending */
+#define SEC_SSTAT_ERRC                  0x00000030    /* Error Cause */
+#define SEC_SSTAT_ENDERR                0x00000020    /* ERRC: End Error */
+#define SEC_SSTAT_ERR                   0x00000002    /* Error */
 
 
 /* =========================
