@@ -26,6 +26,12 @@
 #define bfin_read_SEC_GCTL()		bfin_read32(SEC_GCTL)
 #define bfin_write_SEC_GCTL(val)	bfin_write32(SEC_GCTL, val)
 
+#define bfin_read_SEC_SCTL(sid)		bfin_read32((SEC_SCTL0 + (sid) * 8))
+#define bfin_write_SEC_SCTL(sid, val)	bfin_write32((SEC_SCTL0 + (sid) * 8), val)
+
+#define bfin_read_SEC_SSTAT(sid)	bfin_read32((SEC_SSTAT0 + (sid) * 8))
+#define bfin_write_SEC_SSTAT(sid, val)	bfin_write32((SEC_SSTAT0 + (sid) * 8), val)
+
 /* Watchdog Timer Registers */
 
 
