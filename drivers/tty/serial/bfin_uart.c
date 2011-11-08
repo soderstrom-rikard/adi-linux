@@ -358,14 +358,7 @@ static void bfin_serial_tx_chars(struct bfin_serial_port *uart)
 		uart->port.x_char = 0;
 	}
 
-/*	UART Poll mode transfer workaround for bf609.
- *	Should be removed after SEC controller is working.
- *	while ((UART_GET_LSR(uart) & THRE) && xmit->tail != xmit->head) {
- */
-	while (xmit->tail != xmit->head) {
-		while (!(UART_GET_LSR(uart) & THRE))
-			cpu_relax();
-
+	while ((UART_GET_LSR(uart) & THRE) && xmit->tail != xmit->head) {
 		UART_PUT_CHAR(uart, xmit->buf[xmit->tail]);
 		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
 		uart->port.icount.tx++;
