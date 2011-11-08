@@ -81,7 +81,7 @@ static void __init search_IAR(void)
 		for (irqN = 0; irqN < NR_PERI_INTS; irqN += 4) {
 			int irqn;
 			u32 iar =
-				 bfin_read32((unsigned long *)SIC_IAR0 +
+				bfin_read32((unsigned long *)SIC_IAR0 +
 #if defined(CONFIG_BF51x) || defined(CONFIG_BF52x) || \
 	defined(CONFIG_BF538) || defined(CONFIG_BF539)
 				((irqN % 32) >> 3) + ((irqN / 32) * ((SIC_IAR4 - SIC_IAR0) / 4))
@@ -133,27 +133,20 @@ static void bfin_core_unmask_irq(struct irq_data *d)
 static void bfin_internal_mask_irq(unsigned int irq)
 {
 	unsigned long flags = hard_local_irq_save();
-
 #ifndef CONFIG_BF60x
-
 #ifdef SIC_IMASK0
 	unsigned mask_bank = SIC_SYSIRQ(irq) / 32;
 	unsigned mask_bit = SIC_SYSIRQ(irq) % 32;
 	bfin_write_SIC_IMASK(mask_bank, bfin_read_SIC_IMASK(mask_bank) &
-			     ~(1 << mask_bit));
+			~(1 << mask_bit));
 # if defined(CONFIG_SMP) || defined(CONFIG_ICC)
 	bfin_write_SICB_IMASK(mask_bank, bfin_read_SICB_IMASK(mask_bank) &
-			     ~(1 << mask_bit));
+			~(1 << mask_bit));
 # endif
 #else
 	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() &
-			     ~(1 << SIC_SYSIRQ(irq)));
+			~(1 << SIC_SYSIRQ(irq)));
 #endif /* end of SIC_IMASK0 */
-#else
-	int   sec_irq = SIC_SYSIRQ(irq);
-	unsigned int  *p_sctl = (unsigned int *)SEC_SCTL0;
-	unsigned int old = bfin_read(p_sctl+sec_irq);
-//	bfin_write(p_sctl+sec_irq * 8, old | SEC_SCTL_SRC_EN);
 #endif
 	hard_local_irq_restore(flags);
 }
@@ -173,7 +166,6 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 	unsigned long flags = hard_local_irq_save();
 
 #ifndef CONFIG_BF60x
-
 #ifdef SIC_IMASK0
 	unsigned mask_bank = SIC_SYSIRQ(irq) / 32;
 	unsigned mask_bit = SIC_SYSIRQ(irq) % 32;
@@ -181,94 +173,115 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 	if (cpumask_test_cpu(0, affinity))
 # endif
 		bfin_write_SIC_IMASK(mask_bank,
-			bfin_read_SIC_IMASK(mask_bank) |
-			(1 << mask_bit));
+				bfin_read_SIC_IMASK(mask_bank) |
+				(1 << mask_bit));
 # ifdef CONFIG_SMP
 	if (cpumask_test_cpu(1, affinity))
 		bfin_write_SICB_IMASK(mask_bank,
-			bfin_read_SICB_IMASK(mask_bank) |
-			(1 << mask_bit));
+				bfin_read_SICB_IMASK(mask_bank) |
+				(1 << mask_bit));
 # endif
 #else
 	bfin_write_SIC_IMASK(bfin_read_SIC_IMASK() |
-			     (1 << SIC_SYSIRQ(irq)));
+			(1 << SIC_SYSIRQ(irq)));
 #endif
-
-#else
-	int   sec_irq = SIC_SYSIRQ(irq);
-	unsigned int  *p_sctl = (unsigned int *)SEC_SCTL0;
-	unsigned int old = bfin_read(p_sctl+sec_irq);
-	bfin_write(p_sctl+sec_irq, old & ~SEC_SCTL_SRC_EN);
 #endif
-
 	hard_local_irq_restore(flags);
 }
 
 #ifdef CONFIG_BF60x
 static void bfin_sec_mask_ack_irq(struct irq_data *d)
 {
+	unsigned long flags = hard_local_irq_save();
+
 	bfin_write_SEC0_CSID(d->irq);
+
+	hard_local_irq_restore(flags);
 }
 
 static void bfin_sec_unmask_irq(struct irq_data *d)
 {
-	unsigned int   sid = SIC_SYSIRQ(d->irq);
+	unsigned long flags = hard_local_irq_save();
+	unsigned int sid = SIC_SYSIRQ(d->irq);
+
 	bfin_write32(SEC_END, sid);
+
+	hard_local_irq_restore(flags);
 }
 
 static void bfin_sec_enable_ssi(unsigned int sid)
 {
+	unsigned long flags = hard_local_irq_save();
 	uint32_t reg_sctl = bfin_read_SEC_SCTL(sid);
+
 	reg_sctl |= SEC_SCTL_SRC_EN;
 	bfin_write_SEC_SCTL(sid, reg_sctl);
+
+	hard_local_irq_restore(flags);
 }
 
 static void bfin_sec_disable_ssi(unsigned int sid)
 {
+	unsigned long flags = hard_local_irq_save();
 	uint32_t reg_sctl = bfin_read_SEC_SCTL(sid);
+
 	reg_sctl &= ((uint32_t)~SEC_SCTL_SRC_EN);
 	bfin_write_SEC_SCTL(sid, reg_sctl);
+
+	hard_local_irq_restore(flags);
 }
 
 static void bfin_sec_enable_sci(unsigned int sid)
 {
+	unsigned long flags = hard_local_irq_save();
 	uint32_t reg_sctl = bfin_read_SEC_SCTL(sid);
+
 	reg_sctl |= SEC_SCTL_INT_EN;
 	bfin_write_SEC_SCTL(sid, reg_sctl);
+
+	hard_local_irq_restore(flags);
 }
 
 static void bfin_sec_disable_sci(unsigned int sid)
 {
+	unsigned long flags = hard_local_irq_save();
 	uint32_t reg_sctl = bfin_read_SEC_SCTL(sid);
+
 	reg_sctl &= ((uint32_t)~SEC_SCTL_INT_EN);
 	bfin_write_SEC_SCTL(sid, reg_sctl);
+
+	hard_local_irq_restore(flags);
 }
 
 static void bfin_sec_enable(struct irq_data *d)
 {
-
 	unsigned long flags = hard_local_irq_save();
-	unsigned int   sid = SIC_SYSIRQ(d->irq);
-	printk("%s %d\n", __func__, sid);
+	unsigned int sid = SIC_SYSIRQ(d->irq);
+
 	bfin_sec_enable_sci(sid);
 	bfin_sec_enable_ssi(sid);
+
 	hard_local_irq_restore(flags);
 }
 
 static void bfin_sec_disable(struct irq_data *d)
 {
 	unsigned long flags = hard_local_irq_save();
-	unsigned int   sid = SIC_SYSIRQ(d->irq);
-	printk("%s %d\n", __func__, sid);
+	unsigned int sid = SIC_SYSIRQ(d->irq);
+
 	bfin_sec_disable_sci(sid);
 	bfin_sec_disable_ssi(sid);
+
 	hard_local_irq_restore(flags);
 }
 
-static void bfin_sec_ack(struct irq_data *d)
+static void bfin_sec_raise_irq(unsigned int sid)
 {
-	/* write to ack */
-	bfin_write_SEC0_CSID(0x0);
+	unsigned long flags = hard_local_irq_save();
+
+	bfin_write32(SEC_RAISE, sid);
+
+	hard_local_irq_restore(flags);
 }
 #endif
 
@@ -365,18 +378,12 @@ static struct irq_chip bfin_internal_irqchip = {
 	.name = "INTN",
 	.irq_mask = bfin_internal_mask_irq_chip,
 	.irq_unmask = bfin_internal_unmask_irq_chip,
-#ifndef CONFIG_BF60x
 	.irq_disable = bfin_internal_mask_irq_chip,
 	.irq_enable = bfin_internal_unmask_irq_chip,
 #ifdef CONFIG_SMP
 	.irq_set_affinity = bfin_internal_set_affinity,
 #endif
 	.irq_set_wake = bfin_internal_set_wake_chip,
-#else  
-	.irq_disable = bfin_sec_disable,
-	.irq_enable = bfin_sec_enable,
-	.irq_ack = bfin_sec_ack,
-#endif
 };
 
 static struct irq_chip bfin_sec_irqchip = {
@@ -511,15 +518,15 @@ void bfin_demux_mac_status_irq(unsigned int int_err_irq,
 		} else {
 			bfin_mac_status_ack_irq(irq);
 			pr_debug("IRQ %d:"
-				 " MASKED MAC ERROR INTERRUPT ASSERTED\n",
-				 irq);
+					" MASKED MAC ERROR INTERRUPT ASSERTED\n",
+					irq);
 		}
 	} else
 		printk(KERN_ERR
-		       "%s : %s : LINE %d :\nIRQ ?: MAC ERROR"
-		       " INTERRUPT ASSERTED BUT NO SOURCE FOUND"
-		       "(EMAC_SYSTAT=0x%X)\n",
-		       __func__, __FILE__, __LINE__, status);
+				"%s : %s : LINE %d :\nIRQ ?: MAC ERROR"
+				" INTERRUPT ASSERTED BUT NO SOURCE FOUND"
+				"(EMAC_SYSTAT=0x%X)\n",
+				__func__, __FILE__, __LINE__, status);
 }
 #endif
 
@@ -674,7 +681,7 @@ static void bfin_demux_gpio_block(unsigned int irq)
 }
 
 void bfin_demux_gpio_irq(unsigned int inta_irq,
-			 struct irq_desc *desc)
+			struct irq_desc *desc)
 {
 	unsigned int irq;
 
@@ -1181,8 +1188,8 @@ int __init init_arch_irq(void)
 
 	/* Enable interrupts IVG7-15 */
 	bfin_irq_flags |= IMASK_IVG15 |
-	    IMASK_IVG14 | IMASK_IVG13 | IMASK_IVG12 | IMASK_IVG11 |
-	    IMASK_IVG10 | IMASK_IVG9 | IMASK_IVG8 | IMASK_IVG7 | IMASK_IVGHW;
+		IMASK_IVG14 | IMASK_IVG13 | IMASK_IVG12 | IMASK_IVG11 |
+		IMASK_IVG10 | IMASK_IVG9 | IMASK_IVG8 | IMASK_IVG7 | IMASK_IVGHW;
 
 	bfin_sti(bfin_irq_flags);
 
@@ -1209,8 +1216,6 @@ int __init init_arch_irq(void)
 	bfin_write_SIC_IWR(IWR_DISABLE_ALL);
 #endif
 #else  /* CONFIG_BF60x */
-//	bfin_irq_flags |= IMASK_IVG7 | IMASK_IVGHW;
-
 	/* Enable interrupts IVG7-15 */
 	bfin_irq_flags |= IMASK_IVG15 |
 	    IMASK_IVG14 | IMASK_IVG13 | IMASK_IVG12 | IMASK_IVG11 |
@@ -1234,20 +1239,18 @@ int __init init_arch_irq(void)
 	return 0;
 }
 
-
 void bf609_irq_test(void)
 {
-	u32 reg0, reg1;
-	printk("xx %s\n", __func__);
+	u32 reg0;
 	bfin_write32(SEC_SCTL0 + 80 * 8, SEC_SCTL_INT_EN | SEC_SCTL_SRC_EN);
-//	bfin_write32(SEC_SCTL0 + 81 * 8, SEC_SCTL_INT_EN | SEC_SCTL_SRC_EN);
+	bfin_write32(SEC_SCTL0 + 81 * 8, SEC_SCTL_INT_EN | SEC_SCTL_SRC_EN);
 
-	bfin_write32(SEC_RAISE, 80);
-//	bfin_write32(SEC_RAISE, 81);
+	bfin_sec_raise_irq(80);
+	bfin_sec_raise_irq(81);
 
 	reg0 = bfin_read32(SEC_GSTAT);
 
-	printk("SEC0: GSTAT %08x", reg0);
+	printk(KERN_DEBUG "SEC0: GSTAT %08x", reg0);
 
 	while(1);
 }
@@ -1294,7 +1297,7 @@ static int vec_to_irq(int vec)
 			return ivg->irqno;
 	}
 #else
-	/* for bf60x read */ 
+	/* for bf60x read */
 	return BFIN_IRQ(bfin_read_SEC0_CSID());
 #endif  /* end of CONFIG_BF60x */
 }
