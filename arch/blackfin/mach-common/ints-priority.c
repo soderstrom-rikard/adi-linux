@@ -205,26 +205,63 @@ static void bfin_internal_unmask_irq(unsigned int irq)
 }
 
 #ifdef CONFIG_BF60x
+static void bfin_sec_mask_ack_irq(struct irq_data *d)
+{
+	bfin_write_SEC0_CSID(d->irq);
+}
+
+static void bfin_sec_unmask_irq(struct irq_data *d)
+{
+	unsigned int   sid = SIC_SYSIRQ(d->irq);
+	bfin_write32(SEC_END, sid);
+}
+
+static void bfin_sec_enable_ssi(unsigned int sid)
+{
+	uint32_t reg_sctl = bfin_read_SEC_SCTL(sid);
+	reg_sctl |= SEC_SCTL_SRC_EN;
+	bfin_write_SEC_SCTL(sid, reg_sctl);
+}
+
+static void bfin_sec_disable_ssi(unsigned int sid)
+{
+	uint32_t reg_sctl = bfin_read_SEC_SCTL(sid);
+	reg_sctl &= ((uint32_t)~SEC_SCTL_SRC_EN);
+	bfin_write_SEC_SCTL(sid, reg_sctl);
+}
+
+static void bfin_sec_enable_sci(unsigned int sid)
+{
+	uint32_t reg_sctl = bfin_read_SEC_SCTL(sid);
+	reg_sctl |= SEC_SCTL_INT_EN;
+	bfin_write_SEC_SCTL(sid, reg_sctl);
+}
+
+static void bfin_sec_disable_sci(unsigned int sid)
+{
+	uint32_t reg_sctl = bfin_read_SEC_SCTL(sid);
+	reg_sctl &= ((uint32_t)~SEC_SCTL_INT_EN);
+	bfin_write_SEC_SCTL(sid, reg_sctl);
+}
+
 static void bfin_sec_enable(struct irq_data *d)
 {
 
 	unsigned long flags = hard_local_irq_save();
-	int   sec_irq = SIC_SYSIRQ(d->irq);
-	unsigned int  *p_sctl = (unsigned int *)SEC_SCTL0;
-	unsigned int old = bfin_read(p_sctl+sec_irq);
-
-	bfin_write(p_sctl+sec_irq, old & SEC_SCTL_INT_EN);
+	unsigned int   sid = SIC_SYSIRQ(d->irq);
+	printk("%s %d\n", __func__, sid);
+	bfin_sec_enable_sci(sid);
+	bfin_sec_enable_ssi(sid);
 	hard_local_irq_restore(flags);
 }
 
 static void bfin_sec_disable(struct irq_data *d)
 {
 	unsigned long flags = hard_local_irq_save();
-	int   sec_irq = SIC_SYSIRQ(d->irq);
-	unsigned int  *p_sctl = (unsigned int *)SEC_SCTL0;
-	unsigned int old = bfin_read(p_sctl+sec_irq);
-
-	bfin_write(p_sctl+sec_irq, old & ~SEC_SCTL_INT_EN);
+	unsigned int   sid = SIC_SYSIRQ(d->irq);
+	printk("%s %d\n", __func__, sid);
+	bfin_sec_disable_sci(sid);
+	bfin_sec_disable_ssi(sid);
 	hard_local_irq_restore(flags);
 }
 
@@ -340,6 +377,14 @@ static struct irq_chip bfin_internal_irqchip = {
 	.irq_enable = bfin_sec_enable,
 	.irq_ack = bfin_sec_ack,
 #endif
+};
+
+static struct irq_chip bfin_sec_irqchip = {
+	.name = "SEC",
+	.irq_mask_ack = bfin_sec_mask_ack_irq,
+	.irq_unmask = bfin_sec_unmask_irq,
+	.irq_disable = bfin_sec_disable,
+	.irq_enable = bfin_sec_enable,
 };
 
 void bfin_handle_irq(unsigned irq)
@@ -1112,6 +1157,11 @@ int __init init_arch_irq(void)
 		irq < (GPIO_IRQ_BASE + MAX_BLACKFIN_GPIOS); irq++)
 		irq_set_chip_and_handler(irq, &bfin_gpio_irqchip,
 					 handle_level_irq);
+#else
+	for (irq = IRQ_CORETMR + 1; irq < SYS_IRQS; irq++) {
+		irq_set_chip_and_handler(irq, &bfin_sec_irqchip,
+				handle_level_irq);
+	}
 #endif
 	bfin_write_IMASK(0);
 	CSYNC();
@@ -1245,11 +1295,7 @@ static int vec_to_irq(int vec)
 	}
 #else
 	/* for bf60x read */ 
-//	if (likely(vec == EVT_IVG7_P)) {
-		/* SEC interrup */
-		return BFIN_IRQ(bfin_read_SEC0_CSID());
-//	}
-	return -1;
+	return BFIN_IRQ(bfin_read_SEC0_CSID());
 #endif  /* end of CONFIG_BF60x */
 }
 
