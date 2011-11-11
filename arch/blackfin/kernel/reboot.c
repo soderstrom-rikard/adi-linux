@@ -19,9 +19,7 @@
  * reset while the Core B bit (on dual core parts) is cleared by
  * the core reset.
  */
-#ifndef CONFIG_BF609_FPGA
 __attribute__ ((__l1_text__, __noreturn__))
-#endif
 static void bfin_reset(void)
 {
 #ifndef CONFIG_BF60x

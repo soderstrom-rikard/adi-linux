@@ -853,11 +853,7 @@ static inline int __init get_mem_size(void)
 		ret *= 2;
 	return ret;
 #elif defined(CONFIG_BF60x)
-# ifdef CONFIG_BF609_FPGA
-	return 0xB40 + 2; /* 2M total in FPGA SRAM 0xB4000000 */
-# else
 	return 128; /* 128M total in BF609-ezkit */
-# endif
 #endif
 	BUG();
 }

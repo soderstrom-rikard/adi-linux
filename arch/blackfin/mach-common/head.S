@@ -31,11 +31,7 @@ ENDPROC(__init_clear_bss)
 #define CONFIG_NOLOADER_KERNEL_BOOT
 ENTRY(__start)
 	/* R0: argument of command line string, passed from uboot, save it */
-#ifdef CONFIG_BF609_FPGA
-	R7 = 0;
-#else
 	R7 = R0;
-#endif
 
 #ifdef CONFIG_NOLOADER_KERNEL_BOOT
 	R7 = 0;
