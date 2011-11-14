@@ -230,7 +230,7 @@ set_bfin_dma_config2(char direction, char flow_mode, char intr_mode,
 	};
 
 	return config | (direction << 1) | (mem_width << 8) | (dma_mode << 26) |
-		(flow_mode << 12) | (syncmode << 1) | (peri_width << 4);
+		(flow_mode << 12) | (syncmode << 2) | (peri_width << 4);
 }
 #endif
 
