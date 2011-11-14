@@ -866,13 +866,8 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 			port->ignore_status_mask |= OE;
 	}
 
-#if defined(CONFIG_BF60x)
-	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk);
-	quot = uart_get_divisor(port, baud/16);
-#else
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
 	quot = uart_get_divisor(port, baud);
-#endif
 
 	/* If discipline is not IRDA, apply ANOMALY_05000230 */
 	if (termios->c_line != N_IRDA)
@@ -887,11 +882,7 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	/* Set DLAB in LCR to Access CLK */
 	UART_SET_DLAB(uart);
 
-#if defined(CONFIG_BF60x)
-	UART_PUT_CLK(uart, quot | EDBO);
-#else
 	UART_PUT_CLK(uart, quot);
-#endif
 	SSYNC();
 
 	/* Clear DLAB in LCR to Access THR RBR IER */
