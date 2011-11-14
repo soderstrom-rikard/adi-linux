@@ -168,7 +168,7 @@ static void bfin_serial_stop_tx(struct uart_port *port)
 	uart->tx_count = 0;
 	uart->tx_done = 1;
 #else
-#if defined(CONFIG_BF54x) && defined(CONFIG_BF60x)
+#if defined(CONFIG_BF54x) || defined(CONFIG_BF60x)
 	/* Clear TFI bit */
 	UART_PUT_LSR(uart, TFI);
 #endif
@@ -339,7 +339,7 @@ static void bfin_serial_tx_chars(struct bfin_serial_port *uart)
 	struct circ_buf *xmit = &uart->port.state->xmit;
 
 	if (uart_circ_empty(xmit) || uart_tx_stopped(&uart->port)) {
-#if defined(CONFIG_BF54x) && defined(CONFIG_BF60x)
+#if defined(CONFIG_BF54x) || defined(CONFIG_BF60x)
 		/* Clear TFI bit */
 		UART_PUT_LSR(uart, TFI);
 #endif
