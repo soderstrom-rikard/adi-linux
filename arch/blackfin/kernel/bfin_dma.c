@@ -305,7 +305,7 @@ void __init early_dma_memcpy(void *pdst, const void *psrc, size_t size)
 
 	/* Enable */
 	DMA_MMR_WRITE(&src_ch->cfg, DMAEN | WDSIZE_32);
-	DMA_MMR_WRITE(&dst_ch->cfg, WNR | DI_EN_Y | DMAEN | WDSIZE_32);
+	DMA_MMR_WRITE(&dst_ch->cfg, WNR | DI_EN_X | DMAEN | WDSIZE_32);
 
 	/* Since we are atomic now, don't use the workaround ssync */
 	__builtin_bfin_ssync();
