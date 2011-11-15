@@ -309,6 +309,15 @@ void __init early_dma_memcpy(void *pdst, const void *psrc, size_t size)
 
 	/* Since we are atomic now, don't use the workaround ssync */
 	__builtin_bfin_ssync();
+
+#ifdef CONFIG_BF60x
+	/* Work around a possible MDMA anomaly. Running 2 MDMA channels to
+	 * transfer DDR data to L1 SRAM may corrupt data.
+	 * Should be reverted after this issue is root caused.
+	 */
+	while (!(DMA_MMR_READ(&dst_ch->irq_status) & DMA_DONE))
+		continue;
+#endif
 }
 
 void __init early_dma_memcpy_done(void)
@@ -332,15 +341,6 @@ void __init early_dma_memcpy_done(void)
 	bfin_write_MDMA_D1_CONFIG(0);
 
 	__builtin_bfin_ssync();
-
-#ifdef CONFIG_BF60x
-	/* Work around a possible MDMA anomaly. Running 2 MDMA channels to
-	 * transfer DDR data to L1 SRAM may corrupt data.
-	 * Should be reverted after this issue is root caused.
-	 */
-	while(!(DMA_MMR_READ(&dst_ch->irq_status) & DMA_DONE))
-		continue;
-#endif
 }
 
 /**
