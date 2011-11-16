@@ -1435,6 +1435,7 @@ F:	fs/bfs/
 F:	include/linux/bfs_fs.h
 
 BLACKFIN ARCHITECTURE
+M:	Bob Liu <lliubbo@kernel.org>
 M:	Mike Frysinger <vapier@gentoo.org>
 L:	uclinux-dist-devel@blackfin.uclinux.org
 W:	http://blackfin.uclinux.org
@@ -1448,14 +1449,12 @@ S:	Supported
 F:	drivers/net/bfin_mac.*
 
 BLACKFIN RTC DRIVER
-M:	Mike Frysinger <vapier.adi@gmail.com>
 L:	uclinux-dist-devel@blackfin.uclinux.org
 W:	http://blackfin.uclinux.org
 S:	Supported
 F:	drivers/rtc/rtc-bfin.c
 
 BLACKFIN SDH DRIVER
-M:	Cliff Cai <cliff.cai@analog.com>
 L:	uclinux-dist-devel@blackfin.uclinux.org
 W:	http://blackfin.uclinux.org
 S:	Supported
@@ -1469,7 +1468,6 @@ S:	Supported
 F:	drivers/tty/serial/bfin_5xx.c
 
 BLACKFIN WATCHDOG DRIVER
-M:	Mike Frysinger <vapier.adi@gmail.com>
 L:	uclinux-dist-devel@blackfin.uclinux.org
 W:	http://blackfin.uclinux.org
 S:	Supported
