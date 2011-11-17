@@ -9,6 +9,9 @@
 
 #include <mach-common/irq.h>
 
+#undef BFIN_IRQ
+#define BFIN_IRQ(x) ((x) + IVG15)
+
 #define NR_PERI_INTS		(5 * 32)
 
 #define IRQ_SEC_ERR		BFIN_IRQ(0)	/* SEC Error */
@@ -23,6 +26,8 @@
 #define IRQ_C1_HW_ERR		BFIN_IRQ(9)	/* Core 1 Hardware Error */
 #define IRQ_C0_NMI_L1_PARITY_ERR	BFIN_IRQ(10)	/* Core 0 Unhandled NMI or L1 Memory Parity Error */
 #define IRQ_C1_NMI_L1_PARITY_ERR	BFIN_IRQ(11)	/* Core 1 Unhandled NMI or L1 Memory Parity Error */
+#define CORE_IRQS		(IRQ_C1_NMI_L1_PARITY_ERR + 1)
+
 #define IRQ_TIMER0		BFIN_IRQ(12)	/* Timer 0 Interrupt */
 #define IRQ_TIMER1		BFIN_IRQ(13)	/* Timer 1 Interrupt */
 #define IRQ_TIMER2		BFIN_IRQ(14)	/* Timer 2 Interrupt */
