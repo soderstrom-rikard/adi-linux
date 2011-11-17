@@ -2430,23 +2430,21 @@
 /* ------------------------------------------------------------------------------------------------------------------------
        SEC Core Interface (SCI) Register Definitions
    ------------------------------------------------------------------------------------------------------------------------ */
-#define SEC0_CCTL                  0xFFCA4400         /* SEC0 Core Control Register n */
-#define SEC0_CSTAT                 0xFFCA4404         /* SEC0 Core Status Register n */
-#define SEC0_CPND                  0xFFCA4408         /* SEC0 Core Pending IRQ Register n */
-#define SEC0_CACT                  0xFFCA440C         /* SEC0 Core Active IRQ Register n */
-#define SEC0_CPMSK                 0xFFCA4410         /* SEC0 Core IRQ Priority Mask Register n */
-#define SEC0_CGMSK                 0xFFCA4414         /* SEC0 Core IRQ Group Mask Register n */
-#define SEC0_CPLVL                 0xFFCA4418         /* SEC0 Core IRQ Priority Level Register n */
-#define SEC0_CSID                  0xFFCA441C         /* SEC0 Core IRQ Source ID Register n */
 
-#define SEC1_CCTL                  0xFFCA4440         /* SEC1 Core Control Register n */
-#define SEC1_CSTAT                 0xFFCA4444         /* SEC1 Core Status Register n */
-#define SEC1_CPND                  0xFFCA4448         /* SEC1 Core Pending IRQ Register n */
-#define SEC1_CACT                  0xFFCA444C         /* SEC1 Core Active IRQ Register n */
-#define SEC1_CPMSK                 0xFFCA4450         /* SEC1 Core IRQ Priority Mask Register n */
-#define SEC1_CGMSK                 0xFFCA4454         /* SEC1 Core IRQ Group Mask Register n */
-#define SEC1_CPLVL                 0xFFCA4458         /* SEC1 Core IRQ Priority Level Register n */
-#define SEC1_CSID                  0xFFCA445C         /* SEC1 Core IRQ Source ID Register n */
+#define SEC_SCI_BASE 0xFFCA4400
+#define SEC_SCI_OFF 0x40
+#define SEC_CCTL 0x0         /* SEC Core Control Register n */
+#define SEC_CSTAT 0x4         /* SEC Core Status Register n */
+#define SEC_CPND 0x8         /* SEC Core Pending IRQ Register n */
+#define SEC_CACT 0xC         /* SEC Core Active IRQ Register n */
+#define SEC_CPMSK 0x10         /* SEC Core IRQ Priority Mask Register n */
+#define SEC_CGMSK 0x14         /* SEC Core IRQ Group Mask Register n */
+#define SEC_CPLVL 0x18         /* SEC Core IRQ Priority Level Register n */
+#define SEC_CSID 0x1C         /* SEC Core IRQ Source ID Register n */
+
+#define bfin_read_SEC_SCI(n, reg) bfin_read32(SEC_SCI_BASE + (n) * SEC_SCI_OFF + reg)
+#define bfin_write_SEC_SCI(n, reg, val) \
+	bfin_write32(SEC_SCI_BASE + (n) * SEC_SCI_OFF + reg, val)
 
 /* ------------------------------------------------------------------------------------------------------------------------
        SEC Fault Management Interface (SFI) Register Definitions
