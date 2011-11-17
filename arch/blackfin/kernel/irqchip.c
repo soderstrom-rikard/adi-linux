@@ -127,7 +127,7 @@ asmlinkage void asm_do_IRQ(unsigned int irq, struct pt_regs *regs)
 	 * Some hardware gives randomly wrong interrupts.  Rather
 	 * than crashing, do something sensible.
 	 */
-	if (irq >= 140)
+	if (irq >= NR_IRQS)
 		handle_bad_irq(irq, &bad_irq_desc);
 	else
 		generic_handle_irq(irq);
