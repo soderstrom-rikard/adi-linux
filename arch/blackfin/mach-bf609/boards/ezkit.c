@@ -620,28 +620,39 @@ static struct mtd_partition ezkit_partitions[] = {
 		.offset     = MTDPART_OFS_APPEND,
 	}, {
 		.name       = "file system(nor)",
-		.size       = 0x1000000 - 0x80000 - 0x400000 - 0x8000 * 4,
+		.size       = 0x1000000 - 0x80000 - 0x400000,
 		.offset     = MTDPART_OFS_APPEND,
-	}, {
-		.name       = "config(nor)",
-		.size       = 0x8000 * 3,
-		.offset     = MTDPART_OFS_APPEND,
-	}, {
-		.name       = "u-boot env(nor)",
-		.size       = 0x8000,
-		.offset     = MTDPART_OFS_APPEND,
-	}
+	},
 };
+
+int bf609_nor_flash_init(struct platform_device *dev)
+{
+#define CONFIG_SMC_GCTL_VAL     0x00000010
+	const unsigned short pins[] = {
+		P_A3, P_A4, P_A5, P_A6, P_A7, P_A8, P_A9, P_A10, P_A11, P_A12,
+		P_A13, P_A14, P_A15, P_A16, P_A17, P_A18, P_A19, P_A20, P_A21,
+		P_A22, P_A23, P_A24, P_A25, P_NORCK, 0,
+	};
+
+	peripheral_request_list(pins, "smc0");
+
+	bfin_write32(SMC_GCTL, CONFIG_SMC_GCTL_VAL);
+	bfin_write32(SMC_B0CTL, 0x01001001);
+	bfin_write32(SMC_B0TIM, 0x08170977);
+	bfin_write32(SMC_B0ETIM, 0x00092231);
+	return 0;
+}
 
 static struct physmap_flash_data ezkit_flash_data = {
 	.width      = 2,
 	.parts      = ezkit_partitions,
+	.init = bf609_nor_flash_init,
 	.nr_parts   = ARRAY_SIZE(ezkit_partitions),
 };
 
 static struct resource ezkit_flash_resource = {
-	.start = 0x20000000,
-	.end   = 0x21ffffff,
+	.start = 0xb0000000,
+	.end   = 0xb0ffffff,
 	.flags = IORESOURCE_MEM,
 };
 
