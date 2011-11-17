@@ -26,7 +26,11 @@
 #include <asm/irq_handler.h>
 #include <asm/dpmc.h>
 
-#define SIC_SYSIRQ(irq)	(irq - (IRQ_CORETMR + 1))
+#ifndef CONFIG_BF60x
+# define SIC_SYSIRQ(irq)	(irq - (IRQ_CORETMR + 1))
+#else
+# define SIC_SYSIRQ(irq)	((irq) - IVG15)
+#endif
 
 /*
  * NOTES:
@@ -194,7 +198,7 @@ static void bfin_sec_mask_ack_irq(struct irq_data *d)
 {
 	unsigned long flags = hard_local_irq_save();
 
-	bfin_write_SEC0_CSID(d->irq);
+	bfin_write_SEC_SCI(0, SEC_CSID, d->irq);
 
 	hard_local_irq_restore(flags);
 }
@@ -282,6 +286,68 @@ static void bfin_sec_raise_irq(unsigned int sid)
 	bfin_write32(SEC_RAISE, sid);
 
 	hard_local_irq_restore(flags);
+}
+
+void handle_sec_sfi_fault(uint32_t gstat)
+{
+
+}
+
+void handle_sec_sci_fault(uint32_t gstat)
+{
+	uint32_t core_id;
+	uint32_t cstat;
+
+	core_id = gstat & SEC_GSTAT_SCI;
+	cstat = bfin_read_SEC_SCI(core_id, SEC_CSTAT);
+	if (cstat & SEC_CSTAT_ERR) {
+		switch (cstat & SEC_CSTAT_ERRC) {
+		case SEC_CSTAT_ACKERR:
+			printk(KERN_DEBUG "sec ack err\n");
+			break;
+		default:
+			printk(KERN_DEBUG "sec sci unknow err\n");
+		}
+	}
+
+}
+
+void handle_sec_ssi_fault(uint32_t gstat)
+{
+	uint32_t sid;
+	uint32_t sstat;
+
+	sid = gstat & SEC_GSTAT_SID;
+	sstat = bfin_read_SEC_SSTAT(sid);
+
+}
+
+void handle_sec_fault(unsigned int irq, struct irq_desc *desc)
+{
+	struct irq_chip *chip = irq_desc_get_chip(desc);
+	uint32_t sec_gstat;
+
+	raw_spin_lock(&desc->lock);
+
+	sec_gstat = bfin_read32(SEC_GSTAT);
+	if (sec_gstat & SEC_GSTAT_ERR) {
+
+		switch (sec_gstat & SEC_GSTAT_ERRC) {
+		case 0:
+			handle_sec_sfi_fault(sec_gstat);
+			break;
+		case SEC_GSTAT_SCIERR:
+			handle_sec_sci_fault(sec_gstat);
+			break;
+		case SEC_GSTAT_SSIERR:
+			handle_sec_ssi_fault(sec_gstat);
+			break;
+		}
+
+
+	}
+
+	raw_spin_unlock(&desc->lock);
 }
 #endif
 
@@ -1165,9 +1231,13 @@ int __init init_arch_irq(void)
 		irq_set_chip_and_handler(irq, &bfin_gpio_irqchip,
 					 handle_level_irq);
 #else
-	for (irq = IRQ_CORETMR + 1; irq < SYS_IRQS; irq++) {
-		irq_set_chip_and_handler(irq, &bfin_sec_irqchip,
-				handle_level_irq);
+	for (irq = BFIN_IRQ(0); irq <= SYS_IRQS; irq++) {
+		if (irq < CORE_IRQS) {
+			irq_set_chip(irq, &bfin_sec_irqchip);
+			__irq_set_handler(irq, handle_sec_fault, 1, NULL);
+		} else
+			irq_set_chip_and_handler(irq, &bfin_sec_irqchip,
+					handle_level_irq);
 	}
 #endif
 	bfin_write_IMASK(0);
@@ -1225,17 +1295,11 @@ int __init init_arch_irq(void)
 	bfin_write_SEC_GCTL(SEC_GCTL_RESET);
 	udelay(100);
 
-	bfin_write_SEC0_CCTL(SEC_CCTL_RESET);
+	bfin_write_SEC_SCI(0, SEC_CCTL, SEC_CCTL_RESET);
 	udelay(100);
 	bfin_write_SEC_GCTL(SEC_GCTL_EN);
-	bfin_write_SEC0_CCTL(SEC_CCTL_EN | SEC_CCTL_NMI_EN);
-#if 0
-	/* setup all source */
-	for (irq = 0; irq <= SYS_IRQS; irq++) {
-		bfin_write32(SEC_SCTL0 + irq * 8, SEC_SCTL_INT_EN | SEC_SCTL_SRC_EN);
-	}
+	bfin_write_SEC_SCI(0, SEC_CCTL, SEC_CCTL_EN | SEC_CCTL_NMI_EN);
 #endif
-#endif 
 	return 0;
 }
 
@@ -1298,7 +1362,7 @@ static int vec_to_irq(int vec)
 	}
 #else
 	/* for bf60x read */
-	return BFIN_IRQ(bfin_read_SEC0_CSID());
+	return BFIN_IRQ(bfin_read_SEC_SCI(0, SEC_CSID));
 #endif  /* end of CONFIG_BF60x */
 }
 
