@@ -34,6 +34,7 @@ DECLARE_BFIN_RAW_READX(w, u16, w, (z))
 DECLARE_BFIN_RAW_READX(l, u32, , )
 #define __raw_readl __raw_readl
 
+#ifdef CONFIG_BF60x
 #define DECLARE_BFIN_RAW_WRITEX(size, type) \
 static inline void __raw_write##size(type val, volatile void __iomem *addr) \
 { \
@@ -58,6 +59,7 @@ DECLARE_BFIN_RAW_WRITEX(w, u16)
 #define __raw_writew __raw_writew
 DECLARE_BFIN_RAW_WRITEX(l, u32)
 #define __raw_writel __raw_writel
+#endif
 
 extern void outsb(unsigned long port, const void *addr, unsigned long count);
 extern void outsw(unsigned long port, const void *addr, unsigned long count);
