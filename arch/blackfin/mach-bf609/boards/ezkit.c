@@ -103,6 +103,50 @@ static struct platform_device bfin_rotary_device = {
 };
 #endif
 
+#if defined(CONFIG_STMMAC_ETH) || defined(CONFIG_STMMAC_ETH_MODULE)
+#include <linux/stmmac.h>
+static struct plat_stmmacphy_data phy_private_data = {
+	.bus_id = 0,
+	.phy_addr = 1,
+	.phy_mask = 1,
+};
+
+static struct platform_device bfin_phy_device = {
+	.name           = "stmmacphy",
+	.id             = 0,
+	.dev = {
+		.platform_data = &phy_private_data,
+	}
+};
+
+static struct plat_stmmacenet_data eth_private_data = {
+	.bus_id   = 0,
+	.enh_desc = 1,
+};
+
+static struct platform_device bfin_eth_device = {
+	.name           = "stmmaceth",
+	.id             = 0,
+	.num_resources  = 2,
+	.resource       = (struct resource[]) {
+		{
+			.start  = EMAC0_MACCFG,
+			.end    = EMAC0_MACCFG + 0x1274,
+			.flags  = IORESOURCE_MEM,
+		},
+		{
+			.name   = "macirq",
+			.start  = IRQ_EMAC0_STAT,
+			.end    = IRQ_EMAC0_STAT,
+			.flags  = IORESOURCE_IRQ,
+		},
+	},
+	.dev = {
+		.platform_data = &eth_private_data,
+	}
+};
+#endif
+
 #if defined(CONFIG_INPUT_ADXL34X) || defined(CONFIG_INPUT_ADXL34X_MODULE)
 #include <linux/input/adxl34x.h>
 static const struct adxl34x_platform_data adxl34x_info = {
@@ -937,6 +981,11 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #endif
 #endif
 
+#if defined(CONFIG_STMMAC_ETH) || defined(CONFIG_STMMAC_ETH_MODULE)
+	&bfin_eth_device,
+	&bfin_phy_device,
+#endif
+
 #if defined(CONFIG_USB_MUSB_HDRC) || defined(CONFIG_USB_MUSB_HDRC_MODULE)
 	&musb_device,
 #endif
@@ -1002,6 +1051,12 @@ static int __init ezkit_init(void)
 				ARRAY_SIZE(bfin_i2c_board_info0));
 	i2c_register_board_info(1, bfin_i2c_board_info1,
 				ARRAY_SIZE(bfin_i2c_board_info1));
+
+#if defined(CONFIG_STMMAC_ETH) || defined(CONFIG_STMMAC_ETH_MODULE)
+	unsigned short pins[] = P_RMII0;
+	if (!peripheral_request_list(pins, "emac0"))
+		printk(KERN_ERR "%s(): request emac pins failed\n", __func__);
+#endif
 
 	platform_add_devices(ezkit_devices, ARRAY_SIZE(ezkit_devices));
 
