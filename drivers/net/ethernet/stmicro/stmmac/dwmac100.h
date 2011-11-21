@@ -29,6 +29,18 @@
  *	 			MAC BLOCK defines
  *---------------------------------------------------------------------------*/
 /* MAC CSR offset */
+#if defined(CONFIG_BLACKFIN)
+#define MAC_CONTROL	0x00000000	/* MAC Control */
+#define MAC_FRAME_FILTER	0x0000004	/* Frame filter */
+#define MAC_HASH_HIGH	0x00000008	/* Multicast Hash Table High */
+#define MAC_HASH_LOW	0x0000000c	/* Multicast Hash Table Low */
+#define MAC_MII_ADDR	0x00000010	/* MII Address */
+#define MAC_MII_DATA	0x00000014	/* MII Data */
+#define MAC_FLOW_CTRL	0x00000018	/* Flow Control */
+#define MAC_VLAN1	0x0000001c	/* VLAN1 Tag */
+#define MAC_ADDR_HIGH	0x00000040	/* MAC Address High */
+#define MAC_ADDR_LOW	0x00000044	/* MAC Address Low */
+#else
 #define MAC_CONTROL	0x00000000	/* MAC Control */
 #define MAC_ADDR_HIGH	0x00000004	/* MAC Address High */
 #define MAC_ADDR_LOW	0x00000008	/* MAC Address Low */
@@ -39,6 +51,18 @@
 #define MAC_FLOW_CTRL	0x0000001c	/* Flow Control */
 #define MAC_VLAN1	0x00000020	/* VLAN1 Tag */
 #define MAC_VLAN2	0x00000024	/* VLAN2 Tag */
+#endif
+
+#ifdef CONFIG_BLACKFIN
+/* MAC_FRAME_FILTER defines */
+#define MAC_FRAME_FILTER_RA  0x80000000
+#define MAC_FRAME_FILTER_PR  0x00000001
+#define MAC_FRAME_FILTER_HMC 0x00000004
+#define MAC_FRAME_FILTER_PM  0x00000010
+
+#define MAC_FRAME_FILTER_INIT (MAC_FRAME_FILTER_RA | MAC_FRAME_FILTER_PR |\
+				MAC_FRAME_FILTER_HMC | MAC_FRAME_FILTER_PM)
+#endif
 
 /* MAC CTRL defines */
 #define MAC_CONTROL_RA	0x80000000	/* Receive All Mode */
@@ -67,7 +91,11 @@
 #define MAC_CONTROL_TE		0x00000008	/* Transmitter Enable */
 #define MAC_CONTROL_RE		0x00000004	/* Receiver Enable */
 
+#ifdef CONFIG_BLACKFIN
+#define MAC_CORE_INIT ((1 << 14) | MAC_CONTROL_DBF)
+#else
 #define MAC_CORE_INIT (MAC_CONTROL_HBD | MAC_CONTROL_ASTP)
+#endif
 
 /* MAC FLOW CTRL defines */
 #define MAC_FLOW_CTRL_PT_MASK	0xffff0000	/* Pause Time Mask */

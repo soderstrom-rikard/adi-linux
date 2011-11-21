@@ -32,6 +32,7 @@
 #define DMA_CONTROL		0x00001018	/* Ctrl (Operational Mode) */
 #define DMA_INTR_ENA		0x0000101c	/* Interrupt Enable */
 #define DMA_MISSED_FRAME_CTR	0x00001020	/* Missed Frame Counter */
+#define DMA_AXI_BUS		0x00001028	/* Axi Bus */
 #define DMA_CUR_TX_BUF_ADDR	0x00001050	/* Current Host Tx Buffer */
 #define DMA_CUR_RX_BUF_ADDR	0x00001054	/* Current Host Rx Buffer */
 #define DMA_HW_FEATURE		0x00001058	/* HW Feature Register */
@@ -39,6 +40,10 @@
 /* DMA Control register defines */
 #define DMA_CONTROL_ST		0x00002000	/* Start/Stop Transmission */
 #define DMA_CONTROL_SR		0x00000002	/* Start/Stop Receive */
+
+/* DMA Axi bus register defines */
+#define DMA_AXI_BUS_UNDEF	0x00000001
+#define DMA_AXI_BUS_BLEN4	0x00000002
 
 /* DMA Normal interrupt */
 #define DMA_INTR_ENA_NIE 0x00010000	/* Normal Summary */

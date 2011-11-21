@@ -1280,8 +1280,10 @@ static int stmmac_rx(struct stmmac_priv *priv, int limit)
 			frame_len = priv->hw->desc->get_rx_frame_len(p);
 			/* ACS is set; GMAC core strips PAD/FCS for IEEE 802.3
 			 * Type frames (LLC/LLC-SNAP) */
+#ifndef CONFIG_BLACKFIN
 			if (unlikely(status != llc_snap))
 				frame_len -= ETH_FCS_LEN;
+#endif
 #ifdef STMMAC_RX_DEBUG
 			if (frame_len > ETH_FRAME_LEN)
 				pr_debug("\tRX frame size %d, COE status: %d\n",
