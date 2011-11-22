@@ -1194,6 +1194,7 @@
 /* =========================
         SPI0
    ========================= */
+#define SPI0_REGBASE                0xFFC40400
 #define SPI0_CTL                    0xFFC40404         /* SPI0 Control Register */
 #define SPI0_RXCTL                  0xFFC40408         /* SPI0 RX Control Register */
 #define SPI0_TXCTL                  0xFFC4040C         /* SPI0 TX Control Register */
@@ -1216,6 +1217,7 @@
 /* =========================
         SPI1
    ========================= */
+#define SPI1_REGBASE                0xFFC40500
 #define SPI1_CTL                    0xFFC40504         /* SPI1 Control Register */
 #define SPI1_RXCTL                  0xFFC40508         /* SPI1 RX Control Register */
 #define SPI1_TXCTL                  0xFFC4050C         /* SPI1 TX Control Register */

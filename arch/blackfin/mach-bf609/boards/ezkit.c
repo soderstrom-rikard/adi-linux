@@ -17,7 +17,7 @@
 #include <linux/i2c.h>
 #include <linux/interrupt.h>
 #include <linux/usb/musb.h>
-#include <asm/bfin5xx_spi.h>
+#include <asm/bfin6xx_spi.h>
 #include <asm/dma.h>
 #include <asm/gpio.h>
 #include <asm/nand.h>
@@ -731,11 +731,11 @@ static struct flash_platform_data bfin_spi_flash_data = {
 	.name = "m25p80",
 	.parts = bfin_spi_flash_partitions,
 	.nr_parts = ARRAY_SIZE(bfin_spi_flash_partitions),
-	.type = "m25p16",
+	.type = "w25q32",
 };
 
-static struct bfin5xx_spi_chip spi_flash_chip_info = {
-	.enable_dma = 0,         /* use dma transfer with this chip*/
+static struct bfin6xx_spi_chip spi_flash_chip_info = {
+	.control = 0,         /* use dma transfer with this chip*/
 };
 #endif
 
@@ -799,7 +799,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 	},
 #endif
 };
-#if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
+#if defined(CONFIG_SPI_BFIN6XX) || defined(CONFIG_SPI_BFIN6XX_MODULE)
 /* SPI (0) */
 static struct resource bfin_spi0_resource[] = {
 	[0] = {
@@ -807,16 +807,6 @@ static struct resource bfin_spi0_resource[] = {
 		.end   = SPI0_REGBASE + 0xFF,
 		.flags = IORESOURCE_MEM,
 	},
-	[1] = {
-		.start = CH_SPI0,
-		.end   = CH_SPI0,
-		.flags = IORESOURCE_DMA,
-	},
-	[2] = {
-		.start = IRQ_SPI0,
-		.end   = IRQ_SPI0,
-		.flags = IORESOURCE_IRQ,
-	}
 };
 
 /* SPI (1) */
@@ -826,22 +816,11 @@ static struct resource bfin_spi1_resource[] = {
 		.end   = SPI1_REGBASE + 0xFF,
 		.flags = IORESOURCE_MEM,
 	},
-	[1] = {
-		.start = CH_SPI1,
-		.end   = CH_SPI1,
-		.flags = IORESOURCE_DMA,
-	},
-	[2] = {
-		.start = IRQ_SPI1,
-		.end   = IRQ_SPI1,
-		.flags = IORESOURCE_IRQ,
-	}
 };
 
 /* SPI controller data */
 static struct bfin6xx_spi_master bf60x_spi_master_info0 = {
 	.num_chipselect = 4,
-	.enable_dma = 1,  /* master has the ability to do dma transfer */
 	.pin_req = {P_SPI0_SCK, P_SPI0_MISO, P_SPI0_MOSI, 0},
 };
 
@@ -852,12 +831,11 @@ static struct platform_device bf60x_spi_master0 = {
 	.resource = bfin_spi0_resource,
 	.dev = {
 		.platform_data = &bf60x_spi_master_info0, /* Passed to driver */
-		},
+	},
 };
 
 static struct bfin6xx_spi_master bf60x_spi_master_info1 = {
 	.num_chipselect = 4,
-	.enable_dma = 1,  /* master has the ability to do dma transfer */
 	.pin_req = {P_SPI1_SCK, P_SPI1_MISO, P_SPI1_MOSI, 0},
 };
 
@@ -868,7 +846,7 @@ static struct platform_device bf60x_spi_master1 = {
 	.resource = bfin_spi1_resource,
 	.dev = {
 		.platform_data = &bf60x_spi_master_info1, /* Passed to driver */
-		},
+	},
 };
 #endif  /* spi master and devices */
 
@@ -1018,9 +996,9 @@ static struct platform_device *ezkit_devices[] __initdata = {
 	&bfin_sdh_device,
 #endif
 
-#if defined(CONFIG_SPI_BFIN) || defined(CONFIG_SPI_BFIN_MODULE)
-	&bf6xx_spi_master0,
-	&bf6xx_spi_master1,
+#if defined(CONFIG_SPI_BFIN6XX) || defined(CONFIG_SPI_BFIN6XX_MODULE)
+	&bf60x_spi_master0,
+	&bf60x_spi_master1,
 #endif
 
 #if defined(CONFIG_INPUT_BFIN_ROTARY) || defined(CONFIG_INPUT_BFIN_ROTARY_MODULE)
