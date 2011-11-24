@@ -853,8 +853,8 @@ static struct platform_device bf60x_spi_master1 = {
 #if defined(CONFIG_I2C_BLACKFIN_TWI) || defined(CONFIG_I2C_BLACKFIN_TWI_MODULE)
 static struct resource bfin_twi0_resource[] = {
 	[0] = {
-		.start = TWI0_REGBASE,
-		.end   = TWI0_REGBASE + 0xFF,
+		.start = TWI0_CLKDIV,
+		.end   = TWI0_CLKDIV + 0xFF,
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
@@ -873,8 +873,8 @@ static struct platform_device i2c_bfin_twi0_device = {
 
 static struct resource bfin_twi1_resource[] = {
 	[0] = {
-		.start = TWI1_REGBASE,
-		.end   = TWI1_REGBASE + 0xFF,
+		.start = TWI1_CLKDIV,
+		.end   = TWI1_CLKDIV + 0xFF,
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
@@ -893,9 +893,6 @@ static struct platform_device i2c_bfin_twi1_device = {
 #endif
 
 static struct i2c_board_info __initdata bfin_i2c_board_info0[] = {
-};
-
-static struct i2c_board_info __initdata bfin_i2c_board_info1[] = {
 #if defined(CONFIG_INPUT_ADXL34X_I2C) || defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
 	{
 		I2C_BOARD_INFO("adxl34x", 0x53),
@@ -903,6 +900,9 @@ static struct i2c_board_info __initdata bfin_i2c_board_info1[] = {
 		.platform_data = (void *)&adxl34x_info,
 	},
 #endif
+};
+
+static struct i2c_board_info __initdata bfin_i2c_board_info1[] = {
 };
 
 static const unsigned int cclk_vlev_datasheet[] =

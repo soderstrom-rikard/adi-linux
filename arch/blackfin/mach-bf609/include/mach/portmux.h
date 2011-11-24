@@ -328,4 +328,9 @@
 #define P_LP3_D6        (P_DEFINED | P_IDENT(GPIO_PF14) | P_FUNCT(2))
 #define P_LP3_D7        (P_DEFINED | P_IDENT(GPIO_PF15) | P_FUNCT(2))
 
+#define P_TWI0_SCL	(P_DONTCARE)
+#define P_TWI0_SDA	(P_DONTCARE)
+#define P_TWI1_SCL	(P_DONTCARE)
+#define P_TWI1_SDA	(P_DONTCARE)
+
 #endif				/* _MACH_PORTMUX_H_ */
