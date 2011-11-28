@@ -552,8 +552,8 @@ static unsigned short bfin_can0_peripherals[] = {
 
 static struct resource bfin_can0_resources[] = {
 	{
-		.start = 0xFFC02A00,
-		.end = 0xFFC02FFF,
+		.start = 0xFFC00A00,
+		.end = 0xFFC00FFF,
 		.flags = IORESOURCE_MEM,
 	},
 	{
@@ -567,8 +567,8 @@ static struct resource bfin_can0_resources[] = {
 		.flags = IORESOURCE_IRQ,
 	},
 	{
-		.start = IRQ_CAN0_ERROR,
-		.end = IRQ_CAN0_ERROR,
+		.start = IRQ_CAN0_STAT,
+		.end = IRQ_CAN0_STAT,
 		.flags = IORESOURCE_IRQ,
 	},
 };
