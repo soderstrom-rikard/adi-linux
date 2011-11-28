@@ -328,9 +328,15 @@
 #define P_LP3_D6        (P_DEFINED | P_IDENT(GPIO_PF14) | P_FUNCT(2))
 #define P_LP3_D7        (P_DEFINED | P_IDENT(GPIO_PF15) | P_FUNCT(2))
 
+/* TWI */
 #define P_TWI0_SCL	(P_DONTCARE)
 #define P_TWI0_SDA	(P_DONTCARE)
 #define P_TWI1_SCL	(P_DONTCARE)
 #define P_TWI1_SDA	(P_DONTCARE)
+
+/* Rotary Encoder */
+#define P_CNT_CZM	(P_DEFINED | P_IDENT(GPIO_PG7) | P_FUNCT(3))
+#define P_CNT_CUD	(P_DEFINED | P_IDENT(GPIO_PG11) | P_FUNCT(3))
+#define P_CNT_CDG	(P_DEFINED | P_IDENT(GPIO_PG12) | P_FUNCT(3))
 
 #endif				/* _MACH_PORTMUX_H_ */
