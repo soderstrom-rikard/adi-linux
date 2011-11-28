@@ -468,7 +468,7 @@ config INPUT_DM355EVM
 
 config INPUT_BFIN_ROTARY
 	tristate "Blackfin Rotary support"
-	depends on BF54x || BF52x
+	depends on BF54x || BF52x || BF60x
 	help
 	  Say Y here if you want to use the Blackfin Rotary.
 
