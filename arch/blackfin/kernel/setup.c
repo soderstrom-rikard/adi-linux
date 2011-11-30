@@ -845,9 +845,12 @@ static inline int __init get_mem_size(void)
 		break;
 	}
 	switch (ddrctl & 0x30000) {
-		case DEVWD_4:  ret *= 2;
-		case DEVWD_8:  ret *= 2;
-		case DEVWD_16: break;
+	case DEVWD_4:
+		ret *= 2;
+	case DEVWD_8:
+		ret *= 2;
+	case DEVWD_16:
+		break;
 	}
 	if ((ddrctl & 0xc000) == 0x4000)
 		ret *= 2;
