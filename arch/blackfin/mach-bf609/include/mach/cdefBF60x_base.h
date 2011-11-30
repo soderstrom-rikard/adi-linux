@@ -190,10 +190,53 @@
 
 
 /* SMC Registers */
-
+#define bfin_read_SMC_GCTL() bfin_read32(SMC_GCTL)
+#define bfin_write_SMC_GCTL(val) bfin_write32(SMC_GCTL, val)
+#define bfin_read_SMC_GSTAT() bfin_read32(SMC_GSTAT)
+#define bfin_read_SMC_B0CTL() bfin_read32(SMC_B0CTL)
+#define bfin_write_SMC_B0CTL(val) bfin_write32(SMC_B0CTL, val)
+#define bfin_read_SMC_B0TIM() bfin_read32(SMC_B0TIM)
+#define bfin_write_SMC_B0TIM(val) bfin_write32(SMC_B0TIM, val)
+#define bfin_read_SMC_B0ETIM() bfin_read32(SMC_B0ETIM)
+#define bfin_write_SMC_B0ETIM(val) bfin_write32(SMC_B0ETIM, val)
+#define bfin_read_SMC_B1CTL() bfin_read32(SMC_B1CTL)
+#define bfin_write_SMC_B1CTL(val) bfin_write32(SMC_B1CTL, val)
+#define bfin_read_SMC_B1TIM() bfin_read32(SMC_B1TIM)
+#define bfin_write_SMC_B1TIM(val) bfin_write32(SMC_B1TIM, val)
+#define bfin_read_SMC_B1ETIM() bfin_read32(SMC_B1ETIM)
+#define bfin_write_SMC_B1ETIM(val) bfin_write32(SMC_B1ETIM, val)
+#define bfin_read_SMC_B2CTL() bfin_read32(SMC_B2CTL)
+#define bfin_write_SMC_B2CTL(val) bfin_write32(SMC_B2CTL, val)
+#define bfin_read_SMC_B2TIM() bfin_read32(SMC_B2TIM)
+#define bfin_write_SMC_B2TIM(val) bfin_write32(SMC_B2TIM, val)
+#define bfin_read_SMC_B2ETIM() bfin_read32(SMC_B2ETIM)
+#define bfin_write_SMC_B2ETIM(val) bfin_write32(SMC_B2ETIM, val)
+#define bfin_read_SMC_B3CTL() bfin_read32(SMC_B3CTL)
+#define bfin_write_SMC_B3CTL(val) bfin_write32(SMC_B3CTL, val)
+#define bfin_read_SMC_B3TIM() bfin_read32(SMC_B3TIM)
+#define bfin_write_SMC_B3TIM(val) bfin_write32(SMC_B3TIM, val)
+#define bfin_read_SMC_B3ETIM() bfin_read32(SMC_B3ETIM)
+#define bfin_write_SMC_B3ETIM(val) bfin_write32(SMC_B3ETIM, val)
 
 /* DDR2 Memory Control Registers */
-
+#define bfin_read_DDR0_CFG() bfin_read32(DDR0_CFG)
+#define bfin_write_DDR0_CFG(val) bfin_write32(DDR0_CFG, val)
+#define bfin_read_DDR0_TR0() bfin_read32(DDR0_TR0)
+#define bfin_write_DDR0_TR0(val) bfin_write32(DDR0_TR0, val)
+#define bfin_read_DDR0_TR1() bfin_read32(DDR0_TR1)
+#define bfin_write_DDR0_TR1(val) bfin_write32(DDR0_TR1, val)
+#define bfin_read_DDR0_TR2() bfin_read32(DDR0_TR2)
+#define bfin_write_DDR0_TR2(val) bfin_write32(DDR0_TR2, val)
+#define bfin_read_DDR0_MR() bfin_read32(DDR0_MR)
+#define bfin_write_DDR0_MR(val) bfin_write32(DDR0_MR, val)
+#define bfin_read_DDR0_EMR1() bfin_read32(DDR0_EMR1)
+#define bfin_write_DDR0_EMR1(val) bfin_write32(DDR0_EMR1, val)
+#define bfin_read_DDR0_CTL() bfin_read32(DDR0_CTL)
+#define bfin_write_DDR0_CTL(val) bfin_write32(DDR0_CTL, val)
+#define bfin_read_DDR0_STAT() bfin_read32(DDR0_STAT)
+#define bfin_write_DDR0_STAT(val) bfin_write32(DDR0_STAT, val)
+#define bfin_read_DDR0_DLLCTL() bfin_read32(DDR0_DLLCTL)
+#define bfin_write_DDR0_DLLCTL(val) bfin_write32(DDR0_DLLCTL, val)
 
 /* DDR BankRead and Write Count Registers */
 

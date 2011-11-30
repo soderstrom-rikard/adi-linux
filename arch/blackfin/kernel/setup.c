@@ -853,7 +853,29 @@ static inline int __init get_mem_size(void)
 		ret *= 2;
 	return ret;
 #elif defined(CONFIG_BF60x)
-	return 128; /* 128M total in BF609-ezkit */
+	u32 ddrctl = bfin_read_DDR0_CFG();
+	int ret;
+	switch (ddrctl & 0xf00) {
+	case DEVSZ_64:
+		ret = 64 / 8;
+		break;
+	case DEVSZ_128:
+		ret = 128 / 8;
+		break;
+	case DEVSZ_256:
+		ret = 256 / 8;
+		break;
+	case DEVSZ_512:
+		ret = 512 / 8;
+		break;
+	case DEVSZ_1G:
+		ret = 1024 / 8;
+		break;
+	case DEVSZ_2G:
+		ret = 2048 / 8;
+		break;
+	}
+	return ret;
 #endif
 	BUG();
 }

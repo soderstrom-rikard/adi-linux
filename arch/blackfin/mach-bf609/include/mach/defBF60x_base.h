@@ -2384,7 +2384,7 @@
 #define DDR0_EFFCTL                 0xFFC8000C         /* DDR0 Efficiency Controller */
 #define DDR0_PRIO                   0xFFC80010         /* DDR0 Priority ID Register */
 #define DDR0_PRIOMSK                0xFFC80014         /* DDR0 Priority ID Mask */
-#define DDR0_CONFIG                    0xFFC80040         /* DDR0 SDRAM Configuration */
+#define DDR0_CFG                    0xFFC80040         /* DDR0 SDRAM Configuration */
 #define DDR0_TR0                    0xFFC80044         /* DDR0 Timing Register 0 */
 #define DDR0_TR1                    0xFFC80048         /* DDR0 Timing Register 1 */
 #define DDR0_TR2                    0xFFC8004C         /* DDR0 Timing Register 2 */
@@ -2395,6 +2395,13 @@
 #define DDR0_EMR3                   0xFFC8006C         /* DDR0 EMR3 Shadow Register */
 #define DDR0_DLLCTL                 0xFFC80080         /* DDR0 DLL Control Register */
 #define DDR0_PADCTL                 0xFFC800C0         /* DDR0 PAD Control Register 0 */
+
+#define DEVSZ_64                0x000         /* DDR External Bank Size = 64Mbit */
+#define DEVSZ_128               0x100         /* DDR External Bank Size = 128Mbit */
+#define DEVSZ_256               0x200         /* DDR External Bank Size = 256Mbit */
+#define DEVSZ_512               0x300         /* DDR External Bank Size = 512Mbit */
+#define DEVSZ_1G                0x400         /* DDR External Bank Size = 1Gbit */
+#define DEVSZ_2G                0x500         /* DDR External Bank Size = 2Gbit */
 
 
 /* =========================
