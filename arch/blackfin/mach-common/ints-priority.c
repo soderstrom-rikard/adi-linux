@@ -235,6 +235,17 @@ static void bfin_sec_disable_ssi(unsigned int sid)
 	hard_local_irq_restore(flags);
 }
 
+static void bfin_sec_set_ssi_coreid(unsigned int sid, unsigned int coreid)
+{
+	unsigned long flags = hard_local_irq_save();
+	uint32_t reg_sctl = bfin_read_SEC_SCTL(sid);
+
+	reg_sctl &= ((uint32_t)~SEC_SCTL_CTG);
+	bfin_write_SEC_SCTL(sid, reg_sctl | ((coreid << 20) & SEC_SCTL_CTG));
+
+	hard_local_irq_restore(flags);
+}
+
 static void bfin_sec_enable_sci(unsigned int sid)
 {
 	unsigned long flags = hard_local_irq_save();
@@ -286,6 +297,14 @@ static void bfin_sec_raise_irq(unsigned int sid)
 	bfin_write32(SEC_RAISE, sid);
 
 	hard_local_irq_restore(flags);
+}
+
+static void init_software_driven_irq(void)
+{
+	bfin_sec_set_ssi_coreid(34, 0);
+	bfin_sec_set_ssi_coreid(35, 1);
+	bfin_sec_set_ssi_coreid(36, 0);
+	bfin_sec_set_ssi_coreid(37, 1);
 }
 
 void handle_sec_sfi_fault(uint32_t gstat)
@@ -604,7 +623,6 @@ static inline void bfin_set_irq_handler(unsigned irq, irq_flow_handler_t handle)
 	__irq_set_handler_locked(irq, handle);
 }
 
-#ifndef CONFIG_BF60x
 static DECLARE_BITMAP(gpio_enabled, MAX_BLACKFIN_GPIOS);
 extern void bfin_gpio_irq_prepare(unsigned gpio);
 
@@ -799,9 +817,15 @@ void bfin_demux_gpio_irq(unsigned int inta_irq,
 
 #else
 
+# ifndef CONFIG_BF60x
 #define NR_PINT_SYS_IRQS	4
-#define NR_PINT_BITS		32
 #define NR_PINTS		160
+# else
+#define NR_PINT_SYS_IRQS	6
+#define NR_PINTS		112
+#endif
+
+#define NR_PINT_BITS		32
 #define IRQ_NOT_AVAIL		0xFF
 
 #define PINT_2_BANK(x)		((x) >> 5)
@@ -816,8 +840,13 @@ static struct bfin_pint_regs * const pint[NR_PINT_SYS_IRQS] = {
 	(struct bfin_pint_regs *)PINT1_MASK_SET,
 	(struct bfin_pint_regs *)PINT2_MASK_SET,
 	(struct bfin_pint_regs *)PINT3_MASK_SET,
+#ifdef CONFIG_BF60x
+	(struct bfin_pint_regs *)PINT4_MASK_SET,
+	(struct bfin_pint_regs *)PINT5_MASK_SET,
+#endif
 };
 
+#ifndef CONFIG_BF60x
 inline unsigned int get_irq_base(u32 bank, u8 bmap)
 {
 	unsigned int irq_base;
@@ -830,6 +859,16 @@ inline unsigned int get_irq_base(u32 bank, u8 bmap)
 
 	return irq_base;
 }
+#else
+inline unsigned int get_irq_base(u32 bank, u8 bmap)
+{
+	unsigned int irq_base;
+
+	irq_base = IRQ_PA0 + bank * 16 + bmap * 16;
+
+	return irq_base;
+}
+#endif
 
 	/* Whenever PINTx_ASSIGN is altered init_pint_lut() must be executed! */
 void init_pint_lut(void)
@@ -1018,6 +1057,12 @@ static int bfin_gpio_set_wake(struct irq_data *d, unsigned int state)
 	case 1:
 		pint_irq = IRQ_PINT1;
 		break;
+	case 4:
+		pint_irq = IRQ_PINT4;
+		break;
+	case 5:
+		pint_irq = IRQ_PINT5;
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -1049,6 +1094,14 @@ void bfin_demux_gpio_irq(unsigned int inta_irq,
 	case IRQ_PINT1:
 		bank = 1;
 		break;
+#ifdef CONFIG_BF60X
+	case IRQ_PINT4:
+		bank = 4;
+		break;
+	case IRQ_PINT5:
+		bank = 5;
+		break;
+#endif
 	default:
 		return;
 	}
@@ -1082,7 +1135,6 @@ static struct irq_chip bfin_gpio_irqchip = {
 	.irq_shutdown = bfin_gpio_irq_shutdown,
 	.irq_set_wake = bfin_gpio_set_wake,
 };
-#endif
 
 void __cpuinit init_exception_vectors(void)
 {
@@ -1235,10 +1287,20 @@ int __init init_arch_irq(void)
 		if (irq < CORE_IRQS) {
 			irq_set_chip(irq, &bfin_sec_irqchip);
 			__irq_set_handler(irq, handle_sec_fault, 1, NULL);
+		} else if (irq >= BFIN_IRQ(21) && irq <= BFIN_IRQ(26)) {
+			irq_set_chip(irq, &bfin_sec_irqchip);
+			irq_set_chained_handler(irq, bfin_demux_gpio_irq);
+		} else if (irq >= BFIN_IRQ(34) && irq <= BFIN_IRQ(37)) {
+			irq_set_chip(irq, &bfin_sec_irqchip);
+			irq_set_handler(irq, handle_percpu_irq);
 		} else
 			irq_set_chip_and_handler(irq, &bfin_sec_irqchip,
 					handle_level_irq);
 	}
+	for (irq = GPIO_IRQ_BASE;
+		irq < (GPIO_IRQ_BASE + MAX_BLACKFIN_GPIOS); irq++)
+		irq_set_chip_and_handler(irq, &bfin_gpio_irqchip,
+					handle_level_irq);
 #endif
 	bfin_write_IMASK(0);
 	CSYNC();
@@ -1299,6 +1361,7 @@ int __init init_arch_irq(void)
 	udelay(100);
 	bfin_write_SEC_GCTL(SEC_GCTL_EN);
 	bfin_write_SEC_SCI(0, SEC_CCTL, SEC_CCTL_EN | SEC_CCTL_NMI_EN);
+	init_software_driven_irq();
 #endif
 	return 0;
 }
