@@ -32,6 +32,10 @@
 #define bfin_read_SEC_SSTAT(sid)	bfin_read32((SEC_SSTAT0 + (sid) * 8))
 #define bfin_write_SEC_SSTAT(sid, val)	bfin_write32((SEC_SSTAT0 + (sid) * 8), val)
 
+/* RCU0 Registers */
+#define bfin_read_RCU0_CTL()		bfin_read32(RCU0_CTL)
+#define bfin_write_RCU0_CTL(val)	bfin_write32(RCU0_CTL, val)
+
 /* Watchdog Timer Registers */
 
 
