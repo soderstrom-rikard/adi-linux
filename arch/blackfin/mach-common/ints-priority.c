@@ -110,6 +110,11 @@ static void __init search_IAR(void)
 /*
  * This is for core internal IRQs
  */
+void bfin_ack_noop(struct irq_data *d)
+{
+	/* Dummy function.  */
+}
+
 static void bfin_core_mask_irq(struct irq_data *d)
 {
 	bfin_irq_flags &= ~(1 << d->irq);
@@ -134,7 +139,7 @@ static void bfin_core_unmask_irq(struct irq_data *d)
 	return;
 }
 
-static void bfin_internal_mask_irq(unsigned int irq)
+void bfin_internal_mask_irq(unsigned int irq)
 {
 	unsigned long flags = hard_local_irq_save();
 #ifndef CONFIG_BF60x
@@ -161,10 +166,10 @@ static void bfin_internal_mask_irq_chip(struct irq_data *d)
 }
 
 #ifdef CONFIG_SMP
-static void bfin_internal_unmask_irq_affinity(unsigned int irq,
+void bfin_internal_unmask_irq_affinity(unsigned int irq,
 		const struct cpumask *affinity)
 #else
-static void bfin_internal_unmask_irq(unsigned int irq)
+void bfin_internal_unmask_irq(unsigned int irq)
 #endif
 {
 	unsigned long flags = hard_local_irq_save();
@@ -471,6 +476,7 @@ static struct irq_chip bfin_internal_irqchip = {
 	.irq_set_wake = bfin_internal_set_wake_chip,
 };
 
+#ifdef CONFIG_BF60x
 static struct irq_chip bfin_sec_irqchip = {
 	.name = "SEC",
 	.irq_mask_ack = bfin_sec_mask_ack_irq,
@@ -478,6 +484,7 @@ static struct irq_chip bfin_sec_irqchip = {
 	.irq_disable = bfin_sec_disable,
 	.irq_enable = bfin_sec_enable,
 };
+#endif
 
 void bfin_handle_irq(unsigned irq)
 {
@@ -1366,34 +1373,18 @@ int __init init_arch_irq(void)
 	return 0;
 }
 
-void bf609_irq_test(void)
-{
-	u32 reg0;
-	bfin_write32(SEC_SCTL0 + 80 * 8, SEC_SCTL_INT_EN | SEC_SCTL_SRC_EN);
-	bfin_write32(SEC_SCTL0 + 81 * 8, SEC_SCTL_INT_EN | SEC_SCTL_SRC_EN);
-
-	bfin_sec_raise_irq(80);
-	bfin_sec_raise_irq(81);
-
-	reg0 = bfin_read32(SEC_GSTAT);
-
-	printk(KERN_DEBUG "SEC0: GSTAT %08x", reg0);
-
-	while(1);
-}
-
 #ifdef CONFIG_DO_IRQ_L1
 __attribute__((l1_text))
 #endif
 static int vec_to_irq(int vec)
 {
-	if (likely(vec == EVT_IVTMR_P))
-		return IRQ_CORETMR;
-
 #ifndef CONFIG_BF60x
 	struct ivgx *ivg = ivg7_13[vec - IVG7].ifirst;
 	struct ivgx *ivg_stop = ivg7_13[vec - IVG7].istop;
 	unsigned long sic_status[3];
+
+	if (likely(vec == EVT_IVTMR_P))
+		return IRQ_CORETMR;
 
 #ifdef SIC_ISR
 	sic_status[0] = bfin_read_SIC_IMASK() & bfin_read_SIC_ISR();
