@@ -423,7 +423,7 @@ bfin_sport_spi_pump_transfers(unsigned long data)
 	else
 		drv_data->ops = &bfin_sport_transfer_ops_u8;
 	bfin_write(&drv_data->regs->tcr2, bits_per_word - 1);
-	bfin_write(&drv_data->regs->tfsdiv, bits_per_word);
+	bfin_write(&drv_data->regs->tfsdiv, bits_per_word - 1);
 	bfin_write(&drv_data->regs->rcr2, bits_per_word - 1);
 
 	drv_data->state = RUNNING_STATE;
