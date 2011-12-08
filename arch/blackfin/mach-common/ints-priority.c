@@ -1382,10 +1382,10 @@ static int vec_to_irq(int vec)
 	struct ivgx *ivg = ivg7_13[vec - IVG7].ifirst;
 	struct ivgx *ivg_stop = ivg7_13[vec - IVG7].istop;
 	unsigned long sic_status[3];
-
+#endif
 	if (likely(vec == EVT_IVTMR_P))
 		return IRQ_CORETMR;
-
+#ifndef CONFIG_BF60x
 #ifdef SIC_ISR
 	sic_status[0] = bfin_read_SIC_IMASK() & bfin_read_SIC_ISR();
 #else
