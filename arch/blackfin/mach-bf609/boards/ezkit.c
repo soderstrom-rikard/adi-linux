@@ -293,12 +293,12 @@ static struct resource bfin_uart1_resources[] = {
 #ifdef CONFIG_BFIN_UART1_CTSRTS
 	{	/* CTS pin -- 0 means not supported */
 		.start = GPIO_PG13,
-		.end = GPIO_PG10,
+		.end = GPIO_PG13,
 		.flags = IORESOURCE_IO,
 	},
 	{	/* RTS pin -- 0 means not supported */
 		.start = GPIO_PG10,
-		.end = GPIO_PG13,
+		.end = GPIO_PG10,
 		.flags = IORESOURCE_IO,
 	},
 #endif
