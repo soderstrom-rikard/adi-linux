@@ -217,9 +217,6 @@ static void __init l2_sram_init(void)
 #ifdef __ADSPBF60x__
 	int ret;
 
-	/* enable ecc */
-	bfin_write32(L2CTL0_CTL, 0xff);
-
 	ret = request_irq(IRQ_L2CTL0_ECC_ERR, l2_ecc_err, 0, "l2-ecc-err",
 			NULL);
 	if (unlikely(ret < 0)) {
