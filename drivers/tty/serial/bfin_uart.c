@@ -739,7 +739,7 @@ static int bfin_serial_startup(struct uart_port *port)
 		if (request_irq(uart->status_irq, bfin_serial_mctrl_cts_int,
 			IRQF_DISABLED, "BFIN_UART_MODEM_STATUS", uart)) {
 			uart->cts_pin = -1;
-			pr_info("Unable to attach BlackFin UART Modem Status interrupt.\n");
+			dev_info(port->dev, "Unable to attach BlackFin UART Modem Status interrupt.\n");
 		}
 
 		/* CTS RTS PINs are negative assertive. */
