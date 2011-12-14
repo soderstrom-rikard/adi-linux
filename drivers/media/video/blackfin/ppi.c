@@ -55,7 +55,7 @@ static irqreturn_t ppi_irq_err(int irq, void *dev_id)
 		status = bfin_read16(reg->status);
 		if (printk_ratelimit())
 			pr_info("%s: status = 0x%x\n", __func__, status);
-		bfin_write16(&reg->status, 0xff);
+		bfin_write16(&reg->status, 0xff00);
 	}
 
 	return IRQ_HANDLED;
