@@ -189,11 +189,7 @@ static int bcap_open(struct file *file)
 		return -ENOMEM;
 	}
 
-	ret = v4l2_fh_init(&bcap_fh->fh, vfd);
-	if (ret) {
-		kfree(bcap_fh);
-		return ret;
-	}
+	v4l2_fh_init(&bcap_fh->fh, vfd);
 
 	/* store pointer to v4l2_fh in private_data member of file */
 	file->private_data = &bcap_fh->fh;
