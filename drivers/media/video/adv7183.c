@@ -204,32 +204,26 @@ static int adv7183_s_std(struct v4l2_subdev *sd, v4l2_std_id std)
 	struct adv7183 *decoder = to_adv7183(sd);
 	int reg;
 
-	if (std == decoder->std)
-		return 0;
 	reg = adv7183_read(sd, ADV7183_IN_CTRL) & 0xF;
-	if (std == V4L2_STD_ALL)
-		adv7183_write(sd, ADV7183_IN_CTRL, reg);
-	else {
-		if (std == V4L2_STD_PAL_60)
-			reg |= 0x60;
-		else if (std == V4L2_STD_NTSC_443)
-			reg |= 0x70;
-		else if (std == V4L2_STD_PAL_N)
-			reg |= 0x90;
-		else if (std == V4L2_STD_PAL_M)
-			reg |= 0xA0;
-		else if (std == V4L2_STD_PAL_Nc)
-			reg |= 0xC0;
-		else if (std & V4L2_STD_PAL)
-			reg |= 0x80;
-		else if (std & V4L2_STD_NTSC)
-			reg |= 0x50;
-		else if (std & V4L2_STD_SECAM)
-			reg |= 0xE0;
-		else
-			return -EINVAL;
-		adv7183_write(sd, ADV7183_IN_CTRL, reg);
-	}
+	if (std == V4L2_STD_PAL_60)
+		reg |= 0x60;
+	else if (std == V4L2_STD_NTSC_443)
+		reg |= 0x70;
+	else if (std == V4L2_STD_PAL_N)
+		reg |= 0x90;
+	else if (std == V4L2_STD_PAL_M)
+		reg |= 0xA0;
+	else if (std == V4L2_STD_PAL_Nc)
+		reg |= 0xC0;
+	else if (std & V4L2_STD_PAL)
+		reg |= 0x80;
+	else if (std & V4L2_STD_NTSC)
+		reg |= 0x50;
+	else if (std & V4L2_STD_SECAM)
+		reg |= 0xE0;
+	else
+		return -EINVAL;
+	adv7183_write(sd, ADV7183_IN_CTRL, reg);
 
 	decoder->std = std;
 
@@ -414,7 +408,7 @@ static int adv7183_g_input_status(struct v4l2_subdev *sd, u32 *status)
 	reg = adv7183_read(sd, ADV7183_STATUS_1);
 	if (reg < 0)
 		return reg;
-	else if (reg & 0x1)
+	if (reg & 0x1)
 		*status = 0;
 	return 0;
 }
