@@ -872,8 +872,13 @@ static int __devinit vs6624_probe(struct i2c_client *client,
 	}
 
 	/* initialize the hardware to the default control values */
-	v4l2_ctrl_handler_setup(hdl);
-	return 0;
+	ret = v4l2_ctrl_handler_setup(hdl);
+	if (ret) {
+		v4l2_ctrl_handler_free(hdl);
+		kfree(sensor);
+		gpio_free(*ce);
+	}
+	return ret;
 }
 
 static int __devexit vs6624_remove(struct i2c_client *client)
