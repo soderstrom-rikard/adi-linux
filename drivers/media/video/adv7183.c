@@ -426,12 +426,11 @@ static int adv7183_enum_mbus_fmt(struct v4l2_subdev *sd, unsigned index,
 static int adv7183_try_mbus_fmt(struct v4l2_subdev *sd,
 				struct v4l2_mbus_framefmt *fmt)
 {
-	v4l2_std_id std;
+	struct adv7183 *decoder = to_adv7183(sd);
 
 	fmt->code = V4L2_MBUS_FMT_UYVY8_2X8;
 	fmt->colorspace = V4L2_COLORSPACE_SMPTE170M;
-	adv7183_querystd(sd, &std);
-	if (std & V4L2_STD_525_60) {
+	if (decoder->std & V4L2_STD_525_60) {
 		fmt->field = V4L2_FIELD_SEQ_TB;
 		fmt->width = 720;
 		fmt->height = 480;
@@ -628,7 +627,7 @@ static int adv7183_probe(struct i2c_client *client,
 	mdelay(5);
 
 	adv7183_writeregs(sd, adv7183_init_regs, ARRAY_SIZE(adv7183_init_regs));
-	adv7183_s_std(sd, V4L2_STD_PAL);
+	adv7183_s_std(sd, decoder->std);
 	fmt.width = 720;
 	fmt.height = 576;
 	adv7183_s_mbus_fmt(sd, &fmt);
