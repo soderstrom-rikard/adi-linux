@@ -626,7 +626,11 @@ static int adv7183_probe(struct i2c_client *client,
 	adv7183_s_mbus_fmt(sd, &fmt);
 
 	/* initialize the hardware to the default control values */
-	v4l2_ctrl_handler_setup(hdl);
+	ret = v4l2_ctrl_handler_setup(hdl);
+	if (ret) {
+		v4l2_ctrl_handler_free(hdl);
+		goto err_free_oe;
+	}
 
 	return 0;
 err_free_oe:
