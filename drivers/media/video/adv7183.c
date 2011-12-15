@@ -521,13 +521,6 @@ static const struct v4l2_subdev_core_ops adv7183_core_ops = {
 	.s_std = adv7183_s_std,
 	.reset = adv7183_reset,
 	.g_chip_ident = adv7183_g_chip_ident,
-	.g_ext_ctrls = v4l2_subdev_g_ext_ctrls,
-	.try_ext_ctrls = v4l2_subdev_try_ext_ctrls,
-	.s_ext_ctrls = v4l2_subdev_s_ext_ctrls,
-	.g_ctrl = v4l2_subdev_g_ctrl,
-	.s_ctrl = v4l2_subdev_s_ctrl,
-	.queryctrl = v4l2_subdev_queryctrl,
-	.querymenu = v4l2_subdev_querymenu,
 #ifdef CONFIG_VIDEO_ADV_DEBUG
 	.g_register = adv7183_g_register,
 	.s_register = adv7183_s_register,
