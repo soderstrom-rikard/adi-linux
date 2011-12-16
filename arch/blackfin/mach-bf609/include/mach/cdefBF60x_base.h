@@ -26,6 +26,9 @@
 #define bfin_read_SEC_GCTL()		bfin_read32(SEC_GCTL)
 #define bfin_write_SEC_GCTL(val)	bfin_write32(SEC_GCTL, val)
 
+#define bfin_read_SEC_FCTL()		bfin_read32(SEC_FCTL)
+#define bfin_write_SEC_FCTL(val)	bfin_write32(SEC_FCTL, val)
+
 #define bfin_read_SEC_SCTL(sid)		bfin_read32((SEC_SCTL0 + (sid) * 8))
 #define bfin_write_SEC_SCTL(sid, val)	bfin_write32((SEC_SCTL0 + (sid) * 8), val)
 
@@ -37,7 +40,12 @@
 #define bfin_write_RCU0_CTL(val)	bfin_write32(RCU0_CTL, val)
 
 /* Watchdog Timer Registers */
-
+#define bfin_read_WDOG_CTL()		bfin_read16(WDOG_CTL)
+#define bfin_write_WDOG_CTL(val)	bfin_write16(WDOG_CTL, val)
+#define bfin_read_WDOG_CNT()		bfin_read32(WDOG_CNT)
+#define bfin_write_WDOG_CNT(val)	bfin_write32(WDOG_CNT, val)
+#define bfin_read_WDOG_STAT()		bfin_read32(WDOG_STAT)
+#define bfin_write_WDOG_STAT(val)	bfin_write32(WDOG_STAT, val)
 
 /* RTC Registers */
 

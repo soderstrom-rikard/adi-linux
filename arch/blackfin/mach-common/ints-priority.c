@@ -256,7 +256,10 @@ static void bfin_sec_enable_sci(unsigned int sid)
 	unsigned long flags = hard_local_irq_save();
 	uint32_t reg_sctl = bfin_read_SEC_SCTL(sid);
 
-	reg_sctl |= SEC_SCTL_INT_EN;
+	if (sid == SIC_SYSIRQ(IRQ_WATCH0))
+		reg_sctl |= SEC_SCTL_FAULT_EN;
+	else
+		reg_sctl |= SEC_SCTL_INT_EN;
 	bfin_write_SEC_SCTL(sid, reg_sctl);
 
 	hard_local_irq_restore(flags);
@@ -348,7 +351,6 @@ void handle_sec_ssi_fault(uint32_t gstat)
 
 void handle_sec_fault(unsigned int irq, struct irq_desc *desc)
 {
-	struct irq_chip *chip = irq_desc_get_chip(desc);
 	uint32_t sec_gstat;
 
 	raw_spin_lock(&desc->lock);
@@ -1293,7 +1295,7 @@ int __init init_arch_irq(void)
 	for (irq = BFIN_IRQ(0); irq <= SYS_IRQS; irq++) {
 		if (irq < CORE_IRQS) {
 			irq_set_chip(irq, &bfin_sec_irqchip);
-			__irq_set_handler(irq, handle_sec_fault, 1, NULL);
+			__irq_set_handler(irq, handle_sec_fault, 0, NULL);
 		} else if (irq >= BFIN_IRQ(21) && irq <= BFIN_IRQ(26)) {
 			irq_set_chip(irq, &bfin_sec_irqchip);
 			irq_set_chained_handler(irq, bfin_demux_gpio_irq);
@@ -1364,6 +1366,9 @@ int __init init_arch_irq(void)
 	bfin_write_SEC_GCTL(SEC_GCTL_RESET);
 	udelay(100);
 
+	bfin_write_SEC_FCTL(SEC_FCTL_EN | SEC_FCTL_SYSRST_EN | SEC_FCTL_FLTIN_EN);
+	bfin_sec_enable_sci(SIC_SYSIRQ(IRQ_WATCH0));
+	bfin_sec_enable_ssi(SIC_SYSIRQ(IRQ_WATCH0));
 	bfin_write_SEC_SCI(0, SEC_CCTL, SEC_CCTL_RESET);
 	udelay(100);
 	bfin_write_SEC_GCTL(SEC_GCTL_EN);
