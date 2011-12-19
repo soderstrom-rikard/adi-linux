@@ -204,6 +204,7 @@ EXPORT_SYMBOL(free_dma);
 # ifndef MAX_DMA_SUSPEND_CHANNELS
 #  define MAX_DMA_SUSPEND_CHANNELS MAX_DMA_CHANNELS
 # endif
+# ifndef CONFIG_BF60x
 int blackfin_dma_suspend(void)
 {
 	int i;
@@ -236,6 +237,16 @@ void blackfin_dma_resume(void)
 	bfin_write_DMAC_TC_PER(0x0111);
 #endif
 }
+# else
+int blackfin_dma_suspend(void)
+{
+	return 0;
+}
+
+void blackfin_dma_resume(void)
+{
+}
+#endif
 #endif
 
 /**

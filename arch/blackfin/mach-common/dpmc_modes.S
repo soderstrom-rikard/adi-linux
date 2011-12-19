@@ -10,7 +10,7 @@
 #include <asm/dpmc.h>
 
 .section .l1.text
-
+#ifndef CONFIG_BF60x
 ENTRY(_sleep_mode)
 	[--SP] = (R7:4, P5:3);
 	[--SP] = RETS;
@@ -49,6 +49,7 @@ ENTRY(_sleep_mode)
 	(R7:4, P5:3) = [SP++];
 	RTS;
 ENDPROC(_sleep_mode)
+#endif
 
 /*
  * This func never returns as it puts the part into hibernate, and
@@ -58,6 +59,8 @@ ENDPROC(_sleep_mode)
  *
  * We accept just one argument -- the value to write to VR_CTL.
  */
+
+#ifndef CONFIG_BF60x
 ENTRY(_hibernate_mode)
 	/* Save/setup the regs we need early for minor pipeline optimization */
 	R4 = R0;
@@ -79,7 +82,9 @@ ENTRY(_hibernate_mode)
 .Lforever:
 	jump .Lforever;
 ENDPROC(_hibernate_mode)
+#endif
 
+#ifndef CONFIG_BF60x
 ENTRY(_sleep_deeper)
 	[--SP] = (R7:4, P5:3);
 	[--SP] = RETS;
@@ -892,3 +897,4 @@ ENTRY(_do_hibernate)
 
 	RTS;
 ENDPROC(_do_hibernate)
+#endif

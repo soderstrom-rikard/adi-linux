@@ -3,3 +3,4 @@
 #
 
 obj-y := dma.o clock.o
+obj-$(CONFIG_PM) += pm.o
