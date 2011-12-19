@@ -158,6 +158,23 @@ uint32_t get_gptimer_count(unsigned int timer_id)
 }
 EXPORT_SYMBOL(get_gptimer_count);
 
+#ifdef CONFIG_BF60x
+void set_gptimer_delay(unsigned int timer_id, uint32_t delay)
+{
+	tassert(timer_id < MAX_BLACKFIN_GPTIMERS);
+	bfin_write(&timer_regs[timer_id]->delay, delay);
+	SSYNC();
+}
+EXPORT_SYMBOL(set_gptimer_delay);
+
+uint32_t get_gptimer_delay(unsigned int timer_id)
+{
+	tassert(timer_id < MAX_BLACKFIN_GPTIMERS);
+	return bfin_read(&timer_regs[timer_id]->delay);
+}
+EXPORT_SYMBOL(get_gptimer_delay);
+#endif
+
 uint32_t get_gptimer_status(unsigned int group)
 {
 	tassert(group < BFIN_TIMER_NUM_GROUP);

@@ -440,68 +440,74 @@
 /* =========================
         TIMER Registers
    ========================= */
+#define TIMER_REVID                0xFFC01400         /* GPTIMER Timer IP Version ID */
+#define TIMER_RUN                  0xFFC01404         /* GPTIMER Timer Run Register */
+#define TIMER_RUN_SET              0xFFC01408         /* GPTIMER Run Register Alias to Set */
+#define TIMER_RUN_CLR              0xFFC0140C         /* GPTIMER Run Register Alias to Clear */
+#define TIMER_STOP_CFG             0xFFC01410         /* GPTIMER Stop Config Register */
+#define TIMER_STOP_CFG_SET         0xFFC01414         /* GPTIMER Stop Config Alias to Set */
+#define TIMER_STOP_CFG_CLR         0xFFC01418         /* GPTIMER Stop Config Alias to Clear */
+#define TIMER_DATA_IMSK            0xFFC0141C         /* GPTIMER Data Interrupt Mask register */
+#define TIMER_STAT_IMSK            0xFFC01420         /* GPTIMER Status Interrupt Mask register */
+#define TIMER_TRG_MSK              0xFFC01424         /* GPTIMER Output Trigger Mask register */
+#define TIMER_TRG_IE               0xFFC01428         /* GPTIMER Slave Trigger Enable register */
+#define TIMER_DATA_ILAT            0xFFC0142C         /* GPTIMER Data Interrupt Register */
+#define TIMER_STAT_ILAT            0xFFC01430         /* GPTIMER Status (Error) Interrupt Register */
+#define TIMER_ERR_TYPE             0xFFC01434         /* GPTIMER Register Indicating Type of Error */
+#define TIMER_BCAST_PER            0xFFC01438         /* GPTIMER Broadcast Period */
+#define TIMER_BCAST_WID            0xFFC0143C         /* GPTIMER Broadcast Width */
+#define TIMER_BCAST_DLY            0xFFC01440         /* GPTIMER Broadcast Delay */
 
 /* =========================
-        TIMER0
+	TIMER0~7
    ========================= */
-#define TIMER_REVID                0xFFC01400         /* TIMER0 Timer IP Version ID */
-#define TIMER_RUN                  0xFFC01404         /* TIMER0 Timer Run Register */
-#define TIMER_RUN_SET              0xFFC01408         /* TIMER0 Run Register Alias to Set */
-#define TIMER_RUN_CLR              0xFFC0140C         /* TIMER0 Run Register Alias to Clear */
-#define TIMER_STOP_CFG             0xFFC01410         /* TIMER0 Stop Config Register */
-#define TIMER_STOP_CFG_SET         0xFFC01414         /* TIMER0 Stop Config Alias to Set */
-#define TIMER_STOP_CFG_CLR         0xFFC01418         /* TIMER0 Stop Config Alias to Clear */
-#define TIMER_DATA_IMSK            0xFFC0141C         /* TIMER0 Data Interrupt Mask register */
-#define TIMER_STAT_IMSK            0xFFC01420         /* TIMER0 Status Interrupt Mask register */
-#define TIMER_TRG_MSK              0xFFC01424         /* TIMER0 Output Trigger Mask register */
-#define TIMER_TRG_IE               0xFFC01428         /* TIMER0 Slave Trigger Enable register */
-#define TIMER_DATA_ILAT            0xFFC0142C         /* TIMER0 Data Interrupt Register */
-#define TIMER_STAT_ILAT            0xFFC01430         /* TIMER0 Status (Error) Interrupt Register */
-#define TIMER_ERR_TYPE             0xFFC01434         /* TIMER0 Register Indicating Type of Error */
-#define TIMER_BCAST_PER            0xFFC01438         /* TIMER0 Broadcast Period */
-#define TIMER_BCAST_WID            0xFFC0143C         /* TIMER0 Broadcast Width */
-#define TIMER_BCAST_DLY            0xFFC01440         /* TIMER0 Broadcast Delay */
-#define TIMER_TMR0_CFG             0xFFC01460         /* TIMER0 Per Timer Config Register */
-#define TIMER_TMR1_CFG             0xFFC01480         /* TIMER0 Per Timer Config Register */
-#define TIMER_TMR2_CFG             0xFFC014A0         /* TIMER0 Per Timer Config Register */
-#define TIMER_TMR3_CFG             0xFFC014C0         /* TIMER0 Per Timer Config Register */
-#define TIMER_TMR4_CFG             0xFFC014E0         /* TIMER0 Per Timer Config Register */
-#define TIMER_TMR5_CFG             0xFFC01500         /* TIMER0 Per Timer Config Register */
-#define TIMER_TMR6_CFG             0xFFC01520         /* TIMER0 Per Timer Config Register */
-#define TIMER_TMR7_CFG             0xFFC01540         /* TIMER0 Per Timer Config Register */
-#define TIMER_TMR0_CNT             0xFFC01464         /* TIMER0 Per Timer Counter Register */
-#define TIMER_TMR1_CNT             0xFFC01484         /* TIMER0 Per Timer Counter Register */
-#define TIMER_TMR2_CNT             0xFFC014A4         /* TIMER0 Per Timer Counter Register */
-#define TIMER_TMR3_CNT             0xFFC014C4         /* TIMER0 Per Timer Counter Register */
-#define TIMER_TMR4_CNT             0xFFC014E4         /* TIMER0 Per Timer Counter Register */
-#define TIMER_TMR5_CNT             0xFFC01504         /* TIMER0 Per Timer Counter Register */
-#define TIMER_TMR6_CNT             0xFFC01524         /* TIMER0 Per Timer Counter Register */
-#define TIMER_TMR7_CNT             0xFFC01544         /* TIMER0 Per Timer Counter Register */
-#define TIMER_TMR0_PER             0xFFC01468         /* TIMER0 Per Timer Period Register */
-#define TIMER_TMR1_PER             0xFFC01488         /* TIMER0 Per Timer Period Register */
-#define TIMER_TMR2_PER             0xFFC014A8         /* TIMER0 Per Timer Period Register */
-#define TIMER_TMR3_PER             0xFFC014C8         /* TIMER0 Per Timer Period Register */
-#define TIMER_TMR4_PER             0xFFC014E8         /* TIMER0 Per Timer Period Register */
-#define TIMER_TMR5_PER             0xFFC01508         /* TIMER0 Per Timer Period Register */
-#define TIMER_TMR6_PER             0xFFC01528         /* TIMER0 Per Timer Period Register */
-#define TIMER_TMR7_PER             0xFFC01548         /* TIMER0 Per Timer Period Register */
-#define TIMER_TMR0_WID             0xFFC0146C         /* TIMER0 Per Timer Width Register */
-#define TIMER_TMR1_WID             0xFFC0148C         /* TIMER0 Per Timer Width Register */
-#define TIMER_TMR2_WID             0xFFC014AC         /* TIMER0 Per Timer Width Register */
-#define TIMER_TMR3_WID             0xFFC014CC         /* TIMER0 Per Timer Width Register */
-#define TIMER_TMR4_WID             0xFFC014EC         /* TIMER0 Per Timer Width Register */
-#define TIMER_TMR5_WID             0xFFC0150C         /* TIMER0 Per Timer Width Register */
-#define TIMER_TMR6_WID             0xFFC0152C         /* TIMER0 Per Timer Width Register */
-#define TIMER_TMR7_WID             0xFFC0154C         /* TIMER0 Per Timer Width Register */
-#define TIMER_TMR0_DLY             0xFFC01470         /* TIMER0 Per Timer Delay Register */
-#define TIMER_TMR1_DLY             0xFFC01490         /* TIMER0 Per Timer Delay Register */
-#define TIMER_TMR2_DLY             0xFFC014B0         /* TIMER0 Per Timer Delay Register */
-#define TIMER_TMR3_DLY             0xFFC014D0         /* TIMER0 Per Timer Delay Register */
-#define TIMER_TMR4_DLY             0xFFC014F0         /* TIMER0 Per Timer Delay Register */
-#define TIMER_TMR5_DLY             0xFFC01510         /* TIMER0 Per Timer Delay Register */
-#define TIMER_TMR6_DLY             0xFFC01530         /* TIMER0 Per Timer Delay Register */
-#define TIMER_TMR7_DLY             0xFFC01550         /* TIMER0 Per Timer Delay Register */
+#define TIMER0_CONFIG             0xFFC01460         /* TIMER0 Per Timer Config Register */
+#define TIMER0_COUNTER            0xFFC01464         /* TIMER0 Per Timer Counter Register */
+#define TIMER0_PERIOD             0xFFC01468         /* TIMER0 Per Timer Period Register */
+#define TIMER0_WIDTH              0xFFC0146C         /* TIMER0 Per Timer Width Register */
+#define TIMER0_DELAY              0xFFC01470         /* TIMER0 Per Timer Delay Register */
 
+#define TIMER1_CONFIG             0xFFC01480         /* TIMER1 Per Timer Config Register */
+#define TIMER1_COUNTER            0xFFC01484         /* TIMER1 Per Timer Counter Register */
+#define TIMER1_PERIOD             0xFFC01488         /* TIMER1 Per Timer Period Register */
+#define TIMER1_WIDTH              0xFFC0148C         /* TIMER1 Per Timer Width Register */
+#define TIMER1_DELAY              0xFFC01490         /* TIMER1 Per Timer Delay Register */
+
+#define TIMER2_CONFIG             0xFFC014A0         /* TIMER2 Per Timer Config Register */
+#define TIMER2_COUNTER            0xFFC014A4         /* TIMER2 Per Timer Counter Register */
+#define TIMER2_PERIOD             0xFFC014A8         /* TIMER2 Per Timer Period Register */
+#define TIMER2_WIDTH              0xFFC014AC         /* TIMER2 Per Timer Width Register */
+#define TIMER2_DELAY              0xFFC014B0         /* TIMER2 Per Timer Delay Register */
+
+#define TIMER3_CONFIG             0xFFC014C0         /* TIMER3 Per Timer Config Register */
+#define TIMER3_COUNTER            0xFFC014C4         /* TIMER3 Per Timer Counter Register */
+#define TIMER3_PERIOD             0xFFC014C8         /* TIMER3 Per Timer Period Register */
+#define TIMER3_WIDTH              0xFFC014CC         /* TIMER3 Per Timer Width Register */
+#define TIMER3_DELAY              0xFFC014D0         /* TIMER3 Per Timer Delay Register */
+
+#define TIMER4_CONFIG             0xFFC014E0         /* TIMER4 Per Timer Config Register */
+#define TIMER4_COUNTER            0xFFC014E4         /* TIMER4 Per Timer Counter Register */
+#define TIMER4_PERIOD             0xFFC014E8         /* TIMER4 Per Timer Period Register */
+#define TIMER4_WIDTH              0xFFC014EC         /* TIMER4 Per Timer Width Register */
+#define TIMER4_DELAY              0xFFC014F0         /* TIMER4 Per Timer Delay Register */
+
+#define TIMER5_CONFIG             0xFFC01500         /* TIMER5 Per Timer Config Register */
+#define TIMER5_COUNTER            0xFFC01504         /* TIMER5 Per Timer Counter Register */
+#define TIMER5_PERIOD             0xFFC01508         /* TIMER5 Per Timer Period Register */
+#define TIMER5_WIDTH              0xFFC0150C         /* TIMER5 Per Timer Width Register */
+#define TIMER5_DELAY              0xFFC01510         /* TIMER5 Per Timer Delay Register */
+
+#define TIMER6_CONFIG             0xFFC01520         /* TIMER6 Per Timer Config Register */
+#define TIMER6_COUNTER            0xFFC01524         /* TIMER6 Per Timer Counter Register */
+#define TIMER6_PERIOD             0xFFC01528         /* TIMER6 Per Timer Period Register */
+#define TIMER6_WIDTH              0xFFC0152C         /* TIMER6 Per Timer Width Register */
+#define TIMER6_DELAY              0xFFC01530         /* TIMER6 Per Timer Delay Register */
+
+#define TIMER7_CONFIG             0xFFC01540         /* TIMER7 Per Timer Config Register */
+#define TIMER7_COUNTER            0xFFC01544         /* TIMER7 Per Timer Counter Register */
+#define TIMER7_PERIOD             0xFFC01548         /* TIMER7 Per Timer Period Register */
+#define TIMER7_WIDTH              0xFFC0154C         /* TIMER7 Per Timer Width Register */
+#define TIMER7_DELAY              0xFFC01550         /* TIMER7 Per Timer Delay Register */
 
 /* =========================
         TWI Registers
