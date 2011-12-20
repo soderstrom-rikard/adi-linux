@@ -132,11 +132,6 @@
 #define TIMER_IRQ_DLY       0x0010
 #define TIMER_IRQ_WID_DLY   0x0020
 #define TIMER_IRQ_PER       0x0030
-
-#define TIMER_ERR           0xC000
-#define TIMER_ERR_OVFL      0x4000
-#define TIMER_ERR_PROG_PER  0x8000
-#define TIMER_ERR_PROG_PW   0xC000
 #define TIMER_MODE          0x000f
 #define TIMER_MODE_WDOG_P   0x0008
 #define TIMER_MODE_WDOG_W   0x0009
@@ -153,37 +148,32 @@
 #define TIMER_STATUS_TIMIL0  0x0001
 #define TIMER_STATUS_TIMIL1  0x0002
 #define TIMER_STATUS_TIMIL2  0x0004
-#define TIMER_STATUS_TIMIL3  0x00000008
-#define TIMER_STATUS_TIMIL4  0x00010000
-#define TIMER_STATUS_TIMIL5  0x00020000
-#define TIMER_STATUS_TIMIL6  0x00040000
-#define TIMER_STATUS_TIMIL7  0x00080000
+#define TIMER_STATUS_TIMIL3  0x0008
+#define TIMER_STATUS_TIMIL4  0x0010
+#define TIMER_STATUS_TIMIL5  0x0020
+#define TIMER_STATUS_TIMIL6  0x0040
+#define TIMER_STATUS_TIMIL7  0x0080
 
-#define TIMER_STATUS_TOVF0   0x0003	/* timer 0 overflow error */
-#define TIMER_STATUS_TOVF1   0x000c
-#define TIMER_STATUS_TOVF2   0x0030
-#define TIMER_STATUS_TOVF3   0x00c0
-#define TIMER_STATUS_TOVF4   0x0300
-#define TIMER_STATUS_TOVF5   0x0c00
-#define TIMER_STATUS_TOVF6   0x3000
-#define TIMER_STATUS_TOVF7   0xc000
+#define TIMER_STATUS_TOVF0   0x0001	/* timer 0 overflow error */
+#define TIMER_STATUS_TOVF1   0x0002
+#define TIMER_STATUS_TOVF2   0x0004
+#define TIMER_STATUS_TOVF3   0x0008
+#define TIMER_STATUS_TOVF4   0x0010
+#define TIMER_STATUS_TOVF5   0x0020
+#define TIMER_STATUS_TOVF6   0x0040
+#define TIMER_STATUS_TOVF7   0x0080
 
 /*
  * Timer Slave Enable Status : write 1 to clear
  */
-#define TIMER_STATUS_TRUN0  0x1000
-#define TIMER_STATUS_TRUN1  0x2000
-#define TIMER_STATUS_TRUN2  0x4000
-#define TIMER_STATUS_TRUN3  0x00008000
-#define TIMER_STATUS_TRUN4  0x10000000
-#define TIMER_STATUS_TRUN5  0x20000000
-#define TIMER_STATUS_TRUN6  0x40000000
-#define TIMER_STATUS_TRUN7  0x80000000
-#define TIMER_STATUS_TRUN   0xF000F000
-#define TIMER_STATUS_TRUN8  0x1000
-#define TIMER_STATUS_TRUN9  0x2000
-#define TIMER_STATUS_TRUN10 0x4000
-#define TIMER_STATUS_TRUN11 0x8000
+#define TIMER_STATUS_TRUN0  0x0001
+#define TIMER_STATUS_TRUN1  0x0002
+#define TIMER_STATUS_TRUN2  0x0004
+#define TIMER_STATUS_TRUN3  0x0008
+#define TIMER_STATUS_TRUN4  0x0010
+#define TIMER_STATUS_TRUN5  0x0020
+#define TIMER_STATUS_TRUN6  0x0040
+#define TIMER_STATUS_TRUN7  0x0080
 
 #else
 
@@ -322,7 +312,6 @@ struct bfin_gptimer_group_regs {
 };
 #else
 struct bfin_gptimer_group_regs {
-	__BFP(revid);
 	__BFP(run);
 	__BFP(enable);
 	__BFP(disable);
@@ -335,7 +324,7 @@ struct bfin_gptimer_group_regs {
 	__BFP(tr_ie);
 	__BFP(data_ilat);
 	__BFP(stat_ilat);
-	__BFP(status);
+	__BFP(err_status);
 	__BFP(bcast_per);
 	__BFP(bcast_wid);
 	__BFP(bcast_dly);
