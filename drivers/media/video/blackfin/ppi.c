@@ -52,9 +52,7 @@ static irqreturn_t ppi_irq_err(int irq, void *dev_id)
 	if (!strcmp(info->name, "ppi")) {
 		struct bfin_ppi_regs __iomem *reg =
 			(struct bfin_ppi_regs __iomem *)info->base;
-		status = bfin_read16(reg->status);
-		if (printk_ratelimit())
-			pr_info("%s: status = 0x%x\n", __func__, status);
+		status = bfin_read16(&reg->status);
 		bfin_write16(&reg->status, 0xff00);
 	}
 
@@ -64,20 +62,22 @@ static irqreturn_t ppi_irq_err(int irq, void *dev_id)
 static int ppi_attach_irq(struct ppi_if *ppi, irq_handler_t handler)
 {
 	const struct ppi_info *info = ppi->info;
+	int ret;
 
-	if (request_dma(info->dma_ch, "PPI_DMA") < 0) {
+	ret = request_dma(info->dma_ch, "PPI_DMA");
+
+	if (ret) {
 		pr_err("Unable to allocate DMA channel for PPI\n");
-		return -EBUSY;
+		return ret;
 	}
 	set_dma_callback(info->dma_ch, handler, ppi);
 
-	if (request_irq(info->irq_err, ppi_irq_err, IRQF_DISABLED,
-				"PPI ERROR", ppi)) {
+	ret = request_irq(info->irq_err, ppi_irq_err, 0, "PPI ERROR", ppi);
+	if (ret) {
 		pr_err("Unable to allocate IRQ for PPI\n");
 		free_dma(info->dma_ch);
-		return -EBUSY;
 	}
-	return 0;
+	return ret;
 }
 
 static void ppi_detach_irq(struct ppi_if *ppi)

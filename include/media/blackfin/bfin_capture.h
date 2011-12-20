@@ -2,9 +2,9 @@
 #define _BFIN_CAPTURE_H_
 
 #include <linux/i2c.h>
-#include <linux/videodev2.h>
 
-#include <media/blackfin/ppi.h>
+struct v4l2_input;
+struct ppi_info;
 
 struct bcap_route {
 	u32 input;

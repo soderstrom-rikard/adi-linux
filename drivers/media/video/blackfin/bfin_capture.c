@@ -41,12 +41,13 @@
 #include <asm/dma.h>
 
 #include <media/blackfin/bfin_capture.h>
+#include <media/blackfin/ppi.h>
 
 #define CAPTURE_DRV_NAME        "bfin_capture"
 #define BCAP_MIN_NUM_BUF        2
 
 struct bcap_format {
-	u8 *desc;
+	char *desc;
 	u32 pixelformat;
 	enum v4l2_mbus_pixelcode mbus_code;
 	int bpp; /* bits per pixel */
@@ -92,17 +93,14 @@ struct bcap_device {
 	struct mutex mutex;
 	/* used to wait ppi to complete one transfer */
 	struct completion comp;
-	/* number of users performing IO */
-	unsigned int io_usrs;
 	/* number of open instances of the device */
 	unsigned int usrs;
-	/* indicate whether streaming has started */
-	bool started;
+	/* prepare to stop */
+	bool stop;
 };
 
 struct bcap_fh {
 	struct v4l2_fh fh;
-	struct bcap_device *bcap_dev;
 	/* indicates whether this file handle is doing IO */
 	bool io_allowed;
 };
@@ -194,7 +192,6 @@ static int bcap_open(struct file *file)
 	/* store pointer to v4l2_fh in private_data member of file */
 	file->private_data = &bcap_fh->fh;
 	v4l2_fh_add(&bcap_fh->fh);
-	bcap_fh->bcap_dev = bcap_dev;
 	bcap_dev->usrs++;
 	bcap_fh->io_allowed = false;
 	return 0;
@@ -207,10 +204,8 @@ static int bcap_release(struct file *file)
 	struct bcap_fh *bcap_fh = container_of(fh, struct bcap_fh, fh);
 
 	/* if this instance is doing IO */
-	if (bcap_fh->io_allowed) {
+	if (bcap_fh->io_allowed)
 		vb2_queue_release(&bcap_dev->buffer_queue);
-		bcap_dev->io_usrs = 0;
-	}
 
 	bcap_dev->usrs--;
 	file->private_data = NULL;
@@ -248,9 +243,7 @@ static unsigned int bcap_poll(struct file *file, poll_table *wait)
 {
 	struct bcap_device *bcap_dev = video_drvdata(file);
 
-	if (bcap_dev->started)
-		return vb2_poll(&bcap_dev->buffer_queue, file, wait);
-	return 0;
+	return vb2_poll(&bcap_dev->buffer_queue, file, wait);
 }
 
 static int bcap_queue_setup(struct vb2_queue *vq, unsigned int *nbuffers,
@@ -298,7 +291,7 @@ static void bcap_buffer_queue(struct vb2_buffer *vb)
 {
 	struct bcap_device *bcap_dev = vb2_get_drv_priv(vb->vb2_queue);
 	struct bcap_buffer *buf = to_bcap_vb(vb);
-	unsigned long flags = 0;
+	unsigned long flags;
 
 	spin_lock_irqsave(&bcap_dev->lock, flags);
 	list_add_tail(&buf->list, &bcap_dev->dma_queue);
@@ -309,7 +302,7 @@ static void bcap_buffer_cleanup(struct vb2_buffer *vb)
 {
 	struct bcap_device *bcap_dev = vb2_get_drv_priv(vb->vb2_queue);
 	struct bcap_buffer *buf = to_bcap_vb(vb);
-	unsigned long flags = 0;
+	unsigned long flags;
 
 	spin_lock_irqsave(&bcap_dev->lock, flags);
 	list_del_init(&buf->list);
@@ -347,7 +340,7 @@ static int bcap_start_streaming(struct vb2_queue *vq)
 	if (ret < 0) {
 		v4l2_err(&bcap_dev->v4l2_dev,
 				"Error in attaching interrupt handler\n");
-		return -EFAULT;
+		return ret;
 	}
 
 	/* set ppi params */
@@ -364,6 +357,7 @@ static int bcap_start_streaming(struct vb2_queue *vq)
 	}
 
 	INIT_COMPLETION(bcap_dev->comp);
+	bcap_dev->stop = false;
 	return 0;
 }
 
@@ -373,10 +367,10 @@ static int bcap_stop_streaming(struct vb2_queue *vq)
 	struct ppi_if *ppi = bcap_dev->ppi;
 	int ret;
 
-	if (!bcap_dev->started)
+	if (!vb2_is_streaming(vq))
 		return 0;
 
-	bcap_dev->started = false;
+	bcap_dev->stop = true;
 	wait_for_completion(&bcap_dev->comp);
 	ppi->ops->stop(ppi);
 	ppi->ops->detach_irq(ppi);
@@ -411,18 +405,16 @@ static int bcap_reqbufs(struct file *file, void *priv,
 			struct v4l2_requestbuffers *req_buf)
 {
 	struct bcap_device *bcap_dev = video_drvdata(file);
+	struct vb2_queue *vq = &bcap_dev->buffer_queue;
 	struct v4l2_fh *fh = file->private_data;
 	struct bcap_fh *bcap_fh = container_of(fh, struct bcap_fh, fh);
 
-	if (bcap_dev->io_usrs != 0) {
-		v4l2_err(&bcap_dev->v4l2_dev, "Only one IO user allowed\n");
+	if (vb2_is_busy(vq))
 		return -EBUSY;
-	}
 
 	bcap_fh->io_allowed = true;
-	bcap_dev->io_usrs = 1;
 
-	return vb2_reqbufs(&bcap_dev->buffer_queue, req_buf);
+	return vb2_reqbufs(vq, req_buf);
 }
 
 static int bcap_querybuf(struct file *file, void *priv,
@@ -441,7 +433,7 @@ static int bcap_qbuf(struct file *file, void *priv,
 	struct bcap_fh *bcap_fh = container_of(fh, struct bcap_fh, fh);
 
 	if (!bcap_fh->io_allowed)
-		return -EACCES;
+		return -EBUSY;
 
 	return vb2_qbuf(&bcap_dev->buffer_queue, buf);
 }
@@ -454,7 +446,7 @@ static int bcap_dqbuf(struct file *file, void *priv,
 	struct bcap_fh *bcap_fh = container_of(fh, struct bcap_fh, fh);
 
 	if (!bcap_fh->io_allowed)
-		return -EACCES;
+		return -EBUSY;
 
 	return vb2_dqbuf(&bcap_dev->buffer_queue,
 				buf, file->f_flags & O_NONBLOCK);
@@ -479,7 +471,7 @@ static irqreturn_t bcap_isr(int irq, void *dev_id)
 
 	ppi->ops->stop(ppi);
 
-	if (!bcap_dev->started) {
+	if (bcap_dev->stop) {
 		complete(&bcap_dev->comp);
 	} else {
 		if (!list_empty(&bcap_dev->dma_queue)) {
@@ -507,9 +499,6 @@ static int bcap_streamon(struct file *file, void *priv,
 	int ret;
 
 	if (!fh->io_allowed)
-		return -EACCES;
-
-	if (bcap_dev->started)
 		return -EBUSY;
 
 	/* call streamon to start streaming in videobuf */
@@ -535,7 +524,6 @@ static int bcap_streamon(struct file *file, void *priv,
 	ppi->ops->update_addr(ppi, (unsigned long)addr);
 	/* enable ppi */
 	ppi->ops->start(ppi);
-	bcap_dev->started = true;
 
 	return 0;
 err:
@@ -550,56 +538,24 @@ static int bcap_streamoff(struct file *file, void *priv,
 	struct bcap_fh *fh = file->private_data;
 
 	if (!fh->io_allowed)
-		return -EACCES;
-
-	if (!bcap_dev->started)
-		return -EINVAL;
+		return -EBUSY;
 
 	return vb2_streamoff(&bcap_dev->buffer_queue, buf_type);
-}
-
-static int bcap_queryctrl(struct file *file, void *priv,
-				struct v4l2_queryctrl *qctrl)
-{
-	struct bcap_device *bcap_dev = video_drvdata(file);
-
-	return v4l2_subdev_call(bcap_dev->sd, core, queryctrl, qctrl);
-}
-
-static int bcap_g_ctrl(struct file *file, void *priv,
-			struct v4l2_control *ctrl)
-{
-	struct bcap_device *bcap_dev = video_drvdata(file);
-
-	return v4l2_subdev_call(bcap_dev->sd, core, g_ctrl, ctrl);
-}
-
-static int bcap_s_ctrl(struct file *file, void *priv,
-			struct v4l2_control *ctrl)
-{
-	struct bcap_device *bcap_dev = video_drvdata(file);
-
-	return v4l2_subdev_call(bcap_dev->sd, core, s_ctrl, ctrl);
 }
 
 static int bcap_querystd(struct file *file, void *priv, v4l2_std_id *std)
 {
 	struct bcap_device *bcap_dev = video_drvdata(file);
-	int ret;
 
-	ret = v4l2_subdev_call(bcap_dev->sd, video, querystd, std);
-	return ret;
+	return v4l2_subdev_call(bcap_dev->sd, video, querystd, std);
 }
 
 static int bcap_g_std(struct file *file, void *priv, v4l2_std_id *std)
 {
 	struct bcap_device *bcap_dev = video_drvdata(file);
 
-	if (bcap_dev->std) {
-		*std = bcap_dev->std;
-		return 0;
-	} else
-		return -EINVAL;
+	*std = bcap_dev->std;
+	return 0;
 }
 
 static int bcap_s_std(struct file *file, void *priv, v4l2_std_id *std)
@@ -607,11 +563,8 @@ static int bcap_s_std(struct file *file, void *priv, v4l2_std_id *std)
 	struct bcap_device *bcap_dev = video_drvdata(file);
 	int ret;
 
-	/* if streaming is started, return error */
-	if (bcap_dev->started) {
-		v4l2_err(&bcap_dev->v4l2_dev, "Streaming is started\n");
+	if (vb2_is_busy(&bcap_dev->buffer_queue))
 		return -EBUSY;
-	}
 
 	ret = v4l2_subdev_call(bcap_dev->sd, core, s_std, *std);
 	if (ret < 0)
@@ -655,11 +608,8 @@ static int bcap_s_input(struct file *file, void *priv, unsigned int index)
 	struct bcap_route *route;
 	int ret;
 
-	/* if streaming is started, return error */
-	if (bcap_dev->started) {
-		v4l2_err(&bcap_dev->v4l2_dev, "Streaming is started\n");
+	if (vb2_is_busy(&bcap_dev->buffer_queue))
 		return -EBUSY;
-	}
 
 	if (index >= config->num_inputs)
 		return -EINVAL;
@@ -685,24 +635,26 @@ static int bcap_try_format(struct bcap_device *bcap,
 	int ret, i;
 
 	for (i = 0; i < BCAP_MAX_FMTS; i++) {
-		if (pixfmt->pixelformat != bcap_formats[i].pixelformat)
-			continue;
 		fmt = &bcap_formats[i];
-		if (mbus_code)
-			*mbus_code = fmt->mbus_code;
-		if (bpp)
-			*bpp = fmt->bpp;
-		v4l2_fill_mbus_format(&mbus_fmt, pixfmt, fmt->mbus_code);
-		ret = v4l2_subdev_call(bcap->sd, video,
-					try_mbus_fmt, &mbus_fmt);
-		if (ret < 0)
-			return ret;
-		v4l2_fill_pix_format(pixfmt, &mbus_fmt);
-		pixfmt->bytesperline = pixfmt->width * fmt->bpp / 8;
-		pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
-		return 0;
+		if (pixfmt->pixelformat == fmt->pixelformat)
+			break;
 	}
-	return -EINVAL;
+	if (i == BCAP_MAX_FMTS)
+		fmt = &bcap_formats[0];
+
+	if (mbus_code)
+		*mbus_code = fmt->mbus_code;
+	if (bpp)
+		*bpp = fmt->bpp;
+	v4l2_fill_mbus_format(&mbus_fmt, pixfmt, fmt->mbus_code);
+	ret = v4l2_subdev_call(bcap->sd, video,
+				try_mbus_fmt, &mbus_fmt);
+	if (ret < 0)
+		return ret;
+	v4l2_fill_pix_format(pixfmt, &mbus_fmt);
+	pixfmt->bytesperline = pixfmt->width * fmt->bpp / 8;
+	pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
+	return 0;
 }
 
 static int bcap_enum_fmt_vid_cap(struct file *file, void  *priv,
@@ -718,19 +670,19 @@ static int bcap_enum_fmt_vid_cap(struct file *file, void  *priv,
 	if (ret < 0)
 		return ret;
 
-	for (i = 0; i < BCAP_MAX_FMTS; i++) {
-		if (mbus_code != bcap_formats[i].mbus_code)
-			continue;
-		fmt->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		strlcpy(fmt->description,
-			bcap_formats[index].desc,
-			sizeof(fmt->description));
-		fmt->pixelformat = bcap_formats[index].pixelformat;
-		return 0;
-	}
-	v4l2_err(&bcap_dev->v4l2_dev,
-			"subdev fmt is not supported by bcap\n");
-	return -EINVAL;
+	for (i = 0; i < BCAP_MAX_FMTS; i++)
+		if (mbus_code == bcap_formats[i].mbus_code)
+			break;
+
+	if (i == BCAP_MAX_FMTS)
+		return -EINVAL;
+
+	fmt->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	strlcpy(fmt->description,
+		bcap_formats[i].desc,
+		sizeof(fmt->description));
+	fmt->pixelformat = bcap_formats[i].pixelformat;
+	return 0;
 }
 
 static int bcap_try_fmt_vid_cap(struct file *file, void *priv,
@@ -738,9 +690,6 @@ static int bcap_try_fmt_vid_cap(struct file *file, void *priv,
 {
 	struct bcap_device *bcap_dev = video_drvdata(file);
 	struct v4l2_pix_format *pixfmt = &fmt->fmt.pix;
-
-	if (fmt->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
-		return -EINVAL;
 
 	return bcap_try_format(bcap_dev, pixfmt, NULL, NULL);
 }
@@ -754,27 +703,24 @@ static int bcap_g_fmt_vid_cap(struct file *file, void *priv,
 	struct v4l2_pix_format *pixfmt = &fmt->fmt.pix;
 	int ret, i;
 
-	if (fmt->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
-		return -EINVAL;
-
 	ret = v4l2_subdev_call(bcap_dev->sd, video,
 				g_mbus_fmt, &mbus_fmt);
 	if (ret < 0)
 		return ret;
 
-	for (i = 0; i < BCAP_MAX_FMTS; i++) {
-		if (mbus_fmt.code != bcap_formats[i].mbus_code)
-			continue;
-		bcap_fmt = &bcap_formats[i];
-		v4l2_fill_pix_format(pixfmt, &mbus_fmt);
-		pixfmt->pixelformat = bcap_fmt->pixelformat;
-		pixfmt->bytesperline = pixfmt->width * bcap_fmt->bpp / 8;
-		pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
-		return 0;
-	}
-	v4l2_err(&bcap_dev->v4l2_dev,
-			"subdev fmt is not supported by bcap\n");
-	return -EINVAL;
+	for (i = 0; i < BCAP_MAX_FMTS; i++)
+		if (mbus_fmt.code == bcap_formats[i].mbus_code)
+			break;
+
+	if (i == BCAP_MAX_FMTS)
+		return -EINVAL;
+
+	bcap_fmt = &bcap_formats[i];
+	v4l2_fill_pix_format(pixfmt, &mbus_fmt);
+	pixfmt->pixelformat = bcap_fmt->pixelformat;
+	pixfmt->bytesperline = pixfmt->width * bcap_fmt->bpp / 8;
+	pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
+	return 0;
 }
 
 static int bcap_s_fmt_vid_cap(struct file *file, void *priv,
@@ -786,14 +732,9 @@ static int bcap_s_fmt_vid_cap(struct file *file, void *priv,
 	struct v4l2_pix_format *pixfmt = &fmt->fmt.pix;
 	int ret, bpp;
 
-	/* if streaming is started, return error */
-	if (bcap_dev->started) {
-		v4l2_err(&bcap_dev->v4l2_dev, "Streaming is started\n");
+	if (vb2_is_busy(&bcap_dev->buffer_queue))
 		return -EBUSY;
-	}
 
-	if (fmt->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
-		return -EINVAL;
 	/* see if format works */
 	ret = bcap_try_format(bcap_dev, pixfmt, &mbus_code, &bpp);
 	if (ret < 0)
@@ -818,17 +759,6 @@ static int bcap_querycap(struct file *file, void  *priv,
 	strlcpy(cap->bus_info, "Blackfin Platform", sizeof(cap->bus_info));
 	strlcpy(cap->card, bcap_dev->cfg->card_name, sizeof(cap->card));
 	return 0;
-}
-
-static int bcap_cropcap(struct file *file, void *priv,
-			struct v4l2_cropcap *crop)
-{
-	struct bcap_device *bcap_dev = video_drvdata(file);
-
-	if (crop->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
-		return -EINVAL;
-
-	return v4l2_subdev_call(bcap_dev->sd, video, cropcap, crop);
 }
 
 static int bcap_g_parm(struct file *file, void *fh,
@@ -906,16 +836,12 @@ static const struct v4l2_ioctl_ops bcap_ioctl_ops = {
 	.vidioc_querystd         = bcap_querystd,
 	.vidioc_s_std            = bcap_s_std,
 	.vidioc_g_std            = bcap_g_std,
-	.vidioc_queryctrl        = bcap_queryctrl,
-	.vidioc_g_ctrl           = bcap_g_ctrl,
-	.vidioc_s_ctrl           = bcap_s_ctrl,
 	.vidioc_reqbufs          = bcap_reqbufs,
 	.vidioc_querybuf         = bcap_querybuf,
 	.vidioc_qbuf             = bcap_qbuf,
 	.vidioc_dqbuf            = bcap_dqbuf,
 	.vidioc_streamon         = bcap_streamon,
 	.vidioc_streamoff        = bcap_streamoff,
-	.vidioc_cropcap          = bcap_cropcap,
 	.vidioc_g_parm           = bcap_g_parm,
 	.vidioc_s_parm           = bcap_s_parm,
 	.vidioc_g_chip_ident     = bcap_g_chip_ident,
@@ -1059,10 +985,11 @@ static int __devinit bcap_probe(struct platform_device *pdev)
 	return 0;
 err_unreg_vdev:
 	video_unregister_device(bcap_dev->video_dev);
+	bcap_dev->video_dev = NULL;
 err_unreg_v4l2:
 	v4l2_device_unregister(&bcap_dev->v4l2_dev);
 err_release_vdev:
-	if (!video_is_registered(bcap_dev->video_dev))
+	if (bcap_dev->video_dev)
 		video_device_release(bcap_dev->video_dev);
 err_cleanup_ctx:
 	vb2_dma_contig_cleanup_ctx(bcap_dev->alloc_ctx);
@@ -1089,7 +1016,7 @@ static int __devexit bcap_remove(struct platform_device *pdev)
 
 static struct platform_driver bcap_driver = {
 	.driver = {
-		.name   = CAPTURE_DRV_NAME,
+		.name  = CAPTURE_DRV_NAME,
 		.owner = THIS_MODULE,
 	},
 	.probe = bcap_probe,
