@@ -1559,7 +1559,10 @@ static struct platform_device bfin_lq035q1_device = {
 
 #if defined(CONFIG_VIDEO_BLACKFIN_CAPTURE) \
 	|| defined(CONFIG_VIDEO_BLACKFIN_CAPTURE_MODULE)
+#include <linux/videodev2.h>
 #include <media/blackfin/bfin_capture.h>
+#include <media/blackfin/ppi.h>
+
 static const unsigned short ppi_req[] = {
 	P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3,
 	P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7,
