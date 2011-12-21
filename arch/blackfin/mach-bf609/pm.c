@@ -25,6 +25,8 @@ void bfin_deepsleep(unsigned long mask)
 {
 	uint32_t dpm0_ctl;
 
+	bfin_write32(DPM0_WAKE_EN, mask);
+
 	dpm0_ctl = bfin_read32(DPM0_CTL);
 	dpm0_ctl |= 0x00000004;
 	bfin_write32(DPM0_CTL, dpm0_ctl);
@@ -39,7 +41,7 @@ void bfin_hibernate(unsigned long mask)
 	dpm0_ctl = bfin_read32(DPM0_CTL);
 	dpm0_ctl |= 0x00000010;
 	bfin_write32(DPM0_CTL, dpm0_ctl);
-	bfin_cpu_suspend();
+	bf609_hibernate();
 }
 
 void bf609_ddr_sr(void)
@@ -87,7 +89,10 @@ void bf609_ddr_sr_exit(void)
 
 void bf609_cpu_pm_enter(suspend_state_t state)
 {
-	bfin_deepsleep(0xffff);
+	if (state == PM_SUSPEND_STANDBY)
+		bfin_deepsleep(0xffff);
+	else
+		bfin_hibernate(0xffff);
 }
 
 int bf609_cpu_pm_prepare(void)
