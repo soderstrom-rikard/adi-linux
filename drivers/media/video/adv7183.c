@@ -199,6 +199,14 @@ static int adv7183_log_status(struct v4l2_subdev *sd)
 	return 0;
 }
 
+static int adv7183_g_std(struct v4l2_subdev *sd, v4l2_std_id *std)
+{
+	struct adv7183 *decoder = to_adv7183(sd);
+
+	*std = decoder->std;
+	return 0;
+}
+
 static int adv7183_s_std(struct v4l2_subdev *sd, v4l2_std_id std)
 {
 	struct adv7183 *decoder = to_adv7183(sd);
@@ -518,6 +526,7 @@ static const struct v4l2_ctrl_ops adv7183_ctrl_ops = {
 
 static const struct v4l2_subdev_core_ops adv7183_core_ops = {
 	.log_status = adv7183_log_status,
+	.g_std = adv7183_g_std,
 	.s_std = adv7183_s_std,
 	.reset = adv7183_reset,
 	.g_chip_ident = adv7183_g_chip_ident,
