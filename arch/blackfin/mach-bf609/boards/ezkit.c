@@ -638,9 +638,9 @@ static struct platform_device bfin_nand_device = {
 #if defined(CONFIG_SDH_BFIN) || defined(CONFIG_SDH_BFIN_MODULE)
 
 static struct bfin_sd_host bfin_sdh_data = {
-	.dma_chan = CH_SDH,
-	.irq_int0 = IRQ_SDH_MASK0,
-	.pin_req = {P_SD_D0, P_SD_D1, P_SD_D2, P_SD_D3, P_SD_CLK, P_SD_CMD, 0},
+	.dma_chan = CH_RSI,
+	.irq_int0 = IRQ_RSI_INT0,
+	.pin_req = {P_RSI_DATA0, P_RSI_DATA1, P_RSI_DATA2, P_RSI_DATA3, P_RSI_CMD, P_RSI_CLK, 0},
 };
 
 static struct platform_device bfin_sdh_device = {
