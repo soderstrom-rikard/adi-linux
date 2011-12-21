@@ -77,6 +77,10 @@ struct bcap_device {
 	struct v4l2_pix_format fmt;
 	/* bits per pixel*/
 	int bpp;
+	/* used to store sensor supported format */
+	struct bcap_format *sensor_formats;
+	/* number of sensor formats array */
+	int num_sensor_formats;
 	/* pointing to current video buffer */
 	struct bcap_buffer *cur_frm;
 	/* pointing to next video buffer */
@@ -141,43 +145,57 @@ static struct bcap_buffer *to_bcap_vb(struct vb2_buffer *vb)
 	return container_of(vb, struct bcap_buffer, vb);
 }
 
+static int bcap_init_sensor_formats(struct bcap_device *bcap_dev)
+{
+	enum v4l2_mbus_pixelcode code;
+	struct bcap_format *sf;
+	unsigned int num_formats = 0;
+	int i, j;
+
+	while (!v4l2_subdev_call(bcap_dev->sd, video,
+				enum_mbus_fmt, num_formats, &code))
+		num_formats++;
+	if (!num_formats)
+		return -ENXIO;
+
+	sf = kzalloc(num_formats * sizeof(*sf), GFP_KERNEL);
+	if (!sf)
+		return -ENOMEM;
+
+	for (i = 0; i < num_formats; i++) {
+		v4l2_subdev_call(bcap_dev->sd, video,
+				enum_mbus_fmt, i, &code);
+		for (j = 0; j < BCAP_MAX_FMTS; j++)
+			if (code == bcap_formats[j].mbus_code)
+				break;
+		if (j == BCAP_MAX_FMTS) {
+			/* we don't allow this sensor working with our bridge */
+			kfree(sf);
+			return -EINVAL;
+		}
+		sf[i] = bcap_formats[j];
+	}
+	bcap_dev->sensor_formats = sf;
+	bcap_dev->num_sensor_formats = num_formats;
+	return 0;
+}
+
+static void bcap_free_sensor_formats(struct bcap_device *bcap_dev)
+{
+	bcap_dev->num_sensor_formats = 0;
+	kfree(bcap_dev->sensor_formats);
+	bcap_dev->sensor_formats = NULL;
+}
+
 static int bcap_open(struct file *file)
 {
 	struct bcap_device *bcap_dev = video_drvdata(file);
 	struct video_device *vfd = bcap_dev->video_dev;
-	struct v4l2_mbus_framefmt mbus_fmt;
-	struct v4l2_pix_format *pixfmt = &bcap_dev->fmt;
-	const struct bcap_format *bcap_fmt;
 	struct bcap_fh *bcap_fh;
-	int ret, i;
 
 	if (!bcap_dev->sd) {
 		v4l2_err(&bcap_dev->v4l2_dev, "No sub device registered\n");
 		return -ENODEV;
-	}
-
-	/* if first open, query format of subdevice as default format */
-	if (!bcap_dev->usrs) {
-		ret = v4l2_subdev_call(bcap_dev->sd, video,
-					g_mbus_fmt, &mbus_fmt);
-		if (ret < 0)
-			return ret;
-
-		for (i = 0; i < BCAP_MAX_FMTS; i++) {
-			if (mbus_fmt.code != bcap_formats[i].mbus_code)
-				continue;
-			bcap_fmt = &bcap_formats[i];
-			v4l2_fill_pix_format(pixfmt, &mbus_fmt);
-			pixfmt->pixelformat = bcap_fmt->pixelformat;
-			pixfmt->bytesperline = pixfmt->width * bcap_fmt->bpp / 8;
-			pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
-			break;
-		}
-		if (i == BCAP_MAX_FMTS) {
-			v4l2_err(&bcap_dev->v4l2_dev,
-					"subdev fmt is not supported by bcap\n");
-			return -EINVAL;
-		}
 	}
 
 	bcap_fh = kzalloc(sizeof(*bcap_fh), GFP_KERNEL);
@@ -630,17 +648,18 @@ static int bcap_try_format(struct bcap_device *bcap,
 				enum v4l2_mbus_pixelcode *mbus_code,
 				int *bpp)
 {
-	const struct bcap_format *fmt;
+	struct bcap_format *sf = bcap->sensor_formats;
+	struct bcap_format *fmt = NULL;
 	struct v4l2_mbus_framefmt mbus_fmt;
 	int ret, i;
 
-	for (i = 0; i < BCAP_MAX_FMTS; i++) {
-		fmt = &bcap_formats[i];
+	for (i = 0; i < bcap->num_sensor_formats; i++) {
+		fmt = &sf[i];
 		if (pixfmt->pixelformat == fmt->pixelformat)
 			break;
 	}
-	if (i == BCAP_MAX_FMTS)
-		fmt = &bcap_formats[0];
+	if (i == bcap->num_sensor_formats)
+		fmt = &sf[0];
 
 	if (mbus_code)
 		*mbus_code = fmt->mbus_code;
@@ -661,27 +680,16 @@ static int bcap_enum_fmt_vid_cap(struct file *file, void  *priv,
 					struct v4l2_fmtdesc *fmt)
 {
 	struct bcap_device *bcap_dev = video_drvdata(file);
-	enum v4l2_mbus_pixelcode mbus_code;
-	u32 index = fmt->index;
-	int ret, i;
+	struct bcap_format *sf = bcap_dev->sensor_formats;
 
-	ret = v4l2_subdev_call(bcap_dev->sd, video,
-				enum_mbus_fmt, index, &mbus_code);
-	if (ret < 0)
-		return ret;
-
-	for (i = 0; i < BCAP_MAX_FMTS; i++)
-		if (mbus_code == bcap_formats[i].mbus_code)
-			break;
-
-	if (i == BCAP_MAX_FMTS)
+	if (fmt->index >= bcap_dev->num_sensor_formats)
 		return -EINVAL;
 
 	fmt->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	strlcpy(fmt->description,
-		bcap_formats[i].desc,
+		sf[fmt->index].desc,
 		sizeof(fmt->description));
-	fmt->pixelformat = bcap_formats[i].pixelformat;
+	fmt->pixelformat = sf[fmt->index].pixelformat;
 	return 0;
 }
 
@@ -698,28 +706,8 @@ static int bcap_g_fmt_vid_cap(struct file *file, void *priv,
 				struct v4l2_format *fmt)
 {
 	struct bcap_device *bcap_dev = video_drvdata(file);
-	struct v4l2_mbus_framefmt mbus_fmt;
-	const struct bcap_format *bcap_fmt;
-	struct v4l2_pix_format *pixfmt = &fmt->fmt.pix;
-	int ret, i;
 
-	ret = v4l2_subdev_call(bcap_dev->sd, video,
-				g_mbus_fmt, &mbus_fmt);
-	if (ret < 0)
-		return ret;
-
-	for (i = 0; i < BCAP_MAX_FMTS; i++)
-		if (mbus_fmt.code == bcap_formats[i].mbus_code)
-			break;
-
-	if (i == BCAP_MAX_FMTS)
-		return -EINVAL;
-
-	bcap_fmt = &bcap_formats[i];
-	v4l2_fill_pix_format(pixfmt, &mbus_fmt);
-	pixfmt->pixelformat = bcap_fmt->pixelformat;
-	pixfmt->bytesperline = pixfmt->width * bcap_fmt->bpp / 8;
-	pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
+	fmt->fmt.pix = bcap_dev->fmt;
 	return 0;
 }
 
@@ -974,14 +962,31 @@ static int __devinit bcap_probe(struct platform_device *pdev)
 		/* update tvnorms from the sub devices */
 		for (i = 0; i < config->num_inputs; i++)
 			vfd->tvnorms |= config->inputs[i].std;
-		/* set default std */
-		bcap_dev->std = vfd->tvnorms;
 	} else {
 		v4l2_err(&bcap_dev->v4l2_dev,
 				"Unable to register sub device\n");
 		goto err_unreg_vdev;
 	}
+
 	v4l2_info(&bcap_dev->v4l2_dev, "v4l2 sub device registered\n");
+
+	/* now we can probe the default state */
+	if (vfd->tvnorms) {
+		v4l2_std_id std;
+		ret = v4l2_subdev_call(bcap_dev->sd, core, g_std, &std);
+		if (ret) {
+			v4l2_err(&bcap_dev->v4l2_dev,
+					"Unable to get std\n");
+			goto err_unreg_vdev;
+		}
+		bcap_dev->std = std;
+	}
+	ret = bcap_init_sensor_formats(bcap_dev);
+	if (ret) {
+		v4l2_err(&bcap_dev->v4l2_dev,
+				"Unable to create sensor formats table\n");
+		goto err_unreg_vdev;
+	}
 	return 0;
 err_unreg_vdev:
 	video_unregister_device(bcap_dev->video_dev);
@@ -1006,6 +1011,7 @@ static int __devexit bcap_remove(struct platform_device *pdev)
 	struct bcap_device *bcap_dev = container_of(v4l2_dev,
 						struct bcap_device, v4l2_dev);
 
+	bcap_free_sensor_formats(bcap_dev);
 	video_unregister_device(bcap_dev->video_dev);
 	v4l2_device_unregister(v4l2_dev);
 	vb2_dma_contig_cleanup_ctx(bcap_dev->alloc_ctx);
