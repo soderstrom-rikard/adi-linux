@@ -33,13 +33,13 @@
 #define DI_EN_Y			0x00200000	/* Data Interrupt Enable in Y count */
 #define DI_EN_P			0x00300000	/* Data Interrupt Enable in Peripheral */
 #define DI_EN			DI_EN_X		/* Data Interrupt Enable */
-#define NDSIZE_0		0x00000000	/* Next Descriptor Size = 0 (Stop/Autobuffer) */
-#define NDSIZE_1		0x00010000	/* Next Descriptor Size = 1 */
-#define NDSIZE_2		0x00020000	/* Next Descriptor Size = 2 */
-#define NDSIZE_3		0x00030000	/* Next Descriptor Size = 3 */
-#define NDSIZE_4		0x00040000	/* Next Descriptor Size = 4 */
-#define NDSIZE_5		0x00050000	/* Next Descriptor Size = 5 */
-#define NDSIZE_6		0x00060000	/* Next Descriptor Size = 6 */
+#define NDSIZE_0		0x00000000	/* Next Descriptor Size = 1 */
+#define NDSIZE_1		0x00010000	/* Next Descriptor Size = 2 */
+#define NDSIZE_2		0x00020000	/* Next Descriptor Size = 3 */
+#define NDSIZE_3		0x00030000	/* Next Descriptor Size = 4 */
+#define NDSIZE_4		0x00040000	/* Next Descriptor Size = 5 */
+#define NDSIZE_5		0x00050000	/* Next Descriptor Size = 6 */
+#define NDSIZE_6		0x00060000	/* Next Descriptor Size = 7 */
 #define NDSIZE			0x00070000	/* Next Descriptor Size */
 #define NDSIZE_OFFSET		16		/* Next Descriptor Size Offset */
 #define DMAFLOW_LIST		0x00004000	/* Descriptor List Mode */
