@@ -34,6 +34,7 @@
 
 #include <media/v4l2-chip-ident.h>
 #include <media/v4l2-common.h>
+#include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-ioctl.h>
 #include <media/videobuf2-dma-contig.h>
@@ -61,6 +62,8 @@ struct bcap_buffer {
 struct bcap_device {
 	/* capture device instance */
 	struct v4l2_device v4l2_dev;
+	/* v4l2 control handler */
+	struct v4l2_ctrl_handler ctrl_handler;
 	/* device node data */
 	struct video_device *video_dev;
 	/* sub device instance */
@@ -910,6 +913,14 @@ static int __devinit bcap_probe(struct platform_device *pdev)
 	}
 	v4l2_info(&bcap_dev->v4l2_dev, "v4l2 device registered\n");
 
+	bcap_dev->v4l2_dev.ctrl_handler = &bcap_dev->ctrl_handler;
+	ret = v4l2_ctrl_handler_init(&bcap_dev->ctrl_handler, 0);
+	if (ret) {
+		v4l2_err(&bcap_dev->v4l2_dev,
+				"Unable to init control handler\n");
+		goto err_unreg_v4l2;
+	}
+
 	spin_lock_init(&bcap_dev->lock);
 	/* initialize queue */
 	q = &bcap_dev->buffer_queue;
@@ -935,7 +946,7 @@ static int __devinit bcap_probe(struct platform_device *pdev)
 	if (ret) {
 		v4l2_err(&bcap_dev->v4l2_dev,
 				"Unable to register video device\n");
-		goto err_unreg_v4l2;
+		goto err_free_handler;
 	}
 	video_set_drvdata(bcap_dev->video_dev, bcap_dev);
 	v4l2_info(&bcap_dev->v4l2_dev, "video device registered as: %s\n",
@@ -987,6 +998,8 @@ static int __devinit bcap_probe(struct platform_device *pdev)
 err_unreg_vdev:
 	video_unregister_device(bcap_dev->video_dev);
 	bcap_dev->video_dev = NULL;
+err_free_handler:
+	v4l2_ctrl_handler_free(&bcap_dev->ctrl_handler);
 err_unreg_v4l2:
 	v4l2_device_unregister(&bcap_dev->v4l2_dev);
 err_release_vdev:
@@ -1009,6 +1022,7 @@ static int __devexit bcap_remove(struct platform_device *pdev)
 
 	bcap_free_sensor_formats(bcap_dev);
 	video_unregister_device(bcap_dev->video_dev);
+	v4l2_ctrl_handler_free(&bcap_dev->ctrl_handler);
 	v4l2_device_unregister(v4l2_dev);
 	vb2_dma_contig_cleanup_ctx(bcap_dev->alloc_ctx);
 	ppi_delete_instance(bcap_dev->ppi);
