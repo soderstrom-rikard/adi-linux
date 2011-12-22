@@ -81,7 +81,7 @@ struct sdh_host {
 	dma_addr_t		sg_dma;
 	int			dma_len;
 
-	unsigned int		imask;
+	unsigned long		sclk;
 	unsigned int		power_mode;
 	unsigned int		clk_div;
 
@@ -99,28 +99,6 @@ static void sdh_stop_clock(struct sdh_host *host)
 {
 	bfin_write_SDH_CLK_CTL(bfin_read_SDH_CLK_CTL() & ~CLK_E);
 	SSYNC();
-}
-
-static void sdh_enable_stat_irq(struct sdh_host *host, unsigned int mask)
-{
-	unsigned long flags;
-
-	spin_lock_irqsave(&host->lock, flags);
-	host->imask |= mask;
-	bfin_write_SDH_MASK0(mask);
-	SSYNC();
-	spin_unlock_irqrestore(&host->lock, flags);
-}
-
-static void sdh_disable_stat_irq(struct sdh_host *host, unsigned int mask)
-{
-	unsigned long flags;
-
-	spin_lock_irqsave(&host->lock, flags);
-	host->imask &= ~mask;
-	bfin_write_SDH_MASK0(host->imask);
-	SSYNC();
-	spin_unlock_irqrestore(&host->lock, flags);
 }
 
 static int sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
@@ -153,7 +131,7 @@ static int sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 
 	bfin_write_SDH_DATA_CTL(data_ctl);
 	/* the time of a host clock period in ns */
-	cycle_ns = 1000000000 / (get_sclk() / (2 * (host->clk_div + 1)));
+	cycle_ns = 1000000000 / (host->sclk / (2 * (host->clk_div + 1)));
 	timeout = data->timeout_ns / cycle_ns;
 	timeout += data->timeout_clks;
 	bfin_write_SDH_DATA_TIMER(timeout);
@@ -165,7 +143,6 @@ static int sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	} else
 		host->dma_dir = DMA_TO_DEVICE;
 
-	sdh_enable_stat_irq(host, (DAT_CRC_FAIL | DAT_TIME_OUT | DAT_END));
 	host->dma_len = dma_map_sg(mmc_dev(host->mmc), data->sg, data->sg_len, host->dma_dir);
 #if defined(CONFIG_BF54x) || defined(CONFIG_BF60x)
 	dma_cfg |= DMAFLOW_ARRAY | RESTART | WDSIZE_32 | DMAEN;
@@ -221,30 +198,20 @@ static int sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 static void sdh_start_cmd(struct sdh_host *host, struct mmc_command *cmd)
 {
 	unsigned int sdh_cmd;
-	unsigned int stat_mask;
 
 	dev_dbg(mmc_dev(host->mmc), "%s enter cmd: 0x%p\n", __func__, cmd);
 	WARN_ON(host->cmd != NULL);
 	host->cmd = cmd;
 
 	sdh_cmd = 0;
-	stat_mask = 0;
 
 	sdh_cmd |= cmd->opcode;
 
-	if (cmd->flags & MMC_RSP_PRESENT) {
+	if (cmd->flags & MMC_RSP_PRESENT)
 		sdh_cmd |= CMD_RSP;
-		stat_mask |= CMD_RESP_END;
-	} else {
-		stat_mask |= CMD_SENT;
-	}
 
 	if (cmd->flags & MMC_RSP_136)
 		sdh_cmd |= CMD_L_RSP;
-
-	stat_mask |= CMD_CRC_FAIL | CMD_TIME_OUT;
-
-	sdh_enable_stat_irq(host, stat_mask);
 
 	bfin_write_SDH_ARGUMENT(cmd->arg);
 	bfin_write_SDH_COMMAND(sdh_cmd | CMD_E);
@@ -285,16 +252,12 @@ static int sdh_cmd_done(struct sdh_host *host, unsigned int stat)
 	else if (stat & CMD_CRC_FAIL && cmd->flags & MMC_RSP_CRC)
 		cmd->error = -EILSEQ;
 
-	sdh_disable_stat_irq(host, (CMD_SENT | CMD_RESP_END | CMD_TIME_OUT | CMD_CRC_FAIL));
-
 	if (host->data && !cmd->error) {
 		if (host->data->flags & MMC_DATA_WRITE) {
 			ret = sdh_setup_data(host, host->data);
 			if (ret)
 				return 0;
 		}
-
-		sdh_enable_stat_irq(host, DAT_END | RX_OVERRUN | TX_UNDERRUN | DAT_TIME_OUT);
 	} else
 		sdh_finish_request(host, host->mrq);
 
@@ -325,7 +288,6 @@ static int sdh_data_done(struct sdh_host *host, unsigned int stat)
 	else
 		data->bytes_xfered = 0;
 
-	sdh_disable_stat_irq(host, DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL | RX_OVERRUN | TX_UNDERRUN);
 	bfin_write_SDH_STATUS_CLR(DAT_END_STAT | DAT_TIMEOUT_STAT | \
 			DAT_CRC_FAIL_STAT | DAT_BLK_END_STAT | RX_OVERRUN | TX_UNDERRUN);
 	bfin_write_SDH_DATA_CTL(0);
@@ -350,22 +312,24 @@ static void sdh_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	dev_dbg(mmc_dev(host->mmc), "%s enter, mrp:%p, cmd:%p\n", __func__, mrq, mrq->cmd);
 	WARN_ON(host->mrq != NULL);
 
+	spin_lock(&host->lock);
 	host->mrq = mrq;
 	host->data = mrq->data;
 
 	if (mrq->data && mrq->data->flags & MMC_DATA_READ) {
 		ret = sdh_setup_data(host, mrq->data);
 		if (ret)
-			return;
+			goto data_err;
 	}
 
 	sdh_start_cmd(host, mrq->cmd);
+data_err:
+	spin_unlock(&host->lock);
 }
 
 static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
 	struct sdh_host *host;
-	unsigned long flags;
 	u16 clk_ctl = 0;
 #ifndef RSI_BLKSZ
 	u16 pwr_ctl = 0;
@@ -373,7 +337,7 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	u16 cfg;
 	host = mmc_priv(mmc);
 
-	spin_lock_irqsave(&host->lock, flags);
+	spin_lock(&host->lock);
 
 	cfg = bfin_read_SDH_CFG();
 	cfg |= MWE;
@@ -443,11 +407,20 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		clk_ctl |= CLK_E;
 		host->clk_div = clk_div;
 		bfin_write_SDH_CLK_CTL(clk_ctl);
-		SSYNC();
+
 	} else
 		sdh_stop_clock(host);
 
-	spin_unlock_irqrestore(&host->lock, flags);
+	/* set up sdh interrupt mask*/
+	if (ios->power_mode == MMC_POWER_ON)
+		bfin_write_SDH_MASK0(DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL |
+			RX_OVERRUN | TX_UNDERRUN | CMD_SENT | CMD_RESP_END |
+			CMD_TIME_OUT | CMD_CRC_FAIL);
+	else
+		bfin_write_SDH_MASK0(0);
+	SSYNC();
+
+	spin_unlock(&host->lock);
 
 	dev_dbg(mmc_dev(host->mmc), "SDH: clk_div = 0x%x actual clock:%ld expected clock:%d\n",
 		host->clk_div,
@@ -479,6 +452,9 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 	int handled = 0;
 
 	dev_dbg(mmc_dev(host->mmc), "%s enter\n", __func__);
+
+	spin_lock(&host->lock);
+
 	status = bfin_read_SDH_E_STATUS();
 	if (status & SD_CARD_DET) {
 		mmc_detect_change(host->mmc, 0);
@@ -495,6 +471,8 @@ static irqreturn_t sdh_stat_irq(int irq, void *devid)
 	status = bfin_read_SDH_STATUS();
 	if (status & (DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL | RX_OVERRUN | TX_UNDERRUN))
 		handled |= sdh_data_done(host, status);
+
+	spin_unlock(&host->lock);
 
 	dev_dbg(mmc_dev(host->mmc), "%s exit\n\n", __func__);
 
@@ -536,6 +514,7 @@ static int __devinit sdh_probe(struct platform_device *pdev)
 	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_NEEDS_POLL;
 	host = mmc_priv(mmc);
 	host->mmc = mmc;
+	host->sclk = get_sclk();
 
 	spin_lock_init(&host->lock);
 	host->irq = drv_data->irq_int0;
