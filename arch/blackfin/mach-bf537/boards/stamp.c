@@ -1571,7 +1571,7 @@ static const unsigned short ppi_req[] = {
 };
 
 static const struct ppi_info ppi_info = {
-	.name = "ppi",
+	.type = PPI_TYPE_PPI,
 	.dma_ch = CH_PPI,
 	.irq_err = IRQ_PPI_ERROR,
 	.base = (void __iomem *)PPI_CONTROL,
