@@ -1574,7 +1574,7 @@ static const struct ppi_info ppi_info = {
 	.name = "ppi",
 	.dma_ch = CH_PPI,
 	.irq_err = IRQ_PPI_ERROR,
-	.base = PPI_CONTROL,
+	.base = (void __iomem *)PPI_CONTROL,
 	.pin_req = ppi_req,
 };
 
