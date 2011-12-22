@@ -44,7 +44,7 @@ struct ppi_info {
 	const char *name; /* ppi or eppi */
 	int dma_ch;
 	int irq_err;
-	unsigned long base;
+	void __iomem *base;
 	const unsigned short *pin_req;
 };
 

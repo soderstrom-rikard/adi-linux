@@ -50,8 +50,7 @@ static irqreturn_t ppi_irq_err(int irq, void *dev_id)
 	unsigned short status;
 
 	if (!strcmp(info->name, "ppi")) {
-		struct bfin_ppi_regs __iomem *reg =
-			(struct bfin_ppi_regs __iomem *)info->base;
+		struct bfin_ppi_regs *reg = info->base;
 		status = bfin_read16(&reg->status);
 		bfin_write16(&reg->status, 0xff00);
 	}
@@ -98,8 +97,7 @@ static int ppi_start(struct ppi_if *ppi)
 	/* enable PPI */
 	ppi->ppi_control |= PORT_EN;
 	if (!strcmp(info->name, "ppi")) {
-		struct bfin_ppi_regs __iomem *reg =
-			(struct bfin_ppi_regs __iomem *)info->base;
+		struct bfin_ppi_regs *reg = info->base;
 		bfin_write16(&reg->control, ppi->ppi_control);
 	}
 
@@ -114,8 +112,7 @@ static int ppi_stop(struct ppi_if *ppi)
 	/* disable PPI */
 	ppi->ppi_control &= ~PORT_EN;
 	if (!strcmp(info->name, "ppi")) {
-		struct bfin_ppi_regs __iomem *reg =
-			(struct bfin_ppi_regs __iomem *)info->base;
+		struct bfin_ppi_regs *reg = info->base;
 		bfin_write16(&reg->control, ppi->ppi_control);
 	}
 
@@ -153,8 +150,7 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 	/* config PPI */
 	ppi->ppi_control = params->ppi_control & ~PORT_EN;
 	if (!strcmp(info->name, "ppi")) {
-		struct bfin_ppi_regs __iomem *reg =
-			(struct bfin_ppi_regs __iomem *)info->base;
+		struct bfin_ppi_regs *reg = info->base;
 		bfin_write16(&reg->control, ppi->ppi_control);
 		bfin_write16(&reg->count, ppi->bytes_per_line - 1);
 		bfin_write16(&reg->frame, ppi->lines_per_frame);
