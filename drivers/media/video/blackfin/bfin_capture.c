@@ -97,8 +97,6 @@ struct bcap_device {
 	struct mutex mutex;
 	/* used to wait ppi to complete one transfer */
 	struct completion comp;
-	/* number of open instances of the device */
-	unsigned int usrs;
 	/* prepare to stop */
 	bool stop;
 };
@@ -210,7 +208,6 @@ static int bcap_open(struct file *file)
 	/* store pointer to v4l2_fh in private_data member of file */
 	file->private_data = &bcap_fh->fh;
 	v4l2_fh_add(&bcap_fh->fh);
-	bcap_dev->usrs++;
 	bcap_fh->io_allowed = false;
 	return 0;
 }
@@ -225,7 +222,6 @@ static int bcap_release(struct file *file)
 	if (bcap_fh->io_allowed)
 		vb2_queue_release(&bcap_dev->buffer_queue);
 
-	bcap_dev->usrs--;
 	file->private_data = NULL;
 	v4l2_fh_del(&bcap_fh->fh);
 	v4l2_fh_exit(&bcap_fh->fh);
