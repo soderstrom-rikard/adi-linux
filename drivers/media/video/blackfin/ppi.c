@@ -49,7 +49,7 @@ static irqreturn_t ppi_irq_err(int irq, void *dev_id)
 	const struct ppi_info *info = ppi->info;
 	unsigned short status;
 
-	if (!strcmp(info->name, "ppi")) {
+	if (info->type == PPI_TYPE_PPI) {
 		struct bfin_ppi_regs *reg = info->base;
 		status = bfin_read16(&reg->status);
 		bfin_write16(&reg->status, 0xff00);
@@ -96,7 +96,7 @@ static int ppi_start(struct ppi_if *ppi)
 
 	/* enable PPI */
 	ppi->ppi_control |= PORT_EN;
-	if (!strcmp(info->name, "ppi")) {
+	if (info->type == PPI_TYPE_PPI) {
 		struct bfin_ppi_regs *reg = info->base;
 		bfin_write16(&reg->control, ppi->ppi_control);
 	}
@@ -111,7 +111,7 @@ static int ppi_stop(struct ppi_if *ppi)
 
 	/* disable PPI */
 	ppi->ppi_control &= ~PORT_EN;
-	if (!strcmp(info->name, "ppi")) {
+	if (info->type == PPI_TYPE_PPI) {
 		struct bfin_ppi_regs *reg = info->base;
 		bfin_write16(&reg->control, ppi->ppi_control);
 	}
@@ -149,7 +149,7 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 
 	/* config PPI */
 	ppi->ppi_control = params->ppi_control & ~PORT_EN;
-	if (!strcmp(info->name, "ppi")) {
+	if (info->type == PPI_TYPE_PPI) {
 		struct bfin_ppi_regs *reg = info->base;
 		bfin_write16(&reg->control, ppi->ppi_control);
 		bfin_write16(&reg->count, ppi->bytes_per_line - 1);
@@ -169,7 +169,7 @@ struct ppi_if *ppi_create_instance(const struct ppi_info *info)
 {
 	struct ppi_if *ppi;
 
-	if (!info || !info->name || !info->pin_req)
+	if (!info || !info->pin_req)
 		return NULL;
 
 	if (peripheral_request_list(info->pin_req, KBUILD_MODNAME)) {

@@ -40,8 +40,13 @@ struct ppi_ops {
 	void (*update_addr)(struct ppi_if *ppi, unsigned long addr);
 };
 
+enum ppi_type {
+	PPI_TYPE_PPI,
+	PPI_TYPE_EPPI,
+};
+
 struct ppi_info {
-	const char *name; /* ppi or eppi */
+	enum ppi_type type;
 	int dma_ch;
 	int irq_err;
 	void __iomem *base;
