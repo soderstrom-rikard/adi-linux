@@ -202,8 +202,9 @@ void bfin_internal_unmask_irq(unsigned int irq)
 static void bfin_sec_mask_ack_irq(struct irq_data *d)
 {
 	unsigned long flags = hard_local_irq_save();
+	unsigned int sid = SIC_SYSIRQ(d->irq);
 
-	bfin_write_SEC_SCI(0, SEC_CSID, d->irq);
+	bfin_write_SEC_SCI(0, SEC_CSID, sid);
 
 	hard_local_irq_restore(flags);
 }
@@ -1085,10 +1086,21 @@ static int bfin_gpio_set_wake(struct irq_data *d, unsigned int state)
 #endif
 
 void bfin_demux_gpio_irq(unsigned int inta_irq,
-			 struct irq_desc *desc)
+			struct irq_desc *desc)
 {
 	u32 bank, pint_val;
 	u32 request, irq;
+	u32 level_mask;
+	int umask = 0;
+	struct irq_chip *chip = irq_desc_get_chip(desc);
+
+	if (chip->irq_mask_ack) {
+		chip->irq_mask_ack(&desc->irq_data);
+	} else {
+		chip->irq_mask(&desc->irq_data);
+		if (chip->irq_ack)
+			chip->irq_ack(&desc->irq_data);
+	}
 
 	switch (inta_irq) {
 	case IRQ_PINT0:
@@ -1103,7 +1115,7 @@ void bfin_demux_gpio_irq(unsigned int inta_irq,
 	case IRQ_PINT1:
 		bank = 1;
 		break;
-#ifdef CONFIG_BF60X
+#ifdef CONFIG_BF60x
 	case IRQ_PINT4:
 		bank = 4;
 		break;
@@ -1119,15 +1131,23 @@ void bfin_demux_gpio_irq(unsigned int inta_irq,
 
 	request = pint[bank]->request;
 
+	level_mask = pint[bank]->edge_set & request;
+
 	while (request) {
 		if (request & 1) {
 			irq = pint2irq_lut[pint_val] + SYS_IRQS;
+			if (level_mask & PINT_BIT(pint_val)) {
+				umask = 1;
+				chip->irq_unmask(&desc->irq_data);
+			}
 			bfin_handle_irq(irq);
 		}
 		pint_val++;
 		request >>= 1;
 	}
 
+	if (!umask)
+		chip->irq_unmask(&desc->irq_data);
 }
 #endif
 
@@ -1192,6 +1212,9 @@ int __init init_arch_irq(void)
 #else
 	bfin_write_SIC_IMASK(SIC_UNMASK_ALL);
 #endif
+#else /* CONFIG_BF60x */
+	bfin_write_SEC_GCTL(SEC_GCTL_RESET);
+#endif
 
 	local_irq_disable();
 
@@ -1201,12 +1224,15 @@ int __init init_arch_irq(void)
 	pint[1]->assign = CONFIG_PINT1_ASSIGN;
 	pint[2]->assign = CONFIG_PINT2_ASSIGN;
 	pint[3]->assign = CONFIG_PINT3_ASSIGN;
+# ifdef CONFIG_BF60x
+	pint[4]->assign = CONFIG_PINT4_ASSIGN;
+	pint[5]->assign = CONFIG_PINT5_ASSIGN;
+# endif
 # endif
 	/* Whenever PINTx_ASSIGN is altered init_pint_lut() must be executed! */
 	init_pint_lut();
 #endif
 
-#endif /* CONFIG_BF60x */
 	for (irq = 0; irq <= SYS_IRQS; irq++) {
 		if (irq <= IRQ_CORETMR)
 			irq_set_chip(irq, &bfin_core_irqchip);
@@ -1362,9 +1388,6 @@ int __init init_arch_irq(void)
 	    IMASK_IVG14 | IMASK_IVG13 | IMASK_IVG12 | IMASK_IVG11 |
 	    IMASK_IVG10 | IMASK_IVG9 | IMASK_IVG8 | IMASK_IVG7 | IMASK_IVGHW;
 
-
-	bfin_write_SEC_GCTL(SEC_GCTL_RESET);
-	udelay(100);
 
 	bfin_write_SEC_FCTL(SEC_FCTL_EN | SEC_FCTL_SYSRST_EN | SEC_FCTL_FLTIN_EN);
 	bfin_sec_enable_sci(SIC_SYSIRQ(IRQ_WATCH0));
