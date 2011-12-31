@@ -109,9 +109,9 @@ static int ppi_start(struct ppi_if *ppi)
 
 	/* enable DMA */
 	enable_dma(info->dma_ch);
-	ppi->ppi_control |= PORT_EN;
 
 	/* enable PPI */
+	ppi->ppi_control |= PORT_EN;
 	switch (info->type) {
 	case PPI_TYPE_PPI:
 	{
