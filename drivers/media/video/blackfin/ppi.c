@@ -47,12 +47,28 @@ static irqreturn_t ppi_irq_err(int irq, void *dev_id)
 {
 	struct ppi_if *ppi = dev_id;
 	const struct ppi_info *info = ppi->info;
-	unsigned short status;
 
-	if (info->type == PPI_TYPE_PPI) {
+	switch (info->type) {
+	case PPI_TYPE_PPI:
+	{
 		struct bfin_ppi_regs *reg = info->base;
+		unsigned short status;
+
+		/* register on bf561 is cleared when read 
+		 * others are W1C
+		 */
 		status = bfin_read16(&reg->status);
 		bfin_write16(&reg->status, 0xff00);
+		break;
+	}
+	case PPI_TYPE_EPPI:
+	{
+		struct bfin_eppi_regs *reg = info->base;
+		bfin_write16(&reg->status, 0xffff);
+		break;
+	}
+	default:
+		break;
 	}
 
 	return IRQ_HANDLED;
@@ -93,12 +109,24 @@ static int ppi_start(struct ppi_if *ppi)
 
 	/* enable DMA */
 	enable_dma(info->dma_ch);
+	ppi->ppi_control |= PORT_EN;
 
 	/* enable PPI */
-	ppi->ppi_control |= PORT_EN;
-	if (info->type == PPI_TYPE_PPI) {
+	switch (info->type) {
+	case PPI_TYPE_PPI:
+	{
 		struct bfin_ppi_regs *reg = info->base;
 		bfin_write16(&reg->control, ppi->ppi_control);
+		break;
+	}
+	case PPI_TYPE_EPPI:
+	{
+		struct bfin_eppi_regs *reg = info->base;
+		bfin_write32(&reg->control, ppi->ppi_control);
+		break;
+	}
+	default:
+		return -1;
 	}
 
 	SSYNC();
@@ -111,9 +139,21 @@ static int ppi_stop(struct ppi_if *ppi)
 
 	/* disable PPI */
 	ppi->ppi_control &= ~PORT_EN;
-	if (info->type == PPI_TYPE_PPI) {
+	switch (info->type) {
+	case PPI_TYPE_PPI:
+	{
 		struct bfin_ppi_regs *reg = info->base;
 		bfin_write16(&reg->control, ppi->ppi_control);
+		break;
+	}
+	case PPI_TYPE_EPPI:
+	{
+		struct bfin_eppi_regs *reg = info->base;
+		bfin_write32(&reg->control, ppi->ppi_control);
+		break;
+	}
+	default:
+		return -1;
 	}
 
 	/* disable DMA */
@@ -127,13 +167,48 @@ static int ppi_stop(struct ppi_if *ppi)
 static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 {
 	const struct ppi_info *info = ppi->info;
+	int dma32 = 0;
 
 	ppi->bytes_per_line = params->width * params->bpp / 8;
 	ppi->lines_per_frame = params->height;
 
-	/* config DMA */
 	ppi->dma_config = (DMA_FLOW_STOP | WNR | RESTART | DMA2D | DI_EN);
-	if (params->ppi_control & DMA32) {
+	ppi->ppi_control = params->ppi_control & ~PORT_EN;	
+	switch (info->type) {
+	case PPI_TYPE_PPI:
+	{
+		struct bfin_ppi_regs *reg = info->base;
+
+		if (params->ppi_control & DMA32)
+			dma32 = 1;
+
+		bfin_write16(&reg->control, ppi->ppi_control);
+		bfin_write16(&reg->count, ppi->bytes_per_line - 1);
+		bfin_write16(&reg->frame, ppi->lines_per_frame);
+		break;
+	}
+	case PPI_TYPE_EPPI:
+	{
+		struct bfin_eppi_regs *reg = info->base;
+
+		if ((params->ppi_control & PACK_EN)
+			|| (params->ppi_control & 0x38000) > DLEN_16)
+			dma32 = 1;
+
+		bfin_write32(&reg->control, ppi->ppi_control);
+		bfin_write16(&reg->line, ppi->bytes_per_line + 8);
+		bfin_write16(&reg->frame, ppi->lines_per_frame);
+		bfin_write16(&reg->hdelay, 0);
+		bfin_write16(&reg->vdelay, 0);
+		bfin_write16(&reg->hcount, ppi->bytes_per_line);
+		bfin_write16(&reg->vcount, ppi->lines_per_frame);
+		break;
+	}
+	default:
+		return -1;
+	}
+
+	if (dma32) {
 		ppi->dma_config |= WDSIZE_32;
 		set_dma_x_count(info->dma_ch, ppi->bytes_per_line >> 2);
 		set_dma_x_modify(info->dma_ch, 4);
@@ -146,15 +221,6 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 	}
 	set_dma_y_count(info->dma_ch, ppi->lines_per_frame);
 	set_dma_config(info->dma_ch, ppi->dma_config);
-
-	/* config PPI */
-	ppi->ppi_control = params->ppi_control & ~PORT_EN;
-	if (info->type == PPI_TYPE_PPI) {
-		struct bfin_ppi_regs *reg = info->base;
-		bfin_write16(&reg->control, ppi->ppi_control);
-		bfin_write16(&reg->count, ppi->bytes_per_line - 1);
-		bfin_write16(&reg->frame, ppi->lines_per_frame);
-	}
 
 	SSYNC();
 	return 0;

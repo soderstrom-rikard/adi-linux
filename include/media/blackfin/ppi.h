@@ -22,13 +22,19 @@
 
 #include <linux/interrupt.h>
 
+#ifdef EPPI_EN
+#define PORT_EN EPPI_EN
+#define DMA32 0
+#define PACK_EN PACKEN
+#endif
+
 struct ppi_if;
 
 struct ppi_params {
 	int width;
 	int height;
 	int bpp;
-	unsigned short ppi_control;
+	unsigned long ppi_control;
 };
 
 struct ppi_ops {
@@ -57,7 +63,7 @@ struct ppi_if {
 	int dma_config;
 	int bytes_per_line;
 	int lines_per_frame;
-	unsigned short ppi_control;
+	unsigned long ppi_control;
 	const struct ppi_ops *ops;
 	const struct ppi_info *info;
 	void *priv;

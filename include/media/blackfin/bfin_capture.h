@@ -27,7 +27,7 @@ struct bfin_capture_config {
 	/* ppi board info */
 	const struct ppi_info *ppi_info;
 	/* ppi control */
-	unsigned short ppi_control;
+	unsigned long ppi_control;
 };
 
 #endif
