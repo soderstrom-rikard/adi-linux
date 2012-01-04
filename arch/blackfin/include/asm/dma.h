@@ -42,6 +42,13 @@
 #define DMA_NOSYNC_KEEP_DMA_BUF	0
 #define DMA_SYNC_RESTART		1
 
+struct dma_desc_array {
+	unsigned long	start_addr;
+	unsigned short	cfg;
+	unsigned short	x_count;
+	short		x_modify;
+} __attribute__((packed));
+
 struct dmasg {
 	void *next_desc_addr;
 	unsigned long start_addr;
