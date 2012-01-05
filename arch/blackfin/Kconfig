@@ -1089,6 +1089,7 @@ config MPU
 comment "Asynchronous Memory Configuration"
 
 menu "EBIU_AMGCTL Global Control"
+	depends on !BF60x
 config C_AMCKEN
 	bool "Enable CLKOUT"
 	default y
@@ -1139,6 +1140,7 @@ endchoice
 endmenu
 
 menu "EBIU_AMBCTL Control"
+	depends on !BF60x
 config BANK_0
 	hex "Bank 0 (AMBCTL0.L)"
 	default 0x7BB0
