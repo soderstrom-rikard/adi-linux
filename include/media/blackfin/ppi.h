@@ -35,6 +35,8 @@ struct ppi_params {
 	int height;
 	int bpp;
 	unsigned long ppi_control;
+	u32 int_mask;
+	int blank_clocks;
 };
 
 struct ppi_ops {
@@ -63,6 +65,7 @@ struct ppi_if {
 	unsigned long ppi_control;
 	const struct ppi_ops *ops;
 	const struct ppi_info *info;
+	bool err_int;
 	void *priv;
 };
 

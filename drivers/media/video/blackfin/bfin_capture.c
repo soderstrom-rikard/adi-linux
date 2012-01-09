@@ -352,25 +352,26 @@ static int bcap_start_streaming(struct vb2_queue *vq)
 		return ret;
 	}
 
+	/* set ppi params */
+	params.width = bcap_dev->fmt.width;
+	params.height = bcap_dev->fmt.height;
+	params.bpp = bcap_dev->bpp;
+	params.ppi_control = bcap_dev->cfg->ppi_control;
+	params.int_mask = bcap_dev->cfg->int_mask;
+	params.blank_clocks = bcap_dev->cfg->blank_clocks;
+	ret = ppi->ops->set_params(ppi, &params);
+	if (ret < 0) {
+		v4l2_err(&bcap_dev->v4l2_dev,
+				"Error in setting ppi params\n");
+		return ret;
+	}
+
 	/* attach ppi DMA irq handler */
 	ret = ppi->ops->attach_irq(ppi, bcap_isr);
 	if (ret < 0) {
 		v4l2_err(&bcap_dev->v4l2_dev,
 				"Error in attaching interrupt handler\n");
 		return ret;
-	}
-
-	/* set ppi params */
-	params.width = bcap_dev->fmt.width;
-	params.height = bcap_dev->fmt.height;
-	params.bpp = bcap_dev->bpp;
-	params.ppi_control = bcap_dev->cfg->ppi_control;
-	ret = ppi->ops->set_params(ppi, &params);
-	if (ret < 0) {
-		v4l2_err(&bcap_dev->v4l2_dev,
-				"Error in setting ppi params\n");
-		ppi->ops->detach_irq(ppi);
-		return -EINVAL;
 	}
 
 	INIT_COMPLETION(bcap_dev->comp);

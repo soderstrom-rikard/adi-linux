@@ -87,10 +87,12 @@ static int ppi_attach_irq(struct ppi_if *ppi, irq_handler_t handler)
 	}
 	set_dma_callback(info->dma_ch, handler, ppi);
 
-	ret = request_irq(info->irq_err, ppi_irq_err, 0, "PPI ERROR", ppi);
-	if (ret) {
-		pr_err("Unable to allocate IRQ for PPI\n");
-		free_dma(info->dma_ch);
+	if (ppi->err_int) {
+		ret = request_irq(info->irq_err, ppi_irq_err, 0, "PPI ERROR", ppi);
+		if (ret) {
+			pr_err("Unable to allocate IRQ for PPI\n");
+			free_dma(info->dma_ch);
+		}
 	}
 	return ret;
 }
@@ -99,7 +101,8 @@ static void ppi_detach_irq(struct ppi_if *ppi)
 {
 	const struct ppi_info *info = ppi->info;
 
-	free_irq(info->irq_err, ppi);
+	if (ppi->err_int)
+		free_irq(info->irq_err, ppi);
 	free_dma(info->dma_ch);
 }
 
@@ -126,7 +129,7 @@ static int ppi_start(struct ppi_if *ppi)
 		break;
 	}
 	default:
-		return -1;
+		return -EINVAL;
 	}
 
 	SSYNC();
@@ -153,7 +156,7 @@ static int ppi_stop(struct ppi_if *ppi)
 		break;
 	}
 	default:
-		return -1;
+		return -EINVAL;
 	}
 
 	/* disable DMA */
@@ -172,9 +175,13 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 
 	bytes_per_line = params->width * params->bpp / 8;
 	lines_per_frame = params->height;
+	if (params->int_mask == 0xFFFFFFFF)
+		ppi->err_int = false;
+	else
+		ppi->err_int = true;
 
 	dma_config = (DMA_FLOW_STOP | WNR | RESTART | DMA2D | DI_EN);
-	ppi->ppi_control = params->ppi_control & ~PORT_EN;	
+	ppi->ppi_control = params->ppi_control & ~PORT_EN;
 	switch (info->type) {
 	case PPI_TYPE_PPI:
 	{
@@ -197,7 +204,7 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 			dma32 = 1;
 
 		bfin_write32(&reg->control, ppi->ppi_control);
-		bfin_write16(&reg->line, bytes_per_line + 8);
+		bfin_write16(&reg->line, bytes_per_line + params->blank_clocks);
 		bfin_write16(&reg->frame, lines_per_frame);
 		bfin_write16(&reg->hdelay, 0);
 		bfin_write16(&reg->vdelay, 0);
@@ -206,7 +213,7 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 		break;
 	}
 	default:
-		return -1;
+		return -EINVAL;
 	}
 
 	if (dma32) {

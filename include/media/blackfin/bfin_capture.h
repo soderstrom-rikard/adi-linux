@@ -28,6 +28,10 @@ struct bfin_capture_config {
 	const struct ppi_info *ppi_info;
 	/* ppi control */
 	unsigned long ppi_control;
+	/* ppi interrupt mask */
+	u32 int_mask;
+	/* horizontal blanking clocks */
+	int blank_clocks;
 };
 
 #endif
