@@ -168,11 +168,12 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 {
 	const struct ppi_info *info = ppi->info;
 	int dma32 = 0;
+	int dma_config, bytes_per_line, lines_per_frame;
 
-	ppi->bytes_per_line = params->width * params->bpp / 8;
-	ppi->lines_per_frame = params->height;
+	bytes_per_line = params->width * params->bpp / 8;
+	lines_per_frame = params->height;
 
-	ppi->dma_config = (DMA_FLOW_STOP | WNR | RESTART | DMA2D | DI_EN);
+	dma_config = (DMA_FLOW_STOP | WNR | RESTART | DMA2D | DI_EN);
 	ppi->ppi_control = params->ppi_control & ~PORT_EN;	
 	switch (info->type) {
 	case PPI_TYPE_PPI:
@@ -183,8 +184,8 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 			dma32 = 1;
 
 		bfin_write16(&reg->control, ppi->ppi_control);
-		bfin_write16(&reg->count, ppi->bytes_per_line - 1);
-		bfin_write16(&reg->frame, ppi->lines_per_frame);
+		bfin_write16(&reg->count, bytes_per_line - 1);
+		bfin_write16(&reg->frame, lines_per_frame);
 		break;
 	}
 	case PPI_TYPE_EPPI:
@@ -196,12 +197,12 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 			dma32 = 1;
 
 		bfin_write32(&reg->control, ppi->ppi_control);
-		bfin_write16(&reg->line, ppi->bytes_per_line + 8);
-		bfin_write16(&reg->frame, ppi->lines_per_frame);
+		bfin_write16(&reg->line, bytes_per_line + 8);
+		bfin_write16(&reg->frame, lines_per_frame);
 		bfin_write16(&reg->hdelay, 0);
 		bfin_write16(&reg->vdelay, 0);
-		bfin_write16(&reg->hcount, ppi->bytes_per_line);
-		bfin_write16(&reg->vcount, ppi->lines_per_frame);
+		bfin_write16(&reg->hcount, bytes_per_line);
+		bfin_write16(&reg->vcount, lines_per_frame);
 		break;
 	}
 	default:
@@ -209,18 +210,18 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 	}
 
 	if (dma32) {
-		ppi->dma_config |= WDSIZE_32;
-		set_dma_x_count(info->dma_ch, ppi->bytes_per_line >> 2);
+		dma_config |= WDSIZE_32;
+		set_dma_x_count(info->dma_ch, bytes_per_line >> 2);
 		set_dma_x_modify(info->dma_ch, 4);
 		set_dma_y_modify(info->dma_ch, 4);
 	} else {
-		ppi->dma_config |= WDSIZE_16;
-		set_dma_x_count(info->dma_ch, ppi->bytes_per_line >> 1);
+		dma_config |= WDSIZE_16;
+		set_dma_x_count(info->dma_ch, bytes_per_line >> 1);
 		set_dma_x_modify(info->dma_ch, 2);
 		set_dma_y_modify(info->dma_ch, 2);
 	}
-	set_dma_y_count(info->dma_ch, ppi->lines_per_frame);
-	set_dma_config(info->dma_ch, ppi->dma_config);
+	set_dma_y_count(info->dma_ch, lines_per_frame);
+	set_dma_config(info->dma_ch, dma_config);
 
 	SSYNC();
 	return 0;

@@ -60,9 +60,6 @@ struct ppi_info {
 };
 
 struct ppi_if {
-	int dma_config;
-	int bytes_per_line;
-	int lines_per_frame;
 	unsigned long ppi_control;
 	const struct ppi_ops *ops;
 	const struct ppi_info *info;
