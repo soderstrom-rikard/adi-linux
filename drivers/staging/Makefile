@@ -3,19 +3,14 @@
 # fix for build system bug...
 obj-$(CONFIG_STAGING)		+= staging.o
 
+obj-y				+= serial/
+obj-y				+= media/
 obj-$(CONFIG_ET131X)		+= et131x/
 obj-$(CONFIG_SLICOSS)		+= slicoss/
-obj-$(CONFIG_VIDEO_GO7007)	+= go7007/
-obj-$(CONFIG_VIDEO_CX25821)	+= cx25821/
-obj-$(CONFIG_VIDEO_TM6000)	+= tm6000/
-obj-$(CONFIG_DVB_CXD2099)	+= cxd2099/
-obj-$(CONFIG_LIRC_STAGING)	+= lirc/
 obj-$(CONFIG_USBIP_CORE)	+= usbip/
 obj-$(CONFIG_W35UND)		+= winbond/
 obj-$(CONFIG_PRISM2_USB)	+= wlan-ng/
 obj-$(CONFIG_ECHO)		+= echo/
-obj-$(CONFIG_BRCMSMAC)		+= brcm80211/
-obj-$(CONFIG_BRCMFMAC)		+= brcm80211/
 obj-$(CONFIG_COMEDI)		+= comedi/
 obj-$(CONFIG_FB_OLPC_DCON)	+= olpc_dcon/
 obj-$(CONFIG_ASUS_OLED)		+= asus_oled/
@@ -25,6 +20,7 @@ obj-$(CONFIG_RTL8192U)		+= rtl8192u/
 obj-$(CONFIG_RTL8192E)		+= rtl8192e/
 obj-$(CONFIG_R8712U)		+= rtl8712/
 obj-$(CONFIG_RTS_PSTOR)		+= rts_pstor/
+obj-$(CONFIG_RTS5139)		+= rts5139/
 obj-$(CONFIG_SPECTRA)		+= spectra/
 obj-$(CONFIG_TRANZPORT)		+= frontier/
 obj-$(CONFIG_POHMELFS)		+= pohmelfs/
