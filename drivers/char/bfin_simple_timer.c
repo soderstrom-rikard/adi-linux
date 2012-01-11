@@ -75,18 +75,43 @@ static long
 timer_ioctl(struct file *filp, uint cmd, unsigned long arg)
 {
 	struct timer *t = filp->private_data;
-	unsigned long n;
+	unsigned long period = 0, width = 0, mode = 0;
 	switch (cmd) {
 	case BFIN_SIMPLE_TIMER_SET_PERIOD:
 		if (arg < 2)
 			return -EFAULT;
-		n = ((get_sclk() / 1000) * arg) / 1000;
-		set_gptimer_period(t->id, n);
-		set_gptimer_pwidth(t->id, n >> 1);
-		pr_debug(DRV_NAME ": TIMER_SET_PERIOD: arg=%lu, period=%lu, width=%lu\n",
-			arg, n, n >> 1);
+		period = arg;
+		set_gptimer_period(t->id, period);
+		pr_debug(DRV_NAME ": TIMER_SET_PERIOD: arg=%lu, period=%lu\n",
+			arg, period);
+		break;
+	case BFIN_SIMPLE_TIMER_SET_WIDTH:
+		width = arg;
+		set_gptimer_pwidth(t->id, width);
+		pr_debug(DRV_NAME ": TIMER_SET_WIDTH: arg=%lu, width=%lu\n",
+			arg, width);
+		break;
+	case BFIN_SIMPLE_TIMER_SET_MODE:
+		mode = arg;
+		switch (mode) {
+		case 0:
+			set_gptimer_config(t->id, OUT_DIS | PWM_OUT | PERIOD_CNT | IRQ_ENA);
+			break;
+		case 1:
+			set_gptimer_config(t->id, PWM_OUT | PERIOD_CNT | IRQ_ENA);
+			break;
+		default:
+			pr_debug(DRV_NAME ": error mode\n");
+		}
 		break;
 	case BFIN_SIMPLE_TIMER_START:
+		period = get_gptimer_period(t->id);
+		width = get_gptimer_pwidth(t->id);
+		pr_debug(DRV_NAME ": TIMER_START: period=%lu, width=%lu\n",
+				period, width);
+		if (period < width)
+			return -EFAULT;
+
 		enable_gptimers(t->bit);
 		break;
 	case BFIN_SIMPLE_TIMER_STOP:
@@ -161,6 +186,7 @@ timer_read_proc(char *buf, char **start, off_t offset, int cnt, int *eof, void *
 {
 	int i, ret = 0;
 
+	ret += sprintf(buf + ret, "sclk = %lu\n", get_sclk());
 	for (i = 0; i < MAX_BLACKFIN_GPTIMERS; ++i)
 		ret += sprintf(buf + ret, "timer %2d isr count: %lu\n",
 			i, timer_code[i].isr_count);
