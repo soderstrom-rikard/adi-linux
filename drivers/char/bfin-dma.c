@@ -189,7 +189,7 @@ static int bdi_do_dma(struct dma_state *state, int async)
 
 	sg = &state->dsc_src;
 	while (sg && sg->cfg & DMAEN) {
-		stamp("src cfg:%x start:%lx end:%lx", sg->cfg, dsc_start(sg), dsc_end(sg));
+		stamp("src cfg:%lx start:%lx end:%lx", sg->cfg, dsc_start(sg), dsc_end(sg));
 		flush_dcache_range(dsc_start(sg), dsc_end(sg));
 		flush_dcache_range((unsigned)sg, (unsigned)(sg + sizeof(*sg)));
 
@@ -200,7 +200,7 @@ static int bdi_do_dma(struct dma_state *state, int async)
 
 	sg = &state->dsc_dst;
 	while (sg && sg->cfg & DMAEN) {
-		stamp("dst cfg:%x start:%lx end:%lx", sg->cfg, dsc_start(sg), dsc_end(sg));
+		stamp("dst cfg:%lx start:%lx end:%lx", sg->cfg, dsc_start(sg), dsc_end(sg));
 		invalidate_dcache_range(dsc_start(sg), dsc_end(sg));
 		flush_dcache_range((unsigned)sg, (unsigned)(sg + sizeof(*sg)));
 
@@ -214,12 +214,21 @@ static int bdi_do_dma(struct dma_state *state, int async)
 	set_dma_next_desc_addr(state->chan_src, &state->dsc_src);
 	set_dma_next_desc_addr(state->chan_dst, &state->dsc_dst);
 
+#ifdef DMA_MMR_SIZE_32
+	set_dma_config(state->chan_src, NDSIZE_6 |
+		set_bfin_dma_config(DIR_READ, DMA_FLOW_LIST, INTR_ON_BUF,
+			DIMENSION_LINEAR, DATA_SIZE_8, DMA_NOSYNC_KEEP_DMA_BUF));
+	set_dma_config(state->chan_dst, NDSIZE_6 |
+		set_bfin_dma_config(DIR_WRITE, DMA_FLOW_LIST, INTR_ON_BUF,
+			DIMENSION_LINEAR, DATA_SIZE_8, DMA_NOSYNC_KEEP_DMA_BUF));
+#else
 	set_dma_config(state->chan_src, NDSIZE_9 |
 		set_bfin_dma_config(DIR_READ, DMA_FLOW_LARGE, INTR_ON_BUF,
 			DIMENSION_LINEAR, DATA_SIZE_8, DMA_NOSYNC_KEEP_DMA_BUF));
 	set_dma_config(state->chan_dst, NDSIZE_9 |
 		set_bfin_dma_config(DIR_WRITE, DMA_FLOW_LARGE, INTR_ON_BUF,
 			DIMENSION_LINEAR, DATA_SIZE_8, DMA_NOSYNC_KEEP_DMA_BUF));
+#endif
 
 	enable_dma(state->chan_src);
 	enable_dma(state->chan_dst);
