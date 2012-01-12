@@ -219,10 +219,7 @@ set_bfin_dma_config2(char direction, char flow_mode, char intr_mode,
 			config = DI_EN_X;
 		break;
 	case INTR_ON_ROW:
-		if (dma_mode == DIMENSION_2D)
-			config = DI_EN_X;
-		else
-			config = DI_EN_Y;
+		config = DI_EN_X;
 		break;
 	case INTR_ON_PERI:
 		config = DI_EN_P;
