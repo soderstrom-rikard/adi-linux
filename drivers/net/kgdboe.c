@@ -27,6 +27,7 @@
 #include <linux/kgdb.h>
 #include <linux/netpoll.h>
 #include <linux/init.h>
+#include <linux/module.h>
 
 #include <asm/atomic.h>
 
@@ -91,6 +92,8 @@ static void rx_hook(struct netpoll *np, int port, char *msg, int len,
 	}
 }
 
+extern void netpoll_poll_dev(struct net_device *dev);
+
 static struct netpoll np = {
 	.dev_name = "eth0",
 	.name = "kgdboe",
@@ -121,7 +124,7 @@ static int eth_get_char(void)
 	int chr;
 
 	while (atomic_read(&in_count) == 0)
-		netpoll_poll(&np);
+		netpoll_poll_dev(np.dev);
 
 	chr = in_buf[in_tail++];
 	in_tail &= (IN_BUF_SIZE - 1);

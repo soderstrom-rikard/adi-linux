@@ -178,7 +178,7 @@ static void service_arp_queue(struct netpoll_info *npi)
 	}
 }
 
-static void netpoll_poll_dev(struct net_device *dev)
+void netpoll_poll_dev(struct net_device *dev)
 {
 	const struct net_device_ops *ops;
 

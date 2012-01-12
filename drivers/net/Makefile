@@ -31,6 +31,7 @@ obj-$(CONFIG_CAIF) += caif/
 obj-$(CONFIG_CAN) += can/
 obj-$(CONFIG_ETRAX_ETHERNET) += cris/
 obj-$(CONFIG_ETHERNET) += ethernet/
+obj-$(CONFIG_KGDBOE) += kgdboe.o
 obj-$(CONFIG_FDDI) += fddi/
 obj-$(CONFIG_HIPPI) += hippi/
 obj-$(CONFIG_HAMRADIO) += hamradio/
