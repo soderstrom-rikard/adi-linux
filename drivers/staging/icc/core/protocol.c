@@ -497,13 +497,19 @@ sm_send_packet(uint32_t session_idx, uint32_t dst_ep, uint32_t dst_cpu,
 retry:
 	ret = sm_send_message_internal(&m->msg, m->dst, m->src);
 	if (ret == -EAGAIN) {
-		if (nonblock)
+		if (nonblock) {
+			mutex_lock(&icc_info->sessions_table->lock);
+			list_del(&m->next);
+			mutex_unlock(&icc_info->sessions_table->lock);
 			goto fail2;
+		}
 		sm_debug(">>>>sleep on send queue\n");
 		interruptible_sleep_on(&icc_info->iccq_tx_wait);
 		sm_debug("<<<<wakeup send queue\n");
 		goto retry;
 	} else {
+		if (session->type == SP_TASK_MANAGER)
+			kfree(m);
 		goto out;
 	}
 
