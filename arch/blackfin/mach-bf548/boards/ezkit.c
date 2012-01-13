@@ -468,13 +468,8 @@ static struct resource bfin_sir0_resources[] = {
 		.flags = IORESOURCE_MEM,
 	},
 	{
-		.start = IRQ_UART0_TX,
-		.end = IRQ_UART0_TX,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
 		.start = IRQ_UART0_RX,
-		.end = IRQ_UART0_RX,
+		.end = IRQ_UART0_RX+1,
 		.flags = IORESOURCE_IRQ,
 	},
 	{
@@ -498,13 +493,8 @@ static struct resource bfin_sir1_resources[] = {
 		.flags = IORESOURCE_MEM,
 	},
 	{
-		.start = IRQ_UART1_TX,
-		.end = IRQ_UART1_TX,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
 		.start = IRQ_UART1_RX,
-		.end = IRQ_UART1_RX,
+		.end = IRQ_UART1_RX+1,
 		.flags = IORESOURCE_IRQ,
 	},
 	{
@@ -528,13 +518,8 @@ static struct resource bfin_sir2_resources[] = {
 		.flags = IORESOURCE_MEM,
 	},
 	{
-		.start = IRQ_UART2_TX,
-		.end = IRQ_UART2_TX,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
 		.start = IRQ_UART2_RX,
-		.end = IRQ_UART2_RX,
+		.end = IRQ_UART2_RX+1,
 		.flags = IORESOURCE_IRQ,
 	},
 	{
@@ -558,13 +543,8 @@ static struct resource bfin_sir3_resources[] = {
 		.flags = IORESOURCE_MEM,
 	},
 	{
-		.start = IRQ_UART3_TX,
-		.end = IRQ_UART3_TX,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
 		.start = IRQ_UART3_RX,
-		.end = IRQ_UART3_RX,
+		.end = IRQ_UART3_RX+1,
 		.flags = IORESOURCE_IRQ,
 	},
 	{
