@@ -2743,12 +2743,9 @@ static struct platform_device iio_gpio_trigger = {
 };
 #endif
 
-#if defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1373) || \
-	defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1373_MODULE)
 static struct platform_device bf5xx_adau1373_device = {
-	.name = "bfin-eval-adau1373",
+	.name = "bfin-eval-adau1x61",
 };
-#endif
 
 #if defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1701) || \
 	defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1701_MODULE)
@@ -2932,10 +2929,7 @@ static struct platform_device *stamp_devices[] __initdata = {
 	&iio_gpio_trigger,
 #endif
 
-#if defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1373) || \
-	defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1373_MODULE)
 	&bf5xx_adau1373_device,
-#endif
 
 #if defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1701) || \
 	defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1701_MODULE)
