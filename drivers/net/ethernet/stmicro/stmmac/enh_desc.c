@@ -291,9 +291,16 @@ static void enh_desc_prepare_tx_desc(struct dma_desc *p, int is_fs, int len,
 				     int csum_flag)
 {
 	p->des01.etx.first_segment = is_fs;
-
 	enh_set_tx_desc_len(p, len);
-
+#ifdef STMMAC_IEEE1588
+	p->des01.etx.time_stamp_enable = 1;
+#endif
+	if (unlikely(len > BUF_SIZE_4KiB)) {
+		p->des01.etx.buffer1_size = BUF_SIZE_4KiB;
+		p->des01.etx.buffer2_size = len - BUF_SIZE_4KiB;
+	} else {
+		p->des01.etx.buffer1_size = len;
+	}
 	if (likely(csum_flag))
 		p->des01.etx.checksum_insertion = cic_full;
 }

@@ -74,7 +74,12 @@
 #define TX_DBG(fmt, args...)  do { } while (0)
 #endif
 
+#ifdef CONFIG_BLACKFIN
+#define STMMAC_ALIGN(x) (x)
+#else
 #define STMMAC_ALIGN(x)	L1_CACHE_ALIGN(x)
+#endif
+
 #define JUMBO_LEN	9000
 
 /* Module parameters */
@@ -138,6 +143,249 @@ static irqreturn_t stmmac_interrupt(int irq, void *dev_id);
 #ifdef CONFIG_STMMAC_DEBUG_FS
 static int stmmac_init_fs(struct net_device *dev);
 static void stmmac_exit_fs(void);
+#endif
+
+#ifdef STMMAC_IEEE1588
+#define MAX_TIMEOUT_CNT	5000
+#define stmmac_hwtstamp_is_none(cfg) ((cfg) == HWTSTAMP_FILTER_NONE)
+
+static int stmmac_hwtstamp_ioctl(struct net_device *netdev,
+		struct ifreq *ifr, int cmd)
+{
+	struct hwtstamp_config config;
+	struct stmmac_priv *lp = netdev_priv(netdev);
+	u32 ptpctl;
+
+	if (copy_from_user(&config, ifr->ifr_data, sizeof(config)))
+		return -EFAULT;
+
+	pr_debug("%s config flag:0x%x, tx_type:0x%x, rx_filter:0x%x\n",
+			__func__, config.flags, config.tx_type, config.rx_filter);
+
+	/* reserved for future extensions */
+	if (config.flags)
+		return -EINVAL;
+
+	if ((config.tx_type != HWTSTAMP_TX_OFF) &&
+			(config.tx_type != HWTSTAMP_TX_ON))
+		return -ERANGE;
+
+	ptpctl = bfin_read_EMAC_PTP_CTL();
+	bfin_write_EMAC_PTP_CTL((1 << 16));
+	SSYNC();
+	ptpctl = bfin_read_EMAC_PTP_CTL();
+	printk("ptp init val is:  0x%x, config.rx_filter:0x%x============\n", ptpctl, config.rx_filter);
+
+	switch (config.rx_filter) {
+	case HWTSTAMP_FILTER_NONE:
+		/*
+		 * Dont allow any timestamping
+		 */
+		break;
+	case HWTSTAMP_FILTER_PTP_V1_L4_EVENT:
+	case HWTSTAMP_FILTER_PTP_V1_L4_SYNC:
+	case HWTSTAMP_FILTER_PTP_V1_L4_DELAY_REQ:
+		config.rx_filter = HWTSTAMP_FILTER_PTP_V1_L4_EVENT;
+		ptpctl |= PTP_TSIPV4ENA;  /* udp version 1 */
+		break;
+
+	case HWTSTAMP_FILTER_PTP_V2_L4_EVENT:
+	case HWTSTAMP_FILTER_PTP_V2_L4_SYNC:
+	case HWTSTAMP_FILTER_PTP_V2_L4_DELAY_REQ:
+		config.rx_filter = HWTSTAMP_FILTER_PTP_V2_L4_EVENT;
+		ptpctl |= (PTP_TSIPV4ENA | PTP_TSVER2ENA); /* udp version 2 */
+		break;
+
+	case HWTSTAMP_FILTER_PTP_V2_L2_EVENT:
+	case HWTSTAMP_FILTER_PTP_V2_L2_SYNC:
+	case HWTSTAMP_FILTER_PTP_V2_L2_DELAY_REQ:
+		config.rx_filter = HWTSTAMP_FILTER_PTP_V2_L2_EVENT;
+		ptpctl |= (PTP_TSIPENA | PTP_TSVER2ENA);   /* ethernet version 2 */
+		break;
+
+	case HWTSTAMP_FILTER_PTP_V2_EVENT:
+	case HWTSTAMP_FILTER_PTP_V2_SYNC:
+	case HWTSTAMP_FILTER_PTP_V2_DELAY_REQ:
+		config.rx_filter = HWTSTAMP_FILTER_PTP_V2_EVENT;
+		ptpctl |= (PTP_TSENALL | PTP_TSVER2ENA);   /* ethernet version 2 */
+		break;
+	default:
+		return -ERANGE;
+	}
+
+	if (config.tx_type == HWTSTAMP_TX_OFF &&
+		stmmac_hwtstamp_is_none(config.rx_filter)) {
+		ptpctl &= ~PTP_EN;
+		bfin_write_EMAC_PTP_CTL(ptpctl);
+
+		SSYNC();
+	} else {
+		ptpctl |= PTP_EN;
+		bfin_write_EMAC_PTP_CTL(ptpctl);
+
+		bfin_write_EMAC_PTP_SECUPDT(0x0);
+		bfin_write_EMAC_PTP_NSECUPDT(0x0);
+		ptpctl |= PTP_TSINIT;
+		bfin_write_EMAC_PTP_CTL(ptpctl);
+
+		bfin_write_EMAC_PTP_SUBSEC(0x2b);
+
+		SSYNC();
+
+		lp->compare.last_update = 0;
+		timecounter_init(&lp->clock,
+				&lp->cycles,
+				ktime_to_ns(ktime_get_real()));
+		timecompare_update(&lp->compare, 0);
+		printk("sec %d, nsec %d, ptpctl 0x%x, subsec 0x%x\n", bfin_read_EMAC_PTP_SEC(),
+				bfin_read_EMAC_PTP_NSEC(), bfin_read_EMAC_PTP_CTL(), bfin_read_EMAC_PTP_SUBSEC());
+	}
+
+	lp->stamp_cfg = config;
+	return copy_to_user(ifr->ifr_data, &config, sizeof(config)) ?
+		-EFAULT : 0;
+}
+
+static void stmmac_dump_hwtamp(char *s, ktime_t *hw, ktime_t *ts, struct timecompare *cmp)
+{
+	ktime_t sys = ktime_get_real();
+
+	printk("%s %s hardware:%d,%d transform system:%d,%d system:%d,%d, cmp:%lld, %lld\n",
+			__func__, s, hw->tv.sec, hw->tv.nsec, ts->tv.sec, ts->tv.nsec, sys.tv.sec,
+			sys.tv.nsec, cmp->offset, cmp->skew);
+}
+
+static void stmmac_tx_hwtstamp(struct stmmac_priv *lp, struct sk_buff *skb,
+				struct dma_desc *desc)
+{
+	if (skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP) {
+		int timeout_cnt = MAX_TIMEOUT_CNT;
+
+		/* When doing time stamping, keep the connection to the socket
+		 * a while longer
+		 */
+		skb_shinfo(skb)->tx_flags |= SKBTX_IN_PROGRESS;
+
+		/*
+		 * The timestamping is done at the EMAC module's MII/RMII interface
+		 * when the module sees the Start of Frame of an event message packet. This
+		 * interface is the closest possible place to the physical Ethernet transmission
+		 * medium, providing the best timing accuracy.
+		 */
+		while (!desc->des01.etx.time_stamp_status && (--timeout_cnt))
+			udelay(20);
+
+		/* work around */
+		/*
+		if (timeout_cnt == 0) {
+			printk("%d", desc->des01.etx.time_stamp_status);
+			if (desc->des01.etx.time_stamp_status)
+				timeout_cnt = 1;
+		}
+		*/
+		if (timeout_cnt == 0) {
+			printk("timestamp the TX packet failed==========\n");
+			printk("des01.first:%d, tsenable:%d, stamp_status:%d\n", desc->des01.etx.first_segment,
+						desc->des01.etx.time_stamp_enable, desc->des01.etx.time_stamp_status);
+			printk("hwsec %d, hwnsec %d\n", bfin_read_EMAC_PTP_SEC(), bfin_read_EMAC_PTP_NSEC());
+			if (!desc->des01.etx.time_stamp_status)
+				return;
+		}
+		{
+			struct skb_shared_hwtstamps shhwtstamps;
+			u64 ns;
+			u64 regval;
+
+			regval = desc->des6;
+			regval |= (u64)desc->des7 << 32;
+			printk("tx: des06: %ld, des07 %ld\n", desc->des6, desc->des7);
+			memset(&shhwtstamps, 0, sizeof(shhwtstamps));
+			ns = timecounter_cyc2time(&lp->clock,
+					regval);
+			timecompare_update(&lp->compare, ns);
+			shhwtstamps.hwtstamp = ns_to_ktime(ns);
+			shhwtstamps.syststamp =
+				timecompare_transform(&lp->compare, ns);
+			skb_tstamp_tx(skb, &shhwtstamps);
+
+			stmmac_dump_hwtamp("TX", &shhwtstamps.hwtstamp, &shhwtstamps.syststamp, &lp->compare);
+		}
+	}
+}
+
+static void stmmac_rx_hwtstamp(struct stmmac_priv *lp, struct sk_buff *skb, struct dma_desc *desc)
+{
+	u64 regval, ns;
+	struct skb_shared_hwtstamps *shhwtstamps;
+
+	if (stmmac_hwtstamp_is_none(lp->stamp_cfg.rx_filter))
+		return;
+
+	if (!desc->des01.erx.ipc_csum_error)
+		return;
+
+	shhwtstamps = skb_hwtstamps(skb);
+
+	regval = desc->des6;
+	regval |= (u64)desc->des7 << 32;
+	printk("rx: des06: %ld, des07 %ld\n", desc->des6, desc->des7);
+	ns = timecounter_cyc2time(&lp->clock, regval);
+	timecompare_update(&lp->compare, ns);
+	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
+	shhwtstamps->hwtstamp = ns_to_ktime(ns);
+	shhwtstamps->syststamp = timecompare_transform(&lp->compare, ns);
+
+	stmmac_dump_hwtamp("RX", &shhwtstamps->hwtstamp, &shhwtstamps->syststamp, &lp->compare);
+}
+
+/*
+ * stmmac_read_clock - read raw cycle counter (to be used by time counter)
+ */
+static cycle_t stmmac_read_clock(const struct cyclecounter *tc)
+{
+	u64 ns;
+	ktime_t hw_time;
+
+	hw_time.tv.sec = bfin_read_EMAC_PTP_SEC();
+	hw_time.tv.nsec = bfin_read_EMAC_PTP_NSEC();
+	ns = ktime_to_ns(hw_time);
+	do_div(ns, 20);
+	return ns;
+}
+
+
+static void stmmac_hwtstamp_init(struct net_device *netdev)
+{
+	struct stmmac_priv *lp = netdev_priv(netdev);
+	u64 append;
+
+	*(unsigned int *)(0xFFC03404) = 0x0;
+	printk("%s===========pads is 0x%x\n", __func__, *(unsigned int *)(0xFFC03404));
+	/* Initialize hardware timer */
+
+	memset(&lp->cycles, 0, sizeof(lp->cycles));
+	lp->cycles.read = stmmac_read_clock;
+	lp->cycles.mask = CLOCKSOURCE_MASK(64);
+	lp->cycles.mult = 20;
+	lp->cycles.shift = 0;
+
+	/* Synchronize our NIC clock against system wall clock */
+	memset(&lp->compare, 0, sizeof(lp->compare));
+	lp->compare.source = &lp->clock;
+	lp->compare.target = ktime_get_real;
+	lp->compare.num_samples = 10;
+
+	/* Initialize hwstamp config */
+	lp->stamp_cfg.rx_filter = HWTSTAMP_FILTER_NONE;
+	lp->stamp_cfg.tx_type = HWTSTAMP_TX_OFF;
+}
+
+#else
+# define stmmac_hwtstamp_is_none(cfg) 0
+# define stmmac_hwtstamp_init(dev)
+# define stmmac_hwtstamp_ioctl(dev, ifr, cmd) (-EOPNOTSUPP)
+# define stmmac_rx_hwtstamp(priv, skb, desc)
+# define stmmac_tx_hwtstamp(priv, skb, desc)
 #endif
 
 /**
@@ -1200,6 +1448,7 @@ static netdev_tx_t stmmac_xmit(struct sk_buff *skb, struct net_device *dev)
 	priv->hw->dma->enable_dma_transmission(priv->ioaddr);
 
 	spin_unlock(&priv->tx_lock);
+	stmmac_tx_hwtstamp(priv, skb, desc);
 
 	return NETDEV_TX_OK;
 }
@@ -1314,6 +1563,7 @@ static int stmmac_rx(struct stmmac_priv *priv, int limit)
 			}
 #endif
 			skb->protocol = eth_type_trans(skb, priv->dev);
+			stmmac_rx_hwtstamp(priv, skb, p);
 
 			if (unlikely(!priv->rx_coe)) {
 				/* No RX COE for old mac10/100 devices */
@@ -1492,7 +1742,6 @@ static irqreturn_t stmmac_interrupt(int irq, void *dev_id)
 		priv->hw->mac->host_irq_status((void __iomem *) dev->base_addr);
 
 	stmmac_dma_interrupt(priv);
-
 	return IRQ_HANDLED;
 }
 
@@ -1527,6 +1776,9 @@ static int stmmac_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 
 	if (!priv->phydev)
 		return -EINVAL;
+
+	if (cmd == SIOCSHWTSTAMP)
+		return stmmac_hwtstamp_ioctl(dev, rq, cmd);
 
 	ret = phy_mii_ioctl(priv->phydev, rq, cmd);
 
@@ -1784,6 +2036,12 @@ static int stmmac_hw_init(struct stmmac_priv *priv)
 		pr_info(" Wake-Up On Lan supported\n");
 		device_set_wakeup_capable(priv->device, 1);
 	}
+
+	stmmac_hwtstamp_init(dev);
+
+	DBG(probe, DEBUG, "%s: Scatter/Gather: %s - HW checksums: %s\n",
+	    dev->name, (dev->features & NETIF_F_SG) ? "on" : "off",
+	    (dev->features & NETIF_F_IP_CSUM) ? "on" : "off");
 
 	return ret;
 }

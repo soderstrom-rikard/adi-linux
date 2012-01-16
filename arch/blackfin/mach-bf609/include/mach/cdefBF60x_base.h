@@ -49,6 +49,21 @@
 
 /* RTC Registers */
 
+/* EMAC0 Registers */
+#define bfin_read_EMAC_PTP_ADDEND()     bfin_read32(EMAC0_TM_ADDEND, val)
+#define bfin_write_EMAC_PTP_ADDEND(val) bfin_write32(EMAC0_TM_ADDEND, val)
+#define bfin_read_EMAC_PTP_CTL()    	bfin_read32(EMAC0_TM_CTL)
+#define bfin_write_EMAC_PTP_CTL(val) 	bfin_write32(EMAC0_TM_CTL, val)
+#define bfin_read_EMAC_PTP_SEC()    	bfin_read32(EMAC0_TM_SEC)
+#define bfin_write_EMAC_PTP_SEC(val) 	bfin_write32(EMAC0_TM_SEC, val)
+#define bfin_read_EMAC_PTP_SUBSEC()    	bfin_read32(EMAC0_TM_SUBSEC)
+#define bfin_write_EMAC_PTP_SUBSEC(val) bfin_write32(EMAC0_TM_SUBSEC, val)
+#define bfin_read_EMAC_PTP_NSEC()    	bfin_read32(EMAC0_TM_NSEC)
+#define bfin_write_EMAC_PTP_NSEC(val) 	bfin_write32(EMAC0_TM_NSEC, val)
+#define bfin_read_EMAC_PTP_SECUPDT()    bfin_read32(EMAC0_TM_SECUPDT)
+#define bfin_write_EMAC_PTP_SECUPDT(val) bfin_write32(EMAC0_TM_SECUPDT, val)
+#define bfin_read_EMAC_PTP_NSECUPDT()    bfin_read32(EMAC0_TM_NSECUPDT)
+#define bfin_write_EMAC_PTP_NSECUPDT(val) bfin_write32(EMAC0_TM_NSECUPDT, val)
 
 /* UART0 Registers */
 

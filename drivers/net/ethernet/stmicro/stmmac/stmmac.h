@@ -29,6 +29,22 @@
 #include "stmmac_timer.h"
 #endif
 
+#ifdef STMMAC_IEEE1588
+#include <linux/net_tstamp.h>
+#include <linux/clocksource.h>
+#include <linux/timecompare.h>
+#include <linux/timer.h>
+
+#define PTP_EN          (0x1)        /* Enable the PTP_TSYNC module */
+#define PTP_TSINIT      (0x4)        /* update system timer */
+#define PTP_TSENALL     (1 << 8)
+#define PTP_TSVER2ENA   (1 << 10)
+#define PTP_TSIPENA     (1 << 11)
+#define PTP_TSIPV4ENA   (1 << 13)
+#define PTP_TSMASTERENA (1 << 15)
+#define PTP_TSEVENTENA  (1 << 15)
+#endif
+
 struct stmmac_priv {
 	/* Frequently used values are kept adjacent for cache effect */
 	struct dma_desc *dma_tx ____cacheline_aligned;
@@ -81,6 +97,12 @@ struct stmmac_priv {
 	struct stmmac_counters mmc;
 	struct dma_features dma_cap;
 	int hw_cap_support;
+#ifdef STMMAC_IEEE1588
+	struct cyclecounter cycles;
+	struct timecounter clock;
+	struct timecompare compare;
+	struct hwtstamp_config stamp_cfg;
+#endif
 };
 
 extern int phyaddr;

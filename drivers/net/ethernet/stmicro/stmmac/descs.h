@@ -20,6 +20,11 @@
 
   Author: Giuseppe Cavallaro <peppe.cavallaro@st.com>
 *******************************************************************************/
+
+#ifdef CONFIG_BLACKFIN
+#define STMMAC_IEEE1588
+#endif
+
 struct dma_desc {
 	/* Receive descriptor */
 	union {
@@ -156,6 +161,12 @@ struct dma_desc {
 	} des01;
 	unsigned int des2;
 	unsigned int des3;
+#ifdef STMMAC_IEEE1588
+	unsigned int des4;
+	unsigned int des5;
+	unsigned int des6;
+	unsigned int des7;
+#endif
 };
 
 /* Transmit checksum insertion control */
