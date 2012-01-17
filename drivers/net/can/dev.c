@@ -106,7 +106,7 @@ static int can_calc_bittiming(struct net_device *dev, struct can_bittiming *bt)
 		/* tseg brp biterror */
 		if (error < 0)
 			error = -error;
-		if (error >= best_error)
+		if (error > best_error)
 			continue;
 		best_error = error;
 		if (error == 0) {
