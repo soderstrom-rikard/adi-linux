@@ -174,7 +174,6 @@ static int stmmac_hwtstamp_ioctl(struct net_device *netdev,
 	bfin_write_EMAC_PTP_CTL((1 << 16));
 	SSYNC();
 	ptpctl = bfin_read_EMAC_PTP_CTL();
-	printk("ptp init val is:  0x%x, config.rx_filter:0x%x============\n", ptpctl, config.rx_filter);
 
 	switch (config.rx_filter) {
 	case HWTSTAMP_FILTER_NONE:
@@ -222,9 +221,9 @@ static int stmmac_hwtstamp_ioctl(struct net_device *netdev,
 	} else {
 		ptpctl |= PTP_EN;
 		bfin_write_EMAC_PTP_CTL(ptpctl);
+		bfin_write_EMAC_PTP_SECUPDT(ktime_get_real().tv.sec);
+		bfin_write_EMAC_PTP_NSECUPDT(ktime_get_real().tv.nsec);
 
-		bfin_write_EMAC_PTP_SECUPDT(0x0);
-		bfin_write_EMAC_PTP_NSECUPDT(0x0);
 		ptpctl |= PTP_TSINIT;
 		bfin_write_EMAC_PTP_CTL(ptpctl);
 
@@ -237,8 +236,6 @@ static int stmmac_hwtstamp_ioctl(struct net_device *netdev,
 				&lp->cycles,
 				ktime_to_ns(ktime_get_real()));
 		timecompare_update(&lp->compare, 0);
-		printk("sec %d, nsec %d, ptpctl 0x%x, subsec 0x%x\n", bfin_read_EMAC_PTP_SEC(),
-				bfin_read_EMAC_PTP_NSEC(), bfin_read_EMAC_PTP_CTL(), bfin_read_EMAC_PTP_SUBSEC());
 	}
 
 	lp->stamp_cfg = config;
@@ -250,7 +247,7 @@ static void stmmac_dump_hwtamp(char *s, ktime_t *hw, ktime_t *ts, struct timecom
 {
 	ktime_t sys = ktime_get_real();
 
-	printk("%s %s hardware:%d,%d transform system:%d,%d system:%d,%d, cmp:%lld, %lld\n",
+	pr_debug("%s %s hardware:%d,%d transform system:%d,%d system:%d,%d, cmp:%lld, %lld\n",
 			__func__, s, hw->tv.sec, hw->tv.nsec, ts->tv.sec, ts->tv.nsec, sys.tv.sec,
 			sys.tv.nsec, cmp->offset, cmp->skew);
 }
@@ -260,6 +257,7 @@ static void stmmac_tx_hwtstamp(struct stmmac_priv *lp, struct sk_buff *skb,
 {
 	if (skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP) {
 		int timeout_cnt = MAX_TIMEOUT_CNT;
+		volatile int status = 0;
 
 		/* When doing time stamping, keep the connection to the socket
 		 * a while longer
@@ -269,41 +267,36 @@ static void stmmac_tx_hwtstamp(struct stmmac_priv *lp, struct sk_buff *skb,
 		/*
 		 * The timestamping is done at the EMAC module's MII/RMII interface
 		 * when the module sees the Start of Frame of an event message packet. This
-		 * interface is the closest possible place to the physical Ethernet transmission
-		 * medium, providing the best timing accuracy.
-		 */
-		while (!desc->des01.etx.time_stamp_status && (--timeout_cnt))
-			udelay(20);
+  		 * interface is the closest possible place to the physical Ethernet transmission
+  		 * medium, providing the best timing accuracy.
+  		 */
+		while (!status && (--timeout_cnt)) {
+			status = desc->des01.etx.time_stamp_status;
+			udelay(1);
+		}
 
-		/* work around */
-		/*
 		if (timeout_cnt == 0) {
-			printk("%d", desc->des01.etx.time_stamp_status);
-			if (desc->des01.etx.time_stamp_status)
-				timeout_cnt = 1;
+			printk("%s failed\n", __func__);
+			printk(KERN_INFO "des01.first:%d, tsenable:%d, stamp_status:%d\n",
+					desc->des01.etx.first_segment, desc->des01.etx.time_stamp_enable,
+					desc->des01.etx.time_stamp_status);
+			printk(KERN_INFO "hwsec %d, hwnsec %d\n", bfin_read_EMAC_PTP_SEC(),
+					bfin_read_EMAC_PTP_NSEC());
+			return;
 		}
-		*/
-		if (timeout_cnt == 0) {
-			printk("timestamp the TX packet failed==========\n");
-			printk("des01.first:%d, tsenable:%d, stamp_status:%d\n", desc->des01.etx.first_segment,
-						desc->des01.etx.time_stamp_enable, desc->des01.etx.time_stamp_status);
-			printk("hwsec %d, hwnsec %d\n", bfin_read_EMAC_PTP_SEC(), bfin_read_EMAC_PTP_NSEC());
-			if (!desc->des01.etx.time_stamp_status)
-				return;
-		}
-		{
+		else {
 			struct skb_shared_hwtstamps shhwtstamps;
 			u64 ns;
-			u64 regval;
+			ktime_t local_time;
 
-			regval = desc->des6;
-			regval |= (u64)desc->des7 << 32;
-			printk("tx: des06: %ld, des07 %ld\n", desc->des6, desc->des7);
+			local_time.tv.sec = desc->des7;
+			local_time.tv.nsec = desc->des6;
+			ns = ktime_to_ns(local_time);
+
 			memset(&shhwtstamps, 0, sizeof(shhwtstamps));
-			ns = timecounter_cyc2time(&lp->clock,
-					regval);
 			timecompare_update(&lp->compare, ns);
-			shhwtstamps.hwtstamp = ns_to_ktime(ns);
+			shhwtstamps.hwtstamp.tv.sec = local_time.tv.sec;
+			shhwtstamps.hwtstamp.tv.nsec = local_time.tv.nsec;
 			shhwtstamps.syststamp =
 				timecompare_transform(&lp->compare, ns);
 			skb_tstamp_tx(skb, &shhwtstamps);
@@ -315,8 +308,9 @@ static void stmmac_tx_hwtstamp(struct stmmac_priv *lp, struct sk_buff *skb,
 
 static void stmmac_rx_hwtstamp(struct stmmac_priv *lp, struct sk_buff *skb, struct dma_desc *desc)
 {
-	u64 regval, ns;
+	u64 ns;
 	struct skb_shared_hwtstamps *shhwtstamps;
+	ktime_t local_time;
 
 	if (stmmac_hwtstamp_is_none(lp->stamp_cfg.rx_filter))
 		return;
@@ -326,13 +320,14 @@ static void stmmac_rx_hwtstamp(struct stmmac_priv *lp, struct sk_buff *skb, stru
 
 	shhwtstamps = skb_hwtstamps(skb);
 
-	regval = desc->des6;
-	regval |= (u64)desc->des7 << 32;
-	printk("rx: des06: %ld, des07 %ld\n", desc->des6, desc->des7);
-	ns = timecounter_cyc2time(&lp->clock, regval);
+	local_time.tv.sec = desc->des7;
+	local_time.tv.nsec = desc->des6;
+	ns = ktime_to_ns(local_time);
+
 	timecompare_update(&lp->compare, ns);
 	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
-	shhwtstamps->hwtstamp = ns_to_ktime(ns);
+	shhwtstamps->hwtstamp.tv.sec = local_time.tv.sec;
+	shhwtstamps->hwtstamp.tv.nsec = local_time.tv.nsec;
 	shhwtstamps->syststamp = timecompare_transform(&lp->compare, ns);
 
 	stmmac_dump_hwtamp("RX", &shhwtstamps->hwtstamp, &shhwtstamps->syststamp, &lp->compare);
@@ -359,6 +354,7 @@ static void stmmac_hwtstamp_init(struct net_device *netdev)
 	struct stmmac_priv *lp = netdev_priv(netdev);
 	u64 append;
 
+	/* select ptp clk with rmii*/
 	*(unsigned int *)(0xFFC03404) = 0x0;
 	printk("%s===========pads is 0x%x\n", __func__, *(unsigned int *)(0xFFC03404));
 	/* Initialize hardware timer */
