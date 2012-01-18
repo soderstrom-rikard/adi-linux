@@ -145,7 +145,7 @@ static int stmmac_init_fs(struct net_device *dev);
 static void stmmac_exit_fs(void);
 #endif
 
-#ifdef STMMAC_IEEE1588
+#ifdef CONFIG_STMMAC_IEEE1588
 #define MAX_TIMEOUT_CNT	5000
 #define stmmac_hwtstamp_is_none(cfg) ((cfg) == HWTSTAMP_FILTER_NONE)
 
@@ -153,7 +153,7 @@ static int stmmac_hwtstamp_ioctl(struct net_device *netdev,
 		struct ifreq *ifr, int cmd)
 {
 	struct hwtstamp_config config;
-	struct stmmac_priv *lp = netdev_priv(netdev);
+	struct stmmac_priv *priv = netdev_priv(netdev);
 	u32 ptpctl;
 
 	if (copy_from_user(&config, ifr->ifr_data, sizeof(config)))
@@ -170,10 +170,8 @@ static int stmmac_hwtstamp_ioctl(struct net_device *netdev,
 			(config.tx_type != HWTSTAMP_TX_ON))
 		return -ERANGE;
 
-	ptpctl = bfin_read_EMAC_PTP_CTL();
-	bfin_write_EMAC_PTP_CTL((1 << 16));
-	SSYNC();
-	ptpctl = bfin_read_EMAC_PTP_CTL();
+	writel(PTP_SNAPTYPESEL, priv->ioaddr + EMAC_TM_CTL);
+	ptpctl = readl(priv->ioaddr + EMAC_TM_CTL);
 
 	switch (config.rx_filter) {
 	case HWTSTAMP_FILTER_NONE:
@@ -213,32 +211,31 @@ static int stmmac_hwtstamp_ioctl(struct net_device *netdev,
 	}
 
 	if (config.tx_type == HWTSTAMP_TX_OFF &&
-		stmmac_hwtstamp_is_none(config.rx_filter)) {
+			stmmac_hwtstamp_is_none(config.rx_filter)) {
 		ptpctl &= ~PTP_EN;
-		bfin_write_EMAC_PTP_CTL(ptpctl);
+		writel(ptpctl, priv->ioaddr + EMAC_TM_CTL);
 
 		SSYNC();
 	} else {
 		ptpctl |= PTP_EN;
-		bfin_write_EMAC_PTP_CTL(ptpctl);
-		bfin_write_EMAC_PTP_SECUPDT(ktime_get_real().tv.sec);
-		bfin_write_EMAC_PTP_NSECUPDT(ktime_get_real().tv.nsec);
+		writel(ptpctl, priv->ioaddr + EMAC_TM_CTL);
 
+		/* write init time value */
+		writel(ktime_get_real().tv.sec, priv->ioaddr + EMAC_TM_SECUPDT);
+		writel(ktime_get_real().tv.nsec, priv->ioaddr + EMAC_TM_NSECUPDT);
 		ptpctl |= PTP_TSINIT;
-		bfin_write_EMAC_PTP_CTL(ptpctl);
-
-		bfin_write_EMAC_PTP_SUBSEC(0x2b);
-
+		writel(ptpctl, priv->ioaddr + EMAC_TM_CTL);
+		writel(0x2b, priv->ioaddr + EMAC_TM_SUBSEC);
 		SSYNC();
 
-		lp->compare.last_update = 0;
-		timecounter_init(&lp->clock,
-				&lp->cycles,
+		priv->compare.last_update = 0;
+		timecounter_init(&priv->clock,
+				&priv->cycles,
 				ktime_to_ns(ktime_get_real()));
-		timecompare_update(&lp->compare, 0);
+		timecompare_update(&priv->compare, 0);
 	}
 
-	lp->stamp_cfg = config;
+	priv->stamp_cfg = config;
 	return copy_to_user(ifr->ifr_data, &config, sizeof(config)) ?
 		-EFAULT : 0;
 }
@@ -252,7 +249,7 @@ static void stmmac_dump_hwtamp(char *s, ktime_t *hw, ktime_t *ts, struct timecom
 			sys.tv.nsec, cmp->offset, cmp->skew);
 }
 
-static void stmmac_tx_hwtstamp(struct stmmac_priv *lp, struct sk_buff *skb,
+static void stmmac_tx_hwtstamp(struct stmmac_priv *priv, struct sk_buff *skb,
 				struct dma_desc *desc)
 {
 	if (skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP) {
@@ -280,8 +277,8 @@ static void stmmac_tx_hwtstamp(struct stmmac_priv *lp, struct sk_buff *skb,
 			printk(KERN_INFO "des01.first:%d, tsenable:%d, stamp_status:%d\n",
 					desc->des01.etx.first_segment, desc->des01.etx.time_stamp_enable,
 					desc->des01.etx.time_stamp_status);
-			printk(KERN_INFO "hwsec %d, hwnsec %d\n", bfin_read_EMAC_PTP_SEC(),
-					bfin_read_EMAC_PTP_NSEC());
+			printk(KERN_INFO "hwsec %d, hwnsec %d\n", readl(priv->ioaddr + EMAC_TM_SEC),
+					readl(priv->ioaddr + EMAC_TM_SUBSEC));
 			return;
 		}
 		else {
@@ -294,25 +291,25 @@ static void stmmac_tx_hwtstamp(struct stmmac_priv *lp, struct sk_buff *skb,
 			ns = ktime_to_ns(local_time);
 
 			memset(&shhwtstamps, 0, sizeof(shhwtstamps));
-			timecompare_update(&lp->compare, ns);
+			timecompare_update(&priv->compare, ns);
 			shhwtstamps.hwtstamp.tv.sec = local_time.tv.sec;
 			shhwtstamps.hwtstamp.tv.nsec = local_time.tv.nsec;
 			shhwtstamps.syststamp =
-				timecompare_transform(&lp->compare, ns);
+				timecompare_transform(&priv->compare, ns);
 			skb_tstamp_tx(skb, &shhwtstamps);
 
-			stmmac_dump_hwtamp("TX", &shhwtstamps.hwtstamp, &shhwtstamps.syststamp, &lp->compare);
+			stmmac_dump_hwtamp("TX", &shhwtstamps.hwtstamp, &shhwtstamps.syststamp, &priv->compare);
 		}
 	}
 }
 
-static void stmmac_rx_hwtstamp(struct stmmac_priv *lp, struct sk_buff *skb, struct dma_desc *desc)
+static void stmmac_rx_hwtstamp(struct stmmac_priv *priv, struct sk_buff *skb, struct dma_desc *desc)
 {
 	u64 ns;
 	struct skb_shared_hwtstamps *shhwtstamps;
 	ktime_t local_time;
 
-	if (stmmac_hwtstamp_is_none(lp->stamp_cfg.rx_filter))
+	if (stmmac_hwtstamp_is_none(priv->stamp_cfg.rx_filter))
 		return;
 
 	if (!desc->des01.erx.ipc_csum_error)
@@ -324,13 +321,13 @@ static void stmmac_rx_hwtstamp(struct stmmac_priv *lp, struct sk_buff *skb, stru
 	local_time.tv.nsec = desc->des6;
 	ns = ktime_to_ns(local_time);
 
-	timecompare_update(&lp->compare, ns);
+	timecompare_update(&priv->compare, ns);
 	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
 	shhwtstamps->hwtstamp.tv.sec = local_time.tv.sec;
 	shhwtstamps->hwtstamp.tv.nsec = local_time.tv.nsec;
-	shhwtstamps->syststamp = timecompare_transform(&lp->compare, ns);
+	shhwtstamps->syststamp = timecompare_transform(&priv->compare, ns);
 
-	stmmac_dump_hwtamp("RX", &shhwtstamps->hwtstamp, &shhwtstamps->syststamp, &lp->compare);
+	stmmac_dump_hwtamp("RX", &shhwtstamps->hwtstamp, &shhwtstamps->syststamp, &priv->compare);
 }
 
 /*
@@ -340,9 +337,9 @@ static cycle_t stmmac_read_clock(const struct cyclecounter *tc)
 {
 	u64 ns;
 	ktime_t hw_time;
-
-	hw_time.tv.sec = bfin_read_EMAC_PTP_SEC();
-	hw_time.tv.nsec = bfin_read_EMAC_PTP_NSEC();
+	struct stmmac_priv *priv = container_of(tc, struct stmmac_priv, cycles);
+	hw_time.tv.sec = readl(priv->ioaddr + EMAC_TM_SEC);
+	hw_time.tv.nsec = readl(priv->ioaddr + EMAC_TM_NSEC);
 	ns = ktime_to_ns(hw_time);
 	do_div(ns, 20);
 	return ns;
@@ -351,29 +348,25 @@ static cycle_t stmmac_read_clock(const struct cyclecounter *tc)
 
 static void stmmac_hwtstamp_init(struct net_device *netdev)
 {
-	struct stmmac_priv *lp = netdev_priv(netdev);
-	u64 append;
+	struct stmmac_priv *priv = netdev_priv(netdev);
 
 	/* select ptp clk with rmii*/
-	*(unsigned int *)(0xFFC03404) = 0x0;
-	printk("%s===========pads is 0x%x\n", __func__, *(unsigned int *)(0xFFC03404));
-	/* Initialize hardware timer */
-
-	memset(&lp->cycles, 0, sizeof(lp->cycles));
-	lp->cycles.read = stmmac_read_clock;
-	lp->cycles.mask = CLOCKSOURCE_MASK(64);
-	lp->cycles.mult = 20;
-	lp->cycles.shift = 0;
+	writel(0x0, PADS_EMAC_PTP_CLKSEL);
+	memset(&priv->cycles, 0, sizeof(priv->cycles));
+	priv->cycles.read = stmmac_read_clock;
+	priv->cycles.mask = CLOCKSOURCE_MASK(64);
+	priv->cycles.mult = 20;
+	priv->cycles.shift = 0;
 
 	/* Synchronize our NIC clock against system wall clock */
-	memset(&lp->compare, 0, sizeof(lp->compare));
-	lp->compare.source = &lp->clock;
-	lp->compare.target = ktime_get_real;
-	lp->compare.num_samples = 10;
+	memset(&priv->compare, 0, sizeof(priv->compare));
+	priv->compare.source = &priv->clock;
+	priv->compare.target = ktime_get_real;
+	priv->compare.num_samples = 10;
 
 	/* Initialize hwstamp config */
-	lp->stamp_cfg.rx_filter = HWTSTAMP_FILTER_NONE;
-	lp->stamp_cfg.tx_type = HWTSTAMP_TX_OFF;
+	priv->stamp_cfg.rx_filter = HWTSTAMP_FILTER_NONE;
+	priv->stamp_cfg.tx_type = HWTSTAMP_TX_OFF;
 }
 
 #else

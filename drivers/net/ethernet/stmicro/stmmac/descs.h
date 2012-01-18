@@ -20,11 +20,6 @@
 
   Author: Giuseppe Cavallaro <peppe.cavallaro@st.com>
 *******************************************************************************/
-
-#ifdef CONFIG_BLACKFIN
-#define STMMAC_IEEE1588
-#endif
-
 struct dma_desc {
 	/* Receive descriptor */
 	union {
@@ -157,11 +152,11 @@ struct dma_desc {
 			u32 reserved3:3;
 			u32 buffer2_size:13;
 			u32 reserved4:3;
-		} etx;		/* -- enhanced -- */
+		} volatile etx;		/* -- enhanced -- */
 	} des01;
 	unsigned int des2;
 	unsigned int des3;
-#ifdef STMMAC_IEEE1588
+#ifdef CONFIG_STMMAC_IEEE1588
 	unsigned int des4;
 	unsigned int des5;
 	unsigned int des6;

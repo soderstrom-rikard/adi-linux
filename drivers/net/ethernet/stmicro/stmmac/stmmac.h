@@ -29,7 +29,7 @@
 #include "stmmac_timer.h"
 #endif
 
-#ifdef STMMAC_IEEE1588
+#ifdef CONFIG_STMMAC_IEEE1588
 #include <linux/net_tstamp.h>
 #include <linux/clocksource.h>
 #include <linux/timecompare.h>
@@ -41,8 +41,24 @@
 #define PTP_TSVER2ENA   (1 << 10)
 #define PTP_TSIPENA     (1 << 11)
 #define PTP_TSIPV4ENA   (1 << 13)
+#define PTP_TSEVENTENA  (1 << 14)
 #define PTP_TSMASTERENA (1 << 15)
-#define PTP_TSEVENTENA  (1 << 15)
+#define PTP_SNAPTYPESEL (1 << 16)
+
+#define EMAC_TM_CTL                0x700         /* EMAC0 EMAC Time Stamp Control Register */
+#define EMAC_TM_SUBSEC             0x704         /* EMAC0 EMAC Time Stamp Sub Second Increment */
+#define EMAC_TM_SEC                0x708         /* EMAC0 EMAC Time Stamp Second Register */
+#define EMAC_TM_NSEC               0x70C         /* EMAC0 EMAC Time Stamp Nano Second Register */
+#define EMAC_TM_SECUPDT            0x710         /* EMAC0 EMAC Time Stamp Seconds Update */
+#define EMAC_TM_NSECUPDT           0x714         /* EMAC0 EMAC Time Stamp Nano Seconds Update */
+#define EMAC_TM_ADDEND             0x718         /* EMAC0 EMAC Time Stamp Addend Register */
+#define EMAC_TM_TGTM               0x71C         /* EMAC0 EMAC Time Stamp Target Time Sec. */
+#define EMAC_TM_NTGTM              0x720         /* EMAC0 EMAC Time Stamp Target Time Nanosec. */
+#define EMAC_TM_HISEC              0x724         /* EMAC0 EMAC Time Stamp High Second Register */
+#define EMAC_TM_STMPSTAT           0x728         /* EMAC0 EMAC Time Stamp Status Register */
+#define EMAC_TM_PPSCTL             0x72C         /* EMAC0 EMAC PPS Control Register */
+
+#define PADS_EMAC_PTP_CLKSEL 	   0xFFC03404
 #endif
 
 struct stmmac_priv {
@@ -97,7 +113,7 @@ struct stmmac_priv {
 	struct stmmac_counters mmc;
 	struct dma_features dma_cap;
 	int hw_cap_support;
-#ifdef STMMAC_IEEE1588
+#ifdef CONFIG_STMMAC_IEEE1588
 	struct cyclecounter cycles;
 	struct timecounter clock;
 	struct timecompare compare;
