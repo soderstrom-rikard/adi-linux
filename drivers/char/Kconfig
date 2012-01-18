@@ -36,6 +36,14 @@ config BFIN_SIMPLE_TIMER
 	  provides an interface to the above Blackfin General Purpose timers
 	  hardware.  See drivers/char/bfin_simple_timer.c for details.
 
+config BFIN_CRC
+	tristate "Blackfin hardware CRC driver"
+	depends on BF60x
+	default y
+	help
+	  This is a hardware CRC driver for BF60x. It is added to accelerate
+	  CRC calculation individually or within DMA in user applications.
+
 config BFIN_SPORT
 	tristate "Blackfin SPORT driver for direct raw access"
 	depends on BLACKFIN
