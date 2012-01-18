@@ -739,6 +739,70 @@ static struct bfin6xx_spi_chip spi_flash_chip_info = {
 };
 #endif
 
+#if defined(CONFIG_BFIN_CRC)
+#define BFIN_CRC_NAME "bfin-crc"
+
+static struct resource bfin_crc0_resources[] = {
+	{
+		.start = REG_CRC0_CTL,
+		.end = REG_CRC0_REVID+4,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_CRC0_DCNTEXP,
+		.end = IRQ_CRC0_DCNTEXP,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = CH_MEM_STREAM0_SRC_CRC0,
+		.end = CH_MEM_STREAM0_SRC_CRC0,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = CH_MEM_STREAM0_DEST_CRC0,
+		.end = CH_MEM_STREAM0_DEST_CRC0,
+		.flags = IORESOURCE_DMA,
+	},
+};
+
+static struct platform_device bfin_crc0_device = {
+	.name = BFIN_CRC_NAME,
+	.id = 0,
+	.num_resources = ARRAY_SIZE(bfin_crc0_resources),
+	.resource = bfin_crc0_resources,
+};
+
+static struct resource bfin_crc1_resources[] = {
+	{
+		.start = REG_CRC1_CTL,
+		.end = REG_CRC1_REVID+4,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_CRC1_DCNTEXP,
+		.end = IRQ_CRC1_DCNTEXP,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = CH_MEM_STREAM1_SRC_CRC1,
+		.end = CH_MEM_STREAM1_SRC_CRC1,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = CH_MEM_STREAM1_DEST_CRC1,
+		.end = CH_MEM_STREAM1_DEST_CRC1,
+		.flags = IORESOURCE_DMA,
+	},
+};
+
+static struct platform_device bfin_crc1_device = {
+	.name = BFIN_CRC_NAME,
+	.id = 1,
+	.num_resources = ARRAY_SIZE(bfin_crc1_resources),
+	.resource = bfin_crc1_resources,
+};
+#endif
+
 #if defined(CONFIG_TOUCHSCREEN_AD7877) || defined(CONFIG_TOUCHSCREEN_AD7877_MODULE)
 static const struct ad7877_platform_data bfin_ad7877_ts_info = {
 	.model			= 7877,
@@ -1065,6 +1129,11 @@ static struct platform_device *ezkit_early_devices[] __initdata = {
 #ifdef CONFIG_SERIAL_BFIN_SPORT2_UART
 	&bfin_sport2_uart_device,
 #endif
+#endif
+
+#if defined(CONFIG_BFIN_CRC)
+	&bfin_crc0_device,
+	&bfin_crc1_device,
 #endif
 };
 

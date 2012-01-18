@@ -510,6 +510,48 @@
 #define TIMER7_DELAY              0xFFC01550         /* TIMER7 Per Timer Delay Register */
 
 /* =========================
+	CRC Registers
+   ========================= */
+
+/* =========================
+	CRC0
+   ========================= */
+#define REG_CRC0_CTL                    0xFFC01C00         /* CRC0 Control Register */
+#define REG_CRC0_DCNT                   0xFFC01C04         /* CRC0 Data Word Count Register */
+#define REG_CRC0_DCNTRLD                0xFFC01C08         /* CRC0 Data Word Count Reload Register */
+#define REG_CRC0_COMP                   0xFFC01C14         /* CRC0 DATA Compare Register */
+#define REG_CRC0_FILLVAL                0xFFC01C18         /* CRC0 Fill Value Register */
+#define REG_CRC0_DFIFO                  0xFFC01C1C         /* CRC0 DATA FIFO Register */
+#define REG_CRC0_INEN                   0xFFC01C20         /* CRC0 Interrupt Enable Register */
+#define REG_CRC0_INEN_SET               0xFFC01C24         /* CRC0 Interrupt Enable Set Register */
+#define REG_CRC0_INEN_CLR               0xFFC01C28         /* CRC0 Interrupt Enable Clear Register */
+#define REG_CRC0_POLY                   0xFFC01C2C         /* CRC0 Polynomial Register */
+#define REG_CRC0_STAT                   0xFFC01C40         /* CRC0 Status Register */
+#define REG_CRC0_DCNTCAP                0xFFC01C44         /* CRC0 DATA Count Capture Register */
+#define REG_CRC0_RESULT_FIN             0xFFC01C4C         /* CRC0 Final CRC Result Register */
+#define REG_CRC0_RESULT_CUR             0xFFC01C50         /* CRC0 Current CRC Result Register */
+#define REG_CRC0_REVID                  0xFFC01C60         /* CRC0 Revision ID Register */
+
+/* =========================
+	CRC1
+   ========================= */
+#define REG_CRC1_CTL                    0xFFC01D00         /* CRC1 Control Register */
+#define REG_CRC1_DCNT                   0xFFC01D04         /* CRC1 Data Word Count Register */
+#define REG_CRC1_DCNTRLD                0xFFC01D08         /* CRC1 Data Word Count Reload Register */
+#define REG_CRC1_COMP                   0xFFC01D14         /* CRC1 DATA Compare Register */
+#define REG_CRC1_FILLVAL                0xFFC01D18         /* CRC1 Fill Value Register */
+#define REG_CRC1_DFIFO                  0xFFC01D1C         /* CRC1 DATA FIFO Register */
+#define REG_CRC1_INEN                   0xFFC01D20         /* CRC1 Interrupt Enable Register */
+#define REG_CRC1_INEN_SET               0xFFC01D24         /* CRC1 Interrupt Enable Set Register */
+#define REG_CRC1_INEN_CLR               0xFFC01D28         /* CRC1 Interrupt Enable Clear Register */
+#define REG_CRC1_POLY                   0xFFC01D2C         /* CRC1 Polynomial Register */
+#define REG_CRC1_STAT                   0xFFC01D40         /* CRC1 Status Register */
+#define REG_CRC1_DCNTCAP                0xFFC01D44         /* CRC1 DATA Count Capture Register */
+#define REG_CRC1_RESULT_FIN             0xFFC01D4C         /* CRC1 Final CRC Result Register */
+#define REG_CRC1_RESULT_CUR             0xFFC01D50         /* CRC1 Current CRC Result Register */
+#define REG_CRC1_REVID                  0xFFC01D60         /* CRC1 Revision ID Register */
+
+/* =========================
         TWI Registers
    ========================= */
 
