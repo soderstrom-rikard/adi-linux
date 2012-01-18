@@ -100,6 +100,9 @@ timer_ioctl(struct file *filp, uint cmd, unsigned long arg)
 		case 1:
 			set_gptimer_config(t->id, PWM_OUT | PERIOD_CNT | IRQ_ENA);
 			break;
+		case 2:
+			set_gptimer_config(t->id, WDTH_CAP | PERIOD_CNT | IRQ_ENA);
+			break;
 		default:
 			pr_debug(DRV_NAME ": error mode\n");
 		}
