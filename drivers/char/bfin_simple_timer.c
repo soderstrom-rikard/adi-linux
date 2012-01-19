@@ -36,6 +36,7 @@
 #include <asm/irq.h>
 #include <asm/bfin_simple_timer.h>
 #include <asm/bfin-global.h>
+#include <asm/portmux.h>
 
 #define TIMER_MAJOR 238
 #define DRV_NAME    "bfin_simple_timer"
@@ -46,27 +47,28 @@ MODULE_LICENSE("GPL");
 
 struct timer {
 	unsigned short id, bit;
+	unsigned short per_pin;
 	unsigned long irqbit, isr_count;
 	int irq;
 };
 
 static struct timer timer_code[MAX_BLACKFIN_GPTIMERS] = {
-	{TIMER0_id,  TIMER0bit,  TIMER_STATUS_TIMIL0, 0, IRQ_TIMER0},
-	{TIMER1_id,  TIMER1bit,  TIMER_STATUS_TIMIL1, 0, IRQ_TIMER1},
-	{TIMER2_id,  TIMER2bit,  TIMER_STATUS_TIMIL2, 0, IRQ_TIMER2},
+	{TIMER0_id,  TIMER0bit,  P_TMR0, TIMER_STATUS_TIMIL0, 0, IRQ_TIMER0},
+	{TIMER1_id,  TIMER1bit,  P_TMR1, TIMER_STATUS_TIMIL1, 0, IRQ_TIMER1},
+	{TIMER2_id,  TIMER2bit,  P_TMR2, TIMER_STATUS_TIMIL2, 0, IRQ_TIMER2},
 #if (MAX_BLACKFIN_GPTIMERS > 3)
-	{TIMER3_id,  TIMER3bit,  TIMER_STATUS_TIMIL3, 0, IRQ_TIMER3},
-	{TIMER4_id,  TIMER4bit,  TIMER_STATUS_TIMIL4, 0, IRQ_TIMER4},
-	{TIMER5_id,  TIMER5bit,  TIMER_STATUS_TIMIL5, 0, IRQ_TIMER5},
-	{TIMER6_id,  TIMER6bit,  TIMER_STATUS_TIMIL6, 0, IRQ_TIMER6},
-	{TIMER7_id,  TIMER7bit,  TIMER_STATUS_TIMIL7, 0, IRQ_TIMER7},
+	{TIMER3_id,  TIMER3bit,  P_TMR3, TIMER_STATUS_TIMIL3, 0, IRQ_TIMER3},
+	{TIMER4_id,  TIMER4bit,  P_TMR4, TIMER_STATUS_TIMIL4, 0, IRQ_TIMER4},
+	{TIMER5_id,  TIMER5bit,  P_TMR5, TIMER_STATUS_TIMIL5, 0, IRQ_TIMER5},
+	{TIMER6_id,  TIMER6bit,  P_TMR6, TIMER_STATUS_TIMIL6, 0, IRQ_TIMER6},
+	{TIMER7_id,  TIMER7bit,  P_TMR7, TIMER_STATUS_TIMIL7, 0, IRQ_TIMER7},
 #endif
 #if (MAX_BLACKFIN_GPTIMERS > 8)
-	{TIMER8_id,  TIMER8bit,  TIMER_STATUS_TIMIL8, 0, IRQ_TIMER8},
-	{TIMER9_id,  TIMER9bit,  TIMER_STATUS_TIMIL9, 0, IRQ_TIMER9},
-	{TIMER10_id, TIMER10bit, TIMER_STATUS_TIMIL10, 0, IRQ_TIMER10},
+	{TIMER8_id,  TIMER8bit,  P_TMR8, TIMER_STATUS_TIMIL8, 0, IRQ_TIMER8},
+	{TIMER9_id,  TIMER9bit,  P_TMR9, TIMER_STATUS_TIMIL9, 0, IRQ_TIMER9},
+	{TIMER10_id, TIMER10bit, P_TMR10, TIMER_STATUS_TIMIL10, 0, IRQ_TIMER10},
 #if (MAX_BLACKFIN_GPTIMERS > 11)
-	{TIMER11_id, TIMER11bit, TIMER_STATUS_TIMIL11, 0, IRQ_TIMER11},
+	{TIMER11_id, TIMER11bit, P_TMR11, TIMER_STATUS_TIMIL11, 0, IRQ_TIMER11},
 #endif
 #endif
 };
@@ -167,7 +169,13 @@ timer_open(struct inode *inode, struct file *filp)
 		return err;
 	}
 
-	set_gptimer_config(t->id, OUT_DIS | PWM_OUT | PERIOD_CNT | IRQ_ENA);
+	err = peripheral_request(t->per_pin, "timer test");
+	if (err) {
+		printk(KERN_ERR "request pin(%d) failed\n", t->per_pin);
+		free_irq(t->irq, (void *)minor);
+		return err;
+	}
+
 	pr_debug(DRV_NAME ": device(%d) opened\n", minor);
 
 	return 0;
