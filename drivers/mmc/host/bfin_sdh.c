@@ -55,19 +55,6 @@
 # endif
 #endif
 
-struct dma_desc_array {
-	unsigned long	start_addr;
-#ifdef RSI_BLKSZ
-	unsigned long	cfg;
-	unsigned long	x_count;
-	long		x_modify;
-#else
-	unsigned short	cfg;
-	unsigned short	x_count;
-	short		x_modify;
-#endif
-} __packed;
-
 struct sdh_host {
 	struct mmc_host		*mmc;
 	spinlock_t		lock;
