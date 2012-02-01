@@ -62,6 +62,16 @@ struct dma_desc_array {
 	short		x_modify;
 } __attribute__((packed));
 
+#ifdef DMA_MMR_SIZE_32
+# define DMA_MMR_SIZE_TYPE long
+# define DMA_MMR_READ bfin_read32
+# define DMA_MMR_WRITE bfin_write32
+#else
+# define DMA_MMR_SIZE_TYPE short
+# define DMA_MMR_READ bfin_read16
+# define DMA_MMR_WRITE bfin_write16
+#endif
+
 struct dmasg {
 	void *next_desc_addr;
 	unsigned long start_addr;
