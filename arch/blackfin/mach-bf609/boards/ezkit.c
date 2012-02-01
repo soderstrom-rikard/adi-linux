@@ -105,22 +105,17 @@ static struct platform_device bfin_rotary_device = {
 
 #if defined(CONFIG_STMMAC_ETH) || defined(CONFIG_STMMAC_ETH_MODULE)
 #include <linux/stmmac.h>
+
 static struct stmmac_mdio_bus_data phy_private_data = {
 	.bus_id = 0,
 	.phy_mask = 1,
 };
 
-static struct platform_device bfin_phy_device = {
-	.name           = "stmmacphy",
-	.id             = 0,
-	.dev = {
-		.platform_data = &phy_private_data,
-	}
-};
-
 static struct plat_stmmacenet_data eth_private_data = {
 	.bus_id   = 0,
 	.enh_desc = 1,
+	.phy_addr = 1,
+	.mdio_bus_data = &phy_private_data,
 };
 
 static struct platform_device bfin_eth_device = {
@@ -1024,7 +1019,6 @@ static struct platform_device *ezkit_devices[] __initdata = {
 
 #if defined(CONFIG_STMMAC_ETH) || defined(CONFIG_STMMAC_ETH_MODULE)
 	&bfin_eth_device,
-	&bfin_phy_device,
 #endif
 
 #if defined(CONFIG_USB_MUSB_HDRC) || defined(CONFIG_USB_MUSB_HDRC_MODULE)
