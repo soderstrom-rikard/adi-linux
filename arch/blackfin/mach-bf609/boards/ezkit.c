@@ -105,9 +105,8 @@ static struct platform_device bfin_rotary_device = {
 
 #if defined(CONFIG_STMMAC_ETH) || defined(CONFIG_STMMAC_ETH_MODULE)
 #include <linux/stmmac.h>
-static struct plat_stmmacphy_data phy_private_data = {
+static struct stmmac_mdio_bus_data phy_private_data = {
 	.bus_id = 0,
-	.phy_addr = 1,
 	.phy_mask = 1,
 };
 
