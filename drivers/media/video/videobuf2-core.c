@@ -1564,9 +1564,6 @@ int vb2_mmap(struct vb2_queue *q, struct vm_area_struct *vma)
 	if (ret)
 		return ret;
 
-	vb_plane->mapped = 1;
-	vb->num_planes_mapped++;
-
 	dprintk(3, "Buffer %d, plane %d successfully mapped\n", buffer, plane);
 	return 0;
 }
@@ -1574,10 +1571,10 @@ EXPORT_SYMBOL_GPL(vb2_mmap);
 
 #ifndef CONFIG_MMU
 unsigned long vb2_get_unmapped_area(struct vb2_queue *q,
-				     unsigned long addr,
-				     unsigned long len,
-				     unsigned long pgoff,
-				     unsigned long flags)
+				    unsigned long addr,
+				    unsigned long len,
+				    unsigned long pgoff,
+				    unsigned long flags)
 {
 	unsigned long off = pgoff << PAGE_SHIFT;
 	struct vb2_buffer *vb;
@@ -1599,7 +1596,6 @@ unsigned long vb2_get_unmapped_area(struct vb2_queue *q,
 	vb = q->bufs[buffer];
 
 	return (unsigned long)vb2_plane_vaddr(vb, plane);
-
 }
 EXPORT_SYMBOL_GPL(vb2_get_unmapped_area);
 #endif
