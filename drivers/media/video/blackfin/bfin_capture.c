@@ -263,9 +263,10 @@ static unsigned int bcap_poll(struct file *file, poll_table *wait)
 	return vb2_poll(&bcap_dev->buffer_queue, file, wait);
 }
 
-static int bcap_queue_setup(struct vb2_queue *vq, unsigned int *nbuffers,
-				unsigned int *nplanes, unsigned long sizes[],
-				void *alloc_ctxs[])
+static int bcap_queue_setup(struct vb2_queue *vq,
+				const struct v4l2_format *fmt,
+				unsigned int *nbuffers, unsigned int *nplanes,
+				unsigned int sizes[], void *alloc_ctxs[])
 {
 	struct bcap_device *bcap_dev = vb2_get_drv_priv(vq);
 
@@ -338,7 +339,7 @@ static void bcap_unlock(struct vb2_queue *vq)
 	mutex_unlock(&bcap_dev->mutex);
 }
 
-static int bcap_start_streaming(struct vb2_queue *vq)
+static int bcap_start_streaming(struct vb2_queue *vq, unsigned int count)
 {
 	struct bcap_device *bcap_dev = vb2_get_drv_priv(vq);
 	struct ppi_if *ppi = bcap_dev->ppi;
@@ -496,7 +497,7 @@ static irqreturn_t bcap_isr(int irq, void *dev_id)
 			bcap_dev->next_frm = list_entry(bcap_dev->dma_queue.next,
 						struct bcap_buffer, list);
 			list_del(&bcap_dev->next_frm->list);
-			addr = vb2_dma_contig_plane_paddr(&bcap_dev->next_frm->vb, 0);
+			addr = vb2_dma_contig_plane_dma_addr(&bcap_dev->next_frm->vb, 0);
 			ppi->ops->update_addr(ppi, (unsigned long)addr);
 		}
 		ppi->ops->start(ppi);
@@ -537,7 +538,7 @@ static int bcap_streamon(struct file *file, void *priv,
 	bcap_dev->cur_frm = bcap_dev->next_frm;
 	/* remove buffer from the dma queue */
 	list_del(&bcap_dev->cur_frm->list);
-	addr = vb2_dma_contig_plane_paddr(&bcap_dev->cur_frm->vb, 0);
+	addr = vb2_dma_contig_plane_dma_addr(&bcap_dev->cur_frm->vb, 0);
 	/* update DMA address */
 	ppi->ops->update_addr(ppi, (unsigned long)addr);
 	/* enable ppi */
