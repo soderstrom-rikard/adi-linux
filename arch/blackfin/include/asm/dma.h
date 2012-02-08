@@ -55,13 +55,6 @@
 #define DMA_NOSYNC_KEEP_DMA_BUF	0
 #define DMA_SYNC_RESTART		1
 
-struct dma_desc_array {
-	unsigned long	start_addr;
-	unsigned short	cfg;
-	unsigned short	x_count;
-	short		x_modify;
-} __attribute__((packed));
-
 #ifdef DMA_MMR_SIZE_32
 # define DMA_MMR_SIZE_TYPE long
 # define DMA_MMR_READ bfin_read32
@@ -71,6 +64,13 @@ struct dma_desc_array {
 # define DMA_MMR_READ bfin_read16
 # define DMA_MMR_WRITE bfin_write16
 #endif
+
+struct dma_desc_array {
+	unsigned long start_addr;
+	unsigned DMA_MMR_SIZE_TYPE cfg;
+	unsigned DMA_MMR_SIZE_TYPE x_count;
+	DMA_MMR_SIZE_TYPE x_modify;
+} __attribute__((packed));
 
 struct dmasg {
 	void *next_desc_addr;
