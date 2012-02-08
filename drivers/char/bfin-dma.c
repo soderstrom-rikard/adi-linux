@@ -105,6 +105,9 @@ static inline unsigned long dsc_end(struct dmasg *sg)
 static irqreturn_t bfin_dma_irq(int irq, void *dev_id)
 {
 	struct dma_state *state = dev_id;
+#ifdef DMA_MMR_SIZE_32
+	clear_dma_irqstat(state->chan_src);
+#endif
 	clear_dma_irqstat(state->chan_dst);
 	put_user(1, state->user_done);
 	complete(&state->c);
@@ -158,8 +161,8 @@ static int bdi_free_dma(struct dma_state *state)
 		atomic_dec(&state->status);
 		return -EBUSY;
 	}
-	free_dma(state->chan_src);
 	free_dma(state->chan_dst);
+	free_dma(state->chan_src);
 	atomic_sub(2, &state->status);
 	return 0;
 }
@@ -193,7 +196,7 @@ static int bdi_do_dma(struct dma_state *state, int async)
 		flush_dcache_range(dsc_start(sg), dsc_end(sg));
 		flush_dcache_range((unsigned)sg, (unsigned)(sg + sizeof(*sg)));
 
-		if (!(sg->cfg & 0x7000))
+		if (!(sg->cfg & DMAFLOW_LARGE))
 			break;
 		sg = sg->next_desc_addr;
 	}
@@ -204,7 +207,7 @@ static int bdi_do_dma(struct dma_state *state, int async)
 		invalidate_dcache_range(dsc_start(sg), dsc_end(sg));
 		flush_dcache_range((unsigned)sg, (unsigned)(sg + sizeof(*sg)));
 
-		if (!(sg->cfg & 0x7000))
+		if (!(sg->cfg & DMAFLOW_LARGE))
 			break;
 		sg = sg->next_desc_addr;
 	}
