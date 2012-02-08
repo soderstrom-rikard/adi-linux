@@ -43,6 +43,7 @@
 #define NDSIZE			0x00070000	/* Next Descriptor Size */
 #define NDSIZE_OFFSET		16		/* Next Descriptor Size Offset */
 #define DMAFLOW_LIST		0x00004000	/* Descriptor List Mode */
+#define DMAFLOW_LARGE		DMAFLOW_LIST
 #define DMAFLOW_ARRAY		0x00005000	/* Descriptor Array Mode */
 #define DMAFLOW_LIST_DEMAND	0x00006000	/* Descriptor Demand List Mode */
 #define DMAFLOW_ARRAY_DEMAND	0x00007000	/* Descriptor Demand Array Mode */
