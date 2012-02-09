@@ -80,6 +80,7 @@ struct bfin_crc {
 	volatile struct crc_register *regs;
 	struct mutex mutex;
 	struct completion c;
+	char name[20];
 };
 
 /* CRC_STATUS Masks */

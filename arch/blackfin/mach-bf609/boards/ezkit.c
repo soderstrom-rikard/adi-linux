@@ -1069,6 +1069,11 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #endif
 #endif
 
+#if defined(CONFIG_BFIN_CRC)
+	&bfin_crc0_device,
+	&bfin_crc1_device,
+#endif
+
 #if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)
 	&bfin_device_gpiokeys,
 #endif
@@ -1122,11 +1127,6 @@ static struct platform_device *ezkit_early_devices[] __initdata = {
 #ifdef CONFIG_SERIAL_BFIN_SPORT2_UART
 	&bfin_sport2_uart_device,
 #endif
-#endif
-
-#if defined(CONFIG_BFIN_CRC)
-	&bfin_crc0_device,
-	&bfin_crc1_device,
 #endif
 };
 
