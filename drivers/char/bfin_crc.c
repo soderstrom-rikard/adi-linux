@@ -371,31 +371,24 @@ static int __devinit bfin_crc_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	ret = peripheral_request_list(
-		(unsigned short *)pdev->dev.platform_data, DRIVER_NAME);
-	if (ret) {
-		dev_err(&pdev->dev,
-			"fail to request bfin serial peripherals\n");
-		goto out_error_free_mem;
-	}
-
 	mutex_init(&crc->mutex);
 	crc->mdev.minor	= MISC_DYNAMIC_MINOR;
-	crc->mdev.name	= DRIVER_NAME;
+	snprintf(crc->name, 20, "%s%d", DRIVER_NAME, pdev->id);
+	crc->mdev.name	= crc->name;
 	crc->mdev.fops	= &bfin_crc_fops;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
 		dev_err(&pdev->dev, "Cannot get IORESOURCE_MEM\n");
 		ret = -ENOENT;
-		goto out_error_free_peripherals;
+		goto out_error_free_mem;
 	}
 
 	crc->regs = ioremap(res->start, resource_size(res));
 	if (!crc->regs) {
 		dev_err(&pdev->dev, "Cannot map CRC IO\n");
 		ret = -ENXIO;
-		goto out_error_free_peripherals;
+		goto out_error_free_mem;
 	}
 
 	crc->irq = platform_get_irq(pdev, 0);
@@ -436,8 +429,6 @@ static int __devinit bfin_crc_probe(struct platform_device *pdev)
 
 out_error_unmap:
 	iounmap((void *)crc->regs);
-out_error_free_peripherals:
-	peripheral_free_list((unsigned short *)pdev->dev.platform_data);
 out_error_free_mem:
 	kfree(crc);
 	return ret;
@@ -459,8 +450,6 @@ static int __devexit bfin_crc_remove(struct platform_device *pdev)
 		misc_deregister(&crc->mdev);
 		list_del(&crc->list);
 		iounmap((void *)crc->regs);
-		peripheral_free_list(
-			(unsigned short *)pdev->dev.platform_data);
 		kfree(crc);
 	}
 
