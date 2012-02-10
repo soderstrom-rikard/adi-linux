@@ -23,7 +23,11 @@
 		printk(KERN_DEBUG "%s:%s:%i: Assertion failed: " #expr "\n", __FILE__, __func__, __LINE__);
 #endif
 
-#define BFIN_TIMER_NUM_GROUP  (BFIN_TIMER_OCTET(MAX_BLACKFIN_GPTIMERS - 1) + 1)
+#ifndef CONFIG_BF60x
+# define BFIN_TIMER_NUM_GROUP  (BFIN_TIMER_OCTET(MAX_BLACKFIN_GPTIMERS - 1) + 1)
+#else
+# define BFIN_TIMER_NUM_GROUP  1
+#endif
 
 static struct bfin_gptimer_regs * const timer_regs[MAX_BLACKFIN_GPTIMERS] =
 {
@@ -285,6 +289,12 @@ EXPORT_SYMBOL(get_gptimer_config);
 void enable_gptimers(uint16_t mask)
 {
 	int i;
+#ifdef CONFIG_BF60x
+	uint16_t imask;
+	imask = bfin_read16(TIMER_DATA_IMSK);
+	imask &= ~mask;
+	bfin_write16(TIMER_DATA_IMSK, imask);
+#endif
 	tassert((mask & ~BLACKFIN_GPTIMER_IDMASK) == 0);
 	for (i = 0; i < BFIN_TIMER_NUM_GROUP; ++i) {
 		bfin_write(&group_regs[i]->enable, mask & 0xFF);
