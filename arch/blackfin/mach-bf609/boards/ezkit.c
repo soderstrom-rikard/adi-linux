@@ -22,7 +22,6 @@
 #include <asm/gpio.h>
 #include <asm/nand.h>
 #include <asm/dpmc.h>
-#include <asm/bfin_sport.h>
 #include <asm/portmux.h>
 #include <asm/bfin_sdh.h>
 #include <linux/input.h>
@@ -733,6 +732,75 @@ static struct bfin6xx_spi_chip spi_flash_chip_info = {
 };
 #endif
 
+#if defined(CONFIG_SND_BF6XX_I2S) || defined(CONFIG_SND_BF6XX_I2S_MODULE)
+static struct platform_device bfin_i2s_pcm = {
+	.name = "bfin-i2s-pcm-audio",
+	.id = -1,
+};
+#endif
+
+#if defined(CONFIG_SND_BF6XX_SOC_I2S) || \
+	defined(CONFIG_SND_BF6XX_SOC_I2S_MODULE)
+#include <asm/bfin_sport3.h>
+static struct resource bfin_snd_resources[] = {
+	{
+		.start = SPORT1_CTL_A,
+		.end = SPORT1_CTL_A,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = SPORT1_CTL_B,
+		.end = SPORT1_CTL_B,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = CH_SPORT1_TX,
+		.end = CH_SPORT1_TX,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = CH_SPORT1_RX,
+		.end = CH_SPORT1_RX,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = IRQ_SPORT1_TX_STAT,
+		.end = IRQ_SPORT1_TX_STAT,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_SPORT2_RX_STAT,
+		.end = IRQ_SPORT2_RX_STAT,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static const unsigned short bfin_snd_pin[] = {
+	P_SPORT1_ACLK, P_SPORT1_AFS, P_SPORT1_AD0, P_SPORT1_BCLK,
+	P_SPORT1_BFS, P_SPORT1_BD0, 0,
+};
+
+static struct bfin_snd_platform_data bfin_snd_data = {
+	.pin_req = bfin_snd_pin,
+};
+
+static struct platform_device bfin_i2s = {
+	.name = "bfin-i2s",
+	.num_resources = ARRAY_SIZE(bfin_snd_resources),
+	.resource = bfin_snd_resources,
+	.dev = {
+		.platform_data = &bfin_snd_data,
+	},
+};
+#endif
+
+#if defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1X61) || \
+	defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1X61_MODULE)
+static struct platform_device bf5xx_adau1701_device = {
+	.name = "bfin-eval-adau1x61",
+};
+#endif
+
 #if defined(CONFIG_BFIN_CRC)
 #define BFIN_CRC_NAME "bfin-crc"
 
@@ -958,6 +1026,11 @@ static struct i2c_board_info __initdata bfin_i2c_board_info0[] = {
 		.platform_data = (void *)&adxl34x_info,
 	},
 #endif
+#if defined(CONFIG_SND_SOC_ADAU1761) || defined(CONFIG_SND_SOC_ADAU1761_MODULE)
+	{
+		I2C_BOARD_INFO("adau1761", 0x38),
+	},
+#endif
 };
 
 static struct i2c_board_info __initdata bfin_i2c_board_info1[] = {
@@ -1080,6 +1153,17 @@ static struct platform_device *ezkit_devices[] __initdata = {
 
 #if defined(CONFIG_MTD_PHYSMAP) || defined(CONFIG_MTD_PHYSMAP_MODULE)
 	&ezkit_flash_device,
+#endif
+#if defined(CONFIG_SND_BF6XX_I2S) || defined(CONFIG_SND_BF6XX_I2S_MODULE)
+	&bfin_i2s_pcm,
+#endif
+#if defined(CONFIG_SND_BF6XX_SOC_I2S) || \
+	defined(CONFIG_SND_BF6XX_SOC_I2S_MODULE)
+	&bfin_i2s,
+#endif
+#if defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1X61) || \
+	defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1X61_MODULE)
+	&bf5xx_adau1701_device,
 #endif
 };
 
