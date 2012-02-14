@@ -12,19 +12,27 @@
 /* Function driver which use hardware crc must initialize the structure */
 struct crc_info {
 	/* Input data address */
-	unsigned long in_addr;
+	unsigned char *in_addr;
 	/* Output data address */
-	unsigned long out_addr;
+	unsigned char *out_addr;
 	/* Input or output bytes */
-	unsigned long crc_datasize;
-	/* Value to compare with input data or CRC of input data */
+	unsigned long datasize;
+	union {
+	/* CRC to compare with that of input buffer */
 	unsigned long crc_compare;
+	/* Value to compare with input data */
+	unsigned long val_verify;
+	/* Value to fill */
+	unsigned long val_fill;
+	};
 	/* Value to program the 32b CRC Polynomial */
 	unsigned long crc_poly;
+	union {
 	/* CRC calculated from the input data */
 	unsigned long crc_result;
-	/* Data to fill */
-	unsigned long crc_fillval;
+	/* First failed position to verify input data */
+	unsigned long pos_verify;
+	};
 	/* CRC mirror flags */
 	unsigned int bitmirr:1;
 	unsigned int bytmirr:1;
