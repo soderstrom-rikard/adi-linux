@@ -1291,78 +1291,104 @@
 /* =========================
 	SPORT0
    ========================= */
-#define SPORT0_CTL                  0xFFC40080         /* SPORT0 Control Register */
-#define SPORT0_DIV                  0xFFC40084         /* SPORT0 Clock and FS Divide Register */
-#define SPORT0_MCTL                 0xFFC40088         /* SPORT0 Multichannel Control Register */
-#define SPORT0_CS0                  0xFFC4008C         /* SPORT0 Multichannel Select Register (Channels 0-31) */
-#define SPORT0_CS1                  0xFFC40090         /* SPORT0 Multichannel Select Register (Channels 32-63) */
-#define SPORT0_CS2                  0xFFC40094         /* SPORT0 Multichannel Select Register (Channels 64-95) */
-#define SPORT0_CS3                  0xFFC40098         /* SPORT0 Multichannel Select Register (Channels 96-127) */
-#define SPORT0_CNT                  0xFFC4009C         /* SPORT0 Frame Sync And Clock Divisor Current Count */
-#define SPORT0_ERR                  0xFFC400A0         /* SPORT0 Error Register */
-#define SPORT0_MSTAT                0xFFC400A4         /* SPORT0 Multichannel Mode Status Register */
-#define SPORT0_CTL2                 0xFFC400A8         /* SPORT0 Control Register 2 */
-#define SPORT0_TXPRI                0xFFC400C0         /* SPORT0 Primary Channel Transmit Buffer Register */
-#define SPORT0_RXPRI                0xFFC400C4         /* SPORT0 Primary Channel Receive Buffer Register */
-#define SPORT0_TXSEC                0xFFC400C8         /* SPORT0 Secondary Channel Transmit Buffer Register */
-#define SPORT0_RXSEC                0xFFC400CC         /* SPORT0 Secondary Channel Receive Buffer Register */
+#define SPORT0_CTL_A                0xFFC40000         /* SPORT0 'A' Control Register */
+#define SPORT0_DIV_A                0xFFC40004         /* SPORT0 'A' Clock and FS Divide Register */
+#define SPORT0_MCTL_A               0xFFC40008         /* SPORT0 'A' Multichannel Control Register */
+#define SPORT0_CS0_A                0xFFC4000C         /* SPORT0 'A' Multichannel Select Register (Channels 0-31) */
+#define SPORT0_CS1_A                0xFFC40010         /* SPORT0 'A' Multichannel Select Register (Channels 32-63) */
+#define SPORT0_CS2_A                0xFFC40014         /* SPORT0 'A' Multichannel Select Register (Channels 64-95) */
+#define SPORT0_CS3_A                0xFFC40018         /* SPORT0 'A' Multichannel Select Register (Channels 96-127) */
+#define SPORT0_CNT_A                0xFFC4001C         /* SPORT0 'A' Frame Sync And Clock Divisor Current Count */
+#define SPORT0_ERR_A                0xFFC40020         /* SPORT0 'A' Error Register */
+#define SPORT0_MSTAT_A              0xFFC40024         /* SPORT0 'A' Multichannel Mode Status Register */
+#define SPORT0_CTL2_A               0xFFC40028         /* SPORT0 'A' Control Register 2 */
+#define SPORT0_TXPRI_A              0xFFC40040         /* SPORT0 'A' Primary Channel Transmit Buffer Register */
+#define SPORT0_RXPRI_A              0xFFC40044         /* SPORT0 'A' Primary Channel Receive Buffer Register */
+#define SPORT0_TXSEC_A              0xFFC40048         /* SPORT0 'A' Secondary Channel Transmit Buffer Register */
+#define SPORT0_RXSEC_A              0xFFC4004C         /* SPORT0 'A' Secondary Channel Receive Buffer Register */
+#define SPORT0_CTL_B                0xFFC40080         /* SPORT0 'B' Control Register */
+#define SPORT0_DIV_B                0xFFC40084         /* SPORT0 'B' Clock and FS Divide Register */
+#define SPORT0_MCTL_B               0xFFC40088         /* SPORT0 'B' Multichannel Control Register */
+#define SPORT0_CS0_B                0xFFC4008C         /* SPORT0 'B' Multichannel Select Register (Channels 0-31) */
+#define SPORT0_CS1_B                0xFFC40090         /* SPORT0 'B' Multichannel Select Register (Channels 32-63) */
+#define SPORT0_CS2_B                0xFFC40094         /* SPORT0 'B' Multichannel Select Register (Channels 64-95) */
+#define SPORT0_CS3_B                0xFFC40098         /* SPORT0 'B' Multichannel Select Register (Channels 96-127) */
+#define SPORT0_CNT_B                0xFFC4009C         /* SPORT0 'B' Frame Sync And Clock Divisor Current Count */
+#define SPORT0_ERR_B                0xFFC400A0         /* SPORT0 'B' Error Register */
+#define SPORT0_MSTAT_B              0xFFC400A4         /* SPORT0 'B' Multichannel Mode Status Register */
+#define SPORT0_CTL2_B               0xFFC400A8         /* SPORT0 'B' Control Register 2 */
+#define SPORT0_TXPRI_B              0xFFC400C0         /* SPORT0 'B' Primary Channel Transmit Buffer Register */
+#define SPORT0_RXPRI_B              0xFFC400C4         /* SPORT0 'B' Primary Channel Receive Buffer Register */
+#define SPORT0_TXSEC_B              0xFFC400C8         /* SPORT0 'B' Secondary Channel Transmit Buffer Register */
+#define SPORT0_RXSEC_B              0xFFC400CC         /* SPORT0 'B' Secondary Channel Receive Buffer Register */
 
 /* =========================
 	SPORT1
    ========================= */
-#define SPORT1_CTL                  0xFFC40180         /* SPORT1 Control Register */
-#define SPORT1_DIV                  0xFFC40184         /* SPORT1 Clock and FS Divide Register */
-#define SPORT1_MCTL                 0xFFC40188         /* SPORT1 Multichannel Control Register */
-#define SPORT1_CS0                  0xFFC4018C         /* SPORT1 Multichannel Select Register (Channels 0-31) */
-#define SPORT1_CS1                  0xFFC40190         /* SPORT1 Multichannel Select Register (Channels 32-63) */
-#define SPORT1_CS2                  0xFFC40194         /* SPORT1 Multichannel Select Register (Channels 64-95) */
-#define SPORT1_CS3                  0xFFC40198         /* SPORT1 Multichannel Select Register (Channels 96-127) */
-#define SPORT1_CNT                  0xFFC4019C         /* SPORT1 Frame Sync And Clock Divisor Current Count */
-#define SPORT1_ERR                  0xFFC401A0         /* SPORT1 Error Register */
-#define SPORT1_MSTAT                0xFFC401A4         /* SPORT1 Multichannel Mode Status Register */
-#define SPORT1_CTL2                 0xFFC401A8         /* SPORT1 Control Register 2 */
-#define SPORT1_TXPRI                0xFFC401C0         /* SPORT1 Primary Channel Transmit Buffer Register */
-#define SPORT1_RXPRI                0xFFC401C4         /* SPORT1 Primary Channel Receive Buffer Register */
-#define SPORT1_TXSEC                0xFFC401C8         /* SPORT1 Secondary Channel Transmit Buffer Register */
-#define SPORT1_RXSEC                0xFFC401CC         /* SPORT1 Secondary Channel Receive Buffer Register */
+#define SPORT1_CTL_A                0xFFC40100         /* SPORT1 'A' Control Register */
+#define SPORT1_DIV_A                0xFFC40104         /* SPORT1 'A' Clock and FS Divide Register */
+#define SPORT1_MCTL_A               0xFFC40108         /* SPORT1 'A' Multichannel Control Register */
+#define SPORT1_CS0_A                0xFFC4010C         /* SPORT1 'A' Multichannel Select Register (Channels 0-31) */
+#define SPORT1_CS1_A                0xFFC40110         /* SPORT1 'A' Multichannel Select Register (Channels 32-63) */
+#define SPORT1_CS2_A                0xFFC40114         /* SPORT1 'A' Multichannel Select Register (Channels 64-95) */
+#define SPORT1_CS3_A                0xFFC40118         /* SPORT1 'A' Multichannel Select Register (Channels 96-127) */
+#define SPORT1_CNT_A                0xFFC4011C         /* SPORT1 'A' Frame Sync And Clock Divisor Current Count */
+#define SPORT1_ERR_A                0xFFC40120         /* SPORT1 'A' Error Register */
+#define SPORT1_MSTAT_A              0xFFC40124         /* SPORT1 'A' Multichannel Mode Status Register */
+#define SPORT1_CTL2_A               0xFFC40128         /* SPORT1 'A' Control Register 2 */
+#define SPORT1_TXPRI_A              0xFFC40140         /* SPORT1 'A' Primary Channel Transmit Buffer Register */
+#define SPORT1_RXPRI_A              0xFFC40144         /* SPORT1 'A' Primary Channel Receive Buffer Register */
+#define SPORT1_TXSEC_A              0xFFC40148         /* SPORT1 'A' Secondary Channel Transmit Buffer Register */
+#define SPORT1_RXSEC_A              0xFFC4014C         /* SPORT1 'A' Secondary Channel Receive Buffer Register */
+#define SPORT1_CTL_B                0xFFC40180         /* SPORT1 'B' Control Register */
+#define SPORT1_DIV_B                0xFFC40184         /* SPORT1 'B' Clock and FS Divide Register */
+#define SPORT1_MCTL_B               0xFFC40188         /* SPORT1 'B' Multichannel Control Register */
+#define SPORT1_CS0_B                0xFFC4018C         /* SPORT1 'B' Multichannel Select Register (Channels 0-31) */
+#define SPORT1_CS1_B                0xFFC40190         /* SPORT1 'B' Multichannel Select Register (Channels 32-63) */
+#define SPORT1_CS2_B                0xFFC40194         /* SPORT1 'B' Multichannel Select Register (Channels 64-95) */
+#define SPORT1_CS3_B                0xFFC40198         /* SPORT1 'B' Multichannel Select Register (Channels 96-127) */
+#define SPORT1_CNT_B                0xFFC4019C         /* SPORT1 'B' Frame Sync And Clock Divisor Current Count */
+#define SPORT1_ERR_B                0xFFC401A0         /* SPORT1 'B' Error Register */
+#define SPORT1_MSTAT_B              0xFFC401A4         /* SPORT1 'B' Multichannel Mode Status Register */
+#define SPORT1_CTL2_B               0xFFC401A8         /* SPORT1 'B' Control Register 2 */
+#define SPORT1_TXPRI_B              0xFFC401C0         /* SPORT1 'B' Primary Channel Transmit Buffer Register */
+#define SPORT1_RXPRI_B              0xFFC401C4         /* SPORT1 'B' Primary Channel Receive Buffer Register */
+#define SPORT1_TXSEC_B              0xFFC401C8         /* SPORT1 'B' Secondary Channel Transmit Buffer Register */
+#define SPORT1_RXSEC_B              0xFFC401CC         /* SPORT1 'B' Secondary Channel Receive Buffer Register */
 
 /* =========================
 	SPORT2
    ========================= */
-#define SPORT2_CTL                  0xFFC40280         /* SPORT2 Control Register */
-#define SPORT2_DIV                  0xFFC40284         /* SPORT2 Clock and FS Divide Register */
-#define SPORT2_MCTL                 0xFFC40288         /* SPORT2 Multichannel Control Register */
-#define SPORT2_CS0                  0xFFC4028C         /* SPORT2 Multichannel Select Register (Channels 0-31) */
-#define SPORT2_CS1                  0xFFC40290         /* SPORT2 Multichannel Select Register (Channels 32-63) */
-#define SPORT2_CS2                  0xFFC40294         /* SPORT2 Multichannel Select Register (Channels 64-95) */
-#define SPORT2_CS3                  0xFFC40298         /* SPORT2 Multichannel Select Register (Channels 96-127) */
-#define SPORT2_CNT                  0xFFC4029C         /* SPORT2 Frame Sync And Clock Divisor Current Count */
-#define SPORT2_ERR                  0xFFC402A0         /* SPORT2 Error Register */
-#define SPORT2_MSTAT                0xFFC402A4         /* SPORT2 Multichannel Mode Status Register */
-#define SPORT2_CTL2                 0xFFC402A8         /* SPORT2 Control Register 2 */
-#define SPORT2_TXPRI                0xFFC402C0         /* SPORT2 Primary Channel Transmit Buffer Register */
-#define SPORT2_RXPRI                0xFFC402C4         /* SPORT2 Primary Channel Receive Buffer Register */
-#define SPORT2_TXSEC                0xFFC402C8         /* SPORT2 Secondary Channel Transmit Buffer Register */
-#define SPORT2_RXSEC                0xFFC402CC         /* SPORT2 Secondary Channel Receive Buffer Register */
-
-/* =========================
-	SPORT3
-   ========================= */
-#define SPORT3_CTL                  0xFFC40380         /* SPORT3 Control Register */
-#define SPORT3_DIV                  0xFFC40384         /* SPORT3 Clock and FS Divide Register */
-#define SPORT3_MCTL                 0xFFC40388         /* SPORT3 Multichannel Control Register */
-#define SPORT3_CS0                  0xFFC4038C         /* SPORT3 Multichannel Select Register (Channels 0-31) */
-#define SPORT3_CS1                  0xFFC40390         /* SPORT3 Multichannel Select Register (Channels 32-63) */
-#define SPORT3_CS2                  0xFFC40394         /* SPORT3 Multichannel Select Register (Channels 64-95) */
-#define SPORT3_CS3                  0xFFC40398         /* SPORT3 Multichannel Select Register (Channels 96-127) */
-#define SPORT3_CNT                  0xFFC4039C         /* SPORT3 Frame Sync And Clock Divisor Current Count */
-#define SPORT3_ERR                  0xFFC403A0         /* SPORT3 Error Register */
-#define SPORT3_MSTAT                0xFFC403A4         /* SPORT3 Multichannel Mode Status Register */
-#define SPORT3_CTL2                 0xFFC403A8         /* SPORT3 Control Register 2 */
-#define SPORT3_TXPRI                0xFFC403C0         /* SPORT3 Primary Channel Transmit Buffer Register */
-#define SPORT3_RXPRI                0xFFC403C4         /* SPORT3 Primary Channel Receive Buffer Register */
-#define SPORT3_TXSEC                0xFFC403C8         /* SPORT3 Secondary Channel Transmit Buffer Register */
-#define SPORT3_RXSEC                0xFFC403CC         /* SPORT3 Secondary Channel Receive Buffer Register */
+#define SPORT2_CTL_A                0xFFC40200         /* SPORT2 'A' Control Register */
+#define SPORT2_DIV_A                0xFFC40204         /* SPORT2 'A' Clock and FS Divide Register */
+#define SPORT2_MCTL_A               0xFFC40208         /* SPORT2 'A' Multichannel Control Register */
+#define SPORT2_CS0_A                0xFFC4020C         /* SPORT2 'A' Multichannel Select Register (Channels 0-31) */
+#define SPORT2_CS1_A                0xFFC40210         /* SPORT2 'A' Multichannel Select Register (Channels 32-63) */
+#define SPORT2_CS2_A                0xFFC40214         /* SPORT2 'A' Multichannel Select Register (Channels 64-95) */
+#define SPORT2_CS3_A                0xFFC40218         /* SPORT2 'A' Multichannel Select Register (Channels 96-127) */
+#define SPORT2_CNT_A                0xFFC4021C         /* SPORT2 'A' Frame Sync And Clock Divisor Current Count */
+#define SPORT2_ERR_A                0xFFC40220         /* SPORT2 'A' Error Register */
+#define SPORT2_MSTAT_A              0xFFC40224         /* SPORT2 'A' Multichannel Mode Status Register */
+#define SPORT2_CTL2_A               0xFFC40228         /* SPORT2 'A' Control Register 2 */
+#define SPORT2_TXPRI_A              0xFFC40240         /* SPORT2 'A' Primary Channel Transmit Buffer Register */
+#define SPORT2_RXPRI_A              0xFFC40244         /* SPORT2 'A' Primary Channel Receive Buffer Register */
+#define SPORT2_TXSEC_A              0xFFC40248         /* SPORT2 'A' Secondary Channel Transmit Buffer Register */
+#define SPORT2_RXSEC_A              0xFFC4024C         /* SPORT2 'A' Secondary Channel Receive Buffer Register */
+#define SPORT2_CTL_B                0xFFC40280         /* SPORT2 'B' Control Register */
+#define SPORT2_DIV_B                0xFFC40284         /* SPORT2 'B' Clock and FS Divide Register */
+#define SPORT2_MCTL_B               0xFFC40288         /* SPORT2 'B' Multichannel Control Register */
+#define SPORT2_CS0_B                0xFFC4028C         /* SPORT2 'B' Multichannel Select Register (Channels 0-31) */
+#define SPORT2_CS1_B                0xFFC40290         /* SPORT2 'B' Multichannel Select Register (Channels 32-63) */
+#define SPORT2_CS2_B                0xFFC40294         /* SPORT2 'B' Multichannel Select Register (Channels 64-95) */
+#define SPORT2_CS3_B                0xFFC40298         /* SPORT2 'B' Multichannel Select Register (Channels 96-127) */
+#define SPORT2_CNT_B                0xFFC4029C         /* SPORT2 'B' Frame Sync And Clock Divisor Current Count */
+#define SPORT2_ERR_B                0xFFC402A0         /* SPORT2 'B' Error Register */
+#define SPORT2_MSTAT_B              0xFFC402A4         /* SPORT2 'B' Multichannel Mode Status Register */
+#define SPORT2_CTL2_B               0xFFC402A8         /* SPORT2 'B' Control Register 2 */
+#define SPORT2_TXPRI_B              0xFFC402C0         /* SPORT2 'B' Primary Channel Transmit Buffer Register */
+#define SPORT2_RXPRI_B              0xFFC402C4         /* SPORT2 'B' Primary Channel Receive Buffer Register */
+#define SPORT2_TXSEC_B              0xFFC402C8         /* SPORT2 'B' Secondary Channel Transmit Buffer Register */
+#define SPORT2_RXSEC_B              0xFFC402CC         /* SPORT2 'B' Secondary Channel Receive Buffer Register */
 
 /* =========================
         DDE Registers
