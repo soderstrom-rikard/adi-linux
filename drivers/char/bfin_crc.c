@@ -27,7 +27,7 @@
 
 static LIST_HEAD(bfin_crc_list);
 
-static void bfin_crc_config_dma(unsigned long dma_ch, unsigned long addr,
+static void bfin_crc_config_dma(unsigned long dma_ch, unsigned char *addr,
 	unsigned long size, unsigned long dma_config, int mod_dir)
 {
 	unsigned int dma_count;
@@ -36,11 +36,11 @@ static void bfin_crc_config_dma(unsigned long dma_ch, unsigned long addr,
 
 	dma_config |= PSIZE_32;
 
-	if (addr % 4 == 0) {
+	if ((unsigned long)addr % 4 == 0) {
 		dma_config |= WDSIZE_32;
 		dma_count = size >> 2;
 		dma_shift = 2;
-	} else if (addr % 2 == 0) {
+	} else if ((unsigned long)addr % 2 == 0) {
 		dma_config |= WDSIZE_16;
 		dma_count = size >> 1;
 		dma_shift = 1;
@@ -50,17 +50,15 @@ static void bfin_crc_config_dma(unsigned long dma_ch, unsigned long addr,
 		dma_shift = 0;
 	}
 
-	/* If the two memory regions have a chance of overlapping, make
-	 * sure the memcpy still works as expected.  Do this by having the
-	 * copy run backwards instead.
-	 */
 	dma_mod = (1 << dma_shift) * mod_dir;
-	addr += size + dma_mod;
+	if (mod_dir == -1)
+		addr += size + dma_mod;
 
-	set_dma_start_addr(dma_ch, addr);
+	set_dma_start_addr(dma_ch, (unsigned long)addr);
 	set_dma_x_count(dma_ch, dma_count);
 	set_dma_x_modify(dma_ch, dma_mod);
 	set_dma_config(dma_ch, dma_config);
+	SSYNC();
 	enable_dma(dma_ch);
 }
 
@@ -69,102 +67,122 @@ static int bfin_crc_run(struct bfin_crc *crc, unsigned int opmode, struct crc_in
 	int ret = 0;
 	unsigned long control;
 	unsigned int timeout = 100000;
-	int mod_dir;
+	int mod_dir = 1;
 
-	if (info->crc_datasize == 0)
+	if (info->datasize == 0)
 		return 0;
-	else if (info->crc_datasize % 4 != 0) {
+	else if (info->datasize % 4 != 0) {
 		dev_info(crc->mdev.this_device, "CRC data size should be multiply of 4 bytes.\n");
-		return -EFAULT;
+		return -EINVAL;
 	}
 
 	/* config CRC */
-	crc->regs->poly = info->crc_poly;
-	SSYNC();
-
-	if (opmode == MODE_DATA_FILL)
-		crc->regs->fillval = info->crc_fillval;
-	else
-		crc->regs->compare = info->crc_compare;
-
-	control = (opmode & OPMODE) << OPMODE_OFFSET;
-	control |= info->bitmirr << BITMIRR_OFFSET;
-	control |= info->bytmirr << BYTMIRR_OFFSET;
-	control |= info->w16swp << W16SWP_OFFSET;
-	control |= info->fdsel << FDSEL_OFFSET;
-	control |= info->rsltmirr << RSLTMIRR_OFFSET;
-	control |= info->polymirr << POLYMIRR_OFFSET;
-	control |= info->cmpmirr << CMPMIRR_OFFSET;
+	control = opmode << OPMODE_OFFSET;
+	control |= (info->bitmirr << BITMIRR_OFFSET);
+	control |= (info->bytmirr << BYTMIRR_OFFSET);
+	control |= (info->w16swp << W16SWP_OFFSET);
+	control |= (info->fdsel << FDSEL_OFFSET);
+	control |= (info->rsltmirr << RSLTMIRR_OFFSET);
+	control |= (info->polymirr << POLYMIRR_OFFSET);
+	control |= (info->cmpmirr << CMPMIRR_OFFSET);
+	control |= AUTOCLRZ;
 
 	if (opmode == MODE_DMACPY_CRC)
 		control |= OBRSTALL;
 
 	crc->regs->control = control;
-	crc->regs->datacnt = info->crc_datasize >> 2;
+	SSYNC();
 
-	while (!(crc->regs->status & LUTDONE) && (--timeout) > 0)
-		cpu_relax();
+	if (opmode == MODE_CALC_CRC || opmode == MODE_DMACPY_CRC) {
+		crc->regs->poly = info->crc_poly;
+		SSYNC();
 
-	if (!timeout) {
-		dev_dbg(crc->mdev.this_device, "Timeout when generating LUT.\n");
-		return -EBUSY;
+		while (!(crc->regs->status & LUTDONE) && (--timeout) > 0)
+			cpu_relax();
+
+		if (!timeout) {
+			dev_dbg(crc->mdev.this_device, "Timeout when generating LUT.\n");
+			return -EBUSY;
+		}
 	}
+
+	crc->regs->datacntrld = 0;
+	crc->regs->datacnt = info->datasize >> 2;
+	crc->regs->compare = info->crc_compare;
 
 	/* setup CRC interrupts */
 	crc->regs->intrenset = CMPERRI | DCNTEXPI;
 	SSYNC();
 
-	/* setup CRC DMA */
+	/* setup CRC receive DMA */
 	switch (opmode) {
-	case MODE_CALC_CRC:
-	case MODE_DATA_VERIFY:
-		flush_dcache_range(info->in_addr, info->in_addr + info->crc_datasize);
-		bfin_crc_config_dma(crc->dma_ch_src, info->in_addr,
-			info->crc_datasize, 0, 1);
-		break;
-	case MODE_DMACPY_CRC:
-		flush_dcache_range(info->in_addr, info->in_addr + info->crc_datasize);
-		invalidate_dcache_range(info->out_addr, info->out_addr + info->crc_datasize);
-		if (info->out_addr < info->in_addr + info->crc_datasize)
-			mod_dir = -1;
-		else
-			mod_dir = 1;
-		bfin_crc_config_dma(crc->dma_ch_src, info->in_addr,
-			info->crc_datasize, 0, mod_dir);
-		bfin_crc_config_dma(crc->dma_ch_dest, info->out_addr,
-			info->crc_datasize, WNR, mod_dir);
-		break;
-	case MODE_DATA_FILL:
-		invalidate_dcache_range(info->out_addr, info->out_addr + info->crc_datasize);
-		bfin_crc_config_dma(crc->dma_ch_dest, info->out_addr,
-			info->crc_datasize, WNR, 1);
-		break;
-	default:
-		goto out;
+		case MODE_DMACPY_CRC:
+			invalidate_dcache_range((unsigned long)info->out_addr,
+					(unsigned long)(info->out_addr + info->datasize));
+			if (info->out_addr < info->in_addr + info->datasize)
+				mod_dir = -1;
+			bfin_crc_config_dma(crc->dma_ch_dest, info->out_addr,
+					info->datasize, WNR, mod_dir);
+			break;
+		case MODE_DATA_FILL:
+			crc->regs->fillval = info->val_fill;
+			invalidate_dcache_range((unsigned long)info->out_addr,
+					(unsigned long)(info->out_addr + info->datasize));
+			bfin_crc_config_dma(crc->dma_ch_dest, info->out_addr,
+					info->datasize, WNR, 1);
+			break;
 	}
 
 	/* enable CRC operation */
 	crc->regs->control |= BLKEN;
 	SSYNC();
 
+	/* setup CRC transfer DMA */
+	switch (opmode) {
+		case MODE_CALC_CRC:
+		case MODE_DATA_VERIFY:
+			flush_dcache_range((unsigned long)info->in_addr,
+					(unsigned long)(info->in_addr + info->datasize));
+			bfin_crc_config_dma(crc->dma_ch_src, info->in_addr,
+					info->datasize, 0, 1);
+			break;
+		case MODE_DMACPY_CRC:
+			flush_dcache_range((unsigned long)info->in_addr,
+					(unsigned long)(info->in_addr + info->datasize));
+			bfin_crc_config_dma(crc->dma_ch_src, info->in_addr,
+					info->datasize, 0, mod_dir);
+			break;
+	}
+
 	/* wait for completion */
-	ret = wait_for_completion_interruptible(&crc->c);
-	if (ret < 0) {
+	if ((ret = wait_for_completion_interruptible(&crc->c)) < 0) {
 		dev_dbg(crc->mdev.this_device, "Completion waiting is interrupted.\n");
 		goto out;
 	}
-
-	if (opmode == MODE_DMACPY_CRC || MODE_DATA_FILL)
+	if (opmode == MODE_DMACPY_CRC || opmode == MODE_DATA_FILL)
 		while (crc->regs->status & OBR)
 			cpu_relax();
 
 	/* prepare results */
-	info->crc_result = crc->regs->result;
-	crc->regs->control = 0;
-	SSYNC();
+	switch (opmode) {
+		case MODE_CALC_CRC:
+		case MODE_DMACPY_CRC:
+			info->crc_result = crc->regs->result;
+			break;
+		case MODE_DATA_VERIFY:
+			info->pos_verify = (crc->regs->status & CMPERR) ? crc->regs->datacntcap : 0;
+			break;
+	};
+
+out:
+	clear_dma_irqstat(crc->dma_ch_src);
+	clear_dma_irqstat(crc->dma_ch_dest);
 	disable_dma(crc->dma_ch_src);
 	disable_dma(crc->dma_ch_dest);
-out:
+	crc->regs->intrenclr = CMPERRI | DCNTEXPI;
+	crc->regs->status = CMPERRI | DCNTEXPI;
+	crc->regs->control = 0;
+	SSYNC();
 	return ret;
 }
 
@@ -178,7 +196,8 @@ static irqreturn_t bfin_crc_handler(int irq, void *dev_id)
 	if (crc->regs->status & DCNTEXP) {
 		crc->regs->status = DCNTEXP;
 		SSYNC();
-		complete(&crc->c);
+		if (crc->regs->control | BLKEN)
+			complete(&crc->c);
 		return IRQ_HANDLED;
 	} else
 		return IRQ_NONE;
@@ -309,7 +328,7 @@ static long bfin_crc_ioctl(struct file *filp,
 		ret = -ENOTTY;
 	}
 
-	if (ret > 0 && copy_to_user(argp, &bfin_crc_info, sizeof(bfin_crc_info)))
+	if (ret >= 0 && copy_to_user(argp, &bfin_crc_info, sizeof(bfin_crc_info)))
 		ret = -EFAULT;
 
 out:
