@@ -1,0 +1,606 @@
+/*
+ * Blackfin Linkport driver
+ *
+ * Copyright 2012-2013 Analog Devices Inc.
+ *
+ * Licensed under the GPL-2 or later.
+ */
+
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/sched.h>
+#include <linux/wait.h>
+#include <linux/poll.h>
+#include <linux/errno.h>
+#include <linux/fs.h>
+#include <linux/init.h>
+#include <linux/io.h>
+#include <linux/string.h>
+#include <linux/spinlock.h>
+#include <linux/delay.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include <linux/slab.h>
+#include <linux/kfifo.h>
+
+#include <asm/irq.h>
+#include <asm/blackfin.h>
+#include <asm/dma.h>
+#include <asm/cacheflush.h>
+#include <asm/portmux.h>
+
+#include <asm/gptimers.h>
+
+#define LINKPORT_DRVNAME "bfin-linkport"
+
+#define BFIN_LP_DMA_MODE
+
+#define LP_CTL_EN 0x1
+#define LP_CTL_TRAN 0x8
+#define LP_CTL_TRQMSK  0x10
+#define LP_CTL_RRQMSK  0x20
+#define LP_CTL_ITMSK  0x80
+
+#define LP_STAT_LTRQ 0x1
+#define LP_STAT_LRRQ 0x2
+#define LP_STAT_LPIT 0x8
+#define LP_STAT_FFST 0x70
+#define LP_STAT_LERR 0x80
+#define LP_STAT_LPBS 0x100
+
+struct bfin_lp_register {
+	uint32_t ctl;
+	uint32_t stat;
+	uint32_t div;
+	uint32_t cnt;
+	uint32_t tx;
+	uint32_t rx;
+	uint32_t tx_shadow;
+	uint32_t rx_shadow;
+};
+
+static const unsigned short per_req_lp0[] = {
+	P_LP0_CLK,
+	P_LP0_ACK,
+	P_LP0_D0,
+	P_LP0_D1,
+	P_LP0_D2,
+	P_LP0_D3,
+	P_LP0_D4,
+	P_LP0_D5,
+	P_LP0_D6,
+	P_LP0_D7,
+	0
+};
+
+static const unsigned short per_req_lp1[] = {
+	P_LP1_CLK,
+	P_LP1_ACK,
+	P_LP1_D0,
+	P_LP1_D1,
+	P_LP1_D2,
+	P_LP1_D3,
+	P_LP1_D4,
+	P_LP1_D5,
+	P_LP1_D6,
+	P_LP1_D7,
+	0
+};
+
+static const unsigned short per_req_lp2[] = {
+	P_LP2_CLK,
+	P_LP2_ACK,
+	P_LP2_D0,
+	P_LP2_D1,
+	P_LP2_D2,
+	P_LP2_D3,
+	P_LP2_D4,
+	P_LP2_D5,
+	P_LP2_D6,
+	P_LP2_D7,
+	0
+};
+
+static const unsigned short per_req_lp3[] = {
+	P_LP3_CLK,
+	P_LP3_ACK,
+	P_LP3_D0,
+	P_LP3_D1,
+	P_LP3_D2,
+	P_LP3_D3,
+	P_LP3_D4,
+	P_LP3_D5,
+	P_LP3_D6,
+	P_LP3_D7,
+	0
+};
+
+struct bfin_linkport {
+	struct list_head lp_dev;
+	struct class *class;
+	int major;
+	spinlock_t lp_dev_lock;
+};
+
+struct bfin_lp_dev {
+	struct list_head list;
+	struct device *device;
+	volatile struct bfin_lp_register __iomem *regs;
+	wait_queue_head_t rx_waitq;
+	int rx_fifo_cnt;
+	int tx_fifo_cnt;
+	spinlock_t lock;
+	int linkport_num;
+	int dma_chan;
+	int irq;
+	int status_irq;
+	const unsigned short *per_linkport;
+};
+
+struct bfin_linkport *linkport_dev;
+
+struct bfin_lp_dev lp_dev_info[4] = {
+	{
+		.regs = LP0_CTL,
+		.irq = IRQ_LP0,
+		.per_linkport = per_req_lp0,
+		.dma_chan = CH_LP0,
+	},
+	{
+		.regs = LP1_CTL,
+		.irq = IRQ_LP1,
+		.per_linkport = per_req_lp1,
+		.dma_chan = CH_LP1,
+	},
+	{
+		.regs = LP2_CTL,
+		.irq = IRQ_LP2,
+		.per_linkport = per_req_lp2,
+		.dma_chan = CH_LP2,
+	},
+	{
+		.regs = LP3_CTL,
+		.irq = IRQ_LP3,
+		.per_linkport = per_req_lp3,
+		.dma_chan = CH_LP3,
+	},
+};
+
+
+int bfin_lp_config_channel(struct bfin_lp_dev *lpdev, int direction)
+{
+	uint32_t reg;
+	if (direction)
+		reg = LP_CTL_TRAN | LP_CTL_RRQMSK | LP_CTL_RRQMSK | LP_CTL_ITMSK;
+	else
+		reg = LP_CTL_RRQMSK | LP_CTL_RRQMSK | LP_CTL_ITMSK;
+
+	lpdev->regs->ctl = reg;
+	SSYNC();
+	return 0;
+}
+
+int bfin_lp_tx_word(struct bfin_lp_dev *lpdev, uint32_t *buf, int count)
+{
+	uint32_t *word = buf;
+
+	lpdev->regs->div = 1;
+	lpdev->regs->ctl |= LP_CTL_EN;
+
+	while (count) {
+		if ((lpdev->regs->stat & LP_STAT_FFST) == 6)
+			return -EAGAIN;
+
+		while (lpdev->regs->stat & LP_STAT_LPBS);
+
+		lpdev->regs->tx = *word;
+		count--;
+		word++;
+	}
+
+	return 0;
+}
+
+int bfin_lp_rx_word(struct bfin_lp_dev *lpdev, uint32_t *buf, int count)
+{
+	uint32_t *word = buf;
+	while (count) {
+
+		if (!(lpdev->regs->stat & LP_STAT_LRRQ))
+			return -EAGAIN;
+
+		*word = lpdev->regs->rx;
+
+		count--;
+		word++;
+
+		while (lpdev->regs->stat & LP_STAT_LPBS);
+
+	}
+
+	return 0;
+}
+
+int bfin_lp_tx_dma(struct bfin_lp_dev *lpdev, void *buf, size_t count)
+{
+
+	set_dma_config(lpdev->dma_chan,
+			set_bfin_dma_config(DIR_READ, DMA_FLOW_STOP,
+				INTR_ON_BUF,
+				DIMENSION_LINEAR,
+				DATA_SIZE_32,
+				DMA_SYNC_RESTART));
+	set_dma_start_addr(lpdev->dma_chan, buf);
+	set_dma_x_count(lpdev->dma_chan, count);
+	set_dma_x_modify(lpdev->dma_chan, 1);
+	SSYNC();
+	enable_dma(lpdev->dma_chan);
+
+	return 0;
+}
+
+int bfin_lp_rx_dma(struct bfin_lp_dev *lpdev, void *buf, size_t count)
+{
+
+	set_dma_config(lpdev->dma_chan,
+			set_bfin_dma_config(DIR_WRITE, DMA_FLOW_STOP,
+				INTR_ON_BUF,
+				DIMENSION_LINEAR,
+				DATA_SIZE_32,
+				DMA_SYNC_RESTART));
+	set_dma_start_addr(lpdev->dma_chan, buf);
+	set_dma_x_count(lpdev->dma_chan, count);
+	set_dma_x_modify(lpdev->dma_chan, 1);
+	SSYNC();
+	enable_dma(lpdev->dma_chan);
+
+	return 0;
+}
+
+int bfin_lp_get_rx_fifo(struct bfin_lp_dev *lpdev)
+{
+	int state = (lpdev->regs->stat & LP_STAT_FFST) >> 4;
+
+	if (state <= 4)
+		return state;
+	else
+		return 0;
+}
+
+static irqreturn_t bfin_lp_irq(int irq, void *dev_id)
+{
+	struct bfin_lp_dev *dev = (struct bfin_lp_dev *)dev_id;
+	uint32_t word;
+	int cnt;
+	unsigned long flags;
+
+	cnt = bfin_lp_get_rx_fifo(dev);
+	if (cnt) {
+		spin_lock_irqsave(&dev->lock, flags);
+		dev->tx_fifo_cnt = cnt;
+		spin_unlock_irqrestore(&dev->lock, flags);
+		wake_up_interruptible(&dev->rx_waitq);
+	}
+
+	/* wake up read/write block. */
+	printk("bfin lp irq stat %x cnt %d\n", dev->regs->stat, cnt);
+
+	if (dev->regs->stat & LP_STAT_LTRQ) {
+		printk("send word\n");
+		dev->regs->tx = 0xffaa55bb;
+	}
+
+
+	return IRQ_HANDLED;
+}
+
+
+static int bfin_lp_open(struct inode *inode, struct file *filp)
+{
+	unsigned long flags;
+	struct bfin_lp_dev *dev;
+	unsigned int index = iminor(inode);
+	int ret = -EBUSY;
+
+	dev = &lp_dev_info[index];
+
+	spin_lock_irqsave(&dev->lock, flags);
+
+	filp->private_data = dev;
+
+	spin_unlock_irqrestore(&dev->lock, flags);
+
+	if (peripheral_request_list(dev->per_linkport, LINKPORT_DRVNAME)) {
+		printk("Requesting Peripherals failed\n");
+		return ret;
+	}
+
+	if (request_dma(dev->dma_chan, LINKPORT_DRVNAME) < 0) {
+		printk(KERN_NOTICE "Unable to attach Blackfin LINKPORT DMA channel\n");
+		goto free_per;
+	}
+
+	if (request_irq(dev->irq, bfin_lp_irq, 0, LINKPORT_DRVNAME, dev)) {
+		printk("Requesting irq failed\n");
+		goto free_dma;
+	}
+
+
+	dev->regs->div = 1;
+	SSYNC();
+
+	return 0;
+
+free_dma:
+	free_dma(dev->dma_chan);
+free_per:
+	peripheral_free_list(dev->per_linkport);
+	return ret;
+}
+
+static int bfin_lp_release(struct inode *inode, struct file *filp)
+{
+	struct bfin_lp_dev *dev = filp->private_data;
+	peripheral_free_list(dev->per_linkport);
+	free_dma(dev->dma_chan);
+	free_irq(dev->irq, dev);
+	return 0;
+}
+
+static ssize_t bfin_lp_read(struct file *filp, char *buf, size_t count, loff_t *pos)
+{
+	struct bfin_lp_dev *dev = filp->private_data;
+	int fifo_cnt = 0;
+	int rx_byte = 0;
+	uint32_t word[4];
+
+	printk("%s count %d\n", __func__, count);
+
+	bfin_lp_config_channel(dev, 0);
+
+	dev->regs->ctl |= LP_CTL_EN;
+
+
+	while (count) {
+		fifo_cnt = bfin_lp_get_rx_fifo(dev);
+		if (!fifo_cnt) {
+			wait_event_interruptible(dev->rx_waitq, dev->rx_fifo_cnt);
+			continue;
+		}
+
+		bfin_lp_rx_word(dev, word, 1);
+		count--;
+		rx_byte += 4;
+
+		if (put_user(word[0], (uint32_t *)(buf + rx_byte)))
+			return -EFAULT;
+
+	}
+
+	return count;
+}
+
+static ssize_t bfin_lp_write(struct file *filp, char *buf, size_t count, loff_t *pos)
+{
+	struct bfin_lp_dev *dev = filp->private_data;
+	unsigned long trans = count / 4 + 1;
+	uint32_t word;
+	int ret;
+
+	ret = kstrtou32_from_user(buf, 1, 16, &word);
+	printk("%s count %d\n", __func__, count);
+	bfin_lp_config_channel(dev, 1);
+
+	while (trans) {
+		ret = bfin_lp_tx_word(dev, &word, 1);
+		if (ret)
+			return 0;
+		trans--;
+	}
+
+	return count;
+}
+
+static long bfin_lp_ioctl(struct file *filp, uint cmd, unsigned long arg)
+{
+	return 0;
+}
+
+
+static const struct file_operations linkport_fops = {
+	.owner = THIS_MODULE,
+	.read = bfin_lp_read,
+	.write = bfin_lp_write,
+	.unlocked_ioctl = bfin_lp_ioctl,
+	.open = bfin_lp_open,
+	.release = bfin_lp_release,
+};
+
+static ssize_t
+linkport_status_show(struct class *class, struct class_attribute *attr, char *buf)
+{
+	char *p = buf;
+	struct bfin_lp_dev *dev;
+
+	printk("%s\n", __func__);
+	p += sprintf(p, "linkport status\n");
+	list_for_each_entry(dev, &linkport_dev->lp_dev, list) {
+		p += sprintf(p, "linkport num %d\n", dev->linkport_num);
+	}
+	return p - buf;
+}
+
+static ssize_t
+linkport_reg_show(struct class *class, struct class_attribute *attr, char *buf)
+{
+	char *p = buf;
+	struct bfin_lp_dev *dev;
+
+	printk("%s\n", __func__);
+	p += sprintf(p, "linkport status\n");
+	list_for_each_entry(dev, &linkport_dev->lp_dev, list) {
+		p += sprintf(p, "linkport num %d\n", dev->linkport_num);
+		p += sprintf(p, "\t clt %d\n", dev->regs->ctl);
+		p += sprintf(p, "\t stat %d\n", dev->regs->stat);
+	}
+	return (p - buf);
+}
+
+static ssize_t
+linkport_reg_store(struct class *class, struct class_attribute *attr, char *buf, size_t count)
+{
+	char *p = buf;
+	struct bfin_lp_dev *dev;
+	int rw = 0;
+	char buffer[64];
+	uint32_t res;
+	uint32_t addr;
+	uint32_t value = 0;
+	char *endp;
+
+	if (copy_from_user(buffer, buf, count))
+		return -EFAULT;
+
+	buffer[count] = '\0';
+
+	p = buffer;
+
+	while (*p == ' ')
+		p++;
+
+	if (p[0] == 'r')
+		rw = 0;
+	else if (p[0] == 'w')
+		rw = 1;
+	else
+		printk("-EINVAL\n");
+
+	if (p[1] < '0' && p[1] > '9')
+		printk("-EINVAL2\n");
+
+	res = simple_strtoul(&p[1], &endp, 10);
+
+	if (res == 8)
+		p += 2;
+	else if (res == 16)
+		p += 3;
+	else if (res == 32)
+		p += 3;
+	else
+		printk("-EINVAL3\n");
+
+
+	while (*p == ' ')
+		p++;
+
+	addr = simple_strtoul(p, &endp, 16);
+
+	if (rw) {
+		p = endp;
+		while (*p == ' ')
+			p++;
+
+		value = simple_strtoul(p, NULL, 16);
+		switch (res) {
+		case 8:
+			bfin_write8(addr, (uint8_t)value);
+			value = bfin_read8(addr);
+			break;
+		case 16:
+			bfin_write16(addr, (uint16_t)value);
+			value = bfin_read16(addr);
+			break;
+		case 32:
+			bfin_write32(addr, (uint32_t)value);
+			value = bfin_read32(addr);
+			break;
+		}
+		printk("write addr %08x reg %08x\n", addr, value);
+	} else {
+		switch (res) {
+		case 8:
+			value = bfin_read8(addr);
+			break;
+		case 16:
+			value = bfin_read16(addr);
+			break;
+		case 32:
+			value = bfin_read32(addr);
+			break;
+		}
+		printk("read addr %08x reg %08x\n", addr, value);
+	}
+	return count;
+}
+
+static struct class *linkport_class;
+static CLASS_ATTR(status, S_IRWXUGO, &linkport_status_show, NULL);
+static CLASS_ATTR(reg, S_IRWXUGO, &linkport_reg_show, &linkport_reg_store);
+
+/*
+ * bfin_linkport_init - Initialize module
+ *
+ *
+ */
+
+static int __init bfin_linkport_init(void)
+{
+	int err;
+	dev_t lp_dev;
+	int i;
+
+	printk("%s\n", __func__);
+
+	linkport_dev = kzalloc(sizeof(*linkport_dev), GFP_KERNEL);
+	if (!linkport_dev) {
+		return -ENOMEM;
+	}
+
+	linkport_dev->major = register_chrdev(0, "bfin-linkport", &linkport_fops);
+	if (linkport_dev->major < 0) {
+		err = linkport_dev->major;
+		printk("Error %d registering chrdev for device\n", err);
+		goto free;
+	}
+
+	lp_dev = MKDEV(linkport_dev->major, 0);
+
+	linkport_dev->class = class_create(THIS_MODULE, "linkport");
+	err = class_create_file(linkport_dev->class, &class_attr_status);
+	if (err) {
+		printk("Error %d registering class device\n", err);
+		goto free_chrdev;
+	}
+
+	err = class_create_file(linkport_dev->class, &class_attr_reg);
+	if (err) {
+		printk("Error %d registering class device\n", err);
+		class_remove_file(linkport_dev->class, &class_attr_status);
+		goto free_chrdev;
+	}
+
+	INIT_LIST_HEAD(&linkport_dev->lp_dev);
+	spin_lock_init(&linkport_dev->lp_dev_lock);
+
+	for (i = 0; i < 2; i++) {
+		struct device *dev;
+		dev = device_create(linkport_dev->class, NULL, lp_dev + i, &lp_dev_info[i], "linkport%d", i);
+		if (!dev)
+			goto free_chrdev;
+		lp_dev_info[i].device = dev;
+		lp_dev_info[i].linkport_num = i;
+		spin_lock_init(&lp_dev_info[i].lock);
+		init_waitqueue_head(&lp_dev_info[i].rx_waitq);
+		INIT_LIST_HEAD(&lp_dev_info[i].list);
+		list_add(&lp_dev_info[i].list, &linkport_dev->lp_dev);
+	}
+
+	return 0;
+
+free_chrdev:
+	unregister_chrdev(linkport_dev->major, "bfin-linkport");
+free:
+	kfree(linkport_dev);
+	return err;
+}
+module_init(bfin_linkport_init);
