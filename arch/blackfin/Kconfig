@@ -1063,7 +1063,7 @@ endchoice
 config BFIN_L2_DCACHEABLE
 	bool "Enable DCACHE for L2 SRAM"
 	depends on BFIN_DCACHE
-	depends on (BF54x || BF561) && !SMP
+	depends on (BF54x || BF561 || BF60x) && !SMP
 	default n
 choice
 	prompt "L2 SRAM DCACHE policy"
