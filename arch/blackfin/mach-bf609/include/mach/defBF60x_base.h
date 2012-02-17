@@ -436,6 +436,41 @@
 #define CAN0_MB30_ID1               0xFFC00FDC         /* CAN0 Mailbox Word 7 Register */
 #define CAN0_MB31_ID1               0xFFC00FFC         /* CAN0 Mailbox Word 7 Register */
 
+/* =========================
+	LINK PORT Registers
+   ========================= */
+#define LP0_CTL                     0xFFC01000         /* LP0 Control Register */
+#define LP0_STAT                    0xFFC01004         /* LP0 Status Register */
+#define LP0_DIV                     0xFFC01008         /* LP0 Clock Divider Value */
+#define LP0_CNT                     0xFFC0100C         /* LP0 Current Count Value of Clock Divider */
+#define LP0_TX                      0xFFC01010         /* LP0 Transmit Buffer */
+#define LP0_RX                      0xFFC01014         /* LP0 Receive Buffer */
+#define LP0_TXIN_SHDW               0xFFC01018         /* LP0 Shadow Input Transmit Buffer */
+#define LP0_TXOUT_SHDW              0xFFC0101C         /* LP0 Shadow Output Transmit Buffer */
+#define LP1_CTL                     0xFFC01100         /* LP1 Control Register */
+#define LP1_STAT                    0xFFC01104         /* LP1 Status Register */
+#define LP1_DIV                     0xFFC01108         /* LP1 Clock Divider Value */
+#define LP1_CNT                     0xFFC0110C         /* LP1 Current Count Value of Clock Divider */
+#define LP1_TX                      0xFFC01110         /* LP1 Transmit Buffer */
+#define LP1_RX                      0xFFC01114         /* LP1 Receive Buffer */
+#define LP1_TXIN_SHDW               0xFFC01118         /* LP1 Shadow Input Transmit Buffer */
+#define LP1_TXOUT_SHDW              0xFFC0111C         /* LP1 Shadow Output Transmit Buffer */
+#define LP2_CTL                     0xFFC01200         /* LP2 Control Register */
+#define LP2_STAT                    0xFFC01204         /* LP2 Status Register */
+#define LP2_DIV                     0xFFC01208         /* LP2 Clock Divider Value */
+#define LP2_CNT                     0xFFC0120C         /* LP2 Current Count Value of Clock Divider */
+#define LP2_TX                      0xFFC01210         /* LP2 Transmit Buffer */
+#define LP2_RX                      0xFFC01214         /* LP2 Receive Buffer */
+#define LP2_TXIN_SHDW               0xFFC01218         /* LP2 Shadow Input Transmit Buffer */
+#define LP2_TXOUT_SHDW              0xFFC0121C         /* LP2 Shadow Output Transmit Buffer */
+#define LP3_CTL                     0xFFC01300         /* LP3 Control Register */
+#define LP3_STAT                    0xFFC01304         /* LP3 Status Register */
+#define LP3_DIV                     0xFFC01308         /* LP3 Clock Divider Value */
+#define LP3_CNT                     0xFFC0130C         /* LP3 Current Count Value of Clock Divider */
+#define LP3_TX                      0xFFC01310         /* LP3 Transmit Buffer */
+#define LP3_RX                      0xFFC01314         /* LP3 Receive Buffer */
+#define LP3_TXIN_SHDW               0xFFC01318         /* LP3 Shadow Input Transmit Buffer */
+#define LP3_TXOUT_SHDW              0xFFC0131C         /* LP3 Shadow Output Transmit Buffer */
 
 /* =========================
         TIMER Registers
