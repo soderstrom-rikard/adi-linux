@@ -60,7 +60,6 @@
 	}
 
 #define NEEDS_INITIALIZATION 0x11
-#define PLL_BYPASS	     0x2
 
 static LIST_HEAD(clk_list);
 
@@ -71,7 +70,7 @@ static void clk_reg_write_mask(u32 reg, uint32_t val, uint32_t mask)
 	val2 = bfin_read32(reg);
 	val2 &= ~mask;
 	val2 |= val;
-	bfin_write32(val2, reg);
+	bfin_write32(reg, val2);
 }
 
 static void clk_reg_set_bits(u32 reg, uint32_t mask)
@@ -80,7 +79,7 @@ static void clk_reg_set_bits(u32 reg, uint32_t mask)
 
 	val = bfin_read32(reg);
 	val |= mask;
-	bfin_write32(val, reg);
+	bfin_write32(reg, val);
 }
 
 static void clk_reg_clear_bits(u32 reg, uint32_t mask)
@@ -89,7 +88,7 @@ static void clk_reg_clear_bits(u32 reg, uint32_t mask)
 
 	val = bfin_read32(reg);
 	val &= ~mask;
-	bfin_write32(val, reg);
+	bfin_write32(reg, val);
 }
 
 int wait_for_pll_align(void)
@@ -101,6 +100,7 @@ int wait_for_pll_align(void)
 		printk(KERN_DEBUG "fail to align clk\n");
 		return -1;
 	}
+	return 0;
 }
 
 int clk_enable(struct clk *clk)
@@ -148,8 +148,6 @@ EXPORT_SYMBOL(clk_set_rate);
 
 unsigned long vco_get_rate(struct clk *clk)
 {
-	u32 df;
-	u32 msel;
 	return clk->rate;
 }
 
@@ -158,6 +156,9 @@ unsigned long pll_get_rate(struct clk *clk)
 	u32 df;
 	u32 msel;
 	u32 ctl = bfin_read32(CGU0_CTL);
+	u32 stat = bfin_read32(CGU0_STAT);
+	if (stat & CGU0_STAT_PLLBP)
+		return 0;
 	msel = (ctl & CGU0_CTL_MSEL_MASK) >> CGU0_CTL_MSEL_SHIFT;
 	df = (ctl &  CGU0_CTL_DF);
 	clk->parent->rate = clk_get_rate(clk->parent);
@@ -173,16 +174,14 @@ unsigned long pll_round_rate(struct clk *clk, unsigned long rate)
 
 int pll_set_rate(struct clk *clk, unsigned long rate)
 {
-	u32 df = 0;
 	u32 msel;
-	u32 ctl = bfin_read32(CGU0_CTL);
 	u32 stat = bfin_read32(CGU0_STAT);
 	if (!(stat & CGU0_STAT_PLLEN))
-		return -1;
+		return -EBUSY;
 	if (!(stat & CGU0_STAT_PLLLK))
-		return -1;
+		return -EBUSY;
 	if (wait_for_pll_align())
-		return -1;
+		return -EBUSY;
 	msel = rate / clk->parent->rate / 2;
 	clk_reg_write_mask(CGU0_CTL, msel << CGU0_CTL_MSEL_SHIFT,
 		CGU0_CTL_MSEL_MASK);
@@ -198,18 +197,19 @@ unsigned long cclk_get_rate(struct clk *clk)
 		return 0;
 }
 
-unsigned long drate;
 unsigned long sys_clk_get_rate(struct clk *clk)
 {
+	unsigned long drate;
 	u32 msel;
 	u32 df;
 	u32 ctl = bfin_read32(CGU0_CTL);
 	u32 div = bfin_read32(CGU0_DIV);
+	div = (div & clk->mask) >> clk->shift;
 	msel = (ctl & CGU0_CTL_MSEL_MASK) >> CGU0_CTL_MSEL_SHIFT;
 	df = (ctl &  CGU0_CTL_DF);
-	div = (div & clk->mask) >> clk->shift;
-	if (clk->parent->flags & PLL_BYPASS) {
-		drate = CONFIG_CLKIN_HZ / (df + 1);
+
+	if (!strcmp(clk->parent->name, "SYS_CLKIN")) {
+		drate = clk->parent->rate / (df + 1);
 		drate *=  msel;
 		drate /= div;
 		return drate;
@@ -219,12 +219,44 @@ unsigned long sys_clk_get_rate(struct clk *clk)
 	}
 }
 
+unsigned long sys_clk_round_rate(struct clk *clk, unsigned long rate)
+{
+	unsigned long max_rate;
+	unsigned long drate;
+	int i;
+	u32 msel;
+	u32 df;
+	u32 ctl = bfin_read32(CGU0_CTL);
+
+	msel = (ctl & CGU0_CTL_MSEL_MASK) >> CGU0_CTL_MSEL_SHIFT;
+	df = (ctl &  CGU0_CTL_DF);
+	max_rate = clk->parent->rate / (df + 1) * msel;
+
+	if (rate > max_rate)
+		return 0;
+
+	for (i = 1; i < clk->mask; i++) {
+		drate = max_rate / i;
+		if (rate >= drate)
+			return drate;
+	}
+	return 0;
+}
+
 int sys_clk_set_rate(struct clk *clk, unsigned long rate)
 {
-	u32 div;
-	div = clk->parent->rate / rate;
+	u32 div = bfin_read32(CGU0_DIV);
+	div = (div & clk->mask) >> clk->shift;
+
+	rate = clk_round_rate(clk, rate);
+
+	if (!rate)
+		return -EINVAL;
+
+	div = (clk_get_rate(clk) * div) / rate;
+
 	if (wait_for_pll_align())
-		return -1;
+		return -EBUSY;
 	clk_reg_write_mask(CGU0_DIV, div << clk->shift,
 			clk->mask);
 	clk->rate = rate;
@@ -247,6 +279,7 @@ static struct clk_ops cclk_ops = {
 static struct clk_ops sys_clk_ops = {
 	.get_rate = sys_clk_get_rate,
 	.set_rate = sys_clk_set_rate,
+	.round_rate = sys_clk_round_rate,
 };
 
 static struct clk sys_clkin = {
@@ -257,11 +290,10 @@ static struct clk sys_clkin = {
 
 static struct clk pll_clk = {
 	.name       = "PLLCLK",
-	.rate       = 1000000000,
+	.rate       = 500000000,
 	.parent     = &sys_clkin,
 	.ops = &pll_ops,
-/*	.flags = NEEDS_INITIALIZATION, */
-	.flags = PLL_BYPASS,
+	.flags = NEEDS_INITIALIZATION,
 };
 
 static struct clk cclk = {
@@ -269,9 +301,9 @@ static struct clk cclk = {
 	.rate       = 500000000,
 	.mask       = CGU0_DIV_CSEL_MASK,
 	.shift      = CGU0_DIV_CSEL_SHIFT,
-	.parent     = &pll_clk,
+	.parent     = &sys_clkin,
 	.ops	    = &sys_clk_ops,
-	.flags = PLL_BYPASS,
+	.flags = NEEDS_INITIALIZATION,
 };
 
 static struct clk cclk0 = {
@@ -291,8 +323,9 @@ static struct clk sysclk = {
 	.rate       = 500000000,
 	.mask       = CGU0_DIV_SYSSEL_MASK,
 	.shift      = CGU0_DIV_SYSSEL_SHIFT,
-	.parent     = &pll_clk,
+	.parent     = &sys_clkin,
 	.ops	    = &sys_clk_ops,
+	.flags = NEEDS_INITIALIZATION,
 };
 
 static struct clk sclk0 = {
@@ -350,7 +383,7 @@ int __init clk_init(void)
 	for (i = 0; i < ARRAY_SIZE(bf609_clks); i++) {
 		clkp = bf609_clks[i].clk;
 		if (clkp->flags & NEEDS_INITIALIZATION)
-			clk_set_rate(clkp, clkp->rate);
+			clk_get_rate(clkp);
 	}
 	clkdev_add_table(bf609_clks, ARRAY_SIZE(bf609_clks));
 	return 0;
