@@ -80,6 +80,7 @@ static int bfin_i2s_hw_params(struct snd_pcm_substream *substream,
 				struct snd_soc_dai *dai)
 {
 	struct sport_device *sport = snd_soc_dai_get_drvdata(dai);
+	struct device *dev = &sport->pdev->dev;
 	int ret = 0;
 
 	param.spctl &= ~SPORT_CTL_SLEN;
@@ -101,15 +102,18 @@ static int bfin_i2s_hw_params(struct snd_pcm_substream *substream,
 		break;
 	}
 
-	ret = sport_set_tx_params(sport, &param);
-	if (ret) {
-		pr_info("SPORT tx is busy!\n");
-		return ret;
-	}
-	ret = sport_set_rx_params(sport, &param);
-	if (ret) {
-		pr_info("SPORT rx is busy!\n");
-		return ret;
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		ret = sport_set_tx_params(sport, &param);
+		if (ret) {
+			dev_err(dev, "SPORT tx is busy!\n");
+			return ret;
+		}
+	} else {
+		ret = sport_set_rx_params(sport, &param);
+		if (ret) {
+			dev_err(dev, "SPORT rx is busy!\n");
+			return ret;
+		}
 	}
 	return 0;
 }
@@ -129,16 +133,17 @@ static int bfin_i2s_suspend(struct snd_soc_dai *dai)
 static int bfin_i2s_resume(struct snd_soc_dai *dai)
 {
 	struct sport_device *sport = snd_soc_dai_get_drvdata(dai);
+	struct device *dev = &sport->pdev->dev;
 	int ret;
 
 	ret = sport_set_tx_params(sport, &param);
 	if (ret) {
-		pr_info("SPORT tx is busy!\n");
+		dev_err(dev, "SPORT tx is busy!\n");
 		return ret;
 	}
 	ret = sport_set_rx_params(sport, &param);
 	if (ret) {
-		pr_info("SPORT rx is busy!\n");
+		dev_err(dev, "SPORT rx is busy!\n");
 		return ret;
 	}
 
