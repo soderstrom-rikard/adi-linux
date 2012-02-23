@@ -796,8 +796,16 @@ static struct platform_device bfin_i2s = {
 
 #if defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1X61) || \
 	defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1X61_MODULE)
-static struct platform_device bf5xx_adau1701_device = {
+static struct platform_device adau1761_device = {
 	.name = "bfin-eval-adau1x61",
+};
+#endif
+
+#if defined(CONFIG_SND_SOC_ADAU1761) || defined(CONFIG_SND_SOC_ADAU1761_MODULE)
+#include <sound/adau17x1.h>
+static struct adau1761_platform_data adau1761_info = {
+	.lineout_mode = ADAU1761_OUTPUT_MODE_LINE,
+	.headphone_mode = ADAU1761_OUTPUT_MODE_HEADPHONE_CAPLESS,
 };
 #endif
 
@@ -1029,6 +1037,7 @@ static struct i2c_board_info __initdata bfin_i2c_board_info0[] = {
 #if defined(CONFIG_SND_SOC_ADAU1761) || defined(CONFIG_SND_SOC_ADAU1761_MODULE)
 	{
 		I2C_BOARD_INFO("adau1761", 0x38),
+		.platform_data = (void *)&adau1761_info
 	},
 #endif
 };
@@ -1163,7 +1172,7 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #endif
 #if defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1X61) || \
 	defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1X61_MODULE)
-	&bf5xx_adau1701_device,
+	&adau1761_device,
 #endif
 };
 
