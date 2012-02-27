@@ -219,7 +219,7 @@ static struct resource bfin_uart0_resources[] = {
 		.end = CH_UART0_RX,
 		.flags = IORESOURCE_DMA,
 	},
-#ifdef CONFIG_BFIN_UART1_CTSRTS
+#ifdef CONFIG_BFIN_UART0_CTSRTS
 	{	/* CTS pin -- 0 means not supported */
 		.start = GPIO_PD10,
 		.end = GPIO_PD10,
@@ -235,7 +235,7 @@ static struct resource bfin_uart0_resources[] = {
 
 static unsigned short bfin_uart0_peripherals[] = {
 	P_UART0_TX, P_UART0_RX,
-#ifdef CONFIG_BFIN_UART1_CTSRTS
+#ifdef CONFIG_BFIN_UART0_CTSRTS
 	P_UART0_RTS, P_UART0_CTS,
 #endif
 	0
