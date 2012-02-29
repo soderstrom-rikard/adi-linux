@@ -207,7 +207,7 @@ static struct otg_io_access_ops musb_ulpi_access = {
 
 /*-------------------------------------------------------------------------*/
 
-#if !defined(CONFIG_USB_MUSB_TUSB6010) && !defined(CONFIG_USB_MUSB_BLACKFIN)
+#if !defined(CONFIG_USB_MUSB_TUSB6010) && (!defined(CONFIG_USB_MUSB_BLACKFIN) || CONFIG_BF60x)
 
 /*
  * Load an endpoint's FIFO

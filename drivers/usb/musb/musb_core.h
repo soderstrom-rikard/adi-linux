@@ -463,7 +463,7 @@ static inline struct musb *gadget_to_musb(struct usb_gadget *g)
 	return container_of(g, struct musb, g);
 }
 
-#ifdef CONFIG_BLACKFIN
+#if defined(CONFIG_BLACKFIN) && !defined(CONFIG_BF60x)
 static inline int musb_read_fifosize(struct musb *musb,
 		struct musb_hw_ep *hw_ep, u8 epnum)
 {

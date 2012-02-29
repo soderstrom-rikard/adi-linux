@@ -214,7 +214,7 @@
 #define MUSB_HUBADDR_MULTI_TT		0x80
 
 
-#ifndef CONFIG_BLACKFIN
+#if !defined(CONFIG_BLACKFIN) || defined(CONFIG_BF60x)
 
 /*
  * Common USB registers

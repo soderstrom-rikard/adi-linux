@@ -57,7 +57,7 @@ static inline void writesb(const void __iomem *addr, const void *buf, int len)
 
 #endif
 
-#ifndef CONFIG_BLACKFIN
+#if !defined(CONFIG_BLACKFIN) || defined(CONFIG_BF60x)
 
 /* NOTE:  these offsets are all in bytes */
 

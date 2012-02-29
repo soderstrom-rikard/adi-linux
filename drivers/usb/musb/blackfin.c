@@ -34,6 +34,7 @@ struct bfin_glue {
 /*
  * Load an endpoint's FIFO
  */
+#ifndef CONFIG_BF60x
 void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 {
 	struct musb *musb = hw_ep->musb;
@@ -162,6 +163,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 
 	dump_fifo_data(dst, len);
 }
+#endif
 
 static irqreturn_t blackfin_interrupt(int irq, void *__hci)
 {
@@ -174,7 +176,6 @@ static irqreturn_t blackfin_interrupt(int irq, void *__hci)
 	musb->int_usb = musb_readb(musb->mregs, MUSB_INTRUSB);
 	musb->int_tx = musb_readw(musb->mregs, MUSB_INTRTX);
 	musb->int_rx = musb_readw(musb->mregs, MUSB_INTRRX);
-
 	if (musb->int_usb || musb->int_tx || musb->int_rx) {
 		musb_writeb(musb->mregs, MUSB_INTRUSB, musb->int_usb);
 		musb_writew(musb->mregs, MUSB_INTRTX, musb->int_tx);
@@ -216,10 +217,14 @@ static void musb_conn_timer_handler(unsigned long _musb)
 		val = musb_readw(musb->mregs, MUSB_DEVCTL);
 
 		if (!(val & MUSB_DEVCTL_BDEVICE)) {
+#ifndef CONFIG_BF60x
 			gpio_set_value(musb->config->gpio_vrsel, 1);
+#endif
 			musb->xceiv->state = OTG_STATE_A_WAIT_BCON;
 		} else {
+#ifndef CONFIG_BF60x
 			gpio_set_value(musb->config->gpio_vrsel, 0);
+#endif
 			/* Ignore VBUSERROR and SUSPEND IRQ */
 			val = musb_readb(musb->mregs, MUSB_INTRUSBE);
 			val &= ~MUSB_INTR_VBUSERROR;
@@ -247,11 +252,14 @@ static void musb_conn_timer_handler(unsigned long _musb)
 		val = musb_readw(musb->mregs, MUSB_DEVCTL);
 
 		if (!(val & MUSB_DEVCTL_BDEVICE)) {
+#ifndef CONFIG_BF60x
 			gpio_set_value(musb->config->gpio_vrsel, 1);
+#endif
 			musb->xceiv->state = OTG_STATE_A_WAIT_BCON;
 		} else {
+#ifndef CONFIG_BF60x
 			gpio_set_value(musb->config->gpio_vrsel, 0);
-
+#endif
 			/* Ignore VBUSERROR and SUSPEND IRQ */
 			val = musb_readb(musb->mregs, MUSB_INTRUSBE);
 			val &= ~MUSB_INTR_VBUSERROR;
@@ -361,6 +369,7 @@ static int bfin_musb_adjust_channel_params(struct dma_channel *channel,
 
 static void bfin_musb_reg_init(struct musb *musb)
 {
+#ifndef CONFIG_BF60x
 	if (ANOMALY_05000346) {
 		bfin_write_USB_APHY_CALIB(ANOMALY_05000346_value);
 		SSYNC();
@@ -395,11 +404,17 @@ static void bfin_musb_reg_init(struct musb *musb)
 				EP2_RX_ENA | EP3_RX_ENA | EP4_RX_ENA |
 				EP5_RX_ENA | EP6_RX_ENA | EP7_RX_ENA);
 	SSYNC();
+#else
+	bfin_write_USB_VBUS_CTL(0x00);
+	bfin_write_USB_APHY_CNTRL(0x80);
+	SSYNC();
+	musb->config->ram_bits = musb_readb(musb->mregs, MUSB_RAMINFO) & 0xf;
+#endif
 }
 
 static int bfin_musb_init(struct musb *musb)
 {
-
+#ifndef CONFIG_BF60x
 	/*
 	 * Rev 1.0 BF549 EZ-KITs require PE7 to be high for both DEVICE
 	 * and OTG HOST modes, while rev 1.1 and greater require PE7 to
@@ -413,7 +428,7 @@ static int bfin_musb_init(struct musb *musb)
 		return -ENODEV;
 	}
 	gpio_direction_output(musb->config->gpio_vrsel, 0);
-
+#endif
 	usb_nop_xceiv_register();
 	musb->xceiv = otg_get_transceiver();
 	if (!musb->xceiv) {
@@ -422,16 +437,17 @@ static int bfin_musb_init(struct musb *musb)
 	}
 
 	bfin_musb_reg_init(musb);
-
 	if (is_host_enabled(musb)) {
 		setup_timer(&musb_conn_timer,
 			musb_conn_timer_handler, (unsigned long) musb);
 	}
+#ifndef CONFIG_BF60x
 	if (is_peripheral_enabled(musb))
 		musb->xceiv->set_power = bfin_musb_set_power;
 
-	musb->isr = blackfin_interrupt;
 	musb->double_buffer_not_ok = true;
+#endif
+	musb->isr = blackfin_interrupt;
 
 	return 0;
 }
