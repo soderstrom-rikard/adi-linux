@@ -97,13 +97,27 @@ timer_ioctl(struct file *filp, uint cmd, unsigned long arg)
 		mode = arg;
 		switch (mode) {
 		case 0:
+#ifdef CONFIG_BF60x
+			set_gptimer_config(t->id,  TIMER_OUT_DIS | TIMER_MODE_PWM
+					| TIMER_PULSE_HI | TIMER_IRQ_WID_DLY);
+#else
 			set_gptimer_config(t->id, OUT_DIS | PWM_OUT | PERIOD_CNT | IRQ_ENA);
+#endif
 			break;
 		case 1:
+#ifdef CONFIG_BF60x
+			set_gptimer_config(t->id,  TIMER_OUT_DIS | TIMER_MODE_PWM_CONT
+						| TIMER_PULSE_HI | TIMER_IRQ_PER);
+#else
 			set_gptimer_config(t->id, PWM_OUT | PERIOD_CNT | IRQ_ENA);
+#endif
 			break;
 		case 2:
+#ifdef CONFIG_BF60x
+			set_gptimer_config(t->id, TIMER_MODE_WDTH | TIMER_IRQ_PER);
+#else
 			set_gptimer_config(t->id, WDTH_CAP | PERIOD_CNT | IRQ_ENA);
+#endif
 			break;
 		default:
 			pr_debug(DRV_NAME ": error mode\n");
