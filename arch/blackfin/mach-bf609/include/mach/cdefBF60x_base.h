@@ -3173,5 +3173,12 @@
 #define bfin_read_RSI_PID3()		bfin_read16(RSI_PID3)
 #define bfin_write_RSI_PID3(val)	bfin_write16(RSI_PID3, val)
 
+/* usb register */
+#define bfin_read_USB_PLLOSC_CTRL()    bfin_read16(USB_PLL_OSC)
+#define bfin_write_USB_PLLOSC_CTRL(val) bfin_write16(USB_PLL_OSC, val)
+#define bfin_write_USB_VBUS_CTL(val) bfin_write8(USB_VBUS_CTL, val)
+#define bfin_write_USB_APHY_CNTRL(val) bfin_write8(USB_PHY_CTL, val)
+#define bfin_read_USB_APHY_CNTRL() bfin_read8(USB_PHY_CTL)
+
 #endif /* _CDEF_BF60X_H */
 

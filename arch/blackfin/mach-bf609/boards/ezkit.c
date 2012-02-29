@@ -373,13 +373,13 @@ static struct platform_device bfin_sir1_device = {
 #if defined(CONFIG_USB_MUSB_HDRC) || defined(CONFIG_USB_MUSB_HDRC_MODULE)
 static struct resource musb_resources[] = {
 	[0] = {
-		.start	= 0xFFC03C00,
-		.end	= 0xFFC040FF,
+		.start	= 0xFFCC1000,
+		.end	= 0xFFCC1398,
 		.flags	= IORESOURCE_MEM,
 	},
 	[1] = {	/* general IRQ */
-		.start	= IRQ_USB_INT0,
-		.end	= IRQ_USB_INT0,
+		.start	= IRQ_USB_STAT,
+		.end	= IRQ_USB_STAT,
 		.flags	= IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL,
 		.name	= "mc"
 	},
@@ -392,17 +392,11 @@ static struct resource musb_resources[] = {
 };
 
 static struct musb_hdrc_config musb_config = {
-	.multipoint	= 0,
+	.multipoint	= 1,
 	.dyn_fifo	= 0,
-	.soft_con	= 1,
 	.dma		= 1,
-	.num_eps	= 8,
+	.num_eps	= 12,
 	.dma_channels	= 8,
-	.gpio_vrsel	= GPIO_PE7,
-	/* Some custom boards need to be active low, just set it to "0"
-	 * if it is the case.
-	 */
-	.gpio_vrsel_active	= 1,
 	.clkin          = 24,           /* musb CLKIN in MHZ */
 };
 
