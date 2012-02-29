@@ -84,7 +84,7 @@ struct musb_hw_ep;
  *	Only allow DMA mode 1 to be used when the USB will actually generate the
  *	interrupts we expect.
  */
-#ifdef CONFIG_BLACKFIN
+#if defined(CONFIG_BLACKFIN) && !defined(CONFIG_BF60x)
 # undef USE_MODE1
 # if !ANOMALY_05000456
 #  define USE_MODE1

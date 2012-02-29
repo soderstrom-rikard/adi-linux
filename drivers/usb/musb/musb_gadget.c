@@ -363,7 +363,7 @@ static void txstate(struct musb *musb, struct musb_request *req)
 		size_t request_size;
 
 		/* setup DMA, then program endpoint CSR */
-#if !defined(CONFIG_BLACKFIN) || defined(USE_MODE1)
+#if !defined(CONFIG_BLACKFIN) || defined(USE_MODE1) || defined(CONFIG_BF60x)
 		request_size = min_t(size_t, request->length - request->actual,
 					musb_ep->dma->max_len);
 #else

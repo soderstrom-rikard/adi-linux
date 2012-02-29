@@ -269,7 +269,7 @@ static irqreturn_t dma_controller_irq(int irq, void *private_data)
 
 	int_hsdma = musb_readb(mbase, MUSB_HSDMA_INTR);
 
-#ifdef CONFIG_BLACKFIN
+#if defined(CONFIG_BLACKFIN) && !defined(CONFIG_BF60x)
 	/* Clear DMA interrupt flags */
 	musb_writeb(mbase, MUSB_HSDMA_INTR, int_hsdma);
 #endif
