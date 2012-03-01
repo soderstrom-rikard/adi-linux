@@ -700,7 +700,7 @@ static struct platform_device ezkit_flash_device = {
 
 #if defined(CONFIG_MTD_M25P80) \
 	|| defined(CONFIG_MTD_M25P80_MODULE)
-/* SPI flash chip (m25p16) */
+/* SPI flash chip (w25q32) */
 static struct mtd_partition bfin_spi_flash_partitions[] = {
 	{
 		.name = "bootloader(spi)",
@@ -709,6 +709,10 @@ static struct mtd_partition bfin_spi_flash_partitions[] = {
 		.mask_flags = MTD_CAP_ROM
 	}, {
 		.name = "linux kernel(spi)",
+		.size = 0x00180000,
+		.offset = MTDPART_OFS_APPEND,
+	}, {
+		.name = "file system(spi)",
 		.size = MTDPART_SIZ_FULL,
 		.offset = MTDPART_OFS_APPEND,
 	}
