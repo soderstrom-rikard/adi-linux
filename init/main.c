@@ -634,8 +634,6 @@ asmlinkage void __init start_kernel(void)
 
 	ftrace_init();
 
-//	bf609_irq_test();
-
 	/* Do the rest non-__init'ed, we're now alive */
 	rest_init();
 }
