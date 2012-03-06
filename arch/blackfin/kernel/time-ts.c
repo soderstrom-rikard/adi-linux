@@ -67,7 +67,6 @@ void __init setup_gptimer0(void)
 	disable_gptimers(TIMER0bit);
 
 #ifdef CONFIG_BF60x
-	revid = bfin_read16(TIMER_REVID);
 	bfin_write16(TIMER_DATA_IMSK, 0);
 	set_gptimer_config(TIMER0_id,  TIMER_OUT_DIS
 		| TIMER_MODE_PWM_CONT | TIMER_PULSE_HI | TIMER_IRQ_PER);
