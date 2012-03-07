@@ -179,21 +179,6 @@ uint32_t get_gptimer_delay(unsigned int timer_id)
 EXPORT_SYMBOL(get_gptimer_delay);
 #endif
 
-uint32_t get_gptimer_status(unsigned int group)
-{
-	tassert(group < BFIN_TIMER_NUM_GROUP);
-	return bfin_read(&group_regs[group]->err_status);
-}
-EXPORT_SYMBOL(get_gptimer_status);
-
-void set_gptimer_status(unsigned int group, uint32_t value)
-{
-	tassert(group < BFIN_TIMER_NUM_GROUP);
-	bfin_write(&group_regs[group]->err_status, value);
-	SSYNC();
-}
-EXPORT_SYMBOL(set_gptimer_status);
-
 #ifdef CONFIG_BF60x
 int get_gptimer_intr(unsigned int timer_id)
 {
@@ -229,7 +214,37 @@ int get_gptimer_run(unsigned int timer_id)
 	return !!(bfin_read(&group_regs[BFIN_TIMER_OCTET(timer_id)]->run) & trun_mask[timer_id]);
 }
 EXPORT_SYMBOL(get_gptimer_run);
+
+uint32_t get_gptimer_status(unsigned int group)
+{
+	tassert(group < BFIN_TIMER_NUM_GROUP);
+	return bfin_read(&group_regs[group]->data_ilat);
+}
+EXPORT_SYMBOL(get_gptimer_status);
+
+void set_gptimer_status(unsigned int group, uint32_t value)
+{
+	tassert(group < BFIN_TIMER_NUM_GROUP);
+	bfin_write(&group_regs[group]->data_ilat, value);
+	SSYNC();
+}
+EXPORT_SYMBOL(set_gptimer_status);
 #else
+uint32_t get_gptimer_status(unsigned int group)
+{
+	tassert(group < BFIN_TIMER_NUM_GROUP);
+	return bfin_read(&group_regs[group]->status);
+}
+EXPORT_SYMBOL(get_gptimer_status);
+
+void set_gptimer_status(unsigned int group, uint32_t value)
+{
+	tassert(group < BFIN_TIMER_NUM_GROUP);
+	bfin_write(&group_regs[group]->status, value);
+	SSYNC();
+}
+EXPORT_SYMBOL(set_gptimer_status);
+
 static uint32_t read_gptimer_status(unsigned int timer_id)
 {
 	return bfin_read(&group_regs[BFIN_TIMER_OCTET(timer_id)]->status);
