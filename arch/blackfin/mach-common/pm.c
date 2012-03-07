@@ -19,8 +19,7 @@
 #include <asm/gpio.h>
 #include <asm/dma.h>
 #include <asm/dpmc.h>
-
-#include <mach/pm.h>
+#include <asm/pm.h>
 
 #ifdef CONFIG_BF60x
 struct bfin_cpu_pm_fns *bfin_cpu_pm;
@@ -28,7 +27,9 @@ struct bfin_cpu_pm_fns *bfin_cpu_pm;
 
 void bfin_pm_suspend_standby_enter(void)
 {
+#ifndef CONFIG_BF60x
 	bfin_pm_standby_setup();
+#endif
 
 #ifdef CONFIG_BF60x
 	bfin_cpu_pm->enter(PM_SUSPEND_STANDBY);
@@ -40,7 +41,9 @@ void bfin_pm_suspend_standby_enter(void)
 # endif
 #endif
 
+#ifndef CONFIG_BF60x
 	bfin_pm_standby_restore();
+#endif
 
 #ifndef CONFIG_BF60x
 #ifdef SIC_IWR0
