@@ -15,10 +15,10 @@
 #define DMAEN			0x0001	/* DMA Channel Enable */
 #define WNR				0x0002	/* Channel Direction (W/R*) */
 #define WDSIZE_8		0x0000	/* Transfer Word Size = 8 */
+#define PSIZE_8			0x00000000	/* Transfer Word Size = 16 */
 
 #ifdef CONFIG_BF60x
 
-#define PSIZE_8			0x00000000	/* Transfer Word Size = 16 */
 #define PSIZE_16		0x00000010	/* Transfer Word Size = 16 */
 #define PSIZE_32		0x00000020	/* Transfer Word Size = 32 */
 #define PSIZE_64		0x00000030	/* Transfer Word Size = 32 */
@@ -54,6 +54,8 @@
 
 #else
 
+#define PSIZE_16		0x0000	/* Transfer Word Size = 16 */
+#define PSIZE_32		0x0000	/* Transfer Word Size = 32 */
 #define WDSIZE_16		0x0004	/* Transfer Word Size = 16 */
 #define WDSIZE_32		0x0008	/* Transfer Word Size = 32 */
 #define DMA2D			0x0010	/* DMA Mode (2D/1D*) */
