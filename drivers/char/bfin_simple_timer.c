@@ -25,7 +25,6 @@
  *
  * Licensed under the GPL-2 or later.
  */
-
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -128,9 +127,6 @@ timer_ioctl(struct file *filp, uint cmd, unsigned long arg)
 		width = get_gptimer_pwidth(t->id);
 		pr_debug(DRV_NAME ": TIMER_START: period=%lu, width=%lu\n",
 				period, width);
-		if (period < width)
-			return -EFAULT;
-
 		enable_gptimers(t->bit);
 		break;
 	case BFIN_SIMPLE_TIMER_STOP:
@@ -151,14 +147,8 @@ timer_isr(int irq, void *dev_id)
 {
 	int minor = (int)dev_id;
 	struct timer *t = &timer_code[minor];
-#if (MAX_BLACKFIN_GPTIMERS > 8)
-	int octet = BFIN_TIMER_OCTET(minor);
-#else
-	int octet = 0;
-#endif
-	unsigned long state = get_gptimer_status(octet);
-	if (state & t->irqbit) {
-		set_gptimer_status(octet, t->irqbit);
+	if (get_gptimer_intr(t->id)) {
+		clear_gptimer_intr(t->id);
 		t->isr_count++;
 	}
 	return IRQ_HANDLED;
@@ -201,6 +191,7 @@ timer_close(struct inode *inode, struct file *filp)
 	int minor = MINOR(inode->i_rdev);
 	struct timer *t = filp->private_data;;
 	disable_gptimers(t->bit);
+	peripheral_free(t->per_pin);
 	free_irq(t->irq, (void *)minor);
 	pr_debug(DRV_NAME ": device(%d) closed\n", minor);
 	return 0;
