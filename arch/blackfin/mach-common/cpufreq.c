@@ -204,7 +204,7 @@ static int bfin_verify_speed(struct cpufreq_policy *policy)
 	return cpufreq_frequency_table_verify(policy, bfin_freq_table);
 }
 
-static int __init __bfin_cpu_init(struct cpufreq_policy *policy)
+static int __bfin_cpu_init(struct cpufreq_policy *policy)
 {
 
 	unsigned long cclk, sclk;
