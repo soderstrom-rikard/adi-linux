@@ -199,6 +199,16 @@ void bfin_internal_unmask_irq(unsigned int irq)
 }
 
 #ifdef CONFIG_BF60x
+static void bfin_sec_preflow_handler(struct irq_data *d)
+{
+	unsigned long flags = hard_local_irq_save();
+	unsigned int sid = SIC_SYSIRQ(d->irq);
+
+	bfin_write_SEC_SCI(0, SEC_CSID, sid);
+
+	hard_local_irq_restore(flags);
+}
+
 static void bfin_sec_mask_ack_irq(struct irq_data *d)
 {
 	unsigned long flags = hard_local_irq_save();
@@ -483,7 +493,9 @@ static struct irq_chip bfin_internal_irqchip = {
 static struct irq_chip bfin_sec_irqchip = {
 	.name = "SEC",
 	.irq_mask_ack = bfin_sec_mask_ack_irq,
+	.irq_mask = bfin_sec_mask_ack_irq,
 	.irq_unmask = bfin_sec_unmask_irq,
+	.irq_eoi = bfin_sec_unmask_irq,
 	.irq_disable = bfin_sec_disable,
 	.irq_enable = bfin_sec_enable,
 };
@@ -1328,9 +1340,11 @@ int __init init_arch_irq(void)
 		} else if (irq >= BFIN_IRQ(34) && irq <= BFIN_IRQ(37)) {
 			irq_set_chip(irq, &bfin_sec_irqchip);
 			irq_set_handler(irq, handle_percpu_irq);
-		} else
+		} else {
 			irq_set_chip_and_handler(irq, &bfin_sec_irqchip,
-					handle_level_irq);
+					handle_fasteoi_irq);
+			__irq_set_preflow_handler(irq, bfin_sec_preflow_handler);
+		}
 	}
 	for (irq = GPIO_IRQ_BASE;
 		irq < (GPIO_IRQ_BASE + MAX_BLACKFIN_GPIOS); irq++)

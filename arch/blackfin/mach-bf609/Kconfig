@@ -1,6 +1,7 @@
 config BF60x
 	def_bool y
 	depends on (BF609)
+	select IRQ_PREFLOW_FASTEOI
 
 if (BF60x)
 
