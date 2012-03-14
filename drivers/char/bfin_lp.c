@@ -24,6 +24,8 @@
 #include <linux/kfifo.h>
 #include <linux/completion.h>
 
+#include <linux/workqueue.h>
+
 #include <asm/irq.h>
 #include <asm/blackfin.h>
 #include <asm/dma.h>
@@ -33,9 +35,7 @@
 #include <asm/gptimers.h>
 
 /* fifo size in elements (ints) */
-#define FIFO_SIZE       32
-
-
+#define FIFO_SIZE      1024
 
 #define LINKPORT_DRVNAME "bfin-linkport"
 
@@ -47,6 +47,7 @@
 #define LP_CTL_RRQMSK  0x200
 #define LP_CTL_ITMSK  0x800
 
+#define LP_STAT_DONE 0x1000
 #define LP_STAT_LTRQ 0x1
 #define LP_STAT_LRRQ 0x2
 #define LP_STAT_LPIT 0x8
@@ -134,6 +135,8 @@ struct bfin_lp_dev {
 	volatile struct bfin_lp_register *regs;
 	wait_queue_head_t rx_waitq;
 	spinlock_t lock;
+	struct workqueue_struct *workqueue;
+	struct work_struct transfer_work;
 	int linkport_num;
 	int dma_chan;
 	int status;
@@ -190,37 +193,6 @@ int bfin_lp_config_channel(struct bfin_lp_dev *lpdev, int direction)
 	lpdev->regs->ctl = reg;
 
 	SSYNC();
-	reg = lpdev->regs->ctl;
-	SSYNC();
-	return 0;
-}
-
-int bfin_lp_tx_word(struct bfin_lp_dev *lpdev, uint32_t *buf, int count)
-{
-	uint32_t reg;
-
-	reg = lpdev->regs->ctl;
-	SSYNC();
-
-	printk("2 ctl %08x = %08x\n", &lpdev->regs->ctl, reg);
-
-	printk("queue len: %u\n", kfifo_len(&lpdev->lpfifo));
-
-	return 0;
-}
-
-int bfin_lp_rx_word(struct bfin_lp_dev *lpdev, uint32_t *buf, int count)
-{
-	uint32_t *word = buf;
-	while (count) {
-
-		count--;
-		word++;
-
-		while (lpdev->regs->stat & LP_STAT_LPBS);
-
-	}
-
 	return 0;
 }
 
@@ -270,31 +242,60 @@ int bfin_lp_get_rx_fifo(struct bfin_lp_dev *lpdev)
 		return 0;
 }
 
+static void lp_rx_fifo(struct bfin_lp_dev *dev)
+{
+	int cnt;
+
+	cnt = bfin_lp_get_rx_fifo(dev);
+	while (cnt) {
+		unsigned int data;
+		data = dev->regs->rx;
+		if (!kfifo_put(&dev->lpfifo, &data))
+			goto out;
+		cnt--;
+	}
+out:
+	enable_irq(dev->irq);
+	/* wake up read/write block. */
+	wake_up_interruptible(&dev->rx_waitq);
+}
+
+static void transfer_fn(struct work_struct *work)
+{
+	struct bfin_lp_dev *dev = container_of(work,
+			struct bfin_lp_dev, transfer_work);
+
+	if (dev->status == LP_STAT_LTRQ) {
+		unsigned int data = 0;
+		while (kfifo_get(&dev->lpfifo, &data)) {
+			if ((dev->regs->stat & LP_STAT_FFST) == 0x60)
+				break;
+			while (dev->regs->stat & LP_STAT_LPBS);
+			dev->regs->tx = data;
+		}
+		if (kfifo_len(&dev->lpfifo) == 0) {
+			dev->status = LP_STAT_DONE;
+			if (dev->regs->stat & LP_STAT_LPBS) {
+				enable_irq(dev->irq);
+				return;
+			}
+			complete(&dev->complete);
+		}
+	} else if (dev->status == LP_STAT_DONE) {
+		kfifo_reset(&dev->lpfifo);
+	} else {
+		lp_rx_fifo(dev);
+	}
+}
+
 static irqreturn_t bfin_lp_irq(int irq, void *dev_id)
 {
 	struct bfin_lp_dev *dev = (struct bfin_lp_dev *)dev_id;
-	int cnt;
 	unsigned long flags;
 	uint32_t stat = dev->regs->stat;
 
 	pr_debug("bfin lp irq %d stat %x dev %p status %d\n", irq, stat, dev, dev->status);
 
-	cnt = bfin_lp_get_rx_fifo(dev);
-	if (cnt) {
-		spin_lock_irqsave(&dev->lock, flags);
-		while (cnt) {
-			unsigned int data;
-			data = dev->regs->rx;
-			if (!kfifo_put(&dev->lpfifo, &data))
-				goto out;
-			cnt--;
-		}
-
-		spin_unlock_irqrestore(&dev->lock, flags);
-		dev->regs->ctl = 0;
-		/* wake up read/write block. */
-		wake_up_interruptible(&dev->rx_waitq);
-	}
 	if (stat & LP_STAT_LTRQ) {
 		if (kfifo_len(&dev->lpfifo)) {
 			dev->status = LP_STAT_LTRQ;
@@ -309,21 +310,8 @@ static irqreturn_t bfin_lp_irq(int irq, void *dev_id)
 		goto out;
 	}
 
-	if (dev->status == LP_STAT_LTRQ) {
-		unsigned int data = 0;
-		if (kfifo_get(&dev->lpfifo, &data)) {
-			dev->regs->tx = data;
-		}
-		if (kfifo_len(&dev->lpfifo) == 0) {
-			dev->status = 0;
-			dev->regs->ctl = 0;
-			complete(&dev->complete);
-		}
-	} else if (dev->status == LP_STAT_LRRQ) {
-		unsigned int data;
-		data = dev->regs->rx;
-	}
-
+	disable_irq_nosync(irq);
+	queue_work(dev->workqueue, &dev->transfer_work);
 out:
 	dev->regs->stat = stat;
 	dev->count++;
@@ -354,6 +342,7 @@ static int bfin_lp_open(struct inode *inode, struct file *filp)
 
 	if (peripheral_request_list(dev->per_linkport, LINKPORT_DRVNAME)) {
 		printk("Requesting Peripherals failed\n");
+
 		return ret;
 	}
 
@@ -369,6 +358,12 @@ static int bfin_lp_open(struct inode *inode, struct file *filp)
 
 	if (request_irq(dev->status_irq, bfin_lp_irq, 0, LINKPORT_DRVNAME, dev)) {
 		printk(KERN_ERR "Requesting status irq failed\n");
+		goto free_dma;
+	}
+
+	dev->workqueue = create_singlethread_workqueue("linkport_work");
+	if (!dev->workqueue) {
+		printk(KERN_ERR "create workqueue failed\n");
 		goto free_dma;
 	}
 
@@ -389,6 +384,13 @@ free_per:
 static int bfin_lp_release(struct inode *inode, struct file *filp)
 {
 	struct bfin_lp_dev *dev = filp->private_data;
+
+	wait_for_completion(&dev->complete);
+
+	dev->regs->ctl = 0;
+
+	enable_irq(dev->irq);
+	destroy_workqueue(dev->workqueue);
 	kfifo_free(&dev->lpfifo);
 	peripheral_free_list(dev->per_linkport);
 	free_dma(dev->dma_chan);
@@ -414,7 +416,6 @@ static ssize_t bfin_lp_read(struct file *filp, char *buf, size_t count, loff_t *
 
 	dev->regs->ctl |= LP_CTL_EN;
 
-
 	while (n) {
 		fifo_cnt = kfifo_len(&dev->lpfifo);
 		if (!fifo_cnt) {
@@ -422,7 +423,7 @@ static ssize_t bfin_lp_read(struct file *filp, char *buf, size_t count, loff_t *
 			continue;
 		}
 
-		ret = kfifo_to_user(&dev->lpfifo, buf, fifo_cnt, &copied);
+		ret = kfifo_to_user(&dev->lpfifo, buf, fifo_cnt * 4, &copied);
 		n -= fifo_cnt;
 	}
 
@@ -438,16 +439,9 @@ static ssize_t bfin_lp_write(struct file *filp, const char *buf, size_t count, l
 
 	ret = kfifo_from_user(&dev->lpfifo, buf, count, &copied);
 
-	if (kfifo_peek(&dev->lpfifo, &i))
-		printk(KERN_INFO "%x\n", i);
-
 	dev->regs->div = 1;
 
 	bfin_lp_config_channel(dev, 1);
-
-	wait_for_completion(&dev->complete);
-
-	dev->regs->ctl = 0;
 
 	return ret ? ret : copied;
 }
@@ -628,7 +622,7 @@ static int __init bfin_linkport_init(void)
 	INIT_LIST_HEAD(&linkport_dev->lp_dev);
 	spin_lock_init(&linkport_dev->lp_dev_lock);
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 4; i++) {
 		struct device *dev;
 		dev = device_create(linkport_dev->class, NULL, lp_dev + i, &lp_dev_info[i], "linkport%d", i);
 		if (!dev)
@@ -637,6 +631,7 @@ static int __init bfin_linkport_init(void)
 		lp_dev_info[i].linkport_num = i;
 		spin_lock_init(&lp_dev_info[i].lock);
 		init_waitqueue_head(&lp_dev_info[i].rx_waitq);
+		INIT_WORK(&lp_dev_info[i].transfer_work, transfer_fn);
 		INIT_LIST_HEAD(&lp_dev_info[i].list);
 		init_completion(&lp_dev_info[i].complete);
 		list_add(&lp_dev_info[i].list, &linkport_dev->lp_dev);
