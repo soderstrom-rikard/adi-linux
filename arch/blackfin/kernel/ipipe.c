@@ -31,6 +31,7 @@
 #include <linux/kthread.h>
 #include <linux/unistd.h>
 #include <linux/io.h>
+#include <asm/system.h>
 #include <linux/atomic.h>
 #include <asm/irq_handler.h>
 
