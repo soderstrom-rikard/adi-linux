@@ -216,6 +216,7 @@ static int bfin_t350mcqb_fb_open(struct fb_info *info, int user)
 		bfin_t350mcqb_config_dma(fbi);
 		bfin_t350mcqb_config_ppi(fbi);
 		bfin_t350mcqb_init_timers();
+		memset(fbi->fb_buffer, 0, info->fix.smem_len);
 
 		/* start dma */
 		enable_dma(CH_PPI);

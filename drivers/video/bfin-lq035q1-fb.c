@@ -399,6 +399,7 @@ static int bfin_lq035q1_fb_open(struct fb_info *info, int user)
 		bfin_lq035q1_config_dma(fbi);
 		bfin_lq035q1_config_ppi(fbi);
 		bfin_lq035q1_init_timers(fbi);
+		memset(fbi->fb_buffer, 0, info->fix.smem_len);
 
 		/* start dma */
 		enable_dma(CH_PPI);
