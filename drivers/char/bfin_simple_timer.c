@@ -25,6 +25,7 @@
  *
  * Licensed under the GPL-2 or later.
  */
+
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -95,6 +96,7 @@ timer_ioctl(struct file *filp, uint cmd, unsigned long arg)
 	case BFIN_SIMPLE_TIMER_SET_MODE:
 		mode = arg;
 		switch (mode) {
+			pr_debug(DRV_NAME ": TIMER_SET_MODE: mode %d\n", mode);
 		case 0:
 #ifdef CONFIG_BF60x
 			set_gptimer_config(t->id,  TIMER_OUT_DIS | TIMER_MODE_PWM
@@ -105,7 +107,7 @@ timer_ioctl(struct file *filp, uint cmd, unsigned long arg)
 			break;
 		case 1:
 #ifdef CONFIG_BF60x
-			set_gptimer_config(t->id,  TIMER_OUT_DIS | TIMER_MODE_PWM_CONT
+			set_gptimer_config(t->id,  TIMER_MODE_PWM_CONT
 						| TIMER_PULSE_HI | TIMER_IRQ_PER);
 #else
 			set_gptimer_config(t->id, PWM_OUT | PERIOD_CNT | IRQ_ENA);
