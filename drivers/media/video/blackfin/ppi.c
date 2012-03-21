@@ -67,6 +67,12 @@ static irqreturn_t ppi_irq_err(int irq, void *dev_id)
 		bfin_write16(&reg->status, 0xffff);
 		break;
 	}
+	case PPI_TYPE_EPPI3:
+	{
+		struct bfin_eppi3_regs *reg = info->base;
+		bfin_write32(&reg->stat, 0xc0ff);
+		break;
+	}
 	default:
 		break;
 	}
@@ -128,6 +134,13 @@ static int ppi_start(struct ppi_if *ppi)
 		bfin_write32(&reg->control, ppi->ppi_control);
 		break;
 	}
+	case PPI_TYPE_EPPI3:
+	{
+		struct bfin_eppi3_regs *reg = info->base;
+		bfin_write32(&reg->ctl, ppi->ppi_control);
+		break;
+	}
+
 	default:
 		return -EINVAL;
 	}
@@ -155,6 +168,13 @@ static int ppi_stop(struct ppi_if *ppi)
 		bfin_write32(&reg->control, ppi->ppi_control);
 		break;
 	}
+	case PPI_TYPE_EPPI3:
+	{
+		struct bfin_eppi3_regs *reg = info->base;
+		bfin_write32(&reg->ctl, ppi->ppi_control);
+		break;
+	}
+
 	default:
 		return -EINVAL;
 	}
@@ -180,7 +200,7 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 	else
 		ppi->err_int = true;
 
-	dma_config = (DMA_FLOW_STOP | WNR | RESTART | DMA2D | DI_EN);
+	dma_config = (DMA_FLOW_STOP | WNR | RESTART | DMA2D | DI_EN_Y);
 	ppi->ppi_control = params->ppi_control & ~PORT_EN;
 	switch (info->type) {
 	case PPI_TYPE_PPI:
@@ -212,17 +232,36 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 		bfin_write16(&reg->vcount, lines_per_frame);
 		break;
 	}
+	case PPI_TYPE_EPPI3:
+	{
+		struct bfin_eppi3_regs *reg = info->base;
+
+		if ((params->ppi_control & PACK_EN)
+			|| (params->ppi_control & 0x70000) > DLEN_16)
+			dma32 = 1;
+
+		bfin_write32(&reg->ctl, ppi->ppi_control);
+		bfin_write32(&reg->line, bytes_per_line + params->blank_clocks);
+		bfin_write32(&reg->frame, lines_per_frame);
+		bfin_write32(&reg->hdly, 0);
+		bfin_write32(&reg->vdly, 0);
+		bfin_write32(&reg->hcnt, bytes_per_line);
+		bfin_write32(&reg->vcnt, lines_per_frame);
+		if (params->int_mask)
+			bfin_write32(&reg->imsk, params->int_mask & 0xFF);
+		break;
+	}
 	default:
 		return -EINVAL;
 	}
 
 	if (dma32) {
-		dma_config |= WDSIZE_32;
+		dma_config |= WDSIZE_32 | PSIZE_32;
 		set_dma_x_count(info->dma_ch, bytes_per_line >> 2);
 		set_dma_x_modify(info->dma_ch, 4);
 		set_dma_y_modify(info->dma_ch, 4);
 	} else {
-		dma_config |= WDSIZE_16;
+		dma_config |= WDSIZE_16 | PSIZE_16;
 		set_dma_x_count(info->dma_ch, bytes_per_line >> 1);
 		set_dma_x_modify(info->dma_ch, 2);
 		set_dma_y_modify(info->dma_ch, 2);

@@ -21,11 +21,23 @@
 #define _PPI_H_
 
 #include <linux/interrupt.h>
+#include <asm/blackfin.h>
+#include <asm/bfin_ppi.h>
 
+/* EPPI */
 #ifdef EPPI_EN
 #define PORT_EN EPPI_EN
 #define DMA32 0
 #define PACK_EN PACKEN
+#endif
+
+/* EPPI3 */
+#ifdef EPPI0_CTL2
+#define PORT_EN EPPI_CTL_EN
+#define PACK_EN EPPI_CTL_PACKEN
+#define DMA32 0
+#define DLEN_8 EPPI_CTL_DLEN08
+#define DLEN_16 EPPI_CTL_DLEN16
 #endif
 
 struct ppi_if;
@@ -51,6 +63,7 @@ struct ppi_ops {
 enum ppi_type {
 	PPI_TYPE_PPI,
 	PPI_TYPE_EPPI,
+	PPI_TYPE_EPPI3,
 };
 
 struct ppi_info {
