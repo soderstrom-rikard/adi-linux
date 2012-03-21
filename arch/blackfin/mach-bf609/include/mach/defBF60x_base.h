@@ -1426,6 +1426,81 @@
 #define SPORT2_RXSEC_B              0xFFC402CC         /* SPORT2 'B' Secondary Channel Receive Buffer Register */
 
 /* =========================
+	EPPI Registers
+   ========================= */
+
+/* =========================
+	EPPI0
+   ========================= */
+#define EPPI0_STAT                  0xFFC18000         /* EPPI0 Status Register */
+#define EPPI0_HCNT                  0xFFC18004         /* EPPI0 Horizontal Transfer Count Register */
+#define EPPI0_HDLY                  0xFFC18008         /* EPPI0 Horizontal Delay Count Register */
+#define EPPI0_VCNT                  0xFFC1800C         /* EPPI0 Vertical Transfer Count Register */
+#define EPPI0_VDLY                  0xFFC18010         /* EPPI0 Vertical Delay Count Register */
+#define EPPI0_FRAME                 0xFFC18014         /* EPPI0 Lines Per Frame Register */
+#define EPPI0_LINE                  0xFFC18018         /* EPPI0 Samples Per Line Register */
+#define EPPI0_CLKDIV                0xFFC1801C         /* EPPI0 Clock Divide Register */
+#define EPPI0_CTL                   0xFFC18020         /* EPPI0 Control Register */
+#define EPPI0_FS1_WLHB              0xFFC18024         /* EPPI0 FS1 Width Register / EPPI Horizontal Blanking Samples Per Line Register */
+#define EPPI0_FS1_PASPL             0xFFC18028         /* EPPI0 FS1 Period Register / EPPI Active Samples Per Line Register */
+#define EPPI0_FS2_WLVB              0xFFC1802C         /* EPPI0 FS2 Width Register / EPPI Lines Of Vertical Blanking Register */
+#define EPPI0_FS2_PALPF             0xFFC18030         /* EPPI0 FS2 Period Register / EPPI Active Lines Per Field Register */
+#define EPPI0_IMSK                  0xFFC18034         /* EPPI0 Interrupt Mask Register */
+#define EPPI0_ODDCLIP               0xFFC1803C         /* EPPI0 Clipping Register for ODD (Chroma) Data */
+#define EPPI0_EVENCLIP              0xFFC18040         /* EPPI0 Clipping Register for EVEN (Luma) Data */
+#define EPPI0_FS1_DLY               0xFFC18044         /* EPPI0 Frame Sync 1 Delay Value */
+#define EPPI0_FS2_DLY               0xFFC18048         /* EPPI0 Frame Sync 2 Delay Value */
+#define EPPI0_CTL2                  0xFFC1804C         /* EPPI0 Control Register 2 */
+
+/* =========================
+	EPPI1
+   ========================= */
+#define EPPI1_STAT                  0xFFC18400         /* EPPI1 Status Register */
+#define EPPI1_HCNT                  0xFFC18404         /* EPPI1 Horizontal Transfer Count Register */
+#define EPPI1_HDLY                  0xFFC18408         /* EPPI1 Horizontal Delay Count Register */
+#define EPPI1_VCNT                  0xFFC1840C         /* EPPI1 Vertical Transfer Count Register */
+#define EPPI1_VDLY                  0xFFC18410         /* EPPI1 Vertical Delay Count Register */
+#define EPPI1_FRAME                 0xFFC18414         /* EPPI1 Lines Per Frame Register */
+#define EPPI1_LINE                  0xFFC18418         /* EPPI1 Samples Per Line Register */
+#define EPPI1_CLKDIV                0xFFC1841C         /* EPPI1 Clock Divide Register */
+#define EPPI1_CTL                   0xFFC18420         /* EPPI1 Control Register */
+#define EPPI1_FS1_WLHB              0xFFC18424         /* EPPI1 FS1 Width Register / EPPI Horizontal Blanking Samples Per Line Register */
+#define EPPI1_FS1_PASPL             0xFFC18428         /* EPPI1 FS1 Period Register / EPPI Active Samples Per Line Register */
+#define EPPI1_FS2_WLVB              0xFFC1842C         /* EPPI1 FS2 Width Register / EPPI Lines Of Vertical Blanking Register */
+#define EPPI1_FS2_PALPF             0xFFC18430         /* EPPI1 FS2 Period Register / EPPI Active Lines Per Field Register */
+#define EPPI1_IMSK                  0xFFC18434         /* EPPI1 Interrupt Mask Register */
+#define EPPI1_ODDCLIP               0xFFC1843C         /* EPPI1 Clipping Register for ODD (Chroma) Data */
+#define EPPI1_EVENCLIP              0xFFC18440         /* EPPI1 Clipping Register for EVEN (Luma) Data */
+#define EPPI1_FS1_DLY               0xFFC18444         /* EPPI1 Frame Sync 1 Delay Value */
+#define EPPI1_FS2_DLY               0xFFC18448         /* EPPI1 Frame Sync 2 Delay Value */
+#define EPPI1_CTL2                  0xFFC1844C         /* EPPI1 Control Register 2 */
+
+/* =========================
+	EPPI2
+   ========================= */
+#define EPPI2_STAT                  0xFFC18800         /* EPPI2 Status Register */
+#define EPPI2_HCNT                  0xFFC18804         /* EPPI2 Horizontal Transfer Count Register */
+#define EPPI2_HDLY                  0xFFC18808         /* EPPI2 Horizontal Delay Count Register */
+#define EPPI2_VCNT                  0xFFC1880C         /* EPPI2 Vertical Transfer Count Register */
+#define EPPI2_VDLY                  0xFFC18810         /* EPPI2 Vertical Delay Count Register */
+#define EPPI2_FRAME                 0xFFC18814         /* EPPI2 Lines Per Frame Register */
+#define EPPI2_LINE                  0xFFC18818         /* EPPI2 Samples Per Line Register */
+#define EPPI2_CLKDIV                0xFFC1881C         /* EPPI2 Clock Divide Register */
+#define EPPI2_CTL                   0xFFC18820         /* EPPI2 Control Register */
+#define EPPI2_FS1_WLHB              0xFFC18824         /* EPPI2 FS1 Width Register / EPPI Horizontal Blanking Samples Per Line Register */
+#define EPPI2_FS1_PASPL             0xFFC18828         /* EPPI2 FS1 Period Register / EPPI Active Samples Per Line Register */
+#define EPPI2_FS2_WLVB              0xFFC1882C         /* EPPI2 FS2 Width Register / EPPI Lines Of Vertical Blanking Register */
+#define EPPI2_FS2_PALPF             0xFFC18830         /* EPPI2 FS2 Period Register / EPPI Active Lines Per Field Register */
+#define EPPI2_IMSK                  0xFFC18834         /* EPPI2 Interrupt Mask Register */
+#define EPPI2_ODDCLIP               0xFFC1883C         /* EPPI2 Clipping Register for ODD (Chroma) Data */
+#define EPPI2_EVENCLIP              0xFFC18840         /* EPPI2 Clipping Register for EVEN (Luma) Data */
+#define EPPI2_FS1_DLY               0xFFC18844         /* EPPI2 Frame Sync 1 Delay Value */
+#define EPPI2_FS2_DLY               0xFFC18848         /* EPPI2 Frame Sync 2 Delay Value */
+#define EPPI2_CTL2                  0xFFC1884C         /* EPPI2 Control Register 2 */
+
+
+
+/* =========================
         DDE Registers
    ========================= */
 
