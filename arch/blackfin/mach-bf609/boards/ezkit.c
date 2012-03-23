@@ -395,7 +395,7 @@ static struct musb_hdrc_config musb_config = {
 	.multipoint	= 1,
 	.dyn_fifo	= 0,
 	.dma		= 1,
-	.num_eps	= 12,
+	.num_eps	= 16,
 	.dma_channels	= 8,
 	.clkin          = 24,           /* musb CLKIN in MHZ */
 };
