@@ -272,6 +272,7 @@ static void transfer_fn(struct work_struct *work)
 				break;
 			while (dev->regs->stat & LP_STAT_LPBS);
 			dev->regs->tx = data;
+			while (dev->regs->stat & LP_STAT_LPBS);
 		}
 		if (kfifo_len(&dev->lpfifo) == 0) {
 			dev->status = LP_STAT_DONE;
@@ -389,7 +390,6 @@ static int bfin_lp_release(struct inode *inode, struct file *filp)
 
 	dev->regs->ctl = 0;
 
-	enable_irq(dev->irq);
 	destroy_workqueue(dev->workqueue);
 	kfifo_free(&dev->lpfifo);
 	peripheral_free_list(dev->per_linkport);
@@ -416,6 +416,7 @@ static ssize_t bfin_lp_read(struct file *filp, char *buf, size_t count, loff_t *
 
 	dev->regs->ctl |= LP_CTL_EN;
 
+
 	while (n) {
 		fifo_cnt = kfifo_len(&dev->lpfifo);
 		if (!fifo_cnt) {
@@ -426,6 +427,8 @@ static ssize_t bfin_lp_read(struct file *filp, char *buf, size_t count, loff_t *
 		ret = kfifo_to_user(&dev->lpfifo, buf, fifo_cnt * 4, &copied);
 		n -= fifo_cnt;
 	}
+
+	complete(&dev->complete);
 
 	return count;
 }
