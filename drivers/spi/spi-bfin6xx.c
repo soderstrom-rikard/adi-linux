@@ -149,7 +149,7 @@ static void bfin_spi_cs_active(struct bfin_spi_master_data *drv_data, struct bfi
 }
 
 static void bfin_spi_cs_deactive(struct bfin_spi_master_data *drv_data,
-				struct bfin_spi_slave_data *chip)
+                                 struct bfin_spi_slave_data *chip)
 {
 	if (likely(chip->chip_select_num < MAX_CTRL_CS))
 		bfin_write_or(&drv_data->regs->ssel, chip->ssel);
@@ -163,14 +163,14 @@ static void bfin_spi_cs_deactive(struct bfin_spi_master_data *drv_data,
 
 /* enable or disable the pin muxed by GPIO and SPI CS to work as SPI CS */
 static inline void bfin_spi_cs_enable(struct bfin_spi_master_data *drv_data,
-				struct bfin_spi_slave_data *chip)
+                                      struct bfin_spi_slave_data *chip)
 {
 	if (chip->chip_select_num < MAX_CTRL_CS)
 		bfin_write_or(&drv_data->regs->ssel, chip->ssel >> 8);
 }
 
 static inline void bfin_spi_cs_disable(struct bfin_spi_master_data *drv_data,
-				struct bfin_spi_slave_data *chip)
+                                       struct bfin_spi_slave_data *chip)
 {
 	if (chip->chip_select_num < MAX_CTRL_CS)
 		bfin_write_and(&drv_data->regs->ssel, ~(chip->ssel >> 8));
@@ -726,7 +726,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 
 	if (chip->chip_select_num < MAX_CTRL_CS) {
 		ret = peripheral_request(ssel[spi->master->bus_num]
-				[chip->chip_select_num-1], spi->modalias);
+		                         [chip->chip_select_num-1], spi->modalias);
 		if (ret) {
 			dev_err(&spi->dev, "peripheral_request() error\n");
 			goto pin_error;
@@ -740,7 +740,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 	dev_dbg(&spi->dev, "chip select number is %d\n", chip->chip_select_num);
 
 	spi_set_ctldata(spi, chip);
-
+		
 	bfin_spi_cs_enable(drv_data, chip);
 	bfin_spi_cs_deactive(drv_data, chip);
 
@@ -987,7 +987,7 @@ static int __devexit bfin_spi_remove(struct platform_device *pdev)
 
 	/* Disconnect from the SPI framework */
 	spi_unregister_master(drv_data->master);
-
+	
 	/* Prevent double remove */
 	platform_set_drvdata(pdev, NULL);
 
