@@ -742,40 +742,40 @@ static struct platform_device bfin_i2s_pcm = {
 #include <asm/bfin_sport3.h>
 static struct resource bfin_snd_resources[] = {
 	{
-		.start = SPORT1_CTL_A,
-		.end = SPORT1_CTL_A,
+		.start = SPORT0_CTL_A,
+		.end = SPORT0_CTL_A,
 		.flags = IORESOURCE_MEM,
 	},
 	{
-		.start = SPORT1_CTL_B,
-		.end = SPORT1_CTL_B,
+		.start = SPORT0_CTL_B,
+		.end = SPORT0_CTL_B,
 		.flags = IORESOURCE_MEM,
 	},
 	{
-		.start = CH_SPORT1_TX,
-		.end = CH_SPORT1_TX,
+		.start = CH_SPORT0_TX,
+		.end = CH_SPORT0_TX,
 		.flags = IORESOURCE_DMA,
 	},
 	{
-		.start = CH_SPORT1_RX,
-		.end = CH_SPORT1_RX,
+		.start = CH_SPORT0_RX,
+		.end = CH_SPORT0_RX,
 		.flags = IORESOURCE_DMA,
 	},
 	{
-		.start = IRQ_SPORT1_TX_STAT,
-		.end = IRQ_SPORT1_TX_STAT,
+		.start = IRQ_SPORT0_TX_STAT,
+		.end = IRQ_SPORT0_TX_STAT,
 		.flags = IORESOURCE_IRQ,
 	},
 	{
-		.start = IRQ_SPORT2_RX_STAT,
-		.end = IRQ_SPORT2_RX_STAT,
+		.start = IRQ_SPORT0_RX_STAT,
+		.end = IRQ_SPORT0_RX_STAT,
 		.flags = IORESOURCE_IRQ,
 	},
 };
 
 static const unsigned short bfin_snd_pin[] = {
-	P_SPORT1_ACLK, P_SPORT1_AFS, P_SPORT1_AD0, P_SPORT1_BCLK,
-	P_SPORT1_BFS, P_SPORT1_BD0, 0,
+	P_SPORT0_ACLK, P_SPORT0_AFS, P_SPORT0_AD0, P_SPORT0_BCLK,
+	P_SPORT0_BFS, P_SPORT0_BD0, 0,
 };
 
 static struct bfin_snd_platform_data bfin_snd_data = {
