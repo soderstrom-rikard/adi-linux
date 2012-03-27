@@ -414,8 +414,8 @@ static const struct snd_soc_dapm_route adau1761_dapm_routes[] = {
 	{ "AIFIN", NULL, "Serial Input Routing Clock" },
 	{ "AIFOUT", NULL, "Serial Output Routing Clock" },
 
-	{ "AIFIN", NULL, "Decimator Resync Clock", adau1761_is_slave_mode },
-	{ "AIFOUT", NULL, "Interpolator Resync Clock", adau1761_is_slave_mode },
+	{ "AIFIN", NULL, "Decimator Resync Clock" },
+	{ "AIFOUT", NULL, "Interpolator Resync Clock" },
 
 	{ "DSP", NULL, "Decimator Resync Clock" },
 	{ "DSP", NULL, "Interpolator Resync Clock" },
