@@ -364,8 +364,7 @@ static const struct snd_soc_dapm_route adau1761_dmic_routes[] = {
 	{ "Input Select", "ADC", "Left ADC" },
 	{ "Input Select", "ADC", "Right ADC" },
 	{ "Input Select", "DMIC", "DMIC" },
-	{ "AIFOUT", NULL, "Input Mux" },
-	{ "DMIC", NULL, "DMICDAT" },
+	{ "AIFOUT", NULL, "Input Select" },
 };
 
 static const struct snd_soc_dapm_route adau1761_no_dmic_routes[] = {
