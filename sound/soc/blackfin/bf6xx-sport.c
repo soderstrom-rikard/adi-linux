@@ -87,10 +87,9 @@ void sport_rx_start(struct sport_device *sport)
 	SSYNC();
 }
 EXPORT_SYMBOL(sport_rx_start);
-#include <linux/delay.h>
+
 void sport_tx_stop(struct sport_device *sport)
 {
-	pr_info("---%s---%d\n", __func__, __LINE__);
 	sport->tx_regs->spctl &= ~SPORT_CTL_SPENPRI;
 	SSYNC();
 	disable_dma(sport->tx_dma_chan);
@@ -123,7 +122,7 @@ EXPORT_SYMBOL(sport_set_rx_callback);
 
 static void setup_desc(struct dmasg *desc, void *buf, int fragcount,
 		size_t fragsize, unsigned int cfg,
-		unsigned int x_count, unsigned int y_count, size_t wdsize)
+		unsigned int count, size_t wdsize)
 {
 
 	int i;
@@ -132,10 +131,10 @@ static void setup_desc(struct dmasg *desc, void *buf, int fragcount,
 		desc[i].next_desc_addr  = &(desc[i + 1]);
 		desc[i].start_addr = (unsigned long)buf + i*fragsize;
 		desc[i].cfg = cfg;
-		desc[i].x_count = x_count;
+		desc[i].x_count = count;
 		desc[i].x_modify = wdsize;
-		desc[i].y_count = y_count;
-		desc[i].y_modify = wdsize;
+		desc[i].y_count = 0;
+		desc[i].y_modify = 0;
 	}
 
 	/* make circular */
@@ -145,42 +144,17 @@ static void setup_desc(struct dmasg *desc, void *buf, int fragcount,
 int sport_config_tx_dma(struct sport_device *sport, void *buf,
 		int fragcount, size_t fragsize)
 {
-	unsigned int x_count;
-	unsigned int y_count;
+	unsigned int count;
 	unsigned int cfg;
 	dma_addr_t addr;
 
-	pr_info("%s buf:%p, fragcount:%d, fragsize:0x%lx\n",
-			__func__, buf, fragcount, fragsize);
-
-	x_count = fragsize/sport->wdsize;
-	y_count = 0;
-
-	/* for fragments larger than 64k words we use 2d dma,
-	 * denote fragecount as two numbers' mutliply and both of them
-	 * are less than 64k.*/
-	if (x_count >= 0x10000) {
-		int i, count = x_count;
-
-		for (i = 16; i > 0; i--) {
-			x_count = 1 << i;
-			if ((count & (x_count - 1)) == 0) {
-				y_count = count >> i;
-				if (y_count < 0x10000)
-					break;
-			}
-		}
-		if (i == 0)
-			return -EINVAL;
-	}
-	pr_info("%s x_count:0x%x, y_count:0x%x\n", __func__,
-			x_count, y_count);
+	count = fragsize/sport->wdsize;
 
 	if (sport->tx_desc)
 		dma_free_coherent(NULL, sport->tx_desc_size,
 				sport->tx_desc, 0);
 
-	sport->tx_desc = dma_alloc_coherent(NULL, \
+	sport->tx_desc = dma_alloc_coherent(NULL,
 			fragcount * sizeof(struct dmasg), &addr, 0);
 	sport->tx_desc_size = fragcount * sizeof(struct dmasg);
 	if (!sport->tx_desc)
@@ -191,11 +165,8 @@ int sport_config_tx_dma(struct sport_device *sport, void *buf,
 	sport->tx_frags = fragcount;
 	cfg = DMAFLOW_LIST | DI_EN | compute_wdsize(sport->wdsize) | NDSIZE_6;
 
-	if (y_count != 0)
-		cfg |= DMA2D;
-
 	setup_desc(sport->tx_desc, buf, fragcount, fragsize,
-			cfg|DMAEN, x_count, y_count, sport->wdsize);
+			cfg|DMAEN, count, sport->wdsize);
 
 	return 0;
 }
@@ -204,42 +175,17 @@ EXPORT_SYMBOL(sport_config_tx_dma);
 int sport_config_rx_dma(struct sport_device *sport, void *buf,
 		int fragcount, size_t fragsize)
 {
-	unsigned int x_count;
-	unsigned int y_count;
+	unsigned int count;
 	unsigned int cfg;
 	dma_addr_t addr;
 
-	pr_info("%s buf:%p, fragcount:%d, fragsize:0x%lx\n",
-			__func__, buf, fragcount, fragsize);
-
-	x_count = fragsize/sport->wdsize;
-	y_count = 0;
-
-	/* for fragments larger than 64k words we use 2d dma,
-	 * denote fragecount as two numbers' mutliply and both of them
-	 * are less than 64k.*/
-	if (x_count >= 0x10000) {
-		int i, count = x_count;
-
-		for (i = 16; i > 0; i--) {
-			x_count = 1 << i;
-			if ((count & (x_count - 1)) == 0) {
-				y_count = count >> i;
-				if (y_count < 0x10000)
-					break;
-			}
-		}
-		if (i == 0)
-			return -EINVAL;
-	}
-	pr_info("%s x_count:0x%x, y_count:0x%x\n", __func__,
-			x_count, y_count);
+	count = fragsize/sport->wdsize;
 
 	if (sport->rx_desc)
 		dma_free_coherent(NULL, sport->rx_desc_size,
 				sport->rx_desc, 0);
 
-	sport->rx_desc = dma_alloc_coherent(NULL, \
+	sport->rx_desc = dma_alloc_coherent(NULL,
 			fragcount * sizeof(struct dmasg), &addr, 0);
 	sport->rx_desc_size = fragcount * sizeof(struct dmasg);
 	if (!sport->rx_desc)
@@ -248,14 +194,11 @@ int sport_config_rx_dma(struct sport_device *sport, void *buf,
 	sport->rx_buf = buf;
 	sport->rx_fragsize = fragsize;
 	sport->rx_frags = fragcount;
-	cfg = DMAFLOW_LIST | DI_EN | compute_wdsize(sport->wdsize) | \
-		  WNR | NDSIZE_6;
-
-	if (y_count != 0)
-		cfg |= DMA2D;
+	cfg = DMAFLOW_LIST | DI_EN | compute_wdsize(sport->wdsize)
+		| WNR | NDSIZE_6;
 
 	setup_desc(sport->rx_desc, buf, fragcount, fragsize,
-			cfg|DMAEN, x_count, y_count, sport->wdsize);
+			cfg|DMAEN, count, sport->wdsize);
 
 	return 0;
 }
@@ -310,11 +253,12 @@ static irqreturn_t sport_rx_irq(int irq, void *dev_id)
 static irqreturn_t sport_err_irq(int irq, void *dev_id)
 {
 	struct sport_device *sport = dev_id;
+	struct device *dev = &sport->pdev->dev;
 
 	if (sport->tx_regs->spctl & SPORT_CTL_DERRPRI)
-		pr_info("sport error: TUVF\n");
+		dev_dbg(dev, "sport error: TUVF\n");
 	if (sport->rx_regs->spctl & SPORT_CTL_DERRPRI)
-		pr_info("sport error: ROVF\n");
+		dev_dbg(dev, "sport error: ROVF\n");
 
 	return IRQ_HANDLED;
 }
