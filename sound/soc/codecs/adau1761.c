@@ -427,6 +427,8 @@ static const struct snd_soc_dapm_route adau1761_dapm_routes[] = {
 
 	{ "Digital Clock 0", NULL, "SYSCLK" },
 	{ "Digital Clock 1", NULL, "SYSCLK" },
+
+	{ "AIFOUT", NULL, "Decimator Resync Clock" },
 };
 
 static int adau1761_set_bias_level(struct snd_soc_codec *codec,
