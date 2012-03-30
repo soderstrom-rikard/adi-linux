@@ -76,6 +76,7 @@ struct bfin_serial_port {
 #define FPE                      0x20000  /* Force Parity Error On Transmit */
 #define FFE                      0x40000  /* Force Framing Error On Transmit */
 #define SB                       0x80000  /* Set Break */
+#define LCR_MASK		 (SB | STP | EPS | PEN | STBH | STB | WLS_MASK)
 #define FCPOL                    0x400000  /* Flow Control Pin Polarity */
 #define RPOLC                    0x800000  /* IrDA RX Polarity Change */
 #define TPOLC                    0x1000000  /* IrDA TX Polarity Change */
@@ -117,6 +118,7 @@ struct bfin_serial_port {
 #define STP                      0x20  /* Stick Parity */
 #define SB                       0x40  /* Set Break */
 #define DLAB                     0x80  /* Divisor Latch Access */
+#define LCR_MASK		 (SB | STP | EPS | PEN | STB | DLAB | WLS_MASK)
 
 /* UART_LSR Masks */
 #define DR                       0x01  /* Data Ready */
