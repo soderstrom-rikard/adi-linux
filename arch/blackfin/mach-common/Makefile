@@ -7,7 +7,7 @@ obj-y := \
 	interrupt.o arch_checks.o ints-priority.o
 
 obj-$(CONFIG_PM)          += pm.o
-ifneq ($(CONFIG_BF609),y)
+ifneq ($(CONFIG_BF60x),y)
 obj-$(CONFIG_PM)	  += dpmc_modes.o
 endif
 obj-$(CONFIG_CPU_FREQ)    += cpufreq.o
