@@ -272,10 +272,10 @@ static void transfer_fn(struct work_struct *work)
 				break;
 			while (dev->regs->stat & LP_STAT_LPBS);
 			dev->regs->tx = data;
-			while (dev->regs->stat & LP_STAT_LPBS);
 		}
 		if (kfifo_len(&dev->lpfifo) == 0) {
 			dev->status = LP_STAT_DONE;
+			kfifo_reset(&dev->lpfifo);
 			if (dev->regs->stat & LP_STAT_LPBS) {
 				enable_irq(dev->irq);
 				return;
@@ -283,7 +283,7 @@ static void transfer_fn(struct work_struct *work)
 			complete(&dev->complete);
 		}
 	} else if (dev->status == LP_STAT_DONE) {
-		kfifo_reset(&dev->lpfifo);
+		complete(&dev->complete);
 	} else {
 		lp_rx_fifo(dev);
 	}
@@ -373,6 +373,7 @@ static int bfin_lp_open(struct inode *inode, struct file *filp)
 	dev->regs->ctl = 0;
 	SSYNC();
 
+	pr_debug("bfin lp open %d\n", index);
 	return 0;
 
 free_dma:
@@ -385,8 +386,11 @@ free_per:
 static int bfin_lp_release(struct inode *inode, struct file *filp)
 {
 	struct bfin_lp_dev *dev = filp->private_data;
+	unsigned int index = iminor(inode);
 
-	wait_for_completion(&dev->complete);
+	pr_debug("bfin lp relese %d\n", index);
+	if (dev->regs->ctl & LP_CTL_TRAN)
+		wait_for_completion_interruptible(&dev->complete);
 
 	dev->regs->ctl = 0;
 
@@ -427,8 +431,6 @@ static ssize_t bfin_lp_read(struct file *filp, char *buf, size_t count, loff_t *
 		ret = kfifo_to_user(&dev->lpfifo, buf, fifo_cnt * 4, &copied);
 		n -= fifo_cnt;
 	}
-
-	complete(&dev->complete);
 
 	return count;
 }
