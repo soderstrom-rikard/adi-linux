@@ -67,7 +67,11 @@ static inline notrace unsigned long __hard_local_irq_save(void)
 
 static inline notrace int hard_irqs_disabled_flags(unsigned long flags)
 {
+#ifdef CONFIG_BF60x
+	return (flags & IMASK_IVG11) == 0;
+#else
 	return (flags & ~0x3f) == 0;
+#endif
 }
 
 static inline notrace int hard_irqs_disabled(void)
