@@ -40,11 +40,25 @@
 #define PM_REGSET12 R7:0, P5:1
 #define PM_REGSET13 R7:0, P5:0
 
-#define _PM_PUSH(n, x, w, base) PM_REG##n = w[FP + ((x) - (base))];
+#define _PM_PUSH(n, x, w, base) \
+				[--sp] = (R7:0, P5:0);\
+				R0.L = ((x) - base); \
+				R1 = FP; \
+				R0 = R0 + R1; \
+				R1 = w[FP + ((x) - (base))]; \
+				call _pm_save_reg; \
+				(R7:0, P5:0) = [sp++];\
+				PM_REG##n = w[FP + ((x) - (base))];
 #define _PM_POP(n, x, w, base)  w[FP + ((x) - (base))] = PM_REG##n;
 #define PM_PUSH_SYNC(n)         [--sp] = (PM_REGSET##n);
 #define PM_POP_SYNC(n)          (PM_REGSET##n) = [sp++];
-#define PM_PUSH(n, x)           PM_REG##n = [FP++];
+#define PM_PUSH(n, x) \
+				[--sp] = (R7:0, P5:0);\
+				R0 = FP; \
+				R1 = [FP]; \
+				call _pm_save_reg; \
+				(R7:0, P5:0) = [sp++];\
+				PM_REG##n = [FP++];
 #define PM_POP(n, x)            [FP--] = PM_REG##n;
 #define PM_CORE_PUSH(n, x)      _PM_PUSH(n, x, , COREMMR_BASE)
 #define PM_CORE_POP(n, x)       _PM_POP(n, x, , COREMMR_BASE)
@@ -52,6 +66,7 @@
 #define PM_SYS_POP(n, x)        _PM_POP(n, x, , SYSMMR_BASE)
 #define PM_SYS_PUSH16(n, x)     _PM_PUSH(n, x, w, SYSMMR_BASE)
 #define PM_SYS_POP16(n, x)      _PM_POP(n, x, w, SYSMMR_BASE)
+
 
 	.macro bfin_cpu_reg_save
 	/*
@@ -156,6 +171,34 @@
 
 	.endm
 
+	.macro bfin_sec_save
+	FP.H = hi(SEC_SCTL0);
+	FP.L = lo(SEC_SCTL0);
+
+	P2 = 140(Z);
+	LSETUP(.Lsave_begin, .Lsave_end) LC0=P2;
+.Lsave_begin:
+	R1 = [FP];
+	[--sp] = R1;
+	R0 = FP;
+	call _pm_save_reg;
+.Lsave_end:
+	FP += 8;
+	.endm
+
+	.macro bfin_sec_restore
+	FP.H = hi(SEC_SCTL139);
+	FP.L = lo(SEC_SCTL139);
+
+	P2 = 140(Z);
+	LSETUP(.Lrestore_begin, .Lrestore_end) LC0=P2;
+.Lrestore_begin:
+	R0 = [sp++];
+	[FP] = R0;
+.Lrestore_end:
+	FP += -8;
+	.endm
+
 	.macro bfin_sys_mmr_save
 	/* Save system MMRs */
 	FP.H = hi(SYSMMR_BASE);
@@ -249,6 +292,7 @@
 	PM_PUSH_SYNC(9)
 #endif
 	.endm
+
 
 	.macro bfin_sys_mmr_restore
 /* Restore System MMRs */
@@ -364,6 +408,47 @@
 	B2.L = lo(IMASK);
 	B3.L = lo(TCNTL);
 
+	/* Event Vectors */
+	FP = B1;
+	PM_PUSH(0, EVT2)
+	PM_PUSH(1, EVT3)
+	FP += 4;	/* EVT4 */
+	PM_PUSH(2, EVT5)
+	PM_PUSH(3, EVT6)
+	PM_PUSH(4, EVT7)
+	PM_PUSH(5, EVT8)
+	PM_PUSH_SYNC(5)
+
+	PM_PUSH(0, EVT9)
+	PM_PUSH(1, EVT10)
+	PM_PUSH(2, EVT11)
+	PM_PUSH(3, EVT12)
+	PM_PUSH(4, EVT13)
+	PM_PUSH(5, EVT14)
+	PM_PUSH(6, EVT15)
+
+	/* CEC */
+	FP = B2;
+	PM_PUSH(7, IMASK)
+	FP += 4;	/* IPEND */
+	PM_PUSH(8, ILAT)
+	PM_PUSH(9, IPRIO)
+
+	/* Core Timer */
+	FP = B3;
+	PM_PUSH(10, TCNTL)
+	PM_PUSH(11, TPERIOD)
+	PM_PUSH(12, TSCALE)
+	PM_PUSH(13, TCOUNT)
+	PM_PUSH_SYNC(13)
+
+	/* Misc non-contiguous registers */
+	FP = I0;
+	PM_CORE_PUSH(0, DMEM_CONTROL);
+	PM_CORE_PUSH(1, IMEM_CONTROL);
+	PM_CORE_PUSH(2, TBUFCTL);
+	PM_PUSH_SYNC(2)
+
 	/* DCPLB Addr */
 	FP = I1;
 	PM_PUSH(0, DCPLB_ADDR0)
@@ -443,46 +528,7 @@
 	PM_PUSH(5, ICPLB_DATA13)
 	PM_PUSH(6, ICPLB_DATA14)
 	PM_PUSH(7, ICPLB_DATA15)
-
-	/* Event Vectors */
-	FP = B1;
-	PM_PUSH(8, EVT2)
-	PM_PUSH(9, EVT3)
-	FP += 4;	/* EVT4 */
-	PM_PUSH(10, EVT5)
-	PM_PUSH(11, EVT6)
-	PM_PUSH(12, EVT7)
-	PM_PUSH(13, EVT8)
-	PM_PUSH_SYNC(13)
-	PM_PUSH(0, EVT9)
-	PM_PUSH(1, EVT10)
-	PM_PUSH(2, EVT11)
-	PM_PUSH(3, EVT12)
-	PM_PUSH(4, EVT13)
-	PM_PUSH(5, EVT14)
-	PM_PUSH(6, EVT15)
-
-	/* CEC */
-	FP = B2;
-	PM_PUSH(7, IMASK)
-	FP += 4;	/* IPEND */
-	PM_PUSH(8, ILAT)
-	PM_PUSH(9, IPRIO)
-
-	/* Core Timer */
-	FP = B3;
-	PM_PUSH(10, TCNTL)
-	PM_PUSH(11, TPERIOD)
-	PM_PUSH(12, TSCALE)
-	PM_PUSH(13, TCOUNT)
-	PM_PUSH_SYNC(13)
-
-	/* Misc non-contiguous registers */
-	FP = I0;
-	PM_CORE_PUSH(0, DMEM_CONTROL);
-	PM_CORE_PUSH(1, IMEM_CONTROL);
-	PM_CORE_PUSH(2, TBUFCTL);
-	PM_PUSH_SYNC(2)
+	PM_PUSH_SYNC(7)
 	.endm
 
 	.macro bfin_core_mmr_restore
@@ -504,48 +550,9 @@
 	B2.L = lo(IPRIO);
 	B3.L = lo(TCOUNT);
 
-	/* Misc non-contiguous registers */
-	FP = I0;
-	PM_POP_SYNC(2)
-	PM_CORE_POP(2, TBUFCTL)
-	PM_CORE_POP(1, IMEM_CONTROL)
-	PM_CORE_POP(0, DMEM_CONTROL)
-
-	/* Core Timer */
-	PM_POP_SYNC(13)
-	FP = B3;
-	PM_POP(13, TCOUNT)
-	PM_POP(12, TSCALE)
-	PM_POP(11, TPERIOD)
-	PM_POP(10, TCNTL)
-
-	/* CEC */
-	FP = B2;
-	PM_POP(9, IPRIO)
-	PM_POP(8, ILAT)
-	FP += -4;	/* IPEND */
-	PM_POP(7, IMASK)
-
-	/* Event Vectors */
-	FP = B1;
-	PM_POP(6, EVT15)
-	PM_POP(5, EVT14)
-	PM_POP(4, EVT13)
-	PM_POP(3, EVT12)
-	PM_POP(2, EVT11)
-	PM_POP(1, EVT10)
-	PM_POP(0, EVT9)
-	PM_POP_SYNC(13)
-	PM_POP(13, EVT8)
-	PM_POP(12, EVT7)
-	PM_POP(11, EVT6)
-	PM_POP(10, EVT5)
-	FP += -4;	/* EVT4 */
-	PM_POP(9, EVT3)
-	PM_POP(8, EVT2)
-
 	/* ICPLB Data */
 	FP = B0;
+	PM_POP_SYNC(7)
 	PM_POP(7, ICPLB_DATA15)
 	PM_POP(6, ICPLB_DATA14)
 	PM_POP(5, ICPLB_DATA13)
@@ -623,6 +630,55 @@
 	PM_POP(2, DCPLB_ADDR2)
 	PM_POP(1, DCPLB_ADDR1)
 	PM_POP(0, DCPLB_ADDR0)
+
+
+	/* Misc non-contiguous registers */
+
+	/* icache & dcache will enable later 
+	   drop IMEM_CONTROL, DMEM_CONTROL pop
+	*/
+	FP = I0;
+	PM_POP_SYNC(2)
+	PM_CORE_POP(2, TBUFCTL)
+	PM_CORE_POP(1, IMEM_CONTROL)
+	PM_CORE_POP(0, DMEM_CONTROL)
+
+	/* Core Timer */
+	FP = B3;
+	R0 = 0x1;
+	[FP - 0xC] = R0;
+
+	PM_POP_SYNC(13)
+	FP = B3;
+	PM_POP(13, TCOUNT)
+	PM_POP(12, TSCALE)
+	PM_POP(11, TPERIOD)
+	PM_POP(10, TCNTL)
+
+	/* CEC */
+	FP = B2;
+	PM_POP(9, IPRIO)
+	PM_POP(8, ILAT)
+	FP += -4;	/* IPEND */
+	PM_POP(7, IMASK)
+
+	/* Event Vectors */
+	FP = B1;
+	PM_POP(6, EVT15)
+	PM_POP(5, EVT14)
+	PM_POP(4, EVT13)
+	PM_POP(3, EVT12)
+	PM_POP(2, EVT11)
+	PM_POP(1, EVT10)
+	PM_POP(0, EVT9)
+	PM_POP_SYNC(5)
+	PM_POP(5, EVT8)
+	PM_POP(4, EVT7)
+	PM_POP(3, EVT6)
+	PM_POP(2, EVT5)
+	FP += -4;	/* EVT4 */
+	PM_POP(1, EVT3)
+	PM_POP(0, EVT2)
 	.endm
 #endif
 
