@@ -888,7 +888,7 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	/* Clear DLAB in LCR to Access THR RBR IER */
 	UART_CLEAR_DLAB(uart);
 
-	UART_PUT_LCR(uart, UART_GET_LCR(uart) & ~LCR_MASK | lcr);
+	UART_PUT_LCR(uart, (UART_GET_LCR(uart) & ~LCR_MASK) | lcr);
 
 	/* Enable UART */
 	UART_ENABLE_INTS(uart, ier);
