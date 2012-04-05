@@ -668,7 +668,7 @@ int bf609_nor_flash_init(struct platform_device *dev)
 	peripheral_request_list(pins, "smc0");
 
 	bfin_write32(SMC_GCTL, CONFIG_SMC_GCTL_VAL);
-	bfin_write32(SMC_B0CTL, 0x01001001);
+	bfin_write32(SMC_B0CTL, 0x01002001);
 	bfin_write32(SMC_B0TIM, 0x08170977);
 	bfin_write32(SMC_B0ETIM, 0x00092231);
 	return 0;
