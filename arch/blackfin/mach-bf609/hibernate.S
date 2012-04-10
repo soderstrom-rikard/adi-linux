@@ -14,11 +14,17 @@ ENTRY(_enter_hibernate)
 	call _bf609_ddr_sr;
 	call _bfin_hibernate_syscontrol;
 
+	P0.H = HI(DPM0_RESTORE4);
+	P0.L = LO(DPM0_RESTORE4);
+	P1.H = _bf609_pm_data;
+	P1.L = _bf609_pm_data;
+	[P0] = P1;
+
 	P0.H = HI(DPM0_CTL);
 	P0.L = LO(DPM0_CTL);
 	R3.H = HI(0x00000010);
 	R3.L = LO(0x00000010);
-	W[P0] = R3;
+	[P0] = R3;
 
 	SSYNC;
 ENDPROC(_enter_hibernate_mode)
@@ -29,8 +35,8 @@ ENTRY(_bf609_hibernate)
 	bfin_core_mmr_save;
 	bfin_sec_save;
 
-	P0.H = HI(0x10);
-	P0.L = LO(0x10);
+	P0.H = _bf609_pm_data;
+	P0.L = _bf609_pm_data;
 	R1.H = 0xDEAD;
 	R1.L = 0xBEEF;
 	R2.H = .Lpm_resume_here;

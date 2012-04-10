@@ -131,26 +131,6 @@ void bfin_cpu_suspend(void)
 			);
 }
 
-uint32_t pm_reg[512];
-uint32_t pm_reg_val[512];
-uint32_t pm_reg_num = 0;
-
-void pm_save_reg(uint32_t addr, uint32_t value)
-{
-	pm_reg[pm_reg_num] = addr;
-	pm_reg_val[pm_reg_num] = value;
-	pm_reg_num++;
-}
-
-void pm_dump_reg(void)
-{
-	int i;
-
-	for (i = 0; i < pm_reg_num; i++) {
-		printk("reg %08x: %08x\n", pm_reg[i], pm_reg_val[i]);
-	}
-}
-
 __attribute__((l1_text))
 void bfin_deepsleep(unsigned long mask)
 {

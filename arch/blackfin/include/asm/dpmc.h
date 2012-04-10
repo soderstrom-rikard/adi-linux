@@ -40,25 +40,11 @@
 #define PM_REGSET12 R7:0, P5:1
 #define PM_REGSET13 R7:0, P5:0
 
-#define _PM_PUSH(n, x, w, base) \
-				[--sp] = (R7:0, P5:0);\
-				R0.L = ((x) - base); \
-				R1 = FP; \
-				R0 = R0 + R1; \
-				R1 = w[FP + ((x) - (base))]; \
-				call _pm_save_reg; \
-				(R7:0, P5:0) = [sp++];\
-				PM_REG##n = w[FP + ((x) - (base))];
+#define _PM_PUSH(n, x, w, base) PM_REG##n = w[FP + ((x) - (base))];
 #define _PM_POP(n, x, w, base)  w[FP + ((x) - (base))] = PM_REG##n;
 #define PM_PUSH_SYNC(n)         [--sp] = (PM_REGSET##n);
 #define PM_POP_SYNC(n)          (PM_REGSET##n) = [sp++];
-#define PM_PUSH(n, x) \
-				[--sp] = (R7:0, P5:0);\
-				R0 = FP; \
-				R1 = [FP]; \
-				call _pm_save_reg; \
-				(R7:0, P5:0) = [sp++];\
-				PM_REG##n = [FP++];
+#define PM_PUSH(n, x)		PM_REG##n = [FP++];
 #define PM_POP(n, x)            [FP--] = PM_REG##n;
 #define PM_CORE_PUSH(n, x)      _PM_PUSH(n, x, , COREMMR_BASE)
 #define PM_CORE_POP(n, x)       _PM_POP(n, x, , COREMMR_BASE)
@@ -180,8 +166,6 @@
 .Lsave_begin:
 	R1 = [FP];
 	[--sp] = R1;
-	R0 = FP;
-	call _pm_save_reg;
 .Lsave_end:
 	FP += 8;
 	.endm
