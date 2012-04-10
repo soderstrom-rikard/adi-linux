@@ -726,7 +726,13 @@ static struct flash_platform_data bfin_spi_flash_data = {
 };
 
 static struct bfin6xx_spi_chip spi_flash_chip_info = {
-	.control = 0,         /* use dma transfer with this chip*/
+	.enable_dma = true,         /* use dma transfer with this chip*/
+};
+#endif
+
+#if defined(CONFIG_SPI_SPIDEV) || defined(CONFIG_SPI_SPIDEV_MODULE)
+static struct bfin6xx_spi_chip spidev_chip_info = {
+	.enable_dma = true,
 };
 #endif
 
@@ -917,6 +923,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.max_speed_hz = 3125000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0,
 		.chip_select = 1,
+		.controller_data = &spidev_chip_info,
 	},
 #endif
 #if defined(CONFIG_INPUT_ADXL34X_SPI) || defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
@@ -934,20 +941,41 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #if defined(CONFIG_SPI_BFIN6XX) || defined(CONFIG_SPI_BFIN6XX_MODULE)
 /* SPI (0) */
 static struct resource bfin_spi0_resource[] = {
-	[0] = {
+	{
 		.start = SPI0_REGBASE,
 		.end   = SPI0_REGBASE + 0xFF,
 		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = CH_SPI0_TX,
+		.end   = CH_SPI0_TX,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = CH_SPI0_RX,
+		.end   = CH_SPI0_RX,
+		.flags = IORESOURCE_DMA,
 	},
 };
 
 /* SPI (1) */
 static struct resource bfin_spi1_resource[] = {
-	[0] = {
+	{
 		.start = SPI1_REGBASE,
 		.end   = SPI1_REGBASE + 0xFF,
 		.flags = IORESOURCE_MEM,
 	},
+	{
+		.start = CH_SPI1_TX,
+		.end   = CH_SPI1_TX,
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = CH_SPI1_RX,
+		.end   = CH_SPI1_RX,
+		.flags = IORESOURCE_DMA,
+	},
+
 };
 
 /* SPI controller data */
