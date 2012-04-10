@@ -20,6 +20,8 @@
 #ifndef _SPI_CHANNEL_H_
 #define _SPI_CHANNEL_H_
 
+#include <linux/types.h>
+
 /* SPI_CONTROL */
 #define SPI_CTL_EN                  0x00000001    /* Enable */
 #define SPI_CTL_MSTR                0x00000002    /* Master/Slave */
@@ -250,6 +252,7 @@ struct bfin6xx_spi_chip {
 	u32 control;
 	u16 cs_chg_udelay; /* Some devices require 16-bit delays */
 	u32 tx_dummy_val; /* tx value for rx only transfer */
+	bool enable_dma;
 };
 
 #endif /* _SPI_CHANNEL_H_ */

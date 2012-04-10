@@ -19,6 +19,7 @@
 
 #include <linux/delay.h>
 #include <linux/device.h>
+#include <linux/dma-mapping.h>
 #include <linux/errno.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
@@ -28,10 +29,12 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/spi/spi.h>
+#include <linux/types.h>
 #include <linux/workqueue.h>
 
 #include <asm/bfin6xx_spi.h>
 #include <asm/cacheflush.h>
+#include <asm/dma.h>
 #include <asm/portmux.h>
 
 #define START_STATE	((void *)0)
@@ -68,8 +71,8 @@ struct bfin_spi_master_data {
 	struct work_struct pump_messages;
 	spinlock_t lock;
 	struct list_head queue;
-	int busy;
-	bool running;
+	bool busy; /* spi master is dealing with messages */
+	bool running; /* spi master is ready */
 
 	/* Message Transfer pump */
 	struct tasklet_struct pump_transfers;
@@ -78,18 +81,30 @@ struct bfin_spi_master_data {
 	struct spi_message *cur_msg;
 	struct spi_transfer *cur_transfer;
 	struct bfin_spi_slave_data *cur_chip;
-	size_t len_in_bytes;
+	unsigned transfer_len;
+	unsigned cs_change;
+
+	/* transfer buffer */
 	void *tx;
 	void *tx_end;
 	void *rx;
 	void *rx_end;
 
-	u8 n_bytes;
+	/* dma info */
+	unsigned int tx_dma;
+	unsigned int rx_dma;
+	dma_addr_t tx_dma_addr;
+	dma_addr_t rx_dma_addr;
+	unsigned long dummy_buffer; /* used in unidirectional transfer */
+	unsigned long tx_dma_size;
+	unsigned long rx_dma_size;
+	int tx_num;
+	int rx_num;
+
 	/* store register value for suspend/resume */
 	u32 control;
 	u32 ssel;
 
-	int cs_change;
 	const struct bfin_spi_transfer_ops *ops;
 };
 
@@ -102,6 +117,7 @@ struct bfin_spi_slave_data {
 	u16 cs_chg_udelay; /* Some devices require > 255usec delay */
 	u32 cs_gpio;
 	u32 tx_dummy_val; /* tx value for rx only transfer */
+	bool enable_dma;
 	const struct bfin_spi_transfer_ops *ops;
 };
 
@@ -195,6 +211,7 @@ static void bfin_spi_restore_state(struct bfin_spi_master_data *drv_data)
 	bfin_write(&drv_data->regs->clock, chip->clock);
 
 	bfin_spi_enable(drv_data);
+	drv_data->tx_num = drv_data->rx_num = 0;
 	/* we always choose tx transfer initiate */
 	bfin_write(&drv_data->regs->rx_control, SPI_RXCTL_REN);
 	bfin_write(&drv_data->regs->tx_control,
@@ -389,8 +406,8 @@ static void bfin_spi_pump_transfers(unsigned long data)
 	struct bfin_spi_slave_data *chip = NULL;
 	unsigned int bits_per_word;
 	u32 cr, cr_width;
-	u32 tranf_success = 1;
-	u8 full_duplex = 0;
+	bool tranf_success = true;
+	bool full_duplex = false;
 
 	/* Get current state information */
 	message = drv_data->cur_msg;
@@ -435,7 +452,8 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		return;
 	}
 
-	if (transfer->len == 0) {
+	if ((transfer->len == 0) || (transfer->tx_buf == NULL
+				&& transfer->rx_buf == NULL)) {
 		/* Move to next transfer of this msg */
 		message->state = bfin_spi_next_transfer(drv_data);
 		/* Schedule next transfer tasklet */
@@ -453,7 +471,7 @@ static void bfin_spi_pump_transfers(unsigned long data)
 	}
 
 	if (transfer->rx_buf != NULL) {
-		full_duplex = transfer->tx_buf != NULL;
+		full_duplex = (transfer->tx_buf != NULL) ? true : false;
 		drv_data->rx = transfer->rx_buf;
 		drv_data->rx_end = drv_data->rx + transfer->len;
 		dev_dbg(&drv_data->pdev->dev, "rx_buf is %p, rx_end is %p\n",
@@ -462,13 +480,12 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		drv_data->rx = NULL;
 	}
 
-	drv_data->len_in_bytes = transfer->len;
+	drv_data->transfer_len = transfer->len;
 	drv_data->cs_change = transfer->cs_change;
 
 	/* Bits per word setup */
 	bits_per_word = transfer->bits_per_word ? :
 		message->spi->bits_per_word ? : 8;
-	drv_data->n_bytes = bits_per_word/8;
 	switch (bits_per_word) {
 	case 8:
 		cr_width = SPI_CTL_SIZE08;
@@ -507,26 +524,121 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		"now pumping a transfer: width is %d, len is %d\n",
 		bits_per_word, transfer->len);
 
+	if (chip->enable_dma) {
+		u32 dma_config;
+		unsigned long word_count, word_size;
+		void *tx_buf, *rx_buf;
+
+		switch (bits_per_word) {
+		case 8:
+			dma_config = WDSIZE_8 | PSIZE_8;
+			word_count = drv_data->transfer_len;
+			word_size = 1;
+			break;
+		case 16:
+			dma_config = WDSIZE_16 | PSIZE_16;
+			word_count = drv_data->transfer_len / 2;
+			word_size = 2;
+			break;
+		default:
+			dma_config = WDSIZE_32 | PSIZE_32;
+			word_count = drv_data->transfer_len / 4;
+			word_size = 4;
+			break;
+		}
+
+		if (full_duplex) {
+			WARN_ON((drv_data->tx_end - drv_data->tx)
+					!= (drv_data->rx_end - drv_data->rx));
+			tx_buf = drv_data->tx;
+			rx_buf = drv_data->rx;
+			drv_data->tx_dma_size = drv_data->rx_dma_size
+						= drv_data->transfer_len;
+			set_dma_x_modify(drv_data->tx_dma, word_size);
+			set_dma_x_modify(drv_data->rx_dma, word_size);
+		} else if (drv_data->tx) {
+			tx_buf = drv_data->tx;
+			rx_buf = &drv_data->dummy_buffer;
+			drv_data->tx_dma_size = drv_data->transfer_len;
+			drv_data->rx_dma_size = sizeof(drv_data->dummy_buffer);
+			set_dma_x_modify(drv_data->tx_dma, word_size);
+			set_dma_x_modify(drv_data->rx_dma, 0);
+		} else {
+			drv_data->dummy_buffer = chip->tx_dummy_val;
+			tx_buf = &drv_data->dummy_buffer;
+			rx_buf = drv_data->rx;
+			drv_data->tx_dma_size = sizeof(drv_data->dummy_buffer);
+			drv_data->rx_dma_size = drv_data->transfer_len;
+			set_dma_x_modify(drv_data->tx_dma, 0);
+			set_dma_x_modify(drv_data->rx_dma, word_size);
+		}
+
+		drv_data->tx_dma_addr = dma_map_single(&message->spi->dev,
+					(void *)tx_buf,
+					drv_data->tx_dma_size,
+					DMA_TO_DEVICE);
+		if (dma_mapping_error(&message->spi->dev,
+					drv_data->tx_dma_addr)) {
+			dev_dbg(&drv_data->pdev->dev, "Unable to map TX DMA\n");
+			message->state = ERROR_STATE;
+			return;
+		}
+
+		drv_data->rx_dma_addr = dma_map_single(&message->spi->dev,
+					(void *)rx_buf,
+					drv_data->rx_dma_size,
+					DMA_FROM_DEVICE);
+		if (dma_mapping_error(&message->spi->dev,
+					drv_data->rx_dma_addr)) {
+			dev_dbg(&drv_data->pdev->dev, "Unable to map RX DMA\n");
+			message->state = ERROR_STATE;
+			dma_unmap_single(&message->spi->dev,
+					drv_data->tx_dma_addr,
+					drv_data->tx_dma_size,
+					DMA_TO_DEVICE);
+			return;
+		}
+
+		dummy_read(drv_data);
+		set_dma_x_count(drv_data->tx_dma, word_count);
+		set_dma_x_count(drv_data->rx_dma, word_count);
+		set_dma_start_addr(drv_data->tx_dma, drv_data->tx_dma_addr);
+		set_dma_start_addr(drv_data->rx_dma, drv_data->rx_dma_addr);
+		dma_config |= DMAFLOW_STOP | RESTART | DI_EN;
+		set_dma_config(drv_data->tx_dma, dma_config);
+		set_dma_config(drv_data->rx_dma, dma_config | WNR);
+		enable_dma(drv_data->tx_dma);
+		enable_dma(drv_data->rx_dma);
+		SSYNC();
+
+		bfin_write(&drv_data->regs->rx_control, SPI_RXCTL_REN | SPI_RXCTL_RDR_NE);
+		SSYNC();
+		bfin_write(&drv_data->regs->tx_control,
+				SPI_TXCTL_TEN | SPI_TXCTL_TTI | SPI_TXCTL_TDR_NF);
+
+		return;
+	}
+
 	if (full_duplex) {
 		/* full duplex mode */
-		BUG_ON((drv_data->tx_end - drv_data->tx) !=
-		       (drv_data->rx_end - drv_data->rx));
+		WARN_ON((drv_data->tx_end - drv_data->tx)
+				!= (drv_data->rx_end - drv_data->rx));
 
 		drv_data->ops->duplex(drv_data);
 
 		if (drv_data->tx != drv_data->tx_end)
-			tranf_success = 0;
+			tranf_success = false;
 	} else if (drv_data->tx != NULL) {
 		/* write only half duplex */
 		drv_data->ops->write(drv_data);
 
 		if (drv_data->tx != drv_data->tx_end)
-			tranf_success = 0;
-	} else if (drv_data->rx != NULL) {
+			tranf_success = false;
+	} else {
 		/* read only half duplex */
 		drv_data->ops->read(drv_data);
 		if (drv_data->rx != drv_data->rx_end)
-			tranf_success = 0;
+			tranf_success = false;
 	}
 
 	if (!tranf_success) {
@@ -534,7 +646,7 @@ static void bfin_spi_pump_transfers(unsigned long data)
 		message->state = ERROR_STATE;
 	} else {
 		/* Update total byte transferred */
-		message->actual_length += drv_data->len_in_bytes;
+		message->actual_length += drv_data->transfer_len;
 		/* Move to next transfer of this msg */
 		message->state = bfin_spi_next_transfer(drv_data);
 		if (drv_data->cs_change && message->state != DONE_STATE) {
@@ -559,7 +671,7 @@ static void bfin_spi_pump_messages(struct work_struct *work)
 	spin_lock_irqsave(&drv_data->lock, flags);
 	if (list_empty(&drv_data->queue) || !drv_data->running) {
 		/* pumper kicked off but no work to do */
-		drv_data->busy = 0;
+		drv_data->busy = false;
 		spin_unlock_irqrestore(&drv_data->lock, flags);
 		return;
 	}
@@ -593,7 +705,7 @@ static void bfin_spi_pump_messages(struct work_struct *work)
 	/* Mark as busy and launch transfers */
 	tasklet_schedule(&drv_data->pump_transfers);
 
-	drv_data->busy = 1;
+	drv_data->busy = true;
 	spin_unlock_irqrestore(&drv_data->lock, flags);
 }
 
@@ -680,6 +792,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 		chip->control = chip_info->control;
 		chip->cs_chg_udelay = chip_info->cs_chg_udelay;
 		chip->tx_dummy_val = chip_info->tx_dummy_val;
+		chip->enable_dma = chip_info->enable_dma;
 	} else {
 		/* force a default base state */
 		chip->control &= bfin_ctl_reg;
@@ -712,24 +825,22 @@ static int bfin_spi_setup(struct spi_device *spi)
 	else
 		chip->cs_gpio = chip->chip_select_num - MAX_CTRL_CS;
 
-	if (chip->chip_select_num >= MAX_CTRL_CS) {
-		/* Only request on first setup */
-		if (spi_get_ctldata(spi) == NULL) {
+	/* Only request on first setup */
+	if (spi_get_ctldata(spi) == NULL) {
+		if (chip->chip_select_num < MAX_CTRL_CS) {
+			ret = peripheral_request(ssel[spi->master->bus_num]
+					[chip->chip_select_num-1], spi->modalias);
+			if (ret) {
+				dev_err(&spi->dev, "peripheral_request() error\n");
+				goto pin_error;
+			}
+		} else {
 			ret = gpio_request(chip->cs_gpio, spi->modalias);
 			if (ret) {
 				dev_err(&spi->dev, "gpio_request() error\n");
 				goto pin_error;
 			}
 			gpio_direction_output(chip->cs_gpio, 1);
-		}
-	}
-
-	if (chip->chip_select_num < MAX_CTRL_CS) {
-		ret = peripheral_request(ssel[spi->master->bus_num]
-		                         [chip->chip_select_num-1], spi->modalias);
-		if (ret) {
-			dev_err(&spi->dev, "peripheral_request() error\n");
-			goto pin_error;
 		}
 	}
 
@@ -746,13 +857,13 @@ static int bfin_spi_setup(struct spi_device *spi)
 
 	return 0;
 
- pin_error:
-	if (chip->chip_select_num >= MAX_CTRL_CS)
-		gpio_free(chip->cs_gpio);
-	else
+pin_error:
+	if (chip->chip_select_num < MAX_CTRL_CS)
 		peripheral_free(ssel[spi->master->bus_num]
-			[chip->chip_select_num - 1]);
- error:
+				[chip->chip_select_num - 1]);
+	else
+		gpio_free(chip->cs_gpio);
+error:
 	if (chip) {
 		kfree(chip);
 		/* prevent free 'chip' twice */
@@ -792,7 +903,7 @@ static int bfin_spi_init_queue(struct bfin_spi_master_data *drv_data)
 	spin_lock_init(&drv_data->lock);
 
 	drv_data->running = false;
-	drv_data->busy = 0;
+	drv_data->busy = false;
 
 	/* init transfer tasklet */
 	tasklet_init(&drv_data->pump_transfers,
@@ -872,6 +983,51 @@ static int bfin_spi_destroy_queue(struct bfin_spi_master_data *drv_data)
 	return 0;
 }
 
+static irqreturn_t bfin_spi_tx_dma_isr(int irq, void *dev_id)
+{
+	struct bfin_spi_master_data *drv_data = dev_id;
+	u32 dma_stat = get_dma_curr_irqstat(drv_data->tx_dma);
+
+	clear_dma_irqstat(drv_data->tx_dma);
+	if (dma_stat & DMA_DONE)
+		drv_data->tx_num++;
+	if (dma_stat & DMA_ERR)
+		dev_err(&drv_data->pdev->dev,
+				"spi tx dma error: %d\n", dma_stat);
+	bfin_write_and(&drv_data->regs->tx_control, ~SPI_TXCTL_TDR_NF);
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t bfin_spi_rx_dma_isr(int irq, void *dev_id)
+{
+	struct bfin_spi_master_data *drv_data = dev_id;
+	struct bfin_spi_slave_data *chip = drv_data->cur_chip;
+	struct spi_message *msg = drv_data->cur_msg;
+	u32 dma_stat = get_dma_curr_irqstat(drv_data->rx_dma);
+
+	clear_dma_irqstat(drv_data->rx_dma);
+	if (dma_stat & DMA_DONE)
+		drv_data->rx_num++;
+	if (dma_stat & DMA_ERR) {
+		msg->state = ERROR_STATE;
+		dev_err(&drv_data->pdev->dev,
+				"spi rx dma error: %d\n", dma_stat);
+	} else {
+		msg->actual_length += drv_data->transfer_len;
+		if (drv_data->cs_change)
+			bfin_spi_cs_deactive(drv_data, chip);
+		msg->state = bfin_spi_next_transfer(drv_data);
+	}
+	bfin_write(&drv_data->regs->tx_control, 0);
+	bfin_write(&drv_data->regs->rx_control, 0);
+	if (drv_data->rx_num != drv_data->tx_num)
+		dev_dbg(&drv_data->pdev->dev,
+				"dma interrupt missing: tx=%d,rx=%d\n",
+				drv_data->tx_num, drv_data->rx_num);
+	tasklet_schedule(&drv_data->pump_transfers);
+	return IRQ_HANDLED;
+}
+
 static int __devinit bfin_spi_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -909,7 +1065,7 @@ static int __devinit bfin_spi_probe(struct platform_device *pdev)
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
 		dev_err(dev, "Cannot get IORESOURCE_MEM\n");
-		status = -ENOENT;
+		status = -ENODEV;
 		goto err_put_master;
 	}
 
@@ -920,22 +1076,53 @@ static int __devinit bfin_spi_probe(struct platform_device *pdev)
 		goto err_put_master;
 	}
 
+	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
+	if (res == NULL) {
+		dev_err(dev, "Cannot get tx dma resource\n");
+		status = -ENODEV;
+		goto err_iounmap;
+	}
+	drv_data->tx_dma = res->start;
+
+	res = platform_get_resource(pdev, IORESOURCE_DMA, 1);
+	if (res == NULL) {
+		dev_err(dev, "Cannot get rx dma resource\n");
+		status = -ENODEV;
+		goto err_iounmap;
+	}
+	drv_data->rx_dma = res->start;
+
+	status = request_dma(drv_data->tx_dma, "SPI_TX_DMA");
+	if (status) {
+		dev_err(dev, "Unable to request SPI TX DMA channel\n");
+		goto err_iounmap;
+	}
+	set_dma_callback(drv_data->tx_dma, bfin_spi_tx_dma_isr, drv_data);
+
+	status = request_dma(drv_data->rx_dma, "SPI_RX_DMA");
+	if (status) {
+		dev_err(dev, "Unable to request SPI RX DMA channel\n");
+		goto err_free_tx_dma;
+	}
+	set_dma_callback(drv_data->rx_dma, bfin_spi_rx_dma_isr, drv_data);
+
+	/* request CLK, MOSI and MISO */
+	status = peripheral_request_list(drv_data->pin_req, "bfin-spi");
+	if (status != 0) {
+		dev_err(&pdev->dev, ": Requesting Peripherals failed\n");
+		goto err_free_rx_dma;
+	}
+
 	/* Initial and start queue */
 	status = bfin_spi_init_queue(drv_data);
 	if (status != 0) {
 		dev_err(dev, "problem initializing queue\n");
-		goto err_destroy_queue;
+		goto err_free_peripheral;
 	}
 
 	status = bfin_spi_start_queue(drv_data);
 	if (status != 0) {
 		dev_err(dev, "problem starting queue\n");
-		goto err_destroy_queue;
-	}
-
-	status = peripheral_request_list(drv_data->pin_req, "bfin-spi");
-	if (status != 0) {
-		dev_err(&pdev->dev, ": Requesting Peripherals failed\n");
 		goto err_destroy_queue;
 	}
 
@@ -954,10 +1141,15 @@ static int __devinit bfin_spi_probe(struct platform_device *pdev)
 	dev_info(dev, "bfin-spi probe success\n");
 	return status;
 
-err_free_peripheral:
-	peripheral_free_list(drv_data->pin_req);
 err_destroy_queue:
 	bfin_spi_destroy_queue(drv_data);
+err_free_peripheral:
+	peripheral_free_list(drv_data->pin_req);
+err_free_rx_dma:
+	free_dma(drv_data->rx_dma);
+err_free_tx_dma:
+	free_dma(drv_data->tx_dma);
+err_iounmap:
 	iounmap(drv_data->regs);
 err_put_master:
 	spi_master_put(master);
@@ -969,25 +1161,24 @@ err_put_master:
 static int __devexit bfin_spi_remove(struct platform_device *pdev)
 {
 	struct bfin_spi_master_data *drv_data = platform_get_drvdata(pdev);
-	int status = 0;
 
 	if (!drv_data)
 		return 0;
 
 	/* Remove the queue */
-	status = bfin_spi_destroy_queue(drv_data);
-	if (status != 0)
-		return status;
+	bfin_spi_destroy_queue(drv_data);
 
 	/* Disable the SSP at the peripheral and SOC level */
 	bfin_spi_disable(drv_data);
 
 	peripheral_free_list(drv_data->pin_req);
+	free_dma(drv_data->rx_dma);
+	free_dma(drv_data->tx_dma);
 	iounmap(drv_data->regs);
 
 	/* Disconnect from the SPI framework */
 	spi_unregister_master(drv_data->master);
-	
+	spi_master_put(drv_data->master);
 	/* Prevent double remove */
 	platform_set_drvdata(pdev, NULL);
 
