@@ -98,10 +98,13 @@ int bf53x_resume_l1_mem(unsigned char *memptr)
 }
 
 #if defined(CONFIG_BFIN_EXTMEM_WRITEBACK) || defined(CONFIG_BFIN_L2_WRITEBACK)
+# ifdef CONFIG_BF60x
+__attribute__((l1_text))
+# endif
 static void flushinv_all_dcache(void)
 {
-	u32 way, bank, subbank, set;
-	u32 status, addr;
+	register u32 way, bank, subbank, set;
+	register u32 status, addr;
 	u32 dmem_ctl = bfin_read_DMEM_CONTROL();
 
 	for (bank = 0; bank < 2; ++bank) {
