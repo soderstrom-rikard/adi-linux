@@ -7,6 +7,7 @@ obj-$(CONFIG_MTD)		+= map_funcs.o
 endif
 
 # Chip mappings
+obj-$(CONFIG_MTD_BFIN_BF60x)	+= bfin_bf60x.o
 obj-$(CONFIG_MTD_CDB89712)	+= cdb89712.o
 obj-$(CONFIG_MTD_CFI_FLAGADM)	+= cfi_flagadm.o
 obj-$(CONFIG_MTD_DC21285)	+= dc21285.o
