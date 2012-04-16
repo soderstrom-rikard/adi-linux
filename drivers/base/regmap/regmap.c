@@ -243,7 +243,7 @@ struct regmap *regmap_init(struct device *dev,
 		goto err_map;
 	}
 
-	ret = regcache_init(map);
+	ret = regcache_init(map, config);
 	if (ret < 0)
 		goto err_map;
 
