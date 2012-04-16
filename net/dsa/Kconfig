@@ -1,5 +1,5 @@
-menuconfig NET_DSA
-	bool "Distributed Switch Architecture support"
+config NET_DSA
+	tristate "Distributed Switch Architecture support"
 	default n
 	depends on EXPERIMENTAL && NETDEVICES && !S390
 	select PHYLIB

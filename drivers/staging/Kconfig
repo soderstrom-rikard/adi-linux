@@ -60,8 +60,6 @@ source "drivers/staging/rts5139/Kconfig"
 
 source "drivers/staging/frontier/Kconfig"
 
-source "drivers/staging/pohmelfs/Kconfig"
-
 source "drivers/staging/phison/Kconfig"
 
 source "drivers/staging/line6/Kconfig"
@@ -71,8 +69,6 @@ source "drivers/gpu/drm/nouveau/Kconfig"
 source "drivers/staging/octeon/Kconfig"
 
 source "drivers/staging/serqt_usb2/Kconfig"
-
-source "drivers/staging/spectra/Kconfig"
 
 source "drivers/staging/quatech_usb2/Kconfig"
 
