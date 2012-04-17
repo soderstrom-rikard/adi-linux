@@ -16,6 +16,7 @@
 #include <linux/seq_file.h>
 #include <linux/irq.h>
 #include <linux/sched.h>
+#include <linux/syscore_ops.h>
 #include <asm/delay.h>
 #ifdef CONFIG_IPIPE
 #include <linux/ipipe.h>
@@ -394,6 +395,25 @@ void handle_sec_fault(unsigned int irq, struct irq_desc *desc)
 
 	raw_spin_unlock(&desc->lock);
 }
+
+static int sec_suspend(void)
+{
+	return 0;
+}
+
+static void sec_resume(void)
+{
+	bfin_write_SEC_SCI(0, SEC_CCTL, SEC_CCTL_RESET);
+	udelay(100);
+	bfin_write_SEC_GCTL(SEC_GCTL_EN);
+	bfin_write_SEC_SCI(0, SEC_CCTL, SEC_CCTL_EN | SEC_CCTL_NMI_EN);
+}
+
+static struct syscore_ops sec_pm_syscore_ops = {
+	.suspend = sec_suspend,
+	.resume = sec_resume,
+};
+
 #endif
 
 #ifdef CONFIG_SMP
@@ -1419,6 +1439,7 @@ int __init init_arch_irq(void)
 	bfin_write_SEC_GCTL(SEC_GCTL_EN);
 	bfin_write_SEC_SCI(0, SEC_CCTL, SEC_CCTL_EN | SEC_CCTL_NMI_EN);
 	init_software_driven_irq();
+	register_syscore_ops(&sec_pm_syscore_ops);
 #endif
 	return 0;
 }

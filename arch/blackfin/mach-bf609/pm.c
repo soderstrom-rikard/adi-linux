@@ -197,8 +197,6 @@ void bfin_hibernate_syscontrol(void)
 #else
 # define SIC_SYSIRQ(irq)	((irq) - IVG15)
 #endif
-void bfin_sec_resume(void);
-
 void bfin_hibernate(unsigned long mask)
 {
 	bfin_write32(DPM0_WAKE_EN, 0x10);
@@ -209,7 +207,6 @@ void bfin_hibernate(unsigned long mask)
 	printk(KERN_DEBUG "hibernate: restore %x pgcnt %x\n", bfin_read32(DPM0_RESTORE0), bfin_read32(DPM0_PGCNTR));
 
 	bf609_hibernate();
-	bfin_sec_resume();
 }
 
 void bf609_cpu_pm_enter(suspend_state_t state)

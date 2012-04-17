@@ -33,7 +33,6 @@ ENDPROC(_enter_hibernate_mode)
 ENTRY(_bf609_hibernate)
 	bfin_cpu_reg_save;
 	bfin_core_mmr_save;
-	bfin_sec_save;
 
 	P0.H = _bf609_pm_data;
 	P0.L = _bf609_pm_data;
@@ -51,7 +50,6 @@ ENTRY(_bf609_hibernate)
 	call (P1);
 .Lpm_resume_here:
 
-	bfin_sec_restore;
 	bfin_core_mmr_restore;
 	bfin_cpu_reg_restore;
 

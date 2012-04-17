@@ -157,32 +157,6 @@
 
 	.endm
 
-	.macro bfin_sec_save
-	FP.H = hi(SEC_SCTL0);
-	FP.L = lo(SEC_SCTL0);
-
-	P2 = 140(Z);
-	LSETUP(.Lsave_begin, .Lsave_end) LC0=P2;
-.Lsave_begin:
-	R1 = [FP];
-	[--sp] = R1;
-.Lsave_end:
-	FP += 8;
-	.endm
-
-	.macro bfin_sec_restore
-	FP.H = hi(SEC_SCTL139);
-	FP.L = lo(SEC_SCTL139);
-
-	P2 = 140(Z);
-	LSETUP(.Lrestore_begin, .Lrestore_end) LC0=P2;
-.Lrestore_begin:
-	R0 = [sp++];
-	[FP] = R0;
-.Lrestore_end:
-	FP += -8;
-	.endm
-
 	.macro bfin_sys_mmr_save
 	/* Save system MMRs */
 	FP.H = hi(SYSMMR_BASE);
