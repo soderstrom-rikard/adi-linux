@@ -38,6 +38,7 @@
 #define PTP_EN          (0x1)        /* Enable the PTP_TSYNC module */
 #define PTP_TSINIT      (0x4)        /* update system timer */
 #define PTP_TSENALL     (1 << 8)
+#define PTP_TSCTRLSSR   (1 << 9)
 #define PTP_TSVER2ENA   (1 << 10)
 #define PTP_TSIPENA     (1 << 11)
 #define PTP_TSIPV4ENA   (1 << 13)

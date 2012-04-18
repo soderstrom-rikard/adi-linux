@@ -217,7 +217,7 @@ static int stmmac_hwtstamp_ioctl(struct net_device *netdev,
 
 		SSYNC();
 	} else {
-		ptpctl |= PTP_EN;
+		ptpctl |= PTP_EN | PTP_TSCTRLSSR;
 		writel(ptpctl, priv->ioaddr + EMAC_TM_CTL);
 
 		/* write init time value */
@@ -225,7 +225,7 @@ static int stmmac_hwtstamp_ioctl(struct net_device *netdev,
 		writel(ktime_get_real().tv.nsec, priv->ioaddr + EMAC_TM_NSECUPDT);
 		ptpctl |= PTP_TSINIT;
 		writel(ptpctl, priv->ioaddr + EMAC_TM_CTL);
-		writel(0x2b, priv->ioaddr + EMAC_TM_SUBSEC);
+		writel(0x14, priv->ioaddr + EMAC_TM_SUBSEC);
 		SSYNC();
 
 		priv->compare.last_update = 0;
@@ -336,10 +336,15 @@ static void stmmac_rx_hwtstamp(struct stmmac_priv *priv, struct sk_buff *skb, st
 static cycle_t stmmac_read_clock(const struct cyclecounter *tc)
 {
 	u64 ns;
+	u32 tmp1, tmp2;
 	ktime_t hw_time;
 	struct stmmac_priv *priv = container_of(tc, struct stmmac_priv, cycles);
-	hw_time.tv.sec = readl(priv->ioaddr + EMAC_TM_SEC);
+	tmp1 = readl(priv->ioaddr + EMAC_TM_SEC);
 	hw_time.tv.nsec = readl(priv->ioaddr + EMAC_TM_NSEC);
+	tmp2 = readl(priv->ioaddr + EMAC_TM_SEC);
+	if (tmp2 > tmp1)
+		hw_time.tv.nsec = readl(priv->ioaddr + EMAC_TM_NSEC);
+	hw_time.tv.sec = tmp2;
 	ns = ktime_to_ns(hw_time);
 	do_div(ns, 20);
 	return ns;
