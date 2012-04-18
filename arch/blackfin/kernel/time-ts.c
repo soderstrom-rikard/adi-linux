@@ -312,6 +312,11 @@ void bfin_coretmr_clockevent_init(void)
 #endif
 
 
+#ifdef CONFIG_SMP
+	evt->broadcast = smp_timer_broadcast;
+#endif
+
+
 	evt->name = "bfin_core_timer";
 	evt->rating = 350;
 	evt->irq = -1;
