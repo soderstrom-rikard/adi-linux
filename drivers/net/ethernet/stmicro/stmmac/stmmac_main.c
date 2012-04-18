@@ -2026,7 +2026,7 @@ static int stmmac_hw_init(struct stmmac_priv *priv)
 		device_set_wakeup_capable(priv->device, 1);
 	}
 
-	stmmac_hwtstamp_init(dev);
+	stmmac_hwtstamp_init(priv->dev);
 
 	DBG(probe, DEBUG, "%s: Scatter/Gather: %s - HW checksums: %s\n",
 	    dev->name, (dev->features & NETIF_F_SG) ? "on" : "off",
