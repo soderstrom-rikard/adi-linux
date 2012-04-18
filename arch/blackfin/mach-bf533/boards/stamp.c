@@ -370,7 +370,8 @@ static struct platform_device bfin_sir0_device = {
 #endif
 #endif
 
-#if defined(CONFIG_SERIAL_BFIN_SPORT) || defined(CONFIG_SERIAL_BFIN_SPORT_MODULE)
+#if defined(CONFIG_SERIAL_BFIN_SPORT) || \
+	defined(CONFIG_SERIAL_BFIN_SPORT_MODULE)
 #ifdef CONFIG_SERIAL_BFIN_SPORT0_UART
 static struct resource bfin_sport0_uart_resources[] = {
 	{
