@@ -356,7 +356,7 @@ static void stmmac_hwtstamp_init(struct net_device *netdev)
 	struct stmmac_priv *priv = netdev_priv(netdev);
 
 	/* select ptp clk with rmii*/
-	writel(0x0, PADS_EMAC_PTP_CLKSEL);
+	writel(0x0, (void *)PADS_EMAC_PTP_CLKSEL);
 	memset(&priv->cycles, 0, sizeof(priv->cycles));
 	priv->cycles.read = stmmac_read_clock;
 	priv->cycles.mask = CLOCKSOURCE_MASK(64);
