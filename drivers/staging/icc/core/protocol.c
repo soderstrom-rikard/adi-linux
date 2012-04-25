@@ -13,6 +13,7 @@
 #include <linux/kthread.h>
 #include <linux/bitmap.h>
 #include <linux/slab.h>
+#include <linux/irq.h>
 #include <icc.h>
 #include <linux/poll.h>
 #include <linux/proc_fs.h>
@@ -813,7 +814,6 @@ icc_release(struct inode *inode, struct file *file)
 {
 	int ret = 0;
 	struct sm_session_table *table = icc_info->sessions_table;
-	int used;
 	int i;
 	pid_t pid = current->pid;
 	table->refcnt--;
