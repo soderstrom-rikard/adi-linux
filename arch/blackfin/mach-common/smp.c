@@ -170,14 +170,6 @@ void ipi_timer(void)
 	evt->event_handler(evt);
 }
 
-DECLARE_PER_CPU(struct clock_event_device, coretmr_events);
-void ipi_timer(void)
-{
-	int cpu = smp_processor_id();
-	struct clock_event_device *evt = &per_cpu(coretmr_events, cpu);
-	evt->event_handler(evt);
-}
-
 static irqreturn_t ipi_handler_int1(int irq, void *dev_instance)
 {
 	struct ipi_message *msg;
@@ -321,16 +313,6 @@ void smp_send_reschedule(int cpu)
 	smp_send_message(callmap, BFIN_IPI_RESCHEDULE, NULL, NULL, 0);
 
 	return;
-}
-
-void smp_send_msg(const struct cpumask *mask, unsigned long type)
-{
-	smp_send_message(*mask, type, NULL, NULL, 0);
-}
-
-void smp_timer_broadcast(const struct cpumask *mask)
-{
-	smp_send_msg(mask, BFIN_IPI_TIMER);
 }
 
 void smp_send_msg(const struct cpumask *mask, unsigned long type)
