@@ -600,7 +600,7 @@ static unsigned int bfin_serial_tx_empty(struct uart_port *port)
 static void bfin_serial_break_ctl(struct uart_port *port, int break_state)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
-	u16 lcr = UART_GET_LCR(uart);
+	u32 lcr = UART_GET_LCR(uart);
 	if (break_state)
 		lcr |= SB;
 	else
@@ -1078,7 +1078,7 @@ bfin_serial_console_get_options(struct bfin_serial_port *uart, int *baud,
 	status = UART_GET_IER(uart) & (ERBFI | ETBEI);
 	if (status == (ERBFI | ETBEI)) {
 		/* ok, the port was enabled */
-		u16 lcr, clk;
+		u32 lcr, clk;
 
 		lcr = UART_GET_LCR(uart);
 
@@ -1089,20 +1089,8 @@ bfin_serial_console_get_options(struct bfin_serial_port *uart, int *baud,
 			else
 				*parity = 'o';
 		}
-		switch (lcr & 0x03) {
-		case 0:
-			*bits = 5;
-			break;
-		case 1:
-			*bits = 6;
-			break;
-		case 2:
-			*bits = 7;
-			break;
-		case 3:
-			*bits = 8;
-			break;
-		}
+		*bits = ((lcr & WLS_MASK) >> WLS_OFFSET) + 5;
+
 		/* Set DLAB in LCR to Access CLK */
 		UART_SET_DLAB(uart);
 
@@ -1111,11 +1099,7 @@ bfin_serial_console_get_options(struct bfin_serial_port *uart, int *baud,
 		/* Clear DLAB in LCR to Access THR RBR IER */
 		UART_CLEAR_DLAB(uart);
 
-#if defined(CONFIG_BF60x)
-		*baud = get_sclk() / clk;
-#else
 		*baud = get_sclk() / (16*clk);
-#endif
 	}
 	pr_debug("%s:baud = %d, parity = %c, bits= %d\n", __func__, *baud, *parity, *bits);
 }
