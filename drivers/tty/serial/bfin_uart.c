@@ -760,6 +760,9 @@ static void bfin_serial_shutdown(struct uart_port *port)
 {
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 
+	UART_SET_IER(uart, 0);
+	UART_PUT_GCTL(uart, 0);
+
 #ifdef CONFIG_SERIAL_BFIN_DMA
 	disable_dma(uart->tx_dma_channel);
 	free_dma(uart->tx_dma_channel);
@@ -805,7 +808,7 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 	unsigned long flags;
 	unsigned int baud, quot;
-	unsigned int val, ier, lcr = 0;
+	unsigned int val, lcr = 0;
 
 	switch (termios->c_cflag & CSIZE) {
 	case CS8:
@@ -876,8 +879,9 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	UART_SET_ANOMALY_THRESHOLD(uart, USEC_PER_SEC / baud * 15);
 
 	/* Disable UART */
-	ier = UART_GET_IER(uart);
-	UART_DISABLE_INTS(uart);
+	val = UART_GET_GCTL(uart);
+	val &= ~UCEN;
+	UART_PUT_GCTL(uart, val);
 
 	/* Set DLAB in LCR to Access CLK */
 	UART_SET_DLAB(uart);
@@ -891,8 +895,6 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	UART_PUT_LCR(uart, (UART_GET_LCR(uart) & ~LCR_MASK) | lcr);
 
 	/* Enable UART */
-	UART_ENABLE_INTS(uart, ier);
-
 	val = UART_GET_GCTL(uart);
 	val |= UCEN;
 	UART_PUT_GCTL(uart, val);
