@@ -291,8 +291,6 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.mode = SPI_CPHA | SPI_CPOL,
 	},
 #endif
-	.vlan1_mask = 1,
-	.vlan2_mask = 2,
 };
 
 /* SPI controller data */

@@ -56,13 +56,13 @@
 #define DMA_SYNC_RESTART		1
 
 #ifdef DMA_MMR_SIZE_32
-# define DMA_MMR_SIZE_TYPE long
-# define DMA_MMR_READ bfin_read32
-# define DMA_MMR_WRITE bfin_write32
+#define DMA_MMR_SIZE_TYPE long
+#define DMA_MMR_READ bfin_read32
+#define DMA_MMR_WRITE bfin_write32
 #else
-# define DMA_MMR_SIZE_TYPE short
-# define DMA_MMR_READ bfin_read16
-# define DMA_MMR_WRITE bfin_write16
+#define DMA_MMR_SIZE_TYPE short
+#define DMA_MMR_READ bfin_read16
+#define DMA_MMR_WRITE bfin_write16
 #endif
 
 struct dma_desc_array {
