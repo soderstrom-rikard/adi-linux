@@ -310,6 +310,8 @@ struct bfin_uart_regs {
 #define UART_GET_CTS(x)         (UART_GET_MSR(x) & CTS)
 #define UART_DISABLE_RTS(x)     UART_PUT_MCR(x, UART_GET_MCR(x) & ~(ARTS | MRTS))
 #define UART_ENABLE_RTS(x)      UART_PUT_MCR(x, UART_GET_MCR(x) | MRTS | ARTS)
+#define UART_ENABLE_INTS(x, v)  UART_SET_IER(x, v)
+#define UART_DISABLE_INTS(x)    UART_CLEAR_IER(x, 0xF)
 
 #else /* BFIN_UART_BF60X_STYLE */
 
@@ -353,6 +355,8 @@ UART_PUT_DLH(p, (v >> 8) & 0xFF); } while (0);
 #define UART_GET_CTS(x)         (UART_GET_MSR(x) & CTS)
 #define UART_DISABLE_RTS(x)     UART_PUT_MCR(x, UART_GET_MCR(x) & ~(ARTS | MRTS))
 #define UART_ENABLE_RTS(x)      UART_PUT_MCR(x, UART_GET_MCR(x) | MRTS | ARTS)
+#define UART_ENABLE_INTS(x, v)  UART_SET_IER(x, v)
+#define UART_DISABLE_INTS(x)    UART_CLEAR_IER(x, 0xF)
 
 #else /* BF533 style */
 
@@ -400,6 +404,8 @@ static inline void UART_PUT_LSR(void *p, uint16_t val)
 #define UART_GET_CTS(x)        gpio_get_value((x)->cts_pin)
 #define UART_DISABLE_RTS(x)    gpio_set_value((x)->rts_pin, 1)
 #define UART_ENABLE_RTS(x)     gpio_set_value((x)->rts_pin, 0)
+#define UART_ENABLE_INTS(x, v) UART_PUT_IER(x, v)
+#define UART_DISABLE_INTS(x)   UART_PUT_IER(x, 0)
 
 #endif /* BFIN_UART_BF54X_STYLE */
 
