@@ -13,6 +13,8 @@
 #ifndef __ASSEMBLY__
 
 struct blackfin_pda {			/* Per-processor Data Area */
+	struct blackfin_pda *next;
+
 	unsigned long syscfg;
 #ifdef CONFIG_SMP
 	unsigned long imask;		/* Current IMASK value */
