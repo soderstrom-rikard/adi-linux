@@ -805,7 +805,7 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
 	unsigned long flags;
 	unsigned int baud, quot;
-	unsigned int val, ier, lcr = 0;
+	unsigned int ier, lcr = 0;
 
 	switch (termios->c_cflag & CSIZE) {
 	case CS8:
@@ -877,6 +877,7 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 
 	/* Disable UART */
 	ier = UART_GET_IER(uart);
+	UART_PUT_GCTL(uart, UART_GET_GCTL(uart) & ~UCEN);
 	UART_DISABLE_INTS(uart);
 
 	/* Set DLAB in LCR to Access CLK */
@@ -892,10 +893,7 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 
 	/* Enable UART */
 	UART_ENABLE_INTS(uart, ier);
-
-	val = UART_GET_GCTL(uart);
-	val |= UCEN;
-	UART_PUT_GCTL(uart, val);
+	UART_PUT_GCTL(uart, UART_GET_GCTL(uart) | UCEN);
 
 	/* Port speed changed, update the per-port timeout. */
 	uart_update_timeout(port, termios->c_cflag, baud);
