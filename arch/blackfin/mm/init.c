@@ -76,8 +76,10 @@ asmlinkage void __init init_pda(void)
 	   valid pointers to it. */
 	memset(&cpu_pda[cpu], 0, sizeof(cpu_pda[cpu]));
 
+#ifdef CONFIG_SMP
 	cpu_pda[0].next = &cpu_pda[1];
 	cpu_pda[1].next = &cpu_pda[0];
+#endif
 
 #ifdef CONFIG_EXCEPTION_L1_SCRATCH
 	cpu_pda[cpu].ex_stack = (unsigned long *)(L1_SCRATCH_START + \
