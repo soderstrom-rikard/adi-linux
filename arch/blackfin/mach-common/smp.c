@@ -408,7 +408,6 @@ void __cpuinit secondary_start_kernel(void)
 			initial_pda_coreb.retx);
 	}
 
-	notify_cpu_starting(cpu);
 	/*
 	 * We want the D-cache to be enabled early, in case the atomic
 	 * support code emulates cache coherence (see
