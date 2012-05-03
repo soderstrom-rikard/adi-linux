@@ -34,7 +34,7 @@ void init_clocks(void)
 	 * For example, any automatic DMAs left by U-Boot for splash screens.
 	 */
 
-#if 0
+#ifndef CONFIG_BF60x
 	size_t i;
 	for (i = 0; i < MAX_DMA_CHANNELS; ++i) {
 		struct dma_register *dma = dma_io_base_addr[i];
