@@ -198,6 +198,34 @@ err_out:
 }
 
 #ifdef CONFIG_PM
+static int bf60x_flash_suspend(struct platform_device *dev, pm_message_t state)
+{
+	struct physmap_flash_data *bf60x_data;
+
+	bf60x_data = dev->dev.platform_data;
+	if (bf60x_data == NULL)
+		return -ENODEV;
+	if (bf60x_data->exit)
+		bf60x_data->exit(dev);
+
+	return 0;
+}
+
+static int bf60x_flash_resume(struct platform_device *dev)
+{
+	struct physmap_flash_data *bf60x_data;
+	int err = 0;
+
+	bf60x_data = dev->dev.platform_data;
+	if (bf60x_data == NULL)
+		return -ENODEV;
+
+	if (bf60x_data->init)
+		err = bf60x_data->init(dev);
+
+	return err;
+}
+
 static void bf60x_flash_shutdown(struct platform_device *dev)
 {
 	struct bf60x_flash_info *info = platform_get_drvdata(dev);
@@ -216,6 +244,10 @@ static struct platform_driver bf60x_flash_driver = {
 	.probe		= bf60x_flash_probe,
 	.remove		= bf60x_flash_remove,
 	.shutdown	= bf60x_flash_shutdown,
+#ifdef CONFIG_PM
+	.suspend	= bf60x_flash_suspend,
+	.resume		= bf60x_flash_resume,
+#endif
 	.driver		= {
 		.name	= "bf60x-flash",
 		.owner	= THIS_MODULE,
