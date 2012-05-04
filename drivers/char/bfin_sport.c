@@ -7,7 +7,6 @@
  */
 
 #define DRV_NAME "bfin_sport_raw"
-#define pr_fmt(fmt) (DRV_NAME ": " fmt)
 
 #include <linux/cdev.h>
 #include <linux/completion.h>
