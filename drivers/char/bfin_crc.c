@@ -111,6 +111,7 @@ static int bfin_crc_run(struct bfin_crc *crc, unsigned int opmode, struct crc_in
 	crc->regs->compare = info->crc_compare;
 
 	/* setup CRC interrupts */
+	crc->regs->status = CMPERRI | DCNTEXPI;
 	crc->regs->intrenset = CMPERRI | DCNTEXPI;
 	SSYNC();
 
