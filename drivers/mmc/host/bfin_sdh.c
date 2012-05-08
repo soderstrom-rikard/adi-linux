@@ -486,12 +486,16 @@ static int __devinit sdh_probe(struct platform_device *pdev)
 	}
 
 	mmc->ops = &sdh_ops;
-#if defined(CONFIG_BF54x)
-	mmc->max_segs = 32;
-#elif defined(CONFIG_BF51x)
+#if defined(CONFIG_BF51x)
 	mmc->max_segs = 1;
+#else
+	mmc->max_segs = PAGE_SIZE / sizeof(struct dma_desc_array);
 #endif
+#ifdef RSI_BLKSZ
+	mmc->max_seg_size = -1;
+#else
 	mmc->max_seg_size = 1 << 16;
+#endif
 	mmc->max_blk_size = 1 << 11;
 	mmc->max_blk_count = 1 << 11;
 	mmc->max_req_size = PAGE_SIZE;
