@@ -182,7 +182,7 @@ static int __devinit bfin_rotary_probe(struct platform_device *pdev)
 	bfin_write_CNT_CONFIG(bfin_read_CNT_CONFIG() | CNTE);
 
 	platform_set_drvdata(pdev, rotary);
-	device_init_wakeup(&pdev->dev, 1);
+	device_init_wakeup(&pdev->dev, pdata->pm_wakeup);
 
 	return 0;
 
