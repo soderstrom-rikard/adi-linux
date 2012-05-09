@@ -2205,6 +2205,15 @@ int stmmac_resume(struct net_device *ndev)
 		priv->hw->mac->pmt(priv->ioaddr, 0);
 
 	netif_device_attach(ndev);
+	priv->dirty_tx = 0;
+	priv->cur_tx = 0;
+	priv->cur_rx = 0;
+	priv->dirty_rx = 0;
+
+	/* DMA initialization and SW reset */
+	priv->hw->dma->init(priv->ioaddr, priv->plat->pbl,
+			priv->dma_tx_phy, priv->dma_rx_phy);
+	priv->hw->mac->core_init(priv->ioaddr);
 
 	/* Enable the MAC and DMA */
 	stmmac_set_mac(priv->ioaddr, true);
