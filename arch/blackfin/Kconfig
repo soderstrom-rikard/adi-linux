@@ -628,6 +628,7 @@ config MIN_VCO_HZ
 
 config MAX_SCLK_HZ
 	int
+	default 200000000 if BF609
 	default 133333333
 
 config MIN_SCLK_HZ
