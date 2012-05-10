@@ -1067,7 +1067,7 @@ static unsigned long uvc_v4l2_get_unmapped_area(struct file *file,
 
 	uvc_trace(UVC_TRACE_CALLS, "uvc_v4l2_get_unmapped_area\n");
 
-	return uvc_queue_get_unmapped_area(&stream->queue, pgoff);
+	return vb2_get_unmapped_area(&stream->queue, addr, len, pgoff, flags);
 }
 #endif
 
