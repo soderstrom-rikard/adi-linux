@@ -258,7 +258,9 @@ static void bfin_sec_set_ssi_coreid(unsigned int sid, unsigned int coreid)
 	uint32_t reg_sctl = bfin_read_SEC_SCTL(sid);
 
 	reg_sctl &= ((uint32_t)~SEC_SCTL_CTG);
-	bfin_write_SEC_SCTL(sid, reg_sctl | ((coreid << 20) & SEC_SCTL_CTG));
+	bfin_write_SEC_SCTL(sid, reg_sctl | ((coreid << 24) & SEC_SCTL_CTG));
+
+	pr_debug("sid %d %08x %08x\n", sid, bfin_read_SEC_SCTL(sid), reg_sctl | ((coreid << 24) & SEC_SCTL_CTG));
 
 	hard_local_irq_restore(flags);
 }
@@ -310,7 +312,7 @@ static void bfin_sec_disable(struct irq_data *d)
 	hard_local_irq_restore(flags);
 }
 
-static void bfin_sec_raise_irq(unsigned int sid)
+void bfin_sec_raise_irq(unsigned int sid)
 {
 	unsigned long flags = hard_local_irq_save();
 
@@ -319,10 +321,11 @@ static void bfin_sec_raise_irq(unsigned int sid)
 	hard_local_irq_restore(flags);
 }
 
-static void init_software_driven_irq(void)
+void init_software_driven_irq(void)
 {
 	bfin_sec_set_ssi_coreid(34, 0);
 	bfin_sec_set_ssi_coreid(35, 1);
+
 	bfin_sec_set_ssi_coreid(36, 0);
 	bfin_sec_set_ssi_coreid(37, 1);
 }
@@ -522,6 +525,7 @@ static struct irq_chip bfin_internal_irqchip = {
 static struct irq_chip bfin_sec_irqchip = {
 	.name = "SEC",
 	.irq_mask_ack = bfin_sec_mask_ack_irq,
+	.irq_ack = bfin_sec_mask_ack_irq,
 	.irq_mask = bfin_sec_mask_ack_irq,
 	.irq_unmask = bfin_sec_unmask_irq,
 	.irq_eoi = bfin_sec_unmask_irq,
@@ -1441,6 +1445,8 @@ int __init init_arch_irq(void)
 	udelay(100);
 	bfin_write_SEC_GCTL(SEC_GCTL_EN);
 	bfin_write_SEC_SCI(0, SEC_CCTL, SEC_CCTL_EN | SEC_CCTL_NMI_EN);
+	bfin_write_SEC_SCI(1, SEC_CCTL, SEC_CCTL_EN | SEC_CCTL_NMI_EN);
+
 	init_software_driven_irq();
 	register_syscore_ops(&sec_pm_syscore_ops);
 #endif

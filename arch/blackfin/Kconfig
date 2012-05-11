@@ -254,6 +254,15 @@ config HOTPLUG_CPU
 	depends on SMP && HOTPLUG
 	default y
 
+comment "Core B Support"
+
+if !SMP
+config BFIN_COREB
+        bool "Enable Core B loader"
+	depends on (BF561 || BF60x)
+        default y
+endif
+
 config BF_REV_MIN
 	int
 	default 0 if (BF51x || BF52x || (BF54x && !BF54xM)) || BF60x

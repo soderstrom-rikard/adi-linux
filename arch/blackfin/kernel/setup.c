@@ -179,6 +179,14 @@ void __init bfin_cache_init(void)
 	bfin_setup_caches(0);
 }
 
+#ifdef CONFIG_BFIN_COREB
+static void core1_enable(void)
+{
+	bfin_write32(RCU0_SVECT1, 0xff600000);
+	bfin_write32(RCU0_CRCTL, 0);
+}
+#endif
+
 void __init bfin_relocate_l1_mem(void)
 {
 	unsigned long text_l1_len = (unsigned long)_text_l1_len;
@@ -204,9 +212,26 @@ void __init bfin_relocate_l1_mem(void)
 
 	blackfin_dma_early_init();
 
+
+#ifdef CONFIG_BFIN_COREB
+	core1_enable();
+
+	if (L1_CODE_LENGTH && text_l1_len)
+		early_dma_memcpy((void *)0xFF600000, _text_l1_lma,
+				text_l1_len);
+
+	bfin_write32(RCU0_CRCTL, 0x2);
+
+	while (!(bfin_read32(RCU0_CRSTAT) & 0x2))
+		continue;
+
+	bfin_write32(RCU0_CRCTL, 0);
+#endif
+
 	/* if necessary, copy L1 text to L1 instruction SRAM */
 	if (L1_CODE_LENGTH && text_l1_len)
 		early_dma_memcpy(_stext_l1, _text_l1_lma, text_l1_len);
+
 
 	/* if necessary, copy L1 data to L1 data bank A SRAM */
 	if (L1_DATA_A_LENGTH && data_l1_len)
@@ -541,8 +566,8 @@ static __init void parse_cmdline_early(char *cmdline_p)
  *  [_rambase, _ramstart]:		kernel image
  *  [memory_start, memory_end]:		dynamic memory managed by kernel
  *  [memory_end, _ramend]:		reserved memory
- *  	[memory_mtd_start(memory_end),
- *  		memory_mtd_start + mtd_size]:	rootfs (if any)
+ *	[memory_mtd_start(memory_end),
+ *		memory_mtd_start + mtd_size]:	rootfs (if any)
  *	[_ramend - DMA_UNCACHED_REGION,
  *		_ramend]:			uncached DMA region
  *  [_ramend, physical_mem_end]:	memory not managed by kernel

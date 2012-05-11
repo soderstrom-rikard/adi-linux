@@ -118,6 +118,7 @@ struct STRUCT_ROM_SYSCTRL configvalues;
 uint32_t dactionflags;
 
 #define FUNC_ROM_SYSCONTROL 0xC8000080
+#define FUNC_ROM_MEMCPY     0xC8000024
 __attribute__((l1_data))
 static uint32_t (* const bfrom_SysControl)(uint32_t action_flags, struct STRUCT_ROM_SYSCTRL *settings, void *reserved) = (void *)FUNC_ROM_SYSCONTROL;
 
@@ -204,11 +205,8 @@ void bfin_hibernate_syscontrol(void)
 	bfin_write32(DPM0_RESTORE5, bfin_read32(DPM0_RESTORE5) | 4);
 }
 
-#ifndef CONFIG_BF60x
-# define SIC_SYSIRQ(irq)	(irq - (IRQ_CORETMR + 1))
-#else
-# define SIC_SYSIRQ(irq)	((irq) - IVG15)
-#endif
+# define IRQ_SID(irq)	((irq) - IVG15)
+
 void bfin_hibernate(unsigned long mask)
 {
 	bfin_write32(DPM0_WAKE_EN, 0x10);
@@ -316,6 +314,14 @@ static struct bfin_cpu_pm_fns bf609_cpu_pm = {
 static irqreturn_t test_isr(int irq, void *dev_id)
 {
 	printk(KERN_DEBUG "gpio irq %d\n", irq);
+	if (irq == 231)
+		bfin_sec_raise_irq(IRQ_SID(IRQ_SOFT1));
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t soft_isr(int irq, void *dev_id)
+{
+	printk(KERN_DEBUG "soft irq %d\n", irq);
 	return IRQ_HANDLED;
 }
 
@@ -328,6 +334,46 @@ static irqreturn_t dpm0_isr(int irq, void *dev_id)
 
 	bfin_write32(DPM0_WAKE_STAT, wake_stat);
 	return IRQ_HANDLED;
+}
+
+void core1_evt_handle(void)
+{
+	unsigned int sid = bfin_read_SEC_SCI(1, SEC_CSID);
+
+	bfin_write_SEC_SCI(1, SEC_CSID, sid);
+	SSYNC();
+	bfin_sec_raise_irq(IRQ_SID(IRQ_SOFT0));
+	bfin_write32(SEC_END, sid);
+}
+
+asmlinkage void core1_evt11(void);
+
+void coreb_start(void)
+{
+	unsigned long ilat;
+	unsigned long bfin_irq_flags;
+	unsigned int i = 0;
+
+	/* enable interrupt */
+	__asm__ ("[--sp] = reti;");
+
+	ilat = bfin_read_ILAT();
+	CSYNC();
+	bfin_write_ILAT(ilat);
+	CSYNC();
+
+	bfin_write_EVT11(core1_evt11 - L1_CODE_START + COREB_L1_CODE_START);
+
+	SSYNC();
+	bfin_irq_flags = IMASK_IVG11;
+	bfin_sti(bfin_irq_flags);
+
+	while (1) {
+		if (i++ > 10000000) {
+			bfin_sec_raise_irq(IRQ_SID(IRQ_SOFT0));
+			i = 0;
+		}
+	}
 }
 
 static int __init bf609_init_pm(void)
@@ -353,6 +399,14 @@ static int __init bf609_init_pm(void)
 		printk(KERN_DEBUG "Unable to get irq\n");
 
 	error = request_irq(IRQ_DPM, dpm0_isr, IRQF_NO_SUSPEND, "dpm0 event", NULL);
+	if (error < 0)
+		printk(KERN_DEBUG "Unable to get irq\n");
+
+	error = request_irq(IRQ_SOFT0, soft_isr, IRQF_NO_SUSPEND, "software event", NULL);
+	if (error < 0)
+		printk(KERN_DEBUG "Unable to get irq\n");
+
+	error = request_irq(IRQ_SOFT1, soft_isr, IRQF_NO_SUSPEND, "software event", NULL);
 	if (error < 0)
 		printk(KERN_DEBUG "Unable to get irq\n");
 
