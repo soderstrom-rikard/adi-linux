@@ -32,6 +32,7 @@
 #include <asm/early_printk.h>
 #include <asm/irq_handler.h>
 #include <asm/pda.h>
+#include <asm/pm.h>
 
 u16 _bfin_swrst;
 EXPORT_SYMBOL(_bfin_swrst);
@@ -179,14 +180,6 @@ void __init bfin_cache_init(void)
 	bfin_setup_caches(0);
 }
 
-#ifdef CONFIG_BFIN_COREB
-static void core1_enable(void)
-{
-	bfin_write32(RCU0_SVECT1, 0xff600000);
-	bfin_write32(RCU0_CRCTL, 0);
-}
-#endif
-
 void __init bfin_relocate_l1_mem(void)
 {
 	unsigned long text_l1_len = (unsigned long)_text_l1_len;
@@ -214,10 +207,10 @@ void __init bfin_relocate_l1_mem(void)
 
 
 #ifdef CONFIG_BFIN_COREB
-	core1_enable();
+	coreb_enable();
 
 	if (L1_CODE_LENGTH && text_l1_len)
-		early_dma_memcpy((void *)0xFF600000, _text_l1_lma,
+		early_dma_memcpy((void *)COREB_L1_CODE_START, _text_l1_lma,
 				text_l1_len);
 
 	bfin_write32(RCU0_CRCTL, 0x2);

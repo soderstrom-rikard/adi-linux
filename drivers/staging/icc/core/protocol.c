@@ -226,7 +226,7 @@ static int sm_send_message_internal(struct sm_msg *msg, int dst_cpu,
 	sm_debug("%s: dst %d src %d %08x\n", __func__, dst_cpu, src_cpu, (uint32_t)msg->type);
 	ret = sm_message_enqueue(dst_cpu, src_cpu, msg);
 	if (!ret)
-		icc_send_ipi_cpu(dst_cpu, IRQ_SUPPLE_0);
+		icc_send_ipi_cpu(dst_cpu, ICC_LOW_SEND);
 	return ret;
 }
 

@@ -9,6 +9,7 @@
 #ifndef __PM_H__
 #define __PM_H__
 
+#include <mach/pm.h>
 #include <linux/suspend.h>
 
 struct bfin_cpu_pm_fns {
@@ -21,4 +22,11 @@ struct bfin_cpu_pm_fns {
 };
 
 extern struct bfin_cpu_pm_fns *bfin_cpu_pm;
+
+# ifdef CONFIG_BFIN_COREB
+void bfin_coreb_start(void);
+void bfin_coreb_stop(void);
+void bfin_coreb_reset(void);
+# endif
+
 #endif
