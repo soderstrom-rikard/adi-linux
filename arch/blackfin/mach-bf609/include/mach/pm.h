@@ -17,4 +17,5 @@ void bf609_pm_finish(void);
 
 void bf609_hibernate(void);
 void bfin_sec_raise_irq(unsigned int sid);
+void coreb_enable(void);
 #endif

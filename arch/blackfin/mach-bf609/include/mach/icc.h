@@ -4,8 +4,8 @@
  * Licensed under the GPL-2 or later.
  */
 
-#ifndef _MACH_BF561_ICC_H
-#define _MACH_BF561_ICC_H
+#ifndef _MACH_BF609_ICC_H
+#define _MACH_BF609_ICC_H
 
 /* arch specific */
 #define sm_atomic_read(v) bfin_read16(v)
@@ -23,8 +23,8 @@ typedef sm_uint16_t sm_atomic_t;
 #define COREB_TASK_START	0x3C00000
 #define COREB_MEMPOOL_START	0x3D00000
 
-#define ICC_LOW_SEND            IRQ_SUPPLE_0
-#define ICC_LOW_RECV            IRQ_SUPPLE_0
-#define ICC_HIGH_SEND           IRQ_SUPPLE_1
-#define ICC_HIGH_RECV           IRQ_SUPPLE_1
+#define ICC_LOW_SEND		IRQ_SOFT1
+#define ICC_LOW_RECV		IRQ_SOFT0
+#define ICC_HIGH_SEND		IRQ_SOFT3
+#define ICC_HIGH_RECV		IRQ_SOFT2
 #endif
