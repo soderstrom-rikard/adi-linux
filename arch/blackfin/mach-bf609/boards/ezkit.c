@@ -400,7 +400,7 @@ static struct musb_hdrc_config musb_config = {
 	.dma		= 1,
 	.num_eps	= 16,
 	.dma_channels	= 8,
-	.clkin          = 24,           /* musb CLKIN in MHZ */
+	.clkin          = 48,           /* musb CLKIN in MHZ */
 };
 
 static struct musb_hdrc_platform_data musb_plat = {
