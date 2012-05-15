@@ -1079,7 +1079,7 @@ void __init setup_arch(char **cmdline_p)
 
 #ifdef CONFIG_BF60x
 	printk(KERN_INFO "Processor Speed: %lu MHz core clock, %lu MHz SCLk, %lu MHz SCLK0, %lu MHz SCLK1 and %lu MHz DCLK\n",
-		cclk / 1000000, sclk / 1000000, get_sclk0() / 1000000, get_sclk1() / 1000000, get_dclk() / 1000000);
+		cclk / 1000000, bfin_get_clk("SYSCLK") / 1000000, get_sclk0() / 1000000, get_sclk1() / 1000000, get_dclk() / 1000000);
 #else
 	printk(KERN_INFO "Processor Speed: %lu MHz core clock and %lu MHz System Clock\n",
 	       cclk / 1000000, sclk / 1000000);
