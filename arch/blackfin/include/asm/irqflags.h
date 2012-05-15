@@ -228,7 +228,7 @@ static inline notrace void hard_local_irq_restore(unsigned long flags)
  * Direct interface to linux/irqflags.h.
  */
 #define arch_local_save_flags()		hard_local_save_flags()
-#define arch_local_irq_save(flags)	__hard_local_irq_save()
+#define arch_local_irq_save()		__hard_local_irq_save()
 #define arch_local_irq_restore(flags)	__hard_local_irq_restore(flags)
 #define arch_local_irq_enable()		__hard_local_irq_enable()
 #define arch_local_irq_disable()	__hard_local_irq_disable()
