@@ -96,16 +96,6 @@ config MSP_FLASH_MAP_LIMIT
 	default "0x02000000"
 	depends on MSP_FLASH_MAP_LIMIT_32M
 
-config MTD_BFIN_BF60x
-	tristate "Blackfin flash support for BF60x"
-	depends on MTD_CFI && BLACKFIN && BF60x
-	help
-	  This provides a 'mapping' driver which support the NOR Flash
-	  on bf60x board blackfin platform.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called physmap.
-
 config MTD_SUN_UFLASH
 	tristate "Sun Microsystems userflash support"
 	depends on SPARC && MTD_CFI && PCI
