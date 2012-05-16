@@ -15,7 +15,6 @@
 #define DRIVER_NAME "bfin-uart"
 #define pr_fmt(fmt) DRIVER_NAME ": " fmt
 
-#include <linux/clk.h>
 #include <linux/module.h>
 #include <linux/ioport.h>
 #include <linux/gfp.h>
