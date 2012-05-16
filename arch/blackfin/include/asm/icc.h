@@ -7,6 +7,7 @@
 #ifndef _BFIN_ICC_H
 #define _BFIN_ICC_H
 
+#include <linux/cpumask.h>
 #include <mach/icc.h>
 
 void platform_request_ipi(int irq, void *handler);

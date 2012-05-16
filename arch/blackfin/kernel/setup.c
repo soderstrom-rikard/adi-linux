@@ -33,6 +33,9 @@
 #include <asm/irq_handler.h>
 #include <asm/pda.h>
 #include <asm/pm.h>
+#ifdef CONFIG_BF60x
+#include <mach/pm.h>
+#endif
 
 u16 _bfin_swrst;
 EXPORT_SYMBOL(_bfin_swrst);
@@ -206,7 +209,7 @@ void __init bfin_relocate_l1_mem(void)
 	blackfin_dma_early_init();
 
 
-#ifdef CONFIG_BFIN_COREB
+#if  defined(CONFIG_BFIN_COREB) && defined(CONFIG_BF60x)
 	coreb_enable();
 
 	if (L1_CODE_LENGTH && text_l1_len)
