@@ -86,8 +86,10 @@ struct bfin_crc {
 	int dma_ch_src;
 	int dma_ch_dest;
 	volatile struct crc_register *regs;
+	struct crc_info *info;
 	struct mutex mutex;
 	struct completion c;
+	unsigned short opmode;
 	char name[20];
 };
 
