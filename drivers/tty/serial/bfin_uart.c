@@ -35,11 +35,6 @@
 #include <asm/portmux.h>
 #include <asm/cacheflush.h>
 #include <asm/dma.h>
-
-/*#define port_membase(uart)     (((struct bfin_serial_port *)(uart))->port.membase)
-#define get_lsr_cache(uart)    (((struct bfin_serial_port *)(uart))->lsr)
-#define put_lsr_cache(uart, v) (((struct bfin_serial_port *)(uart))->lsr = (v))
-*/
 #include <asm/bfin_serial.h>
 
 #ifdef CONFIG_SERIAL_BFIN_MODULE
