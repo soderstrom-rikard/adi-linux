@@ -62,12 +62,13 @@ static void bfin_crc_config_dma(unsigned long dma_ch, unsigned char *addr,
 	enable_dma(dma_ch);
 }
 
-static int bfin_crc_run(struct bfin_crc *crc, unsigned int opmode, struct crc_info *info)
+static int bfin_crc_run(struct bfin_crc *crc)
 {
 	int ret = 0;
 	unsigned long control;
 	unsigned int timeout = 100000;
 	int mod_dir = 1;
+	struct crc_info *info = crc->info;
 
 	if (info->datasize == 0)
 		return 0;
@@ -77,7 +78,7 @@ static int bfin_crc_run(struct bfin_crc *crc, unsigned int opmode, struct crc_in
 	}
 
 	/* config CRC */
-	control = opmode << OPMODE_OFFSET;
+	control = crc->opmode << OPMODE_OFFSET;
 	control |= (info->bitmirr << BITMIRR_OFFSET);
 	control |= (info->bytmirr << BYTMIRR_OFFSET);
 	control |= (info->w16swp << W16SWP_OFFSET);
@@ -87,13 +88,13 @@ static int bfin_crc_run(struct bfin_crc *crc, unsigned int opmode, struct crc_in
 	control |= (info->cmpmirr << CMPMIRR_OFFSET);
 	control |= AUTOCLRZ;
 
-	if (opmode == MODE_DMACPY_CRC)
+	if (crc->opmode == MODE_DMACPY_CRC)
 		control |= OBRSTALL;
 
 	crc->regs->control = control;
 	SSYNC();
 
-	if (opmode == MODE_CALC_CRC || opmode == MODE_DMACPY_CRC) {
+	if (crc->opmode == MODE_CALC_CRC || crc->opmode == MODE_DMACPY_CRC) {
 		crc->regs->poly = info->crc_poly;
 		SSYNC();
 
@@ -116,22 +117,22 @@ static int bfin_crc_run(struct bfin_crc *crc, unsigned int opmode, struct crc_in
 	SSYNC();
 
 	/* setup CRC receive DMA */
-	switch (opmode) {
-		case MODE_DMACPY_CRC:
-			invalidate_dcache_range((unsigned long)info->out_addr,
-					(unsigned long)(info->out_addr + info->datasize));
-			if (info->out_addr < info->in_addr + info->datasize)
-				mod_dir = -1;
-			bfin_crc_config_dma(crc->dma_ch_dest, info->out_addr,
-					info->datasize, WNR, mod_dir);
-			break;
-		case MODE_DATA_FILL:
-			crc->regs->fillval = info->val_fill;
-			invalidate_dcache_range((unsigned long)info->out_addr,
-					(unsigned long)(info->out_addr + info->datasize));
-			bfin_crc_config_dma(crc->dma_ch_dest, info->out_addr,
-					info->datasize, WNR, 1);
-			break;
+	switch (crc->opmode) {
+	case MODE_DMACPY_CRC:
+		invalidate_dcache_range((unsigned long)info->out_addr,
+				(unsigned long)(info->out_addr + info->datasize));
+		if (info->out_addr < info->in_addr + info->datasize)
+			mod_dir = -1;
+		bfin_crc_config_dma(crc->dma_ch_dest, info->out_addr,
+				info->datasize, WNR, mod_dir);
+		break;
+	case MODE_DATA_FILL:
+		crc->regs->fillval = info->val_fill;
+		invalidate_dcache_range((unsigned long)info->out_addr,
+				(unsigned long)(info->out_addr + info->datasize));
+		bfin_crc_config_dma(crc->dma_ch_dest, info->out_addr,
+				info->datasize, WNR, 1);
+		break;
 	}
 
 	/* enable CRC operation */
@@ -139,20 +140,20 @@ static int bfin_crc_run(struct bfin_crc *crc, unsigned int opmode, struct crc_in
 	SSYNC();
 
 	/* setup CRC transfer DMA */
-	switch (opmode) {
-		case MODE_CALC_CRC:
-		case MODE_DATA_VERIFY:
-			flush_dcache_range((unsigned long)info->in_addr,
-					(unsigned long)(info->in_addr + info->datasize));
-			bfin_crc_config_dma(crc->dma_ch_src, info->in_addr,
-					info->datasize, 0, 1);
-			break;
-		case MODE_DMACPY_CRC:
-			flush_dcache_range((unsigned long)info->in_addr,
-					(unsigned long)(info->in_addr + info->datasize));
-			bfin_crc_config_dma(crc->dma_ch_src, info->in_addr,
-					info->datasize, 0, mod_dir);
-			break;
+	switch (crc->opmode) {
+	case MODE_CALC_CRC:
+	case MODE_DATA_VERIFY:
+		flush_dcache_range((unsigned long)info->in_addr,
+				(unsigned long)(info->in_addr + info->datasize));
+		bfin_crc_config_dma(crc->dma_ch_src, info->in_addr,
+				info->datasize, 0, 1);
+		break;
+	case MODE_DMACPY_CRC:
+		flush_dcache_range((unsigned long)info->in_addr,
+				(unsigned long)(info->in_addr + info->datasize));
+		bfin_crc_config_dma(crc->dma_ch_src, info->in_addr,
+				info->datasize, 0, mod_dir);
+		break;
 	}
 
 	/* wait for completion */
@@ -160,20 +161,9 @@ static int bfin_crc_run(struct bfin_crc *crc, unsigned int opmode, struct crc_in
 		dev_dbg(crc->mdev.this_device, "Completion waiting is interrupted.\n");
 		goto out;
 	}
-	if (opmode == MODE_DMACPY_CRC || opmode == MODE_DATA_FILL)
+	if (crc->opmode == MODE_DMACPY_CRC || crc->opmode == MODE_DATA_FILL)
 		while (crc->regs->status & OBR)
 			cpu_relax();
-
-	/* prepare results */
-	switch (opmode) {
-		case MODE_CALC_CRC:
-		case MODE_DMACPY_CRC:
-			info->crc_result = crc->regs->result;
-			break;
-		case MODE_DATA_VERIFY:
-			info->pos_verify = (crc->regs->status & CMPERR) ? crc->regs->datacntcap : 0;
-			break;
-	};
 
 out:
 	clear_dma_irqstat(crc->dma_ch_src);
@@ -197,8 +187,21 @@ static irqreturn_t bfin_crc_handler(int irq, void *dev_id)
 	if (crc->regs->status & DCNTEXP) {
 		crc->regs->status = DCNTEXP;
 		SSYNC();
+		/* prepare results */
+		switch (crc->opmode) {
+		case MODE_CALC_CRC:
+		case MODE_DMACPY_CRC:
+			crc->info->crc_result = crc->regs->result;
+			break;
+		case MODE_DATA_VERIFY:
+			crc->info->pos_verify =
+				(crc->regs->status & CMPERR) ? crc->regs->datacntcap : 0;
+			break;
+		};
 		if (crc->regs->control | BLKEN)
 			complete(&crc->c);
+
+		crc->regs->control &= ~BLKEN;
 		return IRQ_HANDLED;
 	} else
 		return IRQ_NONE;
@@ -312,27 +315,32 @@ static long bfin_crc_ioctl(struct file *filp,
 		goto out;
 	}
 
+	crc->info = &bfin_crc_info;
 	switch (cmd) {
 	case CRC_IOC_CALC_CRC:
-		ret = bfin_crc_run(crc, MODE_CALC_CRC, &bfin_crc_info);
+		crc->opmode = MODE_CALC_CRC;
 		break;
 	case CRC_IOC_MEMCPY_CRC:
-		ret = bfin_crc_run(crc, MODE_DMACPY_CRC, &bfin_crc_info);
+		crc->opmode = MODE_DMACPY_CRC;
 		break;
 	case CRC_IOC_VERIFY_VAL:
-		ret = bfin_crc_run(crc, MODE_DATA_VERIFY, &bfin_crc_info);
+		crc->opmode = MODE_DATA_VERIFY;
 		break;
 	case CRC_IOC_FILL_VAL:
-		ret = bfin_crc_run(crc, MODE_DATA_FILL, &bfin_crc_info);
+		crc->opmode = MODE_DATA_FILL;
 		break;
 	default:
 		ret = -ENOTTY;
+		goto out;
 	}
+	ret = bfin_crc_run(crc);
 
 	if (ret >= 0 && copy_to_user(argp, &bfin_crc_info, sizeof(bfin_crc_info)))
 		ret = -EFAULT;
 
 out:
+	crc->info = NULL;
+	crc->opmode = 0;
 	mutex_unlock(&crc->mutex);
 	return ret;
 }
@@ -346,6 +354,13 @@ out:
 static int bfin_crc_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct bfin_crc *crc = platform_get_drvdata(pdev);
+	int i = 100000;
+
+	while ((crc->regs->control & BLKEN) && --i)
+		cpu_relax();
+
+	if (i == 0)
+		crc->regs->control &= ~BLKEN;
 
 	return 0;
 }
@@ -356,8 +371,6 @@ static int bfin_crc_suspend(struct platform_device *pdev, pm_message_t state)
  */
 static int bfin_crc_resume(struct platform_device *pdev)
 {
-	struct bfin_crc *crc = platform_get_drvdata(pdev);
-
 	return 0;
 }
 #else
