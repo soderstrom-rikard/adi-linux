@@ -12,65 +12,23 @@
  * 0xff600000 when COREB_SRAM_INIT is cleared.
  */
 
-#include <linux/device.h>
-#include <linux/fs.h>
-#include <linux/kernel.h>
-#include <linux/miscdevice.h>
 #include <linux/module.h>
 
-#define CMD_COREB_START		_IO('b', 0)
-#define CMD_COREB_STOP		_IO('b', 1)
-#define CMD_COREB_RESET		_IO('b', 2)
-
-static long
-coreb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+void bfin_coreb_start(void)
 {
-	int ret = 0;
-
-	switch (cmd) {
-	case CMD_COREB_START:
-		bfin_write_SYSCR(bfin_read_SYSCR() & ~0x0020);
-		break;
-	case CMD_COREB_STOP:
-		bfin_write_SYSCR(bfin_read_SYSCR() | 0x0020);
-		bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | 0x0080);
-		break;
-	case CMD_COREB_RESET:
-		bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | 0x0080);
-		break;
-	default:
-		ret = -EINVAL;
-		break;
-	}
-
-	CSYNC();
-
-	return ret;
+	bfin_write_SYSCR(bfin_read_SYSCR() & ~0x0020);
 }
 
-static const struct file_operations coreb_fops = {
-	.owner          = THIS_MODULE,
-	.unlocked_ioctl = coreb_ioctl,
-	.llseek		= noop_llseek,
-};
-
-static struct miscdevice coreb_dev = {
-	.minor = MISC_DYNAMIC_MINOR,
-	.name  = "coreb",
-	.fops  = &coreb_fops,
-};
-
-static int __init bf561_coreb_init(void)
+void bfin_coreb_stop(void)
 {
-	return misc_register(&coreb_dev);
+	bfin_write_SYSCR(bfin_read_SYSCR() | 0x0020);
+	bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | 0x0080);
 }
-module_init(bf561_coreb_init);
 
-static void __exit bf561_coreb_exit(void)
+void bfin_coreb_reset(void)
 {
-	misc_deregister(&coreb_dev);
+	bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | 0x0080);
 }
-module_exit(bf561_coreb_exit);
 
 MODULE_AUTHOR("Bas Vermeulen <bvermeul@blackstar.xs4all.nl>");
 MODULE_DESCRIPTION("BF561 Core B Support");
