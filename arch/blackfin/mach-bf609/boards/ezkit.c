@@ -995,10 +995,10 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 	{
 		.modalias		= "ad7877",
 		.platform_data		= &bfin_ad7877_ts_info,
-		.irq			= IRQ_PB4,	/* old boards (<=Rev 1.3) use IRQ_PJ11 */
+		.irq			= IRQ_PD9,
 		.max_speed_hz		= 12500000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num		= 0,
-		.chip_select  		= 2,
+		.chip_select  		= 4,
 	},
 #endif
 #if defined(CONFIG_SPI_SPIDEV) || defined(CONFIG_SPI_SPIDEV_MODULE)
@@ -1064,7 +1064,7 @@ static struct resource bfin_spi1_resource[] = {
 
 /* SPI controller data */
 static struct bfin6xx_spi_master bf60x_spi_master_info0 = {
-	.num_chipselect = 4,
+	.num_chipselect = MAX_CTRL_CS + MAX_BLACKFIN_GPIOS,
 	.pin_req = {P_SPI0_SCK, P_SPI0_MISO, P_SPI0_MOSI, 0},
 };
 
@@ -1079,7 +1079,7 @@ static struct platform_device bf60x_spi_master0 = {
 };
 
 static struct bfin6xx_spi_master bf60x_spi_master_info1 = {
-	.num_chipselect = 4,
+	.num_chipselect = MAX_CTRL_CS + MAX_BLACKFIN_GPIOS,
 	.pin_req = {P_SPI1_SCK, P_SPI1_MISO, P_SPI1_MOSI, 0},
 };
 
