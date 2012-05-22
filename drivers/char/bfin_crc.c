@@ -25,6 +25,20 @@
 
 #define DRIVER_NAME "bfin-crc"
 
+struct bfin_crc {
+	struct miscdevice mdev;
+	struct list_head list;
+	int irq;
+	int dma_ch_src;
+	int dma_ch_dest;
+	volatile struct crc_register *regs;
+	struct crc_info *info;
+	struct mutex mutex;
+	struct completion c;
+	unsigned short opmode;
+	char name[20];
+};
+
 static LIST_HEAD(bfin_crc_list);
 
 static void bfin_crc_config_dma(unsigned long dma_ch, unsigned char *addr,
@@ -347,7 +361,7 @@ out:
 
 #ifdef CONFIG_PM
 /**
- *	bfin_crc_suspend - suspend the watchdog
+ *	bfin_crc_suspend - suspend the crc device
  *	@pdev: device being suspended
  *	@state: requested suspend state
  */
@@ -366,7 +380,7 @@ static int bfin_crc_suspend(struct platform_device *pdev, pm_message_t state)
 }
 
 /**
- *	bfin_crc_resume - resume the watchdog
+ *	bfin_crc_resume - resume the crc device
  *	@pdev: device being resumed
  */
 static int bfin_crc_resume(struct platform_device *pdev)
