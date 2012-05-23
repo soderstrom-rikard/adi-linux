@@ -50,15 +50,9 @@ static int dwmac100_dma_init(void __iomem *ioaddr, int pbl, u32 dma_tx,
 	if (limit < 0)
 		return -EBUSY;
 
-#ifdef CONFIG_BLACKFIN
-	writel(DMA_AXI_BUS_BLEN4 | DMA_AXI_BUS_UNDEF, ioaddr + DMA_AXI_BUS);
-	writel(DMA_BUS_MODE_DEFAULT | (pbl << DMA_BUS_MODE_PBL_SHIFT) | (1 << 7),
-	       ioaddr + DMA_BUS_MODE);
-#else
 	/* Enable Application Access by writing to DMA CSR0 */
 	writel(DMA_BUS_MODE_DEFAULT | (pbl << DMA_BUS_MODE_PBL_SHIFT),
 	       ioaddr + DMA_BUS_MODE);
-#endif
 	/* Mask interrupts by writing to CSR7 */
 	writel(DMA_INTR_DEFAULT_MASK, ioaddr + DMA_INTR_ENA);
 

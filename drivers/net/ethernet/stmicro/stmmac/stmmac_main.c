@@ -74,11 +74,7 @@
 #define TX_DBG(fmt, args...)  do { } while (0)
 #endif
 
-#ifdef CONFIG_BLACKFIN
-#define STMMAC_ALIGN(x) (x)
-#else
 #define STMMAC_ALIGN(x)	L1_CACHE_ALIGN(x)
-#endif
 
 #define JUMBO_LEN	9000
 
@@ -92,7 +88,7 @@ static int debug = -1;		/* -1: default, 0: no output, 16:  all */
 module_param(debug, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(debug, "Message Level (0: no output, 16: all)");
 
-int phyaddr = 1;
+int phyaddr = -1;
 module_param(phyaddr, int, S_IRUGO);
 MODULE_PARM_DESC(phyaddr, "Physical device address");
 
@@ -1523,10 +1519,8 @@ static int stmmac_rx(struct stmmac_priv *priv, int limit)
 			frame_len = priv->hw->desc->get_rx_frame_len(p);
 			/* ACS is set; GMAC core strips PAD/FCS for IEEE 802.3
 			 * Type frames (LLC/LLC-SNAP) */
-#ifndef CONFIG_BLACKFIN
 			if (unlikely(status != llc_snap))
 				frame_len -= ETH_FCS_LEN;
-#endif
 #ifdef STMMAC_RX_DEBUG
 			if (frame_len > ETH_FRAME_LEN)
 				pr_debug("\tRX frame size %d, COE status: %d\n",

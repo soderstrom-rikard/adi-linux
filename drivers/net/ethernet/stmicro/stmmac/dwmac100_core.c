@@ -35,9 +35,6 @@
 static void dwmac100_core_init(void __iomem *ioaddr)
 {
 	u32 value = readl(ioaddr + MAC_CONTROL);
-#ifdef CONFIG_BLACKFIN
-	writel(MAC_FRAME_FILTER_INIT, ioaddr + MAC_FRAME_FILTER);
-#endif
 	writel((value | MAC_CORE_INIT), ioaddr + MAC_CONTROL);
 
 #ifdef STMMAC_VLAN_TAG_USED

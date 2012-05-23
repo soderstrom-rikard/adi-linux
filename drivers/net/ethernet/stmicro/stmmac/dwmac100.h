@@ -53,17 +53,6 @@
 #define MAC_VLAN2	0x00000024	/* VLAN2 Tag */
 #endif
 
-#ifdef CONFIG_BLACKFIN
-/* MAC_FRAME_FILTER defines */
-#define MAC_FRAME_FILTER_RA  0x80000000
-#define MAC_FRAME_FILTER_PR  0x00000001
-#define MAC_FRAME_FILTER_HMC 0x00000004
-#define MAC_FRAME_FILTER_PM  0x00000010
-
-#define MAC_FRAME_FILTER_INIT (MAC_FRAME_FILTER_RA | MAC_FRAME_FILTER_PR |\
-				MAC_FRAME_FILTER_HMC | MAC_FRAME_FILTER_PM)
-#endif
-
 /* MAC CTRL defines */
 #define MAC_CONTROL_RA	0x80000000	/* Receive All Mode */
 #define MAC_CONTROL_BLE	0x40000000	/* Endian Mode */
@@ -121,7 +110,11 @@
 #define DMA_BUS_MODE_DSL_SHIFT	2	/*   (in DWORDS)      */
 #define DMA_BUS_MODE_BAR_BUS	0x00000002	/* Bar-Bus Arbitration */
 #define DMA_BUS_MODE_SFT_RESET	0x00000001	/* Software Reset */
-#define DMA_BUS_MODE_DEFAULT	0x00000000
+#ifdef CONFIG_STMMAC_IEEE1588
+#define DMA_BUS_MODE_DEFAULT 0x00000080
+#else
+#define DMA_BUS_MODE_DEFAULT 0x00000000
+#endif
 
 /* DMA Control register defines */
 #define DMA_CONTROL_SF		0x00200000	/* Store And Forward */
