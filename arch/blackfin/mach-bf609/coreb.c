@@ -1,4 +1,5 @@
 #include <asm/blackfin.h>
+#include <linux/kernel.h>
 
 void coreb_enable(void)
 {

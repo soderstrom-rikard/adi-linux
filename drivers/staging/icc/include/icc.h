@@ -125,40 +125,40 @@ void icc_send_ipi_cpu(unsigned int cpu, int irq);
 void icc_clear_ipi(unsigned int cpu, int irq);
 
 struct sm_msg {
-	sm_uint16_t dst_ep;
-	sm_uint16_t src_ep;
-	sm_uint32_t type;
-	sm_address_t payload;
-	sm_uint32_t length ;
+	uint16_t dst_ep;
+	uint16_t src_ep;
+	uint32_t type;
+	uint32_t payload;
+	uint32_t length ;
 };
 
 struct sm_message {
 	struct list_head next;
-	sm_uint16_t dst;
-	sm_uint16_t src;
+	uint16_t dst;
+	uint16_t src;
 	struct sm_msg msg;
-	sm_uint32_t flags;
+	uint32_t flags;
 };
 
 #define SM_MSGQ_LEN 16
 
 /* Simple FIFO buffer */
 struct sm_message_queue {
-	sm_atomic_t sent;
-	sm_atomic_t received; /* head of the queue */
+	uint16_t sent;
+	uint16_t received; /* head of the queue */
 	struct sm_msg messages[SM_MSGQ_LEN];
 } __attribute__((__aligned__(256)));
 
 struct sm_session {
 	struct list_head rx_messages; /*rx queue sm message*/
 	struct list_head tx_messages;
-	sm_uint32_t	n_avail;
-	sm_uint32_t	n_uncompleted;
-	sm_uint32_t	local_ep;
-	sm_uint32_t	remote_ep; /*remote ep*/
-	sm_uint32_t	type;
+	uint32_t	n_avail;
+	uint32_t	n_uncompleted;
+	uint32_t	local_ep;
+	uint32_t	remote_ep; /*remote ep*/
+	uint32_t	type;
 	pid_t		pid;
-	sm_uint32_t	flags;
+	uint32_t	flags;
 	int (*handle)(struct sm_message *msg, struct sm_session *session);
 	struct sm_proto *proto_ops;
 	wait_queue_head_t rx_wait;
@@ -173,7 +173,7 @@ struct sm_session_table {
 	uint32_t session_mask;
 	uint32_t session_pending;
 	uint32_t	bits[(MAX_ENDPOINTS - 1) / BITS_PER_LONG + 1];
-	sm_uint16_t	refcnt;
+	uint16_t	refcnt;
 	struct sm_session sessions[MAX_ENDPOINTS];
 };
 

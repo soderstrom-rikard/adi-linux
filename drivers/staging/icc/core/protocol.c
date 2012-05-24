@@ -1,5 +1,4 @@
-/* Multicore communication on a BF561
- *
+/* Multicore communication on dual-core Blackfin processor
  * Copyright 2004-2009 Analog Devices Inc.
  * Licensed under the GPL-2 or later.
  */
@@ -78,8 +77,8 @@ static int init_sm_session_table(void)
 static int sm_message_enqueue(int dstcpu, int srccpu, struct sm_msg *msg)
 {
 	struct sm_message_queue *outqueue = &icc_info->icc_queue[dstcpu];
-	sm_atomic_t sent = sm_atomic_read(&outqueue->sent);
-	sm_atomic_t received = sm_atomic_read(&outqueue->received);
+	uint16_t sent = sm_atomic_read(&outqueue->sent);
+	uint16_t received = sm_atomic_read(&outqueue->received);
 	if ((sent - received) >= (SM_MSGQ_LEN - 1)) {
 		sm_debug("over run\n");
 		return -EAGAIN;
@@ -95,7 +94,7 @@ static int sm_message_enqueue(int dstcpu, int srccpu, struct sm_msg *msg)
 static int sm_message_dequeue(int srccpu, struct sm_msg *msg)
 {
 	struct sm_message_queue *inqueue = &icc_info->icc_queue[srccpu];
-	sm_atomic_t received;
+	uint16_t received;
 	memset(msg, 0, sizeof(struct sm_msg));
 	received = sm_atomic_read(&inqueue->received);
 	received++;
@@ -103,7 +102,7 @@ static int sm_message_dequeue(int srccpu, struct sm_msg *msg)
 	return 0;
 }
 
-static sm_uint32_t sm_alloc_session(struct sm_session_table *table)
+static uint32_t sm_alloc_session(struct sm_session_table *table)
 {
 	unsigned long index;
 	sm_debug("table bits1 %08x\n", table->bits[0]);
@@ -118,7 +117,7 @@ static sm_uint32_t sm_alloc_session(struct sm_session_table *table)
 	return index;
 }
 
-static int sm_free_session(sm_uint32_t slot, struct sm_session_table *table)
+static int sm_free_session(uint32_t slot, struct sm_session_table *table)
 {
 	if (test_bit((int)slot, (unsigned long *)table->bits)) {
 		memset(&table->sessions[slot], 0, sizeof(struct sm_session));
@@ -130,7 +129,7 @@ static int sm_free_session(sm_uint32_t slot, struct sm_session_table *table)
 }
 
 static int
-sm_find_session(sm_uint32_t local_ep, sm_uint32_t remote_ep,
+sm_find_session(uint32_t local_ep, uint32_t remote_ep,
 			struct sm_session_table *table)
 {
 	unsigned long index;
@@ -195,7 +194,7 @@ static struct sm_session *sm_index_to_session(uint32_t session_idx)
 	return session;
 }
 
-static sm_uint32_t sm_session_to_index(struct sm_session *session)
+static uint32_t sm_session_to_index(struct sm_session *session)
 {
 	struct sm_session_table *table = icc_info->sessions_table;
 	if ((session >= &table->sessions[0])
@@ -205,12 +204,12 @@ static sm_uint32_t sm_session_to_index(struct sm_session *session)
 	return -EINVAL;
 }
 
-static int iccqueue_getpending(sm_uint32_t srccpu)
+static int iccqueue_getpending(uint32_t srccpu)
 {
 	struct sm_message_queue *inqueue = &icc_info->icc_queue[srccpu];
-	sm_atomic_t sent = sm_atomic_read(&inqueue->sent);
-	sm_atomic_t received = sm_atomic_read(&inqueue->received);
-	sm_atomic_t pending;
+	uint16_t sent = sm_atomic_read(&inqueue->sent);
+	uint16_t received = sm_atomic_read(&inqueue->received);
+	uint16_t pending;
 /*	printk("sm msgq sent=%d received=%d\n", sent, received); */
 	pending = sent - received;
 	if (pending < 0)
@@ -232,9 +231,9 @@ static int sm_send_message_internal(struct sm_msg *msg, int dst_cpu,
 
 
 int
-sm_send_control_msg(struct sm_session *session, sm_uint32_t remote_ep,
-			sm_uint32_t dst_cpu, sm_uint32_t payload,
-			sm_uint32_t len, sm_uint32_t type)
+sm_send_control_msg(struct sm_session *session, uint32_t remote_ep,
+			uint32_t dst_cpu, uint32_t payload,
+			uint32_t len, uint32_t type)
 {
 	struct sm_msg *m;
 	int ret = 0;
@@ -260,52 +259,52 @@ sm_send_control_msg(struct sm_session *session, sm_uint32_t remote_ep,
 }
 
 
-int sm_send_packet_ack(struct sm_session *session, sm_uint32_t remote_ep,
-		sm_uint32_t dst_cpu, sm_uint32_t payload, sm_uint32_t len)
+int sm_send_packet_ack(struct sm_session *session, uint32_t remote_ep,
+		uint32_t dst_cpu, uint32_t payload, uint32_t len)
 {
 	return sm_send_control_msg(session, remote_ep, dst_cpu, payload,
 					len, SM_PACKET_CONSUMED);
 }
 
 int
-sm_send_session_packet_ack(struct sm_session *session, sm_uint32_t remote_ep,
-		sm_uint32_t dst_cpu, sm_uint32_t payload, sm_uint32_t len)
+sm_send_session_packet_ack(struct sm_session *session, uint32_t remote_ep,
+		uint32_t dst_cpu, uint32_t payload, uint32_t len)
 {
 	return sm_send_control_msg(session, remote_ep, dst_cpu, payload,
 					len, SM_SESSION_PACKET_CONSUMED);
 }
 
-int sm_send_scalar_cmd(struct sm_session *session, sm_uint32_t remote_ep,
-		sm_uint32_t dst_cpu, sm_uint32_t payload, sm_uint32_t len)
+int sm_send_scalar_cmd(struct sm_session *session, uint32_t remote_ep,
+		uint32_t dst_cpu, uint32_t payload, uint32_t len)
 {
 	return sm_send_control_msg(session, remote_ep, dst_cpu, payload,
 					len, SM_SCALAR_READY_64);
 }
 
-int sm_send_scalar_ack(struct sm_session *session, sm_uint32_t remote_ep,
-		sm_uint32_t dst_cpu, sm_uint32_t payload, sm_uint32_t len)
+int sm_send_scalar_ack(struct sm_session *session, uint32_t remote_ep,
+		uint32_t dst_cpu, uint32_t payload, uint32_t len)
 {
 	return sm_send_control_msg(session, remote_ep, dst_cpu, payload,
 					len, SM_SCALAR_CONSUMED);
 }
 
 int
-sm_send_session_scalar_ack(struct sm_session *session, sm_uint32_t remote_ep,
-		sm_uint32_t dst_cpu, sm_uint32_t payload, sm_uint32_t len)
+sm_send_session_scalar_ack(struct sm_session *session, uint32_t remote_ep,
+		uint32_t dst_cpu, uint32_t payload, uint32_t len)
 {
 	return sm_send_control_msg(session, remote_ep, dst_cpu, payload,
 					len, SM_SESSION_SCALAR_CONSUMED);
 }
 
-int sm_send_connect(struct sm_session *session, sm_uint32_t remote_ep,
-			sm_uint32_t dst_cpu, sm_uint32_t type)
+int sm_send_connect(struct sm_session *session, uint32_t remote_ep,
+			uint32_t dst_cpu, uint32_t type)
 {
 	return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
 					0, type);
 }
 
-int sm_send_connect_ack(struct sm_session *session, sm_uint32_t remote_ep,
-			sm_uint32_t dst_cpu)
+int sm_send_connect_ack(struct sm_session *session, uint32_t remote_ep,
+			uint32_t dst_cpu)
 {
 	if (session->type == SP_SESSION_PACKET)
 		return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
@@ -317,8 +316,8 @@ int sm_send_connect_ack(struct sm_session *session, sm_uint32_t remote_ep,
 		return -EINVAL;
 }
 
-int sm_send_connect_done(struct sm_session *session, sm_uint32_t remote_ep,
-			sm_uint32_t dst_cpu)
+int sm_send_connect_done(struct sm_session *session, uint32_t remote_ep,
+			uint32_t dst_cpu)
 {
 	if (session->type == SP_SESSION_PACKET)
 		return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
@@ -330,29 +329,29 @@ int sm_send_connect_done(struct sm_session *session, sm_uint32_t remote_ep,
 		return -EINVAL;
 }
 
-int sm_send_session_active(struct sm_session *session, sm_uint32_t remote_ep,
-			sm_uint32_t dst_cpu)
+int sm_send_session_active(struct sm_session *session, uint32_t remote_ep,
+			uint32_t dst_cpu)
 {
 	return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
 					0, SM_SESSION_PACKET_ACTIVE);
 }
 
-int sm_send_session_active_ack(struct sm_session *session, sm_uint32_t remote_ep,
-			sm_uint32_t dst_cpu)
+int sm_send_session_active_ack(struct sm_session *session, uint32_t remote_ep,
+			uint32_t dst_cpu)
 {
 	return sm_send_control_msg(session, remote_ep, dst_cpu, SM_OPEN,
 					0, SM_SESSION_PACKET_ACTIVE_ACK);
 }
 
-int sm_send_session_active_noack(struct sm_session *session, sm_uint32_t remote_ep,
-			sm_uint32_t dst_cpu)
+int sm_send_session_active_noack(struct sm_session *session, uint32_t remote_ep,
+			uint32_t dst_cpu)
 {
 	return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
 					0, SM_SESSION_PACKET_ACTIVE_ACK);
 }
 
-int sm_send_close(struct sm_session *session, sm_uint32_t remote_ep,
-			sm_uint32_t dst_cpu)
+int sm_send_close(struct sm_session *session, uint32_t remote_ep,
+			uint32_t dst_cpu)
 {
 	if (session->type == SP_SESSION_PACKET)
 		return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
@@ -364,8 +363,8 @@ int sm_send_close(struct sm_session *session, sm_uint32_t remote_ep,
 		return -EINVAL;
 }
 
-int sm_send_close_ack(struct sm_session *session, sm_uint32_t remote_ep,
-			sm_uint32_t dst_cpu)
+int sm_send_close_ack(struct sm_session *session, uint32_t remote_ep,
+			uint32_t dst_cpu)
 {
 	if (session->type == SP_SESSION_PACKET)
 		return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
@@ -377,8 +376,8 @@ int sm_send_close_ack(struct sm_session *session, sm_uint32_t remote_ep,
 		return -EINVAL;
 }
 
-int sm_send_error(struct sm_session *session, sm_uint32_t remote_ep,
-			sm_uint32_t dst_cpu)
+int sm_send_error(struct sm_session *session, uint32_t remote_ep,
+			uint32_t dst_cpu)
 {
 	return sm_send_control_msg(session, remote_ep, dst_cpu, 0,
 					0, SM_PACKET_ERROR);
@@ -473,7 +472,7 @@ sm_send_packet(uint32_t session_idx, uint32_t dst_ep, uint32_t dst_cpu,
 		}
 		sm_debug("alloc buffer %x\n", (uint32_t)payload_buf);
 
-		m->msg.payload = (sm_address_t)payload_buf;
+		m->msg.payload = (uint32_t)payload_buf;
 
 		if (copy_from_user((void *)m->msg.payload, buf, m->msg.length)) {
 			ret = -EFAULT;
@@ -664,7 +663,8 @@ sm_wait_for_connect_ack(struct sm_session *session)
 		return -EAGAIN;
 }
 
-static int sm_get_remote_session_active(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu)
+static int sm_get_remote_session_active(uint32_t session_idx,
+		uint32_t dst_ep, uint32_t dst_cpu)
 {
 	struct sm_session *session;
 	session = sm_index_to_session(session_idx);
@@ -682,7 +682,8 @@ static int sm_get_remote_session_active(sm_uint32_t session_idx, sm_uint32_t dst
 	return -EAGAIN;
 }
 
-static int sm_connect_session(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_uint32_t dst_cpu, sm_uint32_t type)
+static int sm_connect_session(uint32_t session_idx, uint32_t dst_ep,
+		uint32_t dst_cpu, uint32_t type)
 {
 	struct sm_session *session;
 	uint32_t msg_type;
@@ -708,10 +709,10 @@ static int sm_connect_session(sm_uint32_t session_idx, sm_uint32_t dst_ep, sm_ui
 	return 0;
 }
 
-static int sm_disconnect_session(sm_uint32_t dst_ep, sm_uint32_t src_ep,
+static int sm_disconnect_session(uint32_t dst_ep, uint32_t src_ep,
 					struct sm_session_table *table)
 {
-	sm_uint32_t slot = sm_find_session(src_ep, 0, table);
+	uint32_t slot = sm_find_session(src_ep, 0, table);
 	if (slot < 0)
 		return -EINVAL;
 
@@ -719,7 +720,7 @@ static int sm_disconnect_session(sm_uint32_t dst_ep, sm_uint32_t src_ep,
 	table->sessions[slot].flags = 0;
 }
 
-static int sm_open_session(sm_uint32_t index)
+static int sm_open_session(uint32_t index)
 {
 	struct sm_session *session;
 	session = sm_index_to_session(index);
@@ -732,7 +733,7 @@ static int sm_open_session(sm_uint32_t index)
 	return -EINVAL;
 }
 
-static int sm_close_session(sm_uint32_t index)
+static int sm_close_session(uint32_t index)
 {
 	struct sm_session *session;
 	session = sm_index_to_session(index);
@@ -745,7 +746,7 @@ static int sm_close_session(sm_uint32_t index)
 	return -EINVAL;
 }
 
-static int sm_destroy_session(sm_uint32_t session_idx)
+static int sm_destroy_session(uint32_t session_idx)
 {
 	struct sm_message *message;
 	struct sm_msg *msg;
@@ -1323,7 +1324,7 @@ struct sm_proto session_scalar_proto = {
 void msg_handle(int cpu)
 {
 	struct sm_message_queue *inqueue = &icc_info->icc_queue[cpu];
-	sm_atomic_t received = sm_atomic_read(&inqueue->received);
+	uint16_t received = sm_atomic_read(&inqueue->received);
 	struct sm_msg *msg;
 	struct sm_session *session;
 	int index;
@@ -1417,7 +1418,7 @@ icc_write_proc(struct file *file, const char __user * buffer,
 	return count;
 }
 
-static int __init bf561_icc_test_init(void)
+static int __init bfin_icc_test_init(void)
 {
 	int ret = 0;
 
@@ -1439,12 +1440,12 @@ static int __init bf561_icc_test_init(void)
 	icc_dump->write_proc = icc_write_proc;
 	return misc_register(&icc_dev);
 }
-module_init(bf561_icc_test_init);
+module_init(bfin_icc_test_init);
 
-static void __exit bf561_icc_test_exit(void)
+static void __exit bfin_icc_test_exit(void)
 {
 	misc_deregister(&icc_dev);
 }
-module_exit(bf561_icc_test_exit);
+module_exit(bfin_icc_test_exit);
 
-MODULE_DESCRIPTION("BF561 ICC"); MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("BFIN ICC"); MODULE_LICENSE("GPL");

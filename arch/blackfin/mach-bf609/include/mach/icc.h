@@ -11,17 +11,12 @@
 #define sm_atomic_read(v) bfin_read16(v)
 #define sm_atomic_write(v, i) bfin_write16(v, i)
 
-typedef unsigned char sm_unit_t;
-typedef unsigned short sm_uint16_t;
-typedef unsigned long sm_uint32_t;
-typedef sm_uint32_t sm_address_t;
-typedef sm_uint16_t sm_atomic_t;
-#define MSGQ_START_ADDR		0xFEB18000
+#define MSGQ_START_ADDR		(L2_START + 0x10000)
 #define MSGQ_SIZE		0x4000
-#define DEBUG_MSG_BUF_ADDR	0xFEB1F000
+#define DEBUG_MSG_BUF_ADDR	(MSGQ_START_ADDR + MSGQ_SIZE + 0x1000)
 
-#define COREB_TASK_START	0x3C00000
-#define COREB_MEMPOOL_START	0x3D00000
+#define COREB_TASK_START	0x7C00000
+#define COREB_MEMPOOL_START	0x7D00000
 
 #define ICC_LOW_SEND		IRQ_SOFT1
 #define ICC_LOW_RECV		IRQ_SOFT0

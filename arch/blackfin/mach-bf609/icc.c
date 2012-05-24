@@ -3,6 +3,7 @@
 #include <linux/interrupt.h>
 #include <linux/delay.h>
 #include <asm/icc.h>
+#include <mach/pm.h>
 #include <asm/pm.h>
 
 char icc_low_name[] = "icc low irq";

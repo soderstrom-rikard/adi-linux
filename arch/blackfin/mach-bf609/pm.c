@@ -401,14 +401,6 @@ static int __init bf609_init_pm(void)
 	if (error < 0)
 		printk(KERN_DEBUG "Unable to get irq\n");
 
-	error = request_irq(IRQ_SOFT0, soft_isr, IRQF_NO_SUSPEND, "software event", NULL);
-	if (error < 0)
-		printk(KERN_DEBUG "Unable to get irq\n");
-
-	error = request_irq(IRQ_SOFT1, soft_isr, IRQF_NO_SUSPEND, "software event", NULL);
-	if (error < 0)
-		printk(KERN_DEBUG "Unable to get irq\n");
-
 	bfin_cpu_pm = &bf609_cpu_pm;
 	return 0;
 }
