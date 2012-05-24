@@ -211,17 +211,6 @@ void __init bfin_relocate_l1_mem(void)
 
 #if  defined(CONFIG_BFIN_COREB) && defined(CONFIG_BF60x)
 	coreb_enable();
-
-	if (L1_CODE_LENGTH && text_l1_len)
-		early_dma_memcpy((void *)COREB_L1_CODE_START, _text_l1_lma,
-				text_l1_len);
-
-	bfin_write32(RCU0_CRCTL, 0x2);
-
-	while (!(bfin_read32(RCU0_CRSTAT) & 0x2))
-		continue;
-
-	bfin_write32(RCU0_CRCTL, 0);
 #endif
 
 	/* if necessary, copy L1 text to L1 instruction SRAM */
