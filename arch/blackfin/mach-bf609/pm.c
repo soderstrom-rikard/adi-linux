@@ -133,35 +133,6 @@ void bfin_cpu_suspend(void)
 }
 
 __attribute__((l1_text))
-void bfin_deepsleep(unsigned long mask)
-{
-	uint32_t dpm0_ctl;
-
-	bfin_write32(DPM0_WAKE_EN, 0x10);
-	bfin_write32(DPM0_WAKE_POL, 0x10);
-	dpm0_ctl = 0x00000008;
-	bfin_write32(DPM0_CTL, dpm0_ctl);
-	SSYNC();
-	__asm__ __volatile__( \
-			".align 8;" \
-			"idle;" \
-			: : \
-			);
-#ifdef CONFIG_BFIN_PM_WAKEUP_TIME_BENCH
-	__asm__ __volatile__(
-		"R0 = 0;"
-		"CYCLES = R0;"
-		"CYCLES2 = R0;"
-		"R0 = SYSCFG;"
-		"BITSET(R0, 1);"
-		"SYSCFG = R0;"
-		: : : "R0"
-	);
-#endif
-
-}
-
-__attribute__((l1_text))
 void bf609_ddr_sr(void)
 {
 	uint32_t reg;
@@ -177,16 +148,41 @@ void bf609_ddr_sr(void)
 __attribute__((l1_text))
 void bf609_ddr_sr_exit(void)
 {
-	uint32_t reg;
-	while (!(bfin_read_DMC0_STAT() & 0x1))
-		continue;
+	int dlldatacycle;
+	int dll_ctl;
 
-	reg = bfin_read_DMC0_CTL();
-	reg &= ~0x8;
-	bfin_write_DMC0_CTL(reg);
+	/* 250  Mhz */
+	bfin_write_DDR0_CFG(0x00000422);
+	bfin_write_DDR0_TR0(0x20E0A424);
+	bfin_write_DDR0_TR1(0x3020079E);
+	bfin_write_DDR0_TR2(0x0032020D);
+	bfin_write_DDR0_MR(0x00000842);
+	bfin_write_DDR0_EMR1(0x4);
+	bfin_write_DDR0_CTL(0x00000904);
+	while (!(bfin_read_DDR0_STAT() & 0x4))
+		continue;
+	dlldatacycle = (bfin_read_DDR0_STAT() & 0x00f00000) >> 20;
+	dll_ctl = bfin_read_DDR0_DLLCTL();
+	dll_ctl &= 0x0ff;
+	bfin_write_DDR0_DLLCTL(dll_ctl | (dlldatacycle << 8));
+
+	while (!(bfin_read_DDR0_STAT() & 0x2000))
+		continue;
 
 	while ((bfin_read_DMC0_STAT() & 0x8))
 		continue;
+	while (!(bfin_read_DDR0_STAT() & 0x1))
+		continue;
+
+}
+
+__attribute__((l1_text))
+void bf609_resume_ccbuf(void)
+{
+	bfin_write32(DPM0_CCBF_EN, 3);
+	bfin_write32(DPM0_CTL, 2);
+
+	while ((bfin_read32(DPM0_STAT) & 0xf) != 1);
 }
 
 __attribute__((l1_text))
@@ -205,6 +201,16 @@ void bfin_hibernate_syscontrol(void)
 }
 
 # define IRQ_SID(irq)	((irq) - IVG15)
+asmlinkage void enter_deepsleep(void);
+
+__attribute__((l1_text))
+void bfin_deepsleep(unsigned long mask)
+{
+	bfin_write32(DPM0_WAKE_EN, 0x10);
+	bfin_write32(DPM0_WAKE_POL, 0x10);
+	SSYNC();
+	enter_deepsleep();
+}
 
 void bfin_hibernate(unsigned long mask)
 {
@@ -329,12 +335,13 @@ static irqreturn_t dpm0_isr(int irq, void *dev_id)
 	uint32_t wake_stat;
 
 	wake_stat = bfin_read32(DPM0_WAKE_STAT);
-	printk(KERN_DEBUG "enter %s wake stat %08x\n", __func__, wake_stat);
+//	printk(KERN_DEBUG "enter %s wake stat %08x\n", __func__, wake_stat);
 
 	bfin_write32(DPM0_WAKE_STAT, wake_stat);
 	return IRQ_HANDLED;
 }
 
+#ifdef CONFIG_BFIN_COREB
 void core1_evt_handle(void)
 {
 	unsigned int sid = bfin_read_SEC_SCI(1, SEC_CSID);
@@ -374,13 +381,14 @@ void coreb_start(void)
 		}
 	}
 }
+#endif
 
 static int __init bf609_init_pm(void)
 {
 	int irq;
 	int error;
 
-#if CONFIG_PM_BFIN_WAKE_PE12
+#ifdef CONFIG_PM_BFIN_WAKE_PE12
 	irq = gpio_to_irq(GPIO_PE12);
 	if (irq < 0) {
 		error = irq;
