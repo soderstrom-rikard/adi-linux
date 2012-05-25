@@ -33,7 +33,7 @@
 #include <asm/dma.h>
 #include <asm/portmux.h>
 
-#define bfin_crypto_crc_QUEUE_LENGTH	1
+#define CRC_CCRYPTO_QUEUE_LENGTH	5
 
 #define DRIVER_NAME "bfin-hmac-crc"
 #define CHKSUM_DIGEST_SIZE      4
@@ -197,18 +197,24 @@ static void bfin_crypto_crc_config_dma(struct bfin_crypto_crc *crc)
 	for_each_sg(ctx->sg, sg, ctx->sg_nents, j) {
 		dma_config = DMAFLOW_ARRAY | RESTART | NDSIZE_3 | DMAEN | PSIZE_32;
 		dma_addr = sg_dma_address(sg);
+		/* deduce extra bytes in last sg */
 		if (sg_is_last(sg))
 			dma_count = sg_dma_len(sg) - ctx->bufnext_len;
 		else
 			dma_count = sg_dma_len(sg);
 
 		if (mid_dma_count) {
+			/* Append last middle dma buffer to 4 bytes with first
+			   bytes in current sg buffer. Move addr of current
+			   sg and deduce the length of current sg.
+			 */
 			memcpy(crc->sg_mid_buf +((i-1) << 2) + mid_dma_count,
 				(void *)dma_addr,
 				CHKSUM_DIGEST_SIZE - mid_dma_count);
 			dma_addr += CHKSUM_DIGEST_SIZE - mid_dma_count;
 			dma_count -= CHKSUM_DIGEST_SIZE - mid_dma_count;
 		}
+		/* chop current sg dma len to multiply of 32 bits */
 		mid_dma_count = dma_count % 4;
 		dma_count = (dma_count >> 2) << 2;
 
@@ -237,11 +243,13 @@ static void bfin_crypto_crc_config_dma(struct bfin_crypto_crc *crc)
 		i++;
 
 		if (mid_dma_count) {
+			/* copy extra bytes to next middle dma buffer */
 			dma_config = DMAFLOW_ARRAY | RESTART | NDSIZE_3 |
 				DMAEN | PSIZE_32 | WDSIZE_32;
 			memcpy(crc->sg_mid_buf + (i << 2),
 				(void *)(dma_addr + (dma_count << 2)),
 				mid_dma_count);
+			/* setup new dma descriptor for next middle dma */
 			crc->sg_cpu[i].start_addr = dma_map_single(crc->dev,
 					crc->sg_mid_buf + (i << 2),
 					CHKSUM_DIGEST_SIZE, DMA_TO_DEVICE);
@@ -607,7 +615,7 @@ static int __devinit bfin_crypto_crc_probe(struct platform_device *pdev)
 	INIT_LIST_HEAD(&crc->list);
 	spin_lock_init(&crc->lock);
 	tasklet_init(&crc->done_task, bfin_crypto_crc_done_task, (unsigned long)crc);
-	crypto_init_queue(&crc->queue, bfin_crypto_crc_QUEUE_LENGTH);
+	crypto_init_queue(&crc->queue, CRC_CCRYPTO_QUEUE_LENGTH);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
