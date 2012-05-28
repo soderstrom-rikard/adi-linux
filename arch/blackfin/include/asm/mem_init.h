@@ -279,6 +279,52 @@
 #endif
 
 #ifdef CONFIG_BF60x
+
+/* DMC status bits */
+#define IDLE			0x1
+#define MEMINITDONE		0x2
+#define SRACK			0x8
+#define PDACK			0x10
+#define DPDACK			0x20
+#define DLLCALDONE		0x2000
+#define PENDREF			0xF0000
+#define PHYRDPHASE		0xF00000
+#define PHYRDPHASE_OFFSET	20
+
+/* DMC control bits */
+#define LPDDR			0x2
+#define INIT			0x4
+#define	SRREQ			0x8
+#define PDREQ			0x10
+#define DPDREQ			0x20
+#define PREC			0x40
+#define ADDRMODE		0x100
+#define RDTOWR			0xE00
+#define PPREF			0x1000
+#define DLLCAL			0x2000
+
+/* DMC DLL control bits */
+#define DLLCALRDCNT		0xFF
+#define DATACYC			0xF00
+#define DATACYC_OFFSET		8
+
+/* CGU Divisor bits */
+#define CSEL_OFFSET		0
+#define S0SEL_OFFSET		5
+#define SYSSEL_OFFSET		8
+#define S1SEL_OFFSET		13
+#define DSEL_OFFSET		16
+#define OSEL_OFFSET		22
+#define ALGN			0x20000000
+#define UPDT			0x40000000
+#define LOCK			0x80000000
+
+/* CGU Status bits */
+#define PLLEN			0x1
+#define PLLBP			0x2
+#define PLOCK			0x4
+#define CLKSALGN		0x8
+
 #define CGU_CTL_VAL ((CONFIG_VCO_MULT << 8) | CLKIN_HALF)
 #define CGU_DIV_VAL \
 	((CONFIG_CCLK_DIV   << CSEL_OFFSET)   | \
