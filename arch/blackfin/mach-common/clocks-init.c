@@ -39,16 +39,19 @@ void init_clocks(void)
 			continue;
 	}
 
-	bfin_write32(CGU0_DIV, CGU_DIV_VAL);
-	bfin_write32(CGU0_CTL, CGU_CTL_VAL);
-	while ((bfin_read32(CGU0_STAT) & (CLKSALGN | PLLBP)) ||
-		!(bfin_read32(CGU0_STAT) & PLOCK))
-		continue;
+	/* Don't set the same value of MSEL and DF to CGU_CTL */
+	if ((bfin_read32(CGU0_CTL) & (VCO_MULT_MASK | CLKIN_HALF))
+		!= CGU_CTL_VAL) {
+		bfin_write32(CGU0_DIV, CGU_DIV_VAL);
+		bfin_write32(CGU0_CTL, CGU_CTL_VAL);
+		while ((bfin_read32(CGU0_STAT) & (CLKSALGN | PLLBP)) ||
+			!(bfin_read32(CGU0_STAT) & PLOCK))
+			continue;
+	}
 
-	bfin_write32(CGU0_DIV, CGU_DIV_VAL | UPDT);
+	bfin_write32(CGU0_DIV, bfin_read32(CGU0_DIV) | UPDT);
 	while (bfin_read32(CGU0_STAT) & CLKSALGN)
 		continue;
-
 
 	if (bfin_read_DMC0_STAT() & MEMINITDONE) {
 		bfin_write_DMC0_CTL(bfin_read_DMC0_CTL() & ~SRREQ);

@@ -325,6 +325,9 @@
 #define PLOCK			0x4
 #define CLKSALGN		0x8
 
+/* CGU Control bits */
+#define VCO_MULT_MASK		0x7F00
+
 #define CGU_CTL_VAL ((CONFIG_VCO_MULT << 8) | CLKIN_HALF)
 #define CGU_DIV_VAL \
 	((CONFIG_CCLK_DIV   << CSEL_OFFSET)   | \
