@@ -355,6 +355,7 @@ struct ddr_config {
 	u32 dmc_ddrmr1;
 };
 
+#if defined(CONFIG_MEM_MT47H64M16)
 struct ddr_config ddr_config_table[] __attribute__((section(".data_l1"))) = {
 	[0] = {
 		.ddr_clk    = 125,
@@ -427,6 +428,7 @@ struct ddr_config ddr_config_table[] __attribute__((section(".data_l1"))) = {
 		.dmc_ddrmr1 = 0x4,
 	},
 };
+#endif
 #else
 #define SDGCTL_WIDTH (1 << 31)	/* SDRAM external data path width */
 #define PLL_CTL_VAL \
