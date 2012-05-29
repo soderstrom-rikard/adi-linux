@@ -282,7 +282,7 @@
 
 /* DMC status bits */
 #define IDLE			0x1
-#define MEMINITDONE		0x2
+#define MEMINITDONE		0x4
 #define SRACK			0x8
 #define PDACK			0x10
 #define DPDACK			0x20
