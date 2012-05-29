@@ -40,7 +40,7 @@ void init_clocks(void)
 	}
 
 	/* Don't set the same value of MSEL and DF to CGU_CTL */
-	if ((bfin_read32(CGU0_CTL) & (VCO_MULT_MASK | CLKIN_HALF))
+	if ((bfin_read32(CGU0_CTL) & (MSEL_MASK | DF_MASK))
 		!= CGU_CTL_VAL) {
 		bfin_write32(CGU0_DIV, CGU_DIV_VAL);
 		bfin_write32(CGU0_CTL, CGU_CTL_VAL);
