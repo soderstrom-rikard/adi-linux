@@ -49,7 +49,7 @@ void init_clocks(void)
 			continue;
 	}
 
-	bfin_write32(CGU0_DIV, bfin_read32(CGU0_DIV) | UPDT);
+	bfin_write32(CGU0_DIV, CGU_DIV_VAL | UPDT);
 	while (bfin_read32(CGU0_STAT) & CLKSALGN)
 		continue;
 
