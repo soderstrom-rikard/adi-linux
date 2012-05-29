@@ -62,13 +62,13 @@ void init_clocks(void)
 
 	for (i = 0; i < 7; i++) {
 		if (ddr_config_table[i].ddr_clk == CONFIG_BFIN_DCLK) {
-			bfin_write_DDR0_CFG(ddr_config_table[i].dmc_ddrcfg);
-			bfin_write_DDR0_TR0(ddr_config_table[i].dmc_ddrtr0);
-			bfin_write_DDR0_TR1(ddr_config_table[i].dmc_ddrtr1);
-			bfin_write_DDR0_TR2(ddr_config_table[i].dmc_ddrtr2);
-			bfin_write_DDR0_MR(ddr_config_table[i].dmc_ddrmr);
-			bfin_write_DDR0_EMR1(ddr_config_table[i].dmc_ddrmr1);
-			bfin_write_DDR0_CTL(ddr_config_table[i].dmc_ddrctl);
+			bfin_write_DMC0_CFG(ddr_config_table[i].dmc_ddrcfg);
+			bfin_write_DMC0_TR0(ddr_config_table[i].dmc_ddrtr0);
+			bfin_write_DMC0_TR1(ddr_config_table[i].dmc_ddrtr1);
+			bfin_write_DMC0_TR2(ddr_config_table[i].dmc_ddrtr2);
+			bfin_write_DMC0_MR(ddr_config_table[i].dmc_ddrmr);
+			bfin_write_DMC0_EMR1(ddr_config_table[i].dmc_ddrmr1);
+			bfin_write_DMC0_CTL(ddr_config_table[i].dmc_ddrctl);
 			break;
 		}
 	}
@@ -78,7 +78,7 @@ void init_clocks(void)
 		continue;
 
 	dlldatacycle = (bfin_read_DMC0_STAT() & PHYRDPHASE) >> PHYRDPHASE_OFFSET;
-	dll_ctl = bfin_read_DDR0_DLLCTL();
+	dll_ctl = bfin_read_DMC0_DLLCTL();
 	dll_ctl &= ~DATACYC;
 	bfin_write_DMC0_DLLCTL(dll_ctl | (dlldatacycle << DATACYC_OFFSET));
 
