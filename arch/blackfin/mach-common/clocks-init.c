@@ -15,6 +15,31 @@
 #include <asm/mem_init.h>
 #include <asm/dpmc.h>
 
+#ifdef CONFIG_BF60x
+
+#define CGU_CTL_VAL ((CONFIG_VCO_MULT << 8) | CLKIN_HALF)
+#define CGU_DIV_VAL \
+	((CONFIG_CCLK_DIV   << CSEL_OFFSET)   | \
+	(CONFIG_SCLK_DIV << SYSSEL_OFFSET)   | \
+	(CONFIG_SCLK0_DIV  << S0SEL_OFFSET)  | \
+	(CONFIG_SCLK1_DIV  << S1SEL_OFFSET)  | \
+	(CONFIG_DCLK_DIV   << DSEL_OFFSET))
+
+#define CONFIG_BFIN_DCLK (((CONFIG_CLKIN_HZ * CONFIG_VCO_MULT) / CONFIG_DCLK_DIV) / 1000000)
+#if ((CONFIG_BFIN_DCLK != 125) && \
+	(CONFIG_BFIN_DCLK != 133) && (CONFIG_BFIN_DCLK != 150) && \
+	(CONFIG_BFIN_DCLK != 166) && (CONFIG_BFIN_DCLK != 200) && \
+	(CONFIG_BFIN_DCLK != 225) && (CONFIG_BFIN_DCLK != 250))
+#error "DCLK must be in (125, 133, 150, 166, 200, 225, 250)MHz"
+#endif
+
+#else
+#define SDGCTL_WIDTH (1 << 31)	/* SDRAM external data path width */
+#define PLL_CTL_VAL \
+	(((CONFIG_VCO_MULT & 63) << 9) | CLKIN_HALF | \
+		(PLL_BYPASS << 8) | (ANOMALY_05000305 ? 0 : 0x8000))
+#endif
+
 __attribute__((l1_text))
 static void do_sync(void)
 {
@@ -28,63 +53,9 @@ void init_clocks(void)
 	 * in the middle of reprogramming things, and that'll screw us up.
 	 * For example, any automatic DMAs left by U-Boot for splash screens.
 	 */
-
 #ifdef CONFIG_BF60x
-	int i, dlldatacycle, dll_ctl;
-
-	if (bfin_read_DMC0_STAT() & MEMINITDONE) {
-		bfin_write_DMC0_CTL(bfin_read_DMC0_CTL() | SRREQ);
-		do_sync();
-		while (!(bfin_read_DMC0_STAT() & SRACK))
-			continue;
-	}
-
-	/* Don't set the same value of MSEL and DF to CGU_CTL */
-	if ((bfin_read32(CGU0_CTL) & (MSEL_MASK | DF_MASK))
-		!= CGU_CTL_VAL) {
-		bfin_write32(CGU0_DIV, CGU_DIV_VAL);
-		bfin_write32(CGU0_CTL, CGU_CTL_VAL);
-		while ((bfin_read32(CGU0_STAT) & (CLKSALGN | PLLBP)) ||
-			!(bfin_read32(CGU0_STAT) & PLOCK))
-			continue;
-	}
-
-	bfin_write32(CGU0_DIV, CGU_DIV_VAL | UPDT);
-	while (bfin_read32(CGU0_STAT) & CLKSALGN)
-		continue;
-
-	if (bfin_read_DMC0_STAT() & MEMINITDONE) {
-		bfin_write_DMC0_CTL(bfin_read_DMC0_CTL() & ~SRREQ);
-		do_sync();
-		while (bfin_read_DMC0_STAT() & SRACK)
-			continue;
-	}
-
-	for (i = 0; i < 7; i++) {
-		if (ddr_config_table[i].ddr_clk == CONFIG_BFIN_DCLK) {
-			bfin_write_DMC0_CFG(ddr_config_table[i].dmc_ddrcfg);
-			bfin_write_DMC0_TR0(ddr_config_table[i].dmc_ddrtr0);
-			bfin_write_DMC0_TR1(ddr_config_table[i].dmc_ddrtr1);
-			bfin_write_DMC0_TR2(ddr_config_table[i].dmc_ddrtr2);
-			bfin_write_DMC0_MR(ddr_config_table[i].dmc_ddrmr);
-			bfin_write_DMC0_EMR1(ddr_config_table[i].dmc_ddrmr1);
-			bfin_write_DMC0_CTL(ddr_config_table[i].dmc_ddrctl);
-			break;
-		}
-	}
-
-	do_sync();
-	while (!(bfin_read_DMC0_STAT() & MEMINITDONE))
-		continue;
-
-	dlldatacycle = (bfin_read_DMC0_STAT() & PHYRDPHASE) >> PHYRDPHASE_OFFSET;
-	dll_ctl = bfin_read_DMC0_DLLCTL();
-	dll_ctl &= ~DATACYC;
-	bfin_write_DMC0_DLLCTL(dll_ctl | (dlldatacycle << DATACYC_OFFSET));
-
-	do_sync();
-	while (!(bfin_read_DMC0_STAT() & DLLCALDONE))
-		continue;
+	init_cgu(CGU_DIV_VAL, CGU_CTL_VAL);
+	init_dmc(CONFIG_BFIN_DCLK);
 #else
 	size_t i;
 	for (i = 0; i < MAX_DMA_CHANNELS; ++i) {

@@ -18,6 +18,7 @@
 #include <asm/pm.h>
 #include <mach/pm.h>
 #include <asm/blackfin.h>
+#include <asm/mem_init.h>
 
 /***********************************************************/
 /*                                                         */
@@ -135,45 +136,19 @@ void bfin_cpu_suspend(void)
 __attribute__((l1_text))
 void bf609_ddr_sr(void)
 {
-	uint32_t reg;
-
-	reg = bfin_read_DMC0_CTL();
-	reg |= 0x8;
-	bfin_write_DMC0_CTL(reg);
-
-	while (!(bfin_read_DMC0_STAT() & 0x8))
-		continue;
+	dmc_enter_self_refresh();
 }
 
 __attribute__((l1_text))
 void bf609_ddr_sr_exit(void)
 {
-	int dlldatacycle;
-	int dll_ctl;
+	dmc_exit_self_refresh();
 
-	/* 250  Mhz */
-	bfin_write_DDR0_CFG(0x00000422);
-	bfin_write_DDR0_TR0(0x20E0A424);
-	bfin_write_DDR0_TR1(0x3020079E);
-	bfin_write_DDR0_TR2(0x0032020D);
-	bfin_write_DDR0_MR(0x00000842);
-	bfin_write_DDR0_EMR1(0x4);
-	bfin_write_DDR0_CTL(0x00000904);
-	while (!(bfin_read_DDR0_STAT() & 0x4))
+	/* After wake up from deep sleep and exit DDR from self refress mode,
+	 * should wait till CGU PLL is locked.
+	 */
+	while (bfin_read32(CGU0_STAT) & CLKSALGN)
 		continue;
-	dlldatacycle = (bfin_read_DDR0_STAT() & 0x00f00000) >> 20;
-	dll_ctl = bfin_read_DDR0_DLLCTL();
-	dll_ctl &= 0x0ff;
-	bfin_write_DDR0_DLLCTL(dll_ctl | (dlldatacycle << 8));
-
-	while (!(bfin_read_DDR0_STAT() & 0x2000))
-		continue;
-
-	while ((bfin_read_DMC0_STAT() & 0x8))
-		continue;
-	while (!(bfin_read_DDR0_STAT() & 0x1))
-		continue;
-
 }
 
 __attribute__((l1_text))
@@ -298,6 +273,7 @@ void bf609_cpu_pm_enter(suspend_state_t state)
 	else {
 		bfin_hibernate(wakeup);
 	}
+
 }
 
 int bf609_cpu_pm_prepare(void)
@@ -332,12 +308,8 @@ static irqreturn_t soft_isr(int irq, void *dev_id)
 
 static irqreturn_t dpm0_isr(int irq, void *dev_id)
 {
-	uint32_t wake_stat;
-
-	wake_stat = bfin_read32(DPM0_WAKE_STAT);
-//	printk(KERN_DEBUG "enter %s wake stat %08x\n", __func__, wake_stat);
-
-	bfin_write32(DPM0_WAKE_STAT, wake_stat);
+	bfin_write32(DPM0_WAKE_STAT, bfin_read32(DPM0_WAKE_STAT));
+	bfin_write32(CGU0_STAT, bfin_read32(CGU0_STAT));
 	return IRQ_HANDLED;
 }
 

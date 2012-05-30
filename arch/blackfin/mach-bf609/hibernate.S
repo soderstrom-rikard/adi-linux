@@ -2,6 +2,8 @@
 #include <asm/blackfin.h>
 #include <asm/dpmc.h>
 
+#include <asm/context.S>
+
 #define PM_STACK   (COREA_L1_SCRATCH_START + L1_SCRATCH_LENGTH - 12)
 
 .section .l1.text
@@ -32,32 +34,45 @@ ENTRY(_enter_hibernate)
 	SSYNC;
 ENDPROC(_enter_hibernate)
 
-
+/* DPM wake up interrupt won't wake up core on bf60x if its core IMASK
+ * is disabled. This behavior differ from bf5xx serial processor.
+ */
 ENTRY(_dummy_deepsleep)
-	cli r0;
+	[--sp] = SYSCFG;
 	[--sp] = (R7:0,P5:0);
+	cli r0;
+
+	/* get wake up interrupt ID */
 	P0.l = LO(SEC_SCI_BASE + SEC_CSID);
 	P0.h = HI(SEC_SCI_BASE + SEC_CSID);
 	R0 = [P0];
 
+	/* ACK wake up interrupt in SEC */
 	P1.l = LO(SEC_END);
 	P1.h = HI(SEC_END);
 
 	[P1] = R0;
+	SSYNC;
 
+	/* restore EVT 11 entry */
 	p0.h = hi(EVT11);
 	p0.l = lo(EVT11);
 	p1.h = _evt_evt11;
 	p1.l = _evt_evt11;
 
 	[p0] = p1;
+	SSYNC;
 
-	(R7:0,P5:0) = [SP++];
+	(R7:0,P5:0) = [sp++];
+	SYSCFG = [sp++];
 	RTI;
 ENDPROC(_dummy_deepsleep)
 
 ENTRY(_enter_deepsleep)
+	LINK 0x0;
 	[--sp] = (R7:0,P5:0);
+
+	/* Change EVT 11 entry to dummy handler for wake up event */
 	p0.h = hi(EVT11);
 	p0.l = lo(EVT11);
 	p1.h = _dummy_deepsleep;
@@ -68,40 +83,42 @@ ENTRY(_enter_deepsleep)
 	P0.H = HI(PM_STACK);
 	P0.L = LO(PM_STACK);
 
-	i2 = SP;
+	EX_SCRATCH_REG = SP;
 	SP = P0;
 
 	SSYNC;
 
+	/* should put ddr to self refresh mode before sleep */
 	call _bf609_ddr_sr;
 
+	/* Set DPM controller to deep sleep mode */
 	P0.H = HI(DPM0_CTL);
 	P0.L = LO(DPM0_CTL);
 	R3.H = HI(0x00000008);
 	R3.L = LO(0x00000008);
 	[P0] = R3;
-
 	CSYNC;
 
-	r0.l = 0xffff;
+	/* Enable evt 11 in IMASK before idle, otherwise core doesn't wake up. */
+	r0.l = 0x800;
 	r0.h = 0;
 	sti r0;
 	SSYNC;
 
+	/* Fall into deep sleep in idle*/
 	idle;
 	SSYNC;
 
-	R3 = 0;
-1:
-	cc = R3;
-	if !cc jump 1b;
-
+	/* Restore PLL after wake up from deep sleep */
 	call _bf609_resume_ccbuf;
 
+	/* turn ddr out of self refresh mode */
 	call _bf609_ddr_sr_exit;
-	SP = i2;
+
+	SP = EX_SCRATCH_REG;
 
 	(R7:0,P5:0) = [SP++];
+	UNLINK;
 	RTS;
 ENDPROC(_enter_deepsleep)
 

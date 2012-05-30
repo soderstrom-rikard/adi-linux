@@ -6,6 +6,9 @@
  * Licensed under the GPL-2 or later.
  */
 
+#ifndef __MEM_INIT_H__
+#define __MEM_INIT_H__
+
 #if defined(EBIU_SDGCTL)
 #if defined(CONFIG_MEM_MT48LC16M16A2TG_75) || \
     defined(CONFIG_MEM_MT48LC64M4A2FB_7E) || \
@@ -329,21 +332,6 @@
 #define MSEL_MASK		0x7F00
 #define DF_MASK			0x1
 
-#define CGU_CTL_VAL ((CONFIG_VCO_MULT << 8) | CLKIN_HALF)
-#define CGU_DIV_VAL \
-	((CONFIG_CCLK_DIV   << CSEL_OFFSET)   | \
-	(CONFIG_SCLK_DIV << SYSSEL_OFFSET)   | \
-	(CONFIG_SCLK0_DIV  << S0SEL_OFFSET)  | \
-	(CONFIG_SCLK1_DIV  << S1SEL_OFFSET)  | \
-	(CONFIG_DCLK_DIV   << DSEL_OFFSET))
-
-#define CONFIG_BFIN_DCLK (((CONFIG_CLKIN_HZ * CONFIG_VCO_MULT) / CONFIG_DCLK_DIV) / 1000000)
-#if ((CONFIG_BFIN_DCLK != 125) && \
-	(CONFIG_BFIN_DCLK != 133) && (CONFIG_BFIN_DCLK != 150) && \
-	(CONFIG_BFIN_DCLK != 166) && (CONFIG_BFIN_DCLK != 200) && \
-	(CONFIG_BFIN_DCLK != 225) && (CONFIG_BFIN_DCLK != 250))
-#error "DCLK must be in (125, 133, 150, 166, 200, 225, 250)MHz"
-#endif
 struct ddr_config {
 	u32 ddr_clk;
 	u32 dmc_ddrctl;
@@ -356,7 +344,7 @@ struct ddr_config {
 };
 
 #if defined(CONFIG_MEM_MT47H64M16)
-struct ddr_config ddr_config_table[] __attribute__((section(".data_l1"))) = {
+static struct ddr_config ddr_config_table[] __attribute__((section(".data_l1"))) = {
 	[0] = {
 		.ddr_clk    = 125,
 		.dmc_ddrctl = 0x00000904,
@@ -429,11 +417,75 @@ struct ddr_config ddr_config_table[] __attribute__((section(".data_l1"))) = {
 	},
 };
 #endif
-#else
-#define SDGCTL_WIDTH (1 << 31)	/* SDRAM external data path width */
-#define PLL_CTL_VAL \
-	(((CONFIG_VCO_MULT & 63) << 9) | CLKIN_HALF | \
-		(PLL_BYPASS << 8) | (ANOMALY_05000305 ? 0 : 0x8000))
+
+static inline void dmc_enter_self_refresh(void)
+{
+	if (bfin_read_DMC0_STAT() & MEMINITDONE) {
+		bfin_write_DMC0_CTL(bfin_read_DMC0_CTL() | SRREQ);
+		while (!(bfin_read_DMC0_STAT() & SRACK))
+			continue;
+	}
+}
+
+static inline void dmc_exit_self_refresh(void)
+{
+	if (bfin_read_DMC0_STAT() & MEMINITDONE) {
+		bfin_write_DMC0_CTL(bfin_read_DMC0_CTL() & ~SRREQ);
+		while (bfin_read_DMC0_STAT() & SRACK)
+			continue;
+	}
+}
+
+static inline void init_cgu(u32 cgu_div, u32 cgu_ctl)
+{
+	dmc_enter_self_refresh();
+
+	/* Don't set the same value of MSEL and DF to CGU_CTL */
+	if ((bfin_read32(CGU0_CTL) & (MSEL_MASK | DF_MASK))
+		!= cgu_ctl) {
+		bfin_write32(CGU0_DIV, cgu_div);
+		bfin_write32(CGU0_CTL, cgu_ctl);
+		while ((bfin_read32(CGU0_STAT) & (CLKSALGN | PLLBP)) ||
+			!(bfin_read32(CGU0_STAT) & PLOCK))
+			continue;
+	}
+
+	bfin_write32(CGU0_DIV, cgu_div | UPDT);
+	while (bfin_read32(CGU0_STAT) & CLKSALGN)
+		continue;
+
+	dmc_exit_self_refresh();
+}
+
+static inline void init_dmc(u32 dmc_clk)
+{
+	int i, dlldatacycle, dll_ctl;
+
+	for (i = 0; i < 7; i++) {
+		if (ddr_config_table[i].ddr_clk == dmc_clk) {
+			bfin_write_DMC0_CFG(ddr_config_table[i].dmc_ddrcfg);
+			bfin_write_DMC0_TR0(ddr_config_table[i].dmc_ddrtr0);
+			bfin_write_DMC0_TR1(ddr_config_table[i].dmc_ddrtr1);
+			bfin_write_DMC0_TR2(ddr_config_table[i].dmc_ddrtr2);
+			bfin_write_DMC0_MR(ddr_config_table[i].dmc_ddrmr);
+			bfin_write_DMC0_EMR1(ddr_config_table[i].dmc_ddrmr1);
+			bfin_write_DMC0_CTL(ddr_config_table[i].dmc_ddrctl);
+			break;
+		}
+	}
+
+	while (!(bfin_read_DMC0_STAT() & MEMINITDONE))
+		continue;
+
+	dlldatacycle = (bfin_read_DMC0_STAT() & PHYRDPHASE) >> PHYRDPHASE_OFFSET;
+	dll_ctl = bfin_read_DMC0_DLLCTL();
+	dll_ctl &= ~DATACYC;
+	bfin_write_DMC0_DLLCTL(dll_ctl | (dlldatacycle << DATACYC_OFFSET));
+
+	while (!(bfin_read_DMC0_STAT() & DLLCALDONE))
+		continue;
+}
 #endif
 
+#endif /*__MEM_INIT_H__*/
 
