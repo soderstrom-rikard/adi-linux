@@ -260,7 +260,7 @@ if !SMP
 config BFIN_COREB
         bool "Enable Core B loader"
 	depends on (BF561 || BF60x)
-        default y
+        default n
 endif
 
 config BF_REV_MIN
