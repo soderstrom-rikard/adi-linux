@@ -57,49 +57,8 @@ ENTRY(_coreb_trampoline_start)
 	fp = sp;
 	usp = sp;
 
-	p1.h = HI(0xff700000);
-	p1.l = LO(0xff700000)
-	r0.l = 0xDEAD;
-	[p1] = r0;
-
-	p0.l = lo(EVT15);
-	p0.h = hi(EVT15);
-	p1.l = _coreb_start;
-	p1.h = _coreb_start;
-	[p0] = p1;
-	csync;
-
-	p0.l = lo(IMASK);
-	p0.h = hi(IMASK);
-	p1.l = IMASK_IVG15;
-	p1.h = 0x0;
-	[p0] = p1;
-	csync;
-
-	raise 15;
-
-	p0.l = .LWAIT_HERE;
-	p0.h = .LWAIT_HERE;
-	reti = p0;
-	nop;nop;nop;
-	rti;
 .LWAIT_HERE:
+	idle;
 	jump .LWAIT_HERE;
 ENDPROC(_coreb_trampoline_start)
 ENTRY(_coreb_trampoline_end)
-
-ENTRY(_core1_evt11)
-	[--sp] = SYSCFG;
-	[--sp] = P0;        /*orig_p0*/
-	[--sp] = R0;        /*orig_r0*/
-	[--sp] = (R7:0,P5:0);
-	p0.h = _core1_evt_handle;
-	p0.l = _core1_evt_handle;
-	call (p0);
-	(R7:0,P5:0) = [SP++];
-	sp += 8;        /* Skip orig_r0/orig_p0 */
-	csync;
-	SYSCFG = [sp++];
-	csync;
-	rti;
-ENDPROC(_core1_evt11)

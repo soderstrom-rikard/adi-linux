@@ -313,48 +313,6 @@ static irqreturn_t dpm0_isr(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-#ifdef CONFIG_BFIN_COREB
-void core1_evt_handle(void)
-{
-	unsigned int sid = bfin_read_SEC_SCI(1, SEC_CSID);
-
-	bfin_write_SEC_SCI(1, SEC_CSID, sid);
-	SSYNC();
-	bfin_sec_raise_irq(IRQ_SID(IRQ_SOFT0));
-	bfin_write32(SEC_END, sid);
-}
-
-asmlinkage void core1_evt11(void);
-
-void coreb_start(void)
-{
-	unsigned long ilat;
-	unsigned long bfin_irq_flags;
-	unsigned int i = 0;
-
-	/* enable interrupt */
-	__asm__ ("[--sp] = reti;");
-
-	ilat = bfin_read_ILAT();
-	CSYNC();
-	bfin_write_ILAT(ilat);
-	CSYNC();
-
-	bfin_write_EVT11(core1_evt11 - L1_CODE_START + COREB_L1_CODE_START);
-
-	SSYNC();
-	bfin_irq_flags = IMASK_IVG11;
-	bfin_sti(bfin_irq_flags);
-
-	while (1) {
-		if (i++ > 10000000) {
-			bfin_sec_raise_irq(IRQ_SID(IRQ_SOFT0));
-			i = 0;
-		}
-	}
-}
-#endif
-
 static int __init bf609_init_pm(void)
 {
 	int irq;
