@@ -312,9 +312,10 @@ static void bfin_sec_disable(struct irq_data *d)
 	hard_local_irq_restore(flags);
 }
 
-void bfin_sec_raise_irq(unsigned int sid)
+void bfin_sec_raise_irq(unsigned int irq)
 {
 	unsigned long flags = hard_local_irq_save();
+	unsigned int sid = SIC_SYSIRQ(irq);
 
 	bfin_write32(SEC_RAISE, sid);
 
@@ -325,9 +326,12 @@ void init_software_driven_irq(void)
 {
 	bfin_sec_set_ssi_coreid(34, 0);
 	bfin_sec_set_ssi_coreid(35, 1);
-
+	bfin_sec_enable_sci(35);
+	bfin_sec_enable_ssi(35);
 	bfin_sec_set_ssi_coreid(36, 0);
 	bfin_sec_set_ssi_coreid(37, 1);
+	bfin_sec_enable_sci(37);
+	bfin_sec_enable_ssi(37);
 }
 
 void bfin_sec_resume(void)
