@@ -932,8 +932,16 @@ struct v4l2_standard {
  *	V I D E O	T I M I N G S	D V	P R E S E T
  */
 struct v4l2_dv_preset {
-	__u32	preset;
-	__u32	reserved[4];
+	__u32 preset;
+	union {
+		struct {
+			__u32 width;
+			__u32 height;
+			__u32 fps;
+			__u32 flags;
+		} params;
+		__u32 reserved[4];
+	};
 };
 
 /*
@@ -1044,6 +1052,7 @@ struct v4l2_input {
 #define V4L2_IN_ST_NO_POWER    0x00000001  /* Attached device is off */
 #define V4L2_IN_ST_NO_SIGNAL   0x00000002
 #define V4L2_IN_ST_NO_COLOR    0x00000004
+#define V4L2_IN_ST_INTERLACED  0x00000008
 
 /* field 'status' - sensor orientation */
 /* If sensor is mounted upside down set both bits */
