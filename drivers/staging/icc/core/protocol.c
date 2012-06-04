@@ -1242,7 +1242,7 @@ static int sm_task_sendmsg(struct sm_message *message, struct sm_session *sessio
 	sm_debug("%s msg type %x\n", __func__, (uint32_t)msg->type);
 	switch (msg->type) {
 	case SM_TASK_RUN:
-		flush_dcache_range(0x3C00000, 0x3FFFFFF);
+		flush_dcache_range(COREB_TASK_START, 0x3FFFFFF);
 		task = (struct sm_task *)msg->payload;
 		sm_debug("%s init addr%p\n", __func__, task->task_init);
 		break;
