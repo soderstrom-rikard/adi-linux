@@ -69,6 +69,7 @@ struct sdh_host {
 	int			dma_len;
 
 	unsigned long		sclk;
+	unsigned int		imask;
 	unsigned int		power_mode;
 	unsigned int		clk_div;
 
@@ -88,6 +89,28 @@ static void sdh_stop_clock(struct sdh_host *host)
 	SSYNC();
 }
 
+static void sdh_enable_stat_irq(struct sdh_host *host, unsigned int mask)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&host->lock, flags);
+	host->imask |= mask;
+	bfin_write_SDH_MASK0(mask);
+	SSYNC();
+	spin_unlock_irqrestore(&host->lock, flags);
+}
+
+static void sdh_disable_stat_irq(struct sdh_host *host, unsigned int mask)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&host->lock, flags);
+	host->imask &= ~mask;
+	bfin_write_SDH_MASK0(host->imask);
+	SSYNC();
+	spin_unlock_irqrestore(&host->lock, flags);
+}
+
 static int sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 {
 	unsigned int length;
@@ -99,6 +122,7 @@ static int sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	host->data = data;
 	data_ctl = 0;
 	dma_cfg = 0;
+
 	length = data->blksz * data->blocks;
 	bfin_write_SDH_DATA_LGTH(length);
 
@@ -130,6 +154,7 @@ static int sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 	} else
 		host->dma_dir = DMA_TO_DEVICE;
 
+	sdh_enable_stat_irq(host, (DAT_CRC_FAIL | DAT_TIME_OUT | DAT_END));
 	host->dma_len = dma_map_sg(mmc_dev(host->mmc), data->sg, data->sg_len, host->dma_dir);
 #if defined(CONFIG_BF54x) || defined(CONFIG_BF60x)
 	dma_cfg |= DMAFLOW_ARRAY | RESTART | WDSIZE_32 | DMAEN;
@@ -185,20 +210,30 @@ static int sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 static void sdh_start_cmd(struct sdh_host *host, struct mmc_command *cmd)
 {
 	unsigned int sdh_cmd;
+	unsigned int stat_mask;
 
 	dev_dbg(mmc_dev(host->mmc), "%s enter cmd: 0x%p\n", __func__, cmd);
 	WARN_ON(host->cmd != NULL);
 	host->cmd = cmd;
 
 	sdh_cmd = 0;
+	stat_mask = 0;
 
 	sdh_cmd |= cmd->opcode;
 
-	if (cmd->flags & MMC_RSP_PRESENT)
+	if (cmd->flags & MMC_RSP_PRESENT) {
 		sdh_cmd |= CMD_RSP;
+		stat_mask |= CMD_RESP_END;
+	} else {
+		stat_mask |= CMD_SENT;
+	}
 
 	if (cmd->flags & MMC_RSP_136)
 		sdh_cmd |= CMD_L_RSP;
+
+	stat_mask |= CMD_CRC_FAIL | CMD_TIME_OUT;
+
+	sdh_enable_stat_irq(host, stat_mask);
 
 	bfin_write_SDH_ARGUMENT(cmd->arg);
 	bfin_write_SDH_COMMAND(sdh_cmd | CMD_E);
@@ -239,12 +274,16 @@ static int sdh_cmd_done(struct sdh_host *host, unsigned int stat)
 	else if (stat & CMD_CRC_FAIL && cmd->flags & MMC_RSP_CRC)
 		cmd->error = -EILSEQ;
 
+	sdh_disable_stat_irq(host, (CMD_SENT | CMD_RESP_END | CMD_TIME_OUT | CMD_CRC_FAIL));
+
 	if (host->data && !cmd->error) {
 		if (host->data->flags & MMC_DATA_WRITE) {
 			ret = sdh_setup_data(host, host->data);
 			if (ret)
 				return 0;
 		}
+
+		sdh_enable_stat_irq(host, DAT_END | RX_OVERRUN | TX_UNDERRUN | DAT_TIME_OUT);
 	} else
 		sdh_finish_request(host, host->mrq);
 
