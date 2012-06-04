@@ -6,6 +6,7 @@
 
 #ifndef _MACH_BF609_ICC_H
 #define _MACH_BF609_ICC_H
+#include <mach/irq.h>
 
 /* arch specific */
 #define sm_atomic_read(v) bfin_read16(v)
@@ -22,4 +23,9 @@
 #define ICC_LOW_RECV		IRQ_SOFT0
 #define ICC_HIGH_SEND		IRQ_SOFT3
 #define ICC_HIGH_RECV		IRQ_SOFT2
+
+#define COREB_ICC_LOW_SEND	ICC_LOW_RECV
+#define COREB_ICC_LOW_RECV	ICC_LOW_SEND
+#define COREB_ICC_HIGH_SEND	ICC_HIGH_RECV
+#define COREB_ICC_HIGH_RECV	ICC_HIGH_SEND
 #endif
