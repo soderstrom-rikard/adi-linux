@@ -2223,7 +2223,7 @@ static void musb_restore_context(struct musb *musb)
 	musb_writeb(musb_base, MUSB_INTRUSBE, musb->context.intrusbe);
 	musb_writeb(musb_base, MUSB_DEVCTL, musb->context.devctl);
 
-#ifdef CONFIG_BLACKFIN
+#if defined(CONFIG_USB_MUSB_BLACKFIN) && !CONFIG_BF60x
 	/*
 	 * Blackfin musb-host can't resume without reprobe if not polling for
 	 * detected 'A'device.
@@ -2313,6 +2313,9 @@ static int musb_suspend(struct device *dev)
 		 * they will even be wakeup-enabled.
 		 */
 	}
+#ifdef CONFIG_USB_MUSB_BLACKFIN
+	musb_save_context(musb);
+#endif
 
 	spin_unlock_irqrestore(&musb->lock, flags);
 	return 0;
@@ -2324,6 +2327,10 @@ static int musb_resume_noirq(struct device *dev)
 	 * unless for some reason the whole soc powered down or the USB
 	 * module got reset through the PSC (vs just being disabled).
 	 */
+#ifdef CONFIG_USB_MUSB_BLACKFIN
+	struct musb	*musb = dev_to_musb(dev);
+	musb_restore_context(musb);
+#endif
 	return 0;
 }
 
