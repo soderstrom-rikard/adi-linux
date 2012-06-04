@@ -136,7 +136,7 @@ static int sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
 # ifdef RSI_BLKSZ
 	dma_cfg |= PSIZE_32 | NDSIZE_3;
 # else
-	dma_cfg |= NDSIZE_4;
+	dma_cfg |= NDSIZE_5;
 # endif
 	{
 		struct scatterlist *sg;
