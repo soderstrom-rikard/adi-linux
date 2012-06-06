@@ -329,6 +329,30 @@ static struct platform_device bfin_spi0_device = {
 };
 #endif
 
+#if defined(CONFIG_ICC)
+#define BFIN_ICC_NAME "icc"
+
+static struct resource bfin_icc_resources[] = {
+	{
+		.start = IRQ_SUPPLE_0,	/* ICC Low receive IRQ */
+		.end = IRQ_SUPPLE_0,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_SUPPLE_1,	/* ICC High receive IRQ */
+		.end = IRQ_SUPPLE_1,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_icc_device = {
+	.name = BFIN_ICC_NAME,
+	.id = 0,
+	.num_resources = ARRAY_SIZE(bfin_icc_resources),
+	.resource = bfin_icc_resources,
+};
+#endif
+
 static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #if defined(CONFIG_SND_BF5XX_SOC_AD183X) \
 	|| defined(CONFIG_SND_BF5XX_SOC_AD183X_MODULE)
@@ -566,6 +590,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #ifdef CONFIG_BFIN_SIR0
 	&bfin_sir0_device,
 #endif
+#endif
+
+#if defined(CONFIG_ICC)
+	&bfin_icc_device,
 #endif
 
 #if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)

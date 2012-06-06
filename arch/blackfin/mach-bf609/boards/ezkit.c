@@ -1096,6 +1096,30 @@ static struct platform_device bfin_crypto_crc_device = {
 };
 #endif
 
+#if defined(CONFIG_ICC)
+#define BFIN_ICC_NAME "icc"
+
+static struct resource bfin_icc_resources[] = {
+	{
+		.start = IRQ_SOFT0,	/* ICC Low receive IRQ */
+		.end = IRQ_SOFT0,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = IRQ_SOFT2,	/* ICC High receive IRQ */
+		.end = IRQ_SOFT2,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_icc_device = {
+	.name = BFIN_ICC_NAME,
+	.id = 0,
+	.num_resources = ARRAY_SIZE(bfin_icc_resources),
+	.resource = bfin_icc_resources,
+};
+#endif
+
 #if defined(CONFIG_TOUCHSCREEN_AD7877) || defined(CONFIG_TOUCHSCREEN_AD7877_MODULE)
 static const struct ad7877_platform_data bfin_ad7877_ts_info = {
 	.model			= 7877,
@@ -1417,6 +1441,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #endif
 #if defined(CONFIG_CRYPTO_DEV_BFIN_CRC)
 	&bfin_crypto_crc_device,
+#endif
+
+#if defined(CONFIG_ICC)
+	&bfin_icc_device,
 #endif
 
 #if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)

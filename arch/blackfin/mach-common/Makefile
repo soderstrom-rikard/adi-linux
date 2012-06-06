@@ -15,4 +15,3 @@ obj-$(CONFIG_CPU_VOLTAGE) += dpmc.o
 obj-$(CONFIG_SMP)         += smp.o
 obj-$(CONFIG_BFIN_KERNEL_CLOCK) += clocks-init.o
 obj-$(CONFIG_BFIN_COREB) += coreb.o
-obj-$(CONFIG_ICC:m=y) += icc.o
