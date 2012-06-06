@@ -32,6 +32,7 @@
 #include <linux/proc_fs.h>
 #include <linux/interrupt.h>
 #include <linux/device.h>
+#include <linux/uaccess.h>
 #include <asm/gptimers.h>
 #include <asm/irq.h>
 #include <asm/bfin_simple_timer.h>
@@ -96,8 +97,8 @@ timer_ioctl(struct file *filp, uint cmd, unsigned long arg)
 	case BFIN_SIMPLE_TIMER_SET_MODE:
 		mode = arg;
 		switch (mode) {
-			pr_debug(DRV_NAME ": TIMER_SET_MODE: mode %d\n", mode);
-		case 0:
+			pr_debug(DRV_NAME ": TIMER_SET_MODE: mode %lu\n", mode);
+		case BFIN_SIMPLE_TIMER_MODE_PWM_ONESHOT:
 #ifdef CONFIG_BF60x
 			set_gptimer_config(t->id,  TIMER_OUT_DIS | TIMER_MODE_PWM
 					| TIMER_PULSE_HI | TIMER_IRQ_WID_DLY);
@@ -105,7 +106,7 @@ timer_ioctl(struct file *filp, uint cmd, unsigned long arg)
 			set_gptimer_config(t->id, OUT_DIS | PWM_OUT | PERIOD_CNT | IRQ_ENA);
 #endif
 			break;
-		case 1:
+		case BFIN_SIMPLE_TIMER_MODE_PWMOUT_CONT:
 #ifdef CONFIG_BF60x
 			set_gptimer_config(t->id,  TIMER_MODE_PWM_CONT
 						| TIMER_PULSE_HI | TIMER_IRQ_PER);
@@ -113,11 +114,19 @@ timer_ioctl(struct file *filp, uint cmd, unsigned long arg)
 			set_gptimer_config(t->id, PWM_OUT | PERIOD_CNT | IRQ_ENA);
 #endif
 			break;
-		case 2:
+		case BFIN_SIMPLE_TIMER_MODE_WDTH_CAP:
 #ifdef CONFIG_BF60x
 			set_gptimer_config(t->id, TIMER_MODE_WDTH | TIMER_IRQ_PER);
 #else
 			set_gptimer_config(t->id, WDTH_CAP | PERIOD_CNT | IRQ_ENA);
+#endif
+			break;
+		case BFIN_SIMPLE_TIMER_MODE_PWMOUT_CONT_NOIRQ:
+#ifdef CONFIG_BF60x
+			set_gptimer_config(t->id,  TIMER_MODE_PWM_CONT
+						| TIMER_PULSE_HI);
+#else
+			set_gptimer_config(t->id, PWM_OUT | PERIOD_CNT);
 #endif
 			break;
 		default:
@@ -135,8 +144,10 @@ timer_ioctl(struct file *filp, uint cmd, unsigned long arg)
 		disable_gptimers(t->bit);
 		break;
 	case BFIN_SIMPLE_TIMER_READ:
-		/* XXX: this should be put_user() */
-		*((unsigned long *)arg) = t->isr_count;
+		put_user(t->isr_count, (unsigned long __user *)arg);
+		break;
+	case BFIN_SIMPLE_TIMER_READ_COUNTER:
+		put_user(get_gptimer_count(t->id), (unsigned long __user *)arg);
 		break;
 	default:
 		return -EINVAL;
