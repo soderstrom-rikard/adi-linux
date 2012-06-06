@@ -4,7 +4,7 @@
  */
 
 
-#include <linux/device.h>
+#include <linux/platform_device.h>
 #include <linux/fs.h>
 #include <linux/kernel.h>
 #include <linux/miscdevice.h>
@@ -19,32 +19,57 @@
 #include <linux/wait.h>
 #include <linux/sched.h>
 #include <linux/dma-mapping.h>
+#include <linux/interrupt.h>
 #include <asm/cacheflush.h>
+#include <asm/icc.h>
 
 
-struct sm_icc_desc *icc_info;
-struct sm_proto *sm_protos[SP_MAX];
-struct proc_dir_entry *icc_dump;
+#define DRIVER_NAME "icc"
 
-static int icc_init(void)
+
+static struct bfin_icc {
+	struct miscdevice mdev;
+	int low_irq;
+	int high_irq;
+	struct mutex mutex;
+	struct sm_icc_desc icc_info;
+	struct sm_proto *sm_protos[SP_MAX];
+	struct proc_dir_entry *icc_dump;
+	char name[20];
+} *bfin_icc;
+
+
+void icc_send_ipi_cpu(unsigned int cpu, int irq)
 {
-	icc_info = kzalloc(sizeof(struct sm_icc_desc), GFP_KERNEL);
-	if (!icc_info)
-		return -ENOMEM;
-	return 0;
+	platform_send_ipi_cpu(cpu, irq);
 }
 
-void wakeup_icc_thread(void)
+void icc_send_ipi_cpu_low(unsigned int cpu)
 {
-	if (icc_info->iccq_thread)
-		wake_up_process(icc_info->iccq_thread);
-	wake_up(&icc_info->iccq_rx_wait);
+	platform_send_ipi_cpu(cpu, ICC_LOW_SEND);
 }
 
-static int init_sm_message_queue(void)
+void icc_send_ipi_cpu_high(unsigned int cpu)
 {
-	icc_info->icc_queue = (struct sm_message_queue *)MSGQ_START_ADDR;
-	memset(icc_info->icc_queue, 0, sizeof(struct sm_message_queue)*2);
+	platform_send_ipi_cpu(cpu, ICC_HIGH_SEND);
+}
+
+static void icc_clear_ipi_cpu(unsigned int cpu, int irq)
+{
+	platform_clear_ipi(cpu, irq);
+}
+
+static void wakeup_icc_thread(void)
+{
+	if (bfin_icc->icc_info.iccq_thread)
+		wake_up_process(bfin_icc->icc_info.iccq_thread);
+	wake_up(&bfin_icc->icc_info.iccq_rx_wait);
+}
+
+static int init_sm_message_queue(struct bfin_icc *icc)
+{
+	icc->icc_info.icc_queue = (struct sm_message_queue *)MSGQ_START_ADDR;
+	memset(icc->icc_info.icc_queue, 0, sizeof(struct sm_message_queue)*2);
 	return 0;
 }
 
@@ -63,20 +88,23 @@ static int get_msg_src(struct sm_msg *msg)
 		return 0;
 }
 
-static int init_sm_session_table(void)
+static int init_sm_session_table(struct bfin_icc *icc)
 {
-	icc_info->sessions_table = kzalloc(sizeof(struct sm_session_table),
-					GFP_KERNEL);
-	if (!icc_info->sessions_table)
+	struct sm_session_table *sessions_table;
+
+	sessions_table = icc->icc_info.sessions_table =
+		kzalloc(sizeof(struct sm_session_table), GFP_KERNEL);
+
+	if (!sessions_table)
 		return -ENOMEM;
-	mutex_init(&icc_info->sessions_table->lock);
-	icc_info->sessions_table->nfree = MAX_ENDPOINTS;
+	mutex_init(&sessions_table->lock);
+	sessions_table->nfree = MAX_ENDPOINTS;
 	return 0;
 }
 
 static int sm_message_enqueue(int dstcpu, int srccpu, struct sm_msg *msg)
 {
-	struct sm_message_queue *outqueue = &icc_info->icc_queue[dstcpu];
+	struct sm_message_queue *outqueue = &bfin_icc->icc_info.icc_queue[dstcpu];
 	uint16_t sent = sm_atomic_read(&outqueue->sent);
 	uint16_t received = sm_atomic_read(&outqueue->received);
 	if ((sent - received) >= (SM_MSGQ_LEN - 1)) {
@@ -93,7 +121,7 @@ static int sm_message_enqueue(int dstcpu, int srccpu, struct sm_msg *msg)
 
 static int sm_message_dequeue(int srccpu, struct sm_msg *msg)
 {
-	struct sm_message_queue *inqueue = &icc_info->icc_queue[srccpu];
+	struct sm_message_queue *inqueue = &bfin_icc->icc_info.icc_queue[srccpu];
 	uint16_t received;
 	memset(msg, 0, sizeof(struct sm_msg));
 	received = sm_atomic_read(&inqueue->received);
@@ -151,7 +179,7 @@ found_slot:
 
 static int sm_create_session(uint32_t src_ep, uint32_t type)
 {
-	struct sm_session_table *table = icc_info->sessions_table;
+	struct sm_session_table *table = bfin_icc->icc_info.sessions_table;
 	int index = sm_find_session(src_ep, 0, table);
 	if (index >= 0 && index < 32) {
 		sm_debug("already bound index %d srcep %d\n", index, src_ep);
@@ -171,7 +199,7 @@ static int sm_create_session(uint32_t src_ep, uint32_t type)
 		table->sessions[index].n_uncompleted = 0;
 		table->sessions[index].n_avail = 0;
 		table->sessions[index].type = type;
-		table->sessions[index].proto_ops = sm_protos[type];
+		table->sessions[index].proto_ops = bfin_icc->sm_protos[type];
 		INIT_LIST_HEAD(&table->sessions[index].rx_messages);
 		INIT_LIST_HEAD(&table->sessions[index].tx_messages);
 		init_waitqueue_head(&table->sessions[index].rx_wait);
@@ -185,7 +213,7 @@ static int sm_create_session(uint32_t src_ep, uint32_t type)
 static struct sm_session *sm_index_to_session(uint32_t session_idx)
 {
 	struct sm_session *session;
-	struct sm_session_table *table = icc_info->sessions_table;
+	struct sm_session_table *table = bfin_icc->icc_info.sessions_table;
 	if (session_idx < 0 && session_idx >= MAX_SESSIONS)
 		return NULL;
 	if (!test_bit(session_idx, (unsigned long *)table->bits))
@@ -196,7 +224,7 @@ static struct sm_session *sm_index_to_session(uint32_t session_idx)
 
 static uint32_t sm_session_to_index(struct sm_session *session)
 {
-	struct sm_session_table *table = icc_info->sessions_table;
+	struct sm_session_table *table = bfin_icc->icc_info.sessions_table;
 	if ((session >= &table->sessions[0])
 		&& (session < &table->sessions[MAX_SESSIONS])) {
 		return (session - &table->sessions[0])/sizeof(struct sm_session);
@@ -206,7 +234,7 @@ static uint32_t sm_session_to_index(struct sm_session *session)
 
 static int iccqueue_getpending(uint32_t srccpu)
 {
-	struct sm_message_queue *inqueue = &icc_info->icc_queue[srccpu];
+	struct sm_message_queue *inqueue = &bfin_icc->icc_info.icc_queue[srccpu];
 	uint16_t sent = sm_atomic_read(&inqueue->sent);
 	uint16_t received = sm_atomic_read(&inqueue->received);
 	uint16_t pending;
@@ -425,7 +453,7 @@ sm_send_scalar(uint32_t session_idx, uint32_t dst_ep, uint32_t dst_cpu,
 retry:
 	ret = sm_send_message_internal(&m->msg, m->dst, m->src);
 	if ((!nonblock) && (ret == -EAGAIN)) {
-		interruptible_sleep_on(&icc_info->iccq_tx_wait);
+		interruptible_sleep_on(&bfin_icc->icc_info.iccq_tx_wait);
 		goto retry;
 	} else {
 		goto out;
@@ -498,13 +526,13 @@ retry:
 	ret = sm_send_message_internal(&m->msg, m->dst, m->src);
 	if (ret == -EAGAIN) {
 		if (nonblock) {
-			mutex_lock(&icc_info->sessions_table->lock);
+			mutex_lock(&bfin_icc->icc_info.sessions_table->lock);
 			list_del(&m->next);
-			mutex_unlock(&icc_info->sessions_table->lock);
+			mutex_unlock(&bfin_icc->icc_info.sessions_table->lock);
 			goto fail2;
 		}
 		sm_debug(">>>>sleep on send queue\n");
-		interruptible_sleep_on(&icc_info->iccq_tx_wait);
+		interruptible_sleep_on(&bfin_icc->icc_info.iccq_tx_wait);
 		sm_debug("<<<<wakeup send queue\n");
 		goto retry;
 	} else {
@@ -547,12 +575,12 @@ static int sm_recv_scalar(uint32_t session_idx, uint32_t *src_ep,
 		return -EINTR;
 	}
 
-	mutex_lock(&icc_info->sessions_table->lock);
+	mutex_lock(&bfin_icc->icc_info.sessions_table->lock);
 	message = list_first_entry(&session->rx_messages, struct sm_message, next);
 	msg = &message->msg;
 
 	list_del(&message->next);
-	mutex_unlock(&icc_info->sessions_table->lock);
+	mutex_unlock(&bfin_icc->icc_info.sessions_table->lock);
 
 	if (src_ep)
 		*src_ep = msg->src_ep;
@@ -618,11 +646,11 @@ static int sm_recv_packet(uint32_t session_idx, uint32_t *src_ep,
 		return -EINTR;
 	}
 
-	mutex_lock(&icc_info->sessions_table->lock);
+	mutex_lock(&bfin_icc->icc_info.sessions_table->lock);
 	message = list_first_entry(&session->rx_messages, struct sm_message, next);
 	msg = &message->msg;
 	list_del(&message->next);
-	mutex_unlock(&icc_info->sessions_table->lock);
+	mutex_unlock(&bfin_icc->icc_info.sessions_table->lock);
 
 	if (src_ep)
 		*src_ep = msg->src_ep;
@@ -751,12 +779,12 @@ static int sm_destroy_session(uint32_t session_idx)
 	struct sm_message *message;
 	struct sm_msg *msg;
 	struct sm_session *session;
-	struct sm_session_table *table = icc_info->sessions_table;
+	struct sm_session_table *table = bfin_icc->icc_info.sessions_table;
 	session = sm_index_to_session(session_idx);
 	if (!session)
 		return -EINVAL;
 
-	mutex_lock(&icc_info->sessions_table->lock);
+	mutex_lock(&table->lock);
 	while (!list_empty(&session->rx_messages)) {
 		sm_debug("drain rx list\n");
 		message = list_first_entry(&session->rx_messages,
@@ -772,19 +800,19 @@ static int sm_destroy_session(uint32_t session_idx)
 		list_del(&message->next);
 		kfree(message);
 	}
-	mutex_unlock(&icc_info->sessions_table->lock);
+	mutex_unlock(&table->lock);
 
-	mutex_lock(&icc_info->sessions_table->lock);
+	mutex_lock(&table->lock);
 	while (!list_empty(&session->tx_messages)) {
-		mutex_unlock(&icc_info->sessions_table->lock);
+		mutex_unlock(&table->lock);
 		set_current_state(TASK_INTERRUPTIBLE);
 		sm_debug("drain tx list\n");
 		schedule_timeout(HZ * 2);
 		sm_debug("drain tx list1\n");
 		set_current_state(TASK_RUNNING);
-		mutex_lock(&icc_info->sessions_table->lock);
+		mutex_lock(&table->lock);
 	}
-	mutex_unlock(&icc_info->sessions_table->lock);
+	mutex_unlock(&table->lock);
 
 	if (session->flags == SM_CONNECT) {
 		sm_send_close(session, session->remote_ep, 1);
@@ -805,7 +833,7 @@ static int
 icc_open(struct inode *inode, struct file *file)
 {
 	int ret = 0;
-	struct sm_session_table *table = icc_info->sessions_table;
+	struct sm_session_table *table = bfin_icc->icc_info.sessions_table;
 	table->refcnt++;
 	return ret;
 }
@@ -814,7 +842,7 @@ static int
 icc_release(struct inode *inode, struct file *file)
 {
 	int ret = 0;
-	struct sm_session_table *table = icc_info->sessions_table;
+	struct sm_session_table *table = bfin_icc->icc_info.sessions_table;
 	int i;
 	pid_t pid = current->pid;
 	table->refcnt--;
@@ -830,11 +858,12 @@ int icc_get_node_status(void *user_param, uint32_t size)
 {
 	int ret = 0;
 	struct sm_node_status *param = kzalloc(sizeof(struct sm_node_status), GFP_KERNEL);
+	struct sm_session_table *table = bfin_icc->icc_info.sessions_table;
 	if (!param)
 		return -ENOMEM;
-	param->session_mask = icc_info->sessions_table->session_mask;
-	param->session_pending = icc_info->sessions_table->session_pending;
-	param->nfree = icc_info->sessions_table->nfree;
+	param->session_mask = table->session_mask;
+	param->session_pending = table->session_pending;
+	param->nfree = table->nfree;
 	if (copy_to_user(user_param, (void *)param, size))
 		ret = -EFAULT;
 
@@ -890,7 +919,7 @@ int icc_handle_scalar_cmd(struct sm_msg *msg)
 
 	switch (SM_SCALAR_CMDARG(scalar0)) {
 	case SM_SCALAR_CMD_GET_SESSION_ID:
-		index = sm_find_session(scalar1, 0, icc_info->sessions_table);
+		index = sm_find_session(scalar1, 0, bfin_icc->icc_info.sessions_table);
 		session = sm_index_to_session(index);
 		if (session) {
 			scalar0 = MK_SM_SCALAR_CMD_ACK(SM_SCALAR_CMD_GET_SESSION_ID);
@@ -1015,7 +1044,7 @@ unsigned int icc_poll(struct file *file, poll_table *wait)
 	int cpu = blackfin_core_id();
 	int pending;
 
-	poll_wait(file, &icc_info->iccq_rx_wait, wait);
+	poll_wait(file, &bfin_icc->icc_info.iccq_rx_wait, wait);
 
 	pending = iccqueue_getpending(cpu);
 	if (pending)
@@ -1032,13 +1061,6 @@ static const struct file_operations icc_fops = {
 	.unlocked_ioctl = icc_ioctl,
 	.poll		= icc_poll,
 };
-
-static struct miscdevice icc_dev = {
-	.minor = MISC_DYNAMIC_MINOR,
-	.name  = "icc",
-	.fops  = &icc_fops,
-};
-
 
 static int msg_recv_internal(struct sm_msg *msg, struct sm_session *session)
 {
@@ -1065,12 +1087,12 @@ static int msg_recv_internal(struct sm_msg *msg, struct sm_session *session)
 		session->handle(message, session);
 		return 0;
 	}
-	mutex_lock(&icc_info->sessions_table->lock);
+	mutex_lock(&bfin_icc->icc_info.sessions_table->lock);
 	list_add_tail(&message->next, &session->rx_messages);
 	session->n_avail++;
 	sm_debug("%s wakeup wait thread avail %d\n", __func__, (int)session->n_avail);
 	wake_up(&session->rx_wait);
-	mutex_unlock(&icc_info->sessions_table->lock);
+	mutex_unlock(&bfin_icc->icc_info.sessions_table->lock);
 	return ret;
 }
 
@@ -1086,10 +1108,10 @@ static int sm_default_sendmsg(struct sm_message *message, struct sm_session *ses
 		flush_dcache_range(msg->payload, msg->payload + msg->length);
 	case SP_SCALAR:
 	case SP_SESSION_SCALAR:
-		mutex_lock(&icc_info->sessions_table->lock);
+		mutex_lock(&bfin_icc->icc_info.sessions_table->lock);
 		list_add_tail(&message->next, &session->tx_messages);
 		session->n_uncompleted++;
-		mutex_unlock(&icc_info->sessions_table->lock);
+		mutex_unlock(&bfin_icc->icc_info.sessions_table->lock);
 		break;
 	case SM_PACKET_ERROR:
 		sm_debug("SM ERROR %08x\n", (uint32_t)msg->payload);
@@ -1106,11 +1128,12 @@ sm_default_recvmsg(struct sm_msg *msg, struct sm_session *session)
 	int ret = 0;
 	int cpu = blackfin_core_id();
 	struct sm_message *uncompleted;
+	struct sm_session_table *table = bfin_icc->icc_info.sessions_table;
 	sm_debug("%s msg type %x\n", __func__, (uint32_t)msg->type);
 	switch (msg->type) {
 	case SM_PACKET_CONSUMED:
 	case SM_SESSION_PACKET_CONSUMED:
-		mutex_lock(&icc_info->sessions_table->lock);
+		mutex_lock(&table->lock);
 		/* icc queue is FIFO, so handle first message */
 		list_for_each_entry(uncompleted, &session->tx_messages, next) {
 			if (uncompleted->msg.payload == msg->payload) {
@@ -1118,19 +1141,19 @@ sm_default_recvmsg(struct sm_msg *msg, struct sm_session *session)
 				goto matched;
 			}
 		}
-		mutex_unlock(&icc_info->sessions_table->lock);
+		mutex_unlock(&table->lock);
 		break;
 matched:
 		list_del(&uncompleted->next);
-		mutex_unlock(&icc_info->sessions_table->lock);
+		mutex_unlock(&table->lock);
 		kfree(uncompleted);
 		kfree((void *)msg->payload);
 		session->n_uncompleted--;
-		wake_up(&icc_info->iccq_tx_wait);
+		wake_up(&bfin_icc->icc_info.iccq_tx_wait);
 		break;
 	case SM_SCALAR_CONSUMED:
 	case SM_SESSION_SCALAR_CONSUMED:
-		mutex_lock(&icc_info->sessions_table->lock);
+		mutex_lock(&table->lock);
 		/* icc queue is FIFO, so handle first message */
 		list_for_each_entry(uncompleted, &session->tx_messages, next) {
 			if (uncompleted->msg.payload == msg->payload) {
@@ -1138,14 +1161,14 @@ matched:
 				goto matched1;
 			}
 		}
-		mutex_unlock(&icc_info->sessions_table->lock);
+		mutex_unlock(&table->lock);
 		break;
 matched1:
 		list_del(&uncompleted->next);
-		mutex_unlock(&icc_info->sessions_table->lock);
+		mutex_unlock(&table->lock);
 		kfree(uncompleted);
 		session->n_uncompleted--;
-		wake_up(&icc_info->iccq_tx_wait);
+		wake_up(&bfin_icc->icc_info.iccq_tx_wait);
 		break;
 	case SM_SESSION_PACKET_CONNECT_ACK:
 	case SM_SESSION_SCALAR_CONNECT_ACK:
@@ -1323,7 +1346,7 @@ struct sm_proto session_scalar_proto = {
 
 void msg_handle(int cpu)
 {
-	struct sm_message_queue *inqueue = &icc_info->icc_queue[cpu];
+	struct sm_message_queue *inqueue = &bfin_icc->icc_info.icc_queue[cpu];
 	uint16_t received = sm_atomic_read(&inqueue->received);
 	struct sm_msg *msg;
 	struct sm_session *session;
@@ -1337,7 +1360,7 @@ void msg_handle(int cpu)
 		return;
 	}
 
-	index = sm_find_session(msg->dst_ep, 0, icc_info->sessions_table);
+	index = sm_find_session(msg->dst_ep, 0, bfin_icc->icc_info.sessions_table);
 
 	session = sm_index_to_session(index);
 	sm_debug("session %p index %d msg type%x\n", session, index, (uint32_t)msg->type);
@@ -1345,7 +1368,7 @@ void msg_handle(int cpu)
 	if (!session) {
 		sm_debug("discard msg type %x\n", (uint32_t)msg->type);
 		sm_message_dequeue(cpu, msg);
-		wake_up(&icc_info->iccq_tx_wait);
+		wake_up(&bfin_icc->icc_info.iccq_tx_wait);
 		return;
 	}
 
@@ -1378,15 +1401,15 @@ static int message_queue_thread(void *d)
 	return 0;
 }
 
-void register_sm_proto(void)
+void register_sm_proto(struct bfin_icc *icc)
 {
-	sm_protos[SP_CORE_CONTROL] = &core_control_proto;
-	sm_protos[SP_TASK_MANAGER] = &task_manager_proto;
-	sm_protos[SP_RES_MANAGER] = &res_manager_proto;
-	sm_protos[SP_PACKET] = &packet_proto;
-	sm_protos[SP_SESSION_PACKET] = &session_packet_proto;
-	sm_protos[SP_SCALAR] = &scalar_proto;
-	sm_protos[SP_SESSION_SCALAR] = &session_scalar_proto;
+	icc->sm_protos[SP_CORE_CONTROL] = &core_control_proto;
+	icc->sm_protos[SP_TASK_MANAGER] = &task_manager_proto;
+	icc->sm_protos[SP_RES_MANAGER] = &res_manager_proto;
+	icc->sm_protos[SP_PACKET] = &packet_proto;
+	icc->sm_protos[SP_SESSION_PACKET] = &session_packet_proto;
+	icc->sm_protos[SP_SCALAR] = &scalar_proto;
+	icc->sm_protos[SP_SESSION_SCALAR] = &session_scalar_proto;
 }
 
 static int
@@ -1397,7 +1420,7 @@ icc_write_proc(struct file *file, const char __user * buffer,
 	unsigned long val;
 	int ret;
 	struct sm_session *session;
-	struct sm_session_table *table = icc_info->sessions_table;
+	struct sm_session_table *table = bfin_icc->icc_info.sessions_table;
 
 	ret = copy_from_user(line, buffer, count);
 	if (ret)
@@ -1418,16 +1441,88 @@ icc_write_proc(struct file *file, const char __user * buffer,
 	return count;
 }
 
-static int __init bfin_icc_test_init(void)
+static irqreturn_t ipi_handler_int0(int irq, void *dev_instance)
 {
-	int ret = 0;
+	unsigned int cpu = blackfin_core_id();
 
-	ret = icc_init();
-	init_sm_message_queue();
+	platform_clear_ipi(cpu, ICC_LOW_RECV);
 
-	init_sm_session_table();
+	wakeup_icc_thread();
+	return IRQ_HANDLED;
+}
 
-	register_sm_proto();
+static irqreturn_t ipi_handler_int1(int irq, void *dev_instance)
+{
+	unsigned int cpu = blackfin_core_id();
+
+	platform_clear_ipi(cpu, ICC_HIGH_RECV);
+	return IRQ_HANDLED;
+}
+
+static int __devinit bfin_icc_probe(struct platform_device *pdev)
+{
+	struct bfin_icc *icc = NULL;
+	struct sm_icc_desc *icc_info;
+	int ret;
+
+	if (bfin_icc) {
+		dev_err(&pdev->dev, "Can't register more than one bfin_icc device.\n");
+		return -ENOENT;
+	}
+
+	icc = kzalloc(sizeof(*icc), GFP_KERNEL);
+	if (!icc) {
+		dev_err(&pdev->dev, "fail to malloc bfin_icc\n");
+		return -ENOMEM;
+	}
+
+	mutex_init(&icc->mutex);
+	icc->mdev.minor	= MISC_DYNAMIC_MINOR;
+	snprintf(icc->name, 20, "%s", DRIVER_NAME);
+	icc->mdev.name	= icc->name;
+	icc->mdev.fops	= &icc_fops;
+
+	icc->low_irq = platform_get_irq(pdev, 0);
+	if (icc->low_irq < 0) {
+		dev_err(&pdev->dev, "No ICC Low IRQ specified\n");
+		ret = -ENOENT;
+		goto out_error_free_mem;
+	}
+
+	ret = request_irq(icc->low_irq, ipi_handler_int0, IRQF_PERCPU,
+				"ICC Low IRQ", icc);
+	if (ret) {
+		dev_err(&pdev->dev, "Fail to request ICC Low IRQ\n");
+		goto out_error_free_mem;
+	}
+
+	icc->high_irq = platform_get_irq(pdev, 1);
+	if (icc->high_irq < 0) {
+		dev_err(&pdev->dev, "No ICC High IRQ specified\n");
+		ret = -ENOENT;
+		goto out_error_free_low_irq;
+	}
+
+	ret = request_irq(icc->high_irq, ipi_handler_int1, IRQF_PERCPU,
+				"ICC High IRQ", icc);
+	if (ret) {
+		dev_err(&pdev->dev, "Fail to request ICC High IRQ\n");
+		goto out_error_free_low_irq;
+	}
+
+	ret = misc_register(&icc->mdev);
+	if (ret) {
+		dev_err(&pdev->dev, "cannot register ICC miscdev\n");
+		return ret;
+	}
+
+	init_sm_message_queue(icc);
+
+	init_sm_session_table(icc);
+
+	register_sm_proto(icc);
+
+	icc_info = &icc->icc_info;
 
 	init_waitqueue_head(&icc_info->iccq_rx_wait);
 	init_waitqueue_head(&icc_info->iccq_tx_wait);
@@ -1436,16 +1531,52 @@ static int __init bfin_icc_test_init(void)
 	if (IS_ERR(icc_info->iccq_thread))
 		sm_debug("kthread create failed %ld\n", PTR_ERR(icc_info->iccq_thread));
 
-	icc_dump = create_proc_entry("icc_dump", 644, NULL);
-	icc_dump->write_proc = icc_write_proc;
-	return misc_register(&icc_dev);
-}
-module_init(bfin_icc_test_init);
+	icc->icc_dump = create_proc_entry("icc_dump", 644, NULL);
+	icc->icc_dump->write_proc = icc_write_proc;
 
-static void __exit bfin_icc_test_exit(void)
+	dev_set_drvdata(&pdev->dev, icc);
+	bfin_icc = icc;
+
+	dev_info(&pdev->dev, "initialized\n");
+
+	return 0;
+
+out_error_free_low_irq:
+	free_irq(icc->low_irq, icc);
+out_error_free_mem:
+	kfree(icc);
+	return ret;
+}
+
+static int __devexit bfin_icc_remove(struct platform_device *pdev)
 {
-	misc_deregister(&icc_dev);
-}
-module_exit(bfin_icc_test_exit);
+	struct bfin_icc *icc = platform_get_drvdata(pdev);
 
-MODULE_DESCRIPTION("BFIN ICC"); MODULE_LICENSE("GPL");
+	bfin_icc = NULL;
+	dev_set_drvdata(&pdev->dev, NULL);
+
+	if (icc) {
+		misc_deregister(&icc->mdev);
+		free_irq(icc->high_irq, icc);
+		free_irq(icc->low_irq, icc);
+		kfree(icc);
+	}
+
+	return 0;
+}
+
+static struct platform_driver bfin_icc_driver = {
+	.probe     = bfin_icc_probe,
+	.remove    = __devexit_p(bfin_icc_remove),
+	.driver    = {
+		.name  = DRIVER_NAME,
+		.owner = THIS_MODULE,
+	},
+};
+
+module_platform_driver(bfin_icc_driver);
+
+MODULE_AUTHOR("Steven Miao <steven.miao@analog.com>");
+MODULE_DESCRIPTION("Blackfin ICC driver");
+MODULE_LICENSE("GPL");
+
