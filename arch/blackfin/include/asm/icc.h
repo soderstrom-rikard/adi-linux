@@ -10,10 +10,7 @@
 #include <linux/cpumask.h>
 #include <mach/icc.h>
 
-void platform_request_ipi(int irq, void *handler);
 void platform_send_ipi(cpumask_t callmap, int irq);
 void platform_send_ipi_cpu(unsigned int cpu, int irq);
 void platform_clear_ipi(unsigned int cpu, int irq);
-
-void wakeup_icc_thread(void);
 #endif
