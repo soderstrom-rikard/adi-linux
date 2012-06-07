@@ -15,6 +15,10 @@ void bfin_coreb_start(void)
 		continue;
 
 	bfin_write32(RCU0_CRCTL, 0);
+
+#ifdef CONFIG_ICC
+	bfin_write32(SDU0_MSG_SET, (1 << 19));
+#endif
 }
 
 void bfin_coreb_stop(void)
