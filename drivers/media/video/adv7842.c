@@ -120,6 +120,9 @@ struct adv7842_state {
 	struct v4l2_ctrl_handler hdl;
 	enum adv7842_prim_mode prim_mode;
 	enum adv7842_vid_std_select vid_std_select;
+	struct adv7842_platform_data *pdata;
+	struct adv7842_output_format *opf;
+	v4l2_std_id std; /* current standard in SDP mode */
 	u32 preset;
 	u8 edid[256];
 	wait_queue_head_t cec_wqh;
@@ -1348,6 +1351,22 @@ static void sdp_csc_coeff(struct v4l2_subdev *sd,
 
 static void select_input(struct v4l2_subdev *sd, enum adv7842_prim_mode prim_mode, enum adv7842_vid_std_select vid_std_select)
 {
+	struct adv7842_state *state = to_state(sd);
+	struct adv7842_output_format *opf = state->opf;
+
+	/* output video format */
+	io_write_and_or(sd, 0x02, 0xf8,
+			opf->op_656_range << 2 |
+			opf->rgb_out << 1 |
+			opf->alt_data_sat << 0);
+	io_write(sd, 0x03, opf->op_format_sel);
+	io_write_and_or(sd, 0x04, 0x1f, opf->op_ch_sel << 5);
+	io_write_and_or(sd, 0x05, 0xf0, opf->blank_data << 3 |
+					opf->insert_av_codes << 2 |
+					opf->replicate_av_codes << 1 |
+					opf->invert_cbcr << 0);
+	io_write_and_or(sd, 0x30, ~(1 << 4), opf->output_bus_lsb_to_msb << 4);
+
 	switch (prim_mode) {
 	case ADV7842_PRIM_MODE_SDP:
 
@@ -1380,7 +1399,10 @@ static void select_input(struct v4l2_subdev *sd, enum adv7842_prim_mode prim_mod
 		sdp_io_write(sd, 0x7b, 0x8f); /* Timing Adjustment */
 		sdp_io_write(sd, 0x60, 0x01); /* SDRAM reset */
 		sdp_io_write(sd, 0x97, 0x00); /* Hsync width Adjustment */
-		sdp_io_write(sd, 0xb2, 0x60); /* Disable AV codes */
+		if (opf->insert_av_codes)
+			sdp_io_write(sd, 0xb2, 0x6c);
+		else
+			sdp_io_write(sd, 0xb2, 0x60); /* Disable AV codes */
 
 		/* SDP recommended settings */
 		sdp_write(sd, 0x00, 0x7F); /* Autodetect PAL NTSC SECAM */
@@ -1389,20 +1411,23 @@ static void select_input(struct v4l2_subdev *sd, enum adv7842_prim_mode prim_mod
 		sdp_write(sd, 0x04, 0x0B); /* Manual Luma setting */
 		sdp_write(sd, 0x05, 0xC3); /* Manual Chroma setting 0x3FE */
 		sdp_write(sd, 0x06, 0xFE); /* Manual Chroma setting */
-		sdp_write(sd, 0x12, 0x0C); /* Frame TBC,3D comb enabled */
+		sdp_write(sd, 0x12, 0x05); /* Frame TBC,3D comb enabled */
 		sdp_write(sd, 0xA7, 0x00); /* ADI Recommended Write */
 
-		sdp_write_and_or(sd, 0x12, 0xf7, 0x08); /* deinterlacer enabled */
+		if (opf->i2p_convert)
+			sdp_write_and_or(sd, 0x12, 0xf7, 0x08); /* deinterlacer enabled */
 
 		sdp_write(sd, 0xdd, 0x08); /* free run auto */
 
-		/* Manual CSC mode, convert to RGB
-		   http://ez.analog.com/message/30063
-		*/
-		sdp_csc_coeff(sd, true, 2,
-			      0x03a7, 0x1e91, 0x1de2, 0x7d00,
-			      0x03a7, 0x0761, 0x0000, 0x7900,
-			      0x03a7, 0x0000, 0x0429, 0x7900);
+		if (opf->rgb_out) {
+			/* Manual CSC mode, convert to RGB
+			http://ez.analog.com/message/30063
+			*/
+			sdp_csc_coeff(sd, true, 2,
+					0x03a7, 0x1e91, 0x1de2, 0x7d00,
+					0x03a7, 0x0761, 0x0000, 0x7900,
+					0x03a7, 0x0000, 0x0429, 0x7900);
+		}
 		v4l2_info(sd, "%s: SDP todo\n", __func__);
 		break;
 	case ADV7842_PRIM_MODE_COMP:
@@ -1537,6 +1562,14 @@ static int adv7842_s_routing(struct v4l2_subdev *sd,
 		return -EINVAL;
 	}
 
+	if (output < state->pdata->num_opf) {
+		state->opf = &state->pdata->opf[output];
+	} else {
+		state->prim_mode = prev_prime_mode;
+		state->vid_std_select = prev_vid_std_select;
+		return -EINVAL;
+	}
+
 	if ((state->prim_mode != prev_prime_mode) ||
 	    (state->vid_std_select != prev_vid_std_select)) {
 		/* only re-init if primary mode changed */
@@ -1553,10 +1586,13 @@ static int adv7842_s_routing(struct v4l2_subdev *sd,
 static int adv7842_enum_mbus_fmt(struct v4l2_subdev *sd, unsigned int index,
 			     enum v4l2_mbus_pixelcode *code)
 {
+	struct adv7842_state *state = to_state(sd);
 	if (index)
 		return -EINVAL;
-	/* Good enough for now */
-	*code = V4L2_MBUS_FMT_FIXED;
+	if (state->prim_mode == ADV7842_PRIM_MODE_SDP)
+		*code = V4L2_MBUS_FMT_UYVY8_2X8;
+	else
+		*code = V4L2_MBUS_FMT_FIXED;
 	return 0;
 }
 
@@ -1567,16 +1603,32 @@ static int adv7842_g_mbus_fmt(struct v4l2_subdev *sd,
 	struct v4l2_dv_enum_preset info;
 	int err;
 
-	if (state->preset == V4L2_DV_INVALID)
-		return -EINVAL;
-	err = v4l_fill_dv_preset_info(state->preset, &info);
-	fmt->width = info.width;
-	fmt->height = info.height;
-	fmt->code = V4L2_MBUS_FMT_FIXED;
-	fmt->field = V4L2_FIELD_NONE;
-	fmt->colorspace = (state->preset <= V4L2_DV_576P50) ?
-		V4L2_COLORSPACE_SMPTE170M : V4L2_COLORSPACE_REC709;
-	return err;
+	if (state->prim_mode == ADV7842_PRIM_MODE_SDP) {
+
+		fmt->code = V4L2_MBUS_FMT_UYVY8_2X8;
+		fmt->colorspace = V4L2_COLORSPACE_SMPTE170M;
+		if (state->std & V4L2_STD_525_60) {
+			fmt->field = V4L2_FIELD_SEQ_TB;
+			fmt->width = 720;
+			fmt->height = 480;
+		} else {
+			fmt->field = V4L2_FIELD_SEQ_BT;
+			fmt->width = 720;
+			fmt->height = 576;
+		}
+		return 0;
+	} else {
+		if (state->preset == V4L2_DV_INVALID)
+			return -EINVAL;
+		err = v4l_fill_dv_preset_info(state->preset, &info);
+		fmt->width = info.width;
+		fmt->height = info.height;
+		fmt->code = V4L2_MBUS_FMT_FIXED;
+		fmt->field = V4L2_FIELD_NONE;
+		fmt->colorspace = (state->preset <= V4L2_DV_576P50) ?
+			V4L2_COLORSPACE_SMPTE170M : V4L2_COLORSPACE_REC709;
+		return err;
+	}
 }
 
 static int adv7842_isr(struct v4l2_subdev *sd, u32 status, bool *handled)
@@ -2305,6 +2357,96 @@ static int adv7842_log_status(struct v4l2_subdev *sd)
 	return 0;
 }
 
+static int adv7842_g_std(struct v4l2_subdev *sd, v4l2_std_id *std)
+{
+	struct adv7842_state *state = to_state(sd);
+
+	if (state->prim_mode != ADV7842_PRIM_MODE_SDP)
+		return -EINVAL;
+
+	*std = state->std;
+	return 0;
+}
+
+static int adv7842_s_std(struct v4l2_subdev *sd, v4l2_std_id std)
+{
+	struct adv7842_state *state = to_state(sd);
+	u8 val;
+
+	if (state->prim_mode != ADV7842_PRIM_MODE_SDP)
+		return -EINVAL;
+
+	if (std == state->std)
+		return 0;
+
+	if (std == V4L2_STD_NTSC_443)
+		val = 0x20;
+	else if (std == V4L2_STD_PAL_60)
+		val = 0x10;
+	else if (std == V4L2_STD_PAL_Nc)
+		val = 0x08;
+	else if (std == V4L2_STD_PAL_M)
+		val = 0x04;
+	else if (std & V4L2_STD_NTSC)
+		val = 0x02;
+	else if (std & V4L2_STD_PAL)
+		val = 0x01;
+	else if (std & V4L2_STD_SECAM)
+		val = 0x40;
+	else
+		return -EINVAL;
+	/* force the digital core into a specific video standard */
+	sdp_write(sd, 0x0, val);
+	/* wait 100ms, otherwise color will be lost */
+	msleep(100);
+	state->std = std;
+	return 0;
+}
+
+static int adv7842_querystd(struct v4l2_subdev *sd, v4l2_std_id *std)
+{
+	struct adv7842_state *state = to_state(sd);
+	u8 val;
+
+	if (state->prim_mode != ADV7842_PRIM_MODE_SDP)
+		return -EINVAL;
+
+	/* enable autodetection block */
+	sdp_write(sd, 0x0, 0x7f);
+	/* wait autodetection switch */
+	mdelay(10);
+	/* get autodetection result */
+	val = sdp_read(sd, 0x52) & 0xf;
+	switch (val) {
+	case 0x0:
+		*std = V4L2_STD_NTSC;
+		break;
+	case 0x2:
+		*std = V4L2_STD_NTSC_443;
+		break;
+	case 0x4:
+		*std = V4L2_STD_PAL_M;
+		break;
+	case 0x6:
+		*std = V4L2_STD_PAL_60;
+		break;
+	case 0xc:
+		*std = V4L2_STD_PAL_Nc;
+		break;
+	case 0xe:
+		*std = V4L2_STD_PAL;
+		break;
+	case 0xf:
+		*std = V4L2_STD_SECAM;
+		break;
+	default:
+		*std = V4L2_STD_UNKNOWN;
+		break;
+	}
+	/* after autodetection, write back user set std */
+	return adv7842_s_std(sd, state->std);
+}
+
 /* ----------------------------------------------------------------------- */
 
 static const struct v4l2_ctrl_ops adv7842_ctrl_ops = {
@@ -2322,6 +2464,8 @@ static const struct v4l2_subdev_core_ops adv7842_core_ops = {
 	.querymenu = v4l2_subdev_querymenu,
 	.ioctl = adv7842_ioctl,
 	.g_chip_ident = adv7842_g_chip_ident,
+	.g_std = adv7842_g_std,
+	.s_std = adv7842_s_std,
 	.interrupt_service_routine = adv7842_isr,
 #ifdef CONFIG_VIDEO_ADV_DEBUG
 	.g_register = adv7842_g_register,
@@ -2331,6 +2475,7 @@ static const struct v4l2_subdev_core_ops adv7842_core_ops = {
 
 static const struct v4l2_subdev_video_ops adv7842_video_ops = {
 	.s_routing = adv7842_s_routing,
+	.querystd = adv7842_querystd,
 	.g_input_status = adv7842_g_input_status,
 	.enum_dv_presets = adv7842_enum_dv_presets,
 	.s_dv_preset = adv7842_s_dv_preset,
@@ -2411,16 +2556,7 @@ static int adv7842_core_init(struct v4l2_subdev *sd, const struct adv7842_platfo
 	/* video format */
 	io_write(sd, 0x02,
 			pdata->inp_color_space << 4 |
-			pdata->alt_gamma << 3 |
-			pdata->op_656_range << 2 |
-			pdata->rgb_out << 1 |
-			pdata->alt_data_sat << 0);
-	io_write(sd, 0x03, pdata->op_format_sel);
-	io_write_and_or(sd, 0x04, 0x1f, pdata->op_ch_sel << 5);
-	io_write_and_or(sd, 0x05, 0xf0, pdata->blank_data << 3 |
-					pdata->insert_av_codes << 2 |
-					pdata->replicate_av_codes << 1 |
-					pdata->invert_cbcr << 0);
+			pdata->alt_gamma << 3);
 
 	/* TODO from platform data */
 	cp_write(sd, 0x69, 0x14);   /* Enable CP CSC */
@@ -2433,7 +2569,6 @@ static int adv7842_core_init(struct v4l2_subdev *sd, const struct adv7842_platfo
 	afe_write(sd, 0xb5, 0x01);  /* Setting MCLK to 256Fs */
 
 	afe_write(sd, 0x02, pdata->ain_sel); /* Select analog input muxing mode */
-	io_write_and_or(sd, 0x30, ~(1 << 4), pdata->output_bus_lsb_to_msb << 4);
 
 	select_input(sd, pdata->prim_mode, pdata->vid_std_select);
 
@@ -2518,6 +2653,8 @@ static int adv7842_probe(struct i2c_client *client,
 	state->preset = V4L2_DV_1080P60;
 	state->connector_hdmi = pdata->connector_hdmi;
 	state->prim_mode = pdata->prim_mode;
+	state->pdata = pdata;
+	state->opf = &pdata->opf[0];
 
 	hdl = &state->hdl;
 	v4l2_ctrl_handler_init(hdl, 5);
@@ -2588,6 +2725,16 @@ static int adv7842_probe(struct i2c_client *client,
 		v4l2_err(sd, "failed to create all i2c clients\n");
 		goto err_i2c;
 	}
+	if (pdata->i2c_ex) {
+		struct i2c_client *i2c_ex;
+		i2c_ex = i2c_new_dummy(client->adapter, pdata->i2c_ex);
+		/* enable 24-bit mode and sport */
+		adv_smbus_write_byte_data(i2c_ex, 0x14, 0xfa);
+		adv_smbus_write_byte_data(i2c_ex, 0x15, 0xff);
+		adv_smbus_write_byte_data(i2c_ex, 0x0, 0x0);
+		adv_smbus_write_byte_data(i2c_ex, 0x1, 0x0);
+		i2c_unregister_device(i2c_ex);
+	}
 
 	/* work queues */
 	state->work_queues = create_singlethread_workqueue(client->name);
@@ -2608,6 +2755,10 @@ static int adv7842_probe(struct i2c_client *client,
 	err = adv7842_core_init(sd, pdata);
 	if (err)
 		goto err_entity;
+	if (state->prim_mode == ADV7842_PRIM_MODE_SDP) {
+		state->std = V4L2_STD_UNKNOWN;
+		adv7842_s_std(sd, V4L2_STD_PAL);
+	}
 	v4l2_info(sd, "%s found @ 0x%x (%s)\n", client->name,
 			client->addr << 1, client->adapter->name);
 	return 0;

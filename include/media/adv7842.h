@@ -100,37 +100,15 @@ enum adv7842_op_format_sel {
 	ADV7842_OP_FORMAT_SEL_SDR_ITU656_24_MODE2 = 0x8a,
 };
 
-/* Platform dependent definition */
-struct adv7842_platform_data {
-	/* connector - HDMI or DVI? */
-	unsigned connector_hdmi:1;
-
-	/* DIS_PWRDNB: 1 if the PWRDNB pin is unused and unconnected */
-	unsigned disable_pwrdnb:1;
-
-	/* DIS_CABLE_DET_RST: 1 if the 5V pins are unused and unconnected */
-	unsigned disable_cable_det_rst:1;
-
-	/* Analog input muxing mode */
-	enum adv7842_ain_sel ain_sel;
-
+/* output format, may change with input */
+struct adv7842_output_format {
 	/* Bus rotation and reordering */
 	enum adv7842_op_ch_sel op_ch_sel;
-
-	/* Primary mode */
-	enum adv7842_prim_mode prim_mode;
-
-	/* Video standard */
-	enum adv7842_vid_std_select vid_std_select;
-
-	/* Input Color Space */
-	enum adv7842_inp_color_space inp_color_space;
 
 	/* Select output format */
 	enum adv7842_op_format_sel op_format_sel;
 
 	/* IO register 0x02 */
-	unsigned alt_gamma:1;
 	unsigned op_656_range:1;
 	unsigned rgb_out:1;
 	unsigned alt_data_sat:1;
@@ -143,6 +121,39 @@ struct adv7842_platform_data {
 
 	/* IO register 0x30 */
 	unsigned output_bus_lsb_to_msb:1;
+
+	/* SDP register 0x12 */
+	unsigned i2p_convert:1;
+};
+
+/* Platform dependent definition */
+struct adv7842_platform_data {
+	/* output format for corresponding inputs */
+	struct adv7842_output_format *opf;
+	int num_opf;
+
+	/* connector - HDMI or DVI? */
+	unsigned connector_hdmi:1;
+
+	/* DIS_PWRDNB: 1 if the PWRDNB pin is unused and unconnected */
+	unsigned disable_pwrdnb:1;
+
+	/* DIS_CABLE_DET_RST: 1 if the 5V pins are unused and unconnected */
+	unsigned disable_cable_det_rst:1;
+
+	/* Analog input muxing mode */
+	enum adv7842_ain_sel ain_sel;
+
+	unsigned alt_gamma:1;
+
+	/* Primary mode */
+	enum adv7842_prim_mode prim_mode;
+
+	/* Video standard */
+	enum adv7842_vid_std_select vid_std_select;
+
+	/* Input Color Space */
+	enum adv7842_inp_color_space inp_color_space;
 
 	/* Free run */
 	unsigned hdmi_free_run_mode;
@@ -159,6 +170,8 @@ struct adv7842_platform_data {
 	u8 i2c_infoframe;
 	u8 i2c_cec;
 	u8 i2c_avlink;
+	/* I/O expander on ADI adv7842 ez-extender board */
+	u8 i2c_ex;
 };
 
 /* notify events */
