@@ -141,6 +141,8 @@ struct sm_message {
 };
 
 #define SM_MSGQ_LEN 16
+#define DEBUG_MSG_LINE 128
+#define SM_MSGQ_END (MSGQ_START_ADDR + MSGQ_SIZE + (DEBUG_MSG_LINE * SM_MSGQ_LEN))
 
 /* Simple FIFO buffer */
 struct sm_message_queue {

@@ -68,6 +68,7 @@ static void wakeup_icc_thread(void)
 
 static int init_sm_message_queue(struct bfin_icc *icc)
 {
+	BUG_ON(MSGQ_SIZE < (sizeof(struct sm_message_queue) * 2));
 	icc->icc_info.icc_queue = (struct sm_message_queue *)MSGQ_START_ADDR;
 	memset(icc->icc_info.icc_queue, 0, sizeof(struct sm_message_queue)*2);
 	return 0;
@@ -1464,6 +1465,8 @@ static int __devinit bfin_icc_probe(struct platform_device *pdev)
 	struct bfin_icc *icc = NULL;
 	struct sm_icc_desc *icc_info;
 	int ret;
+
+	BUG_ON(SM_MSGQ_END > ICC_CODE_START);
 
 	if (bfin_icc) {
 		dev_err(&pdev->dev, "Can't register more than one bfin_icc device.\n");
