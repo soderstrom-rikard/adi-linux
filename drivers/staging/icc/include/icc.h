@@ -141,8 +141,6 @@ struct sm_message {
 };
 
 #define SM_MSGQ_LEN 16
-#define DEBUG_MSG_LINE 128
-#define SM_MSGQ_END (MSGQ_START_ADDR + MSGQ_SIZE + (DEBUG_MSG_LINE * SM_MSGQ_LEN))
 
 /* Simple FIFO buffer */
 struct sm_message_queue {
@@ -150,6 +148,27 @@ struct sm_message_queue {
 	uint16_t received; /* head of the queue */
 	struct sm_msg messages[SM_MSGQ_LEN];
 } __attribute__((__aligned__(256)));
+
+#define MSGQ_START_ADDR         L2_START
+#define SM_MSGQ_NUM		4 /* 2 low bi-direction fifos and 2 high ones */
+#define MSGQ_SIZE		(sizeof(struct sm_message_queue) * SM_MSGQ_NUM)
+
+#define DEBUG_MSG_LINE		128
+#define DEBUG_MSG_BUF_SIZE	(DEBUG_MSG_LINE * SM_MSGQ_LEN)
+
+#define SM_GET_ICC_QUEUE(session) \
+	(session->queue_priority ? session->icc_info->icc_high_queue : \
+	session->icc_info->icc_queue)
+
+struct sm_icc_desc {
+	uint32_t slave_cpu;
+	struct sm_message_queue *icc_queue;
+	struct sm_message_queue *icc_high_queue;
+	struct task_struct *iccq_thread;
+	wait_queue_head_t iccq_tx_wait;
+	uint32_t irq;
+	uint32_t notify;
+};
 
 struct sm_session {
 	struct list_head rx_messages; /*rx queue sm message*/
@@ -163,6 +182,8 @@ struct sm_session {
 	uint32_t	flags;
 	int (*handle)(struct sm_message *msg, struct sm_session *session);
 	struct sm_proto *proto_ops;
+	struct sm_icc_desc *icc_info;
+	uint32_t	queue_priority;
 	wait_queue_head_t rx_wait;
 } __attribute__((__aligned__(4)));
 
@@ -186,13 +207,6 @@ struct sm_proto {
 	int (*error)(struct sm_msg *msg, struct sm_session *session);
 };
 
-struct sm_icc_desc {
-	struct sm_message_queue *icc_queue;
-	struct sm_session_table *sessions_table;
-	struct task_struct *iccq_thread;
-	wait_queue_head_t iccq_tx_wait;
-	wait_queue_head_t iccq_rx_wait;
-};
 #endif
 
 #define CMD_COREB_START		_IO('b', 0)
@@ -238,6 +252,7 @@ struct sm_packet {
 	uint32_t src_cpu;
 	uint32_t buf_len;
 	uint32_t paddr;
+	uint32_t queue_priority;
 	void *buf;
 	uint32_t param_len;
 	void *param;
