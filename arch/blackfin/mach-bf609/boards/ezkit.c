@@ -1110,26 +1110,28 @@ static struct platform_device bfin_crypto_crc_device = {
 #endif
 
 #if defined(CONFIG_ICC)
-#define BFIN_ICC_NAME "icc"
+#include <asm/icc.h>
+#define ICC_NAME "icc"
+#define ICC_SLAVE_COUNT	1
 
-static struct resource bfin_icc_resources[] = {
+static struct icc_slave_platform_data bfin_icc_slave_data[ICC_SLAVE_COUNT] = {
 	{
-		.start = IRQ_SOFT0,	/* ICC Low receive IRQ */
-		.end = IRQ_SOFT0,
-		.flags = IORESOURCE_IRQ,
-	},
-	{
-		.start = IRQ_SOFT2,	/* ICC High receive IRQ */
-		.end = IRQ_SOFT2,
-		.flags = IORESOURCE_IRQ,
+		.irq = IRQ_SOFT0,
+		.notify = IRQ_SOFT1,
 	},
 };
 
+static struct icc_platform_data bfin_icc_data = {
+	.slave_count = ICC_SLAVE_COUNT,
+	.slave_info = bfin_icc_slave_data,
+};
+
 static struct platform_device bfin_icc_device = {
-	.name = BFIN_ICC_NAME,
+	.name = ICC_NAME,
 	.id = 0,
-	.num_resources = ARRAY_SIZE(bfin_icc_resources),
-	.resource = bfin_icc_resources,
+	.dev = {
+		.platform_data = &bfin_icc_data,
+	},
 };
 #endif
 
