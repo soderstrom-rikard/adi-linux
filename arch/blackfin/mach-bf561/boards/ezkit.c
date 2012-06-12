@@ -330,26 +330,28 @@ static struct platform_device bfin_spi0_device = {
 #endif
 
 #if defined(CONFIG_ICC)
+#include <asm/icc.h>
 #define BFIN_ICC_NAME "icc"
+#define ICC_SLAVE_COUNT	1
 
-static struct resource bfin_icc_resources[] = {
+static struct icc_slave_platform_data bfin_icc_slave_data[ICC_SLAVE_COUNT] = {
 	{
-		.start = IRQ_SUPPLE_0,	/* ICC Low receive IRQ */
-		.end = IRQ_SUPPLE_0,
-		.flags = IORESOURCE_IRQ,
+		.irq = IRQ_SUPPLE_0,
+		.notify = IRQ_SUPPLE_0,
 	},
-	{
-		.start = IRQ_SUPPLE_1,	/* ICC High receive IRQ */
-		.end = IRQ_SUPPLE_1,
-		.flags = IORESOURCE_IRQ,
-	},
+};
+
+static struct icc_platform_data bfin_icc_data = {
+	.slave_count = ICC_SLAVE_COUNT,
+	.slave_info = bfin_icc_slave_data,
 };
 
 static struct platform_device bfin_icc_device = {
 	.name = BFIN_ICC_NAME,
 	.id = 0,
-	.num_resources = ARRAY_SIZE(bfin_icc_resources),
-	.resource = bfin_icc_resources,
+	.dev = {
+		.platform_data = &bfin_icc_data,
+	},
 };
 #endif
 
