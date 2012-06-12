@@ -812,6 +812,10 @@ static int sm_destroy_session(uint32_t session_idx)
 		sm_debug("drain tx list1\n");
 		set_current_state(TASK_RUNNING);
 		mutex_lock(&table->lock);
+		message = list_first_entry(&session->tx_messages,
+					struct sm_message, next);
+		list_del(&message->next);
+		kfree(message);
 	}
 	mutex_unlock(&table->lock);
 
@@ -1391,7 +1395,7 @@ static int message_queue_thread(void *d)
 				set_current_state(TASK_RUNNING);
 				break;
 			}
-			schedule();
+			schedule_timeout(HZ);
 			continue;
 		}
 		set_current_state(TASK_RUNNING);
