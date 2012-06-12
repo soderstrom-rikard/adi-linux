@@ -161,7 +161,7 @@ struct sm_message_queue {
 	session->icc_info->icc_queue)
 
 struct sm_icc_desc {
-	uint32_t slave_cpu;
+	uint32_t peer_cpu;
 	struct sm_message_queue *icc_queue;
 	struct sm_message_queue *icc_high_queue;
 	struct task_struct *iccq_thread;

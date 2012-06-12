@@ -245,10 +245,10 @@ static int sm_send_message_internal(struct sm_session *session,
 {
 	struct sm_icc_desc *icc_info = session->icc_info;
 	int ret = 0;
-	sm_debug("%s: dst %d %08x\n", __func__, icc_info->slave_cpu, (uint32_t)msg->type);
+	sm_debug("%s: dst %d %08x\n", __func__, icc_info->peer_cpu, (uint32_t)msg->type);
 	ret = sm_message_enqueue(SM_GET_ICC_QUEUE(session), msg);
 	if (!ret)
-		icc_send_ipi_cpu(icc_info->slave_cpu, icc_info->notify);
+		icc_send_ipi_cpu(icc_info->peer_cpu, icc_info->notify);
 	return ret;
 }
 
@@ -1083,7 +1083,7 @@ static int msg_recv_internal(struct sm_msg *msg, struct sm_session *session)
 		memcpy(&message->msg, msg, sizeof(struct sm_msg));
 
 	message->dst = cpu;
-	message->src = icc_info->slave_cpu;
+	message->src = icc_info->peer_cpu;
 
 	if ((SM_MSG_PROTOCOL(msg->type) == SP_SCALAR))
 		sm_send_scalar_ack(session, msg->src_ep, message->src,
@@ -1191,7 +1191,7 @@ matched1:
 		session->remote_ep = msg->src_ep;
 		session->flags = SM_CONNECTING;
 		session->type = SM_MSG_PROTOCOL(msg->type);
-		sm_send_connect_ack(session, msg->src_ep, icc_info->slave_cpu);
+		sm_send_connect_ack(session, msg->src_ep, icc_info->peer_cpu);
 		break;
 	case SM_SESSION_PACKET_CONNECT_DONE:
 	case SM_SESSION_SCALAR_CONNECT_DONE:
@@ -1200,9 +1200,9 @@ matched1:
 		break;
 	case SM_SESSION_PACKET_ACTIVE:
 		if (session->flags & SM_OPEN)
-			sm_send_session_active_ack(session, msg->src_ep, icc_info->slave_cpu);
+			sm_send_session_active_ack(session, msg->src_ep, icc_info->peer_cpu);
 		else
-			sm_send_session_active_noack(session, msg->src_ep, icc_info->slave_cpu);
+			sm_send_session_active_noack(session, msg->src_ep, icc_info->peer_cpu);
 		break;
 	case SM_SESSION_PACKET_ACTIVE_ACK:
 		if (session->flags & SM_OPEN) {
@@ -1216,7 +1216,7 @@ matched1:
 	case SM_SESSION_SCALAR_CLOSE:
 		session->remote_ep = 0;
 		session->flags = 0;
-		sm_send_close_ack(session, msg->src_ep, icc_info->slave_cpu);
+		sm_send_close_ack(session, msg->src_ep, icc_info->peer_cpu);
 		break;
 	case SM_SESSION_PACKET_CLOSE_ACK:
 	case SM_SESSION_SCALAR_CLOSE_ACK:
@@ -1519,7 +1519,7 @@ static int __devinit bfin_icc_probe(struct platform_device *pdev)
 	}
 
 	for (i = 0, icc_info = icc->icc_info; i < icc->slave_count; i++, icc_info++) {
-		icc_info->slave_cpu = i + 1;
+		icc_info->peer_cpu = i + 1;
 
 		icc_info->notify = icc_data->slave_info[i].notify;
 		if( icc_info->notify < 0) {
