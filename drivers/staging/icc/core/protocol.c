@@ -841,9 +841,22 @@ static int sm_destroy_session(uint32_t session_idx)
 		schedule_timeout(HZ * 2);
 		sm_debug("drain tx list1\n");
 		set_current_state(TASK_RUNNING);
+
 		mutex_lock(&table->lock);
-		if (!list_empty(&session->tx_messages))
-			break;
+
+		if (signal_pending(current)) {
+			sm_debug("signal\n");
+			while (!list_empty(&session->tx_messages)) {
+				message = list_first_entry(&session->tx_messages,
+						struct sm_message, next);
+				list_del(&message->next);
+				kfree(message);
+
+			}
+			mutex_unlock(&table->lock);
+			return -ERESTARTSYS;
+		}
+
 		message = list_first_entry(&session->tx_messages,
 					struct sm_message, next);
 		list_del(&message->next);
@@ -858,7 +871,7 @@ static int sm_destroy_session(uint32_t session_idx)
 		interruptible_sleep_on(&session->rx_wait);
 		if (signal_pending(current)) {
 			sm_debug("signal\n");
-			return -EINTR;
+			return -ERESTARTSYS;
 		}
 	}
 
