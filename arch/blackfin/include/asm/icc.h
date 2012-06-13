@@ -9,14 +9,16 @@
 
 #include <linux/cpumask.h>
 
-struct icc_slave_platform_data {
+struct icc_peer_platform_data {
+	u32	peerid;
 	u32	irq;
 	u32	notify;
+	u32 	phy_peer_mem;
 };
 
 struct icc_platform_data {
-	u32	slave_count;
-	struct icc_slave_platform_data *slave_info;
+	u32	peer_count;
+	struct icc_peer_platform_data *peer_info;
 };
 
 void platform_send_ipi(cpumask_t callmap, int irq);

@@ -137,6 +137,7 @@ struct sm_message {
 	uint16_t dst;
 	uint16_t src;
 	struct sm_msg msg;
+	struct sm_icc_desc *icc_info;
 	uint32_t flags;
 };
 
@@ -149,16 +150,11 @@ struct sm_message_queue {
 	struct sm_msg messages[SM_MSGQ_LEN];
 } __attribute__((__aligned__(256)));
 
-#define MSGQ_START_ADDR         L2_START
 #define SM_MSGQ_NUM		4 /* 2 low bi-direction fifos and 2 high ones */
 #define MSGQ_SIZE		(sizeof(struct sm_message_queue) * SM_MSGQ_NUM)
 
 #define DEBUG_MSG_LINE		128
 #define DEBUG_MSG_BUF_SIZE	(DEBUG_MSG_LINE * SM_MSGQ_LEN)
-
-#define SM_GET_ICC_QUEUE(session) \
-	(session->queue_priority ? session->icc_info->icc_high_queue : \
-	session->icc_info->icc_queue)
 
 struct sm_icc_desc {
 	uint32_t peer_cpu;
@@ -182,7 +178,6 @@ struct sm_session {
 	uint32_t	flags;
 	int (*handle)(struct sm_message *msg, struct sm_session *session);
 	struct sm_proto *proto_ops;
-	struct sm_icc_desc *icc_info;
 	uint32_t	queue_priority;
 	wait_queue_head_t rx_wait;
 } __attribute__((__aligned__(4)));

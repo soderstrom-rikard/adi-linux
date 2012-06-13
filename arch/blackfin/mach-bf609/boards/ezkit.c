@@ -1112,18 +1112,20 @@ static struct platform_device bfin_crypto_crc_device = {
 #if defined(CONFIG_ICC)
 #include <asm/icc.h>
 #define ICC_NAME "icc"
-#define ICC_SLAVE_COUNT	1
+#define ICC_PEER_COUNT	1
 
-static struct icc_slave_platform_data bfin_icc_slave_data[ICC_SLAVE_COUNT] = {
+static struct icc_peer_platform_data bfin_icc_peer_data[ICC_PEER_COUNT] = {
 	{
+		.peerid = 1,
 		.irq = IRQ_SOFT0,
 		.notify = IRQ_SOFT1,
+		.phy_peer_mem = L2_START,
 	},
 };
 
 static struct icc_platform_data bfin_icc_data = {
-	.slave_count = ICC_SLAVE_COUNT,
-	.slave_info = bfin_icc_slave_data,
+	.peer_count = ICC_PEER_COUNT,
+	.peer_info = bfin_icc_peer_data,
 };
 
 static struct platform_device bfin_icc_device = {
