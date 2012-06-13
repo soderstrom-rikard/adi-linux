@@ -247,8 +247,6 @@ static irqreturn_t bfin_twi_interrupt_entry(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-#define BFIN_TWI_BUSY_TIMEOUT	1000
-
 /*
  * One i2c master transfer
  */
@@ -258,16 +256,12 @@ static int bfin_twi_do_master_xfer(struct i2c_adapter *adap,
 	struct bfin_twi_iface *iface = adap->algo_data;
 	struct i2c_msg *pmsg;
 	int rc = 0;
-	unsigned int busy_timeout = BFIN_TWI_BUSY_TIMEOUT;
 
 	if (!(read_CONTROL(iface) & TWI_ENA))
 		return -ENXIO;
 
-	while (read_MASTER_STAT(iface) & BUSBUSY) {
-		if (--busy_timeout == 0)
-			return -EBUSY;
-		yield();
-	}
+	if (read_MASTER_STAT(iface) & BUSBUSY)
+		return -EAGAIN;
 
 	iface->pmsg = msgs;
 	iface->msg_num = num;
@@ -364,16 +358,12 @@ int bfin_twi_do_smbus_xfer(struct i2c_adapter *adap, u16 addr,
 {
 	struct bfin_twi_iface *iface = adap->algo_data;
 	int rc = 0;
-	unsigned int busy_timeout = BFIN_TWI_BUSY_TIMEOUT;
 
 	if (!(read_CONTROL(iface) & TWI_ENA))
 		return -ENXIO;
 
-	while (read_MASTER_STAT(iface) & BUSBUSY) {
-		if (--busy_timeout == 0)
-			return -EBUSY;
-		yield();
-	}
+	if (read_MASTER_STAT(iface) & BUSBUSY)
+		return -EAGAIN;
 
 	iface->writeNum = 0;
 	iface->readNum = 0;
