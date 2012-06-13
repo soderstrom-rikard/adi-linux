@@ -85,7 +85,7 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface,
 
 		if (iface->readNum == 0) {
 			if (iface->manual_stop) {
-				/* Avoid possible bus stall -
+				/* Temporary workaround to avoid possible bus stall -
 				 * Flush FIFO before issuing the STOP condition
 				 */
 				read_RCV_DATA16(iface);
