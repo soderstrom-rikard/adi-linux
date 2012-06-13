@@ -857,6 +857,9 @@ static int sm_destroy_session(uint32_t session_idx)
 			return -ERESTARTSYS;
 		}
 
+		if (list_empty(&session->tx_messages))
+			break;
+
 		message = list_first_entry(&session->tx_messages,
 					struct sm_message, next);
 		list_del(&message->next);
