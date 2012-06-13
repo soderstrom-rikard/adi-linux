@@ -811,6 +811,8 @@ static int sm_destroy_session(uint32_t session_idx)
 		sm_debug("drain tx list1\n");
 		set_current_state(TASK_RUNNING);
 		mutex_lock(&table->lock);
+		if (!list_empty(&session->tx_messages))
+			break;
 		message = list_first_entry(&session->tx_messages,
 					struct sm_message, next);
 		list_del(&message->next);
