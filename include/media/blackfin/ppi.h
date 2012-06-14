@@ -43,12 +43,16 @@
 struct ppi_if;
 
 struct ppi_params {
-	int width;
-	int height;
-	int bpp;
-	unsigned long ppi_control;
-	u32 int_mask;
-	int blank_clocks;
+	u32 width;              /* width in pixels */
+	u32 height;             /* height in lines */
+	u32 hdelay;             /* delay after the HSYNC in pixels */
+	u32 vdelay;             /* delay after the VSYNC in lines */
+	u32 line;               /* total pixels per line */
+	u32 frame;              /* total lines per frame */
+	int bpp;                /* bits per pixel */
+	int dlen;               /* data length for ppi in bits */
+	u32 ppi_control;        /* ppi configuration */
+	u32 int_mask;           /* interrupt mask */
 };
 
 struct ppi_ops {

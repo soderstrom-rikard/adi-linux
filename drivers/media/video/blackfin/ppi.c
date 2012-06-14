@@ -191,10 +191,11 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 {
 	const struct ppi_info *info = ppi->info;
 	int dma32 = 0;
-	int dma_config, bytes_per_line, lines_per_frame;
+	int dma_config, hcount, bytes_per_line, samples_per_line;
 
 	bytes_per_line = params->width * params->bpp / 8;
-	lines_per_frame = params->height;
+	hcount = params->width * params->bpp / params->dlen;
+	samples_per_line = params->line * params->bpp / params->dlen;
 	if (params->int_mask == 0xFFFFFFFF)
 		ppi->err_int = false;
 	else
@@ -211,8 +212,8 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 			dma32 = 1;
 
 		bfin_write16(&reg->control, ppi->ppi_control);
-		bfin_write16(&reg->count, bytes_per_line - 1);
-		bfin_write16(&reg->frame, lines_per_frame);
+		bfin_write16(&reg->count, samples_per_line - 1);
+		bfin_write16(&reg->frame, params->frame);
 		break;
 	}
 	case PPI_TYPE_EPPI:
@@ -224,12 +225,12 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 			dma32 = 1;
 
 		bfin_write32(&reg->control, ppi->ppi_control);
-		bfin_write16(&reg->line, bytes_per_line + params->blank_clocks);
-		bfin_write16(&reg->frame, lines_per_frame);
-		bfin_write16(&reg->hdelay, 0);
-		bfin_write16(&reg->vdelay, 0);
-		bfin_write16(&reg->hcount, bytes_per_line);
-		bfin_write16(&reg->vcount, lines_per_frame);
+		bfin_write16(&reg->line, samples_per_line);
+		bfin_write16(&reg->frame, params->frame);
+		bfin_write16(&reg->hdelay, params->hdelay);
+		bfin_write16(&reg->vdelay, params->vdelay);
+		bfin_write16(&reg->hcount, hcount);
+		bfin_write16(&reg->vcount, params->height);
 		break;
 	}
 	case PPI_TYPE_EPPI3:
@@ -241,12 +242,12 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 			dma32 = 1;
 
 		bfin_write32(&reg->ctl, ppi->ppi_control);
-		bfin_write32(&reg->line, bytes_per_line + params->blank_clocks);
-		bfin_write32(&reg->frame, lines_per_frame);
-		bfin_write32(&reg->hdly, 0);
-		bfin_write32(&reg->vdly, 0);
-		bfin_write32(&reg->hcnt, bytes_per_line);
-		bfin_write32(&reg->vcnt, lines_per_frame);
+		bfin_write32(&reg->line, samples_per_line);
+		bfin_write32(&reg->frame, params->frame);
+		bfin_write32(&reg->hdly, params->hdelay);
+		bfin_write32(&reg->vdly, params->vdelay);
+		bfin_write32(&reg->hcnt, hcount);
+		bfin_write32(&reg->vcnt, params->height);
 		if (params->int_mask)
 			bfin_write32(&reg->imsk, params->int_mask & 0xFF);
 		break;
@@ -266,7 +267,7 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 		set_dma_x_modify(info->dma_ch, 2);
 		set_dma_y_modify(info->dma_ch, 2);
 	}
-	set_dma_y_count(info->dma_ch, lines_per_frame);
+	set_dma_y_count(info->dma_ch, params->height);
 	set_dma_config(info->dma_ch, dma_config);
 
 	SSYNC();

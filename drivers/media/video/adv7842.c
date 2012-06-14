@@ -39,7 +39,7 @@
 #include <media/v4l2-chip-ident.h>
 #include <media/adv7842.h>
 
-static int debug;
+static int debug = 3;
 
 MODULE_DESCRIPTION("Analog Devices ADV7842 video decoder driver");
 MODULE_AUTHOR("Hans Verkuil <hans.verkuil@cisco.com>");
@@ -151,6 +151,11 @@ struct adv7842_state {
 	struct v4l2_ctrl *analog_sampling_phase_ctrl;
 	struct v4l2_ctrl *free_run_color_ctrl_manual;
 	struct v4l2_ctrl *free_run_color_ctrl;
+};
+
+static enum v4l2_mbus_pixelcode adv7842_codes[] = {
+	V4L2_MBUS_FMT_UYVY8_2X8,
+	V4L2_MBUS_FMT_UYVY8_1X16,
 };
 
 /* ----------------------------------------------------------------------- */
@@ -1226,7 +1231,7 @@ static int adv7842_g_dv_timings(struct v4l2_subdev *sd,
 	adv7842_g_input_status(sd, &status);
 	if (status) {
 		v4l2_dbg(1, debug, sd, "%s: chip not locked on format\n", __func__);
-		memset(timings, 0, sizeof(timings));
+		memset(timings, 0, sizeof(*timings));
 	} else {
 		struct v4l2_bt_timings *bt = &timings->bt;
 
@@ -1467,6 +1472,50 @@ static void select_input(struct v4l2_subdev *sd, enum adv7842_prim_mode prim_mod
 	}
 		break;
 	case ADV7842_PRIM_MODE_HDMI_COMP:
+		io_write(sd, 0x00, vid_std_select); /* video std */
+		io_write(sd, 0x01, prim_mode); /* prim mode */
+
+		io_write(sd, 0x19, 0x83);
+		io_write(sd, 0x33, 0x40);
+		cp_write(sd, 0xba, 0x01);
+		cp_write(sd, 0x3e, 0x00);
+		cp_write(sd, 0x6c, 0x00);
+		afe_write(sd, 0x00, 0xff);
+		afe_write(sd, 0x01, 0xfe);
+		afe_write(sd, 0xb5, 0x01);
+		hdmi_write(sd, 0x00, 0x32);
+		hdmi_write(sd, 0xc1, 0xff);
+		hdmi_write(sd, 0xc2, 0xff);
+		hdmi_write(sd, 0xc3, 0xff);
+		hdmi_write(sd, 0xc4, 0xff);
+		hdmi_write(sd, 0xc5, 0x00);
+		hdmi_write(sd, 0xc6, 0x00);
+		hdmi_write(sd, 0xc0, 0xff);
+		hdmi_write(sd, 0x01, 0x18);
+		hdmi_write(sd, 0x0d, 0x34);
+		hdmi_write(sd, 0x1a, 0x8a);
+		hdmi_write(sd, 0x3d, 0x10);
+		hdmi_write(sd, 0x44, 0x85);
+		hdmi_write(sd, 0x46, 0x1f);
+		hdmi_write(sd, 0x60, 0x88);
+		hdmi_write(sd, 0x61, 0x88);
+		hdmi_write(sd, 0x6c, 0x18);
+		hdmi_write(sd, 0x57, 0xb6);
+		hdmi_write(sd, 0x58, 0x03);
+		hdmi_write(sd, 0x67, 0x20);
+		hdmi_write(sd, 0x75, 0x10);
+		hdmi_write(sd, 0x85, 0x1f);
+		hdmi_write(sd, 0x87, 0x70);
+		hdmi_write(sd, 0x89, 0x04);
+		hdmi_write(sd, 0x8a, 0x1e);
+		hdmi_write(sd, 0x93, 0x04);
+		hdmi_write(sd, 0x94, 0x1e);
+		hdmi_write(sd, 0x9d, 0x02);
+		hdmi_write(sd, 0x99, 0xa1);
+		hdmi_write(sd, 0x9b, 0x09);
+		hdmi_write(sd, 0xc9, 0x01);
+		v4l2_info(sd, "%s: HDMI todo\n", __func__);
+		break;
 	case ADV7842_PRIM_MODE_HDMI_GR: {
 		/* Automatic analog input muxing mode */
 		afe_write_and_or(sd, 0x02, 0x7f, 0x00);
@@ -1586,13 +1635,10 @@ static int adv7842_s_routing(struct v4l2_subdev *sd,
 static int adv7842_enum_mbus_fmt(struct v4l2_subdev *sd, unsigned int index,
 			     enum v4l2_mbus_pixelcode *code)
 {
-	struct adv7842_state *state = to_state(sd);
-	if (index)
+	if (index >= ARRAY_SIZE(adv7842_codes))
 		return -EINVAL;
-	if (state->prim_mode == ADV7842_PRIM_MODE_SDP)
-		*code = V4L2_MBUS_FMT_UYVY8_2X8;
-	else
-		*code = V4L2_MBUS_FMT_FIXED;
+
+	*code = adv7842_codes[index];
 	return 0;
 }
 
@@ -1623,7 +1669,7 @@ static int adv7842_g_mbus_fmt(struct v4l2_subdev *sd,
 		err = v4l_fill_dv_preset_info(state->preset, &info);
 		fmt->width = info.width;
 		fmt->height = info.height;
-		fmt->code = V4L2_MBUS_FMT_FIXED;
+		fmt->code = V4L2_MBUS_FMT_UYVY8_1X16;
 		fmt->field = V4L2_FIELD_NONE;
 		fmt->colorspace = (state->preset <= V4L2_DV_576P50) ?
 			V4L2_COLORSPACE_SMPTE170M : V4L2_COLORSPACE_REC709;
@@ -2650,7 +2696,7 @@ static int adv7842_probe(struct i2c_client *client,
 	sd = &state->sd;
 	v4l2_i2c_subdev_init(sd, client, &adv7842_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
-	state->preset = V4L2_DV_1080P60;
+	state->preset = V4L2_DV_720P60;
 	state->connector_hdmi = pdata->connector_hdmi;
 	state->prim_mode = pdata->prim_mode;
 	state->pdata = pdata;
