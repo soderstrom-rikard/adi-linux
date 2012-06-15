@@ -58,7 +58,7 @@ config BFIN_SPORT
 
 config BFIN_LINKPORT
 	tristate "Blackfin LINKPORT driver"
-	depends on BLACKFIN
+	depends on BF60x
 	default n
 	help
 	  This is a generic character interface to the LINKPORT peripheral that
