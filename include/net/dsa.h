@@ -202,4 +202,9 @@ static inline bool dsa_uses_trailer_tags(struct dsa_switch_tree *dst)
 	return !!(dst->tag_protocol == htons(ETH_P_TRAILER));
 }
 
+static inline bool dsa_uses_stpid_tags(struct dsa_switch_tree *dst)
+{
+	return !!(dst->tag_protocol == htons(ETH_P_STPID));
+}
+
 #endif
