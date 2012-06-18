@@ -14,6 +14,7 @@
 #include <linux/netdevice.h>
 #include <linux/phy.h>
 #include <linux/spi/spi.h>
+#include <linux/module.h>
 #include "dsa_priv.h"
 #include "ksz8893m.h"
 

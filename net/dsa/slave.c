@@ -337,7 +337,6 @@ static const struct net_device_ops stpid_netdev_ops = {
 	.ndo_start_xmit		= stpid_xmit,
 	.ndo_change_rx_flags	= dsa_slave_change_rx_flags,
 	.ndo_set_rx_mode	= dsa_slave_set_rx_mode,
-	.ndo_set_multicast_list = dsa_slave_set_rx_mode,
 	.ndo_set_mac_address	= dsa_slave_set_mac_address,
 	.ndo_do_ioctl		= dsa_slave_ioctl,
 };
