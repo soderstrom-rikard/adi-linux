@@ -12,7 +12,7 @@
 #define SM_MSG_TYPE(protocol, subtype) (((protocol)<<24)|(subtype))
 
 /* extract subtype from type enumeration value */
-#define SM_MSG_SUBTYPE(type) ((type)&0xff)
+#define SM_MSG_SUBTYPE(type) ((type)&0xffffff)
 
 /* extract protocol from type enumeration value */
 #define SM_MSG_PROTOCOL(type) (((type)>>24)&0xff)
@@ -128,8 +128,8 @@ struct sm_msg {
 	uint16_t dst_ep;
 	uint16_t src_ep;
 	uint32_t type;
-	uint32_t payload;
 	uint32_t length ;
+	uint32_t payload;
 };
 
 struct sm_message {
