@@ -1438,7 +1438,6 @@ int __msg_handle(struct sm_icc_desc *icc_info, struct sm_message_queue *inqueue)
 	index = sm_find_session(msg->dst_ep, 0, bfin_icc->sessions_table);
 
 	session = sm_index_to_session(index);
-	sm_debug("session %p index %d msg type%x\n", session, index, (uint32_t)msg->type);
 
 	if (!session) {
 		sm_debug("discard msg type %x\n", (uint32_t)msg->type);
@@ -1446,6 +1445,8 @@ int __msg_handle(struct sm_icc_desc *icc_info, struct sm_message_queue *inqueue)
 		wake_up(&icc_info->iccq_tx_wait);
 		return 1;
 	}
+
+	sm_debug("session %p index %d msg type%x\n", session, index, (uint32_t)msg->type);
 
 	session->queue_priority = (inqueue == icc_info->icc_high_queue);
 	if (session->proto_ops->recvmsg)
