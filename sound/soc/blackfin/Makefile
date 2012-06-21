@@ -1,7 +1,6 @@
 # Blackfin Platform Support
 snd-bf5xx-ac97-objs := bf5xx-ac97-pcm.o
 snd-bf5xx-i2s-objs := bf5xx-i2s-pcm.o
-snd-bf6xx-i2s-objs := bf6xx-i2s-pcm.o
 snd-bf5xx-tdm-objs := bf5xx-tdm-pcm.o
 snd-soc-bf5xx-sport-objs := bf5xx-sport.o
 snd-soc-bf6xx-sport-objs := bf6xx-sport.o
@@ -12,7 +11,6 @@ snd-soc-bf5xx-tdm-objs := bf5xx-tdm.o
 
 obj-$(CONFIG_SND_BF5XX_AC97) += snd-bf5xx-ac97.o
 obj-$(CONFIG_SND_BF5XX_I2S) += snd-bf5xx-i2s.o
-obj-$(CONFIG_SND_BF6XX_I2S) += snd-bf6xx-i2s.o
 obj-$(CONFIG_SND_BF5XX_TDM) += snd-bf5xx-tdm.o
 obj-$(CONFIG_SND_BF5XX_SOC_SPORT) += snd-soc-bf5xx-sport.o
 obj-$(CONFIG_SND_BF6XX_SOC_SPORT) += snd-soc-bf6xx-sport.o

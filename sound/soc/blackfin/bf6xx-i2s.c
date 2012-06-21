@@ -227,18 +227,7 @@ static struct platform_driver bfin_i2s_driver = {
 	},
 };
 
-static int __init bfin_i2s_init(void)
-{
-	return platform_driver_register(&bfin_i2s_driver);
-}
-
-static void __exit bfin_i2s_exit(void)
-{
-	platform_driver_unregister(&bfin_i2s_driver);
-}
-
-module_init(bfin_i2s_init);
-module_exit(bfin_i2s_exit);
+module_platform_driver(bfin_i2s_driver);
 
 MODULE_DESCRIPTION("Analog Devices BF6XX i2s interface driver");
 MODULE_AUTHOR("Scott Jiang <Scott.Jiang.Linux@gmail.com>");

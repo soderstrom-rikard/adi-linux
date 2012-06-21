@@ -406,7 +406,7 @@ struct sport_device *sport_create(struct platform_device *pdev)
 		return NULL;
 	}
 
-	dev_info(dev, "SPORT create success\n");
+	dev_dbg(dev, "SPORT create success\n");
 	return sport;
 }
 EXPORT_SYMBOL(sport_create);
