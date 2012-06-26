@@ -48,6 +48,9 @@ SECTIONS
 #if !L1_CODE_LENGTH
 		*(.l1.text)
 #endif
+#if !L2_LENGTH || CONFIG_ICC
+		*(.l2.text)
+#endif
 		__etext = .;
 	}
 
@@ -75,6 +78,9 @@ SECTIONS
 #if !L1_DATA_B_LENGTH
 		*(.l1.bss.B)
 #endif
+#if !L2_LENGTH || CONFIG_ICC
+		*(.l2i.bss)
+#endif
 		. = ALIGN(4);
 		___bss_stop = .;
 	}
@@ -97,7 +103,7 @@ SECTIONS
 #if !L1_DATA_B_LENGTH
 		*(.l1.data.B)
 #endif
-#if !L2_LENGTH
+#if !L2_LENGTH || CONFIG_ICC
 		. = ALIGN(32);
 		*(.data_l2.cacheline_aligned)
 		*(.l2.data)
@@ -224,21 +230,29 @@ SECTIONS
 	{
 		. = ALIGN(4);
 		__stext_l2 = .;
+#if !CONFIG_ICC
 		*(.l2.text)
+#endif
 		. = ALIGN(4);
 		__etext_l2 = .;
 
 		. = ALIGN(4);
 		__sdata_l2 = .;
+#if !CONFIG_ICC
 		*(.l2.data)
+#endif
 		__edata_l2 = .;
 
 		. = ALIGN(32);
+#if !CONFIG_ICC
 		*(.data_l2.cacheline_aligned)
+#endif
 
 		. = ALIGN(4);
 		__sbss_l2 = .;
+#if !CONFIG_ICC
 		*(.l2.bss)
+#endif
 		. = ALIGN(4);
 		__ebss_l2 = .;
 	}

@@ -210,6 +210,10 @@ static irqreturn_t l2_ecc_err(int irq, void *dev_id)
 }
 #endif
 
+#ifdef CONFIG_ICC
+int _icc_l2_reserve;
+#endif
+
 static void __init l2_sram_init(void)
 {
 #if L2_LENGTH != 0
@@ -232,10 +236,20 @@ static void __init l2_sram_init(void)
 		return;
 	}
 
-	free_l2_sram_head.next->paddr =
-		(void *)L2_START + (_ebss_l2 - _stext_l2);
-	free_l2_sram_head.next->size =
-		L2_LENGTH - (_ebss_l2 - _stext_l2);
+#ifdef CONFIG_ICC
+	if (_icc_l2_reserve > L2_LENGTH)
+		_icc_l2_reserve = L2_LENGTH;
+#endif
+	free_l2_sram_head.next->paddr = (void *)L2_START
+#ifdef CONFIG_ICC
+		+ _icc_l2_reserve
+#endif
+		+ (_ebss_l2 - _stext_l2);
+	free_l2_sram_head.next->size = L2_LENGTH
+#ifdef CONFIG_ICC
+		- _icc_l2_reserve
+#endif
+		- (_ebss_l2 - _stext_l2);
 	free_l2_sram_head.next->pid = 0;
 	free_l2_sram_head.next->next = NULL;
 
@@ -264,6 +278,10 @@ static int __init bfin_sram_init(void)
 	return 0;
 }
 pure_initcall(bfin_sram_init);
+
+#ifdef CONFIG_ICC
+core_param(icc_l2_mem, _icc_l2_reserve, int, 0644);
+#endif
 
 /* SRAM allocate function */
 static void *_sram_alloc(size_t size, struct sram_piece *pfree_head,
