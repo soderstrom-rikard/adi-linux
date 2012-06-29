@@ -10,107 +10,147 @@
 #include <linux/irq.h>
 #include <asm/blackfin.h>
 
-void __init program_IAR(void)
-{
-	/* Program the IAR0 Register with the configured priority */
-/*	bfin_write_SIC_IAR0(((CONFIG_IRQ_PLL_WAKEUP - 7) << IRQ_PLL_WAKEUP_POS) |
-			    ((CONFIG_IRQ_DMAC0_ERR - 7) << IRQ_DMAC0_ERR_POS) |
-			    ((CONFIG_IRQ_EPPI0_ERR - 7) << IRQ_EPPI0_ERR_POS) |
-			    ((CONFIG_IRQ_SPORT0_ERR - 7) << IRQ_SPORT0_ERR_POS) |
-			    ((CONFIG_IRQ_SPORT1_ERR - 7) << IRQ_SPORT1_ERR_POS) |
-			    ((CONFIG_IRQ_SPI0_ERR - 7) << IRQ_SPI0_ERR_POS) |
-			    ((CONFIG_IRQ_UART0_ERR - 7) << IRQ_UART0_ERR_POS) |
-			    ((CONFIG_IRQ_RTC - 7) << IRQ_RTC_POS));
+u8 sec_int_priority[] = {
+	255,	/* IRQ_SEC_ERR */
+	255,	/* IRQ_CGU_EVT */
+	254,	/* IRQ_WATCH0 */
+	254,	/* IRQ_WATCH1 */
+	253,	/* IRQ_L2CTL0_ECC_ERR */
+	253,	/* IRQ_L2CTL0_ECC_WARN */
+	253,	/* IRQ_C0_DBL_FAULT */
+	253,	/* IRQ_C1_DBL_FAULT */
+	252,	/* IRQ_C0_HW_ERR */
+	252,	/* IRQ_C1_HW_ERR */
+	255,	/* IRQ_C0_NMI_L1_PARITY_ERR */
+	255,	/* IRQ_C1_NMI_L1_PARITY_ERR */
 
-	bfin_write_SIC_IAR1(((CONFIG_IRQ_EPPI0 - 7) << IRQ_EPPI0_POS) |
-			    ((CONFIG_IRQ_SPORT0_RX - 7) << IRQ_SPORT0_RX_POS) |
-			    ((CONFIG_IRQ_SPORT0_TX - 7) << IRQ_SPORT0_TX_POS) |
-			    ((CONFIG_IRQ_SPORT1_RX - 7) << IRQ_SPORT1_RX_POS) |
-			    ((CONFIG_IRQ_SPORT1_TX - 7) << IRQ_SPORT1_TX_POS) |
-			    ((CONFIG_IRQ_SPI0 - 7) << IRQ_SPI0_POS) |
-			    ((CONFIG_IRQ_UART0_RX - 7) << IRQ_UART0_RX_POS) |
-			    ((CONFIG_IRQ_UART0_TX - 7) << IRQ_UART0_TX_POS));
+	50,	/* IRQ_TIMER0 */
+	50,	/* IRQ_TIMER1 */
+	50,	/* IRQ_TIMER2 */
+	50,	/* IRQ_TIMER3 */
+	50,	/* IRQ_TIMER4 */
+	50,	/* IRQ_TIMER5 */
+	50,	/* IRQ_TIMER6 */
+	50,	/* IRQ_TIMER7 */
+	50,	/* IRQ_TIMER_STAT */
+	0,	/* IRQ_PINT0 */
+	0,	/* IRQ_PINT1 */
+	0,	/* IRQ_PINT2 */
+	0,	/* IRQ_PINT3 */
+	0,	/* IRQ_PINT4 */
+	0,	/* IRQ_PINT5 */
+	0,	/* IRQ_CNT */
+	50,	/* RQ_PWM0_TRIP */
+	50,	/* IRQ_PWM0_SYNC */
+	50,	/* IRQ_PWM1_TRIP */
+	50,	/* IRQ_PWM1_SYNC */
+	0,	/* IRQ_TWI0 */
+	0,	/* IRQ_TWI1 */
+	10,	/* IRQ_SOFT0 */
+	10,	/* IRQ_SOFT1 */
+	10,	/* IRQ_SOFT2 */
+	10,	/* IRQ_SOFT3 */
+	0,	/* IRQ_ACM_EVT_MISS */
+	0,	/* IRQ_ACM_EVT_COMPLETE */
+	0,	/* IRQ_CAN0_RX */
+	0,	/* IRQ_CAN0_TX */
+	0,	/* IRQ_CAN0_STAT */
+	100,	/* IRQ_SPORT0_TX */
+	100,	/* IRQ_SPORT0_TX_STAT */
+	100,	/* IRQ_SPORT0_RX */
+	100,	/* IRQ_SPORT0_RX_STAT */
+	100,	/* IRQ_SPORT1_TX */
+	100,	/* IRQ_SPORT1_TX_STAT */
+	100,	/* IRQ_SPORT1_RX */
+	100,	/* IRQ_SPORT1_RX_STAT */
+	100,	/* IRQ_SPORT2_TX */
+	100,	/* IRQ_SPORT2_TX_STAT */
+	100,	/* IRQ_SPORT2_RX */
+	100,	/* IRQ_SPORT2_RX_STAT */
+	0,	/* IRQ_SPI0_TX */
+	0,	/* IRQ_SPI0_RX */
+	0,	/* IRQ_SPI0_STAT */
+	0,	/* IRQ_SPI1_TX */
+	0,	/* IRQ_SPI1_RX */
+	0,	/* IRQ_SPI1_STAT */
+	0,	/* IRQ_RSI */
+	0,	/* IRQ_RSI_INT0 */
+	0,	/* IRQ_RSI_INT1 */
+	0,	/* DMA11 Data (SDU) */
+	0,	/* DMA12 Data (Reserved) */
+	0,	/* Reserved */
+	0,	/* Reserved */
+	30,	/* IRQ_EMAC0_STAT */
+	0,	/* EMAC0 Power (Reserved) */
+	30,	/* IRQ_EMAC1_STAT */
+	0,	/* EMAC1 Power (Reserved) */
+	0,	/* IRQ_LP0 */
+	0,	/* IRQ_LP0_STAT */
+	0,	/* IRQ_LP1 */
+	0,	/* IRQ_LP1_STAT */
+	0,	/* IRQ_LP2 */
+	0,	/* IRQ_LP2_STAT */
+	0,	/* IRQ_LP3 */
+	0,	/* IRQ_LP3_STAT */
+	0,	/* IRQ_UART0_TX */
+	0,	/* IRQ_UART0_RX */
+	0,	/* IRQ_UART0_STAT */
+	0,	/* IRQ_UART1_TX */
+	0,	/* IRQ_UART1_RX */
+	0,	/* IRQ_UART1_STAT */
+	0,	/* IRQ_MDMA0_SRC_CRC0 */
+	0,	/* IRQ_MDMA0_DEST_CRC0 */
+	0,	/* IRQ_CRC0_DCNTEXP */
+	0,	/* IRQ_CRC0_ERR */
+	0,	/* IRQ_MDMA1_SRC_CRC1 */
+	0,	/* IRQ_MDMA1_DEST_CRC1 */
+	0,	/* IRQ_CRC1_DCNTEXP */
+	0,	/* IRQ_CRC1_ERR */
+	0,	/* IRQ_MDMA2_SRC */
+	0,	/* IRQ_MDMA2_DEST */
+	0,	/* IRQ_MDMA3_SRC */
+	0,	/* IRQ_MDMA3_DEST */
+	120,	/* IRQ_EPPI0_CH0 */
+	120,	/* IRQ_EPPI0_CH1 */
+	120,	/* IRQ_EPPI0_STAT */
+	120,	/* IRQ_EPPI2_CH0 */
+	120,	/* IRQ_EPPI2_CH1 */
+	120,	/* IRQ_EPPI2_STAT */
+	120,	/* IRQ_EPPI1_CH0 */
+	120,	/* IRQ_EPPI1_CH1 */
+	120,	/* IRQ_EPPI1_STAT */
+	120,	/* IRQ_PIXC_CH0 */
+	120,	/* IRQ_PIXC_CH1 */
+	120,	/* IRQ_PIXC_CH2 */
+	120,	/* IRQ_PIXC_STAT */
+	120,	/* IRQ_PVP_CPDOB */
+	120,	/* IRQ_PVP_CPDOC */
+	120,	/* IRQ_PVP_CPSTAT */
+	120,	/* IRQ_PVP_CPCI */
+	120,	/* IRQ_PVP_STAT0 */
+	120,	/* IRQ_PVP_MPDO */
+	120,	/* IRQ_PVP_MPDI */
+	120,	/* IRQ_PVP_MPSTAT */
+	120,	/* IRQ_PVP_MPCI */
+	120,	/* IRQ_PVP_CPDOA */
+	120,	/* IRQ_PVP_STAT1 */
+	0,	/* IRQ_USB_STAT */
+	0,	/* IRQ_USB_DMA */
+	0,	/* IRQ_TRU_INT0 */
+	0,	/* IRQ_TRU_INT1 */
+	0,	/* IRQ_TRU_INT2	*/
+	0,	/* IRQ_TRU_INT3 */
+	0,	/* IRQ_DMAC0_ERROR */
+	0,	/* IRQ_CGU0_ERROR */
+	0,	/* Reserved */
+	0,	/* IRQ_DPM */
+	0,	/* Reserved */
+	0,	/* IRQ_SWU0 */
+	0,	/* IRQ_SWU1 */
+	0,	/* IRQ_SWU2 */
+	0,	/* IRQ_SWU3 */
+	0,	/* IRQ_SWU4 */
+	0,	/* IRQ_SWU4 */
+	0,	/* IRQ_SWU6 */
+};
 
-	bfin_write_SIC_IAR2(((CONFIG_IRQ_TIMER8 - 7) << IRQ_TIMER8_POS) |
-			    ((CONFIG_IRQ_TIMER9 - 7) << IRQ_TIMER9_POS) |
-			    ((CONFIG_IRQ_PINT0 - 7) << IRQ_PINT0_POS) |
-			    ((CONFIG_IRQ_PINT1 - 7) << IRQ_PINT1_POS) |
-			    ((CONFIG_IRQ_MDMAS0 - 7) << IRQ_MDMAS0_POS) |
-			    ((CONFIG_IRQ_MDMAS1 - 7) << IRQ_MDMAS1_POS) |
-			    ((CONFIG_IRQ_WATCHDOG - 7) << IRQ_WATCH_POS));
-
-	bfin_write_SIC_IAR3(((CONFIG_IRQ_DMAC1_ERR - 7) << IRQ_DMAC1_ERR_POS) |
-			    ((CONFIG_IRQ_SPORT2_ERR - 7) << IRQ_SPORT2_ERR_POS) |
-			    ((CONFIG_IRQ_SPORT3_ERR - 7) << IRQ_SPORT3_ERR_POS) |
-			    ((CONFIG_IRQ_MXVR_DATA - 7) << IRQ_MXVR_DATA_POS) |
-			    ((CONFIG_IRQ_SPI1_ERR - 7) << IRQ_SPI1_ERR_POS) |
-			    ((CONFIG_IRQ_SPI2_ERR - 7) << IRQ_SPI2_ERR_POS) |
-			    ((CONFIG_IRQ_UART1_ERR - 7) << IRQ_UART1_ERR_POS) |
-			    ((CONFIG_IRQ_UART2_ERR - 7) << IRQ_UART2_ERR_POS));
-
-	bfin_write_SIC_IAR4(((CONFIG_IRQ_CAN0_ERR - 7) << IRQ_CAN0_ERR_POS) |
-			    ((CONFIG_IRQ_SPORT2_RX - 7) << IRQ_SPORT2_RX_POS) |
-			    ((CONFIG_IRQ_SPORT2_TX - 7) << IRQ_SPORT2_TX_POS) |
-			    ((CONFIG_IRQ_SPORT3_RX - 7) << IRQ_SPORT3_RX_POS) |
-			    ((CONFIG_IRQ_SPORT3_TX - 7) << IRQ_SPORT3_TX_POS) |
-			    ((CONFIG_IRQ_EPPI1 - 7) << IRQ_EPPI1_POS) |
-			    ((CONFIG_IRQ_EPPI2 - 7) << IRQ_EPPI2_POS) |
-			    ((CONFIG_IRQ_SPI1 - 7) << IRQ_SPI1_POS));
-
-	bfin_write_SIC_IAR5(((CONFIG_IRQ_SPI2 - 7) << IRQ_SPI2_POS) |
-			    ((CONFIG_IRQ_UART1_RX - 7) << IRQ_UART1_RX_POS) |
-			    ((CONFIG_IRQ_UART1_TX - 7) << IRQ_UART1_TX_POS) |
-			    ((CONFIG_IRQ_ATAPI_RX - 7) << IRQ_ATAPI_RX_POS) |
-			    ((CONFIG_IRQ_ATAPI_TX - 7) << IRQ_ATAPI_TX_POS) |
-			    ((CONFIG_IRQ_TWI0 - 7) << IRQ_TWI0_POS) |
-			    ((CONFIG_IRQ_TWI1 - 7) << IRQ_TWI1_POS) |
-			    ((CONFIG_IRQ_CAN0_RX - 7) << IRQ_CAN0_RX_POS));
-
-	bfin_write_SIC_IAR6(((CONFIG_IRQ_CAN0_TX - 7) << IRQ_CAN0_TX_POS) |
-			    ((CONFIG_IRQ_MDMAS2 - 7) << IRQ_MDMAS2_POS) |
-			    ((CONFIG_IRQ_MDMAS3 - 7) << IRQ_MDMAS3_POS) |
-			    ((CONFIG_IRQ_MXVR_ERR - 7) << IRQ_MXVR_ERR_POS) |
-			    ((CONFIG_IRQ_MXVR_MSG - 7) << IRQ_MXVR_MSG_POS) |
-			    ((CONFIG_IRQ_MXVR_PKT - 7) << IRQ_MXVR_PKT_POS) |
-			    ((CONFIG_IRQ_EPPI1_ERR - 7) << IRQ_EPPI1_ERR_POS) |
-			    ((CONFIG_IRQ_EPPI2_ERR - 7) << IRQ_EPPI2_ERR_POS));
-
-	bfin_write_SIC_IAR7(((CONFIG_IRQ_UART3_ERR - 7) << IRQ_UART3_ERR_POS) |
-			    ((CONFIG_IRQ_HOST_ERR - 7) << IRQ_HOST_ERR_POS) |
-			    ((CONFIG_IRQ_PIXC_ERR - 7) << IRQ_PIXC_ERR_POS) |
-			    ((CONFIG_IRQ_NFC_ERR - 7) << IRQ_NFC_ERR_POS) |
-			    ((CONFIG_IRQ_ATAPI_ERR - 7) << IRQ_ATAPI_ERR_POS) |
-			    ((CONFIG_IRQ_CAN1_ERR - 7) << IRQ_CAN1_ERR_POS) |
-			    ((CONFIG_IRQ_HS_DMA_ERR - 7) << IRQ_HS_DMA_ERR_POS));
-
-	bfin_write_SIC_IAR8(((CONFIG_IRQ_PIXC_IN0 - 7) << IRQ_PIXC_IN1_POS) |
-			    ((CONFIG_IRQ_PIXC_IN1 - 7) << IRQ_PIXC_IN1_POS) |
-			    ((CONFIG_IRQ_PIXC_OUT - 7) << IRQ_PIXC_OUT_POS) |
-			    ((CONFIG_IRQ_SDH - 7) << IRQ_SDH_POS) |
-			    ((CONFIG_IRQ_CNT - 7) << IRQ_CNT_POS) |
-			    ((CONFIG_IRQ_KEY - 7) << IRQ_KEY_POS) |
-			    ((CONFIG_IRQ_CAN1_RX - 7) << IRQ_CAN1_RX_POS) |
-			    ((CONFIG_IRQ_CAN1_TX - 7) << IRQ_CAN1_TX_POS));
-
-	bfin_write_SIC_IAR9(((CONFIG_IRQ_SDH_MASK0 - 7) << IRQ_SDH_MASK0_POS) |
-			    ((CONFIG_IRQ_SDH_MASK1 - 7) << IRQ_SDH_MASK1_POS) |
-			    ((CONFIG_IRQ_USB_INT0 - 7) << IRQ_USB_INT0_POS) |
-			    ((CONFIG_IRQ_USB_INT1 - 7) << IRQ_USB_INT1_POS) |
-			    ((CONFIG_IRQ_USB_INT2 - 7) << IRQ_USB_INT2_POS) |
-			    ((CONFIG_IRQ_USB_DMA - 7) << IRQ_USB_DMA_POS) |
-			    ((CONFIG_IRQ_OTPSEC - 7) << IRQ_OTPSEC_POS));
-
-	bfin_write_SIC_IAR10(((CONFIG_IRQ_TIMER0 - 7) << IRQ_TIMER0_POS) |
-			     ((CONFIG_IRQ_TIMER1 - 7) << IRQ_TIMER1_POS));
-
-	bfin_write_SIC_IAR11(((CONFIG_IRQ_TIMER2 - 7) << IRQ_TIMER2_POS) |
-			     ((CONFIG_IRQ_TIMER3 - 7) << IRQ_TIMER3_POS) |
-			     ((CONFIG_IRQ_TIMER4 - 7) << IRQ_TIMER4_POS) |
-			     ((CONFIG_IRQ_TIMER5 - 7) << IRQ_TIMER5_POS) |
-			     ((CONFIG_IRQ_TIMER6 - 7) << IRQ_TIMER6_POS) |
-			     ((CONFIG_IRQ_TIMER7 - 7) << IRQ_TIMER7_POS) |
-			     ((CONFIG_IRQ_PINT2 - 7) << IRQ_PINT2_POS) |
-			     ((CONFIG_IRQ_PINT3 - 7) << IRQ_PINT3_POS));
-*/
-	SSYNC();
-}
