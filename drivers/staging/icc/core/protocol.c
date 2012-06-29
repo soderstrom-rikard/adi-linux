@@ -58,9 +58,23 @@ static void wakeup_icc_thread(struct sm_icc_desc *icc_info)
 
 static struct sm_message_queue *icc_get_inqueue(struct sm_msg *msg)
 {
-	uint32_t queue_size = sizeof(struct sm_message_queue);
-	uint32_t n = (uint32_t)msg / queue_size;
-	return (struct sm_message_queue *)(n * queue_size);
+	struct sm_icc_desc *icc_info = bfin_icc->icc_info;
+	struct sm_message_queue *queue;
+	int i;
+	if (!msg)
+		return NULL;
+	for (i = 0; i < bfin_icc->peer_count; i++, icc_info++) {
+		queue = icc_info->icc_high_queue;
+		if ((uint32_t)msg > (uint32_t)(queue + 4)) {
+			sm_debug("wrong msg addr %p\n", msg);
+			return NULL;
+		}
+		while ((uint32_t)msg > (uint32_t)queue)
+			queue++;
+		return queue - 1;
+	}
+
+	return NULL;
 }
 
 static struct sm_icc_desc *get_icc_peer(struct sm_msg *msg)
@@ -70,8 +84,8 @@ static struct sm_icc_desc *get_icc_peer(struct sm_msg *msg)
 	uint32_t msg_addr = (uint32_t)msg;
 	BUG_ON(!msg);
 	for (i = 0; i < bfin_icc->peer_count; i++) {
-		if (((uint32_t)icc_info[i].icc_queue < msg_addr) &&
-		(msg_addr < (uint32_t)icc_info[i].icc_queue + 2 * sizeof(struct sm_message_queue)))
+		if (((uint32_t)icc_info[i].icc_high_queue < msg_addr) &&
+		(msg_addr < (uint32_t)icc_info[i].icc_high_queue + 4 * sizeof(struct sm_message_queue)))
 			break;
 	}
 
@@ -95,9 +109,9 @@ static struct sm_message_queue *sm_find_queue(struct sm_message *message, struct
 		return NULL;
 	message->icc_info = &icc_info[i];
 	if (session->queue_priority)
-		return icc_info[i].icc_high_queue;
-	else
 		return icc_info[i].icc_queue;
+	else
+		return icc_info[i].icc_high_queue;
 }
 
 static int init_sm_session_table(struct bfin_icc *icc)
@@ -123,7 +137,7 @@ static int sm_message_enqueue(struct sm_message_queue *icc_queue, struct sm_msg 
 		return -EAGAIN;
 	}
 	memcpy(&outqueue->messages[(sent%SM_MSGQ_LEN)], msg,
-		sizeof(struct sm_message));
+		sizeof(struct sm_msg));
 	sent++;
 	sm_atomic_write(&outqueue->sent, sent);
 	return 0;
@@ -250,7 +264,7 @@ static int __iccqueue_getpending(struct sm_message_queue *inqueue)
 	uint16_t sent = sm_atomic_read(&inqueue->sent);
 	uint16_t received = sm_atomic_read(&inqueue->received);
 	uint16_t pending;
-/*	printk("sm msgq sent=%d received=%d\n", sent, received); */
+	sm_debug("sm msgq %p sent=%d received=%d\n", inqueue, sent, received);
 	pending = sent - received;
 	if (pending < 0)
 		pending += USHRT_MAX;
@@ -860,10 +874,14 @@ static int sm_destroy_session(uint32_t session_idx)
 		if (list_empty(&session->tx_messages))
 			break;
 
+		else {
+
 		message = list_first_entry(&session->tx_messages,
 					struct sm_message, next);
 		list_del(&message->next);
 		kfree(message);
+		sm_debug("drop tx message dsp %x src %x type %x\n", message->msg.dst_ep, message->msg.src_ep, message->msg.type);
+		}
 	}
 	mutex_unlock(&table->lock);
 
@@ -1440,7 +1458,7 @@ int __msg_handle(struct sm_icc_desc *icc_info, struct sm_message_queue *inqueue)
 	session = sm_index_to_session(index);
 
 	if (!session) {
-		sm_debug("discard msg type %x\n", (uint32_t)msg->type);
+		sm_debug("discard msg type %x dst %x src %x\n", (uint32_t)msg->type, msg->dst_ep, msg->src_ep);
 		sm_message_dequeue(msg);
 		wake_up(&icc_info->iccq_tx_wait);
 		return 1;
@@ -1448,7 +1466,6 @@ int __msg_handle(struct sm_icc_desc *icc_info, struct sm_message_queue *inqueue)
 
 	sm_debug("session %p index %d msg type%x\n", session, index, (uint32_t)msg->type);
 
-	session->queue_priority = (inqueue == icc_info->icc_high_queue);
 	if (session->proto_ops->recvmsg)
 		session->proto_ops->recvmsg(msg, session);
 	else
@@ -1601,9 +1618,9 @@ static int __devinit bfin_icc_probe(struct platform_device *pdev)
 		}
 
 		/* icc_queue[0] is rx queue, icc_queue[1] is tx queue. */
-		icc_info->icc_queue = (struct sm_message_queue *)icc_data->peer_info[i].phy_peer_mem;
-		icc_info->icc_high_queue = (struct sm_message_queue *)icc_info->icc_queue + 2;
-		memset(icc_info->icc_queue, 0, sizeof(struct sm_message_queue) * SM_MSGQ_NUM);
+		icc_info->icc_high_queue = (struct sm_message_queue *)icc_data->peer_info[i].phy_peer_mem;
+		icc_info->icc_queue = (struct sm_message_queue *)icc_info->icc_high_queue + 2;
+		memset(icc_info->icc_high_queue, 0, sizeof(struct sm_message_queue) * SM_MSGQ_NUM);
 
 		init_waitqueue_head(&icc->icc_rx_wait);
 		init_waitqueue_head(&icc_info->iccq_tx_wait);

@@ -148,7 +148,7 @@ struct sm_message_queue {
 	uint16_t sent;
 	uint16_t received; /* head of the queue */
 	struct sm_msg messages[SM_MSGQ_LEN];
-} __attribute__((__aligned__(256)));
+};
 
 #define SM_MSGQ_NUM		4 /* 2 low bi-direction fifos and 2 high ones */
 #define MSGQ_SIZE		(sizeof(struct sm_message_queue) * SM_MSGQ_NUM)
