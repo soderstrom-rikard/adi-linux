@@ -43,9 +43,12 @@ enum {
 #define SM_CONNECTING 0x2
 #define SM_OPEN 0x4
 #define SM_ACTIVE 0x8
+#define SM_QUERY 0x10
 
-#define SM_BAD_ENDPOINT SM_MSG_TYPE(0, 0)
-#define SM_BAD_MSG SM_MSG_TYPE(0, 1)
+#define SM_BAD_ENDPOINT SM_MSG_TYPE(SP_GENERAL, 0)
+#define SM_BAD_MSG SM_MSG_TYPE(SP_GENERAL, 1)
+#define SM_QUERY_MSG SM_MSG_TYPE(SP_GENERAL, 2)
+#define SM_QUERY_ACK_MSG SM_MSG_TYPE(SP_GENERAL, 3)
 
 #define SM_CORE_START		SM_MSG_TYPE(SP_CORE_CONTROL, 0)
 #define SM_CORE_STARTED		SM_MSG_TYPE(SP_CORE_CONTROL, 1)
@@ -219,6 +222,7 @@ struct sm_proto {
 #define CMD_SM_ACTIVE _IO('m', 12)
 #define CMD_SM_REQUEST_UNCACHED_BUF _IO('m', 13)
 #define CMD_SM_RELEASE_UNCACHED_BUF _IO('m', 14)
+#define CMD_SM_QUERY_REMOTE_EP	_IO('m', 15)
 
 #define MAX_TASK_NAME 64
 struct sm_node_status {

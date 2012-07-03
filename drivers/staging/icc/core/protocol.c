@@ -722,6 +722,25 @@ static int sm_recv_packet(uint32_t session_idx, uint32_t *src_ep,
 	return ret;
 }
 
+static int sm_query_remote_ep(uint32_t session_idx, uint32_t dst_ep,
+		uint32_t dst_cpu)
+{
+	struct sm_session *session;
+	session = sm_index_to_session(session_idx);
+	if (!session)
+		return -EINVAL;
+
+	mutex_lock(&bfin_icc->sessions_table->lock);
+	session->flags = SM_QUERY;
+	mutex_unlock(&bfin_icc->sessions_table->lock);
+	sm_send_control_msg(session, dst_ep, dst_cpu, 0,
+				0, SM_QUERY_MSG);
+	wait_event_interruptible_timeout(session->rx_wait,
+				(session->flags == 0), HZ);
+	sm_debug("received query ack\n");
+	return 0;
+}
+
 static int
 sm_wait_for_connect_ack(struct sm_session *session)
 {
@@ -1100,6 +1119,9 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case CMD_SM_RELEASE_UNCACHED_BUF:
 		dma_free_coherent(NULL, pkt->buf_len, pkt->buf, pkt->paddr);
 		break;
+	case CMD_SM_QUERY_REMOTE_EP:
+		sm_query_remote_ep(session_idx, remote_ep, dst_cpu);
+		break;
 	default:
 		ret = -EINVAL;
 		break;
@@ -1429,6 +1451,47 @@ struct sm_proto session_scalar_proto = {
 	.error = sm_default_error,
 };
 
+int __handle_general_msg(struct sm_msg *msg)
+{
+	int index;
+	struct sm_session *session;
+	struct sm_icc_desc *icc_info;
+	int ret = 0;
+
+	switch (msg->type) {
+	case SM_BAD_MSG:
+		printk(KERN_WARNING "%s", (char *)msg->payload);
+		ret = 1;
+		break;
+	case SM_QUERY_MSG:
+		index = sm_find_session(msg->dst_ep, 0, bfin_icc->sessions_table);
+		session = sm_index_to_session(index);
+
+		if (session) {
+			icc_info = get_icc_peer(msg);
+			sm_send_control_msg(session, msg->src_ep,
+				icc_info->peer_cpu, 0, 0, SM_QUERY_ACK_MSG);
+		}
+		ret = 1;
+		break;
+	case SM_QUERY_ACK_MSG:
+		index = sm_find_session(msg->dst_ep, 0, bfin_icc->sessions_table);
+		session = sm_index_to_session(index);
+
+		if (session) {
+			mutex_lock(&bfin_icc->sessions_table->lock);
+			session->flags = 0;
+			mutex_unlock(&bfin_icc->sessions_table->lock);
+			wake_up_interruptible(&session->rx_wait);
+			ret = 1;
+		}
+	default:
+		ret = 0;
+	}
+
+	return ret;
+}
+
 int __msg_handle(struct sm_icc_desc *icc_info, struct sm_message_queue *inqueue)
 {
 	uint16_t received = sm_atomic_read(&inqueue->received);
@@ -1447,8 +1510,7 @@ int __msg_handle(struct sm_icc_desc *icc_info, struct sm_message_queue *inqueue)
 
 	msg = &inqueue->messages[(received % SM_MSGQ_LEN)];
 
-	if (msg->type == SM_BAD_MSG) {
-		printk(KERN_WARNING "%s", (char *)msg->payload);
+	if (__handle_general_msg(msg)) {
 		sm_message_dequeue(msg);
 		return 1;
 	}
