@@ -9,6 +9,8 @@ void coreb_enable(void)
 
 void bfin_coreb_start(void)
 {
+	coreb_enable();
+
 	bfin_write32(RCU0_CRCTL, 0x2);
 
 	while (!(bfin_read32(RCU0_CRSTAT) & 0x2))
@@ -28,6 +30,8 @@ void bfin_coreb_stop(void)
 
 void bfin_coreb_reset(void)
 {
+	coreb_enable();
+
 	bfin_write32(RCU0_CRCTL, 0x2);
 
 	while (!(bfin_read32(RCU0_CRSTAT) & 0x2))
