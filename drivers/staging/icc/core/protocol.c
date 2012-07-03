@@ -264,7 +264,6 @@ static int __iccqueue_getpending(struct sm_message_queue *inqueue)
 	uint16_t sent = sm_atomic_read(&inqueue->sent);
 	uint16_t received = sm_atomic_read(&inqueue->received);
 	uint16_t pending;
-	sm_debug("sm msgq %p sent=%d received=%d\n", inqueue, sent, received);
 	pending = sent - received;
 	if (pending < 0)
 		pending += USHRT_MAX;
