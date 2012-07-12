@@ -43,7 +43,6 @@ enum {
 #define SM_CONNECTING 0x2
 #define SM_OPEN 0x4
 #define SM_ACTIVE 0x8
-#define SM_QUERY 0x10
 
 #define SM_BAD_ENDPOINT SM_MSG_TYPE(SP_GENERAL, 0)
 #define SM_BAD_MSG SM_MSG_TYPE(SP_GENERAL, 1)
@@ -156,7 +155,7 @@ struct sm_message_queue {
 #define SM_MSGQ_NUM		4 /* 2 low bi-direction fifos and 2 high ones */
 #define MSGQ_SIZE		(sizeof(struct sm_message_queue) * SM_MSGQ_NUM)
 
-#define DEBUG_MSG_LINE		128
+#define DEBUG_MSG_LINE		256
 #define DEBUG_MSG_BUF_SIZE	(DEBUG_MSG_LINE * SM_MSGQ_LEN)
 
 struct sm_icc_desc {
@@ -189,6 +188,8 @@ struct sm_session {
 #define MAX_SESSIONS 32
 struct sm_session_table {
 	struct list_head next_table;
+	wait_queue_head_t query_wait;
+	uint32_t query_status;
 	struct mutex lock;
 	uint32_t	nfree;
 	uint32_t session_mask;

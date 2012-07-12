@@ -99,7 +99,7 @@ static struct sm_message_queue *sm_find_queue(struct sm_message *message, struct
 	uint16_t dst = message->dst;
 	struct sm_icc_desc *icc_info = bfin_icc->icc_info;
 	int i;
-	if (!message || !session)
+	if (!message)
 		return NULL;
 	for (i = 0; i < bfin_icc->peer_count; i++) {
 		if (icc_info[i].peer_cpu == dst)
@@ -108,10 +108,14 @@ static struct sm_message_queue *sm_find_queue(struct sm_message *message, struct
 	if (i == bfin_icc->peer_count)
 		return NULL;
 	message->icc_info = &icc_info[i];
-	if (session->queue_priority)
-		return icc_info[i].icc_queue;
-	else
+	if (!session)
 		return icc_info[i].icc_high_queue;
+	else {
+		if (session->queue_priority)
+			return icc_info[i].icc_queue;
+		else
+			return icc_info[i].icc_high_queue;
+	}
 }
 
 static int init_sm_session_table(struct bfin_icc *icc)
@@ -121,6 +125,7 @@ static int init_sm_session_table(struct bfin_icc *icc)
 	if (!icc->sessions_table)
 		return -ENOMEM;
 	mutex_init(&icc->sessions_table->lock);
+	init_waitqueue_head(&icc->sessions_table->query_wait);
 	icc->sessions_table->nfree = MAX_ENDPOINTS;
 	return 0;
 }
@@ -131,8 +136,12 @@ static int sm_message_enqueue(struct sm_message_queue *icc_queue, struct sm_msg 
 	struct sm_message_queue *outqueue = icc_queue + 1;
 	uint16_t sent = sm_atomic_read(&outqueue->sent);
 	uint16_t received = sm_atomic_read(&outqueue->received);
+	uint16_t pending = sent - received;
 
-	if ((sent - received) >= (SM_MSGQ_LEN - 1)) {
+	if (pending < 0)
+		pending += USHRT_MAX;
+
+	if (pending >= (SM_MSGQ_LEN - 1)) {
 		sm_debug("over run\n");
 		return -EAGAIN;
 	}
@@ -321,9 +330,13 @@ sm_send_control_msg(struct sm_session *session, uint32_t remote_ep,
 	message->dst = dst_cpu;
 	message->src = blackfin_core_id();
 
+retry:
 	ret = sm_send_message_internal(session, message);
-	if (ret)
-		return -EAGAIN;
+	if (ret) {
+		interruptible_sleep_on(&message->icc_info->iccq_tx_wait);
+		goto retry;
+	}
+
 	kfree(message);
 	return ret;
 
@@ -721,21 +734,21 @@ static int sm_recv_packet(uint32_t session_idx, uint32_t *src_ep,
 	return ret;
 }
 
-static int sm_query_remote_ep(uint32_t session_idx, uint32_t dst_ep,
+static int sm_query_remote_ep(uint32_t dst_ep,
 		uint32_t dst_cpu)
 {
-	struct sm_session *session;
-	session = sm_index_to_session(session_idx);
-	if (!session)
-		return -EINVAL;
-
+	int ret;
 	mutex_lock(&bfin_icc->sessions_table->lock);
-	session->flags = SM_QUERY;
+	bfin_icc->sessions_table->query_status = 1;
 	mutex_unlock(&bfin_icc->sessions_table->lock);
-	sm_send_control_msg(session, dst_ep, dst_cpu, 0,
+	sm_debug("%s dst_ep %d dst_cpu %d\n", __func__, dst_ep, dst_cpu);
+	sm_send_control_msg(NULL, dst_ep, dst_cpu, 0,
 				0, SM_QUERY_MSG);
-	wait_event_interruptible_timeout(session->rx_wait,
-				(session->flags == 0), HZ);
+	ret = wait_event_interruptible_timeout(bfin_icc->sessions_table->query_wait,
+				!bfin_icc->sessions_table->query_status, HZ);
+	if (ret == -ERESTARTSYS)
+		return ret;
+
 	sm_debug("received query ack\n");
 	return 0;
 }
@@ -1119,7 +1132,7 @@ icc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		dma_free_coherent(NULL, pkt->buf_len, pkt->buf, pkt->paddr);
 		break;
 	case CMD_SM_QUERY_REMOTE_EP:
-		sm_query_remote_ep(session_idx, remote_ep, dst_cpu);
+		sm_query_remote_ep(remote_ep, dst_cpu);
 		break;
 	default:
 		ret = -EINVAL;
@@ -1468,22 +1481,18 @@ int __handle_general_msg(struct sm_msg *msg)
 
 		if (session) {
 			icc_info = get_icc_peer(msg);
-			sm_send_control_msg(session, msg->src_ep,
+			sm_send_control_msg(session, 0,
 				icc_info->peer_cpu, 0, 0, SM_QUERY_ACK_MSG);
 		}
 		ret = 1;
 		break;
 	case SM_QUERY_ACK_MSG:
-		index = sm_find_session(msg->dst_ep, 0, bfin_icc->sessions_table);
-		session = sm_index_to_session(index);
-
-		if (session) {
-			mutex_lock(&bfin_icc->sessions_table->lock);
-			session->flags = 0;
-			mutex_unlock(&bfin_icc->sessions_table->lock);
-			wake_up_interruptible(&session->rx_wait);
-			ret = 1;
-		}
+		mutex_lock(&bfin_icc->sessions_table->lock);
+		bfin_icc->sessions_table->query_status = 0;
+		mutex_unlock(&bfin_icc->sessions_table->lock);
+		wake_up_interruptible(&bfin_icc->sessions_table->query_wait);
+		ret = 1;
+		break;
 	default:
 		ret = 0;
 	}
@@ -1683,7 +1692,6 @@ static int __devinit bfin_icc_probe(struct platform_device *pdev)
 		icc_info->icc_queue = (struct sm_message_queue *)icc_info->icc_high_queue + 2;
 		memset(icc_info->icc_high_queue, 0, sizeof(struct sm_message_queue) * SM_MSGQ_NUM);
 
-		init_waitqueue_head(&icc->icc_rx_wait);
 		init_waitqueue_head(&icc_info->iccq_tx_wait);
 		icc_info->iccq_thread = kthread_run(message_queue_thread,
 					icc_info, "iccqd");
