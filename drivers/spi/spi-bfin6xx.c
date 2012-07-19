@@ -1186,9 +1186,9 @@ static int __devexit bfin_spi_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
-static int bfin_spi_suspend(struct platform_device *pdev, pm_message_t state)
+static int bfin_spi_suspend(struct device *dev)
 {
-	struct bfin_spi_master_data *drv_data = platform_get_drvdata(pdev);
+	struct bfin_spi_master_data *drv_data = dev_get_drvdata(dev);
 	int status = 0;
 
 	status = bfin_spi_stop_queue(drv_data);
@@ -1200,14 +1200,33 @@ static int bfin_spi_suspend(struct platform_device *pdev, pm_message_t state)
 
 	bfin_write(&drv_data->regs->control, SPI_CTL_MSTR | SPI_CTL_CPHA);
 	bfin_write(&drv_data->regs->ssel, 0x0000FE00);
+	free_dma(drv_data->rx_dma);
+	free_dma(drv_data->tx_dma);
 
 	return 0;
 }
 
-static int bfin_spi_resume(struct platform_device *pdev)
+static int bfin_spi_resume(struct device *dev)
 {
-	struct bfin_spi_master_data *drv_data = platform_get_drvdata(pdev);
+	struct bfin_spi_master_data *drv_data = dev_get_drvdata(dev);
 	int status = 0;
+
+	status = request_dma(drv_data->tx_dma, "SPI_TX_DMA");
+	if (status) {
+		dev_err(dev, "Unable to request SPI TX DMA channel\n");
+		return status;
+	}
+	set_dma_callback(drv_data->tx_dma, bfin_spi_tx_dma_isr, drv_data);
+
+	status = request_dma(drv_data->rx_dma, "SPI_RX_DMA");
+	if (status) {
+		dev_err(dev, "Unable to request SPI RX DMA channel\n");
+		free_dma(drv_data->tx_dma);
+		return status;
+	}
+	/* rx dma is enabled when resume in spi boot mode */
+	disable_dma(drv_data->rx_dma);
+	set_dma_callback(drv_data->rx_dma, bfin_spi_rx_dma_isr, drv_data);
 
 	bfin_write(&drv_data->regs->control, drv_data->control);
 	bfin_write(&drv_data->regs->ssel, drv_data->ssel);
@@ -1215,15 +1234,18 @@ static int bfin_spi_resume(struct platform_device *pdev)
 	/* Start the queue running */
 	status = bfin_spi_start_queue(drv_data);
 	if (status != 0) {
-		dev_err(&pdev->dev, "problem starting queue (%d)\n", status);
+		dev_err(dev, "problem starting queue (%d)\n", status);
+		free_dma(drv_data->rx_dma);
+		free_dma(drv_data->tx_dma);
 		return status;
 	}
 
 	return 0;
 }
-#else
-#define bfin_spi_suspend NULL
-#define bfin_spi_resume NULL
+static const struct dev_pm_ops bfin_spi_pm_ops = {
+	.suspend = bfin_spi_suspend,
+	.resume  = bfin_spi_resume,
+};
 #endif /* CONFIG_PM */
 
 MODULE_ALIAS("platform:bfin-spi");
@@ -1231,9 +1253,10 @@ static struct platform_driver bfin_spi_driver = {
 	.driver	= {
 		.name	= "bfin-spi",
 		.owner	= THIS_MODULE,
+#ifdef CONFIG_PM
+		.pm     = &bfin_spi_pm_ops,
+#endif
 	},
-	.suspend	= bfin_spi_suspend,
-	.resume		= bfin_spi_resume,
 	.remove		= __devexit_p(bfin_spi_remove),
 };
 
