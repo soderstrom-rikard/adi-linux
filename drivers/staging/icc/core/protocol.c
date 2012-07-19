@@ -26,7 +26,6 @@
 
 #define DRIVER_NAME "icc"
 
-
 static struct bfin_icc {
 	struct miscdevice mdev;
 	int peer_count;
@@ -126,6 +125,7 @@ static int init_sm_session_table(struct bfin_icc *icc)
 		return -ENOMEM;
 	mutex_init(&icc->sessions_table->lock);
 	init_waitqueue_head(&icc->sessions_table->query_wait);
+	INIT_LIST_HEAD(&icc->sessions_table->query_message);
 	icc->sessions_table->nfree = MAX_ENDPOINTS;
 	return 0;
 }
@@ -215,14 +215,22 @@ found_slot:
 static int sm_create_session(uint32_t src_ep, uint32_t type, uint32_t queue_priority)
 {
 	struct sm_session_table *table = bfin_icc->sessions_table;
-	int index = sm_find_session(src_ep, 0, table);
+	int index;
+	struct sm_message *request;
+	int ret = -EAGAIN;
+	int pending = 0;
+
+	mutex_lock(&table->lock);
+	index = sm_find_session(src_ep, 0, table);
 	if (index >= 0 && index < 32) {
 		sm_debug("already bound index %d srcep %d\n", index, src_ep);
-		return -EEXIST;
+		ret = -EEXIST;
+		goto fail_out;
 	}
 	if (type >= SP_MAX) {
 		sm_debug("bad type %x\n", type);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto fail_out;
 	}
 
 	index = sm_alloc_session(table);
@@ -239,11 +247,29 @@ static int sm_create_session(uint32_t src_ep, uint32_t type, uint32_t queue_prio
 		INIT_LIST_HEAD(&table->sessions[index].rx_messages);
 		INIT_LIST_HEAD(&table->sessions[index].tx_messages);
 		init_waitqueue_head(&table->sessions[index].rx_wait);
+
+		list_for_each_entry(request, &table->query_message, next) {
+			if (request->msg.dst_ep == src_ep) {
+				pending = 1;
+				break;
+			}
+		}
+		mutex_unlock(&table->lock);
+
+		if (pending) {
+			list_del(&request->next);
+			sm_send_control_msg(&table->sessions[index], request->msg.src_ep,
+				request->src, 0, 0, SM_QUERY_ACK_MSG);
+			kfree(request);
+		}
+
 		sm_debug("create ep index %d srcep %d type %x\n", index, src_ep, type);
 		sm_debug("session %p\n", &table->sessions[index]);
 		return index;
 	}
-	return -EAGAIN;
+fail_out:
+	mutex_unlock(&table->lock);
+	return ret;
 }
 
 static struct sm_session *sm_index_to_session(uint32_t session_idx)
@@ -341,7 +367,6 @@ retry:
 	return ret;
 
 }
-
 
 int sm_send_packet_ack(struct sm_session *session, uint32_t remote_ep,
 		uint32_t dst_cpu, uint32_t payload, uint32_t len)
@@ -1468,6 +1493,7 @@ int __handle_general_msg(struct sm_msg *msg)
 	int index;
 	struct sm_session *session;
 	struct sm_icc_desc *icc_info;
+	struct sm_message *message;
 	int ret = 0;
 
 	switch (msg->type) {
@@ -1476,13 +1502,22 @@ int __handle_general_msg(struct sm_msg *msg)
 		ret = 1;
 		break;
 	case SM_QUERY_MSG:
+		icc_info = get_icc_peer(msg);
 		index = sm_find_session(msg->dst_ep, 0, bfin_icc->sessions_table);
 		session = sm_index_to_session(index);
-
 		if (session) {
-			icc_info = get_icc_peer(msg);
 			sm_send_control_msg(session, 0,
 				icc_info->peer_cpu, 0, 0, SM_QUERY_ACK_MSG);
+		} else {
+			message = kzalloc(sizeof(struct sm_message), GFP_KERNEL);
+			if (message) {
+				memcpy(&message->msg, msg, sizeof(struct sm_msg));
+				message->src = icc_info->peer_cpu;
+				mutex_lock(&bfin_icc->sessions_table->lock);
+				list_add_tail(&message->next,
+					&bfin_icc->sessions_table->query_message);
+				mutex_unlock(&bfin_icc->sessions_table->lock);
+			}
 		}
 		ret = 1;
 		break;

@@ -188,6 +188,7 @@ struct sm_session {
 #define MAX_SESSIONS 32
 struct sm_session_table {
 	struct list_head next_table;
+	struct list_head query_message;
 	wait_queue_head_t query_wait;
 	uint32_t query_status;
 	struct mutex lock;
@@ -290,4 +291,7 @@ struct sm_task {
 #define __icc_task __attribute__((section(".icc.text")))
 #define __icc_task_data __attribute__((section(".icc.data")))
 
+int sm_send_control_msg(struct sm_session *session, uint32_t remote_ep,
+			uint32_t dst_cpu, uint32_t payload,
+			uint32_t len, uint32_t type);
 #endif
