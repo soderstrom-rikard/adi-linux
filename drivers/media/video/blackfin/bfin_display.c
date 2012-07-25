@@ -376,8 +376,8 @@ static int disp_start_streaming(struct vb2_queue *vq, unsigned int count)
 			& V4L2_IN_CAP_CUSTOM_TIMINGS) {
 		struct v4l2_bt_timings *bt = &disp->dv_timings.bt;
 
-		params.hdelay = bt->hbackporch;
-		params.vdelay = bt->vbackporch;
+		params.hdelay = bt->hsync + bt->hbackporch;
+		params.vdelay = bt->vsync + bt->vbackporch;
 		params.line = bt->hfrontporch + bt->hsync
 				+ bt->hbackporch + bt->width;
 		params.frame = bt->vfrontporch + bt->vsync
