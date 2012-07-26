@@ -960,7 +960,7 @@ static struct bcap_route adv7842_routes[] = {
 		.input = 0,
 		.output = 1,
 		.ppi_control = (EPPI_CTL_SPLTWRD | PACK_EN | DLEN_16
-				| EPPI_CTL_FS1LO_FS2LO | EPPI_CTL_POLC2
+				| EPPI_CTL_FS1HI_FS2HI | EPPI_CTL_POLC2
 				| EPPI_CTL_SYNC2 | EPPI_CTL_NON656),
 	},
 };
