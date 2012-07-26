@@ -31,12 +31,15 @@ config BLACKFIN
 	select HAVE_KERNEL_LZO if RAMKERNEL
 	select HAVE_OPROFILE
 	select HAVE_PERF_EVENTS
+	select ARCH_HAVE_CUSTOM_GPIO_H
 	select ARCH_WANT_OPTIONAL_GPIOLIB
 	select HAVE_GENERIC_HARDIRQS
 	select GENERIC_ATOMIC64
 	select GENERIC_IRQ_PROBE
 	select IRQ_PER_CPU if SMP
 	select HAVE_NMI_WATCHDOG if NMI_WATCHDOG
+	select GENERIC_SMP_IDLE_THREAD
+	select ARCH_USES_GETTIMEOFFSET if !GENERIC_CLOCKEVENTS
 
 config GENERIC_CSUM
 	def_bool y
@@ -232,6 +235,12 @@ config BF609
 	help
 	  BF609 Processor Support.
 
+config BF609
+	bool "BF609"
+	select CLKDEV_LOOKUP
+	help
+	  BF609 Processor Support.
+
 endchoice
 
 config SMP
@@ -399,6 +408,12 @@ config BOOT_LOAD
 	  Note that you need to keep this value above 4k (0x1000) as this
 	  memory region is used to capture NULL pointer references as well
 	  as some core kernel functions.
+
+config PHY_RAM_BASE_ADDRESS
+	hex "Physical RAM Base"
+	default 0x0
+	help
+	  set BF609 FPGA physical SRAM base address
 
 config PHY_RAM_BASE_ADDRESS
 	hex "Physical RAM Base"
@@ -656,9 +671,10 @@ comment "Kernel Timer/Scheduler"
 
 source kernel/Kconfig.hz
 
-config GENERIC_CLOCKEVENTS
+config SET_GENERIC_CLOCKEVENTS
 	bool "Generic clock events"
 	default y
+	select GENERIC_CLOCKEVENTS
 
 menu "Clock event device"
 	depends on GENERIC_CLOCKEVENTS
@@ -691,12 +707,6 @@ config GPTMR0_CLOCKSOURCE
 	select BFIN_GPTIMERS
 	depends on !TICKSOURCE_GPTMR0
 endmenu
-
-config ARCH_USES_GETTIMEOFFSET
-	depends on !GENERIC_CLOCKEVENTS
-	def_bool y
-
-source kernel/time/Kconfig
 
 comment "Misc"
 

@@ -253,6 +253,16 @@ int blackfin_dma_suspend(void)
 void blackfin_dma_resume(void)
 {
 }
+# else
+int blackfin_dma_suspend(void)
+{
+	return 0;
+}
+
+void blackfin_dma_resume(void)
+{
+}
+#endif
 #endif
 #endif
 
@@ -362,6 +372,42 @@ void __init early_dma_memcpy_done(void)
 }
 
 #if defined(CH_MEM_STREAM3_SRC) && defined(CONFIG_BF60x)
+#define bfin_read_MDMA_S_CONFIG bfin_read_MDMA_S3_CONFIG
+#define bfin_write_MDMA_S_CONFIG bfin_write_MDMA_S3_CONFIG
+#define bfin_write_MDMA_S_START_ADDR bfin_write_MDMA_S3_START_ADDR
+#define bfin_write_MDMA_S_IRQ_STATUS bfin_write_MDMA_S3_IRQ_STATUS
+#define bfin_write_MDMA_S_X_COUNT bfin_write_MDMA_S3_X_COUNT
+#define bfin_write_MDMA_S_X_MODIFY bfin_write_MDMA_S3_X_MODIFY
+#define bfin_write_MDMA_S_Y_COUNT bfin_write_MDMA_S3_Y_COUNT
+#define bfin_write_MDMA_S_Y_MODIFY bfin_write_MDMA_S3_Y_MODIFY
+#define bfin_write_MDMA_D_CONFIG bfin_write_MDMA_D3_CONFIG
+#define bfin_write_MDMA_D_START_ADDR bfin_write_MDMA_D3_START_ADDR
+#define bfin_read_MDMA_D_IRQ_STATUS bfin_read_MDMA_D3_IRQ_STATUS
+#define bfin_write_MDMA_D_IRQ_STATUS bfin_write_MDMA_D3_IRQ_STATUS
+#define bfin_write_MDMA_D_X_COUNT bfin_write_MDMA_D3_X_COUNT
+#define bfin_write_MDMA_D_X_MODIFY bfin_write_MDMA_D3_X_MODIFY
+#define bfin_write_MDMA_D_Y_COUNT bfin_write_MDMA_D3_Y_COUNT
+#define bfin_write_MDMA_D_Y_MODIFY bfin_write_MDMA_D3_Y_MODIFY
+#else
+#define bfin_read_MDMA_S_CONFIG bfin_read_MDMA_S0_CONFIG
+#define bfin_write_MDMA_S_CONFIG bfin_write_MDMA_S0_CONFIG
+#define bfin_write_MDMA_S_START_ADDR bfin_write_MDMA_S0_START_ADDR
+#define bfin_write_MDMA_S_IRQ_STATUS bfin_write_MDMA_S0_IRQ_STATUS
+#define bfin_write_MDMA_S_X_COUNT bfin_write_MDMA_S0_X_COUNT
+#define bfin_write_MDMA_S_X_MODIFY bfin_write_MDMA_S0_X_MODIFY
+#define bfin_write_MDMA_S_Y_COUNT bfin_write_MDMA_S0_Y_COUNT
+#define bfin_write_MDMA_S_Y_MODIFY bfin_write_MDMA_S0_Y_MODIFY
+#define bfin_write_MDMA_D_CONFIG bfin_write_MDMA_D0_CONFIG
+#define bfin_write_MDMA_D_START_ADDR bfin_write_MDMA_D0_START_ADDR
+#define bfin_read_MDMA_D_IRQ_STATUS bfin_read_MDMA_D0_IRQ_STATUS
+#define bfin_write_MDMA_D_IRQ_STATUS bfin_write_MDMA_D0_IRQ_STATUS
+#define bfin_write_MDMA_D_X_COUNT bfin_write_MDMA_D0_X_COUNT
+#define bfin_write_MDMA_D_X_MODIFY bfin_write_MDMA_D0_X_MODIFY
+#define bfin_write_MDMA_D_Y_COUNT bfin_write_MDMA_D0_Y_COUNT
+#define bfin_write_MDMA_D_Y_MODIFY bfin_write_MDMA_D0_Y_MODIFY
+#endif
+
+#ifdef CH_MEM_STREAM3_SRC
 #define bfin_read_MDMA_S_CONFIG bfin_read_MDMA_S3_CONFIG
 #define bfin_write_MDMA_S_CONFIG bfin_write_MDMA_S3_CONFIG
 #define bfin_write_MDMA_S_START_ADDR bfin_write_MDMA_S3_START_ADDR

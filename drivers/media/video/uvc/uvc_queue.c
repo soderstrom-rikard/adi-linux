@@ -207,6 +207,19 @@ int uvc_queue_mmap(struct uvc_video_queue *queue, struct vm_area_struct *vma)
 	return ret;
 }
 
+#ifndef CONFIG_MMU
+unsigned long uvc_queue_get_unmapped_area(struct uvc_video_queue *queue,
+		unsigned long pgoff)
+{
+	unsigned long ret;
+
+	mutex_lock(&queue->mutex);
+	ret = vb2_get_unmapped_area(&queue->queue, 0, 0, pgoff, 0);
+	mutex_unlock(&queue->mutex);
+	return ret;
+}
+#endif
+
 unsigned int uvc_queue_poll(struct uvc_video_queue *queue, struct file *file,
 			    poll_table *wait)
 {

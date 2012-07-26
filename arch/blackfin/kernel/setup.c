@@ -575,7 +575,6 @@ static __init void memory_setup(void)
 {
 #ifdef CONFIG_MTD_UCLINUX
 	unsigned long mtd_phys = 0;
-	unsigned long n;
 #endif
 	unsigned long max_mem;
 
@@ -619,9 +618,9 @@ static __init void memory_setup(void)
 	mtd_size = PAGE_ALIGN(*((unsigned long *)(mtd_phys + 8)));
 
 # if defined(CONFIG_EXT2_FS) || defined(CONFIG_EXT3_FS)
-	n = ext2_image_size((void *)(mtd_phys + 0x400));
-	if (n)
-		mtd_size = PAGE_ALIGN(n * 1024);
+	if (*((unsigned short *)(mtd_phys + 0x438)) == EXT2_SUPER_MAGIC)
+		mtd_size =
+		    PAGE_ALIGN(*((unsigned long *)(mtd_phys + 0x404)) << 10);
 # endif
 
 # if defined(CONFIG_CRAMFS)
@@ -929,6 +928,22 @@ static inline u_long bfin_get_clk(char *name)
 }
 #endif
 
+#ifdef CONFIG_BF60x
+static inline u_long bfin_get_clk(char *name)
+{
+	struct clk *clk;
+	u_long clk_rate;
+
+	clk = clk_get(NULL, name);
+	if (IS_ERR(clk))
+		return 0;
+
+	clk_rate = clk_get_rate(clk);
+	clk_put(clk);
+	return clk_rate;
+}
+#endif
+
 void __init setup_arch(char **cmdline_p)
 {
 	u32 mmr;
@@ -987,6 +1002,7 @@ void __init setup_arch(char **cmdline_p)
 	bfin_write_EBIU_MBSCTL(CONFIG_EBIU_MBSCTLVAL);
 	bfin_write_EBIU_MODE(CONFIG_EBIU_MODEVAL);
 	bfin_write_EBIU_FCTL(CONFIG_EBIU_FCTLVAL);
+#endif
 #endif
 #endif
 #ifdef CONFIG_BFIN_HYSTERESIS_CONTROL
