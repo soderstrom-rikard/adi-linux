@@ -1034,19 +1034,19 @@ static struct platform_device bfin_capture_device = {
 #include <media/blackfin/ppi.h>
 
 static const unsigned short ppi_req_disp[] = {
-	P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3,
-	P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7,
-	P_PPI0_D8, P_PPI0_D9, P_PPI0_D10, P_PPI0_D11,
-	P_PPI0_D12, P_PPI0_D13, P_PPI0_D14, P_PPI0_D15,
-	P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2,
+	P_PPI2_D0, P_PPI2_D1, P_PPI2_D2, P_PPI2_D3,
+	P_PPI2_D4, P_PPI2_D5, P_PPI2_D6, P_PPI2_D7,
+	P_PPI2_D8, P_PPI2_D9, P_PPI2_D10, P_PPI2_D11,
+	P_PPI2_D12, P_PPI2_D13, P_PPI2_D14, P_PPI2_D15,
+	P_PPI2_CLK, P_PPI2_FS1, P_PPI2_FS2,
 	0,
 };
 
-static const struct ppi_info ppi_info = {
+static const struct ppi_info ppi_info_disp = {
 	.type = PPI_TYPE_EPPI3,
-	.dma_ch = CH_EPPI0_CH0,
-	.irq_err = IRQ_EPPI0_STAT,
-	.base = (void __iomem *)EPPI0_STAT,
+	.dma_ch = CH_EPPI2_CH0,
+	.irq_err = IRQ_EPPI2_STAT,
+	.base = (void __iomem *)EPPI2_STAT,
 	.pin_req = ppi_req_disp,
 };
 
@@ -1085,7 +1085,7 @@ static struct bfin_display_config bfin_display_data = {
 		.addr = 0x39,
 		.platform_data = (void *)&adv7511_data,
 	},
-	.ppi_info = &ppi_info,
+	.ppi_info = &ppi_info_disp,
 	.ppi_control = (EPPI_CTL_SPLTWRD | PACK_EN | DLEN_16
 			| EPPI_CTL_FS1LO_FS2LO | EPPI_CTL_POLC3
 			| EPPI_CTL_IFSGEN | EPPI_CTL_SYNC2
