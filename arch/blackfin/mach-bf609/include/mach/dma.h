@@ -42,10 +42,10 @@
 #define CH_MEM_STREAM3_DEST          28
 #define CH_EPPI0_CH0                  29
 #define CH_EPPI0_CH1                  30
-#define CH_EPPI1_CH0                  31
-#define CH_EPPI1_CH1                  32
-#define CH_EPPI2_CH0                  33
-#define CH_EPPI2_CH1                  34
+#define CH_EPPI2_CH0                  31
+#define CH_EPPI2_CH1                  32
+#define CH_EPPI1_CH0                  33
+#define CH_EPPI1_CH1                  34
 #define CH_PIXC_CH0                   35
 #define CH_PIXC_CH1                   36
 #define CH_PIXC_CH2                   37
