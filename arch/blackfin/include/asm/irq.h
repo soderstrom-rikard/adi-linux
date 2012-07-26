@@ -48,8 +48,4 @@ struct bfin_pm_pint_save {
 
 #include <asm-generic/irq.h>
 
-#ifdef CONFIG_NMI_WATCHDOG
-# define ARCH_HAS_NMI_WATCHDOG
-#endif
-
 #endif				/* _BFIN_IRQ_H_ */

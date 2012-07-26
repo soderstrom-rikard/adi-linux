@@ -383,23 +383,19 @@ static int __devinit request_ports(void)
 	}
 
 #if (defined(UD) && defined(LBR))
-	if (gpio_request(UD, DRIVER_NAME)) {
+	if (gpio_request_one(UD, GPIOF_OUT_INIT_LOW, DRIVER_MODNAME)) {
 		pr_err("requesting GPIO %d failed\n", UD);
 		return -EBUSY;
 	}
 
-	if (gpio_request(LBR, DRIVER_NAME)) {
++	if (gpio_request_one(LBR, GPIOF_OUT_INIT_HIGH, DRIVER_MODNAME)) {
 		pr_err("requesting GPIO %d failed\n", LBR);
 		gpio_free(UD);
 		return -EBUSY;
 	}
-
-	gpio_direction_output(UD, 0);
-	gpio_direction_output(LBR, 1);
-
 #endif
 
-	if (gpio_request(MOD, DRIVER_NAME)) {
+	if (gpio_request_one(MOD, GPIOF_OUT_INIT_HIGH, DRIVER_MODNAME)) {
 		pr_err("requesting GPIO %d failed\n", MOD);
 #if (defined(UD) && defined(LBR))
 		gpio_free(LBR);
@@ -407,8 +403,6 @@ static int __devinit request_ports(void)
 #endif
 		return -EBUSY;
 	}
-
-	gpio_direction_output(MOD, 1);
 
 	SSYNC();
 	return 0;
