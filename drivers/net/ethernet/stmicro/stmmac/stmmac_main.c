@@ -2311,7 +2311,7 @@ int stmmac_resume(struct net_device *ndev)
 	priv->dirty_rx = 0;
 
 	/* DMA initialization and SW reset */
-	priv->hw->dma->init(priv->ioaddr, priv->plat->pbl,
+	priv->hw->dma->init(priv->ioaddr, DEFAULT_DMA_PBL, 0, 0, 0,
 			priv->dma_tx_phy, priv->dma_rx_phy);
 	priv->hw->mac->core_init(priv->ioaddr);
 

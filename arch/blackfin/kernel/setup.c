@@ -928,22 +928,6 @@ static inline u_long bfin_get_clk(char *name)
 }
 #endif
 
-#ifdef CONFIG_BF60x
-static inline u_long bfin_get_clk(char *name)
-{
-	struct clk *clk;
-	u_long clk_rate;
-
-	clk = clk_get(NULL, name);
-	if (IS_ERR(clk))
-		return 0;
-
-	clk_rate = clk_get_rate(clk);
-	clk_put(clk);
-	return clk_rate;
-}
-#endif
-
 void __init setup_arch(char **cmdline_p)
 {
 	u32 mmr;
@@ -1002,7 +986,6 @@ void __init setup_arch(char **cmdline_p)
 	bfin_write_EBIU_MBSCTL(CONFIG_EBIU_MBSCTLVAL);
 	bfin_write_EBIU_MODE(CONFIG_EBIU_MODEVAL);
 	bfin_write_EBIU_FCTL(CONFIG_EBIU_FCTLVAL);
-#endif
 #endif
 #endif
 #ifdef CONFIG_BFIN_HYSTERESIS_CONTROL

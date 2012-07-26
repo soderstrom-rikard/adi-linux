@@ -347,9 +347,6 @@ struct regmap *regmap_init(struct device *dev,
 		break;
 	case 24:
 		map->format.format_val = regmap_format_24;
-		break;
-	case 24:
-		map->format.format_val = regmap_format_24;
 		map->format.parse_val = regmap_parse_24;
 		break;
 	case 32:
