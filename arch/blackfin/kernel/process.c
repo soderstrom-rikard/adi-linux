@@ -173,7 +173,7 @@ asmlinkage int bfin_clone(struct pt_regs *regs)
 	unsigned long newsp;
 
 #ifdef __ARCH_SYNC_CORE_DCACHE
-	if (current->rt.nr_cpus_allowed == num_possible_cpus())
+	if (current->nr_cpus_allowed == num_possible_cpus())
 		set_cpus_allowed_ptr(current, cpumask_of(smp_processor_id()));
 #endif
 
@@ -332,7 +332,7 @@ int in_mem_const(unsigned long addr, unsigned long size,
 	return in_mem_const_off(addr, size, 0, const_addr, const_size);
 }
 #ifdef CONFIG_BF60x
-#define ASYNC_ENABLED(bnum, bctlnum)	1 
+#define ASYNC_ENABLED(bnum, bctlnum)	1
 #else
 #define ASYNC_ENABLED(bnum, bctlnum) \
 ({ \
