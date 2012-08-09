@@ -101,7 +101,7 @@ config SND_BF5XX_SOC_AD74111
 
 config SND_BF5XX_TDM
 	tristate "SoC I2S(TDM mode) Audio for the ADI BF5xx chip"
-	depends on (BLACKFIN && SND_SOC)
+	depends on (BLACKFIN && !BF60x)
 	select SND_BF5XX_SOC_SPORT
 	help
 	  Say Y or M if you want to add support for codecs attached to
@@ -109,10 +109,21 @@ config SND_BF5XX_TDM
 	  mode.
 	  You will also need to select the audio interfaces to support below.
 
+config SND_BF6XX_TDM
+	tristate "SoC I2S(TDM mode) Audio for the ADI BF6xx chip"
+	depends on BF60x
+	select SND_BF6XX_SOC_SPORT
+	help
+	  Say Y or M if you want to add support for codecs attached to
+	  the Blackfin SPORT (synchronous serial ports) interface in TDM
+	  mode.
+	  You will also need to select the audio interfaces to support below.
+
 config SND_BF5XX_SOC_AD1836
-	tristate "SoC AD1836 Audio support for BF5xx"
-	depends on SND_BF5XX_TDM
-	select SND_BF5XX_SOC_TDM
+	tristate "SoC AD1836 STAMP Daughter card support"
+	depends on (SND_BF5XX_TDM || SND_BF6XX_TDM)
+	select SND_BF5XX_SOC_TDM if SND_BF5XX_TDM
+	select SND_BF6XX_SOC_TDM if SND_BF6XX_TDM
 	select SND_SOC_AD1836
 	help
 	  Say Y if you want to add support for SoC audio on BF5xx STAMP/EZKIT.
@@ -220,6 +231,9 @@ config SND_BF6XX_SOC_I2S
 	tristate
 
 config SND_BF5XX_SOC_TDM
+	tristate
+
+config SND_BF6XX_SOC_TDM
 	tristate
 
 config SND_BF5XX_SOC_AC97

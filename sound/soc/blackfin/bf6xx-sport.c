@@ -37,6 +37,8 @@ int sport_set_tx_params(struct sport_device *sport,
 		return -EBUSY;
 	sport->tx_regs->spctl = params->spctl | SPORT_CTL_SPTRAN;
 	sport->tx_regs->div = params->div;
+	sport->tx_regs->spmctl = params->spmctl;
+	sport->tx_regs->spcs0 = params->spcs0;
 	SSYNC();
 	return 0;
 }
@@ -49,6 +51,8 @@ int sport_set_rx_params(struct sport_device *sport,
 		return -EBUSY;
 	sport->rx_regs->spctl = params->spctl & ~SPORT_CTL_SPTRAN;
 	sport->rx_regs->div = params->div;
+	sport->rx_regs->spmctl = params->spmctl;
+	sport->rx_regs->spcs0 = params->spcs0;
 	SSYNC();
 	return 0;
 }
@@ -413,7 +417,14 @@ EXPORT_SYMBOL(sport_create);
 
 void sport_delete(struct sport_device *sport)
 {
+	if (sport->tx_desc)
+		dma_free_coherent(NULL, sport->tx_desc_size,
+				sport->tx_desc, 0);
+	if (sport->rx_desc)
+		dma_free_coherent(NULL, sport->rx_desc_size,
+				sport->rx_desc, 0);
 	sport_free_resource(sport);
+	kfree(sport);
 }
 EXPORT_SYMBOL(sport_delete);
 

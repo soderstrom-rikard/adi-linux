@@ -23,6 +23,8 @@
 #include <linux/platform_device.h>
 #include <asm/bfin_sport3.h>
 
+#define TDM_MAX_SLOTS 8
+
 struct sport_device {
 	struct platform_device *pdev;
 	const unsigned short *pin_req;
@@ -49,11 +51,16 @@ struct sport_device {
 	unsigned int tx_frags;
 	unsigned int rx_frags;
 	unsigned int wdsize;
+
+	unsigned int tx_map[TDM_MAX_SLOTS];
+	unsigned int rx_map[TDM_MAX_SLOTS];
 };
 
 struct sport_params {
 	u32 spctl;
 	u32 div;
+	u32 spmctl;
+	u32 spcs0;
 };
 
 struct sport_device *sport_create(struct platform_device *pdev);
