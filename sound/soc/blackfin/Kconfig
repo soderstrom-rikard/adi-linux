@@ -85,7 +85,7 @@ config SND_SOC_BFIN_EVAL_ADAV80X
 
 config SND_BF5XX_SOC_AD73311
 	tristate "SoC AD73311 Audio support for Blackfin"
-	depends on SND_BF5XX_I2S
+	depends on SND_BF5XX_I2S && !BF60x
 	select SND_BF5XX_SOC_I2S
 	select SND_SOC_AD73311
 	help
@@ -93,7 +93,7 @@ config SND_BF5XX_SOC_AD73311
 
 config SND_BF5XX_SOC_AD74111
 	tristate "SoC AD74111 Audio support for Blackfin"
-	depends on SND_BF5XX_I2S
+	depends on SND_BF5XX_I2S && !BF60x
 	select SND_BF5XX_SOC_I2S
 	select SND_SOC_AD74111
 	help
