@@ -494,7 +494,7 @@ static int adau1761_setup_digmic_jackdetect(struct snd_soc_codec *codec)
 		if (pdata->jackdetect_active_low)
 			val |= ADAU1761_DIGMIC_JACKDETECT_ACTIVE_LOW;
 
-		ret = snd_soc_add_controls(codec,
+		ret = snd_soc_add_codec_controls(codec,
 			adau1761_jack_detect_controls,
 			ARRAY_SIZE(adau1761_jack_detect_controls));
 		if (ret)
@@ -629,13 +629,13 @@ static int adau1761_probe(struct snd_soc_codec *codec)
 		regmap_update_bits(adau->regmap, ADAU1761_RIGHT_DIFF_INPUT_VOL,
 			ADAU1761_DIFF_INPUT_VOL_LDEN,
 			ADAU1761_DIFF_INPUT_VOL_LDEN);
-		ret = snd_soc_add_controls(codec,
+		ret = snd_soc_add_codec_controls(codec,
 			adau1761_differential_mode_controls,
 			ARRAY_SIZE(adau1761_differential_mode_controls));
 		if (ret)
 			return ret;
 	} else {
-		ret = snd_soc_add_controls(codec,
+		ret = snd_soc_add_codec_controls(codec,
 			adau1761_single_mode_controls,
 			ARRAY_SIZE(adau1761_single_mode_controls));
 		if (ret)

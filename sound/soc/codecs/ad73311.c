@@ -154,7 +154,7 @@ static const struct snd_kcontrol_new ad73311_snd_controls[] = {
 
 static int ad73311_soc_probe(struct snd_soc_codec *codec)
 {
-	snd_soc_add_controls(codec, ad73311_snd_controls,
+	snd_soc_add_codec_controls(codec, ad73311_snd_controls,
 			ARRAY_SIZE(ad73311_snd_controls));
 	return 0;
 }

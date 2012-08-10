@@ -765,7 +765,7 @@ int adau17x1_probe(struct snd_soc_codec *codec)
 
 	codec->driver->set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 
-	ret = snd_soc_add_controls(codec, adau17x1_controls,
+	ret = snd_soc_add_codec_controls(codec, adau17x1_controls,
 		ARRAY_SIZE(adau17x1_controls));
 	if (ret)
 		return ret;
@@ -781,7 +781,7 @@ int adau17x1_probe(struct snd_soc_codec *codec)
 	if (!adau17x1_has_dsp(adau))
 		return 0;
 
-	ret = snd_soc_add_controls(codec, adau17x1_dsp_controls,
+	ret = snd_soc_add_codec_controls(codec, adau17x1_dsp_controls,
 		ARRAY_SIZE(adau17x1_dsp_controls));
 	if (ret)
 		return ret;
