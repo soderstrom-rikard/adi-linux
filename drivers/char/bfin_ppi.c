@@ -200,6 +200,42 @@ static inline void disable_ppi_dma(struct ppi_dev *dev)
 	}
 }
 
+static int compute_data_len(int dlen)
+{
+	int bits;
+	switch (dlen) {
+	case CFG_PPI_DATALEN_8:
+		bits = 8;
+		break;
+	case CFG_PPI_DATALEN_10:
+		bits = 10;
+		break;
+	case CFG_PPI_DATALEN_11:
+		bits = 11;
+		break;
+	case CFG_PPI_DATALEN_12:
+		bits = 12;
+		break;
+	case CFG_PPI_DATALEN_13:
+		bits = 13;
+		break;
+	case CFG_PPI_DATALEN_14:
+		bits = 14;
+		break;
+	case CFG_PPI_DATALEN_15:
+		bits = 15;
+		break;
+	case CFG_PPI_DATALEN_16:
+		bits = 16;
+		break;
+	default:
+		bits = -1;
+		break;
+	}
+
+	return bits;
+}
+
 static void setup_timers(struct ppi_dev *dev, unsigned int frame_size)
 {
 	struct ppi_config *conf = &dev->conf;
@@ -562,9 +598,12 @@ static long ppi_ioctl(struct file *filp, uint cmd, unsigned long arg)
 		dev->regs->ppi_control = regdata;
 		break;
 
-	case CMD_PPI_DATALEN:
+	case CMD_PPI_DATALEN: {
+		int bits, cnt, ret;
+
 		pr_debug("ppi_ioctl: CMD_PPI_DATALEN\n");
-		if (arg < 0 || arg > 7)
+		bits = compute_data_len(arg);
+		if (bits < 0)
 			goto err_inval;
 		conf->data_len = (unsigned short)arg;
 		regdata = dev->regs->ppi_control;
@@ -573,13 +612,20 @@ static long ppi_ioctl(struct file *filp, uint cmd, unsigned long arg)
 		conf->ppi_control = regdata;
 		dev->regs->ppi_control = regdata;
 
-		if (peripheral_request_list(&dev->per_ppi8_15[7 - arg],
-					 KBUILD_MODNAME)) {
-			spin_unlock_irqrestore(&dev->lock, flags);
-			pr_err("ppi_ioctl: Requesting Peripherals failed\n");
-			return -EBUSY;
+		for (cnt = 0; cnt < bits - 8; cnt++) {
+			const unsigned short *per = dev->per_ppi8_15;
+			ret = peripheral_request(per[cnt], KBUILD_MODNAME);
+			if (ret < 0) {
+				for ( ; cnt > 0; cnt--)
+					peripheral_free(per[cnt - 1]);
+				spin_unlock_irqrestore(&dev->lock, flags);
+				pr_err("ppi_ioctl: Requesting \
+						Peripherals failed\n");
+				return ret;
+			}
 		}
 		break;
+	}
 
 	case CMD_PPI_LINELEN:
 		pr_debug("ppi_ioctl: CMD_PPI_LINELEN\n");
