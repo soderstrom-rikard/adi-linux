@@ -2209,6 +2209,9 @@ __alloc_pages_high_priority(gfp_t gfp_mask, unsigned int order,
 	struct page *page;
 
 	do {
+#ifdef CONFIG_NOMMU
+		iterate_supers(drop_pagecache_sb, NULL);
+#endif
 		page = get_page_from_freelist(gfp_mask, nodemask, order,
 			zonelist, high_zoneidx, ALLOC_NO_WATERMARKS,
 			preferred_zone, migratetype);
@@ -2392,6 +2395,9 @@ rebalance:
 	if (page)
 		goto got_pg;
 
+#ifdef CONFIG_NOMMU
+	iterate_supers(drop_pagecache_sb, NULL);
+#endif
 	/*
 	 * If we failed to make any progress reclaiming, then we are
 	 * running out of options and have to consider going OOM
