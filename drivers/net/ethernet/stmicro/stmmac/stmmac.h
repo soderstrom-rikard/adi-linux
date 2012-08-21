@@ -198,7 +198,7 @@ static inline int stmmac_register_platform(void)
 }
 static inline void stmmac_unregister_platform(void)
 {
-	platform_driver_register(&stmmac_pltfr_driver);
+	platform_driver_unregister(&stmmac_pltfr_driver);
 }
 #else
 static inline int stmmac_register_platform(void)
