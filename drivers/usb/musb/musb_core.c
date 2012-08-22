@@ -2255,7 +2255,8 @@ static void musb_restore_context(struct musb *musb)
 	 * Blackfin musb-host can't resume without reprobe if not polling for
 	 * detected 'A'device.
 	 */
-	if (is_host_enabled(musb)) {
+	if (is_host_enabled(musb) && (musb->xceiv->state != OTG_STATE_B_IDLE)
+			&& (musb->xceiv->state != OTG_STATE_B_PERIPHERAL)) {
 		while (musb_readb(musb_base, MUSB_DEVCTL) & MUSB_DEVCTL_BDEVICE)
 			mdelay(10);
 	}
