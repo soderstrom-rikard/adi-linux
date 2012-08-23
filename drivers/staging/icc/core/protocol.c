@@ -84,13 +84,35 @@ static struct sm_icc_desc *get_icc_peer(struct sm_msg *msg)
 	BUG_ON(!msg);
 	for (i = 0; i < bfin_icc->peer_count; i++) {
 		if (((uint32_t)icc_info[i].icc_high_queue < msg_addr) &&
-		(msg_addr < (uint32_t)icc_info[i].icc_high_queue + 4 * sizeof(struct sm_message_queue)))
+		(msg_addr < (uint32_t)icc_info[i].icc_high_queue + MSGQ_SIZE))
 			break;
 	}
 
 	if (i == bfin_icc->peer_count)
 		return NULL;
 	return &icc_info[i];
+}
+
+static int sm_get_icc_queue_attribute(uint32_t cpu, uint32_t type, uint32_t *attribute)
+{
+	if (cpu > bfin_icc->peer_count)
+		return -EINVAL;
+	if (type >= ICC_QUEUE_ATTR_MAX)
+		return -EINVAL;
+	if (!attribute)
+		return -EINVAL;
+	*attribute = *(bfin_icc->icc_info[cpu - 1].icc_queue_attribute + type);
+	return 0;
+}
+
+static int sm_set_icc_queue_attribute(uint32_t cpu, uint32_t type, uint32_t attribute)
+{
+	if (cpu > bfin_icc->peer_count)
+		return -EINVAL;
+	if (type >= ICC_QUEUE_ATTR_MAX)
+		return -EINVAL;
+	*(bfin_icc->icc_info[cpu - 1].icc_queue_attribute + type) = attribute;
+	return 0;
 }
 
 static struct sm_message_queue *sm_find_queue(struct sm_message *message, struct sm_session *session)
@@ -551,6 +573,7 @@ sm_send_packet(uint32_t session_idx, uint32_t dst_ep, uint32_t dst_cpu,
 	struct sm_message *m;
 	void *payload_buf = NULL;
 	int ret = -EAGAIN;
+	uint32_t queue_status;
 	if (session_idx < 0 || session_idx >= MAX_SESSIONS)
 		return -EINVAL;
 	session = sm_index_to_session(session_idx);
@@ -618,8 +641,14 @@ retry:
 		sm_debug("<<<<wakeup send queue\n");
 		goto retry;
 	} else {
-		if (session->type == SP_TASK_MANAGER)
+		if (session->type == SP_TASK_MANAGER) {
+			while (!sm_get_icc_queue_attribute(m->dst,
+				ICC_QUEUE_ATTR_STATUS, &queue_status)) {
+				if (queue_status == ICC_QUEUE_READY)
+					break;
+			}
 			kfree(m);
+		}
 		goto out;
 	}
 
@@ -881,6 +910,7 @@ static int sm_destroy_session(uint32_t session_idx)
 	struct sm_msg *msg;
 	struct sm_session *session;
 	struct sm_session_table *table = bfin_icc->sessions_table;
+
 	session = sm_index_to_session(session_idx);
 	if (!session)
 		return -EINVAL;
@@ -1403,6 +1433,7 @@ static int sm_task_sendmsg(struct sm_message *message, struct sm_session *sessio
 {
 	struct sm_msg *msg = &message->msg;
 	struct sm_task *task;
+
 	if (msg->length >= sizeof(struct sm_task))
 		msg->type = SM_TASK_RUN;
 	else
@@ -1413,6 +1444,11 @@ static int sm_task_sendmsg(struct sm_message *message, struct sm_session *sessio
 		flush_dcache_range(_ramend, physical_mem_end - _ramend);
 		task = (struct sm_task *)msg->payload;
 		sm_debug("%s init addr%p\n", __func__, task->task_init);
+		sm_set_icc_queue_attribute(message->dst, ICC_QUEUE_ATTR_STATUS, ICC_QUEUE_STOP);
+		mutex_lock(&bfin_icc->sessions_table->lock);
+		list_add_tail(&message->next, &session->tx_messages);
+		session->n_uncompleted++;
+		mutex_unlock(&bfin_icc->sessions_table->lock);
 		break;
 	case SM_TASK_KILL:
 		break;
@@ -1424,10 +1460,15 @@ static int sm_task_sendmsg(struct sm_message *message, struct sm_session *sessio
 
 static int sm_task_recvmsg(struct sm_msg *msg, struct sm_session *session)
 {
+	struct sm_message *message;
 	sm_debug("%s msg type %x\n", __func__, (uint32_t)msg->type);
 	switch (msg->type) {
 	case SM_TASK_RUN_ACK:
 		sm_debug("%s free %x\n", __func__, (uint32_t)msg->payload);
+		message = list_first_entry(&session->tx_messages,
+					struct sm_message, next);
+		list_del(&message->next);
+
 		kfree((void *)msg->payload);
 		break;
 	case SM_TASK_KILL_ACK:
@@ -1725,7 +1766,10 @@ static int __devinit bfin_icc_probe(struct platform_device *pdev)
 		/* icc_queue[0] is rx queue, icc_queue[1] is tx queue. */
 		icc_info->icc_high_queue = (struct sm_message_queue *)icc_data->peer_info[i].phy_peer_mem;
 		icc_info->icc_queue = (struct sm_message_queue *)icc_info->icc_high_queue + 2;
-		memset(icc_info->icc_high_queue, 0, sizeof(struct sm_message_queue) * SM_MSGQ_NUM);
+		memset(icc_info->icc_high_queue, 0, MSGQ_SIZE);
+		icc_info->icc_queue_attribute = (uint32_t *)((uint32_t)
+			icc_info->icc_high_queue + MSGQ_SIZE);
+		memset(icc_info->icc_queue_attribute, 0, 4 * ICC_QUEUE_ATTR_MAX);
 
 		init_waitqueue_head(&icc_info->iccq_tx_wait);
 		icc_info->iccq_thread = kthread_run(message_queue_thread,

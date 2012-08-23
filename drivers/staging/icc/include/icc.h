@@ -37,6 +37,17 @@ enum {
 	SP_MAX,
 };
 
+enum icc_queue_attr {
+	ICC_QUEUE_ATTR_STATUS = 0,
+	ICC_QUEUE_ATTR_MAX,
+};
+
+enum icc_queue_status {
+	ICC_QUEUE_STOP = 0,
+	ICC_QUEUE_INIT,
+	ICC_QUEUE_READY,
+	ICC_QUEUE_STATUS_MAX,
+};
 
 #define SM_UNCONNECT 0
 #define SM_CONNECT 0x1
@@ -162,6 +173,7 @@ struct sm_icc_desc {
 	uint32_t peer_cpu;
 	struct sm_message_queue *icc_queue;
 	struct sm_message_queue *icc_high_queue;
+	uint32_t *icc_queue_attribute;
 	struct task_struct *iccq_thread;
 	wait_queue_head_t iccq_tx_wait;
 	uint32_t irq;
