@@ -49,6 +49,7 @@ unsigned long blackfin_iflush_l1_entry[NR_CPUS];
 struct blackfin_initial_pda __cpuinitdata initial_pda_coreb;
 
 enum ipi_message_type {
+	BFIN_IPI_NONE,
 	BFIN_IPI_TIMER,
 	BFIN_IPI_RESCHEDULE,
 	BFIN_IPI_CALL_FUNC,
@@ -170,9 +171,8 @@ static irqreturn_t ipi_handler_int1(int irq, void *dev_instance)
 				ipi_cpu_stop(cpu);
 				break;
 			}
+			bfin_ipi_data->count--;
 		} while (msg < BITS_PER_LONG);
-
-		smp_mb();
 	}
 	return IRQ_HANDLED;
 }
@@ -198,7 +198,6 @@ void send_ipi(const struct cpumask *cpumask, enum ipi_message_type msg)
 
 	for_each_cpu(cpu, cpumask) {
 		bfin_ipi_data = &per_cpu(bfin_ipi, cpu);
-		smp_mb();
 		set_bit(msg, &bfin_ipi_data->bits);
 		bfin_ipi_data->count++;
 		platform_send_ipi_cpu(cpu, IRQ_SUPPLE_1);
@@ -319,7 +318,6 @@ void __cpuinit secondary_start_kernel(void)
 	setup_secondary(cpu);
 
 	platform_secondary_init(cpu);
-
 	/* setup local core timer */
 	bfin_local_timer_setup();
 
@@ -335,6 +333,8 @@ void __cpuinit secondary_start_kernel(void)
 	 */
 	calibrate_delay();
 
+	/* We are done with local CPU inits, unblock the boot CPU. */
+	set_cpu_online(cpu, true);
 	cpu_idle();
 }
 
