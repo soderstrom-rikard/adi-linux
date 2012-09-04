@@ -27,6 +27,18 @@ config BFIN_PPI
 	  peripherals.  It is really only useful for working with raw
 	  data streams.
 
+config BFIN_EPPI
+	tristate "Blackfin Generic EPPI Driver"
+	depends on BF60x
+	default n
+	help
+	  This provides a simple generic interface to the Blackfin EPPI
+	  peripherals.  It is really only useful for working with raw
+	  data streams.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called bfin_eppi.
+
 config BFIN_SIMPLE_TIMER
 	tristate "Blackfin General Purpose Timers char device interface"
 	select BFIN_GPTIMERS
