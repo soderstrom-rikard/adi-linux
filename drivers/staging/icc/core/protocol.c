@@ -642,10 +642,13 @@ retry:
 		goto retry;
 	} else {
 		if (session->type == SP_TASK_MANAGER) {
-			while (!sm_get_icc_queue_attribute(m->dst,
-				ICC_QUEUE_ATTR_STATUS, &queue_status)) {
-				if (queue_status == ICC_QUEUE_READY)
-					break;
+			ret = wait_event_interruptible_timeout(m->icc_info->iccq_tx_wait,
+			!sm_get_icc_queue_attribute(m->dst,
+				ICC_QUEUE_ATTR_STATUS, &queue_status) &&
+					(queue_status == ICC_QUEUE_READY), HZ);
+			if (ret == 0) {
+				sm_debug("coreb ready timeout\n");
+				ret = -ETIMEDOUT;
 			}
 			kfree(m);
 		}
