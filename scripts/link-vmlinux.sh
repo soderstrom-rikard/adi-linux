@@ -82,7 +82,7 @@ kallsyms()
 		      ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
 
 	${NM} -n ${1} | \
-		scripts/kallsyms ${kallsymopt} --symbol-prefix=_ | \
+		scripts/kallsyms ${kallsymopt} | \
 		${CC} ${aflags} -c -o ${2} -x assembler-with-cpp -
 }
 
