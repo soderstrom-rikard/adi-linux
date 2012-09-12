@@ -313,7 +313,6 @@ void __cpuinit secondary_start_kernel(void)
 	local_irq_disable();
 
 	/* Attach the new idle task to the global mm. */
-	atomic_inc(&mm->mm_users);
 	atomic_inc(&mm->mm_count);
 	current->active_mm = mm;
 
@@ -430,8 +429,7 @@ void cpu_die(void)
 {
 	complete(&cpu_killed);
 
-	atomic_dec(&init_mm.mm_users);
-	atomic_dec(&init_mm.mm_count);
+	idle_task_exit();
 
 	local_irq_disable();
 	platform_cpu_die();
