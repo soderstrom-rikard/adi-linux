@@ -174,6 +174,7 @@ static irqreturn_t ipi_handler_int1(int irq, void *dev_instance)
 				break;
 			}
 			bfin_ipi_data->count--;
+			smp_mb();
 		} while (msg < BITS_PER_LONG);
 	}
 	return IRQ_HANDLED;
