@@ -1138,6 +1138,13 @@ static struct platform_device bfin_display_device = {
 };
 #endif
 
+#if defined(CONFIG_FB_BF609_NL8048) \
+	|| defined(CONFIG_FB_BF609_NL8048_MODULE)
+static struct platform_device bfin_fb_device = {
+	.name = "bf609_nl8048",
+};
+#endif
+
 #if defined(CONFIG_BFIN_CRC)
 #define BFIN_CRC_NAME "bfin-crc"
 
@@ -1278,6 +1285,24 @@ static const struct ad7877_platform_data bfin_ad7877_ts_info = {
 };
 #endif
 
+#if defined(CONFIG_TOUCHSCREEN_AD7879) \
+	|| defined(CONFIG_TOUCHSCREEN_AD7879_MODULE)
+#include <linux/spi/ad7879.h>
+static const struct ad7879_platform_data bfin_ad7879_ts_info = {
+	.model                  = 7879,	/* Model = AD7879 */
+	.x_plate_ohms           = 620,	/* 620 Ohm from the touch datasheet */
+	.pressure_max           = 10000,
+	.pressure_min           = 0,
+	.first_conversion_delay = 3,	/* wait 512us before do a first conversion */
+	.acquisition_time       = 1,	/* 4us acquisition time per sample */
+	.median                 = 2,	/* do 8 measurements */
+	.averaging              = 1,	/* take the average of 4 middle samples */
+	.pen_down_acc_interval  = 255,	/* 9.4 ms */
+	.gpio_export            = 1,	/* Export GPIO to gpiolib */
+	.gpio_base              = MAX_BLACKFIN_GPIOS,
+};
+#endif
+
 #if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)
 #include <linux/input.h>
 #include <linux/gpio_keys.h>
@@ -1333,6 +1358,18 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.max_speed_hz		= 12500000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num		= 0,
 		.chip_select  		= 4,
+	},
+#endif
+#if defined(CONFIG_TOUCHSCREEN_AD7879_SPI) \
+	|| defined(CONFIG_TOUCHSCREEN_AD7879_SPI_MODULE)
+	{
+		.modalias               = "ad7879",
+		.platform_data          = &bfin_ad7879_ts_info,
+		.irq                    = IRQ_PG3,
+		.max_speed_hz           = 5000000,
+		.bus_num                = 0,
+		.chip_select            = 5,
+		.mode = SPI_CPHA | SPI_CPOL,
 	},
 #endif
 #if defined(CONFIG_SPI_SPIDEV) || defined(CONFIG_SPI_SPIDEV_MODULE)
@@ -1659,7 +1696,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 	|| defined(CONFIG_VIDEO_BLACKFIN_DISPLAY_MODULE)
 	&bfin_display_device,
 #endif
-
+#if defined(CONFIG_FB_BF609_NL8048) \
+	|| defined(CONFIG_FB_BF609_NL8048_MODULE)
+	&bfin_fb_device,
+#endif
 };
 
 static int __init ezkit_init(void)
