@@ -161,6 +161,7 @@ obj-$(CONFIG_FB_BF54X_LQ043)	  += bf54x-lq043fb.o
 obj-$(CONFIG_FB_BFIN_LQ035Q1)     += bfin-lq035q1-fb.o
 obj-$(CONFIG_FB_BFIN_T350MCQB)	  += bfin-t350mcqb-fb.o
 obj-$(CONFIG_FB_BFIN_7393)        += bfin_adv7393fb.o
+obj-$(CONFIG_FB_BF609_NL8048)     += bf609-nl8048.o
 obj-$(CONFIG_FB_HITACHI_TX09)     += hitachi-tx09.o
 obj-$(CONFIG_FB_MX3)		  += mx3fb.o
 obj-$(CONFIG_FB_DA8XX)		  += da8xx-fb.o
