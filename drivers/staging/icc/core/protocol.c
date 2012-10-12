@@ -13,6 +13,7 @@
 #include <linux/bitmap.h>
 #include <linux/slab.h>
 #include <linux/irq.h>
+#include <linux/gpio.h>
 #include <icc.h>
 #include <linux/poll.h>
 #include <linux/proc_fs.h>
@@ -22,7 +23,7 @@
 #include <linux/interrupt.h>
 #include <asm/cacheflush.h>
 #include <asm/icc.h>
-
+#include <asm/dma.h>
 
 #define DRIVER_NAME "icc"
 
@@ -1222,6 +1223,122 @@ unsigned int icc_poll(struct file *file, poll_table *wait)
 	return mask;
 }
 
+struct platform_device *saved_pdev;
+int icc_find_dev_name(char *name)
+{
+	struct device *d;
+	struct platform_device *pdev;
+
+	sm_debug("%s\n", name);
+	d = bus_find_device_by_name(&platform_bus_type, NULL, name);
+	if (d == NULL) {
+		sm_debug("no device found\n");
+		return -ENODEV;
+	} else {
+
+		pdev = to_platform_device(d);
+
+		saved_pdev = pdev;
+		platform_device_unregister(pdev);
+	}
+
+	return 0;
+}
+
+int res_manage_request_peri(uint16_t subid)
+{
+	return 0;
+}
+
+void res_manage_free_peri(uint16_t subid)
+{
+
+}
+
+int res_manage_request_gpio(uint16_t subid)
+{
+	return gpio_request(subid, "COREB");
+}
+
+void res_manage_free_gpio(uint16_t subid)
+{
+	gpio_free(subid);
+}
+
+int res_manage_request_irq(uint16_t subid)
+{
+	if (irq_settings_can_request(subid))
+		return 0;
+	disable_irq(subid);
+	return 0;
+}
+
+void res_manage_free_irq(uint16_t subid)
+{
+	if (irq_settings_can_request(subid))
+		return;
+	enable_irq(subid);
+}
+
+int res_manage_request_dma(uint16_t subid)
+{
+	return request_dma(subid, "COREB");
+}
+
+void res_manage_free_dma(uint16_t subid)
+{
+	free_dma(subid);
+}
+
+int res_manage_request(uint16_t id)
+{
+	int ret = 0;
+	uint16_t type, subid;
+	type = RESMGR_TYPE(id);
+	subid = RESMGR_SUBID(id);
+	switch (type) {
+	case RESMGR_TYPE_PERIPHERAL:
+		res_manage_request_peri(subid);
+		break;
+	case RESMGR_TYPE_GPIO:
+		res_manage_request_gpio(subid);
+		break;
+	case RESMGR_TYPE_SYS_IRQ:
+		res_manage_request_irq(subid);
+		break;
+	case RESMGR_TYPE_DMA:
+		res_manage_request_dma(subid);
+		break;
+	default:
+		ret = -ENODEV;
+	}
+	return ret;
+}
+
+int res_manage_free(uint16_t id)
+{
+	int ret = 0;
+	uint16_t type, subid;
+	type = RESMGR_TYPE(id);
+	subid = RESMGR_SUBID(id);
+	switch (type) {
+	case RESMGR_TYPE_PERIPHERAL:
+		res_manage_free_peri(subid);
+		break;
+	case RESMGR_TYPE_GPIO:
+		res_manage_free_gpio(subid);
+		break;
+	case RESMGR_TYPE_SYS_IRQ:
+		res_manage_free_irq(subid);
+		break;
+	case RESMGR_TYPE_DMA:
+		res_manage_free_dma(subid);
+		break;
+	default:
+		ret = -ENODEV;
+	}
+	return ret;
+}
 
 static const struct file_operations icc_fops = {
 	.owner          = THIS_MODULE,
@@ -1483,6 +1600,38 @@ static int sm_task_recvmsg(struct sm_msg *msg, struct sm_session *session)
 	return 0;
 }
 
+static int sm_resouce_manage_recvmsg(struct sm_msg *msg, struct sm_session *session)
+{
+	int ret;
+	struct sm_icc_desc *icc_info = get_icc_peer(msg);
+	BUG_ON(!icc_info);
+
+	sm_debug("%s msg type %x\n", __func__, (uint32_t)msg->type);
+	switch (msg->type) {
+	case SM_RES_MGR_REQUEST:
+		sm_debug("%s free %x\n", __func__, (uint32_t)msg->payload);
+		ret = res_manage_request((uint16_t)msg->payload);
+		if (ret)
+			sm_send_control_msg(session, msg->src_ep, icc_info->peer_cpu, 0,
+					0, SM_RES_MGR_REQUEST_FAIL);
+		else
+			sm_send_control_msg(session, msg->src_ep, icc_info->peer_cpu, 0,
+					0, SM_RES_MGR_REQUEST_OK);
+
+		break;
+	case SM_RES_MGR_FREE:
+		res_manage_free((uint16_t)msg->payload);
+		sm_send_control_msg(session, msg->src_ep, icc_info->peer_cpu, 0,
+					0, SM_RES_MGR_FREE_DONE);
+		break;
+	default:
+		break;
+	};
+	sm_message_dequeue(msg);
+	return 0;
+}
+
+
 struct sm_proto core_control_proto = {
 	.sendmsg = NULL,
 	.recvmsg = NULL,
@@ -1499,7 +1648,7 @@ struct sm_proto task_manager_proto = {
 
 struct sm_proto res_manager_proto = {
 	.sendmsg = NULL,
-	.recvmsg = NULL,
+	.recvmsg = sm_resouce_manage_recvmsg,
 	.shutdown = NULL,
 	.error = NULL,
 };
@@ -1671,7 +1820,7 @@ static int
 icc_write_proc(struct file *file, const char __user * buffer,
 		unsigned long count, void *data)
 {
-	char line[8];
+	char line[256];
 	unsigned long val;
 	int ret;
 	struct sm_session *session;
@@ -1680,6 +1829,18 @@ icc_write_proc(struct file *file, const char __user * buffer,
 	ret = copy_from_user(line, buffer, count);
 	if (ret)
 		return -EFAULT;
+
+	line[count - 1] = '\0';
+
+	if (!strcmp(line, "test")) {
+		icc_find_dev_name("bfin-spi.0");
+		return count;
+	}
+
+	if (!strcmp(line, "test1")) {
+		platform_device_add(saved_pdev);
+		return count;
+	}
 
 	if (strict_strtoul(line, 10, &val))
 		return -EINVAL;
@@ -1796,6 +1957,9 @@ static int __devinit bfin_icc_probe(struct platform_device *pdev)
 
 	dev_set_drvdata(&pdev->dev, icc);
 	bfin_icc = icc;
+
+	ret = sm_create_session(EP_RESMGR_SERVICE, SP_RES_MANAGER, 0);
+	BUG_ON(ret < 0);
 
 	dev_info(&pdev->dev, "initialized\n");
 

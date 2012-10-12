@@ -49,6 +49,24 @@ enum icc_queue_status {
 	ICC_QUEUE_STATUS_MAX,
 };
 
+enum {
+	RESMGR_TYPE_PERIPHERAL = 0,
+	RESMGR_TYPE_GPIO,
+	RESMGR_TYPE_SYS_IRQ,
+	RESMGR_TYPE_DMA,
+	RESMGR_TYPE_MAX,
+};
+
+#define EP_RESMGR_SERVICE 0
+
+#define RES_TYPE_OFFSET  12
+#define RES_TYPE_MASK    0xF
+#define RES_SUBID_MASK   0xFFF
+
+#define RESMGR_ID(type, subid) ((type << RES_TYPE_OFFSET) | (subid & RES_SUBID_MASK))
+#define RESMGR_SUBID(id)       (id & RES_SUBID_MASK)
+#define RESMGR_TYPE(id)        ((id >> RES_TYPE_OFFSET) & RES_TYPE_MASK)
+
 #define SM_UNCONNECT 0
 #define SM_CONNECT 0x1
 #define SM_CONNECTING 0x2
