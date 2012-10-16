@@ -1142,6 +1142,7 @@ static struct platform_device bfin_display_device = {
 	|| defined(CONFIG_FB_BF609_NL8048_MODULE)
 static struct platform_device bfin_fb_device = {
 	.name = "bf609_nl8048",
+	.id = 0,
 };
 #endif
 
