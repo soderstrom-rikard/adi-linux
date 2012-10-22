@@ -1267,7 +1267,7 @@ void res_manage_free_gpio(uint16_t subid)
 
 int res_manage_request_irq(uint16_t subid)
 {
-	if (irq_settings_can_request(subid))
+	if (can_request_irq(subid, 0))
 		return 0;
 	disable_irq(subid);
 	return 0;
@@ -1275,7 +1275,7 @@ int res_manage_request_irq(uint16_t subid)
 
 void res_manage_free_irq(uint16_t subid)
 {
-	if (irq_settings_can_request(subid))
+	if (can_request_irq(subid, 0))
 		return;
 	enable_irq(subid);
 }
