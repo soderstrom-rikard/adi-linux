@@ -34,7 +34,8 @@
 
 static LIST_HEAD(sport_list);
 
-static struct sport_dev *bfin_sport_dev;
+static unsigned char *sport_rx_buf;
+static unsigned char *sport_tx_buf;
 
 struct sport_dev {
 	struct list_head list;
@@ -518,7 +519,6 @@ static void sport_ndso_rx_read(struct sport_dev *dev)
 	dev->regs->rcr1 &= ~RSPEN;
 }
 
-
 static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 		loff_t *f_pos)
 {
@@ -562,7 +562,30 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 		}
 		set_dma_config(dev->dma_rx_chan, dma_config);
 
+		if (cfg->mode == TDM_MODE) {
+			sport_tx_buf = kmalloc(count, GFP_KERNEL);
+			if (!sport_tx_buf)
+				return ENOMEM;
+
+				set_dma_start_addr(dev->dma_tx_chan, (unsigned long)sport_tx_buf);
+				set_dma_x_count(dev->dma_tx_chan, xcount);
+				set_dma_x_modify(dev->dma_tx_chan, word_bytes);
+				if (ycount > 0) {
+					set_dma_y_count(dev->dma_tx_chan, ycount);
+					set_dma_y_modify(dev->dma_tx_chan, word_bytes);
+				}
+				set_dma_config(dev->dma_tx_chan, dma_config);
+		}
+		/* dma irq should not be handled before sport is enabled */
 		enable_dma(dev->dma_rx_chan);
+		if (cfg->mode == TDM_MODE)
+			enable_dma(dev->dma_tx_chan);
+		dev->regs->tcr1 |= RSPEN;
+		if (cfg->mode == TDM_MODE)
+			dev->regs->tcr1 |= TSPEN;
+		enable_irq(dev->rx_irq);
+		if (cfg->mode == TDM_MODE)
+			enable_irq(dev->tx_irq);
 	} else {
 		dev->rx_buf = buf;
 		dev->rx_len = count;
@@ -616,7 +639,7 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 		dma_cache_sync(dev->dev, (void *)buf, count, DMA_TO_DEVICE);
 
 		/* Configure dma */
-		dma_config = RESTART | DI_EN |
+		dma_config = DMAFLOW_STOP | DI_EN |
 			sport_wordsize(dev, cfg->word_len);
 		xcount = count / word_bytes;
 		ycount = 0;
@@ -634,11 +657,30 @@ static ssize_t sport_write(struct file *filp, const char __user *buf,
 		}
 		set_dma_config(dev->dma_tx_chan, dma_config);
 
+		if (cfg->mode == TDM_MODE) {
+		sport_rx_buf = kmalloc(count, GFP_KERNEL);
+		if (!sport_rx_buf)
+			return ENOMEM;
+
+			set_dma_start_addr(dev->dma_rx_chan, (unsigned long)sport_rx_buf);
+			set_dma_x_count(dev->dma_rx_chan, xcount);
+			set_dma_x_modify(dev->dma_rx_chan, word_bytes);
+			if (ycount > 0) {
+				set_dma_y_count(dev->dma_rx_chan, ycount);
+				set_dma_y_modify(dev->dma_rx_chan, word_bytes);
+			}
+			set_dma_config(dev->dma_rx_chan, dma_config);
+		}
 		/* dma irq should not be handled before sport is enabled */
-		disable_irq(dev->tx_irq);
 		enable_dma(dev->dma_tx_chan);
+		if (cfg->mode == TDM_MODE)
+			enable_dma(dev->dma_rx_chan);
 		dev->regs->tcr1 |= TSPEN;
+		if (cfg->mode == TDM_MODE)
+			dev->regs->tcr1 |= RSPEN;
 		enable_irq(dev->tx_irq);
+		if (cfg->mode == TDM_MODE)
+			enable_irq(dev->rx_irq);
 	} else {
 		/* Configure parameters to start PIO transfer */
 		dev->tx_buf = buf;
