@@ -935,6 +935,56 @@ static struct bfin_capture_config bfin_capture_data = {
 };
 #endif
 
+#if defined(CONFIG_VIDEO_MT9M114) \
+	|| defined(CONFIG_VIDEO_MT9M114_MODULE)
+static const unsigned short mt9m114_ppi_req[] = {
+	P_PPI0_D0, P_PPI0_D1, P_PPI0_D2, P_PPI0_D3,
+	P_PPI0_D4, P_PPI0_D5, P_PPI0_D6, P_PPI0_D7,
+	P_PPI0_CLK, P_PPI0_FS1, P_PPI0_FS2,
+	0,
+};
+
+static const struct ppi_info mt9m114_ppi_info = {
+	.type = PPI_TYPE_EPPI3,
+	.dma_ch = CH_EPPI0_CH0,
+	.irq_err = IRQ_EPPI0_STAT,
+	.base = (void __iomem *)EPPI0_STAT,
+	.pin_req = mt9m114_ppi_req,
+};
+
+static struct v4l2_input mt9m114_inputs[] = {
+	{
+		.index = 0,
+		.name = "Camera",
+		.type = V4L2_INPUT_TYPE_CAMERA,
+		.std = V4L2_STD_UNKNOWN,
+	},
+};
+
+static struct bcap_route mt9m114_routes[] = {
+	{
+		.input = 0,
+		.output = 0,
+	},
+};
+
+static struct bfin_capture_config bfin_capture_data = {
+	.card_name = "BF609",
+	.inputs = mt9m114_inputs,
+	.num_inputs = ARRAY_SIZE(mt9m114_inputs),
+	.routes = mt9m114_routes,
+	.i2c_adapter_id = 0,
+	.board_info = {
+		.type = "mt9m114",
+		.addr = 0x48,
+		.platform_data = (void *)NULL,
+	},
+	.ppi_info = &mt9m114_ppi_info,
+	.ppi_control = (PACK_EN | DLEN_8 | EPPI_CTL_FS1HI_FS2HI
+			| EPPI_CTL_POLC3 | EPPI_CTL_SYNC2 | EPPI_CTL_NON656),
+};
+#endif
+
 #if defined(CONFIG_VIDEO_ADV7842) \
 	|| defined(CONFIG_VIDEO_ADV7842_MODULE)
 #include <media/adv7842.h>
@@ -1142,7 +1192,7 @@ static struct platform_device bfin_display_device = {
 	|| defined(CONFIG_FB_BF609_NL8048_MODULE)
 static struct platform_device bfin_fb_device = {
 	.name = "bf609_nl8048",
-	.id = 0,
+	.id = 2,
 };
 #endif
 
