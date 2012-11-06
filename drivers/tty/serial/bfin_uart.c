@@ -870,6 +870,10 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 
 	UART_SET_ANOMALY_THRESHOLD(uart, USEC_PER_SEC / baud * 15);
 
+	/* Wait till the transfer buffer is empty */
+	while (UART_GET_GCTL(uart) & UCEN && !(UART_GET_LSR(uart) & TEMT))
+		barrier();
+
 	/* Disable UART */
 	ier = UART_GET_IER(uart);
 	UART_PUT_GCTL(uart, UART_GET_GCTL(uart) & ~UCEN);
