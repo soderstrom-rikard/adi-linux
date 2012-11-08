@@ -3583,4 +3583,132 @@
 #define               CHIPID_MANUFACTURE  0x00000FFE
 
 
+
+/* ==================================================
+        System Interconnect Fabric Registers
+   ================================================== */
+
+/* =========================
+        SCB0
+   ========================= */
+#define REG_SCB0_ARBR0                  0xFFCA2408         /* SCB0 Read-channel Arbitration Register for MIn */
+#define REG_SCB0_ARBR1                  0xFFCA2428         /* SCB0 Read-channel Arbitration Register for MIn */
+#define REG_SCB0_ARBR2                  0xFFCA2448         /* SCB0 Read-channel Arbitration Register for MIn */
+#define REG_SCB0_ARBR3                  0xFFCA2468         /* SCB0 Read-channel Arbitration Register for MIn */
+#define REG_SCB0_ARBR4                  0xFFCA2488         /* SCB0 Read-channel Arbitration Register for MIn */
+#define REG_SCB0_ARBR5                  0xFFCA24A8         /* SCB0 Read-channel Arbitration Register for MIn */
+#define REG_SCB0_ARBW0                  0xFFCA240C         /* SCB0 Write-channel Arbitration Register for MIn */
+#define REG_SCB0_ARBW1                  0xFFCA242C         /* SCB0 Write-channel Arbitration Register for MIn */
+#define REG_SCB0_ARBW2                  0xFFCA244C         /* SCB0 Write-channel Arbitration Register for MIn */
+#define REG_SCB0_ARBW3                  0xFFCA246C         /* SCB0 Write-channel Arbitration Register for MIn */
+#define REG_SCB0_ARBW4                  0xFFCA248C         /* SCB0 Write-channel Arbitration Register for MIn */
+#define REG_SCB0_ARBW5                  0xFFCA24AC         /* SCB0 Write-channel Arbitration Register for MIn */
+#define REG_SCB0_SLAVES                 0xFFCA2FC0         /* SCB0 Number of Slave Interfaces in Matrix (Reset = $NUM_SLOTS) */
+#define REG_SCB0_MASTERS                0xFFCA2FC4         /* SCB0 Number of Master Interfaces in Matrix (Reset = $NUM_MASTERS) */
+
+/* =========================
+        SCB1
+   ========================= */
+#define REG_SCB1_ARBR0                  0xFFC42408         /* SCB1 Read-channel Arbitration Register for MIn */
+#define REG_SCB1_ARBW0                  0xFFC4240C         /* SCB1 Write-channel Arbitration Register for MIn */
+#define REG_SCB1_SLAVES                 0xFFC42FC0         /* SCB1 Number of Slave Interfaces in Matrix (Reset = $NUM_SLOTS) */
+#define REG_SCB1_MASTERS                0xFFC42FC4         /* SCB1 Number of Master Interfaces in Matrix (Reset = $NUM_MASTERS) */
+
+/* =========================
+        SCB2
+   ========================= */
+#define REG_SCB2_ARBR0                  0xFFC06408         /* SCB2 Read-channel Arbitration Register for MIn */
+#define REG_SCB2_ARBW0                  0xFFC0640C         /* SCB2 Write-channel Arbitration Register for MIn */
+#define REG_SCB2_SLAVES                 0xFFC06FC0         /* SCB2 Number of Slave Interfaces in Matrix (Reset = $NUM_SLOTS) */
+#define REG_SCB2_MASTERS                0xFFC06FC4         /* SCB2 Number of Master Interfaces in Matrix (Reset = $NUM_MASTERS) */
+
+/* =========================
+        SCB3
+   ========================= */
+#define REG_SCB3_ARBR0                  0xFFC08408         /* SCB3 Read-channel Arbitration Register for MIn */
+#define REG_SCB3_ARBW0                  0xFFC0840C         /* SCB3 Write-channel Arbitration Register for MIn */
+#define REG_SCB3_SLAVES                 0xFFC08FC0         /* SCB3 Number of Slave Interfaces in Matrix (Reset = $NUM_SLOTS) */
+#define REG_SCB3_MASTERS                0xFFC08FC4         /* SCB3 Number of Master Interfaces in Matrix (Reset = $NUM_MASTERS) */
+
+/* =========================
+        SCB4
+   ========================= */
+#define REG_SCB4_ARBR0                  0xFFC0A408         /* SCB4 Read-channel Arbitration Register for MIn */
+#define REG_SCB4_ARBW0                  0xFFC0A40C         /* SCB4 Write-channel Arbitration Register for MIn */
+#define REG_SCB4_SLAVES                 0xFFC0AFC0         /* SCB4 Number of Slave Interfaces in Matrix (Reset = $NUM_SLOTS) */
+#define REG_SCB4_MASTERS                0xFFC0AFC4         /* SCB4 Number of Master Interfaces in Matrix (Reset = $NUM_MASTERS) */
+
+/* =========================
+        SCB5
+   ========================= */
+#define REG_SCB5_ARBR0                  0xFFC0C408         /* SCB5 Read-channel Arbitration Register for MIn */
+#define REG_SCB5_ARBW0                  0xFFC0C40C         /* SCB5 Write-channel Arbitration Register for MIn */
+#define REG_SCB5_SLAVES                 0xFFC0CFC0         /* SCB5 Number of Slave Interfaces in Matrix (Reset = $NUM_SLOTS) */
+#define REG_SCB5_MASTERS                0xFFC0CFC4         /* SCB5 Number of Master Interfaces in Matrix (Reset = $NUM_MASTERS) */
+
+/* =========================
+        SCB6
+   ========================= */
+#define REG_SCB6_ARBR0                  0xFFC0E408         /* SCB6 Read-channel Arbitration Register for MIn */
+#define REG_SCB6_ARBW0                  0xFFC0E40C         /* SCB6 Write-channel Arbitration Register for MIn */
+#define REG_SCB6_SLAVES                 0xFFC0EFC0         /* SCB6 Number of Slave Interfaces in Matrix (Reset = $NUM_SLOTS) */
+#define REG_SCB6_MASTERS                0xFFC0EFC4         /* SCB6 Number of Master Interfaces in Matrix (Reset = $NUM_MASTERS) */
+
+/* =========================
+        SCB7
+   ========================= */
+#define REG_SCB7_ARBR0                  0xFFC11408         /* SCB7 Read-channel Arbitration Register for MIn */
+#define REG_SCB7_ARBW0                  0xFFC1140C         /* SCB7 Write-channel Arbitration Register for MIn */
+#define REG_SCB7_SLAVES                 0xFFC11FC0         /* SCB7 Number of Slave Interfaces in Matrix (Reset = $NUM_SLOTS) */
+#define REG_SCB7_MASTERS                0xFFC11FC4         /* SCB7 Number of Master Interfaces in Matrix (Reset = $NUM_MASTERS) */
+
+/* =========================
+        SCB8
+   ========================= */
+#define REG_SCB8_ARBR0                  0xFFC13408         /* SCB8 Read-channel Arbitration Register for MIn */
+#define REG_SCB8_ARBW0                  0xFFC1340C         /* SCB8 Write-channel Arbitration Register for MIn */
+#define REG_SCB8_SLAVES                 0xFFC13FC0         /* SCB8 Number of Slave Interfaces in Matrix (Reset = $NUM_SLOTS) */
+#define REG_SCB8_MASTERS                0xFFC13FC4         /* SCB8 Number of Master Interfaces in Matrix (Reset = $NUM_MASTERS) */
+
+/* =========================
+        SCB9
+   ========================= */
+#define REG_SCB9_ARBR0                  0xFFC15408         /* SCB9 Read-channel Arbitration Register for MIn */
+#define REG_SCB9_ARBW0                  0xFFC1540C         /* SCB9 Write-channel Arbitration Register for MIn */
+#define REG_SCB9_SLAVES                 0xFFC15FC0         /* SCB9 Number of Slave Interfaces in Matrix (Reset = $NUM_SLOTS) */
+#define REG_SCB9_MASTERS                0xFFC15FC4         /* SCB9 Number of Master Interfaces in Matrix (Reset = $NUM_MASTERS) */
+
+/* =========================
+        SCB10
+   ========================= */
+#define REG_SCB10_ARBR0                 0xFFCA1408         /* SCB10 Read-channel Arbitration Register for MIn */
+#define REG_SCB10_ARBR1                 0xFFCA1428         /* SCB10 Read-channel Arbitration Register for MIn */
+#define REG_SCB10_ARBR2                 0xFFCA1448         /* SCB10 Read-channel Arbitration Register for MIn */
+#define REG_SCB10_ARBW0                 0xFFCA140C         /* SCB10 Write-channel Arbitration Register for MIn */
+#define REG_SCB10_ARBW1                 0xFFCA142C         /* SCB10 Write-channel Arbitration Register for MIn */
+#define REG_SCB10_ARBW2                 0xFFCA144C         /* SCB10 Write-channel Arbitration Register for MIn */
+#define REG_SCB10_SLAVES                0xFFCA1FC0         /* SCB10 Number of Slave Interfaces in Matrix (Reset = $NUM_SLOTS) */
+#define REG_SCB10_MASTERS               0xFFCA1FC4         /* SCB10 Number of Master Interfaces in Matrix (Reset = $NUM_MASTERS) */
+
+/* =========================
+        SCB11
+   ========================= */
+#define REG_SCB11_ARBR0                 0xFFCA0408         /* SCB11 Read-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBR1                 0xFFCA0428         /* SCB11 Read-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBR2                 0xFFCA0448         /* SCB11 Read-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBR3                 0xFFCA0468         /* SCB11 Read-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBR4                 0xFFCA0488         /* SCB11 Read-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBR5                 0xFFCA04A8         /* SCB11 Read-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBR6                 0xFFCA04C8         /* SCB11 Read-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBW0                 0xFFCA040C         /* SCB11 Write-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBW1                 0xFFCA042C         /* SCB11 Write-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBW2                 0xFFCA044C         /* SCB11 Write-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBW3                 0xFFCA046C         /* SCB11 Write-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBW4                 0xFFCA048C         /* SCB11 Write-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBW5                 0xFFCA04AC         /* SCB11 Write-channel Arbitration Register for MIn */
+#define REG_SCB11_ARBW6                 0xFFCA04CC         /* SCB11 Write-channel Arbitration Register for MIn */
+#define REG_SCB11_SLAVES                0xFFCA0FC0         /* SCB11 Number of Slave Interfaces in Matrix (Reset = $NUM_SLOTS) */
+#define REG_SCB11_MASTERS               0xFFCA0FC4         /* SCB11 Number of Master Interfaces in Matrix (Reset = $NUM_MASTERS) */
+
+
 #endif /* _DEF_BF60X_H */
