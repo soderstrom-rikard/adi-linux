@@ -1432,17 +1432,6 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.controller_data = &spidev_chip_info,
 	},
 #endif
-#if defined(CONFIG_INPUT_ADXL34X_SPI) || defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
-	{
-		.modalias		= "adxl34x",
-		.platform_data		= &adxl34x_info,
-		.irq			= IRQ_PC5,
-		.max_speed_hz		= 5000000,     /* max spi clock (SCK) speed in HZ */
-		.bus_num		= 1,
-		.chip_select  		= 2,
-		.mode = SPI_MODE_3,
-	},
-#endif
 };
 #if defined(CONFIG_SPI_BFIN6XX) || defined(CONFIG_SPI_BFIN6XX_MODULE)
 /* SPI (0) */
@@ -1572,7 +1561,7 @@ static struct i2c_board_info __initdata bfin_i2c_board_info0[] = {
 #if defined(CONFIG_INPUT_ADXL34X_I2C) || defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
 	{
 		I2C_BOARD_INFO("adxl34x", 0x53),
-		.irq = IRQ_PC5,
+		.irq = IRQ_PG2,
 		.platform_data = (void *)&adxl34x_info,
 	},
 #endif
