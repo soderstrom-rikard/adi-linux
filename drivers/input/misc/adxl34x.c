@@ -698,6 +698,7 @@ struct adxl34x *adxl34x_probe(struct device *dev, int irq,
 	const struct adxl34x_platform_data *pdata;
 	int err, range, i;
 	unsigned char revid;
+	int retry = 1;
 
 	if (!irq) {
 		dev_err(dev, "no IRQ?\n");
@@ -732,7 +733,7 @@ struct adxl34x *adxl34x_probe(struct device *dev, int irq,
 	mutex_init(&ac->mutex);
 
 	input_dev->name = "ADXL34x accelerometer";
-	revid = ac->bops->read(dev, DEVID);
+retry:	revid = ac->bops->read(dev, DEVID);
 
 	switch (revid) {
 	case ID_ADXL345:
@@ -742,6 +743,11 @@ struct adxl34x *adxl34x_probe(struct device *dev, int irq,
 		ac->model = 346;
 		break;
 	default:
+		/* it can't get devid at first time on bf609 lcd board */
+		if (retry) {
+			retry--;
+			goto retry;
+		}
 		dev_err(dev, "Failed to probe %s\n", input_dev->name);
 		err = -ENODEV;
 		goto err_free_mem;
