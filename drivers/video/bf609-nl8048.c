@@ -208,10 +208,10 @@ static int soft_switch_config(void)
 	client = i2c_new_dummy(adapter, 0x27);
 	i2c_smbus_write_byte_data(client, 0x03, 0xbf);
 	i2c_smbus_write_byte_data(client, 0x05, 0xff);
-	i2c_smbus_write_byte_data(client, 0x07, 0xff);
+	i2c_smbus_write_byte_data(client, 0x07, 0xdf);
 	i2c_smbus_write_byte_data(client, 0x09, 0xff);
 	i2c_smbus_write_byte_data(client, 0x0b, 0xb3);
-	i2c_smbus_write_byte_data(client, 0x0d, 0x6f);
+	i2c_smbus_write_byte_data(client, 0x0d, 0x7f);
 
 	i2c_smbus_write_byte_data(client, 0x02, 0x00);
 	i2c_smbus_write_byte_data(client, 0x04, 0x00);
