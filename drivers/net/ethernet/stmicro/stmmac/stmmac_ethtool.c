@@ -481,7 +481,11 @@ static const struct ethtool_ops stmmac_ethtool_ops = {
 	.get_wol = stmmac_get_wol,
 	.set_wol = stmmac_set_wol,
 	.get_sset_count	= stmmac_get_sset_count,
+#ifdef CONFIG_STMMAC_IEEE1588
+	.get_ts_info = stmmac_ethtool_get_ts_info,
+#else
 	.get_ts_info = ethtool_op_get_ts_info,
+#endif
 };
 
 void stmmac_set_ethtool_ops(struct net_device *netdev)

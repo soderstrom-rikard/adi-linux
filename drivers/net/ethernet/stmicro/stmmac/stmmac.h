@@ -34,12 +34,16 @@
 
 #ifdef CONFIG_STMMAC_IEEE1588
 #include <linux/net_tstamp.h>
-#include <linux/clocksource.h>
-#include <linux/timecompare.h>
 #include <linux/timer.h>
+#include <linux/ptp_clock_kernel.h>
 
+extern int stmmac_ethtool_get_ts_info(struct net_device *dev,
+	struct ethtool_ts_info *info);
 #define PTP_EN          (0x1)        /* Enable the PTP_TSYNC module */
-#define PTP_TSINIT      (0x4)        /* update system timer */
+#define PTP_TSCFUPDT    (0x2)        /* Fine or Coarse mode */
+#define PTP_TSINIT      (1 << 2)     /* update system timer */
+#define PTP_TSUPDT      (1 << 3)
+#define PTP_TSADDRED    (1 << 5)     /* Addend reg update */
 #define PTP_TSENALL     (1 << 8)
 #define PTP_TSCTRLSSR   (1 << 9)
 #define PTP_TSVER2ENA   (1 << 10)
@@ -116,10 +120,13 @@ struct stmmac_priv {
 	struct dma_features dma_cap;
 	int hw_cap_support;
 #ifdef CONFIG_STMMAC_IEEE1588
-	struct cyclecounter cycles;
-	struct timecounter clock;
-	struct timecompare compare;
+	u32 addend;
+	s32 max_ppb;
 	struct hwtstamp_config stamp_cfg;
+	struct ptp_clock_info caps;
+	struct ptp_clock *clock;
+	int phc_index;
+	spinlock_t phc_lock; /* protects time lo/hi registers */
 #endif
 #ifdef CONFIG_HAVE_CLK
 	struct clk *stmmac_clk;

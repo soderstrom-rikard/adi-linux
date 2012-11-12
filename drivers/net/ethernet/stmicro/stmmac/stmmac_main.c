@@ -143,6 +143,8 @@ static void stmmac_exit_fs(void);
 
 #ifdef CONFIG_STMMAC_IEEE1588
 #define MAX_TIMEOUT_CNT	5000
+#define STMMAC_PTP_CLK 50000000
+#define DEFAULT_SUBSEC 20 /* 1/50Mhz */
 #define stmmac_hwtstamp_is_none(cfg) ((cfg) == HWTSTAMP_FILTER_NONE)
 
 static int stmmac_hwtstamp_ioctl(struct net_device *netdev,
@@ -213,36 +215,33 @@ static int stmmac_hwtstamp_ioctl(struct net_device *netdev,
 
 		SSYNC();
 	} else {
+		u32 lo, hi;
+		/* enable ptp */
 		ptpctl |= PTP_EN | PTP_TSCTRLSSR;
 		writel(ptpctl, priv->ioaddr + EMAC_TM_CTL);
 
 		/* write init time value */
-		writel(ktime_get_real().tv.sec, priv->ioaddr + EMAC_TM_SECUPDT);
-		writel(ktime_get_real().tv.nsec, priv->ioaddr + EMAC_TM_NSECUPDT);
-		ptpctl |= PTP_TSINIT;
+		hi = readl(priv->ioaddr + EMAC_TM_SEC);
+		lo = readl(priv->ioaddr + EMAC_TM_NSEC);
+		writel(hi, priv->ioaddr + EMAC_TM_SECUPDT);
+		writel(lo, priv->ioaddr + EMAC_TM_NSECUPDT);
+		ptpctl |= PTP_TSINIT | PTP_TSCFUPDT;
 		writel(ptpctl, priv->ioaddr + EMAC_TM_CTL);
-		writel(0x14, priv->ioaddr + EMAC_TM_SUBSEC);
 		SSYNC();
 
-		priv->compare.last_update = 0;
-		timecounter_init(&priv->clock,
-				&priv->cycles,
-				ktime_to_ns(ktime_get_real()));
-		timecompare_update(&priv->compare, 0);
+		/* write addend reg */
+		writel(priv->addend, priv->ioaddr + EMAC_TM_ADDEND);
+		ptpctl |= PTP_TSADDRED;
+		writel(ptpctl, priv->ioaddr + EMAC_TM_CTL);
+		SSYNC();
+
+		/* write subsec increment reg, 50Mhz */
+		writel(DEFAULT_SUBSEC, priv->ioaddr + EMAC_TM_SUBSEC);
 	}
 
 	priv->stamp_cfg = config;
 	return copy_to_user(ifr->ifr_data, &config, sizeof(config)) ?
 		-EFAULT : 0;
-}
-
-static void stmmac_dump_hwtamp(char *s, ktime_t *hw, ktime_t *ts, struct timecompare *cmp)
-{
-	ktime_t sys = ktime_get_real();
-
-	pr_debug("%s %s hardware:%d,%d transform system:%d,%d system:%d,%d, cmp:%lld, %lld\n",
-			__func__, s, hw->tv.sec, hw->tv.nsec, ts->tv.sec, ts->tv.nsec, sys.tv.sec,
-			sys.tv.nsec, cmp->offset, cmp->skew);
 }
 
 static void stmmac_tx_hwtstamp(struct stmmac_priv *priv, struct sk_buff *skb,
@@ -274,34 +273,25 @@ static void stmmac_tx_hwtstamp(struct stmmac_priv *priv, struct sk_buff *skb,
 					desc->des01.etx.first_segment, desc->des01.etx.time_stamp_enable,
 					desc->des01.etx.time_stamp_status);
 			printk(KERN_INFO "hwsec %d, hwnsec %d\n", readl(priv->ioaddr + EMAC_TM_SEC),
-					readl(priv->ioaddr + EMAC_TM_SUBSEC));
+					readl(priv->ioaddr + EMAC_TM_NSEC));
 			return;
 		}
 		else {
 			struct skb_shared_hwtstamps shhwtstamps;
-			u64 ns;
 			ktime_t local_time;
 
 			local_time.tv.sec = desc->des7;
 			local_time.tv.nsec = desc->des6;
-			ns = ktime_to_ns(local_time);
-
 			memset(&shhwtstamps, 0, sizeof(shhwtstamps));
-			timecompare_update(&priv->compare, ns);
 			shhwtstamps.hwtstamp.tv.sec = local_time.tv.sec;
 			shhwtstamps.hwtstamp.tv.nsec = local_time.tv.nsec;
-			shhwtstamps.syststamp =
-				timecompare_transform(&priv->compare, ns);
 			skb_tstamp_tx(skb, &shhwtstamps);
-
-			stmmac_dump_hwtamp("TX", &shhwtstamps.hwtstamp, &shhwtstamps.syststamp, &priv->compare);
 		}
 	}
 }
 
 static void stmmac_rx_hwtstamp(struct stmmac_priv *priv, struct sk_buff *skb, struct dma_desc *desc)
 {
-	u64 ns;
 	struct skb_shared_hwtstamps *shhwtstamps;
 	ktime_t local_time;
 
@@ -315,67 +305,219 @@ static void stmmac_rx_hwtstamp(struct stmmac_priv *priv, struct sk_buff *skb, st
 
 	local_time.tv.sec = desc->des7;
 	local_time.tv.nsec = desc->des6;
-	ns = ktime_to_ns(local_time);
 
-	timecompare_update(&priv->compare, ns);
 	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
 	shhwtstamps->hwtstamp.tv.sec = local_time.tv.sec;
 	shhwtstamps->hwtstamp.tv.nsec = local_time.tv.nsec;
-	shhwtstamps->syststamp = timecompare_transform(&priv->compare, ns);
-
-	stmmac_dump_hwtamp("RX", &shhwtstamps->hwtstamp, &shhwtstamps->syststamp, &priv->compare);
 }
 
-/*
- * stmmac_read_clock - read raw cycle counter (to be used by time counter)
- */
-static cycle_t stmmac_read_clock(const struct cyclecounter *tc)
+static u64 stmmac_ptp_time_read(struct stmmac_priv *priv)
 {
 	u64 ns;
-	u32 tmp1, tmp2;
-	ktime_t hw_time;
-	struct stmmac_priv *priv = container_of(tc, struct stmmac_priv, cycles);
-	tmp1 = readl(priv->ioaddr + EMAC_TM_SEC);
-	hw_time.tv.nsec = readl(priv->ioaddr + EMAC_TM_NSEC);
-	tmp2 = readl(priv->ioaddr + EMAC_TM_SEC);
-	if (tmp2 > tmp1)
-		hw_time.tv.nsec = readl(priv->ioaddr + EMAC_TM_NSEC);
-	hw_time.tv.sec = tmp2;
-	ns = ktime_to_ns(hw_time);
-	do_div(ns, 20);
+	u32 lo, hi;
+	ktime_t local_time;
+
+	hi = readl(priv->ioaddr + EMAC_TM_SEC);
+	lo = readl(priv->ioaddr + EMAC_TM_NSEC);
+	local_time.tv.sec = hi;
+	local_time.tv.nsec = lo;
+
+	ns = ktime_to_ns(local_time);
 	return ns;
 }
 
+static void stmmac_ptp_time_write(struct stmmac_priv *priv, u64 ns)
+{
+	u32 ptpctl;
+	ktime_t local_time;
+
+	local_time = ns_to_ktime(ns);
+
+	ptpctl = readl(priv->ioaddr + EMAC_TM_CTL);
+	writel(local_time.tv.sec, priv->ioaddr + EMAC_TM_SECUPDT);
+	writel(local_time.tv.nsec, priv->ioaddr + EMAC_TM_NSECUPDT);
+	ptpctl |= (PTP_TSINIT);
+	writel(ptpctl, priv->ioaddr + EMAC_TM_CTL);
+	SSYNC();
+}
+
+static int stmmac_ptp_adjfreq(struct ptp_clock_info *ptp, s32 ppb)
+{
+	u64 adj, addend;
+	u32 diff, ptpctl;
+	int neg_adj = 0;
+	struct stmmac_priv *priv =
+		container_of(ptp, struct stmmac_priv, caps);
+
+	ptpctl = readl(priv->ioaddr + EMAC_TM_CTL);
+	if (ppb < 0) {
+		neg_adj = 1;
+		ppb = -ppb;
+	}
+
+	addend = priv->addend;
+	adj = addend;
+	adj *= ppb;
+	diff = div_u64(adj, 1000000000ULL);
+	addend = neg_adj ? addend - diff : addend + diff;
+
+	writel(addend, priv->ioaddr + EMAC_TM_ADDEND);
+	ptpctl |= PTP_TSADDRED;
+	writel(ptpctl, priv->ioaddr + EMAC_TM_CTL);
+	SSYNC();
+	writel(DEFAULT_SUBSEC, priv->ioaddr + EMAC_TM_SUBSEC);
+	SSYNC();
+
+	return 0;
+}
+
+static int stmmac_ptp_adjtime(struct ptp_clock_info *ptp, s64 delta)
+{
+	s64 now;
+	unsigned long flags;
+	struct stmmac_priv *lp =
+		container_of(ptp, struct stmmac_priv, caps);
+
+	spin_lock_irqsave(&lp->phc_lock, flags);
+
+	now = stmmac_ptp_time_read(lp);
+	now += delta;
+	stmmac_ptp_time_write(lp, now);
+
+	spin_unlock_irqrestore(&lp->phc_lock, flags);
+
+	return 0;
+}
+
+static int stmmac_ptp_gettime(struct ptp_clock_info *ptp, struct timespec *ts)
+{
+	u64 ns;
+	u32 remainder;
+	unsigned long flags;
+	struct stmmac_priv *lp =
+		container_of(ptp, struct stmmac_priv, caps);
+
+	spin_lock_irqsave(&lp->phc_lock, flags);
+
+	ns = stmmac_ptp_time_read(lp);
+
+	spin_unlock_irqrestore(&lp->phc_lock, flags);
+
+	ts->tv_sec = div_u64_rem(ns, 1000000000, &remainder);
+	ts->tv_nsec = remainder;
+	return 0;
+}
+
+static int stmmac_ptp_settime(struct ptp_clock_info *ptp,
+			   const struct timespec *ts)
+{
+	u64 ns;
+	unsigned long flags;
+	struct stmmac_priv *lp =
+		container_of(ptp, struct stmmac_priv, caps);
+
+	ns = ts->tv_sec * 1000000000ULL;
+	ns += ts->tv_nsec;
+
+	spin_lock_irqsave(&lp->phc_lock, flags);
+
+	stmmac_ptp_time_write(lp, ns);
+
+	spin_unlock_irqrestore(&lp->phc_lock, flags);
+
+	return 0;
+}
+
+static int stmmac_ptp_enable(struct ptp_clock_info *ptp,
+			  struct ptp_clock_request *rq, int on)
+{
+	return -EOPNOTSUPP;
+}
+
+static struct ptp_clock_info stmmac_ptp_caps = {
+	.owner		= THIS_MODULE,
+	.name		= "BF609 clock",
+	.max_adj	= 0,
+	.n_alarm	= 0,
+	.n_ext_ts	= 0,
+	.n_per_out	= 0,
+	.pps		= 0,
+	.adjfreq	= stmmac_ptp_adjfreq,
+	.adjtime	= stmmac_ptp_adjtime,
+	.gettime	= stmmac_ptp_gettime,
+	.settime	= stmmac_ptp_settime,
+	.enable		= stmmac_ptp_enable,
+};
+
+static int stmmac_phc_init(struct net_device *netdev)
+{
+	struct stmmac_priv *priv = netdev_priv(netdev);
+
+	priv->caps = stmmac_ptp_caps;
+	priv->caps.max_adj = priv->max_ppb;
+	priv->clock = ptp_clock_register(&priv->caps);
+	if (IS_ERR(priv->clock))
+		return PTR_ERR(priv->clock);
+
+	priv->phc_index = ptp_clock_index(priv->clock);
+	spin_lock_init(&priv->phc_lock);
+
+	return 0;
+}
 
 static void stmmac_hwtstamp_init(struct net_device *netdev)
 {
 	struct stmmac_priv *priv = netdev_priv(netdev);
+	u64 ppb, addend;
+	u32 input_clk, phc_clk;
 
-	/* select ptp clk with rmii*/
-	writel(0x0, (void *)PADS_EMAC_PTP_CLKSEL);
-	memset(&priv->cycles, 0, sizeof(priv->cycles));
-	priv->cycles.read = stmmac_read_clock;
-	priv->cycles.mask = CLOCKSOURCE_MASK(64);
-	priv->cycles.mult = 20;
-	priv->cycles.shift = 0;
+	/* select ptp clk with sclk*/
+	writel(0x1, (void *)PADS_EMAC_PTP_CLKSEL);
+	SSYNC();
 
-	/* Synchronize our NIC clock against system wall clock */
-	memset(&priv->compare, 0, sizeof(priv->compare));
-	priv->compare.source = &priv->clock;
-	priv->compare.target = ktime_get_real;
-	priv->compare.num_samples = 10;
+	/* Initialize hardware timer */
+	input_clk = get_sclk();
+	phc_clk = STMMAC_PTP_CLK;
+	addend = phc_clk * (1ULL << 32);
+	do_div(addend, input_clk);
+
+	priv->addend = addend;
+	ppb = 1000000000ULL * input_clk;
+	do_div(ppb, phc_clk);
+	priv->max_ppb = ppb - 1000000000ULL - 1ULL;
 
 	/* Initialize hwstamp config */
 	priv->stamp_cfg.rx_filter = HWTSTAMP_FILTER_NONE;
 	priv->stamp_cfg.tx_type = HWTSTAMP_TX_OFF;
 }
 
+int stmmac_ethtool_get_ts_info(struct net_device *dev,
+	struct ethtool_ts_info *info)
+{
+	struct stmmac_priv *priv = netdev_priv(dev);
+
+	info->so_timestamping =
+		SOF_TIMESTAMPING_TX_HARDWARE |
+		SOF_TIMESTAMPING_RX_HARDWARE |
+		SOF_TIMESTAMPING_RAW_HARDWARE;
+	info->phc_index = priv->phc_index;
+	info->tx_types =
+		(1 << HWTSTAMP_TX_OFF) |
+		(1 << HWTSTAMP_TX_ON);
+	info->rx_filters =
+		(1 << HWTSTAMP_FILTER_NONE) |
+		(1 << HWTSTAMP_FILTER_PTP_V1_L4_EVENT) |
+		(1 << HWTSTAMP_FILTER_PTP_V2_L2_EVENT) |
+		(1 << HWTSTAMP_FILTER_PTP_V2_L4_EVENT);
+	return 0;
+}
 #else
 # define stmmac_hwtstamp_is_none(cfg) 0
 # define stmmac_hwtstamp_init(dev)
 # define stmmac_hwtstamp_ioctl(dev, ifr, cmd) (-EOPNOTSUPP)
 # define stmmac_rx_hwtstamp(priv, skb, desc)
 # define stmmac_tx_hwtstamp(priv, skb, desc)
+# define stmmac_phc_init(dev)
 #endif
 
 /**
@@ -2102,7 +2244,11 @@ static int stmmac_hw_init(struct stmmac_priv *priv)
 	}
 
 	stmmac_hwtstamp_init(priv->dev);
-
+	ret = stmmac_phc_init(priv->dev);
+	if (ret) {
+		pr_err("Cannot register PHC device!\n");
+		return ret;
+	}
 	DBG(probe, DEBUG, "%s: Scatter/Gather: %s - HW checksums: %s\n",
 	    dev->name, (dev->features & NETIF_F_SG) ? "on" : "off",
 	    (dev->features & NETIF_F_IP_CSUM) ? "on" : "off");
