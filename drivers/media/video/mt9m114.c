@@ -133,6 +133,7 @@
 #define MT9M114_SET_STATE_RESULT_EINVAL			0x0c
 #define MT9M114_SET_STATE_RESULT_ENOSPC			0x0d
 
+#define MAX_FRAME_RATE 30
 
 struct mt9m114 {
 	struct v4l2_subdev sd;
@@ -334,8 +335,6 @@ static const struct mt9m114_reg mt9m114_regs_qvga[] = {
 	{ MT9M114_CAM_OUTPUT_WIDTH,                      0x0140, 2 },
 	{ MT9M114_CAM_OUTPUT_HEIGHT,                     0x00F0, 2 },
 	{ MT9M114_CAM_AET_AEMODE,                        0x00,   1 },
-	{ MT9M114_CAM_AET_MAX_FRAME_RATE,                0x1E00, 2 },
-	{ MT9M114_CAM_AET_MIN_FRAME_RATE,                0x1E00, 2 },
 	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_XSTART,       0x0000, 2 },
 	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_YSTART,       0x0000, 2 },
 	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_XEND,         0x013F, 2 },
@@ -369,8 +368,6 @@ static const struct mt9m114_reg mt9m114_regs_vga[] = {
 	{ MT9M114_CAM_OUTPUT_WIDTH,                      0x0280, 2 },
 	{ MT9M114_CAM_OUTPUT_HEIGHT,                     0x01E0, 2 },
 	{ MT9M114_CAM_AET_AEMODE,                        0x00,   1 },
-	{ MT9M114_CAM_AET_MAX_FRAME_RATE,                0x1E00, 2 },
-	{ MT9M114_CAM_AET_MIN_FRAME_RATE,                0x1E00, 2 },
 	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_XSTART,       0x0000, 2 },
 	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_YSTART,       0x0000, 2 },
 	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_XEND,         0x027F, 2 },
@@ -404,8 +401,6 @@ static const struct mt9m114_reg mt9m114_regs_wvga[] = {
 	{ MT9M114_CAM_OUTPUT_WIDTH,                      0x0320, 2 },
 	{ MT9M114_CAM_OUTPUT_HEIGHT,                     0x01E0, 2 },
 	{ MT9M114_CAM_AET_AEMODE,                        0x00,   1 },
-	{ MT9M114_CAM_AET_MAX_FRAME_RATE,                0x1E00, 2 },
-	{ MT9M114_CAM_AET_MIN_FRAME_RATE,                0x1E00, 2 },
 	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_XSTART,       0x0000, 2 },
 	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_YSTART,       0x0000, 2 },
 	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_XEND,         0x031F, 2 },
@@ -795,6 +790,49 @@ static int mt9m114_g_mbus_fmt(struct v4l2_subdev *sd,
 	return 0;
 }
 
+static int mt9m114_g_parm(struct v4l2_subdev *sd,
+				struct v4l2_streamparm *parms)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct v4l2_captureparm *cp = &parms->parm.capture;
+	u16 frame_rate;
+
+	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+		return -EINVAL;
+
+	memset(cp, 0, sizeof(*cp));
+	cp->capability = V4L2_CAP_TIMEPERFRAME;
+	cp->timeperframe.numerator = 1;
+	mt9m114_read16(client, MT9M114_CAM_AET_MAX_FRAME_RATE, &frame_rate);
+	cp->timeperframe.denominator = frame_rate >> 8;
+	return 0;
+}
+
+static int mt9m114_s_parm(struct v4l2_subdev *sd,
+				struct v4l2_streamparm *parms)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct v4l2_captureparm *cp = &parms->parm.capture;
+	struct v4l2_fract *tpf = &cp->timeperframe;
+	u16 frame_rate;
+
+	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+		return -EINVAL;
+	if (cp->extendedmode != 0)
+		return -EINVAL;
+
+	if (tpf->numerator == 0 || tpf->denominator == 0
+		|| (tpf->denominator > tpf->numerator * MAX_FRAME_RATE)) {
+		/* reset to max frame rate */
+		tpf->numerator = 1;
+		tpf->denominator = MAX_FRAME_RATE;
+	}
+	frame_rate = (tpf->denominator / tpf->numerator) << 8;
+	mt9m114_write16(client, MT9M114_CAM_AET_MAX_FRAME_RATE, frame_rate);
+	mt9m114_write16(client, MT9M114_CAM_AET_MIN_FRAME_RATE, frame_rate);
+	return 0;
+}
+
 static int mt9m114_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
@@ -839,6 +877,8 @@ static const struct v4l2_subdev_video_ops mt9m114_video_ops = {
 	.try_mbus_fmt = mt9m114_try_mbus_fmt,
 	.s_mbus_fmt = mt9m114_s_mbus_fmt,
 	.g_mbus_fmt = mt9m114_g_mbus_fmt,
+	.s_parm = mt9m114_s_parm,
+	.g_parm = mt9m114_g_parm,
 	.s_stream = mt9m114_s_stream,
 };
 
