@@ -57,7 +57,7 @@ config STMMAC_DA
 config STMMAC_IEEE1588
 	bool "STMMAC ieee1588 hw timestamp support"
 	default n
-	depends on BLACKFIN
+	depends on BLACKFIN && PTP_1588_CLOCK
 	help
 	  To support the IEEE 1588 Precision Time Protocol (PTP), select y here.
 
