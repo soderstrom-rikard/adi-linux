@@ -530,8 +530,17 @@ static irqreturn_t bcap_isr(int irq, void *dev_id)
 	if (bcap_dev->cur_frm != bcap_dev->next_frm) {
 		do_gettimeofday(&timevalue);
 		vb->v4l2_buf.timestamp = timevalue;
-		vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
+		if (ppi->err) {
+			vb2_buffer_done(vb, VB2_BUF_STATE_ERROR);
+			ppi->err = false;
+		} else {
+			vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
+		}
 		bcap_dev->cur_frm = bcap_dev->next_frm;
+	} else {
+		/* clear error flag, we will get a new frame */
+		if (ppi->err)
+			ppi->err = false;
 	}
 
 	ppi->ops->stop(ppi);
@@ -543,9 +552,9 @@ static irqreturn_t bcap_isr(int irq, void *dev_id)
 			bcap_dev->next_frm = list_entry(bcap_dev->dma_queue.next,
 						struct bcap_buffer, list);
 			list_del(&bcap_dev->next_frm->list);
-			addr = vb2_dma_contig_plane_dma_addr(&bcap_dev->next_frm->vb, 0);
-			ppi->ops->update_addr(ppi, (unsigned long)addr);
 		}
+		addr = vb2_dma_contig_plane_dma_addr(&bcap_dev->cur_frm->vb, 0);
+		ppi->ops->update_addr(ppi, (unsigned long)addr);
 		ppi->ops->start(ppi);
 	}
 
@@ -584,6 +593,11 @@ static int bcap_streamon(struct file *file, void *priv,
 	bcap_dev->cur_frm = bcap_dev->next_frm;
 	/* remove buffer from the dma queue */
 	list_del(&bcap_dev->cur_frm->list);
+	if (!list_empty(&bcap_dev->dma_queue)) {
+		bcap_dev->next_frm = list_entry(bcap_dev->dma_queue.next,
+				struct bcap_buffer, list);
+		list_del(&bcap_dev->next_frm->list);
+	}
 	addr = vb2_dma_contig_plane_dma_addr(&bcap_dev->cur_frm->vb, 0);
 	/* update DMA address */
 	ppi->ops->update_addr(ppi, (unsigned long)addr);
