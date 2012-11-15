@@ -91,8 +91,6 @@ struct disp_device {
 	int num_enc_formats;
 	/* pointing to current video buffer */
 	struct disp_buffer *cur_frm;
-	/* pointing to next video buffer */
-	struct disp_buffer *next_frm;
 	/* buffer queue used in videobuf2 */
 	struct vb2_queue buffer_queue;
 	/* allocator-specific contexts for each plane */
@@ -442,10 +440,10 @@ static int disp_stop_streaming(struct vb2_queue *vq)
 	spin_lock_irqsave(&disp->lock, flags);
 	/* release all active buffers */
 	while (!list_empty(&disp->dma_queue)) {
-		disp->next_frm = list_entry(disp->dma_queue.next,
+		disp->cur_frm = list_entry(disp->dma_queue.next,
 						struct disp_buffer, list);
-		list_del(&disp->next_frm->list);
-		vb2_buffer_done(&disp->next_frm->vb, VB2_BUF_STATE_ERROR);
+		list_del(&disp->cur_frm->list);
+		vb2_buffer_done(&disp->cur_frm->vb, VB2_BUF_STATE_ERROR);
 	}
 	spin_unlock_irqrestore(&disp->lock, flags);
 	return 0;
@@ -524,22 +522,19 @@ static irqreturn_t disp_isr(int irq, void *dev_id)
 
 	spin_lock(&disp->lock);
 
-	if (disp->cur_frm != disp->next_frm) {
+	if (!list_empty(&disp->dma_queue)) {
 		do_gettimeofday(&timevalue);
 		vb->v4l2_buf.timestamp = timevalue;
 		vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
-		disp->cur_frm = disp->next_frm;
+		disp->cur_frm = list_entry(disp->dma_queue.next,
+				struct disp_buffer, list);
+		list_del(&disp->cur_frm->list);
 	}
 
 	clear_dma_irqstat(ppi->info->dma_ch);
 
-	if (!list_empty(&disp->dma_queue)) {
-		disp->next_frm = list_entry(disp->dma_queue.next,
-					struct disp_buffer, list);
-		list_del(&disp->next_frm->list);
-		addr = vb2_dma_contig_plane_dma_addr(&disp->next_frm->vb, 0);
-		ppi->ops->update_addr(ppi, (unsigned long)addr);
-	}
+	addr = vb2_dma_contig_plane_dma_addr(&disp->cur_frm->vb, 0);
+	ppi->ops->update_addr(ppi, (unsigned long)addr);
 	ppi->ops->start(ppi);
 
 	spin_unlock(&disp->lock);
@@ -572,9 +567,8 @@ static int disp_streamon(struct file *file, void *priv,
 	}
 
 	/* get the next frame from the dma queue */
-	disp->next_frm = list_entry(disp->dma_queue.next,
+	disp->cur_frm = list_entry(disp->dma_queue.next,
 					struct disp_buffer, list);
-	disp->cur_frm = disp->next_frm;
 	/* remove buffer from the dma queue */
 	list_del(&disp->cur_frm->list);
 	addr = vb2_dma_contig_plane_dma_addr(&disp->cur_frm->vb, 0);
