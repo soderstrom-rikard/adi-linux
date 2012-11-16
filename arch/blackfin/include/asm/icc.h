@@ -21,7 +21,14 @@ struct icc_platform_data {
 	struct icc_peer_platform_data *peer_info;
 };
 
+struct icc_peri_resource {
+	const char *name;
+	struct platform_device *pdev;
+	uint16_t resource_id;
+};
+
 void platform_send_ipi(cpumask_t callmap, int irq);
 void platform_send_ipi_cpu(unsigned int cpu, int irq);
 void platform_clear_ipi(unsigned int cpu, int irq);
+extern struct icc_peri_resource icc_peri_array[];
 #endif

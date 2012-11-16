@@ -1223,13 +1223,11 @@ unsigned int icc_poll(struct file *file, poll_table *wait)
 	return mask;
 }
 
-struct platform_device *saved_pdev;
-int icc_find_dev_name(char *name)
+int icc_request_dev_name(const char *name, struct platform_device **saved_pdev)
 {
 	struct device *d;
 	struct platform_device *pdev;
 
-	sm_debug("%s\n", name);
 	d = bus_find_device_by_name(&platform_bus_type, NULL, name);
 	if (d == NULL) {
 		sm_debug("no device found\n");
@@ -1238,8 +1236,8 @@ int icc_find_dev_name(char *name)
 
 		pdev = to_platform_device(d);
 
-		saved_pdev = pdev;
-		platform_device_unregister(pdev);
+		if (saved_pdev)
+			*saved_pdev = pdev;
 	}
 
 	return 0;
@@ -1247,12 +1245,36 @@ int icc_find_dev_name(char *name)
 
 int res_manage_request_peri(uint16_t subid)
 {
+	int ret;
+	struct platform_device *pdev;
+	if (icc_peri_array[subid].pdev)
+		return -EBUSY;
+
+	ret = icc_request_dev_name(icc_peri_array[subid].name, &pdev);
+	if (ret) {
+		/* not managed by linux, coreb can use it */
+		return 0;
+	}
+
+	if (pdev->dev.driver) {
+		/* already bound with driver */
+		return -EBUSY;
+	}
+
+	platform_device_unregister(pdev);
+	icc_peri_array[subid].resource_id = subid;
+	icc_peri_array[subid].pdev = pdev;
 	return 0;
 }
 
 void res_manage_free_peri(uint16_t subid)
 {
-
+	struct platform_device *pdev = icc_peri_array[subid].pdev;
+	if (!pdev)
+		return;
+	platform_device_add(pdev);
+	icc_peri_array[subid].resource_id = 0;
+	icc_peri_array[subid].pdev = NULL;
 }
 
 int res_manage_request_gpio(uint16_t subid)
@@ -1296,18 +1318,19 @@ int res_manage_request(uint16_t id)
 	uint16_t type, subid;
 	type = RESMGR_TYPE(id);
 	subid = RESMGR_SUBID(id);
+	sm_debug("%s %x %x\n", __func__, type, subid);
 	switch (type) {
 	case RESMGR_TYPE_PERIPHERAL:
-		res_manage_request_peri(subid);
+		ret = res_manage_request_peri(subid);
 		break;
 	case RESMGR_TYPE_GPIO:
-		res_manage_request_gpio(subid);
+		ret = res_manage_request_gpio(subid);
 		break;
 	case RESMGR_TYPE_SYS_IRQ:
-		res_manage_request_irq(subid);
+		ret = res_manage_request_irq(subid);
 		break;
 	case RESMGR_TYPE_DMA:
-		res_manage_request_dma(subid);
+		ret = res_manage_request_dma(subid);
 		break;
 	default:
 		ret = -ENODEV;
@@ -1581,6 +1604,9 @@ static int sm_task_sendmsg(struct sm_message *message, struct sm_session *sessio
 static int sm_task_recvmsg(struct sm_msg *msg, struct sm_session *session)
 {
 	struct sm_message *message;
+	struct sm_icc_desc *icc_info;
+	icc_info = get_icc_peer(msg);
+	BUG_ON(!icc_info);
 	sm_debug("%s msg type %x\n", __func__, (uint32_t)msg->type);
 	switch (msg->type) {
 	case SM_TASK_RUN_ACK:
@@ -1590,6 +1616,7 @@ static int sm_task_recvmsg(struct sm_msg *msg, struct sm_session *session)
 		list_del(&message->next);
 
 		kfree((void *)msg->payload);
+		wake_up(&icc_info->iccq_tx_wait);
 		break;
 	case SM_TASK_KILL_ACK:
 		break;
@@ -1831,16 +1858,6 @@ icc_write_proc(struct file *file, const char __user * buffer,
 		return -EFAULT;
 
 	line[count - 1] = '\0';
-
-	if (!strcmp(line, "test")) {
-		icc_find_dev_name("bfin-spi.0");
-		return count;
-	}
-
-	if (!strcmp(line, "test1")) {
-		platform_device_add(saved_pdev);
-		return count;
-	}
 
 	if (strict_strtoul(line, 10, &val))
 		return -EINVAL;

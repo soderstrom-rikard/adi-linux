@@ -2,6 +2,17 @@
 #include <linux/kernel.h>
 #include <linux/interrupt.h>
 #include <linux/delay.h>
+#include <asm/icc.h>
+
+struct icc_peri_resource icc_peri_array[] = {
+	{"bfin-spi.0", NULL, 0},
+	{"bfin-ppi.0", NULL, 0},
+	{"bfin-ppi.1", NULL, 0},
+	{"bfin-sport.0", NULL, 0},
+	{"bfin-sport.1", NULL, 0},
+	{"bfin-uart.0", NULL, 0},
+	{"bfin-timer.0", NULL, 0},
+};
 
 void platform_send_ipi(cpumask_t callmap, int irq)
 {
