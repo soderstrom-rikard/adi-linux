@@ -309,6 +309,7 @@ static const struct mt9m114_reg mt9m114_init[] = {
 
 	{ MT9M114_LOGICAL_ADDRESS_ACCESS,                0x0000, 2 },
 	{ MT9M114_CAM_PORT_OUTPUT_CONTROL,               0x8040, 2 },
+	{ MT9M114_CAM_SENSOR_CONTROL_READ_MODE,          0x0330, 2 },
 	{ MT9M114_PAD_SLEW,                              0x0777, 2 },
 };
 
@@ -326,7 +327,6 @@ static const struct mt9m114_reg mt9m114_regs_qvga[] = {
 	{ MT9M114_CAM_SENSOR_CFG_FINE_CORRECTION,        0x00E0, 2 },
 	{ MT9M114_CAM_SENSOR_CFG_CPIPE_LAST_ROW,         0x01E3, 2 },
 	{ MT9M114_CAM_SENSOR_CFG_REG_0_DATA,             0x0020, 2 },
-	{ MT9M114_CAM_SENSOR_CONTROL_READ_MODE,          0x0330, 2 },
 	{ MT9M114_CAM_CROP_WINDOW_XOFFSET,               0x0000, 2 },
 	{ MT9M114_CAM_CROP_WINDOW_YOFFSET,               0x0000, 2 },
 	{ MT9M114_CAM_CROP_WINDOW_WIDTH,                 0x0280, 2 },
@@ -359,7 +359,6 @@ static const struct mt9m114_reg mt9m114_regs_vga[] = {
 	{ MT9M114_CAM_SENSOR_CFG_FINE_CORRECTION,        0x00E0, 2 },
 	{ MT9M114_CAM_SENSOR_CFG_CPIPE_LAST_ROW,         0x01E3, 2 },
 	{ MT9M114_CAM_SENSOR_CFG_REG_0_DATA,             0x0020, 2 },
-	{ MT9M114_CAM_SENSOR_CONTROL_READ_MODE,          0x0330, 2 },
 	{ MT9M114_CAM_CROP_WINDOW_XOFFSET,               0x0000, 2 },
 	{ MT9M114_CAM_CROP_WINDOW_YOFFSET,               0x0000, 2 },
 	{ MT9M114_CAM_CROP_WINDOW_WIDTH,                 0x0280, 2 },
@@ -392,7 +391,6 @@ static const struct mt9m114_reg mt9m114_regs_wvga[] = {
 	{ MT9M114_CAM_SENSOR_CFG_FINE_CORRECTION,        0x0060, 2 },
 	{ MT9M114_CAM_SENSOR_CFG_CPIPE_LAST_ROW,         0x01E3, 2 },
 	{ MT9M114_CAM_SENSOR_CFG_REG_0_DATA,             0x0020, 2 },
-	{ MT9M114_CAM_SENSOR_CONTROL_READ_MODE,          0x0000, 2 },
 	{ MT9M114_CAM_CROP_WINDOW_XOFFSET,               0x0000, 2 },
 	{ MT9M114_CAM_CROP_WINDOW_YOFFSET,               0x0000, 2 },
 	{ MT9M114_CAM_CROP_WINDOW_WIDTH,                 0x0320, 2 },
@@ -682,31 +680,39 @@ static int mt9m114_set_state(struct i2c_client *client, u8 next_state)
 		return -EFAULT;
 }
 
-#if 0
 static int mt9m114_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct v4l2_subdev *sd = to_sd(ctrl);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
 
 	switch (ctrl->id) {
-	case V4L2_CID_CONTRAST:
-		mt9m114_write(sd, VS6624_CONTRAST0, ctrl->val);
-		break;
-	case V4L2_CID_SATURATION:
-		mt9m114_write(sd, VS6624_SATURATION0, ctrl->val);
-		break;
 	case V4L2_CID_HFLIP:
-		mt9m114_write(sd, VS6624_HMIRROR0, ctrl->val);
+	{
+		u16 read_mode;
+		mt9m114_read16(client,
+			MT9M114_CAM_SENSOR_CONTROL_READ_MODE, &read_mode);
+		read_mode = (read_mode & 0xfffe) | ctrl->val;
+		mt9m114_write16(client,
+			MT9M114_CAM_SENSOR_CONTROL_READ_MODE, read_mode);
 		break;
+	}
 	case V4L2_CID_VFLIP:
-		mt9m114_write(sd, VS6624_VFLIP0, ctrl->val);
+	{
+		u16 read_mode;
+		mt9m114_read16(client,
+			MT9M114_CAM_SENSOR_CONTROL_READ_MODE, &read_mode);
+		read_mode = (read_mode & 0xfffd) | (ctrl->val << 1);
+		mt9m114_write16(client,
+			MT9M114_CAM_SENSOR_CONTROL_READ_MODE, read_mode);
 		break;
+	}
 	default:
 		return -EINVAL;
 	}
 
 	return 0;
 }
-#endif
+
 static int mt9m114_enum_mbus_fmt(struct v4l2_subdev *sd, unsigned index,
 				enum v4l2_mbus_pixelcode *code)
 {
@@ -863,11 +869,10 @@ static int mt9m114_g_chip_ident(struct v4l2_subdev *sd,
 			V4L2_IDENT_MT9M114, rev);
 }
 
-/*
 static const struct v4l2_ctrl_ops mt9m114_ctrl_ops = {
 	.s_ctrl = mt9m114_s_ctrl,
 };
-*/
+
 static const struct v4l2_subdev_core_ops mt9m114_core_ops = {
 	.g_chip_ident = mt9m114_g_chip_ident,
 };
@@ -960,13 +965,9 @@ static int __devinit mt9m114_probe(struct i2c_client *client,
 
 	v4l_info(client, "chip found @ 0x%02x (%s)\n",
 			client->addr << 1, client->adapter->name);
-#if 0
+
 	hdl = &sensor->hdl;
-	v4l2_ctrl_handler_init(hdl, 4);
-	v4l2_ctrl_new_std(hdl, &mt9m114_ctrl_ops,
-			V4L2_CID_CONTRAST, 0, 0xFF, 1, 0x87);
-	v4l2_ctrl_new_std(hdl, &mt9m114_ctrl_ops,
-			V4L2_CID_SATURATION, 0, 0xFF, 1, 0x78);
+	v4l2_ctrl_handler_init(hdl, 2);
 	v4l2_ctrl_new_std(hdl, &mt9m114_ctrl_ops,
 			V4L2_CID_HFLIP, 0, 1, 1, 0);
 	v4l2_ctrl_new_std(hdl, &mt9m114_ctrl_ops,
@@ -987,7 +988,7 @@ static int __devinit mt9m114_probe(struct i2c_client *client,
 		v4l2_ctrl_handler_free(hdl);
 		kfree(sensor);
 	}
-#endif
+
 	return ret;
 }
 
