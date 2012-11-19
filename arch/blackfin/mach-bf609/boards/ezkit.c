@@ -982,6 +982,7 @@ static struct bfin_capture_config bfin_capture_data = {
 	.ppi_info = &mt9m114_ppi_info,
 	.ppi_control = (PACK_EN | DLEN_8 | EPPI_CTL_FS1HI_FS2HI
 			| EPPI_CTL_POLC3 | EPPI_CTL_SYNC2 | EPPI_CTL_NON656),
+	.int_mask = 0x3c,
 };
 #endif
 
