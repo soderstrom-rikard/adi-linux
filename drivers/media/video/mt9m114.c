@@ -467,35 +467,6 @@ static inline struct v4l2_subdev *to_sd(struct v4l2_ctrl *ctrl)
 	return &container_of(ctrl->handler, struct mt9m114, hdl)->sd;
 }
 
-static int mt9m114_read8(struct i2c_client *client, u16 reg, u8 *val)
-{
-	int ret;
-	struct i2c_msg msg[] = {
-		{
-			.addr   = client->addr,
-			.flags  = 0,
-			.len    = 2,
-			.buf    = (u8 *)&reg,
-		},
-		{
-			.addr   = client->addr,
-			.flags  = I2C_M_RD,
-			.len    = 1,
-			.buf    = val,
-		},
-	};
-
-	reg = swab16(reg);
-
-	ret = i2c_transfer(client->adapter, msg, 2);
-	if (ret < 0) {
-		v4l_err(client, "Failed to read register 0x%04x!\n", reg);
-		return ret;
-	}
-
-	return 0;
-}
-
 static int mt9m114_write8(struct i2c_client *client, u16 reg, u8 val)
 {
 	int ret;
