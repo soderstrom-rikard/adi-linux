@@ -309,7 +309,6 @@ static const struct mt9m114_reg mt9m114_init[] = {
 
 	{ MT9M114_LOGICAL_ADDRESS_ACCESS,                0x0000, 2 },
 	{ MT9M114_CAM_PORT_OUTPUT_CONTROL,               0x8040, 2 },
-	{ MT9M114_CAM_SENSOR_CONTROL_READ_MODE,          0x0330, 2 },
 	{ MT9M114_PAD_SLEW,                              0x0777, 2 },
 };
 
@@ -407,6 +406,38 @@ static const struct mt9m114_reg mt9m114_regs_wvga[] = {
 	{ MT9M114_CAM_STAT_AE_INITIAL_WINDOW_YSTART,     0x0000, 2 },
 	{ MT9M114_CAM_STAT_AE_INITIAL_WINDOW_XEND,       0x009F, 2 },
 	{ MT9M114_CAM_STAT_AE_INITIAL_WINDOW_YEND,       0x005F, 2 },
+};
+
+static const struct mt9m114_reg mt9m114_regs_720p[] = {
+	{ MT9M114_LOGICAL_ADDRESS_ACCESS,                0x1000, 2 },
+	{ MT9M114_CAM_SENSOR_CFG_Y_ADDR_START,           0x0004, 2 },
+	{ MT9M114_CAM_SENSOR_CFG_X_ADDR_START,           0x0004, 2 },
+	{ MT9M114_CAM_SENSOR_CFG_Y_ADDR_END,             0x03CB, 2 },
+	{ MT9M114_CAM_SENSOR_CFG_X_ADDR_END,             0x050B, 2 },
+	{ MT9M114_CAM_SENSOR_CFG_ROW_SPEED,              0x0001, 2 },
+	{ MT9M114_CAM_SENSOR_CFG_FINE_INTEG_TIME_MIN,    0x00DB, 2 },
+	{ MT9M114_CAM_SENSOR_CFG_FINE_INTEG_TIME_MAX,    0x05B3, 2 },
+	{ MT9M114_CAM_SENSOR_CFG_FRAME_LENGTH_LINES,     0x03EE, 2 },
+	{ MT9M114_CAM_SENSOR_CFG_LINE_LENGTH_PCK,        0x0636, 2 },
+	{ MT9M114_CAM_SENSOR_CFG_FINE_CORRECTION,        0x0060, 2 },
+	{ MT9M114_CAM_SENSOR_CFG_CPIPE_LAST_ROW,         0x03C3, 2 },
+	{ MT9M114_CAM_SENSOR_CFG_REG_0_DATA,             0x0020, 2 },
+	{ MT9M114_CAM_CROP_WINDOW_XOFFSET,               0x0000, 2 },
+	{ MT9M114_CAM_CROP_WINDOW_YOFFSET,               0x0000, 2 },
+	{ MT9M114_CAM_CROP_WINDOW_WIDTH,                 0x0500, 2 },
+	{ MT9M114_CAM_CROP_WINDOW_HEIGHT,                0x03C0, 2 },
+	{ MT9M114_CAM_CROP_CROPMODE,                     0x03,   1 },
+	{ MT9M114_CAM_OUTPUT_WIDTH,                      0x0500, 2 },
+	{ MT9M114_CAM_OUTPUT_HEIGHT,                     0x02D0, 2 },
+	{ MT9M114_CAM_AET_AEMODE,                        0x00,   1 },
+	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_XSTART,       0x0000, 2 },
+	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_YSTART,       0x0000, 2 },
+	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_XEND,         0x04FF, 2 },
+	{ MT9M114_CAM_STAT_AWB_CLIP_WINDOW_YEND,         0x02CF, 2 },
+	{ MT9M114_CAM_STAT_AE_INITIAL_WINDOW_XSTART,     0x0000, 2 },
+	{ MT9M114_CAM_STAT_AE_INITIAL_WINDOW_YSTART,     0x0000, 2 },
+	{ MT9M114_CAM_STAT_AE_INITIAL_WINDOW_XEND,       0x00FF, 2 },
+	{ MT9M114_CAM_STAT_AE_INITIAL_WINDOW_YEND,       0x008F, 2 },
 };
 
 static const struct mt9m114_format {
@@ -617,18 +648,44 @@ static void mt9m114_res_roundup(u32 *width, u32 *height)
 
 static int mt9m114_set_res(struct i2c_client *client, u32 width, u32 height)
 {
+	u16 read_mode;
+
 	if ((width == mt9m114_resolutions[MT9M114_QVGA].width)
 		&& (height == mt9m114_resolutions[MT9M114_QVGA].height)) {
 		mt9m114_writeregs(client, mt9m114_regs_qvga,
 				ARRAY_SIZE(mt9m114_regs_qvga));
+		mt9m114_read16(client,
+			MT9M114_CAM_SENSOR_CONTROL_READ_MODE, &read_mode);
+		read_mode = (read_mode & 0xfccf) | 0x0330;
+		mt9m114_write16(client,
+			MT9M114_CAM_SENSOR_CONTROL_READ_MODE, read_mode);
 	} else if ((width == mt9m114_resolutions[MT9M114_VGA].width)
 		&& (height == mt9m114_resolutions[MT9M114_VGA].height)) {
 		mt9m114_writeregs(client, mt9m114_regs_vga,
 				ARRAY_SIZE(mt9m114_regs_vga));
+		mt9m114_read16(client,
+			MT9M114_CAM_SENSOR_CONTROL_READ_MODE, &read_mode);
+		read_mode = (read_mode & 0xfccf) | 0x0330;
+		mt9m114_write16(client,
+			MT9M114_CAM_SENSOR_CONTROL_READ_MODE, read_mode);
 	} else if ((width == mt9m114_resolutions[MT9M114_WVGA].width)
 		&& (height == mt9m114_resolutions[MT9M114_WVGA].height)) {
 		mt9m114_writeregs(client, mt9m114_regs_wvga,
 				ARRAY_SIZE(mt9m114_regs_wvga));
+		mt9m114_read16(client,
+			MT9M114_CAM_SENSOR_CONTROL_READ_MODE, &read_mode);
+		read_mode &= 0xfccf;
+		mt9m114_write16(client,
+			MT9M114_CAM_SENSOR_CONTROL_READ_MODE, read_mode);
+	} else if ((width == mt9m114_resolutions[MT9M114_720P].width)
+		&& (height == mt9m114_resolutions[MT9M114_720P].height)) {
+		mt9m114_writeregs(client, mt9m114_regs_720p,
+				ARRAY_SIZE(mt9m114_regs_720p));
+		mt9m114_read16(client,
+			MT9M114_CAM_SENSOR_CONTROL_READ_MODE, &read_mode);
+		read_mode &= 0xfccf;
+		mt9m114_write16(client,
+			MT9M114_CAM_SENSOR_CONTROL_READ_MODE, read_mode);
 	} else {
 		v4l_err(client, "Failed to select resolution!\n");
 		return -EINVAL;
