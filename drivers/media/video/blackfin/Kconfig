@@ -8,7 +8,7 @@ config VIDEO_BLACKFIN_CAPTURE
 	  Choose PPI or EPPI as its interface.
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called bfin_video_capture.
+	  module will be called bfin_capture.
 
 config VIDEO_BLACKFIN_DISPLAY
 	tristate "Blackfin Video Display Driver"
@@ -20,7 +20,7 @@ config VIDEO_BLACKFIN_DISPLAY
 	  Choose PPI or EPPI as its interface.
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called bfin_video_display.
+	  module will be called bfin_display.
 
 config VIDEO_BLACKFIN_PPI
 	tristate
