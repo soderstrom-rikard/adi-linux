@@ -57,6 +57,7 @@ enum {
 	RESMGR_TYPE_MAX,
 };
 
+
 #define EP_RESMGR_SERVICE 0
 
 #define RES_TYPE_OFFSET  12
@@ -288,6 +289,13 @@ struct sm_packet {
 	uint32_t param_len;
 	void *param;
 };
+
+typedef struct {
+	char label[32];				/* owner name */
+	uint16_t count;				/* resource number in next array */
+	uint32_t resources_array;		/* address of the resource ID array */
+} resources_t;
+
 
 #define SM_SCALAR_CMD(x) ((x) >> 16 & 0xffff)
 #define SM_SCALAR_CMDARG(x) ((x) & 0xffff)
