@@ -24,7 +24,6 @@
 #include <asm/cacheflush.h>
 #include <asm/icc.h>
 #include <asm/dma.h>
-#include <asm/portmux.h>
 
 #define DRIVER_NAME "icc"
 
@@ -1244,24 +1243,38 @@ int icc_request_dev_name(const char *name, struct platform_device **saved_pdev)
 	return 0;
 }
 
-int res_manage_request_peri(resources_t *data)
+int res_manage_request_peri(uint16_t subid)
 {
-	unsigned short *peri_list = (unsigned short *)data->resources_array;
-	char resource_name[32] = "coreb-";
+	int ret;
+	struct platform_device *pdev;
+	if (icc_peri_array[subid].pdev)
+		return -EBUSY;
 
-	strcat(resource_name, data->label);
+	ret = icc_request_dev_name(icc_peri_array[subid].name, &pdev);
+	if (ret) {
+		/* not managed by linux, coreb can use it */
+		return 0;
+	}
 
-	if (peripheral_request_list(peri_list, resource_name))
-		sm_debug("Requesting Peripherals %s failed\n", resource_name);
+	if (pdev->dev.driver) {
+		/* already bound with driver */
+		return -EBUSY;
+	}
 
+	platform_device_unregister(pdev);
+	icc_peri_array[subid].resource_id = subid;
+	icc_peri_array[subid].pdev = pdev;
 	return 0;
 }
 
-void res_manage_free_peri(resources_t *data)
+void res_manage_free_peri(uint16_t subid)
 {
-	unsigned short *peri_list = (unsigned short *)data->resources_array;
-
-	peripheral_free_list(peri_list);
+	struct platform_device *pdev = icc_peri_array[subid].pdev;
+	if (!pdev)
+		return;
+	platform_device_add(pdev);
+	icc_peri_array[subid].resource_id = 0;
+	icc_peri_array[subid].pdev = NULL;
 }
 
 int res_manage_request_gpio(uint16_t subid)
@@ -1299,7 +1312,7 @@ void res_manage_free_dma(uint16_t subid)
 	free_dma(subid);
 }
 
-int res_manage_request(uint16_t id, resources_t *data)
+int res_manage_request(uint16_t id)
 {
 	int ret = 0;
 	uint16_t type, subid;
@@ -1308,7 +1321,7 @@ int res_manage_request(uint16_t id, resources_t *data)
 	sm_debug("%s %x %x\n", __func__, type, subid);
 	switch (type) {
 	case RESMGR_TYPE_PERIPHERAL:
-		ret = res_manage_request_peri(data);
+		ret = res_manage_request_peri(subid);
 		break;
 	case RESMGR_TYPE_GPIO:
 		ret = res_manage_request_gpio(subid);
@@ -1325,7 +1338,7 @@ int res_manage_request(uint16_t id, resources_t *data)
 	return ret;
 }
 
-int res_manage_free(uint16_t id, resources_t *data)
+int res_manage_free(uint16_t id)
 {
 	int ret = 0;
 	uint16_t type, subid;
@@ -1333,7 +1346,7 @@ int res_manage_free(uint16_t id, resources_t *data)
 	subid = RESMGR_SUBID(id);
 	switch (type) {
 	case RESMGR_TYPE_PERIPHERAL:
-		res_manage_free_peri(data);
+		res_manage_free_peri(subid);
 		break;
 	case RESMGR_TYPE_GPIO:
 		res_manage_free_gpio(subid);
@@ -1620,9 +1633,11 @@ static int sm_resouce_manage_recvmsg(struct sm_msg *msg, struct sm_session *sess
 	struct sm_icc_desc *icc_info = get_icc_peer(msg);
 	BUG_ON(!icc_info);
 
+	sm_debug("%s msg type %x\n", __func__, (uint32_t)msg->type);
 	switch (msg->type) {
 	case SM_RES_MGR_REQUEST:
-		ret = res_manage_request((uint16_t)msg->payload, (resources_t *)msg->length);
+		sm_debug("%s free %x\n", __func__, (uint32_t)msg->payload);
+		ret = res_manage_request((uint16_t)msg->payload);
 		if (ret)
 			sm_send_control_msg(session, msg->src_ep, icc_info->peer_cpu, 0,
 					0, SM_RES_MGR_REQUEST_FAIL);
@@ -1632,7 +1647,7 @@ static int sm_resouce_manage_recvmsg(struct sm_msg *msg, struct sm_session *sess
 
 		break;
 	case SM_RES_MGR_FREE:
-		res_manage_free((uint16_t)msg->payload, (resources_t *)msg->length);
+		res_manage_free((uint16_t)msg->payload);
 		sm_send_control_msg(session, msg->src_ep, icc_info->peer_cpu, 0,
 					0, SM_RES_MGR_FREE_DONE);
 		break;

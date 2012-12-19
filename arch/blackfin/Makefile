@@ -141,11 +141,11 @@ archclean:
 
 INSTALL_PATH ?= /tftpboot
 boot := arch/$(ARCH)/boot
-BOOT_TARGETS = uImage uImage.bin uImage.bz2 uImage.gz uImage.lzma uImage.lzo uImage.xip
+BOOT_TARGETS = vmImage vmImage.bin vmImage.bz2 vmImage.gz vmImage.lzma vmImage.lzo vmImage.xip
 PHONY += $(BOOT_TARGETS) install
-KBUILD_IMAGE := $(boot)/uImage
+KBUILD_IMAGE := $(boot)/vmImage
 
-all: uImage
+all: vmImage
 
 $(BOOT_TARGETS): vmlinux
 	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
