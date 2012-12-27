@@ -317,7 +317,7 @@ static int bfin_t350mcqb_fb_setcolreg(u_int regno, u_int red, u_int green,
 
 		u32 value;
 		/* Place color in the pseudopalette */
-		if (regno > 16)
+		if (regno >= 16)
 			return -EINVAL;
 
 		red >>= (16 - info->var.red.length);

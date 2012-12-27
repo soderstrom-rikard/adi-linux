@@ -687,7 +687,7 @@ static int bfin_adv7393_fb_setcolreg(u_int regno, u_int red, u_int green,
 	if (info->fix.visual == FB_VISUAL_TRUECOLOR) {
 		u32 value;
 		/* Place color in the pseudopalette */
-		if (regno > 16)
+		if (regno >= 16)
 			return -EINVAL;
 
 		red   >>= (16 - info->var.red.length);
