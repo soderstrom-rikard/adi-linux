@@ -2250,18 +2250,6 @@ static void musb_restore_context(struct musb *musb)
 	musb_writeb(musb_base, MUSB_INTRUSBE, musb->context.intrusbe);
 	musb_writeb(musb_base, MUSB_DEVCTL, musb->context.devctl);
 
-#if defined(CONFIG_USB_MUSB_BLACKFIN) && !CONFIG_BF60x
-	/*
-	 * Blackfin musb-host can't resume without reprobe if not polling for
-	 * detected 'A'device.
-	 */
-	if (is_host_enabled(musb) && (musb->xceiv->state != OTG_STATE_B_IDLE)
-			&& (musb->xceiv->state != OTG_STATE_B_PERIPHERAL)) {
-		while (musb_readb(musb_base, MUSB_DEVCTL) & MUSB_DEVCTL_BDEVICE)
-			mdelay(10);
-	}
-#endif
-
 	for (i = 0; i < musb->config->num_eps; ++i) {
 		struct musb_hw_ep	*hw_ep;
 
