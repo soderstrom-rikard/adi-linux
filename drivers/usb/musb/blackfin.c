@@ -558,10 +558,12 @@ static int __devexit bfin_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int bfin_suspend(struct device *dev)
 {
+#ifdef CONFIG_BF60x
 	int aphy = 0;
 	aphy = bfin_read_USB_APHY_CNTRL();
 	bfin_write_USB_APHY_CNTRL(aphy | 0x1);
 	SSYNC();
+#endif
 	return 0;
 }
 
@@ -569,12 +571,12 @@ static int bfin_resume(struct device *dev)
 {
 	struct bfin_glue	*glue = dev_get_drvdata(dev);
 	struct musb		*musb = glue_to_musb(glue);
-
+#ifdef CONFIG_BF60x
 	int aphy;
 	aphy = bfin_read_USB_APHY_CNTRL();
 	bfin_write_USB_APHY_CNTRL(aphy | 0x2);
 	SSYNC();
-
+#endif
 	bfin_musb_reg_init(musb);
 
 	return 0;
