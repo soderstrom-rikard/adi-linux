@@ -856,7 +856,7 @@ static void bfin_tx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
 			regval = bfin_read_EMAC_PTP_TXSNAPLO();
 			regval |= (u64)bfin_read_EMAC_PTP_TXSNAPHI() << 32;
 			memset(&shhwtstamps, 0, sizeof(shhwtstamps));
-			ns = regval >> lp->shift;
+			ns = regval << lp->shift;
 			shhwtstamps.hwtstamp = ns_to_ktime(ns);
 			skb_tstamp_tx(skb, &shhwtstamps);
 		}
@@ -881,7 +881,7 @@ static void bfin_rx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
 
 	regval = bfin_read_EMAC_PTP_RXSNAPLO();
 	regval |= (u64)bfin_read_EMAC_PTP_RXSNAPHI() << 32;
-	ns = regval >> lp->shift;
+	ns = regval << lp->shift;
 	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
 	shhwtstamps->hwtstamp = ns_to_ktime(ns);
 }
