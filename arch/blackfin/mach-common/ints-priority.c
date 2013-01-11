@@ -337,9 +337,8 @@ static void bfin_sec_set_ssi_coreid(unsigned int sid, unsigned int coreid)
 	uint32_t reg_sctl = bfin_read_SEC_SCTL(sid);
 
 	reg_sctl &= ((uint32_t)~SEC_SCTL_CTG);
-	bfin_write_SEC_SCTL(sid, reg_sctl | ((coreid << 24) & SEC_SCTL_CTG));
 
-	pr_debug("sid %d %08x %08x\n", sid, bfin_read_SEC_SCTL(sid), reg_sctl | ((coreid << 24) & SEC_SCTL_CTG));
+	bfin_write_SEC_SCTL(sid, reg_sctl | ((coreid << 24) & SEC_SCTL_CTG));
 
 	hard_local_irq_restore(flags);
 }
@@ -530,6 +529,28 @@ void handle_core_fault(unsigned int irq, struct irq_desc *desc)
 	raw_spin_unlock(&desc->lock);
 }
 #endif /* SEC_GCTL */
+
+#ifdef CONFIG_ICC
+int icc_irq_set_affinity(unsigned int irq, const struct cpumask *mask)
+{
+	unsigned long flags = hard_local_irq_save();
+# ifdef CONFIG_BF561
+	unsigned mask_bank = BFIN_SYSIRQ(irq) / 32;
+	unsigned mask_bit = BFIN_SYSIRQ(irq) % 32;
+	if (cpumask_test_cpu(0, mask))
+		bfin_write_SIC_IMASK(mask_bank,
+				bfin_read_SIC_IMASK(mask_bank) |
+				(1 << mask_bit));
+	if (cpumask_test_cpu(1, mask))
+		bfin_write_SICB_IMASK(mask_bank,
+				bfin_read_SICB_IMASK(mask_bank) |
+				(1 << mask_bit));
+# elif CONFIG_BF60x
+	bfin_sec_set_ssi_coreid(BFIN_SYSIRQ(irq), cpumask_any_but(mask, 0));
+# endif
+	hard_local_irq_restore(flags);
+}
+#endif
 
 static struct irq_chip bfin_core_irqchip = {
 	.name = "CORE",

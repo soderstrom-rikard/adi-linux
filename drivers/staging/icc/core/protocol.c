@@ -25,6 +25,7 @@
 #include <asm/icc.h>
 #include <asm/dma.h>
 #include <asm/portmux.h>
+#include <asm/irq_handler.h>
 
 #define DRIVER_NAME "icc"
 
@@ -1224,26 +1225,6 @@ unsigned int icc_poll(struct file *file, poll_table *wait)
 	return mask;
 }
 
-int icc_request_dev_name(const char *name, struct platform_device **saved_pdev)
-{
-	struct device *d;
-	struct platform_device *pdev;
-
-	d = bus_find_device_by_name(&platform_bus_type, NULL, name);
-	if (d == NULL) {
-		sm_debug("no device found\n");
-		return -ENODEV;
-	} else {
-
-		pdev = to_platform_device(d);
-
-		if (saved_pdev)
-			*saved_pdev = pdev;
-	}
-
-	return 0;
-}
-
 int res_manage_request_peri(resources_t *data)
 {
 	unsigned short *peri_list = (unsigned short *)data->resources_array;
@@ -1274,19 +1255,60 @@ void res_manage_free_gpio(uint16_t subid)
 	gpio_free(subid);
 }
 
-int res_manage_request_irq(uint16_t subid)
+static irqreturn_t coreb_resource_manage_dummy(int irq, void *dev_id)
 {
-	if (can_request_irq(subid, 0))
-		return 0;
-	disable_irq(subid);
+	return 1;
+}
+
+int res_manage_request_irq(uint16_t subid, unsigned int cpu)
+{
+	int i, n;
+	int ret;
+	unsigned int bank, bank_base;
+
+	if (((subid - IRQ_PINT0) >= 0) && ((subid - IRQ_PINT0) < NR_PINT_SYS_IRQS)) {
+		bank = subid - IRQ_PINT0;
+		bank_base = GPIO_IRQ_BASE + (bank << 4);
+		for (i = 0; i < GPIO_BANKSIZE; i++) {
+			ret = request_irq(bank_base + i,
+				coreb_resource_manage_dummy,
+					0, "coreb dummy", NULL);
+			if (ret) {
+				n = i;
+				for (i = 0; i < n; i++)
+					free_irq(bank_base + i, NULL);
+				return ret;
+			}
+		}
+		icc_irq_set_affinity(IRQ_PINT0 + bank, cpumask_of(cpu));
+	} else {
+		ret = request_irq(subid, coreb_resource_manage_dummy,
+				0, "coreb dummy", NULL);
+		if (ret) {
+			sm_debug("Fail to request IRQ\n");
+			return ret;
+		}
+		icc_irq_set_affinity(subid, cpumask_of(cpu));
+	}
+
 	return 0;
 }
 
 void res_manage_free_irq(uint16_t subid)
 {
-	if (can_request_irq(subid, 0))
-		return;
-	enable_irq(subid);
+	int i, n;
+	unsigned int bank, bank_base;
+
+	if (((subid - IRQ_PINT0) >= 0) && ((subid - IRQ_PINT0) < NR_PINT_SYS_IRQS)) {
+		bank = subid - IRQ_PINT0;
+		bank_base = GPIO_IRQ_BASE + (bank << 4);
+		for (i = 0; i < GPIO_BANKSIZE; i++)
+			free_irq(bank_base + i, NULL);
+		icc_irq_set_affinity(IRQ_PINT0 + bank, cpumask_of(0));
+	} else {
+		free_irq(subid, NULL);
+		icc_irq_set_affinity(subid, cpumask_of(0));
+	}
 }
 
 int res_manage_request_dma(uint16_t subid)
@@ -1299,7 +1321,8 @@ void res_manage_free_dma(uint16_t subid)
 	free_dma(subid);
 }
 
-int res_manage_request(uint16_t id, resources_t *data)
+int res_manage_request(uint16_t id, resources_t *data,
+				struct sm_icc_desc *icc_info)
 {
 	int ret = 0;
 	uint16_t type, subid;
@@ -1314,7 +1337,7 @@ int res_manage_request(uint16_t id, resources_t *data)
 		ret = res_manage_request_gpio(subid);
 		break;
 	case RESMGR_TYPE_SYS_IRQ:
-		ret = res_manage_request_irq(subid);
+		ret = res_manage_request_irq(subid, icc_info->peer_cpu);
 		break;
 	case RESMGR_TYPE_DMA:
 		ret = res_manage_request_dma(subid);
@@ -1622,7 +1645,7 @@ static int sm_resouce_manage_recvmsg(struct sm_msg *msg, struct sm_session *sess
 
 	switch (msg->type) {
 	case SM_RES_MGR_REQUEST:
-		ret = res_manage_request((uint16_t)msg->payload, (resources_t *)msg->length);
+		ret = res_manage_request((uint16_t)msg->payload, (resources_t *)msg->length, icc_info);
 		if (ret)
 			sm_send_control_msg(session, msg->src_ep, icc_info->peer_cpu, 0,
 					0, SM_RES_MGR_REQUEST_FAIL);
