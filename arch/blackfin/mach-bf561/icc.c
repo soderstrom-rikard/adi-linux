@@ -34,3 +34,13 @@ void platform_clear_ipi(unsigned int cpu, int irq)
 	bfin_write_SICB_SYSCR(bfin_read_SICB_SYSCR() | (1 << (offset + cpu)));
 	SSYNC();
 }
+
+int platform_res_manage_request_irq(uint16_t subid, unsigned int cpu)
+{
+	return 0;
+}
+
+void platform_res_manage_free_irq(uint16_t subid)
+{
+	return 0;
+}
