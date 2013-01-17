@@ -42,5 +42,4 @@ int platform_res_manage_request_irq(uint16_t subid, unsigned int cpu)
 
 void platform_res_manage_free_irq(uint16_t subid)
 {
-	return 0;
 }
