@@ -373,6 +373,11 @@ config MEM_MT47H64M16
 	depends on (BFIN609_EZKIT)
 	default y
 
+config MEM_MT47H64M16
+	bool
+	depends on (BFIN609_EZKIT)
+	default y
+
 source "arch/blackfin/mach-bf518/Kconfig"
 source "arch/blackfin/mach-bf527/Kconfig"
 source "arch/blackfin/mach-bf533/Kconfig"
