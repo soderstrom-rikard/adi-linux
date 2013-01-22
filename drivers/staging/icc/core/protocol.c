@@ -25,7 +25,6 @@
 #include <asm/icc.h>
 #include <asm/dma.h>
 #include <asm/portmux.h>
-#include <asm/irq_handler.h>
 
 #define DRIVER_NAME "icc"
 
@@ -1255,60 +1254,14 @@ void res_manage_free_gpio(uint16_t subid)
 	gpio_free(subid);
 }
 
-static irqreturn_t coreb_resource_manage_dummy(int irq, void *dev_id)
-{
-	return 1;
-}
-
 int res_manage_request_irq(uint16_t subid, unsigned int cpu)
 {
-	int i, n;
-	int ret;
-	unsigned int bank, bank_base;
-
-	if (((subid - IRQ_PINT0) >= 0) && ((subid - IRQ_PINT0) < NR_PINT_SYS_IRQS)) {
-		bank = subid - IRQ_PINT0;
-		bank_base = GPIO_IRQ_BASE + (bank << 4);
-		for (i = 0; i < GPIO_BANKSIZE; i++) {
-			ret = request_irq(bank_base + i,
-				coreb_resource_manage_dummy,
-					0, "coreb dummy", NULL);
-			if (ret) {
-				n = i;
-				for (i = 0; i < n; i++)
-					free_irq(bank_base + i, NULL);
-				return ret;
-			}
-		}
-		icc_irq_set_affinity(IRQ_PINT0 + bank, cpumask_of(cpu));
-	} else {
-		ret = request_irq(subid, coreb_resource_manage_dummy,
-				0, "coreb dummy", NULL);
-		if (ret) {
-			sm_debug("Fail to request IRQ\n");
-			return ret;
-		}
-		icc_irq_set_affinity(subid, cpumask_of(cpu));
-	}
-
-	return 0;
+	return platform_res_manage_request_irq(subid, cpu);
 }
 
 void res_manage_free_irq(uint16_t subid)
 {
-	int i, n;
-	unsigned int bank, bank_base;
-
-	if (((subid - IRQ_PINT0) >= 0) && ((subid - IRQ_PINT0) < NR_PINT_SYS_IRQS)) {
-		bank = subid - IRQ_PINT0;
-		bank_base = GPIO_IRQ_BASE + (bank << 4);
-		for (i = 0; i < GPIO_BANKSIZE; i++)
-			free_irq(bank_base + i, NULL);
-		icc_irq_set_affinity(IRQ_PINT0 + bank, cpumask_of(0));
-	} else {
-		free_irq(subid, NULL);
-		icc_irq_set_affinity(subid, cpumask_of(0));
-	}
+	return res_manage_free_irq(subid);
 }
 
 int res_manage_request_dma(uint16_t subid)
