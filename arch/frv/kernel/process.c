@@ -25,7 +25,6 @@
 #include <linux/reboot.h>
 #include <linux/interrupt.h>
 #include <linux/pagemap.h>
-#include <linux/rcupdate.h>
 
 #include <asm/asm-offsets.h>
 #include <asm/uaccess.h>
@@ -70,14 +69,12 @@ void cpu_idle(void)
 {
 	/* endless idle loop with no priority at all */
 	while (1) {
-		rcu_idle_enter();
 		while (!need_resched()) {
 			check_pgt_cache();
 
 			if (!frv_dma_inprogress && idle)
 				idle();
 		}
-		rcu_idle_exit();
 
 		schedule_preempt_disabled();
 	}

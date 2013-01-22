@@ -325,11 +325,11 @@ static int smk_parse_long_rule(const char *data, struct smack_rule *rule,
 	int datalen;
 	int rc = -1;
 
-	/* This is inefficient */
+	/*
+	 * This is probably inefficient, but safe.
+	 */
 	datalen = strlen(data);
-
-	/* Our first element can be 64 + \0 with no spaces */
-	subject = kzalloc(datalen + 1, GFP_KERNEL);
+	subject = kzalloc(datalen, GFP_KERNEL);
 	if (subject == NULL)
 		return -1;
 	object = kzalloc(datalen, GFP_KERNEL);

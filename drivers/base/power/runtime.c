@@ -147,8 +147,6 @@ static int rpm_check_suspend_allowed(struct device *dev)
 	    || (dev->power.request_pending
 			&& dev->power.request == RPM_REQ_RESUME))
 		retval = -EAGAIN;
-	else if (__dev_pm_qos_read_value(dev) < 0)
-		retval = -EPERM;
 	else if (dev->power.runtime_status == RPM_SUSPENDED)
 		retval = 1;
 
@@ -390,6 +388,7 @@ static int rpm_suspend(struct device *dev, int rpmflags)
 		goto repeat;
 	}
 
+	dev->power.deferred_resume = false;
 	if (dev->power.no_callbacks)
 		goto no_callback;	/* Assume success. */
 
@@ -401,6 +400,12 @@ static int rpm_suspend(struct device *dev, int rpmflags)
 			dev->power.request_pending = true;
 			queue_work(pm_wq, &dev->power.work);
 		}
+		goto out;
+	}
+
+	if (__dev_pm_qos_read_value(dev) < 0) {
+		/* Negative PM QoS constraint means "never suspend". */
+		retval = -EPERM;
 		goto out;
 	}
 
@@ -435,7 +440,6 @@ static int rpm_suspend(struct device *dev, int rpmflags)
 	wake_up_all(&dev->power.wait_queue);
 
 	if (dev->power.deferred_resume) {
-		dev->power.deferred_resume = false;
 		rpm_resume(dev, 0);
 		retval = -EAGAIN;
 		goto out;
@@ -580,7 +584,6 @@ static int rpm_resume(struct device *dev, int rpmflags)
 		    || dev->parent->power.runtime_status == RPM_ACTIVE) {
 			atomic_inc(&dev->parent->power.child_count);
 			spin_unlock(&dev->parent->power.lock);
-			retval = 1;
 			goto no_callback;	/* Assume success. */
 		}
 		spin_unlock(&dev->parent->power.lock);
@@ -661,7 +664,7 @@ static int rpm_resume(struct device *dev, int rpmflags)
 	}
 	wake_up_all(&dev->power.wait_queue);
 
-	if (retval >= 0)
+	if (!retval)
 		rpm_idle(dev, RPM_ASYNC);
 
  out:

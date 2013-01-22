@@ -31,7 +31,6 @@
 #include <linux/sysfs.h>
 #include "i915_drv.h"
 
-#ifdef CONFIG_PM
 static u32 calc_residency(struct drm_device *dev, const u32 reg)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
@@ -110,14 +109,3 @@ void i915_teardown_sysfs(struct drm_device *dev)
 {
 	sysfs_unmerge_group(&dev->primary->kdev.kobj, &rc6_attr_group);
 }
-#else
-void i915_setup_sysfs(struct drm_device *dev)
-{
-	return;
-}
-
-void i915_teardown_sysfs(struct drm_device *dev)
-{
-	return;
-}
-#endif /* CONFIG_PM */

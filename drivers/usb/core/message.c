@@ -1174,7 +1174,6 @@ void usb_disable_device(struct usb_device *dev, int skip_ep0)
 			put_device(&dev->actconfig->interface[i]->dev);
 			dev->actconfig->interface[i] = NULL;
 		}
-		usb_unlocked_disable_lpm(dev);
 		dev->actconfig = NULL;
 		if (dev->state == USB_STATE_CONFIGURED)
 			usb_set_device_state(dev, USB_STATE_ADDRESS);
@@ -1792,15 +1791,14 @@ free_interfaces:
 	 * installed, so that the xHCI driver can recalculate the U1/U2
 	 * timeouts.
 	 */
-	if (dev->actconfig && usb_disable_lpm(dev)) {
+	if (usb_disable_lpm(dev)) {
 		dev_err(&dev->dev, "%s Failed to disable LPM\n.", __func__);
 		mutex_unlock(hcd->bandwidth_mutex);
 		return -ENOMEM;
 	}
 	ret = usb_hcd_alloc_bandwidth(dev, cp, NULL, NULL);
 	if (ret < 0) {
-		if (dev->actconfig)
-			usb_enable_lpm(dev);
+		usb_enable_lpm(dev);
 		mutex_unlock(hcd->bandwidth_mutex);
 		usb_autosuspend_device(dev);
 		goto free_interfaces;
@@ -1820,7 +1818,7 @@ free_interfaces:
 	if (!cp) {
 		usb_set_device_state(dev, USB_STATE_ADDRESS);
 		usb_hcd_alloc_bandwidth(dev, NULL, NULL, NULL);
-		/* Leave LPM disabled while the device is unconfigured. */
+		usb_enable_lpm(dev);
 		mutex_unlock(hcd->bandwidth_mutex);
 		usb_autosuspend_device(dev);
 		goto free_interfaces;

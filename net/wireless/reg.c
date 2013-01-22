@@ -340,9 +340,6 @@ static void reg_regdb_search(struct work_struct *work)
 	struct reg_regdb_search_request *request;
 	const struct ieee80211_regdomain *curdom, *regdom;
 	int i, r;
-	bool set_reg = false;
-
-	mutex_lock(&cfg80211_mutex);
 
 	mutex_lock(&reg_regdb_search_mutex);
 	while (!list_empty(&reg_regdb_search_list)) {
@@ -358,7 +355,9 @@ static void reg_regdb_search(struct work_struct *work)
 				r = reg_copy_regd(&regdom, curdom);
 				if (r)
 					break;
-				set_reg = true;
+				mutex_lock(&cfg80211_mutex);
+				set_regdom(regdom);
+				mutex_unlock(&cfg80211_mutex);
 				break;
 			}
 		}
@@ -366,11 +365,6 @@ static void reg_regdb_search(struct work_struct *work)
 		kfree(request);
 	}
 	mutex_unlock(&reg_regdb_search_mutex);
-
-	if (set_reg)
-		set_regdom(regdom);
-
-	mutex_unlock(&cfg80211_mutex);
 }
 
 static DECLARE_WORK(reg_regdb_work, reg_regdb_search);
@@ -897,21 +891,7 @@ static void handle_channel(struct wiphy *wiphy,
 	chan->max_antenna_gain = min(chan->orig_mag,
 		(int) MBI_TO_DBI(power_rule->max_antenna_gain));
 	chan->max_reg_power = (int) MBM_TO_DBM(power_rule->max_eirp);
-	if (chan->orig_mpwr) {
-		/*
-		 * Devices that have their own custom regulatory domain
-		 * but also use WIPHY_FLAG_STRICT_REGULATORY will follow the
-		 * passed country IE power settings.
-		 */
-		if (initiator == NL80211_REGDOM_SET_BY_COUNTRY_IE &&
-		    wiphy->flags & WIPHY_FLAG_CUSTOM_REGULATORY &&
-		    wiphy->flags & WIPHY_FLAG_STRICT_REGULATORY)
-			chan->max_power = chan->max_reg_power;
-		else
-			chan->max_power = min(chan->orig_mpwr,
-					      chan->max_reg_power);
-	} else
-		chan->max_power = chan->max_reg_power;
+	chan->max_power = min(chan->max_power, chan->max_reg_power);
 }
 
 static void handle_band(struct wiphy *wiphy,

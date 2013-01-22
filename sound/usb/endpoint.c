@@ -141,7 +141,7 @@ int snd_usb_endpoint_implict_feedback_sink(struct snd_usb_endpoint *ep)
  *
  * For implicit feedback, next_packet_size() is unused.
  */
-int snd_usb_endpoint_next_packet_size(struct snd_usb_endpoint *ep)
+static int next_packet_size(struct snd_usb_endpoint *ep)
 {
 	unsigned long flags;
 	int ret;
@@ -177,6 +177,15 @@ static void retire_inbound_urb(struct snd_usb_endpoint *ep,
 		ep->retire_data_urb(ep->data_subs, urb);
 }
 
+static void prepare_outbound_urb_sizes(struct snd_usb_endpoint *ep,
+				       struct snd_urb_ctx *ctx)
+{
+	int i;
+
+	for (i = 0; i < ctx->packets; ++i)
+		ctx->packet_size[i] = next_packet_size(ep);
+}
+
 /*
  * Prepare a PLAYBACK urb for submission to the bus.
  */
@@ -197,13 +206,7 @@ static void prepare_outbound_urb(struct snd_usb_endpoint *ep,
 			/* no data provider, so send silence */
 			unsigned int offs = 0;
 			for (i = 0; i < ctx->packets; ++i) {
-				int counts;
-
-				if (ctx->packet_size[i])
-					counts = ctx->packet_size[i];
-				else
-					counts = snd_usb_endpoint_next_packet_size(ep);
-
+				int counts = ctx->packet_size[i];
 				urb->iso_frame_desc[i].offset = offs * ep->stride;
 				urb->iso_frame_desc[i].length = counts * ep->stride;
 				offs += counts;
@@ -367,6 +370,7 @@ static void snd_complete_urb(struct urb *urb)
 			goto exit_clear;
 		}
 
+		prepare_outbound_urb_sizes(ep, ctx);
 		prepare_outbound_urb(ep, ctx);
 	} else {
 		retire_inbound_urb(ep, ctx);
@@ -795,9 +799,7 @@ int snd_usb_endpoint_set_params(struct snd_usb_endpoint *ep,
 /**
  * snd_usb_endpoint_start: start an snd_usb_endpoint
  *
- * @ep:		the endpoint to start
- * @can_sleep:	flag indicating whether the operation is executed in
- * 		non-atomic context
+ * @ep: the endpoint to start
  *
  * A call to this function will increment the use count of the endpoint.
  * In case it is not already running, the URBs for this endpoint will be
@@ -807,7 +809,7 @@ int snd_usb_endpoint_set_params(struct snd_usb_endpoint *ep,
  *
  * Returns an error if the URB submission failed, 0 in all other cases.
  */
-int snd_usb_endpoint_start(struct snd_usb_endpoint *ep, int can_sleep)
+int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 {
 	int err;
 	unsigned int i;
@@ -820,9 +822,8 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep, int can_sleep)
 		return 0;
 
 	/* just to be sure */
-	deactivate_urbs(ep, 0, can_sleep);
-	if (can_sleep)
-		wait_clear_urbs(ep);
+	deactivate_urbs(ep, 0, 1);
+	wait_clear_urbs(ep);
 
 	ep->active_mask = 0;
 	ep->unlink_mask = 0;
@@ -853,6 +854,7 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep, int can_sleep)
 			goto __error;
 
 		if (usb_pipeout(ep->pipe)) {
+			prepare_outbound_urb_sizes(ep, urb->context);
 			prepare_outbound_urb(ep, urb->context);
 		} else {
 			prepare_inbound_urb(ep, urb->context);

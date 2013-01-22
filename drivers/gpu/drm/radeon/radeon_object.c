@@ -52,7 +52,11 @@ void radeon_bo_clear_va(struct radeon_bo *bo)
 
 	list_for_each_entry_safe(bo_va, tmp, &bo->va, bo_list) {
 		/* remove from all vm address space */
-		radeon_vm_bo_rmv(bo->rdev, bo_va->vm, bo);
+		mutex_lock(&bo_va->vm->mutex);
+		list_del(&bo_va->vm_list);
+		mutex_unlock(&bo_va->vm->mutex);
+		list_del(&bo_va->bo_list);
+		kfree(bo_va);
 	}
 }
 

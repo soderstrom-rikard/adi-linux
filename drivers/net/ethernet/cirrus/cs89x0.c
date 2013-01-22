@@ -1243,7 +1243,6 @@ static void set_multicast_list(struct net_device *dev)
 {
 	struct net_local *lp = netdev_priv(dev);
 	unsigned long flags;
-	u16 cfg;
 
 	spin_lock_irqsave(&lp->lock, flags);
 	if (dev->flags & IFF_PROMISC)
@@ -1261,10 +1260,11 @@ static void set_multicast_list(struct net_device *dev)
 	/* in promiscuous mode, we accept errored packets,
 	 * so we have to enable interrupts on them also
 	 */
-	cfg = lp->curr_rx_cfg;
-	if (lp->rx_mode == RX_ALL_ACCEPT)
-		cfg |= RX_CRC_ERROR_ENBL | RX_RUNT_ENBL | RX_EXTRA_DATA_ENBL;
-	writereg(dev, PP_RxCFG, cfg);
+	writereg(dev, PP_RxCFG,
+		 (lp->curr_rx_cfg |
+		  (lp->rx_mode == RX_ALL_ACCEPT)
+		  ? (RX_CRC_ERROR_ENBL | RX_RUNT_ENBL | RX_EXTRA_DATA_ENBL)
+		  : 0));
 	spin_unlock_irqrestore(&lp->lock, flags);
 }
 
