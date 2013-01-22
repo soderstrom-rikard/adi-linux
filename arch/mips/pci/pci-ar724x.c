@@ -23,11 +23,8 @@
 #define AR724X_PCI_MEM_BASE	0x10000000
 #define AR724X_PCI_MEM_SIZE	0x08000000
 
-#define AR724X_PCI_REG_RESET		0x18
 #define AR724X_PCI_REG_INT_STATUS	0x4c
 #define AR724X_PCI_REG_INT_MASK		0x50
-
-#define AR724X_PCI_RESET_LINK_UP	BIT(0)
 
 #define AR724X_PCI_INT_DEV0		BIT(14)
 
@@ -41,15 +38,6 @@ static void __iomem *ar724x_pci_ctrl_base;
 
 static u32 ar724x_pci_bar0_value;
 static bool ar724x_pci_bar0_is_cached;
-static bool ar724x_pci_link_up;
-
-static inline bool ar724x_pci_check_link(void)
-{
-	u32 reset;
-
-	reset = __raw_readl(ar724x_pci_ctrl_base + AR724X_PCI_REG_RESET);
-	return reset & AR724X_PCI_RESET_LINK_UP;
-}
 
 static int ar724x_pci_read(struct pci_bus *bus, unsigned int devfn, int where,
 			    int size, uint32_t *value)
@@ -57,9 +45,6 @@ static int ar724x_pci_read(struct pci_bus *bus, unsigned int devfn, int where,
 	unsigned long flags;
 	void __iomem *base;
 	u32 data;
-
-	if (!ar724x_pci_link_up)
-		return PCIBIOS_DEVICE_NOT_FOUND;
 
 	if (devfn)
 		return PCIBIOS_DEVICE_NOT_FOUND;
@@ -110,9 +95,6 @@ static int ar724x_pci_write(struct pci_bus *bus, unsigned int devfn, int where,
 	void __iomem *base;
 	u32 data;
 	int s;
-
-	if (!ar724x_pci_link_up)
-		return PCIBIOS_DEVICE_NOT_FOUND;
 
 	if (devfn)
 		return PCIBIOS_DEVICE_NOT_FOUND;
@@ -297,10 +279,6 @@ int __init ar724x_pcibios_init(int irq)
 				       AR724X_PCI_CTRL_SIZE);
 	if (ar724x_pci_ctrl_base == NULL)
 		goto err_unmap_devcfg;
-
-	ar724x_pci_link_up = ar724x_pci_check_link();
-	if (!ar724x_pci_link_up)
-		pr_warn("ar724x: PCIe link is down\n");
 
 	ar724x_pci_irq_init(irq);
 	register_pci_controller(&ar724x_pci_controller);

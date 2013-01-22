@@ -38,7 +38,6 @@ static inline void
 nouveau_software_context_new(struct nouveau_software_chan *pch)
 {
 	INIT_LIST_HEAD(&pch->flip);
-	INIT_LIST_HEAD(&pch->vblank.list);
 }
 
 static inline void

@@ -449,8 +449,7 @@ hdlc_fill_fifo(struct bchannel *bch)
 {
 	struct fritzcard *fc = bch->hw;
 	struct hdlc_hw *hdlc;
-	int count, fs, cnt = 0, idx;
-	bool fillempty = false;
+	int count, fs, cnt = 0, idx, fillempty = 0;
 	u8 *p;
 	u32 *ptr, val, addr;
 
@@ -463,7 +462,7 @@ hdlc_fill_fifo(struct bchannel *bch)
 			return;
 		count = fs;
 		p = bch->fill;
-		fillempty = true;
+		fillempty = 1;
 	} else {
 		count = bch->tx_skb->len - bch->tx_idx;
 		if (count <= 0)
@@ -478,7 +477,7 @@ hdlc_fill_fifo(struct bchannel *bch)
 			hdlc->ctrl.sr.cmd |= HDLC_CMD_XME;
 	}
 	ptr = (u32 *)p;
-	if (!fillempty) {
+	if (fillempty) {
 		pr_debug("%s.B%d: %d/%d/%d", fc->name, bch->nr, count,
 			 bch->tx_idx, bch->tx_skb->len);
 		bch->tx_idx += count;
@@ -857,9 +856,8 @@ avm_bctrl(struct mISDNchannel *ch, u32 cmd, void *arg)
 	switch (cmd) {
 	case CLOSE_CHANNEL:
 		test_and_clear_bit(FLG_OPEN, &bch->Flags);
-		cancel_work_sync(&bch->workq);
 		spin_lock_irqsave(&fc->lock, flags);
-		mISDN_clear_bchannel(bch);
+		mISDN_freebchannel(bch);
 		modehdlc(bch, ISDN_P_NONE);
 		spin_unlock_irqrestore(&fc->lock, flags);
 		ch->protocol = ISDN_P_NONE;

@@ -2359,8 +2359,6 @@ static int b43_try_request_fw(struct b43_request_fw_context *ctx)
 	if (err)
 		goto err_load;
 
-	fw->opensource = (ctx->req_type == B43_FWTYPE_OPENSOURCE);
-
 	return 0;
 
 err_no_ucode:
@@ -2436,10 +2434,6 @@ static void b43_request_firmware(struct work_struct *work)
 	goto out;
 
 start_ieee80211:
-	wl->hw->queues = B43_QOS_QUEUE_NUM;
-	if (!modparam_qos || dev->fw.opensource)
-		wl->hw->queues = 1;
-
 	err = ieee80211_register_hw(wl->hw);
 	if (err)
 		goto err_one_core_detach;
@@ -2543,9 +2537,11 @@ static int b43_upload_microcode(struct b43_wldev *dev)
 		dev->fw.hdr_format = B43_FW_HDR_410;
 	else
 		dev->fw.hdr_format = B43_FW_HDR_351;
-	WARN_ON(dev->fw.opensource != (fwdate == 0xFFFF));
+	dev->fw.opensource = (fwdate == 0xFFFF);
 
-	dev->qos_enabled = dev->wl->hw->queues > 1;
+	/* Default to use-all-queues. */
+	dev->wl->hw->queues = dev->wl->mac80211_initially_registered_queues;
+	dev->qos_enabled = !!modparam_qos;
 	/* Default to firmware/hardware crypto acceleration. */
 	dev->hwcrypto_enabled = true;
 
@@ -2563,8 +2559,14 @@ static int b43_upload_microcode(struct b43_wldev *dev)
 			/* Disable hardware crypto and fall back to software crypto. */
 			dev->hwcrypto_enabled = false;
 		}
-		/* adding QoS support should use an offline discovery mechanism */
-		WARN(fwcapa & B43_FWCAPA_QOS, "QoS in OpenFW not supported\n");
+		if (!(fwcapa & B43_FWCAPA_QOS)) {
+			b43info(dev->wl, "QoS not supported by firmware\n");
+			/* Disable QoS. Tweak hw->queues to 1. It will be restored before
+			 * ieee80211_unregister to make sure the networking core can
+			 * properly free possible resources. */
+			dev->wl->hw->queues = 1;
+			dev->qos_enabled = false;
+		}
 	} else {
 		b43info(dev->wl, "Loading firmware version %u.%u "
 			"(20%.2i-%.2i-%.2i %.2i:%.2i:%.2i)\n",
@@ -5296,6 +5298,8 @@ static struct b43_wl *b43_wireless_init(struct b43_bus_dev *dev)
 
 	hw->wiphy->flags |= WIPHY_FLAG_IBSS_RSN;
 
+	hw->queues = modparam_qos ? B43_QOS_QUEUE_NUM : 1;
+	wl->mac80211_initially_registered_queues = hw->queues;
 	wl->hw_registred = false;
 	hw->max_rates = 2;
 	SET_IEEE80211_DEV(hw, dev->dev);
@@ -5370,6 +5374,10 @@ static void b43_bcma_remove(struct bcma_device *core)
 
 	B43_WARN_ON(!wl);
 	if (wl->current_dev == wldev && wl->hw_registred) {
+		/* Restore the queues count before unregistering, because firmware detect
+		 * might have modified it. Restoring is important, so the networking
+		 * stack can properly free resources. */
+		wl->hw->queues = wl->mac80211_initially_registered_queues;
 		b43_leds_stop(wldev);
 		ieee80211_unregister_hw(wl->hw);
 	}
@@ -5444,6 +5452,10 @@ static void b43_ssb_remove(struct ssb_device *sdev)
 
 	B43_WARN_ON(!wl);
 	if (wl->current_dev == wldev && wl->hw_registred) {
+		/* Restore the queues count before unregistering, because firmware detect
+		 * might have modified it. Restoring is important, so the networking
+		 * stack can properly free resources. */
+		wl->hw->queues = wl->mac80211_initially_registered_queues;
 		b43_leds_stop(wldev);
 		ieee80211_unregister_hw(wl->hw);
 	}
