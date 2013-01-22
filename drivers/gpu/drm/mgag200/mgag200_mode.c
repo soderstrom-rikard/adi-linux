@@ -13,9 +13,8 @@
 
 #include <linux/delay.h>
 
-#include "drmP.h"
-#include "drm.h"
-#include "drm_crtc_helper.h"
+#include <drm/drmP.h>
+#include <drm/drm_crtc_helper.h>
 
 #include "mgag200_drv.h"
 
@@ -78,8 +77,8 @@ static inline void mga_wait_busy(struct mga_device *mdev)
  * to just pass that straight through, so this does nothing
  */
 static bool mga_crtc_mode_fixup(struct drm_crtc *crtc,
-				   struct drm_display_mode *mode,
-				   struct drm_display_mode *adjusted_mode)
+				const struct drm_display_mode *mode,
+				struct drm_display_mode *adjusted_mode)
 {
 	return true;
 }
@@ -1324,8 +1323,8 @@ void mga_crtc_fb_gamma_get(struct drm_crtc *crtc, u16 *red, u16 *green,
  * to handle any encoder-specific limitations
  */
 static bool mga_encoder_mode_fixup(struct drm_encoder *encoder,
-				  struct drm_display_mode *mode,
-				  struct drm_display_mode *adjusted_mode)
+				   const struct drm_display_mode *mode,
+				   struct drm_display_mode *adjusted_mode)
 {
 	return true;
 }
@@ -1399,7 +1398,6 @@ static int mga_vga_get_modes(struct drm_connector *connector)
 	if (edid) {
 		drm_mode_connector_update_edid_property(connector, edid);
 		ret = drm_add_edid_modes(connector, edid);
-		connector->display_info.raw_edid = NULL;
 		kfree(edid);
 	}
 	return ret;

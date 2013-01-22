@@ -756,7 +756,6 @@ static void do_probe_callback(struct nfs4_client *clp)
  */
 void nfsd4_probe_callback(struct nfs4_client *clp)
 {
-	/* XXX: atomicity?  Also, should we be using cl_flags? */
 	clp->cl_cb_state = NFSD4_CB_UNKNOWN;
 	set_bit(NFSD4_CLIENT_CB_UPDATE, &clp->cl_flags);
 	do_probe_callback(clp);
@@ -1029,7 +1028,6 @@ void nfsd4_cb_recall(struct nfs4_delegation *dp)
 	cb->cb_msg.rpc_cred = callback_cred;
 
 	cb->cb_ops = &nfsd4_cb_recall_ops;
-	dp->dl_retries = 1;
 
 	INIT_LIST_HEAD(&cb->cb_per_client);
 	cb->cb_done = true;

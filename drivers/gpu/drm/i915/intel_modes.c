@@ -27,38 +27,10 @@
 #include <linux/i2c.h>
 #include <linux/fb.h>
 #include <drm/drm_edid.h>
-#include "drmP.h"
-#include "drm_edid.h"
+#include <drm/drmP.h>
+#include <drm/drm_edid.h>
 #include "intel_drv.h"
 #include "i915_drv.h"
-
-/**
- * intel_ddc_probe
- *
- */
-bool intel_ddc_probe(struct intel_encoder *intel_encoder, int ddc_bus)
-{
-	struct drm_i915_private *dev_priv = intel_encoder->base.dev->dev_private;
-	u8 out_buf[] = { 0x0, 0x0};
-	u8 buf[2];
-	struct i2c_msg msgs[] = {
-		{
-			.addr = DDC_ADDR,
-			.flags = 0,
-			.len = 1,
-			.buf = out_buf,
-		},
-		{
-			.addr = DDC_ADDR,
-			.flags = I2C_M_RD,
-			.len = 1,
-			.buf = buf,
-		}
-	};
-
-	return i2c_transfer(intel_gmbus_get_adapter(dev_priv, ddc_bus),
-			    msgs, 2) == 2;
-}
 
 /**
  * intel_connector_update_modes - update connector from edid
@@ -73,7 +45,6 @@ int intel_connector_update_modes(struct drm_connector *connector,
 	drm_mode_connector_update_edid_property(connector, edid);
 	ret = drm_add_edid_modes(connector, edid);
 	drm_edid_to_eld(connector, edid);
-	connector->display_info.raw_edid = NULL;
 	kfree(edid);
 
 	return ret;

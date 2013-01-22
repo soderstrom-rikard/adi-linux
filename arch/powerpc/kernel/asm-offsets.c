@@ -206,6 +206,7 @@ int main(void)
 	DEFINE(PACA_SYSTEM_TIME, offsetof(struct paca_struct, system_time));
 	DEFINE(PACA_TRAP_SAVE, offsetof(struct paca_struct, trap_save));
 	DEFINE(PACA_NAPSTATELOST, offsetof(struct paca_struct, nap_state_lost));
+	DEFINE(PACA_SPRG3, offsetof(struct paca_struct, sprg3));
 #endif /* CONFIG_PPC64 */
 
 	/* RTAS */

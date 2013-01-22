@@ -41,6 +41,8 @@ config BLACKFIN
 	select HAVE_NMI_WATCHDOG if NMI_WATCHDOG
 	select GENERIC_SMP_IDLE_THREAD
 	select ARCH_USES_GETTIMEOFFSET if !GENERIC_CLOCKEVENTS
+	select HAVE_MOD_ARCH_SPECIFIC
+	select MODULES_USE_ELF_RELA
 
 config GENERIC_CSUM
 	def_bool y
@@ -366,6 +368,11 @@ config MEM_MT48LC32M16A2TG_75
 config MEM_MT48H32M16LFCJ_75
 	bool
 	depends on (BFIN526_EZBRD)
+	default y
+
+config MEM_MT47H64M16
+	bool
+	depends on (BFIN609_EZKIT)
 	default y
 
 config MEM_MT47H64M16

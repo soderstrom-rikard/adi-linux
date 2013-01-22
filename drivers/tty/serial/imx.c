@@ -51,7 +51,7 @@
 
 #include <asm/io.h>
 #include <asm/irq.h>
-#include <mach/imx-uart.h>
+#include <linux/platform_data/serial-imx.h>
 
 /* Register definitions */
 #define URXD0 0x0  /* Receiver Register */
@@ -170,7 +170,6 @@
 #define SERIAL_IMX_MAJOR        207
 #define MINOR_START	        16
 #define DEV_NAME		"ttymxc"
-#define MAX_INTERNAL_IRQ	MXC_INTERNAL_IRQS
 
 /*
  * This determines how often we check the modem status signals
@@ -208,7 +207,7 @@ struct imx_port {
 	unsigned short		trcv_delay; /* transceiver delay */
 	struct clk		*clk_ipg;
 	struct clk		*clk_per;
-	struct imx_uart_data	*devdata;
+	const struct imx_uart_data *devdata;
 };
 
 struct imx_port_ucrs {
@@ -731,10 +730,7 @@ static int imx_startup(struct uart_port *port)
 
 		/* do not use RTS IRQ on IrDA */
 		if (!USE_IRDA(sport)) {
-			retval = request_irq(sport->rtsirq, imx_rtsint,
-				     (sport->rtsirq < MAX_INTERNAL_IRQ) ? 0 :
-				       IRQF_TRIGGER_FALLING |
-				       IRQF_TRIGGER_RISING,
+			retval = request_irq(sport->rtsirq, imx_rtsint, 0,
 					DRIVER_NAME, sport);
 			if (retval)
 				goto error_out3;
@@ -1377,8 +1373,7 @@ static int serial_imx_suspend(struct platform_device *dev, pm_message_t state)
 	val |= UCR3_AWAKEN;
 	writel(val, sport->port.membase + UCR3);
 
-	if (sport)
-		uart_suspend_port(&imx_reg, &sport->port);
+	uart_suspend_port(&imx_reg, &sport->port);
 
 	return 0;
 }
@@ -1393,8 +1388,7 @@ static int serial_imx_resume(struct platform_device *dev)
 	val &= ~UCR3_AWAKEN;
 	writel(val, sport->port.membase + UCR3);
 
-	if (sport)
-		uart_resume_port(&imx_reg, &sport->port);
+	uart_resume_port(&imx_reg, &sport->port);
 
 	return 0;
 }
@@ -1509,18 +1503,21 @@ static int serial_imx_probe(struct platform_device *pdev)
 	pinctrl = devm_pinctrl_get_select_default(&pdev->dev);
 	if (IS_ERR(pinctrl)) {
 		ret = PTR_ERR(pinctrl);
+		dev_err(&pdev->dev, "failed to get default pinctrl: %d\n", ret);
 		goto unmap;
 	}
 
 	sport->clk_ipg = devm_clk_get(&pdev->dev, "ipg");
 	if (IS_ERR(sport->clk_ipg)) {
 		ret = PTR_ERR(sport->clk_ipg);
+		dev_err(&pdev->dev, "failed to get ipg clk: %d\n", ret);
 		goto unmap;
 	}
 
 	sport->clk_per = devm_clk_get(&pdev->dev, "per");
 	if (IS_ERR(sport->clk_per)) {
 		ret = PTR_ERR(sport->clk_per);
+		dev_err(&pdev->dev, "failed to get per clk: %d\n", ret);
 		goto unmap;
 	}
 
@@ -1541,7 +1538,7 @@ static int serial_imx_probe(struct platform_device *pdev)
 	ret = uart_add_one_port(&imx_reg, &sport->port);
 	if (ret)
 		goto deinit;
-	platform_set_drvdata(pdev, &sport->port);
+	platform_set_drvdata(pdev, sport);
 
 	return 0;
 deinit:
