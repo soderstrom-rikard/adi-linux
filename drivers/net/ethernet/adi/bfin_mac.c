@@ -1046,7 +1046,7 @@ static int bfin_phc_init(struct net_device *netdev, struct device *dev)
 
 	lp->caps = bfin_ptp_caps;
 	lp->caps.max_adj = lp->max_ppb;
-	lp->clock = ptp_clock_register(&lp->caps);
+	lp->clock = ptp_clock_register(&lp->caps, dev);
 	if (IS_ERR(lp->clock))
 		return PTR_ERR(lp->clock);
 

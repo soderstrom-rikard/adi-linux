@@ -108,7 +108,6 @@ static struct platform_device bfin_rotary_device = {
 static unsigned short pins[] = P_RMII0;
 
 static struct stmmac_mdio_bus_data phy_private_data = {
-	.bus_id = 0,
 	.phy_mask = 1,
 };
 
@@ -842,6 +841,21 @@ static struct platform_device bfin_tdm = {
 
 #if defined(CONFIG_SND_BF5XX_SOC_AD1836) \
 	|| defined(CONFIG_SND_BF5XX_SOC_AD1836_MODULE)
+static const char * const ad1836_link[] = {
+	"bfin-tdm.0",
+	"spi0.76",
+};
+static struct platform_device bfin_ad1836_machine = {
+	.name = "bfin-snd-ad1836",
+	.id = -1,
+	.dev = {
+		.platform_data = (void *)ad1836_link,
+	},
+};
+#endif
+
+#if defined(CONFIG_SND_BF5XX_SOC_AD1836) \
+	        || defined(CONFIG_SND_BF5XX_SOC_AD1836_MODULE)
 static const char * const ad1836_link[] = {
 	"bfin-tdm.0",
 	"spi0.76",
@@ -1720,6 +1734,10 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #if defined(CONFIG_SND_BF6XX_SOC_TDM) || \
 	defined(CONFIG_SND_BF6XX_SOC_TDM_MODULE)
 	&bfin_tdm,
+#endif
+#if defined(CONFIG_SND_BF5XX_SOC_AD1836) || \
+	defined(CONFIG_SND_BF5XX_SOC_AD1836_MODULE)
+	&bfin_ad1836_machine,
 #endif
 #if defined(CONFIG_SND_BF5XX_SOC_AD1836) || \
 	defined(CONFIG_SND_BF5XX_SOC_AD1836_MODULE)
