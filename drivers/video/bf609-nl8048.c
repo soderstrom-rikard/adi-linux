@@ -571,10 +571,35 @@ static int __devexit bfin_nl8048_remove(struct platform_device *pdev)
 	framebuffer_release(info);
 	return 0;
 }
+#ifdef CONFIG_PM
+static int bfin_nl8048_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	struct fb_info *info = platform_get_drvdata(pdev);
+	struct bfin_fb_par *par = info->par;
+
+	if (par->user)
+		stop_ppi(info);
+	return 0;
+}
+static int bfin_nl8048_resume(struct platform_device *pdev)
+{
+	struct fb_info *info = platform_get_drvdata(pdev);
+	struct bfin_fb_par *par = info->par;
+
+	if (par->user)
+		start_ppi(info);
+	return 0;
+}
+#else
+#define bfin_nl8048_suspend NULL
+#define bfin_nl8048_resume  NULL
+#endif
 
 static struct platform_driver bfin_nl8048_driver = {
 	.probe  = bfin_nl8048_probe,
 	.remove = __devexit_p(bfin_nl8048_remove),
+	.suspend = bfin_nl8048_suspend,
+	.resume = bfin_nl8048_resume,
 	.driver = {
 		.name = KBUILD_MODNAME,
 		.owner = THIS_MODULE,
