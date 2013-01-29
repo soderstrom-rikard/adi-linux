@@ -579,6 +579,8 @@ static int bfin_nl8048_suspend(struct platform_device *pdev, pm_message_t state)
 
 	if (par->user)
 		stop_ppi(info);
+	lcd_write_reg(par->spi, 2, 0x01);
+	mdelay(40);
 	return 0;
 }
 static int bfin_nl8048_resume(struct platform_device *pdev)
@@ -586,6 +588,8 @@ static int bfin_nl8048_resume(struct platform_device *pdev)
 	struct fb_info *info = platform_get_drvdata(pdev);
 	struct bfin_fb_par *par = info->par;
 
+	soft_switch_config();
+	lcd_write_reg(par->spi, 2, 0x00);
 	if (par->user)
 		start_ppi(info);
 	return 0;
