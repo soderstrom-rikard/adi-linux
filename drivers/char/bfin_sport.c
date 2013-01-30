@@ -59,6 +59,8 @@ struct sport_dev {
 
 	int err_irq;
 
+	int sport_clkdiv;
+
 	struct mutex mutex;
 	unsigned int open_count;
 
@@ -397,6 +399,7 @@ static int sport_open(struct inode *inode, struct file *filp)
 		goto fail3;
 	}
 
+	dev->sport_clkdiv = 0x24;
 done:
 	mutex_unlock(&dev->mutex);
 	return 0;
@@ -578,14 +581,13 @@ static ssize_t sport_read(struct file *filp, char __user *buf, size_t count,
 		}
 		/* dma irq should not be handled before sport is enabled */
 		enable_dma(dev->dma_rx_chan);
-		if (cfg->mode == TDM_MODE)
+		if (cfg->mode == TDM_MODE) {
 			enable_dma(dev->dma_tx_chan);
-		dev->regs->tcr1 |= RSPEN;
-		if (cfg->mode == TDM_MODE)
+			dev->regs->tcr1 |= RSPEN;
 			dev->regs->tcr1 |= TSPEN;
-		enable_irq(dev->rx_irq);
-		if (cfg->mode == TDM_MODE)
+			enable_irq(dev->rx_irq);
 			enable_irq(dev->tx_irq);
+		}
 	} else {
 		dev->rx_buf = buf;
 		dev->rx_len = count;
@@ -713,6 +715,22 @@ out:
 	return count;
 }
 
+static u16 hz_to_sport_clkdiv(u32 speed_hz)
+{
+	u_long clk, sclk = get_sclk();
+	int div = (sclk / (2 * speed_hz)) - 1;
+
+	if (div < 0)
+		div = 0;
+
+	clk = sclk / (2 * (div + 1));
+
+	if (clk > speed_hz)
+		div++;
+
+	return div;
+}
+
 static int sport_configure(struct sport_dev *dev, struct sport_config *config)
 {
 	unsigned int tcr1, tcr2, rcr1, rcr2;
@@ -754,6 +772,17 @@ static int sport_configure(struct sport_dev *dev, struct sport_config *config)
 
 		sport_set_multichannel(dev->regs, config->channels, 1,
 				config->frame_delay);
+	} else if (config->mode == I2S_MODE) {
+		tcr1 |= (TCKFE | TFSR);
+		tcr2 |= TSFSE;
+
+		rcr1 |= (RCKFE | RFSR);
+		rcr2 |= RSFSE;
+	} else if (config->mode == NDSO_MODE) {
+		rcr1 = RFSR | LARFS | LRFS;
+		tcr1 = ITCLK | ITFS | TFSR | LATFS | LTFS;
+		clkdiv = dev->sport_clkdiv;
+		fsdiv = config->word_len - 1;
 	} else {
 		tcr1 |= (config->lsb_first << 4) | (config->fsync << 10) |
 			(config->data_indep << 11) | (config->act_low << 12) |
@@ -766,6 +795,16 @@ static int sport_configure(struct sport_dev *dev, struct sport_config *config)
 			(config->late_fsync << 13) | (config->tckfe << 14);
 		if (config->sec_en)
 			rcr2 |= RXSE;
+	}
+
+	if (!config->dma_enabled) {
+		if (config->mode == NDSO_MODE) {
+			disable_irq(dev->tx_irq);
+			disable_irq(dev->rx_irq);
+		} else {
+			enable_irq(dev->tx_irq);
+			enable_irq(dev->rx_irq);
+		}
 	}
 
 	/* Using internal clock */
@@ -812,6 +851,7 @@ static long sport_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	struct sport_dev *dev = to_sport_dev(filp);
 	struct sport_config config;
+	unsigned long value;
 
 	dev_dbg(dev->dev, "%s: enter, arg:0x%lx\n", __func__, arg);
 	switch (cmd) {
@@ -820,7 +860,19 @@ static long sport_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return -EFAULT;
 		if (sport_configure(dev, &config) < 0)
 			return -EFAULT;
-	break;
+		break;
+
+	case SPORT_IOC_GET_SYSTEMCLOCK:
+		value = get_sclk();
+		if (copy_to_user((void *)arg, &value, sizeof(value)))
+			return -EFAULT;
+		break;
+
+	case SPORT_IOC_SET_BAUDRATE:
+		if (arg > (133000000 / 4))
+			return -EINVAL;
+		dev->sport_clkdiv = hz_to_sport_clkdiv(arg);
+		break;
 
 	default:
 			return -EINVAL;
