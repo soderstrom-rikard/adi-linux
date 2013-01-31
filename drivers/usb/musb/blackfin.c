@@ -193,10 +193,8 @@ static irqreturn_t blackfin_interrupt(int irq, void *__hci)
 		musb->a_wait_bcon = TIMER_DELAY;
 	}
 #ifdef CONFIG_BF60x
-	if (musb->int_usb & MUSB_INTR_DISCONNECT && is_host_active(musb)) {
-		musb->xceiv->state = OTG_STATE_B_IDLE;
+	if (musb->int_usb & MUSB_INTR_DISCONNECT && is_host_active(musb))
 		bfin_write_USB_VBUS_CTL(0x00);
-	}
 #endif
 	spin_unlock_irqrestore(&musb->lock, flags);
 
