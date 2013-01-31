@@ -19,7 +19,7 @@ config BFIN_DMA_INTERFACE
 
 config BFIN_PPI
 	tristate "Blackfin Generic PPI Driver"
-	depends on BLACKFIN && !BF54x && !BF60x
+	depends on BLACKFIN && !BF60x
 	select BFIN_GPTIMERS
 	default n
 	help

@@ -210,24 +210,40 @@ static int compute_data_len(int dlen)
 	case CFG_PPI_DATALEN_10:
 		bits = 10;
 		break;
+#ifdef CFG_PPI_DATALEN_11
 	case CFG_PPI_DATALEN_11:
 		bits = 11;
 		break;
+#endif
 	case CFG_PPI_DATALEN_12:
 		bits = 12;
 		break;
+#ifdef CFG_PPI_DATALEN_13
 	case CFG_PPI_DATALEN_13:
 		bits = 13;
 		break;
+#endif
 	case CFG_PPI_DATALEN_14:
 		bits = 14;
 		break;
+#ifdef CFG_PPI_DATALEN_15
 	case CFG_PPI_DATALEN_15:
 		bits = 15;
 		break;
+#endif
 	case CFG_PPI_DATALEN_16:
 		bits = 16;
 		break;
+#ifdef CFG_PPI_DATALEN_18
+	case CFG_PPI_DATALEN_18:
+		bits = 18;
+		break;
+#endif
+#ifdef CFG_PPI_DATALEN_24
+	case CFG_PPI_DATALEN_24:
+		bits = 24;
+		break;
+#endif
 	default:
 		bits = -1;
 		break;
