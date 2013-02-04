@@ -1435,7 +1435,8 @@ static int stmmac_open(struct net_device *dev)
 	} else
 		priv->tm->enable = 1;
 #endif
-	clk_prepare_enable(priv->stmmac_clk);
+	if (!IS_ERR(priv->stmmac_clk))
+		clk_prepare_enable(priv->stmmac_clk);
 
 	stmmac_check_ether_addr(priv);
 
@@ -1556,7 +1557,8 @@ open_error:
 	if (priv->phydev)
 		phy_disconnect(priv->phydev);
 
-	clk_disable_unprepare(priv->stmmac_clk);
+	if (!IS_ERR(priv->stmmac_clk))
+		clk_disable_unprepare(priv->stmmac_clk);
 
 	return ret;
 }
@@ -1613,7 +1615,8 @@ static int stmmac_release(struct net_device *dev)
 #ifdef CONFIG_STMMAC_DEBUG_FS
 	stmmac_exit_fs();
 #endif
-	clk_disable_unprepare(priv->stmmac_clk);
+	if (!IS_ERR(priv->stmmac_clk))
+		clk_disable_unprepare(priv->stmmac_clk);
 
 	return 0;
 }
@@ -2458,9 +2461,11 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 	priv->stmmac_clk = clk_get(priv->device, STMMAC_RESOURCE_NAME);
 	if (IS_ERR(priv->stmmac_clk)) {
 		pr_warning("%s: warning: cannot get CSR clock\n", __func__);
+#ifdef CONFIG_BF60x
+	}
+#else
 		goto error_clk_get;
 	}
-
 	/* If a specific clk_csr value is passed from the platform
 	 * this means that the CSR Clock Range selection cannot be
 	 * changed at run-time and it is fixed. Viceversa the driver'll try to
@@ -2471,6 +2476,7 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 		stmmac_clk_csr_set(priv);
 	else
 		priv->clk_csr = priv->plat->clk_csr;
+#endif
 
 	/* MDIO bus Registration */
 	ret = stmmac_mdio_register(ndev);
@@ -2556,7 +2562,8 @@ int stmmac_suspend(struct net_device *ndev)
 	else {
 		stmmac_set_mac(priv->ioaddr, false);
 		/* Disable clock in case of PWM is off */
-		clk_disable_unprepare(priv->stmmac_clk);
+		if (!IS_ERR(priv->stmmac_clk))
+			clk_disable_unprepare(priv->stmmac_clk);
 	}
 	spin_unlock_irqrestore(&priv->lock, flags);
 	return 0;
@@ -2579,9 +2586,11 @@ int stmmac_resume(struct net_device *ndev)
 	 * from another devices (e.g. serial console). */
 	if (device_may_wakeup(priv->device))
 		priv->hw->mac->pmt(priv->ioaddr, 0);
-	else
-		/* enable the clk prevously disabled */
-		clk_prepare_enable(priv->stmmac_clk);
+	else {
+		if (!IS_ERR(priv->stmmac_clk))
+			/* enable the clk prevously disabled */
+			clk_prepare_enable(priv->stmmac_clk);
+	}
 
 	netif_device_attach(ndev);
 	priv->dirty_tx = 0;
