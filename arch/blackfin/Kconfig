@@ -238,12 +238,6 @@ config BF609
 	help
 	  BF609 Processor Support.
 
-config BF609
-	bool "BF609"
-	select CLKDEV_LOOKUP
-	help
-	  BF609 Processor Support.
-
 endchoice
 
 config SMP
