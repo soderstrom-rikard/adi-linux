@@ -469,6 +469,26 @@ static int adv7183_g_mbus_fmt(struct v4l2_subdev *sd,
 	return 0;
 }
 
+static int adv7183_g_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
+{
+	struct adv7183 *decoder = to_adv7183(sd);
+	struct v4l2_captureparm *cp = &parms->parm.capture;
+
+	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+		return -EINVAL;
+
+	memset(cp, 0, sizeof(*cp));
+	cp->capability = V4L2_CAP_TIMEPERFRAME;
+	if (decoder->std & V4L2_STD_525_60) {
+		cp->timeperframe.numerator = 1;
+		cp->timeperframe.denominator = 30;
+	} else {
+		cp->timeperframe.numerator = 1;
+		cp->timeperframe.denominator = 25;
+	}
+	return 0;
+}
+
 static int adv7183_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct adv7183 *decoder = to_adv7183(sd);
@@ -544,6 +564,8 @@ static const struct v4l2_subdev_video_ops adv7183_video_ops = {
 	.try_mbus_fmt = adv7183_try_mbus_fmt,
 	.s_mbus_fmt = adv7183_s_mbus_fmt,
 	.g_mbus_fmt = adv7183_g_mbus_fmt,
+	.g_parm = adv7183_g_parm,
+	.s_parm = adv7183_g_parm,
 	.s_stream = adv7183_s_stream,
 };
 

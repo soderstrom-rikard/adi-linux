@@ -954,14 +954,15 @@ static int __devinit disp_probe(struct platform_device *pdev)
 	}
 
 	/* initialize field of video device */
-	vfd->release            = video_device_release;
-	vfd->fops               = &disp_fops;
-	vfd->ioctl_ops          = &disp_ioctl_ops;
-	vfd->tvnorms            = 0;
-	vfd->v4l2_dev           = &disp->v4l2_dev;
+	vfd->release    = video_device_release;
+	vfd->fops       = &disp_fops;
+	vfd->ioctl_ops  = &disp_ioctl_ops;
+	vfd->tvnorms    = 0;
+	vfd->v4l2_dev   = &disp->v4l2_dev;
+	vfd->vfl_dir    = VFL_DIR_TX;
 	set_bit(V4L2_FL_USE_FH_PRIO, &vfd->flags);
 	strncpy(vfd->name, DISPLAY_DRV_NAME, sizeof(vfd->name));
-	disp->video_dev     = vfd;
+	disp->video_dev = vfd;
 
 	ret = v4l2_device_register(&pdev->dev, &disp->v4l2_dev);
 	if (ret) {

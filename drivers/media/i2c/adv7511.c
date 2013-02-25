@@ -27,7 +27,6 @@
 #include <linux/gpio.h>
 #include <linux/workqueue.h>
 #include <linux/v4l2-dv-timings.h>
-#include <media/v4l2-hdmi.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-chip-ident.h>
 #include <media/v4l2-common.h>
@@ -840,14 +839,6 @@ static const struct v4l2_dv_timings adv7511_timings[] = {
 	{}
 };
 
-bool v4l_match_dv_timings(const struct v4l2_dv_timings *t1,
-		const struct v4l2_dv_timings *t2)
-{
-	if (t1->type != t2->type || t1->type != V4L2_DV_BT_656_1120)
-		return false;
-	return !memcmp(&t1->bt, &t2->bt, offsetof(struct v4l2_bt_timings, standards));
-}
-
 static int adv7511_s_dv_timings(struct v4l2_subdev *sd,
 			       struct v4l2_dv_timings *timings)
 {
@@ -869,7 +860,7 @@ static int adv7511_s_dv_timings(struct v4l2_subdev *sd,
 	/* Fill the optional fields .standards and .flags in struct v4l2_dv_timings
 	   if the format is listed in ad9389b_timings[] */
 	for (i = 0; adv7511_timings[i].bt.width; i++) {
-		if (v4l_match_dv_timings(timings, &adv7511_timings[i])) {
+		if (v4l_match_dv_timings(timings, &adv7511_timings[i], 0)) {
 			*timings = adv7511_timings[i];
 			break;
 		}

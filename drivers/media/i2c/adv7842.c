@@ -32,8 +32,7 @@
 #include <linux/delay.h>
 #include <linux/videodev2.h>
 #include <linux/workqueue.h>
-#include <media/v4l2-hdmi.h>
-#include <media/v4l2-formats.h>
+#include <linux/v4l2-dv-timings.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-chip-ident.h>
@@ -59,59 +58,15 @@ MODULE_PARM_DESC(debug, "debug level (0-2)");
  *
  **********************************************************************
  */
-struct adv7842_preset {
-	u32 preset;
-	unsigned width, height;
-	unsigned tot_width, tot_height;
-	unsigned clock_freq;
-	unsigned hz;
-};
-
-struct adv7842_preset adv7842_sdp_presets[] = {
-	{ V4L2_DV_480P59_94, 720,  480,  858,  525,  27000000, 60 },
-	{ V4L2_DV_576P50,    720,  576,  864,  625,  27000000, 50 },
-};
-
-struct adv7842_preset adv7842_presets[] = {
-	{ V4L2_DV_480P59_94, 720,  480,  858,  525,  27000000, 60 },
-	{ V4L2_DV_576P50,    720,  576,  864,  625,  27000000, 50 },
-	{ V4L2_DV_720P30,   1280,  720, 3300,  750,  74250000, 30 },
-	{ V4L2_DV_720P50,   1280,  720, 1980,  750,  74250000, 50 },
-	{ V4L2_DV_720P60,   1280,  720, 1650,  750,  74250000, 60 },
-	{ V4L2_DV_1080P30,  1920, 1080, 2200, 1125,  74250000, 30 },
-	{ V4L2_DV_1080P50,  1920, 1080, 2640, 1125, 148500000, 50 },
-	{ V4L2_DV_1080P60,  1920, 1080, 2200, 1125, 148500000, 60 },
-};
-
-/* presets for PRIM_MODE GR */
-struct adv7842_gr_preset {
-	u32 preset;
-	u8 vid_std;
-};
-
-struct adv7842_gr_preset adv7842_gr_presets[] = {
-	{ V4L2_DV_DMT_800X600P56,     0x00},
-	{ V4L2_DV_DMT_800X600P60,     0x01},
-	{ V4L2_DV_DMT_800X600P72,     0x02},
-	{ V4L2_DV_DMT_800X600P75,     0x03},
-	{ V4L2_DV_DMT_800X600P85,     0x04},
-	{ V4L2_DV_DMT_1280X1024P60,   0x05},
-	{ V4L2_DV_DMT_1280X1024P75,   0x06},
-	{ V4L2_DV_DMT_640X480P60,     0x08},
-	{ V4L2_DV_DMT_640X480P72,     0x09},
-	{ V4L2_DV_DMT_640X480P75,     0x0a},
-	{ V4L2_DV_DMT_640X480P85,     0x0b},
-	{ V4L2_DV_DMT_1024X768P60,    0x0c},
-	{ V4L2_DV_DMT_1024X768P70,    0x0d},
-	{ V4L2_DV_DMT_1024X768P75,    0x0e},
-	{ V4L2_DV_DMT_1024X768P85,    0x0f},
-	{ V4L2_DV_DMT_1280X768P60RB,  0x10},
-	{ V4L2_DV_DMT_1280X768P60,    0x11},
-	{ V4L2_DV_DMT_1400X1050P60,   0x14},
-	{ V4L2_DV_DMT_1400X1050P75,   0x15},
-	{ V4L2_DV_DMT_1600X1200P60,   0x16},
-	{ V4L2_DV_DMT_1680X1050P60,   0x18},
-	{ V4L2_DV_DMT_1920X1200P60,   0x19},
+static const struct v4l2_dv_timings adv7842_timings[] = {
+	V4L2_DV_BT_CEA_720X480P59_94,
+	V4L2_DV_BT_CEA_720X576P50,
+	V4L2_DV_BT_CEA_1280X720P30,
+	V4L2_DV_BT_CEA_1280X720P50,
+	V4L2_DV_BT_CEA_1280X720P60,
+	V4L2_DV_BT_CEA_1920X1080P30,
+	V4L2_DV_BT_CEA_1920X1080P50,
+	V4L2_DV_BT_CEA_1920X1080P60,
 };
 
 struct adv7842_state {
@@ -120,15 +75,10 @@ struct adv7842_state {
 	struct v4l2_ctrl_handler hdl;
 	enum adv7842_prim_mode prim_mode;
 	enum adv7842_vid_std_select vid_std_select;
+	struct v4l2_dv_timings timings;
 	struct adv7842_platform_data *pdata;
 	struct adv7842_output_format *opf;
 	v4l2_std_id std; /* current standard in SDP mode */
-	u32 preset;
-	u8 edid[256];
-	wait_queue_head_t cec_wqh;
-	bool cec_non_block;
-	u8   cec_addr[3];
-	u8   cec_enable[3];
 	struct workqueue_struct *work_queues;
 	struct delayed_work delayed_work_enable_hotplug;
 	bool connector_hdmi;
@@ -151,6 +101,26 @@ struct adv7842_state {
 	struct v4l2_ctrl *analog_sampling_phase_ctrl;
 	struct v4l2_ctrl *free_run_color_ctrl_manual;
 	struct v4l2_ctrl *free_run_color_ctrl;
+};
+
+struct disp_format_s {
+	uint16_t frame_width;
+	uint16_t frame_height;
+
+	uint16_t image_width;
+	uint16_t image_height;
+
+	uint16_t h_front_porch;
+	uint16_t v_front_porch;
+
+	uint16_t h_sync;
+	uint16_t v_sync;
+
+	uint32_t pixel_freq;
+	uint8_t flag; /* 1 = pos vsync, 2 = pos hsync */
+	const char *desc;
+	uint32_t preset;
+	uint32_t vic; /* video id code */
 };
 
 static enum v4l2_mbus_pixelcode adv7842_codes[] = {
@@ -386,22 +356,6 @@ static inline int edid_write(struct v4l2_subdev *sd, u8 reg, u8 val)
 	return adv_smbus_write_byte_data(state->i2c_edid, reg, val);
 }
 
-static inline int edid_read_block(struct v4l2_subdev *sd, unsigned len, u8 *val)
-{
-	struct adv7842_state *state = to_state(sd);
-	struct i2c_client *client = state->i2c_edid;
-	u8 msgbuf0[1] = { 0 };
-	u8 msgbuf1[256];
-	struct i2c_msg msg[2] = { { client->addr, 0, 1, msgbuf0 },
-				  { client->addr, 0 | I2C_M_RD, len, msgbuf1 }
-				};
-
-	if (i2c_transfer(client->adapter, msg, 2) < 0)
-		return -EIO;
-	memcpy(val, msgbuf1, len);
-	return 0;
-}
-
 static void adv7842_delayed_work_enable_hotplug(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -412,47 +366,6 @@ static void adv7842_delayed_work_enable_hotplug(struct work_struct *work)
 
 	v4l2_subdev_notify(sd, ADV7842_HOTPLUG, (void *)1);
 
-}
-
-static inline int edid_write_block(struct v4l2_subdev *sd, unsigned len, const u8 *val)
-{
-	struct i2c_client *client = v4l2_get_subdevdata(sd);
-	struct adv7842_state *state = to_state(sd);
-	int err = 0;
-	int i;
-
-	v4l2_dbg(2, debug, sd, "%s: write EDID block (%d byte)\n", __func__, len);
-
-	v4l2_subdev_notify(sd, ADV7842_HOTPLUG, (void *)0);
-
-	/* Disables I2C access to internal EDID ram from DDC port */
-	rep_write_and_or(sd, 0x77, 0xf3, 0x0);
-
-	for (i = 0; !err && i < len; i += I2C_SMBUS_BLOCK_MAX)
-		err = adv_smbus_write_i2c_block_data(state->i2c_edid, i,
-				I2C_SMBUS_BLOCK_MAX, val + i);
-	if (err)
-		return err;
-
-	/* adv7842 calculates the checksums and enables I2C access to internal
-	 * EDID ram from DDC port
-	 */
-	rep_write_and_or(sd, 0x77, 0xf3, 0x4);
-
-	for (i = 0; i < 1000; i++) {
-		if (rep_read(sd, 0x7d) & 4)
-			break;
-		mdelay(1);
-	}
-	if (i == 1000) {
-		v4l_err(client, "error enabling edid\n");
-		return -1;
-	}
-
-	/* enable hotplug after 100 ms */
-	queue_delayed_work(state->work_queues, &state->delayed_work_enable_hotplug, HZ/10);
-
-	return 0;
 }
 
 static inline int hdmi_read(struct v4l2_subdev *sd, u8 reg)
@@ -727,45 +640,6 @@ static int adv7842_s_ctrl(struct v4l2_ctrl *ctrl)
 		cp_write(sd, 0x3d, ctrl->val);
 		sdp_write(sd, 0x16, ctrl->val);
 		return 0;
-	/* custom ctrls */
-	case V4L2_CID_DV_RX_TX_POWER:
-		/* read only */
-		return 0;
-	case V4L2_CID_DV_RX_ANALOG_SAMPLING_PHASE:
-		afe_write(sd, 0xc8, ctrl->val);
-		return 0;
-	case V4L2_CID_FREE_RUN_COLOR_MANUAL:
-		cp_write_and_or(sd, 0xbf, ~0x04, (ctrl->val << 2));
-		sdp_write_and_or(sd, 0xdd, ~0x04, (ctrl->val << 2));
-		return 0;
-	case V4L2_CID_FREE_RUN_COLOR: {
-		u8 R = (ctrl->val & 0xff0000) >> 16;
-		u8 G = (ctrl->val & 0x00ff00) >> 8;
-		u8 B = (ctrl->val & 0x0000ff);
-		/* RGB -> YUV, numerical approximation */
-		int Y = 66*R + 129*G + 25*B;
-		int U = -38*R - 74*G + 112*B;
-		int V = 112*R - 94*G - 18*B;
-		/* Scale down to 8 bits with rounding */
-		Y = (Y + 128)>>8;
-		U = (U + 128)>>8;
-		V = (V + 128)>>8;
-		/* make U,V positive */
-		Y += 16;
-		U += 128;
-		V += 128;
-
-		v4l2_info(sd, "R %x, G %x, B %x\n", R, G, B);
-		v4l2_info(sd, "Y %x, U %x, V %x\n", Y, U, V);
-
-		/* CP */
-		cp_write(sd, 0xc1, R);
-		cp_write(sd, 0xc0, G);
-		cp_write(sd, 0xc2, B);
-		/* SDP */
-		sdp_write(sd, 0xde, Y);
-		sdp_write(sd, 0xdf, (V & 0xf0) | ((U>>4) & 0x0f));
-		} return 0;
 	}
 	return -EINVAL;
 }
@@ -791,8 +665,6 @@ static int adv7842_g_input_status(struct v4l2_subdev *sd, u32 *status)
 		/* status from SDP block */
 		if (!(sdp_read(sd, 0x5A) & 0x01))
 			*status |= V4L2_IN_ST_NO_SIGNAL;
-		if (sdp_read(sd, 0x57) & 0x08)
-			*status |= V4L2_IN_ST_INTERLACED;
 
 		v4l2_dbg(1, debug, sd, "%s: SDP status = 0x%x\n", __func__, *status);
 	} else {
@@ -807,8 +679,6 @@ static int adv7842_g_input_status(struct v4l2_subdev *sd, u32 *status)
 		if (io_read(sd, 0x12) & 0x01)
 			*status |= DIGITAL_INPUT ? V4L2_IN_ST_NO_SYNC : V4L2_IN_ST_NO_H_LOCK;
 #endif
-		if (io_read(sd, 0x12) & 0x10)
-			*status |= V4L2_IN_ST_INTERLACED;
 
 		v4l2_dbg(1, debug, sd, "%s: CP status = 0x%x\n", __func__, *status);
 	}
@@ -816,415 +686,36 @@ static int adv7842_g_input_status(struct v4l2_subdev *sd, u32 *status)
 	return 0;
 }
 
-struct stdi_readback {
-	uint16_t bl, lcf, lcvs;
-	uint8_t hs_pol, vs_pol;
-	bool interlaced;
-};
-
-static int search_lookup_table(struct v4l2_subdev *sd, struct stdi_readback *stdi, struct disp_format_s *fmt, const struct disp_format_s *table)
-{
-	int i, found = 0;
-	uint32_t pix_clk;
-
-	for (i = 0; table[i].frame_height; i++) {
-		if (table[i].frame_height == (stdi->lcf + 1)) {
-			pix_clk = ((ADV7842_fsc*8)/(uint32_t)stdi->bl)*(uint32_t)table[i].frame_width;
-
-			if ((pix_clk < table[i].pixel_freq + 1000000) && (pix_clk > table[i].pixel_freq - 1000000)) {
-				found = 1;
-				break;
-			}
-		}
-	}
-
-	if (!found) {
-		v4l2_dbg(2, debug, sd, "%s: No format candidate found for lcf=%d, bl = %d\n", __func__, stdi->lcf, stdi->bl);
-		return -1;
-	}
-
-	memcpy(fmt, (table + i), sizeof(struct disp_format_s));
-
-	v4l2_dbg(2, debug, sd, "%s: Format found, modeline: %d,"
-			"frame: %dx%d, image: %dx%d, front porch h/v: %d/%d, "
-			"sync h/v: %d/%d, pixel freq: %d, flag: 0x%x, desc: %s, preset: 0x%x\n",
-			__func__, i, fmt->frame_width, fmt->frame_height, fmt->image_width,
-			fmt->image_height, fmt->h_front_porch, fmt->v_front_porch, fmt->h_sync,
-			fmt->v_sync, fmt->pixel_freq, fmt->flag, fmt->desc, fmt->preset);
-
-	return 0;
-}
-
-static void stdi2modeline(struct v4l2_subdev *sd,
-		struct stdi_readback *stdi,
-		struct disp_format_s *fmt)
-{
-	fmt->preset = V4L2_DV_UNSUPPORTED_SIGNAL;
-
-	/* DMT */
-	search_lookup_table(sd, stdi, fmt, dmt_formats);
-	if (fmt->preset != V4L2_DV_UNSUPPORTED_SIGNAL)
-		return;
-	v4l2_dbg(2, debug, sd, "%s: not DMT format\n", __func__);
-
-	/* CEA-861 */
-	search_lookup_table(sd, stdi, fmt, cea_861_formats);
-	if (fmt->preset != V4L2_DV_UNSUPPORTED_SIGNAL)
-		return;
-	v4l2_dbg(2, debug, sd, "%s: not CEA-861 format\n", __func__);
-
-	return;
-}
-
-static int read_stdi(struct v4l2_subdev *sd, struct stdi_readback *stdi)
-{
-	u32 status;
-
-	adv7842_g_input_status(sd, &status);
-	if (status & V4L2_IN_ST_NO_SIGNAL) {
-		v4l2_dbg(2, debug, sd, "%s: no signal\n", __func__);
-		return -1;
-	}
-
-	stdi->bl = ((cp_read(sd, 0xb1) & 0x3f) << 8) | cp_read(sd, 0xb2);
-	stdi->lcf = ((cp_read(sd, 0xb3) & 0x7) << 8) | cp_read(sd, 0xb4);
-	stdi->lcvs = cp_read(sd, 0xb3) >> 3;
-	if ((cp_read(sd, 0xb5) & 0x80) && ((cp_read(sd, 0xb5) & 0x03) == 0x01)) {
-		stdi->hs_pol = ((cp_read(sd, 0xb5) & 0x10) ? ((cp_read(sd, 0xb5) & 0x08) ? '-' : '+') : 'x');
-		stdi->vs_pol = ((cp_read(sd, 0xb5) & 0x40) ? ((cp_read(sd, 0xb5) & 0x20) ? '-' : '+') : 'x');
-	} else {
-		stdi->hs_pol = 'x';
-		stdi->vs_pol = 'x';
-	}
-	stdi->interlaced = (cp_read(sd, 0xb1) & 0x40) ? true : false;
-
-	if (stdi->lcf < 239 || stdi->bl < 8 || stdi->bl == 0x3fff) {
-		v4l2_dbg(2, debug, sd, "%s: invalid signal\n", __func__);
-		return -1;
-	}
-
-	v4l2_dbg(2, debug, sd, "%s: lcf (frame height - 1) = %d, bl = %d, lcvs (vsync) = %d, %chsync, %cvsync, %s\n",
-			__func__, stdi->lcf, stdi->bl, stdi->lcvs, stdi->hs_pol, stdi->vs_pol, stdi->interlaced ? "interlaced" : "progressive");
-
-	return 0;
-}
-
-static int adv7842_enum_dv_presets(struct v4l2_subdev *sd,
-		struct v4l2_dv_enum_preset *preset)
-{
-	struct adv7842_state *state = to_state(sd);
-
-	if (state->prim_mode == ADV7842_PRIM_MODE_SDP) {
-		if (preset->index >= ARRAY_SIZE(adv7842_sdp_presets))
-			return -EINVAL;
-
-		preset->preset = adv7842_sdp_presets[preset->index].preset;
-
-		return v4l_fill_dv_preset_info(preset->preset, preset);
-	} else if (DIGITAL_INPUT) {
-		if (preset->index >= ARRAY_SIZE(adv7842_presets))
-			return -EINVAL;
-
-		preset->preset = adv7842_presets[preset->index].preset;
-
-		return v4l_fill_dv_preset_info(preset->preset, preset);
-	} else {
-		int last_cea_861_format = ARRAY_SIZE(cea_861_formats) - 1;
-		int last_dmt_format = last_cea_861_format + ARRAY_SIZE(dmt_formats) - 1;
-		int last_special_format = last_dmt_format; /* TODO */
-		int last_cvt_format = last_special_format + 1;
-		int last_gtf_format = last_cvt_format + 1;
-
-
-		if (preset->index < last_cea_861_format) {
-			int i = preset->index;
-			preset->preset = cea_861_formats[i].preset;
-			v4l_fill_dv_preset_info(preset->preset, preset);
-			return 0;
-		} else if (preset->index < last_dmt_format) {
-			int i = preset->index - last_cea_861_format;
-			preset->preset = dmt_formats[i].preset;
-			v4l_fill_dv_dmt_preset_info(preset->preset, preset);
-			return 0;
-		} else if (preset->index < last_special_format) {
-			return 0;
-		} else if (preset->index < last_cvt_format) {
-			preset->preset = V4L2_DV_CVT_FORMAT;
-			preset->height = preset->width = 0;
-			strlcpy(preset->name, "CVT formats", 12);
-			return 0;
-		} else if (preset->index < last_gtf_format) {
-			preset->preset = V4L2_DV_GTF_FORMAT;
-			preset->height = preset->width = 0;
-			strlcpy(preset->name, "GTF formats", 12);
-			return 0;
-		}
-
-		return -EINVAL;
-	}
-}
-
-static int p2m_search_table(struct v4l2_subdev *sd, struct v4l2_dv_preset *preset,
-		struct disp_format_s *fmt, const struct disp_format_s *table)
-{
-	int i, found = 0;
-
-	for (i = 0; table[i].frame_height; i++) {
-		if (table[i].preset == preset->preset) {
-			found = 1;
-			break;
-		}
-	}
-
-	if (!found) {
-		v4l2_dbg(1, debug, sd, "%s: Modeline not found for preset %x\n", __func__, preset->preset);
-		return -1;
-	}
-
-	memcpy(fmt, (table + i), sizeof(struct disp_format_s));
-
-	v4l2_dbg(1, debug, sd, "%s: Modeline %d selected\n", __func__, i);
-
-	return 0;
-}
-
-static int preset2modeline(struct v4l2_subdev *sd,
-		struct v4l2_dv_preset *preset,
-		struct disp_format_s *fmt)
-{
-	const struct disp_format_s *table;
-	int err = 0;
-
-	switch (preset->preset & V4L2_DV_PRESET_MASK) {
-	case V4L2_DV_CEA_861_FORMAT:
-		/* CEA */
-		v4l2_dbg(1, debug, sd, "%s: CEA format\n", __func__);
-		table = cea_861_formats;
-		err = p2m_search_table(sd, preset, fmt, table);
-		break;
-	case V4L2_DV_DMT_FORMAT:
-		/* DMT */
-		v4l2_dbg(1, debug, sd, "%s: DMT\n", __func__);
-		table = dmt_formats;
-		err = p2m_search_table(sd, preset, fmt, table);
-		break;
-	case V4L2_DV_CVT_FORMAT:
-		/* CVT */
-		/* TODO */
-	case V4L2_DV_GTF_FORMAT:
-		/* GTF */
-		/* TODO */
-	case V4L2_DV_SPECIAL_FORMAT:
-		/* SPECIAL */
-		/* TODO */
-		v4l2_info(sd, "CVT, GTF and special formats are not supported yet\n");
-		break;
-	default:
-		v4l2_info(sd, "Illegal preset value\n");
-		err = -1;
-	}
-
-	v4l2_dbg(1, debug, sd, "%s: %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %s\n",
-			__func__,
-			fmt->frame_width,
-			fmt->frame_height,
-			fmt->image_width,
-			fmt->image_height,
-			fmt->h_front_porch,
-			fmt->v_front_porch,
-			fmt->h_sync,
-			fmt->v_sync,
-			fmt->pixel_freq,
-			fmt->flag,
-			fmt->desc);
-
-	return err;
-}
-
-static int adv7842_s_dv_preset(struct v4l2_subdev *sd,
-		struct v4l2_dv_preset *preset)
-{
-	struct adv7842_state *state = to_state(sd);
-	struct disp_format_s fmt;
-
-	v4l2_dbg(1, debug, sd, "%s: preset = 0x%x\n", __func__, preset->preset);
-
-	if (state->prim_mode == ADV7842_PRIM_MODE_SDP) {
-		/* SDP block */
-		if ((preset->preset != V4L2_DV_576P50) &&
-		    (preset->preset != V4L2_DV_480P59_94)) {
-			return -EINVAL;
-		}
-	} else {
-		/* CP block */
-		if (preset2modeline(sd, preset, &fmt))
-			return -EINVAL;
-
-		configure_free_run(sd, &fmt);
-	}
-
-	state->preset = preset->preset;
-
-	return 0;
-}
-
-static int adv7842_query_dv_preset(struct v4l2_subdev *sd,
-		struct v4l2_dv_preset *preset)
-{
-	struct adv7842_state *state = to_state(sd);
-
-	if (state->prim_mode == ADV7842_PRIM_MODE_SDP) {
-
-		if (!(sdp_read(sd, 0x5A) & 0x01)) {
-			/* no signal */
-			preset->preset = V4L2_DV_INVALID;
-			return 0;
-		}
-
-		if ((sdp_read(sd, 0x59) & 0x08)) {
-			/* 50 Hz */
-			preset->preset = V4L2_DV_576P50; /* PAL */
-		} else {
-			/* 60Hz */
-			preset->preset = V4L2_DV_480P59_94; /* NTSC */
-		}
-
-		return 0;
-
-	} else if (DIGITAL_INPUT) {
-		bool lock = hdmi_read(sd, 0x04) & 0x02;
-		bool interlaced = hdmi_read(sd, 0x0b) & 0x20;
-		unsigned w = (hdmi_read(sd, 0x07) & 0x1f) * 256 + hdmi_read(sd, 0x08);
-		unsigned h = (hdmi_read(sd, 0x09) & 0x1f) * 256 + hdmi_read(sd, 0x0a);
-		unsigned w_total = (hdmi_read(sd, 0x1e) & 0x3f) * 256 +
-			hdmi_read(sd, 0x1f);
-		unsigned h_total = ((hdmi_read(sd, 0x26) & 0x3f) * 256 +
-				hdmi_read(sd, 0x27)) / 2;
-		unsigned freq = (((hdmi_read(sd, 0x51) << 1) + (hdmi_read(sd, 0x52) >> 7)) * 1000000) +
-			((hdmi_read(sd, 0x52) & 0x7f) * 1000000) / 128;
-		int i;
-
-		preset->preset = V4L2_DV_INVALID;
-
-		/* No lock? */
-		if (!lock) {
-			v4l2_dbg(1, debug, sd, "%s: no lock on TMDS signal\n", __func__);
-			return 0;
-		}
-		/* Interlaced? */
-		if (interlaced) {
-			v4l2_dbg(1, debug, sd, "%s: interlaced video not supported\n", __func__);
-			return 0;
-		}
-
-		for (i = 0; i < ARRAY_SIZE(adv7842_presets); i++) {
-			struct adv7842_preset *p = adv7842_presets + i;
-
-			if (w != p->width || h != p->height)
-				continue;
-
-			if (w_total != p->tot_width || h_total != p->tot_height)
-				continue;
-			if (abs(freq - p->clock_freq) > 1000000)
-				continue;
-			preset->preset = p->preset;
-			break;
-		}
-
-
-		v4l2_dbg(1, debug, sd, "%s: digital video %dx%d, frame = %dx%d, pix.freq. = %d Hz, preset = 0x%x\n",
-				__func__, w, h, w_total, h_total, freq, preset->preset);
-	} else {
-		struct stdi_readback current_stdi;
-		struct disp_format_s fmt;
-
-		preset->preset = V4L2_DV_INVALID;
-		preset->params.width = preset->params.height = preset->params.fps = 0;
-
-		/* read STDI */
-		if (read_stdi(sd, &current_stdi)) {
-			v4l2_dbg(1, debug, sd, "%s: no valid signal\n", __func__);
-			return 0;
-		}
-
-		preset->preset = V4L2_DV_UNSUPPORTED_SIGNAL;
-
-		/* Interlaced? */
-		if (current_stdi.interlaced) {
-			v4l2_dbg(1, debug, sd, "%s: interlaced video not supported\n", __func__);
-			return 0;
-		}
-
-		/* find format */
-		stdi2modeline(sd, &current_stdi, &fmt);
-
-		if (fmt.preset == V4L2_DV_UNSUPPORTED_SIGNAL) {
-			v4l2_dbg(1, debug, sd, "%s: format not supported\n", __func__);
-			return 0;
-		}
-
-		/* a valid format was found */
-		preset->params.width = fmt.image_width;
-		preset->params.height = fmt.image_height;
-		preset->params.fps = ((fmt.frame_width * fmt.frame_height) > 0) ?
-			(fmt.pixel_freq / (fmt.frame_width * fmt.frame_height)) : 0;
-		preset->preset = fmt.preset;
-
-		v4l2_dbg(1, debug, sd, "%s: analog video %dx%d@%d (preset =  %s (0x%x))\n",
-				__func__, preset->params.width, preset->params.height,
-				preset->params.fps, (fmt.desc ? fmt.desc : ""), preset->preset);
-	}
-
-	return 0;
-}
-
-static int adv7842_s_dv_timings(struct v4l2_subdev *sd,
+static void adv7842_fill_optional_dv_timings_fields(struct v4l2_subdev *sd,
 		struct v4l2_dv_timings *timings)
 {
 	struct adv7842_state *state = to_state(sd);
-	struct v4l2_bt_timings *bt;
-	struct disp_format_s fmt;
+	int i;
 
-	if (!DIGITAL_INPUT) {
-		v4l2_dbg(1, debug, sd, "%s: S_DV_TIMINGS not supported for analog input\n", __func__);
-		return -ENOIOCTLCMD;
+	for (i = 0; i < ARRAY_SIZE(adv7842_timings); i++) {
+		if (v4l_match_dv_timings(timings, &adv7842_timings[i],
+					DIGITAL_INPUT ? 250000 : 1000000)) {
+			*timings = adv7842_timings[i];
+			break;
+		}
 	}
-	if (!timings)
+}
+
+static int adv7842_enum_dv_timings(struct v4l2_subdev *sd,
+		struct v4l2_enum_dv_timings *timings)
+{
+	if (timings->index >= ARRAY_SIZE(adv7842_timings))
 		return -EINVAL;
-
-	bt = &timings->bt;
-
-	/* freerun */
-	fmt.frame_width = bt->width + bt->hfrontporch + bt->hsync + bt->hbackporch;
-	fmt.frame_height = bt->height + bt->vfrontporch + bt->vsync + bt->vbackporch;
-	fmt.image_width = bt->width;
-	fmt.image_height = bt->height;
-	fmt.h_front_porch = bt->hfrontporch;
-	fmt.v_front_porch = bt->vfrontporch;
-	fmt.h_sync = bt->hsync;
-	fmt.v_sync = bt->vsync;
-	fmt.pixel_freq = bt->pixelclock;
-	fmt.flag = bt->polarities;
-
-	configure_free_run(sd, &fmt);
-
-	v4l2_dbg(1, debug, sd, "%s: %dx%d%s%d (%dx%d). Pix freq. = %d Hz. Polarities = 0x%x\n",
-			__func__, bt->width, bt->height, bt->interlaced ? "i" : "p",
-			(fmt.frame_height*fmt.frame_width) > 0 ? (int)bt->pixelclock/(fmt.frame_height*fmt.frame_width) : 0,
-			fmt.frame_width, fmt.frame_height, (int)bt->pixelclock, bt->polarities);
+	memset(timings->reserved, 0, sizeof(timings->reserved));
+	timings->timings = adv7842_timings[timings->index];
 	return 0;
 }
 
-static int adv7842_g_dv_timings(struct v4l2_subdev *sd,
+static int adv7842_query_dv_timings(struct v4l2_subdev *sd,
 		struct v4l2_dv_timings *timings)
 {
-	struct adv7842_state *state = to_state(sd);
 	u32 status;
 
-	if (!DIGITAL_INPUT) {
-		v4l2_dbg(1, debug, sd, "%s: G_DV_TIMINGS not supported for analog input\n", __func__);
-		return -ENOIOCTLCMD;
-	}
 	if (!timings)
 		return -EINVAL;
 
@@ -1268,9 +759,62 @@ static int adv7842_g_dv_timings(struct v4l2_subdev *sd,
 				hdmi_read(sd, 0x33)) / 2;
 		bt->il_vbackporch = ((hdmi_read(sd, 0x34) & 0x3f) * 256 +
 				hdmi_read(sd, 0x35)) / 2;
+		adv7842_fill_optional_dv_timings_fields(sd, timings);
 
 		v4l2_dbg(1, debug, sd, "%s: %dx%d%s\n", __func__, bt->width, bt->height, bt->interlaced ? "i" : "p");
 	}
+	return 0;
+
+}
+
+static int adv7842_s_dv_timings(struct v4l2_subdev *sd,
+		struct v4l2_dv_timings *timings)
+{
+	struct adv7842_state *state = to_state(sd);
+	struct v4l2_bt_timings *bt;
+	struct disp_format_s fmt;
+
+	if (!DIGITAL_INPUT) {
+		v4l2_dbg(1, debug, sd, "%s: S_DV_TIMINGS not supported for analog input\n", __func__);
+		return -ENOIOCTLCMD;
+	}
+	if (!timings)
+		return -EINVAL;
+
+	bt = &timings->bt;
+
+	/* freerun */
+	fmt.frame_width = bt->width + bt->hfrontporch + bt->hsync + bt->hbackporch;
+	fmt.frame_height = bt->height + bt->vfrontporch + bt->vsync + bt->vbackporch;
+	fmt.image_width = bt->width;
+	fmt.image_height = bt->height;
+	fmt.h_front_porch = bt->hfrontporch;
+	fmt.v_front_porch = bt->vfrontporch;
+	fmt.h_sync = bt->hsync;
+	fmt.v_sync = bt->vsync;
+	fmt.pixel_freq = bt->pixelclock;
+	fmt.flag = bt->polarities;
+
+	configure_free_run(sd, &fmt);
+	adv7842_fill_optional_dv_timings_fields(sd, timings);
+	state->timings = *timings;
+
+	return 0;
+}
+
+static int adv7842_g_dv_timings(struct v4l2_subdev *sd,
+		struct v4l2_dv_timings *timings)
+{
+	struct adv7842_state *state = to_state(sd);
+
+	if (!DIGITAL_INPUT) {
+		v4l2_dbg(1, debug, sd, "%s: G_DV_TIMINGS not supported for analog input\n", __func__);
+		return -ENOIOCTLCMD;
+	}
+	if (!timings)
+		return -EINVAL;
+
+	*timings = state->timings;
 	return 0;
 }
 
@@ -1437,8 +981,6 @@ static void select_input(struct v4l2_subdev *sd, enum adv7842_prim_mode prim_mod
 		break;
 	case ADV7842_PRIM_MODE_COMP:
 	case ADV7842_PRIM_MODE_RGB: {
-		struct v4l2_dv_preset preset;
-
 		/* Automatic analog input muxing mode */
 		afe_write_and_or(sd, 0x02, 0x7f, 0x00);
 		/* set mode and select free run resolution */
@@ -1465,10 +1007,6 @@ static void select_input(struct v4l2_subdev *sd, enum adv7842_prim_mode prim_mod
 
 		/* color space conversion */
 		io_write_and_or(sd, 0x02, 0x0f, 0x10); /* force input color space to RGB full range */
-
-		/* configure free run mode for auto graphics mode */
-		preset.preset = V4L2_DV_DMT_800X600P72;
-		adv7842_s_dv_preset(sd, &preset);
 	}
 		break;
 	case ADV7842_PRIM_MODE_HDMI_COMP:
@@ -1646,8 +1184,6 @@ static int adv7842_g_mbus_fmt(struct v4l2_subdev *sd,
 			  struct v4l2_mbus_framefmt *fmt)
 {
 	struct adv7842_state *state = to_state(sd);
-	struct v4l2_dv_enum_preset info;
-	int err;
 
 	if (state->prim_mode == ADV7842_PRIM_MODE_SDP) {
 
@@ -1662,19 +1198,15 @@ static int adv7842_g_mbus_fmt(struct v4l2_subdev *sd,
 			fmt->width = 720;
 			fmt->height = 576;
 		}
-		return 0;
 	} else {
-		if (state->preset == V4L2_DV_INVALID)
-			return -EINVAL;
-		err = v4l_fill_dv_preset_info(state->preset, &info);
-		fmt->width = info.width;
-		fmt->height = info.height;
+		fmt->width = state->timings.bt.width;
+		fmt->height = state->timings.bt.height;
 		fmt->code = V4L2_MBUS_FMT_UYVY8_1X16;
 		fmt->field = V4L2_FIELD_NONE;
-		fmt->colorspace = (state->preset <= V4L2_DV_576P50) ?
+		fmt->colorspace = (state->timings.bt.height <= 576) ?
 			V4L2_COLORSPACE_SMPTE170M : V4L2_COLORSPACE_REC709;
-		return err;
 	}
+	return 0;
 }
 
 static int adv7842_isr(struct v4l2_subdev *sd, u32 status, bool *handled)
@@ -1697,37 +1229,6 @@ static int adv7842_isr(struct v4l2_subdev *sd, u32 status, bool *handled)
 	}
 	/* cec controller */
 	cec_irq = io_read(sd, 0x93) & 0x0f;
-	if (cec_irq) {
-		struct adv7842_state *state = to_state(sd);
-		wake_up(&state->cec_wqh);
-		v4l2_dbg(1, debug, sd, "%s: cec: irq 0x%x\n", __func__, cec_irq);
-		/* note: rx ready and tx ready are swapped in 0x93 and 0x94 */
-		/* just clear all four bits.
-		 * FIXME: is this still true for the ADV7842? */
-		io_write(sd, 0x94, 0x0f);
-		if (cec_irq & 0x01) {
-			int tx_stat = V4L2_CEC_TX_STATUS_OK;
-			v4l2_subdev_notify(sd, ADV7842_CEC_TX, &tx_stat);
-			v4l2_dbg(1, debug, sd, "%s: cec: tx ready\n", __func__);
-		}
-		if (cec_irq & 0x02) {
-			int tx_stat = V4L2_CEC_TX_STATUS_ARB_LOST;
-			v4l2_subdev_notify(sd, ADV7842_CEC_TX, &tx_stat);
-			v4l2_dbg(1, debug, sd, "%s: cec: tx arbitration lost\n", __func__);
-		}
-		if (cec_irq & 0x04) {
-			int tx_stat = V4L2_CEC_TX_STATUS_RETRY_TIMEOUT;
-			v4l2_subdev_notify(sd, ADV7842_CEC_TX, &tx_stat);
-			v4l2_dbg(1, debug, sd, "%s: cec: tx retry failed\n", __func__);
-		}
-		if (cec_irq & 0x08) {
-			int rx_stat = V4L2_CEC_RX_STATUS_READY;
-			v4l2_subdev_notify(sd, ADV7842_CEC_RX, &rx_stat);
-			v4l2_dbg(1, debug, sd, "%s: cec: rx ready\n", __func__);
-		}
-		if (handled)
-			*handled = true;
-	}
 	/* tx 5v detect */
 	tx_5v = io_read(sd, 0x70) & 0x02;
 	if (tx_5v) {
@@ -1736,327 +1237,6 @@ static int adv7842_isr(struct v4l2_subdev *sd, u32 status, bool *handled)
 		adv7842_s_detect_tx_5v_ctrl(sd);
 		if (handled)
 			*handled = true;
-	}
-	return 0;
-}
-
-static void adv7842_enable_cec_irq(struct v4l2_subdev *sd, bool enable)
-{
-	v4l2_dbg(1, debug, sd, "%s: %s\n", __func__, enable ? "enable" : "disable");
-	if (enable) {
-		/* enabled irqs: */
-		/* tx: ready */
-		/* tx: arbitration lost */
-		/* tx: retry timeout */
-		/* rx: ready */
-		io_write_and_or(sd, 0x96, 0xf0, 0x0f);
-	} else {
-		io_write_and_or(sd, 0x96, 0xf0, 0x00);
-	}
-}
-
-static int adv7842_cec_disable(struct v4l2_subdev *sd)
-{
-	struct adv7842_state *state = to_state(sd);
-
-	v4l2_dbg(1, debug, sd, "%s:\n", __func__);
-
-	state->cec_non_block = false;
-	adv7842_enable_cec_irq(sd, false);
-	cec_write_and_or(sd, 0x27, 0x8f, 0x70); /* disable address mask 1-3 */
-	cec_write_and_or(sd, 0x2a, 0xfe, 0x00); /* power down cec section */
-	return 0;
-}
-
-static int adv7842_cec_enable(struct v4l2_subdev *sd, struct v4l2_cec_cmd *cec)
-{
-	struct adv7842_state *state = to_state(sd);
-	bool enable = false;
-
-	v4l2_dbg(1, debug, sd, "%s: %d %d %d\n", __func__,
-			cec->conf.id, cec->conf.addr, cec->conf.enable);
-
-	if ((cec->conf.id >= 3) || (cec->conf.addr > 15))
-		return -EINVAL;
-
-	if (!state->cec_enable[0] &&
-	    !state->cec_enable[1] &&
-	    !state->cec_enable[2]) {
-		cec_write_and_or(sd, 0x2a, 0xfe, 0x01);	/* power up cec */
-		cec_write(sd, 0x2c, 0x01);	/* cec soft reset */
-	}
-
-	state->cec_addr[cec->conf.id] = cec->conf.addr;
-	state->cec_enable[cec->conf.id] = cec->conf.enable;
-
-	if (state->cec_enable[0]) {
-		/* enable address mask 0 */
-		cec_write_and_or(sd, 0x27, 0xef, 0x10);
-		/* set address for mask 0 */
-		cec_write_and_or(sd, 0x28, 0xf0, state->cec_addr[0]);
-		enable = true;
-	}
-	if (state->cec_enable[1]) {
-		/* enable address mask 1 */
-		cec_write_and_or(sd, 0x27, 0xdf, 0x20);
-		/* set address for mask 1 */
-		cec_write_and_or(sd, 0x28, 0x0f, state->cec_addr[1] << 4);
-		enable = true;
-	}
-	if (state->cec_enable[2]) {
-		/* enable address mask 2 */
-		cec_write_and_or(sd, 0x27, 0xbf, 0x40);
-		/* set address for mask 1 */
-		cec_write_and_or(sd, 0x29, 0xf0, state->cec_addr[2]);
-		enable = true;
-	}
-
-	if (!enable) {
-		adv7842_cec_disable(sd);
-		return 0;
-	}
-
-	cec_write_and_or(sd, 0x11, 0xfe, 0);  /* initially disable tx */
-	adv7842_enable_cec_irq(sd, state->cec_non_block);
-	return 0;
-}
-
-static void adv7842_cec_tx(struct v4l2_subdev *sd, struct v4l2_cec_cmd *cec)
-{
-	__u8 len, i;
-
-	len = cec->data.len;
-	if (len  > 16) {
-		v4l2_err(sd, "%s: len exceeded 16 (%d)\n", __func__, len);
-		len = 16;
-	}
-	/* write data */
-	for (i = 0; i < len; i++)
-		cec_write(sd, i,  cec->data.msg[i]);
-
-	/* set length (data + header) */
-	cec_write(sd, 0x10, len);
-	/* start transmit, enable tx */
-	cec_write(sd, 0x11, 0x01);
-	/* For some reason sometimes the
-	 * transmit won't start.
-	 * Doing it twice seems to help ?
-	 * FIXME: is this still needed for the ADV8742?
-	 */
-	cec_write(sd, 0x11, 0x01);
-}
-
-static int adv7842_cec_tx_raw_status(struct v4l2_subdev *sd)
-{
-	__u8 tx_raw_status;
-
-	if ((cec_read(sd, 0x11) & 0x01) == 0) {
-		v4l2_dbg(1, debug, sd, "%s: tx raw: tx disabled\n", __func__);
-		return 0;
-	}
-	tx_raw_status = io_read(sd, 0x92);
-
-	if (tx_raw_status & 0x02) {
-		v4l2_dbg(1, debug, sd, "%s: tx raw: arbitration lost\n", __func__);
-		return V4L2_CEC_TX_STATUS_ARB_LOST;
-	}
-	if (tx_raw_status & 0x04) {
-		v4l2_dbg(1, debug, sd, "%s: tx raw: retry failed\n", __func__);
-		return V4L2_CEC_TX_STATUS_RETRY_TIMEOUT;
-	}
-	if (tx_raw_status & 0x01) {
-		v4l2_dbg(1, debug, sd, "%s: tx raw: ready ok\n", __func__);
-		return V4L2_CEC_TX_STATUS_OK;
-	}
-	return -1;
-}
-
-static int adv7842_cec_wait_tx(struct v4l2_subdev *sd)
-{
-	struct adv7842_state *state = to_state(sd);
-
-	while (adv7842_cec_tx_raw_status(sd) == -1) {
-		DEFINE_WAIT(tx_wait);
-		prepare_to_wait(&state->cec_wqh, &tx_wait, TASK_INTERRUPTIBLE);
-		if (adv7842_cec_tx_raw_status(sd) == -1) {
-			msleep(1);
-			schedule();
-		}
-		finish_wait(&state->cec_wqh, &tx_wait);
-		if (signal_pending(current)) {
-			adv7842_cec_disable(sd);
-			/* return if a signal was received */
-			v4l2_err(sd, "%s: User stopped\n", __func__);
-			return -EINTR;
-		}
-	}
-	return 0;
-}
-
-static int adv7842_cec_ctrl_tx(struct v4l2_subdev *sd, struct v4l2_cec_cmd *cec)
-{
-	int ret;
-	struct adv7842_state *state = to_state(sd);
-
-	if (state->cec_non_block) {
-		if (adv7842_cec_tx_raw_status(sd) == -1)
-			return -EAGAIN;
-		adv7842_cec_tx(sd, cec);
-		return 0;
-	}
-	ret = adv7842_cec_wait_tx(sd);
-	if (ret == 0) {
-		adv7842_cec_tx(sd, cec);
-		ret = adv7842_cec_wait_tx(sd);
-		cec->data.status = adv7842_cec_tx_raw_status(sd);
-	}
-	return ret;
-}
-
-static int adv7842_cec_rx(struct v4l2_subdev *sd, struct v4l2_cec_cmd *cec)
-{
-	cec->data.len = cec_read(sd, 0x25) & 0x1f;
-	if (cec->data.len > 16)
-		cec->data.len = 16;
-
-	if (cec->data.len) {
-		__u8 i;
-
-		for (i = 0; i < cec->data.len; i++)
-			cec->data.msg[i] = cec_read(sd, i + 0x15);
-		return 0;
-	}
-	return -1;
-}
-
-static int adv7842_cec_rx_status(struct v4l2_subdev *sd)
-{
-	__u8 rx_status = io_read(sd, 0x92);
-	v4l2_dbg(1, debug, sd, "%s: 0x%x\n", __func__, rx_status);
-	return (rx_status & 0x08) ? 0 : -1;
-}
-
-static int adv7842_cec_wait_rx(struct v4l2_subdev *sd)
-{
-	struct adv7842_state *state = to_state(sd);
-
-	while (adv7842_cec_rx_status(sd) == -1) {
-		DEFINE_WAIT(rx_wait);
-		prepare_to_wait(&state->cec_wqh, &rx_wait, TASK_INTERRUPTIBLE);
-		if (adv7842_cec_rx_status(sd) == -1)
-			schedule();
-		finish_wait(&state->cec_wqh, &rx_wait);
-		if (signal_pending(current)) {
-			adv7842_cec_disable(sd);
-			/* return if a signal was received */
-			v4l2_err(sd, "%s: User stopped\n", __func__);
-			return -EINTR;
-		}
-	}
-	return 0;
-}
-
-static int adv7842_cec_ctrl_rx(struct v4l2_subdev *sd, struct v4l2_cec_cmd *cec)
-{
-	struct adv7842_state *state = to_state(sd);
-	int ret;
-
-	v4l2_dbg(1, debug, sd, "%s:\n", __func__);
-
-	if (state->cec_non_block) {
-		if (adv7842_cec_rx_status(sd) == -1)
-			return -EAGAIN;
-		return adv7842_cec_rx(sd, cec) ? -EAGAIN : 0;
-	}
-	do {
-		ret = adv7842_cec_wait_rx(sd);
-
-		if (ret)
-			break;
-		ret = adv7842_cec_rx(sd, cec);
-	} while (ret);
-	return ret;
-}
-
-static int adv7842_cec_cap(struct v4l2_subdev *sd,
-			   struct v4l2_cec_cap *cec)
-{
-	v4l2_dbg(1, debug, sd, "%s:\n", __func__);
-	cec->logicaldevices = 3;
-	return 0;
-}
-
-static int adv7842_cec_cmd(struct v4l2_subdev *sd,
-			   struct v4l2_cec_cmd *cec)
-{
-	const char *cmd_txt[] = {
-		"conf",
-		"tx",
-		"rx",
-		"3?"
-	};
-
-	v4l2_dbg(1, debug, sd, "%s: cmd: %s (%d)\n", __func__,
-			cmd_txt[cec->cmd & 0x3], cec->cmd);
-
-	switch (cec->cmd) {
-	case V4L2_CEC_CMD_CONF:
-		return adv7842_cec_enable(sd, cec);
-
-	case V4L2_CEC_CMD_TX:
-		return adv7842_cec_ctrl_tx(sd, cec);
-
-	case V4L2_CEC_CMD_RX:
-		return adv7842_cec_ctrl_rx(sd, cec);
-	}
-	return -EINVAL;
-}
-
-static void adv7842_cec_set_blocking(struct v4l2_subdev *sd, bool non_block)
-{
-	struct adv7842_state *state = to_state(sd);
-
-	v4l2_dbg(1, debug, sd, "%s: %s\n",
-		 __func__, non_block ? "non block" : "blocking");
-
-	if (state->cec_non_block != non_block)
-		adv7842_enable_cec_irq(sd, non_block);
-	state->cec_non_block = non_block;
-}
-
-static long adv7842_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
-{
-	struct adv7842_state *state = to_state(sd);
-	int err;
-
-	switch (cmd) {
-	case V4L2_S_EDID: {
-		struct v4l2_edid *edid = arg;
-
-		memcpy(state->edid, edid->edid, sizeof(state->edid));
-		err = edid_write_block(sd, 256, state->edid);
-		if (err < 0)
-			v4l2_err(sd, "error %d writing edid\n", err);
-		return err;
-	}
-
-	case V4L2_CEC_CAP: {
-		struct adv7842_cec_arg *cec_arg = arg;
-		struct v4l2_cec_cap *cec_cap = cec_arg->arg;
-		adv7842_cec_set_blocking(sd, (cec_arg->f_flags & O_NONBLOCK));
-		return adv7842_cec_cap(sd, cec_cap);
-		}
-
-	case V4L2_CEC_CMD: {
-		struct adv7842_cec_arg *cec_arg = arg;
-		struct v4l2_cec_cmd *cec_cmd = cec_arg->arg;
-		adv7842_cec_set_blocking(sd, (cec_arg->f_flags & O_NONBLOCK));
-		return adv7842_cec_cmd(sd, cec_cmd);
-	}
-
-	default:
-		v4l2_err(sd, "unknown ioctl %08x\n", cmd);
-		return -EINVAL;
 	}
 	return 0;
 }
@@ -2374,32 +1554,8 @@ static int adv7842_log_status(struct v4l2_subdev *sd)
 			v4l2_info(sd, "No video detected\n");
 
 		print_avi_infoframe(sd);
-	} else {
-		struct v4l2_dv_enum_preset preset_info;
-
-		preset_info.height = preset_info.width = 0;
-		switch (state->preset & V4L2_DV_PRESET_MASK) {
-		case V4L2_DV_CEA_861_FORMAT:
-			v4l_fill_dv_preset_info(state->preset, &preset_info);
-			break;
-		case V4L2_DV_DMT_FORMAT:
-			v4l_fill_dv_dmt_preset_info(state->preset, &preset_info);
-			break;
-		case V4L2_DV_SPECIAL_FORMAT:
-			strlcpy(preset_info.name, "special format", sizeof(preset_info.name));
-			break;
-		case V4L2_DV_CVT_FORMAT:
-			strlcpy(preset_info.name, "CVT format", sizeof(preset_info.name));
-			break;
-		case V4L2_DV_GTF_FORMAT:
-			strlcpy(preset_info.name, "GTF format", sizeof(preset_info.name));
-			break;
-		default:
-			strlcpy(preset_info.name, "unknown format", sizeof(preset_info.name));
-			break;
-		}
-		v4l2_info(sd, "Selected preset 0x%x: %s\n", state->preset, preset_info.name);
 	}
+
 	return 0;
 }
 
@@ -2421,9 +1577,6 @@ static int adv7842_s_std(struct v4l2_subdev *sd, v4l2_std_id std)
 
 	if (state->prim_mode != ADV7842_PRIM_MODE_SDP)
 		return -EINVAL;
-
-	if (std == state->std)
-		return 0;
 
 	if (std == V4L2_STD_NTSC_443)
 		val = 0x20;
@@ -2508,7 +1661,6 @@ static const struct v4l2_subdev_core_ops adv7842_core_ops = {
 	.s_ctrl = v4l2_subdev_s_ctrl,
 	.queryctrl = v4l2_subdev_queryctrl,
 	.querymenu = v4l2_subdev_querymenu,
-	.ioctl = adv7842_ioctl,
 	.g_chip_ident = adv7842_g_chip_ident,
 	.g_std = adv7842_g_std,
 	.s_std = adv7842_s_std,
@@ -2523,11 +1675,10 @@ static const struct v4l2_subdev_video_ops adv7842_video_ops = {
 	.s_routing = adv7842_s_routing,
 	.querystd = adv7842_querystd,
 	.g_input_status = adv7842_g_input_status,
-	.enum_dv_presets = adv7842_enum_dv_presets,
-	.s_dv_preset = adv7842_s_dv_preset,
-	.query_dv_preset = adv7842_query_dv_preset,
 	.s_dv_timings = adv7842_s_dv_timings,
 	.g_dv_timings = adv7842_g_dv_timings,
+	.query_dv_timings = adv7842_query_dv_timings,
+	.enum_dv_timings = adv7842_enum_dv_timings,
 	.enum_mbus_fmt = adv7842_enum_mbus_fmt,
 	.g_mbus_fmt = adv7842_g_mbus_fmt,
 	.try_mbus_fmt = adv7842_g_mbus_fmt,
@@ -2541,50 +1692,6 @@ static const struct v4l2_subdev_ops adv7842_ops = {
 
 /* -------------------------- custom ctrls ---------------------------------- */
 
-static const struct v4l2_ctrl_config adv7842_ctrl_tx_5v = {
-	.ops = &adv7842_ctrl_ops,
-	.id = V4L2_CID_DV_RX_TX_POWER,
-	.name = "Tx power",
-	.type = V4L2_CTRL_TYPE_BITMASK,
-	.min = 0,
-	.max = 1,
-	.step = 0,
-	.def = 0,
-	.flags = V4L2_CTRL_FLAG_READ_ONLY,
-};
-
-static const struct v4l2_ctrl_config adv7842_ctrl_analog_sampling_phase = {
-	.ops = &adv7842_ctrl_ops,
-	.id = V4L2_CID_DV_RX_ANALOG_SAMPLING_PHASE,
-	.name = "analog sampling phase",
-	.type = V4L2_CTRL_TYPE_INTEGER,
-	.min = 0,
-	.max = 0x1f,
-	.step = 1,
-	.def = 0,
-};
-
-static const struct v4l2_ctrl_config adv7842_ctrl_free_run_color_manual = {
-	.ops = &adv7842_ctrl_ops,
-	.id = V4L2_CID_FREE_RUN_COLOR_MANUAL,
-	.name = "free run color manual",
-	.type = V4L2_CTRL_TYPE_BOOLEAN,
-	.min = false,
-	.max = true,
-	.step = 1,
-	.def = false,
-};
-
-static const struct v4l2_ctrl_config adv7842_ctrl_free_run_color = {
-	.ops = &adv7842_ctrl_ops,
-	.id = V4L2_CID_FREE_RUN_COLOR,
-	.name = "free run color",
-	.type = V4L2_CTRL_TYPE_INTEGER,
-	.min = 0x0,
-	.max = 0xffffff,
-	.step = 0x1,
-	.def = 0x0,
-};
 /* ----------------------------------------------------------------------- */
 
 static int adv7842_core_init(struct v4l2_subdev *sd, const struct adv7842_platform_data *pdata)
@@ -2696,7 +1803,6 @@ static int adv7842_probe(struct i2c_client *client,
 	sd = &state->sd;
 	v4l2_i2c_subdev_init(sd, client, &adv7842_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
-	state->preset = V4L2_DV_720P60;
 	state->connector_hdmi = pdata->connector_hdmi;
 	state->prim_mode = pdata->prim_mode;
 	state->pdata = pdata;
@@ -2731,26 +1837,6 @@ static int adv7842_probe(struct i2c_client *client,
 			V4L2_CID_HUE, 0, 128, 1, 0);
 
 	/* custom control - Tx 5V */
-	state->detect_tx_5v_ctrl = v4l2_ctrl_new_custom(hdl, &adv7842_ctrl_tx_5v, NULL);
-	sd->ctrl_handler = hdl;
-	if (hdl->error) {
-		err = hdl->error;
-		goto err_hdl;
-	}
-	if (adv7842_s_detect_tx_5v_ctrl(sd)) {
-		err = -ENODEV;
-		goto err_hdl;
-	}
-
-	/* custom controls */
-	state->analog_sampling_phase_ctrl = v4l2_ctrl_new_custom(hdl, &adv7842_ctrl_analog_sampling_phase, NULL);
-	state->free_run_color_ctrl_manual = v4l2_ctrl_new_custom(hdl, &adv7842_ctrl_free_run_color_manual, NULL);
-	state->free_run_color_ctrl = v4l2_ctrl_new_custom(hdl, &adv7842_ctrl_free_run_color, NULL);
-	sd->ctrl_handler = hdl;
-	if (hdl->error) {
-		err = hdl->error;
-		goto err_hdl;
-	}
 
 	state->i2c_avlink = adv7842_dummy_client(sd, pdata->i2c_avlink, 0xf3);
 	state->i2c_cec = adv7842_dummy_client(sd, pdata->i2c_cec, 0xf4);
@@ -2792,7 +1878,6 @@ static int adv7842_probe(struct i2c_client *client,
 
 	INIT_DELAYED_WORK(&state->delayed_work_enable_hotplug, adv7842_delayed_work_enable_hotplug);
 
-	init_waitqueue_head(&state->cec_wqh);
 	state->pad.flags = MEDIA_PAD_FL_SOURCE;
 	err = media_entity_init(&sd->entity, 1, &state->pad, 0);
 	if (err)

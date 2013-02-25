@@ -7,4 +7,20 @@ config VIDEO_BLACKFIN_CAPTURE
 	  Choose PPI or EPPI as its interface.
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called bfin_video_capture.
+	  module will be called bfin_capture.
+
+config VIDEO_BLACKFIN_DISPLAY
+	tristate "Blackfin Video Display Driver"
+	depends on VIDEO_V4L2 && BLACKFIN && I2C
+	select VIDEOBUF2_DMA_CONTIG
+	help
+	  V4L2 bridge driver for Blackfin video display device.
+	  Choose PPI or EPPI as its interface.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called bfin_display.
+
+config VIDEO_BLACKFIN_PPI
+	tristate
+	depends on VIDEO_BLACKFIN_CAPTURE || VIDEO_BLACKFIN_DISPLAY
+	default VIDEO_BLACKFIN_CAPTURE || VIDEO_BLACKFIN_DISPLAY
