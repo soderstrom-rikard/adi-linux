@@ -1028,7 +1028,7 @@ static irqreturn_t bfin_spi_rx_dma_isr(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int __devinit bfin_spi_probe(struct platform_device *pdev)
+static int bfin_spi_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct bfin6xx_spi_master *platform_info;
@@ -1158,7 +1158,7 @@ err_put_master:
 }
 
 /* stop hardware and remove the driver */
-static int __devexit bfin_spi_remove(struct platform_device *pdev)
+static int bfin_spi_remove(struct platform_device *pdev)
 {
 	struct bfin_spi_master_data *drv_data = platform_get_drvdata(pdev);
 
@@ -1257,7 +1257,7 @@ static struct platform_driver bfin_spi_driver = {
 		.pm     = &bfin_spi_pm_ops,
 #endif
 	},
-	.remove		= __devexit_p(bfin_spi_remove),
+	.remove		= bfin_spi_remove,
 };
 
 static int __init bfin_spi_init(void)
