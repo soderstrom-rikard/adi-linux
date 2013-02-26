@@ -817,7 +817,7 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 		lcr = WLS(5);
 		break;
 	default:
-		printk(KERN_ERR "%s: word lengh not supported\n",
+		printk(KERN_ERR "%s: word length not supported\n",
 			__func__);
 	}
 
@@ -870,6 +870,14 @@ bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
 		quot -= ANOMALY_05000230;
 
 	UART_SET_ANOMALY_THRESHOLD(uart, USEC_PER_SEC / baud * 15);
+
+	/* Wait till the transfer buffer is empty */
+	timeout = jiffies + msecs_to_jiffies(10);
+	while (UART_GET_GCTL(uart) & UCEN && !(UART_GET_LSR(uart) & TEMT))
+		if (time_after(jiffies, timeout)) {
+			dev_warn(port->dev, "timeout waiting for TX buffer empty\n");
+			break;
+		}
 
 	/* Wait till the transfer buffer is empty */
 	timeout = jiffies + msecs_to_jiffies(10);
@@ -1399,7 +1407,7 @@ out_error_free_mem:
 	return ret;
 }
 
-static int __devexit bfin_serial_remove(struct platform_device *pdev)
+static int bfin_serial_remove(struct platform_device *pdev)
 {
 	struct bfin_serial_port *uart = platform_get_drvdata(pdev);
 
@@ -1419,7 +1427,7 @@ static int __devexit bfin_serial_remove(struct platform_device *pdev)
 
 static struct platform_driver bfin_serial_driver = {
 	.probe		= bfin_serial_probe,
-	.remove		= __devexit_p(bfin_serial_remove),
+	.remove		= bfin_serial_remove,
 	.suspend	= bfin_serial_suspend,
 	.resume		= bfin_serial_resume,
 	.driver		= {

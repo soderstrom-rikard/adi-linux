@@ -527,6 +527,8 @@ void handle_core_fault(unsigned int irq, struct irq_desc *desc)
 	}
 
 	raw_spin_unlock(&desc->lock);
+
+	handle_fasteoi_irq(irq, desc);
 }
 #endif /* SEC_GCTL */
 

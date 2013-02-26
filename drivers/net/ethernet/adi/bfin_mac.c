@@ -547,6 +547,7 @@ static int bfin_mac_ethtool_setwol(struct net_device *dev,
 
 	return 0;
 }
+#endif
 
 #ifdef CONFIG_BFIN_MAC_USE_HWSTAMP
 static int bfin_mac_ethtool_get_ts_info(struct net_device *dev,
@@ -654,6 +655,20 @@ static int bfin_mac_set_mac_address(struct net_device *dev, void *p)
 
 #ifdef CONFIG_BFIN_MAC_USE_HWSTAMP
 #define bfin_mac_hwtstamp_is_none(cfg) ((cfg) == HWTSTAMP_FILTER_NONE)
+
+static u32 bfin_select_phc_clock(u32 input_clk, unsigned int *shift_result)
+{
+	u32 ipn = 1000000000UL / input_clk;
+	u32 ppn = 1;
+	unsigned int shift = 0;
+
+	while (ppn <= ipn) {
+		ppn <<= 1;
+		shift++;
+	}
+	*shift_result = shift;
+	return 1000000000UL / ppn;
+}
 
 static u32 bfin_select_phc_clock(u32 input_clk, unsigned int *shift_result)
 {
@@ -1603,7 +1618,7 @@ static const struct net_device_ops bfin_mac_netdev_ops = {
 #endif
 };
 
-static int __devinit bfin_mac_probe(struct platform_device *pdev)
+static int bfin_mac_probe(struct platform_device *pdev)
 {
 	struct net_device *ndev;
 	struct bfin_mac_local *lp;
@@ -1786,7 +1801,7 @@ static int bfin_mac_resume(struct platform_device *pdev)
 #define bfin_mac_resume NULL
 #endif	/* CONFIG_PM */
 
-static int __devinit bfin_mii_bus_probe(struct platform_device *pdev)
+static int bfin_mii_bus_probe(struct platform_device *pdev)
 {
 	struct mii_bus *miibus;
 	struct bfin_mii_bus_platform_data *mii_bus_pd;
@@ -1864,7 +1879,7 @@ out_err_alloc:
 	return rc;
 }
 
-static int __devexit bfin_mii_bus_remove(struct platform_device *pdev)
+static int bfin_mii_bus_remove(struct platform_device *pdev)
 {
 	struct mii_bus *miibus = platform_get_drvdata(pdev);
 	struct bfin_mii_bus_platform_data *mii_bus_pd =
@@ -1881,7 +1896,7 @@ static int __devexit bfin_mii_bus_remove(struct platform_device *pdev)
 
 static struct platform_driver bfin_mii_bus_driver = {
 	.probe = bfin_mii_bus_probe,
-	.remove = __devexit_p(bfin_mii_bus_remove),
+	.remove = bfin_mii_bus_remove,
 	.driver = {
 		.name = "bfin_mii_bus",
 		.owner	= THIS_MODULE,
@@ -1890,7 +1905,7 @@ static struct platform_driver bfin_mii_bus_driver = {
 
 static struct platform_driver bfin_mac_driver = {
 	.probe = bfin_mac_probe,
-	.remove = __devexit_p(bfin_mac_remove),
+	.remove = bfin_mac_remove,
 	.resume = bfin_mac_resume,
 	.suspend = bfin_mac_suspend,
 	.driver = {

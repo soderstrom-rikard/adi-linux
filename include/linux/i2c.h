@@ -261,6 +261,7 @@ static inline void i2c_set_clientdata(struct i2c_client *dev, void *data)
  * @platform_data: stored in i2c_client.dev.platform_data
  * @archdata: copied into i2c_client.dev.archdata
  * @of_node: pointer to OpenFirmware device node
+ * @acpi_node: ACPI device node
  * @irq: stored in i2c_client.irq
  * @irq_flags: The flags passed to request_irq() for i2c_client.irq
  *
@@ -282,6 +283,7 @@ struct i2c_board_info {
 	void		*platform_data;
 	struct dev_archdata	*archdata;
 	struct device_node *of_node;
+	struct acpi_dev_node acpi_node;
 	int		irq;
 	unsigned long	irq_flags;
 };
@@ -505,4 +507,11 @@ static inline int i2c_adapter_id(struct i2c_adapter *adap)
 			i2c_del_driver)
 
 #endif /* I2C */
+
+#if IS_ENABLED(CONFIG_ACPI_I2C)
+extern void acpi_i2c_register_devices(struct i2c_adapter *adap);
+#else
+static inline void acpi_i2c_register_devices(struct i2c_adapter *adap) {}
+#endif
+
 #endif /* _LINUX_I2C_H */

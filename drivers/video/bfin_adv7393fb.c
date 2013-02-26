@@ -89,7 +89,7 @@ static struct fb_var_screeninfo bfin_adv7393_fb_defined = {
 	.transp = {0, 0, 0},
 };
 
-static struct fb_fix_screeninfo bfin_adv7393_fb_fix __devinitdata = {
+static struct fb_fix_screeninfo bfin_adv7393_fb_fix = {
 	.id = "BFIN ADV7393",
 	.smem_len = 720 * 480 * 2,
 	.type = FB_TYPE_PACKED_PIXELS,
@@ -358,8 +358,8 @@ static const struct file_operations adv7393_proc_ops = {
 	.write		= adv7393_proc_write,
 };
 
-static int __devinit bfin_adv7393_fb_probe(struct i2c_client *client,
-					   const struct i2c_device_id *id)
+static int bfin_adv7393_fb_probe(struct i2c_client *client,
+				 const struct i2c_device_id *id)
 {
 	int ret = 0;
 	struct proc_dir_entry *entry;
@@ -705,7 +705,7 @@ static int bfin_adv7393_fb_setcolreg(u_int regno, u_int red, u_int green,
 	return 0;
 }
 
-static int __devexit bfin_adv7393_fb_remove(struct i2c_client *client)
+static int bfin_adv7393_fb_remove(struct i2c_client *client)
 {
 	struct adv7393fb_device *fbdev = i2c_get_clientdata(client);
 
@@ -780,7 +780,7 @@ static struct i2c_driver bfin_adv7393_fb_driver = {
 #endif
 	},
 	.probe = bfin_adv7393_fb_probe,
-	.remove = __devexit_p(bfin_adv7393_fb_remove),
+	.remove = bfin_adv7393_fb_remove,
 	.id_table = bfin_adv7393_id,
 };
 
