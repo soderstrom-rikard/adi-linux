@@ -547,7 +547,6 @@ static int bfin_mac_ethtool_setwol(struct net_device *dev,
 
 	return 0;
 }
-#endif
 
 #ifdef CONFIG_BFIN_MAC_USE_HWSTAMP
 static int bfin_mac_ethtool_get_ts_info(struct net_device *dev,
