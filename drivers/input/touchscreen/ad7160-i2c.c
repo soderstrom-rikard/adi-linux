@@ -138,7 +138,7 @@ static const struct ad7160_bus_ops bops = {
 	.wakeup = ad7160_i2c_wakeup,
 };
 
-static int __devinit ad7160_i2c_probe(struct i2c_client *client,
+static int ad7160_i2c_probe(struct i2c_client *client,
 				      const struct i2c_device_id *id)
 {
 	int ret;
@@ -160,7 +160,7 @@ static int __devinit ad7160_i2c_probe(struct i2c_client *client,
 	return ret;
 }
 
-static int __devexit ad7160_i2c_remove(struct i2c_client *client)
+static int ad7160_i2c_remove(struct i2c_client *client)
 {
 	ad7160_remove_raw(&client->dev);
 	return ad7160_remove(&client->dev);
@@ -178,7 +178,7 @@ static struct i2c_driver ad7160_i2c_driver = {
 		.owner	= THIS_MODULE,
 	},
 	.probe		= ad7160_i2c_probe,
-	.remove		= __devexit_p(ad7160_i2c_remove),
+	.remove		= ad7160_i2c_remove,
 	.suspend	= ad7160_i2c_suspend,
 	.resume		= ad7160_i2c_resume,
 	.id_table	= ad7160_id,

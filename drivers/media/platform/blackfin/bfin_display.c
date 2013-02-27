@@ -908,7 +908,7 @@ static struct v4l2_file_operations disp_fops = {
 	.poll = disp_poll
 };
 
-static int __devinit disp_probe(struct platform_device *pdev)
+static int disp_probe(struct platform_device *pdev)
 {
 	struct disp_device *disp;
 	struct video_device *vfd;
@@ -1105,7 +1105,7 @@ err_free_dev:
 	return ret;
 }
 
-static int __devexit disp_remove(struct platform_device *pdev)
+static int disp_remove(struct platform_device *pdev)
 {
 	struct v4l2_device *v4l2_dev = platform_get_drvdata(pdev);
 	struct disp_device *disp = container_of(v4l2_dev,
@@ -1127,7 +1127,7 @@ static struct platform_driver disp_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe = disp_probe,
-	.remove = __devexit_p(disp_remove),
+	.remove = disp_remove,
 };
 module_platform_driver(disp_driver);
 

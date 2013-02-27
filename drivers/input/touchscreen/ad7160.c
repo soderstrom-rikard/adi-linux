@@ -905,7 +905,7 @@ static const struct attribute_group ad7160_attr_group = {
 	.attrs = ad7160_attributes,
 };
 
-__devinit int
+int
 ad7160_probe(struct device *dev, struct ad7160_bus_data *bdata,
 		u32 devid, u16 bustype)
 {
@@ -1085,7 +1085,7 @@ err_free_ts_mem:
 }
 EXPORT_SYMBOL(ad7160_probe);
 
-__devexit int ad7160_remove(struct device *dev)
+int ad7160_remove(struct device *dev)
 {
 	struct ad7160 *ts = dev_get_drvdata(dev);
 

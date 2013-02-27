@@ -201,7 +201,7 @@ static struct snd_soc_card bf5xx_ad73311 = {
 	.num_links = 1,
 };
 
-static __devinit int bf5xx_ad73311_driver_probe(struct platform_device *pdev)
+static int bf5xx_ad73311_driver_probe(struct platform_device *pdev)
 {
 	struct snd_soc_card *card = &bf5xx_ad73311;
 	const unsigned *gpio;
@@ -253,7 +253,7 @@ err_free_se:
 	return ret;
 }
 
-static int __devexit bf5xx_ad73311_driver_remove(struct platform_device *pdev)
+static int bf5xx_ad73311_driver_remove(struct platform_device *pdev)
 {
 	struct snd_soc_card *card = platform_get_drvdata(pdev);
 
@@ -271,7 +271,7 @@ static struct platform_driver bf5xx_ad73311_driver = {
 		.pm = &snd_soc_pm_ops,
 	},
 	.probe = bf5xx_ad73311_driver_probe,
-	.remove = __devexit_p(bf5xx_ad73311_driver_remove),
+	.remove = bf5xx_ad73311_driver_remove,
 };
 
 static int __init bf5xx_ad73311_init(void)

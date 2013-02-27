@@ -394,7 +394,7 @@ static int adux1001_play_effect(struct input_dev *dev, void *data,
 	return 0;
 }
 
-static int __devinit adux1001_probe(struct i2c_client *client,
+static int adux1001_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
 	struct adux1001_chip *chip;
@@ -522,7 +522,7 @@ err_free_mem:
 	return ret;
 }
 
-static int __devexit adux1001_remove(struct i2c_client *client)
+static int adux1001_remove(struct i2c_client *client)
 {
 	struct adux1001_chip *chip = i2c_get_clientdata(client);
 
@@ -604,7 +604,7 @@ static struct i2c_driver adux1001_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe = adux1001_probe,
-	.remove = __devexit_p(adux1001_remove),
+	.remove = adux1001_remove,
 	.id_table = adux1001_id,
 };
 

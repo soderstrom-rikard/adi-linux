@@ -906,7 +906,7 @@ static int bfin_sport_resume(struct platform_device *dev)
 #define bfin_sport_resume  NULL
 #endif
 
-static int __devinit bfin_sport_probe(struct platform_device *pdev)
+static int bfin_sport_probe(struct platform_device *pdev)
 {
 	struct sport_dev *dev;
 	struct miscdevice *misc;
@@ -973,7 +973,7 @@ err:
 	return ret;
 }
 
-static int __devexit bfin_sport_remove(struct platform_device *pdev)
+static int bfin_sport_remove(struct platform_device *pdev)
 {
 	struct sport_dev *dev = platform_get_drvdata(pdev);
 	int ret;
@@ -993,7 +993,7 @@ static struct platform_driver bfin_sport_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe   = bfin_sport_probe,
-	.remove  = __devexit_p(bfin_sport_remove),
+	.remove  = bfin_sport_remove,
 	.suspend = bfin_sport_suspend,
 	.resume  = bfin_sport_resume,
 };

@@ -262,7 +262,7 @@ static struct miscdevice ad7160_raw_misc_device = {
 	.fops		= &ad7160_raw_misc_fops,
 };
 
-__devinit int
+int
 ad7160_probe_raw(struct device *dev, struct ad7160_bus_data *bdata,
 		u32 devid, u16 bustype)
 {
@@ -307,7 +307,7 @@ ad7160_probe_raw(struct device *dev, struct ad7160_bus_data *bdata,
 	return error;
 }
 
-__devexit int ad7160_remove_raw(struct device *dev)
+int ad7160_remove_raw(struct device *dev)
 {
 	if (ad7160_raw_device.dev) {
 		misc_deregister(&ad7160_raw_misc_device);

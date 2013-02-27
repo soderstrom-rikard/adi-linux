@@ -84,7 +84,7 @@ static const unsigned short eppi2_per_data[] = {
 	P_PPI2_D16, P_PPI2_D17, 0,
 };
 
-static struct fb_fix_screeninfo bfin_fb_fix __devinitdata = {
+static struct fb_fix_screeninfo bfin_fb_fix = {
 	.id             = KBUILD_MODNAME,
 	.type           = FB_TYPE_PACKED_PIXELS,
 	.visual         = FB_VISUAL_TRUECOLOR,
@@ -471,7 +471,7 @@ static struct fb_ops bfin_fb_ops = {
 	.fb_cursor              = bfin_fb_cursor,
 };
 
-static int __devinit bfin_nl8048_probe(struct platform_device *pdev)
+static int bfin_nl8048_probe(struct platform_device *pdev)
 {
 	struct fb_info *info;
 	struct bfin_fb_par *par;
@@ -560,7 +560,7 @@ err:
 	return ret;
 }
 
-static int __devexit bfin_nl8048_remove(struct platform_device *pdev)
+static int bfin_nl8048_remove(struct platform_device *pdev)
 {
 	struct fb_info *info = platform_get_drvdata(pdev);
 
@@ -601,7 +601,7 @@ static int bfin_nl8048_resume(struct platform_device *pdev)
 
 static struct platform_driver bfin_nl8048_driver = {
 	.probe  = bfin_nl8048_probe,
-	.remove = __devexit_p(bfin_nl8048_remove),
+	.remove = bfin_nl8048_remove,
 	.suspend = bfin_nl8048_suspend,
 	.resume = bfin_nl8048_resume,
 	.driver = {

@@ -179,7 +179,7 @@ static struct snd_soc_dai_driver bfin_tdm_dai = {
 	.ops = &bfin_tdm_dai_ops,
 };
 
-static int __devinit bfin_tdm_probe(struct platform_device *pdev)
+static int bfin_tdm_probe(struct platform_device *pdev)
 {
 	struct sport_device *sport;
 	struct device *dev = &pdev->dev;
@@ -201,7 +201,7 @@ static int __devinit bfin_tdm_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int __devexit bfin_tdm_remove(struct platform_device *pdev)
+static int bfin_tdm_remove(struct platform_device *pdev)
 {
 	struct sport_device *sport = platform_get_drvdata(pdev);
 
@@ -213,7 +213,7 @@ static int __devexit bfin_tdm_remove(struct platform_device *pdev)
 
 static struct platform_driver bfin_tdm_driver = {
 	.probe  = bfin_tdm_probe,
-	.remove = __devexit_p(bfin_tdm_remove),
+	.remove = bfin_tdm_remove,
 	.driver = {
 		.name   = "bfin-tdm",
 		.owner  = THIS_MODULE,

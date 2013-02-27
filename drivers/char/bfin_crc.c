@@ -406,7 +406,7 @@ static const struct file_operations bfin_crc_fops = {
  *	Registers the misc device.  Actual device
  *	initialization is handled by bfin_crc_open().
  */
-static int __devinit bfin_crc_probe(struct platform_device *pdev)
+static int bfin_crc_probe(struct platform_device *pdev)
 {
 	struct resource *res;
 	struct bfin_crc *crc = NULL;
@@ -487,7 +487,7 @@ out_error_free_mem:
  *	Unregisters the misc device.  Actual device
  *	deinitialization is handled by bfin_crc_close().
  */
-static int __devexit bfin_crc_remove(struct platform_device *pdev)
+static int bfin_crc_remove(struct platform_device *pdev)
 {
 	struct bfin_crc *crc = platform_get_drvdata(pdev);
 
@@ -505,7 +505,7 @@ static int __devexit bfin_crc_remove(struct platform_device *pdev)
 
 static struct platform_driver bfin_crc_driver = {
 	.probe     = bfin_crc_probe,
-	.remove    = __devexit_p(bfin_crc_remove),
+	.remove    = bfin_crc_remove,
 	.suspend   = bfin_crc_suspend,
 	.resume    = bfin_crc_resume,
 	.driver    = {

@@ -1845,7 +1845,7 @@ static irqreturn_t ipi_handler_int0(int irq, void *dev_instance)
 	return IRQ_HANDLED;
 }
 
-static int __devinit bfin_icc_probe(struct platform_device *pdev)
+static int bfin_icc_probe(struct platform_device *pdev)
 {
 	struct icc_platform_data *icc_data = (struct icc_platform_data *)pdev->dev.platform_data;
 	struct bfin_icc *icc = NULL;
@@ -1955,7 +1955,7 @@ out_error_free_mem:
 	return ret;
 }
 
-static int __devexit bfin_icc_remove(struct platform_device *pdev)
+static int bfin_icc_remove(struct platform_device *pdev)
 {
 	struct bfin_icc *icc = platform_get_drvdata(pdev);
 	struct sm_icc_desc *icc_info;
@@ -1980,7 +1980,7 @@ static int __devexit bfin_icc_remove(struct platform_device *pdev)
 
 static struct platform_driver bfin_icc_driver = {
 	.probe     = bfin_icc_probe,
-	.remove    = __devexit_p(bfin_icc_remove),
+	.remove    = bfin_icc_remove,
 	.driver    = {
 		.name  = DRIVER_NAME,
 		.owner = THIS_MODULE,

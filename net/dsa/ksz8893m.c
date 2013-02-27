@@ -278,7 +278,7 @@ static void ksz8893m_poll_link(struct dsa_switch *ds)
 	}
 }
 
-static int __devinit spi_switch_probe(struct spi_device *spi)
+static int spi_switch_probe(struct spi_device *spi)
 {
 	if (sw.dev) {
 		pr_err("only one instance supported at a time\n");
@@ -289,7 +289,7 @@ static int __devinit spi_switch_probe(struct spi_device *spi)
 	return 0;
 }
 
-static int __devexit spi_switch_remove(struct spi_device *spi)
+static int spi_switch_remove(struct spi_device *spi)
 {
 	sw.dev = NULL;
 	return 0;
@@ -302,7 +302,7 @@ static struct spi_driver spi_switch_driver = {
 		.owner	= THIS_MODULE,
 	},
 	.probe	= spi_switch_probe,
-	.remove	= __devexit_p(spi_switch_remove),
+	.remove	= spi_switch_remove,
 };
 
 static struct dsa_switch_driver ksz8893m_switch_driver = {

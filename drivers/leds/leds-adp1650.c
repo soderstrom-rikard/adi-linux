@@ -225,7 +225,7 @@ static void adp1650_brightness_set(struct led_classdev *led_cdev,
 	adp1650_led_mode_set(chip->client, brightness);
 }
 
-static int __devinit adp1650_probe(struct i2c_client *client,
+static int adp1650_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
 	struct adp1650_chip *chip;
@@ -307,7 +307,7 @@ err_free_mem:
 	return ret;
 }
 
-static int __devexit adp1650_remove(struct i2c_client *client)
+static int adp1650_remove(struct i2c_client *client)
 {
 	struct adp1650_chip *chip = i2c_get_clientdata(client);
 
@@ -379,7 +379,7 @@ static struct i2c_driver adp1650_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe = adp1650_probe,
-	.remove = __devexit_p(adp1650_remove),
+	.remove = adp1650_remove,
 	.id_table = adp1650_id,
 };
 

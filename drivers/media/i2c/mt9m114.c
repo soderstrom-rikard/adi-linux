@@ -920,7 +920,7 @@ static const struct v4l2_subdev_ops mt9m114_ops = {
 	.video = &mt9m114_video_ops,
 };
 
-static int __devinit mt9m114_probe(struct i2c_client *client,
+static int mt9m114_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
 	struct mt9m114 *sensor;
@@ -1020,7 +1020,7 @@ static int __devinit mt9m114_probe(struct i2c_client *client,
 	return ret;
 }
 
-static int __devexit mt9m114_remove(struct i2c_client *client)
+static int mt9m114_remove(struct i2c_client *client)
 {
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
 	struct mt9m114 *sensor = to_mt9m114(sd);
@@ -1044,7 +1044,7 @@ static struct i2c_driver mt9m114_driver = {
 		.name   = "mt9m114",
 	},
 	.probe          = mt9m114_probe,
-	.remove         = __devexit_p(mt9m114_remove),
+	.remove         = mt9m114_remove,
 	.id_table       = mt9m114_id,
 };
 

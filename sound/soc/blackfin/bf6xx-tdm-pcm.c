@@ -291,12 +291,12 @@ static struct snd_soc_platform_driver bfin_tdm_pcm_platform = {
 	.pcm_free   = bfin_tdm_pcm_free,
 };
 
-static int __devinit bfin_tdm_pcm_probe(struct platform_device *pdev)
+static int bfin_tdm_pcm_probe(struct platform_device *pdev)
 {
 	return snd_soc_register_platform(&pdev->dev, &bfin_tdm_pcm_platform);
 }
 
-static int __devexit bfin_tdm_pcm_remove(struct platform_device *pdev)
+static int bfin_tdm_pcm_remove(struct platform_device *pdev)
 {
 	snd_soc_unregister_platform(&pdev->dev);
 	return 0;
@@ -308,7 +308,7 @@ static struct platform_driver bfin_tdm_pcm_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe = bfin_tdm_pcm_probe,
-	.remove = __devexit_p(bfin_tdm_pcm_remove),
+	.remove = bfin_tdm_pcm_remove,
 };
 
 module_platform_driver(bfin_tdm_pcm_driver);

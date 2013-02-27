@@ -829,7 +829,7 @@ int adau17x1_resume(struct snd_soc_codec *codec)
 }
 EXPORT_SYMBOL_GPL(adau17x1_resume);
 
-int __devinit adau17x1_bus_probe(struct device *dev, struct regmap *regmap,
+int adau17x1_bus_probe(struct device *dev, struct regmap *regmap,
 	enum adau17x1_type type, enum snd_soc_control_type control_type)
 {
 	struct adau *adau;

@@ -493,7 +493,7 @@ static const struct regmap_config adau1781_spi_regmap_config = {
 	.cache_type		= REGCACHE_RBTREE,
 };
 
-static int __devinit adau1781_spi_probe(struct spi_device *spi)
+static int adau1781_spi_probe(struct spi_device *spi)
 {
 	struct regmap *regmap;
 	enum adau17x1_type type = spi_get_device_id(spi)->driver_data;
@@ -518,7 +518,7 @@ err_remove:
 	return ret;
 }
 
-static int __devexit adau1781_spi_remove(struct spi_device *spi)
+static int adau1781_spi_remove(struct spi_device *spi)
 {
 	snd_soc_unregister_codec(&spi->dev);
 	adau17x1_bus_remove(&spi->dev);
@@ -538,7 +538,7 @@ static struct spi_driver adau1781_spi_driver = {
 		.owner	= THIS_MODULE,
 	},
 	.probe		= adau1781_spi_probe,
-	.remove		= __devexit_p(adau1781_spi_remove),
+	.remove		= adau1781_spi_remove,
 	.id_table	= adau1781_spi_id,
 };
 
@@ -570,7 +570,7 @@ static const struct regmap_config adau1781_i2c_regmap_config = {
 	.cache_type		= REGCACHE_RBTREE,
 };
 
-static int __devinit adau1781_i2c_probe(struct i2c_client *client,
+static int adau1781_i2c_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
 {
 	struct regmap *regmap;
@@ -596,7 +596,7 @@ err_remove:
 	return ret;
 }
 
-static int __devexit adau1781_i2c_remove(struct i2c_client *client)
+static int adau1781_i2c_remove(struct i2c_client *client)
 {
 	snd_soc_unregister_codec(&client->dev);
 	adau17x1_bus_remove(&client->dev);
@@ -616,7 +616,7 @@ static struct i2c_driver adau1781_i2c_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe = adau1781_i2c_probe,
-	.remove = __devexit_p(adau1781_i2c_remove),
+	.remove = adau1781_i2c_remove,
 	.id_table = adau1781_i2c_id,
 };
 

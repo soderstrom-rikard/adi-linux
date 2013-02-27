@@ -245,7 +245,7 @@ static int adp5585_gpio_direction_output(struct gpio_chip *chip,
 	return ret;
 }
 
-static int __devinit adp5585_build_gpiomap(struct adp5585_kpad *kpad,
+static int  adp5585_build_gpiomap(struct adp5585_kpad *kpad,
 				const struct adp5585_kpad_platform_data *pdata)
 {
 	bool pin_used[MAXGPIO];
@@ -277,7 +277,7 @@ static int __devinit adp5585_build_gpiomap(struct adp5585_kpad *kpad,
 	return n_unused;
 }
 
-static int __devinit adp5585_gpio_add(struct adp5585_kpad *kpad)
+static int  adp5585_gpio_add(struct adp5585_kpad *kpad)
 {
 	struct device *dev = &kpad->client->dev;
 	const struct adp5585_kpad_platform_data *pdata = dev->platform_data;
@@ -331,7 +331,7 @@ static int __devinit adp5585_gpio_add(struct adp5585_kpad *kpad)
 	return 0;
 }
 
-static void __devexit adp5585_gpio_remove(struct adp5585_kpad *kpad)
+static void  adp5585_gpio_remove(struct adp5585_kpad *kpad)
 {
 	struct device *dev = &kpad->client->dev;
 	const struct adp5585_kpad_platform_data *pdata = dev->platform_data;
@@ -415,7 +415,7 @@ static irqreturn_t adp5585_irq(int irq, void *handle)
 	return IRQ_HANDLED;
 }
 
-static int __devinit adp5585_get_evcode(struct adp5585_kpad *kpad,
+static int  adp5585_get_evcode(struct adp5585_kpad *kpad,
 	unsigned short key)
 {
 	int i;
@@ -426,7 +426,7 @@ static int __devinit adp5585_get_evcode(struct adp5585_kpad *kpad,
 	dev_err(&kpad->client->dev, "RESET/UNLOCK key not in keycode map\n");
 	return -EINVAL;
 }
-static int __devinit adp5585_setup(struct adp5585_kpad *kpad)
+static int  adp5585_setup(struct adp5585_kpad *kpad)
 {
 	struct i2c_client *client = kpad->client;
 	const struct adp5585_kpad_platform_data *pdata =
@@ -560,7 +560,7 @@ static int __devinit adp5585_setup(struct adp5585_kpad *kpad)
 	return 0;
 }
 
-static void __devinit adp5585_report_switch_state(struct adp5585_kpad *kpad)
+static void  adp5585_report_switch_state(struct adp5585_kpad *kpad)
 {
 	int gpi_stat1 = adp5585_read(kpad->client, ADP5585_GPI_STATUS_A);
 	int gpi_stat2 = adp5585_read(kpad->client, ADP5585_GPI_STATUS_B);
@@ -593,7 +593,7 @@ static void __devinit adp5585_report_switch_state(struct adp5585_kpad *kpad)
 	input_sync(kpad->input);
 }
 
-static int __devinit adp5585_probe(struct i2c_client *client,
+static int  adp5585_probe(struct i2c_client *client,
 				   const struct i2c_device_id *id)
 {
 	struct adp5585_kpad *kpad;
@@ -756,7 +756,7 @@ err_free_mem:
 	return error;
 }
 
-static int __devexit adp5585_remove(struct i2c_client *client)
+static int  adp5585_remove(struct i2c_client *client)
 {
 	struct adp5585_kpad *kpad = i2c_get_clientdata(client);
 
@@ -818,7 +818,7 @@ static struct i2c_driver adp5585_driver = {
 #endif
 		   },
 	.probe = adp5585_probe,
-	.remove = __devexit_p(adp5585_remove),
+	.remove = adp5585_remove,
 	.id_table = adp5585_id,
 };
 
