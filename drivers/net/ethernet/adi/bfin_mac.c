@@ -1741,7 +1741,7 @@ out_err_probe_mac:
 	return rc;
 }
 
-static int __devexit bfin_mac_remove(struct platform_device *pdev)
+static int bfin_mac_remove(struct platform_device *pdev)
 {
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct bfin_mac_local *lp = netdev_priv(ndev);
