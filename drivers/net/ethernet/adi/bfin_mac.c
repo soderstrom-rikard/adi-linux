@@ -669,20 +669,6 @@ static u32 bfin_select_phc_clock(u32 input_clk, unsigned int *shift_result)
 	return 1000000000UL / ppn;
 }
 
-static u32 bfin_select_phc_clock(u32 input_clk, unsigned int *shift_result)
-{
-	u32 ipn = 1000000000UL / input_clk;
-	u32 ppn = 1;
-	unsigned int shift = 0;
-
-	while (ppn <= ipn) {
-		ppn <<= 1;
-		shift++;
-	}
-	*shift_result = shift;
-	return 1000000000UL / ppn;
-}
-
 static int bfin_mac_hwtstamp_ioctl(struct net_device *netdev,
 		struct ifreq *ifr, int cmd)
 {
