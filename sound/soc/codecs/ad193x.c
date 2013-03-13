@@ -351,8 +351,31 @@ static int ad193x_probe(struct snd_soc_codec *codec)
 	return ret;
 }
 
+#ifdef CONFIG_PM
+static int ad193x_suspend(struct snd_soc_codec *codec)
+{
+	struct ad193x_priv *ad193x = snd_soc_codec_get_drvdata(codec);
+
+	regcache_mark_dirty(ad193x->regmap);
+	return 0;
+}
+
+static int ad193x_resume(struct snd_soc_codec *codec)
+{
+	struct ad193x_priv *ad193x = snd_soc_codec_get_drvdata(codec);
+
+	regcache_sync(ad193x->regmap);
+	return 0;
+}
+#else
+#define ad193x_suspend NULL
+#define ad193x_resume  NULL
+#endif
+
 static struct snd_soc_codec_driver soc_codec_dev_ad193x = {
 	.probe = 	ad193x_probe,
+	.suspend = ad193x_suspend,
+	.resume = ad193x_resume,
 	.controls = ad193x_snd_controls,
 	.num_controls = ARRAY_SIZE(ad193x_snd_controls),
 	.dapm_widgets = ad193x_dapm_widgets,
@@ -374,8 +397,9 @@ static const struct regmap_config ad193x_spi_regmap_config = {
 	.read_flag_mask = 0x09,
 	.write_flag_mask = 0x08,
 
-	.max_register = AD193X_NUM_REGS - 1,
+	.max_register = AD193X_NUM_REGS,
 	.volatile_reg = adau193x_reg_volatile,
+	.cache_type = REGCACHE_RBTREE,
 };
 
 static int ad193x_spi_probe(struct spi_device *spi)
@@ -419,8 +443,9 @@ static const struct regmap_config ad193x_i2c_regmap_config = {
 	.val_bits = 8,
 	.reg_bits = 8,
 
-	.max_register = AD193X_NUM_REGS - 1,
+	.max_register = AD193X_NUM_REGS,
 	.volatile_reg = adau193x_reg_volatile,
+	.cache_type = REGCACHE_RBTREE,
 };
 
 static const struct i2c_device_id ad193x_id[] = {
