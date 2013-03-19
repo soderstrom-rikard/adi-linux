@@ -1724,10 +1724,6 @@ static struct platform_device *ezkit_devices[] __initdata = {
 	defined(CONFIG_SND_BF5XX_SOC_AD1836_MODULE)
 	&bfin_ad1836_machine,
 #endif
-#if defined(CONFIG_SND_BF5XX_SOC_AD1836) || \
-	defined(CONFIG_SND_BF5XX_SOC_AD1836_MODULE)
-	&bfin_ad1836_machine,
-#endif
 #if defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1X61) || \
 	defined(CONFIG_SND_SOC_BFIN_EVAL_ADAU1X61_MODULE)
 	&adau1761_device,
