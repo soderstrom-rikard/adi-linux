@@ -25,6 +25,8 @@
 #include <asm/icc.h>
 #include <asm/dma.h>
 #include <asm/portmux.h>
+#include <asm/cplbinit.h>
+#include <asm/cplb.h>
 
 #define DRIVER_NAME "icc"
 
@@ -1845,6 +1847,20 @@ static irqreturn_t ipi_handler_int0(int irq, void *dev_instance)
 	return IRQ_HANDLED;
 }
 
+static int icc_remap_mem(unsigned long data)
+{
+	int idx = 0;
+
+	do {
+		if (physical_mem_end == dcplb_bounds[idx].eaddr) {
+			dcplb_bounds[++idx].data = data;
+			return 0;
+		}
+	} while (++idx < 9);
+
+	return -EINVAL;
+}
+
 static int bfin_icc_probe(struct platform_device *pdev)
 {
 	struct icc_platform_data *icc_data = (struct icc_platform_data *)pdev->dev.platform_data;
@@ -1861,6 +1877,8 @@ static int bfin_icc_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "No ICC platform data are defined.\n");
 		return -ENOENT;
 	}
+
+	icc_remap_mem((CPLB_L1_CHBL | CPLB_WT | CPLB_L1_AOW  | CPLB_COMMON));
 
 	icc = kzalloc(sizeof(*icc), GFP_KERNEL);
 	if (!icc) {
