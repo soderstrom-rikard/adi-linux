@@ -775,11 +775,6 @@ static struct platform_device *stamp_devices[] __initdata = {
 	&bfin_ad1836_machine,
 #endif
 
-#if defined(CONFIG_SND_BF5XX_SOC_AD1836) || \
-	defined(CONFIG_SND_BF5XX_SOC_AD1836_MODULE)
-	&bfin_ad1836_machine,
-#endif
-
 #if defined(CONFIG_SND_BF5XX_SOC_AD73311) || \
 	defined(CONFIG_SND_BF5XX_SOC_AD73311_MODULE)
 	&bfin_ad73311_machine,
