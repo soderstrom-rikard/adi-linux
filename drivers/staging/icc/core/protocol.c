@@ -1549,7 +1549,7 @@ static int sm_task_sendmsg(struct sm_message *message, struct sm_session *sessio
 	sm_debug("%s msg type %x\n", __func__, (uint32_t)msg->type);
 	switch (msg->type) {
 	case SM_TASK_RUN:
-		flush_dcache_range(_ramend, physical_mem_end - _ramend);
+		flush_dcache_range(_ramend, physical_mem_end);
 		task = (struct sm_task *)msg->payload;
 		sm_debug("%s init addr%p\n", __func__, task->task_init);
 		sm_set_icc_queue_attribute(message->dst, ICC_QUEUE_ATTR_STATUS, ICC_QUEUE_STOP);
