@@ -7,3 +7,4 @@ endif
 ifdef CONFIG_NET_DSA_MV88E6131
 mv88e6xxx_drv-y += mv88e6131.o
 endif
+obj-$(CONFIG_NET_DSA_KSZ8893M) += ksz8893m.o

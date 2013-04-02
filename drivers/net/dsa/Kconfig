@@ -36,4 +36,12 @@ config NET_DSA_MV88E6123_61_65
 	  This enables support for the Marvell 88E6123/6161/6165
 	  ethernet switch chips.
 
+config NET_DSA_KSZ8893M
+	tristate "MICREL KSZ8893MQL/BL ethernet switch chip support"
+	depends on SPI
+	select NET_DSA
+	select NET_DSA_TAG_STPID
+	---help---
+	  This enables support for the Micrel KSZ8893MQL/BL
+	  ethernet switch chips.
 endmenu
