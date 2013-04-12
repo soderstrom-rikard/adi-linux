@@ -245,8 +245,13 @@ static int disp_release(struct file *file)
 static int disp_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	struct disp_device *disp = video_drvdata(file);
+	int ret;
 
-	return vb2_mmap(&disp->buffer_queue, vma);
+	if (mutex_lock_interruptible(&disp->mutex))
+		return -ERESTARTSYS;
+	ret = vb2_mmap(&disp->buffer_queue, vma);
+	mutex_unlock(&disp->mutex);
+	return ret;
 }
 
 #ifndef CONFIG_MMU
@@ -257,20 +262,29 @@ static unsigned long disp_get_unmapped_area(struct file *file,
 					    unsigned long flags)
 {
 	struct disp_device *disp = video_drvdata(file);
+	int ret;
 
-	return vb2_get_unmapped_area(&disp->buffer_queue,
-				     addr,
-				     len,
-				     pgoff,
-				     flags);
+	if (mutex_lock_interruptible(&disp->mutex))
+		return -ERESTARTSYS;
+	ret = vb2_get_unmapped_area(&disp->buffer_queue,
+				    addr,
+				    len,
+				    pgoff,
+				    flags);
+	mutex_unlock(&disp->mutex);
+	return ret;
 }
 #endif
 
 static unsigned int disp_poll(struct file *file, poll_table *wait)
 {
 	struct disp_device *disp = video_drvdata(file);
+	int ret;
 
-	return vb2_poll(&disp->buffer_queue, file, wait);
+	mutex_lock(&disp->mutex);
+	ret = vb2_poll(&disp->buffer_queue, file, wait);
+	mutex_unlock(&disp->mutex);
+	return ret;
 }
 
 static int disp_queue_setup(struct vb2_queue *vq,
