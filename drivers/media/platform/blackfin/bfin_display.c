@@ -1004,7 +1004,12 @@ static int disp_probe(struct platform_device *pdev)
 	q->ops = &disp_video_qops;
 	q->mem_ops = &vb2_dma_contig_memops;
 
-	vb2_queue_init(q);
+	ret = vb2_queue_init(q);
+	if (ret) {
+		v4l2_err(&disp->v4l2_dev,
+				"Unable to init videobuf2 queue\n");
+		goto err_free_handler;
+	}
 
 	mutex_init(&disp->mutex);
 
