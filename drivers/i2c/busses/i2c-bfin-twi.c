@@ -72,7 +72,7 @@ static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface,
 	}
 	if (twi_int_status & RCVSERV) {
 		while (iface->readNum > 0 &&
-			(read_FIFO_STAT(iface) & RCVSTAT) != RCV_FULL) {
+			(read_FIFO_STAT(iface) & RCVSTAT)) {
 			/* Receive next data */
 			*(iface->transPtr) = read_RCV_DATA8(iface);
 			if (iface->cur_mode == TWI_I2C_MODE_COMBINED) {
