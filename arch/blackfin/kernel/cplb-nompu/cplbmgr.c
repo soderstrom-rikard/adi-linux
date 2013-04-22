@@ -178,6 +178,8 @@ MGR_ATTR static int dcplb_miss(int cpu)
 	cplb_pageflags = PAGE_SIZE_4MB;
 	cplb_pagesize = SIZE_4M;
 #endif
+
+find_pagesize:
 	addr1 = addr & ~(cplb_pagesize - 1);
 	if (addr1 >= base && (addr1 + cplb_pagesize) <= eaddr) {
 		/*
@@ -186,8 +188,16 @@ MGR_ATTR static int dcplb_miss(int cpu)
 		 */
 		d_data |= cplb_pageflags;
 		addr = addr1;
+		goto found_pagesize;
+	} else {
+		if (cplb_pagesize > SIZE_4M) {
+			cplb_pageflags = PAGE_SIZE_4MB;
+			cplb_pagesize = SIZE_4M;
+			goto find_pagesize;
+		}
 	}
 
+found_pagesize:
 #ifdef CONFIG_BF60x
 	if ((addr >= ASYNC_BANK0_BASE)
 		&& (addr < ASYNC_BANK3_BASE + ASYNC_BANK3_SIZE))
