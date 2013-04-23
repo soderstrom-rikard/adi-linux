@@ -102,10 +102,6 @@ void __init generate_cplb_tables_cpu(unsigned int cpu)
 		i_tbl[i_i++].data = L1_IMEMORY | PAGE_SIZE_4MB;
 	}
 #endif
-#ifdef CONFIG_BF60x
-	d_tbl[i_d].addr = BOOT_ROM_START;
-	d_tbl[i_d++].data = SDRAM_DGENERIC | PAGE_SIZE_64KB;
-#endif
 	first_switched_dcplb = i_d;
 	first_switched_icplb = i_i;
 
