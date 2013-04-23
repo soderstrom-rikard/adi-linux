@@ -1551,6 +1551,8 @@ static int sm_task_sendmsg(struct sm_message *message, struct sm_session *sessio
 	case SM_TASK_RUN:
 		flush_dcache_range(_ramend, physical_mem_end);
 		task = (struct sm_task *)msg->payload;
+
+		flush_dcache_range(msg->payload, msg->payload + msg->length);
 		sm_debug("%s init addr%p\n", __func__, task->task_init);
 		sm_set_icc_queue_attribute(message->dst, ICC_QUEUE_ATTR_STATUS, ICC_QUEUE_STOP);
 		mutex_lock(&bfin_icc->sessions_table->lock);
@@ -1853,7 +1855,7 @@ static int icc_remap_mem(unsigned long data)
 
 	do {
 		if (physical_mem_end == dcplb_bounds[idx].eaddr) {
-			dcplb_bounds[++idx].data = data;
+			dcplb_bounds[idx].data = data;
 			return 0;
 		}
 	} while (++idx < 9);
