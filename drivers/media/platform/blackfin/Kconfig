@@ -14,8 +14,8 @@ config VIDEO_BLACKFIN_DISPLAY
 	depends on VIDEO_V4L2 && BLACKFIN && I2C
 	select VIDEOBUF2_DMA_CONTIG
 	help
-	  V4L2 bridge driver for Blackfin video display device.
-	  Choose PPI or EPPI as its interface.
+	  V4L2 driver for Blackfin video display (E)PPI interface.
+	  This module is common for BF537/BF561/BF548/BF609.
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called bfin_display.
