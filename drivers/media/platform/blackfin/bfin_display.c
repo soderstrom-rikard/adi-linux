@@ -66,7 +66,7 @@ struct bfin_disp_device {
 	/* v4l2 control handler */
 	struct v4l2_ctrl_handler ctrl_handler;
 	/* device node data */
-	struct video_device *video_dev;
+	struct video_device video_dev;
 	/* sub device instance */
 	struct v4l2_subdev *sd;
 	/* display config */
@@ -149,8 +149,6 @@ static const struct bfin_disp_format bfin_disp_formats[] = {
 };
 #define DISP_MAX_FMTS ARRAY_SIZE(bfin_disp_formats)
 
-static irqreturn_t bfin_disp_isr(int irq, void *dev_id);
-
 static struct bfin_disp_buffer *to_bfin_disp_vb(struct vb2_buffer *vb)
 {
 	return container_of(vb, struct bfin_disp_buffer, vb);
@@ -201,7 +199,7 @@ static void bfin_disp_free_encoder_formats(struct bfin_disp_device *disp)
 static int bfin_disp_open(struct file *file)
 {
 	struct bfin_disp_device *disp = video_drvdata(file);
-	struct video_device *vfd = disp->video_dev;
+	struct video_device *vfd = &disp->video_dev;
 	struct bfin_disp_fh *bfin_disp_fh;
 
 	if (!disp->sd) {
@@ -361,6 +359,36 @@ static void bfin_disp_unlock(struct vb2_queue *vq)
 {
 	struct bfin_disp_device *disp = vb2_get_drv_priv(vq);
 	mutex_unlock(&disp->mutex);
+}
+
+static irqreturn_t bfin_disp_isr(int irq, void *dev_id)
+{
+	struct ppi_if *ppi = dev_id;
+	struct bfin_disp_device *disp = ppi->priv;
+	struct timeval timevalue;
+	struct vb2_buffer *vb = &disp->cur_frm->vb;
+	dma_addr_t addr;
+
+	spin_lock(&disp->lock);
+
+	if (!list_empty(&disp->dma_queue)) {
+		do_gettimeofday(&timevalue);
+		vb->v4l2_buf.timestamp = timevalue;
+		vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
+		disp->cur_frm = list_entry(disp->dma_queue.next,
+				struct bfin_disp_buffer, list);
+		list_del(&disp->cur_frm->list);
+	}
+
+	clear_dma_irqstat(ppi->info->dma_ch);
+
+	addr = vb2_dma_contig_plane_dma_addr(&disp->cur_frm->vb, 0);
+	ppi->ops->update_addr(ppi, (unsigned long)addr);
+	ppi->ops->start(ppi);
+
+	spin_unlock(&disp->lock);
+
+	return IRQ_HANDLED;
 }
 
 static int bfin_disp_start_streaming(struct vb2_queue *vq, unsigned int count)
@@ -526,36 +554,6 @@ static int bfin_disp_dqbuf(struct file *file, void *priv,
 				buf, file->f_flags & O_NONBLOCK);
 }
 
-static irqreturn_t bfin_disp_isr(int irq, void *dev_id)
-{
-	struct ppi_if *ppi = dev_id;
-	struct bfin_disp_device *disp = ppi->priv;
-	struct timeval timevalue;
-	struct vb2_buffer *vb = &disp->cur_frm->vb;
-	dma_addr_t addr;
-
-	spin_lock(&disp->lock);
-
-	if (!list_empty(&disp->dma_queue)) {
-		do_gettimeofday(&timevalue);
-		vb->v4l2_buf.timestamp = timevalue;
-		vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
-		disp->cur_frm = list_entry(disp->dma_queue.next,
-				struct bfin_disp_buffer, list);
-		list_del(&disp->cur_frm->list);
-	}
-
-	clear_dma_irqstat(ppi->info->dma_ch);
-
-	addr = vb2_dma_contig_plane_dma_addr(&disp->cur_frm->vb, 0);
-	ppi->ops->update_addr(ppi, (unsigned long)addr);
-	ppi->ops->start(ppi);
-
-	spin_unlock(&disp->lock);
-
-	return IRQ_HANDLED;
-}
-
 static int bfin_disp_streamon(struct file *file, void *priv,
 				enum v4l2_buf_type buf_type)
 {
@@ -706,6 +704,8 @@ static int bfin_disp_s_output(struct file *file, void *priv, unsigned int index)
 		return ret;
 	}
 	disp->cur_output = index;
+	/* update tvnorms from the subdevice */
+	disp->video_dev.tvnorms = config->outputs[index].std;
 	/* if this route has specific config, update ppi control */
 	if (route->ppi_control)
 		config->ppi_control = route->ppi_control;
@@ -933,22 +933,19 @@ static int bfin_disp_probe(struct platform_device *pdev)
 	int ret;
 
 	config = pdev->dev.platform_data;
-	if (!config) {
-		v4l2_err(pdev->dev.driver, "Unable to get board config\n");
+	if (!config || !config->num_outputs) {
+		v4l2_err(pdev->dev.driver, "Invalid board config\n");
 		return -ENODEV;
 	}
 
 	disp = kzalloc(sizeof(*disp), GFP_KERNEL);
-	if (!disp) {
-		v4l2_err(pdev->dev.driver, "Unable to alloc disp\n");
+	if (!disp)
 		return -ENOMEM;
-	}
 
 	disp->cfg = config;
 
 	disp->ppi = ppi_create_instance(config->ppi_info);
 	if (!disp->ppi) {
-		v4l2_err(pdev->dev.driver, "Unable to create ppi\n");
 		ret = -ENODEV;
 		goto err_free_dev;
 	}
@@ -960,31 +957,12 @@ static int bfin_disp_probe(struct platform_device *pdev)
 		goto err_free_ppi;
 	}
 
-	vfd = video_device_alloc();
-	if (!vfd) {
-		ret = -ENOMEM;
-		v4l2_err(pdev->dev.driver, "Unable to alloc video device\n");
-		goto err_cleanup_ctx;
-	}
-
-	/* initialize field of video device */
-	vfd->release    = video_device_release;
-	vfd->fops       = &bfin_disp_fops;
-	vfd->ioctl_ops  = &bfin_disp_ioctl_ops;
-	vfd->tvnorms    = 0;
-	vfd->v4l2_dev   = &disp->v4l2_dev;
-	vfd->vfl_dir    = VFL_DIR_TX;
-	set_bit(V4L2_FL_USE_FH_PRIO, &vfd->flags);
-	strncpy(vfd->name, DISPLAY_DRV_NAME, sizeof(vfd->name));
-	disp->video_dev = vfd;
-
 	ret = v4l2_device_register(&pdev->dev, &disp->v4l2_dev);
 	if (ret) {
 		v4l2_err(pdev->dev.driver,
 				"Unable to register v4l2 device\n");
-		goto err_release_vdev;
+		goto err_cleanup_ctx;
 	}
-	v4l2_info(&disp->v4l2_dev, "v4l2 device registered\n");
 
 	disp->v4l2_dev.ctrl_handler = &disp->ctrl_handler;
 	ret = v4l2_ctrl_handler_init(&disp->ctrl_handler, 0);
@@ -995,6 +973,10 @@ static int bfin_disp_probe(struct platform_device *pdev)
 	}
 
 	spin_lock_init(&disp->lock);
+	mutex_init(&disp->mutex);
+	/* init video dma queues */
+	INIT_LIST_HEAD(&disp->dma_queue);
+
 	/* initialize queue */
 	q = &disp->buffer_queue;
 	q->type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
@@ -1011,54 +993,35 @@ static int bfin_disp_probe(struct platform_device *pdev)
 		goto err_free_handler;
 	}
 
-	mutex_init(&disp->mutex);
-
-	/* init video dma queues */
-	INIT_LIST_HEAD(&disp->dma_queue);
-
+	/* initialize field of video device */
+	vfd = &disp->video_dev;
+	vfd->release    = video_device_release_empty;
+	vfd->fops       = &bfin_disp_fops;
+	vfd->ioctl_ops  = &bfin_disp_ioctl_ops;
+	vfd->tvnorms    = V4L2_STD_UNKNOWN;
+	vfd->v4l2_dev   = &disp->v4l2_dev;
+	vfd->vfl_dir    = VFL_DIR_TX;
+	vfd->queue      = q;
+	set_bit(V4L2_FL_USE_FH_PRIO, &vfd->flags);
+	strncpy(vfd->name, DISPLAY_DRV_NAME, sizeof(vfd->name));
+	/* provide a mutex to v4l2 core */
 	vfd->lock = &disp->mutex;
-
-	/* register video device */
-	ret = video_register_device(disp->video_dev, VFL_TYPE_GRABBER, -1);
-	if (ret) {
-		v4l2_err(&disp->v4l2_dev,
-				"Unable to register video device\n");
-		goto err_free_handler;
-	}
-	video_set_drvdata(disp->video_dev, disp);
-	v4l2_info(&disp->v4l2_dev, "video device registered as: %s\n",
-			video_device_node_name(vfd));
 
 	/* load up the subdevice */
 	i2c_adap = i2c_get_adapter(config->i2c_adapter_id);
 	if (!i2c_adap) {
 		v4l2_err(&disp->v4l2_dev,
 				"Unable to find i2c adapter\n");
-		goto err_unreg_vdev;
+		goto err_free_handler;
 
 	}
 	disp->sd = v4l2_i2c_new_subdev_board(&disp->v4l2_dev,
-						 i2c_adap,
-						 &config->board_info,
-						 NULL);
-	if (disp->sd) {
-		int i;
-		if (!config->num_outputs) {
-			v4l2_err(&disp->v4l2_dev,
-					"Unable to work without output\n");
-			goto err_unreg_vdev;
-		}
-
-		/* update tvnorms from the sub devices */
-		for (i = 0; i < config->num_outputs; i++)
-			vfd->tvnorms |= config->outputs[i].std;
-	} else {
+			i2c_adap, &config->board_info, NULL);
+	if (!disp->sd) {
 		v4l2_err(&disp->v4l2_dev,
 				"Unable to register sub device\n");
-		goto err_unreg_vdev;
+		goto err_put_adap;
 	}
-
-	v4l2_info(&disp->v4l2_dev, "v4l2 sub device registered\n");
 
 	/*
 	 * explicitly set output, otherwise some boards
@@ -1068,10 +1031,12 @@ static int bfin_disp_probe(struct platform_device *pdev)
 	ret = v4l2_subdev_call(disp->sd, video, s_routing,
 				route->output, route->output, 0);
 	if ((ret < 0) && (ret != -ENOIOCTLCMD)) {
-		v4l2_err(&disp->v4l2_dev, "Failed to set output\n");
-		goto err_unreg_vdev;
+		v4l2_err(&disp->v4l2_dev, "Unable to set output\n");
+		goto err_unreg_sd;
 	}
 	disp->cur_output = 0;
+	/* update tvnorms from the subdevice */
+	vfd->tvnorms = config->outputs[0].std;
 	/* if this route has specific config, update ppi control */
 	if (route->ppi_control)
 		config->ppi_control = route->ppi_control;
@@ -1083,7 +1048,7 @@ static int bfin_disp_probe(struct platform_device *pdev)
 		if (ret) {
 			v4l2_err(&disp->v4l2_dev,
 					"Unable to get std\n");
-			goto err_unreg_vdev;
+			goto err_unreg_sd;
 		}
 		disp->std = std;
 	}
@@ -1094,7 +1059,7 @@ static int bfin_disp_probe(struct platform_device *pdev)
 		if (ret) {
 			v4l2_err(&disp->v4l2_dev,
 					"Unable to get dv timings\n");
-			goto err_unreg_vdev;
+			goto err_unreg_sd;
 		}
 		disp->dv_timings = dv_timings;
 	}
@@ -1102,19 +1067,32 @@ static int bfin_disp_probe(struct platform_device *pdev)
 	if (ret) {
 		v4l2_err(&disp->v4l2_dev,
 				"Unable to create encoder formats table\n");
-		goto err_unreg_vdev;
+		goto err_unreg_sd;
 	}
+
+	/* register video device */
+	ret = video_register_device(vfd, VFL_TYPE_GRABBER, -1);
+	if (ret) {
+		v4l2_err(&disp->v4l2_dev,
+				"Unable to register video device\n");
+		goto err_free_ef;
+	}
+	video_set_drvdata(vfd, disp);
+	v4l2_info(&disp->v4l2_dev, "video device registered as: %s\n",
+			video_device_node_name(vfd));
+
 	return 0;
-err_unreg_vdev:
-	video_unregister_device(disp->video_dev);
-	disp->video_dev = NULL;
+err_free_ef:
+	bfin_disp_free_encoder_formats(disp);
+err_unreg_sd:
+	v4l2_device_unregister_subdev(disp->sd);
+	i2c_unregister_device(v4l2_get_subdevdata(disp->sd));
+err_put_adap:
+	i2c_put_adapter(i2c_adap);
 err_free_handler:
 	v4l2_ctrl_handler_free(&disp->ctrl_handler);
 err_unreg_v4l2:
 	v4l2_device_unregister(&disp->v4l2_dev);
-err_release_vdev:
-	if (disp->video_dev)
-		video_device_release(disp->video_dev);
 err_cleanup_ctx:
 	vb2_dma_contig_cleanup_ctx(disp->alloc_ctx);
 err_free_ppi:
@@ -1128,10 +1106,14 @@ static int bfin_disp_remove(struct platform_device *pdev)
 {
 	struct v4l2_device *v4l2_dev = platform_get_drvdata(pdev);
 	struct bfin_disp_device *disp = container_of(v4l2_dev,
-						struct bfin_disp_device, v4l2_dev);
+					struct bfin_disp_device, v4l2_dev);
+	struct i2c_client *client = v4l2_get_subdevdata(disp->sd);
 
+	video_unregister_device(&disp->video_dev);
 	bfin_disp_free_encoder_formats(disp);
-	video_unregister_device(disp->video_dev);
+	v4l2_device_unregister_subdev(disp->sd);
+	i2c_unregister_device(client);
+	i2c_put_adapter(client->adapter);
 	v4l2_ctrl_handler_free(&disp->ctrl_handler);
 	v4l2_device_unregister(v4l2_dev);
 	vb2_dma_contig_cleanup_ctx(disp->alloc_ctx);
