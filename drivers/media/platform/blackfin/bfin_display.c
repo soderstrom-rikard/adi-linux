@@ -99,14 +99,10 @@ struct bfin_disp_device {
 	struct list_head dma_queue;
 	/* used in videobuf2 callback */
 	spinlock_t lock;
-	/* used to access display device */
+	/* used to serialize all ioctls */
 	struct mutex mutex;
-};
-
-struct bfin_disp_fh {
-	struct v4l2_fh fh;
-	/* indicates whether this file handle is doing IO */
-	bool io_allowed;
+	/* used to serialize all queuing ioctls */
+	struct mutex qlock;
 };
 
 static const struct bfin_disp_format bfin_disp_formats[] = {
@@ -196,95 +192,6 @@ static void bfin_disp_free_encoder_formats(struct bfin_disp_device *disp)
 	disp->enc_formats = NULL;
 }
 
-static int bfin_disp_open(struct file *file)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-	struct video_device *vfd = &disp->video_dev;
-	struct bfin_disp_fh *bfin_disp_fh;
-
-	if (!disp->sd) {
-		v4l2_err(&disp->v4l2_dev, "No sub device registered\n");
-		return -ENODEV;
-	}
-
-	bfin_disp_fh = kzalloc(sizeof(*bfin_disp_fh), GFP_KERNEL);
-	if (!bfin_disp_fh) {
-		v4l2_err(&disp->v4l2_dev,
-			 "unable to allocate memory for file handle object\n");
-		return -ENOMEM;
-	}
-
-	v4l2_fh_init(&bfin_disp_fh->fh, vfd);
-
-	/* store pointer to v4l2_fh in private_data member of file */
-	file->private_data = &bfin_disp_fh->fh;
-	v4l2_fh_add(&bfin_disp_fh->fh);
-	bfin_disp_fh->io_allowed = false;
-	return 0;
-}
-
-static int bfin_disp_release(struct file *file)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-	struct v4l2_fh *fh = file->private_data;
-	struct bfin_disp_fh *bfin_disp_fh = container_of(fh, struct bfin_disp_fh, fh);
-
-	/* if this instance is doing IO */
-	if (bfin_disp_fh->io_allowed)
-		vb2_queue_release(&disp->buffer_queue);
-
-	file->private_data = NULL;
-	v4l2_fh_del(&bfin_disp_fh->fh);
-	v4l2_fh_exit(&bfin_disp_fh->fh);
-	kfree(bfin_disp_fh);
-	return 0;
-}
-
-static int bfin_disp_mmap(struct file *file, struct vm_area_struct *vma)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-	int ret;
-
-	if (mutex_lock_interruptible(&disp->mutex))
-		return -ERESTARTSYS;
-	ret = vb2_mmap(&disp->buffer_queue, vma);
-	mutex_unlock(&disp->mutex);
-	return ret;
-}
-
-#ifndef CONFIG_MMU
-static unsigned long bfin_disp_get_unmapped_area(struct file *file,
-					    unsigned long addr,
-					    unsigned long len,
-					    unsigned long pgoff,
-					    unsigned long flags)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-	int ret;
-
-	if (mutex_lock_interruptible(&disp->mutex))
-		return -ERESTARTSYS;
-	ret = vb2_get_unmapped_area(&disp->buffer_queue,
-				    addr,
-				    len,
-				    pgoff,
-				    flags);
-	mutex_unlock(&disp->mutex);
-	return ret;
-}
-#endif
-
-static unsigned int bfin_disp_poll(struct file *file, poll_table *wait)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-	int ret;
-
-	mutex_lock(&disp->mutex);
-	ret = vb2_poll(&disp->buffer_queue, file, wait);
-	mutex_unlock(&disp->mutex);
-	return ret;
-}
-
 static int bfin_disp_queue_setup(struct vb2_queue *vq,
 				const struct v4l2_format *fmt,
 				unsigned int *nbuffers, unsigned int *nplanes,
@@ -349,18 +256,6 @@ static void bfin_disp_buffer_cleanup(struct vb2_buffer *vb)
 	spin_unlock_irqrestore(&disp->lock, flags);
 }
 
-static void bfin_disp_lock(struct vb2_queue *vq)
-{
-	struct bfin_disp_device *disp = vb2_get_drv_priv(vq);
-	mutex_lock(&disp->mutex);
-}
-
-static void bfin_disp_unlock(struct vb2_queue *vq)
-{
-	struct bfin_disp_device *disp = vb2_get_drv_priv(vq);
-	mutex_unlock(&disp->mutex);
-}
-
 static irqreturn_t bfin_disp_isr(int irq, void *dev_id)
 {
 	struct ppi_if *ppi = dev_id;
@@ -396,6 +291,8 @@ static int bfin_disp_start_streaming(struct vb2_queue *vq, unsigned int count)
 	struct bfin_disp_device *disp = vb2_get_drv_priv(vq);
 	struct ppi_if *ppi = disp->ppi;
 	struct ppi_params params;
+	dma_addr_t addr;
+	unsigned long flags;
 	int ret;
 
 	/* enable streamon on the sub device */
@@ -447,7 +344,7 @@ static int bfin_disp_start_streaming(struct vb2_queue *vq, unsigned int count)
 	ret = ppi->ops->set_params(ppi, &params);
 	if (ret < 0) {
 		v4l2_err(&disp->v4l2_dev,
-				"Error in setting ppi params\n");
+				"set ppi params failed\n");
 		return ret;
 	}
 
@@ -455,9 +352,30 @@ static int bfin_disp_start_streaming(struct vb2_queue *vq, unsigned int count)
 	ret = ppi->ops->attach_irq(ppi, bfin_disp_isr);
 	if (ret < 0) {
 		v4l2_err(&disp->v4l2_dev,
-				"Error in attaching interrupt handler\n");
+				"attach interrupt handler failed\n");
 		return ret;
 	}
+
+	spin_lock_irqsave(&disp->lock, flags);
+	/* if dma queue is empty, return error */
+	if (list_empty(&disp->dma_queue)) {
+		spin_unlock_irqrestore(&disp->lock, flags);
+		v4l2_err(&disp->v4l2_dev, "dma queue is empty\n");
+		return -EINVAL;
+	}
+
+	/* get the next frame from the dma queue */
+	disp->cur_frm = list_entry(disp->dma_queue.next,
+					struct bfin_disp_buffer, list);
+	/* remove buffer from the dma queue */
+	list_del(&disp->cur_frm->list);
+	spin_unlock_irqrestore(&disp->lock, flags);
+
+	addr = vb2_dma_contig_plane_dma_addr(&disp->cur_frm->vb, 0);
+	/* update DMA address */
+	ppi->ops->update_addr(ppi, (unsigned long)addr);
+	/* enable ppi */
+	ppi->ops->start(ppi);
 
 	return 0;
 }
@@ -497,115 +415,11 @@ static struct vb2_ops bfin_disp_video_qops = {
 	.buf_prepare            = bfin_disp_buffer_prepare,
 	.buf_cleanup            = bfin_disp_buffer_cleanup,
 	.buf_queue              = bfin_disp_buffer_queue,
-	.wait_prepare           = bfin_disp_unlock,
-	.wait_finish            = bfin_disp_lock,
+	.wait_prepare           = vb2_ops_wait_prepare,
+	.wait_finish            = vb2_ops_wait_finish,
 	.start_streaming        = bfin_disp_start_streaming,
 	.stop_streaming         = bfin_disp_stop_streaming,
 };
-
-static int bfin_disp_reqbufs(struct file *file, void *priv,
-			struct v4l2_requestbuffers *req_buf)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-	struct vb2_queue *vq = &disp->buffer_queue;
-	struct v4l2_fh *fh = file->private_data;
-	struct bfin_disp_fh *bfin_disp_fh = container_of(fh, struct bfin_disp_fh, fh);
-
-	if (vb2_is_busy(vq))
-		return -EBUSY;
-
-	bfin_disp_fh->io_allowed = true;
-
-	return vb2_reqbufs(vq, req_buf);
-}
-
-static int bfin_disp_querybuf(struct file *file, void *priv,
-				struct v4l2_buffer *buf)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-
-	return vb2_querybuf(&disp->buffer_queue, buf);
-}
-
-static int bfin_disp_qbuf(struct file *file, void *priv,
-			struct v4l2_buffer *buf)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-	struct v4l2_fh *fh = file->private_data;
-	struct bfin_disp_fh *bfin_disp_fh = container_of(fh, struct bfin_disp_fh, fh);
-
-	if (!bfin_disp_fh->io_allowed)
-		return -EBUSY;
-
-	return vb2_qbuf(&disp->buffer_queue, buf);
-}
-
-static int bfin_disp_dqbuf(struct file *file, void *priv,
-			struct v4l2_buffer *buf)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-	struct v4l2_fh *fh = file->private_data;
-	struct bfin_disp_fh *bfin_disp_fh = container_of(fh, struct bfin_disp_fh, fh);
-
-	if (!bfin_disp_fh->io_allowed)
-		return -EBUSY;
-
-	return vb2_dqbuf(&disp->buffer_queue,
-				buf, file->f_flags & O_NONBLOCK);
-}
-
-static int bfin_disp_streamon(struct file *file, void *priv,
-				enum v4l2_buf_type buf_type)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-	struct bfin_disp_fh *fh = file->private_data;
-	struct ppi_if *ppi = disp->ppi;
-	dma_addr_t addr;
-	int ret;
-
-	if (!fh->io_allowed)
-		return -EBUSY;
-
-	/* call streamon to start streaming in videobuf */
-	ret = vb2_streamon(&disp->buffer_queue, buf_type);
-	if (ret)
-		return ret;
-
-	/* if dma queue is empty, return error */
-	if (list_empty(&disp->dma_queue)) {
-		v4l2_err(&disp->v4l2_dev, "dma queue is empty\n");
-		ret = -EINVAL;
-		goto err;
-	}
-
-	/* get the next frame from the dma queue */
-	disp->cur_frm = list_entry(disp->dma_queue.next,
-					struct bfin_disp_buffer, list);
-	/* remove buffer from the dma queue */
-	list_del(&disp->cur_frm->list);
-	addr = vb2_dma_contig_plane_dma_addr(&disp->cur_frm->vb, 0);
-	/* update DMA address */
-	ppi->ops->update_addr(ppi, (unsigned long)addr);
-	/* enable ppi */
-	ppi->ops->start(ppi);
-
-	return 0;
-err:
-	vb2_streamoff(&disp->buffer_queue, buf_type);
-	return ret;
-}
-
-static int bfin_disp_streamoff(struct file *file, void *priv,
-				enum v4l2_buf_type buf_type)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-	struct bfin_disp_fh *fh = file->private_data;
-
-	if (!fh->io_allowed)
-		return -EBUSY;
-
-	return vb2_streamoff(&disp->buffer_queue, buf_type);
-}
 
 static int bfin_disp_g_std(struct file *file, void *priv, v4l2_std_id *std)
 {
@@ -894,12 +708,12 @@ static const struct v4l2_ioctl_ops bfin_disp_ioctl_ops = {
 	.vidioc_g_std            = bfin_disp_g_std,
 	.vidioc_s_dv_timings     = bfin_disp_s_dv_timings,
 	.vidioc_g_dv_timings     = bfin_disp_g_dv_timings,
-	.vidioc_reqbufs          = bfin_disp_reqbufs,
-	.vidioc_querybuf         = bfin_disp_querybuf,
-	.vidioc_qbuf             = bfin_disp_qbuf,
-	.vidioc_dqbuf            = bfin_disp_dqbuf,
-	.vidioc_streamon         = bfin_disp_streamon,
-	.vidioc_streamoff        = bfin_disp_streamoff,
+	.vidioc_reqbufs          = vb2_ioctl_reqbufs,
+	.vidioc_querybuf         = vb2_ioctl_querybuf,
+	.vidioc_qbuf             = vb2_ioctl_qbuf,
+	.vidioc_dqbuf            = vb2_ioctl_dqbuf,
+	.vidioc_streamon         = vb2_ioctl_streamon,
+	.vidioc_streamoff        = vb2_ioctl_streamoff,
 	.vidioc_g_parm           = bfin_disp_g_parm,
 	.vidioc_s_parm           = bfin_disp_s_parm,
 	.vidioc_g_chip_ident     = bfin_disp_g_chip_ident,
@@ -912,14 +726,14 @@ static const struct v4l2_ioctl_ops bfin_disp_ioctl_ops = {
 
 static struct v4l2_file_operations bfin_disp_fops = {
 	.owner = THIS_MODULE,
-	.open = bfin_disp_open,
-	.release = bfin_disp_release,
+	.open = v4l2_fh_open,
+	.release = vb2_fop_release,
 	.unlocked_ioctl = video_ioctl2,
-	.mmap = bfin_disp_mmap,
+	.mmap = vb2_fop_mmap,
 #ifndef CONFIG_MMU
-	.get_unmapped_area = bfin_disp_get_unmapped_area,
+	.get_unmapped_area = vb2_fop_get_unmapped_area,
 #endif
-	.poll = bfin_disp_poll
+	.poll = vb2_fop_poll,
 };
 
 static int bfin_disp_probe(struct platform_device *pdev)
@@ -974,6 +788,7 @@ static int bfin_disp_probe(struct platform_device *pdev)
 
 	spin_lock_init(&disp->lock);
 	mutex_init(&disp->mutex);
+	mutex_init(&disp->qlock);
 	/* init video dma queues */
 	INIT_LIST_HEAD(&disp->dma_queue);
 
@@ -985,6 +800,8 @@ static int bfin_disp_probe(struct platform_device *pdev)
 	q->buf_struct_size = sizeof(struct bfin_disp_buffer);
 	q->ops = &bfin_disp_video_qops;
 	q->mem_ops = &vb2_dma_contig_memops;
+	/* provide a mutex to vb2 queue */
+	q->lock = &disp->qlock;
 
 	ret = vb2_queue_init(q);
 	if (ret) {
