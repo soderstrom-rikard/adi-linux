@@ -310,7 +310,7 @@ static int bfin_disp_start_streaming(struct vb2_queue *vq, unsigned int count)
 	params.ppi_control = disp->cfg->ppi_control;
 	params.int_mask = disp->cfg->int_mask;
 	if (disp->cfg->outputs[disp->cur_output].capabilities
-			& V4L2_IN_CAP_CUSTOM_TIMINGS) {
+			& V4L2_IN_CAP_DV_TIMINGS) {
 		struct v4l2_bt_timings *bt = &disp->dv_timings.bt;
 
 		params.hdelay = bt->hsync + bt->hbackporch;
@@ -424,6 +424,11 @@ static struct vb2_ops bfin_disp_video_qops = {
 static int bfin_disp_g_std(struct file *file, void *priv, v4l2_std_id *std)
 {
 	struct bfin_disp_device *disp = video_drvdata(file);
+	struct bfin_display_config *config = disp->cfg;
+
+	if (!(config->outputs[disp->cur_output].capabilities
+			& V4L2_IN_CAP_STD))
+		return -ENODATA;
 
 	*std = disp->std;
 	return 0;
@@ -432,10 +437,15 @@ static int bfin_disp_g_std(struct file *file, void *priv, v4l2_std_id *std)
 static int bfin_disp_s_std(struct file *file, void *priv, v4l2_std_id *std)
 {
 	struct bfin_disp_device *disp = video_drvdata(file);
+	struct bfin_display_config *config = disp->cfg;
 	int ret;
 
 	if (vb2_is_busy(&disp->buffer_queue))
 		return -EBUSY;
+
+	if (!(config->outputs[disp->cur_output].capabilities
+			& V4L2_IN_CAP_STD))
+		return -ENODATA;
 
 	ret = v4l2_subdev_call(disp->sd, video, s_std_output, *std);
 	if (ret < 0)
@@ -449,7 +459,12 @@ static int bfin_disp_g_dv_timings(struct file *file, void *priv,
 				struct v4l2_dv_timings *timings)
 {
 	struct bfin_disp_device *disp = video_drvdata(file);
+	struct bfin_display_config *config = disp->cfg;
 	int ret;
+
+	if (!(config->outputs[disp->cur_output].capabilities
+			& V4L2_IN_CAP_DV_TIMINGS))
+		return -ENODATA;
 
 	ret = v4l2_subdev_call(disp->sd, video,
 				g_dv_timings, timings);
@@ -464,9 +479,15 @@ static int bfin_disp_s_dv_timings(struct file *file, void *priv,
 				struct v4l2_dv_timings *timings)
 {
 	struct bfin_disp_device *disp = video_drvdata(file);
+	struct bfin_display_config *config = disp->cfg;
 	int ret;
+
 	if (vb2_is_busy(&disp->buffer_queue))
 		return -EBUSY;
+
+	if (!(config->outputs[disp->cur_output].capabilities
+			& V4L2_IN_CAP_DV_TIMINGS))
+		return -ENODATA;
 
 	ret = v4l2_subdev_call(disp->sd, video, s_dv_timings, timings);
 	if (ret < 0)
@@ -571,7 +592,6 @@ static int bfin_disp_enum_fmt_vid_out(struct file *file, void  *priv,
 	if (fmt->index >= disp->num_enc_formats)
 		return -EINVAL;
 
-	fmt->type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
 	strlcpy(fmt->description,
 		df[fmt->index].desc,
 		sizeof(fmt->description));
@@ -629,7 +649,8 @@ static int bfin_disp_querycap(struct file *file, void  *priv,
 {
 	struct bfin_disp_device *disp = video_drvdata(file);
 
-	cap->capabilities = V4L2_CAP_VIDEO_OUTPUT | V4L2_CAP_STREAMING;
+	cap->device_caps = V4L2_CAP_VIDEO_OUTPUT | V4L2_CAP_STREAMING;
+	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
 	strlcpy(cap->driver, DISPLAY_DRV_NAME, sizeof(cap->driver));
 	strlcpy(cap->bus_info, "Blackfin Platform", sizeof(cap->bus_info));
 	strlcpy(cap->card, disp->cfg->card_name, sizeof(cap->card));
@@ -651,41 +672,6 @@ static int bfin_disp_s_parm(struct file *file, void *fh,
 
 	return v4l2_subdev_call(disp->sd, video, s_parm, a);
 }
-
-static int bfin_disp_g_chip_ident(struct file *file, void *priv,
-		struct v4l2_dbg_chip_ident *chip)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-
-	chip->ident = V4L2_IDENT_NONE;
-	chip->revision = 0;
-	if (chip->match.type != V4L2_CHIP_MATCH_I2C_DRIVER &&
-			chip->match.type != V4L2_CHIP_MATCH_I2C_ADDR)
-		return -EINVAL;
-
-	return v4l2_subdev_call(disp->sd, core,
-			g_chip_ident, chip);
-}
-
-#ifdef CONFIG_VIDEO_ADV_DEBUG
-static int bfin_disp_dbg_g_register(struct file *file, void *priv,
-		struct v4l2_dbg_register *reg)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-
-	return v4l2_subdev_call(disp->sd, core,
-			g_register, reg);
-}
-
-static int bfin_disp_dbg_s_register(struct file *file, void *priv,
-		struct v4l2_dbg_register *reg)
-{
-	struct bfin_disp_device *disp = video_drvdata(file);
-
-	return v4l2_subdev_call(disp->sd, core,
-			s_register, reg);
-}
-#endif
 
 static int bfin_disp_log_status(struct file *file, void *priv)
 {
@@ -716,11 +702,6 @@ static const struct v4l2_ioctl_ops bfin_disp_ioctl_ops = {
 	.vidioc_streamoff        = vb2_ioctl_streamoff,
 	.vidioc_g_parm           = bfin_disp_g_parm,
 	.vidioc_s_parm           = bfin_disp_s_parm,
-	.vidioc_g_chip_ident     = bfin_disp_g_chip_ident,
-#ifdef CONFIG_VIDEO_ADV_DEBUG
-	.vidioc_g_register       = bfin_disp_dbg_g_register,
-	.vidioc_s_register       = bfin_disp_dbg_s_register,
-#endif
 	.vidioc_log_status       = bfin_disp_log_status,
 };
 
@@ -869,7 +850,7 @@ static int bfin_disp_probe(struct platform_device *pdev)
 		}
 		disp->std = std;
 	}
-	if (config->outputs[0].capabilities & V4L2_IN_CAP_CUSTOM_TIMINGS) {
+	if (config->outputs[0].capabilities & V4L2_IN_CAP_DV_TIMINGS) {
 		struct v4l2_dv_timings dv_timings;
 		ret = v4l2_subdev_call(disp->sd, video,
 				g_dv_timings, &dv_timings);
