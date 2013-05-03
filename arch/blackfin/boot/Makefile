@@ -6,7 +6,7 @@
 # for more details.
 #
 
-targets := vmImage vmImage.bin vmImage.bz2 vmImage.gz vmImage.lzma vmImage.lzo vmImage.xip
+targets := uImage uImage.bin uImage.bz2 uImage.gz uImage.lzma uImage.lzo uImage.xip
 extra-y += vmlinux.bin vmlinux.bin.gz vmlinux.bin.bz2 vmlinux.bin.lzma vmlinux.bin.lzo vmlinux.bin.xip
 
 ifeq ($(CONFIG_RAMKERNEL),y)
