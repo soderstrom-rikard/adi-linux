@@ -282,6 +282,12 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 		}
 		break;
 	}
+	case PPI_TYPE_EPPI3:
+	{
+		struct bfin_eppi3_regs *reg = info->base;
+		bfin_write32(&reg->ctl, ppi->ppi_control);
+		break;
+	}
 	default:
 		return -EINVAL;
 	}

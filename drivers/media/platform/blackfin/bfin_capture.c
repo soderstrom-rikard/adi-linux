@@ -694,6 +694,37 @@ static int bcap_s_dv_timings(struct file *file, void *priv,
 	return 0;
 }
 
+static int bcap_g_dv_timings(struct file *file, void *priv,
+				struct v4l2_dv_timings *timings)
+{
+	struct bcap_device *bcap_dev = video_drvdata(file);
+	int ret;
+
+	ret = v4l2_subdev_call(bcap_dev->sd, video,
+				g_dv_timings, timings);
+	if (ret < 0)
+		return ret;
+
+	bcap_dev->dv_timings = *timings;
+	return 0;
+}
+
+static int bcap_s_dv_timings(struct file *file, void *priv,
+				struct v4l2_dv_timings *timings)
+{
+	struct bcap_device *bcap_dev = video_drvdata(file);
+	int ret;
+	if (vb2_is_busy(&bcap_dev->buffer_queue))
+		return -EBUSY;
+
+	ret = v4l2_subdev_call(bcap_dev->sd, video, s_dv_timings, timings);
+	if (ret < 0)
+		return ret;
+
+	bcap_dev->dv_timings = *timings;
+	return 0;
+}
+
 static int bcap_enum_input(struct file *file, void *priv,
 				struct v4l2_input *input)
 {
@@ -1125,6 +1156,17 @@ static int bcap_probe(struct platform_device *pdev)
 			goto err_unreg_vdev;
 		}
 		bcap_dev->std = std;
+	}
+	if (config->inputs[0].capabilities & V4L2_IN_CAP_CUSTOM_TIMINGS) {
+		struct v4l2_dv_timings dv_timings;
+		ret = v4l2_subdev_call(bcap_dev->sd, video,
+				g_dv_timings, &dv_timings);
+		if (ret) {
+			v4l2_err(&bcap_dev->v4l2_dev,
+					"Unable to get dv timings\n");
+			goto err_unreg_vdev;
+		}
+		bcap_dev->dv_timings = dv_timings;
 	}
 	if (config->inputs[0].capabilities & V4L2_IN_CAP_CUSTOM_TIMINGS) {
 		struct v4l2_dv_timings dv_timings;

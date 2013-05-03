@@ -441,7 +441,7 @@ static int load_flat_file(struct linux_binprm * bprm,
 	int ret;
 
 	hdr = ((struct flat_hdr *) bprm->buf);		/* exec-header */
-	inode = bprm->file->f_path.dentry->d_inode;
+	inode = file_inode(bprm->file);
 
 	relocs    = ntohl(hdr->reloc_count);
 	flags     = ntohl(hdr->flags);
