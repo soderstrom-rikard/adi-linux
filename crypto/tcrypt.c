@@ -1213,7 +1213,6 @@ static int do_test(int m)
 	case 109:
 		ret += tcrypt_test("vmac(aes)");
 		break;
-
 	case 110:
 		ret += tcrypt_test("hmac(crc32)");
 		break;
