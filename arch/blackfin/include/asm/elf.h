@@ -132,4 +132,12 @@ do {											\
 
 #define ELF_PLATFORM  (NULL)
 
+struct mm_struct;
+struct elf_fdpic_params;
+struct elf32_phdr;
+extern int elf_fdpic_plat_process_phdr(struct mm_struct *, struct elf_fdpic_params *,
+					struct elf32_phdr *, unsigned long *, unsigned long *);
+#define ELF_FDPIC_PLAT_PROCESS_PHDR(mm, params, phdr, maddr, disp) \
+	elf_fdpic_plat_process_phdr(mm, params, phdr, maddr, disp)
+
 #endif
