@@ -45,14 +45,6 @@ struct bfin_sd_host {
 #define STD_BUS_1          0x000       /* Standard Bus 1 bit mode */
 #define WIDE_BUS_4         0x800       /* Wide Bus 4 bit mode */
 #define BYTE_BUS_8         0x1000      /* Byte Bus 8 bit mode */
-#ifdef RSI_BLKSZ
-#define CARD_TYPE_MASK     0xe000      /* Card type mask */
-#define CARD_TYPE_OFFSET   13          /* Card type offset */
-#define CARD_TYPE_SDIO     0
-#define CARD_TYPE_eMMC     1
-#define CARD_TYPE_SD       2
-#define CARD_TYPE_CEATA    3
-#endif
 
 /* SDH_RESP_CMD bitmasks */
 #define RESP_CMD           0x3f        /* Response Command */
@@ -159,7 +151,7 @@ struct bfin_sd_host {
 #define PWR_ON             0x600       /* Power On */
 #define SD_CMD_OD          (1 << 11)   /* Open Drain Output */
 #define BOOT_EN            (1 << 12)   /* Boot Enable */
-#define BOOT_MODE          (1 << 13)   /* Alternate Boot Mode */.
+#define BOOT_MODE          (1 << 13)   /* Alternate Boot Mode */
 #define BOOT_ACK_EN        (1 << 14)   /* Boot ACK is expected */
 #endif
 
