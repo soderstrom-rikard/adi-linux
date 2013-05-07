@@ -11,7 +11,6 @@
 
 #ifdef CONFIG_SMP
 
-#include <asm/system.h>
 #include <linux/linkage.h>
 
 asmlinkage int __raw_uncached_fetch_asm(const volatile int *ptr);
