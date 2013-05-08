@@ -41,8 +41,8 @@
 #include <asm-generic/bitops/non-atomic.h>
 #else
 
+#include <asm/barrier.h>
 #include <asm/byteorder.h>	/* swab32 */
-#include <asm/system.h>
 #include <linux/linkage.h>
 
 asmlinkage int __raw_bit_set_asm(volatile unsigned long *addr, int nr);
