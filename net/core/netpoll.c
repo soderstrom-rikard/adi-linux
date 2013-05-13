@@ -197,7 +197,7 @@ static void service_neigh_queue(struct netpoll_info *npi)
 	}
 }
 
-static void netpoll_poll_dev(struct net_device *dev)
+void netpoll_poll_dev(struct net_device *dev)
 {
 	const struct net_device_ops *ops;
 	struct netpoll_info *ni = rcu_dereference_bh(dev->npinfo);
