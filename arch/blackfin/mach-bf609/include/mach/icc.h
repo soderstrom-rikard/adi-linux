@@ -13,6 +13,7 @@
 #define sm_atomic_write(v, i) bfin_write16(v, i)
 
 #define COREB_TASK_START	0x7C00000
+#define COREB_MEM_SIZE		0x400000
 #define COREB_MEMPOOL_START	0x7D00000
 #define ICC_CODE_START		0xc8088000
 
