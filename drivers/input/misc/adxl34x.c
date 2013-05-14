@@ -733,7 +733,8 @@ struct adxl34x *adxl34x_probe(struct device *dev, int irq,
 	mutex_init(&ac->mutex);
 
 	input_dev->name = "ADXL34x accelerometer";
-retry:	revid = AC_READ(dev, DEVID);
+retry:
+	revid = AC_READ(ac, DEVID);
 
 	switch (revid) {
 	case ID_ADXL345:
