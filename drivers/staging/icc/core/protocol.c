@@ -615,10 +615,6 @@ sm_send_packet(uint32_t session_idx, uint32_t dst_ep, uint32_t dst_cpu,
 			sm_debug("copy failed\n");
 			goto fail2;
 		}
-
-	} else {
-		ret = -EINVAL;
-		goto fail1;
 	}
 
 	if (session->proto_ops->sendmsg) {
@@ -1414,6 +1410,8 @@ sm_default_recvmsg(struct sm_msg *msg, struct sm_session *session)
 	BUG_ON(!icc_info);
 	sm_debug("%s msg type %x\n", __func__, (uint32_t)msg->type);
 	switch (msg->type) {
+	case SM_TASK_RUN_ACK:
+	case SM_TASK_KILL_ACK:
 	case SM_PACKET_CONSUMED:
 	case SM_SESSION_PACKET_CONSUMED:
 		mutex_lock(&table->lock);
@@ -1430,7 +1428,8 @@ matched:
 		list_del(&uncompleted->next);
 		mutex_unlock(&table->lock);
 		kfree(uncompleted);
-		kfree((void *)msg->payload);
+		if (msg->payload)
+			kfree((void *)msg->payload);
 		session->n_uncompleted--;
 		wake_up(&icc_info->iccq_tx_wait);
 		break;
