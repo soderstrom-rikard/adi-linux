@@ -41,7 +41,6 @@ static atomic_t in_count;
 /* 0 = unconfigured, 1 = netpoll options parsed, 2 = fully configured. */
 static int configured;
 static struct kgdb_io local_kgdb_io_ops;
-static int use_dynamic_mac;
 
 MODULE_DESCRIPTION("KGDB driver for network interfaces");
 MODULE_LICENSE("GPL");
@@ -51,19 +50,11 @@ static struct kparam_string kps = {
 	.maxlen = MAX_CONFIG_LEN,
 };
 
-static void rx_hook(struct netpoll *np, int port, char *msg, int len,
-		    struct sk_buff *skb)
+static void rx_hook(struct netpoll *np, int port, char *msg, int len)
 {
 	int i;
 
 	np->remote_port = port;
-
-	/* Copy the MAC address if we need to. */
-	if (use_dynamic_mac) {
-		memcpy(np->remote_mac, eth_hdr(skb)->h_source,
-				sizeof(np->remote_mac));
-		use_dynamic_mac = 0;
-	}
 
 	/*
 	 * This could be GDB trying to attach.  But it could also be GDB
@@ -163,8 +154,6 @@ static int option_setup(char *opt)
 	/* But work on a copy as netpoll_parse_options will eat it. */
 	strcpy(opt_scratch, opt);
 	configured = !netpoll_parse_options(&np, opt_scratch);
-
-	use_dynamic_mac = 1;
 
 	return 0;
 }
