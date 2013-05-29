@@ -640,21 +640,8 @@ retry:
 		interruptible_sleep_on(&m->icc_info->iccq_tx_wait);
 		sm_debug("<<<<wakeup send queue\n");
 		goto retry;
-	} else {
-		if (session->type == SP_TASK_MANAGER) {
-			ret = wait_event_interruptible_timeout(m->icc_info->iccq_tx_wait,
-			!sm_get_icc_queue_attribute(m->dst,
-				ICC_QUEUE_ATTR_STATUS, &queue_status) &&
-					(queue_status == ICC_QUEUE_READY), HZ);
-			if (ret == 0) {
-				sm_debug("coreb ready timeout\n");
-				ret = -ETIMEDOUT;
-			}
-			kfree(m);
-		}
-		goto out;
 	}
-
+	goto out;
 fail2:
 	kfree(payload_buf);
 fail1:
@@ -1553,7 +1540,6 @@ static int sm_task_sendmsg(struct sm_message *message, struct sm_session *sessio
 
 		flush_dcache_range(msg->payload, msg->payload + msg->length);
 		sm_debug("%s init addr%p\n", __func__, task->task_init);
-		sm_set_icc_queue_attribute(message->dst, ICC_QUEUE_ATTR_STATUS, ICC_QUEUE_STOP);
 		mutex_lock(&bfin_icc->sessions_table->lock);
 		list_add_tail(&message->next, &session->tx_messages);
 		session->n_uncompleted++;
