@@ -775,9 +775,11 @@ static int sm_recv_packet(uint32_t session_idx, uint32_t *src_ep,
 	if (buf_len)
 		*buf_len = message->msg.length;
 
-	if (copy_to_user(user_buf, (void *)message->msg.payload, message->msg.length))
-		ret = -EFAULT;
-	invalidate_dcache_range(msg->payload, msg->payload + msg->length);
+	if (message->msg.length) {
+		if (copy_to_user(user_buf, (void *)message->msg.payload, message->msg.length))
+			ret = -EFAULT;
+		invalidate_dcache_range(msg->payload, msg->payload + msg->length);
+	}
 
 	if (msg->type == SM_PACKET_READY)
 		sm_send_packet_ack(session, msg->src_ep, message->src,
@@ -1410,8 +1412,6 @@ sm_default_recvmsg(struct sm_msg *msg, struct sm_session *session)
 	BUG_ON(!icc_info);
 	sm_debug("%s msg type %x\n", __func__, (uint32_t)msg->type);
 	switch (msg->type) {
-	case SM_TASK_RUN_ACK:
-	case SM_TASK_KILL_ACK:
 	case SM_PACKET_CONSUMED:
 	case SM_SESSION_PACKET_CONSUMED:
 		mutex_lock(&table->lock);
@@ -1574,6 +1574,10 @@ static int sm_task_recvmsg(struct sm_msg *msg, struct sm_session *session)
 	icc_info = get_icc_peer(msg);
 	BUG_ON(!icc_info);
 	sm_debug("%s msg type %x\n", __func__, (uint32_t)msg->type);
+	if (SM_MSG_PROTOCOL(msg->type) != session->type) {
+		sm_debug("msg type %08x unmatch session type %08x\n", (uint32_t)msg->type, (uint32_t)session->type);
+		return 0;
+	}
 	switch (msg->type) {
 	case SM_TASK_RUN_ACK:
 		sm_debug("%s free %x\n", __func__, (uint32_t)msg->payload);
@@ -1583,8 +1587,10 @@ static int sm_task_recvmsg(struct sm_msg *msg, struct sm_session *session)
 
 		kfree((void *)msg->payload);
 		wake_up(&icc_info->iccq_tx_wait);
+		msg_recv_internal(msg, session);
 		break;
 	case SM_TASK_KILL_ACK:
+		msg_recv_internal(msg, session);
 		break;
 	default:
 		break;
