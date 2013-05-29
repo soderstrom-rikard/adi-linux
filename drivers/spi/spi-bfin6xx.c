@@ -114,10 +114,10 @@ static void bfin_spi_disable(struct bfin_spi_master *drv_data)
 	bfin_write_and(&drv_data->regs->control, ~SPI_CTL_EN);
 }
 
+static unsigned long sclk;
 /* Caculate the SPI_CLOCK register value based on input HZ */
 static u32 hz_to_spi_clock(u32 speed_hz)
 {
-	u_long sclk = get_sclk1();
 	u32 spi_clock = sclk / speed_hz;
 
 	if (spi_clock)
@@ -811,6 +811,12 @@ static int bfin_spi_probe(struct platform_device *pdev)
 	if (!info) {
 		dev_err(dev, "platform data missing!\n");
 		return -ENODEV;
+	}
+
+	sclk = get_sclk1();
+	if (!sclk) {
+		dev_err(dev, "can not get sclk1\n");
+		return -ENXIO;
 	}
 
 	/* get register base and tx/rx dma */
