@@ -730,7 +730,6 @@ static inline void bfin_set_irq_handler(unsigned irq, irq_flow_handler_t handle)
 }
 
 static DECLARE_BITMAP(gpio_enabled, MAX_BLACKFIN_GPIOS);
-extern void bfin_gpio_irq_prepare(unsigned gpio);
 
 #if !BFIN_GPIO_PINT
 
@@ -768,7 +767,7 @@ static unsigned int bfin_gpio_irq_startup(struct irq_data *d)
 	u32 gpionr = irq_to_gpio(d->irq);
 
 	if (__test_and_set_bit(gpionr, gpio_enabled))
-		bfin_gpio_irq_prepare(gpionr);
+		adi_gpio_irq_prepare(gpionr);
 
 	bfin_gpio_unmask_irq(d);
 
@@ -781,7 +780,7 @@ static void bfin_gpio_irq_shutdown(struct irq_data *d)
 
 	bfin_gpio_mask_irq(d);
 	__clear_bit(gpionr, gpio_enabled);
-	bfin_gpio_irq_free(gpionr);
+	adi_gpio_irq_free(gpionr);
 }
 
 static int bfin_gpio_irq_type(struct irq_data *d, unsigned int type)
@@ -802,12 +801,12 @@ static int bfin_gpio_irq_type(struct irq_data *d, unsigned int type)
 		    IRQ_TYPE_LEVEL_HIGH | IRQ_TYPE_LEVEL_LOW)) {
 
 		snprintf(buf, 16, "gpio-irq%d", irq);
-		ret = bfin_gpio_irq_request(gpionr, buf);
+		ret = adi_gpio_irq_request(gpionr, buf);
 		if (ret)
 			return ret;
 
 		if (__test_and_set_bit(gpionr, gpio_enabled))
-			bfin_gpio_irq_prepare(gpionr);
+			adi_gpio_irq_prepare(gpionr);
 
 	} else {
 		__clear_bit(gpionr, gpio_enabled);
@@ -849,7 +848,7 @@ static int bfin_gpio_irq_type(struct irq_data *d, unsigned int type)
 #ifdef CONFIG_PM
 static int bfin_gpio_set_wake(struct irq_data *d, unsigned int state)
 {
-	return gpio_pm_wakeup_ctrl(irq_to_gpio(d->irq), state);
+	return adi_gpio_pm_wakeup_ctrl(irq_to_gpio(d->irq), state);
 }
 #else
 # define bfin_gpio_set_wake NULL
@@ -1051,7 +1050,7 @@ static unsigned int bfin_gpio_irq_startup(struct irq_data *d)
 	}
 
 	if (__test_and_set_bit(gpionr, gpio_enabled))
-		bfin_gpio_irq_prepare(gpionr);
+		adi_gpio_irq_prepare(gpionr);
 
 	bfin_gpio_unmask_irq(d);
 
@@ -1064,7 +1063,7 @@ static void bfin_gpio_irq_shutdown(struct irq_data *d)
 
 	bfin_gpio_mask_irq(d);
 	__clear_bit(gpionr, gpio_enabled);
-	bfin_gpio_irq_free(gpionr);
+	adi_gpio_irq_free(gpionr);
 }
 
 static int bfin_gpio_irq_type(struct irq_data *d, unsigned int type)
@@ -1091,13 +1090,12 @@ static int bfin_gpio_irq_type(struct irq_data *d, unsigned int type)
 		    IRQ_TYPE_LEVEL_HIGH | IRQ_TYPE_LEVEL_LOW)) {
 
 		snprintf(buf, 16, "gpio-irq%d", irq);
-		ret = bfin_gpio_irq_request(gpionr, buf);
+		ret = adi_gpio_irq_request(gpionr, buf);
 		if (ret)
 			return ret;
 
 		if (__test_and_set_bit(gpionr, gpio_enabled))
-			bfin_gpio_irq_prepare(gpionr);
-
+			adi_gpio_irq_prepare(gpionr);
 	} else {
 		__clear_bit(gpionr, gpio_enabled);
 		return 0;

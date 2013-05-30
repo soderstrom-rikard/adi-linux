@@ -170,7 +170,7 @@ int bfin_pm_suspend_mem_enter(void)
 		return ret;
 	}
 
-	bfin_gpio_pm_hibernate_suspend();
+	adi_gpio_pm_hibernate_suspend();
 
 #if BFIN_GPIO_PINT
 	bfin_pint_suspend();
@@ -198,7 +198,7 @@ int bfin_pm_suspend_mem_enter(void)
 	bfin_pint_resume();
 #endif
 
-	bfin_gpio_pm_hibernate_restore();
+	adi_gpio_pm_hibernate_restore();
 	blackfin_dma_resume();
 
 	kfree(memptr);
