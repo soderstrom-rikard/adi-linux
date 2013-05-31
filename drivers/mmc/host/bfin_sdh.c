@@ -427,7 +427,7 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	if (ios->power_mode == MMC_POWER_ON && ios->clock) {
 		unsigned char clk_div;
-		clk_div = (get_sclk() / ios->clock - 1) / 2;
+		clk_div = (host->sclk / ios->clock - 1) / 2;
 		clk_div = min_t(unsigned char, clk_div, 0xFF);
 		clk_ctl |= clk_div;
 		clk_ctl |= CLK_E;
@@ -450,7 +450,7 @@ static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	dev_dbg(mmc_dev(host->mmc), "SDH: clk_div = 0x%x actual clock:%ld expected clock:%d\n",
 		host->clk_div,
-		host->clk_div ? get_sclk() / (2 * (host->clk_div + 1)) : 0,
+		host->clk_div ? host->sclk / (2 * (host->clk_div + 1)) : 0,
 		ios->clock);
 }
 
