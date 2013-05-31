@@ -334,7 +334,7 @@ config BF53x
 
 config GPIO_ADI
         def_bool y
-        depends on (BF51x || BF52x || BF53x || BF561)
+        depends on (BF51x || BF52x || BF53x || BF538 || BF539 || BF561)
 
 config GPIO_ADI2
         def_bool y
