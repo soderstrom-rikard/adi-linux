@@ -731,17 +731,15 @@ static int bfin_disp_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	disp = kzalloc(sizeof(*disp), GFP_KERNEL);
+	disp = devm_kzalloc(&pdev->dev, sizeof(*disp), GFP_KERNEL);
 	if (!disp)
 		return -ENOMEM;
 
 	disp->cfg = config;
 
 	disp->ppi = ppi_create_instance(config->ppi_info);
-	if (!disp->ppi) {
-		ret = -ENODEV;
-		goto err_free_dev;
-	}
+	if (!disp->ppi)
+		return -ENODEV;
 	disp->ppi->priv = disp;
 
 	disp->alloc_ctx = vb2_dma_contig_init_ctx(&pdev->dev);
@@ -893,8 +891,6 @@ err_cleanup_ctx:
 	vb2_dma_contig_cleanup_ctx(disp->alloc_ctx);
 err_free_ppi:
 	ppi_delete_instance(disp->ppi);
-err_free_dev:
-	kfree(disp);
 	return ret;
 }
 
@@ -914,7 +910,6 @@ static int bfin_disp_remove(struct platform_device *pdev)
 	v4l2_device_unregister(v4l2_dev);
 	vb2_dma_contig_cleanup_ctx(disp->alloc_ctx);
 	ppi_delete_instance(disp->ppi);
-	kfree(disp);
 	return 0;
 }
 
