@@ -107,21 +107,21 @@ struct bfin_disp_device {
 
 static const struct bfin_disp_format bfin_disp_formats[] = {
 	{
-		.desc        = "YCbCr 4:2:2 Interleaved UYVY 8bits",
+		.desc        = "UYVY 4:2:2 8bits",
 		.pixelformat = V4L2_PIX_FMT_UYVY,
 		.mbus_code   = V4L2_MBUS_FMT_UYVY8_2X8,
 		.bpp         = 16,
 		.dlen        = 8,
 	},
 	{
-		.desc        = "YCbCr 4:2:2 Interleaved YUYV 8bits",
+		.desc        = "YUYV 4:2:2 8bits",
 		.pixelformat = V4L2_PIX_FMT_YUYV,
 		.mbus_code   = V4L2_MBUS_FMT_YUYV8_2X8,
 		.bpp         = 16,
 		.dlen        = 8,
 	},
 	{
-		.desc        = "YCbCr 4:2:2 Interleaved UYVY 16bits",
+		.desc        = "UYVY 4:2:2 16bits",
 		.pixelformat = V4L2_PIX_FMT_UYVY,
 		.mbus_code   = V4L2_MBUS_FMT_UYVY8_1X16,
 		.bpp         = 16,
@@ -260,15 +260,13 @@ static irqreturn_t bfin_disp_isr(int irq, void *dev_id)
 {
 	struct ppi_if *ppi = dev_id;
 	struct bfin_disp_device *disp = ppi->priv;
-	struct timeval timevalue;
 	struct vb2_buffer *vb = &disp->cur_frm->vb;
 	dma_addr_t addr;
 
 	spin_lock(&disp->lock);
 
 	if (!list_empty(&disp->dma_queue)) {
-		do_gettimeofday(&timevalue);
-		vb->v4l2_buf.timestamp = timevalue;
+		v4l2_get_timestamp(&vb->v4l2_buf.timestamp);
 		vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
 		disp->cur_frm = list_entry(disp->dma_queue.next,
 				struct bfin_disp_buffer, list);
