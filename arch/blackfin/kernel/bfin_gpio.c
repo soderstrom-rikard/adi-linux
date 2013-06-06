@@ -13,7 +13,6 @@
 #include <linux/seq_file.h>
 #include <linux/gpio.h>
 #include <linux/irq.h>
-#include <asm/irq_handler.h>
 
 #if ANOMALY_05000311 || ANOMALY_05000323
 enum {
@@ -519,7 +518,7 @@ static const unsigned int sic_iwr_irqs[] = {
 *************************************************************
 * MODIFICATION HISTORY :
 **************************************************************/
-int adi_gpio_pm_wakeup_ctrl(unsigned gpio, unsigned ctrl)
+int bfin_gpio_pm_wakeup_ctrl(unsigned gpio, unsigned ctrl)
 {
 	unsigned long flags;
 
@@ -538,7 +537,7 @@ int adi_gpio_pm_wakeup_ctrl(unsigned gpio, unsigned ctrl)
 	return 0;
 }
 
-int adi_gpio_pm_standby_ctrl(unsigned ctrl)
+int bfin_gpio_pm_standby_ctrl(unsigned ctrl)
 {
 	u16 bank, mask, i;
 
@@ -946,7 +945,7 @@ EXPORT_SYMBOL(bfin_special_gpio_free);
 #endif
 
 
-int adi_gpio_irq_request(unsigned gpio, const char *label)
+int bfin_gpio_irq_request(unsigned gpio, const char *label)
 {
 	unsigned long flags;
 
@@ -979,7 +978,7 @@ int adi_gpio_irq_request(unsigned gpio, const char *label)
 	return 0;
 }
 
-void adi_gpio_irq_free(unsigned gpio)
+void bfin_gpio_irq_free(unsigned gpio)
 {
 	unsigned long flags;
 
@@ -1027,7 +1026,7 @@ int bfin_gpio_direction_input(unsigned gpio)
 }
 EXPORT_SYMBOL(bfin_gpio_direction_input);
 
-void adi_gpio_irq_prepare(unsigned gpio)
+void bfin_gpio_irq_prepare(unsigned gpio)
 {
 	port_setup(gpio, GPIO_USAGE);
 }

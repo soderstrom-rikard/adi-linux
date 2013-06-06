@@ -30,6 +30,7 @@
 #include <linux/compiler.h>
 #include <asm/blackfin.h>
 #include <asm/portmux.h>
+#include <asm/irq_handler.h>
 
 /***********************************************************
 *
@@ -130,25 +131,28 @@ void bfin_special_gpio_pm_hibernate_suspend(void);
 #endif
 
 #ifdef CONFIG_PM
-int adi_gpio_pm_standby_ctrl(unsigned ctrl);
+void adi_gpio_pm_hibernate_restore(void);
+void adi_gpio_pm_hibernate_suspend(void);
+
+# if BFIN_GPIO_PINT
+#  define adi_internal_set_wake bfin_internal_set_wake
+#  define gpio_pint_regs bfin_pint_regs
+void adi_pint_suspend(void);
+void adi_pint_resume(void);
+# else
+int bfin_gpio_pm_wakeup_ctrl(unsigned gpio, unsigned ctrl);
+int bfin_gpio_pm_standby_ctrl(unsigned ctrl);
 
 static inline int bfin_pm_standby_setup(void)
 {
-	return adi_gpio_pm_standby_ctrl(1);
+	return bfin_gpio_pm_standby_ctrl(1);
 }
 
 static inline void bfin_pm_standby_restore(void)
 {
-	adi_gpio_pm_standby_ctrl(0);
+	bfin_gpio_pm_standby_ctrl(0);
 }
 
-void adi_gpio_pm_hibernate_restore(void);
-void adi_gpio_pm_hibernate_suspend(void);
-void bfin_pint_suspend(void);
-void bfin_pint_resume(void);
-
-# if !BFIN_GPIO_PINT
-int adi_gpio_pm_wakeup_ctrl(unsigned gpio, unsigned ctrl);
 
 struct gpio_port_s {
 	unsigned short data;
@@ -181,10 +185,11 @@ struct gpio_port_s {
 *************************************************************
 * MODIFICATION HISTORY :
 **************************************************************/
-
-int adi_gpio_irq_request(unsigned gpio, const char *label);
-void adi_gpio_irq_free(unsigned gpio);
-void adi_gpio_irq_prepare(unsigned gpio);
+#ifdef CONFIG_GPIO_ADI
+int bfin_gpio_irq_request(unsigned gpio, const char *label);
+void bfin_gpio_irq_free(unsigned gpio);
+void bfin_gpio_irq_prepare(unsigned gpio);
+#endif
 
 #include <asm/irq.h>
 #include <asm/errno.h>

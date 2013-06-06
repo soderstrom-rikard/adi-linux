@@ -27,7 +27,7 @@ struct bfin_cpu_pm_fns *bfin_cpu_pm;
 
 void bfin_pm_suspend_standby_enter(void)
 {
-#ifndef CONFIG_BF60x
+#if !BFIN_GPIO_PINT
 	bfin_pm_standby_setup();
 #endif
 
@@ -41,7 +41,7 @@ void bfin_pm_suspend_standby_enter(void)
 # endif
 #endif
 
-#ifndef CONFIG_BF60x
+#if !BFIN_GPIO_PINT
 	bfin_pm_standby_restore();
 #endif
 
@@ -173,7 +173,7 @@ int bfin_pm_suspend_mem_enter(void)
 	adi_gpio_pm_hibernate_suspend();
 
 #if BFIN_GPIO_PINT
-	bfin_pint_suspend();
+	adi_pint_suspend();
 #endif
 
 #if defined(CONFIG_BFIN_EXTMEM_WRITEBACK) || defined(CONFIG_BFIN_L2_WRITEBACK)
@@ -195,7 +195,7 @@ int bfin_pm_suspend_mem_enter(void)
 	_enable_dcplb();
 
 #if BFIN_GPIO_PINT
-	bfin_pint_resume();
+	adi_pint_resume();
 #endif
 
 	adi_gpio_pm_hibernate_restore();
