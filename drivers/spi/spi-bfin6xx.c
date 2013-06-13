@@ -27,17 +27,18 @@
 #include <linux/slab.h>
 #include <linux/spi/spi.h>
 #include <linux/types.h>
-#include <linux/workqueue.h>
 
 #include <asm/bfin6xx_spi.h>
 #include <asm/cacheflush.h>
 #include <asm/dma.h>
 #include <asm/portmux.h>
 
-#define START_STATE	((void *)0)
-#define RUNNING_STATE	((void *)1)
-#define DONE_STATE	((void *)2)
-#define ERROR_STATE	((void *)-1)
+enum bfin_spi_state {
+	START_STATE,
+	RUNNING_STATE,
+	DONE_STATE,
+	ERROR_STATE
+};
 
 struct bfin_spi_master;
 
@@ -90,6 +91,7 @@ struct bfin_spi_master {
 	u32 ssel;
 
 	unsigned long sclk;
+	enum bfin_spi_state state;
 
 	const struct bfin_spi_transfer_ops *ops;
 };
@@ -343,28 +345,24 @@ static const struct bfin_spi_transfer_ops bfin_bfin_spi_transfer_ops_u32 = {
 
 
 /* test if there is more transfer to be done */
-static void *bfin_spi_next_transfer(struct bfin_spi_master *drv_data)
+static void bfin_spi_next_transfer(struct bfin_spi_master *drv)
 {
-	struct spi_message *msg = drv_data->cur_msg;
-	struct spi_transfer *trans = drv_data->cur_transfer;
+	struct spi_message *msg = drv->cur_msg;
+	struct spi_transfer *t = drv->cur_transfer;
 
 	/* Move to next transfer */
-	if (trans->transfer_list.next != &msg->transfers) {
-		drv_data->cur_transfer =
-		    list_entry(trans->transfer_list.next,
+	if (t->transfer_list.next != &msg->transfers)
+		t = list_entry(t->transfer_list.next,
 			       struct spi_transfer, transfer_list);
-		return RUNNING_STATE;
-	} else
-		return DONE_STATE;
+	else
+		t = NULL;
 }
 
 static void bfin_spi_giveback(struct bfin_spi_master *drv_data)
 {
 	struct bfin_spi_device *chip = drv_data->cur_chip;
 
-	if (!drv_data->cs_change)
-		bfin_spi_cs_deactive(drv_data, chip);
-
+	bfin_spi_cs_deactive(drv_data, chip);
 	spi_finalize_current_message(drv_data->master);
 }
 
@@ -386,14 +384,14 @@ static void bfin_spi_pump_transfers(unsigned long data)
 	chip = drv_data->cur_chip;
 
 	/* Handle for abort */
-	if (message->state == ERROR_STATE) {
+	if (drv_data->state == ERROR_STATE) {
 		message->status = -EIO;
 		bfin_spi_giveback(drv_data);
 		return;
 	}
 
 	/* Handle end of message */
-	if (message->state == DONE_STATE) {
+	if (drv_data->state == DONE_STATE) {
 		message->status = 0;
 		bfin_spi_flush(drv_data);
 		bfin_spi_giveback(drv_data);
@@ -401,7 +399,7 @@ static void bfin_spi_pump_transfers(unsigned long data)
 	}
 
 	/* Delay if requested at end of transfer */
-	if (message->state == RUNNING_STATE) {
+	if (drv_data->state == RUNNING_STATE) {
 		previous = list_entry(transfer->transfer_list.prev,
 				      struct spi_transfer, transfer_list);
 		if (previous->delay_usecs)
@@ -418,7 +416,7 @@ static void bfin_spi_pump_transfers(unsigned long data)
 	if ((transfer->len == 0) || (transfer->tx_buf == NULL
 				&& transfer->rx_buf == NULL)) {
 		/* Move to next transfer of this msg */
-		message->state = bfin_spi_next_transfer(drv_data);
+		bfin_spi_next_transfer(drv_data);
 		/* Schedule next transfer tasklet */
 		tasklet_schedule(&drv_data->pump_transfers);
 		return;
@@ -467,7 +465,7 @@ static void bfin_spi_pump_transfers(unsigned long data)
 	cr |= cr_width;
 	bfin_write(&drv_data->regs->control, cr);
 
-	message->state = RUNNING_STATE;
+	drv_data->state = RUNNING_STATE;
 
 	/* Speed setup (surely valid because already checked) */
 	if (transfer->speed_hz)
@@ -534,7 +532,7 @@ static void bfin_spi_pump_transfers(unsigned long data)
 					DMA_TO_DEVICE);
 		if (dma_mapping_error(&message->spi->dev,
 					drv_data->tx_dma_addr)) {
-			message->state = ERROR_STATE;
+			drv_data->state = ERROR_STATE;
 			return;
 		}
 
@@ -544,7 +542,7 @@ static void bfin_spi_pump_transfers(unsigned long data)
 					DMA_FROM_DEVICE);
 		if (dma_mapping_error(&message->spi->dev,
 					drv_data->rx_dma_addr)) {
-			message->state = ERROR_STATE;
+			drv_data->state = ERROR_STATE;
 			dma_unmap_single(&message->spi->dev,
 					drv_data->tx_dma_addr,
 					drv_data->tx_dma_size,
@@ -595,13 +593,13 @@ static void bfin_spi_pump_transfers(unsigned long data)
 	}
 
 	if (!tranf_success) {
-		message->state = ERROR_STATE;
+		drv_data->state = ERROR_STATE;
 	} else {
 		/* Update total byte transferred */
 		message->actual_length += drv_data->transfer_len;
 		/* Move to next transfer of this msg */
-		message->state = bfin_spi_next_transfer(drv_data);
-		if (drv_data->cs_change && message->state != DONE_STATE) {
+		bfin_spi_next_transfer(drv_data);
+		if (drv_data->cs_change) {
 			bfin_spi_flush(drv_data);
 			bfin_spi_cs_deactive(drv_data, chip);
 		}
@@ -620,7 +618,7 @@ static int bfin_spi_transfer_one_message(struct spi_master *master,
 	drv_data->cur_chip = spi_get_ctldata(drv_data->cur_msg->spi);
 	bfin_spi_restore_state(drv_data);
 
-	drv_data->cur_msg->state = START_STATE;
+	drv_data->state = START_STATE;
 	drv_data->cur_transfer = list_entry(drv_data->cur_msg->transfers.next,
 					    struct spi_transfer, transfer_list);
 
@@ -762,11 +760,14 @@ static irqreturn_t bfin_spi_tx_dma_isr(int irq, void *dev_id)
 	u32 dma_stat = get_dma_curr_irqstat(drv_data->tx_dma);
 
 	clear_dma_irqstat(drv_data->tx_dma);
-	if (dma_stat & DMA_DONE)
+	if (dma_stat & DMA_DONE) {
 		drv_data->tx_num++;
-	if (dma_stat & DMA_ERR)
+	} else {
 		dev_err(&drv_data->master->dev,
 				"spi tx dma error: %d\n", dma_stat);
+		if (drv_data->tx)
+			drv_data->state = ERROR_STATE;
+	}
 	bfin_write_and(&drv_data->regs->tx_control, ~SPI_TXCTL_TDR_NF);
 	return IRQ_HANDLED;
 }
@@ -779,17 +780,18 @@ static irqreturn_t bfin_spi_rx_dma_isr(int irq, void *dev_id)
 	u32 dma_stat = get_dma_curr_irqstat(drv_data->rx_dma);
 
 	clear_dma_irqstat(drv_data->rx_dma);
-	if (dma_stat & DMA_DONE)
+	if (dma_stat & DMA_DONE) {
 		drv_data->rx_num++;
-	if (dma_stat & DMA_ERR) {
-		msg->state = ERROR_STATE;
-		dev_err(&drv_data->master->dev,
-				"spi rx dma error: %d\n", dma_stat);
-	} else {
-		msg->actual_length += drv_data->transfer_len;
+		/* we may fail on tx dma */
+		if (drv_data->state != ERROR_STATE)
+			msg->actual_length += drv_data->transfer_len;
 		if (drv_data->cs_change)
 			bfin_spi_cs_deactive(drv_data, chip);
-		msg->state = bfin_spi_next_transfer(drv_data);
+		bfin_spi_next_transfer(drv_data);
+	} else {
+		drv_data->state = ERROR_STATE;
+		dev_err(&drv_data->master->dev,
+				"spi rx dma error: %d\n", dma_stat);
 	}
 	bfin_write(&drv_data->regs->tx_control, 0);
 	bfin_write(&drv_data->regs->rx_control, 0);
