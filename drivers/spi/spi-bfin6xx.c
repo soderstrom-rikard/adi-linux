@@ -89,6 +89,8 @@ struct bfin_spi_master {
 	u32 control;
 	u32 ssel;
 
+	unsigned long sclk;
+
 	const struct bfin_spi_transfer_ops *ops;
 };
 
@@ -115,9 +117,8 @@ static void bfin_spi_disable(struct bfin_spi_master *drv_data)
 	bfin_write_and(&drv_data->regs->control, ~SPI_CTL_EN);
 }
 
-static unsigned long sclk;
 /* Caculate the SPI_CLOCK register value based on input HZ */
-static u32 hz_to_spi_clock(u32 speed_hz)
+static u32 hz_to_spi_clock(u32 sclk, u32 speed_hz)
 {
 	u32 spi_clock = sclk / speed_hz;
 
@@ -470,7 +471,8 @@ static void bfin_spi_pump_transfers(unsigned long data)
 
 	/* Speed setup (surely valid because already checked) */
 	if (transfer->speed_hz)
-		bfin_write(&drv_data->regs->clock, hz_to_spi_clock(transfer->speed_hz));
+		bfin_write(&drv_data->regs->clock,
+			hz_to_spi_clock(drv_data->sclk, transfer->speed_hz));
 	else
 		bfin_write(&drv_data->regs->clock, chip->clock);
 
@@ -715,7 +717,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 	/* we choose software to controll cs */
 	chip->control &= ~SPI_CTL_ASSEL;
 
-	chip->clock = hz_to_spi_clock(spi->max_speed_hz);
+	chip->clock = hz_to_spi_clock(drv_data->sclk, spi->max_speed_hz);
 
 	bfin_spi_cs_enable(drv_data, chip);
 	bfin_spi_cs_deactive(drv_data, chip);
@@ -807,6 +809,7 @@ static int bfin_spi_probe(struct platform_device *pdev)
 	struct bfin_spi_master *drv_data;
 	struct resource *mem, *res;
 	unsigned int tx_dma, rx_dma;
+	unsigned long sclk;
 	int ret;
 
 	if (!info) {
@@ -863,6 +866,7 @@ static int bfin_spi_probe(struct platform_device *pdev)
 	drv_data->tx_dma = tx_dma;
 	drv_data->rx_dma = rx_dma;
 	drv_data->pin_req = info->pin_req;
+	drv_data->sclk = sclk;
 
 	drv_data->regs = devm_ioremap_resource(dev, mem);
 	if (IS_ERR(drv_data->regs)) {
@@ -906,7 +910,6 @@ static int bfin_spi_probe(struct platform_device *pdev)
 		goto err_free_peripheral;
 	}
 
-	dev_info(dev, "bfin-spi probe success\n");
 	return ret;
 
 err_free_peripheral:
