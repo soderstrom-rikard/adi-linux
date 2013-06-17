@@ -49,7 +49,7 @@
 * MODIFICATION HISTORY :
 **************************************************************/
 
-#if !BFIN_GPIO_PINT
+# ifdef CONFIG_GPIO_ADI
 void set_gpio_dir(unsigned, unsigned short);
 void set_gpio_inen(unsigned, unsigned short);
 void set_gpio_polar(unsigned, unsigned short);
@@ -133,14 +133,10 @@ void bfin_special_gpio_pm_hibernate_suspend(void);
 #endif
 
 #ifdef CONFIG_PM
-void adi_gpio_pm_hibernate_restore(void);
-void adi_gpio_pm_hibernate_suspend(void);
 
-# if BFIN_GPIO_PINT
-#  define adi_internal_set_wake bfin_internal_set_wake
-void adi_pint_suspend(void);
-void adi_pint_resume(void);
-# else
+# ifdef CONFIG_GPIO_ADI
+void bfin_gpio_pm_hibernate_restore(void);
+void bfin_gpio_pm_hibernate_suspend(void);
 int bfin_gpio_pm_wakeup_ctrl(unsigned gpio, unsigned ctrl);
 int bfin_gpio_pm_standby_ctrl(unsigned ctrl);
 
@@ -169,6 +165,8 @@ struct gpio_port_s {
 	unsigned short reserved;
 	unsigned short mux;
 };
+# else
+#  define adi_internal_set_wake bfin_internal_set_wake
 # endif
 #endif /*CONFIG_PM*/
 

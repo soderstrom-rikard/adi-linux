@@ -17,6 +17,7 @@
 #include <linux/i2c.h>
 #include <linux/interrupt.h>
 #include <linux/usb/musb.h>
+#include <linux/platform_data/gpio-adi2.h>
 #include <asm/bfin5xx_spi.h>
 #include <asm/dma.h>
 #include <asm/gpio.h>
@@ -1058,6 +1059,391 @@ static const struct ad7877_platform_data bfin_ad7877_ts_info = {
 };
 #endif
 
+#ifdef CONFIG_GPIO_ADI2
+static struct resource bfin_pint0_resources[] = {
+	{
+		.start = PINT0_MASK_SET,
+		.end = PINT0_LATCH + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PINT0,
+		.end = IRQ_PINT0,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_pint0_device = {
+	.name = "adi-gpio-pint",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(bfin_pint0_resources),
+	.resource = bfin_pint0_resources,
+};
+
+static struct resource bfin_pint1_resources[] = {
+	{
+		.start = PINT1_MASK_SET,
+		.end = PINT1_LATCH + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PINT1,
+		.end = IRQ_PINT1,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_pint1_device = {
+	.name = "adi-gpio-pint",
+	.id = 1,
+	.num_resources = ARRAY_SIZE(bfin_pint1_resources),
+	.resource = bfin_pint1_resources,
+};
+
+static struct resource bfin_pint2_resources[] = {
+	{
+		.start = PINT2_MASK_SET,
+		.end = PINT2_LATCH + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PINT2,
+		.end = IRQ_PINT2,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_pint2_device = {
+	.name = "adi-gpio-pint",
+	.id = 2,
+	.num_resources = ARRAY_SIZE(bfin_pint2_resources),
+	.resource = bfin_pint2_resources,
+};
+
+static struct resource bfin_pint3_resources[] = {
+	{
+		.start = PINT3_MASK_SET,
+		.end = PINT3_LATCH + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PINT3,
+		.end = IRQ_PINT3,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device bfin_pint3_device = {
+	.name = "adi-gpio-pint",
+	.id = 3,
+	.num_resources = ARRAY_SIZE(bfin_pint3_resources),
+	.resource = bfin_pint3_resources,
+};
+
+static struct resource bfin_gpa_resources[] = {
+	{
+		.start = PORTA_FER,
+		.end = PORTA_MUX + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{	/* optional */
+		.start = IRQ_PA0,
+		.end = IRQ_PA0,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct adi_gpio_platform_data bfin_gpa_pdata = {
+	.port_pin_base	= GPIO_PA0,	/* optional */
+	.port_width	= GPIO_BANKSIZE,
+	.pint_id	= 0,		/* PINT0 */
+	.pint_assign	= 1,		/* PINT upper 16 bit */
+	.pint_map	= 0,		/* mapping mask in PINT */
+};
+
+static struct platform_device bfin_gpa_device = {
+	.name = "adi-gpio",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(bfin_gpa_resources),
+	.resource = bfin_gpa_resources,
+	.dev = {
+		.platform_data = &bfin_gpa_pdata, /* Passed to driver */
+	},
+};
+
+static struct resource bfin_gpb_resources[] = {
+	{
+		.start = PORTB_FER,
+		.end = PORTB_MUX + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PB0,
+		.end = IRQ_PB0,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct adi_gpio_platform_data bfin_gpb_pdata = {
+	.port_pin_base	= GPIO_PB0,
+	.port_width	= 15,
+	.pint_id	= 0,
+	.pint_assign	= 0,
+	.pint_map	= 1,
+};
+
+static struct platform_device bfin_gpb_device = {
+	.name = "adi-gpio",
+	.id = 1,
+	.num_resources = ARRAY_SIZE(bfin_gpb_resources),
+	.resource = bfin_gpb_resources,
+	.dev = {
+		.platform_data = &bfin_gpb_pdata, /* Passed to driver */
+	},
+};
+
+static struct resource bfin_gpc_resources[] = {
+	{
+		.start = PORTC_FER,
+		.end = PORTC_MUX + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PC0,
+		.end = IRQ_PC0,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct adi_gpio_platform_data bfin_gpc_pdata = {
+	.port_pin_base	= GPIO_PC0,
+	.port_width	= 14,
+	.pint_id	= 2,
+	.pint_assign	= 1,
+	.pint_map	= 0,
+};
+
+static struct platform_device bfin_gpc_device = {
+	.name = "adi-gpio",
+	.id = 2,
+	.num_resources = ARRAY_SIZE(bfin_gpc_resources),
+	.resource = bfin_gpc_resources,
+	.dev = {
+		.platform_data = &bfin_gpc_pdata, /* Passed to driver */
+	},
+};
+
+static struct resource bfin_gpd_resources[] = {
+	{
+		.start = PORTD_FER,
+		.end = PORTD_MUX + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PD0,
+		.end = IRQ_PD0,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct adi_gpio_platform_data bfin_gpd_pdata = {
+	.port_pin_base	= GPIO_PD0,
+	.port_width	= GPIO_BANKSIZE,
+	.pint_id	= 2,
+	.pint_assign	= 0,
+	.pint_map	= 1,
+};
+
+static struct platform_device bfin_gpd_device = {
+	.name = "adi-gpio",
+	.id = 3,
+	.num_resources = ARRAY_SIZE(bfin_gpd_resources),
+	.resource = bfin_gpd_resources,
+	.dev = {
+		.platform_data = &bfin_gpd_pdata, /* Passed to driver */
+	},
+};
+
+static struct resource bfin_gpe_resources[] = {
+	{
+		.start = PORTE_FER,
+		.end = PORTE_MUX + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PE0,
+		.end = IRQ_PE0,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct adi_gpio_platform_data bfin_gpe_pdata = {
+	.port_pin_base	= GPIO_PE0,
+	.port_width	= GPIO_BANKSIZE,
+	.pint_id	= 3,
+	.pint_assign	= 1,
+	.pint_map	= 2,
+};
+
+static struct platform_device bfin_gpe_device = {
+	.name = "adi-gpio",
+	.id = 4,
+	.num_resources = ARRAY_SIZE(bfin_gpe_resources),
+	.resource = bfin_gpe_resources,
+	.dev = {
+		.platform_data = &bfin_gpe_pdata, /* Passed to driver */
+	},
+};
+
+static struct resource bfin_gpf_resources[] = {
+	{
+		.start = PORTF_FER,
+		.end = PORTF_MUX + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PF0,
+		.end = IRQ_PF0,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct adi_gpio_platform_data bfin_gpf_pdata = {
+	.port_pin_base	= GPIO_PF0,
+	.port_width	= GPIO_BANKSIZE,
+	.pint_id	= 3,
+	.pint_assign	= 0,
+	.pint_map	= 3,
+};
+
+static struct platform_device bfin_gpf_device = {
+	.name = "adi-gpio",
+	.id = 5,
+	.num_resources = ARRAY_SIZE(bfin_gpf_resources),
+	.resource = bfin_gpf_resources,
+	.dev = {
+		.platform_data = &bfin_gpf_pdata, /* Passed to driver */
+	},
+};
+
+static struct resource bfin_gpg_resources[] = {
+	{
+		.start = PORTG_FER,
+		.end = PORTG_MUX + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PG0,
+		.end = IRQ_PG0,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct adi_gpio_platform_data bfin_gpg_pdata = {
+	.port_pin_base	= GPIO_PG0,
+	.port_width	= GPIO_BANKSIZE,
+	.pint_id	= -1,
+};
+
+static struct platform_device bfin_gpg_device = {
+	.name = "adi-gpio",
+	.id = 6,
+	.num_resources = ARRAY_SIZE(bfin_gpg_resources),
+	.resource = bfin_gpg_resources,
+	.dev = {
+		.platform_data = &bfin_gpg_pdata, /* Passed to driver */
+	},
+};
+
+static struct resource bfin_gph_resources[] = {
+	{
+		.start = PORTH_FER,
+		.end = PORTH_MUX + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PH0,
+		.end = IRQ_PH0,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct adi_gpio_platform_data bfin_gph_pdata = {
+	.port_pin_base	= GPIO_PH0,
+	.port_width	= 14,
+	.pint_id	= -1,
+};
+
+static struct platform_device bfin_gph_device = {
+	.name = "adi-gpio",
+	.id = 7,
+	.num_resources = ARRAY_SIZE(bfin_gph_resources),
+	.resource = bfin_gph_resources,
+	.dev = {
+		.platform_data = &bfin_gph_pdata, /* Passed to driver */
+	},
+};
+
+static struct resource bfin_gpi_resources[] = {
+	{
+		.start = PORTI_FER,
+		.end = PORTI_MUX + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PI0,
+		.end = IRQ_PI0,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct adi_gpio_platform_data bfin_gpi_pdata = {
+	.port_pin_base	= GPIO_PI0,
+	.port_width	= GPIO_BANKSIZE,
+	.pint_id	= -1,
+};
+
+static struct platform_device bfin_gpi_device = {
+	.name = "adi-gpio",
+	.id = 8,
+	.num_resources = ARRAY_SIZE(bfin_gpi_resources),
+	.resource = bfin_gpi_resources,
+	.dev = {
+		.platform_data = &bfin_gpi_pdata, /* Passed to driver */
+	},
+};
+
+static struct resource bfin_gpj_resources[] = {
+	{
+		.start = PORTJ_FER,
+		.end = PORTJ_MUX + 3,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = IRQ_PJ0,
+		.end = IRQ_PJ0,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct adi_gpio_platform_data bfin_gpj_pdata = {
+	.port_pin_base	= GPIO_PJ0,
+	.port_width	= 14,
+	.pint_id	= -1,
+};
+
+static struct platform_device bfin_gpj_device = {
+	.name = "adi-gpio",
+	.id = 9,
+	.num_resources = ARRAY_SIZE(bfin_gpj_resources),
+	.resource = bfin_gpj_resources,
+	.dev = {
+		.platform_data = &bfin_gpj_pdata, /* Passed to driver */
+	},
+};
+
+#endif
+
 static struct spi_board_info bfin_spi_board_info[] __initdata = {
 #if defined(CONFIG_MTD_M25P80) \
 	|| defined(CONFIG_MTD_M25P80_MODULE)
@@ -1528,6 +1914,22 @@ static struct platform_device bfin_ac97 = {
 static struct platform_device *ezkit_devices[] __initdata = {
 
 	&bfin_dpmc,
+#if defined(CONFIG_GPIO_ADI2)
+	&bfin_pint0_device,
+	&bfin_pint1_device,
+	&bfin_pint2_device,
+	&bfin_pint3_device,
+	&bfin_gpa_device,
+	&bfin_gpb_device,
+	&bfin_gpc_device,
+	&bfin_gpd_device,
+	&bfin_gpe_device,
+	&bfin_gpf_device,
+	&bfin_gpg_device,
+	&bfin_gph_device,
+	&bfin_gpi_device,
+	&bfin_gpj_device,
+#endif
 
 #if defined(CONFIG_RTC_DRV_BFIN) || defined(CONFIG_RTC_DRV_BFIN_MODULE)
 	&rtc_device,

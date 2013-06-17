@@ -551,7 +551,7 @@ int bfin_gpio_pm_standby_ctrl(unsigned ctrl)
 	return 0;
 }
 
-void adi_gpio_pm_hibernate_suspend(void)
+void bfin_gpio_pm_hibernate_suspend(void)
 {
 	int i, bank;
 
@@ -588,7 +588,7 @@ void adi_gpio_pm_hibernate_suspend(void)
 	AWA_DUMMY_READ(maska);
 }
 
-void adi_gpio_pm_hibernate_restore(void)
+void bfin_gpio_pm_hibernate_restore(void)
 {
 	int i, bank;
 
