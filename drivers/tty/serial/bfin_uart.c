@@ -1069,6 +1069,22 @@ static struct uart_ops bfin_serial_pops = {
 };
 
 #if defined(CONFIG_SERIAL_BFIN_CONSOLE) || defined(CONFIG_EARLY_PRINTK)
+static struct uart_driver bfin_serial_reg;
+
+static void bfin_serial_console_putchar(struct uart_port *port, int ch)
+{
+	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+	while (!(UART_GET_LSR(uart) & THRE))
+		barrier();
+	UART_PUT_CHAR(uart, ch);
+}
+
+#endif /* defined (CONFIG_SERIAL_BFIN_CONSOLE) ||
+		 defined (CONFIG_EARLY_PRINTK) */
+
+#ifdef CONFIG_SERIAL_BFIN_CONSOLE
+#define CLASS_BFIN_CONSOLE	"bfin-console"
+
 /*
  * If the port was already initialised (eg, by a boot loader),
  * try to determine the current setup.
@@ -1108,21 +1124,6 @@ bfin_serial_console_get_options(struct bfin_serial_port *uart, int *baud,
 	pr_debug("%s:baud = %d, parity = %c, bits= %d\n", __func__, *baud, *parity, *bits);
 }
 
-static struct uart_driver bfin_serial_reg;
-
-static void bfin_serial_console_putchar(struct uart_port *port, int ch)
-{
-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
-	while (!(UART_GET_LSR(uart) & THRE))
-		barrier();
-	UART_PUT_CHAR(uart, ch);
-}
-
-#endif /* defined (CONFIG_SERIAL_BFIN_CONSOLE) ||
-		 defined (CONFIG_EARLY_PRINTK) */
-
-#ifdef CONFIG_SERIAL_BFIN_CONSOLE
-#define CLASS_BFIN_CONSOLE	"bfin-console"
 /*
  * Interrupts are disabled on entering
  */
@@ -1268,7 +1269,7 @@ static int bfin_serial_probe(struct platform_device *pdev)
 		}
 		bfin_serial_ports[pdev->id] = uart;
 
-#ifdef CONFIG_EARLY_PRINTK
+#if defined(CONFIG_EARLY_PRINTK) && defined(CONFIG_GPIO_ADI)
 		if (!(bfin_earlyprintk_port.port.membase
 			&& bfin_earlyprintk_port.port.line == pdev->id)) {
 			/*
@@ -1283,7 +1284,7 @@ static int bfin_serial_probe(struct platform_device *pdev)
 				"fail to request bfin serial peripherals\n");
 			goto out_error_free_mem;
 		}
-#ifdef CONFIG_EARLY_PRINTK
+#if defined(CONFIG_EARLY_PRINTK) && defined(CONFIG_GPIO_ADI)
 		}
 #endif
 		spin_lock_init(&uart->port.lock);
@@ -1375,16 +1376,10 @@ static int bfin_serial_probe(struct platform_device *pdev)
 #endif
 	}
 
-#ifdef CONFIG_SERIAL_BFIN_CONSOLE
-	if (!is_early_platform_device(pdev)) {
-#endif
-		uart = bfin_serial_ports[pdev->id];
-		uart->port.dev = &pdev->dev;
-		dev_set_drvdata(&pdev->dev, uart);
-		ret = uart_add_one_port(&bfin_serial_reg, &uart->port);
-#ifdef CONFIG_SERIAL_BFIN_CONSOLE
-	}
-#endif
+	uart = bfin_serial_ports[pdev->id];
+	uart->port.dev = &pdev->dev;
+	dev_set_drvdata(&pdev->dev, uart);
+	ret = uart_add_one_port(&bfin_serial_reg, &uart->port);
 
 	if (!ret)
 		return 0;
@@ -1432,26 +1427,6 @@ static struct platform_driver bfin_serial_driver = {
 	},
 };
 
-#if defined(CONFIG_SERIAL_BFIN_CONSOLE)
-static __initdata struct early_platform_driver early_bfin_serial_driver = {
-	.class_str = CLASS_BFIN_CONSOLE,
-	.pdrv = &bfin_serial_driver,
-	.requested_id = EARLY_PLATFORM_ID_UNSET,
-};
-
-static int __init bfin_serial_rs_console_init(void)
-{
-	early_platform_driver_register(&early_bfin_serial_driver, DRIVER_NAME);
-
-	early_platform_driver_probe(CLASS_BFIN_CONSOLE, BFIN_UART_NR_PORTS, 0);
-
-	register_console(&bfin_serial_console);
-
-	return 0;
-}
-console_initcall(bfin_serial_rs_console_init);
-#endif
-
 #ifdef CONFIG_EARLY_PRINTK
 /*
  * Memory can't be allocated dynamically during earlyprink init stage.
@@ -1461,19 +1436,72 @@ static int bfin_earlyprintk_probe(struct platform_device *pdev)
 {
 	struct resource *res;
 	int ret;
+#ifndef CONFIG_GPIO_ADI
+	unsigned short *fer, *pin, off0, off1;
+	unsigned int *pmux, mux;
+#endif
 
 	if (pdev->id < 0 || pdev->id >= BFIN_UART_NR_PORTS) {
 		dev_err(&pdev->dev, "Wrong earlyprintk platform device id.\n");
 		return -ENOENT;
 	}
 
+#ifdef CONFIG_GPIO_ADI
 	ret = peripheral_request_list(
 		(unsigned short *)pdev->dev.platform_data, DRIVER_NAME);
 	if (ret) {
 		dev_err(&pdev->dev,
 				"fail to request bfin serial peripherals\n");
-			return ret;
+		return ret;
 	}
+#else
+	/* In case the gpio driver doesn't allow reqeust peripherals
+	 * in early probe stage, do manual serial port configuration.
+	 */
+	pin = (unsigned short *)pdev->dev.platform_data;
+	off0 = (P_IDENT(pin[0]) % 16) << 1;
+	off1 = (P_IDENT(pin[1]) % 16) << 1;
+
+	res = platform_get_resource(pdev, IORESOURCE_REG, 1);
+	if (res) {
+		pmux = ioremap(res->start, resource_size(res));
+		if (pmux) {
+			mux = *pmux;
+			mux &= ~(0x3 << off0);
+			mux |= P_FUNCT2MUX(pin[0]) << off0;
+			mux &= ~(0x3 << off1);
+			mux |= P_FUNCT2MUX(pin[1]) << off1;
+			*pmux = mux;
+
+			SSYNC();
+
+			iounmap(pmux);
+		}
+	}
+
+	res = platform_get_resource(pdev, IORESOURCE_REG, 0);
+	if (res == NULL) {
+		dev_err(&pdev->dev,
+			"fail to get port_fer and request serial port\n");
+		return -ENOENT;
+	}
+
+	fer = ioremap(res->start, resource_size(res));
+	if (!fer) {
+		dev_err(&pdev->dev,
+			"fail to map port_fer and request serial port\n");
+		return -ENXIO;
+	}
+
+	off0 >>= 1;
+	off1 >>= 1;
+	*fer |= 1 << off0;
+	*fer |= 1 << off1;
+
+	SSYNC();
+
+	iounmap(fer);
+#endif
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
@@ -1499,8 +1527,10 @@ static int bfin_earlyprintk_probe(struct platform_device *pdev)
 	return 0;
 
 out_error_free_peripherals:
+#ifdef CONFIG_GPIO_ADI
 	peripheral_free_list(
 		(unsigned short *)pdev->dev.platform_data);
+#endif
 
 	return ret;
 }
@@ -1540,14 +1570,6 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 	if (!bfin_earlyprintk_port.port.membase)
 		return NULL;
 
-#ifdef CONFIG_SERIAL_BFIN_CONSOLE
-	/*
-	 * If we are using early serial, don't let the normal console rewind
-	 * log buffer, since that causes things to be printed multiple times
-	 */
-	bfin_serial_console.flags &= ~CON_PRINTBUFFER;
-#endif
-
 	bfin_early_serial_console.index = port;
 	t.c_cflag = cflag;
 	t.c_iflag = 0;
@@ -1559,6 +1581,16 @@ struct console __init *bfin_earlyserial_init(unsigned int port,
 	return &bfin_early_serial_console;
 }
 #endif /* CONFIG_EARLY_PRINTK */
+
+#if defined(CONFIG_SERIAL_BFIN_CONSOLE)
+static int __init bfin_serial_rs_console_init(void)
+{
+	register_console(&bfin_serial_console);
+
+	return 0;
+}
+console_initcall(bfin_serial_rs_console_init);
+#endif
 
 static int __init bfin_serial_init(void)
 {
