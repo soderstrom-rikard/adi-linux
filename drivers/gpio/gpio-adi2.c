@@ -296,7 +296,6 @@ static struct adi_pm_pint_save save_pint_reg[NR_PINT_SYS_IRQS];
 
 static int adi_gpio_set_wake(struct irq_data *d, unsigned int state)
 {
-#ifndef SEC_GCTL
 	u32 pint_irq;
 	u32 pint_val = irq2pint_lut[d->irq - SYS_IRQS];
 	u32 bank = PINT_2_BANK(pint_val);
@@ -318,6 +317,7 @@ static int adi_gpio_set_wake(struct irq_data *d, unsigned int state)
 		return -EINVAL;
 	}
 
+#ifndef SEC_GCTL
 	adi_internal_set_wake(pint_irq, state);
 #endif
 
