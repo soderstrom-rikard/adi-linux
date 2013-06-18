@@ -119,6 +119,8 @@ struct gpio_port_t {
 	unsigned short dummy16;
 	unsigned short inen;
 };
+#else
+# define gpio_pint_regs bfin_pint_regs
 #endif
 
 #ifdef BFIN_SPECIAL_GPIO_BANKS
@@ -136,7 +138,6 @@ void adi_gpio_pm_hibernate_suspend(void);
 
 # if BFIN_GPIO_PINT
 #  define adi_internal_set_wake bfin_internal_set_wake
-#  define gpio_pint_regs bfin_pint_regs
 void adi_pint_suspend(void);
 void adi_pint_resume(void);
 # else
