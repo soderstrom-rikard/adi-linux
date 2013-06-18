@@ -933,8 +933,8 @@ static int bfin_spi_suspend(struct device *dev)
 
 	bfin_write(&drv_data->regs->control, SPI_CTL_MSTR | SPI_CTL_CPHA);
 	bfin_write(&drv_data->regs->ssel, 0x0000FE00);
-	free_dma(drv_data->rx_dma);
-	free_dma(drv_data->tx_dma);
+	dma_disable_irq(drv_data->rx_dma);
+	dma_disable_irq(drv_data->tx_dma);
 
 	return 0;
 }
@@ -946,22 +946,10 @@ static int bfin_spi_resume(struct device *dev)
 	int ret = 0;
 
 	/* bootrom may modify spi and dma status when resume in spi boot mode */
-	ret = request_dma(drv_data->tx_dma, "SPI_TX_DMA");
-	if (ret) {
-		dev_err(dev, "cannot request SPI TX DMA channel\n");
-		return ret;
-	}
-	set_dma_callback(drv_data->tx_dma, bfin_spi_tx_dma_isr, drv_data);
-
-	ret = request_dma(drv_data->rx_dma, "SPI_RX_DMA");
-	if (ret) {
-		dev_err(dev, "cannot request SPI RX DMA channel\n");
-		free_dma(drv_data->tx_dma);
-		return ret;
-	}
 	disable_dma(drv_data->rx_dma);
-	set_dma_callback(drv_data->rx_dma, bfin_spi_rx_dma_isr, drv_data);
 
+	dma_enable_irq(drv_data->rx_dma);
+	dma_enable_irq(drv_data->tx_dma);
 	bfin_write(&drv_data->regs->control, drv_data->control);
 	bfin_write(&drv_data->regs->ssel, drv_data->ssel);
 
