@@ -67,7 +67,6 @@ struct bfin_spi_master {
 	struct spi_transfer *cur_transfer;
 	struct bfin_spi_device *cur_chip;
 	unsigned transfer_len;
-	unsigned cs_change;
 
 	/* transfer buffer */
 	void *tx;
@@ -351,11 +350,14 @@ static void bfin_spi_next_transfer(struct bfin_spi_master *drv)
 	struct spi_transfer *t = drv->cur_transfer;
 
 	/* Move to next transfer */
-	if (t->transfer_list.next != &msg->transfers)
-		t = list_entry(t->transfer_list.next,
+	if (t->transfer_list.next != &msg->transfers) {
+		drv->cur_transfer = list_entry(t->transfer_list.next,
 			       struct spi_transfer, transfer_list);
-	else
-		t = NULL;
+		drv->state = RUNNING_STATE;
+	} else {
+		drv->state = DONE_STATE;
+		drv->cur_transfer = NULL;
+	}
 }
 
 static void bfin_spi_giveback(struct bfin_spi_master *drv_data)
@@ -366,247 +368,233 @@ static void bfin_spi_giveback(struct bfin_spi_master *drv_data)
 	spi_finalize_current_message(drv_data->master);
 }
 
+static int bfin_spi_setup_transfer(struct bfin_spi_master *drv)
+{
+	struct spi_transfer *t = drv->cur_transfer;
+	u32 cr, cr_width;
+
+	if (t->tx_buf) {
+		drv->tx = (void *)t->tx_buf;
+		drv->tx_end = drv->tx + t->len;
+	} else {
+		drv->tx = NULL;
+	}
+
+	if (t->rx_buf) {
+		drv->rx = t->rx_buf;
+		drv->rx_end = drv->rx + t->len;
+	} else {
+		drv->rx = NULL;
+	}
+
+	drv->transfer_len = t->len;
+
+	/* bits per word setup */
+	switch (t->bits_per_word) {
+	case 8:
+		cr_width = SPI_CTL_SIZE08;
+		drv->ops = &bfin_bfin_spi_transfer_ops_u8;
+		break;
+	case 16:
+		cr_width = SPI_CTL_SIZE16;
+		drv->ops = &bfin_bfin_spi_transfer_ops_u16;
+		break;
+	case 32:
+		cr_width = SPI_CTL_SIZE32;
+		drv->ops = &bfin_bfin_spi_transfer_ops_u32;
+		break;
+	default:
+		return -EINVAL;
+	}
+	cr = bfin_read(&drv->regs->control) & ~SPI_CTL_SIZE;
+	cr |= cr_width;
+	bfin_write(&drv->regs->control, cr);
+
+	/* speed setup */
+	bfin_write(&drv->regs->clock,
+			hz_to_spi_clock(drv->sclk, t->speed_hz));
+	return 0;
+}
+
+static int bfin_spi_dma_xfer(struct bfin_spi_master *drv_data)
+{
+	struct spi_transfer *t = drv_data->cur_transfer;
+	struct spi_message *msg = drv_data->cur_msg;
+	struct bfin_spi_device *chip = drv_data->cur_chip;
+	u32 dma_config;
+	unsigned long word_count, word_size;
+	void *tx_buf, *rx_buf;
+
+	switch (t->bits_per_word) {
+	case 8:
+		dma_config = WDSIZE_8 | PSIZE_8;
+		word_count = drv_data->transfer_len;
+		word_size = 1;
+		break;
+	case 16:
+		dma_config = WDSIZE_16 | PSIZE_16;
+		word_count = drv_data->transfer_len / 2;
+		word_size = 2;
+		break;
+	default:
+		dma_config = WDSIZE_32 | PSIZE_32;
+		word_count = drv_data->transfer_len / 4;
+		word_size = 4;
+		break;
+	}
+
+	if (!drv_data->rx) {
+		tx_buf = drv_data->tx;
+		rx_buf = &drv_data->dummy_buffer;
+		drv_data->tx_dma_size = drv_data->transfer_len;
+		drv_data->rx_dma_size = sizeof(drv_data->dummy_buffer);
+		set_dma_x_modify(drv_data->tx_dma, word_size);
+		set_dma_x_modify(drv_data->rx_dma, 0);
+	} else if (!drv_data->tx) {
+		drv_data->dummy_buffer = chip->tx_dummy_val;
+		tx_buf = &drv_data->dummy_buffer;
+		rx_buf = drv_data->rx;
+		drv_data->tx_dma_size = sizeof(drv_data->dummy_buffer);
+		drv_data->rx_dma_size = drv_data->transfer_len;
+		set_dma_x_modify(drv_data->tx_dma, 0);
+		set_dma_x_modify(drv_data->rx_dma, word_size);
+	} else {
+		tx_buf = drv_data->tx;
+		rx_buf = drv_data->rx;
+		drv_data->tx_dma_size = drv_data->rx_dma_size
+					= drv_data->transfer_len;
+		set_dma_x_modify(drv_data->tx_dma, word_size);
+		set_dma_x_modify(drv_data->rx_dma, word_size);
+	}
+
+	drv_data->tx_dma_addr = dma_map_single(&msg->spi->dev,
+				(void *)tx_buf,
+				drv_data->tx_dma_size,
+				DMA_TO_DEVICE);
+	if (dma_mapping_error(&msg->spi->dev,
+				drv_data->tx_dma_addr))
+		return -ENOMEM;
+
+	drv_data->rx_dma_addr = dma_map_single(&msg->spi->dev,
+				(void *)rx_buf,
+				drv_data->rx_dma_size,
+				DMA_FROM_DEVICE);
+	if (dma_mapping_error(&msg->spi->dev,
+				drv_data->rx_dma_addr)) {
+		dma_unmap_single(&msg->spi->dev,
+				drv_data->tx_dma_addr,
+				drv_data->tx_dma_size,
+				DMA_TO_DEVICE);
+		return -ENOMEM;
+	}
+
+	dummy_read(drv_data);
+	set_dma_x_count(drv_data->tx_dma, word_count);
+	set_dma_x_count(drv_data->rx_dma, word_count);
+	set_dma_start_addr(drv_data->tx_dma, drv_data->tx_dma_addr);
+	set_dma_start_addr(drv_data->rx_dma, drv_data->rx_dma_addr);
+	dma_config |= DMAFLOW_STOP | RESTART | DI_EN;
+	set_dma_config(drv_data->tx_dma, dma_config);
+	set_dma_config(drv_data->rx_dma, dma_config | WNR);
+	enable_dma(drv_data->tx_dma);
+	enable_dma(drv_data->rx_dma);
+	SSYNC();
+
+	bfin_write(&drv_data->regs->rx_control, SPI_RXCTL_REN | SPI_RXCTL_RDR_NE);
+	SSYNC();
+	bfin_write(&drv_data->regs->tx_control,
+			SPI_TXCTL_TEN | SPI_TXCTL_TTI | SPI_TXCTL_TDR_NF);
+
+	return 0;
+}
+
+static int bfin_spi_pio_xfer(struct bfin_spi_master *drv_data)
+{
+	struct spi_message *msg = drv_data->cur_msg;
+
+	if (!drv_data->rx) {
+		/* write only half duplex */
+		drv_data->ops->write(drv_data);
+		if (drv_data->tx != drv_data->tx_end)
+			return -EIO;
+	} else if (!drv_data->tx) {
+		/* read only half duplex */
+		drv_data->ops->read(drv_data);
+		if (drv_data->rx != drv_data->rx_end)
+			return -EIO;
+	} else {
+		/* full duplex mode */
+		drv_data->ops->duplex(drv_data);
+		if (drv_data->tx != drv_data->tx_end)
+			return -EIO;
+	}
+
+	if (!bfin_spi_flush(drv_data))
+		return -EIO;
+	msg->actual_length += drv_data->transfer_len;
+	tasklet_schedule(&drv_data->pump_transfers);
+	return 0;
+}
+
 static void bfin_spi_pump_transfers(unsigned long data)
 {
 	struct bfin_spi_master *drv_data = (struct bfin_spi_master *)data;
-	struct spi_message *message = NULL;
-	struct spi_transfer *transfer = NULL;
-	struct spi_transfer *previous = NULL;
+	struct spi_message *msg = NULL;
+	struct spi_transfer *t = NULL;
 	struct bfin_spi_device *chip = NULL;
-	unsigned int bits_per_word;
-	u32 cr, cr_width;
-	bool tranf_success = true;
-	bool full_duplex = false;
+	int ret;
 
 	/* Get current state information */
-	message = drv_data->cur_msg;
-	transfer = drv_data->cur_transfer;
+	msg = drv_data->cur_msg;
+	t = drv_data->cur_transfer;
 	chip = drv_data->cur_chip;
 
 	/* Handle for abort */
 	if (drv_data->state == ERROR_STATE) {
-		message->status = -EIO;
+		msg->status = -EIO;
 		bfin_spi_giveback(drv_data);
 		return;
 	}
 
+	if (drv_data->state == RUNNING_STATE) {
+		if (t->delay_usecs)
+			udelay(t->delay_usecs);
+		if (t->cs_change)
+			bfin_spi_cs_deactive(drv_data, chip);
+		bfin_spi_next_transfer(drv_data);
+		t = drv_data->cur_transfer;
+	}
 	/* Handle end of message */
 	if (drv_data->state == DONE_STATE) {
-		message->status = 0;
-		bfin_spi_flush(drv_data);
+		msg->status = 0;
 		bfin_spi_giveback(drv_data);
 		return;
 	}
 
-	/* Delay if requested at end of transfer */
-	if (drv_data->state == RUNNING_STATE) {
-		previous = list_entry(transfer->transfer_list.prev,
-				      struct spi_transfer, transfer_list);
-		if (previous->delay_usecs)
-			udelay(previous->delay_usecs);
-	}
-
-	/* Flush any existing transfers that may be sitting in the hardware */
-	if (bfin_spi_flush(drv_data) == 0) {
-		message->status = -EIO;
-		bfin_spi_giveback(drv_data);
-		return;
-	}
-
-	if ((transfer->len == 0) || (transfer->tx_buf == NULL
-				&& transfer->rx_buf == NULL)) {
-		/* Move to next transfer of this msg */
-		bfin_spi_next_transfer(drv_data);
+	if ((t->len == 0) || (t->tx_buf == NULL && t->rx_buf == NULL)) {
 		/* Schedule next transfer tasklet */
 		tasklet_schedule(&drv_data->pump_transfers);
 		return;
 	}
 
-	if (transfer->tx_buf != NULL) {
-		drv_data->tx = (void *)transfer->tx_buf;
-		drv_data->tx_end = drv_data->tx + transfer->len;
-	} else {
-		drv_data->tx = NULL;
-	}
-
-	if (transfer->rx_buf != NULL) {
-		full_duplex = (transfer->tx_buf != NULL) ? true : false;
-		drv_data->rx = transfer->rx_buf;
-		drv_data->rx_end = drv_data->rx + transfer->len;
-	} else {
-		drv_data->rx = NULL;
-	}
-
-	drv_data->transfer_len = transfer->len;
-	drv_data->cs_change = transfer->cs_change;
-
-	/* Bits per word setup */
-	bits_per_word = transfer->bits_per_word ? :
-		message->spi->bits_per_word ? : 8;
-	switch (bits_per_word) {
-	case 8:
-		cr_width = SPI_CTL_SIZE08;
-		drv_data->ops = &bfin_bfin_spi_transfer_ops_u8;
-		break;
-	case 16:
-		cr_width = SPI_CTL_SIZE16;
-		drv_data->ops = &bfin_bfin_spi_transfer_ops_u16;
-		break;
-	case 32:
-		cr_width = SPI_CTL_SIZE32;
-		drv_data->ops = &bfin_bfin_spi_transfer_ops_u32;
-		break;
-	default:
-		message->status = -EINVAL;
+	ret = bfin_spi_setup_transfer(drv_data);
+	if (ret) {
+		msg->status = ret;
 		bfin_spi_giveback(drv_data);
-		return;
 	}
-	cr = bfin_read(&drv_data->regs->control) & ~SPI_CTL_SIZE;
-	cr |= cr_width;
-	bfin_write(&drv_data->regs->control, cr);
-
-	drv_data->state = RUNNING_STATE;
-
-	/* Speed setup (surely valid because already checked) */
-	if (transfer->speed_hz)
-		bfin_write(&drv_data->regs->clock,
-			hz_to_spi_clock(drv_data->sclk, transfer->speed_hz));
-	else
-		bfin_write(&drv_data->regs->clock, chip->clock);
 
 	bfin_write(&drv_data->regs->status, 0xFFFFFFFF);
 	bfin_spi_cs_active(drv_data, chip);
+	drv_data->state = RUNNING_STATE;
 
-	if (chip->enable_dma) {
-		u32 dma_config;
-		unsigned long word_count, word_size;
-		void *tx_buf, *rx_buf;
-
-		switch (bits_per_word) {
-		case 8:
-			dma_config = WDSIZE_8 | PSIZE_8;
-			word_count = drv_data->transfer_len;
-			word_size = 1;
-			break;
-		case 16:
-			dma_config = WDSIZE_16 | PSIZE_16;
-			word_count = drv_data->transfer_len / 2;
-			word_size = 2;
-			break;
-		default:
-			dma_config = WDSIZE_32 | PSIZE_32;
-			word_count = drv_data->transfer_len / 4;
-			word_size = 4;
-			break;
-		}
-
-		if (full_duplex) {
-			WARN_ON((drv_data->tx_end - drv_data->tx)
-					!= (drv_data->rx_end - drv_data->rx));
-			tx_buf = drv_data->tx;
-			rx_buf = drv_data->rx;
-			drv_data->tx_dma_size = drv_data->rx_dma_size
-						= drv_data->transfer_len;
-			set_dma_x_modify(drv_data->tx_dma, word_size);
-			set_dma_x_modify(drv_data->rx_dma, word_size);
-		} else if (drv_data->tx) {
-			tx_buf = drv_data->tx;
-			rx_buf = &drv_data->dummy_buffer;
-			drv_data->tx_dma_size = drv_data->transfer_len;
-			drv_data->rx_dma_size = sizeof(drv_data->dummy_buffer);
-			set_dma_x_modify(drv_data->tx_dma, word_size);
-			set_dma_x_modify(drv_data->rx_dma, 0);
-		} else {
-			drv_data->dummy_buffer = chip->tx_dummy_val;
-			tx_buf = &drv_data->dummy_buffer;
-			rx_buf = drv_data->rx;
-			drv_data->tx_dma_size = sizeof(drv_data->dummy_buffer);
-			drv_data->rx_dma_size = drv_data->transfer_len;
-			set_dma_x_modify(drv_data->tx_dma, 0);
-			set_dma_x_modify(drv_data->rx_dma, word_size);
-		}
-
-		drv_data->tx_dma_addr = dma_map_single(&message->spi->dev,
-					(void *)tx_buf,
-					drv_data->tx_dma_size,
-					DMA_TO_DEVICE);
-		if (dma_mapping_error(&message->spi->dev,
-					drv_data->tx_dma_addr)) {
-			drv_data->state = ERROR_STATE;
-			return;
-		}
-
-		drv_data->rx_dma_addr = dma_map_single(&message->spi->dev,
-					(void *)rx_buf,
-					drv_data->rx_dma_size,
-					DMA_FROM_DEVICE);
-		if (dma_mapping_error(&message->spi->dev,
-					drv_data->rx_dma_addr)) {
-			drv_data->state = ERROR_STATE;
-			dma_unmap_single(&message->spi->dev,
-					drv_data->tx_dma_addr,
-					drv_data->tx_dma_size,
-					DMA_TO_DEVICE);
-			return;
-		}
-
-		dummy_read(drv_data);
-		set_dma_x_count(drv_data->tx_dma, word_count);
-		set_dma_x_count(drv_data->rx_dma, word_count);
-		set_dma_start_addr(drv_data->tx_dma, drv_data->tx_dma_addr);
-		set_dma_start_addr(drv_data->rx_dma, drv_data->rx_dma_addr);
-		dma_config |= DMAFLOW_STOP | RESTART | DI_EN;
-		set_dma_config(drv_data->tx_dma, dma_config);
-		set_dma_config(drv_data->rx_dma, dma_config | WNR);
-		enable_dma(drv_data->tx_dma);
-		enable_dma(drv_data->rx_dma);
-		SSYNC();
-
-		bfin_write(&drv_data->regs->rx_control, SPI_RXCTL_REN | SPI_RXCTL_RDR_NE);
-		SSYNC();
-		bfin_write(&drv_data->regs->tx_control,
-				SPI_TXCTL_TEN | SPI_TXCTL_TTI | SPI_TXCTL_TDR_NF);
-
-		return;
+	if (chip->enable_dma)
+		ret = bfin_spi_dma_xfer(drv_data);
+	else
+		ret = bfin_spi_pio_xfer(drv_data);
+	if (ret) {
+		msg->status = ret;
+		bfin_spi_giveback(drv_data);
 	}
-
-	if (full_duplex) {
-		/* full duplex mode */
-		WARN_ON((drv_data->tx_end - drv_data->tx)
-				!= (drv_data->rx_end - drv_data->rx));
-
-		drv_data->ops->duplex(drv_data);
-
-		if (drv_data->tx != drv_data->tx_end)
-			tranf_success = false;
-	} else if (drv_data->tx != NULL) {
-		/* write only half duplex */
-		drv_data->ops->write(drv_data);
-
-		if (drv_data->tx != drv_data->tx_end)
-			tranf_success = false;
-	} else {
-		/* read only half duplex */
-		drv_data->ops->read(drv_data);
-		if (drv_data->rx != drv_data->rx_end)
-			tranf_success = false;
-	}
-
-	if (!tranf_success) {
-		drv_data->state = ERROR_STATE;
-	} else {
-		/* Update total byte transferred */
-		message->actual_length += drv_data->transfer_len;
-		/* Move to next transfer of this msg */
-		bfin_spi_next_transfer(drv_data);
-		if (drv_data->cs_change) {
-			bfin_spi_flush(drv_data);
-			bfin_spi_cs_deactive(drv_data, chip);
-		}
-	}
-
-	/* Schedule next transfer tasklet */
-	tasklet_schedule(&drv_data->pump_transfers);
 }
 
 static int bfin_spi_transfer_one_message(struct spi_master *master,
@@ -649,9 +637,12 @@ static int bfin_spi_setup(struct spi_device *spi)
 	u32 bfin_ctl_reg = SPI_CTL_ODM | SPI_CTL_PSSE;
 	int ret = -EINVAL;
 
-	if (spi->bits_per_word != 8
-		&& spi->bits_per_word != 16
-		&& spi->bits_per_word != 32) {
+	switch (spi->bits_per_word) {
+	case 8:
+	case 16:
+	case 32:
+		break;
+	default:
 		dev_err(&spi->dev, "%d bits_per_word is not supported\n",
 				spi->bits_per_word);
 		return -EINVAL;
@@ -667,8 +658,8 @@ static int bfin_spi_setup(struct spi_device *spi)
 		}
 		if (chip_info) {
 			if (chip_info->control & ~bfin_ctl_reg) {
-				dev_err(&spi->dev, "do not set bits "
-					"that the SPI framework manages\n");
+				dev_err(&spi->dev,
+					"do not set bits that the SPI framework manages\n");
 				goto error;
 			}
 			chip->control = chip_info->control;
@@ -700,11 +691,6 @@ static int bfin_spi_setup(struct spi_device *spi)
 	/* force a default base state */
 	chip->control &= bfin_ctl_reg;
 
-	/* translate common spi framework into our register */
-	if (spi->mode & ~(SPI_CPOL | SPI_CPHA | SPI_LSB_FIRST)) {
-		dev_err(&spi->dev, "unsupported spi modes detected\n");
-		goto pin_error;
-	}
 	if (spi->mode & SPI_CPOL)
 		chip->control |= SPI_CTL_CPOL;
 	if (spi->mode & SPI_CPHA)
@@ -721,11 +707,6 @@ static int bfin_spi_setup(struct spi_device *spi)
 	bfin_spi_cs_deactive(drv_data, chip);
 
 	return 0;
-pin_error:
-	if (chip->cs < MAX_CTRL_CS)
-		peripheral_free(ssel[spi->master->bus_num][chip->cs - 1]);
-	else
-		gpio_free(chip->cs_gpio);
 error:
 	if (chip) {
 		kfree(chip);
@@ -775,7 +756,6 @@ static irqreturn_t bfin_spi_tx_dma_isr(int irq, void *dev_id)
 static irqreturn_t bfin_spi_rx_dma_isr(int irq, void *dev_id)
 {
 	struct bfin_spi_master *drv_data = dev_id;
-	struct bfin_spi_device *chip = drv_data->cur_chip;
 	struct spi_message *msg = drv_data->cur_msg;
 	u32 dma_stat = get_dma_curr_irqstat(drv_data->rx_dma);
 
@@ -785,9 +765,6 @@ static irqreturn_t bfin_spi_rx_dma_isr(int irq, void *dev_id)
 		/* we may fail on tx dma */
 		if (drv_data->state != ERROR_STATE)
 			msg->actual_length += drv_data->transfer_len;
-		if (drv_data->cs_change)
-			bfin_spi_cs_deactive(drv_data, chip);
-		bfin_spi_next_transfer(drv_data);
 	} else {
 		drv_data->state = ERROR_STATE;
 		dev_err(&drv_data->master->dev,
@@ -968,6 +945,7 @@ static int bfin_spi_resume(struct device *dev)
 	struct bfin_spi_master *drv_data = spi_master_get_devdata(master);
 	int ret = 0;
 
+	/* bootrom may modify spi and dma status when resume in spi boot mode */
 	ret = request_dma(drv_data->tx_dma, "SPI_TX_DMA");
 	if (ret) {
 		dev_err(dev, "cannot request SPI TX DMA channel\n");
@@ -981,7 +959,6 @@ static int bfin_spi_resume(struct device *dev)
 		free_dma(drv_data->tx_dma);
 		return ret;
 	}
-	/* rx dma is enabled when resume in spi boot mode */
 	disable_dma(drv_data->rx_dma);
 	set_dma_callback(drv_data->rx_dma, bfin_spi_rx_dma_isr, drv_data);
 
