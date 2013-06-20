@@ -1,5 +1,5 @@
 /*
- * ADI GPIO Abstraction Layer
+ * GPIO Driver for ADI GPIO2 controller
  *
  * Copyright 2007-2013 Analog Devices Inc.
  *
