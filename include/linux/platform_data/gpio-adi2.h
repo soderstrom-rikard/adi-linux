@@ -3,7 +3,7 @@
  *
  * Copyright 2007-2013 Analog Devices Inc.
  *
- * Licensed under the GPL-2 or later
+ * Licensed under the GPLv2 or later
  */
 
 
@@ -13,14 +13,24 @@
 #include <linux/io.h>
 #include <linux/platform_device.h>
 
+/**
+ * struct adi_gpio_platform_data - GPIO platform data for ADI GPIO2 device.
+ *
+ * @port_pin_base: Optional global GPIO index of the GPIO bank.
+ *                 0 means driver decides.
+ * @port_width: PIN number of the GPIO bank device
+ * @pint_id: GPIO PINT device id that this GPIO bank should map to.
+ * @pint_assign: The 32-bit GPIO PINT registers can be divided into 2 parts. A
+ *               GPIO bank can be mapped into either low 16 bits[0] or high 16
+ *               bits[1] of each PINT register.
+ * @pint_map: GIOP bank mapping code in PINT device
+ */
 struct adi_gpio_platform_data {
-	int port_pin_base;	/* optional, 0 - driver decides */
-	int port_width;
-	u8 pint_id;		/* which pint to map the gpio port */
-	u8 pint_assign;		/* 0 - assgin to 1ow 16 bits
-				 * 1 - assign to high 16 bits
-				 */
-	u8 pint_map;		/* port mapping mask in pint */
+	unsigned int port_pin_base;
+	unsigned int port_width;
+	u8 pint_id;
+	u8 pint_assign;
+	u8 pint_map;
 };
 
 #endif
