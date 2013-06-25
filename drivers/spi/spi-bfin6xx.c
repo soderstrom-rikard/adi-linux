@@ -728,8 +728,9 @@ static void bfin_spi_cleanup(struct spi_device *spi)
 		peripheral_free(ssel[spi->master->bus_num]
 					[chip->cs-1]);
 		bfin_spi_cs_disable(drv_data, chip);
-	} else
+	} else {
 		gpio_free(chip->cs_gpio);
+	}
 
 	kfree(chip);
 	spi_set_ctldata(spi, NULL);
@@ -849,7 +850,6 @@ static int bfin_spi_probe(struct platform_device *pdev)
 
 	drv_data->regs = devm_ioremap_resource(dev, mem);
 	if (IS_ERR(drv_data->regs)) {
-		dev_err(dev, "can not map register memory\n");
 		ret = PTR_ERR(drv_data->regs);
 		goto err_put_master;
 	}
@@ -962,8 +962,7 @@ static int bfin_spi_resume(struct device *dev)
 	return ret;
 }
 static const struct dev_pm_ops bfin_spi_pm_ops = {
-	.suspend = bfin_spi_suspend,
-	.resume  = bfin_spi_resume,
+	SET_SYSTEM_SLEEP_PM_OPS(bfin_spi_suspend, bfin_spi_resume)
 };
 #endif /* CONFIG_PM */
 
