@@ -978,17 +978,7 @@ static struct platform_driver bfin_spi_driver = {
 	.remove		= bfin_spi_remove,
 };
 
-static int __init bfin_spi_init(void)
-{
-	return platform_driver_probe(&bfin_spi_driver, bfin_spi_probe);
-}
-subsys_initcall(bfin_spi_init);
-
-static void __exit bfin_spi_exit(void)
-{
-	platform_driver_unregister(&bfin_spi_driver);
-}
-module_exit(bfin_spi_exit);
+module_platform_driver_probe(bfin_spi_driver, bfin_spi_probe);
 
 MODULE_DESCRIPTION("Analog Devices SPI3 controller driver");
 MODULE_AUTHOR("Scott Jiang <Scott.Jiang.Linux@gmail.com>");
