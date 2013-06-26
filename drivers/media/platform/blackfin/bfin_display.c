@@ -32,7 +32,6 @@
 #include <linux/time.h>
 #include <linux/types.h>
 
-#include <media/v4l2-chip-ident.h>
 #include <media/v4l2-common.h>
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
@@ -578,6 +577,7 @@ static int bfin_disp_try_format(struct bfin_disp_device *disp,
 	}
 	pixfmt->bytesperline = pixfmt->width * fmt->bpp / 8;
 	pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
+	pixfmt->priv = 0;
 	return 0;
 }
 
@@ -650,7 +650,7 @@ static int bfin_disp_querycap(struct file *file, void  *priv,
 	cap->device_caps = V4L2_CAP_VIDEO_OUTPUT | V4L2_CAP_STREAMING;
 	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
 	strlcpy(cap->driver, DISPLAY_DRV_NAME, sizeof(cap->driver));
-	strlcpy(cap->bus_info, "Blackfin Platform", sizeof(cap->bus_info));
+	strlcpy(cap->bus_info, "platform:bfin_display", sizeof(cap->bus_info));
 	strlcpy(cap->card, disp->cfg->card_name, sizeof(cap->card));
 	return 0;
 }
