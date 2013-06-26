@@ -28,7 +28,7 @@
 #include <linux/spi/spi.h>
 #include <linux/types.h>
 
-#include <asm/bfin6xx_spi.h>
+#include <asm/bfin_spi3.h>
 #include <asm/cacheflush.h>
 #include <asm/dma.h>
 #include <asm/portmux.h>
@@ -649,7 +649,7 @@ static int bfin_spi_setup(struct spi_device *spi)
 	}
 
 	if (!chip) {
-		struct bfin6xx_spi_chip *chip_info = spi->controller_data;
+		struct bfin_spi3_chip *chip_info = spi->controller_data;
 
 		chip = kzalloc(sizeof(*chip), GFP_KERNEL);
 		if (!chip) {
@@ -784,7 +784,7 @@ static irqreturn_t bfin_spi_rx_dma_isr(int irq, void *dev_id)
 static int bfin_spi_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct bfin6xx_spi_master *info = dev->platform_data;
+	struct bfin_spi3_master *info = dev->platform_data;
 	struct spi_master *master;
 	struct bfin_spi_master *drv_data;
 	struct resource *mem, *res;
@@ -870,7 +870,7 @@ static int bfin_spi_probe(struct platform_device *pdev)
 	set_dma_callback(drv_data->rx_dma, bfin_spi_rx_dma_isr, drv_data);
 
 	/* request CLK, MOSI and MISO */
-	ret = peripheral_request_list(drv_data->pin_req, "bfin-spi");
+	ret = peripheral_request_list(drv_data->pin_req, "bfin-spi3");
 	if (ret < 0) {
 		dev_err(dev, "can not request spi pins\n");
 		goto err_free_rx_dma;
@@ -961,19 +961,17 @@ static int bfin_spi_resume(struct device *dev)
 
 	return ret;
 }
+#endif
 static const struct dev_pm_ops bfin_spi_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(bfin_spi_suspend, bfin_spi_resume)
 };
-#endif /* CONFIG_PM */
 
-MODULE_ALIAS("platform:bfin-spi");
+MODULE_ALIAS("platform:bfin-spi3");
 static struct platform_driver bfin_spi_driver = {
 	.driver	= {
-		.name	= "bfin-spi",
+		.name	= "bfin-spi3",
 		.owner	= THIS_MODULE,
-#ifdef CONFIG_PM
 		.pm     = &bfin_spi_pm_ops,
-#endif
 	},
 	.remove		= bfin_spi_remove,
 };

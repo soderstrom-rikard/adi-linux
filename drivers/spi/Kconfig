@@ -87,11 +87,12 @@ config SPI_BFIN5XX
 	help
 	  This is the SPI controller master driver for Blackfin 5xx processor.
 
-config SPI_BFIN6XX
-	tristate "SPI controller driver for ADI Blackfin6xx"
+config SPI_BFIN_V3
+	tristate "SPI controller v3 for Blackfin"
 	depends on BLACKFIN && BF60x
 	help
-	  This is the SPI controller master driver for Blackfin 6xx processor.
+	  This is the SPI controller v3 master driver
+	  found on Blackfin 60x processor.
 
 config SPI_BFIN_SPORT
 	tristate "SPI bus via Blackfin SPORT"
