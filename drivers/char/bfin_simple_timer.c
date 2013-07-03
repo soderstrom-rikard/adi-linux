@@ -245,6 +245,11 @@ static const struct file_operations fops = {
 	.release        = timer_close,
 };
 
+static const struct file_operations timer_proc_fops = {
+	.read = timer_read_proc,
+	.llseek = default_llseek,
+};
+
 static struct proc_dir_entry *timer_dir_entry;
 static struct class *timer_class;
 static CLASS_ATTR(status, S_IRUGO, &timer_status_show, NULL);
@@ -260,9 +265,9 @@ static int __init timer_initialize(void)
 		return err;
 	}
 
-	timer_dir_entry = create_proc_entry(DRV_NAME, 0444, NULL);
-	if (timer_dir_entry)
-		timer_dir_entry->read_proc = &timer_read_proc;
+	timer_dir_entry = proc_create(DRV_NAME, 0444, NULL, &timer_proc_fops);
+	if (!timer_dir_entry)
+		return -ENOMEM;
 
 	timer_class = class_create(THIS_MODULE, "timer");
 	err = class_create_file(timer_class, &class_attr_status);

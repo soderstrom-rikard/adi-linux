@@ -339,7 +339,7 @@ void __cpuinit secondary_start_kernel(void)
 
 	/* We are done with local CPU inits, unblock the boot CPU. */
 	set_cpu_online(cpu, true);
-	cpu_idle();
+	cpu_startup_entry(CPUHP_ONLINE);
 }
 
 void __init smp_prepare_boot_cpu(void)
