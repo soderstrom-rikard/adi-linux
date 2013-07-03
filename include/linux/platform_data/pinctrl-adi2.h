@@ -1,5 +1,5 @@
 /*
- * GPIO Driver for ADI GPIO2 controller
+ * Pinctrl Driver for ADI GPIO2 controller
  *
  * Copyright 2007-2013 Analog Devices Inc.
  *
@@ -7,14 +7,15 @@
  */
 
 
-#ifndef GPIO_ADI2_H
-#define GPIO_ADI2_H
+#ifndef PINCTRL_ADI2_H
+#define PINCTRL_ADI2_H
 
 #include <linux/io.h>
 #include <linux/platform_device.h>
 
 /**
- * struct adi_gpio_platform_data - GPIO platform data for ADI GPIO2 device.
+ * struct adi_pinctrl_gpio_platform_data - Pinctrl gpio platform data
+ * for ADI GPIO2 device.
  *
  * @port_pin_base: Optional global GPIO index of the GPIO bank.
  *                 0 means driver decides.
@@ -25,9 +26,10 @@
  *               bits[1] of each PINT register.
  * @pint_map: GIOP bank mapping code in PINT device
  */
-struct adi_gpio_platform_data {
+struct adi_pinctrl_gpio_platform_data {
 	unsigned int port_pin_base;
 	unsigned int port_width;
+	u8 pinctrl_id;
 	u8 pint_id;
 	u8 pint_assign;
 	u8 pint_map;
