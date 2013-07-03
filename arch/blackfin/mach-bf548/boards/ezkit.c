@@ -17,7 +17,9 @@
 #include <linux/i2c.h>
 #include <linux/interrupt.h>
 #include <linux/usb/musb.h>
-#include <linux/platform_data/gpio-adi2.h>
+#include <linux/pinctrl/machine.h>
+#include <linux/pinctrl/pinconf-generic.h>
+#include <linux/platform_data/pinctrl-adi2.h>
 #include <asm/bfin5xx_spi.h>
 #include <asm/dma.h>
 #include <asm/gpio.h>
@@ -1088,6 +1090,16 @@ static const struct ad7877_platform_data bfin_ad7877_ts_info = {
 #endif
 
 #ifdef CONFIG_PINCTRL_ADI2
+
+# define ADI_PINT_DEVNAME "adi-gpio-pint"
+# define ADI_GPIO_DEVNAME "adi-gpio"
+# define ADI_PINCTRL_DEVNAME "pinctrl-adi2"
+
+static struct platform_device bfin_pinctrl_device = {
+	.name = ADI_PINCTRL_DEVNAME,
+	.id = 0,
+};
+
 static struct resource bfin_pint0_resources[] = {
 	{
 		.start = PINT0_MASK_SET,
@@ -1102,7 +1114,7 @@ static struct resource bfin_pint0_resources[] = {
 };
 
 static struct platform_device bfin_pint0_device = {
-	.name = "adi-gpio-pint",
+	.name = ADI_PINT_DEVNAME,
 	.id = 0,
 	.num_resources = ARRAY_SIZE(bfin_pint0_resources),
 	.resource = bfin_pint0_resources,
@@ -1122,7 +1134,7 @@ static struct resource bfin_pint1_resources[] = {
 };
 
 static struct platform_device bfin_pint1_device = {
-	.name = "adi-gpio-pint",
+	.name = ADI_PINT_DEVNAME,
 	.id = 1,
 	.num_resources = ARRAY_SIZE(bfin_pint1_resources),
 	.resource = bfin_pint1_resources,
@@ -1142,7 +1154,7 @@ static struct resource bfin_pint2_resources[] = {
 };
 
 static struct platform_device bfin_pint2_device = {
-	.name = "adi-gpio-pint",
+	.name = ADI_PINT_DEVNAME,
 	.id = 2,
 	.num_resources = ARRAY_SIZE(bfin_pint2_resources),
 	.resource = bfin_pint2_resources,
@@ -1162,7 +1174,7 @@ static struct resource bfin_pint3_resources[] = {
 };
 
 static struct platform_device bfin_pint3_device = {
-	.name = "adi-gpio-pint",
+	.name = ADI_PINT_DEVNAME,
 	.id = 3,
 	.num_resources = ARRAY_SIZE(bfin_pint3_resources),
 	.resource = bfin_pint3_resources,
@@ -1181,7 +1193,7 @@ static struct resource bfin_gpa_resources[] = {
 	},
 };
 
-static struct adi_gpio_platform_data bfin_gpa_pdata = {
+static struct adi_pinctrl_gpio_platform_data bfin_gpa_pdata = {
 	.port_pin_base	= GPIO_PA0,	/* optional */
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 0,		/* PINT0 */
@@ -1190,7 +1202,7 @@ static struct adi_gpio_platform_data bfin_gpa_pdata = {
 };
 
 static struct platform_device bfin_gpa_device = {
-	.name = "adi-gpio",
+	.name = ADI_GPIO_DEVNAME,
 	.id = 0,
 	.num_resources = ARRAY_SIZE(bfin_gpa_resources),
 	.resource = bfin_gpa_resources,
@@ -1212,7 +1224,7 @@ static struct resource bfin_gpb_resources[] = {
 	},
 };
 
-static struct adi_gpio_platform_data bfin_gpb_pdata = {
+static struct adi_pinctrl_gpio_platform_data bfin_gpb_pdata = {
 	.port_pin_base	= GPIO_PB0,
 	.port_width	= 15,
 	.pint_id	= 0,
@@ -1221,7 +1233,7 @@ static struct adi_gpio_platform_data bfin_gpb_pdata = {
 };
 
 static struct platform_device bfin_gpb_device = {
-	.name = "adi-gpio",
+	.name = ADI_GPIO_DEVNAME,
 	.id = 1,
 	.num_resources = ARRAY_SIZE(bfin_gpb_resources),
 	.resource = bfin_gpb_resources,
@@ -1243,7 +1255,7 @@ static struct resource bfin_gpc_resources[] = {
 	},
 };
 
-static struct adi_gpio_platform_data bfin_gpc_pdata = {
+static struct adi_pinctrl_gpio_platform_data bfin_gpc_pdata = {
 	.port_pin_base	= GPIO_PC0,
 	.port_width	= 14,
 	.pint_id	= 2,
@@ -1252,7 +1264,7 @@ static struct adi_gpio_platform_data bfin_gpc_pdata = {
 };
 
 static struct platform_device bfin_gpc_device = {
-	.name = "adi-gpio",
+	.name = ADI_GPIO_DEVNAME,
 	.id = 2,
 	.num_resources = ARRAY_SIZE(bfin_gpc_resources),
 	.resource = bfin_gpc_resources,
@@ -1274,7 +1286,7 @@ static struct resource bfin_gpd_resources[] = {
 	},
 };
 
-static struct adi_gpio_platform_data bfin_gpd_pdata = {
+static struct adi_pinctrl_gpio_platform_data bfin_gpd_pdata = {
 	.port_pin_base	= GPIO_PD0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 2,
@@ -1283,7 +1295,7 @@ static struct adi_gpio_platform_data bfin_gpd_pdata = {
 };
 
 static struct platform_device bfin_gpd_device = {
-	.name = "adi-gpio",
+	.name = ADI_GPIO_DEVNAME,
 	.id = 3,
 	.num_resources = ARRAY_SIZE(bfin_gpd_resources),
 	.resource = bfin_gpd_resources,
@@ -1305,7 +1317,7 @@ static struct resource bfin_gpe_resources[] = {
 	},
 };
 
-static struct adi_gpio_platform_data bfin_gpe_pdata = {
+static struct adi_pinctrl_gpio_platform_data bfin_gpe_pdata = {
 	.port_pin_base	= GPIO_PE0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 3,
@@ -1314,7 +1326,7 @@ static struct adi_gpio_platform_data bfin_gpe_pdata = {
 };
 
 static struct platform_device bfin_gpe_device = {
-	.name = "adi-gpio",
+	.name = ADI_GPIO_DEVNAME,
 	.id = 4,
 	.num_resources = ARRAY_SIZE(bfin_gpe_resources),
 	.resource = bfin_gpe_resources,
@@ -1336,7 +1348,7 @@ static struct resource bfin_gpf_resources[] = {
 	},
 };
 
-static struct adi_gpio_platform_data bfin_gpf_pdata = {
+static struct adi_pinctrl_gpio_platform_data bfin_gpf_pdata = {
 	.port_pin_base	= GPIO_PF0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 3,
@@ -1345,7 +1357,7 @@ static struct adi_gpio_platform_data bfin_gpf_pdata = {
 };
 
 static struct platform_device bfin_gpf_device = {
-	.name = "adi-gpio",
+	.name = ADI_GPIO_DEVNAME,
 	.id = 5,
 	.num_resources = ARRAY_SIZE(bfin_gpf_resources),
 	.resource = bfin_gpf_resources,
@@ -1367,14 +1379,14 @@ static struct resource bfin_gpg_resources[] = {
 	},
 };
 
-static struct adi_gpio_platform_data bfin_gpg_pdata = {
+static struct adi_pinctrl_gpio_platform_data bfin_gpg_pdata = {
 	.port_pin_base	= GPIO_PG0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= -1,
 };
 
 static struct platform_device bfin_gpg_device = {
-	.name = "adi-gpio",
+	.name = ADI_GPIO_DEVNAME,
 	.id = 6,
 	.num_resources = ARRAY_SIZE(bfin_gpg_resources),
 	.resource = bfin_gpg_resources,
@@ -1396,14 +1408,14 @@ static struct resource bfin_gph_resources[] = {
 	},
 };
 
-static struct adi_gpio_platform_data bfin_gph_pdata = {
+static struct adi_pinctrl_gpio_platform_data bfin_gph_pdata = {
 	.port_pin_base	= GPIO_PH0,
 	.port_width	= 14,
 	.pint_id	= -1,
 };
 
 static struct platform_device bfin_gph_device = {
-	.name = "adi-gpio",
+	.name = ADI_GPIO_DEVNAME,
 	.id = 7,
 	.num_resources = ARRAY_SIZE(bfin_gph_resources),
 	.resource = bfin_gph_resources,
@@ -1425,14 +1437,14 @@ static struct resource bfin_gpi_resources[] = {
 	},
 };
 
-static struct adi_gpio_platform_data bfin_gpi_pdata = {
+static struct adi_pinctrl_gpio_platform_data bfin_gpi_pdata = {
 	.port_pin_base	= GPIO_PI0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= -1,
 };
 
 static struct platform_device bfin_gpi_device = {
-	.name = "adi-gpio",
+	.name = ADI_GPIO_DEVNAME,
 	.id = 8,
 	.num_resources = ARRAY_SIZE(bfin_gpi_resources),
 	.resource = bfin_gpi_resources,
@@ -1454,14 +1466,14 @@ static struct resource bfin_gpj_resources[] = {
 	},
 };
 
-static struct adi_gpio_platform_data bfin_gpj_pdata = {
+static struct adi_pinctrl_gpio_platform_data bfin_gpj_pdata = {
 	.port_pin_base	= GPIO_PJ0,
 	.port_width	= 14,
 	.pint_id	= -1,
 };
 
 static struct platform_device bfin_gpj_device = {
-	.name = "adi-gpio",
+	.name = ADI_GPIO_DEVNAME,
 	.id = 9,
 	.num_resources = ARRAY_SIZE(bfin_gpj_resources),
 	.resource = bfin_gpj_resources,
@@ -1480,7 +1492,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.modalias = "m25p80", /* Name of spi_driver for this device */
 		.max_speed_hz = 25000000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0, /* Framework bus number */
-		.chip_select = 1, /* SPI_SSEL1*/
+		.chip_select = MAX_CTRL_CS + GPIO_PE4, /* SPI_SSEL1*/
 		.platform_data = &bfin_spi_flash_data,
 		.controller_data = &spi_flash_chip_info,
 		.mode = SPI_MODE_3,
@@ -1492,7 +1504,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.modalias = "ad183x",
 		.max_speed_hz = 3125000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 1,
-		.chip_select = 4,
+		.chip_select = MAX_CTRL_CS + GPIO_PG6, /* SPI_SSEL2 */
 	},
 #endif
 #if defined(CONFIG_TOUCHSCREEN_AD7877) || defined(CONFIG_TOUCHSCREEN_AD7877_MODULE)
@@ -1502,7 +1514,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.irq			= IRQ_PB4,	/* old boards (<=Rev 1.3) use IRQ_PJ11 */
 		.max_speed_hz		= 12500000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num		= 0,
-		.chip_select  		= 2,
+		.chip_select		= MAX_CTRL_CS + GPIO_PE5, /* SPI_SSEL2 */
 	},
 #endif
 #if defined(CONFIG_SPI_SPIDEV) || defined(CONFIG_SPI_SPIDEV_MODULE)
@@ -1510,7 +1522,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.modalias = "spidev",
 		.max_speed_hz = 3125000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 0,
-		.chip_select = 1,
+		.chip_select = MAX_CTRL_CS + GPIO_PE4, /* SPI_SSEL1 */
 	},
 #endif
 #if defined(CONFIG_INPUT_ADXL34X_SPI) || defined(CONFIG_INPUT_ADXL34X_SPI_MODULE)
@@ -1520,7 +1532,7 @@ static struct spi_board_info bfin_spi_board_info[] __initdata = {
 		.irq			= IRQ_PC5,
 		.max_speed_hz		= 5000000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num		= 1,
-		.chip_select  		= 2,
+		.chip_select		= MAX_CTRL_CS + GPIO_PG6, /* SPI_SSEL2 */
 		.mode = SPI_MODE_3,
 	},
 #endif
@@ -1566,7 +1578,7 @@ static struct resource bfin_spi1_resource[] = {
 
 /* SPI controller data */
 static struct bfin5xx_spi_master bf54x_spi_master_info0 = {
-	.num_chipselect = 4,
+	.num_chipselect = MAX_CTRL_CS + MAX_BLACKFIN_GPIOS,
 	.enable_dma = 1,  /* master has the ability to do dma transfer */
 	.pin_req = {P_SPI0_SCK, P_SPI0_MISO, P_SPI0_MOSI, 0},
 };
@@ -1582,7 +1594,7 @@ static struct platform_device bf54x_spi_master0 = {
 };
 
 static struct bfin5xx_spi_master bf54x_spi_master_info1 = {
-	.num_chipselect = 4,
+	.num_chipselect = MAX_CTRL_CS + MAX_BLACKFIN_GPIOS,
 	.enable_dma = 1,  /* master has the ability to do dma transfer */
 	.pin_req = {P_SPI1_SCK, P_SPI1_MISO, P_SPI1_MOSI, 0},
 };
@@ -1943,6 +1955,7 @@ static struct platform_device *ezkit_devices[] __initdata = {
 
 	&bfin_dpmc,
 #if defined(CONFIG_PINCTRL_ADI2)
+	&bfin_pinctrl_device,
 	&bfin_pint0_device,
 	&bfin_pint1_device,
 	&bfin_pint2_device,
@@ -2100,9 +2113,56 @@ static struct platform_device *ezkit_devices[] __initdata = {
 #endif
 };
 
+/* Pin control settings */
+static struct pinctrl_map __initdata bfin_pinmux_map[] = {
+	/* per-device maps */
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-uart.0",  "pinctrl-adi2.0", NULL, "uart0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-uart.1",  "pinctrl-adi2.0", NULL, "uart1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-uart.2",  "pinctrl-adi2.0", NULL, "uart2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-uart.3",  "pinctrl-adi2.0", NULL, "uart3"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin_sir.0",  "pinctrl-adi2.0", NULL, "uart0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin_sir.1",  "pinctrl-adi2.0", NULL, "uart1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin_sir.2",  "pinctrl-adi2.0", NULL, "uart2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin_sir.3",  "pinctrl-adi2.0", NULL, "uart3"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-sdh.0",  "pinctrl-adi2.0", NULL, "rsi0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-spi.0",  "pinctrl-adi2.0", NULL, "spi0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-spi.1",  "pinctrl-adi2.0", NULL, "spi1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("i2c-bfin-twi.0",  "pinctrl-adi2.0", NULL, "twi0"),
+#if !defined(CONFIG_BF542)	/* The BF542 only has 1 TWI */
+	PIN_MAP_MUX_GROUP_DEFAULT("i2c-bfin-twi.1",  "pinctrl-adi2.0", NULL, "twi1"),
+#endif
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-rotary",  "pinctrl-adi2.0", NULL, "rotary"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin_can.0",  "pinctrl-adi2.0", NULL, "can0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin_can.1",  "pinctrl-adi2.0", NULL, "can1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bf54x-lq043",  "pinctrl-adi2.0", NULL, "ppi0_24b"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-i2s.0",  "pinctrl-adi2.0", NULL, "sport0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-tdm.0",  "pinctrl-adi2.0", NULL, "sport0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-ac97.0",  "pinctrl-adi2.0", NULL, "sport0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-i2s.1",  "pinctrl-adi2.0", NULL, "sport1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-tdm.1",  "pinctrl-adi2.0", NULL, "sport1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-ac97.1",  "pinctrl-adi2.0", NULL, "sport1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-i2s.2",  "pinctrl-adi2.0", NULL, "sport2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-tdm.2",  "pinctrl-adi2.0", NULL, "sport2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-ac97.2",  "pinctrl-adi2.0", NULL, "sport2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-i2s.3",  "pinctrl-adi2.0", NULL, "sport3"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-tdm.3",  "pinctrl-adi2.0", NULL, "sport3"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-ac97.3",  "pinctrl-adi2.0", NULL, "sport3"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-sport-uart.0",  "pinctrl-adi2.0", NULL, "sport0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-sport-uart.1",  "pinctrl-adi2.0", NULL, "sport1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-sport-uart.2",  "pinctrl-adi2.0", NULL, "sport2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-sport-uart.3",  "pinctrl-adi2.0", NULL, "sport3"),
+	PIN_MAP_MUX_GROUP_DEFAULT("pata-bf54x",  "pinctrl-adi2.0", NULL, "atapi"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bf5xx-nand.0",  "pinctrl-adi2.0", NULL, "nfc0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bf54x-keys",  "pinctrl-adi2.0", NULL, "keys_4x4"),
+};
+
 static int __init ezkit_init(void)
 {
 	printk(KERN_INFO "%s(): registering device resources\n", __func__);
+
+	/* Initialize pinmuxing */
+	pinctrl_register_mappings(bfin_pinmux_map,
+				ARRAY_SIZE(bfin_pinmux_map));
 
 	i2c_register_board_info(0, bfin_i2c_board_info0,
 				ARRAY_SIZE(bfin_i2c_board_info0));

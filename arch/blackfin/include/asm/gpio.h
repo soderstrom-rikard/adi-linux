@@ -23,9 +23,9 @@
 # define BFIN_GPIO_PINT 0
 #endif
 
-#define MAX_GPIOS	MAX_BLACKFIN_GPIOS
-
 #ifndef __ASSEMBLY__
+
+#ifndef CONFIG_PINCTRL
 
 #include <linux/compiler.h>
 #include <asm/blackfin.h>
@@ -49,7 +49,6 @@
 * MODIFICATION HISTORY :
 **************************************************************/
 
-# ifdef CONFIG_GPIO_ADI
 void set_gpio_dir(unsigned, unsigned short);
 void set_gpio_inen(unsigned, unsigned short);
 void set_gpio_polar(unsigned, unsigned short);
@@ -119,9 +118,6 @@ struct gpio_port_t {
 	unsigned short dummy16;
 	unsigned short inen;
 };
-#else
-# define gpio_pint_regs bfin_pint_regs
-#endif
 
 #ifdef BFIN_SPECIAL_GPIO_BANKS
 void bfin_special_gpio_free(unsigned gpio);
@@ -133,8 +129,6 @@ void bfin_special_gpio_pm_hibernate_suspend(void);
 #endif
 
 #ifdef CONFIG_PM
-
-# ifdef CONFIG_GPIO_ADI
 void bfin_gpio_pm_hibernate_restore(void);
 void bfin_gpio_pm_hibernate_suspend(void);
 int bfin_gpio_pm_wakeup_ctrl(unsigned gpio, unsigned ctrl);
@@ -165,9 +159,6 @@ struct gpio_port_s {
 	unsigned short reserved;
 	unsigned short mux;
 };
-# else
-#  define adi_internal_set_wake bfin_internal_set_wake
-# endif
 #endif /*CONFIG_PM*/
 
 /***********************************************************
@@ -184,11 +175,15 @@ struct gpio_port_s {
 *************************************************************
 * MODIFICATION HISTORY :
 **************************************************************/
-#ifdef CONFIG_GPIO_ADI
 int bfin_gpio_irq_request(unsigned gpio, const char *label);
 void bfin_gpio_irq_free(unsigned gpio);
 void bfin_gpio_irq_prepare(unsigned gpio);
-#endif
+
+static inline int irq_to_gpio(unsigned irq)
+{
+	return irq - GPIO_IRQ_BASE;
+}
+#endif /* CONFIG_PINCTRL */
 
 #include <asm/irq.h>
 #include <asm/errno.h>
@@ -214,12 +209,6 @@ static inline int gpio_to_irq(unsigned gpio)
 {
 	return __gpio_to_irq(gpio);
 }
-
-static inline int irq_to_gpio(unsigned irq)
-{
-	return (irq - GPIO_IRQ_BASE);
-}
-
 #endif /* __ASSEMBLY__ */
 
 #endif /* __ARCH_BLACKFIN_GPIO_H__ */
