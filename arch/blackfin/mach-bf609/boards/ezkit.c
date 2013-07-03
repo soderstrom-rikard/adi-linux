@@ -1456,7 +1456,7 @@ static const struct ad7879_platform_data bfin_ad7879_ts_info = {
 };
 #endif
 
-#ifdef CONFIG_GPIO_ADI2
+#ifdef CONFIG_PINCTRL_ADI2
 static struct resource bfin_pint0_resources[] = {
 	{
 		.start = PINT0_MASK_SET,
@@ -2048,7 +2048,7 @@ static struct platform_device bfin_dpmc = {
 static struct platform_device *ezkit_devices[] __initdata = {
 
 	&bfin_dpmc,
-#if defined(CONFIG_GPIO_ADI2)
+#if defined(CONFIG_PINCTRL_ADI2)
 	&bfin_pint0_device,
 	&bfin_pint1_device,
 	&bfin_pint2_device,
