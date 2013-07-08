@@ -446,15 +446,15 @@ static int load_flat_file(struct linux_binprm * bprm,
 	hdr = ((struct flat_hdr *) bprm->buf);		/* exec-header */
 	inode = file_inode(bprm->file);
 
-	relocs    = ntohl(hdr->reloc_count);
-	flags     = ntohl(hdr->flags);
-	rev       = ntohl(hdr->rev);
-	full_data = data_len + relocs * sizeof(unsigned long);
-
 	text_len  = ntohl(hdr->data_start);
 	data_len  = ntohl(hdr->data_end) - ntohl(hdr->data_start);
 	bss_len   = ntohl(hdr->bss_end) - ntohl(hdr->data_end);
 	stack_len = ntohl(hdr->stack_size);
+
+	relocs    = ntohl(hdr->reloc_count);
+	flags     = ntohl(hdr->flags);
+	rev       = ntohl(hdr->rev);
+	full_data = data_len + relocs * sizeof(unsigned long);
 
 	if (flags & FLAT_FLAG_L1STK) {
 #ifdef CONFIG_SMP
