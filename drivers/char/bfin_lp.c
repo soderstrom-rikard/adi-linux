@@ -341,7 +341,12 @@ static int bfin_lp_open(struct inode *inode, struct file *filp)
 		return ret;
 	}
 
-	if (peripheral_request_list(dev->per_linkport, LINKPORT_DRVNAME)) {
+#ifdef CONFIG_PINCTRL
+	if (IS_ERR(devm_pinctrl_get_select_default(dev->device))) {
+#else
+	if (peripheral_request_list(dev->device, dev->per_linkport,
+		LINKPORT_DRVNAME)) {
+#endif
 		printk("Requesting Peripherals failed\n");
 
 		return ret;
