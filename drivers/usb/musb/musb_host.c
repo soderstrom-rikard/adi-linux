@@ -587,7 +587,10 @@ musb_rx_reinit(struct musb *musb, struct musb_qh *qh, struct musb_hw_ep *ep)
 			WARNING("rx%d, packet/%d ready?\n", ep->epnum,
 				musb_readw(ep->regs, MUSB_RXCOUNT));
 
-		musb_h_flush_rxfifo(ep, MUSB_RXCSR_CLRDATATOG);
+		if (csr & MUSB_TXCSR_MODE)
+			musb_h_flush_rxfifo(ep, MUSB_RXCSR_CLRDATATOG);
+		else
+			musb_h_flush_rxfifo(ep, 0);
 	}
 
 	/* target addr and (for multipoint) hub addr/port */
@@ -783,7 +786,7 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 				if (usb_gettoggle(urb->dev, qh->epnum, 1))
 					csr |= MUSB_TXCSR_H_WR_DATATOGGLE
 						| MUSB_TXCSR_H_DATATOGGLE;
-				else
+				else if (csr & MUSB_TXCSR_MODE)
 					csr |= MUSB_TXCSR_CLRDATATOG;
 			}
 
