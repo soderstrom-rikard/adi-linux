@@ -327,7 +327,8 @@ static int sport_get_resource(struct sport_device *sport)
 
 static int sport_request_resource(struct sport_device *sport)
 {
-	struct device *dev = &sport->pdev->dev;
+	struct platform_device *pdev = sport->pdev;
+	struct device *dev = &pdev->dev;
 	int ret;
 
 	ret = peripheral_request_list(sport->pin_req, "soc-audio");
