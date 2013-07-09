@@ -385,7 +385,7 @@ static int bfin_fb_open(struct fb_info *info, int user)
 			dev_err(info->dev, "Can't allocate IRQ for EPPI\n");
 			goto err;
 		}
-
+#ifndef CONFIG_PINCTRL
 		ret = peripheral_request_list(par->per_fs, KBUILD_MODNAME);
 		if (ret) {
 			dev_err(info->dev, "Can't request FS pins\n");
@@ -397,6 +397,7 @@ static int bfin_fb_open(struct fb_info *info, int user)
 			dev_err(info->dev, "Can't request DATA pins\n");
 			goto err2;
 		}
+#endif
 		start_ppi(info);
 	}
 	par->user++;
@@ -418,8 +419,10 @@ static int bfin_fb_release(struct fb_info *info, int user)
 	par->user--;
 	if (!par->user) {
 		stop_ppi(info);
+#ifndef CONFIG_PINCTRL
 		peripheral_free_list(par->per_data);
 		peripheral_free_list(par->per_fs);
+#endif
 		free_irq(par->irq_err, info);
 		free_dma(par->dma_ch);
 	}
@@ -482,6 +485,13 @@ static int bfin_nl8048_probe(struct platform_device *pdev)
 	if (!info)
 		return -ENOMEM;
 	par = info->par;
+
+#ifdef CONFIG_PINCTRL
+	if (IS_ERR(devm_pinctrl_get_select_default(&pdev->dev))) {
+		dev_err(&pdev->dev, "Fail to request ppi peripheral pins.\n");
+		return -EBUSY;
+	}
+#endif
 
 	switch (pdev->id) {
 	case 0:
