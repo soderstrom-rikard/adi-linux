@@ -747,7 +747,7 @@ static int bfin_disp_probe(struct platform_device *pdev)
 
 	disp->cfg = config;
 
-	disp->ppi = ppi_create_instance(config->ppi_info);
+	disp->ppi = ppi_create_instance(pdev, config->ppi_info);
 	if (!disp->ppi)
 		return -ENODEV;
 	disp->ppi->priv = disp;
