@@ -178,7 +178,9 @@ static void bf5xx_ac97_warm_reset(struct snd_ac97 *ac97)
 	gpio_set_value(gpio, 0);
 	udelay(1);
 	gpio_free(gpio);
+#ifndef CONFIG_PINCTRL
 	peripheral_request_list(sport_handle->pin_req, "soc-audio");
+#endif
 }
 
 static void bf5xx_ac97_cold_reset(struct snd_ac97 *ac97)
