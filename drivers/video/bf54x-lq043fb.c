@@ -235,7 +235,8 @@ static int config_dma(struct bfin_bf54xfb_info *fbi)
 	return 0;
 }
 
-static int request_ports(struct bfin_bf54xfb_info *fbi)
+static int request_ports(struct platform_device *pdev,
+	struct bfin_bf54xfb_info *fbi)
 {
 
 	u16 eppi_req_18[] = EPPI0_18;
@@ -247,11 +248,12 @@ static int request_ports(struct bfin_bf54xfb_info *fbi)
 	}
 
 	if (peripheral_request_list(eppi_req_18, DRIVER_NAME)) {
-		printk(KERN_ERR "Requesting Peripherals failed\n");
+		dev_err(&pdev->dev, "Requesting Peripherals failed\n");
 		gpio_free(disp);
 		return -EFAULT;
 	}
 
+#ifndef CONFIG_PINCTRL
 	if (!outp_rgb666) {
 
 		u16 eppi_req_24[] = EPPI0_24;
@@ -263,6 +265,7 @@ static int request_ports(struct bfin_bf54xfb_info *fbi)
 			return -EFAULT;
 		}
 	}
+#endif
 
 	return 0;
 }
@@ -622,7 +625,7 @@ static int bfin_bf54x_probe(struct platform_device *pdev)
 		goto out4;
 	}
 
-	if (request_ports(info)) {
+	if (request_ports(pdev, info)) {
 		printk(KERN_ERR DRIVER_NAME ": couldn't request gpio port.\n");
 		ret = -EFAULT;
 		goto out6;
