@@ -431,7 +431,7 @@ static int bfin_disp_g_std(struct file *file, void *priv, v4l2_std_id *std)
 	return 0;
 }
 
-static int bfin_disp_s_std(struct file *file, void *priv, v4l2_std_id *std)
+static int bfin_disp_s_std(struct file *file, void *priv, v4l2_std_id std)
 {
 	struct bfin_disp_device *disp = video_drvdata(file);
 	struct bfin_display_config *config = disp->cfg;
@@ -444,11 +444,11 @@ static int bfin_disp_s_std(struct file *file, void *priv, v4l2_std_id *std)
 			& V4L2_IN_CAP_STD))
 		return -ENODATA;
 
-	ret = v4l2_subdev_call(disp->sd, video, s_std_output, *std);
+	ret = v4l2_subdev_call(disp->sd, video, s_std_output, std);
 	if (ret < 0)
 		return ret;
 
-	disp->std = *std;
+	disp->std = std;
 	return 0;
 }
 
