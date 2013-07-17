@@ -779,6 +779,7 @@ static int bfin_disp_probe(struct platform_device *pdev)
 	q->mem_ops = &vb2_dma_contig_memops;
 	/* provide a mutex to vb2 queue */
 	q->lock = &disp->qlock;
+	q->timestamp_type = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
 
 	ret = vb2_queue_init(q);
 	if (ret) {
