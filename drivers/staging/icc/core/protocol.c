@@ -1854,6 +1854,11 @@ static int icc_remap_mem(unsigned long data)
 	return -EINVAL;
 }
 
+static const struct file_operations icc_proc_fops = {
+	.read = icc_write_proc,
+	.llseek = default_llseek,
+};
+
 static int bfin_icc_probe(struct platform_device *pdev)
 {
 	struct icc_platform_data *icc_data = (struct icc_platform_data *)pdev->dev.platform_data;
@@ -1941,8 +1946,7 @@ static int bfin_icc_probe(struct platform_device *pdev)
 
 	register_sm_proto(icc);
 
-	icc->icc_dump = create_proc_entry("icc_dump", 644, NULL);
-	icc->icc_dump->write_proc = icc_write_proc;
+	icc->icc_dump = proc_create("icc_dump", 644, NULL, &icc_proc_fops);
 
 	dev_set_drvdata(&pdev->dev, icc);
 	bfin_icc = icc;
