@@ -1543,3 +1543,125 @@ postcore_initcall(adi_pinctrl_setup);
 MODULE_AUTHOR("Sonic Zhang <sonic.zhang@analog.com>");
 MODULE_DESCRIPTION("ADI gpio2 pin control driver");
 MODULE_LICENSE("GPL");
+
+/* ADI direct peripheral pin request APIs. Don't send upstream */
+int pinmux_request(unsigned short fer, const char *label)
+{
+	struct adi_pmx *pmx;
+	struct gpio_port *port;
+	unsigned long flags;
+	u8 offset;
+	unsigned pin = P_IDENT(fer);
+
+	pmx = list_first_entry_or_null(&adi_pinctrl_list,
+			struct adi_pmx, node);
+	if (pmx == NULL)
+		return -ENODEV;
+
+	port = find_gpio_port(pin, &pmx->gpio_list);
+	if (port == NULL) {
+		dev_err(pmx->dev,
+		       "%s: Peripheral PIN %d doesn't exist!\n",
+		       __func__, pin);
+		return -ENODEV;
+	}
+
+	offset = pin_to_offset(&port->range, pin);
+
+	spin_lock_irqsave(&port->lock, flags);
+
+	/* If a pin can be muxed as either GPIO or peripheral, make
+	 * sure it is not already a GPIO pin when we request it.
+	 */
+	if (unlikely(is_reserved(port, RSV_GPIO, offset))) {
+		if (system_state == SYSTEM_BOOTING)
+			dump_stack();
+		dev_err(pmx->dev,
+		       "%s: Peripheral PIN %d is already reserved as GPIO by %s!\n",
+		       __func__, pin, get_label(port, offset));
+		spin_unlock_irqrestore(&port->lock, flags);
+		return -EBUSY;
+	}
+
+	if (unlikely(is_reserved(port, RSV_PERI, offset))) {
+		if (system_state == SYSTEM_BOOTING)
+			dump_stack();
+		dev_err(pmx->dev,
+			"%s: Peripheral PIN %d is already reserved by %s!\n",
+			__func__, pin, get_label(port, offset));
+		spin_unlock_irqrestore(&port->lock, flags);
+		return -EBUSY;
+	}
+
+	reserve(port, RSV_PERI, offset);
+	set_label(port, offset, label);
+	portmux_setup(port, offset, P_FUNCT2MUX(fer));
+	port_setup(port, offset, PERIPHERAL_USAGE);
+
+	spin_unlock_irqrestore(&port->lock, flags);
+
+	return 0;
+
+}
+
+void pinmux_free(unsigned short fer)
+{
+	struct adi_pmx *pmx;
+	struct gpio_port *port;
+	unsigned long flags;
+	u8 offset;
+	unsigned pin = P_IDENT(fer);
+
+	pmx = list_first_entry_or_null(&adi_pinctrl_list,
+			struct adi_pmx, node);
+	if (pmx == NULL)
+		return;
+
+	port = find_gpio_port(pin, &pmx->gpio_list);
+	if (port == NULL)
+		return;
+
+	offset = pin_to_offset(&port->range, pin);
+
+	spin_lock_irqsave(&port->lock, flags);
+
+	if (unlikely(!is_reserved(port, RSV_PERI, offset))) {
+		spin_unlock_irqrestore(&port->lock, flags);
+		return;
+	}
+
+	unreserve(port, RSV_PERI, offset);
+	set_label(port, offset, "free");
+	port_setup(port, offset, GPIO_USAGE);
+
+	spin_unlock_irqrestore(&port->lock, flags);
+
+	return;
+}
+
+int pinmux_request_list(const unsigned short per[], const char *label)
+{
+	u16 cnt;
+	int ret;
+
+	for (cnt = 0; per[cnt] != 0; cnt++) {
+
+		ret = pinmux_request(per[cnt], label);
+
+		if (ret < 0) {
+			for ( ; cnt > 0; cnt--)
+				peripheral_free(per[cnt - 1]);
+
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
+void pinmux_free_list(const unsigned short per[])
+{
+	u16 cnt;
+	for (cnt = 0; per[cnt] != 0; cnt++)
+		pinmux_free(per[cnt]);
+}
