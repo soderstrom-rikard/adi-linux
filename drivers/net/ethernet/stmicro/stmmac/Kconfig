@@ -55,4 +55,11 @@ config STMMAC_DA
 	  By default, the DMA arbitration scheme is based on Round-robin
 	  (rx:tx priority is 1:1).
 
+config STMMAC_IEEE1588
+	bool "STMMAC ieee1588 hw timestamp support"
+	default n
+	depends on BLACKFIN && PTP_1588_CLOCK
+	help
+	  To support the IEEE 1588 Precision Time Protocol (PTP), select y here.
+
 endif
