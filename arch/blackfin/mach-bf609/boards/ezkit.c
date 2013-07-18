@@ -113,7 +113,6 @@ static struct stmmac_mdio_bus_data phy_private_data = {
 };
 
 static struct plat_stmmacenet_data eth_private_data = {
-	.has_gmac = 1,
 	.bus_id   = 0,
 	.enh_desc = 1,
 	.phy_addr = 1,
