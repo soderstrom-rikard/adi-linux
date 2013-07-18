@@ -113,12 +113,7 @@
 #define DMA_BUS_MODE_DSL_SHIFT	2	/*   (in DWORDS)      */
 #define DMA_BUS_MODE_BAR_BUS	0x00000002	/* Bar-Bus Arbitration */
 #define DMA_BUS_MODE_SFT_RESET	0x00000001	/* Software Reset */
-#ifdef CONFIG_STMMAC_IEEE1588
-#define DMA_BUS_MODE_DEFAULT 0x00000080
-#define MAC_FRAME_FILTER_INIT 0x80000015
-#else
 #define DMA_BUS_MODE_DEFAULT 0x00000000
-#endif
 
 /* DMA Control register defines */
 #define DMA_CONTROL_SF		0x00200000	/* Store And Forward */

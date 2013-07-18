@@ -161,12 +161,6 @@ struct dma_desc {
 	} des01;
 	unsigned int des2;
 	unsigned int des3;
-#ifdef CONFIG_STMMAC_IEEE1588
-	unsigned int des4;
-	unsigned int des5;
-	unsigned int des6;
-	unsigned int des7;
-#endif
 };
 
 /* Extended descriptor structure (supported by new SYNP GMAC generations) */
