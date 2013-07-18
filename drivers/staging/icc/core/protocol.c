@@ -1218,7 +1218,11 @@ int res_manage_request_peri(resources_t *data)
 
 	strcat(resource_name, data->label);
 
+#ifdef CONFIG_PINCTRL
+	if (pinmux_request_list(peri_list, resource_name))
+#else
 	if (peripheral_request_list(peri_list, resource_name))
+#endif
 		sm_debug("Requesting Peripherals %s failed\n", resource_name);
 
 	return 0;
@@ -1228,7 +1232,11 @@ void res_manage_free_peri(resources_t *data)
 {
 	unsigned short *peri_list = (unsigned short *)data->resources_array;
 
+#ifdef CONFIG_PINCTRL
+	pinmux_free_list(peri_list);
+#else
 	peripheral_free_list(peri_list);
+#endif
 }
 
 int res_manage_request_gpio(uint16_t subid)
