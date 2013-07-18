@@ -157,16 +157,10 @@ struct dma_desc {
 			u32 reserved3:3;
 			u32 buffer2_size:13;
 			u32 reserved4:3;
-		} volatile etx;		/* -- enhanced -- */
+		} etx;		/* -- enhanced -- */
 	} des01;
 	unsigned int des2;
 	unsigned int des3;
-#ifdef CONFIG_STMMAC_IEEE1588
-	unsigned int des4;
-	unsigned int des5;
-	unsigned int des6;
-	unsigned int des7;
-#endif
 };
 
 /* Extended descriptor structure (supported by new SYNP GMAC generations) */
