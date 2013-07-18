@@ -22,13 +22,21 @@
 #define peripheral_free(per)
 #define peripheral_request_list(per, label) \
 	(pdev ? (IS_ERR(devm_pinctrl_get_select_default(&pdev->dev)) \
-	? -EINVAL : 0) : 0);
+	? -EINVAL : 0) : 0)
 #define peripheral_free_list(per)
+int pinmux_request(unsigned short per, const char *label);
+void pinmux_free(unsigned short per);
+int pinmux_request_list(const unsigned short per[], const char *label);
+void pinmux_free_list(const unsigned short per[]);
 #else
 int peripheral_request(unsigned short per, const char *label);
 void peripheral_free(unsigned short per);
 int peripheral_request_list(const unsigned short per[], const char *label);
 void peripheral_free_list(const unsigned short per[]);
+#define pinmux_request peripheral_request;
+#define pinmux_free peripheral_free;
+#define pinmux_request_list peripheral_request_list;
+#define pinmux_free_list peripheral_free_list;
 #endif
 
 #include <linux/err.h>
