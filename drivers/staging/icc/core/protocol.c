@@ -1800,8 +1800,7 @@ void register_sm_proto(struct bfin_icc *icc)
 }
 
 static int
-icc_write_proc(struct file *file, const char __user * buffer,
-		unsigned long count, void *data)
+icc_write_proc(struct file *file, const char __user *buffer, size_t count, loff_t *pos)
 {
 	char line[256];
 	unsigned long val;
@@ -1855,7 +1854,7 @@ static int icc_remap_mem(unsigned long data)
 }
 
 static const struct file_operations icc_proc_fops = {
-	.read = icc_write_proc,
+	.write = icc_write_proc,
 	.llseek = default_llseek,
 };
 

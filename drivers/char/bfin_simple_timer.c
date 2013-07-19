@@ -30,6 +30,7 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 #include <linux/interrupt.h>
 #include <linux/device.h>
 #include <linux/uaccess.h>
@@ -211,16 +212,21 @@ timer_close(struct inode *inode, struct file *filp)
 }
 
 static int
-timer_read_proc(char *buf, char **start, off_t offset, int cnt, int *eof, void *data)
+timer_read_proc(struct seq_file *m, void *v)
 {
-	int i, ret = 0;
+	int i;
 
-	ret += sprintf(buf + ret, "sclk = %lu\n", get_sclk());
+	seq_printf(m, "sclk = %lu\n", get_sclk());
 	for (i = 0; i < MAX_BLACKFIN_GPTIMERS; ++i)
-		ret += sprintf(buf + ret, "timer %2d isr count: %lu\n",
+		seq_printf(m, "timer %2d isr count: %lu\n",
 			i, timer_code[i].isr_count);
+	return 0;
+}
 
-	return ret;
+static int
+timer_open_proc(struct inode *inode, struct file *file)
+{
+	return single_open(file, timer_read_proc, NULL);
 }
 
 static ssize_t
@@ -246,8 +252,10 @@ static const struct file_operations fops = {
 };
 
 static const struct file_operations timer_proc_fops = {
-	.read = timer_read_proc,
-	.llseek = default_llseek,
+	.open = timer_open_proc,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = seq_release,
 };
 
 static struct proc_dir_entry *timer_dir_entry;
