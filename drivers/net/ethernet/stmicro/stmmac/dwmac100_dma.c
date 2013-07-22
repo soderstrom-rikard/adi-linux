@@ -130,6 +130,13 @@ static void dwmac100_dma_diagnostic_fr(void *data, struct stmmac_extra_stats *x,
 	}
 }
 
+#ifdef CONFIG_BLACKFIN
+static unsigned int dwmac100_get_hw_feature(void __iomem *ioaddr)
+{
+	return readl(ioaddr + DMA_HW_FEATURE);
+}
+#endif
+
 const struct stmmac_dma_ops dwmac100_dma_ops = {
 	.init = dwmac100_dma_init,
 	.dump_regs = dwmac100_dump_dma_regs,
@@ -143,4 +150,7 @@ const struct stmmac_dma_ops dwmac100_dma_ops = {
 	.start_rx = dwmac_dma_start_rx,
 	.stop_rx = dwmac_dma_stop_rx,
 	.dma_interrupt = dwmac_dma_interrupt,
+#ifdef CONFIG_BLACKFIN
+	.get_hw_feature = dwmac100_get_hw_feature,
+#endif
 };
