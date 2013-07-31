@@ -204,7 +204,7 @@ static int soft_switch_config(void)
 
 	adapter = i2c_get_adapter(0);
 	if (!adapter)
-		return -ENODEV;
+		return -EPROBE_DEFER;
 	client = i2c_new_dummy(adapter, 0x27);
 	i2c_smbus_write_byte_data(client, 0x03, 0xbf);
 	i2c_smbus_write_byte_data(client, 0x05, 0xff);
@@ -279,7 +279,7 @@ static int lcd_startup(struct bfin_fb_par *par)
 
 	master = spi_busnum_to_master(0);
 	if (!master)
-		return -ENODEV;
+		return -EPROBE_DEFER;
 	par->spi = spi_new_device(master, &board);
 	if (!par->spi)
 		return -EINVAL;
