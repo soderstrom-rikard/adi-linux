@@ -307,7 +307,7 @@ static int bfin_disp_start_streaming(struct vb2_queue *vq, unsigned int count)
 	params.ppi_control = disp->cfg->ppi_control;
 	params.int_mask = disp->cfg->int_mask;
 	if (disp->cfg->outputs[disp->cur_output].capabilities
-			& V4L2_IN_CAP_DV_TIMINGS) {
+			& V4L2_OUT_CAP_DV_TIMINGS) {
 		struct v4l2_bt_timings *bt = &disp->dv_timings.bt;
 
 		params.hdelay = bt->hsync + bt->hbackporch;
@@ -322,7 +322,7 @@ static int bfin_disp_start_streaming(struct vb2_queue *vq, unsigned int count)
 		params.hsync = bt->hsync;
 		params.vsync = bt->vsync;
 	} else if (disp->cfg->outputs[disp->cur_output].capabilities
-			& V4L2_IN_CAP_STD) {
+			& V4L2_OUT_CAP_STD) {
 		params.hdelay = 0;
 		params.vdelay = 0;
 		if (disp->std & V4L2_STD_525_60) {
@@ -424,7 +424,7 @@ static int bfin_disp_g_std(struct file *file, void *priv, v4l2_std_id *std)
 	struct bfin_display_config *config = disp->cfg;
 
 	if (!(config->outputs[disp->cur_output].capabilities
-			& V4L2_IN_CAP_STD))
+			& V4L2_OUT_CAP_STD))
 		return -ENODATA;
 
 	*std = disp->std;
@@ -441,7 +441,7 @@ static int bfin_disp_s_std(struct file *file, void *priv, v4l2_std_id std)
 		return -EBUSY;
 
 	if (!(config->outputs[disp->cur_output].capabilities
-			& V4L2_IN_CAP_STD))
+			& V4L2_OUT_CAP_STD))
 		return -ENODATA;
 
 	ret = v4l2_subdev_call(disp->sd, video, s_std_output, std);
@@ -460,7 +460,7 @@ static int bfin_disp_g_dv_timings(struct file *file, void *priv,
 	int ret;
 
 	if (!(config->outputs[disp->cur_output].capabilities
-			& V4L2_IN_CAP_DV_TIMINGS))
+			& V4L2_OUT_CAP_DV_TIMINGS))
 		return -ENODATA;
 
 	ret = v4l2_subdev_call(disp->sd, video,
@@ -483,7 +483,7 @@ static int bfin_disp_s_dv_timings(struct file *file, void *priv,
 		return -EBUSY;
 
 	if (!(config->outputs[disp->cur_output].capabilities
-			& V4L2_IN_CAP_DV_TIMINGS))
+			& V4L2_OUT_CAP_DV_TIMINGS))
 		return -ENODATA;
 
 	ret = v4l2_subdev_call(disp->sd, video, s_dv_timings, timings);
@@ -837,7 +837,7 @@ static int bfin_disp_probe(struct platform_device *pdev)
 		config->ppi_control = route->ppi_control;
 
 	/* now we can probe the default state */
-	if (config->outputs[0].capabilities & V4L2_IN_CAP_STD) {
+	if (config->outputs[0].capabilities & V4L2_OUT_CAP_STD) {
 		v4l2_std_id std;
 		ret = v4l2_subdev_call(disp->sd, core, g_std, &std);
 		if (ret) {
@@ -847,7 +847,7 @@ static int bfin_disp_probe(struct platform_device *pdev)
 		}
 		disp->std = std;
 	}
-	if (config->outputs[0].capabilities & V4L2_IN_CAP_DV_TIMINGS) {
+	if (config->outputs[0].capabilities & V4L2_OUT_CAP_DV_TIMINGS) {
 		struct v4l2_dv_timings dv_timings;
 		ret = v4l2_subdev_call(disp->sd, video,
 				g_dv_timings, &dv_timings);
