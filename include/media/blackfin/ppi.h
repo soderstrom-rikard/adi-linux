@@ -53,6 +53,8 @@ struct ppi_params {
 	u32 frame;              /* total lines per frame */
 	u32 hsync;              /* HSYNC length in pixels */
 	u32 vsync;              /* VSYNC length in lines */
+	u32 active_lines;       /* active lines per field */
+	u32 blank_lines;        /* vertical blanking lines */
 	int bpp;                /* bits per pixel */
 	int dlen;               /* data length for ppi in bits */
 	u32 ppi_control;        /* ppi configuration */

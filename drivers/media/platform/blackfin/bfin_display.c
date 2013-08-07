@@ -328,9 +328,19 @@ static int bfin_disp_start_streaming(struct vb2_queue *vq, unsigned int count)
 		if (disp->std & V4L2_STD_525_60) {
 			params.line = 858;
 			params.frame = 525;
+			if ((ppi->info->type == PPI_TYPE_EPPI3)
+				&& (params.ppi_control & EPPI_CTL_BLANKGEN)) {
+				params.active_lines = 0x00F300F4;
+				params.blank_lines = 0x03110210;
+			}
 		} else {
 			params.line = 864;
 			params.frame = 625;
+			if ((ppi->info->type == PPI_TYPE_EPPI3)
+				&& (params.ppi_control & EPPI_CTL_BLANKGEN)) {
+				params.active_lines = 0x01200120;
+				params.blank_lines = 0x02170216;
+			}
 		}
 	} else {
 		params.hdelay = 0;
@@ -839,7 +849,7 @@ static int bfin_disp_probe(struct platform_device *pdev)
 	/* now we can probe the default state */
 	if (config->outputs[0].capabilities & V4L2_OUT_CAP_STD) {
 		v4l2_std_id std;
-		ret = v4l2_subdev_call(disp->sd, core, g_std, &std);
+		ret = v4l2_subdev_call(disp->sd, video, g_std_output, &std);
 		if (ret) {
 			v4l2_err(&disp->v4l2_dev,
 					"Unable to get std\n");
