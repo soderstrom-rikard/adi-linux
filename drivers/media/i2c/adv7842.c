@@ -1192,7 +1192,7 @@ static int adv7842_g_mbus_fmt(struct v4l2_subdev *sd,
 		if (state->std & V4L2_STD_525_60) {
 			fmt->field = V4L2_FIELD_SEQ_TB;
 			fmt->width = 720;
-			fmt->height = 480;
+			fmt->height = 487;
 		} else {
 			fmt->field = V4L2_FIELD_SEQ_BT;
 			fmt->width = 720;
