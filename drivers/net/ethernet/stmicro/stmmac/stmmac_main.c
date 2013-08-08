@@ -2834,6 +2834,22 @@ int stmmac_resume(struct net_device *ndev)
 
 	netif_device_attach(ndev);
 
+#ifdef CONFIG_BF60x
+	priv->dirty_tx = 0;
+	priv->cur_tx = 0;
+	priv->cur_rx = 0;
+	priv->dirty_rx = 0;
+
+	/* DMA initialization and SW reset */
+	stmmac_init_dma_engine(priv);
+
+	/* Copy the MAC addr into the HW  */
+	priv->hw->mac->set_umac_addr(priv->ioaddr, ndev->dev_addr, 0);
+
+	/* Initialize the MAC Core */
+	priv->hw->mac->core_init(priv->ioaddr);
+#endif
+
 	/* Enable the MAC and DMA */
 	stmmac_set_mac(priv->ioaddr, true);
 	priv->hw->dma->start_tx(priv->ioaddr);
