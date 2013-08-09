@@ -338,7 +338,7 @@ static int adv7393_proc_open(struct inode *inode, struct file *file)
 static ssize_t adv7393_proc_write(struct file *file, const char __user *buf,
 				  size_t count, loff_t *pos)
 {
-	struct adv7393fb_device *fbdev = PDE(file->f_path.dentry->d_inode)->data;
+	struct adv7393fb_device *fbdev = PDE_DATA(file->f_path.dentry->d_inode);
 	uint16_t val;
 	int ret;
 
