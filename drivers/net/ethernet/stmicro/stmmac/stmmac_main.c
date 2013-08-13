@@ -656,9 +656,7 @@ static int stmmac_init_ptp(struct stmmac_priv *priv)
 	if (!(priv->dma_cap.time_stamp || priv->dma_cap.atime_stamp))
 		return -EOPNOTSUPP;
 
-#ifndef CONFIG_BLACKFIN
 	if (netif_msg_hw(priv)) {
-#endif
 		if (priv->dma_cap.time_stamp) {
 			pr_debug("IEEE 1588-2002 Time Stamp supported\n");
 			priv->adv_ts = 0;
@@ -668,9 +666,7 @@ static int stmmac_init_ptp(struct stmmac_priv *priv)
 			    ("IEEE 1588-2008 Advanced Time Stamp supported\n");
 			priv->adv_ts = 1;
 		}
-#ifndef CONFIG_BLACKFIN
 	}
-#endif
 
 	priv->hw->ptp = &stmmac_ptp;
 	priv->hwts_tx_en = 0;
