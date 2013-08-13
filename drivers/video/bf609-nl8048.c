@@ -509,16 +509,23 @@ static int bfin_nl8048_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "PPI instance [%d] is out of range\n",
 				pdev->id);
 		ret = -ENODEV;
-		goto err;
+		goto err_mem;
 	}
 	par->user = 0;
+
+	soft_switch_config();
+	ret = lcd_startup(par);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "Can't start LCD\n");
+		goto err_mem;
+	}
 
 	info->screen_base = dma_alloc_coherent(NULL, MEM_SIZE,
 			&dma_handle, GFP_KERNEL);
 	if (!info->screen_base) {
 		ret = -ENOMEM;
 		dev_err(&pdev->dev, "Can't alloc dma buffer\n");
-		goto err;
+		goto err_spi;
 	}
 	bfin_fb_fix.smem_start = (unsigned long)info->screen_base;
 	bfin_fb_fix.smem_len = MEM_SIZE;
@@ -531,31 +538,24 @@ static int bfin_nl8048_probe(struct platform_device *pdev)
 	ret = fb_alloc_cmap(&info->cmap, 256, 0);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Can't alloc cmap\n");
-		goto err1;
+		goto err_dma;
 	}
 
 	ret = register_framebuffer(info);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Can't register frame buffer\n");
-		goto err2;
+		goto err_cmap;
 	}
-
-	soft_switch_config();
-	ret = lcd_startup(par);
-	if (ret < 0) {
-		dev_err(&pdev->dev, "Can't start LCD\n");
-		goto err3;
-	}
-
+	
 	platform_set_drvdata(pdev, info);
 	return 0;
-err3:
-	unregister_framebuffer(info);
-err2:
+err_cmap:
 	fb_dealloc_cmap(&info->cmap);
-err1:
+err_dma:
 	dma_free_coherent(NULL, MEM_SIZE, info->screen_base, 0);
-err:
+err_spi:
+	lcd_shutdown(info->par);
+err_mem:
 	framebuffer_release(info);
 	return ret;
 }
