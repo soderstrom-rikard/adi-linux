@@ -1186,7 +1186,9 @@ static void free_dma_desc_resources(struct stmmac_priv *priv)
  */
 static void stmmac_dma_operation_mode(struct stmmac_priv *priv)
 {
-	if (likely(priv->plat->force_sf_dma_mode ||
+	if (priv->plat->force_sf_dma_mode < 0)
+		priv->hw->dma->dma_mode(priv->ioaddr, tc, tc);
+	else if (likely(priv->plat->force_sf_dma_mode > 0 ||
 		   ((priv->plat->tx_coe) && (!priv->no_csum_insertion)))) {
 		/*
 		 * In case of GMAC, SF mode can be enabled
