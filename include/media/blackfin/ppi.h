@@ -37,9 +37,14 @@
 #define PORT_EN EPPI_CTL_EN
 #define PORT_DIR EPPI_CTL_DIR
 #define PACK_EN EPPI_CTL_PACKEN
+#define BLANKGEN EPPI_CTL_BLANKGEN
 #define DMA32 0
 #define DLEN_8 EPPI_CTL_DLEN08
 #define DLEN_16 EPPI_CTL_DLEN16
+#endif
+
+#ifndef BLANKGEN
+#define BLANKGEN 0
 #endif
 
 struct ppi_if;

@@ -269,7 +269,7 @@ static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 		if (params->int_mask)
 			bfin_write32(&reg->imsk, params->int_mask & 0xFF);
 		if (ppi->ppi_control & PORT_DIR) {
-			if (ppi->ppi_control & EPPI_CTL_BLANKGEN) {
+			if (ppi->ppi_control & BLANKGEN) {
 				u32 blank_sample;
 
 				blank_sample = samples_per_line - hcount - 8;
