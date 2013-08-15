@@ -329,7 +329,7 @@ static int bfin_disp_start_streaming(struct vb2_queue *vq, unsigned int count)
 			params.line = 858;
 			params.frame = 525;
 			if ((ppi->info->type == PPI_TYPE_EPPI3)
-				&& (params.ppi_control & EPPI_CTL_BLANKGEN)) {
+				&& (params.ppi_control & BLANKGEN)) {
 				params.active_lines = 0x00F300F4;
 				params.blank_lines = 0x03110210;
 			}
@@ -337,7 +337,7 @@ static int bfin_disp_start_streaming(struct vb2_queue *vq, unsigned int count)
 			params.line = 864;
 			params.frame = 625;
 			if ((ppi->info->type == PPI_TYPE_EPPI3)
-				&& (params.ppi_control & EPPI_CTL_BLANKGEN)) {
+				&& (params.ppi_control & BLANKGEN)) {
 				params.active_lines = 0x01200120;
 				params.blank_lines = 0x02170216;
 			}
