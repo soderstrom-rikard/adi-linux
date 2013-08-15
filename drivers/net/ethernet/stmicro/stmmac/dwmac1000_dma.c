@@ -178,7 +178,12 @@ static void dwmac1000_dump_dma_regs(void __iomem *ioaddr)
 
 static unsigned int dwmac1000_get_hw_feature(void __iomem *ioaddr)
 {
+#ifdef CONFIG_BLACKFIN
+	/* TXCOE doesn't work in the Blackfin build-in IP */
+	return readl(ioaddr + DMA_HW_FEATURE) & ~DMA_HW_FEAT_TXCOESEL;
+#else
 	return readl(ioaddr + DMA_HW_FEATURE);
+#endif
 }
 
 static void dwmac1000_rx_watchdog(void __iomem *ioaddr, u32 riwt)
