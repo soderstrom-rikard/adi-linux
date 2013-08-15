@@ -6,10 +6,11 @@
  * Licensed under the GPLv2 or later
  */
 
+#include <linux/bitops.h>
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/err.h>
-#include <linux/proc_fs.h>
+#include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #include <linux/irq.h>
 #include <linux/platform_data/pinctrl-adi2.h>
@@ -24,21 +25,52 @@
 #include <asm/portmux.h>
 #include "core.h"
 
+
+/*
+According to the BF54x HRM, pint means "pin interrupt".
+http://www.analog.com/static/imported-files/processor_manuals/ADSP-BF54x_hwr_rev1.2.pdf
+
+ADSP-BF54x processor Blackfin processors have four SIC interrupt chan-
+nels dedicated to pin interrupt purposes. These channels are managed by
+four hardware blocks, called PINT0, PINT1, PINT2, and PINT3. Every PINTx
+block can sense to up to 32 pins. While PINT0 and PINT1 can sense the
+pins of port A and port B, PINT2 and PINT3 manage all the pins from port
+C to port J as shown in Figure 9-2.
+
+n BF54x HRM:
+The ten GPIO ports are subdivided into 8-bit half ports, resulting in lower and
+upper half 8-bit units. The PINTx_ASSIGN registers control the 8-bit multi-
+plexers shown in Figure 9-3. Lower half units of eight pins can be
+forwarded to either byte 0 or byte 2 of either associated PINTx block.
+Upper half units can be forwarded to either byte 1 or byte 3 of the pin
+interrupt blocks, without further restrictions.
+
+All MMR registers in the pin interrupt module are 32 bits wide. To simply the
+mapping logic, this driver only maps a 16-bit gpio port to the upper or lower
+16 bits of a PINTx block. You can find the Figure 9-3 on page 583.
+
+Each IRQ domain is binding to a GPIO bank device. 2 GPIO bank devices can map
+to one PINT device. Two in "struct gpio_pint" are used to ease the PINT
+interrupt handler.
+
+The GPIO bank mapping to the lower 16 bits of the PINT device set its IRQ
+domain pointer in domain[0]. The IRQ domain pointer of the other bank is set
+to domain[1]. PINT interrupt handler adi_gpio_handle_pint_irq() finds out
+the current domain pointer according to whether the interrupt request mask
+is in lower 16 bits (domain[0]) or upper 16bits (domain[1]).
+
+A PINT device is not part of a GPIO port device in Blackfin. Multiple GPIO
+port devices can be mapped to the same PINT device.
+
+*/
+
 static LIST_HEAD(adi_pint_list);
 static LIST_HEAD(adi_pinctrl_list);
-
-#define PERIPHERAL_USAGE 1
-#define GPIO_USAGE 0
 
 #define DRIVER_NAME "pinctrl-adi2"
 
 #define RESOURCE_LABEL_SIZE	16
 #define PINT_HI_OFFSET		16
-
-#define RSV_NONE	0
-#define RSV_GPIO	1
-#define RSV_INT		2
-#define RSV_PERI	3
 
 /**
  * struct gpio_reserve_map - a GPIO map structure containing the
@@ -75,22 +107,22 @@ struct gpio_port_saved {
 };
 
 /**
- * struct gpio_pint - GPIO interrupt controller device. Multiple ADI GPIO
- * banks can be mapped into one GPIO interrupt controller.
+ * struct gpio_pint - Pin interrupt controller device. Multiple ADI GPIO
+ * banks can be mapped into one Pin interrupt controller.
  *
  * @node: All gpio_pint instances are added to a global list.
- * @base: GPIO PINT device register base address
- * @irq: IRQ of the GPIO PINT device, it is the parent IRQ of all
+ * @base: PINT device register base address
+ * @irq: IRQ of the PINT device, it is the parent IRQ of all
  *       GPIO IRQs mapping to this device.
  * @domain: [0] irq domain of the gpio port, whose hardware interrupts are
  *		mapping to the low 16-bit of the pint registers.
  *          [1] irq domain of the gpio port, whose hardware interrupts are
  *		mapping to the high 16-bit of the pint registers.
- * @regs: address pointer to the GPIO PINT device
+ * @regs: address pointer to the PINT device
  * @map_count: No more than 2 GPIO banks can be mapped to this PINT device.
- * @lock: This lock make sure the irq_chip operations to one GPIO PINT device
+ * @lock: This lock make sure the irq_chip operations to one PINT device
  *        for different GPIO interrrupts are atomic.
- * @pint_map_port: Set up the mapping between one GPIO PINT device and
+ * @pint_map_port: Set up the mapping between one PINT device and
  *                 multiple GPIO banks.
  */
 struct gpio_pint {
@@ -103,20 +135,20 @@ struct gpio_pint {
 	int map_count;
 	spinlock_t lock;
 
-	int (*pint_map_port)(struct gpio_pint *pint, u8 assign,
+	int (*pint_map_port)(struct gpio_pint *pint, bool assign,
 				u8 map, struct irq_domain *domain);
 };
 
 /**
  * ADI pin controller
  *
- * @node: All adi_pmx instances are added to a global list.
+ * @node: All adi_pinctrl instances are added to a global list.
  * @dev: a pointer back to containing device
  * @pctl: the pinctrl device
  * @gpio_list: the list of gpio banks owned by this pin controller.
  * @gpio_base: the base gpio number of this pin controller.
  */
-struct adi_pmx {
+struct adi_pinctrl {
 	struct list_head node;
 	struct device *dev;
 	struct pinctrl_dev *pctl;
@@ -125,25 +157,24 @@ struct adi_pmx {
 };
 
 /**
- * struct gpio_pint - GPIO bank device. Multiple ADI GPIO banks can be mapped
- * into one GPIO interrupt controller.
+ * struct gpio_port - GPIO bank device. Multiple ADI GPIO banks can be mapped
+ * into one pin interrupt controller.
  *
- * @node: All gpio_pint instances are added to a list.
+ * @node: All gpio_port instances are added to a list.
  * @base: GPIO bank device register base address
- * @pin_base: base global GPIO pin index of the GPIO bank device
  * @irq_base: base IRQ of the GPIO bank device
  * @width: PIN number of the GPIO bank device
  * @range: The range space of the GPIO bank handled by the pin controller.
  * @regs: address pointer to the GPIO bank device
  * @saved_data: registers that should be saved between PM operations.
  * @dev: device structure of this GPIO bank
- * @pmx: the pinctrl device
+ * @pinctrl: the pinctrl device
  * @pint: GPIO PINT device that this GPIO bank mapped to
  * @pint_map: GIOP bank mapping code in PINT device
- * @pint_assign: The 32-bit GPIO PINT registers can be divided into 2 parts. A
+ * @pint_assign: The 32-bit PINT registers can be divided into 2 parts. A
  *               GPIO bank can be mapped into either low 16 bits[0] or high 16
  *               bits[1] of each PINT register.
- * @lock: This lock make sure the irq_chip operations to one GPIO PINT device
+ * @lock: This lock make sure the irq_chip operations to one PINT device
  *        for different GPIO interrrupts are atomic.
  * @chip: abstract a GPIO controller
  * @domain: The irq domain owned by the GPIO port.
@@ -152,18 +183,17 @@ struct adi_pmx {
 struct gpio_port {
 	struct list_head node;
 	void __iomem *base;
-	unsigned int pin_base;
 	unsigned int irq_base;
 	unsigned int width;
 	struct pinctrl_gpio_range range;
 	struct gpio_port_t *regs;
 	struct gpio_port_saved saved_data;
 	struct device *dev;
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 
 	struct gpio_pint *pint;
 	u8 pint_map;
-	u8 pint_assign;
+	bool pint_assign;
 
 	spinlock_t lock;
 	struct gpio_chip chip;
@@ -187,9 +217,9 @@ static inline u8 gpio_to_offset(struct gpio_port *port, unsigned gpio)
 	return gpio - port->chip.base;
 }
 
-static inline unsigned hwirq_to_pintbit(struct gpio_port *port, int hwirq)
+static inline u32 hwirq_to_pintbit(struct gpio_port *port, int hwirq)
 {
-	return (1 << hwirq) << (port->pint_assign * PINT_HI_OFFSET);
+	return port->pint_assign ? BIT(hwirq) << PINT_HI_OFFSET : BIT(hwirq);
 }
 
 static void set_label(struct gpio_port *port, unsigned offset,
@@ -210,51 +240,6 @@ static char *get_label(struct gpio_port *port, unsigned offset)
 	return *pch ? pch : "UNKNOWN";
 }
 
-static inline unsigned int is_reserved(struct gpio_port *port, char type,
-	unsigned offset)
-{
-	switch (type) {
-	case RSV_GPIO:
-		return port->rsvmap[offset].rsv_gpio == true;
-	case RSV_INT:
-		return port->rsvmap[offset].rsv_int == true;
-	case RSV_PERI:
-		return port->rsvmap[offset].rsv_peri == true;
-	}
-
-	return 0;
-}
-
-static inline void reserve(struct gpio_port *port, char type, unsigned offset)
-{
-	switch (type) {
-	case RSV_GPIO:
-		port->rsvmap[offset].rsv_gpio = true;
-		break;
-	case RSV_INT:
-		port->rsvmap[offset].rsv_int = true;
-		break;
-	case RSV_PERI:
-		port->rsvmap[offset].rsv_peri = true;
-		break;
-	}
-}
-
-static inline void unreserve(struct gpio_port *port, char type, unsigned offset)
-{
-	switch (type) {
-	case RSV_GPIO:
-		port->rsvmap[offset].rsv_gpio = false;
-		break;
-	case RSV_INT:
-		port->rsvmap[offset].rsv_int = false;
-		break;
-	case RSV_PERI:
-		port->rsvmap[offset].rsv_peri = false;
-		break;
-	}
-}
-
 static struct gpio_pint *find_gpio_pint(unsigned id)
 {
 	struct gpio_pint *pint;
@@ -262,31 +247,25 @@ static struct gpio_pint *find_gpio_pint(unsigned id)
 
 	list_for_each_entry(pint, &adi_pint_list, node) {
 		if (id == i)
-			break;
+			return pint;
 		i++;
 	}
 
-	if (&pint->node != &adi_pint_list)
-		return pint;
-	else
-		return NULL;
+	return NULL;
 }
 
-static struct adi_pmx *find_pinctrl(unsigned id)
+static struct adi_pinctrl *find_pinctrl(unsigned id)
 {
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	int i = 0;
 
-	list_for_each_entry(pmx, &adi_pinctrl_list, node) {
+	list_for_each_entry(pinctrl, &adi_pinctrl_list, node) {
 		if (id == i)
-			break;
+			return pinctrl;
 		i++;
 	}
 
-	if (&pmx->node != &adi_pinctrl_list)
-		return pmx;
-	else
-		return NULL;
+	return NULL;
 }
 
 static struct gpio_port *find_gpio_port(unsigned pin,
@@ -297,24 +276,21 @@ static struct gpio_port *find_gpio_port(unsigned pin,
 	list_for_each_entry(port, gpio_list, node)
 		if (pin >= port->range.pin_base &&
 			pin < port->range.pin_base + port->range.npins)
-			break;
+			return port;
 
-	if (&port->node != gpio_list)
-		return port;
-	else
-		return NULL;
+	return NULL;
 }
 
 static inline void port_setup(struct gpio_port *port, unsigned offset,
-	unsigned short usage)
+	bool use_for_gpio)
 {
 	struct gpio_port_t *regs = port->regs;
 
-	if (usage == GPIO_USAGE)
-		writew(readw(&regs->port_fer) & ~(1 << offset),
+	if (use_for_gpio)
+		writew(readw(&regs->port_fer) & ~BIT(offset),
 			&regs->port_fer);
 	else
-		writew(readw(&regs->port_fer) | (1 << offset), &regs->port_fer);
+		writew(readw(&regs->port_fer) | BIT(offset), &regs->port_fer);
 }
 
 static inline void portmux_setup(struct gpio_port *port, unsigned offset,
@@ -325,6 +301,9 @@ static inline void portmux_setup(struct gpio_port *port, unsigned offset,
 
 	pmux = readl(&regs->port_mux);
 
+	/* The function field of each pin has 2 consecutive bits in
+	 * the mux register.
+	 */
 	pmux &= ~(0x3 << (2 * offset));
 	pmux |= (function & 0x3) << (2 * offset);
 
@@ -336,6 +315,9 @@ static inline u16 get_portmux(struct gpio_port *port, unsigned offset)
 	struct gpio_port_t *regs = port->regs;
 	u32 pmux = readl(&regs->port_mux);
 
+	/* The function field of each pin has 2 consecutive bits in
+	 * the mux register.
+	 */
 	return pmux >> (2 * offset) & 0x3;
 }
 
@@ -344,16 +326,16 @@ static void __adi_gpio_irq_prepare(struct gpio_port *port, unsigned offset)
 {
 	struct gpio_port_t *regs = port->regs;
 
-	port_setup(port, offset, GPIO_USAGE);
+	port_setup(port, offset, true);
 
-	writew(1 << offset, &regs->dir_clear);
-	writew(readw(&regs->inen) | (1 << offset), &regs->inen);
+	writew(BIT(offset), &regs->dir_clear);
+	writew(readw(&regs->inen) | BIT(offset), &regs->inen);
 }
 
 static int __adi_gpio_irq_request(struct gpio_port *port, unsigned offset,
 	const char *label)
 {
-	if (is_reserved(port, RSV_PERI, offset)) {
+	if (port->rsvmap[offset].rsv_peri) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 
@@ -362,21 +344,21 @@ static int __adi_gpio_irq_request(struct gpio_port *port, unsigned offset,
 			offset_to_gpio(port, offset), get_label(port, offset));
 		return -EBUSY;
 	}
-	if (is_reserved(port, RSV_GPIO, offset))
+	if (port->rsvmap[offset].rsv_gpio)
 		dev_err(port->dev,
 			"GPIO %d is already reserved by %s!\n",
 			offset_to_gpio(port, offset), get_label(port, offset));
 
-	reserve(port, RSV_INT, offset);
+	port->rsvmap[offset].rsv_int = true;
 	set_label(port, offset, label);
-	port_setup(port, offset, GPIO_USAGE);
+	port_setup(port, offset, true);
 
 	return 0;
 }
 
 static void __adi_gpio_irq_free(struct gpio_port *port, unsigned offset)
 {
-	if (!is_reserved(port, RSV_INT, offset)) {
+	if (!port->rsvmap[offset].rsv_int) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 
@@ -385,7 +367,7 @@ static void __adi_gpio_irq_free(struct gpio_port *port, unsigned offset)
 		return;
 	}
 
-	unreserve(port, RSV_INT, offset);
+	port->rsvmap[offset].rsv_int = false;
 	set_label(port, offset, "free");
 }
 
@@ -571,7 +553,7 @@ static int adi_gpio_set_wake(struct irq_data *d, unsigned int state)
 {
 	struct gpio_port *port = irq_data_get_irq_chip_data(d);
 
-	if (!port && !port->pint && port->pint->irq != d->irq)
+	if (!port || !port->pint || port->pint->irq != d->irq)
 		return -EINVAL;
 
 #ifndef SEC_GCTL
@@ -608,11 +590,11 @@ static void adi_pint_resume(void)
 
 static int adi_gpio_suspend(void)
 {
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	struct gpio_port *port;
 
-	list_for_each_entry(pmx, &adi_pinctrl_list, node)
-		list_for_each_entry(port, &pmx->gpio_list, node) {
+	list_for_each_entry(pinctrl, &adi_pinctrl_list, node)
+		list_for_each_entry(port, &pinctrl->gpio_list, node) {
 			port->saved_data.fer = readw(&port->regs->port_fer);
 			port->saved_data.mux = readl(&port->regs->port_mux);
 			port->saved_data.data = readw(&port->regs->data);
@@ -625,13 +607,13 @@ static int adi_gpio_suspend(void)
 
 static void adi_gpio_resume(void)
 {
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	struct gpio_port *port;
 
 	adi_pint_resume();
 
-	list_for_each_entry(pmx, &adi_pinctrl_list, node)
-		list_for_each_entry(port, &pmx->gpio_list, node) {
+	list_for_each_entry(pinctrl, &adi_pinctrl_list, node)
+		list_for_each_entry(port, &pinctrl->gpio_list, node) {
 			writel(port->saved_data.mux, &port->regs->port_mux);
 			writew(port->saved_data.fer, &port->regs->port_fer);
 			writew(port->saved_data.inen, &port->regs->inen);
@@ -665,7 +647,7 @@ static void adi_gpio_handle_pint_irq(unsigned int inta_irq,
 {
 	u32 request;
 	u32 level_mask, hwirq;
-	int umask = 0;
+	bool umask = false;
 	struct gpio_pint *pint = irq_desc_get_handler_data(desc);
 	struct irq_chip *chip = irq_desc_get_chip(desc);
 	struct gpio_pint_regs *regs = pint->regs;
@@ -680,12 +662,15 @@ static void adi_gpio_handle_pint_irq(unsigned int inta_irq,
 	hwirq = 0;
 	domain = pint->domain[0];
 	while (request) {
+		/* domain pointer need to be changed only once at IRQ 16 when
+		 * we go through IRQ requests from bit 0 to bit 31.
+		 */
 		if (hwirq == PINT_HI_OFFSET)
 			domain = pint->domain[1];
 
 		if (request & 1) {
-			if (level_mask & (1 << hwirq)) {
-				umask = 1;
+			if (level_mask & BIT(hwirq)) {
+				umask = true;
 				chained_irq_exit(chip, desc);
 			}
 			generic_handle_irq(irq_find_mapping(domain,
@@ -750,15 +735,15 @@ static struct pinctrl_ops adi_pctrl_ops = {
 
 static int adi_pinmux_request(struct pinctrl_dev *pctldev, unsigned pin)
 {
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	struct gpio_port *port;
 	unsigned long flags;
 	struct pin_desc *desc;
 	u8 offset;
 
-	pmx = pinctrl_dev_get_drvdata(pctldev);
+	pinctrl = pinctrl_dev_get_drvdata(pctldev);
 
-	port = find_gpio_port(pin, &pmx->gpio_list);
+	port = find_gpio_port(pin, &pinctrl->gpio_list);
 	if (port == NULL) {
 		dev_err(pctldev->dev,
 		       "%s: Peripheral PIN %d doesn't exist!\n",
@@ -774,7 +759,7 @@ static int adi_pinmux_request(struct pinctrl_dev *pctldev, unsigned pin)
 	/* If a pin can be muxed as either GPIO or peripheral, make
 	 * sure it is not already a GPIO pin when we request it.
 	 */
-	if (is_reserved(port, RSV_GPIO, offset)) {
+	if (port->rsvmap[offset].rsv_gpio) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 		dev_err(pctldev->dev,
@@ -784,7 +769,7 @@ static int adi_pinmux_request(struct pinctrl_dev *pctldev, unsigned pin)
 		return -EBUSY;
 	}
 
-	if (is_reserved(port, RSV_PERI, offset)) {
+	if (port->rsvmap[offset].rsv_peri) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 		dev_err(pctldev->dev,
@@ -794,7 +779,7 @@ static int adi_pinmux_request(struct pinctrl_dev *pctldev, unsigned pin)
 		return -EBUSY;
 	}
 
-	reserve(port, RSV_PERI, offset);
+	port->rsvmap[offset].rsv_peri = true;
 	set_label(port, offset, desc->mux_owner);
 
 	spin_unlock_irqrestore(&port->lock, flags);
@@ -804,13 +789,13 @@ static int adi_pinmux_request(struct pinctrl_dev *pctldev, unsigned pin)
 
 static int adi_pinmux_free(struct pinctrl_dev *pctldev, unsigned pin)
 {
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	struct gpio_port *port;
 	unsigned long flags;
 	u8 offset;
 
-	pmx = pinctrl_dev_get_drvdata(pctldev);
-	port = find_gpio_port(pin, &pmx->gpio_list);
+	pinctrl = pinctrl_dev_get_drvdata(pctldev);
+	port = find_gpio_port(pin, &pinctrl->gpio_list);
 	if (port == NULL)
 		return 0;
 
@@ -818,12 +803,12 @@ static int adi_pinmux_free(struct pinctrl_dev *pctldev, unsigned pin)
 
 	spin_lock_irqsave(&port->lock, flags);
 
-	if (!is_reserved(port, RSV_PERI, offset)) {
+	if (!port->rsvmap[offset].rsv_peri) {
 		spin_unlock_irqrestore(&port->lock, flags);
 		return 0;
 	}
 
-	unreserve(port, RSV_PERI, offset);
+	port->rsvmap[offset].rsv_peri = false;
 	set_label(port, offset, "free");
 
 	spin_unlock_irqrestore(&port->lock, flags);
@@ -834,18 +819,18 @@ static int adi_pinmux_free(struct pinctrl_dev *pctldev, unsigned pin)
 static int adi_pinmux_enable(struct pinctrl_dev *pctldev, unsigned selector,
 	unsigned group)
 {
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	struct gpio_port *port;
 	unsigned long flags;
 	unsigned short *mux = (unsigned short *)adi_pmx_functions[selector].mux;
 	unsigned short gpio;
 
-	pmx = pinctrl_dev_get_drvdata(pctldev);
+	pinctrl = pinctrl_dev_get_drvdata(pctldev);
 
 	while (*mux) {
 		gpio = P_IDENT(*mux);
 
-		port = find_gpio_port(gpio - pmx->gpio_base, &pmx->gpio_list);
+		port = find_gpio_port(gpio - pinctrl->gpio_base, &pinctrl->gpio_list);
 		if (port == NULL) /* should not happen */
 			continue;
 
@@ -853,7 +838,7 @@ static int adi_pinmux_enable(struct pinctrl_dev *pctldev, unsigned selector,
 
 		portmux_setup(port, gpio_to_offset(port, gpio),
 				 P_FUNCT2MUX(*mux));
-		port_setup(port, gpio_to_offset(port, gpio), PERIPHERAL_USAGE);
+		port_setup(port, gpio_to_offset(port, gpio), false);
 		mux++;
 
 		spin_unlock_irqrestore(&port->lock, flags);
@@ -865,24 +850,24 @@ static int adi_pinmux_enable(struct pinctrl_dev *pctldev, unsigned selector,
 static void adi_pinmux_disable(struct pinctrl_dev *pctldev, unsigned selector,
 	unsigned group)
 {
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	struct gpio_port *port;
 	unsigned long flags;
 	unsigned short *mux = (unsigned short *)adi_pmx_functions[selector].mux;
 	unsigned short gpio;
 
-	pmx = pinctrl_dev_get_drvdata(pctldev);
+	pinctrl = pinctrl_dev_get_drvdata(pctldev);
 
 	while (*mux) {
 		gpio = P_IDENT(*mux);
 
-		port = find_gpio_port(gpio - pmx->gpio_base, &pmx->gpio_list);
+		port = find_gpio_port(gpio - pinctrl->gpio_base, &pinctrl->gpio_list);
 		if (port == NULL) /* should not happen */
 			continue;
 
 		spin_lock_irqsave(&port->lock, flags);
 
-		port_setup(port, gpio_to_offset(port, gpio), GPIO_USAGE);
+		port_setup(port, gpio_to_offset(port, gpio), true);
 		mux++;
 
 		spin_unlock_irqrestore(&port->lock, flags);
@@ -912,13 +897,13 @@ static int adi_pinmux_get_groups(struct pinctrl_dev *pctldev, unsigned selector,
 static int adi_pinmux_request_gpio(struct pinctrl_dev *pctldev,
 	struct pinctrl_gpio_range *range, unsigned pin)
 {
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	struct gpio_port *port;
 	unsigned long flags;
 	u8 offset;
 
-	pmx = pinctrl_dev_get_drvdata(pctldev);
-	port = find_gpio_port(pin, &pmx->gpio_list);
+	pinctrl = pinctrl_dev_get_drvdata(pctldev);
+	port = find_gpio_port(pin, &pinctrl->gpio_list);
 	if (port == NULL) {
 		dev_err(pctldev->dev,
 		       "%s: GPIO PIN %d doesn't exist!\n",
@@ -930,7 +915,7 @@ static int adi_pinmux_request_gpio(struct pinctrl_dev *pctldev,
 
 	spin_lock_irqsave(&port->lock, flags);
 
-	if (is_reserved(port, RSV_GPIO, offset)) {
+	if (port->rsvmap[offset].rsv_gpio) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 		dev_err(pctldev->dev,
@@ -939,7 +924,7 @@ static int adi_pinmux_request_gpio(struct pinctrl_dev *pctldev,
 		spin_unlock_irqrestore(&port->lock, flags);
 		return -EBUSY;
 	}
-	if (is_reserved(port, RSV_PERI, offset)) {
+	if (port->rsvmap[offset].rsv_peri) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 		dev_err(pctldev->dev,
@@ -948,15 +933,15 @@ static int adi_pinmux_request_gpio(struct pinctrl_dev *pctldev,
 		spin_unlock_irqrestore(&port->lock, flags);
 		return -EBUSY;
 	}
-	if (is_reserved(port, RSV_INT, offset)) {
+	if (port->rsvmap[offset].rsv_int) {
 		dev_err(pctldev->dev,
 			"GPIO %d is already reserved as gpio-irq!\n",
 			offset_to_gpio(port, offset));
 	}
 
-	reserve(port, RSV_GPIO, offset);
+	port->rsvmap[offset].rsv_gpio = true;
 	set_label(port, offset, port->chip.label);
-	port_setup(port, offset, GPIO_USAGE);
+	port_setup(port, offset, true);
 
 	spin_unlock_irqrestore(&port->lock, flags);
 
@@ -966,13 +951,13 @@ static int adi_pinmux_request_gpio(struct pinctrl_dev *pctldev,
 static void adi_pinmux_free_gpio(struct pinctrl_dev *pctldev,
 	struct pinctrl_gpio_range *range, unsigned pin)
 {
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	struct gpio_port *port;
 	unsigned long flags;
 	u8 offset;
 
-	pmx = pinctrl_dev_get_drvdata(pctldev);
-	port = find_gpio_port(pin, &pmx->gpio_list);
+	pinctrl = pinctrl_dev_get_drvdata(pctldev);
+	port = find_gpio_port(pin, &pinctrl->gpio_list);
 	if (port == NULL)
 		return;
 
@@ -980,7 +965,7 @@ static void adi_pinmux_free_gpio(struct pinctrl_dev *pctldev,
 
 	spin_lock_irqsave(&port->lock, flags);
 
-	if (!is_reserved(port, RSV_GPIO, offset)) {
+	if (!port->rsvmap[offset].rsv_gpio) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
 
@@ -991,7 +976,7 @@ static void adi_pinmux_free_gpio(struct pinctrl_dev *pctldev,
 		return;
 	}
 
-	unreserve(port, RSV_GPIO, offset);
+	port->rsvmap[offset].rsv_gpio = false;
 	set_label(port, offset, "free");
 
 	spin_unlock_irqrestore(&port->lock, flags);
@@ -1048,15 +1033,15 @@ static int adi_gpio_direction_input(struct gpio_chip *chip, unsigned offset)
 
 	spin_lock_irqsave(&port->lock, flags);
 
-	if (!is_reserved(port, RSV_GPIO, offset)) {
+	if (!port->rsvmap[offset].rsv_gpio) {
 		dev_err(port->dev, "GPIO %d wasn't requested!\n",
 			offset_to_gpio(port, offset));
 		spin_unlock_irqrestore(&port->lock, flags);
 		return -EINVAL;
 	}
 
-	writew(1 << offset, &port->regs->dir_clear);
-	writew(readw(&port->regs->inen) | (1 << offset), &port->regs->inen);
+	writew(BIT(offset), &port->regs->dir_clear);
+	writew(readw(&port->regs->inen) | BIT(offset), &port->regs->inen);
 
 	spin_unlock_irqrestore(&port->lock, flags);
 
@@ -1089,7 +1074,7 @@ static int adi_gpio_direction_output(struct gpio_chip *chip, unsigned offset,
 
 	spin_lock_irqsave(&port->lock, flags);
 
-	if (!is_reserved(port, RSV_GPIO, offset)) {
+	if (!port->rsvmap[offset].rsv_gpio) {
 		dev_err(port->dev, "GPIO %d wasn't requested!\n",
 			offset_to_gpio(port, offset));
 		spin_unlock_irqrestore(&port->lock, flags);
@@ -1114,7 +1099,7 @@ static int adi_gpio_get_value(struct gpio_chip *chip, unsigned offset)
 
 	spin_lock_irqsave(&port->lock, flags);
 
-	ret = 1 & (readw(&regs->data) >> offset);
+	ret = !!(readw(&regs->data) & BIT(offset));
 
 	spin_unlock_irqrestore(&port->lock, flags);
 
@@ -1131,26 +1116,26 @@ static int adi_gpio_to_irq(struct gpio_chip *chip, unsigned offset)
 		return irq_create_mapping(port->domain, offset);
 }
 
-#if defined(CONFIG_PROC_FS)
+#if defined(CONFIG_DEBUG_FS)
 static inline unsigned short get_gpio_dir(struct gpio_port *port,
 	unsigned offset)
 {
 	struct gpio_port_t *regs = port->regs;
 
-	return 1 & (readw(&regs->dir_clear) >> offset);
+	return !!(readw(&regs->dir_clear) & BIT(offset));
 }
 
-static int gpio_proc_show(struct seq_file *m, void *v)
+static int gpio_debugfs_show(struct seq_file *m, void *v)
 {
 	int offset, irq, gpio;
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	struct gpio_port *port;
 
-	list_for_each_entry(pmx, &adi_pinctrl_list, node)
-	list_for_each_entry(port, &pmx->gpio_list, node)
+	list_for_each_entry(pinctrl, &adi_pinctrl_list, node)
+	list_for_each_entry(port, &pinctrl->gpio_list, node)
 		for (offset = 0; offset < port->width; offset++) {
-			irq = is_reserved(port, RSV_INT, offset);
-			gpio = is_reserved(port, RSV_GPIO, offset);
+			irq = port->rsvmap[offset].rsv_int;
+			gpio = port->rsvmap[offset].rsv_gpio;
 			if (gpio || irq)
 				seq_printf(m, "GPIO_%d: \t%s%s \t\tGPIO %s\n",
 					offset_to_gpio(port, offset),
@@ -1158,7 +1143,7 @@ static int gpio_proc_show(struct seq_file *m, void *v)
 					(gpio && irq) ? " *" : "",
 					get_gpio_dir(port, offset) ?
 					"OUTPUT" : "INPUT");
-			else if (is_reserved(port, RSV_PERI, offset))
+			else if (port->rsvmap[offset].rsv_peri)
 				seq_printf(m, "GPIO_%d: \t%s \t\tPeripheral\n",
 					offset_to_gpio(port, offset),
 					get_label(port, offset));
@@ -1171,41 +1156,59 @@ static int gpio_proc_show(struct seq_file *m, void *v)
 
 static int gpio_proc_open(struct inode *inode, struct file *file)
 {
-	return single_open(file, gpio_proc_show, NULL);
+	return single_open(file, gpio_debugfs_show, NULL);
 }
 
-static const struct file_operations gpio_proc_ops = {
+static const struct file_operations gpio_debugfs_ops = {
 	.open		= gpio_proc_open,
 	.read		= seq_read,
 	.llseek		= seq_lseek,
 	.release	= single_release,
 };
 
-static __init int gpio_register_proc(void)
+static __init int gpio_register_debugfs(void)
 {
-	struct proc_dir_entry *proc_gpio;
+	struct dentry *dir, *file;
 
-	proc_gpio = proc_create("gpio", 0, NULL, &gpio_proc_ops);
-	return proc_gpio == NULL;
+	dir = debugfs_create_dir("adi-gpio", NULL);
+	if (!dir)
+		return -ENOMEM;
+
+	file = debugfs_create_file("list", 0444, dir, NULL,
+				&gpio_debugfs_ops);
+	if (!file) {
+		debugfs_remove(dir);
+		return -ENOMEM;
+	}
+
+	return 0;
 }
-device_initcall(gpio_register_proc);
+device_initcall(gpio_register_debugfs);
 #endif
 
-static int adi_pint_map_port(struct gpio_pint *pint, u8 assign, u8 map,
+static int adi_pint_map_port(struct gpio_pint *pint, bool assign, u8 map,
 	struct irq_domain *domain)
 {
 	struct gpio_pint_regs *regs = pint->regs;
+	u32 map_mask;
 
 	if (pint->map_count > 1)
 		return -EINVAL;
 
-	if (assign > 1)
-		return -EINVAL;
-
 	pint->map_count++;
 
-	writel((readl(&regs->assign) & (0xFFFF << !assign * PINT_HI_OFFSET)) |
-		(((map << 8) | map) << assign * PINT_HI_OFFSET), &regs->assign);
+	/* The map_mask of each gpio port is a 16-bit duplicate
+	 * of the 8-bit map. It can be set to either high 16 bits or low
+	 * 16 bits of the pint assignment register.
+	 */
+	map_mask = (map << 8) | map;
+	if (assign) {
+		map_mask <<= PINT_HI_OFFSET;
+		writel((readl(&regs->assign) & 0xFFFF) | map_mask,
+			&regs->assign);
+	} else
+		writel((readl(&regs->assign) & 0xFFFF0000) | map_mask,
+			&regs->assign);
 
 	pint->domain[assign] = domain;
 
@@ -1270,7 +1273,6 @@ static int adi_gpio_pint_remove(struct platform_device *pdev)
 
 	list_del(&pint->node);
 	irq_set_handler(pint->irq, handle_simple_irq);
-	platform_set_drvdata(pdev, NULL);
 
 	return 0;
 }
@@ -1308,6 +1310,13 @@ static int adi_gpio_init_int(struct gpio_port *port)
 		return -ENOSYS;
 	}
 
+	/* According to BF54x and BF60x HRM, pin interrupt devices are not
+	 * part of the GPIO port device. in GPIO interrupt mode, the GPIO
+	 * pins of multiple port devices can be routed into one pin interrupt
+	 * device. The mapping can be configured by setting pint assignment
+	 * register with the mapping value of different GPIO port. This is
+	 * done via function pint_map_port().
+	 */
 	ret = pint->pint_map_port(port->pint, port->pint_assign,
 			port->pint_map,	port->domain);
 	if (ret)
@@ -1373,7 +1382,7 @@ static int adi_gpio_probe(struct platform_device *pdev)
 	port->width = pdata->port_width;
 	port->dev = dev;
 	port->regs = (struct gpio_port_t *)port->base;
-	port->pint_assign = !!pdata->pint_assign;
+	port->pint_assign = pdata->pint_assign;
 	port->pint_map = pdata->pint_map;
 
 	port->pint = find_gpio_pint(pdata->pint_id);
@@ -1383,13 +1392,13 @@ static int adi_gpio_probe(struct platform_device *pdev)
 			return ret;
 	}
 
-	port->pmx = find_pinctrl(pdata->pinctrl_id);
-	if (port->pmx == NULL) {
+	port->pinctrl = find_pinctrl(pdata->pinctrl_id);
+	if (port->pinctrl == NULL) {
 		dev_err(dev, "Could not find pinctrl device\n");
 		return -ENODEV;
 	}
 	if (gpio == 0)
-		gpio = port->pmx->gpio_base;
+		gpio = port->pinctrl->gpio_base;
 
 	spin_lock_init(&port->lock);
 
@@ -1405,7 +1414,7 @@ static int adi_gpio_probe(struct platform_device *pdev)
 	port->chip.to_irq		= adi_gpio_to_irq;
 	if (pdata->port_pin_base > 0)
 		port->chip.base		= pdata->port_pin_base +
-						port->pmx->gpio_base;
+						port->pinctrl->gpio_base;
 	else
 		port->chip.base		= gpio;
 	port->chip.ngpio		= port->width;
@@ -1419,12 +1428,12 @@ static int adi_gpio_probe(struct platform_device *pdev)
 	port->range.name = port->chip.label;
 	port->range.id = pdev->id;
 	port->range.base = port->chip.base;
-	port->range.pin_base = port->chip.base - port->pmx->gpio_base;
+	port->range.pin_base = port->chip.base - port->pinctrl->gpio_base;
 	port->range.npins = port->width;
 	port->range.gc = &port->chip;
-	pinctrl_add_gpio_range(port->pmx->pctl, &port->range);
+	pinctrl_add_gpio_range(port->pinctrl->pctl, &port->range);
 
-	list_add_tail(&port->node, &port->pmx->gpio_list);
+	list_add_tail(&port->node, &port->pinctrl->gpio_list);
 
 	return 0;
 }
@@ -1439,7 +1448,7 @@ static int adi_gpio_remove(struct platform_device *pdev)
 		irq_dispose_mapping(irq_find_mapping(port->domain, offset));
 
 	irq_domain_remove(port->domain);
-	pinctrl_remove_gpio_range(port->pmx->pctl, &port->range);
+	pinctrl_remove_gpio_range(port->pinctrl->pctl, &port->range);
 	list_del(&port->node);
 	ret = gpiochip_remove(&port->chip);
 	platform_set_drvdata(pdev, NULL);
@@ -1449,40 +1458,39 @@ static int adi_gpio_remove(struct platform_device *pdev)
 
 static int adi_pinctrl_probe(struct platform_device *pdev)
 {
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	struct resource *res;
 
-	pmx = devm_kzalloc(&pdev->dev, sizeof(*pmx), GFP_KERNEL);
-	if (!pmx)
+	pinctrl = devm_kzalloc(&pdev->dev, sizeof(*pinctrl), GFP_KERNEL);
+	if (!pinctrl)
 		return -ENOMEM;
 
-	pmx->dev = &pdev->dev;
+	pinctrl->dev = &pdev->dev;
 
 	/* Now register the pin controller and all pins it handles */
-	pmx->pctl = pinctrl_register(&adi_pinmux_desc, &pdev->dev, pmx);
-	if (!pmx->pctl) {
+	pinctrl->pctl = pinctrl_register(&adi_pinmux_desc, &pdev->dev, pinctrl);
+	if (!pinctrl->pctl) {
 		dev_err(&pdev->dev, "could not register pinctrl ADI2 driver\n");
 		return -EINVAL;
 	}
 
 	res = platform_get_resource(pdev, IORESOURCE_IO, 0);
 	if (res)
-		pmx->gpio_base = res->start;
+		pinctrl->gpio_base = res->start;
 
-	INIT_LIST_HEAD(&pmx->gpio_list);
+	INIT_LIST_HEAD(&pinctrl->gpio_list);
 
-	list_add_tail(&pmx->node, &adi_pinctrl_list);
+	list_add_tail(&pinctrl->node, &adi_pinctrl_list);
 
 	return 0;
 }
 
 static int adi_pinctrl_remove(struct platform_device *pdev)
 {
-	struct adi_pmx *pmx = platform_get_drvdata(pdev);
+	struct adi_pinctrl *pinctrl = platform_get_drvdata(pdev);
 
-	list_del(&pmx->node);
-	pinctrl_unregister(pmx->pctl);
-	platform_set_drvdata(pdev, NULL);
+	list_del(&pinctrl->node);
+	pinctrl_unregister(pinctrl->pctl);
 
 	return 0;
 }
@@ -1538,7 +1546,7 @@ pint_error:
 
 	return ret;
 }
-postcore_initcall(adi_pinctrl_setup);
+arch_initcall(adi_pinctrl_setup);
 
 MODULE_AUTHOR("Sonic Zhang <sonic.zhang@analog.com>");
 MODULE_DESCRIPTION("ADI gpio2 pin control driver");
@@ -1547,20 +1555,20 @@ MODULE_LICENSE("GPL");
 /* ADI direct peripheral pin request APIs. Don't send upstream */
 int pinmux_request(unsigned short fer, const char *label)
 {
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	struct gpio_port *port;
 	unsigned long flags;
 	u8 offset;
 	unsigned pin = P_IDENT(fer);
 
-	pmx = list_first_entry_or_null(&adi_pinctrl_list,
-			struct adi_pmx, node);
-	if (pmx == NULL)
+	pinctrl = list_first_entry_or_null(&adi_pinctrl_list,
+			struct adi_pinctrl, node);
+	if (pinctrl == NULL)
 		return -ENODEV;
 
-	port = find_gpio_port(pin, &pmx->gpio_list);
+	port = find_gpio_port(pin, &pinctrl->gpio_list);
 	if (port == NULL) {
-		dev_err(pmx->dev,
+		dev_err(pinctrl->dev,
 		       "%s: Peripheral PIN %d doesn't exist!\n",
 		       __func__, pin);
 		return -ENODEV;
@@ -1573,30 +1581,30 @@ int pinmux_request(unsigned short fer, const char *label)
 	/* If a pin can be muxed as either GPIO or peripheral, make
 	 * sure it is not already a GPIO pin when we request it.
 	 */
-	if (unlikely(is_reserved(port, RSV_GPIO, offset))) {
+	if (port->rsvmap[offset].rsv_gpio) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
-		dev_err(pmx->dev,
+		dev_err(pinctrl->dev,
 		       "%s: Peripheral PIN %d is already reserved as GPIO by %s!\n",
 		       __func__, pin, get_label(port, offset));
 		spin_unlock_irqrestore(&port->lock, flags);
 		return -EBUSY;
 	}
 
-	if (unlikely(is_reserved(port, RSV_PERI, offset))) {
+	if (port->rsvmap[offset].rsv_peri) {
 		if (system_state == SYSTEM_BOOTING)
 			dump_stack();
-		dev_err(pmx->dev,
+		dev_err(pinctrl->dev,
 			"%s: Peripheral PIN %d is already reserved by %s!\n",
 			__func__, pin, get_label(port, offset));
 		spin_unlock_irqrestore(&port->lock, flags);
 		return -EBUSY;
 	}
 
-	reserve(port, RSV_PERI, offset);
+	port->rsvmap[offset].rsv_peri = true;
 	set_label(port, offset, label);
 	portmux_setup(port, offset, P_FUNCT2MUX(fer));
-	port_setup(port, offset, PERIPHERAL_USAGE);
+	port_setup(port, offset, false);
 
 	spin_unlock_irqrestore(&port->lock, flags);
 
@@ -1606,18 +1614,18 @@ int pinmux_request(unsigned short fer, const char *label)
 
 void pinmux_free(unsigned short fer)
 {
-	struct adi_pmx *pmx;
+	struct adi_pinctrl *pinctrl;
 	struct gpio_port *port;
 	unsigned long flags;
 	u8 offset;
 	unsigned pin = P_IDENT(fer);
 
-	pmx = list_first_entry_or_null(&adi_pinctrl_list,
-			struct adi_pmx, node);
-	if (pmx == NULL)
+	pinctrl = list_first_entry_or_null(&adi_pinctrl_list,
+			struct adi_pinctrl, node);
+	if (pinctrl == NULL)
 		return;
 
-	port = find_gpio_port(pin, &pmx->gpio_list);
+	port = find_gpio_port(pin, &pinctrl->gpio_list);
 	if (port == NULL)
 		return;
 
@@ -1625,14 +1633,14 @@ void pinmux_free(unsigned short fer)
 
 	spin_lock_irqsave(&port->lock, flags);
 
-	if (unlikely(!is_reserved(port, RSV_PERI, offset))) {
+	if (!port->rsvmap[offset].rsv_peri) {
 		spin_unlock_irqrestore(&port->lock, flags);
 		return;
 	}
 
-	unreserve(port, RSV_PERI, offset);
+	port->rsvmap[offset].rsv_peri = false;
 	set_label(port, offset, "free");
-	port_setup(port, offset, GPIO_USAGE);
+	port_setup(port, offset, true);
 
 	spin_unlock_irqrestore(&port->lock, flags);
 

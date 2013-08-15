@@ -31,7 +31,7 @@ struct adi_pinctrl_gpio_platform_data {
 	unsigned int port_width;
 	u8 pinctrl_id;
 	u8 pint_id;
-	u8 pint_assign;
+	bool pint_assign;
 	u8 pint_map;
 };
 
