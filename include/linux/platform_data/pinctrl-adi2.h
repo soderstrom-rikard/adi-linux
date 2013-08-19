@@ -17,8 +17,9 @@
  * struct adi_pinctrl_gpio_platform_data - Pinctrl gpio platform data
  * for ADI GPIO2 device.
  *
- * @port_pin_base: Optional global GPIO index of the GPIO bank.
+ * @port_gpio_base: Optional global GPIO index of the GPIO bank.
  *                 0 means driver decides.
+ * @port_pin_base: Pin index of the pin controller device.
  * @port_width: PIN number of the GPIO bank device
  * @pint_id: GPIO PINT device id that this GPIO bank should map to.
  * @pint_assign: The 32-bit GPIO PINT registers can be divided into 2 parts. A
@@ -27,6 +28,7 @@
  * @pint_map: GIOP bank mapping code in PINT device
  */
 struct adi_pinctrl_gpio_platform_data {
+	unsigned int port_gpio_base;
 	unsigned int port_pin_base;
 	unsigned int port_width;
 	u8 pinctrl_id;
