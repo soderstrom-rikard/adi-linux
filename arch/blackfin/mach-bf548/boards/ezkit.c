@@ -1194,7 +1194,8 @@ static struct resource bfin_gpa_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpa_pdata = {
-	.port_pin_base	= GPIO_PA0,	/* optional */
+	.port_gpio_base	= GPIO_PA0,	/* Optional */
+	.port_pin_base	= GPIO_PA0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 0,		/* PINT0 */
 	.pint_assign	= true,		/* PINT upper 16 bit */
@@ -1225,6 +1226,7 @@ static struct resource bfin_gpb_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpb_pdata = {
+	.port_gpio_base	= GPIO_PB0,
 	.port_pin_base	= GPIO_PB0,
 	.port_width	= 15,
 	.pint_id	= 0,
@@ -1256,6 +1258,7 @@ static struct resource bfin_gpc_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpc_pdata = {
+	.port_gpio_base	= GPIO_PC0,
 	.port_pin_base	= GPIO_PC0,
 	.port_width	= 14,
 	.pint_id	= 2,
@@ -1287,6 +1290,7 @@ static struct resource bfin_gpd_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpd_pdata = {
+	.port_gpio_base	= GPIO_PD0,
 	.port_pin_base	= GPIO_PD0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 2,
@@ -1318,6 +1322,7 @@ static struct resource bfin_gpe_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpe_pdata = {
+	.port_gpio_base	= GPIO_PE0,
 	.port_pin_base	= GPIO_PE0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 3,
@@ -1349,6 +1354,7 @@ static struct resource bfin_gpf_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpf_pdata = {
+	.port_gpio_base	= GPIO_PF0,
 	.port_pin_base	= GPIO_PF0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 3,
@@ -1380,6 +1386,7 @@ static struct resource bfin_gpg_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpg_pdata = {
+	.port_gpio_base	= GPIO_PG0,
 	.port_pin_base	= GPIO_PG0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= -1,
@@ -1409,6 +1416,7 @@ static struct resource bfin_gph_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gph_pdata = {
+	.port_gpio_base	= GPIO_PH0,
 	.port_pin_base	= GPIO_PH0,
 	.port_width	= 14,
 	.pint_id	= -1,
@@ -1438,6 +1446,7 @@ static struct resource bfin_gpi_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpi_pdata = {
+	.port_gpio_base	= GPIO_PI0,
 	.port_pin_base	= GPIO_PI0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= -1,
@@ -1467,6 +1476,7 @@ static struct resource bfin_gpj_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpj_pdata = {
+	.port_gpio_base	= GPIO_PJ0,
 	.port_pin_base	= GPIO_PJ0,
 	.port_width	= 14,
 	.pint_id	= -1,

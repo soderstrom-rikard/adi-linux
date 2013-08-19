@@ -1601,7 +1601,7 @@ static struct resource bfin_gpa_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpa_pdata = {
-	.port_pin_base	= GPIO_PA0,	/* optional */
+	.port_pin_base	= GPIO_PA0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 0,		/* PINT0 */
 	.pint_assign	= true,		/* PINT upper 16 bit */
@@ -1632,6 +1632,7 @@ static struct resource bfin_gpb_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpb_pdata = {
+	.port_pin_base	= GPIO_PB0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 0,
 	.pint_assign	= false,
@@ -1662,6 +1663,7 @@ static struct resource bfin_gpc_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpc_pdata = {
+	.port_pin_base	= GPIO_PC0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 1,
 	.pint_assign	= false,
@@ -1692,6 +1694,7 @@ static struct resource bfin_gpd_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpd_pdata = {
+	.port_pin_base	= GPIO_PD0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 2,
 	.pint_assign	= false,
@@ -1722,6 +1725,7 @@ static struct resource bfin_gpe_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpe_pdata = {
+	.port_pin_base	= GPIO_PE0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 3,
 	.pint_assign	= false,
@@ -1752,6 +1756,7 @@ static struct resource bfin_gpf_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpf_pdata = {
+	.port_pin_base	= GPIO_PF0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 4,
 	.pint_assign	= false,
@@ -1782,6 +1787,7 @@ static struct resource bfin_gpg_resources[] = {
 };
 
 static struct adi_pinctrl_gpio_platform_data bfin_gpg_pdata = {
+	.port_pin_base	= GPIO_PG0,
 	.port_width	= GPIO_BANKSIZE,
 	.pint_id	= 5,
 	.pint_assign	= false,
@@ -2221,7 +2227,7 @@ static struct pinctrl_map __initdata bfin_pinmux_map[] = {
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin_can.0",  "pinctrl-adi2.0", NULL, "can0"),
 	PIN_MAP_MUX_GROUP_DEFAULT("physmap-flash.0",  "pinctrl-adi2.0", NULL, "smc0"),
 	PIN_MAP_MUX_GROUP_DEFAULT("bf609_nl8048.2",  "pinctrl-adi2.0", NULL, "ppi2_16b"),
-	PIN_MAP_MUX_GROUP_DEFAULT("bfin_display.0",  "pinctrl-adi2.0", NULL, "ppi0_16b"),
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin_display.0",  "pinctrl-adi2.0", NULL, "ppi2_16b"),
 #if defined(CONFIG_VIDEO_MT9M114) || defined(CONFIG_VIDEO_MT9M114_MODULE)
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin_capture.0",  "pinctrl-adi2.0", NULL, "ppi0_8b"),
 #elif defined(CONFIG_VIDEO_VS6624) || defined(CONFIG_VIDEO_VS6624_MODULE)
