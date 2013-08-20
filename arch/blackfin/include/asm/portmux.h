@@ -18,6 +18,11 @@
 #define P_DONTCARE	0x1000
 
 #ifdef CONFIG_PINCTRL
+#include <asm/irq_handler.h>
+
+#define gpio_pint_regs bfin_pint_regs
+#define adi_internal_set_wake bfin_internal_set_wake
+
 #define peripheral_request(per, label) 0
 #define peripheral_free(per)
 #define peripheral_request_list(per, label) \

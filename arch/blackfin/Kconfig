@@ -333,12 +333,9 @@ config GPIO_ADI
 	def_bool y
 	depends on (BF51x || BF52x || BF53x || BF538 || BF539 || BF561)
 
-config PINCTRL_ADI2
+config PINCTRL
 	def_bool y
-	depends on (BF54x || BF60x)
-	select PINCTRL
-	select PINMUX
-	select IRQ_DOMAIN
+	depends on BF54x || BF60x
 
 config MEM_MT48LC64M4A2FB_7E
 	bool
