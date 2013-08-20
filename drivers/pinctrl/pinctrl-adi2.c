@@ -23,8 +23,8 @@
 #include <linux/syscore_ops.h>
 #include <linux/gpio.h>
 #include <asm/portmux.h>
+#include "pinctrl-adi2.h"
 #include "core.h"
-
 
 /*
 According to the BF54x HRM, pint means "pin interrupt".
@@ -144,10 +144,12 @@ struct gpio_pint {
  *
  * @dev: a pointer back to containing device
  * @pctl: the pinctrl device
+ * @soc: SoC data for this specific chip
  */
 struct adi_pinctrl {
 	struct device *dev;
 	struct pinctrl_dev *pctl;
+	const struct adi_pinctrl_soc_data *soc;
 };
 
 /**
@@ -651,21 +653,27 @@ static struct irq_chip adi_gpio_irqchip = {
 
 static int adi_get_groups_count(struct pinctrl_dev *pctldev)
 {
-	return ARRAY_SIZE(adi_pin_groups);
+	struct adi_pinctrl *pinctrl = pinctrl_dev_get_drvdata(pctldev);
+
+	return pinctrl->soc->ngroups;
 }
 
 static const char *adi_get_group_name(struct pinctrl_dev *pctldev,
 				       unsigned selector)
 {
-	return adi_pin_groups[selector].name;
+	struct adi_pinctrl *pinctrl = pinctrl_dev_get_drvdata(pctldev);
+
+	return pinctrl->soc->groups[selector].name;
 }
 
 static int adi_get_group_pins(struct pinctrl_dev *pctldev, unsigned selector,
 			       const unsigned **pins,
 			       unsigned *num_pins)
 {
-	*pins = adi_pin_groups[selector].pins;
-	*num_pins = adi_pin_groups[selector].num;
+	struct adi_pinctrl *pinctrl = pinctrl_dev_get_drvdata(pctldev);
+
+	*pins = pinctrl->soc->groups[selector].pins;
+	*num_pins = pinctrl->soc->groups[selector].num;
 	return 0;
 }
 
@@ -769,11 +777,13 @@ static int adi_pinmux_free(struct pinctrl_dev *pctldev, unsigned pin)
 static int adi_pinmux_enable(struct pinctrl_dev *pctldev, unsigned selector,
 	unsigned group)
 {
+	struct adi_pinctrl *pinctrl = pinctrl_dev_get_drvdata(pctldev);
 	struct gpio_port *port;
 	struct pinctrl_gpio_range *range;
 	unsigned long flags;
-	unsigned short *mux = (unsigned short *)adi_pmx_functions[selector].mux;
-	unsigned short pin;
+	unsigned short *mux, pin;
+
+	mux = (unsigned short *)pinctrl->soc->functions[selector].mux;
 
 	while (*mux) {
 		pin = P_IDENT(*mux);
@@ -800,11 +810,13 @@ static int adi_pinmux_enable(struct pinctrl_dev *pctldev, unsigned selector,
 static void adi_pinmux_disable(struct pinctrl_dev *pctldev, unsigned selector,
 	unsigned group)
 {
+	struct adi_pinctrl *pinctrl = pinctrl_dev_get_drvdata(pctldev);
 	struct gpio_port *port;
 	struct pinctrl_gpio_range *range;
 	unsigned long flags;
-	unsigned short *mux = (unsigned short *)adi_pmx_functions[selector].mux;
-	unsigned short pin;
+	unsigned short *mux, pin;
+
+	mux = (unsigned short *)pinctrl->soc->functions[selector].mux;
 
 	while (*mux) {
 		pin = P_IDENT(*mux);
@@ -826,21 +838,27 @@ static void adi_pinmux_disable(struct pinctrl_dev *pctldev, unsigned selector,
 
 static int adi_pinmux_get_funcs_count(struct pinctrl_dev *pctldev)
 {
-	return ARRAY_SIZE(adi_pmx_functions);
+	struct adi_pinctrl *pinctrl = pinctrl_dev_get_drvdata(pctldev);
+
+	return pinctrl->soc->nfunctions;
 }
 
 static const char *adi_pinmux_get_func_name(struct pinctrl_dev *pctldev,
 					  unsigned selector)
 {
-	return adi_pmx_functions[selector].name;
+	struct adi_pinctrl *pinctrl = pinctrl_dev_get_drvdata(pctldev);
+
+	return pinctrl->soc->functions[selector].name;
 }
 
 static int adi_pinmux_get_groups(struct pinctrl_dev *pctldev, unsigned selector,
 			       const char * const **groups,
 			       unsigned * const num_groups)
 {
-	*groups = adi_pmx_functions[selector].groups;
-	*num_groups = adi_pmx_functions[selector].num_groups;
+	struct adi_pinctrl *pinctrl = pinctrl_dev_get_drvdata(pctldev);
+
+	*groups = pinctrl->soc->functions[selector].groups;
+	*num_groups = pinctrl->soc->functions[selector].num_groups;
 	return 0;
 }
 
@@ -935,8 +953,6 @@ static struct pinmux_ops adi_pinmux_ops = {
 
 static struct pinctrl_desc adi_pinmux_desc = {
 	.name = DRIVER_NAME,
-	.pins = adi_pads,
-	.npins = ARRAY_SIZE(adi_pads),
 	.pctlops = &adi_pctrl_ops,
 	.pmxops = &adi_pinmux_ops,
 	.owner = THIS_MODULE,
@@ -1397,6 +1413,11 @@ static int adi_pinctrl_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	pinctrl->dev = &pdev->dev;
+
+	adi_pinctrl_soc_init(&pinctrl->soc);
+
+	adi_pinmux_desc.pins = pinctrl->soc->pins;
+	adi_pinmux_desc.npins = pinctrl->soc->npins;
 
 	/* Now register the pin controller and all pins it handles */
 	pinctrl->pctl = pinctrl_register(&adi_pinmux_desc, &pdev->dev, pinctrl);
