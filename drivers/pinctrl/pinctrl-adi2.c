@@ -650,6 +650,49 @@ static struct irq_chip adi_gpio_irqchip = {
 	.irq_set_wake = adi_gpio_set_wake,
 };
 
+#if defined(CONFIG_DEBUG_FS)
+static inline unsigned short get_gpio_dir(struct gpio_port *port,
+	unsigned offset)
+{
+	struct gpio_port_t *regs = port->regs;
+
+	return !!(readw(&regs->dir_clear) & BIT(offset));
+}
+
+static void adi_gpio_dbg_show_one(struct seq_file *s,
+	struct pinctrl_dev *pctldev, struct gpio_chip *chip,
+	unsigned offset, unsigned gpio)
+{
+	int rsv_irq, rsv_gpio;
+	struct gpio_port *port;
+
+	port = container_of(chip, struct gpio_port, chip);
+
+	rsv_irq = port->rsvmap[offset].rsv_int;
+	rsv_gpio = port->rsvmap[offset].rsv_gpio;
+	if (rsv_gpio || rsv_irq)
+		seq_printf(s, "GPIO_%d: \t%s%s \t\tGPIO %s\n",
+			gpio, get_label(port, offset),
+			(rsv_gpio && rsv_irq) ? " *" : "",
+			get_gpio_dir(port, offset) ?
+			"OUTPUT" : "INPUT");
+	else if (port->rsvmap[offset].rsv_peri)
+		seq_printf(s, "GPIO_%d: \t%s \t\tPeripheral\n",
+			gpio, get_label(port, offset));
+}
+
+static void adi_gpio_dbg_show(struct seq_file *s, struct gpio_chip *chip)
+{
+	unsigned i;
+	unsigned gpio = chip->base;
+
+	for (i = 0; i < chip->ngpio; i++, gpio++)
+		adi_gpio_dbg_show_one(s, NULL, chip, i, gpio);
+}
+#else
+#define adi_gpio_dbg_show_one	NULL
+#define adi_gpio_dbg_show       NULL
+#endif
 
 static int adi_get_groups_count(struct pinctrl_dev *pctldev)
 {
@@ -677,10 +720,37 @@ static int adi_get_group_pins(struct pinctrl_dev *pctldev, unsigned selector,
 	return 0;
 }
 
+static struct pinctrl_gpio_range *
+adi_match_gpio_range(struct pinctrl_dev *pctldev, unsigned gpio)
+{
+	struct pinctrl_gpio_range *range = NULL;
+
+	mutex_lock(&pctldev->mutex);
+	list_for_each_entry(range, &pctldev->gpio_ranges, node) {
+		if (gpio >= range->base &&
+			gpio < range->base + range->npins) {
+			mutex_unlock(&pctldev->mutex);
+			return range;
+		}
+	}
+	mutex_unlock(&pctldev->mutex);
+
+	return NULL;
+}
+
 static void adi_pin_dbg_show(struct pinctrl_dev *pctldev, struct seq_file *s,
 		   unsigned offset)
 {
-	seq_puts(s, DRIVER_NAME);
+	struct pinctrl_gpio_range *range;
+	struct gpio_chip *chip;
+
+	range = adi_match_gpio_range(pctldev, offset);
+	if (!range || !range->gc) {
+		seq_puts(s, "invalid pin offset");
+		return;
+	}
+	chip = range->gc;
+	adi_gpio_dbg_show_one(s, pctldev, chip, offset - chip->base, offset);
 }
 
 static struct pinctrl_ops adi_pctrl_ops = {
@@ -1060,74 +1130,6 @@ static int adi_gpio_to_irq(struct gpio_chip *chip, unsigned offset)
 		return irq_create_mapping(port->domain, offset);
 }
 
-#if defined(CONFIG_DEBUG_FS)
-static inline unsigned short get_gpio_dir(struct gpio_port *port,
-	unsigned offset)
-{
-	struct gpio_port_t *regs = port->regs;
-
-	return !!(readw(&regs->dir_clear) & BIT(offset));
-}
-
-static int gpio_debugfs_show(struct seq_file *m, void *v)
-{
-	int offset, irq, gpio;
-	struct gpio_port *port;
-
-	list_for_each_entry(port, &adi_gpio_port_list, node)
-		for (offset = 0; offset < port->width; offset++) {
-			irq = port->rsvmap[offset].rsv_int;
-			gpio = port->rsvmap[offset].rsv_gpio;
-			if (gpio || irq)
-				seq_printf(m, "GPIO_%d: \t%s%s \t\tGPIO %s\n",
-					port->chip.base + offset,
-					get_label(port, offset),
-					(gpio && irq) ? " *" : "",
-					get_gpio_dir(port, offset) ?
-					"OUTPUT" : "INPUT");
-			else if (port->rsvmap[offset].rsv_peri)
-				seq_printf(m, "GPIO_%d: \t%s \t\tPeripheral\n",
-					port->chip.base + offset,
-					get_label(port, offset));
-			else
-				continue;
-		}
-
-	return 0;
-}
-
-static int gpio_proc_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, gpio_debugfs_show, NULL);
-}
-
-static const struct file_operations gpio_debugfs_ops = {
-	.open		= gpio_proc_open,
-	.read		= seq_read,
-	.llseek		= seq_lseek,
-	.release	= single_release,
-};
-
-static __init int gpio_register_debugfs(void)
-{
-	struct dentry *dir, *file;
-
-	dir = debugfs_create_dir("adi-gpio", NULL);
-	if (!dir)
-		return -ENOMEM;
-
-	file = debugfs_create_file("list", 0444, dir, NULL,
-				&gpio_debugfs_ops);
-	if (!file) {
-		debugfs_remove(dir);
-		return -ENOMEM;
-	}
-
-	return 0;
-}
-device_initcall(gpio_register_debugfs);
-#endif
-
 static int adi_pint_map_port(struct gpio_pint *pint, bool assign, u8 map,
 	struct irq_domain *domain)
 {
@@ -1347,6 +1349,7 @@ static int adi_gpio_probe(struct platform_device *pdev)
 	port->chip.request		= adi_gpio_request;
 	port->chip.free			= adi_gpio_free;
 	port->chip.to_irq		= adi_gpio_to_irq;
+	port->chip.dbg_show		= adi_gpio_dbg_show;
 	if (pdata->port_gpio_base > 0)
 		port->chip.base		= pdata->port_gpio_base;
 	else
