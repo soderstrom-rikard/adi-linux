@@ -478,7 +478,7 @@ static int adi_gpio_irq_type(struct irq_data *d, unsigned int type)
 	else
 		writel(pintmask, &pint_regs->invert_clear);
 
-	/* In edge sensitive case, if the input value of the requested irq 
+	/* In edge sensitive case, if the input value of the requested irq
 	 * is already 1, invert it.
 	 */
 	if ((type & IRQ_TYPE_EDGE_BOTH) == IRQ_TYPE_EDGE_BOTH) {
