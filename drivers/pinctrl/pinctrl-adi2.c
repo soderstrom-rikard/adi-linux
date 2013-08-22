@@ -456,6 +456,7 @@ static int adi_gpio_irq_type(struct irq_data *d, unsigned int type)
 	spin_lock_irqsave(&port->lock, flags);
 	spin_lock_irqsave(&port->pint->lock, flags);
 
+	/* In case of interrupt autodetect, set irq type to edge sensitive. */
 	if (type == IRQ_TYPE_PROBE)
 		type = IRQ_TYPE_EDGE_RISING | IRQ_TYPE_EDGE_FALLING;
 
@@ -468,13 +469,18 @@ static int adi_gpio_irq_type(struct irq_data *d, unsigned int type)
 	} else
 		goto out;
 
+	/* The GPIO interrupt is triggered only when its input value
+	 * transfer from 0 to 1. So, invert the input value if the
+	 * irq type is low or falling
+	 */
 	if ((type & (IRQ_TYPE_EDGE_FALLING | IRQ_TYPE_LEVEL_LOW)))
-		/* low or falling edge denoted by one */
 		writel(pintmask, &pint_regs->invert_set);
 	else
-		/* high or rising edge denoted by zero */
 		writel(pintmask, &pint_regs->invert_clear);
 
+	/* In edge sensitive case, if the input value of the requested irq 
+	 * is already 1, invert it.
+	 */
 	if ((type & IRQ_TYPE_EDGE_BOTH) == IRQ_TYPE_EDGE_BOTH) {
 		if (gpio_get_value(port->chip.base + d->hwirq))
 			writel(pintmask, &pint_regs->invert_set);
