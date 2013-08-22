@@ -291,9 +291,6 @@ static int __adi_gpio_irq_request(struct gpio_port *port, unsigned offset,
 	const char *label)
 {
 	if (port->rsvmap[offset].rsv_peri) {
-		if (system_state == SYSTEM_BOOTING)
-			dump_stack();
-
 		dev_err(port->dev,
 		       "GPIO %d is already reserved as Peripheral by %s !\n",
 			port->chip.base + offset, get_label(port, offset));
@@ -314,9 +311,6 @@ static int __adi_gpio_irq_request(struct gpio_port *port, unsigned offset,
 static void __adi_gpio_irq_free(struct gpio_port *port, unsigned offset)
 {
 	if (!port->rsvmap[offset].rsv_int) {
-		if (system_state == SYSTEM_BOOTING)
-			dump_stack();
-
 		dev_err(port->dev, "GPIO %d wasn't requested!\n",
 			port->chip.base + offset);
 		return;
@@ -787,8 +781,6 @@ static int adi_pinmux_request(struct pinctrl_dev *pctldev, unsigned pin)
 	 * sure it is not already a GPIO pin when we request it.
 	 */
 	if (port->rsvmap[offset].rsv_gpio) {
-		if (system_state == SYSTEM_BOOTING)
-			dump_stack();
 		dev_err(pctldev->dev,
 		       "%s: Peripheral PIN %d is already reserved as GPIO by %s!\n",
 		       __func__, pin, get_label(port, offset));
@@ -797,8 +789,6 @@ static int adi_pinmux_request(struct pinctrl_dev *pctldev, unsigned pin)
 	}
 
 	if (port->rsvmap[offset].rsv_peri) {
-		if (system_state == SYSTEM_BOOTING)
-			dump_stack();
 		dev_err(pctldev->dev,
 			"%s: Peripheral PIN %d is already reserved by %s!\n",
 			__func__, pin, get_label(port, offset));
@@ -945,8 +935,6 @@ static int adi_pinmux_request_gpio(struct pinctrl_dev *pctldev,
 	spin_lock_irqsave(&port->lock, flags);
 
 	if (port->rsvmap[offset].rsv_gpio) {
-		if (system_state == SYSTEM_BOOTING)
-			dump_stack();
 		dev_err(pctldev->dev,
 			"GPIO %d is already reserved by %s !\n",
 			port->chip.base + offset, get_label(port, offset));
@@ -954,8 +942,6 @@ static int adi_pinmux_request_gpio(struct pinctrl_dev *pctldev,
 		return -EBUSY;
 	}
 	if (port->rsvmap[offset].rsv_peri) {
-		if (system_state == SYSTEM_BOOTING)
-			dump_stack();
 		dev_err(pctldev->dev,
 			"GPIO %d is already reserved as peripheral by %s !\n",
 			port->chip.base + offset, get_label(port, offset));
@@ -990,9 +976,6 @@ static void adi_pinmux_free_gpio(struct pinctrl_dev *pctldev,
 	spin_lock_irqsave(&port->lock, flags);
 
 	if (!port->rsvmap[offset].rsv_gpio) {
-		if (system_state == SYSTEM_BOOTING)
-			dump_stack();
-
 		dev_err(pctldev->dev,
 			"GPIO %d wasn't requested!\n",
 			port->chip.base + offset);
@@ -1532,8 +1515,6 @@ int pinmux_request(unsigned short fer, const char *label)
 	 * sure it is not already a GPIO pin when we request it.
 	 */
 	if (port->rsvmap[offset].rsv_gpio) {
-		if (system_state == SYSTEM_BOOTING)
-			dump_stack();
 		dev_err(pctldev->dev,
 		       "%s: Peripheral PIN %d is already reserved as GPIO by %s!\n",
 		       __func__, pin, get_label(port, offset));
@@ -1542,8 +1523,6 @@ int pinmux_request(unsigned short fer, const char *label)
 	}
 
 	if (port->rsvmap[offset].rsv_peri) {
-		if (system_state == SYSTEM_BOOTING)
-			dump_stack();
 		dev_err(pctldev->dev,
 			"%s: Peripheral PIN %d is already reserved by %s!\n",
 			__func__, pin, get_label(port, offset));
