@@ -123,7 +123,7 @@ static struct plat_stmmacenet_data eth_private_data = {
 	.phy_addr = 1,
 	.mdio_bus_data = &phy_private_data,
 	.dma_cfg  = &eth_dma_cfg,
-	.force_sf_dma_mode = -1,
+	.force_thresh_dma_mode = 1,
 };
 
 static struct platform_device bfin_eth_device = {
