@@ -2837,6 +2837,13 @@ int stmmac_resume(struct net_device *ndev)
 	netif_device_attach(ndev);
 
 #ifdef CONFIG_BF60x
+	if (priv->phydev) {
+		priv->oldlink = 0;
+		priv->speed = 0;
+		phy_init_hw(priv->phydev);
+		phy_start(priv->phydev);
+	}
+
 	priv->dirty_tx = 0;
 	priv->cur_tx = 0;
 	priv->cur_rx = 0;
@@ -2850,6 +2857,11 @@ int stmmac_resume(struct net_device *ndev)
 
 	/* Initialize the MAC Core */
 	priv->hw->mac->core_init(priv->ioaddr);
+
+	if ((priv->use_riwt) && (priv->hw->dma->rx_watchdog)) {
+		priv->rx_riwt = MAX_DMA_RIWT;
+		priv->hw->dma->rx_watchdog(priv->ioaddr, MAX_DMA_RIWT);
+	}
 #endif
 
 	/* Enable the MAC and DMA */
