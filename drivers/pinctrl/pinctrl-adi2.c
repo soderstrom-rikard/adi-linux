@@ -297,7 +297,7 @@ static int __adi_gpio_irq_request(struct gpio_port *port, unsigned offset,
 		return -EBUSY;
 	}
 	if (port->rsvmap[offset].rsv_gpio)
-		dev_err(port->dev,
+		dev_warn(port->dev,
 			"GPIO %d is already reserved by %s!\n",
 			port->chip.base + offset, get_label(port, offset));
 
@@ -949,7 +949,7 @@ static int adi_pinmux_request_gpio(struct pinctrl_dev *pctldev,
 		return -EBUSY;
 	}
 	if (port->rsvmap[offset].rsv_int) {
-		dev_err(pctldev->dev,
+		dev_warn(pctldev->dev,
 			"GPIO %d is already reserved as gpio-irq!\n",
 			port->chip.base + offset);
 	}
