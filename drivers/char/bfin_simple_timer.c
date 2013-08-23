@@ -187,7 +187,7 @@ timer_open(struct inode *inode, struct file *filp)
 		return err;
 	}
 
-	err = peripheral_request(t->per_pin, "timer test");
+	err = pinmux_request(t->per_pin, "timer test");
 	if (err) {
 		printk(KERN_ERR "request pin(%d) failed\n", t->per_pin);
 		free_irq(t->irq, (void *)minor);
@@ -205,7 +205,7 @@ timer_close(struct inode *inode, struct file *filp)
 	int minor = MINOR(inode->i_rdev);
 	struct timer *t = filp->private_data;;
 	disable_gptimers(t->bit);
-	peripheral_free(t->per_pin);
+	pinmux_free(t->per_pin);
 	free_irq(t->irq, (void *)minor);
 	pr_debug(DRV_NAME ": device(%d) closed\n", minor);
 	return 0;

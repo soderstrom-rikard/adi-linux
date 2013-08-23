@@ -41,7 +41,7 @@ static int bfin_pwm_request(struct pwm_chip *chip, struct pwm_device *pwm)
 
 	priv->pin = pwm_to_gptimer_per[pwm->hwpwm];
 
-	ret = peripheral_request(priv->pin, NULL);
+	ret = pinmux_request(priv->pin, NULL);
 	if (ret) {
 		kfree(priv);
 		return ret;
@@ -57,7 +57,7 @@ static void bfin_pwm_free(struct pwm_chip *chip, struct pwm_device *pwm)
 	struct bfin_pwm *priv = pwm_get_chip_data(pwm);
 
 	if (priv) {
-		peripheral_free(priv->pin);
+		pinmux_free(priv->pin);
 		kfree(priv);
 	}
 }

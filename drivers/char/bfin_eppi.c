@@ -261,11 +261,11 @@ static long eppi_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (dev->dlen < 0)
 			goto err;
 		for (cnt = 0; cnt < dev->dlen; cnt++) {
-			ret = peripheral_request(dev->per_data[cnt],
+			ret = pinmux_request(dev->per_data[cnt],
 					KBUILD_MODNAME);
 			if (ret < 0) {
 				while (cnt > 0)
-					peripheral_free(dev->per_data[--cnt]);
+					pinmux_free(dev->per_data[--cnt]);
 				dev->dlen = 0;
 				goto err;
 			}
@@ -335,11 +335,11 @@ static long eppi_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (arg < CFG_PPI_DIMS_1D || arg > CFG_PPI_DIMS_2D)
 			goto err;
 		for (cnt = 0; cnt < arg + 1; cnt++) {
-			ret = peripheral_request(dev->per_fs[cnt],
+			ret = pinmux_request(dev->per_fs[cnt],
 					KBUILD_MODNAME);
 			if (ret < 0) {
 				while (cnt > 0)
-					peripheral_free(dev->per_fs[--cnt]);
+					pinmux_free(dev->per_fs[--cnt]);
 				goto err;
 			}
 		}
@@ -675,12 +675,12 @@ static int eppi_release(struct inode *inode, struct file *filp)
 
 	if (dev->dim == CFG_PPI_DIMS_1D)
 		for (cnt = 0; cnt < 2; cnt++)
-			peripheral_free(dev->per_fs[cnt]);
+			pinmux_free(dev->per_fs[cnt]);
 	else if (dev->dim == CFG_PPI_DIMS_2D)
 		for (cnt = 0; cnt < 3; cnt++)
-			peripheral_free(dev->per_fs[cnt]);
+			pinmux_free(dev->per_fs[cnt]);
 	for (cnt = 0; cnt < dev->dlen; cnt++)
-		peripheral_free(dev->per_data[cnt]);
+		pinmux_free(dev->per_data[cnt]);
 	dev->dim = CFG_PPI_DIMS_UNDEF;
 	dev->dlen = 0;
 
