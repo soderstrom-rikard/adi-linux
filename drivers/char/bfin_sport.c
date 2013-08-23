@@ -393,7 +393,7 @@ static int sport_open(struct inode *inode, struct file *filp)
 	if (ret)
 		goto fail2;
 
-	ret = peripheral_request_list(dev->pin_req, KBUILD_MODNAME);
+	ret = pinmux_request_list(dev->pin_req, KBUILD_MODNAME);
 	if (ret) {
 		dev_err(dev->dev, "requesting peripherals failed\n");
 		goto fail3;
@@ -438,7 +438,7 @@ static int sport_release(struct inode *inode, struct file *filp)
 	}
 	maybe_free_irq(dev->err_irq, dev);
 
-	peripheral_free_list(dev->pin_req);
+	pinmux_free_list(dev->pin_req);
 
 	devm_iounmap(dev->dev, (void *)dev->regs);
 done:

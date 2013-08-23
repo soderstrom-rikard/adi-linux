@@ -341,9 +341,7 @@ static int bfin_lp_open(struct inode *inode, struct file *filp)
 		return ret;
 	}
 
-#ifdef CONFIG_PINCTRL
-	if (IS_ERR(devm_pinctrl_get_select_default(dev->device))) {
-#else
+#ifndef CONFIG_PINCTRL
 	if (peripheral_request_list(dev->device, dev->per_linkport,
 		LINKPORT_DRVNAME)) {
 #endif
@@ -604,6 +602,11 @@ static int __init bfin_linkport_init(void)
 	linkport_dev = kzalloc(sizeof(*linkport_dev), GFP_KERNEL);
 	if (!linkport_dev) {
 		return -ENOMEM;
+	}
+
+	if (IS_ERR(err = devm_pinctrl_get_select_default(dev->device))) {
+		printk("Requesting Peripherals failed\n");
+		goto free;
 	}
 
 	linkport_dev->major = register_chrdev(0, "bfin-linkport", &linkport_fops);
