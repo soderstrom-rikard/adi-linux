@@ -1230,7 +1230,7 @@ static struct adi_pinctrl_gpio_platform_data bfin_gpb_pdata = {
 	.port_pin_base	= GPIO_PB0,
 	.port_width	= 15,
 	.pint_id	= 0,
-	.pint_assign	= false,
+	.pint_assign	= true,
 	.pint_map	= 1,
 };
 
@@ -1262,7 +1262,7 @@ static struct adi_pinctrl_gpio_platform_data bfin_gpc_pdata = {
 	.port_pin_base	= GPIO_PC0,
 	.port_width	= 14,
 	.pint_id	= 2,
-	.pint_assign	= false,
+	.pint_assign	= true,
 	.pint_map	= 0,
 };
 
