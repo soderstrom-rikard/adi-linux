@@ -604,11 +604,6 @@ static int __init bfin_linkport_init(void)
 		return -ENOMEM;
 	}
 
-	if (IS_ERR(err = devm_pinctrl_get_select_default(dev->device))) {
-		printk("Requesting Peripherals failed\n");
-		goto free;
-	}
-
 	linkport_dev->major = register_chrdev(0, "bfin-linkport", &linkport_fops);
 	if (linkport_dev->major < 0) {
 		err = linkport_dev->major;
@@ -648,6 +643,11 @@ static int __init bfin_linkport_init(void)
 		INIT_LIST_HEAD(&lp_dev_info[i].list);
 		init_completion(&lp_dev_info[i].complete);
 		list_add(&lp_dev_info[i].list, &linkport_dev->lp_dev);
+
+		if (IS_ERR(err = devm_pinctrl_get_select_default(dev))) {
+			printk("Requesting Peripherals failed\n");
+			goto free_chrdev;
+		}
 	}
 
 	return 0;
