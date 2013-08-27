@@ -344,11 +344,11 @@ static int bfin_lp_open(struct inode *inode, struct file *filp)
 #ifndef CONFIG_PINCTRL
 	if (peripheral_request_list(dev->device, dev->per_linkport,
 		LINKPORT_DRVNAME)) {
-#endif
 		printk("Requesting Peripherals failed\n");
 
 		return ret;
 	}
+#endif
 
 	if (request_dma(dev->dma_chan, LINKPORT_DRVNAME) < 0) {
 		printk(KERN_NOTICE "Unable to attach Blackfin LINKPORT DMA channel\n");
