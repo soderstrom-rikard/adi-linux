@@ -2241,6 +2241,10 @@ static struct pinctrl_map __initdata bfin_pinmux_map[] = {
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin-tdm.1",  "pinctrl-adi2.0", NULL, "sport1"),
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin-i2s.2",  "pinctrl-adi2.0", NULL, "sport2"),
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin-tdm.2",  "pinctrl-adi2.0", NULL, "sport2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("linkport0",  "pinctrl-adi2.0", NULL, "lp0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("linkport1",  "pinctrl-adi2.0", NULL, "lp1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("linkport2",  "pinctrl-adi2.0", NULL, "lp2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("linkport3",  "pinctrl-adi2.0", NULL, "lp3"),
 };
 
 static int __init ezkit_init(void)
