@@ -1546,6 +1546,7 @@ int pinmux_request(unsigned short fer, const char *label)
 	return 0;
 
 }
+EXPORT_SYMBOL(pinmux_request);
 
 void pinmux_free(unsigned short fer)
 {
@@ -1583,6 +1584,7 @@ void pinmux_free(unsigned short fer)
 
 	return;
 }
+EXPORT_SYMBOL(pinmux_free);
 
 int pinmux_request_list(const unsigned short per[], const char *label)
 {
@@ -1603,6 +1605,7 @@ int pinmux_request_list(const unsigned short per[], const char *label)
 
 	return 0;
 }
+EXPORT_SYMBOL(pinmux_request_list);
 
 void pinmux_free_list(const unsigned short per[])
 {
@@ -1610,3 +1613,4 @@ void pinmux_free_list(const unsigned short per[])
 	for (cnt = 0; per[cnt] != 0; cnt++)
 		pinmux_free(per[cnt]);
 }
+EXPORT_SYMBOL(pinmux_free_list);
