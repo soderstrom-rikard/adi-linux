@@ -238,6 +238,26 @@ static const unsigned ppi2_16b_pins[] = {
 	GPIO_PA7, GPIO_PB0, GPIO_PB1, GPIO_PB2, GPIO_PB3,
 };
 
+static const unsigned lp0_pins[] = {
+	GPIO_PB0, GPIO_PB1, GPIO_PA0, GPIO_PA1, GPIO_PA2, GPIO_PA3,
+	GPIO_PA4, GPIO_PA5, GPIO_PA6, GPIO_PA7,
+};
+
+static const unsigned lp1_pins[] = {
+	GPIO_PB3, GPIO_PB2, GPIO_PA8, GPIO_PA9, GPIO_PA10, GPIO_PA11,
+	GPIO_PA12, GPIO_PA13, GPIO_PA14, GPIO_PA15,
+};
+
+static const unsigned lp2_pins[] = {
+	GPIO_PE6, GPIO_PE7, GPIO_PF0, GPIO_PF1, GPIO_PF2, GPIO_PF3,
+	GPIO_PF4, GPIO_PF5, GPIO_PF6, GPIO_PF7,
+};
+
+static const unsigned lp3_pins[] = {
+	GPIO_PE9, GPIO_PE8, GPIO_PF8, GPIO_PF9, GPIO_PF10, GPIO_PF11,
+	GPIO_PF12, GPIO_PF13, GPIO_PF14, GPIO_PF15,
+};
+
 static const struct adi_pin_group adi_pin_groups[] = {
 	ADI_PIN_GROUP("uart0grp", uart0_pins),
 	ADI_PIN_GROUP("uart1grp", uart1_pins),
@@ -261,6 +281,10 @@ static const struct adi_pin_group adi_pin_groups[] = {
 	ADI_PIN_GROUP("ppi1_16bgrp", ppi1_16b_pins),
 	ADI_PIN_GROUP("ppi2_8bgrp", ppi2_8b_pins),
 	ADI_PIN_GROUP("ppi2_16bgrp", ppi2_16b_pins),
+	ADI_PIN_GROUP("lp0grp", lp0_pins),
+	ADI_PIN_GROUP("lp1grp", lp1_pins),
+	ADI_PIN_GROUP("lp2grp", lp2_pins),
+	ADI_PIN_GROUP("lp3grp", lp3_pins),
 };
 
 static const unsigned short uart0_mux[] = {
@@ -391,6 +415,30 @@ static const unsigned short ppi2_16b_mux[] = {
 	0,
 };
 
+static const unsigned short lp0_mux[] = {
+	P_LP0_CLK, P_LP0_ACK, P_LP0_D0, P_LP0_D1, P_LP0_D2,
+	P_LP0_D3, P_LP0_D4, P_LP0_D5, P_LP0_D6, P_LP0_D7,
+        0
+};
+
+static const unsigned short lp1_mux[] = {
+	P_LP1_CLK, P_LP1_ACK, P_LP1_D0, P_LP1_D1, P_LP1_D2,
+	P_LP1_D3, P_LP1_D4, P_LP1_D5, P_LP1_D6, P_LP1_D7,
+        0
+};
+
+static const unsigned short lp2_mux[] = {
+	P_LP2_CLK, P_LP2_ACK, P_LP2_D0, P_LP2_D1, P_LP2_D2,
+	P_LP2_D3, P_LP2_D4, P_LP2_D5, P_LP2_D6, P_LP2_D7,
+        0
+};
+
+static const unsigned short lp3_mux[] = {
+	P_LP3_CLK, P_LP3_ACK, P_LP3_D0, P_LP3_D1, P_LP3_D2,
+	P_LP3_D3, P_LP3_D4, P_LP3_D5, P_LP3_D6, P_LP3_D7,
+        0
+};
+
 static const char * const uart0grp[] = { "uart0grp" };
 static const char * const uart1grp[] = { "uart1grp" };
 static const char * const rsi0grp[] = { "rsi0grp" };
@@ -413,6 +461,10 @@ static const char * const ppi1_8bgrp[] = { "ppi1_8bgrp" };
 static const char * const ppi1_16bgrp[] = { "ppi1_16bgrp" };
 static const char * const ppi2_8bgrp[] = { "ppi2_8bgrp" };
 static const char * const ppi2_16bgrp[] = { "ppi2_16bgrp" };
+static const char * const lp0grp[] = { "lp0grp" };
+static const char * const lp1grp[] = { "lp1grp" };
+static const char * const lp2grp[] = { "lp2grp" };
+static const char * const lp3grp[] = { "lp3grp" };
 
 static const struct adi_pmx_func adi_pmx_functions[] = {
 	ADI_PMX_FUNCTION("uart0", uart0grp, uart0_mux),
@@ -437,6 +489,10 @@ static const struct adi_pmx_func adi_pmx_functions[] = {
 	ADI_PMX_FUNCTION("ppi1_16b", ppi1_16bgrp, ppi1_16b_mux),
 	ADI_PMX_FUNCTION("ppi2_8b", ppi2_8bgrp, ppi2_8b_mux),
 	ADI_PMX_FUNCTION("ppi2_16b", ppi2_16bgrp, ppi2_16b_mux),
+	ADI_PMX_FUNCTION("lp0", lp0grp, lp0_mux),
+	ADI_PMX_FUNCTION("lp1", lp1grp, lp1_mux),
+	ADI_PMX_FUNCTION("lp2", lp2grp, lp2_mux),
+	ADI_PMX_FUNCTION("lp3", lp3grp, lp3_mux),
 };
 
 static const struct adi_pinctrl_soc_data adi_bf60x_soc = {
