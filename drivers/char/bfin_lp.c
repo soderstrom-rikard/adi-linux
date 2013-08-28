@@ -66,62 +66,6 @@ struct bfin_lp_register {
 	uint32_t rx_shadow;
 };
 
-static const unsigned short per_req_lp0[] = {
-	P_LP0_CLK,
-	P_LP0_ACK,
-	P_LP0_D0,
-	P_LP0_D1,
-	P_LP0_D2,
-	P_LP0_D3,
-	P_LP0_D4,
-	P_LP0_D5,
-	P_LP0_D6,
-	P_LP0_D7,
-	0
-};
-
-static const unsigned short per_req_lp1[] = {
-	P_LP1_CLK,
-	P_LP1_ACK,
-	P_LP1_D0,
-	P_LP1_D1,
-	P_LP1_D2,
-	P_LP1_D3,
-	P_LP1_D4,
-	P_LP1_D5,
-	P_LP1_D6,
-	P_LP1_D7,
-	0
-};
-
-static const unsigned short per_req_lp2[] = {
-	P_LP2_CLK,
-	P_LP2_ACK,
-	P_LP2_D0,
-	P_LP2_D1,
-	P_LP2_D2,
-	P_LP2_D3,
-	P_LP2_D4,
-	P_LP2_D5,
-	P_LP2_D6,
-	P_LP2_D7,
-	0
-};
-
-static const unsigned short per_req_lp3[] = {
-	P_LP3_CLK,
-	P_LP3_ACK,
-	P_LP3_D0,
-	P_LP3_D1,
-	P_LP3_D2,
-	P_LP3_D3,
-	P_LP3_D4,
-	P_LP3_D5,
-	P_LP3_D6,
-	P_LP3_D7,
-	0
-};
-
 struct bfin_linkport {
 	struct list_head lp_dev;
 	struct class *class;
@@ -145,7 +89,6 @@ struct bfin_lp_dev {
 	int count;
 	DECLARE_KFIFO_PTR(lpfifo, unsigned int);
 	struct completion complete;
-	const unsigned short *per_linkport;
 };
 
 struct bfin_linkport *linkport_dev;
@@ -155,28 +98,24 @@ struct bfin_lp_dev lp_dev_info[4] = {
 		.regs = LP0_CTL,
 		.irq = IRQ_LP0,
 		.status_irq = IRQ_LP0_STAT,
-		.per_linkport = per_req_lp0,
 		.dma_chan = CH_LP0,
 	},
 	{
 		.regs = LP1_CTL,
 		.irq = IRQ_LP1,
 		.status_irq = IRQ_LP1_STAT,
-		.per_linkport = per_req_lp1,
 		.dma_chan = CH_LP1,
 	},
 	{
 		.regs = LP2_CTL,
 		.irq = IRQ_LP2,
 		.status_irq = IRQ_LP2_STAT,
-		.per_linkport = per_req_lp2,
 		.dma_chan = CH_LP2,
 	},
 	{
 		.regs = LP3_CTL,
 		.irq = IRQ_LP3,
 		.status_irq = IRQ_LP3_STAT,
-		.per_linkport = per_req_lp3,
 		.dma_chan = CH_LP3,
 	},
 };
@@ -341,18 +280,9 @@ static int bfin_lp_open(struct inode *inode, struct file *filp)
 		return ret;
 	}
 
-#ifndef CONFIG_PINCTRL
-	if (peripheral_request_list(dev->device, dev->per_linkport,
-		LINKPORT_DRVNAME)) {
-		printk("Requesting Peripherals failed\n");
-
-		return ret;
-	}
-#endif
-
 	if (request_dma(dev->dma_chan, LINKPORT_DRVNAME) < 0) {
 		printk(KERN_NOTICE "Unable to attach Blackfin LINKPORT DMA channel\n");
-		goto free_per;
+		goto free_kfifo;
 	}
 
 	if (request_irq(dev->irq, bfin_lp_irq, 0, LINKPORT_DRVNAME, dev)) {
@@ -381,8 +311,8 @@ static int bfin_lp_open(struct inode *inode, struct file *filp)
 
 free_dma:
 	free_dma(dev->dma_chan);
-free_per:
-	peripheral_free_list(dev->per_linkport);
+free_kfifo:
+	kfifo_free(&dev->lpfifo);
 	return ret;
 }
 
@@ -399,7 +329,6 @@ static int bfin_lp_release(struct inode *inode, struct file *filp)
 
 	destroy_workqueue(dev->workqueue);
 	kfifo_free(&dev->lpfifo);
-	peripheral_free_list(dev->per_linkport);
 	free_dma(dev->dma_chan);
 	free_irq(dev->irq, dev);
 	free_irq(dev->status_irq, dev);
@@ -645,8 +574,8 @@ static int __init bfin_linkport_init(void)
 		list_add(&lp_dev_info[i].list, &linkport_dev->lp_dev);
 
 		if (IS_ERR(err = devm_pinctrl_get_select_default(dev))) {
-			printk("Requesting Peripherals failed\n");
-			goto free_chrdev;
+			printk("Requesting Peripheral for %s failed.\n", dev_name(dev));
+			device_destroy(linkport_dev->class, lp_dev + i);
 		}
 	}
 
