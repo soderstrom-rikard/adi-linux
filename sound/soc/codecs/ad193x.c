@@ -332,6 +332,14 @@ static int ad193x_probe(struct snd_soc_codec *codec)
 		return ret;
 	}
 
+	/* work around, read any register first, otherwise regmap cache
+	   and hardware value isn't match in 3.10
+	 */
+	{
+		unsigned int val;
+		regmap_read(ad193x->regmap, AD193X_PLL_CLK_CTRL0, &val);
+	}
+
 	/* default setting for ad193x */
 
 	/* unmute dac channels */
