@@ -509,6 +509,7 @@ int phy_init_hw(struct phy_device *phydev)
 
 	return phydev->drv->config_init(phydev);
 }
+EXPORT_SYMBOL(phy_init_hw);
 
 /**
  * phy_attach_direct - attach a network device to a given PHY device pointer
