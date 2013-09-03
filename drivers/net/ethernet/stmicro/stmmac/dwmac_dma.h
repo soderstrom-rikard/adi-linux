@@ -47,10 +47,6 @@
 #define DMA_CONTROL_ST		0x00002000	/* Start/Stop Transmission */
 #define DMA_CONTROL_SR		0x00000002	/* Start/Stop Receive */
 
-/* DMA Axi bus register defines */
-#define DMA_AXI_BUS_UNDEF	0x00000001
-#define DMA_AXI_BUS_BLEN4	0x00000002
-
 /* DMA Normal interrupt */
 #define DMA_INTR_ENA_NIE 0x00010000	/* Normal Summary */
 #define DMA_INTR_ENA_TIE 0x00000001	/* Transmit Interrupt */
