@@ -43,10 +43,13 @@ static void stmmac_config_sub_second_increment(void __iomem *ioaddr)
 	 * where, ptp_clock = 50MHz.
 	 */
 	data = (1000000000ULL / 50000000);
+#ifdef CONFIG_BLACKFIN
+	data = data * 5 / 4;
+#endif
 
 	/* 0.465ns accuracy */
-	if (value & PTP_TCR_TSCTRLSSR)
-		data = (data * 100) / 465;
+	if (!(value & PTP_TCR_TSCTRLSSR))
+		data = (data * 1000) / 465;
 
 	writel(data, ioaddr + PTP_SSIR);
 }
