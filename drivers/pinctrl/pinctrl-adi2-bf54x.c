@@ -171,9 +171,10 @@ static const unsigned uart0_pins[] = {
 
 static const unsigned uart1_pins[] = {
 	GPIO_PH0, GPIO_PH1,
-#ifdef CONFIG_BFIN_UART1_CTSRTS
+};
+
+static const unsigned uart1_ctsrts_pins[] = {
 	GPIO_PE9, GPIO_PE10,
-#endif
 };
 
 static const unsigned uart2_pins[] = {
@@ -182,9 +183,10 @@ static const unsigned uart2_pins[] = {
 
 static const unsigned uart3_pins[] = {
 	GPIO_PB6, GPIO_PB7,
-#ifdef CONFIG_BFIN_UART3_CTSRTS
+};
+
+static const unsigned uart3_ctsrts_pins[] = {
 	GPIO_PB2, GPIO_PB3,
-#endif
 };
 
 static const unsigned rsi0_pins[] = {
@@ -283,11 +285,12 @@ static const unsigned ppi2_8b_pins[] = {
 static const unsigned atapi_pins[] = {
 	GPIO_PH2, GPIO_PJ3, GPIO_PJ4, GPIO_PJ5, GPIO_PJ6,
 	GPIO_PJ7, GPIO_PJ8, GPIO_PJ9, GPIO_PJ10,
-#ifdef CONFIG_BF548_ATAPI_ALTERNATIVE_PORT
+};
+
+static const unsigned atapi_alter_pins[] = {
 	GPIO_PF0, GPIO_PF1, GPIO_PF2, GPIO_PF3, GPIO_PF4, GPIO_PF5, GPIO_PF6,
 	GPIO_PF7, GPIO_PF8, GPIO_PF9, GPIO_PF10, GPIO_PF11, GPIO_PF12,
 	GPIO_PF13, GPIO_PF14, GPIO_PF15, GPIO_PG2, GPIO_PG3, GPIO_PG4,
-#endif
 };
 
 static const unsigned nfc0_pins[] = {
@@ -309,6 +312,10 @@ static const unsigned keys_8x8_pins[] = {
 static const struct adi_pin_group adi_pin_groups[] = {
 	ADI_PIN_GROUP("uart0grp", uart0_pins),
 	ADI_PIN_GROUP("uart1grp", uart1_pins),
+	ADI_PIN_GROUP("uart1ctsrtsgrp", uart1_ctsrts_pins),
+	ADI_PIN_GROUP("uart2grp", uart2_pins),
+	ADI_PIN_GROUP("uart3grp", uart3_pins),
+	ADI_PIN_GROUP("uart3ctsrtsgrp", uart3_ctsrts_pins),
 	ADI_PIN_GROUP("rsi0grp", rsi0_pins),
 	ADI_PIN_GROUP("spi0grp", spi0_pins),
 	ADI_PIN_GROUP("spi1grp", spi1_pins),
@@ -329,6 +336,7 @@ static const struct adi_pin_group adi_pin_groups[] = {
 	ADI_PIN_GROUP("ppi1_16bgrp", ppi1_16b_pins),
 	ADI_PIN_GROUP("ppi2_8bgrp", ppi2_8b_pins),
 	ADI_PIN_GROUP("atapigrp", atapi_pins),
+	ADI_PIN_GROUP("atapialtergrp", atapi_alter_pins),
 	ADI_PIN_GROUP("nfc0grp", nfc0_pins),
 	ADI_PIN_GROUP("keys_4x4grp", keys_4x4_pins),
 	ADI_PIN_GROUP("keys_8x8grp", keys_8x8_pins),
@@ -341,9 +349,11 @@ static const unsigned short uart0_mux[] = {
 
 static const unsigned short uart1_mux[] = {
 	P_UART1_TX, P_UART1_RX,
-#ifdef CONFIG_BFIN_UART1_CTSRTS
+	0
+};
+
+static const unsigned short uart1_ctsrts_mux[] = {
 	P_UART1_RTS, P_UART1_CTS,
-#endif
 	0
 };
 
@@ -354,9 +364,11 @@ static const unsigned short uart2_mux[] = {
 
 static const unsigned short uart3_mux[] = {
 	P_UART3_TX, P_UART3_RX,
-#ifdef CONFIG_BFIN_UART3_CTSRTS
+	0
+};
+
+static const unsigned short uart3_ctsrts_mux[] = {
 	P_UART3_RTS, P_UART3_CTS,
-#endif
 	0
 };
 
@@ -472,12 +484,13 @@ static const unsigned short ppi2_8b_mux[] = {
 static const unsigned short atapi_mux[] = {
 	P_ATAPI_RESET, P_ATAPI_DIOR, P_ATAPI_DIOW, P_ATAPI_CS0, P_ATAPI_CS1,
 	P_ATAPI_DMACK, P_ATAPI_DMARQ, P_ATAPI_INTRQ, P_ATAPI_IORDY,
-#ifdef CONFIG_BF548_ATAPI_ALTERNATIVE_PORT
+};
+
+static const unsigned short atapi_alter_mux[] = {
 	P_ATAPI_D0A, P_ATAPI_D1A, P_ATAPI_D2A, P_ATAPI_D3A, P_ATAPI_D4A,
 	P_ATAPI_D5A, P_ATAPI_D6A, P_ATAPI_D7A, P_ATAPI_D8A, P_ATAPI_D9A,
 	P_ATAPI_D10A, P_ATAPI_D11A, P_ATAPI_D12A, P_ATAPI_D13A, P_ATAPI_D14A,
 	P_ATAPI_D15A, P_ATAPI_A0A, P_ATAPI_A1A, P_ATAPI_A2A,
-#endif
 	0
 };
 
@@ -502,8 +515,10 @@ static const unsigned short keys_8x8_mux[] = {
 
 static const char * const uart0grp[] = { "uart0grp" };
 static const char * const uart1grp[] = { "uart1grp" };
+static const char * const uart1ctsrtsgrp[] = { "uart1ctsrtsgrp" };
 static const char * const uart2grp[] = { "uart2grp" };
 static const char * const uart3grp[] = { "uart3grp" };
+static const char * const uart3ctsrtsgrp[] = { "uart3ctsrtsgrp" };
 static const char * const rsi0grp[] = { "rsi0grp" };
 static const char * const spi0grp[] = { "spi0grp" };
 static const char * const spi1grp[] = { "spi1grp" };
@@ -524,6 +539,7 @@ static const char * const ppi1_8bgrp[] = { "ppi1_8bgrp" };
 static const char * const ppi1_16bgrp[] = { "ppi1_16bgrp" };
 static const char * const ppi2_8bgrp[] = { "ppi2_8bgrp" };
 static const char * const atapigrp[] = { "atapigrp" };
+static const char * const atapialtergrp[] = { "atapialtergrp" };
 static const char * const nfc0grp[] = { "nfc0grp" };
 static const char * const keys_4x4grp[] = { "keys_4x4grp" };
 static const char * const keys_8x8grp[] = { "keys_8x8grp" };
@@ -531,8 +547,10 @@ static const char * const keys_8x8grp[] = { "keys_8x8grp" };
 static const struct adi_pmx_func adi_pmx_functions[] = {
 	ADI_PMX_FUNCTION("uart0", uart0grp, uart0_mux),
 	ADI_PMX_FUNCTION("uart1", uart1grp, uart1_mux),
-	ADI_PMX_FUNCTION("uart2", uart0grp, uart2_mux),
-	ADI_PMX_FUNCTION("uart3", uart1grp, uart3_mux),
+	ADI_PMX_FUNCTION("uart1_ctsrts", uart1ctsrtsgrp, uart1_ctsrts_mux),
+	ADI_PMX_FUNCTION("uart2", uart2grp, uart2_mux),
+	ADI_PMX_FUNCTION("uart3", uart3grp, uart3_mux),
+	ADI_PMX_FUNCTION("uart3_ctsrts", uart3ctsrtsgrp, uart3_ctsrts_mux),
 	ADI_PMX_FUNCTION("rsi0", rsi0grp, rsi0_mux),
 	ADI_PMX_FUNCTION("spi0", spi0grp, spi0_mux),
 	ADI_PMX_FUNCTION("spi1", spi1grp, spi1_mux),
@@ -553,6 +571,7 @@ static const struct adi_pmx_func adi_pmx_functions[] = {
 	ADI_PMX_FUNCTION("ppi1_16b", ppi1_16bgrp, ppi1_16b_mux),
 	ADI_PMX_FUNCTION("ppi2_8b", ppi2_8bgrp, ppi2_8b_mux),
 	ADI_PMX_FUNCTION("atapi", atapigrp, atapi_mux),
+	ADI_PMX_FUNCTION("atapi_alter", atapialtergrp, atapi_alter_mux),
 	ADI_PMX_FUNCTION("nfc0", nfc0grp, nfc0_mux),
 	ADI_PMX_FUNCTION("keys_4x4", keys_4x4grp, keys_4x4_mux),
 	ADI_PMX_FUNCTION("keys_8x8", keys_8x8grp, keys_8x8_mux),

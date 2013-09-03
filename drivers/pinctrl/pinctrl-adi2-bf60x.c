@@ -126,16 +126,18 @@ static const struct pinctrl_pin_desc adi_pads[] = {
 
 static const unsigned uart0_pins[] = {
 	GPIO_PD7, GPIO_PD8,
-#ifdef CONFIG_BFIN_UART0_CTSRTS
+};
+
+static const unsigned uart0_ctsrts_pins[] = {
 	GPIO_PD9, GPIO_PD10,
-#endif
 };
 
 static const unsigned uart1_pins[] = {
 	GPIO_PG15, GPIO_PG14,
-#ifdef CONFIG_BFIN_UART1_CTSRTS
+};
+
+static const unsigned uart1_ctsrts_pins[] = {
 	GPIO_PG10, GPIO_PG13,
-#endif
 };
 
 static const unsigned rsi0_pins[] = {
@@ -260,7 +262,9 @@ static const unsigned lp3_pins[] = {
 
 static const struct adi_pin_group adi_pin_groups[] = {
 	ADI_PIN_GROUP("uart0grp", uart0_pins),
+	ADI_PIN_GROUP("uart0ctsrtsgrp", uart0_ctsrts_pins),
 	ADI_PIN_GROUP("uart1grp", uart1_pins),
+	ADI_PIN_GROUP("uart1ctsrtsgrp", uart1_ctsrts_pins),
 	ADI_PIN_GROUP("rsi0grp", rsi0_pins),
 	ADI_PIN_GROUP("eth0grp", eth0_pins),
 	ADI_PIN_GROUP("eth1grp", eth1_pins),
@@ -289,17 +293,21 @@ static const struct adi_pin_group adi_pin_groups[] = {
 
 static const unsigned short uart0_mux[] = {
 	P_UART0_TX, P_UART0_RX,
-#ifdef CONFIG_BFIN_UART0_CTSRTS
+	0
+};
+
+static const unsigned short uart0_ctsrts_mux[] = {
 	P_UART0_RTS, P_UART0_CTS,
-#endif
 	0
 };
 
 static const unsigned short uart1_mux[] = {
 	P_UART1_TX, P_UART1_RX,
-#ifdef CONFIG_BFIN_UART1_CTSRTS
+	0
+};
+
+static const unsigned short uart1_ctsrts_mux[] = {
 	P_UART1_RTS, P_UART1_CTS,
-#endif
 	0
 };
 
@@ -440,7 +448,9 @@ static const unsigned short lp3_mux[] = {
 };
 
 static const char * const uart0grp[] = { "uart0grp" };
+static const char * const uart0ctsrtsgrp[] = { "uart0ctsrtsgrp" };
 static const char * const uart1grp[] = { "uart1grp" };
+static const char * const uart1ctsrtsgrp[] = { "uart1ctsrtsgrp" };
 static const char * const rsi0grp[] = { "rsi0grp" };
 static const char * const eth0grp[] = { "eth0grp" };
 static const char * const eth1grp[] = { "eth1grp" };
@@ -468,7 +478,9 @@ static const char * const lp3grp[] = { "lp3grp" };
 
 static const struct adi_pmx_func adi_pmx_functions[] = {
 	ADI_PMX_FUNCTION("uart0", uart0grp, uart0_mux),
+	ADI_PMX_FUNCTION("uart0_ctsrts", uart0ctsrtsgrp, uart0_ctsrts_mux),
 	ADI_PMX_FUNCTION("uart1", uart1grp, uart1_mux),
+	ADI_PMX_FUNCTION("uart1_ctsrts", uart1ctsrtsgrp, uart1_ctsrts_mux),
 	ADI_PMX_FUNCTION("rsi0", rsi0grp, rsi0_mux),
 	ADI_PMX_FUNCTION("eth0", eth0grp, eth0_mux),
 	ADI_PMX_FUNCTION("eth1", eth1grp, eth1_mux),
