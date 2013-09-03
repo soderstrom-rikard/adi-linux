@@ -69,24 +69,7 @@ static LIST_HEAD(adi_gpio_port_list);
 
 #define DRIVER_NAME "pinctrl-adi2"
 
-#define RESOURCE_LABEL_SIZE	16
 #define PINT_HI_OFFSET		16
-
-/**
- * struct gpio_reserve_map - a GPIO map structure containing the
- * reservation status of each PIN.
- *
- * @owner: who request the reservation
- * @rsv_gpio: if this pin is reserved as GPIO
- * @rsv_int: if this pin is reserved as interrupt
- * @rsv_peri: if this pin is reserved as part of a peripheral device
- */
-struct gpio_reserve_map {
-	unsigned char owner[RESOURCE_LABEL_SIZE];
-	bool rsv_gpio;
-	bool rsv_int;
-	bool rsv_peri;
-};
 
 /**
  * struct gpio_port_saved - GPIO port registers that should be saved between
@@ -190,8 +173,6 @@ struct gpio_port {
 	spinlock_t lock;
 	struct gpio_chip chip;
 	struct irq_domain *domain;
-
-	struct gpio_reserve_map rsvmap[];
 };
 
 static inline u8 pin_to_offset(struct pinctrl_gpio_range *range, unsigned pin)
@@ -202,24 +183,6 @@ static inline u8 pin_to_offset(struct pinctrl_gpio_range *range, unsigned pin)
 static inline u32 hwirq_to_pintbit(struct gpio_port *port, int hwirq)
 {
 	return port->pint_assign ? BIT(hwirq) << PINT_HI_OFFSET : BIT(hwirq);
-}
-
-static void set_label(struct gpio_port *port, unsigned offset,
-	const char *label)
-{
-	char *pch = port->rsvmap[offset].owner;
-
-	if (label) {
-		strncpy(pch, label, RESOURCE_LABEL_SIZE);
-		pch[RESOURCE_LABEL_SIZE - 1] = 0;
-	}
-}
-
-static char *get_label(struct gpio_port *port, unsigned offset)
-{
-	char *pch = port->rsvmap[offset].owner;
-
-	return *pch ? pch : "UNKNOWN";
 }
 
 static struct gpio_pint *find_gpio_pint(unsigned id)
@@ -274,50 +237,6 @@ static inline u16 get_portmux(struct gpio_port *port, unsigned offset)
 	 * the mux register.
 	 */
 	return pmux >> (2 * offset) & 0x3;
-}
-
-
-static void __adi_gpio_irq_prepare(struct gpio_port *port, unsigned offset)
-{
-	struct gpio_port_t *regs = port->regs;
-
-	port_setup(port, offset, true);
-
-	writew(BIT(offset), &regs->dir_clear);
-	writew(readw(&regs->inen) | BIT(offset), &regs->inen);
-}
-
-static int __adi_gpio_irq_request(struct gpio_port *port, unsigned offset,
-	const char *label)
-{
-	if (port->rsvmap[offset].rsv_peri) {
-		dev_err(port->dev,
-		       "GPIO %d is already reserved as Peripheral by %s !\n",
-			port->chip.base + offset, get_label(port, offset));
-		return -EBUSY;
-	}
-	if (port->rsvmap[offset].rsv_gpio)
-		dev_warn(port->dev,
-			"GPIO %d is already reserved by %s!\n",
-			port->chip.base + offset, get_label(port, offset));
-
-	port->rsvmap[offset].rsv_int = true;
-	set_label(port, offset, label);
-	port_setup(port, offset, true);
-
-	return 0;
-}
-
-static void __adi_gpio_irq_free(struct gpio_port *port, unsigned offset)
-{
-	if (!port->rsvmap[offset].rsv_int) {
-		dev_err(port->dev, "GPIO %d wasn't requested!\n",
-			port->chip.base + offset);
-		return;
-	}
-
-	port->rsvmap[offset].rsv_int = false;
-	set_label(port, offset, "free");
 }
 
 static void adi_gpio_ack_irq(struct irq_data *d)
@@ -411,7 +330,10 @@ static unsigned int adi_gpio_irq_startup(struct irq_data *d)
 	spin_lock_irqsave(&port->lock, flags);
 	spin_lock_irqsave(&port->pint->lock, flags);
 
-	__adi_gpio_irq_prepare(port, d->hwirq);
+	port_setup(port, d->hwirq, true);
+	writew(BIT(d->hwirq), &port->regs->dir_clear);
+	writew(readw(&port->regs->inen) | BIT(d->hwirq), &port->regs->inen);
+
 	writel(hwirq_to_pintbit(port, d->hwirq), &regs->mask_set);
 
 	spin_unlock_irqrestore(&port->pint->lock, flags);
@@ -430,7 +352,6 @@ static void adi_gpio_irq_shutdown(struct irq_data *d)
 	spin_lock_irqsave(&port->pint->lock, flags);
 
 	writel(hwirq_to_pintbit(port, d->hwirq), &regs->mask_clear);
-	__adi_gpio_irq_free(port, d->hwirq);
 
 	spin_unlock_irqrestore(&port->pint->lock, flags);
 	spin_unlock_irqrestore(&port->lock, flags);
@@ -463,9 +384,7 @@ static int adi_gpio_irq_type(struct irq_data *d, unsigned int type)
 	if (type & (IRQ_TYPE_EDGE_RISING | IRQ_TYPE_EDGE_FALLING |
 		    IRQ_TYPE_LEVEL_HIGH | IRQ_TYPE_LEVEL_LOW)) {
 		snprintf(buf, 16, "gpio-irq%d", irq);
-		ret = __adi_gpio_irq_request(port, d->hwirq, buf);
-		if (ret)
-			goto out;
+		port_setup(port, d->hwirq, true);
 	} else
 		goto out;
 
@@ -650,50 +569,6 @@ static struct irq_chip adi_gpio_irqchip = {
 	.irq_set_wake = adi_gpio_set_wake,
 };
 
-#if defined(CONFIG_DEBUG_FS)
-static inline unsigned short get_gpio_dir(struct gpio_port *port,
-	unsigned offset)
-{
-	struct gpio_port_t *regs = port->regs;
-
-	return !!(readw(&regs->dir_clear) & BIT(offset));
-}
-
-static void adi_gpio_dbg_show_one(struct seq_file *s,
-	struct pinctrl_dev *pctldev, struct gpio_chip *chip,
-	unsigned offset, unsigned gpio)
-{
-	int rsv_irq, rsv_gpio;
-	struct gpio_port *port;
-
-	port = container_of(chip, struct gpio_port, chip);
-
-	rsv_irq = port->rsvmap[offset].rsv_int;
-	rsv_gpio = port->rsvmap[offset].rsv_gpio;
-	if (rsv_gpio || rsv_irq)
-		seq_printf(s, "GPIO_%d: \t%s%s \t\tGPIO %s\n",
-			gpio, get_label(port, offset),
-			(rsv_gpio && rsv_irq) ? " *" : "",
-			get_gpio_dir(port, offset) ?
-			"OUTPUT" : "INPUT");
-	else if (port->rsvmap[offset].rsv_peri)
-		seq_printf(s, "GPIO_%d: \t%s \t\tPeripheral\n",
-			gpio, get_label(port, offset));
-}
-
-static void adi_gpio_dbg_show(struct seq_file *s, struct gpio_chip *chip)
-{
-	unsigned i;
-	unsigned gpio = chip->base;
-
-	for (i = 0; i < chip->ngpio; i++, gpio++)
-		adi_gpio_dbg_show_one(s, NULL, chip, i, gpio);
-}
-#else
-#define adi_gpio_dbg_show_one	NULL
-#define adi_gpio_dbg_show       NULL
-#endif
-
 static int adi_get_groups_count(struct pinctrl_dev *pctldev)
 {
 	struct adi_pinctrl *pinctrl = pinctrl_dev_get_drvdata(pctldev);
@@ -720,125 +595,11 @@ static int adi_get_group_pins(struct pinctrl_dev *pctldev, unsigned selector,
 	return 0;
 }
 
-static struct pinctrl_gpio_range *
-adi_match_gpio_range(struct pinctrl_dev *pctldev, unsigned gpio)
-{
-	struct pinctrl_gpio_range *range = NULL;
-
-	mutex_lock(&pctldev->mutex);
-	list_for_each_entry(range, &pctldev->gpio_ranges, node) {
-		if (gpio >= range->base &&
-			gpio < range->base + range->npins) {
-			mutex_unlock(&pctldev->mutex);
-			return range;
-		}
-	}
-	mutex_unlock(&pctldev->mutex);
-
-	return NULL;
-}
-
-static void adi_pin_dbg_show(struct pinctrl_dev *pctldev, struct seq_file *s,
-		   unsigned offset)
-{
-	struct pinctrl_gpio_range *range;
-	struct gpio_chip *chip;
-
-	range = adi_match_gpio_range(pctldev, offset);
-	if (!range || !range->gc) {
-		seq_puts(s, "invalid pin offset");
-		return;
-	}
-	chip = range->gc;
-	adi_gpio_dbg_show_one(s, pctldev, chip, offset - chip->base, offset);
-}
-
 static struct pinctrl_ops adi_pctrl_ops = {
 	.get_groups_count = adi_get_groups_count,
 	.get_group_name = adi_get_group_name,
 	.get_group_pins = adi_get_group_pins,
-	.pin_dbg_show = adi_pin_dbg_show,
 };
-
-static int adi_pinmux_request(struct pinctrl_dev *pctldev, unsigned pin)
-{
-	struct gpio_port *port;
-	struct pinctrl_gpio_range *range;
-	unsigned long flags;
-	struct pin_desc *desc;
-	u8 offset;
-
-	range = pinctrl_find_gpio_range_from_pin(pctldev, pin);
-	if (range == NULL) {
-		dev_err(pctldev->dev,
-		       "%s: Peripheral PIN %d doesn't exist!\n",
-		       __func__, pin);
-		return -ENODEV;
-	}
-
-	port = container_of(range->gc, struct gpio_port, chip);
-
-	offset = pin_to_offset(range, pin);
-	desc = radix_tree_lookup(&pctldev->pin_desc_tree, pin);
-
-	spin_lock_irqsave(&port->lock, flags);
-
-	/* If a pin can be muxed as either GPIO or peripheral, make
-	 * sure it is not already a GPIO pin when we request it.
-	 */
-	if (port->rsvmap[offset].rsv_gpio) {
-		dev_err(pctldev->dev,
-		       "%s: Peripheral PIN %d is already reserved as GPIO by %s!\n",
-		       __func__, pin, get_label(port, offset));
-		spin_unlock_irqrestore(&port->lock, flags);
-		return -EBUSY;
-	}
-
-	if (port->rsvmap[offset].rsv_peri) {
-		dev_err(pctldev->dev,
-			"%s: Peripheral PIN %d is already reserved by %s!\n",
-			__func__, pin, get_label(port, offset));
-		spin_unlock_irqrestore(&port->lock, flags);
-		return -EBUSY;
-	}
-
-	port->rsvmap[offset].rsv_peri = true;
-	set_label(port, offset, desc->mux_owner);
-
-	spin_unlock_irqrestore(&port->lock, flags);
-
-	return 0;
-}
-
-static int adi_pinmux_free(struct pinctrl_dev *pctldev, unsigned pin)
-{
-	struct gpio_port *port;
-	struct pinctrl_gpio_range *range;
-	unsigned long flags;
-	u8 offset;
-
-	range = pinctrl_find_gpio_range_from_pin(pctldev, pin);
-	if (range == NULL)
-		return 0;
-
-	port = container_of(range->gc, struct gpio_port, chip);
-
-	offset = pin_to_offset(range, pin);
-
-	spin_lock_irqsave(&port->lock, flags);
-
-	if (!port->rsvmap[offset].rsv_peri) {
-		spin_unlock_irqrestore(&port->lock, flags);
-		return 0;
-	}
-
-	port->rsvmap[offset].rsv_peri = false;
-	set_label(port, offset, "free");
-
-	spin_unlock_irqrestore(&port->lock, flags);
-
-	return 0;
-}
 
 static int adi_pinmux_enable(struct pinctrl_dev *pctldev, unsigned selector,
 	unsigned group)
@@ -940,28 +701,6 @@ static int adi_pinmux_request_gpio(struct pinctrl_dev *pctldev,
 
 	spin_lock_irqsave(&port->lock, flags);
 
-	if (port->rsvmap[offset].rsv_gpio) {
-		dev_err(pctldev->dev,
-			"GPIO %d is already reserved by %s !\n",
-			port->chip.base + offset, get_label(port, offset));
-		spin_unlock_irqrestore(&port->lock, flags);
-		return -EBUSY;
-	}
-	if (port->rsvmap[offset].rsv_peri) {
-		dev_err(pctldev->dev,
-			"GPIO %d is already reserved as peripheral by %s !\n",
-			port->chip.base + offset, get_label(port, offset));
-		spin_unlock_irqrestore(&port->lock, flags);
-		return -EBUSY;
-	}
-	if (port->rsvmap[offset].rsv_int) {
-		dev_warn(pctldev->dev,
-			"GPIO %d is already reserved as gpio-irq!\n",
-			port->chip.base + offset);
-	}
-
-	port->rsvmap[offset].rsv_gpio = true;
-	set_label(port, offset, port->chip.label);
 	port_setup(port, offset, true);
 
 	spin_unlock_irqrestore(&port->lock, flags);
@@ -969,44 +708,13 @@ static int adi_pinmux_request_gpio(struct pinctrl_dev *pctldev,
 	return 0;
 }
 
-static void adi_pinmux_free_gpio(struct pinctrl_dev *pctldev,
-	struct pinctrl_gpio_range *range, unsigned pin)
-{
-	struct gpio_port *port;
-	unsigned long flags;
-	u8 offset;
-
-	port = container_of(range->gc, struct gpio_port, chip);
-	offset = pin_to_offset(range, pin);
-
-	spin_lock_irqsave(&port->lock, flags);
-
-	if (!port->rsvmap[offset].rsv_gpio) {
-		dev_err(pctldev->dev,
-			"GPIO %d wasn't requested!\n",
-			port->chip.base + offset);
-		spin_unlock_irqrestore(&port->lock, flags);
-		return;
-	}
-
-	port->rsvmap[offset].rsv_gpio = false;
-	set_label(port, offset, "free");
-
-	spin_unlock_irqrestore(&port->lock, flags);
-
-	return;
-}
-
 static struct pinmux_ops adi_pinmux_ops = {
-	.request = adi_pinmux_request,
-	.free = adi_pinmux_free,
 	.enable = adi_pinmux_enable,
 	.disable = adi_pinmux_disable,
 	.get_functions_count = adi_pinmux_get_funcs_count,
 	.get_function_name = adi_pinmux_get_func_name,
 	.get_function_groups = adi_pinmux_get_groups,
 	.gpio_request_enable = adi_pinmux_request_gpio,
-	.gpio_disable_free = adi_pinmux_free_gpio,
 };
 
 
@@ -1035,13 +743,6 @@ static int adi_gpio_direction_input(struct gpio_chip *chip, unsigned offset)
 	port = container_of(chip, struct gpio_port, chip);
 
 	spin_lock_irqsave(&port->lock, flags);
-
-	if (!port->rsvmap[offset].rsv_gpio) {
-		dev_err(port->dev, "GPIO %d wasn't requested!\n",
-			chip->base + offset);
-		spin_unlock_irqrestore(&port->lock, flags);
-		return -EINVAL;
-	}
 
 	writew(BIT(offset), &port->regs->dir_clear);
 	writew(readw(&port->regs->inen) | BIT(offset), &port->regs->inen);
@@ -1076,13 +777,6 @@ static int adi_gpio_direction_output(struct gpio_chip *chip, unsigned offset,
 	unsigned long flags;
 
 	spin_lock_irqsave(&port->lock, flags);
-
-	if (!port->rsvmap[offset].rsv_gpio) {
-		dev_err(port->dev, "GPIO %d wasn't requested!\n",
-			chip->base + offset);
-		spin_unlock_irqrestore(&port->lock, flags);
-		return -EINVAL;
-	}
 
 	writew(readw(&regs->inen) & ~(1 << offset), &regs->inen);
 	adi_gpio_set_value(chip, offset, value);
@@ -1267,13 +961,15 @@ static int adi_gpio_init_int(struct gpio_port *port)
 	return 0;
 }
 
+#define DEVNAME_SIZE 16
+
 static int adi_gpio_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	const struct adi_pinctrl_gpio_platform_data *pdata;
 	struct resource *res;
 	struct gpio_port *port;
-	char pinctrl_devname[RESOURCE_LABEL_SIZE];
+	char pinctrl_devname[DEVNAME_SIZE];
 	static int gpio;
 	int ret = 0, ret1;
 
@@ -1281,9 +977,7 @@ static int adi_gpio_probe(struct platform_device *pdev)
 	if (!pdata)
 		return -EINVAL;
 
-	port = devm_kzalloc(dev, sizeof(struct gpio_port) +
-		sizeof(struct gpio_reserve_map) * pdata->port_width,
-		GFP_KERNEL);
+	port = devm_kzalloc(dev, sizeof(struct gpio_port), GFP_KERNEL);
 	if (!port) {
 		dev_err(dev, "Memory alloc failed\n");
 		return -ENOMEM;
@@ -1338,7 +1032,6 @@ static int adi_gpio_probe(struct platform_device *pdev)
 	port->chip.request		= adi_gpio_request;
 	port->chip.free			= adi_gpio_free;
 	port->chip.to_irq		= adi_gpio_to_irq;
-	port->chip.dbg_show		= adi_gpio_dbg_show;
 	if (pdata->port_gpio_base > 0)
 		port->chip.base		= pdata->port_gpio_base;
 	else
@@ -1353,9 +1046,9 @@ static int adi_gpio_probe(struct platform_device *pdev)
 	}
 
 	/* Add gpio pin range */
-	snprintf(pinctrl_devname, RESOURCE_LABEL_SIZE, "pinctrl-adi2.%d",
+	snprintf(pinctrl_devname, DEVNAME_SIZE, "pinctrl-adi2.%d",
 		pdata->pinctrl_id);
-	pinctrl_devname[RESOURCE_LABEL_SIZE - 1] = 0;
+	pinctrl_devname[DEVNAME_SIZE - 1] = 0;
 	ret = gpiochip_add_pin_range(&port->chip, pinctrl_devname,
 		0, pdata->port_pin_base, port->width);
 	if (ret) {
@@ -1489,6 +1182,14 @@ MODULE_AUTHOR("Sonic Zhang <sonic.zhang@analog.com>");
 MODULE_DESCRIPTION("ADI gpio2 pin control driver");
 MODULE_LICENSE("GPL");
 
+
+extern int pin_request(struct pinctrl_dev *pctldev,
+			int pin, const char *owner,
+			struct pinctrl_gpio_range *gpio_range);
+
+extern const char *pin_free(struct pinctrl_dev *pctldev, int pin,
+			struct pinctrl_gpio_range *gpio_range);
+
 /* ADI direct peripheral pin request APIs. Don't send upstream */
 int pinmux_request(unsigned short fer, const char *label)
 {
@@ -1498,10 +1199,19 @@ int pinmux_request(unsigned short fer, const char *label)
 	unsigned long flags;
 	u8 offset;
 	unsigned pin = P_IDENT(fer);
+	int ret;
 
 	pctldev = get_pinctrl_dev_from_devname("pinctrl-adi2.0");
 	if (pctldev == NULL)
 		return -ENODEV;
+
+	ret = pin_request(pctldev, pin, label, NULL);
+	if (ret < 0) {
+		dev_err(pctldev->dev,
+			"could not request pin %d on device %s\n",
+			pin, pinctrl_dev_get_name(pctldev));
+		return ret;
+	}
 
 	range = pinctrl_find_gpio_range_from_pin(pctldev, pin);
 	if (range == NULL) {
@@ -1517,27 +1227,6 @@ int pinmux_request(unsigned short fer, const char *label)
 
 	spin_lock_irqsave(&port->lock, flags);
 
-	/* If a pin can be muxed as either GPIO or peripheral, make
-	 * sure it is not already a GPIO pin when we request it.
-	 */
-	if (port->rsvmap[offset].rsv_gpio) {
-		dev_err(pctldev->dev,
-		       "%s: Peripheral PIN %d is already reserved as GPIO by %s!\n",
-		       __func__, pin, get_label(port, offset));
-		spin_unlock_irqrestore(&port->lock, flags);
-		return -EBUSY;
-	}
-
-	if (port->rsvmap[offset].rsv_peri) {
-		dev_err(pctldev->dev,
-			"%s: Peripheral PIN %d is already reserved by %s!\n",
-			__func__, pin, get_label(port, offset));
-		spin_unlock_irqrestore(&port->lock, flags);
-		return -EBUSY;
-	}
-
-	port->rsvmap[offset].rsv_peri = true;
-	set_label(port, offset, label);
 	portmux_setup(port, offset, P_FUNCT2MUX(fer));
 	port_setup(port, offset, false);
 
@@ -1561,6 +1250,8 @@ void pinmux_free(unsigned short fer)
 	if (pctldev == NULL)
 		return;
 
+	pin_free(pctldev, pin, NULL);
+
 	range = pinctrl_find_gpio_range_from_pin(pctldev, pin);
 	if (range == NULL)
 		return;
@@ -1571,13 +1262,6 @@ void pinmux_free(unsigned short fer)
 
 	spin_lock_irqsave(&port->lock, flags);
 
-	if (!port->rsvmap[offset].rsv_peri) {
-		spin_unlock_irqrestore(&port->lock, flags);
-		return;
-	}
-
-	port->rsvmap[offset].rsv_peri = false;
-	set_label(port, offset, "free");
 	port_setup(port, offset, true);
 
 	spin_unlock_irqrestore(&port->lock, flags);
