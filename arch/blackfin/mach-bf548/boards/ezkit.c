@@ -2128,8 +2128,14 @@ static struct pinctrl_map __initdata bfin_pinmux_map[] = {
 	/* per-device maps */
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin-uart.0",  "pinctrl-adi2.0", NULL, "uart0"),
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin-uart.1",  "pinctrl-adi2.0", NULL, "uart1"),
+#ifdef CONFIG_BFIN_UART1_CTSRTS
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-uart.1",  "pinctrl-adi2.0", NULL, "uart1_ctsrts"),
+#endif
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin-uart.2",  "pinctrl-adi2.0", NULL, "uart2"),
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin-uart.3",  "pinctrl-adi2.0", NULL, "uart3"),
+#ifdef CONFIG_BFIN_UART3_CTSRTS
+	PIN_MAP_MUX_GROUP_DEFAULT("bfin-uart.3",  "pinctrl-adi2.0", NULL, "uart3_ctsrts"),
+#endif
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin_sir.0",  "pinctrl-adi2.0", NULL, "uart0"),
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin_sir.1",  "pinctrl-adi2.0", NULL, "uart1"),
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin_sir.2",  "pinctrl-adi2.0", NULL, "uart2"),
@@ -2162,6 +2168,9 @@ static struct pinctrl_map __initdata bfin_pinmux_map[] = {
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin-sport-uart.2",  "pinctrl-adi2.0", NULL, "sport2"),
 	PIN_MAP_MUX_GROUP_DEFAULT("bfin-sport-uart.3",  "pinctrl-adi2.0", NULL, "sport3"),
 	PIN_MAP_MUX_GROUP_DEFAULT("pata-bf54x",  "pinctrl-adi2.0", NULL, "atapi"),
+#ifdef CONFIG_BF548_ATAPI_ALTERNATIVE_PORT
+	PIN_MAP_MUX_GROUP_DEFAULT("pata-bf54x",  "pinctrl-adi2.0", NULL, "atapi_alter"),
+#endif
 	PIN_MAP_MUX_GROUP_DEFAULT("bf5xx-nand.0",  "pinctrl-adi2.0", NULL, "nfc0"),
 	PIN_MAP_MUX_GROUP_DEFAULT("bf54x-keys",  "pinctrl-adi2.0", NULL, "keys_4x4"),
 };
