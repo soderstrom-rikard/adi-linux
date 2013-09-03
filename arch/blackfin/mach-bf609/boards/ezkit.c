@@ -107,6 +107,7 @@ static struct platform_device bfin_rotary_device = {
 
 #if defined(CONFIG_STMMAC_ETH) || defined(CONFIG_STMMAC_ETH_MODULE)
 #include <linux/stmmac.h>
+#include <linux/phy.h>
 
 static struct stmmac_mdio_bus_data phy_private_data = {
 	.phy_mask = 1,
@@ -116,6 +117,12 @@ static struct stmmac_dma_cfg eth_dma_cfg = {
 	.pbl	= 2,
 };
 
+int stmmac_ptp_clk_init(struct platform_device *pdev)
+{
+	bfin_write32(PADS0_EMAC_PTP_CLKSEL, 0);
+	return 0;
+}
+
 static struct plat_stmmacenet_data eth_private_data = {
 	.has_gmac = 1,
 	.bus_id   = 0,
@@ -124,6 +131,8 @@ static struct plat_stmmacenet_data eth_private_data = {
 	.mdio_bus_data = &phy_private_data,
 	.dma_cfg  = &eth_dma_cfg,
 	.force_thresh_dma_mode = 1,
+	.interface = PHY_INTERFACE_MODE_RMII,
+	.init = stmmac_ptp_clk_init,
 };
 
 static struct platform_device bfin_eth_device = {
