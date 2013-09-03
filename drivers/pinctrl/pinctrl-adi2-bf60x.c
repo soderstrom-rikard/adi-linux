@@ -144,12 +144,12 @@ static const unsigned rsi0_pins[] = {
 
 static const unsigned eth0_pins[] = {
 	GPIO_PC6, GPIO_PC7, GPIO_PC2, GPIO_PC0, GPIO_PC3, GPIO_PC1,
-	GPIO_PB13, GPIO_PD6, GPIO_PC5, GPIO_PC4, GPIO_PB14,
+	GPIO_PB13, GPIO_PD6, GPIO_PC5, GPIO_PC4, GPIO_PB14, GPIO_PB15,
 };
 
 static const unsigned eth1_pins[] = {
 	GPIO_PE10, GPIO_PE11, GPIO_PG3, GPIO_PG0, GPIO_PG2, GPIO_PE15,
-	GPIO_PG5, GPIO_PE12, GPIO_PE13, GPIO_PE14, GPIO_PG6,
+	GPIO_PG5, GPIO_PE12, GPIO_PE13, GPIO_PE14, GPIO_PG6, GPIO_PC9,
 };
 
 static const unsigned spi0_pins[] = {
