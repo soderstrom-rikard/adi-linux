@@ -2958,19 +2958,9 @@ int usb_port_suspend(struct usb_device *udev, pm_message_t msg)
 	/* see 7.1.7.6 */
 	if (hub_is_superspeed(hub->hdev))
 		status = hub_set_port_link_state(hub, port1, USB_SS_PORT_LS_U3);
-	else if (PMSG_IS_AUTO(msg))
+	else
 		status = set_port_feature(hub->hdev, port1,
 						USB_PORT_FEAT_SUSPEND);
-	/*
-	 * For system suspend, we do not need to enable the suspend feature
-	 * on individual USB-2 ports.  The devices will automatically go
-	 * into suspend a few ms after the root hub stops sending packets.
-	 * The USB 2.0 spec calls this "global suspend".
-	 */
-	else {
-		really_suspend = false;
-		status = 0;
-	}
 	if (status) {
 		dev_dbg(hub->intfdev, "can't suspend port %d, status %d\n",
 				port1, status);
